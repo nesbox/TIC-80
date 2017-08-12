@@ -36,15 +36,26 @@ typedef struct
 {
 	struct
 	{
-		s16* buffer;
-		s32 size;
-	} sound;
+		void (*trace)(const char* text, u8 color);
+		void (*error)(const char* info);
+		void (*exit)();		
+	} callback;
 
 	struct
 	{
-		void* buffer;
-		s32 size;
-	} screen;
+		s16* samples;
+		s32 count;
+	} sound;
+
+	u32 screen[TIC80_WIDTH * TIC80_HEIGHT];
+	u32 border[TIC80_HEIGHT];
+
+	struct
+	{
+		s8 x;
+		s8 y;
+		s8 rows[TIC80_HEIGHT];
+	} offset;
 } tic80;
 
 typedef union

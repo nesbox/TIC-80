@@ -24,6 +24,19 @@
 #include <SDL.h>
 #include <tic80.h>
 
+static struct
+{
+	bool quit;
+} state =
+{
+	.quit = false,
+};
+
+static void onExit()
+{
+	state.quit = true;
+}
+
 int main(int argc, char **argv)
 {
 	FILE* file = fopen("cart.tic", "rb");
@@ -41,8 +54,6 @@ int main(int argc, char **argv)
 		if(cart)
 		{
 			SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
-
-			bool quit = false;
 
 			{
 				SDL_Window* window = SDL_CreateWindow("TIC-80 SDL demo", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, TIC80_WIDTH, TIC80_HEIGHT, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
@@ -68,11 +79,14 @@ int main(int argc, char **argv)
 				tic80_input input = {.first.data = 0, .second.data = 0};
 
 				tic80* tic = tic80_create(audioSpec.freq);
+
+				tic->callback.exit = onExit;
+
 				tic80_load(tic, cart, size);
 				
 				if(tic)
 				{
-					while(!quit)
+					while(!state.quit)
 					{
 						SDL_Event event;
 
@@ -81,7 +95,7 @@ int main(int argc, char **argv)
 							switch(event.type)
 							{
 							case SDL_QUIT:
-								quit = true;
+								state.quit = true;
 								break;
 							}
 						}
@@ -120,7 +134,7 @@ int main(int argc, char **argv)
 							SDL_PauseAudioDevice(audioDevice, 0);
 						}
 
-						SDL_QueueAudio(audioDevice, tic->sound.buffer, tic->sound.size);
+						SDL_QueueAudio(audioDevice, tic->sound.samples, tic->sound.count * sizeof(tic->sound.samples[0]));
 
 						SDL_RenderClear(renderer);
 
@@ -128,7 +142,7 @@ int main(int argc, char **argv)
 							void* pixels = NULL;
 							int pitch = 0;
 							SDL_LockTexture(texture, NULL, &pixels, &pitch);
-							SDL_memcpy(pixels, tic->screen.buffer, tic->screen.size);
+							SDL_memcpy(pixels, tic->screen, sizeof tic->screen);
 							SDL_UnlockTexture(texture);
 							SDL_RenderCopy(renderer, texture, NULL, NULL);
 						}
