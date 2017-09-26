@@ -8,3 +8,17 @@ This is the official issues tracker of <https://tic.computer>. If you are experi
 Documentation is available in the [wiki](https://github.com/nesbox/tic.computer/wiki).
 
 Thanks!
+
+Building with Visual Studio 2015
+=======
+- install Visual Studio 2015
+- install GIT
+- run following commands in `cmd`
+```
+mkdir tic
+cd tic
+git clone https://github.com/nesbox/3rd-party
+git clone https://github.com/nesbox/TIC-80.git
+```
+- open `TIC-80\build\windows\tic\tic.sln` and run build
+- enjoy :)
