@@ -19,14 +19,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\sdk\giflib-5.1.4\lib\dgif_lib.c" />
-    <ClCompile Include="..\..\..\..\..\sdk\giflib-5.1.4\lib\egif_lib.c" />
-    <ClCompile Include="..\..\..\..\..\sdk\giflib-5.1.4\lib\gifalloc.c" />
-    <ClCompile Include="..\..\..\..\..\sdk\giflib-5.1.4\lib\gif_err.c" />
-    <ClCompile Include="..\..\..\..\..\sdk\giflib-5.1.4\lib\gif_font.c" />
-    <ClCompile Include="..\..\..\..\..\sdk\giflib-5.1.4\lib\gif_hash.c" />
-    <ClCompile Include="..\..\..\..\..\sdk\giflib-5.1.4\lib\openbsd-reallocarray.c" />
-    <ClCompile Include="..\..\..\..\..\sdk\giflib-5.1.4\lib\quantize.c" />
+    <ClCompile Include="..\..\..\..\3rd-party\giflib-5.1.4\lib\dgif_lib.c" />
+    <ClCompile Include="..\..\..\..\3rd-party\giflib-5.1.4\lib\egif_lib.c" />
+    <ClCompile Include="..\..\..\..\3rd-party\giflib-5.1.4\lib\gifalloc.c" />
+    <ClCompile Include="..\..\..\..\3rd-party\giflib-5.1.4\lib\gif_err.c" />
+    <ClCompile Include="..\..\..\..\3rd-party\giflib-5.1.4\lib\gif_font.c" />
+    <ClCompile Include="..\..\..\..\3rd-party\giflib-5.1.4\lib\gif_hash.c" />
+    <ClCompile Include="..\..\..\..\3rd-party\giflib-5.1.4\lib\openbsd-reallocarray.c" />
+    <ClCompile Include="..\..\..\..\3rd-party\giflib-5.1.4\lib\quantize.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{6EA9D998-7557-4AED-ABFC-142F9960C9B6}</ProjectGuid>
