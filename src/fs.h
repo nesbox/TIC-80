@@ -1,0 +1,76 @@
+// MIT License
+
+// Copyright (c) 2017 Vadim Grigoruk @nesbox // grigoruk@gmail.com
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
+
+#pragma once
+
+#include <tic80_types.h>
+#include <string.h>
+
+typedef struct FileSystem FileSystem;
+
+typedef enum
+{
+	FS_FILE_NOT_ADDED,
+	FS_FILE_ADDED,
+	FS_FILE_EXISTS,
+} AddResult;
+
+typedef enum
+{
+	FS_FILE_NOT_DOWNLOADED,
+	FS_FILE_DOWNLOADED,
+} GetResult;
+
+typedef bool(*ListCallback)(const char* name, const char* info, s32 id, void* data, bool dir);
+typedef void(*AddCallback)(const char*, AddResult, void*);
+typedef void(*GetCallback)(GetResult, void*);
+typedef void(*OpenCallback)(const char* name, const void* buffer, size_t size, void* data);
+
+typedef struct FileSystem FileSystem;
+
+void createFileSystem(void(*callback)(FileSystem*));
+
+void fsEnumFiles(FileSystem* fs, ListCallback callback, void* data);
+void fsAddFile(FileSystem* fs, AddCallback callback, void* data);
+void fsGetFile(FileSystem* fs, GetCallback callback, const char* name, void* data);
+bool fsDeleteFile(FileSystem* fs, const char* name);
+bool fsDeleteDir(FileSystem* fs, const char* name);
+bool fsSaveFile(FileSystem* fs, const char* name, const void* data, size_t size, bool overwrite);
+bool fsSaveRootFile(FileSystem* fs, const char* name, const void* data, size_t size, bool overwrite);
+void* fsLoadFile(FileSystem* fs, const char* name, s32* size);
+void* fsLoadRootFile(FileSystem* fs, const char* name, s32* size);
+void fsMakeDir(FileSystem* fs, const char* name);
+bool fsExistsFile(FileSystem* fs, const char* name);
+
+void* fsReadFile(const char* path, s32* size);
+bool fsWriteFile(const char* path, const void* data, s32 size);
+bool fsCopyFile(const char* src, const char* dst);
+void fsGetFileData(GetCallback callback, const char* name, void* buffer, size_t size, u32 mode, void* data);
+void fsOpenFileData(OpenCallback callback, void* data);
+void fsOpenWorkingFolder(FileSystem* fs);
+void fsOpenSystemPath(FileSystem* fs, const char* path);
+bool fsIsDir(FileSystem* fs, const char* dir);
+bool fsIsInPublicDir(FileSystem* fs);
+bool fsChangeDir(FileSystem* fs, const char* dir);
+const char* fsGetDir(FileSystem* fs);
+void fsDirBack(FileSystem* fs);
+void fsHomeDir(FileSystem* fs);

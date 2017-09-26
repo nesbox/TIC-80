@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2017 Vadim Grigoruk @nesbox
+// Copyright (c) 2017 Vadim Grigoruk @nesbox // grigoruk@gmail.com
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,20 +23,20 @@
 #pragma once
 
 #if (defined(WIN32) || defined(_WIN32) || defined(__MINGW32__))
-#	undef __WINDOWS__
-#	define __WINDOWS__ 1
+#	undef __TIC_WINDOWS__
+#	define __TIC_WINDOWS__ 1
 #endif
 
 #if (defined(linux) || defined(__linux) || defined(__linux__))
-#	undef __LINUX__
-#	define __LINUX__   1
+#	undef __TIC_LINUX__
+#	define __TIC_LINUX__   1
 #endif
 
 #ifndef TIC80_API
 #	if defined(TIC80_SHARED)
-#		if defined(__WINDOWS__)
+#		if defined(__TIC_WINDOWS__)
 #			define TIC80_API __declspec(dllexport)
-#		elif defined(__LINUX__)
+#		elif defined(__TIC_LINUX__)
 #			define TIC80_API __attribute__ ((visibility("default")))
 #		endif
 #	else

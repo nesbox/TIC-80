@@ -1,0 +1,53 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{0fae60ee-e4da-4394-b6f1-dafed679fe4d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\ext">
+      <UniqueIdentifier>{40647055-2f61-4d14-8f63-1ec2a6f7cd90}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\ext\duktape">
+      <UniqueIdentifier>{32b7b251-991e-49bf-b9b3-146483deba38}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="res">
+      <UniqueIdentifier>{a8b4fcef-8795-4705-be81-2c4b8e6c439d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\tic80.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\jsapi.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\luaapi.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tic.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\ext\duktape\duktape.c">
+      <Filter>src\ext\duktape</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\ext\blip_buf.c">
+      <Filter>src\ext</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\ext\gif.c">
+      <Filter>src\ext</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\tools.c">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h">
+      <Filter>res</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="tic80.rc">
+      <Filter>res</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>

@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2017 Vadim Grigoruk @nesbox
+// Copyright (c) 2017 Vadim Grigoruk @nesbox // grigoruk@gmail.com
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
