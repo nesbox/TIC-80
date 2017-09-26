@@ -1,6 +1,6 @@
 OPT=-O3 -Wall -std=c99
 SRC=bin2txt.c
-INCLUDE=-I../include/zlib
+INCLUDE=-I../../include/zlib
 LIB=-lz
 
 all: windows
