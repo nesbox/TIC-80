@@ -858,9 +858,9 @@ static void api_textri(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, 
 	TexVert V0, V1, V2;
 	const u8* ptr = memory->ram.gfx.tiles[0].data;
 
-	V0.x = x1; 	V0.y = y1; 	V0.u = u1; 	V0.v = v1;
-	V1.x = x2; 	V1.y = y2; 	V1.u = u2; 	V1.v = v2;
-	V2.x = x3; 	V2.y = y3; 	V2.u = u3; 	V2.v = v3;
+	V0.x = (float)x1; 	V0.y = (float)y1; 	V0.u = (float)u1; 	V0.v = (float)v1;
+	V1.x = (float)x2; 	V1.y = (float)y2; 	V1.u = (float)u2; 	V1.v = (float)v2;
+	V2.x = (float)x3; 	V2.y = (float)y3; 	V2.u = (float)u3; 	V2.v = (float)v3;
 	initSidesBuffer();
 
 	ticTexLine(memory, &V0, &V1);
@@ -879,11 +879,14 @@ static void api_textri(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, 
 
 			for (s32 x = (int)SidesBuffer.Left[y]; x <= (int)SidesBuffer.Right[y]; ++x)
 			{
-				int iu = (int)(u + 0.5) & 127;
-				int iv = (int)(v + 0.5) & 255;
-				u8 *buffer = &ptr[((iu / 8) + (iv / 8) * 16) * 32];
-				u8 color = tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) * 8));
-				setPixel(machine, x, y, color);
+				if ((x >= 0) && (x < TIC80_WIDTH))
+				{
+					int iu = (int)(u) & 127;
+					int iv = (int)(v) & 255;
+					u8 *buffer = &ptr[((iu / 8  ) + (iv / 8 ) *16 ) * 32 ];
+					u8 color = tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) << 3));
+					setPixel(machine, x, y, color);
+				}
 				u += du;
 				v += dv;
 			}
