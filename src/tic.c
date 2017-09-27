@@ -707,16 +707,21 @@ static void api_rect_border(tic_mem* memory, s32 x, s32 y, s32 width, s32 height
 	drawRectBorder(machine, x, y, width, height, color);
 }
 
+
 static struct
 {
 	s16 Left[TIC80_HEIGHT];
 	s16 Right[TIC80_HEIGHT];	
+	s16 ULeft[TIC80_HEIGHT];
+	s16 VLeft[TIC80_HEIGHT];
+	s16 URight[TIC80_HEIGHT];
+	s16 VRight[TIC80_HEIGHT];
 } SidesBuffer;
 
 static void initSidesBuffer()
 {
-	for(s32 i = 0; i < COUNT_OF(SidesBuffer.Left); i++)
-		SidesBuffer.Left[i] = TIC80_WIDTH, SidesBuffer.Right[i] = -1;	
+	for (s32 i = 0; i < COUNT_OF(SidesBuffer.Left); i++)
+		SidesBuffer.Left[i] = TIC80_WIDTH, SidesBuffer.Right[i] = -1;
 }
 
 static void setSidePixel(s32 x, s32 y)
@@ -725,6 +730,26 @@ static void setSidePixel(s32 x, s32 y)
 	{
 		if(x < SidesBuffer.Left[y]) SidesBuffer.Left[y] = x;
 		if(x > SidesBuffer.Right[y]) SidesBuffer.Right[y] = x;
+	}
+}
+
+static void setSideTexPixel(s32 x, s32 y, s32 u, s32 v)
+{
+	int yy = (int)y;
+	if (yy >= 0 && yy < TIC80_HEIGHT)
+	{
+		if (x < SidesBuffer.Left[yy])
+		{
+			SidesBuffer.Left[yy] = x;
+			SidesBuffer.ULeft[yy] = u;
+			SidesBuffer.VLeft[yy] = v;
+		}
+		if (x > SidesBuffer.Right[yy])
+		{
+			SidesBuffer.Right[yy] = x;
+			SidesBuffer.URight[yy] = u;
+			SidesBuffer.VRight[yy] = v;
+		}
 	}
 }
 
@@ -788,6 +813,85 @@ static void ticLine(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, u8 color, l
 static void triPixelFunc(tic_mem* memory, s32 x, s32 y, u8 color)
 {
 	setSidePixel(x, y);
+}
+
+typedef struct
+{
+	float x, y, u, v;
+} TexVert;
+
+static void ticTexLine(tic_mem* memory,TexVert *v0,TexVert *v1)
+{
+	int iy;
+	TexVert *top = v0;
+	TexVert *bot = v1;
+
+	if (bot->y < top->y)
+	{
+		top = v1;
+		bot = v0;
+	}
+
+	float dy = bot->y - top->y;
+	if ((int)dy == 0)	return;
+
+	float step_x = (bot->x - top->x)/ dy;
+	float step_u = (bot->u - top->u) / dy;
+	float step_v = (bot->v - top->v) / dy;
+
+	float x = top->x;
+	float y = top->y;
+	float u = top->u;
+	float v = top->v;
+	for (; y < (int)bot->y; y++)
+	{
+		setSideTexPixel(x, y, u, v);
+		x += step_x;
+		u += step_u;
+		v += step_v;
+	}
+}
+
+static void api_textri(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, s32 u1, s32 v1, s32 u2, s32 v2, s32 u3, s32 v3)
+{
+	tic_machine* machine = (tic_machine*)memory;
+	TexVert V0, V1, V2;
+	const u8* ptr = memory->ram.gfx.tiles[0].data;
+
+	V0.x = (float)x1; 	V0.y = (float)y1; 	V0.u = (float)u1; 	V0.v = (float)v1;
+	V1.x = (float)x2; 	V1.y = (float)y2; 	V1.u = (float)u2; 	V1.v = (float)v2;
+	V2.x = (float)x3; 	V2.y = (float)y3; 	V2.u = (float)u3; 	V2.v = (float)v3;
+	initSidesBuffer();
+
+	ticTexLine(memory, &V0, &V1);
+	ticTexLine(memory, &V1, &V2);
+	ticTexLine(memory, &V2, &V0);
+
+	for (s32 y = 0; y < TIC80_HEIGHT; y++)
+	{
+		float width = SidesBuffer.Right[y] - SidesBuffer.Left[y];
+		if (width > 0)
+		{
+			float du = (float)(SidesBuffer.URight[y] - SidesBuffer.ULeft[y]) / width;
+			float dv = (float)(SidesBuffer.VRight[y] - SidesBuffer.VLeft[y]) / width;
+			float u = SidesBuffer.ULeft[y];
+			float v = SidesBuffer.VLeft[y];
+
+			for (s32 x = (int)SidesBuffer.Left[y]; x <= (int)SidesBuffer.Right[y]; ++x)
+			{
+				if ((x >= 0) && (x < TIC80_WIDTH))
+				{
+					int iu = (int)(u) & 127;
+					int iv = (int)(v) & 255;
+					u8 *buffer = &ptr[((iu / 8  ) + (iv / 8 ) *16 ) * 32 ];
+					u8 color = tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) << 3));
+					setPixel(machine, x, y, color);
+				}
+				u += du;
+				v += dv;
+			}
+		}
+	}
 }
 
 static void api_tri(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, u8 color)
@@ -1536,6 +1640,7 @@ static void initApi(tic_api* api)
 	INIT_API(circle);
 	INIT_API(circle_border);
 	INIT_API(tri);
+	INIT_API(textri);
 	INIT_API(clip);
 	INIT_API(sfx);
 	INIT_API(sfx_stop);
