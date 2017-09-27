@@ -82,6 +82,7 @@ typedef struct
 	void (*circle)				(tic_mem* memory, s32 x, s32 y, u32 radius, u8 color);
 	void (*circle_border)		(tic_mem* memory, s32 x, s32 y, u32 radius, u8 color);
 	void (*tri)					(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, u8 color);
+	void (*textri)				(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, s32 u1, s32 v1, s32 u2, s32 v2, s32 u3, s32 v3);
 	void (*clip)				(tic_mem* memory, s32 x, s32 y, s32 width, s32 height);
 	void (*sfx)					(tic_mem* memory, s32 index, s32 note, s32 octave, s32 duration, s32 channel);
 	void (*sfx_stop)			(tic_mem* memory, s32 channel);

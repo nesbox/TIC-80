@@ -290,6 +290,30 @@ static s32 lua_tri(lua_State* lua)
 	return 0;
 }
 
+static s32 lua_textri(lua_State* lua)
+{
+	s32 top = lua_gettop(lua);
+
+	if (top == 12)
+	{
+		float pt[12];
+
+		for (s32 i = 0; i < COUNT_OF(pt); i++)
+			pt[i] = getLuaNumber(lua, i + 1);
+
+		tic_mem* memory = (tic_mem*)getLuaMachine(lua);
+		memory->api.textri(memory,	pt[0], pt[1],	//	xy 1
+									pt[2], pt[3],	//	xy 2
+									pt[4], pt[5],	//  xy 3
+									pt[6], pt[7],	//	uv 1
+									pt[8], pt[9],	//	uv 2
+									pt[10], pt[11]);
+	}
+	else luaL_error(lua, "invalid parameters, textri(x1,y1,x2,y2,x3,y3,u1,v1,u2,v2,u3,v3)\n");
+	return 0;
+}
+
+
 static s32 lua_clip(lua_State* lua)
 {
 	s32 top = lua_gettop(lua);
@@ -1013,7 +1037,7 @@ static const lua_CFunction ApiFunc[] =
 	lua_rectb, lua_spr, lua_btn, lua_btnp, lua_sfx, lua_map, lua_mget, 
 	lua_mset, lua_peek, lua_poke, lua_peek4, lua_poke4, lua_memcpy, 
 	lua_memset, lua_trace, lua_pmem, lua_time, lua_exit, lua_font, lua_mouse, 
-	lua_circ, lua_circb, lua_tri, lua_clip, lua_music, lua_sync
+	lua_circ, lua_circb, lua_tri, lua_textri,lua_clip, lua_music, lua_sync
 };
 
 STATIC_ASSERT(api_func, COUNT_OF(ApiKeywords) == COUNT_OF(ApiFunc));
