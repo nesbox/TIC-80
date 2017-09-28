@@ -904,7 +904,7 @@ static void api_textri(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, 
 
 							s32 iu = (s32)u % MapWidth;
 							s32 iv = (s32)v % MapHeight;
-							
+
 							u8 tile = map[(iv>>3) * TIC_MAP_WIDTH + (iu>>3)];
 							const u8 *buffer = &ptr[tile << 5];
 							u8 color = tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) << 3));
@@ -913,8 +913,10 @@ static void api_textri(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, 
 						}
 						else
 						{
-							s32 iu = (s32)(u) & 127;
-							s32 iv = (s32)(v) & 255;
+							enum{SheetWidth = TIC_SPRITESHEET_SIZE, SheetHeight = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS};
+
+							s32 iu = (s32)(u) & (SheetWidth - 1);
+							s32 iv = (s32)(v) & (SheetHeight - 1);
 							const u8 *buffer = &ptr[((iu >> 3) + ((iv >> 3) << 4)) << 5];
 							u8 color = tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) << 3));
 							if (color != chroma)
