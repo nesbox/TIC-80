@@ -734,7 +734,7 @@ static void setSidePixel(s32 x, s32 y)
 
 static void setSideTexPixel(s32 x, s32 y, float u, float v)
 {
-	int yy = (s32)y;
+	s32 yy = (s32)y;
 	if (yy >= 0 && yy < TIC80_HEIGHT)
 	{
 		if (x < SidesBuffer.Left[yy])
@@ -759,7 +759,7 @@ static void api_circle(tic_mem* memory, s32 xm, s32 ym, u32 radius, u8 color)
 	initSidesBuffer();
 
 	s32 r = radius;
-	int x = -r, y = 0, err = 2-2*r;
+	s32 x = -r, y = 0, err = 2-2*r;
 	do 
 	{
 		setSidePixel(xm-x, ym+y);
@@ -780,7 +780,7 @@ static void api_circle(tic_mem* memory, s32 xm, s32 ym, u32 radius, u8 color)
 static void api_circle_border(tic_mem* memory, s32 xm, s32 ym, u32 radius, u8 color)
 {
 	s32 r = radius;
-	int x = -r, y = 0, err = 2-2*r;
+	s32 x = -r, y = 0, err = 2-2*r;
 	do {
 		api_pixel(memory, xm-x, ym+y, color);
 		api_pixel(memory, xm-y, ym-x, color);
@@ -900,8 +900,11 @@ static void api_textri(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, 
 					{
 						if (use_map == true)
 						{
-							int iu = (s32)u % 1920;
-							int iv = (s32)v % 1088;
+							enum {MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE, MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE};
+
+							s32 iu = (s32)u % MapWidth;
+							s32 iv = (s32)v % MapHeight;
+							
 							u8 tile = map[(iv>>3) * TIC_MAP_WIDTH + (iu>>3)];
 							const u8 *buffer = &ptr[tile << 5];
 							u8 color = tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) << 3));
@@ -910,8 +913,8 @@ static void api_textri(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, 
 						}
 						else
 						{
-							int iu = (s32)(u) & 127;
-							int iv = (s32)(v) & 255;
+							s32 iu = (s32)(u) & 127;
+							s32 iv = (s32)(v) & 255;
 							const u8 *buffer = &ptr[((iu >> 3) + ((iv >> 3) << 4)) << 5];
 							u8 color = tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) << 3));
 							if (color != chroma)
