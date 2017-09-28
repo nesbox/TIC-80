@@ -734,7 +734,7 @@ static void setSidePixel(s32 x, s32 y)
 
 static void setSideTexPixel(s32 x, s32 y, float u, float v)
 {
-	int yy = (int)y;
+	int yy = (s32)y;
 	if (yy >= 0 && yy < TIC80_HEIGHT)
 	{
 		if (x < SidesBuffer.Left[yy])
@@ -838,7 +838,6 @@ typedef struct
 
 static void ticTexLine(tic_mem* memory, TexVert *v0, TexVert *v1)
 {
-	int iy;
 	TexVert *top = v0;
 	TexVert *bot = v1;
 
@@ -849,7 +848,7 @@ static void ticTexLine(tic_mem* memory, TexVert *v0, TexVert *v1)
 	}
 
 	float dy = bot->y - top->y;
-	if ((int)dy == 0)	return;
+	if ((s32)dy == 0)	return;
 
 	float step_x = (bot->x - top->x) / dy;
 	float step_u = (bot->u - top->u) / dy;
@@ -859,7 +858,7 @@ static void ticTexLine(tic_mem* memory, TexVert *v0, TexVert *v1)
 	float y = top->y;
 	float u = top->u;
 	float v = top->v;
-	for (; y < (int)bot->y; y++)
+	for (; y < (s32)bot->y; y++)
 	{
 		setSideTexPixel(x, y, u, v);
 		x += step_x;
@@ -895,25 +894,25 @@ static void api_textri(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, 
 				float u = SidesBuffer.ULeft[y];
 				float v = SidesBuffer.VLeft[y];
 
-				for (s32 x = (int)SidesBuffer.Left[y]; x <= (int)SidesBuffer.Right[y]; ++x)
+				for (s32 x = (s32)SidesBuffer.Left[y]; x <= (s32)SidesBuffer.Right[y]; ++x)
 				{
 					if ((x >= 0) && (x < TIC80_WIDTH))
 					{
 						if (use_map == true)
 						{
-							int iu = (int)u % 1920;
-							int iv = (int)v % 1088;
+							int iu = (s32)u % 1920;
+							int iv = (s32)v % 1088;
 							u8 tile = map[(iv>>3) * TIC_MAP_WIDTH + (iu>>3)];
-							u8 *buffer = &ptr[tile << 5];
+							const u8 *buffer = &ptr[tile << 5];
 							u8 color = tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) << 3));
 							if (color != chroma)
 								setPixel(machine, x, y, color);
 						}
 						else
 						{
-							int iu = (int)(u) & 127;
-							int iv = (int)(v) & 255;
-							u8 *buffer = &ptr[((iu >> 3) + ((iv >> 3) << 4)) << 5];
+							int iu = (s32)(u) & 127;
+							int iv = (s32)(v) & 255;
+							const u8 *buffer = &ptr[((iu >> 3) + ((iv >> 3) << 4)) << 5];
 							u8 color = tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) << 3));
 							if (color != chroma)
 								setPixel(machine, x, y, color);
