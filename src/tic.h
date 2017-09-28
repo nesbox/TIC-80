@@ -104,7 +104,7 @@
 
 #define API_KEYWORDS {"TIC", "scanline", "print", "cls", "pix", "line", "rect", "rectb", \
 	"spr", "btn", "btnp", "sfx", "map", "mget", "mset", "peek", "poke", "peek4", "poke4", \
-	"memcpy", "memset", "trace", "pmem", "time", "exit", "font", "mouse", "circ", "circb", "tri", \
+	"memcpy", "memset", "trace", "pmem", "time", "exit", "font", "mouse", "circ", "circb", "tri", "textri", \
 	"clip", "music", "sync"}
 
 #define TIC_FONT_CHARS 128
