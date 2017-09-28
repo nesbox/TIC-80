@@ -719,6 +719,12 @@ static void initSurfMode()
 	initSurf(&studio.surf, studio.tic, &studio.console);
 }
 
+void gotoSurf()
+{
+	initSurfMode();
+	setStudioMode(TIC_SURF_MODE);
+}
+
 static void initMenuMode()
 {
 	initMenu(&studio.menu, studio.tic, studio.fs);

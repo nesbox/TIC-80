@@ -847,7 +847,7 @@ static void onConsoleInstallDemosCommand(Console* console, const char* param)
 
 static void onConsoleSurfCommand(Console* console, const char* param)
 {
-	setStudioMode(TIC_SURF_MODE);
+	gotoSurf();
 
 	commandDone(console);
 }
