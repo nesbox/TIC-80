@@ -644,6 +644,29 @@ static duk_ret_t duk_tri(duk_context* duk)
 	return 0;
 }
 
+static duk_ret_t duk_textri(duk_context* duk)
+{
+	s32 pt[12];
+
+	for (s32 i = 0; i < COUNT_OF(pt); i++)
+		pt[i] = duk_to_int(duk, i);
+	tic_mem* memory = (tic_mem*)getDukMachine(duk);
+	bool use_map = duk_is_null_or_undefined(duk, 12) ? false : duk_to_boolean(duk, 12);
+	u8 chroma = duk_is_null_or_undefined(duk, 13) ? 0xff : duk_to_int(duk, 13);
+
+	memory->api.textri(memory, pt[0], pt[1],	//	xy 1
+						pt[2], pt[3],	//	xy 2
+						pt[4], pt[5],	//  xy 3
+						pt[6], pt[7],	//	uv 1
+						pt[8], pt[9],	//	uv 2
+						pt[10], pt[11],//  uv 3
+						use_map, // usemap
+						chroma);	//	chroma
+	
+	return 0;
+}
+
+
 static duk_ret_t duk_clip(duk_context* duk)
 {
 	s32 x = duk_to_int(duk, 0);
@@ -724,6 +747,7 @@ static const struct{duk_c_function func; s32 params;} ApiFunc[] =
 	{duk_circ, 4},
 	{duk_circb, 4},
 	{duk_tri, 7},
+	{duk_textri,12},
 	{duk_clip, 4},
 	{duk_music, 4},
 	{duk_sync, 0},
