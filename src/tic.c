@@ -295,10 +295,11 @@ static void channelSfx(tic_mem* memory, s32 index, s32 note, s32 octave, s32 dur
 
 	c->volume = volume;
 
-    {
-        struct {s8 speed:SFX_SPEED_BITS;} temp = {speed};
-        c->speed = speed == temp.speed ? speed : machine->soundSrc->sfx.data[index].speed;
-    }
+	if(index >= 0)
+	{
+		struct {s8 speed:SFX_SPEED_BITS;} temp = {speed};
+		c->speed = speed == temp.speed ? speed : machine->soundSrc->sfx.data[index].speed;
+	}
 
 	// start index of idealized piano
 	enum {PianoStart = -8};
@@ -323,7 +324,6 @@ static void resetMusic(tic_mem* memory)
 	for (s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
 		musicSfx(memory, -1, 0, 0, 0, c);
 }
-
 
 static void setMusic(tic_machine* machine, s32 index, s32 frame, s32 row, bool loop)
 {
