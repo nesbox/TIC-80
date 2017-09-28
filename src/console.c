@@ -2241,6 +2241,9 @@ static void tick(Console* console)
 			embed.yes = false;
 			embed.fast = false;
 			studioRomLoaded();
+
+			console->tic->api.reset(console->tic);
+
 			printLine(console);
 			commandDone(console);
 			console->active = true;
