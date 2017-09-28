@@ -59,10 +59,10 @@ static void drawSelection(Sprite* sprite, s32 x, s32 y, s32 w, s32 h)
 	u8 color = systemColor(tic_color_white);
 
 	s32 index = sprite->tickCounter / 10;
-	for(s32 i = x; i < (x+w); i++) 		sprite->tic->api.pixel(sprite->tic, i, y, index++ % Step ? color : 0); index++;
-	for(s32 i = y; i < (y+h); i++) 		sprite->tic->api.pixel(sprite->tic, x + w-1, i, index++ % Step ? color : 0); index++;
-	for(s32 i = (x+w-1); i >= x; i--) 	sprite->tic->api.pixel(sprite->tic, i, y + h-1, index++ % Step ? color : 0); index++;
-	for(s32 i = (y+h-1); i >= y; i--) 	sprite->tic->api.pixel(sprite->tic, x, i, index++ % Step ? color : 0);
+	for(s32 i = x; i < (x+w); i++) 		{ sprite->tic->api.pixel(sprite->tic, i, y, index++ % Step ? color : 0);} index++;
+	for(s32 i = y; i < (y+h); i++) 		{ sprite->tic->api.pixel(sprite->tic, x + w-1, i, index++ % Step ? color : 0);} index++;
+	for(s32 i = (x+w-1); i >= x; i--) 	{ sprite->tic->api.pixel(sprite->tic, i, y + h-1, index++ % Step ? color : 0);} index++;
+	for(s32 i = (y+h-1); i >= y; i--) 	{ sprite->tic->api.pixel(sprite->tic, x, i, index++ % Step ? color : 0);}
 }
 
 static SDL_Rect getSpriteRect(Sprite* sprite)
