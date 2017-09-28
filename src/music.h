@@ -49,6 +49,8 @@ struct Music
 			s32 volume;
 		} last;
 
+		bool patterns[TIC_SOUND_CHANNELS];
+
 	} tracker;
 
 	enum

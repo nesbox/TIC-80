@@ -1126,20 +1126,52 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 	}
 }
 
+static void drawTumbler(Music* music, s32 x, s32 y, s32 index)
+{
+	tic_mem* tic = music->tic;
+
+	enum{On=36, Off = 52, Size=5, Chroma=14};
+	
+	SDL_Rect rect = {x, y, Size, Size};
+
+	if(checkMousePos(&rect))
+	{
+		setCursor(SDL_SYSTEM_CURSOR_HAND);
+
+		showTooltip("on/off channel");
+
+		if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+		{
+			if (SDL_GetModState() & KMOD_CTRL)
+			{
+				for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
+					music->tracker.patterns[i] = i == index;
+			}
+			else music->tracker.patterns[index] = !music->tracker.patterns[index];
+		}
+	}
+
+	u8 color = Chroma;
+	tic->api.sprite(tic, &tic->config.gfx, music->tracker.patterns[index] ? On : Off, x, y, &color, 1);
+}
+
 static void drawTracker(Music* music, s32 x, s32 y)
 {
 	drawTrackerFrames(music, x, y);
 
 	x += TIC_FONT_WIDTH * 3;
 
+	enum{ChannelWidth = TIC_FONT_WIDTH * 9};
+
 	for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
 	{
 		s32 patternId = tic_tool_get_pattern_id(getTrack(music), music->tracker.frame, i);
-		drawEditbox(music, x + TIC_FONT_WIDTH * 9 * i + 2*TIC_FONT_WIDTH, y - 9, patternId, setChannelPattern, i);
+		drawEditbox(music, x + ChannelWidth * i + 2*TIC_FONT_WIDTH, y - 9, patternId, setChannelPattern, i);
+		drawTumbler(music, x + ChannelWidth * i + 7*TIC_FONT_WIDTH, y - 9, i);
 	}
 
 	for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
-		drawTrackerChannel(music, x + TIC_FONT_WIDTH * 9 * i, y, i);
+		drawTrackerChannel(music, x + ChannelWidth * i, y, i);
 }
 
 static void enableFollowMode(Music* music)
@@ -1336,6 +1368,12 @@ static void drawTrackerLayout(Music* music)
 
 static void tick(Music* music)
 {
+	tic_mem* tic = music->tic;
+
+	for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
+		if(!music->tracker.patterns[i])
+			tic->ram.registers[i].volume = 0;
+
 	switch (music->tab)
 	{
 	case MUSIC_TRACKER_TAB: drawTrackerLayout(music); break;
@@ -1383,6 +1421,8 @@ void initMusic(Music* music, tic_mem* tic)
 				.sfx = 0,
 				.volume = 0,
 			},
+
+			.patterns = {true, true, true, true},
 		},
 
 		.tab = MUSIC_TRACKER_TAB,
