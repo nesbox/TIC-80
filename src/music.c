@@ -1126,7 +1126,7 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 	}
 }
 
-static void drawTumbler(Music* music, s32 x, s32 y, s32 i)
+static void drawTumbler(Music* music, s32 x, s32 y, s32 index)
 {
 	tic_mem* tic = music->tic;
 
@@ -1141,11 +1141,18 @@ static void drawTumbler(Music* music, s32 x, s32 y, s32 i)
 		showTooltip("on/off channel");
 
 		if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
-			music->tracker.patterns[i] = !music->tracker.patterns[i];
+		{
+			if (SDL_GetModState() & KMOD_CTRL)
+			{
+				for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
+					music->tracker.patterns[i] = i == index;
+			}
+			else music->tracker.patterns[index] = !music->tracker.patterns[index];
+		}
 	}
 
 	u8 color = Chroma;
-	tic->api.sprite(tic, &tic->config.gfx, music->tracker.patterns[i] ? On : Off, x, y, &color, 1);
+	tic->api.sprite(tic, &tic->config.gfx, music->tracker.patterns[index] ? On : Off, x, y, &color, 1);
 }
 
 static void drawTracker(Music* music, s32 x, s32 y)
