@@ -1,0 +1,44 @@
+{
+  "DVTSourceControlWorkspaceBlueprintPrimaryRemoteRepositoryKey" : "821AA4E1CE315F2DACEE8C033E10D95A7A3FB36F",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyRepositoryLocationsKey" : {
+
+  },
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyStatesKey" : {
+    "821AA4E1CE315F2DACEE8C033E10D95A7A3FB36F" : 9223372036854775807,
+    "49E98EE6BD3A927A3E72C015EB4FFBD5A4648986" : 9223372036854775807,
+    "28CBABD51423B70FFDAD44C847A24AFF5A785503" : 9223372036854775807,
+    "DA43B4610F48E1055DE92F06F612D13E00CA0A9A" : 9223372036854775807
+  },
+  "DVTSourceControlWorkspaceBlueprintIdentifierKey" : "5EFF65A2-3374-4FA8-B8B5-7D2933C8B57F",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyPathsKey" : {
+    "821AA4E1CE315F2DACEE8C033E10D95A7A3FB36F" : "TIC-80\/",
+    "49E98EE6BD3A927A3E72C015EB4FFBD5A4648986" : "TIC-80\/Xcode-iOS\/TIC-80_iOS\/Libraries\/Lua-iOS\/",
+    "28CBABD51423B70FFDAD44C847A24AFF5A785503" : "TIC-80\/Xcode-iOS\/TIC-80_iOS\/Libraries\/3rd-party\/",
+    "DA43B4610F48E1055DE92F06F612D13E00CA0A9A" : "TIC-80\/Xcode-iOS\/TIC-80_iOS\/Libraries\/SDL2-2.0.6\/"
+  },
+  "DVTSourceControlWorkspaceBlueprintNameKey" : "TIC-80_iOS",
+  "DVTSourceControlWorkspaceBlueprintVersion" : 204,
+  "DVTSourceControlWorkspaceBlueprintRelativePathToProjectKey" : "Xcode-iOS\/TIC-80_iOS\/TIC-80_iOS.xcodeproj",
+  "DVTSourceControlWorkspaceBlueprintRemoteRepositoriesKey" : [
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/nesbox\/3rd-party.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "28CBABD51423B70FFDAD44C847A24AFF5A785503"
+    },
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/CliffsDover\/Lua-iOS.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "49E98EE6BD3A927A3E72C015EB4FFBD5A4648986"
+    },
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/CliffsDover\/TIC-80.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "821AA4E1CE315F2DACEE8C033E10D95A7A3FB36F"
+    },
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/CliffsDover\/SDL2-2.0.6.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "DA43B4610F48E1055DE92F06F612D13E00CA0A9A"
+    }
+  ]
+}

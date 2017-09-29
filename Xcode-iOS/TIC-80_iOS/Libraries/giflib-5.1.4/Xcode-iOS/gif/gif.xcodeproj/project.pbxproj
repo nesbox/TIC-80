@@ -1,0 +1,318 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A63ADBE01F7DD9D700DADC83 /* dgif_lib.c in Sources */ = {isa = PBXBuildFile; fileRef = A63ADBD51F7DD9D700DADC83 /* dgif_lib.c */; };
+		A63ADBE11F7DD9D700DADC83 /* egif_lib.c in Sources */ = {isa = PBXBuildFile; fileRef = A63ADBD61F7DD9D700DADC83 /* egif_lib.c */; };
+		A63ADBE21F7DD9D700DADC83 /* gif_err.c in Sources */ = {isa = PBXBuildFile; fileRef = A63ADBD71F7DD9D700DADC83 /* gif_err.c */; };
+		A63ADBE31F7DD9D700DADC83 /* gif_font.c in Sources */ = {isa = PBXBuildFile; fileRef = A63ADBD81F7DD9D700DADC83 /* gif_font.c */; };
+		A63ADBE41F7DD9D700DADC83 /* gif_hash.c in Sources */ = {isa = PBXBuildFile; fileRef = A63ADBD91F7DD9D700DADC83 /* gif_hash.c */; };
+		A63ADBE51F7DD9D700DADC83 /* gifalloc.c in Sources */ = {isa = PBXBuildFile; fileRef = A63ADBDD1F7DD9D700DADC83 /* gifalloc.c */; };
+		A63ADBE61F7DD9D700DADC83 /* openbsd-reallocarray.c in Sources */ = {isa = PBXBuildFile; fileRef = A63ADBDE1F7DD9D700DADC83 /* openbsd-reallocarray.c */; };
+		A63ADBE71F7DD9D700DADC83 /* quantize.c in Sources */ = {isa = PBXBuildFile; fileRef = A63ADBDF1F7DD9D700DADC83 /* quantize.c */; };
+		A63ADBEB1F7DD9ED00DADC83 /* getarg.c in Sources */ = {isa = PBXBuildFile; fileRef = A63ADBE81F7DD9ED00DADC83 /* getarg.c */; };
+		A63ADBEC1F7DD9ED00DADC83 /* qprintf.c in Sources */ = {isa = PBXBuildFile; fileRef = A63ADBEA1F7DD9ED00DADC83 /* qprintf.c */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A65BB1CF1F7C0C6A0088347C /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "include/$(PRODUCT_NAME)";
+			dstSubfolderSpec = 16;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		A63ADBD51F7DD9D700DADC83 /* dgif_lib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dgif_lib.c; path = "../../3rd-party/giflib-5.1.4/lib/dgif_lib.c"; sourceTree = "<group>"; };
+		A63ADBD61F7DD9D700DADC83 /* egif_lib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = egif_lib.c; path = "../../3rd-party/giflib-5.1.4/lib/egif_lib.c"; sourceTree = "<group>"; };
+		A63ADBD71F7DD9D700DADC83 /* gif_err.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gif_err.c; path = "../../3rd-party/giflib-5.1.4/lib/gif_err.c"; sourceTree = "<group>"; };
+		A63ADBD81F7DD9D700DADC83 /* gif_font.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gif_font.c; path = "../../3rd-party/giflib-5.1.4/lib/gif_font.c"; sourceTree = "<group>"; };
+		A63ADBD91F7DD9D700DADC83 /* gif_hash.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gif_hash.c; path = "../../3rd-party/giflib-5.1.4/lib/gif_hash.c"; sourceTree = "<group>"; };
+		A63ADBDA1F7DD9D700DADC83 /* gif_hash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gif_hash.h; path = "../../3rd-party/giflib-5.1.4/lib/gif_hash.h"; sourceTree = "<group>"; };
+		A63ADBDB1F7DD9D700DADC83 /* gif_lib_private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gif_lib_private.h; path = "../../3rd-party/giflib-5.1.4/lib/gif_lib_private.h"; sourceTree = "<group>"; };
+		A63ADBDC1F7DD9D700DADC83 /* gif_lib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gif_lib.h; path = "../../3rd-party/giflib-5.1.4/lib/gif_lib.h"; sourceTree = "<group>"; };
+		A63ADBDD1F7DD9D700DADC83 /* gifalloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gifalloc.c; path = "../../3rd-party/giflib-5.1.4/lib/gifalloc.c"; sourceTree = "<group>"; };
+		A63ADBDE1F7DD9D700DADC83 /* openbsd-reallocarray.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "openbsd-reallocarray.c"; path = "../../3rd-party/giflib-5.1.4/lib/openbsd-reallocarray.c"; sourceTree = "<group>"; };
+		A63ADBDF1F7DD9D700DADC83 /* quantize.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = quantize.c; path = "../../3rd-party/giflib-5.1.4/lib/quantize.c"; sourceTree = "<group>"; };
+		A63ADBE81F7DD9ED00DADC83 /* getarg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = getarg.c; path = "../../3rd-party/giflib-5.1.4/util/getarg.c"; sourceTree = "<group>"; };
+		A63ADBE91F7DD9ED00DADC83 /* getarg.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = getarg.h; path = "../../3rd-party/giflib-5.1.4/util/getarg.h"; sourceTree = "<group>"; };
+		A63ADBEA1F7DD9ED00DADC83 /* qprintf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = qprintf.c; path = "../../3rd-party/giflib-5.1.4/util/qprintf.c"; sourceTree = "<group>"; };
+		A65BB1D11F7C0C6A0088347C /* libgif.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libgif.a; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A65BB1CE1F7C0C6A0088347C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A65BB1C81F7C0C6A0088347C = {
+			isa = PBXGroup;
+			children = (
+				A65BB1DD1F7C0CAD0088347C /* lib */,
+				A65BB1EC1F7C0CAD0088347C /* util */,
+				A65BB1D21F7C0C6A0088347C /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A65BB1D21F7C0C6A0088347C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A65BB1D11F7C0C6A0088347C /* libgif.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A65BB1DD1F7C0CAD0088347C /* lib */ = {
+			isa = PBXGroup;
+			children = (
+				A63ADBD51F7DD9D700DADC83 /* dgif_lib.c */,
+				A63ADBD61F7DD9D700DADC83 /* egif_lib.c */,
+				A63ADBD71F7DD9D700DADC83 /* gif_err.c */,
+				A63ADBD81F7DD9D700DADC83 /* gif_font.c */,
+				A63ADBD91F7DD9D700DADC83 /* gif_hash.c */,
+				A63ADBDA1F7DD9D700DADC83 /* gif_hash.h */,
+				A63ADBDB1F7DD9D700DADC83 /* gif_lib_private.h */,
+				A63ADBDC1F7DD9D700DADC83 /* gif_lib.h */,
+				A63ADBDD1F7DD9D700DADC83 /* gifalloc.c */,
+				A63ADBDE1F7DD9D700DADC83 /* openbsd-reallocarray.c */,
+				A63ADBDF1F7DD9D700DADC83 /* quantize.c */,
+			);
+			name = lib;
+			path = ../../lib;
+			sourceTree = "<group>";
+		};
+		A65BB1EC1F7C0CAD0088347C /* util */ = {
+			isa = PBXGroup;
+			children = (
+				A63ADBE81F7DD9ED00DADC83 /* getarg.c */,
+				A63ADBE91F7DD9ED00DADC83 /* getarg.h */,
+				A63ADBEA1F7DD9ED00DADC83 /* qprintf.c */,
+			);
+			name = util;
+			path = ../../util;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A65BB1D01F7C0C6A0088347C /* gif */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A65BB1DA1F7C0C6A0088347C /* Build configuration list for PBXNativeTarget "gif" */;
+			buildPhases = (
+				A65BB1CD1F7C0C6A0088347C /* Sources */,
+				A65BB1CE1F7C0C6A0088347C /* Frameworks */,
+				A65BB1CF1F7C0C6A0088347C /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = gif;
+			productName = gif;
+			productReference = A65BB1D11F7C0C6A0088347C /* libgif.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A65BB1C91F7C0C6A0088347C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0830;
+				ORGANIZATIONNAME = "Dancing Bottle";
+				TargetAttributes = {
+					A65BB1D01F7C0C6A0088347C = {
+						CreatedOnToolsVersion = 8.3.3;
+						DevelopmentTeam = 4MQWZS5V6J;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = A65BB1CC1F7C0C6A0088347C /* Build configuration list for PBXProject "gif" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = A65BB1C81F7C0C6A0088347C;
+			productRefGroup = A65BB1D21F7C0C6A0088347C /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A65BB1D01F7C0C6A0088347C /* gif */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A65BB1CD1F7C0C6A0088347C /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A63ADBE11F7DD9D700DADC83 /* egif_lib.c in Sources */,
+				A63ADBE21F7DD9D700DADC83 /* gif_err.c in Sources */,
+				A63ADBE41F7DD9D700DADC83 /* gif_hash.c in Sources */,
+				A63ADBE01F7DD9D700DADC83 /* dgif_lib.c in Sources */,
+				A63ADBEC1F7DD9ED00DADC83 /* qprintf.c in Sources */,
+				A63ADBEB1F7DD9ED00DADC83 /* getarg.c in Sources */,
+				A63ADBE51F7DD9D700DADC83 /* gifalloc.c in Sources */,
+				A63ADBE61F7DD9D700DADC83 /* openbsd-reallocarray.c in Sources */,
+				A63ADBE31F7DD9D700DADC83 /* gif_font.c in Sources */,
+				A63ADBE71F7DD9D700DADC83 /* quantize.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		A65BB1D81F7C0C6A0088347C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 10.3;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		A65BB1D91F7C0C6A0088347C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 10.3;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A65BB1DB1F7C0C6A0088347C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = 4MQWZS5V6J;
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		A65BB1DC1F7C0C6A0088347C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = 4MQWZS5V6J;
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A65BB1CC1F7C0C6A0088347C /* Build configuration list for PBXProject "gif" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A65BB1D81F7C0C6A0088347C /* Debug */,
+				A65BB1D91F7C0C6A0088347C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A65BB1DA1F7C0C6A0088347C /* Build configuration list for PBXNativeTarget "gif" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A65BB1DB1F7C0C6A0088347C /* Debug */,
+				A65BB1DC1F7C0C6A0088347C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A65BB1C91F7C0C6A0088347C /* Project object */;
+}
