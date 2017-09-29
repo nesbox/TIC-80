@@ -1023,7 +1023,7 @@ static bool checkTouch(const SDL_Rect* rect, s32* x, s32* y)
 			{
 				SDL_Finger* finger = SDL_GetTouchFinger(id, f);
 
-				if (finger && finger->pressure > 0.0f)
+				if (finger /*&& finger->pressure > 0.0f*/)
 				{
 					SDL_Point point = { (s32)(finger->x * width), (s32)(finger->y * height) };
 					if (SDL_PointInRect(&point, rect))

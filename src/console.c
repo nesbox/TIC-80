@@ -1184,7 +1184,7 @@ static void onConsoleExportCommand(Console* console, const char* param)
 
 #else
 
-#if !defined(__ANDROID__) && !defined(__MACOSX__) && !defined(__LINUX__)
+#if !defined(__ANDROID__) && !defined(__MACOSX__) && !defined(__LINUX__) && !defined(TIC80_IOS)
 
 static void *memmem(const void* haystack, size_t hlen, const void* needle, size_t nlen)
 {

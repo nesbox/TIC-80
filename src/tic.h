@@ -118,7 +118,7 @@ enum
 	NoteStart,
 };
 
-enum
+typedef enum
 {
 	tic_color_black,		// 0
 	tic_color_dark_red,		// 1
