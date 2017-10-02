@@ -49,6 +49,13 @@ struct Music
 			s32 volume;
 		} last;
 
+		struct
+		{
+			SDL_Point start;
+			SDL_Rect rect;
+			bool drag;
+		} select;
+
 		bool patterns[TIC_SOUND_CHANNELS];
 
 	} tracker;

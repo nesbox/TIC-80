@@ -1029,6 +1029,8 @@ static void setChannelPattern(Music* music, s32 delta, s32 channel)
 
 static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 {
+	tic_mem* tic = music->tic;
+
 	enum
 	{
 		Border = 1,
@@ -1047,8 +1049,34 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 			s32 mx = getMouseX() - rect.x - Border;
 			s32 my = getMouseY() - rect.y - Border;
 
-			music->tracker.col = channel * CHANNEL_COLS + mx / TIC_FONT_WIDTH;
-			music->tracker.row = my / TIC_FONT_HEIGHT + music->tracker.scroll;
+			s32 col = music->tracker.col = channel * CHANNEL_COLS + mx / TIC_FONT_WIDTH;
+			s32 row = music->tracker.row = my / TIC_FONT_HEIGHT + music->tracker.scroll;
+
+			if(music->tracker.select.drag)
+			{
+				s32 rl = SDL_min(col, music->tracker.select.start.x);
+				s32 rt = SDL_min(row, music->tracker.select.start.y);
+				s32 rr = SDL_max(col, music->tracker.select.start.x);
+				s32 rb = SDL_max(row, music->tracker.select.start.y);
+
+				music->tracker.select.rect = (SDL_Rect){rl, rt, rr - rl + 1, rb - rt + 1};
+			}
+			else
+			{
+				music->tracker.select.start = (SDL_Point){col, row};
+				music->tracker.select.rect = (SDL_Rect){0, 0, 0, 0};
+
+				music->tracker.select.drag = true;
+			}
+		}
+	}
+
+	if(music->tracker.select.drag)
+	{
+		SDL_Rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
+		if(!checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		{
+			music->tracker.select.drag = false;
 		}
 	}
 
@@ -1056,6 +1084,7 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 
 	s32 start = music->tracker.scroll;
 	s32 end = start + Rows;
+	bool selectedChannel = music->tracker.select.rect.x / CHANNEL_COLS == channel;
 
 	tic_track_pattern* pattern = getPattern(music, channel);
 
@@ -1066,6 +1095,16 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 		if (i == music->tracker.row)
 		{
 			music->tic->api.rect(music->tic, x - 1, rowy - 1, Width, TIC_FONT_HEIGHT + 1, systemColor(tic_color_dark_red));
+		}
+
+		// draw selection
+		if (selectedChannel)
+		{
+			if (i >= music->tracker.select.rect.y && i < music->tracker.select.rect.y + music->tracker.select.rect.h)
+			{
+				s32 sx = (music->tracker.select.rect.x % CHANNEL_COLS) * TIC_FONT_WIDTH + x - 1;
+				tic->api.rect(tic, sx, rowy - 1, (music->tracker.select.rect.w) * TIC_FONT_WIDTH + 1, TIC_FONT_HEIGHT + 1, systemColor(tic_color_yellow));
+			}
 		}
 
 		if (checkPlayRow(music, i))
@@ -1423,6 +1462,12 @@ void initMusic(Music* music, tic_mem* tic)
 			},
 
 			.patterns = {true, true, true, true},
+			.select = 
+			{
+				.start = {0, 0},
+				.rect = {0, 0, 0, 0},
+				.drag = false,
+			},
 		},
 
 		.tab = MUSIC_TRACKER_TAB,
