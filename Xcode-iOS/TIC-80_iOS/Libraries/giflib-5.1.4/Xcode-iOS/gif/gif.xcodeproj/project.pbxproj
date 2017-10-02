@@ -27,7 +27,6 @@
 		A68143AB1F81D0B1002196B0 /* gifalloc.c in Sources */ = {isa = PBXBuildFile; fileRef = A68143981F81D074002196B0 /* gifalloc.c */; };
 		A68143AC1F81D0B1002196B0 /* openbsd-reallocarray.c in Sources */ = {isa = PBXBuildFile; fileRef = A68143991F81D074002196B0 /* openbsd-reallocarray.c */; };
 		A68143AD1F81D0B1002196B0 /* quantize.c in Sources */ = {isa = PBXBuildFile; fileRef = A681439C1F81D074002196B0 /* quantize.c */; };
-		A6DD9AD11F8124CA00E99E64 /* gif_tvOS.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = A6DD9ACE1F8124CA00E99E64 /* gif_tvOS.h */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -46,7 +45,6 @@
 			dstPath = "include/$(PRODUCT_NAME)";
 			dstSubfolderSpec = 16;
 			files = (
-				A6DD9AD11F8124CA00E99E64 /* gif_tvOS.h in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -69,8 +67,6 @@
 		A681439C1F81D074002196B0 /* quantize.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = quantize.c; path = "../../3rd-party/giflib-5.1.4/lib/quantize.c"; sourceTree = "<group>"; };
 		A681439D1F81D075002196B0 /* gif_lib.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = gif_lib.h; path = "../../3rd-party/giflib-5.1.4/lib/gif_lib.h"; sourceTree = "<group>"; };
 		A6DD9ACC1F8124CA00E99E64 /* libgif_tvOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libgif_tvOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		A6DD9ACE1F8124CA00E99E64 /* gif_tvOS.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = gif_tvOS.h; sourceTree = "<group>"; };
-		A6DD9ACF1F8124CA00E99E64 /* gif_tvOS.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = gif_tvOS.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -96,7 +92,6 @@
 			children = (
 				A65BB1DD1F7C0CAD0088347C /* lib */,
 				A65BB1EC1F7C0CAD0088347C /* util */,
-				A6DD9ACD1F8124CA00E99E64 /* gif_tvOS */,
 				A65BB1D21F7C0C6A0088347C /* Products */,
 			);
 			sourceTree = "<group>";
@@ -138,15 +133,6 @@
 			);
 			name = util;
 			path = ../../util;
-			sourceTree = "<group>";
-		};
-		A6DD9ACD1F8124CA00E99E64 /* gif_tvOS */ = {
-			isa = PBXGroup;
-			children = (
-				A6DD9ACE1F8124CA00E99E64 /* gif_tvOS.h */,
-				A6DD9ACF1F8124CA00E99E64 /* gif_tvOS.m */,
-			);
-			path = gif_tvOS;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

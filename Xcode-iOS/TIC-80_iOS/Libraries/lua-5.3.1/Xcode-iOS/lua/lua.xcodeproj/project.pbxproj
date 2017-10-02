@@ -336,7 +336,6 @@
 				A6F47EBA1F7DE1A100642F90 /* lzio.h */,
 				A6F47EBB1F7DE1A100642F90 /* Makefile */,
 				A65BB11C1F7C074D0088347C /* lua */,
-				A6DD9AC01F8124A600E99E64 /* lua_tvOS */,
 				A65BB11B1F7C074D0088347C /* Products */,
 			);
 			sourceTree = "<group>";
@@ -382,13 +381,6 @@
 				A6F47EF71F7DE1C000642F90 /* lpvm.h */,
 			);
 			path = "lpeg-1.0.1";
-			sourceTree = "<group>";
-		};
-		A6DD9AC01F8124A600E99E64 /* lua_tvOS */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = lua_tvOS;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
