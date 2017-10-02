@@ -1,4 +1,4 @@
-This fork will be targeted for iOS port.
+This fork will be targeted for iOS and tvOS ports.
 
 
 Please init and update submodules before building the project.
@@ -9,7 +9,7 @@ git submodule init
 git submodule update
 ```
 
-Project file can be found in Xcode-iOS folder.
+Project file can be found in Xcode folder. Select the iOS or tvOS target to build.
 
 TIC-80 issues tracker and wiki
 =======
