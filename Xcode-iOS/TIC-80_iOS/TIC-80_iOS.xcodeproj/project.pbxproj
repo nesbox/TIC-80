@@ -7,6 +7,40 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A6449AA61F815BCE0002E1B2 /* code.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0871F7BF8CC0088347C /* code.c */; };
+		A6449AA81F815BCE0002E1B2 /* config.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0891F7BF8CC0088347C /* config.c */; };
+		A6449AAA1F815BCE0002E1B2 /* console.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB08B1F7BF8CC0088347C /* console.c */; };
+		A6449AAD1F815BCE0002E1B2 /* dialog.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB08E1F7BF8CC0088347C /* dialog.c */; };
+		A6449AAF1F815BCE0002E1B2 /* blip_buf.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0911F7BF8CC0088347C /* blip_buf.c */; };
+		A6449AB31F815BCE0002E1B2 /* duktape.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0961F7BF8CC0088347C /* duktape.c */; };
+		A6449AB51F815BCE0002E1B2 /* file_dialog.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0981F7BF8CC0088347C /* file_dialog.c */; };
+		A6449AB61F815BCE0002E1B2 /* file_dialog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0991F7BF8CC0088347C /* file_dialog.cpp */; };
+		A6449AB71F815BCE0002E1B2 /* gif.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB09C1F7BF8CC0088347C /* gif.c */; };
+		A6449AB91F815BCE0002E1B2 /* md5.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB09E1F7BF8CC0088347C /* md5.c */; };
+		A6449ABD1F815BCE0002E1B2 /* SDLnet.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0A31F7BF8CC0088347C /* SDLnet.c */; };
+		A6449ABE1F815BCE0002E1B2 /* SDLnetselect.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0A41F7BF8CC0088347C /* SDLnetselect.c */; };
+		A6449AC01F815BCE0002E1B2 /* SDLnetTCP.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0A61F7BF8CC0088347C /* SDLnetTCP.c */; };
+		A6449AC11F815BCE0002E1B2 /* SDLnetUDP.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0A71F7BF8CC0088347C /* SDLnetUDP.c */; };
+		A6449AC21F815BCE0002E1B2 /* fs.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0A81F7BF8CC0088347C /* fs.c */; };
+		A6449AC41F815BCE0002E1B2 /* history.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0AA1F7BF8CC0088347C /* history.c */; };
+		A6449AC61F815BCE0002E1B2 /* html.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0AC1F7BF8CC0088347C /* html.c */; };
+		A6449AC71F815BCE0002E1B2 /* jsapi.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0AD1F7BF8CC0088347C /* jsapi.c */; };
+		A6449AC81F815BCE0002E1B2 /* keymap.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0AE1F7BF8CC0088347C /* keymap.c */; };
+		A6449ACA1F815BCE0002E1B2 /* luaapi.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0B01F7BF8CC0088347C /* luaapi.c */; };
+		A6449ACC1F815BCE0002E1B2 /* map.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0B21F7BF8CC0088347C /* map.c */; };
+		A6449ACE1F815BCE0002E1B2 /* menu.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0B41F7BF8CC0088347C /* menu.c */; };
+		A6449AD01F815BCE0002E1B2 /* music.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0B61F7BF8CC0088347C /* music.c */; };
+		A6449AD21F815BCE0002E1B2 /* net.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0B81F7BF8CC0088347C /* net.c */; };
+		A6449AD41F815BCE0002E1B2 /* run.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0BA1F7BF8CC0088347C /* run.c */; };
+		A6449AD61F815BCE0002E1B2 /* sfx.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0BC1F7BF8CC0088347C /* sfx.c */; };
+		A6449AD81F815BCE0002E1B2 /* sprite.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0BE1F7BF8CC0088347C /* sprite.c */; };
+		A6449ADA1F815BCE0002E1B2 /* start.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0C01F7BF8CC0088347C /* start.c */; };
+		A6449ADC1F815BCE0002E1B2 /* studio.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0C21F7BF8CC0088347C /* studio.c */; };
+		A6449ADE1F815BCE0002E1B2 /* surf.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0C41F7BF8CC0088347C /* surf.c */; };
+		A6449AE01F815BCF0002E1B2 /* tic.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0C61F7BF8CC0088347C /* tic.c */; };
+		A6449AE21F815BCF0002E1B2 /* tic80.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0C81F7BF8CC0088347C /* tic80.c */; };
+		A6449AE41F815BCF0002E1B2 /* tools.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0CA1F7BF8CC0088347C /* tools.c */; };
+		A6449AE61F815BCF0002E1B2 /* world.c in Sources */ = {isa = PBXBuildFile; fileRef = A65BB0CC1F7BF8CC0088347C /* world.c */; };
 		A65BB07A1F7BF86A0088347C /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A65BB0781F7BF86A0088347C /* Main.storyboard */; };
 		A65BB07C1F7BF86A0088347C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A65BB07B1F7BF86A0088347C /* Assets.xcassets */; };
 		A65BB07F1F7BF86A0088347C /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A65BB07D1F7BF86A0088347C /* LaunchScreen.storyboard */; };
@@ -61,6 +95,11 @@
 		A65BB1C51F7C0A3E0088347C /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A65BB1C41F7C0A3E0088347C /* AudioToolbox.framework */; };
 		A65BB1C71F7C0A550088347C /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A65BB1C61F7C0A550088347C /* AVFoundation.framework */; };
 		A65BB2211F7C0CE10088347C /* libgif.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A65BB21E1F7C0CD30088347C /* libgif.a */; };
+		A6DD9AE31F81251500E99E64 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A6DD9AE11F81251500E99E64 /* Main.storyboard */; };
+		A6DD9AE51F81251500E99E64 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A6DD9AE41F81251500E99E64 /* Assets.xcassets */; };
+		A6DD9AFA1F81253100E99E64 /* libgif_tvOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A6DD9AED1F81251500E99E64 /* libgif_tvOS.a */; };
+		A6DD9AFB1F81253100E99E64 /* liblua_tvOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A6DD9AF01F81251500E99E64 /* liblua_tvOS.a */; };
+		A6DD9AFC1F81253100E99E64 /* libSDL2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A65BB0FE1F7C03FF0088347C /* libSDL2.a */; };
 		A6F47F131F7DE28700642F90 /* liblua.a in Frameworks */ = {isa = PBXBuildFile; fileRef = A6F47F101F7DE26B00642F90 /* liblua.a */; };
 /* End PBXBuildFile section */
 
@@ -99,6 +138,41 @@
 			proxyType = 1;
 			remoteGlobalIDString = A65BB1D01F7C0C6A0088347C;
 			remoteInfo = gif;
+		};
+		A6DD9AEC1F81251500E99E64 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A65BB2191F7C0CD30088347C /* gif.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = A6DD9ACC1F8124CA00E99E64;
+			remoteInfo = gif_tvOS;
+		};
+		A6DD9AEF1F81251500E99E64 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A6F47F0B1F7DE26B00642F90 /* lua.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = A6DD9ABF1F8124A600E99E64;
+			remoteInfo = lua_tvOS;
+		};
+		A6DD9AF41F81252500E99E64 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A6F47F0B1F7DE26B00642F90 /* lua.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = A6DD9ABE1F8124A600E99E64;
+			remoteInfo = lua_tvOS;
+		};
+		A6DD9AF61F81252500E99E64 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A65BB2191F7C0CD30088347C /* gif.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = A6DD9ACB1F8124CA00E99E64;
+			remoteInfo = gif_tvOS;
+		};
+		A6DD9AF81F81252500E99E64 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A65BB0F51F7C03FF0088347C /* SDL.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = FAB598131BB5C1B100BE72C5;
+			remoteInfo = "libSDL-tv";
 		};
 		A6F47F0F1F7DE26B00642F90 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -204,6 +278,10 @@
 		A65BB1C41F7C0A3E0088347C /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		A65BB1C61F7C0A550088347C /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		A65BB2191F7C0CD30088347C /* gif.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = gif.xcodeproj; path = "Libraries/giflib-5.1.4/Xcode-iOS/gif/gif.xcodeproj"; sourceTree = "<group>"; };
+		A6DD9AD91F81251500E99E64 /* TIC-80_tvOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "TIC-80_tvOS.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A6DD9AE21F81251500E99E64 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		A6DD9AE41F81251500E99E64 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A6DD9AE61F81251500E99E64 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A6F47F0B1F7DE26B00642F90 /* lua.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = lua.xcodeproj; path = "Libraries/lua-5.3.1/Xcode-iOS/lua/lua.xcodeproj"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -232,6 +310,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A6DD9AD61F81251500E99E64 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A6DD9AFA1F81253100E99E64 /* libgif_tvOS.a in Frameworks */,
+				A6DD9AFB1F81253100E99E64 /* liblua_tvOS.a in Frameworks */,
+				A6DD9AFC1F81253100E99E64 /* libSDL2.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -243,6 +331,7 @@
 				A65BB0F51F7C03FF0088347C /* SDL.xcodeproj */,
 				A65BB0861F7BF8CC0088347C /* src */,
 				A65BB06E1F7BF86A0088347C /* TIC-80_iOS */,
+				A6DD9ADA1F81251500E99E64 /* TIC-80_tvOS */,
 				A65BB06D1F7BF86A0088347C /* Products */,
 				A65BB1AB1F7C0A1A0088347C /* Frameworks */,
 			);
@@ -252,6 +341,7 @@
 			isa = PBXGroup;
 			children = (
 				A65BB06C1F7BF86A0088347C /* TIC-80_iOS.app */,
+				A6DD9AD91F81251500E99E64 /* TIC-80_tvOS.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -407,14 +497,26 @@
 			isa = PBXGroup;
 			children = (
 				A65BB21E1F7C0CD30088347C /* libgif.a */,
+				A6DD9AED1F81251500E99E64 /* libgif_tvOS.a */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		A6DD9ADA1F81251500E99E64 /* TIC-80_tvOS */ = {
+			isa = PBXGroup;
+			children = (
+				A6DD9AE11F81251500E99E64 /* Main.storyboard */,
+				A6DD9AE41F81251500E99E64 /* Assets.xcassets */,
+				A6DD9AE61F81251500E99E64 /* Info.plist */,
+			);
+			path = "TIC-80_tvOS";
 			sourceTree = "<group>";
 		};
 		A6F47F0C1F7DE26B00642F90 /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				A6F47F101F7DE26B00642F90 /* liblua.a */,
+				A6DD9AF01F81251500E99E64 /* liblua_tvOS.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -442,6 +544,26 @@
 			productReference = A65BB06C1F7BF86A0088347C /* TIC-80_iOS.app */;
 			productType = "com.apple.product-type.application";
 		};
+		A6DD9AD81F81251500E99E64 /* TIC-80_tvOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A6DD9AF31F81251500E99E64 /* Build configuration list for PBXNativeTarget "TIC-80_tvOS" */;
+			buildPhases = (
+				A6DD9AD51F81251500E99E64 /* Sources */,
+				A6DD9AD61F81251500E99E64 /* Frameworks */,
+				A6DD9AD71F81251500E99E64 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A6DD9AF51F81252500E99E64 /* PBXTargetDependency */,
+				A6DD9AF71F81252500E99E64 /* PBXTargetDependency */,
+				A6DD9AF91F81252500E99E64 /* PBXTargetDependency */,
+			);
+			name = "TIC-80_tvOS";
+			productName = "TIC-80_tvOS";
+			productReference = A6DD9AD91F81251500E99E64 /* TIC-80_tvOS.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -453,6 +575,11 @@
 				TargetAttributes = {
 					A65BB06B1F7BF86A0088347C = {
 						CreatedOnToolsVersion = 8.3.3;
+						DevelopmentTeam = 4MQWZS5V6J;
+						ProvisioningStyle = Automatic;
+					};
+					A6DD9AD81F81251500E99E64 = {
+						CreatedOnToolsVersion = 9.0;
 						DevelopmentTeam = 4MQWZS5V6J;
 						ProvisioningStyle = Automatic;
 					};
@@ -486,6 +613,7 @@
 			projectRoot = "";
 			targets = (
 				A65BB06B1F7BF86A0088347C /* TIC-80_iOS */,
+				A6DD9AD81F81251500E99E64 /* TIC-80_tvOS */,
 			);
 		};
 /* End PBXProject section */
@@ -512,6 +640,20 @@
 			remoteRef = A65BB21D1F7C0CD30088347C /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
+		A6DD9AED1F81251500E99E64 /* libgif_tvOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libgif_tvOS.a;
+			remoteRef = A6DD9AEC1F81251500E99E64 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		A6DD9AF01F81251500E99E64 /* liblua_tvOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = liblua_tvOS.a;
+			remoteRef = A6DD9AEF1F81251500E99E64 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
 		A6F47F101F7DE26B00642F90 /* liblua.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
@@ -530,6 +672,15 @@
 				A65BB07C1F7BF86A0088347C /* Assets.xcassets in Resources */,
 				A65BB0D31F7BF8CC0088347C /* duk_source_meta.json in Resources */,
 				A65BB07A1F7BF86A0088347C /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A6DD9AD71F81251500E99E64 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A6DD9AE51F81251500E99E64 /* Assets.xcassets in Resources */,
+				A6DD9AE31F81251500E99E64 /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -577,6 +728,47 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A6DD9AD51F81251500E99E64 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A6449AA61F815BCE0002E1B2 /* code.c in Sources */,
+				A6449AA81F815BCE0002E1B2 /* config.c in Sources */,
+				A6449AAA1F815BCE0002E1B2 /* console.c in Sources */,
+				A6449AAD1F815BCE0002E1B2 /* dialog.c in Sources */,
+				A6449AAF1F815BCE0002E1B2 /* blip_buf.c in Sources */,
+				A6449AB31F815BCE0002E1B2 /* duktape.c in Sources */,
+				A6449AB51F815BCE0002E1B2 /* file_dialog.c in Sources */,
+				A6449AB61F815BCE0002E1B2 /* file_dialog.cpp in Sources */,
+				A6449AB71F815BCE0002E1B2 /* gif.c in Sources */,
+				A6449AB91F815BCE0002E1B2 /* md5.c in Sources */,
+				A6449ABD1F815BCE0002E1B2 /* SDLnet.c in Sources */,
+				A6449ABE1F815BCE0002E1B2 /* SDLnetselect.c in Sources */,
+				A6449AC01F815BCE0002E1B2 /* SDLnetTCP.c in Sources */,
+				A6449AC11F815BCE0002E1B2 /* SDLnetUDP.c in Sources */,
+				A6449AC21F815BCE0002E1B2 /* fs.c in Sources */,
+				A6449AC41F815BCE0002E1B2 /* history.c in Sources */,
+				A6449AC61F815BCE0002E1B2 /* html.c in Sources */,
+				A6449AC71F815BCE0002E1B2 /* jsapi.c in Sources */,
+				A6449AC81F815BCE0002E1B2 /* keymap.c in Sources */,
+				A6449ACA1F815BCE0002E1B2 /* luaapi.c in Sources */,
+				A6449ACC1F815BCE0002E1B2 /* map.c in Sources */,
+				A6449ACE1F815BCE0002E1B2 /* menu.c in Sources */,
+				A6449AD01F815BCE0002E1B2 /* music.c in Sources */,
+				A6449AD21F815BCE0002E1B2 /* net.c in Sources */,
+				A6449AD41F815BCE0002E1B2 /* run.c in Sources */,
+				A6449AD61F815BCE0002E1B2 /* sfx.c in Sources */,
+				A6449AD81F815BCE0002E1B2 /* sprite.c in Sources */,
+				A6449ADA1F815BCE0002E1B2 /* start.c in Sources */,
+				A6449ADC1F815BCE0002E1B2 /* studio.c in Sources */,
+				A6449ADE1F815BCE0002E1B2 /* surf.c in Sources */,
+				A6449AE01F815BCF0002E1B2 /* tic.c in Sources */,
+				A6449AE21F815BCF0002E1B2 /* tic80.c in Sources */,
+				A6449AE41F815BCF0002E1B2 /* tools.c in Sources */,
+				A6449AE61F815BCF0002E1B2 /* world.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -589,6 +781,21 @@
 			isa = PBXTargetDependency;
 			name = gif;
 			targetProxy = A65BB21F1F7C0CDE0088347C /* PBXContainerItemProxy */;
+		};
+		A6DD9AF51F81252500E99E64 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = lua_tvOS;
+			targetProxy = A6DD9AF41F81252500E99E64 /* PBXContainerItemProxy */;
+		};
+		A6DD9AF71F81252500E99E64 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = gif_tvOS;
+			targetProxy = A6DD9AF61F81252500E99E64 /* PBXContainerItemProxy */;
+		};
+		A6DD9AF91F81252500E99E64 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "libSDL-tv";
+			targetProxy = A6DD9AF81F81252500E99E64 /* PBXContainerItemProxy */;
 		};
 		A6F47F121F7DE28100642F90 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -612,6 +819,14 @@
 				A65BB07E1F7BF86A0088347C /* Base */,
 			);
 			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		A6DD9AE11F81251500E99E64 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				A6DD9AE21F81251500E99E64 /* Base */,
+			);
+			name = Main.storyboard;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
@@ -754,6 +969,77 @@
 			};
 			name = Release;
 		};
+		A6DD9AE91F81251500E99E64 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
+				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 4MQWZS5V6J;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+					TIC80_TVOS,
+				);
+				HEADER_SEARCH_PATHS = (
+					"${PROJECT_DIR}/Libraries/SDL2-2.0.6/include",
+					"${PROJECT_DIR}/../../include/tic80",
+					"${PROJECT_DIR}/../../src",
+					"${PROJECT_DIR}/../../include/lua",
+					"${PROJECT_DIR}/../../include/gif",
+				);
+				INFOPLIST_FILE = "TIC-80_tvOS/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.dancingbottle.TIC-80-tvOS";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 11.0;
+			};
+			name = Debug;
+		};
+		A6DD9AEA1F81251500E99E64 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
+				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 4MQWZS5V6J;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				HEADER_SEARCH_PATHS = (
+					"${PROJECT_DIR}/Libraries/SDL2-2.0.6/include",
+					"${PROJECT_DIR}/../../include/tic80",
+					"${PROJECT_DIR}/../../src",
+					"${PROJECT_DIR}/../../include/lua",
+					"${PROJECT_DIR}/../../include/gif",
+				);
+				INFOPLIST_FILE = "TIC-80_tvOS/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.dancingbottle.TIC-80-tvOS";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 11.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -771,6 +1057,15 @@
 			buildConfigurations = (
 				A65BB0841F7BF86A0088347C /* Debug */,
 				A65BB0851F7BF86A0088347C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A6DD9AF31F81251500E99E64 /* Build configuration list for PBXNativeTarget "TIC-80_tvOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A6DD9AE91F81251500E99E64 /* Debug */,
+				A6DD9AEA1F81251500E99E64 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

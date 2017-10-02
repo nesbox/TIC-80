@@ -7,16 +7,27 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A63ADBE01F7DD9D700DADC83 /* dgif_lib.c in Sources */ = {isa = PBXBuildFile; fileRef = A63ADBD51F7DD9D700DADC83 /* dgif_lib.c */; };
-		A63ADBE11F7DD9D700DADC83 /* egif_lib.c in Sources */ = {isa = PBXBuildFile; fileRef = A63ADBD61F7DD9D700DADC83 /* egif_lib.c */; };
-		A63ADBE21F7DD9D700DADC83 /* gif_err.c in Sources */ = {isa = PBXBuildFile; fileRef = A63ADBD71F7DD9D700DADC83 /* gif_err.c */; };
-		A63ADBE31F7DD9D700DADC83 /* gif_font.c in Sources */ = {isa = PBXBuildFile; fileRef = A63ADBD81F7DD9D700DADC83 /* gif_font.c */; };
-		A63ADBE41F7DD9D700DADC83 /* gif_hash.c in Sources */ = {isa = PBXBuildFile; fileRef = A63ADBD91F7DD9D700DADC83 /* gif_hash.c */; };
-		A63ADBE51F7DD9D700DADC83 /* gifalloc.c in Sources */ = {isa = PBXBuildFile; fileRef = A63ADBDD1F7DD9D700DADC83 /* gifalloc.c */; };
-		A63ADBE61F7DD9D700DADC83 /* openbsd-reallocarray.c in Sources */ = {isa = PBXBuildFile; fileRef = A63ADBDE1F7DD9D700DADC83 /* openbsd-reallocarray.c */; };
-		A63ADBE71F7DD9D700DADC83 /* quantize.c in Sources */ = {isa = PBXBuildFile; fileRef = A63ADBDF1F7DD9D700DADC83 /* quantize.c */; };
 		A63ADBEB1F7DD9ED00DADC83 /* getarg.c in Sources */ = {isa = PBXBuildFile; fileRef = A63ADBE81F7DD9ED00DADC83 /* getarg.c */; };
 		A63ADBEC1F7DD9ED00DADC83 /* qprintf.c in Sources */ = {isa = PBXBuildFile; fileRef = A63ADBEA1F7DD9ED00DADC83 /* qprintf.c */; };
+		A6449AA01F815B700002E1B2 /* qprintf.c in Sources */ = {isa = PBXBuildFile; fileRef = A63ADBEA1F7DD9ED00DADC83 /* qprintf.c */; };
+		A6449AA21F815B7C0002E1B2 /* getarg.c in Sources */ = {isa = PBXBuildFile; fileRef = A63ADBE81F7DD9ED00DADC83 /* getarg.c */; };
+		A681439E1F81D0A4002196B0 /* dgif_lib.c in Sources */ = {isa = PBXBuildFile; fileRef = A68143931F81D073002196B0 /* dgif_lib.c */; };
+		A681439F1F81D0A4002196B0 /* egif_lib.c in Sources */ = {isa = PBXBuildFile; fileRef = A68143961F81D074002196B0 /* egif_lib.c */; };
+		A68143A01F81D0A4002196B0 /* gif_err.c in Sources */ = {isa = PBXBuildFile; fileRef = A68143941F81D073002196B0 /* gif_err.c */; };
+		A68143A11F81D0A4002196B0 /* gif_font.c in Sources */ = {isa = PBXBuildFile; fileRef = A681439A1F81D074002196B0 /* gif_font.c */; };
+		A68143A21F81D0A4002196B0 /* gif_hash.c in Sources */ = {isa = PBXBuildFile; fileRef = A68143951F81D074002196B0 /* gif_hash.c */; };
+		A68143A31F81D0A4002196B0 /* gifalloc.c in Sources */ = {isa = PBXBuildFile; fileRef = A68143981F81D074002196B0 /* gifalloc.c */; };
+		A68143A41F81D0A4002196B0 /* openbsd-reallocarray.c in Sources */ = {isa = PBXBuildFile; fileRef = A68143991F81D074002196B0 /* openbsd-reallocarray.c */; };
+		A68143A51F81D0A5002196B0 /* quantize.c in Sources */ = {isa = PBXBuildFile; fileRef = A681439C1F81D074002196B0 /* quantize.c */; };
+		A68143A61F81D0B1002196B0 /* dgif_lib.c in Sources */ = {isa = PBXBuildFile; fileRef = A68143931F81D073002196B0 /* dgif_lib.c */; };
+		A68143A71F81D0B1002196B0 /* egif_lib.c in Sources */ = {isa = PBXBuildFile; fileRef = A68143961F81D074002196B0 /* egif_lib.c */; };
+		A68143A81F81D0B1002196B0 /* gif_err.c in Sources */ = {isa = PBXBuildFile; fileRef = A68143941F81D073002196B0 /* gif_err.c */; };
+		A68143A91F81D0B1002196B0 /* gif_font.c in Sources */ = {isa = PBXBuildFile; fileRef = A681439A1F81D074002196B0 /* gif_font.c */; };
+		A68143AA1F81D0B1002196B0 /* gif_hash.c in Sources */ = {isa = PBXBuildFile; fileRef = A68143951F81D074002196B0 /* gif_hash.c */; };
+		A68143AB1F81D0B1002196B0 /* gifalloc.c in Sources */ = {isa = PBXBuildFile; fileRef = A68143981F81D074002196B0 /* gifalloc.c */; };
+		A68143AC1F81D0B1002196B0 /* openbsd-reallocarray.c in Sources */ = {isa = PBXBuildFile; fileRef = A68143991F81D074002196B0 /* openbsd-reallocarray.c */; };
+		A68143AD1F81D0B1002196B0 /* quantize.c in Sources */ = {isa = PBXBuildFile; fileRef = A681439C1F81D074002196B0 /* quantize.c */; };
+		A6DD9AD11F8124CA00E99E64 /* gif_tvOS.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = A6DD9ACE1F8124CA00E99E64 /* gif_tvOS.h */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -29,28 +40,48 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A6DD9ACA1F8124CA00E99E64 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "include/$(PRODUCT_NAME)";
+			dstSubfolderSpec = 16;
+			files = (
+				A6DD9AD11F8124CA00E99E64 /* gif_tvOS.h in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		A63ADBD51F7DD9D700DADC83 /* dgif_lib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dgif_lib.c; path = "../../3rd-party/giflib-5.1.4/lib/dgif_lib.c"; sourceTree = "<group>"; };
-		A63ADBD61F7DD9D700DADC83 /* egif_lib.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = egif_lib.c; path = "../../3rd-party/giflib-5.1.4/lib/egif_lib.c"; sourceTree = "<group>"; };
-		A63ADBD71F7DD9D700DADC83 /* gif_err.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gif_err.c; path = "../../3rd-party/giflib-5.1.4/lib/gif_err.c"; sourceTree = "<group>"; };
-		A63ADBD81F7DD9D700DADC83 /* gif_font.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gif_font.c; path = "../../3rd-party/giflib-5.1.4/lib/gif_font.c"; sourceTree = "<group>"; };
-		A63ADBD91F7DD9D700DADC83 /* gif_hash.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gif_hash.c; path = "../../3rd-party/giflib-5.1.4/lib/gif_hash.c"; sourceTree = "<group>"; };
-		A63ADBDA1F7DD9D700DADC83 /* gif_hash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gif_hash.h; path = "../../3rd-party/giflib-5.1.4/lib/gif_hash.h"; sourceTree = "<group>"; };
-		A63ADBDB1F7DD9D700DADC83 /* gif_lib_private.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gif_lib_private.h; path = "../../3rd-party/giflib-5.1.4/lib/gif_lib_private.h"; sourceTree = "<group>"; };
-		A63ADBDC1F7DD9D700DADC83 /* gif_lib.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gif_lib.h; path = "../../3rd-party/giflib-5.1.4/lib/gif_lib.h"; sourceTree = "<group>"; };
-		A63ADBDD1F7DD9D700DADC83 /* gifalloc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gifalloc.c; path = "../../3rd-party/giflib-5.1.4/lib/gifalloc.c"; sourceTree = "<group>"; };
-		A63ADBDE1F7DD9D700DADC83 /* openbsd-reallocarray.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = "openbsd-reallocarray.c"; path = "../../3rd-party/giflib-5.1.4/lib/openbsd-reallocarray.c"; sourceTree = "<group>"; };
-		A63ADBDF1F7DD9D700DADC83 /* quantize.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = quantize.c; path = "../../3rd-party/giflib-5.1.4/lib/quantize.c"; sourceTree = "<group>"; };
 		A63ADBE81F7DD9ED00DADC83 /* getarg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = getarg.c; path = "../../3rd-party/giflib-5.1.4/util/getarg.c"; sourceTree = "<group>"; };
 		A63ADBE91F7DD9ED00DADC83 /* getarg.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = getarg.h; path = "../../3rd-party/giflib-5.1.4/util/getarg.h"; sourceTree = "<group>"; };
 		A63ADBEA1F7DD9ED00DADC83 /* qprintf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = qprintf.c; path = "../../3rd-party/giflib-5.1.4/util/qprintf.c"; sourceTree = "<group>"; };
 		A65BB1D11F7C0C6A0088347C /* libgif.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libgif.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		A68143931F81D073002196B0 /* dgif_lib.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = dgif_lib.c; path = "../../3rd-party/giflib-5.1.4/lib/dgif_lib.c"; sourceTree = "<group>"; };
+		A68143941F81D073002196B0 /* gif_err.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = gif_err.c; path = "../../3rd-party/giflib-5.1.4/lib/gif_err.c"; sourceTree = "<group>"; };
+		A68143951F81D074002196B0 /* gif_hash.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = gif_hash.c; path = "../../3rd-party/giflib-5.1.4/lib/gif_hash.c"; sourceTree = "<group>"; };
+		A68143961F81D074002196B0 /* egif_lib.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = egif_lib.c; path = "../../3rd-party/giflib-5.1.4/lib/egif_lib.c"; sourceTree = "<group>"; };
+		A68143971F81D074002196B0 /* gif_hash.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = gif_hash.h; path = "../../3rd-party/giflib-5.1.4/lib/gif_hash.h"; sourceTree = "<group>"; };
+		A68143981F81D074002196B0 /* gifalloc.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = gifalloc.c; path = "../../3rd-party/giflib-5.1.4/lib/gifalloc.c"; sourceTree = "<group>"; };
+		A68143991F81D074002196B0 /* openbsd-reallocarray.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = "openbsd-reallocarray.c"; path = "../../3rd-party/giflib-5.1.4/lib/openbsd-reallocarray.c"; sourceTree = "<group>"; };
+		A681439A1F81D074002196B0 /* gif_font.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = gif_font.c; path = "../../3rd-party/giflib-5.1.4/lib/gif_font.c"; sourceTree = "<group>"; };
+		A681439B1F81D074002196B0 /* gif_lib_private.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = gif_lib_private.h; path = "../../3rd-party/giflib-5.1.4/lib/gif_lib_private.h"; sourceTree = "<group>"; };
+		A681439C1F81D074002196B0 /* quantize.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = quantize.c; path = "../../3rd-party/giflib-5.1.4/lib/quantize.c"; sourceTree = "<group>"; };
+		A681439D1F81D075002196B0 /* gif_lib.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = gif_lib.h; path = "../../3rd-party/giflib-5.1.4/lib/gif_lib.h"; sourceTree = "<group>"; };
+		A6DD9ACC1F8124CA00E99E64 /* libgif_tvOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libgif_tvOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		A6DD9ACE1F8124CA00E99E64 /* gif_tvOS.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = gif_tvOS.h; sourceTree = "<group>"; };
+		A6DD9ACF1F8124CA00E99E64 /* gif_tvOS.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = gif_tvOS.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		A65BB1CE1F7C0C6A0088347C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A6DD9AC91F8124CA00E99E64 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -65,6 +96,7 @@
 			children = (
 				A65BB1DD1F7C0CAD0088347C /* lib */,
 				A65BB1EC1F7C0CAD0088347C /* util */,
+				A6DD9ACD1F8124CA00E99E64 /* gif_tvOS */,
 				A65BB1D21F7C0C6A0088347C /* Products */,
 			);
 			sourceTree = "<group>";
@@ -73,6 +105,7 @@
 			isa = PBXGroup;
 			children = (
 				A65BB1D11F7C0C6A0088347C /* libgif.a */,
+				A6DD9ACC1F8124CA00E99E64 /* libgif_tvOS.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -80,17 +113,17 @@
 		A65BB1DD1F7C0CAD0088347C /* lib */ = {
 			isa = PBXGroup;
 			children = (
-				A63ADBD51F7DD9D700DADC83 /* dgif_lib.c */,
-				A63ADBD61F7DD9D700DADC83 /* egif_lib.c */,
-				A63ADBD71F7DD9D700DADC83 /* gif_err.c */,
-				A63ADBD81F7DD9D700DADC83 /* gif_font.c */,
-				A63ADBD91F7DD9D700DADC83 /* gif_hash.c */,
-				A63ADBDA1F7DD9D700DADC83 /* gif_hash.h */,
-				A63ADBDB1F7DD9D700DADC83 /* gif_lib_private.h */,
-				A63ADBDC1F7DD9D700DADC83 /* gif_lib.h */,
-				A63ADBDD1F7DD9D700DADC83 /* gifalloc.c */,
-				A63ADBDE1F7DD9D700DADC83 /* openbsd-reallocarray.c */,
-				A63ADBDF1F7DD9D700DADC83 /* quantize.c */,
+				A68143931F81D073002196B0 /* dgif_lib.c */,
+				A68143961F81D074002196B0 /* egif_lib.c */,
+				A68143941F81D073002196B0 /* gif_err.c */,
+				A681439A1F81D074002196B0 /* gif_font.c */,
+				A68143951F81D074002196B0 /* gif_hash.c */,
+				A68143971F81D074002196B0 /* gif_hash.h */,
+				A681439B1F81D074002196B0 /* gif_lib_private.h */,
+				A681439D1F81D075002196B0 /* gif_lib.h */,
+				A68143981F81D074002196B0 /* gifalloc.c */,
+				A68143991F81D074002196B0 /* openbsd-reallocarray.c */,
+				A681439C1F81D074002196B0 /* quantize.c */,
 			);
 			name = lib;
 			path = ../../lib;
@@ -105,6 +138,15 @@
 			);
 			name = util;
 			path = ../../util;
+			sourceTree = "<group>";
+		};
+		A6DD9ACD1F8124CA00E99E64 /* gif_tvOS */ = {
+			isa = PBXGroup;
+			children = (
+				A6DD9ACE1F8124CA00E99E64 /* gif_tvOS.h */,
+				A6DD9ACF1F8124CA00E99E64 /* gif_tvOS.m */,
+			);
+			path = gif_tvOS;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -127,6 +169,23 @@
 			productReference = A65BB1D11F7C0C6A0088347C /* libgif.a */;
 			productType = "com.apple.product-type.library.static";
 		};
+		A6DD9ACB1F8124CA00E99E64 /* gif_tvOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A6DD9AD41F8124CA00E99E64 /* Build configuration list for PBXNativeTarget "gif_tvOS" */;
+			buildPhases = (
+				A6DD9AC81F8124CA00E99E64 /* Sources */,
+				A6DD9AC91F8124CA00E99E64 /* Frameworks */,
+				A6DD9ACA1F8124CA00E99E64 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = gif_tvOS;
+			productName = gif_tvOS;
+			productReference = A6DD9ACC1F8124CA00E99E64 /* libgif_tvOS.a */;
+			productType = "com.apple.product-type.library.static";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -138,6 +197,11 @@
 				TargetAttributes = {
 					A65BB1D01F7C0C6A0088347C = {
 						CreatedOnToolsVersion = 8.3.3;
+						DevelopmentTeam = 4MQWZS5V6J;
+						ProvisioningStyle = Automatic;
+					};
+					A6DD9ACB1F8124CA00E99E64 = {
+						CreatedOnToolsVersion = 9.0;
 						DevelopmentTeam = 4MQWZS5V6J;
 						ProvisioningStyle = Automatic;
 					};
@@ -156,6 +220,7 @@
 			projectRoot = "";
 			targets = (
 				A65BB1D01F7C0C6A0088347C /* gif */,
+				A6DD9ACB1F8124CA00E99E64 /* gif_tvOS */,
 			);
 		};
 /* End PBXProject section */
@@ -165,16 +230,33 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A63ADBE11F7DD9D700DADC83 /* egif_lib.c in Sources */,
-				A63ADBE21F7DD9D700DADC83 /* gif_err.c in Sources */,
-				A63ADBE41F7DD9D700DADC83 /* gif_hash.c in Sources */,
-				A63ADBE01F7DD9D700DADC83 /* dgif_lib.c in Sources */,
+				A681439E1F81D0A4002196B0 /* dgif_lib.c in Sources */,
+				A681439F1F81D0A4002196B0 /* egif_lib.c in Sources */,
+				A68143A01F81D0A4002196B0 /* gif_err.c in Sources */,
+				A68143A11F81D0A4002196B0 /* gif_font.c in Sources */,
+				A68143A21F81D0A4002196B0 /* gif_hash.c in Sources */,
+				A68143A31F81D0A4002196B0 /* gifalloc.c in Sources */,
+				A68143A41F81D0A4002196B0 /* openbsd-reallocarray.c in Sources */,
+				A68143A51F81D0A5002196B0 /* quantize.c in Sources */,
 				A63ADBEC1F7DD9ED00DADC83 /* qprintf.c in Sources */,
 				A63ADBEB1F7DD9ED00DADC83 /* getarg.c in Sources */,
-				A63ADBE51F7DD9D700DADC83 /* gifalloc.c in Sources */,
-				A63ADBE61F7DD9D700DADC83 /* openbsd-reallocarray.c in Sources */,
-				A63ADBE31F7DD9D700DADC83 /* gif_font.c in Sources */,
-				A63ADBE71F7DD9D700DADC83 /* quantize.c in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A6DD9AC81F8124CA00E99E64 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A68143A61F81D0B1002196B0 /* dgif_lib.c in Sources */,
+				A68143A71F81D0B1002196B0 /* egif_lib.c in Sources */,
+				A68143A81F81D0B1002196B0 /* gif_err.c in Sources */,
+				A68143A91F81D0B1002196B0 /* gif_font.c in Sources */,
+				A68143AA1F81D0B1002196B0 /* gif_hash.c in Sources */,
+				A68143AB1F81D0B1002196B0 /* gifalloc.c in Sources */,
+				A68143AC1F81D0B1002196B0 /* openbsd-reallocarray.c in Sources */,
+				A68143AD1F81D0B1002196B0 /* quantize.c in Sources */,
+				A6449AA21F815B7C0002E1B2 /* getarg.c in Sources */,
+				A6449AA01F815B700002E1B2 /* qprintf.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -291,6 +373,52 @@
 			};
 			name = Release;
 		};
+		A6DD9AD21F8124CA00E99E64 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 4MQWZS5V6J;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 11.0;
+			};
+			name = Debug;
+		};
+		A6DD9AD31F8124CA00E99E64 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 4MQWZS5V6J;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 11.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -308,6 +436,15 @@
 			buildConfigurations = (
 				A65BB1DB1F7C0C6A0088347C /* Debug */,
 				A65BB1DC1F7C0C6A0088347C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A6DD9AD41F8124CA00E99E64 /* Build configuration list for PBXNativeTarget "gif_tvOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A6DD9AD21F8124CA00E99E64 /* Debug */,
+				A6DD9AD31F8124CA00E99E64 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
