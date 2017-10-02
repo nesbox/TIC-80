@@ -11,8 +11,8 @@ git submodule update
 
 Project file can be found in Xcode folder. Select the iOS or tvOS target to build.
 
-TIC-80 issues tracker and wiki
-=======
+
+# TIC-80 issues tracker and wiki
 
 [Discord chat](https://discord.gg/DkD73dP)
 
@@ -22,8 +22,10 @@ Documentation is available in the [wiki](https://github.com/nesbox/tic.computer/
 
 Thanks!
 
-Building with Visual Studio 2015
-=======
+# Building instructions
+
+## Windows
+### with Visual Studio 2015
 - install Visual Studio 2015
 - install GIT
 - run following commands in `cmd`
@@ -31,7 +33,16 @@ Building with Visual Studio 2015
 mkdir tic
 cd tic
 git clone https://github.com/nesbox/3rd-party
-git clone https://github.com/nesbox/TIC-80.git
+git clone https://github.com/nesbox/TIC-80
 ```
-- open `TIC-80\build\windows\tic\tic.sln` and run build
+- open `TIC-80\build\windows\tic\tic.sln` and build
 - enjoy :)
+
+## Linux
+run the following commands in the Terminal
+```
+sudo apt-get install git build-essential libgtk-3-dev
+git clone https://github.com/nesbox/TIC-80
+cd TIC-80
+make linux32 (or linux64/arm depending on your system)
+```
