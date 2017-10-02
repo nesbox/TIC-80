@@ -585,7 +585,7 @@
 					};
 				};
 			};
-			buildConfigurationList = A65BB0671F7BF86A0088347C /* Build configuration list for PBXProject "TIC-80_iOS" */;
+			buildConfigurationList = A65BB0671F7BF86A0088347C /* Build configuration list for PBXProject "TIC-80" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
@@ -1043,7 +1043,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		A65BB0671F7BF86A0088347C /* Build configuration list for PBXProject "TIC-80_iOS" */ = {
+		A65BB0671F7BF86A0088347C /* Build configuration list for PBXProject "TIC-80" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A65BB0811F7BF86A0088347C /* Debug */,

@@ -2,6 +2,6 @@
 <Workspace
    version = "1.0">
    <FileRef
-      location = "self:TIC-80_iOS.xcodeproj">
+      location = "self:/Users/mystaub/Documents/git/CliffsDover/TIC-80/xcode/TIC-80_iOS/TIC-80.xcodeproj">
    </FileRef>
 </Workspace>

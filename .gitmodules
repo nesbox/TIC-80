@@ -1,7 +1,7 @@
 [submodule "Xcode-iOS/TIC-80_iOS/Libraries/SDL2-2.0.6"]
-	path = xcode/TIC-80_iOS/Libraries/SDL2-2.0.6
+	path = xcode/TIC-80/Libraries/SDL2-2.0.6
 	url = https://github.com/CliffsDover/SDL2-2.0.6.git
 	branch = SDL2-2.0.6_TIC-80
 [submodule "Xcode-iOS/TIC-80_iOS/Libraries/3rd-party"]
-	path = xcode/TIC-80_iOS/Libraries/3rd-party
+	path = xcode/TIC-80/Libraries/3rd-party
 	url = https://github.com/nesbox/3rd-party.git
