@@ -329,6 +329,8 @@ static void doTab(Music* music)
 	s32 channel = (music->tracker.col / CHANNEL_COLS + 1) % TIC_SOUND_CHANNELS;
 
 	music->tracker.col = channel * CHANNEL_COLS + music->tracker.col % CHANNEL_COLS;
+
+	updateTracker(music);
 }
 
 static void upFrame(Music* music)
@@ -452,14 +454,14 @@ static void setStopNote(Music* music)
 	pattern->rows[music->tracker.row].octave = 0;
 }
 
-static void setNote(Music* music, s32 note, s32 octave, s32 volume)
+static void setNote(Music* music, s32 note, s32 octave, s32 volume, s32 sfx)
 {
 	tic_track_pattern* pattern = getChannelPattern(music);
 
 	pattern->rows[music->tracker.row].note = note + NoteStart;
 	pattern->rows[music->tracker.row].octave = octave;
 	pattern->rows[music->tracker.row].volume = volume;
-	setSfxId(pattern, music->tracker.row, music->tracker.last.sfx);
+	setSfxId(pattern, music->tracker.row, sfx);
 
 	playNote(music);
 }
@@ -815,20 +817,35 @@ static void processTrackerKeydown(Music* music, SDL_Keysym* keysum)
 				downRow(music);
 			}
 			else
+			{
+				tic_track_pattern* pattern = getChannelPattern(music);
+
 				for (s32 i = 0; i < COUNT_OF(Piano); i++)
 				{
 					if (scancode == Piano[i])
 					{
 						s32 note = i % NOTES;
-						s32 octave = i / NOTES + music->tracker.last.octave;
-						s32 volume = music->tracker.last.volume;
 
-						setNote(music, note, octave, volume);
+						if(pattern->rows[music->tracker.row].note > NoteNone)
+						{
+							pattern->rows[music->tracker.row].note = note + NoteStart;
+							playNote(music);
+						}
+						else
+						{
+							s32 octave = i / NOTES + music->tracker.last.octave;
+							s32 volume = music->tracker.last.volume;
+							s32 sfx = music->tracker.last.sfx;
+							setNote(music, note, octave, volume, sfx);
+						}
+
 						downRow(music);
 
 						break;
 					}
+				
 				}
+			}
 			break;
 		case ColumnOctave:
 			if(getNote(music) >= 0)
