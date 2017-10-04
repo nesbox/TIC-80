@@ -1495,6 +1495,37 @@ static void drawPianoLayout(Music* music)
 	music->tic->api.fixed_text(music->tic, Wip, (TIC80_WIDTH - (sizeof Wip - 1) * TIC_FONT_WIDTH) / 2, TIC80_HEIGHT / 2, systemColor(tic_color_white));
 }
 
+static void scrollNotes(Music* music, s32 delta)
+{
+	tic_track_pattern* pattern = getChannelPattern(music);
+
+	if(pattern)
+	{
+		SDL_Rect rect = music->tracker.select.rect;
+
+		if(rect.h <= 0)
+		{
+			rect.y = music->tracker.row;
+			rect.h = 1;
+		}
+		
+		for(s32 i = rect.y; i < rect.y + rect.h; i++)
+		{
+			s32 note = pattern->rows[i].note + pattern->rows[i].octave * NOTES - NoteStart;
+
+			note += delta;
+
+			if(note >= 0 && note < NOTES*OCTAVES)
+			{
+				pattern->rows[i].note = note % NOTES + NoteStart;
+				pattern->rows[i].octave = note / NOTES;
+			}
+		}
+
+		history_add(music->history);
+	}
+}
+
 static void drawTrackerLayout(Music* music)
 {
 	SDL_Event* event = NULL;
@@ -1503,6 +1534,11 @@ static void drawTrackerLayout(Music* music)
 		switch (event->type)
 		{
 		case SDL_MOUSEWHEEL:
+			if(SDL_GetModState() & TIC_MOD_CTRL)
+			{
+				scrollNotes(music, event->wheel.y > 0 ? 1 : -1);
+			}
+			else
 			{		
 				enum{Scroll = NOTES_PER_BEET};
 				s32 delta = event->wheel.y > 0 ? -Scroll : Scroll;
