@@ -295,10 +295,11 @@ static void channelSfx(tic_mem* memory, s32 index, s32 note, s32 octave, s32 dur
 
 	c->volume = volume;
 
-    {
-        struct {s8 speed:SFX_SPEED_BITS;} temp = {speed};
-        c->speed = speed == temp.speed ? speed : machine->soundSrc->sfx.data[index].speed;
-    }
+	if(index >= 0)
+	{
+		struct {s8 speed:SFX_SPEED_BITS;} temp = {speed};
+		c->speed = speed == temp.speed ? speed : machine->soundSrc->sfx.data[index].speed;
+	}
 
 	// start index of idealized piano
 	enum {PianoStart = -8};
@@ -323,7 +324,6 @@ static void resetMusic(tic_mem* memory)
 	for (s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
 		musicSfx(memory, -1, 0, 0, 0, c);
 }
-
 
 static void setMusic(tic_machine* machine, s32 index, s32 frame, s32 row, bool loop)
 {
@@ -711,6 +711,10 @@ static struct
 {
 	s16 Left[TIC80_HEIGHT];
 	s16 Right[TIC80_HEIGHT];	
+	float ULeft[TIC80_HEIGHT];
+	float VLeft[TIC80_HEIGHT];
+	float URight[TIC80_HEIGHT];
+	float VRight[TIC80_HEIGHT];
 } SidesBuffer;
 
 static void initSidesBuffer()
@@ -728,6 +732,26 @@ static void setSidePixel(s32 x, s32 y)
 	}
 }
 
+static void setSideTexPixel(s32 x, s32 y, float u, float v)
+{
+	s32 yy = (s32)y;
+	if (yy >= 0 && yy < TIC80_HEIGHT)
+	{
+		if (x < SidesBuffer.Left[yy])
+		{
+			SidesBuffer.Left[yy] = x;
+			SidesBuffer.ULeft[yy] = u;
+			SidesBuffer.VLeft[yy] = v;
+		}
+		if (x > SidesBuffer.Right[yy])
+		{
+			SidesBuffer.Right[yy] = x;
+			SidesBuffer.URight[yy] = u;
+			SidesBuffer.VRight[yy] = v;
+		}
+	}
+}
+
 static void api_circle(tic_mem* memory, s32 xm, s32 ym, u32 radius, u8 color)
 {
 	tic_machine* machine = (tic_machine*)memory;
@@ -735,7 +759,7 @@ static void api_circle(tic_mem* memory, s32 xm, s32 ym, u32 radius, u8 color)
 	initSidesBuffer();
 
 	s32 r = radius;
-	int x = -r, y = 0, err = 2-2*r;
+	s32 x = -r, y = 0, err = 2-2*r;
 	do 
 	{
 		setSidePixel(xm-x, ym+y);
@@ -756,7 +780,7 @@ static void api_circle(tic_mem* memory, s32 xm, s32 ym, u32 radius, u8 color)
 static void api_circle_border(tic_mem* memory, s32 xm, s32 ym, u32 radius, u8 color)
 {
 	s32 r = radius;
-	int x = -r, y = 0, err = 2-2*r;
+	s32 x = -r, y = 0, err = 2-2*r;
 	do {
 		api_pixel(memory, xm-x, ym+y, color);
 		api_pixel(memory, xm-y, ym-x, color);
@@ -804,6 +828,109 @@ static void api_tri(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32
 		for(s32 x = SidesBuffer.Left[y]; x <= SidesBuffer.Right[y]; ++x)
 			setPixel(machine, x, y, color);
 }
+
+
+typedef struct
+{
+	float x, y, u, v;
+} TexVert;
+
+
+static void ticTexLine(tic_mem* memory, TexVert *v0, TexVert *v1)
+{
+	TexVert *top = v0;
+	TexVert *bot = v1;
+
+	if (bot->y < top->y)
+	{
+		top = v1;
+		bot = v0;
+	}
+
+	float dy = bot->y - top->y;
+	if ((s32)dy == 0)	return;
+
+	float step_x = (bot->x - top->x) / dy;
+	float step_u = (bot->u - top->u) / dy;
+	float step_v = (bot->v - top->v) / dy;
+
+	float x = top->x;
+	float y = top->y;
+	float u = top->u;
+	float v = top->v;
+	for (; y < (s32)bot->y; y++)
+	{
+		setSideTexPixel(x, y, u, v);
+		x += step_x;
+		u += step_u;
+		v += step_v;
+	}
+}
+
+static void api_textri(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, s32 u1, s32 v1, s32 u2, s32 v2, s32 u3, s32 v3,bool use_map,u8 chroma)
+{
+	tic_machine* machine = (tic_machine*)memory;
+	TexVert V0, V1, V2;
+	const u8* ptr = memory->ram.gfx.tiles[0].data;
+	const u8* map = memory->ram.gfx.map.data;
+
+	V0.x = (float)x1; 	V0.y = (float)y1; 	V0.u = (float)u1; 	V0.v = (float)v1;
+	V1.x = (float)x2; 	V1.y = (float)y2; 	V1.u = (float)u2; 	V1.v = (float)v2;
+	V2.x = (float)x3; 	V2.y = (float)y3; 	V2.u = (float)u3; 	V2.v = (float)v3;
+	initSidesBuffer();
+
+	ticTexLine(memory, &V0, &V1);
+	ticTexLine(memory, &V1, &V2);
+	ticTexLine(memory, &V2, &V0);
+
+	{
+		for (s32 y = 0; y < TIC80_HEIGHT; y++)
+		{
+			float width = SidesBuffer.Right[y] - SidesBuffer.Left[y];
+			if (width > 0)
+			{
+				float du = (SidesBuffer.URight[y] - SidesBuffer.ULeft[y]) / width;
+				float dv = (SidesBuffer.VRight[y] - SidesBuffer.VLeft[y]) / width;
+				float u = SidesBuffer.ULeft[y];
+				float v = SidesBuffer.VLeft[y];
+
+				for (s32 x = (s32)SidesBuffer.Left[y]; x <= (s32)SidesBuffer.Right[y]; ++x)
+				{
+					if ((x >= 0) && (x < TIC80_WIDTH))
+					{
+						if (use_map == true)
+						{
+							enum {MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE, MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE};
+
+							s32 iu = (s32)u % MapWidth;
+							s32 iv = (s32)v % MapHeight;
+
+							u8 tile = map[(iv>>3) * TIC_MAP_WIDTH + (iu>>3)];
+							const u8 *buffer = &ptr[tile << 5];
+							u8 color = tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) << 3));
+							if (color != chroma)
+								setPixel(machine, x, y, color);
+						}
+						else
+						{
+							enum{SheetWidth = TIC_SPRITESHEET_SIZE, SheetHeight = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS};
+
+							s32 iu = (s32)(u) & (SheetWidth - 1);
+							s32 iv = (s32)(v) & (SheetHeight - 1);
+							const u8 *buffer = &ptr[((iu >> 3) + ((iv >> 3) << 4)) << 5];
+							u8 color = tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) << 3));
+							if (color != chroma)
+								setPixel(machine, x, y, color);
+						}
+					}
+					u += du;
+					v += dv;
+				}
+			}
+		}
+	}
+}
+
 
 static void api_sprite(tic_mem* memory, const tic_gfx* src, s32 index, s32 x, s32 y, u8* colors, s32 count)
 {
@@ -1536,6 +1663,7 @@ static void initApi(tic_api* api)
 	INIT_API(circle);
 	INIT_API(circle_border);
 	INIT_API(tri);
+	INIT_API(textri);
 	INIT_API(clip);
 	INIT_API(sfx);
 	INIT_API(sfx_stop);

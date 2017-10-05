@@ -847,7 +847,7 @@ static void onConsoleInstallDemosCommand(Console* console, const char* param)
 
 static void onConsoleSurfCommand(Console* console, const char* param)
 {
-	setStudioMode(TIC_SURF_MODE);
+	gotoSurf();
 
 	commandDone(console);
 }
@@ -2241,6 +2241,9 @@ static void tick(Console* console)
 			embed.yes = false;
 			embed.fast = false;
 			studioRomLoaded();
+
+			console->tic->api.reset(console->tic);
+
 			printLine(console);
 			commandDone(console);
 			console->active = true;

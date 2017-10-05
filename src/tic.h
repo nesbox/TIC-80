@@ -27,7 +27,7 @@
 #include "defines.h"
 
 #define TIC_VERSION_MAJOR 0
-#define TIC_VERSION_MINOR 45
+#define TIC_VERSION_MINOR 46
 #define TIC_VERSION_PATCH 0
 #define TIC_VERSION_STATUS ""
 
@@ -57,7 +57,8 @@
 
 #define BITS_IN_BYTE 8
 #define TIC_BANK_SPRITES (1 << BITS_IN_BYTE)
-#define TIC_SPRITES (TIC_BANK_SPRITES * 2)
+#define TIC_SPRITE_BANKS 2
+#define TIC_SPRITES (TIC_BANK_SPRITES * TIC_SPRITE_BANKS)
 
 #define TIC_SPRITESHEET_SIZE 128
 
@@ -104,7 +105,7 @@
 
 #define API_KEYWORDS {"TIC", "scanline", "print", "cls", "pix", "line", "rect", "rectb", \
 	"spr", "btn", "btnp", "sfx", "map", "mget", "mset", "peek", "poke", "peek4", "poke4", \
-	"memcpy", "memset", "trace", "pmem", "time", "exit", "font", "mouse", "circ", "circb", "tri", \
+	"memcpy", "memset", "trace", "pmem", "time", "exit", "font", "mouse", "circ", "circb", "tri", "textri", \
 	"clip", "music", "sync"}
 
 #define TIC_FONT_CHARS 128

@@ -216,10 +216,10 @@
     <Image Include="Assets\Wide310x150Logo.scale-200.png" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\..\sdk\SDL2-2.0.5\VisualC-WinRT\UWP_VS2015\SDL-UWP.vcxproj">
+    <ProjectReference Include="..\..\..\..\3rd-party\SDL2-2.0.5\VisualC-WinRT\UWP_VS2015\SDL-UWP.vcxproj">
       <Project>{89e9b32e-a86a-47c3-a948-d2b1622925ce}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\..\sdk\zlib-1.2.8\winrt\zlib-uwp\zlib-uwp.vcxproj">
+    <ProjectReference Include="..\..\..\..\3rd-party\zlib-1.2.8\winrt\zlib-uwp\zlib-uwp.vcxproj">
       <Project>{978f53db-f959-4cb4-84a7-463af29949be}</Project>
     </ProjectReference>
     <ProjectReference Include="..\gif\gif.vcxproj">
@@ -233,7 +233,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\sdk\SDL2-2.0.5\src\main\winrt\SDL_winrt_main_NonXAML.cpp">
+    <ClCompile Include="..\..\..\..\3rd-party\SDL2-2.0.5\src\main\winrt\SDL_winrt_main_NonXAML.cpp">
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">true</CompileAsWinRT>
@@ -279,7 +279,7 @@
     <None Include="Package.StoreAssociation.xml" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\..\..\..\..\sdk\SDL2-2.0.5\src\main\winrt\SDL2-WinRTResources.rc" />
+    <ResourceCompile Include="..\..\..\..\3rd-party\SDL2-2.0.5\src\main\winrt\SDL2-WinRTResources.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -719,6 +719,12 @@ static void initSurfMode()
 	initSurf(&studio.surf, studio.tic, &studio.console);
 }
 
+void gotoSurf()
+{
+	initSurfMode();
+	setStudioMode(TIC_SURF_MODE);
+}
+
 static void initMenuMode()
 {
 	initMenu(&studio.menu, studio.tic, studio.fs);
@@ -911,25 +917,27 @@ static void updateHash()
 	md5(&studio.tic->cart, sizeof(tic_cartridge), studio.hash.data);
 }
 
-void studioRomSaved()
+static void updateTitle()
 {
 	char name[FILENAME_MAX] = TIC_TITLE;
 
 	if(strlen(studio.console.romName))
 		sprintf(name, "%s [%s]", TIC_TITLE, studio.console.romName);
 
-	SDL_SetWindowTitle(studio.window, name);
+	SDL_SetWindowTitle(studio.window, name);	
+}
 
+void studioRomSaved()
+{
+	updateTitle();
 	updateHash();
-
-	studio.tic->api.pause(studio.tic);
 }
 
 void studioRomLoaded()
 {
 	initModules();
-	studioRomSaved();
 
+	updateTitle();
 	updateHash();
 }
 
