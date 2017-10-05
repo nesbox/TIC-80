@@ -4,7 +4,7 @@ include $(CLEAR_VARS)
 LOCAL_CFLAGS += -O3 -Wall -std=c99 -D"log2(x)=(log(x)/log(2))"
 LOCAL_MODULE := main
 
-SDL_PATH := ../../../../../../sdk/SDL2-2.0.5
+SDL_PATH := ../../../../../3rd-party/SDL2-2.0.5
 SRC_PATH := ../../../../src
 INCLUDE_PATH := ../../../../include
 
