@@ -27,7 +27,7 @@
 #include "defines.h"
 
 #define TIC_VERSION_MAJOR 0
-#define TIC_VERSION_MINOR 45
+#define TIC_VERSION_MINOR 46
 #define TIC_VERSION_PATCH 0
 #define TIC_VERSION_STATUS ""
 

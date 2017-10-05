@@ -77,7 +77,6 @@
     <ClCompile Include="..\..\..\src\ext\file_dialog.cpp">
       <Filter>src\ext</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\sdk\SDL2-2.0.5\src\main\winrt\SDL_winrt_main_NonXAML.cpp" />
     <ClCompile Include="..\..\..\src\history.c">
       <Filter>src</Filter>
     </ClCompile>
@@ -126,8 +125,9 @@
     <ClCompile Include="..\..\..\src\surf.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\3rd-party\SDL2-2.0.5\src\main\winrt\SDL_winrt_main_NonXAML.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\..\..\..\..\sdk\SDL2-2.0.5\src\main\winrt\SDL2-WinRTResources.rc" />
+    <ResourceCompile Include="..\..\..\..\3rd-party\SDL2-2.0.5\src\main\winrt\SDL2-WinRTResources.rc" />
   </ItemGroup>
 </Project>

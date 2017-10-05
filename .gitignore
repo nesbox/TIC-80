@@ -77,3 +77,5 @@ build/android/bin/
 build/windows/test/Release/
 build/uwp/tic80/x64/
 build/uwp/tic80/ARM/
+build/uwp/tic/Package.StoreAssociation.xml
+build/uwp/tic/tic_StoreKey.pfx
