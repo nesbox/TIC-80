@@ -24,11 +24,27 @@ git clone https://github.com/nesbox/TIC-80
 - open `TIC-80\build\windows\tic\tic.sln` and build
 - enjoy :)
 
-## Linux
+## Using CMAKE 
+### Linux
 run the following commands in the Terminal
 ```
-sudo apt-get install git build-essential libgtk-3-dev
+sudo apt-get install git cmake build-essential libgtk-3-dev emscripten
 git clone https://github.com/nesbox/TIC-80
 cd TIC-80
-make linux32 (or linux64/arm depending on your system)
+mkdir build_
+cd build_
+cmake -DEMDIR=/usr/bin ..
+make 
+
+- get coffee.
 ```
+
+### with Visual Studio 2017CE (or others)
+
+* clone https://github.com/nesbox/TIC-80
+* start cmake & choose your generator.
+* point towards the source 
+* configure and watch the errors come by
+* set EMDIR to your emscripten folder which has emcc emmake etc. in it.
+* configure again and hopefully no real errors should now occur
+* start VS, load the project and hack away
