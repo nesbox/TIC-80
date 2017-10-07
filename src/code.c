@@ -835,6 +835,11 @@ static void redo(Code* code)
 	update(code);
 }
 
+static void run()
+{
+	setStudioMode(TIC_RUN_MODE);
+}
+
 static void doTab(Code* code, bool shift)
 {
 	char* pos = code->cursor.position;
@@ -1785,6 +1790,7 @@ static void onStudioEvent(Code* code, StudioEvent event)
 	case TIC_TOOLBAR_PASTE: copyFromClipboard(code); break;
 	case TIC_TOOLBAR_UNDO: undo(code); break;
 	case TIC_TOOLBAR_REDO: redo(code); break;
+	case TIC_TOOLBAR_RUN: run(); break;
 	}
 }
 

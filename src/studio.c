@@ -456,11 +456,20 @@ void drawExtrabar(tic_mem* tic)
 		0b00110000,
 		0b00000000,
 		0b00000000,
+
+		0b00000000,
+		0b01000000,
+		0b01100000,
+		0b01110000,
+		0b01100000,
+		0b01000000,
+		0b00000000,
+		0b00000000,
 	};
 
 	static const s32 Colors[] = {8, 9, 6, 5, 5};
-	static const StudioEvent Events[] = {TIC_TOOLBAR_CUT, TIC_TOOLBAR_COPY, TIC_TOOLBAR_PASTE,	TIC_TOOLBAR_UNDO, TIC_TOOLBAR_REDO};
-	static const char* Tips[] = {"CUT [ctrl+x]", "COPY [ctrl+c]", "PASTE [ctrl+v]", "UNDO [ctrl+z]", "REDO [ctrl+y]"};
+	static const StudioEvent Events[] = {TIC_TOOLBAR_CUT, TIC_TOOLBAR_COPY, TIC_TOOLBAR_PASTE,	TIC_TOOLBAR_UNDO, TIC_TOOLBAR_REDO, TIC_TOOLBAR_RUN};
+	static const char* Tips[] = {"CUT [ctrl+x]", "COPY [ctrl+c]", "PASTE [ctrl+v]", "UNDO [ctrl+z]", "REDO [ctrl+y]","RUN [ctrl+r]"};
 
 	for(s32 i = 0; i < sizeof Icons / BITS_IN_BYTE; i++)
 	{
