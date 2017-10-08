@@ -72,6 +72,7 @@ struct Code
 
 	enum
 	{
+		TEXT_RUN_CODE,
 		TEXT_EDIT_MODE,
 		TEXT_FIND_MODE,
 		TEXT_GOTO_MODE,

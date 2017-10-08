@@ -1678,6 +1678,15 @@ static void drawCodeToolbar(Code* code)
 	static const u8 Icons[] = 
 	{
 		0b00000000,
+		0b01000000,
+		0b01100000,
+		0b01110000,
+		0b01100000,
+		0b01000000,
+		0b00000000,
+		0b00000000,
+
+		0b00000000,
 		0b00111000,
 		0b01000100,
 		0b00111000,
@@ -1708,7 +1717,7 @@ static void drawCodeToolbar(Code* code)
 	enum {Count = sizeof Icons / BITS_IN_BYTE};
 	enum {Size = 7};
 
-	static const char* Tips[] = {"FIND [ctrl+f]", "GOTO [ctrl+g]", "OUTLINE [ctrl+o]"};
+	static const char* Tips[] = {"RUN [ctrl+f]","FIND [ctrl+f]", "GOTO [ctrl+g]", "OUTLINE [ctrl+o]"};
 
 	for(s32 i = 0; i < Count; i++)
 	{
@@ -1725,14 +1734,21 @@ static void drawCodeToolbar(Code* code)
 
 			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
 			{
-				s32 mode = TEXT_FIND_MODE + i;
+				if (i == TEXT_RUN_CODE)
+				{
+					runProject();
+				}
+				else
+				{
+					s32 mode = TEXT_EDIT_MODE + i;
 
-				if(code->mode == mode) code->escape(code);
-				else setCodeMode(code, mode);
+					if(code->mode == mode) code->escape(code);
+					else setCodeMode(code, mode);
+				}
 			}
 		}
 
-		bool active = i == code->mode - TEXT_FIND_MODE;
+		bool active = i == code->mode - TEXT_EDIT_MODE  && i != 0;
 		if(active)
 			code->tic->api.rect(code->tic, rect.x, rect.y, Size, Size, systemColor(tic_color_blue));
 
@@ -1751,6 +1767,7 @@ static void tick(Code* code)
 
 	switch(code->mode)
 	{
+	case TEXT_RUN_CODE: runProject(); break;
 	case TEXT_EDIT_MODE: textEditTick(code); break;
 	case TEXT_FIND_MODE: textFindTick(code); break;
 	case TEXT_GOTO_MODE: textGoToTick(code); break;
