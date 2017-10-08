@@ -747,7 +747,7 @@ static const struct{duk_c_function func; s32 params;} ApiFunc[] =
 	{duk_circ, 4},
 	{duk_circb, 4},
 	{duk_tri, 7},
-	{duk_textri,12},
+	{duk_textri,14},
 	{duk_clip, 4},
 	{duk_music, 4},
 	{duk_sync, 0},
