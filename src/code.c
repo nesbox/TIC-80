@@ -1678,11 +1678,11 @@ static void drawCodeToolbar(Code* code)
 	static const u8 Icons[] = 
 	{
 		0b00000000,
-		0b01000000,
-		0b01100000,
-		0b01110000,
-		0b01100000,
-		0b01000000,
+		0b00100000,
+		0b00110000,
+		0b00111000,
+		0b00110000,
+		0b00100000,
 		0b00000000,
 		0b00000000,
 
@@ -1717,7 +1717,7 @@ static void drawCodeToolbar(Code* code)
 	enum {Count = sizeof Icons / BITS_IN_BYTE};
 	enum {Size = 7};
 
-	static const char* Tips[] = {"RUN [ctrl+f]","FIND [ctrl+f]", "GOTO [ctrl+g]", "OUTLINE [ctrl+o]"};
+	static const char* Tips[] = {"RUN [ctrl+r]","FIND [ctrl+f]", "GOTO [ctrl+g]", "OUTLINE [ctrl+o]"};
 
 	for(s32 i = 0; i < Count; i++)
 	{

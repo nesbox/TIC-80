@@ -199,3 +199,4 @@ void playSystemSfx(s32 id);
 void runGameFromSurf();
 void gotoSurf();
 void exitFromGameMenu();
+void runProject();
