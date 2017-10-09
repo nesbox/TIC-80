@@ -1363,7 +1363,7 @@ static void onFullscreen()
 	SDL_SetWindowFullscreen(studio.window, studio.fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);	
 }
 
-static void runProject()
+void runProject()
 {
 	studio.tic->api.reset(studio.tic);
 
