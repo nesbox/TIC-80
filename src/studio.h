@@ -172,7 +172,6 @@ typedef enum
 	TIC_TOOLBAR_PASTE,
 	TIC_TOOLBAR_UNDO,
 	TIC_TOOLBAR_REDO,
-	TIC_TOOLBAR_RUN,
 } StudioEvent;
 
 void setStudioEvent(StudioEvent event);
