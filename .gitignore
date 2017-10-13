@@ -2,6 +2,8 @@
 *.ipch
 *.opendb
 *.suo
+sexit
+.vscode/
 build/uwp/tic/Debug/
 build/uwp/tic/Release/
 build/uwp/tic/x64/
