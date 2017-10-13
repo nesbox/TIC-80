@@ -8,7 +8,7 @@ Documentation is available in the [wiki](https://github.com/nesbox/tic.computer/
 
 Thanks!
 
-# Building instructions
+# Build instructions
 
 ## Windows
 ### with Visual Studio 2015
@@ -23,6 +23,10 @@ git clone https://github.com/nesbox/TIC-80
 ```
 - open `TIC-80\build\windows\tic\tic.sln` and build
 - enjoy :)
+
+### with MinGW32
+follow the instructions in the tutorial https://matheuslessarodrigues.github.io/tic80-build-tutorial/
+made by [@matheuslessarodrigues](https://github.com/matheuslessarodrigues)
 
 ## Linux
 run the following commands in the Terminal
