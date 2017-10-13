@@ -36,3 +36,6 @@ git clone https://github.com/nesbox/TIC-80
 cd TIC-80
 make linux32 (or linux64/arm depending on your system)
 ```
+
+## iOS / tvOS
+You can find iOS/tvOS version here https://github.com/CliffsDover/TIC-80
