@@ -83,17 +83,17 @@ static void update_amp(blip_buffer_t* blip, tic_sound_register_data* data, s32 n
 	blip_add_delta( blip, data->time, delta );
 }
 
-inline s32 freq2note(double freq)
+static inline s32 freq2note(double freq)
 {
 	return (s32)round((double)NOTES * log2(freq / BASE_NOTE_FREQ)) + BASE_NOTE_POS;
 }
 
-inline double note2freq(s32 note)
+static inline double note2freq(s32 note)
 {
 	return pow(2, (note - BASE_NOTE_POS) / (double)NOTES) * BASE_NOTE_FREQ;
 }
 
-inline s32 freq2period(double freq)
+static inline s32 freq2period(double freq)
 {
 	if(freq == 0.0) return MAX_PERIOD_VALUE;
 
@@ -106,7 +106,7 @@ inline s32 freq2period(double freq)
 	return period;
 }
 
-inline s32 getAmp(const tic_sound_register* reg, s32 amp)
+static inline s32 getAmp(const tic_sound_register* reg, s32 amp)
 {
 	enum {MaxAmp = (u16)-1 / (MAX_VOLUME * TIC_SOUND_CHANNELS)};
 

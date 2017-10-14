@@ -781,42 +781,42 @@ static void onConsoleInstallDemosCommand(Console* console, const char* param)
 {
 	static const u8 DemoFire[] = 
 	{
-		#include "../bin/assets/fire.tic.dat"
+		#include <fire.tic.dat>
 	};
 
 	static const u8 DemoP3D[] = 
 	{
-		#include "../bin/assets/p3d.tic.dat"
+		#include <p3d.tic.dat>
 	};
 
 	static const u8 DemoSFX[] = 
 	{
-		#include "../bin/assets/sfx.tic.dat"
+		#include <sfx.tic.dat>
 	};
 
 	static const u8 DemoPalette[] = 
 	{
-		#include "../bin/assets/palette.tic.dat"
+		#include <palette.tic.dat>
 	};
 
 	static const u8 DemoFont[] = 
 	{
-		#include "../bin/assets/font.tic.dat"
+		#include <font.tic.dat>
 	};
 
 	static const u8 DemoMusic[] = 
 	{
-		#include "../bin/assets/music.tic.dat"
+		#include <music.tic.dat>
 	};
 
 	static const u8 GameQuest[] = 
 	{
-		#include "../bin/assets/quest.tic.dat"
+		#include <quest.tic.dat>
 	};
 
 	static const u8 GameTetris[] = 
 	{
-		#include "../bin/assets/tetris.tic.dat"
+		#include <tetris.tic.dat>
 	};
 
 	FileSystem* fs = console->fs;
