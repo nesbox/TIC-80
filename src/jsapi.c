@@ -200,7 +200,7 @@ static duk_ret_t duk_btn(duk_context* duk)
 		else
 		{
 			s32 index = duk_to_int(duk, 0) & 0xf;
-			duk_push_uint(duk, machine->memory.ram.vram.input.gamepad.data & (1 << index));
+			duk_push_boolean(duk, machine->memory.ram.vram.input.gamepad.data & (1 << index));
 		}
 
 		return 1;		
