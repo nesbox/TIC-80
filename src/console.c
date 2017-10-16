@@ -2282,10 +2282,10 @@ static bool loadFileIntoBuffer(Console* console, char* buffer, const char* fileN
 	s32 size = 0;
 	void* contents = fsReadFile(fileName, &size);
 
-	memset(buffer, 0, TIC_CODE_SIZE);
-
 	if(contents)
 	{
+		memset(buffer, 0, TIC_CODE_SIZE);
+
 		if(size > TIC_CODE_SIZE)
 		{
 			char messageBuffer[256];
@@ -2317,7 +2317,8 @@ static void tryReloadCode(Console* console, char* codeBuffer)
 
 static void cmdInjectCode(Console* console, const char* param, const char* name)
 {
-	if(strcmp(param, "-code") == 0)
+	bool watch = strcmp(param, "-code-watch") == 0;
+	if(strcmp(param, "-code") == 0 || watch)
 	{
 		bool loaded = loadFileIntoBuffer(console, &embed.file.code.data, name);
 
@@ -2326,8 +2327,11 @@ static void cmdInjectCode(Console* console, const char* param, const char* name)
 			embed.yes = true;
 			embed.fast = true;
 
-			console->codeLiveReload.active = true;
-			strcpy(console->codeLiveReload.fileName, name);
+			if(watch)
+			{
+				console->codeLiveReload.active = true;
+				strcpy(console->codeLiveReload.fileName, name);
+			}
 		}
 	}
 }
