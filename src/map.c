@@ -411,12 +411,16 @@ static void drawCursorPos(Map* map, s32 x, s32 y)
 
 	sprintf(pos, "%03i:%03i", tx, ty);
 
-	x += (TIC_SPRITESIZE + 3);
-	y -= (TIC_FONT_HEIGHT + 2);
+	s32 width = map->tic->api.text(map->tic, pos, TIC80_WIDTH, 0, systemColor(tic_color_gray));
 
-	s32 width = map->tic->api.text(map->tic, pos, x, y, systemColor(tic_color_gray));
-	map->tic->api.rect(map->tic, x - 1, y - 1, width + 1, TIC_FONT_HEIGHT + 1, systemColor(tic_color_white));
-	map->tic->api.text(map->tic, pos, x, y, systemColor(tic_color_light_blue));
+	s32 px = x + (TIC_SPRITESIZE + 3);
+	if(px + width >= TIC80_WIDTH) px = x - (width + 2);
+
+	s32 py = y - (TIC_FONT_HEIGHT + 2);
+	if(py <= TOOLBAR_SIZE) py = y + (TIC_SPRITESIZE + 3);
+
+	map->tic->api.rect(map->tic, px - 1, py - 1, width + 1, TIC_FONT_HEIGHT + 1, systemColor(tic_color_white));
+	map->tic->api.text(map->tic, pos, px, py, systemColor(tic_color_light_blue));
 }
 
 static void setMapSprite(Map* map, s32 x, s32 y)
