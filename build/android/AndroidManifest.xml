@@ -4,12 +4,12 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
       package="com.nesbox.tic"
-      android:versionCode="4601"
-      android:versionName="0.46.1"
+      android:versionCode="4602"
+      android:versionName="0.46.2"
       android:installLocation="auto">
 
     <!-- Android 2.3.3 -->
-    <uses-sdk android:minSdkVersion="14" android:targetSdkVersion="14" />
+    <uses-sdk android:minSdkVersion="12" android:targetSdkVersion="12" />
 
     <!-- OpenGL ES 2.0 -->
     <uses-feature android:glEsVersion="0x00020000" />
