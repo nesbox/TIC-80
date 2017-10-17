@@ -57,9 +57,17 @@ struct Console
 	{
 		s32 pos;
 		s32 start;
-		
+
 		bool active;
 	} scroll;
+
+	struct
+	{
+		char fileName[FILENAME_MAX];
+		bool active;
+
+		void(*reload)(Console*, char*);
+	} codeLiveReload;
 
 	char* buffer;
 	u8* colorBuffer;
