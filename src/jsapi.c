@@ -466,10 +466,9 @@ static duk_ret_t duk_memcpy(duk_context* duk)
 	s32 dest = duk_to_int(duk, 0);
 	s32 src = duk_to_int(duk, 1);
 	s32 size = duk_to_int(duk, 2);
-	s32 dstBound = sizeof(tic_ram) - size;
-	s32 srcBound = sizeof(tic_mem) - size;
+	s32 bound = sizeof(tic_ram) - size;
 
-	if(size > 0 && dest < dstBound && src < srcBound)
+	if(size >= 0 && size <= sizeof(tic_ram) && dest >= 0 && src >= 0 && dest <= bound && src <= bound)
 	{
 		u8* base = (u8*)&getDukMachine(duk)->memory;
 		memcpy(base + dest, base + src, size);
@@ -485,7 +484,7 @@ static duk_ret_t duk_memset(duk_context* duk)
 	s32 size = duk_to_int(duk, 2);
 	s32 bound = sizeof(tic_ram) - size;
 
-	if(size > 0 && dest < bound)
+	if(size >= 0 && size <= sizeof(tic_ram) && dest >= 0 && dest <= bound)
 	{
 		u8* base = (u8*)&getDukMachine(duk)->memory;
 		memset(base + dest, value, size);
