@@ -2318,7 +2318,7 @@ static void tryReloadCode(Console* console, char* codeBuffer)
 static void cmdInjectCode(Console* console, const char* param, const char* name)
 {
 	bool watch = strcmp(param, "-code-watch") == 0;
-	if(strcmp(param, "-code") == 0 || watch)
+	if(watch || strcmp(param, "-code") == 0)
 	{
 		bool loaded = loadFileIntoBuffer(console, &embed.file.code.data, name);
 
