@@ -762,14 +762,16 @@ static void tick(Surf* surf)
 	tic->api.clear(tic, TIC_COLOR_BG);
 
 	drawBG(surf);
-	processAnim(surf);
 
-	if(surf->state == &MenuModeState)
+	if(surf->menu.count > 0)
 	{
-		processGamepad(surf);
-	}
+		processAnim(surf);
 
-	{
+		if(surf->state == &MenuModeState)
+		{
+			processGamepad(surf);
+		}
+
 		loadCover(surf);
 
 		drawCover(surf, surf->menu.pos, 0, 0);
@@ -781,6 +783,12 @@ static void tick(Surf* surf)
 
 		drawTopToolbar(surf, 0, AnimVar.topBarY - MENU_HEIGHT);
 		drawBottomToolbar(surf, 0, TIC80_HEIGHT - AnimVar.bottomBarY);
+	}
+	else
+	{
+		static const char Label[] = "You don't have any files...";
+		s32 size = tic->api.text(tic, Label, 0, -TIC_FONT_HEIGHT, tic_color_white);
+		tic->api.text(tic, Label, (TIC80_WIDTH - size) / 2, (TIC80_HEIGHT - TIC_FONT_HEIGHT)/2, tic_color_white);
 	}
 }
 
