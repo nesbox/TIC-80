@@ -4,8 +4,8 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
       package="com.nesbox.tic"
-      android:versionCode="4602"
-      android:versionName="0.46.2"
+      android:versionCode="4700"
+      android:versionName="0.47.0"
       android:installLocation="auto">
 
     <!-- Android 2.3.3 -->

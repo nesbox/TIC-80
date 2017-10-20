@@ -97,8 +97,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <PackageCertificateKeyFile>tic_StoreKey.pfx</PackageCertificateKeyFile>
-    <PackageCertificateThumbprint>FAF3D8EF7331C1BFD85A8A5CE536BBA943CFEF65</PackageCertificateThumbprint>
+    <PackageCertificateKeyFile>tic_TemporaryKey.pfx</PackageCertificateKeyFile>
+    <PackageCertificateThumbprint>79CF63C4E76FE222A67C06580B2D3621FAD1C727</PackageCertificateThumbprint>
     <AppxAutoIncrementPackageRevision>False</AppxAutoIncrementPackageRevision>
     <AppxBundle>Always</AppxBundle>
     <AppxBundlePlatforms>x86|x64|arm</AppxBundlePlatforms>
