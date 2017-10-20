@@ -98,7 +98,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
     <PackageCertificateKeyFile>tic_StoreKey.pfx</PackageCertificateKeyFile>
-    <PackageCertificateThumbprint>FAF3D8EF7331C1BFD85A8A5CE536BBA943CFEF65</PackageCertificateThumbprint>
+    <PackageCertificateThumbprint>D14111A1389AE6F9821F879C5D6D066D87718B43</PackageCertificateThumbprint>
     <AppxAutoIncrementPackageRevision>False</AppxAutoIncrementPackageRevision>
     <AppxBundle>Always</AppxBundle>
     <AppxBundlePlatforms>x86|x64|arm</AppxBundlePlatforms>

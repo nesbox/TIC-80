@@ -46,7 +46,7 @@ static void history(Code* code)
 static void drawStatus(Code* code)
 {
 	const s32 Height = TIC_FONT_HEIGHT + 1;
-	code->tic->api.rect(code->tic, 0, TIC80_HEIGHT - Height, TIC80_WIDTH, Height, systemColor(tic_color_white));
+	code->tic->api.rect(code->tic, 0, TIC80_HEIGHT - Height, TIC80_WIDTH, Height, (tic_color_white));
 	code->tic->api.fixed_text(code->tic, code->status, 0, TIC80_HEIGHT - TIC_FONT_HEIGHT, getConfig()->theme.code.bg);
 }
 
@@ -72,7 +72,7 @@ static void drawCode(Code* code, bool withCursor)
 
 	u8* colorPointer = code->colorBuffer;
 
-	struct { char* start; char* end; } selection = {SDL_min(code->cursor.selection, code->cursor.position), 
+	struct { char* start; char* end; } selection = {SDL_min(code->cursor.selection, code->cursor.position),
 		SDL_max(code->cursor.selection, code->cursor.position)};
 
 	struct { s32 x; s32 y; char symbol;	} cursor = {-1, -1, 0};
@@ -155,11 +155,11 @@ static void updateEditor(Code* code)
 	getCursorPosition(code, &column, &line);
 
 	if(column < code->scroll.x) code->scroll.x = column;
-	else if(column >= code->scroll.x + TEXT_BUFFER_WIDTH) 
+	else if(column >= code->scroll.x + TEXT_BUFFER_WIDTH)
 		code->scroll.x = column - TEXT_BUFFER_WIDTH + 1;
 
 	if(line < code->scroll.y) code->scroll.y = line;
-	else if(line >= code->scroll.y + TEXT_BUFFER_HEIGHT) 
+	else if(line >= code->scroll.y + TEXT_BUFFER_HEIGHT)
 		code->scroll.y = line - TEXT_BUFFER_HEIGHT + 1;
 
 	code->cursor.delay = TEXT_CURSOR_DELAY;
@@ -175,9 +175,9 @@ static void updateEditor(Code* code)
 
 		size_t codeLen = strlen(code->data);
 		sprintf(status, "%i/%i", (u32)codeLen, TIC_CODE_SIZE);
-		
+
 		memset(code->data + codeLen, '\0', TIC_CODE_SIZE - codeLen);
-		memcpy(code->status + sizeof code->status - strlen(status) - 1, status, strlen(status));		
+		memcpy(code->status + sizeof code->status - strlen(status) - 1, status, strlen(status));
 	}
 }
 
@@ -203,7 +203,7 @@ static void highlightStrings(Code* code, const char* text, u8* color, char separ
 				memset(colorPtr, getConfig()->theme.code.string, end - start);
 
 			highlightStrings(code, end, color + (end - text), separator);
-		}	
+		}
 	}
 }
 
@@ -265,13 +265,13 @@ static void highlightMoonKeywords(Code* code, u8* color)
 {
 	const char* text = code->data;
 
-	static const char* const MoonKeywords [] = 
+	static const char* const MoonKeywords [] =
 	{
-		"false", "true", "nil", "return", 
-		"break", "continue", "for", "while", 
-		"if", "else", "elseif", "unless", "switch", 
-		"when", "and", "or", "in", "do", 
-		"not", "super", "try", "catch", 
+		"false", "true", "nil", "return",
+		"break", "continue", "for", "while",
+		"if", "else", "elseif", "unless", "switch",
+		"when", "and", "or", "in", "do",
+		"not", "super", "try", "catch",
 		"with", "export", "import", "then",
 		"from", "class", "extends", "new"
 	};
@@ -283,7 +283,7 @@ static void highlightLuaKeywords(Code* code, u8* color)
 {
 	const char* text = code->data;
 
-	static const char* const LuaKeywords [] = 
+	static const char* const LuaKeywords [] =
 	{
 		"and", "break", "do", "else", "elseif",
 		"end", "false", "for", "function", "goto", "if",
@@ -298,11 +298,11 @@ static void highlightJsKeywords(Code* code, u8* color)
 {
 	const char* text = code->data;
 
-	static const char* const JsKeywords [] = 
+	static const char* const JsKeywords [] =
 	{
-		"break", "do", "instanceof", "typeof", "case", "else", "new", 
-		"var", "catch", "finally", "return", "void", "continue", "for", 
-		"switch", "while", "debugger", "function", "this", "with", 
+		"break", "do", "instanceof", "typeof", "case", "else", "new",
+		"var", "catch", "finally", "return", "void", "continue", "for",
+		"switch", "while", "debugger", "function", "this", "with",
 		"default", "if", "throw", "delete", "in", "try", "const"
 	};
 
@@ -335,13 +335,13 @@ static void highlightSigns(Code* code, u8* color)
 {
 	const char* text = code->data;
 
-	static const char* const LuaSigns [] = 
+	static const char* const LuaSigns [] =
 	{
-		"+", "-", "*", "/", "%", "^", "#", 
-		"&", "~", "|", "<<", ">>", "//", 
-		"==", "~=", "<=", ">=", "<", ">", "=", 
-		"(", ")", "{", "}", "[", "]", "::", 
-		";", ":", ",", ".", "..", "...",	
+		"+", "-", "*", "/", "%", "^", "#",
+		"&", "~", "|", "<<", ">>", "//",
+		"==", "~=", "<=", ">=", "<", ">", "=",
+		"(", ")", "{", "}", "[", "]", "::",
+		";", ":", ",", ".", "..", "...",
 	};
 
 	for(s32 i = 0; i < COUNT_OF(LuaSigns); i++)
@@ -521,7 +521,7 @@ static void setCursorPosition(Code* code, s32 cx, s32 cy)
 			if(y == cy && cx > x)
 			{
 				updateCursorPosition(code, pointer);
-				return;	
+				return;
 			}
 
 			x = 0;
@@ -567,7 +567,7 @@ static void leftColumn(Code* code)
 static void rightColumn(Code* code)
 {
 	if(*code->cursor.position)
-	{		
+	{
 		code->cursor.position++;
 		updateColumn(code);
 	}
@@ -615,6 +615,20 @@ static void goEnd(Code* code)
 {
 	char* line = getLine(code);
 	code->cursor.position = line + getLineSize(line);
+
+	updateColumn(code);
+}
+
+static void goCodeHome(Code *code)
+{
+	code->cursor.position = code->data;
+
+	updateColumn(code);
+}
+
+static void goCodeEnd(Code *code)
+{
+	code->cursor.position = code->data + strlen(code->data);
 
 	updateColumn(code);
 }
@@ -878,7 +892,7 @@ static void doTab(Code* code, bool shift)
 			history(code);
 
 		parseSyntaxColor(code);
-		
+
 	}
 	else inputSymbolBase(code, '\t');
 }
@@ -890,7 +904,7 @@ static void setFindMode(Code* code)
 		const char* end = SDL_max(code->cursor.position, code->cursor.selection);
 		const char* start = SDL_min(code->cursor.position, code->cursor.selection);
 		size_t len = end - start;
-		
+
 		if(len > 0 && len < sizeof code->popup.text - 1)
 		{
 			memset(code->popup.text, 0, sizeof code->popup.text);
@@ -938,7 +952,7 @@ static char* getFuncName(const char* start, char* buffer)
 			memcpy(buffer, start, len);
 			buffer[len] = '\0';
 
-			return buffer;		
+			return buffer;
 		}
 	}
 
@@ -997,7 +1011,7 @@ static void setMoonscriptOutlineMode(Code* code)
 	char filter[STUDIO_TEXT_BUFFER_WIDTH];
 	strcpy(filter, code->popup.text);
 	SDL_strlwr(filter);
-	
+
 	while(ptr)
 	{
 		ptr = strstr(ptr, FuncString);
@@ -1029,7 +1043,7 @@ static void setMoonscriptOutlineMode(Code* code)
 						out++;
 					}
 				}
-				else 
+				else
 				{
 					out->pos = start;
 					out++;
@@ -1076,7 +1090,7 @@ static void setLuaOutlineMode(Code* code)
 						out++;
 					}
 				}
-				else 
+				else
 				{
 					out->pos = ptr;
 					out++;
@@ -1095,7 +1109,7 @@ static void setOutlineMode(Code* code)
 	memset(code->outline.items, 0, OUTLINE_ITEMS_SIZE);
 
 	code->tic->api.get_script(code->tic) == tic_script_moon
-		? setMoonscriptOutlineMode(code) 
+		? setMoonscriptOutlineMode(code)
 		: setLuaOutlineMode(code);
 
 	qsort(code->outline.items, OUTLINE_SIZE, sizeof(OutlineItem), funcCompare);
@@ -1199,7 +1213,7 @@ static void processKeydown(Code* code, SDL_Keycode keycode)
 		if(!(keymod & KMOD_SHIFT)) code->cursor.selection = NULL;
 		else if(code->cursor.selection == NULL) code->cursor.selection = code->cursor.position;
 	}
-		
+
 	if(keymod & TIC_MOD_CTRL)
 	{
 		if(keymod & KMOD_CTRL)
@@ -1228,6 +1242,8 @@ static void processKeydown(Code* code, SDL_Keycode keycode)
 		case SDLK_g: 	setCodeMode(code, TEXT_GOTO_MODE); break;
 		case SDLK_o: 	setCodeMode(code, TEXT_OUTLINE_MODE); break;
 		case SDLK_SLASH: commentLine(code);	break;
+		case SDLK_HOME: goCodeHome(code); break;
+		case SDLK_END: 	goCodeEnd(code); break;
 		}
 	}
 	else if(keymod & KMOD_ALT)
@@ -1319,7 +1335,7 @@ static void processMouse(Code* code)
 					code->cursor.position = position;
 				}
 				else if(!code->cursor.mouseDownPosition)
-				{		
+				{
 					code->cursor.selection = code->cursor.position;
 					code->cursor.mouseDownPosition = code->cursor.position;
 				}
@@ -1352,7 +1368,7 @@ static void textEditTick(Code* code)
 		switch(event->type)
 		{
 		case SDL_MOUSEWHEEL:
-			{		
+			{
 				enum{Scroll = 3};
 				s32 delta = event->wheel.y > 0 ? -Scroll : Scroll;
 
@@ -1368,11 +1384,11 @@ static void textEditTick(Code* code)
 
 #if defined(__LINUX__)
 			if(!(SDL_GetModState() & KMOD_LALT))
-#endif	
-			
+#endif
+
 			if(strlen(event->text.text) == 1)
 			{
-				
+
 
 				inputSymbol(code, *event->text.text);
 				updateEditor(code);
@@ -1392,12 +1408,14 @@ static void textEditTick(Code* code)
 
 static void drawPopupBar(Code* code, const char* title)
 {
-	code->tic->api.rect(code->tic, 0, TOOLBAR_SIZE-1, TIC80_WIDTH, TIC_FONT_HEIGHT + 1, systemColor(tic_color_blue));
-	code->tic->api.fixed_text(code->tic, title, 0, TOOLBAR_SIZE, systemColor(tic_color_white));
+	enum {TextY = TOOLBAR_SIZE + 1};
 
-	code->tic->api.fixed_text(code->tic, code->popup.text, (s32)strlen(title)*TIC_FONT_WIDTH, TOOLBAR_SIZE, systemColor(tic_color_white));
+	code->tic->api.rect(code->tic, 0, TOOLBAR_SIZE, TIC80_WIDTH, TIC_FONT_HEIGHT + 1, (tic_color_blue));
+	code->tic->api.fixed_text(code->tic, title, 0, TextY, (tic_color_white));
 
-	drawCursor(code, (s32)(strlen(title) + strlen(code->popup.text)) * TIC_FONT_WIDTH, TOOLBAR_SIZE, ' ');
+	code->tic->api.fixed_text(code->tic, code->popup.text, (s32)strlen(title)*TIC_FONT_WIDTH, TextY, (tic_color_white));
+
+	drawCursor(code, (s32)(strlen(title) + strlen(code->popup.text)) * TIC_FONT_WIDTH, TextY, ' ');
 }
 
 static void updateFindCode(Code* code, char* pos)
@@ -1425,7 +1443,7 @@ static char* upStrStr(const char* start, const char* from, const char* substr)
 				return (char*)ptr;
 
 			ptr--;
-		}		
+		}
 	}
 
 	return NULL;
@@ -1446,9 +1464,9 @@ static void textFindTick(Code* code)
 		case SDL_KEYDOWN:
 			switch(event->key.keysym.sym)
 			{
-			case SDLK_RETURN: 
+			case SDLK_RETURN:
 				setCodeMode(code, TEXT_EDIT_MODE);
-				break; 
+				break;
 			case SDLK_UP:
 			case SDLK_LEFT:
 			case SDLK_DOWN:
@@ -1474,7 +1492,7 @@ static void textFindTick(Code* code)
 			}
 			break;
 		case SDL_TEXTINPUT:
-			if(strlen(event->text.text) == 1) 
+			if(strlen(event->text.text) == 1)
 			{
 				if(strlen(code->popup.text) + 1 < sizeof code->popup.text)
 				{
@@ -1523,7 +1541,7 @@ static void textGoToTick(Code* code)
 		case SDL_KEYDOWN:
 			switch(event->key.keysym.sym)
 			{
-			case SDLK_RETURN: 
+			case SDLK_RETURN:
 				if(*code->popup.text)
 					updateGotoCode(code);
 
@@ -1540,7 +1558,7 @@ static void textGoToTick(Code* code)
 			}
 			break;
 		case SDL_TEXTINPUT:
-			if(strlen(event->text.text) == 1) 
+			if(strlen(event->text.text) == 1)
 			{
 				char sym = *event->text.text;
 
@@ -1558,7 +1576,7 @@ static void textGoToTick(Code* code)
 	code->tic->api.clear(code->tic, getConfig()->theme.code.bg);
 
 	if(code->jump.line >= 0)
-		code->tic->api.rect(code->tic, 0, (code->jump.line - code->scroll.y) * TIC_FONT_HEIGHT + TOOLBAR_SIZE-1, 
+		code->tic->api.rect(code->tic, 0, (code->jump.line - code->scroll.y) * TIC_FONT_HEIGHT + TOOLBAR_SIZE + 1,
 			TIC80_WIDTH, TIC_FONT_HEIGHT+1, getConfig()->theme.code.select);
 
 	drawCode(code, false);
@@ -1583,7 +1601,7 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 			{
 				code->outline.index = mx;
 				updateOutlineCode(code);
-				
+
 			}
 
 			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
@@ -1591,7 +1609,7 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 		}
 	}
 
-	code->tic->api.rect(code->tic, rect.x-1, rect.y, rect.w+1, rect.h, systemColor(tic_color_blue));
+	code->tic->api.rect(code->tic, rect.x-1, rect.y, rect.w+1, rect.h, (tic_color_blue));
 
 	OutlineItem* ptr = code->outline.items;
 
@@ -1599,16 +1617,16 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 
 	if(ptr->pos)
 	{
-		code->tic->api.rect(code->tic, rect.x - 1, rect.y + code->outline.index*STUDIO_TEXT_HEIGHT, 
-			rect.w + 1, TIC_FONT_HEIGHT + 1, systemColor(tic_color_red));
+		code->tic->api.rect(code->tic, rect.x - 1, rect.y + code->outline.index*STUDIO_TEXT_HEIGHT,
+			rect.w + 1, TIC_FONT_HEIGHT + 1, (tic_color_red));
 		while(ptr->pos)
 		{
-			code->tic->api.fixed_text(code->tic, ptr->name, x, y, systemColor(tic_color_white));
+			code->tic->api.fixed_text(code->tic, ptr->name, x, y, (tic_color_white));
 			ptr++;
 			y += STUDIO_TEXT_HEIGHT;
-		}		
+		}
 	}
-	else code->tic->api.fixed_text(code->tic, "(empty)", x, y, systemColor(tic_color_white));
+	else code->tic->api.fixed_text(code->tic, "(empty)", x, y, (tic_color_white));
 }
 
 static void textOutlineTick(Code* code)
@@ -1621,21 +1639,21 @@ static void textOutlineTick(Code* code)
 		case SDL_KEYDOWN:
 			switch(event->key.keysym.sym)
 			{
-			case SDLK_UP: 
+			case SDLK_UP:
 				if(code->outline.index > 0)
 				{
 					code->outline.index--;
 					updateOutlineCode(code);
 				}
 				break;
-			case SDLK_DOWN: 
+			case SDLK_DOWN:
 				if(code->outline.index < OUTLINE_SIZE - 1 && code->outline.items[code->outline.index + 1].pos)
 				{
 					code->outline.index++;
 					updateOutlineCode(code);
 				}
 				break;
-			case SDLK_RETURN: 
+			case SDLK_RETURN:
 				updateOutlineCode(code);
 				setCodeMode(code, TEXT_EDIT_MODE);
 				break;
@@ -1650,7 +1668,7 @@ static void textOutlineTick(Code* code)
 			}
 			break;
 		case SDL_TEXTINPUT:
-			if(strlen(event->text.text) == 1) 
+			if(strlen(event->text.text) == 1)
 			{
 				if(strlen(code->popup.text) + 1 < sizeof code->popup.text)
 				{
@@ -1673,10 +1691,19 @@ static void textOutlineTick(Code* code)
 
 static void drawCodeToolbar(Code* code)
 {
-	code->tic->api.rect(code->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE-1, systemColor(tic_color_white));
+	code->tic->api.rect(code->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, (tic_color_white));
 
-	static const u8 Icons[] = 
+	static const u8 Icons[] =
 	{
+		0b00000000,
+		0b00100000,
+		0b00110000,
+		0b00111000,
+		0b00110000,
+		0b00100000,
+		0b00000000,
+		0b00000000,
+
 		0b00000000,
 		0b00111000,
 		0b01000100,
@@ -1708,7 +1735,7 @@ static void drawCodeToolbar(Code* code)
 	enum {Count = sizeof Icons / BITS_IN_BYTE};
 	enum {Size = 7};
 
-	static const char* Tips[] = {"FIND [ctrl+f]", "GOTO [ctrl+g]", "OUTLINE [ctrl+o]"};
+	static const char* Tips[] = {"RUN [ctrl+r]","FIND [ctrl+f]", "GOTO [ctrl+g]", "OUTLINE [ctrl+o]"};
 
 	for(s32 i = 0; i < Count; i++)
 	{
@@ -1725,18 +1752,25 @@ static void drawCodeToolbar(Code* code)
 
 			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
 			{
-				s32 mode = TEXT_FIND_MODE + i;
+				if (i == TEXT_RUN_CODE)
+				{
+					runProject();
+				}
+				else
+				{
+					s32 mode = TEXT_EDIT_MODE + i;
 
-				if(code->mode == mode) code->escape(code);
-				else setCodeMode(code, mode);
+					if(code->mode == mode) code->escape(code);
+					else setCodeMode(code, mode);
+				}
 			}
 		}
 
-		bool active = i == code->mode - TEXT_FIND_MODE;
+		bool active = i == code->mode - TEXT_EDIT_MODE  && i != 0;
 		if(active)
-			code->tic->api.rect(code->tic, rect.x, rect.y, Size, Size, systemColor(tic_color_blue));
+			code->tic->api.rect(code->tic, rect.x, rect.y, Size, Size, (tic_color_blue));
 
-		drawBitIcon(rect.x, rect.y, Icons + i*BITS_IN_BYTE, active ? systemColor(tic_color_white) : (over ? systemColor(tic_color_dark_gray) : systemColor(tic_color_light_blue)));
+		drawBitIcon(rect.x, rect.y, Icons + i*BITS_IN_BYTE, active ? (tic_color_white) : (over ? (tic_color_dark_gray) : (tic_color_light_blue)));
 	}
 
 	drawToolbar(code->tic, getConfig()->theme.code.bg, false);
@@ -1751,6 +1785,7 @@ static void tick(Code* code)
 
 	switch(code->mode)
 	{
+	case TEXT_RUN_CODE: runProject(); break;
 	case TEXT_EDIT_MODE: textEditTick(code); break;
 	case TEXT_FIND_MODE: textFindTick(code); break;
 	case TEXT_GOTO_MODE: textGoToTick(code); break;
@@ -1803,19 +1838,19 @@ void initCode(Code* code, tic_mem* tic)
 		.tick = tick,
 		.escape = escape,
 		.cursor = {{tic->cart.code.data, NULL, 0, 0}, NULL, 0},
-		.rect = {0, TOOLBAR_SIZE, TIC80_WIDTH, TIC80_HEIGHT - TOOLBAR_SIZE - TIC_FONT_HEIGHT - 1},
+		.rect = {0, TOOLBAR_SIZE + 1, TIC80_WIDTH, TIC80_HEIGHT - TOOLBAR_SIZE - TIC_FONT_HEIGHT - 1},
 		.scroll = {0, 0, {0, 0}, false},
 		.tickCounter = 0,
 		.history = NULL,
 		.cursorHistory = NULL,
 		.mode = TEXT_EDIT_MODE,
 		.jump = {.line = -1},
-		.popup = 
+		.popup =
 		{
 			.prevPos = NULL,
 			.prevSel = NULL,
 		},
-		.outline = 
+		.outline =
 		{
 			.items = code->outline.items,
 			.index = 0,

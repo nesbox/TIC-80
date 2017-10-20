@@ -759,14 +759,13 @@ static s32 lua_memcpy(lua_State* lua)
 		s32 dest = getLuaNumber(lua, 1);
 		s32 src = getLuaNumber(lua, 2);
 		s32 size = getLuaNumber(lua, 3);
-		s32 dstBound = sizeof(tic_ram) - size;
-		s32 srcBound = sizeof(tic_mem) - size;
+                s32 bound = sizeof(tic_ram) - size;
 
-		if(dest < dstBound && src < srcBound)
+		if(size >= 0 && size <= sizeof(tic_ram) && dest >= 0 && src >= 0 && dest <= bound && src <= bound)
 		{
 			u8* base = (u8*)&getLuaMachine(lua)->memory;
 			memcpy(base + dest, base + src, size);
-			return 0;	
+			return 0;
 		}
 	}
 
@@ -786,11 +785,11 @@ static s32 lua_memset(lua_State* lua)
 		s32 size = getLuaNumber(lua, 3);
 		s32 bound = sizeof(tic_ram) - size;
 
-		if(dest < bound)
+		if(size >= 0 && size <= sizeof(tic_ram) && dest >= 0 && dest <= bound)
 		{
 			u8* base = (u8*)&getLuaMachine(lua)->memory;
 			memset(base + dest, value, size);
-			return 0;	
+			return 0;
 		}
 	}
 

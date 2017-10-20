@@ -43,13 +43,13 @@
 
 #define TIC_MOD_CTRL (KMOD_GUI|KMOD_CTRL)
 
-#define TOOLBAR_SIZE 8
+#define TOOLBAR_SIZE 7
 #define STUDIO_TEXT_WIDTH (TIC_FONT_WIDTH)
 #define STUDIO_TEXT_HEIGHT (TIC_FONT_HEIGHT+1)
 #define STUDIO_TEXT_BUFFER_WIDTH (TIC80_WIDTH / STUDIO_TEXT_WIDTH)
 #define STUDIO_TEXT_BUFFER_HEIGHT (TIC80_HEIGHT / STUDIO_TEXT_HEIGHT)
 
-#define TIC_COLOR_BG 	systemColor(tic_color_black)
+#define TIC_COLOR_BG 	(tic_color_black)
 #define DEFAULT_CHMOD 0755
 
 #define CONFIG_TIC "config " TIC_VERSION_LABEL ".tic"
@@ -64,11 +64,6 @@ typedef struct
 {
 	struct
 	{
-		struct
-		{
-			u8 data[TIC_PALETTE_SIZE];
-		} palmap;
-
 		struct
 		{
 			s32 sprite;
@@ -179,8 +174,6 @@ void showTooltip(const char* text);
 
 SDL_Scancode* getKeymap();
 
-u8 systemColor(u8 color);
-
 const StudioConfig* getConfig();
 
 void setSpritePixel(tic_tile* tiles, s32 x, s32 y, u8 color);
@@ -190,7 +183,6 @@ typedef void(*DialogCallback)(bool yes, void* data);
 void showDialog(const char** text, s32 rows, DialogCallback callback, void* data);
 void hideDialog();
 
-void showGameMenu();
 void hideGameMenu();
 
 bool studioCartChanged();
@@ -199,3 +191,4 @@ void playSystemSfx(s32 id);
 void runGameFromSurf();
 void gotoSurf();
 void exitFromGameMenu();
+void runProject();

@@ -200,7 +200,7 @@ static duk_ret_t duk_btn(duk_context* duk)
 		else
 		{
 			s32 index = duk_to_int(duk, 0) & 0xf;
-			duk_push_uint(duk, machine->memory.ram.vram.input.gamepad.data & (1 << index));
+			duk_push_boolean(duk, machine->memory.ram.vram.input.gamepad.data & (1 << index));
 		}
 
 		return 1;		
@@ -466,10 +466,9 @@ static duk_ret_t duk_memcpy(duk_context* duk)
 	s32 dest = duk_to_int(duk, 0);
 	s32 src = duk_to_int(duk, 1);
 	s32 size = duk_to_int(duk, 2);
-	s32 dstBound = sizeof(tic_ram) - size;
-	s32 srcBound = sizeof(tic_mem) - size;
+	s32 bound = sizeof(tic_ram) - size;
 
-	if(size > 0 && dest < dstBound && src < srcBound)
+	if(size >= 0 && size <= sizeof(tic_ram) && dest >= 0 && src >= 0 && dest <= bound && src <= bound)
 	{
 		u8* base = (u8*)&getDukMachine(duk)->memory;
 		memcpy(base + dest, base + src, size);
@@ -485,7 +484,7 @@ static duk_ret_t duk_memset(duk_context* duk)
 	s32 size = duk_to_int(duk, 2);
 	s32 bound = sizeof(tic_ram) - size;
 
-	if(size > 0 && dest < bound)
+	if(size >= 0 && size <= sizeof(tic_ram) && dest >= 0 && dest <= bound)
 	{
 		u8* base = (u8*)&getDukMachine(duk)->memory;
 		memset(base + dest, value, size);
@@ -747,7 +746,7 @@ static const struct{duk_c_function func; s32 params;} ApiFunc[] =
 	{duk_circ, 4},
 	{duk_circb, 4},
 	{duk_tri, 7},
-	{duk_textri,12},
+	{duk_textri,14},
 	{duk_clip, 4},
 	{duk_music, 4},
 	{duk_sync, 0},

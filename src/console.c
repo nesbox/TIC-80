@@ -29,10 +29,10 @@
 
 #include <zlib.h>
 
-#define CONSOLE_CURSOR_COLOR (systemColor(tic_color_red))
-#define CONSOLE_BACK_TEXT_COLOR (systemColor(tic_color_dark_gray))
-#define CONSOLE_FRONT_TEXT_COLOR (systemColor(tic_color_white))
-#define CONSOLE_ERROR_TEXT_COLOR (systemColor(tic_color_red))
+#define CONSOLE_CURSOR_COLOR ((tic_color_red))
+#define CONSOLE_BACK_TEXT_COLOR ((tic_color_dark_gray))
+#define CONSOLE_FRONT_TEXT_COLOR ((tic_color_white))
+#define CONSOLE_ERROR_TEXT_COLOR ((tic_color_red))
 #define CONSOLE_CURSOR_BLINK_PERIOD (TIC_FRAMERATE)
 #define CONSOLE_CURSOR_DELAY (TIC_FRAMERATE / 2)
 #define CONSOLE_BUFFER_WIDTH (STUDIO_TEXT_BUFFER_WIDTH)
@@ -122,7 +122,7 @@ static void consolePrint(Console* console, const char* text, u8 color)
 			console->cursor.x = 0;
 			console->cursor.y++;
 		}
-		else 
+		else
 		{
 			s32 offset = console->cursor.x + console->cursor.y * CONSOLE_BUFFER_WIDTH;
 			*(console->buffer + offset) = symbol;
@@ -182,7 +182,7 @@ static void drawCursor(Console* console, s32 x, s32 y, u8 symbol)
 
 	if(inverse)
 		console->tic->api.rect(console->tic, x-1, y-1, TIC_FONT_WIDTH+1, TIC_FONT_HEIGHT+1, CONSOLE_CURSOR_COLOR);
-	
+
 	console->tic->api.draw_char(console->tic, symbol, x, y, inverse ? TIC_COLOR_BG : CONSOLE_FRONT_TEXT_COLOR);
 }
 
@@ -260,7 +260,7 @@ static void processConsoleDel(Console* console)
 {
 	char* pos = console->inputBuffer + console->inputPosition;
 	size_t size = strlen(pos);
-	memmove(pos, pos + 1, size);		
+	memmove(pos, pos + 1, size);
 }
 
 static void processConsoleBackspace(Console* console)
@@ -269,7 +269,7 @@ static void processConsoleBackspace(Console* console)
 	{
 		console->inputPosition--;
 
-		processConsoleDel(console);		
+		processConsoleDel(console);
 	}
 }
 
@@ -322,7 +322,7 @@ static bool onConsoleLoadSectionCommand(Console* console, const char* param)
 
 	if(param)
 	{
-		static const char* Sections[] = 
+		static const char* Sections[] =
 		{
 			"sprites",
 			"map",
@@ -416,21 +416,21 @@ static void* getDemoCart(Console* console, tic_script_lang script, s32* size)
 			return data;
 	}
 
-	static const u8 LuaDemoRom[] = 
+	static const u8 LuaDemoRom[] =
 	{
 		#include "../bin/assets/luademo.tic.dat"
 	};
 
-	static const u8 JsDemoRom[] = 
+	static const u8 JsDemoRom[] =
 	{
 		#include "../bin/assets/jsdemo.tic.dat"
 	};
 
-	static const u8 MoonDemoRom[] = 
+	static const u8 MoonDemoRom[] =
 	{
 		#include "../bin/assets/moondemo.tic.dat"
 	};
-	
+
 	const u8* demo = NULL;
 	s32 romSize = 0;
 
@@ -467,7 +467,7 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 	s32 size = 0;
 
 	console->showGameMenu = false;
-	
+
 	if(strcmp(param, DefaultLuaTicPath) == 0)
 		data = getDemoCart(console, tic_script_lua, &size);
 	else if(strcmp(param, DefaultMoonTicPath) == 0)
@@ -499,7 +499,7 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 		s32 size = 0;
 		const char* name = getRomName(param);
 
-		void* data = strcmp(name, CONFIG_TIC_PATH) == 0 
+		void* data = strcmp(name, CONFIG_TIC_PATH) == 0
 			? fsLoadRootFile(console->fs, name, &size)
 			: fsLoadFile(console->fs, name, &size);
 
@@ -568,7 +568,7 @@ static void onConsoleLoadDemoCommand(Console* console, const char* param)
 {
 	if(studioCartChanged())
 	{
-		static const char* Rows[] = 
+		static const char* Rows[] =
 		{
 			"YOU HAVE",
 			"UNSAVED CHANGES",
@@ -589,7 +589,7 @@ static void onConsoleLoadCommand(Console* console, const char* param)
 {
 	if(studioCartChanged())
 	{
-		static const char* Rows[] = 
+		static const char* Rows[] =
 		{
 			"YOU HAVE",
 			"UNSAVED CHANGES",
@@ -615,7 +615,7 @@ static void loadDemo(Console* console, tic_script_lang script)
 	{
 		loadRom(console->tic, data, size, false);
 
-		SDL_free(data);		
+		SDL_free(data);
 	}
 
 	SDL_memset(console->romName, 0, sizeof console->romName);
@@ -651,7 +651,7 @@ static void onConsoleNewCommand(Console* console, const char* param)
 {
 	if(studioCartChanged())
 	{
-		static const char* Rows[] = 
+		static const char* Rows[] =
 		{
 			"YOU HAVE",
 			"UNSAVED CHANGES",
@@ -779,42 +779,42 @@ static void installDemoCart(FileSystem* fs, const char* name, const void* cart, 
 
 static void onConsoleInstallDemosCommand(Console* console, const char* param)
 {
-	static const u8 DemoFire[] = 
+	static const u8 DemoFire[] =
 	{
 		#include "../bin/assets/fire.tic.dat"
 	};
 
-	static const u8 DemoP3D[] = 
+	static const u8 DemoP3D[] =
 	{
 		#include "../bin/assets/p3d.tic.dat"
 	};
 
-	static const u8 DemoSFX[] = 
+	static const u8 DemoSFX[] =
 	{
 		#include "../bin/assets/sfx.tic.dat"
 	};
 
-	static const u8 DemoPalette[] = 
+	static const u8 DemoPalette[] =
 	{
 		#include "../bin/assets/palette.tic.dat"
 	};
 
-	static const u8 DemoFont[] = 
+	static const u8 DemoFont[] =
 	{
 		#include "../bin/assets/font.tic.dat"
 	};
 
-	static const u8 DemoMusic[] = 
+	static const u8 DemoMusic[] =
 	{
 		#include "../bin/assets/music.tic.dat"
 	};
 
-	static const u8 GameQuest[] = 
+	static const u8 GameQuest[] =
 	{
 		#include "../bin/assets/quest.tic.dat"
 	};
 
-	static const u8 GameTetris[] = 
+	static const u8 GameTetris[] =
 	{
 		#include "../bin/assets/tetris.tic.dat"
 	};
@@ -942,7 +942,7 @@ static void onImportCover(const char* name, const void* buffer, size_t size, voi
 
 						printLine(console);
 						printBack(console, name);
-						printBack(console, " successfully imported");						
+						printBack(console, " successfully imported");
 					}
 					else printError(console, "\ncover image too big :(");
 				}
@@ -950,9 +950,9 @@ static void onImportCover(const char* name, const void* buffer, size_t size, voi
 
 				gif_close(image);
 			}
-			else printError(console, "\nfile importing error :(");			
+			else printError(console, "\nfile importing error :(");
 		}
-		else printBack(console, "\nonly .gif files can be imported :|");		
+		else printBack(console, "\nonly .gif files can be imported :|");
 	}
 	else printBack(console, "\nfile not imported :|");
 
@@ -962,9 +962,6 @@ static void onImportCover(const char* name, const void* buffer, size_t size, voi
 static void onImportSprites(const char* name, const void* buffer, size_t size, void* data)
 {
 	Console* console = (Console*)data;
-
-	tic_palette pal;
-	memcpy(&pal, console->tic->ram.vram.palette.data, sizeof(tic_palette));
 
 	if(name)
 	{
@@ -993,7 +990,7 @@ static void onImportSprites(const char* name, const void* buffer, size_t size, v
 						u8 src = image->buffer[x + y * image->width];
 						const gif_color* c = &image->palette[src];
 						tic_rgb rgb = {c->r, c->g, c->b};
-						u8 color = tic_tool_find_closest_color(console->tic->ram.vram.palette.colors, &rgb);
+						u8 color = tic_tool_find_closest_color(console->tic->cart.palette.colors, &rgb);
 
 						setSpritePixel(console->tic->cart.gfx.tiles, x, y, color);
 					}
@@ -1006,11 +1003,9 @@ static void onImportSprites(const char* name, const void* buffer, size_t size, v
 			}
 			else printError(console, "\nfile importing error :(");
 		}
-		else printBack(console, "\nonly .gif files can be imported :|");		
+		else printBack(console, "\nonly .gif files can be imported :|");
 	}
 	else printBack(console, "\nfile not imported :|");
-
-	memcpy(console->tic->ram.vram.palette.data, &pal, sizeof(tic_palette));
 
 	commandDone(console);
 }
@@ -1091,7 +1086,7 @@ static void exportCover(Console* console)
 	else
 	{
 		printBack(console, "\ncover image is empty, run game and\npress [F7] to assign cover image");
-		commandDone(console);		
+		commandDone(console);
 	}
 }
 
@@ -1215,7 +1210,7 @@ typedef struct
 	const char* cartName;
 } AppFileReadParam;
 
-typedef struct 
+typedef struct
 {
 	u8* data;
 	size_t size;
@@ -1272,7 +1267,7 @@ static void onConsoleExportHtmlCommand(Console* console, const char* name)
 			writeMemoryString(&output, "<script type='text/javascript'>\n");
 
 			u8* buffer = (u8*)SDL_malloc(sizeof(tic_cartridge));
-			
+
 			if(buffer)
 			{
 				writeMemoryString(&output, "var cartridge = [");
@@ -1315,7 +1310,7 @@ static void onConsoleExportHtmlCommand(Console* console, const char* name)
 
 				fsGetFileData(onFileDownloaded, cartName, output.data, output.size, DEFAULT_CHMOD, console);
 			}
-		}		
+		}
 	}
 
 	SDL_free(EmbedIndex);
@@ -1381,7 +1376,7 @@ static bool exportToFolder(Console* console, const char* folder, const char* fil
 		strcpy(dst, folder);
 		strcat(dst, file);
 
-		return fsCopyFile(src, dst);		
+		return fsCopyFile(src, dst);
 	}
 
 	return NULL;
@@ -1390,7 +1385,7 @@ static bool exportToFolder(Console* console, const char* folder, const char* fil
 static void onConsoleExportNativeCommand(Console* console, const char* cartName)
 {
 	const char* folder = folder_dialog(console);
-	bool done = false;	
+	bool done = false;
 
 	if(folder)
 	{
@@ -1414,7 +1409,7 @@ static void onConsoleExportNativeCommand(Console* console, const char* cartName)
 		}
 	}
 
-	if(done && exportToFolder(console, folder, "\\tic80.dll") && 
+	if(done && exportToFolder(console, folder, "\\tic80.dll") &&
 		exportToFolder(console, folder, "\\SDL2.dll"))
 		printBack(console, "\ngame exported :)");
 	else printBack(console, "\ngame not exported :|");
@@ -1478,7 +1473,7 @@ static void onConsoleExportCommand(Console* console, const char* param)
 		if(strcmp(param, "html") == 0) onConsoleExportHtmlCommand(console, getExportName(console, true));
 		else
 		{
-			if(strcmp(param, "native") == 0) 
+			if(strcmp(param, "native") == 0)
 			{
 #ifdef CAN_EXPORT
 				onConsoleExportNativeCommand(console, getExportName(console, false));
@@ -1529,7 +1524,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
 			{
 				console->config->save(console->config);
 				studioRomSaved();
-				
+
 				return CART_SAVE_OK;
 			}
 			else
@@ -1544,10 +1539,10 @@ static CartSaveResult saveCartName(Console* console, const char* name)
 					success = true;
 					studioRomSaved();
 
-				}				
+				}
 			}
 
-			SDL_free(buffer);		
+			SDL_free(buffer);
 		}
 	}
 	else if (strlen(console->romName))
@@ -1555,7 +1550,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
 		return saveCartName(console, console->romName);
 	}
 	else return CART_SAVE_MISSING_NAME;
-	
+
 	return success ? CART_SAVE_OK : CART_SAVE_ERROR;
 }
 
@@ -1574,9 +1569,9 @@ static void onConsoleSaveCommandConfirmed(Console* console, const char* param)
 		printFront(console, console->romName);
 		printBack(console, " saved!\n");
 	}
-	else if(rom == CART_SAVE_MISSING_NAME) 
+	else if(rom == CART_SAVE_MISSING_NAME)
 		printBack(console, "\ncart name is missing\n");
-	else 
+	else
 		printBack(console, "\ncart saving error");
 
 	commandDone(console);
@@ -1586,7 +1581,7 @@ static void onConsoleSaveCommand(Console* console, const char* param)
 {
 	if(param && strlen(param) && fsExistsFile(console->fs, getRomName(param)))
 	{
-		static const char* Rows[] = 
+		static const char* Rows[] =
 		{
 			"THE CART",
 			"ALREADY EXISTS",
@@ -1672,24 +1667,24 @@ static void onConsoleDelCommandConfirmed(Console* console, const char* param)
 		if(fsIsDir(console->fs, param))
 		{
 			printBack(console, fsDeleteDir(console->fs, param)
-				? "\ndir not deleted" 
+				? "\ndir not deleted"
 				: "\ndir successfully deleted");
 		}
 		else
 		{
 			printBack(console, fsDeleteFile(console->fs, param)
-				? "\nfile not deleted" 
+				? "\nfile not deleted"
 				: "\nfile successfully deleted");
 		}
 	}
-	else printBack(console, "\nname is missing");		
+	else printBack(console, "\nname is missing");
 
 	commandDone(console);
 }
 
 static void onConsoleDelCommand(Console* console, const char* param)
 {
-	static const char* Rows[] = 
+	static const char* Rows[] =
 	{
 		"", "",
 		"DO YOU REALLY WANT",
@@ -1717,7 +1712,7 @@ static void printTable(Console* console, const char* text)
 			console->cursor.x = 0;
 			console->cursor.y++;
 		}
-		else 
+		else
 		{
 			s32 offset = console->cursor.x + console->cursor.y * CONSOLE_BUFFER_WIDTH;
 			*(console->buffer + offset) = symbol;
@@ -1729,10 +1724,10 @@ static void printTable(Console* console, const char* text)
 			case '+':
 			case '|':
 			case '-':
-				color = systemColor(tic_color_gray);
+				color = (tic_color_gray);
 				break;
 			default:
-				color = systemColor(tic_color_white);
+				color = (tic_color_white);
 			}
 
 			*(console->colorBuffer + offset) = color;
@@ -1805,7 +1800,7 @@ static void onConsoleRamCommand(Console* console, const char* param)
 	commandDone(console);
 }
 
-static const struct 
+static const struct
 {
 	const char* command;
 	const char* alt;
@@ -1860,7 +1855,7 @@ static void processConsoleTab(Console* console)
 	if(strlen(input))
 	{
 		char* param = SDL_strchr(input, ' ');
-		
+
 		if(param && strlen(++param))
 		{
 			fsEnumFiles(console->fs, predictFilename, param);
@@ -1878,8 +1873,8 @@ static void processConsoleTab(Console* console)
 					console->inputPosition = strlen(input);
 					break;
 				}
-			}		
-		}		
+			}
+		}
 	}
 }
 
@@ -1980,7 +1975,7 @@ static void processCommand(Console* console, const char* command)
 	if(param && !strlen(param)) param = NULL;
 
 	for(s32 i = 0; i < COUNT_OF(AvailableConsoleCommands); i++)
-		if(tic_strcasecmp(command, AvailableConsoleCommands[i].command) == 0 || 
+		if(tic_strcasecmp(command, AvailableConsoleCommands[i].command) == 0 ||
 			(AvailableConsoleCommands[i].alt && tic_strcasecmp(command, AvailableConsoleCommands[i].alt) == 0))
 		{
 			if(AvailableConsoleCommands[i].handler)
@@ -2070,7 +2065,7 @@ static void processConsoleCommand(Console* console)
 
 static void error(Console* console, const char* info)
 {
-	consolePrint(console, info ? info : "unknown error", systemColor(tic_color_red));
+	consolePrint(console, info ? info : "unknown error", (tic_color_red));
 	commandDone(console);
 }
 
@@ -2087,7 +2082,7 @@ static void setScroll(Console* console, s32 val)
 		console->scroll.pos = val;
 
 		if(console->scroll.pos < 0) console->scroll.pos = 0;
-		if(console->scroll.pos > console->cursor.y) console->scroll.pos = console->cursor.y;		
+		if(console->scroll.pos > console->cursor.y) console->scroll.pos = console->cursor.y;
 	}
 }
 
@@ -2117,13 +2112,13 @@ static void checkNewVersion(Console* console)
 		NetVersion version = netVersionRequest(net);
 		SDL_free(net);
 
-		if((version.major > TIC_VERSION_MAJOR) || 
+		if((version.major > TIC_VERSION_MAJOR) ||
 			(version.major == TIC_VERSION_MAJOR && version.minor > TIC_VERSION_MINOR) ||
 			(version.major == TIC_VERSION_MAJOR && version.minor == TIC_VERSION_MINOR && version.patch > TIC_VERSION_PATCH))
 		{
 			char msg[FILENAME_MAX] = {0};
 			sprintf(msg, "\n A new version %i.%i.%i is available.\n", version.major, version.minor, version.patch);
-			consolePrint(console, msg, systemColor(tic_color_light_green));
+			consolePrint(console, msg, (tic_color_light_green));
 		}
 	}
 }
@@ -2177,7 +2172,7 @@ static void tick(Console* console)
 				}
 
 				scrollConsole(console);
-				console->cursor.delay = CONSOLE_CURSOR_DELAY;				
+				console->cursor.delay = CONSOLE_CURSOR_DELAY;
 			}
 			break;
 		case SDL_TEXTINPUT:
@@ -2260,7 +2255,7 @@ static void tick(Console* console)
 		drawConsoleInputText(console);
 	}
 
-	console->tickCounter++;		
+	console->tickCounter++;
 }
 
 static void cmdLoadCart(Console* console, const char* name)
@@ -2269,7 +2264,7 @@ static void cmdLoadCart(Console* console, const char* name)
 	void* data = fsReadFile(name, &size);
 
 	if(data)
-	{			
+	{
 		loadCart(console->tic, &embed.file, data, size, true);
 		embed.yes = true;
 
@@ -2277,31 +2272,62 @@ static void cmdLoadCart(Console* console, const char* name)
 	}
 }
 
+static bool loadFileIntoBuffer(Console* console, char* buffer, const char* fileName)
+{
+	s32 size = 0;
+	void* contents = fsReadFile(fileName, &size);
+
+	if(contents)
+	{
+		memset(buffer, 0, TIC_CODE_SIZE);
+
+		if(size > TIC_CODE_SIZE)
+		{
+			char messageBuffer[256];
+			sprintf(messageBuffer, "\n code is larger than %i symbols\n", TIC_CODE_SIZE);
+
+			printError(console, messageBuffer);
+		}
+
+		memcpy(buffer, contents, SDL_min(size, TIC_CODE_SIZE-1));
+		SDL_free(contents);
+
+		embed.yes = true;
+		embed.fast = true;
+
+		return true;
+	}
+
+	return false;
+}
+
+static void tryReloadCode(Console* console, char* codeBuffer)
+{
+	if(console->codeLiveReload.active)
+	{
+		const char* fileName = console->codeLiveReload.fileName;
+		loadFileIntoBuffer(console, codeBuffer, fileName);
+	}
+}
+
 static void cmdInjectCode(Console* console, const char* param, const char* name)
 {
-	if(strcmp(param, "-code") == 0)
+	bool watch = strcmp(param, "-code-watch") == 0;
+	if(watch || strcmp(param, "-code") == 0)
 	{
-		s32 size = 0;
-		void* code = fsReadFile(name, &size);
+		bool loaded = loadFileIntoBuffer(console, embed.file.code.data, name);
 
-		memset(embed.file.code.data, 0, sizeof(tic_code));
-
-		if(code)
+		if(loaded)
 		{
-			if(size > TIC_CODE_SIZE)
-			{
-				char buffer[256];
-				sprintf(buffer, "\n code is larger than %i symbols\n", TIC_CODE_SIZE);
-
-				printError(console, buffer);
-			}
-
-			memcpy(embed.file.code.data, code, SDL_min(size, TIC_CODE_SIZE-1));
-			SDL_free(code);
-
 			embed.yes = true;
 			embed.fast = true;
-		}			
+
+			if(watch)
+			{
+				console->codeLiveReload.active = true;
+				strcpy(console->codeLiveReload.fileName, name);
+			}
+		}
 	}
 }
 
@@ -2313,7 +2339,7 @@ static void cmdInjectSprites(Console* console, const char* param, const char* na
 		void* sprites = fsReadFile(name, &size);
 
 		if(sprites)
-		{	
+		{
 			gif_image* image = gif_read_data(sprites, size);
 
 			if (image)
@@ -2387,11 +2413,16 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 		.tick = tick,
 		.save = saveCart,
 		.cursor = {.x = 0, .y = 0, .delay = 0},
-		.scroll = 
+		.scroll =
 		{
 			.pos = 0,
 			.start = 0,
 			.active = false,
+		},
+		.codeLiveReload =
+		{
+			.active = false,
+			.reload = tryReloadCode,
 		},
 		.inputPosition = 0,
 		.history = NULL,
@@ -2406,6 +2437,8 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 
 	memset(console->buffer, 0, CONSOLE_BUFFER_SIZE);
 	memset(console->colorBuffer, TIC_COLOR_BG, CONSOLE_BUFFER_SIZE);
+
+	memset(console->codeLiveReload.fileName, 0, FILENAME_MAX);
 
 	if(argc)
 	{
@@ -2424,7 +2457,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 	if(argc > 1)
 	{
 		memcpy(embed.file.palette.data, tic->config.palette.data, sizeof(tic_palette));
-		
+
 		if (argc == 2) cmdLoadCart(console, argv[1]);
 		else if (argc == 3)
 		{
@@ -2475,9 +2508,9 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 			SDL_free(data);
 
 			EM_ASM_({Module._free($0);}, cartPtr);
-		}		
+		}
 	}
-	
+
 #endif
 
 	console->active = !embed.yes;

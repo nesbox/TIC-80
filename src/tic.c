@@ -440,9 +440,6 @@ static void api_pause(tic_mem* memory)
 	memcpy(&machine->pause.registers, &memory->ram.registers, sizeof memory->ram.registers);
 	memcpy(&machine->pause.music_pos, &memory->ram.music_pos, sizeof memory->ram.music_pos);
 	memcpy(&machine->pause.vram, &memory->ram.vram, sizeof memory->ram.vram);
-
-	api_reset(memory);
-	memcpy(memory->ram.vram.palette.data, memory->config.palette.data, sizeof(tic_palette));
 }
 
 static void api_resume(tic_mem* memory)
