@@ -513,11 +513,6 @@ static void drawMoveButtons(Sprite* sprite)
 	}
 }
 
-static void updateCartPalette(Sprite* sprite)
-{
-	SDL_memcpy(sprite->tic->cart.palette.data, sprite->tic->ram.vram.palette.data, sizeof(tic_palette));
-}
-
 static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 {
 	enum {Size = CANVAS_SIZE, Max = 255};
@@ -545,8 +540,6 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 			{
 				s32 mx = getMouseX() - x;
 				*value = mx * Max / (Size-1);
-
-				updateCartPalette(sprite);
 			}
 		}
 
@@ -591,10 +584,7 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 				down = true;
 
 			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
-			{				
 				(*value)--;
-				updateCartPalette(sprite);
-			}
 		}
 
 		if(down)
@@ -632,10 +622,7 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 				down = true;
 
 			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
-			{
 				(*value)++;
-				updateCartPalette(sprite);
-			}
 		}
 
 		if(down)
@@ -682,7 +669,7 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
 				down = true;
 
 			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
-				toClipboard(sprite->tic->ram.vram.palette.data, sizeof(tic_palette), false);
+				toClipboard(sprite->tic->cart.palette.data, sizeof(tic_palette), false);
 		}
 
 		if(down)
@@ -747,7 +734,7 @@ static void drawRGBSliders(Sprite* sprite, s32 x, s32 y)
 {
 	enum{Gap = 6, Count = sizeof(tic_rgb)};
 
-	u8* data = &sprite->tic->ram.vram.palette.data[sprite->color * Count];
+	u8* data = &sprite->tic->cart.palette.data[sprite->color * Count];
 
 	for(s32 i = 0; i < Count; i++)
 		drawRGBSlider(sprite, x, y + Gap*i, &data[i]);

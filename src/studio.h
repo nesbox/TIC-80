@@ -200,3 +200,4 @@ void runGameFromSurf();
 void gotoSurf();
 void exitFromGameMenu();
 void runProject();
+void useSystemPalette();

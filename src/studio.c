@@ -1390,7 +1390,7 @@ static u32* srcPaletteBlit(const u8* src)
 	memset(pal, 0xff, sizeof pal);
 
 	u8* dst = (u8*)pal;
-	const u8* end = src + sizeof studio.tic->ram.vram.palette;
+	const u8* end = src + sizeof(tic_palette);
 
 	enum{RGB = sizeof(tic_rgb)};
 
@@ -2007,6 +2007,11 @@ static void renderCursor()
 		blitCursor(studio.tic->config.gfx.tiles[getConfig()->theme.cursor.sprite].data);
 }
 
+void useSystemPalette()
+{
+	memcpy(studio.tic->ram.vram.palette.data, studio.tic->config.palette.data, sizeof(tic_palette));
+}
+
 static void renderStudio()
 {
 	showTooltip("");
@@ -2040,7 +2045,7 @@ static void renderStudio()
 		{
 		case TIC_RUN_MODE: break;
 		default:
-			memcpy(studio.tic->ram.vram.palette.data, studio.tic->config.palette.data, sizeof(tic_palette));
+			useSystemPalette();
 		}
 	}
 

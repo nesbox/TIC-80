@@ -963,9 +963,6 @@ static void onImportSprites(const char* name, const void* buffer, size_t size, v
 {
 	Console* console = (Console*)data;
 
-	tic_palette pal;
-	memcpy(&pal, console->tic->ram.vram.palette.data, sizeof(tic_palette));
-
 	if(name)
 	{
 		static const char GifExt[] = ".gif";
@@ -993,7 +990,7 @@ static void onImportSprites(const char* name, const void* buffer, size_t size, v
 						u8 src = image->buffer[x + y * image->width];
 						const gif_color* c = &image->palette[src];
 						tic_rgb rgb = {c->r, c->g, c->b};
-						u8 color = tic_tool_find_closest_color(console->tic->ram.vram.palette.colors, &rgb);
+						u8 color = tic_tool_find_closest_color(console->tic->cart.palette.colors, &rgb);
 
 						setSpritePixel(console->tic->cart.gfx.tiles, x, y, color);
 					}
@@ -1009,8 +1006,6 @@ static void onImportSprites(const char* name, const void* buffer, size_t size, v
 		else printBack(console, "\nonly .gif files can be imported :|");
 	}
 	else printBack(console, "\nfile not imported :|");
-
-	memcpy(console->tic->ram.vram.palette.data, &pal, sizeof(tic_palette));
 
 	commandDone(console);
 }
@@ -2320,7 +2315,7 @@ static void cmdInjectCode(Console* console, const char* param, const char* name)
 	bool watch = strcmp(param, "-code-watch") == 0;
 	if(watch || strcmp(param, "-code") == 0)
 	{
-		bool loaded = loadFileIntoBuffer(console, &embed.file.code.data, name);
+		bool loaded = loadFileIntoBuffer(console, embed.file.code.data, name);
 
 		if(loaded)
 		{
