@@ -60,7 +60,8 @@ struct Sprite
 	struct History* history;
 
 	void (*tick)(Sprite*);
-	void(*event)(Sprite*, StudioEvent);
+	void (*event)(Sprite*, StudioEvent);
+	void (*scanline)(tic_mem* tic, s32 row);
 };
 
 void initSprite(Sprite*, tic_mem*);

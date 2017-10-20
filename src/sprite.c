@@ -1483,6 +1483,11 @@ static void onStudioEvent(Sprite* sprite, StudioEvent event)
 	}
 }
 
+static void scanline(tic_mem* tic, s32 row)
+{
+	memcpy(tic->ram.vram.palette.data, row < (TOOLBAR_SIZE-1) ? tic->config.palette.data : tic->cart.palette.data, sizeof(tic_palette));
+}
+
 void initSprite(Sprite* sprite, tic_mem* tic)
 {
 	if(sprite->select.back == NULL) sprite->select.back = (u8*)SDL_malloc(CANVAS_SIZE*CANVAS_SIZE);
@@ -1511,5 +1516,6 @@ void initSprite(Sprite* sprite, tic_mem* tic)
 		.mode = SPRITE_DRAW_MODE,
 		.history = history_create(tic->cart.gfx.tiles, TIC_SPRITES * sizeof(tic_tile)),
 		.event = onStudioEvent,
+		.scanline = scanline,
 	};
 }

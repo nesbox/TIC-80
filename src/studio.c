@@ -1413,20 +1413,33 @@ static void blit(u32* out, u32* bgOut, s32 pitch, s32 bgPitch)
 	u32* row = out;
 	const u32* pal = srcPaletteBlit(studio.tic->cart.palette.data);
 
+	void(*scanline)(tic_mem* memory, s32 row) = NULL;
+
+	switch(studio.mode)
+	{
+	case TIC_RUN_MODE:
+		scanline = studio.tic->api.scanline;
+		break;
+	case TIC_SPRITE_MODE:
+		scanline = studio.sprite.scanline;
+		break;
+	default:
+		break;
+	}
+
 	for(s32 r = 0, pos = 0; r < TIC80_HEIGHT; r++, row += pitchWidth)
 	{
-
-		if(studio.mode == TIC_RUN_MODE || studio.mode == TIC_MENU_MODE)
+		if(scanline)
 		{
-			studio.tic->api.scanline(studio.tic, r);
-			pal = paletteBlit();
+			scanline(studio.tic, r);
+			pal = paletteBlit();				
+		}
 
-			if(bgOut)
-			{
-				u8 border = tic_tool_peek4(studio.tic->ram.vram.mapping, studio.tic->ram.vram.vars.border & 0xf);
-				SDL_memset4(bgOut, pal[border], TIC80_WIDTH);
-				bgOut += bgPitchWidth;
-			}
+		if(bgOut)
+		{
+			u8 border = tic_tool_peek4(studio.tic->ram.vram.mapping, studio.tic->ram.vram.vars.border & 0xf);
+			SDL_memset4(bgOut, pal[border], TIC80_WIDTH);
+			bgOut += bgPitchWidth;
 		}
 
 		SDL_memset4(row, 0, pitchWidth);
@@ -2022,6 +2035,13 @@ static void renderStudio()
 		}
 
 		studio.tic->api.tick_start(studio.tic, src);
+
+		switch(studio.mode)
+		{
+		case TIC_RUN_MODE: break;
+		default:
+			memcpy(studio.tic->ram.vram.palette.data, studio.tic->config.palette.data, sizeof(tic_palette));
+		}
 	}
 
 	switch(studio.mode)
