@@ -183,7 +183,6 @@ typedef void(*DialogCallback)(bool yes, void* data);
 void showDialog(const char** text, s32 rows, DialogCallback callback, void* data);
 void hideDialog();
 
-void showGameMenu();
 void hideGameMenu();
 
 bool studioCartChanged();
@@ -193,4 +192,3 @@ void runGameFromSurf();
 void gotoSurf();
 void exitFromGameMenu();
 void runProject();
-void useSystemPalette();

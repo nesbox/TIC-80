@@ -100,7 +100,4 @@ void initStart(Start* start, tic_mem* tic)
 		.tick = tick,
 		.play = false,
 	};
-
-	memcpy(tic->cart.palette.data, tic->config.palette.data, sizeof(tic_palette));
-	tic->api.reset(tic);
 }

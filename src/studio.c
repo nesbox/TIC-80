@@ -815,9 +815,11 @@ EditorMode getStudioMode()
 	return studio.mode;
 }
 
-void showGameMenu()
+static void showGameMenu()
 {
 	studio.tic->api.pause(studio.tic);
+	studio.tic->api.reset(studio.tic);
+
 	initMenuMode();
 	studio.mode = TIC_MENU_MODE;
 }
@@ -2005,7 +2007,7 @@ static void renderCursor()
 		blitCursor(studio.tic->config.gfx.tiles[getConfig()->theme.cursor.sprite].data);
 }
 
-void useSystemPalette()
+static void useSystemPalette()
 {
 	memcpy(studio.tic->ram.vram.palette.data, studio.tic->config.palette.data, sizeof(tic_palette));
 }
@@ -2272,7 +2274,7 @@ static void setWindowIcon()
 
 	u32* pixels = SDL_malloc(Size * Size * sizeof(u32));
 
-	const u32* pal = paletteBlit();
+	const u32* pal = srcPaletteBlit(studio.tic->config.palette.data);
 
 	for(s32 j = 0, index = 0; j < Size; j++)
 		for(s32 i = 0; i < Size; i++, index++)
