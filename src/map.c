@@ -1131,6 +1131,11 @@ static void onStudioEvent(Map* map, StudioEvent event)
 	}
 }
 
+static void scanline(tic_mem* tic, s32 row)
+{
+	memcpy(tic->ram.vram.palette.data, row < (TOOLBAR_SIZE-1) ? tic->config.palette.data : tic->cart.palette.data, sizeof(tic_palette));
+}
+
 void initMap(Map* map, tic_mem* tic)
 {
 	if(map->history) history_delete(map->history);
@@ -1171,6 +1176,7 @@ void initMap(Map* map, tic_mem* tic)
 		},
 		.history = history_create(&tic->cart.gfx.map, sizeof tic->cart.gfx.map),
 		.event = onStudioEvent,
+		.scanline = scanline,
 	};
 
 	normalizeMap(&map->scroll.x, &map->scroll.y);

@@ -1411,7 +1411,7 @@ static void blit(u32* out, u32* bgOut, s32 pitch, s32 bgPitch)
 	const s32 pitchWidth = pitch/sizeof *out;
 	const s32 bgPitchWidth = bgPitch/sizeof *bgOut;
 	u32* row = out;
-	const u32* pal = srcPaletteBlit(studio.tic->cart.palette.data);
+	const u32* pal = paletteBlit();
 
 	void(*scanline)(tic_mem* memory, s32 row) = NULL;
 
@@ -1422,6 +1422,9 @@ static void blit(u32* out, u32* bgOut, s32 pitch, s32 bgPitch)
 		break;
 	case TIC_SPRITE_MODE:
 		scanline = studio.sprite.scanline;
+		break;
+	case TIC_MAP_MODE:
+		scanline = studio.map.scanline;
 		break;
 	default:
 		break;
@@ -2040,14 +2043,10 @@ static void renderStudio()
 		}
 
 		studio.tic->api.tick_start(studio.tic, src);
-
-		switch(studio.mode)
-		{
-		case TIC_RUN_MODE: break;
-		default:
-			useSystemPalette();
-		}
 	}
+
+	if(studio.mode != TIC_RUN_MODE)
+		useSystemPalette();
 
 	switch(studio.mode)
 	{
