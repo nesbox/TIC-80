@@ -28,7 +28,7 @@
 static void drawGrid(World* world)
 {
 	Map* map = world->map;
-	u8 color = systemColor(tic_color_light_blue);
+	u8 color = (tic_color_light_blue);
 
 	for(s32 c = 0; c < TIC80_WIDTH; c += TIC_MAP_SCREEN_WIDTH)
 		world->tic->api.line(world->tic, c, 0, c, TIC80_HEIGHT, color);
@@ -58,7 +58,7 @@ static void drawGrid(World* world)
 	}
 
 	world->tic->api.rect_border(world->tic, map->scroll.x / TIC_SPRITESIZE, map->scroll.y / TIC_SPRITESIZE, 
-		TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, systemColor(tic_color_red));
+		TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, (tic_color_red));
 }
 
 static void processKeydown(World* world, SDL_Keycode keycode)

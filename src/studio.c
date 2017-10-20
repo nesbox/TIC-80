@@ -466,8 +466,8 @@ void drawExtrabar(tic_mem* tic)
 	{
 		SDL_Rect rect = {x + i*Size, y, Size, Size};
 
-		u8 bgcolor = systemColor(tic_color_white);
-		u8 color = systemColor(tic_color_light_blue);
+		u8 bgcolor = (tic_color_white);
+		u8 color = (tic_color_light_blue);
 
 		if(checkMousePos(&rect))
 		{
@@ -479,7 +479,7 @@ void drawExtrabar(tic_mem* tic)
 			if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
 			{
 				bgcolor = color;
-				color = systemColor(tic_color_white);
+				color = (tic_color_white);
 			}
 			else if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
 			{
@@ -497,15 +497,10 @@ const StudioConfig* getConfig()
 	return &studio.config.data;
 }
 
-u8 systemColor(u8 color)
-{
-	return getConfig()->theme.palmap.data[color];
-}
-
 void drawToolbar(tic_mem* tic, u8 color, bool bg)
 {
 	if(bg)
-		studio.tic->api.rect(tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, systemColor(tic_color_white));
+		studio.tic->api.rect(tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, (tic_color_white));
 
 	static const u8 TabIcon[] =
 	{
@@ -596,7 +591,7 @@ void drawToolbar(tic_mem* tic, u8 color, bool bg)
 		if(mode == i)
 			drawBitIcon(i * Size, 0, TabIcon, color);
 
-		drawBitIcon(i * Size, 0, Icons + i * BITS_IN_BYTE, mode == i ? systemColor(tic_color_white) : (over ? systemColor(tic_color_dark_gray) : systemColor(tic_color_light_blue)));
+		drawBitIcon(i * Size, 0, Icons + i * BITS_IN_BYTE, mode == i ? (tic_color_white) : (over ? (tic_color_dark_gray) : (tic_color_light_blue)));
 	}
 
 	if(mode >= 0) drawExtrabar(tic);
@@ -614,11 +609,11 @@ void drawToolbar(tic_mem* tic, u8 color, bool bg)
 	{
 		if(strlen(studio.tooltip.text))
 		{
-			studio.tic->api.text(tic, studio.tooltip.text, (COUNT_OF(Modes) + 1) * Size, 1, systemColor(tic_color_black));
+			studio.tic->api.text(tic, studio.tooltip.text, (COUNT_OF(Modes) + 1) * Size, 1, (tic_color_black));
 		}
 		else
 		{
-			studio.tic->api.text(tic, Names[mode], (COUNT_OF(Modes) + 1) * Size, 1, systemColor(tic_color_dark_gray));
+			studio.tic->api.text(tic, Names[mode], (COUNT_OF(Modes) + 1) * Size, 1, (tic_color_dark_gray));
 		}
 	}
 }
@@ -2070,9 +2065,9 @@ static void renderStudio()
 	{
 		studio.popup.counter--;
 
-		studio.tic->api.rect(studio.tic, 0, TIC80_HEIGHT - TIC_FONT_HEIGHT - 1, TIC80_WIDTH, TIC80_HEIGHT, systemColor(tic_color_red));
+		studio.tic->api.rect(studio.tic, 0, TIC80_HEIGHT - TIC_FONT_HEIGHT - 1, TIC80_WIDTH, TIC80_HEIGHT, (tic_color_red));
 		studio.tic->api.text(studio.tic, studio.popup.message, (s32)(TIC80_WIDTH - strlen(studio.popup.message)*TIC_FONT_WIDTH)/2,
-			TIC80_HEIGHT - TIC_FONT_HEIGHT, systemColor(tic_color_white));
+			TIC80_HEIGHT - TIC_FONT_HEIGHT, (tic_color_white));
 	}
 
 	studio.tic->api.tick_end(studio.tic);

@@ -99,7 +99,7 @@ static s32 drawWorldButton(Map* map, s32 x, s32 y)
 			setStudioMode(TIC_WORLD_MODE);
 	}
 
-	drawBitIcon(x, y, WorldIcon, over ? systemColor(tic_color_dark_gray) : systemColor(tic_color_light_blue));
+	drawBitIcon(x, y, WorldIcon, over ? (tic_color_dark_gray) : (tic_color_light_blue));
 
 	return x;
 
@@ -137,7 +137,7 @@ static s32 drawGridButton(Map* map, s32 x, s32 y)
 			map->canvas.grid = !map->canvas.grid;
 	}
 
-	drawBitIcon(x, y, GridIcon, map->canvas.grid ? systemColor(tic_color_black) : over ? systemColor(tic_color_dark_gray) : systemColor(tic_color_light_blue));
+	drawBitIcon(x, y, GridIcon, map->canvas.grid ? (tic_color_black) : over ? (tic_color_dark_gray) : (tic_color_light_blue));
 
 	return x;
 }
@@ -186,7 +186,7 @@ static s32 drawSheetButton(Map* map, s32 x, s32 y)
 		}
 	}
 
-	drawBitIcon(rect.x, rect.y, map->sheet.show ? UpIcon : DownIcon, over ? systemColor(tic_color_dark_gray) : systemColor(tic_color_light_blue));
+	drawBitIcon(rect.x, rect.y, map->sheet.show ? UpIcon : DownIcon, over ? (tic_color_dark_gray) : (tic_color_light_blue));
 
 	return x;
 }
@@ -212,7 +212,7 @@ static s32 drawToolButton(Map* map, s32 x, s32 y, const u8* Icon, s32 width, con
 		}
 	}
 
-	drawBitIcon(rect.x, rect.y, Icon, map->mode == mode ? systemColor(tic_color_black) : over ? systemColor(tic_color_dark_gray) : systemColor(tic_color_light_blue));
+	drawBitIcon(rect.x, rect.y, Icon, map->mode == mode ? (tic_color_black) : over ? (tic_color_dark_gray) : (tic_color_light_blue));
 
 	return x;
 }
@@ -322,13 +322,13 @@ static void drawTileIndex(Map* map, s32 x, s32 y)
 	{
 		char buf[] = "#999";
 		sprintf(buf, "#%03i", index);
-		map->tic->api.text(map->tic, buf, x, y, systemColor(tic_color_light_blue));
+		map->tic->api.text(map->tic, buf, x, y, (tic_color_light_blue));
 	}
 }
 
 static void drawMapToolbar(Map* map, s32 x, s32 y)
 {
-	map->tic->api.rect(map->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, systemColor(tic_color_white));
+	map->tic->api.rect(map->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, (tic_color_white));
 
 	drawTileIndex(map, TIC80_WIDTH/2 - TIC_FONT_WIDTH, y);
 
@@ -348,7 +348,7 @@ static void drawSheet(Map* map, s32 x, s32 y)
 
 	SDL_Rect rect = {x, y, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
 
-	map->tic->api.rect_border(map->tic, rect.x - 1, rect.y - 1, rect.w + 2, rect.h + 2, systemColor(tic_color_white));
+	map->tic->api.rect_border(map->tic, rect.x - 1, rect.y - 1, rect.w + 2, rect.h + 2, (tic_color_white));
 
 	if(checkMousePos(&rect))
 	{
@@ -398,7 +398,7 @@ static void drawSheet(Map* map, s32 x, s32 y)
 		s32 bw = map->sheet.rect.w * TIC_SPRITESIZE + 2;
 		s32 bh = map->sheet.rect.h * TIC_SPRITESIZE + 2;
 
-		map->tic->api.rect_border(map->tic, bx, by, bw, bh, systemColor(tic_color_white));
+		map->tic->api.rect_border(map->tic, bx, by, bw, bh, (tic_color_white));
 	}
 }
 
@@ -411,7 +411,7 @@ static void drawCursorPos(Map* map, s32 x, s32 y)
 
 	sprintf(pos, "%03i:%03i", tx, ty);
 
-	s32 width = map->tic->api.text(map->tic, pos, TIC80_WIDTH, 0, systemColor(tic_color_gray));
+	s32 width = map->tic->api.text(map->tic, pos, TIC80_WIDTH, 0, (tic_color_gray));
 
 	s32 px = x + (TIC_SPRITESIZE + 3);
 	if(px + width >= TIC80_WIDTH) px = x - (width + 2);
@@ -419,8 +419,8 @@ static void drawCursorPos(Map* map, s32 x, s32 y)
 	s32 py = y - (TIC_FONT_HEIGHT + 2);
 	if(py <= TOOLBAR_SIZE) py = y + (TIC_SPRITESIZE + 3);
 
-	map->tic->api.rect(map->tic, px - 1, py - 1, width + 1, TIC_FONT_HEIGHT + 1, systemColor(tic_color_white));
-	map->tic->api.text(map->tic, pos, px, py, systemColor(tic_color_light_blue));
+	map->tic->api.rect(map->tic, px - 1, py - 1, width + 1, TIC_FONT_HEIGHT + 1, (tic_color_white));
+	map->tic->api.text(map->tic, pos, px, py, (tic_color_light_blue));
 }
 
 static void setMapSprite(Map* map, s32 x, s32 y)
@@ -455,7 +455,7 @@ static void drawTileCursor(Map* map)
 	s32 height = map->sheet.rect.h * TIC_SPRITESIZE + 2;
 
 	map->tic->api.rect_border(map->tic, mx - 1, my - 1, 
-		width, height, systemColor(tic_color_white));
+		width, height, (tic_color_white));
 
 	{
 		s32 sx = map->sheet.rect.x;
@@ -556,7 +556,7 @@ static void resetSelection(Map* map)
 static void drawSelectionRect(Map* map, s32 x, s32 y, s32 w, s32 h)
 {
 	enum{Step = 3};
-	u8 color = systemColor(tic_color_white);
+	u8 color = (tic_color_white);
 
 	s32 index = map->tickCounter / 10;
 	for(s32 i = x; i < (x+w); i++) 		{map->tic->api.pixel(map->tic, i, y, index++ % Step ? color : 0);} index++;
@@ -867,8 +867,8 @@ static void drawMap(Map* map)
 		s32 screenScrollX = map->scroll.x % TIC80_WIDTH;
 		s32 screenScrollY = map->scroll.y % TIC80_HEIGHT;
 
-		map->tic->api.line(map->tic, 0, TIC80_HEIGHT - screenScrollY, TIC80_WIDTH, TIC80_HEIGHT - screenScrollY, systemColor(tic_color_gray));
-		map->tic->api.line(map->tic, TIC80_WIDTH - screenScrollX, 0, TIC80_WIDTH - screenScrollX, TIC80_HEIGHT, systemColor(tic_color_gray));
+		map->tic->api.line(map->tic, 0, TIC80_HEIGHT - screenScrollY, TIC80_WIDTH, TIC80_HEIGHT - screenScrollY, (tic_color_gray));
+		map->tic->api.line(map->tic, TIC80_WIDTH - screenScrollX, 0, TIC80_WIDTH - screenScrollX, TIC80_HEIGHT, (tic_color_gray));
 	}
 
 	if(!map->sheet.show && checkMousePos(&rect))

@@ -29,10 +29,10 @@
 
 #include <zlib.h>
 
-#define CONSOLE_CURSOR_COLOR (systemColor(tic_color_red))
-#define CONSOLE_BACK_TEXT_COLOR (systemColor(tic_color_dark_gray))
-#define CONSOLE_FRONT_TEXT_COLOR (systemColor(tic_color_white))
-#define CONSOLE_ERROR_TEXT_COLOR (systemColor(tic_color_red))
+#define CONSOLE_CURSOR_COLOR ((tic_color_red))
+#define CONSOLE_BACK_TEXT_COLOR ((tic_color_dark_gray))
+#define CONSOLE_FRONT_TEXT_COLOR ((tic_color_white))
+#define CONSOLE_ERROR_TEXT_COLOR ((tic_color_red))
 #define CONSOLE_CURSOR_BLINK_PERIOD (TIC_FRAMERATE)
 #define CONSOLE_CURSOR_DELAY (TIC_FRAMERATE / 2)
 #define CONSOLE_BUFFER_WIDTH (STUDIO_TEXT_BUFFER_WIDTH)
@@ -1724,10 +1724,10 @@ static void printTable(Console* console, const char* text)
 			case '+':
 			case '|':
 			case '-':
-				color = systemColor(tic_color_gray);
+				color = (tic_color_gray);
 				break;
 			default:
-				color = systemColor(tic_color_white);
+				color = (tic_color_white);
 			}
 
 			*(console->colorBuffer + offset) = color;
@@ -2065,7 +2065,7 @@ static void processConsoleCommand(Console* console)
 
 static void error(Console* console, const char* info)
 {
-	consolePrint(console, info ? info : "unknown error", systemColor(tic_color_red));
+	consolePrint(console, info ? info : "unknown error", (tic_color_red));
 	commandDone(console);
 }
 
@@ -2118,7 +2118,7 @@ static void checkNewVersion(Console* console)
 		{
 			char msg[FILENAME_MAX] = {0};
 			sprintf(msg, "\n A new version %i.%i.%i is available.\n", version.major, version.minor, version.patch);
-			consolePrint(console, msg, systemColor(tic_color_light_green));
+			consolePrint(console, msg, (tic_color_light_green));
 		}
 	}
 }

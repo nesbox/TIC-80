@@ -49,7 +49,7 @@
 #define STUDIO_TEXT_BUFFER_WIDTH (TIC80_WIDTH / STUDIO_TEXT_WIDTH)
 #define STUDIO_TEXT_BUFFER_HEIGHT (TIC80_HEIGHT / STUDIO_TEXT_HEIGHT)
 
-#define TIC_COLOR_BG 	systemColor(tic_color_black)
+#define TIC_COLOR_BG 	(tic_color_black)
 #define DEFAULT_CHMOD 0755
 
 #define CONFIG_TIC "config " TIC_VERSION_LABEL ".tic"
@@ -64,11 +64,6 @@ typedef struct
 {
 	struct
 	{
-		struct
-		{
-			u8 data[TIC_PALETTE_SIZE];
-		} palmap;
-
 		struct
 		{
 			s32 sprite;
@@ -178,8 +173,6 @@ void setStudioEvent(StudioEvent event);
 void showTooltip(const char* text);
 
 SDL_Scancode* getKeymap();
-
-u8 systemColor(u8 color);
 
 const StudioConfig* getConfig();
 
