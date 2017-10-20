@@ -29,10 +29,10 @@
 
 #include <zlib.h>
 
-#define CONSOLE_CURSOR_COLOR (systemColor(tic_color_red))
-#define CONSOLE_BACK_TEXT_COLOR (systemColor(tic_color_dark_gray))
-#define CONSOLE_FRONT_TEXT_COLOR (systemColor(tic_color_white))
-#define CONSOLE_ERROR_TEXT_COLOR (systemColor(tic_color_red))
+#define CONSOLE_CURSOR_COLOR ((tic_color_red))
+#define CONSOLE_BACK_TEXT_COLOR ((tic_color_dark_gray))
+#define CONSOLE_FRONT_TEXT_COLOR ((tic_color_white))
+#define CONSOLE_ERROR_TEXT_COLOR ((tic_color_red))
 #define CONSOLE_CURSOR_BLINK_PERIOD (TIC_FRAMERATE)
 #define CONSOLE_CURSOR_DELAY (TIC_FRAMERATE / 2)
 #define CONSOLE_BUFFER_WIDTH (STUDIO_TEXT_BUFFER_WIDTH)
@@ -963,9 +963,6 @@ static void onImportSprites(const char* name, const void* buffer, size_t size, v
 {
 	Console* console = (Console*)data;
 
-	tic_palette pal;
-	memcpy(&pal, console->tic->ram.vram.palette.data, sizeof(tic_palette));
-
 	if(name)
 	{
 		static const char GifExt[] = ".gif";
@@ -993,7 +990,7 @@ static void onImportSprites(const char* name, const void* buffer, size_t size, v
 						u8 src = image->buffer[x + y * image->width];
 						const gif_color* c = &image->palette[src];
 						tic_rgb rgb = {c->r, c->g, c->b};
-						u8 color = tic_tool_find_closest_color(console->tic->ram.vram.palette.colors, &rgb);
+						u8 color = tic_tool_find_closest_color(console->tic->cart.palette.colors, &rgb);
 
 						setSpritePixel(console->tic->cart.gfx.tiles, x, y, color);
 					}
@@ -1009,8 +1006,6 @@ static void onImportSprites(const char* name, const void* buffer, size_t size, v
 		else printBack(console, "\nonly .gif files can be imported :|");
 	}
 	else printBack(console, "\nfile not imported :|");
-
-	memcpy(console->tic->ram.vram.palette.data, &pal, sizeof(tic_palette));
 
 	commandDone(console);
 }
@@ -1729,10 +1724,10 @@ static void printTable(Console* console, const char* text)
 			case '+':
 			case '|':
 			case '-':
-				color = systemColor(tic_color_gray);
+				color = (tic_color_gray);
 				break;
 			default:
-				color = systemColor(tic_color_white);
+				color = (tic_color_white);
 			}
 
 			*(console->colorBuffer + offset) = color;
@@ -2070,7 +2065,7 @@ static void processConsoleCommand(Console* console)
 
 static void error(Console* console, const char* info)
 {
-	consolePrint(console, info ? info : "unknown error", systemColor(tic_color_red));
+	consolePrint(console, info ? info : "unknown error", (tic_color_red));
 	commandDone(console);
 }
 
@@ -2123,7 +2118,7 @@ static void checkNewVersion(Console* console)
 		{
 			char msg[FILENAME_MAX] = {0};
 			sprintf(msg, "\n A new version %i.%i.%i is available.\n", version.major, version.minor, version.patch);
-			consolePrint(console, msg, systemColor(tic_color_light_green));
+			consolePrint(console, msg, (tic_color_light_green));
 		}
 	}
 }
@@ -2320,7 +2315,7 @@ static void cmdInjectCode(Console* console, const char* param, const char* name)
 	bool watch = strcmp(param, "-code-watch") == 0;
 	if(watch || strcmp(param, "-code") == 0)
 	{
-		bool loaded = loadFileIntoBuffer(console, &embed.file.code.data, name);
+		bool loaded = loadFileIntoBuffer(console, embed.file.code.data, name);
 
 		if(loaded)
 		{

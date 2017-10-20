@@ -46,7 +46,7 @@ static void history(Code* code)
 static void drawStatus(Code* code)
 {
 	const s32 Height = TIC_FONT_HEIGHT + 1;
-	code->tic->api.rect(code->tic, 0, TIC80_HEIGHT - Height, TIC80_WIDTH, Height, systemColor(tic_color_white));
+	code->tic->api.rect(code->tic, 0, TIC80_HEIGHT - Height, TIC80_WIDTH, Height, (tic_color_white));
 	code->tic->api.fixed_text(code->tic, code->status, 0, TIC80_HEIGHT - TIC_FONT_HEIGHT, getConfig()->theme.code.bg);
 }
 
@@ -1408,12 +1408,14 @@ static void textEditTick(Code* code)
 
 static void drawPopupBar(Code* code, const char* title)
 {
-	code->tic->api.rect(code->tic, 0, TOOLBAR_SIZE-1, TIC80_WIDTH, TIC_FONT_HEIGHT + 1, systemColor(tic_color_blue));
-	code->tic->api.fixed_text(code->tic, title, 0, TOOLBAR_SIZE, systemColor(tic_color_white));
+	enum {TextY = TOOLBAR_SIZE + 1};
 
-	code->tic->api.fixed_text(code->tic, code->popup.text, (s32)strlen(title)*TIC_FONT_WIDTH, TOOLBAR_SIZE, systemColor(tic_color_white));
+	code->tic->api.rect(code->tic, 0, TOOLBAR_SIZE, TIC80_WIDTH, TIC_FONT_HEIGHT + 1, (tic_color_blue));
+	code->tic->api.fixed_text(code->tic, title, 0, TextY, (tic_color_white));
 
-	drawCursor(code, (s32)(strlen(title) + strlen(code->popup.text)) * TIC_FONT_WIDTH, TOOLBAR_SIZE, ' ');
+	code->tic->api.fixed_text(code->tic, code->popup.text, (s32)strlen(title)*TIC_FONT_WIDTH, TextY, (tic_color_white));
+
+	drawCursor(code, (s32)(strlen(title) + strlen(code->popup.text)) * TIC_FONT_WIDTH, TextY, ' ');
 }
 
 static void updateFindCode(Code* code, char* pos)
@@ -1574,7 +1576,7 @@ static void textGoToTick(Code* code)
 	code->tic->api.clear(code->tic, getConfig()->theme.code.bg);
 
 	if(code->jump.line >= 0)
-		code->tic->api.rect(code->tic, 0, (code->jump.line - code->scroll.y) * TIC_FONT_HEIGHT + TOOLBAR_SIZE-1,
+		code->tic->api.rect(code->tic, 0, (code->jump.line - code->scroll.y) * TIC_FONT_HEIGHT + TOOLBAR_SIZE + 1,
 			TIC80_WIDTH, TIC_FONT_HEIGHT+1, getConfig()->theme.code.select);
 
 	drawCode(code, false);
@@ -1607,7 +1609,7 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 		}
 	}
 
-	code->tic->api.rect(code->tic, rect.x-1, rect.y, rect.w+1, rect.h, systemColor(tic_color_blue));
+	code->tic->api.rect(code->tic, rect.x-1, rect.y, rect.w+1, rect.h, (tic_color_blue));
 
 	OutlineItem* ptr = code->outline.items;
 
@@ -1616,15 +1618,15 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 	if(ptr->pos)
 	{
 		code->tic->api.rect(code->tic, rect.x - 1, rect.y + code->outline.index*STUDIO_TEXT_HEIGHT,
-			rect.w + 1, TIC_FONT_HEIGHT + 1, systemColor(tic_color_red));
+			rect.w + 1, TIC_FONT_HEIGHT + 1, (tic_color_red));
 		while(ptr->pos)
 		{
-			code->tic->api.fixed_text(code->tic, ptr->name, x, y, systemColor(tic_color_white));
+			code->tic->api.fixed_text(code->tic, ptr->name, x, y, (tic_color_white));
 			ptr++;
 			y += STUDIO_TEXT_HEIGHT;
 		}
 	}
-	else code->tic->api.fixed_text(code->tic, "(empty)", x, y, systemColor(tic_color_white));
+	else code->tic->api.fixed_text(code->tic, "(empty)", x, y, (tic_color_white));
 }
 
 static void textOutlineTick(Code* code)
@@ -1689,7 +1691,7 @@ static void textOutlineTick(Code* code)
 
 static void drawCodeToolbar(Code* code)
 {
-	code->tic->api.rect(code->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE-1, systemColor(tic_color_white));
+	code->tic->api.rect(code->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, (tic_color_white));
 
 	static const u8 Icons[] =
 	{
@@ -1766,9 +1768,9 @@ static void drawCodeToolbar(Code* code)
 
 		bool active = i == code->mode - TEXT_EDIT_MODE  && i != 0;
 		if(active)
-			code->tic->api.rect(code->tic, rect.x, rect.y, Size, Size, systemColor(tic_color_blue));
+			code->tic->api.rect(code->tic, rect.x, rect.y, Size, Size, (tic_color_blue));
 
-		drawBitIcon(rect.x, rect.y, Icons + i*BITS_IN_BYTE, active ? systemColor(tic_color_white) : (over ? systemColor(tic_color_dark_gray) : systemColor(tic_color_light_blue)));
+		drawBitIcon(rect.x, rect.y, Icons + i*BITS_IN_BYTE, active ? (tic_color_white) : (over ? (tic_color_dark_gray) : (tic_color_light_blue)));
 	}
 
 	drawToolbar(code->tic, getConfig()->theme.code.bg, false);
@@ -1836,7 +1838,7 @@ void initCode(Code* code, tic_mem* tic)
 		.tick = tick,
 		.escape = escape,
 		.cursor = {{tic->cart.code.data, NULL, 0, 0}, NULL, 0},
-		.rect = {0, TOOLBAR_SIZE, TIC80_WIDTH, TIC80_HEIGHT - TOOLBAR_SIZE - TIC_FONT_HEIGHT - 1},
+		.rect = {0, TOOLBAR_SIZE + 1, TIC80_WIDTH, TIC80_HEIGHT - TOOLBAR_SIZE - TIC_FONT_HEIGHT - 1},
 		.scroll = {0, 0, {0, 0}, false},
 		.tickCounter = 0,
 		.history = NULL,

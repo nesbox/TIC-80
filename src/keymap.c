@@ -56,7 +56,7 @@ static void drawPlayer(Keymap* keymap, s32 x, s32 y, s32 id)
 	{
 		char label[] = "PLAYER #%i";
 		sprintf(label, label, id+1);
-		keymap->tic->api.text(keymap->tic, label, x, y, systemColor(tic_color_white));
+		keymap->tic->api.text(keymap->tic, label, x, y, (tic_color_white));
 	}
 
 
@@ -84,14 +84,14 @@ static void drawPlayer(Keymap* keymap, s32 x, s32 y, s32 id)
 		bool selected = keymap->button == button;
 
 		if(over)
-			keymap->tic->api.rect(keymap->tic, rect.x-1, rect.y-1, rect.w, rect.h, systemColor(tic_color_dark_red));
+			keymap->tic->api.rect(keymap->tic, rect.x-1, rect.y-1, rect.w, rect.h, (tic_color_dark_red));
 
 		if(selected)
-			keymap->tic->api.rect(keymap->tic, rect.x-1, rect.y-1, rect.w, rect.h, systemColor(tic_color_white));
+			keymap->tic->api.rect(keymap->tic, rect.x-1, rect.y-1, rect.w, rect.h, (tic_color_white));
 
-		keymap->tic->api.text(keymap->tic, ButtonNames[i], rect.x, rect.y, selected ? systemColor(tic_color_black) : systemColor(tic_color_gray));
+		keymap->tic->api.text(keymap->tic, ButtonNames[i], rect.x, rect.y, selected ? (tic_color_black) : (tic_color_gray));
 
-		keymap->tic->api.text(keymap->tic, SDL_GetKeyName(SDL_GetKeyFromScancode(codes[button])), rect.x + OffsetX, rect.y, selected ? systemColor(tic_color_black) : systemColor(tic_color_white));
+		keymap->tic->api.text(keymap->tic, SDL_GetKeyName(SDL_GetKeyFromScancode(codes[button])), rect.x + OffsetX, rect.y, selected ? (tic_color_black) : (tic_color_white));
 	}
 }
 
@@ -102,11 +102,11 @@ static void drawCenterText(Keymap* keymap, const char* text, s32 y, u8 color)
 
 static void drawKeymap(Keymap* keymap)
 {
-	keymap->tic->api.rect(keymap->tic, 0, 0, TIC80_WIDTH, TIC_FONT_HEIGHT * 3, systemColor(tic_color_white));
+	keymap->tic->api.rect(keymap->tic, 0, 0, TIC80_WIDTH, TIC_FONT_HEIGHT * 3, (tic_color_white));
 
 	{
 		static const char Label[] = "CONFIGURE BUTTONS MAPPING";
-		keymap->tic->api.text(keymap->tic, Label, (TIC80_WIDTH - sizeof Label * TIC_FONT_WIDTH)/2, TIC_FONT_HEIGHT, systemColor(tic_color_black));
+		keymap->tic->api.text(keymap->tic, Label, (TIC80_WIDTH - sizeof Label * TIC_FONT_WIDTH)/2, TIC_FONT_HEIGHT, (tic_color_black));
 	}
 
 	drawPlayer(keymap, 16, 40, 0);
@@ -115,14 +115,14 @@ static void drawKeymap(Keymap* keymap)
 	if(keymap->button < 0)
 	{
 		if(keymap->ticks % TIC_FRAMERATE < TIC_FRAMERATE/2)
-			drawCenterText(keymap, "SELECT BUTTON", 120, systemColor(tic_color_white));
+			drawCenterText(keymap, "SELECT BUTTON", 120, (tic_color_white));
 	}
 	else
 	{
 		char label[256];
 		sprintf(label, "PRESS A KEY FOR '%s'", ButtonNames[keymap->button % BUTTONS_COUNT]);
-		drawCenterText(keymap, label, 120, systemColor(tic_color_white));
-		drawCenterText(keymap, "ESC TO CANCEL", 126, systemColor(tic_color_white));
+		drawCenterText(keymap, label, 120, (tic_color_white));
+		drawCenterText(keymap, "ESC TO CANCEL", 126, (tic_color_white));
 	}
 }
 

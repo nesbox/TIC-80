@@ -482,7 +482,7 @@ static void updateMenuItemCover(Surf* surf, const u8* cover, s32 size)
 			{
 				const gif_color* c = &image->palette[image->buffer[i]];
 				tic_rgb rgb = { c->r, c->g, c->b };
-				u8 color = tic_tool_find_closest_color(tic->cart.palette.colors, &rgb);
+				u8 color = tic_tool_find_closest_color(tic->config.palette.colors, &rgb);
 				tic_tool_poke4(item->cover->data, i, color);
 			}
 		}

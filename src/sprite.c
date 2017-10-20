@@ -56,7 +56,7 @@ static s32 getIndexPosY(Sprite* sprite)
 static void drawSelection(Sprite* sprite, s32 x, s32 y, s32 w, s32 h)
 {
 	enum{Step = 3};
-	u8 color = systemColor(tic_color_white);
+	u8 color = (tic_color_white);
 
 	s32 index = sprite->tickCounter / 10;
 	for(s32 i = x; i < (x+w); i++) 		{ sprite->tic->api.pixel(sprite->tic, i, y, index++ % Step ? color : 0);} index++;
@@ -75,8 +75,8 @@ static SDL_Rect getSpriteRect(Sprite* sprite)
 
 static void drawCursorBorder(Sprite* sprite, s32 x, s32 y, s32 w, s32 h)
 {
-	sprite->tic->api.rect_border(sprite->tic, x, y, w, h, systemColor(tic_color_black));
-	sprite->tic->api.rect_border(sprite->tic, x-1, y-1, w+2, h+2, systemColor(tic_color_white));
+	sprite->tic->api.rect_border(sprite->tic, x, y, w, h, (tic_color_black));
+	sprite->tic->api.rect_border(sprite->tic, x-1, y-1, w+2, h+2, (tic_color_white));
 }
 
 static void processPickerCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
@@ -336,21 +336,21 @@ static void drawBrushSlider(Sprite* sprite, s32 x, s32 y)
 		}
 	}
 
-	sprite->tic->api.rect(sprite->tic, x+1, y, Size-2, Size*Count, systemColor(tic_color_black));
+	sprite->tic->api.rect(sprite->tic, x+1, y, Size-2, Size*Count, (tic_color_black));
 
 	for(s32 i = 0; i < Count; i++)
 	{
 		s32 offset = y + i*(Size+1);
 
-		sprite->tic->api.rect(sprite->tic, x, offset, Size, Size, systemColor(tic_color_black));
-		sprite->tic->api.rect(sprite->tic, x + 6, offset + 2, Count - i, 1, systemColor(tic_color_black));
+		sprite->tic->api.rect(sprite->tic, x, offset, Size, Size, (tic_color_black));
+		sprite->tic->api.rect(sprite->tic, x + 6, offset + 2, Count - i, 1, (tic_color_black));
 	}
 
-	sprite->tic->api.rect(sprite->tic, x+2, y+1, 1, Size*Count+1, systemColor(over ? tic_color_white : tic_color_gray));
+	sprite->tic->api.rect(sprite->tic, x+2, y+1, 1, Size*Count+1, (over ? tic_color_white : tic_color_gray));
 
 	s32 offset = y + (Count - sprite->brushSize)*(Size+1);
-	sprite->tic->api.rect(sprite->tic, x, offset, Size, Size, systemColor(tic_color_black));
-	sprite->tic->api.rect(sprite->tic, x+1, offset+1, Size-2, Size-2, systemColor(over ? tic_color_white : tic_color_gray));
+	sprite->tic->api.rect(sprite->tic, x, offset, Size, Size, (tic_color_black));
+	sprite->tic->api.rect(sprite->tic, x+1, offset+1, Size-2, Size-2, (over ? tic_color_white : tic_color_gray));
 }
 
 static void drawCanvas(Sprite* sprite, s32 x, s32 y)
@@ -362,13 +362,13 @@ static void drawCanvas(Sprite* sprite, s32 x, s32 y)
 
 		s32 ix = x + (CANVAS_SIZE - 4*TIC_FONT_WIDTH)/2;
 		s32 iy = TIC_SPRITESIZE + 2;
-		sprite->tic->api.text(sprite->tic, buf, ix, iy+1, systemColor(tic_color_black));
-		sprite->tic->api.text(sprite->tic, buf, ix, iy, systemColor(tic_color_white));
+		sprite->tic->api.text(sprite->tic, buf, ix, iy+1, (tic_color_black));
+		sprite->tic->api.text(sprite->tic, buf, ix, iy, (tic_color_white));
 	}
 
-	sprite->tic->api.rect_border(sprite->tic, x-1, y-1, CANVAS_SIZE+2, CANVAS_SIZE+2, systemColor(tic_color_white));
-	sprite->tic->api.rect(sprite->tic, x, y, CANVAS_SIZE, CANVAS_SIZE, systemColor(tic_color_black));
-	sprite->tic->api.rect(sprite->tic, x-1, y + CANVAS_SIZE+1, CANVAS_SIZE+2, 1, systemColor(tic_color_black));
+	sprite->tic->api.rect_border(sprite->tic, x-1, y-1, CANVAS_SIZE+2, CANVAS_SIZE+2, (tic_color_white));
+	sprite->tic->api.rect(sprite->tic, x, y, CANVAS_SIZE, CANVAS_SIZE, (tic_color_black));
+	sprite->tic->api.rect(sprite->tic, x-1, y + CANVAS_SIZE+1, CANVAS_SIZE+2, 1, (tic_color_black));
 
 	SDL_Rect rect = getSpriteRect(sprite);
 	s32 r = rect.x + rect.w;
@@ -506,16 +506,11 @@ static void drawMoveButtons(Sprite* sprite)
 					Func[i](sprite);
 			}
 
-			drawBitIcon(Rects[i].x, Rects[i].y+1, Icons + i*8, down ? systemColor(tic_color_white) : systemColor(tic_color_black));
+			drawBitIcon(Rects[i].x, Rects[i].y+1, Icons + i*8, down ? (tic_color_white) : (tic_color_black));
 
-			if(!down) drawBitIcon(Rects[i].x, Rects[i].y, Icons + i*8, systemColor(tic_color_white));
+			if(!down) drawBitIcon(Rects[i].x, Rects[i].y, Icons + i*8, (tic_color_white));
 		}
 	}
-}
-
-static void updateCartPalette(Sprite* sprite)
-{
-	SDL_memcpy(sprite->tic->cart.palette.data, sprite->tic->ram.vram.palette.data, sizeof(tic_palette));
 }
 
 static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
@@ -545,25 +540,23 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 			{
 				s32 mx = getMouseX() - x;
 				*value = mx * Max / (Size-1);
-
-				updateCartPalette(sprite);
 			}
 		}
 
-		sprite->tic->api.rect(sprite->tic, x, y+1, Size, 1, systemColor(tic_color_black));
-		sprite->tic->api.rect(sprite->tic, x, y, Size, 1, systemColor(tic_color_white));
+		sprite->tic->api.rect(sprite->tic, x, y+1, Size, 1, (tic_color_black));
+		sprite->tic->api.rect(sprite->tic, x, y, Size, 1, (tic_color_white));
 
 		{
 			s32 offset = x + *value * (Size-1) / Max - 1;
-			drawBitIcon(offset, y, Icon, systemColor(tic_color_black));
-			drawBitIcon(offset, y-1, Icon, systemColor(tic_color_white));
+			drawBitIcon(offset, y, Icon, (tic_color_black));
+			drawBitIcon(offset, y-1, Icon, (tic_color_white));
 			sprite->tic->api.pixel(sprite->tic, offset+1, y, sprite->color);
 		}
 
 		{
 			char buf[] = "FF";
 			sprintf(buf, "%02X", *value);
-			sprite->tic->api.text(sprite->tic, buf, x - 18, y - 2, systemColor(tic_color_dark_gray));
+			sprite->tic->api.text(sprite->tic, buf, x - 18, y - 2, (tic_color_dark_gray));
 		}
 	}
 
@@ -591,20 +584,17 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 				down = true;
 
 			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
-			{				
 				(*value)--;
-				updateCartPalette(sprite);
-			}
 		}
 
 		if(down)
 		{
-			drawBitIcon(rect.x, rect.y+1, Icon, systemColor(tic_color_white));
+			drawBitIcon(rect.x, rect.y+1, Icon, (tic_color_white));
 		}
 		else
 		{
-			drawBitIcon(rect.x, rect.y+1, Icon, systemColor(tic_color_black));
-			drawBitIcon(rect.x, rect.y, Icon, systemColor(tic_color_white));
+			drawBitIcon(rect.x, rect.y+1, Icon, (tic_color_black));
+			drawBitIcon(rect.x, rect.y, Icon, (tic_color_white));
 		}
 	}
 
@@ -632,20 +622,17 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 				down = true;
 
 			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
-			{
 				(*value)++;
-				updateCartPalette(sprite);
-			}
 		}
 
 		if(down)
 		{
-			drawBitIcon(rect.x, rect.y+1, Icon, systemColor(tic_color_white));
+			drawBitIcon(rect.x, rect.y+1, Icon, (tic_color_white));
 		}
 		else
 		{
-			drawBitIcon(rect.x, rect.y+1, Icon, systemColor(tic_color_black));
-			drawBitIcon(rect.x, rect.y, Icon, systemColor(tic_color_white));
+			drawBitIcon(rect.x, rect.y+1, Icon, (tic_color_black));
+			drawBitIcon(rect.x, rect.y, Icon, (tic_color_white));
 		}
 	}
 }
@@ -682,17 +669,17 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
 				down = true;
 
 			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
-				toClipboard(sprite->tic->ram.vram.palette.data, sizeof(tic_palette), false);
+				toClipboard(sprite->tic->cart.palette.data, sizeof(tic_palette), false);
 		}
 
 		if(down)
 		{
-			drawBitIcon(rect.x, rect.y+1, Icon, systemColor(tic_color_light_blue));
+			drawBitIcon(rect.x, rect.y+1, Icon, (tic_color_light_blue));
 		}
 		else
 		{
-			drawBitIcon(rect.x, rect.y+1, Icon, systemColor(tic_color_black));
-			drawBitIcon(rect.x, rect.y, Icon, systemColor(over ? tic_color_light_blue : tic_color_white));
+			drawBitIcon(rect.x, rect.y+1, Icon, (tic_color_black));
+			drawBitIcon(rect.x, rect.y, Icon, (over ? tic_color_light_blue : tic_color_white));
 		}
 	}
 
@@ -733,12 +720,12 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
 
 		if(down)
 		{
-			drawBitIcon(rect.x, rect.y+1, Icon, systemColor(tic_color_light_blue));
+			drawBitIcon(rect.x, rect.y+1, Icon, (tic_color_light_blue));
 		}
 		else
 		{
-			drawBitIcon(rect.x, rect.y+1, Icon, systemColor(tic_color_black));
-			drawBitIcon(rect.x, rect.y, Icon, systemColor(over ? tic_color_light_blue : tic_color_white));
+			drawBitIcon(rect.x, rect.y+1, Icon, (tic_color_black));
+			drawBitIcon(rect.x, rect.y, Icon, (over ? tic_color_light_blue : tic_color_white));
 		}
 	}
 }
@@ -747,7 +734,7 @@ static void drawRGBSliders(Sprite* sprite, s32 x, s32 y)
 {
 	enum{Gap = 6, Count = sizeof(tic_rgb)};
 
-	u8* data = &sprite->tic->ram.vram.palette.data[sprite->color * Count];
+	u8* data = &sprite->tic->cart.palette.data[sprite->color * Count];
 
 	for(s32 i = 0; i < Count; i++)
 		drawRGBSlider(sprite, x, y + Gap*i, &data[i]);
@@ -781,23 +768,23 @@ static void drawPalette(Sprite* sprite, s32 x, s32 y)
 		}
 	}
 
-	sprite->tic->api.rect(sprite->tic, rect.x-1, rect.y-1, rect.w+2, rect.h+2, systemColor(tic_color_white));
+	sprite->tic->api.rect(sprite->tic, rect.x-1, rect.y-1, rect.w+2, rect.h+2, (tic_color_white));
 
 	for(s32 row = 0, i = 0; row < PALETTE_ROWS; row++)
 		for(s32 col = 0; col < PALETTE_COLS; col++)
 			sprite->tic->api.rect(sprite->tic, x + col * PALETTE_CELL_SIZE, y + row * PALETTE_CELL_SIZE, PALETTE_CELL_SIZE-1, PALETTE_CELL_SIZE-1, i++);
 
-	sprite->tic->api.rect(sprite->tic, rect.x-1, rect.y+rect.h+1, PALETTE_WIDTH+1, 1, systemColor(tic_color_black));
+	sprite->tic->api.rect(sprite->tic, rect.x-1, rect.y+rect.h+1, PALETTE_WIDTH+1, 1, (tic_color_black));
 
 	{
 		s32 offsetX = x + (sprite->color % PALETTE_COLS) * PALETTE_CELL_SIZE;
 		s32 offsetY = y + (sprite->color / PALETTE_COLS) * PALETTE_CELL_SIZE;
 
 		sprite->tic->api.rect(sprite->tic, offsetX - 1, offsetY - 1, PALETTE_CELL_SIZE + 1, PALETTE_CELL_SIZE + 1, sprite->color);
-		sprite->tic->api.rect_border(sprite->tic, offsetX - 2, offsetY - 2, PALETTE_CELL_SIZE + 3, PALETTE_CELL_SIZE + 3, systemColor(tic_color_white));
+		sprite->tic->api.rect_border(sprite->tic, offsetX - 2, offsetY - 2, PALETTE_CELL_SIZE + 3, PALETTE_CELL_SIZE + 3, (tic_color_white));
 
 		if(offsetY > y)
-			sprite->tic->api.rect(sprite->tic, offsetX - 2, rect.y + rect.h+2, PALETTE_CELL_SIZE+3, 1, systemColor(tic_color_black));		
+			sprite->tic->api.rect(sprite->tic, offsetX - 2, rect.y + rect.h+2, PALETTE_CELL_SIZE+3, 1, (tic_color_black));		
 	}
 
 	{
@@ -816,7 +803,7 @@ static void drawPalette(Sprite* sprite, s32 x, s32 y)
 		s32 offsetX = x + (sprite->color2 % PALETTE_COLS) * PALETTE_CELL_SIZE;
 		s32 offsetY = y + (sprite->color2 / PALETTE_COLS) * PALETTE_CELL_SIZE;
 
-		drawBitIcon(offsetX, offsetY, Icon, sprite->color2 == systemColor(tic_color_white) ? systemColor(tic_color_black) : systemColor(tic_color_white));
+		drawBitIcon(offsetX, offsetY, Icon, sprite->color2 == (tic_color_white) ? (tic_color_black) : (tic_color_white));
 	}
 
 	{
@@ -852,12 +839,12 @@ static void drawPalette(Sprite* sprite, s32 x, s32 y)
 
 		if(sprite->editPalette || down)
 		{
-			drawBitIcon(rect.x, rect.y+1, Icon, systemColor(over ? tic_color_light_blue : tic_color_white));
+			drawBitIcon(rect.x, rect.y+1, Icon, (over ? tic_color_light_blue : tic_color_white));
 		}
 		else
 		{
-			drawBitIcon(rect.x, rect.y+1, Icon, systemColor(tic_color_black));
-			drawBitIcon(rect.x, rect.y, Icon, systemColor(over ? tic_color_light_blue : tic_color_white));			
+			drawBitIcon(rect.x, rect.y+1, Icon, (tic_color_black));
+			drawBitIcon(rect.x, rect.y, Icon, (over ? tic_color_light_blue : tic_color_white));			
 		}
 	}
 }
@@ -899,8 +886,8 @@ static void drawSheet(Sprite* sprite, s32 x, s32 y)
 {
 	SDL_Rect rect = {x, y, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
 
-	sprite->tic->api.rect_border(sprite->tic, rect.x - 1, rect.y - 1, rect.w + 2, rect.h + 2, systemColor(tic_color_white));
-	sprite->tic->api.rect(sprite->tic, rect.x, rect.y, rect.w, rect.h, systemColor(tic_color_black));
+	sprite->tic->api.rect_border(sprite->tic, rect.x - 1, rect.y - 1, rect.w + 2, rect.h + 2, (tic_color_white));
+	sprite->tic->api.rect(sprite->tic, rect.x, rect.y, rect.w, rect.h, (tic_color_black));
 
 	if(checkMousePos(&rect))
 	{
@@ -920,7 +907,7 @@ static void drawSheet(Sprite* sprite, s32 x, s32 y)
 		s32 bx = getIndexPosX(sprite) + x - 1;
 		s32 by = getIndexPosY(sprite) + y - 1;
 
-		sprite->tic->api.rect_border(sprite->tic, bx, by, sprite->size + 2, sprite->size + 2, systemColor(tic_color_white));
+		sprite->tic->api.rect_border(sprite->tic, bx, by, sprite->size + 2, sprite->size + 2, (tic_color_white));
 	}
 }
 
@@ -1072,12 +1059,12 @@ static void drawSpriteTools(Sprite* sprite, s32 x, s32 y)
 
 		if(pushed)
 		{
-			drawBitIcon(rect.x, y + 1, Icons + i*BITS_IN_BYTE, systemColor(over ? tic_color_light_blue : tic_color_white));
+			drawBitIcon(rect.x, y + 1, Icons + i*BITS_IN_BYTE, (over ? tic_color_light_blue : tic_color_white));
 		}
 		else
 		{
-			drawBitIcon(rect.x, y+1, Icons + i*BITS_IN_BYTE, systemColor(tic_color_black));
-			drawBitIcon(rect.x, y, Icons + i*BITS_IN_BYTE, systemColor(over ? tic_color_light_blue : tic_color_white));
+			drawBitIcon(rect.x, y+1, Icons + i*BITS_IN_BYTE, (tic_color_black));
+			drawBitIcon(rect.x, y, Icons + i*BITS_IN_BYTE, (over ? tic_color_light_blue : tic_color_white));
 		}
 	}
 }
@@ -1163,15 +1150,15 @@ static void drawTools(Sprite* sprite, s32 x, s32 y)
 				0b00000000,
 			};
 
-			drawBitIcon(rect.x, y - 4, Icon, systemColor(tic_color_black));
-			drawBitIcon(rect.x, y - 5, Icon, systemColor(tic_color_white));
+			drawBitIcon(rect.x, y - 4, Icon, (tic_color_black));
+			drawBitIcon(rect.x, y - 5, Icon, (tic_color_white));
 
-			drawBitIcon(rect.x, y + 1, Icons + i*BITS_IN_BYTE, systemColor(over ? tic_color_light_blue : tic_color_white));
+			drawBitIcon(rect.x, y + 1, Icons + i*BITS_IN_BYTE, (over ? tic_color_light_blue : tic_color_white));
 		}
 		else
 		{
-			drawBitIcon(rect.x, y+1, Icons + i*BITS_IN_BYTE, systemColor(tic_color_black));
-			drawBitIcon(rect.x, y, Icons + i*BITS_IN_BYTE, systemColor(over ? tic_color_light_blue : tic_color_white));
+			drawBitIcon(rect.x, y+1, Icons + i*BITS_IN_BYTE, (tic_color_black));
+			drawBitIcon(rect.x, y, Icons + i*BITS_IN_BYTE, (over ? tic_color_light_blue : tic_color_white));
 		}
 	}
 
@@ -1347,7 +1334,7 @@ static void processKeydown(Sprite* sprite, SDL_Keycode keycode)
 
 static void drawSpriteToolbar(Sprite* sprite)
 {
-	sprite->tic->api.rect(sprite->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE-1, systemColor(tic_color_white));
+	sprite->tic->api.rect(sprite->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, (tic_color_white));
 
 	// draw sprite size control
 	{
@@ -1370,16 +1357,16 @@ static void drawSpriteToolbar(Sprite* sprite)
 		}
 
 		for(s32 i = 0; i < 4; i++)
-			sprite->tic->api.rect(sprite->tic, rect.x + i*6, 1, 5, 5, systemColor(tic_color_black));
+			sprite->tic->api.rect(sprite->tic, rect.x + i*6, 1, 5, 5, (tic_color_black));
 
-		sprite->tic->api.rect(sprite->tic, rect.x, 2, 23, 3, systemColor(tic_color_black));
-		sprite->tic->api.rect(sprite->tic, rect.x+1, 3, 21, 1, systemColor(tic_color_white));
+		sprite->tic->api.rect(sprite->tic, rect.x, 2, 23, 3, (tic_color_black));
+		sprite->tic->api.rect(sprite->tic, rect.x+1, 3, 21, 1, (tic_color_white));
 
 		s32 size = sprite->size / TIC_SPRITESIZE, val = 0;
 		while(size >>= 1) val++;
 
-		sprite->tic->api.rect(sprite->tic, rect.x + val*6, 1, 5, 5, systemColor(tic_color_black));
-		sprite->tic->api.rect(sprite->tic, rect.x+1 + val*6, 2, 3, 3, systemColor(tic_color_white));
+		sprite->tic->api.rect(sprite->tic, rect.x + val*6, 1, 5, 5, (tic_color_black));
+		sprite->tic->api.rect(sprite->tic, rect.x+1 + val*6, 2, 3, 3, (tic_color_white));
 	}
 
 	bool bg = sprite->index < TIC_BANK_SPRITES;
@@ -1387,8 +1374,8 @@ static void drawSpriteToolbar(Sprite* sprite)
 	{
 		static const char Label[] = "BG";
 		SDL_Rect rect = {TIC80_WIDTH - 2 * TIC_FONT_WIDTH - 2, 0, 2 * TIC_FONT_WIDTH + 1, TIC_SPRITESIZE-1};
-		sprite->tic->api.rect(sprite->tic, rect.x, rect.y, rect.w, rect.h, bg ? systemColor(tic_color_black) : systemColor(tic_color_gray));
-		sprite->tic->api.fixed_text(sprite->tic, Label, rect.x+1, rect.y+1, systemColor(tic_color_white));
+		sprite->tic->api.rect(sprite->tic, rect.x, rect.y, rect.w, rect.h, bg ? (tic_color_black) : (tic_color_gray));
+		sprite->tic->api.fixed_text(sprite->tic, Label, rect.x+1, rect.y+1, (tic_color_white));
 
 		if(checkMousePos(&rect))
 		{
@@ -1407,8 +1394,8 @@ static void drawSpriteToolbar(Sprite* sprite)
 	{
 		static const char Label[] = "FG";
 		SDL_Rect rect = {TIC80_WIDTH - 4 * TIC_FONT_WIDTH - 4, 0, 2 * TIC_FONT_WIDTH + 1, TIC_SPRITESIZE-1};
-		sprite->tic->api.rect(sprite->tic, rect.x, rect.y, rect.w, rect.h, bg ? systemColor(tic_color_gray) : systemColor(tic_color_black));
-		sprite->tic->api.fixed_text(sprite->tic, Label, rect.x+1, rect.y+1, systemColor(tic_color_white));
+		sprite->tic->api.rect(sprite->tic, rect.x, rect.y, rect.w, rect.h, bg ? (tic_color_gray) : (tic_color_black));
+		sprite->tic->api.fixed_text(sprite->tic, Label, rect.x+1, rect.y+1, (tic_color_white));
 
 		if(checkMousePos(&rect))
 		{
@@ -1453,7 +1440,7 @@ static void tick(Sprite* sprite)
 		}
 	}
 
-	sprite->tic->api.clear(sprite->tic, systemColor(tic_color_gray));
+	sprite->tic->api.clear(sprite->tic, (tic_color_gray));
 
 	drawCanvas(sprite, 24, 20);
 	drawMoveButtons(sprite);
@@ -1466,7 +1453,7 @@ static void tick(Sprite* sprite)
 	drawSheet(sprite, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, 7);
 	
 	drawSpriteToolbar(sprite);
-	drawToolbar(sprite->tic, systemColor(tic_color_gray), false);
+	drawToolbar(sprite->tic, (tic_color_gray), false);
 
 	sprite->tickCounter++;
 }
@@ -1481,6 +1468,11 @@ static void onStudioEvent(Sprite* sprite, StudioEvent event)
 	case TIC_TOOLBAR_UNDO: undo(sprite); break;
 	case TIC_TOOLBAR_REDO: redo(sprite); break;
 	}
+}
+
+static void scanline(tic_mem* tic, s32 row)
+{
+	memcpy(tic->ram.vram.palette.data, row < TOOLBAR_SIZE ? tic->config.palette.data : tic->cart.palette.data, sizeof(tic_palette));
 }
 
 void initSprite(Sprite* sprite, tic_mem* tic)
@@ -1511,5 +1503,6 @@ void initSprite(Sprite* sprite, tic_mem* tic)
 		.mode = SPRITE_DRAW_MODE,
 		.history = history_create(tic->cart.gfx.tiles, TIC_SPRITES * sizeof(tic_tile)),
 		.event = onStudioEvent,
+		.scanline = scanline,
 	};
 }

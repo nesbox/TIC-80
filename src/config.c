@@ -85,23 +85,6 @@ static void readCursorTheme(Config* config, lua_State* lua)
 	lua_pop(lua, 1);
 }
 
-static void readPaletteMapTheme(Config* config, lua_State* lua)
-{
-	lua_getfield(lua, -1, "PALMAP");
-
-	if(lua_isstring(lua, -1))
-	{
-		const char* val = lua_tostring(lua, -1);
-
-		s32 size = (s32)strlen(val);
-		if(size == TIC_PALETTE_SIZE)
-			for(s32 i = 0; i < size; i++)
-				config->data.theme.palmap.data[i] = val[i] - (val[i] >= '0' && val[i] <= '9' ? '0' : 'a' - 10);
-	}
-
-	lua_pop(lua, 1);
-}
-
 static void readCodeTheme(Config* config, lua_State* lua)
 {
 	lua_getfield(lua, -1, "CODE");
@@ -154,7 +137,6 @@ static void readTheme(Config* config, lua_State* lua)
 
 	if(lua_type(lua, -1) == LUA_TTABLE)
 	{
-		readPaletteMapTheme(config, lua);
 		readCursorTheme(config, lua);
 		readCodeTheme(config, lua);
 		readGamepadTheme(config, lua);

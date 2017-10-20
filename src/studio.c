@@ -466,8 +466,8 @@ void drawExtrabar(tic_mem* tic)
 	{
 		SDL_Rect rect = {x + i*Size, y, Size, Size};
 
-		u8 bgcolor = systemColor(tic_color_white);
-		u8 color = systemColor(tic_color_light_blue);
+		u8 bgcolor = (tic_color_white);
+		u8 color = (tic_color_light_blue);
 
 		if(checkMousePos(&rect))
 		{
@@ -479,7 +479,7 @@ void drawExtrabar(tic_mem* tic)
 			if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
 			{
 				bgcolor = color;
-				color = systemColor(tic_color_white);
+				color = (tic_color_white);
 			}
 			else if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
 			{
@@ -497,15 +497,10 @@ const StudioConfig* getConfig()
 	return &studio.config.data;
 }
 
-u8 systemColor(u8 color)
-{
-	return getConfig()->theme.palmap.data[color];
-}
-
 void drawToolbar(tic_mem* tic, u8 color, bool bg)
 {
 	if(bg)
-		studio.tic->api.rect(tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE-1, systemColor(tic_color_white));
+		studio.tic->api.rect(tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, (tic_color_white));
 
 	static const u8 TabIcon[] =
 	{
@@ -596,7 +591,7 @@ void drawToolbar(tic_mem* tic, u8 color, bool bg)
 		if(mode == i)
 			drawBitIcon(i * Size, 0, TabIcon, color);
 
-		drawBitIcon(i * Size, 0, Icons + i * BITS_IN_BYTE, mode == i ? systemColor(tic_color_white) : (over ? systemColor(tic_color_dark_gray) : systemColor(tic_color_light_blue)));
+		drawBitIcon(i * Size, 0, Icons + i * BITS_IN_BYTE, mode == i ? (tic_color_white) : (over ? (tic_color_dark_gray) : (tic_color_light_blue)));
 	}
 
 	if(mode >= 0) drawExtrabar(tic);
@@ -614,11 +609,11 @@ void drawToolbar(tic_mem* tic, u8 color, bool bg)
 	{
 		if(strlen(studio.tooltip.text))
 		{
-			studio.tic->api.text(tic, studio.tooltip.text, (COUNT_OF(Modes) + 1) * Size, 1, systemColor(tic_color_black));
+			studio.tic->api.text(tic, studio.tooltip.text, (COUNT_OF(Modes) + 1) * Size, 1, (tic_color_black));
 		}
 		else
 		{
-			studio.tic->api.text(tic, Names[mode], (COUNT_OF(Modes) + 1) * Size, 1, systemColor(tic_color_dark_gray));
+			studio.tic->api.text(tic, Names[mode], (COUNT_OF(Modes) + 1) * Size, 1, (tic_color_dark_gray));
 		}
 	}
 }
@@ -771,9 +766,7 @@ void setStudioMode(EditorMode mode)
 		EditorMode prev = studio.mode;
 
 		if(prev == TIC_RUN_MODE)
-		{
 		 	studio.tic->api.pause(studio.tic);
-		}
 
 		if(mode != TIC_RUN_MODE)
 			studio.tic->api.reset(studio.tic);
@@ -820,9 +813,11 @@ EditorMode getStudioMode()
 	return studio.mode;
 }
 
-void showGameMenu()
+static void showGameMenu()
 {
 	studio.tic->api.pause(studio.tic);
+	studio.tic->api.reset(studio.tic);
+
 	initMenuMode();
 	studio.mode = TIC_MENU_MODE;
 }
@@ -1390,7 +1385,7 @@ static u32* srcPaletteBlit(const u8* src)
 	memset(pal, 0xff, sizeof pal);
 
 	u8* dst = (u8*)pal;
-	const u8* end = src + sizeof studio.tic->ram.vram.palette;
+	const u8* end = src + sizeof(tic_palette);
 
 	enum{RGB = sizeof(tic_rgb)};
 
@@ -1411,22 +1406,38 @@ static void blit(u32* out, u32* bgOut, s32 pitch, s32 bgPitch)
 	const s32 pitchWidth = pitch/sizeof *out;
 	const s32 bgPitchWidth = bgPitch/sizeof *bgOut;
 	u32* row = out;
-	const u32* pal = srcPaletteBlit(studio.tic->cart.palette.data);
+	const u32* pal = paletteBlit();
+
+	void(*scanline)(tic_mem* memory, s32 row) = NULL;
+
+	switch(studio.mode)
+	{
+	case TIC_RUN_MODE:
+		scanline = studio.tic->api.scanline;
+		break;
+	case TIC_SPRITE_MODE:
+		scanline = studio.sprite.scanline;
+		break;
+	case TIC_MAP_MODE:
+		scanline = studio.map.scanline;
+		break;
+	default:
+		break;
+	}
 
 	for(s32 r = 0, pos = 0; r < TIC80_HEIGHT; r++, row += pitchWidth)
 	{
-
-		if(studio.mode == TIC_RUN_MODE || studio.mode == TIC_MENU_MODE)
+		if(scanline)
 		{
-			studio.tic->api.scanline(studio.tic, r);
+			scanline(studio.tic, r);
 			pal = paletteBlit();
+		}
 
-			if(bgOut)
-			{
-				u8 border = tic_tool_peek4(studio.tic->ram.vram.mapping, studio.tic->ram.vram.vars.border & 0xf);
-				SDL_memset4(bgOut, pal[border], TIC80_WIDTH);
-				bgOut += bgPitchWidth;
-			}
+		if(bgOut)
+		{
+			u8 border = tic_tool_peek4(studio.tic->ram.vram.mapping, studio.tic->ram.vram.vars.border & 0xf);
+			SDL_memset4(bgOut, pal[border], TIC80_WIDTH);
+			bgOut += bgPitchWidth;
 		}
 
 		SDL_memset4(row, 0, pitchWidth);
@@ -1994,6 +2005,11 @@ static void renderCursor()
 		blitCursor(studio.tic->config.gfx.tiles[getConfig()->theme.cursor.sprite].data);
 }
 
+static void useSystemPalette()
+{
+	memcpy(studio.tic->ram.vram.palette.data, studio.tic->config.palette.data, sizeof(tic_palette));
+}
+
 static void renderStudio()
 {
 	showTooltip("");
@@ -2046,14 +2062,18 @@ static void renderStudio()
 	{
 		studio.popup.counter--;
 
-		studio.tic->api.rect(studio.tic, 0, TIC80_HEIGHT - TIC_FONT_HEIGHT - 1, TIC80_WIDTH, TIC80_HEIGHT, systemColor(tic_color_red));
+		studio.tic->api.rect(studio.tic, 0, TIC80_HEIGHT - TIC_FONT_HEIGHT - 1, TIC80_WIDTH, TIC80_HEIGHT, (tic_color_red));
 		studio.tic->api.text(studio.tic, studio.popup.message, (s32)(TIC80_WIDTH - strlen(studio.popup.message)*TIC_FONT_WIDTH)/2,
-			TIC80_HEIGHT - TIC_FONT_HEIGHT, systemColor(tic_color_white));
+			TIC80_HEIGHT - TIC_FONT_HEIGHT, (tic_color_white));
 	}
 
 	studio.tic->api.tick_end(studio.tic);
 
 	blitSound();
+
+	if(studio.mode != TIC_RUN_MODE)
+		useSystemPalette();
+	
 	blitTexture();
 
 	renderCursor();
@@ -2253,7 +2273,7 @@ static void setWindowIcon()
 
 	u32* pixels = SDL_malloc(Size * Size * sizeof(u32));
 
-	const u32* pal = paletteBlit();
+	const u32* pal = srcPaletteBlit(studio.tic->config.palette.data);
 
 	for(s32 j = 0, index = 0; j < Size; j++)
 		for(s32 i = 0; i < Size; i++, index++)
