@@ -766,9 +766,7 @@ void setStudioMode(EditorMode mode)
 		EditorMode prev = studio.mode;
 
 		if(prev == TIC_RUN_MODE)
-		{
 		 	studio.tic->api.pause(studio.tic);
-		}
 
 		if(mode != TIC_RUN_MODE)
 			studio.tic->api.reset(studio.tic);
@@ -1432,7 +1430,7 @@ static void blit(u32* out, u32* bgOut, s32 pitch, s32 bgPitch)
 		if(scanline)
 		{
 			scanline(studio.tic, r);
-			pal = paletteBlit();				
+			pal = paletteBlit();
 		}
 
 		if(bgOut)
@@ -2042,9 +2040,6 @@ static void renderStudio()
 		studio.tic->api.tick_start(studio.tic, src);
 	}
 
-	if(studio.mode != TIC_RUN_MODE)
-		useSystemPalette();
-
 	switch(studio.mode)
 	{
 	case TIC_START_MODE:	studio.start.tick(&studio.start); break;
@@ -2075,6 +2070,10 @@ static void renderStudio()
 	studio.tic->api.tick_end(studio.tic);
 
 	blitSound();
+
+	if(studio.mode != TIC_RUN_MODE)
+		useSystemPalette();
+	
 	blitTexture();
 
 	renderCursor();
