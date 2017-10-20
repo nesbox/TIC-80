@@ -24,7 +24,7 @@
 #include "fs.h"
 
 #define DIALOG_WIDTH (TIC80_WIDTH/2)
-#define DIALOG_HEIGHT (TIC80_HEIGHT/2-TOOLBAR_SIZE_)
+#define DIALOG_HEIGHT (TIC80_HEIGHT/2-TOOLBAR_SIZE)
 
 static const char* Rows[] = 
 {
@@ -78,7 +78,7 @@ static void drawDialog(Menu* menu)
 
 	tic_mem* tic = menu->tic;
 
-	SDL_Rect header = {rect.x, rect.y-(TOOLBAR_SIZE_-1), rect.w, TOOLBAR_SIZE_};
+	SDL_Rect header = {rect.x, rect.y-(TOOLBAR_SIZE-1), rect.w, TOOLBAR_SIZE};
 
 	if(checkMousePos(&header))
 	{
@@ -113,13 +113,13 @@ static void drawDialog(Menu* menu)
 	tic->api.rect(tic, rect.x, rect.y, rect.w, rect.h, systemColor(tic_color_blue));
 	tic->api.rect_border(tic, rect.x, rect.y, rect.w, rect.h, systemColor(tic_color_white));
 	tic->api.line(tic, rect.x, rect.y+DIALOG_HEIGHT, rect.x+DIALOG_WIDTH-1, rect.y+DIALOG_HEIGHT, systemColor(tic_color_black));
-	tic->api.rect(tic, rect.x, rect.y-(TOOLBAR_SIZE_-2), rect.w, TOOLBAR_SIZE_-2, systemColor(tic_color_white));
-	tic->api.line(tic, rect.x+1, rect.y-(TOOLBAR_SIZE_-1), rect.x+DIALOG_WIDTH-2, rect.y-(TOOLBAR_SIZE_-1), systemColor(tic_color_white));
+	tic->api.rect(tic, rect.x, rect.y-(TOOLBAR_SIZE-2), rect.w, TOOLBAR_SIZE-2, systemColor(tic_color_white));
+	tic->api.line(tic, rect.x+1, rect.y-(TOOLBAR_SIZE-1), rect.x+DIALOG_WIDTH-2, rect.y-(TOOLBAR_SIZE-1), systemColor(tic_color_white));
 
 	{
 		static const char Label[] = "GAME MENU";
 		s32 size = tic->api.text(tic, Label, 0, -TIC_FONT_HEIGHT, 0);
-		tic->api.text(tic, Label, rect.x + (DIALOG_WIDTH - size)/2, rect.y-(TOOLBAR_SIZE_-2), systemColor(tic_color_gray));
+		tic->api.text(tic, Label, rect.x + (DIALOG_WIDTH - size)/2, rect.y-(TOOLBAR_SIZE-2), systemColor(tic_color_gray));
 	}
 
 	{

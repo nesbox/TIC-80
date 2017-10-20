@@ -1334,7 +1334,7 @@ static void processKeydown(Sprite* sprite, SDL_Keycode keycode)
 
 static void drawSpriteToolbar(Sprite* sprite)
 {
-	sprite->tic->api.rect(sprite->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE_, systemColor(tic_color_white));
+	sprite->tic->api.rect(sprite->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, systemColor(tic_color_white));
 
 	// draw sprite size control
 	{
@@ -1472,7 +1472,7 @@ static void onStudioEvent(Sprite* sprite, StudioEvent event)
 
 static void scanline(tic_mem* tic, s32 row)
 {
-	memcpy(tic->ram.vram.palette.data, row < TOOLBAR_SIZE_ ? tic->config.palette.data : tic->cart.palette.data, sizeof(tic_palette));
+	memcpy(tic->ram.vram.palette.data, row < TOOLBAR_SIZE ? tic->config.palette.data : tic->cart.palette.data, sizeof(tic_palette));
 }
 
 void initSprite(Sprite* sprite, tic_mem* tic)

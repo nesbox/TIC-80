@@ -26,7 +26,7 @@
 #define TEXT_CURSOR_DELAY (TIC_FRAMERATE / 2)
 #define TEXT_CURSOR_BLINK_PERIOD TIC_FRAMERATE
 #define TEXT_BUFFER_WIDTH STUDIO_TEXT_BUFFER_WIDTH
-#define TEXT_BUFFER_HEIGHT ((TIC80_HEIGHT - TOOLBAR_SIZE_ - STUDIO_TEXT_HEIGHT) / STUDIO_TEXT_HEIGHT)
+#define TEXT_BUFFER_HEIGHT ((TIC80_HEIGHT - TOOLBAR_SIZE - STUDIO_TEXT_HEIGHT) / STUDIO_TEXT_HEIGHT)
 
 struct OutlineItem
 {
@@ -34,7 +34,7 @@ struct OutlineItem
 	char* pos;
 };
 
-#define OUTLINE_SIZE ((TIC80_HEIGHT - TOOLBAR_SIZE_*2)/TIC_FONT_HEIGHT)
+#define OUTLINE_SIZE ((TIC80_HEIGHT - TOOLBAR_SIZE*2)/TIC_FONT_HEIGHT)
 #define OUTLINE_ITEMS_SIZE (OUTLINE_SIZE * sizeof(OutlineItem))
 
 static void history(Code* code)
@@ -1408,9 +1408,9 @@ static void textEditTick(Code* code)
 
 static void drawPopupBar(Code* code, const char* title)
 {
-	enum {TextY = TOOLBAR_SIZE_ + 1};
+	enum {TextY = TOOLBAR_SIZE + 1};
 
-	code->tic->api.rect(code->tic, 0, TOOLBAR_SIZE_, TIC80_WIDTH, TIC_FONT_HEIGHT + 1, systemColor(tic_color_blue));
+	code->tic->api.rect(code->tic, 0, TOOLBAR_SIZE, TIC80_WIDTH, TIC_FONT_HEIGHT + 1, systemColor(tic_color_blue));
 	code->tic->api.fixed_text(code->tic, title, 0, TextY, systemColor(tic_color_white));
 
 	code->tic->api.fixed_text(code->tic, code->popup.text, (s32)strlen(title)*TIC_FONT_WIDTH, TextY, systemColor(tic_color_white));
@@ -1576,7 +1576,7 @@ static void textGoToTick(Code* code)
 	code->tic->api.clear(code->tic, getConfig()->theme.code.bg);
 
 	if(code->jump.line >= 0)
-		code->tic->api.rect(code->tic, 0, (code->jump.line - code->scroll.y) * TIC_FONT_HEIGHT + TOOLBAR_SIZE_ + 1,
+		code->tic->api.rect(code->tic, 0, (code->jump.line - code->scroll.y) * TIC_FONT_HEIGHT + TOOLBAR_SIZE + 1,
 			TIC80_WIDTH, TIC_FONT_HEIGHT+1, getConfig()->theme.code.select);
 
 	drawCode(code, false);
@@ -1691,7 +1691,7 @@ static void textOutlineTick(Code* code)
 
 static void drawCodeToolbar(Code* code)
 {
-	code->tic->api.rect(code->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE_, systemColor(tic_color_white));
+	code->tic->api.rect(code->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, systemColor(tic_color_white));
 
 	static const u8 Icons[] =
 	{
@@ -1838,7 +1838,7 @@ void initCode(Code* code, tic_mem* tic)
 		.tick = tick,
 		.escape = escape,
 		.cursor = {{tic->cart.code.data, NULL, 0, 0}, NULL, 0},
-		.rect = {0, TOOLBAR_SIZE_ + 1, TIC80_WIDTH, TIC80_HEIGHT - TOOLBAR_SIZE_ - TIC_FONT_HEIGHT - 1},
+		.rect = {0, TOOLBAR_SIZE + 1, TIC80_WIDTH, TIC80_HEIGHT - TOOLBAR_SIZE - TIC_FONT_HEIGHT - 1},
 		.scroll = {0, 0, {0, 0}, false},
 		.tickCounter = 0,
 		.history = NULL,

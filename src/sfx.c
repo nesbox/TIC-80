@@ -796,7 +796,7 @@ static void drawModeTabs(Sfx* sfx)
 
 static void drawSfxToolbar(Sfx* sfx)
 {
-	sfx->tic->api.rect(sfx->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE_, systemColor(tic_color_white));
+	sfx->tic->api.rect(sfx->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, systemColor(tic_color_white));
 
 	enum{Width = 3 * TIC_FONT_WIDTH};
 	s32 x = TIC80_WIDTH - Width - TIC_SPRITESIZE*3;
@@ -854,13 +854,13 @@ static void envelopesTick(Sfx* sfx)
 	drawSfxToolbar(sfx);
 	drawToolbar(sfx->tic, TIC_COLOR_BG, false);
 
-	drawTopPanel(sfx, Start, TOOLBAR_SIZE_ + Gap);
-	drawCanvasTabs(sfx, Start-Gap, TOOLBAR_SIZE_ + Gap + TIC_FONT_HEIGHT+2);
+	drawTopPanel(sfx, Start, TOOLBAR_SIZE + Gap);
+	drawCanvasTabs(sfx, Start-Gap, TOOLBAR_SIZE + Gap + TIC_FONT_HEIGHT+2);
 	if(sfx->canvasTab == SFX_WAVE_TAB)
-		drawWaveButtons(sfx, Start + CANVAS_WIDTH + Gap-1, TOOLBAR_SIZE_ + Gap + TIC_FONT_HEIGHT+2);
+		drawWaveButtons(sfx, Start + CANVAS_WIDTH + Gap-1, TOOLBAR_SIZE + Gap + TIC_FONT_HEIGHT+2);
 
-	drawLoopPanel(sfx, Gap, TOOLBAR_SIZE_ + Gap + TIC_FONT_HEIGHT+92);
-	drawCanvas(sfx, Start-1, TOOLBAR_SIZE_ + Gap + TIC_FONT_HEIGHT + 1);
+	drawLoopPanel(sfx, Gap, TOOLBAR_SIZE + Gap + TIC_FONT_HEIGHT+92);
+	drawCanvas(sfx, Start-1, TOOLBAR_SIZE + Gap + TIC_FONT_HEIGHT + 1);
 	drawOctavePanel(sfx, Start + Gap + PIANO_WIDTH + Gap-1, TIC80_HEIGHT - TIC_FONT_HEIGHT - (PIANO_HEIGHT - TIC_FONT_HEIGHT)/2 - Gap);
 }
 
