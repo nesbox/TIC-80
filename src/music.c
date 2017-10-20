@@ -1478,7 +1478,7 @@ static void drawModeTabs(Music* music)
 
 static void drawMusicToolbar(Music* music)
 {
-	music->tic->api.rect(music->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE - 1, systemColor(tic_color_white));
+	music->tic->api.rect(music->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE_, systemColor(tic_color_white));
 
 	drawPlayButtons(music);
 	drawModeTabs(music);
@@ -1573,7 +1573,7 @@ static void drawTrackerLayout(Music* music)
 
 	music->tic->api.clear(music->tic, systemColor(tic_color_gray));
 
-	drawTopPanel(music, 6, TOOLBAR_SIZE + 4);
+	drawTopPanel(music, 6, TOOLBAR_SIZE_ + 3);
 	drawTracker(music, 6, 35);
 }
 

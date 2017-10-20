@@ -505,7 +505,7 @@ u8 systemColor(u8 color)
 void drawToolbar(tic_mem* tic, u8 color, bool bg)
 {
 	if(bg)
-		studio.tic->api.rect(tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE-1, systemColor(tic_color_white));
+		studio.tic->api.rect(tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE_, systemColor(tic_color_white));
 
 	static const u8 TabIcon[] =
 	{

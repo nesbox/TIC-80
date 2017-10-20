@@ -117,7 +117,7 @@ static void processKeydown(Dialog* dlg, SDL_Keysym* keysum)
 
 static void drawDialog(Dialog* dlg)
 {
-	enum {Width = TIC80_WIDTH/2, Height = TIC80_HEIGHT/2-TOOLBAR_SIZE-1};
+	enum {Width = TIC80_WIDTH/2, Height = TIC80_HEIGHT/2-TOOLBAR_SIZE_};
 
 	tic_mem* tic = dlg->tic;
 
@@ -126,7 +126,7 @@ static void drawDialog(Dialog* dlg)
 	rect.x -= dlg->pos.x;
 	rect.y -= dlg->pos.y;
 
-	SDL_Rect header = {rect.x, rect.y-(TOOLBAR_SIZE-2), rect.w, TOOLBAR_SIZE-1};
+	SDL_Rect header = {rect.x, rect.y-(TOOLBAR_SIZE_-1), rect.w, TOOLBAR_SIZE_};
 
 	if(checkMousePos(&header))
 	{
@@ -159,13 +159,13 @@ static void drawDialog(Dialog* dlg)
 	tic->api.rect(tic, rect.x, rect.y, rect.w, rect.h, systemColor(tic_color_blue));
 	tic->api.rect_border(tic, rect.x, rect.y, rect.w, rect.h, systemColor(tic_color_white));
 	tic->api.line(tic, rect.x, rect.y+Height, rect.x+Width-1, rect.y+Height, systemColor(tic_color_black));
-	tic->api.rect(tic, rect.x, rect.y-(TOOLBAR_SIZE-3), rect.w, TOOLBAR_SIZE-3, systemColor(tic_color_white));
-	tic->api.line(tic, rect.x+1, rect.y-(TOOLBAR_SIZE-2), rect.x+Width-2, rect.y-(TOOLBAR_SIZE-2), systemColor(tic_color_white));
+	tic->api.rect(tic, rect.x, rect.y-(TOOLBAR_SIZE_-2), rect.w, TOOLBAR_SIZE_-2, systemColor(tic_color_white));
+	tic->api.line(tic, rect.x+1, rect.y-(TOOLBAR_SIZE_-1), rect.x+Width-2, rect.y-(TOOLBAR_SIZE_-1), systemColor(tic_color_white));
 
 	{
 		static const char Label[] = "WARNING!";
 		s32 size = tic->api.text(tic, Label, 0, -TIC_FONT_HEIGHT, 0);
-		tic->api.text(tic, Label, rect.x + (Width - size)/2, rect.y-(TOOLBAR_SIZE-3), systemColor(tic_color_gray));
+		tic->api.text(tic, Label, rect.x + (Width - size)/2, rect.y-(TOOLBAR_SIZE_-2), systemColor(tic_color_gray));
 	}
 
 	{
