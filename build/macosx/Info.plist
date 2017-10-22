@@ -24,5 +24,7 @@
   <string>0.47.0</string>
   <key>NSHumanReadableCopyright</key>
   <string>http://tic.computer © 2017</string>
+  <key>NSHighResolutionCapable</key>
+  <true/>
 </dict>
 </plist>
