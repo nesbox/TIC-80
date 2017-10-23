@@ -2292,9 +2292,6 @@ static bool loadFileIntoBuffer(Console* console, char* buffer, const char* fileN
 		memcpy(buffer, contents, SDL_min(size, TIC_CODE_SIZE-1));
 		SDL_free(contents);
 
-		embed.yes = true;
-		embed.fast = true;
-
 		return true;
 	}
 
