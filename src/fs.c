@@ -674,7 +674,7 @@ void fsMakeDir(FileSystem* fs, const char* name)
 
 #if defined(__WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
 
-void fsOpenSystemPath(FileSystem* fs, const char* path)
+int fsOpenSystemPath(FileSystem* fs, const char* path)
 {
 	char command[FILENAME_MAX];
 
@@ -692,7 +692,7 @@ void fsOpenSystemPath(FileSystem* fs, const char* path)
 
 #endif
 
-	tic_system(UTF8ToString(command));
+	return tic_system(UTF8ToString(command));
 }
 
 #else
