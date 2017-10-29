@@ -674,7 +674,7 @@ void fsMakeDir(FileSystem* fs, const char* name)
 
 #if defined(__WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
 
-int fsOpenSystemPath(FileSystem* fs, const char* path)
+s32 fsOpenSystemPath(FileSystem* fs, const char* path)
 {
 	char command[FILENAME_MAX];
 
@@ -697,7 +697,10 @@ int fsOpenSystemPath(FileSystem* fs, const char* path)
 
 #else
 
-void fsOpenSystemPath(FileSystem* fs, const char* path) {}
+s32 fsOpenSystemPath(FileSystem* fs, const char* path)
+{
+	return 0;
+}
 
 #endif
 
