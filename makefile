@@ -145,7 +145,7 @@ bin/run.o: src/run.c $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
 bin/file_dialog.o: src/ext/file_dialog.c $(TIC80_H) $(TIC_H)
-	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
+	$(CC) $< $(OPT) $(INCLUDES) $(LINUX_INCLUDES) -c -o $@
 
 bin/md5.o: src/ext/md5.c $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
@@ -250,10 +250,10 @@ bin/jsapi.o: src/jsapi.c $(TIC80_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
 bin/luaapi.o: src/luaapi.c $(TIC80_H)
-	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
+	$(CC) $< $(OPT) -fPIC $(INCLUDES) -c -o $@
 
 bin/duktape.o: src/ext/duktape/duktape.c $(TIC80_H)
-	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
+	$(CC) $< $(OPT) -fPIC $(INCLUDES) -c -o $@
 
 TIC80_SRC = src/tic80.c src/tic.c src/ext/blip_buf.c src/jsapi.c src/luaapi.c src/ext/duktape/duktape.c
 TIC80_O = bin/tic80.o bin/tic.o bin/tools.o bin/blip_buf.o bin/jsapi.o bin/luaapi.o bin/duktape.o bin/gif.o
