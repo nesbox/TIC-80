@@ -861,9 +861,7 @@ static void onConsoleKeymapCommand(Console* console, const char* param)
 static void onConsoleVersionCommand(Console* console, const char* param)
 {
 	printBack(console, "\n");
-	char msg[64] = {0};
-	sprintf(msg, "%i.%i.%i", TIC_VERSION_MAJOR, TIC_VERSION_MINOR, TIC_VERSION_PATCH);
-	consolePrint(console, msg, CONSOLE_BACK_TEXT_COLOR);
+	consolePrint(console, TIC_VERSION_LABEL, CONSOLE_BACK_TEXT_COLOR);
 	commandDone(console);
 }
 
