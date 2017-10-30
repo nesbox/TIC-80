@@ -846,6 +846,7 @@ static void ticTexLine(tic_mem* memory, TexVert *v0, TexVert *v1)
 
 	float dy = bot->y - top->y;
 	if ((s32)dy == 0)	return;
+	if ((s32)dy > TIC80_HEIGHT)	return;	//	reject large polys 
 
 	float step_x = (bot->x - top->x) / dy;
 	float step_u = (bot->u - top->u) / dy;
@@ -864,7 +865,7 @@ static void ticTexLine(tic_mem* memory, TexVert *v0, TexVert *v1)
 	}
 }
 
-static void api_textri(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, s32 u1, s32 v1, s32 u2, s32 v2, s32 u3, s32 v3,bool use_map,u8 chroma)
+static void api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8 chroma)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	TexVert V0, V1, V2;

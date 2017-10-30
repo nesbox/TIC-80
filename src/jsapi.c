@@ -645,10 +645,10 @@ static duk_ret_t duk_tri(duk_context* duk)
 
 static duk_ret_t duk_textri(duk_context* duk)
 {
-	s32 pt[12];
+	float pt[12];
 
 	for (s32 i = 0; i < COUNT_OF(pt); i++)
-		pt[i] = duk_to_int(duk, i);
+		pt[i] = (float)duk_to_number(duk, i);
 	tic_mem* memory = (tic_mem*)getDukMachine(duk);
 	bool use_map = duk_is_null_or_undefined(duk, 12) ? false : duk_to_boolean(duk, 12);
 	u8 chroma = duk_is_null_or_undefined(duk, 13) ? 0xff : duk_to_int(duk, 13);
