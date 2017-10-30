@@ -299,7 +299,7 @@ static s32 lua_textri(lua_State* lua)
 		float pt[12];
 
 		for (s32 i = 0; i < COUNT_OF(pt); i++)
-			pt[i] = getLuaNumber(lua, i + 1);
+			pt[i] = (float)lua_tonumber(lua, i + 1);
 
 		tic_mem* memory = (tic_mem*)getLuaMachine(lua);
 		u8 chroma = 0xff;
