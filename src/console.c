@@ -858,6 +858,13 @@ static void onConsoleKeymapCommand(Console* console, const char* param)
 	commandDone(console);
 }
 
+static void onConsoleVersionCommand(Console* console, const char* param)
+{
+	printBack(console, "\n");
+	consolePrint(console, TIC_VERSION_LABEL, CONSOLE_BACK_TEXT_COLOR);
+	commandDone(console);
+}
+
 static void onConsoleConfigCommand(Console* console, const char* param)
 {
 	if(param == NULL)
@@ -1832,6 +1839,7 @@ static const struct
 	{"demo",	NULL, "install demo carts",			onConsoleInstallDemosCommand},
 	{"config",	NULL, "edit TIC config",			onConsoleConfigCommand},
 	{"keymap",	NULL, "configure keyboard mapping",	onConsoleKeymapCommand},
+	{"version",	NULL, "show the current version",	onConsoleVersionCommand},
 	{"surf",	NULL, "open carts browser",			onConsoleSurfCommand},
 };
 
