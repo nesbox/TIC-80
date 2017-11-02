@@ -79,7 +79,6 @@ static struct
 	SDL_Window* window;
 	SDL_Renderer* renderer;
 	SDL_Texture* texture;
-	SDL_Texture* borderTexture;
 
 	SDL_AudioSpec audioSpec;
 	SDL_AudioDeviceID audioDevice;
@@ -194,7 +193,6 @@ static struct
 	.window = NULL,
 	.renderer = NULL,
 	.texture = NULL,
-	.borderTexture = NULL,
 	.audioDevice = 0,
 
 	.joysticks = {NULL, NULL, NULL, NULL},
@@ -1407,12 +1405,11 @@ inline s32 clamp(s32 a, s32 b, s32 val)
 	return val;
 }
 
-static void blit(u32* out, u32* bgOut, s32 pitch, s32 bgPitch)
+static void blit(u32* out, s32 pitch, s32 bgPitch)
 {
 	tic_mem* tic = studio.tic;
 
 	const s32 pitchWidth = pitch/sizeof *out;
-	// const s32 bgPitchWidth = bgPitch/sizeof *bgOut;
 	u32* row = out;
 	const u32* pal = paletteBlit();
 
@@ -1441,12 +1438,7 @@ static void blit(u32* out, u32* bgOut, s32 pitch, s32 bgPitch)
 			pal = paletteBlit();
 		}
 
-		// if(bgOut)
-		// {
 		// 	u8 border = tic_tool_peek4(tic->ram.vram.mapping, tic->ram.vram.vars.border & 0xf);
-		// 	SDL_memset4(bgOut, pal[border], TIC80_WIDTH);
-		// 	bgOut += bgPitchWidth;
-		// }
 
 		SDL_memset4(row, pal[tic->ram.vram.vars.bg], pitchWidth);
 
@@ -1491,7 +1483,7 @@ static void setCoverImage()
 
 		if(pixels)
 		{
-			blit(pixels, NULL, Pitch, 0);
+			blit(pixels, Pitch, 0);
 
 			u32* buffer = SDL_malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32));
 
@@ -1928,22 +1920,7 @@ static void blitTexture()
 	s32 pitch = 0;
 	SDL_LockTexture(studio.texture, NULL, &pixels, &pitch);
 
-	if(studio.mode == TIC_RUN_MODE)
-	{
-		{
-			void* bgPixels = NULL;
-			s32 bgPitch = 0;
-			SDL_LockTexture(studio.borderTexture, NULL, &bgPixels, &bgPitch);
-			blit(pixels, bgPixels, pitch, bgPitch);
-			SDL_UnlockTexture(studio.borderTexture);
-
-			{
-				SDL_Rect srcRect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
-				SDL_RenderCopy(studio.renderer, studio.borderTexture, &srcRect, NULL);
-			}
-		}
-	}
-	else blit(pixels, NULL, pitch, 0);
+	blit(pixels, pitch, 0);
 
 	recordFrame(pixels, pitch);
 
@@ -2394,9 +2371,6 @@ static void onFSInitialized(FileSystem* fs)
 	studio.texture = SDL_CreateTexture(studio.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING,
 		textureLog2(TIC80_WIDTH), textureLog2(TIC80_HEIGHT));
 
-	studio.borderTexture = SDL_CreateTexture(studio.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING,
-		textureLog2(TIC80_WIDTH), textureLog2(TIC80_HEIGHT));
-
 	initTouchGamepad();
 }
 
@@ -2467,7 +2441,6 @@ s32 main(s32 argc, char **argv)
 
 	SDL_DestroyTexture(studio.gamepad.texture);
 	SDL_DestroyTexture(studio.texture);
-	SDL_DestroyTexture(studio.borderTexture);
 
 	if(studio.mouse.texture)
 		SDL_DestroyTexture(studio.mouse.texture);
