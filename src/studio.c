@@ -52,8 +52,6 @@
 #define MAX_CONTROLLERS 4
 #define STUDIO_PIXEL_FORMAT SDL_PIXELFORMAT_ARGB8888
 
-#define MAX_OFFSET 128
-#define FULL_WIDTH (TIC80_WIDTH + MAX_OFFSET*2)
 #define FRAME_SIZE (TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32))
 
 typedef struct
@@ -1401,10 +1399,20 @@ static u32* paletteBlit()
 	return srcPaletteBlit(studio.tic->ram.vram.palette.data);
 }
 
+inline s32 clamp(s32 a, s32 b, s32 val)
+{
+	if(val < a) return a;
+	if(val > b) return b;
+
+	return val;
+}
+
 static void blit(u32* out, u32* bgOut, s32 pitch, s32 bgPitch)
 {
+	tic_mem* tic = studio.tic;
+
 	const s32 pitchWidth = pitch/sizeof *out;
-	const s32 bgPitchWidth = bgPitch/sizeof *bgOut;
+	// const s32 bgPitchWidth = bgPitch/sizeof *bgOut;
 	u32* row = out;
 	const u32* pal = paletteBlit();
 
@@ -1413,7 +1421,7 @@ static void blit(u32* out, u32* bgOut, s32 pitch, s32 bgPitch)
 	switch(studio.mode)
 	{
 	case TIC_RUN_MODE:
-		scanline = studio.tic->api.scanline;
+		scanline = tic->api.scanline;
 		break;
 	case TIC_SPRITE_MODE:
 		scanline = studio.sprite.scanline;
@@ -1425,25 +1433,42 @@ static void blit(u32* out, u32* bgOut, s32 pitch, s32 bgPitch)
 		break;
 	}
 
-	for(s32 r = 0, pos = 0; r < TIC80_HEIGHT; r++, row += pitchWidth)
+	for(s32 r = 0; r < TIC80_HEIGHT; r++, row += pitchWidth)
 	{
 		if(scanline)
 		{
-			scanline(studio.tic, r);
+			scanline(tic, r);
 			pal = paletteBlit();
 		}
 
-		if(bgOut)
-		{
-			u8 border = tic_tool_peek4(studio.tic->ram.vram.mapping, studio.tic->ram.vram.vars.border & 0xf);
-			SDL_memset4(bgOut, pal[border], TIC80_WIDTH);
-			bgOut += bgPitchWidth;
-		}
+		// if(bgOut)
+		// {
+		// 	u8 border = tic_tool_peek4(tic->ram.vram.mapping, tic->ram.vram.vars.border & 0xf);
+		// 	SDL_memset4(bgOut, pal[border], TIC80_WIDTH);
+		// 	bgOut += bgPitchWidth;
+		// }
 
-		SDL_memset4(row, 0, pitchWidth);
+		SDL_memset4(row, pal[tic->ram.vram.vars.bg], pitchWidth);
 
-		for(u32* ptr = row + MAX_OFFSET + studio.tic->ram.vram.vars.offset.x, c = 0; c < TIC80_WIDTH; c++, ptr++)
-			*ptr = pal[tic_tool_peek4(studio.tic->ram.vram.screen.data, pos++)];
+		s32 actualRow = r - tic->ram.vram.vars.offset.y;
+
+		if(actualRow >= TIC80_HEIGHT || actualRow < 0)
+			continue;
+
+		s32 pos = actualRow * TIC80_WIDTH;
+
+		if(tic->ram.vram.vars.offset.x == 0)
+			for(u32* ptr = row, c = 0; c < TIC80_WIDTH; c++, ptr++)
+				*ptr = pal[tic_tool_peek4(tic->ram.vram.screen.data, pos++)];
+		else
+			for(u32* ptr = row, c = 0; c < TIC80_WIDTH; c++, ptr++)
+			{
+				s32 x = c + tic->ram.vram.vars.offset.x;
+
+				if(x < 0 || x >= TIC80_WIDTH) continue;
+
+				*ptr = pal[tic_tool_peek4(tic->ram.vram.screen.data, x + pos)];
+			}
 	}
 }
 
@@ -1451,7 +1476,7 @@ static void screen2buffer(u32* buffer, const u8* pixels, s32 pitch)
 {
 	for(s32 i = 0; i < TIC80_HEIGHT; i++)
 	{
-		SDL_memcpy(buffer, pixels+MAX_OFFSET * sizeof(u32), TIC80_WIDTH * sizeof(u32));
+		SDL_memcpy(buffer, pixels, TIC80_WIDTH * sizeof(u32));
 		pixels += pitch;
 		buffer += TIC80_WIDTH;
 	}
@@ -1461,7 +1486,7 @@ static void setCoverImage()
 {
 	if(studio.mode == TIC_RUN_MODE)
 	{
-		enum {Pitch = FULL_WIDTH*sizeof(u32)};
+		enum {Pitch = TIC80_WIDTH*sizeof(u32)};
 		u32* pixels = SDL_malloc(Pitch * TIC80_HEIGHT);
 
 		if(pixels)
@@ -1863,7 +1888,7 @@ static void drawRecordLabel(u8* frame, s32 pitch, s32 sx, s32 sy, const u32* col
 		for(s32 x = 0; x < sizeof RecLabel[0]*BITS_IN_BYTE; x++)
 		{
 			if(RecLabel[y] & (1 << x))
-				memcpy(&frame[((MAX_OFFSET + sx) + 15 - x + (y+sy)*(pitch/4))*4], color, sizeof *color);
+				memcpy(&frame[(sx + 15 - x + (y+sy)*(pitch/4))*4], color, sizeof *color);
 		}
 	}
 }
@@ -1897,9 +1922,7 @@ static void blitTexture()
 	SDL_Rect rect = {0, 0, 0, 0};
 	calcTextureRect(&rect);
 
-	const s32 Pixel = rect.w / TIC80_WIDTH;
-	rect.x -= MAX_OFFSET * Pixel;
-	rect.w = rect.w * FULL_WIDTH / TIC80_WIDTH;
+	rect.w = rect.w * TIC80_WIDTH / TIC80_WIDTH;
 
 	void* pixels = NULL;
 	s32 pitch = 0;
@@ -1907,8 +1930,6 @@ static void blitTexture()
 
 	if(studio.mode == TIC_RUN_MODE)
 	{
-		rect.y += studio.tic->ram.vram.vars.offset.y * Pixel;
-
 		{
 			void* bgPixels = NULL;
 			s32 bgPitch = 0;
@@ -1929,7 +1950,7 @@ static void blitTexture()
 	SDL_UnlockTexture(studio.texture);
 
 	{
-		SDL_Rect srcRect = {0, 0, FULL_WIDTH, TIC80_HEIGHT};
+		SDL_Rect srcRect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
 		SDL_RenderCopy(studio.renderer, studio.texture, &srcRect, &rect);
 	}
 }
@@ -2371,11 +2392,7 @@ static void onFSInitialized(FileSystem* fs)
 
 	studio.renderer = SDL_CreateRenderer(studio.window, -1, renderFlags);
 	studio.texture = SDL_CreateTexture(studio.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING,
-		textureLog2(FULL_WIDTH), textureLog2(TIC80_HEIGHT));
-
-#if !defined(__ARM_LINUX__)
-	SDL_SetTextureBlendMode(studio.texture, SDL_BLENDMODE_BLEND);
-#endif
+		textureLog2(TIC80_WIDTH), textureLog2(TIC80_HEIGHT));
 
 	studio.borderTexture = SDL_CreateTexture(studio.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING,
 		textureLog2(TIC80_WIDTH), textureLog2(TIC80_HEIGHT));

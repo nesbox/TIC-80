@@ -493,6 +493,8 @@ static void api_clear(tic_mem* memory, u8 color)
 	{
 		api_rect(memory, machine->state.clip.l, machine->state.clip.t, machine->state.clip.r - machine->state.clip.l, machine->state.clip.b - machine->state.clip.t, color);
 	}
+
+	memory->ram.vram.vars.bg = color & 0xf;
 }
 
 static s32 drawChar(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale)
