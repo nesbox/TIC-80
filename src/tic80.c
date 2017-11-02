@@ -139,19 +139,12 @@ static void blit(tic80* tic)
 	tic80_local* tic80 = (tic80_local*)tic;
 
 	u32* screen = tic->screen;
-	u32* border = tic->border;
-
-	tic->offset.x = tic80->memory->ram.vram.vars.offset.x;
-	tic->offset.y = tic80->memory->ram.vram.vars.offset.y;
 
 	for (s32 r = 0, pos = 0; r < TIC80_HEIGHT; r++, screen += TIC80_WIDTH)
 	{
 		tic80->memory->api.scanline(tic80->memory, r);
 		const u32* pal = paletteBlit(tic80->memory);
 
-		tic->offset.rows[r] = tic80->memory->ram.vram.vars.offset.x;
-
-		*border++ = pal[tic_tool_peek4(tic80->memory->ram.vram.mapping, tic80->memory->ram.vram.vars.border & 0xf)];
 		for (u32* ptr = screen, c = 0; c < TIC80_WIDTH; c++, ptr++)
 			*ptr = pal[tic_tool_peek4(tic80->memory->ram.vram.screen.data, pos++)];
 	}

@@ -47,7 +47,6 @@
 #include "ext/md5.h"
 
 #define STUDIO_UI_SCALE 3
-#define STUDIO_UI_BORDER 16
 
 #define MAX_CONTROLLERS 4
 #define STUDIO_PIXEL_FORMAT SDL_PIXELFORMAT_ARGB8888
@@ -78,6 +77,7 @@ static struct
 
 	SDL_Window* window;
 	SDL_Renderer* renderer;
+	SDL_Renderer* softwareRenderer;
 	SDL_Texture* texture;
 
 	SDL_AudioSpec audioSpec;
@@ -192,6 +192,7 @@ static struct
 
 	.window = NULL,
 	.renderer = NULL,
+	.softwareRenderer = NULL,
 	.texture = NULL,
 	.audioDevice = 0,
 
@@ -2173,10 +2174,10 @@ static void tick()
 	SDL_SystemCursor cursor = studio.mouse.system;
 	studio.mouse.system = SDL_SYSTEM_CURSOR_ARROW;
 
-	{
-		const u8* pal = (u8*)(paletteBlit() + tic_tool_peek4(studio.tic->ram.vram.mapping, studio.tic->ram.vram.vars.border & 0xf));
-		SDL_SetRenderDrawColor(studio.renderer, pal[2], pal[1], pal[0], SDL_ALPHA_OPAQUE);
-	}
+	// {
+	// 	const u8* pal = (u8*)(paletteBlit() + tic_tool_peek4(studio.tic->ram.vram.mapping, studio.tic->ram.vram.vars.border & 0xf));
+	// 	SDL_SetRenderDrawColor(studio.renderer, pal[2], pal[1], pal[0], SDL_ALPHA_OPAQUE);
+	// }
 
 	SDL_RenderClear(studio.renderer);
 
@@ -2228,7 +2229,7 @@ static void initTouchGamepad()
 	if(!studio.gamepad.texture)
 	{
 		studio.gamepad.texture = SDL_CreateTexture(studio.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING,
-			textureLog2(TIC80_WIDTH), textureLog2(TIC80_HEIGHT));
+			textureLog2(TIC80_FULLWIDTH), textureLog2(TIC80_FULLHEIGHT));
 		SDL_SetTextureBlendMode(studio.gamepad.texture, SDL_BLENDMODE_BLEND);
 	}
 
@@ -2327,8 +2328,8 @@ static void onFSInitialized(FileSystem* fs)
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK);
 
 	studio.window = SDL_CreateWindow( TIC_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-		(TIC80_WIDTH+STUDIO_UI_BORDER) * STUDIO_UI_SCALE,
-		(TIC80_HEIGHT+STUDIO_UI_BORDER) * STUDIO_UI_SCALE,
+		(TIC80_FULLWIDTH) * STUDIO_UI_SCALE,
+		(TIC80_FULLHEIGHT) * STUDIO_UI_SCALE,
 		SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
 #if defined(__ARM_LINUX__)
 		| SDL_WINDOW_FULLSCREEN_DESKTOP
@@ -2361,13 +2362,11 @@ static void onFSInitialized(FileSystem* fs)
 	// set the window icon before renderer is created (issues on Linux)
 	setWindowIcon();
 
-#if defined(__ARM_LINUX__)
-	s32 renderFlags = SDL_RENDERER_SOFTWARE;
-#else
-	s32 renderFlags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC;
-#endif
+	studio.renderer = SDL_CreateRenderer(studio.window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 
-	studio.renderer = SDL_CreateRenderer(studio.window, -1, renderFlags);
+	if(!studio.renderer)
+		studio.softwareRenderer = studio.renderer = SDL_CreateRenderer(studio.window, -1, SDL_RENDERER_SOFTWARE);
+
 	studio.texture = SDL_CreateTexture(studio.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING,
 		textureLog2(TIC80_WIDTH), textureLog2(TIC80_HEIGHT));
 
@@ -2415,21 +2414,25 @@ s32 main(s32 argc, char **argv)
 
 	createFileSystem(onFSInitialized);
 
-	u64 nextTick = SDL_GetPerformanceCounter();
-	const u64 Delta = SDL_GetPerformanceFrequency() / TIC_FRAMERATE;
-
-	while (!studio.quitFlag)
+	if(studio.softwareRenderer)
 	{
-		nextTick += Delta;
-		tick();
+		u64 nextTick = SDL_GetPerformanceCounter();
+		const u64 Delta = SDL_GetPerformanceFrequency() / TIC_FRAMERATE;
+		
+		while (!studio.quitFlag)
+		{
+			nextTick += Delta;
+			tick();
 
-		s64 delay = nextTick - SDL_GetPerformanceCounter();
+			s64 delay = nextTick - SDL_GetPerformanceCounter();
 
-		if(delay > 0)
-			SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
-		else nextTick -= delay;
+			if(delay > 0)
+				SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
+			else nextTick -= delay;
+		}
 	}
-
+	// TODO: check if window minimised
+	else while(!studio.quitFlag) tick();
 
 #endif
 
