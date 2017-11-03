@@ -1689,7 +1689,7 @@ static u32* paletteBlit(tic_mem* tic)
 	return pal;
 }
 
-void api_blit(tic_mem* tic, u32* out, tic_scanline scanline)
+static void api_blit(tic_mem* tic, u32* out, tic_scanline scanline)
 {
 	const u32* pal = paletteBlit(tic);
 
