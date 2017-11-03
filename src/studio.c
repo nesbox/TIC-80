@@ -720,6 +720,11 @@ void gotoSurf()
 	setStudioMode(TIC_SURF_MODE);
 }
 
+void gotoCode()
+{
+	setStudioMode(TIC_CODE_MODE);
+}
+
 static void initMenuMode()
 {
 	initMenu(&studio.menu, studio.tic, studio.fs);
