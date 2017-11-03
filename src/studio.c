@@ -47,6 +47,7 @@
 #include "ext/md5.h"
 
 #define STUDIO_UI_SCALE 3
+#define TEXTURE_SIZE (TIC80_FULLWIDTH)
 
 #define MAX_CONTROLLERS 4
 #define STUDIO_PIXEL_FORMAT SDL_PIXELFORMAT_ARGB8888
@@ -1406,12 +1407,10 @@ inline s32 clamp(s32 a, s32 b, s32 val)
 	return val;
 }
 
-static void blit(u32* out, s32 pitch, s32 bgPitch)
+static void blit(u32* out)
 {
 	tic_mem* tic = studio.tic;
 
-	const s32 pitchWidth = pitch/sizeof *out;
-	u32* row = out;
 	const u32* pal = paletteBlit();
 
 	void(*scanline)(tic_mem* memory, s32 row) = NULL;
@@ -1431,7 +1430,7 @@ static void blit(u32* out, s32 pitch, s32 bgPitch)
 		break;
 	}
 
-	for(s32 r = 0; r < TIC80_HEIGHT; r++, row += pitchWidth)
+	for(s32 r = 0; r < TIC80_HEIGHT; r++)
 	{
 		if(scanline)
 		{
@@ -1439,29 +1438,20 @@ static void blit(u32* out, s32 pitch, s32 bgPitch)
 			pal = paletteBlit();
 		}
 
-		// 	u8 border = tic_tool_peek4(tic->ram.vram.mapping, tic->ram.vram.vars.border & 0xf);
+		SDL_memset4(&out[r * TEXTURE_SIZE], pal[tic->ram.vram.vars.bg], TEXTURE_SIZE);
 
-		SDL_memset4(row, pal[tic->ram.vram.vars.bg], pitchWidth);
+		s32 y = r + tic->ram.vram.vars.offset.y;
 
-		s32 actualRow = r - tic->ram.vram.vars.offset.y;
+		if(y < 0 || y >= TIC80_HEIGHT) continue;
+		
+		for(s32 c = 0; c < TIC80_WIDTH; c++)
+		{
+			s32 x = c + tic->ram.vram.vars.offset.x;
 
-		if(actualRow >= TIC80_HEIGHT || actualRow < 0)
-			continue;
+			if(x < 0 || x >= TIC80_WIDTH) continue;
 
-		s32 pos = actualRow * TIC80_WIDTH;
-
-		if(tic->ram.vram.vars.offset.x == 0)
-			for(u32* ptr = row, c = 0; c < TIC80_WIDTH; c++, ptr++)
-				*ptr = pal[tic_tool_peek4(tic->ram.vram.screen.data, pos++)];
-		else
-			for(u32* ptr = row, c = 0; c < TIC80_WIDTH; c++, ptr++)
-			{
-				s32 x = c + tic->ram.vram.vars.offset.x;
-
-				if(x < 0 || x >= TIC80_WIDTH) continue;
-
-				*ptr = pal[tic_tool_peek4(tic->ram.vram.screen.data, x + pos)];
-			}
+			out[c + r * TEXTURE_SIZE] = pal[tic_tool_peek4(tic->ram.vram.screen.data, x + y * TIC80_WIDTH)];
+		}
 	}
 }
 
@@ -1484,7 +1474,8 @@ static void setCoverImage()
 
 		if(pixels)
 		{
-			blit(pixels, Pitch, 0);
+			// TODO: blit without border
+			// blit(pixels);
 
 			u32* buffer = SDL_malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32));
 
@@ -1915,13 +1906,11 @@ static void blitTexture()
 	SDL_Rect rect = {0, 0, 0, 0};
 	calcTextureRect(&rect);
 
-	rect.w = rect.w * TIC80_WIDTH / TIC80_WIDTH;
-
 	void* pixels = NULL;
 	s32 pitch = 0;
 	SDL_LockTexture(studio.texture, NULL, &pixels, &pitch);
 
-	blit(pixels, pitch, 0);
+	blit(pixels);
 
 	recordFrame(pixels, pitch);
 
@@ -2211,14 +2200,6 @@ static void initSound()
 		SDL_PauseAudioDevice(studio.audioDevice, 0);
 }
 
-static s32 textureLog2(s32 val)
-{
-	u32 rom = 0;
-	while( val >>= 1 ) rom++;
-
-	return 1 << ++rom;
-}
-
 static void initTouchGamepad()
 {
 	if (!studio.renderer)
@@ -2228,8 +2209,7 @@ static void initTouchGamepad()
 
 	if(!studio.gamepad.texture)
 	{
-		studio.gamepad.texture = SDL_CreateTexture(studio.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING,
-			textureLog2(TIC80_FULLWIDTH), textureLog2(TIC80_FULLHEIGHT));
+		studio.gamepad.texture = SDL_CreateTexture(studio.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING, TEXTURE_SIZE, TEXTURE_SIZE);
 		SDL_SetTextureBlendMode(studio.gamepad.texture, SDL_BLENDMODE_BLEND);
 	}
 
@@ -2367,8 +2347,7 @@ static void onFSInitialized(FileSystem* fs)
 	if(!studio.renderer)
 		studio.softwareRenderer = studio.renderer = SDL_CreateRenderer(studio.window, -1, SDL_RENDERER_SOFTWARE);
 
-	studio.texture = SDL_CreateTexture(studio.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING,
-		textureLog2(TIC80_WIDTH), textureLog2(TIC80_HEIGHT));
+	studio.texture = SDL_CreateTexture(studio.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING, TEXTURE_SIZE, TEXTURE_SIZE);
 
 	initTouchGamepad();
 }
