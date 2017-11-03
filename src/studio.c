@@ -1879,11 +1879,42 @@ static void blitTexture()
 	SDL_UnlockTexture(studio.texture);
 
 	{
-		// SDL_Rect srcRect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
-		// SDL_RenderCopy(studio.renderer, studio.texture, &srcRect, &rect);
+		enum {Header = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2};
+		SDL_Rect srcRect = {0, 0, TIC80_FULLWIDTH, Header};
+		SDL_Rect dstRect = {0};
+		SDL_GetWindowSize(studio.window, &dstRect.w, &dstRect.h);
+		dstRect.h = rect.y;
+		SDL_RenderCopy(studio.renderer, studio.texture, &srcRect, &dstRect);
+	}
 
-        SDL_Rect srcRect = {0, 0, TIC80_FULLWIDTH, TIC80_FULLHEIGHT};
-        SDL_RenderCopy(studio.renderer, studio.texture, &srcRect, NULL);
+	{
+		enum {Header = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2};
+		SDL_Rect srcRect = {0, TIC80_FULLHEIGHT - Header, TIC80_FULLWIDTH, Header};
+		SDL_Rect dstRect = {0};
+		SDL_GetWindowSize(studio.window, &dstRect.w, &dstRect.h);
+		dstRect.y = rect.y + rect.h;
+		dstRect.h = rect.y;
+		SDL_RenderCopy(studio.renderer, studio.texture, &srcRect, &dstRect);
+	}
+
+	{
+		enum {Header = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2};
+		enum {Left = (TIC80_FULLWIDTH-TIC80_WIDTH)/2};
+		SDL_Rect srcRect = {0, Header, Left, TIC80_HEIGHT};
+		SDL_Rect dstRect = {0};
+		SDL_GetWindowSize(studio.window, &dstRect.w, &dstRect.h);
+		dstRect.y = rect.y;
+		dstRect.h = rect.h;
+		SDL_RenderCopy(studio.renderer, studio.texture, &srcRect, &dstRect);
+	}
+
+	{
+		enum {Top = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2};
+		enum {Left = (TIC80_FULLWIDTH-TIC80_WIDTH)/2};
+
+		SDL_Rect srcRect = {Left, Top, TIC80_WIDTH, TIC80_HEIGHT};
+
+        SDL_RenderCopy(studio.renderer, studio.texture, &srcRect, &rect);
 	}
 }
 
