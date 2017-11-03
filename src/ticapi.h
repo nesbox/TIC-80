@@ -60,6 +60,7 @@ typedef struct
 } tic_tick_data;
 
 typedef struct tic_mem tic_mem;
+typedef void(*tic_scanline)(tic_mem* memory, s32 row);
 
 typedef struct
 {
@@ -104,6 +105,7 @@ typedef struct
 
 	void (*tick_start)			(tic_mem* memory, const tic_sound* src);
 	void (*tick_end)			(tic_mem* memory);
+	void (*blit)				(tic_mem* tic, u32* out, tic_scanline scanline);
 
 	tic_script_lang (*get_script)(tic_mem* memory);
 } tic_api;

@@ -1399,80 +1399,6 @@ static u32* paletteBlit()
 	return srcPaletteBlit(studio.tic->ram.vram.palette.data);
 }
 
-inline s32 clamp(s32 a, s32 b, s32 val)
-{
-	if(val < a) return a;
-	if(val > b) return b;
-
-	return val;
-}
-
-static void blit(u32* out)
-{
-	tic_mem* tic = studio.tic;
-
-	const u32* pal = paletteBlit();
-
-	void(*scanline)(tic_mem* memory, s32 row) = NULL;
-
-	switch(studio.mode)
-	{
-	case TIC_RUN_MODE:
-		scanline = tic->api.scanline;
-		break;
-	case TIC_SPRITE_MODE:
-		scanline = studio.sprite.scanline;
-		break;
-	case TIC_MAP_MODE:
-		scanline = studio.map.scanline;
-		break;
-	default:
-		break;
-	}
-
-	if(scanline)
-	{
-		scanline(tic, 0);
-		pal = paletteBlit();
-	}
-
-	enum {Top = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2, Bottom = Top};
-	enum {Left = (TIC80_FULLWIDTH-TIC80_WIDTH)/2, Right = Left};
-
-	SDL_memset4(&out[0 * TEXTURE_SIZE], pal[tic->ram.vram.vars.border], TEXTURE_SIZE*Top);
-
-	for(s32 r = 0; r < TIC80_HEIGHT; r++)
-	{
-		SDL_memset4(&out[(r+Top) * TEXTURE_SIZE], pal[tic->ram.vram.vars.border], Left);
-		SDL_memset4(&out[(r+Top) * TEXTURE_SIZE + Left], pal[tic->ram.vram.vars.bg], TIC80_WIDTH);
-
-		{
-			s32 y = r + tic->ram.vram.vars.offset.y;
-
-			if(y < 0 || y >= TIC80_HEIGHT) continue;
-			
-			for(s32 c = 0; c < TIC80_WIDTH; c++)
-			{
-				s32 x = c + tic->ram.vram.vars.offset.x;
-
-				if(x < 0 || x >= TIC80_WIDTH) continue;
-
-				out[(c + Left) + (r+Top) * TEXTURE_SIZE] = pal[tic_tool_peek4(tic->ram.vram.screen.data, x + y * TIC80_WIDTH)];
-			}			
-		}
-
-		SDL_memset4(&out[(r+Top) * TEXTURE_SIZE + (TIC80_FULLWIDTH-Right)], pal[tic->ram.vram.vars.border], Right);
-
-		if(scanline && (r < TIC80_HEIGHT-1))
-		{
-			scanline(tic, r+1);
-			pal = paletteBlit();
-		}
-	}
-
-	SDL_memset4(&out[(TIC80_FULLHEIGHT-Bottom) * TEXTURE_SIZE], pal[tic->ram.vram.vars.border], TEXTURE_SIZE*Bottom);
-}
-
 static void screen2buffer(u32* buffer, const u8* pixels, s32 pitch)
 {
 	for(s32 i = 0; i < TIC80_HEIGHT; i++)
@@ -1921,6 +1847,7 @@ static void recordFrame(u8* pixels, s32 pitch)
 
 static void blitTexture()
 {
+	tic_mem* tic = studio.tic;
 	SDL_Rect rect = {0, 0, 0, 0};
 	calcTextureRect(&rect);
 
@@ -1928,15 +1855,35 @@ static void blitTexture()
 	s32 pitch = 0;
 	SDL_LockTexture(studio.texture, NULL, &pixels, &pitch);
 
-	blit(pixels);
+	tic_scanline scanline = NULL;
+
+	switch(studio.mode)
+	{
+	case TIC_RUN_MODE:
+		scanline = tic->api.scanline;
+		break;
+	case TIC_SPRITE_MODE:
+		scanline = studio.sprite.scanline;
+		break;
+	case TIC_MAP_MODE:
+		scanline = studio.map.scanline;
+		break;
+	default:
+		break;
+	}
+
+	tic->api.blit(tic, pixels, scanline);
 
 	recordFrame(pixels, pitch);
 
 	SDL_UnlockTexture(studio.texture);
 
 	{
-		SDL_Rect srcRect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
-		SDL_RenderCopy(studio.renderer, studio.texture, &srcRect, &rect);
+		// SDL_Rect srcRect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
+		// SDL_RenderCopy(studio.renderer, studio.texture, &srcRect, &rect);
+
+        SDL_Rect srcRect = {0, 0, TIC80_FULLWIDTH, TIC80_FULLHEIGHT};
+        SDL_RenderCopy(studio.renderer, studio.texture, &srcRect, NULL);
 	}
 }
 

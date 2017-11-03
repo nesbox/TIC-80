@@ -1640,6 +1640,102 @@ static s32 api_save(const tic_cartridge* cart, u8* buffer)
 	return (s32)(buffer - start);
 }
 
+// copy from SDL2
+inline void memset4(void *dst, u32 val, u32 dwords)
+{
+#if defined(__GNUC__) && defined(i386)
+    s32 u0, u1, u2;
+    __asm__ __volatile__ (
+        "cld \n\t"
+        "rep ; stosl \n\t"
+        : "=&D" (u0), "=&a" (u1), "=&c" (u2)
+        : "0" (dst), "1" (val), "2" (dwords)
+        : "memory"
+    );
+#else
+    u32 _n = (dwords + 3) / 4;
+    u32 *_p = (u32*)dst;
+    u32 _val = (val);
+    if (dwords == 0)
+        return;
+    switch (dwords % 4)
+    {
+        case 0: do {    *_p++ = _val;
+        case 3:         *_p++ = _val;
+        case 2:         *_p++ = _val;
+        case 1:         *_p++ = _val;
+        } while ( --_n );
+    }
+#endif
+}
+
+static u32* paletteBlit(tic_mem* tic)
+{
+	static u32 pal[TIC_PALETTE_SIZE] = {0};
+
+	const u8* src = tic->ram.vram.palette.data;
+
+	memset(pal, 0xff, sizeof pal);
+
+	u8* dst = (u8*)pal;
+	const u8* end = src + sizeof(tic_palette);
+
+	enum{RGB = sizeof(tic_rgb)};
+
+	for(; src != end; dst++, src+=RGB)
+		for(s32 j = 0; j < RGB; j++)
+			*dst++ = *(src+(RGB-1)-j);
+
+	return pal;
+}
+
+void api_blit(tic_mem* tic, u32* out, tic_scanline scanline)
+{
+	const u32* pal = paletteBlit(tic);
+
+	if(scanline)
+	{
+		scanline(tic, 0);
+		pal = paletteBlit(tic);
+	}
+
+	enum {Top = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2, Bottom = Top};
+	enum {Left = (TIC80_FULLWIDTH-TIC80_WIDTH)/2, Right = Left};
+
+	memset4(&out[0 * TIC80_FULLWIDTH], pal[tic->ram.vram.vars.border], TIC80_FULLWIDTH*Top);
+
+	for(s32 r = 0; r < TIC80_HEIGHT; r++)
+	{
+		memset4(&out[(r+Top) * TIC80_FULLWIDTH], pal[tic->ram.vram.vars.border], Left);
+		memset4(&out[(r+Top) * TIC80_FULLWIDTH + Left], pal[tic->ram.vram.vars.bg], TIC80_WIDTH);
+
+		{
+			s32 y = r + tic->ram.vram.vars.offset.y;
+
+			if(y < 0 || y >= TIC80_HEIGHT) continue;
+			
+			for(s32 c = 0; c < TIC80_WIDTH; c++)
+			{
+				s32 x = c + tic->ram.vram.vars.offset.x;
+
+				if(x < 0 || x >= TIC80_WIDTH) continue;
+
+				out[(c + Left) + (r+Top) * TIC80_FULLWIDTH] = pal[tic_tool_peek4(tic->ram.vram.screen.data, x + y * TIC80_WIDTH)];
+			}			
+		}
+
+		memset4(&out[(r+Top) * TIC80_FULLWIDTH + (TIC80_FULLWIDTH-Right)], pal[tic->ram.vram.vars.border], Right);
+
+		if(scanline && (r < TIC80_HEIGHT-1))
+		{
+			scanline(tic, r+1);
+			pal = paletteBlit(tic);
+		}
+	}
+
+	memset4(&out[(TIC80_FULLHEIGHT-Bottom) * TIC80_FULLWIDTH], pal[tic->ram.vram.vars.border], TIC80_FULLWIDTH*Bottom);
+}
+
 static void initApi(tic_api* api)
 {
 #define INIT_API(func) api->func = api_##func
@@ -1684,6 +1780,7 @@ static void initApi(tic_api* api)
 	INIT_API(save);
 	INIT_API(tick_start);
 	INIT_API(tick_end);
+	INIT_API(blit);
 
 #undef INIT_API
 }
