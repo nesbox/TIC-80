@@ -955,7 +955,9 @@ static void calcTextureRect(SDL_Rect* rect)
 
 		rect->x = (rect->w - discreteWidth) / 2;
 
-		rect->y = rect->w > rect->h ? (rect->h - discreteHeight) / 2 : 0;
+		rect->y = rect->w > rect->h 
+			? (rect->h - discreteHeight) / 2 
+			: (TIC80_FULLWIDTH-TIC80_WIDTH)/2*discreteWidth/TIC80_WIDTH;
 
 		rect->w = discreteWidth;
 		rect->h = discreteHeight;
