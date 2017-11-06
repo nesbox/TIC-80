@@ -79,7 +79,7 @@ static const char* getPMemName(Run* run)
 {
 	static char buffer[FILENAME_MAX];
 
-	const char* data = strlen(run->tic->saveid) ? run->tic->saveid : run->tic->cart.code.data;
+	const char* data = strlen(run->tic->saveid) ? run->tic->saveid : run->tic->code.data;
 	char* md5 = data2md5(data, (s32)strlen(data));
 	strcpy(buffer, TIC_LOCAL);
 	strcat(buffer, md5);
@@ -89,6 +89,8 @@ static const char* getPMemName(Run* run)
 
 static void tick(Run* run)
 {
+	tic_mem* tic = run->tic;
+
 	while(pollEvent());
 
 	if (getStudioMode() != TIC_RUN_MODE)
@@ -96,6 +98,53 @@ static void tick(Run* run)
 
 	if(!run->init)
 	{
+		// process 'dofile'
+		{
+			memset(tic->code.data, 0, sizeof(tic_code));
+
+			static const char DoFileTag[] = "dofile(";
+			enum {Size = sizeof DoFileTag - 1};
+
+			if (memcmp(tic->cart.code.data, DoFileTag, Size) == 0)
+			{
+				const char* start = tic->cart.code.data + Size;
+				const char* end = strchr(start, ')');
+
+				if(end && *start == *(end-1) && (*start == '"' || *start == '\''))
+				{
+					char filename[FILENAME_MAX] = {0};
+					memcpy(filename, start + 1, end - start - 2);
+
+					s32 size = 0;
+					void* buffer = fsReadFile(filename, &size);
+
+					if(buffer)
+					{
+						if(size > 0)
+						{
+							if(size > TIC_CODE_SIZE)
+							{
+								char buffer[256];
+								sprintf(buffer, "code is larger than %i symbols", TIC_CODE_SIZE);
+								onError(run, buffer);
+
+								return;
+							}
+							else SDL_memcpy(tic->code.data, buffer, size);
+						}
+					}
+					else
+					{
+						char buffer[256];
+						sprintf(buffer, "dofile: file '%s' not found", filename);
+						onError(run, buffer);
+
+						return;
+					}
+				}
+			}
+		}
+
 		run->tickData.start = run->tickData.counter(),
 		run->init = true;
 	}

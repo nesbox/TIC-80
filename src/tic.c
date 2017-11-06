@@ -1343,15 +1343,15 @@ static bool isJavascript(const char* code)
 
 static tic_script_lang api_get_script(tic_mem* memory)
 {
-	if(isMoonscript(memory->cart.code.data)) return tic_script_moon;
-	if(isJavascript(memory->cart.code.data)) return tic_script_js;
+	if(isMoonscript(memory->code.data)) return tic_script_moon;
+	if(isJavascript(memory->code.data)) return tic_script_js;
 	return tic_script_lua;
 }
 
 static void updateSaveid(tic_mem* memory)
 {
 	memset(memory->saveid, 0, sizeof memory->saveid);
-	const char* saveid = readMetatag(memory->cart.code.data, "saveid", TagFormatLua);
+	const char* saveid = readMetatag(memory->code.data, "saveid", TagFormatLua);
 	if(saveid)
 	{
 		strcpy(memory->saveid, saveid);
@@ -1359,7 +1359,7 @@ static void updateSaveid(tic_mem* memory)
 	}
 	else
 	{
-		const char* saveid = readMetatag(memory->cart.code.data, "saveid", TagFormatJS);
+		const char* saveid = readMetatag(memory->code.data, "saveid", TagFormatJS);
 		if(saveid)
 		{
 			strcpy(memory->saveid, saveid);
@@ -1378,76 +1378,17 @@ static void api_tick(tic_mem* memory, tic_tick_data* data)
 	{
 		cart2ram(memory);
 
-		char* code = machine->memory.cart.code.data;
-		if(code && strlen(code))
+		const char* code = machine->memory.code.data;
+
+		if(!strlen(code))
+			memcpy(memory->code.data, memory->cart.code.data, sizeof(tic_code));
+
+		if(strlen(code))
 		{
-			static const char DoFileTag[] = "dofile(";
-			enum {Size = sizeof DoFileTag - 1};
-
-			if (memcmp(code, DoFileTag, Size) == 0)
-			{
-				const char* start = code + Size;
-				const char* end = strchr(start, ')');
-
-				if(end && *start == *(end-1) && (*start == '"' || *start == '\''))
-				{
-					char filename[FILENAME_MAX] = {0};
-					memcpy(filename, start + 1, end - start - 2);
-
-					FILE* file = fopen(filename, "rb");
-
-					if(file)
-					{
-						fseek(file, 0, SEEK_END);
-						s32 size = ftell(file);
-						fseek(file, 0, SEEK_SET);
-
-						if(size > 0)
-						{
-							if(size > TIC_CODE_SIZE)
-							{
-								char buffer[256];
-								sprintf(buffer, "code is larger than %i symbols", TIC_CODE_SIZE);
-								machine->data->error(machine->data->data, buffer);
-
-								fclose(file);
-								
-								return;
-							}
-							else
-							{
-								void* buffer = malloc(size+1);
-
-								if(buffer)
-								{
-									memset(buffer, 0, size+1);
-
-									if(fread(buffer, size, 1, file)) {}
-
-									code = buffer;
-								}								
-							}							
-						}
-
-						fclose(file);
-					}
-					else
-					{
-						char buffer[256];
-						sprintf(buffer, "dofile: file '%s' not found", filename);
-						machine->data->error(machine->data->data, buffer);
-						return;
-					}
-				}
-			}
-
 			memory->input = compareMetatag(code, "input", "mouse") ? tic_mouse_input : tic_gamepad_input;
-
 
 			if(memory->input == tic_mouse_input)
 				memory->ram.vram.vars.mask.data = 0;
-
-			//////////////////////////
 
 			memory->script = tic_script_lua;
 
@@ -1469,12 +1410,7 @@ static void api_tick(tic_mem* memory, tic_tick_data* data)
 				return;
 		}
 
-		// TODO: possible memory leak if script not initialozed
-		if(code != machine->memory.cart.code.data)
-			free(code);
-
 		machine->state.scanline = memory->script == tic_script_js ? callJavascriptScanline : callLuaScanline;
-
 		machine->state.initialized = true;
 	}
 
