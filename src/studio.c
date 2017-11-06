@@ -52,7 +52,7 @@
 #define MAX_CONTROLLERS 4
 #define STUDIO_PIXEL_FORMAT SDL_PIXELFORMAT_ARGB8888
 
-#define FRAME_SIZE (TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32))
+#define FRAME_SIZE (TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32))
 
 typedef struct
 {
@@ -1403,11 +1403,11 @@ static u32* paletteBlit()
 
 static void screen2buffer(u32* buffer, const u8* pixels, s32 pitch)
 {
-	for(s32 i = 0; i < TIC80_HEIGHT; i++)
+	for(s32 i = 0; i < TIC80_FULLHEIGHT; i++)
 	{
-		SDL_memcpy(buffer, pixels, TIC80_WIDTH * sizeof(u32));
+		SDL_memcpy(buffer, pixels, TIC80_FULLWIDTH * sizeof(u32));
 		pixels += pitch;
-		buffer += TIC80_WIDTH;
+		buffer += TIC80_FULLWIDTH;
 	}
 }
 
@@ -1420,7 +1420,6 @@ static void setCoverImage()
 
 		if(pixels)
 		{
-			// TODO: blit without border
 			// blit(pixels);
 
 			u32* buffer = SDL_malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32));
@@ -1458,7 +1457,7 @@ static void stopVideoRecord()
 			s32 size = 0;
 			u8* data = SDL_malloc(FRAME_SIZE * studio.video.frame);
 
-			gif_write_animation(data, &size, TIC80_WIDTH, TIC80_HEIGHT, (const u8*)studio.video.buffer, studio.video.frame, TIC_FRAMERATE, getConfig()->gifScale);
+			gif_write_animation(data, &size, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, (const u8*)studio.video.buffer, studio.video.frame, TIC_FRAMERATE, getConfig()->gifScale);
 
 			fsGetFileData(onVideoExported, "screen.gif", data, size, DEFAULT_CHMOD, NULL);
 		}
@@ -1829,11 +1828,11 @@ static void recordFrame(u8* pixels, s32 pitch)
 	{
 		if(studio.video.frame < studio.video.frames)
 		{
-			screen2buffer(studio.video.buffer + (TIC80_WIDTH*TIC80_HEIGHT) * studio.video.frame, pixels, pitch);
+			screen2buffer(studio.video.buffer + (TIC80_FULLWIDTH*TIC80_FULLHEIGHT) * studio.video.frame, pixels, pitch);
 
 			if(studio.video.frame % TIC_FRAMERATE < TIC_FRAMERATE / 2)
 			{
-				const u32* pal = srcPaletteBlit(studio.tic->config.palette.data);
+				const u32* pal = srcPaletteBlit(studio.tic->ram.vram.palette.data);
 				drawRecordLabel(pixels, pitch, TIC80_WIDTH-24, 8, &pal[tic_color_red]);
 			}
 
