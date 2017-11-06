@@ -1793,6 +1793,7 @@ static void blitSound()
 {
 	s32 samples = studio.audioSpec.freq / TIC_FRAMERATE;
 
+	// TODO: use SDL_ConvertAudio to covert format
 	if(studio.audioSpec.format == AUDIO_F32)
 	{
 		if(!studio.floatSamples)
@@ -2395,7 +2396,6 @@ s32 main(s32 argc, char **argv)
 
 	createFileSystem(onFSInitialized);
 
-	if(studio.softwareRenderer)
 	{
 		u64 nextTick = SDL_GetPerformanceCounter();
 		const u64 Delta = SDL_GetPerformanceFrequency() / TIC_FRAMERATE;
@@ -2412,8 +2412,6 @@ s32 main(s32 argc, char **argv)
 			else nextTick -= delay;
 		}
 	}
-	// TODO: check if window minimised
-	else while(!studio.quitFlag) tick();
 
 #endif
 
