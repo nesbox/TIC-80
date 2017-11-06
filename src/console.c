@@ -1782,7 +1782,7 @@ static void onConsoleRamCommand(Console* console, const char* param)
 		ADDR_RECORD(console->tic->ram.vram.screen, 					"SCREEN"),
 		ADDR_RECORD(console->tic->ram.vram.palette, 				"PALETTE"),
 		ADDR_RECORD(console->tic->ram.vram.mapping, 				"PALETTE MAP"),
-		ADDR_RECORD(console->tic->ram.vram.vars.border, 			"BORDER COLOR"),
+		ADDR_RECORD(console->tic->ram.vram.vars.colors, 			"BORDER/BG COLOR"),
 		ADDR_RECORD(console->tic->ram.vram.vars.offset, 			"SCREEN OFFSET"),
 		ADDR_RECORD(console->tic->ram.vram.vars.mask, 				"GAMEPAD MASK"),
 		ADDR_RECORD(console->tic->ram.vram.input.gamepad, 			"GAMEPAD"),

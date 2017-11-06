@@ -355,7 +355,16 @@ typedef union
 
 		struct
 		{
-			u8 border;
+			union
+			{
+				u8 colors;
+							
+				struct
+				{
+					u8 border:TIC_PALETTE_BPP;
+					u8 bg:TIC_PALETTE_BPP;
+				};
+			};
 
 			struct
 			{
