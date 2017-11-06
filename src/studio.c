@@ -54,6 +54,9 @@
 
 #define FRAME_SIZE (TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32))
 
+#define OFFSET_LEFT ((TIC80_FULLWIDTH-TIC80_WIDTH)/2)
+#define OFFSET_TOP ((TIC80_FULLHEIGHT-TIC80_HEIGHT)/2)
+
 typedef struct
 {
 	u8 data[16];
@@ -957,7 +960,7 @@ static void calcTextureRect(SDL_Rect* rect)
 
 		rect->y = rect->w > rect->h 
 			? (rect->h - discreteHeight) / 2 
-			: (TIC80_FULLWIDTH-TIC80_WIDTH)/2*discreteWidth/TIC80_WIDTH;
+			: OFFSET_LEFT*discreteWidth/TIC80_WIDTH;
 
 		rect->w = discreteWidth;
 		rect->h = discreteHeight;
@@ -1401,32 +1404,38 @@ static u32* paletteBlit()
 	return srcPaletteBlit(studio.tic->ram.vram.palette.data);
 }
 
-static void screen2buffer(u32* buffer, const u8* pixels, s32 pitch)
+static void screen2buffer(u32* buffer, const u32* pixels, SDL_Rect rect)
 {
-	for(s32 i = 0; i < TIC80_FULLHEIGHT; i++)
+	pixels += rect.y * TIC80_FULLWIDTH;
+
+	for(s32 i = 0; i < rect.h; i++)
 	{
-		SDL_memcpy(buffer, pixels, TIC80_FULLWIDTH * sizeof(u32));
-		pixels += pitch;
-		buffer += TIC80_FULLWIDTH;
+		SDL_memcpy(buffer, pixels + rect.x, rect.w * sizeof(pixels[0]));
+		pixels += TIC80_FULLWIDTH;
+		buffer += rect.w;
 	}
 }
 
 static void setCoverImage()
 {
+	tic_mem* tic = studio.tic;
+
 	if(studio.mode == TIC_RUN_MODE)
 	{
-		enum {Pitch = TIC80_WIDTH*sizeof(u32)};
-		u32* pixels = SDL_malloc(Pitch * TIC80_HEIGHT);
+		enum {Pitch = TIC80_FULLWIDTH*sizeof(u32)};
+		u32* pixels = SDL_malloc(Pitch * TIC80_FULLHEIGHT);
 
 		if(pixels)
 		{
-			// blit(pixels);
+			tic->api.blit(tic, pixels, tic->api.scanline);
 
 			u32* buffer = SDL_malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32));
 
 			if(buffer)
 			{
-				screen2buffer(buffer, (const u8*)pixels, Pitch);
+				SDL_Rect rect = {OFFSET_LEFT, OFFSET_TOP, TIC80_WIDTH, TIC80_HEIGHT};
+
+				screen2buffer(buffer, pixels, rect);
 
 				gif_write_animation(studio.tic->cart.cover.data, &studio.tic->cart.cover.size,
 					TIC80_WIDTH, TIC80_HEIGHT, (const u8*)buffer, 1, TIC_FRAMERATE, 1);
@@ -1801,7 +1810,7 @@ static void blitSound()
 		SDL_QueueAudio(studio.audioDevice, studio.tic->samples.buffer, studio.tic->samples.size);
 }
 
-static void drawRecordLabel(u8* frame, s32 pitch, s32 sx, s32 sy, const u32* color)
+static void drawRecordLabel(u32* frame, s32 pitch, s32 sx, s32 sy, const u32* color)
 {
 	static const u16 RecLabel[] =
 	{
@@ -1817,23 +1826,24 @@ static void drawRecordLabel(u8* frame, s32 pitch, s32 sx, s32 sy, const u32* col
 		for(s32 x = 0; x < sizeof RecLabel[0]*BITS_IN_BYTE; x++)
 		{
 			if(RecLabel[y] & (1 << x))
-				memcpy(&frame[(sx + 15 - x + (y+sy)*(pitch/4))*4], color, sizeof *color);
+				memcpy(&frame[sx + 15 - x + (y+sy)*TIC80_FULLWIDTH], color, sizeof *color);
 		}
 	}
 }
 
-static void recordFrame(u8* pixels, s32 pitch)
+static void recordFrame(u32* pixels)
 {
 	if(studio.video.record)
 	{
 		if(studio.video.frame < studio.video.frames)
 		{
-			screen2buffer(studio.video.buffer + (TIC80_FULLWIDTH*TIC80_FULLHEIGHT) * studio.video.frame, pixels, pitch);
+			SDL_Rect rect = {0, 0, TIC80_FULLWIDTH, TIC80_FULLHEIGHT};
+			screen2buffer(studio.video.buffer + (TIC80_FULLWIDTH*TIC80_FULLHEIGHT) * studio.video.frame, pixels, rect);
 
 			if(studio.video.frame % TIC_FRAMERATE < TIC_FRAMERATE / 2)
 			{
-				const u32* pal = srcPaletteBlit(studio.tic->ram.vram.palette.data);
-				drawRecordLabel(pixels, pitch, TIC80_WIDTH-24, 8, &pal[tic_color_red]);
+				const u32* pal = srcPaletteBlit(studio.tic->config.palette.data);
+				drawRecordLabel(pixels, TIC80_FULLWIDTH, TIC80_WIDTH-24, 8, &pal[tic_color_red]);
 			}
 
 			studio.video.frame++;
@@ -1875,12 +1885,12 @@ static void blitTexture()
 
 	tic->api.blit(tic, pixels, scanline);
 
-	recordFrame(pixels, pitch);
+	recordFrame(pixels);
 
 	SDL_UnlockTexture(studio.texture);
 
 	{
-		enum {Header = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2};
+		enum {Header = OFFSET_TOP};
 		SDL_Rect srcRect = {0, 0, TIC80_FULLWIDTH, Header};
 		SDL_Rect dstRect = {0};
 		SDL_GetWindowSize(studio.window, &dstRect.w, &dstRect.h);
@@ -1889,7 +1899,7 @@ static void blitTexture()
 	}
 
 	{
-		enum {Header = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2};
+		enum {Header = OFFSET_TOP};
 		SDL_Rect srcRect = {0, TIC80_FULLHEIGHT - Header, TIC80_FULLWIDTH, Header};
 		SDL_Rect dstRect = {0};
 		SDL_GetWindowSize(studio.window, &dstRect.w, &dstRect.h);
@@ -1899,8 +1909,8 @@ static void blitTexture()
 	}
 
 	{
-		enum {Header = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2};
-		enum {Left = (TIC80_FULLWIDTH-TIC80_WIDTH)/2};
+		enum {Header = OFFSET_TOP};
+		enum {Left = OFFSET_LEFT};
 		SDL_Rect srcRect = {0, Header, Left, TIC80_HEIGHT};
 		SDL_Rect dstRect = {0};
 		SDL_GetWindowSize(studio.window, &dstRect.w, &dstRect.h);
@@ -1910,8 +1920,8 @@ static void blitTexture()
 	}
 
 	{
-		enum {Top = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2};
-		enum {Left = (TIC80_FULLWIDTH-TIC80_WIDTH)/2};
+		enum {Top = OFFSET_TOP};
+		enum {Left = OFFSET_LEFT};
 
 		SDL_Rect srcRect = {Left, Top, TIC80_WIDTH, TIC80_HEIGHT};
 
@@ -2159,11 +2169,6 @@ static void tick()
 
 	SDL_SystemCursor cursor = studio.mouse.system;
 	studio.mouse.system = SDL_SYSTEM_CURSOR_ARROW;
-
-	// {
-	// 	const u8* pal = (u8*)(paletteBlit() + tic_tool_peek4(studio.tic->ram.vram.mapping, studio.tic->ram.vram.vars.border & 0xf));
-	// 	SDL_SetRenderDrawColor(studio.renderer, pal[2], pal[1], pal[0], SDL_ALPHA_OPAQUE);
-	// }
 
 	SDL_RenderClear(studio.renderer);
 

@@ -1640,7 +1640,7 @@ static s32 api_save(const tic_cartridge* cart, u8* buffer)
 	return (s32)(buffer - start);
 }
 
-// copy from SDL2
+// copied from SDL2
 inline void memset4(void *dst, u32 val, u32 dwords)
 {
 #if defined(__GNUC__) && defined(i386)
