@@ -193,3 +193,4 @@ void gotoCode();
 void gotoSurf();
 void exitFromGameMenu();
 void runProject();
+bool processDoFile();

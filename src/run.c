@@ -79,7 +79,7 @@ static const char* getPMemName(Run* run)
 {
 	static char buffer[FILENAME_MAX];
 
-	const char* data = strlen(run->tic->saveid) ? run->tic->saveid : run->tic->cart.code.data;
+	const char* data = strlen(run->tic->saveid) ? run->tic->saveid : run->tic->code.data;
 	char* md5 = data2md5(data, (s32)strlen(data));
 	strcpy(buffer, TIC_LOCAL);
 	strcat(buffer, md5);
@@ -96,6 +96,9 @@ static void tick(Run* run)
 
 	if(!run->init)
 	{
+		if(!processDoFile())
+			return;
+		
 		run->tickData.start = run->tickData.counter(),
 		run->init = true;
 	}

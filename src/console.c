@@ -905,13 +905,6 @@ static void onConsoleConfigCommand(Console* console, const char* param)
 	commandDone(console);
 }
 
-static s32 saveRom(tic_mem* tic, void* buffer)
-{
-	s32 size = tic->api.save(&tic->cart, buffer);
-
-	return size;
-}
-
 static void onFileDownloaded(GetResult result, void* data)
 {
 	Console* console = (Console*)data;
@@ -1245,6 +1238,8 @@ static void writeMemoryString(MemoryBuffer* memory, const char* str)
 
 static void onConsoleExportHtmlCommand(Console* console, const char* name)
 {
+	tic_mem* tic = console->tic;
+
 	char cartName[FILENAME_MAX];
 	strcpy(cartName, name);
 
@@ -1286,43 +1281,62 @@ static void onConsoleExportHtmlCommand(Console* console, const char* name)
 			{
 				writeMemoryString(&output, "var cartridge = [");
 
-				s32 size = saveRom(console->tic, buffer);
+				s32 size = 0;
 
-				// zip buffer
+				// create cart copy
 				{
-					unsigned long outSize = sizeof(tic_cartridge);
-					u8* output = (u8*)SDL_malloc(outSize);
+					tic_cartridge* dup = SDL_malloc(sizeof(tic_cartridge));
 
-					compress2(output, &outSize, buffer, size, Z_BEST_COMPRESSION);
+					SDL_memcpy(dup, &tic->cart, sizeof(tic_cartridge));
+
+					if(processDoFile())
+					{
+						SDL_memcpy(dup->code.data, tic->code.data, sizeof(tic_code));
+						
+						size = tic->api.save(dup, buffer);
+					}
+
+					SDL_free(dup);
+				}
+
+				if(size)
+				{
+					// zip buffer
+					{
+						unsigned long outSize = sizeof(tic_cartridge);
+						u8* output = (u8*)SDL_malloc(outSize);
+
+						compress2(output, &outSize, buffer, size, Z_BEST_COMPRESSION);
+						SDL_free(buffer);
+
+						buffer = output;
+						size = outSize;
+					}
+
+					{
+						u8* ptr = buffer;
+						u8* end = ptr + size;
+
+						char value[] = "999,";
+						while(ptr != end)
+						{
+							sprintf(value, "%i,", *ptr++);
+							writeMemoryString(&output, value);
+						}
+					}
+
 					SDL_free(buffer);
 
-					buffer = output;
-					size = outSize;
+					writeMemoryString(&output, "];\n");
+
+					writeMemoryData(&output, EmbedTicJs, EmbedTicJsSize);
+					writeMemoryString(&output, "</script>\n");
+
+					ptr += sizeof(Placeholder)-1;
+					writeMemoryData(&output, ptr, EmbedIndexSize - (ptr - EmbedIndex));
+
+					fsGetFileData(onFileDownloaded, cartName, output.data, output.size, DEFAULT_CHMOD, console);					
 				}
-
-				{
-					u8* ptr = buffer;
-					u8* end = ptr + size;
-
-					char value[] = "999,";
-					while(ptr != end)
-					{
-						sprintf(value, "%i,", *ptr++);
-						writeMemoryString(&output, value);
-					}
-				}
-
-				SDL_free(buffer);
-
-				writeMemoryString(&output, "];\n");
-
-				writeMemoryData(&output, EmbedTicJs, EmbedTicJsSize);
-				writeMemoryString(&output, "</script>\n");
-
-				ptr += sizeof(Placeholder)-1;
-				writeMemoryData(&output, ptr, EmbedIndexSize - (ptr - EmbedIndex));
-
-				fsGetFileData(onFileDownloaded, cartName, output.data, output.size, DEFAULT_CHMOD, console);
 			}
 		}
 	}
@@ -1335,22 +1349,30 @@ static void onConsoleExportHtmlCommand(Console* console, const char* name)
 
 static void* embedCart(Console* console, s32* size)
 {
-	void* data = fsReadFile(console->appPath, size);
+	tic_mem* tic = console->tic;
 
-	if(data)
+	if(processDoFile())
 	{
-		void* start = memmem(data, *size, embed.prefix, sizeof(embed.prefix));
+		void* data = fsReadFile(console->appPath, size);
 
-		if(start)
+		if(data)
 		{
-			embed.yes = true;
-			memcpy(&embed.file, &console->tic->cart, sizeof(tic_cartridge));
-			memcpy(start, &embed, sizeof(embed));
-			embed.yes = false;
+			void* start = memmem(data, *size, embed.prefix, sizeof(embed.prefix));
+
+			if(start)
+			{
+				embed.yes = true;
+				SDL_memcpy(&embed.file, &tic->cart, sizeof(tic_cartridge));
+				SDL_memcpy(embed.file.code.data, tic->code.data, sizeof(tic_code));
+				SDL_memcpy(start, &embed, sizeof(embed));
+				embed.yes = false;
+			}
 		}
+		
+		return data;
 	}
 
-	return data;
+	return NULL;
 }
 
 #if defined(__WINDOWS__)
@@ -1526,6 +1548,8 @@ static void onConsoleExportCommand(Console* console, const char* param)
 
 static CartSaveResult saveCartName(Console* console, const char* name)
 {
+	tic_mem* tic = console->tic;
+
 	bool success = false;
 
 	if(name && strlen(name))
@@ -1543,7 +1567,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
 			}
 			else
 			{
-				s32 size = saveRom(console->tic, buffer);
+				s32 size = tic->api.save(&tic->cart, buffer);
 
 				name = getRomName(name);
 
