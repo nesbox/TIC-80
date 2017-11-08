@@ -26,12 +26,15 @@ MINGW_LINKER_FLAGS= \
 LINUX_INCLUDES= \
 	`pkg-config --cflags gtk+-3.0`
 
+LINUX_LIBS= \
+	`pkg-config --libs gtk+-3.0`
+
 LINUX64_LIBS= \
-	`pkg-config --libs gtk+-3.0` \
+	$(LINUX_LIBS) \
 	-Llib/linux
 
 LINUX32_LIBS= \
-	`pkg-config --libs gtk+-3.0` \
+	$(LINUX_LIBS) \
 	-Llib/linux32
 
 LINUX_ARM_LIBS= \
@@ -40,7 +43,7 @@ LINUX_ARM_LIBS= \
 LINUX_LINKER_FLAGS= \
 	-D_GNU_SOURCE \
 	-lSDL2 \
-	-llua \
+	-llua5.3 \
 	-ldl \
 	-lm \
 	-lpthread \
@@ -113,6 +116,8 @@ SOURCES=\
 
 SOURCES_EXT= \
 	src/html.c
+
+LPEG_SRC= src/ext/lpeg/*.c
 
 DEMO_ASSETS= \
 	bin/assets/fire.tic.dat \
@@ -272,14 +277,17 @@ mingw: $(DEMO_ASSETS) $(TIC80_DLL) $(TIC_O) bin/html.o bin/res.o
 run: mingw
 	$(MINGW_OUTPUT)
 
-linux64:
+linux64-flto:
 	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) $(INCLUDES) $(LINUX64_LIBS) $(LINUX_LINKER_FLAGS) -flto -o bin/tic
 
-linux32:
+linux32-flto:
 	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) $(INCLUDES) $(LINUX32_LIBS) $(LINUX_LINKER_FLAGS) -flto -o bin/tic
 
-arm:
+arm-flto:
 	$(CC) $(OPT_ARM) $(SOURCES) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_ARM_LIBS) $(LINUX_LINKER_FLAGS) -flto -o bin/tic
+
+linux: 
+	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(LPEG_SRC) $(SOURCES_EXT) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_LIBS) $(LINUX_LINKER_FLAGS) -o bin/tic
 
 macosx:
 	$(CC) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) src/ext/file_dialog.m $(OPT) $(MACOSX_OPT) $(INCLUDES) $(MACOSX_LIBS) -o bin/tic
