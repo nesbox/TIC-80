@@ -288,7 +288,7 @@ static s32 writeGifData(const tic_mem* tic, u8* dst, const u8* src, s32 width, s
 
 	if(palette)
 	{
-		const tic_rgb* pal = tic->ram.vram.palette.colors;
+		const tic_rgb* pal = tic->cart.palette.colors;
 		for(s32 i = 0; i < TIC_PALETTE_SIZE; i++, pal++)
 			palette[i].r = pal->r, palette[i].g = pal->g, palette[i].b = pal->b;
 
