@@ -431,6 +431,8 @@ static void api_reset(tic_mem* memory)
 	machine->state.scanline = NULL;
 
 	updateSaveid(memory);
+
+	memset(memory->code.data, 0, sizeof(tic_code));
 }
 
 static void api_pause(tic_mem* memory)
