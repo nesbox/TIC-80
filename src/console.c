@@ -1349,22 +1349,30 @@ static void onConsoleExportHtmlCommand(Console* console, const char* name)
 
 static void* embedCart(Console* console, s32* size)
 {
-	void* data = fsReadFile(console->appPath, size);
+	tic_mem* tic = console->tic;
 
-	if(data)
+	if(processDoFile())
 	{
-		void* start = memmem(data, *size, embed.prefix, sizeof(embed.prefix));
+		void* data = fsReadFile(console->appPath, size);
 
-		if(start)
+		if(data)
 		{
-			embed.yes = true;
-			memcpy(&embed.file, &console->tic->cart, sizeof(tic_cartridge));
-			memcpy(start, &embed, sizeof(embed));
-			embed.yes = false;
+			void* start = memmem(data, *size, embed.prefix, sizeof(embed.prefix));
+
+			if(start)
+			{
+				embed.yes = true;
+				SDL_memcpy(&embed.file, &tic->cart, sizeof(tic_cartridge));
+				SDL_memcpy(embed.file.code.data, tic->code.data, sizeof(tic_code));
+				SDL_memcpy(start, &embed, sizeof(embed));
+				embed.yes = false;
+			}
 		}
+		
+		return data;
 	}
 
-	return data;
+	return NULL;
 }
 
 #if defined(__WINDOWS__)

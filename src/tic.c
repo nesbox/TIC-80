@@ -1411,6 +1411,11 @@ static void api_tick(tic_mem* memory, tic_tick_data* data)
 			else if(!initLua(machine, code))
 				return;
 		}
+		else
+		{
+			machine->data->error(machine->data->data, "the code is empty");
+			return;
+		}
 
 		machine->state.scanline = memory->script == tic_script_js ? callJavascriptScanline : callLuaScanline;
 		machine->state.initialized = true;
@@ -1582,28 +1587,28 @@ static s32 api_save(const tic_cartridge* cart, u8* buffer)
 inline void memset4(void *dst, u32 val, u32 dwords)
 {
 #if defined(__GNUC__) && defined(i386)
-    s32 u0, u1, u2;
-    __asm__ __volatile__ (
-        "cld \n\t"
-        "rep ; stosl \n\t"
-        : "=&D" (u0), "=&a" (u1), "=&c" (u2)
-        : "0" (dst), "1" (val), "2" (dwords)
-        : "memory"
-    );
+	s32 u0, u1, u2;
+	__asm__ __volatile__ (
+		"cld \n\t"
+		"rep ; stosl \n\t"
+		: "=&D" (u0), "=&a" (u1), "=&c" (u2)
+		: "0" (dst), "1" (val), "2" (dwords)
+		: "memory"
+	);
 #else
-    u32 _n = (dwords + 3) / 4;
-    u32 *_p = (u32*)dst;
-    u32 _val = (val);
-    if (dwords == 0)
-        return;
-    switch (dwords % 4)
-    {
-        case 0: do {    *_p++ = _val;
-        case 3:         *_p++ = _val;
-        case 2:         *_p++ = _val;
-        case 1:         *_p++ = _val;
-        } while ( --_n );
-    }
+	u32 _n = (dwords + 3) / 4;
+	u32 *_p = (u32*)dst;
+	u32 _val = (val);
+	if (dwords == 0)
+		return;
+	switch (dwords % 4)
+	{
+		case 0: do {    *_p++ = _val;
+		case 3:         *_p++ = _val;
+		case 2:         *_p++ = _val;
+		case 1:         *_p++ = _val;
+		} while ( --_n );
+	}
 #endif
 }
 

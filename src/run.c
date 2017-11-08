@@ -89,8 +89,6 @@ static const char* getPMemName(Run* run)
 
 static void tick(Run* run)
 {
-	// tic_mem* tic = run->tic;
-
 	while(pollEvent());
 
 	if (getStudioMode() != TIC_RUN_MODE)
@@ -98,7 +96,7 @@ static void tick(Run* run)
 
 	if(!run->init)
 	{
-		if(processDoFile())
+		if(!processDoFile())
 			return;
 		
 		run->tickData.start = run->tickData.counter(),
