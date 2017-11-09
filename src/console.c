@@ -490,6 +490,69 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 	SDL_free(data);
 }
 
+static void onCartLoaded(Console* console, const char* name)
+{
+	strcpy(console->romName, name);
+
+	studioRomLoaded();
+
+	printBack(console, "\ncart ");
+	printFront(console, console->romName);
+	printBack(console, " loaded!\nuse ");
+	printFront(console, "RUN");
+	printBack(console, " command to run it\n");
+
+}
+
+#if defined(TIC80_PRO)
+
+static void loadProjectCode(Console* console, const void* data, s32 size)
+{
+	tic_mem* tic = console->tic;
+
+	SDL_memcpy(tic->cart.code.data, data, SDL_min(size, sizeof(tic_code)));
+}
+
+static void loadProject(Console* console, const char* name)
+{
+	tic_mem* tic = console->tic;
+
+	SDL_memset(&tic->cart, 0, sizeof(tic_cartridge));
+
+	static struct{const char* name; void(*func)(Console* console, const void* data, s32 size);} ProjectFiles[] = 
+	{
+		{"code.lua", loadProjectCode},
+		{"sprites.gif", NULL},
+		{"tiles.gif", NULL},
+		{"palette.dat", NULL},
+		{"map.dat", NULL},
+		{"waves.dat", NULL},
+		{"sfx.dat", NULL},
+		{"music.dat", NULL},
+		{"cover.gif", NULL},
+	};
+
+	for(s32 i = 0; i < COUNT_OF(ProjectFiles); i++)
+	{
+		char path[FILENAME_MAX];
+		sprintf(path, "%s/%s", name, ProjectFiles[i].name);
+
+		s32 size = 0;
+		void* data = fsLoadFile(console->fs, path, &size);
+
+		if(data)
+		{
+			ProjectFiles[i].func(console, data, size);
+			SDL_free(data);
+		}
+	}
+
+	onCartLoaded(console, name);
+
+	commandDone(console);
+}
+#endif
+
 static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 {
 	if(onConsoleLoadSectionCommand(console, param)) return;
@@ -499,6 +562,14 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 		s32 size = 0;
 		const char* name = getRomName(param);
 
+#if defined(TIC80_PRO)
+		if(fsIsDir(console->fs, name))
+		{
+			loadProject(console, name);
+			return;
+		}
+#endif
+
 		void* data = strcmp(name, CONFIG_TIC_PATH) == 0
 			? fsLoadRootFile(console->fs, name, &size)
 			: fsLoadFile(console->fs, name, &size);
@@ -507,21 +578,16 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 		{
 			console->showGameMenu = fsIsInPublicDir(console->fs);
 
-			strcpy(console->romName, name);
-
 			loadRom(console->tic, data, size, true);
 
-			studioRomLoaded();
-
-			printBack(console, "\ncart ");
-			printFront(console, console->romName);
-			printBack(console, " loaded!\nuse ");
-			printFront(console, "RUN");
-			printBack(console, " command to run it\n");
+			onCartLoaded(console, name);
 
 			SDL_free(data);
 		}
-		else printBack(console, "\ncart loading error");
+		else		
+		{
+			printBack(console, "\ncart loading error");
+		}
 	}
 	else printBack(console, "\ncart name is missing");
 
@@ -676,13 +742,20 @@ typedef struct
 
 static bool printFilename(const char* name, const char* info, s32 id, void* data, bool dir)
 {
+
 	PrintFileNameData* printData = data;
 	Console* console = printData->console;
 
 	printLine(console);
 
+#if defined(TIC80_PRO)
+	if(dir && SDL_strstr(name, CartExt) == (name + SDL_strlen(name) - SDL_strlen(CartExt)))
+		dir = false;
+#endif
+
 	if(dir)
 	{
+
 		printBack(console, "[");
 		printBack(console, name);
 		printBack(console, "]");

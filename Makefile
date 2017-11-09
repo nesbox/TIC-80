@@ -274,16 +274,20 @@ emscripten:
 mingw: $(DEMO_ASSETS) $(TIC80_DLL) $(TIC_O) bin/html.o bin/res.o
 	$(CC) $(TIC_O) bin/html.o bin/res.o $(TIC80_A) $(OPT) $(INCLUDES) $(MINGW_LINKER_FLAGS) -o $(MINGW_OUTPUT)
 
-run: mingw
+mingw-pro:
+	$(eval OPT += -DTIC80_PRO)
+	make mingw OPT="$(OPT)"
+
+run: mingw-pro
 	$(MINGW_OUTPUT)
 
-linux64-flto:
+linux64-lto:
 	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) $(INCLUDES) $(LINUX64_LIBS) $(LINUX_LINKER_FLAGS) -flto -o bin/tic
 
-linux32-flto:
+linux32-lto:
 	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) $(INCLUDES) $(LINUX32_LIBS) $(LINUX_LINKER_FLAGS) -flto -o bin/tic
 
-arm-flto:
+arm-lto:
 	$(CC) $(OPT_ARM) $(SOURCES) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_ARM_LIBS) $(LINUX_LINKER_FLAGS) -flto -o bin/tic
 
 linux: 
@@ -339,4 +343,4 @@ bin/assets/moondemo.tic.dat: demos/moondemo.tic
 	$(BIN2TXT) $< $@ -z
 
 clean: $(TIC_O) $(TIC80_O)
-	$(RM) $(TIC_O) $(TIC80_O)
+	del bin\*.o
