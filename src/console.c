@@ -1619,6 +1619,124 @@ static void onConsoleExportCommand(Console* console, const char* param)
 
 #endif
 
+#if defined(TIC80_PRO)
+
+static void buf2str(const void* data, s32 size, char* ptr, bool flip)
+{
+	enum {Len = 2};
+
+	for(s32 i = 0; i < size; i++, ptr+=Len)
+	{
+		sprintf(ptr, "%02x", ((u8*)data)[i]);
+
+		if(flip)
+		{
+			char tmp = ptr[0];
+			ptr[0] = ptr[1];
+			ptr[1] = tmp;
+		}
+	}
+}
+
+static char* printBuf(char* ptr, const void* data, s32 size)
+{
+	sprintf(ptr, "-- ");
+	ptr += strlen(ptr);
+
+	buf2str(data, size, ptr, true);
+	ptr += strlen(ptr);
+
+	sprintf(ptr, "\n");
+	ptr += strlen(ptr);
+
+	return ptr;
+}
+
+static char* printTag(char* ptr, const char* tag)
+{
+	sprintf(ptr, "\n-- %s:\n", tag);
+	ptr += strlen(ptr);
+
+	return ptr;
+}
+
+static CartSaveResult saveProject(Console* console, const char* name)
+{
+	tic_mem* tic = console->tic;
+
+	char* stream = (char*)SDL_malloc(sizeof(tic_cartridge) * 3);
+
+	if(stream)
+	{
+		char* ptr = stream;
+
+		strcpy(ptr, tic->cart.code.data);
+		ptr += strlen(ptr);
+
+		{
+			ptr = printTag(ptr, "PALETTE");
+			ptr = printBuf(ptr, tic->cart.palette.data, sizeof tic->cart.palette.data);
+		}
+
+		{
+			ptr = printTag(ptr, "TILES");
+
+			for(s32 i = 0; i < TIC_BANK_SPRITES; i+=16)
+				ptr = printBuf(ptr, tic->cart.gfx.tiles[i].data, sizeof tic->cart.gfx.tiles / 16);
+		}
+
+		{
+			ptr = printTag(ptr, "SPRITES");
+
+			for(s32 i = 0; i < TIC_BANK_SPRITES; i+=16)
+				ptr = printBuf(ptr, tic->cart.gfx.sprites[i].data, sizeof tic->cart.gfx.sprites / 16);
+		}
+
+		{
+			ptr = printTag(ptr, "MAP");
+
+			for(s32 i = 0; i < TIC_MAP_WIDTH * TIC_MAP_HEIGHT; i += TIC_MAP_WIDTH)
+				ptr = printBuf(ptr, &tic->cart.gfx.map.data[i], sizeof tic->cart.gfx.map / TIC_MAP_HEIGHT);
+		}
+
+		{
+			ptr = printTag(ptr, "WAVES");
+
+			for(s32 i = 0; i < ENVELOPES_COUNT; i++)
+				ptr = printBuf(ptr, tic->cart.sound.sfx.waveform.envelopes[i].data, sizeof(tic_waveform));
+		}
+
+		{
+			ptr = printTag(ptr, "SFX");
+
+			for(s32 i = 0; i < SFX_COUNT; i++)
+				ptr = printBuf(ptr, &tic->cart.sound.sfx.data[i], sizeof(tic_sound_effect));
+		}
+
+		{
+			ptr = printTag(ptr, "PATTERNS");
+
+			for(s32 i = 0; i < MUSIC_PATTERNS; i++)
+				ptr = printBuf(ptr, &tic->cart.sound.music.patterns.data[i], sizeof(tic_track_pattern));
+		}
+
+		{
+			ptr = printTag(ptr, "TRACKS");
+
+			for(s32 i = 0; i < MUSIC_TRACKS; i++)
+				ptr = printBuf(ptr, &tic->cart.sound.music.tracks.data[i], sizeof(tic_track));
+		}
+
+		fsWriteFile(name, stream, strlen(stream));
+
+		SDL_free(stream);
+	}
+
+	return CART_SAVE_ERROR;
+}
+
+#endif
+
 static CartSaveResult saveCartName(Console* console, const char* name)
 {
 	tic_mem* tic = console->tic;
@@ -1672,7 +1790,11 @@ static CartSaveResult saveCart(Console* console)
 
 static void onConsoleSaveCommandConfirmed(Console* console, const char* param)
 {
+#if defined(TIC80_PRO)
+	CartSaveResult rom = saveProject(console, param);
+#else
 	CartSaveResult rom = saveCartName(console, param);
+#endif
 
 	if(rom == CART_SAVE_OK)
 	{
