@@ -1665,10 +1665,13 @@ static char* printBuf(char* ptr, const void* data, s32 size, s32 row)
 	return ptr;
 }
 
-static char* printTag(char* ptr, const char* tag)
+static char* printSection(char* ptr, const char* tag, s32 count, const u8* data, s32 size)
 {
 	sprintf(ptr, "\n-- %s:\n", tag);
 	ptr += strlen(ptr);
+
+	for(s32 i = 0; i < count; i++, data += size)
+		ptr = printBuf(ptr, data, size, i);
 
 	return ptr;
 }
@@ -1681,64 +1684,17 @@ static CartSaveResult saveProject(Console* console, const char* name)
 
 	if(stream)
 	{
-		char* ptr = stream;
+		strcpy(stream, tic->cart.code.data);
+		char* ptr = stream + strlen(stream);
 
-		strcpy(ptr, tic->cart.code.data);
-		ptr += strlen(ptr);
-
-		{
-			ptr = printTag(ptr, "PALETTE");
-			ptr = printBuf(ptr, tic->cart.palette.data, sizeof tic->cart.palette.data, 0);
-		}
-
-		{
-			ptr = printTag(ptr, "TILES");
-
-			for(s32 i = 0; i < TIC_BANK_SPRITES; i++)
-				ptr = printBuf(ptr, tic->cart.gfx.tiles[i].data, sizeof(tic_tile), i);
-		}
-
-		{
-			ptr = printTag(ptr, "SPRITES");
-
-			for(s32 i = 0; i < TIC_BANK_SPRITES; i++)
-				ptr = printBuf(ptr, tic->cart.gfx.sprites[i].data, sizeof(tic_tile), i);
-		}
-
-		{
-			ptr = printTag(ptr, "MAP");
-
-			for(s32 i = 0; i < TIC_MAP_WIDTH * TIC_MAP_HEIGHT; i += TIC_MAP_WIDTH)
-				ptr = printBuf(ptr, &tic->cart.gfx.map.data[i], sizeof tic->cart.gfx.map / TIC_MAP_HEIGHT, i/TIC_MAP_WIDTH);
-		}
-
-		{
-			ptr = printTag(ptr, "WAVES");
-
-			for(s32 i = 0; i < ENVELOPES_COUNT; i++)
-				ptr = printBuf(ptr, tic->cart.sound.sfx.waveform.envelopes[i].data, sizeof(tic_waveform), i);
-		}
-
-		{
-			ptr = printTag(ptr, "SFX");
-
-			for(s32 i = 0; i < SFX_COUNT; i++)
-				ptr = printBuf(ptr, &tic->cart.sound.sfx.data[i], sizeof(tic_sound_effect), i);
-		}
-
-		{
-			ptr = printTag(ptr, "PATTERNS");
-
-			for(s32 i = 0; i < MUSIC_PATTERNS; i++)
-				ptr = printBuf(ptr, &tic->cart.sound.music.patterns.data[i], sizeof(tic_track_pattern), i);
-		}
-
-		{
-			ptr = printTag(ptr, "TRACKS");
-
-			for(s32 i = 0; i < MUSIC_TRACKS; i++)
-				ptr = printBuf(ptr, &tic->cart.sound.music.tracks.data[i], sizeof(tic_track), i);
-		}
+		ptr = printSection(ptr, "PALETTE", 1, tic->cart.palette.data, sizeof(tic_palette));
+		ptr = printSection(ptr, "TILES", TIC_BANK_SPRITES, tic->cart.gfx.tiles[0].data, sizeof(tic_tile));
+		ptr = printSection(ptr, "SPRITES", TIC_BANK_SPRITES, tic->cart.gfx.sprites[0].data, sizeof(tic_tile));
+		ptr = printSection(ptr, "MAP", TIC_MAP_HEIGHT, tic->cart.gfx.map.data, TIC_MAP_WIDTH);
+		ptr = printSection(ptr, "WAVES", ENVELOPES_COUNT, tic->cart.sound.sfx.waveform.envelopes[0].data, sizeof(tic_waveform));
+		ptr = printSection(ptr, "SFX", SFX_COUNT, (const u8*)&tic->cart.sound.sfx.data, sizeof(tic_sound_effect));
+		ptr = printSection(ptr, "PATTERNS", MUSIC_PATTERNS, (const u8*)&tic->cart.sound.music.patterns.data, sizeof(tic_track_pattern));
+		ptr = printSection(ptr, "TRACKS", MUSIC_TRACKS, (const u8*)&tic->cart.sound.music.tracks.data, sizeof(tic_track));
 
 		fsWriteFile(name, stream, strlen(stream));
 
