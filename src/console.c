@@ -1638,9 +1638,22 @@ static void buf2str(const void* data, s32 size, char* ptr, bool flip)
 	}
 }
 
-static char* printBuf(char* ptr, const void* data, s32 size)
+static char* printBuf(char* ptr, const void* data, s32 size, s32 row)
 {
-	sprintf(ptr, "-- ");
+	{
+		bool empty = true;
+		const u8* dataPtr = data;
+		for(s32 i = 0; i < size; i++)
+			if(*dataPtr++)
+			{
+				empty = false;
+				break;
+			}
+
+		if(empty) return ptr;
+	}
+
+	sprintf(ptr, "-- %03i:", row);
 	ptr += strlen(ptr);
 
 	buf2str(data, size, ptr, true);
@@ -1675,56 +1688,56 @@ static CartSaveResult saveProject(Console* console, const char* name)
 
 		{
 			ptr = printTag(ptr, "PALETTE");
-			ptr = printBuf(ptr, tic->cart.palette.data, sizeof tic->cart.palette.data);
+			ptr = printBuf(ptr, tic->cart.palette.data, sizeof tic->cart.palette.data, 0);
 		}
 
 		{
 			ptr = printTag(ptr, "TILES");
 
-			for(s32 i = 0; i < TIC_BANK_SPRITES; i+=16)
-				ptr = printBuf(ptr, tic->cart.gfx.tiles[i].data, sizeof tic->cart.gfx.tiles / 16);
+			for(s32 i = 0; i < TIC_BANK_SPRITES; i++)
+				ptr = printBuf(ptr, tic->cart.gfx.tiles[i].data, sizeof(tic_tile), i);
 		}
 
 		{
 			ptr = printTag(ptr, "SPRITES");
 
-			for(s32 i = 0; i < TIC_BANK_SPRITES; i+=16)
-				ptr = printBuf(ptr, tic->cart.gfx.sprites[i].data, sizeof tic->cart.gfx.sprites / 16);
+			for(s32 i = 0; i < TIC_BANK_SPRITES; i++)
+				ptr = printBuf(ptr, tic->cart.gfx.sprites[i].data, sizeof(tic_tile), i);
 		}
 
 		{
 			ptr = printTag(ptr, "MAP");
 
 			for(s32 i = 0; i < TIC_MAP_WIDTH * TIC_MAP_HEIGHT; i += TIC_MAP_WIDTH)
-				ptr = printBuf(ptr, &tic->cart.gfx.map.data[i], sizeof tic->cart.gfx.map / TIC_MAP_HEIGHT);
+				ptr = printBuf(ptr, &tic->cart.gfx.map.data[i], sizeof tic->cart.gfx.map / TIC_MAP_HEIGHT, i/TIC_MAP_WIDTH);
 		}
 
 		{
 			ptr = printTag(ptr, "WAVES");
 
 			for(s32 i = 0; i < ENVELOPES_COUNT; i++)
-				ptr = printBuf(ptr, tic->cart.sound.sfx.waveform.envelopes[i].data, sizeof(tic_waveform));
+				ptr = printBuf(ptr, tic->cart.sound.sfx.waveform.envelopes[i].data, sizeof(tic_waveform), i);
 		}
 
 		{
 			ptr = printTag(ptr, "SFX");
 
 			for(s32 i = 0; i < SFX_COUNT; i++)
-				ptr = printBuf(ptr, &tic->cart.sound.sfx.data[i], sizeof(tic_sound_effect));
+				ptr = printBuf(ptr, &tic->cart.sound.sfx.data[i], sizeof(tic_sound_effect), i);
 		}
 
 		{
 			ptr = printTag(ptr, "PATTERNS");
 
 			for(s32 i = 0; i < MUSIC_PATTERNS; i++)
-				ptr = printBuf(ptr, &tic->cart.sound.music.patterns.data[i], sizeof(tic_track_pattern));
+				ptr = printBuf(ptr, &tic->cart.sound.music.patterns.data[i], sizeof(tic_track_pattern), i);
 		}
 
 		{
 			ptr = printTag(ptr, "TRACKS");
 
 			for(s32 i = 0; i < MUSIC_TRACKS; i++)
-				ptr = printBuf(ptr, &tic->cart.sound.music.tracks.data[i], sizeof(tic_track));
+				ptr = printBuf(ptr, &tic->cart.sound.music.tracks.data[i], sizeof(tic_track), i);
 		}
 
 		fsWriteFile(name, stream, strlen(stream));
