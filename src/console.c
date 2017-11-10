@@ -1638,20 +1638,19 @@ static void buf2str(const void* data, s32 size, char* ptr, bool flip)
 	}
 }
 
+static bool bufferEmpty(const u8* data, s32 size)
+{
+	for(s32 i = 0; i < size; i++)
+		if(*data++)
+			return false;
+
+	return true;
+}
+
 static char* printBuf(char* ptr, const void* data, s32 size, s32 row)
 {
-	{
-		bool empty = true;
-		const u8* dataPtr = data;
-		for(s32 i = 0; i < size; i++)
-			if(*dataPtr++)
-			{
-				empty = false;
-				break;
-			}
-
-		if(empty) return ptr;
-	}
+	if(bufferEmpty(data, size)) 
+		return ptr;
 
 	sprintf(ptr, "-- %03i:", row);
 	ptr += strlen(ptr);
@@ -1667,7 +1666,10 @@ static char* printBuf(char* ptr, const void* data, s32 size, s32 row)
 
 static char* printSection(char* ptr, const char* tag, s32 count, const u8* data, s32 size)
 {
-	sprintf(ptr, "\n-- %s:\n", tag);
+	if(bufferEmpty(data, size * count)) 
+		return ptr;
+
+	sprintf(ptr, "\n-- ### %s:\n", tag);
 	ptr += strlen(ptr);
 
 	for(s32 i = 0; i < count; i++, data += size)
