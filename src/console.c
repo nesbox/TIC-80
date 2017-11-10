@@ -2083,7 +2083,7 @@ static const struct
 	{"load", 	NULL, "load cart", 					onConsoleLoadCommand},
 	{"save", 	NULL, "save cart",	 				onConsoleSaveCommand},
 #if defined(TIC80_PRO)
-	{"savep", 	NULL, "save cart project",	 		onConsoleSaveProjectCommand},
+	{"savep", 	NULL, "save project",		 		onConsoleSaveProjectCommand},
 #endif
 	{"run",		NULL, "run loaded cart",			onConsoleRunCommand},
 	{"resume",	NULL, "resume run cart",			onConsoleResumeCommand},
