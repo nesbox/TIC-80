@@ -1687,14 +1687,14 @@ static CartSaveResult saveProject(Console* console, const char* name)
 		strcpy(stream, tic->cart.code.data);
 		char* ptr = stream + strlen(stream);
 
-		ptr = printSection(ptr, "PALETTE", 1, tic->cart.palette.data, sizeof(tic_palette));
-		ptr = printSection(ptr, "TILES", TIC_BANK_SPRITES, tic->cart.gfx.tiles[0].data, sizeof(tic_tile));
-		ptr = printSection(ptr, "SPRITES", TIC_BANK_SPRITES, tic->cart.gfx.sprites[0].data, sizeof(tic_tile));
-		ptr = printSection(ptr, "MAP", TIC_MAP_HEIGHT, tic->cart.gfx.map.data, TIC_MAP_WIDTH);
-		ptr = printSection(ptr, "WAVES", ENVELOPES_COUNT, tic->cart.sound.sfx.waveform.envelopes[0].data, sizeof(tic_waveform));
-		ptr = printSection(ptr, "SFX", SFX_COUNT, (const u8*)&tic->cart.sound.sfx.data, sizeof(tic_sound_effect));
+		ptr = printSection(ptr, "PALETTE", 	1, tic->cart.palette.data, sizeof(tic_palette));
+		ptr = printSection(ptr, "TILES", 	TIC_BANK_SPRITES, tic->cart.gfx.tiles[0].data, sizeof(tic_tile));
+		ptr = printSection(ptr, "SPRITES", 	TIC_BANK_SPRITES, tic->cart.gfx.sprites[0].data, sizeof(tic_tile));
+		ptr = printSection(ptr, "MAP", 		TIC_MAP_HEIGHT, tic->cart.gfx.map.data, TIC_MAP_WIDTH);
+		ptr = printSection(ptr, "WAVES", 	ENVELOPES_COUNT, tic->cart.sound.sfx.waveform.envelopes[0].data, sizeof(tic_waveform));
+		ptr = printSection(ptr, "SFX", 		SFX_COUNT, (const u8*)&tic->cart.sound.sfx.data, sizeof(tic_sound_effect));
 		ptr = printSection(ptr, "PATTERNS", MUSIC_PATTERNS, (const u8*)&tic->cart.sound.music.patterns.data, sizeof(tic_track_pattern));
-		ptr = printSection(ptr, "TRACKS", MUSIC_TRACKS, (const u8*)&tic->cart.sound.music.tracks.data, sizeof(tic_track));
+		ptr = printSection(ptr, "TRACKS", 	MUSIC_TRACKS, (const u8*)&tic->cart.sound.music.tracks.data, sizeof(tic_track));
 
 		fsWriteFile(name, stream, strlen(stream));
 
