@@ -68,19 +68,24 @@ static const char DefaultLuaTicPath[] = TIC_LOCAL "default.tic";
 static const char DefaultMoonTicPath[] = TIC_LOCAL "default_moon.tic";
 static const char DefaultJSTicPath[] = TIC_LOCAL "default_js.tic";
 
-static const char* getRomName(const char* name)
+static const char* getName(const char* name, const char* ext)
 {
 	static char path[FILENAME_MAX];
 
 	strcpy(path, name);
 
 	size_t ps = strlen(path);
-	size_t es = strlen(CartExt);
+	size_t es = strlen(ext);
 
-	if(!(ps > es && strstr(path, CartExt) + es == path + ps))
-		strcat(path, CartExt);
+	if(!(ps > es && strstr(path, ext) + es == path + ps))
+		strcat(path, ext);
 
 	return path;
+}
+
+static const char* getCartName(const char* name)
+{
+	return getName(name, CartExt);
 }
 
 static void scrollBuffer(char* buffer)
@@ -343,7 +348,7 @@ static bool onConsoleLoadSectionCommand(Console* console, const char* param)
 			if(pos)
 			{
 				pos[sizeof(CartExt) - 1] = 0;
-				const char* name = getRomName(param);
+				const char* name = getCartName(param);
 				s32 size = 0;
 				void* data = fsLoadFile(console->fs, name, &size);
 
@@ -475,7 +480,7 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 	else if(strcmp(param, DefaultJSTicPath) == 0)
 		data = getDemoCart(console, tic_script_js, &size);
 
-	const char* name = getRomName(param);
+	const char* name = getCartName(param);
 
 	strcpy(console->romName, name);
 
@@ -560,7 +565,7 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 	if(param)
 	{
 		s32 size = 0;
-		const char* name = getRomName(param);
+		const char* name = getCartName(param);
 
 #if defined(TIC80_PRO)
 		if(fsIsDir(console->fs, name))
@@ -1621,6 +1626,11 @@ static void onConsoleExportCommand(Console* console, const char* param)
 
 #if defined(TIC80_PRO)
 
+static const char* getProjectName(const char* name)
+{
+	return getName(name, ".ticp");
+}
+
 static void buf2str(const void* data, s32 size, char* ptr, bool flip)
 {
 	enum {Len = 2};
@@ -1682,28 +1692,85 @@ static CartSaveResult saveProject(Console* console, const char* name)
 {
 	tic_mem* tic = console->tic;
 
-	char* stream = (char*)SDL_malloc(sizeof(tic_cartridge) * 3);
+	bool success = false;
 
-	if(stream)
+	if(name && strlen(name))
 	{
-		strcpy(stream, tic->cart.code.data);
-		char* ptr = stream + strlen(stream);
+		char* stream = (char*)SDL_malloc(sizeof(tic_cartridge) * 3);
 
-		ptr = printSection(ptr, "PALETTE", 	1, tic->cart.palette.data, sizeof(tic_palette));
-		ptr = printSection(ptr, "TILES", 	TIC_BANK_SPRITES, tic->cart.gfx.tiles[0].data, sizeof(tic_tile));
-		ptr = printSection(ptr, "SPRITES", 	TIC_BANK_SPRITES, tic->cart.gfx.sprites[0].data, sizeof(tic_tile));
-		ptr = printSection(ptr, "MAP", 		TIC_MAP_HEIGHT, tic->cart.gfx.map.data, TIC_MAP_WIDTH);
-		ptr = printSection(ptr, "WAVES", 	ENVELOPES_COUNT, tic->cart.sound.sfx.waveform.envelopes[0].data, sizeof(tic_waveform));
-		ptr = printSection(ptr, "SFX", 		SFX_COUNT, (const u8*)&tic->cart.sound.sfx.data, sizeof(tic_sound_effect));
-		ptr = printSection(ptr, "PATTERNS", MUSIC_PATTERNS, (const u8*)&tic->cart.sound.music.patterns.data, sizeof(tic_track_pattern));
-		ptr = printSection(ptr, "TRACKS", 	MUSIC_TRACKS, (const u8*)&tic->cart.sound.music.tracks.data, sizeof(tic_track));
+		if(stream)
+		{
+			strcpy(stream, tic->cart.code.data);
+			char* ptr = stream + strlen(stream);
 
-		fsWriteFile(name, stream, strlen(stream));
+			ptr = printSection(ptr, "PALETTE", 	1, tic->cart.palette.data, sizeof(tic_palette));
+			ptr = printSection(ptr, "TILES", 	TIC_BANK_SPRITES, tic->cart.gfx.tiles[0].data, sizeof(tic_tile));
+			ptr = printSection(ptr, "SPRITES", 	TIC_BANK_SPRITES, tic->cart.gfx.sprites[0].data, sizeof(tic_tile));
+			ptr = printSection(ptr, "MAP", 		TIC_MAP_HEIGHT, tic->cart.gfx.map.data, TIC_MAP_WIDTH);
+			ptr = printSection(ptr, "WAVES", 	ENVELOPES_COUNT, tic->cart.sound.sfx.waveform.envelopes[0].data, sizeof(tic_waveform));
+			ptr = printSection(ptr, "SFX", 		SFX_COUNT, (const u8*)&tic->cart.sound.sfx.data, sizeof(tic_sound_effect));
+			ptr = printSection(ptr, "PATTERNS", MUSIC_PATTERNS, (const u8*)&tic->cart.sound.music.patterns.data, sizeof(tic_track_pattern));
+			ptr = printSection(ptr, "TRACKS", 	MUSIC_TRACKS, (const u8*)&tic->cart.sound.music.tracks.data, sizeof(tic_track));
 
-		SDL_free(stream);
+			name = getProjectName(name);
+
+			s32 size = strlen(stream);
+			if(size && fsSaveFile(console->fs, name, stream, size, true))
+			{
+				strcpy(console->romName, name);
+				success = true;
+				studioRomSaved();
+			}
+
+			SDL_free(stream);
+		}
 	}
+	else if (strlen(console->romName))
+	{
+		return saveProject(console, console->romName);
+	}
+	else return CART_SAVE_MISSING_NAME;
 
-	return CART_SAVE_ERROR;
+	return success ? CART_SAVE_OK : CART_SAVE_ERROR;
+}
+
+static void onConsoleSaveProjectCommandConfirmed(Console* console, const char* param)
+{
+	CartSaveResult rom = saveProject(console, param);
+
+	if(rom == CART_SAVE_OK)
+	{
+		printBack(console, "\nproject ");
+		printFront(console, console->romName);
+		printBack(console, " saved!\n");
+	}
+	else if(rom == CART_SAVE_MISSING_NAME)
+		printBack(console, "\nproject name is missing\n");
+	else
+		printBack(console, "\nproject saving error");
+
+	commandDone(console);
+}
+
+static void onConsoleSaveProjectCommand(Console* console, const char* param)
+{
+	if(param && strlen(param) && fsExistsFile(console->fs, getProjectName(param)))
+	{
+		static const char* Rows[] =
+		{
+			"THE PROJECT",
+			"ALREADY EXISTS",
+			"",
+			"DO YOU WANT TO",
+			"OVERWRITE IT?",
+		};
+
+		confirmCommand(console, Rows, COUNT_OF(Rows), param, onConsoleSaveProjectCommandConfirmed);
+	}
+	else
+	{
+		onConsoleSaveProjectCommandConfirmed(console, param);
+	}
 }
 
 #endif
@@ -1731,7 +1798,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
 			{
 				s32 size = tic->api.save(&tic->cart, buffer);
 
-				name = getRomName(name);
+				name = getCartName(name);
 
 				if(size && fsSaveFile(console->fs, name, buffer, size, true))
 				{
@@ -1761,11 +1828,7 @@ static CartSaveResult saveCart(Console* console)
 
 static void onConsoleSaveCommandConfirmed(Console* console, const char* param)
 {
-#if defined(TIC80_PRO)
-	CartSaveResult rom = saveProject(console, param);
-#else
 	CartSaveResult rom = saveCartName(console, param);
-#endif
 
 	if(rom == CART_SAVE_OK)
 	{
@@ -1783,7 +1846,7 @@ static void onConsoleSaveCommandConfirmed(Console* console, const char* param)
 
 static void onConsoleSaveCommand(Console* console, const char* param)
 {
-	if(param && strlen(param) && fsExistsFile(console->fs, getRomName(param)))
+	if(param && strlen(param) && fsExistsFile(console->fs, getCartName(param)))
 	{
 		static const char* Rows[] =
 		{
@@ -2019,6 +2082,9 @@ static const struct
 	{"new", 	NULL, "create new cart",			onConsoleNewCommand},
 	{"load", 	NULL, "load cart", 					onConsoleLoadCommand},
 	{"save", 	NULL, "save cart",	 				onConsoleSaveCommand},
+#if defined(TIC80_PRO)
+	{"savep", 	NULL, "save cart project",	 		onConsoleSaveProjectCommand},
+#endif
 	{"run",		NULL, "run loaded cart",			onConsoleRunCommand},
 	{"resume",	NULL, "resume run cart",			onConsoleResumeCommand},
 	{"dir",		"ls", "show list of files", 		onConsoleDirCommand},
