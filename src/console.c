@@ -509,55 +509,6 @@ static void onCartLoaded(Console* console, const char* name)
 
 }
 
-#if defined(TIC80_PRO)
-
-static void loadProjectCode(Console* console, const void* data, s32 size)
-{
-	tic_mem* tic = console->tic;
-
-	SDL_memcpy(tic->cart.code.data, data, SDL_min(size, sizeof(tic_code)));
-}
-
-static void loadProject(Console* console, const char* name)
-{
-	tic_mem* tic = console->tic;
-
-	SDL_memset(&tic->cart, 0, sizeof(tic_cartridge));
-
-	static struct{const char* name; void(*func)(Console* console, const void* data, s32 size);} ProjectFiles[] = 
-	{
-		{"code.lua", loadProjectCode},
-		{"sprites.gif", NULL},
-		{"tiles.gif", NULL},
-		{"palette.dat", NULL},
-		{"map.dat", NULL},
-		{"waves.dat", NULL},
-		{"sfx.dat", NULL},
-		{"music.dat", NULL},
-		{"cover.gif", NULL},
-	};
-
-	for(s32 i = 0; i < COUNT_OF(ProjectFiles); i++)
-	{
-		char path[FILENAME_MAX];
-		sprintf(path, "%s/%s", name, ProjectFiles[i].name);
-
-		s32 size = 0;
-		void* data = fsLoadFile(console->fs, path, &size);
-
-		if(data)
-		{
-			ProjectFiles[i].func(console, data, size);
-			SDL_free(data);
-		}
-	}
-
-	onCartLoaded(console, name);
-
-	commandDone(console);
-}
-#endif
-
 static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 {
 	if(onConsoleLoadSectionCommand(console, param)) return;
@@ -566,14 +517,6 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 	{
 		s32 size = 0;
 		const char* name = getCartName(param);
-
-#if defined(TIC80_PRO)
-		if(fsIsDir(console->fs, name))
-		{
-			loadProject(console, name);
-			return;
-		}
-#endif
 
 		void* data = strcmp(name, CONFIG_TIC_PATH) == 0
 			? fsLoadRootFile(console->fs, name, &size)
@@ -752,11 +695,6 @@ static bool printFilename(const char* name, const char* info, s32 id, void* data
 	Console* console = printData->console;
 
 	printLine(console);
-
-#if defined(TIC80_PRO)
-	if(dir && SDL_strstr(name, CartExt) == (name + SDL_strlen(name) - SDL_strlen(CartExt)))
-		dir = false;
-#endif
 
 	if(dir)
 	{
@@ -1657,6 +1595,17 @@ static bool bufferEmpty(const u8* data, s32 size)
 	return true;
 }
 
+static char* printText(char* ptr, const char* tag, const char* data)
+{
+	if(strlen(data) == 0)
+		return ptr;
+
+	sprintf(ptr, "-- <%s>\n%s\n-- </%s>\n", tag, data, tag);
+	ptr += strlen(ptr);
+
+	return ptr;
+}
+
 static char* printBuf(char* ptr, const void* data, s32 size, s32 row)
 {
 	if(bufferEmpty(data, size)) 
@@ -1674,16 +1623,19 @@ static char* printBuf(char* ptr, const void* data, s32 size, s32 row)
 	return ptr;
 }
 
-static char* printSection(char* ptr, const char* tag, s32 count, const u8* data, s32 size)
+static char* printBinary(char* ptr, const char* tag, s32 count, const u8* data, s32 size)
 {
 	if(bufferEmpty(data, size * count)) 
 		return ptr;
 
-	sprintf(ptr, "\n-- ### %s:\n", tag);
+	sprintf(ptr, "\n-- <%s>\n", tag);
 	ptr += strlen(ptr);
 
 	for(s32 i = 0; i < count; i++, data += size)
 		ptr = printBuf(ptr, data, size, i);
+
+	sprintf(ptr, "-- </%s>\n", tag);
+	ptr += strlen(ptr);
 
 	return ptr;
 }
@@ -1700,17 +1652,19 @@ static CartSaveResult saveProject(Console* console, const char* name)
 
 		if(stream)
 		{
-			strcpy(stream, tic->cart.code.data);
-			char* ptr = stream + strlen(stream);
+			char* ptr = printText(stream, "CODE", tic->cart.code.data);
 
-			ptr = printSection(ptr, "PALETTE", 	1, tic->cart.palette.data, sizeof(tic_palette));
-			ptr = printSection(ptr, "TILES", 	TIC_BANK_SPRITES, tic->cart.gfx.tiles[0].data, sizeof(tic_tile));
-			ptr = printSection(ptr, "SPRITES", 	TIC_BANK_SPRITES, tic->cart.gfx.sprites[0].data, sizeof(tic_tile));
-			ptr = printSection(ptr, "MAP", 		TIC_MAP_HEIGHT, tic->cart.gfx.map.data, TIC_MAP_WIDTH);
-			ptr = printSection(ptr, "WAVES", 	ENVELOPES_COUNT, tic->cart.sound.sfx.waveform.envelopes[0].data, sizeof(tic_waveform));
-			ptr = printSection(ptr, "SFX", 		SFX_COUNT, (const u8*)&tic->cart.sound.sfx.data, sizeof(tic_sound_effect));
-			ptr = printSection(ptr, "PATTERNS", MUSIC_PATTERNS, (const u8*)&tic->cart.sound.music.patterns.data, sizeof(tic_track_pattern));
-			ptr = printSection(ptr, "TRACKS", 	MUSIC_TRACKS, (const u8*)&tic->cart.sound.music.tracks.data, sizeof(tic_track));
+			// TODO: flip data for palette
+			ptr = printBinary(ptr, "PALETTE", 	1, tic->cart.palette.data, sizeof(tic_palette));
+			ptr = printBinary(ptr, "TILES", 	TIC_BANK_SPRITES, tic->cart.gfx.tiles[0].data, sizeof(tic_tile));
+			ptr = printBinary(ptr, "SPRITES", 	TIC_BANK_SPRITES, tic->cart.gfx.sprites[0].data, sizeof(tic_tile));
+			ptr = printBinary(ptr, "MAP", 		TIC_MAP_HEIGHT, tic->cart.gfx.map.data, TIC_MAP_WIDTH);
+			ptr = printBinary(ptr, "WAVES", 	ENVELOPES_COUNT, tic->cart.sound.sfx.waveform.envelopes[0].data, sizeof(tic_waveform));
+			ptr = printBinary(ptr, "SFX", 		SFX_COUNT, (const u8*)&tic->cart.sound.sfx.data, sizeof(tic_sound_effect));
+			ptr = printBinary(ptr, "PATTERNS", 	MUSIC_PATTERNS, (const u8*)&tic->cart.sound.music.patterns.data, sizeof(tic_track_pattern));
+			ptr = printBinary(ptr, "TRACKS", 	MUSIC_TRACKS, (const u8*)&tic->cart.sound.music.tracks.data, sizeof(tic_track));
+
+			// TODO: add cover
 
 			name = getProjectName(name);
 
@@ -1770,6 +1724,174 @@ static void onConsoleSaveProjectCommand(Console* console, const char* param)
 	else
 	{
 		onConsoleSaveProjectCommandConfirmed(console, param);
+	}
+}
+
+static bool loadProject(Console* console, const char* data, s32 size)
+{
+	tic_mem* tic = console->tic;
+
+	char* project = (char*)SDL_malloc(size+1);
+
+	bool done = false;
+
+	if(project)
+	{
+		SDL_memcpy(project, data, size);
+		project[size] = '\0';
+
+		tic_cartridge* cart = (tic_cartridge*)SDL_malloc(sizeof(tic_cartridge));
+
+		if(cart)
+		{
+			SDL_memset(cart, 0, sizeof(tic_cartridge));
+
+			// TODO: init default palette here
+			{
+				memcpy(&cart->palette, &tic->cart.palette, sizeof(tic_palette));
+			}
+
+			const char* projectEnd = project + strlen(project);
+
+			{
+				const char* tag = "CODE";
+				char tagbuf[64];
+				sprintf(tagbuf, "-- <%s>\n", tag);
+
+				const char* start = SDL_strstr(project, tagbuf);
+
+				if(start)
+				{
+					start += strlen(tagbuf);
+
+					if(start < projectEnd)
+					{
+						sprintf(tagbuf, "\n-- </%s>", tag);
+						const char* end = SDL_strstr(start, tagbuf);
+
+						s32 size = end - start;
+						if(size > 0)
+						{
+							SDL_memcpy(cart->code.data, start, end - start);
+							done = true;
+						}
+					}
+				}
+			}
+
+			{
+				const char* tag = "TILES";
+				char tagbuf[64];
+				sprintf(tagbuf, "-- <%s>\n", tag);
+
+				const char* start = SDL_strstr(project, tagbuf);
+
+				if(start)
+				{
+					start += strlen(tagbuf);
+
+					if(start < projectEnd)
+					{
+						sprintf(tagbuf, "\n-- </%s>", tag);
+						const char* end = SDL_strstr(start, tagbuf);
+
+						s32 size = end - start;
+						if(size > 0)
+						{
+							s32 count = 256;
+							s32 size = sizeof(tic_tile) * 2;
+
+							const char* ptr = start;
+
+							while(ptr < end)
+							{
+								char lineStr[] = "999";
+								memcpy(lineStr, ptr + strlen("-- "), strlen(lineStr));
+
+								s32 index = SDL_atoi(lineStr);
+								
+								if(index < count)
+								{
+									ptr += strlen("-- 999:");
+									str2buf(ptr, size, cart->gfx.tiles[index].data, true);
+									ptr += size + 1;
+								}
+							}
+						
+							done = true;
+						}
+					}
+				}
+			}
+
+			if(done)
+			{
+				SDL_memcpy(&tic->cart, cart, sizeof(tic_cartridge));
+			}
+
+			SDL_free(cart);
+		}
+
+
+		SDL_free(project);
+	}
+
+	return done;
+}
+
+static void onConsoleLoadProjectCommandConfirmed(Console* console, const char* param)
+{
+	// if(onConsoleLoadProjectSectionCommand(console, param)) return;
+
+	if(param)
+	{
+		s32 size = 0;
+		const char* name = getProjectName(param);
+
+		void* data = fsLoadFile(console->fs, name, &size);
+
+		if(data && loadProject(console, data, size))
+		{
+			strcpy(console->romName, name);
+
+			studioRomLoaded();
+
+			printBack(console, "\nproject ");
+			printFront(console, console->romName);
+			printBack(console, " loaded!\nuse ");
+			printFront(console, "RUN");
+			printBack(console, " command to run it\n");
+
+			SDL_free(data);
+		}
+		else		
+		{
+			printBack(console, "\nproject loading error");
+		}
+	}
+	else printBack(console, "\nproject name is missing");
+
+	commandDone(console);
+}
+
+static void onConsoleLoadProjectCommand(Console* console, const char* param)
+{
+	if(studioCartChanged())
+	{
+		static const char* Rows[] =
+		{
+			"YOU HAVE",
+			"UNSAVED CHANGES",
+			"",
+			"DO YOU REALLY WANT",
+			"TO LOAD PROJECT?",
+		};
+
+		confirmCommand(console, Rows, COUNT_OF(Rows), param, onConsoleLoadProjectCommandConfirmed);
+	}
+	else
+	{
+		onConsoleLoadProjectCommandConfirmed(console, param);
 	}
 }
 
@@ -2083,6 +2205,7 @@ static const struct
 	{"load", 	NULL, "load cart", 					onConsoleLoadCommand},
 	{"save", 	NULL, "save cart",	 				onConsoleSaveCommand},
 #if defined(TIC80_PRO)
+	{"loadp", 	NULL, "load project",				onConsoleLoadProjectCommand},
 	{"savep", 	NULL, "save project",		 		onConsoleSaveProjectCommand},
 #endif
 	{"run",		NULL, "run loaded cart",			onConsoleRunCommand},

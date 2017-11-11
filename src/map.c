@@ -999,7 +999,7 @@ static void copyFromClipboard(Map* map)
 			{
 				u8* data = SDL_malloc(size);
 
-				str2buf(clipboard, data, true);
+				str2buf(clipboard, strlen(clipboard), data, true);
 
 				if(data[0] * data[1] == size - 2)
 				{

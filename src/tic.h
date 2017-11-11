@@ -29,6 +29,8 @@
 #define TIC_VERSION_MAJOR 0
 #define TIC_VERSION_MINOR 47
 #define TIC_VERSION_PATCH 0
+
+// TODO: add PRO postfix to title
 #define TIC_VERSION_STATUS ""
 
 #define TIC_MAKE_VERSION(major, minor, patch) ((major) * 10000 + (minor) * 100 + (patch))
