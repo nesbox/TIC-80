@@ -342,12 +342,10 @@ void toClipboard(const void* data, s32 size, bool flip)
 	}
 }
 
-void str2buf(const char* str, void* buf, bool flip)
+void str2buf(const char* str, s32 size, void* buf, bool flip)
 {
 	char val[] = "0x00";
 	const char* ptr = str;
-
-	s32 size = (s32)strlen(str);
 
 	for(s32 i = 0; i < size/2; i++)
 	{
@@ -378,7 +376,7 @@ bool fromClipboard(void* data, s32 size, bool flip)
 			{
 				bool valid = strlen(clipboard) == size * 2;
 
-				if(valid) str2buf(clipboard, data, flip);
+				if(valid) str2buf(clipboard, strlen(clipboard), data, flip);
 
 				SDL_free(clipboard);
 
