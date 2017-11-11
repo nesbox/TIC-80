@@ -1,6 +1,7 @@
 CC=gcc
 OPT=-O3 -Wall -std=c99
 OPT_ARM=-D__ARM_LINUX__
+OPT_PRO=-DTIC80_PRO
 
 RM= rm -f
 
@@ -31,7 +32,7 @@ LINUX_LIBS= \
 
 LINUX64_LIBS= \
 	$(LINUX_LIBS) \
-	-Llib/linux
+	-Llib/linux64
 
 LINUX32_LIBS= \
 	$(LINUX_LIBS) \
@@ -39,6 +40,17 @@ LINUX32_LIBS= \
 
 LINUX_ARM_LIBS= \
 	-Llib/arm
+
+LINUX_LINKER_LTO_FLAGS= \
+	-D_GNU_SOURCE \
+	-lSDL2 \
+	-llua \
+	-lgif \
+	-ldl \
+	-lm \
+	-lpthread \
+	-lrt \
+	-lz
 
 LINUX_LINKER_FLAGS= \
 	-D_GNU_SOURCE \
@@ -275,26 +287,46 @@ mingw: $(DEMO_ASSETS) $(TIC80_DLL) $(TIC_O) bin/html.o bin/res.o
 	$(CC) $(TIC_O) bin/html.o bin/res.o $(TIC80_A) $(OPT) $(INCLUDES) $(MINGW_LINKER_FLAGS) -o $(MINGW_OUTPUT)
 
 mingw-pro:
-	$(eval OPT += -DTIC80_PRO)
+	$(eval OPT += $(OPT_PRO))
 	make mingw OPT="$(OPT)"
 
 run: mingw-pro
 	$(MINGW_OUTPUT)
 
 linux64-lto:
-	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) $(INCLUDES) $(LINUX64_LIBS) $(LINUX_LINKER_FLAGS) -flto -o bin/tic
+	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) $(INCLUDES) $(LINUX64_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o bin/tic
+
+linux64-lto-pro:
+	$(eval OPT += $(OPT_PRO))
+	make linux64-lto OPT="$(OPT)"
 
 linux32-lto:
-	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) $(INCLUDES) $(LINUX32_LIBS) $(LINUX_LINKER_FLAGS) -flto -o bin/tic
+	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) $(INCLUDES) $(LINUX32_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o bin/tic
+
+linux32-lto-pro:
+	$(eval OPT += $(OPT_PRO))
+	make linux32-lto OPT="$(OPT)"
 
 arm-lto:
-	$(CC) $(OPT_ARM) $(SOURCES) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_ARM_LIBS) $(LINUX_LINKER_FLAGS) -flto -o bin/tic
+	$(CC) $(OPT_ARM) $(SOURCES) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_ARM_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o bin/tic
+
+arm-lto-pro:
+	$(eval OPT += $(OPT_PRO))
+	make arm-lto OPT="$(OPT)"
 
 linux: 
 	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(LPEG_SRC) $(GIF_SRC) $(SOURCES_EXT) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_LIBS) $(LINUX_LINKER_FLAGS) -o bin/tic
 
+linux-pro:
+	$(eval OPT += $(OPT_PRO))
+	make linux OPT="$(OPT)"
+
 macosx:
 	$(CC) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) src/ext/file_dialog.m $(OPT) $(MACOSX_OPT) $(INCLUDES) $(MACOSX_LIBS) -o bin/tic
+
+macosx-pro:
+	$(eval OPT += $(OPT_PRO))
+	make macosx OPT="$(OPT)"
 
 bin/res.o: lib/mingw/res.rc lib/mingw/icon.ico
 	windres $< $@
