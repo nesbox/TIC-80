@@ -304,8 +304,8 @@ typedef struct
 
 typedef struct 
 {
-	u8 data [TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32)];
 	s32 size;
+	u8 data [TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32)];
 } tic_cover_image;
 
 typedef struct

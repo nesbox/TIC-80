@@ -1651,8 +1651,6 @@ static const BinarySection BinarySections[] =
 	{"SFX", 		SFX_COUNT, offsetof(tic_cartridge, sound.sfx.data), sizeof(tic_sound_effect), true},
 	{"PATTERNS", 	MUSIC_PATTERNS, offsetof(tic_cartridge, sound.music.patterns), sizeof(tic_track_pattern), true},
 	{"TRACKS", 		MUSIC_TRACKS, offsetof(tic_cartridge, sound.music.tracks), sizeof(tic_track), true},
-
-	// TODO: add cover
 };
 
 static CartSaveResult saveProject(Console* console, const char* name)
@@ -1674,6 +1672,8 @@ static CartSaveResult saveProject(Console* console, const char* name)
 				const BinarySection* section = &BinarySections[i];
 				ptr = saveBinarySection(ptr, section->tag, section->count, (u8*)&tic->cart + section->offset, section->size, section->flip);
 			}
+
+			saveBinarySection(ptr, "COVER", 1, &tic->cart.cover, tic->cart.cover.size + sizeof(s32), true);
 
 			name = getProjectName(name);
 
@@ -1776,19 +1776,27 @@ static void loadBinarySection(const char* project, const char* tag, s32 count, v
 		{
 			const char* ptr = start;
 
-			while(ptr < end)
+			if(size > 0)
 			{
-				char lineStr[] = "999";
-				memcpy(lineStr, ptr + strlen("-- "), strlen(lineStr));
-
-				s32 index = SDL_atoi(lineStr);
-				
-				if(index < count)
+				while(ptr < end)
 				{
-					ptr += strlen("-- 999:");
-					str2buf(ptr, size*2, (u8*)dst + size*index, flip);
-					ptr += size*2 + 1;
-				}
+					static char lineStr[] = "999";
+					memcpy(lineStr, ptr + sizeof("-- ") - 1, sizeof lineStr - 1);
+
+					s32 index = SDL_atoi(lineStr);
+					
+					if(index < count)
+					{
+						ptr += sizeof("-- 999:") - 1;
+						str2buf(ptr, size*2, (u8*)dst + size*index, flip);
+						ptr += size*2 + 1;
+					}
+				}				
+			}
+			else
+			{
+				ptr += sizeof("-- 999:") - 1;
+				str2buf(ptr, end - ptr, (u8*)dst, flip);
 			}
 		}
 	}
@@ -1821,6 +1829,8 @@ static bool loadProject(Console* console, const char* data, s32 size)
 				const BinarySection* section = &BinarySections[i];
 				loadBinarySection(project, section->tag, section->count, (u8*)cart + section->offset, section->size, section->flip);
 			}
+
+			loadBinarySection(project, "COVER", 1, &cart->cover, -1, true);
 			
 			SDL_memcpy(&tic->cart, cart, sizeof(tic_cartridge));
 
