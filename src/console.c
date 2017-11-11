@@ -1815,6 +1815,12 @@ static bool loadProject(Console* console, const char* data, s32 size)
 		SDL_memcpy(project, data, size);
 		project[size] = '\0';
 
+		// remove all the '\r' chars
+		{
+			char *s, *d;
+			for(s = d = project; (*d = *s); d += (*s++ != '\r'));
+		}
+
 		tic_cartridge* cart = (tic_cartridge*)SDL_malloc(sizeof(tic_cartridge));
 
 		if(cart)
