@@ -1820,7 +1820,7 @@ static bool loadProject(Console* console, const char* data, s32 size)
 		if(cart)
 		{
 			SDL_memset(cart, 0, sizeof(tic_cartridge));
-			// TODO: init default palette here???
+			SDL_memcpy(&cart->palette, &tic->config.palette.data, sizeof(tic_palette));
 
 			loadTextSection(project, "CODE", cart->code.data, sizeof(tic_code));
 
@@ -1847,9 +1847,6 @@ static bool loadProject(Console* console, const char* data, s32 size)
 
 static void onConsoleLoadProjectCommandConfirmed(Console* console, const char* param)
 {
-	// TODO: do we need this???
-	// if(onConsoleLoadProjectSectionCommand(console, param)) return;
-
 	if(param)
 	{
 		s32 size = 0;
@@ -2157,33 +2154,27 @@ static void onConsoleRamCommand(Console* console, const char* param)
 						"\n| ADDR  | INFO              | SIZE  |" \
 						"\n+-------+-------------------+-------+");
 
-// TODO: use 'offsetof' here
-
-#define ADDR_RECORD(addr, name) {(s32)((u8*)&addr - (u8*)console->tic), name}
-
-	const struct{s32 addr; const char* info;} Layout[] =
+	static const struct{s32 addr; const char* info;} Layout[] =
 	{
-		ADDR_RECORD(console->tic->ram.vram.screen, 					"SCREEN"),
-		ADDR_RECORD(console->tic->ram.vram.palette, 				"PALETTE"),
-		ADDR_RECORD(console->tic->ram.vram.mapping, 				"PALETTE MAP"),
-		ADDR_RECORD(console->tic->ram.vram.vars.colors, 			"BORDER/BG COLOR"),
-		ADDR_RECORD(console->tic->ram.vram.vars.offset, 			"SCREEN OFFSET"),
-		ADDR_RECORD(console->tic->ram.vram.vars.mask, 				"GAMEPAD MASK"),
-		ADDR_RECORD(console->tic->ram.vram.input.gamepad, 			"GAMEPAD"),
-		ADDR_RECORD(console->tic->ram.vram.input.reserved, 			"..."),
-		ADDR_RECORD(console->tic->ram.gfx.tiles, 					"SPRITES"),
-		ADDR_RECORD(console->tic->ram.gfx.map, 						"MAP"),
-		ADDR_RECORD(console->tic->ram.persistent, 					"PERSISTENT MEMORY"),
-		ADDR_RECORD(console->tic->ram.registers, 					"SOUND REGISTERS"),
-		ADDR_RECORD(console->tic->ram.sound.sfx.waveform, 			"WAVEFORMS"),
-		ADDR_RECORD(console->tic->ram.sound.sfx.data, 				"SFX"),
-		ADDR_RECORD(console->tic->ram.sound.music.patterns.data, 	"MUSIC PATTERNS"),
-		ADDR_RECORD(console->tic->ram.sound.music.tracks.data, 		"MUSIC TRACKS"),
-		ADDR_RECORD(console->tic->ram.music_pos, 					"MUSIC POS"),
-		{TIC_RAM_SIZE, 												"..."},
+		{offsetof(tic_ram, vram.screen), 				"SCREEN"},
+		{offsetof(tic_ram, vram.palette), 				"PALETTE"},
+		{offsetof(tic_ram, vram.mapping), 				"PALETTE MAP"},
+		{offsetof(tic_ram, vram.vars.colors), 			"BORDER/BG COLOR"},
+		{offsetof(tic_ram, vram.vars.offset), 			"SCREEN OFFSET"},
+		{offsetof(tic_ram, vram.vars.mask), 			"GAMEPAD MASK"},
+		{offsetof(tic_ram, vram.input.gamepad), 		"GAMEPAD"},
+		{offsetof(tic_ram, vram.input.reserved), 		"..."},
+		{offsetof(tic_ram, gfx.tiles), 					"SPRITES"},
+		{offsetof(tic_ram, gfx.map), 					"MAP"},
+		{offsetof(tic_ram, persistent), 				"PERSISTENT MEMORY"},
+		{offsetof(tic_ram, registers), 					"SOUND REGISTERS"},
+		{offsetof(tic_ram, sound.sfx.waveform), 		"WAVEFORMS"},
+		{offsetof(tic_ram, sound.sfx.data), 			"SFX"},
+		{offsetof(tic_ram, sound.music.patterns.data), 	"MUSIC PATTERNS"},
+		{offsetof(tic_ram, sound.music.tracks.data), 	"MUSIC TRACKS"},
+		{offsetof(tic_ram, music_pos), 					"MUSIC POS"},
+		{TIC_RAM_SIZE, 									"..."},
 	};
-
-#undef ADDR_RECORD
 
 	enum{Last = COUNT_OF(Layout)-1};
 
