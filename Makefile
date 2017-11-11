@@ -48,8 +48,7 @@ LINUX_LINKER_FLAGS= \
 	-lm \
 	-lpthread \
 	-lrt \
-	-lz \
-	-lgif
+	-lz
 
 MINGW_OUTPUT=bin/tic.exe
 
@@ -118,6 +117,7 @@ SOURCES_EXT= \
 	src/html.c
 
 LPEG_SRC= src/ext/lpeg/*.c
+GIF_SRC= src/ext/gif/*.c
 
 DEMO_ASSETS= \
 	bin/assets/fire.tic.dat \
@@ -291,7 +291,7 @@ arm-lto:
 	$(CC) $(OPT_ARM) $(SOURCES) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_ARM_LIBS) $(LINUX_LINKER_FLAGS) -flto -o bin/tic
 
 linux: 
-	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(LPEG_SRC) $(SOURCES_EXT) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_LIBS) $(LINUX_LINKER_FLAGS) -o bin/tic
+	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(LPEG_SRC) $(GIF_SRC) $(SOURCES_EXT) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_LIBS) $(LINUX_LINKER_FLAGS) -o bin/tic
 
 macosx:
 	$(CC) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) src/ext/file_dialog.m $(OPT) $(MACOSX_OPT) $(INCLUDES) $(MACOSX_LIBS) -o bin/tic
