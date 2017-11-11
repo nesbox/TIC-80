@@ -1595,7 +1595,7 @@ static bool bufferEmpty(const u8* data, s32 size)
 	return true;
 }
 
-static char* printText(char* ptr, const char* tag, const char* data)
+static char* saveTextSection(char* ptr, const char* tag, const char* data)
 {
 	if(strlen(data) == 0)
 		return ptr;
@@ -1623,7 +1623,7 @@ static char* printBuf(char* ptr, const void* data, s32 size, s32 row)
 	return ptr;
 }
 
-static char* printBinary(char* ptr, const char* tag, s32 count, const u8* data, s32 size)
+static char* saveBinarySection(char* ptr, const char* tag, s32 count, const u8* data, s32 size)
 {
 	if(bufferEmpty(data, size * count)) 
 		return ptr;
@@ -1652,17 +1652,17 @@ static CartSaveResult saveProject(Console* console, const char* name)
 
 		if(stream)
 		{
-			char* ptr = printText(stream, "CODE", tic->cart.code.data);
+			char* ptr = saveTextSection(stream, "CODE", tic->cart.code.data);
 
 			// TODO: flip data for palette
-			ptr = printBinary(ptr, "PALETTE", 	1, tic->cart.palette.data, sizeof(tic_palette));
-			ptr = printBinary(ptr, "TILES", 	TIC_BANK_SPRITES, tic->cart.gfx.tiles[0].data, sizeof(tic_tile));
-			ptr = printBinary(ptr, "SPRITES", 	TIC_BANK_SPRITES, tic->cart.gfx.sprites[0].data, sizeof(tic_tile));
-			ptr = printBinary(ptr, "MAP", 		TIC_MAP_HEIGHT, tic->cart.gfx.map.data, TIC_MAP_WIDTH);
-			ptr = printBinary(ptr, "WAVES", 	ENVELOPES_COUNT, tic->cart.sound.sfx.waveform.envelopes[0].data, sizeof(tic_waveform));
-			ptr = printBinary(ptr, "SFX", 		SFX_COUNT, (const u8*)&tic->cart.sound.sfx.data, sizeof(tic_sound_effect));
-			ptr = printBinary(ptr, "PATTERNS", 	MUSIC_PATTERNS, (const u8*)&tic->cart.sound.music.patterns.data, sizeof(tic_track_pattern));
-			ptr = printBinary(ptr, "TRACKS", 	MUSIC_TRACKS, (const u8*)&tic->cart.sound.music.tracks.data, sizeof(tic_track));
+			ptr = saveBinarySection(ptr, "PALETTE", 	1, tic->cart.palette.data, sizeof(tic_palette));
+			ptr = saveBinarySection(ptr, "TILES", 		TIC_BANK_SPRITES, tic->cart.gfx.tiles[0].data, sizeof(tic_tile));
+			ptr = saveBinarySection(ptr, "SPRITES", 	TIC_BANK_SPRITES, tic->cart.gfx.sprites[0].data, sizeof(tic_tile));
+			ptr = saveBinarySection(ptr, "MAP", 		TIC_MAP_HEIGHT, tic->cart.gfx.map.data, TIC_MAP_WIDTH);
+			ptr = saveBinarySection(ptr, "WAVES", 		ENVELOPES_COUNT, tic->cart.sound.sfx.waveform.envelopes[0].data, sizeof(tic_waveform));
+			ptr = saveBinarySection(ptr, "SFX", 		SFX_COUNT, (const u8*)&tic->cart.sound.sfx.data, sizeof(tic_sound_effect));
+			ptr = saveBinarySection(ptr, "PATTERNS", 	MUSIC_PATTERNS, (const u8*)&tic->cart.sound.music.patterns.data, sizeof(tic_track_pattern));
+			ptr = saveBinarySection(ptr, "TRACKS", 		MUSIC_TRACKS, (const u8*)&tic->cart.sound.music.tracks.data, sizeof(tic_track));
 
 			// TODO: add cover
 
@@ -1727,6 +1727,64 @@ static void onConsoleSaveProjectCommand(Console* console, const char* param)
 	}
 }
 
+static void loadTextSection(const char* project, const char* tag, void* dst, s32 size)
+{
+	char tagbuf[64];
+	sprintf(tagbuf, "-- <%s>\n", tag);
+
+	const char* start = SDL_strstr(project, tagbuf);
+
+	if(start)
+	{
+		start += strlen(tagbuf);
+
+		if(start < project + strlen(project))
+		{
+			sprintf(tagbuf, "\n-- </%s>", tag);
+			const char* end = SDL_strstr(start, tagbuf);
+
+			if(end > start)
+				SDL_memcpy(dst, start, SDL_min(size, end - start));
+		}
+	}
+}
+
+static void loadBinarySection(const char* project, const char* tag, s32 count, void* dst, s32 size)
+{
+	char tagbuf[64];
+	sprintf(tagbuf, "-- <%s>\n", tag);
+
+	const char* start = SDL_strstr(project, tagbuf);
+
+	if(start)
+	{
+		start += strlen(tagbuf);
+
+		sprintf(tagbuf, "\n-- </%s>", tag);
+		const char* end = SDL_strstr(start, tagbuf);
+
+		if(end > start)
+		{
+			const char* ptr = start;
+
+			while(ptr < end)
+			{
+				char lineStr[] = "999";
+				memcpy(lineStr, ptr + strlen("-- "), strlen(lineStr));
+
+				s32 index = SDL_atoi(lineStr);
+				
+				if(index < count)
+				{
+					ptr += strlen("-- 999:");
+					str2buf(ptr, size*2, (u8*)dst + size*index, true);
+					ptr += size*2 + 1;
+				}
+			}
+		}
+	}
+}
+
 static bool loadProject(Console* console, const char* data, s32 size)
 {
 	tic_mem* tic = console->tic;
@@ -1745,93 +1803,25 @@ static bool loadProject(Console* console, const char* data, s32 size)
 		if(cart)
 		{
 			SDL_memset(cart, 0, sizeof(tic_cartridge));
+			// TODO: init default palette here???
 
-			// TODO: init default palette here
-			{
-				memcpy(&cart->palette, &tic->cart.palette, sizeof(tic_palette));
-			}
+			loadTextSection(project, "CODE", cart->code.data, sizeof(tic_code));
 
-			const char* projectEnd = project + strlen(project);
+			loadBinarySection(project, "PALETTE", 	1, cart->palette.data, sizeof(tic_palette));
+			loadBinarySection(project, "TILES", 	TIC_BANK_SPRITES, &cart->gfx.tiles, sizeof(tic_tile));
+			loadBinarySection(project, "SPRITES", 	TIC_BANK_SPRITES, &cart->gfx.sprites, sizeof(tic_tile));
+			loadBinarySection(project, "MAP", 		TIC_MAP_HEIGHT, cart->gfx.map.data, TIC_MAP_WIDTH);
+			loadBinarySection(project, "WAVES", 	ENVELOPES_COUNT, &cart->sound.sfx.waveform.envelopes, sizeof(tic_waveform));
+			loadBinarySection(project, "SFX", 		SFX_COUNT, cart->sound.sfx.data, sizeof(tic_sound_effect));
+			loadBinarySection(project, "PATTERNS",	MUSIC_PATTERNS, cart->sound.music.patterns.data, sizeof(tic_track_pattern));
+			loadBinarySection(project, "TRACKS", 	MUSIC_TRACKS, cart->sound.music.tracks.data, sizeof(tic_track));
 
-			{
-				const char* tag = "CODE";
-				char tagbuf[64];
-				sprintf(tagbuf, "-- <%s>\n", tag);
-
-				const char* start = SDL_strstr(project, tagbuf);
-
-				if(start)
-				{
-					start += strlen(tagbuf);
-
-					if(start < projectEnd)
-					{
-						sprintf(tagbuf, "\n-- </%s>", tag);
-						const char* end = SDL_strstr(start, tagbuf);
-
-						s32 size = end - start;
-						if(size > 0)
-						{
-							SDL_memcpy(cart->code.data, start, end - start);
-							done = true;
-						}
-					}
-				}
-			}
-
-			{
-				const char* tag = "TILES";
-				char tagbuf[64];
-				sprintf(tagbuf, "-- <%s>\n", tag);
-
-				const char* start = SDL_strstr(project, tagbuf);
-
-				if(start)
-				{
-					start += strlen(tagbuf);
-
-					if(start < projectEnd)
-					{
-						sprintf(tagbuf, "\n-- </%s>", tag);
-						const char* end = SDL_strstr(start, tagbuf);
-
-						s32 size = end - start;
-						if(size > 0)
-						{
-							s32 count = 256;
-							s32 size = sizeof(tic_tile) * 2;
-
-							const char* ptr = start;
-
-							while(ptr < end)
-							{
-								char lineStr[] = "999";
-								memcpy(lineStr, ptr + strlen("-- "), strlen(lineStr));
-
-								s32 index = SDL_atoi(lineStr);
-								
-								if(index < count)
-								{
-									ptr += strlen("-- 999:");
-									str2buf(ptr, size, cart->gfx.tiles[index].data, true);
-									ptr += size + 1;
-								}
-							}
-						
-							done = true;
-						}
-					}
-				}
-			}
-
-			if(done)
-			{
-				SDL_memcpy(&tic->cart, cart, sizeof(tic_cartridge));
-			}
+			SDL_memcpy(&tic->cart, cart, sizeof(tic_cartridge));
 
 			SDL_free(cart);
-		}
 
+			done = true;
+		}
 
 		SDL_free(project);
 	}
