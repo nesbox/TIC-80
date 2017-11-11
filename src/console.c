@@ -1606,7 +1606,7 @@ static char* saveTextSection(char* ptr, const char* tag, const char* data)
 	return ptr;
 }
 
-static char* printBuf(char* ptr, const void* data, s32 size, s32 row)
+static char* saveBinaryBuffer(char* ptr, const void* data, s32 size, s32 row, bool flip)
 {
 	if(bufferEmpty(data, size)) 
 		return ptr;
@@ -1614,7 +1614,7 @@ static char* printBuf(char* ptr, const void* data, s32 size, s32 row)
 	sprintf(ptr, "-- %03i:", row);
 	ptr += strlen(ptr);
 
-	buf2str(data, size, ptr, true);
+	buf2str(data, size, ptr, flip);
 	ptr += strlen(ptr);
 
 	sprintf(ptr, "\n");
@@ -1623,7 +1623,7 @@ static char* printBuf(char* ptr, const void* data, s32 size, s32 row)
 	return ptr;
 }
 
-static char* saveBinarySection(char* ptr, const char* tag, s32 count, const u8* data, s32 size)
+static char* saveBinarySection(char* ptr, const char* tag, s32 count, const void* data, s32 size, bool flip)
 {
 	if(bufferEmpty(data, size * count)) 
 		return ptr;
@@ -1631,14 +1631,29 @@ static char* saveBinarySection(char* ptr, const char* tag, s32 count, const u8* 
 	sprintf(ptr, "\n-- <%s>\n", tag);
 	ptr += strlen(ptr);
 
-	for(s32 i = 0; i < count; i++, data += size)
-		ptr = printBuf(ptr, data, size, i);
+	for(s32 i = 0; i < count; i++, data = (u8*)data + size)
+		ptr = saveBinaryBuffer(ptr, data, size, i, flip);
 
 	sprintf(ptr, "-- </%s>\n", tag);
 	ptr += strlen(ptr);
 
 	return ptr;
 }
+
+typedef struct {char* tag; s32 count; s32 offset; s32 size; bool flip;} BinarySection;
+static const BinarySection BinarySections[] = 
+{
+	{"PALETTE", 	1, offsetof(tic_cartridge, palette.data), sizeof(tic_palette), false},
+	{"TILES", 		TIC_BANK_SPRITES, offsetof(tic_cartridge, gfx.tiles), sizeof(tic_tile), true},
+	{"SPRITES", 	TIC_BANK_SPRITES, offsetof(tic_cartridge, gfx.sprites), sizeof(tic_tile), true},
+	{"MAP", 		TIC_MAP_HEIGHT, offsetof(tic_cartridge, gfx.map), TIC_MAP_WIDTH, true},
+	{"WAVES", 		ENVELOPES_COUNT, offsetof(tic_cartridge,sound.sfx.waveform.envelopes), sizeof(tic_waveform), true},
+	{"SFX", 		SFX_COUNT, offsetof(tic_cartridge, sound.sfx.data), sizeof(tic_sound_effect), true},
+	{"PATTERNS", 	MUSIC_PATTERNS, offsetof(tic_cartridge, sound.music.patterns), sizeof(tic_track_pattern), true},
+	{"TRACKS", 		MUSIC_TRACKS, offsetof(tic_cartridge, sound.music.tracks), sizeof(tic_track), true},
+
+	// TODO: add cover
+};
 
 static CartSaveResult saveProject(Console* console, const char* name)
 {
@@ -1654,17 +1669,11 @@ static CartSaveResult saveProject(Console* console, const char* name)
 		{
 			char* ptr = saveTextSection(stream, "CODE", tic->cart.code.data);
 
-			// TODO: flip data for palette
-			ptr = saveBinarySection(ptr, "PALETTE", 	1, tic->cart.palette.data, sizeof(tic_palette));
-			ptr = saveBinarySection(ptr, "TILES", 		TIC_BANK_SPRITES, tic->cart.gfx.tiles[0].data, sizeof(tic_tile));
-			ptr = saveBinarySection(ptr, "SPRITES", 	TIC_BANK_SPRITES, tic->cart.gfx.sprites[0].data, sizeof(tic_tile));
-			ptr = saveBinarySection(ptr, "MAP", 		TIC_MAP_HEIGHT, tic->cart.gfx.map.data, TIC_MAP_WIDTH);
-			ptr = saveBinarySection(ptr, "WAVES", 		ENVELOPES_COUNT, tic->cart.sound.sfx.waveform.envelopes[0].data, sizeof(tic_waveform));
-			ptr = saveBinarySection(ptr, "SFX", 		SFX_COUNT, (const u8*)&tic->cart.sound.sfx.data, sizeof(tic_sound_effect));
-			ptr = saveBinarySection(ptr, "PATTERNS", 	MUSIC_PATTERNS, (const u8*)&tic->cart.sound.music.patterns.data, sizeof(tic_track_pattern));
-			ptr = saveBinarySection(ptr, "TRACKS", 		MUSIC_TRACKS, (const u8*)&tic->cart.sound.music.tracks.data, sizeof(tic_track));
-
-			// TODO: add cover
+			for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
+			{
+				const BinarySection* section = &BinarySections[i];
+				ptr = saveBinarySection(ptr, section->tag, section->count, (u8*)&tic->cart + section->offset, section->size, section->flip);
+			}
 
 			name = getProjectName(name);
 
@@ -1749,7 +1758,7 @@ static void loadTextSection(const char* project, const char* tag, void* dst, s32
 	}
 }
 
-static void loadBinarySection(const char* project, const char* tag, s32 count, void* dst, s32 size)
+static void loadBinarySection(const char* project, const char* tag, s32 count, void* dst, s32 size, bool flip)
 {
 	char tagbuf[64];
 	sprintf(tagbuf, "-- <%s>\n", tag);
@@ -1777,7 +1786,7 @@ static void loadBinarySection(const char* project, const char* tag, s32 count, v
 				if(index < count)
 				{
 					ptr += strlen("-- 999:");
-					str2buf(ptr, size*2, (u8*)dst + size*index, true);
+					str2buf(ptr, size*2, (u8*)dst + size*index, flip);
 					ptr += size*2 + 1;
 				}
 			}
@@ -1807,15 +1816,12 @@ static bool loadProject(Console* console, const char* data, s32 size)
 
 			loadTextSection(project, "CODE", cart->code.data, sizeof(tic_code));
 
-			loadBinarySection(project, "PALETTE", 	1, cart->palette.data, sizeof(tic_palette));
-			loadBinarySection(project, "TILES", 	TIC_BANK_SPRITES, &cart->gfx.tiles, sizeof(tic_tile));
-			loadBinarySection(project, "SPRITES", 	TIC_BANK_SPRITES, &cart->gfx.sprites, sizeof(tic_tile));
-			loadBinarySection(project, "MAP", 		TIC_MAP_HEIGHT, cart->gfx.map.data, TIC_MAP_WIDTH);
-			loadBinarySection(project, "WAVES", 	ENVELOPES_COUNT, &cart->sound.sfx.waveform.envelopes, sizeof(tic_waveform));
-			loadBinarySection(project, "SFX", 		SFX_COUNT, cart->sound.sfx.data, sizeof(tic_sound_effect));
-			loadBinarySection(project, "PATTERNS",	MUSIC_PATTERNS, cart->sound.music.patterns.data, sizeof(tic_track_pattern));
-			loadBinarySection(project, "TRACKS", 	MUSIC_TRACKS, cart->sound.music.tracks.data, sizeof(tic_track));
-
+			for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
+			{
+				const BinarySection* section = &BinarySections[i];
+				loadBinarySection(project, section->tag, section->count, (u8*)cart + section->offset, section->size, section->flip);
+			}
+			
 			SDL_memcpy(&tic->cart, cart, sizeof(tic_cartridge));
 
 			SDL_free(cart);
@@ -1831,6 +1837,7 @@ static bool loadProject(Console* console, const char* data, s32 size)
 
 static void onConsoleLoadProjectCommandConfirmed(Console* console, const char* param)
 {
+	// TODO: do we need this???
 	// if(onConsoleLoadProjectSectionCommand(console, param)) return;
 
 	if(param)
@@ -2139,6 +2146,8 @@ static void onConsoleRamCommand(Console* console, const char* param)
 						"\n+-------+-------------------+-------+" \
 						"\n| ADDR  | INFO              | SIZE  |" \
 						"\n+-------+-------------------+-------+");
+
+// TODO: use 'offsetof' here
 
 #define ADDR_RECORD(addr, name) {(s32)((u8*)&addr - (u8*)console->tic), name}
 
