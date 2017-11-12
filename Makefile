@@ -25,10 +25,12 @@ MINGW_LINKER_FLAGS= \
 	-mwindows
 
 LINUX_INCLUDES= \
-	`pkg-config --cflags gtk+-3.0`
+	`pkg-config --cflags gtk+-3.0` \
+	`sdl2-config --cflags`
 
 LINUX_LIBS= \
-	`pkg-config --libs gtk+-3.0`
+	`pkg-config --libs gtk+-3.0` \
+	`sdl2-config --static-libs`
 
 LINUX64_LIBS= \
 	$(LINUX_LIBS) \
@@ -54,7 +56,6 @@ LINUX_LINKER_LTO_FLAGS= \
 
 LINUX_LINKER_FLAGS= \
 	-D_GNU_SOURCE \
-	-lSDL2 \
 	-llua5.3 \
 	-ldl \
 	-lm \
@@ -308,7 +309,7 @@ linux32-lto-pro:
 	make linux32-lto OPT="$(OPT)"
 
 arm-lto:
-	$(CC) $(OPT_ARM) $(SOURCES) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_ARM_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o bin/tic
+	$(CC) $(LINUX_INCLUDES) $(OPT_ARM) $(SOURCES) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_ARM_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o bin/tic
 
 arm-lto-pro:
 	$(eval OPT += $(OPT_PRO))
