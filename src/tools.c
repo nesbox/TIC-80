@@ -25,28 +25,8 @@
 
 #include <string.h>
 
-void tic_tool_poke4(void* addr, u32 index, u8 value)
-{
-	u8* val = (u8*)addr + (index >> 1);
-
-	if(index & 1)
-	{
-		*val &= 0x0f;
-		*val |= (value << 4);
-	}
-	else
-	{
-		*val &= 0xf0;
-		*val |= value & 0x0f;
-	}
-}
-
-u8 tic_tool_peek4(const void* addr, u32 index)
-{
-	u8 val = ((u8*)addr)[index >> 1];
-
-	return index & 1 ? val >> 4 : val & 0xf;
-}
+extern void tic_tool_poke4(void* addr, u32 index, u8 value);
+extern u8 tic_tool_peek4(const void* addr, u32 index);
 
 s32 tic_tool_get_pattern_id(const tic_track* track, s32 frame, s32 channel)
 {

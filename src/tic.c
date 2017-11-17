@@ -1647,27 +1647,21 @@ static void api_blit(tic_mem* tic, u32* out, tic_scanline scanline)
 
 	memset4(&out[0 * TIC80_FULLWIDTH], pal[tic->ram.vram.vars.border], TIC80_FULLWIDTH*Top);
 
-	for(s32 r = 0; r < TIC80_HEIGHT; r++)
+	u32* rowPtr = out + Top*TIC80_FULLWIDTH;
+
+	for(s32 r = 0, y = tic->ram.vram.vars.offset.y; r < TIC80_HEIGHT; r++, y++, rowPtr += TIC80_FULLWIDTH)
 	{
-		memset4(&out[(r+Top) * TIC80_FULLWIDTH], pal[tic->ram.vram.vars.border], Left);
-		memset4(&out[(r+Top) * TIC80_FULLWIDTH + Left], pal[tic->ram.vram.vars.bg], TIC80_WIDTH);
+		memset4(rowPtr, pal[tic->ram.vram.vars.border], Left);
+		memset4(rowPtr + Left, pal[tic->ram.vram.vars.bg], TIC80_WIDTH);
 
-		{
-			s32 y = r + tic->ram.vram.vars.offset.y;
+		u32* colPtr = rowPtr + Left;
 
-			if(y < 0 || y >= TIC80_HEIGHT) continue;
-			
-			for(s32 c = 0; c < TIC80_WIDTH; c++)
-			{
-				s32 x = c + tic->ram.vram.vars.offset.x;
+		if(y >= 0 && y < TIC80_HEIGHT)
+			for(s32 c = 0, x = tic->ram.vram.vars.offset.x, index = y * TIC80_WIDTH + x; c < TIC80_WIDTH; c++, colPtr++, x++, index++)
+				if(x >= 0 && x < TIC80_WIDTH)
+					*colPtr = pal[tic_tool_peek4(tic->ram.vram.screen.data, index)];
 
-				if(x < 0 || x >= TIC80_WIDTH) continue;
-
-				out[(c + Left) + (r+Top) * TIC80_FULLWIDTH] = pal[tic_tool_peek4(tic->ram.vram.screen.data, x + y * TIC80_WIDTH)];
-			}			
-		}
-
-		memset4(&out[(r+Top) * TIC80_FULLWIDTH + (TIC80_FULLWIDTH-Right)], pal[tic->ram.vram.vars.border], Right);
+		memset4(rowPtr + (TIC80_FULLWIDTH-Right), pal[tic->ram.vram.vars.border], Right);
 
 		if(scanline && (r < TIC80_HEIGHT-1))
 		{
