@@ -62,8 +62,6 @@ static struct
 	.fast = false,
 };
 
-static const char CartExt[] = ".tic";
-
 static const char DefaultLuaTicPath[] = TIC_LOCAL "default.tic";
 static const char DefaultMoonTicPath[] = TIC_LOCAL "default_moon.tic";
 static const char DefaultJSTicPath[] = TIC_LOCAL "default_js.tic";
@@ -85,7 +83,7 @@ static const char* getName(const char* name, const char* ext)
 
 static const char* getCartName(const char* name)
 {
-	return getName(name, CartExt);
+	return getName(name, CART_EXT);
 }
 
 static void scrollBuffer(char* buffer)
@@ -342,12 +340,12 @@ static bool onConsoleLoadSectionCommand(Console* console, const char* param)
 
 		for(s32 i = 0; i < COUNT_OF(Sections); i++)
 		{
-			sprintf(buf, "%s %s", CartExt, Sections[i]);
+			sprintf(buf, "%s %s", CART_EXT, Sections[i]);
 			char* pos = SDL_strstr(param, buf);
 
 			if(pos)
 			{
-				pos[sizeof(CartExt) - 1] = 0;
+				pos[sizeof(CART_EXT) - 1] = 0;
 				const char* name = getCartName(param);
 				s32 size = 0;
 				void* data = fsLoadFile(console->fs, name, &size);
@@ -1564,11 +1562,9 @@ static void onConsoleExportCommand(Console* console, const char* param)
 
 #if defined(TIC80_PRO)
 
-static const char ProjectExt[] = ".ticp";
-
 static const char* getProjectName(const char* name)
 {
-	return getName(name, ProjectExt);
+	return getName(name, PROJECT_EXT);
 }
 
 static void buf2str(const void* data, s32 size, char* ptr, bool flip)
@@ -2671,7 +2667,7 @@ static void cmdLoadCart(Console* console, const char* name)
 	if(data)
 	{
 #if defined(TIC80_PRO)
-		if(strstr(name, ProjectExt) == name + strlen(name) - strlen(ProjectExt))
+		if(strstr(name, PROJECT_EXT) == name + strlen(name) - strlen(PROJECT_EXT))
 		{
 			loadProject(console, data, size, &embed.file);
 		}
@@ -2820,6 +2816,13 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 		.tic = tic,
 		.config = config,
 		.load = onConsoleLoadCommandConfirmed,
+
+#if defined(TIC80_PRO)
+		.loadProject = loadProject,
+#else
+		.loadProject = NULL,
+#endif
+		
 		.error = error,
 		.trace = trace,
 		.tick = tick,
