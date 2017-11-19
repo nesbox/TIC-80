@@ -60,6 +60,9 @@
 #define KEYMAP_DAT "keymap.dat"
 #define KEYMAP_DAT_PATH TIC_LOCAL KEYMAP_DAT
 
+#define CART_EXT ".tic"
+#define PROJECT_EXT ".ticp"
+
 typedef struct
 {
 	struct

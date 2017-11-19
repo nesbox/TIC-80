@@ -144,9 +144,9 @@ static s32 getLinesCount(Code* code)
 
 static void removeInvalidChars(char* code)
 {
-    // remove \r symbol
-    char* s; char* d;
-    for(s = d = code; (*d = *s); d += (*s++ != '\r'));
+	// remove \r symbol
+	char* s; char* d;
+	for(s = d = code; (*d = *s); d += (*s++ != '\r'));
 }
 
 static void updateEditor(Code* code)
@@ -648,7 +648,7 @@ static void pageDown(Code* code)
 	s32 line = 0;
 	getCursorPosition(code, &column, &line);
 	s32 lines = getLinesCount(code);
- 	setCursorPosition(code, column, line < lines - TEXT_BUFFER_HEIGHT ? line + TEXT_BUFFER_HEIGHT : lines);
+	setCursorPosition(code, column, line < lines - TEXT_BUFFER_HEIGHT ? line + TEXT_BUFFER_HEIGHT : lines);
 }
 
 static bool replaceSelection(Code* code)

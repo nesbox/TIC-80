@@ -155,6 +155,7 @@ struct MenuItem
 	s32 id;
 	tic_screen* cover;
 	bool dir;
+	bool project;
 };
 
 typedef struct
@@ -372,13 +373,29 @@ static void replace(char* src, const char* what, const char* with)
 	}
 }
 
+static bool hasExt(const char* name, const char* ext)
+{
+	return strstr(name, ext) == name + strlen(name) - strlen(ext);
+}
+
+static void cutExt(char* name, const char* ext)
+{
+	name[strlen(name)-strlen(ext)] = '\0';
+}
+
 static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, bool dir)
 {
 	AddMenuItem* data = (AddMenuItem*)ptr;
 
-	static const char CartExt[] = ".tic";
+	static const char CartExt[] = CART_EXT;
+	static const char ProjectExt[] = PROJECT_EXT;
 
-	if(dir || (strstr(name, CartExt) == name + strlen(name) - sizeof(CartExt)+1))
+	if(dir 
+		|| hasExt(name, CartExt)
+#if defined(TIC80_PRO)		
+		|| hasExt(name, ProjectExt)
+#endif
+		)
 	{
 		MenuItem* item = &data->items[data->count++];
 
@@ -394,7 +411,15 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 		{
 
 			item->label = SDL_strdup(name);
-			item->label[strlen(item->label)-sizeof(CartExt)+1] = '\0';
+
+			if(hasExt(name, CartExt))
+				cutExt(item->label, CartExt);
+			else
+			{
+				cutExt(item->label, ProjectExt);
+				item->project = true;
+			}
+
 
 			replace(item->label, "&amp;", "&");
 			replace(item->label, "&#39;", "'");
@@ -509,7 +534,10 @@ static void loadCover(Surf* surf)
 
 			if(cart)
 			{
-				tic->api.load(cart, data, size, true);
+				if(hasExt(item->name, PROJECT_EXT))
+					surf->console->loadProject(surf->console, data, size, cart);
+				else
+					tic->api.load(cart, data, size, true);
 
 				if(cart->cover.size)
 					updateMenuItemCover(surf, cart->cover.data, cart->cover.size);
@@ -617,7 +645,26 @@ static void onPlayCart(Surf* surf)
 {
 	MenuItem* item = &surf->menu.items[surf->menu.pos];
 
-	surf->console->load(surf->console, item->name);
+	if(item->project)
+	{
+		tic_cartridge* cart = SDL_malloc(sizeof(tic_cartridge));
+
+		if(cart)
+		{
+			s32 size = 0;
+			void* data = fsLoadFile(surf->fs, item->name, &size);
+
+			surf->console->loadProject(surf->console, data, size, cart);
+
+			SDL_memcpy(&surf->tic->cart, cart, sizeof(tic_cartridge));
+
+			studioRomLoaded();
+
+			SDL_free(cart);
+		}
+	}
+	else
+		surf->console->load(surf->console, item->name);
 
 	runGameFromSurf();
 }
