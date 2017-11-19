@@ -1564,9 +1564,11 @@ static void onConsoleExportCommand(Console* console, const char* param)
 
 #if defined(TIC80_PRO)
 
+static const char ProjectExt[] = ".ticp";
+
 static const char* getProjectName(const char* name)
 {
-	return getName(name, ".ticp");
+	return getName(name, ProjectExt);
 }
 
 static void buf2str(const void* data, s32 size, char* ptr, bool flip)
@@ -1802,7 +1804,7 @@ static void loadBinarySection(const char* project, const char* tag, s32 count, v
 	}
 }
 
-static bool loadProject(Console* console, const char* data, s32 size)
+static bool loadProject(Console* console, const char* data, s32 size, tic_cartridge* dst)
 {
 	tic_mem* tic = console->tic;
 
@@ -1838,7 +1840,7 @@ static bool loadProject(Console* console, const char* data, s32 size)
 
 			loadBinarySection(project, "COVER", 1, &cart->cover, -1, true);
 			
-			SDL_memcpy(&tic->cart, cart, sizeof(tic_cartridge));
+			SDL_memcpy(dst, cart, sizeof(tic_cartridge));
 
 			SDL_free(cart);
 
@@ -1853,6 +1855,8 @@ static bool loadProject(Console* console, const char* data, s32 size)
 
 static void onConsoleLoadProjectCommandConfirmed(Console* console, const char* param)
 {
+	tic_mem* tic = console->tic;
+
 	if(param)
 	{
 		s32 size = 0;
@@ -1860,7 +1864,7 @@ static void onConsoleLoadProjectCommandConfirmed(Console* console, const char* p
 
 		void* data = fsLoadFile(console->fs, name, &size);
 
-		if(data && loadProject(console, data, size))
+		if(data && loadProject(console, data, size, &tic->cart))
 		{
 			strcpy(console->romName, name);
 
@@ -2666,7 +2670,17 @@ static void cmdLoadCart(Console* console, const char* name)
 
 	if(data)
 	{
-		loadCart(console->tic, &embed.file, data, size, true);
+#if defined(TIC80_PRO)
+		if(strstr(name, ProjectExt) == name + strlen(name) - strlen(ProjectExt))
+		{
+			loadProject(console, data, size, &embed.file);
+		}
+		else
+#endif
+		{
+			loadCart(console->tic, &embed.file, data, size, true);
+		}
+
 		embed.yes = true;
 
 		SDL_free(data);
