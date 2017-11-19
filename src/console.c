@@ -2574,7 +2574,7 @@ static void cmdLoadCart(Console* console, const char* name)
 	if(data)
 	{
 #if defined(TIC80_PRO)
-		if(strstr(name, PROJECT_EXT) == name + strlen(name) - strlen(PROJECT_EXT))
+		if(hasExt(name, PROJECT_EXT))
 		{
 			loadProject(console, data, size, &embed.file);
 		}
