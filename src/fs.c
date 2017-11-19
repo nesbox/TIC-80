@@ -558,6 +558,8 @@ const char* fsFullname(const char *path)
 	result = StringToUTF8(wpath);
 #else
 
+	result = realpath(path, NULL);
+
 #endif
 
 	return result;
@@ -568,6 +570,11 @@ const char* fsBasename(const char *path)
 	char* result = NULL;
 
 #if defined(__WINDOWS__) || defined(__WINRT__)
+#define SEP "\\"
+#else
+#define SEP "/"
+#endif
+
 	{
 		char* full = (char*)fsFullname(path);
 
@@ -582,7 +589,7 @@ const char* fsBasename(const char *path)
 
 				while(ptr >= result)
 				{
-					if(*ptr == '\\')
+					if(*ptr == SEP[0])
 					{
 						result[ptr-result] = '\0';
 						break;
@@ -594,12 +601,8 @@ const char* fsBasename(const char *path)
 		}
 	}
 
-	if(result && result[strlen(result)-1] != '\\')
-		strcat(result, "\\");
-#else
-
-#endif
-
+	if(result && result[strlen(result)-1] != SEP[0])
+		strcat(result, SEP);
 
 	return result;
 }
