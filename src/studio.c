@@ -2419,7 +2419,7 @@ static void onFSInitialized(FileSystem* fs)
 void onEmscriptenWget(const char* file)
 {
 	studio.argv[1] = DEFAULT_CART;
-	createFileSystem(onFSInitialized);
+	createFileSystem(NULL, onFSInitialized);
 }
 
 void onEmscriptenWgetError(const char* error) {}
@@ -2446,12 +2446,14 @@ s32 main(s32 argc, char **argv)
 	{
 		emscripten_async_wget(studio.argv[1], DEFAULT_CART, onEmscriptenWget, onEmscriptenWgetError);
 	}
-	else createFileSystem(onFSInitialized);
+	else createFileSystem(NULL, onFSInitialized);
 
 	emscripten_set_main_loop(tick, TIC_FRAMERATE == 60 ? 0 : TIC_FRAMERATE, 1);
 #else
 
-	createFileSystem(onFSInitialized);
+	printf("filename %s\n", fsFilename("../TIC-80/config.tic"));
+
+	createFileSystem(argc > 1 && fsExists(argv[1]) ? fsBasename(argv[1]) : NULL, onFSInitialized);
 
 	{
 		u64 nextTick = SDL_GetPerformanceCounter();

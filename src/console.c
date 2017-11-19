@@ -733,7 +733,7 @@ static bool loadProject(Console* console, const char* data, s32 size, tic_cartri
 
 static bool hasExt(const char* name, const char* ext)
 {
-	return strstr(name, ext) == name + strlen(name) - strlen(ext);
+	return strcmp(name + strlen(name) - strlen(ext), ext) == 0;
 }
 
 #endif
@@ -2583,6 +2583,8 @@ static void cmdLoadCart(Console* console, const char* name)
 		{
 			loadCart(console->tic, &embed.file, data, size, true);
 		}
+
+		strcpy(console->romName, fsFilename(name));
 
 		embed.yes = true;
 

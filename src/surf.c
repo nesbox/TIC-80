@@ -375,7 +375,7 @@ static void replace(char* src, const char* what, const char* with)
 
 static bool hasExt(const char* name, const char* ext)
 {
-	return strstr(name, ext) == name + strlen(name) - strlen(ext);
+	return strcmp(name + strlen(name) - strlen(ext), ext) == 0;
 }
 
 static void cutExt(char* name, const char* ext)
@@ -400,7 +400,7 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 		MenuItem* item = &data->items[data->count++];
 
 		item->name = SDL_strdup(name);
-
+		bool project = false;
 		if(dir)
 		{
 			char folder[FILENAME_MAX];
@@ -417,7 +417,7 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 			else
 			{
 				cutExt(item->label, ProjectExt);
-				item->project = true;
+				project = true;
 			}
 
 
@@ -429,6 +429,7 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 		item->id = id;
 		item->dir = dir;
 		item->cover = NULL;
+		item->project = project;
 	}
 
 	return data->count < MAX_CARTS;

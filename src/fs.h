@@ -47,7 +47,7 @@ typedef void(*OpenCallback)(const char* name, const void* buffer, size_t size, v
 
 typedef struct FileSystem FileSystem;
 
-void createFileSystem(void(*callback)(FileSystem*));
+void createFileSystem(const char* path, void(*callback)(FileSystem*));
 
 void fsEnumFiles(FileSystem* fs, ListCallback callback, void* data);
 void fsAddFile(FileSystem* fs, AddCallback callback, void* data);
@@ -61,6 +61,10 @@ void* fsLoadRootFile(FileSystem* fs, const char* name, s32* size);
 void fsMakeDir(FileSystem* fs, const char* name);
 bool fsExistsFile(FileSystem* fs, const char* name);
 
+const char* fsBasename(const char *path);
+const char* fsFilename(const char *path);
+const char* fsFullname(const char *path);
+bool fsExists(const char* name);
 void* fsReadFile(const char* path, s32* size);
 bool fsWriteFile(const char* path, const void* data, s32 size);
 bool fsCopyFile(const char* src, const char* dst);
