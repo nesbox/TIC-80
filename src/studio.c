@@ -2451,8 +2451,6 @@ s32 main(s32 argc, char **argv)
 	emscripten_set_main_loop(tick, TIC_FRAMERATE == 60 ? 0 : TIC_FRAMERATE, 1);
 #else
 
-	printf("filename %s\n", fsFilename("../TIC-80/config.tic"));
-
 	createFileSystem(argc > 1 && fsExists(argv[1]) ? fsBasename(argv[1]) : NULL, onFSInitialized);
 
 	{
