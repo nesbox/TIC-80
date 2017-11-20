@@ -88,6 +88,7 @@ struct Console
 	u32 tickCounter;
 	bool active;
 	bool showGameMenu;
+	bool startSurf;
 
 	void(*load)(Console*, const char* name);
 	bool(*loadProject)(Console*, const char* data, s32 size, tic_cartridge* dst);

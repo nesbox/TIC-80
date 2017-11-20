@@ -2550,11 +2550,12 @@ static void tick(Console* console)
 			printLine(console);
 			commandDone(console);
 			console->active = true;
+
 			return;
 		}
 	}
 	else
-	{
+	{	
 		if(console->cursor.delay)
 			console->cursor.delay--;
 
@@ -2564,6 +2565,12 @@ static void tick(Console* console)
 	}
 
 	console->tickCounter++;
+
+	if(console->startSurf)
+	{
+		console->startSurf = false;
+		gotoSurf();
+	}
 }
 
 static void cmdLoadCart(Console* console, const char* name)
@@ -2757,6 +2764,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 		.colorBuffer = console->colorBuffer,
 		.fs = fs,
 		.showGameMenu = false,
+		.startSurf = false,
 	};
 
 	memset(console->buffer, 0, CONSOLE_BUFFER_SIZE);
@@ -2802,8 +2810,12 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 		}
 
 		for (s32 i = 1; i < argc; i++)
+		{
 			if(strcmp(argv[i], "-nosound") == 0)
 				config->data.noSound = true;
+			else if(strcmp(argv[i], "-surf") == 0)
+				console->startSurf = true;
+		}
 	}
 
 #if defined(__EMSCRIPTEN__)
