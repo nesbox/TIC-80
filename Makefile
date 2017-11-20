@@ -23,12 +23,15 @@ MINGW_LINKER_FLAGS= \
 	-lws2_32 \
 	-mwindows
 
+GTK_INCLUDES= `pkg-config --cflags gtk+-3.0`
+GTK_LIBS= `pkg-config --libs gtk+-3.0`
+
 LINUX_INCLUDES= \
-	`pkg-config --cflags gtk+-3.0` \
+	$(GTK_INCLUDES) \
 	`sdl2-config --cflags`
 
 LINUX_LIBS= \
-	`pkg-config --libs gtk+-3.0` \
+	$(GTK_LIBS) \
 	`sdl2-config --static-libs`
 
 LINUX64_LIBS= \
@@ -308,7 +311,7 @@ linux32-lto-pro:
 	make linux32-lto OPT="$(OPT)"
 
 chip-lto:
-	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(TIC80_SRC) $(OPT) -D__CHIP__ $(INCLUDES) $(LINUX_ARM_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o bin/tic
+	$(CC) $(LINUX_INCLUDES) $(GTK_INCLUDES) $(SOURCES) $(TIC80_SRC) $(OPT) -D__CHIP__ $(INCLUDES) $(LINUX_ARM_LIBS) $(GTK_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o bin/tic
 
 chip-lto-pro:
 	$(eval OPT += $(OPT_PRO))
