@@ -103,6 +103,7 @@ typedef struct
 	s32 gifLength;
 	
 	bool checkNewVersion;
+	bool noSound;
 
 } StudioConfig;
 

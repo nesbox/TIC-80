@@ -2800,6 +2800,10 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 				cmdInjectMap(console, argv[i], argv[i + 1]);
 			}
 		}
+
+		for (s32 i = 1; i < argc; i++)
+			if(strcmp(argv[i], "-nosound") == 0)
+				config->data.noSound = true;
 	}
 
 #if defined(__EMSCRIPTEN__)

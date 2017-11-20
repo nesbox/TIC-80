@@ -2069,6 +2069,8 @@ static void useSystemPalette()
 
 static void renderStudio()
 {
+	tic_mem* tic = studio.tic;
+
 	showTooltip("");
 
 	studio.gesture.active = false;
@@ -2123,6 +2125,9 @@ static void renderStudio()
 		studio.tic->api.text(studio.tic, studio.popup.message, (s32)(TIC80_WIDTH - strlen(studio.popup.message)*TIC_FONT_WIDTH)/2,
 			TIC80_HEIGHT - TIC_FONT_HEIGHT, (tic_color_white));
 	}
+
+	if(getConfig()->noSound)
+		SDL_memset(tic->ram.registers, 0, sizeof tic->ram.registers);
 
 	studio.tic->api.tick_end(studio.tic);
 
