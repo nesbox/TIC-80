@@ -146,6 +146,7 @@ DEMO_ASSETS= \
 	bin/assets/jsdemo.tic.dat \
 	bin/assets/luademo.tic.dat \
 	bin/assets/moondemo.tic.dat \
+	bin/assets/benchmark.tic.dat \
 	bin/assets/config.tic.dat
 
 all: run
@@ -375,6 +376,9 @@ bin/assets/luademo.tic.dat: demos/luademo.tic
 	$(BIN2TXT) $< $@ -z
 
 bin/assets/moondemo.tic.dat: demos/moondemo.tic
+	$(BIN2TXT) $< $@ -z
+
+bin/assets/benchmark.tic.dat: demos/benchmark.tic
 	$(BIN2TXT) $< $@ -z
 
 clean: $(TIC_O) $(TIC80_O)

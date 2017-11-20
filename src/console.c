@@ -1082,18 +1082,24 @@ static void onConsoleInstallDemosCommand(Console* console, const char* param)
 		#include "../bin/assets/tetris.tic.dat"
 	};
 
+	static const u8 Benchmark[] =
+	{
+		#include "../bin/assets/benchmark.tic.dat"
+	};
+
 	FileSystem* fs = console->fs;
 
 	static const struct {const char* name; const u8* data; s32 size;} Demos[] =
 	{
-		{"fire.tic", 	DemoFire, 	sizeof DemoFire},
-		{"font.tic", 	DemoFont, 	sizeof DemoFont},
-		{"music.tic", 	DemoMusic, 	sizeof DemoMusic},
-		{"p3d.tic", 	DemoP3D, 	sizeof DemoP3D},
-		{"palette.tic", DemoPalette, sizeof DemoPalette},
-		{"quest.tic", 	GameQuest, 	sizeof GameQuest},
-		{"sfx.tic", 	DemoSFX, 	sizeof DemoSFX},
-		{"tetris.tic", 	GameTetris, sizeof GameTetris},
+		{"fire.tic", 		DemoFire, 		sizeof DemoFire},
+		{"font.tic", 		DemoFont, 		sizeof DemoFont},
+		{"music.tic", 		DemoMusic, 		sizeof DemoMusic},
+		{"p3d.tic", 		DemoP3D, 		sizeof DemoP3D},
+		{"palette.tic", 	DemoPalette, 	sizeof DemoPalette},
+		{"quest.tic", 		GameQuest, 		sizeof GameQuest},
+		{"sfx.tic", 		DemoSFX, 		sizeof DemoSFX},
+		{"tetris.tic", 		GameTetris, 	sizeof GameTetris},
+		{"benchmark.tic", 	Benchmark, 		sizeof Benchmark},
 	};
 
 	printBack(console, "\nadded carts:\n\n");
