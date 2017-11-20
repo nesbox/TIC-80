@@ -1,6 +1,5 @@
 CC=gcc
 OPT=-O3 -Wall -std=c99
-OPT_ARM=-D__ARM_LINUX__
 OPT_PRO=-DTIC80_PRO
 
 RM= rm -f
@@ -308,12 +307,13 @@ linux32-lto-pro:
 	$(eval OPT += $(OPT_PRO))
 	make linux32-lto OPT="$(OPT)"
 
-arm-lto:
-	$(CC) $(LINUX_INCLUDES) $(OPT_ARM) $(SOURCES) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_ARM_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o bin/tic
+chip-lto:
+	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_ARM_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o bin/tic
 
-arm-lto-pro:
+chip-lto-pro:
 	$(eval OPT += $(OPT_PRO))
-	make arm-lto OPT="$(OPT)"
+	$(eval OPT += __CHIP__)
+	make chip-lto OPT="$(OPT)"
 
 linux: 
 	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(LPEG_SRC) $(GIF_SRC) $(SOURCES_EXT) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_LIBS) $(LINUX_LINKER_FLAGS) -o bin/tic

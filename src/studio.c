@@ -47,6 +47,7 @@
 #include "ext/md5.h"
 
 #define STUDIO_UI_SCALE 3
+
 #define TEXTURE_SIZE (TIC80_FULLWIDTH)
 
 #define MAX_CONTROLLERS 4
@@ -81,7 +82,6 @@ static struct
 
 	SDL_Window* window;
 	SDL_Renderer* renderer;
-	SDL_Renderer* softwareRenderer;
 	SDL_Texture* texture;
 
 	SDL_AudioSpec audioSpec;
@@ -196,7 +196,6 @@ static struct
 
 	.window = NULL,
 	.renderer = NULL,
-	.softwareRenderer = NULL,
 	.texture = NULL,
 	.audioDevice = 0,
 
@@ -2371,10 +2370,10 @@ static void onFSInitialized(FileSystem* fs)
 		(TIC80_FULLWIDTH) * STUDIO_UI_SCALE,
 		(TIC80_FULLHEIGHT) * STUDIO_UI_SCALE,
 		SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
-#if defined(__ARM_LINUX__)
-		| SDL_WINDOW_FULLSCREEN_DESKTOP
+#if defined(__CHIP__)
+			| SDL_WINDOW_FULLSCREEN_DESKTOP
 #endif
-	);
+		);
 
 	initSound();
 
@@ -2402,10 +2401,13 @@ static void onFSInitialized(FileSystem* fs)
 	// set the window icon before renderer is created (issues on Linux)
 	setWindowIcon();
 
-	studio.renderer = SDL_CreateRenderer(studio.window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-
-	if(!studio.renderer)
-		studio.softwareRenderer = studio.renderer = SDL_CreateRenderer(studio.window, -1, SDL_RENDERER_SOFTWARE);
+	studio.renderer = SDL_CreateRenderer(studio.window, -1, 
+#if defined(__CHIP__)
+		SDL_RENDERER_SOFTWARE
+#else
+		SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
+#endif
+	);
 
 	studio.texture = SDL_CreateTexture(studio.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING, TEXTURE_SIZE, TEXTURE_SIZE);
 

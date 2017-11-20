@@ -40,7 +40,7 @@
 #define CONSOLE_BUFFER_SCREENS 64
 #define CONSOLE_BUFFER_SIZE (CONSOLE_BUFFER_WIDTH * CONSOLE_BUFFER_HEIGHT * CONSOLE_BUFFER_SCREENS)
 
-#if defined(__WINDOWS__) || (defined(__LINUX__) && !defined(__ARM_LINUX__)) || defined(__MACOSX__)
+#if defined(__WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
 #define CAN_EXPORT 1
 #endif
 
@@ -1423,7 +1423,7 @@ static void exportMap(Console* console)
 	}
 }
 
-#if defined(__EMSCRIPTEN__) || defined(__ARM_LINUX__)
+#if defined(__EMSCRIPTEN__)
 
 static void onConsoleExportCommand(Console* console, const char* param)
 {
