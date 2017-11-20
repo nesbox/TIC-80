@@ -308,11 +308,10 @@ linux32-lto-pro:
 	make linux32-lto OPT="$(OPT)"
 
 chip-lto:
-	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_ARM_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o bin/tic
+	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(TIC80_SRC) $(OPT) -D__CHIP__ $(INCLUDES) $(LINUX_ARM_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o bin/tic
 
 chip-lto-pro:
 	$(eval OPT += $(OPT_PRO))
-	$(eval OPT += __CHIP__)
 	make chip-lto OPT="$(OPT)"
 
 linux: 
