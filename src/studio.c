@@ -887,7 +887,8 @@ void setCursor(SDL_SystemCursor id)
 
 void hideDialog()
 {
-	setStudioMode(studio.dialogMode);
+	studio.tic->api.resume(studio.tic);
+	studio.mode = TIC_RUN_MODE;
 }
 
 void showDialog(const char** text, s32 rows, DialogCallback callback, void* data)
