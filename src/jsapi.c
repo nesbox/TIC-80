@@ -703,7 +703,9 @@ static duk_ret_t duk_sync(duk_context* duk)
 {
 	tic_mem* memory = (tic_mem*)getDukMachine(duk);
 
-	memory->api.sync(memory, true);
+	bool toCart = duk_is_null_or_undefined(duk, 0) ? true : duk_to_boolean(duk, 0);
+
+	memory->api.sync(memory, toCart);
 
 	return 0;
 }
