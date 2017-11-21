@@ -53,6 +53,7 @@ static struct
 	char prefix[32];
 	bool yes;
 	bool fast;
+	bool cmd;
 	bool menu;
 	tic_cartridge file;
 } embed =
@@ -60,6 +61,7 @@ static struct
 	.prefix = "C8B39163816B47209E721136D37B8031",
 	.yes = false,
 	.fast = false,
+	.cmd = false,
 };
 
 static const char DefaultLuaTicPath[] = TIC_LOCAL "default.tic";
@@ -2541,7 +2543,7 @@ static void tick(Console* console)
 	{
 		if(console->tickCounter >= (u32)(embed.fast ? 1 : TIC_FRAMERATE))
 		{
-			if(!embed.fast)
+			if(!embed.fast && !embed.cmd)
 				console->showGameMenu = true;
 
 			memcpy(&console->tic->cart, &embed.file, sizeof(tic_cartridge));
@@ -2599,6 +2601,7 @@ static void cmdLoadCart(Console* console, const char* name)
 		strcpy(console->romName, fsFilename(name));
 
 		embed.yes = true;
+		embed.cmd = true;
 
 		SDL_free(data);
 	}
