@@ -1732,20 +1732,23 @@ SDL_Event* pollEvent()
 
 #if defined(TIC80_PRO)
 
-				if(studio.mode != TIC_START_MODE && studioCartChanged())
+				if(studio.mode != TIC_START_MODE)
 				{
-					static const char* Rows[] =
+					if(studioCartChanged())
 					{
-						"",
-						"CART HAS CHANGED!",
-						"",
-						"DO YOU WANT",
-						"TO RELOAD IT?"
-					};
+						static const char* Rows[] =
+						{
+							"",
+							"CART HAS CHANGED!",
+							"",
+							"DO YOU WANT",
+							"TO RELOAD IT?"
+						};
 
-					showDialog(Rows, COUNT_OF(Rows), reloadConfirm, NULL);
+						showDialog(Rows, COUNT_OF(Rows), reloadConfirm, NULL);
+					}
+					else studio.console.updateProject(&studio.console);					
 				}
-				else studio.console.updateProject(&studio.console);
 
 #endif
 				{
