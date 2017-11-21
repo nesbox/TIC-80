@@ -1550,23 +1550,7 @@ static void onConsoleExportHtmlCommand(Console* console, const char* name)
 			{
 				writeMemoryString(&output, "var cartridge = [");
 
-				s32 size = 0;
-
-				// create cart copy
-				{
-					tic_cartridge* dup = SDL_malloc(sizeof(tic_cartridge));
-
-					SDL_memcpy(dup, &tic->cart, sizeof(tic_cartridge));
-
-					if(processDoFile())
-					{
-						SDL_memcpy(dup->code.data, tic->code.data, sizeof(tic_code));
-						
-						size = tic->api.save(dup, buffer);
-					}
-
-					SDL_free(dup);
-				}
+				s32 size = tic->api.save(&tic->cart, buffer);
 
 				if(size)
 				{
@@ -1620,27 +1604,23 @@ static void* embedCart(Console* console, s32* size)
 {
 	tic_mem* tic = console->tic;
 
-	if(processDoFile())
+	void* data = fsReadFile(console->appPath, size);
+
+	if(data)
 	{
-		void* data = fsReadFile(console->appPath, size);
+		void* start = memmem(data, *size, embed.prefix, sizeof(embed.prefix));
 
-		if(data)
+		if(start)
 		{
-			void* start = memmem(data, *size, embed.prefix, sizeof(embed.prefix));
-
-			if(start)
-			{
-				embed.yes = true;
-				SDL_memcpy(&embed.file, &tic->cart, sizeof(tic_cartridge));
-				SDL_memcpy(embed.file.code.data, tic->code.data, sizeof(tic_code));
-				SDL_memcpy(start, &embed, sizeof(embed));
-				embed.yes = false;
-			}
+			embed.yes = true;
+			SDL_memcpy(&embed.file, &tic->cart, sizeof(tic_cartridge));
+			SDL_memcpy(start, &embed, sizeof(embed));
+			embed.yes = false;
 		}
-		
+
 		return data;
 	}
-
+	
 	return NULL;
 }
 

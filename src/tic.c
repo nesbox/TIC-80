@@ -431,8 +431,6 @@ static void api_reset(tic_mem* memory)
 	machine->state.scanline = NULL;
 
 	updateSaveid(memory);
-
-	memset(memory->code.data, 0, sizeof(tic_code));
 }
 
 static void api_pause(tic_mem* memory)
@@ -1345,15 +1343,15 @@ static bool isJavascript(const char* code)
 
 static tic_script_lang api_get_script(tic_mem* memory)
 {
-	if(isMoonscript(memory->code.data)) return tic_script_moon;
-	if(isJavascript(memory->code.data)) return tic_script_js;
+	if(isMoonscript(memory->cart.code.data)) return tic_script_moon;
+	if(isJavascript(memory->cart.code.data)) return tic_script_js;
 	return tic_script_lua;
 }
 
 static void updateSaveid(tic_mem* memory)
 {
 	memset(memory->saveid, 0, sizeof memory->saveid);
-	const char* saveid = readMetatag(memory->code.data, "saveid", TagFormatLua);
+	const char* saveid = readMetatag(memory->cart.code.data, "saveid", TagFormatLua);
 	if(saveid)
 	{
 		strcpy(memory->saveid, saveid);
@@ -1361,7 +1359,7 @@ static void updateSaveid(tic_mem* memory)
 	}
 	else
 	{
-		const char* saveid = readMetatag(memory->code.data, "saveid", TagFormatJS);
+		const char* saveid = readMetatag(memory->cart.code.data, "saveid", TagFormatJS);
 		if(saveid)
 		{
 			strcpy(memory->saveid, saveid);
@@ -1380,10 +1378,7 @@ static void api_tick(tic_mem* memory, tic_tick_data* data)
 	{
 		cart2ram(memory);
 
-		const char* code = machine->memory.code.data;
-
-		if(!strlen(code))
-			memcpy(memory->code.data, memory->cart.code.data, sizeof(tic_code));
+		const char* code = machine->memory.cart.code.data;
 
 		if(strlen(code))
 		{

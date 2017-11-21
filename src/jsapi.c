@@ -512,7 +512,7 @@ static duk_ret_t duk_pmem(duk_context* duk)
 
 	u32 index = duk_to_int(duk, 0);
 
-	if(index < TIC_PERSISTENT_SIZE)
+	if(index >= 0 && index < TIC_PERSISTENT_SIZE)
 	{
 		s32 val = memory->ram.persistent.data[index];
 
@@ -708,11 +708,6 @@ static duk_ret_t duk_sync(duk_context* duk)
 	return 0;
 }
 
-static duk_ret_t duk_dofile(duk_context* duk)
-{
-	return 0;
-}
-
 static const char* const ApiKeywords[] = API_KEYWORDS;
 static const struct{duk_c_function func; s32 params;} ApiFunc[] = 
 {
@@ -771,11 +766,6 @@ static void initDuktape(tic_machine* machine)
 			duk_push_c_function(machine->js, ApiFunc[i].func, ApiFunc[i].params);
 			duk_put_global_string(machine->js, ApiKeywords[i]);
 		}
-
-	{
-		duk_push_c_function(machine->js, duk_dofile, 1);
-		duk_put_global_string(machine->js, "dofile");
-	}
 }
 
 bool initJavascript(tic_machine* machine, const char* code)
