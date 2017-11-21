@@ -92,6 +92,7 @@ struct Console
 
 	void(*load)(Console*, const char* name);
 	bool(*loadProject)(Console*, const char* data, s32 size, tic_cartridge* dst);
+	void(*updateProject)(Console*);
 	void(*error)(Console*, const char*);
 	void(*trace)(Console*, const char*, u8 color);
 	void(*tick)(Console*);

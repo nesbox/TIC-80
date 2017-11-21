@@ -731,6 +731,25 @@ static bool loadProject(Console* console, const char* data, s32 size, tic_cartri
 	return done;
 }
 
+static void updateProject(Console* console)
+{
+	tic_mem* tic = console->tic;
+
+	if(strlen(console->romName))
+	{
+		s32 size = 0;
+		void* data = fsLoadFile(console->fs, console->romName, &size);
+
+		if(data)
+		{
+			loadProject(console, data, size, &tic->cart);
+			SDL_free(data);
+
+			studioRomLoaded();
+		}		
+	}
+}
+
 static bool hasExt(const char* name, const char* ext)
 {
 	return strcmp(name + strlen(name) - strlen(ext), ext) == 0;
@@ -2721,10 +2740,11 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 
 #if defined(TIC80_PRO)
 		.loadProject = loadProject,
+		.updateProject = updateProject,
 #else
 		.loadProject = NULL,
+		.updateProject = NULL,
 #endif
-		
 		.error = error,
 		.trace = trace,
 		.tick = tick,

@@ -760,6 +760,8 @@ void exitFromGameMenu()
 	{
 		setStudioMode(TIC_CONSOLE_MODE);
 	}
+
+	studio.console.showGameMenu = false;
 }
 
 void setStudioMode(EditorMode mode)
@@ -1680,6 +1682,12 @@ static void processMouseInput()
 	studio.tic->ram.vram.input.gamepad.pressed = studio.mouse.state->down ? 1 : 0;
 }
 
+static void reloadConfirm(bool yes, void* data)
+{
+	if(yes)
+		studio.console.updateProject(&studio.console);
+}
+
 SDL_Event* pollEvent()
 {
 	static SDL_Event event;
@@ -1721,6 +1729,25 @@ SDL_Event* pollEvent()
 			{
 			case SDL_WINDOWEVENT_RESIZED: updateGamepadParts(); break;
 			case SDL_WINDOWEVENT_FOCUS_GAINED:
+
+#if defined(TIC80_PRO)
+
+				if(studio.mode != TIC_START_MODE && studioCartChanged())
+				{
+					static const char* Rows[] =
+					{
+						"",
+						"CART HAS CHANGED!",
+						"",
+						"DO YOU WANT",
+						"TO RELOAD IT?"
+					};
+
+					showDialog(Rows, COUNT_OF(Rows), reloadConfirm, NULL);
+				}
+				else studio.console.updateProject(&studio.console);
+
+#endif
 				{
 					studio.console.codeLiveReload.reload(&studio.console,studio.code.data);
 					if(studio.code.update)
