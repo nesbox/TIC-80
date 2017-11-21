@@ -1,6 +1,7 @@
 CC=gcc
 OPT=-O3 -Wall -std=c99
 OPT_PRO=-DTIC80_PRO
+BIN_NAME= bin/tic80
 
 RM= rm -f
 
@@ -65,7 +66,7 @@ LINUX_LINKER_FLAGS= \
 	-lrt \
 	-lz
 
-MINGW_OUTPUT=bin/tic.exe
+MINGW_OUTPUT=$(BIN_NAME).exe
 
 EMS_CC=emcc
 EMS_OPT= \
@@ -298,35 +299,35 @@ run: mingw-pro
 	$(MINGW_OUTPUT)
 
 linux64-lto:
-	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) $(INCLUDES) $(LINUX64_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o bin/tic
+	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) $(INCLUDES) $(LINUX64_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o $(BIN_NAME)
 
 linux64-lto-pro:
 	$(eval OPT += $(OPT_PRO))
 	make linux64-lto OPT="$(OPT)"
 
 linux32-lto:
-	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) $(INCLUDES) $(LINUX32_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o bin/tic
+	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) $(INCLUDES) $(LINUX32_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o $(BIN_NAME)
 
 linux32-lto-pro:
 	$(eval OPT += $(OPT_PRO))
 	make linux32-lto OPT="$(OPT)"
 
 chip-lto:
-	$(CC) $(LINUX_INCLUDES) $(GTK_INCLUDES) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) -D__CHIP__ $(INCLUDES) $(LINUX_ARM_LIBS) $(GTK_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o bin/tic
+	$(CC) $(LINUX_INCLUDES) $(GTK_INCLUDES) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) -D__CHIP__ $(INCLUDES) $(LINUX_ARM_LIBS) $(GTK_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o $(BIN_NAME)
 
 chip-lto-pro:
 	$(eval OPT += $(OPT_PRO))
 	make chip-lto OPT="$(OPT)"
 
 linux: 
-	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(LPEG_SRC) $(GIF_SRC) $(SOURCES_EXT) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_LIBS) $(LINUX_LINKER_FLAGS) -o bin/tic
+	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(LPEG_SRC) $(GIF_SRC) $(SOURCES_EXT) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_LIBS) $(LINUX_LINKER_FLAGS) -o $(BIN_NAME)
 
 linux-pro:
 	$(eval OPT += $(OPT_PRO))
 	make linux OPT="$(OPT)"
 
 macosx:
-	$(CC) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) src/ext/file_dialog.m $(OPT) $(MACOSX_OPT) $(INCLUDES) $(MACOSX_LIBS) -o bin/tic
+	$(CC) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) src/ext/file_dialog.m $(OPT) $(MACOSX_OPT) $(INCLUDES) $(MACOSX_LIBS) -o $(BIN_NAME)
 
 macosx-pro:
 	$(eval OPT += $(OPT_PRO))
