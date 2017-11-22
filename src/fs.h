@@ -60,6 +60,7 @@ void* fsLoadFile(FileSystem* fs, const char* name, s32* size);
 void* fsLoadRootFile(FileSystem* fs, const char* name, s32* size);
 void fsMakeDir(FileSystem* fs, const char* name);
 bool fsExistsFile(FileSystem* fs, const char* name);
+u64 fsMDate(FileSystem* fs, const char* name);
 
 const char* fsBasename(const char *path);
 const char* fsFilename(const char *path);

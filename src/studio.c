@@ -78,7 +78,11 @@ static struct
 	tic80_local* tic80local;
 	tic_mem* tic;
 
-	CartHash hash;
+	struct
+	{
+		CartHash hash;
+		u64 mdate;
+	}cart;
 
 	SDL_Window* window;
 	SDL_Renderer* renderer;
@@ -198,6 +202,11 @@ static struct
 	.renderer = NULL,
 	.texture = NULL,
 	.audioDevice = 0,
+
+	.cart = 
+	{
+		.mdate = 0,
+	},
 
 	.joysticks = {NULL, NULL, NULL, NULL},
 
@@ -919,7 +928,12 @@ static void initModules()
 
 static void updateHash()
 {
-	md5(&studio.tic->cart, sizeof(tic_cartridge), studio.hash.data);
+	md5(&studio.tic->cart, sizeof(tic_cartridge), studio.cart.hash.data);
+}
+
+static void updateMDate()
+{
+	studio.cart.mdate = fsMDate(studio.console.fs, studio.console.romName);
 }
 
 static void updateTitle()
@@ -936,6 +950,7 @@ void studioRomSaved()
 {
 	updateTitle();
 	updateHash();
+	updateMDate();
 }
 
 void studioRomLoaded()
@@ -944,6 +959,7 @@ void studioRomLoaded()
 
 	updateTitle();
 	updateHash();
+	updateMDate();
 }
 
 bool studioCartChanged()
@@ -951,7 +967,7 @@ bool studioCartChanged()
 	CartHash hash;
 	md5(&studio.tic->cart, sizeof(tic_cartridge), hash.data);
 
-	return memcmp(hash.data, studio.hash.data, sizeof(CartHash)) != 0;
+	return memcmp(hash.data, studio.cart.hash.data, sizeof(CartHash)) != 0;
 }
 
 static void updateGamepadParts();
@@ -1682,11 +1698,15 @@ static void processMouseInput()
 	studio.tic->ram.vram.input.gamepad.pressed = studio.mouse.state->down ? 1 : 0;
 }
 
+#if defined(TIC80_PRO)
+
 static void reloadConfirm(bool yes, void* data)
 {
 	if(yes)
 		studio.console.updateProject(&studio.console);
 }
+
+#endif
 
 SDL_Event* pollEvent()
 {
@@ -1734,26 +1754,33 @@ SDL_Event* pollEvent()
 
 				if(studio.mode != TIC_START_MODE)
 				{
-					if(studioCartChanged())
-					{
-						static const char* Rows[] =
-						{
-							"",
-							"CART HAS CHANGED!",
-							"",
-							"DO YOU WANT",
-							"TO RELOAD IT?"
-						};
+					Console* console = &studio.console;
 
-						showDialog(Rows, COUNT_OF(Rows), reloadConfirm, NULL);
+					u64 mdate = fsMDate(console->fs, console->romName);
+
+					if(mdate > studio.cart.mdate)
+					{
+						if(studioCartChanged())
+						{
+							static const char* Rows[] =
+							{
+								"",
+								"CART HAS CHANGED!",
+								"",
+								"DO YOU WANT",
+								"TO RELOAD IT?"
+							};
+
+							showDialog(Rows, COUNT_OF(Rows), reloadConfirm, NULL);
+						}
+						else console->updateProject(console);						
 					}
-					else studio.console.updateProject(&studio.console);					
 				}
 
 #endif
 				{
-					studio.console.codeLiveReload.reload(&studio.console,studio.code.data);
-					if(studio.code.update)
+					studio.console.codeLiveReload.reload(&studio.console, studio.code.data);
+					if(studio.console.codeLiveReload.active && studio.code.update)
 						studio.code.update(&studio.code);
 				}
 				break;

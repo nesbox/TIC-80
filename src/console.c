@@ -618,12 +618,13 @@ static s32 saveProject(Console* console, void* buffer)
 	return strlen(stream);
 }
 
-static void loadTextSection(const char* project, const char* tag, void* dst, s32 size)
+static bool loadTextSection(const char* project, const char* tag, void* dst, s32 size)
 {
 	char tagbuf[64];
 	sprintf(tagbuf, "-- <%s>\n", tag);
 
 	const char* start = SDL_strstr(project, tagbuf);
+	bool done = false;
 
 	if(start)
 	{
@@ -635,17 +636,23 @@ static void loadTextSection(const char* project, const char* tag, void* dst, s32
 			const char* end = SDL_strstr(start, tagbuf);
 
 			if(end > start)
+			{
 				SDL_memcpy(dst, start, SDL_min(size, end - start));
+				done = true;
+			}
 		}
 	}
+
+	return done;
 }
 
-static void loadBinarySection(const char* project, const char* tag, s32 count, void* dst, s32 size, bool flip)
+static bool loadBinarySection(const char* project, const char* tag, s32 count, void* dst, s32 size, bool flip)
 {
 	char tagbuf[64];
 	sprintf(tagbuf, "-- <%s>\n", tag);
 
 	const char* start = SDL_strstr(project, tagbuf);
+	bool done = false;
 
 	if(start)
 	{
@@ -680,8 +687,12 @@ static void loadBinarySection(const char* project, const char* tag, s32 count, v
 				ptr += sizeof("-- 999:") - 1;
 				str2buf(ptr, end - ptr, (u8*)dst, flip);
 			}
+
+			done = true;
 		}
 	}
+
+	return done;
 }
 
 static bool loadProject(Console* console, const char* data, s32 size, tic_cartridge* dst)
@@ -710,21 +721,22 @@ static bool loadProject(Console* console, const char* data, s32 size, tic_cartri
 			SDL_memset(cart, 0, sizeof(tic_cartridge));
 			SDL_memcpy(&cart->palette, &tic->config.palette.data, sizeof(tic_palette));
 
-			loadTextSection(project, "CODE", cart->code.data, sizeof(tic_code));
+			if(loadTextSection(project, "CODE", cart->code.data, sizeof(tic_code)))
+				done = true;
 
 			for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
 			{
 				const BinarySection* section = &BinarySections[i];
-				loadBinarySection(project, section->tag, section->count, (u8*)cart + section->offset, section->size, section->flip);
+				if(loadBinarySection(project, section->tag, section->count, (u8*)cart + section->offset, section->size, section->flip))
+					done = true;
 			}
 
-			loadBinarySection(project, "COVER", 1, &cart->cover, -1, true);
+			if(loadBinarySection(project, "COVER", 1, &cart->cover, -1, true))
+				done = true;
 			
 			SDL_memcpy(dst, cart, sizeof(tic_cartridge));
 
 			SDL_free(cart);
-
-			done = true;
 		}
 
 		SDL_free(project);
@@ -744,10 +756,21 @@ static void updateProject(Console* console)
 
 		if(data)
 		{
-			loadProject(console, data, size, &tic->cart);
+			tic_cartridge* cart = SDL_malloc(sizeof(tic_cartridge));
+
+			if(cart)
+			{
+				if(loadProject(console, data, size, cart))
+				{
+					SDL_memcpy(&tic->cart, cart, sizeof(tic_cartridge));
+
+					studioRomLoaded();
+				}
+				
+				SDL_free(cart);
+			}
 			SDL_free(data);
 
-			studioRomLoaded();
 		}		
 	}
 }

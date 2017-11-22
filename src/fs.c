@@ -618,6 +618,18 @@ bool fsExistsFile(FileSystem* fs, const char* name)
 	return fsExists(getFilePath(fs, name));
 }
 
+u64 fsMDate(FileSystem* fs, const char* name)
+{
+	struct tic_stat_struct s;
+
+	if(tic_stat(UTF8ToString(getFilePath(fs, name)), &s) == 0 && S_ISREG(s.st_mode))
+	{
+		return s.st_mtime;
+	}
+
+	return 0;
+}
+
 bool fsSaveFile(FileSystem* fs, const char* name, const void* data, size_t size, bool overwrite)
 {
 	if(!overwrite)
