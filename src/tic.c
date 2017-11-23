@@ -240,8 +240,8 @@ static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y,
 		{
 			s32 i;
 			s32 ix, iy;
-			ix = a == 1?px:TIC_SPRITESIZE-px;
-			iy = b == 1?py:TIC_SPRITESIZE-py;
+			ix = a == 1 ? px : TIC_SPRITESIZE - px - 1;
+			iy = b == 1 ? py : TIC_SPRITESIZE - py - 1;
 			if(swap_axis) {
 				i = ix * TIC_SPRITESIZE + iy;
 			} else {
