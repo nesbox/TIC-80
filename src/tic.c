@@ -200,62 +200,63 @@ static void drawRectBorder(tic_machine* machine, s32 x, s32 y, s32 width, s32 he
 	drawVLine(machine, x + width - 1, y, height, color);
 }
 
-static void drawRectRev(tic_machine* machine, s32 y, s32 x, s32 height, s32 width, u8 color)
-{
-	drawRect(machine, x, y, width, height, color);
-}
-
 static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
+	u8 transparent[TIC_PALETTE_SIZE];
+	memset(transparent, 0, sizeof(transparent));
+	for (s32 i = 0; i < count; i++) transparent[colors[i]] = 1;
+
 	flip &= 0b11;
 	rotate &= 0b11;
 
-	s32 a = flip & tic_horz_flip ? -scale : scale;
-	s32 b = flip & tic_vert_flip ? -scale : scale;
+	if (flip == 0 && rotate == 0 && scale == 1) {
+		// the most common path
+		s32 i = 0;
+		for(s32 py=0; py < TIC_SPRITESIZE; py++, y++)
+		{
+			s32 xx = x;
+			for(s32 px=0; px < TIC_SPRITESIZE; px++, xx++)
+			{
+				u8 color = tic_tool_peek4(buffer, i++);
+				if(!transparent[color]) setPixel(machine, xx, y, color);
+			}
+		}
+		return;
+	}
 
-	void(*drawRectFunc)(tic_machine*, s32, s32, s32, s32, u8) = drawRect;
+	s32 a = flip & tic_horz_flip ? -1 : 1;
+	s32 b = flip & tic_vert_flip ? -1 : 1;
 
 	if(rotate == tic_90_rotate) a = -a;
 	else if(rotate == tic_180_rotate) a = -a, b = -b;
 	else if(rotate == tic_270_rotate) b = -b;
 
-	x += (scale - a) * (TIC_SPRITESIZE - 1) >> 1;
-	y += (scale - b) * (TIC_SPRITESIZE - 1) >> 1;
+	bool swap_axis = (rotate == tic_90_rotate || rotate == tic_270_rotate);
 
-	if(rotate == tic_90_rotate || rotate == tic_270_rotate)
+	for(s32 py=0; py < TIC_SPRITESIZE; py++, y+=scale)
 	{
-		s32 t = a; a = b; b = t;
-		t = x; x = y; y = t;
-		drawRectFunc = drawRectRev;
-	}
-
-	for(s32 i = 0, px = 0, xx = x; i < TIC_SPRITESIZE * TIC_SPRITESIZE; px++, xx += a, i++)
-	{
-		if(px == TIC_SPRITESIZE) px = 0, xx = x, y += b;
-
-		u8 color = tic_tool_peek4(buffer, i);
-
-		if(count == 1)
+		s32 xx = x;
+		for(s32 px=0; px < TIC_SPRITESIZE; px++, xx+=scale)
 		{
-			if(*colors != color)
-				drawRectFunc(machine, xx, y, scale, scale, color);
-		}
-		else
-		{
-			bool draw = true;
-			for(s32 i = 0; i < count; i++)
-			{
-				if(color == colors[i])
-				{
-					draw = false;
-					break;
+			s32 i;
+			s32 ix, iy;
+			ix = a == 1 ? px : TIC_SPRITESIZE - px - 1;
+			iy = b == 1 ? py : TIC_SPRITESIZE - py - 1;
+			if(swap_axis) {
+				i = ix * TIC_SPRITESIZE + iy;
+			} else {
+				i = iy * TIC_SPRITESIZE + ix;
+			}
+			u8 color = tic_tool_peek4(buffer, i);
+			if(!transparent[color]) {
+				if (scale == 1) {
+					setPixel(machine, xx, y, color);
+				} else {
+					drawRect(machine, xx, y, scale, scale, color);
 				}
 			}
-
-			if(draw)
-				drawRectFunc(machine, xx, y, scale, scale, color);
 		}
-	}		
+	}
 }
 
 static void drawMap(tic_machine* machine, const tic_gfx* src, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale, RemapFunc remap, void* data)
