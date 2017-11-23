@@ -202,9 +202,9 @@ static void drawRectBorder(tic_machine* machine, s32 x, s32 y, s32 width, s32 he
 
 static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
-	u8 transparent[TIC_PALETTE_SIZE];
-	memset(transparent, 0, sizeof(transparent));
-	for (s32 i = 0; i < count; i++) transparent[colors[i]] = 1;
+	u8 mapping[TIC_PALETTE_SIZE];
+	for (s32 i = 0; i < TIC_PALETTE_SIZE; i++) mapping[i] = tic_tool_peek4(machine->memory.ram.vram.mapping, i);
+	for (s32 i = 0; i < count; i++) mapping[colors[i]] = 255;
 
 	flip &= 0b11;
 	rotate &= 0b11;
@@ -212,13 +212,19 @@ static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y,
 	if (flip == 0 && rotate == 0 && scale == 1) {
 		// the most common path
 		s32 i = 0;
-		for(s32 py=0; py < TIC_SPRITESIZE; py++, y++)
+		s32 sx, sy, ex, ey;
+		sx = machine->state.clip.l - x; if (sx < 0) sx = 0;
+		sy = machine->state.clip.t - y; if (sy < 0) sy = 0;
+		ex = machine->state.clip.r - x; if (ex > TIC_SPRITESIZE) ex = TIC_SPRITESIZE;
+		ey = machine->state.clip.b - y; if (ey > TIC_SPRITESIZE) ey = TIC_SPRITESIZE;
+		y += sy;
+		for(s32 py=sy; py < ey; py++, y++)
 		{
-			s32 xx = x;
-			for(s32 px=0; px < TIC_SPRITESIZE; px++, xx++)
+			s32 xx = x + sx;
+			for(s32 px=sx; px < ex; px++, xx++)
 			{
-				u8 color = tic_tool_peek4(buffer, i++);
-				if(!transparent[color]) setPixel(machine, xx, y, color);
+				u8 color = mapping[tic_tool_peek4(buffer, i++)];
+				if(color != 255) tic_tool_poke4(machine->memory.ram.vram.screen.data, y * TIC80_WIDTH + xx, color);
 			}
 		}
 		return;
@@ -248,7 +254,7 @@ static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y,
 				i = iy * TIC_SPRITESIZE + ix;
 			}
 			u8 color = tic_tool_peek4(buffer, i);
-			if(!transparent[color]) {
+			if(mapping[color] != 255) {
 				if (scale == 1) {
 					setPixel(machine, xx, y, color);
 				} else {
