@@ -202,7 +202,7 @@ static void drawRectBorder(tic_machine* machine, s32 x, s32 y, s32 width, s32 he
 
 static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
-	u8 transparent[16];
+	u8 transparent[TIC_PALETTE_SIZE];
 	memset(transparent, 0, sizeof(transparent));
 	for (s32 i = 0; i < count; i++) transparent[colors[i]] = 1;
 
@@ -210,12 +210,12 @@ static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y,
 	rotate &= 0b11;
 
 	if (flip == 0 && rotate == 0 && scale == 1) {
-		// most common path
+		// the most common path
 		s32 i = 0;
-		for(s32 py=0; py < TIC_SPRITESIZE; py++, y+=1)
+		for(s32 py=0; py < TIC_SPRITESIZE; py++, y++)
 		{
 			s32 xx = x;
-			for(s32 px=0; px < TIC_SPRITESIZE; px++, xx+=1)
+			for(s32 px=0; px < TIC_SPRITESIZE; px++, xx++)
 			{
 				u8 color = tic_tool_peek4(buffer, i++);
 				if(!transparent[color]) setPixel(machine, xx, y, color);
