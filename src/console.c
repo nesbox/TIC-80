@@ -542,12 +542,12 @@ static bool bufferEmpty(const u8* data, s32 size)
 	return true;
 }
 
-static char* saveTextSection(char* ptr, const char* tag, const char* data)
+static char* saveTextSection(char* ptr, const char* data)
 {
 	if(strlen(data) == 0)
 		return ptr;
 
-	sprintf(ptr, "-- <%s>\n%s\n-- </%s>\n", tag, data, tag);
+	sprintf(ptr, "%s\n", data);
 	ptr += strlen(ptr);
 
 	return ptr;
@@ -605,7 +605,7 @@ static s32 saveProject(Console* console, void* buffer)
 	tic_mem* tic = console->tic;
 
 	char* stream = buffer;
-	char* ptr = saveTextSection(stream, "CODE", tic->cart.code.data);
+	char* ptr = saveTextSection(stream, tic->cart.code.data);
 
 	for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
 	{
@@ -618,29 +618,31 @@ static s32 saveProject(Console* console, void* buffer)
 	return strlen(stream);
 }
 
-static bool loadTextSection(const char* project, const char* tag, void* dst, s32 size)
+static bool loadTextSection(const char* project, void* dst, s32 size)
 {
-	char tagbuf[64];
-	sprintf(tagbuf, "-- <%s>\n", tag);
-
-	const char* start = SDL_strstr(project, tagbuf);
 	bool done = false;
 
-	if(start)
+	const char* start = project;
+	const char* end = project + strlen(project);
+
 	{
-		start += strlen(tagbuf);
+		char tagbuf[64];
 
-		if(start < project + strlen(project))
+		for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
 		{
-			sprintf(tagbuf, "\n-- </%s>", tag);
-			const char* end = SDL_strstr(start, tagbuf);
+			sprintf(tagbuf, "-- <%s>\n", BinarySections[i].tag);
 
-			if(end > start)
-			{
-				SDL_memcpy(dst, start, SDL_min(size, end - start));
-				done = true;
-			}
-		}
+			const char* ptr = SDL_strstr(project, tagbuf);
+
+			if(ptr && ptr < end)
+				end = ptr;
+		}		
+	}
+
+	if(end > start)
+	{
+		SDL_memcpy(dst, start, SDL_min(size, end - start));
+		done = true;
 	}
 
 	return done;
@@ -721,7 +723,7 @@ static bool loadProject(Console* console, const char* data, s32 size, tic_cartri
 			SDL_memset(cart, 0, sizeof(tic_cartridge));
 			SDL_memcpy(&cart->palette, &tic->config.palette.data, sizeof(tic_palette));
 
-			if(loadTextSection(project, "CODE", cart->code.data, sizeof(tic_code)))
+			if(loadTextSection(project, cart->code.data, sizeof(tic_code)))
 				done = true;
 
 			for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
