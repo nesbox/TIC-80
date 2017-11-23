@@ -61,7 +61,9 @@
 #define KEYMAP_DAT_PATH TIC_LOCAL KEYMAP_DAT
 
 #define CART_EXT ".tic"
-#define PROJECT_EXT ".ticp"
+#define PROJECT_LUA_EXT ".lua"
+#define PROJECT_MOON_EXT ".moon"
+#define PROJECT_JS_EXT ".js"
 
 typedef struct
 {

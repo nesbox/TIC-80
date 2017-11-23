@@ -511,9 +511,19 @@ static void onCartLoaded(Console* console, const char* name)
 
 #if defined(TIC80_PRO)
 
-static const char* getProjectName(const char* name)
+static bool hasExt(const char* name, const char* ext)
 {
-	return getName(name, PROJECT_EXT);
+	return strcmp(name + strlen(name) - strlen(ext), ext) == 0;
+}
+
+static bool hasProjectExt(const char* name)
+{
+	return hasExt(name, PROJECT_LUA_EXT) || hasExt(name, PROJECT_MOON_EXT) || hasExt(name, PROJECT_JS_EXT);
+}
+
+static const char* projectComment(const char* name)
+{
+	return hasExt(name, PROJECT_JS_EXT) ? "//" : "--";
 }
 
 static void buf2str(const void* data, s32 size, char* ptr, bool flip)
@@ -553,12 +563,12 @@ static char* saveTextSection(char* ptr, const char* data)
 	return ptr;
 }
 
-static char* saveBinaryBuffer(char* ptr, const void* data, s32 size, s32 row, bool flip)
+static char* saveBinaryBuffer(char* ptr, const char* comment, const void* data, s32 size, s32 row, bool flip)
 {
 	if(bufferEmpty(data, size)) 
 		return ptr;
 
-	sprintf(ptr, "-- %03i:", row);
+	sprintf(ptr, "%s %03i:", comment, row);
 	ptr += strlen(ptr);
 
 	buf2str(data, size, ptr, flip);
@@ -570,18 +580,18 @@ static char* saveBinaryBuffer(char* ptr, const void* data, s32 size, s32 row, bo
 	return ptr;
 }
 
-static char* saveBinarySection(char* ptr, const char* tag, s32 count, const void* data, s32 size, bool flip)
+static char* saveBinarySection(char* ptr, const char* comment, const char* tag, s32 count, const void* data, s32 size, bool flip)
 {
 	if(bufferEmpty(data, size * count)) 
 		return ptr;
 
-	sprintf(ptr, "\n-- <%s>\n", tag);
+	sprintf(ptr, "%s <%s>\n", comment, tag);
 	ptr += strlen(ptr);
 
 	for(s32 i = 0; i < count; i++, data = (u8*)data + size)
-		ptr = saveBinaryBuffer(ptr, data, size, i, flip);
+		ptr = saveBinaryBuffer(ptr, comment, data, size, i, flip);
 
-	sprintf(ptr, "-- </%s>\n", tag);
+	sprintf(ptr, "%s </%s>\n\n", comment, tag);
 	ptr += strlen(ptr);
 
 	return ptr;
@@ -600,7 +610,7 @@ static const BinarySection BinarySections[] =
 	{"TRACKS", 		MUSIC_TRACKS, offsetof(tic_cartridge, sound.music.tracks), sizeof(tic_track), true},
 };
 
-static s32 saveProject(Console* console, void* buffer)
+static s32 saveProject(Console* console, void* buffer, const char* comment)
 {
 	tic_mem* tic = console->tic;
 
@@ -610,15 +620,15 @@ static s32 saveProject(Console* console, void* buffer)
 	for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
 	{
 		const BinarySection* section = &BinarySections[i];
-		ptr = saveBinarySection(ptr, section->tag, section->count, (u8*)&tic->cart + section->offset, section->size, section->flip);
+		ptr = saveBinarySection(ptr, comment, section->tag, section->count, (u8*)&tic->cart + section->offset, section->size, section->flip);
 	}
 
-	saveBinarySection(ptr, "COVER", 1, &tic->cart.cover, tic->cart.cover.size + sizeof(s32), true);
+	saveBinarySection(ptr, comment, "COVER", 1, &tic->cart.cover, tic->cart.cover.size + sizeof(s32), true);
 
 	return strlen(stream);
 }
 
-static bool loadTextSection(const char* project, void* dst, s32 size)
+static bool loadTextSection(const char* project, const char* comment, void* dst, s32 size)
 {
 	bool done = false;
 
@@ -630,7 +640,7 @@ static bool loadTextSection(const char* project, void* dst, s32 size)
 
 		for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
 		{
-			sprintf(tagbuf, "-- <%s>\n", BinarySections[i].tag);
+			sprintf(tagbuf, "\n%s <%s>\n", comment, BinarySections[i].tag);
 
 			const char* ptr = SDL_strstr(project, tagbuf);
 
@@ -648,10 +658,10 @@ static bool loadTextSection(const char* project, void* dst, s32 size)
 	return done;
 }
 
-static bool loadBinarySection(const char* project, const char* tag, s32 count, void* dst, s32 size, bool flip)
+static bool loadBinarySection(const char* project, const char* comment, const char* tag, s32 count, void* dst, s32 size, bool flip)
 {
 	char tagbuf[64];
-	sprintf(tagbuf, "-- <%s>\n", tag);
+	sprintf(tagbuf, "%s <%s>\n", comment, tag);
 
 	const char* start = SDL_strstr(project, tagbuf);
 	bool done = false;
@@ -660,7 +670,7 @@ static bool loadBinarySection(const char* project, const char* tag, s32 count, v
 	{
 		start += strlen(tagbuf);
 
-		sprintf(tagbuf, "\n-- </%s>", tag);
+		sprintf(tagbuf, "\n%s </%s>", comment, tag);
 		const char* end = SDL_strstr(start, tagbuf);
 
 		if(end > start)
@@ -697,7 +707,7 @@ static bool loadBinarySection(const char* project, const char* tag, s32 count, v
 	return done;
 }
 
-static bool loadProject(Console* console, const char* data, s32 size, tic_cartridge* dst)
+static bool loadProject(Console* console, const char* name, const char* data, s32 size, tic_cartridge* dst)
 {
 	tic_mem* tic = console->tic;
 
@@ -723,17 +733,19 @@ static bool loadProject(Console* console, const char* data, s32 size, tic_cartri
 			SDL_memset(cart, 0, sizeof(tic_cartridge));
 			SDL_memcpy(&cart->palette, &tic->config.palette.data, sizeof(tic_palette));
 
-			if(loadTextSection(project, cart->code.data, sizeof(tic_code)))
+			const char* comment = projectComment(name);
+
+			if(loadTextSection(project, comment, cart->code.data, sizeof(tic_code)))
 				done = true;
 
 			for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
 			{
 				const BinarySection* section = &BinarySections[i];
-				if(loadBinarySection(project, section->tag, section->count, (u8*)cart + section->offset, section->size, section->flip))
+				if(loadBinarySection(project, comment, section->tag, section->count, (u8*)cart + section->offset, section->size, section->flip))
 					done = true;
 			}
 
-			if(loadBinarySection(project, "COVER", 1, &cart->cover, -1, true))
+			if(loadBinarySection(project, comment, "COVER", 1, &cart->cover, -1, true))
 				done = true;
 			
 			SDL_memcpy(dst, cart, sizeof(tic_cartridge));
@@ -762,7 +774,7 @@ static void updateProject(Console* console)
 
 			if(cart)
 			{
-				if(loadProject(console, data, size, cart))
+				if(loadProject(console, console->romName, data, size, cart))
 				{
 					SDL_memcpy(&tic->cart, cart, sizeof(tic_cartridge));
 
@@ -775,11 +787,6 @@ static void updateProject(Console* console)
 
 		}		
 	}
-}
-
-static bool hasExt(const char* name, const char* ext)
-{
-	return strcmp(name + strlen(name) - strlen(ext), ext) == 0;
 }
 
 #endif
@@ -810,13 +817,19 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 		else
 		{
 #if defined(TIC80_PRO)
-			const char* name = getProjectName(param);
+			const char* name = getName(param, PROJECT_LUA_EXT);
+
+			if(!fsExistsFile(console->fs, name))
+				name = getName(param, PROJECT_MOON_EXT);
+
+			if(!fsExistsFile(console->fs, name))
+				name = getName(param, PROJECT_JS_EXT);
 
 			void* data = fsLoadFile(console->fs, name, &size);
 
 			if(data)
 			{
-				loadProject(console, data, size, &console->tic->cart);
+				loadProject(console, name, data, size, &console->tic->cart);
 				onCartLoaded(console, name);
 
 				SDL_free(data);
@@ -1865,12 +1878,12 @@ static CartSaveResult saveCartName(Console* console, const char* name)
 				s32 size = 0;
 
 #if defined(TIC80_PRO)
-				if(hasExt(name, PROJECT_EXT))
+				if(hasProjectExt(name))
 				{
-					size = saveProject(console, buffer);
+					size = saveProject(console, buffer, projectComment(name));
 				}
 				else
-#endif					
+#endif
 				{
 					name = getCartName(name);
 					size = tic->api.save(&tic->cart, buffer);
@@ -2613,9 +2626,9 @@ static void cmdLoadCart(Console* console, const char* name)
 	if(data)
 	{
 #if defined(TIC80_PRO)
-		if(hasExt(name, PROJECT_EXT))
+		if(hasProjectExt(name))
 		{
-			loadProject(console, data, size, &embed.file);
+			loadProject(console, name, data, size, &embed.file);
 		}
 		else
 #endif

@@ -388,12 +388,13 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 	AddMenuItem* data = (AddMenuItem*)ptr;
 
 	static const char CartExt[] = CART_EXT;
-	static const char ProjectExt[] = PROJECT_EXT;
 
 	if(dir 
 		|| hasExt(name, CartExt)
 #if defined(TIC80_PRO)		
-		|| hasExt(name, ProjectExt)
+		|| hasExt(name, PROJECT_LUA_EXT)
+		|| hasExt(name, PROJECT_MOON_EXT)
+		|| hasExt(name, PROJECT_JS_EXT)
 #endif
 		)
 	{
@@ -416,7 +417,6 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 				cutExt(item->label, CartExt);
 			else
 			{
-				cutExt(item->label, ProjectExt);
 				project = true;
 			}
 
@@ -535,8 +535,8 @@ static void loadCover(Surf* surf)
 
 			if(cart)
 			{
-				if(hasExt(item->name, PROJECT_EXT))
-					surf->console->loadProject(surf->console, data, size, cart);
+				if(hasExt(item->name, PROJECT_LUA_EXT))
+					surf->console->loadProject(surf->console, item->name, data, size, cart);
 				else
 					tic->api.load(cart, data, size, true);
 
@@ -655,7 +655,7 @@ static void onPlayCart(Surf* surf)
 			s32 size = 0;
 			void* data = fsLoadFile(surf->fs, item->name, &size);
 
-			surf->console->loadProject(surf->console, data, size, cart);
+			surf->console->loadProject(surf->console, item->name, data, size, cart);
 
 			SDL_memcpy(&surf->tic->cart, cart, sizeof(tic_cartridge));
 
