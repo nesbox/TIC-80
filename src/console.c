@@ -761,7 +761,7 @@ static void updateProject(Console* console)
 {
 	tic_mem* tic = console->tic;
 
-	if(strlen(console->romName))
+	if(strlen(console->romName) && hasProjectExt(console->romName))
 	{
 		s32 size = 0;
 		void* data = fsLoadFile(console->fs, console->romName, &size);
