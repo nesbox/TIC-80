@@ -2629,18 +2629,19 @@ static void cmdLoadCart(Console* console, const char* name)
 		if(hasProjectExt(name))
 		{
 			loadProject(console, name, data, size, &embed.file);
+			embed.cmd = true;
 		}
 		else
 #endif
 		{
 			loadCart(console->tic, &embed.file, data, size, true);
+			embed.cmd = false;
 		}
 
 		strcpy(console->romName, fsFilename(name));
 
 		embed.yes = true;
-		embed.cmd = true;
-
+		
 		SDL_free(data);
 	}
 }
