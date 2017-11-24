@@ -31,6 +31,8 @@ extern "C" {
 
 #define TIC80_WIDTH 240
 #define TIC80_HEIGHT 136
+#define TIC80_FULLWIDTH 256
+#define TIC80_FULLHEIGHT (TIC80_FULLWIDTH*9/16)
 
 typedef struct 
 {
@@ -47,15 +49,8 @@ typedef struct
 		s32 count;
 	} sound;
 
-	u32 screen[TIC80_WIDTH * TIC80_HEIGHT];
-	u32 border[TIC80_HEIGHT];
-
-	struct
-	{
-		s8 x;
-		s8 y;
-		s8 rows[TIC80_HEIGHT];
-	} offset;
+	u32 screen[TIC80_FULLWIDTH * TIC80_FULLHEIGHT];
+	
 } tic80;
 
 typedef union

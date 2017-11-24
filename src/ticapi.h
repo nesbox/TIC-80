@@ -60,6 +60,7 @@ typedef struct
 } tic_tick_data;
 
 typedef struct tic_mem tic_mem;
+typedef void(*tic_scanline)(tic_mem* memory, s32 row);
 
 typedef struct
 {
@@ -82,7 +83,7 @@ typedef struct
 	void (*circle)				(tic_mem* memory, s32 x, s32 y, u32 radius, u8 color);
 	void (*circle_border)		(tic_mem* memory, s32 x, s32 y, u32 radius, u8 color);
 	void (*tri)					(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, u8 color);
-	void (*textri)				(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, s32 u1, s32 v1, s32 u2, s32 v2, s32 u3, s32 v3 ,bool use_map,u8 chroma);
+	void(*textri)				(tic_mem* memory, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8 chroma);
 	void (*clip)				(tic_mem* memory, s32 x, s32 y, s32 width, s32 height);
 	void (*sfx)					(tic_mem* memory, s32 index, s32 note, s32 octave, s32 duration, s32 channel);
 	void (*sfx_stop)			(tic_mem* memory, s32 channel);
@@ -104,6 +105,7 @@ typedef struct
 
 	void (*tick_start)			(tic_mem* memory, const tic_sound* src);
 	void (*tick_end)			(tic_mem* memory);
+	void (*blit)				(tic_mem* tic, u32* out, tic_scanline scanline);
 
 	tic_script_lang (*get_script)(tic_mem* memory);
 } tic_api;

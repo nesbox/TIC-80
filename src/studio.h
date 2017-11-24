@@ -60,6 +60,11 @@
 #define KEYMAP_DAT "keymap.dat"
 #define KEYMAP_DAT_PATH TIC_LOCAL KEYMAP_DAT
 
+#define CART_EXT ".tic"
+#define PROJECT_LUA_EXT ".lua"
+#define PROJECT_MOON_EXT ".moon"
+#define PROJECT_JS_EXT ".js"
+
 typedef struct
 {
 	struct
@@ -100,6 +105,7 @@ typedef struct
 	s32 gifLength;
 	
 	bool checkNewVersion;
+	bool noSound;
 
 } StudioConfig;
 
@@ -146,7 +152,7 @@ EditorMode getStudioMode();
 void exitStudio();
 u32 unzip(u8** dest, const u8* source, size_t size);
 
-void str2buf(const char* str, void* buf, bool flip);
+void str2buf(const char* str, s32 size, void* buf, bool flip);
 void toClipboard(const void* data, s32 size, bool flip);
 bool fromClipboard(void* data, s32 size, bool flip);
 
@@ -189,6 +195,7 @@ bool studioCartChanged();
 void playSystemSfx(s32 id);
 
 void runGameFromSurf();
+void gotoCode();
 void gotoSurf();
 void exitFromGameMenu();
 void runProject();

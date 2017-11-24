@@ -299,7 +299,7 @@ static s32 lua_textri(lua_State* lua)
 		float pt[12];
 
 		for (s32 i = 0; i < COUNT_OF(pt); i++)
-			pt[i] = getLuaNumber(lua, i + 1);
+			pt[i] = (float)lua_tonumber(lua, i + 1);
 
 		tic_mem* memory = (tic_mem*)getLuaMachine(lua);
 		u8 chroma = 0xff;
@@ -745,7 +745,12 @@ static s32 lua_sync(lua_State* lua)
 {
 	tic_mem* memory = (tic_mem*)getLuaMachine(lua);
 
-	memory->api.sync(memory, true);
+	bool toCart = true;
+	
+	if(lua_gettop(lua) >= 1)
+		toCart = lua_toboolean(lua, 1);
+
+	memory->api.sync(memory, toCart);
 
 	return 0;
 }
@@ -956,18 +961,21 @@ static s32 lua_pmem(lua_State *lua)
 	if(top >= 1)
 	{
 		u32 index = getLuaNumber(lua, 1);
-		index %= TIC_PERSISTENT_SIZE;
 
-		s32 val = memory->ram.persistent.data[index];
-
-		if(top >= 2)
+		if(index >= 0 && index < TIC_PERSISTENT_SIZE)
 		{
-			memory->ram.persistent.data[index] = getLuaNumber(lua, 2);
+			s32 val = memory->ram.persistent.data[index];
+
+			if(top >= 2)
+			{
+				memory->ram.persistent.data[index] = getLuaNumber(lua, 2);
+			}
+
+			lua_pushinteger(lua, val);
+
+			return 1;			
 		}
-
-		lua_pushinteger(lua, val);
-
-		return 1;
+		luaL_error(lua, "invalid persistent memory index\n");
 	}
 	else luaL_error(lua, "invalid params, pmem(index [val]) -> val\n");
 
@@ -1013,7 +1021,7 @@ static s32 lua_mouse(lua_State *lua)
 
 static s32 lua_dofile(lua_State *lua)
 {
-	luaL_error(lua, "you can use 'dofile' only on first line\n");
+	luaL_error(lua, "unknown method: \"dofile\"\n");
 
 	return 0;
 }

@@ -27,9 +27,15 @@
 #include "defines.h"
 
 #define TIC_VERSION_MAJOR 0
-#define TIC_VERSION_MINOR 47
+#define TIC_VERSION_MINOR 50
 #define TIC_VERSION_PATCH 0
 #define TIC_VERSION_STATUS ""
+
+#if defined(TIC80_PRO)
+#define TIC_VERSION_POST " Pro"
+#else
+#define TIC_VERSION_POST ""
+#endif
 
 #define TIC_MAKE_VERSION(major, minor, patch) ((major) * 10000 + (minor) * 100 + (patch))
 #define TIC_VERSION TIC_MAKE_VERSION(MYPROJ_VERSION_MAJOR, MYPROJ_VERSION_MINOR, MYPROJ_VERSION_PATCH)
@@ -37,7 +43,7 @@
 #define DEF2STR2(x) #x
 #define DEF2STR(x) DEF2STR2(x)
 
-#define TIC_VERSION_LABEL DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "." DEF2STR(TIC_VERSION_PATCH) TIC_VERSION_STATUS
+#define TIC_VERSION_LABEL DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "." DEF2STR(TIC_VERSION_PATCH) TIC_VERSION_STATUS TIC_VERSION_POST
 #define TIC_PACKAGE "com.nesbox.tic"
 #define TIC_NAME "TIC-80"
 #define TIC_NAME_FULL TIC_NAME " tiny computer"
@@ -302,8 +308,8 @@ typedef struct
 
 typedef struct 
 {
-	u8 data [TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32)];
 	s32 size;
+	u8 data [TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32)];
 } tic_cover_image;
 
 typedef struct
@@ -355,7 +361,16 @@ typedef union
 
 		struct
 		{
-			u8 border;
+			union
+			{
+				u8 colors;
+							
+				struct
+				{
+					u8 border:TIC_PALETTE_BPP;
+					u8 bg:TIC_PALETTE_BPP;
+				};
+			};
 
 			struct
 			{

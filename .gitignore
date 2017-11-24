@@ -47,9 +47,9 @@ lib/windows/res.aps
 lib/windows/tic.aps
 .DS_Store
 lib/macos/.DS_Store
-build/macosx/tic.icns
-build/macosx/tic.app/
-build/macosx/tic.dmg
+build/macosx/tic80.icns
+build/macosx/tic80.app/
+build/macosx/tic80.dmg
 tools/bundler/assets/
 tools/bundler/bin/
 tools/bin2txt/*.exe
@@ -81,3 +81,14 @@ build/uwp/tic80/x64/
 build/uwp/tic80/ARM/
 build/uwp/tic/Package.StoreAssociation.xml
 build/uwp/tic/tic_StoreKey.pfx
+build/windows/gif/Debug Pro/
+build/windows/gif/Release Pro/
+build/windows/lua/Debug Pro/
+build/windows/lua/Release Pro/
+build/windows/tic/Debug PRO/
+build/windows/tic/Release PRO/
+build/windows/tic80/Debug Pro/
+build/windows/tic80/Release Pro/
+build/windows/zlib/Debug Pro/
+build/windows/zlib/Release Pro/
+build/windows/example/Release Pro/

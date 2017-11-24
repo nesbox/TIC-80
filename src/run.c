@@ -95,7 +95,7 @@ static void tick(Run* run)
 		return;
 
 	if(!run->init)
-	{
+	{	
 		run->tickData.start = run->tickData.counter(),
 		run->init = true;
 	}

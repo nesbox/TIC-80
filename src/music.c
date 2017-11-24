@@ -598,7 +598,7 @@ static void copyFromClipboard(Music* music)
 			{
 				u8* data = SDL_malloc(size);
 
-				str2buf(clipboard, data, true);
+				str2buf(clipboard, strlen(clipboard), data, true);
 
 				ClipboardHeader header = {0};
 

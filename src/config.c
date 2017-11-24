@@ -56,6 +56,16 @@ static void readConfigCheckNewVersion(Config* config, lua_State* lua)
 	lua_pop(lua, 1);
 }
 
+static void readConfigNoSound(Config* config, lua_State* lua)
+{
+	lua_getglobal(lua, "NO_SOUND");
+
+	if(lua_isboolean(lua, -1))
+		config->data.noSound = lua_toboolean(lua, -1);
+
+	lua_pop(lua, 1);
+}
+
 static void readCursorTheme(Config* config, lua_State* lua)
 {
 	lua_getfield(lua, -1, "CURSOR");
@@ -156,6 +166,7 @@ static void readConfig(Config* config)
 			readConfigVideoLength(config, lua);
 			readConfigVideoScale(config, lua);
 			readConfigCheckNewVersion(config, lua);
+			readConfigNoSound(config, lua);
 			readTheme(config, lua);
 		}
 
@@ -173,6 +184,8 @@ static void update(Config* config, const u8* buffer, size_t size)
 
 static void setDefault(Config* config)
 {
+	SDL_memset(&config->data, 0, sizeof(StudioConfig));
+
 	{
 		static const u8 DefaultBiosZip[] = 
 		{

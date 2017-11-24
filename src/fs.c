@@ -29,12 +29,11 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#if !defined(__WINRT__) && !defined(__WINDOWS__)
-#include <unistd.h>
-#endif
-
 #if defined(__WINRT__) || defined(__WINDOWS__)
 #include <direct.h>
+#include <windows.h>
+#else
+#include <unistd.h>
 #endif
 
 #if defined(__EMSCRIPTEN__)
@@ -540,18 +539,95 @@ static void makeDir(const char* name)
 #endif
 }
 
-bool fsExistsFile(FileSystem* fs, const char* name)
+const char* fsFilename(const char *path)
 {
-	const char* path = getFilePath(fs, name);
-	FILE* file = tic_fopen(UTF8ToString(path), UTF8ToString("rb"));
+	const char* full = fsFullname(path);
+	const char* base = fsBasename(path);
 
-	if(file)
+	return base ? full + strlen(fsBasename(path)) : NULL;
+}
+
+const char* fsFullname(const char *path)
+{
+	char* result = NULL;
+
+#if defined(__WINDOWS__) || defined(__WINRT__)
+	static wchar_t wpath[FILENAME_MAX];
+	GetFullPathNameW(UTF8ToString(path), sizeof(wpath), wpath, NULL);
+
+	result = StringToUTF8(wpath);
+#else
+
+	result = realpath(path, NULL);
+
+#endif
+
+	return result;
+}
+
+const char* fsBasename(const char *path)
+{
+	char* result = NULL;
+
+#if defined(__WINDOWS__) || defined(__WINRT__)
+#define SEP "\\"
+#else
+#define SEP "/"
+#endif
+
 	{
-		fclose(file);
-		return true;
+		char* full = (char*)fsFullname(path);
+
+		struct tic_stat_struct s;
+		if(tic_stat(UTF8ToString(full), &s) == 0)
+		{
+			result = full;
+
+			if(S_ISREG(s.st_mode))
+			{
+				const char* ptr = result + strlen(result);
+
+				while(ptr >= result)
+				{
+					if(*ptr == SEP[0])
+					{
+						result[ptr-result] = '\0';
+						break;
+					}
+
+					ptr--;
+				}
+			}
+		}
 	}
 
-	return false;
+	if(result && result[strlen(result)-1] != SEP[0])
+		strcat(result, SEP);
+
+	return result;
+}
+
+bool fsExists(const char* name)
+{
+	struct tic_stat_struct s;
+	return tic_stat(UTF8ToString(name), &s) == 0;
+}
+
+bool fsExistsFile(FileSystem* fs, const char* name)
+{
+	return fsExists(getFilePath(fs, name));
+}
+
+u64 fsMDate(FileSystem* fs, const char* name)
+{
+	struct tic_stat_struct s;
+
+	if(tic_stat(UTF8ToString(getFilePath(fs, name)), &s) == 0 && S_ISREG(s.st_mode))
+	{
+		return s.st_mtime;
+	}
+
+	return 0;
 }
 
 bool fsSaveFile(FileSystem* fs, const char* name, const void* data, size_t size, bool overwrite)
@@ -674,7 +750,7 @@ void fsMakeDir(FileSystem* fs, const char* name)
 
 #if defined(__WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
 
-int fsOpenSystemPath(FileSystem* fs, const char* path)
+s32 fsOpenSystemPath(FileSystem* fs, const char* path)
 {
 	char command[FILENAME_MAX];
 
@@ -697,7 +773,10 @@ int fsOpenSystemPath(FileSystem* fs, const char* path)
 
 #else
 
-void fsOpenSystemPath(FileSystem* fs, const char* path) {}
+s32 fsOpenSystemPath(FileSystem* fs, const char* path)
+{
+	return 0;
+}
 
 #endif
 
@@ -711,55 +790,64 @@ void fsOpenWorkingFolder(FileSystem* fs)
 	fsOpenSystemPath(fs, path);
 }
 
-void createFileSystem(void(*callback)(FileSystem*))
+void createFileSystem(const char* path, void(*callback)(FileSystem*))
 {
 	FileSystem* fs = (FileSystem*)SDL_malloc(sizeof(FileSystem));
 	memset(fs, 0, sizeof(FileSystem));
 
+	fs->net = createNet();
+
+	if(path)
+	{
+		strcpy(fs->dir, path);
+		callback(fs);
+	}
+	else
+	{
+
 #if defined(__EMSCRIPTEN__)
 
-	strcpy(fs->dir, "/" TIC_PACKAGE "/" TIC_NAME "/");
+		strcpy(fs->dir, "/" TIC_PACKAGE "/" TIC_NAME "/");
 
 #elif defined(__ANDROID__)
 
-	strcpy(fs->dir, SDL_AndroidGetExternalStoragePath());
-	const char AppFolder[] = "/" TIC_NAME "/";
-	strcat(fs->dir, AppFolder);
-	mkdir(fs->dir, 0700);
+		strcpy(fs->dir, SDL_AndroidGetExternalStoragePath());
+		const char AppFolder[] = "/" TIC_NAME "/";
+		strcat(fs->dir, AppFolder);
+		mkdir(fs->dir, 0700);
 
 #else
 
-	char* path = SDL_GetPrefPath(TIC_PACKAGE, TIC_NAME);
-	strcpy(fs->dir, path);
-	SDL_free(path);
+		char* path = SDL_GetPrefPath(TIC_PACKAGE, TIC_NAME);
+		strcpy(fs->dir, path);
+		SDL_free(path);
 
 #endif
-
-	fs->net = createNet();
-
+		
 #if defined(__EMSCRIPTEN__)
-	EM_ASM_
-	(
-		{
-			var dir = "";
-			Module.Pointer_stringify($0).split("/").forEach(function(val)
+		EM_ASM_
+		(
 			{
-				if(val.length)
+				var dir = "";
+				Module.Pointer_stringify($0).split("/").forEach(function(val)
 				{
-					dir += "/" + val;
-					FS.mkdir(dir);
-				}
-			});
-			
-			FS.mount(IDBFS, {}, dir);
-			FS.syncfs(true, function(error)
-			{
-				if(error) console.log(error);
-				else Runtime.dynCall('vi', $1, [$2]);
-			});			
-		}, fs->dir, callback, fs
-	);
+					if(val.length)
+					{
+						dir += "/" + val;
+						FS.mkdir(dir);
+					}
+				});
+				
+				FS.mount(IDBFS, {}, dir);
+				FS.syncfs(true, function(error)
+				{
+					if(error) console.log(error);
+					else Runtime.dynCall('vi', $1, [$2]);
+				});			
+			}, fs->dir, callback, fs
+		);
 #else
-	callback(fs);
+		callback(fs);
 #endif
+	}
 }

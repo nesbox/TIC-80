@@ -83,6 +83,7 @@ static void drawCode(Code* code, bool withCursor)
 
 		if(code->cursor.selection && pointer >= selection.start && pointer < selection.end)
 			code->tic->api.rect(code->tic, x-1, y-1, TIC_FONT_WIDTH+1, TIC_FONT_HEIGHT+1, getConfig()->theme.code.select);
+        else code->tic->api.draw_char(code->tic, symbol, x+1, y+1, 0);
 
 		code->tic->api.draw_char(code->tic, symbol, x, y, *colorPointer);
 
@@ -143,9 +144,9 @@ static s32 getLinesCount(Code* code)
 
 static void removeInvalidChars(char* code)
 {
-    // remove \r symbol
-    char* s; char* d;
-    for(s = d = code; (*d = *s); d += (*s++ != '\r'));
+	// remove \r symbol
+	char* s; char* d;
+	for(s = d = code; (*d = *s); d += (*s++ != '\r'));
 }
 
 static void updateEditor(Code* code)
@@ -647,7 +648,7 @@ static void pageDown(Code* code)
 	s32 line = 0;
 	getCursorPosition(code, &column, &line);
 	s32 lines = getLinesCount(code);
- 	setCursorPosition(code, column, line < lines - TEXT_BUFFER_HEIGHT ? line + TEXT_BUFFER_HEIGHT : lines);
+	setCursorPosition(code, column, line < lines - TEXT_BUFFER_HEIGHT ? line + TEXT_BUFFER_HEIGHT : lines);
 }
 
 static bool replaceSelection(Code* code)

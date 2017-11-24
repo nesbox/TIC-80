@@ -38,7 +38,7 @@
 #define COVER_Y 5
 #define COVER_X (TIC80_WIDTH - COVER_WIDTH - COVER_Y)
 
-#if defined(__WINDOWS__) || (defined(__LINUX__) && !defined(__ARM_LINUX__)) || defined(__MACOSX__)
+#if defined(__WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
 #define CAN_OPEN_URL 1
 #endif
 
@@ -155,6 +155,7 @@ struct MenuItem
 	s32 id;
 	tic_screen* cover;
 	bool dir;
+	bool project;
 };
 
 typedef struct
@@ -372,18 +373,35 @@ static void replace(char* src, const char* what, const char* with)
 	}
 }
 
+static bool hasExt(const char* name, const char* ext)
+{
+	return strcmp(name + strlen(name) - strlen(ext), ext) == 0;
+}
+
+static void cutExt(char* name, const char* ext)
+{
+	name[strlen(name)-strlen(ext)] = '\0';
+}
+
 static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, bool dir)
 {
 	AddMenuItem* data = (AddMenuItem*)ptr;
 
-	static const char CartExt[] = ".tic";
+	static const char CartExt[] = CART_EXT;
 
-	if(dir || (strstr(name, CartExt) == name + strlen(name) - sizeof(CartExt)+1))
+	if(dir 
+		|| hasExt(name, CartExt)
+#if defined(TIC80_PRO)		
+		|| hasExt(name, PROJECT_LUA_EXT)
+		|| hasExt(name, PROJECT_MOON_EXT)
+		|| hasExt(name, PROJECT_JS_EXT)
+#endif
+		)
 	{
 		MenuItem* item = &data->items[data->count++];
 
 		item->name = SDL_strdup(name);
-
+		bool project = false;
 		if(dir)
 		{
 			char folder[FILENAME_MAX];
@@ -394,7 +412,14 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 		{
 
 			item->label = SDL_strdup(name);
-			item->label[strlen(item->label)-sizeof(CartExt)+1] = '\0';
+
+			if(hasExt(name, CartExt))
+				cutExt(item->label, CartExt);
+			else
+			{
+				project = true;
+			}
+
 
 			replace(item->label, "&amp;", "&");
 			replace(item->label, "&#39;", "'");
@@ -404,6 +429,7 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 		item->id = id;
 		item->dir = dir;
 		item->cover = NULL;
+		item->project = project;
 	}
 
 	return data->count < MAX_CARTS;
@@ -509,7 +535,10 @@ static void loadCover(Surf* surf)
 
 			if(cart)
 			{
-				tic->api.load(cart, data, size, true);
+				if(hasExt(item->name, PROJECT_LUA_EXT))
+					surf->console->loadProject(surf->console, item->name, data, size, cart);
+				else
+					tic->api.load(cart, data, size, true);
 
 				if(cart->cover.size)
 					updateMenuItemCover(surf, cart->cover.data, cart->cover.size);
@@ -617,7 +646,26 @@ static void onPlayCart(Surf* surf)
 {
 	MenuItem* item = &surf->menu.items[surf->menu.pos];
 
-	surf->console->load(surf->console, item->name);
+	if(item->project)
+	{
+		tic_cartridge* cart = SDL_malloc(sizeof(tic_cartridge));
+
+		if(cart)
+		{
+			s32 size = 0;
+			void* data = fsLoadFile(surf->fs, item->name, &size);
+
+			surf->console->loadProject(surf->console, item->name, data, size, cart);
+
+			SDL_memcpy(&surf->tic->cart, cart, sizeof(tic_cartridge));
+
+			studioRomLoaded();
+
+			SDL_free(cart);
+		}
+	}
+	else
+		surf->console->load(surf->console, item->name);
 
 	runGameFromSurf();
 }

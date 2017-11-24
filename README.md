@@ -31,10 +31,10 @@ made by [@matheuslessarodrigues](https://github.com/matheuslessarodrigues)
 ## Linux
 run the following commands in the Terminal
 ```
-sudo apt-get install git build-essential libgtk-3-dev
+sudo apt-get install git build-essential libgtk-3-dev libsdl2-dev lua5.3-dev zlib1g-dev
 git clone https://github.com/nesbox/TIC-80
 cd TIC-80
-make linux32 (or linux64/arm depending on your system)
+make linux
 ```
 
 ## iOS / tvOS

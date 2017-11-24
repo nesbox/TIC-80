@@ -637,6 +637,12 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 	}
 }
 
+static void pasteColor(Sprite* sprite)
+{
+	fromClipboard(sprite->tic->cart.palette.data, sizeof(tic_palette), false);
+	fromClipboard(&sprite->tic->cart.palette.colors[sprite->color], sizeof(tic_rgb), false);
+}
+
 static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
 {
 	{
@@ -713,8 +719,7 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
 
 			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
 			{
-				fromClipboard(sprite->tic->cart.palette.data, sizeof(tic_palette), false);
-				sprite->tic->api.reset(sprite->tic);
+				pasteColor(sprite);
 			}
 		}
 
@@ -1194,6 +1199,9 @@ static void cutToClipboard(Sprite* sprite)
 
 static void copyFromClipboard(Sprite* sprite)
 {
+	if(sprite->editPalette)
+		pasteColor(sprite);
+
 	s32 size = sprite->size * sprite->size * TIC_PALETTE_BPP / BITS_IN_BYTE;
 	u8* buffer = SDL_malloc(size);
 
