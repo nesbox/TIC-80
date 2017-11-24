@@ -507,12 +507,12 @@ static void onCartLoaded(Console* console, const char* name)
 
 }
 
-#if defined(TIC80_PRO)
-
 static bool hasExt(const char* name, const char* ext)
 {
 	return strcmp(name + strlen(name) - strlen(ext), ext) == 0;
 }
+
+#if defined(TIC80_PRO)
 
 static bool hasProjectExt(const char* name)
 {
@@ -2627,15 +2627,19 @@ static void cmdLoadCart(Console* console, const char* name)
 		if(hasProjectExt(name))
 		{
 			loadProject(console, name, data, size, &embed.file);
+			strcpy(console->romName, fsFilename(name));
+			embed.yes = true;
 			embed.fast = true;
 		}
 		else
 #endif
-		loadCart(console->tic, &embed.file, data, size, true);
 
-		strcpy(console->romName, fsFilename(name));
-
-		embed.yes = true;
+		if(hasExt(name, CART_EXT))
+		{
+			loadCart(console->tic, &embed.file, data, size, true);			
+			strcpy(console->romName, fsFilename(name));
+			embed.yes = true;
+		}
 		
 		SDL_free(data);
 	}
