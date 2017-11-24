@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -219,17 +220,13 @@ static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y,
 	for (s32 i = 0; i < TIC_PALETTE_SIZE; i++) mapping[i] = tic_tool_peek4(machine->memory.ram.vram.mapping, i);
 	for (s32 i = 0; i < count; i++) mapping[colors[i]] = 255;
 
-	flip &= 0b11;
 	rotate &= 0b11;
+	u32 orientation = flip & 0b11;
 
-	s32 a = flip & tic_horz_flip ? -1 : 1;
-	s32 b = flip & tic_vert_flip ? -1 : 1;
-
-	if(rotate == tic_90_rotate) a = -a;
-	else if(rotate == tic_180_rotate) a = -a, b = -b;
-	else if(rotate == tic_270_rotate) b = -b;
-
-	bool swap_axis = (rotate == tic_90_rotate || rotate == tic_270_rotate);
+	if(rotate == tic_90_rotate) orientation ^= 0b001;
+	else if(rotate == tic_180_rotate) orientation ^= 0b011;
+	else if(rotate == tic_270_rotate) orientation ^= 0b010;
+	if (rotate == tic_90_rotate || rotate == tic_270_rotate) orientation |= 0b100;
 
 	if (scale == 1) {
 		// the most common path
@@ -238,16 +235,16 @@ static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y,
 		sy = machine->state.clip.t - y; if (sy < 0) sy = 0;
 		ex = machine->state.clip.r - x; if (ex > TIC_SPRITESIZE) ex = TIC_SPRITESIZE;
 		ey = machine->state.clip.b - y; if (ey > TIC_SPRITESIZE) ey = TIC_SPRITESIZE;
-		if (swap_axis) {
-			if (a == 1 && b == 1) DRAW_TILE_BODY(px * TIC_SPRITESIZE + py);
-			else if (a == 1 && b == -1) DRAW_TILE_BODY(px * TIC_SPRITESIZE + TIC_SPRITESIZE - py - 1);
-			else if (a == -1 && b == 1) DRAW_TILE_BODY((TIC_SPRITESIZE - px - 1) * TIC_SPRITESIZE + py);
-			else if (a == -1 && b == -1) DRAW_TILE_BODY((TIC_SPRITESIZE - px) * TIC_SPRITESIZE - py - 1);
-		} else {
-			if (a == 1 && b == 1) DRAW_TILE_BODY(py * TIC_SPRITESIZE + px);
-			else if (a == 1 && b == -1) DRAW_TILE_BODY((TIC_SPRITESIZE - py - 1) * TIC_SPRITESIZE + px);
-			else if (a == -1 && b == 1) DRAW_TILE_BODY(py * TIC_SPRITESIZE + TIC_SPRITESIZE - px - 1);
-			else if (a == -1 && b == -1) DRAW_TILE_BODY((TIC_SPRITESIZE - py) * TIC_SPRITESIZE - px - 1);
+		switch (orientation) {
+			case 0b100: DRAW_TILE_BODY(px * TIC_SPRITESIZE + py); break;
+			case 0b110: DRAW_TILE_BODY(px * TIC_SPRITESIZE + TIC_SPRITESIZE - py - 1); break;
+			case 0b101: DRAW_TILE_BODY((TIC_SPRITESIZE - px - 1) * TIC_SPRITESIZE + py); break;
+			case 0b111: DRAW_TILE_BODY((TIC_SPRITESIZE - px) * TIC_SPRITESIZE - py - 1); break;
+			case 0b000: DRAW_TILE_BODY(py * TIC_SPRITESIZE + px); break;
+			case 0b010: DRAW_TILE_BODY((TIC_SPRITESIZE - py - 1) * TIC_SPRITESIZE + px); break;
+			case 0b001: DRAW_TILE_BODY(py * TIC_SPRITESIZE + TIC_SPRITESIZE - px - 1); break;
+			case 0b011: DRAW_TILE_BODY((TIC_SPRITESIZE - py) * TIC_SPRITESIZE - px - 1); break;
+			default: assert(!"Unknown value of orientation in drawTile");
 		}
 		return;
 	}
@@ -259,9 +256,9 @@ static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y,
 		{
 			s32 i;
 			s32 ix, iy;
-			ix = a == 1 ? px : TIC_SPRITESIZE - px - 1;
-			iy = b == 1 ? py : TIC_SPRITESIZE - py - 1;
-			if(swap_axis) {
+			ix = orientation & 0b001 ? TIC_SPRITESIZE - px - 1: px;
+			iy = orientation & 0b010 ? TIC_SPRITESIZE - py - 1: py;
+			if(orientation & 0b100) {
 				i = ix * TIC_SPRITESIZE + iy;
 			} else {
 				i = iy * TIC_SPRITESIZE + ix;
