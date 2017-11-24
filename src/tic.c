@@ -211,7 +211,6 @@ static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y,
 
 	if (flip == 0 && rotate == 0 && scale == 1) {
 		// the most common path
-		s32 i = 0;
 		s32 sx, sy, ex, ey;
 		sx = machine->state.clip.l - x; if (sx < 0) sx = 0;
 		sy = machine->state.clip.t - y; if (sy < 0) sy = 0;
@@ -223,7 +222,7 @@ static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y,
 			s32 xx = x + sx;
 			for(s32 px=sx; px < ex; px++, xx++)
 			{
-				u8 color = mapping[tic_tool_peek4(buffer, i++)];
+				u8 color = mapping[tic_tool_peek4(buffer, py * TIC_SPRITESIZE + px)];
 				if(color != 255) tic_tool_poke4(machine->memory.ram.vram.screen.data, y * TIC80_WIDTH + xx, color);
 			}
 		}
