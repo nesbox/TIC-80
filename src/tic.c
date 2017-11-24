@@ -200,6 +200,19 @@ static void drawRectBorder(tic_machine* machine, s32 x, s32 y, s32 width, s32 he
 	drawVLine(machine, x + width - 1, y, height, color);
 }
 
+#define DRAW_TILE_BODY(index_expr) ({\
+	y += sy; \
+	for(s32 py=sy; py < ey; py++, y++) \
+	{ \
+		s32 xx = x + sx; \
+		for(s32 px=sx; px < ex; px++, xx++) \
+		{ \
+			u8 color = mapping[tic_tool_peek4(buffer, index_expr)]; \
+			if(color != 255) tic_tool_poke4(machine->memory.ram.vram.screen.data, y * TIC80_WIDTH + xx, color); \
+		} \
+	} \
+	})
+
 static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
 	static u8 mapping[TIC_PALETTE_SIZE];
@@ -209,26 +222,6 @@ static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y,
 	flip &= 0b11;
 	rotate &= 0b11;
 
-	if (flip == 0 && rotate == 0 && scale == 1) {
-		// the most common path
-		s32 sx, sy, ex, ey;
-		sx = machine->state.clip.l - x; if (sx < 0) sx = 0;
-		sy = machine->state.clip.t - y; if (sy < 0) sy = 0;
-		ex = machine->state.clip.r - x; if (ex > TIC_SPRITESIZE) ex = TIC_SPRITESIZE;
-		ey = machine->state.clip.b - y; if (ey > TIC_SPRITESIZE) ey = TIC_SPRITESIZE;
-		y += sy;
-		for(s32 py=sy; py < ey; py++, y++)
-		{
-			s32 xx = x + sx;
-			for(s32 px=sx; px < ex; px++, xx++)
-			{
-				u8 color = mapping[tic_tool_peek4(buffer, py * TIC_SPRITESIZE + px)];
-				if(color != 255) tic_tool_poke4(machine->memory.ram.vram.screen.data, y * TIC80_WIDTH + xx, color);
-			}
-		}
-		return;
-	}
-
 	s32 a = flip & tic_horz_flip ? -1 : 1;
 	s32 b = flip & tic_vert_flip ? -1 : 1;
 
@@ -237,6 +230,27 @@ static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y,
 	else if(rotate == tic_270_rotate) b = -b;
 
 	bool swap_axis = (rotate == tic_90_rotate || rotate == tic_270_rotate);
+
+	if (scale == 1) {
+		// the most common path
+		s32 sx, sy, ex, ey;
+		sx = machine->state.clip.l - x; if (sx < 0) sx = 0;
+		sy = machine->state.clip.t - y; if (sy < 0) sy = 0;
+		ex = machine->state.clip.r - x; if (ex > TIC_SPRITESIZE) ex = TIC_SPRITESIZE;
+		ey = machine->state.clip.b - y; if (ey > TIC_SPRITESIZE) ey = TIC_SPRITESIZE;
+		if (swap_axis) {
+			if (a == 1 && b == 1) DRAW_TILE_BODY(px * TIC_SPRITESIZE + py);
+			else if (a == 1 && b == -1) DRAW_TILE_BODY(px * TIC_SPRITESIZE + TIC_SPRITESIZE - py - 1);
+			else if (a == -1 && b == 1) DRAW_TILE_BODY((TIC_SPRITESIZE - px - 1) * TIC_SPRITESIZE + py);
+			else if (a == -1 && b == -1) DRAW_TILE_BODY((TIC_SPRITESIZE - px) * TIC_SPRITESIZE - py - 1);
+		} else {
+			if (a == 1 && b == 1) DRAW_TILE_BODY(py * TIC_SPRITESIZE + px);
+			else if (a == 1 && b == -1) DRAW_TILE_BODY((TIC_SPRITESIZE - py - 1) * TIC_SPRITESIZE + px);
+			else if (a == -1 && b == 1) DRAW_TILE_BODY(py * TIC_SPRITESIZE + TIC_SPRITESIZE - px - 1);
+			else if (a == -1 && b == -1) DRAW_TILE_BODY((TIC_SPRITESIZE - py) * TIC_SPRITESIZE - px - 1);
+		}
+		return;
+	}
 
 	for(s32 py=0; py < TIC_SPRITESIZE; py++, y+=scale)
 	{
