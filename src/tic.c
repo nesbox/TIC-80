@@ -202,7 +202,7 @@ static void drawRectBorder(tic_machine* machine, s32 x, s32 y, s32 width, s32 he
 
 static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
-	u8 transparent[TIC_PALETTE_SIZE];
+	static u8 transparent[TIC_PALETTE_SIZE];
 	memset(transparent, 0, sizeof(transparent));
 	for (s32 i = 0; i < count; i++) transparent[colors[i]] = 1;
 
