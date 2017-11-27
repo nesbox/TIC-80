@@ -464,6 +464,12 @@ static void* getDemoCart(Console* console, tic_script_lang script, s32* size)
 	return data;
 }
 
+static void setCartName(Console* console, const char* name)
+{
+	if(name != console->romName)
+		strcpy(console->romName, name);
+}
+
 static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* param)
 {
 	void* data = NULL;
@@ -480,7 +486,7 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 
 	const char* name = getCartName(param);
 
-	strcpy(console->romName, name);
+	setCartName(console->romName, name);
 
 	loadRom(console->tic, data, size, true);
 
@@ -495,7 +501,7 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 
 static void onCartLoaded(Console* console, const char* name)
 {
-	strcpy(console->romName, name);
+	setCartName(console->romName, name);
 
 	studioRomLoaded();
 
@@ -1889,7 +1895,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
 
 				if(size && fsSaveFile(console->fs, name, buffer, size, true))
 				{
-					strcpy(console->romName, name);
+					setCartName(console->romName, name);
 					success = true;
 					studioRomSaved();
 				}
@@ -2627,7 +2633,7 @@ static void cmdLoadCart(Console* console, const char* name)
 		if(hasProjectExt(name))
 		{
 			loadProject(console, name, data, size, &embed.file);
-			strcpy(console->romName, fsFilename(name));
+			setCartName(console->romName, fsFilename(name));
 			embed.yes = true;
 			embed.fast = true;
 		}
@@ -2637,7 +2643,7 @@ static void cmdLoadCart(Console* console, const char* name)
 		if(hasExt(name, CART_EXT))
 		{
 			loadCart(console->tic, &embed.file, data, size, true);			
-			strcpy(console->romName, fsFilename(name));
+			setCartName(console->romName, fsFilename(name));
 			embed.yes = true;
 		}
 		
