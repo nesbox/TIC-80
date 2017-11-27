@@ -1377,44 +1377,61 @@ static void api_tick(tic_mem* memory, tic_tick_data* data)
 	
 	if(!machine->state.initialized)
 	{
-		cart2ram(memory);
 
-		const char* code = machine->memory.cart.code.data;
+		char* code = malloc(sizeof(tic_code));
 
-		if(strlen(code))
+		if(code)
 		{
-			memory->input = compareMetatag(code, "input", "mouse") ? tic_mouse_input : tic_gamepad_input;
+			memcpy(code, machine->memory.cart.code.data, sizeof(tic_code));
 
-			if(memory->input == tic_mouse_input)
-				memory->ram.vram.vars.mask.data = 0;
+			if(data->preprocessor)
+				data->preprocessor(data->data, code);
 
-			memory->script = tic_script_lua;
+			bool done = false;
 
-			if (isMoonscript(code))
+			if(strlen(code))
 			{
-				if(!initMoonscript(machine, code))
-					return;
+				cart2ram(memory);
+				memory->input = compareMetatag(code, "input", "mouse") ? tic_mouse_input : tic_gamepad_input;
 
-				memory->script = tic_script_moon;
+				if(memory->input == tic_mouse_input)
+					memory->ram.vram.vars.mask.data = 0;
+
+				memory->script = tic_script_lua;
+
+				if (isMoonscript(code))
+				{
+					if(initMoonscript(machine, code))
+					{
+						memory->script = tic_script_moon;
+						done = true;
+					}
+				}
+				else if(isJavascript(code))
+				{
+					if(initJavascript(machine, code))
+					{
+						memory->script = tic_script_js;
+						done = true;
+					}
+				}
+				else if(initLua(machine, code))
+					done = true;
 			}
-			else if(isJavascript(code))
+			else
 			{
-				if(!initJavascript(machine, code))
-					return;
-
-				memory->script = tic_script_js;
+				machine->data->error(machine->data->data, "the code is empty");
 			}
-			else if(!initLua(machine, code))
-				return;
-		}
-		else
-		{
-			machine->data->error(machine->data->data, "the code is empty");
-			return;
-		}
 
-		machine->state.scanline = memory->script == tic_script_js ? callJavascriptScanline : callLuaScanline;
-		machine->state.initialized = true;
+			free(code);
+
+			if(done)
+			{
+				machine->state.scanline = memory->script == tic_script_js ? callJavascriptScanline : callLuaScanline;
+				machine->state.initialized = true;				
+			}
+			else return;
+		}
 	}
 
 	memory->script == tic_script_js
