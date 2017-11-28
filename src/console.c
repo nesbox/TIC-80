@@ -2868,6 +2868,8 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 				config->data.noSound = true;
 			else if(strcmp(argv[i], "-surf") == 0)
 				console->startSurf = true;
+			else if(strcmp(argv[i], "-fullscreen") == 0)
+				goFullscreen();
 		}
 	}
 
