@@ -56,6 +56,8 @@ typedef struct
 	u64 (*freq)();
 	u64 start;
 
+	void (*preprocessor)(void* data, char* dst);
+
 	void* data;
 } tic_tick_data;
 

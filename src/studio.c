@@ -1371,7 +1371,7 @@ static void processMouse()
 	}
 }
 
-static void onFullscreen()
+void goFullscreen()
 {
 	studio.fullscreen = !studio.fullscreen;
 	SDL_SetWindowFullscreen(studio.window, studio.fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
@@ -1555,12 +1555,12 @@ static bool processShortcuts(SDL_KeyboardEvent* event)
 			studio.gamepad.backProcessed = true;
 			return true;
 		case SDLK_F11:
-			onFullscreen();
+			goFullscreen();
 			return true;
 		case SDLK_RETURN:
 			if(mod & KMOD_RALT)
 			{
-				onFullscreen();
+				goFullscreen();
 				return true;
 			}
 			break;
@@ -1627,11 +1627,11 @@ static bool processShortcuts(SDL_KeyboardEvent* event)
 			return true;
 		}
 		break;
-	case SDLK_F11: onFullscreen(); return true;
+	case SDLK_F11: goFullscreen(); return true;
 	case SDLK_RETURN:
 		if(mod & KMOD_RALT)
 		{
-			onFullscreen();
+			goFullscreen();
 			return true;
 		}
 		else if(mod & TIC_MOD_CTRL)

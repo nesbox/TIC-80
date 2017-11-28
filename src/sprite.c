@@ -1352,6 +1352,8 @@ static void drawSpriteToolbar(Sprite* sprite)
 		{
 			setCursor(SDL_SYSTEM_CURSOR_HAND);
 
+			showTooltip("CANVAS ZOOM");
+
 			if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
 			{
 				s32 mx = getMouseX() - rect.x;

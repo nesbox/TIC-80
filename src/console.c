@@ -464,6 +464,12 @@ static void* getDemoCart(Console* console, tic_script_lang script, s32* size)
 	return data;
 }
 
+static void setCartName(Console* console, const char* name)
+{
+	if(name != console->romName)
+		strcpy(console->romName, name);
+}
+
 static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* param)
 {
 	void* data = NULL;
@@ -480,7 +486,7 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 
 	const char* name = getCartName(param);
 
-	strcpy(console->romName, name);
+	setCartName(console, name);
 
 	loadRom(console->tic, data, size, true);
 
@@ -495,7 +501,7 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 
 static void onCartLoaded(Console* console, const char* name)
 {
-	strcpy(console->romName, name);
+	setCartName(console, name);
 
 	studioRomLoaded();
 
@@ -1343,15 +1349,21 @@ static void onImportSprites(const char* name, const void* buffer, size_t size, v
 	commandDone(console);
 }
 
+static void injectMap(Console* console, const void* buffer, s32 size)
+{
+	enum {Size = sizeof(tic_map)};
+
+	SDL_memset(&console->tic->cart.gfx.map, 0, Size);
+	SDL_memcpy(&console->tic->cart.gfx.map, buffer, SDL_min(size, Size));
+}
+
 static void onImportMap(const char* name, const void* buffer, size_t size, void* data)
 {
 	Console* console = (Console*)data;
 
-	enum {Size = sizeof(tic_map)};
-
-	if(name && buffer && size == Size)
+	if(name && buffer && size <= sizeof(tic_map))
 	{
-		memcpy(&console->tic->cart.gfx.map, buffer, size);
+		injectMap(console, buffer, size);
 
 		printLine(console);
 		printBack(console, "map successfully imported");
@@ -1889,7 +1901,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
 
 				if(size && fsSaveFile(console->fs, name, buffer, size, true))
 				{
-					strcpy(console->romName, name);
+					setCartName(console, name);
 					success = true;
 					studioRomSaved();
 				}
@@ -2627,7 +2639,7 @@ static void cmdLoadCart(Console* console, const char* name)
 		if(hasProjectExt(name))
 		{
 			loadProject(console, name, data, size, &embed.file);
-			strcpy(console->romName, fsFilename(name));
+			setCartName(console, fsFilename(name));
 			embed.yes = true;
 			embed.fast = true;
 		}
@@ -2637,7 +2649,7 @@ static void cmdLoadCart(Console* console, const char* name)
 		if(hasExt(name, CART_EXT))
 		{
 			loadCart(console->tic, &embed.file, data, size, true);			
-			strcpy(console->romName, fsFilename(name));
+			setCartName(console, fsFilename(name));
 			embed.yes = true;
 		}
 		
@@ -2755,9 +2767,9 @@ static void cmdInjectMap(Console* console, const char* param, const char* name)
 
 		if(map)
 		{
-			if(size == sizeof(tic_map))
+			if(size <= sizeof(tic_map))
 			{
-				SDL_memcpy(embed.file.gfx.map.data, map, size);
+				injectMap(console, map, size);
 
 				embed.yes = true;
 				embed.fast = true;
@@ -2862,6 +2874,8 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 				config->data.noSound = true;
 			else if(strcmp(argv[i], "-surf") == 0)
 				console->startSurf = true;
+			else if(strcmp(argv[i], "-fullscreen") == 0)
+				goFullscreen();
 		}
 	}
 
