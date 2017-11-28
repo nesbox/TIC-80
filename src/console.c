@@ -1349,15 +1349,21 @@ static void onImportSprites(const char* name, const void* buffer, size_t size, v
 	commandDone(console);
 }
 
+static void injectMap(Console* console, const void* buffer, s32 size)
+{
+	enum {Size = sizeof(tic_map)};
+
+	SDL_memset(&console->tic->cart.gfx.map, 0, Size);
+	SDL_memcpy(&console->tic->cart.gfx.map, buffer, SDL_min(size, Size));
+}
+
 static void onImportMap(const char* name, const void* buffer, size_t size, void* data)
 {
 	Console* console = (Console*)data;
 
-	enum {Size = sizeof(tic_map)};
-
-	if(name && buffer && size == Size)
+	if(name && buffer && size <= sizeof(tic_map))
 	{
-		memcpy(&console->tic->cart.gfx.map, buffer, size);
+		injectMap(console, buffer, size);
 
 		printLine(console);
 		printBack(console, "map successfully imported");
@@ -2761,9 +2767,9 @@ static void cmdInjectMap(Console* console, const char* param, const char* name)
 
 		if(map)
 		{
-			if(size == sizeof(tic_map))
+			if(size <= sizeof(tic_map))
 			{
-				SDL_memcpy(embed.file.gfx.map.data, map, size);
+				injectMap(console, map, size);
 
 				embed.yes = true;
 				embed.fast = true;
