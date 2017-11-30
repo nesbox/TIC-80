@@ -158,10 +158,10 @@ static void overlapPixel(tic_mem* tic, s32 x, s32 y, u8 color)
 {
 	tic_machine* machine = (tic_machine*)tic;
 	
-	enum {Top = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2, Bottom = Top};
-	enum {Left = (TIC80_FULLWIDTH-TIC80_WIDTH)/2, Right = Left};
+	enum {Top = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2};
+	enum {Left = (TIC80_FULLWIDTH-TIC80_WIDTH)/2};
 
-	tic->screen[x + Left + (y + Top) * TIC80_FULLWIDTH] = machine->state.overlapPalette[tic_tool_peek4(tic->ram.vram.mapping, color & 0xf)];
+	tic->screen[x + y * TIC80_FULLWIDTH + (Left + Top * TIC80_FULLWIDTH)] = machine->state.overlapPalette[tic_tool_peek4(tic->ram.vram.mapping, color & 0xf)];
 }
 
 static void setPixel(tic_machine* machine, s32 x, s32 y, u8 color)
@@ -1181,6 +1181,8 @@ static void api_tick_start(tic_mem* memory, const tic_sound* src)
 		if(prevDown && prevDown == down) (*hold)++;
 		else *hold = 0;
 	}
+
+	machine->state.pixel = dmaPixel;
 }
 
 static void api_tick_end(tic_mem* memory)
@@ -1204,6 +1206,26 @@ static void api_tick_end(tic_mem* memory)
 	
 	blip_end_frame(machine->blip, EndTime);
 	blip_read_samples(machine->blip, machine->memory.samples.buffer, machine->samplerate / TIC_FRAMERATE);
+
+	machine->state.pixel = overlapPixel;
+
+	// temporary palette blit
+	{
+		u32* pal = machine->state.overlapPalette;
+
+		const u8* src = memory->cart.palette.data;
+
+		memset(pal, 0xff, TIC_PALETTE_SIZE);
+
+		u8* dst = (u8*)pal;
+		const u8* end = src + sizeof(tic_palette);
+
+		enum{RGB = sizeof(tic_rgb)};
+
+		for(; src != end; dst++, src+=RGB)
+			for(s32 j = 0; j < RGB; j++)
+				*dst++ = *(src+(RGB-1)-j);
+	}
 }
 
 
@@ -1751,9 +1773,7 @@ static void api_blit(tic_mem* tic, tic_scanline scanline, tic_overlap overlap)
 	memset4(&out[(TIC80_FULLHEIGHT-Bottom) * TIC80_FULLWIDTH], pal[tic->ram.vram.vars.border], TIC80_FULLWIDTH*Bottom);
 
 	if(overlap)
-	{
 		overlap(tic);
-	}
 }
 
 static void initApi(tic_api* api)

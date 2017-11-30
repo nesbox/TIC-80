@@ -1249,5 +1249,20 @@ void callLuaScanline(tic_mem* memory, s32 row)
 
 void callLuaOverlap(tic_mem* memory)
 {
-	
+	tic_machine* machine = (tic_machine*)memory;
+	lua_State* lua = machine->lua;
+
+	if (lua)
+	{
+		static const char* OverlapFunc = "overlap";
+
+		lua_getglobal(lua, OverlapFunc);
+		if(lua_isfunction(lua, -1)) 
+		{
+			if(lua_pcall(lua, 0, 0, 0) != LUA_OK)
+				machine->data->error(machine->data->data, lua_tostring(lua, -1));
+		}
+		else lua_pop(lua, 1);
+	}
+
 }
