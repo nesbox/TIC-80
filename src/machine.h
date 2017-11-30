@@ -116,7 +116,7 @@ typedef struct
 
 	struct
 	{
-		MachineState state;
+		MachineState state;	
 		tic_sound_register registers[TIC_SOUND_CHANNELS];
 		tic_music_pos music_pos;
 		tic_vram vram;

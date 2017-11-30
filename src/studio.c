@@ -1801,7 +1801,7 @@ static void transparentBlit(u32* out, s32 pitch)
 {
 	const u8* in = studio.tic->ram.vram.screen.data;
 	const u8* end = in + sizeof(studio.tic->ram.vram.screen);
-	const u32* pal = tic_palette_blit(&studio.tic->config.palettes.bg);
+	const u32* pal = tic_palette_blit(&studio.tic->config.palette);
 	const u32 Delta = (pitch/sizeof *out - TIC80_WIDTH);
 
 	s32 col = 0;
@@ -1878,7 +1878,7 @@ static void recordFrame(u32* pixels)
 
 			if(studio.video.frame % TIC_FRAMERATE < TIC_FRAMERATE / 2)
 			{
-				const u32* pal = tic_palette_blit(&studio.tic->config.palettes.bg);
+				const u32* pal = tic_palette_blit(&studio.tic->config.palette);
 				drawRecordLabel(pixels, TIC80_FULLWIDTH, TIC80_WIDTH-24, 8, &pal[tic_color_red]);
 			}
 
@@ -2041,7 +2041,7 @@ static void renderCursor()
 
 static void useSystemPalette()
 {
-	memcpy(studio.tic->ram.vram.palette.data, studio.tic->config.palettes.bg.data, sizeof(tic_palette));
+	memcpy(studio.tic->ram.vram.palette.data, studio.tic->config.palette.data, sizeof(tic_palette));
 }
 
 static void renderStudio()
@@ -2298,7 +2298,7 @@ static void setWindowIcon()
 
 	u32* pixels = SDL_malloc(Size * Size * sizeof(u32));
 
-	const u32* pal = tic_palette_blit(&studio.tic->config.palettes.bg);
+	const u32* pal = tic_palette_blit(&studio.tic->config.palette);
 
 	for(s32 j = 0, index = 0; j < Size; j++)
 		for(s32 i = 0; i < Size; i++, index++)

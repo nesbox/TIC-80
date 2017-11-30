@@ -1133,7 +1133,7 @@ static void onStudioEvent(Map* map, StudioEvent event)
 
 static void scanline(tic_mem* tic, s32 row)
 {
-	memcpy(tic->ram.vram.palette.data, row < TOOLBAR_SIZE ? tic->config.palettes.bg.data : tic->cart.palettes.bg.data, sizeof(tic_palette));
+	memcpy(tic->ram.vram.palette.data, row < TOOLBAR_SIZE ? tic->config.palette.data : tic->cart.palette.data, sizeof(tic_palette));
 }
 
 void initMap(Map* map, tic_mem* tic)

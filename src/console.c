@@ -291,7 +291,7 @@ static s32 writeGifData(const tic_mem* tic, u8* dst, const u8* src, s32 width, s
 
 	if(palette)
 	{
-		const tic_rgb* pal = tic->cart.palettes.bg.colors;
+		const tic_rgb* pal = tic->cart.palette.colors;
 		for(s32 i = 0; i < TIC_PALETTE_SIZE; i++, pal++)
 			palette[i].r = pal->r, palette[i].g = pal->g, palette[i].b = pal->b;
 
@@ -308,10 +308,7 @@ static void loadCart(tic_mem* tic, tic_cartridge* cart, const u8* buffer, s32 si
 	tic->api.load(cart, buffer, size, palette);
 
 	if(!palette)
-	{
-		memcpy(cart->palettes.bg.data, tic->config.palettes.bg.data, sizeof(tic_palette));
-		memcpy(cart->palettes.ovr.data, tic->config.palettes.ovr.data, sizeof(tic_palette));
-	}
+		memcpy(cart->palette.data, tic->config.palette.data, sizeof(tic_palette));
 }
 
 static bool loadRom(tic_mem* tic, const void* data, s32 size, bool palette)
@@ -370,7 +367,7 @@ static bool onConsoleLoadSectionCommand(Console* console, const char* param)
 						case 3: memcpy(&tic->cart.code, 		&cart->code, 		sizeof cart->code); break;
 						case 4: memcpy(&tic->cart.sound.sfx, 	&cart->sound.sfx, 	sizeof cart->sound.sfx); break;
 						case 5: memcpy(&tic->cart.sound.music, 	&cart->sound.music, sizeof cart->sound.music); break;
-						case 6: memcpy(&tic->cart.palettes, 	&cart->palettes, 	sizeof cart->palettes); break;
+						case 6: memcpy(&tic->cart.palette, 		&cart->palette, 	sizeof cart->palette); break;
 						}
 
 						studioRomLoaded();
@@ -607,7 +604,7 @@ static char* saveBinarySection(char* ptr, const char* comment, const char* tag, 
 typedef struct {char* tag; s32 count; s32 offset; s32 size; bool flip;} BinarySection;
 static const BinarySection BinarySections[] = 
 {
-	{"PALETTE", 	2, offsetof(tic_cartridge, palettes), sizeof(tic_palette), false},
+	{"PALETTE", 	1, offsetof(tic_cartridge, palette.data), sizeof(tic_palette), false},
 	{"TILES", 		TIC_BANK_SPRITES, offsetof(tic_cartridge, gfx.tiles), sizeof(tic_tile), true},
 	{"SPRITES", 	TIC_BANK_SPRITES, offsetof(tic_cartridge, gfx.sprites), sizeof(tic_tile), true},
 	{"MAP", 		TIC_MAP_HEIGHT, offsetof(tic_cartridge, gfx.map), TIC_MAP_WIDTH, true},
@@ -738,8 +735,7 @@ static bool loadProject(Console* console, const char* name, const char* data, s3
 		if(cart)
 		{
 			SDL_memset(cart, 0, sizeof(tic_cartridge));
-			SDL_memcpy(&cart->palettes.bg, &tic->config.palettes.bg, sizeof cart->palettes.bg);
-			SDL_memcpy(&cart->palettes.ovr, &tic->config.palettes.ovr, sizeof cart->palettes.ovr);
+			SDL_memcpy(&cart->palette, &tic->config.palette.data, sizeof(tic_palette));
 
 			const char* comment = projectComment(name);
 
@@ -1333,7 +1329,7 @@ static void onImportSprites(const char* name, const void* buffer, size_t size, v
 						u8 src = image->buffer[x + y * image->width];
 						const gif_color* c = &image->palette[src];
 						tic_rgb rgb = {c->r, c->g, c->b};
-						u8 color = tic_tool_find_closest_color(console->tic->cart.palettes.bg.colors, &rgb);
+						u8 color = tic_tool_find_closest_color(console->tic->cart.palette.colors, &rgb);
 
 						setSpritePixel(console->tic->cart.gfx.tiles, x, y, color);
 					}
@@ -2745,7 +2741,7 @@ static void cmdInjectSprites(Console* console, const char* param, const char* na
 						u8 src = image->buffer[x + y * image->width];
 						const gif_color* c = &image->palette[src];
 						tic_rgb rgb = {c->r, c->g, c->b};
-						u8 color = tic_tool_find_closest_color(embed.file.palettes.bg.colors, &rgb);
+						u8 color = tic_tool_find_closest_color(embed.file.palette.colors, &rgb);
 
 						setSpritePixel(embed.file.gfx.tiles, x, y, color);
 					}
@@ -2851,7 +2847,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 
 	if(argc > 1)
 	{
-		memcpy(&embed.file.palettes, &tic->config.palettes, sizeof embed.file.palettes);
+		memcpy(embed.file.palette.data, tic->config.palette.data, sizeof(tic_palette));
 
 		if (argc == 2) cmdLoadCart(console, argv[1]);
 		else if (argc == 3)

@@ -338,12 +338,7 @@ typedef struct
 	tic_sound sound;
 	tic_code code;
 	tic_cover_image cover;
-
-	struct
-	{
-		tic_palette bg;
-		tic_palette ovr;
-	} palettes;
+	tic_palette palette;
 } tic_cartridge;
 
 typedef struct
