@@ -1406,29 +1406,6 @@ static void saveProject()
 	else showPopupMessage("SAVE ERROR :(");
 }
 
-static u32* srcPaletteBlit(const u8* src)
-{
-	static u32 pal[TIC_PALETTE_SIZE] = {0};
-
-	memset(pal, 0xff, sizeof pal);
-
-	u8* dst = (u8*)pal;
-	const u8* end = src + sizeof(tic_palette);
-
-	enum{RGB = sizeof(tic_rgb)};
-
-	for(; src != end; dst++, src+=RGB)
-		for(s32 j = 0; j < RGB; j++)
-			*dst++ = *(src+(RGB-1)-j);
-
-	return pal;
-}
-
-static u32* paletteBlit()
-{
-	return srcPaletteBlit(studio.tic->ram.vram.palette.data);
-}
-
 static void screen2buffer(u32* buffer, const u32* pixels, SDL_Rect rect)
 {
 	pixels += rect.y * TIC80_FULLWIDTH;
@@ -1824,7 +1801,7 @@ static void transparentBlit(u32* out, s32 pitch)
 {
 	const u8* in = studio.tic->ram.vram.screen.data;
 	const u8* end = in + sizeof(studio.tic->ram.vram.screen);
-	const u32* pal = srcPaletteBlit(studio.tic->config.palette.data);
+	const u32* pal = tic_palette_blit(&studio.tic->config.palette);
 	const u32 Delta = (pitch/sizeof *out - TIC80_WIDTH);
 
 	s32 col = 0;
@@ -1901,7 +1878,7 @@ static void recordFrame(u32* pixels)
 
 			if(studio.video.frame % TIC_FRAMERATE < TIC_FRAMERATE / 2)
 			{
-				const u32* pal = srcPaletteBlit(studio.tic->config.palette.data);
+				const u32* pal = tic_palette_blit(&studio.tic->config.palette);
 				drawRecordLabel(pixels, TIC80_FULLWIDTH, TIC80_WIDTH-24, 8, &pal[tic_color_red]);
 			}
 
@@ -2009,7 +1986,7 @@ static void blitCursor(const u8* in)
 
 		{
 			const u8* end = in + sizeof(tic_tile);
-			const u32* pal = paletteBlit();
+			const u32* pal = tic_palette_blit(&studio.tic->ram.vram.palette);
 			u32* out = pixels;
 
 			while(in != end)
@@ -2321,7 +2298,7 @@ static void setWindowIcon()
 
 	u32* pixels = SDL_malloc(Size * Size * sizeof(u32));
 
-	const u32* pal = srcPaletteBlit(studio.tic->config.palette.data);
+	const u32* pal = tic_palette_blit(&studio.tic->config.palette);
 
 	for(s32 j = 0, index = 0; j < Size; j++)
 		for(s32 i = 0; i < Size; i++, index++)

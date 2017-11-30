@@ -1052,7 +1052,7 @@ static void setloaded(lua_State* l, char* name)
 static const char* const ApiKeywords[] = API_KEYWORDS;
 static const lua_CFunction ApiFunc[] = 
 {
-	NULL, NULL, lua_print, lua_cls, lua_pix, lua_line, lua_rect, 
+	NULL, NULL, NULL, lua_print, lua_cls, lua_pix, lua_line, lua_rect, 
 	lua_rectb, lua_spr, lua_btn, lua_btnp, lua_sfx, lua_map, lua_mget, 
 	lua_mset, lua_peek, lua_poke, lua_peek4, lua_poke4, lua_memcpy, 
 	lua_memset, lua_trace, lua_pmem, lua_time, lua_exit, lua_font, lua_mouse, 
@@ -1254,9 +1254,9 @@ void callLuaOverlap(tic_mem* memory)
 
 	if (lua)
 	{
-		static const char* OverlapFunc = "overlap";
+		const char* OvrFunc = ApiKeywords[2];
 
-		lua_getglobal(lua, OverlapFunc);
+		lua_getglobal(lua, OvrFunc);
 		if(lua_isfunction(lua, -1)) 
 		{
 			if(lua_pcall(lua, 0, 0, 0) != LUA_OK)

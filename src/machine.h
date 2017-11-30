@@ -84,9 +84,13 @@ typedef struct
 
 	tic_scanline scanline;
 
-	tic_overlap overlap;
+	struct
+	{
+		tic_overlap callback;
+		u32 palette[TIC_PALETTE_SIZE];
+	} ovr;
+
 	void (*pixel)(tic_mem* memory, s32 x, s32 y, u8 color);
-	u32 overlapPalette[TIC_PALETTE_SIZE];
 
 	bool initialized;
 } MachineState;

@@ -154,14 +154,14 @@ static void dmaPixel(tic_mem* tic, s32 x, s32 y, u8 color)
 	tic_tool_poke4(tic->ram.vram.screen.data, y * TIC80_WIDTH + x, tic_tool_peek4(tic->ram.vram.mapping, color & 0xf));
 }
 
-static void overlapPixel(tic_mem* tic, s32 x, s32 y, u8 color)
+static void ovrPixel(tic_mem* tic, s32 x, s32 y, u8 color)
 {
 	tic_machine* machine = (tic_machine*)tic;
 	
 	enum {Top = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2};
 	enum {Left = (TIC80_FULLWIDTH-TIC80_WIDTH)/2};
 
-	tic->screen[x + y * TIC80_FULLWIDTH + (Left + Top * TIC80_FULLWIDTH)] = machine->state.overlapPalette[tic_tool_peek4(tic->ram.vram.mapping, color & 0xf)];
+	tic->screen[x + y * TIC80_FULLWIDTH + (Left + Top * TIC80_FULLWIDTH)] = machine->state.ovr.palette[tic_tool_peek4(tic->ram.vram.mapping, color & 0xf)];
 }
 
 static void setPixel(tic_machine* machine, s32 x, s32 y, u8 color)
@@ -445,7 +445,7 @@ static void api_reset(tic_mem* memory)
 	tic_machine* machine = (tic_machine*)memory;
 	machine->state.initialized = false;
 	machine->state.scanline = NULL;
-	machine->state.overlap = NULL;
+	machine->state.ovr.callback = NULL;
 
 	machine->state.pixel = dmaPixel;
 
@@ -1207,25 +1207,8 @@ static void api_tick_end(tic_mem* memory)
 	blip_end_frame(machine->blip, EndTime);
 	blip_read_samples(machine->blip, machine->memory.samples.buffer, machine->samplerate / TIC_FRAMERATE);
 
-	machine->state.pixel = overlapPixel;
-
-	// temporary palette blit
-	{
-		u32* pal = machine->state.overlapPalette;
-
-		const u8* src = memory->cart.palette.data;
-
-		memset(pal, 0xff, TIC_PALETTE_SIZE);
-
-		u8* dst = (u8*)pal;
-		const u8* end = src + sizeof(tic_palette);
-
-		enum{RGB = sizeof(tic_rgb)};
-
-		for(; src != end; dst++, src+=RGB)
-			for(s32 j = 0; j < RGB; j++)
-				*dst++ = *(src+(RGB-1)-j);
-	}
+	machine->state.pixel = ovrPixel;
+	memcpy(machine->state.ovr.palette, tic_palette_blit(&memory->cart.palette), sizeof machine->state.ovr.palette);
 }
 
 
@@ -1468,7 +1451,7 @@ static void api_tick(tic_mem* memory, tic_tick_data* data)
 			if(done)
 			{
 				machine->state.scanline = memory->script == tic_script_js ? callJavascriptScanline : callLuaScanline;
-				machine->state.overlap = memory->script == tic_script_js ? callJavascriptOverlap : callLuaOverlap;
+				machine->state.ovr.callback = memory->script == tic_script_js ? callJavascriptOverlap : callLuaOverlap;
 				machine->state.initialized = true;				
 			}
 			else return;
@@ -1493,7 +1476,7 @@ static void api_overlap(tic_mem* memory)
 	tic_machine* machine = (tic_machine*)memory;
 
 	if(machine->state.initialized)
-		machine->state.overlap(memory);
+		machine->state.ovr.callback(memory);
 }
 
 static double api_time(tic_mem* memory)
@@ -1507,7 +1490,7 @@ static void api_sync(tic_mem* tic, bool toCart)
 	if(toCart)
 	{
 		memcpy(&tic->cart.gfx, &tic->ram.gfx, sizeof tic->cart.gfx);
-		memcpy(&tic->cart.sound, &tic->ram.sound, sizeof tic->cart.sound);		
+		memcpy(&tic->cart.sound, &tic->ram.sound, sizeof tic->cart.sound);
 	}
 	else
 	{
@@ -1674,35 +1657,15 @@ static inline void memset4(void *dst, u32 val, u32 dwords)
 #endif
 }
 
-static u32* paletteBlit(tic_mem* tic)
-{
-	static u32 pal[TIC_PALETTE_SIZE] = {0};
-
-	const u8* src = tic->ram.vram.palette.data;
-
-	memset(pal, 0xff, sizeof pal);
-
-	u8* dst = (u8*)pal;
-	const u8* end = src + sizeof(tic_palette);
-
-	enum{RGB = sizeof(tic_rgb)};
-
-	for(; src != end; dst++, src+=RGB)
-		for(s32 j = 0; j < RGB; j++)
-			*dst++ = *(src+(RGB-1)-j);
-
-	return pal;
-}
-
 static void api_blit(tic_mem* tic, tic_scanline scanline, tic_overlap overlap)
 {
 	u32* out = tic->screen;
-	const u32* pal = paletteBlit(tic);
+	const u32* pal = tic_palette_blit(&tic->ram.vram.palette);
 
 	if(scanline)
 	{
 		scanline(tic, 0);
-		pal = paletteBlit(tic);
+		pal = tic_palette_blit(&tic->ram.vram.palette);
 	}
 
 	enum {Top = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2, Bottom = Top};
@@ -1766,7 +1729,7 @@ static void api_blit(tic_mem* tic, tic_scanline scanline, tic_overlap overlap)
 		if(scanline && (r < TIC80_HEIGHT-1))
 		{
 			scanline(tic, r+1);
-			pal = paletteBlit(tic);
+			pal = tic_palette_blit(&tic->ram.vram.palette);
 		}
 	}
 

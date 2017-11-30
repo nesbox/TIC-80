@@ -85,3 +85,23 @@ u32 tic_tool_find_closest_color(const tic_rgb* palette, const tic_rgb* color)
 
 	return closetColor;
 }
+
+u32* tic_palette_blit(const tic_palette* srcpal)
+{
+	static u32 pal[TIC_PALETTE_SIZE] = {0};
+
+	const u8* src = srcpal->data;
+
+	memset(pal, 0xff, sizeof pal);
+
+	u8* dst = (u8*)pal;
+	const u8* end = src + sizeof(tic_palette);
+
+	enum{RGB = sizeof(tic_rgb)};
+
+	for(; src != end; dst++, src+=RGB)
+		for(s32 j = 0; j < RGB; j++)
+			*dst++ = *(src+(RGB-1)-j);
+
+	return pal;
+}

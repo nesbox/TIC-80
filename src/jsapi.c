@@ -715,6 +715,7 @@ static const struct{duk_c_function func; s32 params;} ApiFunc[] =
 {
 	{NULL, 0},
 	{NULL, 1},
+	{NULL, 0},
 	{duk_print, 6},
 	{duk_cls, 1},
 	{duk_pix, 3},
@@ -831,5 +832,19 @@ void callJavascriptScanline(tic_mem* memory, s32 row)
 
 void callJavascriptOverlap(tic_mem* memory)
 {
-	
+	tic_machine* machine = (tic_machine*)memory;
+	duk_context* duk = machine->js;
+
+	const char* OvrFunc = ApiKeywords[2];
+
+	if(duk_get_global_string(duk, OvrFunc)) 
+	{
+		if(duk_pcall(duk, 0) != 0)
+		{
+			machine->data->error(machine->data->data, duk_safe_to_string(duk, -1));
+			duk_pop(duk);
+		}
+		else duk_pop(duk);
+	}
+	else duk_pop(duk);
 }
