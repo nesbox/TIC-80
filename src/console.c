@@ -696,6 +696,7 @@ static bool loadBinarySection(const char* project, const char* comment, const ch
 						str2buf(ptr, size*2, (u8*)dst + size*index, flip);
 						ptr += size*2 + 1;
 					}
+					else break;
 				}				
 			}
 			else
