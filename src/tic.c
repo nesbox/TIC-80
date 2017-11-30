@@ -1665,14 +1665,40 @@ static void api_blit(tic_mem* tic, u32* out, tic_scanline scanline)
 	for(s32 r = 0, y = tic->ram.vram.vars.offset.y; r < TIC80_HEIGHT; r++, y++, rowPtr += TIC80_FULLWIDTH)
 	{
 		memset4(rowPtr, pal[tic->ram.vram.vars.border], Left);
-		memset4(rowPtr + Left, pal[tic->ram.vram.vars.bg], TIC80_WIDTH);
-
-		u32* colPtr = rowPtr + Left;
 
 		if(y >= 0 && y < TIC80_HEIGHT)
-			for(s32 c = 0, x = tic->ram.vram.vars.offset.x, index = y * TIC80_WIDTH + x; c < TIC80_WIDTH; c++, colPtr++, x++, index++)
-				if(x >= 0 && x < TIC80_WIDTH)
-					*colPtr = pal[tic_tool_peek4(tic->ram.vram.screen.data, index)];
+		{
+			u32* colPtr = rowPtr + Left;
+			s32 offset = tic->ram.vram.vars.offset.x;
+			s32 count = TIC80_WIDTH;
+			s32 index = y * TIC80_WIDTH;
+			if (offset > 0) {
+				memset4(rowPtr + Left, pal[tic->ram.vram.vars.bg], offset);
+				count -= offset;
+				colPtr += offset;
+			} else {
+				count += offset;
+				index -= offset;
+			}
+			// copy the first pixel if the line is not alligned to bytes.
+			if (index & 1 && count > 0) {
+				*colPtr++ = pal[tic_tool_peek4(tic->ram.vram.screen.data, index)];
+				index++;
+				count--;
+			}
+			for(s32 c = 0, di = index/2; c < count/2; c++)
+			{
+				// copy two pixels in one cycle
+				u8 val = ((u8*)tic->ram.vram.screen.data)[di++];
+				*colPtr++ = pal[val & 0xf];
+				*colPtr++ = pal[val >> 4];
+			}
+			// copy the remaining pixel
+			if (count & 1) *colPtr = pal[tic_tool_peek4(tic->ram.vram.screen.data, index + count/2*2)];
+			if (offset < 0) memset4(rowPtr + Left + TIC80_WIDTH + offset, pal[tic->ram.vram.vars.bg], -offset);
+		} else {
+			memset4(rowPtr + Left, pal[tic->ram.vram.vars.bg], TIC80_WIDTH);
+		}
 
 		memset4(rowPtr + (TIC80_FULLWIDTH-Right), pal[tic->ram.vram.vars.border], Right);
 
