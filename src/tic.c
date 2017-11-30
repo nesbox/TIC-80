@@ -1672,31 +1672,42 @@ static void api_blit(tic_mem* tic, u32* out, tic_scanline scanline)
 			s32 offset = tic->ram.vram.vars.offset.x;
 			s32 count = TIC80_WIDTH;
 			s32 index = y * TIC80_WIDTH;
-			if (offset > 0) {
+
+			if (offset > 0) 
+			{
 				memset4(rowPtr + Left, pal[tic->ram.vram.vars.bg], offset);
 				count -= offset;
 				colPtr += offset;
-			} else {
+			} 
+			else 
+			{
 				count += offset;
 				index -= offset;
 			}
+
 			// copy the first pixel if the line is not alligned to bytes.
-			if (index & 1 && count > 0) {
+			if (index & 1 && count > 0) 
+			{
 				*colPtr++ = pal[tic_tool_peek4(tic->ram.vram.screen.data, index)];
 				index++;
 				count--;
 			}
-			for(s32 c = 0, di = index/2; c < count/2; c++)
+
+			for(s32 c = 0, di = index >> 1; c < count >> 1; c++)
 			{
 				// copy two pixels in one cycle
-				u8 val = ((u8*)tic->ram.vram.screen.data)[di++];
+				u8 val = tic->ram.vram.screen.data[di++];
 				*colPtr++ = pal[val & 0xf];
 				*colPtr++ = pal[val >> 4];
 			}
+
 			// copy the remaining pixel
 			if (count & 1) *colPtr = pal[tic_tool_peek4(tic->ram.vram.screen.data, index + count/2*2)];
+			
 			if (offset < 0) memset4(rowPtr + Left + TIC80_WIDTH + offset, pal[tic->ram.vram.vars.bg], -offset);
-		} else {
+		} 
+		else 
+		{
 			memset4(rowPtr + Left, pal[tic->ram.vram.vars.bg], TIC80_WIDTH);
 		}
 
