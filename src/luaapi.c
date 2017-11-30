@@ -1246,3 +1246,8 @@ void callLuaScanline(tic_mem* memory, s32 row)
 		else lua_pop(lua, 1);
 	}
 }
+
+void callLuaOverlap(tic_mem* memory)
+{
+	
+}

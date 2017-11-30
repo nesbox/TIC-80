@@ -430,6 +430,7 @@ static void api_reset(tic_mem* memory)
 	tic_machine* machine = (tic_machine*)memory;
 	machine->state.initialized = false;
 	machine->state.scanline = NULL;
+	machine->state.overlap = NULL;
 
 	updateSaveid(memory);
 }
@@ -1428,6 +1429,7 @@ static void api_tick(tic_mem* memory, tic_tick_data* data)
 			if(done)
 			{
 				machine->state.scanline = memory->script == tic_script_js ? callJavascriptScanline : callLuaScanline;
+				machine->state.overlap = memory->script == tic_script_js ? callJavascriptOverlap : callLuaOverlap;
 				machine->state.initialized = true;				
 			}
 			else return;
@@ -1445,6 +1447,14 @@ static void api_scanline(tic_mem* memory, s32 row)
 
 	if(machine->state.initialized)
 		machine->state.scanline(memory, row);
+}
+
+static void api_overlap(tic_mem* memory)
+{
+	tic_machine* machine = (tic_machine*)memory;
+
+	if(machine->state.initialized)
+		machine->state.overlap(memory);
 }
 
 static double api_time(tic_mem* memory)
@@ -1645,7 +1655,7 @@ static u32* paletteBlit(tic_mem* tic)
 	return pal;
 }
 
-static void api_blit(tic_mem* tic, u32* out, tic_scanline scanline)
+static void api_blit(tic_mem* tic, u32* out, tic_scanline scanline, tic_overlap overlap)
 {
 	const u32* pal = paletteBlit(tic);
 
@@ -1721,6 +1731,11 @@ static void api_blit(tic_mem* tic, u32* out, tic_scanline scanline)
 	}
 
 	memset4(&out[(TIC80_FULLHEIGHT-Bottom) * TIC80_FULLWIDTH], pal[tic->ram.vram.vars.border], TIC80_FULLWIDTH*Bottom);
+
+	if(overlap)
+	{
+		overlap(tic);
+	}
 }
 
 static void initApi(tic_api* api)
@@ -1757,6 +1772,7 @@ static void initApi(tic_api* api)
 	INIT_API(time);
 	INIT_API(tick);
 	INIT_API(scanline);
+	INIT_API(overlap);
 	INIT_API(reset);
 	INIT_API(pause);
 	INIT_API(resume);

@@ -121,7 +121,7 @@ TIC80_API void tic80_tick(tic80* tic, tic80_input input)
 	tic80->memory->api.tick(tic80->memory, &tic80->tickData);
 	tic80->memory->api.tick_end(tic80->memory);
 
-	tic80->memory->api.blit(tic80->memory, tic->screen, tic80->memory->api.scanline);
+	tic80->memory->api.blit(tic80->memory, tic->screen, tic80->memory->api.scanline, tic80->memory->api.overlap);
 
 	TickCounter++;
 }

@@ -46,8 +46,6 @@ typedef struct
 	s32 duration;
 } Channel;
 
-typedef void(ScanlineFunc)(tic_mem* memory, s32 row);
-
 typedef struct
 {
 	s32 l;
@@ -84,7 +82,8 @@ typedef struct
 		Channel channels[TIC_SOUND_CHANNELS];
 	} music;
 
-	ScanlineFunc* scanline;
+	tic_scanline scanline;
+	tic_overlap overlap;
 	bool initialized;
 } MachineState;
 
@@ -134,3 +133,6 @@ void callJavascriptTick(tic_machine* machine);
 
 void callLuaScanline(tic_mem* memory, s32 row);
 void callJavascriptScanline(tic_mem* memory, s32 row);
+
+void callLuaOverlap(tic_mem* memory);
+void callJavascriptOverlap(tic_mem* memory);

@@ -828,3 +828,8 @@ void callJavascriptScanline(tic_mem* memory, s32 row)
 	}
 	else duk_pop(duk);
 }
+
+void callJavascriptOverlap(tic_mem* memory)
+{
+	
+}
