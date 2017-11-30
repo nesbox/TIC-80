@@ -149,11 +149,26 @@ static void resetPalette(tic_mem* memory)
 	memory->ram.vram.vars.mask.data = TIC_GAMEPAD_MASK;
 }
 
-static inline void setPixel(tic_machine* machine, s32 x, s32 y, u8 color)
+static void dmaPixel(tic_mem* tic, s32 x, s32 y, u8 color)
+{
+	tic_tool_poke4(tic->ram.vram.screen.data, y * TIC80_WIDTH + x, tic_tool_peek4(tic->ram.vram.mapping, color & 0xf));
+}
+
+static void overlapPixel(tic_mem* tic, s32 x, s32 y, u8 color)
+{
+	tic_machine* machine = (tic_machine*)tic;
+	
+	enum {Top = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2, Bottom = Top};
+	enum {Left = (TIC80_FULLWIDTH-TIC80_WIDTH)/2, Right = Left};
+
+	tic->screen[x + Left + (y + Top) * TIC80_FULLWIDTH] = machine->state.overlapPalette[tic_tool_peek4(tic->ram.vram.mapping, color & 0xf)];
+}
+
+static void setPixel(tic_machine* machine, s32 x, s32 y, u8 color)
 {
 	if(x < machine->state.clip.l || y < machine->state.clip.t || x >= machine->state.clip.r || y >= machine->state.clip.b) return;
 
-	tic_tool_poke4(machine->memory.ram.vram.screen.data, y * TIC80_WIDTH + x, tic_tool_peek4(machine->memory.ram.vram.mapping, color & 0xf));
+	machine->state.pixel(&machine->memory, x, y, color);
 }
 
 static u8 getPixel(tic_machine* machine, s32 x, s32 y)
@@ -431,6 +446,8 @@ static void api_reset(tic_mem* memory)
 	machine->state.initialized = false;
 	machine->state.scanline = NULL;
 	machine->state.overlap = NULL;
+
+	machine->state.pixel = dmaPixel;
 
 	updateSaveid(memory);
 }
@@ -1655,8 +1672,9 @@ static u32* paletteBlit(tic_mem* tic)
 	return pal;
 }
 
-static void api_blit(tic_mem* tic, u32* out, tic_scanline scanline, tic_overlap overlap)
+static void api_blit(tic_mem* tic, tic_scanline scanline, tic_overlap overlap)
 {
+	u32* out = tic->screen;
 	const u32* pal = paletteBlit(tic);
 
 	if(scanline)

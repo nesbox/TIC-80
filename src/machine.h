@@ -83,7 +83,11 @@ typedef struct
 	} music;
 
 	tic_scanline scanline;
+
 	tic_overlap overlap;
+	void (*pixel)(tic_mem* memory, s32 x, s32 y, u8 color);
+	u32 overlapPalette[TIC_PALETTE_SIZE];
+
 	bool initialized;
 } MachineState;
 

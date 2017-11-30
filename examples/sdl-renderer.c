@@ -142,7 +142,7 @@ int main(int argc, char **argv)
 							void* pixels = NULL;
 							int pitch = 0;
 							SDL_LockTexture(texture, NULL, &pixels, &pitch);
-							SDL_memcpy(pixels, tic->screen, sizeof tic->screen);
+							SDL_memcpy(pixels, tic->screen, TIC80_FULLWIDTH * TIC80_FULLHEIGHT);
 							SDL_UnlockTexture(texture);
 							SDL_RenderCopy(renderer, texture, NULL, NULL);
 						}

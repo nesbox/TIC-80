@@ -109,7 +109,7 @@ typedef struct
 
 	void (*tick_start)			(tic_mem* memory, const tic_sound* src);
 	void (*tick_end)			(tic_mem* memory);
-	void (*blit)				(tic_mem* tic, u32* out, tic_scanline scanline, tic_overlap overlap);
+	void (*blit)				(tic_mem* tic, tic_scanline scanline, tic_overlap overlap);
 
 	tic_script_lang (*get_script)(tic_mem* memory);
 } tic_api;
@@ -131,6 +131,8 @@ struct tic_mem
 		s16* buffer;
 		s32 size;
 	} samples;
+
+	u32 screen[TIC80_FULLWIDTH * TIC80_FULLHEIGHT];
 };
 
 tic_mem* tic_create(s32 samplerate);

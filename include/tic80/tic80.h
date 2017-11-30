@@ -49,7 +49,7 @@ typedef struct
 		s32 count;
 	} sound;
 
-	u32 screen[TIC80_FULLWIDTH * TIC80_FULLHEIGHT];
+	u32* screen;
 	
 } tic80;
 

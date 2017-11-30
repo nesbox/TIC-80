@@ -1448,29 +1448,23 @@ static void setCoverImage()
 	if(studio.mode == TIC_RUN_MODE)
 	{
 		enum {Pitch = TIC80_FULLWIDTH*sizeof(u32)};
-		u32* pixels = SDL_malloc(Pitch * TIC80_FULLHEIGHT);
 
-		if(pixels)
+		tic->api.blit(tic, tic->api.scanline, tic->api.overlap);
+
+		u32* buffer = SDL_malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32));
+
+		if(buffer)
 		{
-			tic->api.blit(tic, pixels, tic->api.scanline, tic->api.overlap);
+			SDL_Rect rect = {OFFSET_LEFT, OFFSET_TOP, TIC80_WIDTH, TIC80_HEIGHT};
 
-			u32* buffer = SDL_malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32));
+			screen2buffer(buffer, tic->screen, rect);
 
-			if(buffer)
-			{
-				SDL_Rect rect = {OFFSET_LEFT, OFFSET_TOP, TIC80_WIDTH, TIC80_HEIGHT};
+			gif_write_animation(studio.tic->cart.cover.data, &studio.tic->cart.cover.size,
+				TIC80_WIDTH, TIC80_HEIGHT, (const u8*)buffer, 1, TIC_FRAMERATE, 1);
 
-				screen2buffer(buffer, pixels, rect);
+			SDL_free(buffer);
 
-				gif_write_animation(studio.tic->cart.cover.data, &studio.tic->cart.cover.size,
-					TIC80_WIDTH, TIC80_HEIGHT, (const u8*)buffer, 1, TIC_FRAMERATE, 1);
-
-				SDL_free(buffer);
-
-				showPopupMessage("COVER IMAGE SAVED :)");
-			}
-
-			SDL_free(pixels);
+			showPopupMessage("COVER IMAGE SAVED :)");
 		}
 	}
 }
@@ -1950,7 +1944,8 @@ static void blitTexture()
 		break;
 	}
 
-	tic->api.blit(tic, pixels, scanline, overlap);
+	tic->api.blit(tic, scanline, overlap);
+	SDL_memcpy(pixels, tic->screen, sizeof tic->screen);
 
 	recordFrame(pixels);
 
