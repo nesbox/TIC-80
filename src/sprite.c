@@ -639,8 +639,8 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 
 static void pasteColor(Sprite* sprite)
 {
-	fromClipboard(sprite->tic->cart.palette.data, sizeof(tic_palette), false);
-	fromClipboard(&sprite->tic->cart.palette.colors[sprite->color], sizeof(tic_rgb), false);
+	fromClipboard(sprite->tic->cart.palettes.bg.data, sizeof(tic_palette), false);
+	fromClipboard(&sprite->tic->cart.palettes.bg.colors[sprite->color], sizeof(tic_rgb), false);
 }
 
 static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
@@ -675,7 +675,7 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
 				down = true;
 
 			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
-				toClipboard(sprite->tic->cart.palette.data, sizeof(tic_palette), false);
+				toClipboard(sprite->tic->cart.palettes.bg.data, sizeof(tic_palette), false);
 		}
 
 		if(down)
@@ -739,7 +739,7 @@ static void drawRGBSliders(Sprite* sprite, s32 x, s32 y)
 {
 	enum{Gap = 6, Count = sizeof(tic_rgb)};
 
-	u8* data = &sprite->tic->cart.palette.data[sprite->color * Count];
+	u8* data = &sprite->tic->cart.palettes.bg.data[sprite->color * Count];
 
 	for(s32 i = 0; i < Count; i++)
 		drawRGBSlider(sprite, x, y + Gap*i, &data[i]);
@@ -1482,7 +1482,7 @@ static void onStudioEvent(Sprite* sprite, StudioEvent event)
 
 static void scanline(tic_mem* tic, s32 row)
 {
-	memcpy(tic->ram.vram.palette.data, row < TOOLBAR_SIZE ? tic->config.palette.data : tic->cart.palette.data, sizeof(tic_palette));
+	memcpy(tic->ram.vram.palette.data, row < TOOLBAR_SIZE ? tic->config.palettes.bg.data : tic->cart.palettes.bg.data, sizeof(tic_palette));
 }
 
 void initSprite(Sprite* sprite, tic_mem* tic)

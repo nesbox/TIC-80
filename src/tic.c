@@ -53,8 +53,8 @@ typedef enum
 	CHUNK_TEMP3,	// 8
 	CHUNK_SOUND,	// 9
 	CHUNK_WAVEFORM,	// 10
-	CHUNK_TEMP4,	// 11
-	CHUNK_PALETTE, 	// 12
+	CHUNK_OVR_PAL,	// 11
+	CHUNK_BG_PAL, 	// 12
 	CHUNK_PATTERNS, // 13
 	CHUNK_MUSIC,	// 14
 
@@ -143,7 +143,7 @@ static void runNoise(blip_buffer_t* blip, tic_sound_register* reg, tic_sound_reg
 static void resetPalette(tic_mem* memory)
 {
 	static const u8 DefaultMapping[] = {16, 50, 84, 118, 152, 186, 220, 254};
-	memcpy(memory->ram.vram.palette.data, memory->cart.palette.data, sizeof(tic_palette));
+	memcpy(memory->ram.vram.palette.data, memory->cart.palettes.bg.data, sizeof(tic_palette));
 	memcpy(memory->ram.vram.mapping, DefaultMapping, sizeof DefaultMapping);
 	memset(&memory->ram.vram.vars, 0, sizeof memory->ram.vram.vars);
 	memory->ram.vram.vars.mask.data = TIC_GAMEPAD_MASK;
@@ -1208,7 +1208,7 @@ static void api_tick_end(tic_mem* memory)
 	blip_read_samples(machine->blip, machine->memory.samples.buffer, machine->samplerate / TIC_FRAMERATE);
 
 	machine->state.pixel = ovrPixel;
-	memcpy(machine->state.ovr.palette, tic_palette_blit(&memory->cart.palette), sizeof machine->state.ovr.palette);
+	memcpy(machine->state.ovr.palette, tic_palette_blit(&memory->cart.palettes.ovr), sizeof machine->state.ovr.palette);
 }
 
 
@@ -1265,7 +1265,7 @@ static void initCover(tic_mem* tic)
 				{
 					const gif_color* c = &image->palette[image->buffer[i]];
 					tic_rgb rgb = { c->r, c->g, c->b };
-					u8 color = tic_tool_find_closest_color(tic->cart.palette.colors, &rgb);
+					u8 color = tic_tool_find_closest_color(tic->cart.palettes.bg.colors, &rgb);
 					tic_tool_poke4(tic->ram.vram.screen.data, i, color);
 				}
 			}
@@ -1529,7 +1529,8 @@ static void api_load(tic_cartridge* cart, const u8* buffer, s32 size, bool palet
 	if(palette)
 	{
 		static const u8 DB16[] = {0x14, 0x0c, 0x1c, 0x44, 0x24, 0x34, 0x30, 0x34, 0x6d, 0x4e, 0x4a, 0x4e, 0x85, 0x4c, 0x30, 0x34, 0x65, 0x24, 0xd0, 0x46, 0x48, 0x75, 0x71, 0x61, 0x59, 0x7d, 0xce, 0xd2, 0x7d, 0x2c, 0x85, 0x95, 0xa1, 0x6d, 0xaa, 0x2c, 0xd2, 0xaa, 0x99, 0x6d, 0xc2, 0xca, 0xda, 0xd4, 0x5e, 0xde, 0xee, 0xd6};
-		memcpy(cart->palette.data, DB16, sizeof(tic_palette));				
+		memcpy(cart->palettes.bg.data, DB16, sizeof(tic_palette));
+		memcpy(cart->palettes.ovr.data, DB16, sizeof(tic_palette));
 	}
 
 	#define LOAD_CHUNK(to) memcpy(&to, buffer, min(sizeof(to), chunk.size))
@@ -1550,9 +1551,13 @@ static void api_load(tic_cartridge* cart, const u8* buffer, s32 size, bool palet
 		case CHUNK_WAVEFORM:	LOAD_CHUNK(cart->sound.sfx.waveform);			break;
 		case CHUNK_MUSIC:		LOAD_CHUNK(cart->sound.music.tracks.data); 		break;
 		case CHUNK_PATTERNS:	LOAD_CHUNK(cart->sound.music.patterns.data); 	break;
-		case CHUNK_PALETTE:		
+		case CHUNK_BG_PAL:		
 			if(palette)
-				LOAD_CHUNK(cart->palette); 					
+				LOAD_CHUNK(cart->palettes.bg);
+			break;
+		case CHUNK_OVR_PAL:		
+			if(palette)
+				LOAD_CHUNK(cart->palettes.ovr);
 			break;
 		case CHUNK_COVER: 	
 			LOAD_CHUNK(cart->cover.data);
@@ -1619,7 +1624,8 @@ static s32 api_save(const tic_cartridge* cart, u8* buffer)
 	buffer = SAVE_CHUNK(CHUNK_WAVEFORM, cart->sound.sfx.waveform);
 	buffer = SAVE_CHUNK(CHUNK_PATTERNS, cart->sound.music.patterns.data);
 	buffer = SAVE_CHUNK(CHUNK_MUSIC, 	cart->sound.music.tracks.data);
-	buffer = SAVE_CHUNK(CHUNK_PALETTE, 	cart->palette);
+	buffer = SAVE_CHUNK(CHUNK_BG_PAL, 	cart->palettes.bg);
+	buffer = SAVE_CHUNK(CHUNK_OVR_PAL, 	cart->palettes.ovr);
 
 	buffer = saveFixedChunk(buffer, CHUNK_COVER, cart->cover.data, cart->cover.size);
 
