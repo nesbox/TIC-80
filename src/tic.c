@@ -161,7 +161,7 @@ static void ovrPixel(tic_mem* tic, s32 x, s32 y, u8 color)
 	enum {Top = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2};
 	enum {Left = (TIC80_FULLWIDTH-TIC80_WIDTH)/2};
 
-	tic->screen[x + y * TIC80_FULLWIDTH + (Left + Top * TIC80_FULLWIDTH)] = machine->state.ovr.palette[tic_tool_peek4(tic->ram.vram.mapping, color & 0xf)];
+	tic->screen[x + y * TIC80_FULLWIDTH + (Left + Top * TIC80_FULLWIDTH)] = machine->state.ovr.palette[color & 0xf];
 }
 
 static void setPixel(tic_machine* machine, s32 x, s32 y, u8 color)
