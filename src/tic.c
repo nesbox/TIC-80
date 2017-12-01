@@ -149,9 +149,14 @@ static void resetPalette(tic_mem* memory)
 	memory->ram.vram.vars.mask.data = TIC_GAMEPAD_MASK;
 }
 
+static inline u8 mapColor(tic_mem* tic, u8 color)
+{
+	return tic_tool_peek4(tic->ram.vram.mapping, color & 0xf);
+}
+
 static void dmaPixel(tic_mem* tic, s32 x, s32 y, u8 color)
 {
-	tic_tool_poke4(tic->ram.vram.screen.data, y * TIC80_WIDTH + x, tic_tool_peek4(tic->ram.vram.mapping, color & 0xf));
+	tic_tool_poke4(tic->ram.vram.screen.data, y * TIC80_WIDTH + x, mapColor(tic, color));
 }
 
 static void ovrPixel(tic_mem* tic, s32 x, s32 y, u8 color)
@@ -161,7 +166,7 @@ static void ovrPixel(tic_mem* tic, s32 x, s32 y, u8 color)
 	enum {Top = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2};
 	enum {Left = (TIC80_FULLWIDTH-TIC80_WIDTH)/2};
 
-	tic->screen[x + y * TIC80_FULLWIDTH + (Left + Top * TIC80_FULLWIDTH)] = machine->state.ovr.palette[color & 0xf];
+	*(tic->screen + x + (y << TIC80_FULLWIDTH_BITS) + (Left + Top * TIC80_FULLWIDTH)) = *(machine->state.ovr.palette + mapColor(tic, color));
 }
 
 static void setPixel(tic_machine* machine, s32 x, s32 y, u8 color)

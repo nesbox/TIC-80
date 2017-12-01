@@ -1862,7 +1862,7 @@ static void drawRecordLabel(u32* frame, s32 pitch, s32 sx, s32 sy, const u32* co
 		for(s32 x = 0; x < sizeof RecLabel[0]*BITS_IN_BYTE; x++)
 		{
 			if(RecLabel[y] & (1 << x))
-				memcpy(&frame[sx + 15 - x + (y+sy)*TIC80_FULLWIDTH], color, sizeof *color);
+				memcpy(&frame[sx + 15 - x + ((y+sy) << TIC80_FULLWIDTH_BITS)], color, sizeof *color);
 		}
 	}
 }
