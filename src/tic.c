@@ -258,6 +258,9 @@ static void drawRectBorder(tic_machine* machine, s32 x, s32 y, s32 width, s32 he
 	} \
 	})
 
+#define REVERT(X) (TIC_SPRITESIZE - 1 - (X))
+#define INDEX_XY(X, Y) ((Y) * TIC_SPRITESIZE + (X))
+
 static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
 	static u8 mapping[TIC_PALETTE_SIZE];
@@ -280,14 +283,14 @@ static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y,
 		ex = machine->state.clip.r - x; if (ex > TIC_SPRITESIZE) ex = TIC_SPRITESIZE;
 		ey = machine->state.clip.b - y; if (ey > TIC_SPRITESIZE) ey = TIC_SPRITESIZE;
 		switch (orientation) {
-			case 0b100: DRAW_TILE_BODY(px * TIC_SPRITESIZE + py); break;
-			case 0b110: DRAW_TILE_BODY(px * TIC_SPRITESIZE + TIC_SPRITESIZE - py - 1); break;
-			case 0b101: DRAW_TILE_BODY((TIC_SPRITESIZE - px - 1) * TIC_SPRITESIZE + py); break;
-			case 0b111: DRAW_TILE_BODY((TIC_SPRITESIZE - px) * TIC_SPRITESIZE - py - 1); break;
-			case 0b000: DRAW_TILE_BODY(py * TIC_SPRITESIZE + px); break;
-			case 0b010: DRAW_TILE_BODY((TIC_SPRITESIZE - py - 1) * TIC_SPRITESIZE + px); break;
-			case 0b001: DRAW_TILE_BODY(py * TIC_SPRITESIZE + TIC_SPRITESIZE - px - 1); break;
-			case 0b011: DRAW_TILE_BODY((TIC_SPRITESIZE - py) * TIC_SPRITESIZE - px - 1); break;
+			case 0b100: DRAW_TILE_BODY(INDEX_XY(py, px)); break;
+			case 0b110: DRAW_TILE_BODY(INDEX_XY(REVERT(py), px)); break;
+			case 0b101: DRAW_TILE_BODY(INDEX_XY(py, REVERT(px))); break;
+			case 0b111: DRAW_TILE_BODY(INDEX_XY(REVERT(py), REVERT(px))); break;
+			case 0b000: DRAW_TILE_BODY(INDEX_XY(px, py)); break;
+			case 0b010: DRAW_TILE_BODY(INDEX_XY(px, REVERT(py))); break;
+			case 0b001: DRAW_TILE_BODY(INDEX_XY(REVERT(px), py)); break;
+			case 0b011: DRAW_TILE_BODY(INDEX_XY(REVERT(px), REVERT(py))); break;
 			default: assert(!"Unknown value of orientation in drawTile");
 		}
 		return;
