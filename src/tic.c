@@ -154,33 +154,59 @@ static inline u8 mapColor(tic_mem* tic, u8 color)
 	return tic_tool_peek4(tic->ram.vram.mapping, color & 0xf);
 }
 
-static void dmaPixel(tic_mem* tic, s32 x, s32 y, u8 color)
+static void setPixelDma(tic_mem* tic, s32 x, s32 y, u8 color)
 {
 	tic_tool_poke4(tic->ram.vram.screen.data, y * TIC80_WIDTH + x, mapColor(tic, color));
 }
 
-static void ovrPixel(tic_mem* tic, s32 x, s32 y, u8 color)
+static inline u32* getOvrAddr(tic_mem* tic, s32 x, s32 y)
 {
-	tic_machine* machine = (tic_machine*)tic;
-	
 	enum {Top = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2};
 	enum {Left = (TIC80_FULLWIDTH-TIC80_WIDTH)/2};
 
-	*(tic->screen + x + (y << TIC80_FULLWIDTH_BITS) + (Left + Top * TIC80_FULLWIDTH)) = *(machine->state.ovr.palette + mapColor(tic, color));
+	return tic->screen + x + (y << TIC80_FULLWIDTH_BITS) + (Left + Top * TIC80_FULLWIDTH);
+}
+
+static void setPixelOvr(tic_mem* tic, s32 x, s32 y, u8 color)
+{
+	tic_machine* machine = (tic_machine*)tic;
+	
+	*getOvrAddr(tic, x, y) = *(machine->state.ovr.palette + mapColor(tic, color));
+}
+
+static u8 getPixelOvr(tic_mem* tic, s32 x, s32 y)
+{
+	tic_machine* machine = (tic_machine*)tic;
+	
+	u32 color = *getOvrAddr(tic, x, y);
+	u32* pal = machine->state.ovr.palette;
+
+	for(s32 i = 0; i < TIC_PALETTE_SIZE; i++, pal++)
+		if(*pal == color)
+			return i;
+
+	return 0;
+}
+
+static u8 getPixelDma(tic_mem* tic, s32 x, s32 y)
+{
+	tic_machine* machine = (tic_machine*)tic;
+
+	return tic_tool_peek4(machine->memory.ram.vram.screen.data, y * TIC80_WIDTH + x);
 }
 
 static void setPixel(tic_machine* machine, s32 x, s32 y, u8 color)
 {
 	if(x < machine->state.clip.l || y < machine->state.clip.t || x >= machine->state.clip.r || y >= machine->state.clip.b) return;
 
-	machine->state.pixel(&machine->memory, x, y, color);
+	machine->state.setpix(&machine->memory, x, y, color);
 }
 
 static u8 getPixel(tic_machine* machine, s32 x, s32 y)
 {
 	if(x < 0 || y < 0 || x >= TIC80_WIDTH || y >= TIC80_HEIGHT) return 0;
 
-	return tic_tool_peek4(machine->memory.ram.vram.screen.data, y * TIC80_WIDTH + x);
+	return machine->state.getpix(&machine->memory, x, y);
 }
 
 static void drawHLine(tic_machine* machine, s32 x, s32 y, s32 width, u8 color)
@@ -452,7 +478,8 @@ static void api_reset(tic_mem* memory)
 	machine->state.scanline = NULL;
 	machine->state.ovr.callback = NULL;
 
-	machine->state.pixel = dmaPixel;
+	machine->state.setpix = setPixelDma;
+	machine->state.getpix = getPixelDma;
 
 	updateSaveid(memory);
 }
@@ -1187,7 +1214,8 @@ static void api_tick_start(tic_mem* memory, const tic_sound* src)
 		else *hold = 0;
 	}
 
-	machine->state.pixel = dmaPixel;
+	machine->state.setpix = setPixelDma;
+	machine->state.getpix = getPixelDma;
 }
 
 static void api_tick_end(tic_mem* memory)
@@ -1212,7 +1240,8 @@ static void api_tick_end(tic_mem* memory)
 	blip_end_frame(machine->blip, EndTime);
 	blip_read_samples(machine->blip, machine->memory.samples.buffer, machine->samplerate / TIC_FRAMERATE);
 
-	machine->state.pixel = ovrPixel;
+	machine->state.setpix = setPixelOvr;
+	machine->state.getpix = getPixelOvr;
 	memcpy(machine->state.ovr.palette, tic_palette_blit(&memory->cart.palette), sizeof machine->state.ovr.palette);
 }
 

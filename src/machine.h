@@ -90,7 +90,8 @@ typedef struct
 		u32 palette[TIC_PALETTE_SIZE];
 	} ovr;
 
-	void (*pixel)(tic_mem* memory, s32 x, s32 y, u8 color);
+	void (*setpix)(tic_mem* memory, s32 x, s32 y, u8 color);
+	u8 (*getpix)(tic_mem* memory, s32 x, s32 y);
 
 	bool initialized;
 } MachineState;
