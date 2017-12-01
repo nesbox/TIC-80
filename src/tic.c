@@ -145,8 +145,6 @@ static void resetPalette(tic_mem* memory)
 	static const u8 DefaultMapping[] = {16, 50, 84, 118, 152, 186, 220, 254};
 	memcpy(memory->ram.vram.palette.data, memory->cart.palette.data, sizeof(tic_palette));
 	memcpy(memory->ram.vram.mapping, DefaultMapping, sizeof DefaultMapping);
-	memset(&memory->ram.vram.vars, 0, sizeof memory->ram.vram.vars);
-	memory->ram.vram.vars.mask.data = TIC_GAMEPAD_MASK;
 }
 
 static inline u8 mapColor(tic_mem* tic, u8 color)
@@ -469,6 +467,10 @@ static void api_clip(tic_mem* memory, s32 x, s32 y, s32 width, s32 height)
 static void api_reset(tic_mem* memory)
 {
 	resetPalette(memory);
+
+	memset(&memory->ram.vram.vars, 0, sizeof memory->ram.vram.vars);
+	memory->ram.vram.vars.mask.data = TIC_GAMEPAD_MASK;
+	
 	api_clip(memory, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
 
 	soundClear(memory);
@@ -1213,6 +1215,8 @@ static void api_tick_start(tic_mem* memory, const tic_sound* src)
 		if(prevDown && prevDown == down) (*hold)++;
 		else *hold = 0;
 	}
+
+	resetPalette(memory);
 
 	machine->state.setpix = setPixelDma;
 	machine->state.getpix = getPixelDma;
