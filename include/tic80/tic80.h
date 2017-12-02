@@ -31,7 +31,8 @@ extern "C" {
 
 #define TIC80_WIDTH 240
 #define TIC80_HEIGHT 136
-#define TIC80_FULLWIDTH 256
+#define TIC80_FULLWIDTH_BITS 8
+#define TIC80_FULLWIDTH (1 << TIC80_FULLWIDTH_BITS)
 #define TIC80_FULLHEIGHT (TIC80_FULLWIDTH*9/16)
 
 typedef struct 
@@ -49,7 +50,7 @@ typedef struct
 		s32 count;
 	} sound;
 
-	u32 screen[TIC80_FULLWIDTH * TIC80_FULLHEIGHT];
+	u32* screen;
 	
 } tic80;
 
