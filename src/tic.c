@@ -546,8 +546,6 @@ static void api_clear(tic_mem* memory, u8 color)
 	{
 		api_rect(memory, machine->state.clip.l, machine->state.clip.t, machine->state.clip.r - machine->state.clip.l, machine->state.clip.b - machine->state.clip.t, color);
 	}
-
-	memory->ram.vram.vars.bg = color & 0xf;
 }
 
 static s32 drawChar(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale)
@@ -1712,24 +1710,23 @@ static void api_blit(tic_mem* tic, tic_scanline scanline, tic_overlap overlap)
 
 	memset4(&out[0 * TIC80_FULLWIDTH], pal[tic->ram.vram.vars.border], TIC80_FULLWIDTH*Top);
 
-	u32* rowPtr = out + Top*TIC80_FULLWIDTH;
+	u32* rowPtr = out + (Top*TIC80_FULLWIDTH);
+	u32* colPtr = rowPtr + Left;
 
-	for(s32 r = 0, y = tic->ram.vram.vars.offset.y; r < TIC80_HEIGHT; r++, y++, rowPtr += TIC80_FULLWIDTH)
+	for(s32 r = 0; r < TIC80_HEIGHT; r++, rowPtr += TIC80_FULLWIDTH, colPtr += (Left + Right))
 	{
 		memset4(rowPtr, pal[tic->ram.vram.vars.border], Left);
-		memset4(rowPtr + Left, pal[tic->ram.vram.vars.bg], TIC80_WIDTH);
 
-		u32* colPtr = rowPtr + Left;
+		s32 pos = (r + tic->ram.vram.vars.offset.y + TIC80_HEIGHT) % TIC80_HEIGHT * TIC80_WIDTH;
 
-		if(y >= 0 && y < TIC80_HEIGHT)
-			for(s32 c = 0, x = (tic->ram.vram.vars.offset.x + TIC80_WIDTH) % TIC80_WIDTH, pos = y * TIC80_WIDTH; c < TIC80_WIDTH; c++, colPtr++, x++)
-			{
-				if(x >= TIC80_WIDTH) x %= TIC80_WIDTH;
-				*colPtr = pal[tic_tool_peek4(tic->ram.vram.screen.data, pos + x)];
-			}
+		for(s32 c = 0, x = (tic->ram.vram.vars.offset.x + TIC80_WIDTH) % TIC80_WIDTH; c < TIC80_WIDTH; c++, colPtr++, x++)
+		{
+			if(x >= TIC80_WIDTH) x %= TIC80_WIDTH;
+			*colPtr = pal[tic_tool_peek4(tic->ram.vram.screen.data, pos + x)];
+		}
 
 		memset4(rowPtr + (TIC80_FULLWIDTH-Right), pal[tic->ram.vram.vars.border], Right);
-
+			
 		if(scanline && (r < TIC80_HEIGHT-1))
 		{
 			scanline(tic, r+1);
