@@ -245,14 +245,13 @@ static void drawRectBorder(tic_machine* machine, s32 x, s32 y, s32 width, s32 he
 	drawVLine(machine, x + width - 1, y, height, color);
 }
 
-#define DRAW_TILE_BODY(index_expr) ({\
-	y += sy; \
+#define DRAW_TILE_BODY(INDEX_EXPR) ({\
 	for(s32 py=sy; py < ey; py++, y++) \
 	{ \
-		s32 xx = x + sx; \
+		s32 xx = x; \
 		for(s32 px=sx; px < ex; px++, xx++) \
 		{ \
-			u8 color = mapping[tic_tool_peek4(buffer, index_expr)]; \
+			u8 color = mapping[tic_tool_peek4(buffer, INDEX_EXPR)]; \
 			if(color != 255) tic_tool_poke4(machine->memory.ram.vram.screen.data, y * TIC80_WIDTH + xx, color); \
 		} \
 	} \
@@ -282,6 +281,8 @@ static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y,
 		sy = machine->state.clip.t - y; if (sy < 0) sy = 0;
 		ex = machine->state.clip.r - x; if (ex > TIC_SPRITESIZE) ex = TIC_SPRITESIZE;
 		ey = machine->state.clip.b - y; if (ey > TIC_SPRITESIZE) ey = TIC_SPRITESIZE;
+		y += sy;
+		x += sx;
 		switch (orientation) {
 			case 0b100: DRAW_TILE_BODY(INDEX_XY(py, px)); break;
 			case 0b110: DRAW_TILE_BODY(INDEX_XY(REVERT(py), px)); break;
@@ -302,22 +303,15 @@ static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y,
 		for(s32 px=0; px < TIC_SPRITESIZE; px++, xx+=scale)
 		{
 			s32 i;
-			s32 ix, iy;
-			ix = orientation & 0b001 ? TIC_SPRITESIZE - px - 1: px;
-			iy = orientation & 0b010 ? TIC_SPRITESIZE - py - 1: py;
+			s32 ix = orientation & 0b001 ? TIC_SPRITESIZE - px - 1: px;
+			s32 iy = orientation & 0b010 ? TIC_SPRITESIZE - py - 1: py;
 			if(orientation & 0b100) {
 				i = ix * TIC_SPRITESIZE + iy;
 			} else {
 				i = iy * TIC_SPRITESIZE + ix;
 			}
 			u8 color = tic_tool_peek4(buffer, i);
-			if(mapping[color] != 255) {
-				if (scale == 1) {
-					setPixel(machine, xx, y, color);
-				} else {
-					drawRect(machine, xx, y, scale, scale, color);
-				}
-			}
+			if(mapping[color] != 255) drawRect(machine, xx, y, scale, scale, color);
 		}
 	}
 }
