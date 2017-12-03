@@ -155,7 +155,7 @@ static inline u8 mapColor(tic_mem* tic, u8 color)
 
 static void setPixelDma(tic_mem* tic, s32 x, s32 y, u8 color)
 {
-	tic_tool_poke4(tic->ram.vram.screen.data, y * TIC80_WIDTH + x, mapColor(tic, color));
+	tic_tool_poke4(tic->ram.vram.screen.data, y * TIC80_WIDTH + x, color);
 }
 
 static inline u32* getOvrAddr(tic_mem* tic, s32 x, s32 y)
@@ -170,7 +170,7 @@ static void setPixelOvr(tic_mem* tic, s32 x, s32 y, u8 color)
 {
 	tic_machine* machine = (tic_machine*)tic;
 	
-	*getOvrAddr(tic, x, y) = *(machine->state.ovr.palette + mapColor(tic, color));
+	*getOvrAddr(tic, x, y) = *(machine->state.ovr.palette + color);
 }
 
 static u8 getPixelOvr(tic_mem* tic, s32 x, s32 y)
@@ -198,7 +198,7 @@ static void setPixel(tic_machine* machine, s32 x, s32 y, u8 color)
 {
 	if(x < machine->state.clip.l || y < machine->state.clip.t || x >= machine->state.clip.r || y >= machine->state.clip.b) return;
 
-	machine->state.setpix(&machine->memory, x, y, color);
+	machine->state.setpix(&machine->memory, x, y, mapColor(&machine->memory, color));
 }
 
 static u8 getPixel(tic_machine* machine, s32 x, s32 y)
@@ -252,7 +252,7 @@ static void drawRectBorder(tic_machine* machine, s32 x, s32 y, s32 width, s32 he
 		for(s32 px=sx; px < ex; px++, xx++) \
 		{ \
 			u8 color = mapping[tic_tool_peek4(buffer, INDEX_EXPR)]; \
-			if(color != 255) tic_tool_poke4(machine->memory.ram.vram.screen.data, y * TIC80_WIDTH + xx, color); \
+			if(color != 255) machine->state.setpix(&machine->memory, xx, y, color); \
 		} \
 	} \
 	})
