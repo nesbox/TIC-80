@@ -1722,18 +1722,22 @@ static void api_blit(tic_mem* tic, tic_scanline scanline, tic_overlap overlap, v
 	memset4(&out[0 * TIC80_FULLWIDTH], pal[tic->ram.vram.vars.border], TIC80_FULLWIDTH*Top);
 
 	u32* rowPtr = out + (Top*TIC80_FULLWIDTH);
-	u32* colPtr = rowPtr + Left;
-
-	for(s32 r = 0; r < TIC80_HEIGHT; r++, rowPtr += TIC80_FULLWIDTH, colPtr += (Left + Right))
+	for(s32 r = 0; r < TIC80_HEIGHT; r++, rowPtr += TIC80_FULLWIDTH)
 	{
+		u32 *colPtr = rowPtr + Left;
 		memset4(rowPtr, pal[tic->ram.vram.vars.border], Left);
 
-		s32 pos = (r + tic->ram.vram.vars.offset.y + TIC80_HEIGHT) % TIC80_HEIGHT * TIC80_WIDTH;
+		s32 pos = (r + tic->ram.vram.vars.offset.y + TIC80_HEIGHT) % TIC80_HEIGHT * TIC80_WIDTH >> 1;
 
-		for(s32 c = 0, x = (tic->ram.vram.vars.offset.x + TIC80_WIDTH) % TIC80_WIDTH; c < TIC80_WIDTH; c++, colPtr++, x++)
+		u32 *endRow = colPtr + TIC80_WIDTH;
+		colPtr += (-tic->ram.vram.vars.offset.x + TIC80_WIDTH) % TIC80_WIDTH;
+		for(s32 c = 0; c < TIC80_WIDTH / 2; c++)
 		{
-			if(x >= TIC80_WIDTH) x %= TIC80_WIDTH;
-			*colPtr = pal[tic_tool_peek4(tic->ram.vram.screen.data, pos + x)];
+			u8 val = ((u8*)tic->ram.vram.screen.data)[pos + c];
+			*colPtr++ = pal[val & 0xf];
+			if(colPtr >= endRow) colPtr -= TIC80_WIDTH;
+			*colPtr++ = pal[val >> 4];
+			if(colPtr >= endRow) colPtr -= TIC80_WIDTH;
 		}
 
 		memset4(rowPtr + (TIC80_FULLWIDTH-Right), pal[tic->ram.vram.vars.border], Right);
