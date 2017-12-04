@@ -747,7 +747,7 @@ static const struct{duk_c_function func; s32 params;} ApiFunc[] =
 	{duk_textri,14},
 	{duk_clip, 4},
 	{duk_music, 4},
-	{duk_sync, 0},
+	{duk_sync, 1},
 };
 
 static void initDuktape(tic_machine* machine)
