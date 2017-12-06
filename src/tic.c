@@ -245,7 +245,7 @@ static void drawRectBorder(tic_machine* machine, s32 x, s32 y, s32 width, s32 he
 	drawVLine(machine, x + width - 1, y, height, color);
 }
 
-#define DRAW_TILE_BODY(INDEX_EXPR) {\
+#define DRAW_TILE_BODY(INDEX_EXPR) do {\
 	for(s32 py=sy; py < ey; py++, y++) \
 	{ \
 		s32 xx = x; \
@@ -255,7 +255,7 @@ static void drawRectBorder(tic_machine* machine, s32 x, s32 y, s32 width, s32 he
 			if(color != 255) machine->state.setpix(&machine->memory, xx, y, color); \
 		} \
 	} \
-	}
+	} while(0)
 
 #define REVERT(X) (TIC_SPRITESIZE - 1 - (X))
 #define INDEX_XY(X, Y) ((Y) * TIC_SPRITESIZE + (X))
