@@ -1444,8 +1444,8 @@ static void exportSprites(Console* console)
 		Height = TIC_SPRITESHEET_SIZE*2,
 	};
 
-	s32 size = Width * Height * sizeof(gif_color);
-	u8* buffer = (u8*)SDL_malloc(size);
+	enum{ Size = Width * Height * sizeof(gif_color)};
+	u8* buffer = (u8*)SDL_malloc(Size);
 
 	if(buffer)
 	{
@@ -1457,6 +1457,7 @@ static void exportSprites(Console* console)
 				for (s32 x = 0; x < Width; x++)
 					data[x + y * Width] = getSpritePixel(console->tic->cart.gfx.tiles, x, y);
 
+			s32 size = 0;
 			if((size = writeGifData(console->tic, buffer, data, Width, Height)))
 			{
 				// buffer will be freed inside fsGetFileData
