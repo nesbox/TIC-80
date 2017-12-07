@@ -2172,7 +2172,7 @@ static const struct
 {
 	{"help", 	NULL, "show this info", 			onConsoleHelpCommand},
 	{"ram", 	NULL, "show memory info", 			onConsoleRamCommand},
-	{"exit", 	NULL, "exit the application", 		onConsoleExitCommand},
+	{"exit", 	"quit", "exit the application", 	onConsoleExitCommand},
 	{"new", 	NULL, "create new cart",			onConsoleNewCommand},
 	{"load", 	NULL, "load cart", 					onConsoleLoadCommand},
 	{"save", 	NULL, "save cart",	 				onConsoleSaveCommand},
@@ -2258,6 +2258,13 @@ static void onConsoleHelpCommand(Console* console, const char* param)
 	for(s32 i = 0; i < COUNT_OF(AvailableConsoleCommands); i++)
 	{
 		size_t len = strlen(AvailableConsoleCommands[i].command);
+
+		{
+			const char* alt = AvailableConsoleCommands[i].alt;
+			if(alt)
+				len += strlen(alt) + 1;			
+		}
+
 		if(len > maxName) maxName = len;
 	}
 

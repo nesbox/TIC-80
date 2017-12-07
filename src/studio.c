@@ -1586,6 +1586,13 @@ static bool processShortcuts(SDL_KeyboardEvent* event)
 
 	switch(event->keysym.sym)
 	{
+	case SDLK_q:
+		if(mod & TIC_MOD_CTRL)
+		{
+			exitStudio();
+			return true;
+		}
+		break;
 	case SDLK_r:
 		if(mod & TIC_MOD_CTRL)
 		{
