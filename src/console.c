@@ -52,14 +52,12 @@ static struct
 {
 	char prefix[32];
 	bool yes;
-	bool fast;
 	bool menu;
 	tic_cartridge file;
 } embed =
 {
 	.prefix = "C8B39163816B47209E721136D37B8031",
 	.yes = false,
-	.fast = false,
 };
 
 static const char DefaultLuaTicPath[] = TIC_LOCAL "default.tic";
@@ -2591,15 +2589,15 @@ static void tick(Console* console)
 
 	if(embed.yes)
 	{
-		if(console->tickCounter >= (u32)(embed.fast ? 1 : TIC_FRAMERATE))
+		if(console->tickCounter >= (u32)(console->skipStart ? 1 : TIC_FRAMERATE))
 		{
-			if(!embed.fast)
+			if(!console->skipStart)
 				console->showGameMenu = true;
 
 			memcpy(&console->tic->cart, &embed.file, sizeof(tic_cartridge));
 			setStudioMode(TIC_RUN_MODE);
 			embed.yes = false;
-			embed.fast = false;
+			console->skipStart = false;
 			studioRomLoaded();
 
 			console->tic->api.reset(console->tic);
@@ -2630,8 +2628,10 @@ static void tick(Console* console)
 	}
 }
 
-static void cmdLoadCart(Console* console, const char* name)
+static bool cmdLoadCart(Console* console, const char* name)
 {
+	bool done = false;
+
 	s32 size = 0;
 	void* data = fsReadFile(name, &size);
 
@@ -2643,7 +2643,8 @@ static void cmdLoadCart(Console* console, const char* name)
 			loadProject(console, name, data, size, &embed.file);
 			setCartName(console, fsFilename(name));
 			embed.yes = true;
-			embed.fast = true;
+			console->skipStart = true;
+			done = true;
 		}
 		else
 #endif
@@ -2653,10 +2654,13 @@ static void cmdLoadCart(Console* console, const char* name)
 			loadCart(console->tic, &embed.file, data, size, true);			
 			setCartName(console, fsFilename(name));
 			embed.yes = true;
+			done = true;
 		}
 		
 		SDL_free(data);
 	}
+
+	return done;
 }
 
 static bool loadFileIntoBuffer(Console* console, char* buffer, const char* fileName)
@@ -2694,8 +2698,10 @@ static void tryReloadCode(Console* console, char* codeBuffer)
 	}
 }
 
-static void cmdInjectCode(Console* console, const char* param, const char* name)
+static bool cmdInjectCode(Console* console, const char* param, const char* name)
 {
+	bool done = false;
+
 	bool watch = strcmp(param, "-code-watch") == 0;
 	if(watch || strcmp(param, "-code") == 0)
 	{
@@ -2704,7 +2710,8 @@ static void cmdInjectCode(Console* console, const char* param, const char* name)
 		if(loaded)
 		{
 			embed.yes = true;
-			embed.fast = true;
+			console->skipStart = true;
+			done = true;
 
 			if(watch)
 			{
@@ -2713,10 +2720,14 @@ static void cmdInjectCode(Console* console, const char* param, const char* name)
 			}
 		}
 	}
+
+	return done;
 }
 
-static void cmdInjectSprites(Console* console, const char* param, const char* name)
+static bool cmdInjectSprites(Console* console, const char* param, const char* name)
 {
+	bool done = false;
+
 	if(strcmp(param, "-sprites") == 0)
 	{
 		s32 size = 0;
@@ -2754,14 +2765,19 @@ static void cmdInjectSprites(Console* console, const char* param, const char* na
 			SDL_free(sprites);
 
 			embed.yes = true;
-			embed.fast = true;
+			console->skipStart = true;
+			done = true;
 		}
 
 	}
+
+	return done;
 }
 
-static void cmdInjectMap(Console* console, const char* param, const char* name)
+static bool cmdInjectMap(Console* console, const char* param, const char* name)
 {
+	bool done = false;
+
 	if(strcmp(param, "-map") == 0)
 	{
 		s32 size = 0;
@@ -2774,12 +2790,15 @@ static void cmdInjectMap(Console* console, const char* param, const char* name)
 				injectMap(console, map, size);
 
 				embed.yes = true;
-				embed.fast = true;
+				console->skipStart = true;
+				done = true;
 			}
 
 			SDL_free(map);
 		}
 	}
+
+	return done;
 }
 
 void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config, s32 argc, char **argv)
@@ -2826,6 +2845,8 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 		.fs = fs,
 		.showGameMenu = false,
 		.startSurf = false,
+		.skipStart = false,
+		.goFullscreen = false,
 	};
 
 	memset(console->buffer, 0, CONSOLE_BUFFER_SIZE);
@@ -2851,33 +2872,68 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 	{
 		memcpy(embed.file.palette.data, tic->config.palette.data, sizeof(tic_palette));
 
-		if (argc == 2) cmdLoadCart(console, argv[1]);
-		else if (argc == 3)
-		{
-			cmdInjectCode(console, argv[1], argv[2]);
-			cmdInjectSprites(console, argv[1], argv[2]);
-			cmdInjectMap(console, argv[1], argv[2]);
-		}
-		else if (argc > 3)
-		{
-			cmdLoadCart(console, argv[1]);
+		u32 argp = 1;
 
-			for (s32 i = 2; i < argc; i += 2)
+		// trying to load cart
+		for (s32 i = 1; i < argc; i++)
+		{
+			if(cmdLoadCart(console, argv[i]))
 			{
-				cmdInjectCode(console, argv[i], argv[i + 1]);
-				cmdInjectSprites(console, argv[i], argv[i + 1]);
-				cmdInjectMap(console, argv[i], argv[i + 1]);
+				argp |= 1 << i;
+				break;
+			}
+		}
+
+		// process '-key val' params
+		for (s32 i = 1; i < argc-1; i++)
+		{
+			s32 mask = 0b11 << i;
+
+			if(~argp & mask)
+			{
+				const char* first = argv[i];
+				const char* second = argv[i + 1];
+
+				if(cmdInjectCode(console, first, second)
+					|| cmdInjectSprites(console, first, second)
+					|| cmdInjectMap(console, first, second))
+					argp |= mask;				
+			}
+		}
+
+		// proccess single params
+		for (s32 i = 1; i < argc; i++)
+		{
+			if(~argp & 1 << i)
+			{
+				const char* arg = argv[i];
+
+				if(strcmp(arg, "-nosound") == 0)
+					config->data.noSound = true;
+
+				else if(strcmp(arg, "-surf") == 0)
+					console->startSurf = true;
+
+				else if(strcmp(arg, "-fullscreen") == 0)
+					console->goFullscreen = true;
+
+				else if(strcmp(arg, "-skip") == 0)
+					console->skipStart = true;
+
+				else continue;
+
+				argp |= 0b1 << i;
 			}
 		}
 
 		for (s32 i = 1; i < argc; i++)
 		{
-			if(strcmp(argv[i], "-nosound") == 0)
-				config->data.noSound = true;
-			else if(strcmp(argv[i], "-surf") == 0)
-				console->startSurf = true;
-			else if(strcmp(argv[i], "-fullscreen") == 0)
-				goFullscreen();
+			if(~argp & 1 << i)
+			{
+				char buf[256];
+				sprintf(buf, "parameter or file not processed: %s\n", argv[i]);
+				SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Warning", buf, NULL);
+			}
 		}
 	}
 

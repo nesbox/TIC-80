@@ -1371,7 +1371,7 @@ static void processMouse()
 	}
 }
 
-void goFullscreen()
+static void goFullscreen()
 {
 	studio.fullscreen = !studio.fullscreen;
 	SDL_SetWindowFullscreen(studio.window, studio.fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
@@ -1729,7 +1729,7 @@ SDL_Event* pollEvent()
 
 					u64 mdate = fsMDate(console->fs, console->romName);
 
-					if(mdate > studio.cart.mdate)
+					if(studio.cart.mdate && mdate > studio.cart.mdate)
 					{
 						if(studioCartChanged())
 						{
@@ -2379,10 +2379,15 @@ static void onFSInitialized(FileSystem* fs)
 
 	initModules();
 
-	if(studio.argc > 2)
+	if(studio.console.skipStart)
 	{
 		SDL_StartTextInput();
-		studio.mode = TIC_CONSOLE_MODE;
+		setStudioMode(TIC_CONSOLE_MODE);
+	}
+
+	if(studio.console.goFullscreen)
+	{
+		goFullscreen();
 	}
 
 	// set the window icon before renderer is created (issues on Linux)

@@ -89,6 +89,8 @@ struct Console
 	bool active;
 	bool showGameMenu;
 	bool startSurf;
+	bool skipStart;
+	bool goFullscreen;
 
 	void(*load)(Console*, const char* name);
 	bool(*loadProject)(Console*, const char* name, const char* data, s32 size, tic_cartridge* dst);
