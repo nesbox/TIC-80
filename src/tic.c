@@ -1227,8 +1227,6 @@ static void api_tick_start(tic_mem* memory, const tic_sound* src)
 		else *hold = 0;
 	}
 
-	resetPalette(memory);
-
 	machine->state.setpix = setPixelDma;
 	machine->state.getpix = getPixelDma;
 }
