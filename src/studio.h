@@ -88,6 +88,7 @@ typedef struct
 			u8 other;
 			u8 select;
 			u8 cursor;
+			bool shadow;
 		} code;
 
 		struct

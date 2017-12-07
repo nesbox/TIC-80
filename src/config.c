@@ -112,6 +112,15 @@ static void readCodeTheme(Config* config, lua_State* lua)
 
 			lua_pop(lua, 1);
 		}
+
+		{
+			lua_getfield(lua, -1, "SHADOW");
+
+			if(lua_isboolean(lua, -1))
+				config->data.theme.code.shadow = lua_toboolean(lua, -1);
+
+			lua_pop(lua, 1);
+		}
 	}
 
 	lua_pop(lua, 1);
