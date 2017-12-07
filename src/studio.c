@@ -1511,6 +1511,8 @@ static void takeScreenshot()
 
 static bool processShortcuts(SDL_KeyboardEvent* event)
 {
+	if(event->repeat) return false;
+
 	SDL_Keymod mod = event->keysym.mod;
 
 	if(studio.mode == TIC_START_MODE) return true;
