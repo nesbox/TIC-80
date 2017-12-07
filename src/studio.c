@@ -41,7 +41,6 @@
 #include "fs.h"
 
 #include <zlib.h>
-#include <time.h>
 #include "ext/net/SDL_net.h"
 #include "ext/gif.h"
 #include "ext/md5.h"
@@ -2431,14 +2430,6 @@ void onEmscriptenWgetError(const char* error) {}
 
 s32 main(s32 argc, char **argv)
 {
-#if defined(__MACOSX__)
-	srandom(time(NULL));
-	random();
-#else
-	srand(time(NULL));
-	rand();
-#endif
-
 	setbuf(stdout, NULL);
 	studio.argc = argc;
 	studio.argv = argv;

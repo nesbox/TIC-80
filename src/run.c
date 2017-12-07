@@ -24,6 +24,7 @@
 #include "console.h"
 #include "fs.h"
 #include "ext/md5.h"
+#include <time.h>
 
 static void onTrace(void* data, const char* text, u8 color)
 {
@@ -166,6 +167,17 @@ static void processDoFile(void* data, char* dst)
 	return;
 }
 
+static void preseed()
+{
+#if defined(__MACOSX__)
+	srandom(time(NULL));
+	random();
+#else
+	srand(time(NULL));
+	rand();
+#endif
+}
+
 void initRun(Run* run, Console* console, tic_mem* tic)
 {
 	*run = (Run)
@@ -203,4 +215,6 @@ void initRun(Run* run, Console* console, tic_mem* tic)
 
 		if(data) SDL_free(data);
 	}
+
+	preseed();
 }
