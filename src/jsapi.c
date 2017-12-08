@@ -809,7 +809,7 @@ void callJavascriptTick(tic_machine* machine)
 	}
 }
 
-void callJavascriptScanline(tic_mem* memory, s32 row)
+void callJavascriptScanline(tic_mem* memory, s32 row, void* data)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	duk_context* duk = machine->js;
@@ -830,7 +830,7 @@ void callJavascriptScanline(tic_mem* memory, s32 row)
 	else duk_pop(duk);
 }
 
-void callJavascriptOverlap(tic_mem* memory)
+void callJavascriptOverlap(tic_mem* memory, void* data)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	duk_context* duk = machine->js;

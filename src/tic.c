@@ -1510,20 +1510,20 @@ static void api_tick(tic_mem* memory, tic_tick_data* data)
 		: callLuaTick(machine);
 }
 
-static void api_scanline(tic_mem* memory, s32 row)
+static void api_scanline(tic_mem* memory, s32 row, void* data)
 {
 	tic_machine* machine = (tic_machine*)memory;
 
 	if(machine->state.initialized)
-		machine->state.scanline(memory, row);
+		machine->state.scanline(memory, row, data);
 }
 
-static void api_overlap(tic_mem* memory)
+static void api_overlap(tic_mem* memory, void* data)
 {
 	tic_machine* machine = (tic_machine*)memory;
 
 	if(machine->state.initialized)
-		machine->state.ovr.callback(memory);
+		machine->state.ovr.callback(memory, data);
 }
 
 static double api_time(tic_mem* memory)
@@ -1704,13 +1704,13 @@ static inline void memset4(void *dst, u32 val, u32 dwords)
 #endif
 }
 
-static void api_blit(tic_mem* tic, tic_scanline scanline, tic_overlap overlap)
+static void api_blit(tic_mem* tic, tic_scanline scanline, tic_overlap overlap, void* data)
 {
 	const u32* pal = tic_palette_blit(&tic->ram.vram.palette);
 
 	if(scanline)
 	{
-		scanline(tic, 0);
+		scanline(tic, 0, data);
 		pal = tic_palette_blit(&tic->ram.vram.palette);
 	}
 
@@ -1740,7 +1740,7 @@ static void api_blit(tic_mem* tic, tic_scanline scanline, tic_overlap overlap)
 			
 		if(scanline && (r < TIC80_HEIGHT-1))
 		{
-			scanline(tic, r+1);
+			scanline(tic, r+1, data);
 			pal = tic_palette_blit(&tic->ram.vram.palette);
 		}
 	}
@@ -1748,7 +1748,7 @@ static void api_blit(tic_mem* tic, tic_scanline scanline, tic_overlap overlap)
 	memset4(&out[(TIC80_FULLHEIGHT-Bottom) * TIC80_FULLWIDTH], pal[tic->ram.vram.vars.border], TIC80_FULLWIDTH*Bottom);
 
 	if(overlap)
-		overlap(tic);
+		overlap(tic, data);
 }
 
 static void initApi(tic_api* api)

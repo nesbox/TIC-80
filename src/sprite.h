@@ -61,7 +61,7 @@ struct Sprite
 
 	void (*tick)(Sprite*);
 	void (*event)(Sprite*, StudioEvent);
-	void (*scanline)(tic_mem* tic, s32 row);
+	void (*overlap)(tic_mem* tic, void* data);
 };
 
 void initSprite(Sprite*, tic_mem*);

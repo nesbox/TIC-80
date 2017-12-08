@@ -57,6 +57,8 @@
 #define OFFSET_LEFT ((TIC80_FULLWIDTH-TIC80_WIDTH)/2)
 #define OFFSET_TOP ((TIC80_FULLHEIGHT-TIC80_HEIGHT)/2)
 
+#define POPUP_DUR (TIC_FRAMERATE*2)
+
 typedef struct
 {
 	u8 data[16];
@@ -670,7 +672,7 @@ const u8* getKeyboard()
 
 static void showPopupMessage(const char* text)
 {
-	studio.popup.counter = TIC_FRAMERATE * 2;
+	studio.popup.counter = POPUP_DUR;
 	strcpy(studio.popup.message, text);
 }
 
@@ -1425,7 +1427,7 @@ static void setCoverImage()
 	{
 		enum {Pitch = TIC80_FULLWIDTH*sizeof(u32)};
 
-		tic->api.blit(tic, tic->api.scanline, tic->api.overlap);
+		tic->api.blit(tic, tic->api.scanline, tic->api.overlap, NULL);
 
 		u32* buffer = SDL_malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32));
 
@@ -1912,6 +1914,7 @@ static void blitTexture()
 
 	tic_scanline scanline = NULL;
 	tic_overlap overlap = NULL;
+	void* data = NULL;
 
 	switch(studio.mode)
 	{
@@ -1920,16 +1923,18 @@ static void blitTexture()
 		overlap = tic->api.overlap;
 		break;
 	case TIC_SPRITE_MODE:
-		scanline = studio.sprite.scanline;
+		overlap = studio.sprite.overlap;
+		data = &studio.sprite;
 		break;
 	case TIC_MAP_MODE:
-		scanline = studio.map.scanline;
+		overlap = studio.map.overlap;
+		data = &studio.map;
 		break;
 	default:
 		break;
 	}
 
-	tic->api.blit(tic, scanline, overlap);
+	tic->api.blit(tic, scanline, overlap, data);
 	SDL_memcpy(pixels, tic->screen, sizeof tic->screen);
 
 	recordFrame(pixels);
@@ -2052,6 +2057,28 @@ static void useSystemPalette()
 	memcpy(studio.tic->ram.vram.palette.data, studio.tic->config.palette.data, sizeof(tic_palette));
 }
 
+static void drawPopup()
+{
+	if(studio.popup.counter > 0)
+	{
+		studio.popup.counter--;
+
+		s32 anim = 0;
+
+		enum{Dur = TIC_FRAMERATE/2};
+
+		if(studio.popup.counter < Dur)
+			anim = -((Dur - studio.popup.counter) * (TIC_FONT_HEIGHT+1) / Dur);
+		else if(studio.popup.counter >= (POPUP_DUR - Dur))
+			anim = (((POPUP_DUR - Dur) - studio.popup.counter) * (TIC_FONT_HEIGHT+1) / Dur);
+
+		studio.tic->api.rect(studio.tic, 0, anim, TIC80_WIDTH, TIC_FONT_HEIGHT+1, (tic_color_red));
+		studio.tic->api.text(studio.tic, studio.popup.message, 
+			(s32)(TIC80_WIDTH - strlen(studio.popup.message)*TIC_FONT_WIDTH)/2,
+			anim + 1, (tic_color_white));
+	}
+}
+
 static void renderStudio()
 {
 	tic_mem* tic = studio.tic;
@@ -2102,14 +2129,7 @@ static void renderStudio()
 	default: break;
 	}
 
-	if(studio.popup.counter > 0)
-	{
-		studio.popup.counter--;
-
-		studio.tic->api.rect(studio.tic, 0, TIC80_HEIGHT - TIC_FONT_HEIGHT - 1, TIC80_WIDTH, TIC80_HEIGHT, (tic_color_red));
-		studio.tic->api.text(studio.tic, studio.popup.message, (s32)(TIC80_WIDTH - strlen(studio.popup.message)*TIC_FONT_WIDTH)/2,
-			TIC80_HEIGHT - TIC_FONT_HEIGHT, (tic_color_white));
-	}
+	drawPopup();
 
 	if(getConfig()->noSound)
 		SDL_memset(tic->ram.registers, 0, sizeof tic->ram.registers);

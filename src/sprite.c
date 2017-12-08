@@ -370,6 +370,17 @@ static void drawCanvas(Sprite* sprite, s32 x, s32 y)
 	sprite->tic->api.rect(sprite->tic, x, y, CANVAS_SIZE, CANVAS_SIZE, (tic_color_black));
 	sprite->tic->api.rect(sprite->tic, x-1, y + CANVAS_SIZE+1, CANVAS_SIZE+2, 1, (tic_color_black));
 
+	if(!sprite->editPalette)
+	{
+		if(sprite->mode == SPRITE_DRAW_MODE)
+		{
+			drawBrushSlider(sprite, x - 15, y + 20);
+		}		
+	}
+}
+
+static void drawCanvasOvr(Sprite* sprite, s32 x, s32 y)
+{
 	SDL_Rect rect = getSpriteRect(sprite);
 	s32 r = rect.x + rect.w;
 	s32 b = rect.y + rect.h;
@@ -390,7 +401,6 @@ static void drawCanvas(Sprite* sprite, s32 x, s32 y)
 		switch(sprite->mode)
 		{
 		case SPRITE_DRAW_MODE: 
-			drawBrushSlider(sprite, x - 15, y + 20);
 			processDrawCanvasMouse(sprite, x, y, rect.x, rect.y);
 			break;
 		case SPRITE_PICK_MODE: processPickerCanvasMouse(sprite, x, y, rect.x, rect.y); break;
@@ -521,7 +531,7 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 		static const u8 Icon[] =
 		{
 			0b11100000,
-			0b10100000,
+			0b11100000,
 			0b11100000,
 			0b00000000,
 			0b00000000,
@@ -550,7 +560,6 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 			s32 offset = x + *value * (Size-1) / Max - 1;
 			drawBitIcon(offset, y, Icon, (tic_color_black));
 			drawBitIcon(offset, y-1, Icon, (tic_color_white));
-			sprite->tic->api.pixel(sprite->tic, offset+1, y, sprite->color);
 		}
 
 		{
@@ -747,6 +756,18 @@ static void drawRGBSliders(Sprite* sprite, s32 x, s32 y)
 	drawRGBTools(sprite, x - 18, y + 26);
 }
 
+static void drawRGBSlidersOvr(Sprite* sprite, s32 x, s32 y)
+{
+	enum{Gap = 6, Count = sizeof(tic_rgb), Size = CANVAS_SIZE, Max = 255};
+
+	u8* data = &sprite->tic->cart.palette.data[sprite->color * Count];
+
+	for(s32 i = 0; i < Count; i++)
+	{
+		sprite->tic->api.pixel(sprite->tic, x + data[i] * (Size-1) / Max, y + Gap*i, sprite->color);
+	}
+}
+
 static void drawPalette(Sprite* sprite, s32 x, s32 y)
 {
 	SDL_Rect rect = {x, y, PALETTE_WIDTH-1, PALETTE_HEIGHT-1};
@@ -774,41 +795,14 @@ static void drawPalette(Sprite* sprite, s32 x, s32 y)
 	}
 
 	sprite->tic->api.rect(sprite->tic, rect.x-1, rect.y-1, rect.w+2, rect.h+2, (tic_color_white));
-
-	for(s32 row = 0, i = 0; row < PALETTE_ROWS; row++)
-		for(s32 col = 0; col < PALETTE_COLS; col++)
-			sprite->tic->api.rect(sprite->tic, x + col * PALETTE_CELL_SIZE, y + row * PALETTE_CELL_SIZE, PALETTE_CELL_SIZE-1, PALETTE_CELL_SIZE-1, i++);
-
 	sprite->tic->api.rect(sprite->tic, rect.x-1, rect.y+rect.h+1, PALETTE_WIDTH+1, 1, (tic_color_black));
 
 	{
 		s32 offsetX = x + (sprite->color % PALETTE_COLS) * PALETTE_CELL_SIZE;
 		s32 offsetY = y + (sprite->color / PALETTE_COLS) * PALETTE_CELL_SIZE;
 
-		sprite->tic->api.rect(sprite->tic, offsetX - 1, offsetY - 1, PALETTE_CELL_SIZE + 1, PALETTE_CELL_SIZE + 1, sprite->color);
-		sprite->tic->api.rect_border(sprite->tic, offsetX - 2, offsetY - 2, PALETTE_CELL_SIZE + 3, PALETTE_CELL_SIZE + 3, (tic_color_white));
-
 		if(offsetY > y)
 			sprite->tic->api.rect(sprite->tic, offsetX - 2, rect.y + rect.h+2, PALETTE_CELL_SIZE+3, 1, (tic_color_black));		
-	}
-
-	{
-		static const u8 Icon[] =
-		{
-			0b00000000,
-			0b00111000,
-			0b01000100,
-			0b01000100,
-			0b01000100,
-			0b00111000,
-			0b00000000,
-			0b00000000,
-		};
-
-		s32 offsetX = x + (sprite->color2 % PALETTE_COLS) * PALETTE_CELL_SIZE;
-		s32 offsetY = y + (sprite->color2 / PALETTE_COLS) * PALETTE_CELL_SIZE;
-
-		drawBitIcon(offsetX, offsetY, Icon, sprite->color2 == (tic_color_white) ? (tic_color_black) : (tic_color_white));
 	}
 
 	{
@@ -851,6 +845,40 @@ static void drawPalette(Sprite* sprite, s32 x, s32 y)
 			drawBitIcon(rect.x, rect.y+1, Icon, (tic_color_black));
 			drawBitIcon(rect.x, rect.y, Icon, (over ? tic_color_light_blue : tic_color_white));			
 		}
+	}
+}
+
+static void drawPaletteOvr(Sprite* sprite, s32 x, s32 y)
+{
+	for(s32 row = 0, i = 0; row < PALETTE_ROWS; row++)
+		for(s32 col = 0; col < PALETTE_COLS; col++)
+			sprite->tic->api.rect(sprite->tic, x + col * PALETTE_CELL_SIZE, y + row * PALETTE_CELL_SIZE, PALETTE_CELL_SIZE-1, PALETTE_CELL_SIZE-1, i++);
+
+	{
+		s32 offsetX = x + (sprite->color % PALETTE_COLS) * PALETTE_CELL_SIZE;
+		s32 offsetY = y + (sprite->color / PALETTE_COLS) * PALETTE_CELL_SIZE;
+
+		sprite->tic->api.rect(sprite->tic, offsetX - 1, offsetY - 1, PALETTE_CELL_SIZE + 1, PALETTE_CELL_SIZE + 1, sprite->color);
+		sprite->tic->api.rect_border(sprite->tic, offsetX - 2, offsetY - 2, PALETTE_CELL_SIZE + 3, PALETTE_CELL_SIZE + 3, (tic_color_white));
+	}
+
+	{
+		static const u8 Icon[] =
+		{
+			0b00000000,
+			0b00111000,
+			0b01000100,
+			0b01000100,
+			0b01000100,
+			0b00111000,
+			0b00000000,
+			0b00000000,
+		};
+
+		s32 offsetX = x + (sprite->color2 % PALETTE_COLS) * PALETTE_CELL_SIZE;
+		s32 offsetY = y + (sprite->color2 / PALETTE_COLS) * PALETTE_CELL_SIZE;
+
+		drawBitIcon(offsetX, offsetY, Icon, sprite->color2 == (tic_color_white) ? (tic_color_black) : (tic_color_white));
 	}
 }
 
@@ -904,6 +932,11 @@ static void drawSheet(Sprite* sprite, s32 x, s32 y)
 			selectSprite(sprite, getMouseX() - x - offset, getMouseY() - y - offset);
 		}
 	}
+}
+
+static void drawSheetOvr(Sprite* sprite, s32 x, s32 y)
+{
+	SDL_Rect rect = {x, y, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
 
 	for(s32 j = 0, index = (sprite->index - sprite->index % TIC_BANK_SPRITES); j < rect.h; j += TIC_SPRITESIZE)
 		for(s32 i = 0; i < rect.w; i += TIC_SPRITESIZE, index++)
@@ -1480,9 +1513,16 @@ static void onStudioEvent(Sprite* sprite, StudioEvent event)
 	}
 }
 
-static void scanline(tic_mem* tic, s32 row)
+static void overlap(tic_mem* tic, void* data)
 {
-	memcpy(tic->ram.vram.palette.data, row < TOOLBAR_SIZE ? tic->config.palette.data : tic->cart.palette.data, sizeof(tic_palette));
+	Sprite* sprite = (Sprite*)data;
+
+	if(sprite->editPalette)
+		drawRGBSlidersOvr(sprite, 24, 91);
+
+	drawCanvasOvr(sprite, 24, 20);
+	drawPaletteOvr(sprite, 24, 112);
+	drawSheetOvr(sprite, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, 7);
 }
 
 void initSprite(Sprite* sprite, tic_mem* tic)
@@ -1513,6 +1553,6 @@ void initSprite(Sprite* sprite, tic_mem* tic)
 		.mode = SPRITE_DRAW_MODE,
 		.history = history_create(tic->cart.gfx.tiles, TIC_SPRITES * sizeof(tic_tile)),
 		.event = onStudioEvent,
-		.scanline = scanline,
+		.overlap = overlap,
 	};
 }
