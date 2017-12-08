@@ -1729,15 +1729,12 @@ static void api_blit(tic_mem* tic, tic_scanline scanline, tic_overlap overlap, v
 
 		s32 pos = (r + tic->ram.vram.vars.offset.y + TIC80_HEIGHT) % TIC80_HEIGHT * TIC80_WIDTH >> 1;
 
-		u32 *endRow = colPtr + TIC80_WIDTH;
-		colPtr += (-tic->ram.vram.vars.offset.x + TIC80_WIDTH) % TIC80_WIDTH;
+		u32 x = (-tic->ram.vram.vars.offset.x + TIC80_WIDTH) % TIC80_WIDTH;
 		for(s32 c = 0; c < TIC80_WIDTH / 2; c++)
 		{
 			u8 val = ((u8*)tic->ram.vram.screen.data)[pos + c];
-			*colPtr++ = pal[val & 0xf];
-			if(colPtr >= endRow) colPtr -= TIC80_WIDTH;
-			*colPtr++ = pal[val >> 4];
-			if(colPtr >= endRow) colPtr -= TIC80_WIDTH;
+			*(colPtr + (x++ % TIC80_WIDTH)) = pal[val & 0xf];
+			*(colPtr + (x++ % TIC80_WIDTH)) = pal[val >> 4];
 		}
 
 		memset4(rowPtr + (TIC80_FULLWIDTH-Right), pal[tic->ram.vram.vars.border], Right);
