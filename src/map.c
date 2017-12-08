@@ -349,6 +349,13 @@ static void drawSheet(Map* map, s32 x, s32 y)
 	SDL_Rect rect = {x, y, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
 
 	map->tic->api.rect_border(map->tic, rect.x - 1, rect.y - 1, rect.w + 2, rect.h + 2, (tic_color_white));
+}
+
+static void drawSheetOvr(Map* map, s32 x, s32 y)
+{
+	if(!map->sheet.show)return;
+
+	SDL_Rect rect = {x, y, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
 
 	if(checkMousePos(&rect))
 	{
@@ -821,6 +828,8 @@ static void drawSelection(Map* map)
 
 static void drawGrid(Map* map)
 {
+	tic_mem* tic = map->tic;
+
 	s32 scrollX = map->scroll.x % TIC_SPRITESIZE;
 	s32 scrollY = map->scroll.y % TIC_SPRITESIZE;
 
@@ -828,10 +837,9 @@ static void drawGrid(Map* map)
 	{
 		if(j >= 0 && j < TIC80_HEIGHT)
 			for(s32 i = 0; i < TIC80_WIDTH; i++)
-			{
-				s32 index = i + j*TIC80_WIDTH;
-				u8 color = tic_tool_peek4(map->tic->ram.vram.screen.data, index);
-				tic_tool_poke4(map->tic->ram.vram.screen.data, index, (color+1)%TIC_PALETTE_SIZE);
+			{				
+				u8 color = tic->api.get_pixel(tic, i, j);
+				tic->api.pixel(tic, i, j, (color+1)%TIC_PALETTE_SIZE);
 			}
 	}
 
@@ -842,15 +850,14 @@ static void drawGrid(Map* map)
 			{
 				if((i+scrollY) % TIC_SPRITESIZE)
 				{
-					s32 index = j + i*TIC80_WIDTH;
-					u8 color = tic_tool_peek4(map->tic->ram.vram.screen.data, index);
-					tic_tool_poke4(map->tic->ram.vram.screen.data, index, (color+1)%TIC_PALETTE_SIZE);						
+					u8 color = tic->api.get_pixel(tic, j, i);
+					tic->api.pixel(tic, j, i, (color+1)%TIC_PALETTE_SIZE);					
 				}
 			}
 	}
 }
 
-static void drawMap(Map* map)
+static void drawMapOvr(Map* map)
 {
 	SDL_Rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
@@ -858,7 +865,7 @@ static void drawMap(Map* map)
 	s32 scrollY = map->scroll.y % TIC_SPRITESIZE;
 
 	map->tic->api.map(map->tic, &map->tic->cart.gfx, map->scroll.x / TIC_SPRITESIZE, map->scroll.y / TIC_SPRITESIZE, 
-		TIC_MAP_SCREEN_WIDTH + 1, TIC_MAP_SCREEN_HEIGHT + 1, -scrollX, -scrollY, 0, 1);
+		TIC_MAP_SCREEN_WIDTH + 1, TIC_MAP_SCREEN_HEIGHT + 1, -scrollX, -scrollY, -1, 1);
 
 	if(map->canvas.grid || map->scroll.active)
 		drawGrid(map);
@@ -1112,7 +1119,6 @@ static void tick(Map* map)
 
 	map->tic->api.clear(map->tic, TIC_COLOR_BG);
 
-	drawMap(map);
 	drawSheet(map, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, TOOLBAR_SIZE);
 	drawMapToolbar(map, TIC80_WIDTH - 9*TIC_FONT_WIDTH, 1);
 	drawToolbar(map->tic, TIC_COLOR_BG, false);
@@ -1131,9 +1137,14 @@ static void onStudioEvent(Map* map, StudioEvent event)
 	}
 }
 
-static void scanline(tic_mem* tic, s32 row)
+static void overlap(tic_mem* tic, void* data)
 {
-	memcpy(tic->ram.vram.palette.data, row < TOOLBAR_SIZE ? tic->config.palette.data : tic->cart.palette.data, sizeof(tic_palette));
+	Map* map = (Map*)data;
+
+	tic->api.clip(tic, 0, TOOLBAR_SIZE, TIC80_WIDTH - (map->sheet.show ? TIC_SPRITESHEET_SIZE+2 : 0), TIC80_HEIGHT - TOOLBAR_SIZE);
+	drawMapOvr(map);
+	tic->api.clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
+	drawSheetOvr(map, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, TOOLBAR_SIZE);
 }
 
 void initMap(Map* map, tic_mem* tic)
@@ -1176,7 +1187,7 @@ void initMap(Map* map, tic_mem* tic)
 		},
 		.history = history_create(&tic->cart.gfx.map, sizeof tic->cart.gfx.map),
 		.event = onStudioEvent,
-		.scanline = scanline,
+		.overlap = overlap,
 	};
 
 	normalizeMap(&map->scroll.x, &map->scroll.y);

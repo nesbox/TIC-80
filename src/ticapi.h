@@ -62,8 +62,8 @@ typedef struct
 } tic_tick_data;
 
 typedef struct tic_mem tic_mem;
-typedef void(*tic_scanline)(tic_mem* memory, s32 row);
-typedef void(*tic_overlap)(tic_mem* memory);
+typedef void(*tic_scanline)(tic_mem* memory, s32 row, void* data);
+typedef void(*tic_overlap)(tic_mem* memory, void* data);
 
 typedef struct
 {
@@ -96,8 +96,8 @@ typedef struct
 	void (*music_frame)			(tic_mem* memory, s32 track, s32 frame, s32 row, bool loop);
 	double (*time)				(tic_mem* memory);
 	void (*tick)				(tic_mem* memory, tic_tick_data* data);
-	void (*scanline)			(tic_mem* memory, s32 row);
-	void (*overlap)				(tic_mem* memory);
+	void (*scanline)			(tic_mem* memory, s32 row, void* data);
+	void (*overlap)				(tic_mem* memory, void* data);
 	void (*reset)				(tic_mem* memory);
 	void (*pause)				(tic_mem* memory);
 	void (*resume)				(tic_mem* memory);
@@ -109,7 +109,7 @@ typedef struct
 
 	void (*tick_start)			(tic_mem* memory, const tic_sound* src);
 	void (*tick_end)			(tic_mem* memory);
-	void (*blit)				(tic_mem* tic, tic_scanline scanline, tic_overlap overlap);
+	void (*blit)				(tic_mem* tic, tic_scanline scanline, tic_overlap overlap, void* data);
 
 	tic_script_lang (*get_script)(tic_mem* memory);
 } tic_api;

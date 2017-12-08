@@ -1227,7 +1227,7 @@ void callLuaTick(tic_machine* machine)
  	}
 }
 
-void callLuaScanline(tic_mem* memory, s32 row)
+void callLuaScanline(tic_mem* memory, s32 row, void* data)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	lua_State* lua = machine->lua;
@@ -1247,7 +1247,7 @@ void callLuaScanline(tic_mem* memory, s32 row)
 	}
 }
 
-void callLuaOverlap(tic_mem* memory)
+void callLuaOverlap(tic_mem* memory, void* data)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	lua_State* lua = machine->lua;

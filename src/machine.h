@@ -140,8 +140,8 @@ bool initJavascript(tic_machine* machine, const char* code);
 void callLuaTick(tic_machine* machine);
 void callJavascriptTick(tic_machine* machine);
 
-void callLuaScanline(tic_mem* memory, s32 row);
-void callJavascriptScanline(tic_mem* memory, s32 row);
+void callLuaScanline(tic_mem* memory, s32 row, void* data);
+void callJavascriptScanline(tic_mem* memory, s32 row, void* data);
 
-void callLuaOverlap(tic_mem* memory);
-void callJavascriptOverlap(tic_mem* memory);
+void callLuaOverlap(tic_mem* memory, void* data);
+void callJavascriptOverlap(tic_mem* memory, void* data);

@@ -1425,7 +1425,7 @@ static void setCoverImage()
 	{
 		enum {Pitch = TIC80_FULLWIDTH*sizeof(u32)};
 
-		tic->api.blit(tic, tic->api.scanline, tic->api.overlap);
+		tic->api.blit(tic, tic->api.scanline, tic->api.overlap, NULL);
 
 		u32* buffer = SDL_malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32));
 
@@ -1912,6 +1912,7 @@ static void blitTexture()
 
 	tic_scanline scanline = NULL;
 	tic_overlap overlap = NULL;
+	void* data = NULL;
 
 	switch(studio.mode)
 	{
@@ -1920,16 +1921,18 @@ static void blitTexture()
 		overlap = tic->api.overlap;
 		break;
 	case TIC_SPRITE_MODE:
-		scanline = studio.sprite.scanline;
+		overlap = studio.sprite.overlap;
+		data = &studio.sprite;
 		break;
 	case TIC_MAP_MODE:
-		scanline = studio.map.scanline;
+		overlap = studio.map.overlap;
+		data = &studio.map;
 		break;
 	default:
 		break;
 	}
 
-	tic->api.blit(tic, scanline, overlap);
+	tic->api.blit(tic, scanline, overlap, data);
 	SDL_memcpy(pixels, tic->screen, sizeof tic->screen);
 
 	recordFrame(pixels);
