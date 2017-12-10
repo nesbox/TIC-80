@@ -107,7 +107,7 @@ typedef struct
 	void (*load)				(tic_cartridge* rom, const u8* buffer, s32 size, bool palette);
 	s32  (*save)				(const tic_cartridge* rom, u8* buffer);
 
-	void (*tick_start)			(tic_mem* memory, const tic_sound* src);
+	void (*tick_start)			(tic_mem* memory, const tic_sfx* sfx, const tic_music* music);
 	void (*tick_end)			(tic_mem* memory);
 	void (*blit)				(tic_mem* tic, tic_scanline scanline, tic_overlap overlap, void* data);
 

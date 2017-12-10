@@ -363,8 +363,8 @@ static bool onConsoleLoadSectionCommand(Console* console, const char* param)
 						case 1: memcpy(&tic->cart.map, 			&cart->map, 		sizeof cart->map); break;
 						case 2: memcpy(&tic->cart.cover, 		&cart->cover, 		sizeof cart->cover); break;
 						case 3: memcpy(&tic->cart.code, 		&cart->code, 		sizeof cart->code); break;
-						case 4: memcpy(&tic->cart.sound.sfx, 	&cart->sound.sfx, 	sizeof cart->sound.sfx); break;
-						case 5: memcpy(&tic->cart.sound.music, 	&cart->sound.music, sizeof cart->sound.music); break;
+						case 4: memcpy(&tic->cart.sfx, 			&cart->sfx, 		sizeof cart->sfx); break;
+						case 5: memcpy(&tic->cart.music, 		&cart->music, 		sizeof cart->music); break;
 						case 6: memcpy(&tic->cart.palette, 		&cart->palette, 	sizeof cart->palette); break;
 						}
 
@@ -606,10 +606,10 @@ static const BinarySection BinarySections[] =
 	{"TILES", 		TIC_BANK_SPRITES, offsetof(tic_cartridge, tiles), sizeof(tic_tile), true},
 	{"SPRITES", 	TIC_BANK_SPRITES, offsetof(tic_cartridge, sprites), sizeof(tic_tile), true},
 	{"MAP", 		TIC_MAP_HEIGHT, offsetof(tic_cartridge, map), TIC_MAP_WIDTH, true},
-	{"WAVES", 		ENVELOPES_COUNT, offsetof(tic_cartridge,sound.sfx.waveform.envelopes), sizeof(tic_waveform), true},
-	{"SFX", 		SFX_COUNT, offsetof(tic_cartridge, sound.sfx.data), sizeof(tic_sound_effect), true},
-	{"PATTERNS", 	MUSIC_PATTERNS, offsetof(tic_cartridge, sound.music.patterns), sizeof(tic_track_pattern), true},
-	{"TRACKS", 		MUSIC_TRACKS, offsetof(tic_cartridge, sound.music.tracks), sizeof(tic_track), true},
+	{"WAVES", 		ENVELOPES_COUNT, offsetof(tic_cartridge, sfx.waveform.envelopes), sizeof(tic_waveform), true},
+	{"SFX", 		SFX_COUNT, offsetof(tic_cartridge, sfx.data), sizeof(tic_sound_effect), true},
+	{"PATTERNS", 	MUSIC_PATTERNS, offsetof(tic_cartridge, music.patterns), sizeof(tic_track_pattern), true},
+	{"TRACKS", 		MUSIC_TRACKS, offsetof(tic_cartridge, music.tracks), sizeof(tic_track), true},
 };
 
 static s32 saveProject(Console* console, void* buffer, const char* comment)
@@ -2141,10 +2141,10 @@ static void onConsoleRamCommand(Console* console, const char* param)
 		{offsetof(tic_ram, map), 						"MAP"},
 		{offsetof(tic_ram, persistent), 				"PERSISTENT MEMORY"},
 		{offsetof(tic_ram, registers), 					"SOUND REGISTERS"},
-		{offsetof(tic_ram, sound.sfx.waveform), 		"WAVEFORMS"},
-		{offsetof(tic_ram, sound.sfx.data), 			"SFX"},
-		{offsetof(tic_ram, sound.music.patterns.data), 	"MUSIC PATTERNS"},
-		{offsetof(tic_ram, sound.music.tracks.data), 	"MUSIC TRACKS"},
+		{offsetof(tic_ram, sfx.waveform), 				"WAVEFORMS"},
+		{offsetof(tic_ram, sfx.data), 					"SFX"},
+		{offsetof(tic_ram, music.patterns.data), 		"MUSIC PATTERNS"},
+		{offsetof(tic_ram, music.tracks.data), 			"MUSIC TRACKS"},
 		{offsetof(tic_ram, music_pos), 					"MUSIC POS"},
 		{TIC_RAM_SIZE, 									"..."},
 	};

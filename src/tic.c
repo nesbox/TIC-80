@@ -356,7 +356,7 @@ static void channelSfx(tic_mem* memory, s32 index, s32 note, s32 octave, s32 dur
 	if(index >= 0)
 	{
 		struct {s8 speed:SFX_SPEED_BITS;} temp = {speed};
-		c->speed = speed == temp.speed ? speed : machine->soundSrc->sfx.data[index].speed;
+		c->speed = speed == temp.speed ? speed : machine->sound.sfx->data[index].speed;
 	}
 
 	// start index of idealized piano
@@ -401,7 +401,7 @@ static void setMusic(tic_machine* machine, s32 index, s32 frame, s32 row, bool l
 		memory->ram.music_pos.flag.loop = loop;
 		machine->state.music.play = MusicPlay;
 
-		const tic_track* track = &machine->soundSrc->music.tracks.data[index];
+		const tic_track* track = &machine->sound.music->tracks.data[index];
 		machine->state.music.ticks = row >= 0 ? row * (track->speed + DEFAULT_SPEED) * NOTES_PER_MUNUTE / (track->tempo + DEFAULT_TEMPO) / DEFAULT_SPEED : 0;
 	}
 }
@@ -1061,7 +1061,7 @@ static void sfx(tic_mem* memory, s32 index, s32 freq, Channel* channel, tic_soun
 		return;
 	}
 
-	const tic_sound_effect* effect = &machine->soundSrc->sfx.data[index];
+	const tic_sound_effect* effect = &machine->sound.sfx->data[index];
 	s32 pos = ++channel->tick;
 
 	s8 speed = channel->speed;
@@ -1089,7 +1089,7 @@ static void sfx(tic_mem* memory, s32 index, s32 freq, Channel* channel, tic_soun
 		reg->volume = volume;
 
 		u8 wave = effect->data[channel->pos.wave].wave;
-		const tic_waveform* waveform = &machine->soundSrc->sfx.waveform.envelopes[wave];
+		const tic_waveform* waveform = &machine->sound.sfx->waveform.envelopes[wave];
 		memcpy(reg->waveform.data, waveform->data, sizeof(tic_waveform));
 	}
 }
@@ -1100,7 +1100,7 @@ static void processMusic(tic_mem* memory)
 
 	if(machine->state.music.play == MusicStop) return;
 
-	const tic_track* track = &machine->soundSrc->music.tracks.data[memory->ram.music_pos.track];
+	const tic_track* track = &machine->sound.music->tracks.data[memory->ram.music_pos.track];
 	s32 row = machine->state.music.ticks++ * (track->tempo + DEFAULT_TEMPO) * DEFAULT_SPEED / (track->speed + DEFAULT_SPEED) / NOTES_PER_MUNUTE;
 
 	s32 rows = MUSIC_PATTERN_ROWS - track->rows;
@@ -1161,7 +1161,7 @@ static void processMusic(tic_mem* memory)
 			s32 patternId = tic_tool_get_pattern_id(track, memory->ram.music_pos.frame, channel);
 			if (!patternId) continue;
 
-			const tic_track_pattern* pattern = &machine->soundSrc->music.patterns.data[patternId - PATTERN_START];
+			const tic_track_pattern* pattern = &machine->sound.music->patterns.data[patternId - PATTERN_START];
 
 			s32 note = pattern->rows[memory->ram.music_pos.row].note;
 
@@ -1196,11 +1196,12 @@ static bool isNoiseWaveform(const tic_waveform* wave)
 	return memcmp(&NoiseWave.data, &wave->data, sizeof(tic_waveform)) == 0;
 }
 
-static void api_tick_start(tic_mem* memory, const tic_sound* src)
+static void api_tick_start(tic_mem* memory, const tic_sfx* sfxsrc, const tic_music* music)
 {
 	tic_machine* machine = (tic_machine*)memory;
 
-	machine->soundSrc = src;
+	machine->sound.sfx = sfxsrc;
+	machine->sound.music = music;
 
 	for (s32 i = 0; i < TIC_SOUND_CHANNELS; ++i )
 		memset(&memory->ram.registers[i], 0, sizeof(tic_sound_register));
@@ -1328,7 +1329,8 @@ static void cart2ram(tic_mem* memory)
 	memcpy(&memory->ram.sprites, &memory->cart.sprites, sizeof(tic_tiles));
 	memcpy(&memory->ram.map, &memory->cart.map, sizeof(tic_tiles));
 
-	memcpy(&memory->ram.sound, &memory->cart.sound, sizeof memory->ram.sound);
+	memcpy(&memory->ram.sfx, &memory->cart.sfx, sizeof(tic_sfx));
+	memcpy(&memory->ram.music, &memory->cart.music, sizeof(tic_music));
 
 	initCover(memory);
 }
@@ -1597,10 +1599,10 @@ static void api_load(tic_cartridge* cart, const u8* buffer, s32 size, bool palet
 		case CHUNK_SPRITES: 	LOAD_CHUNK(cart->sprites); 					break;
 		case CHUNK_MAP: 		LOAD_CHUNK(cart->map); 						break;
 		case CHUNK_CODE: 		LOAD_CHUNK(cart->code); 						break;
-		case CHUNK_SOUND: 		LOAD_CHUNK(cart->sound.sfx.data); 				break;
-		case CHUNK_WAVEFORM:	LOAD_CHUNK(cart->sound.sfx.waveform);			break;
-		case CHUNK_MUSIC:		LOAD_CHUNK(cart->sound.music.tracks.data); 		break;
-		case CHUNK_PATTERNS:	LOAD_CHUNK(cart->sound.music.patterns.data); 	break;
+		case CHUNK_SOUND: 		LOAD_CHUNK(cart->sfx.data); 				break;
+		case CHUNK_WAVEFORM:	LOAD_CHUNK(cart->sfx.waveform);			break;
+		case CHUNK_MUSIC:		LOAD_CHUNK(cart->music.tracks.data); 		break;
+		case CHUNK_PATTERNS:	LOAD_CHUNK(cart->music.patterns.data); 	break;
 		case CHUNK_PALETTE:		
 			if(palette)
 				LOAD_CHUNK(cart->palette); 					
@@ -1666,10 +1668,10 @@ static s32 api_save(const tic_cartridge* cart, u8* buffer)
 	buffer = SAVE_CHUNK(CHUNK_SPRITES, 	cart->sprites);
 	buffer = SAVE_CHUNK(CHUNK_MAP, 		cart->map);
 	buffer = SAVE_CHUNK(CHUNK_CODE, 	cart->code);
-	buffer = SAVE_CHUNK(CHUNK_SOUND, 	cart->sound.sfx.data);
-	buffer = SAVE_CHUNK(CHUNK_WAVEFORM, cart->sound.sfx.waveform);
-	buffer = SAVE_CHUNK(CHUNK_PATTERNS, cart->sound.music.patterns.data);
-	buffer = SAVE_CHUNK(CHUNK_MUSIC, 	cart->sound.music.tracks.data);
+	buffer = SAVE_CHUNK(CHUNK_SOUND, 	cart->sfx.data);
+	buffer = SAVE_CHUNK(CHUNK_WAVEFORM, cart->sfx.waveform);
+	buffer = SAVE_CHUNK(CHUNK_PATTERNS, cart->music.patterns.data);
+	buffer = SAVE_CHUNK(CHUNK_MUSIC, 	cart->music.tracks.data);
 	buffer = SAVE_CHUNK(CHUNK_PALETTE, 	cart->palette);
 
 	buffer = saveFixedChunk(buffer, CHUNK_COVER, cart->cover.data, cart->cover.size);
@@ -1813,7 +1815,8 @@ tic_mem* tic_create(s32 samplerate)
 	if(machine != (tic_machine*)&machine->memory)
 		return NULL;
 
-	machine->soundSrc = &machine->memory.ram.sound;
+	machine->sound.sfx = &machine->memory.ram.sfx;
+	machine->sound.music = &machine->memory.ram.music;
 
 	initApi(&machine->memory.api);
 

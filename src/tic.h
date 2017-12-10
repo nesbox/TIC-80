@@ -321,11 +321,11 @@ typedef union
 	u8 data[TIC_PALETTE_SIZE * sizeof(tic_rgb)];
 } tic_palette;
 
-typedef struct
-{
-	tic_sfx sfx;
-	tic_music music;
-} tic_sound;
+// typedef struct
+// {
+// 	tic_sfx sfx;
+// 	tic_music music;
+// } tic_sound;
 
 typedef struct
 {
@@ -350,7 +350,8 @@ typedef struct
 			tic_tiles tiles;
 			tic_tiles sprites;
 			tic_map map;
-			tic_sound sound;
+			tic_sfx sfx;
+			tic_music music;
 		};
 
 		tic_bank banks[TIC_BANKS];
@@ -430,7 +431,8 @@ typedef union
 		tic_map map;
 		tic_persistent persistent;
 		tic_sound_register registers[TIC_SOUND_CHANNELS];
-		tic_sound sound;
+		tic_sfx sfx;
+		tic_music music;
 		tic_music_pos music_pos;
 	};
 

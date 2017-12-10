@@ -278,7 +278,7 @@ static struct
 
 void playSystemSfx(s32 id)
 {
-	const tic_sound_effect* effect = &studio.tic->config.sound.sfx.data[id];
+	const tic_sound_effect* effect = &studio.tic->config.sfx.data[id];
 	studio.tic->api.sfx_ex(studio.tic, id, effect->note, effect->octave, -1, 0, MAX_VOLUME, 0);
 }
 
@@ -2091,24 +2091,28 @@ static void renderStudio()
 		studio.mouse.state[i].click = false;
 
 	{
-		const tic_sound* src = NULL;
+		const tic_sfx* sfx = NULL;
+		const tic_music* music = NULL;
 
 		switch(studio.mode)
 		{
 		case TIC_RUN_MODE:
-			src = &studio.tic->ram.sound;
+			sfx = &studio.tic->ram.sfx;
+			music = &studio.tic->ram.music;
 			break;
 		case TIC_START_MODE:
 		case TIC_DIALOG_MODE:
 		case TIC_MENU_MODE:
 		case TIC_SURF_MODE:
-			src = &studio.tic->config.sound;
+			sfx = &studio.tic->config.sfx;
+			music = &studio.tic->config.music;
 			break;
 		default:
-			src = &studio.tic->cart.sound;
+			sfx = &studio.tic->cart.sfx;
+			music = &studio.tic->cart.music;
 		}
 
-		studio.tic->api.tick_start(studio.tic, src);
+		studio.tic->api.tick_start(studio.tic, sfx, music);
 	}
 
 	switch(studio.mode)
