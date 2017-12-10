@@ -490,7 +490,7 @@ static s32 lua_spr(lua_State* lua)
 
 	tic_mem* memory = (tic_mem*)getLuaMachine(lua);
 
-	memory->api.sprite_ex(memory, &memory->ram.gfx, index, x, y, w, h, colors, count, scale, flip, rotate);
+	memory->api.sprite_ex(memory, &memory->ram.tiles, index, x, y, w, h, colors, count, scale, flip, rotate);
 
 	return 0;
 }
@@ -506,7 +506,7 @@ static s32 lua_mget(lua_State* lua)
 
 		tic_mem* memory = (tic_mem*)getLuaMachine(lua);
 
-		u8 value = memory->api.map_get(memory, &memory->ram.gfx, x, y);
+		u8 value = memory->api.map_get(memory, &memory->ram.map, x, y);
 		lua_pushinteger(lua, value);
 		return 1;
 	}
@@ -527,7 +527,7 @@ static s32 lua_mset(lua_State* lua)
 
 		tic_mem* memory = (tic_mem*)getLuaMachine(lua);
 
-		memory->api.map_set(memory, &memory->ram.gfx, x, y, val);
+		memory->api.map_set(memory, &memory->ram.map, x, y, val);
 	}
 	else luaL_error(lua, "invalid params, mget(x,y)\n");
 
@@ -602,7 +602,7 @@ static s32 lua_map(lua_State* lua)
 
 								tic_mem* memory = (tic_mem*)getLuaMachine(lua);
 
-								memory->api.remap(memory, &memory->ram.gfx, x, y, w, h, sx, sy, chromakey, scale, remapCallback, &data);
+								memory->api.remap(memory, &memory->ram.map, &memory->ram.tiles, x, y, w, h, sx, sy, chromakey, scale, remapCallback, &data);
 
 								luaL_unref(lua, LUA_REGISTRYINDEX, data.reg);
 
@@ -617,7 +617,7 @@ static s32 lua_map(lua_State* lua)
 
 	tic_mem* memory = (tic_mem*)getLuaMachine(lua);
 
-	memory->api.map((tic_mem*)getLuaMachine(lua), &memory->ram.gfx, x, y, w, h, sx, sy, chromakey, scale);
+	memory->api.map((tic_mem*)getLuaMachine(lua), &memory->ram.map, &memory->ram.tiles, x, y, w, h, sx, sy, chromakey, scale);
 
 	return 0;
 }

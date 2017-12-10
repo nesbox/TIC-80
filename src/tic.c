@@ -316,7 +316,7 @@ static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y,
 	}
 }
 
-static void drawMap(tic_machine* machine, const tic_gfx* src, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale, RemapFunc remap, void* data)
+static void drawMap(tic_machine* machine, const tic_map* src, const tic_tiles* tiles, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale, RemapFunc remap, void* data)
 {
 	const s32 size = TIC_SPRITESIZE * scale;
 
@@ -332,12 +332,12 @@ static void drawMap(tic_machine* machine, const tic_gfx* src, s32 x, s32 y, s32 
 			while(mj >= TIC_MAP_HEIGHT) mj -= TIC_MAP_HEIGHT;
 			
 			s32 index = mi + mj * TIC_MAP_WIDTH;
-			RemapResult tile = { *(src->map.data + index), tic_no_flip, tic_no_rotate };
+			RemapResult tile = { *(src->data + index), tic_no_flip, tic_no_rotate };
 
 			if (remap)
 				remap(data, mi, mj, &tile);
 
-			drawTile(machine, src->tiles + tile.index, ii, jj, &chromakey, 1, scale, tile.flip, tile.rotate);
+			drawTile(machine, tiles->data + tile.index, ii, jj, &chromakey, 1, scale, tile.flip, tile.rotate);
 		}
 }
 
@@ -651,13 +651,13 @@ static s32 api_text_ex(tic_mem* memory, const char* text, s32 x, s32 y, u8 color
 	return drawText(memory, text, x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT, color, scale, fixed ? drawChar : drawNonFixedChar);
 }
 
-static void drawSprite(tic_mem* memory, const tic_gfx* src, s32 index, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
+static void drawSprite(tic_mem* memory, const tic_tiles* src, s32 index, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
 	if(index < TIC_SPRITES)
-		drawTile((tic_machine*)memory, src->tiles + index, x, y, colors, count, scale, flip, rotate);
+		drawTile((tic_machine*)memory, src->data + index, x, y, colors, count, scale, flip, rotate);
 }
 
-static void api_sprite_ex(tic_mem* memory, const tic_gfx* src, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
+static void api_sprite_ex(tic_mem* memory, const tic_tiles* src, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
 	s32 step = TIC_SPRITESIZE * scale;
 
@@ -701,14 +701,14 @@ static void api_sprite_ex(tic_mem* memory, const tic_gfx* src, s32 index, s32 x,
 
 s32 drawSpriteFont(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale)
 {
-	api_sprite_ex(memory, &memory->ram.gfx, symbol + TIC_BANK_SPRITES, x, y, 1, 1, &chromakey, 1, scale, tic_no_flip, tic_no_rotate);
+	api_sprite_ex(memory, &memory->ram.sprites, symbol, x, y, 1, 1, &chromakey, 1, scale, tic_no_flip, tic_no_rotate);
 
 	return width * scale;
 }
 
 s32 drawFixedSpriteFont(tic_mem* memory, u8 index, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale)
 {
-	const u8* ptr = memory->ram.gfx.sprites[index].data;
+	const u8* ptr = memory->ram.sprites.data[index].data;
 
 	enum {Size = TIC_SPRITESIZE};
 
@@ -935,8 +935,8 @@ static void api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, 
 {
 	tic_machine* machine = (tic_machine*)memory;
 	TexVert V0, V1, V2;
-	const u8* ptr = memory->ram.gfx.tiles[0].data;
-	const u8* map = memory->ram.gfx.map.data;
+	const u8* ptr = memory->ram.tiles.data[0].data;
+	const u8* map = memory->ram.map.data;
 
 	V0.x = (float)x1; 	V0.y = (float)y1; 	V0.u = (float)u1; 	V0.v = (float)v1;
 	V1.x = (float)x2; 	V1.y = (float)y2; 	V1.u = (float)u2; 	V1.v = (float)v2;
@@ -996,33 +996,33 @@ static void api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, 
 }
 
 
-static void api_sprite(tic_mem* memory, const tic_gfx* src, s32 index, s32 x, s32 y, u8* colors, s32 count)
+static void api_sprite(tic_mem* memory, const tic_tiles* src, s32 index, s32 x, s32 y, u8* colors, s32 count)
 {
 	drawSprite(memory, src, index, x, y, colors, count, 1, tic_no_flip, tic_no_rotate);
 }
 
-static void api_map(tic_mem* memory, const tic_gfx* src, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale)
+static void api_map(tic_mem* memory, const tic_map* src, const tic_tiles* tiles, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale)
 {
-	drawMap((tic_machine*)memory, src, x, y, width, height, sx, sy, chromakey, scale, NULL, NULL);
+	drawMap((tic_machine*)memory, src, tiles, x, y, width, height, sx, sy, chromakey, scale, NULL, NULL);
 }
 
-static void api_remap(tic_mem* memory, const tic_gfx* src, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale, RemapFunc remap, void* data)
+static void api_remap(tic_mem* memory, const tic_map* src, const tic_tiles* tiles, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale, RemapFunc remap, void* data)
 {
-	drawMap((tic_machine*)memory, src, x, y, width, height, sx, sy, chromakey, scale, remap, data);
+	drawMap((tic_machine*)memory, src, tiles, x, y, width, height, sx, sy, chromakey, scale, remap, data);
 }
 
-static void api_map_set(tic_mem* memory, tic_gfx* src, s32 x, s32 y, u8 value)
+static void api_map_set(tic_mem* memory, tic_map* src, s32 x, s32 y, u8 value)
 {
 	if(x < 0 || x >= TIC_MAP_WIDTH || y < 0 || y >= TIC_MAP_HEIGHT) return;
 
-	*(src->map.data + y * TIC_MAP_WIDTH + x) = value;
+	*(src->data + y * TIC_MAP_WIDTH + x) = value;
 }
 
-static u8 api_map_get(tic_mem* memory, const tic_gfx* src, s32 x, s32 y)
+static u8 api_map_get(tic_mem* memory, const tic_map* src, s32 x, s32 y)
 {
 	if(x < 0 || x >= TIC_MAP_WIDTH || y < 0 || y >= TIC_MAP_HEIGHT) return 0;
 	
-	return *(src->map.data + y * TIC_MAP_WIDTH + x);
+	return *(src->data + y * TIC_MAP_WIDTH + x);
 }
 
 static void api_line(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, u8 color)
@@ -1324,7 +1324,10 @@ static void initCover(tic_mem* tic)
 
 static void cart2ram(tic_mem* memory)
 {
-	memcpy(&memory->ram.gfx, &memory->cart.gfx, sizeof memory->ram.gfx);
+	memcpy(&memory->ram.tiles, &memory->cart.tiles, sizeof(tic_tiles));
+	memcpy(&memory->ram.sprites, &memory->cart.sprites, sizeof(tic_tiles));
+	memcpy(&memory->ram.map, &memory->cart.map, sizeof(tic_tiles));
+
 	memcpy(&memory->ram.sound, &memory->cart.sound, sizeof memory->ram.sound);
 
 	initCover(memory);
@@ -1534,16 +1537,17 @@ static double api_time(tic_mem* memory)
 
 static void api_sync(tic_mem* tic, bool toCart)
 {
-	if(toCart)
-	{
-		memcpy(&tic->cart.gfx, &tic->ram.gfx, sizeof tic->cart.gfx);
-		memcpy(&tic->cart.sound, &tic->ram.sound, sizeof tic->cart.sound);
-	}
-	else
-	{
-		memcpy(&tic->ram.gfx, &tic->cart.gfx, sizeof tic->cart.gfx);
-		memcpy(&tic->ram.sound, &tic->cart.sound, sizeof tic->cart.sound);
-	}
+	// TODO: fix this
+	// if(toCart)
+	// {
+	// 	memcpy(&tic->cart.gfx, &tic->ram.gfx, sizeof tic->cart.gfx);
+	// 	memcpy(&tic->cart.sound, &tic->ram.sound, sizeof tic->cart.sound);
+	// }
+	// else
+	// {
+	// 	memcpy(&tic->ram.gfx, &tic->cart.gfx, sizeof tic->cart.gfx);
+	// 	memcpy(&tic->ram.sound, &tic->cart.sound, sizeof tic->cart.sound);
+	// }
 }
 
 static u32 api_btnp(tic_mem* tic, s32 index, s32 hold, s32 period)
@@ -1589,9 +1593,9 @@ static void api_load(tic_cartridge* cart, const u8* buffer, s32 size, bool palet
 
 		switch(chunk.type)
 		{
-		case CHUNK_TILES: 		LOAD_CHUNK(cart->gfx.tiles); 					break;
-		case CHUNK_SPRITES: 	LOAD_CHUNK(cart->gfx.sprites); 					break;
-		case CHUNK_MAP: 		LOAD_CHUNK(cart->gfx.map); 						break;
+		case CHUNK_TILES: 		LOAD_CHUNK(cart->tiles); 					break;
+		case CHUNK_SPRITES: 	LOAD_CHUNK(cart->sprites); 					break;
+		case CHUNK_MAP: 		LOAD_CHUNK(cart->map); 						break;
 		case CHUNK_CODE: 		LOAD_CHUNK(cart->code); 						break;
 		case CHUNK_SOUND: 		LOAD_CHUNK(cart->sound.sfx.data); 				break;
 		case CHUNK_WAVEFORM:	LOAD_CHUNK(cart->sound.sfx.waveform);			break;
@@ -1658,9 +1662,9 @@ static s32 api_save(const tic_cartridge* cart, u8* buffer)
 
 	#define SAVE_CHUNK(id, from) saveChunk(buffer, id, &from, sizeof(from))
 
-	buffer = SAVE_CHUNK(CHUNK_TILES, 	cart->gfx.tiles);
-	buffer = SAVE_CHUNK(CHUNK_SPRITES, 	cart->gfx.sprites);
-	buffer = SAVE_CHUNK(CHUNK_MAP, 		cart->gfx.map);
+	buffer = SAVE_CHUNK(CHUNK_TILES, 	cart->tiles);
+	buffer = SAVE_CHUNK(CHUNK_SPRITES, 	cart->sprites);
+	buffer = SAVE_CHUNK(CHUNK_MAP, 		cart->map);
 	buffer = SAVE_CHUNK(CHUNK_CODE, 	cart->code);
 	buffer = SAVE_CHUNK(CHUNK_SOUND, 	cart->sound.sfx.data);
 	buffer = SAVE_CHUNK(CHUNK_WAVEFORM, cart->sound.sfx.waveform);

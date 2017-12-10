@@ -359,8 +359,8 @@ static bool onConsoleLoadSectionCommand(Console* console, const char* param)
 
 						switch(i)
 						{
-						case 0: memcpy(&tic->cart.gfx.tiles, 	&cart->gfx.tiles, 	sizeof cart->gfx.tiles + sizeof cart->gfx.sprites); break;
-						case 1: memcpy(&tic->cart.gfx.map, 		&cart->gfx.map, 	sizeof cart->gfx.map); break;
+						case 0: memcpy(&tic->cart.tiles, 		&cart->tiles, 		sizeof cart->tiles + sizeof cart->sprites); break;
+						case 1: memcpy(&tic->cart.map, 			&cart->map, 		sizeof cart->map); break;
 						case 2: memcpy(&tic->cart.cover, 		&cart->cover, 		sizeof cart->cover); break;
 						case 3: memcpy(&tic->cart.code, 		&cart->code, 		sizeof cart->code); break;
 						case 4: memcpy(&tic->cart.sound.sfx, 	&cart->sound.sfx, 	sizeof cart->sound.sfx); break;
@@ -603,9 +603,9 @@ typedef struct {char* tag; s32 count; s32 offset; s32 size; bool flip;} BinarySe
 static const BinarySection BinarySections[] = 
 {
 	{"PALETTE", 	1, offsetof(tic_cartridge, palette.data), sizeof(tic_palette), false},
-	{"TILES", 		TIC_BANK_SPRITES, offsetof(tic_cartridge, gfx.tiles), sizeof(tic_tile), true},
-	{"SPRITES", 	TIC_BANK_SPRITES, offsetof(tic_cartridge, gfx.sprites), sizeof(tic_tile), true},
-	{"MAP", 		TIC_MAP_HEIGHT, offsetof(tic_cartridge, gfx.map), TIC_MAP_WIDTH, true},
+	{"TILES", 		TIC_BANK_SPRITES, offsetof(tic_cartridge, tiles), sizeof(tic_tile), true},
+	{"SPRITES", 	TIC_BANK_SPRITES, offsetof(tic_cartridge, sprites), sizeof(tic_tile), true},
+	{"MAP", 		TIC_MAP_HEIGHT, offsetof(tic_cartridge, map), TIC_MAP_WIDTH, true},
 	{"WAVES", 		ENVELOPES_COUNT, offsetof(tic_cartridge,sound.sfx.waveform.envelopes), sizeof(tic_waveform), true},
 	{"SFX", 		SFX_COUNT, offsetof(tic_cartridge, sound.sfx.data), sizeof(tic_sound_effect), true},
 	{"PATTERNS", 	MUSIC_PATTERNS, offsetof(tic_cartridge, sound.music.patterns), sizeof(tic_track_pattern), true},
@@ -1330,7 +1330,7 @@ static void onImportSprites(const char* name, const void* buffer, size_t size, v
 						tic_rgb rgb = {c->r, c->g, c->b};
 						u8 color = tic_tool_find_closest_color(console->tic->cart.palette.colors, &rgb);
 
-						setSpritePixel(console->tic->cart.gfx.tiles, x, y, color);
+						setSpritePixel(console->tic->cart.tiles.data, x, y, color);
 					}
 
 				gif_close(image);
@@ -1352,8 +1352,8 @@ static void injectMap(Console* console, const void* buffer, s32 size)
 {
 	enum {Size = sizeof(tic_map)};
 
-	SDL_memset(&console->tic->cart.gfx.map, 0, Size);
-	SDL_memcpy(&console->tic->cart.gfx.map, buffer, SDL_min(size, Size));
+	SDL_memset(&console->tic->cart.map, 0, Size);
+	SDL_memcpy(&console->tic->cart.map, buffer, SDL_min(size, Size));
 }
 
 static void onImportMap(const char* name, const void* buffer, size_t size, void* data)
@@ -1453,7 +1453,7 @@ static void exportSprites(Console* console)
 		{
 			for (s32 y = 0; y < Height; y++)
 				for (s32 x = 0; x < Width; x++)
-					data[x + y * Width] = getSpritePixel(console->tic->cart.gfx.tiles, x, y);
+					data[x + y * Width] = getSpritePixel(console->tic->cart.tiles.data, x, y);
 
 			s32 size = 0;
 			if((size = writeGifData(console->tic, buffer, data, Width, Height)))
@@ -1493,7 +1493,7 @@ static void exportMap(Console* console)
 
 	if(buffer)
 	{
-		SDL_memcpy(buffer, console->tic->cart.gfx.map.data, Size);
+		SDL_memcpy(buffer, console->tic->cart.map.data, Size);
 		fsGetFileData(onMapExported, "world.map", buffer, Size, DEFAULT_CHMOD, console);
 	}
 }
@@ -2136,8 +2136,9 @@ static void onConsoleRamCommand(Console* console, const char* param)
 		{offsetof(tic_ram, vram.vars.mask), 			"GAMEPAD MASK"},
 		{offsetof(tic_ram, vram.input.gamepad), 		"GAMEPAD"},
 		{offsetof(tic_ram, vram.input.reserved), 		"..."},
-		{offsetof(tic_ram, gfx.tiles), 					"SPRITES"},
-		{offsetof(tic_ram, gfx.map), 					"MAP"},
+		{offsetof(tic_ram, tiles), 						"TILES"},
+		{offsetof(tic_ram, sprites), 					"SPRITES"},
+		{offsetof(tic_ram, map), 						"MAP"},
 		{offsetof(tic_ram, persistent), 				"PERSISTENT MEMORY"},
 		{offsetof(tic_ram, registers), 					"SOUND REGISTERS"},
 		{offsetof(tic_ram, sound.sfx.waveform), 		"WAVEFORMS"},
@@ -2763,7 +2764,7 @@ static bool cmdInjectSprites(Console* console, const char* param, const char* na
 						tic_rgb rgb = {c->r, c->g, c->b};
 						u8 color = tic_tool_find_closest_color(embed.file.palette.colors, &rgb);
 
-						setSpritePixel(embed.file.gfx.tiles, x, y, color);
+						setSpritePixel(embed.file.tiles.data, x, y, color);
 					}
 
 				gif_close(image);

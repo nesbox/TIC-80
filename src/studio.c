@@ -2042,14 +2042,14 @@ static void renderCursor()
 		studio.tic->ram.vram.vars.cursor)
 		{
 			SDL_ShowCursor(SDL_DISABLE);
-			blitCursor(studio.tic->ram.gfx.sprites[studio.tic->ram.vram.vars.cursor].data);
+			blitCursor(studio.tic->ram.sprites.data[studio.tic->ram.vram.vars.cursor].data);
 			return;
 		}
 
 	SDL_ShowCursor(getConfig()->theme.cursor.sprite >= 0 ? SDL_DISABLE : SDL_ENABLE);
 
 	if(getConfig()->theme.cursor.sprite >= 0)
-		blitCursor(studio.tic->config.gfx.tiles[getConfig()->theme.cursor.sprite].data);
+		blitCursor(studio.tic->config.tiles.data[getConfig()->theme.cursor.sprite].data);
 }
 
 static void useSystemPalette()
@@ -2279,7 +2279,7 @@ static void initTouchGamepad()
 	if (!studio.renderer)
 		return;
 
-	studio.tic->api.map(studio.tic, &studio.tic->config.gfx, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, -1, 1);
+	studio.tic->api.map(studio.tic, &studio.tic->config.map, &studio.tic->config.tiles, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, -1, 1);
 
 	if(!studio.gamepad.texture)
 	{
@@ -2306,7 +2306,7 @@ static void updateSystemFont()
 	for(s32 i = 0; i < TIC_FONT_CHARS; i++)
 		for(s32 y = 0; y < TIC_SPRITESIZE; y++)
 			for(s32 x = 0; x < TIC_SPRITESIZE; x++)
-				if(tic_tool_peek4(&studio.tic->config.gfx.sprites[i], TIC_SPRITESIZE*(y+1) - x-1))
+				if(tic_tool_peek4(&studio.tic->config.sprites.data[i], TIC_SPRITESIZE*(y+1) - x-1))
 					studio.tic->font.data[i*BITS_IN_BYTE+y] |= 1 << x;
 }
 
@@ -2331,7 +2331,7 @@ static void setWindowIcon()
 	for(s32 j = 0, index = 0; j < Size; j++)
 		for(s32 i = 0; i < Size; i++, index++)
 		{
-			u8 color = getSpritePixel(studio.tic->config.gfx.tiles, i/Scale, j/Scale);
+			u8 color = getSpritePixel(studio.tic->config.tiles.data, i/Scale, j/Scale);
 			pixels[index] = color == ColorKey ? 0 : pal[color];
 		}
 
