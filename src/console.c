@@ -2135,7 +2135,7 @@ static void onConsoleRamCommand(Console* console, const char* param)
 		{offsetof(tic_ram, vram.screen), 				"SCREEN"},
 		{offsetof(tic_ram, vram.palette), 				"PALETTE"},
 		{offsetof(tic_ram, vram.mapping), 				"PALETTE MAP"},
-		{offsetof(tic_ram, vram.vars.colors), 			"BORDER/BG COLOR"},
+		{offsetof(tic_ram, vram.vars.colors), 			"BORDER"},
 		{offsetof(tic_ram, vram.vars.offset), 			"SCREEN OFFSET"},
 		{offsetof(tic_ram, vram.vars.mask), 			"GAMEPAD MASK"},
 		{offsetof(tic_ram, vram.input.gamepad), 		"GAMEPAD"},
