@@ -106,7 +106,7 @@ static void drawSwitch(Sfx* sfx, s32 x, s32 y, const char* label, s32 value, voi
 
 static tic_sound_effect* getEffect(Sfx* sfx)
 {
-	return sfx->tic->cart.sfx.data + sfx->index;
+	return sfx->tic->cart.banks[0].sfx.data + sfx->index;
 }
 
 static void setIndex(Sfx* sfx, s32 delta)
@@ -169,7 +169,7 @@ static void drawLoopPanel(Sfx* sfx, s32 x, s32 y)
 
 static tic_waveform* getWaveformById(Sfx* sfx, s32 i)
 {
-	return &sfx->tic->cart.sfx.waveform.envelopes[i];
+	return &sfx->tic->cart.banks[0].sfx.waveform.envelopes[i];
 }
 
 static tic_waveform* getWaveform(Sfx* sfx)
@@ -1058,8 +1058,8 @@ void initSfx(Sfx* sfx, tic_mem* tic)
 		.tab = SFX_ENVELOPES_TAB,
 		.history =
 		{
-			.envelope = history_create(&tic->cart.sfx.data, sizeof tic->cart.sfx.data),
-			.waveform = history_create(&tic->cart.sfx.waveform, sizeof tic->cart.sfx.waveform),
+			.envelope = history_create(&tic->cart.banks[0].sfx.data, sizeof tic->cart.banks[0].sfx.data),
+			.waveform = history_create(&tic->cart.banks[0].sfx.waveform, sizeof tic->cart.banks[0].sfx.waveform),
 		},
 		.event = onStudioEvent,
 	};

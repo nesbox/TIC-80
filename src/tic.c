@@ -1325,12 +1325,12 @@ static void initCover(tic_mem* tic)
 
 static void cart2ram(tic_mem* memory)
 {
-	memcpy(&memory->ram.tiles, &memory->cart.tiles, sizeof(tic_tiles));
-	memcpy(&memory->ram.sprites, &memory->cart.sprites, sizeof(tic_tiles));
-	memcpy(&memory->ram.map, &memory->cart.map, sizeof(tic_tiles));
+	memcpy(&memory->ram.tiles, &memory->cart.banks[0].tiles, sizeof(tic_tiles));
+	memcpy(&memory->ram.sprites, &memory->cart.banks[0].sprites, sizeof(tic_tiles));
+	memcpy(&memory->ram.map, &memory->cart.banks[0].map, sizeof(tic_tiles));
 
-	memcpy(&memory->ram.sfx, &memory->cart.sfx, sizeof(tic_sfx));
-	memcpy(&memory->ram.music, &memory->cart.music, sizeof(tic_music));
+	memcpy(&memory->ram.sfx, &memory->cart.banks[0].sfx, sizeof(tic_sfx));
+	memcpy(&memory->ram.music, &memory->cart.banks[0].music, sizeof(tic_music));
 
 	initCover(memory);
 }
@@ -1595,14 +1595,14 @@ static void api_load(tic_cartridge* cart, const u8* buffer, s32 size, bool palet
 
 		switch(chunk.type)
 		{
-		case CHUNK_TILES: 		LOAD_CHUNK(cart->tiles); 					break;
-		case CHUNK_SPRITES: 	LOAD_CHUNK(cart->sprites); 					break;
-		case CHUNK_MAP: 		LOAD_CHUNK(cart->map); 						break;
-		case CHUNK_CODE: 		LOAD_CHUNK(cart->code); 						break;
-		case CHUNK_SOUND: 		LOAD_CHUNK(cart->sfx.data); 				break;
-		case CHUNK_WAVEFORM:	LOAD_CHUNK(cart->sfx.waveform);			break;
-		case CHUNK_MUSIC:		LOAD_CHUNK(cart->music.tracks.data); 		break;
-		case CHUNK_PATTERNS:	LOAD_CHUNK(cart->music.patterns.data); 	break;
+		case CHUNK_TILES: 		LOAD_CHUNK(cart->banks[0].tiles); 					break;
+		case CHUNK_SPRITES: 	LOAD_CHUNK(cart->banks[0].sprites); 				break;
+		case CHUNK_MAP: 		LOAD_CHUNK(cart->banks[0].map); 					break;
+		case CHUNK_CODE: 		LOAD_CHUNK(cart->code); 							break;
+		case CHUNK_SOUND: 		LOAD_CHUNK(cart->banks[0].sfx.data); 				break;
+		case CHUNK_WAVEFORM:	LOAD_CHUNK(cart->banks[0].sfx.waveform);			break;
+		case CHUNK_MUSIC:		LOAD_CHUNK(cart->banks[0].music.tracks.data); 		break;
+		case CHUNK_PATTERNS:	LOAD_CHUNK(cart->banks[0].music.patterns.data); 	break;
 		case CHUNK_PALETTE:		
 			if(palette)
 				LOAD_CHUNK(cart->palette); 					
@@ -1664,14 +1664,14 @@ static s32 api_save(const tic_cartridge* cart, u8* buffer)
 
 	#define SAVE_CHUNK(id, from) saveChunk(buffer, id, &from, sizeof(from))
 
-	buffer = SAVE_CHUNK(CHUNK_TILES, 	cart->tiles);
-	buffer = SAVE_CHUNK(CHUNK_SPRITES, 	cart->sprites);
-	buffer = SAVE_CHUNK(CHUNK_MAP, 		cart->map);
+	buffer = SAVE_CHUNK(CHUNK_TILES, 	cart->banks[0].tiles);
+	buffer = SAVE_CHUNK(CHUNK_SPRITES, 	cart->banks[0].sprites);
+	buffer = SAVE_CHUNK(CHUNK_MAP, 		cart->banks[0].map);
 	buffer = SAVE_CHUNK(CHUNK_CODE, 	cart->code);
-	buffer = SAVE_CHUNK(CHUNK_SOUND, 	cart->sfx.data);
-	buffer = SAVE_CHUNK(CHUNK_WAVEFORM, cart->sfx.waveform);
-	buffer = SAVE_CHUNK(CHUNK_PATTERNS, cart->music.patterns.data);
-	buffer = SAVE_CHUNK(CHUNK_MUSIC, 	cart->music.tracks.data);
+	buffer = SAVE_CHUNK(CHUNK_SOUND, 	cart->banks[0].sfx.data);
+	buffer = SAVE_CHUNK(CHUNK_WAVEFORM, cart->banks[0].sfx.waveform);
+	buffer = SAVE_CHUNK(CHUNK_PATTERNS, cart->banks[0].music.patterns.data);
+	buffer = SAVE_CHUNK(CHUNK_MUSIC, 	cart->banks[0].music.tracks.data);
 	buffer = SAVE_CHUNK(CHUNK_PALETTE, 	cart->palette);
 
 	buffer = saveFixedChunk(buffer, CHUNK_COVER, cart->cover.data, cart->cover.size);

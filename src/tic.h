@@ -321,12 +321,6 @@ typedef union
 	u8 data[TIC_PALETTE_SIZE * sizeof(tic_rgb)];
 } tic_palette;
 
-// typedef struct
-// {
-// 	tic_sfx sfx;
-// 	tic_music music;
-// } tic_sound;
-
 typedef struct
 {
 	tic_tile data[TIC_BANK_SPRITES];
@@ -343,20 +337,7 @@ typedef struct
 
 typedef struct
 {
-	union
-	{
-		struct
-		{
-			tic_tiles tiles;
-			tic_tiles sprites;
-			tic_map map;
-			tic_sfx sfx;
-			tic_music music;
-		};
-
-		tic_bank banks[TIC_BANKS];
-	};
-
+	tic_bank banks[TIC_BANKS];
 	tic_code code;
 	tic_cover_image cover;
 	tic_palette palette;
