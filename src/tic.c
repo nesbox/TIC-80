@@ -1539,17 +1539,22 @@ static double api_time(tic_mem* memory)
 
 static void api_sync(tic_mem* tic, bool toCart)
 {
-	// TODO: fix this
-	// if(toCart)
-	// {
-	// 	memcpy(&tic->cart.gfx, &tic->ram.gfx, sizeof tic->cart.gfx);
-	// 	memcpy(&tic->cart.sound, &tic->ram.sound, sizeof tic->cart.sound);
-	// }
-	// else
-	// {
-	// 	memcpy(&tic->ram.gfx, &tic->cart.gfx, sizeof tic->cart.gfx);
-	// 	memcpy(&tic->ram.sound, &tic->cart.sound, sizeof tic->cart.sound);
-	// }
+	if(toCart)
+	{
+		memcpy(&tic->cart.bank.tiles, 	&tic->ram.tiles, 	sizeof(tic_tiles));
+		memcpy(&tic->cart.bank.sprites, &tic->ram.sprites, 	sizeof(tic_tiles));
+		memcpy(&tic->cart.bank.map, 	&tic->ram.map, 		sizeof(tic_map));
+		memcpy(&tic->cart.bank.sfx, 	&tic->ram.sfx, 		sizeof(tic_sfx));
+		memcpy(&tic->cart.bank.music, 	&tic->ram.music, 	sizeof(tic_music));
+	}
+	else
+	{
+		memcpy(&tic->ram.tiles, 	&tic->cart.bank.tiles, 		sizeof(tic_tiles));
+		memcpy(&tic->ram.sprites, 	&tic->cart.bank.sprites, 	sizeof(tic_tiles));
+		memcpy(&tic->ram.map, 		&tic->cart.bank.map, 		sizeof(tic_map));
+		memcpy(&tic->ram.sfx, 		&tic->cart.bank.sfx, 		sizeof(tic_sfx));
+		memcpy(&tic->ram.music, 	&tic->cart.bank.music, 		sizeof(tic_music));
+	}
 }
 
 static u32 api_btnp(tic_mem* tic, s32 index, s32 hold, s32 period)
