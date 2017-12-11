@@ -182,7 +182,7 @@ static duk_ret_t duk_spr(duk_context* duk)
 	s32 h = duk_is_null_or_undefined(duk, 8) ? 1							: duk_to_int(duk, 8);
 
 	tic_mem* memory = (tic_mem*)getDukMachine(duk);
-	memory->api.sprite_ex(memory, &memory->ram.gfx, index, x, y, w, h, colors, count, scale, flip, rotate);
+	memory->api.sprite_ex(memory, &memory->ram.tiles, index, x, y, w, h, colors, count, scale, flip, rotate);
 
 	return 0;
 }
@@ -257,7 +257,7 @@ static duk_ret_t duk_sfx(duk_context* duk)
 	{
 		if(index >= 0)
 		{
-			tic_sound_effect* effect = memory->ram.sound.sfx.data + index;
+			tic_sound_effect* effect = memory->ram.sfx.data + index;
 
 			note = effect->note;
 			octave = effect->octave;
@@ -361,14 +361,14 @@ static duk_ret_t duk_map(duk_context* duk)
 	tic_mem* memory = (tic_mem*)getDukMachine(duk);
 
 	if (duk_is_null_or_undefined(duk, 8))
-		memory->api.map(memory, &memory->ram.gfx, x, y, w, h, sx, sy, chromakey, scale);
+		memory->api.map(memory, &memory->ram.map, &memory->ram.tiles, x, y, w, h, sx, sy, chromakey, scale);
 	else
 	{
 		void* remap = duk_get_heapptr(duk, 8);
 
 	 	RemapData data = {duk, remap};
 
-	 	memory->api.remap((tic_mem*)getDukMachine(duk), &memory->ram.gfx, x, y, w, h, sx, sy, chromakey, scale, remapCallback, &data);
+	 	memory->api.remap((tic_mem*)getDukMachine(duk), &memory->ram.map, &memory->ram.tiles, x, y, w, h, sx, sy, chromakey, scale, remapCallback, &data);
 	}
 
 	return 0;
@@ -381,7 +381,7 @@ static duk_ret_t duk_mget(duk_context* duk)
 
 	tic_mem* memory = (tic_mem*)getDukMachine(duk);
 
-	u8 value = memory->api.map_get(memory, &memory->ram.gfx, x, y);
+	u8 value = memory->api.map_get(memory, &memory->ram.map, x, y);
 	duk_push_uint(duk, value);
 	return 1;
 }
@@ -394,7 +394,7 @@ static duk_ret_t duk_mset(duk_context* duk)
 
 	tic_mem* memory = (tic_mem*)getDukMachine(duk);
 
-	memory->api.map_set(memory, &memory->ram.gfx, x, y, value);
+	memory->api.map_set(memory, &memory->ram.map, x, y, value);
 
 	return 1;
 }

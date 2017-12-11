@@ -109,7 +109,12 @@ typedef struct
 
 	blip_buffer_t* blip;
 	s32 samplerate;
-	const tic_sound* soundSrc;
+
+	struct
+	{
+		const tic_sfx* sfx;
+		const tic_music* music;
+	} sound;
 
 	tic_tick_data* data;
 

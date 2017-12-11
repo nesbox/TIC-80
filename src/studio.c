@@ -278,7 +278,7 @@ static struct
 
 void playSystemSfx(s32 id)
 {
-	const tic_sound_effect* effect = &studio.tic->config.sound.sfx.data[id];
+	const tic_sound_effect* effect = &studio.tic->config.bank.sfx.data[id];
 	studio.tic->api.sfx_ex(studio.tic, id, effect->note, effect->octave, -1, 0, MAX_VOLUME, 0);
 }
 
@@ -2042,14 +2042,14 @@ static void renderCursor()
 		studio.tic->ram.vram.vars.cursor)
 		{
 			SDL_ShowCursor(SDL_DISABLE);
-			blitCursor(studio.tic->ram.gfx.sprites[studio.tic->ram.vram.vars.cursor].data);
+			blitCursor(studio.tic->ram.sprites.data[studio.tic->ram.vram.vars.cursor].data);
 			return;
 		}
 
 	SDL_ShowCursor(getConfig()->theme.cursor.sprite >= 0 ? SDL_DISABLE : SDL_ENABLE);
 
 	if(getConfig()->theme.cursor.sprite >= 0)
-		blitCursor(studio.tic->config.gfx.tiles[getConfig()->theme.cursor.sprite].data);
+		blitCursor(studio.tic->config.bank.tiles.data[getConfig()->theme.cursor.sprite].data);
 }
 
 static void useSystemPalette()
@@ -2091,24 +2091,28 @@ static void renderStudio()
 		studio.mouse.state[i].click = false;
 
 	{
-		const tic_sound* src = NULL;
+		const tic_sfx* sfx = NULL;
+		const tic_music* music = NULL;
 
 		switch(studio.mode)
 		{
 		case TIC_RUN_MODE:
-			src = &studio.tic->ram.sound;
+			sfx = &studio.tic->ram.sfx;
+			music = &studio.tic->ram.music;
 			break;
 		case TIC_START_MODE:
 		case TIC_DIALOG_MODE:
 		case TIC_MENU_MODE:
 		case TIC_SURF_MODE:
-			src = &studio.tic->config.sound;
+			sfx = &studio.tic->config.bank.sfx;
+			music = &studio.tic->config.bank.music;
 			break;
 		default:
-			src = &studio.tic->cart.sound;
+			sfx = &studio.tic->cart.bank.sfx;
+			music = &studio.tic->cart.bank.music;
 		}
 
-		studio.tic->api.tick_start(studio.tic, src);
+		studio.tic->api.tick_start(studio.tic, sfx, music);
 	}
 
 	switch(studio.mode)
@@ -2279,7 +2283,7 @@ static void initTouchGamepad()
 	if (!studio.renderer)
 		return;
 
-	studio.tic->api.map(studio.tic, &studio.tic->config.gfx, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, -1, 1);
+	studio.tic->api.map(studio.tic, &studio.tic->config.bank.map, &studio.tic->config.bank.tiles, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, -1, 1);
 
 	if(!studio.gamepad.texture)
 	{
@@ -2306,7 +2310,7 @@ static void updateSystemFont()
 	for(s32 i = 0; i < TIC_FONT_CHARS; i++)
 		for(s32 y = 0; y < TIC_SPRITESIZE; y++)
 			for(s32 x = 0; x < TIC_SPRITESIZE; x++)
-				if(tic_tool_peek4(&studio.tic->config.gfx.sprites[i], TIC_SPRITESIZE*(y+1) - x-1))
+				if(tic_tool_peek4(&studio.tic->config.bank.sprites.data[i], TIC_SPRITESIZE*(y+1) - x-1))
 					studio.tic->font.data[i*BITS_IN_BYTE+y] |= 1 << x;
 }
 
@@ -2331,7 +2335,7 @@ static void setWindowIcon()
 	for(s32 j = 0, index = 0; j < Size; j++)
 		for(s32 i = 0; i < Size; i++, index++)
 		{
-			u8 color = getSpritePixel(studio.tic->config.gfx.tiles, i/Scale, j/Scale);
+			u8 color = getSpritePixel(studio.tic->config.bank.tiles.data, i/Scale, j/Scale);
 			pixels[index] = color == ColorKey ? 0 : pal[color];
 		}
 
