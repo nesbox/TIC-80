@@ -373,7 +373,24 @@ void str2buf(const char* str, s32 size, void* buf, bool flip)
 	}
 }
 
-bool fromClipboard(void* data, s32 size, bool flip)
+void removeWhiteSpaces(char* str)
+{
+        int i = 0;
+        int len = strlen(str);
+    
+        for (int j = 0; j < len; j++) {
+                if (!isspace(str[j])) {
+                        str[i] = str[j];
+                        i++;
+                }
+        }
+    
+        if (i < len - 1) {
+                str[i] = '\0';
+        }
+}
+
+bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces)
 {
 	if(data)
 	{
@@ -383,6 +400,10 @@ bool fromClipboard(void* data, s32 size, bool flip)
 
 			if(clipboard)
 			{
+                                if (remove_white_spaces)
+                                        removeWhiteSpaces(clipboard);
+                            
+                            
 				bool valid = strlen(clipboard) == size * 2;
 
 				if(valid) str2buf(clipboard, strlen(clipboard), data, flip);

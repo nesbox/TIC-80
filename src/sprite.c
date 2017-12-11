@@ -648,8 +648,8 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 
 static void pasteColor(Sprite* sprite)
 {
-	fromClipboard(sprite->tic->cart.palette.data, sizeof(tic_palette), false);
-	fromClipboard(&sprite->tic->cart.palette.colors[sprite->color], sizeof(tic_rgb), false);
+	fromClipboard(sprite->tic->cart.palette.data, sizeof(tic_palette), false, true);
+	fromClipboard(&sprite->tic->cart.palette.colors[sprite->color], sizeof(tic_rgb), false, true);
 }
 
 static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
@@ -1240,7 +1240,7 @@ static void copyFromClipboard(Sprite* sprite)
 
 	if(buffer)
 	{
-		if(fromClipboard(buffer, size, true))
+		if(fromClipboard(buffer, size, true, false))
 		{
 			SDL_Rect rect = getSpriteRect(sprite);
 			s32 r = rect.x + rect.w;
