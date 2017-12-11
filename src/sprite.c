@@ -33,12 +33,12 @@
 
 static u8 getSheetPixel(Sprite* sprite, s32 x, s32 y)
 {
-	return getSpritePixel(sprite->tic->cart.banks[0].tiles.data, x, sprite->index >= TIC_BANK_SPRITES ? y + TIC_SPRITESHEET_SIZE: y);
+	return getSpritePixel(sprite->tic->cart.bank.tiles.data, x, sprite->index >= TIC_BANK_SPRITES ? y + TIC_SPRITESHEET_SIZE: y);
 }
 
 static void setSheetPixel(Sprite* sprite, s32 x, s32 y, u8 color)
 {
-	setSpritePixel(sprite->tic->cart.banks[0].tiles.data, x, sprite->index >= TIC_BANK_SPRITES ? y + TIC_SPRITESHEET_SIZE: y, color);
+	setSpritePixel(sprite->tic->cart.bank.tiles.data, x, sprite->index >= TIC_BANK_SPRITES ? y + TIC_SPRITESHEET_SIZE: y, color);
 }
 
 static s32 getIndexPosX(Sprite* sprite)
@@ -940,7 +940,7 @@ static void drawSheetOvr(Sprite* sprite, s32 x, s32 y)
 
 	for(s32 j = 0, index = (sprite->index - sprite->index % TIC_BANK_SPRITES); j < rect.h; j += TIC_SPRITESIZE)
 		for(s32 i = 0; i < rect.w; i += TIC_SPRITESIZE, index++)
-			sprite->tic->api.sprite(sprite->tic, &sprite->tic->cart.banks[0].tiles, index, x + i, y + j, NULL, 0);
+			sprite->tic->api.sprite(sprite->tic, &sprite->tic->cart.bank.tiles, index, x + i, y + j, NULL, 0);
 	{
 		s32 bx = getIndexPosX(sprite) + x - 1;
 		s32 by = getIndexPosY(sprite) + y - 1;
@@ -1551,7 +1551,7 @@ void initSprite(Sprite* sprite, tic_mem* tic)
 			.front = sprite->select.front,
 		},
 		.mode = SPRITE_DRAW_MODE,
-		.history = history_create(&tic->cart.banks[0].tiles, TIC_SPRITES * sizeof(tic_tile)),
+		.history = history_create(&tic->cart.bank.tiles, TIC_SPRITES * sizeof(tic_tile)),
 		.event = onStudioEvent,
 		.overlap = overlap,
 	};

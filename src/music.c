@@ -215,7 +215,7 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
 
 static tic_track* getTrack(Music* music)
 {
-	return &music->tic->cart.banks[0].music.tracks.data[music->track];
+	return &music->tic->cart.bank.music.tracks.data[music->track];
 }
 
 static s32 getRows(Music* music)
@@ -368,7 +368,7 @@ static tic_track_pattern* getPattern(Music* music, s32 channel)
 {
 	s32 patternId = tic_tool_get_pattern_id(getTrack(music), music->tracker.frame, channel);
 
-	return patternId ? &music->tic->cart.banks[0].music.patterns.data[patternId - PATTERN_START] : NULL;
+	return patternId ? &music->tic->cart.bank.music.patterns.data[patternId - PATTERN_START] : NULL;
 }
 
 static tic_track_pattern* getChannelPattern(Music* music)
@@ -1327,7 +1327,7 @@ static void drawTumbler(Music* music, s32 x, s32 y, s32 index)
 	}
 
 	u8 color = Chroma;
-	tic->api.sprite(tic, &tic->config.banks[0].tiles, music->tracker.patterns[index] ? On : Off, x, y, &color, 1);
+	tic->api.sprite(tic, &tic->config.bank.tiles, music->tracker.patterns[index] ? On : Off, x, y, &color, 1);
 }
 
 static void drawTracker(Music* music, s32 x, s32 y)
@@ -1643,7 +1643,7 @@ void initMusic(Music* music, tic_mem* tic)
 		},
 
 		.tab = MUSIC_TRACKER_TAB,
-		.history = history_create(&tic->cart.banks[0].music, sizeof(tic_music)),
+		.history = history_create(&tic->cart.bank.music, sizeof(tic_music)),
 		.event = onStudioEvent,
 	};
 

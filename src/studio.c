@@ -278,7 +278,7 @@ static struct
 
 void playSystemSfx(s32 id)
 {
-	const tic_sound_effect* effect = &studio.tic->config.banks[0].sfx.data[id];
+	const tic_sound_effect* effect = &studio.tic->config.bank.sfx.data[id];
 	studio.tic->api.sfx_ex(studio.tic, id, effect->note, effect->octave, -1, 0, MAX_VOLUME, 0);
 }
 
@@ -2049,7 +2049,7 @@ static void renderCursor()
 	SDL_ShowCursor(getConfig()->theme.cursor.sprite >= 0 ? SDL_DISABLE : SDL_ENABLE);
 
 	if(getConfig()->theme.cursor.sprite >= 0)
-		blitCursor(studio.tic->config.banks[0].tiles.data[getConfig()->theme.cursor.sprite].data);
+		blitCursor(studio.tic->config.bank.tiles.data[getConfig()->theme.cursor.sprite].data);
 }
 
 static void useSystemPalette()
@@ -2104,12 +2104,12 @@ static void renderStudio()
 		case TIC_DIALOG_MODE:
 		case TIC_MENU_MODE:
 		case TIC_SURF_MODE:
-			sfx = &studio.tic->config.banks[0].sfx;
-			music = &studio.tic->config.banks[0].music;
+			sfx = &studio.tic->config.bank.sfx;
+			music = &studio.tic->config.bank.music;
 			break;
 		default:
-			sfx = &studio.tic->cart.banks[0].sfx;
-			music = &studio.tic->cart.banks[0].music;
+			sfx = &studio.tic->cart.bank.sfx;
+			music = &studio.tic->cart.bank.music;
 		}
 
 		studio.tic->api.tick_start(studio.tic, sfx, music);
@@ -2283,7 +2283,7 @@ static void initTouchGamepad()
 	if (!studio.renderer)
 		return;
 
-	studio.tic->api.map(studio.tic, &studio.tic->config.banks[0].map, &studio.tic->config.banks[0].tiles, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, -1, 1);
+	studio.tic->api.map(studio.tic, &studio.tic->config.bank.map, &studio.tic->config.bank.tiles, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, -1, 1);
 
 	if(!studio.gamepad.texture)
 	{
@@ -2310,7 +2310,7 @@ static void updateSystemFont()
 	for(s32 i = 0; i < TIC_FONT_CHARS; i++)
 		for(s32 y = 0; y < TIC_SPRITESIZE; y++)
 			for(s32 x = 0; x < TIC_SPRITESIZE; x++)
-				if(tic_tool_peek4(&studio.tic->config.banks[0].sprites.data[i], TIC_SPRITESIZE*(y+1) - x-1))
+				if(tic_tool_peek4(&studio.tic->config.bank.sprites.data[i], TIC_SPRITESIZE*(y+1) - x-1))
 					studio.tic->font.data[i*BITS_IN_BYTE+y] |= 1 << x;
 }
 
@@ -2335,7 +2335,7 @@ static void setWindowIcon()
 	for(s32 j = 0, index = 0; j < Size; j++)
 		for(s32 i = 0; i < Size; i++, index++)
 		{
-			u8 color = getSpritePixel(studio.tic->config.banks[0].tiles.data, i/Scale, j/Scale);
+			u8 color = getSpritePixel(studio.tic->config.bank.tiles.data, i/Scale, j/Scale);
 			pixels[index] = color == ColorKey ? 0 : pal[color];
 		}
 

@@ -360,12 +360,12 @@ static bool onConsoleLoadSectionCommand(Console* console, const char* param)
 						// TODO: should load to the currena bank
 						switch(i)
 						{
-						case 0: memcpy(&tic->cart.banks[0].tiles, 	&cart->banks[0].tiles, 	sizeof(tic_tiles)*2); break;
-						case 1: memcpy(&tic->cart.banks[0].map, 	&cart->banks[0].map, 	sizeof(tic_map)); break;
+						case 0: memcpy(&tic->cart.bank.tiles, 	&cart->bank.tiles, 	sizeof(tic_tiles)*2); break;
+						case 1: memcpy(&tic->cart.bank.map, 	&cart->bank.map, 	sizeof(tic_map)); break;
 						case 2: memcpy(&tic->cart.cover, 			&cart->cover, 			sizeof cart->cover); break;
 						case 3: memcpy(&tic->cart.code, 			&cart->code, 			sizeof cart->code); break;
-						case 4: memcpy(&tic->cart.banks[0].sfx, 	&cart->banks[0].sfx, 	sizeof(tic_sfx)); break;
-						case 5: memcpy(&tic->cart.banks[0].music, 	&cart->banks[0].music, 	sizeof(tic_music)); break;
+						case 4: memcpy(&tic->cart.bank.sfx, 	&cart->bank.sfx, 	sizeof(tic_sfx)); break;
+						case 5: memcpy(&tic->cart.bank.music, 	&cart->bank.music, 	sizeof(tic_music)); break;
 						case 6: memcpy(&tic->cart.palette, 			&cart->palette, 		sizeof(tic_palette)); break;
 						}
 
@@ -605,13 +605,13 @@ static const BinarySection BinarySections[] =
 {
 	// TODO: fix banks loading here
 	{"PALETTE", 	1, offsetof(tic_cartridge, palette.data), sizeof(tic_palette), false},
-	{"TILES", 		TIC_BANK_SPRITES, offsetof(tic_cartridge, banks->tiles), sizeof(tic_tile), true},
-	{"SPRITES", 	TIC_BANK_SPRITES, offsetof(tic_cartridge, banks->sprites), sizeof(tic_tile), true},
-	{"MAP", 		TIC_MAP_HEIGHT, offsetof(tic_cartridge, banks->map), TIC_MAP_WIDTH, true},
-	{"WAVES", 		ENVELOPES_COUNT, offsetof(tic_cartridge, banks->sfx.waveform.envelopes), sizeof(tic_waveform), true},
-	{"SFX", 		SFX_COUNT, offsetof(tic_cartridge, banks->sfx.data), sizeof(tic_sound_effect), true},
-	{"PATTERNS", 	MUSIC_PATTERNS, offsetof(tic_cartridge, banks->music.patterns), sizeof(tic_track_pattern), true},
-	{"TRACKS", 		MUSIC_TRACKS, offsetof(tic_cartridge, banks->music.tracks), sizeof(tic_track), true},
+	{"TILES", 		TIC_BANK_SPRITES, offsetof(tic_cartridge, bank.tiles), sizeof(tic_tile), true},
+	{"SPRITES", 	TIC_BANK_SPRITES, offsetof(tic_cartridge, bank.sprites), sizeof(tic_tile), true},
+	{"MAP", 		TIC_MAP_HEIGHT, offsetof(tic_cartridge, bank.map), TIC_MAP_WIDTH, true},
+	{"WAVES", 		ENVELOPES_COUNT, offsetof(tic_cartridge, bank.sfx.waveform.envelopes), sizeof(tic_waveform), true},
+	{"SFX", 		SFX_COUNT, offsetof(tic_cartridge, bank.sfx.data), sizeof(tic_sound_effect), true},
+	{"PATTERNS", 	MUSIC_PATTERNS, offsetof(tic_cartridge, bank.music.patterns), sizeof(tic_track_pattern), true},
+	{"TRACKS", 		MUSIC_TRACKS, offsetof(tic_cartridge, bank.music.tracks), sizeof(tic_track), true},
 };
 
 static s32 saveProject(Console* console, void* buffer, const char* comment)
@@ -1333,7 +1333,7 @@ static void onImportSprites(const char* name, const void* buffer, size_t size, v
 						u8 color = tic_tool_find_closest_color(console->tic->cart.palette.colors, &rgb);
 
 						// TODO: should be current bank
-						setSpritePixel(console->tic->cart.banks[0].tiles.data, x, y, color);
+						setSpritePixel(console->tic->cart.bank.tiles.data, x, y, color);
 					}
 
 				gif_close(image);
@@ -1356,8 +1356,8 @@ static void injectMap(Console* console, const void* buffer, s32 size)
 	enum {Size = sizeof(tic_map)};
 
 	// TODO: should be current bank
-	SDL_memset(&console->tic->cart.banks[0].map, 0, Size);
-	SDL_memcpy(&console->tic->cart.banks[0].map, buffer, SDL_min(size, Size));
+	SDL_memset(&console->tic->cart.bank.map, 0, Size);
+	SDL_memcpy(&console->tic->cart.bank.map, buffer, SDL_min(size, Size));
 }
 
 static void onImportMap(const char* name, const void* buffer, size_t size, void* data)
@@ -1457,7 +1457,7 @@ static void exportSprites(Console* console)
 		{
 			for (s32 y = 0; y < Height; y++)
 				for (s32 x = 0; x < Width; x++)
-					data[x + y * Width] = getSpritePixel(console->tic->cart.banks[0].tiles.data, x, y);
+					data[x + y * Width] = getSpritePixel(console->tic->cart.bank.tiles.data, x, y);
 
 			s32 size = 0;
 			if((size = writeGifData(console->tic, buffer, data, Width, Height)))
@@ -1497,7 +1497,7 @@ static void exportMap(Console* console)
 
 	if(buffer)
 	{
-		SDL_memcpy(buffer, console->tic->cart.banks[0].map.data, Size);
+		SDL_memcpy(buffer, console->tic->cart.bank.map.data, Size);
 		fsGetFileData(onMapExported, "world.map", buffer, Size, DEFAULT_CHMOD, console);
 	}
 }
@@ -2768,7 +2768,7 @@ static bool cmdInjectSprites(Console* console, const char* param, const char* na
 						tic_rgb rgb = {c->r, c->g, c->b};
 						u8 color = tic_tool_find_closest_color(embed.file.palette.colors, &rgb);
 
-						setSpritePixel(embed.file.banks[0].tiles.data, x, y, color);
+						setSpritePixel(embed.file.bank.tiles.data, x, y, color);
 					}
 
 				gif_close(image);

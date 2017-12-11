@@ -337,7 +337,12 @@ typedef struct
 
 typedef struct
 {
-	tic_bank banks[TIC_BANKS];
+	union
+	{
+		tic_bank bank;
+		tic_bank banks[TIC_BANKS];
+	};
+	
 	tic_code code;
 	tic_cover_image cover;
 	tic_palette palette;
