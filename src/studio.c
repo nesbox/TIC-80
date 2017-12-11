@@ -373,21 +373,16 @@ void str2buf(const char* str, s32 size, void* buf, bool flip)
 	}
 }
 
-void removeWhiteSpaces(char* str)
+static void removeWhiteSpaces(char* str)
 {
-        int i = 0;
-        int len = strlen(str);
-    
-        for (int j = 0; j < len; j++) {
-                if (!isspace(str[j])) {
-                        str[i] = str[j];
-                        i++;
-                }
-        }
-    
-        if (i < len - 1) {
-                str[i] = '\0';
-        }
+	s32 i = 0;
+	s32 len = strlen(str);
+
+	for (s32 j = 0; j < len; j++)
+		if(!SDL_isspace(str[j]))
+			str[i++] = str[j];
+
+	str[i] = '\0';
 }
 
 bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces)
@@ -400,10 +395,9 @@ bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces)
 
 			if(clipboard)
 			{
-                                if (remove_white_spaces)
-                                        removeWhiteSpaces(clipboard);
-                            
-                            
+				if (remove_white_spaces)
+					removeWhiteSpaces(clipboard);
+							
 				bool valid = strlen(clipboard) == size * 2;
 
 				if(valid) str2buf(clipboard, strlen(clipboard), data, flip);
@@ -802,7 +796,7 @@ void setStudioMode(EditorMode mode)
 		EditorMode prev = studio.mode;
 
 		if(prev == TIC_RUN_MODE)
-		 	studio.tic->api.pause(studio.tic);
+			studio.tic->api.pause(studio.tic);
 
 		if(mode != TIC_RUN_MODE)
 			studio.tic->api.reset(studio.tic);
@@ -838,8 +832,8 @@ void setStudioMode(EditorMode mode)
 		else if ((prev == TIC_MENU_MODE || prev == TIC_SURF_MODE) && studio.mode != TIC_RUN_MODE)
 			enableScreenTextInput();
 
-        if(SDL_HasScreenKeyboardSupport() &&
-            (studio.mode == TIC_RUN_MODE || studio.mode == TIC_SURF_MODE || studio.mode == TIC_MENU_MODE))
+		if(SDL_HasScreenKeyboardSupport() &&
+			(studio.mode == TIC_RUN_MODE || studio.mode == TIC_SURF_MODE || studio.mode == TIC_MENU_MODE))
 			SDL_StopTextInput();
 	}
 }
@@ -1998,7 +1992,7 @@ static void blitTexture()
 
 		SDL_Rect srcRect = {Left, Top, TIC80_WIDTH, TIC80_HEIGHT};
 
-        SDL_RenderCopy(studio.renderer, studio.texture, &srcRect, &rect);
+		SDL_RenderCopy(studio.renderer, studio.texture, &srcRect, &rect);
 	}
 }
 
