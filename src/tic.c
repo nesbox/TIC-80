@@ -912,8 +912,7 @@ static void ticTexLine(tic_mem* memory, TexVert *v0, TexVert *v1)
 
 	float dy = bot->y - top->y;
 	if ((s32)dy == 0)	return;
-	if ((s32)dy > TIC80_HEIGHT)	return;	//	reject large polys 
-
+	
 	float step_x = (bot->x - top->x) / dy;
 	float step_u = (bot->u - top->u) / dy;
 	float step_v = (bot->v - top->v) / dy;
