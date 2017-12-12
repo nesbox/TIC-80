@@ -1069,13 +1069,8 @@ static void checkForceExit(lua_State *lua, lua_Debug *luadebug)
 
 	tic_tick_data* tick = machine->data;
 
-	if(tick->hook)
-	{
-		tick->hook(tick->data);
-
-		if(tick->forceExit)
-			luaL_error(lua, "script execution was interrupted");
-	}
+	if(tick->forceExit && tick->forceExit(tick->data))
+		luaL_error(lua, "script execution was interrupted");
 }
 
 static void initAPI(tic_machine* machine)

@@ -45,19 +45,18 @@ typedef struct
 typedef void(*TraceOutput)(void*, const char*, u8 color);
 typedef void(*ErrorOutput)(void*, const char*);
 typedef void(*ExitCallback)(void*);
-typedef void(*HookCallback)(void*);
+typedef bool(*CheckForceExit)(void*);
 
 typedef struct
 {
 	TraceOutput trace;
 	ErrorOutput error;
 	ExitCallback exit;
-	HookCallback hook;
+	CheckForceExit forceExit;
 	
 	u64 (*counter)();
 	u64 (*freq)();
 	u64 start;
-	bool forceExit;
 
 	void (*preprocessor)(void* data, char* dst);
 
