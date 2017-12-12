@@ -461,6 +461,7 @@ void tic_close(tic_mem* memory)
 
 	closeJavascript(machine);
 	closeLua(machine);
+	closeBrainfuck(machine);
 	blip_delete(machine->blip);
 
 	free(memory->samples.buffer);
@@ -1268,9 +1269,9 @@ static const char* readMetatag(const char* code, const char* tag, const char* fo
 
 		if(tagBuffer)
 		{
-			sprintf(tagBuffer, format, tag);
+			size_t s = sprintf(tagBuffer, format, tag);
 			if((start = strstr(code, tagBuffer)))
-				start += strlen(tagBuffer);
+				start += s;
 			free(tagBuffer);			
 		}
 	}
@@ -1301,30 +1302,21 @@ static const char* readMetatag(const char* code, const char* tag, const char* fo
 	return NULL;
 }
 
-static const char* TagFormatLua = "-- %s:";
-static const char* TagFormatJS = "// %s:";
+static const char* const TagFormats[] = {"-- %s:", "// %s:", "# %s:"};
+
 
 static bool compareMetatag(const char* code, const char* tag, const char* value)
 {
 	bool result = false;
 
-	// LUA comments
-	const char* str = readMetatag(code, tag, TagFormatLua);
-
-	if(str)
+	for(int i = 0; i < COUNT_OF(TagFormats); i++)
 	{
-		result = strcmp(str, value) == 0;
-		free((void*)str);
-	}
-	else
-	{
-		// JS comments
-		str = readMetatag(code, tag, TagFormatJS);
-
+		const char* str = readMetatag(code, tag, TagFormats[i]);
 		if(str)
 		{
 			result = strcmp(str, value) == 0;
 			free((void*)str);
+			return result;
 		}
 	}
 
@@ -1341,30 +1333,31 @@ static bool isJavascript(const char* code)
 	return compareMetatag(code, "script", "js") || compareMetatag(code, "script", "javascript");
 }
 
+static bool isBrainfuck(const char* code)
+{
+	return compareMetatag(code, "script", "bf") || compareMetatag(code, "script", "brainfuck");
+}
+
 static tic_script_lang api_get_script(tic_mem* memory)
 {
 	if(isMoonscript(memory->cart.code.data)) return tic_script_moon;
 	if(isJavascript(memory->cart.code.data)) return tic_script_js;
+	if(isBrainfuck(memory->cart.code.data)) return tic_script_bf;
 	return tic_script_lua;
 }
 
 static void updateSaveid(tic_mem* memory)
 {
 	memset(memory->saveid, 0, sizeof memory->saveid);
-	const char* saveid = readMetatag(memory->cart.code.data, "saveid", TagFormatLua);
-	if(saveid)
+	for(int i = 0; i < COUNT_OF(TagFormats); i++)
 	{
-		strcpy(memory->saveid, saveid);
-		free((void*)saveid);
-	}
-	else
-	{
-		const char* saveid = readMetatag(memory->cart.code.data, "saveid", TagFormatJS);
+		const char* saveid = readMetatag(memory->cart.code.data, "saveid", TagFormats[i]);
 		if(saveid)
 		{
 			strcpy(memory->saveid, saveid);
 			free((void*)saveid);
-		}		
+			return;
+		}
 	}
 }
 
@@ -1403,6 +1396,13 @@ static void api_tick(tic_mem* memory, tic_tick_data* data)
 
 				memory->script = tic_script_js;
 			}
+			else if(isBrainfuck(code))
+			{
+				if(!initBrainfuck(machine, code))
+					return;
+
+				memory->script = tic_script_bf;
+			}
 			else if(!initLua(machine, code))
 				return;
 		}
@@ -1412,13 +1412,11 @@ static void api_tick(tic_mem* memory, tic_tick_data* data)
 			return;
 		}
 
-		machine->state.scanline = memory->script == tic_script_js ? callJavascriptScanline : callLuaScanline;
+		machine->state.scanline = (memory->script == tic_script_js) ? callJavascriptScanline : (memory->script == tic_script_bf) ? callBrainfuckScanline : callLuaScanline;
 		machine->state.initialized = true;
 	}
 
-	memory->script == tic_script_js
-		? callJavascriptTick(machine)
-		: callLuaTick(machine);
+	(memory->script == tic_script_js) ? callJavascriptTick(machine) : (memory->script == tic_script_bf) ? callBrainfuckTick(machine) : callLuaTick(machine);
 }
 
 static void api_scanline(tic_mem* memory, s32 row)

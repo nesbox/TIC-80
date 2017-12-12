@@ -43,6 +43,7 @@ LOCAL_SRC_FILES := $(SDL_PATH)/src/main/android/SDL_android_main.c \
 	$(SRC_PATH)/net.c \
 	$(SRC_PATH)/luaapi.c \
 	$(SRC_PATH)/jsapi.c \
+	$(SRC_PATH)/bfapi.c \
 	$(SRC_PATH)/tic.c \
 	$(SRC_PATH)/dialog.c \
 	$(SRC_PATH)/menu.c \

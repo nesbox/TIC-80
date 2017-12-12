@@ -97,6 +97,7 @@ typedef struct
 	{
 		struct duk_hthread* js;
 		struct lua_State* lua;	
+		struct bf_State* bf;	
 	};
 
 	blip_buffer_t* blip;
@@ -124,13 +125,17 @@ s32 drawFixedSpriteFont(tic_mem* memory, u8 index, s32 x, s32 y, s32 width, s32 
 
 void closeLua(tic_machine* machine);
 void closeJavascript(tic_machine* machine);
+void closeBrainfuck(tic_machine* machine);
 
 bool initMoonscript(tic_machine* machine, const char* code);
 bool initLua(tic_machine* machine, const char* code);
 bool initJavascript(tic_machine* machine, const char* code);
+bool initBrainfuck(tic_machine* machine, const char* code);
 
 void callLuaTick(tic_machine* machine);
 void callJavascriptTick(tic_machine* machine);
+void callBrainfuckTick(tic_machine* machine);
 
 void callLuaScanline(tic_mem* memory, s32 row);
 void callJavascriptScanline(tic_mem* memory, s32 row);
+void callBrainfuckScanline(tic_mem* memory, s32 row);

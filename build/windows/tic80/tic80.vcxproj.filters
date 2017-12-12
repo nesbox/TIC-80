@@ -18,6 +18,9 @@
     <ClCompile Include="..\..\..\src\tic80.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\bfapi.c">
+      <Filter>src</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\src\jsapi.c">
       <Filter>src</Filter>
     </ClCompile>

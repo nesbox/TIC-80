@@ -144,6 +144,7 @@ DEMO_ASSETS= \
 	bin/assets/music.tic.dat \
 	bin/assets/font.tic.dat \
 	bin/assets/tetris.tic.dat \
+	bin/assets/bfdemo.tic.dat \
 	bin/assets/jsdemo.tic.dat \
 	bin/assets/luademo.tic.dat \
 	bin/assets/moondemo.tic.dat \
@@ -268,6 +269,9 @@ bin/tic.o: src/tic.c $(TIC80_H)
 bin/blip_buf.o: src/ext/blip_buf.c $(TIC80_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
+bin/bfapi.o: src/bfapi.c $(TIC80_H)
+	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
+
 bin/jsapi.o: src/jsapi.c $(TIC80_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
@@ -277,8 +281,8 @@ bin/luaapi.o: src/luaapi.c $(TIC80_H)
 bin/duktape.o: src/ext/duktape/duktape.c $(TIC80_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
-TIC80_SRC = src/tic80.c src/tic.c src/ext/blip_buf.c src/jsapi.c src/luaapi.c src/ext/duktape/duktape.c
-TIC80_O = bin/tic80.o bin/tic.o bin/tools.o bin/blip_buf.o bin/jsapi.o bin/luaapi.o bin/duktape.o bin/gif.o
+TIC80_SRC = src/tic80.c src/tic.c src/ext/blip_buf.c src/jsapi.c src/bfapi.c src/luaapi.c src/ext/duktape/duktape.c
+TIC80_O = bin/tic80.o bin/tic.o bin/tools.o bin/blip_buf.o bin/bfapi.o bin/jsapi.o bin/luaapi.o bin/duktape.o bin/gif.o
 TIC80_A = bin/libtic80.a
 TIC80_DLL = bin/tic80.dll
 
@@ -368,6 +372,9 @@ bin/assets/music.tic.dat: demos/music.tic
 	$(BIN2TXT) $< $@ -z
 
 bin/assets/tetris.tic.dat: demos/tetris.tic
+	$(BIN2TXT) $< $@ -z
+
+bin/assets/bfdemo.tic.dat: demos/bfdemo.tic
 	$(BIN2TXT) $< $@ -z
 
 bin/assets/jsdemo.tic.dat: demos/jsdemo.tic

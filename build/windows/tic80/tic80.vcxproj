@@ -38,6 +38,7 @@
     <ClCompile Include="..\..\..\src\ext\blip_buf.c" />
     <ClCompile Include="..\..\..\src\ext\duktape\duktape.c" />
     <ClCompile Include="..\..\..\src\ext\gif.c" />
+    <ClCompile Include="..\..\..\src\bfapi.c" />
     <ClCompile Include="..\..\..\src\jsapi.c" />
     <ClCompile Include="..\..\..\src\luaapi.c" />
     <ClCompile Include="..\..\..\src\tic.c" />
