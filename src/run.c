@@ -178,6 +178,16 @@ static void preseed()
 #endif
 }
 
+static void poll(void* data)
+{
+	Run* run = (Run*)data;
+
+	while(pollEvent());
+
+	if (getStudioMode() != TIC_RUN_MODE)
+		run->tickData.forceExit = true;
+}
+
 void initRun(Run* run, Console* console, tic_mem* tic)
 {
 	*run = (Run)
@@ -197,6 +207,8 @@ void initRun(Run* run, Console* console, tic_mem* tic)
 			.data = run,
 			.exit = onExit,
 			.preprocessor = processDoFile,
+			.hook = poll,
+			.forceExit = false,
 		},
 	};
 

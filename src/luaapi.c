@@ -29,6 +29,8 @@
 #include "machine.h"
 #include "ext/moonscript.h"
 
+#define LUA_LOC_STACK 1E8 // 100.000.000
+
 static const char TicMachine[] = "_TIC80";
 
 s32 luaopen_lpeg(lua_State *L);
@@ -1061,6 +1063,21 @@ static const lua_CFunction ApiFunc[] =
 
 STATIC_ASSERT(api_func, COUNT_OF(ApiKeywords) == COUNT_OF(ApiFunc));
 
+static void checkForceExit(lua_State *lua, lua_Debug *luadebug)
+{
+	tic_machine* machine = getLuaMachine(lua);
+
+	tic_tick_data* tick = machine->data;
+
+	if(tick->hook)
+	{
+		tick->hook(tick->data);
+
+		if(tick->forceExit)
+			luaL_error(lua, "script execution was interrupted");
+	}
+}
+
 static void initAPI(tic_machine* machine)
 {
 	lua_pushlightuserdata(machine->lua, machine);
@@ -1072,6 +1089,8 @@ static void initAPI(tic_machine* machine)
 
 	registerLuaFunction(machine, lua_dofile, "dofile");
 	registerLuaFunction(machine, lua_loadfile, "loadfile");
+
+	lua_sethook(machine->lua, &checkForceExit, LUA_MASKCOUNT, LUA_LOC_STACK);
 }
 
 void closeLua(tic_machine* machine)
@@ -1216,7 +1235,7 @@ void callLuaTick(tic_machine* machine)
 		lua_getglobal(lua, TicFunc);
 		if(lua_isfunction(lua, -1)) 
 		{
-			if(lua_pcall(lua, 0, 0, 0) != LUA_OK)
+			if(lua_pcall(lua, 0, 0, 0) != LUA_OK)	
 				machine->data->error(machine->data->data, lua_tostring(lua, -1));
 		}
 		else 
