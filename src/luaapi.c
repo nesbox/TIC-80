@@ -25,11 +25,18 @@
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
+#include <time.h>
 
 #include "machine.h"
 #include "ext/moonscript.h"
 
 static const char TicMachine[] = "_TIC80";
+
+// infinite loop protection
+static const u32 LUA_LOC_STACK = 1E8; // 100.000.000
+static const u8 MAX_TICK_EXECUTION_TIME = 5;
+clock_t callLuaTick_start;
+
 
 s32 luaopen_lpeg(lua_State *L);
 
@@ -1205,6 +1212,15 @@ bool initMoonscript(tic_machine* machine, const char* code)
 	return true;
 }
 
+void infiniteLoopCheckLua(lua_State *lua, lua_Debug *_luadebug)
+{
+	clock_t current_time = clock();
+	double elapsed = (double)(current_time - callLuaTick_start) / CLOCKS_PER_SEC;
+	
+	if (elapsed >= MAX_TICK_EXECUTION_TIME)
+		luaL_error(lua, "TIC_TIMEOUT: TIC function took too long");
+}
+
 void callLuaTick(tic_machine* machine)
 {
  	const char* TicFunc = ApiKeywords[0];
@@ -1216,8 +1232,15 @@ void callLuaTick(tic_machine* machine)
 		lua_getglobal(lua, TicFunc);
 		if(lua_isfunction(lua, -1)) 
 		{
+			// add a COUNT hook to be executed after LUA_LOC_STACK lines of lua
+			callLuaTick_start = clock();
+			lua_sethook(lua, &infiniteLoopCheckLua, LUA_MASKCOUNT, LUA_LOC_STACK);
+
 			if(lua_pcall(lua, 0, 0, 0) != LUA_OK)
 				machine->data->error(machine->data->data, lua_tostring(lua, -1));
+
+			// remove the hook
+			lua_sethook(lua, 0, 0, 0);
 		}
 		else 
 		{		
