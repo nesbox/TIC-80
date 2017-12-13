@@ -1838,10 +1838,10 @@ void initCode(Code* code, tic_mem* tic)
 	*code = (Code)
 	{
 		.tic = tic,
-		.data = tic->cart.bank.code.data,
+		.data = getBankCode()->data,
 		.tick = tick,
 		.escape = escape,
-		.cursor = {{tic->cart.bank.code.data, NULL, 0, 0}, NULL, 0},
+		.cursor = {{getBankCode()->data, NULL, 0, 0}, NULL, 0},
 		.rect = {0, TOOLBAR_SIZE + 1, TIC80_WIDTH, TIC80_HEIGHT - TOOLBAR_SIZE - TIC_FONT_HEIGHT - 1},
 		.scroll = {0, 0, {0, 0}, false},
 		.tickCounter = 0,

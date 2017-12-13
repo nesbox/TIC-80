@@ -74,6 +74,15 @@ typedef struct
 
 } MouseState;
 
+static const EditorMode Modes[] =
+{
+	TIC_CODE_MODE,
+	TIC_SPRITE_MODE,
+	TIC_MAP_MODE,
+	TIC_SFX_MODE,
+	TIC_MUSIC_MODE,
+};
+
 static struct
 {
 	tic80_local* tic80local;
@@ -147,7 +156,21 @@ static struct
 	struct
 	{
 		bool show;
-		s32 index;
+
+		union
+		{
+			struct
+			{
+				s32 code;
+				s32 tiles;
+				s32 map;
+				s32 sfx;
+				s32 music;
+			} index;
+
+			s32 indexes[COUNT_OF(Modes)];
+		};
+
 	} bank;
 
 	struct
@@ -260,7 +283,6 @@ static struct
 	.bank = 
 	{
 		.show = false,
-		.index = 0,
 	},
 
 	.popup =
@@ -287,6 +309,41 @@ static struct
 	.argv = NULL,
 	.floatSamples = NULL,
 };
+
+tic_tiles* getBankTiles()
+{
+	return &studio.tic->cart.banks[studio.bank.index.tiles].tiles;
+}
+
+tic_tiles* getBankSprites()
+{
+	return &studio.tic->cart.banks[studio.bank.index.tiles].sprites;
+}
+
+tic_map* getBankMap()
+{
+	return &studio.tic->cart.banks[studio.bank.index.map].map;
+}
+
+tic_sfx* getBankSfx()
+{
+	return &studio.tic->cart.banks[studio.bank.index.sfx].sfx;
+}
+
+tic_music* getBankMusic()
+{
+	return &studio.tic->cart.banks[studio.bank.index.music].music;
+}
+
+tic_code* getBankCode()
+{
+	return &studio.tic->cart.banks[studio.bank.index.code].code;
+}
+
+tic_palette* getBankPalette()
+{
+	return &studio.tic->cart.banks[studio.bank.index.tiles].palette;
+}
 
 void playSystemSfx(s32 id)
 {
@@ -429,15 +486,6 @@ void showTooltip(const char* text)
 	strcpy(studio.tooltip.text, text);
 }
 
-static const EditorMode Modes[] =
-{
-	TIC_CODE_MODE,
-	TIC_SPRITE_MODE,
-	TIC_MAP_MODE,
-	TIC_SFX_MODE,
-	TIC_MUSIC_MODE,
-};
-
 static void drawExtrabar(tic_mem* tic)
 {
 	enum {Size = 7};
@@ -553,6 +601,14 @@ static void drawBankIcon(s32 x, s32 y)
 	};
 
 	bool over = false;
+	s32 mode = 0;
+
+	for(s32 i = 0; i < COUNT_OF(Modes); i++)
+		if(Modes[i] == studio.mode)
+		{
+			mode = i;
+			break;
+		}
 
 	if(checkMousePos(&rect))
 	{
@@ -583,15 +639,15 @@ static void drawBankIcon(s32 x, s32 y)
 				over = true;
 
 				if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
-					studio.bank.index = i;
+					studio.bank.indexes[mode] = i;
 			}
 
-			if(i == studio.bank.index)
+			if(i == studio.bank.indexes[mode])
 			{
 				tic->api.rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_red);
 			}
 
-			tic->api.draw_char(tic, '0' + i, rect.x+1, rect.y+1, i == studio.bank.index ? tic_color_white : over ? tic_color_red : tic_color_peach);
+			tic->api.draw_char(tic, '0' + i, rect.x+1, rect.y+1, i == studio.bank.indexes[mode] ? tic_color_white : over ? tic_color_red : tic_color_peach);
 		}
 	}
 	else
@@ -2212,8 +2268,8 @@ static void renderStudio()
 			music = &studio.tic->config.music;
 			break;
 		default:
-			sfx = &studio.tic->cart.bank.sfx;
-			music = &studio.tic->cart.bank.music;
+			sfx = getBankSfx();
+			music = getBankMusic();
 		}
 
 		studio.tic->api.tick_start(studio.tic, sfx, music);
@@ -2504,20 +2560,20 @@ static void onFSInitialized(FileSystem* fs)
 	studio.tic = studio.tic80local->memory;
 
 	{
-		studio.start = SDL_malloc(sizeof(Start));
-		studio.console = SDL_malloc(sizeof(Console));
-		studio.run = SDL_malloc(sizeof(Run));
-		studio.code = SDL_malloc(sizeof(Code));
-		studio.sprite = SDL_malloc(sizeof(Sprite));
-		studio.map = SDL_malloc(sizeof(Map));
-		studio.world = SDL_malloc(sizeof(World));
-		studio.sfx = SDL_malloc(sizeof(Sfx));
-		studio.music = SDL_malloc(sizeof(Music));
-		studio.config = SDL_malloc(sizeof(Config));
-		studio.keymap = SDL_malloc(sizeof(Keymap));
-		studio.dialog = SDL_malloc(sizeof(Dialog));
-		studio.menu = SDL_malloc(sizeof(Menu));
-		studio.surf = SDL_malloc(sizeof(Surf));
+		studio.start = 		SDL_malloc(sizeof(Start));
+		studio.console = 	SDL_malloc(sizeof(Console));
+		studio.run = 		SDL_malloc(sizeof(Run));
+		studio.code = 		SDL_malloc(sizeof(Code));
+		studio.sprite = 	SDL_malloc(sizeof(Sprite));
+		studio.map = 		SDL_malloc(sizeof(Map));
+		studio.world = 		SDL_malloc(sizeof(World));
+		studio.sfx = 		SDL_malloc(sizeof(Sfx));
+		studio.music = 		SDL_malloc(sizeof(Music));
+		studio.config = 	SDL_malloc(sizeof(Config));
+		studio.keymap = 	SDL_malloc(sizeof(Keymap));
+		studio.dialog = 	SDL_malloc(sizeof(Dialog));
+		studio.menu = 		SDL_malloc(sizeof(Menu));
+		studio.surf = 		SDL_malloc(sizeof(Surf));
 	}
 
 	fsMakeDir(fs, TIC_LOCAL);
@@ -2610,6 +2666,23 @@ s32 main(s32 argc, char **argv)
 	}
 
 #endif
+
+	{
+		SDL_free(studio.start);
+		SDL_free(studio.console);
+		SDL_free(studio.run);
+		SDL_free(studio.code);
+		SDL_free(studio.sprite);
+		SDL_free(studio.map);
+		SDL_free(studio.world);
+		SDL_free(studio.sfx);
+		SDL_free(studio.music);
+		SDL_free(studio.config);
+		SDL_free(studio.keymap);
+		SDL_free(studio.dialog);
+		SDL_free(studio.menu);
+		SDL_free(studio.surf);
+	}
 
 	if(studio.tic80local)
 		tic80_delete((tic80*)studio.tic80local);

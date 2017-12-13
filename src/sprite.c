@@ -38,12 +38,12 @@ static void clearCanvasSelection(Sprite* sprite)
 
 static u8 getSheetPixel(Sprite* sprite, s32 x, s32 y)
 {
-	return getSpritePixel(sprite->tic->cart.bank.tiles.data, x, sprite->index >= TIC_BANK_SPRITES ? y + TIC_SPRITESHEET_SIZE: y);
+	return getSpritePixel(getBankTiles()->data, x, sprite->index >= TIC_BANK_SPRITES ? y + TIC_SPRITESHEET_SIZE: y);
 }
 
 static void setSheetPixel(Sprite* sprite, s32 x, s32 y, u8 color)
 {
-	setSpritePixel(sprite->tic->cart.bank.tiles.data, x, sprite->index >= TIC_BANK_SPRITES ? y + TIC_SPRITESHEET_SIZE: y, color);
+	setSpritePixel(getBankTiles()->data, x, sprite->index >= TIC_BANK_SPRITES ? y + TIC_SPRITESHEET_SIZE: y, color);
 }
 
 static s32 getIndexPosX(Sprite* sprite)
@@ -672,8 +672,8 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 
 static void pasteColor(Sprite* sprite)
 {
-	fromClipboard(sprite->tic->cart.bank.palette.data, sizeof(tic_palette), false, true);
-	fromClipboard(&sprite->tic->cart.bank.palette.colors[sprite->color], sizeof(tic_rgb), false, true);
+	fromClipboard(getBankPalette()->data, sizeof(tic_palette), false, true);
+	fromClipboard(&getBankPalette()->colors[sprite->color], sizeof(tic_rgb), false, true);
 }
 
 static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
@@ -708,7 +708,7 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
 				down = true;
 
 			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
-				toClipboard(sprite->tic->cart.bank.palette.data, sizeof(tic_palette), false);
+				toClipboard(getBankPalette()->data, sizeof(tic_palette), false);
 		}
 
 		if(down)
@@ -772,7 +772,7 @@ static void drawRGBSliders(Sprite* sprite, s32 x, s32 y)
 {
 	enum{Gap = 6, Count = sizeof(tic_rgb)};
 
-	u8* data = &sprite->tic->cart.bank.palette.data[sprite->color * Count];
+	u8* data = &getBankPalette()->data[sprite->color * Count];
 
 	for(s32 i = 0; i < Count; i++)
 		drawRGBSlider(sprite, x, y + Gap*i, &data[i]);
@@ -784,7 +784,7 @@ static void drawRGBSlidersOvr(Sprite* sprite, s32 x, s32 y)
 {
 	enum{Gap = 6, Count = sizeof(tic_rgb), Size = CANVAS_SIZE, Max = 255};
 
-	u8* data = &sprite->tic->cart.bank.palette.data[sprite->color * Count];
+	u8* data = &getBankPalette()->data[sprite->color * Count];
 
 	for(s32 i = 0; i < Count; i++)
 	{
@@ -959,7 +959,7 @@ static void drawSheetOvr(Sprite* sprite, s32 x, s32 y)
 
 	for(s32 j = 0, index = (sprite->index - sprite->index % TIC_BANK_SPRITES); j < rect.h; j += TIC_SPRITESIZE)
 		for(s32 i = 0; i < rect.w; i += TIC_SPRITESIZE, index++)
-			sprite->tic->api.sprite(sprite->tic, &sprite->tic->cart.bank.tiles, index, x + i, y + j, NULL, 0);
+			sprite->tic->api.sprite(sprite->tic, getBankTiles(), index, x + i, y + j, NULL, 0);
 	{
 		s32 bx = getIndexPosX(sprite) + x - 1;
 		s32 by = getIndexPosY(sprite) + y - 1;
