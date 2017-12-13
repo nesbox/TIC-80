@@ -141,7 +141,6 @@ bool getGesturePos(SDL_Point* pos);
 const u8* getKeyboard();
 
 void drawToolbar(tic_mem* tic, u8 color, bool bg);
-void drawExtrabar(tic_mem* tic);
 void drawBitIcon(s32 x, s32 y, const u8* ptr, u8 color);
 
 void studioRomLoaded();

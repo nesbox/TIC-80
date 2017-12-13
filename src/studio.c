@@ -146,6 +146,11 @@ static struct
 
 	struct
 	{
+		bool show;
+	} banks;
+
+	struct
+	{
 		s32 counter;
 		char message[STUDIO_TEXT_BUFFER_WIDTH];
 	} popup;
@@ -247,6 +252,11 @@ static struct
 	},
 
 	.gamepad =
+	{
+		.show = false,
+	},
+
+	.banks = 
 	{
 		.show = false,
 	},
@@ -426,7 +436,7 @@ static const EditorMode Modes[] =
 	TIC_MUSIC_MODE,
 };
 
-void drawExtrabar(tic_mem* tic)
+static void drawExtrabar(tic_mem* tic)
 {
 	enum {Size = 7};
 
@@ -519,6 +529,43 @@ const StudioConfig* getConfig()
 {
 	return &studio.config.data;
 }
+
+#if defined (TIC80_PRO)
+
+static void drawBankIcon(s32 x, s32 y)
+{
+	SDL_Rect rect = {x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
+
+	static const u8 Icon[] =
+	{
+		0b00000000,
+		0b01111100,
+		0b01000100,
+		0b01000100,
+		0b01111100,
+		0b01111000,
+		0b00000000,
+		0b00000000,
+	};
+
+	bool over = false;
+
+	if(checkMousePos(&rect))
+	{
+		setCursor(SDL_SYSTEM_CURSOR_HAND);
+
+		over = true;
+
+		showTooltip("SWITCH BANK");
+
+		if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			studio.banks.show = !studio.banks.show;
+	}
+
+	drawBitIcon(x, y, Icon, over ? tic_color_blue : tic_color_cyan);
+}
+
+#endif
 
 void drawToolbar(tic_mem* tic, u8 color, bool bg)
 {
@@ -628,15 +675,22 @@ void drawToolbar(tic_mem* tic, u8 color, bool bg)
 		"MUSIC EDITOR",
 	};
 
-	if(mode >= 0)
+#if defined (TIC80_PRO)
+	enum {TextOffset = (COUNT_OF(Modes) + 2) * Size - 2};
+	drawBankIcon(COUNT_OF(Modes) * Size + 2, 0);
+#else
+	enum {TextOffset = (COUNT_OF(Modes) + 1) * Size};
+#endif
+
+	if(mode >= 0 && !studio.banks.show)
 	{
 		if(strlen(studio.tooltip.text))
 		{
-			studio.tic->api.text(tic, studio.tooltip.text, (COUNT_OF(Modes) + 1) * Size, 1, (tic_color_black));
+			studio.tic->api.text(tic, studio.tooltip.text, TextOffset, 1, (tic_color_black));
 		}
 		else
 		{
-			studio.tic->api.text(tic, Names[mode], (COUNT_OF(Modes) + 1) * Size, 1, (tic_color_dark_gray));
+			studio.tic->api.text(tic, Names[mode], TextOffset, 1, (tic_color_dark_gray));
 		}
 	}
 }
