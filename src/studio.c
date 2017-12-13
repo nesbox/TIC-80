@@ -147,7 +147,8 @@ static struct
 	struct
 	{
 		bool show;
-	} banks;
+		s32 index;
+	} bank;
 
 	struct
 	{
@@ -256,9 +257,10 @@ static struct
 		.show = false,
 	},
 
-	.banks = 
+	.bank = 
 	{
 		.show = false,
+		.index = 0,
 	},
 
 	.popup =
@@ -534,6 +536,8 @@ const StudioConfig* getConfig()
 
 static void drawBankIcon(s32 x, s32 y)
 {
+	tic_mem* tic = studio.tic;
+
 	SDL_Rect rect = {x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
 
 	static const u8 Icon[] =
@@ -559,10 +563,41 @@ static void drawBankIcon(s32 x, s32 y)
 		showTooltip("SWITCH BANK");
 
 		if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
-			studio.banks.show = !studio.banks.show;
+			studio.bank.show = !studio.bank.show;
 	}
 
-	drawBitIcon(x, y, Icon, over ? tic_color_blue : tic_color_cyan);
+	if(studio.bank.show)
+	{
+		drawBitIcon(x, y, Icon, over ? tic_color_peach : tic_color_red);
+
+		enum{Size = TOOLBAR_SIZE};
+
+		for(s32 i = 0; i < TIC_BANKS; i++)
+		{
+			SDL_Rect rect = {x + 2 + (i+1)*Size, 0, Size, Size};
+
+			bool over = false;
+			if(checkMousePos(&rect))
+			{
+				setCursor(SDL_SYSTEM_CURSOR_HAND);
+				over = true;
+
+				if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+					studio.bank.index = i;
+			}
+
+			if(i == studio.bank.index)
+			{
+				tic->api.rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_red);
+			}
+
+			tic->api.draw_char(tic, '0' + i, rect.x+1, rect.y+1, i == studio.bank.index ? tic_color_white : over ? tic_color_red : tic_color_peach);
+		}
+	}
+	else
+	{
+		drawBitIcon(x, y, Icon, over ? tic_color_red : tic_color_peach);
+	}
 }
 
 #endif
@@ -682,7 +717,7 @@ void drawToolbar(tic_mem* tic, u8 color, bool bg)
 	enum {TextOffset = (COUNT_OF(Modes) + 1) * Size};
 #endif
 
-	if(mode >= 0 && !studio.banks.show)
+	if(mode >= 0 && !studio.bank.show)
 	{
 		if(strlen(studio.tooltip.text))
 		{
