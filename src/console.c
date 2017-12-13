@@ -63,6 +63,7 @@ static struct
 static const char DefaultLuaTicPath[] = TIC_LOCAL "default.tic";
 static const char DefaultMoonTicPath[] = TIC_LOCAL "default_moon.tic";
 static const char DefaultJSTicPath[] = TIC_LOCAL "default_js.tic";
+static const char DefaultBFTicPath[] = TIC_LOCAL "default_bf.tic";
 
 static const char* getName(const char* name, const char* ext)
 {
@@ -407,7 +408,10 @@ static void* getDemoCart(Console* console, tic_script_lang script, s32* size)
 			strcpy(path, DefaultMoonTicPath);
 			break;
 		case tic_script_js:
-		strcpy(path, DefaultJSTicPath);
+			strcpy(path, DefaultJSTicPath);
+			break;
+		case tic_script_bf:
+			strcpy(path, DefaultBFTicPath);
 			break;
 		}
 
@@ -432,6 +436,11 @@ static void* getDemoCart(Console* console, tic_script_lang script, s32* size)
 		#include "../bin/assets/moondemo.tic.dat"
 	};
 
+	static const u8 BfDemoRom[] =
+	{
+		#include "../bin/assets/bfdemo.tic.dat"
+	};
+
 	const u8* demo = NULL;
 	s32 romSize = 0;
 
@@ -448,6 +457,10 @@ static void* getDemoCart(Console* console, tic_script_lang script, s32* size)
 	case tic_script_js:
 		demo = JsDemoRom;
 		romSize = sizeof JsDemoRom;
+		break;
+	case tic_script_bf:
+		demo = BfDemoRom;
+		romSize = sizeof BfDemoRom;
 		break;
 	}
 
@@ -481,6 +494,8 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 		data = getDemoCart(console, tic_script_moon, &size);
 	else if(strcmp(param, DefaultJSTicPath) == 0)
 		data = getDemoCart(console, tic_script_js, &size);
+	else if(strcmp(param, DefaultBFTicPath) == 0)
+		data = getDemoCart(console, tic_script_bf, &size);
 
 	const char* name = getCartName(param);
 
@@ -956,6 +971,8 @@ static void onConsoleNewCommandConfirmed(Console* console, const char* param)
 			loadDemo(console, tic_script_moon);
 		else if(strcmp(param, "js") == 0 || strcmp(param, "javascript") == 0)
 			loadDemo(console, tic_script_js);
+		else if(strcmp(param, "bf") == 0 || strcmp(param, "brainfuck") == 0)
+			loadDemo(console, tic_script_bf);
 		else
 		{
 			printError(console, "\nunknown parameter: ");
@@ -1226,6 +1243,10 @@ static void onConsoleConfigCommand(Console* console, const char* param)
 	else if(strcmp(param, "default js") == 0)
 	{
 		onConsoleLoadDemoCommand(console, DefaultJSTicPath);
+	}
+	else if(strcmp(param, "default bf") == 0 || strcmp(param, "default brainfuck") == 0)
+	{
+		onConsoleLoadDemoCommand(console, DefaultBFTicPath);
 	}
 	else
 	{

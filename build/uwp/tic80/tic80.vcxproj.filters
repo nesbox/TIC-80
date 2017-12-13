@@ -12,6 +12,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\src\bfapi.c">
+      <Filter>src</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\src\jsapi.c">
       <Filter>src</Filter>
     </ClCompile>

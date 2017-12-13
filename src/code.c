@@ -402,6 +402,67 @@ static void highlightJsComments(Code* code, u8* color)
 	highlightCommentsBase(code, color, "/*", "*/", 2);
 }
 
+static void highlightBrainfuck(Code* code, u8* color)
+{
+	const char* text = code->data;
+	bool comment = false;
+	int macro_def_state = 0;
+	const char* macro_name = NULL;
+	bool macro_call = false;
+	bool macro_name_end = false;
+
+	static const char* const ApiKeywords[] = API_KEYWORDS;
+
+	while(*text)
+	{
+		if(*text == '#')
+			comment = true;
+		if(*text == '\n')
+			comment = false;
+		if(!comment)
+		{
+			macro_name_end = false;
+
+			if(*text == '/')
+			{
+				if(macro_def_state == 0)
+					macro_name = text + 1;
+				macro_name_end = macro_def_state == 1;
+				macro_def_state = (macro_def_state+1)%3;
+			}
+
+			if(*text == '\\' && macro_def_state != 1)
+			{
+				if(!macro_call)
+					macro_name = text + 1;
+				macro_name_end = macro_call;
+				macro_call = !macro_call;
+			}
+
+			if(macro_name && macro_name_end)
+			{
+				size_t namelen = text-macro_name;
+				for(int k=0;k<COUNT_OF(ApiKeywords);k++)
+					if(strncmp(ApiKeywords[k],macro_name,namelen) == 0 && namelen == strlen(ApiKeywords[k]))
+						memset(color-namelen,getConfig()->theme.code.api,namelen);
+			}
+	
+			*color = macro_def_state==1 && *text=='\\' ? getConfig()->theme.code.other :
+				strchr("/\\",*text) ? getConfig()->theme.code.keyword :
+				macro_call ? getConfig()->theme.code.var :
+				macro_def_state==1 ? getConfig()->theme.code.var :
+				*text=='?' ? getConfig()->theme.code.keyword :
+				strchr("[]<>+-.,",*text) ? getConfig()->theme.code.sign :
+				getConfig()->theme.code.comment;
+		}
+		else
+			*color = getConfig()->theme.code.comment;
+
+		text++;
+		color++;
+	}
+}
+
 static void parseSyntaxColor(Code* code)
 {
 	memset(code->colorBuffer, getConfig()->theme.code.var, sizeof(code->colorBuffer));
@@ -436,6 +497,9 @@ static void parseSyntaxColor(Code* code)
 		highlightSigns(code, color);
 		highlightJsComments(code, color);
 		highlightStrings(code, code->data, color, '"');
+		break;
+	case tic_script_bf:
+		highlightBrainfuck(code, color);
 		break;
 	}
 }
@@ -1107,14 +1171,87 @@ static void setLuaOutlineMode(Code* code)
 
 }
 
+static void setBrainfuckOutlineMode(Code* code)
+{
+	OutlineItem* out = code->outline.items;
+	OutlineItem* end = out + OUTLINE_SIZE;
+
+
+	char filter[STUDIO_TEXT_BUFFER_WIDTH];
+	strcpy(filter, code->popup.text);
+	SDL_strlwr(filter);
+
+	bool comment = false;
+	int macro_def_state = 0;
+	const char* macro_def_name = NULL;
+
+	for(char* text = code->data; *text; text++)
+	{
+		if(*text == '#')
+			comment = true;
+		if(*text == '\n')
+			comment = false;
+		if(comment)
+			continue;
+
+		if(!comment)
+		{
+			if(*text == '/')
+			{
+				if(macro_def_state==0)
+					macro_def_name = text+1;
+				if(macro_def_state==1)
+				{
+					size_t len = text - macro_def_name;
+
+					if(len < STUDIO_TEXT_BUFFER_WIDTH)
+					{
+						memcpy(out->name, macro_def_name, len);
+						out->name[len] = '\0';
+						if(*filter)
+						{
+							SDL_strlwr(out->name);
+							if(strstr(out->name, filter))
+							{
+								memcpy(out->name, macro_def_name, len);
+								out->pos = text-len;
+								out++;
+							}
+						}
+						else
+						{
+							out->pos = text-len;
+							out++;
+						}
+					}
+				}
+				macro_def_state = (macro_def_state+1)%3;
+			}
+
+		}
+
+		if(out >= end) break;
+	}
+}
+
 static void setOutlineMode(Code* code)
 {
 	code->outline.index = 0;
 	memset(code->outline.items, 0, OUTLINE_ITEMS_SIZE);
 
-	code->tic->api.get_script(code->tic) == tic_script_moon
-		? setMoonscriptOutlineMode(code)
-		: setLuaOutlineMode(code);
+	switch(code->tic->api.get_script(code->tic))
+	{
+	case tic_script_moon:
+		setMoonscriptOutlineMode(code);
+		break;
+	case tic_script_bf:
+		setBrainfuckOutlineMode(code);
+		break;
+	case tic_script_js:
+	case tic_script_lua:
+		setLuaOutlineMode(code);
+		break;
+	}
 
 	qsort(code->outline.items, OUTLINE_SIZE, sizeof(OutlineItem), funcCompare);
 	updateOutlineCode(code);
@@ -1143,10 +1280,10 @@ static void setCodeMode(Code* code, s32 mode)
 
 static void commentLine(Code* code)
 {
-	static char Comment[] = "-- ";
-	enum {Size = sizeof Comment-1};
-
-	strcpy(Comment, code->tic->api.get_script(code->tic) == tic_script_js ? "// " : "-- ");
+	const char* Comment = 	code->tic->api.get_script(code->tic) == tic_script_js ? "// " : 
+							code->tic->api.get_script(code->tic) == tic_script_bf ? "# " :
+							"-- ";
+	size_t Size = strlen(Comment);
 
 	char* line = getLine(code);
 
