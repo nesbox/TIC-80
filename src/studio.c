@@ -175,20 +175,20 @@ static struct
 
 	struct
 	{
-		Start start;
-		Console console;
-		Run run;
-		Code code;
-		Sprite sprite;
-		Map map;
-		World world;
-		Sfx sfx;
-		Music music;
-		Config config;
-		Keymap keymap;
-		Dialog dialog;
-		Menu menu;
-		Surf surf;
+		Start* start;
+		Console* console;
+		Run* run;
+		Code* code;
+		Sprite* sprite;
+		Map* map;
+		World* world;
+		Sfx* sfx;
+		Music* music;
+		Config* config;
+		Keymap* keymap;
+		Dialog* dialog;
+		Menu* menu;
+		Surf* surf;
 	};
 
 	FileSystem* fs;
@@ -529,7 +529,7 @@ static void drawExtrabar(tic_mem* tic)
 
 const StudioConfig* getConfig()
 {
-	return &studio.config.data;
+	return &studio.config->data;
 }
 
 #if defined (TIC80_PRO)
@@ -734,11 +734,11 @@ void setStudioEvent(StudioEvent event)
 {
 	switch(studio.mode)
 	{
-	case TIC_CODE_MODE: 	studio.code.event(&studio.code, event); break;
-	case TIC_SPRITE_MODE:	studio.sprite.event(&studio.sprite, event); break;
-	case TIC_MAP_MODE:		studio.map.event(&studio.map, event); break;
-	case TIC_SFX_MODE:		studio.sfx.event(&studio.sfx, event); break;
-	case TIC_MUSIC_MODE:	studio.music.event(&studio.music, event); break;
+	case TIC_CODE_MODE: 	studio.code->event(studio.code, event); break;
+	case TIC_SPRITE_MODE:	studio.sprite->event(studio.sprite, event); break;
+	case TIC_MAP_MODE:		studio.map->event(studio.map, event); break;
+	case TIC_SFX_MODE:		studio.sfx->event(studio.sfx, event); break;
+	case TIC_MUSIC_MODE:	studio.music->event(studio.music, event); break;
 	default: break;
 	}
 }
@@ -813,17 +813,17 @@ void drawBitIcon(s32 x, s32 y, const u8* ptr, u8 color)
 
 static void initWorldMap()
 {
-	initWorld(&studio.world, studio.tic, &studio.map);
+	initWorld(studio.world, studio.tic, studio.map);
 }
 
 static void initRunMode()
 {
-	initRun(&studio.run, &studio.console, studio.tic);
+	initRun(studio.run, studio.console, studio.tic);
 }
 
 static void initSurfMode()
 {
-	initSurf(&studio.surf, studio.tic, &studio.console);
+	initSurf(studio.surf, studio.tic, studio.console);
 }
 
 void gotoSurf()
@@ -839,7 +839,7 @@ void gotoCode()
 
 static void initMenuMode()
 {
-	initMenu(&studio.menu, studio.tic, studio.fs);
+	initMenu(studio.menu, studio.tic, studio.fs);
 }
 
 static void enableScreenTextInput()
@@ -875,7 +875,7 @@ void exitFromGameMenu()
 		setStudioMode(TIC_CONSOLE_MODE);
 	}
 
-	studio.console.showGameMenu = false;
+	studio.console->showGameMenu = false;
 }
 
 void setStudioMode(EditorMode mode)
@@ -910,7 +910,7 @@ void setStudioMode(EditorMode mode)
 		{
 		case TIC_WORLD_MODE: initWorldMap(); break;
 		case TIC_RUN_MODE: initRunMode(); break;
-		case TIC_SURF_MODE: studio.surf.resume(&studio.surf); break;
+		case TIC_SURF_MODE: studio.surf->resume(studio.surf); break;
 		default: break;
 		}
 
@@ -1015,7 +1015,7 @@ void showDialog(const char** text, s32 rows, DialogCallback callback, void* data
 {
 	if(studio.mode != TIC_DIALOG_MODE)
 	{
-		initDialog(&studio.dialog, studio.tic, text, rows, callback, data);
+		initDialog(studio.dialog, studio.tic, text, rows, callback, data);
 		studio.dialogMode = studio.mode;
 		setStudioMode(TIC_DIALOG_MODE);
 	}
@@ -1023,12 +1023,12 @@ void showDialog(const char** text, s32 rows, DialogCallback callback, void* data
 
 static void initModules()
 {
-	initCode(&studio.code, studio.tic);
-	initSprite(&studio.sprite, studio.tic);
-	initMap(&studio.map, studio.tic);
+	initCode(studio.code, studio.tic);
+	initSprite(studio.sprite, studio.tic);
+	initMap(studio.map, studio.tic);
 	initWorldMap();
-	initSfx(&studio.sfx, studio.tic);
-	initMusic(&studio.music, studio.tic);
+	initSfx(studio.sfx, studio.tic);
+	initMusic(studio.music, studio.tic);
 }
 
 static void updateHash()
@@ -1038,15 +1038,15 @@ static void updateHash()
 
 static void updateMDate()
 {
-	studio.cart.mdate = fsMDate(studio.console.fs, studio.console.romName);
+	studio.cart.mdate = fsMDate(studio.console->fs, studio.console->romName);
 }
 
 static void updateTitle()
 {
 	char name[FILENAME_MAX] = TIC_TITLE;
 
-	if(strlen(studio.console.romName))
-		sprintf(name, "%s [%s]", TIC_TITLE, studio.console.romName);
+	if(strlen(studio.console->romName))
+		sprintf(name, "%s [%s]", TIC_TITLE, studio.console->romName);
 
 	SDL_SetWindowTitle(studio.window, name);
 }
@@ -1280,7 +1280,7 @@ static s32 getJoystickHatMask(s32 hat)
 
 static bool isGameMenu()
 {
-	return (studio.mode == TIC_RUN_MODE && studio.console.showGameMenu) || studio.mode == TIC_MENU_MODE;
+	return (studio.mode == TIC_RUN_MODE && studio.console->showGameMenu) || studio.mode == TIC_MENU_MODE;
 }
 
 static void processJoysticksWithMouseInput()
@@ -1495,12 +1495,12 @@ void runProject()
 
 static void saveProject()
 {
-	CartSaveResult rom = studio.console.save(&studio.console);
+	CartSaveResult rom = studio.console->save(studio.console);
 
 	if(rom == CART_SAVE_OK)
 	{
 		char buffer[FILENAME_MAX];
-		sprintf(buffer, "%s SAVED :)", studio.console.romName);
+		sprintf(buffer, "%s SAVED :)", studio.console->romName);
 
 		for(s32 i = 0; i < (s32)strlen(buffer); i++)
 			buffer[i] = SDL_toupper(buffer[i]);
@@ -1621,7 +1621,7 @@ static bool processShortcuts(SDL_KeyboardEvent* event)
 	SDL_Keymod mod = event->keysym.mod;
 
 	if(studio.mode == TIC_START_MODE) return true;
-	if(studio.mode == TIC_CONSOLE_MODE && !studio.console.active) return true;
+	if(studio.mode == TIC_CONSOLE_MODE && !studio.console->active) return true;
 
 	if(isGameMenu())
 	{
@@ -1728,22 +1728,22 @@ static bool processShortcuts(SDL_KeyboardEvent* event)
 	case SDLK_ESCAPE:
 	case SDLK_AC_BACK:
 		{
-			if(studio.mode == TIC_CODE_MODE && studio.code.mode != TEXT_EDIT_MODE)
+			if(studio.mode == TIC_CODE_MODE && studio.code->mode != TEXT_EDIT_MODE)
 			{
-				studio.code.escape(&studio.code);
+				studio.code->escape(studio.code);
 				return true;
 			}
 
 			// TODO: move this to keymap
 			if(studio.mode == TIC_KEYMAP_MODE)
 			{
-				studio.keymap.escape(&studio.keymap);
+				studio.keymap->escape(studio.keymap);
 				return true;
 			}
 
 			if(studio.mode == TIC_DIALOG_MODE)
 			{
-				studio.dialog.escape(&studio.dialog);
+				studio.dialog->escape(studio.dialog);
 				return true;
 			}
 
@@ -1788,7 +1788,7 @@ static void processMouseInput()
 static void reloadConfirm(bool yes, void* data)
 {
 	if(yes)
-		studio.console.updateProject(&studio.console);
+		studio.console->updateProject(studio.console);
 }
 
 #endif
@@ -1839,7 +1839,7 @@ SDL_Event* pollEvent()
 
 				if(studio.mode != TIC_START_MODE)
 				{
-					Console* console = &studio.console;
+					Console* console = studio.console;
 
 					u64 mdate = fsMDate(console->fs, console->romName);
 
@@ -1864,9 +1864,9 @@ SDL_Event* pollEvent()
 
 #endif
 				{
-					studio.console.codeLiveReload.reload(&studio.console, studio.code.data);
-					if(studio.console.codeLiveReload.active && studio.code.update)
-						studio.code.update(&studio.code);
+					studio.console->codeLiveReload.reload(studio.console, studio.code->data);
+					if(studio.console->codeLiveReload.active && studio.code->update)
+						studio.code->update(studio.code);
 				}
 				break;
 			}
@@ -2027,12 +2027,12 @@ static void blitTexture()
 		overlap = tic->api.overlap;
 		break;
 	case TIC_SPRITE_MODE:
-		overlap = studio.sprite.overlap;
-		data = &studio.sprite;
+		overlap = studio.sprite->overlap;
+		data = studio.sprite;
 		break;
 	case TIC_MAP_MODE:
-		overlap = studio.map.overlap;
-		data = &studio.map;
+		overlap = studio.map->overlap;
+		data = studio.map;
 		break;
 	default:
 		break;
@@ -2221,19 +2221,19 @@ static void renderStudio()
 
 	switch(studio.mode)
 	{
-	case TIC_START_MODE:	studio.start.tick(&studio.start); break;
-	case TIC_CONSOLE_MODE: 	studio.console.tick(&studio.console); break;
-	case TIC_RUN_MODE: 		studio.run.tick(&studio.run); break;
-	case TIC_CODE_MODE: 	studio.code.tick(&studio.code); break;
-	case TIC_SPRITE_MODE:	studio.sprite.tick(&studio.sprite); break;
-	case TIC_MAP_MODE:		studio.map.tick(&studio.map); break;
-	case TIC_WORLD_MODE:	studio.world.tick(&studio.world); break;
-	case TIC_SFX_MODE:		studio.sfx.tick(&studio.sfx); break;
-	case TIC_MUSIC_MODE:	studio.music.tick(&studio.music); break;
-	case TIC_KEYMAP_MODE:	studio.keymap.tick(&studio.keymap); break;
-	case TIC_DIALOG_MODE:	studio.dialog.tick(&studio.dialog); break;
-	case TIC_MENU_MODE:		studio.menu.tick(&studio.menu); break;
-	case TIC_SURF_MODE:		studio.surf.tick(&studio.surf); break;
+	case TIC_START_MODE:	studio.start->tick(studio.start); break;
+	case TIC_CONSOLE_MODE: 	studio.console->tick(studio.console); break;
+	case TIC_RUN_MODE: 		studio.run->tick(studio.run); break;
+	case TIC_CODE_MODE: 	studio.code->tick(studio.code); break;
+	case TIC_SPRITE_MODE:	studio.sprite->tick(studio.sprite); break;
+	case TIC_MAP_MODE:		studio.map->tick(studio.map); break;
+	case TIC_WORLD_MODE:	studio.world->tick(studio.world); break;
+	case TIC_SFX_MODE:		studio.sfx->tick(studio.sfx); break;
+	case TIC_MUSIC_MODE:	studio.music->tick(studio.music); break;
+	case TIC_KEYMAP_MODE:	studio.keymap->tick(studio.keymap); break;
+	case TIC_DIALOG_MODE:	studio.dialog->tick(studio.dialog); break;
+	case TIC_MENU_MODE:		studio.menu->tick(studio.menu); break;
+	case TIC_SURF_MODE:		studio.surf->tick(studio.surf); break;
 	default: break;
 	}
 
@@ -2420,8 +2420,8 @@ static void updateSystemFont()
 
 void studioConfigChanged()
 {
-	if(studio.code.update)
-		studio.code.update(&studio.code);
+	if(studio.code->update)
+		studio.code->update(studio.code);
 
 	initTouchGamepad();
 	updateSystemFont();
@@ -2503,25 +2503,42 @@ static void onFSInitialized(FileSystem* fs)
 	studio.tic80local = (tic80_local*)tic80_create(studio.audioSpec.freq);
 	studio.tic = studio.tic80local->memory;
 
-	fsMakeDir(fs, TIC_LOCAL);
-	initConfig(&studio.config, studio.tic, studio.fs);
-	initKeymap(&studio.keymap, studio.tic, studio.fs);
+	{
+		studio.start = SDL_malloc(sizeof(Start));
+		studio.console = SDL_malloc(sizeof(Console));
+		studio.run = SDL_malloc(sizeof(Run));
+		studio.code = SDL_malloc(sizeof(Code));
+		studio.sprite = SDL_malloc(sizeof(Sprite));
+		studio.map = SDL_malloc(sizeof(Map));
+		studio.world = SDL_malloc(sizeof(World));
+		studio.sfx = SDL_malloc(sizeof(Sfx));
+		studio.music = SDL_malloc(sizeof(Music));
+		studio.config = SDL_malloc(sizeof(Config));
+		studio.keymap = SDL_malloc(sizeof(Keymap));
+		studio.dialog = SDL_malloc(sizeof(Dialog));
+		studio.menu = SDL_malloc(sizeof(Menu));
+		studio.surf = SDL_malloc(sizeof(Surf));
+	}
 
-	initStart(&studio.start, studio.tic);
-	initConsole(&studio.console, studio.tic, studio.fs, &studio.config, studio.argc, studio.argv);
+	fsMakeDir(fs, TIC_LOCAL);
+	initConfig(studio.config, studio.tic, studio.fs);
+	initKeymap(studio.keymap, studio.tic, studio.fs);
+
+	initStart(studio.start, studio.tic);
+	initConsole(studio.console, studio.tic, studio.fs, studio.config, studio.argc, studio.argv);
 	initSurfMode();
 
 	initRunMode();
 
 	initModules();
 
-	if(studio.console.skipStart)
+	if(studio.console->skipStart)
 	{
 		SDL_StartTextInput();
 		setStudioMode(TIC_CONSOLE_MODE);
 	}
 
-	if(studio.console.goFullscreen)
+	if(studio.console->goFullscreen)
 	{
 		goFullscreen();
 	}
