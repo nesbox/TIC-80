@@ -2955,7 +2955,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 
 #if defined(__EMSCRIPTEN__)
 
-	if(!embed.yes)
+	if(!console->embed.yes)
 	{
 		void* cartPtr = (void*)EM_ASM_INT_V
 		(
@@ -2972,13 +2972,13 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 
 		if(cartPtr)
 		{
-			embed.yes = true;
+			console->embed.yes = true;
 
 			s32 cartSize = EM_ASM_INT_V(return cartridge.length;);
 
 			u8* data = NULL;
 			s32 size = unzip(&data, cartPtr, cartSize);
-			loadCart(tic, &embed.file, data, size, true);
+			loadCart(tic, console->embed.file, data, size, true);
 
 			SDL_free(data);
 
