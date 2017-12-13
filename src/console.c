@@ -52,16 +52,12 @@ static struct
 {
 	char prefix[32];
 	bool yes;
-	bool fast;
-	bool cmd;
 	bool menu;
 	tic_cartridge file;
 } embed =
 {
 	.prefix = "C8B39163816B47209E721136D37B8031",
 	.yes = false,
-	.fast = false,
-	.cmd = false,
 };
 
 static const char DefaultLuaTicPath[] = TIC_LOCAL "default.tic";
@@ -364,13 +360,13 @@ static bool onConsoleLoadSectionCommand(Console* console, const char* param)
 
 						switch(i)
 						{
-						case 0: memcpy(&tic->cart.gfx.tiles, 	&cart->gfx.tiles, 	sizeof cart->gfx.tiles + sizeof cart->gfx.sprites); break;
-						case 1: memcpy(&tic->cart.gfx.map, 		&cart->gfx.map, 	sizeof cart->gfx.map); break;
+						case 0: memcpy(&tic->cart.bank.tiles, 	&cart->bank.tiles, 	sizeof(tic_tiles)*2); break;
+						case 1: memcpy(&tic->cart.bank.map, 	&cart->bank.map, 	sizeof(tic_map)); break;
 						case 2: memcpy(&tic->cart.cover, 		&cart->cover, 		sizeof cart->cover); break;
 						case 3: memcpy(&tic->cart.code, 		&cart->code, 		sizeof cart->code); break;
-						case 4: memcpy(&tic->cart.sound.sfx, 	&cart->sound.sfx, 	sizeof cart->sound.sfx); break;
-						case 5: memcpy(&tic->cart.sound.music, 	&cart->sound.music, sizeof cart->sound.music); break;
-						case 6: memcpy(&tic->cart.palette, 		&cart->palette, 	sizeof cart->palette); break;
+						case 4: memcpy(&tic->cart.bank.sfx, 	&cart->bank.sfx, 	sizeof(tic_sfx)); break;
+						case 5: memcpy(&tic->cart.bank.music, 	&cart->bank.music, 	sizeof(tic_music)); break;
+						case 6: memcpy(&tic->cart.palette, 		&cart->palette, 	sizeof(tic_palette)); break;
 						}
 
 						studioRomLoaded();
@@ -479,6 +475,12 @@ static void* getDemoCart(Console* console, tic_script_lang script, s32* size)
 	return data;
 }
 
+static void setCartName(Console* console, const char* name)
+{
+	if(name != console->romName)
+		strcpy(console->romName, name);
+}
+
 static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* param)
 {
 	void* data = NULL;
@@ -497,7 +499,7 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 
 	const char* name = getCartName(param);
 
-	strcpy(console->romName, name);
+	setCartName(console, name);
 
 	loadRom(console->tic, data, size, true);
 
@@ -512,7 +514,7 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 
 static void onCartLoaded(Console* console, const char* name)
 {
-	strcpy(console->romName, name);
+	setCartName(console, name);
 
 	studioRomLoaded();
 
@@ -524,11 +526,21 @@ static void onCartLoaded(Console* console, const char* name)
 
 }
 
+static bool hasExt(const char* name, const char* ext)
+{
+	return strcmp(name + strlen(name) - strlen(ext), ext) == 0;
+}
+
 #if defined(TIC80_PRO)
 
-static const char* getProjectName(const char* name)
+static bool hasProjectExt(const char* name)
 {
-	return getName(name, PROJECT_EXT);
+	return hasExt(name, PROJECT_LUA_EXT) || hasExt(name, PROJECT_MOON_EXT) || hasExt(name, PROJECT_JS_EXT);
+}
+
+static const char* projectComment(const char* name)
+{
+	return hasExt(name, PROJECT_JS_EXT) ? "//" : "--";
 }
 
 static void buf2str(const void* data, s32 size, char* ptr, bool flip)
@@ -557,23 +569,23 @@ static bool bufferEmpty(const u8* data, s32 size)
 	return true;
 }
 
-static char* saveTextSection(char* ptr, const char* tag, const char* data)
+static char* saveTextSection(char* ptr, const char* data)
 {
 	if(strlen(data) == 0)
 		return ptr;
 
-	sprintf(ptr, "-- <%s>\n%s\n-- </%s>\n", tag, data, tag);
+	sprintf(ptr, "%s\n", data);
 	ptr += strlen(ptr);
 
 	return ptr;
 }
 
-static char* saveBinaryBuffer(char* ptr, const void* data, s32 size, s32 row, bool flip)
+static char* saveBinaryBuffer(char* ptr, const char* comment, const void* data, s32 size, s32 row, bool flip)
 {
 	if(bufferEmpty(data, size)) 
 		return ptr;
 
-	sprintf(ptr, "-- %03i:", row);
+	sprintf(ptr, "%s %03i:", comment, row);
 	ptr += strlen(ptr);
 
 	buf2str(data, size, ptr, flip);
@@ -585,18 +597,18 @@ static char* saveBinaryBuffer(char* ptr, const void* data, s32 size, s32 row, bo
 	return ptr;
 }
 
-static char* saveBinarySection(char* ptr, const char* tag, s32 count, const void* data, s32 size, bool flip)
+static char* saveBinarySection(char* ptr, const char* comment, const char* tag, s32 count, const void* data, s32 size, bool flip)
 {
 	if(bufferEmpty(data, size * count)) 
 		return ptr;
 
-	sprintf(ptr, "\n-- <%s>\n", tag);
+	sprintf(ptr, "%s <%s>\n", comment, tag);
 	ptr += strlen(ptr);
 
 	for(s32 i = 0; i < count; i++, data = (u8*)data + size)
-		ptr = saveBinaryBuffer(ptr, data, size, i, flip);
+		ptr = saveBinaryBuffer(ptr, comment, data, size, i, flip);
 
-	sprintf(ptr, "-- </%s>\n", tag);
+	sprintf(ptr, "%s </%s>\n\n", comment, tag);
 	ptr += strlen(ptr);
 
 	return ptr;
@@ -605,66 +617,68 @@ static char* saveBinarySection(char* ptr, const char* tag, s32 count, const void
 typedef struct {char* tag; s32 count; s32 offset; s32 size; bool flip;} BinarySection;
 static const BinarySection BinarySections[] = 
 {
-	{"PALETTE", 	1, offsetof(tic_cartridge, palette.data), sizeof(tic_palette), false},
-	{"TILES", 		TIC_BANK_SPRITES, offsetof(tic_cartridge, gfx.tiles), sizeof(tic_tile), true},
-	{"SPRITES", 	TIC_BANK_SPRITES, offsetof(tic_cartridge, gfx.sprites), sizeof(tic_tile), true},
-	{"MAP", 		TIC_MAP_HEIGHT, offsetof(tic_cartridge, gfx.map), TIC_MAP_WIDTH, true},
-	{"WAVES", 		ENVELOPES_COUNT, offsetof(tic_cartridge,sound.sfx.waveform.envelopes), sizeof(tic_waveform), true},
-	{"SFX", 		SFX_COUNT, offsetof(tic_cartridge, sound.sfx.data), sizeof(tic_sound_effect), true},
-	{"PATTERNS", 	MUSIC_PATTERNS, offsetof(tic_cartridge, sound.music.patterns), sizeof(tic_track_pattern), true},
-	{"TRACKS", 		MUSIC_TRACKS, offsetof(tic_cartridge, sound.music.tracks), sizeof(tic_track), true},
+	{"PALETTE", 	1, 					offsetof(tic_cartridge, palette.data), 			sizeof(tic_palette), false},
+	{"TILES", 		TIC_BANK_SPRITES, 	offsetof(tic_cartridge, bank.tiles), 			sizeof(tic_tile), true},
+	{"SPRITES", 	TIC_BANK_SPRITES, 	offsetof(tic_cartridge, bank.sprites), 			sizeof(tic_tile), true},
+	{"MAP", 		TIC_MAP_HEIGHT, 	offsetof(tic_cartridge, bank.map), 				TIC_MAP_WIDTH, true},
+	{"WAVES", 		ENVELOPES_COUNT, 	offsetof(tic_cartridge, bank.sfx.waveform.envelopes), sizeof(tic_waveform), true},
+	{"SFX", 		SFX_COUNT, 			offsetof(tic_cartridge, bank.sfx.data), 		sizeof(tic_sound_effect), true},
+	{"PATTERNS", 	MUSIC_PATTERNS, 	offsetof(tic_cartridge, bank.music.patterns), 	sizeof(tic_track_pattern), true},
+	{"TRACKS", 		MUSIC_TRACKS, 		offsetof(tic_cartridge, bank.music.tracks), 	sizeof(tic_track), true},
 };
 
-static s32 saveProject(Console* console, void* buffer)
+static s32 saveProject(Console* console, void* buffer, const char* comment)
 {
 	tic_mem* tic = console->tic;
 
 	char* stream = buffer;
-	char* ptr = saveTextSection(stream, "CODE", tic->cart.code.data);
+	char* ptr = saveTextSection(stream, tic->cart.code.data);
 
 	for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
 	{
 		const BinarySection* section = &BinarySections[i];
-		ptr = saveBinarySection(ptr, section->tag, section->count, (u8*)&tic->cart + section->offset, section->size, section->flip);
+		ptr = saveBinarySection(ptr, comment, section->tag, section->count, (u8*)&tic->cart + section->offset, section->size, section->flip);
 	}
 
-	saveBinarySection(ptr, "COVER", 1, &tic->cart.cover, tic->cart.cover.size + sizeof(s32), true);
+	saveBinarySection(ptr, comment, "COVER", 1, &tic->cart.cover, tic->cart.cover.size + sizeof(s32), true);
 
 	return strlen(stream);
 }
 
-static bool loadTextSection(const char* project, const char* tag, void* dst, s32 size)
+static bool loadTextSection(const char* project, const char* comment, void* dst, s32 size)
 {
-	char tagbuf[64];
-	sprintf(tagbuf, "-- <%s>\n", tag);
-
-	const char* start = SDL_strstr(project, tagbuf);
 	bool done = false;
 
-	if(start)
+	const char* start = project;
+	const char* end = project + strlen(project);
+
 	{
-		start += strlen(tagbuf);
+		char tagbuf[64];
 
-		if(start < project + strlen(project))
+		for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
 		{
-			sprintf(tagbuf, "\n-- </%s>", tag);
-			const char* end = SDL_strstr(start, tagbuf);
+			sprintf(tagbuf, "\n%s <%s>\n", comment, BinarySections[i].tag);
 
-			if(end > start)
-			{
-				SDL_memcpy(dst, start, SDL_min(size, end - start));
-				done = true;
-			}
-		}
+			const char* ptr = SDL_strstr(project, tagbuf);
+
+			if(ptr && ptr < end)
+				end = ptr;
+		}		
+	}
+
+	if(end > start)
+	{
+		SDL_memcpy(dst, start, SDL_min(size, end - start));
+		done = true;
 	}
 
 	return done;
 }
 
-static bool loadBinarySection(const char* project, const char* tag, s32 count, void* dst, s32 size, bool flip)
+static bool loadBinarySection(const char* project, const char* comment, const char* tag, s32 count, void* dst, s32 size, bool flip)
 {
 	char tagbuf[64];
-	sprintf(tagbuf, "-- <%s>\n", tag);
+	sprintf(tagbuf, "%s <%s>\n", comment, tag);
 
 	const char* start = SDL_strstr(project, tagbuf);
 	bool done = false;
@@ -673,7 +687,7 @@ static bool loadBinarySection(const char* project, const char* tag, s32 count, v
 	{
 		start += strlen(tagbuf);
 
-		sprintf(tagbuf, "\n-- </%s>", tag);
+		sprintf(tagbuf, "\n%s </%s>", comment, tag);
 		const char* end = SDL_strstr(start, tagbuf);
 
 		if(end > start)
@@ -695,6 +709,7 @@ static bool loadBinarySection(const char* project, const char* tag, s32 count, v
 						str2buf(ptr, size*2, (u8*)dst + size*index, flip);
 						ptr += size*2 + 1;
 					}
+					else break;
 				}				
 			}
 			else
@@ -710,7 +725,7 @@ static bool loadBinarySection(const char* project, const char* tag, s32 count, v
 	return done;
 }
 
-static bool loadProject(Console* console, const char* data, s32 size, tic_cartridge* dst)
+static bool loadProject(Console* console, const char* name, const char* data, s32 size, tic_cartridge* dst)
 {
 	tic_mem* tic = console->tic;
 
@@ -736,17 +751,19 @@ static bool loadProject(Console* console, const char* data, s32 size, tic_cartri
 			SDL_memset(cart, 0, sizeof(tic_cartridge));
 			SDL_memcpy(&cart->palette, &tic->config.palette.data, sizeof(tic_palette));
 
-			if(loadTextSection(project, "CODE", cart->code.data, sizeof(tic_code)))
+			const char* comment = projectComment(name);
+
+			if(loadTextSection(project, comment, cart->code.data, sizeof(tic_code)))
 				done = true;
 
 			for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
 			{
 				const BinarySection* section = &BinarySections[i];
-				if(loadBinarySection(project, section->tag, section->count, (u8*)cart + section->offset, section->size, section->flip))
+				if(loadBinarySection(project, comment, section->tag, section->count, (u8*)cart + section->offset, section->size, section->flip))
 					done = true;
 			}
 
-			if(loadBinarySection(project, "COVER", 1, &cart->cover, -1, true))
+			if(loadBinarySection(project, comment, "COVER", 1, &cart->cover, -1, true))
 				done = true;
 			
 			SDL_memcpy(dst, cart, sizeof(tic_cartridge));
@@ -764,7 +781,7 @@ static void updateProject(Console* console)
 {
 	tic_mem* tic = console->tic;
 
-	if(strlen(console->romName))
+	if(strlen(console->romName) && hasProjectExt(console->romName))
 	{
 		s32 size = 0;
 		void* data = fsLoadFile(console->fs, console->romName, &size);
@@ -775,7 +792,7 @@ static void updateProject(Console* console)
 
 			if(cart)
 			{
-				if(loadProject(console, data, size, cart))
+				if(loadProject(console, console->romName, data, size, cart))
 				{
 					SDL_memcpy(&tic->cart, cart, sizeof(tic_cartridge));
 
@@ -788,11 +805,6 @@ static void updateProject(Console* console)
 
 		}		
 	}
-}
-
-static bool hasExt(const char* name, const char* ext)
-{
-	return strcmp(name + strlen(name) - strlen(ext), ext) == 0;
 }
 
 #endif
@@ -823,13 +835,19 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 		else
 		{
 #if defined(TIC80_PRO)
-			const char* name = getProjectName(param);
+			const char* name = getName(param, PROJECT_LUA_EXT);
+
+			if(!fsExistsFile(console->fs, name))
+				name = getName(param, PROJECT_MOON_EXT);
+
+			if(!fsExistsFile(console->fs, name))
+				name = getName(param, PROJECT_JS_EXT);
 
 			void* data = fsLoadFile(console->fs, name, &size);
 
 			if(data)
 			{
-				loadProject(console, data, size, &console->tic->cart);
+				loadProject(console, name, data, size, &console->tic->cart);
 				onCartLoaded(console, name);
 
 				SDL_free(data);
@@ -1333,7 +1351,7 @@ static void onImportSprites(const char* name, const void* buffer, size_t size, v
 						tic_rgb rgb = {c->r, c->g, c->b};
 						u8 color = tic_tool_find_closest_color(console->tic->cart.palette.colors, &rgb);
 
-						setSpritePixel(console->tic->cart.gfx.tiles, x, y, color);
+						setSpritePixel(console->tic->cart.bank.tiles.data, x, y, color);
 					}
 
 				gif_close(image);
@@ -1351,15 +1369,21 @@ static void onImportSprites(const char* name, const void* buffer, size_t size, v
 	commandDone(console);
 }
 
+static void injectMap(Console* console, const void* buffer, s32 size)
+{
+	enum {Size = sizeof(tic_map)};
+
+	SDL_memset(&console->tic->cart.bank.map, 0, Size);
+	SDL_memcpy(&console->tic->cart.bank.map, buffer, SDL_min(size, Size));
+}
+
 static void onImportMap(const char* name, const void* buffer, size_t size, void* data)
 {
 	Console* console = (Console*)data;
 
-	enum {Size = sizeof(tic_map)};
-
-	if(name && buffer && size == Size)
+	if(name && buffer && size <= sizeof(tic_map))
 	{
-		memcpy(&console->tic->cart.gfx.map, buffer, size);
+		injectMap(console, buffer, size);
 
 		printLine(console);
 		printBack(console, "map successfully imported");
@@ -1439,8 +1463,8 @@ static void exportSprites(Console* console)
 		Height = TIC_SPRITESHEET_SIZE*2,
 	};
 
-	s32 size = Width * Height * sizeof(gif_color);
-	u8* buffer = (u8*)SDL_malloc(size);
+	enum{ Size = Width * Height * sizeof(gif_color)};
+	u8* buffer = (u8*)SDL_malloc(Size);
 
 	if(buffer)
 	{
@@ -1450,8 +1474,9 @@ static void exportSprites(Console* console)
 		{
 			for (s32 y = 0; y < Height; y++)
 				for (s32 x = 0; x < Width; x++)
-					data[x + y * Width] = getSpritePixel(console->tic->cart.gfx.tiles, x, y);
+					data[x + y * Width] = getSpritePixel(console->tic->cart.bank.tiles.data, x, y);
 
+			s32 size = 0;
 			if((size = writeGifData(console->tic, buffer, data, Width, Height)))
 			{
 				// buffer will be freed inside fsGetFileData
@@ -1489,7 +1514,7 @@ static void exportMap(Console* console)
 
 	if(buffer)
 	{
-		SDL_memcpy(buffer, console->tic->cart.gfx.map.data, Size);
+		SDL_memcpy(buffer, console->tic->cart.bank.map.data, Size);
 		fsGetFileData(onMapExported, "world.map", buffer, Size, DEFAULT_CHMOD, console);
 	}
 }
@@ -1884,12 +1909,12 @@ static CartSaveResult saveCartName(Console* console, const char* name)
 				s32 size = 0;
 
 #if defined(TIC80_PRO)
-				if(hasExt(name, PROJECT_EXT))
+				if(hasProjectExt(name))
 				{
-					size = saveProject(console, buffer);
+					size = saveProject(console, buffer, projectComment(name));
 				}
 				else
-#endif					
+#endif
 				{
 					name = getCartName(name);
 					size = tic->api.save(&tic->cart, buffer);
@@ -1897,7 +1922,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
 
 				if(size && fsSaveFile(console->fs, name, buffer, size, true))
 				{
-					strcpy(console->romName, name);
+					setCartName(console, name);
 					success = true;
 					studioRomSaved();
 				}
@@ -2127,19 +2152,20 @@ static void onConsoleRamCommand(Console* console, const char* param)
 		{offsetof(tic_ram, vram.screen), 				"SCREEN"},
 		{offsetof(tic_ram, vram.palette), 				"PALETTE"},
 		{offsetof(tic_ram, vram.mapping), 				"PALETTE MAP"},
-		{offsetof(tic_ram, vram.vars.colors), 			"BORDER/BG COLOR"},
+		{offsetof(tic_ram, vram.vars.colors), 			"BORDER"},
 		{offsetof(tic_ram, vram.vars.offset), 			"SCREEN OFFSET"},
 		{offsetof(tic_ram, vram.vars.mask), 			"GAMEPAD MASK"},
 		{offsetof(tic_ram, vram.input.gamepad), 		"GAMEPAD"},
 		{offsetof(tic_ram, vram.input.reserved), 		"..."},
-		{offsetof(tic_ram, gfx.tiles), 					"SPRITES"},
-		{offsetof(tic_ram, gfx.map), 					"MAP"},
+		{offsetof(tic_ram, tiles), 						"TILES"},
+		{offsetof(tic_ram, sprites), 					"SPRITES"},
+		{offsetof(tic_ram, map), 						"MAP"},
 		{offsetof(tic_ram, persistent), 				"PERSISTENT MEMORY"},
 		{offsetof(tic_ram, registers), 					"SOUND REGISTERS"},
-		{offsetof(tic_ram, sound.sfx.waveform), 		"WAVEFORMS"},
-		{offsetof(tic_ram, sound.sfx.data), 			"SFX"},
-		{offsetof(tic_ram, sound.music.patterns.data), 	"MUSIC PATTERNS"},
-		{offsetof(tic_ram, sound.music.tracks.data), 	"MUSIC TRACKS"},
+		{offsetof(tic_ram, sfx.waveform), 				"WAVEFORMS"},
+		{offsetof(tic_ram, sfx.data), 					"SFX"},
+		{offsetof(tic_ram, music.patterns.data), 		"MUSIC PATTERNS"},
+		{offsetof(tic_ram, music.tracks.data), 			"MUSIC TRACKS"},
 		{offsetof(tic_ram, music_pos), 					"MUSIC POS"},
 		{TIC_RAM_SIZE, 									"..."},
 	};
@@ -2168,7 +2194,7 @@ static const struct
 {
 	{"help", 	NULL, "show this info", 			onConsoleHelpCommand},
 	{"ram", 	NULL, "show memory info", 			onConsoleRamCommand},
-	{"exit", 	NULL, "exit the application", 		onConsoleExitCommand},
+	{"exit", 	"quit", "exit the application", 	onConsoleExitCommand},
 	{"new", 	NULL, "create new cart",			onConsoleNewCommand},
 	{"load", 	NULL, "load cart", 					onConsoleLoadCommand},
 	{"save", 	NULL, "save cart",	 				onConsoleSaveCommand},
@@ -2254,6 +2280,13 @@ static void onConsoleHelpCommand(Console* console, const char* param)
 	for(s32 i = 0; i < COUNT_OF(AvailableConsoleCommands); i++)
 	{
 		size_t len = strlen(AvailableConsoleCommands[i].command);
+
+		{
+			const char* alt = AvailableConsoleCommands[i].alt;
+			if(alt)
+				len += strlen(alt) + 1;			
+		}
+
 		if(len > maxName) maxName = len;
 	}
 
@@ -2585,15 +2618,15 @@ static void tick(Console* console)
 
 	if(embed.yes)
 	{
-		if(console->tickCounter >= (u32)(embed.fast ? 1 : TIC_FRAMERATE))
+		if(console->tickCounter >= (u32)(console->skipStart ? 1 : TIC_FRAMERATE))
 		{
-			if(!embed.fast && !embed.cmd)
+			if(!console->skipStart)
 				console->showGameMenu = true;
 
 			memcpy(&console->tic->cart, &embed.file, sizeof(tic_cartridge));
 			setStudioMode(TIC_RUN_MODE);
 			embed.yes = false;
-			embed.fast = false;
+			console->skipStart = false;
 			studioRomLoaded();
 
 			console->tic->api.reset(console->tic);
@@ -2624,31 +2657,39 @@ static void tick(Console* console)
 	}
 }
 
-static void cmdLoadCart(Console* console, const char* name)
+static bool cmdLoadCart(Console* console, const char* name)
 {
+	bool done = false;
+
 	s32 size = 0;
 	void* data = fsReadFile(name, &size);
 
 	if(data)
 	{
 #if defined(TIC80_PRO)
-		if(hasExt(name, PROJECT_EXT))
+		if(hasProjectExt(name))
 		{
-			loadProject(console, data, size, &embed.file);
+			loadProject(console, name, data, size, &embed.file);
+			setCartName(console, fsFilename(name));
+			embed.yes = true;
+			console->skipStart = true;
+			done = true;
 		}
 		else
 #endif
+
+		if(hasExt(name, CART_EXT))
 		{
-			loadCart(console->tic, &embed.file, data, size, true);
+			loadCart(console->tic, &embed.file, data, size, true);			
+			setCartName(console, fsFilename(name));
+			embed.yes = true;
+			done = true;
 		}
-
-		strcpy(console->romName, fsFilename(name));
-
-		embed.yes = true;
-		embed.cmd = true;
-
+		
 		SDL_free(data);
 	}
+
+	return done;
 }
 
 static bool loadFileIntoBuffer(Console* console, char* buffer, const char* fileName)
@@ -2686,8 +2727,10 @@ static void tryReloadCode(Console* console, char* codeBuffer)
 	}
 }
 
-static void cmdInjectCode(Console* console, const char* param, const char* name)
+static bool cmdInjectCode(Console* console, const char* param, const char* name)
 {
+	bool done = false;
+
 	bool watch = strcmp(param, "-code-watch") == 0;
 	if(watch || strcmp(param, "-code") == 0)
 	{
@@ -2696,7 +2739,8 @@ static void cmdInjectCode(Console* console, const char* param, const char* name)
 		if(loaded)
 		{
 			embed.yes = true;
-			embed.fast = true;
+			console->skipStart = true;
+			done = true;
 
 			if(watch)
 			{
@@ -2705,10 +2749,14 @@ static void cmdInjectCode(Console* console, const char* param, const char* name)
 			}
 		}
 	}
+
+	return done;
 }
 
-static void cmdInjectSprites(Console* console, const char* param, const char* name)
+static bool cmdInjectSprites(Console* console, const char* param, const char* name)
 {
+	bool done = false;
+
 	if(strcmp(param, "-sprites") == 0)
 	{
 		s32 size = 0;
@@ -2737,7 +2785,7 @@ static void cmdInjectSprites(Console* console, const char* param, const char* na
 						tic_rgb rgb = {c->r, c->g, c->b};
 						u8 color = tic_tool_find_closest_color(embed.file.palette.colors, &rgb);
 
-						setSpritePixel(embed.file.gfx.tiles, x, y, color);
+						setSpritePixel(embed.file.bank.tiles.data, x, y, color);
 					}
 
 				gif_close(image);
@@ -2746,14 +2794,19 @@ static void cmdInjectSprites(Console* console, const char* param, const char* na
 			SDL_free(sprites);
 
 			embed.yes = true;
-			embed.fast = true;
+			console->skipStart = true;
+			done = true;
 		}
 
 	}
+
+	return done;
 }
 
-static void cmdInjectMap(Console* console, const char* param, const char* name)
+static bool cmdInjectMap(Console* console, const char* param, const char* name)
 {
+	bool done = false;
+
 	if(strcmp(param, "-map") == 0)
 	{
 		s32 size = 0;
@@ -2761,17 +2814,20 @@ static void cmdInjectMap(Console* console, const char* param, const char* name)
 
 		if(map)
 		{
-			if(size == sizeof(tic_map))
+			if(size <= sizeof(tic_map))
 			{
-				SDL_memcpy(embed.file.gfx.map.data, map, size);
+				injectMap(console, map, size);
 
 				embed.yes = true;
-				embed.fast = true;
+				console->skipStart = true;
+				done = true;
 			}
 
 			SDL_free(map);
 		}
 	}
+
+	return done;
 }
 
 void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config, s32 argc, char **argv)
@@ -2818,6 +2874,8 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 		.fs = fs,
 		.showGameMenu = false,
 		.startSurf = false,
+		.skipStart = false,
+		.goFullscreen = false,
 	};
 
 	memset(console->buffer, 0, CONSOLE_BUFFER_SIZE);
@@ -2843,31 +2901,68 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 	{
 		memcpy(embed.file.palette.data, tic->config.palette.data, sizeof(tic_palette));
 
-		if (argc == 2) cmdLoadCart(console, argv[1]);
-		else if (argc == 3)
-		{
-			cmdInjectCode(console, argv[1], argv[2]);
-			cmdInjectSprites(console, argv[1], argv[2]);
-			cmdInjectMap(console, argv[1], argv[2]);
-		}
-		else if (argc > 3)
-		{
-			cmdLoadCart(console, argv[1]);
+		u32 argp = 1;
 
-			for (s32 i = 2; i < argc; i += 2)
+		// trying to load cart
+		for (s32 i = 1; i < argc; i++)
+		{
+			if(cmdLoadCart(console, argv[i]))
 			{
-				cmdInjectCode(console, argv[i], argv[i + 1]);
-				cmdInjectSprites(console, argv[i], argv[i + 1]);
-				cmdInjectMap(console, argv[i], argv[i + 1]);
+				argp |= 1 << i;
+				break;
+			}
+		}
+
+		// process '-key val' params
+		for (s32 i = 1; i < argc-1; i++)
+		{
+			s32 mask = 0b11 << i;
+
+			if(~argp & mask)
+			{
+				const char* first = argv[i];
+				const char* second = argv[i + 1];
+
+				if(cmdInjectCode(console, first, second)
+					|| cmdInjectSprites(console, first, second)
+					|| cmdInjectMap(console, first, second))
+					argp |= mask;				
+			}
+		}
+
+		// proccess single params
+		for (s32 i = 1; i < argc; i++)
+		{
+			if(~argp & 1 << i)
+			{
+				const char* arg = argv[i];
+
+				if(strcmp(arg, "-nosound") == 0)
+					config->data.noSound = true;
+
+				else if(strcmp(arg, "-surf") == 0)
+					console->startSurf = true;
+
+				else if(strcmp(arg, "-fullscreen") == 0)
+					console->goFullscreen = true;
+
+				else if(strcmp(arg, "-skip") == 0)
+					console->skipStart = true;
+
+				else continue;
+
+				argp |= 0b1 << i;
 			}
 		}
 
 		for (s32 i = 1; i < argc; i++)
 		{
-			if(strcmp(argv[i], "-nosound") == 0)
-				config->data.noSound = true;
-			else if(strcmp(argv[i], "-surf") == 0)
-				console->startSurf = true;
+			if(~argp & 1 << i)
+			{
+				char buf[256];
+				sprintf(buf, "parameter or file not processed: %s\n", argv[i]);
+				SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Warning", buf, NULL);
+			}
 		}
 	}
 

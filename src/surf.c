@@ -202,14 +202,14 @@ static void drawTopToolbar(Surf* surf, s32 x, s32 y)
 	enum{Gap = 10, TipX = 150, SelectWidth = 54};
 
 	u8 colorkey = 0;
-	tic->api.sprite_ex(tic, &tic->config.gfx, 12, TipX, y+1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
+	tic->api.sprite_ex(tic, &tic->config.bank.tiles, 12, TipX, y+1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
 	{
 		static const char Label[] = "SELECT";
 		tic->api.text(tic, Label, TipX + Gap, y+3, tic_color_black);
 		tic->api.text(tic, Label, TipX + Gap, y+2, tic_color_white);		
 	}
 
-	tic->api.sprite_ex(tic, &tic->config.gfx, 13, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
+	tic->api.sprite_ex(tic, &tic->config.bank.tiles, 13, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
 	{
 		static const char Label[] = "BACK";
 		tic->api.text(tic, Label, TipX + Gap + SelectWidth, y +3, tic_color_black);
@@ -244,7 +244,7 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
 
 		u8 colorkey = 0;
 
-		tic->api.sprite_ex(tic, &tic->config.gfx, 15, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
+		tic->api.sprite_ex(tic, &tic->config.bank.tiles, 15, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
 		{
 			static const char Label[] = "WEBSITE";
 			tic->api.text(tic, Label, TipX + Gap + SelectWidth, y +3, tic_color_black);
@@ -355,7 +355,7 @@ static void drawBG(Surf* surf)
 	for(s32 j = 0; j < Height + 1; j++)
 		for(s32 i = 0; i < Width + 1; i++)
 			if(counter++ % 2)
-				tic->api.sprite_ex(tic, &tic->config.gfx, 34, i*Size - offset, j*Size - offset, 2, 2, 0, 0, 1, tic_no_flip, tic_no_rotate);
+				tic->api.sprite_ex(tic, &tic->config.bank.tiles, 34, i*Size - offset, j*Size - offset, 2, 2, 0, 0, 1, tic_no_flip, tic_no_rotate);
 }
 
 static void replace(char* src, const char* what, const char* with)
@@ -388,12 +388,13 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 	AddMenuItem* data = (AddMenuItem*)ptr;
 
 	static const char CartExt[] = CART_EXT;
-	static const char ProjectExt[] = PROJECT_EXT;
 
 	if(dir 
 		|| hasExt(name, CartExt)
 #if defined(TIC80_PRO)		
-		|| hasExt(name, ProjectExt)
+		|| hasExt(name, PROJECT_LUA_EXT)
+		|| hasExt(name, PROJECT_MOON_EXT)
+		|| hasExt(name, PROJECT_JS_EXT)
 #endif
 		)
 	{
@@ -416,7 +417,6 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 				cutExt(item->label, CartExt);
 			else
 			{
-				cutExt(item->label, ProjectExt);
 				project = true;
 			}
 
@@ -535,8 +535,8 @@ static void loadCover(Surf* surf)
 
 			if(cart)
 			{
-				if(hasExt(item->name, PROJECT_EXT))
-					surf->console->loadProject(surf->console, data, size, cart);
+				if(hasExt(item->name, PROJECT_LUA_EXT))
+					surf->console->loadProject(surf->console, item->name, data, size, cart);
 				else
 					tic->api.load(cart, data, size, true);
 
@@ -655,7 +655,7 @@ static void onPlayCart(Surf* surf)
 			s32 size = 0;
 			void* data = fsLoadFile(surf->fs, item->name, &size);
 
-			surf->console->loadProject(surf->console, data, size, cart);
+			surf->console->loadProject(surf->console, item->name, data, size, cart);
 
 			SDL_memcpy(&surf->tic->cart, cart, sizeof(tic_cartridge));
 

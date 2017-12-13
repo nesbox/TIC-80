@@ -623,7 +623,7 @@ static s32 bf_spr(bf_State* bf)
 
 	tic_mem* memory = (tic_mem*)getBfMachine(bf);
 
-	memory->api.sprite_ex(memory, &memory->ram.gfx, index, x, y, w, h, colors, count, scale, flip, rotate);
+	memory->api.sprite_ex(memory, &memory->ram.tiles, index, x, y, w, h, colors, count, scale, flip, rotate);
 
 	return 0;
 }
@@ -639,7 +639,7 @@ static s32 bf_mget(bf_State* bf)
 
 		tic_mem* memory = (tic_mem*)getBfMachine(bf);
 
-		u8 value = memory->api.map_get(memory, &memory->ram.gfx, x, y);
+		u8 value = memory->api.map_get(memory, &memory->ram.map, x, y);
 		bf_pushinteger(bf, value);
 		return 1;
 	}
@@ -660,7 +660,7 @@ static s32 bf_mset(bf_State* bf)
 
 		tic_mem* memory = (tic_mem*)getBfMachine(bf);
 
-		memory->api.map_set(memory, &memory->ram.gfx, x, y, val);
+		memory->api.map_set(memory, &memory->ram.map, x, y, val);
 	}
 	else bfL_error(bf, "invalid params, mset(x,y)\n");
 
@@ -716,7 +716,7 @@ static s32 bf_map(bf_State* bf)
 
 	tic_mem* memory = (tic_mem*)getBfMachine(bf);
 
-	memory->api.map((tic_mem*)getBfMachine(bf), &memory->ram.gfx, x, y, w, h, sx, sy, chromakey, scale);
+	memory->api.map((tic_mem*)getBfMachine(bf), &memory->ram.map, &memory->ram.tiles, x, y, w, h, sx, sy, chromakey, scale);
 
 	return 0;
 }
@@ -779,7 +779,7 @@ static s32 bf_sfx(bf_State* bf)
 		{
 			if (index >= 0)
 			{
-				tic_sound_effect* effect = memory->ram.sound.sfx.data + index;
+				tic_sound_effect* effect = memory->ram.sfx.data + index;
 
 				note = effect->note;
 				octave = effect->octave;
@@ -1102,7 +1102,7 @@ static s32 bf_mouse(bf_State *bf)
 static const char* const ApiKeywords[] = API_KEYWORDS;
 static const bf_function ApiFunc[] = 
 {
-	NULL, NULL, bf_print, bf_cls, bf_pix, bf_line, bf_rect, 
+	NULL, NULL, NULL, bf_print, bf_cls, bf_pix, bf_line, bf_rect, 
 	bf_rectb, bf_spr, bf_btn, bf_btnp, bf_sfx, bf_map, bf_mget, 
 	bf_mset, bf_peek, bf_poke, bf_peek4, bf_poke4, bf_memcpy, 
 	bf_memset, bf_trace, bf_pmem, bf_time, bf_exit, bf_font, bf_mouse, 
@@ -1403,8 +1403,8 @@ void registerBfFunction(bf_State* bf, const char* name, s32 idx)
 
 s32 initBfLibrary(bf_State* bf)
 {
-	const char* ScanlineFunc = ApiKeywords[1];
-	extractBfCode(bf,"",0,ScanlineFunc,strlen(ScanlineFunc));
+	extractBfCode(bf,"",0,ApiKeywords[1],strlen(ApiKeywords[1]));
+	extractBfCode(bf,"",0,ApiKeywords[2],strlen(ApiKeywords[2]));
 
 	for (s32 i = 0; i < COUNT_OF(ApiFunc); i++)
 		if (ApiFunc[i])
@@ -1451,6 +1451,8 @@ bool initBrainfuck(tic_machine* machine, const char* code)
 	if(!res)
 		res = flatBfCode(machine->bf, ApiKeywords[1], strlen(ApiKeywords[1]), 0);
 	if(!res)
+		res = flatBfCode(machine->bf, ApiKeywords[2], strlen(ApiKeywords[2]), 0);
+	if(!res)
 		res = runBfCode(machine->bf, BF_GLOBAL_MACRO_NAME, strlen(BF_GLOBAL_MACRO_NAME), 0);
 	
 	if(res)
@@ -1475,7 +1477,7 @@ void callBrainfuckTick(tic_machine* machine)
 	}
 }
 
-void callBrainfuckScanline(tic_mem* memory, s32 row)
+void callBrainfuckScanline(tic_mem* memory, s32 row, void* data)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	if(machine->bf)
@@ -1485,6 +1487,21 @@ void callBrainfuckScanline(tic_mem* memory, s32 row)
 		machine->bf->data.index = 0;
 		machine->bf->data.items[0] = row;
 		s32 res = runBfCode(machine->bf, ScanlineFunc, strlen(ScanlineFunc), 0);
+		if(res)
+			machine->data->error(machine->data->data, BfCodeErr[res>BfCodeMax?BfCodeMax:res]);
+	}
+}
+
+void callBrainfuckOverlap(tic_mem* memory, void* data)
+{
+	tic_machine* machine = (tic_machine*)memory;
+	if(machine->bf)
+	{
+		const char* OvrFunc = ApiKeywords[2];
+
+		machine->bf->data.index = 0;
+		machine->bf->data.items[0] = 0;
+		s32 res = runBfCode(machine->bf, OvrFunc, strlen(OvrFunc), 0);
 		if(res)
 			machine->data->error(machine->data->data, BfCodeErr[res>BfCodeMax?BfCodeMax:res]);
 	}

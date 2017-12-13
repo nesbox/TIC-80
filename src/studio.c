@@ -41,7 +41,6 @@
 #include "fs.h"
 
 #include <zlib.h>
-#include <time.h>
 #include "ext/net/SDL_net.h"
 #include "ext/gif.h"
 #include "ext/md5.h"
@@ -57,6 +56,8 @@
 
 #define OFFSET_LEFT ((TIC80_FULLWIDTH-TIC80_WIDTH)/2)
 #define OFFSET_TOP ((TIC80_FULLHEIGHT-TIC80_HEIGHT)/2)
+
+#define POPUP_DUR (TIC_FRAMERATE*2)
 
 typedef struct
 {
@@ -277,7 +278,7 @@ static struct
 
 void playSystemSfx(s32 id)
 {
-	const tic_sound_effect* effect = &studio.tic->config.sound.sfx.data[id];
+	const tic_sound_effect* effect = &studio.tic->config.bank.sfx.data[id];
 	studio.tic->api.sfx_ex(studio.tic, id, effect->note, effect->octave, -1, 0, MAX_VOLUME, 0);
 }
 
@@ -372,7 +373,19 @@ void str2buf(const char* str, s32 size, void* buf, bool flip)
 	}
 }
 
-bool fromClipboard(void* data, s32 size, bool flip)
+static void removeWhiteSpaces(char* str)
+{
+	s32 i = 0;
+	s32 len = strlen(str);
+
+	for (s32 j = 0; j < len; j++)
+		if(!SDL_isspace(str[j]))
+			str[i++] = str[j];
+
+	str[i] = '\0';
+}
+
+bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces)
 {
 	if(data)
 	{
@@ -382,6 +395,9 @@ bool fromClipboard(void* data, s32 size, bool flip)
 
 			if(clipboard)
 			{
+				if (remove_white_spaces)
+					removeWhiteSpaces(clipboard);
+							
 				bool valid = strlen(clipboard) == size * 2;
 
 				if(valid) str2buf(clipboard, strlen(clipboard), data, flip);
@@ -671,7 +687,7 @@ const u8* getKeyboard()
 
 static void showPopupMessage(const char* text)
 {
-	studio.popup.counter = TIC_FRAMERATE * 2;
+	studio.popup.counter = POPUP_DUR;
 	strcpy(studio.popup.message, text);
 }
 
@@ -780,7 +796,7 @@ void setStudioMode(EditorMode mode)
 		EditorMode prev = studio.mode;
 
 		if(prev == TIC_RUN_MODE)
-		 	studio.tic->api.pause(studio.tic);
+			studio.tic->api.pause(studio.tic);
 
 		if(mode != TIC_RUN_MODE)
 			studio.tic->api.reset(studio.tic);
@@ -816,8 +832,8 @@ void setStudioMode(EditorMode mode)
 		else if ((prev == TIC_MENU_MODE || prev == TIC_SURF_MODE) && studio.mode != TIC_RUN_MODE)
 			enableScreenTextInput();
 
-        if(SDL_HasScreenKeyboardSupport() &&
-            (studio.mode == TIC_RUN_MODE || studio.mode == TIC_SURF_MODE || studio.mode == TIC_MENU_MODE))
+		if(SDL_HasScreenKeyboardSupport() &&
+			(studio.mode == TIC_RUN_MODE || studio.mode == TIC_SURF_MODE || studio.mode == TIC_MENU_MODE))
 			SDL_StopTextInput();
 	}
 }
@@ -1371,7 +1387,7 @@ static void processMouse()
 	}
 }
 
-static void onFullscreen()
+static void goFullscreen()
 {
 	studio.fullscreen = !studio.fullscreen;
 	SDL_SetWindowFullscreen(studio.window, studio.fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
@@ -1406,29 +1422,6 @@ static void saveProject()
 	else showPopupMessage("SAVE ERROR :(");
 }
 
-static u32* srcPaletteBlit(const u8* src)
-{
-	static u32 pal[TIC_PALETTE_SIZE] = {0};
-
-	memset(pal, 0xff, sizeof pal);
-
-	u8* dst = (u8*)pal;
-	const u8* end = src + sizeof(tic_palette);
-
-	enum{RGB = sizeof(tic_rgb)};
-
-	for(; src != end; dst++, src+=RGB)
-		for(s32 j = 0; j < RGB; j++)
-			*dst++ = *(src+(RGB-1)-j);
-
-	return pal;
-}
-
-static u32* paletteBlit()
-{
-	return srcPaletteBlit(studio.tic->ram.vram.palette.data);
-}
-
 static void screen2buffer(u32* buffer, const u32* pixels, SDL_Rect rect)
 {
 	pixels += rect.y * TIC80_FULLWIDTH;
@@ -1448,29 +1441,23 @@ static void setCoverImage()
 	if(studio.mode == TIC_RUN_MODE)
 	{
 		enum {Pitch = TIC80_FULLWIDTH*sizeof(u32)};
-		u32* pixels = SDL_malloc(Pitch * TIC80_FULLHEIGHT);
 
-		if(pixels)
+		tic->api.blit(tic, tic->api.scanline, tic->api.overlap, NULL);
+
+		u32* buffer = SDL_malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32));
+
+		if(buffer)
 		{
-			tic->api.blit(tic, pixels, tic->api.scanline);
+			SDL_Rect rect = {OFFSET_LEFT, OFFSET_TOP, TIC80_WIDTH, TIC80_HEIGHT};
 
-			u32* buffer = SDL_malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32));
+			screen2buffer(buffer, tic->screen, rect);
 
-			if(buffer)
-			{
-				SDL_Rect rect = {OFFSET_LEFT, OFFSET_TOP, TIC80_WIDTH, TIC80_HEIGHT};
+			gif_write_animation(studio.tic->cart.cover.data, &studio.tic->cart.cover.size,
+				TIC80_WIDTH, TIC80_HEIGHT, (const u8*)buffer, 1, TIC_FRAMERATE, 1);
 
-				screen2buffer(buffer, pixels, rect);
+			SDL_free(buffer);
 
-				gif_write_animation(studio.tic->cart.cover.data, &studio.tic->cart.cover.size,
-					TIC80_WIDTH, TIC80_HEIGHT, (const u8*)buffer, 1, TIC_FRAMERATE, 1);
-
-				SDL_free(buffer);
-
-				showPopupMessage("COVER IMAGE SAVED :)");
-			}
-
-			SDL_free(pixels);
+			showPopupMessage("COVER IMAGE SAVED :)");
 		}
 	}
 }
@@ -1540,6 +1527,8 @@ static void takeScreenshot()
 
 static bool processShortcuts(SDL_KeyboardEvent* event)
 {
+	if(event->repeat) return false;
+
 	SDL_Keymod mod = event->keysym.mod;
 
 	if(studio.mode == TIC_START_MODE) return true;
@@ -1555,12 +1544,12 @@ static bool processShortcuts(SDL_KeyboardEvent* event)
 			studio.gamepad.backProcessed = true;
 			return true;
 		case SDLK_F11:
-			onFullscreen();
+			goFullscreen();
 			return true;
 		case SDLK_RETURN:
 			if(mod & KMOD_RALT)
 			{
-				onFullscreen();
+				goFullscreen();
 				return true;
 			}
 			break;
@@ -1613,6 +1602,13 @@ static bool processShortcuts(SDL_KeyboardEvent* event)
 
 	switch(event->keysym.sym)
 	{
+	case SDLK_q:
+		if(mod & TIC_MOD_CTRL)
+		{
+			exitStudio();
+			return true;
+		}
+		break;
 	case SDLK_r:
 		if(mod & TIC_MOD_CTRL)
 		{
@@ -1627,11 +1623,11 @@ static bool processShortcuts(SDL_KeyboardEvent* event)
 			return true;
 		}
 		break;
-	case SDLK_F11: onFullscreen(); return true;
+	case SDLK_F11: goFullscreen(); return true;
 	case SDLK_RETURN:
 		if(mod & KMOD_RALT)
 		{
-			onFullscreen();
+			goFullscreen();
 			return true;
 		}
 		else if(mod & TIC_MOD_CTRL)
@@ -1758,7 +1754,7 @@ SDL_Event* pollEvent()
 
 					u64 mdate = fsMDate(console->fs, console->romName);
 
-					if(mdate > studio.cart.mdate)
+					if(studio.cart.mdate && mdate > studio.cart.mdate)
 					{
 						if(studioCartChanged())
 						{
@@ -1830,7 +1826,7 @@ static void transparentBlit(u32* out, s32 pitch)
 {
 	const u8* in = studio.tic->ram.vram.screen.data;
 	const u8* end = in + sizeof(studio.tic->ram.vram.screen);
-	const u32* pal = srcPaletteBlit(studio.tic->config.palette.data);
+	const u32* pal = tic_palette_blit(&studio.tic->config.palette);
 	const u32 Delta = (pitch/sizeof *out - TIC80_WIDTH);
 
 	s32 col = 0;
@@ -1891,7 +1887,7 @@ static void drawRecordLabel(u32* frame, s32 pitch, s32 sx, s32 sy, const u32* co
 		for(s32 x = 0; x < sizeof RecLabel[0]*BITS_IN_BYTE; x++)
 		{
 			if(RecLabel[y] & (1 << x))
-				memcpy(&frame[sx + 15 - x + (y+sy)*TIC80_FULLWIDTH], color, sizeof *color);
+				memcpy(&frame[sx + 15 - x + ((y+sy) << TIC80_FULLWIDTH_BITS)], color, sizeof *color);
 		}
 	}
 }
@@ -1907,7 +1903,7 @@ static void recordFrame(u32* pixels)
 
 			if(studio.video.frame % TIC_FRAMERATE < TIC_FRAMERATE / 2)
 			{
-				const u32* pal = srcPaletteBlit(studio.tic->config.palette.data);
+				const u32* pal = tic_palette_blit(&studio.tic->config.palette);
 				drawRecordLabel(pixels, TIC80_FULLWIDTH, TIC80_WIDTH-24, 8, &pal[tic_color_red]);
 			}
 
@@ -1932,23 +1928,29 @@ static void blitTexture()
 	SDL_LockTexture(studio.texture, NULL, &pixels, &pitch);
 
 	tic_scanline scanline = NULL;
+	tic_overlap overlap = NULL;
+	void* data = NULL;
 
 	switch(studio.mode)
 	{
 	case TIC_RUN_MODE:
 		scanline = tic->api.scanline;
+		overlap = tic->api.overlap;
 		break;
 	case TIC_SPRITE_MODE:
-		scanline = studio.sprite.scanline;
+		overlap = studio.sprite.overlap;
+		data = &studio.sprite;
 		break;
 	case TIC_MAP_MODE:
-		scanline = studio.map.scanline;
+		overlap = studio.map.overlap;
+		data = &studio.map;
 		break;
 	default:
 		break;
 	}
 
-	tic->api.blit(tic, pixels, scanline);
+	tic->api.blit(tic, scanline, overlap, data);
+	SDL_memcpy(pixels, tic->screen, sizeof tic->screen);
 
 	recordFrame(pixels);
 
@@ -1990,7 +1992,7 @@ static void blitTexture()
 
 		SDL_Rect srcRect = {Left, Top, TIC80_WIDTH, TIC80_HEIGHT};
 
-        SDL_RenderCopy(studio.renderer, studio.texture, &srcRect, &rect);
+		SDL_RenderCopy(studio.renderer, studio.texture, &srcRect, &rect);
 	}
 }
 
@@ -2012,7 +2014,7 @@ static void blitCursor(const u8* in)
 
 		{
 			const u8* end = in + sizeof(tic_tile);
-			const u32* pal = paletteBlit();
+			const u32* pal = tic_palette_blit(&studio.tic->ram.vram.palette);
 			u32* out = pixels;
 
 			while(in != end)
@@ -2055,19 +2057,41 @@ static void renderCursor()
 		studio.tic->ram.vram.vars.cursor)
 		{
 			SDL_ShowCursor(SDL_DISABLE);
-			blitCursor(studio.tic->ram.gfx.sprites[studio.tic->ram.vram.vars.cursor].data);
+			blitCursor(studio.tic->ram.sprites.data[studio.tic->ram.vram.vars.cursor].data);
 			return;
 		}
 
 	SDL_ShowCursor(getConfig()->theme.cursor.sprite >= 0 ? SDL_DISABLE : SDL_ENABLE);
 
 	if(getConfig()->theme.cursor.sprite >= 0)
-		blitCursor(studio.tic->config.gfx.tiles[getConfig()->theme.cursor.sprite].data);
+		blitCursor(studio.tic->config.bank.tiles.data[getConfig()->theme.cursor.sprite].data);
 }
 
 static void useSystemPalette()
 {
 	memcpy(studio.tic->ram.vram.palette.data, studio.tic->config.palette.data, sizeof(tic_palette));
+}
+
+static void drawPopup()
+{
+	if(studio.popup.counter > 0)
+	{
+		studio.popup.counter--;
+
+		s32 anim = 0;
+
+		enum{Dur = TIC_FRAMERATE/2};
+
+		if(studio.popup.counter < Dur)
+			anim = -((Dur - studio.popup.counter) * (TIC_FONT_HEIGHT+1) / Dur);
+		else if(studio.popup.counter >= (POPUP_DUR - Dur))
+			anim = (((POPUP_DUR - Dur) - studio.popup.counter) * (TIC_FONT_HEIGHT+1) / Dur);
+
+		studio.tic->api.rect(studio.tic, 0, anim, TIC80_WIDTH, TIC_FONT_HEIGHT+1, (tic_color_red));
+		studio.tic->api.text(studio.tic, studio.popup.message, 
+			(s32)(TIC80_WIDTH - strlen(studio.popup.message)*TIC_FONT_WIDTH)/2,
+			anim + 1, (tic_color_white));
+	}
 }
 
 static void renderStudio()
@@ -2082,24 +2106,28 @@ static void renderStudio()
 		studio.mouse.state[i].click = false;
 
 	{
-		const tic_sound* src = NULL;
+		const tic_sfx* sfx = NULL;
+		const tic_music* music = NULL;
 
 		switch(studio.mode)
 		{
 		case TIC_RUN_MODE:
-			src = &studio.tic->ram.sound;
+			sfx = &studio.tic->ram.sfx;
+			music = &studio.tic->ram.music;
 			break;
 		case TIC_START_MODE:
 		case TIC_DIALOG_MODE:
 		case TIC_MENU_MODE:
 		case TIC_SURF_MODE:
-			src = &studio.tic->config.sound;
+			sfx = &studio.tic->config.bank.sfx;
+			music = &studio.tic->config.bank.music;
 			break;
 		default:
-			src = &studio.tic->cart.sound;
+			sfx = &studio.tic->cart.bank.sfx;
+			music = &studio.tic->cart.bank.music;
 		}
 
-		studio.tic->api.tick_start(studio.tic, src);
+		studio.tic->api.tick_start(studio.tic, sfx, music);
 	}
 
 	switch(studio.mode)
@@ -2120,14 +2148,7 @@ static void renderStudio()
 	default: break;
 	}
 
-	if(studio.popup.counter > 0)
-	{
-		studio.popup.counter--;
-
-		studio.tic->api.rect(studio.tic, 0, TIC80_HEIGHT - TIC_FONT_HEIGHT - 1, TIC80_WIDTH, TIC80_HEIGHT, (tic_color_red));
-		studio.tic->api.text(studio.tic, studio.popup.message, (s32)(TIC80_WIDTH - strlen(studio.popup.message)*TIC_FONT_WIDTH)/2,
-			TIC80_HEIGHT - TIC_FONT_HEIGHT, (tic_color_white));
-	}
+	drawPopup();
 
 	if(getConfig()->noSound)
 		SDL_memset(tic->ram.registers, 0, sizeof tic->ram.registers);
@@ -2277,7 +2298,7 @@ static void initTouchGamepad()
 	if (!studio.renderer)
 		return;
 
-	studio.tic->api.map(studio.tic, &studio.tic->config.gfx, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, -1, 1);
+	studio.tic->api.map(studio.tic, &studio.tic->config.bank.map, &studio.tic->config.bank.tiles, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, -1, 1);
 
 	if(!studio.gamepad.texture)
 	{
@@ -2304,7 +2325,7 @@ static void updateSystemFont()
 	for(s32 i = 0; i < TIC_FONT_CHARS; i++)
 		for(s32 y = 0; y < TIC_SPRITESIZE; y++)
 			for(s32 x = 0; x < TIC_SPRITESIZE; x++)
-				if(tic_tool_peek4(&studio.tic->config.gfx.sprites[i], TIC_SPRITESIZE*(y+1) - x-1))
+				if(tic_tool_peek4(&studio.tic->config.bank.sprites.data[i], TIC_SPRITESIZE*(y+1) - x-1))
 					studio.tic->font.data[i*BITS_IN_BYTE+y] |= 1 << x;
 }
 
@@ -2324,12 +2345,12 @@ static void setWindowIcon()
 
 	u32* pixels = SDL_malloc(Size * Size * sizeof(u32));
 
-	const u32* pal = srcPaletteBlit(studio.tic->config.palette.data);
+	const u32* pal = tic_palette_blit(&studio.tic->config.palette);
 
 	for(s32 j = 0, index = 0; j < Size; j++)
 		for(s32 i = 0; i < Size; i++, index++)
 		{
-			u8 color = getSpritePixel(studio.tic->config.gfx.tiles, i/Scale, j/Scale);
+			u8 color = getSpritePixel(studio.tic->config.bank.tiles.data, i/Scale, j/Scale);
 			pixels[index] = color == ColorKey ? 0 : pal[color];
 		}
 
@@ -2405,10 +2426,15 @@ static void onFSInitialized(FileSystem* fs)
 
 	initModules();
 
-	if(studio.argc > 2)
+	if(studio.console.skipStart)
 	{
 		SDL_StartTextInput();
-		studio.mode = TIC_CONSOLE_MODE;
+		setStudioMode(TIC_CONSOLE_MODE);
+	}
+
+	if(studio.console.goFullscreen)
+	{
+		goFullscreen();
 	}
 
 	// set the window icon before renderer is created (issues on Linux)
@@ -2443,14 +2469,6 @@ void onEmscriptenWgetError(const char* error) {}
 
 s32 main(s32 argc, char **argv)
 {
-#if defined(__MACOSX__)
-	srandom(time(NULL));
-	random();
-#else
-	srand(time(NULL));
-	rand();
-#endif
-
 	setbuf(stdout, NULL);
 	studio.argc = argc;
 	studio.argv = argv;

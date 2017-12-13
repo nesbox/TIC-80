@@ -182,7 +182,7 @@ static duk_ret_t duk_spr(duk_context* duk)
 	s32 h = duk_is_null_or_undefined(duk, 8) ? 1							: duk_to_int(duk, 8);
 
 	tic_mem* memory = (tic_mem*)getDukMachine(duk);
-	memory->api.sprite_ex(memory, &memory->ram.gfx, index, x, y, w, h, colors, count, scale, flip, rotate);
+	memory->api.sprite_ex(memory, &memory->ram.tiles, index, x, y, w, h, colors, count, scale, flip, rotate);
 
 	return 0;
 }
@@ -257,7 +257,7 @@ static duk_ret_t duk_sfx(duk_context* duk)
 	{
 		if(index >= 0)
 		{
-			tic_sound_effect* effect = memory->ram.sound.sfx.data + index;
+			tic_sound_effect* effect = memory->ram.sfx.data + index;
 
 			note = effect->note;
 			octave = effect->octave;
@@ -361,14 +361,14 @@ static duk_ret_t duk_map(duk_context* duk)
 	tic_mem* memory = (tic_mem*)getDukMachine(duk);
 
 	if (duk_is_null_or_undefined(duk, 8))
-		memory->api.map(memory, &memory->ram.gfx, x, y, w, h, sx, sy, chromakey, scale);
+		memory->api.map(memory, &memory->ram.map, &memory->ram.tiles, x, y, w, h, sx, sy, chromakey, scale);
 	else
 	{
 		void* remap = duk_get_heapptr(duk, 8);
 
 	 	RemapData data = {duk, remap};
 
-	 	memory->api.remap((tic_mem*)getDukMachine(duk), &memory->ram.gfx, x, y, w, h, sx, sy, chromakey, scale, remapCallback, &data);
+	 	memory->api.remap((tic_mem*)getDukMachine(duk), &memory->ram.map, &memory->ram.tiles, x, y, w, h, sx, sy, chromakey, scale, remapCallback, &data);
 	}
 
 	return 0;
@@ -381,7 +381,7 @@ static duk_ret_t duk_mget(duk_context* duk)
 
 	tic_mem* memory = (tic_mem*)getDukMachine(duk);
 
-	u8 value = memory->api.map_get(memory, &memory->ram.gfx, x, y);
+	u8 value = memory->api.map_get(memory, &memory->ram.map, x, y);
 	duk_push_uint(duk, value);
 	return 1;
 }
@@ -394,7 +394,7 @@ static duk_ret_t duk_mset(duk_context* duk)
 
 	tic_mem* memory = (tic_mem*)getDukMachine(duk);
 
-	memory->api.map_set(memory, &memory->ram.gfx, x, y, value);
+	memory->api.map_set(memory, &memory->ram.map, x, y, value);
 
 	return 1;
 }
@@ -715,6 +715,7 @@ static const struct{duk_c_function func; s32 params;} ApiFunc[] =
 {
 	{NULL, 0},
 	{NULL, 1},
+	{NULL, 0},
 	{duk_print, 6},
 	{duk_cls, 1},
 	{duk_pix, 3},
@@ -746,7 +747,7 @@ static const struct{duk_c_function func; s32 params;} ApiFunc[] =
 	{duk_textri,14},
 	{duk_clip, 4},
 	{duk_music, 4},
-	{duk_sync, 0},
+	{duk_sync, 1},
 };
 
 static void initDuktape(tic_machine* machine)
@@ -808,7 +809,7 @@ void callJavascriptTick(tic_machine* machine)
 	}
 }
 
-void callJavascriptScanline(tic_mem* memory, s32 row)
+void callJavascriptScanline(tic_mem* memory, s32 row, void* data)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	duk_context* duk = machine->js;
@@ -820,6 +821,25 @@ void callJavascriptScanline(tic_mem* memory, s32 row)
 		duk_push_int(duk, row);
 
 		if(duk_pcall(duk, 1) != 0)
+		{
+			machine->data->error(machine->data->data, duk_safe_to_string(duk, -1));
+			duk_pop(duk);
+		}
+		else duk_pop(duk);
+	}
+	else duk_pop(duk);
+}
+
+void callJavascriptOverlap(tic_mem* memory, void* data)
+{
+	tic_machine* machine = (tic_machine*)memory;
+	duk_context* duk = machine->js;
+
+	const char* OvrFunc = ApiKeywords[2];
+
+	if(duk_get_global_string(duk, OvrFunc)) 
+	{
+		if(duk_pcall(duk, 0) != 0)
 		{
 			machine->data->error(machine->data->data, duk_safe_to_string(duk, -1));
 			duk_pop(duk);

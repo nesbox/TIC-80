@@ -20,6 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -83,17 +84,17 @@ static void update_amp(blip_buffer_t* blip, tic_sound_register_data* data, s32 n
 	blip_add_delta( blip, data->time, delta );
 }
 
-inline s32 freq2note(double freq)
+static inline s32 freq2note(double freq)
 {
 	return (s32)round((double)NOTES * log2(freq / BASE_NOTE_FREQ)) + BASE_NOTE_POS;
 }
 
-inline double note2freq(s32 note)
+static inline double note2freq(s32 note)
 {
 	return pow(2, (note - BASE_NOTE_POS) / (double)NOTES) * BASE_NOTE_FREQ;
 }
 
-inline s32 freq2period(double freq)
+static inline s32 freq2period(double freq)
 {
 	if(freq == 0.0) return MAX_PERIOD_VALUE;
 
@@ -106,7 +107,7 @@ inline s32 freq2period(double freq)
 	return period;
 }
 
-inline s32 getAmp(const tic_sound_register* reg, s32 amp)
+static inline s32 getAmp(const tic_sound_register* reg, s32 amp)
 {
 	enum {MaxAmp = (u16)-1 / (MAX_VOLUME * TIC_SOUND_CHANNELS)};
 
@@ -145,22 +146,66 @@ static void resetPalette(tic_mem* memory)
 	static const u8 DefaultMapping[] = {16, 50, 84, 118, 152, 186, 220, 254};
 	memcpy(memory->ram.vram.palette.data, memory->cart.palette.data, sizeof(tic_palette));
 	memcpy(memory->ram.vram.mapping, DefaultMapping, sizeof DefaultMapping);
-	memset(&memory->ram.vram.vars, 0, sizeof memory->ram.vram.vars);
-	memory->ram.vram.vars.mask.data = TIC_GAMEPAD_MASK;
+}
+
+static inline u8 mapColor(tic_mem* tic, u8 color)
+{
+	return tic_tool_peek4(tic->ram.vram.mapping, color & 0xf);
+}
+
+static void setPixelDma(tic_mem* tic, s32 x, s32 y, u8 color)
+{
+	tic_tool_poke4(tic->ram.vram.screen.data, y * TIC80_WIDTH + x, color);
+}
+
+static inline u32* getOvrAddr(tic_mem* tic, s32 x, s32 y)
+{
+	enum {Top = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2};
+	enum {Left = (TIC80_FULLWIDTH-TIC80_WIDTH)/2};
+
+	return tic->screen + x + (y << TIC80_FULLWIDTH_BITS) + (Left + Top * TIC80_FULLWIDTH);
+}
+
+static void setPixelOvr(tic_mem* tic, s32 x, s32 y, u8 color)
+{
+	tic_machine* machine = (tic_machine*)tic;
+	
+	*getOvrAddr(tic, x, y) = *(machine->state.ovr.palette + color);
+}
+
+static u8 getPixelOvr(tic_mem* tic, s32 x, s32 y)
+{
+	tic_machine* machine = (tic_machine*)tic;
+	
+	u32 color = *getOvrAddr(tic, x, y);
+	u32* pal = machine->state.ovr.palette;
+
+	for(s32 i = 0; i < TIC_PALETTE_SIZE; i++, pal++)
+		if(*pal == color)
+			return i;
+
+	return 0;
+}
+
+static u8 getPixelDma(tic_mem* tic, s32 x, s32 y)
+{
+	tic_machine* machine = (tic_machine*)tic;
+
+	return tic_tool_peek4(machine->memory.ram.vram.screen.data, y * TIC80_WIDTH + x);
 }
 
 static void setPixel(tic_machine* machine, s32 x, s32 y, u8 color)
 {
 	if(x < machine->state.clip.l || y < machine->state.clip.t || x >= machine->state.clip.r || y >= machine->state.clip.b) return;
 
-	tic_tool_poke4(machine->memory.ram.vram.screen.data, y * TIC80_WIDTH + x, tic_tool_peek4(machine->memory.ram.vram.mapping, color & 0xf));
+	machine->state.setpix(&machine->memory, x, y, mapColor(&machine->memory, color));
 }
 
 static u8 getPixel(tic_machine* machine, s32 x, s32 y)
 {
 	if(x < 0 || y < 0 || x >= TIC80_WIDTH || y >= TIC80_HEIGHT) return 0;
 
-	return tic_tool_peek4(machine->memory.ram.vram.screen.data, y * TIC80_WIDTH + x);
+	return machine->state.getpix(&machine->memory, x, y);
 }
 
 static void drawHLine(tic_machine* machine, s32 x, s32 y, s32 width, u8 color)
@@ -200,65 +245,78 @@ static void drawRectBorder(tic_machine* machine, s32 x, s32 y, s32 width, s32 he
 	drawVLine(machine, x + width - 1, y, height, color);
 }
 
-static void drawRectRev(tic_machine* machine, s32 y, s32 x, s32 height, s32 width, u8 color)
-{
-	drawRect(machine, x, y, width, height, color);
-}
+#define DRAW_TILE_BODY(INDEX_EXPR) do {\
+	for(s32 py=sy; py < ey; py++, y++) \
+	{ \
+		s32 xx = x; \
+		for(s32 px=sx; px < ex; px++, xx++) \
+		{ \
+			u8 color = mapping[tic_tool_peek4(buffer, INDEX_EXPR)]; \
+			if(color != 255) machine->state.setpix(&machine->memory, xx, y, color); \
+		} \
+	} \
+	} while(0)
+
+#define REVERT(X) (TIC_SPRITESIZE - 1 - (X))
+#define INDEX_XY(X, Y) ((Y) * TIC_SPRITESIZE + (X))
 
 static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
-	flip &= 0b11;
+	static u8 mapping[TIC_PALETTE_SIZE];
+	for (s32 i = 0; i < TIC_PALETTE_SIZE; i++) mapping[i] = tic_tool_peek4(machine->memory.ram.vram.mapping, i);
+	for (s32 i = 0; i < count; i++) mapping[colors[i]] = 255;
+
 	rotate &= 0b11;
+	u32 orientation = flip & 0b11;
 
-	s32 a = flip & tic_horz_flip ? -scale : scale;
-	s32 b = flip & tic_vert_flip ? -scale : scale;
+	if(rotate == tic_90_rotate) orientation ^= 0b001;
+	else if(rotate == tic_180_rotate) orientation ^= 0b011;
+	else if(rotate == tic_270_rotate) orientation ^= 0b010;
+	if (rotate == tic_90_rotate || rotate == tic_270_rotate) orientation |= 0b100;
 
-	void(*drawRectFunc)(tic_machine*, s32, s32, s32, s32, u8) = drawRect;
-
-	if(rotate == tic_90_rotate) a = -a;
-	else if(rotate == tic_180_rotate) a = -a, b = -b;
-	else if(rotate == tic_270_rotate) b = -b;
-
-	x += (scale - a) * (TIC_SPRITESIZE - 1) >> 1;
-	y += (scale - b) * (TIC_SPRITESIZE - 1) >> 1;
-
-	if(rotate == tic_90_rotate || rotate == tic_270_rotate)
-	{
-		s32 t = a; a = b; b = t;
-		t = x; x = y; y = t;
-		drawRectFunc = drawRectRev;
+	if (scale == 1) {
+		// the most common path
+		s32 sx, sy, ex, ey;
+		sx = machine->state.clip.l - x; if (sx < 0) sx = 0;
+		sy = machine->state.clip.t - y; if (sy < 0) sy = 0;
+		ex = machine->state.clip.r - x; if (ex > TIC_SPRITESIZE) ex = TIC_SPRITESIZE;
+		ey = machine->state.clip.b - y; if (ey > TIC_SPRITESIZE) ey = TIC_SPRITESIZE;
+		y += sy;
+		x += sx;
+		switch (orientation) {
+			case 0b100: DRAW_TILE_BODY(INDEX_XY(py, px)); break;
+			case 0b110: DRAW_TILE_BODY(INDEX_XY(REVERT(py), px)); break;
+			case 0b101: DRAW_TILE_BODY(INDEX_XY(py, REVERT(px))); break;
+			case 0b111: DRAW_TILE_BODY(INDEX_XY(REVERT(py), REVERT(px))); break;
+			case 0b000: DRAW_TILE_BODY(INDEX_XY(px, py)); break;
+			case 0b010: DRAW_TILE_BODY(INDEX_XY(px, REVERT(py))); break;
+			case 0b001: DRAW_TILE_BODY(INDEX_XY(REVERT(px), py)); break;
+			case 0b011: DRAW_TILE_BODY(INDEX_XY(REVERT(px), REVERT(py))); break;
+			default: assert(!"Unknown value of orientation in drawTile");
+		}
+		return;
 	}
 
-	for(s32 i = 0, px = 0, xx = x; i < TIC_SPRITESIZE * TIC_SPRITESIZE; px++, xx += a, i++)
+	for(s32 py=0; py < TIC_SPRITESIZE; py++, y+=scale)
 	{
-		if(px == TIC_SPRITESIZE) px = 0, xx = x, y += b;
-
-		u8 color = tic_tool_peek4(buffer, i);
-
-		if(count == 1)
+		s32 xx = x;
+		for(s32 px=0; px < TIC_SPRITESIZE; px++, xx+=scale)
 		{
-			if(*colors != color)
-				drawRectFunc(machine, xx, y, scale, scale, color);
-		}
-		else
-		{
-			bool draw = true;
-			for(s32 i = 0; i < count; i++)
-			{
-				if(color == colors[i])
-				{
-					draw = false;
-					break;
-				}
+			s32 i;
+			s32 ix = orientation & 0b001 ? TIC_SPRITESIZE - px - 1: px;
+			s32 iy = orientation & 0b010 ? TIC_SPRITESIZE - py - 1: py;
+			if(orientation & 0b100) {
+				i = ix * TIC_SPRITESIZE + iy;
+			} else {
+				i = iy * TIC_SPRITESIZE + ix;
 			}
-
-			if(draw)
-				drawRectFunc(machine, xx, y, scale, scale, color);
+			u8 color = tic_tool_peek4(buffer, i);
+			if(mapping[color] != 255) drawRect(machine, xx, y, scale, scale, color);
 		}
-	}		
+	}
 }
 
-static void drawMap(tic_machine* machine, const tic_gfx* src, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale, RemapFunc remap, void* data)
+static void drawMap(tic_machine* machine, const tic_map* src, const tic_tiles* tiles, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale, RemapFunc remap, void* data)
 {
 	const s32 size = TIC_SPRITESIZE * scale;
 
@@ -274,12 +332,12 @@ static void drawMap(tic_machine* machine, const tic_gfx* src, s32 x, s32 y, s32 
 			while(mj >= TIC_MAP_HEIGHT) mj -= TIC_MAP_HEIGHT;
 			
 			s32 index = mi + mj * TIC_MAP_WIDTH;
-			RemapResult tile = { *(src->map.data + index), tic_no_flip, tic_no_rotate };
+			RemapResult tile = { *(src->data + index), tic_no_flip, tic_no_rotate };
 
 			if (remap)
 				remap(data, mi, mj, &tile);
 
-			drawTile(machine, src->tiles + tile.index, ii, jj, &chromakey, 1, scale, tile.flip, tile.rotate);
+			drawTile(machine, tiles->data + tile.index, ii, jj, &chromakey, 1, scale, tile.flip, tile.rotate);
 		}
 }
 
@@ -298,7 +356,7 @@ static void channelSfx(tic_mem* memory, s32 index, s32 note, s32 octave, s32 dur
 	if(index >= 0)
 	{
 		struct {s8 speed:SFX_SPEED_BITS;} temp = {speed};
-		c->speed = speed == temp.speed ? speed : machine->soundSrc->sfx.data[index].speed;
+		c->speed = speed == temp.speed ? speed : machine->sound.sfx->data[index].speed;
 	}
 
 	// start index of idealized piano
@@ -343,7 +401,7 @@ static void setMusic(tic_machine* machine, s32 index, s32 frame, s32 row, bool l
 		memory->ram.music_pos.flag.loop = loop;
 		machine->state.music.play = MusicPlay;
 
-		const tic_track* track = &machine->soundSrc->music.tracks.data[index];
+		const tic_track* track = &machine->sound.music->tracks.data[index];
 		machine->state.music.ticks = row >= 0 ? row * (track->speed + DEFAULT_SPEED) * NOTES_PER_MUNUTE / (track->tempo + DEFAULT_TEMPO) / DEFAULT_SPEED : 0;
 	}
 }
@@ -422,6 +480,10 @@ static void api_clip(tic_mem* memory, s32 x, s32 y, s32 width, s32 height)
 static void api_reset(tic_mem* memory)
 {
 	resetPalette(memory);
+
+	memset(&memory->ram.vram.vars, 0, sizeof memory->ram.vram.vars);
+	memory->ram.vram.vars.mask.data = TIC_GAMEPAD_MASK;
+	
 	api_clip(memory, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
 
 	soundClear(memory);
@@ -429,6 +491,10 @@ static void api_reset(tic_mem* memory)
 	tic_machine* machine = (tic_machine*)memory;
 	machine->state.initialized = false;
 	machine->state.scanline = NULL;
+	machine->state.ovr.callback = NULL;
+
+	machine->state.setpix = setPixelDma;
+	machine->state.getpix = getPixelDma;
 
 	updateSaveid(memory);
 }
@@ -494,8 +560,6 @@ static void api_clear(tic_mem* memory, u8 color)
 	{
 		api_rect(memory, machine->state.clip.l, machine->state.clip.t, machine->state.clip.r - machine->state.clip.l, machine->state.clip.b - machine->state.clip.t, color);
 	}
-
-	memory->ram.vram.vars.bg = color & 0xf;
 }
 
 static s32 drawChar(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale)
@@ -588,13 +652,13 @@ static s32 api_text_ex(tic_mem* memory, const char* text, s32 x, s32 y, u8 color
 	return drawText(memory, text, x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT, color, scale, fixed ? drawChar : drawNonFixedChar);
 }
 
-static void drawSprite(tic_mem* memory, const tic_gfx* src, s32 index, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
+static void drawSprite(tic_mem* memory, const tic_tiles* src, s32 index, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
 	if(index < TIC_SPRITES)
-		drawTile((tic_machine*)memory, src->tiles + index, x, y, colors, count, scale, flip, rotate);
+		drawTile((tic_machine*)memory, src->data + index, x, y, colors, count, scale, flip, rotate);
 }
 
-static void api_sprite_ex(tic_mem* memory, const tic_gfx* src, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
+static void api_sprite_ex(tic_mem* memory, const tic_tiles* src, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
 	s32 step = TIC_SPRITESIZE * scale;
 
@@ -638,14 +702,14 @@ static void api_sprite_ex(tic_mem* memory, const tic_gfx* src, s32 index, s32 x,
 
 s32 drawSpriteFont(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale)
 {
-	api_sprite_ex(memory, &memory->ram.gfx, symbol + TIC_BANK_SPRITES, x, y, 1, 1, &chromakey, 1, scale, tic_no_flip, tic_no_rotate);
+	api_sprite_ex(memory, &memory->ram.sprites, symbol, x, y, 1, 1, &chromakey, 1, scale, tic_no_flip, tic_no_rotate);
 
 	return width * scale;
 }
 
 s32 drawFixedSpriteFont(tic_mem* memory, u8 index, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale)
 {
-	const u8* ptr = memory->ram.gfx.sprites[index].data;
+	const u8* ptr = memory->ram.sprites.data[index].data;
 
 	enum {Size = TIC_SPRITESIZE};
 
@@ -849,8 +913,7 @@ static void ticTexLine(tic_mem* memory, TexVert *v0, TexVert *v1)
 
 	float dy = bot->y - top->y;
 	if ((s32)dy == 0)	return;
-	if ((s32)dy > TIC80_HEIGHT)	return;	//	reject large polys 
-
+	
 	float step_x = (bot->x - top->x) / dy;
 	float step_u = (bot->u - top->u) / dy;
 	float step_v = (bot->v - top->v) / dy;
@@ -872,8 +935,8 @@ static void api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, 
 {
 	tic_machine* machine = (tic_machine*)memory;
 	TexVert V0, V1, V2;
-	const u8* ptr = memory->ram.gfx.tiles[0].data;
-	const u8* map = memory->ram.gfx.map.data;
+	const u8* ptr = memory->ram.tiles.data[0].data;
+	const u8* map = memory->ram.map.data;
 
 	V0.x = (float)x1; 	V0.y = (float)y1; 	V0.u = (float)u1; 	V0.v = (float)v1;
 	V1.x = (float)x2; 	V1.y = (float)y2; 	V1.u = (float)u2; 	V1.v = (float)v2;
@@ -933,33 +996,33 @@ static void api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, 
 }
 
 
-static void api_sprite(tic_mem* memory, const tic_gfx* src, s32 index, s32 x, s32 y, u8* colors, s32 count)
+static void api_sprite(tic_mem* memory, const tic_tiles* src, s32 index, s32 x, s32 y, u8* colors, s32 count)
 {
 	drawSprite(memory, src, index, x, y, colors, count, 1, tic_no_flip, tic_no_rotate);
 }
 
-static void api_map(tic_mem* memory, const tic_gfx* src, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale)
+static void api_map(tic_mem* memory, const tic_map* src, const tic_tiles* tiles, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale)
 {
-	drawMap((tic_machine*)memory, src, x, y, width, height, sx, sy, chromakey, scale, NULL, NULL);
+	drawMap((tic_machine*)memory, src, tiles, x, y, width, height, sx, sy, chromakey, scale, NULL, NULL);
 }
 
-static void api_remap(tic_mem* memory, const tic_gfx* src, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale, RemapFunc remap, void* data)
+static void api_remap(tic_mem* memory, const tic_map* src, const tic_tiles* tiles, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale, RemapFunc remap, void* data)
 {
-	drawMap((tic_machine*)memory, src, x, y, width, height, sx, sy, chromakey, scale, remap, data);
+	drawMap((tic_machine*)memory, src, tiles, x, y, width, height, sx, sy, chromakey, scale, remap, data);
 }
 
-static void api_map_set(tic_mem* memory, tic_gfx* src, s32 x, s32 y, u8 value)
+static void api_map_set(tic_mem* memory, tic_map* src, s32 x, s32 y, u8 value)
 {
 	if(x < 0 || x >= TIC_MAP_WIDTH || y < 0 || y >= TIC_MAP_HEIGHT) return;
 
-	*(src->map.data + y * TIC_MAP_WIDTH + x) = value;
+	*(src->data + y * TIC_MAP_WIDTH + x) = value;
 }
 
-static u8 api_map_get(tic_mem* memory, const tic_gfx* src, s32 x, s32 y)
+static u8 api_map_get(tic_mem* memory, const tic_map* src, s32 x, s32 y)
 {
 	if(x < 0 || x >= TIC_MAP_WIDTH || y < 0 || y >= TIC_MAP_HEIGHT) return 0;
 	
-	return *(src->map.data + y * TIC_MAP_WIDTH + x);
+	return *(src->data + y * TIC_MAP_WIDTH + x);
 }
 
 static void api_line(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, u8 color)
@@ -998,7 +1061,7 @@ static void sfx(tic_mem* memory, s32 index, s32 freq, Channel* channel, tic_soun
 		return;
 	}
 
-	const tic_sound_effect* effect = &machine->soundSrc->sfx.data[index];
+	const tic_sound_effect* effect = &machine->sound.sfx->data[index];
 	s32 pos = ++channel->tick;
 
 	s8 speed = channel->speed;
@@ -1026,7 +1089,7 @@ static void sfx(tic_mem* memory, s32 index, s32 freq, Channel* channel, tic_soun
 		reg->volume = volume;
 
 		u8 wave = effect->data[channel->pos.wave].wave;
-		const tic_waveform* waveform = &machine->soundSrc->sfx.waveform.envelopes[wave];
+		const tic_waveform* waveform = &machine->sound.sfx->waveform.envelopes[wave];
 		memcpy(reg->waveform.data, waveform->data, sizeof(tic_waveform));
 	}
 }
@@ -1037,7 +1100,7 @@ static void processMusic(tic_mem* memory)
 
 	if(machine->state.music.play == MusicStop) return;
 
-	const tic_track* track = &machine->soundSrc->music.tracks.data[memory->ram.music_pos.track];
+	const tic_track* track = &machine->sound.music->tracks.data[memory->ram.music_pos.track];
 	s32 row = machine->state.music.ticks++ * (track->tempo + DEFAULT_TEMPO) * DEFAULT_SPEED / (track->speed + DEFAULT_SPEED) / NOTES_PER_MUNUTE;
 
 	s32 rows = MUSIC_PATTERN_ROWS - track->rows;
@@ -1098,7 +1161,7 @@ static void processMusic(tic_mem* memory)
 			s32 patternId = tic_tool_get_pattern_id(track, memory->ram.music_pos.frame, channel);
 			if (!patternId) continue;
 
-			const tic_track_pattern* pattern = &machine->soundSrc->music.patterns.data[patternId - PATTERN_START];
+			const tic_track_pattern* pattern = &machine->sound.music->patterns.data[patternId - PATTERN_START];
 
 			s32 note = pattern->rows[memory->ram.music_pos.row].note;
 
@@ -1133,11 +1196,12 @@ static bool isNoiseWaveform(const tic_waveform* wave)
 	return memcmp(&NoiseWave.data, &wave->data, sizeof(tic_waveform)) == 0;
 }
 
-static void api_tick_start(tic_mem* memory, const tic_sound* src)
+static void api_tick_start(tic_mem* memory, const tic_sfx* sfxsrc, const tic_music* music)
 {
 	tic_machine* machine = (tic_machine*)memory;
 
-	machine->soundSrc = src;
+	machine->sound.sfx = sfxsrc;
+	machine->sound.music = music;
 
 	for (s32 i = 0; i < TIC_SOUND_CHANNELS; ++i )
 		memset(&memory->ram.registers[i], 0, sizeof(tic_sound_register));
@@ -1163,6 +1227,9 @@ static void api_tick_start(tic_mem* memory, const tic_sound* src)
 		if(prevDown && prevDown == down) (*hold)++;
 		else *hold = 0;
 	}
+
+	machine->state.setpix = setPixelDma;
+	machine->state.getpix = getPixelDma;
 }
 
 static void api_tick_end(tic_mem* memory)
@@ -1186,6 +1253,10 @@ static void api_tick_end(tic_mem* memory)
 	
 	blip_end_frame(machine->blip, EndTime);
 	blip_read_samples(machine->blip, machine->memory.samples.buffer, machine->samplerate / TIC_FRAMERATE);
+
+	machine->state.setpix = setPixelOvr;
+	machine->state.getpix = getPixelOvr;
+	memcpy(machine->state.ovr.palette, tic_palette_blit(&memory->cart.palette), sizeof machine->state.ovr.palette);
 }
 
 
@@ -1252,10 +1323,29 @@ static void initCover(tic_mem* tic)
 	}
 }
 
+static void api_sync(tic_mem* tic, bool toCart)
+{
+	if(toCart)
+	{
+		memcpy(&tic->cart.bank.tiles, 	&tic->ram.tiles, 	sizeof(tic_tiles));
+		memcpy(&tic->cart.bank.sprites, &tic->ram.sprites, 	sizeof(tic_tiles));
+		memcpy(&tic->cart.bank.map, 	&tic->ram.map, 		sizeof(tic_map));
+		memcpy(&tic->cart.bank.sfx, 	&tic->ram.sfx, 		sizeof(tic_sfx));
+		memcpy(&tic->cart.bank.music, 	&tic->ram.music, 	sizeof(tic_music));
+	}
+	else
+	{
+		memcpy(&tic->ram.tiles, 	&tic->cart.bank.tiles, 		sizeof(tic_tiles));
+		memcpy(&tic->ram.sprites, 	&tic->cart.bank.sprites, 	sizeof(tic_tiles));
+		memcpy(&tic->ram.map, 		&tic->cart.bank.map, 		sizeof(tic_map));
+		memcpy(&tic->ram.sfx, 		&tic->cart.bank.sfx, 		sizeof(tic_sfx));
+		memcpy(&tic->ram.music, 	&tic->cart.bank.music, 		sizeof(tic_music));
+	}
+}
+
 static void cart2ram(tic_mem* memory)
 {
-	memcpy(&memory->ram.gfx, &memory->cart.gfx, sizeof memory->ram.gfx);
-	memcpy(&memory->ram.sound, &memory->cart.sound, sizeof memory->ram.sound);
+	api_sync(memory, false);
 
 	initCover(memory);
 }
@@ -1369,82 +1459,95 @@ static void api_tick(tic_mem* memory, tic_tick_data* data)
 	
 	if(!machine->state.initialized)
 	{
-		cart2ram(memory);
 
-		const char* code = machine->memory.cart.code.data;
+		char* code = malloc(sizeof(tic_code));
 
-		if(strlen(code))
+		if(code)
 		{
-			memory->input = compareMetatag(code, "input", "mouse") ? tic_mouse_input : tic_gamepad_input;
+			memcpy(code, machine->memory.cart.code.data, sizeof(tic_code));
 
-			if(memory->input == tic_mouse_input)
-				memory->ram.vram.vars.mask.data = 0;
+			if(data->preprocessor)
+				data->preprocessor(data->data, code);
 
-			memory->script = tic_script_lua;
+			bool done = false;
 
-			if (isMoonscript(code))
+			if(strlen(code))
 			{
-				if(!initMoonscript(machine, code))
-					return;
+				cart2ram(memory);
+				memory->input = compareMetatag(code, "input", "mouse") ? tic_mouse_input : tic_gamepad_input;
 
-				memory->script = tic_script_moon;
+				if(memory->input == tic_mouse_input)
+					memory->ram.vram.vars.mask.data = 0;
+
+				memory->script = tic_script_lua;
+
+				if (isMoonscript(code))
+				{
+					if(initMoonscript(machine, code))
+					{
+						memory->script = tic_script_moon;
+						done = true;
+					}
+				}
+				else if(isJavascript(code))
+				{
+					if(initJavascript(machine, code))
+					{
+						memory->script = tic_script_js;
+						done = true;
+					}
+				}
+				else if(isBrainfuck(code))
+				{
+					if(initBrainfuck(machine, code))
+					{
+						memory->script = tic_script_bf;
+						done = true;
+					}
+				}
+				else if(initLua(machine, code))
+					done = true;
 			}
-			else if(isJavascript(code))
+			else
 			{
-				if(!initJavascript(machine, code))
-					return;
-
-				memory->script = tic_script_js;
+				machine->data->error(machine->data->data, "the code is empty");
 			}
-			else if(isBrainfuck(code))
+
+			free(code);
+
+			if(done)
 			{
-				if(!initBrainfuck(machine, code))
-					return;
-
-				memory->script = tic_script_bf;
+				machine->state.scanline = (memory->script == tic_script_js) ? callJavascriptScanline : (memory->script == tic_script_bf) ? callBrainfuckScanline : callLuaScanline;
+				machine->state.ovr.callback = (memory->script == tic_script_js) ? callJavascriptOverlap : (memory->script == tic_script_bf) ? callBrainfuckOverlap : callLuaOverlap;
+				machine->state.initialized = true;				
 			}
-			else if(!initLua(machine, code))
-				return;
+			else return;
 		}
-		else
-		{
-			machine->data->error(machine->data->data, "the code is empty");
-			return;
-		}
-
-		machine->state.scanline = (memory->script == tic_script_js) ? callJavascriptScanline : (memory->script == tic_script_bf) ? callBrainfuckScanline : callLuaScanline;
-		machine->state.initialized = true;
 	}
 
 	(memory->script == tic_script_js) ? callJavascriptTick(machine) : (memory->script == tic_script_bf) ? callBrainfuckTick(machine) : callLuaTick(machine);
 }
 
-static void api_scanline(tic_mem* memory, s32 row)
+static void api_scanline(tic_mem* memory, s32 row, void* data)
 {
 	tic_machine* machine = (tic_machine*)memory;
 
 	if(machine->state.initialized)
-		machine->state.scanline(memory, row);
+		machine->state.scanline(memory, row, data);
+}
+
+static void api_overlap(tic_mem* memory, void* data)
+{
+	tic_machine* machine = (tic_machine*)memory;
+
+	if(machine->state.initialized)
+		machine->state.ovr.callback(memory, data);
 }
 
 static double api_time(tic_mem* memory)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	return (double)((machine->data->counter() - machine->data->start)*1000)/machine->data->freq();
-}
-
-static void api_sync(tic_mem* tic, bool toCart)
-{
-	if(toCart)
-	{
-		memcpy(&tic->cart.gfx, &tic->ram.gfx, sizeof tic->cart.gfx);
-		memcpy(&tic->cart.sound, &tic->ram.sound, sizeof tic->cart.sound);		
-	}
-	else
-	{
-		memcpy(&tic->ram.gfx, &tic->cart.gfx, sizeof tic->cart.gfx);
-		memcpy(&tic->ram.sound, &tic->cart.sound, sizeof tic->cart.sound);
-	}
 }
 
 static u32 api_btnp(tic_mem* tic, s32 index, s32 hold, s32 period)
@@ -1490,14 +1593,14 @@ static void api_load(tic_cartridge* cart, const u8* buffer, s32 size, bool palet
 
 		switch(chunk.type)
 		{
-		case CHUNK_TILES: 		LOAD_CHUNK(cart->gfx.tiles); 					break;
-		case CHUNK_SPRITES: 	LOAD_CHUNK(cart->gfx.sprites); 					break;
-		case CHUNK_MAP: 		LOAD_CHUNK(cart->gfx.map); 						break;
-		case CHUNK_CODE: 		LOAD_CHUNK(cart->code); 						break;
-		case CHUNK_SOUND: 		LOAD_CHUNK(cart->sound.sfx.data); 				break;
-		case CHUNK_WAVEFORM:	LOAD_CHUNK(cart->sound.sfx.waveform);			break;
-		case CHUNK_MUSIC:		LOAD_CHUNK(cart->sound.music.tracks.data); 		break;
-		case CHUNK_PATTERNS:	LOAD_CHUNK(cart->sound.music.patterns.data); 	break;
+		case CHUNK_TILES: 		LOAD_CHUNK(cart->bank.tiles); 					break;
+		case CHUNK_SPRITES: 	LOAD_CHUNK(cart->bank.sprites); 				break;
+		case CHUNK_MAP: 		LOAD_CHUNK(cart->bank.map); 					break;
+		case CHUNK_CODE: 		LOAD_CHUNK(cart->code); 							break;
+		case CHUNK_SOUND: 		LOAD_CHUNK(cart->bank.sfx.data); 				break;
+		case CHUNK_WAVEFORM:	LOAD_CHUNK(cart->bank.sfx.waveform);			break;
+		case CHUNK_MUSIC:		LOAD_CHUNK(cart->bank.music.tracks.data); 		break;
+		case CHUNK_PATTERNS:	LOAD_CHUNK(cart->bank.music.patterns.data); 	break;
 		case CHUNK_PALETTE:		
 			if(palette)
 				LOAD_CHUNK(cart->palette); 					
@@ -1559,14 +1662,14 @@ static s32 api_save(const tic_cartridge* cart, u8* buffer)
 
 	#define SAVE_CHUNK(id, from) saveChunk(buffer, id, &from, sizeof(from))
 
-	buffer = SAVE_CHUNK(CHUNK_TILES, 	cart->gfx.tiles);
-	buffer = SAVE_CHUNK(CHUNK_SPRITES, 	cart->gfx.sprites);
-	buffer = SAVE_CHUNK(CHUNK_MAP, 		cart->gfx.map);
+	buffer = SAVE_CHUNK(CHUNK_TILES, 	cart->bank.tiles);
+	buffer = SAVE_CHUNK(CHUNK_SPRITES, 	cart->bank.sprites);
+	buffer = SAVE_CHUNK(CHUNK_MAP, 		cart->bank.map);
 	buffer = SAVE_CHUNK(CHUNK_CODE, 	cart->code);
-	buffer = SAVE_CHUNK(CHUNK_SOUND, 	cart->sound.sfx.data);
-	buffer = SAVE_CHUNK(CHUNK_WAVEFORM, cart->sound.sfx.waveform);
-	buffer = SAVE_CHUNK(CHUNK_PATTERNS, cart->sound.music.patterns.data);
-	buffer = SAVE_CHUNK(CHUNK_MUSIC, 	cart->sound.music.tracks.data);
+	buffer = SAVE_CHUNK(CHUNK_SOUND, 	cart->bank.sfx.data);
+	buffer = SAVE_CHUNK(CHUNK_WAVEFORM, cart->bank.sfx.waveform);
+	buffer = SAVE_CHUNK(CHUNK_PATTERNS, cart->bank.music.patterns.data);
+	buffer = SAVE_CHUNK(CHUNK_MUSIC, 	cart->bank.music.tracks.data);
 	buffer = SAVE_CHUNK(CHUNK_PALETTE, 	cart->palette);
 
 	buffer = saveFixedChunk(buffer, CHUNK_COVER, cart->cover.data, cart->cover.size);
@@ -1577,7 +1680,7 @@ static s32 api_save(const tic_cartridge* cart, u8* buffer)
 }
 
 // copied from SDL2
-inline void memset4(void *dst, u32 val, u32 dwords)
+static inline void memset4(void *dst, u32 val, u32 dwords)
 {
 #if defined(__GNUC__) && defined(i386)
 	s32 u0, u1, u2;
@@ -1605,65 +1708,52 @@ inline void memset4(void *dst, u32 val, u32 dwords)
 #endif
 }
 
-static u32* paletteBlit(tic_mem* tic)
+static void api_blit(tic_mem* tic, tic_scanline scanline, tic_overlap overlap, void* data)
 {
-	static u32 pal[TIC_PALETTE_SIZE] = {0};
-
-	const u8* src = tic->ram.vram.palette.data;
-
-	memset(pal, 0xff, sizeof pal);
-
-	u8* dst = (u8*)pal;
-	const u8* end = src + sizeof(tic_palette);
-
-	enum{RGB = sizeof(tic_rgb)};
-
-	for(; src != end; dst++, src+=RGB)
-		for(s32 j = 0; j < RGB; j++)
-			*dst++ = *(src+(RGB-1)-j);
-
-	return pal;
-}
-
-static void api_blit(tic_mem* tic, u32* out, tic_scanline scanline)
-{
-	const u32* pal = paletteBlit(tic);
+	const u32* pal = tic_palette_blit(&tic->ram.vram.palette);
 
 	if(scanline)
 	{
-		scanline(tic, 0);
-		pal = paletteBlit(tic);
+		scanline(tic, 0, data);
+		pal = tic_palette_blit(&tic->ram.vram.palette);
 	}
 
 	enum {Top = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2, Bottom = Top};
 	enum {Left = (TIC80_FULLWIDTH-TIC80_WIDTH)/2, Right = Left};
 
+	u32* out = tic->screen;
+
 	memset4(&out[0 * TIC80_FULLWIDTH], pal[tic->ram.vram.vars.border], TIC80_FULLWIDTH*Top);
 
-	u32* rowPtr = out + Top*TIC80_FULLWIDTH;
-
-	for(s32 r = 0, y = tic->ram.vram.vars.offset.y; r < TIC80_HEIGHT; r++, y++, rowPtr += TIC80_FULLWIDTH)
+	u32* rowPtr = out + (Top*TIC80_FULLWIDTH);
+	for(s32 r = 0; r < TIC80_HEIGHT; r++, rowPtr += TIC80_FULLWIDTH)
 	{
+		u32 *colPtr = rowPtr + Left;
 		memset4(rowPtr, pal[tic->ram.vram.vars.border], Left);
-		memset4(rowPtr + Left, pal[tic->ram.vram.vars.bg], TIC80_WIDTH);
 
-		u32* colPtr = rowPtr + Left;
+		s32 pos = (r + tic->ram.vram.vars.offset.y + TIC80_HEIGHT) % TIC80_HEIGHT * TIC80_WIDTH >> 1;
 
-		if(y >= 0 && y < TIC80_HEIGHT)
-			for(s32 c = 0, x = tic->ram.vram.vars.offset.x, index = y * TIC80_WIDTH + x; c < TIC80_WIDTH; c++, colPtr++, x++, index++)
-				if(x >= 0 && x < TIC80_WIDTH)
-					*colPtr = pal[tic_tool_peek4(tic->ram.vram.screen.data, index)];
+		u32 x = (-tic->ram.vram.vars.offset.x + TIC80_WIDTH) % TIC80_WIDTH;
+		for(s32 c = 0; c < TIC80_WIDTH / 2; c++)
+		{
+			u8 val = ((u8*)tic->ram.vram.screen.data)[pos + c];
+			*(colPtr + (x++ % TIC80_WIDTH)) = pal[val & 0xf];
+			*(colPtr + (x++ % TIC80_WIDTH)) = pal[val >> 4];
+		}
 
 		memset4(rowPtr + (TIC80_FULLWIDTH-Right), pal[tic->ram.vram.vars.border], Right);
-
+			
 		if(scanline && (r < TIC80_HEIGHT-1))
 		{
-			scanline(tic, r+1);
-			pal = paletteBlit(tic);
+			scanline(tic, r+1, data);
+			pal = tic_palette_blit(&tic->ram.vram.palette);
 		}
 	}
 
 	memset4(&out[(TIC80_FULLHEIGHT-Bottom) * TIC80_FULLWIDTH], pal[tic->ram.vram.vars.border], TIC80_FULLWIDTH*Bottom);
+
+	if(overlap)
+		overlap(tic, data);
 }
 
 static void initApi(tic_api* api)
@@ -1700,6 +1790,7 @@ static void initApi(tic_api* api)
 	INIT_API(time);
 	INIT_API(tick);
 	INIT_API(scanline);
+	INIT_API(overlap);
 	INIT_API(reset);
 	INIT_API(pause);
 	INIT_API(resume);
@@ -1723,7 +1814,8 @@ tic_mem* tic_create(s32 samplerate)
 	if(machine != (tic_machine*)&machine->memory)
 		return NULL;
 
-	machine->soundSrc = &machine->memory.ram.sound;
+	machine->sound.sfx = &machine->memory.ram.sfx;
+	machine->sound.music = &machine->memory.ram.music;
 
 	initApi(&machine->memory.api);
 

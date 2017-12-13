@@ -27,8 +27,8 @@
 #include "defines.h"
 
 #define TIC_VERSION_MAJOR 0
-#define TIC_VERSION_MINOR 47
-#define TIC_VERSION_PATCH 0
+#define TIC_VERSION_MINOR 50
+#define TIC_VERSION_PATCH 1
 #define TIC_VERSION_STATUS ""
 
 #if defined(TIC80_PRO)
@@ -107,9 +107,11 @@
 
 #define TIC_CODE_SIZE (0x10000)
 
+#define TIC_BANKS 4
+
 #define SFX_NOTES {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
 
-#define API_KEYWORDS {"TIC", "scanline", "print", "cls", "pix", "line", "rect", "rectb", \
+#define API_KEYWORDS {"TIC", "scanline", "OVR", "print", "cls", "pix", "line", "rect", "rectb", \
 	"spr", "btn", "btnp", "sfx", "map", "mget", "mset", "peek", "poke", "peek4", "poke4", \
 	"memcpy", "memset", "trace", "pmem", "time", "exit", "font", "mouse", "circ", "circb", "tri", "textri", \
 	"clip", "music", "sync"}
@@ -296,13 +298,6 @@ typedef struct
 
 typedef struct
 {
-	tic_tile tiles[TIC_BANK_SPRITES];
-	tic_tile sprites[TIC_BANK_SPRITES];	
-	tic_map map;
-} tic_gfx;
-
-typedef struct
-{
 	char data[TIC_CODE_SIZE];
 } tic_code;
 
@@ -328,14 +323,26 @@ typedef union
 
 typedef struct
 {
-	tic_sfx sfx;
-	tic_music music;
-} tic_sound;
+	tic_tile data[TIC_BANK_SPRITES];
+} tic_tiles;
 
 typedef struct
 {
-	tic_gfx gfx;
-	tic_sound sound;
+	tic_tiles tiles;
+	tic_tiles sprites;
+	tic_map map;
+	tic_sfx sfx;
+	tic_music music;
+} tic_bank;
+
+typedef struct
+{
+	union
+	{
+		tic_bank bank;
+		tic_bank banks[TIC_BANKS];
+	};
+	
 	tic_code code;
 	tic_cover_image cover;
 	tic_palette palette;
@@ -368,7 +375,7 @@ typedef union
 				struct
 				{
 					u8 border:TIC_PALETTE_BPP;
-					u8 bg:TIC_PALETTE_BPP;
+					u8 tmp:TIC_PALETTE_BPP;
 				};
 			};
 
@@ -405,10 +412,13 @@ typedef union
 	struct
 	{
 		tic_vram vram;
-		tic_gfx gfx;
+		tic_tiles tiles;
+		tic_tiles sprites;
+		tic_map map;
 		tic_persistent persistent;
 		tic_sound_register registers[TIC_SOUND_CHANNELS];
-		tic_sound sound;
+		tic_sfx sfx;
+		tic_music music;
 		tic_music_pos music_pos;
 	};
 

@@ -7,9 +7,9 @@
   <key>CFBundleDisplayName</key>
   <string>TIC-80</string>
   <key>CFBundleExecutable</key>
-  <string>tic</string>
+  <string>tic80</string>
   <key>CFBundleIconFile</key>
-  <string>tic.icns</string>
+  <string>tic80.icns</string>
   <key>CFBundleIdentifier</key>
   <string>com.nesbox.tic</string>
   <key>CFBundleInfoDictionaryVersion</key>
@@ -19,9 +19,9 @@
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
-  <string>0.47.0</string>
+  <string>0.50.1</string>
   <key>CFBundleVersion</key>
-  <string>0.47.0</string>
+  <string>0.50.1</string>
   <key>NSHumanReadableCopyright</key>
   <string>http://tic.computer © 2017</string>
   <key>NSHighResolutionCapable</key>

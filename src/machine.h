@@ -46,8 +46,6 @@ typedef struct
 	s32 duration;
 } Channel;
 
-typedef void(ScanlineFunc)(tic_mem* memory, s32 row);
-
 typedef struct
 {
 	s32 l;
@@ -84,7 +82,17 @@ typedef struct
 		Channel channels[TIC_SOUND_CHANNELS];
 	} music;
 
-	ScanlineFunc* scanline;
+	tic_scanline scanline;
+
+	struct
+	{
+		tic_overlap callback;
+		u32 palette[TIC_PALETTE_SIZE];
+	} ovr;
+
+	void (*setpix)(tic_mem* memory, s32 x, s32 y, u8 color);
+	u8 (*getpix)(tic_mem* memory, s32 x, s32 y);
+
 	bool initialized;
 } MachineState;
 
@@ -102,7 +110,12 @@ typedef struct
 
 	blip_buffer_t* blip;
 	s32 samplerate;
-	const tic_sound* soundSrc;
+
+	struct
+	{
+		const tic_sfx* sfx;
+		const tic_music* music;
+	} sound;
 
 	tic_tick_data* data;
 
@@ -136,6 +149,10 @@ void callLuaTick(tic_machine* machine);
 void callJavascriptTick(tic_machine* machine);
 void callBrainfuckTick(tic_machine* machine);
 
-void callLuaScanline(tic_mem* memory, s32 row);
-void callJavascriptScanline(tic_mem* memory, s32 row);
-void callBrainfuckScanline(tic_mem* memory, s32 row);
+void callLuaScanline(tic_mem* memory, s32 row, void* data);
+void callJavascriptScanline(tic_mem* memory, s32 row, void* data);
+void callBrainfuckScanline(tic_mem* memory, s32 row, void* data);
+
+void callLuaOverlap(tic_mem* memory, void* data);
+void callJavascriptOverlap(tic_mem* memory, void* data);
+void callBrainfuckOverlap(tic_mem* memory, void* data);

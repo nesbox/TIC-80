@@ -24,6 +24,7 @@
 #include "console.h"
 #include "fs.h"
 #include "ext/md5.h"
+#include <time.h>
 
 static void onTrace(void* data, const char* text, u8 color)
 {
@@ -115,6 +116,75 @@ static void tick(Run* run)
 		setStudioMode(TIC_CONSOLE_MODE);
 }
 
+static void processDoFile(void* data, char* dst)
+{
+	Run* run = (Run*)data;
+	tic_mem* tic = run->tic;
+
+	static const char DoFileTag[] = "dofile(";
+	enum {Size = sizeof DoFileTag - 1};
+
+	if (memcmp(tic->cart.code.data, DoFileTag, Size) == 0)
+	{
+		const char* start = tic->cart.code.data + Size;
+		const char* end = strchr(start, ')');
+
+		if(end && *start == *(end-1) && (*start == '"' || *start == '\''))
+		{
+			char filename[FILENAME_MAX] = {0};
+			memcpy(filename, start + 1, end - start - 2);
+			memset(dst, 0, sizeof(tic_code));
+
+			s32 size = 0;
+			void* buffer = fsReadFile(filename, &size);
+
+			if(buffer)
+			{
+				if(size > 0)
+				{
+					if(size > TIC_CODE_SIZE)
+					{
+						char buffer[256];
+						sprintf(buffer, "code is larger than %i symbols", TIC_CODE_SIZE);
+						onError(run, buffer);
+
+						return;
+					}
+					else SDL_memcpy(dst, buffer, size);
+				}
+			}
+			else
+			{
+				char buffer[256];
+				sprintf(buffer, "dofile: file '%s' not found", filename);
+				onError(run, buffer);
+
+				return;
+			}
+		}
+	}
+
+	return;
+}
+
+static void preseed()
+{
+#if defined(__MACOSX__)
+	srandom(time(NULL));
+	random();
+#else
+	srand(time(NULL));
+	rand();
+#endif
+}
+
+static bool forceExit(void* data)
+{
+	while(pollEvent());
+
+	return getStudioMode() != TIC_RUN_MODE;
+}
+
 void initRun(Run* run, Console* console, tic_mem* tic)
 {
 	*run = (Run)
@@ -133,6 +203,8 @@ void initRun(Run* run, Console* console, tic_mem* tic)
 			.start = 0,
 			.data = run,
 			.exit = onExit,
+			.preprocessor = processDoFile,
+			.forceExit = forceExit,
 		},
 	};
 
@@ -151,4 +223,6 @@ void initRun(Run* run, Console* console, tic_mem* tic)
 
 		if(data) SDL_free(data);
 	}
+
+	preseed();
 }
