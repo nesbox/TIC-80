@@ -2268,8 +2268,8 @@ static void renderStudio()
 			music = &studio.tic->config.music;
 			break;
 		default:
-			sfx = &studio.tic->cart.bank.sfx;
-			music = &studio.tic->cart.bank.music;
+			sfx = getBankSfx();
+			music = getBankMusic();
 		}
 
 		studio.tic->api.tick_start(studio.tic, sfx, music);

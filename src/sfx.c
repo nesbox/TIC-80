@@ -106,7 +106,7 @@ static void drawSwitch(Sfx* sfx, s32 x, s32 y, const char* label, s32 value, voi
 
 static tic_sound_effect* getEffect(Sfx* sfx)
 {
-	return sfx->tic->cart.bank.sfx.data + sfx->index;
+	return getBankSfx()->data + sfx->index;
 }
 
 static void setIndex(Sfx* sfx, s32 delta)
@@ -169,7 +169,7 @@ static void drawLoopPanel(Sfx* sfx, s32 x, s32 y)
 
 static tic_waveform* getWaveformById(Sfx* sfx, s32 i)
 {
-	return &sfx->tic->cart.bank.sfx.waveform.envelopes[i];
+	return &getBankSfx()->waveform.envelopes[i];
 }
 
 static tic_waveform* getWaveform(Sfx* sfx)

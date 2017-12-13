@@ -105,13 +105,13 @@ void initWorld(World* world, tic_mem* tic, Map* map)
 
 	for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
 	{
-		u8 index = tic->cart.bank.map.data[i];
+		u8 index = getBankMap()->data[i];
 
 		if(index)
 		{
 			SDL_memset(colors, 0, sizeof colors);
 
-			tic_tile* tile = &tic->cart.bank.tiles.data[index];
+			tic_tile* tile = &getBankTiles()->data[index];
 
 			for(s32 p = 0; p < TIC_SPRITESIZE * TIC_SPRITESIZE; p++)
 			{

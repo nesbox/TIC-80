@@ -215,7 +215,7 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
 
 static tic_track* getTrack(Music* music)
 {
-	return &music->tic->cart.bank.music.tracks.data[music->track];
+	return &getBankMusic()->tracks.data[music->track];
 }
 
 static s32 getRows(Music* music)
@@ -368,7 +368,7 @@ static tic_track_pattern* getPattern(Music* music, s32 channel)
 {
 	s32 patternId = tic_tool_get_pattern_id(getTrack(music), music->tracker.frame, channel);
 
-	return patternId ? &music->tic->cart.bank.music.patterns.data[patternId - PATTERN_START] : NULL;
+	return patternId ? &getBankMusic()->patterns.data[patternId - PATTERN_START] : NULL;
 }
 
 static tic_track_pattern* getChannelPattern(Music* music)
