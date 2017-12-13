@@ -185,7 +185,7 @@ static void readConfig(Config* config)
 
 static void update(Config* config, const u8* buffer, size_t size)
 {
-	config->tic->api.load(&config->tic->config, buffer, size, true);
+	config->tic->api.load((tic_cartridge*)&config->tic->config, sizeof(tic_bank), buffer, size, true);
 
 	readConfig(config);
 	studioConfigChanged();
@@ -219,7 +219,7 @@ static void saveConfig(Config* config, bool overwrite)
 
 	if(buffer)
 	{
-		s32 size = config->tic->api.save(&config->tic->config, buffer);
+		s32 size = config->tic->api.save((tic_cartridge*)&config->tic->config, buffer);
 
 		fsSaveRootFile(config->fs, CONFIG_TIC_PATH, buffer, size, overwrite);
 

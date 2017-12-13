@@ -333,6 +333,8 @@ typedef struct
 	tic_map map;
 	tic_sfx sfx;
 	tic_music music;
+	tic_code code;
+	tic_palette palette;
 } tic_bank;
 
 typedef struct
@@ -343,9 +345,7 @@ typedef struct
 		tic_bank banks[TIC_BANKS];
 	};
 	
-	tic_code code;
 	tic_cover_image cover;
-	tic_palette palette;
 } tic_cartridge;
 
 typedef struct

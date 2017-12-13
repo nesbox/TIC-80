@@ -108,7 +108,7 @@ TIC80_API void tic80_load(tic80* tic, void* cart, s32 size)
 	}
 
 	{
-		tic80->memory->api.load(&tic80->memory->cart, cart, size, true);
+		tic80->memory->api.load(&tic80->memory->cart, sizeof(tic_cartridge), cart, size, true);
 		tic80->memory->api.reset(tic80->memory);
 	}
 }
