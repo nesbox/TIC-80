@@ -48,17 +48,17 @@
 static const char* ExeExt = ".exe";
 #endif
 
-static struct
-{
-	char prefix[32];
-	bool yes;
-	bool menu;
-	tic_cartridge file;
-} embed =
-{
-	.prefix = "C8B39163816B47209E721136D37B8031",
-	.yes = false,
-};
+// static struct
+// {
+// 	char prefix[32];
+// 	bool yes;
+// 	bool menu;
+// 	tic_cartridge file;
+// } embed =
+// {
+// 	.prefix = "C8B39163816B47209E721136D37B8031",
+// 	.yes = false,
+// };
 
 static const char DefaultLuaTicPath[] = TIC_LOCAL "default.tic";
 static const char DefaultMoonTicPath[] = TIC_LOCAL "default_moon.tic";
@@ -1669,107 +1669,107 @@ static void onConsoleExportHtmlCommand(Console* console, const char* name)
 
 #ifdef CAN_EXPORT
 
-static void* embedCart(Console* console, s32* size)
-{
-	tic_mem* tic = console->tic;
+// static void* embedCart(Console* console, s32* size)
+// {
+// 	tic_mem* tic = console->tic;
 
-	void* data = fsReadFile(console->appPath, size);
+// 	void* data = fsReadFile(console->appPath, size);
 
-	if(data)
-	{
-		void* start = memmem(data, *size, embed.prefix, sizeof(embed.prefix));
+// 	if(data)
+// 	{
+// 		void* start = memmem(data, *size, embed.prefix, sizeof(embed.prefix));
 
-		if(start)
-		{
-			embed.yes = true;
-			SDL_memcpy(&embed.file, &tic->cart, sizeof(tic_cartridge));
-			SDL_memcpy(start, &embed, sizeof(embed));
-			embed.yes = false;
-		}
+// 		if(start)
+// 		{
+// 			embed.yes = true;
+// 			SDL_memcpy(&embed.file, &tic->cart, sizeof(tic_cartridge));
+// 			SDL_memcpy(start, &embed, sizeof(embed));
+// 			embed.yes = false;
+// 		}
 
-		return data;
-	}
+// 		return data;
+// 	}
 	
-	return NULL;
-}
+// 	return NULL;
+// }
 
 #if defined(__WINDOWS__)
 
-static const char* getFileFolder(const char* path)
-{
-	static char folder[FILENAME_MAX];
+// static const char* getFileFolder(const char* path)
+// {
+// 	static char folder[FILENAME_MAX];
 
-	const char* pos = strrchr(path, '\\');
+// 	const char* pos = strrchr(path, '\\');
 
-	if(!pos)
-		pos = strrchr(path, '/');
+// 	if(!pos)
+// 		pos = strrchr(path, '/');
 
-	if(pos)
-	{
-		s32 size = pos - path;
-		memcpy(folder, path, size);
-		folder[size] = 0;
+// 	if(pos)
+// 	{
+// 		s32 size = pos - path;
+// 		memcpy(folder, path, size);
+// 		folder[size] = 0;
 
-		return folder;
-	}
+// 		return folder;
+// 	}
 
-	return NULL;
-}
+// 	return NULL;
+// }
 
-static bool exportToFolder(Console* console, const char* folder, const char* file)
-{
-	const char* workFolder = getFileFolder(console->appPath);
+// static bool exportToFolder(Console* console, const char* folder, const char* file)
+// {
+// 	const char* workFolder = getFileFolder(console->appPath);
 
-	if(workFolder)
-	{
-		char src[FILENAME_MAX];
-		strcpy(src, workFolder);
-		strcat(src, file);
+// 	if(workFolder)
+// 	{
+// 		char src[FILENAME_MAX];
+// 		strcpy(src, workFolder);
+// 		strcat(src, file);
 
-		char dst[FILENAME_MAX];
-		strcpy(dst, folder);
-		strcat(dst, file);
+// 		char dst[FILENAME_MAX];
+// 		strcpy(dst, folder);
+// 		strcat(dst, file);
 
-		return fsCopyFile(src, dst);
-	}
+// 		return fsCopyFile(src, dst);
+// 	}
 
-	return NULL;
-}
+// 	return NULL;
+// }
 
-static void onConsoleExportNativeCommand(Console* console, const char* cartName)
-{
-	const char* folder = folder_dialog(console);
-	bool done = false;
+// static void onConsoleExportNativeCommand(Console* console, const char* cartName)
+// {
+// 	const char* folder = folder_dialog(console);
+// 	bool done = false;
 
-	if(folder)
-	{
-		s32 size = 0;
+// 	if(folder)
+// 	{
+// 		s32 size = 0;
 
-		void* data = embedCart(console, &size);
+// 		void* data = embedCart(console, &size);
 
-		if(data)
-		{
-			char path[FILENAME_MAX];
-			strcpy(path, folder);
-			strcat(path, "\\game.exe");
+// 		if(data)
+// 		{
+// 			char path[FILENAME_MAX];
+// 			strcpy(path, folder);
+// 			strcat(path, "\\game.exe");
 
-			done = fsWriteFile(path, data, size);
+// 			done = fsWriteFile(path, data, size);
 
-			SDL_free(data);
-		}
-		else
-		{
-			printBack(console, "\ngame exporting error :(");
-		}
-	}
+// 			SDL_free(data);
+// 		}
+// 		else
+// 		{
+// 			printBack(console, "\ngame exporting error :(");
+// 		}
+// 	}
 
-	if(done && exportToFolder(console, folder, "\\tic80.dll") &&
-		exportToFolder(console, folder, "\\SDL2.dll"))
-		printBack(console, "\ngame exported :)");
-	else printBack(console, "\ngame not exported :|");
+// 	if(done && exportToFolder(console, folder, "\\tic80.dll") &&
+// 		exportToFolder(console, folder, "\\SDL2.dll"))
+// 		printBack(console, "\ngame exported :)");
+// 	else printBack(console, "\ngame not exported :|");
 
-	commandDone(console);
-}
+// 	commandDone(console);
+// }
 
 #else
 
@@ -1829,12 +1829,13 @@ static void onConsoleExportCommand(Console* console, const char* param)
 		{
 			if(strcmp(param, "native") == 0)
 			{
-#ifdef CAN_EXPORT
-				onConsoleExportNativeCommand(console, getExportName(console, false));
-#else
+// #ifdef CAN_EXPORT
+// 				onConsoleExportNativeCommand(console, getExportName(console, false));
+// #else
+
 				printBack(console, "\nnative export isn't supported on this platform\n");
 				commandDone(console);
-#endif
+// #endif
 			}
 			else if(strcmp(param, "sprites") == 0)
 			{
@@ -2576,7 +2577,7 @@ static void tick(Console* console)
 
 	if(console->tickCounter == 0)
 	{
-		if(!embed.yes)
+		if(!console->embed.yes)
 		{
 			loadDemo(console, tic_script_lua);
 
@@ -2595,16 +2596,16 @@ static void tick(Console* console)
 	console->tic->api.clear(console->tic, TIC_COLOR_BG);
 	drawConsoleText(console);
 
-	if(embed.yes)
+	if(console->embed.yes)
 	{
 		if(console->tickCounter >= (u32)(console->skipStart ? 1 : TIC_FRAMERATE))
 		{
 			if(!console->skipStart)
 				console->showGameMenu = true;
 
-			memcpy(&console->tic->cart, &embed.file, sizeof(tic_cartridge));
+			// memcpy(&console->tic->cart, &embed.file, sizeof(tic_cartridge));
 			setStudioMode(TIC_RUN_MODE);
-			embed.yes = false;
+			console->embed.yes = false;
 			console->skipStart = false;
 			studioRomLoaded();
 
@@ -2648,9 +2649,9 @@ static bool cmdLoadCart(Console* console, const char* name)
 #if defined(TIC80_PRO)
 		if(hasProjectExt(name))
 		{
-			loadProject(console, name, data, size, &embed.file);
+			loadProject(console, name, data, size, console->embed.file);
 			setCartName(console, fsFilename(name));
-			embed.yes = true;
+			console->embed.yes = true;
 			console->skipStart = true;
 			done = true;
 		}
@@ -2659,9 +2660,9 @@ static bool cmdLoadCart(Console* console, const char* name)
 
 		if(hasExt(name, CART_EXT))
 		{
-			loadCart(console->tic, &embed.file, data, size, true);			
+			loadCart(console->tic, console->embed.file, data, size, true);			
 			setCartName(console, fsFilename(name));
-			embed.yes = true;
+			console->embed.yes = true;
 			done = true;
 		}
 		
@@ -2713,11 +2714,11 @@ static bool cmdInjectCode(Console* console, const char* param, const char* name)
 	bool watch = strcmp(param, "-code-watch") == 0;
 	if(watch || strcmp(param, "-code") == 0)
 	{
-		bool loaded = loadFileIntoBuffer(console, embed.file.bank.code.data, name);
+		bool loaded = loadFileIntoBuffer(console, console->embed.file->bank.code.data, name);
 
 		if(loaded)
 		{
-			embed.yes = true;
+			console->embed.yes = true;
 			console->skipStart = true;
 			done = true;
 
@@ -2762,9 +2763,9 @@ static bool cmdInjectSprites(Console* console, const char* param, const char* na
 						u8 src = image->buffer[x + y * image->width];
 						const gif_color* c = &image->palette[src];
 						tic_rgb rgb = {c->r, c->g, c->b};
-						u8 color = tic_tool_find_closest_color(embed.file.bank.palette.colors, &rgb);
+						u8 color = tic_tool_find_closest_color(console->embed.file->bank.palette.colors, &rgb);
 
-						setSpritePixel(embed.file.bank.tiles.data, x, y, color);
+						setSpritePixel(console->embed.file->bank.tiles.data, x, y, color);
 					}
 
 				gif_close(image);
@@ -2772,7 +2773,7 @@ static bool cmdInjectSprites(Console* console, const char* param, const char* na
 
 			SDL_free(sprites);
 
-			embed.yes = true;
+			console->embed.yes = true;
 			console->skipStart = true;
 			done = true;
 		}
@@ -2797,7 +2798,7 @@ static bool cmdInjectMap(Console* console, const char* param, const char* name)
 			{
 				injectMap(console, map, size);
 
-				embed.yes = true;
+				console->embed.yes = true;
 				console->skipStart = true;
 				done = true;
 			}
@@ -2813,6 +2814,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 {
 	if(!console->buffer) console->buffer = SDL_malloc(CONSOLE_BUFFER_SIZE);
 	if(!console->colorBuffer) console->colorBuffer = SDL_malloc(CONSOLE_BUFFER_SIZE);
+	if(!console->embed.file) console->embed.file = SDL_malloc(sizeof(tic_cartridge));
 
 	*console = (Console)
 	{
@@ -2842,6 +2844,12 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 		{
 			.active = false,
 			.reload = tryReloadCode,
+		},
+		.embed =
+		{
+			.yes = false,
+			.menu = false,
+			.file = NULL,
 		},
 		.inputPosition = 0,
 		.history = NULL,
@@ -2878,7 +2886,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 
 	if(argc > 1)
 	{
-		memcpy(embed.file.bank.palette.data, tic->config.palette.data, sizeof(tic_palette));
+		memcpy(console->embed.file->bank.palette.data, tic->config.palette.data, sizeof(tic_palette));
 
 		u32 argp = 1;
 
@@ -2980,5 +2988,5 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 
 #endif
 
-	console->active = !embed.yes;
+	console->active = !console->embed.yes;
 }

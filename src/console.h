@@ -69,6 +69,13 @@ struct Console
 		void(*reload)(Console*, char*);
 	} codeLiveReload;
 
+	struct
+	{
+		bool yes;
+		bool menu;
+		tic_cartridge* file;
+	} embed;
+
 	char* buffer;
 	u8* colorBuffer;
 
