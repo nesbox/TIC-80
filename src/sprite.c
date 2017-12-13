@@ -672,8 +672,8 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 
 static void pasteColor(Sprite* sprite)
 {
-	fromClipboard(sprite->tic->cart.palette.data, sizeof(tic_palette), false, true);
-	fromClipboard(&sprite->tic->cart.palette.colors[sprite->color], sizeof(tic_rgb), false, true);
+	fromClipboard(sprite->tic->cart.bank.palette.data, sizeof(tic_palette), false, true);
+	fromClipboard(&sprite->tic->cart.bank.palette.colors[sprite->color], sizeof(tic_rgb), false, true);
 }
 
 static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
@@ -708,7 +708,7 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
 				down = true;
 
 			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
-				toClipboard(sprite->tic->cart.palette.data, sizeof(tic_palette), false);
+				toClipboard(sprite->tic->cart.bank.palette.data, sizeof(tic_palette), false);
 		}
 
 		if(down)
@@ -772,7 +772,7 @@ static void drawRGBSliders(Sprite* sprite, s32 x, s32 y)
 {
 	enum{Gap = 6, Count = sizeof(tic_rgb)};
 
-	u8* data = &sprite->tic->cart.palette.data[sprite->color * Count];
+	u8* data = &sprite->tic->cart.bank.palette.data[sprite->color * Count];
 
 	for(s32 i = 0; i < Count; i++)
 		drawRGBSlider(sprite, x, y + Gap*i, &data[i]);
@@ -784,7 +784,7 @@ static void drawRGBSlidersOvr(Sprite* sprite, s32 x, s32 y)
 {
 	enum{Gap = 6, Count = sizeof(tic_rgb), Size = CANVAS_SIZE, Max = 255};
 
-	u8* data = &sprite->tic->cart.palette.data[sprite->color * Count];
+	u8* data = &sprite->tic->cart.bank.palette.data[sprite->color * Count];
 
 	for(s32 i = 0; i < Count; i++)
 	{

@@ -1327,7 +1327,7 @@ static void drawTumbler(Music* music, s32 x, s32 y, s32 index)
 	}
 
 	u8 color = Chroma;
-	tic->api.sprite(tic, &tic->config.bank.tiles, music->tracker.patterns[index] ? On : Off, x, y, &color, 1);
+	tic->api.sprite(tic, &tic->config.tiles, music->tracker.patterns[index] ? On : Off, x, y, &color, 1);
 }
 
 static void drawTracker(Music* music, s32 x, s32 y)
