@@ -146,6 +146,12 @@ static struct
 
 	struct
 	{
+		bool show;
+		s32 index;
+	} bank;
+
+	struct
+	{
 		s32 counter;
 		char message[STUDIO_TEXT_BUFFER_WIDTH];
 	} popup;
@@ -249,6 +255,12 @@ static struct
 	.gamepad =
 	{
 		.show = false,
+	},
+
+	.bank = 
+	{
+		.show = false,
+		.index = 0,
 	},
 
 	.popup =
@@ -426,7 +438,7 @@ static const EditorMode Modes[] =
 	TIC_MUSIC_MODE,
 };
 
-void drawExtrabar(tic_mem* tic)
+static void drawExtrabar(tic_mem* tic)
 {
 	enum {Size = 7};
 
@@ -519,6 +531,76 @@ const StudioConfig* getConfig()
 {
 	return &studio.config.data;
 }
+
+#if defined (TIC80_PRO)
+
+static void drawBankIcon(s32 x, s32 y)
+{
+	tic_mem* tic = studio.tic;
+
+	SDL_Rect rect = {x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
+
+	static const u8 Icon[] =
+	{
+		0b00000000,
+		0b01111100,
+		0b01000100,
+		0b01000100,
+		0b01111100,
+		0b01111000,
+		0b00000000,
+		0b00000000,
+	};
+
+	bool over = false;
+
+	if(checkMousePos(&rect))
+	{
+		setCursor(SDL_SYSTEM_CURSOR_HAND);
+
+		over = true;
+
+		showTooltip("SWITCH BANK");
+
+		if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			studio.bank.show = !studio.bank.show;
+	}
+
+	if(studio.bank.show)
+	{
+		drawBitIcon(x, y, Icon, over ? tic_color_peach : tic_color_red);
+
+		enum{Size = TOOLBAR_SIZE};
+
+		for(s32 i = 0; i < TIC_BANKS; i++)
+		{
+			SDL_Rect rect = {x + 2 + (i+1)*Size, 0, Size, Size};
+
+			bool over = false;
+			if(checkMousePos(&rect))
+			{
+				setCursor(SDL_SYSTEM_CURSOR_HAND);
+				over = true;
+
+				if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+					studio.bank.index = i;
+			}
+
+			if(i == studio.bank.index)
+			{
+				tic->api.rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_red);
+			}
+
+			tic->api.draw_char(tic, '0' + i, rect.x+1, rect.y+1, i == studio.bank.index ? tic_color_white : over ? tic_color_red : tic_color_peach);
+		}
+	}
+	else
+	{
+		drawBitIcon(x, y, Icon, over ? tic_color_red : tic_color_peach);
+	}
+}
+
+#endif
 
 void drawToolbar(tic_mem* tic, u8 color, bool bg)
 {
@@ -628,15 +710,22 @@ void drawToolbar(tic_mem* tic, u8 color, bool bg)
 		"MUSIC EDITOR",
 	};
 
-	if(mode >= 0)
+#if defined (TIC80_PRO)
+	enum {TextOffset = (COUNT_OF(Modes) + 2) * Size - 2};
+	drawBankIcon(COUNT_OF(Modes) * Size + 2, 0);
+#else
+	enum {TextOffset = (COUNT_OF(Modes) + 1) * Size};
+#endif
+
+	if(mode >= 0 && !studio.bank.show)
 	{
 		if(strlen(studio.tooltip.text))
 		{
-			studio.tic->api.text(tic, studio.tooltip.text, (COUNT_OF(Modes) + 1) * Size, 1, (tic_color_black));
+			studio.tic->api.text(tic, studio.tooltip.text, TextOffset, 1, (tic_color_black));
 		}
 		else
 		{
-			studio.tic->api.text(tic, Names[mode], (COUNT_OF(Modes) + 1) * Size, 1, (tic_color_dark_gray));
+			studio.tic->api.text(tic, Names[mode], TextOffset, 1, (tic_color_dark_gray));
 		}
 	}
 }
