@@ -2504,20 +2504,20 @@ static void onFSInitialized(FileSystem* fs)
 	studio.tic = studio.tic80local->memory;
 
 	{
-		studio.start = SDL_malloc(sizeof(Start));
-		studio.console = SDL_malloc(sizeof(Console));
-		studio.run = SDL_malloc(sizeof(Run));
-		studio.code = SDL_malloc(sizeof(Code));
-		studio.sprite = SDL_malloc(sizeof(Sprite));
-		studio.map = SDL_malloc(sizeof(Map));
-		studio.world = SDL_malloc(sizeof(World));
-		studio.sfx = SDL_malloc(sizeof(Sfx));
-		studio.music = SDL_malloc(sizeof(Music));
-		studio.config = SDL_malloc(sizeof(Config));
-		studio.keymap = SDL_malloc(sizeof(Keymap));
-		studio.dialog = SDL_malloc(sizeof(Dialog));
-		studio.menu = SDL_malloc(sizeof(Menu));
-		studio.surf = SDL_malloc(sizeof(Surf));
+		studio.start = 		SDL_malloc(sizeof(Start));
+		studio.console = 	SDL_malloc(sizeof(Console));
+		studio.run = 		SDL_malloc(sizeof(Run));
+		studio.code = 		SDL_malloc(sizeof(Code));
+		studio.sprite = 	SDL_malloc(sizeof(Sprite));
+		studio.map = 		SDL_malloc(sizeof(Map));
+		studio.world = 		SDL_malloc(sizeof(World));
+		studio.sfx = 		SDL_malloc(sizeof(Sfx));
+		studio.music = 		SDL_malloc(sizeof(Music));
+		studio.config = 	SDL_malloc(sizeof(Config));
+		studio.keymap = 	SDL_malloc(sizeof(Keymap));
+		studio.dialog = 	SDL_malloc(sizeof(Dialog));
+		studio.menu = 		SDL_malloc(sizeof(Menu));
+		studio.surf = 		SDL_malloc(sizeof(Surf));
 	}
 
 	fsMakeDir(fs, TIC_LOCAL);
@@ -2610,6 +2610,23 @@ s32 main(s32 argc, char **argv)
 	}
 
 #endif
+
+	{
+		SDL_free(studio.start);
+		SDL_free(studio.console);
+		SDL_free(studio.run);
+		SDL_free(studio.code);
+		SDL_free(studio.sprite);
+		SDL_free(studio.map);
+		SDL_free(studio.world);
+		SDL_free(studio.sfx);
+		SDL_free(studio.music);
+		SDL_free(studio.config);
+		SDL_free(studio.keymap);
+		SDL_free(studio.dialog);
+		SDL_free(studio.menu);
+		SDL_free(studio.surf);
+	}
 
 	if(studio.tic80local)
 		tic80_delete((tic80*)studio.tic80local);
