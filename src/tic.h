@@ -108,6 +108,7 @@
 #define TIC_CODE_SIZE (0x10000)
 
 #define TIC_BANKS 8
+#define TIC_BANK_SECTIONS 5
 
 #define SFX_NOTES {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
 
@@ -325,6 +326,17 @@ typedef struct
 {
 	tic_tile data[TIC_BANK_SPRITES];
 } tic_tiles;
+
+typedef enum
+{
+	tic_bank_tiles 		= 1 << 0,
+	tic_bank_sprites 	= 1 << 1,
+	tic_bank_map 		= 1 << 2,
+	tic_bank_sfx 		= 1 << 3,
+	tic_bank_music 		= 1 << 4,
+	tic_bank_palette 	= 1 << 5,
+	tic_bank_all 		= (1 << (TIC_BANK_SECTIONS+1)) - 1,
+} tic_bank_section;
 
 typedef struct
 {

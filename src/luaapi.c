@@ -752,7 +752,7 @@ static s32 lua_sync(lua_State* lua)
 	if(lua_gettop(lua) >= 1)
 		toCart = lua_toboolean(lua, 1);
 
-	memory->api.sync(memory, toCart);
+	memory->api.sync(memory, tic_bank_all, 0, toCart);
 
 	return 0;
 }

@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <ctype.h>
+#include <stddef.h>
 
 #include "ticapi.h"
 #include "tools.h"
@@ -1322,29 +1323,31 @@ static void initCover(tic_mem* tic)
 	}
 }
 
-static void api_sync(tic_mem* tic, bool toCart)
+static void api_sync(tic_mem* tic, tic_bank_section section, s32 bank, bool toCart)
 {
-	if(toCart)
+	static const struct {s32 cart; s32 ram; s32 size;} Offsets[TIC_BANK_SECTIONS] = 
 	{
-		memcpy(&tic->cart.bank.tiles, 	&tic->ram.tiles, 	sizeof(tic_tiles));
-		memcpy(&tic->cart.bank.sprites, &tic->ram.sprites, 	sizeof(tic_tiles));
-		memcpy(&tic->cart.bank.map, 	&tic->ram.map, 		sizeof(tic_map));
-		memcpy(&tic->cart.bank.sfx, 	&tic->ram.sfx, 		sizeof(tic_sfx));
-		memcpy(&tic->cart.bank.music, 	&tic->ram.music, 	sizeof(tic_music));
-	}
-	else
-	{
-		memcpy(&tic->ram.tiles, 	&tic->cart.bank.tiles, 		sizeof(tic_tiles));
-		memcpy(&tic->ram.sprites, 	&tic->cart.bank.sprites, 	sizeof(tic_tiles));
-		memcpy(&tic->ram.map, 		&tic->cart.bank.map, 		sizeof(tic_map));
-		memcpy(&tic->ram.sfx, 		&tic->cart.bank.sfx, 		sizeof(tic_sfx));
-		memcpy(&tic->ram.music, 	&tic->cart.bank.music, 		sizeof(tic_music));
-	}
+		{offsetof(tic_cartridge, bank.tiles), 	offsetof(tic_ram, tiles), 			sizeof(tic_tiles)},
+		{offsetof(tic_cartridge, bank.sprites), offsetof(tic_ram, sprites), 		sizeof(tic_tiles)},
+		{offsetof(tic_cartridge, bank.map), 	offsetof(tic_ram, map), 			sizeof(tic_map)},
+		{offsetof(tic_cartridge, bank.sfx), 	offsetof(tic_ram, sfx), 			sizeof(tic_sfx)},
+		{offsetof(tic_cartridge, bank.palette), offsetof(tic_ram, vram.palette), 	sizeof(tic_palette)},
+	};
+
+	assert(bank >= 0 && bank < TIC_BANKS);
+
+	s32 bankOffset = bank * sizeof(tic_bank);
+
+	for(s32 i = 0; i < TIC_BANK_SECTIONS; i++)
+		if(section & (1 << i))
+			toCart
+				? memcpy((u8*)&tic->cart + Offsets[i].cart + bankOffset, (u8*)&tic->ram + Offsets[i].ram, Offsets[i].size)
+				: memcpy((u8*)&tic->ram + Offsets[i].ram, (u8*)&tic->cart + Offsets[i].cart + bankOffset, Offsets[i].size);
 }
 
 static void cart2ram(tic_mem* memory)
 {
-	api_sync(memory, false);
+	api_sync(memory, tic_bank_all, 0, false);
 
 	initCover(memory);
 }

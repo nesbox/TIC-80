@@ -705,7 +705,7 @@ static duk_ret_t duk_sync(duk_context* duk)
 
 	bool toCart = duk_is_null_or_undefined(duk, 0) ? true : duk_to_boolean(duk, 0);
 
-	memory->api.sync(memory, toCart);
+	memory->api.sync(memory, tic_bank_all, 0, toCart);
 
 	return 0;
 }

@@ -1978,7 +1978,7 @@ static void onConsoleResumeCommand(Console* console, const char* param)
 	commandDone(console);
 
 	console->tic->api.resume(console->tic);
-	console->tic->api.sync(console->tic, false);
+	console->tic->api.sync(console->tic, tic_bank_all, 0, false);
 
 	setStudioMode(TIC_RUN_MODE);
 }
