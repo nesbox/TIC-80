@@ -219,7 +219,7 @@ static void saveConfig(Config* config, bool overwrite)
 
 	if(buffer)
 	{
-		s32 size = config->tic->api.save((tic_cartridge*)&config->tic->config, buffer);
+		s32 size = config->tic->api.save(&config->tic->config, buffer);
 
 		fsSaveRootFile(config->fs, CONFIG_TIC_PATH, buffer, size, overwrite);
 
