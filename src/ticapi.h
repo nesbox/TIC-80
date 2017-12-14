@@ -103,7 +103,7 @@ typedef struct
 	void (*reset)				(tic_mem* memory);
 	void (*pause)				(tic_mem* memory);
 	void (*resume)				(tic_mem* memory);
-	void (*sync)				(tic_mem* memory, tic_bank_section section, s32 bank, bool toCart);
+	void (*sync)				(tic_mem* memory, const char* section, s32 bank, bool toCart);
 	u32 (*btnp)					(tic_mem* memory, s32 id, s32 hold, s32 period);
 
 	void (*load)				(tic_cartridge* rom, s32 cartSize, const u8* buffer, s32 size, bool palette);

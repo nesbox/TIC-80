@@ -1323,31 +1323,34 @@ static void initCover(tic_mem* tic)
 	}
 }
 
-static void api_sync(tic_mem* tic, tic_bank_section section, s32 bank, bool toCart)
+static void api_sync(tic_mem* tic, const char* section, s32 bank, bool toCart)
 {
-	static const struct {s32 cart; s32 ram; s32 size;} Offsets[TIC_BANK_SECTIONS] = 
+	static const struct {const char* name; s32 cart; s32 ram; s32 size;} Sections[] = 
 	{
-		{offsetof(tic_cartridge, bank.tiles), 	offsetof(tic_ram, tiles), 			sizeof(tic_tiles)},
-		{offsetof(tic_cartridge, bank.sprites), offsetof(tic_ram, sprites), 		sizeof(tic_tiles)},
-		{offsetof(tic_cartridge, bank.map), 	offsetof(tic_ram, map), 			sizeof(tic_map)},
-		{offsetof(tic_cartridge, bank.sfx), 	offsetof(tic_ram, sfx), 			sizeof(tic_sfx)},
-		{offsetof(tic_cartridge, bank.palette), offsetof(tic_ram, vram.palette), 	sizeof(tic_palette)},
+		{"tiles", 	offsetof(tic_cartridge, bank.tiles), 	offsetof(tic_ram, tiles), 			sizeof(tic_tiles)},
+		{"sprites", offsetof(tic_cartridge, bank.sprites), 	offsetof(tic_ram, sprites), 		sizeof(tic_tiles)},
+		{"map", 	offsetof(tic_cartridge, bank.map), 		offsetof(tic_ram, map), 			sizeof(tic_map)},
+		{"sfx", 	offsetof(tic_cartridge, bank.sfx), 		offsetof(tic_ram, sfx), 			sizeof(tic_sfx)},
+		{"music", 	offsetof(tic_cartridge, bank.music), 	offsetof(tic_ram, music), 			sizeof(tic_music)},
+		{"pal", 	offsetof(tic_cartridge, bank.palette), 	offsetof(tic_ram, vram.palette), 	sizeof(tic_palette)},
 	};
 
 	assert(bank >= 0 && bank < TIC_BANKS);
 
 	s32 bankOffset = bank * sizeof(tic_bank);
 
-	for(s32 i = 0; i < TIC_BANK_SECTIONS; i++)
-		if(section & (1 << i))
+	for(s32 i = 0; i < COUNT_OF(Sections); i++)
+	{
+		if(section == NULL || (section && strcmp(section, Sections[i].name) == 0))
 			toCart
-				? memcpy((u8*)&tic->cart + Offsets[i].cart + bankOffset, (u8*)&tic->ram + Offsets[i].ram, Offsets[i].size)
-				: memcpy((u8*)&tic->ram + Offsets[i].ram, (u8*)&tic->cart + Offsets[i].cart + bankOffset, Offsets[i].size);
+				? memcpy((u8*)&tic->cart + Sections[i].cart + bankOffset, (u8*)&tic->ram + Sections[i].ram, Sections[i].size)
+				: memcpy((u8*)&tic->ram + Sections[i].ram, (u8*)&tic->cart + Sections[i].cart + bankOffset, Sections[i].size);
+	}
 }
 
 static void cart2ram(tic_mem* memory)
 {
-	api_sync(memory, tic_bank_all, 0, false);
+	api_sync(memory, NULL, 0, false);
 
 	initCover(memory);
 }
