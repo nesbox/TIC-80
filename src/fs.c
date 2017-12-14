@@ -108,6 +108,9 @@ bool fsIsInPublicDir(FileSystem* fs)
 #define UTF8ToString(S) (wchar_t *)SDL_iconv_string("UTF-16LE", "UTF-8", (char *)(S), SDL_strlen(S)+1)
 #define StringToUTF8(S) SDL_iconv_string("UTF-8", "UTF-16LE", (char *)(S), (SDL_wcslen(S)+1)*sizeof(wchar_t))
 
+FILE* _wfopen(const wchar_t *, const wchar_t *);
+int _wremove(const wchar_t *);
+
 #define TIC_DIR _WDIR
 #define tic_dirent _wdirent
 #define tic_stat_struct _stat
