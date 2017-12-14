@@ -124,7 +124,7 @@ static void drawDialog(Menu* menu)
 
 	{
 		u8 chromakey = 14;
-		tic->api.sprite_ex(tic, &tic->config.tiles, 0, rect.x+6, rect.y-4, 2, 2, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);
+		tic->api.sprite_ex(tic, &tic->config.bank0.tiles, 0, rect.x+6, rect.y-4, 2, 2, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);
 	}	
 }
 
@@ -209,7 +209,7 @@ static void drawPlayerButtons(Menu* menu, s32 x, s32 y)
 		if(menu->gamepad.selected == index && menu->ticks % TIC_FRAMERATE < TIC_FRAMERATE / 2)
 			continue;
 
-		tic->api.sprite_ex(tic, &tic->config.tiles, 8+i, rect.x, rect.y, 1, 1, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);
+		tic->api.sprite_ex(tic, &tic->config.bank0.tiles, 8+i, rect.x, rect.y, 1, 1, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);
 
 		s32 code = codes[index];
 		char label[32];

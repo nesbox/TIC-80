@@ -512,7 +512,7 @@ static duk_ret_t duk_pmem(duk_context* duk)
 
 	u32 index = duk_to_int(duk, 0);
 
-	if(index >= 0 && index < TIC_PERSISTENT_SIZE)
+	if(index < TIC_PERSISTENT_SIZE)
 	{
 		s32 val = memory->ram.persistent.data[index];
 
@@ -704,8 +704,13 @@ static duk_ret_t duk_sync(duk_context* duk)
 	tic_mem* memory = (tic_mem*)getDukMachine(duk);
 
 	bool toCart = duk_is_null_or_undefined(duk, 0) ? true : duk_to_boolean(duk, 0);
+	const char* section = duk_is_null_or_undefined(duk, 1) ? NULL : duk_to_string(duk, 1);
+	s32 bank = duk_is_null_or_undefined(duk, 2) ? 0 : duk_to_int(duk, 2);
 
-	memory->api.sync(memory, toCart);
+	if(bank >= 0 && bank < TIC_BANKS)
+		memory->api.sync(memory, section, bank, toCart);
+	else
+		duk_error(duk, DUK_ERR_ERROR, "sync() error, invalid bank");
 
 	return 0;
 }
@@ -747,7 +752,7 @@ static const struct{duk_c_function func; s32 params;} ApiFunc[] =
 	{duk_textri,14},
 	{duk_clip, 4},
 	{duk_music, 4},
-	{duk_sync, 1},
+	{duk_sync, 3},
 };
 
 static void initDuktape(tic_machine* machine)

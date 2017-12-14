@@ -314,7 +314,7 @@ static void drawTileIndex(Map* map, s32 x, s32 y)
 		{
 			s32 tx = 0, ty = 0;
 			getMouseMap(map, &tx, &ty);
-			index = map->tic->api.map_get(map->tic, getBankMap(), tx, ty);
+			index = map->tic->api.map_get(map->tic, map->src, tx, ty);
 		}
 	}
 
@@ -437,7 +437,7 @@ static void setMapSprite(Map* map, s32 x, s32 y)
 
 	for(s32 j = 0; j < map->sheet.rect.h; j++)
 		for(s32 i = 0; i < map->sheet.rect.w; i++)
-			map->tic->api.map_set(map->tic, getBankMap(), (x+i)%TIC_MAP_WIDTH, (y+j)%TIC_MAP_HEIGHT, (mx+i) + (my+j) * SHEET_COLS);
+			map->tic->api.map_set(map->tic, map->src, (x+i)%TIC_MAP_WIDTH, (y+j)%TIC_MAP_HEIGHT, (mx+i) + (my+j) * SHEET_COLS);
 
 	history_add(map->history);
 }
@@ -512,7 +512,7 @@ static void processMouseDrawMode(Map* map)
 	{
 		s32 tx = 0, ty = 0;
 		getMouseMap(map, &tx, &ty);
-		s32 index = map->tic->api.map_get(map->tic, getBankMap(), tx, ty);
+		s32 index = map->tic->api.map_get(map->tic, map->src, tx, ty);
 
 		map->sheet.rect = (SDL_Rect){index % SHEET_COLS, index / SHEET_COLS, 1, 1};
 	}
@@ -593,7 +593,7 @@ static void drawPasteData(Map* map)
 
 		for(s32 j = 0; j < h; j++)
 			for(s32 i = 0; i < w; i++)
-				map->tic->api.map_set(map->tic, getBankMap(), (mx+i)%TIC_MAP_WIDTH, (my+j)%TIC_MAP_HEIGHT, data[i + j * w]);
+				map->tic->api.map_set(map->tic, map->src, (mx+i)%TIC_MAP_WIDTH, (my+j)%TIC_MAP_HEIGHT, data[i + j * w]);
 
 		history_add(map->history);
 
@@ -764,7 +764,7 @@ static void fillMap(Map* map, s32 x, s32 y, u8 tile)
 	{
 		for(s32 j = 0; j < map->sheet.rect.h; j++)
 			for(s32 i = 0; i < map->sheet.rect.w; i++)
-				map->tic->api.map_set(map->tic, getBankMap(), x+i, y+j, (mx+i) + (my+j) * SHEET_COLS);
+				map->tic->api.map_set(map->tic, map->src, x+i, y+j, (mx+i) + (my+j) * SHEET_COLS);
 
 		for(s32 i = 0; i < COUNT_OF(dx); i++) 
 		{
@@ -776,7 +776,7 @@ static void fillMap(Map* map, s32 x, s32 y, u8 tile)
 				bool match = true;
 				for(s32 j = 0; j < map->sheet.rect.h; j++)
 					for(s32 i = 0; i < map->sheet.rect.w; i++)
-						if(map->tic->api.map_get(map->tic, getBankMap(), nx+i, ny+j) != tile)
+						if(map->tic->api.map_get(map->tic, map->src, nx+i, ny+j) != tile)
 							match = false;
 
 				if(match)
@@ -801,7 +801,7 @@ static void processMouseFillMode(Map* map)
 		s32 tx = 0, ty = 0;
 		getMouseMap(map, &tx, &ty);
 
-		fillMap(map, tx, ty, map->tic->api.map_get(map->tic, getBankMap(), tx, ty));
+		fillMap(map, tx, ty, map->tic->api.map_get(map->tic, map->src, tx, ty));
 		history_add(map->history);
 	}
 }
@@ -864,7 +864,7 @@ static void drawMapOvr(Map* map)
 	s32 scrollX = map->scroll.x % TIC_SPRITESIZE;
 	s32 scrollY = map->scroll.y % TIC_SPRITESIZE;
 
-	map->tic->api.map(map->tic, getBankMap(), getBankTiles(), map->scroll.x / TIC_SPRITESIZE, map->scroll.y / TIC_SPRITESIZE, 
+	map->tic->api.map(map->tic, map->src, getBankTiles(), map->scroll.x / TIC_SPRITESIZE, map->scroll.y / TIC_SPRITESIZE, 
 		TIC_MAP_SCREEN_WIDTH + 1, TIC_MAP_SCREEN_HEIGHT + 1, -scrollX, -scrollY, -1, 1);
 
 	if(map->canvas.grid || map->scroll.active)
@@ -950,7 +950,7 @@ static void copySelectionToClipboard(Map* map)
 					normalizeMapRect(&x, &y);
 
 					s32 index = x + y * TIC_MAP_WIDTH;
-					*ptr++ = getBankMap()->data[index];
+					*ptr++ = map->src->data[index];
 				}		
 
 			toClipboard(buffer, size, true);
@@ -978,7 +978,7 @@ static void deleteSelection(Map* map)
 				normalizeMapRect(&x, &y);
 
 				s32 index = x + y * TIC_MAP_WIDTH;
-				getBankMap()->data[index] = 0;
+				map->src->data[index] = 0;
 			}
 
 		history_add(map->history);
@@ -1147,7 +1147,7 @@ static void overlap(tic_mem* tic, void* data)
 	drawSheetOvr(map, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, TOOLBAR_SIZE);
 }
 
-void initMap(Map* map, tic_mem* tic)
+void initMap(Map* map, tic_mem* tic, tic_map* src)
 {
 	if(map->history) history_delete(map->history);
 	
@@ -1155,6 +1155,7 @@ void initMap(Map* map, tic_mem* tic)
 	{
 		.tic = tic,
 		.tick = tick,
+		.src = src,
 		.mode = MAP_DRAW_MODE,
 		.canvas = 
 		{
@@ -1185,7 +1186,7 @@ void initMap(Map* map, tic_mem* tic)
 			.gesture = false,
 			.start = {0, 0},
 		},
-		.history = history_create(&tic->cart.bank.map, sizeof(tic_map)),
+		.history = history_create(src, sizeof(tic_map)),
 		.event = onStudioEvent,
 		.overlap = overlap,
 	};

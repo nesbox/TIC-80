@@ -80,7 +80,7 @@ static const char* getPMemName(Run* run)
 {
 	static char buffer[FILENAME_MAX];
 
-	const char* data = strlen(run->tic->saveid) ? run->tic->saveid : run->tic->cart.bank.code.data;
+	const char* data = strlen(run->tic->saveid) ? run->tic->saveid : run->tic->cart.bank0.code.data;
 	char* md5 = data2md5(data, (s32)strlen(data));
 	strcpy(buffer, TIC_LOCAL);
 	strcat(buffer, md5);
@@ -124,9 +124,9 @@ static void processDoFile(void* data, char* dst)
 	static const char DoFileTag[] = "dofile(";
 	enum {Size = sizeof DoFileTag - 1};
 
-	if (memcmp(tic->cart.bank.code.data, DoFileTag, Size) == 0)
+	if (memcmp(tic->cart.bank0.code.data, DoFileTag, Size) == 0)
 	{
-		const char* start = tic->cart.bank.code.data + Size;
+		const char* start = tic->cart.bank0.code.data + Size;
 		const char* end = strchr(start, ')');
 
 		if(end && *start == *(end-1) && (*start == '"' || *start == '\''))

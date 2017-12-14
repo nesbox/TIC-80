@@ -106,7 +106,7 @@ static void drawSwitch(Sfx* sfx, s32 x, s32 y, const char* label, s32 value, voi
 
 static tic_sound_effect* getEffect(Sfx* sfx)
 {
-	return getBankSfx()->data + sfx->index;
+	return sfx->src->data + sfx->index;
 }
 
 static void setIndex(Sfx* sfx, s32 delta)
@@ -120,7 +120,7 @@ static void setSpeed(Sfx* sfx, s32 delta)
 
 	effect->speed += delta;
 
-	history_add(sfx->history.envelope);
+	history_add(sfx->history);
 }
 
 static void drawTopPanel(Sfx* sfx, s32 x, s32 y)
@@ -141,7 +141,7 @@ static void setLoopStart(Sfx* sfx, s32 delta)
 
 	loop->start += delta;
 
-	history_add(sfx->history.envelope);
+	history_add(sfx->history);
 }
 
 static void setLoopSize(Sfx* sfx, s32 delta)
@@ -151,7 +151,7 @@ static void setLoopSize(Sfx* sfx, s32 delta)
 
 	loop->size += delta;
 
-	history_add(sfx->history.envelope);
+	history_add(sfx->history);
 }
 
 static void drawLoopPanel(Sfx* sfx, s32 x, s32 y)
@@ -169,7 +169,7 @@ static void drawLoopPanel(Sfx* sfx, s32 x, s32 y)
 
 static tic_waveform* getWaveformById(Sfx* sfx, s32 i)
 {
-	return &getBankSfx()->waveform.envelopes[i];
+	return &sfx->src->waveform.envelopes[i];
 }
 
 static tic_waveform* getWaveform(Sfx* sfx)
@@ -398,7 +398,7 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y)
 			default: break;
 			}
 
-			history_add(sfx->history.envelope);
+			history_add(sfx->history);
 		}
 	}
 
@@ -563,22 +563,12 @@ static void playSound(Sfx* sfx)
 
 static void undo(Sfx* sfx)
 {
-	history_undo(sfx->history.envelope);
+	history_undo(sfx->history);
 }
 
 static void redo(Sfx* sfx)
 {
-	history_redo(sfx->history.envelope);
-}
-
-static void undoWave(Sfx* sfx)
-{
-	history_undo(sfx->history.waveform);
-}
-
-static void redoWave(Sfx* sfx)
-{
-	history_redo(sfx->history.waveform);
+	history_redo(sfx->history);
 }
 
 static void copyToClipboard(Sfx* sfx)
@@ -598,7 +588,7 @@ static void resetSfx(Sfx* sfx)
 	tic_sound_effect* effect = getEffect(sfx);
 	memset(effect, 0, sizeof(tic_sound_effect));
 
-	history_add(sfx->history.envelope);
+	history_add(sfx->history);
 }
 
 static void resetWave(Sfx* sfx)
@@ -606,7 +596,7 @@ static void resetWave(Sfx* sfx)
 	tic_waveform* wave = getWaveform(sfx);
 	memset(wave, 0, sizeof(tic_waveform));
 
-	history_add(sfx->history.waveform);
+	history_add(sfx->history);
 }
 
 static void cutToClipboard(Sfx* sfx)
@@ -626,7 +616,7 @@ static void copyFromClipboard(Sfx* sfx)
 	tic_sound_effect* effect = getEffect(sfx);
 
 	if(fromClipboard(effect, sizeof(tic_sound_effect), true, false))
-		history_add(sfx->history.envelope);
+		history_add(sfx->history);
 }
 
 static void copyWaveFromClipboard(Sfx* sfx)
@@ -634,7 +624,7 @@ static void copyWaveFromClipboard(Sfx* sfx)
 	tic_waveform* wave = getWaveform(sfx);
 
 	if(fromClipboard(wave, sizeof(tic_waveform), true, false))
-		history_add(sfx->history.waveform);
+		history_add(sfx->history);
 }
 
 static void processKeyboard(Sfx* sfx)
@@ -728,8 +718,8 @@ static void processWaveformKeydown(Sfx* sfx, SDL_Keycode keycode)
 	{
 		switch(keycode)
 		{
-		case SDLK_z: 	undoWave(sfx); break;
-		case SDLK_y: 	redoWave(sfx); break;
+		case SDLK_z: 	undo(sfx); break;
+		case SDLK_y: 	redo(sfx); break;
 		}
 	}
 
@@ -948,7 +938,7 @@ static void drawWaveformCanvas(Sfx* sfx, s32 x, s32 y)
 
 			tic_tool_poke4(wave->data, mx, Rows - my - 1);
 
-			history_add(sfx->history.waveform);
+			history_add(sfx->history);
 		}
 	}
 
@@ -1019,8 +1009,8 @@ static void onStudioWaveformEvent(Sfx* sfx, StudioEvent event)
 	case TIC_TOOLBAR_CUT: cutWaveToClipboard(sfx); break;
 	case TIC_TOOLBAR_COPY: copyWaveToClipboard(sfx); break;
 	case TIC_TOOLBAR_PASTE: copyWaveFromClipboard(sfx); break;
-	case TIC_TOOLBAR_UNDO: undoWave(sfx); break;
-	case TIC_TOOLBAR_REDO: redoWave(sfx); break;
+	case TIC_TOOLBAR_UNDO: undo(sfx); break;
+	case TIC_TOOLBAR_REDO: redo(sfx); break;
 	default: break;
 	}
 }
@@ -1035,15 +1025,15 @@ static void onStudioEvent(Sfx* sfx, StudioEvent event)
 	}
 }
 
-void initSfx(Sfx* sfx, tic_mem* tic)
+void initSfx(Sfx* sfx, tic_mem* tic, tic_sfx* src)
 {
-	if(sfx->history.envelope) history_delete(sfx->history.envelope);
-	if(sfx->history.waveform) history_delete(sfx->history.waveform);
+	if(sfx->history) history_delete(sfx->history);
 	
 	*sfx = (Sfx)
 	{
 		.tic = tic,
 		.tick = tick,
+		.src = src,
 		.index = 0,
 		.play = 
 		{
@@ -1056,11 +1046,7 @@ void initSfx(Sfx* sfx, tic_mem* tic)
 		},
 		.canvasTab = SFX_WAVE_TAB,
 		.tab = SFX_ENVELOPES_TAB,
-		.history =
-		{
-			.envelope = history_create(&tic->cart.bank.sfx.data, sizeof tic->cart.bank.sfx.data),
-			.waveform = history_create(&tic->cart.bank.sfx.waveform, sizeof tic->cart.bank.sfx.waveform),
-		},
+		.history = history_create(src, sizeof(tic_sfx)),
 		.event = onStudioEvent,
 	};
 }

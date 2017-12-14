@@ -29,6 +29,8 @@ typedef struct Map Map;
 struct Map
 {
 	tic_mem* tic;
+
+	tic_map* src;
 	
 	s32 tickCounter;
 
@@ -83,4 +85,4 @@ struct Map
 	void(*overlap)(tic_mem* tic, void* data);
 };
 
-void initMap(Map*, tic_mem*);
+void initMap(Map*, tic_mem*, tic_map* src);

@@ -334,17 +334,17 @@ typedef struct
 	tic_sfx sfx;
 	tic_music music;
 	tic_code code;
-	tic_palette palette;
 } tic_bank;
 
 typedef struct
 {
 	union
 	{
-		tic_bank bank;
+		tic_bank bank0;
 		tic_bank banks[TIC_BANKS];
 	};
 	
+	tic_palette palette;
 	tic_cover_image cover;
 } tic_cartridge;
 

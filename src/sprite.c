@@ -38,12 +38,12 @@ static void clearCanvasSelection(Sprite* sprite)
 
 static u8 getSheetPixel(Sprite* sprite, s32 x, s32 y)
 {
-	return getSpritePixel(getBankTiles()->data, x, sprite->index >= TIC_BANK_SPRITES ? y + TIC_SPRITESHEET_SIZE: y);
+	return getSpritePixel(sprite->src->data, x, sprite->index >= TIC_BANK_SPRITES ? y + TIC_SPRITESHEET_SIZE: y);
 }
 
 static void setSheetPixel(Sprite* sprite, s32 x, s32 y, u8 color)
 {
-	setSpritePixel(getBankTiles()->data, x, sprite->index >= TIC_BANK_SPRITES ? y + TIC_SPRITESHEET_SIZE: y, color);
+	setSpritePixel(sprite->src->data, x, sprite->index >= TIC_BANK_SPRITES ? y + TIC_SPRITESHEET_SIZE: y, color);
 }
 
 static s32 getIndexPosX(Sprite* sprite)
@@ -672,8 +672,8 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 
 static void pasteColor(Sprite* sprite)
 {
-	fromClipboard(getBankPalette()->data, sizeof(tic_palette), false, true);
-	fromClipboard(&getBankPalette()->colors[sprite->color], sizeof(tic_rgb), false, true);
+	fromClipboard(sprite->tic->cart.palette.data, sizeof(tic_palette), false, true);
+	fromClipboard(&sprite->tic->cart.palette.colors[sprite->color], sizeof(tic_rgb), false, true);
 }
 
 static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
@@ -708,7 +708,7 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
 				down = true;
 
 			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
-				toClipboard(getBankPalette()->data, sizeof(tic_palette), false);
+				toClipboard(sprite->tic->cart.palette.data, sizeof(tic_palette), false);
 		}
 
 		if(down)
@@ -772,7 +772,7 @@ static void drawRGBSliders(Sprite* sprite, s32 x, s32 y)
 {
 	enum{Gap = 6, Count = sizeof(tic_rgb)};
 
-	u8* data = &getBankPalette()->data[sprite->color * Count];
+	u8* data = &sprite->tic->cart.palette.data[sprite->color * Count];
 
 	for(s32 i = 0; i < Count; i++)
 		drawRGBSlider(sprite, x, y + Gap*i, &data[i]);
@@ -784,7 +784,7 @@ static void drawRGBSlidersOvr(Sprite* sprite, s32 x, s32 y)
 {
 	enum{Gap = 6, Count = sizeof(tic_rgb), Size = CANVAS_SIZE, Max = 255};
 
-	u8* data = &getBankPalette()->data[sprite->color * Count];
+	u8* data = &sprite->tic->cart.palette.data[sprite->color * Count];
 
 	for(s32 i = 0; i < Count; i++)
 	{
@@ -959,7 +959,7 @@ static void drawSheetOvr(Sprite* sprite, s32 x, s32 y)
 
 	for(s32 j = 0, index = (sprite->index - sprite->index % TIC_BANK_SPRITES); j < rect.h; j += TIC_SPRITESIZE)
 		for(s32 i = 0; i < rect.w; i += TIC_SPRITESIZE, index++)
-			sprite->tic->api.sprite(sprite->tic, getBankTiles(), index, x + i, y + j, NULL, 0);
+			sprite->tic->api.sprite(sprite->tic, sprite->src, index, x + i, y + j, NULL, 0);
 	{
 		s32 bx = getIndexPosX(sprite) + x - 1;
 		s32 by = getIndexPosY(sprite) + y - 1;
@@ -1544,7 +1544,7 @@ static void overlap(tic_mem* tic, void* data)
 	drawSheetOvr(sprite, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, 7);
 }
 
-void initSprite(Sprite* sprite, tic_mem* tic)
+void initSprite(Sprite* sprite, tic_mem* tic, tic_tiles* src)
 {
 	if(sprite->select.back == NULL) sprite->select.back = (u8*)SDL_malloc(CANVAS_SIZE*CANVAS_SIZE);
 	if(sprite->select.front == NULL) sprite->select.front = (u8*)SDL_malloc(CANVAS_SIZE*CANVAS_SIZE);
@@ -1555,6 +1555,7 @@ void initSprite(Sprite* sprite, tic_mem* tic)
 		.tic = tic,
 		.tick = tick,
 		.tickCounter = 0,
+		.src = src,
 		.index = 0,
 		.color = 1,
 		.color2 = 0,
@@ -1570,7 +1571,7 @@ void initSprite(Sprite* sprite, tic_mem* tic)
 			.front = sprite->select.front,
 		},
 		.mode = SPRITE_DRAW_MODE,
-		.history = history_create(&tic->cart.bank.tiles, TIC_SPRITES * sizeof(tic_tile)),
+		.history = history_create(src, TIC_SPRITES * sizeof(tic_tile)),
 		.event = onStudioEvent,
 		.overlap = overlap,
 	};

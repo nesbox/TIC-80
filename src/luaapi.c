@@ -748,11 +748,28 @@ static s32 lua_sync(lua_State* lua)
 	tic_mem* memory = (tic_mem*)getLuaMachine(lua);
 
 	bool toCart = true;
-	
+	const char* section = NULL;
+	s32 bank = 0;
+
 	if(lua_gettop(lua) >= 1)
+	{
 		toCart = lua_toboolean(lua, 1);
 
-	memory->api.sync(memory, toCart);
+		if(lua_gettop(lua) >= 2)
+		{
+			section = lua_tostring(lua, 2);
+
+			if(lua_gettop(lua) >= 3)
+			{
+				bank = getLuaNumber(lua, 3);
+			}
+		}
+	}
+
+	if(bank >= 0 && bank < TIC_BANKS)
+		memory->api.sync(memory, section, bank, toCart);
+	else
+		luaL_error(lua, "sync() error, invalid bank");
 
 	return 0;
 }
@@ -964,7 +981,7 @@ static s32 lua_pmem(lua_State *lua)
 	{
 		u32 index = getLuaNumber(lua, 1);
 
-		if(index >= 0 && index < TIC_PERSISTENT_SIZE)
+		if(index < TIC_PERSISTENT_SIZE)
 		{
 			s32 val = memory->ram.persistent.data[index];
 

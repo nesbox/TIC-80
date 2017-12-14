@@ -30,6 +30,8 @@ struct Sfx
 {
 	tic_mem* tic;
 
+	tic_sfx* src;
+
 	u8 index:SFX_COUNT_BITS;
 
 	struct
@@ -57,14 +59,10 @@ struct Sfx
 		SFX_ENVELOPES_TAB,
 	} tab;
 
-	struct
-	{
-		struct History* envelope;
-		struct History* waveform;
-	} history;
+	struct History* history;
 
 	void(*tick)(Sfx*);
 	void(*event)(Sfx*, StudioEvent);
 };
 
-void initSfx(Sfx*, tic_mem*);
+void initSfx(Sfx*, tic_mem*, tic_sfx* src);

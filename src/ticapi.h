@@ -103,10 +103,10 @@ typedef struct
 	void (*reset)				(tic_mem* memory);
 	void (*pause)				(tic_mem* memory);
 	void (*resume)				(tic_mem* memory);
-	void (*sync)				(tic_mem* memory, bool toCart);
+	void (*sync)				(tic_mem* memory, const char* section, s32 bank, bool toCart);
 	u32 (*btnp)					(tic_mem* memory, s32 id, s32 hold, s32 period);
 
-	void (*load)				(tic_cartridge* rom, s32 cartSize, const u8* buffer, s32 size, bool palette);
+	void (*load)				(tic_cartridge* rom, const u8* buffer, s32 size, bool palette);
 	s32  (*save)				(const tic_cartridge* rom, u8* buffer);
 
 	void (*tick_start)			(tic_mem* memory, const tic_sfx* sfx, const tic_music* music);
@@ -120,7 +120,7 @@ struct tic_mem
 {
 	tic_ram 			ram;
 	tic_cartridge 		cart;
-	tic_bank 			config;
+	tic_cartridge		config;
 	tic_input_method 	input;
 	tic_script_lang 	script;
 	tic_font 			font;

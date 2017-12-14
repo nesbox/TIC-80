@@ -92,3 +92,4 @@ build/windows/tic80/Release Pro/
 build/windows/zlib/Debug Pro/
 build/windows/zlib/Release Pro/
 build/windows/example/Release Pro/
+build/windows/example/Debug Pro/
