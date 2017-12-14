@@ -303,10 +303,10 @@ static s32 writeGifData(const tic_mem* tic, u8* dst, const u8* src, s32 width, s
 
 static void loadCart(tic_mem* tic, tic_cartridge* cart, const u8* buffer, s32 size, bool palette)
 {
-	tic->api.load(cart, sizeof(tic_cartridge), buffer, size, palette);
+	tic->api.load(cart, buffer, size, palette);
 
 	if(!palette)
-		memcpy(cart->bank.palette.data, tic->config.palette.data, sizeof(tic_palette));
+		memcpy(cart->bank.palette.data, tic->config.bank.palette.data, sizeof(tic_palette));
 }
 
 static bool loadRom(tic_mem* tic, const void* data, s32 size, bool palette)
@@ -734,7 +734,7 @@ static bool loadProject(Console* console, const char* name, const char* data, s3
 		if(cart)
 		{
 			SDL_memset(cart, 0, sizeof(tic_cartridge));
-			SDL_memcpy(&cart->bank.palette, &tic->config.palette.data, sizeof(tic_palette));
+			SDL_memcpy(&cart->bank.palette, &tic->config.bank.palette.data, sizeof(tic_palette));
 
 			const char* comment = projectComment(name);
 
@@ -2886,7 +2886,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 
 	if(argc > 1)
 	{
-		memcpy(console->embed.file->bank.palette.data, tic->config.palette.data, sizeof(tic_palette));
+		memcpy(console->embed.file->bank.palette.data, tic->config.bank.palette.data, sizeof(tic_palette));
 
 		u32 argp = 1;
 

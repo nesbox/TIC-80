@@ -1472,12 +1472,20 @@ static void api_tick(tic_mem* memory, tic_tick_data* data)
 	
 	if(!machine->state.initialized)
 	{
-
-		char* code = malloc(sizeof(tic_code));
+		enum{CodeSize = sizeof(tic_code) * TIC_BANKS};
+		char* code = malloc(CodeSize);
 
 		if(code)
 		{
-			memcpy(code, machine->memory.cart.bank.code.data, sizeof(tic_code));
+			memset(code, 0, CodeSize);
+
+			for(s32 i = TIC_BANKS - 1; i >= 0; i--)
+			{
+				const char* bankCode = memory->cart.banks[i].code.data;
+
+				if(strlen(bankCode))
+					strcat(code, bankCode);
+			}
 
 			if(data->preprocessor)
 				data->preprocessor(data->data, code);
@@ -1579,10 +1587,10 @@ static u32 api_btnp(tic_mem* tic, s32 index, s32 hold, s32 period)
 	return ((~previous.data) & machine->memory.ram.vram.input.gamepad.data) & (1 << index);
 }
 
-static void api_load(tic_cartridge* cart, s32 cartSize, const u8* buffer, s32 size, bool palette)
+static void api_load(tic_cartridge* cart, const u8* buffer, s32 size, bool palette)
 {
 	const u8* end = buffer + size;
-	memset(cart, 0, cartSize);
+	memset(cart, 0, sizeof(tic_cartridge));
 
 	if(palette)
 	{

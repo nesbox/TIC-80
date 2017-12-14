@@ -170,7 +170,7 @@ static void readConfig(Config* config)
 
 	if(lua)
 	{
-		if(luaL_loadstring(lua, config->tic->config.code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
+		if(luaL_loadstring(lua, config->tic->config.bank.code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
 		{
 			readConfigVideoLength(config, lua);
 			readConfigVideoScale(config, lua);
@@ -185,7 +185,7 @@ static void readConfig(Config* config)
 
 static void update(Config* config, const u8* buffer, size_t size)
 {
-	config->tic->api.load((tic_cartridge*)&config->tic->config, sizeof(tic_bank), buffer, size, true);
+	config->tic->api.load(&config->tic->config, buffer, size, true);
 
 	readConfig(config);
 	studioConfigChanged();
