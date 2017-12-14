@@ -205,5 +205,4 @@ tic_tiles* 		getBankSprites();
 tic_map* 		getBankMap();
 tic_sfx* 		getBankSfx();
 tic_music* 		getBankMusic();
-tic_code* 		getBankCode();
 tic_palette* 	getBankPalette();

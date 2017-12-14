@@ -335,11 +335,6 @@ tic_music* getBankMusic()
 	return &studio.tic->cart.banks[studio.bank.index.music].music;
 }
 
-tic_code* getBankCode()
-{
-	return &studio.tic->cart.banks[studio.bank.index.code].code;
-}
-
 tic_palette* getBankPalette()
 {
 	return &studio.tic->cart.banks[studio.bank.index.tiles].palette;
