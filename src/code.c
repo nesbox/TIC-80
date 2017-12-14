@@ -1827,7 +1827,7 @@ static void onStudioEvent(Code* code, StudioEvent event)
 	}
 }
 
-void initCode(Code* code, tic_mem* tic)
+void initCode(Code* code, tic_mem* tic, tic_code* src)
 {
 	if(code->outline.items == NULL)
 		code->outline.items = (OutlineItem*)SDL_malloc(OUTLINE_ITEMS_SIZE);
@@ -1838,10 +1838,10 @@ void initCode(Code* code, tic_mem* tic)
 	*code = (Code)
 	{
 		.tic = tic,
-		.data = getBankCode()->data,
+		.data = src->data,
 		.tick = tick,
 		.escape = escape,
-		.cursor = {{getBankCode()->data, NULL, 0, 0}, NULL, 0},
+		.cursor = {{src->data, NULL, 0, 0}, NULL, 0},
 		.rect = {0, TOOLBAR_SIZE + 1, TIC80_WIDTH, TIC80_HEIGHT - TOOLBAR_SIZE - TIC_FONT_HEIGHT - 1},
 		.scroll = {0, 0, {0, 0}, false},
 		.tickCounter = 0,

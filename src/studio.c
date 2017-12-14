@@ -201,7 +201,7 @@ static struct
 		Start* start;
 		Console* console;
 		Run* run;
-		Code* code;
+		Code* code[TIC_BANKS];
 		Sprite* sprite;
 		Map* map;
 		World* world;
@@ -790,7 +790,12 @@ void setStudioEvent(StudioEvent event)
 {
 	switch(studio.mode)
 	{
-	case TIC_CODE_MODE: 	studio.code->event(studio.code, event); break;
+	case TIC_CODE_MODE: 	
+		{
+			Code* code = studio.code[studio.bank.index.code];
+			code->event(code, event); 			
+		}
+		break;
 	case TIC_SPRITE_MODE:	studio.sprite->event(studio.sprite, event); break;
 	case TIC_MAP_MODE:		studio.map->event(studio.map, event); break;
 	case TIC_SFX_MODE:		studio.sfx->event(studio.sfx, event); break;
@@ -1062,7 +1067,7 @@ void hideDialog()
 	if(studio.dialogMode == TIC_RUN_MODE)
 	{
 		studio.tic->api.resume(studio.tic);
-		studio.mode = TIC_RUN_MODE;		
+		studio.mode = TIC_RUN_MODE;
 	}
 	else setStudioMode(studio.dialogMode);
 }
@@ -1079,7 +1084,9 @@ void showDialog(const char** text, s32 rows, DialogCallback callback, void* data
 
 static void initModules()
 {
-	initCode(studio.code, studio.tic);
+	for(s32 i = 0; i < TIC_BANKS; i++)
+		initCode(studio.code[i], studio.tic, &studio.tic->cart.banks[i].code);
+
 	initSprite(studio.sprite, studio.tic);
 	initMap(studio.map, studio.tic);
 	initWorldMap();
@@ -1784,9 +1791,11 @@ static bool processShortcuts(SDL_KeyboardEvent* event)
 	case SDLK_ESCAPE:
 	case SDLK_AC_BACK:
 		{
-			if(studio.mode == TIC_CODE_MODE && studio.code->mode != TEXT_EDIT_MODE)
+			Code* code = studio.code[studio.bank.index.code];
+
+			if(studio.mode == TIC_CODE_MODE && code->mode != TEXT_EDIT_MODE)
 			{
-				studio.code->escape(studio.code);
+				code->escape(code);
 				return true;
 			}
 
@@ -1920,9 +1929,10 @@ SDL_Event* pollEvent()
 
 #endif
 				{
-					studio.console->codeLiveReload.reload(studio.console, studio.code->data);
-					if(studio.console->codeLiveReload.active && studio.code->update)
-						studio.code->update(studio.code);
+					Code* code = studio.code[studio.bank.index.code];
+					studio.console->codeLiveReload.reload(studio.console, code->data);
+					if(studio.console->codeLiveReload.active && code->update)
+						code->update(code);
 				}
 				break;
 			}
@@ -2280,7 +2290,12 @@ static void renderStudio()
 	case TIC_START_MODE:	studio.start->tick(studio.start); break;
 	case TIC_CONSOLE_MODE: 	studio.console->tick(studio.console); break;
 	case TIC_RUN_MODE: 		studio.run->tick(studio.run); break;
-	case TIC_CODE_MODE: 	studio.code->tick(studio.code); break;
+	case TIC_CODE_MODE: 	
+		{
+			Code* code = studio.code[studio.bank.index.code];
+			code->tick(code);
+		}
+		break;
 	case TIC_SPRITE_MODE:	studio.sprite->tick(studio.sprite); break;
 	case TIC_MAP_MODE:		studio.map->tick(studio.map); break;
 	case TIC_WORLD_MODE:	studio.world->tick(studio.world); break;
@@ -2476,8 +2491,9 @@ static void updateSystemFont()
 
 void studioConfigChanged()
 {
-	if(studio.code->update)
-		studio.code->update(studio.code);
+	Code* code = studio.code[studio.bank.index.code];
+	if(code->update)
+		code->update(code);
 
 	initTouchGamepad();
 	updateSystemFont();
@@ -2560,10 +2576,12 @@ static void onFSInitialized(FileSystem* fs)
 	studio.tic = studio.tic80local->memory;
 
 	{
+		for(s32 i = 0; i < TIC_BANKS; i++)
+			studio.code[i] = SDL_malloc(sizeof(Code));
+
 		studio.start = 		SDL_malloc(sizeof(Start));
 		studio.console = 	SDL_malloc(sizeof(Console));
 		studio.run = 		SDL_malloc(sizeof(Run));
-		studio.code = 		SDL_malloc(sizeof(Code));
 		studio.sprite = 	SDL_malloc(sizeof(Sprite));
 		studio.map = 		SDL_malloc(sizeof(Map));
 		studio.world = 		SDL_malloc(sizeof(World));
@@ -2668,10 +2686,12 @@ s32 main(s32 argc, char **argv)
 #endif
 
 	{
+		for(s32 i = 0; i < TIC_BANKS; i++)
+			SDL_free(studio.code[i]);
+
 		SDL_free(studio.start);
 		SDL_free(studio.console);
 		SDL_free(studio.run);
-		SDL_free(studio.code);
 		SDL_free(studio.sprite);
 		SDL_free(studio.map);
 		SDL_free(studio.world);

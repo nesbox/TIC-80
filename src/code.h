@@ -105,4 +105,4 @@ struct Code
 	void(*update)(Code*);
 };
 
-void initCode(Code*, tic_mem*);
+void initCode(Code*, tic_mem*, tic_code* src);
