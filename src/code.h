@@ -31,7 +31,7 @@ struct Code
 {
 	tic_mem* tic;
 
-	char* data;
+	char* src;
 
 	struct
 	{

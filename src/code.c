@@ -68,7 +68,7 @@ static void drawCode(Code* code, bool withCursor)
 	s32 xStart = code->rect.x - code->scroll.x * STUDIO_TEXT_WIDTH;
 	s32 x = xStart;
 	s32 y = code->rect.y - code->scroll.y * STUDIO_TEXT_HEIGHT;
-	char* pointer = code->data;
+	char* pointer = code->src;
 
 	u8* colorPointer = code->colorBuffer;
 
@@ -116,7 +116,7 @@ static void getCursorPosition(Code* code, s32* x, s32* y)
 	*x = 0;
 	*y = 0;
 
-	const char* pointer = code->data;
+	const char* pointer = code->src;
 
 	while(*pointer)
 	{
@@ -135,7 +135,7 @@ static void getCursorPosition(Code* code, s32* x, s32* y)
 
 static s32 getLinesCount(Code* code)
 {
-	char* text = code->data;
+	char* text = code->src;
 	s32 count = 0;
 
 	while(*text)
@@ -177,10 +177,10 @@ static void updateEditor(Code* code)
 		sprintf(status, "line %i/%i col %i", line + 1, count + 1, column + 1);
 		memcpy(code->status, status, strlen(status));
 
-		size_t codeLen = strlen(code->data);
+		size_t codeLen = strlen(code->src);
 		sprintf(status, "%i/%i", (u32)codeLen, TIC_CODE_SIZE);
 
-		memset(code->data + codeLen, '\0', TIC_CODE_SIZE - codeLen);
+		memset(code->src + codeLen, '\0', TIC_CODE_SIZE - codeLen);
 		memcpy(code->status + sizeof code->status - strlen(status) - 1, status, strlen(status));
 	}
 }
@@ -213,7 +213,7 @@ static void highlightStrings(Code* code, const char* text, u8* color, char separ
 
 static void highlightNumbers(Code* code, u8* color)
 {
-	const char* text = code->data;
+	const char* text = code->src;
 	const char* pointer = text;
 
 	while(*pointer)
@@ -267,7 +267,7 @@ static void highlightWords(const char* text, u8* color, const char* const string
 
 static void highlightMoonKeywords(Code* code, u8* color)
 {
-	const char* text = code->data;
+	const char* text = code->src;
 
 	static const char* const MoonKeywords [] =
 	{
@@ -285,7 +285,7 @@ static void highlightMoonKeywords(Code* code, u8* color)
 
 static void highlightLuaKeywords(Code* code, u8* color)
 {
-	const char* text = code->data;
+	const char* text = code->src;
 
 	static const char* const LuaKeywords [] =
 	{
@@ -300,7 +300,7 @@ static void highlightLuaKeywords(Code* code, u8* color)
 
 static void highlightJsKeywords(Code* code, u8* color)
 {
-	const char* text = code->data;
+	const char* text = code->src;
 
 	static const char* const JsKeywords [] =
 	{
@@ -317,13 +317,13 @@ static void highlightApi(Code* code, u8* color)
 {
 	static const char* const ApiKeywords[] = API_KEYWORDS;
 
-	const char* text = code->data;
+	const char* text = code->src;
 	highlightWords(text, color, ApiKeywords, COUNT_OF(ApiKeywords), getConfig()->theme.code.api);
 }
 
 static void highlightNonChars(Code* code, u8* color)
 {
-	const char* text = code->data;
+	const char* text = code->src;
 
 	while(*text)
 	{
@@ -337,7 +337,7 @@ static void highlightNonChars(Code* code, u8* color)
 
 static void highlightSigns(Code* code, u8* color)
 {
-	const char* text = code->data;
+	const char* text = code->src;
 
 	static const char* const LuaSigns [] =
 	{
@@ -364,7 +364,7 @@ static void highlightSigns(Code* code, u8* color)
 
 static void highlightCommentsBase(Code* code, u8* color, const char* pattern1, const char* pattern2, s32 extraSize)
 {
-	const char* text = code->data;
+	const char* text = code->src;
 	const char* pointer = text;
 
 	while(*pointer)
@@ -417,7 +417,7 @@ static void parseSyntaxColor(Code* code)
 		highlightNumbers(code, color);
 		highlightSigns(code, color);
 		highlightCommentsBase(code, color, "--", "\n", 0);
-		highlightStrings(code, code->data, color, '"');
+		highlightStrings(code, code->src, color, '"');
 		break;
 	case tic_script_lua:
 		highlightNonChars(code, color);
@@ -426,7 +426,7 @@ static void parseSyntaxColor(Code* code)
 		highlightNumbers(code, color);
 		highlightSigns(code, color);
 		highlightComments(code, color);
-		highlightStrings(code, code->data, color, '"');
+		highlightStrings(code, code->src, color, '"');
 		break;
 	case tic_script_js:
 		highlightNonChars(code, color);
@@ -435,14 +435,14 @@ static void parseSyntaxColor(Code* code)
 		highlightNumbers(code, color);
 		highlightSigns(code, color);
 		highlightJsComments(code, color);
-		highlightStrings(code, code->data, color, '"');
+		highlightStrings(code, code->src, color, '"');
 		break;
 	}
 }
 
 static char* getLineByPos(Code* code, char* pos)
 {
-	char* text = code->data;
+	char* text = code->src;
 	char* line = text;
 
 	while(text < pos)
@@ -459,7 +459,7 @@ static char* getLine(Code* code)
 
 static char* getPrevLine(Code* code)
 {
-	char* text = code->data;
+	char* text = code->src;
 	char* pos = code->cursor.position;
 	char* prevLine = text;
 	char* line = text;
@@ -510,7 +510,7 @@ static void setCursorPosition(Code* code, s32 cx, s32 cy)
 {
 	s32 x = 0;
 	s32 y = 0;
-	char* pointer = code->data;
+	char* pointer = code->src;
 
 	while(*pointer)
 	{
@@ -559,7 +559,7 @@ static void downLine(Code* code)
 
 static void leftColumn(Code* code)
 {
-	char* start = code->data;
+	char* start = code->src;
 
 	if(code->cursor.position > start)
 	{
@@ -579,7 +579,7 @@ static void rightColumn(Code* code)
 
 static void leftWord(Code* code)
 {
-	const char* start = code->data;
+	const char* start = code->src;
 	char* pos = code->cursor.position-1;
 
 	if(pos > start)
@@ -595,7 +595,7 @@ static void leftWord(Code* code)
 
 static void rightWord(Code* code)
 {
-	const char* end = code->data + strlen(code->data);
+	const char* end = code->src + strlen(code->src);
 	char* pos = code->cursor.position;
 
 	if(pos < end)
@@ -625,14 +625,14 @@ static void goEnd(Code* code)
 
 static void goCodeHome(Code *code)
 {
-	code->cursor.position = code->data;
+	code->cursor.position = code->src;
 
 	updateColumn(code);
 }
 
 static void goCodeEnd(Code *code)
 {
-	code->cursor.position = code->data + strlen(code->data);
+	code->cursor.position = code->src + strlen(code->src);
 
 	updateColumn(code);
 }
@@ -692,7 +692,7 @@ static void deleteChar(Code* code)
 
 static void backspaceChar(Code* code)
 {
-	if(!replaceSelection(code) && code->cursor.position > code->data)
+	if(!replaceSelection(code) && code->cursor.position > code->src)
 	{
 		char* pos = --code->cursor.position;
 		memmove(pos, pos + 1, strlen(pos));
@@ -703,7 +703,7 @@ static void backspaceChar(Code* code)
 
 static void inputSymbolBase(Code* code, char sym)
 {
-	if (strlen(code->data) >= sizeof(tic_code))
+	if (strlen(code->src) >= sizeof(tic_code))
 		return;
 
 	char* pos = code->cursor.position;
@@ -747,7 +747,7 @@ static void newLine(Code* code)
 
 static void selectAll(Code* code)
 {
-	code->cursor.selection = code->data;
+	code->cursor.selection = code->src;
 		code->cursor.position = code->cursor.selection + strlen(code->cursor.selection);
 }
 
@@ -807,7 +807,7 @@ static void copyFromClipboard(Code* code)
 
 				// cut clipboard code if overall code > max code size
 				{
-					size_t codeSize = strlen(code->data);
+					size_t codeSize = strlen(code->src);
 
 					if (codeSize + size > sizeof(tic_code))
 					{
@@ -995,7 +995,7 @@ static void updateOutlineCode(Code* code)
 	}
 	else
 	{
-		code->cursor.position = code->data;
+		code->cursor.position = code->src;
 		code->cursor.selection = NULL;
 	}
 
@@ -1008,7 +1008,7 @@ static void setMoonscriptOutlineMode(Code* code)
 	OutlineItem* out = code->outline.items;
 	OutlineItem* end = out + OUTLINE_SIZE;
 
-	char* ptr = code->data;
+	char* ptr = code->src;
 	static const char FuncString[] = "=->";
 
 	char buffer[STUDIO_TEXT_BUFFER_WIDTH];
@@ -1020,18 +1020,18 @@ static void setMoonscriptOutlineMode(Code* code)
 	{
 		ptr = strstr(ptr, FuncString);
 
-		if(ptr && ptr > code->data)
+		if(ptr && ptr > code->src)
 		{
 			char* endPtr = ptr;
 			ptr += sizeof FuncString - 1;
 
-			while(endPtr >= code->data && !isLetter(*endPtr) && !isNumber(*endPtr))  endPtr--;
+			while(endPtr >= code->src && !isLetter(*endPtr) && !isNumber(*endPtr))  endPtr--;
 
 			char* start = endPtr;
 
-			for (const char* val = start-1; val >= code->data && (isLetter(*val) || isNumber(*val)); val--, start--);
+			for (const char* val = start-1; val >= code->src && (isLetter(*val) || isNumber(*val)); val--, start--);
 
-			if(start >= code->data)
+			if(start >= code->src)
 			{
 				memset(buffer, 0, sizeof buffer);
 				memcpy(buffer, start, endPtr - start + 1);
@@ -1065,7 +1065,7 @@ static void setLuaOutlineMode(Code* code)
 	OutlineItem* out = code->outline.items;
 	OutlineItem* end = out + OUTLINE_SIZE;
 
-	char* ptr = code->data;
+	char* ptr = code->src;
 	static const char FuncString[] = "function ";
 
 	char buffer[STUDIO_TEXT_BUFFER_WIDTH];
@@ -1156,7 +1156,7 @@ static void commentLine(Code* code)
 
 	if(memcmp(line, Comment, Size))
 	{
-		if (strlen(code->data) + Size >= sizeof(tic_code))
+		if (strlen(code->src) + Size >= sizeof(tic_code))
 			return;
 
 		memmove(line + Size, line, strlen(line)+1);
@@ -1481,7 +1481,7 @@ static void textFindTick(Code* code)
 					bool reverse = keycode == SDLK_UP || keycode == SDLK_LEFT;
 					char* (*func)(const char*, const char*, const char*) = reverse ? upStrStr : downStrStr;
 					char* from = reverse ? SDL_min(code->cursor.position, code->cursor.selection) : SDL_max(code->cursor.position, code->cursor.selection);
-					char* pos = func(code->data, from, code->popup.text);
+					char* pos = func(code->src, from, code->popup.text);
 					updateFindCode(code, pos);
 				}
 				break;
@@ -1489,7 +1489,7 @@ static void textFindTick(Code* code)
 				if(*code->popup.text)
 				{
 					code->popup.text[strlen(code->popup.text)-1] = '\0';
-					updateFindCode(code, strstr(code->data, code->popup.text));
+					updateFindCode(code, strstr(code->src, code->popup.text));
 				}
 				break;
 			default: break;
@@ -1501,7 +1501,7 @@ static void textFindTick(Code* code)
 				if(strlen(code->popup.text) + 1 < sizeof code->popup.text)
 				{
 					strcat(code->popup.text, event->text.text);
-					updateFindCode(code, strstr(code->data, code->popup.text));
+					updateFindCode(code, strstr(code->src, code->popup.text));
 				}
 			}
 			break;
@@ -1838,7 +1838,7 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
 	*code = (Code)
 	{
 		.tic = tic,
-		.data = src->data,
+		.src = src->data,
 		.tick = tick,
 		.escape = escape,
 		.cursor = {{src->data, NULL, 0, 0}, NULL, 0},
@@ -1863,7 +1863,7 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
 		.update = update,
 	};
 
-	code->history = history_create(code->data, sizeof(tic_code));
+	code->history = history_create(code->src, sizeof(tic_code));
 	code->cursorHistory = history_create(&code->cursor, sizeof code->cursor);
 
 	update(code);

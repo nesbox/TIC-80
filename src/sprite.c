@@ -38,12 +38,12 @@ static void clearCanvasSelection(Sprite* sprite)
 
 static u8 getSheetPixel(Sprite* sprite, s32 x, s32 y)
 {
-	return getSpritePixel(getBankTiles()->data, x, sprite->index >= TIC_BANK_SPRITES ? y + TIC_SPRITESHEET_SIZE: y);
+	return getSpritePixel(sprite->src->data, x, sprite->index >= TIC_BANK_SPRITES ? y + TIC_SPRITESHEET_SIZE: y);
 }
 
 static void setSheetPixel(Sprite* sprite, s32 x, s32 y, u8 color)
 {
-	setSpritePixel(getBankTiles()->data, x, sprite->index >= TIC_BANK_SPRITES ? y + TIC_SPRITESHEET_SIZE: y, color);
+	setSpritePixel(sprite->src->data, x, sprite->index >= TIC_BANK_SPRITES ? y + TIC_SPRITESHEET_SIZE: y, color);
 }
 
 static s32 getIndexPosX(Sprite* sprite)
@@ -959,7 +959,7 @@ static void drawSheetOvr(Sprite* sprite, s32 x, s32 y)
 
 	for(s32 j = 0, index = (sprite->index - sprite->index % TIC_BANK_SPRITES); j < rect.h; j += TIC_SPRITESIZE)
 		for(s32 i = 0; i < rect.w; i += TIC_SPRITESIZE, index++)
-			sprite->tic->api.sprite(sprite->tic, getBankTiles(), index, x + i, y + j, NULL, 0);
+			sprite->tic->api.sprite(sprite->tic, sprite->src, index, x + i, y + j, NULL, 0);
 	{
 		s32 bx = getIndexPosX(sprite) + x - 1;
 		s32 by = getIndexPosY(sprite) + y - 1;
@@ -1544,7 +1544,7 @@ static void overlap(tic_mem* tic, void* data)
 	drawSheetOvr(sprite, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, 7);
 }
 
-void initSprite(Sprite* sprite, tic_mem* tic)
+void initSprite(Sprite* sprite, tic_mem* tic, tic_tiles* src)
 {
 	if(sprite->select.back == NULL) sprite->select.back = (u8*)SDL_malloc(CANVAS_SIZE*CANVAS_SIZE);
 	if(sprite->select.front == NULL) sprite->select.front = (u8*)SDL_malloc(CANVAS_SIZE*CANVAS_SIZE);
@@ -1555,6 +1555,7 @@ void initSprite(Sprite* sprite, tic_mem* tic)
 		.tic = tic,
 		.tick = tick,
 		.tickCounter = 0,
+		.src = src,
 		.index = 0,
 		.color = 1,
 		.color2 = 0,
@@ -1570,7 +1571,7 @@ void initSprite(Sprite* sprite, tic_mem* tic)
 			.front = sprite->select.front,
 		},
 		.mode = SPRITE_DRAW_MODE,
-		.history = history_create(&tic->cart.bank0.tiles, TIC_SPRITES * sizeof(tic_tile)),
+		.history = history_create(src, TIC_SPRITES * sizeof(tic_tile)),
 		.event = onStudioEvent,
 		.overlap = overlap,
 	};

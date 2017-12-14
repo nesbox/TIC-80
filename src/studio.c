@@ -162,7 +162,7 @@ static struct
 			struct
 			{
 				s32 code;
-				s32 tiles;
+				s32 sprites;
 				s32 map;
 				s32 sfx;
 				s32 music;
@@ -198,15 +198,19 @@ static struct
 
 	struct
 	{
+		Code* 	code[TIC_BANKS];
+		Sprite* sprite[TIC_BANKS];
+		Map* 	map[TIC_BANKS];
+		Sfx* 	sfx[TIC_BANKS];
+		Music* 	music[TIC_BANKS];
+	} editor;
+
+	struct
+	{
 		Start* start;
 		Console* console;
 		Run* run;
-		Code* code[TIC_BANKS];
-		Sprite* sprite;
-		Map* map;
 		World* world;
-		Sfx* sfx;
-		Music* music;
 		Config* config;
 		Keymap* keymap;
 		Dialog* dialog;
@@ -312,27 +316,12 @@ static struct
 
 tic_tiles* getBankTiles()
 {
-	return &studio.tic->cart.banks[studio.bank.index.tiles].tiles;
-}
-
-tic_tiles* getBankSprites()
-{
-	return &studio.tic->cart.banks[studio.bank.index.tiles].sprites;
+	return &studio.tic->cart.banks[studio.bank.index.sprites].tiles;
 }
 
 tic_map* getBankMap()
 {
 	return &studio.tic->cart.banks[studio.bank.index.map].map;
-}
-
-tic_sfx* getBankSfx()
-{
-	return &studio.tic->cart.banks[studio.bank.index.sfx].sfx;
-}
-
-tic_music* getBankMusic()
-{
-	return &studio.tic->cart.banks[studio.bank.index.music].music;
 }
 
 void playSystemSfx(s32 id)
@@ -782,14 +771,34 @@ void setStudioEvent(StudioEvent event)
 	{
 	case TIC_CODE_MODE: 	
 		{
-			Code* code = studio.code[studio.bank.index.code];
+			Code* code = studio.editor.code[studio.bank.index.code];
 			code->event(code, event); 			
 		}
 		break;
-	case TIC_SPRITE_MODE:	studio.sprite->event(studio.sprite, event); break;
-	case TIC_MAP_MODE:		studio.map->event(studio.map, event); break;
-	case TIC_SFX_MODE:		studio.sfx->event(studio.sfx, event); break;
-	case TIC_MUSIC_MODE:	studio.music->event(studio.music, event); break;
+	case TIC_SPRITE_MODE:	
+		{
+			Sprite* sprite = studio.editor.sprite[studio.bank.index.sprites];
+			sprite->event(sprite, event); 
+		}
+	break;
+	case TIC_MAP_MODE:
+		{
+			Map* map = studio.editor.map[studio.bank.index.map];
+			map->event(map, event);
+		}
+		break;
+	case TIC_SFX_MODE:
+		{
+			Sfx* sfx = studio.editor.sfx[studio.bank.index.sfx];
+			sfx->event(sfx, event);
+		}
+		break;
+	case TIC_MUSIC_MODE:
+		{
+			Music* music = studio.editor.music[studio.bank.index.music];
+			music->event(music, event);
+		}
+		break;
 	default: break;
 	}
 }
@@ -864,7 +873,7 @@ void drawBitIcon(s32 x, s32 y, const u8* ptr, u8 color)
 
 static void initWorldMap()
 {
-	initWorld(studio.world, studio.tic, studio.map);
+	initWorld(studio.world, studio.tic, studio.editor.map[studio.bank.index.map]);
 }
 
 static void initRunMode()
@@ -1074,14 +1083,18 @@ void showDialog(const char** text, s32 rows, DialogCallback callback, void* data
 
 static void initModules()
 {
-	for(s32 i = 0; i < TIC_BANKS; i++)
-		initCode(studio.code[i], studio.tic, &studio.tic->cart.banks[i].code);
+	tic_mem* tic = studio.tic;
 
-	initSprite(studio.sprite, studio.tic);
-	initMap(studio.map, studio.tic);
+	for(s32 i = 0; i < TIC_BANKS; i++)
+	{
+		initCode(studio.editor.code[i], studio.tic, &tic->cart.banks[i].code);
+		initSprite(studio.editor.sprite[i], studio.tic, &tic->cart.banks[i].tiles);
+		initMap(studio.editor.map[i], studio.tic, &tic->cart.banks[i].map);
+		initSfx(studio.editor.sfx[i], studio.tic, &tic->cart.banks[i].sfx);
+		initMusic(studio.editor.music[i], studio.tic, &tic->cart.banks[i].music);
+	}
+
 	initWorldMap();
-	initSfx(studio.sfx, studio.tic);
-	initMusic(studio.music, studio.tic);
 }
 
 static void updateHash()
@@ -1781,7 +1794,7 @@ static bool processShortcuts(SDL_KeyboardEvent* event)
 	case SDLK_ESCAPE:
 	case SDLK_AC_BACK:
 		{
-			Code* code = studio.code[studio.bank.index.code];
+			Code* code = studio.editor.code[studio.bank.index.code];
 
 			if(studio.mode == TIC_CODE_MODE && code->mode != TEXT_EDIT_MODE)
 			{
@@ -1919,8 +1932,8 @@ SDL_Event* pollEvent()
 
 #endif
 				{
-					Code* code = studio.code[studio.bank.index.code];
-					studio.console->codeLiveReload.reload(studio.console, code->data);
+					Code* code = studio.editor.code[studio.bank.index.code];
+					studio.console->codeLiveReload.reload(studio.console, code->src);
 					if(studio.console->codeLiveReload.active && code->update)
 						code->update(code);
 				}
@@ -2083,12 +2096,18 @@ static void blitTexture()
 		overlap = tic->api.overlap;
 		break;
 	case TIC_SPRITE_MODE:
-		overlap = studio.sprite->overlap;
-		data = studio.sprite;
+		{
+			Sprite* sprite = studio.editor.sprite[studio.bank.index.sprites];
+			overlap = sprite->overlap;
+			data = sprite;
+		}
 		break;
 	case TIC_MAP_MODE:
-		overlap = studio.map->overlap;
-		data = studio.map;
+		{
+			Map* map = studio.editor.map[studio.bank.index.map];		
+			overlap = map->overlap;
+			data = map;
+		}
 		break;
 	default:
 		break;
@@ -2268,8 +2287,8 @@ static void renderStudio()
 			music = &studio.tic->config.bank0.music;
 			break;
 		default:
-			sfx = getBankSfx();
-			music = getBankMusic();
+			sfx = &studio.tic->cart.banks[studio.bank.index.sfx].sfx;
+			music = &studio.tic->cart.banks[studio.bank.index.music].music;
 		}
 
 		studio.tic->api.tick_start(studio.tic, sfx, music);
@@ -2282,15 +2301,36 @@ static void renderStudio()
 	case TIC_RUN_MODE: 		studio.run->tick(studio.run); break;
 	case TIC_CODE_MODE: 	
 		{
-			Code* code = studio.code[studio.bank.index.code];
+			Code* code = studio.editor.code[studio.bank.index.code];
 			code->tick(code);
 		}
 		break;
-	case TIC_SPRITE_MODE:	studio.sprite->tick(studio.sprite); break;
-	case TIC_MAP_MODE:		studio.map->tick(studio.map); break;
+	case TIC_SPRITE_MODE:	
+		{
+			Sprite* sprite = studio.editor.sprite[studio.bank.index.sprites];
+			sprite->tick(sprite);		
+		}
+		break;
+	case TIC_MAP_MODE:
+		{
+			Map* map = studio.editor.map[studio.bank.index.map];
+			map->tick(map);
+		}
+		break;
+	case TIC_SFX_MODE:
+		{
+			Sfx* sfx = studio.editor.sfx[studio.bank.index.sfx];
+			sfx->tick(sfx);
+		}
+		break;
+	case TIC_MUSIC_MODE:
+		{
+			Music* music = studio.editor.music[studio.bank.index.music];
+			music->tick(music);
+		}
+		break;
+
 	case TIC_WORLD_MODE:	studio.world->tick(studio.world); break;
-	case TIC_SFX_MODE:		studio.sfx->tick(studio.sfx); break;
-	case TIC_MUSIC_MODE:	studio.music->tick(studio.music); break;
 	case TIC_KEYMAP_MODE:	studio.keymap->tick(studio.keymap); break;
 	case TIC_DIALOG_MODE:	studio.dialog->tick(studio.dialog); break;
 	case TIC_MENU_MODE:		studio.menu->tick(studio.menu); break;
@@ -2481,7 +2521,7 @@ static void updateSystemFont()
 
 void studioConfigChanged()
 {
-	Code* code = studio.code[studio.bank.index.code];
+	Code* code = studio.editor.code[studio.bank.index.code];
 	if(code->update)
 		code->update(code);
 
@@ -2567,21 +2607,23 @@ static void onFSInitialized(FileSystem* fs)
 
 	{
 		for(s32 i = 0; i < TIC_BANKS; i++)
-			studio.code[i] = SDL_malloc(sizeof(Code));
+		{
+			studio.editor.code[i] 		= SDL_malloc(sizeof(Code));
+			studio.editor.sprite[i]	= SDL_malloc(sizeof(Sprite));
+			studio.editor.map[i] 		= SDL_malloc(sizeof(Map));
+			studio.editor.sfx[i] 		= SDL_malloc(sizeof(Sfx));
+			studio.editor.music[i] 	= SDL_malloc(sizeof(Music));
+		}
 
-		studio.start = 		SDL_malloc(sizeof(Start));
-		studio.console = 	SDL_malloc(sizeof(Console));
-		studio.run = 		SDL_malloc(sizeof(Run));
-		studio.sprite = 	SDL_malloc(sizeof(Sprite));
-		studio.map = 		SDL_malloc(sizeof(Map));
-		studio.world = 		SDL_malloc(sizeof(World));
-		studio.sfx = 		SDL_malloc(sizeof(Sfx));
-		studio.music = 		SDL_malloc(sizeof(Music));
-		studio.config = 	SDL_malloc(sizeof(Config));
-		studio.keymap = 	SDL_malloc(sizeof(Keymap));
-		studio.dialog = 	SDL_malloc(sizeof(Dialog));
-		studio.menu = 		SDL_malloc(sizeof(Menu));
-		studio.surf = 		SDL_malloc(sizeof(Surf));
+		studio.start 	= SDL_malloc(sizeof(Start));
+		studio.console 	= SDL_malloc(sizeof(Console));
+		studio.run 		= SDL_malloc(sizeof(Run));
+		studio.world 	= SDL_malloc(sizeof(World));
+		studio.config 	= SDL_malloc(sizeof(Config));
+		studio.keymap 	= SDL_malloc(sizeof(Keymap));
+		studio.dialog 	= SDL_malloc(sizeof(Dialog));
+		studio.menu 	= SDL_malloc(sizeof(Menu));
+		studio.surf 	= SDL_malloc(sizeof(Surf));
 	}
 
 	fsMakeDir(fs, TIC_LOCAL);
@@ -2677,16 +2719,18 @@ s32 main(s32 argc, char **argv)
 
 	{
 		for(s32 i = 0; i < TIC_BANKS; i++)
-			SDL_free(studio.code[i]);
+		{
+			SDL_free(studio.editor.code[i]);
+			SDL_free(studio.editor.sprite[i]);
+			SDL_free(studio.editor.map[i]);
+			SDL_free(studio.editor.sfx[i]);
+			SDL_free(studio.editor.music[i]);
+		}
 
 		SDL_free(studio.start);
 		SDL_free(studio.console);
 		SDL_free(studio.run);
-		SDL_free(studio.sprite);
-		SDL_free(studio.map);
 		SDL_free(studio.world);
-		SDL_free(studio.sfx);
-		SDL_free(studio.music);
 		SDL_free(studio.config);
 		SDL_free(studio.keymap);
 		SDL_free(studio.dialog);

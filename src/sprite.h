@@ -30,6 +30,8 @@ struct Sprite
 {
 	tic_mem* tic;
 
+	tic_tiles* src;
+
 	u32 tickCounter;
 
 	u16 index;
@@ -64,4 +66,4 @@ struct Sprite
 	void (*overlap)(tic_mem* tic, void* data);
 };
 
-void initSprite(Sprite*, tic_mem*);
+void initSprite(Sprite*, tic_mem*, tic_tiles* src);
