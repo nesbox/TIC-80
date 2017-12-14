@@ -1327,7 +1327,7 @@ static void drawTumbler(Music* music, s32 x, s32 y, s32 index)
 	}
 
 	u8 color = Chroma;
-	tic->api.sprite(tic, &tic->config.bank.tiles, music->tracker.patterns[index] ? On : Off, x, y, &color, 1);
+	tic->api.sprite(tic, &tic->config.bank0.tiles, music->tracker.patterns[index] ? On : Off, x, y, &color, 1);
 }
 
 static void drawTracker(Music* music, s32 x, s32 y)
@@ -1643,7 +1643,7 @@ void initMusic(Music* music, tic_mem* tic)
 		},
 
 		.tab = MUSIC_TRACKER_TAB,
-		.history = history_create(&tic->cart.bank.music, sizeof(tic_music)),
+		.history = history_create(&tic->cart.bank0.music, sizeof(tic_music)),
 		.event = onStudioEvent,
 	};
 

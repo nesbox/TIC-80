@@ -170,7 +170,7 @@ static void readConfig(Config* config)
 
 	if(lua)
 	{
-		if(luaL_loadstring(lua, config->tic->config.bank.code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
+		if(luaL_loadstring(lua, config->tic->config.bank0.code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
 		{
 			readConfigVideoLength(config, lua);
 			readConfigVideoScale(config, lua);

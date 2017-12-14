@@ -1185,7 +1185,7 @@ void initMap(Map* map, tic_mem* tic)
 			.gesture = false,
 			.start = {0, 0},
 		},
-		.history = history_create(&tic->cart.bank.map, sizeof(tic_map)),
+		.history = history_create(&tic->cart.bank0.map, sizeof(tic_map)),
 		.event = onStudioEvent,
 		.overlap = overlap,
 	};

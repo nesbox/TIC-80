@@ -1570,7 +1570,7 @@ void initSprite(Sprite* sprite, tic_mem* tic)
 			.front = sprite->select.front,
 		},
 		.mode = SPRITE_DRAW_MODE,
-		.history = history_create(&tic->cart.bank.tiles, TIC_SPRITES * sizeof(tic_tile)),
+		.history = history_create(&tic->cart.bank0.tiles, TIC_SPRITES * sizeof(tic_tile)),
 		.event = onStudioEvent,
 		.overlap = overlap,
 	};

@@ -360,12 +360,12 @@ static bool onConsoleLoadSectionCommand(Console* console, const char* param)
 						switch(i)
 						{
 						case 0: memcpy(&tic->cart.cover, 		&cart->cover, 			sizeof cart->cover); break;
-						case 1: memcpy(&tic->cart.bank.tiles, 	&cart->bank.tiles, 		sizeof(tic_tiles)*2); break;
-						case 2: memcpy(&tic->cart.bank.map, 	&cart->bank.map, 		sizeof(tic_map)); break;
-						case 3: memcpy(&tic->cart.bank.code, 	&cart->bank.code, 		sizeof(tic_code)); break;
-						case 4: memcpy(&tic->cart.bank.sfx, 	&cart->bank.sfx, 		sizeof(tic_sfx)); break;
-						case 5: memcpy(&tic->cart.bank.music, 	&cart->bank.music, 		sizeof(tic_music)); break;
-						case 6: memcpy(&tic->cart.palette, &cart->palette, 	sizeof(tic_palette)); break;
+						case 1: memcpy(&tic->cart.bank0.tiles, 	&cart->bank0.tiles, 	sizeof(tic_tiles)*2); break;
+						case 2: memcpy(&tic->cart.bank0.map, 	&cart->bank0.map, 		sizeof(tic_map)); break;
+						case 3: memcpy(&tic->cart.bank0.code, 	&cart->bank0.code, 		sizeof(tic_code)); break;
+						case 4: memcpy(&tic->cart.bank0.sfx, 	&cart->bank0.sfx, 		sizeof(tic_sfx)); break;
+						case 5: memcpy(&tic->cart.bank0.music, 	&cart->bank0.music, 	sizeof(tic_music)); break;
+						case 6: memcpy(&tic->cart.palette, 		&cart->palette,			sizeof(tic_palette)); break;
 						}
 
 						studioRomLoaded();
@@ -602,14 +602,14 @@ static char* saveBinarySection(char* ptr, const char* comment, const char* tag, 
 typedef struct {char* tag; s32 count; s32 offset; s32 size; bool flip;} BinarySection;
 static const BinarySection BinarySections[] = 
 {
-	{"PALETTE", 	1, 					offsetof(tic_cartridge, palette.data), 			sizeof(tic_palette), false},
-	{"TILES", 		TIC_BANK_SPRITES, 	offsetof(tic_cartridge, bank.tiles), 			sizeof(tic_tile), true},
-	{"SPRITES", 	TIC_BANK_SPRITES, 	offsetof(tic_cartridge, bank.sprites), 			sizeof(tic_tile), true},
-	{"MAP", 		TIC_MAP_HEIGHT, 	offsetof(tic_cartridge, bank.map), 				TIC_MAP_WIDTH, true},
-	{"WAVES", 		ENVELOPES_COUNT, 	offsetof(tic_cartridge, bank.sfx.waveform.envelopes), sizeof(tic_waveform), true},
-	{"SFX", 		SFX_COUNT, 			offsetof(tic_cartridge, bank.sfx.data), 		sizeof(tic_sound_effect), true},
-	{"PATTERNS", 	MUSIC_PATTERNS, 	offsetof(tic_cartridge, bank.music.patterns), 	sizeof(tic_track_pattern), true},
-	{"TRACKS", 		MUSIC_TRACKS, 		offsetof(tic_cartridge, bank.music.tracks), 	sizeof(tic_track), true},
+	{"PALETTE", 	1, 					offsetof(tic_cartridge, palette.data), 					sizeof(tic_palette), false},
+	{"TILES", 		TIC_BANK_SPRITES, 	offsetof(tic_cartridge, bank0.tiles), 					sizeof(tic_tile), true},
+	{"SPRITES", 	TIC_BANK_SPRITES, 	offsetof(tic_cartridge, bank0.sprites), 				sizeof(tic_tile), true},
+	{"MAP", 		TIC_MAP_HEIGHT, 	offsetof(tic_cartridge, bank0.map), 					TIC_MAP_WIDTH, true},
+	{"WAVES", 		ENVELOPES_COUNT, 	offsetof(tic_cartridge, bank0.sfx.waveform.envelopes), 	sizeof(tic_waveform), true},
+	{"SFX", 		SFX_COUNT, 			offsetof(tic_cartridge, bank0.sfx.data), 				sizeof(tic_sound_effect), true},
+	{"PATTERNS", 	MUSIC_PATTERNS, 	offsetof(tic_cartridge, bank0.music.patterns), 			sizeof(tic_track_pattern), true},
+	{"TRACKS", 		MUSIC_TRACKS, 		offsetof(tic_cartridge, bank0.music.tracks), 			sizeof(tic_track), true},
 };
 
 static s32 saveProject(Console* console, void* buffer, const char* comment)
@@ -617,7 +617,7 @@ static s32 saveProject(Console* console, void* buffer, const char* comment)
 	tic_mem* tic = console->tic;
 
 	char* stream = buffer;
-	char* ptr = saveTextSection(stream, tic->cart.bank.code.data);
+	char* ptr = saveTextSection(stream, tic->cart.bank0.code.data);
 
 	for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
 	{
@@ -738,7 +738,7 @@ static bool loadProject(Console* console, const char* name, const char* data, s3
 
 			const char* comment = projectComment(name);
 
-			if(loadTextSection(project, comment, cart->bank.code.data, sizeof(tic_code)))
+			if(loadTextSection(project, comment, cart->bank0.code.data, sizeof(tic_code)))
 				done = true;
 
 			for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
@@ -1330,7 +1330,7 @@ static void onImportSprites(const char* name, const void* buffer, size_t size, v
 						tic_rgb rgb = {c->r, c->g, c->b};
 						u8 color = tic_tool_find_closest_color(console->tic->cart.palette.colors, &rgb);
 
-						setSpritePixel(console->tic->cart.bank.tiles.data, x, y, color);
+						setSpritePixel(getBankTiles()->data, x, y, color);
 					}
 
 				gif_close(image);
@@ -1352,8 +1352,8 @@ static void injectMap(Console* console, const void* buffer, s32 size)
 {
 	enum {Size = sizeof(tic_map)};
 
-	SDL_memset(&console->tic->cart.bank.map, 0, Size);
-	SDL_memcpy(&console->tic->cart.bank.map, buffer, SDL_min(size, Size));
+	SDL_memset(getBankMap(), 0, Size);
+	SDL_memcpy(getBankMap(), buffer, SDL_min(size, Size));
 }
 
 static void onImportMap(const char* name, const void* buffer, size_t size, void* data)
@@ -1453,7 +1453,7 @@ static void exportSprites(Console* console)
 		{
 			for (s32 y = 0; y < Height; y++)
 				for (s32 x = 0; x < Width; x++)
-					data[x + y * Width] = getSpritePixel(console->tic->cart.bank.tiles.data, x, y);
+					data[x + y * Width] = getSpritePixel(getBankTiles()->data, x, y);
 
 			s32 size = 0;
 			if((size = writeGifData(console->tic, buffer, data, Width, Height)))
@@ -1493,7 +1493,7 @@ static void exportMap(Console* console)
 
 	if(buffer)
 	{
-		SDL_memcpy(buffer, console->tic->cart.bank.map.data, Size);
+		SDL_memcpy(buffer, getBankMap()->data, Size);
 		fsGetFileData(onMapExported, "world.map", buffer, Size, DEFAULT_CHMOD, console);
 	}
 }
@@ -2714,7 +2714,7 @@ static bool cmdInjectCode(Console* console, const char* param, const char* name)
 	bool watch = strcmp(param, "-code-watch") == 0;
 	if(watch || strcmp(param, "-code") == 0)
 	{
-		bool loaded = loadFileIntoBuffer(console, console->embed.file->bank.code.data, name);
+		bool loaded = loadFileIntoBuffer(console, console->embed.file->bank0.code.data, name);
 
 		if(loaded)
 		{
@@ -2765,7 +2765,7 @@ static bool cmdInjectSprites(Console* console, const char* param, const char* na
 						tic_rgb rgb = {c->r, c->g, c->b};
 						u8 color = tic_tool_find_closest_color(console->embed.file->palette.colors, &rgb);
 
-						setSpritePixel(console->embed.file->bank.tiles.data, x, y, color);
+						setSpritePixel(console->embed.file->bank0.tiles.data, x, y, color);
 					}
 
 				gif_close(image);

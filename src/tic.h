@@ -340,7 +340,7 @@ typedef struct
 {
 	union
 	{
-		tic_bank bank;
+		tic_bank bank0;
 		tic_bank banks[TIC_BANKS];
 	};
 	

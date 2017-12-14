@@ -1058,8 +1058,8 @@ void initSfx(Sfx* sfx, tic_mem* tic)
 		.tab = SFX_ENVELOPES_TAB,
 		.history =
 		{
-			.envelope = history_create(&tic->cart.bank.sfx.data, sizeof tic->cart.bank.sfx.data),
-			.waveform = history_create(&tic->cart.bank.sfx.waveform, sizeof tic->cart.bank.sfx.waveform),
+			.envelope = history_create(&tic->cart.bank0.sfx.data, sizeof tic->cart.bank0.sfx.data),
+			.waveform = history_create(&tic->cart.bank0.sfx.waveform, sizeof tic->cart.bank0.sfx.waveform),
 		},
 		.event = onStudioEvent,
 	};

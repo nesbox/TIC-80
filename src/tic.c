@@ -1327,11 +1327,11 @@ static void api_sync(tic_mem* tic, const char* section, s32 bank, bool toCart)
 {
 	static const struct {const char* name; s32 cart; s32 ram; s32 size;} Sections[] = 
 	{
-		{"tiles", 	offsetof(tic_cartridge, bank.tiles), 	offsetof(tic_ram, tiles), 			sizeof(tic_tiles)},
-		{"sprites", offsetof(tic_cartridge, bank.sprites), 	offsetof(tic_ram, sprites), 		sizeof(tic_tiles)},
-		{"map", 	offsetof(tic_cartridge, bank.map), 		offsetof(tic_ram, map), 			sizeof(tic_map)},
-		{"sfx", 	offsetof(tic_cartridge, bank.sfx), 		offsetof(tic_ram, sfx), 			sizeof(tic_sfx)},
-		{"music", 	offsetof(tic_cartridge, bank.music), 	offsetof(tic_ram, music), 			sizeof(tic_music)},
+		{"tiles", 	offsetof(tic_cartridge, bank0.tiles), 	offsetof(tic_ram, tiles), 			sizeof(tic_tiles)},
+		{"sprites", offsetof(tic_cartridge, bank0.sprites), 	offsetof(tic_ram, sprites), 		sizeof(tic_tiles)},
+		{"map", 	offsetof(tic_cartridge, bank0.map), 		offsetof(tic_ram, map), 			sizeof(tic_map)},
+		{"sfx", 	offsetof(tic_cartridge, bank0.sfx), 		offsetof(tic_ram, sfx), 			sizeof(tic_sfx)},
+		{"music", 	offsetof(tic_cartridge, bank0.music), 	offsetof(tic_ram, music), 			sizeof(tic_music)},
 	};
 
 	assert(bank >= 0 && bank < TIC_BANKS);
@@ -1438,15 +1438,15 @@ static bool isJavascript(const char* code)
 
 static tic_script_lang api_get_script(tic_mem* memory)
 {
-	if(isMoonscript(memory->cart.bank.code.data)) return tic_script_moon;
-	if(isJavascript(memory->cart.bank.code.data)) return tic_script_js;
+	if(isMoonscript(memory->cart.bank0.code.data)) return tic_script_moon;
+	if(isJavascript(memory->cart.bank0.code.data)) return tic_script_js;
 	return tic_script_lua;
 }
 
 static void updateSaveid(tic_mem* memory)
 {
 	memset(memory->saveid, 0, sizeof memory->saveid);
-	const char* saveid = readMetatag(memory->cart.bank.code.data, "saveid", TagFormatLua);
+	const char* saveid = readMetatag(memory->cart.bank0.code.data, "saveid", TagFormatLua);
 	if(saveid)
 	{
 		strcpy(memory->saveid, saveid);
@@ -1454,7 +1454,7 @@ static void updateSaveid(tic_mem* memory)
 	}
 	else
 	{
-		const char* saveid = readMetatag(memory->cart.bank.code.data, "saveid", TagFormatJS);
+		const char* saveid = readMetatag(memory->cart.bank0.code.data, "saveid", TagFormatJS);
 		if(saveid)
 		{
 			strcpy(memory->saveid, saveid);
@@ -1607,14 +1607,14 @@ static void api_load(tic_cartridge* cart, const u8* buffer, s32 size, bool palet
 
 		switch(chunk.type)
 		{
-		case CHUNK_TILES: 		LOAD_CHUNK(cart->bank.tiles); 					break;
-		case CHUNK_SPRITES: 	LOAD_CHUNK(cart->bank.sprites); 				break;
-		case CHUNK_MAP: 		LOAD_CHUNK(cart->bank.map); 					break;
-		case CHUNK_CODE: 		LOAD_CHUNK(cart->bank.code); 							break;
-		case CHUNK_SOUND: 		LOAD_CHUNK(cart->bank.sfx.data); 				break;
-		case CHUNK_WAVEFORM:	LOAD_CHUNK(cart->bank.sfx.waveform);			break;
-		case CHUNK_MUSIC:		LOAD_CHUNK(cart->bank.music.tracks.data); 		break;
-		case CHUNK_PATTERNS:	LOAD_CHUNK(cart->bank.music.patterns.data); 	break;
+		case CHUNK_TILES: 		LOAD_CHUNK(cart->bank0.tiles); 					break;
+		case CHUNK_SPRITES: 	LOAD_CHUNK(cart->bank0.sprites); 				break;
+		case CHUNK_MAP: 		LOAD_CHUNK(cart->bank0.map); 					break;
+		case CHUNK_CODE: 		LOAD_CHUNK(cart->bank0.code); 							break;
+		case CHUNK_SOUND: 		LOAD_CHUNK(cart->bank0.sfx.data); 				break;
+		case CHUNK_WAVEFORM:	LOAD_CHUNK(cart->bank0.sfx.waveform);			break;
+		case CHUNK_MUSIC:		LOAD_CHUNK(cart->bank0.music.tracks.data); 		break;
+		case CHUNK_PATTERNS:	LOAD_CHUNK(cart->bank0.music.patterns.data); 	break;
 		case CHUNK_PALETTE:		
 			if(palette)
 				LOAD_CHUNK(cart->palette); 					
@@ -1676,14 +1676,14 @@ static s32 api_save(const tic_cartridge* cart, u8* buffer)
 
 	#define SAVE_CHUNK(id, from) saveChunk(buffer, id, &from, sizeof(from))
 
-	buffer = SAVE_CHUNK(CHUNK_TILES, 	cart->bank.tiles);
-	buffer = SAVE_CHUNK(CHUNK_SPRITES, 	cart->bank.sprites);
-	buffer = SAVE_CHUNK(CHUNK_MAP, 		cart->bank.map);
-	buffer = SAVE_CHUNK(CHUNK_CODE, 	cart->bank.code);
-	buffer = SAVE_CHUNK(CHUNK_SOUND, 	cart->bank.sfx.data);
-	buffer = SAVE_CHUNK(CHUNK_WAVEFORM, cart->bank.sfx.waveform);
-	buffer = SAVE_CHUNK(CHUNK_PATTERNS, cart->bank.music.patterns.data);
-	buffer = SAVE_CHUNK(CHUNK_MUSIC, 	cart->bank.music.tracks.data);
+	buffer = SAVE_CHUNK(CHUNK_TILES, 	cart->bank0.tiles);
+	buffer = SAVE_CHUNK(CHUNK_SPRITES, 	cart->bank0.sprites);
+	buffer = SAVE_CHUNK(CHUNK_MAP, 		cart->bank0.map);
+	buffer = SAVE_CHUNK(CHUNK_CODE, 	cart->bank0.code);
+	buffer = SAVE_CHUNK(CHUNK_SOUND, 	cart->bank0.sfx.data);
+	buffer = SAVE_CHUNK(CHUNK_WAVEFORM, cart->bank0.sfx.waveform);
+	buffer = SAVE_CHUNK(CHUNK_PATTERNS, cart->bank0.music.patterns.data);
+	buffer = SAVE_CHUNK(CHUNK_MUSIC, 	cart->bank0.music.tracks.data);
 	buffer = SAVE_CHUNK(CHUNK_PALETTE, 	cart->palette);
 
 	buffer = saveFixedChunk(buffer, CHUNK_COVER, cart->cover.data, cart->cover.size);
