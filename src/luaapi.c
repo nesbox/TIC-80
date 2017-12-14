@@ -981,7 +981,7 @@ static s32 lua_pmem(lua_State *lua)
 	{
 		u32 index = getLuaNumber(lua, 1);
 
-		if(index >= 0 && index < TIC_PERSISTENT_SIZE)
+		if(index < TIC_PERSISTENT_SIZE)
 		{
 			s32 val = memory->ram.persistent.data[index];
 

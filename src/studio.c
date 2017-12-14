@@ -59,6 +59,12 @@
 
 #define POPUP_DUR (TIC_FRAMERATE*2)
 
+#if defined(TIC80_PRO)
+#define TIC_EDITOR_BANKS (TIC_BANKS)
+#else
+#define TIC_EDITOR_BANKS 1
+#endif
+
 typedef struct
 {
 	u8 data[16];
@@ -198,11 +204,11 @@ static struct
 
 	struct
 	{
-		Code* 	code[TIC_BANKS];
-		Sprite* sprite[TIC_BANKS];
-		Map* 	map[TIC_BANKS];
-		Sfx* 	sfx[TIC_BANKS];
-		Music* 	music[TIC_BANKS];
+		Code* 	code 	[TIC_EDITOR_BANKS];
+		Sprite* sprite 	[TIC_EDITOR_BANKS];
+		Map* 	map 	[TIC_EDITOR_BANKS];
+		Sfx* 	sfx 	[TIC_EDITOR_BANKS];
+		Music* 	music 	[TIC_EDITOR_BANKS];
 	} editor;
 
 	struct
@@ -607,7 +613,7 @@ static void drawBankIcon(s32 x, s32 y)
 
 		enum{Size = TOOLBAR_SIZE};
 
-		for(s32 i = 0; i < TIC_BANKS; i++)
+		for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
 		{
 			SDL_Rect rect = {x + 2 + (i+1)*Size, 0, Size, Size};
 
@@ -1085,7 +1091,7 @@ static void initModules()
 {
 	tic_mem* tic = studio.tic;
 
-	for(s32 i = 0; i < TIC_BANKS; i++)
+	for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
 	{
 		initCode(studio.editor.code[i], studio.tic, &tic->cart.banks[i].code);
 		initSprite(studio.editor.sprite[i], studio.tic, &tic->cart.banks[i].tiles);
@@ -2606,7 +2612,7 @@ static void onFSInitialized(FileSystem* fs)
 	studio.tic = studio.tic80local->memory;
 
 	{
-		for(s32 i = 0; i < TIC_BANKS; i++)
+		for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
 		{
 			studio.editor.code[i] 		= SDL_malloc(sizeof(Code));
 			studio.editor.sprite[i]	= SDL_malloc(sizeof(Sprite));
@@ -2718,7 +2724,7 @@ s32 main(s32 argc, char **argv)
 #endif
 
 	{
-		for(s32 i = 0; i < TIC_BANKS; i++)
+		for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
 		{
 			SDL_free(studio.editor.code[i]);
 			SDL_free(studio.editor.sprite[i]);

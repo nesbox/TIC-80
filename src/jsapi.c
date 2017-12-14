@@ -512,7 +512,7 @@ static duk_ret_t duk_pmem(duk_context* duk)
 
 	u32 index = duk_to_int(duk, 0);
 
-	if(index >= 0 && index < TIC_PERSISTENT_SIZE)
+	if(index < TIC_PERSISTENT_SIZE)
 	{
 		s32 val = memory->ram.persistent.data[index];
 
