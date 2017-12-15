@@ -675,16 +675,31 @@ static bool loadTextSection(const char* project, const char* comment, char* dst,
 
 	{
 		char tagbuf[64];
+		char tag[16];
 
 		for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
 		{
-			sprintf(tagbuf, "\n%s <%s>\n", comment, BinarySections[i].tag);
+			for(s32 b = 0; b < TIC_BANKS; b++)
+			{
+				makeTag(BinarySections[i].tag, tag, b);
+
+				sprintf(tagbuf, "\n%s <%s>\n", comment, tag);
+
+				const char* ptr = SDL_strstr(project, tagbuf);
+
+				if(ptr && ptr < end)
+					end = ptr;
+			}
+		}
+
+		{
+			sprintf(tagbuf, "\n%s <PALETTE>\n", comment);
 
 			const char* ptr = SDL_strstr(project, tagbuf);
 
 			if(ptr && ptr < end)
 				end = ptr;
-		}		
+		}
 	}
 
 	if(end > start)

@@ -703,9 +703,9 @@ static duk_ret_t duk_sync(duk_context* duk)
 {
 	tic_mem* memory = (tic_mem*)getDukMachine(duk);
 
-	bool toCart = duk_is_null_or_undefined(duk, 0) ? true : duk_to_boolean(duk, 0);
-	const char* section = duk_is_null_or_undefined(duk, 1) ? NULL : duk_to_string(duk, 1);
-	s32 bank = duk_is_null_or_undefined(duk, 2) ? 0 : duk_to_int(duk, 2);
+	const char* section = duk_is_null_or_undefined(duk, 0) ? NULL : duk_to_string(duk, 0);
+	s32 bank = duk_is_null_or_undefined(duk, 1) ? 0 : duk_to_int(duk, 1);
+	bool toCart = duk_is_null_or_undefined(duk, 2) ? false : duk_to_boolean(duk, 2);
 
 	if(bank >= 0 && bank < TIC_BANKS)
 		memory->api.sync(memory, section, bank, toCart);

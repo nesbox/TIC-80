@@ -747,21 +747,21 @@ static s32 lua_sync(lua_State* lua)
 {
 	tic_mem* memory = (tic_mem*)getLuaMachine(lua);
 
-	bool toCart = true;
+	bool toCart = false;
 	const char* section = NULL;
 	s32 bank = 0;
 
 	if(lua_gettop(lua) >= 1)
 	{
-		toCart = lua_toboolean(lua, 1);
+		section = lua_tostring(lua, 1);
 
 		if(lua_gettop(lua) >= 2)
 		{
-			section = lua_tostring(lua, 2);
+			bank = getLuaNumber(lua, 2);
 
 			if(lua_gettop(lua) >= 3)
 			{
-				bank = getLuaNumber(lua, 3);
+				toCart = lua_toboolean(lua, 3);
 			}
 		}
 	}

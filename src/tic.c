@@ -1328,7 +1328,7 @@ static void initCover(tic_mem* tic)
 
 static void api_sync(tic_mem* tic, const char* section, s32 bank, bool toCart)
 {
-	static const struct {const char* name; s32 cart; s32 ram; s32 size;} Sections[] = 
+	static const struct {const char* name; s32 bank; s32 ram; s32 size;} Sections[] = 
 	{
 		{"tiles", 	offsetof(tic_bank, tiles), 		offsetof(tic_ram, tiles), 	sizeof(tic_tiles)},
 		{"sprites", offsetof(tic_bank, sprites),	offsetof(tic_ram, sprites), sizeof(tic_tiles)},
@@ -1343,9 +1343,14 @@ static void api_sync(tic_mem* tic, const char* section, s32 bank, bool toCart)
 	{
 		if(section == NULL || (section && strcmp(section, Sections[i].name) == 0))
 			toCart
-				? memcpy((u8*)&tic->cart.banks[bank] + Sections[i].cart, (u8*)&tic->ram + Sections[i].ram, Sections[i].size)
-				: memcpy((u8*)&tic->ram + Sections[i].ram, (u8*)&tic->cart.banks[bank] + Sections[i].cart, Sections[i].size);
+				? memcpy((u8*)&tic->cart.banks[bank] + Sections[i].bank, (u8*)&tic->ram + Sections[i].ram, Sections[i].size)
+				: memcpy((u8*)&tic->ram + Sections[i].ram, (u8*)&tic->cart.banks[bank] + Sections[i].bank, Sections[i].size);
 	}
+
+	if(section == NULL || (section && strcmp(section, "pal") == 0))
+		toCart
+			? memcpy(&tic->cart.palette, &tic->ram.vram.palette, sizeof(tic_palette))
+			: memcpy(&tic->ram.vram.palette, &tic->cart.palette, sizeof(tic_palette));
 }
 
 static void cart2ram(tic_mem* memory)
