@@ -203,7 +203,7 @@ typedef struct
 		tic_sound_loop loops[4];
 	};
 
-} tic_sound_effect;
+} tic_sample;
 
 typedef struct
 {
@@ -252,8 +252,13 @@ typedef struct
 
 typedef struct
 {
+	tic_sample data[SFX_COUNT];
+} tic_samples;
+
+typedef struct
+{
 	tic_waveforms waveform;
-	tic_sound_effect data[SFX_COUNT];
+	tic_samples samples;
 }tic_sfx;
 
 typedef struct

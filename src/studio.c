@@ -332,7 +332,7 @@ tic_map* getBankMap()
 
 void playSystemSfx(s32 id)
 {
-	const tic_sound_effect* effect = &studio.tic->config.bank0.sfx.data[id];
+	const tic_sample* effect = &studio.tic->config.bank0.sfx.samples.data[id];
 	studio.tic->api.sfx_ex(studio.tic, id, effect->note, effect->octave, -1, 0, MAX_VOLUME, 0);
 }
 

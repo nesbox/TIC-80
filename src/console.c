@@ -602,14 +602,14 @@ static char* saveBinarySection(char* ptr, const char* comment, const char* tag, 
 typedef struct {char* tag; s32 count; s32 offset; s32 size; bool flip;} BinarySection;
 static const BinarySection BinarySections[] = 
 {
-	{"PALETTE", 	1, 					offsetof(tic_cartridge, palette.data), 					sizeof(tic_palette), false},
-	{"TILES", 		TIC_BANK_SPRITES, 	offsetof(tic_cartridge, bank0.tiles), 					sizeof(tic_tile), true},
-	{"SPRITES", 	TIC_BANK_SPRITES, 	offsetof(tic_cartridge, bank0.sprites), 				sizeof(tic_tile), true},
-	{"MAP", 		TIC_MAP_HEIGHT, 	offsetof(tic_cartridge, bank0.map), 					TIC_MAP_WIDTH, true},
-	{"WAVES", 		ENVELOPES_COUNT, 	offsetof(tic_cartridge, bank0.sfx.waveform.envelopes), 	sizeof(tic_waveform), true},
-	{"SFX", 		SFX_COUNT, 			offsetof(tic_cartridge, bank0.sfx.data), 				sizeof(tic_sound_effect), true},
-	{"PATTERNS", 	MUSIC_PATTERNS, 	offsetof(tic_cartridge, bank0.music.patterns), 			sizeof(tic_track_pattern), true},
-	{"TRACKS", 		MUSIC_TRACKS, 		offsetof(tic_cartridge, bank0.music.tracks), 			sizeof(tic_track), true},
+	{"PALETTE", 	1, 					offsetof(tic_cartridge, palette.data), 			sizeof(tic_palette), false},
+	{"TILES", 		TIC_BANK_SPRITES, 	offsetof(tic_cartridge, bank0.tiles), 			sizeof(tic_tile), true},
+	{"SPRITES", 	TIC_BANK_SPRITES, 	offsetof(tic_cartridge, bank0.sprites), 		sizeof(tic_tile), true},
+	{"MAP", 		TIC_MAP_HEIGHT, 	offsetof(tic_cartridge, bank0.map), 			TIC_MAP_WIDTH, true},
+	{"WAVES", 		ENVELOPES_COUNT, 	offsetof(tic_cartridge, bank0.sfx.waveform), 	sizeof(tic_waveform), true},
+	{"SFX", 		SFX_COUNT, 			offsetof(tic_cartridge, bank0.sfx.samples), 	sizeof(tic_sample), true},
+	{"PATTERNS", 	MUSIC_PATTERNS, 	offsetof(tic_cartridge, bank0.music.patterns), 	sizeof(tic_track_pattern), true},
+	{"TRACKS", 		MUSIC_TRACKS, 		offsetof(tic_cartridge, bank0.music.tracks), 	sizeof(tic_track), true},
 };
 
 static s32 saveProject(Console* console, void* buffer, const char* comment)
@@ -2143,7 +2143,7 @@ static void onConsoleRamCommand(Console* console, const char* param)
 		{offsetof(tic_ram, persistent), 				"PERSISTENT MEMORY"},
 		{offsetof(tic_ram, registers), 					"SOUND REGISTERS"},
 		{offsetof(tic_ram, sfx.waveform), 				"WAVEFORMS"},
-		{offsetof(tic_ram, sfx.data), 					"SFX"},
+		{offsetof(tic_ram, sfx.samples),				"SFX"},
 		{offsetof(tic_ram, music.patterns.data), 		"MUSIC PATTERNS"},
 		{offsetof(tic_ram, music.tracks.data), 			"MUSIC TRACKS"},
 		{offsetof(tic_ram, music_pos), 					"MUSIC POS"},

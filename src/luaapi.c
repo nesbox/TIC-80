@@ -682,7 +682,7 @@ static s32 lua_sfx(lua_State* lua)
 		{
 			if (index >= 0)
 			{
-				tic_sound_effect* effect = memory->ram.sfx.data + index;
+				tic_sample* effect = memory->ram.sfx.samples.data + index;
 
 				note = effect->note;
 				octave = effect->octave;

@@ -104,9 +104,9 @@ static void drawSwitch(Sfx* sfx, s32 x, s32 y, const char* label, s32 value, voi
 	}
 }
 
-static tic_sound_effect* getEffect(Sfx* sfx)
+static tic_sample* getEffect(Sfx* sfx)
 {
-	return sfx->src->data + sfx->index;
+	return sfx->src->samples.data + sfx->index;
 }
 
 static void setIndex(Sfx* sfx, s32 delta)
@@ -116,7 +116,7 @@ static void setIndex(Sfx* sfx, s32 delta)
 
 static void setSpeed(Sfx* sfx, s32 delta)
 {
-	tic_sound_effect* effect = getEffect(sfx);
+	tic_sample* effect = getEffect(sfx);
 
 	effect->speed += delta;
 
@@ -129,14 +129,14 @@ static void drawTopPanel(Sfx* sfx, s32 x, s32 y)
 
 	drawSwitch(sfx, x, y, "IDX", sfx->index, setIndex);
 
-	tic_sound_effect* effect = getEffect(sfx);
+	tic_sample* effect = getEffect(sfx);
 
 	drawSwitch(sfx, x += Gap, y, "SPD", effect->speed, setSpeed);
 }
 
 static void setLoopStart(Sfx* sfx, s32 delta)
 {
-	tic_sound_effect* effect = getEffect(sfx);
+	tic_sample* effect = getEffect(sfx);
 	tic_sound_loop* loop = effect->loops + sfx->canvasTab;
 
 	loop->start += delta;
@@ -146,7 +146,7 @@ static void setLoopStart(Sfx* sfx, s32 delta)
 
 static void setLoopSize(Sfx* sfx, s32 delta)
 {
-	tic_sound_effect* effect = getEffect(sfx);
+	tic_sample* effect = getEffect(sfx);
 	tic_sound_loop* loop = effect->loops + sfx->canvasTab;
 
 	loop->size += delta;
@@ -160,7 +160,7 @@ static void drawLoopPanel(Sfx* sfx, s32 x, s32 y)
 
 	enum {Gap = 2};
 
-	tic_sound_effect* effect = getEffect(sfx);
+	tic_sample* effect = getEffect(sfx);
 	tic_sound_loop* loop = effect->loops + sfx->canvasTab;
 
 	drawSwitch(sfx, x, y += Gap + TIC_FONT_HEIGHT, "", loop->size, setLoopSize);
@@ -248,7 +248,7 @@ static void drawWaveButtons(Sfx* sfx, s32 x, s32 y)
 
 				if(checkMouseClick(&iconRect, SDL_BUTTON_LEFT))
 				{
-					tic_sound_effect* effect = getEffect(sfx);
+					tic_sample* effect = getEffect(sfx);
 					for(s32 c = 0; c < SFX_TICKS; c++)
 						effect->data[c].wave = i;
 				}
@@ -270,7 +270,7 @@ static void drawWaveButtons(Sfx* sfx, s32 x, s32 y)
 
 	// draw full icon
 	{
-		tic_sound_effect* effect = getEffect(sfx);
+		tic_sample* effect = getEffect(sfx);
 		u8 start = effect->data[0].wave;
 		bool full = true;
 		for(s32 c = 1; c < SFX_TICKS; c++)
@@ -310,7 +310,7 @@ static void drawCanvasTabs(Sfx* sfx, s32 x, s32 y)
 		sfx->tic->api.text(sfx->tic, Labels[i], rect.x, rect.y, i == sfx->canvasTab ? (tic_color_white) : (tic_color_dark_gray));
 	}
 
-	tic_sound_effect* effect = getEffect(sfx);
+	tic_sample* effect = getEffect(sfx);
 
 	switch(sfx->canvasTab)
 	{
@@ -372,7 +372,7 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y)
 
 	SDL_Rect rect = {x, y, CANVAS_WIDTH, CANVAS_HEIGHT};
 
-	tic_sound_effect* effect = getEffect(sfx);
+	tic_sample* effect = getEffect(sfx);
 
 	if(checkMousePos(&rect))
 	{
@@ -447,7 +447,7 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y)
 
 static void drawPiano(Sfx* sfx, s32 x, s32 y)
 {
-	tic_sound_effect* effect = getEffect(sfx);
+	tic_sample* effect = getEffect(sfx);
 
 	static const s32 ButtonIndixes[] = {0, 2, 4, 5, 7, 9, 11, 1, 3, -1, 6, 8, 10};
 
@@ -514,7 +514,7 @@ static void drawPiano(Sfx* sfx, s32 x, s32 y)
 
 static void drawOctavePanel(Sfx* sfx, s32 x, s32 y)
 {
-	tic_sound_effect* effect = getEffect(sfx);
+	tic_sample* effect = getEffect(sfx);
 
 	static const char Label[] = "OCT";
 	sfx->tic->api.text(sfx->tic, Label, x, y, (tic_color_white));
@@ -545,7 +545,7 @@ static void playSound(Sfx* sfx)
 {
 	if(sfx->play.active)
 	{
-		tic_sound_effect* effect = getEffect(sfx);
+		tic_sample* effect = getEffect(sfx);
 
 		if(sfx->play.note != effect->note)
 		{
@@ -573,8 +573,8 @@ static void redo(Sfx* sfx)
 
 static void copyToClipboard(Sfx* sfx)
 {
-	tic_sound_effect* effect = getEffect(sfx);
-	toClipboard(effect, sizeof(tic_sound_effect), true);
+	tic_sample* effect = getEffect(sfx);
+	toClipboard(effect, sizeof(tic_sample), true);
 }
 
 static void copyWaveToClipboard(Sfx* sfx)
@@ -585,8 +585,8 @@ static void copyWaveToClipboard(Sfx* sfx)
 
 static void resetSfx(Sfx* sfx)
 {
-	tic_sound_effect* effect = getEffect(sfx);
-	memset(effect, 0, sizeof(tic_sound_effect));
+	tic_sample* effect = getEffect(sfx);
+	memset(effect, 0, sizeof(tic_sample));
 
 	history_add(sfx->history);
 }
@@ -613,9 +613,9 @@ static void cutWaveToClipboard(Sfx* sfx)
 
 static void copyFromClipboard(Sfx* sfx)
 {
-	tic_sound_effect* effect = getEffect(sfx);
+	tic_sample* effect = getEffect(sfx);
 
-	if(fromClipboard(effect, sizeof(tic_sound_effect), true, false))
+	if(fromClipboard(effect, sizeof(tic_sample), true, false))
 		history_add(sfx->history);
 }
 
@@ -660,7 +660,7 @@ static void processKeyboard(Sfx* sfx)
 				keyboardButton = i;        
 	}
 
-	tic_sound_effect* effect = getEffect(sfx);
+	tic_sample* effect = getEffect(sfx);
 
 	if(keyboardButton >= 0)
 	{
@@ -808,7 +808,7 @@ static void drawSfxToolbar(Sfx* sfx)
 		}
 	}
 
-	tic_sound_effect* effect = getEffect(sfx);
+	tic_sample* effect = getEffect(sfx);
 
 	{
 		static const char* Notes[] = SFX_NOTES;

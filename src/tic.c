@@ -70,7 +70,7 @@ typedef struct
 
 STATIC_ASSERT(rom_chunk_size, sizeof(Chunk) == 4);
 STATIC_ASSERT(tic_map, sizeof(tic_map) < 1024*32);
-STATIC_ASSERT(tic_sound_effect, sizeof(tic_sound_effect) == 66);
+STATIC_ASSERT(tic_sample, sizeof(tic_sample) == 66);
 STATIC_ASSERT(tic_track_pattern, sizeof(tic_track_pattern) == 3*MUSIC_PATTERN_ROWS);
 STATIC_ASSERT(tic_track, sizeof(tic_track) == 3*MUSIC_FRAMES+3);
 STATIC_ASSERT(tic_vram, sizeof(tic_vram) == TIC_VRAM_SIZE);
@@ -357,7 +357,7 @@ static void channelSfx(tic_mem* memory, s32 index, s32 note, s32 octave, s32 dur
 	if(index >= 0)
 	{
 		struct {s8 speed:SFX_SPEED_BITS;} temp = {speed};
-		c->speed = speed == temp.speed ? speed : machine->sound.sfx->data[index].speed;
+		c->speed = speed == temp.speed ? speed : machine->sound.sfx->samples.data[index].speed;
 	}
 
 	// start index of idealized piano
@@ -1061,7 +1061,7 @@ static void sfx(tic_mem* memory, s32 index, s32 freq, Channel* channel, tic_soun
 		return;
 	}
 
-	const tic_sound_effect* effect = &machine->sound.sfx->data[index];
+	const tic_sample* effect = &machine->sound.sfx->samples.data[index];
 	s32 pos = ++channel->tick;
 
 	s8 speed = channel->speed;
@@ -1599,6 +1599,18 @@ static void api_load(tic_cartridge* cart, const u8* buffer, s32 size, bool palet
 
 	#define LOAD_CHUNK(to) memcpy(&to, buffer, min(sizeof(to), chunk.size))
 
+	struct
+	{
+		s32 tiles;
+		s32 sprites;
+		s32 map;
+		s32 sfx;
+		s32 waves;
+		s32 tracks;
+		s32 patterns;
+		s32 code;
+	} bank = {0, 0, 0, 0, 0, 0, 0, 0};
+
 	while(buffer < end)
 	{
 		Chunk chunk;
@@ -1607,17 +1619,17 @@ static void api_load(tic_cartridge* cart, const u8* buffer, s32 size, bool palet
 
 		switch(chunk.type)
 		{
-		case CHUNK_TILES: 		LOAD_CHUNK(cart->bank0.tiles); 					break;
-		case CHUNK_SPRITES: 	LOAD_CHUNK(cart->bank0.sprites); 				break;
-		case CHUNK_MAP: 		LOAD_CHUNK(cart->bank0.map); 					break;
-		case CHUNK_CODE: 		LOAD_CHUNK(cart->bank0.code); 							break;
-		case CHUNK_SOUND: 		LOAD_CHUNK(cart->bank0.sfx.data); 				break;
-		case CHUNK_WAVEFORM:	LOAD_CHUNK(cart->bank0.sfx.waveform);			break;
-		case CHUNK_MUSIC:		LOAD_CHUNK(cart->bank0.music.tracks.data); 		break;
-		case CHUNK_PATTERNS:	LOAD_CHUNK(cart->bank0.music.patterns.data); 	break;
+		case CHUNK_TILES: 		memcpy(&cart->banks[bank.tiles++].tiles, 				buffer, min(sizeof(tic_tiles), 		chunk.size)); break;
+		case CHUNK_SPRITES: 	memcpy(&cart->banks[bank.sprites++].sprites, 			buffer, min(sizeof(tic_tiles), 		chunk.size)); break;
+		case CHUNK_MAP: 		memcpy(&cart->banks[bank.map++].map, 					buffer, min(sizeof(tic_map), 		chunk.size)); break;
+		case CHUNK_CODE: 		memcpy(&cart->banks[bank.code++].code, 					buffer, min(sizeof(tic_code), 		chunk.size)); break;
+		case CHUNK_SOUND: 		memcpy(&cart->banks[bank.sfx++].sfx.samples, 			buffer, min(sizeof(tic_samples), 	chunk.size)); break;
+		case CHUNK_WAVEFORM:	memcpy(&cart->banks[bank.waves++].sfx.waveform, 		buffer, min(sizeof(tic_waveforms), 	chunk.size)); break;
+		case CHUNK_MUSIC:		memcpy(&cart->banks[bank.tracks++].music.tracks, 		buffer, min(sizeof(tic_tracks), 	chunk.size)); break;
+		case CHUNK_PATTERNS:	memcpy(&cart->banks[bank.patterns++].music.patterns, 	buffer, min(sizeof(tic_patterns), 	chunk.size)); break;
 		case CHUNK_PALETTE:		
 			if(palette)
-				LOAD_CHUNK(cart->palette); 					
+				LOAD_CHUNK(cart->palette);
 			break;
 		case CHUNK_COVER: 	
 			LOAD_CHUNK(cart->cover.data);
@@ -1680,7 +1692,7 @@ static s32 api_save(const tic_cartridge* cart, u8* buffer)
 	buffer = SAVE_CHUNK(CHUNK_SPRITES, 	cart->bank0.sprites);
 	buffer = SAVE_CHUNK(CHUNK_MAP, 		cart->bank0.map);
 	buffer = SAVE_CHUNK(CHUNK_CODE, 	cart->bank0.code);
-	buffer = SAVE_CHUNK(CHUNK_SOUND, 	cart->bank0.sfx.data);
+	buffer = SAVE_CHUNK(CHUNK_SOUND, 	cart->bank0.sfx.samples);
 	buffer = SAVE_CHUNK(CHUNK_WAVEFORM, cart->bank0.sfx.waveform);
 	buffer = SAVE_CHUNK(CHUNK_PATTERNS, cart->bank0.music.patterns.data);
 	buffer = SAVE_CHUNK(CHUNK_MUSIC, 	cart->bank0.music.tracks.data);
