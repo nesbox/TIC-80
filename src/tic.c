@@ -1639,6 +1639,11 @@ static void api_load(tic_cartridge* cart, const u8* buffer, s32 size, bool palet
 		}
 
 		buffer += chunk.size;
+
+		// check banks overflow
+		for(s32 i = 0; i < sizeof bank / sizeof(s32); i++)
+			if(((s32*)&bank)[i] >= TIC_BANKS)
+				return;
 	}
 
 	#undef LOAD_CHUNK
