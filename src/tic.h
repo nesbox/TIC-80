@@ -107,7 +107,8 @@
 
 #define TIC_CODE_SIZE (0x10000)
 
-#define TIC_BANKS 8
+#define TIC_BANK_BITS 3
+#define TIC_BANKS (1 << TIC_BANK_BITS)
 
 #define SFX_NOTES {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
 
@@ -203,7 +204,7 @@ typedef struct
 		tic_sound_loop loops[4];
 	};
 
-} tic_sound_effect;
+} tic_sample;
 
 typedef struct
 {
@@ -252,8 +253,13 @@ typedef struct
 
 typedef struct
 {
+	tic_sample data[SFX_COUNT];
+} tic_samples;
+
+typedef struct
+{
 	tic_waveforms waveform;
-	tic_sound_effect data[SFX_COUNT];
+	tic_samples samples;
 }tic_sfx;
 
 typedef struct

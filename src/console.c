@@ -565,6 +565,22 @@ static char* saveTextSection(char* ptr, const char* data)
 	return ptr;
 }
 
+static char* saveTextSectionBank(char* ptr, const char* comment, const char* tag, const char* data)
+{
+	if(strlen(data) == 0)
+		return ptr;
+
+	sprintf(ptr, "%s <%s>\n", comment, tag);
+	ptr += strlen(ptr);
+
+	ptr = saveTextSection(ptr, data);
+
+	sprintf(ptr, "%s </%s>\n\n", comment, tag);
+	ptr += strlen(ptr);
+
+	return ptr;
+}
+
 static char* saveBinaryBuffer(char* ptr, const char* comment, const void* data, s32 size, s32 row, bool flip)
 {
 	if(bufferEmpty(data, size)) 
@@ -599,18 +615,23 @@ static char* saveBinarySection(char* ptr, const char* comment, const char* tag, 
 	return ptr;
 }
 
-typedef struct {char* tag; s32 count; s32 offset; s32 size; bool flip;} BinarySection;
+typedef struct {char* tag; s32 count; s32 offset; s32 size;} BinarySection;
 static const BinarySection BinarySections[] = 
 {
-	{"PALETTE", 	1, 					offsetof(tic_cartridge, palette.data), 					sizeof(tic_palette), false},
-	{"TILES", 		TIC_BANK_SPRITES, 	offsetof(tic_cartridge, bank0.tiles), 					sizeof(tic_tile), true},
-	{"SPRITES", 	TIC_BANK_SPRITES, 	offsetof(tic_cartridge, bank0.sprites), 				sizeof(tic_tile), true},
-	{"MAP", 		TIC_MAP_HEIGHT, 	offsetof(tic_cartridge, bank0.map), 					TIC_MAP_WIDTH, true},
-	{"WAVES", 		ENVELOPES_COUNT, 	offsetof(tic_cartridge, bank0.sfx.waveform.envelopes), 	sizeof(tic_waveform), true},
-	{"SFX", 		SFX_COUNT, 			offsetof(tic_cartridge, bank0.sfx.data), 				sizeof(tic_sound_effect), true},
-	{"PATTERNS", 	MUSIC_PATTERNS, 	offsetof(tic_cartridge, bank0.music.patterns), 			sizeof(tic_track_pattern), true},
-	{"TRACKS", 		MUSIC_TRACKS, 		offsetof(tic_cartridge, bank0.music.tracks), 			sizeof(tic_track), true},
+	{"TILES", 		TIC_BANK_SPRITES, 	offsetof(tic_bank, tiles), 			sizeof(tic_tile)},
+	{"SPRITES", 	TIC_BANK_SPRITES, 	offsetof(tic_bank, sprites), 		sizeof(tic_tile)},
+	{"MAP", 		TIC_MAP_HEIGHT, 	offsetof(tic_bank, map), 			TIC_MAP_WIDTH},
+	{"WAVES", 		ENVELOPES_COUNT, 	offsetof(tic_bank, sfx.waveform), 	sizeof(tic_waveform)},
+	{"SFX", 		SFX_COUNT, 			offsetof(tic_bank, sfx.samples), 	sizeof(tic_sample)},
+	{"PATTERNS", 	MUSIC_PATTERNS, 	offsetof(tic_bank, music.patterns), sizeof(tic_track_pattern)},
+	{"TRACKS", 		MUSIC_TRACKS, 		offsetof(tic_bank, music.tracks), 	sizeof(tic_track)},
 };
+
+static void makeTag(const char* tag, char* out, s32 bank)
+{
+	if(bank) sprintf(out, "%s%i", tag, bank);
+	else strcpy(out, tag);
+}
 
 static s32 saveProject(Console* console, void* buffer, const char* comment)
 {
@@ -618,19 +639,34 @@ static s32 saveProject(Console* console, void* buffer, const char* comment)
 
 	char* stream = buffer;
 	char* ptr = saveTextSection(stream, tic->cart.bank0.code.data);
+	char tag[16];
+
+	for(s32 b = 1; b < TIC_BANKS; b++)
+	{
+		makeTag("CODE", tag, b);
+		ptr = saveTextSectionBank(ptr, comment, tag, tic->cart.banks[b].code.data);
+	}
 
 	for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
 	{
 		const BinarySection* section = &BinarySections[i];
-		ptr = saveBinarySection(ptr, comment, section->tag, section->count, (u8*)&tic->cart + section->offset, section->size, section->flip);
-	}
 
-	saveBinarySection(ptr, comment, "COVER", 1, &tic->cart.cover, tic->cart.cover.size + sizeof(s32), true);
+		for(s32 b = 0; b < TIC_BANKS; b++)
+		{
+			makeTag(section->tag, tag, b);
+
+			ptr = saveBinarySection(ptr, comment, tag, section->count, 
+				(u8*)&tic->cart.banks[b] + section->offset, section->size, true);
+		}
+	}		
+
+	ptr = saveBinarySection(ptr, comment, "PALETTE", 1, &tic->cart.palette, sizeof(tic_palette), false);
+	ptr = saveBinarySection(ptr, comment, "COVER", 1, &tic->cart.cover, tic->cart.cover.size + sizeof(s32), true);
 
 	return strlen(stream);
 }
 
-static bool loadTextSection(const char* project, const char* comment, void* dst, s32 size)
+static bool loadTextSection(const char* project, const char* comment, char* dst, s32 size)
 {
 	bool done = false;
 
@@ -639,22 +675,63 @@ static bool loadTextSection(const char* project, const char* comment, void* dst,
 
 	{
 		char tagbuf[64];
+		char tag[16];
 
 		for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
 		{
-			sprintf(tagbuf, "\n%s <%s>\n", comment, BinarySections[i].tag);
+			for(s32 b = 0; b < TIC_BANKS; b++)
+			{
+				makeTag(BinarySections[i].tag, tag, b);
+
+				sprintf(tagbuf, "\n%s <%s>\n", comment, tag);
+
+				const char* ptr = SDL_strstr(project, tagbuf);
+
+				if(ptr && ptr < end)
+					end = ptr;
+			}
+		}
+
+		{
+			sprintf(tagbuf, "\n%s <PALETTE>\n", comment);
 
 			const char* ptr = SDL_strstr(project, tagbuf);
 
 			if(ptr && ptr < end)
 				end = ptr;
-		}		
+		}
 	}
 
 	if(end > start)
 	{
 		SDL_memcpy(dst, start, SDL_min(size, end - start));
 		done = true;
+	}
+
+	return done;
+}
+
+static bool loadTextSectionBank(const char* project, const char* comment, const char* tag, char* dst, s32 size)
+{
+	char tagbuf[64];
+	sprintf(tagbuf, "%s <%s>\n", comment, tag);
+
+	const char* start = SDL_strstr(project, tagbuf);
+	bool done = false;
+
+	if(start)
+	{
+		start += strlen(tagbuf);
+
+		sprintf(tagbuf, "\n%s </%s>", comment, tag);
+		const char* end = SDL_strstr(start, tagbuf);
+
+		if(end > start)
+		{
+			SDL_memcpy(dst, start, SDL_min(size, end - start));
+			
+			done = true;
+		}
 	}
 
 	return done;
@@ -737,16 +814,34 @@ static bool loadProject(Console* console, const char* name, const char* data, s3
 			SDL_memcpy(&cart->palette, &tic->config.palette.data, sizeof(tic_palette));
 
 			const char* comment = projectComment(name);
+			char tag[16];
 
 			if(loadTextSection(project, comment, cart->bank0.code.data, sizeof(tic_code)))
 				done = true;
 
+			for(s32 b = 1; b < TIC_BANKS; b++)
+			{
+				makeTag("CODE", tag, b);
+
+				if(loadTextSectionBank(project, comment, tag, cart->banks[b].code.data, sizeof(tic_code)))
+					done = true;
+			}
+
 			for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
 			{
 				const BinarySection* section = &BinarySections[i];
-				if(loadBinarySection(project, comment, section->tag, section->count, (u8*)cart + section->offset, section->size, section->flip))
-					done = true;
+
+				for(s32 b = 0; b < TIC_BANKS; b++)
+				{
+					makeTag(section->tag, tag, b);
+
+					if(loadBinarySection(project, comment, tag, section->count, (u8*)&cart->banks[b] + section->offset, section->size, true))
+						done = true;
+				}
 			}
+
+			if(loadBinarySection(project, comment, "PALETTE", 1, &cart->palette, sizeof(tic_palette), false))
+				done = true;
 
 			if(loadBinarySection(project, comment, "COVER", 1, &cart->cover, -1, true))
 				done = true;
@@ -2143,7 +2238,7 @@ static void onConsoleRamCommand(Console* console, const char* param)
 		{offsetof(tic_ram, persistent), 				"PERSISTENT MEMORY"},
 		{offsetof(tic_ram, registers), 					"SOUND REGISTERS"},
 		{offsetof(tic_ram, sfx.waveform), 				"WAVEFORMS"},
-		{offsetof(tic_ram, sfx.data), 					"SFX"},
+		{offsetof(tic_ram, sfx.samples),				"SFX"},
 		{offsetof(tic_ram, music.patterns.data), 		"MUSIC PATTERNS"},
 		{offsetof(tic_ram, music.tracks.data), 			"MUSIC TRACKS"},
 		{offsetof(tic_ram, music_pos), 					"MUSIC POS"},

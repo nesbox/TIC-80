@@ -53,7 +53,7 @@ typedef enum
 	CHUNK_TEMP,		// 6
 	CHUNK_TEMP2, 	// 7
 	CHUNK_TEMP3,	// 8
-	CHUNK_SOUND,	// 9
+	CHUNK_SAMPLES,	// 9
 	CHUNK_WAVEFORM,	// 10
 	CHUNK_TEMP4,	// 11
 	CHUNK_PALETTE, 	// 12
@@ -64,13 +64,16 @@ typedef enum
 
 typedef struct
 {
-	ChunkType type:8;
-	u32 size:24;
+	ChunkType type:5;
+	u32 bank:TIC_BANK_BITS;
+	u32 size:16; // max chunk size is 64K
+	u32 temp:8;
 } Chunk;
 
-STATIC_ASSERT(rom_chunk_size, sizeof(Chunk) == 4);
+STATIC_ASSERT(tic_bank_bits, TIC_BANK_BITS == 3);
+STATIC_ASSERT(tic_chunk_size, sizeof(Chunk) == 4);
 STATIC_ASSERT(tic_map, sizeof(tic_map) < 1024*32);
-STATIC_ASSERT(tic_sound_effect, sizeof(tic_sound_effect) == 66);
+STATIC_ASSERT(tic_sample, sizeof(tic_sample) == 66);
 STATIC_ASSERT(tic_track_pattern, sizeof(tic_track_pattern) == 3*MUSIC_PATTERN_ROWS);
 STATIC_ASSERT(tic_track, sizeof(tic_track) == 3*MUSIC_FRAMES+3);
 STATIC_ASSERT(tic_vram, sizeof(tic_vram) == TIC_VRAM_SIZE);
@@ -357,7 +360,7 @@ static void channelSfx(tic_mem* memory, s32 index, s32 note, s32 octave, s32 dur
 	if(index >= 0)
 	{
 		struct {s8 speed:SFX_SPEED_BITS;} temp = {speed};
-		c->speed = speed == temp.speed ? speed : machine->sound.sfx->data[index].speed;
+		c->speed = speed == temp.speed ? speed : machine->sound.sfx->samples.data[index].speed;
 	}
 
 	// start index of idealized piano
@@ -1061,7 +1064,7 @@ static void sfx(tic_mem* memory, s32 index, s32 freq, Channel* channel, tic_soun
 		return;
 	}
 
-	const tic_sound_effect* effect = &machine->sound.sfx->data[index];
+	const tic_sample* effect = &machine->sound.sfx->samples.data[index];
 	s32 pos = ++channel->tick;
 
 	s8 speed = channel->speed;
@@ -1325,26 +1328,29 @@ static void initCover(tic_mem* tic)
 
 static void api_sync(tic_mem* tic, const char* section, s32 bank, bool toCart)
 {
-	static const struct {const char* name; s32 cart; s32 ram; s32 size;} Sections[] = 
+	static const struct {const char* name; s32 bank; s32 ram; s32 size;} Sections[] = 
 	{
-		{"tiles", 	offsetof(tic_cartridge, bank0.tiles), 	offsetof(tic_ram, tiles), 			sizeof(tic_tiles)},
-		{"sprites", offsetof(tic_cartridge, bank0.sprites), 	offsetof(tic_ram, sprites), 		sizeof(tic_tiles)},
-		{"map", 	offsetof(tic_cartridge, bank0.map), 		offsetof(tic_ram, map), 			sizeof(tic_map)},
-		{"sfx", 	offsetof(tic_cartridge, bank0.sfx), 		offsetof(tic_ram, sfx), 			sizeof(tic_sfx)},
-		{"music", 	offsetof(tic_cartridge, bank0.music), 	offsetof(tic_ram, music), 			sizeof(tic_music)},
+		{"tiles", 	offsetof(tic_bank, tiles), 		offsetof(tic_ram, tiles), 	sizeof(tic_tiles)},
+		{"sprites", offsetof(tic_bank, sprites),	offsetof(tic_ram, sprites), sizeof(tic_tiles)},
+		{"map", 	offsetof(tic_bank, map), 		offsetof(tic_ram, map), 	sizeof(tic_map)},
+		{"sfx", 	offsetof(tic_bank, sfx), 		offsetof(tic_ram, sfx), 	sizeof(tic_sfx)},
+		{"music", 	offsetof(tic_bank, music), 		offsetof(tic_ram, music), 	sizeof(tic_music)},
 	};
 
 	assert(bank >= 0 && bank < TIC_BANKS);
-
-	s32 bankOffset = bank * sizeof(tic_bank);
 
 	for(s32 i = 0; i < COUNT_OF(Sections); i++)
 	{
 		if(section == NULL || (section && strcmp(section, Sections[i].name) == 0))
 			toCart
-				? memcpy((u8*)&tic->cart + Sections[i].cart + bankOffset, (u8*)&tic->ram + Sections[i].ram, Sections[i].size)
-				: memcpy((u8*)&tic->ram + Sections[i].ram, (u8*)&tic->cart + Sections[i].cart + bankOffset, Sections[i].size);
+				? memcpy((u8*)&tic->cart.banks[bank] + Sections[i].bank, (u8*)&tic->ram + Sections[i].ram, Sections[i].size)
+				: memcpy((u8*)&tic->ram + Sections[i].ram, (u8*)&tic->cart.banks[bank] + Sections[i].bank, Sections[i].size);
 	}
+
+	if(section == NULL || (section && strcmp(section, "pal") == 0))
+		toCart
+			? memcpy(&tic->cart.palette, &tic->ram.vram.palette, sizeof(tic_palette))
+			: memcpy(&tic->ram.vram.palette, &tic->cart.palette, sizeof(tic_palette));
 }
 
 static void cart2ram(tic_mem* memory)
@@ -1607,17 +1613,17 @@ static void api_load(tic_cartridge* cart, const u8* buffer, s32 size, bool palet
 
 		switch(chunk.type)
 		{
-		case CHUNK_TILES: 		LOAD_CHUNK(cart->bank0.tiles); 					break;
-		case CHUNK_SPRITES: 	LOAD_CHUNK(cart->bank0.sprites); 				break;
-		case CHUNK_MAP: 		LOAD_CHUNK(cart->bank0.map); 					break;
-		case CHUNK_CODE: 		LOAD_CHUNK(cart->bank0.code); 							break;
-		case CHUNK_SOUND: 		LOAD_CHUNK(cart->bank0.sfx.data); 				break;
-		case CHUNK_WAVEFORM:	LOAD_CHUNK(cart->bank0.sfx.waveform);			break;
-		case CHUNK_MUSIC:		LOAD_CHUNK(cart->bank0.music.tracks.data); 		break;
-		case CHUNK_PATTERNS:	LOAD_CHUNK(cart->bank0.music.patterns.data); 	break;
+		case CHUNK_TILES: 		LOAD_CHUNK(cart->banks[chunk.bank].tiles); 			break;
+		case CHUNK_SPRITES: 	LOAD_CHUNK(cart->banks[chunk.bank].sprites); 		break;
+		case CHUNK_MAP: 		LOAD_CHUNK(cart->banks[chunk.bank].map); 			break;
+		case CHUNK_CODE: 		LOAD_CHUNK(cart->banks[chunk.bank].code); 			break;
+		case CHUNK_SAMPLES: 	LOAD_CHUNK(cart->banks[chunk.bank].sfx.samples); 	break;
+		case CHUNK_WAVEFORM:	LOAD_CHUNK(cart->banks[chunk.bank].sfx.waveform); 	break;
+		case CHUNK_MUSIC:		LOAD_CHUNK(cart->banks[chunk.bank].music.tracks); 	break;
+		case CHUNK_PATTERNS:	LOAD_CHUNK(cart->banks[chunk.bank].music.patterns);	break;
 		case CHUNK_PALETTE:		
 			if(palette)
-				LOAD_CHUNK(cart->palette); 					
+				LOAD_CHUNK(cart->palette);
 			break;
 		case CHUNK_COVER: 	
 			LOAD_CHUNK(cart->cover.data);
@@ -1649,11 +1655,11 @@ static s32 calcBufferSize(const void* buffer, s32 size)
 	return size;
 }
 
-static u8* saveFixedChunk(u8* buffer, ChunkType type, const void* from, s32 size)
+static u8* saveFixedChunk(u8* buffer, ChunkType type, const void* from, s32 size, s32 bank)
 {
 	if(size)
 	{
-		Chunk chunk = {type, size};
+		Chunk chunk = {.type = type, .bank = bank, .size = size};
 		memcpy(buffer, &chunk, sizeof(Chunk));
 		buffer += sizeof(Chunk);
 		memcpy(buffer, from, size);
@@ -1663,30 +1669,33 @@ static u8* saveFixedChunk(u8* buffer, ChunkType type, const void* from, s32 size
 	return buffer;
 }
 
-static u8* saveChunk(u8* buffer, ChunkType type, const void* from, s32 size)
+static u8* saveChunk(u8* buffer, ChunkType type, const void* from, s32 size, s32 bank)
 {
 	s32 chunkSize = calcBufferSize(from, size);
 
-	return saveFixedChunk(buffer, type, from, chunkSize);
+	return saveFixedChunk(buffer, type, from, chunkSize, bank);
 }
 
 static s32 api_save(const tic_cartridge* cart, u8* buffer)
 {
 	u8* start = buffer;
 
-	#define SAVE_CHUNK(id, from) saveChunk(buffer, id, &from, sizeof(from))
+	#define SAVE_CHUNK(ID, FROM, BANK) saveChunk(buffer, ID, &FROM, sizeof(FROM), BANK)
 
-	buffer = SAVE_CHUNK(CHUNK_TILES, 	cart->bank0.tiles);
-	buffer = SAVE_CHUNK(CHUNK_SPRITES, 	cart->bank0.sprites);
-	buffer = SAVE_CHUNK(CHUNK_MAP, 		cart->bank0.map);
-	buffer = SAVE_CHUNK(CHUNK_CODE, 	cart->bank0.code);
-	buffer = SAVE_CHUNK(CHUNK_SOUND, 	cart->bank0.sfx.data);
-	buffer = SAVE_CHUNK(CHUNK_WAVEFORM, cart->bank0.sfx.waveform);
-	buffer = SAVE_CHUNK(CHUNK_PATTERNS, cart->bank0.music.patterns.data);
-	buffer = SAVE_CHUNK(CHUNK_MUSIC, 	cart->bank0.music.tracks.data);
-	buffer = SAVE_CHUNK(CHUNK_PALETTE, 	cart->palette);
+	for(s32 i = 0; i < TIC_BANKS; i++)
+	{
+		buffer = SAVE_CHUNK(CHUNK_TILES, 	cart->banks[i].tiles, 			i);
+		buffer = SAVE_CHUNK(CHUNK_SPRITES, 	cart->banks[i].sprites, 		i);
+		buffer = SAVE_CHUNK(CHUNK_MAP, 		cart->banks[i].map, 			i);
+		buffer = SAVE_CHUNK(CHUNK_CODE, 	cart->banks[i].code, 			i);
+		buffer = SAVE_CHUNK(CHUNK_SAMPLES, 	cart->banks[i].sfx.samples, 	i);
+		buffer = SAVE_CHUNK(CHUNK_WAVEFORM, cart->banks[i].sfx.waveform, 	i);
+		buffer = SAVE_CHUNK(CHUNK_PATTERNS, cart->banks[i].music.patterns, 	i);
+		buffer = SAVE_CHUNK(CHUNK_MUSIC, 	cart->banks[i].music.tracks, 	i);
+	}
 
-	buffer = saveFixedChunk(buffer, CHUNK_COVER, cart->cover.data, cart->cover.size);
+	buffer = SAVE_CHUNK(CHUNK_PALETTE, 	cart->palette, 0);
+	buffer = saveFixedChunk(buffer, CHUNK_COVER, cart->cover.data, cart->cover.size, 0);
 
 	#undef SAVE_CHUNK
 

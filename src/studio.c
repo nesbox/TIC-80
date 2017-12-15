@@ -204,12 +204,12 @@ static struct
 
 	struct
 	{
-		Code* 	code 	[TIC_EDITOR_BANKS];
-		Sprite* sprite 	[TIC_EDITOR_BANKS];
-		Map* 	map 	[TIC_EDITOR_BANKS];
-		Sfx* 	sfx 	[TIC_EDITOR_BANKS];
-		Music* 	music 	[TIC_EDITOR_BANKS];
-	} editor;
+		Code* 	code;
+		Sprite* sprite;
+		Map* 	map;
+		Sfx* 	sfx;
+		Music* 	music;
+	} editor[TIC_EDITOR_BANKS];
 
 	struct
 	{
@@ -332,7 +332,7 @@ tic_map* getBankMap()
 
 void playSystemSfx(s32 id)
 {
-	const tic_sound_effect* effect = &studio.tic->config.bank0.sfx.data[id];
+	const tic_sample* effect = &studio.tic->config.bank0.sfx.samples.data[id];
 	studio.tic->api.sfx_ex(studio.tic, id, effect->note, effect->octave, -1, 0, MAX_VOLUME, 0);
 }
 
@@ -777,31 +777,31 @@ void setStudioEvent(StudioEvent event)
 	{
 	case TIC_CODE_MODE: 	
 		{
-			Code* code = studio.editor.code[studio.bank.index.code];
+			Code* code = studio.editor[studio.bank.index.code].code;
 			code->event(code, event); 			
 		}
 		break;
 	case TIC_SPRITE_MODE:	
 		{
-			Sprite* sprite = studio.editor.sprite[studio.bank.index.sprites];
+			Sprite* sprite = studio.editor[studio.bank.index.sprites].sprite;
 			sprite->event(sprite, event); 
 		}
 	break;
 	case TIC_MAP_MODE:
 		{
-			Map* map = studio.editor.map[studio.bank.index.map];
+			Map* map = studio.editor[studio.bank.index.map].map;
 			map->event(map, event);
 		}
 		break;
 	case TIC_SFX_MODE:
 		{
-			Sfx* sfx = studio.editor.sfx[studio.bank.index.sfx];
+			Sfx* sfx = studio.editor[studio.bank.index.sfx].sfx;
 			sfx->event(sfx, event);
 		}
 		break;
 	case TIC_MUSIC_MODE:
 		{
-			Music* music = studio.editor.music[studio.bank.index.music];
+			Music* music = studio.editor[studio.bank.index.music].music;
 			music->event(music, event);
 		}
 		break;
@@ -879,7 +879,7 @@ void drawBitIcon(s32 x, s32 y, const u8* ptr, u8 color)
 
 static void initWorldMap()
 {
-	initWorld(studio.world, studio.tic, studio.editor.map[studio.bank.index.map]);
+	initWorld(studio.world, studio.tic, studio.editor[studio.bank.index.map].map);
 }
 
 static void initRunMode()
@@ -1093,11 +1093,11 @@ static void initModules()
 
 	for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
 	{
-		initCode(studio.editor.code[i], studio.tic, &tic->cart.banks[i].code);
-		initSprite(studio.editor.sprite[i], studio.tic, &tic->cart.banks[i].tiles);
-		initMap(studio.editor.map[i], studio.tic, &tic->cart.banks[i].map);
-		initSfx(studio.editor.sfx[i], studio.tic, &tic->cart.banks[i].sfx);
-		initMusic(studio.editor.music[i], studio.tic, &tic->cart.banks[i].music);
+		initCode(studio.editor[i].code, studio.tic, &tic->cart.banks[i].code);
+		initSprite(studio.editor[i].sprite, studio.tic, &tic->cart.banks[i].tiles);
+		initMap(studio.editor[i].map, studio.tic, &tic->cart.banks[i].map);
+		initSfx(studio.editor[i].sfx, studio.tic, &tic->cart.banks[i].sfx);
+		initMusic(studio.editor[i].music, studio.tic, &tic->cart.banks[i].music);
 	}
 
 	initWorldMap();
@@ -1800,7 +1800,7 @@ static bool processShortcuts(SDL_KeyboardEvent* event)
 	case SDLK_ESCAPE:
 	case SDLK_AC_BACK:
 		{
-			Code* code = studio.editor.code[studio.bank.index.code];
+			Code* code = studio.editor[studio.bank.index.code].code;
 
 			if(studio.mode == TIC_CODE_MODE && code->mode != TEXT_EDIT_MODE)
 			{
@@ -1938,7 +1938,7 @@ SDL_Event* pollEvent()
 
 #endif
 				{
-					Code* code = studio.editor.code[studio.bank.index.code];
+					Code* code = studio.editor[studio.bank.index.code].code;
 					studio.console->codeLiveReload.reload(studio.console, code->src);
 					if(studio.console->codeLiveReload.active && code->update)
 						code->update(code);
@@ -2103,14 +2103,14 @@ static void blitTexture()
 		break;
 	case TIC_SPRITE_MODE:
 		{
-			Sprite* sprite = studio.editor.sprite[studio.bank.index.sprites];
+			Sprite* sprite = studio.editor[studio.bank.index.sprites].sprite;
 			overlap = sprite->overlap;
 			data = sprite;
 		}
 		break;
 	case TIC_MAP_MODE:
 		{
-			Map* map = studio.editor.map[studio.bank.index.map];		
+			Map* map = studio.editor[studio.bank.index.map].map;
 			overlap = map->overlap;
 			data = map;
 		}
@@ -2307,31 +2307,31 @@ static void renderStudio()
 	case TIC_RUN_MODE: 		studio.run->tick(studio.run); break;
 	case TIC_CODE_MODE: 	
 		{
-			Code* code = studio.editor.code[studio.bank.index.code];
+			Code* code = studio.editor[studio.bank.index.code].code;
 			code->tick(code);
 		}
 		break;
 	case TIC_SPRITE_MODE:	
 		{
-			Sprite* sprite = studio.editor.sprite[studio.bank.index.sprites];
+			Sprite* sprite = studio.editor[studio.bank.index.sprites].sprite;
 			sprite->tick(sprite);		
 		}
 		break;
 	case TIC_MAP_MODE:
 		{
-			Map* map = studio.editor.map[studio.bank.index.map];
+			Map* map = studio.editor[studio.bank.index.map].map;
 			map->tick(map);
 		}
 		break;
 	case TIC_SFX_MODE:
 		{
-			Sfx* sfx = studio.editor.sfx[studio.bank.index.sfx];
+			Sfx* sfx = studio.editor[studio.bank.index.sfx].sfx;
 			sfx->tick(sfx);
 		}
 		break;
 	case TIC_MUSIC_MODE:
 		{
-			Music* music = studio.editor.music[studio.bank.index.music];
+			Music* music = studio.editor[studio.bank.index.music].music;
 			music->tick(music);
 		}
 		break;
@@ -2527,7 +2527,7 @@ static void updateSystemFont()
 
 void studioConfigChanged()
 {
-	Code* code = studio.editor.code[studio.bank.index.code];
+	Code* code = studio.editor[studio.bank.index.code].code;
 	if(code->update)
 		code->update(code);
 
@@ -2614,11 +2614,11 @@ static void onFSInitialized(FileSystem* fs)
 	{
 		for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
 		{
-			studio.editor.code[i] 		= SDL_malloc(sizeof(Code));
-			studio.editor.sprite[i]	= SDL_malloc(sizeof(Sprite));
-			studio.editor.map[i] 		= SDL_malloc(sizeof(Map));
-			studio.editor.sfx[i] 		= SDL_malloc(sizeof(Sfx));
-			studio.editor.music[i] 	= SDL_malloc(sizeof(Music));
+			studio.editor[i].code	= SDL_malloc(sizeof(Code));
+			studio.editor[i].sprite	= SDL_malloc(sizeof(Sprite));
+			studio.editor[i].map 	= SDL_malloc(sizeof(Map));
+			studio.editor[i].sfx 	= SDL_malloc(sizeof(Sfx));
+			studio.editor[i].music 	= SDL_malloc(sizeof(Music));
 		}
 
 		studio.start 	= SDL_malloc(sizeof(Start));
@@ -2726,11 +2726,11 @@ s32 main(s32 argc, char **argv)
 	{
 		for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
 		{
-			SDL_free(studio.editor.code[i]);
-			SDL_free(studio.editor.sprite[i]);
-			SDL_free(studio.editor.map[i]);
-			SDL_free(studio.editor.sfx[i]);
-			SDL_free(studio.editor.music[i]);
+			SDL_free(studio.editor[i].code);
+			SDL_free(studio.editor[i].sprite);
+			SDL_free(studio.editor[i].map);
+			SDL_free(studio.editor[i].sfx);
+			SDL_free(studio.editor[i].music);
 		}
 
 		SDL_free(studio.start);
