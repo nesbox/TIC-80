@@ -666,7 +666,7 @@ static s32 saveProject(Console* console, void* buffer, const char* comment)
 	return strlen(stream);
 }
 
-static bool loadTextSection(const char* project, const char* comment, void* dst, s32 size)
+static bool loadTextSection(const char* project, const char* comment, char* dst, s32 size)
 {
 	bool done = false;
 
@@ -691,6 +691,32 @@ static bool loadTextSection(const char* project, const char* comment, void* dst,
 	{
 		SDL_memcpy(dst, start, SDL_min(size, end - start));
 		done = true;
+	}
+
+	return done;
+}
+
+static bool loadTextSectionBank(const char* project, const char* comment, const char* tag, char* dst, s32 size)
+{
+	char tagbuf[64];
+	sprintf(tagbuf, "%s <%s>\n", comment, tag);
+
+	const char* start = SDL_strstr(project, tagbuf);
+	bool done = false;
+
+	if(start)
+	{
+		start += strlen(tagbuf);
+
+		sprintf(tagbuf, "\n%s </%s>", comment, tag);
+		const char* end = SDL_strstr(start, tagbuf);
+
+		if(end > start)
+		{
+			SDL_memcpy(dst, start, SDL_min(size, end - start));
+			
+			done = true;
+		}
 	}
 
 	return done;
@@ -773,15 +799,30 @@ static bool loadProject(Console* console, const char* name, const char* data, s3
 			SDL_memcpy(&cart->palette, &tic->config.palette.data, sizeof(tic_palette));
 
 			const char* comment = projectComment(name);
+			char tag[16];
 
 			if(loadTextSection(project, comment, cart->bank0.code.data, sizeof(tic_code)))
 				done = true;
 
+			for(s32 b = 1; b < TIC_BANKS; b++)
+			{
+				makeTag("CODE", tag, b);
+
+				if(loadTextSectionBank(project, comment, tag, cart->banks[b].code.data, sizeof(tic_code)))
+					done = true;
+			}
+
 			for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
 			{
 				const BinarySection* section = &BinarySections[i];
-				if(loadBinarySection(project, comment, section->tag, section->count, (u8*)cart + section->offset, section->size, true))
-					done = true;
+
+				for(s32 b = 0; b < TIC_BANKS; b++)
+				{
+					makeTag(section->tag, tag, b);
+
+					if(loadBinarySection(project, comment, tag, section->count, (u8*)&cart->banks[b] + section->offset, section->size, true))
+						done = true;
+				}
 			}
 
 			if(loadBinarySection(project, comment, "PALETTE", 1, &cart->palette, sizeof(tic_palette), false))
