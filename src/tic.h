@@ -107,7 +107,8 @@
 
 #define TIC_CODE_SIZE (0x10000)
 
-#define TIC_BANKS 8
+#define TIC_BANK_BITS 3
+#define TIC_BANKS (1 << TIC_BANK_BITS)
 
 #define SFX_NOTES {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
 
