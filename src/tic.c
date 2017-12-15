@@ -1233,6 +1233,7 @@ static void api_tick_start(tic_mem* memory, const tic_sfx* sfxsrc, const tic_mus
 
 	machine->state.setpix = setPixelDma;
 	machine->state.getpix = getPixelDma;
+	machine->state.synced = false;
 }
 
 static void api_tick_end(tic_mem* memory)
@@ -1328,6 +1329,11 @@ static void initCover(tic_mem* tic)
 
 static void api_sync(tic_mem* tic, const char* section, s32 bank, bool toCart)
 {
+	tic_machine* machine = (tic_machine*)tic;
+	
+	if(machine->state.synced)
+		return;
+
 	static const struct {const char* name; s32 bank; s32 ram; s32 size;} Sections[] = 
 	{
 		{"tiles", 	offsetof(tic_bank, tiles), 		offsetof(tic_ram, tiles), 	sizeof(tic_tiles)},
@@ -1351,6 +1357,8 @@ static void api_sync(tic_mem* tic, const char* section, s32 bank, bool toCart)
 		toCart
 			? memcpy(&tic->cart.palette, &tic->ram.vram.palette, sizeof(tic_palette))
 			: memcpy(&tic->ram.vram.palette, &tic->cart.palette, sizeof(tic_palette));
+
+	machine->state.synced = true;
 }
 
 static void cart2ram(tic_mem* memory)
@@ -1659,7 +1667,7 @@ static u8* saveFixedChunk(u8* buffer, ChunkType type, const void* from, s32 size
 {
 	if(size)
 	{
-		Chunk chunk = {.type = type, .bank = bank, .size = size};
+		Chunk chunk = {.type = type, .bank = bank, .size = size, .temp = 0};
 		memcpy(buffer, &chunk, sizeof(Chunk));
 		buffer += sizeof(Chunk);
 		memcpy(buffer, from, size);
