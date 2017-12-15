@@ -565,6 +565,22 @@ static char* saveTextSection(char* ptr, const char* data)
 	return ptr;
 }
 
+static char* saveTextSectionBank(char* ptr, const char* comment, const char* tag, const char* data)
+{
+	if(strlen(data) == 0)
+		return ptr;
+
+	sprintf(ptr, "%s <%s>\n", comment, tag);
+	ptr += strlen(ptr);
+
+	ptr = saveTextSection(ptr, data);
+
+	sprintf(ptr, "%s </%s>\n\n", comment, tag);
+	ptr += strlen(ptr);
+
+	return ptr;
+}
+
 static char* saveBinaryBuffer(char* ptr, const char* comment, const void* data, s32 size, s32 row, bool flip)
 {
 	if(bufferEmpty(data, size)) 
@@ -599,18 +615,23 @@ static char* saveBinarySection(char* ptr, const char* comment, const char* tag, 
 	return ptr;
 }
 
-typedef struct {char* tag; s32 count; s32 offset; s32 size; bool flip;} BinarySection;
+typedef struct {char* tag; s32 count; s32 offset; s32 size;} BinarySection;
 static const BinarySection BinarySections[] = 
 {
-	{"PALETTE", 	1, 					offsetof(tic_cartridge, palette.data), 			sizeof(tic_palette), false},
-	{"TILES", 		TIC_BANK_SPRITES, 	offsetof(tic_cartridge, bank0.tiles), 			sizeof(tic_tile), true},
-	{"SPRITES", 	TIC_BANK_SPRITES, 	offsetof(tic_cartridge, bank0.sprites), 		sizeof(tic_tile), true},
-	{"MAP", 		TIC_MAP_HEIGHT, 	offsetof(tic_cartridge, bank0.map), 			TIC_MAP_WIDTH, true},
-	{"WAVES", 		ENVELOPES_COUNT, 	offsetof(tic_cartridge, bank0.sfx.waveform), 	sizeof(tic_waveform), true},
-	{"SFX", 		SFX_COUNT, 			offsetof(tic_cartridge, bank0.sfx.samples), 	sizeof(tic_sample), true},
-	{"PATTERNS", 	MUSIC_PATTERNS, 	offsetof(tic_cartridge, bank0.music.patterns), 	sizeof(tic_track_pattern), true},
-	{"TRACKS", 		MUSIC_TRACKS, 		offsetof(tic_cartridge, bank0.music.tracks), 	sizeof(tic_track), true},
+	{"TILES", 		TIC_BANK_SPRITES, 	offsetof(tic_bank, tiles), 			sizeof(tic_tile)},
+	{"SPRITES", 	TIC_BANK_SPRITES, 	offsetof(tic_bank, sprites), 		sizeof(tic_tile)},
+	{"MAP", 		TIC_MAP_HEIGHT, 	offsetof(tic_bank, map), 			TIC_MAP_WIDTH},
+	{"WAVES", 		ENVELOPES_COUNT, 	offsetof(tic_bank, sfx.waveform), 	sizeof(tic_waveform)},
+	{"SFX", 		SFX_COUNT, 			offsetof(tic_bank, sfx.samples), 	sizeof(tic_sample)},
+	{"PATTERNS", 	MUSIC_PATTERNS, 	offsetof(tic_bank, music.patterns), sizeof(tic_track_pattern)},
+	{"TRACKS", 		MUSIC_TRACKS, 		offsetof(tic_bank, music.tracks), 	sizeof(tic_track)},
 };
+
+static void makeTag(const char* tag, char* out, s32 bank)
+{
+	if(bank) sprintf(out, "%s%i", tag, bank);
+	else strcpy(out, tag);
+}
 
 static s32 saveProject(Console* console, void* buffer, const char* comment)
 {
@@ -618,14 +639,29 @@ static s32 saveProject(Console* console, void* buffer, const char* comment)
 
 	char* stream = buffer;
 	char* ptr = saveTextSection(stream, tic->cart.bank0.code.data);
+	char tag[16];
+
+	for(s32 b = 1; b < TIC_BANKS; b++)
+	{
+		makeTag("CODE", tag, b);
+		ptr = saveTextSectionBank(ptr, comment, tag, tic->cart.banks[b].code.data);
+	}
 
 	for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
 	{
 		const BinarySection* section = &BinarySections[i];
-		ptr = saveBinarySection(ptr, comment, section->tag, section->count, (u8*)&tic->cart + section->offset, section->size, section->flip);
-	}
 
-	saveBinarySection(ptr, comment, "COVER", 1, &tic->cart.cover, tic->cart.cover.size + sizeof(s32), true);
+		for(s32 b = 0; b < TIC_BANKS; b++)
+		{
+			makeTag(section->tag, tag, b);
+
+			ptr = saveBinarySection(ptr, comment, tag, section->count, 
+				(u8*)&tic->cart.banks[b] + section->offset, section->size, true);
+		}
+	}		
+
+	ptr = saveBinarySection(ptr, comment, "PALETTE", 1, &tic->cart.palette, sizeof(tic_palette), false);
+	ptr = saveBinarySection(ptr, comment, "COVER", 1, &tic->cart.cover, tic->cart.cover.size + sizeof(s32), true);
 
 	return strlen(stream);
 }
@@ -744,9 +780,12 @@ static bool loadProject(Console* console, const char* name, const char* data, s3
 			for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
 			{
 				const BinarySection* section = &BinarySections[i];
-				if(loadBinarySection(project, comment, section->tag, section->count, (u8*)cart + section->offset, section->size, section->flip))
+				if(loadBinarySection(project, comment, section->tag, section->count, (u8*)cart + section->offset, section->size, true))
 					done = true;
 			}
+
+			if(loadBinarySection(project, comment, "PALETTE", 1, &cart->palette, sizeof(tic_palette), false))
+				done = true;
 
 			if(loadBinarySection(project, comment, "COVER", 1, &cart->cover, -1, true))
 				done = true;
