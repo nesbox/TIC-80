@@ -215,8 +215,17 @@ static u8 getPixel(tic_machine* machine, s32 x, s32 y)
 
 static void drawHLineDma(tic_mem* memory, s32 xl, s32 xr, s32 y, u8 color)
 {
-	for(s32 x = xl; x < xr; ++x) {
-		tic_tool_poke4(&memory->ram.vram.screen.data, y * TIC80_WIDTH + x, color);
+	color = color << 4 | color;
+	if (xl >= xr) return;
+	if (xl & 1) {
+		tic_tool_poke4(&memory->ram.vram.screen.data, y * TIC80_WIDTH + xl, color);
+		xl++;
+	}
+	for(s32 x = xl; x + 1 < xr; x+=2) {
+		memory->ram.vram.screen.data[(y * TIC80_WIDTH + x) >> 1] = color;
+	}
+	if (xr & 1) {
+		tic_tool_poke4(&memory->ram.vram.screen.data, y * TIC80_WIDTH + xr - 1, color);
 	}
 }
 
