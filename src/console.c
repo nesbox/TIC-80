@@ -1762,7 +1762,7 @@ static void onConsoleExportHtmlCommand(Console* console, const char* name)
 	SDL_free(EmbedTicJs);
 }
 
-#ifdef CAN_EXPORT
+// #ifdef CAN_EXPORT
 
 // static void* embedCart(Console* console, s32* size)
 // {
@@ -1788,7 +1788,7 @@ static void onConsoleExportHtmlCommand(Console* console, const char* name)
 // 	return NULL;
 // }
 
-#if defined(__WINDOWS__)
+// #if defined(__WINDOWS__)
 
 // static const char* getFileFolder(const char* path)
 // {
@@ -1866,27 +1866,27 @@ static void onConsoleExportHtmlCommand(Console* console, const char* name)
 // 	commandDone(console);
 // }
 
-#else
+// #else
 
-static void onConsoleExportNativeCommand(Console* console, const char* cartName)
-{
-	s32 size = 0;
-	void* data = embedCart(console, &size);
+// static void onConsoleExportNativeCommand(Console* console, const char* cartName)
+// {
+// 	s32 size = 0;
+// 	void* data = embedCart(console, &size);
 
-	if(data)
-	{
-		fsGetFileData(onFileDownloaded, cartName, data, size, DEFAULT_CHMOD, console);
-	}
-	else
-	{
-		onFileDownloaded(FS_FILE_NOT_DOWNLOADED, console);
-	}
-}
+// 	if(data)
+// 	{
+// 		fsGetFileData(onFileDownloaded, cartName, data, size, DEFAULT_CHMOD, console);
+// 	}
+// 	else
+// 	{
+// 		onFileDownloaded(FS_FILE_NOT_DOWNLOADED, console);
+// 	}
+// }
 
-#endif
+// #endif
 
 
-#endif
+// #endif
 
 static const char* getExportName(Console* console, bool html)
 {
