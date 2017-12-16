@@ -2614,22 +2614,22 @@ static void onFSInitialized(FileSystem* fs)
 	{
 		for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
 		{
-			studio.editor[i].code	= SDL_malloc(sizeof(Code));
-			studio.editor[i].sprite	= SDL_malloc(sizeof(Sprite));
-			studio.editor[i].map 	= SDL_malloc(sizeof(Map));
-			studio.editor[i].sfx 	= SDL_malloc(sizeof(Sfx));
-			studio.editor[i].music 	= SDL_malloc(sizeof(Music));
+			studio.editor[i].code	= SDL_calloc(1, sizeof(Code));
+			studio.editor[i].sprite	= SDL_calloc(1, sizeof(Sprite));
+			studio.editor[i].map 	= SDL_calloc(1, sizeof(Map));
+			studio.editor[i].sfx 	= SDL_calloc(1, sizeof(Sfx));
+			studio.editor[i].music 	= SDL_calloc(1, sizeof(Music));
 		}
 
-		studio.start 	= SDL_malloc(sizeof(Start));
-		studio.console 	= SDL_malloc(sizeof(Console));
-		studio.run 		= SDL_malloc(sizeof(Run));
-		studio.world 	= SDL_malloc(sizeof(World));
-		studio.config 	= SDL_malloc(sizeof(Config));
-		studio.keymap 	= SDL_malloc(sizeof(Keymap));
-		studio.dialog 	= SDL_malloc(sizeof(Dialog));
-		studio.menu 	= SDL_malloc(sizeof(Menu));
-		studio.surf 	= SDL_malloc(sizeof(Surf));
+		studio.start 	= SDL_calloc(1, sizeof(Start));
+		studio.console 	= SDL_calloc(1, sizeof(Console));
+		studio.run 		= SDL_calloc(1, sizeof(Run));
+		studio.world 	= SDL_calloc(1, sizeof(World));
+		studio.config 	= SDL_calloc(1, sizeof(Config));
+		studio.keymap 	= SDL_calloc(1, sizeof(Keymap));
+		studio.dialog 	= SDL_calloc(1, sizeof(Dialog));
+		studio.menu 	= SDL_calloc(1, sizeof(Menu));
+		studio.surf 	= SDL_calloc(1, sizeof(Surf));
 	}
 
 	fsMakeDir(fs, TIC_LOCAL);
