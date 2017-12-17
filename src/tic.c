@@ -922,9 +922,14 @@ static void api_tri(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32
 	ticLine(memory, x2, y2, x3, y3, color, triPixelFunc);
 	ticLine(memory, x3, y3, x1, y1, color, triPixelFunc);
 
-	for(s32 y = 0; y < TIC80_HEIGHT; y++)
-		for(s32 x = SidesBuffer.Left[y]; x <= SidesBuffer.Right[y]; ++x)
-			setPixel(machine, x, y, color);
+	u8 final_color = mapColor(&machine->memory, color);
+	s32 yt = max(0, min(y1, min(y2, y3)));
+	s32 yb = min(TIC80_HEIGHT, max(y1, max(y2, y3)) + 1);
+	for(s32 y = yt; y < yb; y++) {
+		s32 xl = max(SidesBuffer.Left[y], machine->state.clip.l);
+		s32 xr = min(SidesBuffer.Right[y], machine->state.clip.r);
+		machine->state.drawhline(&machine->memory, xl, xr, y, final_color);
+    }
 }
 
 
