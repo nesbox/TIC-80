@@ -221,9 +221,9 @@ static void drawHLineDma(tic_mem* memory, s32 xl, s32 xr, s32 y, u8 color)
 		tic_tool_poke4(&memory->ram.vram.screen.data, y * TIC80_WIDTH + xl, color);
 		xl++;
 	}
-	for(s32 x = xl; x + 1 < xr; x+=2) {
-		memory->ram.vram.screen.data[(y * TIC80_WIDTH + x) >> 1] = color;
-	}
+	s32 count = (xr - xl) >> 1;
+	u8 *screen = memory->ram.vram.screen.data + ((y * TIC80_WIDTH + xl) >> 1);
+	for(s32 i = 0; i < count; i++) *screen++ = color;
 	if (xr & 1) {
 		tic_tool_poke4(&memory->ram.vram.screen.data, y * TIC80_WIDTH + xr - 1, color);
 	}
