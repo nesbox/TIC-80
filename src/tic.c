@@ -1268,7 +1268,7 @@ static void api_tick_start(tic_mem* memory, const tic_sfx* sfxsrc, const tic_mus
 	machine->state.setpix = setPixelDma;
 	machine->state.getpix = getPixelDma;
 	machine->state.drawhline = drawHLineDma;
-	machine->state.synced = false;
+	machine->state.synced = 0;
 }
 
 static void api_tick_end(tic_mem* memory)
@@ -1363,43 +1363,46 @@ static void initCover(tic_mem* tic)
 	}
 }
 
-static void api_sync(tic_mem* tic, const char* section, s32 bank, bool toCart)
+static void api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
 {
 	tic_machine* machine = (tic_machine*)tic;
-	
-	if(machine->state.synced)
-		return;
 
-	static const struct {const char* name; s32 bank; s32 ram; s32 size;} Sections[] = 
+	static const struct {s32 bank; s32 ram; s32 size;} Sections[] = 
 	{
-		{"tiles", 	offsetof(tic_bank, tiles), 		offsetof(tic_ram, tiles), 	sizeof(tic_tiles)},
-		{"sprites", offsetof(tic_bank, sprites),	offsetof(tic_ram, sprites), sizeof(tic_tiles)},
-		{"map", 	offsetof(tic_bank, map), 		offsetof(tic_ram, map), 	sizeof(tic_map)},
-		{"sfx", 	offsetof(tic_bank, sfx), 		offsetof(tic_ram, sfx), 	sizeof(tic_sfx)},
-		{"music", 	offsetof(tic_bank, music), 		offsetof(tic_ram, music), 	sizeof(tic_music)},
+		{offsetof(tic_bank, tiles), 	offsetof(tic_ram, tiles), 	sizeof(tic_tiles)	},
+		{offsetof(tic_bank, sprites),	offsetof(tic_ram, sprites), sizeof(tic_tiles)	},
+		{offsetof(tic_bank, map), 		offsetof(tic_ram, map), 	sizeof(tic_map)		},
+		{offsetof(tic_bank, sfx), 		offsetof(tic_ram, sfx), 	sizeof(tic_sfx)		},
+		{offsetof(tic_bank, music), 	offsetof(tic_ram, music), 	sizeof(tic_music)	},
 	};
+
+	enum{Count = COUNT_OF(Sections), Mask = (1 << (Count+1)) - 1};
+
+	if(mask == 0) mask = Mask;
+	
+	mask &= ~machine->state.synced & Mask;
 
 	assert(bank >= 0 && bank < TIC_BANKS);
 
-	for(s32 i = 0; i < COUNT_OF(Sections); i++)
+	for(s32 i = 0; i < Count; i++)
 	{
-		if(section == NULL || (section && strcmp(section, Sections[i].name) == 0))
+		if(mask & (1 << i))
 			toCart
 				? memcpy((u8*)&tic->cart.banks[bank] + Sections[i].bank, (u8*)&tic->ram + Sections[i].ram, Sections[i].size)
 				: memcpy((u8*)&tic->ram + Sections[i].ram, (u8*)&tic->cart.banks[bank] + Sections[i].bank, Sections[i].size);
 	}
 
-	if(section == NULL || (section && strcmp(section, "pal") == 0))
+	if(mask & (1 << Count))
 		toCart
 			? memcpy(&tic->cart.palette, &tic->ram.vram.palette, sizeof(tic_palette))
 			: memcpy(&tic->ram.vram.palette, &tic->cart.palette, sizeof(tic_palette));
 
-	machine->state.synced = true;
+	machine->state.synced |= mask;
 }
 
 static void cart2ram(tic_mem* memory)
 {
-	api_sync(memory, NULL, 0, false);
+	api_sync(memory, 0, 0, false);
 
 	initCover(memory);
 }

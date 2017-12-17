@@ -748,12 +748,12 @@ static s32 lua_sync(lua_State* lua)
 	tic_mem* memory = (tic_mem*)getLuaMachine(lua);
 
 	bool toCart = false;
-	const char* section = NULL;
+	u32 mask = 0;
 	s32 bank = 0;
 
 	if(lua_gettop(lua) >= 1)
 	{
-		section = lua_tostring(lua, 1);
+		mask = getLuaNumber(lua, 1);
 
 		if(lua_gettop(lua) >= 2)
 		{
@@ -767,7 +767,7 @@ static s32 lua_sync(lua_State* lua)
 	}
 
 	if(bank >= 0 && bank < TIC_BANKS)
-		memory->api.sync(memory, section, bank, toCart);
+		memory->api.sync(memory, mask, bank, toCart);
 	else
 		luaL_error(lua, "sync() error, invalid bank");
 
