@@ -908,21 +908,6 @@ static void initMenuMode()
 	initMenu(studio.menu, studio.tic, studio.fs);
 }
 
-static void enableScreenTextInput()
-{
-	if(SDL_HasScreenKeyboardSupport())
-	{
-		static const EditorMode TextModes[] = {TIC_CONSOLE_MODE, TIC_CODE_MODE};
-
-		for(s32 i = 0; i < COUNT_OF(TextModes); i++)
-			if(TextModes[i] == studio.mode)
-			{
-				SDL_StartTextInput();
-				break;
-			}
-	}
-}
-
 void runGameFromSurf()
 {
 	studio.tic->api.reset(studio.tic);
@@ -959,7 +944,6 @@ void setStudioMode(EditorMode mode)
 		switch (prev)
 		{
 		case TIC_START_MODE:
-			SDL_StartTextInput();
 		case TIC_CONSOLE_MODE:
 		case TIC_RUN_MODE:
 		case TIC_KEYMAP_MODE:
@@ -981,15 +965,6 @@ void setStudioMode(EditorMode mode)
 		}
 
 		studio.mode = mode;
-
-		if(prev == TIC_RUN_MODE)
-			enableScreenTextInput();
-		else if ((prev == TIC_MENU_MODE || prev == TIC_SURF_MODE) && studio.mode != TIC_RUN_MODE)
-			enableScreenTextInput();
-
-		if(SDL_HasScreenKeyboardSupport() &&
-			(studio.mode == TIC_RUN_MODE || studio.mode == TIC_SURF_MODE || studio.mode == TIC_MENU_MODE))
-			SDL_StopTextInput();
 	}
 }
 
@@ -1947,7 +1922,9 @@ SDL_Event* pollEvent()
 			}
 			break;
 		case SDL_FINGERUP:
-			enableScreenTextInput();
+			if(SDL_HasScreenKeyboardSupport() && !SDL_IsTextInputActive())
+				if(studio.mode == TIC_CONSOLE_MODE || studio.mode == TIC_CODE_MODE)
+					SDL_StartTextInput();
 			break;
 		case SDL_QUIT:
 			exitStudio();
@@ -2646,7 +2623,6 @@ static void onFSInitialized(FileSystem* fs)
 
 	if(studio.console->skipStart)
 	{
-		SDL_StartTextInput();
 		setStudioMode(TIC_CONSOLE_MODE);
 	}
 
