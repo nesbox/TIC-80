@@ -1003,6 +1003,9 @@ static void api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, 
 							s32 iu = (s32)u % MapWidth;
 							s32 iv = (s32)v % MapHeight;
 
+							while (iu < 0) iu += MapWidth;
+							while (iv < 0) iv += MapHeight;
+
 							u8 tile = map[(iv>>3) * TIC_MAP_WIDTH + (iu>>3)];
 							const u8 *buffer = &ptr[tile << 5];
 							u8 color = tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) << 3));
