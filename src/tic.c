@@ -40,8 +40,7 @@
 #define BASE_NOTE_POS 49
 #define ENVELOPE_FREQ_SCALE 2
 #define NOTES_PER_MUNUTE (TIC_FRAMERATE / NOTES_PER_BEET * 60)
-#define min(a,b) ((a) < (b) ? (a) : (b))
-#define max(a,b) ((a) > (b) ? (a) : (b))
+#define min(a,b) (a < b ? a : b)
 
 typedef enum
 {
@@ -213,30 +212,15 @@ static u8 getPixel(tic_machine* machine, s32 x, s32 y)
 	return machine->state.getpix(&machine->memory, x, y);
 }
 
-static void drawHLineDma(tic_mem* memory, s32 xl, s32 xr, s32 y, u8 color)
-{
-	for(s32 x = xl; x < xr; ++x) {
-		tic_tool_poke4(&memory->ram.vram.screen.data, y * TIC80_WIDTH + x, color);
-	}
-}
-
-static void drawHLineOvr(tic_mem* tic, s32 x1, s32 x2, s32 y, u8 color)
-{
-	tic_machine* machine = (tic_machine*)tic;
-	u32 final_color = *(machine->state.ovr.palette + color);
-	for(s32 x = x1; x < x2; ++x) {
-		*getOvrAddr(tic, x, y) = final_color;
-	}
-}
-
-
 static void drawHLine(tic_machine* machine, s32 x, s32 y, s32 width, u8 color)
 {
-	if(y < machine->state.clip.t || machine->state.clip.b <= y) return;
-	u8 final_color = mapColor(&machine->memory, color);
-	s32 xl = max(x, machine->state.clip.l);
-	s32 xr = min(x + width, machine->state.clip.r);
-	machine->state.drawhline(&machine->memory, xl, xr, y, final_color);
+	if(y < 0 || y >= TIC80_HEIGHT) return;
+
+	s32 xl = x < 0 ? 0 : x;
+	s32 xr = x + width >= TIC80_WIDTH ? TIC80_WIDTH : x + width;
+
+	for(s32 i = xl; i < xr; ++i)
+		setPixel(machine, i, y, color);
 }
 
 static void drawVLine(tic_machine* machine, s32 x, s32 y, s32 height, u8 color)
@@ -515,7 +499,6 @@ static void api_reset(tic_mem* memory)
 
 	machine->state.setpix = setPixelDma;
 	machine->state.getpix = getPixelDma;
-	machine->state.drawhline = drawHLineDma;
 
 	updateSaveid(memory);
 }
@@ -856,14 +839,9 @@ static void api_circle(tic_mem* memory, s32 xm, s32 ym, u32 radius, u8 color)
 		if (r > x || err > y) err += ++x*2+1;
 	} while (x < 0);
 
-	s32 yt = max(machine->state.clip.t, ym-r);
-	s32 yb = min(machine->state.clip.b, ym+r+1);
-	u8 final_color = mapColor(&machine->memory, color);
-	for(s32 y = yt; y < yb; y++) {
-		s32 xl = max(SidesBuffer.Left[y], machine->state.clip.l);
-		s32 xr = min(SidesBuffer.Right[y], machine->state.clip.r);
-		machine->state.drawhline(&machine->memory, xl, xr, y, final_color);
-	}
+	for(s32 y = 0; y < TIC80_HEIGHT; y++)
+		for(s32 x = SidesBuffer.Left[y]; x <= SidesBuffer.Right[y]; ++x)
+			setPixel(machine, x, y, color);
 }
 
 static void api_circle_border(tic_mem* memory, s32 xm, s32 ym, u32 radius, u8 color)
@@ -1258,7 +1236,6 @@ static void api_tick_start(tic_mem* memory, const tic_sfx* sfxsrc, const tic_mus
 
 	machine->state.setpix = setPixelDma;
 	machine->state.getpix = getPixelDma;
-	machine->state.drawhline = drawHLineDma;
 	machine->state.synced = 0;
 }
 
@@ -1286,7 +1263,6 @@ static void api_tick_end(tic_mem* memory)
 
 	machine->state.setpix = setPixelOvr;
 	machine->state.getpix = getPixelOvr;
-	machine->state.drawhline = drawHLineOvr;
 	memcpy(machine->state.ovr.palette, tic_palette_blit(&memory->cart.palette), sizeof machine->state.ovr.palette);
 }
 
