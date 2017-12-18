@@ -2061,7 +2061,7 @@ static void onConsoleResumeCommand(Console* console, const char* param)
 	commandDone(console);
 
 	console->tic->api.resume(console->tic);
-	console->tic->api.sync(console->tic, NULL, 0, false);
+	console->tic->api.sync(console->tic, 0, 0, false);
 
 	setStudioMode(TIC_RUN_MODE);
 }
