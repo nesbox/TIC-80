@@ -929,6 +929,11 @@ void exitFromGameMenu()
 	studio.console->showGameMenu = false;
 }
 
+void resumeRunMode()
+{
+	studio.mode = TIC_RUN_MODE;
+}
+
 void setStudioMode(EditorMode mode)
 {
 	if(mode != studio.mode)

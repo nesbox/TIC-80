@@ -506,21 +506,25 @@ static void api_reset(tic_mem* memory)
 static void api_pause(tic_mem* memory)
 {
 	tic_machine* machine = (tic_machine*)memory;
+
 	memcpy(&machine->pause.state, &machine->state, sizeof(MachineState));
-	memcpy(&machine->pause.registers, &memory->ram.registers, sizeof memory->ram.registers);
-	memcpy(&machine->pause.music_pos, &memory->ram.music_pos, sizeof memory->ram.music_pos);
-	memcpy(&machine->pause.vram, &memory->ram.vram, sizeof memory->ram.vram);
+	memcpy(&machine->pause.ram, &memory->ram, sizeof(tic_ram));
+
+	machine->pause.time.start = machine->data->start;
+	machine->pause.time.paused = machine->data->counter();
 }
 
 static void api_resume(tic_mem* memory)
 {
-	api_reset(memory);
-
 	tic_machine* machine = (tic_machine*)memory;
-	memcpy(&machine->state, &machine->pause.state, sizeof(MachineState));
-	memcpy(&memory->ram.registers, &machine->pause.registers, sizeof memory->ram.registers);
-	memcpy(&memory->ram.music_pos, &machine->pause.music_pos, sizeof memory->ram.music_pos);
-	memcpy(&memory->ram.vram, &machine->pause.vram, sizeof memory->ram.vram);
+
+	if (machine->data)
+	{
+		memcpy(&machine->state, &machine->pause.state, sizeof(MachineState));
+		memcpy(&memory->ram, &machine->pause.ram, sizeof(tic_ram));
+
+		machine->data->start = machine->pause.time.start + machine->data->counter() - machine->pause.time.paused;
+	}
 }
 
 void tic_close(tic_mem* memory)

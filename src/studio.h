@@ -148,6 +148,7 @@ void studioRomSaved();
 void studioConfigChanged();
 
 void setStudioMode(EditorMode mode);
+void resumeRunMode();
 EditorMode getStudioMode();
 void exitStudio();
 u32 unzip(u8** dest, const u8* source, size_t size);
