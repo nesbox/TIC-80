@@ -1111,7 +1111,7 @@ static void processMusic(tic_mem* memory)
 	if(machine->state.music.play == MusicStop) return;
 
 	const tic_track* track = &machine->sound.music->tracks.data[memory->ram.music_pos.track];
-	s32 row = machine->state.music.ticks++ * (track->tempo + DEFAULT_TEMPO) * DEFAULT_SPEED / (track->speed + DEFAULT_SPEED) / NOTES_PER_MUNUTE;
+	s32 row = machine->state.music.ticks * (track->tempo + DEFAULT_TEMPO) * DEFAULT_SPEED / (track->speed + DEFAULT_SPEED) / NOTES_PER_MUNUTE;
 
 	s32 rows = MUSIC_PATTERN_ROWS - track->rows;
 	if (row >= rows)
@@ -1162,7 +1162,7 @@ static void processMusic(tic_mem* memory)
 		}
 	}
 
-	if (row != memory->ram.music_pos.row && row < rows)
+	if (row != memory->ram.music_pos.row)
 	{
 		memory->ram.music_pos.row = row;
 
@@ -1197,6 +1197,8 @@ static void processMusic(tic_mem* memory)
 		if(c->index >= 0)
 			sfx(memory, c->index, c->freq, c, &memory->ram.registers[i]);
 	}
+
+	machine->state.music.ticks++;
 }
 
 static bool isNoiseWaveform(const tic_waveform* wave)
