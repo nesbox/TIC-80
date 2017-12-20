@@ -430,6 +430,7 @@ static void parse(const char* start, u8* color)
 			ptr = end ? end + strlen(BlockCommentEnd) : blockCommentStart + strlen(blockCommentStart);
 			memset(color + (blockCommentStart - start), getConfig()->theme.code.comment, ptr - blockCommentStart);
 			blockCommentStart = NULL;
+			continue;
 		}
 		else if(blockStringStart)
 		{
@@ -460,6 +461,7 @@ static void parse(const char* start, u8* color)
 
 			memset(color + (blockStringStart - start), getConfig()->theme.code.string, ptr - blockStringStart);
 			blockStringStart = NULL;
+			continue;
 		}
 		else if(singleCommentStart)
 		{
@@ -467,52 +469,33 @@ static void parse(const char* start, u8* color)
 
 			memset(color + (singleCommentStart - start), getConfig()->theme.code.comment, ptr - singleCommentStart);
 			singleCommentStart = NULL;
+			continue;
 		}
 		else if(numberStart)
 		{
-			bool digit = true;
 			while(!islineend(*ptr))
 			{
 				char c = *ptr;
 
-				if(isdigit(c))
+				if(isdigit(c)) ptr++;
+				else if(numberStart[0] == '0' 
+					&& (numberStart[1] == 'x' || numberStart[1] == 'X') 
+					&& isxdigit(numberStart[2]))
 				{
-					ptr++;
-				}
-				else if(numberStart[0] == '0' && (numberStart[1] == 'x' || numberStart[1] == 'X'))
-				{
-					if(ptr - numberStart <= 2)
-					{
-						ptr++;
-					}
-					else if(ptr - numberStart > 2 && isxdigit(c))
-					{
-						ptr++;
-					}
-					else
-					{
-						digit = false;
-						break;
-					}
-				}
-				else if(c == '.' || c == 'e')
-				{
-					if(isdigit(ptr[1]))
-						ptr++;
+					if((ptr - numberStart < 2) || (ptr - numberStart >= 2 && isxdigit(c))) ptr++;
 					else break;
 				}
-				else if(isalpha(c) || c == '_')
+				else if(c == '.' || c == 'e' || c == 'E')
 				{
-					digit = false;
-					break;
+					if(isdigit(ptr[1])) ptr++;
+					else break;
 				}
 				else break;
 			}
 
-			if(digit)
-				memset(color + (numberStart - start), getConfig()->theme.code.number, ptr - numberStart);
-
+			memset(color + (numberStart - start), getConfig()->theme.code.number, ptr - numberStart);
 			numberStart = NULL;
+			continue;
 		}
 		else
 		{
@@ -548,6 +531,10 @@ static void parse(const char* start, u8* color)
 							numberStart = ptr;
 							ptr += 1;
 							continue;
+						}
+						else
+						{
+							// other stuff
 						}
 					}
 				}
