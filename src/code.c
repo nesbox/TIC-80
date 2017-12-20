@@ -405,6 +405,8 @@ static bool isWord(char symbol) {return isLetter(symbol) || isNumber(symbol);}
 #include <ctype.h>
 
 static inline bool islineend(char c) {return c == '\n' || c == '\0';}
+static inline bool isalpha_(char c) {return isalpha(c) || c == '_';}
+static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
 
 static void parse(const char* start, u8* color)
 {
@@ -413,6 +415,7 @@ static void parse(const char* start, u8* color)
 	const char* blockCommentStart = NULL;
 	const char* blockStringStart = NULL;
 	const char* singleCommentStart = NULL;
+	const char* wordStart = NULL;
 	const char* numberStart = NULL;
 
 	static const char BlockCommentStart[] = "--[[";
@@ -471,6 +474,44 @@ static void parse(const char* start, u8* color)
 			singleCommentStart = NULL;
 			continue;
 		}
+		else if(wordStart)
+		{
+			while(!islineend(*ptr) && isalnum_(*ptr)) ptr++;
+
+			bool keyword = false;
+			{
+				static const char* const Keywords [] =
+				{
+					"and", "break", "do", "else", "elseif",
+					"end", "false", "for", "function", "goto", "if",
+					"in", "local", "nil", "not", "or", "repeat",
+					"return", "then", "true", "until", "while"
+				};
+
+				for(s32 i = 0; i < COUNT_OF(Keywords); i++)
+					if(memcmp(wordStart, Keywords[i], strlen(Keywords[i])) == 0)
+					{
+						memset(color + (wordStart - start), getConfig()->theme.code.keyword, ptr - wordStart);
+						keyword = true;
+						break;
+					}
+			}
+
+			if(!keyword)
+			{
+				static const char* const Api[] = API_KEYWORDS;
+
+				for(s32 i = 0; i < COUNT_OF(Api); i++)
+					if(memcmp(wordStart, Api[i], strlen(Api[i])) == 0)
+					{
+						memset(color + (wordStart - start), getConfig()->theme.code.api, ptr - wordStart);
+						break;
+					}
+			}
+
+			wordStart = NULL;
+			continue;
+		}
 		else if(numberStart)
 		{
 			while(!islineend(*ptr))
@@ -511,7 +552,7 @@ static void parse(const char* start, u8* color)
 				if(c == '"' || c == '\'')
 				{
 					blockStringStart = ptr;
-					ptr += 1;
+					ptr++;
 					continue;
 				}
 				else
@@ -526,15 +567,24 @@ static void parse(const char* start, u8* color)
 					}
 					else
 					{
-						if(isdigit(c) || (c == '.' && isdigit(ptr[1])))
+						if(isalpha_(c))
 						{
-							numberStart = ptr;
-							ptr += 1;
+							wordStart = ptr;
+							ptr++;
 							continue;
 						}
 						else
 						{
-							// other stuff
+							if(isdigit(c) || (c == '.' && isdigit(ptr[1])))
+							{
+								numberStart = ptr;
+								ptr++;
+								continue;
+							}
+							else
+							{
+								// other stuff
+							}							
 						}
 					}
 				}
