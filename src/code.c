@@ -404,24 +404,59 @@ static bool isWord(char symbol) {return isLetter(symbol) || isNumber(symbol);}
 
 #include <ctype.h>
 
-static inline bool isLineEnd(char c) {return c == '\n' || c == '\0';}
+static inline bool is_lineend(char c) {return c == '\n' || c == '\0';}
 
 static void parse(const char* start, u8* color)
 {
 	const char* ptr = start;
 
-	const char* digitStart = NULL;
+	// const char* digitStart = NULL;
+	const char* blockCommentStart = NULL;
 	const char* singleCommentStart = NULL;
 
-	static const char Comment[] = "--";
+	static const char Comment = '-';
+	static const char BlockCommentStart[] = "--[[";
+	static const char BlockCommentEnd[] = "]]";
+
+	enum{BlockCommentStartSize = sizeof BlockCommentStart - 1};
 
 	while(true)
 	{
 		char c = *ptr;
 
+		if(blockCommentStart)
+		{
+			const char* end = strstr(ptr, BlockCommentEnd);
+
+			if(end)
+			{
+				ptr = end = end + strlen(BlockCommentEnd);
+			}
+			else
+			{
+				ptr = end = blockCommentStart + strlen(blockCommentStart);
+			}
+
+			memset(color + (blockCommentStart - start), getConfig()->theme.code.comment, end - blockCommentStart);
+			blockCommentStart = NULL;
+		}
+		else
+		{
+			if(c == BlockCommentStart[0] && memcmp(ptr, BlockCommentStart, BlockCommentStartSize) == 0)
+			{
+				blockCommentStart = ptr;
+				ptr += BlockCommentStartSize;
+				continue;
+			}
+			else
+			{
+				// do other stuff
+			}
+		}
+
 		if(singleCommentStart)
 		{
-			if(isLineEnd(c))
+			if(is_lineend(c))
 			{
 				memset(color + (singleCommentStart - start), getConfig()->theme.code.comment, ptr - singleCommentStart);
 				singleCommentStart = NULL;
@@ -429,7 +464,7 @@ static void parse(const char* start, u8* color)
 		}
 		else
 		{
-			if(c == Comment[1] && ptr > start && *(ptr-1) == Comment[0])
+			if(c == Comment && ptr > start && *(ptr-1) == Comment)
 			{
 				singleCommentStart = ptr-1;
 			}
