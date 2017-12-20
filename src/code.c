@@ -188,256 +188,382 @@ static void updateEditor(Code* code)
 static bool isLetter(char symbol) {return (symbol >= 'A' && symbol <= 'Z') || (symbol >= 'a' && symbol <= 'z') || (symbol == '_');}
 static bool isNumber(char symbol) {return (symbol >= '0' && symbol <= '9');}
 static bool isWord(char symbol) {return isLetter(symbol) || isNumber(symbol);}
-static bool isDot(char symbol) {return (symbol == '.');}
+// static bool isDot(char symbol) {return (symbol == '.');}
 
-static void highlightStrings(Code* code, const char* text, u8* color, char separator)
+// static void highlightStrings(Code* code, const char* text, u8* color, char separator)
+// {
+// 	char* start = SDL_strchr(text, separator);
+
+// 	if(start)
+// 	{
+// 		char* end = SDL_strchr(start + 1, separator);
+
+// 		if(end)
+// 		{
+// 			end++;
+// 			u8* colorPtr = color + (start - text);
+
+// 			if(*colorPtr != getConfig()->theme.code.comment)
+// 				memset(colorPtr, getConfig()->theme.code.string, end - start);
+
+// 			highlightStrings(code, end, color + (end - text), separator);
+// 		}
+// 	}
+// }
+
+// static void highlightNumbers(Code* code, u8* color)
+// {
+// 	const char* text = code->src;
+// 	const char* pointer = text;
+
+// 	while(*pointer)
+// 	{
+// 		char symbol = *pointer;
+
+// 		if(isLetter(symbol))
+// 			while(symbol && (isLetter(symbol) || isNumber(symbol) || isDot(symbol)))
+// 				symbol = *++pointer;
+
+// 		const char* start = pointer;
+// 		while(symbol && (isNumber(symbol) || isDot(symbol))) symbol = *++pointer;
+
+// 		if(!isLetter(symbol)) memset(color + (start - text), getConfig()->theme.code.number, pointer - start);
+
+// 		pointer++;
+// 	}
+// }
+
+// static void highlightWords(const char* text, u8* color, const char* const strings[], s32 count, u8 wordColor)
+// {
+// 	const char* pointer = text;
+
+// 	while(*pointer)
+// 	{
+// 		char symbol = *pointer;
+
+// 		const char* start = pointer;
+// 		while(symbol && (isLetter(symbol) || isNumber(symbol)))
+// 			symbol = *++pointer;
+
+// 		size_t size = pointer - start;
+
+// 		if(size)
+// 		{
+// 			for(s32 i = 0; i < count; i++)
+// 			{
+// 				const char* keyword = strings[i];
+// 				if(size == strlen(keyword) && memcmp(start, keyword, size) == 0)
+// 				{
+// 					memset(color + (start - text), wordColor, size);
+// 					break;
+// 				}
+// 			}
+// 		}
+
+// 		pointer++;
+// 	}
+
+// }
+
+// static void highlightMoonKeywords(Code* code, u8* color)
+// {
+// 	const char* text = code->src;
+
+// 	static const char* const MoonKeywords [] =
+// 	{
+// 		"false", "true", "nil", "return",
+// 		"break", "continue", "for", "while",
+// 		"if", "else", "elseif", "unless", "switch",
+// 		"when", "and", "or", "in", "do",
+// 		"not", "super", "try", "catch",
+// 		"with", "export", "import", "then",
+// 		"from", "class", "extends", "new"
+// 	};
+
+// 	highlightWords(text, color, MoonKeywords, COUNT_OF(MoonKeywords), getConfig()->theme.code.keyword);
+// }
+
+// static void highlightLuaKeywords(Code* code, u8* color)
+// {
+// 	const char* text = code->src;
+
+// 	static const char* const LuaKeywords [] =
+// 	{
+// 		"and", "break", "do", "else", "elseif",
+// 		"end", "false", "for", "function", "goto", "if",
+// 		"in", "local", "nil", "not", "or", "repeat",
+// 		"return", "then", "true", "until", "while"
+// 	};
+
+// 	highlightWords(text, color, LuaKeywords, COUNT_OF(LuaKeywords), getConfig()->theme.code.keyword);
+// }
+
+// static void highlightJsKeywords(Code* code, u8* color)
+// {
+// 	const char* text = code->src;
+
+// 	static const char* const JsKeywords [] =
+// 	{
+// 		"break", "do", "instanceof", "typeof", "case", "else", "new",
+// 		"var", "catch", "finally", "return", "void", "continue", "for",
+// 		"switch", "while", "debugger", "function", "this", "with",
+// 		"default", "if", "throw", "delete", "in", "try", "const"
+// 	};
+
+// 	highlightWords(text, color, JsKeywords, COUNT_OF(JsKeywords), getConfig()->theme.code.keyword);
+// }
+
+// static void highlightApi(Code* code, u8* color)
+// {
+// 	static const char* const ApiKeywords[] = API_KEYWORDS;
+
+// 	const char* text = code->src;
+// 	highlightWords(text, color, ApiKeywords, COUNT_OF(ApiKeywords), getConfig()->theme.code.api);
+// }
+
+// static void highlightNonChars(Code* code, u8* color)
+// {
+// 	const char* text = code->src;
+
+// 	while(*text)
+// 	{
+// 		if(*text <= 32)
+// 			*color = getConfig()->theme.code.other;
+
+// 		text++;
+// 		color++;
+// 	}
+// }
+
+// static void highlightSigns(Code* code, u8* color)
+// {
+// 	const char* text = code->src;
+
+// 	static const char* const LuaSigns [] =
+// 	{
+// 		"+", "-", "*", "/", "%", "^", "#",
+// 		"&", "~", "|", "<<", ">>", "//",
+// 		"==", "~=", "<=", ">=", "<", ">", "=",
+// 		"(", ")", "{", "}", "[", "]", "::",
+// 		";", ":", ",", ".", "..", "...",
+// 	};
+
+// 	for(s32 i = 0; i < COUNT_OF(LuaSigns); i++)
+// 	{
+// 		const char* sign = LuaSigns[i];
+// 		const char* start = text;
+
+// 		while((start = strstr(start, sign)))
+// 		{
+// 			size_t size = strlen(sign);
+// 			memset(color + (start - text), getConfig()->theme.code.sign, size);
+// 			start += size;
+// 		}
+// 	}
+// }
+
+// static void highlightCommentsBase(Code* code, u8* color, const char* pattern1, const char* pattern2, s32 extraSize)
+// {
+// 	const char* text = code->src;
+// 	const char* pointer = text;
+
+// 	while(*pointer)
+// 	{
+// 		char* start = strstr(pointer, pattern1);
+
+// 		if(start)
+// 		{
+// 			char* end = strstr(start + strlen(pattern1), pattern2);
+
+// 			if(!end) end = start + strlen(start);
+
+// 			if(end)
+// 			{
+// 				end += extraSize;
+
+// 				memset(color + (start - text), getConfig()->theme.code.comment, end - start);
+// 				pointer = end;
+// 			}
+// 		}
+
+// 		pointer++;
+// 	}
+// }
+
+// static void highlightComments(Code* code, u8* color)
+// {
+// 	highlightCommentsBase(code, color, "--", "\n", 0);
+// 	highlightCommentsBase(code, color, "--[[", "]]", 2);
+// }
+
+// static void highlightJsComments(Code* code, u8* color)
+// {
+// 	highlightCommentsBase(code, color, "//", "\n", 0);
+// 	highlightCommentsBase(code, color, "/*", "*/", 2);
+// }
+
+#include <ctype.h>
+
+static inline bool isLineEnd(char c) {return c == '\n' || c == '\0';}
+
+static void parse(const char* start, u8* color)
 {
-	char* start = SDL_strchr(text, separator);
+	const char* ptr = start;
 
-	if(start)
+	const char* digitStart = NULL;
+	const char* singleCommentStart = NULL;
+
+	static const char Comment[] = "--";
+
+	while(true)
 	{
-		char* end = SDL_strchr(start + 1, separator);
+		char c = *ptr;
 
-		if(end)
+		if(singleCommentStart)
 		{
-			end++;
-			u8* colorPtr = color + (start - text);
-
-			if(*colorPtr != getConfig()->theme.code.comment)
-				memset(colorPtr, getConfig()->theme.code.string, end - start);
-
-			highlightStrings(code, end, color + (end - text), separator);
-		}
-	}
-}
-
-static void highlightNumbers(Code* code, u8* color)
-{
-	const char* text = code->src;
-	const char* pointer = text;
-
-	while(*pointer)
-	{
-		char symbol = *pointer;
-
-		if(isLetter(symbol))
-			while(symbol && (isLetter(symbol) || isNumber(symbol) || isDot(symbol)))
-				symbol = *++pointer;
-
-		const char* start = pointer;
-		while(symbol && (isNumber(symbol) || isDot(symbol))) symbol = *++pointer;
-
-		if(!isLetter(symbol)) memset(color + (start - text), getConfig()->theme.code.number, pointer - start);
-
-		pointer++;
-	}
-}
-
-static void highlightWords(const char* text, u8* color, const char* const strings[], s32 count, u8 wordColor)
-{
-	const char* pointer = text;
-
-	while(*pointer)
-	{
-		char symbol = *pointer;
-
-		const char* start = pointer;
-		while(symbol && (isLetter(symbol) || isNumber(symbol)))
-			symbol = *++pointer;
-
-		size_t size = pointer - start;
-
-		if(size)
-		{
-			for(s32 i = 0; i < count; i++)
+			if(isLineEnd(c))
 			{
-				const char* keyword = strings[i];
-				if(size == strlen(keyword) && memcmp(start, keyword, size) == 0)
-				{
-					memset(color + (start - text), wordColor, size);
-					break;
-				}
+				memset(color + (singleCommentStart - start), getConfig()->theme.code.comment, ptr - singleCommentStart);
+				singleCommentStart = NULL;
+			}
+		}
+		else
+		{
+			if(c == Comment[1] && ptr > start && *(ptr-1) == Comment[0])
+			{
+				singleCommentStart = ptr-1;
+			}
+			else
+			{
+
+				// if(!isprint(c))
+				// {
+				// 	digitStart = NULL;
+				// 	ptr++;
+				// 	continue;
+				// }
+
 			}
 		}
 
-		pointer++;
+		if(!c) break;
+
+		bool digit = false;
+
+		// if(digitStart)
+		// {
+		// 	if(digitStart[0] == '0' && digitStart[1] == 'x')
+		// 	{
+		// 		if(ptr - digitStart <= 2)
+		// 			digit = true;
+		// 		else if(ptr - digitStart > 2 && isxdigit(c))
+		// 			digit = true;
+		// 		else digitStart = NULL;
+		// 	}
+		// 	else if(isdigit(c))
+		// 	{
+		// 		digit = true;
+		// 	}
+		// 	else if(c == '.')
+		// 	{
+		// 		digit = true;
+		// 	}
+		// 	else
+		// 	{
+		// 		digitStart = NULL;
+		// 	}
+		// }
+		// else
+		// {
+		// 	if(isdigit(c))
+		// 	{
+		// 		digitStart = ptr;
+		// 		digit = true;
+		// 	}
+		// }
+
+		if(digit) color[ptr - start] = getConfig()->theme.code.number;
+
+		ptr++;
 	}
-
-}
-
-static void highlightMoonKeywords(Code* code, u8* color)
-{
-	const char* text = code->src;
-
-	static const char* const MoonKeywords [] =
-	{
-		"false", "true", "nil", "return",
-		"break", "continue", "for", "while",
-		"if", "else", "elseif", "unless", "switch",
-		"when", "and", "or", "in", "do",
-		"not", "super", "try", "catch",
-		"with", "export", "import", "then",
-		"from", "class", "extends", "new"
-	};
-
-	highlightWords(text, color, MoonKeywords, COUNT_OF(MoonKeywords), getConfig()->theme.code.keyword);
-}
-
-static void highlightLuaKeywords(Code* code, u8* color)
-{
-	const char* text = code->src;
-
-	static const char* const LuaKeywords [] =
-	{
-		"and", "break", "do", "else", "elseif",
-		"end", "false", "for", "function", "goto", "if",
-		"in", "local", "nil", "not", "or", "repeat",
-		"return", "then", "true", "until", "while"
-	};
-
-	highlightWords(text, color, LuaKeywords, COUNT_OF(LuaKeywords), getConfig()->theme.code.keyword);
-}
-
-static void highlightJsKeywords(Code* code, u8* color)
-{
-	const char* text = code->src;
-
-	static const char* const JsKeywords [] =
-	{
-		"break", "do", "instanceof", "typeof", "case", "else", "new",
-		"var", "catch", "finally", "return", "void", "continue", "for",
-		"switch", "while", "debugger", "function", "this", "with",
-		"default", "if", "throw", "delete", "in", "try", "const"
-	};
-
-	highlightWords(text, color, JsKeywords, COUNT_OF(JsKeywords), getConfig()->theme.code.keyword);
-}
-
-static void highlightApi(Code* code, u8* color)
-{
-	static const char* const ApiKeywords[] = API_KEYWORDS;
-
-	const char* text = code->src;
-	highlightWords(text, color, ApiKeywords, COUNT_OF(ApiKeywords), getConfig()->theme.code.api);
-}
-
-static void highlightNonChars(Code* code, u8* color)
-{
-	const char* text = code->src;
-
-	while(*text)
-	{
-		if(*text <= 32)
-			*color = getConfig()->theme.code.other;
-
-		text++;
-		color++;
-	}
-}
-
-static void highlightSigns(Code* code, u8* color)
-{
-	const char* text = code->src;
-
-	static const char* const LuaSigns [] =
-	{
-		"+", "-", "*", "/", "%", "^", "#",
-		"&", "~", "|", "<<", ">>", "//",
-		"==", "~=", "<=", ">=", "<", ">", "=",
-		"(", ")", "{", "}", "[", "]", "::",
-		";", ":", ",", ".", "..", "...",
-	};
-
-	for(s32 i = 0; i < COUNT_OF(LuaSigns); i++)
-	{
-		const char* sign = LuaSigns[i];
-		const char* start = text;
-
-		while((start = strstr(start, sign)))
-		{
-			size_t size = strlen(sign);
-			memset(color + (start - text), getConfig()->theme.code.sign, size);
-			start += size;
-		}
-	}
-}
-
-static void highlightCommentsBase(Code* code, u8* color, const char* pattern1, const char* pattern2, s32 extraSize)
-{
-	const char* text = code->src;
-	const char* pointer = text;
-
-	while(*pointer)
-	{
-		char* start = strstr(pointer, pattern1);
-
-		if(start)
-		{
-			char* end = strstr(start + strlen(pattern1), pattern2);
-
-			if(!end) end = start + strlen(start);
-
-			if(end)
-			{
-				end += extraSize;
-
-				memset(color + (start - text), getConfig()->theme.code.comment, end - start);
-				pointer = end;
-			}
-		}
-
-		pointer++;
-	}
-}
-
-static void highlightComments(Code* code, u8* color)
-{
-	highlightCommentsBase(code, color, "--", "\n", 0);
-	highlightCommentsBase(code, color, "--[[", "]]", 2);
-}
-
-static void highlightJsComments(Code* code, u8* color)
-{
-	highlightCommentsBase(code, color, "//", "\n", 0);
-	highlightCommentsBase(code, color, "/*", "*/", 2);
 }
 
 static void parseSyntaxColor(Code* code)
 {
 	memset(code->colorBuffer, getConfig()->theme.code.var, sizeof(code->colorBuffer));
 
-	u8* color = code->colorBuffer;
+	parse(code->src, code->colorBuffer);
 
-	switch(code->tic->api.get_script(code->tic))
-	{
-	case tic_script_moon:
-		highlightNonChars(code, color);
-		highlightMoonKeywords(code, color);
-		highlightApi(code, color);
-		highlightNumbers(code, color);
-		highlightSigns(code, color);
-		highlightCommentsBase(code, color, "--", "\n", 0);
-		highlightStrings(code, code->src, color, '"');
-		break;
-	case tic_script_lua:
-		highlightNonChars(code, color);
-		highlightLuaKeywords(code, color);
-		highlightApi(code, color);
-		highlightNumbers(code, color);
-		highlightSigns(code, color);
-		highlightComments(code, color);
-		highlightStrings(code, code->src, color, '"');
-		break;
-	case tic_script_js:
-		highlightNonChars(code, color);
-		highlightJsKeywords(code, color);
-		highlightApi(code, color);
-		highlightNumbers(code, color);
-		highlightSigns(code, color);
-		highlightJsComments(code, color);
-		highlightStrings(code, code->src, color, '"');
-		break;
-	}
+	// u8* color = code->colorBuffer;
+	// const char* ptr = code->src;
+
+	// char* digitStart = NULL;
+
+	// while(true)
+	// {
+	// 	char c = *ptr;
+
+	// 	if(!c) break;
+
+	// 	if(digitStart)
+	// 	{
+	// 		if(isxdigit(c))
+	// 		{
+	// 			*color = getConfig()->theme.code.number;		
+	// 		}
+	// 		else
+	// 	}
+	// 	else
+	// 	{
+	// 		if(isdigit(c))
+	// 		{
+	// 			*color = getConfig()->theme.code.number;
+
+	// 			if(digitStart == NULL)
+	// 			{
+	// 				digitStart = ptr;
+	// 			}
+	// 		}
+	// 		else
+	// 		{
+	// 			digitStart = NULL;
+	// 		}			
+	// 	}
+
+	// 	ptr++;
+	// 	color++;
+	// }
+
+	// switch(code->tic->api.get_script(code->tic))
+	// {
+	// case tic_script_moon:
+	// 	highlightNonChars(code, color);
+	// 	highlightMoonKeywords(code, color);
+	// 	highlightApi(code, color);
+	// 	highlightNumbers(code, color);
+	// 	highlightSigns(code, color);
+	// 	highlightCommentsBase(code, color, "--", "\n", 0);
+	// 	highlightStrings(code, code->src, color, '"');
+	// 	break;
+	// case tic_script_lua:
+	// 	highlightNonChars(code, color);
+	// 	highlightLuaKeywords(code, color);
+	// 	highlightApi(code, color);
+	// 	highlightNumbers(code, color);
+	// 	highlightSigns(code, color);
+	// 	highlightComments(code, color);
+	// 	highlightStrings(code, code->src, color, '"');
+	// 	break;
+	// case tic_script_js:
+	// 	highlightNonChars(code, color);
+	// 	highlightJsKeywords(code, color);
+	// 	highlightApi(code, color);
+	// 	highlightNumbers(code, color);
+	// 	highlightSigns(code, color);
+	// 	highlightJsComments(code, color);
+	// 	highlightStrings(code, code->src, color, '"');
+	// 	break;
+	// }
 }
 
 static char* getLineByPos(Code* code, char* pos)
