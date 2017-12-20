@@ -23,6 +23,8 @@
 #include "code.h"
 #include "history.h"
 
+#include <ctype.h>
+
 #define TEXT_CURSOR_DELAY (TIC_FRAMERATE / 2)
 #define TEXT_CURSOR_BLINK_PERIOD TIC_FRAMERATE
 #define TEXT_BUFFER_WIDTH STUDIO_TEXT_BUFFER_WIDTH
@@ -185,235 +187,76 @@ static void updateEditor(Code* code)
 	}
 }
 
-static bool isLetter(char symbol) {return (symbol >= 'A' && symbol <= 'Z') || (symbol >= 'a' && symbol <= 'z') || (symbol == '_');}
-static bool isNumber(char symbol) {return (symbol >= '0' && symbol <= '9');}
-static bool isWord(char symbol) {return isLetter(symbol) || isNumber(symbol);}
-// static bool isDot(char symbol) {return (symbol == '.');}
-
-// static void highlightStrings(Code* code, const char* text, u8* color, char separator)
-// {
-// 	char* start = SDL_strchr(text, separator);
-
-// 	if(start)
-// 	{
-// 		char* end = SDL_strchr(start + 1, separator);
-
-// 		if(end)
-// 		{
-// 			end++;
-// 			u8* colorPtr = color + (start - text);
-
-// 			if(*colorPtr != getConfig()->theme.code.comment)
-// 				memset(colorPtr, getConfig()->theme.code.string, end - start);
-
-// 			highlightStrings(code, end, color + (end - text), separator);
-// 		}
-// 	}
-// }
-
-// static void highlightNumbers(Code* code, u8* color)
-// {
-// 	const char* text = code->src;
-// 	const char* pointer = text;
-
-// 	while(*pointer)
-// 	{
-// 		char symbol = *pointer;
-
-// 		if(isLetter(symbol))
-// 			while(symbol && (isLetter(symbol) || isNumber(symbol) || isDot(symbol)))
-// 				symbol = *++pointer;
-
-// 		const char* start = pointer;
-// 		while(symbol && (isNumber(symbol) || isDot(symbol))) symbol = *++pointer;
-
-// 		if(!isLetter(symbol)) memset(color + (start - text), getConfig()->theme.code.number, pointer - start);
-
-// 		pointer++;
-// 	}
-// }
-
-// static void highlightWords(const char* text, u8* color, const char* const strings[], s32 count, u8 wordColor)
-// {
-// 	const char* pointer = text;
-
-// 	while(*pointer)
-// 	{
-// 		char symbol = *pointer;
-
-// 		const char* start = pointer;
-// 		while(symbol && (isLetter(symbol) || isNumber(symbol)))
-// 			symbol = *++pointer;
-
-// 		size_t size = pointer - start;
-
-// 		if(size)
-// 		{
-// 			for(s32 i = 0; i < count; i++)
-// 			{
-// 				const char* keyword = strings[i];
-// 				if(size == strlen(keyword) && memcmp(start, keyword, size) == 0)
-// 				{
-// 					memset(color + (start - text), wordColor, size);
-// 					break;
-// 				}
-// 			}
-// 		}
-
-// 		pointer++;
-// 	}
-
-// }
-
-// static void highlightMoonKeywords(Code* code, u8* color)
-// {
-// 	const char* text = code->src;
-
-// 	static const char* const MoonKeywords [] =
-// 	{
-// 		"false", "true", "nil", "return",
-// 		"break", "continue", "for", "while",
-// 		"if", "else", "elseif", "unless", "switch",
-// 		"when", "and", "or", "in", "do",
-// 		"not", "super", "try", "catch",
-// 		"with", "export", "import", "then",
-// 		"from", "class", "extends", "new"
-// 	};
-
-// 	highlightWords(text, color, MoonKeywords, COUNT_OF(MoonKeywords), getConfig()->theme.code.keyword);
-// }
-
-// static void highlightLuaKeywords(Code* code, u8* color)
-// {
-// 	const char* text = code->src;
-
-// 	static const char* const LuaKeywords [] =
-// 	{
-// 		"and", "break", "do", "else", "elseif",
-// 		"end", "false", "for", "function", "goto", "if",
-// 		"in", "local", "nil", "not", "or", "repeat",
-// 		"return", "then", "true", "until", "while"
-// 	};
-
-// 	highlightWords(text, color, LuaKeywords, COUNT_OF(LuaKeywords), getConfig()->theme.code.keyword);
-// }
-
-// static void highlightJsKeywords(Code* code, u8* color)
-// {
-// 	const char* text = code->src;
-
-// 	static const char* const JsKeywords [] =
-// 	{
-// 		"break", "do", "instanceof", "typeof", "case", "else", "new",
-// 		"var", "catch", "finally", "return", "void", "continue", "for",
-// 		"switch", "while", "debugger", "function", "this", "with",
-// 		"default", "if", "throw", "delete", "in", "try", "const"
-// 	};
-
-// 	highlightWords(text, color, JsKeywords, COUNT_OF(JsKeywords), getConfig()->theme.code.keyword);
-// }
-
-// static void highlightApi(Code* code, u8* color)
-// {
-// 	static const char* const ApiKeywords[] = API_KEYWORDS;
-
-// 	const char* text = code->src;
-// 	highlightWords(text, color, ApiKeywords, COUNT_OF(ApiKeywords), getConfig()->theme.code.api);
-// }
-
-// static void highlightNonChars(Code* code, u8* color)
-// {
-// 	const char* text = code->src;
-
-// 	while(*text)
-// 	{
-// 		if(*text <= 32)
-// 			*color = getConfig()->theme.code.other;
-
-// 		text++;
-// 		color++;
-// 	}
-// }
-
-// static void highlightSigns(Code* code, u8* color)
-// {
-// 	const char* text = code->src;
-
-// 	static const char* const LuaSigns [] =
-// 	{
-// 		"+", "-", "*", "/", "%", "^", "#",
-// 		"&", "~", "|", "<<", ">>", "//",
-// 		"==", "~=", "<=", ">=", "<", ">", "=",
-// 		"(", ")", "{", "}", "[", "]", "::",
-// 		";", ":", ",", ".", "..", "...",
-// 	};
-
-// 	for(s32 i = 0; i < COUNT_OF(LuaSigns); i++)
-// 	{
-// 		const char* sign = LuaSigns[i];
-// 		const char* start = text;
-
-// 		while((start = strstr(start, sign)))
-// 		{
-// 			size_t size = strlen(sign);
-// 			memset(color + (start - text), getConfig()->theme.code.sign, size);
-// 			start += size;
-// 		}
-// 	}
-// }
-
-// static void highlightCommentsBase(Code* code, u8* color, const char* pattern1, const char* pattern2, s32 extraSize)
-// {
-// 	const char* text = code->src;
-// 	const char* pointer = text;
-
-// 	while(*pointer)
-// 	{
-// 		char* start = strstr(pointer, pattern1);
-
-// 		if(start)
-// 		{
-// 			char* end = strstr(start + strlen(pattern1), pattern2);
-
-// 			if(!end) end = start + strlen(start);
-
-// 			if(end)
-// 			{
-// 				end += extraSize;
-
-// 				memset(color + (start - text), getConfig()->theme.code.comment, end - start);
-// 				pointer = end;
-// 			}
-// 		}
-
-// 		pointer++;
-// 	}
-// }
-
-// static void highlightComments(Code* code, u8* color)
-// {
-// 	highlightCommentsBase(code, color, "--", "\n", 0);
-// 	highlightCommentsBase(code, color, "--[[", "]]", 2);
-// }
-
-// static void highlightJsComments(Code* code, u8* color)
-// {
-// 	highlightCommentsBase(code, color, "//", "\n", 0);
-// 	highlightCommentsBase(code, color, "/*", "*/", 2);
-// }
-
-#include <ctype.h>
-
 static inline bool islineend(char c) {return c == '\n' || c == '\0';}
 static inline bool isalpha_(char c) {return isalpha(c) || c == '_';}
 static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
 
-static void parseSyntaxColor(Code* code)
+typedef struct
 {
-	u8* color = code->colorBuffer;
-	memset(color, getConfig()->theme.code.var, sizeof(code->colorBuffer));
+	const char* blockCommentStart;
+	const char* blockCommentEnd;
+	const char* singleCommentStart;
 
-	const char* start = code->src;
+	const char* const * keywords;
+	s32 keywordsCount;
+} SyntaxConfig;
+
+static const char* const LuaKeywords [] =
+{
+	"and", "break", "do", "else", "elseif",
+	"end", "false", "for", "function", "goto", "if",
+	"in", "local", "nil", "not", "or", "repeat",
+	"return", "then", "true", "until", "while"
+};
+
+static const SyntaxConfig LuaSyntaxConfig = 
+{
+	.blockCommentStart 	= "--[[",
+	.blockCommentEnd 	= "]]",
+	.singleCommentStart = "--",
+	.keywords 			= LuaKeywords,
+	.keywordsCount 		= COUNT_OF(LuaKeywords),
+};
+
+static const char* const MoonKeywords [] =
+{
+	"false", "true", "nil", "return",
+	"break", "continue", "for", "while",
+	"if", "else", "elseif", "unless", "switch",
+	"when", "and", "or", "in", "do",
+	"not", "super", "try", "catch",
+	"with", "export", "import", "then",
+	"from", "class", "extends", "new"
+};
+
+static const SyntaxConfig MoonSyntaxConfig = 
+{
+	.blockCommentStart 	= "--[[",
+	.blockCommentEnd 	= "]]",
+	.singleCommentStart = "--",
+	.keywords 			= MoonKeywords,
+	.keywordsCount 		= COUNT_OF(MoonKeywords),
+};
+
+static const char* const JsKeywords [] =
+{
+	"break", "do", "instanceof", "typeof", "case", "else", "new",
+	"var", "catch", "finally", "return", "void", "continue", "for",
+	"switch", "while", "debugger", "function", "this", "with",
+	"default", "if", "throw", "delete", "in", "try", "const"
+};
+
+static const SyntaxConfig JsSyntaxConfig = 
+{
+	.blockCommentStart 	= "/*",
+	.blockCommentEnd 	= "*/",
+	.singleCommentStart = "//",
+	.keywords 			= JsKeywords,
+	.keywordsCount 		= COUNT_OF(JsKeywords),
+};
+
+static void parse(const char* start, u8* color, const SyntaxConfig* config)
+{
 	const char* ptr = start;
 
 	const char* blockCommentStart = NULL;
@@ -422,19 +265,15 @@ static void parseSyntaxColor(Code* code)
 	const char* wordStart = NULL;
 	const char* numberStart = NULL;
 
-	static const char BlockCommentStart[] = "--[[";
-	static const char BlockCommentEnd[] = "]]";
-	static const char SingleCommentStart[] = "--";
-
 	while(true)
 	{
 		char c = *ptr;
 
 		if(blockCommentStart)
 		{
-			const char* end = strstr(ptr, BlockCommentEnd);
+			const char* end = strstr(ptr, config->blockCommentEnd);
 
-			ptr = end ? end + strlen(BlockCommentEnd) : blockCommentStart + strlen(blockCommentStart);
+			ptr = end ? end + strlen(config->blockCommentEnd) : blockCommentStart + strlen(blockCommentStart);
 			memset(color + (blockCommentStart - start), getConfig()->theme.code.comment, ptr - blockCommentStart);
 			blockCommentStart = NULL;
 			continue;
@@ -484,16 +323,8 @@ static void parseSyntaxColor(Code* code)
 
 			bool keyword = false;
 			{
-				static const char* const Keywords [] =
-				{
-					"and", "break", "do", "else", "elseif",
-					"end", "false", "for", "function", "goto", "if",
-					"in", "local", "nil", "not", "or", "repeat",
-					"return", "then", "true", "until", "while"
-				};
-
-				for(s32 i = 0; i < COUNT_OF(Keywords); i++)
-					if(memcmp(wordStart, Keywords[i], strlen(Keywords[i])) == 0)
+				for(s32 i = 0; i < config->keywordsCount; i++)
+					if(memcmp(wordStart, config->keywords[i], strlen(config->keywords[i])) == 0)
 					{
 						memset(color + (wordStart - start), getConfig()->theme.code.keyword, ptr - wordStart);
 						keyword = true;
@@ -544,8 +375,8 @@ static void parseSyntaxColor(Code* code)
 		}
 		else
 		{
-			s32 blockCommentStartSize = strlen(BlockCommentStart);
-			if(c == BlockCommentStart[0] && memcmp(ptr, BlockCommentStart, blockCommentStartSize) == 0)
+			s32 blockCommentStartSize = strlen(config->blockCommentStart);
+			if(c == config->blockCommentStart[0] && memcmp(ptr, config->blockCommentStart, blockCommentStartSize) == 0)
 			{
 				blockCommentStart = ptr;
 				ptr += blockCommentStartSize;
@@ -561,9 +392,9 @@ static void parseSyntaxColor(Code* code)
 				}
 				else
 				{
-					s32 singleCommentStartSize = strlen(SingleCommentStart);
+					s32 singleCommentStartSize = strlen(config->singleCommentStart);
 
-					if(c == SingleCommentStart[0] && memcmp(ptr, SingleCommentStart, singleCommentStartSize) == 0)
+					if(c == config->singleCommentStart[0] && memcmp(ptr, config->singleCommentStart, singleCommentStartSize) == 0)
 					{
 						singleCommentStart = ptr;
 						ptr += singleCommentStartSize;
@@ -597,37 +428,18 @@ static void parseSyntaxColor(Code* code)
 
 		ptr++;
 	}
+}
 
-	// switch(code->tic->api.get_script(code->tic))
-	// {
-	// case tic_script_moon:
-	// 	highlightNonChars(code, color);
-	// 	highlightMoonKeywords(code, color);
-	// 	highlightApi(code, color);
-	// 	highlightNumbers(code, color);
-	// 	highlightSigns(code, color);
-	// 	highlightCommentsBase(code, color, "--", "\n", 0);
-	// 	highlightStrings(code, code->src, color, '"');
-	// 	break;
-	// case tic_script_lua:
-	// 	highlightNonChars(code, color);
-	// 	highlightLuaKeywords(code, color);
-	// 	highlightApi(code, color);
-	// 	highlightNumbers(code, color);
-	// 	highlightSigns(code, color);
-	// 	highlightComments(code, color);
-	// 	highlightStrings(code, code->src, color, '"');
-	// 	break;
-	// case tic_script_js:
-	// 	highlightNonChars(code, color);
-	// 	highlightJsKeywords(code, color);
-	// 	highlightApi(code, color);
-	// 	highlightNumbers(code, color);
-	// 	highlightSigns(code, color);
-	// 	highlightJsComments(code, color);
-	// 	highlightStrings(code, code->src, color, '"');
-	// 	break;
-	// }
+static void parseSyntaxColor(Code* code)
+{
+	memset(code->colorBuffer, getConfig()->theme.code.var, sizeof(code->colorBuffer));
+
+	switch(code->tic->api.get_script(code->tic))
+	{
+	case tic_script_moon: 	parse(code->src, code->colorBuffer, &MoonSyntaxConfig); break;
+	case tic_script_lua: 	parse(code->src, code->colorBuffer, &LuaSyntaxConfig); break;
+	case tic_script_js: 	parse(code->src, code->colorBuffer, &JsSyntaxConfig); break;
+	}
 }
 
 static char* getLineByPos(Code* code, char* pos)
@@ -774,8 +586,8 @@ static void leftWord(Code* code)
 
 	if(pos > start)
 	{
-		if(isWord(*pos)) while(pos > start && isWord(*(pos-1))) pos--;
-		else while(pos > start && !isWord(*(pos-1))) pos--;
+		if(isalnum_(*pos)) while(pos > start && isalnum_(*(pos-1))) pos--;
+		else while(pos > start && !isalnum_(*(pos-1))) pos--;
 
 		code->cursor.position = pos;
 
@@ -790,8 +602,8 @@ static void rightWord(Code* code)
 
 	if(pos < end)
 	{
-		if(isWord(*pos)) while(pos < end && isWord(*pos)) pos++;
-		else while(pos < end && !isWord(*pos)) pos++;
+		if(isalnum_(*pos)) while(pos < end && isalnum_(*pos)) pos++;
+		else while(pos < end && !isalnum_(*pos)) pos++;
 
 		code->cursor.position = pos;
 		updateColumn(code);
@@ -1130,7 +942,7 @@ static char* getFuncName(const char* start, char* buffer)
 	{
 		char sym = *ptr;
 
-		if(isLetter(sym) || isNumber(sym) || sym == ':'){}
+		if(isalpha_(sym) || isdigit(sym) || sym == ':'){}
 		else if(sym == '(') break;
 		else return NULL;
 
@@ -1215,11 +1027,11 @@ static void setMoonscriptOutlineMode(Code* code)
 			char* endPtr = ptr;
 			ptr += sizeof FuncString - 1;
 
-			while(endPtr >= code->src && !isLetter(*endPtr) && !isNumber(*endPtr))  endPtr--;
+			while(endPtr >= code->src && !isalpha_(*endPtr) && !isdigit(*endPtr))  endPtr--;
 
 			char* start = endPtr;
 
-			for (const char* val = start-1; val >= code->src && (isLetter(*val) || isNumber(*val)); val--, start--);
+			for (const char* val = start-1; val >= code->src && (isalpha_(*val) || isdigit(*val)); val--, start--);
 
 			if(start >= code->src)
 			{
