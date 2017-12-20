@@ -869,8 +869,8 @@ static void api_circle(tic_mem* memory, s32 xm, s32 ym, u32 radius, u8 color)
 		if (r > x || err > y) err += ++x*2+1;
 	} while (x < 0);
 
-	s32 yt = max(machine->state.clip.t, ym-radius);
-	s32 yb = min(machine->state.clip.b, ym+radius+1);
+	s32 yt = max(machine->state.clip.t, ym-(s32)radius);
+	s32 yb = min(machine->state.clip.b, ym+(s32)radius+1);
 	u8 final_color = mapColor(&machine->memory, color);
 	for(s32 y = yt; y < yb; y++) {
 		s32 xl = max(SidesBuffer.Left[y], machine->state.clip.l);
