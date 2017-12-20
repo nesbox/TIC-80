@@ -410,15 +410,10 @@ static void parse(const char* start, u8* color)
 {
 	const char* ptr = start;
 
-	// const char* digitStart = NULL;
 	const char* blockCommentStart = NULL;
-	const char* singleCommentStart = NULL;
 
-	static const char Comment = '-';
 	static const char BlockCommentStart[] = "--[[";
 	static const char BlockCommentEnd[] = "]]";
-
-	enum{BlockCommentStartSize = sizeof BlockCommentStart - 1};
 
 	while(true)
 	{
@@ -428,24 +423,17 @@ static void parse(const char* start, u8* color)
 		{
 			const char* end = strstr(ptr, BlockCommentEnd);
 
-			if(end)
-			{
-				ptr = end = end + strlen(BlockCommentEnd);
-			}
-			else
-			{
-				ptr = end = blockCommentStart + strlen(blockCommentStart);
-			}
-
-			memset(color + (blockCommentStart - start), getConfig()->theme.code.comment, end - blockCommentStart);
+			ptr = end ? end + strlen(BlockCommentEnd) : blockCommentStart + strlen(blockCommentStart);
+			memset(color + (blockCommentStart - start), getConfig()->theme.code.comment, ptr - blockCommentStart);
 			blockCommentStart = NULL;
 		}
 		else
 		{
-			if(c == BlockCommentStart[0] && memcmp(ptr, BlockCommentStart, BlockCommentStartSize) == 0)
+			s32 blockCommentStartSize = strlen(BlockCommentStart);
+			if(c == BlockCommentStart[0] && memcmp(ptr, BlockCommentStart, blockCommentStartSize) == 0)
 			{
 				blockCommentStart = ptr;
-				ptr += BlockCommentStartSize;
+				ptr += blockCommentStartSize;
 				continue;
 			}
 			else
@@ -454,36 +442,39 @@ static void parse(const char* start, u8* color)
 			}
 		}
 
-		if(singleCommentStart)
-		{
-			if(is_lineend(c))
-			{
-				memset(color + (singleCommentStart - start), getConfig()->theme.code.comment, ptr - singleCommentStart);
-				singleCommentStart = NULL;
-			}
-		}
-		else
-		{
-			if(c == Comment && ptr > start && *(ptr-1) == Comment)
-			{
-				singleCommentStart = ptr-1;
-			}
-			else
-			{
+		// static const char Comment = '-';
+		// const char* singleCommentStart = NULL;
+		// if(singleCommentStart)
+		// {
+		// 	if(is_lineend(c))
+		// 	{
+		// 		memset(color + (singleCommentStart - start), getConfig()->theme.code.comment, ptr - singleCommentStart);
+		// 		singleCommentStart = NULL;
+		// 	}
+		// }
+		// else
+		// {
+		// 	if(c == Comment && ptr > start && *(ptr-1) == Comment)
+		// 	{
+		// 		singleCommentStart = ptr-1;
+		// 	}
+		// 	else
+		// 	{
 
-				// if(!isprint(c))
-				// {
-				// 	digitStart = NULL;
-				// 	ptr++;
-				// 	continue;
-				// }
+		// 		// if(!isprint(c))
+		// 		// {
+		// 		// 	digitStart = NULL;
+		// 		// 	ptr++;
+		// 		// 	continue;
+		// 		// }
 
-			}
-		}
+		// 	}
+		// }
 
 		if(!c) break;
 
-		bool digit = false;
+		// const char* digitStart = NULL;
+		// bool digit = false;
 
 		// if(digitStart)
 		// {
@@ -517,7 +508,7 @@ static void parse(const char* start, u8* color)
 		// 	}
 		// }
 
-		if(digit) color[ptr - start] = getConfig()->theme.code.number;
+		// if(digit) color[ptr - start] = getConfig()->theme.code.number;
 
 		ptr++;
 	}
