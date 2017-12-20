@@ -404,6 +404,8 @@ static bool isWord(char symbol) {return isLetter(symbol) || isNumber(symbol);}
 
 #include <ctype.h>
 
+static inline bool islineend(char c) {return c == '\n' || c == '\0';}
+
 static void parse(const char* start, u8* color)
 {
 	const char* ptr = start;
@@ -411,6 +413,7 @@ static void parse(const char* start, u8* color)
 	const char* blockCommentStart = NULL;
 	const char* blockStringStart = NULL;
 	const char* singleCommentStart = NULL;
+	const char* numberStart = NULL;
 
 	static const char BlockCommentStart[] = "--[[";
 	static const char BlockCommentEnd[] = "]]";
@@ -460,10 +463,56 @@ static void parse(const char* start, u8* color)
 		}
 		else if(singleCommentStart)
 		{
-			while(*ptr != '\0' && *ptr != '\n')ptr++;
+			while(!islineend(*ptr))ptr++;
 
 			memset(color + (singleCommentStart - start), getConfig()->theme.code.comment, ptr - singleCommentStart);
 			singleCommentStart = NULL;
+		}
+		else if(numberStart)
+		{
+			bool digit = true;
+			while(!islineend(*ptr))
+			{
+				char c = *ptr;
+
+				if(isdigit(c))
+				{
+					ptr++;
+				}
+				else if(numberStart[0] == '0' && (numberStart[1] == 'x' || numberStart[1] == 'X'))
+				{
+					if(ptr - numberStart <= 2)
+					{
+						ptr++;
+					}
+					else if(ptr - numberStart > 2 && isxdigit(c))
+					{
+						ptr++;
+					}
+					else
+					{
+						digit = false;
+						break;
+					}
+				}
+				else if(c == '.' || c == 'e')
+				{
+					if(isdigit(ptr[1]))
+						ptr++;
+					else break;
+				}
+				else if(isalpha(c) || c == '_')
+				{
+					digit = false;
+					break;
+				}
+				else break;
+			}
+
+			if(digit)
+				memset(color + (numberStart - start), getConfig()->theme.code.number, ptr - numberStart);
+
+			numberStart = NULL;
 		}
 		else
 		{
@@ -494,7 +543,12 @@ static void parse(const char* start, u8* color)
 					}
 					else
 					{
-						// do other stuff
+						if(isdigit(c) || (c == '.' && isdigit(ptr[1])))
+						{
+							numberStart = ptr;
+							ptr += 1;
+							continue;
+						}
 					}
 				}
 			}
