@@ -85,8 +85,8 @@ typedef struct
 	void (*remap)				(tic_mem* memory, const tic_map* src, const tic_tiles* tiles, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale, RemapFunc remap, void* data);
 	void (*map_set)				(tic_mem* memory, tic_map* src, s32 x, s32 y, u8 value);
 	u8   (*map_get)				(tic_mem* memory, const tic_map* src, s32 x, s32 y);
-	void (*circle)				(tic_mem* memory, s32 x, s32 y, u32 radius, u8 color);
-	void (*circle_border)		(tic_mem* memory, s32 x, s32 y, u32 radius, u8 color);
+	void (*circle)				(tic_mem* memory, s32 x, s32 y, s32 radius, u8 color);
+	void (*circle_border)		(tic_mem* memory, s32 x, s32 y, s32 radius, u8 color);
 	void (*tri)					(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, u8 color);
 	void(*textri)				(tic_mem* memory, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8 chroma);
 	void (*clip)				(tic_mem* memory, s32 x, s32 y, s32 width, s32 height);
