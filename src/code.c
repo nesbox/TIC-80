@@ -408,8 +408,12 @@ static inline bool islineend(char c) {return c == '\n' || c == '\0';}
 static inline bool isalpha_(char c) {return isalpha(c) || c == '_';}
 static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
 
-static void parse(const char* start, u8* color)
+static void parseSyntaxColor(Code* code)
 {
+	u8* color = code->colorBuffer;
+	memset(color, getConfig()->theme.code.var, sizeof(code->colorBuffer));
+
+	const char* start = code->src;
 	const char* ptr = start;
 
 	const char* blockCommentStart = NULL;
@@ -581,10 +585,8 @@ static void parse(const char* start, u8* color)
 								ptr++;
 								continue;
 							}
-							else
-							{
-								// other stuff
-							}							
+							else if(ispunct(c))
+								color[ptr - start] = getConfig()->theme.code.sign;
 						}
 					}
 				}
@@ -595,13 +597,6 @@ static void parse(const char* start, u8* color)
 
 		ptr++;
 	}
-}
-
-static void parseSyntaxColor(Code* code)
-{
-	memset(code->colorBuffer, getConfig()->theme.code.var, sizeof(code->colorBuffer));
-
-	parse(code->src, code->colorBuffer);
 
 	// switch(code->tic->api.get_script(code->tic))
 	// {
