@@ -411,6 +411,7 @@ static void parse(const char* start, u8* color)
 	const char* ptr = start;
 
 	const char* blockCommentStart = NULL;
+	const char* blockStringStart = NULL;
 
 	static const char BlockCommentStart[] = "--[[";
 	static const char BlockCommentEnd[] = "]]";
@@ -427,6 +428,36 @@ static void parse(const char* start, u8* color)
 			memset(color + (blockCommentStart - start), getConfig()->theme.code.comment, ptr - blockCommentStart);
 			blockCommentStart = NULL;
 		}
+		else if(blockStringStart)
+		{
+			const char* blockStart = blockStringStart+1;
+
+			while(true)
+			{
+				const char* pos = strchr(blockStart, *blockStringStart);
+				
+				if(pos)
+				{
+					if(*(pos-1) == '\\' && *(pos-2) != '\\')
+					{
+						blockStart = pos + 1;
+					}
+					else
+					{
+						ptr = pos + 1;
+						break;
+					}
+				}
+				else
+				{
+					ptr = blockStringStart + strlen(blockStringStart);
+					break;
+				}
+			}
+
+			memset(color + (blockStringStart - start), getConfig()->theme.code.string, ptr - blockStringStart);
+			blockStringStart = NULL;
+		}
 		else
 		{
 			s32 blockCommentStartSize = strlen(BlockCommentStart);
@@ -438,7 +469,16 @@ static void parse(const char* start, u8* color)
 			}
 			else
 			{
-				// do other stuff
+				if(c == '"' || c == '\'')
+				{
+					blockStringStart = ptr;
+					ptr += 1;
+					continue;
+				}
+				else
+				{
+					// do other stuff
+				}
 			}
 		}
 
