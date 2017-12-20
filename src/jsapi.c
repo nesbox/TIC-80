@@ -715,6 +715,15 @@ static duk_ret_t duk_sync(duk_context* duk)
 	return 0;
 }
 
+static duk_ret_t duk_reset(duk_context* duk)
+{
+	tic_machine* machine = getDukMachine(duk);
+
+	machine->state.initialized = false;
+
+	return 0;
+}
+
 static const char* const ApiKeywords[] = API_KEYWORDS;
 static const struct{duk_c_function func; s32 params;} ApiFunc[] = 
 {
@@ -753,6 +762,7 @@ static const struct{duk_c_function func; s32 params;} ApiFunc[] =
 	{duk_clip, 4},
 	{duk_music, 4},
 	{duk_sync, 3},
+	{duk_reset, 0},
 };
 
 s32 duk_timeout_check(void* udata)

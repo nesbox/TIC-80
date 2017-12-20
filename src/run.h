@@ -33,7 +33,6 @@ struct Run
 	tic_tick_data tickData;
 
 	bool exit;
-	bool init;
 	
 	s32 persistent[TIC_PERSISTENT_SIZE];
 

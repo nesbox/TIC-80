@@ -1593,9 +1593,11 @@ static void api_tick(tic_mem* memory, tic_tick_data* data)
 
 			if(done)
 			{
+				data->start = data->counter();
+
 				machine->state.scanline = memory->script == tic_script_js ? callJavascriptScanline : callLuaScanline;
 				machine->state.ovr.callback = memory->script == tic_script_js ? callJavascriptOverlap : callLuaOverlap;
-				machine->state.initialized = true;				
+				machine->state.initialized = true;
 			}
 			else return;
 		}

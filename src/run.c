@@ -95,12 +95,6 @@ static void tick(Run* run)
 	if (getStudioMode() != TIC_RUN_MODE)
 		return;
 
-	if(!run->init)
-	{	
-		run->tickData.start = run->tickData.counter(),
-		run->init = true;
-	}
-
 	run->tic->api.tick(run->tic, &run->tickData);
 
 	enum {Size = sizeof(tic_persistent)};
@@ -193,7 +187,6 @@ void initRun(Run* run, Console* console, tic_mem* tic)
 		.console = console,
 		.tick = tick,
 		.exit = false,
-		.init = false,
 		.tickData = 
 		{
 			.error = onError,
