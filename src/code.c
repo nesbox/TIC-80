@@ -404,17 +404,17 @@ static bool isWord(char symbol) {return isLetter(symbol) || isNumber(symbol);}
 
 #include <ctype.h>
 
-static inline bool is_lineend(char c) {return c == '\n' || c == '\0';}
-
 static void parse(const char* start, u8* color)
 {
 	const char* ptr = start;
 
 	const char* blockCommentStart = NULL;
 	const char* blockStringStart = NULL;
+	const char* singleCommentStart = NULL;
 
 	static const char BlockCommentStart[] = "--[[";
 	static const char BlockCommentEnd[] = "]]";
+	static const char SingleCommentStart[] = "--";
 
 	while(true)
 	{
@@ -458,6 +458,13 @@ static void parse(const char* start, u8* color)
 			memset(color + (blockStringStart - start), getConfig()->theme.code.string, ptr - blockStringStart);
 			blockStringStart = NULL;
 		}
+		else if(singleCommentStart)
+		{
+			while(*ptr != '\0' && *ptr != '\n')ptr++;
+
+			memset(color + (singleCommentStart - start), getConfig()->theme.code.comment, ptr - singleCommentStart);
+			singleCommentStart = NULL;
+		}
 		else
 		{
 			s32 blockCommentStartSize = strlen(BlockCommentStart);
@@ -477,78 +484,23 @@ static void parse(const char* start, u8* color)
 				}
 				else
 				{
-					// do other stuff
+					s32 singleCommentStartSize = strlen(SingleCommentStart);
+
+					if(c == SingleCommentStart[0] && memcmp(ptr, SingleCommentStart, singleCommentStartSize) == 0)
+					{
+						singleCommentStart = ptr;
+						ptr += singleCommentStartSize;
+						continue;
+					}
+					else
+					{
+						// do other stuff
+					}
 				}
 			}
 		}
 
-		// static const char Comment = '-';
-		// const char* singleCommentStart = NULL;
-		// if(singleCommentStart)
-		// {
-		// 	if(is_lineend(c))
-		// 	{
-		// 		memset(color + (singleCommentStart - start), getConfig()->theme.code.comment, ptr - singleCommentStart);
-		// 		singleCommentStart = NULL;
-		// 	}
-		// }
-		// else
-		// {
-		// 	if(c == Comment && ptr > start && *(ptr-1) == Comment)
-		// 	{
-		// 		singleCommentStart = ptr-1;
-		// 	}
-		// 	else
-		// 	{
-
-		// 		// if(!isprint(c))
-		// 		// {
-		// 		// 	digitStart = NULL;
-		// 		// 	ptr++;
-		// 		// 	continue;
-		// 		// }
-
-		// 	}
-		// }
-
 		if(!c) break;
-
-		// const char* digitStart = NULL;
-		// bool digit = false;
-
-		// if(digitStart)
-		// {
-		// 	if(digitStart[0] == '0' && digitStart[1] == 'x')
-		// 	{
-		// 		if(ptr - digitStart <= 2)
-		// 			digit = true;
-		// 		else if(ptr - digitStart > 2 && isxdigit(c))
-		// 			digit = true;
-		// 		else digitStart = NULL;
-		// 	}
-		// 	else if(isdigit(c))
-		// 	{
-		// 		digit = true;
-		// 	}
-		// 	else if(c == '.')
-		// 	{
-		// 		digit = true;
-		// 	}
-		// 	else
-		// 	{
-		// 		digitStart = NULL;
-		// 	}
-		// }
-		// else
-		// {
-		// 	if(isdigit(c))
-		// 	{
-		// 		digitStart = ptr;
-		// 		digit = true;
-		// 	}
-		// }
-
-		// if(digit) color[ptr - start] = getConfig()->theme.code.number;
 
 		ptr++;
 	}
@@ -559,46 +511,6 @@ static void parseSyntaxColor(Code* code)
 	memset(code->colorBuffer, getConfig()->theme.code.var, sizeof(code->colorBuffer));
 
 	parse(code->src, code->colorBuffer);
-
-	// u8* color = code->colorBuffer;
-	// const char* ptr = code->src;
-
-	// char* digitStart = NULL;
-
-	// while(true)
-	// {
-	// 	char c = *ptr;
-
-	// 	if(!c) break;
-
-	// 	if(digitStart)
-	// 	{
-	// 		if(isxdigit(c))
-	// 		{
-	// 			*color = getConfig()->theme.code.number;		
-	// 		}
-	// 		else
-	// 	}
-	// 	else
-	// 	{
-	// 		if(isdigit(c))
-	// 		{
-	// 			*color = getConfig()->theme.code.number;
-
-	// 			if(digitStart == NULL)
-	// 			{
-	// 				digitStart = ptr;
-	// 			}
-	// 		}
-	// 		else
-	// 		{
-	// 			digitStart = NULL;
-	// 		}			
-	// 	}
-
-	// 	ptr++;
-	// 	color++;
-	// }
 
 	// switch(code->tic->api.get_script(code->tic))
 	// {
