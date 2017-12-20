@@ -1067,9 +1067,16 @@ void showDialog(const char** text, s32 rows, DialogCallback callback, void* data
 	}
 }
 
+static void resetBanks()
+{
+	SDL_memset(studio.bank.indexes, 0, sizeof studio.bank.indexes);
+}
+
 static void initModules()
 {
 	tic_mem* tic = studio.tic;
+
+	resetBanks();
 
 	for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
 	{
