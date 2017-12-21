@@ -198,6 +198,8 @@ typedef struct
 {
 	const char* blockCommentStart;
 	const char* blockCommentEnd;
+	const char* blockStringStart;
+	const char* blockStringEnd;
 	const char* singleCommentStart;
 
 	const char* const * keywords;
@@ -217,6 +219,8 @@ static const SyntaxConfig LuaSyntaxConfig =
 	.blockCommentStart 	= "--[[",
 	.blockCommentEnd 	= "]]",
 	.singleCommentStart = "--",
+	.blockStringStart	= "[[",
+	.blockStringEnd		= "]]",
 	.keywords 			= LuaKeywords,
 	.keywordsCount 		= COUNT_OF(LuaKeywords),
 };
@@ -234,8 +238,10 @@ static const char* const MoonKeywords [] =
 
 static const SyntaxConfig MoonSyntaxConfig = 
 {
-	.blockCommentStart 	= "--[[",
-	.blockCommentEnd 	= "]]",
+	.blockCommentStart 	= NULL,
+	.blockCommentEnd 	= NULL,
+	.blockStringStart	= NULL,
+	.blockStringEnd		= NULL,
 	.singleCommentStart = "--",
 	.keywords 			= MoonKeywords,
 	.keywordsCount 		= COUNT_OF(MoonKeywords),
@@ -253,6 +259,8 @@ static const SyntaxConfig JsSyntaxConfig =
 {
 	.blockCommentStart 	= "/*",
 	.blockCommentEnd 	= "*/",
+	.blockStringStart	= NULL,
+	.blockStringEnd		= NULL,
 	.singleCommentStart = "//",
 	.keywords 			= JsKeywords,
 	.keywordsCount 		= COUNT_OF(JsKeywords),
@@ -264,6 +272,7 @@ static void parse(const char* start, u8* color, const SyntaxConfig* config)
 
 	const char* blockCommentStart = NULL;
 	const char* blockStringStart = NULL;
+	const char* blockStdStringStart = NULL;
 	const char* singleCommentStart = NULL;
 	const char* wordStart = NULL;
 	const char* numberStart = NULL;
@@ -283,18 +292,24 @@ static void parse(const char* start, u8* color, const SyntaxConfig* config)
 		}
 		else if(blockStringStart)
 		{
-			const char* blockStart = blockStringStart+1;
+			const char* end = strstr(ptr, config->blockStringEnd);
+
+			ptr = end ? end + strlen(config->blockStringEnd) : blockStringStart + strlen(blockStringStart);
+			memset(color + (blockStringStart - start), getConfig()->theme.code.string, ptr - blockStringStart);
+			blockStringStart = NULL;
+			continue;
+		}
+		else if(blockStdStringStart)
+		{
+			const char* blockStart = blockStdStringStart+1;
 
 			while(true)
 			{
-				const char* pos = strchr(blockStart, *blockStringStart);
+				const char* pos = strchr(blockStart, *blockStdStringStart);
 				
 				if(pos)
 				{
-					if(*(pos-1) == '\\' && *(pos-2) != '\\')
-					{
-						blockStart = pos + 1;
-					}
+					if(*(pos-1) == '\\' && *(pos-2) != '\\') blockStart = pos + 1;
 					else
 					{
 						ptr = pos + 1;
@@ -303,13 +318,13 @@ static void parse(const char* start, u8* color, const SyntaxConfig* config)
 				}
 				else
 				{
-					ptr = blockStringStart + strlen(blockStringStart);
+					ptr = blockStdStringStart + strlen(blockStdStringStart);
 					break;
 				}
 			}
 
-			memset(color + (blockStringStart - start), getConfig()->theme.code.string, ptr - blockStringStart);
-			blockStringStart = NULL;
+			memset(color + (blockStdStringStart - start), getConfig()->theme.code.string, ptr - blockStdStringStart);
+			blockStdStringStart = NULL;
 			continue;
 		}
 		else if(singleCommentStart)
@@ -379,53 +394,44 @@ static void parse(const char* start, u8* color, const SyntaxConfig* config)
 		}
 		else
 		{
-			s32 blockCommentStartSize = strlen(config->blockCommentStart);
-			if(c == config->blockCommentStart[0] && memcmp(ptr, config->blockCommentStart, blockCommentStartSize) == 0)
+			if(config->blockCommentStart && memcmp(ptr, config->blockCommentStart, strlen(config->blockCommentStart)) == 0)
 			{
 				blockCommentStart = ptr;
-				ptr += blockCommentStartSize;
+				ptr += strlen(config->blockCommentStart);
 				continue;
 			}
-			else
+			if(config->blockStringStart && memcmp(ptr, config->blockStringStart, strlen(config->blockStringStart)) == 0)
 			{
-				if(c == '"' || c == '\'')
-				{
-					blockStringStart = ptr;
-					ptr++;
-					continue;
-				}
-				else
-				{
-					s32 singleCommentStartSize = strlen(config->singleCommentStart);
-
-					if(c == config->singleCommentStart[0] && memcmp(ptr, config->singleCommentStart, singleCommentStartSize) == 0)
-					{
-						singleCommentStart = ptr;
-						ptr += singleCommentStartSize;
-						continue;
-					}
-					else
-					{
-						if(isalpha_(c))
-						{
-							wordStart = ptr;
-							ptr++;
-							continue;
-						}
-						else
-						{
-							if(isdigit(c) || (c == '.' && isdigit(ptr[1])))
-							{
-								numberStart = ptr;
-								ptr++;
-								continue;
-							}
-							else if(ispunct(c))
-								color[ptr - start] = getConfig()->theme.code.sign;
-						}
-					}
-				}
+				blockStringStart = ptr;
+				ptr += strlen(config->blockStringStart);
+				continue;
 			}
+			else if(c == '"' || c == '\'')
+			{
+				blockStdStringStart = ptr;
+				ptr++;
+				continue;
+			}
+			else if(config->singleCommentStart && memcmp(ptr, config->singleCommentStart, strlen(config->singleCommentStart)) == 0)
+			{
+				singleCommentStart = ptr;
+				ptr += strlen(config->singleCommentStart);
+				continue;
+			}
+			else if(isalpha_(c))
+			{
+				wordStart = ptr;
+				ptr++;
+				continue;
+			}
+			else if(isdigit(c) || (c == '.' && isdigit(ptr[1])))
+			{
+				numberStart = ptr;
+				ptr++;
+				continue;
+			}
+			else if(ispunct(c)) color[ptr - start] = getConfig()->theme.code.sign;
+			else if(iscntrl(c)) color[ptr - start] = getConfig()->theme.code.other;
 		}
 
 		if(!c) break;
