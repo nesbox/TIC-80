@@ -194,79 +194,7 @@ static inline bool islineend(char c) {return c == '\n' || c == '\0';}
 static inline bool isalpha_(char c) {return isalpha(c) || c == '_';}
 static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
 
-typedef struct
-{
-	const char* blockCommentStart;
-	const char* blockCommentEnd;
-	const char* blockStringStart;
-	const char* blockStringEnd;
-	const char* singleCommentStart;
-
-	const char* const * keywords;
-	s32 keywordsCount;
-} SyntaxConfig;
-
-static const char* const LuaKeywords [] =
-{
-	"and", "break", "do", "else", "elseif",
-	"end", "false", "for", "function", "goto", "if",
-	"in", "local", "nil", "not", "or", "repeat",
-	"return", "then", "true", "until", "while"
-};
-
-static const SyntaxConfig LuaSyntaxConfig = 
-{
-	.blockCommentStart 	= "--[[",
-	.blockCommentEnd 	= "]]",
-	.singleCommentStart = "--",
-	.blockStringStart	= "[[",
-	.blockStringEnd		= "]]",
-	.keywords 			= LuaKeywords,
-	.keywordsCount 		= COUNT_OF(LuaKeywords),
-};
-
-static const char* const MoonKeywords [] =
-{
-	"false", "true", "nil", "return",
-	"break", "continue", "for", "while",
-	"if", "else", "elseif", "unless", "switch",
-	"when", "and", "or", "in", "do",
-	"not", "super", "try", "catch",
-	"with", "export", "import", "then",
-	"from", "class", "extends", "new"
-};
-
-static const SyntaxConfig MoonSyntaxConfig = 
-{
-	.blockCommentStart 	= NULL,
-	.blockCommentEnd 	= NULL,
-	.blockStringStart	= NULL,
-	.blockStringEnd		= NULL,
-	.singleCommentStart = "--",
-	.keywords 			= MoonKeywords,
-	.keywordsCount 		= COUNT_OF(MoonKeywords),
-};
-
-static const char* const JsKeywords [] =
-{
-	"break", "do", "instanceof", "typeof", "case", "else", "new",
-	"var", "catch", "finally", "return", "void", "continue", "for",
-	"switch", "while", "debugger", "function", "this", "with",
-	"default", "if", "throw", "delete", "in", "try", "const"
-};
-
-static const SyntaxConfig JsSyntaxConfig = 
-{
-	.blockCommentStart 	= "/*",
-	.blockCommentEnd 	= "*/",
-	.blockStringStart	= NULL,
-	.blockStringEnd		= NULL,
-	.singleCommentStart = "//",
-	.keywords 			= JsKeywords,
-	.keywordsCount 		= COUNT_OF(JsKeywords),
-};
-
-static void parse(const char* start, u8* color, const SyntaxConfig* config)
+static void parse(const char* start, u8* color, const tic_script_config* config)
 {
 	const char* ptr = start;
 
@@ -412,10 +340,10 @@ static void parse(const char* start, u8* color, const SyntaxConfig* config)
 				ptr++;
 				continue;
 			}
-			else if(config->singleCommentStart && memcmp(ptr, config->singleCommentStart, strlen(config->singleCommentStart)) == 0)
+			else if(config->singleComment && memcmp(ptr, config->singleComment, strlen(config->singleComment)) == 0)
 			{
 				singleCommentStart = ptr;
-				ptr += strlen(config->singleCommentStart);
+				ptr += strlen(config->singleComment);
 				continue;
 			}
 			else if(isalpha_(c))
@@ -444,12 +372,9 @@ static void parseSyntaxColor(Code* code)
 {
 	memset(code->colorBuffer, getConfig()->theme.code.var, sizeof(code->colorBuffer));
 
-	switch(code->tic->api.get_script(code->tic))
-	{
-	case tic_script_moon: 	parse(code->src, code->colorBuffer, &MoonSyntaxConfig); break;
-	case tic_script_lua: 	parse(code->src, code->colorBuffer, &LuaSyntaxConfig); break;
-	case tic_script_js: 	parse(code->src, code->colorBuffer, &JsSyntaxConfig); break;
-	}
+	tic_mem* tic = code->tic;
+
+	parse(code->src, code->colorBuffer, tic->api.get_script_config(tic));
 }
 
 static char* getLineByPos(Code* code, char* pos)
@@ -1124,7 +1049,7 @@ static void setOutlineMode(Code* code)
 	code->outline.index = 0;
 	memset(code->outline.items, 0, OUTLINE_ITEMS_SIZE);
 
-	code->tic->api.get_script(code->tic) == tic_script_moon
+	code->tic->api.get_script_config(code->tic)->lang == tic_script_moon
 		? setMoonscriptOutlineMode(code)
 		: setLuaOutlineMode(code);
 
@@ -1158,7 +1083,10 @@ static void commentLine(Code* code)
 	static char Comment[] = "-- ";
 	enum {Size = sizeof Comment-1};
 
-	strcpy(Comment, code->tic->api.get_script(code->tic) == tic_script_js ? "// " : "-- ");
+	tic_mem* tic = code->tic;
+
+	memcpy(Comment, tic->api.get_script_config(tic)->singleComment, 
+		strlen(tic->api.get_script_config(tic)->singleComment));
 
 	char* line = getLine(code);
 

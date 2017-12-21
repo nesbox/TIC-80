@@ -64,8 +64,33 @@ typedef struct
 } tic_tick_data;
 
 typedef struct tic_mem tic_mem;
+typedef void(*tic_tick)(tic_mem* memory);
 typedef void(*tic_scanline)(tic_mem* memory, s32 row, void* data);
 typedef void(*tic_overlap)(tic_mem* memory, void* data);
+
+typedef struct
+{
+	tic_script_lang lang;
+
+	struct
+	{
+		bool(*init)(tic_mem* memory, const char* code);
+		void(*close)(tic_mem* memory);
+
+		tic_tick tick;
+		tic_scanline scanline;
+		tic_overlap overlap;		
+	};
+
+	const char* blockCommentStart;
+	const char* blockCommentEnd;
+	const char* blockStringStart;
+	const char* blockStringEnd;
+	const char* singleComment;
+
+	const char* const * keywords;
+	s32 keywordsCount;
+} tic_script_config;
 
 typedef struct
 {
@@ -113,7 +138,7 @@ typedef struct
 	void (*tick_end)			(tic_mem* memory);
 	void (*blit)				(tic_mem* tic, tic_scanline scanline, tic_overlap overlap, void* data);
 
-	tic_script_lang (*get_script)(tic_mem* memory);
+	const tic_script_config* (*get_script_config)(tic_mem* memory);
 } tic_api;
 
 struct tic_mem
@@ -122,7 +147,6 @@ struct tic_mem
 	tic_cartridge 		cart;
 	tic_cartridge		config;
 	tic_input_method 	input;
-	tic_script_lang 	script;
 	tic_font 			font;
 	tic_api 			api;
 

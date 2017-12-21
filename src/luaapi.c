@@ -1114,8 +1114,10 @@ static void initAPI(tic_machine* machine)
 	lua_sethook(machine->lua, &checkForceExit, LUA_MASKCOUNT, LUA_LOC_STACK);
 }
 
-void closeLua(tic_machine* machine)
+static void closeLua(tic_mem* tic)
 {
+	tic_machine* machine = (tic_machine*)tic;
+
 	if(machine->lua)
 	{
 		lua_close(machine->lua);
@@ -1123,27 +1125,21 @@ void closeLua(tic_machine* machine)
 	}
 }
 
-bool initLua(tic_machine* machine, const char* code)
+static bool initLua(tic_mem* tic, const char* code)
 {
-	closeLua(machine);
+	tic_machine* machine = (tic_machine*)tic;
+
+	closeLua(tic);
 
 	lua_State* lua = machine->lua = luaL_newstate();
 
 	static const luaL_Reg loadedlibs[] =
 	{
 		{ "_G", luaopen_base },
-		//{ LUA_LOADLIBNAME, luaopen_package },
 		{ LUA_COLIBNAME, luaopen_coroutine },
 		{ LUA_TABLIBNAME, luaopen_table },
-		// {LUA_IOLIBNAME, luaopen_io},
-		// {LUA_OSLIBNAME, luaopen_os},
 		{ LUA_STRLIBNAME, luaopen_string },
 		{ LUA_MATHLIBNAME, luaopen_math },
-		// {LUA_UTF8LIBNAME, luaopen_utf8},
-		//{ LUA_DBLIBNAME, luaopen_debug },
-		// #if defined(LUA_COMPAT_BITLIB)
-		// {LUA_BITLIBNAME, luaopen_bit32},
-		// #endif
 		{ NULL, NULL }
 	};
 
@@ -1181,9 +1177,10 @@ static const char* execute_moonscript_src = MOON_CODE(
 	return fn()
 );
 
-bool initMoonscript(tic_machine* machine, const char* code)
+static bool initMoonscript(tic_mem* tic, const char* code)
 {
-	closeLua(machine);
+	tic_machine* machine = (tic_machine*)tic;
+	closeLua(tic);
 
 	lua_State* lua = machine->lua = luaL_newstate();
 
@@ -1245,8 +1242,10 @@ bool initMoonscript(tic_machine* machine, const char* code)
 	return true;
 }
 
-void callLuaTick(tic_machine* machine)
+static void callLuaTick(tic_mem* tic)
 {
+	tic_machine* machine = (tic_machine*)tic;
+
  	const char* TicFunc = ApiKeywords[0];
 
  	lua_State* lua = machine->lua;
@@ -1267,7 +1266,7 @@ void callLuaTick(tic_machine* machine)
  	}
 }
 
-void callLuaScanline(tic_mem* memory, s32 row, void* data)
+static void callLuaScanline(tic_mem* memory, s32 row, void* data)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	lua_State* lua = machine->lua;
@@ -1287,7 +1286,7 @@ void callLuaScanline(tic_mem* memory, s32 row, void* data)
 	}
 }
 
-void callLuaOverlap(tic_mem* memory, void* data)
+static void callLuaOverlap(tic_mem* memory, void* data)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	lua_State* lua = machine->lua;
@@ -1305,4 +1304,71 @@ void callLuaOverlap(tic_mem* memory, void* data)
 		else lua_pop(lua, 1);
 	}
 
+}
+
+static const char* const LuaKeywords [] =
+{
+	"and", "break", "do", "else", "elseif",
+	"end", "false", "for", "function", "goto", "if",
+	"in", "local", "nil", "not", "or", "repeat",
+	"return", "then", "true", "until", "while"
+};
+
+static const tic_script_config LuaSyntaxConfig = 
+{
+	.lang 				= tic_script_lua,
+
+	.init 				= initLua,
+	.close 				= closeLua,
+	.tick 				= callLuaTick,
+	.scanline 			= callLuaScanline,
+	.overlap 			= callLuaOverlap,
+
+	.blockCommentStart 	= "--[[",
+	.blockCommentEnd 	= "]]",
+	.singleComment 		= "--",
+	.blockStringStart	= "[[",
+	.blockStringEnd		= "]]",
+	.keywords 			= LuaKeywords,
+	.keywordsCount 		= COUNT_OF(LuaKeywords),
+};
+
+const tic_script_config* getLuaScriptConfig()
+{
+	return &LuaSyntaxConfig;
+}
+
+static const char* const MoonKeywords [] =
+{
+	"false", "true", "nil", "return",
+	"break", "continue", "for", "while",
+	"if", "else", "elseif", "unless", "switch",
+	"when", "and", "or", "in", "do",
+	"not", "super", "try", "catch",
+	"with", "export", "import", "then",
+	"from", "class", "extends", "new"
+};
+
+static const tic_script_config MoonSyntaxConfig = 
+{
+	.lang 				= tic_script_moon,
+
+	.init 				= initMoonscript,
+	.close 				= closeLua,
+	.tick 				= callLuaTick,
+	.scanline 			= callLuaScanline,
+	.overlap 			= callLuaOverlap,
+
+	.blockCommentStart 	= NULL,
+	.blockCommentEnd 	= NULL,
+	.blockStringStart	= NULL,
+	.blockStringEnd		= NULL,
+	.singleComment 		= "--",
+	.keywords 			= MoonKeywords,
+	.keywordsCount 		= COUNT_OF(MoonKeywords),
+};
+
+const tic_script_config* getMoonScriptConfig()
+{
+	return &MoonSyntaxConfig;
 }

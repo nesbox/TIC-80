@@ -27,8 +27,10 @@
 
 static const char TicMachine[] = "_TIC80";
 
-void closeJavascript(tic_machine* machine)
+static void closeJavascript(tic_mem* tic)
 {
+	tic_machine* machine = (tic_machine*)tic;
+
 	if(machine->js)
 	{
 		duk_destroy_heap(machine->js);
@@ -775,7 +777,7 @@ s32 duk_timeout_check(void* udata)
 
 static void initDuktape(tic_machine* machine)
 {
-	closeJavascript(machine);
+	closeJavascript((tic_mem*)machine);
 
 	duk_context* duk = machine->js = duk_create_heap(NULL, NULL, NULL, machine, NULL);
 
@@ -794,8 +796,10 @@ static void initDuktape(tic_machine* machine)
 		}
 }
 
-bool initJavascript(tic_machine* machine, const char* code)
+static bool initJavascript(tic_mem* tic, const char* code)
 {
+	tic_machine* machine = (tic_machine*)tic;
+
 	initDuktape(machine);
 	duk_context* duktape = machine->js;
 
@@ -809,8 +813,10 @@ bool initJavascript(tic_machine* machine, const char* code)
 	return true;
 }
 
-void callJavascriptTick(tic_machine* machine)
+static void callJavascriptTick(tic_mem* tic)
 {
+	tic_machine* machine = (tic_machine*)tic;
+	
 	const char* TicFunc = ApiKeywords[0];
 
 	duk_context* duk = machine->js;
@@ -832,7 +838,7 @@ void callJavascriptTick(tic_machine* machine)
 	}
 }
 
-void callJavascriptScanline(tic_mem* memory, s32 row, void* data)
+static void callJavascriptScanline(tic_mem* memory, s32 row, void* data)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	duk_context* duk = machine->js;
@@ -853,7 +859,7 @@ void callJavascriptScanline(tic_mem* memory, s32 row, void* data)
 	else duk_pop(duk);
 }
 
-void callJavascriptOverlap(tic_mem* memory, void* data)
+static void callJavascriptOverlap(tic_mem* memory, void* data)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	duk_context* duk = machine->js;
@@ -870,4 +876,36 @@ void callJavascriptOverlap(tic_mem* memory, void* data)
 		else duk_pop(duk);
 	}
 	else duk_pop(duk);
+}
+
+static const char* const JsKeywords [] =
+{
+	"break", "do", "instanceof", "typeof", "case", "else", "new",
+	"var", "catch", "finally", "return", "void", "continue", "for",
+	"switch", "while", "debugger", "function", "this", "with",
+	"default", "if", "throw", "delete", "in", "try", "const"
+};
+
+static const tic_script_config JsSyntaxConfig = 
+{
+	.lang 				= tic_script_js,
+
+	.init 				= initJavascript,
+	.close 				= closeJavascript,
+	.tick 				= callJavascriptTick,
+	.scanline 			= callJavascriptScanline,
+	.overlap 			= callJavascriptOverlap,
+
+	.blockCommentStart 	= "/*",
+	.blockCommentEnd 	= "*/",
+	.blockStringStart	= NULL,
+	.blockStringEnd		= NULL,
+	.singleComment 		= "//",
+	.keywords 			= JsKeywords,
+	.keywordsCount 		= COUNT_OF(JsKeywords),
+};
+
+const tic_script_config* getJsScriptConfig()
+{
+	return &JsSyntaxConfig;
 }
