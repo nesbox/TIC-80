@@ -1572,6 +1572,8 @@ static void api_tick(tic_mem* tic, tic_tick_data* data)
 				if(tic->input == tic_mouse_input)
 					tic->ram.vram.vars.mask.data = 0;
 
+				data->start = data->counter();
+				
 				config = getScriptConfig(code);
 				done = config->init(tic, code);
 			}
@@ -1584,8 +1586,6 @@ static void api_tick(tic_mem* tic, tic_tick_data* data)
 
 			if(done)
 			{
-				data->start = data->counter();
-
 				machine->state.tick = config->tick;
 				machine->state.scanline = config->scanline;
 				machine->state.ovr.callback = config->overlap;
