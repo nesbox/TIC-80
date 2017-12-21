@@ -324,12 +324,13 @@ static void parse(const char* start, u8* color, const SyntaxConfig* config)
 		{
 			while(!islineend(*ptr) && isalnum_(*ptr)) ptr++;
 
+			s32 len = ptr - wordStart;
 			bool keyword = false;
 			{
 				for(s32 i = 0; i < config->keywordsCount; i++)
-					if(memcmp(wordStart, config->keywords[i], strlen(config->keywords[i])) == 0)
+					if(len == strlen(config->keywords[i]) && memcmp(wordStart, config->keywords[i], len) == 0)
 					{
-						memset(color + (wordStart - start), getConfig()->theme.code.keyword, ptr - wordStart);
+						memset(color + (wordStart - start), getConfig()->theme.code.keyword, len);
 						keyword = true;
 						break;
 					}
@@ -340,9 +341,9 @@ static void parse(const char* start, u8* color, const SyntaxConfig* config)
 				static const char* const Api[] = API_KEYWORDS;
 
 				for(s32 i = 0; i < COUNT_OF(Api); i++)
-					if(memcmp(wordStart, Api[i], strlen(Api[i])) == 0)
+					if(len == strlen(Api[i]) && memcmp(wordStart, Api[i], len) == 0)
 					{
-						memset(color + (wordStart - start), getConfig()->theme.code.api, ptr - wordStart);
+						memset(color + (wordStart - start), getConfig()->theme.code.api, len);
 						break;
 					}
 			}
