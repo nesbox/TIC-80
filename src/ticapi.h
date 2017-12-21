@@ -90,6 +90,9 @@ typedef struct
 
 	const char* const * keywords;
 	s32 keywordsCount;
+
+	const char* const * api;
+	s32 apiCount;
 } tic_script_config;
 
 typedef struct

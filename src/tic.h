@@ -111,12 +111,6 @@
 #define TIC_BANKS (1 << TIC_BANK_BITS)
 
 #define SFX_NOTES {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
-
-#define API_KEYWORDS {"TIC", "scanline", "OVR", "print", "cls", "pix", "line", "rect", "rectb", \
-	"spr", "btn", "btnp", "sfx", "map", "mget", "mset", "peek", "poke", "peek4", "poke4", \
-	"memcpy", "memset", "trace", "pmem", "time", "exit", "font", "mouse", "circ", "circb", "tri", "textri", \
-	"clip", "music", "sync", "reset"}
-
 #define TIC_FONT_CHARS 128
 
 enum

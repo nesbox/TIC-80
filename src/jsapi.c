@@ -816,7 +816,7 @@ static bool initJavascript(tic_mem* tic, const char* code)
 static void callJavascriptTick(tic_mem* tic)
 {
 	tic_machine* machine = (tic_machine*)tic;
-	
+
 	const char* TicFunc = ApiKeywords[0];
 
 	duk_context* duk = machine->js;
@@ -901,8 +901,12 @@ static const tic_script_config JsSyntaxConfig =
 	.blockStringStart	= NULL,
 	.blockStringEnd		= NULL,
 	.singleComment 		= "//",
+
 	.keywords 			= JsKeywords,
 	.keywordsCount 		= COUNT_OF(JsKeywords),
+
+	.api 				= ApiKeywords,
+	.apiCount 			= COUNT_OF(ApiKeywords),
 };
 
 const tic_script_config* getJsScriptConfig()

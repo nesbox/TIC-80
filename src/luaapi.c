@@ -1329,8 +1329,12 @@ static const tic_script_config LuaSyntaxConfig =
 	.singleComment 		= "--",
 	.blockStringStart	= "[[",
 	.blockStringEnd		= "]]",
+
 	.keywords 			= LuaKeywords,
 	.keywordsCount 		= COUNT_OF(LuaKeywords),
+	
+	.api 				= ApiKeywords,
+	.apiCount 			= COUNT_OF(ApiKeywords),
 };
 
 const tic_script_config* getLuaScriptConfig()
@@ -1364,8 +1368,12 @@ static const tic_script_config MoonSyntaxConfig =
 	.blockStringStart	= NULL,
 	.blockStringEnd		= NULL,
 	.singleComment 		= "--",
+
 	.keywords 			= MoonKeywords,
 	.keywordsCount 		= COUNT_OF(MoonKeywords),
+
+	.api 				= ApiKeywords,
+	.apiCount 			= COUNT_OF(ApiKeywords),
 };
 
 const tic_script_config* getMoonScriptConfig()

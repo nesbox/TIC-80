@@ -281,10 +281,8 @@ static void parse(const char* start, u8* color, const tic_script_config* config)
 
 			if(!keyword)
 			{
-				static const char* const Api[] = API_KEYWORDS;
-
-				for(s32 i = 0; i < COUNT_OF(Api); i++)
-					if(len == strlen(Api[i]) && memcmp(wordStart, Api[i], len) == 0)
+				for(s32 i = 0; i < config->apiCount; i++)
+					if(len == strlen(config->api[i]) && memcmp(wordStart, config->api[i], len) == 0)
 					{
 						memset(color + (wordStart - start), getConfig()->theme.code.api, len);
 						break;
