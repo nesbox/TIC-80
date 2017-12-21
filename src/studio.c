@@ -162,19 +162,20 @@ static struct
 	struct
 	{
 		bool show;
+		bool chained;
 
 		union
 		{
 			struct
 			{
-				s32 code;
-				s32 sprites;
-				s32 map;
-				s32 sfx;
-				s32 music;
+				s8 code;
+				s8 sprites;
+				s8 map;
+				s8 sfx;
+				s8 music;
 			} index;
 
-			s32 indexes[COUNT_OF(Modes)];
+			s8 indexes[COUNT_OF(Modes)];
 		};
 
 	} bank;
@@ -293,6 +294,7 @@ static struct
 	.bank = 
 	{
 		.show = false,
+		.chained = true,
 	},
 
 	.popup =
@@ -624,15 +626,53 @@ static void drawBankIcon(s32 x, s32 y)
 				over = true;
 
 				if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
-					studio.bank.indexes[mode] = i;
+				{
+					if(studio.bank.chained) 
+						SDL_memset(studio.bank.indexes, i, sizeof studio.bank.indexes);
+					else studio.bank.indexes[mode] = i;
+				}
 			}
 
 			if(i == studio.bank.indexes[mode])
-			{
 				tic->api.rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_red);
-			}
 
 			tic->api.draw_char(tic, '0' + i, rect.x+1, rect.y+1, i == studio.bank.indexes[mode] ? tic_color_white : over ? tic_color_red : tic_color_peach);
+
+		}
+
+		{
+			static const u8 PinIcon[] =
+			{
+				0b00000000,
+				0b00111000,
+				0b00101000,
+				0b01111100,
+				0b00010000,
+				0b00010000,
+				0b00000000,
+				0b00000000,
+			};
+
+			SDL_Rect rect = {x + 4 + (TIC_EDITOR_BANKS+1)*Size, 0, Size, Size};
+
+			bool over = false;
+
+			if(checkMousePos(&rect))
+			{
+				setCursor(SDL_SYSTEM_CURSOR_HAND);
+
+				over = true;
+
+				if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+				{
+					studio.bank.chained = !studio.bank.chained;
+
+					if(studio.bank.chained)
+						SDL_memset(studio.bank.indexes, studio.bank.indexes[mode], sizeof studio.bank.indexes);
+				}
+			}
+
+			drawBitIcon(rect.x, rect.y, PinIcon, studio.bank.chained ? tic_color_black : over ? tic_color_dark_gray : tic_color_light_blue);
 		}
 	}
 	else
