@@ -72,7 +72,6 @@ struct Console
 	struct
 	{
 		bool yes;
-		bool menu;
 		tic_cartridge* file;
 	} embed;
 
