@@ -1828,86 +1828,6 @@ static void* embedCart(Console* console, s32* size)
 	return data;
 }
 
-#if defined(__WINDOWS__)
-
-static const char* getFileFolder(const char* path)
-{
-	static char folder[FILENAME_MAX];
-
-	const char* pos = strrchr(path, '\\');
-
-	if(!pos)
-		pos = strrchr(path, '/');
-
-	if(pos)
-	{
-		s32 size = pos - path;
-		memcpy(folder, path, size);
-		folder[size] = 0;
-
-		return folder;
-	}
-
-	return NULL;
-}
-
-static bool exportToFolder(Console* console, const char* folder, const char* file)
-{
-	const char* workFolder = getFileFolder(console->appPath);
-
-	if(workFolder)
-	{
-		char src[FILENAME_MAX];
-		strcpy(src, workFolder);
-		strcat(src, file);
-
-		char dst[FILENAME_MAX];
-		strcpy(dst, folder);
-		strcat(dst, file);
-
-		return fsCopyFile(src, dst);
-	}
-
-	return false;
-}
-
-static void onConsoleExportNativeCommand(Console* console, const char* cartName)
-{
-	const char* folder = folder_dialog(console);
-	bool done = false;
-
-	if(folder)
-	{
-		s32 size = 0;
-
-		void* data = embedCart(console, &size);
-
-		if(data)
-		{
-			char path[FILENAME_MAX];
-			strcpy(path, folder);
-			strcat(path, "\\game.exe");
-
-			done = fsWriteFile(path, data, size);
-
-			SDL_free(data);
-		}
-		else
-		{
-			printBack(console, "\ngame exporting error :(");
-		}
-	}
-
-	if(done && exportToFolder(console, folder, "\\tic80.dll") &&
-		exportToFolder(console, folder, "\\SDL2.dll"))
-		printBack(console, "\ngame exported :)");
-	else printBack(console, "\ngame not exported :|");
-
-	commandDone(console);
-}
-
-#else
-
 static void onConsoleExportNativeCommand(Console* console, const char* cartName)
 {
 	s32 size = 0;
@@ -1922,9 +1842,6 @@ static void onConsoleExportNativeCommand(Console* console, const char* cartName)
 		onFileDownloaded(FS_FILE_NOT_DOWNLOADED, console);
 	}
 }
-
-#endif
-
 
 #endif
 
