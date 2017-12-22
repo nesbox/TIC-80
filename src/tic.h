@@ -430,10 +430,3 @@ typedef enum
 	tic_gamepad_input,
 	tic_mouse_input,
 } tic_input_method;
-
-typedef enum
-{
-	tic_script_lua,	
-	tic_script_moon,
-	tic_script_js,
-} tic_script_lang;

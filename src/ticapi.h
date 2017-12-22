@@ -70,8 +70,12 @@ typedef void(*tic_overlap)(tic_mem* memory, void* data);
 
 typedef struct
 {
-	tic_script_lang lang;
+	s32 pos;
+	s32 size;
+} tic_outline_item;
 
+typedef struct
+{
 	struct
 	{
 		bool(*init)(tic_mem* memory, const char* code);
@@ -81,6 +85,8 @@ typedef struct
 		tic_scanline scanline;
 		tic_overlap overlap;		
 	};
+
+	const tic_outline_item* (*getOutline)(const char* code, s32* size);
 
 	const char* blockCommentStart;
 	const char* blockCommentEnd;

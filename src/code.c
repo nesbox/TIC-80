@@ -865,37 +865,7 @@ static int funcCompare(const void* a, const void* b)
 	if(item1->pos == NULL) return 1;
 	if(item2->pos == NULL) return -1;
 
-	return strcmp(item1->name, item2->name);
-}
-
-static char* getFuncName(const char* start, char* buffer)
-{
-	const char* ptr = start;
-	while(*ptr)
-	{
-		char sym = *ptr;
-
-		if(isalpha_(sym) || isdigit(sym) || sym == ':'){}
-		else if(sym == '(') break;
-		else return NULL;
-
-		ptr++;
-	}
-
-	if(ptr)
-	{
-		size_t len = ptr - start;
-
-		if(len < STUDIO_TEXT_BUFFER_WIDTH)
-		{
-			memcpy(buffer, start, len);
-			buffer[len] = '\0';
-
-			return buffer;
-		}
-	}
-
-	return NULL;
+	return SDL_strcasecmp(item1->name, item2->name);
 }
 
 static void normalizeScroll(Code* code)
@@ -938,108 +908,48 @@ static void updateOutlineCode(Code* code)
 	updateEditor(code);
 }
 
-static void setMoonscriptOutlineMode(Code* code)
+static void initOutlineMode(Code* code)
 {
 	OutlineItem* out = code->outline.items;
 	OutlineItem* end = out + OUTLINE_SIZE;
 
-	char* ptr = code->src;
-	static const char FuncString[] = "=->";
+	tic_mem* tic = code->tic;
 
-	char buffer[STUDIO_TEXT_BUFFER_WIDTH];
-	char filter[STUDIO_TEXT_BUFFER_WIDTH];
-	strcpy(filter, code->popup.text);
+	char buffer[STUDIO_TEXT_BUFFER_WIDTH] = {0};
+	char filter[STUDIO_TEXT_BUFFER_WIDTH] = {0};
+	SDL_strlcpy(filter, code->popup.text, sizeof(filter));
 	SDL_strlwr(filter);
 
-	while(ptr)
+	const tic_script_config* config = tic->api.get_script_config(tic);
+
+	if(config->getOutline)
 	{
-		ptr = strstr(ptr, FuncString);
+		s32 size = 0;
+		const tic_outline_item* items = config->getOutline(code->src, &size);
 
-		if(ptr && ptr > code->src)
+		for(s32 i = 0; i < size; i++)
 		{
-			char* endPtr = ptr;
-			ptr += sizeof FuncString - 1;
+			const tic_outline_item* item = items + i;
 
-			while(endPtr >= code->src && !isalpha_(*endPtr) && !isdigit(*endPtr))  endPtr--;
-
-			char* start = endPtr;
-
-			for (const char* val = start-1; val >= code->src && (isalpha_(*val) || isdigit(*val)); val--, start--);
-
-			if(start >= code->src)
+			if(out < end)
 			{
-				memset(buffer, 0, sizeof buffer);
-				memcpy(buffer, start, endPtr - start + 1);
-
-				strcpy(out->name, buffer);
+				out->pos = code->src + item->pos;
+				memset(out->name, 0, STUDIO_TEXT_BUFFER_WIDTH);
+				memcpy(out->name, out->pos, SDL_min(item->size, STUDIO_TEXT_BUFFER_WIDTH-1));
 
 				if(*filter)
 				{
+					SDL_strlcpy(buffer, out->name, sizeof(buffer));
 					SDL_strlwr(buffer);
-					if(strstr(buffer, filter))
-					{
-						out->pos = start;
-						out++;
-					}
+
+					if(strstr(buffer, filter)) out++;
+					else out->pos = NULL;
 				}
-				else
-				{
-					out->pos = start;
-					out++;
-				}
+				else out++;
 			}
+			else break;
 		}
-		else break;
-
-		if(out >= end) break;
 	}
-}
-
-static void setLuaOutlineMode(Code* code)
-{
-	OutlineItem* out = code->outline.items;
-	OutlineItem* end = out + OUTLINE_SIZE;
-
-	char* ptr = code->src;
-	static const char FuncString[] = "function ";
-
-	char buffer[STUDIO_TEXT_BUFFER_WIDTH];
-	char filter[STUDIO_TEXT_BUFFER_WIDTH];
-	strcpy(filter, code->popup.text);
-	SDL_strlwr(filter);
-
-	while(ptr)
-	{
-		ptr = strstr(ptr, FuncString);
-
-		if(ptr)
-		{
-			ptr += sizeof FuncString - 1;
-
-			if(getFuncName(ptr, buffer))
-			{
-				strcpy(out->name, buffer);
-
-				if(*filter)
-				{
-					SDL_strlwr(buffer);
-					if(strstr(buffer, filter))
-					{
-						out->pos = ptr;
-						out++;
-					}
-				}
-				else
-				{
-					out->pos = ptr;
-					out++;
-				}
-			}
-		}
-
-		if(out >= end) break;
-	}
-
 }
 
 static void setOutlineMode(Code* code)
@@ -1047,9 +957,7 @@ static void setOutlineMode(Code* code)
 	code->outline.index = 0;
 	memset(code->outline.items, 0, OUTLINE_ITEMS_SIZE);
 
-	code->tic->api.get_script_config(code->tic)->lang == tic_script_moon
-		? setMoonscriptOutlineMode(code)
-		: setLuaOutlineMode(code);
+	initOutlineMode(code);
 
 	qsort(code->outline.items, OUTLINE_SIZE, sizeof(OutlineItem), funcCompare);
 	updateOutlineCode(code);

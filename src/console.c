@@ -40,6 +40,13 @@
 #define CONSOLE_BUFFER_SCREENS 64
 #define CONSOLE_BUFFER_SIZE (CONSOLE_BUFFER_WIDTH * CONSOLE_BUFFER_HEIGHT * CONSOLE_BUFFER_SCREENS)
 
+typedef enum
+{
+	LuaScript,	
+	MoonScript,
+	JavaScript,
+} ScriptLang;
+
 #if defined(__WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
 #define CAN_EXPORT 1
 #endif
@@ -381,20 +388,20 @@ static bool onConsoleLoadSectionCommand(Console* console, const char* param)
 	return result;
 }
 
-static void* getDemoCart(Console* console, tic_script_lang script, s32* size)
+static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 {
 	char path[FILENAME_MAX] = {0};
 
 	{
 		switch(script)
 		{
-		case tic_script_lua:
+		case LuaScript:
 			strcpy(path, DefaultLuaTicPath);
 			break;
-		case tic_script_moon:
+		case MoonScript:
 			strcpy(path, DefaultMoonTicPath);
 			break;
-		case tic_script_js:
+		case JavaScript:
 		strcpy(path, DefaultJSTicPath);
 			break;
 		}
@@ -425,15 +432,15 @@ static void* getDemoCart(Console* console, tic_script_lang script, s32* size)
 
 	switch(script)
 	{
-	case tic_script_lua:
+	case LuaScript:
 		demo = LuaDemoRom;
 		romSize = sizeof LuaDemoRom;
 		break;
-	case tic_script_moon:
+	case MoonScript:
 		demo = MoonDemoRom;
 		romSize = sizeof MoonDemoRom;
 		break;
-	case tic_script_js:
+	case JavaScript:
 		demo = JsDemoRom;
 		romSize = sizeof JsDemoRom;
 		break;
@@ -464,11 +471,11 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 	console->showGameMenu = false;
 
 	if(strcmp(param, DefaultLuaTicPath) == 0)
-		data = getDemoCart(console, tic_script_lua, &size);
+		data = getDemoCart(console, LuaScript, &size);
 	else if(strcmp(param, DefaultMoonTicPath) == 0)
-		data = getDemoCart(console, tic_script_moon, &size);
+		data = getDemoCart(console, MoonScript, &size);
 	else if(strcmp(param, DefaultJSTicPath) == 0)
-		data = getDemoCart(console, tic_script_js, &size);
+		data = getDemoCart(console, JavaScript, &size);
 
 	const char* name = getCartName(param);
 
@@ -1012,7 +1019,7 @@ static void onConsoleLoadCommand(Console* console, const char* param)
 	}
 }
 
-static void loadDemo(Console* console, tic_script_lang script)
+static void loadDemo(Console* console, ScriptLang script)
 {
 	s32 size = 0;
 	u8* data = getDemoCart(console, script, &size);
@@ -1034,11 +1041,11 @@ static void onConsoleNewCommandConfirmed(Console* console, const char* param)
 	if(param && strlen(param))
 	{
 		if(strcmp(param, "lua") == 0)
-			loadDemo(console, tic_script_lua);
+			loadDemo(console, LuaScript);
 		else if(strcmp(param, "moon") == 0 || strcmp(param, "moonscript") == 0)
-			loadDemo(console, tic_script_moon);
+			loadDemo(console, MoonScript);
 		else if(strcmp(param, "js") == 0 || strcmp(param, "javascript") == 0)
-			loadDemo(console, tic_script_js);
+			loadDemo(console, JavaScript);
 		else
 		{
 			printError(console, "\nunknown parameter: ");
@@ -1047,7 +1054,7 @@ static void onConsoleNewCommandConfirmed(Console* console, const char* param)
 			return;
 		}
 	}
-	else loadDemo(console, tic_script_lua);
+	else loadDemo(console, LuaScript);
 
 	printBack(console, "\nnew cart is created");
 	commandDone(console);
@@ -2661,7 +2668,7 @@ static void tick(Console* console)
 	{
 		if(!console->embed.yes)
 		{
-			loadDemo(console, tic_script_lua);
+			loadDemo(console, LuaScript);
 
 			printBack(console, "\n hello! type ");
 			printFront(console, "help");

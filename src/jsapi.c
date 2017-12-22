@@ -23,6 +23,8 @@
 #include "machine.h"
 #include "tools.h"
 
+#include <ctype.h>
+
 #include "ext/duktape/duktape.h"
 
 static const char TicMachine[] = "_TIC80";
@@ -886,15 +888,77 @@ static const char* const JsKeywords [] =
 	"default", "if", "throw", "delete", "in", "try", "const"
 };
 
+static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+
+static const tic_outline_item* getJsOutline(const char* code, s32* size)
+{
+	enum{Size = sizeof(tic_outline_item)};
+
+	*size = 0;
+
+	static tic_outline_item* items = NULL;
+
+	if(items)
+	{
+		free(items);
+		items = NULL;
+	}
+
+	const char* ptr = code;
+
+	while(true)
+	{
+		static const char FuncString[] = "function ";
+
+		ptr = strstr(ptr, FuncString);
+
+		if(ptr)
+		{
+			ptr += sizeof FuncString - 1;
+
+			const char* start = ptr;
+			const char* end = start;
+
+			while(*ptr)
+			{
+				char c = *ptr;
+
+				if(isalnum_(c));
+				else if(c == '(')
+				{
+					end = ptr;
+					break;
+				}
+				else break;
+
+				ptr++;
+			}
+
+			if(end > start)
+			{
+				items = items ? realloc(items, (*size + 1) * Size) : malloc(Size);
+
+				items[*size].pos = start - code;
+				items[*size].size = end - start;
+
+				(*size)++;
+			}
+		}
+		else break;
+	}
+
+	return items;
+}
+
 static const tic_script_config JsSyntaxConfig = 
 {
-	.lang 				= tic_script_js,
-
 	.init 				= initJavascript,
 	.close 				= closeJavascript,
 	.tick 				= callJavascriptTick,
 	.scanline 			= callJavascriptScanline,
 	.overlap 			= callJavascriptOverlap,
+
+	.getOutline			= getJsOutline,
 
 	.blockCommentStart 	= "/*",
 	.blockCommentEnd 	= "*/",
