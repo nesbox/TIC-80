@@ -1078,13 +1078,8 @@ static void setCodeMode(Code* code, s32 mode)
 
 static void commentLine(Code* code)
 {
-	static char Comment[] = "-- ";
-	enum {Size = sizeof Comment-1};
-
-	tic_mem* tic = code->tic;
-
-	memcpy(Comment, tic->api.get_script_config(tic)->singleComment, 
-		strlen(tic->api.get_script_config(tic)->singleComment));
+	const char* comment = code->tic->api.get_script_config(code->tic)->singleComment;
+	size_t size = strlen(comment);
 
 	char* line = getLine(code);
 
@@ -1092,26 +1087,26 @@ static void commentLine(Code* code)
 
 	while((*line == ' ' || *line == '\t') && line < end) line++;
 
-	if(memcmp(line, Comment, Size))
+	if(memcmp(line, comment, size))
 	{
-		if (strlen(code->src) + Size >= sizeof(tic_code))
+		if (strlen(code->src) + size >= sizeof(tic_code))
 			return;
 
-		memmove(line + Size, line, strlen(line)+1);
-		memcpy(line, Comment, Size);
+		memmove(line + size, line, strlen(line)+1);
+		memcpy(line, comment, size);
 
 		if(code->cursor.position > line)
-			code->cursor.position += Size;
+			code->cursor.position += size;
 	}
 	else
 	{
-		memmove(line, line + Size, strlen(line + Size)+1);
+		memmove(line, line + size, strlen(line + size)+1);
 
-		if(code->cursor.position > line + Size)
-			code->cursor.position -= Size;
+		if(code->cursor.position > line + size)
+			code->cursor.position -= size;
 	}
 
-	code->cursor.selection = NULL;
+	code->cursor.selection = NULL;	
 
 	history(code);
 
