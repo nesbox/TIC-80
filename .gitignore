@@ -93,3 +93,5 @@ build/windows/zlib/Debug Pro/
 build/windows/zlib/Release Pro/
 build/windows/example/Release Pro/
 build/windows/example/Debug Pro/
+TIC80.sublime-project
+TIC80.sublime-workspace
