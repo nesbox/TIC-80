@@ -104,8 +104,12 @@ static struct
 	SDL_Renderer* renderer;
 	SDL_Texture* texture;
 
-	SDL_AudioSpec audioSpec;
-	SDL_AudioDeviceID audioDevice;
+	struct
+	{
+		SDL_AudioSpec 		spec;
+		SDL_AudioDeviceID 	device;
+		SDL_AudioCVT 		cvt;
+	} audio;
 
 	SDL_Joystick* joysticks[MAX_CONTROLLERS];
 
@@ -232,8 +236,6 @@ static struct
 	s32 argc;
 	char **argv;
 
-	float* floatSamples;
-
 } studio =
 {
 	.tic80local = NULL,
@@ -242,7 +244,10 @@ static struct
 	.window = NULL,
 	.renderer = NULL,
 	.texture = NULL,
-	.audioDevice = 0,
+	.audio = 
+	{
+		.device = 0,
+	},
 
 	.cart = 
 	{
@@ -319,7 +324,6 @@ static struct
 	.quitFlag = false,
 	.argc = 0,
 	.argv = NULL,
-	.floatSamples = NULL,
 };
 
 tic_tiles* getBankTiles()
@@ -2044,24 +2048,13 @@ static void transparentBlit(u32* out, s32 pitch)
 
 static void blitSound()
 {
-	s32 samples = studio.audioSpec.freq / TIC_FRAMERATE;
-
-	// TODO: use SDL_ConvertAudio to covert format
-	if(studio.audioSpec.format == AUDIO_F32)
+	if(studio.audio.cvt.needed)
 	{
-		if(!studio.floatSamples)
-			studio.floatSamples = SDL_malloc(samples * sizeof studio.floatSamples[0]);
-
-		s16* ptr = studio.tic->samples.buffer;
-		s16* end = ptr + samples;
-		float* out = studio.floatSamples;
-
-		while(ptr != end) *out++ = *ptr++ / 32767.0f;
-
-		SDL_QueueAudio(studio.audioDevice, studio.floatSamples, samples * sizeof studio.floatSamples[0]);
+		SDL_memcpy(studio.audio.cvt.buf, studio.tic->samples.buffer, studio.tic->samples.size);
+		SDL_ConvertAudio(&studio.audio.cvt);
+		SDL_QueueAudio(studio.audio.device, studio.audio.cvt.buf, studio.audio.cvt.len_cvt);
 	}
-	else if (studio.audioSpec.format == AUDIO_S16)
-		SDL_QueueAudio(studio.audioDevice, studio.tic->samples.buffer, studio.tic->samples.size);
+	else SDL_QueueAudio(studio.audio.device, studio.tic->samples.buffer, studio.tic->samples.size);
 }
 
 static void drawRecordLabel(u32* frame, s32 pitch, s32 sx, s32 sy, const u32* color)
@@ -2512,10 +2505,18 @@ static void initSound()
 		.userdata = NULL,
 	};
 
-	studio.audioDevice = SDL_OpenAudioDevice(NULL, 0, &want, &studio.audioSpec, SDL_AUDIO_ALLOW_ANY_CHANGE);
+	studio.audio.device = SDL_OpenAudioDevice(NULL, 0, &want, &studio.audio.spec, SDL_AUDIO_ALLOW_ANY_CHANGE);
 
-	if(studio.audioDevice)
-		SDL_PauseAudioDevice(studio.audioDevice, 0);
+	SDL_BuildAudioCVT(&studio.audio.cvt, want.format, want.channels, studio.audio.spec.freq, studio.audio.spec.format, studio.audio.spec.channels, studio.audio.spec.freq);
+
+	if(studio.audio.cvt.needed)
+	{
+		studio.audio.cvt.len = studio.audio.spec.freq * sizeof studio.tic->samples.buffer[0] / TIC_FRAMERATE;
+		studio.audio.cvt.buf = SDL_malloc(studio.audio.cvt.len * studio.audio.cvt.len_mult);
+	}
+
+	if(studio.audio.device)
+		SDL_PauseAudioDevice(studio.audio.device, 0);
 }
 
 static void initTouchGamepad()
@@ -2637,7 +2638,7 @@ static void onFSInitialized(FileSystem* fs)
 
 	initSound();
 
-	studio.tic80local = (tic80_local*)tic80_create(studio.audioSpec.freq);
+	studio.tic80local = (tic80_local*)tic80_create(studio.audio.spec.freq);
 	studio.tic = studio.tic80local->memory;
 
 	{
@@ -2775,8 +2776,8 @@ s32 main(s32 argc, char **argv)
 	if(studio.tic80local)
 		tic80_delete((tic80*)studio.tic80local);
 
-	if(studio.floatSamples)
-		SDL_free(studio.floatSamples);
+	if(studio.audio.cvt.buf)
+		SDL_free(studio.audio.cvt.buf);
 
 	SDL_DestroyTexture(studio.gamepad.texture);
 	SDL_DestroyTexture(studio.texture);
@@ -2789,7 +2790,7 @@ s32 main(s32 argc, char **argv)
 
 #if !defined (__MACOSX__)
 	// stucks here on macos
-	SDL_CloseAudioDevice(studio.audioDevice);
+	SDL_CloseAudioDevice(studio.audio.device);
 	SDL_Quit();
 #endif
 
