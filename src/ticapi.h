@@ -76,6 +76,20 @@ typedef struct
 
 typedef struct
 {
+	u8 string;
+	u8 number;
+	u8 keyword;
+	u8 api;
+	u8 comment;
+	u8 sign;
+	u8 var;
+	u8 other;
+} tic_code_theme;
+
+typedef struct tic_script_config tic_script_config;
+
+struct tic_script_config
+{
 	struct
 	{
 		bool(*init)(tic_mem* memory, const char* code);
@@ -87,6 +101,7 @@ typedef struct
 	};
 
 	const tic_outline_item* (*getOutline)(const char* code, s32* size);
+	void (*parse)(const tic_script_config* config, const char* start, u8* color, const tic_code_theme* theme);
 
 	const char* blockCommentStart;
 	const char* blockCommentEnd;
@@ -99,7 +114,7 @@ typedef struct
 
 	const char* const * api;
 	s32 apiCount;
-} tic_script_config;
+};
 
 typedef struct
 {

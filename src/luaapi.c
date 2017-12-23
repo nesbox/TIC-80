@@ -1386,6 +1386,7 @@ static const tic_script_config LuaSyntaxConfig =
 	.overlap 			= callLuaOverlap,
 
 	.getOutline			= getLuaOutline,
+	.parse 				= parseCode,
 
 	.blockCommentStart 	= "--[[",
 	.blockCommentEnd 	= "]]",
@@ -1475,6 +1476,7 @@ static const tic_script_config MoonSyntaxConfig =
 	.overlap 			= callLuaOverlap,
 
 	.getOutline			= getMoonOutline,
+	.parse 				= parseCode,
 
 	.blockCommentStart 	= NULL,
 	.blockCommentEnd 	= NULL,

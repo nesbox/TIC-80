@@ -959,6 +959,7 @@ static const tic_script_config JsSyntaxConfig =
 	.overlap 			= callJavascriptOverlap,
 
 	.getOutline			= getJsOutline,
+	.parse 				= parseCode,
 
 	.blockCommentStart 	= "/*",
 	.blockCommentEnd 	= "*/",

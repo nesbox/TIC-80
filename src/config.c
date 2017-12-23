@@ -101,14 +101,27 @@ static void readCodeTheme(Config* config, lua_State* lua)
 
 	if(lua_type(lua, -1) == LUA_TTABLE)
 	{
-		static const char* Fields[] = {"BG", "STRING", "NUMBER", "KEYWORD", "API", "COMMENT", "SIGN", "VAR", "OTHER", "SELECT", "CURSOR"};
+
+		static const char* Syntax[] = {"STRING", "NUMBER", "KEYWORD", "API", "COMMENT", "SIGN", "VAR", "OTHER"};
+
+		for(s32 i = 0; i < COUNT_OF(Syntax); i++)
+		{
+			lua_getfield(lua, -1, Syntax[i]);
+
+			if(lua_isinteger(lua, -1))
+				((u8*)&config->data.theme.code.syntax)[i] = (u8)lua_tointeger(lua, -1);
+
+			lua_pop(lua, 1);
+		}
+		
+		static const char* Fields[] = {"BG", "SELECT", "CURSOR"};
 
 		for(s32 i = 0; i < COUNT_OF(Fields); i++)
 		{
 			lua_getfield(lua, -1, Fields[i]);
 
 			if(lua_isinteger(lua, -1))
-				((u8*)&config->data.theme.code)[i] = (u8)lua_tointeger(lua, -1);
+				((u8*)&config->data.theme.code.bg)[i] = (u8)lua_tointeger(lua, -1);
 
 			lua_pop(lua, 1);
 		}

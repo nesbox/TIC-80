@@ -1906,3 +1906,179 @@ tic_mem* tic_create(s32 samplerate)
 
 	return &machine->memory;
 }
+
+static inline bool islineend(char c) {return c == '\n' || c == '\0';}
+static inline bool isalpha_(char c) {return isalpha(c) || c == '_';}
+static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+
+void parseCode(const tic_script_config* config, const char* start, u8* color, const tic_code_theme* theme)
+{
+	const char* ptr = start;
+
+	const char* blockCommentStart = NULL;
+	const char* blockStringStart = NULL;
+	const char* blockStdStringStart = NULL;
+	const char* singleCommentStart = NULL;
+	const char* wordStart = NULL;
+	const char* numberStart = NULL;
+
+	while(true)
+	{
+		char c = *ptr;
+
+		if(blockCommentStart)
+		{
+			const char* end = strstr(ptr, config->blockCommentEnd);
+
+			ptr = end ? end + strlen(config->blockCommentEnd) : blockCommentStart + strlen(blockCommentStart);
+			memset(color + (blockCommentStart - start), theme->comment, ptr - blockCommentStart);
+			blockCommentStart = NULL;
+			continue;
+		}
+		else if(blockStringStart)
+		{
+			const char* end = strstr(ptr, config->blockStringEnd);
+
+			ptr = end ? end + strlen(config->blockStringEnd) : blockStringStart + strlen(blockStringStart);
+			memset(color + (blockStringStart - start), theme->string, ptr - blockStringStart);
+			blockStringStart = NULL;
+			continue;
+		}
+		else if(blockStdStringStart)
+		{
+			const char* blockStart = blockStdStringStart+1;
+
+			while(true)
+			{
+				const char* pos = strchr(blockStart, *blockStdStringStart);
+				
+				if(pos)
+				{
+					if(*(pos-1) == '\\' && *(pos-2) != '\\') blockStart = pos + 1;
+					else
+					{
+						ptr = pos + 1;
+						break;
+					}
+				}
+				else
+				{
+					ptr = blockStdStringStart + strlen(blockStdStringStart);
+					break;
+				}
+			}
+
+			memset(color + (blockStdStringStart - start), theme->string, ptr - blockStdStringStart);
+			blockStdStringStart = NULL;
+			continue;
+		}
+		else if(singleCommentStart)
+		{
+			while(!islineend(*ptr))ptr++;
+
+			memset(color + (singleCommentStart - start), theme->comment, ptr - singleCommentStart);
+			singleCommentStart = NULL;
+			continue;
+		}
+		else if(wordStart)
+		{
+			while(!islineend(*ptr) && isalnum_(*ptr)) ptr++;
+
+			s32 len = ptr - wordStart;
+			bool keyword = false;
+			{
+				for(s32 i = 0; i < config->keywordsCount; i++)
+					if(len == strlen(config->keywords[i]) && memcmp(wordStart, config->keywords[i], len) == 0)
+					{
+						memset(color + (wordStart - start), theme->keyword, len);
+						keyword = true;
+						break;
+					}
+			}
+
+			if(!keyword)
+			{
+				for(s32 i = 0; i < config->apiCount; i++)
+					if(len == strlen(config->api[i]) && memcmp(wordStart, config->api[i], len) == 0)
+					{
+						memset(color + (wordStart - start), theme->api, len);
+						break;
+					}
+			}
+
+			wordStart = NULL;
+			continue;
+		}
+		else if(numberStart)
+		{
+			while(!islineend(*ptr))
+			{
+				char c = *ptr;
+
+				if(isdigit(c)) ptr++;
+				else if(numberStart[0] == '0' 
+					&& (numberStart[1] == 'x' || numberStart[1] == 'X') 
+					&& isxdigit(numberStart[2]))
+				{
+					if((ptr - numberStart < 2) || (ptr - numberStart >= 2 && isxdigit(c))) ptr++;
+					else break;
+				}
+				else if(c == '.' || c == 'e' || c == 'E')
+				{
+					if(isdigit(ptr[1])) ptr++;
+					else break;
+				}
+				else break;
+			}
+
+			memset(color + (numberStart - start), theme->number, ptr - numberStart);
+			numberStart = NULL;
+			continue;
+		}
+		else
+		{
+			if(config->blockCommentStart && memcmp(ptr, config->blockCommentStart, strlen(config->blockCommentStart)) == 0)
+			{
+				blockCommentStart = ptr;
+				ptr += strlen(config->blockCommentStart);
+				continue;
+			}
+			if(config->blockStringStart && memcmp(ptr, config->blockStringStart, strlen(config->blockStringStart)) == 0)
+			{
+				blockStringStart = ptr;
+				ptr += strlen(config->blockStringStart);
+				continue;
+			}
+			else if(c == '"' || c == '\'')
+			{
+				blockStdStringStart = ptr;
+				ptr++;
+				continue;
+			}
+			else if(config->singleComment && memcmp(ptr, config->singleComment, strlen(config->singleComment)) == 0)
+			{
+				singleCommentStart = ptr;
+				ptr += strlen(config->singleComment);
+				continue;
+			}
+			else if(isalpha_(c))
+			{
+				wordStart = ptr;
+				ptr++;
+				continue;
+			}
+			else if(isdigit(c) || (c == '.' && isdigit(ptr[1])))
+			{
+				numberStart = ptr;
+				ptr++;
+				continue;
+			}
+			else if(ispunct(c)) color[ptr - start] = theme->sign;
+			else if(iscntrl(c)) color[ptr - start] = theme->other;
+		}
+
+		if(!c) break;
+
+		ptr++;
+	}
+}

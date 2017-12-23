@@ -147,6 +147,7 @@ typedef s32(DrawCharFunc)(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s
 s32 drawText(tic_mem* memory, const char* text, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale, DrawCharFunc* func);
 s32 drawSpriteFont(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale);
 s32 drawFixedSpriteFont(tic_mem* memory, u8 index, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale);
+void parseCode(const tic_script_config* config, const char* start, u8* color, const tic_code_theme* theme);
 
 const tic_script_config* getLuaScriptConfig();
 const tic_script_config* getMoonScriptConfig();

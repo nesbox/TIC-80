@@ -77,15 +77,9 @@ typedef struct
 
 		struct
 		{
+			tic_code_theme syntax;
+
 			u8 bg;
-			u8 string;
-			u8 number;
-			u8 keyword;
-			u8 api;
-			u8 comment;
-			u8 sign;
-			u8 var;
-			u8 other;
 			u8 select;
 			u8 cursor;
 			bool shadow;
