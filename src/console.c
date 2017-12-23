@@ -47,6 +47,12 @@ typedef enum
 	JavaScript,
 } ScriptLang;
 
+#if defined(__WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
+#define CAN_EXPORT 1
+#endif
+
+#if defined(CAN_EXPORT)
+
 static const char TicCartSig[] = "TIC.CART";
 #define SIG_SIZE (sizeof TicCartSig-1)
 
@@ -57,8 +63,6 @@ typedef struct
 	s32 cartSize;
 } EmbedHeader;
 
-#if defined(__WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
-#define CAN_EXPORT 1
 #endif
 
 #if defined(__WINDOWS__)
