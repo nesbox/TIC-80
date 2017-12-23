@@ -2728,7 +2728,7 @@ s32 main(s32 argc, char **argv)
 	}
 	else createFileSystem(NULL, onFSInitialized);
 
-	emscripten_set_main_loop(tick, TIC_FRAMERATE == 60 ? 0 : TIC_FRAMERATE, 1);
+	emscripten_set_main_loop(tick, TIC_FRAMERATE, 1);
 #else
 
 	createFileSystem(argc > 1 && fsExists(argv[1]) ? fsBasename(argv[1]) : NULL, onFSInitialized);
