@@ -1420,16 +1420,18 @@ static void cart2ram(tic_mem* memory)
 	initCover(memory);
 }
 
-static const char* readMetatag(const char* code, const char* tag, const char* format)
+static const char* readMetatag(const char* code, const char* tag, const char* comment)
 {
 	const char* start = NULL;
 
 	{
+		static char format[] = "%s %s:";
+
 		char* tagBuffer = malloc(strlen(format) + strlen(tag));
 
 		if(tagBuffer)
 		{
-			sprintf(tagBuffer, format, tag);
+			sprintf(tagBuffer, format, comment, tag);
 			if((start = strstr(code, tagBuffer)))
 				start += strlen(tagBuffer);
 			free(tagBuffer);			
@@ -1462,31 +1464,16 @@ static const char* readMetatag(const char* code, const char* tag, const char* fo
 	return NULL;
 }
 
-static const char* TagFormatLua = "-- %s:";
-static const char* TagFormatJS = "// %s:";
-
-static bool compareMetatag(const char* code, const char* tag, const char* value)
+static bool compareMetatag(const char* code, const char* tag, const char* value, const char* comment)
 {
 	bool result = false;
 
-	// LUA comments
-	const char* str = readMetatag(code, tag, TagFormatLua);
+	const char* str = readMetatag(code, tag, comment);
 
 	if(str)
 	{
 		result = strcmp(str, value) == 0;
 		free((void*)str);
-	}
-	else
-	{
-		// JS comments
-		str = readMetatag(code, tag, TagFormatJS);
-
-		if(str)
-		{
-			result = strcmp(str, value) == 0;
-			free((void*)str);
-		}
 	}
 
 	return result;
@@ -1494,12 +1481,14 @@ static bool compareMetatag(const char* code, const char* tag, const char* value)
 
 static bool isMoonscript(const char* code)
 {
-	return compareMetatag(code, "script", "moon") || compareMetatag(code, "script", "moonscript");
+	return compareMetatag(code, "script", "moon", getMoonScriptConfig()->singleComment) 
+		|| compareMetatag(code, "script", "moonscript", getMoonScriptConfig()->singleComment);
 }
 
 static bool isJavascript(const char* code)
 {
-	return compareMetatag(code, "script", "js") || compareMetatag(code, "script", "javascript");
+	return compareMetatag(code, "script", "js", getJsScriptConfig()->singleComment) 
+		|| compareMetatag(code, "script", "javascript", getJsScriptConfig()->singleComment);
 }
 
 static const tic_script_config* getScriptConfig(const char* code)
@@ -1514,24 +1503,14 @@ static const tic_script_config* api_get_script_config(tic_mem* memory)
 	return getScriptConfig(memory->cart.bank0.code.data);
 }
 
-
 static void updateSaveid(tic_mem* memory)
 {
 	memset(memory->saveid, 0, sizeof memory->saveid);
-	const char* saveid = readMetatag(memory->cart.bank0.code.data, "saveid", TagFormatLua);
+	const char* saveid = readMetatag(memory->cart.bank0.code.data, "saveid", api_get_script_config(memory)->singleComment);
 	if(saveid)
 	{
 		strcpy(memory->saveid, saveid);
 		free((void*)saveid);
-	}
-	else
-	{
-		const char* saveid = readMetatag(memory->cart.bank0.code.data, "saveid", TagFormatJS);
-		if(saveid)
-		{
-			strcpy(memory->saveid, saveid);
-			free((void*)saveid);
-		}		
 	}
 }
 
@@ -1566,15 +1545,15 @@ static void api_tick(tic_mem* tic, tic_tick_data* data)
 
 			if(strlen(code))
 			{
+				config = getScriptConfig(code);
 				cart2ram(tic);
-				tic->input = compareMetatag(code, "input", "mouse") ? tic_mouse_input : tic_gamepad_input;
+				tic->input = compareMetatag(code, "input", "mouse", config->singleComment) ? tic_mouse_input : tic_gamepad_input;
 
 				if(tic->input == tic_mouse_input)
 					tic->ram.vram.vars.mask.data = 0;
 
 				data->start = data->counter();
 				
-				config = getScriptConfig(code);
 				done = config->init(tic, code);
 			}
 			else
