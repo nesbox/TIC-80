@@ -1389,7 +1389,7 @@ static void api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
 		{offsetof(tic_bank, music), 	offsetof(tic_ram, music), 	sizeof(tic_music)	},
 	};
 
-	enum{Count = COUNT_OF(Sections), Mask = (1 << (Count+1)) - 1};
+	enum{Count = COUNT_OF(Sections), Mask = (1 << (Count+1)) - 1, PaletteMask = 1 << Count};
 
 	if(mask == 0) mask = Mask;
 	
@@ -1405,7 +1405,7 @@ static void api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
 				: memcpy((u8*)&tic->ram + Sections[i].ram, (u8*)&tic->cart.banks[bank] + Sections[i].bank, Sections[i].size);
 	}
 
-	if(mask & (1 << Count))
+	if(mask & PaletteMask)
 		toCart
 			? memcpy(&tic->cart.palette, &tic->ram.vram.palette, sizeof(tic_palette))
 			: memcpy(&tic->ram.vram.palette, &tic->cart.palette, sizeof(tic_palette));
