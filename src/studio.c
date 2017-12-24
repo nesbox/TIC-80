@@ -978,6 +978,13 @@ void resumeRunMode()
 	studio.mode = TIC_RUN_MODE;
 }
 
+static void showSoftKeyboard()
+{
+	if(SDL_HasScreenKeyboardSupport())
+		if(studio.mode == TIC_CONSOLE_MODE || studio.mode == TIC_CODE_MODE)
+			SDL_StartTextInput();
+}
+
 void setStudioMode(EditorMode mode)
 {
 	if(mode != studio.mode)
@@ -1014,6 +1021,8 @@ void setStudioMode(EditorMode mode)
 		}
 
 		studio.mode = mode;
+
+		showSoftKeyboard();
 	}
 }
 
@@ -1978,9 +1987,7 @@ SDL_Event* pollEvent()
 			}
 			break;
 		case SDL_FINGERUP:
-			if(SDL_HasScreenKeyboardSupport() && !SDL_IsTextInputActive())
-				if(studio.mode == TIC_CONSOLE_MODE || studio.mode == TIC_CODE_MODE)
-					SDL_StartTextInput();
+			showSoftKeyboard();
 			break;
 		case SDL_QUIT:
 			exitStudio();
