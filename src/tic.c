@@ -37,7 +37,7 @@
 #define MIN_PERIOD_VALUE 10
 #define MAX_PERIOD_VALUE 4096
 #define BASE_NOTE_FREQ 440.0
-#define BASE_NOTE_POS 49
+#define BASE_NOTE_POS 49.0
 #define ENVELOPE_FREQ_SCALE 2
 #define NOTES_PER_MUNUTE (TIC_FRAMERATE / NOTES_PER_BEET * 60)
 #define min(a,b) ((a) < (b) ? (a) : (b))
@@ -89,25 +89,25 @@ static void update_amp(blip_buffer_t* blip, tic_sound_register_data* data, s32 n
 	blip_add_delta( blip, data->time, delta );
 }
 
-static inline s32 freq2note(double freq)
+static inline double freq2note(double freq)
 {
-	return (s32)round((double)NOTES * log2(freq / BASE_NOTE_FREQ)) + BASE_NOTE_POS;
+	return (double)NOTES * log2(freq / BASE_NOTE_FREQ) + BASE_NOTE_POS;
 }
 
-static inline double note2freq(s32 note)
+static inline s32 note2freq(double note)
 {
-	return pow(2, (note - BASE_NOTE_POS) / (double)NOTES) * BASE_NOTE_FREQ;
+	return round(pow(2, (note - BASE_NOTE_POS) / (double)NOTES) * BASE_NOTE_FREQ);
 }
 
 static inline s32 freq2period(double freq)
 {
-	if(freq == 0.0) return MAX_PERIOD_VALUE;
+    if(freq == 0.0) return MAX_PERIOD_VALUE;
 
 	enum {Rate = CLOCKRATE * ENVELOPE_FREQ_SCALE / ENVELOPE_VALUES};
-	s32 period = (s32)round(Rate / freq - 1.0);
+	s32 period = round((double)Rate / freq - 1.0);
 
-	if(period < MIN_PERIOD_VALUE) return MIN_PERIOD_VALUE;
-	if(period > MAX_PERIOD_VALUE) return MAX_PERIOD_VALUE;
+    if(period < MIN_PERIOD_VALUE) return MIN_PERIOD_VALUE;
+    if(period > MAX_PERIOD_VALUE) return MAX_PERIOD_VALUE;
 
 	return period;
 }
@@ -391,7 +391,7 @@ static void channelSfx(tic_mem* memory, s32 index, s32 note, s32 octave, s32 dur
 	// start index of idealized piano
 	enum {PianoStart = -8};
 
-	s32 freq = (s32)note2freq(note + octave * NOTES + PianoStart);
+	s32 freq = note2freq(note + octave * NOTES + PianoStart);
 
 	c->duration = duration;
 	c->freq = freq;
@@ -1129,7 +1129,7 @@ static void sfx(tic_mem* memory, s32 index, s32 freq, Channel* channel, tic_soun
 	{
 		s8 arp = effect->data[channel->pos.arpeggio].arpeggio * (effect->reverse ? -1 : 1);
 	 
-		if(arp) freq = (s32)note2freq(freq2note(freq)+arp);
+		if(arp) freq = note2freq(freq2note(freq)+arp);
 
 		freq += effect->data[channel->pos.pitch].pitch * (effect->pitch16x ? 16 : 1);
 
