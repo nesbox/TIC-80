@@ -781,6 +781,9 @@ void drawToolbar(tic_mem* tic, u8 color, bool bg)
 		if(mode == i)
 			drawBitIcon(i * Size, 0, TabIcon, color);
 
+		if(mode == i)
+			drawBitIcon(i * Size, 1, Icons + i * BITS_IN_BYTE, tic_color_black);
+
 		drawBitIcon(i * Size, 0, Icons + i * BITS_IN_BYTE, mode == i ? (tic_color_white) : (over ? (tic_color_dark_gray) : (tic_color_light_blue)));
 	}
 

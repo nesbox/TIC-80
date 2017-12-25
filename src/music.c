@@ -54,15 +54,25 @@ const tic_music_pos* getMusicPos(Music* music)
 	return &music->tic->ram.music_pos;
 }
 
+static void drawDownBorder(Music* music, s32 x, s32 y, s32 w, s32 h)
+{
+	tic_mem* tic = music->tic;
+
+	tic->api.rect(tic, x, y-1, w, 1, tic_color_dark_gray);
+	tic->api.rect(tic, x-1, y, 1, h, tic_color_dark_gray);
+	tic->api.rect(tic, x, y+h, w, 1, tic_color_light_blue);
+	tic->api.rect(tic, x+w, y, 1, h, tic_color_light_blue);
+}
+
 static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*, s32, s32 channel), s32 channel)
 {
 	static const u8 LeftArrow[] =
 	{
-		0b00010000,
-		0b00110000,
-		0b01110000,
-		0b00110000,
-		0b00010000,
+		0b00100000,
+		0b01100000,
+		0b11100000,
+		0b01100000,
+		0b00100000,
 		0b00000000,
 		0b00000000,
 		0b00000000,
@@ -70,11 +80,11 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
 
 	static const u8 RightArrow[] =
 	{
-		0b01000000,
-		0b01100000,
-		0b01110000,
-		0b01100000,
-		0b01000000,
+		0b00100000,
+		0b00110000,
+		0b00111000,
+		0b00110000,
+		0b00100000,
 		0b00000000,
 		0b00000000,
 		0b00000000,
@@ -84,16 +94,20 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
 		SDL_Rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
 
 		bool over = false;
+		bool down = false;
 		if (checkMousePos(&rect))
 		{
 			setCursor(SDL_SYSTEM_CURSOR_HAND);
 			over = true;
 
+			if (checkMouseDown(&rect, SDL_BUTTON_LEFT))
+				down = true;
+
 			if (checkMouseClick(&rect, SDL_BUTTON_LEFT))
 				set(music, -1, channel);
 		}
 
-		drawBitIcon(rect.x, rect.y, LeftArrow, (over ? tic_color_light_blue : tic_color_dark_gray));
+		drawBitIcon(rect.x, rect.y + (down ? 1 : 0), LeftArrow, (over ? tic_color_light_blue : tic_color_dark_gray));
 	}
 
 	{
@@ -116,6 +130,7 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
 		}
 
 		music->tic->api.rect(music->tic, rect.x, rect.y, rect.w, rect.h, (tic_color_black));
+		drawDownBorder(music, rect.x, rect.y, rect.w, rect.h);
 
 		if(music->tracker.row == -1 && music->tracker.col / CHANNEL_COLS == channel)
 		{
@@ -133,16 +148,20 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
 		SDL_Rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
 
 		bool over = false;
+		bool down = false;
 		if (checkMousePos(&rect))
 		{
 			setCursor(SDL_SYSTEM_CURSOR_HAND);
 			over = true;
 
+			if (checkMouseDown(&rect, SDL_BUTTON_LEFT))
+				down = true;
+
 			if (checkMouseClick(&rect, SDL_BUTTON_LEFT))
 				set(music, +1, channel);
 		}
 
-		drawBitIcon(rect.x, rect.y, RightArrow, (over ? tic_color_light_blue : tic_color_dark_gray));
+		drawBitIcon(rect.x, rect.y + (down ? 1 : 0), RightArrow, (over ? tic_color_light_blue : tic_color_dark_gray));
 	}
 }
 
@@ -172,6 +191,7 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
 		0b00000000,
 	};
 
+	music->tic->api.text(music->tic, label, x, y+1, (tic_color_black));
 	music->tic->api.text(music->tic, label, x, y, (tic_color_white));
 
 	{
@@ -179,20 +199,28 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
 
 		SDL_Rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
 
+		bool over = false;
+		bool down = false;
 		if (checkMousePos(&rect))
 		{
 			setCursor(SDL_SYSTEM_CURSOR_HAND);
+
+			over = true;
+
+			if (checkMouseDown(&rect, SDL_BUTTON_LEFT))
+				down = true;
 
 			if (checkMouseClick(&rect, SDL_BUTTON_LEFT))
 				set(music, -1, data);
 		}
 
-		drawBitIcon(rect.x, rect.y, LeftArrow, (tic_color_dark_gray));
+		drawBitIcon(rect.x, rect.y + (down ? 1 : 0), LeftArrow, over ? tic_color_light_blue : tic_color_dark_gray);
 	}
 
 	{
 		char val[] = "999";
 		sprintf(val, "%02i", value);
+		music->tic->api.fixed_text(music->tic, val, x + TIC_FONT_WIDTH, y+1, (tic_color_black));
 		music->tic->api.fixed_text(music->tic, val, x += TIC_FONT_WIDTH, y, (tic_color_white));
 	}
 
@@ -201,15 +229,22 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
 
 		SDL_Rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
 
+		bool over = false;
+		bool down = false;
 		if (checkMousePos(&rect))
 		{
 			setCursor(SDL_SYSTEM_CURSOR_HAND);
+
+			over = true;
+
+			if (checkMouseDown(&rect, SDL_BUTTON_LEFT))
+				down = true;
 
 			if (checkMouseClick(&rect, SDL_BUTTON_LEFT))
 				set(music, +1, data);
 		}
 
-		drawBitIcon(rect.x, rect.y, RightArrow, (tic_color_dark_gray));
+		drawBitIcon(rect.x, rect.y + (down ? 1 : 0), RightArrow, over ? tic_color_light_blue : tic_color_dark_gray);
 	}
 }
 
@@ -1113,6 +1148,7 @@ static void drawTrackerFrames(Music* music, s32 x, s32 y)
 		}
 
 		music->tic->api.rect(music->tic, rect.x, rect.y, rect.w, rect.h, (tic_color_black));
+		drawDownBorder(music, rect.x, rect.y, rect.w, rect.h);
 	}
 
 	for (s32 i = 0; i < MUSIC_FRAMES; i++)
@@ -1131,7 +1167,8 @@ static void drawTrackerFrames(Music* music, s32 x, s32 y)
 				0b00000000,
 			};
 
-			drawBitIcon(x - TIC_FONT_WIDTH, y - 1 + i*TIC_FONT_HEIGHT, Icon, (tic_color_white));
+			drawBitIcon(x - TIC_FONT_WIDTH-1, y + i*TIC_FONT_HEIGHT, Icon, tic_color_black);
+			drawBitIcon(x - TIC_FONT_WIDTH-1, y - 1 + i*TIC_FONT_HEIGHT, Icon, tic_color_white);
 		}
 
 		if (i == music->tracker.frame)
@@ -1148,7 +1185,8 @@ static void drawTrackerFrames(Music* music, s32 x, s32 y)
 	{
 		char buf[] = "99";
 		sprintf(buf, "%02i", music->tracker.row);
-		music->tic->api.fixed_text(music->tic, buf, x, y - 9, (tic_color_white));
+		music->tic->api.fixed_text(music->tic, buf, x, y - 10, (tic_color_black));
+		music->tic->api.fixed_text(music->tic, buf, x, y - 11, (tic_color_white));
 	}
 }
 
@@ -1216,6 +1254,7 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 	}
 
 	music->tic->api.rect(music->tic, rect.x, rect.y, rect.w, rect.h, (tic_color_black));
+	drawDownBorder(music, rect.x, rect.y, rect.w, rect.h);
 
 	s32 start = music->tracker.scroll;
 	s32 end = start + Rows;
@@ -1297,7 +1336,7 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 		}
 
 		if (i % NOTES_PER_BEET == 0)
-			music->tic->api.pixel(music->tic, x - 4, y + pos*TIC_FONT_HEIGHT + 2, (tic_color_dark_gray));
+			music->tic->api.pixel(music->tic, x - 4, y + pos*TIC_FONT_HEIGHT + 2, (tic_color_black));
 	}
 }
 
@@ -1341,8 +1380,8 @@ static void drawTracker(Music* music, s32 x, s32 y)
 	for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
 	{
 		s32 patternId = tic_tool_get_pattern_id(getTrack(music), music->tracker.frame, i);
-		drawEditbox(music, x + ChannelWidth * i + 2*TIC_FONT_WIDTH, y - 9, patternId, setChannelPattern, i);
-		drawTumbler(music, x + ChannelWidth * i + 7*TIC_FONT_WIDTH, y - 9, i);
+		drawEditbox(music, x + ChannelWidth * i + 2*TIC_FONT_WIDTH, y - 11, patternId, setChannelPattern, i);
+		drawTumbler(music, x + ChannelWidth * i + 7*TIC_FONT_WIDTH, y - 11, i);
 	}
 
 	for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
@@ -1453,9 +1492,10 @@ static void drawModeTabs(Music* music)
 	{
 		SDL_Rect rect = { TIC80_WIDTH - Width * (Count - i), 0, Width, Height };
 
-		bool over = false;
 
 		static const s32 Tabs[] = { MUSIC_PIANO_TAB, MUSIC_TRACKER_TAB };
+
+		bool over = false;
 
 		if (checkMousePos(&rect))
 		{
@@ -1470,7 +1510,10 @@ static void drawModeTabs(Music* music)
 		}
 
 		if (music->tab == Tabs[i])
+		{
 			music->tic->api.rect(music->tic, rect.x, rect.y, rect.w, rect.h, (tic_color_gray));
+			drawBitIcon(rect.x, rect.y + 1, Icons + i*Rows, tic_color_black);
+		}
 
 		drawBitIcon(rect.x, rect.y, Icons + i*Rows, music->tab == Tabs[i] ? (tic_color_white) : over ? (tic_color_dark_gray) : (tic_color_light_blue));
 	}
@@ -1573,8 +1616,8 @@ static void drawTrackerLayout(Music* music)
 
 	music->tic->api.clear(music->tic, (tic_color_gray));
 
-	drawTopPanel(music, 6, TOOLBAR_SIZE + 3);
-	drawTracker(music, 6, 35);
+	drawTopPanel(music, 7, TOOLBAR_SIZE + 4);
+	drawTracker(music, 7, 35);
 }
 
 static void tick(Music* music)
