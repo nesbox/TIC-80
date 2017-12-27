@@ -1509,7 +1509,7 @@ static void updateSaveid(tic_mem* memory)
 	const char* saveid = readMetatag(memory->cart.bank0.code.data, "saveid", api_get_script_config(memory)->singleComment);
 	if(saveid)
 	{
-		strcpy(memory->saveid, saveid);
+		strncpy(memory->saveid, saveid, TIC_SAVEID_SIZE-1);
 		free((void*)saveid);
 	}
 }

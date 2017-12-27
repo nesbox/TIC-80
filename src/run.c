@@ -76,16 +76,12 @@ static char* data2md5(const void* data, s32 length)
 	return out;
 }
 
-static const char* getPMemName(Run* run)
+static void initPMemName(Run* run)
 {
-	static char buffer[FILENAME_MAX];
-
 	const char* data = strlen(run->tic->saveid) ? run->tic->saveid : run->tic->cart.bank0.code.data;
 	char* md5 = data2md5(data, (s32)strlen(data));
-	strcpy(buffer, TIC_LOCAL);
-	strcat(buffer, md5);
-
-	return buffer;
+	strcpy(run->saveid, TIC_LOCAL);
+	strcat(run->saveid, md5);
 }
 
 static void tick(Run* run)
@@ -99,11 +95,10 @@ static void tick(Run* run)
 
 	enum {Size = sizeof(tic_persistent)};
 
-	if(SDL_memcmp(&run->tic->ram.persistent, run->persistent, Size) != 0)
+	if(SDL_memcmp(&run->tic->persistent, &run->persistent, Size) != 0)
 	{		
-		fsSaveRootFile(run->console->fs, getPMemName(run), &run->tic->ram.persistent, Size, true);
-
-		SDL_memcpy(run->persistent, &run->tic->ram.persistent, Size);
+		fsSaveRootFile(run->console->fs, run->saveid, &run->tic->persistent, Size, true);
+		SDL_memcpy(&run->persistent, &run->tic->persistent, Size);
 	}
 
 	if(run->exit)
@@ -203,15 +198,19 @@ void initRun(Run* run, Console* console, tic_mem* tic)
 
 	{
 		enum {Size = sizeof(tic_persistent)};
-		SDL_memset(&run->tic->ram.persistent, 0, Size);
+		SDL_memset(&run->tic->persistent, 0, Size);
+
+		initPMemName(run);
 
 		s32 size = 0;
-		void* data = fsLoadRootFile(run->console->fs, getPMemName(run), &size);
+		void* data = fsLoadRootFile(run->console->fs, run->saveid, &size);
 
-		if(size == Size && data)
+		if(size > Size) size = Size;
+
+		if(data)
 		{
-			SDL_memcpy(&run->tic->ram.persistent, data, Size);
-			SDL_memcpy(run->persistent, data, Size);
+			SDL_memcpy(&run->tic->persistent, data, size);
+			SDL_memcpy(&run->persistent, data, size);
 		}
 
 		if(data) SDL_free(data);

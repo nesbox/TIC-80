@@ -173,6 +173,7 @@ struct tic_mem
 	tic_input_method 	input;
 	tic_font 			font;
 	tic_api 			api;
+	tic_persistent		persistent;
 
 	char saveid[TIC_SAVEID_SIZE];
 

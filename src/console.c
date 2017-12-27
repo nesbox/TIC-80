@@ -2186,7 +2186,7 @@ static void onConsoleRamCommand(Console* console, const char* param)
 		{offsetof(tic_ram, tiles), 						"TILES"},
 		{offsetof(tic_ram, sprites), 					"SPRITES"},
 		{offsetof(tic_ram, map), 						"MAP"},
-		{offsetof(tic_ram, persistent), 				"PERSISTENT MEMORY"},
+		{offsetof(tic_ram, unknown), 					"..."},
 		{offsetof(tic_ram, registers), 					"SOUND REGISTERS"},
 		{offsetof(tic_ram, sfx.waveform), 				"WAVEFORMS"},
 		{offsetof(tic_ram, sfx.samples),				"SFX"},

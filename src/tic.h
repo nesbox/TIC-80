@@ -75,7 +75,7 @@
 #define TIC_MAP_WIDTH (TIC_MAP_SCREEN_WIDTH * TIC_MAP_ROWS)
 #define TIC_MAP_HEIGHT (TIC_MAP_SCREEN_HEIGHT * TIC_MAP_COLS)
 
-#define TIC_PERSISTENT_SIZE ((56-25)/sizeof(s32))
+#define TIC_PERSISTENT_SIZE (1024/sizeof(s32)) // 1K
 #define TIC_SAVEID_SIZE 64
 
 #define TIC_SOUND_CHANNELS 4
@@ -415,7 +415,7 @@ typedef union
 		tic_tiles tiles;
 		tic_tiles sprites;
 		tic_map map;
-		tic_persistent persistent;
+		u8 unknown[28];
 		tic_sound_register registers[TIC_SOUND_CHANNELS];
 		tic_sfx sfx;
 		tic_music music;
