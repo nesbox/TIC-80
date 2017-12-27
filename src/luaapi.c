@@ -360,7 +360,7 @@ static s32 lua_btnp(lua_State* lua)
 	tic_machine* machine = getLuaMachine(lua);
 	tic_mem* memory = (tic_mem*)machine;
 
-	if(machine->memory.input == tic_gamepad_input)
+	if(machine->memory.input.gamepad)
 	{
 		s32 top = lua_gettop(lua);
 
@@ -395,18 +395,18 @@ static s32 lua_btn(lua_State* lua)
 {
 	tic_machine* machine = getLuaMachine(lua);
 
-	if(machine->memory.input == tic_gamepad_input)
+	if(machine->memory.input.gamepad)
 	{
 		s32 top = lua_gettop(lua);
 
 		if (top == 0)
 		{
-			lua_pushinteger(lua, machine->memory.ram.vram.input.gamepad.data);
+			lua_pushinteger(lua, machine->memory.ram.input.gamepads.data);
 		}
 		else if (top == 1)
 		{
 			s32 index = getLuaNumber(lua, 1) & 0xf;
-			lua_pushboolean(lua, machine->memory.ram.vram.input.gamepad.data & (1 << index));
+			lua_pushboolean(lua, machine->memory.ram.input.gamepads.data & (1 << index));
 		}
 		else luaL_error(lua, "invalid params, btn [ id ]\n");
 
@@ -1033,15 +1033,17 @@ static s32 lua_mouse(lua_State *lua)
 {
 	tic_machine* machine = getLuaMachine(lua);
 
-	if(machine->memory.input == tic_mouse_input)
+	if(machine->memory.input.mouse)
 	{
-		u16 data = machine->memory.ram.vram.input.gamepad.data;
+		const tic80_mouse* mouse = &machine->memory.ram.input.mouse;
 
-		lua_pushinteger(lua, (data & 0x7fff) % TIC80_WIDTH);
-		lua_pushinteger(lua, (data & 0x7fff) / TIC80_WIDTH);
-		lua_pushboolean(lua, data >> 15);
+		lua_pushinteger(lua, mouse->x);
+		lua_pushinteger(lua, mouse->y);
+		lua_pushboolean(lua, mouse->left);
+		lua_pushboolean(lua, mouse->middle);
+		lua_pushboolean(lua, mouse->right);
 
-		return 3;		
+		return 5;
 	}
 	else luaL_error(lua, "mouse input not declared in metadata\n");
 

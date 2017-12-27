@@ -195,16 +195,16 @@ static duk_ret_t duk_btn(duk_context* duk)
 {
 	tic_machine* machine = getDukMachine(duk);
 
-	if(machine->memory.input == tic_gamepad_input)
+	if(machine->memory.input.gamepad)
 	{
 		if (duk_is_null_or_undefined(duk, 0))
 		{
-			duk_push_uint(duk, machine->memory.ram.vram.input.gamepad.data);
+			duk_push_uint(duk, machine->memory.ram.input.gamepads.data);
 		}
 		else
 		{
 			s32 index = duk_to_int(duk, 0) & 0xf;
-			duk_push_boolean(duk, machine->memory.ram.vram.input.gamepad.data & (1 << index));
+			duk_push_boolean(duk, machine->memory.ram.input.gamepads.data & (1 << index));
 		}
 
 		return 1;		
@@ -219,7 +219,7 @@ static duk_ret_t duk_btnp(duk_context* duk)
 	tic_machine* machine = getDukMachine(duk);
 	tic_mem* memory = (tic_mem*)machine;
 
-	if(machine->memory.input == tic_gamepad_input)
+	if(machine->memory.input.gamepad)
 	{
 		if (duk_is_null_or_undefined(duk, 0))
 		{
@@ -580,17 +580,21 @@ static duk_ret_t duk_mouse(duk_context* duk)
 {
 	tic_machine* machine = getDukMachine(duk);
 
-	if(machine->memory.input == tic_mouse_input)
+	if(machine->memory.input.mouse)
 	{
-		u16 data = machine->memory.ram.vram.input.gamepad.data;
+		const tic80_mouse* mouse = &machine->memory.ram.input.mouse;
 
 		duk_idx_t idx = duk_push_array(duk);
-		duk_push_int(duk, (data & 0x7fff) % TIC80_WIDTH);
+		duk_push_int(duk, mouse->x);
 		duk_put_prop_index(duk, idx, 0);
-		duk_push_int(duk, (data & 0x7fff) / TIC80_WIDTH);
+		duk_push_int(duk, mouse->y);
 		duk_put_prop_index(duk, idx, 1);
-		duk_push_int(duk, data >> 15);
+		duk_push_boolean(duk, mouse->left);
 		duk_put_prop_index(duk, idx, 2);
+		duk_push_boolean(duk, mouse->middle);
+		duk_put_prop_index(duk, idx, 3);
+		duk_push_boolean(duk, mouse->right);
+		duk_put_prop_index(duk, idx, 4);
 
 		return 1;
 	}

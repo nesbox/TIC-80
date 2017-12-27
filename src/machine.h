@@ -64,10 +64,10 @@ typedef struct
 
 	struct
 	{
-		tic80_input previous;
+		tic80_gamepads previous;
 
-		u32 holds[sizeof(tic80_input) * BITS_IN_BYTE];
-	} gamepad;
+		u32 holds[sizeof(tic80_gamepads) * BITS_IN_BYTE];
+	} gamepads;
 
 	Clip clip;
 

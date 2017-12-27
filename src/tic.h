@@ -59,7 +59,6 @@
 #define TIC_PALETTE_SIZE (1 << TIC_PALETTE_BPP)
 #define TIC_FRAMERATE 60
 #define TIC_SPRITESIZE 8
-#define TIC_GAMEPAD_MASK 0xff
 
 #define BITS_IN_BYTE 8
 #define TIC_BANK_SPRITES (1 << BITS_IN_BYTE)
@@ -385,18 +384,10 @@ typedef union
 				s8 y;
 			} offset;
 
-			union
-			{
-				u8 cursor;
-				tic80_gamepad mask;
-			};
+			u8 cursor;
 		} vars;
 
-		struct
-		{
-			tic80_input gamepad;
-			u8 reserved[2];
-		} input;
+		u8 reserved[4];
 	};
 	
 	u8 data[TIC_VRAM_SIZE];
@@ -415,7 +406,8 @@ typedef union
 		tic_tiles tiles;
 		tic_tiles sprites;
 		tic_map map;
-		u8 unknown[28];
+		tic80_input input;
+		u8 unknown[16];
 		tic_sound_register registers[TIC_SOUND_CHANNELS];
 		tic_sfx sfx;
 		tic_music music;
@@ -425,8 +417,3 @@ typedef union
 	u8 data[TIC_RAM_SIZE];
 } tic_ram;
 
-typedef enum
-{
-	tic_gamepad_input,
-	tic_mouse_input,
-} tic_input_method;

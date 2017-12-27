@@ -170,12 +170,23 @@ struct tic_mem
 	tic_ram 			ram;
 	tic_cartridge 		cart;
 	tic_cartridge		config;
-	tic_input_method 	input;
 	tic_font 			font;
 	tic_api 			api;
 	tic_persistent		persistent;
 
 	char saveid[TIC_SAVEID_SIZE];
+
+	union
+	{
+		struct
+		{
+			u8 gamepad:1;
+			u8 mouse:1;
+			u8 keyboard:1;
+		};
+
+		u8 data;
+	} input;
 
 	struct
 	{

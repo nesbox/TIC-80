@@ -77,15 +77,44 @@ typedef union
 	{
 		tic80_gamepad first;
 		tic80_gamepad second;
+		tic80_gamepad third;
+		tic80_gamepad fourth;
 	};
 
-	struct
+	u32 data;
+} tic80_gamepads;
+
+typedef struct
+{
+	u8 x;
+	u8 y;
+	
+	union
 	{
-		u16 mouse:15;
-		u16 pressed:1;
-	};
+		struct
+		{
+			u16 left:1;
+			u16 middle:1;
+			u16 right:1;
 
-	u16 data;
+			u16 scroll:13;
+		};
+
+		u16 btns;
+	};
+} tic80_mouse;
+
+typedef struct
+{
+	u8 data[4];
+} tic80_keyboard;
+
+typedef struct
+{
+	tic80_gamepads gamepads;
+	tic80_mouse mouse;
+	tic80_keyboard keyboard;
+
 } tic80_input;
 
 TIC80_API tic80* tic80_create(s32 samplerate);

@@ -117,7 +117,7 @@ TIC80_API void tic80_tick(tic80* tic, tic80_input input)
 {
 	tic80_local* tic80 = (tic80_local*)tic;
 
-	tic80->memory->ram.vram.input.gamepad.data = input.data;
+	tic80->memory->ram.input = input;
 	
 	tic80->memory->api.tick_start(tic80->memory, &tic80->memory->ram.sfx, &tic80->memory->ram.music);
 	tic80->memory->api.tick(tic80->memory, &tic80->tickData);

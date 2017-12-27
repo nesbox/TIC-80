@@ -49,7 +49,7 @@
 
 #define TEXTURE_SIZE (TIC80_FULLWIDTH)
 
-#define MAX_CONTROLLERS 4
+#define MAX_CONTROLLERS (sizeof(tic80_gamepads))
 #define STUDIO_PIXEL_FORMAT SDL_PIXELFORMAT_ARGB8888
 
 #define FRAME_SIZE (TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32))
@@ -141,9 +141,9 @@ static struct
 
 	struct
 	{
-		tic80_input keyboard;
-		tic80_input touch;
-		tic80_input joystick;
+		tic80_gamepads keyboard;
+		tic80_gamepads touch;
+		tic80_gamepads joystick;
 
 		SDL_Texture* texture;
 
@@ -161,7 +161,7 @@ static struct
 			SDL_Point x;
 			SDL_Point y;
 		} part;
-	}gamepad;
+	} gamepad;
 
 	struct
 	{
@@ -1382,7 +1382,7 @@ static s32 getAxisMask(SDL_Joystick* joystick)
 
 static s32 getJoystickHatMask(s32 hat)
 {
-	tic80_input gamepad;
+	tic80_gamepads gamepad;
 	gamepad.data = 0;
 
 	gamepad.first.up = hat & SDL_HAT_UP;
@@ -1520,13 +1520,11 @@ static void processJoysticks()
 
 static void processGamepad()
 {
-	studio.tic->ram.vram.input.gamepad.data = 0;
+	studio.tic->ram.input.gamepads.data = 0;
 
-	studio.tic->ram.vram.input.gamepad.data |= studio.gamepad.keyboard.data;
-	studio.tic->ram.vram.input.gamepad.data |= studio.gamepad.touch.data;
-	studio.tic->ram.vram.input.gamepad.data |= studio.gamepad.joystick.data;
-	studio.tic->ram.vram.input.gamepad.data &= studio.tic->ram.vram.vars.mask.data |
-		(studio.tic->ram.vram.vars.mask.data << (sizeof(tic80_gamepad)*BITS_IN_BYTE));
+	studio.tic->ram.input.gamepads.data |= studio.gamepad.keyboard.data;
+	studio.tic->ram.input.gamepads.data |= studio.gamepad.touch.data;
+	studio.tic->ram.input.gamepads.data |= studio.gamepad.joystick.data;
 }
 
 static void processGesture()
@@ -1896,8 +1894,17 @@ static void processMouseInput()
 	if(x >= TIC80_WIDTH) x = TIC80_WIDTH-1;
 	if(y >= TIC80_HEIGHT) y = TIC80_HEIGHT-1;
 
-	studio.tic->ram.vram.input.gamepad.mouse = x + y * TIC80_WIDTH;
-	studio.tic->ram.vram.input.gamepad.pressed = studio.mouse.state->down ? 1 : 0;
+	tic80_mouse* mouse = &studio.tic->ram.input.mouse;
+	mouse->x = x;
+	mouse->y = y;
+	mouse->left = studio.mouse.state[0].down ? 1 : 0;
+	mouse->middle = studio.mouse.state[1].down ? 1 : 0;
+	mouse->right = studio.mouse.state[2].down ? 1 : 0;
+}
+
+static void processKeyboardInput()
+{
+
 }
 
 #if defined(TIC80_PRO)
@@ -2010,16 +2017,9 @@ SDL_Event* pollEvent()
 
 	if(studio.mode == TIC_RUN_MODE)
 	{
-		switch(studio.tic->input)
-		{
-		case tic_gamepad_input:
-			processGamepadInput();
-			break;
-
-		case tic_mouse_input:
-			processMouseInput();
-			break;
-		}
+		if(studio.tic->input.gamepad) 	processGamepadInput();
+		if(studio.tic->input.mouse) 	processMouseInput();
+		if(studio.tic->input.keyboard) 	processKeyboardInput();
 	}
 	else
 	{
@@ -2255,7 +2255,6 @@ static void blitCursor(const u8* in)
 static void renderCursor()
 {
 	if(studio.mode == TIC_RUN_MODE &&
-		studio.tic->input == tic_mouse_input &&
 		studio.tic->ram.vram.vars.cursor)
 		{
 			SDL_ShowCursor(SDL_DISABLE);
@@ -2430,29 +2429,26 @@ static void renderGamepad()
 	typedef struct { bool press; s32 x; s32 y;} Tile;
 	const Tile Tiles[] =
 	{
-		{studio.tic->ram.vram.input.gamepad.first.up, 		axis.x + 1*tileSize, axis.y + 0*tileSize},
-		{studio.tic->ram.vram.input.gamepad.first.down, 	axis.x + 1*tileSize, axis.y + 2*tileSize},
-		{studio.tic->ram.vram.input.gamepad.first.left, 	axis.x + 0*tileSize, axis.y + 1*tileSize},
-		{studio.tic->ram.vram.input.gamepad.first.right, 	axis.x + 2*tileSize, axis.y + 1*tileSize},
+		{studio.tic->ram.input.gamepads.first.up, 		axis.x + 1*tileSize, axis.y + 0*tileSize},
+		{studio.tic->ram.input.gamepads.first.down, 	axis.x + 1*tileSize, axis.y + 2*tileSize},
+		{studio.tic->ram.input.gamepads.first.left, 	axis.x + 0*tileSize, axis.y + 1*tileSize},
+		{studio.tic->ram.input.gamepads.first.right, 	axis.x + 2*tileSize, axis.y + 1*tileSize},
 
-		{studio.tic->ram.vram.input.gamepad.first.a, 		studio.gamepad.part.a.x, studio.gamepad.part.a.y},
-		{studio.tic->ram.vram.input.gamepad.first.b, 		studio.gamepad.part.b.x, studio.gamepad.part.b.y},
-		{studio.tic->ram.vram.input.gamepad.first.x, 		studio.gamepad.part.x.x, studio.gamepad.part.x.y},
-		{studio.tic->ram.vram.input.gamepad.first.y, 		studio.gamepad.part.y.x, studio.gamepad.part.y.y},
+		{studio.tic->ram.input.gamepads.first.a, 		studio.gamepad.part.a.x, studio.gamepad.part.a.y},
+		{studio.tic->ram.input.gamepads.first.b, 		studio.gamepad.part.b.x, studio.gamepad.part.b.y},
+		{studio.tic->ram.input.gamepads.first.x, 		studio.gamepad.part.x.x, studio.gamepad.part.x.y},
+		{studio.tic->ram.input.gamepads.first.y, 		studio.gamepad.part.y.x, studio.gamepad.part.y.y},
 	};
 
 	enum {ButtonsCount = 8};
 
 	for(s32 i = 0; i < COUNT_OF(Tiles); i++)
 	{
-		if(studio.tic->ram.vram.vars.mask.data & (1 << i))
-		{
-			const Tile* tile = Tiles + i;
-			SDL_Rect src = {(tile->press ? ButtonsCount + i : i) * TIC_SPRITESIZE, 0, TIC_SPRITESIZE, TIC_SPRITESIZE};
-			SDL_Rect dest = {tile->x, tile->y, tileSize, tileSize};
+		const Tile* tile = Tiles + i;
+		SDL_Rect src = {(tile->press ? ButtonsCount + i : i) * TIC_SPRITESIZE, 0, TIC_SPRITESIZE, TIC_SPRITESIZE};
+		SDL_Rect dest = {tile->x, tile->y, tileSize, tileSize};
 
-			SDL_RenderCopy(studio.renderer, studio.gamepad.texture, &src, &dest);
-		}
+		SDL_RenderCopy(studio.renderer, studio.gamepad.texture, &src, &dest);
 	}
 
 	if(!studio.gamepad.show && studio.gamepad.alpha)
@@ -2493,7 +2489,7 @@ static void tick()
 
 	renderStudio();
 
-	if(studio.mode == TIC_RUN_MODE && studio.tic->input == tic_gamepad_input)
+	if(studio.mode == TIC_RUN_MODE && studio.tic->input.gamepad)
 		renderGamepad();
 
 	if(studio.mode == TIC_MENU_MODE || studio.mode == TIC_SURF_MODE)
