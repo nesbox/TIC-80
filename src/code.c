@@ -666,14 +666,15 @@ static void doTab(Code* code, bool shift, bool crtl)
 		}
 		
 		if(changed) {
-			history(code);
-			parseSyntaxColor(code);
 			
 			if(has_selection) {
 				code->cursor.position = start;
 				code->cursor.selection = end;
 			}
 			else if (start <= end) code->cursor.position = end;
+			
+			history(code);
+			parseSyntaxColor(code);
 		}
 	}
 	else inputSymbolBase(code, '\t');
