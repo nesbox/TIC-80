@@ -617,20 +617,31 @@ static void redo(Code* code)
 	update(code);
 }
 
-static void doTab(Code* code, bool shift)
+static void doTab(Code* code, bool shift, bool crtl)
 {
-	char* pos = code->cursor.position;
-	char* sel = code->cursor.selection;
-
-	if(sel && sel != pos)
+	char* cursor_position = code->cursor.position;
+	char* cursor_selection = code->cursor.selection;
+	
+	bool has_selection = cursor_selection && cursor_selection != cursor_position;
+	bool modifier_key_pressed = shift || crtl;
+	
+	if(has_selection || modifier_key_pressed)
 	{
-		char* start = SDL_min(sel, pos);
-		char* end = SDL_max(sel, pos);
+		char* start;
+		char* end;
+		
 		bool changed = false;
+		
+		if(cursor_selection) {
+			start = SDL_min(cursor_selection, cursor_position);
+			end = SDL_max(cursor_selection, cursor_position);
+		} else {
+			start = end = cursor_position;
+		}
 
 		char* line = start = getLineByPos(code, start);
 
-		while(line && line < end)
+		while(line)
 		{
 			if(shift)
 			{
@@ -649,18 +660,21 @@ static void doTab(Code* code, bool shift)
 
 				changed = true;
 			}
-
+			
 			line = getNextLineByPos(code, line);
+			if(line >= end) break;
 		}
-
-		code->cursor.position = start;
-		code->cursor.selection = end;
-
-		if(changed)
+		
+		if(changed) {
 			history(code);
-
-		parseSyntaxColor(code);
-
+			parseSyntaxColor(code);
+			
+			if(has_selection) {
+				code->cursor.position = start;
+				code->cursor.selection = end;
+			}
+			else if (start <= end) code->cursor.position = end;
+		}
 	}
 	else inputSymbolBase(code, '\t');
 }
@@ -896,6 +910,7 @@ static void processKeydown(Code* code, SDL_Keycode keycode)
 			{
 			case SDLK_LEFT: 	leftWord(code); break;
 			case SDLK_RIGHT: 	rightWord(code); break;
+			case SDLK_TAB:		doTab(code, keymod & KMOD_SHIFT, keymod & KMOD_CTRL); break;
 			}
 		}
 		else if(keymod & KMOD_GUI)
@@ -943,7 +958,7 @@ static void processKeydown(Code* code, SDL_Keycode keycode)
 		case SDLK_DELETE: 		deleteChar(code); break;
 		case SDLK_BACKSPACE: 	backspaceChar(code); break;
 		case SDLK_RETURN: 		newLine(code); break;
-		case SDLK_TAB: 			doTab(code, keymod & KMOD_SHIFT); break;
+		case SDLK_TAB: 			doTab(code, keymod & KMOD_SHIFT, keymod & KMOD_CTRL); break;
 		}
 	}
 
