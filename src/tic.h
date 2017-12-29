@@ -419,6 +419,7 @@ typedef union
 
 enum
 {
+	tic_key_unknown,
 	tic_key_up,
 	tic_key_down,
 	tic_key_left,

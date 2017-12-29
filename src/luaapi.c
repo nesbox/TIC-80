@@ -794,9 +794,9 @@ static s32 lua_key(lua_State* lua)
 
 	if (top == 1)
 	{
-		u8 index = getLuaNumber(lua, 1);
+		u8 index = getLuaNumber(lua, 1)+1;
 
-		if(index != 0xff)
+		if(index > tic_key_unknown)
 		{
 			for(s32 i = 0; i < COUNT_OF(input->keyboard.keys); i++)
 			{
