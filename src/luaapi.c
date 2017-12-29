@@ -360,61 +360,57 @@ static s32 lua_btnp(lua_State* lua)
 	tic_machine* machine = getLuaMachine(lua);
 	tic_mem* memory = (tic_mem*)machine;
 
-	if(machine->memory.input.gamepad)
+	s32 top = lua_gettop(lua);
+
+	if (top == 0)
 	{
-		s32 top = lua_gettop(lua);
-
-		if (top == 0)
-		{
-			lua_pushinteger(lua, memory->api.btnp(memory, -1, -1, -1));
-		}
-		else if(top == 1)
-		{
-			s32 index = getLuaNumber(lua, 1) & 0xf;
-
-			lua_pushboolean(lua, memory->api.btnp(memory, index, -1, -1));
-		}
-		else if (top == 3)
-		{
-			s32 index = getLuaNumber(lua, 1) & 0xf;
-			u32 hold = getLuaNumber(lua, 2);
-			u32 period = getLuaNumber(lua, 3);
-
-			lua_pushboolean(lua, memory->api.btnp(memory, index, hold, period));
-		}
-		else luaL_error(lua, "invalid params, btnp [ id [ hold period ] ]\n");
-
-		return 1;
+		lua_pushinteger(lua, memory->api.btnp(memory, -1, -1, -1));
 	}
-	else luaL_error(lua, "gamepad input not declared in metadata\n");
+	else if(top == 1)
+	{
+		s32 index = getLuaNumber(lua, 1) & 0x1f;
 
-	return 0;
+		lua_pushboolean(lua, memory->api.btnp(memory, index, -1, -1));
+	}
+	else if (top == 3)
+	{
+		s32 index = getLuaNumber(lua, 1) & 0x1f;
+		u32 hold = getLuaNumber(lua, 2);
+		u32 period = getLuaNumber(lua, 3);
+
+		lua_pushboolean(lua, memory->api.btnp(memory, index, hold, period));
+	}
+	else
+	{
+		luaL_error(lua, "invalid params, btnp [ id [ hold period ] ]\n");
+		return 0;
+	}
+
+	return 1;
 }
 
 static s32 lua_btn(lua_State* lua)
 {
 	tic_machine* machine = getLuaMachine(lua);
 
-	if(machine->memory.input.gamepad)
+	s32 top = lua_gettop(lua);
+
+	if (top == 0)
 	{
-		s32 top = lua_gettop(lua);
-
-		if (top == 0)
-		{
-			lua_pushinteger(lua, machine->memory.ram.input.gamepads.data);
-		}
-		else if (top == 1)
-		{
-			s32 index = getLuaNumber(lua, 1) & 0xf;
-			lua_pushboolean(lua, machine->memory.ram.input.gamepads.data & (1 << index));
-		}
-		else luaL_error(lua, "invalid params, btn [ id ]\n");
-
-		return 1;		
+		lua_pushinteger(lua, machine->memory.ram.input.gamepads.data);
 	}
-	else luaL_error(lua, "gamepad input not declared in metadata\n");
+	else if (top == 1)
+	{
+		u32 index = getLuaNumber(lua, 1) & 0x1f;
+		lua_pushboolean(lua, machine->memory.ram.input.gamepads.data & (1 << index));
+	}
+	else
+	{
+		luaL_error(lua, "invalid params, btn [ id ]\n");
+		return 0;
+	} 
 
-	return 0;
+	return 1;
 }
 
 static s32 lua_spr(lua_State* lua)
@@ -784,6 +780,80 @@ static s32 lua_reset(lua_State* lua)
 	return 0;
 }
 
+static s32 lua_key(lua_State* lua)
+{
+	tic_machine* machine = getLuaMachine(lua);
+	tic_mem* tic = &machine->memory;
+
+	s32 top = lua_gettop(lua);
+
+	if (top == 0)
+	{
+		lua_pushinteger(lua, tic->api.key(tic, tic_key_unknown));
+	}
+	else if (top == 1)
+	{
+		tic_key key = getLuaNumber(lua, 1) + TIC_KEY_START_INDEX;
+
+		if(key < TIC_KEYS_COUNT)
+			lua_pushboolean(lua, tic->api.key(tic, key));
+		else
+		{
+			luaL_error(lua, "unknown keyboard code\n");
+			return 0;
+		}
+	}
+	else
+	{
+		luaL_error(lua, "invalid params, key [code]\n");
+		return 0;
+	} 
+
+	return 1;
+}
+
+static s32 lua_keyp(lua_State* lua)
+{
+	tic_machine* machine = getLuaMachine(lua);
+	tic_mem* tic = &machine->memory;
+
+	s32 top = lua_gettop(lua);
+
+	if (top == 0)
+	{
+		lua_pushinteger(lua, tic->api.keyp(tic, tic_key_unknown, -1, -1));
+	}
+	else
+	{
+		tic_key key = getLuaNumber(lua, 1) + TIC_KEY_START_INDEX;
+
+		if(key >= TIC_KEYS_COUNT)
+		{
+			luaL_error(lua, "unknown keyboard code\n");
+		}
+		else
+		{
+			if(top == 1)
+			{
+				lua_pushboolean(lua, tic->api.keyp(tic, key, -1, -1));
+
+				return 1;
+			}
+			else if(top == 3)
+			{
+				u32 hold = getLuaNumber(lua, 2);
+				u32 period = getLuaNumber(lua, 3);
+
+				lua_pushboolean(lua, tic->api.keyp(tic, key, hold, period));
+				return 1;
+			}
+			else luaL_error(lua, "invalid params, keyp [ code [ hold period ] ]\n");
+		}
+	}
+
+	return 0;
+}
+
 static s32 lua_memcpy(lua_State* lua)
 {
 	s32 top = lua_gettop(lua);
@@ -1033,21 +1103,15 @@ static s32 lua_mouse(lua_State *lua)
 {
 	tic_machine* machine = getLuaMachine(lua);
 
-	if(machine->memory.input.mouse)
-	{
-		const tic80_mouse* mouse = &machine->memory.ram.input.mouse;
+	const tic80_mouse* mouse = &machine->memory.ram.input.mouse;
 
-		lua_pushinteger(lua, mouse->x);
-		lua_pushinteger(lua, mouse->y);
-		lua_pushboolean(lua, mouse->left);
-		lua_pushboolean(lua, mouse->middle);
-		lua_pushboolean(lua, mouse->right);
+	lua_pushinteger(lua, mouse->x);
+	lua_pushinteger(lua, mouse->y);
+	lua_pushboolean(lua, mouse->left);
+	lua_pushboolean(lua, mouse->middle);
+	lua_pushboolean(lua, mouse->right);
 
-		return 5;
-	}
-	else luaL_error(lua, "mouse input not declared in metadata\n");
-
-	return 0;
+	return 5;
 }
 
 static s32 lua_dofile(lua_State *lua)
@@ -1087,7 +1151,8 @@ static const lua_CFunction ApiFunc[] =
 	lua_rectb, lua_spr, lua_btn, lua_btnp, lua_sfx, lua_map, lua_mget, 
 	lua_mset, lua_peek, lua_poke, lua_peek4, lua_poke4, lua_memcpy, 
 	lua_memset, lua_trace, lua_pmem, lua_time, lua_exit, lua_font, lua_mouse, 
-	lua_circ, lua_circb, lua_tri, lua_textri, lua_clip, lua_music, lua_sync, lua_reset
+	lua_circ, lua_circb, lua_tri, lua_textri, lua_clip, lua_music, lua_sync, lua_reset,
+	lua_key, lua_keyp
 };
 
 STATIC_ASSERT(api_func, COUNT_OF(ApiKeywords) == COUNT_OF(ApiFunc));

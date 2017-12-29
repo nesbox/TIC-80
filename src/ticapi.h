@@ -154,6 +154,8 @@ typedef struct
 	void (*resume)				(tic_mem* memory);
 	void (*sync)				(tic_mem* memory, u32 mask, s32 bank, bool toCart);
 	u32 (*btnp)					(tic_mem* memory, s32 id, s32 hold, s32 period);
+	u32 (*key)					(tic_mem* memory, tic_key key);
+	u32 (*keyp)					(tic_mem* memory, tic_key key, s32 hold, s32 period);
 
 	void (*load)				(tic_cartridge* rom, const u8* buffer, s32 size, bool palette);
 	s32  (*save)				(const tic_cartridge* rom, u8* buffer);

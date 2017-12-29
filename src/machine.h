@@ -31,7 +31,7 @@
 #define API_KEYWORDS {"TIC", "scanline", "OVR", "print", "cls", "pix", "line", "rect", "rectb", \
 	"spr", "btn", "btnp", "sfx", "map", "mget", "mset", "peek", "poke", "peek4", "poke4", \
 	"memcpy", "memset", "trace", "pmem", "time", "exit", "font", "mouse", "circ", "circb", "tri", "textri", \
-	"clip", "music", "sync", "reset"}
+	"clip", "music", "sync", "reset", "key", "keyp"}
 	
 typedef struct
 {
@@ -68,6 +68,13 @@ typedef struct
 
 		u32 holds[sizeof(tic80_gamepads) * BITS_IN_BYTE];
 	} gamepads;
+
+	struct 
+	{
+		tic80_keyboard previous;
+
+		u32 holds[TIC_KEYS_COUNT];
+	} keyboard;
 
 	Clip clip;
 

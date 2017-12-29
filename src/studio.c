@@ -1904,7 +1904,19 @@ static void processMouseInput()
 
 static void processKeyboardInput()
 {
+	static const u8 KeyboardCodes[] = 
+	{
+		#include "keycodes.c"
+	};
 
+	tic80_input* input = &studio.tic->ram.input;
+	input->keyboard.data = 0;
+
+	studio.keyboard = SDL_GetKeyboardState(NULL);
+
+	for(s32 i = 0, c = 0; i < COUNT_OF(KeyboardCodes) && c < COUNT_OF(input->keyboard.keys); i++)
+		if(studio.keyboard[i] && KeyboardCodes[i] > tic_key_unknown)
+			input->keyboard.keys[c++] = KeyboardCodes[i];
 }
 
 #if defined(TIC80_PRO)

@@ -34,6 +34,7 @@ extern "C" {
 #define TIC80_FULLWIDTH_BITS 8
 #define TIC80_FULLWIDTH (1 << TIC80_FULLWIDTH_BITS)
 #define TIC80_FULLHEIGHT (TIC80_FULLWIDTH*9/16)
+#define TIC_KEY_BUFFER 4
 
 typedef struct 
 {
@@ -104,9 +105,12 @@ typedef struct
 	};
 } tic80_mouse;
 
-typedef struct
+typedef u8 tic_key;
+
+typedef union
 {
-	u8 data[4];
+	tic_key keys[TIC_KEY_BUFFER];
+	u32 data;
 } tic80_keyboard;
 
 typedef struct
