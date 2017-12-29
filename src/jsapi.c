@@ -276,13 +276,13 @@ static s32 duk_keyp(duk_context* duk)
 		if(key >= TIC_KEYS_COUNT)
 		{
 			duk_error(duk, DUK_ERR_ERROR, "unknown keyboard code\n");
+			return 0;
 		}
 		else
 		{
 			if(duk_is_null_or_undefined(duk, 1) && duk_is_null_or_undefined(duk, 2))
 			{
 				duk_push_boolean(duk, tic->api.keyp(tic, key, -1, -1));
-				return 1;
 			}
 			else
 			{
@@ -290,12 +290,11 @@ static s32 duk_keyp(duk_context* duk)
 				u32 period = duk_to_int(duk, 2);
 
 				duk_push_boolean(duk, tic->api.keyp(tic, key, hold, period));
-				return 1;
 			}
 		}
 	}
 
-	return 0;
+	return 1;
 }
 
 static duk_ret_t duk_sfx(duk_context* duk)

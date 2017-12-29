@@ -836,8 +836,6 @@ static s32 lua_keyp(lua_State* lua)
 			if(top == 1)
 			{
 				lua_pushboolean(lua, tic->api.keyp(tic, key, -1, -1));
-
-				return 1;
 			}
 			else if(top == 3)
 			{
@@ -845,13 +843,16 @@ static s32 lua_keyp(lua_State* lua)
 				u32 period = getLuaNumber(lua, 3);
 
 				lua_pushboolean(lua, tic->api.keyp(tic, key, hold, period));
-				return 1;
 			}
-			else luaL_error(lua, "invalid params, keyp [ code [ hold period ] ]\n");
+			else
+			{
+				luaL_error(lua, "invalid params, keyp [ code [ hold period ] ]\n");
+				return 0;
+			}
 		}
 	}
 
-	return 0;
+	return 1;
 }
 
 static s32 lua_memcpy(lua_State* lua)
