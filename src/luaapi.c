@@ -795,7 +795,13 @@ static s32 lua_key(lua_State* lua)
 	{
 		tic_key key = getLuaNumber(lua, 1) + TIC_KEY_START_INDEX;
 
-		lua_pushboolean(lua, tic->api.key(tic, key));
+		if(key < TIC_KEYS_COUNT)
+			lua_pushboolean(lua, tic->api.key(tic, key));
+		else
+		{
+			luaL_error(lua, "unknown keyboard code\n");
+			return 0;
+		}
 	}
 	else
 	{
@@ -817,27 +823,35 @@ static s32 lua_keyp(lua_State* lua)
 	{
 		lua_pushinteger(lua, tic->api.keyp(tic, tic_key_unknown, -1, -1));
 	}
-	else if(top == 1)
-	{
-		tic_key key = getLuaNumber(lua, 1) + TIC_KEY_START_INDEX;
-
-		lua_pushboolean(lua, tic->api.keyp(tic, key, -1, -1));
-	}
-	else if(top == 3)
-	{
-		tic_key key = getLuaNumber(lua, 1) + TIC_KEY_START_INDEX;
-		u32 hold = getLuaNumber(lua, 2);
-		u32 period = getLuaNumber(lua, 3);
-
-		lua_pushboolean(lua, tic->api.keyp(tic, key, hold, period));
-	}
 	else
 	{
-		luaL_error(lua, "invalid params, keyp [ code [ hold period ] ]\n");
-		return 0;
+		tic_key key = getLuaNumber(lua, 1) + TIC_KEY_START_INDEX;
+
+		if(key >= TIC_KEYS_COUNT)
+		{
+			luaL_error(lua, "unknown keyboard code\n");
+		}
+		else
+		{
+			if(top == 1)
+			{
+				lua_pushboolean(lua, tic->api.keyp(tic, key, -1, -1));
+
+				return 1;
+			}
+			else if(top == 3)
+			{
+				u32 hold = getLuaNumber(lua, 2);
+				u32 period = getLuaNumber(lua, 3);
+
+				lua_pushboolean(lua, tic->api.keyp(tic, key, hold, period));
+				return 1;
+			}
+			else luaL_error(lua, "invalid params, keyp [ code [ hold period ] ]\n");
+		}
 	}
 
-	return 1;
+	return 0;
 }
 
 static s32 lua_memcpy(lua_State* lua)

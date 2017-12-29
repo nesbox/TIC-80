@@ -195,23 +195,17 @@ static duk_ret_t duk_btn(duk_context* duk)
 {
 	tic_machine* machine = getDukMachine(duk);
 
-	if(machine->memory.input.gamepad)
+	if (duk_is_null_or_undefined(duk, 0))
 	{
-		if (duk_is_null_or_undefined(duk, 0))
-		{
-			duk_push_uint(duk, machine->memory.ram.input.gamepads.data);
-		}
-		else
-		{
-			s32 index = duk_to_int(duk, 0) & 0xf;
-			duk_push_boolean(duk, machine->memory.ram.input.gamepads.data & (1 << index));
-		}
-
-		return 1;		
+		duk_push_uint(duk, machine->memory.ram.input.gamepads.data);
 	}
-	else duk_error(duk, DUK_ERR_ERROR, "gamepad input not declared in metadata\n");
+	else
+	{
+		s32 index = duk_to_int(duk, 0) & 0x1f;
+		duk_push_boolean(duk, machine->memory.ram.input.gamepads.data & (1 << index));
+	}
 
-	return 0;
+	return 1;
 }
 
 static duk_ret_t duk_btnp(duk_context* duk)
@@ -219,30 +213,87 @@ static duk_ret_t duk_btnp(duk_context* duk)
 	tic_machine* machine = getDukMachine(duk);
 	tic_mem* memory = (tic_mem*)machine;
 
-	if(machine->memory.input.gamepad)
+	if (duk_is_null_or_undefined(duk, 0))
 	{
-		if (duk_is_null_or_undefined(duk, 0))
-		{
-			duk_push_uint(duk, memory->api.btnp(memory, -1, -1, -1));
-		}
-		else if(duk_is_null_or_undefined(duk, 1) && duk_is_null_or_undefined(duk, 2))
-		{
-			s32 index = duk_to_int(duk, 0) & 0xf;
+		duk_push_uint(duk, memory->api.btnp(memory, -1, -1, -1));
+	}
+	else if(duk_is_null_or_undefined(duk, 1) && duk_is_null_or_undefined(duk, 2))
+	{
+		s32 index = duk_to_int(duk, 0) & 0x1f;
 
-			duk_push_boolean(duk, memory->api.btnp(memory, index, -1, -1));
+		duk_push_boolean(duk, memory->api.btnp(memory, index, -1, -1));
+	}
+	else
+	{
+		s32 index = duk_to_int(duk, 0) & 0x1f;
+		u32 hold = duk_to_int(duk, 1);
+		u32 period = duk_to_int(duk, 2);
+
+		duk_push_boolean(duk, memory->api.btnp(memory, index, hold, period));
+	}
+
+	return 1;
+}
+
+static s32 duk_key(duk_context* duk)
+{
+	tic_machine* machine = getDukMachine(duk);
+	tic_mem* tic = &machine->memory;
+
+	if (duk_is_null_or_undefined(duk, 0))
+	{
+		duk_push_uint(duk, tic->api.key(tic, tic_key_unknown));
+	}
+	else
+	{
+		tic_key key = duk_to_int(duk, 0) + TIC_KEY_START_INDEX;
+
+		if(key < TIC_KEYS_COUNT)
+			duk_push_boolean(duk, tic->api.key(tic, key));
+		else
+		{
+			duk_error(duk, DUK_ERR_ERROR, "unknown keyboard code\n");
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+static s32 duk_keyp(duk_context* duk)
+{
+	tic_machine* machine = getDukMachine(duk);
+	tic_mem* tic = &machine->memory;
+
+	if (duk_is_null_or_undefined(duk, 0))
+	{
+		duk_push_uint(duk, tic->api.keyp(tic, tic_key_unknown, -1, -1));
+	}
+	else
+	{
+		tic_key key = duk_to_int(duk, 0) + TIC_KEY_START_INDEX;
+
+		if(key >= TIC_KEYS_COUNT)
+		{
+			duk_error(duk, DUK_ERR_ERROR, "unknown keyboard code\n");
 		}
 		else
 		{
-			s32 index = duk_to_int(duk, 0) & 0xf;
-			u32 hold = duk_to_int(duk, 1);
-			u32 period = duk_to_int(duk, 2);
+			if(duk_is_null_or_undefined(duk, 1) && duk_is_null_or_undefined(duk, 2))
+			{
+				duk_push_boolean(duk, tic->api.keyp(tic, key, -1, -1));
+				return 1;
+			}
+			else
+			{
+				u32 hold = duk_to_int(duk, 1);
+				u32 period = duk_to_int(duk, 2);
 
-			duk_push_boolean(duk, memory->api.btnp(memory, index, hold, period));
+				duk_push_boolean(duk, tic->api.keyp(tic, key, hold, period));
+				return 1;
+			}
 		}
-
-		return 1;
 	}
-	else duk_error(duk, DUK_ERR_ERROR, "gamepad input not declared in metadata\n");
 
 	return 0;
 }
@@ -580,27 +631,21 @@ static duk_ret_t duk_mouse(duk_context* duk)
 {
 	tic_machine* machine = getDukMachine(duk);
 
-	if(machine->memory.input.mouse)
-	{
-		const tic80_mouse* mouse = &machine->memory.ram.input.mouse;
+	const tic80_mouse* mouse = &machine->memory.ram.input.mouse;
 
-		duk_idx_t idx = duk_push_array(duk);
-		duk_push_int(duk, mouse->x);
-		duk_put_prop_index(duk, idx, 0);
-		duk_push_int(duk, mouse->y);
-		duk_put_prop_index(duk, idx, 1);
-		duk_push_boolean(duk, mouse->left);
-		duk_put_prop_index(duk, idx, 2);
-		duk_push_boolean(duk, mouse->middle);
-		duk_put_prop_index(duk, idx, 3);
-		duk_push_boolean(duk, mouse->right);
-		duk_put_prop_index(duk, idx, 4);
+	duk_idx_t idx = duk_push_array(duk);
+	duk_push_int(duk, mouse->x);
+	duk_put_prop_index(duk, idx, 0);
+	duk_push_int(duk, mouse->y);
+	duk_put_prop_index(duk, idx, 1);
+	duk_push_boolean(duk, mouse->left);
+	duk_put_prop_index(duk, idx, 2);
+	duk_push_boolean(duk, mouse->middle);
+	duk_put_prop_index(duk, idx, 3);
+	duk_push_boolean(duk, mouse->right);
+	duk_put_prop_index(duk, idx, 4);
 
-		return 1;
-	}
-	else duk_error(duk, DUK_ERR_ERROR, "mouse input not declared in metadata\n");
-
-	return 0;
+	return 1;
 }
 
 static duk_ret_t duk_circ(duk_context* duk)
@@ -771,7 +816,11 @@ static const struct{duk_c_function func; s32 params;} ApiFunc[] =
 	{duk_music, 4},
 	{duk_sync, 3},
 	{duk_reset, 0},
+	{duk_key, 1},
+	{duk_keyp, 3},
 };
+
+STATIC_ASSERT(api_func, COUNT_OF(ApiKeywords) == COUNT_OF(ApiFunc));
 
 s32 duk_timeout_check(void* udata)
 {
