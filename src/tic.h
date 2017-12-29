@@ -497,5 +497,12 @@ enum
 	tic_key_pagedown,
 	tic_key_ctrl,
 	tic_key_shift,
-	tic_key_alt
+	tic_key_alt,
+
+	////////////////
+
+	tic_last_key
 };
+
+#define TIC_KEY_START_INDEX (tic_key_up)
+#define TIC_KEYS_COUNT (tic_last_key)

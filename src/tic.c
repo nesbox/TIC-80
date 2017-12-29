@@ -1244,6 +1244,15 @@ static bool isNoiseWaveform(const tic_waveform* wave)
 	return memcmp(&NoiseWave.data, &wave->data, sizeof(tic_waveform)) == 0;
 }
 
+static bool isKeyPressed(const tic80_keyboard* input, tic_key key)
+{
+	for(s32 i = 0; i < TIC_KEY_BUFFER; i++)
+		if(input->keys[i] == key)
+			return true;
+
+	return false;
+}
+
 static void api_tick_start(tic_mem* memory, const tic_sfx* sfxsrc, const tic_music* music)
 {
 	tic_machine* machine = (tic_machine*)memory;
@@ -1273,6 +1282,18 @@ static void api_tick_start(tic_mem* memory, const tic_sfx* sfxsrc, const tic_mus
 
 		u32* hold = &machine->state.gamepads.holds[i];
 		if(prevDown && prevDown == down) (*hold)++;
+		else *hold = 0;
+	}
+
+	// process keyboard
+	for(s32 i = TIC_KEY_START_INDEX; i < TIC_KEYS_COUNT; i++)
+	{
+		bool prevDown = isKeyPressed(&machine->state.keyboard.previous, i);
+		bool down = isKeyPressed(&memory->ram.input.keyboard, i);
+
+		u32* hold = &machine->state.keyboard.holds[i];
+
+		if(prevDown && down) (*hold)++;
 		else *hold = 0;
 	}
 
@@ -1627,6 +1648,60 @@ static u32 api_btnp(tic_mem* tic, s32 index, s32 hold, s32 period)
 	return ((~previous.data) & machine->memory.ram.input.gamepads.data) & (1 << index);
 }
 
+static bool api_key(tic_mem* tic, tic_key key)
+{
+	if(key >= TIC_KEY_START_INDEX)
+		return isKeyPressed(&tic->ram.input.keyboard, key);
+
+	for(s32 i = 0; i < TIC_KEY_BUFFER; i++)
+		if(isKeyPressed(&tic->ram.input.keyboard, i))
+			return true;
+
+	return false;
+}
+
+static bool api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
+{
+	tic_machine* machine = (tic_machine*)tic;
+
+	if(key >= TIC_KEY_START_INDEX)
+	{			
+		bool prevDown = hold >= 0 && period >= 0 && machine->state.keyboard.holds[key] >= hold
+			? period && machine->state.keyboard.holds[key] % period 
+				? isKeyPressed(&machine->state.keyboard.previous, key) 
+				: false
+			: isKeyPressed(&machine->state.keyboard.previous, key);
+
+		bool down = isKeyPressed(&tic->ram.input.keyboard, key);
+
+		return !prevDown && down;
+	}
+
+	for(s32 i = 0; i < TIC_KEY_BUFFER; i++)
+	{
+		tic_key key = tic->ram.input.keyboard.keys[i];
+
+		if(key)
+		{
+			bool wasPressed = false;
+			for(s32 p = 0; p < TIC_KEY_BUFFER; p++)
+			{
+				if(machine->state.keyboard.previous.keys[p] == key)
+				{
+					wasPressed = true;
+					break;
+				}
+			}
+
+			if(!wasPressed)
+				return true;
+		}
+	}
+
+	return false;
+}
+
+
 static void api_load(tic_cartridge* cart, const u8* buffer, s32 size, bool palette)
 {
 	const u8* end = buffer + size;
@@ -1854,6 +1929,8 @@ static void initApi(tic_api* api)
 	INIT_API(resume);
 	INIT_API(sync);
 	INIT_API(btnp);
+	INIT_API(key);
+	INIT_API(keyp);
 	INIT_API(load);
 	INIT_API(save);
 	INIT_API(tick_start);
