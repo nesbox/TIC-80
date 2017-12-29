@@ -784,6 +784,102 @@ static s32 lua_reset(lua_State* lua)
 	return 0;
 }
 
+static s32 lua_key(lua_State* lua)
+{
+	tic_machine* machine = getLuaMachine(lua);
+
+	s32 top = lua_gettop(lua);
+
+	tic80_input* input = &machine->memory.ram.input;
+
+	if (top == 1)
+	{
+		u8 index = getLuaNumber(lua, 1);
+
+		if(index != 0xff)
+		{
+			for(s32 i = 0; i < COUNT_OF(input->keyboard.keys); i++)
+			{
+				if(input->keyboard.keys[i] == index)
+				{
+					lua_pushboolean(lua, true);
+					return 1;
+				}
+			}
+		}
+
+		lua_pushboolean(lua, false);
+		return 1;
+	}
+	else luaL_error(lua, "invalid params, key ( code )\n");
+
+	return 0;
+}
+
+static s32 lua_keyp(lua_State* lua)
+{
+	tic_machine* machine = getLuaMachine(lua);
+
+	s32 top = lua_gettop(lua);
+	tic80_input* input = &machine->memory.ram.input;
+
+	if (top == 0)
+	{
+		for(s32 i = 0; i < COUNT_OF(input->keyboard.keys); i++)
+		{
+			s32 code = input->keyboard.keys[i];
+
+			bool found = false;
+
+			for(s32 p = 0; p < COUNT_OF(machine->state.keyboard.previous.keys); p++)
+			{
+				if(machine->state.keyboard.previous.keys[p] == code)
+				{
+					found = true;
+					break;
+				}
+			}
+
+			if(!found)
+			{
+				lua_pushinteger(lua, code);
+				return 1;
+			}
+		}
+	}
+	else if(top == 1)
+	{
+		{
+			s32 code = getLuaNumber(lua, 1);
+
+			if(code > 0)
+			{
+				for(s32 i = 0; i < COUNT_OF(input->keyboard.keys); i++)
+				{
+					if(input->keyboard.keys[i] == code)
+					{
+						for(s32 p = 0; p < COUNT_OF(machine->state.keyboard.previous.keys); p++)
+						{
+							if(machine->state.keyboard.previous.keys[p] == code)
+							{
+								lua_pushboolean(lua, true);
+								return 1;							
+							}
+						}		
+					}
+				}
+				
+			}
+
+			lua_pushboolean(lua, false);
+			return 1;
+		}
+	}
+	else luaL_error(lua, "invalid params, keyp [ code ]\n");
+
+	return 0;
+}
+
 static s32 lua_memcpy(lua_State* lua)
 {
 	s32 top = lua_gettop(lua);
@@ -1087,7 +1183,8 @@ static const lua_CFunction ApiFunc[] =
 	lua_rectb, lua_spr, lua_btn, lua_btnp, lua_sfx, lua_map, lua_mget, 
 	lua_mset, lua_peek, lua_poke, lua_peek4, lua_poke4, lua_memcpy, 
 	lua_memset, lua_trace, lua_pmem, lua_time, lua_exit, lua_font, lua_mouse, 
-	lua_circ, lua_circb, lua_tri, lua_textri, lua_clip, lua_music, lua_sync, lua_reset
+	lua_circ, lua_circb, lua_tri, lua_textri, lua_clip, lua_music, lua_sync, lua_reset,
+	lua_key, lua_keyp
 };
 
 STATIC_ASSERT(api_func, COUNT_OF(ApiKeywords) == COUNT_OF(ApiFunc));

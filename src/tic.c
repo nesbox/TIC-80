@@ -1287,6 +1287,7 @@ static void api_tick_end(tic_mem* memory)
 	tic_machine* machine = (tic_machine*)memory;
 
 	machine->state.gamepads.previous.data = machine->memory.ram.input.gamepads.data;
+	machine->state.keyboard.previous.data = machine->memory.ram.input.keyboard.data;
 
 	enum {EndTime = CLOCKRATE / TIC_FRAMERATE};
 	for (s32 i = 0; i < TIC_SOUND_CHANNELS; ++i )

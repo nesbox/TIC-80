@@ -1904,7 +1904,21 @@ static void processMouseInput()
 
 static void processKeyboardInput()
 {
+	enum{UnkCode = 0xff};
 
+	static const u8 KeyboardCodes[] = 
+	{
+		#include "keycodes.c"
+	};
+
+	tic80_input* input = &studio.tic->ram.input;
+	input->keyboard.data = SDL_FOURCC(UnkCode, UnkCode, UnkCode, UnkCode);
+
+	studio.keyboard = SDL_GetKeyboardState(NULL);
+
+	for(s32 i = 0, c = 0; i < COUNT_OF(KeyboardCodes) && c < COUNT_OF(input->keyboard.keys); i++)
+		if(studio.keyboard[i] && KeyboardCodes[i] != UnkCode)
+			input->keyboard.keys[c++] = KeyboardCodes[i];
 }
 
 #if defined(TIC80_PRO)

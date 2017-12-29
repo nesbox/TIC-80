@@ -104,9 +104,10 @@ typedef struct
 	};
 } tic80_mouse;
 
-typedef struct
+typedef union
 {
-	u8 data[4];
+	u8 keys[4];
+	u32 data;
 } tic80_keyboard;
 
 typedef struct
