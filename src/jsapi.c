@@ -242,7 +242,7 @@ static s32 duk_key(duk_context* duk)
 
 	if (duk_is_null_or_undefined(duk, 0))
 	{
-		duk_push_uint(duk, tic->api.key(tic, tic_key_unknown));
+		duk_push_boolean(duk, tic->api.key(tic, tic_key_unknown));
 	}
 	else
 	{
@@ -267,7 +267,7 @@ static s32 duk_keyp(duk_context* duk)
 
 	if (duk_is_null_or_undefined(duk, 0))
 	{
-		duk_push_uint(duk, tic->api.keyp(tic, tic_key_unknown, -1, -1));
+		duk_push_boolean(duk, tic->api.keyp(tic, tic_key_unknown, -1, -1));
 	}
 	else
 	{

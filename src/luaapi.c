@@ -789,7 +789,7 @@ static s32 lua_key(lua_State* lua)
 
 	if (top == 0)
 	{
-		lua_pushinteger(lua, tic->api.key(tic, tic_key_unknown));
+		lua_pushboolean(lua, tic->api.key(tic, tic_key_unknown));
 	}
 	else if (top == 1)
 	{
@@ -821,7 +821,7 @@ static s32 lua_keyp(lua_State* lua)
 
 	if (top == 0)
 	{
-		lua_pushinteger(lua, tic->api.keyp(tic, tic_key_unknown, -1, -1));
+		lua_pushboolean(lua, tic->api.keyp(tic, tic_key_unknown, -1, -1));
 	}
 	else
 	{

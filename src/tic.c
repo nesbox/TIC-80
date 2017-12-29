@@ -1648,14 +1648,14 @@ static u32 api_btnp(tic_mem* tic, s32 index, s32 hold, s32 period)
 	return ((~previous.data) & machine->memory.ram.input.gamepads.data) & (1 << index);
 }
 
-static u32 api_key(tic_mem* tic, tic_key key)
+static bool api_key(tic_mem* tic, tic_key key)
 {
 	return key >= TIC_KEY_START_INDEX 
 		? isKeyPressed(&tic->ram.input.keyboard, key) 
 		: tic->ram.input.keyboard.data;
 }
 
-static u32 api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
+static bool api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
 {
 	tic_machine* machine = (tic_machine*)tic;
 
@@ -1671,8 +1671,6 @@ static u32 api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
 
 		return !prevDown && down;
 	}
-
-	tic80_keyboard prev = {.data = 0};
 
 	for(s32 i = 0; i < TIC_KEY_BUFFER; i++)
 	{
@@ -1692,11 +1690,11 @@ static u32 api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
 			}
 
 			if(!wasPressed)
-				prev.keys[i] = key;			
+				return true;
 		}
 	}
 
-	return prev.data;
+	return false;
 }
 
 
