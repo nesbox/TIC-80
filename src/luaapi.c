@@ -787,26 +787,23 @@ static s32 lua_key(lua_State* lua)
 
 	s32 top = lua_gettop(lua);
 
-	tic80_input* input = &tic->ram.input;
-
-	enum{Count = COUNT_OF(input->keyboard.keys)};
-
 	if (top == 0)
 	{
-		lua_pushboolean(lua, tic->api.key(tic, tic_key_unknown));
-		return 1;
+		lua_pushinteger(lua, tic->api.key(tic, tic_key_unknown));
 	}
 	else if (top == 1)
 	{
 		tic_key key = getLuaNumber(lua, 1) + TIC_KEY_START_INDEX;
 
 		lua_pushboolean(lua, tic->api.key(tic, key));
-		
-		return 1;
 	}
-	else luaL_error(lua, "invalid params, key [code]\n");
+	else
+	{
+		luaL_error(lua, "invalid params, key [code]\n");
+		return 0;
+	} 
 
-	return 0;
+	return 1;
 }
 
 static s32 lua_keyp(lua_State* lua)
@@ -818,11 +815,11 @@ static s32 lua_keyp(lua_State* lua)
 
 	if (top == 0)
 	{
-		lua_pushboolean(lua, tic->api.keyp(tic, tic_key_unknown, -1, -1));
+		lua_pushinteger(lua, tic->api.keyp(tic, tic_key_unknown, -1, -1));
 	}
 	else if(top == 1)
 	{
-		tic_key key = getLuaNumber(lua, 1) + TIC_KEY_START_INDEX;;
+		tic_key key = getLuaNumber(lua, 1) + TIC_KEY_START_INDEX;
 
 		lua_pushboolean(lua, tic->api.keyp(tic, key, -1, -1));
 	}
@@ -838,7 +835,7 @@ static s32 lua_keyp(lua_State* lua)
 	{
 		luaL_error(lua, "invalid params, keyp [ code [ hold period ] ]\n");
 		return 0;
-	} 
+	}
 
 	return 1;
 }

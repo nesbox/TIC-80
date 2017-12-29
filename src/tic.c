@@ -100,13 +100,13 @@ static inline s32 note2freq(double note)
 
 static inline s32 freq2period(double freq)
 {
-    if(freq == 0.0) return MAX_PERIOD_VALUE;
+	if(freq == 0.0) return MAX_PERIOD_VALUE;
 
 	enum {Rate = CLOCKRATE / ENVELOPE_VALUES};
 	s32 period = round((double)Rate / freq - 1.0);
 
-    if(period < MIN_PERIOD_VALUE) return MIN_PERIOD_VALUE;
-    if(period > MAX_PERIOD_VALUE) return MAX_PERIOD_VALUE;
+	if(period < MIN_PERIOD_VALUE) return MIN_PERIOD_VALUE;
+	if(period > MAX_PERIOD_VALUE) return MAX_PERIOD_VALUE;
 
 	return period;
 }
@@ -933,7 +933,7 @@ static void api_tri(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32
 		s32 xl = max(SidesBuffer.Left[y], machine->state.clip.l);
 		s32 xr = min(SidesBuffer.Right[y]+1, machine->state.clip.r);
 		machine->state.drawhline(&machine->memory, xl, xr, y, final_color);
-    }
+	}
 }
 
 
@@ -1648,19 +1648,14 @@ static u32 api_btnp(tic_mem* tic, s32 index, s32 hold, s32 period)
 	return ((~previous.data) & machine->memory.ram.input.gamepads.data) & (1 << index);
 }
 
-static bool api_key(tic_mem* tic, tic_key key)
+static u32 api_key(tic_mem* tic, tic_key key)
 {
-	if(key >= TIC_KEY_START_INDEX)
-		return isKeyPressed(&tic->ram.input.keyboard, key);
-
-	for(s32 i = 0; i < TIC_KEY_BUFFER; i++)
-		if(isKeyPressed(&tic->ram.input.keyboard, i))
-			return true;
-
-	return false;
+	return key >= TIC_KEY_START_INDEX 
+		? isKeyPressed(&tic->ram.input.keyboard, key) 
+		: tic->ram.input.keyboard.data;
 }
 
-static bool api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
+static u32 api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
 {
 	tic_machine* machine = (tic_machine*)tic;
 
@@ -1677,6 +1672,8 @@ static bool api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
 		return !prevDown && down;
 	}
 
+	tic80_keyboard prev = {.data = 0};
+
 	for(s32 i = 0; i < TIC_KEY_BUFFER; i++)
 	{
 		tic_key key = tic->ram.input.keyboard.keys[i];
@@ -1684,6 +1681,7 @@ static bool api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
 		if(key)
 		{
 			bool wasPressed = false;
+
 			for(s32 p = 0; p < TIC_KEY_BUFFER; p++)
 			{
 				if(machine->state.keyboard.previous.keys[p] == key)
@@ -1694,11 +1692,11 @@ static bool api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
 			}
 
 			if(!wasPressed)
-				return true;
+				prev.keys[i] = key;			
 		}
 	}
 
-	return false;
+	return prev.data;
 }
 
 
