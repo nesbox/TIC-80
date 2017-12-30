@@ -225,3 +225,7 @@
 [SDL_SCANCODE_LCTRL] = tic_key_ctrl,
 [SDL_SCANCODE_LSHIFT] = tic_key_shift,
 [SDL_SCANCODE_LALT] = tic_key_alt,
+[227] = tic_key_unknown,
+[SDL_SCANCODE_RCTRL] = tic_key_ctrl,
+[SDL_SCANCODE_RSHIFT] = tic_key_shift,
+[SDL_SCANCODE_RALT] = tic_key_alt,
