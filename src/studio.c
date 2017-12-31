@@ -2754,17 +2754,27 @@ s32 main(s32 argc, char **argv)
 	{
 		u64 nextTick = SDL_GetPerformanceCounter();
 		const u64 Delta = SDL_GetPerformanceFrequency() / TIC_FRAMERATE;
+
+		bool noVsync = false;
+		{
+			SDL_RendererInfo info;
+			SDL_GetRendererInfo(studio.renderer, &info);
+			noVsync = info.flags & SDL_RENDERER_PRESENTVSYNC ? false : true;
+		}
 		
 		while (!studio.quitFlag)
 		{
 			nextTick += Delta;
 			tick();
 
-			s64 delay = nextTick - SDL_GetPerformanceCounter();
+			if(noVsync || SDL_GetWindowFlags(studio.window) & SDL_WINDOW_MINIMIZED)
+			{
+				s64 delay = nextTick - SDL_GetPerformanceCounter();
 
-			if(delay > 0)
-				SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
-			else nextTick -= delay;
+				if(delay > 0)
+					SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
+				else nextTick -= delay;
+			}
 		}
 	}
 
