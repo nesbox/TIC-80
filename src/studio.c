@@ -2767,7 +2767,7 @@ s32 main(s32 argc, char **argv)
 			nextTick += Delta;
 			tick();
 
-			if(noVsync || SDL_GetWindowFlags(studio.window) & SDL_WINDOW_MINIMIZED)
+			if(SDL_GetWindowFlags(studio.window) & SDL_WINDOW_MINIMIZED || noVsync)
 			{
 				s64 delay = nextTick - SDL_GetPerformanceCounter();
 
