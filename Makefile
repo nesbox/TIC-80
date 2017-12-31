@@ -158,7 +158,7 @@ TIC80_H = include/tic80/tic80_types.h include/tic80/tic80.h include/tic80/tic80_
 TIC_H= src/*.h \
 	src/ext/*.h
 
-bin/studio.o: src/studio.c $(TIC80_H) $(TIC_H)
+bin/studio.o: src/studio.c src/keycodes.c $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
 bin/console.o: src/console.c $(TIC80_H) $(TIC_H) $(DEMO_ASSETS)
