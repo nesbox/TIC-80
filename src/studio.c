@@ -2709,7 +2709,7 @@ static void onFSInitialized(FileSystem* fs)
 #if defined(__CHIP__)
 		SDL_RENDERER_SOFTWARE
 #else
-		SDL_RENDERER_ACCELERATED
+		SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
 #endif
 	);
 
