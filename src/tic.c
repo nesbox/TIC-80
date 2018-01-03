@@ -1286,7 +1286,7 @@ static void api_tick_start(tic_mem* memory, const tic_sfx* sfxsrc, const tic_mus
 	}
 
 	// process keyboard
-	for(s32 i = TIC_KEY_START_INDEX; i < TIC_KEYS_COUNT; i++)
+	for(s32 i = 0; i < tic_keys_count; i++)
 	{
 		bool prevDown = isKeyPressed(&machine->state.keyboard.previous, i);
 		bool down = isKeyPressed(&memory->ram.input.keyboard, i);
@@ -1650,7 +1650,7 @@ static u32 api_btnp(tic_mem* tic, s32 index, s32 hold, s32 period)
 
 static bool api_key(tic_mem* tic, tic_key key)
 {
-	return key >= TIC_KEY_START_INDEX 
+	return key > tic_key_unknown 
 		? isKeyPressed(&tic->ram.input.keyboard, key) 
 		: tic->ram.input.keyboard.data;
 }
@@ -1659,7 +1659,7 @@ static bool api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
 {
 	tic_machine* machine = (tic_machine*)tic;
 
-	if(key >= TIC_KEY_START_INDEX)
+	if(key > tic_key_unknown)
 	{			
 		bool prevDown = hold >= 0 && period >= 0 && machine->state.keyboard.holds[key] >= hold
 			? period && machine->state.keyboard.holds[key] % period 

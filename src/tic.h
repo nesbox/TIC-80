@@ -420,10 +420,6 @@ typedef union
 enum
 {
 	tic_key_unknown,
-	tic_key_up,
-	tic_key_down,
-	tic_key_left,
-	tic_key_right,
 	tic_key_a,
 	tic_key_b,
 	tic_key_c,
@@ -495,14 +491,15 @@ enum
 	tic_key_delete,
 	tic_key_end,
 	tic_key_pagedown,
+	tic_key_right,
+	tic_key_left,
+	tic_key_down,
+	tic_key_up,
 	tic_key_ctrl,
 	tic_key_shift,
 	tic_key_alt,
 
 	////////////////
 
-	tic_last_key
+	tic_keys_count
 };
-
-#define TIC_KEY_START_INDEX (tic_key_up)
-#define TIC_KEYS_COUNT (tic_last_key)

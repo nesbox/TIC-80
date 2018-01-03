@@ -246,9 +246,9 @@ static s32 duk_key(duk_context* duk)
 	}
 	else
 	{
-		tic_key key = duk_to_int(duk, 0) + TIC_KEY_START_INDEX;
+		tic_key key = duk_to_int(duk, 0);
 
-		if(key < TIC_KEYS_COUNT)
+		if(key < tic_keys_count)
 			duk_push_boolean(duk, tic->api.key(tic, key));
 		else
 		{
@@ -271,9 +271,9 @@ static s32 duk_keyp(duk_context* duk)
 	}
 	else
 	{
-		tic_key key = duk_to_int(duk, 0) + TIC_KEY_START_INDEX;
+		tic_key key = duk_to_int(duk, 0);
 
-		if(key >= TIC_KEYS_COUNT)
+		if(key >= tic_keys_count)
 		{
 			duk_error(duk, DUK_ERR_ERROR, "unknown keyboard code\n");
 			return 0;

@@ -73,7 +73,7 @@ typedef struct
 	{
 		tic80_keyboard previous;
 
-		u32 holds[TIC_KEYS_COUNT];
+		u32 holds[tic_keys_count];
 	} keyboard;
 
 	Clip clip;
