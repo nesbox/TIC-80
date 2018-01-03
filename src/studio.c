@@ -474,7 +474,7 @@ bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces)
 
 void showTooltip(const char* text)
 {
-	strcpy(studio.tooltip.text, text);
+	strncpy(studio.tooltip.text, text, sizeof studio.tooltip.text - 1);
 }
 
 static void drawExtrabar(tic_mem* tic)
