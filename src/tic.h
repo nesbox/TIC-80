@@ -420,6 +420,7 @@ typedef union
 enum
 {
 	tic_key_unknown,
+
 	tic_key_a,
 	tic_key_b,
 	tic_key_c,
@@ -446,6 +447,7 @@ enum
 	tic_key_x,
 	tic_key_y,
 	tic_key_z,
+
 	tic_key_0,
 	tic_key_1,
 	tic_key_2,
@@ -456,11 +458,7 @@ enum
 	tic_key_7,
 	tic_key_8,
 	tic_key_9,
-	tic_key_return,
-	tic_key_escape,
-	tic_key_backspace,
-	tic_key_tab,
-	tic_key_space,
+
 	tic_key_minus,
 	tic_key_equals,
 	tic_key_leftbracket,
@@ -472,7 +470,30 @@ enum
 	tic_key_comma,
 	tic_key_period,
 	tic_key_slash,
+	
+	tic_key_space,
+	tic_key_tab,
+
+	tic_key_return,
+	tic_key_backspace,
+	tic_key_delete,
+	tic_key_insert,
+
+	tic_key_pageup,
+	tic_key_pagedown,
+	tic_key_home,
+	tic_key_end,
+	tic_key_up,
+	tic_key_down,
+	tic_key_left,
+	tic_key_right,
+
 	tic_key_capslock,
+	tic_key_ctrl,
+	tic_key_shift,
+	tic_key_alt,
+
+	tic_key_escape,
 	tic_key_f1,
 	tic_key_f2,
 	tic_key_f3,
@@ -485,19 +506,6 @@ enum
 	tic_key_f10,
 	tic_key_f11,
 	tic_key_f12,
-	tic_key_insert,
-	tic_key_home,
-	tic_key_pageup,
-	tic_key_delete,
-	tic_key_end,
-	tic_key_pagedown,
-	tic_key_right,
-	tic_key_left,
-	tic_key_down,
-	tic_key_up,
-	tic_key_ctrl,
-	tic_key_shift,
-	tic_key_alt,
 
 	////////////////
 
