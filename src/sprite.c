@@ -469,6 +469,48 @@ static void deleteCanvas(Sprite* sprite)
 	history_add(sprite->history);
 }
 
+static void flipCanvasHorz(Sprite* sprite)
+{
+	SDL_Rect* rect = &sprite->select.rect;
+	
+	s32 sprite_x = getIndexPosX(sprite);
+	s32 sprite_y = getIndexPosY(sprite);
+	
+	s32 right = sprite_x + rect->x + rect->w/2;
+	s32 bottom = sprite_y + rect->y + rect->h;
+
+	for(s32 y = sprite_y + rect->y; y < bottom; y++)
+		for(s32 x = sprite_x + rect->x, i = sprite_x + rect->x + rect->w - 1; x < right; x++, i--)
+		{
+			u8 color = getSheetPixel(sprite, x, y);
+			setSheetPixel(sprite, x, y, getSheetPixel(sprite, i, y));
+			setSheetPixel(sprite, i, y, color);
+		}
+
+	history_add(sprite->history);
+}
+
+static void flipCanvasVert(Sprite* sprite)
+{
+	SDL_Rect* rect = &sprite->select.rect;
+	
+	s32 sprite_x = getIndexPosX(sprite);
+	s32 sprite_y = getIndexPosY(sprite);
+	
+	s32 right = sprite_x + rect->x + rect->w;
+	s32 bottom = sprite_y + rect->y + rect->h/2;
+
+	for(s32 y = sprite_y + rect->y, i = sprite_y + rect->y + rect->h - 1; y < bottom; y++, i--)
+		for(s32 x = sprite_x + rect->x; x < right; x++)
+		{
+			u8 color = getSheetPixel(sprite, x, y);
+			setSheetPixel(sprite, x, y, getSheetPixel(sprite, x, i));
+			setSheetPixel(sprite, x, i, color);
+		}
+
+	history_add(sprite->history);
+}
+
 static void drawMoveButtons(Sprite* sprite)
 {
 	if(hasCanvasSelection(sprite))
@@ -1045,6 +1087,7 @@ static void deleteSprite(Sprite* sprite)
 }
 
 static void(* const SpriteToolsFunc[])(Sprite*) = {flipSpriteHorz, flipSpriteVert, rotateSprite, deleteSprite};
+static void(* const CanvasToolsFunc[])(Sprite*) = {flipCanvasHorz, flipCanvasVert, rotateSprite, deleteCanvas};
 
 static void drawSpriteTools(Sprite* sprite, s32 x, s32 y)
 {
@@ -1108,9 +1151,18 @@ static void drawSpriteTools(Sprite* sprite, s32 x, s32 y)
 			if(checkMouseDown(&rect, SDL_BUTTON_LEFT)) pushed = true;
 
 			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
-			{
-				SpriteToolsFunc[i](sprite);
-				clearCanvasSelection(sprite);
+			{		
+				if(hasCanvasSelection(sprite))
+				{
+					CanvasToolsFunc[i](sprite);
+					// we have to do this until we deal with rotateSprite for canvas
+					if(i == 2) clearCanvasSelection(sprite);
+				}
+				else
+				{
+					SpriteToolsFunc[i](sprite);
+					clearCanvasSelection(sprite);
+				}
 			}
 		}
 
