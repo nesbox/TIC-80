@@ -2070,6 +2070,8 @@ static void transparentBlit(u32* out, s32 pitch)
 
 static void blitSound()
 {
+	SDL_PauseAudioDevice(studio.audio.device, 0);
+	
 	if(studio.audio.cvt.needed)
 	{
 		SDL_memcpy(studio.audio.cvt.buf, studio.tic->samples.buffer, studio.tic->samples.size);
@@ -2532,9 +2534,6 @@ static void initSound()
 		studio.audio.cvt.len = studio.audio.spec.freq * sizeof studio.tic->samples.buffer[0] / TIC_FRAMERATE;
 		studio.audio.cvt.buf = SDL_malloc(studio.audio.cvt.len * studio.audio.cvt.len_mult);
 	}
-
-	if(studio.audio.device)
-		SDL_PauseAudioDevice(studio.audio.device, 0);
 }
 
 static void initTouchGamepad()
