@@ -58,6 +58,7 @@
 #define OFFSET_TOP ((TIC80_FULLHEIGHT-TIC80_HEIGHT)/2)
 
 #define POPUP_DUR (TIC_FRAMERATE*2)
+#define DESYNC_FRAMES 10
 
 #if defined(TIC80_PRO)
 #define TIC_EDITOR_BANKS (TIC_BANKS)
@@ -232,7 +233,7 @@ static struct
 	FileSystem* fs;
 
 	bool quitFlag;
-	bool deSync;
+	s32 deSync;
 
 	s32 argc;
 	char **argv;
@@ -323,7 +324,7 @@ static struct
 
 	.fullscreen = false,
 	.quitFlag = false,
-	.deSync = false,
+	.deSync = 0,
 	.argc = 0,
 	.argv = NULL,
 };
@@ -2115,7 +2116,7 @@ static void drawDesyncLabel(u32* frame)
 		0b1100110010010011,
 	};
 
-	if(studio.deSync && getConfig()->showSync)
+	if(studio.deSync >= DESYNC_FRAMES && getConfig()->showSync)
 	{
 		enum{sx = TIC80_WIDTH-24, sy = 8, Cols = sizeof DesyncLabel[0]*BITS_IN_BYTE, Rows = COUNT_OF(DesyncLabel)};
 
@@ -2805,14 +2806,15 @@ s32 main(s32 argc, char **argv)
 			nextTick += Delta;
 			tick();
 
-			studio.deSync = false;
 			{
 				s64 delay = nextTick - SDL_GetPerformanceCounter();
 
 				if(delay < 0)
 				{
 					nextTick -= delay;
-					studio.deSync = true;
+
+					if(studio.deSync < DESYNC_FRAMES)
+						studio.deSync++;
 				}
 				else if(delay >= MinDelay)
 				{
@@ -2820,6 +2822,9 @@ s32 main(s32 argc, char **argv)
 						SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
 				}
 				else nextTick -= delay;
+
+				if(delay >= 0 && studio.deSync > 0)
+					studio.deSync--;
 			}
 		}
 	}
