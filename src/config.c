@@ -66,6 +66,16 @@ static void readConfigNoSound(Config* config, lua_State* lua)
 	lua_pop(lua, 1);
 }
 
+static void readConfigShowSync(Config* config, lua_State* lua)
+{
+	lua_getglobal(lua, "SHOW_SYNC");
+
+	if(lua_isboolean(lua, -1))
+		config->data.showSync = lua_toboolean(lua, -1);
+
+	lua_pop(lua, 1);
+}
+
 static void readCursorTheme(Config* config, lua_State* lua)
 {
 	lua_getfield(lua, -1, "CURSOR");
@@ -189,6 +199,7 @@ static void readConfig(Config* config)
 			readConfigVideoScale(config, lua);
 			readConfigCheckNewVersion(config, lua);
 			readConfigNoSound(config, lua);
+			readConfigShowSync(config, lua);
 			readTheme(config, lua);
 		}
 

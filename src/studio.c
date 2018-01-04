@@ -232,6 +232,7 @@ static struct
 	FileSystem* fs;
 
 	bool quitFlag;
+	bool deSync;
 
 	s32 argc;
 	char **argv;
@@ -322,6 +323,7 @@ static struct
 
 	.fullscreen = false,
 	.quitFlag = false,
+	.deSync = false,
 	.argc = 0,
 	.argv = NULL,
 };
@@ -2081,7 +2083,7 @@ static void blitSound()
 	else SDL_QueueAudio(studio.audio.device, studio.tic->samples.buffer, studio.tic->samples.size);
 }
 
-static void drawRecordLabel(u32* frame, s32 pitch, s32 sx, s32 sy, const u32* color)
+static void drawRecordLabel(u32* frame, s32 sx, s32 sy, const u32* color)
 {
 	static const u16 RecLabel[] =
 	{
@@ -2102,6 +2104,35 @@ static void drawRecordLabel(u32* frame, s32 pitch, s32 sx, s32 sy, const u32* co
 	}
 }
 
+static void drawDesyncLabel(u32* frame)
+{
+	static const u16 DesyncLabel[] =
+	{
+		0b0110101010010011,
+		0b1000101011010100,
+		0b1110111010110100,
+		0b0010001010010100,
+		0b1100110010010011,
+	};
+
+	if(studio.deSync && getConfig()->showSync)
+	{
+		enum{sx = TIC80_WIDTH-24, sy = 8, Cols = sizeof DesyncLabel[0]*BITS_IN_BYTE, Rows = COUNT_OF(DesyncLabel)};
+
+		const u32* pal = tic_palette_blit(&studio.tic->config.palette);
+		const u32* color = &pal[tic_color_red];
+
+		for(s32 y = 0; y < Rows; y++)
+		{
+			for(s32 x = 0; x < Cols; x++)
+			{
+				if(DesyncLabel[y] & (1 << x))
+					memcpy(&frame[sx + Cols - 1 - x + ((y+sy) << TIC80_FULLWIDTH_BITS)], color, sizeof *color);
+			}
+		}
+	}
+}
+
 static void recordFrame(u32* pixels)
 {
 	if(studio.video.record)
@@ -2114,7 +2145,7 @@ static void recordFrame(u32* pixels)
 			if(studio.video.frame % TIC_FRAMERATE < TIC_FRAMERATE / 2)
 			{
 				const u32* pal = tic_palette_blit(&studio.tic->config.palette);
-				drawRecordLabel(pixels, TIC80_FULLWIDTH, TIC80_WIDTH-24, 8, &pal[tic_color_red]);
+				drawRecordLabel(pixels, TIC80_WIDTH-24, 8, &pal[tic_color_red]);
 			}
 
 			studio.video.frame++;
@@ -2169,6 +2200,7 @@ static void blitTexture()
 	SDL_memcpy(pixels, tic->screen, sizeof tic->screen);
 
 	recordFrame(pixels);
+	drawDesyncLabel(pixels);
 
 	SDL_UnlockTexture(studio.texture);
 
@@ -2766,17 +2798,24 @@ s32 main(s32 argc, char **argv)
 		}
 
 		while (!studio.quitFlag)
-		{
+		{			
 			nextTick += Delta;
 			tick();
 
-			if(SDL_GetWindowFlags(studio.window) & SDL_WINDOW_MINIMIZED || useTimer)
+			studio.deSync = false;
 			{
 				s64 delay = nextTick - SDL_GetPerformanceCounter();
 
 				if(delay > 0)
-					SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
-				else nextTick -= delay;
+				{
+					if(SDL_GetWindowFlags(studio.window) & SDL_WINDOW_MINIMIZED || useTimer)
+						SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
+				}
+				else
+				{
+					nextTick -= delay;
+					studio.deSync = true;
+				}
 			}
 		}
 	}
