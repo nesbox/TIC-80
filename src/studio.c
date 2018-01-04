@@ -2783,10 +2783,8 @@ s32 main(s32 argc, char **argv)
 	createFileSystem(argc > 1 && fsExists(argv[1]) ? fsBasename(argv[1]) : NULL, onFSInitialized);
 
 	{
-		u64 nextTick = SDL_GetPerformanceCounter();
-		const u64 Delta = SDL_GetPerformanceFrequency() / TIC_FRAMERATE;
 
-		bool useTimer = false;
+		bool useDelay = false;
 		{
 			SDL_RendererInfo info;
 			SDL_DisplayMode mode;
@@ -2794,8 +2792,13 @@ s32 main(s32 argc, char **argv)
 			SDL_GetRendererInfo(studio.renderer, &info);
 			SDL_GetCurrentDisplayMode(SDL_GetWindowDisplayIndex(studio.window), &mode);
 
-			useTimer = !(info.flags & SDL_RENDERER_PRESENTVSYNC) || mode.refresh_rate != TIC_FRAMERATE;
+			useDelay = !(info.flags & SDL_RENDERER_PRESENTVSYNC) || mode.refresh_rate != TIC_FRAMERATE;
 		}
+
+		enum{MinDelay = 10};
+
+		u64 nextTick = SDL_GetPerformanceCounter();
+		const u64 Delta = SDL_GetPerformanceFrequency() / TIC_FRAMERATE;
 
 		while (!studio.quitFlag)
 		{			
@@ -2806,16 +2809,17 @@ s32 main(s32 argc, char **argv)
 			{
 				s64 delay = nextTick - SDL_GetPerformanceCounter();
 
-				if(delay > 0)
-				{
-					if(SDL_GetWindowFlags(studio.window) & SDL_WINDOW_MINIMIZED || useTimer)
-						SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
-				}
-				else
+				if(delay < 0)
 				{
 					nextTick -= delay;
 					studio.deSync = true;
 				}
+				else if(delay >= MinDelay)
+				{
+					if(useDelay || SDL_GetWindowFlags(studio.window) & SDL_WINDOW_MINIMIZED)
+						SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
+				}
+				else nextTick -= delay;
 			}
 		}
 	}
