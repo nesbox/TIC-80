@@ -2755,19 +2755,23 @@ s32 main(s32 argc, char **argv)
 		u64 nextTick = SDL_GetPerformanceCounter();
 		const u64 Delta = SDL_GetPerformanceFrequency() / TIC_FRAMERATE;
 
-		bool noVsync = false;
+		bool useTimer = false;
 		{
 			SDL_RendererInfo info;
+			SDL_DisplayMode mode;
+
 			SDL_GetRendererInfo(studio.renderer, &info);
-			noVsync = info.flags & SDL_RENDERER_PRESENTVSYNC ? false : true;
+			SDL_GetCurrentDisplayMode(SDL_GetWindowDisplayIndex(studio.window), &mode);
+
+			useTimer = !(info.flags & SDL_RENDERER_PRESENTVSYNC) || mode.refresh_rate != TIC_FRAMERATE;
 		}
-		
+
 		while (!studio.quitFlag)
 		{
 			nextTick += Delta;
 			tick();
 
-			if(SDL_GetWindowFlags(studio.window) & SDL_WINDOW_MINIMIZED || noVsync)
+			if(SDL_GetWindowFlags(studio.window) & SDL_WINDOW_MINIMIZED || useTimer)
 			{
 				s64 delay = nextTick - SDL_GetPerformanceCounter();
 
