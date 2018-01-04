@@ -2074,7 +2074,7 @@ static void transparentBlit(u32* out, s32 pitch)
 static void blitSound()
 {
 	SDL_PauseAudioDevice(studio.audio.device, 0);
-	
+
 	if(studio.audio.cvt.needed)
 	{
 		SDL_memcpy(studio.audio.cvt.buf, studio.tic->samples.buffer, studio.tic->samples.size);
@@ -2429,8 +2429,6 @@ static void renderStudio()
 
 	studio.tic->api.tick_end(studio.tic);
 
-	blitSound();
-
 	if(studio.mode != TIC_RUN_MODE)
 		useSystemPalette();
 	
@@ -2546,6 +2544,8 @@ static void tick()
 		SDL_SetCursor(SDL_CreateSystemCursor(studio.mouse.system));
 
 	SDL_RenderPresent(studio.renderer);
+
+	blitSound();
 }
 
 static void initSound()
@@ -2796,8 +2796,6 @@ s32 main(s32 argc, char **argv)
 			useDelay = !(info.flags & SDL_RENDERER_PRESENTVSYNC) || mode.refresh_rate != TIC_FRAMERATE;
 		}
 
-		enum{MinDelay = 10};
-
 		u64 nextTick = SDL_GetPerformanceCounter();
 		const u64 Delta = SDL_GetPerformanceFrequency() / TIC_FRAMERATE;
 
@@ -2816,12 +2814,11 @@ s32 main(s32 argc, char **argv)
 					if(studio.deSync < DESYNC_FRAMES)
 						studio.deSync++;
 				}
-				else if(delay >= MinDelay)
+				else
 				{
 					if(useDelay || SDL_GetWindowFlags(studio.window) & SDL_WINDOW_MINIMIZED)
 						SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
 				}
-				else nextTick -= delay;
 
 				if(delay >= 0 && studio.deSync > 0)
 					studio.deSync--;
