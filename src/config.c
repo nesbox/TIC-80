@@ -68,10 +68,10 @@ static void readConfigNoSound(Config* config, lua_State* lua)
 
 static void readConfigShowSync(Config* config, lua_State* lua)
 {
-	lua_getglobal(lua, "SHOW_SYNC");
+	lua_getglobal(lua, "SYNC_FRAMES");
 
-	if(lua_isboolean(lua, -1))
-		config->data.showSync = lua_toboolean(lua, -1);
+	if(lua_isinteger(lua, -1))
+		config->data.missedFrames = lua_tointeger(lua, -1);
 
 	lua_pop(lua, 1);
 }
