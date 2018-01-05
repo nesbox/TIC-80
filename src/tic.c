@@ -38,6 +38,7 @@
 #define MAX_PERIOD_VALUE 4096
 #define BASE_NOTE_FREQ 440.0
 #define BASE_NOTE_POS 49.0
+#define ENVELOPE_FREQ_SCALE 2
 #define NOTES_PER_MUNUTE (TIC_FRAMERATE / NOTES_PER_BEET * 60)
 #define min(a,b) ((a) < (b) ? (a) : (b))
 #define max(a,b) ((a) > (b) ? (a) : (b))
@@ -102,7 +103,7 @@ static inline s32 freq2period(double freq)
 {
 	if(freq == 0.0) return MAX_PERIOD_VALUE;
 
-	enum {Rate = CLOCKRATE / ENVELOPE_VALUES};
+	enum {Rate = CLOCKRATE * ENVELOPE_FREQ_SCALE / ENVELOPE_VALUES};
 	s32 period = round((double)Rate / freq - 1.0);
 
 	if(period < MIN_PERIOD_VALUE) return MIN_PERIOD_VALUE;
@@ -120,7 +121,7 @@ static inline s32 getAmp(const tic_sound_register* reg, s32 amp)
 
 static void runEnvelope(blip_buffer_t* blip, tic_sound_register* reg, tic_sound_register_data* data, s32 end_time )
 {
-	s32 period = freq2period(reg->freq);
+	s32 period = freq2period(reg->freq * ENVELOPE_FREQ_SCALE);
 
 	for ( ; data->time < end_time; data->time += period )
 	{
@@ -1569,7 +1570,7 @@ static void api_tick(tic_mem* tic, tic_tick_data* data)
 				cart2ram(tic);
 
 				tic->input.data = 0;
-
+				
 				if(compareMetatag(code, "input", "mouse", config->singleComment))
 					tic->input.mouse = 1;
 				else if(compareMetatag(code, "input", "gamepad", config->singleComment))
