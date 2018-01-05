@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -25,8 +25,8 @@
  *  This is a general header that includes C language support.
  */
 
-#ifndef _SDL_stdinc_h
-#define _SDL_stdinc_h
+#ifndef SDL_stdinc_h_
+#define SDL_stdinc_h_
 
 #include "SDL_config.h"
 
@@ -61,6 +61,9 @@
 #endif
 #ifdef HAVE_STRINGS_H
 # include <strings.h>
+#endif
+#ifdef HAVE_WCHAR_H
+# include <wchar.h>
 #endif
 #if defined(HAVE_INTTYPES_H)
 # include <inttypes.h>
@@ -127,44 +130,67 @@
  */
 /* @{ */
 
+#ifdef __CC_ARM
+/* ARM's compiler throws warnings if we use an enum: like "SDL_bool x = a < b;" */
+#define SDL_FALSE 0
+#define SDL_TRUE 1
+typedef int SDL_bool;
+#else
 typedef enum
 {
     SDL_FALSE = 0,
     SDL_TRUE = 1
 } SDL_bool;
+#endif
 
 /**
  * \brief A signed 8-bit integer type.
  */
+#define SDL_MAX_SINT8   ((Sint8)0x7F)           /* 127 */
+#define SDL_MIN_SINT8   ((Sint8)(~0x7F))        /* -128 */
 typedef int8_t Sint8;
 /**
  * \brief An unsigned 8-bit integer type.
  */
+#define SDL_MAX_UINT8   ((Uint8)0xFF)           /* 255 */
+#define SDL_MIN_UINT8   ((Uint8)0x00)           /* 0 */
 typedef uint8_t Uint8;
 /**
  * \brief A signed 16-bit integer type.
  */
+#define SDL_MAX_SINT16  ((Sint16)0x7FFF)        /* 32767 */
+#define SDL_MIN_SINT16  ((Sint16)(~0x7FFF))     /* -32768 */
 typedef int16_t Sint16;
 /**
  * \brief An unsigned 16-bit integer type.
  */
+#define SDL_MAX_UINT16  ((Uint16)0xFFFF)        /* 65535 */
+#define SDL_MIN_UINT16  ((Uint16)0x0000)        /* 0 */
 typedef uint16_t Uint16;
 /**
  * \brief A signed 32-bit integer type.
  */
+#define SDL_MAX_SINT32  ((Sint32)0x7FFFFFFF)    /* 2147483647 */
+#define SDL_MIN_SINT32  ((Sint32)(~0x7FFFFFFF)) /* -2147483648 */
 typedef int32_t Sint32;
 /**
  * \brief An unsigned 32-bit integer type.
  */
+#define SDL_MAX_UINT32  ((Uint32)0xFFFFFFFFu)   /* 4294967295 */
+#define SDL_MIN_UINT32  ((Uint32)0x00000000)    /* 0 */
 typedef uint32_t Uint32;
 
 /**
  * \brief A signed 64-bit integer type.
  */
+#define SDL_MAX_SINT64  ((Sint64)0x7FFFFFFFFFFFFFFFll)      /* 9223372036854775807 */
+#define SDL_MIN_SINT64  ((Sint64)(~0x7FFFFFFFFFFFFFFFll))   /* -9223372036854775808 */
 typedef int64_t Sint64;
 /**
  * \brief An unsigned 64-bit integer type.
  */
+#define SDL_MAX_UINT64  ((Uint64)0xFFFFFFFFFFFFFFFFull)     /* 18446744073709551615 */
+#define SDL_MIN_UINT64  ((Uint64)(0x0000000000000000ull))   /* 0 */
 typedef uint64_t Uint64;
 
 /* @} *//* Basic data types */
@@ -262,7 +288,7 @@ typedef uint64_t Uint64;
 #endif /* SDL_DISABLE_ANALYZE_MACROS */
 
 #define SDL_COMPILE_TIME_ASSERT(name, x)               \
-       typedef int SDL_dummy_ ## name[(x) * 2 - 1]
+       typedef int SDL_compile_time_assert_ ## name[(x) * 2 - 1]
 /** \cond */
 #ifndef DOXYGEN_SHOULD_IGNORE_THIS
 SDL_COMPILE_TIME_ASSERT(uint8, sizeof(Uint8) == 1);
@@ -337,6 +363,37 @@ extern DECLSPEC void *SDLCALL SDL_calloc(size_t nmemb, size_t size);
 extern DECLSPEC void *SDLCALL SDL_realloc(void *mem, size_t size);
 extern DECLSPEC void SDLCALL SDL_free(void *mem);
 
+typedef void *(SDLCALL *SDL_malloc_func)(size_t size);
+typedef void *(SDLCALL *SDL_calloc_func)(size_t nmemb, size_t size);
+typedef void *(SDLCALL *SDL_realloc_func)(void *mem, size_t size);
+typedef void (SDLCALL *SDL_free_func)(void *mem);
+
+/**
+ *  \brief Get the current set of SDL memory functions
+ */
+extern DECLSPEC void SDLCALL SDL_GetMemoryFunctions(SDL_malloc_func *malloc_func,
+                                                    SDL_calloc_func *calloc_func,
+                                                    SDL_realloc_func *realloc_func,
+                                                    SDL_free_func *free_func);
+
+/**
+ *  \brief Replace SDL's memory allocation functions with a custom set
+ *
+ *  \note If you are replacing SDL's memory functions, you should call
+ *        SDL_GetNumAllocations() and be very careful if it returns non-zero.
+ *        That means that your free function will be called with memory
+ *        allocated by the previous memory allocation functions.
+ */
+extern DECLSPEC int SDLCALL SDL_SetMemoryFunctions(SDL_malloc_func malloc_func,
+                                                   SDL_calloc_func calloc_func,
+                                                   SDL_realloc_func realloc_func,
+                                                   SDL_free_func free_func);
+
+/**
+ *  \brief Get the number of outstanding (unfreed) allocations
+ */
+extern DECLSPEC int SDLCALL SDL_GetNumAllocations(void);
+
 extern DECLSPEC char *SDLCALL SDL_getenv(const char *name);
 extern DECLSPEC int SDLCALL SDL_setenv(const char *name, const char *value, int overwrite);
 
@@ -379,10 +436,10 @@ SDL_FORCE_INLINE void SDL_memset4(void *dst, Uint32 val, size_t dwords)
         return;
     switch (dwords % 4)
     {
-        case 0: do {    *_p++ = _val;
-        case 3:         *_p++ = _val;
-        case 2:         *_p++ = _val;
-        case 1:         *_p++ = _val;
+        case 0: do {    *_p++ = _val;   /* fallthrough */
+        case 3:         *_p++ = _val;   /* fallthrough */
+        case 2:         *_p++ = _val;   /* fallthrough */
+        case 1:         *_p++ = _val;   /* fallthrough */
         } while ( --_n );
     }
 #endif
@@ -397,6 +454,7 @@ extern DECLSPEC int SDLCALL SDL_memcmp(const void *s1, const void *s2, size_t le
 extern DECLSPEC size_t SDLCALL SDL_wcslen(const wchar_t *wstr);
 extern DECLSPEC size_t SDLCALL SDL_wcslcpy(SDL_OUT_Z_CAP(maxlen) wchar_t *dst, const wchar_t *src, size_t maxlen);
 extern DECLSPEC size_t SDLCALL SDL_wcslcat(SDL_INOUT_Z_CAP(maxlen) wchar_t *dst, const wchar_t *src, size_t maxlen);
+extern DECLSPEC int SDLCALL SDL_wcscmp(const wchar_t *str1, const wchar_t *str2);
 
 extern DECLSPEC size_t SDLCALL SDL_strlen(const char *str);
 extern DECLSPEC size_t SDLCALL SDL_strlcpy(SDL_OUT_Z_CAP(maxlen) char *dst, const char *src, size_t maxlen);
@@ -409,6 +467,7 @@ extern DECLSPEC char *SDLCALL SDL_strlwr(char *str);
 extern DECLSPEC char *SDLCALL SDL_strchr(const char *str, int c);
 extern DECLSPEC char *SDLCALL SDL_strrchr(const char *str, int c);
 extern DECLSPEC char *SDLCALL SDL_strstr(const char *haystack, const char *needle);
+extern DECLSPEC size_t SDLCALL SDL_utf8strlen(const char *str);
 
 extern DECLSPEC char *SDLCALL SDL_itoa(int value, char *str, int radix);
 extern DECLSPEC char *SDLCALL SDL_uitoa(unsigned int value, char *str, int radix);
@@ -437,7 +496,7 @@ extern DECLSPEC int SDLCALL SDL_vsnprintf(SDL_OUT_Z_CAP(maxlen) char *text, size
 
 #ifndef HAVE_M_PI
 #ifndef M_PI
-#define M_PI    3.14159265358979323846264338327950288   /* pi */
+#define M_PI    3.14159265358979323846264338327950288   /**< pi */
 #endif
 #endif
 
@@ -526,6 +585,6 @@ SDL_FORCE_INLINE void *SDL_memcpy4(SDL_OUT_BYTECAP(dwords*4) void *dst, SDL_IN_B
 #endif
 #include "close_code.h"
 
-#endif /* _SDL_stdinc_h */
+#endif /* SDL_stdinc_h_ */
 
 /* vi: set ts=4 sw=4 expandtab: */

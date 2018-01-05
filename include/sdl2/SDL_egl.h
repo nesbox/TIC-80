@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -132,7 +132,7 @@
 *-------------------------------------------------------------------------
 * This precedes the return type of the function in the function prototype.
 */
-#if defined(_WIN32) && !defined(__SCITECH_SNAP__)
+#if defined(_WIN32) && !defined(__SCITECH_SNAP__) && !defined(SDL_VIDEO_STATIC_ANGLE)
 #   define KHRONOS_APICALL __declspec(dllimport)
 #elif defined (__SYMBIAN32__)
 #   define KHRONOS_APICALL IMPORT_C

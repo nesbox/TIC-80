@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2016 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2017 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -36,8 +36,8 @@
  *  to how they would like the library to work.
  */
 
-#ifndef _SDL_hints_h
-#define _SDL_hints_h
+#ifndef SDL_hints_h_
+#define SDL_hints_h_
 
 #include "SDL_stdinc.h"
 
@@ -117,6 +117,17 @@ extern "C" {
  *  By default, SDL does not use Direct3D Debug Layer.
  */
 #define SDL_HINT_RENDER_DIRECT3D11_DEBUG    "SDL_RENDER_DIRECT3D11_DEBUG"
+
+/**
+ *  \brief  A variable controlling the scaling policy for SDL_RenderSetLogicalSize.
+ *
+ *  This variable can be set to the following values:
+ *    "0" or "letterbox" - Uses letterbox/sidebars to fit the entire rendering on screen
+ *    "1" or "overscan"  - Will zoom the rendering so it fills the entire screen, allowing edges to be drawn offscreen
+ *
+ *  By default letterbox is used
+ */
+#define SDL_HINT_RENDER_LOGICAL_SIZE_MODE       "SDL_RENDER_LOGICAL_SIZE_MODE"
 
 /**
  *  \brief  A variable controlling the scaling quality
@@ -211,6 +222,12 @@ extern "C" {
 #define SDL_HINT_WINDOW_FRAME_USABLE_WHILE_CURSOR_HIDDEN    "SDL_WINDOW_FRAME_USABLE_WHILE_CURSOR_HIDDEN"
 
 /**
+ * \brief A variable to specify custom icon resource id from RC file on Windows platform 
+ */
+#define SDL_HINT_WINDOWS_INTRESOURCE_ICON       "SDL_WINDOWS_INTRESOURCE_ICON"
+#define SDL_HINT_WINDOWS_INTRESOURCE_ICON_SMALL "SDL_WINDOWS_INTRESOURCE_ICON_SMALL"
+
+/**
  *  \brief  A variable controlling whether the windows message loop is processed by SDL 
  *
  *  This variable can be set to the following values:
@@ -233,6 +250,16 @@ extern "C" {
 #define SDL_HINT_GRAB_KEYBOARD              "SDL_GRAB_KEYBOARD"
 
 /**
+ *  \brief  A variable setting the speed scale for mouse motion, in floating point, when the mouse is not in relative mode
+ */
+#define SDL_HINT_MOUSE_NORMAL_SPEED_SCALE    "SDL_MOUSE_NORMAL_SPEED_SCALE"
+
+/**
+ *  \brief  A variable setting the scale for mouse motion, in floating point, when the mouse is in relative mode
+ */
+#define SDL_HINT_MOUSE_RELATIVE_SPEED_SCALE    "SDL_MOUSE_RELATIVE_SPEED_SCALE"
+
+/**
  *  \brief  A variable controlling whether relative mouse mode is implemented using mouse warping
  *
  *  This variable can be set to the following values:
@@ -253,6 +280,17 @@ extern "C" {
  *  By default SDL will ignore mouse clicks that activate a window
  */
 #define SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH "SDL_MOUSE_FOCUS_CLICKTHROUGH"
+
+/**
+ *  \brief  A variable controlling whether touch events should generate synthetic mouse events
+ *
+ *  This variable can be set to the following values:
+ *    "0"       - Touch events will not generate mouse events
+ *    "1"       - Touch events will generate mouse events
+ *
+ *  By default SDL will generate mouse events for touch events
+ */
+#define SDL_HINT_TOUCH_MOUSE_EVENTS    "SDL_TOUCH_MOUSE_EVENTS"
 
 /**
  *  \brief Minimize your SDL_Window if it loses key focus when in fullscreen mode. Defaults to true.
@@ -327,7 +365,6 @@ extern "C" {
  */
 #define SDL_HINT_ACCELEROMETER_AS_JOYSTICK "SDL_ACCELEROMETER_AS_JOYSTICK"
 
-
 /**
  *  \brief  A variable that lets you disable the detection and use of Xinput gamepad devices
  *
@@ -336,7 +373,6 @@ extern "C" {
  *    "1"       - Enable XInput detection (the default)
  */
 #define SDL_HINT_XINPUT_ENABLED "SDL_XINPUT_ENABLED"
-
 
 /**
  *  \brief  A variable that causes SDL to use the old axis and button mapping for XInput devices.
@@ -347,9 +383,8 @@ extern "C" {
  */
 #define SDL_HINT_XINPUT_USE_OLD_JOYSTICK_MAPPING "SDL_XINPUT_USE_OLD_JOYSTICK_MAPPING"
 
-
 /**
- *  \brief  A variable that lets you manually hint extra gamecontroller db entries
+ *  \brief  A variable that lets you manually hint extra gamecontroller db entries.
  *
  *  The variable should be newline delimited rows of gamecontroller config data, see SDL_gamecontroller.h
  *
@@ -358,6 +393,31 @@ extern "C" {
  */
 #define SDL_HINT_GAMECONTROLLERCONFIG "SDL_GAMECONTROLLERCONFIG"
 
+/**
+ *  \brief  A variable containing a list of devices to skip when scanning for game controllers.
+ *
+ *  The format of the string is a comma separated list of USB VID/PID pairs
+ *  in hexadecimal form, e.g.
+ *
+ *      0xAAAA/0xBBBB,0xCCCC/0xDDDD
+ *
+ *  The variable can also take the form of @file, in which case the named
+ *  file will be loaded and interpreted as the value of the variable.
+ */
+#define SDL_HINT_GAMECONTROLLER_IGNORE_DEVICES "SDL_GAMECONTROLLER_IGNORE_DEVICES"
+
+/**
+ *  \brief  If set, all devices will be skipped when scanning for game controllers except for the ones listed in this variable.
+ *
+ *  The format of the string is a comma separated list of USB VID/PID pairs
+ *  in hexadecimal form, e.g.
+ *
+ *      0xAAAA/0xBBBB,0xCCCC/0xDDDD
+ *
+ *  The variable can also take the form of @file, in which case the named
+ *  file will be loaded and interpreted as the value of the variable.
+ */
+#define SDL_HINT_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT "SDL_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT"
 
 /**
  *  \brief  A variable that lets you enable joystick (and gamecontroller) events even when your app is in the background.
@@ -372,7 +432,6 @@ extern "C" {
  */
 #define SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS "SDL_JOYSTICK_ALLOW_BACKGROUND_EVENTS"
 
-
 /**
  *  \brief If set to "0" then never set the top most bit on a SDL Window, even if the video mode expects it.
  *      This is a debugging aid for developers and not expected to be used by end users. The default is "1"
@@ -382,7 +441,6 @@ extern "C" {
  *    "1"       - allow topmost
  */
 #define SDL_HINT_ALLOW_TOPMOST "SDL_ALLOW_TOPMOST"
-
 
 /**
  *  \brief A variable that controls the timer resolution, in milliseconds.
@@ -401,6 +459,33 @@ extern "C" {
 #define SDL_HINT_TIMER_RESOLUTION "SDL_TIMER_RESOLUTION"
 
 
+/**
+ *  \brief  A variable describing the content orientation on QtWayland-based platforms.
+ *
+ *  On QtWayland platforms, windows are rotated client-side to allow for custom
+ *  transitions. In order to correctly position overlays (e.g. volume bar) and
+ *  gestures (e.g. events view, close/minimize gestures), the system needs to
+ *  know in which orientation the application is currently drawing its contents.
+ *
+ *  This does not cause the window to be rotated or resized, the application
+ *  needs to take care of drawing the content in the right orientation (the
+ *  framebuffer is always in portrait mode).
+ *
+ *  This variable can be one of the following values:
+ *    "primary" (default), "portrait", "landscape", "inverted-portrait", "inverted-landscape"
+ */
+#define SDL_HINT_QTWAYLAND_CONTENT_ORIENTATION "SDL_QTWAYLAND_CONTENT_ORIENTATION"
+
+/**
+ *  \brief  Flags to set on QtWayland windows to integrate with the native window manager.
+ *
+ *  On QtWayland platforms, this hint controls the flags to set on the windows.
+ *  For example, on Sailfish OS "OverridesSystemGestures" disables swipe gestures.
+ *
+ *  This variable is a space-separated list of the following values (empty = no flags):
+ *    "OverridesSystemGestures", "StaysOnTop", "BypassWindowManager"
+ */
+#define SDL_HINT_QTWAYLAND_WINDOW_FLAGS "SDL_QTWAYLAND_WINDOW_FLAGS"
 
 /**
 *  \brief  A string specifying SDL's threads stack size in bytes or "0" for the backend's default size
@@ -689,13 +774,18 @@ extern "C" {
 #define SDL_HINT_BMP_SAVE_LEGACY_FORMAT "SDL_BMP_SAVE_LEGACY_FORMAT"
 
 /**
- * \brief Tell SDL not to name threads on Windows.
+ * \brief Tell SDL not to name threads on Windows with the 0x406D1388 Exception.
+ *        The 0x406D1388 Exception is a trick used to inform Visual Studio of a
+ *        thread's name, but it tends to cause problems with other debuggers,
+ *        and the .NET runtime. Note that SDL 2.0.6 and later will still use
+ *        the (safer) SetThreadDescription API, introduced in the Windows 10
+ *        Creators Update, if available.
  *
  * The variable can be set to the following values:
  *   "0"       - SDL will raise the 0x406D1388 Exception to name threads.
- *               This is the default behavior of SDL <= 2.0.4. (default)
- *   "1"       - SDL will not raise this exception, and threads will be unnamed.
- *               For .NET languages this is required when running under a debugger.
+ *               This is the default behavior of SDL <= 2.0.4.
+ *   "1"       - SDL will not raise this exception, and threads will be unnamed. (default)
+ *               This is necessary with .NET languages or debuggers that aren't Visual Studio.
  */
 #define SDL_HINT_WINDOWS_DISABLE_THREAD_NAMING "SDL_WINDOWS_DISABLE_THREAD_NAMING"
 
@@ -706,6 +796,76 @@ extern "C" {
  * The default is 10000.
  */
 #define SDL_HINT_RPI_VIDEO_LAYER           "SDL_RPI_VIDEO_LAYER"
+
+/**
+ *  \brief  A variable controlling what driver to use for OpenGL ES contexts.
+ *
+ *  On some platforms, currently Windows and X11, OpenGL drivers may support
+ *  creating contexts with an OpenGL ES profile. By default SDL uses these
+ *  profiles, when available, otherwise it attempts to load an OpenGL ES
+ *  library, e.g. that provided by the ANGLE project. This variable controls
+ *  whether SDL follows this default behaviour or will always load an
+ *  OpenGL ES library.
+ *
+ *  Circumstances where this is useful include
+ *  - Testing an app with a particular OpenGL ES implementation, e.g ANGLE,
+ *    or emulator, e.g. those from ARM, Imagination or Qualcomm.
+ *  - Resolving OpenGL ES function addresses at link time by linking with
+ *    the OpenGL ES library instead of querying them at run time with
+ *    SDL_GL_GetProcAddress().
+ *
+ *  Caution: for an application to work with the default behaviour across
+ *  different OpenGL drivers it must query the OpenGL ES function
+ *  addresses at run time using SDL_GL_GetProcAddress().
+ *
+ *  This variable is ignored on most platforms because OpenGL ES is native
+ *  or not supported.
+ *
+ *  This variable can be set to the following values:
+ *    "0"       - Use ES profile of OpenGL, if available. (Default when not set.)
+ *    "1"       - Load OpenGL ES library using the default library names.
+ *
+ */
+#define SDL_HINT_OPENGL_ES_DRIVER   "SDL_OPENGL_ES_DRIVER"
+
+/**
+ *  \brief  A variable controlling speed/quality tradeoff of audio resampling.
+ *
+ *  If available, SDL can use libsamplerate ( http://www.mega-nerd.com/SRC/ )
+ *  to handle audio resampling. There are different resampling modes available
+ *  that produce different levels of quality, using more CPU.
+ *
+ *  If this hint isn't specified to a valid setting, or libsamplerate isn't
+ *  available, SDL will use the default, internal resampling algorithm.
+ *
+ *  Note that this is currently only applicable to resampling audio that is
+ *  being written to a device for playback or audio being read from a device
+ *  for capture. SDL_AudioCVT always uses the default resampler (although this
+ *  might change for SDL 2.1).
+ *
+ *  This hint is currently only checked at audio subsystem initialization.
+ *
+ *  This variable can be set to the following values:
+ *
+ *    "0" or "default" - Use SDL's internal resampling (Default when not set - low quality, fast)
+ *    "1" or "fast"    - Use fast, slightly higher quality resampling, if available
+ *    "2" or "medium"  - Use medium quality resampling, if available
+ *    "3" or "best"    - Use high quality resampling, if available
+ */
+#define SDL_HINT_AUDIO_RESAMPLING_MODE   "SDL_AUDIO_RESAMPLING_MODE"
+
+/**
+ *  \brief  A variable controlling the audio category on iOS and Mac OS X
+ *
+ *  This variable can be set to the following values:
+ *
+ *    "ambient"     - Use the AVAudioSessionCategoryAmbient audio category, will be muted by the phone mute switch (default)
+ *    "playback"    - Use the AVAudioSessionCategoryPlayback category
+ *
+ *  For more information, see Apple's documentation:
+ *  https://developer.apple.com/library/content/documentation/Audio/Conceptual/AudioSessionProgrammingGuide/AudioSessionCategoriesandModes/AudioSessionCategoriesandModes.html
+ */
+#define SDL_HINT_AUDIO_CATEGORY   "SDL_AUDIO_CATEGORY"
 
 /**
  *  \brief  An enumeration of hint priorities
@@ -754,13 +914,17 @@ extern DECLSPEC const char * SDLCALL SDL_GetHint(const char *name);
 extern DECLSPEC SDL_bool SDLCALL SDL_GetHintBoolean(const char *name, SDL_bool default_value);
 
 /**
+ * \brief type definition of the hint callback function.
+ */
+typedef void (SDLCALL *SDL_HintCallback)(void *userdata, const char *name, const char *oldValue, const char *newValue);
+
+/**
  *  \brief Add a function to watch a particular hint
  *
  *  \param name The hint to watch
  *  \param callback The function to call when the hint value changes
  *  \param userdata A pointer to pass to the callback function
  */
-typedef void (*SDL_HintCallback)(void *userdata, const char *name, const char *oldValue, const char *newValue);
 extern DECLSPEC void SDLCALL SDL_AddHintCallback(const char *name,
                                                  SDL_HintCallback callback,
                                                  void *userdata);
@@ -790,6 +954,6 @@ extern DECLSPEC void SDLCALL SDL_ClearHints(void);
 #endif
 #include "close_code.h"
 
-#endif /* _SDL_hints_h */
+#endif /* SDL_hints_h_ */
 
 /* vi: set ts=4 sw=4 expandtab: */
