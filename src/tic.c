@@ -1577,7 +1577,7 @@ static void api_tick(tic_mem* tic, tic_tick_data* data)
 					tic->input.gamepad = 1;
 				else if(compareMetatag(code, "input", "keyboard", config->singleComment))
 					tic->input.keyboard = 1;
-				else tic->input.data = -1;
+				else tic->input.data = -1;  // default is all enabled
 
 				data->start = data->counter();
 				

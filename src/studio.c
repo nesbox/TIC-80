@@ -2300,13 +2300,17 @@ static void blitCursor(const u8* in)
 
 static void renderCursor()
 {
-	if(studio.mode == TIC_RUN_MODE &&
-		studio.tic->ram.vram.vars.cursor)
-		{
-			SDL_ShowCursor(SDL_DISABLE);
-			blitCursor(studio.tic->ram.sprites.data[studio.tic->ram.vram.vars.cursor].data);
-			return;
-		}
+	if(studio.mode == TIC_RUN_MODE && !studio.tic->input.mouse)
+	{
+		SDL_ShowCursor(SDL_DISABLE);
+		return;
+	}
+	if(studio.mode == TIC_RUN_MODE && studio.tic->ram.vram.vars.cursor)
+	{
+		SDL_ShowCursor(SDL_DISABLE);
+		blitCursor(studio.tic->ram.sprites.data[studio.tic->ram.vram.vars.cursor].data);
+		return;
+	}
 
 	SDL_ShowCursor(getConfig()->theme.cursor.sprite >= 0 ? SDL_DISABLE : SDL_ENABLE);
 
