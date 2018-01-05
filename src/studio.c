@@ -2792,7 +2792,7 @@ s32 main(s32 argc, char **argv)
 			SDL_GetRendererInfo(studio.renderer, &info);
 			SDL_GetCurrentDisplayMode(SDL_GetWindowDisplayIndex(studio.window), &mode);
 
-			useDelay = !(info.flags & SDL_RENDERER_PRESENTVSYNC) || mode.refresh_rate != TIC_FRAMERATE;
+			useDelay = !(info.flags & SDL_RENDERER_PRESENTVSYNC) || mode.refresh_rate > TIC_FRAMERATE;
 		}
 
 		u64 nextTick = SDL_GetPerformanceCounter();
