@@ -451,6 +451,66 @@ static void rightCanvas(Sprite* sprite)
 	pasteSelection(sprite);
 }
 
+static void rotateSelectRect(Sprite* sprite)
+{
+	SDL_Rect rect = sprite->select.rect;
+	
+	s32 selection_center_x = rect.x + rect.w/2;
+	s32 selection_center_y = rect.y + rect.h/2;
+	
+	// Rotate
+	sprite->select.rect.w = rect.h;
+	sprite->select.rect.h = rect.w;
+	
+	// Make the new center be at the position of the previous center
+	sprite->select.rect.x -= (sprite->select.rect.x + sprite->select.rect.w/2) - selection_center_x;
+	sprite->select.rect.y -= (sprite->select.rect.y + sprite->select.rect.h/2) - selection_center_y;
+	
+	// Check if we are not out of boundaries
+	if (sprite->select.rect.x < 0) sprite->select.rect.x = 0;
+	if (sprite->select.rect.y < 0) sprite->select.rect.y = 0;
+	
+	if (sprite->select.rect.x + sprite->select.rect.w >= sprite->size)
+	{
+		sprite->select.rect.x -= sprite->select.rect.x + sprite->select.rect.w - sprite->size;
+	}
+	
+	if (sprite->select.rect.y + sprite->select.rect.h >= sprite->size)
+	{
+		sprite->select.rect.y -= sprite->select.rect.y + sprite->select.rect.h - sprite->size;
+	}
+}
+
+static void rotateCanvas(Sprite* sprite)
+{
+	u8* buffer = (u8*)SDL_malloc(CANVAS_SIZE*CANVAS_SIZE);
+
+	if(buffer)
+	{
+		{
+			SDL_Rect rect = sprite->select.rect;
+			const s32 Size = rect.h * rect.w;
+			s32 diff = 0;
+
+			for(s32 y = 0, i = 0; y < rect.w; y++)
+				for(s32 x = 0; x < rect.h; x++)
+				{
+					diff = rect.w * (x + 1) -y;
+					buffer[i++] = sprite->select.front[Size - diff];
+				}
+			
+			for (s32 i = 0; i<Size; i++)
+				sprite->select.front[i] = buffer[i];
+			
+			rotateSelectRect(sprite);
+			pasteSelection(sprite);
+			history_add(sprite->history);
+		}
+
+		SDL_free(buffer);
+	}
+}
+
 static void deleteCanvas(Sprite* sprite)
 {
 	SDL_Rect* rect = &sprite->select.rect;
@@ -1087,7 +1147,7 @@ static void deleteSprite(Sprite* sprite)
 }
 
 static void(* const SpriteToolsFunc[])(Sprite*) = {flipSpriteHorz, flipSpriteVert, rotateSprite, deleteSprite};
-static void(* const CanvasToolsFunc[])(Sprite*) = {flipCanvasHorz, flipCanvasVert, rotateSprite, deleteCanvas};
+static void(* const CanvasToolsFunc[])(Sprite*) = {flipCanvasHorz, flipCanvasVert, rotateCanvas, deleteCanvas};
 
 static void drawSpriteTools(Sprite* sprite, s32 x, s32 y)
 {
@@ -1155,8 +1215,6 @@ static void drawSpriteTools(Sprite* sprite, s32 x, s32 y)
 				if(hasCanvasSelection(sprite))
 				{
 					CanvasToolsFunc[i](sprite);
-					// we have to do this until we deal with rotateSprite for canvas
-					if(i == 2) clearCanvasSelection(sprite);
 				}
 				else
 				{
