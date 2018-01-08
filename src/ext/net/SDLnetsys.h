@@ -31,7 +31,7 @@
 #include <errno.h>
 #endif
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 /* Include system network headers */
 #if defined(__WIN32__) || defined(WIN32) || defined(__WINRT__)

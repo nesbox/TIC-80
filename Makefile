@@ -9,7 +9,6 @@ INCLUDES= \
 	-Iinclude/lua \
 	-Iinclude/zlib \
 	-Iinclude/gif \
-	-Iinclude/sdl2 \
 	-Iinclude/tic80
 
 MINGW_LINKER_FLAGS= \

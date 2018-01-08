@@ -22,7 +22,7 @@
 
 #include "file_dialog.h"
 
-#include <SDL.h>
+#include <SDL2/SDL.h>
 
 #if defined(__WINDOWS__)
 

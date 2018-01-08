@@ -109,7 +109,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <CompileAsWinRT>false</CompileAsWinRT>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include\tic80;..\..\..\include\lua;..\..\..\include\gif;..\..\..\include\sdl2;..\..\..\include\zlib;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include\tic80;..\..\..\include\lua;..\..\..\include\gif;..\..\..\include;..\..\..\include\sdl2;..\..\..\include\zlib;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>
       </BufferSecurityCheck>
       <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;_ARM_WINAPI_PARTITION_DESKTOP_SDK_AVAILABLE=1;%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -125,7 +125,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <CompileAsWinRT>false</CompileAsWinRT>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include\tic80;..\..\..\include\lua;..\..\..\include\gif;..\..\..\include\sdl2;..\..\..\include\zlib;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include\tic80;..\..\..\include\lua;..\..\..\include\gif;..\..\..\include;..\..\..\include\sdl2;..\..\..\include\zlib;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>
       </BufferSecurityCheck>
       <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;_ARM_WINAPI_PARTITION_DESKTOP_SDK_AVAILABLE=1;%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -141,7 +141,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <CompileAsWinRT>false</CompileAsWinRT>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include\tic80;..\..\..\include\lua;..\..\..\include\gif;..\..\..\include\sdl2;..\..\..\include\zlib;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include\tic80;..\..\..\include\lua;..\..\..\include\gif;..\..\..\include;..\..\..\include\sdl2;..\..\..\include\zlib;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>
       </BufferSecurityCheck>
       <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -157,7 +157,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <CompileAsWinRT>false</CompileAsWinRT>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include\tic80;..\..\..\include\lua;..\..\..\include\gif;..\..\..\include\sdl2;..\..\..\include\zlib;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include\tic80;..\..\..\include\lua;..\..\..\include\gif;..\..\..\include;..\..\..\include\sdl2;..\..\..\include\zlib;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>
       </BufferSecurityCheck>
       <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -173,7 +173,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <CompileAsWinRT>false</CompileAsWinRT>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include\tic80;..\..\..\include\lua;..\..\..\include\gif;..\..\..\include\sdl2;..\..\..\include\zlib;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include\tic80;..\..\..\include\lua;..\..\..\include\gif;..\..\..\include;..\..\..\include\sdl2;..\..\..\include\zlib;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>
       </BufferSecurityCheck>
       <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -189,7 +189,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <CompileAsWinRT>false</CompileAsWinRT>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include\tic80;..\..\..\include\lua;..\..\..\include\gif;..\..\..\include\sdl2;..\..\..\include\zlib;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include\tic80;..\..\..\include\lua;..\..\..\include\gif;..\..\..\include;..\..\..\include\sdl2;..\..\..\include\zlib;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>
       </BufferSecurityCheck>
       <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
