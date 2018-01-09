@@ -5,12 +5,14 @@ LOCAL_CFLAGS += -O3 -Wall -std=c99 -D"log2(x)=(log(x)/log(2))"
 LOCAL_MODULE := main
 
 SRC_PATH := ../../../../src
-INCLUDE_PATH := ../../../../include
+THIRD_PARTY_PATH := ../../../../../3rd-party
 
 LOCAL_C_INCLUDES := \
-	$(LOCAL_PATH)/$(INCLUDE_PATH) \
-	$(LOCAL_PATH)/$(INCLUDE_PATH)/lua \
-	$(LOCAL_PATH)/$(INCLUDE_PATH)/tic80 \
+	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/SDL2-2.0.7/include \
+	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/lua-5.3.1/src \
+	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/giflib-5.1.4/lib \
+	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/zlib-1.2.8 \
+	$(LOCAL_PATH)/../../../../include/tic80 \
 	$(LOCAL_PATH)/$(INCLUDE_PATH)/gif
 
 # Add your application source files here...

@@ -6,9 +6,10 @@ BIN_NAME= bin/tic80
 RM= rm -f
 
 INCLUDES= \
-	-Iinclude/lua \
-	-Iinclude/zlib \
-	-Iinclude/gif \
+	-I../3rd-party/lua-5.3.1/src \
+	-I../3rd-party/zlib-1.2.8 \
+	-I../3rd-party/giflib-5.1.4/lib \
+	-I../3rd-party/SDL2-2.0.7/include \
 	-Iinclude/tic80
 
 MINGW_LINKER_FLAGS= \
