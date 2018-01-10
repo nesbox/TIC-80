@@ -55,6 +55,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\3rd-party\SDL2_net-2.0.1\SDLnet.c" />
+    <ClCompile Include="..\..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetselect.c" />
+    <ClCompile Include="..\..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetTCP.c" />
     <ClCompile Include="..\..\..\src\code.c" />
     <ClCompile Include="..\..\..\src\config.c" />
     <ClCompile Include="..\..\..\src\console.c" />
@@ -62,9 +65,6 @@
     <ClCompile Include="..\..\..\src\ext\file_dialog.c" />
     <ClCompile Include="..\..\..\src\ext\gif.c" />
     <ClCompile Include="..\..\..\src\ext\md5.c" />
-    <ClCompile Include="..\..\..\src\ext\net\SDLnet.c" />
-    <ClCompile Include="..\..\..\src\ext\net\SDLnetselect.c" />
-    <ClCompile Include="..\..\..\src\ext\net\SDLnetTCP.c" />
     <ClCompile Include="..\..\..\src\fs.c" />
     <ClCompile Include="..\..\..\src\history.c" />
     <ClCompile Include="..\..\..\src\html.c" />
@@ -210,7 +210,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\SDL2_net-2.0.1</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -227,7 +227,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>TIC80_PRO;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\SDL2_net-2.0.1</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -244,7 +244,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\SDL2_net-2.0.1</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -261,7 +261,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>TIC80_PRO;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\SDL2_net-2.0.1</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -280,7 +280,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\SDL2_net-2.0.1</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -301,7 +301,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>TIC80_PRO;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\SDL2_net-2.0.1</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -322,7 +322,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\SDL2_net-2.0.1</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -343,7 +343,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>TIC80_PRO;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\SDL2_net-2.0.1</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

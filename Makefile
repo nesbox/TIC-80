@@ -6,6 +6,8 @@ BIN_NAME= bin/tic80
 3RD_PARTY = ../3rd-party
 DUKTAPE_LIB = $(3RD_PARTY)/duktape-2.2.0/src
 BLIPBUF_LIB = $(3RD_PARTY)/blip-buf
+SDL_NET_LIB = $(3RD_PARTY)/SDL2_net-2.0.1
+
 PRE_BUILT = $(3RD_PARTY)/pre-built
 
 RM= rm -f
@@ -17,6 +19,7 @@ INCLUDES= \
 	-I$(3RD_PARTY)/SDL2-2.0.7/include \
 	-I$(BLIPBUF_LIB) \
 	-I$(DUKTAPE_LIB) \
+	-I$(SDL_NET_LIB) \
 	-Iinclude
 
 MINGW_LINKER_FLAGS= \
@@ -117,9 +120,9 @@ SOURCES=\
 	src/ext/file_dialog.c \
 	src/ext/md5.c \
 	src/ext/gif.c \
-	src/ext/net/SDLnet.c \
-	src/ext/net/SDLnetTCP.c \
-	src/ext/net/SDLnetselect.c \
+	$(SDL_NET_LIB)/SDLnet.c \
+	$(SDL_NET_LIB)/SDLnetTCP.c \
+	$(SDL_NET_LIB)/SDLnetselect.c \
 	src/fs.c \
 	src/tools.c \
 	src/start.c \
@@ -183,13 +186,13 @@ bin/md5.o: src/ext/md5.c $(TIC80_H) $(TIC_H)
 bin/gif.o: src/ext/gif.c $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
-bin/SDLnet.o: src/ext/net/SDLnet.c $(TIC80_H) $(TIC_H)
+bin/SDLnet.o: $(SDL_NET_LIB)/SDLnet.c $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
-bin/SDLnetTCP.o: src/ext/net/SDLnetTCP.c $(TIC80_H) $(TIC_H)
+bin/SDLnetTCP.o: $(SDL_NET_LIB)/SDLnetTCP.c $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
-bin/SDLnetselect.o: src/ext/net/SDLnetselect.c $(TIC80_H) $(TIC_H)
+bin/SDLnetselect.o: $(SDL_NET_LIB)/SDLnetselect.c $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
 bin/fs.o: src/fs.c $(TIC80_H) $(TIC_H)

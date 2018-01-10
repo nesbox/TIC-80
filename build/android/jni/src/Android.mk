@@ -14,12 +14,16 @@ LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/zlib-1.2.8 \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/duktape-2.2.0\src \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/blip-buf \
+	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/SDL2_net-2.0.1 \
 	$(LOCAL_PATH)/../../../../include
 
 # Add your application source files here...
 LOCAL_SRC_FILES := \
 	$(THIRD_PARTY_PATH)/duktape-2.2.0/src/duktape.c \
 	$(THIRD_PARTY_PATH)/blip-buf/blip_buf.c \
+	$(THIRD_PARTY_PATH)/SDL2_net-2.0.1/SDLnet.c \
+	$(THIRD_PARTY_PATH)/SDL2_net-2.0.1/SDLnetTCP.c \
+	$(THIRD_PARTY_PATH)/SDL2_net-2.0.1/SDLnetselect.c \
 	$(SRC_PATH)/studio.c \
 	$(SRC_PATH)/console.c \
 	$(SRC_PATH)/html.c \
@@ -27,9 +31,6 @@ LOCAL_SRC_FILES := \
 	$(SRC_PATH)/ext/file_dialog.c \
 	$(SRC_PATH)/ext/md5.c \
 	$(SRC_PATH)/ext/gif.c \
-	$(SRC_PATH)/ext/net/SDLnet.c \
-	$(SRC_PATH)/ext/net/SDLnetTCP.c \
-	$(SRC_PATH)/ext/net/SDLnetselect.c \
 	$(SRC_PATH)/fs.c \
 	$(SRC_PATH)/tools.c \
 	$(SRC_PATH)/start.c \

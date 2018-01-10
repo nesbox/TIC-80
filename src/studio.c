@@ -40,7 +40,7 @@
 #include "fs.h"
 
 #include <zlib.h>
-#include "ext/net/SDL_net.h"
+#include "net.h"
 #include "ext/gif.h"
 #include "ext/md5.h"
 
@@ -2675,8 +2675,6 @@ static void onFSInitialized(FileSystem* fs)
 	SDL_SetHint(SDL_HINT_WINRT_HANDLE_BACK_BUTTON, "1");
 	SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
 
-	SDLNet_Init();
-
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK);
 
 	studio.window = SDL_CreateWindow( TIC_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
@@ -2832,6 +2830,8 @@ s32 main(s32 argc, char **argv)
 
 #endif
 
+	closeNet(studio.surf->net);
+
 	{
 		for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
 		{
@@ -2873,7 +2873,6 @@ s32 main(s32 argc, char **argv)
 	SDL_Quit();
 #endif
 
-	SDLNet_Quit();
 	exit(0);
 
 	return 0;

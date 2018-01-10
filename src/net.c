@@ -22,7 +22,7 @@
 
 #include "net.h"
 #include "tic.h"
-#include "ext/net/SDL_net.h"
+#include "SDL_net.h"
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -358,6 +358,8 @@ NetVersion netVersionRequest(Net* net)
 
 Net* createNet()
 {
+	SDLNet_Init();
+
 	Net* net = (Net*)SDL_malloc(sizeof(Net));
 
 	*net = (Net)
@@ -371,4 +373,11 @@ Net* createNet()
 	};
 
 	return net;
+}
+
+void closeNet(Net* net)
+{
+	SDL_free(net);
+	
+	SDLNet_Quit();
 }
