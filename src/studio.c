@@ -32,7 +32,6 @@
 #include "music.h"
 #include "history.h"
 #include "config.h"
-#include "keymap.h"
 #include "code.h"
 #include "dialog.h"
 #include "menu.h"
@@ -223,7 +222,6 @@ static struct
 		Run* run;
 		World* world;
 		Config* config;
-		Keymap* keymap;
 		Dialog* dialog;
 		Menu* menu;
 		Surf* surf;
@@ -1007,7 +1005,6 @@ void setStudioMode(EditorMode mode)
 		case TIC_START_MODE:
 		case TIC_CONSOLE_MODE:
 		case TIC_RUN_MODE:
-		case TIC_KEYMAP_MODE:
 		case TIC_DIALOG_MODE:
 		case TIC_MENU_MODE:
 			break;
@@ -1851,13 +1848,6 @@ static bool processShortcuts(SDL_KeyboardEvent* event)
 				return true;
 			}
 
-			// TODO: move this to keymap
-			if(studio.mode == TIC_KEYMAP_MODE)
-			{
-				studio.keymap->escape(studio.keymap);
-				return true;
-			}
-
 			if(studio.mode == TIC_DIALOG_MODE)
 			{
 				studio.dialog->escape(studio.dialog);
@@ -2418,7 +2408,6 @@ static void renderStudio()
 		break;
 
 	case TIC_WORLD_MODE:	studio.world->tick(studio.world); break;
-	case TIC_KEYMAP_MODE:	studio.keymap->tick(studio.keymap); break;
 	case TIC_DIALOG_MODE:	studio.dialog->tick(studio.dialog); break;
 	case TIC_MENU_MODE:		studio.menu->tick(studio.menu); break;
 	case TIC_SURF_MODE:		studio.surf->tick(studio.surf); break;
@@ -2669,6 +2658,22 @@ u32 unzip(u8** dest, const u8* source, size_t size)
 	return 0;
 }
 
+static void initKeymap()
+{
+	FileSystem* fs = studio.fs;
+
+	s32 size = 0;
+	u8* data = (u8*)fsLoadFile(fs, KEYMAP_DAT_PATH, &size);
+
+	if(data)
+	{
+		if(size == KEYMAP_SIZE)
+			memcpy(getKeymap(), data, KEYMAP_SIZE);
+
+		SDL_free(data);
+	}
+}
+
 static void onFSInitialized(FileSystem* fs)
 {
 	studio.fs = fs;
@@ -2709,7 +2714,6 @@ static void onFSInitialized(FileSystem* fs)
 		studio.run 		= SDL_calloc(1, sizeof(Run));
 		studio.world 	= SDL_calloc(1, sizeof(World));
 		studio.config 	= SDL_calloc(1, sizeof(Config));
-		studio.keymap 	= SDL_calloc(1, sizeof(Keymap));
 		studio.dialog 	= SDL_calloc(1, sizeof(Dialog));
 		studio.menu 	= SDL_calloc(1, sizeof(Menu));
 		studio.surf 	= SDL_calloc(1, sizeof(Surf));
@@ -2717,7 +2721,8 @@ static void onFSInitialized(FileSystem* fs)
 
 	fsMakeDir(fs, TIC_LOCAL);
 	initConfig(studio.config, studio.tic, studio.fs);
-	initKeymap(studio.keymap, studio.tic, studio.fs);
+
+	initKeymap();
 
 	initStart(studio.start, studio.tic);
 	initConsole(studio.console, studio.tic, studio.fs, studio.config, studio.argc, studio.argv);
@@ -2848,7 +2853,6 @@ s32 main(s32 argc, char **argv)
 		SDL_free(studio.run);
 		SDL_free(studio.world);
 		SDL_free(studio.config);
-		SDL_free(studio.keymap);
 		SDL_free(studio.dialog);
 		SDL_free(studio.menu);
 		SDL_free(studio.surf);

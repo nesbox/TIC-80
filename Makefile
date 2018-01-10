@@ -123,7 +123,6 @@ SOURCES=\
 	src/history.c \
 	src/world.c \
 	src/config.c \
-	src/keymap.c \
 	src/code.c \
 	src/dialog.c \
 	src/menu.c \
@@ -215,9 +214,6 @@ bin/world.o: src/world.c $(TIC80_H) $(TIC_H)
 bin/config.o: src/config.c $(TIC80_H) $(TIC_H) $(DEMO_ASSETS)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
-bin/keymap.o: src/keymap.c $(TIC80_H) $(TIC_H)
-	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
-
 bin/code.o: src/code.c $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
@@ -253,7 +249,6 @@ TIC_O=\
 	bin/history.o \
 	bin/world.o \
 	bin/config.o \
-	bin/keymap.o \
 	bin/code.o \
 	bin/net.o \
 	bin/dialog.o \

@@ -1293,13 +1293,6 @@ static void onConsoleCodeCommand(Console* console, const char* param)
 	commandDone(console);
 }
 
-
-static void onConsoleKeymapCommand(Console* console, const char* param)
-{
-	setStudioMode(TIC_KEYMAP_MODE);
-	commandDone(console);
-}
-
 static void onConsoleVersionCommand(Console* console, const char* param)
 {
 	printBack(console, "\n");
@@ -2242,7 +2235,6 @@ static const struct
 	{"cls",		NULL, "clear screen",				onConsoleClsCommand},
 	{"demo",	NULL, "install demo carts",			onConsoleInstallDemosCommand},
 	{"config",	NULL, "edit TIC config",			onConsoleConfigCommand},
-	{"keymap",	NULL, "configure keyboard mapping",	onConsoleKeymapCommand},
 	{"version",	NULL, "show the current version",	onConsoleVersionCommand},
 	{"edit",	NULL, "open cart editor",			onConsoleCodeCommand},
 	{"surf",	NULL, "open carts browser",			onConsoleSurfCommand},
