@@ -98,9 +98,6 @@
     <ClCompile Include="..\..\..\src\ext\md5.c">
       <Filter>src\ext</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\keymap.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\ext\net\SDLnet.c">
       <Filter>src\ext\net</Filter>
     </ClCompile>

@@ -3,14 +3,16 @@ OPT=-O3 -Wall -std=c99
 OPT_PRO=-DTIC80_PRO
 BIN_NAME= bin/tic80
 
+3RD_PARTY = ../3rd-party
+
 RM= rm -f
 
 INCLUDES= \
-	-I../3rd-party/lua-5.3.1/src \
-	-I../3rd-party/zlib-1.2.8 \
-	-I../3rd-party/giflib-5.1.4/lib \
-	-I../3rd-party/SDL2-2.0.7/include \
-	-Iinclude/tic80
+	-I$(3RD_PARTY)/lua-5.3.1/src \
+	-I$(3RD_PARTY)/zlib-1.2.8 \
+	-I$(3RD_PARTY)/giflib-5.1.4/lib \
+	-I$(3RD_PARTY)/SDL2-2.0.7/include \
+	-Iinclude
 
 MINGW_LINKER_FLAGS= \
 	-Llib/mingw \
@@ -132,8 +134,8 @@ SOURCES=\
 SOURCES_EXT= \
 	src/html.c
 
-LPEG_SRC= src/ext/lpeg/*.c
-GIF_SRC= src/ext/gif/*.c
+LPEG_SRC= $(3RD_PARTY)/lpeg-1.0.1/*.c
+GIF_SRC= $(3RD_PARTY)/giflib-5.1.4/lib/*.c
 
 DEMO_ASSETS= \
 	bin/assets/fire.tic.dat \
@@ -152,7 +154,7 @@ DEMO_ASSETS= \
 
 all: run
 
-TIC80_H = include/tic80/tic80_types.h include/tic80/tic80.h include/tic80/tic80_config.h src/tic.h src/ticapi.h src/machine.h
+TIC80_H = include/tic80_types.h include/tic80.h include/tic80_config.h src/tic.h src/ticapi.h src/machine.h
 
 TIC_H= src/*.h \
 	src/ext/*.h

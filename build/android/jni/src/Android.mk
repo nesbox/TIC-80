@@ -12,7 +12,7 @@ LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/lua-5.3.1/src \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/giflib-5.1.4/lib \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/zlib-1.2.8 \
-	$(LOCAL_PATH)/../../../../include/tic80 \
+	$(LOCAL_PATH)/../../../../include \
 	$(LOCAL_PATH)/$(INCLUDE_PATH)/gif
 
 # Add your application source files here...
@@ -39,7 +39,6 @@ LOCAL_SRC_FILES := $(SRC_PATH)/studio.c \
 	$(SRC_PATH)/world.c \
 	$(SRC_PATH)/code.c \
 	$(SRC_PATH)/config.c \
-	$(SRC_PATH)/keymap.c \
 	$(SRC_PATH)/net.c \
 	$(SRC_PATH)/luaapi.c \
 	$(SRC_PATH)/jsapi.c \
