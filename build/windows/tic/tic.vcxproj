@@ -82,13 +82,13 @@
     <ClCompile Include="..\..\..\src\world.c" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\..\lib\windows\icon.ico" />
+    <Image Include="icon.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\lib\windows\resource.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\..\..\lib\windows\tic.rc" />
+    <ResourceCompile Include="tic.rc" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{B6ECC66E-26FA-42C2-8F6C-E4338424F38A}</ProjectGuid>

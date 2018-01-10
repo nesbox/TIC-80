@@ -5,6 +5,7 @@ BIN_NAME= bin/tic80
 
 3RD_PARTY = ../3rd-party
 DUKTAPE_LIB = $(3RD_PARTY)/duktape-2.2.0/src
+PRE_BUILT = $(3RD_PARTY)/pre-built
 
 RM= rm -f
 
@@ -17,7 +18,7 @@ INCLUDES= \
 	-Iinclude
 
 MINGW_LINKER_FLAGS= \
-	-Llib/mingw \
+	-L$(PRE_BUILT)/mingw \
 	-lmingw32 \
 	-lSDL2main \
 	-lSDL2 \
@@ -41,14 +42,14 @@ LINUX_LIBS= \
 
 LINUX64_LIBS= \
 	$(LINUX_LIBS) \
-	-Llib/linux64
+	-L$(PRE_BUILT)/linux64
 
 LINUX32_LIBS= \
 	$(LINUX_LIBS) \
-	-Llib/linux32
+	-L$(PRE_BUILT)/linux32
 
 LINUX_ARM_LIBS= \
-	-Llib/arm
+	-L$(PRE_BUILT)/arm
 
 LINUX_LINKER_LTO_FLAGS= \
 	-D_GNU_SOURCE \
@@ -80,11 +81,11 @@ EMS_OPT= \
 	-s TOTAL_MEMORY=67108864 \
 	--llvm-lto 1 \
 	--memory-init-file 0 \
-	--pre-js lib/emscripten/prejs.js \
+	--pre-js build/html/prejs.js \
 	-s 'EXTRA_EXPORTED_RUNTIME_METHODS=["writeArrayToMemory"]'
 
 EMS_LINKER_FLAGS= \
-	-Llib/emscripten \
+	-L$(PRE_BUILT)/emscripten \
 	-llua \
 	-lgif \
 	-lz
@@ -96,7 +97,7 @@ MACOSX_OPT= \
 	-D_GNU_SOURCE
 
 MACOSX_LIBS= \
-	-Llib/macos \
+	-L$(PRE_BUILT)/macos \
 	-L/usr/local/lib \
 	-lSDL2 -lm -liconv -lobjc -llua -lz -lgif \
 	-Wl,-framework,CoreAudio \
@@ -283,7 +284,7 @@ TIC80_A = bin/libtic80.a
 TIC80_DLL = bin/tic80.dll
 
 $(TIC80_DLL): $(TIC80_O)
-	$(CC) $(OPT) -shared $(TIC80_O) -Llib/mingw -llua -lgif -Wl,--out-implib,$(TIC80_A) -o $@
+	$(CC) $(OPT) -shared $(TIC80_O) -L$(PRE_BUILT)/mingw -llua -lgif -Wl,--out-implib,$(TIC80_A) -o $@
 
 emscripten:
 	$(EMS_CC) $(SOURCES) $(TIC80_SRC) $(OPT) $(INCLUDES) $(EMS_OPT) $(EMS_LINKER_FLAGS) -o build/html/tic.js
@@ -333,7 +334,7 @@ macosx-pro:
 	$(eval OPT += $(OPT_PRO))
 	make macosx OPT="$(OPT)"
 
-bin/res.o: lib/mingw/res.rc lib/mingw/icon.ico
+bin/res.o: build/mingw/res.rc build/mingw/icon.ico
 	windres $< $@
 
 BIN2TXT= tools/bin2txt/bin2txt
