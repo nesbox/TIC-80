@@ -4,6 +4,7 @@ OPT_PRO=-DTIC80_PRO
 BIN_NAME= bin/tic80
 
 3RD_PARTY = ../3rd-party
+DUKTAPE_LIB = $(3RD_PARTY)/duktape-2.2.0/src
 
 RM= rm -f
 
@@ -12,6 +13,7 @@ INCLUDES= \
 	-I$(3RD_PARTY)/zlib-1.2.8 \
 	-I$(3RD_PARTY)/giflib-5.1.4/lib \
 	-I$(3RD_PARTY)/SDL2-2.0.7/include \
+	-I$(DUKTAPE_LIB) \
 	-Iinclude
 
 MINGW_LINKER_FLAGS= \
@@ -272,10 +274,10 @@ bin/jsapi.o: src/jsapi.c $(TIC80_H)
 bin/luaapi.o: src/luaapi.c $(TIC80_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
-bin/duktape.o: src/ext/duktape/duktape.c $(TIC80_H)
+bin/duktape.o: $(DUKTAPE_LIB)/duktape.c $(TIC80_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
-TIC80_SRC = src/tic80.c src/tic.c src/ext/blip_buf.c src/jsapi.c src/luaapi.c src/ext/duktape/duktape.c
+TIC80_SRC = src/tic80.c src/tic.c src/ext/blip_buf.c src/jsapi.c src/luaapi.c $(DUKTAPE_LIB)/duktape.c
 TIC80_O = bin/tic80.o bin/tic.o bin/tools.o bin/blip_buf.o bin/jsapi.o bin/luaapi.o bin/duktape.o bin/gif.o
 TIC80_A = bin/libtic80.a
 TIC80_DLL = bin/tic80.dll

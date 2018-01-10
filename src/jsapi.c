@@ -25,7 +25,7 @@
 
 #include <ctype.h>
 
-#include "ext/duktape/duktape.h"
+#include "duktape.h"
 
 static const char TicMachine[] = "_TIC80";
 
@@ -880,15 +880,11 @@ static void callJavascriptTick(tic_mem* tic)
 		if(duk_get_global_string(duk, TicFunc))
 		{
 			if(duk_pcall(duk, 0) != 0)
-			{
 				machine->data->error(machine->data->data, duk_safe_to_string(duk, -1));
-				duk_pop(duk);
-			}
 		}
-		else
-		{
-			machine->data->error(machine->data->data, "'function TIC()...' isn't found :(");
-		}		
+		else machine->data->error(machine->data->data, "'function TIC()...' isn't found :(");
+
+		duk_pop(duk);
 	}
 }
 
@@ -904,13 +900,10 @@ static void callJavascriptScanline(tic_mem* memory, s32 row, void* data)
 		duk_push_int(duk, row);
 
 		if(duk_pcall(duk, 1) != 0)
-		{
 			machine->data->error(machine->data->data, duk_safe_to_string(duk, -1));
-			duk_pop(duk);
-		}
-		else duk_pop(duk);
 	}
-	else duk_pop(duk);
+
+	duk_pop(duk);
 }
 
 static void callJavascriptOverlap(tic_mem* memory, void* data)
@@ -923,13 +916,10 @@ static void callJavascriptOverlap(tic_mem* memory, void* data)
 	if(duk_get_global_string(duk, OvrFunc)) 
 	{
 		if(duk_pcall(duk, 0) != 0)
-		{
 			machine->data->error(machine->data->data, duk_safe_to_string(duk, -1));
-			duk_pop(duk);
-		}
-		else duk_pop(duk);
 	}
-	else duk_pop(duk);
+
+	duk_pop(duk);
 }
 
 static const char* const JsKeywords [] =
