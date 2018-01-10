@@ -224,9 +224,8 @@ static void drawPlayerButtons(Menu* menu, s32 x, s32 y)
 
 static void drawGamepadSetupTabs(Menu* menu, s32 x, s32 y)
 {
-	enum{Width = 90, Height = 41, Tabs = 2};
+	enum{Width = 90, Height = 41, Tabs = TIC_GAMEPADS, TabWidth = 16};
 	tic_mem* tic = menu->tic;
-
 
 	tic->api.rect(tic, x, y, Width, Height, (tic_color_white));
 	tic->api.pixel(tic, x, y, (tic_color_blue));
@@ -236,12 +235,7 @@ static void drawGamepadSetupTabs(Menu* menu, s32 x, s32 y)
 	tic->api.rect(tic, x+1, y+Height, Width-2 , 1, (tic_color_black));
 
 	for(s32 i = 0; i < Tabs; i++)
-	{
-		if(menu->gamepad.tab == i)
-			drawTab(menu, x + 73 - i*17, y + 43, i);
-		else
-			drawTabDisabled(menu, x + 73 - i*17, y + 43, i);
-	}
+		(menu->gamepad.tab == i ? drawTab : drawTabDisabled)(menu, x + 73 - i*TabWidth, y + 43, i);
 
 	drawPlayerButtons(menu, x + 3, y + 3);
 }

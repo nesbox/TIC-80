@@ -45,17 +45,11 @@
 #include "ext/md5.h"
 
 #define STUDIO_UI_SCALE 3
-
 #define TEXTURE_SIZE (TIC80_FULLWIDTH)
-
-#define MAX_CONTROLLERS (sizeof(tic80_gamepads))
 #define STUDIO_PIXEL_FORMAT SDL_PIXELFORMAT_ARGB8888
-
 #define FRAME_SIZE (TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32))
-
 #define OFFSET_LEFT ((TIC80_FULLWIDTH-TIC80_WIDTH)/2)
 #define OFFSET_TOP ((TIC80_FULLHEIGHT-TIC80_HEIGHT)/2)
-
 #define POPUP_DUR (TIC_FRAMERATE*2)
 
 #if defined(TIC80_PRO)
@@ -110,7 +104,7 @@ static struct
 		SDL_AudioCVT 		cvt;
 	} audio;
 
-	SDL_Joystick* joysticks[MAX_CONTROLLERS];
+	SDL_Joystick* joysticks[TIC_GAMEPADS];
 
 	EditorMode mode;
 	EditorMode prevMode;
@@ -1936,7 +1930,7 @@ SDL_Event* pollEvent()
 			{
 				s32 id = event.jdevice.which;
 
-				if (id < MAX_CONTROLLERS)
+				if (id < TIC_GAMEPADS)
 				{
 					if(studio.joysticks[id])
 						SDL_JoystickClose(studio.joysticks[id]);
@@ -1950,7 +1944,7 @@ SDL_Event* pollEvent()
 			{
 				s32 id = event.jdevice.which;
 
-				if (id < MAX_CONTROLLERS && studio.joysticks[id])
+				if (id < TIC_GAMEPADS && studio.joysticks[id])
 				{
 					SDL_JoystickClose(studio.joysticks[id]);
 					studio.joysticks[id] = NULL;
