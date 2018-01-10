@@ -1325,7 +1325,7 @@ static void api_tick_end(tic_mem* memory)
 	}
 	
 	blip_end_frame(machine->blip, EndTime);
-	blip_read_samples(machine->blip, machine->memory.samples.buffer, machine->samplerate / TIC_FRAMERATE);
+	blip_read_samples(machine->blip, machine->memory.samples.buffer, machine->samplerate / TIC_FRAMERATE, 0);
 
 	machine->state.setpix = setPixelOvr;
 	machine->state.getpix = getPixelOvr;

@@ -24,7 +24,7 @@
 
 #include "ticapi.h"
 #include "tools.h"
-#include "ext/blip_buf.h"
+#include "blip_buf.h"
 
 #define SFX_DEF_SPEED (1 << SFX_SPEED_BITS)
 
