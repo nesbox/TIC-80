@@ -28,7 +28,7 @@
 #include <ctype.h>
 
 #include "machine.h"
-#include "ext/moonscript.h"
+#include "moonscript.h"
 
 #define LUA_LOC_STACK 1E8 // 100.000.000
 

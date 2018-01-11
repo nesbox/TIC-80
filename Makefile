@@ -17,6 +17,7 @@ INCLUDES= \
 	-I$(3RD_PARTY)/zlib-1.2.8 \
 	-I$(3RD_PARTY)/giflib-5.1.4/lib \
 	-I$(3RD_PARTY)/SDL2-2.0.7/include \
+	-I$(3RD_PARTY)/moonscript \
 	-I$(BLIPBUF_LIB) \
 	-I$(DUKTAPE_LIB) \
 	-I$(SDL_NET_LIB) \

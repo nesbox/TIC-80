@@ -15,6 +15,7 @@ LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/duktape-2.2.0\src \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/blip-buf \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/SDL2_net-2.0.1 \
+	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/moonscript \
 	$(LOCAL_PATH)/../../../../include
 
 # Add your application source files here...
