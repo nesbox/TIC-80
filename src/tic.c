@@ -2119,7 +2119,7 @@ void parseCode(const tic_script_config* config, const char* start, u8* color, co
 				ptr += strlen(config->singleComment);
 				continue;
 			}
-			else if(isalpha_(c))
+			else if(isalpha_(c) && isspace(ptr[-1]))
 			{
 				wordStart = ptr;
 				ptr++;
