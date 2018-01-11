@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" IgnorableNamespaces="uap mp">
-  <Identity Name="50446Nesbox.TICcomputer" Publisher="CN=1040DC4A-04A1-4B33-9107-C1A9D74775D4" Version="0.47.0.0" />
+  <Identity Name="50446Nesbox.TICcomputer" Publisher="CN=1040DC4A-04A1-4B33-9107-C1A9D74775D4" Version="0.60.1.0" />
   <mp:PhoneIdentity PhoneProductId="93515db0-8ee3-478b-933a-5776b58247b2" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
   <Properties>
     <DisplayName>TIC-80</DisplayName>

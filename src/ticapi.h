@@ -45,12 +45,14 @@ typedef struct
 typedef void(*TraceOutput)(void*, const char*, u8 color);
 typedef void(*ErrorOutput)(void*, const char*);
 typedef void(*ExitCallback)(void*);
+typedef bool(*CheckForceExit)(void*);
 
 typedef struct
 {
 	TraceOutput trace;
 	ErrorOutput error;
 	ExitCallback exit;
+	CheckForceExit forceExit;
 	
 	u64 (*counter)();
 	u64 (*freq)();
@@ -62,7 +64,57 @@ typedef struct
 } tic_tick_data;
 
 typedef struct tic_mem tic_mem;
-typedef void(*tic_scanline)(tic_mem* memory, s32 row);
+typedef void(*tic_tick)(tic_mem* memory);
+typedef void(*tic_scanline)(tic_mem* memory, s32 row, void* data);
+typedef void(*tic_overlap)(tic_mem* memory, void* data);
+
+typedef struct
+{
+	s32 pos;
+	s32 size;
+} tic_outline_item;
+
+typedef struct
+{
+	u8 string;
+	u8 number;
+	u8 keyword;
+	u8 api;
+	u8 comment;
+	u8 sign;
+	u8 var;
+	u8 other;
+} tic_code_theme;
+
+typedef struct tic_script_config tic_script_config;
+
+struct tic_script_config
+{
+	struct
+	{
+		bool(*init)(tic_mem* memory, const char* code);
+		void(*close)(tic_mem* memory);
+
+		tic_tick tick;
+		tic_scanline scanline;
+		tic_overlap overlap;		
+	};
+
+	const tic_outline_item* (*getOutline)(const char* code, s32* size);
+	void (*parse)(const tic_script_config* config, const char* start, u8* color, const tic_code_theme* theme);
+
+	const char* blockCommentStart;
+	const char* blockCommentEnd;
+	const char* blockStringStart;
+	const char* blockStringEnd;
+	const char* singleComment;
+
+	const char* const * keywords;
+	s32 keywordsCount;
+
+	const char* const * api;
+	s32 apiCount;
+};
 
 typedef struct
 {
@@ -76,14 +128,14 @@ typedef struct
 	void (*line)				(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, u8 color);
 	void (*rect)				(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 color);
 	void (*rect_border)			(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 color);
-	void (*sprite)				(tic_mem* memory, const tic_gfx* src, s32 index, s32 x, s32 y, u8* colors, s32 count);
-	void (*sprite_ex)			(tic_mem* memory, const tic_gfx* src, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate);
-	void (*map)					(tic_mem* memory, const tic_gfx* src, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale);
-	void (*remap)				(tic_mem* memory, const tic_gfx* src, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale, RemapFunc remap, void* data);
-	void (*map_set)				(tic_mem* memory, tic_gfx* src, s32 x, s32 y, u8 value);
-	u8   (*map_get)				(tic_mem* memory, const tic_gfx* src, s32 x, s32 y);
-	void (*circle)				(tic_mem* memory, s32 x, s32 y, u32 radius, u8 color);
-	void (*circle_border)		(tic_mem* memory, s32 x, s32 y, u32 radius, u8 color);
+	void (*sprite)				(tic_mem* memory, const tic_tiles* src, s32 index, s32 x, s32 y, u8* colors, s32 count);
+	void (*sprite_ex)			(tic_mem* memory, const tic_tiles* src, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate);
+	void (*map)					(tic_mem* memory, const tic_map* src, const tic_tiles* tiles, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale);
+	void (*remap)				(tic_mem* memory, const tic_map* src, const tic_tiles* tiles, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale, RemapFunc remap, void* data);
+	void (*map_set)				(tic_mem* memory, tic_map* src, s32 x, s32 y, u8 value);
+	u8   (*map_get)				(tic_mem* memory, const tic_map* src, s32 x, s32 y);
+	void (*circle)				(tic_mem* memory, s32 x, s32 y, s32 radius, u8 color);
+	void (*circle_border)		(tic_mem* memory, s32 x, s32 y, s32 radius, u8 color);
 	void (*tri)					(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, u8 color);
 	void(*textri)				(tic_mem* memory, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8 chroma);
 	void (*clip)				(tic_mem* memory, s32 x, s32 y, s32 width, s32 height);
@@ -95,40 +147,56 @@ typedef struct
 	void (*music_frame)			(tic_mem* memory, s32 track, s32 frame, s32 row, bool loop);
 	double (*time)				(tic_mem* memory);
 	void (*tick)				(tic_mem* memory, tic_tick_data* data);
-	void (*scanline)			(tic_mem* memory, s32 row);
+	void (*scanline)			(tic_mem* memory, s32 row, void* data);
+	void (*overlap)				(tic_mem* memory, void* data);
 	void (*reset)				(tic_mem* memory);
 	void (*pause)				(tic_mem* memory);
 	void (*resume)				(tic_mem* memory);
-	void (*sync)				(tic_mem* memory, bool toCart);
+	void (*sync)				(tic_mem* memory, u32 mask, s32 bank, bool toCart);
 	u32 (*btnp)					(tic_mem* memory, s32 id, s32 hold, s32 period);
+	bool (*key)					(tic_mem* memory, tic_key key);
+	bool (*keyp)				(tic_mem* memory, tic_key key, s32 hold, s32 period);
 
 	void (*load)				(tic_cartridge* rom, const u8* buffer, s32 size, bool palette);
 	s32  (*save)				(const tic_cartridge* rom, u8* buffer);
 
-	void (*tick_start)			(tic_mem* memory, const tic_sound* src);
+	void (*tick_start)			(tic_mem* memory, const tic_sfx* sfx, const tic_music* music);
 	void (*tick_end)			(tic_mem* memory);
-	void (*blit)				(tic_mem* tic, u32* out, tic_scanline scanline);
+	void (*blit)				(tic_mem* tic, tic_scanline scanline, tic_overlap overlap, void* data);
 
-	tic_script_lang (*get_script)(tic_mem* memory);
+	const tic_script_config* (*get_script_config)(tic_mem* memory);
 } tic_api;
 
 struct tic_mem
 {
 	tic_ram 			ram;
 	tic_cartridge 		cart;
-	tic_cartridge 		config;
-	tic_input_method 	input;
-	tic_script_lang 	script;
+	tic_cartridge		config;
 	tic_font 			font;
 	tic_api 			api;
+	tic_persistent		persistent;
 
 	char saveid[TIC_SAVEID_SIZE];
+
+	union
+	{
+		struct
+		{
+			u8 gamepad:1;
+			u8 mouse:1;
+			u8 keyboard:1;
+		};
+
+		u8 data;
+	} input;
 
 	struct
 	{
 		s16* buffer;
 		s32 size;
 	} samples;
+
+	u32 screen[TIC80_FULLWIDTH * TIC80_FULLHEIGHT];
 };
 
 tic_mem* tic_create(s32 samplerate);

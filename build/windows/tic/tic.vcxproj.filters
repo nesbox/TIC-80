@@ -66,15 +66,6 @@
     <ClCompile Include="..\..\..\src\ext\gif.c">
       <Filter>src\ext</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\keymap.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\ext\net\SDLnet.c">
-      <Filter>src\ext\net</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\ext\net\SDLnetTCP.c">
-      <Filter>src\ext\net</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\net.c">
       <Filter>src</Filter>
     </ClCompile>
@@ -90,22 +81,28 @@
     <ClCompile Include="..\..\..\src\surf.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\ext\net\SDLnetselect.c">
+    <ClCompile Include="..\..\..\..\3rd-party\SDL2_net-2.0.1\SDLnet.c">
+      <Filter>src\ext\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetselect.c">
+      <Filter>src\ext\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetTCP.c">
       <Filter>src\ext\net</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\..\lib\windows\icon.ico">
+    <Image Include="icon.ico">
       <Filter>res</Filter>
     </Image>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\lib\windows\resource.h">
+    <ClInclude Include="resource.h">
       <Filter>res</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\..\..\lib\windows\tic.rc">
+    <ResourceCompile Include="tic.rc">
       <Filter>res</Filter>
     </ResourceCompile>
   </ItemGroup>

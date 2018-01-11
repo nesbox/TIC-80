@@ -109,7 +109,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <CompileAsWinRT>false</CompileAsWinRT>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include\tic80;..\..\..\include\lua;..\..\..\include\gif;..\..\..\include\sdl2;..\..\..\include\zlib;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2_net-2.0.1;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>
       </BufferSecurityCheck>
       <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;_ARM_WINAPI_PARTITION_DESKTOP_SDK_AVAILABLE=1;%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -125,7 +125,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <CompileAsWinRT>false</CompileAsWinRT>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include\tic80;..\..\..\include\lua;..\..\..\include\gif;..\..\..\include\sdl2;..\..\..\include\zlib;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2_net-2.0.1;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>
       </BufferSecurityCheck>
       <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;_ARM_WINAPI_PARTITION_DESKTOP_SDK_AVAILABLE=1;%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -141,7 +141,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <CompileAsWinRT>false</CompileAsWinRT>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include\tic80;..\..\..\include\lua;..\..\..\include\gif;..\..\..\include\sdl2;..\..\..\include\zlib;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2_net-2.0.1;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>
       </BufferSecurityCheck>
       <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -157,7 +157,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <CompileAsWinRT>false</CompileAsWinRT>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include\tic80;..\..\..\include\lua;..\..\..\include\gif;..\..\..\include\sdl2;..\..\..\include\zlib;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2_net-2.0.1;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>
       </BufferSecurityCheck>
       <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -173,7 +173,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <CompileAsWinRT>false</CompileAsWinRT>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include\tic80;..\..\..\include\lua;..\..\..\include\gif;..\..\..\include\sdl2;..\..\..\include\zlib;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2_net-2.0.1;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>
       </BufferSecurityCheck>
       <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -189,7 +189,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <CompileAsWinRT>false</CompileAsWinRT>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include\tic80;..\..\..\include\lua;..\..\..\include\gif;..\..\..\include\sdl2;..\..\..\include\zlib;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2_net-2.0.1;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>
       </BufferSecurityCheck>
       <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -216,7 +216,7 @@
     <Image Include="Assets\Wide310x150Logo.scale-200.png" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\3rd-party\SDL2-2.0.5\VisualC-WinRT\UWP_VS2015\SDL-UWP.vcxproj">
+    <ProjectReference Include="..\..\..\..\3rd-party\SDL2-2.0.7\VisualC-WinRT\UWP_VS2015\SDL-UWP.vcxproj">
       <Project>{89e9b32e-a86a-47c3-a948-d2b1622925ce}</Project>
     </ProjectReference>
     <ProjectReference Include="..\..\..\..\3rd-party\zlib-1.2.8\winrt\zlib-uwp\zlib-uwp.vcxproj">
@@ -233,7 +233,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\3rd-party\SDL2-2.0.5\src\main\winrt\SDL_winrt_main_NonXAML.cpp">
+    <ClCompile Include="..\..\..\..\3rd-party\SDL2-2.0.7\src\main\winrt\SDL_winrt_main_NonXAML.cpp">
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">true</CompileAsWinRT>
@@ -241,6 +241,9 @@
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</CompileAsWinRT>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\3rd-party\SDL2_net-2.0.1\SDLnet.c" />
+    <ClCompile Include="..\..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetselect.c" />
+    <ClCompile Include="..\..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetTCP.c" />
     <ClCompile Include="..\..\..\src\code.c" />
     <ClCompile Include="..\..\..\src\config.c" />
     <ClCompile Include="..\..\..\src\console.c" />
@@ -255,13 +258,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\src\ext\gif.c" />
     <ClCompile Include="..\..\..\src\ext\md5.c" />
-    <ClCompile Include="..\..\..\src\ext\net\SDLnet.c" />
-    <ClCompile Include="..\..\..\src\ext\net\SDLnetselect.c" />
-    <ClCompile Include="..\..\..\src\ext\net\SDLnetTCP.c" />
     <ClCompile Include="..\..\..\src\fs.c" />
     <ClCompile Include="..\..\..\src\history.c" />
     <ClCompile Include="..\..\..\src\html.c" />
-    <ClCompile Include="..\..\..\src\keymap.c" />
     <ClCompile Include="..\..\..\src\map.c" />
     <ClCompile Include="..\..\..\src\menu.c" />
     <ClCompile Include="..\..\..\src\music.c" />
@@ -279,7 +278,7 @@
     <None Include="Package.StoreAssociation.xml" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\..\..\..\3rd-party\SDL2-2.0.5\src\main\winrt\SDL2-WinRTResources.rc" />
+    <ResourceCompile Include="..\..\..\..\3rd-party\SDL2-2.0.7\src\main\winrt\SDL2-WinRTResources.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

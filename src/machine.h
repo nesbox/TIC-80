@@ -24,10 +24,15 @@
 
 #include "ticapi.h"
 #include "tools.h"
-#include "ext/blip_buf.h"
+#include "blip_buf.h"
 
 #define SFX_DEF_SPEED (1 << SFX_SPEED_BITS)
 
+#define API_KEYWORDS {"TIC", "scanline", "OVR", "print", "cls", "pix", "line", "rect", "rectb", \
+	"spr", "btn", "btnp", "sfx", "map", "mget", "mset", "peek", "poke", "peek4", "poke4", \
+	"memcpy", "memset", "trace", "pmem", "time", "exit", "font", "mouse", "circ", "circb", "tri", "textri", \
+	"clip", "music", "sync", "reset", "key", "keyp"}
+	
 typedef struct
 {
 	s32 time;       /* clock time of next delta */
@@ -46,8 +51,6 @@ typedef struct
 	s32 duration;
 } Channel;
 
-typedef void(ScanlineFunc)(tic_mem* memory, s32 row);
-
 typedef struct
 {
 	s32 l;
@@ -61,10 +64,17 @@ typedef struct
 
 	struct
 	{
-		tic80_input previous;
+		tic80_gamepads previous;
 
-		u32 holds[sizeof(tic80_input) * BITS_IN_BYTE];
-	} gamepad;
+		u32 holds[sizeof(tic80_gamepads) * BITS_IN_BYTE];
+	} gamepads;
+
+	struct 
+	{
+		tic80_keyboard previous;
+
+		u32 holds[tic_keys_count];
+	} keyboard;
 
 	Clip clip;
 
@@ -84,7 +94,21 @@ typedef struct
 		Channel channels[TIC_SOUND_CHANNELS];
 	} music;
 
-	ScanlineFunc* scanline;
+	tic_tick tick;
+	tic_scanline scanline;
+
+	struct
+	{
+		tic_overlap callback;
+		u32 palette[TIC_PALETTE_SIZE];
+	} ovr;
+
+	void (*setpix)(tic_mem* memory, s32 x, s32 y, u8 color);
+	u8 (*getpix)(tic_mem* memory, s32 x, s32 y);
+	void (*drawhline)(tic_mem* memory, s32 xl, s32 xr, s32 y, u8 color);
+
+	u32 synced;
+
 	bool initialized;
 } MachineState;
 
@@ -101,7 +125,12 @@ typedef struct
 
 	blip_buffer_t* blip;
 	s32 samplerate;
-	const tic_sound* soundSrc;
+
+	struct
+	{
+		const tic_sfx* sfx;
+		const tic_music* music;
+	} sound;
 
 	tic_tick_data* data;
 
@@ -110,9 +139,13 @@ typedef struct
 	struct
 	{
 		MachineState state;	
-		tic_sound_register registers[TIC_SOUND_CHANNELS];
-		tic_music_pos music_pos;
-		tic_vram vram;
+		tic_ram ram;
+
+		struct
+		{
+			u64 start;
+			u64 paused;			
+		} time;
 	} pause;
 
 } tic_machine;
@@ -121,16 +154,8 @@ typedef s32(DrawCharFunc)(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s
 s32 drawText(tic_mem* memory, const char* text, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale, DrawCharFunc* func);
 s32 drawSpriteFont(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale);
 s32 drawFixedSpriteFont(tic_mem* memory, u8 index, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale);
+void parseCode(const tic_script_config* config, const char* start, u8* color, const tic_code_theme* theme);
 
-void closeLua(tic_machine* machine);
-void closeJavascript(tic_machine* machine);
-
-bool initMoonscript(tic_machine* machine, const char* code);
-bool initLua(tic_machine* machine, const char* code);
-bool initJavascript(tic_machine* machine, const char* code);
-
-void callLuaTick(tic_machine* machine);
-void callJavascriptTick(tic_machine* machine);
-
-void callLuaScanline(tic_mem* memory, s32 row);
-void callJavascriptScanline(tic_mem* memory, s32 row);
+const tic_script_config* getLuaScriptConfig();
+const tic_script_config* getMoonScriptConfig();
+const tic_script_config* getJsScriptConfig();

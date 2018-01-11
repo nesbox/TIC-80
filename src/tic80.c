@@ -93,6 +93,8 @@ TIC80_API void tic80_load(tic80* tic, void* cart, s32 size)
 	tic80->tic.sound.count = tic80->memory->samples.size/sizeof(s16);
 	tic80->tic.sound.samples = tic80->memory->samples.buffer;
 
+	tic80->tic.screen = tic80->memory->screen;
+
 	{
 		tic80->tickData.error = onError;
 		tic80->tickData.trace = onTrace;
@@ -115,13 +117,13 @@ TIC80_API void tic80_tick(tic80* tic, tic80_input input)
 {
 	tic80_local* tic80 = (tic80_local*)tic;
 
-	tic80->memory->ram.vram.input.gamepad.data = input.data;
+	tic80->memory->ram.input = input;
 	
-	tic80->memory->api.tick_start(tic80->memory, &tic80->memory->ram.sound);
+	tic80->memory->api.tick_start(tic80->memory, &tic80->memory->ram.sfx, &tic80->memory->ram.music);
 	tic80->memory->api.tick(tic80->memory, &tic80->tickData);
 	tic80->memory->api.tick_end(tic80->memory);
 
-	tic80->memory->api.blit(tic80->memory, tic->screen, tic80->memory->api.scanline);
+	tic80->memory->api.blit(tic80->memory, tic80->memory->api.scanline, tic80->memory->api.overlap, NULL);
 
 	TickCounter++;
 }

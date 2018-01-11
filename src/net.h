@@ -38,3 +38,4 @@ void netDirRequest(Net* net, const char* path, ListCallback callback, void* data
 void* netGetRequest(Net* net, const char* path, s32* size);
 
 Net* createNet();
+void closeNet(Net* net);

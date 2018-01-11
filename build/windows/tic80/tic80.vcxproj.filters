@@ -10,9 +10,6 @@
     <Filter Include="src\ext\duktape">
       <UniqueIdentifier>{32b7b251-991e-49bf-b9b3-146483deba38}</UniqueIdentifier>
     </Filter>
-    <Filter Include="res">
-      <UniqueIdentifier>{a8b4fcef-8795-4705-be81-2c4b8e6c439d}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\tic80.c">
@@ -27,27 +24,17 @@
     <ClCompile Include="..\..\..\src\tic.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\ext\duktape\duktape.c">
-      <Filter>src\ext\duktape</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\ext\blip_buf.c">
-      <Filter>src\ext</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\ext\gif.c">
       <Filter>src\ext</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\tools.c">
       <Filter>src</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="resource.h">
-      <Filter>res</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="tic80.rc">
-      <Filter>res</Filter>
-    </ResourceCompile>
+    <ClCompile Include="..\..\..\..\3rd-party\duktape-2.2.0\src\duktape.c">
+      <Filter>src\ext\duktape</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\3rd-party\blip-buf\blip_buf.c">
+      <Filter>src\ext</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

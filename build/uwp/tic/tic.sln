@@ -11,7 +11,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gif", "..\gif\gif.vcxproj",
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tic80", "..\tic80\tic80.vcxproj", "{9C39ACF1-5F52-4A2B-A467-9F2805D6174B}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDL2-UWP", "..\..\..\..\3rd-party\SDL2-2.0.5\VisualC-WinRT\UWP_VS2015\SDL-UWP.vcxproj", "{89E9B32E-A86A-47C3-A948-D2B1622925CE}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDL2-UWP", "..\..\..\..\3rd-party\SDL2-2.0.7\VisualC-WinRT\UWP_VS2015\SDL-UWP.vcxproj", "{89E9B32E-A86A-47C3-A948-D2B1622925CE}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlib-uwp", "..\..\..\..\3rd-party\zlib-1.2.8\winrt\zlib-uwp\zlib-uwp.vcxproj", "{978F53DB-F959-4CB4-84A7-463AF29949BE}"
 EndProject

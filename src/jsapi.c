@@ -23,12 +23,16 @@
 #include "machine.h"
 #include "tools.h"
 
-#include "ext/duktape/duktape.h"
+#include <ctype.h>
+
+#include "duktape.h"
 
 static const char TicMachine[] = "_TIC80";
 
-void closeJavascript(tic_machine* machine)
+static void closeJavascript(tic_mem* tic)
 {
+	tic_machine* machine = (tic_machine*)tic;
+
 	if(machine->js)
 	{
 		duk_destroy_heap(machine->js);
@@ -182,7 +186,7 @@ static duk_ret_t duk_spr(duk_context* duk)
 	s32 h = duk_is_null_or_undefined(duk, 8) ? 1							: duk_to_int(duk, 8);
 
 	tic_mem* memory = (tic_mem*)getDukMachine(duk);
-	memory->api.sprite_ex(memory, &memory->ram.gfx, index, x, y, w, h, colors, count, scale, flip, rotate);
+	memory->api.sprite_ex(memory, &memory->ram.tiles, index, x, y, w, h, colors, count, scale, flip, rotate);
 
 	return 0;
 }
@@ -191,23 +195,17 @@ static duk_ret_t duk_btn(duk_context* duk)
 {
 	tic_machine* machine = getDukMachine(duk);
 
-	if(machine->memory.input == tic_gamepad_input)
+	if (duk_is_null_or_undefined(duk, 0))
 	{
-		if (duk_is_null_or_undefined(duk, 0))
-		{
-			duk_push_uint(duk, machine->memory.ram.vram.input.gamepad.data);
-		}
-		else
-		{
-			s32 index = duk_to_int(duk, 0) & 0xf;
-			duk_push_boolean(duk, machine->memory.ram.vram.input.gamepad.data & (1 << index));
-		}
-
-		return 1;		
+		duk_push_uint(duk, machine->memory.ram.input.gamepads.data);
 	}
-	else duk_error(duk, DUK_ERR_ERROR, "gamepad input not declared in metadata\n");
+	else
+	{
+		s32 index = duk_to_int(duk, 0) & 0x1f;
+		duk_push_boolean(duk, machine->memory.ram.input.gamepads.data & (1 << index));
+	}
 
-	return 0;
+	return 1;
 }
 
 static duk_ret_t duk_btnp(duk_context* duk)
@@ -215,32 +213,88 @@ static duk_ret_t duk_btnp(duk_context* duk)
 	tic_machine* machine = getDukMachine(duk);
 	tic_mem* memory = (tic_mem*)machine;
 
-	if(machine->memory.input == tic_gamepad_input)
+	if (duk_is_null_or_undefined(duk, 0))
 	{
-		if (duk_is_null_or_undefined(duk, 0))
-		{
-			duk_push_uint(duk, memory->api.btnp(memory, -1, -1, -1));
-		}
-		else if(duk_is_null_or_undefined(duk, 1) && duk_is_null_or_undefined(duk, 2))
-		{
-			s32 index = duk_to_int(duk, 0) & 0xf;
+		duk_push_uint(duk, memory->api.btnp(memory, -1, -1, -1));
+	}
+	else if(duk_is_null_or_undefined(duk, 1) && duk_is_null_or_undefined(duk, 2))
+	{
+		s32 index = duk_to_int(duk, 0) & 0x1f;
 
-			duk_push_boolean(duk, memory->api.btnp(memory, index, -1, -1));
+		duk_push_boolean(duk, memory->api.btnp(memory, index, -1, -1));
+	}
+	else
+	{
+		s32 index = duk_to_int(duk, 0) & 0x1f;
+		u32 hold = duk_to_int(duk, 1);
+		u32 period = duk_to_int(duk, 2);
+
+		duk_push_boolean(duk, memory->api.btnp(memory, index, hold, period));
+	}
+
+	return 1;
+}
+
+static s32 duk_key(duk_context* duk)
+{
+	tic_machine* machine = getDukMachine(duk);
+	tic_mem* tic = &machine->memory;
+
+	if (duk_is_null_or_undefined(duk, 0))
+	{
+		duk_push_boolean(duk, tic->api.key(tic, tic_key_unknown));
+	}
+	else
+	{
+		tic_key key = duk_to_int(duk, 0);
+
+		if(key < tic_keys_count)
+			duk_push_boolean(duk, tic->api.key(tic, key));
+		else
+		{
+			duk_error(duk, DUK_ERR_ERROR, "unknown keyboard code\n");
+			return 0;
+		}
+	}
+
+	return 1;
+}
+
+static s32 duk_keyp(duk_context* duk)
+{
+	tic_machine* machine = getDukMachine(duk);
+	tic_mem* tic = &machine->memory;
+
+	if (duk_is_null_or_undefined(duk, 0))
+	{
+		duk_push_boolean(duk, tic->api.keyp(tic, tic_key_unknown, -1, -1));
+	}
+	else
+	{
+		tic_key key = duk_to_int(duk, 0);
+
+		if(key >= tic_keys_count)
+		{
+			duk_error(duk, DUK_ERR_ERROR, "unknown keyboard code\n");
+			return 0;
 		}
 		else
 		{
-			s32 index = duk_to_int(duk, 0) & 0xf;
-			u32 hold = duk_to_int(duk, 1);
-			u32 period = duk_to_int(duk, 2);
+			if(duk_is_null_or_undefined(duk, 1) && duk_is_null_or_undefined(duk, 2))
+			{
+				duk_push_boolean(duk, tic->api.keyp(tic, key, -1, -1));
+			}
+			else
+			{
+				u32 hold = duk_to_int(duk, 1);
+				u32 period = duk_to_int(duk, 2);
 
-			duk_push_boolean(duk, memory->api.btnp(memory, index, hold, period));
+				duk_push_boolean(duk, tic->api.keyp(tic, key, hold, period));
+			}
 		}
-
-		return 1;
 	}
-	else duk_error(duk, DUK_ERR_ERROR, "gamepad input not declared in metadata\n");
 
-	return 0;
+	return 1;
 }
 
 static duk_ret_t duk_sfx(duk_context* duk)
@@ -257,7 +311,7 @@ static duk_ret_t duk_sfx(duk_context* duk)
 	{
 		if(index >= 0)
 		{
-			tic_sound_effect* effect = memory->ram.sound.sfx.data + index;
+			tic_sample* effect = memory->ram.sfx.samples.data + index;
 
 			note = effect->note;
 			octave = effect->octave;
@@ -361,14 +415,14 @@ static duk_ret_t duk_map(duk_context* duk)
 	tic_mem* memory = (tic_mem*)getDukMachine(duk);
 
 	if (duk_is_null_or_undefined(duk, 8))
-		memory->api.map(memory, &memory->ram.gfx, x, y, w, h, sx, sy, chromakey, scale);
+		memory->api.map(memory, &memory->ram.map, &memory->ram.tiles, x, y, w, h, sx, sy, chromakey, scale);
 	else
 	{
 		void* remap = duk_get_heapptr(duk, 8);
 
 	 	RemapData data = {duk, remap};
 
-	 	memory->api.remap((tic_mem*)getDukMachine(duk), &memory->ram.gfx, x, y, w, h, sx, sy, chromakey, scale, remapCallback, &data);
+	 	memory->api.remap((tic_mem*)getDukMachine(duk), &memory->ram.map, &memory->ram.tiles, x, y, w, h, sx, sy, chromakey, scale, remapCallback, &data);
 	}
 
 	return 0;
@@ -381,7 +435,7 @@ static duk_ret_t duk_mget(duk_context* duk)
 
 	tic_mem* memory = (tic_mem*)getDukMachine(duk);
 
-	u8 value = memory->api.map_get(memory, &memory->ram.gfx, x, y);
+	u8 value = memory->api.map_get(memory, &memory->ram.map, x, y);
 	duk_push_uint(duk, value);
 	return 1;
 }
@@ -394,7 +448,7 @@ static duk_ret_t duk_mset(duk_context* duk)
 
 	tic_mem* memory = (tic_mem*)getDukMachine(duk);
 
-	memory->api.map_set(memory, &memory->ram.gfx, x, y, value);
+	memory->api.map_set(memory, &memory->ram.map, x, y, value);
 
 	return 1;
 }
@@ -512,12 +566,12 @@ static duk_ret_t duk_pmem(duk_context* duk)
 
 	u32 index = duk_to_int(duk, 0);
 
-	if(index >= 0 && index < TIC_PERSISTENT_SIZE)
+	if(index < TIC_PERSISTENT_SIZE)
 	{
-		s32 val = memory->ram.persistent.data[index];
+		s32 val = memory->persistent.data[index];
 
 		if(!duk_is_null_or_undefined(duk, 1))
-			memory->ram.persistent.data[index] = duk_to_int(duk, 1);
+			memory->persistent.data[index] = duk_to_int(duk, 1);
 		
 		duk_push_int(duk, val);
 
@@ -576,23 +630,21 @@ static duk_ret_t duk_mouse(duk_context* duk)
 {
 	tic_machine* machine = getDukMachine(duk);
 
-	if(machine->memory.input == tic_mouse_input)
-	{
-		u16 data = machine->memory.ram.vram.input.gamepad.data;
+	const tic80_mouse* mouse = &machine->memory.ram.input.mouse;
 
-		duk_idx_t idx = duk_push_array(duk);
-		duk_push_int(duk, (data & 0x7fff) % TIC80_WIDTH);
-		duk_put_prop_index(duk, idx, 0);
-		duk_push_int(duk, (data & 0x7fff) / TIC80_WIDTH);
-		duk_put_prop_index(duk, idx, 1);
-		duk_push_int(duk, data >> 15);
-		duk_put_prop_index(duk, idx, 2);
+	duk_idx_t idx = duk_push_array(duk);
+	duk_push_int(duk, mouse->x);
+	duk_put_prop_index(duk, idx, 0);
+	duk_push_int(duk, mouse->y);
+	duk_put_prop_index(duk, idx, 1);
+	duk_push_boolean(duk, mouse->left);
+	duk_put_prop_index(duk, idx, 2);
+	duk_push_boolean(duk, mouse->middle);
+	duk_put_prop_index(duk, idx, 3);
+	duk_push_boolean(duk, mouse->right);
+	duk_put_prop_index(duk, idx, 4);
 
-		return 1;
-	}
-	else duk_error(duk, DUK_ERR_ERROR, "mouse input not declared in metadata\n");
-
-	return 0;
+	return 1;
 }
 
 static duk_ret_t duk_circ(duk_context* duk)
@@ -703,9 +755,23 @@ static duk_ret_t duk_sync(duk_context* duk)
 {
 	tic_mem* memory = (tic_mem*)getDukMachine(duk);
 
-	bool toCart = duk_is_null_or_undefined(duk, 0) ? true : duk_to_boolean(duk, 0);
+	u32 mask = duk_is_null_or_undefined(duk, 0) ? 0 : duk_to_int(duk, 0);
+	s32 bank = duk_is_null_or_undefined(duk, 1) ? 0 : duk_to_int(duk, 1);
+	bool toCart = duk_is_null_or_undefined(duk, 2) ? false : duk_to_boolean(duk, 2);
 
-	memory->api.sync(memory, toCart);
+	if(bank >= 0 && bank < TIC_BANKS)
+		memory->api.sync(memory, mask, bank, toCart);
+	else
+		duk_error(duk, DUK_ERR_ERROR, "sync() error, invalid bank");
+
+	return 0;
+}
+
+static duk_ret_t duk_reset(duk_context* duk)
+{
+	tic_machine* machine = getDukMachine(duk);
+
+	machine->state.initialized = false;
 
 	return 0;
 }
@@ -715,6 +781,7 @@ static const struct{duk_c_function func; s32 params;} ApiFunc[] =
 {
 	{NULL, 0},
 	{NULL, 1},
+	{NULL, 0},
 	{duk_print, 6},
 	{duk_cls, 1},
 	{duk_pix, 3},
@@ -746,14 +813,38 @@ static const struct{duk_c_function func; s32 params;} ApiFunc[] =
 	{duk_textri,14},
 	{duk_clip, 4},
 	{duk_music, 4},
-	{duk_sync, 0},
+	{duk_sync, 3},
+	{duk_reset, 0},
+	{duk_key, 1},
+	{duk_keyp, 3},
 };
+
+STATIC_ASSERT(api_func, COUNT_OF(ApiKeywords) == COUNT_OF(ApiFunc));
+
+static u64 ForceExitCounter = 0;
+
+s32 duk_timeout_check(void* udata)
+{
+	tic_machine* machine = (tic_machine*)udata;
+	tic_tick_data* tick = machine->data;
+
+	enum{Wait = 1000}; // 1 sec
+
+	if(ForceExitCounter)
+		return ForceExitCounter < tick->counter();
+	else if(tick->forceExit && tick->forceExit(tick->data))
+		ForceExitCounter = tick->counter() + Wait * 1000 / tick->freq();
+
+	return false;
+}
 
 static void initDuktape(tic_machine* machine)
 {
-	closeJavascript(machine);
+	closeJavascript((tic_mem*)machine);
 
-	duk_context* duk = machine->js = duk_create_heap_default();
+	ForceExitCounter = 0;
+
+	duk_context* duk = machine->js = duk_create_heap(NULL, NULL, NULL, machine, NULL);
 
 	{
 		duk_push_global_stash(duk);
@@ -770,8 +861,10 @@ static void initDuktape(tic_machine* machine)
 		}
 }
 
-bool initJavascript(tic_machine* machine, const char* code)
+static bool initJavascript(tic_mem* tic, const char* code)
 {
+	tic_machine* machine = (tic_machine*)tic;
+
 	initDuktape(machine);
 	duk_context* duktape = machine->js;
 
@@ -785,8 +878,10 @@ bool initJavascript(tic_machine* machine, const char* code)
 	return true;
 }
 
-void callJavascriptTick(tic_machine* machine)
+static void callJavascriptTick(tic_mem* tic)
 {
+	tic_machine* machine = (tic_machine*)tic;
+
 	const char* TicFunc = ApiKeywords[0];
 
 	duk_context* duk = machine->js;
@@ -796,19 +891,15 @@ void callJavascriptTick(tic_machine* machine)
 		if(duk_get_global_string(duk, TicFunc))
 		{
 			if(duk_pcall(duk, 0) != 0)
-			{
 				machine->data->error(machine->data->data, duk_safe_to_string(duk, -1));
-				duk_pop(duk);
-			}
 		}
-		else
-		{
-			machine->data->error(machine->data->data, "'function TIC()...' isn't found :(");
-		}		
+		else machine->data->error(machine->data->data, "'function TIC()...' isn't found :(");
+
+		duk_pop(duk);
 	}
 }
 
-void callJavascriptScanline(tic_mem* memory, s32 row)
+static void callJavascriptScanline(tic_mem* memory, s32 row, void* data)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	duk_context* duk = machine->js;
@@ -820,11 +911,123 @@ void callJavascriptScanline(tic_mem* memory, s32 row)
 		duk_push_int(duk, row);
 
 		if(duk_pcall(duk, 1) != 0)
-		{
 			machine->data->error(machine->data->data, duk_safe_to_string(duk, -1));
-			duk_pop(duk);
-		}
-		else duk_pop(duk);
 	}
-	else duk_pop(duk);
+
+	duk_pop(duk);
+}
+
+static void callJavascriptOverlap(tic_mem* memory, void* data)
+{
+	tic_machine* machine = (tic_machine*)memory;
+	duk_context* duk = machine->js;
+
+	const char* OvrFunc = ApiKeywords[2];
+
+	if(duk_get_global_string(duk, OvrFunc)) 
+	{
+		if(duk_pcall(duk, 0) != 0)
+			machine->data->error(machine->data->data, duk_safe_to_string(duk, -1));
+	}
+
+	duk_pop(duk);
+}
+
+static const char* const JsKeywords [] =
+{
+	"break", "do", "instanceof", "typeof", "case", "else", "new",
+	"var", "catch", "finally", "return", "void", "continue", "for",
+	"switch", "while", "debugger", "function", "this", "with",
+	"default", "if", "throw", "delete", "in", "try", "const"
+};
+
+static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+
+static const tic_outline_item* getJsOutline(const char* code, s32* size)
+{
+	enum{Size = sizeof(tic_outline_item)};
+
+	*size = 0;
+
+	static tic_outline_item* items = NULL;
+
+	if(items)
+	{
+		free(items);
+		items = NULL;
+	}
+
+	const char* ptr = code;
+
+	while(true)
+	{
+		static const char FuncString[] = "function ";
+
+		ptr = strstr(ptr, FuncString);
+
+		if(ptr)
+		{
+			ptr += sizeof FuncString - 1;
+
+			const char* start = ptr;
+			const char* end = start;
+
+			while(*ptr)
+			{
+				char c = *ptr;
+
+				if(isalnum_(c));
+				else if(c == '(')
+				{
+					end = ptr;
+					break;
+				}
+				else break;
+
+				ptr++;
+			}
+
+			if(end > start)
+			{
+				items = items ? realloc(items, (*size + 1) * Size) : malloc(Size);
+
+				items[*size].pos = start - code;
+				items[*size].size = end - start;
+
+				(*size)++;
+			}
+		}
+		else break;
+	}
+
+	return items;
+}
+
+static const tic_script_config JsSyntaxConfig = 
+{
+	.init 				= initJavascript,
+	.close 				= closeJavascript,
+	.tick 				= callJavascriptTick,
+	.scanline 			= callJavascriptScanline,
+	.overlap 			= callJavascriptOverlap,
+
+	.getOutline			= getJsOutline,
+	.parse 				= parseCode,
+
+	.blockCommentStart 	= "/*",
+	.blockCommentEnd 	= "*/",
+	.blockStringStart	= NULL,
+	.blockStringEnd		= NULL,
+	.singleComment 		= "//",
+
+	.keywords 			= JsKeywords,
+	.keywordsCount 		= COUNT_OF(JsKeywords),
+
+	.api 				= ApiKeywords,
+	.apiCount 			= COUNT_OF(ApiKeywords),
+};
+
+const tic_script_config* getJsScriptConfig()
+{
+	return &JsSyntaxConfig;
 }

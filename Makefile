@@ -3,17 +3,28 @@ OPT=-O3 -Wall -std=c99
 OPT_PRO=-DTIC80_PRO
 BIN_NAME= bin/tic80
 
+3RD_PARTY = ../3rd-party
+DUKTAPE_LIB = $(3RD_PARTY)/duktape-2.2.0/src
+BLIPBUF_LIB = $(3RD_PARTY)/blip-buf
+SDL_NET_LIB = $(3RD_PARTY)/SDL2_net-2.0.1
+
+PRE_BUILT = $(3RD_PARTY)/pre-built
+
 RM= rm -f
 
 INCLUDES= \
-	-Iinclude/lua \
-	-Iinclude/zlib \
-	-Iinclude/gif \
-	-Iinclude/sdl2 \
-	-Iinclude/tic80
+	-I$(3RD_PARTY)/lua-5.3.1/src \
+	-I$(3RD_PARTY)/zlib-1.2.8 \
+	-I$(3RD_PARTY)/giflib-5.1.4/lib \
+	-I$(3RD_PARTY)/SDL2-2.0.7/include \
+	-I$(3RD_PARTY)/moonscript \
+	-I$(BLIPBUF_LIB) \
+	-I$(DUKTAPE_LIB) \
+	-I$(SDL_NET_LIB) \
+	-Iinclude
 
 MINGW_LINKER_FLAGS= \
-	-Llib/mingw \
+	-L$(PRE_BUILT)/mingw \
 	-lmingw32 \
 	-lSDL2main \
 	-lSDL2 \
@@ -37,14 +48,14 @@ LINUX_LIBS= \
 
 LINUX64_LIBS= \
 	$(LINUX_LIBS) \
-	-Llib/linux64
+	-L$(PRE_BUILT)/linux64
 
 LINUX32_LIBS= \
 	$(LINUX_LIBS) \
-	-Llib/linux32
+	-L$(PRE_BUILT)/linux32
 
 LINUX_ARM_LIBS= \
-	-Llib/arm
+	-L$(PRE_BUILT)/arm
 
 LINUX_LINKER_LTO_FLAGS= \
 	-D_GNU_SOURCE \
@@ -76,10 +87,11 @@ EMS_OPT= \
 	-s TOTAL_MEMORY=67108864 \
 	--llvm-lto 1 \
 	--memory-init-file 0 \
-	--pre-js lib/emscripten/prejs.js
+	--pre-js build/html/prejs.js \
+	-s 'EXTRA_EXPORTED_RUNTIME_METHODS=["writeArrayToMemory"]'
 
 EMS_LINKER_FLAGS= \
-	-Llib/emscripten \
+	-L$(PRE_BUILT)/emscripten \
 	-llua \
 	-lgif \
 	-lz
@@ -91,7 +103,7 @@ MACOSX_OPT= \
 	-D_GNU_SOURCE
 
 MACOSX_LIBS= \
-	-Llib/macos \
+	-L$(PRE_BUILT)/macos \
 	-L/usr/local/lib \
 	-lSDL2 -lm -liconv -lobjc -llua -lz -lgif \
 	-Wl,-framework,CoreAudio \
@@ -109,9 +121,9 @@ SOURCES=\
 	src/ext/file_dialog.c \
 	src/ext/md5.c \
 	src/ext/gif.c \
-	src/ext/net/SDLnet.c \
-	src/ext/net/SDLnetTCP.c \
-	src/ext/net/SDLnetselect.c \
+	$(SDL_NET_LIB)/SDLnet.c \
+	$(SDL_NET_LIB)/SDLnetTCP.c \
+	$(SDL_NET_LIB)/SDLnetselect.c \
 	src/fs.c \
 	src/tools.c \
 	src/start.c \
@@ -122,7 +134,6 @@ SOURCES=\
 	src/history.c \
 	src/world.c \
 	src/config.c \
-	src/keymap.c \
 	src/code.c \
 	src/dialog.c \
 	src/menu.c \
@@ -132,8 +143,9 @@ SOURCES=\
 SOURCES_EXT= \
 	src/html.c
 
-LPEG_SRC= src/ext/lpeg/*.c
-GIF_SRC= src/ext/gif/*.c
+LPEG_SRC= $(3RD_PARTY)/lpeg-1.0.1/*.c
+GIF_SRC= $(3RD_PARTY)/giflib-5.1.4/lib/*.c
+BLIP_SRC= $(BLIPBUF_LIB)/blip_buf.c
 
 DEMO_ASSETS= \
 	bin/assets/fire.tic.dat \
@@ -152,12 +164,12 @@ DEMO_ASSETS= \
 
 all: run
 
-TIC80_H = include/tic80/tic80_types.h include/tic80/tic80.h include/tic80/tic80_config.h src/tic.h src/ticapi.h src/machine.h
+TIC80_H = include/tic80_types.h include/tic80.h include/tic80_config.h src/tic.h src/ticapi.h src/machine.h
 
 TIC_H= src/*.h \
 	src/ext/*.h
 
-bin/studio.o: src/studio.c $(TIC80_H) $(TIC_H)
+bin/studio.o: src/studio.c src/keycodes.c $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
 bin/console.o: src/console.c $(TIC80_H) $(TIC_H) $(DEMO_ASSETS)
@@ -175,13 +187,13 @@ bin/md5.o: src/ext/md5.c $(TIC80_H) $(TIC_H)
 bin/gif.o: src/ext/gif.c $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
-bin/SDLnet.o: src/ext/net/SDLnet.c $(TIC80_H) $(TIC_H)
+bin/SDLnet.o: $(SDL_NET_LIB)/SDLnet.c $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
-bin/SDLnetTCP.o: src/ext/net/SDLnetTCP.c $(TIC80_H) $(TIC_H)
+bin/SDLnetTCP.o: $(SDL_NET_LIB)/SDLnetTCP.c $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
-bin/SDLnetselect.o: src/ext/net/SDLnetselect.c $(TIC80_H) $(TIC_H)
+bin/SDLnetselect.o: $(SDL_NET_LIB)/SDLnetselect.c $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
 bin/fs.o: src/fs.c $(TIC80_H) $(TIC_H)
@@ -212,9 +224,6 @@ bin/world.o: src/world.c $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
 bin/config.o: src/config.c $(TIC80_H) $(TIC_H) $(DEMO_ASSETS)
-	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
-
-bin/keymap.o: src/keymap.c $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
 bin/code.o: src/code.c $(TIC80_H) $(TIC_H)
@@ -252,7 +261,6 @@ TIC_O=\
 	bin/history.o \
 	bin/world.o \
 	bin/config.o \
-	bin/keymap.o \
 	bin/code.o \
 	bin/net.o \
 	bin/dialog.o \
@@ -265,7 +273,7 @@ bin/tic80.o: src/tic80.c $(TIC80_H)
 bin/tic.o: src/tic.c $(TIC80_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
-bin/blip_buf.o: src/ext/blip_buf.c $(TIC80_H)
+bin/blip_buf.o: $(BLIP_SRC)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
 bin/jsapi.o: src/jsapi.c $(TIC80_H)
@@ -274,16 +282,16 @@ bin/jsapi.o: src/jsapi.c $(TIC80_H)
 bin/luaapi.o: src/luaapi.c $(TIC80_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
-bin/duktape.o: src/ext/duktape/duktape.c $(TIC80_H)
+bin/duktape.o: $(DUKTAPE_LIB)/duktape.c $(TIC80_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
-TIC80_SRC = src/tic80.c src/tic.c src/ext/blip_buf.c src/jsapi.c src/luaapi.c src/ext/duktape/duktape.c
+TIC80_SRC = src/tic80.c src/tic.c $(BLIP_SRC) src/jsapi.c src/luaapi.c $(DUKTAPE_LIB)/duktape.c
 TIC80_O = bin/tic80.o bin/tic.o bin/tools.o bin/blip_buf.o bin/jsapi.o bin/luaapi.o bin/duktape.o bin/gif.o
 TIC80_A = bin/libtic80.a
 TIC80_DLL = bin/tic80.dll
 
 $(TIC80_DLL): $(TIC80_O)
-	$(CC) $(OPT) -shared $(TIC80_O) -Llib/mingw -llua -lgif -Wl,--out-implib,$(TIC80_A) -o $@
+	$(CC) $(OPT) -shared $(TIC80_O) -L$(PRE_BUILT)/mingw -llua -lgif -Wl,--out-implib,$(TIC80_A) -o $@
 
 emscripten:
 	$(EMS_CC) $(SOURCES) $(TIC80_SRC) $(OPT) $(INCLUDES) $(EMS_OPT) $(EMS_LINKER_FLAGS) -o build/html/tic.js
@@ -333,7 +341,7 @@ macosx-pro:
 	$(eval OPT += $(OPT_PRO))
 	make macosx OPT="$(OPT)"
 
-bin/res.o: lib/mingw/res.rc lib/mingw/icon.ico
+bin/res.o: build/mingw/res.rc build/mingw/icon.ico
 	windres $< $@
 
 BIN2TXT= tools/bin2txt/bin2txt

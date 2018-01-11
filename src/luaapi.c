@@ -25,9 +25,12 @@
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
+#include <ctype.h>
 
 #include "machine.h"
-#include "ext/moonscript.h"
+#include "moonscript.h"
+
+#define LUA_LOC_STACK 1E8 // 100.000.000
 
 static const char TicMachine[] = "_TIC80";
 
@@ -357,61 +360,57 @@ static s32 lua_btnp(lua_State* lua)
 	tic_machine* machine = getLuaMachine(lua);
 	tic_mem* memory = (tic_mem*)machine;
 
-	if(machine->memory.input == tic_gamepad_input)
+	s32 top = lua_gettop(lua);
+
+	if (top == 0)
 	{
-		s32 top = lua_gettop(lua);
-
-		if (top == 0)
-		{
-			lua_pushinteger(lua, memory->api.btnp(memory, -1, -1, -1));
-		}
-		else if(top == 1)
-		{
-			s32 index = getLuaNumber(lua, 1) & 0xf;
-
-			lua_pushboolean(lua, memory->api.btnp(memory, index, -1, -1));
-		}
-		else if (top == 3)
-		{
-			s32 index = getLuaNumber(lua, 1) & 0xf;
-			u32 hold = getLuaNumber(lua, 2);
-			u32 period = getLuaNumber(lua, 3);
-
-			lua_pushboolean(lua, memory->api.btnp(memory, index, hold, period));
-		}
-		else luaL_error(lua, "invalid params, btnp [ id [ hold period ] ]\n");
-
-		return 1;
+		lua_pushinteger(lua, memory->api.btnp(memory, -1, -1, -1));
 	}
-	else luaL_error(lua, "gamepad input not declared in metadata\n");
+	else if(top == 1)
+	{
+		s32 index = getLuaNumber(lua, 1) & 0x1f;
 
-	return 0;
+		lua_pushboolean(lua, memory->api.btnp(memory, index, -1, -1));
+	}
+	else if (top == 3)
+	{
+		s32 index = getLuaNumber(lua, 1) & 0x1f;
+		u32 hold = getLuaNumber(lua, 2);
+		u32 period = getLuaNumber(lua, 3);
+
+		lua_pushboolean(lua, memory->api.btnp(memory, index, hold, period));
+	}
+	else
+	{
+		luaL_error(lua, "invalid params, btnp [ id [ hold period ] ]\n");
+		return 0;
+	}
+
+	return 1;
 }
 
 static s32 lua_btn(lua_State* lua)
 {
 	tic_machine* machine = getLuaMachine(lua);
 
-	if(machine->memory.input == tic_gamepad_input)
+	s32 top = lua_gettop(lua);
+
+	if (top == 0)
 	{
-		s32 top = lua_gettop(lua);
-
-		if (top == 0)
-		{
-			lua_pushinteger(lua, machine->memory.ram.vram.input.gamepad.data);
-		}
-		else if (top == 1)
-		{
-			s32 index = getLuaNumber(lua, 1) & 0xf;
-			lua_pushboolean(lua, machine->memory.ram.vram.input.gamepad.data & (1 << index));
-		}
-		else luaL_error(lua, "invalid params, btn [ id ]\n");
-
-		return 1;		
+		lua_pushinteger(lua, machine->memory.ram.input.gamepads.data);
 	}
-	else luaL_error(lua, "gamepad input not declared in metadata\n");
+	else if (top == 1)
+	{
+		u32 index = getLuaNumber(lua, 1) & 0x1f;
+		lua_pushboolean(lua, machine->memory.ram.input.gamepads.data & (1 << index));
+	}
+	else
+	{
+		luaL_error(lua, "invalid params, btn [ id ]\n");
+		return 0;
+	} 
 
-	return 0;
+	return 1;
 }
 
 static s32 lua_spr(lua_State* lua)
@@ -490,7 +489,7 @@ static s32 lua_spr(lua_State* lua)
 
 	tic_mem* memory = (tic_mem*)getLuaMachine(lua);
 
-	memory->api.sprite_ex(memory, &memory->ram.gfx, index, x, y, w, h, colors, count, scale, flip, rotate);
+	memory->api.sprite_ex(memory, &memory->ram.tiles, index, x, y, w, h, colors, count, scale, flip, rotate);
 
 	return 0;
 }
@@ -506,7 +505,7 @@ static s32 lua_mget(lua_State* lua)
 
 		tic_mem* memory = (tic_mem*)getLuaMachine(lua);
 
-		u8 value = memory->api.map_get(memory, &memory->ram.gfx, x, y);
+		u8 value = memory->api.map_get(memory, &memory->ram.map, x, y);
 		lua_pushinteger(lua, value);
 		return 1;
 	}
@@ -527,7 +526,7 @@ static s32 lua_mset(lua_State* lua)
 
 		tic_mem* memory = (tic_mem*)getLuaMachine(lua);
 
-		memory->api.map_set(memory, &memory->ram.gfx, x, y, val);
+		memory->api.map_set(memory, &memory->ram.map, x, y, val);
 	}
 	else luaL_error(lua, "invalid params, mget(x,y)\n");
 
@@ -602,7 +601,7 @@ static s32 lua_map(lua_State* lua)
 
 								tic_mem* memory = (tic_mem*)getLuaMachine(lua);
 
-								memory->api.remap(memory, &memory->ram.gfx, x, y, w, h, sx, sy, chromakey, scale, remapCallback, &data);
+								memory->api.remap(memory, &memory->ram.map, &memory->ram.tiles, x, y, w, h, sx, sy, chromakey, scale, remapCallback, &data);
 
 								luaL_unref(lua, LUA_REGISTRYINDEX, data.reg);
 
@@ -617,7 +616,7 @@ static s32 lua_map(lua_State* lua)
 
 	tic_mem* memory = (tic_mem*)getLuaMachine(lua);
 
-	memory->api.map((tic_mem*)getLuaMachine(lua), &memory->ram.gfx, x, y, w, h, sx, sy, chromakey, scale);
+	memory->api.map((tic_mem*)getLuaMachine(lua), &memory->ram.map, &memory->ram.tiles, x, y, w, h, sx, sy, chromakey, scale);
 
 	return 0;
 }
@@ -680,7 +679,7 @@ static s32 lua_sfx(lua_State* lua)
 		{
 			if (index >= 0)
 			{
-				tic_sound_effect* effect = memory->ram.sound.sfx.data + index;
+				tic_sample* effect = memory->ram.sfx.samples.data + index;
 
 				note = effect->note;
 				octave = effect->octave;
@@ -745,14 +744,115 @@ static s32 lua_sync(lua_State* lua)
 {
 	tic_mem* memory = (tic_mem*)getLuaMachine(lua);
 
-	bool toCart = true;
-	
-	if(lua_gettop(lua) >= 1)
-		toCart = lua_toboolean(lua, 1);
+	bool toCart = false;
+	u32 mask = 0;
+	s32 bank = 0;
 
-	memory->api.sync(memory, toCart);
+	if(lua_gettop(lua) >= 1)
+	{
+		mask = getLuaNumber(lua, 1);
+
+		if(lua_gettop(lua) >= 2)
+		{
+			bank = getLuaNumber(lua, 2);
+
+			if(lua_gettop(lua) >= 3)
+			{
+				toCart = lua_toboolean(lua, 3);
+			}
+		}
+	}
+
+	if(bank >= 0 && bank < TIC_BANKS)
+		memory->api.sync(memory, mask, bank, toCart);
+	else
+		luaL_error(lua, "sync() error, invalid bank");
 
 	return 0;
+}
+
+static s32 lua_reset(lua_State* lua)
+{
+	tic_machine* machine = getLuaMachine(lua);
+
+	machine->state.initialized = false;
+
+	return 0;
+}
+
+static s32 lua_key(lua_State* lua)
+{
+	tic_machine* machine = getLuaMachine(lua);
+	tic_mem* tic = &machine->memory;
+
+	s32 top = lua_gettop(lua);
+
+	if (top == 0)
+	{
+		lua_pushboolean(lua, tic->api.key(tic, tic_key_unknown));
+	}
+	else if (top == 1)
+	{
+		tic_key key = getLuaNumber(lua, 1);
+
+		if(key < tic_keys_count)
+			lua_pushboolean(lua, tic->api.key(tic, key));
+		else
+		{
+			luaL_error(lua, "unknown keyboard code\n");
+			return 0;
+		}
+	}
+	else
+	{
+		luaL_error(lua, "invalid params, key [code]\n");
+		return 0;
+	} 
+
+	return 1;
+}
+
+static s32 lua_keyp(lua_State* lua)
+{
+	tic_machine* machine = getLuaMachine(lua);
+	tic_mem* tic = &machine->memory;
+
+	s32 top = lua_gettop(lua);
+
+	if (top == 0)
+	{
+		lua_pushboolean(lua, tic->api.keyp(tic, tic_key_unknown, -1, -1));
+	}
+	else
+	{
+		tic_key key = getLuaNumber(lua, 1);
+
+		if(key >= tic_keys_count)
+		{
+			luaL_error(lua, "unknown keyboard code\n");
+		}
+		else
+		{
+			if(top == 1)
+			{
+				lua_pushboolean(lua, tic->api.keyp(tic, key, -1, -1));
+			}
+			else if(top == 3)
+			{
+				u32 hold = getLuaNumber(lua, 2);
+				u32 period = getLuaNumber(lua, 3);
+
+				lua_pushboolean(lua, tic->api.keyp(tic, key, hold, period));
+			}
+			else
+			{
+				luaL_error(lua, "invalid params, keyp [ code [ hold period ] ]\n");
+				return 0;
+			}
+		}
+	}
+
+	return 1;
 }
 
 static s32 lua_memcpy(lua_State* lua)
@@ -962,13 +1062,13 @@ static s32 lua_pmem(lua_State *lua)
 	{
 		u32 index = getLuaNumber(lua, 1);
 
-		if(index >= 0 && index < TIC_PERSISTENT_SIZE)
+		if(index < TIC_PERSISTENT_SIZE)
 		{
-			s32 val = memory->ram.persistent.data[index];
+			s32 val = memory->persistent.data[index];
 
 			if(top >= 2)
 			{
-				memory->ram.persistent.data[index] = getLuaNumber(lua, 2);
+				memory->persistent.data[index] = getLuaNumber(lua, 2);
 			}
 
 			lua_pushinteger(lua, val);
@@ -1004,19 +1104,15 @@ static s32 lua_mouse(lua_State *lua)
 {
 	tic_machine* machine = getLuaMachine(lua);
 
-	if(machine->memory.input == tic_mouse_input)
-	{
-		u16 data = machine->memory.ram.vram.input.gamepad.data;
+	const tic80_mouse* mouse = &machine->memory.ram.input.mouse;
 
-		lua_pushinteger(lua, (data & 0x7fff) % TIC80_WIDTH);
-		lua_pushinteger(lua, (data & 0x7fff) / TIC80_WIDTH);
-		lua_pushboolean(lua, data >> 15);
+	lua_pushinteger(lua, mouse->x);
+	lua_pushinteger(lua, mouse->y);
+	lua_pushboolean(lua, mouse->left);
+	lua_pushboolean(lua, mouse->middle);
+	lua_pushboolean(lua, mouse->right);
 
-		return 3;		
-	}
-	else luaL_error(lua, "mouse input not declared in metadata\n");
-
-	return 0;
+	return 5;
 }
 
 static s32 lua_dofile(lua_State *lua)
@@ -1052,14 +1148,25 @@ static void setloaded(lua_State* l, char* name)
 static const char* const ApiKeywords[] = API_KEYWORDS;
 static const lua_CFunction ApiFunc[] = 
 {
-	NULL, NULL, lua_print, lua_cls, lua_pix, lua_line, lua_rect, 
+	NULL, NULL, NULL, lua_print, lua_cls, lua_pix, lua_line, lua_rect, 
 	lua_rectb, lua_spr, lua_btn, lua_btnp, lua_sfx, lua_map, lua_mget, 
 	lua_mset, lua_peek, lua_poke, lua_peek4, lua_poke4, lua_memcpy, 
 	lua_memset, lua_trace, lua_pmem, lua_time, lua_exit, lua_font, lua_mouse, 
-	lua_circ, lua_circb, lua_tri, lua_textri, lua_clip, lua_music, lua_sync
+	lua_circ, lua_circb, lua_tri, lua_textri, lua_clip, lua_music, lua_sync, lua_reset,
+	lua_key, lua_keyp
 };
 
 STATIC_ASSERT(api_func, COUNT_OF(ApiKeywords) == COUNT_OF(ApiFunc));
+
+static void checkForceExit(lua_State *lua, lua_Debug *luadebug)
+{
+	tic_machine* machine = getLuaMachine(lua);
+
+	tic_tick_data* tick = machine->data;
+
+	if(tick->forceExit && tick->forceExit(tick->data))
+		luaL_error(lua, "script execution was interrupted");
+}
 
 static void initAPI(tic_machine* machine)
 {
@@ -1072,10 +1179,14 @@ static void initAPI(tic_machine* machine)
 
 	registerLuaFunction(machine, lua_dofile, "dofile");
 	registerLuaFunction(machine, lua_loadfile, "loadfile");
+
+	lua_sethook(machine->lua, &checkForceExit, LUA_MASKCOUNT, LUA_LOC_STACK);
 }
 
-void closeLua(tic_machine* machine)
+static void closeLua(tic_mem* tic)
 {
+	tic_machine* machine = (tic_machine*)tic;
+
 	if(machine->lua)
 	{
 		lua_close(machine->lua);
@@ -1083,27 +1194,21 @@ void closeLua(tic_machine* machine)
 	}
 }
 
-bool initLua(tic_machine* machine, const char* code)
+static bool initLua(tic_mem* tic, const char* code)
 {
-	closeLua(machine);
+	tic_machine* machine = (tic_machine*)tic;
+
+	closeLua(tic);
 
 	lua_State* lua = machine->lua = luaL_newstate();
 
 	static const luaL_Reg loadedlibs[] =
 	{
 		{ "_G", luaopen_base },
-		//{ LUA_LOADLIBNAME, luaopen_package },
 		{ LUA_COLIBNAME, luaopen_coroutine },
 		{ LUA_TABLIBNAME, luaopen_table },
-		// {LUA_IOLIBNAME, luaopen_io},
-		// {LUA_OSLIBNAME, luaopen_os},
 		{ LUA_STRLIBNAME, luaopen_string },
 		{ LUA_MATHLIBNAME, luaopen_math },
-		// {LUA_UTF8LIBNAME, luaopen_utf8},
-		//{ LUA_DBLIBNAME, luaopen_debug },
-		// #if defined(LUA_COMPAT_BITLIB)
-		// {LUA_BITLIBNAME, luaopen_bit32},
-		// #endif
 		{ NULL, NULL }
 	};
 
@@ -1141,9 +1246,10 @@ static const char* execute_moonscript_src = MOON_CODE(
 	return fn()
 );
 
-bool initMoonscript(tic_machine* machine, const char* code)
+static bool initMoonscript(tic_mem* tic, const char* code)
 {
-	closeLua(machine);
+	tic_machine* machine = (tic_machine*)tic;
+	closeLua(tic);
 
 	lua_State* lua = machine->lua = luaL_newstate();
 
@@ -1205,8 +1311,10 @@ bool initMoonscript(tic_machine* machine, const char* code)
 	return true;
 }
 
-void callLuaTick(tic_machine* machine)
+static void callLuaTick(tic_mem* tic)
 {
+	tic_machine* machine = (tic_machine*)tic;
+
  	const char* TicFunc = ApiKeywords[0];
 
  	lua_State* lua = machine->lua;
@@ -1216,7 +1324,7 @@ void callLuaTick(tic_machine* machine)
 		lua_getglobal(lua, TicFunc);
 		if(lua_isfunction(lua, -1)) 
 		{
-			if(lua_pcall(lua, 0, 0, 0) != LUA_OK)
+			if(lua_pcall(lua, 0, 0, 0) != LUA_OK)	
 				machine->data->error(machine->data->data, lua_tostring(lua, -1));
 		}
 		else 
@@ -1227,7 +1335,7 @@ void callLuaTick(tic_machine* machine)
  	}
 }
 
-void callLuaScanline(tic_mem* memory, s32 row)
+static void callLuaScanline(tic_mem* memory, s32 row, void* data)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	lua_State* lua = machine->lua;
@@ -1245,4 +1353,213 @@ void callLuaScanline(tic_mem* memory, s32 row)
 		}
 		else lua_pop(lua, 1);
 	}
+}
+
+static void callLuaOverlap(tic_mem* memory, void* data)
+{
+	tic_machine* machine = (tic_machine*)memory;
+	lua_State* lua = machine->lua;
+
+	if (lua)
+	{
+		const char* OvrFunc = ApiKeywords[2];
+
+		lua_getglobal(lua, OvrFunc);
+		if(lua_isfunction(lua, -1)) 
+		{
+			if(lua_pcall(lua, 0, 0, 0) != LUA_OK)
+				machine->data->error(machine->data->data, lua_tostring(lua, -1));
+		}
+		else lua_pop(lua, 1);
+	}
+
+}
+
+static const char* const LuaKeywords [] =
+{
+	"and", "break", "do", "else", "elseif",
+	"end", "false", "for", "function", "goto", "if",
+	"in", "local", "nil", "not", "or", "repeat",
+	"return", "then", "true", "until", "while"
+};
+
+static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+
+static const tic_outline_item* getLuaOutline(const char* code, s32* size)
+{
+	enum{Size = sizeof(tic_outline_item)};
+
+	*size = 0;
+
+	static tic_outline_item* items = NULL;
+
+	if(items)
+	{
+		free(items);
+		items = NULL;
+	}
+
+	const char* ptr = code;
+
+	while(true)
+	{
+		static const char FuncString[] = "function ";
+
+		ptr = strstr(ptr, FuncString);
+
+		if(ptr)
+		{
+			ptr += sizeof FuncString - 1;
+
+			const char* start = ptr;
+			const char* end = start;
+
+			while(*ptr)
+			{
+				char c = *ptr;
+
+				if(isalnum_(c) || c == ':');
+				else if(c == '(')
+				{
+					end = ptr;
+					break;
+				}
+				else break;
+
+				ptr++;
+			}
+
+			if(end > start)
+			{
+				items = items ? realloc(items, (*size + 1) * Size) : malloc(Size);
+
+				items[*size].pos = start - code;
+				items[*size].size = end - start;
+
+				(*size)++;
+			}
+		}
+		else break;
+	}
+
+	return items;
+}
+
+static const tic_script_config LuaSyntaxConfig = 
+{
+	.init 				= initLua,
+	.close 				= closeLua,
+	.tick 				= callLuaTick,
+	.scanline 			= callLuaScanline,
+	.overlap 			= callLuaOverlap,
+
+	.getOutline			= getLuaOutline,
+	.parse 				= parseCode,
+
+	.blockCommentStart 	= "--[[",
+	.blockCommentEnd 	= "]]",
+	.singleComment 		= "--",
+	.blockStringStart	= "[[",
+	.blockStringEnd		= "]]",
+
+	.keywords 			= LuaKeywords,
+	.keywordsCount 		= COUNT_OF(LuaKeywords),
+	
+	.api 				= ApiKeywords,
+	.apiCount 			= COUNT_OF(ApiKeywords),
+};
+
+const tic_script_config* getLuaScriptConfig()
+{
+	return &LuaSyntaxConfig;
+}
+
+static const char* const MoonKeywords [] =
+{
+	"false", "true", "nil", "return",
+	"break", "continue", "for", "while",
+	"if", "else", "elseif", "unless", "switch",
+	"when", "and", "or", "in", "do",
+	"not", "super", "try", "catch",
+	"with", "export", "import", "then",
+	"from", "class", "extends", "new"
+};
+
+static const tic_outline_item* getMoonOutline(const char* code, s32* size)
+{
+	enum{Size = sizeof(tic_outline_item)};
+
+	*size = 0;
+
+	static tic_outline_item* items = NULL;
+
+	if(items)
+	{
+		free(items);
+		items = NULL;
+	}
+
+	const char* ptr = code;
+
+	while(true)
+	{
+		static const char FuncString[] = "=->";
+
+		ptr = strstr(ptr, FuncString);
+
+		if(ptr)
+		{
+			const char* end = ptr;
+
+			ptr += sizeof FuncString - 1;
+
+			while(end >= code && !isalnum_(*end))  end--;
+
+			const char* start = end;
+
+			for (const char* val = start-1; val >= code && (isalnum_(*val)); val--, start--);
+
+			if(end > start)
+			{
+				items = items ? realloc(items, (*size + 1) * Size) : malloc(Size);
+
+				items[*size].pos = start - code;
+				items[*size].size = end - start + 1;
+
+				(*size)++;
+			}
+		}
+		else break;
+	}
+
+	return items;
+}
+
+static const tic_script_config MoonSyntaxConfig = 
+{
+	.init 				= initMoonscript,
+	.close 				= closeLua,
+	.tick 				= callLuaTick,
+	.scanline 			= callLuaScanline,
+	.overlap 			= callLuaOverlap,
+
+	.getOutline			= getMoonOutline,
+	.parse 				= parseCode,
+
+	.blockCommentStart 	= NULL,
+	.blockCommentEnd 	= NULL,
+	.blockStringStart	= NULL,
+	.blockStringEnd		= NULL,
+	.singleComment 		= "--",
+
+	.keywords 			= MoonKeywords,
+	.keywordsCount 		= COUNT_OF(MoonKeywords),
+
+	.api 				= ApiKeywords,
+	.apiCount 			= COUNT_OF(ApiKeywords),
+};
+
+const tic_script_config* getMoonScriptConfig()
+{
+	return &MoonSyntaxConfig;
 }

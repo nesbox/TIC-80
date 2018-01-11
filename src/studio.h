@@ -77,17 +77,12 @@ typedef struct
 
 		struct
 		{
+			tic_code_theme syntax;
+
 			u8 bg;
-			u8 string;
-			u8 number;
-			u8 keyword;
-			u8 api;
-			u8 comment;
-			u8 sign;
-			u8 var;
-			u8 other;
 			u8 select;
 			u8 cursor;
+			bool shadow;
 		} code;
 
 		struct
@@ -106,6 +101,8 @@ typedef struct
 	
 	bool checkNewVersion;
 	bool noSound;
+	bool useVsync;
+	s32 missedFrames;
 
 } StudioConfig;
 
@@ -120,7 +117,6 @@ typedef enum
 	TIC_WORLD_MODE,
 	TIC_SFX_MODE,
 	TIC_MUSIC_MODE,
-	TIC_KEYMAP_MODE,
 	TIC_DIALOG_MODE,
 	TIC_MENU_MODE,
 	TIC_SURF_MODE,
@@ -140,7 +136,6 @@ bool getGesturePos(SDL_Point* pos);
 const u8* getKeyboard();
 
 void drawToolbar(tic_mem* tic, u8 color, bool bg);
-void drawExtrabar(tic_mem* tic);
 void drawBitIcon(s32 x, s32 y, const u8* ptr, u8 color);
 
 void studioRomLoaded();
@@ -148,13 +143,14 @@ void studioRomSaved();
 void studioConfigChanged();
 
 void setStudioMode(EditorMode mode);
+void resumeRunMode();
 EditorMode getStudioMode();
 void exitStudio();
 u32 unzip(u8** dest, const u8* source, size_t size);
 
 void str2buf(const char* str, s32 size, void* buf, bool flip);
 void toClipboard(const void* data, s32 size, bool flip);
-bool fromClipboard(void* data, s32 size, bool flip);
+bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces);
 
 typedef enum
 {
@@ -199,4 +195,6 @@ void gotoCode();
 void gotoSurf();
 void exitFromGameMenu();
 void runProject();
-void goFullscreen();
+
+tic_tiles* getBankTiles();
+tic_map* getBankMap();
