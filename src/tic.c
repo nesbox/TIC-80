@@ -966,7 +966,23 @@ static void ticTexLine(tic_mem* memory, TexVert *v0, TexVert *v1)
 	float y = top->y;
 	float u = top->u;
 	float v = top->v;
-	for (; y < (s32)bot->y; y++)
+
+	if(y < .0f)
+	{
+		y = .0f - y;
+
+		x += step_x * y;
+		u += step_u * y;
+		v += step_v * y;
+
+		y = .0f;
+	}
+
+	s32 botY = bot->y;
+	if(botY > TIC80_HEIGHT)
+		botY = TIC80_HEIGHT;
+
+	for (; y < botY; y++)
 	{
 		setSideTexPixel(x, y, u, v);
 		x += step_x;
