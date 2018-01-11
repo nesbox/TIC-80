@@ -66,12 +66,22 @@ static void readConfigNoSound(Config* config, lua_State* lua)
 	lua_pop(lua, 1);
 }
 
-static void readConfigShowSync(Config* config, lua_State* lua)
+static void readConfigShowMissedFrames(Config* config, lua_State* lua)
 {
-	lua_getglobal(lua, "SYNC_FRAMES");
+	lua_getglobal(lua, "MISSED_FRAMES");
 
 	if(lua_isinteger(lua, -1))
 		config->data.missedFrames = lua_tointeger(lua, -1);
+
+	lua_pop(lua, 1);
+}
+
+static void readConfigUseVsync(Config* config, lua_State* lua)
+{
+	lua_getglobal(lua, "USE_VSYNC");
+
+	if(lua_isboolean(lua, -1))
+		config->data.useVsync = lua_toboolean(lua, -1);
 
 	lua_pop(lua, 1);
 }
@@ -199,7 +209,8 @@ static void readConfig(Config* config)
 			readConfigVideoScale(config, lua);
 			readConfigCheckNewVersion(config, lua);
 			readConfigNoSound(config, lua);
-			readConfigShowSync(config, lua);
+			readConfigShowMissedFrames(config, lua);
+			readConfigUseVsync(config, lua);
 			readTheme(config, lua);
 		}
 

@@ -101,6 +101,7 @@ typedef struct
 	
 	bool checkNewVersion;
 	bool noSound;
+	bool useVsync;
 	s32 missedFrames;
 
 } StudioConfig;

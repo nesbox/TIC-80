@@ -2741,7 +2741,7 @@ static void onFSInitialized(FileSystem* fs)
 #if defined(__CHIP__)
 		SDL_RENDERER_SOFTWARE
 #else
-		SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
+		SDL_RENDERER_ACCELERATED | (getConfig()->useVsync ? SDL_RENDERER_PRESENTVSYNC : 0)
 #endif
 	);
 
@@ -2819,7 +2819,11 @@ s32 main(s32 argc, char **argv)
 				else
 				{
 					if(useDelay || SDL_GetWindowFlags(studio.window) & SDL_WINDOW_MINIMIZED)
-						SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
+					{
+						u32 time = (u32)(delay * 1000 / SDL_GetPerformanceFrequency());
+						if(time >= 10)
+							SDL_Delay(time);
+					}
 				}
 
 				if(studio.missedFrames > 0)
