@@ -821,17 +821,28 @@ static const struct{duk_c_function func; s32 params;} ApiFunc[] =
 
 STATIC_ASSERT(api_func, COUNT_OF(ApiKeywords) == COUNT_OF(ApiFunc));
 
+static u64 ForceExitCounter = 0;
+
 s32 duk_timeout_check(void* udata)
 {
 	tic_machine* machine = (tic_machine*)udata;
 	tic_tick_data* tick = machine->data;
 
-	return tick->forceExit && tick->forceExit(tick->data);
+	enum{Wait = 1000}; // 1 sec
+
+	if(ForceExitCounter)
+		return ForceExitCounter < tick->counter();
+	else if(tick->forceExit && tick->forceExit(tick->data))
+		ForceExitCounter = tick->counter() + Wait * 1000 / tick->freq();
+
+	return false;
 }
 
 static void initDuktape(tic_machine* machine)
 {
 	closeJavascript((tic_mem*)machine);
+
+	ForceExitCounter = 0;
 
 	duk_context* duk = machine->js = duk_create_heap(NULL, NULL, NULL, machine, NULL);
 
