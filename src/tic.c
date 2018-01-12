@@ -1998,7 +1998,7 @@ void parseCode(const tic_script_config* config, const char* start, u8* color, co
 
 	while(true)
 	{
-		char c = *ptr;
+		char c = ptr[0];
 
 		if(blockCommentStart)
 		{
@@ -2135,7 +2135,7 @@ void parseCode(const tic_script_config* config, const char* start, u8* color, co
 				ptr += strlen(config->singleComment);
 				continue;
 			}
-			else if(isalpha_(c) && ptr[-1] != '.')
+			else if(isalpha_(c))
 			{
 				wordStart = ptr;
 				ptr++;
