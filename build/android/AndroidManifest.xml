@@ -34,7 +34,7 @@
                  android:hardwareAccelerated="true" >
         <activity android:name="TIC"
                   android:label="@string/app_name"
-                  android:configChanges="keyboardHidden|keyboard|orientation|screenSize"
+                  android:configChanges="keyboardHidden|keyboard|orientation"
                   >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
