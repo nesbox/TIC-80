@@ -28,7 +28,7 @@
 
 #define TIC_VERSION_MAJOR 0
 #define TIC_VERSION_MINOR 60
-#define TIC_VERSION_PATCH 1
+#define TIC_VERSION_PATCH 3
 #define TIC_VERSION_STATUS ""
 
 #if defined(TIC80_PRO)
