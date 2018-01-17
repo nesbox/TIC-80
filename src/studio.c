@@ -977,8 +977,8 @@ void resumeRunMode()
 
 static void showSoftKeyboard()
 {
-	if(SDL_HasScreenKeyboardSupport())
-		if(studio.mode == TIC_CONSOLE_MODE || studio.mode == TIC_CODE_MODE)
+	if(studio.mode == TIC_CONSOLE_MODE || studio.mode == TIC_CODE_MODE)
+		if(!SDL_IsTextInputActive())
 			SDL_StartTextInput();
 }
 
