@@ -27,14 +27,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\3rd-party\giflib-5.1.4\lib\dgif_lib.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\giflib-5.1.4\lib\egif_lib.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\giflib-5.1.4\lib\gifalloc.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\giflib-5.1.4\lib\gif_err.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\giflib-5.1.4\lib\gif_font.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\giflib-5.1.4\lib\gif_hash.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\giflib-5.1.4\lib\openbsd-reallocarray.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\giflib-5.1.4\lib\quantize.c" />
+    <ClCompile Include="..\..\..\3rd-party\giflib-5.1.4\lib\dgif_lib.c" />
+    <ClCompile Include="..\..\..\3rd-party\giflib-5.1.4\lib\egif_lib.c" />
+    <ClCompile Include="..\..\..\3rd-party\giflib-5.1.4\lib\gifalloc.c" />
+    <ClCompile Include="..\..\..\3rd-party\giflib-5.1.4\lib\gif_err.c" />
+    <ClCompile Include="..\..\..\3rd-party\giflib-5.1.4\lib\gif_font.c" />
+    <ClCompile Include="..\..\..\3rd-party\giflib-5.1.4\lib\gif_hash.c" />
+    <ClCompile Include="..\..\..\3rd-party\giflib-5.1.4\lib\openbsd-reallocarray.c" />
+    <ClCompile Include="..\..\..\3rd-party\giflib-5.1.4\lib\quantize.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{bc1084df-210a-48d6-a077-761d8c16947b}</ProjectGuid>

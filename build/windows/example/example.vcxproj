@@ -38,10 +38,10 @@
     <ClCompile Include="..\..\..\examples\sdl-renderer.c" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\3rd-party\SDL2-2.0.7\VisualC\SDLmain\SDLmain.vcxproj">
+    <ProjectReference Include="..\..\..\3rd-party\SDL2-2.0.7\VisualC\SDLmain\SDLmain.vcxproj">
       <Project>{da956fd3-e142-46f2-9dd5-c78bebb56b7a}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\3rd-party\SDL2-2.0.7\VisualC\SDL\SDL.vcxproj">
+    <ProjectReference Include="..\..\..\3rd-party\SDL2-2.0.7\VisualC\SDL\SDL.vcxproj">
       <Project>{81ce8daf-ebb2-4761-8e45-b71abcca8c68}</Project>
     </ProjectReference>
     <ProjectReference Include="..\tic80\tic80.vcxproj">
@@ -167,7 +167,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\include;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -182,7 +182,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\include;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -197,7 +197,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\include;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -212,7 +212,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\include;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -229,7 +229,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\include;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -248,7 +248,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\include;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -267,7 +267,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\include;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -286,7 +286,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\include;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

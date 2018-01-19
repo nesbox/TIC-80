@@ -35,21 +35,21 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\3rd-party\zlib-1.2.8\adler32.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\zlib-1.2.8\compress.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\zlib-1.2.8\crc32.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\zlib-1.2.8\deflate.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\zlib-1.2.8\gzclose.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\zlib-1.2.8\gzlib.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\zlib-1.2.8\gzread.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\zlib-1.2.8\gzwrite.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\zlib-1.2.8\infback.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\zlib-1.2.8\inffast.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\zlib-1.2.8\inflate.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\zlib-1.2.8\inftrees.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\zlib-1.2.8\trees.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\zlib-1.2.8\uncompr.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\zlib-1.2.8\zutil.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\adler32.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\compress.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\crc32.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\deflate.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\gzclose.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\gzlib.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\gzread.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\gzwrite.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\infback.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\inffast.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\inflate.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\inftrees.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\trees.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\uncompr.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\zutil.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1DFBDFA2-F204-42FF-B99E-250E4B2EBA04}</ProjectGuid>

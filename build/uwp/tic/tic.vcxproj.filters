@@ -113,18 +113,18 @@
     <ClCompile Include="..\..\..\src\surf.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\3rd-party\SDL2-2.0.7\src\main\winrt\SDL_winrt_main_NonXAML.cpp" />
-    <ClCompile Include="..\..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetTCP.c">
+    <ClCompile Include="..\..\..\3rd-party\SDL2-2.0.7\src\main\winrt\SDL_winrt_main_NonXAML.cpp" />
+    <ClCompile Include="..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetTCP.c">
       <Filter>src\ext\net</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\3rd-party\SDL2_net-2.0.1\SDLnet.c">
+    <ClCompile Include="..\..\..\3rd-party\SDL2_net-2.0.1\SDLnet.c">
       <Filter>src\ext\net</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetselect.c">
+    <ClCompile Include="..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetselect.c">
       <Filter>src\ext\net</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\..\..\..\3rd-party\SDL2-2.0.7\src\main\winrt\SDL2-WinRTResources.rc" />
+    <ResourceCompile Include="..\..\..\3rd-party\SDL2-2.0.7\src\main\winrt\SDL2-WinRTResources.rc" />
   </ItemGroup>
 </Project>

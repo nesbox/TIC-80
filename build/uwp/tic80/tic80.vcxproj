@@ -27,8 +27,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\3rd-party\blip-buf\blip_buf.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\duktape-2.2.0\src\duktape.c" />
+    <ClCompile Include="..\..\..\3rd-party\blip-buf\blip_buf.c" />
+    <ClCompile Include="..\..\..\3rd-party\duktape-2.2.0\src\duktape.c" />
     <ClCompile Include="..\..\..\src\ext\gif.c" />
     <ClCompile Include="..\..\..\src\jsapi.c" />
     <ClCompile Include="..\..\..\src\luaapi.c" />
@@ -143,7 +143,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\..\3rd-party\blip-buf;..\..\..\..\3rd-party\moonscript;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>LUA_COMPAT_5_2;_CRT_SECURE_NO_WARNINGS;TIC80_SHARED;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
     </ClCompile>
@@ -159,7 +159,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\..\3rd-party\blip-buf;..\..\..\..\3rd-party\moonscript;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>LUA_COMPAT_5_2;_CRT_SECURE_NO_WARNINGS;TIC80_SHARED;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
     </ClCompile>
@@ -175,7 +175,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\..\3rd-party\blip-buf;..\..\..\..\3rd-party\moonscript;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>LUA_COMPAT_5_2;_CRT_SECURE_NO_WARNINGS;TIC80_SHARED;_ARM_WINAPI_PARTITION_DESKTOP_SDK_AVAILABLE=1;%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
     </ClCompile>
@@ -191,7 +191,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\..\3rd-party\blip-buf;..\..\..\..\3rd-party\moonscript;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>LUA_COMPAT_5_2;_CRT_SECURE_NO_WARNINGS;TIC80_SHARED;_ARM_WINAPI_PARTITION_DESKTOP_SDK_AVAILABLE=1;%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
     </ClCompile>
@@ -207,7 +207,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\..\3rd-party\blip-buf;..\..\..\..\3rd-party\moonscript;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>LUA_COMPAT_5_2;_CRT_SECURE_NO_WARNINGS;TIC80_SHARED;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
     </ClCompile>
@@ -223,7 +223,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\..\3rd-party\blip-buf;..\..\..\..\3rd-party\moonscript;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>LUA_COMPAT_5_2;_CRT_SECURE_NO_WARNINGS;TIC80_SHARED;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
     </ClCompile>

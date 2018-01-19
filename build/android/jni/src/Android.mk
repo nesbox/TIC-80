@@ -5,7 +5,7 @@ LOCAL_CFLAGS += -O3 -Wall -std=c99 -D"log2(x)=(log(x)/log(2))"
 LOCAL_MODULE := main
 
 SRC_PATH := ../../../../src
-THIRD_PARTY_PATH := ../../../../../3rd-party
+THIRD_PARTY_PATH := ../../../../3rd-party
 
 LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/SDL2-2.0.7/include \
