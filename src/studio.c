@@ -2740,6 +2740,8 @@ static void onFSInitialized(FileSystem* fs)
 	studio.renderer = SDL_CreateRenderer(studio.window, -1, 
 #if defined(__CHIP__)
 		SDL_RENDERER_SOFTWARE
+#elif defined(__EMSCRIPTEN__)
+		SDL_RENDERER_ACCELERATED
 #else
 		SDL_RENDERER_ACCELERATED | (getConfig()->useVsync ? SDL_RENDERER_PRESENTVSYNC : 0)
 #endif
@@ -2754,13 +2756,30 @@ static void onFSInitialized(FileSystem* fs)
 
 #define DEFAULT_CART "cart.tic"
 
-void onEmscriptenWget(const char* file)
+static void onEmscriptenWget(const char* file)
 {
 	studio.argv[1] = DEFAULT_CART;
 	createFileSystem(NULL, onFSInitialized);
 }
 
-void onEmscriptenWgetError(const char* error) {}
+static void onEmscriptenWgetError(const char* error) {}
+
+static void emstick()
+{
+	static double nextTick = -1.0;
+
+	if(nextTick < 0.0)
+		nextTick = emscripten_get_now();
+
+	nextTick += 1000.0/TIC_FRAMERATE;
+	tick();
+	double delay = nextTick - emscripten_get_now();
+
+	if(delay < 0.0)
+		nextTick -= delay;
+	else
+		emscripten_set_main_loop_timing(EM_TIMING_SETTIMEOUT, delay);
+}
 
 #endif
 
@@ -2778,7 +2797,8 @@ s32 main(s32 argc, char **argv)
 	}
 	else createFileSystem(NULL, onFSInitialized);
 
-	emscripten_set_main_loop(tick, TIC_FRAMERATE, 1);
+	emscripten_set_main_loop(emstick, TIC_FRAMERATE, 1);
+
 #else
 
 	createFileSystem(argc > 1 && fsExists(argv[1]) ? fsBasename(argv[1]) : NULL, onFSInitialized);
