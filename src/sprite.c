@@ -548,6 +548,7 @@ static void flipCanvasHorz(Sprite* sprite)
 		}
 
 	history_add(sprite->history);
+	copySelection(sprite);
 }
 
 static void flipCanvasVert(Sprite* sprite)
@@ -569,6 +570,7 @@ static void flipCanvasVert(Sprite* sprite)
 		}
 
 	history_add(sprite->history);
+	copySelection(sprite);
 }
 
 static void drawMoveButtons(Sprite* sprite)
