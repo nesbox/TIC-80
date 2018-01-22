@@ -2805,9 +2805,6 @@ static void emstick()
 	}
 	else
 		emscripten_set_main_loop_timing(EM_TIMING_SETTIMEOUT, delay);
-
-	if(studio.missedFrames > 0)
-		studio.missedFrames--;
 }
 
 #endif
