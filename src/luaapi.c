@@ -1335,17 +1335,15 @@ static void callLuaTick(tic_mem* tic)
  	}
 }
 
-static void callLuaScanline(tic_mem* memory, s32 row, void* data)
+static void callLuaScanlineName(tic_mem* memory, s32 row, void* data, const char* name)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	lua_State* lua = machine->lua;
 
 	if (lua)
 	{
-		const char* ScanlineFunc = ApiKeywords[1];
-
-		lua_getglobal(lua, ScanlineFunc);
-		if(lua_isfunction(lua, -1)) 
+		lua_getglobal(lua, name);
+		if(lua_isfunction(lua, -1))
 		{
 			lua_pushinteger(lua, row);
 			if(lua_pcall(lua, 1, 0, 0) != LUA_OK)
@@ -1353,6 +1351,14 @@ static void callLuaScanline(tic_mem* memory, s32 row, void* data)
 		}
 		else lua_pop(lua, 1);
 	}
+}
+
+static void callLuaScanline(tic_mem* memory, s32 row, void* data)
+{
+	callLuaScanlineName(memory, row, data, ApiKeywords[1]);
+
+	// try to call old scanline
+	callLuaScanlineName(memory, row, data, "scanline");
 }
 
 static void callLuaOverlap(tic_mem* memory, void* data)

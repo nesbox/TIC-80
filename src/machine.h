@@ -28,7 +28,7 @@
 
 #define SFX_DEF_SPEED (1 << SFX_SPEED_BITS)
 
-#define API_KEYWORDS {"TIC", "scanline", "OVR", "print", "cls", "pix", "line", "rect", "rectb", \
+#define API_KEYWORDS {"TIC", "SCN", "OVR", "print", "cls", "pix", "line", "rect", "rectb", \
 	"spr", "btn", "btnp", "sfx", "map", "mget", "mset", "peek", "poke", "peek4", "poke4", \
 	"memcpy", "memset", "trace", "pmem", "time", "exit", "font", "mouse", "circ", "circb", "tri", "textri", \
 	"clip", "music", "sync", "reset", "key", "keyp"}

@@ -899,14 +899,12 @@ static void callJavascriptTick(tic_mem* tic)
 	}
 }
 
-static void callJavascriptScanline(tic_mem* memory, s32 row, void* data)
+static void callJavascriptScanlineName(tic_mem* memory, s32 row, void* data, const char* name)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	duk_context* duk = machine->js;
 
-	const char* ScanlineFunc = ApiKeywords[1];
-
-	if(duk_get_global_string(duk, ScanlineFunc)) 
+	if(duk_get_global_string(duk, name)) 
 	{
 		duk_push_int(duk, row);
 
@@ -915,6 +913,14 @@ static void callJavascriptScanline(tic_mem* memory, s32 row, void* data)
 	}
 
 	duk_pop(duk);
+}
+
+static void callJavascriptScanline(tic_mem* memory, s32 row, void* data)
+{
+	callJavascriptScanlineName(memory, row, data, ApiKeywords[1]);
+
+	// try to call old scanline
+	callJavascriptScanlineName(memory, row, data, "scanline");
 }
 
 static void callJavascriptOverlap(tic_mem* memory, void* data)
