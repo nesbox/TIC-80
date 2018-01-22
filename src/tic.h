@@ -34,7 +34,7 @@
 #if defined(TIC80_PRO)
 #define TIC_VERSION_POST " Pro"
 #else
-#define TIC_VERSION_POST ""
+#define TIC_VERSION_POST " dev"
 #endif
 
 #define TIC_MAKE_VERSION(major, minor, patch) ((major) * 10000 + (minor) * 100 + (patch))
