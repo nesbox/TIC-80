@@ -29,12 +29,12 @@
 #define TIC_VERSION_MAJOR 0
 #define TIC_VERSION_MINOR 60
 #define TIC_VERSION_PATCH 3
-#define TIC_VERSION_STATUS ""
+#define TIC_VERSION_STATUS " dev"
 
 #if defined(TIC80_PRO)
 #define TIC_VERSION_POST " Pro"
 #else
-#define TIC_VERSION_POST " dev"
+#define TIC_VERSION_POST ""
 #endif
 
 #define TIC_MAKE_VERSION(major, minor, patch) ((major) * 10000 + (minor) * 100 + (patch))
