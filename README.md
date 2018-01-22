@@ -16,7 +16,6 @@ Thanks!
 - install GIT
 - run following commands in `cmd`
 ```
-git clone https://github.com/nesbox/3rd-party
 git clone https://github.com/nesbox/TIC-80
 ```
 - open `TIC-80\build\windows\tic\tic.sln` and build
@@ -30,7 +29,6 @@ made by [@matheuslessarodrigues](https://github.com/matheuslessarodrigues)
 run the following commands in the Terminal
 ```
 sudo apt-get install git build-essential libgtk-3-dev libsdl2-dev lua5.3-dev zlib1g-dev
-git clone https://github.com/nesbox/3rd-party
 git clone https://github.com/nesbox/TIC-80
 cd TIC-80
 make linux

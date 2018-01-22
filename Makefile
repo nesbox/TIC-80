@@ -3,7 +3,7 @@ OPT=-O3 -Wall -std=c99
 OPT_PRO=-DTIC80_PRO
 BIN_NAME= bin/tic80
 
-3RD_PARTY = ../3rd-party
+3RD_PARTY = 3rd-party
 DUKTAPE_LIB = $(3RD_PARTY)/duktape-2.2.0/src
 BLIPBUF_LIB = $(3RD_PARTY)/blip-buf
 SDL_NET_LIB = $(3RD_PARTY)/SDL2_net-2.0.1
@@ -327,7 +327,7 @@ chip-lto-pro:
 	$(eval OPT += $(OPT_PRO))
 	make chip-lto OPT="$(OPT)"
 
-linux: 
+linux:
 	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(LPEG_SRC) $(GIF_SRC) $(SOURCES_EXT) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_LIBS) $(LINUX_LINKER_FLAGS) -o $(BIN_NAME)
 
 linux-pro:
