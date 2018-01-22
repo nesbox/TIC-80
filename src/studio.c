@@ -224,7 +224,7 @@ static struct
 	FileSystem* fs;
 
 	bool quitFlag;
-	s32 missedFrames;
+	bool missedFrame;
 
 	s32 argc;
 	char **argv;
@@ -315,7 +315,7 @@ static struct
 
 	.fullscreen = false,
 	.quitFlag = false,
-	.missedFrames = 0,
+	.missedFrame = false,
 	.argc = 0,
 	.argv = NULL,
 };
@@ -2111,17 +2111,17 @@ static void drawRecordLabel(u32* frame, s32 sx, s32 sy, const u32* color)
 
 static void drawDesyncLabel(u32* frame)
 {
-	static const u16 DesyncLabel[] =
+	if(getConfig()->showSync && studio.missedFrame)
 	{
-		0b0110101010010011,
-		0b1000101011010100,
-		0b1110111010110100,
-		0b0010001010010100,
-		0b1100110010010011,
-	};
-
-	if(studio.missedFrames >= getConfig()->missedFrames)
-	{
+		static const u16 DesyncLabel[] =
+		{
+			0b0110101010010011,
+			0b1000101011010100,
+			0b1110111010110100,
+			0b0010001010010100,
+			0b1100110010010011,
+		};
+		
 		enum{sx = TIC80_WIDTH-24, sy = 8, Cols = sizeof DesyncLabel[0]*BITS_IN_BYTE, Rows = COUNT_OF(DesyncLabel)};
 
 		const u32* pal = tic_palette_blit(&studio.tic->config.palette);
@@ -2789,6 +2789,8 @@ static void emstick()
 {
 	static double nextTick = -1.0;
 
+	studio.missedFrame = false;
+
 	if(nextTick < 0.0)
 		nextTick = emscripten_get_now();
 
@@ -2797,9 +2799,15 @@ static void emstick()
 	double delay = nextTick - emscripten_get_now();
 
 	if(delay < 0.0)
+	{
 		nextTick -= delay;
+		studio.missedFrame = true;
+	}
 	else
 		emscripten_set_main_loop_timing(EM_TIMING_SETTIMEOUT, delay);
+
+	if(studio.missedFrames > 0)
+		studio.missedFrames--;
 }
 
 #endif
@@ -2841,7 +2849,9 @@ s32 main(s32 argc, char **argv)
 		const u64 Delta = SDL_GetPerformanceFrequency() / TIC_FRAMERATE;
 
 		while (!studio.quitFlag)
-		{			
+		{
+			studio.missedFrame = false;
+
 			nextTick += Delta;
 			tick();
 
@@ -2851,11 +2861,7 @@ s32 main(s32 argc, char **argv)
 				if(delay < 0)
 				{
 					nextTick -= delay;
-
-					if(studio.missedFrames < getConfig()->missedFrames)
-						studio.missedFrames++;
-
-					continue;
+					studio.missedFrame = true;
 				}
 				else
 				{
@@ -2866,9 +2872,6 @@ s32 main(s32 argc, char **argv)
 							SDL_Delay(time);
 					}
 				}
-
-				if(studio.missedFrames > 0)
-					studio.missedFrames--;
 			}
 		}
 	}
