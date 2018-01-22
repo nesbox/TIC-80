@@ -1027,6 +1027,19 @@ EditorMode getStudioMode()
 	return studio.mode;
 }
 
+void changeStudioMode(s32 dir)
+{
+    const size_t modeCount = sizeof(Modes)/sizeof(Modes[0]);
+    for(size_t i = 0; i < modeCount; i++)
+    {
+        if(studio.mode == Modes[i])
+        {
+            setStudioMode(Modes[(i+dir+modeCount) % modeCount]);
+            return;
+        }
+    }
+}
+
 static void showGameMenu()
 {
 	studio.tic->api.pause(studio.tic);
@@ -1777,6 +1790,14 @@ static bool processShortcuts(SDL_KeyboardEvent* event)
 		default:  break;
 		}
 	}
+    else if(mod & KMOD_LCTRL)
+    {
+        switch(event->keysym.sym)
+        {
+        case SDLK_PAGEUP: changeStudioMode(-1); return true;
+        case SDLK_PAGEDOWN: changeStudioMode(1); return true;
+        }
+    }
 	else
 	{
 		switch(event->keysym.sym)
