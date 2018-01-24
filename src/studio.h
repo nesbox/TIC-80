@@ -209,3 +209,5 @@ void studioTick(void* pixels);
 void studioClose();
 
 char getKeyboardText();
+bool isKeyWasDown(tic_key key);
+bool isAnyKeyWasDown();

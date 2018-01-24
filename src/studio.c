@@ -51,6 +51,9 @@
 // #define OFFSET_TOP ((TIC80_FULLHEIGHT-TIC80_HEIGHT)/2)
 #define POPUP_DUR (TIC_FRAMERATE*2)
 
+#define KEYBOARD_HOLD 20
+#define KEYBOARD_PERIOD 3
+
 #if defined(TIC80_PRO)
 #define TIC_EDITOR_BANKS (TIC_BANKS)
 #else
@@ -329,17 +332,38 @@ char getKeyboardText()
 	static const char Symbols[] = 	"abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
 	static const char Shift[] = 	"ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
 
-	enum{Count = sizeof Symbols, Hold = 20, Period = 3};
+	enum{Count = sizeof Symbols};
 
 	for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
 	{
 		tic_key key = tic->ram.input.keyboard.keys[i];
 
-		if(key > 0 && key < Count && tic->api.keyp(tic, key, Hold, Period))
+		if(key > 0 && key < Count && tic->api.keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD))
 			return tic->api.key(tic, tic_key_shift) ? Shift[key-1] : Symbols[key-1];
 	}
 
 	return 0;
+}
+
+bool isKeyWasDown(tic_key key)
+{
+	tic_mem* tic = studioImpl.studio.tic;
+	return tic->api.keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD);
+}
+
+bool isAnyKeyWasDown()
+{
+	tic_mem* tic = studioImpl.studio.tic;
+
+	for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
+	{
+		tic_key key = tic->ram.input.keyboard.keys[i];
+
+		if(tic->api.keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD))
+			return true;
+	}
+
+	return false;
 }
 
 tic_tiles* getBankTiles()
