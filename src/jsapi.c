@@ -250,11 +250,7 @@ static s32 duk_key(duk_context* duk)
 
 		if(key < tic_key_escape)
 			duk_push_boolean(duk, tic->api.key(tic, key));
-		else
-		{
-			duk_error(duk, DUK_ERR_ERROR, "unknown keyboard code\n");
-			return 0;
-		}
+		else return duk_error(duk, DUK_ERR_ERROR, "unknown keyboard code\n");
 	}
 
 	return 1;
@@ -275,8 +271,7 @@ static s32 duk_keyp(duk_context* duk)
 
 		if(key >= tic_key_escape)
 		{
-			duk_error(duk, DUK_ERR_ERROR, "unknown keyboard code\n");
-			return 0;
+			return duk_error(duk, DUK_ERR_ERROR, "unknown keyboard code\n");
 		}
 		else
 		{
@@ -325,8 +320,7 @@ static duk_ret_t duk_sfx(duk_context* duk)
 
 					if(!tic_tool_parse_note(noteStr, &note, &octave))
 					{
-						duk_error(duk, DUK_ERR_ERROR, "invalid note, should be like C#4\n");
-						return 0;
+						return duk_error(duk, DUK_ERR_ERROR, "invalid note, should be like C#4\n");
 					}
 				}
 				else
@@ -340,8 +334,7 @@ static duk_ret_t duk_sfx(duk_context* duk)
 	}
 	else
 	{
-		duk_error(duk, DUK_ERR_ERROR, "unknown sfx index\n");
-		return 0;
+		return duk_error(duk, DUK_ERR_ERROR, "unknown sfx index\n");
 	}
 
 	s32 duration = duk_is_null_or_undefined(duk, 2) ? -1 : duk_to_int(duk, 2);
@@ -356,7 +349,7 @@ static duk_ret_t duk_sfx(duk_context* duk)
 		memory->api.sfx_stop(memory, channel);
 		memory->api.sfx_ex(memory, index, note, octave, duration, channel, volume & 0xf, speed);
 	}
-	else duk_error(duk, DUK_ERR_ERROR, "unknown channel\n");
+	else return duk_error(duk, DUK_ERR_ERROR, "unknown channel\n");
 
 	return 0;
 }
@@ -577,7 +570,7 @@ static duk_ret_t duk_pmem(duk_context* duk)
 
 		return 1;
 	}
-	else duk_error(duk, DUK_ERR_ERROR, "invalid persistent memory index\n");
+	else return duk_error(duk, DUK_ERR_ERROR, "invalid persistent memory index\n");
 
 	return 0;
 }
@@ -762,7 +755,7 @@ static duk_ret_t duk_sync(duk_context* duk)
 	if(bank >= 0 && bank < TIC_BANKS)
 		memory->api.sync(memory, mask, bank, toCart);
 	else
-		duk_error(duk, DUK_ERR_ERROR, "sync() error, invalid bank");
+		return duk_error(duk, DUK_ERR_ERROR, "sync() error, invalid bank");
 
 	return 0;
 }
