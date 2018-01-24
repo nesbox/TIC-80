@@ -112,13 +112,13 @@ static struct
 
 	struct
 	{
-		SDL_Point cursor;
-		u32 button;
+		// SDL_Point cursor;
+		// u32 button;
 
 		MouseState state[3];
 
-		SDL_Texture* texture;
-		const u8* src;
+		// SDL_Texture* texture;
+		// const u8* src;
 		SDL_SystemCursor system;
 	} mouse;
 
@@ -254,14 +254,14 @@ static struct
 	.prevMode = TIC_CODE_MODE,
 	.dialogMode = TIC_CONSOLE_MODE,
 
-	.mouse =
-	{
-		.cursor = {-1, -1},
-		.button = 0,
-		.src = NULL,
-		.texture = NULL,
-		.system = SDL_SYSTEM_CURSOR_ARROW,
-	},
+	// .mouse =
+	// {
+	// 	.cursor = {-1, -1},
+	// 	.button = 0,
+	// 	.src = NULL,
+	// 	.texture = NULL,
+	// 	.system = SDL_SYSTEM_CURSOR_ARROW,
+	// },
 
 	.gesture =
 	{
@@ -1058,17 +1058,22 @@ void hideGameMenu()
 
 s32 getMouseX()
 {
-	return studioImpl.mouse.cursor.x;
+	tic_mem* tic = studioImpl.studio.tic;
+
+	return tic->ram.input.mouse.x;
 }
 
 s32 getMouseY()
 {
-	return studioImpl.mouse.cursor.y;
+	tic_mem* tic = studioImpl.studio.tic;
+
+	return tic->ram.input.mouse.y;
 }
 
 bool checkMousePos(const SDL_Rect* rect)
 {
-	return SDL_PointInRect(&studioImpl.mouse.cursor, rect);
+	SDL_Point pos = {getMouseX(), getMouseY()};
+	return SDL_PointInRect(&pos, rect);
 }
 
 bool checkMouseClick(const SDL_Rect* rect, s32 button)
@@ -1562,39 +1567,39 @@ static void processGesture()
 	}
 }
 
-static void processMouse()
-{
-	// studioImpl.mouse.button = SDL_GetMouseState(&studioImpl.mouse.cursor.x, &studioImpl.mouse.cursor.y);
+// static void processMouse()
+// {
+// 	studioImpl.mouse.button = SDL_GetMouseState(&studioImpl.mouse.cursor.x, &studioImpl.mouse.cursor.y);
 
-	// {
-	// 	SDL_Rect rect = {0, 0, 0, 0};
-	// 	calcTextureRect(&rect);
+// 	{
+// 		SDL_Rect rect = {0, 0, 0, 0};
+// 		calcTextureRect(&rect);
 
-	// 	if(rect.w) studioImpl.mouse.cursor.x = (studioImpl.mouse.cursor.x - rect.x) * TIC80_WIDTH / rect.w;
-	// 	if(rect.h) studioImpl.mouse.cursor.y = (studioImpl.mouse.cursor.y - rect.y) * TIC80_HEIGHT / rect.h;
-	// }
+// 		if(rect.w) studioImpl.mouse.cursor.x = (studioImpl.mouse.cursor.x - rect.x) * TIC80_WIDTH / rect.w;
+// 		if(rect.h) studioImpl.mouse.cursor.y = (studioImpl.mouse.cursor.y - rect.y) * TIC80_HEIGHT / rect.h;
+// 	}
 
-	// for(int i = 0; i < COUNT_OF(studioImpl.mouse.state); i++)
-	// {
-	// 	MouseState* state = &studioImpl.mouse.state[i];
+// 	for(int i = 0; i < COUNT_OF(studioImpl.mouse.state); i++)
+// 	{
+// 		MouseState* state = &studioImpl.mouse.state[i];
 
-	// 	if(!state->down && (studioImpl.mouse.button & SDL_BUTTON(i + 1)))
-	// 	{
-	// 		state->down = true;
+// 		if(!state->down && (studioImpl.mouse.button & SDL_BUTTON(i + 1)))
+// 		{
+// 			state->down = true;
 
-	// 		state->start.x = studioImpl.mouse.cursor.x;
-	// 		state->start.y = studioImpl.mouse.cursor.y;
-	// 	}
-	// 	else if(state->down && !(studioImpl.mouse.button & SDL_BUTTON(i + 1)))
-	// 	{
-	// 		state->end.x = studioImpl.mouse.cursor.x;
-	// 		state->end.y = studioImpl.mouse.cursor.y;
+// 			state->start.x = studioImpl.mouse.cursor.x;
+// 			state->start.y = studioImpl.mouse.cursor.y;
+// 		}
+// 		else if(state->down && !(studioImpl.mouse.button & SDL_BUTTON(i + 1)))
+// 		{
+// 			state->end.x = studioImpl.mouse.cursor.x;
+// 			state->end.y = studioImpl.mouse.cursor.y;
 
-	// 		state->click = true;
-	// 		state->down = false;
-	// 	}
-	// }
-}
+// 			state->click = true;
+// 			state->down = false;
+// 		}
+// 	}
+// }
 
 static void goFullscreen()
 {
@@ -1890,25 +1895,25 @@ static void processGamepadInput()
 	processGamepad();
 }
 
-static void processMouseInput()
-{
-	processJoysticksWithMouseInput();
+// static void processMouseInput()
+// {
+// 	processJoysticksWithMouseInput();
 
-	s32 x = studioImpl.mouse.cursor.x;
-	s32 y = studioImpl.mouse.cursor.y;
+// 	s32 x = studioImpl.mouse.cursor.x;
+// 	s32 y = studioImpl.mouse.cursor.y;
 
-	if(x < 0) x = 0;
-	if(y < 0) y = 0;
-	if(x >= TIC80_WIDTH) x = TIC80_WIDTH-1;
-	if(y >= TIC80_HEIGHT) y = TIC80_HEIGHT-1;
+// 	if(x < 0) x = 0;
+// 	if(y < 0) y = 0;
+// 	if(x >= TIC80_WIDTH) x = TIC80_WIDTH-1;
+// 	if(y >= TIC80_HEIGHT) y = TIC80_HEIGHT-1;
 
-	tic80_mouse* mouse = &studioImpl.studio.tic->ram.input.mouse;
-	mouse->x = x;
-	mouse->y = y;
-	mouse->left = studioImpl.mouse.state[0].down ? 1 : 0;
-	mouse->middle = studioImpl.mouse.state[1].down ? 1 : 0;
-	mouse->right = studioImpl.mouse.state[2].down ? 1 : 0;
-}
+// 	tic80_mouse* mouse = &studioImpl.studio.tic->ram.input.mouse;
+// 	mouse->x = x;
+// 	mouse->y = y;
+// 	mouse->left = studioImpl.mouse.state[0].down ? 1 : 0;
+// 	mouse->middle = studioImpl.mouse.state[1].down ? 1 : 0;
+// 	mouse->right = studioImpl.mouse.state[2].down ? 1 : 0;
+// }
 
 static void processKeyboardInput()
 {
@@ -2358,9 +2363,9 @@ static void renderStudio()
 	showTooltip("");
 
 	studioImpl.gesture.active = false;
-	studioImpl.mouse.cursor.x = studioImpl.mouse.cursor.y = -1;
-	for(int i = 0; i < COUNT_OF(studioImpl.mouse.state); i++)
-		studioImpl.mouse.state[i].click = false;
+	// studioImpl.mouse.cursor.x = studioImpl.mouse.cursor.y = -1;
+	// for(int i = 0; i < COUNT_OF(studioImpl.mouse.state); i++)
+	// 	studioImpl.mouse.state[i].click = false;
 
 	{
 		const tic_sfx* sfx = NULL;
@@ -2836,8 +2841,39 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate)
 	return &studioImpl.studio;
 }
 
+static void processMouseStates()
+{
+	for(int i = 0; i < COUNT_OF(studioImpl.mouse.state); i++)
+		studioImpl.mouse.state[i].click = false;
+
+	tic_mem* tic = studioImpl.studio.tic;
+
+	for(int i = 0; i < COUNT_OF(studioImpl.mouse.state); i++)
+	{
+		MouseState* state = &studioImpl.mouse.state[i];
+
+		if(!state->down && tic->ram.input.mouse.btns & (1 << i))
+		{
+			state->down = true;
+
+			state->start.x = tic->ram.input.mouse.x;
+			state->start.y = tic->ram.input.mouse.y;
+		}
+		else if(state->down && tic->ram.input.mouse.btns & (1 << i))
+		{
+			state->end.x = tic->ram.input.mouse.x;
+			state->end.y = tic->ram.input.mouse.y;
+
+			state->click = true;
+			state->down = false;
+		}
+	}
+}
+
 void studioTick(void* pixels)
 {
+	processMouseStates();
+
 	renderStudio();
 
 	tic_mem* tic = studioImpl.studio.tic;
@@ -2912,17 +2948,17 @@ void studioClose()
 	SDL_DestroyTexture(studioImpl.gamepad.texture);
 	// SDL_DestroyTexture(studioImpl.texture);
 
-	if(studioImpl.mouse.texture)
-		SDL_DestroyTexture(studioImpl.mouse.texture);
+	// if(studioImpl.mouse.texture)
+	// 	SDL_DestroyTexture(studioImpl.mouse.texture);
 
 		// SDL_DestroyRenderer(studioImpl.renderer);
 	// SDL_DestroyWindow(studioImpl.window);
 
-#if !defined (__MACOSX__)
+// #if !defined (__MACOSX__)
 	// stucks here on macos
 	// SDL_CloseAudioDevice(studioImpl.audio.device);
-	SDL_Quit();
-#endif
+	// SDL_Quit();
+// #endif
 
-	exit(0);
+	// exit(0);
 }

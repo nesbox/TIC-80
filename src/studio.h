@@ -199,7 +199,6 @@ void runProject();
 tic_tiles* getBankTiles();
 tic_map* getBankMap();
 
-
 typedef struct
 {
 	tic_mem* tic;

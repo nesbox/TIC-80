@@ -152,6 +152,83 @@ static void initTouchGamepad()
 	// updateGamepadParts();
 }
 
+static void calcTextureRect(SDL_Rect* rect)
+{
+	SDL_GetWindowSize(platform.window, &rect->w, &rect->h);
+
+	if (rect->w * TIC80_HEIGHT < rect->h * TIC80_WIDTH)
+	{
+		s32 discreteWidth = rect->w - rect->w % TIC80_WIDTH;
+		s32 discreteHeight = TIC80_HEIGHT * discreteWidth / TIC80_WIDTH;
+
+		rect->x = (rect->w - discreteWidth) / 2;
+
+		rect->y = rect->w > rect->h 
+			? (rect->h - discreteHeight) / 2 
+			: OFFSET_LEFT*discreteWidth/TIC80_WIDTH;
+
+		rect->w = discreteWidth;
+		rect->h = discreteHeight;
+
+	}
+	else
+	{
+		s32 discreteHeight = rect->h - rect->h % TIC80_HEIGHT;
+		s32 discreteWidth = TIC80_WIDTH * discreteHeight / TIC80_HEIGHT;
+
+		rect->x = (rect->w - discreteWidth) / 2;
+		rect->y = (rect->h - discreteHeight) / 2;
+
+		rect->w = discreteWidth;
+		rect->h = discreteHeight;
+	}
+}
+
+static void processMouse()
+{
+	s32 mx = 0, my = 0;
+	s32 mb = SDL_GetMouseState(&mx, &my);
+
+	tic_mem* tic = platform.studio->tic;
+
+	{
+		tic->ram.input.mouse.x = tic->ram.input.mouse.y = 0;
+
+		SDL_Rect rect = {0, 0, 0, 0};
+		calcTextureRect(&rect);
+
+		if(rect.w) tic->ram.input.mouse.x = (mx - rect.x) * TIC80_WIDTH / rect.w;
+		if(rect.h) tic->ram.input.mouse.y = (my - rect.y) * TIC80_HEIGHT / rect.h;
+	}
+
+	{
+		tic->ram.input.mouse.left = mb & SDL_BUTTON_LMASK;
+		tic->ram.input.mouse.middle = mb & SDL_BUTTON_MMASK;
+		tic->ram.input.mouse.right = mb & SDL_BUTTON_RMASK;
+	}
+
+	// for(int i = 0; i < COUNT_OF(studioImpl.mouse.state); i++)
+	// {
+	// 	MouseState* state = &studioImpl.mouse.state[i];
+
+	// 	if(!state->down && (studioImpl.mouse.button & SDL_BUTTON(i + 1)))
+	// 	{
+	// 		state->down = true;
+
+	// 		state->start.x = studioImpl.mouse.cursor.x;
+	// 		state->start.y = studioImpl.mouse.cursor.y;
+	// 	}
+	// 	else if(state->down && !(studioImpl.mouse.button & SDL_BUTTON(i + 1)))
+	// 	{
+	// 		state->end.x = studioImpl.mouse.cursor.x;
+	// 		state->end.y = studioImpl.mouse.cursor.y;
+
+	// 		state->click = true;
+	// 		state->down = false;
+	// 	}
+	// }
+}
+
 static SDL_Event* pollEvent()
 {
 	static SDL_Event event;
@@ -242,14 +319,14 @@ static SDL_Event* pollEvent()
 			break;
 		}
 
-		return &event;
+		// return &event;
 	}
 
 	// if(platform.mode != TIC_RUN_MODE)
 		// processGesture();
 
 	// if(!platform.gesture.active)
-		// processMouse();
+		processMouse();
 
 	// if(platform.mode == TIC_RUN_MODE)
 	// {
@@ -263,38 +340,6 @@ static SDL_Event* pollEvent()
 	// }
 
 	return NULL;
-}
-
-static void calcTextureRect(SDL_Rect* rect)
-{
-	SDL_GetWindowSize(platform.window, &rect->w, &rect->h);
-
-	if (rect->w * TIC80_HEIGHT < rect->h * TIC80_WIDTH)
-	{
-		s32 discreteWidth = rect->w - rect->w % TIC80_WIDTH;
-		s32 discreteHeight = TIC80_HEIGHT * discreteWidth / TIC80_WIDTH;
-
-		rect->x = (rect->w - discreteWidth) / 2;
-
-		rect->y = rect->w > rect->h 
-			? (rect->h - discreteHeight) / 2 
-			: OFFSET_LEFT*discreteWidth/TIC80_WIDTH;
-
-		rect->w = discreteWidth;
-		rect->h = discreteHeight;
-
-	}
-	else
-	{
-		s32 discreteHeight = rect->h - rect->h % TIC80_HEIGHT;
-		s32 discreteWidth = TIC80_WIDTH * discreteHeight / TIC80_HEIGHT;
-
-		rect->x = (rect->w - discreteWidth) / 2;
-		rect->y = (rect->h - discreteHeight) / 2;
-
-		rect->w = discreteWidth;
-		rect->h = discreteHeight;
-	}
 }
 
 static void blitTexture()
@@ -530,6 +575,9 @@ s32 main(s32 argc, char **argv)
 
 	if(platform.audio.cvt.buf)
 		SDL_free(platform.audio.cvt.buf);
+
+	// if(platform.mouse.texture)
+		// SDL_DestroyTexture(platform.mouse.texture);
 
 	SDL_DestroyTexture(platform.texture);
 	SDL_DestroyRenderer(platform.renderer);
