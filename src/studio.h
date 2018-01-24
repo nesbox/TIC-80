@@ -207,3 +207,5 @@ typedef struct
 Studio* studioInit(s32 argc, char **argv, s32 samplerate);
 void studioTick(void* pixels);
 void studioClose();
+
+char getKeyboardText();

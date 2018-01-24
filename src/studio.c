@@ -321,6 +321,27 @@ static struct
 	.argv = NULL,
 };
 
+
+char getKeyboardText()
+{
+	tic_mem* tic = studioImpl.studio.tic;
+
+	static const char Symbols[] = 	"abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
+	static const char Shift[] = 	"ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
+
+	enum{Count = sizeof Symbols, Hold = 20, Period = 3};
+
+	for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
+	{
+		tic_key key = tic->ram.input.keyboard.keys[i];
+
+		if(key > 0 && key < Count && tic->api.keyp(tic, key, Hold, Period))
+			return tic->api.key(tic, tic_key_shift) ? Shift[key-1] : Symbols[key-1];
+	}
+
+	return 0;
+}
+
 tic_tiles* getBankTiles()
 {
 	return &studioImpl.studio.tic->cart.banks[studioImpl.bank.index.sprites].tiles;

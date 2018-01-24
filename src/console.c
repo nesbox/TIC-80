@@ -2615,7 +2615,7 @@ static void tick(Console* console)
 
 	tic_mem* tic = console->tic;
 
-	char sym = tic->api.keytext(tic);
+	char sym = getKeyboardText();
 
 	if(sym)
 	{
