@@ -55,8 +55,8 @@
 #define CONFIG_TIC "config " TIC_VERSION_LABEL ".tic"
 #define CONFIG_TIC_PATH TIC_LOCAL CONFIG_TIC
 
-#define KEYMAP_COUNT (sizeof(tic80_input) * BITS_IN_BYTE)
-#define KEYMAP_SIZE (KEYMAP_COUNT * sizeof(SDL_Scancode))
+#define KEYMAP_COUNT (sizeof(tic80_gamepads) * BITS_IN_BYTE)
+#define KEYMAP_SIZE (KEYMAP_COUNT)
 #define KEYMAP_DAT "keymap.dat"
 #define KEYMAP_DAT_PATH TIC_LOCAL KEYMAP_DAT
 
@@ -174,7 +174,7 @@ typedef enum
 void setStudioEvent(StudioEvent event);
 void showTooltip(const char* text);
 
-SDL_Scancode* getKeymap();
+tic_key* getKeymap();
 
 const StudioConfig* getConfig();
 

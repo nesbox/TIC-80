@@ -107,7 +107,7 @@ static struct
 	// 	SDL_AudioCVT 		cvt;
 	// } audio;
 
-	SDL_Joystick* joysticks[TIC_GAMEPADS];
+	// SDL_Joystick* joysticks[TIC_GAMEPADS];
 
 	EditorMode mode;
 	EditorMode prevMode;
@@ -133,31 +133,31 @@ static struct
 
 	const u8* keyboard;
 
-	SDL_Scancode keycodes[KEYMAP_COUNT];
+	tic_key keycodes[KEYMAP_COUNT];
 
-	struct
-	{
-		tic80_gamepads keyboard;
-		tic80_gamepads touch;
-		tic80_gamepads joystick;
+	// struct
+	// {
+	// 	tic80_gamepads keyboard;
+	// 	tic80_gamepads touch;
+	// 	tic80_gamepads joystick;
 
-		SDL_Texture* texture;
+	// 	SDL_Texture* texture;
 
-		bool show;
-		s32 counter;
-		s32 alpha;
-		bool backProcessed;
+	// 	bool show;
+	// 	s32 counter;
+	// 	s32 alpha;
+	// 	bool backProcessed;
 
-		struct
-		{
-			s32 size;
-			SDL_Point axis;
-			SDL_Point a;
-			SDL_Point b;
-			SDL_Point x;
-			SDL_Point y;
-		} part;
-	} gamepad;
+	// 	struct
+	// 	{
+	// 		s32 size;
+	// 		SDL_Point axis;
+	// 		SDL_Point a;
+	// 		SDL_Point b;
+	// 		SDL_Point x;
+	// 		SDL_Point y;
+	// 	} part;
+	// } gamepad;
 
 	struct
 	{
@@ -251,7 +251,7 @@ static struct
 		.mdate = 0,
 	},
 
-	.joysticks = {NULL, NULL, NULL, NULL},
+	// .joysticks = {NULL, NULL, NULL, NULL},
 
 	.mode = TIC_START_MODE,
 	.prevMode = TIC_CODE_MODE,
@@ -275,23 +275,21 @@ static struct
 	.keyboard = NULL,
 	.keycodes =
 	{
-		SDL_SCANCODE_UP,
-		SDL_SCANCODE_DOWN,
-		SDL_SCANCODE_LEFT,
-		SDL_SCANCODE_RIGHT,
+		tic_key_up,
+		tic_key_down,
+		tic_key_left,
+		tic_key_right,
 
-		SDL_SCANCODE_Z, // a
-		SDL_SCANCODE_X, // b
-		SDL_SCANCODE_A, // x
-		SDL_SCANCODE_S, // y
-
-		0, 0, 0, 0, 0, 0, 0, 0,
+		tic_key_z, // a
+		tic_key_x, // b
+		tic_key_a, // x
+		tic_key_s, // y
 	},
 
-	.gamepad =
-	{
-		.show = false,
-	},
+	// .gamepad =
+	// {
+	// 	.show = false,
+	// },
 
 	.bank = 
 	{
@@ -1281,308 +1279,306 @@ bool studioCartChanged()
 // 	}
 // }
 
-SDL_Scancode* getKeymap()
+tic_key* getKeymap()
 {
 	return studioImpl.keycodes;
 }
 
-static void processKeyboard()
+static void processGamepadMapping()
 {
-	studioImpl.keyboard = SDL_GetKeyboardState(NULL);
-
-	studioImpl.gamepad.keyboard.data = 0;
+	tic_mem* tic = studioImpl.studio.tic;
 
 	for(s32 i = 0; i < KEYMAP_COUNT; i++)
-		if(studioImpl.keyboard[studioImpl.keycodes[i]])
-			studioImpl.gamepad.keyboard.data |= 1 << i;
+		if(tic->api.key(tic, studioImpl.keycodes[i]))
+			tic->ram.input.gamepads.data |= 1 << i;
 }
 
-#if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
+// #if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
 
-static bool checkTouch(const SDL_Rect* rect, s32* x, s32* y)
-{
-	s32 devices = SDL_GetNumTouchDevices();
-	s32 width = 0, height = 0;
-	SDL_GetWindowSize(studioImpl.window, &width, &height);
+// static bool checkTouch(const SDL_Rect* rect, s32* x, s32* y)
+// {
+// 	s32 devices = SDL_GetNumTouchDevices();
+// 	s32 width = 0, height = 0;
+// 	SDL_GetWindowSize(studioImpl.window, &width, &height);
 
-	for (s32 i = 0; i < devices; i++)
-	{
-		SDL_TouchID id = SDL_GetTouchDevice(i);
+// 	for (s32 i = 0; i < devices; i++)
+// 	{
+// 		SDL_TouchID id = SDL_GetTouchDevice(i);
 
-		// very strange, but on Android id always == 0
-		//if (id)
-		{
-			s32 fingers = SDL_GetNumTouchFingers(id);
+// 		// very strange, but on Android id always == 0
+// 		//if (id)
+// 		{
+// 			s32 fingers = SDL_GetNumTouchFingers(id);
 
-			if(fingers)
-			{
-				studioImpl.gamepad.counter = 0;
+// 			if(fingers)
+// 			{
+// 				studioImpl.gamepad.counter = 0;
 
-				if (!studioImpl.gamepad.show)
-				{
-					studioImpl.gamepad.alpha = getConfig()->theme.gamepad.touch.alpha;
-					SDL_SetTextureAlphaMod(studioImpl.gamepad.texture, studioImpl.gamepad.alpha);
-					studioImpl.gamepad.show = true;
-					return false;
-				}
-			}
+// 				if (!studioImpl.gamepad.show)
+// 				{
+// 					studioImpl.gamepad.alpha = getConfig()->theme.gamepad.touch.alpha;
+// 					SDL_SetTextureAlphaMod(studioImpl.gamepad.texture, studioImpl.gamepad.alpha);
+// 					studioImpl.gamepad.show = true;
+// 					return false;
+// 				}
+// 			}
 
-			for (s32 f = 0; f < fingers; f++)
-			{
-				SDL_Finger* finger = SDL_GetTouchFinger(id, f);
+// 			for (s32 f = 0; f < fingers; f++)
+// 			{
+// 				SDL_Finger* finger = SDL_GetTouchFinger(id, f);
 
-				if (finger && finger->pressure > 0.0f)
-				{
-					SDL_Point point = { (s32)(finger->x * width), (s32)(finger->y * height) };
-					if (SDL_PointInRect(&point, rect))
-					{
-						*x = point.x;
-						*y = point.y;
-						return true;
-					}
-				}
-			}
-		}
-	}
+// 				if (finger && finger->pressure > 0.0f)
+// 				{
+// 					SDL_Point point = { (s32)(finger->x * width), (s32)(finger->y * height) };
+// 					if (SDL_PointInRect(&point, rect))
+// 					{
+// 						*x = point.x;
+// 						*y = point.y;
+// 						return true;
+// 					}
+// 				}
+// 			}
+// 		}
+// 	}
 
-	return false;
-}
+// 	return false;
+// }
 
-static void processTouchGamepad()
-{
-	studioImpl.gamepad.touch.data = 0;
+// static void processTouchGamepad()
+// {
+// 	studioImpl.gamepad.touch.data = 0;
 
-	const s32 size = studioImpl.gamepad.part.size;
-	s32 x = 0, y = 0;
+// 	const s32 size = studioImpl.gamepad.part.size;
+// 	s32 x = 0, y = 0;
 
-	{
-		SDL_Rect axis = {studioImpl.gamepad.part.axis.x, studioImpl.gamepad.part.axis.y, size*3, size*3};
+// 	{
+// 		SDL_Rect axis = {studioImpl.gamepad.part.axis.x, studioImpl.gamepad.part.axis.y, size*3, size*3};
 
-		if(checkTouch(&axis, &x, &y))
-		{
-			x -= axis.x;
-			y -= axis.y;
+// 		if(checkTouch(&axis, &x, &y))
+// 		{
+// 			x -= axis.x;
+// 			y -= axis.y;
 
-			s32 xt = x / size;
-			s32 yt = y / size;
+// 			s32 xt = x / size;
+// 			s32 yt = y / size;
 
-			if(yt == 0) studioImpl.gamepad.touch.first.up = true;
-			else if(yt == 2) studioImpl.gamepad.touch.first.down = true;
+// 			if(yt == 0) studioImpl.gamepad.touch.first.up = true;
+// 			else if(yt == 2) studioImpl.gamepad.touch.first.down = true;
 
-			if(xt == 0) studioImpl.gamepad.touch.first.left = true;
-			else if(xt == 2) studioImpl.gamepad.touch.first.right = true;
+// 			if(xt == 0) studioImpl.gamepad.touch.first.left = true;
+// 			else if(xt == 2) studioImpl.gamepad.touch.first.right = true;
 
-			if(xt == 1 && yt == 1)
-			{
-				xt = (x - size)/(size/3);
-				yt = (y - size)/(size/3);
+// 			if(xt == 1 && yt == 1)
+// 			{
+// 				xt = (x - size)/(size/3);
+// 				yt = (y - size)/(size/3);
 
-				if(yt == 0) studioImpl.gamepad.touch.first.up = true;
-				else if(yt == 2) studioImpl.gamepad.touch.first.down = true;
+// 				if(yt == 0) studioImpl.gamepad.touch.first.up = true;
+// 				else if(yt == 2) studioImpl.gamepad.touch.first.down = true;
 
-				if(xt == 0) studioImpl.gamepad.touch.first.left = true;
-				else if(xt == 2) studioImpl.gamepad.touch.first.right = true;
-			}
-		}
-	}
+// 				if(xt == 0) studioImpl.gamepad.touch.first.left = true;
+// 				else if(xt == 2) studioImpl.gamepad.touch.first.right = true;
+// 			}
+// 		}
+// 	}
 
-	{
-		SDL_Rect a = {studioImpl.gamepad.part.a.x, studioImpl.gamepad.part.a.y, size, size};
-		if(checkTouch(&a, &x, &y)) studioImpl.gamepad.touch.first.a = true;
-	}
+// 	{
+// 		SDL_Rect a = {studioImpl.gamepad.part.a.x, studioImpl.gamepad.part.a.y, size, size};
+// 		if(checkTouch(&a, &x, &y)) studioImpl.gamepad.touch.first.a = true;
+// 	}
 
-	{
-		SDL_Rect b = {studioImpl.gamepad.part.b.x, studioImpl.gamepad.part.b.y, size, size};
-		if(checkTouch(&b, &x, &y)) studioImpl.gamepad.touch.first.b = true;
-	}
+// 	{
+// 		SDL_Rect b = {studioImpl.gamepad.part.b.x, studioImpl.gamepad.part.b.y, size, size};
+// 		if(checkTouch(&b, &x, &y)) studioImpl.gamepad.touch.first.b = true;
+// 	}
 
-	{
-		SDL_Rect xb = {studioImpl.gamepad.part.x.x, studioImpl.gamepad.part.x.y, size, size};
-		if(checkTouch(&xb, &x, &y)) studioImpl.gamepad.touch.first.x = true;
-	}
+// 	{
+// 		SDL_Rect xb = {studioImpl.gamepad.part.x.x, studioImpl.gamepad.part.x.y, size, size};
+// 		if(checkTouch(&xb, &x, &y)) studioImpl.gamepad.touch.first.x = true;
+// 	}
 
-	{
-		SDL_Rect yb = {studioImpl.gamepad.part.y.x, studioImpl.gamepad.part.y.y, size, size};
-		if(checkTouch(&yb, &x, &y)) studioImpl.gamepad.touch.first.y = true;
-	}
-}
+// 	{
+// 		SDL_Rect yb = {studioImpl.gamepad.part.y.x, studioImpl.gamepad.part.y.y, size, size};
+// 		if(checkTouch(&yb, &x, &y)) studioImpl.gamepad.touch.first.y = true;
+// 	}
+// }
 
-#endif
+// #endif
 
-static s32 getAxisMask(SDL_Joystick* joystick)
-{
-	s32 mask = 0;
+// static s32 getAxisMask(SDL_Joystick* joystick)
+// {
+// 	s32 mask = 0;
 
-	s32 axesCount = SDL_JoystickNumAxes(joystick);
+// 	s32 axesCount = SDL_JoystickNumAxes(joystick);
 
-	for (s32 a = 0; a < axesCount; a++)
-	{
-		s32 axe = SDL_JoystickGetAxis(joystick, a);
+// 	for (s32 a = 0; a < axesCount; a++)
+// 	{
+// 		s32 axe = SDL_JoystickGetAxis(joystick, a);
 
-		if (axe)
-		{
-			if (a == 0)
-			{
-				if (axe > 16384) mask |= SDL_HAT_RIGHT;
-				else if(axe < -16384) mask |= SDL_HAT_LEFT;
-			}
-			else if (a == 1)
-			{
-				if (axe > 16384) mask |= SDL_HAT_DOWN;
-				else if (axe < -16384) mask |= SDL_HAT_UP;
-			}
-		}
-	}
+// 		if (axe)
+// 		{
+// 			if (a == 0)
+// 			{
+// 				if (axe > 16384) mask |= SDL_HAT_RIGHT;
+// 				else if(axe < -16384) mask |= SDL_HAT_LEFT;
+// 			}
+// 			else if (a == 1)
+// 			{
+// 				if (axe > 16384) mask |= SDL_HAT_DOWN;
+// 				else if (axe < -16384) mask |= SDL_HAT_UP;
+// 			}
+// 		}
+// 	}
 
-	return mask;
-}
+// 	return mask;
+// }
 
-static s32 getJoystickHatMask(s32 hat)
-{
-	tic80_gamepads gamepad;
-	gamepad.data = 0;
+// static s32 getJoystickHatMask(s32 hat)
+// {
+// 	tic80_gamepads gamepad;
+// 	gamepad.data = 0;
 
-	gamepad.first.up = hat & SDL_HAT_UP;
-	gamepad.first.down = hat & SDL_HAT_DOWN;
-	gamepad.first.left = hat & SDL_HAT_LEFT;
-	gamepad.first.right = hat & SDL_HAT_RIGHT;
+// 	gamepad.first.up = hat & SDL_HAT_UP;
+// 	gamepad.first.down = hat & SDL_HAT_DOWN;
+// 	gamepad.first.left = hat & SDL_HAT_LEFT;
+// 	gamepad.first.right = hat & SDL_HAT_RIGHT;
 
-	return gamepad.data;
-}
+// 	return gamepad.data;
+// }
 
 static bool isGameMenu()
 {
 	return (studioImpl.mode == TIC_RUN_MODE && studioImpl.console->showGameMenu) || studioImpl.mode == TIC_MENU_MODE;
 }
 
-static void processJoysticksWithMouseInput()
-{
-	s32 index = 0;
+// static void processJoysticksWithMouseInput()
+// {
+// 	s32 index = 0;
 
-	for(s32 i = 0; i < COUNT_OF(studioImpl.joysticks); i++)
-	{
-		SDL_Joystick* joystick = studioImpl.joysticks[i];
+// 	for(s32 i = 0; i < COUNT_OF(studioImpl.joysticks); i++)
+// 	{
+// 		SDL_Joystick* joystick = studioImpl.joysticks[i];
 
-		if(joystick && SDL_JoystickGetAttached(joystick))
-		{
-			tic80_gamepad* gamepad = NULL;
+// 		if(joystick && SDL_JoystickGetAttached(joystick))
+// 		{
+// 			tic80_gamepad* gamepad = NULL;
 
-			switch(index)
-			{
-			case 0: gamepad = &studioImpl.gamepad.joystick.first; break;
-			case 1: gamepad = &studioImpl.gamepad.joystick.second; break;
-			}
+// 			switch(index)
+// 			{
+// 			case 0: gamepad = &studioImpl.gamepad.joystick.first; break;
+// 			case 1: gamepad = &studioImpl.gamepad.joystick.second; break;
+// 			}
 
-			if(gamepad)
-			{
-				s32 numButtons = SDL_JoystickNumButtons(joystick);
-				for(s32 i = 5; i < numButtons; i++)
-				{
-					s32 back = SDL_JoystickGetButton(joystick, i);
+// 			if(gamepad)
+// 			{
+// 				s32 numButtons = SDL_JoystickNumButtons(joystick);
+// 				for(s32 i = 5; i < numButtons; i++)
+// 				{
+// 					s32 back = SDL_JoystickGetButton(joystick, i);
 
-					if(back)
-					{
-						if(!studioImpl.gamepad.backProcessed)
-						{
-							if(isGameMenu())
-							{
-								studioImpl.mode == TIC_MENU_MODE ? hideGameMenu() : showGameMenu();
-								studioImpl.gamepad.backProcessed = true;
-							}
-						}
+// 					if(back)
+// 					{
+// 						if(!studioImpl.gamepad.backProcessed)
+// 						{
+// 							if(isGameMenu())
+// 							{
+// 								studioImpl.mode == TIC_MENU_MODE ? hideGameMenu() : showGameMenu();
+// 								studioImpl.gamepad.backProcessed = true;
+// 							}
+// 						}
 
-						return;
-					}
-				}
+// 						return;
+// 					}
+// 				}
 
-				studioImpl.gamepad.backProcessed = false;
+// 				studioImpl.gamepad.backProcessed = false;
 
-				index++;
-			}
-		}
-	}
-}
+// 				index++;
+// 			}
+// 		}
+// 	}
+// }
 
-static void processJoysticks()
-{
-	studioImpl.gamepad.joystick.data = 0;
-	s32 index = 0;
+// static void processJoysticks()
+// {
+// 	studioImpl.gamepad.joystick.data = 0;
+// 	s32 index = 0;
 
-	for(s32 i = 0; i < COUNT_OF(studioImpl.joysticks); i++)
-	{
-		SDL_Joystick* joystick = studioImpl.joysticks[i];
+// 	for(s32 i = 0; i < COUNT_OF(studioImpl.joysticks); i++)
+// 	{
+// 		SDL_Joystick* joystick = studioImpl.joysticks[i];
 
-		if(joystick && SDL_JoystickGetAttached(joystick))
-		{
-			tic80_gamepad* gamepad = NULL;
+// 		if(joystick && SDL_JoystickGetAttached(joystick))
+// 		{
+// 			tic80_gamepad* gamepad = NULL;
 
-			switch(index)
-			{
-			case 0: gamepad = &studioImpl.gamepad.joystick.first; break;
-			case 1: gamepad = &studioImpl.gamepad.joystick.second; break;
-			}
+// 			switch(index)
+// 			{
+// 			case 0: gamepad = &studioImpl.gamepad.joystick.first; break;
+// 			case 1: gamepad = &studioImpl.gamepad.joystick.second; break;
+// 			}
 
-			if(gamepad)
-			{
-				gamepad->data |= getJoystickHatMask(getAxisMask(joystick));
+// 			if(gamepad)
+// 			{
+// 				gamepad->data |= getJoystickHatMask(getAxisMask(joystick));
 
-				for (s32 h = 0; h < SDL_JoystickNumHats(joystick); h++)
-					gamepad->data |= getJoystickHatMask(SDL_JoystickGetHat(joystick, h));
+// 				for (s32 h = 0; h < SDL_JoystickNumHats(joystick); h++)
+// 					gamepad->data |= getJoystickHatMask(SDL_JoystickGetHat(joystick, h));
 
-				s32 numButtons = SDL_JoystickNumButtons(joystick);
-				if(numButtons >= 2)
-				{
-					gamepad->a = SDL_JoystickGetButton(joystick, 0);
-					gamepad->b = SDL_JoystickGetButton(joystick, 1);
+// 				s32 numButtons = SDL_JoystickNumButtons(joystick);
+// 				if(numButtons >= 2)
+// 				{
+// 					gamepad->a = SDL_JoystickGetButton(joystick, 0);
+// 					gamepad->b = SDL_JoystickGetButton(joystick, 1);
 
-					if(numButtons >= 4)
-					{
-						gamepad->x = SDL_JoystickGetButton(joystick, 2);
-						gamepad->y = SDL_JoystickGetButton(joystick, 3);
+// 					if(numButtons >= 4)
+// 					{
+// 						gamepad->x = SDL_JoystickGetButton(joystick, 2);
+// 						gamepad->y = SDL_JoystickGetButton(joystick, 3);
 
-						for(s32 i = 5; i < numButtons; i++)
-						{
-							s32 back = SDL_JoystickGetButton(joystick, i);
+// 						for(s32 i = 5; i < numButtons; i++)
+// 						{
+// 							s32 back = SDL_JoystickGetButton(joystick, i);
 
-							if(back)
-							{
-								if(!studioImpl.gamepad.backProcessed)
-								{
-									if(isGameMenu())
-									{
-										studioImpl.mode == TIC_MENU_MODE ? hideGameMenu() : showGameMenu();
-										studioImpl.gamepad.backProcessed = true;
-									}
-								}
+// 							if(back)
+// 							{
+// 								if(!studioImpl.gamepad.backProcessed)
+// 								{
+// 									if(isGameMenu())
+// 									{
+// 										studioImpl.mode == TIC_MENU_MODE ? hideGameMenu() : showGameMenu();
+// 										studioImpl.gamepad.backProcessed = true;
+// 									}
+// 								}
 
-								return;
-							}
-						}
+// 								return;
+// 							}
+// 						}
 
-						studioImpl.gamepad.backProcessed = false;
-					}
-				}
+// 						studioImpl.gamepad.backProcessed = false;
+// 					}
+// 				}
 
-				index++;
-			}
-		}
-	}
+// 				index++;
+// 			}
+// 		}
+// 	}
 
-	if(studioImpl.mode == TIC_CONSOLE_MODE && studioImpl.gamepad.joystick.data)
-	{
-		studioImpl.gamepad.joystick.data = 0;
-		setStudioMode(TIC_SURF_MODE);
-	}
-}
+// 	if(studioImpl.mode == TIC_CONSOLE_MODE && studioImpl.gamepad.joystick.data)
+// 	{
+// 		studioImpl.gamepad.joystick.data = 0;
+// 		setStudioMode(TIC_SURF_MODE);
+// 	}
+// }
 
-static void processGamepad()
-{
-	studioImpl.studio.tic->ram.input.gamepads.data = 0;
+// static void processGamepad()
+// {
+// 	studioImpl.studio.tic->ram.input.gamepads.data = 0;
 
-	studioImpl.studio.tic->ram.input.gamepads.data |= studioImpl.gamepad.keyboard.data;
-	studioImpl.studio.tic->ram.input.gamepads.data |= studioImpl.gamepad.touch.data;
-	studioImpl.studio.tic->ram.input.gamepads.data |= studioImpl.gamepad.joystick.data;
-}
+// 	studioImpl.studio.tic->ram.input.gamepads.data |= studioImpl.gamepad.keyboard.data;
+// 	studioImpl.studio.tic->ram.input.gamepads.data |= studioImpl.gamepad.touch.data;
+// 	studioImpl.studio.tic->ram.input.gamepads.data |= studioImpl.gamepad.joystick.data;
+// }
 
 static void processGesture()
 {
@@ -1800,7 +1796,7 @@ static bool processShortcuts(SDL_KeyboardEvent* event)
 		case SDLK_ESCAPE:
 		case SDLK_AC_BACK:
 			studioImpl.mode == TIC_MENU_MODE ? hideGameMenu() : showGameMenu();
-			studioImpl.gamepad.backProcessed = true;
+			// studioImpl.gamepad.backProcessed = true;
 			return true;
 		case SDLK_F11:
 			goFullscreen();
@@ -1929,16 +1925,23 @@ static bool processShortcuts(SDL_KeyboardEvent* event)
 	return false;
 }
 
-static void processGamepadInput()
-{
-	processKeyboard();
+// static void processGamepad()
+// {
+// 	// processKeyboardGamepad();
 
-#if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
-	processTouchGamepad();
-#endif
-	processJoysticks();
-	processGamepad();
-}
+// #if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
+// 	processTouchGamepad();
+// #endif
+// 	processJoysticks();
+	
+// 	{
+// 		studioImpl.studio.tic->ram.input.gamepads.data = 0;
+
+// 		// studioImpl.studio.tic->ram.input.gamepads.data |= studioImpl.gamepad.keyboard.data;
+// 		studioImpl.studio.tic->ram.input.gamepads.data |= studioImpl.gamepad.touch.data;
+// 		studioImpl.studio.tic->ram.input.gamepads.data |= studioImpl.gamepad.joystick.data;
+// 	}
+// }
 
 // static void processMouseInput()
 // {
@@ -2523,53 +2526,53 @@ static void renderStudio()
 // 	studioImpl.gamepad.part.y = (SDL_Point){rect.w - 2*tileSize, 0*tileSize + offset};
 // }
 
-static void renderGamepad()
-{
-	if(studioImpl.gamepad.show || studioImpl.gamepad.alpha); else return;
+// static void renderGamepad()
+// {
+// 	if(studioImpl.gamepad.show || studioImpl.gamepad.alpha); else return;
 
-	const s32 tileSize = studioImpl.gamepad.part.size;
-	const SDL_Point axis = studioImpl.gamepad.part.axis;
-	typedef struct { bool press; s32 x; s32 y;} Tile;
-	const Tile Tiles[] =
-	{
-		{studioImpl.studio.tic->ram.input.gamepads.first.up, 		axis.x + 1*tileSize, axis.y + 0*tileSize},
-		{studioImpl.studio.tic->ram.input.gamepads.first.down, 	axis.x + 1*tileSize, axis.y + 2*tileSize},
-		{studioImpl.studio.tic->ram.input.gamepads.first.left, 	axis.x + 0*tileSize, axis.y + 1*tileSize},
-		{studioImpl.studio.tic->ram.input.gamepads.first.right, 	axis.x + 2*tileSize, axis.y + 1*tileSize},
+// 	const s32 tileSize = studioImpl.gamepad.part.size;
+// 	const SDL_Point axis = studioImpl.gamepad.part.axis;
+// 	typedef struct { bool press; s32 x; s32 y;} Tile;
+// 	const Tile Tiles[] =
+// 	{
+// 		{studioImpl.studio.tic->ram.input.gamepads.first.up, 		axis.x + 1*tileSize, axis.y + 0*tileSize},
+// 		{studioImpl.studio.tic->ram.input.gamepads.first.down, 	axis.x + 1*tileSize, axis.y + 2*tileSize},
+// 		{studioImpl.studio.tic->ram.input.gamepads.first.left, 	axis.x + 0*tileSize, axis.y + 1*tileSize},
+// 		{studioImpl.studio.tic->ram.input.gamepads.first.right, 	axis.x + 2*tileSize, axis.y + 1*tileSize},
 
-		{studioImpl.studio.tic->ram.input.gamepads.first.a, 		studioImpl.gamepad.part.a.x, studioImpl.gamepad.part.a.y},
-		{studioImpl.studio.tic->ram.input.gamepads.first.b, 		studioImpl.gamepad.part.b.x, studioImpl.gamepad.part.b.y},
-		{studioImpl.studio.tic->ram.input.gamepads.first.x, 		studioImpl.gamepad.part.x.x, studioImpl.gamepad.part.x.y},
-		{studioImpl.studio.tic->ram.input.gamepads.first.y, 		studioImpl.gamepad.part.y.x, studioImpl.gamepad.part.y.y},
-	};
+// 		{studioImpl.studio.tic->ram.input.gamepads.first.a, 		studioImpl.gamepad.part.a.x, studioImpl.gamepad.part.a.y},
+// 		{studioImpl.studio.tic->ram.input.gamepads.first.b, 		studioImpl.gamepad.part.b.x, studioImpl.gamepad.part.b.y},
+// 		{studioImpl.studio.tic->ram.input.gamepads.first.x, 		studioImpl.gamepad.part.x.x, studioImpl.gamepad.part.x.y},
+// 		{studioImpl.studio.tic->ram.input.gamepads.first.y, 		studioImpl.gamepad.part.y.x, studioImpl.gamepad.part.y.y},
+// 	};
 
-	enum {ButtonsCount = 8};
+// 	enum {ButtonsCount = 8};
 
-	for(s32 i = 0; i < COUNT_OF(Tiles); i++)
-	{
-		const Tile* tile = Tiles + i;
-		SDL_Rect src = {(tile->press ? ButtonsCount + i : i) * TIC_SPRITESIZE, 0, TIC_SPRITESIZE, TIC_SPRITESIZE};
-		SDL_Rect dest = {tile->x, tile->y, tileSize, tileSize};
+// 	for(s32 i = 0; i < COUNT_OF(Tiles); i++)
+// 	{
+// 		const Tile* tile = Tiles + i;
+// 		SDL_Rect src = {(tile->press ? ButtonsCount + i : i) * TIC_SPRITESIZE, 0, TIC_SPRITESIZE, TIC_SPRITESIZE};
+// 		SDL_Rect dest = {tile->x, tile->y, tileSize, tileSize};
 
-		SDL_RenderCopy(studioImpl.renderer, studioImpl.gamepad.texture, &src, &dest);
-	}
+// 		SDL_RenderCopy(studioImpl.renderer, studioImpl.gamepad.texture, &src, &dest);
+// 	}
 
-	if(!studioImpl.gamepad.show && studioImpl.gamepad.alpha)
-	{
-		enum {Step = 3};
+// 	if(!studioImpl.gamepad.show && studioImpl.gamepad.alpha)
+// 	{
+// 		enum {Step = 3};
 
-		if(studioImpl.gamepad.alpha - Step >= 0) studioImpl.gamepad.alpha -= Step;
-		else studioImpl.gamepad.alpha = 0;
+// 		if(studioImpl.gamepad.alpha - Step >= 0) studioImpl.gamepad.alpha -= Step;
+// 		else studioImpl.gamepad.alpha = 0;
 
-		SDL_SetTextureAlphaMod(studioImpl.gamepad.texture, studioImpl.gamepad.alpha);
-	}
+// 		SDL_SetTextureAlphaMod(studioImpl.gamepad.texture, studioImpl.gamepad.alpha);
+// 	}
 
-	studioImpl.gamepad.counter = studioImpl.gamepad.touch.data ? 0 : studioImpl.gamepad.counter+1;
+// 	studioImpl.gamepad.counter = studioImpl.gamepad.touch.data ? 0 : studioImpl.gamepad.counter+1;
 
-	// wait 5 seconds and hide touch gamepad
-	if(studioImpl.gamepad.counter >= 5 * TIC_FRAMERATE)
-		studioImpl.gamepad.show = false;
-}
+// 	// wait 5 seconds and hide touch gamepad
+// 	if(studioImpl.gamepad.counter >= 5 * TIC_FRAMERATE)
+// 		studioImpl.gamepad.show = false;
+// }
 
 // static void tick()
 // {
@@ -2726,18 +2729,18 @@ u32 unzip(u8** dest, const u8* source, size_t size)
 
 static void initKeymap()
 {
-	FileSystem* fs = studioImpl.fs;
+	// FileSystem* fs = studioImpl.fs;
 
-	s32 size = 0;
-	u8* data = (u8*)fsLoadFile(fs, KEYMAP_DAT_PATH, &size);
+	// s32 size = 0;
+	// u8* data = (u8*)fsLoadFile(fs, KEYMAP_DAT_PATH, &size);
 
-	if(data)
-	{
-		if(size == KEYMAP_SIZE)
-			memcpy(getKeymap(), data, KEYMAP_SIZE);
+	// if(data)
+	// {
+	// 	if(size == KEYMAP_SIZE)
+	// 		memcpy(getKeymap(), data, KEYMAP_SIZE);
 
-		SDL_free(data);
-	}
+	// 	SDL_free(data);
+	// }
 }
 
 static void onFSInitialized(FileSystem* fs)
@@ -2918,6 +2921,7 @@ static void processMouseStates()
 void studioTick(void* pixels)
 {
 	processMouseStates();
+	processGamepadMapping();
 
 	renderStudio();
 
@@ -2990,7 +2994,7 @@ void studioClose()
 	// if(studioImpl.audio.cvt.buf)
 	// 	SDL_free(studioImpl.audio.cvt.buf);
 
-	SDL_DestroyTexture(studioImpl.gamepad.texture);
+	// SDL_DestroyTexture(studioImpl.gamepad.texture);
 	// SDL_DestroyTexture(studioImpl.texture);
 
 	// if(studioImpl.mouse.texture)
