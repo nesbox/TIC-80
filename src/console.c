@@ -2613,6 +2613,26 @@ static void tick(Console* console)
 	// 	}
 	// }
 
+	tic_mem* tic = console->tic;
+
+	char sym = tic->api.keytext(tic);
+
+	if(sym)
+	{
+		size_t size = strlen(console->inputBuffer);
+
+		if(size < sizeof(console->inputBuffer))
+		{
+			char* pos = console->inputBuffer + console->inputPosition;
+			memmove(pos + 1, pos, strlen(pos));
+
+			*(console->inputBuffer + console->inputPosition) = sym;
+			console->inputPosition++;
+		}
+
+		console->cursor.delay = CONSOLE_CURSOR_DELAY;
+	}
+
 	processGesture(console);
 
 	if(console->tickCounter == 0)
@@ -2633,7 +2653,7 @@ static void tick(Console* console)
 		else printBack(console, "\n loading cart...");
 	}
 
-	console->tic->api.clear(console->tic, TIC_COLOR_BG);
+	tic->api.clear(tic, TIC_COLOR_BG);
 	drawConsoleText(console);
 
 	if(console->embed.yes)
@@ -2643,13 +2663,13 @@ static void tick(Console* console)
 			if(!console->skipStart)
 				console->showGameMenu = true;
 
-			memcpy(&console->tic->cart, console->embed.file, sizeof(tic_cartridge));
+			memcpy(&tic->cart, console->embed.file, sizeof(tic_cartridge));
 			setStudioMode(TIC_RUN_MODE);
 			console->embed.yes = false;
 			console->skipStart = false;
 			studioRomLoaded();
 
-			console->tic->api.reset(console->tic);
+			tic->api.reset(tic);
 
 			printLine(console);
 			commandDone(console);

@@ -189,22 +189,22 @@ static void processMouse()
 	s32 mx = 0, my = 0;
 	s32 mb = SDL_GetMouseState(&mx, &my);
 
-	tic_mem* tic = platform.studio->tic;
+	tic80_input* input = &platform.studio->tic->ram.input;
 
 	{
-		tic->ram.input.mouse.x = tic->ram.input.mouse.y = 0;
+		input->mouse.x = input->mouse.y = 0;
 
 		SDL_Rect rect = {0, 0, 0, 0};
 		calcTextureRect(&rect);
 
-		if(rect.w) tic->ram.input.mouse.x = (mx - rect.x) * TIC80_WIDTH / rect.w;
-		if(rect.h) tic->ram.input.mouse.y = (my - rect.y) * TIC80_HEIGHT / rect.h;
+		if(rect.w) input->mouse.x = (mx - rect.x) * TIC80_WIDTH / rect.w;
+		if(rect.h) input->mouse.y = (my - rect.y) * TIC80_HEIGHT / rect.h;
 	}
 
 	{
-		tic->ram.input.mouse.left = mb & SDL_BUTTON_LMASK;
-		tic->ram.input.mouse.middle = mb & SDL_BUTTON_MMASK;
-		tic->ram.input.mouse.right = mb & SDL_BUTTON_RMASK;
+		input->mouse.left = mb & SDL_BUTTON_LMASK;
+		input->mouse.middle = mb & SDL_BUTTON_MMASK;
+		input->mouse.right = mb & SDL_BUTTON_RMASK;
 	}
 
 	// for(int i = 0; i < COUNT_OF(studioImpl.mouse.state); i++)
@@ -229,9 +229,26 @@ static void processMouse()
 	// }
 }
 
-static SDL_Event* pollEvent()
+static void processKeyboard()
 {
-	static SDL_Event event;
+	static const u8 KeyboardCodes[] = 
+	{
+		#include "keycodes.c"
+	};
+
+	tic80_input* input = &platform.studio->tic->ram.input;
+	input->keyboard.data = 0;
+
+	const u8* keyboard = SDL_GetKeyboardState(NULL);
+
+	for(s32 i = 0, c = 0; i < COUNT_OF(KeyboardCodes) && c < COUNT_OF(input->keyboard.keys); i++)
+		if(keyboard[i] && KeyboardCodes[i] > tic_key_unknown)
+			input->keyboard.keys[c++] = KeyboardCodes[i];
+}
+
+static void pollEvent()
+{
+	SDL_Event event;
 
 	if(SDL_PollEvent(&event))
 	{
@@ -326,7 +343,9 @@ static SDL_Event* pollEvent()
 		// processGesture();
 
 	// if(!platform.gesture.active)
-		processMouse();
+
+	processMouse();
+	processKeyboard();
 
 	// if(platform.mode == TIC_RUN_MODE)
 	// {
@@ -338,8 +357,6 @@ static SDL_Event* pollEvent()
 	// {
 	// 	processGamepadInput();
 	// }
-
-	return NULL;
 }
 
 static void blitTexture()

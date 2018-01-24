@@ -1915,22 +1915,22 @@ static void processGamepadInput()
 // 	mouse->right = studioImpl.mouse.state[2].down ? 1 : 0;
 // }
 
-static void processKeyboardInput()
-{
-	static const u8 KeyboardCodes[] = 
-	{
-		#include "keycodes.c"
-	};
+// static void processKeyboardInput()
+// {
+// 	static const u8 KeyboardCodes[] = 
+// 	{
+// 		#include "keycodes.c"
+// 	};
 
-	tic80_input* input = &studioImpl.studio.tic->ram.input;
-	input->keyboard.data = 0;
+// 	tic80_input* input = &studioImpl.studio.tic->ram.input;
+// 	input->keyboard.data = 0;
 
-	studioImpl.keyboard = SDL_GetKeyboardState(NULL);
+// 	studioImpl.keyboard = SDL_GetKeyboardState(NULL);
 
-	for(s32 i = 0, c = 0; i < COUNT_OF(KeyboardCodes) && c < COUNT_OF(input->keyboard.keys); i++)
-		if(studioImpl.keyboard[i] && KeyboardCodes[i] > tic_key_unknown)
-			input->keyboard.keys[c++] = KeyboardCodes[i];
-}
+// 	for(s32 i = 0, c = 0; i < COUNT_OF(KeyboardCodes) && c < COUNT_OF(input->keyboard.keys); i++)
+// 		if(studioImpl.keyboard[i] && KeyboardCodes[i] > tic_key_unknown)
+// 			input->keyboard.keys[c++] = KeyboardCodes[i];
+// }
 
 #if defined(TIC80_PRO)
 

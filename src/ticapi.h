@@ -156,6 +156,7 @@ typedef struct
 	u32 (*btnp)					(tic_mem* memory, s32 id, s32 hold, s32 period);
 	bool (*key)					(tic_mem* memory, tic_key key);
 	bool (*keyp)				(tic_mem* memory, tic_key key, s32 hold, s32 period);
+	char (*keytext)				(tic_mem* memory);
 
 	void (*load)				(tic_cartridge* rom, const u8* buffer, s32 size, bool palette);
 	s32  (*save)				(const tic_cartridge* rom, u8* buffer);
