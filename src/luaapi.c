@@ -795,7 +795,7 @@ static s32 lua_key(lua_State* lua)
 	{
 		tic_key key = getLuaNumber(lua, 1);
 
-		if(key < tic_keys_count)
+		if(key < tic_key_escape)
 			lua_pushboolean(lua, tic->api.key(tic, key));
 		else
 		{
@@ -827,7 +827,7 @@ static s32 lua_keyp(lua_State* lua)
 	{
 		tic_key key = getLuaNumber(lua, 1);
 
-		if(key >= tic_keys_count)
+		if(key >= tic_key_escape)
 		{
 			luaL_error(lua, "unknown keyboard code\n");
 		}
