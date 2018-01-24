@@ -9,6 +9,8 @@
 
 static struct
 {
+	Studio* studio;
+
 	SDL_Window* window;
 	SDL_Renderer* renderer;
 	SDL_Texture* texture;
@@ -48,16 +50,16 @@ static void initSound()
 static void setWindowIcon()
 {
 	// enum{ Size = 64, TileSize = 16, ColorKey = 14, Cols = TileSize / TIC_SPRITESIZE, Scale = Size/TileSize};
-	// studio.tic->api.clear(studio.tic, 0);
+	// platform.tic->api.clear(platform.tic, 0);
 
 	// u32* pixels = SDL_malloc(Size * Size * sizeof(u32));
 
-	// const u32* pal = tic_palette_blit(&studio.tic->config.palette);
+	// const u32* pal = tic_palette_blit(&platform.tic->config.palette);
 
 	// for(s32 j = 0, index = 0; j < Size; j++)
 	// 	for(s32 i = 0; i < Size; i++, index++)
 	// 	{
-	// 		u8 color = getSpritePixel(studio.tic->config.bank0.tiles.data, i/Scale, j/Scale);
+	// 		u8 color = getSpritePixel(platform.tic->config.bank0.tiles.data, i/Scale, j/Scale);
 	// 		pixels[index] = color == ColorKey ? 0 : pal[color];
 	// 	}
 
@@ -90,19 +92,19 @@ static void updateGamepadParts()
 	// 	offset = (rect.h - JoySize * tileSize) / 2;
 	// }
 
-	// studio.gamepad.part.size = tileSize;
-	// studio.gamepad.part.axis = (SDL_Point){0, offset};
-	// studio.gamepad.part.a = (SDL_Point){rect.w - 2*tileSize, 2*tileSize + offset};
-	// studio.gamepad.part.b = (SDL_Point){rect.w - 1*tileSize, 1*tileSize + offset};
-	// studio.gamepad.part.x = (SDL_Point){rect.w - 3*tileSize, 1*tileSize + offset};
-	// studio.gamepad.part.y = (SDL_Point){rect.w - 2*tileSize, 0*tileSize + offset};
+	// platform.gamepad.part.size = tileSize;
+	// platform.gamepad.part.axis = (SDL_Point){0, offset};
+	// platform.gamepad.part.a = (SDL_Point){rect.w - 2*tileSize, 2*tileSize + offset};
+	// platform.gamepad.part.b = (SDL_Point){rect.w - 1*tileSize, 1*tileSize + offset};
+	// platform.gamepad.part.x = (SDL_Point){rect.w - 3*tileSize, 1*tileSize + offset};
+	// platform.gamepad.part.y = (SDL_Point){rect.w - 2*tileSize, 0*tileSize + offset};
 }
 
 static void transparentBlit(u32* out, s32 pitch)
 {
-	// const u8* in = studio.tic->ram.vram.screen.data;
-	// const u8* end = in + sizeof(studio.tic->ram.vram.screen);
-	// const u32* pal = tic_palette_blit(&studio.tic->config.palette);
+	// const u8* in = platform.tic->ram.vram.screen.data;
+	// const u8* end = in + sizeof(platform.tic->ram.vram.screen);
+	// const u32* pal = tic_palette_blit(&platform.tic->config.palette);
 	// const u32 Delta = (pitch/sizeof *out - TIC80_WIDTH);
 
 	// s32 col = 0;
@@ -130,21 +132,21 @@ static void initTouchGamepad()
 	// if (!platform.renderer)
 	// 	return;
 
-	// studio.tic->api.map(studio.tic, &studio.tic->config.bank0.map, &studio.tic->config.bank0.tiles, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, -1, 1);
+	// platform.tic->api.map(platform.tic, &platform.tic->config.bank0.map, &platform.tic->config.bank0.tiles, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, -1, 1);
 
-	// if(!studio.gamepad.texture)
+	// if(!platform.gamepad.texture)
 	// {
-	// 	studio.gamepad.texture = SDL_CreateTexture(platform.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING, TEXTURE_SIZE, TEXTURE_SIZE);
-	// 	SDL_SetTextureBlendMode(studio.gamepad.texture, SDL_BLENDMODE_BLEND);
+	// 	platform.gamepad.texture = SDL_CreateTexture(platform.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING, TEXTURE_SIZE, TEXTURE_SIZE);
+	// 	SDL_SetTextureBlendMode(platform.gamepad.texture, SDL_BLENDMODE_BLEND);
 	// }
 
 	// {
 	// 	void* pixels = NULL;
 	// 	s32 pitch = 0;
 
-	// 	SDL_LockTexture(studio.gamepad.texture, NULL, &pixels, &pitch);
+	// 	SDL_LockTexture(platform.gamepad.texture, NULL, &pixels, &pitch);
 	// 	transparentBlit(pixels, pitch);
-	// 	SDL_UnlockTexture(studio.gamepad.texture);
+	// 	SDL_UnlockTexture(platform.gamepad.texture);
 	// }
 
 	// updateGamepadParts();
@@ -167,10 +169,10 @@ static SDL_Event* pollEvent()
 
 // 				if (id < TIC_GAMEPADS)
 // 				{
-// 					if(studio.joysticks[id])
-// 						SDL_JoystickClose(studio.joysticks[id]);
+// 					if(platform.joysticks[id])
+// 						SDL_JoystickClose(platform.joysticks[id]);
 
-// 					studio.joysticks[id] = SDL_JoystickOpen(id);
+// 					platform.joysticks[id] = SDL_JoystickOpen(id);
 // 				}
 // 			}
 // 			break;
@@ -179,10 +181,10 @@ static SDL_Event* pollEvent()
 // 			{
 // 				s32 id = event.jdevice.which;
 
-// 				if (id < TIC_GAMEPADS && studio.joysticks[id])
+// 				if (id < TIC_GAMEPADS && platform.joysticks[id])
 // 				{
-// 					SDL_JoystickClose(studio.joysticks[id]);
-// 					studio.joysticks[id] = NULL;
+// 					SDL_JoystickClose(platform.joysticks[id]);
+// 					platform.joysticks[id] = NULL;
 // 				}
 // 			}
 // 			break;
@@ -194,13 +196,13 @@ static SDL_Event* pollEvent()
 
 // #if defined(TIC80_PRO)
 
-// 				if(studio.mode != TIC_START_MODE)
+// 				if(platform.mode != TIC_START_MODE)
 // 				{
-// 					Console* console = studio.console;
+// 					Console* console = platform.console;
 
 // 					u64 mdate = fsMDate(console->fs, console->romName);
 
-// 					if(studio.cart.mdate && mdate > studio.cart.mdate)
+// 					if(platform.cart.mdate && mdate > platform.cart.mdate)
 // 					{
 // 						if(studioCartChanged())
 // 						{
@@ -221,9 +223,9 @@ static SDL_Event* pollEvent()
 
 // #endif
 // 				{
-// 					Code* code = studio.editor[studio.bank.index.code].code;
-// 					studio.console->codeLiveReload.reload(studio.console, code->src);
-// 					if(studio.console->codeLiveReload.active && code->update)
+// 					Code* code = platform.editor[platform.bank.index.code].code;
+// 					platform.console->codeLiveReload.reload(platform.console, code->src);
+// 					if(platform.console->codeLiveReload.active && code->update)
 // 						code->update(code);
 // 				}
 // 				break;
@@ -243,17 +245,17 @@ static SDL_Event* pollEvent()
 		return &event;
 	}
 
-	// if(studio.mode != TIC_RUN_MODE)
+	// if(platform.mode != TIC_RUN_MODE)
 		// processGesture();
 
-	// if(!studio.gesture.active)
+	// if(!platform.gesture.active)
 		// processMouse();
 
-	// if(studio.mode == TIC_RUN_MODE)
+	// if(platform.mode == TIC_RUN_MODE)
 	// {
-	// 	if(studio.tic->input.gamepad) 	processGamepadInput();
-	// 	if(studio.tic->input.mouse) 	processMouseInput();
-	// 	if(studio.tic->input.keyboard) 	processKeyboardInput();
+	// 	if(platform.tic->input.gamepad) 	processGamepadInput();
+	// 	if(platform.tic->input.mouse) 	processMouseInput();
+	// 	if(platform.tic->input.keyboard) 	processKeyboardInput();
 	// }
 	// else
 	// {
@@ -297,7 +299,7 @@ static void calcTextureRect(SDL_Rect* rect)
 
 static void blitTexture()
 {
-	// tic_mem* tic = studio.tic;
+	// tic_mem* tic = platform.tic;
 	SDL_Rect rect = {0, 0, 0, 0};
 	calcTextureRect(&rect);
 
@@ -311,7 +313,7 @@ static void blitTexture()
 	// tic_overlap overlap = NULL;
 	// void* data = NULL;
 
-	// switch(studio.mode)
+	// switch(platform.mode)
 	// {
 	// case TIC_RUN_MODE:
 	// 	scanline = tic->api.scanline;
@@ -319,14 +321,14 @@ static void blitTexture()
 	// 	break;
 	// case TIC_SPRITE_MODE:
 	// 	{
-	// 		Sprite* sprite = studio.editor[studio.bank.index.sprites].sprite;
+	// 		Sprite* sprite = platform.editor[platform.bank.index.sprites].sprite;
 	// 		overlap = sprite->overlap;
 	// 		data = sprite;
 	// 	}
 	// 	break;
 	// case TIC_MAP_MODE:
 	// 	{
-	// 		Map* map = studio.editor[studio.bank.index.map].map;
+	// 		Map* map = platform.editor[platform.bank.index.map].map;
 	// 		overlap = map->overlap;
 	// 		data = map;
 	// 	}
@@ -383,43 +385,58 @@ static void blitTexture()
 	}
 }
 
+static void blitSound()
+{
+	tic_mem* tic = platform.studio->tic;
+
+	SDL_PauseAudioDevice(platform.audio.device, 0);
+
+	if(platform.audio.cvt.needed)
+	{
+		SDL_memcpy(platform.audio.cvt.buf, tic->samples.buffer, tic->samples.size);
+		SDL_ConvertAudio(&platform.audio.cvt);
+		SDL_QueueAudio(platform.audio.device, platform.audio.cvt.buf, platform.audio.cvt.len_cvt);
+	}
+	else SDL_QueueAudio(platform.audio.device, tic->samples.buffer, tic->samples.size);
+}
+
 static void tick()
 {
 	pollEvent();
 
-	// if(!studio.fs) return;
+	// if(!platform.fs) return;
 
-// 	if(studio.quitFlag)
+// 	if(platform.quitFlag)
 // 	{
 // #if defined __EMSCRIPTEN__
-// 		studio.tic->api.clear(studio.tic, TIC_COLOR_BG);
+// 		platform.tic->api.clear(platform.tic, TIC_COLOR_BG);
 // 		blitTexture();
 // 		emscripten_cancel_main_loop();
 // #endif
 // 		return;
 // 	}
 
-	// SDL_SystemCursor cursor = studio.mouse.system;
-	// studio.mouse.system = SDL_SYSTEM_CURSOR_ARROW;
+	// SDL_SystemCursor cursor = platform.mouse.system;
+	// platform.mouse.system = SDL_SYSTEM_CURSOR_ARROW;
 
 	SDL_RenderClear(platform.renderer);
 
 	
 
-	// if(studio.mode == TIC_RUN_MODE && studio.tic->input.gamepad)
+	// if(platform.mode == TIC_RUN_MODE && platform.tic->input.gamepad)
 		// renderGamepad();
 
-	// if(studio.mode == TIC_MENU_MODE || studio.mode == TIC_SURF_MODE)
+	// if(platform.mode == TIC_MENU_MODE || platform.mode == TIC_SURF_MODE)
 		// renderGamepad();
 
-	// if(studio.mouse.system != cursor)
-		// SDL_SetCursor(SDL_CreateSystemCursor(studio.mouse.system));
+	// if(platform.mouse.system != cursor)
+		// SDL_SetCursor(SDL_CreateSystemCursor(platform.mouse.system));
 
 	blitTexture();
 
 	SDL_RenderPresent(platform.renderer);
 
-	// blitSound();
+	blitSound();
 }
 
 s32 main(s32 argc, char **argv)
@@ -457,7 +474,7 @@ s32 main(s32 argc, char **argv)
 
 	initTouchGamepad();
 
-	studioInit(argc, argv);
+	platform.studio = studioInit(argc, argv, platform.audio.spec.freq);
 
 #if defined(__EMSCRIPTEN__)
 	emscripten_set_main_loop(emstick, TIC_FRAMERATE, 1);
@@ -510,6 +527,9 @@ s32 main(s32 argc, char **argv)
 #endif
 
 	studioClose();
+
+	if(platform.audio.cvt.buf)
+		SDL_free(platform.audio.cvt.buf);
 
 	SDL_DestroyTexture(platform.texture);
 	SDL_DestroyRenderer(platform.renderer);

@@ -200,6 +200,11 @@ tic_tiles* getBankTiles();
 tic_map* getBankMap();
 
 
-s32 studioInit(s32 argc, char **argv);
+typedef struct
+{
+	tic_mem* tic;
+} Studio;
+
+Studio* studioInit(s32 argc, char **argv, s32 samplerate);
 void studioTick(void* pixels);
 void studioClose();
