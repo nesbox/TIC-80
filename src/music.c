@@ -1529,8 +1529,8 @@ static void drawMusicToolbar(Music* music)
 
 static void drawPianoLayout(Music* music)
 {
-	SDL_Event* event = NULL;
-	while ((event = pollEvent())){}
+	// SDL_Event* event = NULL;
+	// while ((event = pollEvent())){}
 
 	music->tic->api.clear(music->tic, (tic_color_gray));
 
@@ -1571,34 +1571,34 @@ static void scrollNotes(Music* music, s32 delta)
 
 static void drawTrackerLayout(Music* music)
 {
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
-	{
-		switch (event->type)
-		{
-		case SDL_MOUSEWHEEL:
-			if(SDL_GetModState() & TIC_MOD_CTRL)
-			{
-				scrollNotes(music, event->wheel.y > 0 ? 1 : -1);
-			}
-			else
-			{		
-				enum{Scroll = NOTES_PER_BEET};
-				s32 delta = event->wheel.y > 0 ? -Scroll : Scroll;
+	// SDL_Event* event = NULL;
+	// while ((event = pollEvent()))
+	// {
+	// 	switch (event->type)
+	// 	{
+	// 	case SDL_MOUSEWHEEL:
+	// 		if(SDL_GetModState() & TIC_MOD_CTRL)
+	// 		{
+	// 			scrollNotes(music, event->wheel.y > 0 ? 1 : -1);
+	// 		}
+	// 		else
+	// 		{		
+	// 			enum{Scroll = NOTES_PER_BEET};
+	// 			s32 delta = event->wheel.y > 0 ? -Scroll : Scroll;
 
-				music->tracker.scroll += delta;
+	// 			music->tracker.scroll += delta;
 
-				updateScroll(music);
-			}
-			break;
-		case SDL_KEYDOWN:
-			processKeydown(music, &event->key.keysym);
-			break;
-		case SDL_KEYUP:
-			processKeyup(music, &event->key.keysym);
-			break;
-		}
-	}
+	// 			updateScroll(music);
+	// 		}
+	// 		break;
+	// 	case SDL_KEYDOWN:
+	// 		processKeydown(music, &event->key.keysym);
+	// 		break;
+	// 	case SDL_KEYUP:
+	// 		processKeyup(music, &event->key.keysym);
+	// 		break;
+	// 	}
+	// }
 
 	if(music->tracker.follow)
 	{

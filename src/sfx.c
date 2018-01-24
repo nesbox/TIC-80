@@ -823,16 +823,16 @@ static void drawSfxToolbar(Sfx* sfx)
 
 static void envelopesTick(Sfx* sfx)
 {
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
-	{
-		switch(event->type)
-		{
-		case SDL_KEYDOWN:
-			processKeydown(sfx, event->key.keysym.sym);
-			break;
-		}
-	}
+	// SDL_Event* event = NULL;
+	// while ((event = pollEvent()))
+	// {
+	// 	switch(event->type)
+	// 	{
+	// 	case SDL_KEYDOWN:
+	// 		processKeydown(sfx, event->key.keysym.sym);
+	// 		break;
+	// 	}
+	// }
 
 	processKeyboard(sfx);
 
@@ -954,16 +954,16 @@ static void drawWaveformCanvas(Sfx* sfx, s32 x, s32 y)
 
 static void waveformTick(Sfx* sfx)
 {
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
-	{
-		switch(event->type)
-		{
-		case SDL_KEYDOWN:
-			processWaveformKeydown(sfx, event->key.keysym.sym);
-			break;
-		}
-	}
+	// SDL_Event* event = NULL;
+	// while ((event = pollEvent()))
+	// {
+	// 	switch(event->type)
+	// 	{
+	// 	case SDL_KEYDOWN:
+	// 		processWaveformKeydown(sfx, event->key.keysym.sym);
+	// 		break;
+	// 	}
+	// }
 
 	processKeyboard(sfx);
 

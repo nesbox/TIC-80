@@ -191,16 +191,16 @@ static void drawDialog(Dialog* dlg)
 
 static void tick(Dialog* dlg)
 {
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
-	{
-		switch(event->type)
-		{
-		case SDL_KEYDOWN:
-			processKeydown(dlg, &event->key.keysym);
-			break;
-		}	
-	}
+	// SDL_Event* event = NULL;
+	// while ((event = pollEvent()))
+	// {
+	// 	switch(event->type)
+	// 	{
+	// 	case SDL_KEYDOWN:
+	// 		processKeydown(dlg, &event->key.keysym);
+	// 		break;
+	// 	}	
+	// }
 
 	if(!dlg->init)
 	{

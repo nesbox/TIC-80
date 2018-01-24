@@ -78,7 +78,7 @@ static void tick(Start* start)
 		start->initialized = true;
 	}
 
-	while (pollEvent());
+	// while (pollEvent());
 
 	start->tic->api.clear(start->tic, TIC_COLOR_BG);
 

@@ -122,7 +122,7 @@ typedef enum
 	TIC_SURF_MODE,
 } EditorMode;
 
-SDL_Event* pollEvent();
+// SDL_Event* pollEvent();
 void setCursor(SDL_SystemCursor id);
 
 s32 getMouseX();
@@ -198,3 +198,8 @@ void runProject();
 
 tic_tiles* getBankTiles();
 tic_map* getBankMap();
+
+
+s32 studioInit(s32 argc, char **argv);
+void studioTick(void* pixels);
+void studioClose();

@@ -1589,30 +1589,30 @@ static void drawSpriteToolbar(Sprite* sprite)
 static void tick(Sprite* sprite)
 {
 
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
-	{
-		switch(event->type)
-		{
-		case SDL_KEYDOWN:
-			processKeydown(sprite, event->key.keysym.sym);
-			break;
-		case SDL_MOUSEWHEEL:
-			{
-				s32 size = sprite->size;
-				s32 delta = event->wheel.y;
+	// SDL_Event* event = NULL;
+	// while ((event = pollEvent()))
+	// {
+	// 	switch(event->type)
+	// 	{
+	// 	case SDL_KEYDOWN:
+	// 		processKeydown(sprite, event->key.keysym.sym);
+	// 		break;
+	// 	case SDL_MOUSEWHEEL:
+	// 		{
+	// 			s32 size = sprite->size;
+	// 			s32 delta = event->wheel.y;
 
-				if(delta > 0) 
-				{
-					if(size < (TIC_SPRITESIZE * TIC_SPRITESIZE)) size <<= 1;					
-				}
-				else if(size > TIC_SPRITESIZE) size >>= 1;
+	// 			if(delta > 0) 
+	// 			{
+	// 				if(size < (TIC_SPRITESIZE * TIC_SPRITESIZE)) size <<= 1;					
+	// 			}
+	// 			else if(size > TIC_SPRITESIZE) size >>= 1;
 
-				updateSpriteSize(sprite, size);				
-			}
-			break;
-		}
-	}
+	// 			updateSpriteSize(sprite, size);				
+	// 		}
+	// 		break;
+	// 	}
+	// }
 
 	sprite->tic->api.clear(sprite->tic, (tic_color_gray));
 

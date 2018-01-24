@@ -1052,40 +1052,40 @@ static void processMouse(Code* code)
 
 static void textEditTick(Code* code)
 {
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
-	{
-		switch(event->type)
-		{
-		case SDL_MOUSEWHEEL:
-			{
-				enum{Scroll = 3};
-				s32 delta = event->wheel.y > 0 ? -Scroll : Scroll;
+// 	SDL_Event* event = NULL;
+// 	while ((event = pollEvent()))
+// 	{
+// 		switch(event->type)
+// 		{
+// 		case SDL_MOUSEWHEEL:
+// 			{
+// 				enum{Scroll = 3};
+// 				s32 delta = event->wheel.y > 0 ? -Scroll : Scroll;
 
-				code->scroll.y += delta;
+// 				code->scroll.y += delta;
 
-				normalizeScroll(code);
-			}
-			break;
-		case SDL_KEYDOWN:
-			processKeydown(code, event->key.keysym.sym);
-			break;
-		case SDL_TEXTINPUT:
+// 				normalizeScroll(code);
+// 			}
+// 			break;
+// 		case SDL_KEYDOWN:
+// 			processKeydown(code, event->key.keysym.sym);
+// 			break;
+// 		case SDL_TEXTINPUT:
 
-#if defined(__LINUX__)
-			if(!(SDL_GetModState() & KMOD_LALT))
-#endif
+// #if defined(__LINUX__)
+// 			if(!(SDL_GetModState() & KMOD_LALT))
+// #endif
 
-			if(strlen(event->text.text) == 1)
-			{
+// 			if(strlen(event->text.text) == 1)
+// 			{
 
 
-				inputSymbol(code, *event->text.text);
-				updateEditor(code);
-			}
-			break;
-		}
-	}
+// 				inputSymbol(code, *event->text.text);
+// 				updateEditor(code);
+// 			}
+// 			break;
+// 		}
+// 	}
 
 	processGestures(code);
 	processMouse(code);
@@ -1146,54 +1146,54 @@ static char* downStrStr(const char* start, const char* from, const char* substr)
 
 static void textFindTick(Code* code)
 {
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
-	{
-		switch(event->type)
-		{
-		case SDL_KEYDOWN:
-			switch(event->key.keysym.sym)
-			{
-			case SDLK_RETURN:
-				setCodeMode(code, TEXT_EDIT_MODE);
-				break;
-			case SDLK_UP:
-			case SDLK_LEFT:
-			case SDLK_DOWN:
-			case SDLK_RIGHT:
-				if(*code->popup.text)
-				{
-					SDL_Keycode keycode = event->key.keysym.sym;
-					bool reverse = keycode == SDLK_UP || keycode == SDLK_LEFT;
-					char* (*func)(const char*, const char*, const char*) = reverse ? upStrStr : downStrStr;
-					char* from = reverse ? SDL_min(code->cursor.position, code->cursor.selection) : SDL_max(code->cursor.position, code->cursor.selection);
-					char* pos = func(code->src, from, code->popup.text);
-					updateFindCode(code, pos);
-				}
-				break;
-			case SDLK_BACKSPACE:
-				if(*code->popup.text)
-				{
-					code->popup.text[strlen(code->popup.text)-1] = '\0';
-					updateFindCode(code, strstr(code->src, code->popup.text));
-				}
-				break;
-			default: break;
-			}
-			break;
-		case SDL_TEXTINPUT:
-			if(strlen(event->text.text) == 1)
-			{
-				if(strlen(code->popup.text) + 1 < sizeof code->popup.text)
-				{
-					strcat(code->popup.text, event->text.text);
-					updateFindCode(code, strstr(code->src, code->popup.text));
-				}
-			}
-			break;
-		default: break;
-		}
-	}
+	// SDL_Event* event = NULL;
+	// while ((event = pollEvent()))
+	// {
+	// 	switch(event->type)
+	// 	{
+	// 	case SDL_KEYDOWN:
+	// 		switch(event->key.keysym.sym)
+	// 		{
+	// 		case SDLK_RETURN:
+	// 			setCodeMode(code, TEXT_EDIT_MODE);
+	// 			break;
+	// 		case SDLK_UP:
+	// 		case SDLK_LEFT:
+	// 		case SDLK_DOWN:
+	// 		case SDLK_RIGHT:
+	// 			if(*code->popup.text)
+	// 			{
+	// 				SDL_Keycode keycode = event->key.keysym.sym;
+	// 				bool reverse = keycode == SDLK_UP || keycode == SDLK_LEFT;
+	// 				char* (*func)(const char*, const char*, const char*) = reverse ? upStrStr : downStrStr;
+	// 				char* from = reverse ? SDL_min(code->cursor.position, code->cursor.selection) : SDL_max(code->cursor.position, code->cursor.selection);
+	// 				char* pos = func(code->src, from, code->popup.text);
+	// 				updateFindCode(code, pos);
+	// 			}
+	// 			break;
+	// 		case SDLK_BACKSPACE:
+	// 			if(*code->popup.text)
+	// 			{
+	// 				code->popup.text[strlen(code->popup.text)-1] = '\0';
+	// 				updateFindCode(code, strstr(code->src, code->popup.text));
+	// 			}
+	// 			break;
+	// 		default: break;
+	// 		}
+	// 		break;
+	// 	case SDL_TEXTINPUT:
+	// 		if(strlen(event->text.text) == 1)
+	// 		{
+	// 			if(strlen(code->popup.text) + 1 < sizeof code->popup.text)
+	// 			{
+	// 				strcat(code->popup.text, event->text.text);
+	// 				updateFindCode(code, strstr(code->src, code->popup.text));
+	// 			}
+	// 		}
+	// 		break;
+	// 	default: break;
+	// 	}
+	// }
 
 	code->tic->api.clear(code->tic, getConfig()->theme.code.bg);
 
@@ -1223,45 +1223,45 @@ static void updateGotoCode(Code* code)
 
 static void textGoToTick(Code* code)
 {
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
-	{
-		switch(event->type)
-		{
-		case SDL_KEYDOWN:
-			switch(event->key.keysym.sym)
-			{
-			case SDLK_RETURN:
-				if(*code->popup.text)
-					updateGotoCode(code);
+	// SDL_Event* event = NULL;
+	// while ((event = pollEvent()))
+	// {
+	// 	switch(event->type)
+	// 	{
+	// 	case SDL_KEYDOWN:
+	// 		switch(event->key.keysym.sym)
+	// 		{
+	// 		case SDLK_RETURN:
+	// 			if(*code->popup.text)
+	// 				updateGotoCode(code);
 
-				setCodeMode(code, TEXT_EDIT_MODE);
-				break;
-			case SDLK_BACKSPACE:
-				if(*code->popup.text)
-				{
-					code->popup.text[strlen(code->popup.text)-1] = '\0';
-					updateGotoCode(code);
-				}
-				break;
-			default: break;
-			}
-			break;
-		case SDL_TEXTINPUT:
-			if(strlen(event->text.text) == 1)
-			{
-				char sym = *event->text.text;
+	// 			setCodeMode(code, TEXT_EDIT_MODE);
+	// 			break;
+	// 		case SDLK_BACKSPACE:
+	// 			if(*code->popup.text)
+	// 			{
+	// 				code->popup.text[strlen(code->popup.text)-1] = '\0';
+	// 				updateGotoCode(code);
+	// 			}
+	// 			break;
+	// 		default: break;
+	// 		}
+	// 		break;
+	// 	case SDL_TEXTINPUT:
+	// 		if(strlen(event->text.text) == 1)
+	// 		{
+	// 			char sym = *event->text.text;
 
-				if(strlen(code->popup.text)+1 < sizeof code->popup.text && sym >= '0' && sym <= '9')
-				{
-					strcat(code->popup.text, event->text.text);
-					updateGotoCode(code);
-				}
-			}
-			break;
-		default: break;
-		}
-	}
+	// 			if(strlen(code->popup.text)+1 < sizeof code->popup.text && sym >= '0' && sym <= '9')
+	// 			{
+	// 				strcat(code->popup.text, event->text.text);
+	// 				updateGotoCode(code);
+	// 			}
+	// 		}
+	// 		break;
+	// 	default: break;
+	// 	}
+	// }
 
 	code->tic->api.clear(code->tic, getConfig()->theme.code.bg);
 
@@ -1321,55 +1321,55 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 
 static void textOutlineTick(Code* code)
 {
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
-	{
-		switch(event->type)
-		{
-		case SDL_KEYDOWN:
-			switch(event->key.keysym.sym)
-			{
-			case SDLK_UP:
-				if(code->outline.index > 0)
-				{
-					code->outline.index--;
-					updateOutlineCode(code);
-				}
-				break;
-			case SDLK_DOWN:
-				if(code->outline.index < OUTLINE_SIZE - 1 && code->outline.items[code->outline.index + 1].pos)
-				{
-					code->outline.index++;
-					updateOutlineCode(code);
-				}
-				break;
-			case SDLK_RETURN:
-				updateOutlineCode(code);
-				setCodeMode(code, TEXT_EDIT_MODE);
-				break;
-			case SDLK_BACKSPACE:
-				if(*code->popup.text)
-				{
-					code->popup.text[strlen(code->popup.text)-1] = '\0';
-					setOutlineMode(code);
-				}
-				break;
-			default: break;
-			}
-			break;
-		case SDL_TEXTINPUT:
-			if(strlen(event->text.text) == 1)
-			{
-				if(strlen(code->popup.text) + 1 < sizeof code->popup.text)
-				{
-					strcat(code->popup.text, event->text.text);
-					setOutlineMode(code);
-				}
-			}
-			break;
-		default: break;
-		}
-	}
+	// SDL_Event* event = NULL;
+	// while ((event = pollEvent()))
+	// {
+	// 	switch(event->type)
+	// 	{
+	// 	case SDL_KEYDOWN:
+	// 		switch(event->key.keysym.sym)
+	// 		{
+	// 		case SDLK_UP:
+	// 			if(code->outline.index > 0)
+	// 			{
+	// 				code->outline.index--;
+	// 				updateOutlineCode(code);
+	// 			}
+	// 			break;
+	// 		case SDLK_DOWN:
+	// 			if(code->outline.index < OUTLINE_SIZE - 1 && code->outline.items[code->outline.index + 1].pos)
+	// 			{
+	// 				code->outline.index++;
+	// 				updateOutlineCode(code);
+	// 			}
+	// 			break;
+	// 		case SDLK_RETURN:
+	// 			updateOutlineCode(code);
+	// 			setCodeMode(code, TEXT_EDIT_MODE);
+	// 			break;
+	// 		case SDLK_BACKSPACE:
+	// 			if(*code->popup.text)
+	// 			{
+	// 				code->popup.text[strlen(code->popup.text)-1] = '\0';
+	// 				setOutlineMode(code);
+	// 			}
+	// 			break;
+	// 		default: break;
+	// 		}
+	// 		break;
+	// 	case SDL_TEXTINPUT:
+	// 		if(strlen(event->text.text) == 1)
+	// 		{
+	// 			if(strlen(code->popup.text) + 1 < sizeof code->popup.text)
+	// 			{
+	// 				strcat(code->popup.text, event->text.text);
+	// 				setOutlineMode(code);
+	// 			}
+	// 		}
+	// 		break;
+	// 	default: break;
+	// 	}
+	// }
 
 	code->tic->api.clear(code->tic, getConfig()->theme.code.bg);
 

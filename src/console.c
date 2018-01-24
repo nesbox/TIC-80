@@ -2537,81 +2537,81 @@ static void checkNewVersion(Console* console)
 
 static void tick(Console* console)
 {
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
-	{
-		switch(event->type)
-		{
-		case SDL_MOUSEWHEEL:
-			{
-				enum{Scroll = 3};
-				s32 delta = event->wheel.y > 0 ? -Scroll : Scroll;
-				setScroll(console, console->scroll.pos + delta);
-			}
-			break;
-		case SDL_KEYDOWN:
-			{
-				switch(event->key.keysym.sym)
-				{
-				case SDLK_UP:
-					onHistoryUp(console);
-					break;
-				case SDLK_DOWN:
-					onHistoryDown(console);
-					break;
-				case SDLK_RIGHT:
-					{
-						console->inputPosition++;
-						size_t len = strlen(console->inputBuffer);
-						if(console->inputPosition > len)
-							console->inputPosition = len;
-					}
-					break;
-				case SDLK_LEFT:
-					{
-						if(console->inputPosition > 0)
-							console->inputPosition--;
-					}
-					break;
-				case SDLK_RETURN: 		processConsoleCommand(console); break;
-				case SDLK_BACKSPACE: 	processConsoleBackspace(console); break;
-				case SDLK_DELETE: 		processConsoleDel(console); break;
-				case SDLK_HOME: 		processConsoleHome(console); break;
-				case SDLK_END: 			processConsoleEnd(console); break;
-				case SDLK_TAB: 			processConsoleTab(console); break;
+	// SDL_Event* event = NULL;
+	// while ((event = pollEvent()))
+	// {
+	// 	switch(event->type)
+	// 	{
+	// 	case SDL_MOUSEWHEEL:
+	// 		{
+	// 			enum{Scroll = 3};
+	// 			s32 delta = event->wheel.y > 0 ? -Scroll : Scroll;
+	// 			setScroll(console, console->scroll.pos + delta);
+	// 		}
+	// 		break;
+	// 	case SDL_KEYDOWN:
+	// 		{
+	// 			switch(event->key.keysym.sym)
+	// 			{
+	// 			case SDLK_UP:
+	// 				onHistoryUp(console);
+	// 				break;
+	// 			case SDLK_DOWN:
+	// 				onHistoryDown(console);
+	// 				break;
+	// 			case SDLK_RIGHT:
+	// 				{
+	// 					console->inputPosition++;
+	// 					size_t len = strlen(console->inputBuffer);
+	// 					if(console->inputPosition > len)
+	// 						console->inputPosition = len;
+	// 				}
+	// 				break;
+	// 			case SDLK_LEFT:
+	// 				{
+	// 					if(console->inputPosition > 0)
+	// 						console->inputPosition--;
+	// 				}
+	// 				break;
+	// 			case SDLK_RETURN: 		processConsoleCommand(console); break;
+	// 			case SDLK_BACKSPACE: 	processConsoleBackspace(console); break;
+	// 			case SDLK_DELETE: 		processConsoleDel(console); break;
+	// 			case SDLK_HOME: 		processConsoleHome(console); break;
+	// 			case SDLK_END: 			processConsoleEnd(console); break;
+	// 			case SDLK_TAB: 			processConsoleTab(console); break;
 
-				default: break;
-				}
+	// 			default: break;
+	// 			}
 
-				scrollConsole(console);
-				console->cursor.delay = CONSOLE_CURSOR_DELAY;
-			}
-			break;
-		case SDL_TEXTINPUT:
-			{
-				const char* symbol = event->text.text;
+	// 			scrollConsole(console);
+	// 			console->cursor.delay = CONSOLE_CURSOR_DELAY;
+	// 		}
+	// 		break;
+	// 	case SDL_TEXTINPUT:
+	// 		{
+	// 			const char* symbol = event->text.text;
 
-				if(strlen(symbol) == 1)
-				{
-					char sym = *symbol;
+	// 			if(strlen(symbol) == 1)
+	// 			{
+	// 				char sym = *symbol;
 
-					size_t size = strlen(console->inputBuffer);
+	// 				size_t size = strlen(console->inputBuffer);
 
-					if(size < sizeof(console->inputBuffer))
-					{
-						char* pos = console->inputBuffer + console->inputPosition;
-						memmove(pos + 1, pos, strlen(pos));
+	// 				if(size < sizeof(console->inputBuffer))
+	// 				{
+	// 					char* pos = console->inputBuffer + console->inputPosition;
+	// 					memmove(pos + 1, pos, strlen(pos));
 
-						*(console->inputBuffer + console->inputPosition) = sym;
-						console->inputPosition++;
-					}
-				}
+	// 					*(console->inputBuffer + console->inputPosition) = sym;
+	// 					console->inputPosition++;
+	// 				}
+	// 			}
 
-				console->cursor.delay = CONSOLE_CURSOR_DELAY;
-			}
-			break;
-		}
-	}
+	// 			console->cursor.delay = CONSOLE_CURSOR_DELAY;
+	// 		}
+	// 		break;
+	// 	}
+	// }
 
 	processGesture(console);
 

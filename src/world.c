@@ -71,16 +71,16 @@ static void processKeydown(World* world, SDL_Keycode keycode)
 
 static void tick(World* world)
 {
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
-	{
-		switch(event->type)
-		{
-		case SDL_KEYDOWN:
-			processKeydown(world, event->key.keysym.sym);
-			break;
-		}
-	}
+	// SDL_Event* event = NULL;
+	// while ((event = pollEvent()))
+	// {
+	// 	switch(event->type)
+	// 	{
+	// 	case SDL_KEYDOWN:
+	// 		processKeydown(world, event->key.keysym.sym);
+	// 		break;
+	// 	}
+	// }
 
 	SDL_memcpy(&world->tic->ram.vram, world->preview, PREVIEW_SIZE);
 

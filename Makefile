@@ -241,6 +241,9 @@ bin/menu.o: src/menu.c $(TIC80_H) $(TIC_H)
 bin/surf.o: src/surf.c $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
+bin/main.o: src/main.c src/keycodes.c $(TIC80_H) $(TIC_H)
+	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
+
 TIC_O=\
 	bin/studio.o \
 	bin/console.o \
@@ -265,7 +268,8 @@ TIC_O=\
 	bin/net.o \
 	bin/dialog.o \
 	bin/menu.o \
-	bin/surf.o
+	bin/surf.o \
+	bin/main.o
 
 bin/tic80.o: src/tic80.c $(TIC80_H)
 	$(CC) $< $(OPT) $(INCLUDES) -DTIC80_SHARED -c -o $@

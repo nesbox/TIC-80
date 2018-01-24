@@ -1100,19 +1100,19 @@ static void tick(Map* map)
 {
 	map->tickCounter++;
 
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
-	{
-		switch(event->type)
-		{
-		case SDL_KEYDOWN:
-			processKeydown(map, event->key.keysym.sym);
-			break;
-		case SDL_KEYUP:
-			processKeyup(map, event->key.keysym.sym);
-			break;
-		}
-	}
+	// SDL_Event* event = NULL;
+	// while ((event = pollEvent()))
+	// {
+	// 	switch(event->type)
+	// 	{
+	// 	case SDL_KEYDOWN:
+	// 		processKeydown(map, event->key.keysym.sym);
+	// 		break;
+	// 	case SDL_KEYUP:
+	// 		processKeyup(map, event->key.keysym.sym);
+	// 		break;
+	// 	}
+	// }
 
 	processKeyboard(map);
 	processGesture(map);

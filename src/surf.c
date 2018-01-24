@@ -803,7 +803,7 @@ static void tick(Surf* surf)
 
 	surf->ticks++;
 
-	while (pollEvent());
+	// while (pollEvent());
 
 
 	tic_mem* tic = surf->tic;

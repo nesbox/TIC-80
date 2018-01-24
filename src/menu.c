@@ -458,16 +458,16 @@ static void tick(Menu* menu)
 {
 	menu->ticks++;
 
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
-	{
-		switch(event->type)
-		{
-		case SDL_KEYUP:
-			processKeydown(menu, &event->key.keysym);
-			break;
-		}
-	}
+	// SDL_Event* event = NULL;
+	// while ((event = pollEvent()))
+	// {
+	// 	switch(event->type)
+	// 	{
+	// 	case SDL_KEYUP:
+	// 		processKeydown(menu, &event->key.keysym);
+	// 		break;
+	// 	}
+	// }
 
 	if(getStudioMode() != TIC_MENU_MODE)
 		return;
