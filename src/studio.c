@@ -96,9 +96,9 @@ static struct
 		u64 mdate;
 	}cart;
 
-	SDL_Window* window;
-	SDL_Renderer* renderer;
-	SDL_Texture* texture;
+	// SDL_Window* window;
+	// SDL_Renderer* renderer;
+	// SDL_Texture* texture;
 
 	// struct
 	// {
@@ -131,7 +131,7 @@ static struct
 		bool active;
 	} gesture;
 
-	const u8* keyboard;
+	// const u8* keyboard;
 
 	tic_key keycodes[KEYMAP_COUNT];
 
@@ -226,7 +226,6 @@ static struct
 
 	FileSystem* fs;
 
-	bool quitFlag;
 	bool missedFrame;
 
 	s32 argc;
@@ -238,9 +237,9 @@ static struct
 	.tic80local = NULL,
 	// .tic = NULL,
 
-	.window = NULL,
-	.renderer = NULL,
-	.texture = NULL,
+	// .window = NULL,
+	// .renderer = NULL,
+	// .texture = NULL,
 	// .audio = 
 	// {
 	// 	.device = 0,
@@ -272,7 +271,7 @@ static struct
 		.active = false,
 	},
 
-	.keyboard = NULL,
+	// .keyboard = NULL,
 	.keycodes =
 	{
 		tic_key_up,
@@ -316,7 +315,6 @@ static struct
 	},
 
 	.fullscreen = false,
-	.quitFlag = false,
 	.missedFrame = false,
 	.argc = 0,
 	.argv = NULL,
@@ -920,10 +918,10 @@ ClipboardEvent getClipboardEvent(SDL_Keycode keycode)
 	return TIC_CLIPBOARD_NONE;
 }
 
-const u8* getKeyboard()
-{
-	return studioImpl.keyboard;
-}
+// const u8* getKeyboard()
+// {
+// 	return studioImpl.keyboard;
+// }
 
 static void showPopupMessage(const char* text)
 {
@@ -933,7 +931,7 @@ static void showPopupMessage(const char* text)
 
 static void exitConfirm(bool yes, void* data)
 {
-	studioImpl.quitFlag = yes;
+	studioImpl.studio.quit = yes;
 }
 
 void exitStudio()
@@ -1213,12 +1211,12 @@ static void updateMDate()
 
 static void updateTitle()
 {
-	char name[FILENAME_MAX] = TIC_TITLE;
+	// char name[FILENAME_MAX] = TIC_TITLE;
 
-	if(strlen(studioImpl.console->romName))
-		sprintf(name, "%s [%s]", TIC_TITLE, studioImpl.console->romName);
+	// if(strlen(studioImpl.console->romName))
+	// 	sprintf(name, "%s [%s]", TIC_TITLE, studioImpl.console->romName);
 
-	SDL_SetWindowTitle(studioImpl.window, name);
+	// SDL_SetWindowTitle(studioImpl.window, name);
 }
 
 void studioRomSaved()
@@ -1644,8 +1642,8 @@ static void processGesture()
 
 static void goFullscreen()
 {
-	studioImpl.fullscreen = !studioImpl.fullscreen;
-	SDL_SetWindowFullscreen(studioImpl.window, studioImpl.fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+	// studioImpl.fullscreen = !studioImpl.fullscreen;
+	// SDL_SetWindowFullscreen(studioImpl.window, studioImpl.fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
 }
 
 void runProject()
@@ -2578,7 +2576,7 @@ static void renderStudio()
 // {
 // 	if(!studioImpl.fs) return;
 
-// 	if(studioImpl.quitFlag)
+// 	if(studioImpl.studio.quit)
 // 	{
 // #if defined __EMSCRIPTEN__
 // 		studioImpl.studio.tic->api.clear(studioImpl.studio.tic, TIC_COLOR_BG);

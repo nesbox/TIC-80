@@ -133,7 +133,7 @@ bool checkMouseDown(const SDL_Rect* rect, s32 button);
 
 bool getGesturePos(SDL_Point* pos);
 
-const u8* getKeyboard();
+// const u8* getKeyboard();
 
 void drawToolbar(tic_mem* tic, u8 color, bool bg);
 void drawBitIcon(s32 x, s32 y, const u8* ptr, u8 color);
@@ -202,6 +202,8 @@ tic_map* getBankMap();
 typedef struct
 {
 	tic_mem* tic;
+	bool quit;
+
 } Studio;
 
 Studio* studioInit(s32 argc, char **argv, s32 samplerate);

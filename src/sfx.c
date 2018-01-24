@@ -631,21 +631,23 @@ static void processKeyboard(Sfx* sfx)
 {
 	s32 keyboardButton = -1;
 
-	static const s32 Scancodes[] = 
+	static const s32 Keycodes[] = 
 	{
-		SDL_SCANCODE_Z,
-		SDL_SCANCODE_S,
-		SDL_SCANCODE_X,
-		SDL_SCANCODE_D,
-		SDL_SCANCODE_C,
-		SDL_SCANCODE_V,
-		SDL_SCANCODE_G,
-		SDL_SCANCODE_B,
-		SDL_SCANCODE_H,
-		SDL_SCANCODE_N,
-		SDL_SCANCODE_J,
-		SDL_SCANCODE_M,
+		tic_key_z,
+		tic_key_s,
+		tic_key_x,
+		tic_key_d,
+		tic_key_c,
+		tic_key_v,
+		tic_key_g,
+		tic_key_b,
+		tic_key_h,
+		tic_key_n,
+		tic_key_j,
+		tic_key_m,
 	};
+
+	tic_mem* tic = sfx->tic;
 
 	SDL_Keymod keymod = SDL_GetModState();
 
@@ -655,8 +657,8 @@ static void processKeyboard(Sfx* sfx)
 	}
 	else
 	{
-		for(int i = 0; i < COUNT_OF(Scancodes); i++)
-			if(getKeyboard()[Scancodes[i]])
+		for(int i = 0; i < COUNT_OF(Keycodes); i++)
+			if(tic->api.key(tic, Keycodes[i]))
 				keyboardButton = i;        
 	}
 
@@ -668,7 +670,7 @@ static void processKeyboard(Sfx* sfx)
 		sfx->play.active = true;
 	}
 
-	if(getKeyboard()[SDL_SCANCODE_SPACE])
+	if(tic->api.key(tic, tic_key_space))
 		sfx->play.active = true;
 }
 

@@ -864,7 +864,8 @@ static void drawMapOvr(Map* map)
 	s32 scrollX = map->scroll.x % TIC_SPRITESIZE;
 	s32 scrollY = map->scroll.y % TIC_SPRITESIZE;
 
-	map->tic->api.map(map->tic, map->src, getBankTiles(), map->scroll.x / TIC_SPRITESIZE, map->scroll.y / TIC_SPRITESIZE, 
+	tic_mem* tic = map->tic;
+	tic->api.map(tic, map->src, getBankTiles(), map->scroll.x / TIC_SPRITESIZE, map->scroll.y / TIC_SPRITESIZE, 
 		TIC_MAP_SCREEN_WIDTH + 1, TIC_MAP_SCREEN_HEIGHT + 1, -scrollX, -scrollY, -1, 1);
 
 	if(map->canvas.grid || map->scroll.active)
@@ -874,13 +875,14 @@ static void drawMapOvr(Map* map)
 		s32 screenScrollX = map->scroll.x % TIC80_WIDTH;
 		s32 screenScrollY = map->scroll.y % TIC80_HEIGHT;
 
-		map->tic->api.line(map->tic, 0, TIC80_HEIGHT - screenScrollY, TIC80_WIDTH, TIC80_HEIGHT - screenScrollY, (tic_color_gray));
-		map->tic->api.line(map->tic, TIC80_WIDTH - screenScrollX, 0, TIC80_WIDTH - screenScrollX, TIC80_HEIGHT, (tic_color_gray));
+		tic->api.line(tic, 0, TIC80_HEIGHT - screenScrollY, TIC80_WIDTH, TIC80_HEIGHT - screenScrollY, (tic_color_gray));
+		tic->api.line(tic, TIC80_WIDTH - screenScrollX, 0, TIC80_WIDTH - screenScrollX, TIC80_HEIGHT, (tic_color_gray));
 	}
 
 	if(!map->sheet.show && checkMousePos(&rect))
 	{
-		if(getKeyboard()[SDL_SCANCODE_SPACE])
+		if(tic->api.key(tic, tic_key_space))
+		// if(getKeyboard()[SDL_SCANCODE_SPACE])
 		{
 			processScrolling(map, checkMouseDown(&rect, SDL_BUTTON_LEFT) || checkMouseDown(&rect, SDL_BUTTON_RIGHT));
 		}
@@ -902,15 +904,17 @@ static void processKeyboard(Map* map)
 {
 	enum{Step = 1};
 
-	if(getKeyboard()[SDL_SCANCODE_UP]) map->scroll.y -= Step;
-	if(getKeyboard()[SDL_SCANCODE_DOWN]) map->scroll.y += Step;
-	if(getKeyboard()[SDL_SCANCODE_LEFT]) map->scroll.x -= Step;
-	if(getKeyboard()[SDL_SCANCODE_RIGHT]) map->scroll.x += Step;
+	tic_mem* tic = map->tic;
 
-	static const u8 Scancodes[] = {SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT};
+	if(tic->api.key(tic, tic_key_up)) map->scroll.y -= Step;
+	if(tic->api.key(tic, tic_key_down)) map->scroll.y += Step;
+	if(tic->api.key(tic, tic_key_left)) map->scroll.x -= Step;
+	if(tic->api.key(tic, tic_key_right)) map->scroll.x += Step;
 
-	for(s32 i = 0; i < COUNT_OF(Scancodes); i++)
-		if(getKeyboard()[Scancodes[i]])
+	static const tic_key Keycodes[] = {tic_key_up, tic_key_down, tic_key_left, tic_key_right};
+
+	for(s32 i = 0; i < COUNT_OF(Keycodes); i++)
+		if(tic->api.key(tic, Keycodes[i]))
 		{
 			normalizeMap(&map->scroll.x, &map->scroll.y);
 			break;

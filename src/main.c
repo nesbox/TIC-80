@@ -48,7 +48,6 @@ static struct
 		} part;
 	} gamepad;
 
-	bool quitFlag;
 	bool missedFrame;
 } platform;
 
@@ -592,7 +591,7 @@ static void pollEvent()
 // 			showSoftKeyboard();
 // 			break;
 		case SDL_QUIT:
-			platform.quitFlag = true;
+			platform.studio->quit = true;
 			// exitStudio();
 			break;
 		default:
@@ -780,7 +779,7 @@ static void tick()
 
 	// if(!platform.fs) return;
 
-// 	if(platform.quitFlag)
+// 	if(platform.quit)
 // 	{
 // #if defined __EMSCRIPTEN__
 // 		platform.studio->tic->api.clear(platform.studio->tic, TIC_COLOR_BG);
@@ -869,7 +868,7 @@ s32 main(s32 argc, char **argv)
 		u64 nextTick = SDL_GetPerformanceCounter();
 		const u64 Delta = SDL_GetPerformanceFrequency() / TIC_FRAMERATE;
 
-		while (!platform.quitFlag)
+		while (!platform.studio->quit)
 		{
 			platform.missedFrame = false;
 
