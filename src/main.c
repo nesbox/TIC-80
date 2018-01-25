@@ -519,31 +519,31 @@ static void pollEvent()
 // 		case SDL_KEYDOWN:
 // 			if(processShortcuts(&event.key)) return NULL;
 // 			break;
-// 		case SDL_JOYDEVICEADDED:
-// 			{
-// 				s32 id = event.jdevice.which;
+		case SDL_JOYDEVICEADDED:
+			{
+				s32 id = event.jdevice.which;
 
-// 				if (id < TIC_GAMEPADS)
-// 				{
-// 					if(platform.joysticks[id])
-// 						SDL_JoystickClose(platform.joysticks[id]);
+				if (id < TIC_GAMEPADS)
+				{
+					if(platform.joysticks[id])
+						SDL_JoystickClose(platform.joysticks[id]);
 
-// 					platform.joysticks[id] = SDL_JoystickOpen(id);
-// 				}
-// 			}
-// 			break;
+					platform.joysticks[id] = SDL_JoystickOpen(id);
+				}
+			}
+			break;
 
-// 		case SDL_JOYDEVICEREMOVED:
-// 			{
-// 				s32 id = event.jdevice.which;
+		case SDL_JOYDEVICEREMOVED:
+			{
+				s32 id = event.jdevice.which;
 
-// 				if (id < TIC_GAMEPADS && platform.joysticks[id])
-// 				{
-// 					SDL_JoystickClose(platform.joysticks[id]);
-// 					platform.joysticks[id] = NULL;
-// 				}
-// 			}
-// 			break;
+				if (id < TIC_GAMEPADS && platform.joysticks[id])
+				{
+					SDL_JoystickClose(platform.joysticks[id]);
+					platform.joysticks[id] = NULL;
+				}
+			}
+			break;
 		case SDL_WINDOWEVENT:
 			switch(event.window.event)
 			{
