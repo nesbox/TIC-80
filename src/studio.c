@@ -70,8 +70,8 @@ typedef struct
 	bool down;
 	bool click;
 
-	SDL_Point start;
-	SDL_Point end;
+	tic_point start;
+	tic_point end;
 
 } MouseState;
 
@@ -115,7 +115,7 @@ static struct
 
 	struct
 	{
-		// SDL_Point cursor;
+		// tic_point cursor;
 		// u32 button;
 
 		MouseState state[3];
@@ -127,7 +127,7 @@ static struct
 
 	struct
 	{
-		SDL_Point pos;
+		tic_point pos;
 		bool active;
 	} gesture;
 
@@ -151,11 +151,11 @@ static struct
 	// 	struct
 	// 	{
 	// 		s32 size;
-	// 		SDL_Point axis;
-	// 		SDL_Point a;
-	// 		SDL_Point b;
-	// 		SDL_Point x;
-	// 		SDL_Point y;
+	// 		tic_point axis;
+	// 		tic_point a;
+	// 		tic_point b;
+	// 		tic_point x;
+	// 		tic_point y;
 	// 	} part;
 	// } gamepad;
 
@@ -574,7 +574,7 @@ static void drawExtrabar(tic_mem* tic)
 
 	for(s32 i = 0; i < sizeof Icons / BITS_IN_BYTE; i++)
 	{
-		SDL_Rect rect = {x + i*Size, y, Size, Size};
+		tic_rect rect = {x + i*Size, y, Size, Size};
 
 		u8 bgcolor = (tic_color_white);
 		u8 color = (tic_color_light_blue);
@@ -613,7 +613,7 @@ static void drawBankIcon(s32 x, s32 y)
 {
 	tic_mem* tic = studioImpl.studio.tic;
 
-	SDL_Rect rect = {x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
+	tic_rect rect = {x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
 
 	static const u8 Icon[] =
 	{
@@ -657,7 +657,7 @@ static void drawBankIcon(s32 x, s32 y)
 
 		for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
 		{
-			SDL_Rect rect = {x + 2 + (i+1)*Size, 0, Size, Size};
+			tic_rect rect = {x + 2 + (i+1)*Size, 0, Size, Size};
 
 			bool over = false;
 			if(checkMousePos(&rect))
@@ -693,7 +693,7 @@ static void drawBankIcon(s32 x, s32 y)
 				0b00000000,
 			};
 
-			SDL_Rect rect = {x + 4 + (TIC_EDITOR_BANKS+1)*Size, 0, Size, Size};
+			tic_rect rect = {x + 4 + (TIC_EDITOR_BANKS+1)*Size, 0, Size, Size};
 
 			bool over = false;
 
@@ -796,7 +796,7 @@ void drawToolbar(tic_mem* tic, u8 color, bool bg)
 
 	for(s32 i = 0; i < COUNT_OF(Modes); i++)
 	{
-		SDL_Rect rect = {i * Size, 0, Size, Size};
+		tic_rect rect = {i * Size, 0, Size, Size};
 
 		bool over = false;
 
@@ -1071,15 +1071,15 @@ EditorMode getStudioMode()
 
 void changeStudioMode(s32 dir)
 {
-    const size_t modeCount = sizeof(Modes)/sizeof(Modes[0]);
-    for(size_t i = 0; i < modeCount; i++)
-    {
-        if(studioImpl.mode == Modes[i])
-        {
-            setStudioMode(Modes[(i+dir+modeCount) % modeCount]);
-            return;
-        }
-    }
+	const size_t modeCount = sizeof(Modes)/sizeof(Modes[0]);
+	for(size_t i = 0; i < modeCount; i++)
+	{
+		if(studioImpl.mode == Modes[i])
+		{
+			setStudioMode(Modes[(i+dir+modeCount) % modeCount]);
+			return;
+		}
+	}
 }
 
 static void showGameMenu()
@@ -1111,34 +1111,42 @@ s32 getMouseY()
 	return tic->ram.input.mouse.y;
 }
 
-bool checkMousePos(const SDL_Rect* rect)
+static inline bool pointInRect(const tic_point* pt, const tic_rect* rect)
 {
-	SDL_Point pos = {getMouseX(), getMouseY()};
-	return SDL_PointInRect(&pos, rect);
+	return (pt->x >= rect->x) 
+		&& (pt->x < (rect->x + rect->w)) 
+		&& (pt->y >= rect->y)
+		&& (pt->y < (rect->y + rect->h));
 }
 
-bool checkMouseClick(const SDL_Rect* rect, s32 button)
+bool checkMousePos(const tic_rect* rect)
+{
+	tic_point pos = {getMouseX(), getMouseY()};
+	return pointInRect(&pos, rect);
+}
+
+bool checkMouseClick(const tic_rect* rect, s32 button)
 {
 	MouseState* state = &studioImpl.mouse.state[button];
 
 	bool value = state->click
-		&& SDL_PointInRect(&state->start, rect)
-		&& SDL_PointInRect(&state->end, rect);
+		&& pointInRect(&state->start, rect)
+		&& pointInRect(&state->end, rect);
 
 	if(value) state->click = false;
 
 	return value;
 }
 
-bool checkMouseDown(const SDL_Rect* rect, s32 button)
+bool checkMouseDown(const tic_rect* rect, s32 button)
 {
 	MouseState* state = &studioImpl.mouse.state[button];
 
-	return state->down && SDL_PointInRect(&state->start, rect);
+	return state->down && pointInRect(&state->start, rect);
 }
 
 
-bool getGesturePos(SDL_Point* pos)
+bool getGesturePos(tic_point* pos)
 {
 	if(studioImpl.gesture.active)
 	{
@@ -1245,7 +1253,7 @@ bool studioCartChanged()
 
 // static void updateGamepadParts();
 
-// static void calcTextureRect(SDL_Rect* rect)
+// static void calcTextureRect(tic_rect* rect)
 // {
 // 	SDL_GetWindowSize(studioImpl.window, &rect->w, &rect->h);
 
@@ -1293,7 +1301,7 @@ static void processGamepadMapping()
 
 // #if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
 
-// static bool checkTouch(const SDL_Rect* rect, s32* x, s32* y)
+// static bool checkTouch(const tic_rect* rect, s32* x, s32* y)
 // {
 // 	s32 devices = SDL_GetNumTouchDevices();
 // 	s32 width = 0, height = 0;
@@ -1327,8 +1335,8 @@ static void processGamepadMapping()
 
 // 				if (finger && finger->pressure > 0.0f)
 // 				{
-// 					SDL_Point point = { (s32)(finger->x * width), (s32)(finger->y * height) };
-// 					if (SDL_PointInRect(&point, rect))
+// 					tic_point point = { (s32)(finger->x * width), (s32)(finger->y * height) };
+// 					if (pointInRect(&point, rect))
 // 					{
 // 						*x = point.x;
 // 						*y = point.y;
@@ -1350,7 +1358,7 @@ static void processGamepadMapping()
 // 	s32 x = 0, y = 0;
 
 // 	{
-// 		SDL_Rect axis = {studioImpl.gamepad.part.axis.x, studioImpl.gamepad.part.axis.y, size*3, size*3};
+// 		tic_rect axis = {studioImpl.gamepad.part.axis.x, studioImpl.gamepad.part.axis.y, size*3, size*3};
 
 // 		if(checkTouch(&axis, &x, &y))
 // 		{
@@ -1381,22 +1389,22 @@ static void processGamepadMapping()
 // 	}
 
 // 	{
-// 		SDL_Rect a = {studioImpl.gamepad.part.a.x, studioImpl.gamepad.part.a.y, size, size};
+// 		tic_rect a = {studioImpl.gamepad.part.a.x, studioImpl.gamepad.part.a.y, size, size};
 // 		if(checkTouch(&a, &x, &y)) studioImpl.gamepad.touch.first.a = true;
 // 	}
 
 // 	{
-// 		SDL_Rect b = {studioImpl.gamepad.part.b.x, studioImpl.gamepad.part.b.y, size, size};
+// 		tic_rect b = {studioImpl.gamepad.part.b.x, studioImpl.gamepad.part.b.y, size, size};
 // 		if(checkTouch(&b, &x, &y)) studioImpl.gamepad.touch.first.b = true;
 // 	}
 
 // 	{
-// 		SDL_Rect xb = {studioImpl.gamepad.part.x.x, studioImpl.gamepad.part.x.y, size, size};
+// 		tic_rect xb = {studioImpl.gamepad.part.x.x, studioImpl.gamepad.part.x.y, size, size};
 // 		if(checkTouch(&xb, &x, &y)) studioImpl.gamepad.touch.first.x = true;
 // 	}
 
 // 	{
-// 		SDL_Rect yb = {studioImpl.gamepad.part.y.x, studioImpl.gamepad.part.y.y, size, size};
+// 		tic_rect yb = {studioImpl.gamepad.part.y.x, studioImpl.gamepad.part.y.y, size, size};
 // 		if(checkTouch(&yb, &x, &y)) studioImpl.gamepad.touch.first.y = true;
 // 	}
 // }
@@ -1587,7 +1595,7 @@ static void processGesture()
 
 	if(fingers == Fingers)
 	{
-		SDL_Point point = {0, 0};
+		tic_point point = {0, 0};
 
 		for(s32 f = 0; f < fingers; f++)
 		{
@@ -1611,7 +1619,7 @@ static void processGesture()
 // 	studioImpl.mouse.button = SDL_GetMouseState(&studioImpl.mouse.cursor.x, &studioImpl.mouse.cursor.y);
 
 // 	{
-// 		SDL_Rect rect = {0, 0, 0, 0};
+// 		tic_rect rect = {0, 0, 0, 0};
 // 		calcTextureRect(&rect);
 
 // 		if(rect.w) studioImpl.mouse.cursor.x = (studioImpl.mouse.cursor.x - rect.x) * TIC80_WIDTH / rect.w;
@@ -1675,7 +1683,7 @@ static void saveProject()
 	else showPopupMessage("SAVE ERROR :(");
 }
 
-static void screen2buffer(u32* buffer, const u32* pixels, SDL_Rect rect)
+static void screen2buffer(u32* buffer, const u32* pixels, tic_rect rect)
 {
 	pixels += rect.y * TIC80_FULLWIDTH;
 
@@ -1701,7 +1709,7 @@ static void setCoverImage()
 
 	// 	if(buffer)
 	// 	{
-	// 		SDL_Rect rect = {OFFSET_LEFT, OFFSET_TOP, TIC80_WIDTH, TIC80_HEIGHT};
+	// 		tic_rect rect = {OFFSET_LEFT, OFFSET_TOP, TIC80_WIDTH, TIC80_HEIGHT};
 
 	// 		screen2buffer(buffer, tic->screen, rect);
 
@@ -1778,7 +1786,7 @@ static void takeScreenshot()
 	}
 }
 
-static inline bool wasKeyPressed(s32 key)
+static inline bool isKeyWasDownOnce(s32 key)
 {
 	tic_mem* tic = studioImpl.studio.tic;
 
@@ -1836,13 +1844,13 @@ static void processShortcuts()
 
 	if(alt)
 	{
-		if(wasKeyPressed(tic_key_grave)) setStudioMode(TIC_CONSOLE_MODE);
-		else if(wasKeyPressed(tic_key_1)) setStudioMode(TIC_CODE_MODE);
-		else if(wasKeyPressed(tic_key_2)) setStudioMode(TIC_SPRITE_MODE);
-		else if(wasKeyPressed(tic_key_3)) setStudioMode(TIC_MAP_MODE);
-		else if(wasKeyPressed(tic_key_4)) setStudioMode(TIC_SFX_MODE);
-		else if(wasKeyPressed(tic_key_5)) setStudioMode(TIC_MUSIC_MODE);
-		else if(wasKeyPressed(tic_key_return)) goFullscreen();
+		if(isKeyWasDownOnce(tic_key_grave)) setStudioMode(TIC_CONSOLE_MODE);
+		else if(isKeyWasDownOnce(tic_key_1)) setStudioMode(TIC_CODE_MODE);
+		else if(isKeyWasDownOnce(tic_key_2)) setStudioMode(TIC_SPRITE_MODE);
+		else if(isKeyWasDownOnce(tic_key_3)) setStudioMode(TIC_MAP_MODE);
+		else if(isKeyWasDownOnce(tic_key_4)) setStudioMode(TIC_SFX_MODE);
+		else if(isKeyWasDownOnce(tic_key_5)) setStudioMode(TIC_MUSIC_MODE);
+		else if(isKeyWasDownOnce(tic_key_return)) goFullscreen();
 
 		// switch(event->keysym.sym)
 		// {
@@ -1855,14 +1863,14 @@ static void processShortcuts()
 		// default:  break;
 		// }
 	}
-    else if(ctrl)
-    {
-		if(wasKeyPressed(tic_key_pageup)) changeStudioMode(-1);
-		else if(wasKeyPressed(tic_key_pagedown)) changeStudioMode(1);
-		else if(wasKeyPressed(tic_key_q)) exitStudio();
-		else if(wasKeyPressed(tic_key_r)) runProject();
-		else if(wasKeyPressed(tic_key_return)) runProject();
-		else if(wasKeyPressed(tic_key_s)) saveProject();
+	else if(ctrl)
+	{
+		if(isKeyWasDownOnce(tic_key_pageup)) changeStudioMode(-1);
+		else if(isKeyWasDownOnce(tic_key_pagedown)) changeStudioMode(1);
+		else if(isKeyWasDownOnce(tic_key_q)) exitStudio();
+		else if(isKeyWasDownOnce(tic_key_r)) runProject();
+		else if(isKeyWasDownOnce(tic_key_return)) runProject();
+		else if(isKeyWasDownOnce(tic_key_s)) saveProject();
 
 
 //         switch(event->keysym.sym)
@@ -1870,21 +1878,21 @@ static void processShortcuts()
 //         case SDLK_PAGEUP: changeStudioMode(-1); return true;
 //         case SDLK_PAGEDOWN: changeStudioMode(1); return true;
 //         }
-    }
+	}
 	else
 	{
-		if(wasKeyPressed(tic_key_f1)) setStudioMode(TIC_CODE_MODE);
-		else if(wasKeyPressed(tic_key_f2)) setStudioMode(TIC_SPRITE_MODE);
-		else if(wasKeyPressed(tic_key_f3)) setStudioMode(TIC_MAP_MODE);
-		else if(wasKeyPressed(tic_key_f4)) setStudioMode(TIC_SFX_MODE);
-		else if(wasKeyPressed(tic_key_f5)) setStudioMode(TIC_MUSIC_MODE);
-		else if(wasKeyPressed(tic_key_f7)) setCoverImage();
-		else if(wasKeyPressed(tic_key_f8)) takeScreenshot();
+		if(isKeyWasDownOnce(tic_key_f1)) setStudioMode(TIC_CODE_MODE);
+		else if(isKeyWasDownOnce(tic_key_f2)) setStudioMode(TIC_SPRITE_MODE);
+		else if(isKeyWasDownOnce(tic_key_f3)) setStudioMode(TIC_MAP_MODE);
+		else if(isKeyWasDownOnce(tic_key_f4)) setStudioMode(TIC_SFX_MODE);
+		else if(isKeyWasDownOnce(tic_key_f5)) setStudioMode(TIC_MUSIC_MODE);
+		else if(isKeyWasDownOnce(tic_key_f7)) setCoverImage();
+		else if(isKeyWasDownOnce(tic_key_f8)) takeScreenshot();
 #if !defined(__EMSCRIPTEN__)
-		else if(wasKeyPressed(tic_key_f9)) startVideoRecord();
+		else if(isKeyWasDownOnce(tic_key_f9)) startVideoRecord();
 #endif
-		else if(wasKeyPressed(tic_key_f11)) goFullscreen();
-		else if(wasKeyPressed(tic_key_escape))
+		else if(isKeyWasDownOnce(tic_key_f11)) goFullscreen();
+		else if(isKeyWasDownOnce(tic_key_escape))
 		{
 			Code* code = studioImpl.editor[studioImpl.bank.index.code].code;
 
@@ -2253,7 +2261,7 @@ static void recordFrame(u32* pixels)
 	{
 		if(studioImpl.video.frame < studioImpl.video.frames)
 		{
-			SDL_Rect rect = {0, 0, TIC80_FULLWIDTH, TIC80_FULLHEIGHT};
+			tic_rect rect = {0, 0, TIC80_FULLWIDTH, TIC80_FULLHEIGHT};
 			screen2buffer(studioImpl.video.buffer + (TIC80_FULLWIDTH*TIC80_FULLHEIGHT) * studioImpl.video.frame, pixels, rect);
 
 			if(studioImpl.video.frame % TIC_FRAMERATE < TIC_FRAMERATE / 2)
@@ -2275,7 +2283,7 @@ static void recordFrame(u32* pixels)
 // static void blitTexture()
 // {
 // 	tic_mem* tic = studioImpl.studio.tic;
-// 	SDL_Rect rect = {0, 0, 0, 0};
+// 	tic_rect rect = {0, 0, 0, 0};
 // 	calcTextureRect(&rect);
 
 // 	void* pixels = NULL;
@@ -2320,8 +2328,8 @@ static void recordFrame(u32* pixels)
 
 // 	{
 // 		enum {Header = OFFSET_TOP};
-// 		SDL_Rect srcRect = {0, 0, TIC80_FULLWIDTH, Header};
-// 		SDL_Rect dstRect = {0};
+// 		tic_rect srcRect = {0, 0, TIC80_FULLWIDTH, Header};
+// 		tic_rect dstRect = {0};
 // 		SDL_GetWindowSize(studioImpl.window, &dstRect.w, &dstRect.h);
 // 		dstRect.h = rect.y;
 // 		SDL_RenderCopy(studioImpl.renderer, studioImpl.texture, &srcRect, &dstRect);
@@ -2329,8 +2337,8 @@ static void recordFrame(u32* pixels)
 
 // 	{
 // 		enum {Header = OFFSET_TOP};
-// 		SDL_Rect srcRect = {0, TIC80_FULLHEIGHT - Header, TIC80_FULLWIDTH, Header};
-// 		SDL_Rect dstRect = {0};
+// 		tic_rect srcRect = {0, TIC80_FULLHEIGHT - Header, TIC80_FULLWIDTH, Header};
+// 		tic_rect dstRect = {0};
 // 		SDL_GetWindowSize(studioImpl.window, &dstRect.w, &dstRect.h);
 // 		dstRect.y = rect.y + rect.h;
 // 		dstRect.h = rect.y;
@@ -2340,8 +2348,8 @@ static void recordFrame(u32* pixels)
 // 	{
 // 		enum {Header = OFFSET_TOP};
 // 		enum {Left = OFFSET_LEFT};
-// 		SDL_Rect srcRect = {0, Header, Left, TIC80_HEIGHT};
-// 		SDL_Rect dstRect = {0};
+// 		tic_rect srcRect = {0, Header, Left, TIC80_HEIGHT};
+// 		tic_rect dstRect = {0};
 // 		SDL_GetWindowSize(studioImpl.window, &dstRect.w, &dstRect.h);
 // 		dstRect.y = rect.y;
 // 		dstRect.h = rect.h;
@@ -2352,7 +2360,7 @@ static void recordFrame(u32* pixels)
 // 		enum {Top = OFFSET_TOP};
 // 		enum {Left = OFFSET_LEFT};
 
-// 		SDL_Rect srcRect = {Left, Top, TIC80_WIDTH, TIC80_HEIGHT};
+// 		tic_rect srcRect = {Left, Top, TIC80_WIDTH, TIC80_HEIGHT};
 
 // 		SDL_RenderCopy(studioImpl.renderer, studioImpl.texture, &srcRect, &rect);
 // 	}
@@ -2393,12 +2401,12 @@ static void blitCursor(const u8* in)
 	// 	SDL_UnlockTexture(studioImpl.mouse.texture);
 	// }
 
-	// SDL_Rect rect = {0, 0, 0, 0};
+	// tic_rect rect = {0, 0, 0, 0};
 	// calcTextureRect(&rect);
 	// s32 scale = rect.w / TIC80_WIDTH;
 
-	// SDL_Rect src = {0, 0, TIC_SPRITESIZE, TIC_SPRITESIZE};
-	// SDL_Rect dst = {0, 0, TIC_SPRITESIZE * scale, TIC_SPRITESIZE * scale};
+	// tic_rect src = {0, 0, TIC_SPRITESIZE, TIC_SPRITESIZE};
+	// tic_rect dst = {0, 0, TIC_SPRITESIZE * scale, TIC_SPRITESIZE * scale};
 
 	// SDL_GetMouseState(&dst.x, &dst.y);
 
@@ -2557,7 +2565,7 @@ static void renderStudio()
 // {
 // 	s32 tileSize = TIC_SPRITESIZE;
 // 	s32 offset = 0;
-// 	SDL_Rect rect;
+// 	tic_rect rect;
 
 // 	const s32 JoySize = 3;
 // 	SDL_GetWindowSize(studioImpl.window, &rect.w, &rect.h);
@@ -2574,11 +2582,11 @@ static void renderStudio()
 // 	}
 
 // 	studioImpl.gamepad.part.size = tileSize;
-// 	studioImpl.gamepad.part.axis = (SDL_Point){0, offset};
-// 	studioImpl.gamepad.part.a = (SDL_Point){rect.w - 2*tileSize, 2*tileSize + offset};
-// 	studioImpl.gamepad.part.b = (SDL_Point){rect.w - 1*tileSize, 1*tileSize + offset};
-// 	studioImpl.gamepad.part.x = (SDL_Point){rect.w - 3*tileSize, 1*tileSize + offset};
-// 	studioImpl.gamepad.part.y = (SDL_Point){rect.w - 2*tileSize, 0*tileSize + offset};
+// 	studioImpl.gamepad.part.axis = (tic_point){0, offset};
+// 	studioImpl.gamepad.part.a = (tic_point){rect.w - 2*tileSize, 2*tileSize + offset};
+// 	studioImpl.gamepad.part.b = (tic_point){rect.w - 1*tileSize, 1*tileSize + offset};
+// 	studioImpl.gamepad.part.x = (tic_point){rect.w - 3*tileSize, 1*tileSize + offset};
+// 	studioImpl.gamepad.part.y = (tic_point){rect.w - 2*tileSize, 0*tileSize + offset};
 // }
 
 // static void renderGamepad()
@@ -2586,7 +2594,7 @@ static void renderStudio()
 // 	if(studioImpl.gamepad.show || studioImpl.gamepad.alpha); else return;
 
 // 	const s32 tileSize = studioImpl.gamepad.part.size;
-// 	const SDL_Point axis = studioImpl.gamepad.part.axis;
+// 	const tic_point axis = studioImpl.gamepad.part.axis;
 // 	typedef struct { bool press; s32 x; s32 y;} Tile;
 // 	const Tile Tiles[] =
 // 	{
@@ -2606,8 +2614,8 @@ static void renderStudio()
 // 	for(s32 i = 0; i < COUNT_OF(Tiles); i++)
 // 	{
 // 		const Tile* tile = Tiles + i;
-// 		SDL_Rect src = {(tile->press ? ButtonsCount + i : i) * TIC_SPRITESIZE, 0, TIC_SPRITESIZE, TIC_SPRITESIZE};
-// 		SDL_Rect dest = {tile->x, tile->y, tileSize, tileSize};
+// 		tic_rect src = {(tile->press ? ButtonsCount + i : i) * TIC_SPRITESIZE, 0, TIC_SPRITESIZE, TIC_SPRITESIZE};
+// 		tic_rect dest = {tile->x, tile->y, tileSize, tileSize};
 
 // 		SDL_RenderCopy(studioImpl.renderer, studioImpl.gamepad.texture, &src, &dest);
 // 	}

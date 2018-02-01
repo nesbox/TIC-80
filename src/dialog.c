@@ -28,7 +28,7 @@ static void drawButton(Dialog* dlg, const char* label, s32 x, s32 y, u8 color, u
 
 	enum {BtnWidth = 20, BtnHeight = 9};
 
-	SDL_Rect rect = {x, y, BtnWidth, BtnHeight};
+	tic_rect rect = {x, y, BtnWidth, BtnHeight};
 	bool down = false;
 	bool over = false;
 
@@ -121,12 +121,12 @@ static void drawDialog(Dialog* dlg)
 
 	tic_mem* tic = dlg->tic;
 
-	SDL_Rect rect = {(TIC80_WIDTH - Width)/2, (TIC80_HEIGHT - Height)/2, Width, Height};
+	tic_rect rect = {(TIC80_WIDTH - Width)/2, (TIC80_HEIGHT - Height)/2, Width, Height};
 
 	rect.x -= dlg->pos.x;
 	rect.y -= dlg->pos.y;
 
-	SDL_Rect header = {rect.x, rect.y-(TOOLBAR_SIZE-1), rect.w, TOOLBAR_SIZE};
+	tic_rect header = {rect.x, rect.y-(TOOLBAR_SIZE-1), rect.w, TOOLBAR_SIZE};
 
 	if(checkMousePos(&header))
 	{
@@ -151,7 +151,7 @@ static void drawDialog(Dialog* dlg)
 		dlg->pos.x = dlg->drag.start.x - getMouseX();
 		dlg->pos.y = dlg->drag.start.y - getMouseY();
 
-		SDL_Rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
+		tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
 		if(!checkMouseDown(&rect, tic_mouse_left))
 			dlg->drag.active = false;
 	}

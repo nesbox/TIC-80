@@ -47,14 +47,14 @@ static void normalizeMap(s32* x, s32* y)
 	while(*y >= MAX_SCROLL_Y) *y -= MAX_SCROLL_Y;
 }
 
-static SDL_Point getTileOffset(Map* map)
+static tic_point getTileOffset(Map* map)
 {
-	return (SDL_Point){(map->sheet.rect.w - 1)*TIC_SPRITESIZE / 2, (map->sheet.rect.h - 1)*TIC_SPRITESIZE / 2};
+	return (tic_point){(map->sheet.rect.w - 1)*TIC_SPRITESIZE / 2, (map->sheet.rect.h - 1)*TIC_SPRITESIZE / 2};
 }
 
 static void getMouseMap(Map* map, s32* x, s32* y)
 {
-	SDL_Point offset = getTileOffset(map);
+	tic_point offset = getTileOffset(map);
 
 	s32 mx = getMouseX() + map->scroll.x - offset.x;
 	s32 my = getMouseY() + map->scroll.y - offset.y;
@@ -83,7 +83,7 @@ static s32 drawWorldButton(Map* map, s32 x, s32 y)
 
 	x -= Size;
 
-	SDL_Rect rect = {x, y, Size, ICON_SIZE};
+	tic_rect rect = {x, y, Size, ICON_SIZE};
 
 	bool over = false;
 
@@ -121,7 +121,7 @@ static s32 drawGridButton(Map* map, s32 x, s32 y)
 
 	x -= ICON_SIZE;
 
-	SDL_Rect rect = {x, y, ICON_SIZE, ICON_SIZE};
+	tic_rect rect = {x, y, ICON_SIZE, ICON_SIZE};
 
 	bool over = false;
 
@@ -170,7 +170,7 @@ static s32 drawSheetButton(Map* map, s32 x, s32 y)
 
 	x -= ICON_SIZE;
 
-	SDL_Rect rect = {x, y, ICON_SIZE, ICON_SIZE};
+	tic_rect rect = {x, y, ICON_SIZE, ICON_SIZE};
 
 	bool over = false;
 	if(checkMousePos(&rect))
@@ -195,7 +195,7 @@ static s32 drawToolButton(Map* map, s32 x, s32 y, const u8* Icon, s32 width, con
 {
 	x -= width;
 
-	SDL_Rect rect = {x, y, width, ICON_SIZE};
+	tic_rect rect = {x, y, width, ICON_SIZE};
 
 	bool over = false;
 	if(checkMousePos(&rect))
@@ -293,7 +293,7 @@ static void drawTileIndex(Map* map, s32 x, s32 y)
 
 	if(map->sheet.show)
 	{
-		SDL_Rect rect = {TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, TOOLBAR_SIZE, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
+		tic_rect rect = {TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, TOOLBAR_SIZE, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
 		
 		if(checkMousePos(&rect))
 		{
@@ -308,7 +308,7 @@ static void drawTileIndex(Map* map, s32 x, s32 y)
 	}
 	else
 	{
-		SDL_Rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+		tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
 		if(checkMousePos(&rect))
 		{
@@ -346,7 +346,7 @@ static void drawSheet(Map* map, s32 x, s32 y)
 {
 	if(!map->sheet.show)return;
 
-	SDL_Rect rect = {x, y, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
+	tic_rect rect = {x, y, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
 
 	map->tic->api.rect_border(map->tic, rect.x - 1, rect.y - 1, rect.w + 2, rect.h + 2, (tic_color_white));
 }
@@ -355,7 +355,7 @@ static void drawSheetOvr(Map* map, s32 x, s32 y)
 {
 	if(!map->sheet.show)return;
 
-	SDL_Rect rect = {x, y, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
+	tic_rect rect = {x, y, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
 
 	if(checkMousePos(&rect))
 	{
@@ -376,14 +376,14 @@ static void drawSheetOvr(Map* map, s32 x, s32 y)
 				s32 rr = SDL_max(mx, map->sheet.start.x);
 				s32 rb = SDL_max(my, map->sheet.start.y);
 
-				map->sheet.rect = (SDL_Rect){rl, rt, rr-rl+1, rb-rt+1};
+				map->sheet.rect = (tic_rect){rl, rt, rr-rl+1, rb-rt+1};
 
 				map->mode = MAP_DRAW_MODE;
 			}
 			else
 			{
 				map->sheet.drag = true;
-				map->sheet.start = (SDL_Point){mx, my};
+				map->sheet.start = (tic_point){mx, my};
 			}
 		}
 		else
@@ -447,7 +447,7 @@ static void drawTileCursor(Map* map)
 	if(map->scroll.active)
 		return;
 
-	SDL_Point offset = getTileOffset(map);
+	tic_point offset = getTileOffset(map);
 
 	s32 mx = getMouseX() + map->scroll.x - offset.x;
 	s32 my = getMouseY() + map->scroll.y - offset.y;
@@ -478,7 +478,7 @@ static void drawTileCursor(Map* map)
 
 static void processMouseDrawMode(Map* map)
 {
-	SDL_Rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+	tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
 	setCursor(SDL_SYSTEM_CURSOR_HAND);
 
@@ -500,7 +500,7 @@ static void processMouseDrawMode(Map* map)
 		else
 		{
 			map->canvas.draw	= true;
-			map->canvas.start = (SDL_Point){tx, ty};
+			map->canvas.start = (tic_point){tx, ty};
 		}
 	}
 	else
@@ -514,13 +514,13 @@ static void processMouseDrawMode(Map* map)
 		getMouseMap(map, &tx, &ty);
 		s32 index = map->tic->api.map_get(map->tic, map->src, tx, ty);
 
-		map->sheet.rect = (SDL_Rect){index % SHEET_COLS, index / SHEET_COLS, 1, 1};
+		map->sheet.rect = (tic_rect){index % SHEET_COLS, index / SHEET_COLS, 1, 1};
 	}
 }
 
 static void processScrolling(Map* map, bool pressed)
 {
-	SDL_Rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+	tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
 	if(map->scroll.active)
 	{
@@ -549,7 +549,7 @@ static void processScrolling(Map* map, bool pressed)
 
 static void processMouseDragMode(Map* map)
 {
-	SDL_Rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+	tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
 	processScrolling(map, checkMouseDown(&rect, tic_mouse_left) || 
 		checkMouseDown(&rect, tic_mouse_right));
@@ -557,7 +557,7 @@ static void processMouseDragMode(Map* map)
 
 static void resetSelection(Map* map)
 {
-	map->select.rect = (SDL_Rect){0,0,0,0};
+	map->select.rect = (tic_rect){0,0,0,0};
 }
 
 static void drawSelectionRect(Map* map, s32 x, s32 y, s32 w, s32 h)
@@ -582,7 +582,7 @@ static void drawPasteData(Map* map)
 	s32 mx = getMouseX() + map->scroll.x - (w - 1)*TIC_SPRITESIZE / 2;
 	s32 my = getMouseY() + map->scroll.y - (h - 1)*TIC_SPRITESIZE / 2;
 
-	SDL_Rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+	tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
 	if(checkMouseClick(&rect, tic_mouse_left))
 	{
@@ -626,7 +626,7 @@ static void normalizeMapRect(s32* x, s32* y)
 
 static void processMouseSelectMode(Map* map)
 {
-	SDL_Rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+	tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
 	if(checkMousePos(&rect))
 	{
@@ -651,13 +651,13 @@ static void processMouseSelectMode(Map* map)
 					s32 rr = SDL_max(mx, map->select.start.x);
 					s32 rb = SDL_max(my, map->select.start.y);
 
-					map->select.rect = (SDL_Rect){rl, rt, rr - rl + 1, rb - rt + 1};
+					map->select.rect = (tic_rect){rl, rt, rr - rl + 1, rb - rt + 1};
 				}
 				else
 				{
 					map->select.drag = true;
-					map->select.start = (SDL_Point){mx, my};
-					map->select.rect = (SDL_Rect){map->select.start.x, map->select.start.y, 1, 1};
+					map->select.start = (tic_point){mx, my};
+					map->select.rect = (tic_rect){map->select.start.x, map->select.start.y, 1, 1};
 				}
 			}
 			else if(map->select.drag)
@@ -673,8 +673,8 @@ static void processMouseSelectMode(Map* map)
 
 typedef struct
 {
-	SDL_Point* data;
-	SDL_Point* head;
+	tic_point* data;
+	tic_point* head;
 } FillStack;
 
 static bool push(FillStack* stack, s32 x, s32 y)
@@ -732,7 +732,7 @@ static void fillMap(Map* map, s32 x, s32 y, u8 tile)
 	static FillStack stack = {NULL, NULL};
 
 	if(!stack.data)
-		stack.data = (SDL_Point*)SDL_malloc(FILL_STACK_SIZE * sizeof(SDL_Point));
+		stack.data = (tic_point*)SDL_malloc(FILL_STACK_SIZE * sizeof(tic_point));
 
 	stack.head = NULL;
 
@@ -790,7 +790,7 @@ static void fillMap(Map* map, s32 x, s32 y, u8 tile)
 
 static void processMouseFillMode(Map* map)
 {
-	SDL_Rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+	tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
 	setCursor(SDL_SYSTEM_CURSOR_HAND);
 
@@ -808,7 +808,7 @@ static void processMouseFillMode(Map* map)
 
 static void drawSelection(Map* map)
 {
-	SDL_Rect* sel = &map->select.rect;
+	tic_rect* sel = &map->select.rect;
 
 	if(sel->w > 0 && sel->h > 0)
 	{
@@ -859,7 +859,7 @@ static void drawGrid(Map* map)
 
 static void drawMapOvr(Map* map)
 {
-	SDL_Rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+	tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
 	s32 scrollX = map->scroll.x % TIC_SPRITESIZE;
 	s32 scrollY = map->scroll.y % TIC_SPRITESIZE;
@@ -933,7 +933,7 @@ static void redo(Map* map)
 
 static void copySelectionToClipboard(Map* map)
 {
-	SDL_Rect* sel = &map->select.rect;
+	tic_rect* sel = &map->select.rect;
 
 	if(sel->w > 0 && sel->h > 0)
 	{	
@@ -971,7 +971,7 @@ static void copyToClipboard(Map* map)
 
 static void deleteSelection(Map* map)
 {
-	SDL_Rect* sel = &map->select.rect;
+	tic_rect* sel = &map->select.rect;
 
 	if(sel->w > 0 && sel->h > 0)
 	{
@@ -1079,7 +1079,7 @@ static void processKeyup(Map* map, SDL_Keycode keycode)
 
 static void processGesture(Map* map)
 {
-	SDL_Point point = {0, 0};
+	tic_point point = {0, 0};
 
 	if(getGesturePos(&point))
 	{

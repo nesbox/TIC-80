@@ -39,11 +39,11 @@ struct Dialog
 
 	u32 focus;
 
-	SDL_Point pos;
+	tic_point pos;
 
 	struct
 	{
-		SDL_Point start;
+		tic_point start;
 		bool active;
 	} drag;
 	

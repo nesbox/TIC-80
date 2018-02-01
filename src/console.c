@@ -2493,7 +2493,7 @@ static void setScroll(Console* console, s32 val)
 
 static void processGesture(Console* console)
 {
-	SDL_Point point = {0, 0};
+	tic_point point = {0, 0};
 
 	if(getGesturePos(&point))
 	{

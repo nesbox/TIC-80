@@ -47,14 +47,14 @@ struct Code
 		s32 delay;
 	} cursor;
 
-	SDL_Rect rect;
+	tic_rect rect;
 
 	struct
 	{
 		s32 x;
 		s32 y;
 
-		SDL_Point start;
+		tic_point start;
 
 		bool active;
 		bool gesture;

@@ -63,9 +63,9 @@ static void exitToTIC(Menu* menu)
 
 static void(*const MenuHandlers[])(Menu*) = {resumeGame, resetGame, gamepadConfig, NULL, exitToTIC};
 
-static SDL_Rect getRect(Menu* menu)
+static tic_rect getRect(Menu* menu)
 {
-	SDL_Rect rect = {(TIC80_WIDTH - DIALOG_WIDTH)/2, (TIC80_HEIGHT - DIALOG_HEIGHT)/2, DIALOG_WIDTH, DIALOG_HEIGHT};
+	tic_rect rect = {(TIC80_WIDTH - DIALOG_WIDTH)/2, (TIC80_HEIGHT - DIALOG_HEIGHT)/2, DIALOG_WIDTH, DIALOG_HEIGHT};
 
 	rect.x -= menu->pos.x;
 	rect.y -= menu->pos.y;
@@ -74,11 +74,11 @@ static SDL_Rect getRect(Menu* menu)
 }
 static void drawDialog(Menu* menu)
 {
-	SDL_Rect rect = getRect(menu);
+	tic_rect rect = getRect(menu);
 
 	tic_mem* tic = menu->tic;
 
-	SDL_Rect header = {rect.x, rect.y-(TOOLBAR_SIZE-1), rect.w, TOOLBAR_SIZE};
+	tic_rect header = {rect.x, rect.y-(TOOLBAR_SIZE-1), rect.w, TOOLBAR_SIZE};
 
 	if(checkMousePos(&header))
 	{
@@ -103,7 +103,7 @@ static void drawDialog(Menu* menu)
 		menu->pos.x = menu->drag.start.x - getMouseX();
 		menu->pos.y = menu->drag.start.y - getMouseY();
 
-		SDL_Rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
+		tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
 		if(!checkMouseDown(&rect, tic_mouse_left))
 			menu->drag.active = false;
 	}
@@ -133,7 +133,7 @@ static void drawTabDisabled(Menu* menu, s32 x, s32 y, s32 id)
 	enum{Width = 15, Height = 7};
 	tic_mem* tic = menu->tic;
 
-	SDL_Rect rect = {x, y, Width, Height};
+	tic_rect rect = {x, y, Width, Height};
 	bool over = false;
 
 	if(menu->gamepad.tab != id && checkMousePos(&rect))
@@ -189,7 +189,7 @@ static void drawPlayerButtons(Menu* menu, s32 x, s32 y)
 
 	for(s32 i = 0; i < Buttons; i++)
 	{
-		SDL_Rect rect = {x + i / Rows * (Width+2), y + (i%Rows)*(Height+1), Width, TIC_SPRITESIZE};
+		tic_rect rect = {x + i / Rows * (Width+2), y + (i%Rows)*(Height+1), Width, TIC_SPRITESIZE};
 		bool over = false;
 
 		s32 index = i+menu->gamepad.tab * Buttons;
@@ -246,11 +246,11 @@ static void drawGamepadMenu(Menu* menu)
 
 	tic_mem* tic = menu->tic;
 
-	SDL_Rect dlgRect = getRect(menu);
+	tic_rect dlgRect = getRect(menu);
 
 	static const char Label[] = "BACK";
 
-	SDL_Rect rect = {dlgRect.x + 25, dlgRect.y + 49, (sizeof(Label)-1)*TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
+	tic_rect rect = {dlgRect.x + 25, dlgRect.y + 49, (sizeof(Label)-1)*TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
 
 	bool over = false;
 	bool down = false;
@@ -311,14 +311,14 @@ static void drawMainMenu(Menu* menu)
 
 	drawDialog(menu);
 
-	SDL_Rect rect = getRect(menu);
+	tic_rect rect = getRect(menu);
 
 	{
 		for(s32 i = 0; i < COUNT_OF(Rows); i++)
 		{
 			if(!*Rows[i])continue;
 
-			SDL_Rect label = {rect.x + 22, rect.y + (TIC_FONT_HEIGHT+1)*i + 16, 86, TIC_FONT_HEIGHT+1};
+			tic_rect label = {rect.x + 22, rect.y + (TIC_FONT_HEIGHT+1)*i + 16, 86, TIC_FONT_HEIGHT+1};
 			bool over = false;
 			bool down = false;
 

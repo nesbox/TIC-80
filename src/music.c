@@ -91,7 +91,7 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
 	};
 
 	{
-		SDL_Rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
+		tic_rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
 
 		bool over = false;
 		bool down = false;
@@ -113,7 +113,7 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
 	{
 		x += TIC_FONT_WIDTH;
 
-		SDL_Rect rect = { x-1, y-1, TIC_FONT_WIDTH*2+1, TIC_FONT_HEIGHT+1 };
+		tic_rect rect = { x-1, y-1, TIC_FONT_WIDTH*2+1, TIC_FONT_HEIGHT+1 };
 
 		if (checkMousePos(&rect))
 		{
@@ -145,7 +145,7 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
 	{
 		x += 2*TIC_FONT_WIDTH;
 
-		SDL_Rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
+		tic_rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
 
 		bool over = false;
 		bool down = false;
@@ -197,7 +197,7 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
 	{
 		x += (s32)strlen(label)*TIC_FONT_WIDTH;
 
-		SDL_Rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
+		tic_rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
 
 		bool over = false;
 		bool down = false;
@@ -227,7 +227,7 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
 	{
 		x += (value > 99 ? 3 : 2)*TIC_FONT_WIDTH;
 
-		SDL_Rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
+		tic_rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
 
 		bool over = false;
 		bool down = false;
@@ -546,8 +546,8 @@ static void stopTrack(Music* music)
 
 static void resetSelection(Music* music)
 {
-	music->tracker.select.start = (SDL_Point){-1, -1};
-	music->tracker.select.rect = (SDL_Rect){0, 0, 0, 0};
+	music->tracker.select.start = (tic_point){-1, -1};
+	music->tracker.select.rect = (tic_rect){0, 0, 0, 0};
 }
 
 static void deleteSelection(Music* music)
@@ -556,7 +556,7 @@ static void deleteSelection(Music* music)
 
 	if(pattern)
 	{
-		SDL_Rect rect = music->tracker.select.rect;
+		tic_rect rect = music->tracker.select.rect;
 
 		if(rect.h <= 0)
 		{
@@ -580,7 +580,7 @@ static void copyToClipboard(Music* music, bool cut)
 
 	if(pattern)
 	{
-		SDL_Rect rect = music->tracker.select.rect;
+		tic_rect rect = music->tracker.select.rect;
 
 		if(rect.h <= 0)
 		{
@@ -731,8 +731,8 @@ static void updateSelection(Music* music)
 	s32 rr = SDL_max(music->tracker.col, music->tracker.select.start.x);
 	s32 rb = SDL_max(music->tracker.row, music->tracker.select.start.y);
 
-	SDL_Rect* rect = &music->tracker.select.rect;
-	*rect = (SDL_Rect){rl, rt, rr - rl + 1, rb - rt + 1};
+	tic_rect* rect = &music->tracker.select.rect;
+	*rect = (tic_rect){rl, rt, rr - rl + 1, rb - rt + 1};
 
 	if(rect->x % CHANNEL_COLS + rect->w > CHANNEL_COLS)
 		resetSelection(music);
@@ -996,7 +996,7 @@ static void selectAll(Music* music)
 
 	s32 col = music->tracker.col - music->tracker.col % CHANNEL_COLS;
 
-	music->tracker.select.start = (SDL_Point){col, 0};
+	music->tracker.select.start = (tic_point){col, 0};
 	music->tracker.col = col + CHANNEL_COLS-1;
 	music->tracker.row = MUSIC_PATTERN_ROWS-1;
 
@@ -1134,7 +1134,7 @@ static void drawTrackerFrames(Music* music, s32 x, s32 y)
 	};
 
 	{
-		SDL_Rect rect = { x - Border, y - Border, Width, MUSIC_FRAMES * TIC_FONT_HEIGHT + Border };
+		tic_rect rect = { x - Border, y - Border, Width, MUSIC_FRAMES * TIC_FONT_HEIGHT + Border };
 
 		if (checkMousePos(&rect))
 		{
@@ -1216,7 +1216,7 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 		Width = TIC_FONT_WIDTH * 8 + Border,
 	};
 
-	SDL_Rect rect = {x - Border, y - Border, Width, Rows*TIC_FONT_HEIGHT + Border};
+	tic_rect rect = {x - Border, y - Border, Width, Rows*TIC_FONT_HEIGHT + Border};
 
 	if(checkMousePos(&rect))
 	{
@@ -1237,7 +1237,7 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 			else
 			{
 				resetSelection(music);
-				music->tracker.select.start = (SDL_Point){col, row};
+				music->tracker.select.start = (tic_point){col, row};
 
 				music->tracker.select.drag = true;
 			}
@@ -1246,7 +1246,7 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 
 	if(music->tracker.select.drag)
 	{
-		SDL_Rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
+		tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
 		if(!checkMouseDown(&rect, tic_mouse_left))
 		{
 			music->tracker.select.drag = false;
@@ -1274,7 +1274,7 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 		// draw selection
 		if (selectedChannel)
 		{
-			SDL_Rect rect = music->tracker.select.rect;
+			tic_rect rect = music->tracker.select.rect;
 			if (rect.h > 1 && i >= rect.y && i < rect.y + rect.h)
 			{
 				s32 sx = x - 1;
@@ -1346,7 +1346,7 @@ static void drawTumbler(Music* music, s32 x, s32 y, s32 index)
 
 	enum{On=36, Off = 52, Size=5, Chroma=14};
 	
-	SDL_Rect rect = {x, y, Size, Size};
+	tic_rect rect = {x, y, Size, Size};
 
 	if(checkMousePos(&rect))
 	{
@@ -1438,7 +1438,7 @@ static void drawPlayButtons(Music* music)
 
 	for (s32 i = 0; i < Count; i++)
 	{
-		SDL_Rect rect = { Offset + Width * i, 0, Width, Height };
+		tic_rect rect = { Offset + Width * i, 0, Width, Height };
 
 		bool over = false;
 
@@ -1490,7 +1490,7 @@ static void drawModeTabs(Music* music)
 
 	for (s32 i = 0; i < Count; i++)
 	{
-		SDL_Rect rect = { TIC80_WIDTH - Width * (Count - i), 0, Width, Height };
+		tic_rect rect = { TIC80_WIDTH - Width * (Count - i), 0, Width, Height };
 
 
 		static const s32 Tabs[] = { MUSIC_PIANO_TAB, MUSIC_TRACKER_TAB };
@@ -1544,7 +1544,7 @@ static void scrollNotes(Music* music, s32 delta)
 
 	if(pattern)
 	{
-		SDL_Rect rect = music->tracker.select.rect;
+		tic_rect rect = music->tracker.select.rect;
 
 		if(rect.h <= 0)
 		{

@@ -968,7 +968,7 @@ static void processKeydown(Code* code, SDL_Keycode keycode)
 
 static void processGestures(Code* code)
 {
-	SDL_Point point = {0, 0};
+	tic_point point = {0, 0};
 
 	if(getGesturePos(&point))
 	{
@@ -1276,7 +1276,7 @@ static void textGoToTick(Code* code)
 
 static void drawOutlineBar(Code* code, s32 x, s32 y)
 {
-	SDL_Rect rect = {x, y, TIC80_WIDTH - x, TIC80_HEIGHT - y};
+	tic_rect rect = {x, y, TIC80_WIDTH - x, TIC80_HEIGHT - y};
 
 	if(checkMousePos(&rect))
 	{
@@ -1429,7 +1429,7 @@ static void drawCodeToolbar(Code* code)
 
 	for(s32 i = 0; i < Count; i++)
 	{
-		SDL_Rect rect = {TIC80_WIDTH + (i - Count) * Size, 0, Size, Size};
+		tic_rect rect = {TIC80_WIDTH + (i - Count) * Size, 0, Size, Size};
 
 		bool over = false;
 		if(checkMousePos(&rect))

@@ -38,7 +38,7 @@ static void drawGrid(World* world)
 
 	world->tic->api.rect_border(world->tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT, color);
 
-	SDL_Rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
+	tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
 
 	if(checkMousePos(&rect))
 	{
