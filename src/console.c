@@ -28,6 +28,7 @@
 #include "ext/file_dialog.h"
 
 #include <zlib.h>
+#include <ctype.h>
 
 #define CONSOLE_CURSOR_COLOR ((tic_color_red))
 #define CONSOLE_BACK_TEXT_COLOR ((tic_color_dark_gray))
@@ -683,32 +684,13 @@ static bool loadTextSection(const char* project, const char* comment, char* dst,
 	const char* end = project + strlen(project);
 
 	{
-		char tagbuf[64];
-		char tag[16];
+		char tagstart[16];
+		sprintf(tagstart, "\n%s <", comment);
 
-		for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
-		{
-			for(s32 b = 0; b < TIC_BANKS; b++)
-			{
-				makeTag(BinarySections[i].tag, tag, b);
+		const char* ptr = SDL_strstr(project, tagstart);
 
-				sprintf(tagbuf, "\n%s <%s>\n", comment, tag);
-
-				const char* ptr = SDL_strstr(project, tagbuf);
-
-				if(ptr && ptr < end)
-					end = ptr;
-			}
-		}
-
-		{
-			sprintf(tagbuf, "\n%s <PALETTE>\n", comment);
-
-			const char* ptr = SDL_strstr(project, tagbuf);
-
-			if(ptr && ptr < end)
-				end = ptr;
-		}
+		if(ptr && ptr < end)
+			end = ptr;
 	}
 
 	if(end > start)
@@ -720,10 +702,17 @@ static bool loadTextSection(const char* project, const char* comment, char* dst,
 	return done;
 }
 
+static inline const char* getLineEnd(const char* ptr)
+{
+	while(*ptr && isspace(*ptr) && *ptr++ != '\n');
+
+	return ptr;
+}
+
 static bool loadTextSectionBank(const char* project, const char* comment, const char* tag, char* dst, s32 size)
 {
 	char tagbuf[64];
-	sprintf(tagbuf, "%s <%s>\n", comment, tag);
+	sprintf(tagbuf, "%s <%s>", comment, tag);
 
 	const char* start = SDL_strstr(project, tagbuf);
 	bool done = false;
@@ -731,6 +720,7 @@ static bool loadTextSectionBank(const char* project, const char* comment, const 
 	if(start)
 	{
 		start += strlen(tagbuf);
+		start = getLineEnd(start);
 
 		sprintf(tagbuf, "\n%s </%s>", comment, tag);
 		const char* end = SDL_strstr(start, tagbuf);
@@ -749,7 +739,7 @@ static bool loadTextSectionBank(const char* project, const char* comment, const 
 static bool loadBinarySection(const char* project, const char* comment, const char* tag, s32 count, void* dst, s32 size, bool flip)
 {
 	char tagbuf[64];
-	sprintf(tagbuf, "%s <%s>\n", comment, tag);
+	sprintf(tagbuf, "%s <%s>", comment, tag);
 
 	const char* start = SDL_strstr(project, tagbuf);
 	bool done = false;
@@ -757,6 +747,7 @@ static bool loadBinarySection(const char* project, const char* comment, const ch
 	if(start)
 	{
 		start += strlen(tagbuf);
+		start = getLineEnd(start);
 
 		sprintf(tagbuf, "\n%s </%s>", comment, tag);
 		const char* end = SDL_strstr(start, tagbuf);
@@ -779,6 +770,8 @@ static bool loadBinarySection(const char* project, const char* comment, const ch
 						ptr += sizeof("-- 999:") - 1;
 						str2buf(ptr, size*2, (u8*)dst + size*index, flip);
 						ptr += size*2 + 1;
+
+						ptr = getLineEnd(ptr);
 					}
 					else break;
 				}				
