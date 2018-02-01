@@ -586,12 +586,12 @@ static void drawExtrabar(tic_mem* tic)
 			color = Colors[i];
 			showTooltip(Tips[i]);
 
-			if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseDown(&rect, tic_mouse_left))
 			{
 				bgcolor = color;
 				color = (tic_color_white);
 			}
-			else if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			else if(checkMouseClick(&rect, tic_mouse_left))
 			{
 				setStudioEvent(Events[i]);
 			}
@@ -645,7 +645,7 @@ static void drawBankIcon(s32 x, s32 y)
 
 		showTooltip("SWITCH BANK");
 
-		if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseClick(&rect, tic_mouse_left))
 			studioImpl.bank.show = !studioImpl.bank.show;
 	}
 
@@ -665,7 +665,7 @@ static void drawBankIcon(s32 x, s32 y)
 				setCursor(SDL_SYSTEM_CURSOR_HAND);
 				over = true;
 
-				if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+				if(checkMouseClick(&rect, tic_mouse_left))
 				{
 					if(studioImpl.bank.chained) 
 						SDL_memset(studioImpl.bank.indexes, i, sizeof studioImpl.bank.indexes);
@@ -703,7 +703,7 @@ static void drawBankIcon(s32 x, s32 y)
 
 				over = true;
 
-				if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+				if(checkMouseClick(&rect, tic_mouse_left))
 				{
 					studioImpl.bank.chained = !studioImpl.bank.chained;
 
@@ -808,7 +808,7 @@ void drawToolbar(tic_mem* tic, u8 color, bool bg)
 
 			showTooltip(Tips[i]);
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 				setStudioMode(Modes[i]);
 		}
 
@@ -1119,7 +1119,7 @@ bool checkMousePos(const SDL_Rect* rect)
 
 bool checkMouseClick(const SDL_Rect* rect, s32 button)
 {
-	MouseState* state = &studioImpl.mouse.state[button - 1];
+	MouseState* state = &studioImpl.mouse.state[button];
 
 	bool value = state->click
 		&& SDL_PointInRect(&state->start, rect)
@@ -1132,7 +1132,7 @@ bool checkMouseClick(const SDL_Rect* rect, s32 button)
 
 bool checkMouseDown(const SDL_Rect* rect, s32 button)
 {
-	MouseState* state = &studioImpl.mouse.state[button - 1];
+	MouseState* state = &studioImpl.mouse.state[button];
 
 	return state->down && SDL_PointInRect(&state->start, rect);
 }
@@ -2898,14 +2898,14 @@ static void processMouseStates()
 	{
 		MouseState* state = &studioImpl.mouse.state[i];
 
-		if(!state->down && tic->ram.input.mouse.btns & (1 << i))
+		if(!state->down && (tic->ram.input.mouse.btns & (1 << i)))
 		{
 			state->down = true;
 
 			state->start.x = tic->ram.input.mouse.x;
 			state->start.y = tic->ram.input.mouse.y;
 		}
-		else if(state->down && tic->ram.input.mouse.btns & (1 << i))
+		else if(state->down && !(tic->ram.input.mouse.btns & (1 << i)))
 		{
 			state->end.x = tic->ram.input.mouse.x;
 			state->end.y = tic->ram.input.mouse.y;

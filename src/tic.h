@@ -512,3 +512,10 @@ enum
 
 	tic_keys_count
 };
+
+enum
+{
+	tic_mouse_left,
+	tic_mouse_middle,
+	tic_mouse_right,
+};

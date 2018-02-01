@@ -101,10 +101,10 @@ static void processPickerCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 s
 
 		drawCursorBorder(sprite, x + mx, y + my, Size, Size);
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 			sprite->color = getSheetPixel(sprite, sx + mx / Size, sy + my / Size);
 
-		if(checkMouseDown(&rect, SDL_BUTTON_RIGHT))
+		if(checkMouseDown(&rect, tic_mouse_right))
 			sprite->color2 = getSheetPixel(sprite, sx + mx / Size, sy + my / Size);
 	}
 }
@@ -137,8 +137,8 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
 
 		drawCursorBorder(sprite, x + mx, y + my, brushSize, brushSize);
 
-		bool left = checkMouseDown(&rect, SDL_BUTTON_LEFT);
-		bool right = checkMouseDown(&rect, SDL_BUTTON_RIGHT);
+		bool left = checkMouseDown(&rect, tic_mouse_left);
+		bool right = checkMouseDown(&rect, tic_mouse_right);
 
 		if(left || right)
 		{
@@ -222,7 +222,7 @@ static void processSelectCanvasMouse(Sprite* sprite, s32 x, s32 y)
 
 		drawCursorBorder(sprite, x + mx, y + my, Size, Size);
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 		{
 			if(sprite->select.drag)
 			{
@@ -289,8 +289,8 @@ static void processFillCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 l, s32 t)
 
 		drawCursorBorder(sprite, x + mx, y + my, Size, Size);
 
-		bool left = checkMouseClick(&rect, SDL_BUTTON_LEFT);
-		bool right = checkMouseClick(&rect, SDL_BUTTON_RIGHT);
+		bool left = checkMouseClick(&rect, tic_mouse_left);
+		bool right = checkMouseClick(&rect, tic_mouse_right);
 
 		if(left || right)
 		{
@@ -333,7 +333,7 @@ static void drawBrushSlider(Sprite* sprite, s32 x, s32 y)
 		showTooltip("BRUSH SIZE");
 		over = true;
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 		{
 			s32 my = getMouseY() - y;
 
@@ -638,9 +638,9 @@ static void drawMoveButtons(Sprite* sprite)
 			{
 				setCursor(SDL_SYSTEM_CURSOR_HAND);
 
-				if(checkMouseDown(&Rects[i], SDL_BUTTON_LEFT)) down = true;
+				if(checkMouseDown(&Rects[i], tic_mouse_left)) down = true;
 
-				if(checkMouseClick(&Rects[i], SDL_BUTTON_LEFT))
+				if(checkMouseClick(&Rects[i], tic_mouse_left))
 					Func[i](sprite);
 			}
 
@@ -674,7 +674,7 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 		{
 			setCursor(SDL_SYSTEM_CURSOR_HAND);
 
-			if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseDown(&rect, tic_mouse_left))
 			{
 				s32 mx = getMouseX() - x;
 				*value = mx * Max / (Size-1);
@@ -717,10 +717,10 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 		{
 			setCursor(SDL_SYSTEM_CURSOR_HAND);
 
-			if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseDown(&rect, tic_mouse_left))
 				down = true;
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 				(*value)--;
 		}
 
@@ -755,10 +755,10 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 		{
 			setCursor(SDL_SYSTEM_CURSOR_HAND);
 
-			if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseDown(&rect, tic_mouse_left))
 				down = true;
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 				(*value)++;
 		}
 
@@ -808,10 +808,10 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
 			showTooltip("COPY PALETTE");
 			over = true;
 
-			if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseDown(&rect, tic_mouse_left))
 				down = true;
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 				toClipboard(sprite->tic->cart.palette.data, sizeof(tic_palette), false);
 		}
 
@@ -851,10 +851,10 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
 			showTooltip("PASTE PALETTE");
 			over = true;
 
-			if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseDown(&rect, tic_mouse_left))
 				down = true;
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 			{
 				pasteColor(sprite);
 			}
@@ -904,8 +904,8 @@ static void drawPalette(Sprite* sprite, s32 x, s32 y)
 	{
 		setCursor(SDL_SYSTEM_CURSOR_HAND);
 
-		bool left = checkMouseDown(&rect, SDL_BUTTON_LEFT);
-		bool right = checkMouseDown(&rect, SDL_BUTTON_RIGHT);
+		bool left = checkMouseDown(&rect, tic_mouse_left);
+		bool right = checkMouseDown(&rect, tic_mouse_right);
 
 		if(left || right)
 		{
@@ -957,10 +957,10 @@ static void drawPalette(Sprite* sprite, s32 x, s32 y)
 
 			showTooltip("EDIT PALETTE");
 
-			if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseDown(&rect, tic_mouse_left))
 				down = true;
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 				sprite->editPalette = !sprite->editPalette;
 		}
 
@@ -1049,7 +1049,7 @@ static void drawSheet(Sprite* sprite, s32 x, s32 y)
 	{
 		setCursor(SDL_SYSTEM_CURSOR_HAND);
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 		{
 			s32 offset = (sprite->size - TIC_SPRITESIZE) / 2;
 			selectSprite(sprite, getMouseX() - x - offset, getMouseY() - y - offset);
@@ -1210,9 +1210,9 @@ static void drawSpriteTools(Sprite* sprite, s32 x, s32 y)
 
 			showTooltip(Tooltips[i]);
 
-			if(checkMouseDown(&rect, SDL_BUTTON_LEFT)) pushed = true;
+			if(checkMouseDown(&rect, tic_mouse_left)) pushed = true;
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 			{		
 				if(hasCanvasSelection(sprite))
 				{
@@ -1295,7 +1295,7 @@ static void drawTools(Sprite* sprite, s32 x, s32 y)
 
 			showTooltip(Tooltips[i]);
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 			{				
 				sprite->mode = i;
 
@@ -1518,7 +1518,7 @@ static void drawSpriteToolbar(Sprite* sprite)
 
 			showTooltip("CANVAS ZOOM");
 
-			if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseDown(&rect, tic_mouse_left))
 			{
 				s32 mx = getMouseX() - rect.x;
 				mx /= 6;
@@ -1557,7 +1557,7 @@ static void drawSpriteToolbar(Sprite* sprite)
 
 			showTooltip("TILES [tab]");
 
-			if(!bg && checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(!bg && checkMouseClick(&rect, tic_mouse_left))
 			{
 				sprite->index -= TIC_BANK_SPRITES;
 				clearCanvasSelection(sprite);
@@ -1577,7 +1577,7 @@ static void drawSpriteToolbar(Sprite* sprite)
 
 			showTooltip("SPRITES [tab]");
 
-			if(bg && checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(bg && checkMouseClick(&rect, tic_mouse_left))
 			{
 				sprite->index += TIC_BANK_SPRITES;
 				clearCanvasSelection(sprite);

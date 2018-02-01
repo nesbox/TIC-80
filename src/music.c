@@ -100,10 +100,10 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
 			setCursor(SDL_SYSTEM_CURSOR_HAND);
 			over = true;
 
-			if (checkMouseDown(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseDown(&rect, tic_mouse_left))
 				down = true;
 
-			if (checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseClick(&rect, tic_mouse_left))
 				set(music, -1, channel);
 		}
 
@@ -119,7 +119,7 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
 		{
 			setCursor(SDL_SYSTEM_CURSOR_HAND);
 
-			if (checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseClick(&rect, tic_mouse_left))
 			{
 				music->tracker.row = -1;
 				music->tracker.col = channel * CHANNEL_COLS;
@@ -154,10 +154,10 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
 			setCursor(SDL_SYSTEM_CURSOR_HAND);
 			over = true;
 
-			if (checkMouseDown(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseDown(&rect, tic_mouse_left))
 				down = true;
 
-			if (checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseClick(&rect, tic_mouse_left))
 				set(music, +1, channel);
 		}
 
@@ -207,10 +207,10 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
 
 			over = true;
 
-			if (checkMouseDown(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseDown(&rect, tic_mouse_left))
 				down = true;
 
-			if (checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseClick(&rect, tic_mouse_left))
 				set(music, -1, data);
 		}
 
@@ -237,10 +237,10 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
 
 			over = true;
 
-			if (checkMouseDown(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseDown(&rect, tic_mouse_left))
 				down = true;
 
-			if (checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseClick(&rect, tic_mouse_left))
 				set(music, +1, data);
 		}
 
@@ -1140,7 +1140,7 @@ static void drawTrackerFrames(Music* music, s32 x, s32 y)
 		{
 			setCursor(SDL_SYSTEM_CURSOR_HAND);
 
-			if (checkMouseDown(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseDown(&rect, tic_mouse_left))
 			{
 				s32 my = getMouseY() - rect.y - Border;
 				music->tracker.frame = my / TIC_FONT_HEIGHT;
@@ -1222,7 +1222,7 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 	{
 		setCursor(SDL_SYSTEM_CURSOR_HAND);
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 		{
 			s32 mx = getMouseX() - rect.x - Border;
 			s32 my = getMouseY() - rect.y - Border;
@@ -1247,7 +1247,7 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 	if(music->tracker.select.drag)
 	{
 		SDL_Rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
-		if(!checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(!checkMouseDown(&rect, tic_mouse_left))
 		{
 			music->tracker.select.drag = false;
 		}
@@ -1354,7 +1354,7 @@ static void drawTumbler(Music* music, s32 x, s32 y, s32 index)
 
 		showTooltip("on/off channel");
 
-		if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseClick(&rect, tic_mouse_left))
 		{
 			if (SDL_GetModState() & KMOD_CTRL)
 			{
@@ -1452,7 +1452,7 @@ static void drawPlayButtons(Music* music)
 
 			static void(*const Handlers[])(Music*) = { enableFollowMode, playFrame, playTrack, stopTrack };
 
-			if (checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseClick(&rect, tic_mouse_left))
 				Handlers[i](music);
 		}
 
@@ -1505,7 +1505,7 @@ static void drawModeTabs(Music* music)
 			static const char* Tooltips[] = { "PIANO MODE", "TRACKER MODE" };
 			showTooltip(Tooltips[i]);
 
-			if (checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseClick(&rect, tic_mouse_left))
 				music->tab = Tabs[i];
 		}
 

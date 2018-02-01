@@ -997,7 +997,7 @@ static void processMouse(Code* code)
 
 		if(code->scroll.active)
 		{
-			if(checkMouseDown(&code->rect, SDL_BUTTON_RIGHT))
+			if(checkMouseDown(&code->rect, tic_mouse_right))
 			{
 				code->scroll.x = (code->scroll.start.x - getMouseX()) / STUDIO_TEXT_WIDTH;
 				code->scroll.y = (code->scroll.start.y - getMouseY()) / STUDIO_TEXT_HEIGHT;
@@ -1008,7 +1008,7 @@ static void processMouse(Code* code)
 		}
 		else
 		{
-			if(checkMouseDown(&code->rect, SDL_BUTTON_LEFT))
+			if(checkMouseDown(&code->rect, tic_mouse_left))
 			{
 				s32 mx = getMouseX();
 				s32 my = getMouseY();
@@ -1038,7 +1038,7 @@ static void processMouse(Code* code)
 				code->cursor.mouseDownPosition = NULL;
 			}
 
-			if(checkMouseDown(&code->rect, SDL_BUTTON_RIGHT))
+			if(checkMouseDown(&code->rect, tic_mouse_right))
 			{
 				code->scroll.active = true;
 
@@ -1287,14 +1287,14 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 		{
 			setCursor(SDL_SYSTEM_CURSOR_HAND);
 
-			if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseDown(&rect, tic_mouse_left))
 			{
 				code->outline.index = mx;
 				updateOutlineCode(code);
 
 			}
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 				setCodeMode(code, TEXT_EDIT_MODE);
 		}
 	}
@@ -1440,7 +1440,7 @@ static void drawCodeToolbar(Code* code)
 
 			over = true;
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 			{
 				if (i == TEXT_RUN_CODE)
 				{

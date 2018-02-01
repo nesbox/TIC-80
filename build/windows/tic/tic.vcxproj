@@ -68,6 +68,7 @@
     <ClCompile Include="..\..\..\src\fs.c" />
     <ClCompile Include="..\..\..\src\history.c" />
     <ClCompile Include="..\..\..\src\html.c" />
+    <ClCompile Include="..\..\..\src\main.c" />
     <ClCompile Include="..\..\..\src\map.c" />
     <ClCompile Include="..\..\..\src\menu.c" />
     <ClCompile Include="..\..\..\src\music.c" />

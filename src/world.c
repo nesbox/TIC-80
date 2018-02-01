@@ -47,13 +47,13 @@ static void drawGrid(World* world)
 		s32 mx = getMouseX();
 		s32 my = getMouseY();
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 		{
 			map->scroll.x = (mx - TIC_MAP_SCREEN_WIDTH/2) * TIC_SPRITESIZE;
 			map->scroll.y = (my - TIC_MAP_SCREEN_HEIGHT/2) * TIC_SPRITESIZE;
 		}
 
-		if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseClick(&rect, tic_mouse_left))
 			setStudioMode(TIC_MAP_MODE);
 	}
 

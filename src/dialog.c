@@ -37,13 +37,13 @@ static void drawButton(Dialog* dlg, const char* label, s32 x, s32 y, u8 color, u
 		setCursor(SDL_SYSTEM_CURSOR_HAND);
 		over = true;
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 		{
 			down = true;
 			dlg->focus = id;
 		}
 
-		if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseClick(&rect, tic_mouse_left))
 			callback(dlg);
 	}
 	
@@ -132,7 +132,7 @@ static void drawDialog(Dialog* dlg)
 	{
 		setCursor(SDL_SYSTEM_CURSOR_HAND);
 
-		if(checkMouseDown(&header, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&header, tic_mouse_left))
 		{
 			if(!dlg->drag.active)
 			{
@@ -152,7 +152,7 @@ static void drawDialog(Dialog* dlg)
 		dlg->pos.y = dlg->drag.start.y - getMouseY();
 
 		SDL_Rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
-		if(!checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(!checkMouseDown(&rect, tic_mouse_left))
 			dlg->drag.active = false;
 	}
 

@@ -74,7 +74,7 @@ static void drawSwitch(Sfx* sfx, s32 x, s32 y, const char* label, s32 value, voi
 		{
 			setCursor(SDL_SYSTEM_CURSOR_HAND);
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 				set(sfx, -1);
 		}
 
@@ -96,7 +96,7 @@ static void drawSwitch(Sfx* sfx, s32 x, s32 y, const char* label, s32 value, voi
 		{
 			setCursor(SDL_SYSTEM_CURSOR_HAND);
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 				set(sfx, +1);
 		}
 
@@ -216,7 +216,7 @@ static void drawWaveButtons(Sfx* sfx, s32 x, s32 y)
 			setCursor(SDL_SYSTEM_CURSOR_HAND);
 			over = true;
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 			{
 				sfx->waveform.index = i;
 				sfx->tab = SFX_WAVEFORM_TAB;
@@ -246,7 +246,7 @@ static void drawWaveButtons(Sfx* sfx, s32 x, s32 y)
 				setCursor(SDL_SYSTEM_CURSOR_HAND);
 				over = true;
 
-				if(checkMouseClick(&iconRect, SDL_BUTTON_LEFT))
+				if(checkMouseClick(&iconRect, tic_mouse_left))
 				{
 					tic_sample* effect = getEffect(sfx);
 					for(s32 c = 0; c < SFX_TICKS; c++)
@@ -301,7 +301,7 @@ static void drawCanvasTabs(Sfx* sfx, s32 x, s32 y)
 		{
 			setCursor(SDL_SYSTEM_CURSOR_HAND);
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 			{
 				sfx->canvasTab = i;
 			}
@@ -324,7 +324,7 @@ static void drawCanvasTabs(Sfx* sfx, s32 x, s32 y)
 			{
 				setCursor(SDL_SYSTEM_CURSOR_HAND);
 
-				if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+				if(checkMouseClick(&rect, tic_mouse_left))
 					effect->pitch16x++;
 			}
 
@@ -341,7 +341,7 @@ static void drawCanvasTabs(Sfx* sfx, s32 x, s32 y)
 			{
 				setCursor(SDL_SYSTEM_CURSOR_HAND);
 
-				if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+				if(checkMouseClick(&rect, tic_mouse_left))
 					effect->reverse++;
 			}
 
@@ -384,7 +384,7 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y)
 		mx -= mx % CANVAS_SIZE;
 		my -= my % CANVAS_SIZE;
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 		{
 			mx /= CANVAS_SIZE;
 			my /= CANVAS_SIZE;
@@ -480,7 +480,7 @@ static void drawPiano(Sfx* sfx, s32 x, s32 y)
 				}
 		}
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 		{
 			for(s32 i = COUNT_OF(buttons) - 1; i >= 0; i--)
 			{
@@ -531,7 +531,7 @@ static void drawOctavePanel(Sfx* sfx, s32 x, s32 y)
 		{
 			setCursor(SDL_SYSTEM_CURSOR_HAND);
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 			{
 				effect->octave = i;
 			}
@@ -775,7 +775,7 @@ static void drawModeTabs(Sfx* sfx)
 			static const char* Tooltips[] = { "WAVEFORMS [tab]", "ENVELOPES [tab]" };
 			showTooltip(Tooltips[i]);
 
-			if (checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseClick(&rect, tic_mouse_left))
 				sfx->tab = Tabs[i];
 		}
 
@@ -804,7 +804,7 @@ static void drawSfxToolbar(Sfx* sfx)
 
 		showTooltip("PLAY SFX [space]");
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 		{
 			sfx->play.active = true;
 		}
@@ -877,7 +877,7 @@ static void drawWaveformBar(Sfx* sfx, s32 x, s32 y)
 		{
 			setCursor(SDL_SYSTEM_CURSOR_HAND);
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 				sfx->waveform.index = i;
 		}
 
@@ -925,7 +925,7 @@ static void drawWaveformCanvas(Sfx* sfx, s32 x, s32 y)
 	{
 		setCursor(SDL_SYSTEM_CURSOR_HAND);
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 		{
 			s32 mx = getMouseX() - x;
 			s32 my = getMouseY() - y;

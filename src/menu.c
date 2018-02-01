@@ -84,7 +84,7 @@ static void drawDialog(Menu* menu)
 	{
 		setCursor(SDL_SYSTEM_CURSOR_HAND);
 
-		if(checkMouseDown(&header, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&header, tic_mouse_left))
 		{
 			if(!menu->drag.active)
 			{
@@ -104,7 +104,7 @@ static void drawDialog(Menu* menu)
 		menu->pos.y = menu->drag.start.y - getMouseY();
 
 		SDL_Rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
-		if(!checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(!checkMouseDown(&rect, tic_mouse_left))
 			menu->drag.active = false;
 	}
 
@@ -141,7 +141,7 @@ static void drawTabDisabled(Menu* menu, s32 x, s32 y, s32 id)
 		setCursor(SDL_SYSTEM_CURSOR_HAND);
 		over = true;
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 		{
 			menu->gamepad.tab = id;
 			menu->gamepad.selected = -1;
@@ -200,7 +200,7 @@ static void drawPlayerButtons(Menu* menu, s32 x, s32 y)
 
 			over = true;
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 			{
 				menu->gamepad.selected = menu->gamepad.selected != index ? index : -1;
 			}
@@ -261,12 +261,12 @@ static void drawGamepadMenu(Menu* menu)
 
 		over = true;
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 		{
 			down = true;
 		}
 
-		if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseClick(&rect, tic_mouse_left))
 		{
 			menu->gamepad.selected = -1;
 			menu->mode = MAIN_MENU_MODE;
@@ -328,13 +328,13 @@ static void drawMainMenu(Menu* menu)
 
 				over = true;
 
-				if(checkMouseDown(&label, SDL_BUTTON_LEFT))
+				if(checkMouseDown(&label, tic_mouse_left))
 				{
 					down = true;
 					menu->main.focus = i;
 				}
 
-				if(checkMouseClick(&label, SDL_BUTTON_LEFT))
+				if(checkMouseClick(&label, tic_mouse_left))
 				{
 					MenuHandlers[i](menu);
 					return;

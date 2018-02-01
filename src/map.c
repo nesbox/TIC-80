@@ -95,7 +95,7 @@ static s32 drawWorldButton(Map* map, s32 x, s32 y)
 
 		showTooltip("WORLD MAP [tab]");
 
-		if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseClick(&rect, tic_mouse_left))
 			setStudioMode(TIC_WORLD_MODE);
 	}
 
@@ -133,7 +133,7 @@ static s32 drawGridButton(Map* map, s32 x, s32 y)
 
 		showTooltip("SHOW/HIDE GRID [`]");
 
-		if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseClick(&rect, tic_mouse_left))
 			map->canvas.grid = !map->canvas.grid;
 	}
 
@@ -180,7 +180,7 @@ static s32 drawSheetButton(Map* map, s32 x, s32 y)
 		over = true;
 		showTooltip("SHOW TILES [shift]");
 
-		if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseClick(&rect, tic_mouse_left))
 		{
 			map->sheet.show = !map->sheet.show;
 		}
@@ -206,7 +206,7 @@ static s32 drawToolButton(Map* map, s32 x, s32 y, const u8* Icon, s32 width, con
 
 		showTooltip(tip);
 
-		if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseClick(&rect, tic_mouse_left))
 		{
 			map->mode = mode;
 		}
@@ -361,7 +361,7 @@ static void drawSheetOvr(Map* map, s32 x, s32 y)
 	{
 		setCursor(SDL_SYSTEM_CURSOR_HAND);
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 		{
 			s32 mx = getMouseX() - rect.x;
 			s32 my = getMouseY() - rect.y;
@@ -484,7 +484,7 @@ static void processMouseDrawMode(Map* map)
 
 	drawTileCursor(map);
 
-	if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+	if(checkMouseDown(&rect, tic_mouse_left))
 	{
 		s32 tx = 0, ty = 0;
 		getMouseMap(map, &tx, &ty);
@@ -551,8 +551,8 @@ static void processMouseDragMode(Map* map)
 {
 	SDL_Rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
-	processScrolling(map, checkMouseDown(&rect, SDL_BUTTON_LEFT) || 
-		checkMouseDown(&rect, SDL_BUTTON_RIGHT));
+	processScrolling(map, checkMouseDown(&rect, tic_mouse_left) || 
+		checkMouseDown(&rect, tic_mouse_right));
 }
 
 static void resetSelection(Map* map)
@@ -584,7 +584,7 @@ static void drawPasteData(Map* map)
 
 	SDL_Rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
-	if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+	if(checkMouseClick(&rect, tic_mouse_left))
 	{
 		normalizeMap(&mx, &my);
 
@@ -634,7 +634,7 @@ static void processMouseSelectMode(Map* map)
 			drawPasteData(map);
 		else
 		{
-			if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseDown(&rect, tic_mouse_left))
 			{
 				s32 mx = getMouseX() + map->scroll.x;
 				s32 my = getMouseY() + map->scroll.y;
@@ -796,7 +796,7 @@ static void processMouseFillMode(Map* map)
 
 	drawTileCursor(map);
 
-	if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+	if(checkMouseClick(&rect, tic_mouse_left))
 	{
 		s32 tx = 0, ty = 0;
 		getMouseMap(map, &tx, &ty);
@@ -884,7 +884,7 @@ static void drawMapOvr(Map* map)
 		if(tic->api.key(tic, tic_key_space))
 		// if(getKeyboard()[SDL_SCANCODE_SPACE])
 		{
-			processScrolling(map, checkMouseDown(&rect, SDL_BUTTON_LEFT) || checkMouseDown(&rect, SDL_BUTTON_RIGHT));
+			processScrolling(map, checkMouseDown(&rect, tic_mouse_left) || checkMouseDown(&rect, tic_mouse_right));
 		}
 		else
 		{
@@ -893,7 +893,7 @@ static void drawMapOvr(Map* map)
 			Handlers[map->mode](map);
 
 			if(map->mode != MAP_DRAG_MODE)
-				processScrolling(map, checkMouseDown(&rect, SDL_BUTTON_RIGHT));
+				processScrolling(map, checkMouseDown(&rect, tic_mouse_right));
 		}
 	}
 
