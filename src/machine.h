@@ -121,6 +121,7 @@ typedef struct
 	{
 		struct duk_hthread* js;
 		struct lua_State* lua;	
+		struct WrenVM* wren;	
 	};
 
 	blip_buffer_t* blip;
@@ -159,3 +160,4 @@ void parseCode(const tic_script_config* config, const char* start, u8* color, co
 const tic_script_config* getLuaScriptConfig();
 const tic_script_config* getMoonScriptConfig();
 const tic_script_config* getJsScriptConfig();
+const tic_script_config* getWrenScriptConfig();

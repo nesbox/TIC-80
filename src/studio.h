@@ -64,6 +64,7 @@
 #define PROJECT_LUA_EXT ".lua"
 #define PROJECT_MOON_EXT ".moon"
 #define PROJECT_JS_EXT ".js"
+#define PROJECT_WREN_EXT ".wren"
 
 typedef struct
 {

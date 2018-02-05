@@ -1,9 +1,12 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2024
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tic", "tic.vcxproj", "{B6ECC66E-26FA-42C2-8F6C-E4338424F38A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D7CC5189-C399-AC94-ECB2-9A3CD8DEE122} = {D7CC5189-C399-AC94-ECB2-9A3CD8DEE122}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lua", "..\lua\lua.vcxproj", "{57D2471B-3138-495E-AF18-6E290D098FFC}"
 EndProject
@@ -12,12 +15,17 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "gif", "..\gif\gif.vcxproj", "{6EA9D998-7557-4AED-ABFC-142F9960C9B6}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tic80", "..\tic80\tic80.vcxproj", "{C4D8BC10-EBF6-42BB-9B5D-6712FB428A50}"
+	ProjectSection(ProjectDependencies) = postProject
+		{D7CC5189-C399-AC94-ECB2-9A3CD8DEE122} = {D7CC5189-C399-AC94-ECB2-9A3CD8DEE122}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "example", "..\example\example.vcxproj", "{86CAA9C1-C61A-40D8-AC77-33D94754C824}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDL2", "..\..\..\3rd-party\SDL2-2.0.7\VisualC\SDL\SDL.vcxproj", "{81CE8DAF-EBB2-4761-8E45-B71ABCCA8C68}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDL2main", "..\..\..\3rd-party\SDL2-2.0.7\VisualC\SDLmain\SDLmain.vcxproj", "{DA956FD3-E142-46F2-9DD5-C78BEBB56B7A}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wren_lib", "..\wren\wren_lib.vcxproj", "{D7CC5189-C399-AC94-ECB2-9A3CD8DEE122}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -159,8 +167,27 @@ Global
 		{DA956FD3-E142-46F2-9DD5-C78BEBB56B7A}.Release|x64.Build.0 = Release|x64
 		{DA956FD3-E142-46F2-9DD5-C78BEBB56B7A}.Release|x86.ActiveCfg = Release|Win32
 		{DA956FD3-E142-46F2-9DD5-C78BEBB56B7A}.Release|x86.Build.0 = Release|Win32
+		{D7CC5189-C399-AC94-ECB2-9A3CD8DEE122}.Debug Pro|x64.ActiveCfg = Debug|x64
+		{D7CC5189-C399-AC94-ECB2-9A3CD8DEE122}.Debug Pro|x64.Build.0 = Debug|x64
+		{D7CC5189-C399-AC94-ECB2-9A3CD8DEE122}.Debug Pro|x86.ActiveCfg = Debug|Win32
+		{D7CC5189-C399-AC94-ECB2-9A3CD8DEE122}.Debug Pro|x86.Build.0 = Debug|Win32
+		{D7CC5189-C399-AC94-ECB2-9A3CD8DEE122}.Debug|x64.ActiveCfg = Debug|x64
+		{D7CC5189-C399-AC94-ECB2-9A3CD8DEE122}.Debug|x64.Build.0 = Debug|x64
+		{D7CC5189-C399-AC94-ECB2-9A3CD8DEE122}.Debug|x86.ActiveCfg = Debug|Win32
+		{D7CC5189-C399-AC94-ECB2-9A3CD8DEE122}.Debug|x86.Build.0 = Debug|Win32
+		{D7CC5189-C399-AC94-ECB2-9A3CD8DEE122}.Release Pro|x64.ActiveCfg = Release|x64
+		{D7CC5189-C399-AC94-ECB2-9A3CD8DEE122}.Release Pro|x64.Build.0 = Release|x64
+		{D7CC5189-C399-AC94-ECB2-9A3CD8DEE122}.Release Pro|x86.ActiveCfg = Release|Win32
+		{D7CC5189-C399-AC94-ECB2-9A3CD8DEE122}.Release Pro|x86.Build.0 = Release|Win32
+		{D7CC5189-C399-AC94-ECB2-9A3CD8DEE122}.Release|x64.ActiveCfg = Release|x64
+		{D7CC5189-C399-AC94-ECB2-9A3CD8DEE122}.Release|x64.Build.0 = Release|x64
+		{D7CC5189-C399-AC94-ECB2-9A3CD8DEE122}.Release|x86.ActiveCfg = Release|Win32
+		{D7CC5189-C399-AC94-ECB2-9A3CD8DEE122}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {00596857-9AA6-41D1-915F-305DA18C13AE}
 	EndGlobalSection
 EndGlobal

@@ -46,6 +46,7 @@ typedef enum
 	LuaScript,	
 	MoonScript,
 	JavaScript,
+	WrenScript,
 } ScriptLang;
 
 #if defined(__WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
@@ -73,6 +74,7 @@ static const char* ExeExt = ".exe";
 static const char DefaultLuaTicPath[] = TIC_LOCAL "default.tic";
 static const char DefaultMoonTicPath[] = TIC_LOCAL "default_moon.tic";
 static const char DefaultJSTicPath[] = TIC_LOCAL "default_js.tic";
+static const char DefaultWrenTicPath[] = TIC_LOCAL "default_wren.tic";
 
 static const char* getName(const char* name, const char* ext)
 {
@@ -417,7 +419,10 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 			strcpy(path, DefaultMoonTicPath);
 			break;
 		case JavaScript:
-		strcpy(path, DefaultJSTicPath);
+			strcpy(path, DefaultJSTicPath);
+			break;
+		case WrenScript:
+			strcpy(path, DefaultWrenTicPath);
 			break;
 		}
 
@@ -442,6 +447,11 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 		#include "../bin/assets/moondemo.tic.dat"
 	};
 
+	static const u8 WrenDemoRom[] =
+	{
+		#include "../bin/assets/wrendemo.tic.dat"
+	};
+
 	const u8* demo = NULL;
 	s32 romSize = 0;
 
@@ -458,6 +468,10 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 	case JavaScript:
 		demo = JsDemoRom;
 		romSize = sizeof JsDemoRom;
+		break;
+	case WrenScript:
+		demo = WrenDemoRom;
+		romSize = sizeof WrenDemoRom;
 		break;
 	}
 
@@ -491,6 +505,8 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 		data = getDemoCart(console, MoonScript, &size);
 	else if(strcmp(param, DefaultJSTicPath) == 0)
 		data = getDemoCart(console, JavaScript, &size);
+	else if(strcmp(param, DefaultWrenTicPath) == 0)
+		data = getDemoCart(console, WrenScript, &size);
 
 	const char* name = getCartName(param);
 
@@ -530,12 +546,12 @@ static bool hasExt(const char* name, const char* ext)
 
 static bool hasProjectExt(const char* name)
 {
-	return hasExt(name, PROJECT_LUA_EXT) || hasExt(name, PROJECT_MOON_EXT) || hasExt(name, PROJECT_JS_EXT);
+	return hasExt(name, PROJECT_LUA_EXT) || hasExt(name, PROJECT_MOON_EXT) || hasExt(name, PROJECT_JS_EXT) || hasExt(name, PROJECT_WREN_EXT);
 }
 
 static const char* projectComment(const char* name)
 {
-	return hasExt(name, PROJECT_JS_EXT) ? "//" : "--";
+	return hasExt(name, PROJECT_JS_EXT) || hasExt(name, PROJECT_WREN_EXT) ? "//" : "--";
 }
 
 static void buf2str(const void* data, s32 size, char* ptr, bool flip)
@@ -925,6 +941,9 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 			if(!fsExistsFile(console->fs, name))
 				name = getName(param, PROJECT_JS_EXT);
 
+			if(!fsExistsFile(console->fs, name))
+				name = getName(param, PROJECT_WREN_EXT);
+
 			void* data = fsLoadFile(console->fs, name, &size);
 
 			if(data)
@@ -1053,6 +1072,8 @@ static void onConsoleNewCommandConfirmed(Console* console, const char* param)
 			loadDemo(console, MoonScript);
 		else if(strcmp(param, "js") == 0 || strcmp(param, "javascript") == 0)
 			loadDemo(console, JavaScript);
+		else if(strcmp(param, "wren") == 0)
+			loadDemo(console, WrenScript);
 		else
 		{
 			printError(console, "\nunknown parameter: ");
@@ -1316,6 +1337,10 @@ static void onConsoleConfigCommand(Console* console, const char* param)
 	else if(strcmp(param, "default js") == 0)
 	{
 		onConsoleLoadDemoCommand(console, DefaultJSTicPath);
+	}
+	else if(strcmp(param, "default wren") == 0)
+	{
+		onConsoleLoadDemoCommand(console, DefaultWrenTicPath);
 	}
 	else
 	{

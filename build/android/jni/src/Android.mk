@@ -16,6 +16,7 @@ LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/blip-buf \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/SDL2_net-2.0.1 \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/moonscript \
+	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/wren-0.1.0\src\include \
 	$(LOCAL_PATH)/../../../../include
 
 # Add your application source files here...
@@ -46,13 +47,14 @@ LOCAL_SRC_FILES := \
 	$(SRC_PATH)/net.c \
 	$(SRC_PATH)/luaapi.c \
 	$(SRC_PATH)/jsapi.c \
+	$(SRC_PATH)/wrenapi.c \
 	$(SRC_PATH)/tic.c \
 	$(SRC_PATH)/dialog.c \
 	$(SRC_PATH)/menu.c \
 	$(SRC_PATH)/surf.c \
 	$(SRC_PATH)/tic80.c
 
-LOCAL_SHARED_LIBRARIES := SDL2 lua z gif
+LOCAL_SHARED_LIBRARIES := SDL2 lua z gif wren
 
 LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog
 

@@ -36,5 +36,8 @@
     <ClCompile Include="..\..\..\3rd-party\blip-buf\blip_buf.c">
       <Filter>src\ext</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\wrenapi.c">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

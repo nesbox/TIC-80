@@ -561,6 +561,7 @@ void tic_close(tic_mem* memory)
 	getLuaScriptConfig()->close(memory);
 	getMoonScriptConfig()->close(memory);
 	getJsScriptConfig()->close(memory);
+	getWrenScriptConfig()->close(memory);
 
 	blip_delete(machine->blip);
 
@@ -1528,10 +1529,16 @@ static bool isJavascript(const char* code)
 		|| compareMetatag(code, "script", "javascript", getJsScriptConfig()->singleComment);
 }
 
+static bool isWren(const char* code)
+{
+	return compareMetatag(code, "script", "wren", getWrenScriptConfig()->singleComment);
+}
+
 static const tic_script_config* getScriptConfig(const char* code)
 {
 	if(isMoonscript(code)) return getMoonScriptConfig();
 	if(isJavascript(code)) return getJsScriptConfig();
+	if(isWren(code)) return getWrenScriptConfig();
 	return getLuaScriptConfig();
 }
 
