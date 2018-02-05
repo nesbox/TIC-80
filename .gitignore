@@ -95,3 +95,10 @@ build/windows/example/Release Pro/
 build/windows/example/Debug Pro/
 TIC80.sublime-project
 TIC80.sublime-workspace
+build/windows/wren/Release/
+build/windows/wren/Debug/
+build/windows/wren/x64/
+build/uwp/wren/x64/
+build/uwp/wren/Release/
+build/uwp/wren/ARM/
+build/uwp/wren/Debug/

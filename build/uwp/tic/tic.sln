@@ -15,6 +15,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDL2-UWP", "..\..\..\3rd-pa
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zlib-uwp", "..\..\..\3rd-party\zlib-1.2.8\winrt\zlib-uwp\zlib-uwp.vcxproj", "{978F53DB-F959-4CB4-84A7-463AF29949BE}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wren", "..\wren\wren.vcxproj", "{BBB0D01A-B124-416C-BE26-E6993154A555}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM
@@ -103,6 +105,18 @@ Global
 		{978F53DB-F959-4CB4-84A7-463AF29949BE}.Release|x64.Build.0 = Release|x64
 		{978F53DB-F959-4CB4-84A7-463AF29949BE}.Release|x86.ActiveCfg = Release|Win32
 		{978F53DB-F959-4CB4-84A7-463AF29949BE}.Release|x86.Build.0 = Release|Win32
+		{BBB0D01A-B124-416C-BE26-E6993154A555}.Debug|ARM.ActiveCfg = Debug|ARM
+		{BBB0D01A-B124-416C-BE26-E6993154A555}.Debug|ARM.Build.0 = Debug|ARM
+		{BBB0D01A-B124-416C-BE26-E6993154A555}.Debug|x64.ActiveCfg = Debug|x64
+		{BBB0D01A-B124-416C-BE26-E6993154A555}.Debug|x64.Build.0 = Debug|x64
+		{BBB0D01A-B124-416C-BE26-E6993154A555}.Debug|x86.ActiveCfg = Debug|Win32
+		{BBB0D01A-B124-416C-BE26-E6993154A555}.Debug|x86.Build.0 = Debug|Win32
+		{BBB0D01A-B124-416C-BE26-E6993154A555}.Release|ARM.ActiveCfg = Release|ARM
+		{BBB0D01A-B124-416C-BE26-E6993154A555}.Release|ARM.Build.0 = Release|ARM
+		{BBB0D01A-B124-416C-BE26-E6993154A555}.Release|x64.ActiveCfg = Release|x64
+		{BBB0D01A-B124-416C-BE26-E6993154A555}.Release|x64.Build.0 = Release|x64
+		{BBB0D01A-B124-416C-BE26-E6993154A555}.Release|x86.ActiveCfg = Release|Win32
+		{BBB0D01A-B124-416C-BE26-E6993154A555}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

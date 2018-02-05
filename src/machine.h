@@ -28,7 +28,11 @@
 
 #define SFX_DEF_SPEED (1 << SFX_SPEED_BITS)
 
-#define API_KEYWORDS {"TIC", "SCN", "OVR", "print", "cls", "pix", "line", "rect", "rectb", \
+#define TIC_FN "TIC"
+#define SCN_FN "SCN"
+#define OVR_FN "OVR"
+
+#define API_KEYWORDS {TIC_FN, SCN_FN, OVR_FN, "print", "cls", "pix", "line", "rect", "rectb", \
 	"spr", "btn", "btnp", "sfx", "map", "mget", "mset", "peek", "poke", "peek4", "poke4", \
 	"memcpy", "memset", "trace", "pmem", "time", "exit", "font", "mouse", "circ", "circb", "tri", "textri", \
 	"clip", "music", "sync", "reset", "key", "keyp"}
@@ -121,6 +125,7 @@ typedef struct
 	{
 		struct duk_hthread* js;
 		struct lua_State* lua;	
+		struct WrenVM* wren;	
 	};
 
 	blip_buffer_t* blip;
@@ -159,3 +164,4 @@ void parseCode(const tic_script_config* config, const char* start, u8* color, co
 const tic_script_config* getLuaScriptConfig();
 const tic_script_config* getMoonScriptConfig();
 const tic_script_config* getJsScriptConfig();
+const tic_script_config* getWrenScriptConfig();

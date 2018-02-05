@@ -15,7 +15,7 @@
     <DebuggerMachineName>XboxOne</DebuggerMachineName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
-    <DebuggerFlavor>UWPRemoteDebugger</DebuggerFlavor>
+    <DebuggerFlavor>AppHostLocalDebugger</DebuggerFlavor>
     <DebuggerMachineName>XboxOne</DebuggerMachineName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

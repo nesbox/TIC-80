@@ -17,6 +17,7 @@ INCLUDES= \
 	-I$(3RD_PARTY)/zlib-1.2.8 \
 	-I$(3RD_PARTY)/giflib-5.1.4/lib \
 	-I$(3RD_PARTY)/SDL2-2.0.7/include \
+	-I$(3RD_PARTY)/wren-0.1.0/src/include \
 	-I$(3RD_PARTY)/moonscript \
 	-I$(BLIPBUF_LIB) \
 	-I$(DUKTAPE_LIB) \
@@ -31,6 +32,7 @@ MINGW_LINKER_FLAGS= \
 	-lz \
 	-lgif \
 	-llua \
+	-lwren \
 	-lcomdlg32 \
 	-lws2_32 \
 	-mwindows
@@ -61,6 +63,7 @@ LINUX_LINKER_LTO_FLAGS= \
 	-D_GNU_SOURCE \
 	-lSDL2 \
 	-llua \
+	-lwren \
 	-lgif \
 	-ldl \
 	-lm \
@@ -71,6 +74,7 @@ LINUX_LINKER_LTO_FLAGS= \
 LINUX_LINKER_FLAGS= \
 	-D_GNU_SOURCE \
 	-llua5.3 \
+	-lwren \
 	-ldl \
 	-lm \
 	-lpthread \
@@ -93,6 +97,7 @@ EMS_OPT= \
 EMS_LINKER_FLAGS= \
 	-L$(PRE_BUILT)/emscripten \
 	-llua \
+	-lwren \
 	-lgif \
 	-lz
 
@@ -105,7 +110,7 @@ MACOSX_OPT= \
 MACOSX_LIBS= \
 	-L$(PRE_BUILT)/macos \
 	-L/usr/local/lib \
-	-lSDL2 -lm -liconv -lobjc -llua -lz -lgif \
+	-lSDL2 -lm -liconv -lobjc -llua -lwren -lz -lgif \
 	-Wl,-framework,CoreAudio \
 	-Wl,-framework,AudioToolbox \
 	-Wl,-framework,ForceFeedback \
@@ -159,6 +164,7 @@ DEMO_ASSETS= \
 	bin/assets/jsdemo.tic.dat \
 	bin/assets/luademo.tic.dat \
 	bin/assets/moondemo.tic.dat \
+	bin/assets/wrendemo.tic.dat \
 	bin/assets/benchmark.tic.dat \
 	bin/assets/config.tic.dat
 
@@ -286,16 +292,19 @@ bin/jsapi.o: src/jsapi.c $(TIC80_H)
 bin/luaapi.o: src/luaapi.c $(TIC80_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
+bin/wrenapi.o: src/wrenapi.c $(TIC80_H)
+	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
+
 bin/duktape.o: $(DUKTAPE_LIB)/duktape.c $(TIC80_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
-TIC80_SRC = src/tic80.c src/tic.c $(BLIP_SRC) src/jsapi.c src/luaapi.c $(DUKTAPE_LIB)/duktape.c
-TIC80_O = bin/tic80.o bin/tic.o bin/tools.o bin/blip_buf.o bin/jsapi.o bin/luaapi.o bin/duktape.o bin/gif.o
+TIC80_SRC = src/tic80.c src/tic.c $(BLIP_SRC) src/jsapi.c src/luaapi.c src/wrenapi.c $(DUKTAPE_LIB)/duktape.c
+TIC80_O = bin/tic80.o bin/tic.o bin/tools.o bin/blip_buf.o bin/jsapi.o bin/luaapi.o bin/wrenapi.o bin/duktape.o bin/gif.o
 TIC80_A = bin/libtic80.a
 TIC80_DLL = bin/tic80.dll
 
 $(TIC80_DLL): $(TIC80_O)
-	$(CC) $(OPT) -shared $(TIC80_O) -L$(PRE_BUILT)/mingw -llua -lgif -Wl,--out-implib,$(TIC80_A) -o $@
+	$(CC) $(OPT) -shared $(TIC80_O) -L$(PRE_BUILT)/mingw -llua -lwren -lgif -Wl,--out-implib,$(TIC80_A) -o $@
 
 emscripten:
 	$(EMS_CC) $(SOURCES) $(TIC80_SRC) $(OPT) $(INCLUDES) $(EMS_OPT) $(EMS_LINKER_FLAGS) -o build/html/tic.js
@@ -389,6 +398,9 @@ bin/assets/jsdemo.tic.dat: demos/jsdemo.tic
 	$(BIN2TXT) $< $@ -z
 
 bin/assets/luademo.tic.dat: demos/luademo.tic
+	$(BIN2TXT) $< $@ -z
+
+bin/assets/wrendemo.tic.dat: demos/wrendemo.tic
 	$(BIN2TXT) $< $@ -z
 
 bin/assets/moondemo.tic.dat: demos/moondemo.tic

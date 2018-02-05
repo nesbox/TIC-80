@@ -13,6 +13,7 @@ public class TIC extends SDLActivity
 		return new String[] {
 			"SDL2",
 			"lua",
+			"wren",
 			"z",
 			"gif",
 			"main"

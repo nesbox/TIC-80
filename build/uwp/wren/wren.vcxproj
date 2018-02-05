@@ -27,31 +27,20 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\3rd-party\blip-buf\blip_buf.c" />
-    <ClCompile Include="..\..\..\3rd-party\duktape-2.2.0\src\duktape.c" />
-    <ClCompile Include="..\..\..\src\ext\gif.c" />
-    <ClCompile Include="..\..\..\src\jsapi.c" />
-    <ClCompile Include="..\..\..\src\luaapi.c" />
-    <ClCompile Include="..\..\..\src\tic.c" />
-    <ClCompile Include="..\..\..\src\tic80.c" />
-    <ClCompile Include="..\..\..\src\tools.c" />
-    <ClCompile Include="..\..\..\src\wrenapi.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\gif\gif.vcxproj">
-      <Project>{bc1084df-210a-48d6-a077-761d8c16947b}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\lua\lua.vcxproj">
-      <Project>{53802f21-41da-4ac1-8b62-0dac2ccb8af8}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\wren\wren.vcxproj">
-      <Project>{bbb0d01a-b124-416c-be26-e6993154a555}</Project>
-    </ProjectReference>
+    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\optional\wren_opt_meta.c" />
+    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\optional\wren_opt_random.c" />
+    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_compiler.c" />
+    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_core.c" />
+    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_debug.c" />
+    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_primitive.c" />
+    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_utils.c" />
+    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_value.c" />
+    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_vm.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{9c39acf1-5f52-4a2b-a467-9f2805d6174b}</ProjectGuid>
-    <Keyword>DynamicLibrary</Keyword>
-    <RootNamespace>tic80</RootNamespace>
+    <ProjectGuid>{bbb0d01a-b124-416c-be26-e6993154a555}</ProjectGuid>
+    <Keyword>StaticLibrary</Keyword>
+    <RootNamespace>wren</RootNamespace>
     <DefaultLanguage>en-US</DefaultLanguage>
     <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
     <AppContainerApplication>true</AppContainerApplication>
@@ -62,34 +51,34 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <PlatformToolset>v140</PlatformToolset>
@@ -121,122 +110,98 @@
   <PropertyGroup />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <GenerateManifest>false</GenerateManifest>
-    <IgnoreImportLibrary>false</IgnoreImportLibrary>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <GenerateManifest>false</GenerateManifest>
-    <IgnoreImportLibrary>false</IgnoreImportLibrary>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <GenerateManifest>false</GenerateManifest>
-    <IgnoreImportLibrary>false</IgnoreImportLibrary>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
     <GenerateManifest>false</GenerateManifest>
-    <IgnoreImportLibrary>false</IgnoreImportLibrary>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <GenerateManifest>false</GenerateManifest>
-    <IgnoreImportLibrary>false</IgnoreImportLibrary>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <GenerateManifest>false</GenerateManifest>
-    <IgnoreImportLibrary>false</IgnoreImportLibrary>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>LUA_COMPAT_5_2;_CRT_SECURE_NO_WARNINGS;TIC80_SHARED;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
+      <AdditionalIncludeDirectories>..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\wren-0.1.0\src\optional;..\..\..\3rd-party\wren-0.1.0\src\vm;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
-      <TreatLinkerWarningAsErrors>
-      </TreatLinkerWarningAsErrors>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>LUA_COMPAT_5_2;_CRT_SECURE_NO_WARNINGS;TIC80_SHARED;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
+      <AdditionalIncludeDirectories>..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\wren-0.1.0\src\optional;..\..\..\3rd-party\wren-0.1.0\src\vm;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
-      <TreatLinkerWarningAsErrors>
-      </TreatLinkerWarningAsErrors>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|arm'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>LUA_COMPAT_5_2;_CRT_SECURE_NO_WARNINGS;TIC80_SHARED;_ARM_WINAPI_PARTITION_DESKTOP_SDK_AVAILABLE=1;%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
+      <AdditionalIncludeDirectories>..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\wren-0.1.0\src\optional;..\..\..\3rd-party\wren-0.1.0\src\vm;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
-      <TreatLinkerWarningAsErrors>
-      </TreatLinkerWarningAsErrors>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|arm'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>LUA_COMPAT_5_2;_CRT_SECURE_NO_WARNINGS;TIC80_SHARED;_ARM_WINAPI_PARTITION_DESKTOP_SDK_AVAILABLE=1;%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
+      <AdditionalIncludeDirectories>..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\wren-0.1.0\src\optional;..\..\..\3rd-party\wren-0.1.0\src\vm;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
-      <TreatLinkerWarningAsErrors>
-      </TreatLinkerWarningAsErrors>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>LUA_COMPAT_5_2;_CRT_SECURE_NO_WARNINGS;TIC80_SHARED;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
+      <AdditionalIncludeDirectories>..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\wren-0.1.0\src\optional;..\..\..\3rd-party\wren-0.1.0\src\vm;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
-      <TreatLinkerWarningAsErrors>
-      </TreatLinkerWarningAsErrors>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>LUA_COMPAT_5_2;_CRT_SECURE_NO_WARNINGS;TIC80_SHARED;_WINDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>false</SDLCheck>
+      <AdditionalIncludeDirectories>..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\wren-0.1.0\src\optional;..\..\..\3rd-party\wren-0.1.0\src\vm;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
-      <TreatLinkerWarningAsErrors>
-      </TreatLinkerWarningAsErrors>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
