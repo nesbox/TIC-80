@@ -37,129 +37,126 @@ static WrenHandle* overlap_handle;
 
 static bool loaded = false;
 
-static char const* tic_wren_api = "                         			                            \n"
-"class Tic {                                                                                     	\n"
-"	foreign static btn(id)                                                                      	\n"
-"	foreign static btnp(id)                                                       					\n"
-"	foreign static btnp(id, hold, period)                                                       	\n"
-"	foreign static key(id)                                                                      	\n"
-"	foreign static keyp(id)                                                       					\n"
-"	foreign static keyp(id, hold, period)                                                       	\n"
-"	foreign static mouse()                                                                      	\n"
-"	foreign static font(text)                                                                   	\n"
-"	foreign static font(text, x, y)                                                             	\n"
-"	foreign static font(text, x, y, alpha_color)                                                	\n"
-"	foreign static font(text, x, y, alpha_color, w, h)                                          	\n"
-"	foreign static font(text, x, y, alpha_color, w, h, fixed)                                   	\n"
-"	foreign static font(text, x, y, alpha_color, w, h, fixed, scale)                            	\n"
-"	foreign static spr(id)                                                                      	\n"
-"	foreign static spr(id, x, y)                                                                	\n"
-"	foreign static spr(id, x, y, alpha_color)                                                   	\n"
-"	foreign static spr(id, x, y, alpha_color, scale)                                            	\n"
-"	foreign static spr(id, x, y, alpha_color, scale, flip)                                      	\n"
-"	foreign static spr(id, x, y, alpha_color, scale, flip, rotate)                              	\n"
-"	foreign static spr(id, x, y, alpha_color, scale, flip, rotate, cell_width, cell_height)     	\n"
-"	foreign static map(cell_x, cell_y)                                                          	\n"
-"	foreign static map(cell_x, cell_y, cell_w, cell_h)                                          	\n"
-"	foreign static map(cell_x, cell_y, cell_w, cell_h, x, y)                                    	\n"
-"	foreign static map(cell_x, cell_y, cell_w, cell_h, x, y, alpha_color)                       	\n"
-"	foreign static map(cell_x, cell_y, cell_w, cell_h, x, y, alpha_color, scale)                	\n"
-"	foreign static mset(cell_x, cell_y)                                                             \n"
-"	foreign static mset(cell_x, cell_y, index)                                                      \n"
-"	foreign static mget(cell_x, cell_y)                                                             \n"
-"	foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3)                           \n"
-"	foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, use_map)                  \n"
-"	foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, use_map, alpha_color)     \n"
-"	foreign static pix(x, y)                                                                        \n"
-"	foreign static pix(x, y, color)                                                                 \n"
-"	foreign static line(x0, y0, x1, y1, color)                                                      \n"
-"	foreign static circ(x, y, radius, color)                                                        \n"
-"	foreign static circb(x, y, radius, color)                                                       \n"
-"	foreign static rect(x, y, w, h, color)                                                          \n"
-"	foreign static rectb(x, y, w, h, color)                                                         \n"
-"	foreign static tri(x1, y1, x2, y2, x3, y3, color)                                               \n"
-"	foreign static cls()                                                                            \n"
-"	foreign static cls(color)                                                                       \n"
-"	foreign static clip()                                                                           \n"
-"	foreign static clip(x, y, w, h)                                                                 \n"
-"	foreign static peek(addr)                                                                       \n"
-"	foreign static poke(addr, val)                                                                  \n"
-"	foreign static peek4(addr)                                                                      \n"
-"	foreign static poke4(addr, val)                                                                 \n"
-"	foreign static memcpy(dst, src, size)                                                           \n"
-"	foreign static memset(dst, src, size)                                                           \n"
-"	foreign static pmem(index, val)                                                                 \n"
-"	foreign static sfx(id)                                                                          \n"
-"	foreign static sfx(id, note)                                                                    \n"
-"	foreign static sfx(id, note, duration)                                                          \n"
-"	foreign static sfx(id, note, duration, channel)                                                 \n"
-"	foreign static sfx(id, note, duration, channel, volume)                                         \n"
-"	foreign static sfx(id, note, duration, channel, volume, speed)                                  \n"
-"	foreign static music()                                                                          \n"
-"	foreign static music(track)                                                                     \n"
-"	foreign static music(track, frame)                                                              \n"
-"	foreign static music(track, frame, loop)                                                        \n"
-"	foreign static time()                                                                           \n"
-"	foreign static sync()                                                                           \n"
-"	foreign static sync(mask)                                                                       \n"
-"	foreign static sync(mask, bank)                                                                 \n"
-"	foreign static sync(mask, bank, tocart)                                                         \n"
-"	foreign static reset()                                                                          \n"
-"	foreign static exit()                                                                           \n"
-"	foreign static map_width__                                                                    	\n"
-"	foreign static map_height__                                                                   	\n"
-"	foreign static spritesize__                                                                   	\n"
-"	foreign static print__(v, x, y, color, fixed, scale)                                        	\n"
-"	foreign static trace__(msg, color)                                                          	\n"
-"	foreign static spr__(id, x, y, alpha_color, scale, flip, rotate)                            	\n"
-"	foreign static mgeti__(index)                                                                   \n"
-"	static print(v) { Tic.print__(v.toString, 0, 0, 15, false, 1) }                             	\n"
-"	static print(v,x,y) { Tic.print__(v.toString, x, y, 15, false, 1) }                         	\n"
-"	static print(v,x,y,color) { Tic.print__(v.toString, x, y, color, false, 1) }                	\n"
-"	static print(v,x,y,color,fixed) { Tic.print__(v.toString, x, y, color, fixed, 1) }          	\n"
-"	static print(v,x,y,color,fixed,scale) { Tic.print__(v.toString, x, y, color, fixed, scale) }	\n"
-"	static trace(v) { Tic.trace__(v.toString, 15) }                                             	\n"
-"	static trace(v,color) { Tic.trace__(v.toString, color) }                                    	\n"
-"	static map(cell_x, cell_y, cell_w, cell_h, x, y, alpha_color, scale, remap) {               	\n"
-"		var map_w = Tic.map_width__                                                               	\n"
-"		var map_h = Tic.map_height__                                                              	\n"
-"		var size = Tic.spritesize__ * scale                                                       	\n"
-"		var jj = y                                                                              	\n"
-"		var ii = x                                                                              	\n"
-"		var flip = 0                                                                            	\n"
-"		var rotate = 0                                                                          	\n"
-"		for (j in cell_y...cell_y+cell_h) {                                                     	\n"
-"			ii = x                                                                              	\n"
-"			for (i in cell_x...cell_x+cell_w) {                                                 	\n"
-"				var mi = i                                                                      	\n"
-"				var mj = j                                                                      	\n"
-"				while(mi < 0) mi = mi + map_w                                                   	\n"
-"				while(mj < 0) mj = mj + map_h                                                   	\n"
-"				while(mi >= map_w) mi = mi - map_w                                              	\n"
-"				while(mj >= map_h) mj = mj - map_h                                              	\n"
-"				var index = mi + mj * map_w                                                     	\n"
-"				var tile_index = Tic.mgeti__(index)                                            	    \n"
-"				var ret = remap.call(tile_index, mi, mj)                                            \n"
-"				if (ret.type == List) {                                                         	\n"
-"					tile_index = ret[0]                                                         	\n"
-"					flip = ret[1]                                                               	\n"
-"					rotate = ret[2]                                                             	\n"
-"				} else if (ret.type == Num) {                                                   	\n"
-"					tile_index = ret                                                            	\n"
-"				}                                                                               	\n"
-"				Tic.spr__(tile_index, ii, jj, alpha_color, scale, flip, rotate)                 	\n"
-"				ii = ii + size                                                                  	\n"
-"			}                                                                                   	\n"
-"			jj = jj + size                                                                      	\n"
-"		}                                                                                       	\n"
-"	}                                                                                           	\n"
-"}                                                                                               	\n"
-"class Engine {                                                                                  	\n"
-"	update(){}                                                                                  	\n"
-"	scanline(row){}                                                                             	\n"
-"	overlap(){}                                                                                  	\n"
-"}                                                                                               	\n"
-"";
+static char const* tic_wren_api = "\n\
+class TIC {\n\
+	foreign static btn(id)\n\
+	foreign static btnp(id)\n\
+	foreign static btnp(id, hold, period)\n\
+	foreign static key(id)\n\
+	foreign static keyp(id)\n\
+	foreign static keyp(id, hold, period)\n\
+	foreign static mouse()\n\
+	foreign static font(text)\n\
+	foreign static font(text, x, y)\n\
+	foreign static font(text, x, y, alpha_color)\n\
+	foreign static font(text, x, y, alpha_color, w, h)\n\
+	foreign static font(text, x, y, alpha_color, w, h, fixed)\n\
+	foreign static font(text, x, y, alpha_color, w, h, fixed, scale)\n\
+	foreign static spr(id)\n\
+	foreign static spr(id, x, y)\n\
+	foreign static spr(id, x, y, alpha_color)\n\
+	foreign static spr(id, x, y, alpha_color, scale)\n\
+	foreign static spr(id, x, y, alpha_color, scale, flip)\n\
+	foreign static spr(id, x, y, alpha_color, scale, flip, rotate)\n\
+	foreign static spr(id, x, y, alpha_color, scale, flip, rotate, cell_width, cell_height)\n\
+	foreign static map(cell_x, cell_y)\n\
+	foreign static map(cell_x, cell_y, cell_w, cell_h)\n\
+	foreign static map(cell_x, cell_y, cell_w, cell_h, x, y)\n\
+	foreign static map(cell_x, cell_y, cell_w, cell_h, x, y, alpha_color)\n\
+	foreign static map(cell_x, cell_y, cell_w, cell_h, x, y, alpha_color, scale)\n\
+	foreign static mset(cell_x, cell_y)\n\
+	foreign static mset(cell_x, cell_y, index)\n\
+	foreign static mget(cell_x, cell_y)\n\
+	foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3)\n\
+	foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, use_map)\n\
+	foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, use_map, alpha_color)\n\
+	foreign static pix(x, y)\n\
+	foreign static pix(x, y, color)\n\
+	foreign static line(x0, y0, x1, y1, color)\n\
+	foreign static circ(x, y, radius, color)\n\
+	foreign static circb(x, y, radius, color)\n\
+	foreign static rect(x, y, w, h, color)\n\
+	foreign static rectb(x, y, w, h, color)\n\
+	foreign static tri(x1, y1, x2, y2, x3, y3, color)\n\
+	foreign static cls()\n\
+	foreign static cls(color)\n\
+	foreign static clip()\n\
+	foreign static clip(x, y, w, h)\n\
+	foreign static peek(addr)\n\
+	foreign static poke(addr, val)\n\
+	foreign static peek4(addr)\n\
+	foreign static poke4(addr, val)\n\
+	foreign static memcpy(dst, src, size)\n\
+	foreign static memset(dst, src, size)\n\
+	foreign static pmem(index, val)\n\
+	foreign static sfx(id)\n\
+	foreign static sfx(id, note)\n\
+	foreign static sfx(id, note, duration)\n\
+	foreign static sfx(id, note, duration, channel)\n\
+	foreign static sfx(id, note, duration, channel, volume)\n\
+	foreign static sfx(id, note, duration, channel, volume, speed)\n\
+	foreign static music()\n\
+	foreign static music(track)\n\
+	foreign static music(track, frame)\n\
+	foreign static music(track, frame, loop)\n\
+	foreign static time()\n\
+	foreign static sync()\n\
+	foreign static sync(mask)\n\
+	foreign static sync(mask, bank)\n\
+	foreign static sync(mask, bank, tocart)\n\
+	foreign static reset()\n\
+	foreign static exit()\n\
+	foreign static map_width__\n\
+	foreign static map_height__\n\
+	foreign static spritesize__\n\
+	foreign static print__(v, x, y, color, fixed, scale)\n\
+	foreign static trace__(msg, color)\n\
+	foreign static spr__(id, x, y, alpha_color, scale, flip, rotate)\n\
+	foreign static mgeti__(index)\n\
+	static print(v) { TIC.print__(v.toString, 0, 0, 15, false, 1) }\n\
+	static print(v,x,y) { TIC.print__(v.toString, x, y, 15, false, 1) }\n\
+	static print(v,x,y,color) { TIC.print__(v.toString, x, y, color, false, 1) }\n\
+	static print(v,x,y,color,fixed) { TIC.print__(v.toString, x, y, color, fixed, 1) }\n\
+	static print(v,x,y,color,fixed,scale) { TIC.print__(v.toString, x, y, color, fixed, scale) }\n\
+	static trace(v) { TIC.trace__(v.toString, 15) }\n\
+	static trace(v,color) { TIC.trace__(v.toString, color) }\n\
+	static map(cell_x, cell_y, cell_w, cell_h, x, y, alpha_color, scale, remap) {\n\
+		var map_w = TIC.map_width__\n\
+		var map_h = TIC.map_height__\n\
+		var size = TIC.spritesize__ * scale\n\
+		var jj = y\n\
+		var ii = x\n\
+		var flip = 0\n\
+		var rotate = 0\n\
+		for (j in cell_y...cell_y+cell_h) {\n\
+			ii = x\n\
+			for (i in cell_x...cell_x+cell_w) {\n\
+				var mi = i\n\
+				var mj = j\n\
+				while(mi < 0) mi = mi + map_w\n\
+				while(mj < 0) mj = mj + map_h\n\
+				while(mi >= map_w) mi = mi - map_w\n\
+				while(mj >= map_h) mj = mj - map_h\n\
+				var index = mi + mj * map_w\n\
+				var tile_index = TIC.mgeti__(index)\n\
+				var ret = remap.call(tile_index, mi, mj)\n\
+				if (ret.type == List) {\n\
+					tile_index = ret[0]\n\
+					flip = ret[1]\n\
+					rotate = ret[2]\n\
+				} else if (ret.type == Num) {\n\
+					tile_index = ret\n\
+				}\n\
+				TIC.spr__(tile_index, ii, jj, alpha_color, scale, flip, rotate)\n\
+				ii = ii + size\n\
+			}\n\
+			jj = jj + size\n\
+		}\n\
+	}\n\
+	" TIC_FN "(){}\n\
+	" SCN_FN "(row){}\n\
+	" OVR_FN "(){}\n\
+}\n";
 
 static inline void wrenError(WrenVM* vm, const char* msg)
 {
@@ -1079,94 +1076,95 @@ static void wren_exit(WrenVM* vm)
 
 static const char* const ApiKeywords[] = API_KEYWORDS;
 
-WrenForeignMethodFn foreignTicMethods(const char* signature){
+static WrenForeignMethodFn foreignTicMethods(const char* signature)
+{
 
-	if (strcmp(signature, "static Tic.btn(_)"                	) == 0) return wren_btn;
-	if (strcmp(signature, "static Tic.btnp(_)"                  ) == 0) return wren_btnp;
-	if (strcmp(signature, "static Tic.btnp(_,_,_)"              ) == 0) return wren_btnp;
-	if (strcmp(signature, "static Tic.key(_)"                   ) == 0) return wren_key;
-	if (strcmp(signature, "static Tic.keyp(_)"                  ) == 0) return wren_keyp;
-	if (strcmp(signature, "static Tic.keyp(_,_,_)"              ) == 0) return wren_keyp;
-	if (strcmp(signature, "static Tic.mouse()"                	) == 0) return wren_mouse;
+	if (strcmp(signature, "static TIC.btn(_)"                	) == 0) return wren_btn;
+	if (strcmp(signature, "static TIC.btnp(_)"                  ) == 0) return wren_btnp;
+	if (strcmp(signature, "static TIC.btnp(_,_,_)"              ) == 0) return wren_btnp;
+	if (strcmp(signature, "static TIC.key(_)"                   ) == 0) return wren_key;
+	if (strcmp(signature, "static TIC.keyp(_)"                  ) == 0) return wren_keyp;
+	if (strcmp(signature, "static TIC.keyp(_,_,_)"              ) == 0) return wren_keyp;
+	if (strcmp(signature, "static TIC.mouse()"                	) == 0) return wren_mouse;
 
-	if (strcmp(signature, "static Tic.font(_)"	                ) == 0) return wren_font;
-	if (strcmp(signature, "static Tic.font(_,_,_)"	            ) == 0) return wren_font;
-	if (strcmp(signature, "static Tic.font(_,_,_,_)"	        ) == 0) return wren_font;
-	if (strcmp(signature, "static Tic.font(_,_,_,_,_,_)"	    ) == 0) return wren_font;
-	if (strcmp(signature, "static Tic.font(_,_,_,_,_,_,_)"	    ) == 0) return wren_font;
-	if (strcmp(signature, "static Tic.font(_,_,_,_,_,_,_,_)"	) == 0) return wren_font;
+	if (strcmp(signature, "static TIC.font(_)"	                ) == 0) return wren_font;
+	if (strcmp(signature, "static TIC.font(_,_,_)"	            ) == 0) return wren_font;
+	if (strcmp(signature, "static TIC.font(_,_,_,_)"	        ) == 0) return wren_font;
+	if (strcmp(signature, "static TIC.font(_,_,_,_,_,_)"	    ) == 0) return wren_font;
+	if (strcmp(signature, "static TIC.font(_,_,_,_,_,_,_)"	    ) == 0) return wren_font;
+	if (strcmp(signature, "static TIC.font(_,_,_,_,_,_,_,_)"	) == 0) return wren_font;
 
-	if (strcmp(signature, "static Tic.spr(_)"	                ) == 0) return wren_spr;
-	if (strcmp(signature, "static Tic.spr(_,_,_)"	            ) == 0) return wren_spr;
-	if (strcmp(signature, "static Tic.spr(_,_,_,_)"	            ) == 0) return wren_spr;
-	if (strcmp(signature, "static Tic.spr(_,_,_,_,_)"	        ) == 0) return wren_spr;
-	if (strcmp(signature, "static Tic.spr(_,_,_,_,_,_)"	        ) == 0) return wren_spr;
-	if (strcmp(signature, "static Tic.spr(_,_,_,_,_,_,_)"	    ) == 0) return wren_spr;
-	if (strcmp(signature, "static Tic.spr(_,_,_,_,_,_,_,_,_)"	) == 0) return wren_spr;
+	if (strcmp(signature, "static TIC.spr(_)"	                ) == 0) return wren_spr;
+	if (strcmp(signature, "static TIC.spr(_,_,_)"	            ) == 0) return wren_spr;
+	if (strcmp(signature, "static TIC.spr(_,_,_,_)"	            ) == 0) return wren_spr;
+	if (strcmp(signature, "static TIC.spr(_,_,_,_,_)"	        ) == 0) return wren_spr;
+	if (strcmp(signature, "static TIC.spr(_,_,_,_,_,_)"	        ) == 0) return wren_spr;
+	if (strcmp(signature, "static TIC.spr(_,_,_,_,_,_,_)"	    ) == 0) return wren_spr;
+	if (strcmp(signature, "static TIC.spr(_,_,_,_,_,_,_,_,_)"	) == 0) return wren_spr;
 
-	if (strcmp(signature, "static Tic.map(_,_)"	                ) == 0) return wren_map;
-	if (strcmp(signature, "static Tic.map(_,_,_,_)"	            ) == 0) return wren_map;
-	if (strcmp(signature, "static Tic.map(_,_,_,_,_,_)"	        ) == 0) return wren_map;
-	if (strcmp(signature, "static Tic.map(_,_,_,_,_,_,_)"	    ) == 0) return wren_map;
-	if (strcmp(signature, "static Tic.map(_,_,_,_,_,_,_,_)"	    ) == 0) return wren_map;
+	if (strcmp(signature, "static TIC.map(_,_)"	                ) == 0) return wren_map;
+	if (strcmp(signature, "static TIC.map(_,_,_,_)"	            ) == 0) return wren_map;
+	if (strcmp(signature, "static TIC.map(_,_,_,_,_,_)"	        ) == 0) return wren_map;
+	if (strcmp(signature, "static TIC.map(_,_,_,_,_,_,_)"	    ) == 0) return wren_map;
+	if (strcmp(signature, "static TIC.map(_,_,_,_,_,_,_,_)"	    ) == 0) return wren_map;
 
-	if (strcmp(signature, "static Tic.mset(_,_)"	            ) == 0) return wren_mset;
-	if (strcmp(signature, "static Tic.mset(_,_,_)"	            ) == 0) return wren_mset;
-	if (strcmp(signature, "static Tic.mget(_,_)"	            ) == 0) return wren_mget;
+	if (strcmp(signature, "static TIC.mset(_,_)"	            ) == 0) return wren_mset;
+	if (strcmp(signature, "static TIC.mset(_,_,_)"	            ) == 0) return wren_mset;
+	if (strcmp(signature, "static TIC.mget(_,_)"	            ) == 0) return wren_mget;
 
-	if (strcmp(signature, "static Tic.textri(_,_,_,_,_,_,_,_,_,_,_,_)"	     ) == 0) return wren_textri;
-	if (strcmp(signature, "static Tic.textri(_,_,_,_,_,_,_,_,_,_,_,_,_)"	 ) == 0) return wren_textri;
-	if (strcmp(signature, "static Tic.textri(_,_,_,_,_,_,_,_,_,_,_,_,_,_)"	 ) == 0) return wren_textri;
+	if (strcmp(signature, "static TIC.textri(_,_,_,_,_,_,_,_,_,_,_,_)"	     ) == 0) return wren_textri;
+	if (strcmp(signature, "static TIC.textri(_,_,_,_,_,_,_,_,_,_,_,_,_)"	 ) == 0) return wren_textri;
+	if (strcmp(signature, "static TIC.textri(_,_,_,_,_,_,_,_,_,_,_,_,_,_)"	 ) == 0) return wren_textri;
 
-	if (strcmp(signature, "static Tic.pix(_,_)"          		) == 0) return wren_pix;
-	if (strcmp(signature, "static Tic.pix(_,_,_)"        		) == 0) return wren_pix;
-	if (strcmp(signature, "static Tic.line(_,_,_,_,_)"   		) == 0) return wren_line;
-	if (strcmp(signature, "static Tic.circ(_,_,_,_)"     		) == 0) return wren_circ;
-	if (strcmp(signature, "static Tic.circb(_,_,_,_)"    		) == 0) return wren_circb;
-	if (strcmp(signature, "static Tic.rect(_,_,_,_,_)"   		) == 0) return wren_rect;
-	if (strcmp(signature, "static Tic.rectb(_,_,_,_,_)"  		) == 0) return wren_rectb;
-	if (strcmp(signature, "static Tic.tri(_,_,_,_,_,_,_)"		) == 0) return wren_tri;
+	if (strcmp(signature, "static TIC.pix(_,_)"          		) == 0) return wren_pix;
+	if (strcmp(signature, "static TIC.pix(_,_,_)"        		) == 0) return wren_pix;
+	if (strcmp(signature, "static TIC.line(_,_,_,_,_)"   		) == 0) return wren_line;
+	if (strcmp(signature, "static TIC.circ(_,_,_,_)"     		) == 0) return wren_circ;
+	if (strcmp(signature, "static TIC.circb(_,_,_,_)"    		) == 0) return wren_circb;
+	if (strcmp(signature, "static TIC.rect(_,_,_,_,_)"   		) == 0) return wren_rect;
+	if (strcmp(signature, "static TIC.rectb(_,_,_,_,_)"  		) == 0) return wren_rectb;
+	if (strcmp(signature, "static TIC.tri(_,_,_,_,_,_,_)"		) == 0) return wren_tri;
 
-	if (strcmp(signature, "static Tic.cls()"                    ) == 0) return wren_cls;
-	if (strcmp(signature, "static Tic.cls(_)"                   ) == 0) return wren_cls;
-	if (strcmp(signature, "static Tic.clip()"                   ) == 0) return wren_clip;
-	if (strcmp(signature, "static Tic.clip(_,_,_,_)"            ) == 0) return wren_clip;
+	if (strcmp(signature, "static TIC.cls()"                    ) == 0) return wren_cls;
+	if (strcmp(signature, "static TIC.cls(_)"                   ) == 0) return wren_cls;
+	if (strcmp(signature, "static TIC.clip()"                   ) == 0) return wren_clip;
+	if (strcmp(signature, "static TIC.clip(_,_,_,_)"            ) == 0) return wren_clip;
 
-	if (strcmp(signature, "static Tic.peek(_)"      			) == 0) return wren_peek;
-	if (strcmp(signature, "static Tic.poke(_,_)"    			) == 0) return wren_poke;
-	if (strcmp(signature, "static Tic.peek4(_)"     			) == 0) return wren_peek4;
-	if (strcmp(signature, "static Tic.poke4(_,_)"   			) == 0) return wren_poke4;
-	if (strcmp(signature, "static Tic.memcpy(_,_,_)"			) == 0) return wren_memcpy;
-	if (strcmp(signature, "static Tic.memset(_,_,_)"			) == 0) return wren_memset;
-	if (strcmp(signature, "static Tic.pmem(_,_)"    			) == 0) return wren_pmem;
+	if (strcmp(signature, "static TIC.peek(_)"      			) == 0) return wren_peek;
+	if (strcmp(signature, "static TIC.poke(_,_)"    			) == 0) return wren_poke;
+	if (strcmp(signature, "static TIC.peek4(_)"     			) == 0) return wren_peek4;
+	if (strcmp(signature, "static TIC.poke4(_,_)"   			) == 0) return wren_poke4;
+	if (strcmp(signature, "static TIC.memcpy(_,_,_)"			) == 0) return wren_memcpy;
+	if (strcmp(signature, "static TIC.memset(_,_,_)"			) == 0) return wren_memset;
+	if (strcmp(signature, "static TIC.pmem(_,_)"    			) == 0) return wren_pmem;
 
-	if (strcmp(signature, "static Tic.sfx(_)"    		        ) == 0) return wren_sfx;
-	if (strcmp(signature, "static Tic.sfx(_,_)"    		        ) == 0) return wren_sfx;
-	if (strcmp(signature, "static Tic.sfx(_,_,_)"    		    ) == 0) return wren_sfx;
-	if (strcmp(signature, "static Tic.sfx(_,_,_,_)"    		    ) == 0) return wren_sfx;
-	if (strcmp(signature, "static Tic.sfx(_,_,_,_,_)"    		) == 0) return wren_sfx;
-	if (strcmp(signature, "static Tic.sfx(_,_,_,_,_,_)"    		) == 0) return wren_sfx;
-	if (strcmp(signature, "static Tic.music()"    			    ) == 0) return wren_music;
-	if (strcmp(signature, "static Tic.music(_)"    			    ) == 0) return wren_music;
-	if (strcmp(signature, "static Tic.music(_,_)"    			) == 0) return wren_music;
-	if (strcmp(signature, "static Tic.music(_,_,_)"    			) == 0) return wren_music;
+	if (strcmp(signature, "static TIC.sfx(_)"    		        ) == 0) return wren_sfx;
+	if (strcmp(signature, "static TIC.sfx(_,_)"    		        ) == 0) return wren_sfx;
+	if (strcmp(signature, "static TIC.sfx(_,_,_)"    		    ) == 0) return wren_sfx;
+	if (strcmp(signature, "static TIC.sfx(_,_,_,_)"    		    ) == 0) return wren_sfx;
+	if (strcmp(signature, "static TIC.sfx(_,_,_,_,_)"    		) == 0) return wren_sfx;
+	if (strcmp(signature, "static TIC.sfx(_,_,_,_,_,_)"    		) == 0) return wren_sfx;
+	if (strcmp(signature, "static TIC.music()"    			    ) == 0) return wren_music;
+	if (strcmp(signature, "static TIC.music(_)"    			    ) == 0) return wren_music;
+	if (strcmp(signature, "static TIC.music(_,_)"    			) == 0) return wren_music;
+	if (strcmp(signature, "static TIC.music(_,_,_)"    			) == 0) return wren_music;
 
-	if (strcmp(signature, "static Tic.time()"    			    ) == 0) return wren_time;
-	if (strcmp(signature, "static Tic.sync()"    			    ) == 0) return wren_sync;
-	if (strcmp(signature, "static Tic.sync(_)"                  ) == 0) return wren_sync;
-	if (strcmp(signature, "static Tic.sync(_,_)"                ) == 0) return wren_sync;
-	if (strcmp(signature, "static Tic.sync(_,_,_)"              ) == 0) return wren_sync;
-	if (strcmp(signature, "static Tic.reset()"    			    ) == 0) return wren_reset;
-	if (strcmp(signature, "static Tic.exit()"    			    ) == 0) return wren_exit;
+	if (strcmp(signature, "static TIC.time()"    			    ) == 0) return wren_time;
+	if (strcmp(signature, "static TIC.sync()"    			    ) == 0) return wren_sync;
+	if (strcmp(signature, "static TIC.sync(_)"                  ) == 0) return wren_sync;
+	if (strcmp(signature, "static TIC.sync(_,_)"                ) == 0) return wren_sync;
+	if (strcmp(signature, "static TIC.sync(_,_,_)"              ) == 0) return wren_sync;
+	if (strcmp(signature, "static TIC.reset()"    			    ) == 0) return wren_reset;
+	if (strcmp(signature, "static TIC.exit()"    			    ) == 0) return wren_exit;
 
 	// internal functions
-	if (strcmp(signature, "static Tic.map_width__"                ) == 0) return wren_map_width;
-	if (strcmp(signature, "static Tic.map_height__"               ) == 0) return wren_map_height;
-	if (strcmp(signature, "static Tic.spritesize__"               ) == 0) return wren_spritesize;
-	if (strcmp(signature, "static Tic.print__(_,_,_,_,_,_)"     ) == 0) return wren_print;
-	if (strcmp(signature, "static Tic.trace__(_,_)"             ) == 0) return wren_trace;
-	if (strcmp(signature, "static Tic.spr__(_,_,_,_,_,_,_)"	    ) == 0) return wren_spr_internal;
-	if (strcmp(signature, "static Tic.mgeti__(_)"                 ) == 0) return wren_mgeti;
+	if (strcmp(signature, "static TIC.map_width__"                ) == 0) return wren_map_width;
+	if (strcmp(signature, "static TIC.map_height__"               ) == 0) return wren_map_height;
+	if (strcmp(signature, "static TIC.spritesize__"               ) == 0) return wren_spritesize;
+	if (strcmp(signature, "static TIC.print__(_,_,_,_,_,_)"     ) == 0) return wren_print;
+	if (strcmp(signature, "static TIC.trace__(_,_)"             ) == 0) return wren_trace;
+	if (strcmp(signature, "static TIC.spr__(_,_,_,_,_,_,_)"	    ) == 0) return wren_spr_internal;
+	if (strcmp(signature, "static TIC.mgeti__(_)"                 ) == 0) return wren_mgeti;
 
 	return NULL;
 }
@@ -1259,9 +1257,9 @@ static bool initWren(tic_mem* tic, const char* code)
 	game_class = wrenGetSlotHandle(vm, 0); // handle from game class 
 
 	new_handle = wrenMakeCallHandle(vm, "new()");
-	update_handle = wrenMakeCallHandle(vm, "update()");
-	scanline_handle = wrenMakeCallHandle(vm, "scanline(_)");
-	overlap_handle = wrenMakeCallHandle(vm, "overlap()");
+	update_handle = wrenMakeCallHandle(vm, TIC_FN "()");
+	scanline_handle = wrenMakeCallHandle(vm, SCN_FN "(_)");
+	overlap_handle = wrenMakeCallHandle(vm, OVR_FN "()");
 
 	// create game class
 	if (game_class)
@@ -1331,8 +1329,6 @@ static const char* const WrenKeywords [] =
 	"return", "static", "super", "var", "while", "this"
 };
 
-static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
-
 static const tic_outline_item* getWrenOutline(const char* code, s32* size)
 {
 	enum{Size = sizeof(tic_outline_item)};
@@ -1340,55 +1336,6 @@ static const tic_outline_item* getWrenOutline(const char* code, s32* size)
 	*size = 0;
 
 	static tic_outline_item* items = NULL;
-
-	if(items)
-	{
-		free(items);
-		items = NULL;
-	}
-
-	const char* ptr = code;
-
-	while(true)
-	{
-		static const char FuncString[] = "function ";
-
-		ptr = strstr(ptr, FuncString);
-
-		if(ptr)
-		{
-			ptr += sizeof FuncString - 1;
-
-			const char* start = ptr;
-			const char* end = start;
-
-			while(*ptr)
-			{
-				char c = *ptr;
-
-				if(isalnum_(c));
-				else if(c == '(')
-				{
-					end = ptr;
-					break;
-				}
-				else break;
-
-				ptr++;
-			}
-
-			if(end > start)
-			{
-				items = items ? realloc(items, (*size + 1) * Size) : malloc(Size);
-
-				items[*size].pos = start - code;
-				items[*size].size = end - start;
-
-				(*size)++;
-			}
-		}
-		else break;
-	}
 
 	return items;
 }
