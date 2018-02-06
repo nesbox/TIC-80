@@ -46,7 +46,8 @@ LINUX_INCLUDES= \
 
 LINUX_LIBS= \
 	$(GTK_LIBS) \
-	`sdl2-config --static-libs`
+	`sdl2-config --static-libs` \
+	-L$(3RD_PARTY)/wren-0.1.0/lib
 
 LINUX64_LIBS= \
 	$(GTK_LIBS) \
