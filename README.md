@@ -29,7 +29,10 @@ This version has a few aditional features and can only be download on [our Itch.
 For users who can't spend the money, we made it easy to build the pro version from the source code.
 
 ### Pro features
+
+- Save/load cartridges in text format, and create your game in any editor you want, also useful for version control systems.
 - Even more memory banks: instead of having only 1 memory bank you have 8.
+- Export your game only without editors, and then publish it to app stores (WIP).
 
 # Community
 You can play and share games, tools and music at [tic.computer](https://tic.computer/play).
