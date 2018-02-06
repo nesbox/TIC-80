@@ -2993,6 +2993,9 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 				else if(strcmp(arg, "-skip") == 0)
 					console->skipStart = true;
 
+				else if(strcmp(arg, "-save") == 0)
+					saveCart(console);
+
 				else continue;
 
 				argp |= 0b1 << i;
