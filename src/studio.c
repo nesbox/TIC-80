@@ -2823,25 +2823,13 @@ s32 main(s32 argc, char **argv)
 	}
 	else createFileSystem(NULL, onFSInitialized);
 
-	emscripten_set_main_loop(emstick, TIC_FRAMERATE, 1);
+	emscripten_set_main_loop(getConfig()->useVsync ? tick : emstick, TIC_FRAMERATE, 1);
 
 #else
 
 	createFileSystem(argc > 1 && fsExists(argv[1]) ? fsBasename(argv[1]) : NULL, onFSInitialized);
 
 	{
-
-		bool useDelay = false;
-		{
-			SDL_RendererInfo info;
-			SDL_DisplayMode mode;
-
-			SDL_GetRendererInfo(studio.renderer, &info);
-			SDL_GetCurrentDisplayMode(SDL_GetWindowDisplayIndex(studio.window), &mode);
-
-			useDelay = !(info.flags & SDL_RENDERER_PRESENTVSYNC) || mode.refresh_rate > TIC_FRAMERATE;
-		}
-
 		u64 nextTick = SDL_GetPerformanceCounter();
 		const u64 Delta = SDL_GetPerformanceFrequency() / TIC_FRAMERATE;
 
@@ -2860,15 +2848,7 @@ s32 main(s32 argc, char **argv)
 					nextTick -= delay;
 					studio.missedFrame = true;
 				}
-				else
-				{
-					if(useDelay || SDL_GetWindowFlags(studio.window) & SDL_WINDOW_MINIMIZED)
-					{
-						u32 time = (u32)(delay * 1000 / SDL_GetPerformanceFrequency());
-						if(time >= 10)
-							SDL_Delay(time);
-					}
-				}
+				else SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
 			}
 		}
 	}
