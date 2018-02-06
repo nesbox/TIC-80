@@ -29,6 +29,7 @@
 
 #include <zlib.h>
 #include <ctype.h>
+#include <string.h>
 
 #define CONSOLE_CURSOR_COLOR ((tic_color_red))
 #define CONSOLE_BACK_TEXT_COLOR ((tic_color_dark_gray))
@@ -49,7 +50,7 @@ typedef enum
 	WrenScript,
 } ScriptLang;
 
-#if defined(__WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
+#if defined(__TIC_WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
 #define CAN_EXPORT 1
 #endif
 
@@ -67,7 +68,7 @@ typedef struct
 
 #endif
 
-#if defined(__WINDOWS__)
+#if defined(__TIC_WINDOWS__)
 static const char* ExeExt = ".exe";
 #endif
 
@@ -297,7 +298,7 @@ static void onConsoleExitCommand(Console* console, const char* param)
 static s32 writeGifData(const tic_mem* tic, u8* dst, const u8* src, s32 width, s32 height)
 {
 	s32 size = 0;
-	gif_color* palette = (gif_color*)SDL_malloc(sizeof(gif_color) * TIC_PALETTE_SIZE);
+	gif_color* palette = (gif_color*)malloc(sizeof(gif_color) * TIC_PALETTE_SIZE);
 
 	if(palette)
 	{
@@ -307,7 +308,7 @@ static s32 writeGifData(const tic_mem* tic, u8* dst, const u8* src, s32 width, s
 
 		gif_write_data(dst, &size, width, height, src, palette, TIC_PALETTE_BPP);
 
-		SDL_free(palette);
+		free(palette);
 	}
 
 	return size;
@@ -351,7 +352,7 @@ static bool onConsoleLoadSectionCommand(Console* console, const char* param)
 		for(s32 i = 0; i < COUNT_OF(Sections); i++)
 		{
 			sprintf(buf, "%s %s", CART_EXT, Sections[i]);
-			char* pos = SDL_strstr(param, buf);
+			char* pos = strstr(param, buf);
 
 			if(pos)
 			{
@@ -362,7 +363,7 @@ static bool onConsoleLoadSectionCommand(Console* console, const char* param)
 
 				if(data)
 				{
-					tic_cartridge* cart = (tic_cartridge*)SDL_malloc(sizeof(tic_cartridge));
+					tic_cartridge* cart = (tic_cartridge*)malloc(sizeof(tic_cartridge));
 
 					if(cart)
 					{
@@ -388,12 +389,12 @@ static bool onConsoleLoadSectionCommand(Console* console, const char* param)
 						printFront(console, name);
 						printLine(console);
 
-						SDL_free(cart);
+						free(cart);
 
 						result = true;
 					}
 
-					SDL_free(data);
+					free(data);
 				}
 				else printBack(console, "\ncart loading error");
 
@@ -520,7 +521,7 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 	printFront(console, console->romName);
 	printBack(console, " loaded!\n");
 
-	SDL_free(data);
+	free(data);
 }
 
 static void onCartLoaded(Console* console, const char* name)
@@ -703,7 +704,7 @@ static bool loadTextSection(const char* project, const char* comment, char* dst,
 		char tagstart[16];
 		sprintf(tagstart, "\n%s <", comment);
 
-		const char* ptr = SDL_strstr(project, tagstart);
+		const char* ptr = strstr(project, tagstart);
 
 		if(ptr && ptr < end)
 			end = ptr;
@@ -711,7 +712,7 @@ static bool loadTextSection(const char* project, const char* comment, char* dst,
 
 	if(end > start)
 	{
-		SDL_memcpy(dst, start, SDL_min(size, end - start));
+		memcpy(dst, start, MIN(size, end - start));
 		done = true;
 	}
 
@@ -730,7 +731,7 @@ static bool loadTextSectionBank(const char* project, const char* comment, const 
 	char tagbuf[64];
 	sprintf(tagbuf, "%s <%s>", comment, tag);
 
-	const char* start = SDL_strstr(project, tagbuf);
+	const char* start = strstr(project, tagbuf);
 	bool done = false;
 
 	if(start)
@@ -739,11 +740,11 @@ static bool loadTextSectionBank(const char* project, const char* comment, const 
 		start = getLineEnd(start);
 
 		sprintf(tagbuf, "\n%s </%s>", comment, tag);
-		const char* end = SDL_strstr(start, tagbuf);
+		const char* end = strstr(start, tagbuf);
 
 		if(end > start)
 		{
-			SDL_memcpy(dst, start, SDL_min(size, end - start));
+			memcpy(dst, start, MIN(size, end - start));
 			
 			done = true;
 		}
@@ -757,7 +758,7 @@ static bool loadBinarySection(const char* project, const char* comment, const ch
 	char tagbuf[64];
 	sprintf(tagbuf, "%s <%s>", comment, tag);
 
-	const char* start = SDL_strstr(project, tagbuf);
+	const char* start = strstr(project, tagbuf);
 	bool done = false;
 
 	if(start)
@@ -766,7 +767,7 @@ static bool loadBinarySection(const char* project, const char* comment, const ch
 		start = getLineEnd(start);
 
 		sprintf(tagbuf, "\n%s </%s>", comment, tag);
-		const char* end = SDL_strstr(start, tagbuf);
+		const char* end = strstr(start, tagbuf);
 
 		if(end > start)
 		{
@@ -779,7 +780,7 @@ static bool loadBinarySection(const char* project, const char* comment, const ch
 					static char lineStr[] = "999";
 					memcpy(lineStr, ptr + sizeof("-- ") - 1, sizeof lineStr - 1);
 
-					s32 index = SDL_atoi(lineStr);
+					s32 index = atoi(lineStr);
 					
 					if(index < count)
 					{
@@ -809,13 +810,13 @@ static bool loadProject(Console* console, const char* name, const char* data, s3
 {
 	tic_mem* tic = console->tic;
 
-	char* project = (char*)SDL_malloc(size+1);
+	char* project = (char*)malloc(size+1);
 
 	bool done = false;
 
 	if(project)
 	{
-		SDL_memcpy(project, data, size);
+		memcpy(project, data, size);
 		project[size] = '\0';
 
 		// remove all the '\r' chars
@@ -824,12 +825,12 @@ static bool loadProject(Console* console, const char* name, const char* data, s3
 			for(s = d = project; (*d = *s); d += (*s++ != '\r'));
 		}
 
-		tic_cartridge* cart = (tic_cartridge*)SDL_malloc(sizeof(tic_cartridge));
+		tic_cartridge* cart = (tic_cartridge*)malloc(sizeof(tic_cartridge));
 
 		if(cart)
 		{
-			SDL_memset(cart, 0, sizeof(tic_cartridge));
-			SDL_memcpy(&cart->palette, &tic->config.palette.data, sizeof(tic_palette));
+			memset(cart, 0, sizeof(tic_cartridge));
+			memcpy(&cart->palette, &tic->config.palette.data, sizeof(tic_palette));
 
 			const char* comment = projectComment(name);
 			char tag[16];
@@ -864,12 +865,12 @@ static bool loadProject(Console* console, const char* name, const char* data, s3
 			if(loadBinarySection(project, comment, "COVER", 1, &cart->cover, -1, true))
 				done = true;
 			
-			SDL_memcpy(dst, cart, sizeof(tic_cartridge));
+			memcpy(dst, cart, sizeof(tic_cartridge));
 
-			SDL_free(cart);
+			free(cart);
 		}
 
-		SDL_free(project);
+		free(project);
 	}
 
 	return done;
@@ -886,20 +887,20 @@ static void updateProject(Console* console)
 
 		if(data)
 		{
-			tic_cartridge* cart = SDL_malloc(sizeof(tic_cartridge));
+			tic_cartridge* cart = malloc(sizeof(tic_cartridge));
 
 			if(cart)
 			{
 				if(loadProject(console, console->romName, data, size, cart))
 				{
-					SDL_memcpy(&tic->cart, cart, sizeof(tic_cartridge));
+					memcpy(&tic->cart, cart, sizeof(tic_cartridge));
 
 					studioRomLoaded();
 				}
 				
-				SDL_free(cart);
+				free(cart);
 			}
-			SDL_free(data);
+			free(data);
 
 		}		
 	}
@@ -928,7 +929,7 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 
 			onCartLoaded(console, name);
 
-			SDL_free(data);
+			free(data);
 		}
 		else
 		{
@@ -951,7 +952,7 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 				loadProject(console, name, data, size, &console->tic->cart);
 				onCartLoaded(console, name);
 
-				SDL_free(data);
+				free(data);
 			}
 			else
 			{
@@ -988,16 +989,16 @@ static void onConfirm(bool yes, void* data)
 	else commandDone(confirmData->console);
 
 	if(confirmData->param)
-		SDL_free(confirmData->param);
+		free(confirmData->param);
 
-	SDL_free(confirmData);
+	free(confirmData);
 }
 
 static void confirmCommand(Console* console, const char** text, s32 rows, const char* param, ConfirmCallback callback)
 {
-	CommandConfirmData* data = SDL_malloc(sizeof(CommandConfirmData));
+	CommandConfirmData* data = malloc(sizeof(CommandConfirmData));
 	data->console = console;
-	data->param = param ? SDL_strdup(param) : NULL;
+	data->param = param ? strdup(param) : NULL;
 	data->callback = callback;
 
 	showDialog(text, rows, onConfirm, data);
@@ -1054,10 +1055,10 @@ static void loadDemo(Console* console, ScriptLang script)
 	{
 		loadRom(console->tic, data, size, false);
 
-		SDL_free(data);
+		free(data);
 	}
 
-	SDL_memset(console->romName, 0, sizeof console->romName);
+	memset(console->romName, 0, sizeof console->romName);
 
 	studioRomLoaded();
 }
@@ -1217,7 +1218,7 @@ static void installDemoCart(FileSystem* fs, const char* name, const void* cart, 
 	u8* data = NULL;
 	s32 dataSize = unzip(&data, cart, size);
 	fsSaveFile(fs, name, data, dataSize, true);
-	SDL_free(data);
+	free(data);
 }
 
 static void onConsoleInstallDemosCommand(Console* console, const char* param)
@@ -1391,7 +1392,7 @@ static void onImportCover(const char* name, const void* buffer, size_t size, voi
 					if(size <= sizeof console->tic->cart.cover.data)
 					{
 						console->tic->cart.cover.size = size;
-						SDL_memcpy(console->tic->cart.cover.data, buffer, size);
+						memcpy(console->tic->cart.cover.data, buffer, size);
 
 						printLine(console);
 						printBack(console, name);
@@ -1434,8 +1435,8 @@ static void onImportSprites(const char* name, const void* buffer, size_t size, v
 					Height = TIC_SPRITESHEET_SIZE*2,
 				};
 
-				s32 w = SDL_min(Width, image->width);
-				s32 h = SDL_min(Height, image->height);
+				s32 w = MIN(Width, image->width);
+				s32 h = MIN(Height, image->height);
 
 				for (s32 y = 0; y < h; y++)
 					for (s32 x = 0; x < w; x++)
@@ -1467,8 +1468,8 @@ static void injectMap(Console* console, const void* buffer, s32 size)
 {
 	enum {Size = sizeof(tic_map)};
 
-	SDL_memset(getBankMap(), 0, Size);
-	SDL_memcpy(getBankMap(), buffer, SDL_min(size, Size));
+	memset(getBankMap(), 0, Size);
+	memcpy(getBankMap(), buffer, MIN(size, Size));
 }
 
 static void onImportMap(const char* name, const void* buffer, size_t size, void* data)
@@ -1538,7 +1539,7 @@ static void exportCover(Console* console)
 
 	if(cover->size)
 	{
-		void* data = SDL_malloc(cover->size);
+		void* data = malloc(cover->size);
 		memcpy(data, cover->data, cover->size);
 		fsGetFileData(onCoverExported, "cover.gif", data, cover->size, DEFAULT_CHMOD, console);
 	}
@@ -1558,11 +1559,11 @@ static void exportSprites(Console* console)
 	};
 
 	enum{ Size = Width * Height * sizeof(gif_color)};
-	u8* buffer = (u8*)SDL_malloc(Size);
+	u8* buffer = (u8*)malloc(Size);
 
 	if(buffer)
 	{
-		u8* data = (u8*)SDL_malloc(Width * Height);
+		u8* data = (u8*)malloc(Width * Height);
 
 		if(data)
 		{
@@ -1580,10 +1581,10 @@ static void exportSprites(Console* console)
 			{
 				printError(console, "\nsprite export error :(");
 				commandDone(console);
-				SDL_free(buffer);
+				free(buffer);
 			}
 
-			SDL_free(data);
+			free(data);
 		}
 	}
 }
@@ -1604,11 +1605,11 @@ static void exportMap(Console* console)
 {
 	enum{Size = sizeof(tic_map)};
 
-	void* buffer = SDL_malloc(Size);
+	void* buffer = malloc(Size);
 
 	if(buffer)
 	{
-		SDL_memcpy(buffer, getBankMap()->data, Size);
+		memcpy(buffer, getBankMap()->data, Size);
 		fsGetFileData(onMapExported, "world.map", buffer, Size, DEFAULT_CHMOD, console);
 	}
 }
@@ -1721,14 +1722,14 @@ static void onConsoleExportHtmlCommand(Console* console, const char* name)
 
 	if(ptr)
 	{
-		MemoryBuffer output = {(u8*)SDL_malloc(EmbedTicJsSize * 2), 0};
+		MemoryBuffer output = {(u8*)malloc(EmbedTicJsSize * 2), 0};
 
 		if(output.data)
 		{
 			writeMemoryData(&output, EmbedIndex, ptr - EmbedIndex);
 			writeMemoryString(&output, "<script type='text/javascript'>\n");
 
-			u8* buffer = (u8*)SDL_malloc(sizeof(tic_cartridge));
+			u8* buffer = (u8*)malloc(sizeof(tic_cartridge));
 
 			if(buffer)
 			{
@@ -1741,10 +1742,10 @@ static void onConsoleExportHtmlCommand(Console* console, const char* name)
 					// zip buffer
 					{
 						unsigned long outSize = sizeof(tic_cartridge);
-						u8* output = (u8*)SDL_malloc(outSize);
+						u8* output = (u8*)malloc(outSize);
 
 						compress2(output, &outSize, buffer, size, Z_BEST_COMPRESSION);
-						SDL_free(buffer);
+						free(buffer);
 
 						buffer = output;
 						size = outSize;
@@ -1762,7 +1763,7 @@ static void onConsoleExportHtmlCommand(Console* console, const char* name)
 						}
 					}
 
-					SDL_free(buffer);
+					free(buffer);
 
 					writeMemoryString(&output, "];\n");
 
@@ -1778,8 +1779,8 @@ static void onConsoleExportHtmlCommand(Console* console, const char* name)
 		}
 	}
 
-	SDL_free(EmbedIndex);
-	SDL_free(EmbedTicJs);
+	free(EmbedIndex);
+	free(EmbedTicJs);
 }
 
 #if defined(CAN_EXPORT)
@@ -1794,7 +1795,7 @@ static void* embedCart(Console* console, s32* size)
 
 	if(app)
 	{
-		void* cart = SDL_malloc(sizeof(tic_cartridge));
+		void* cart = malloc(sizeof(tic_cartridge));
 
 		if(cart)
 		{
@@ -1802,7 +1803,7 @@ static void* embedCart(Console* console, s32* size)
 
 			{
 				unsigned long zipSize = sizeof(tic_cartridge);
-				u8* zip = (u8*)SDL_malloc(zipSize);
+				u8* zip = (u8*)malloc(zipSize);
 
 				if(zip)
 				{
@@ -1815,29 +1816,29 @@ static void* embedCart(Console* console, s32* size)
 							.cartSize = zipSize,
 						};
 
-						SDL_memcpy(header.sig, TicCartSig, SIG_SIZE);
+						memcpy(header.sig, TicCartSig, SIG_SIZE);
 
 						s32 finalSize = appSize + sizeof header + header.cartSize;
-						data = SDL_malloc(finalSize);
+						data = malloc(finalSize);
 
 						if(data)
 						{
-							SDL_memcpy(data, app, appSize);
-							SDL_memcpy(data + appSize, &header, sizeof header);
-							SDL_memcpy(data + appSize + sizeof header, zip, header.cartSize);
+							memcpy(data, app, appSize);
+							memcpy(data + appSize, &header, sizeof header);
+							memcpy(data + appSize + sizeof header, zip, header.cartSize);
 
 							*size = finalSize;
 						}
 					}
 
-					SDL_free(zip);
+					free(zip);
 				}
 			}
 
-			SDL_free(cart);
+			free(cart);
 		}
 
-		SDL_free(app);
+		free(app);
 	}
 	
 	return data;
@@ -1870,7 +1871,7 @@ static const char* getExportName(Console* console, bool html)
 		strcat(name, ".html");
 	else
 	{
-#if defined(__WINDOWS__)
+#if defined(__TIC_WINDOWS__)
 		strcat(name, ExeExt);
 #endif
 	}
@@ -1931,7 +1932,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
 
 	if(name && strlen(name))
 	{
-		u8* buffer = (u8*)SDL_malloc(sizeof(tic_cartridge) * 3);
+		u8* buffer = (u8*)malloc(sizeof(tic_cartridge) * 3);
 
 		if(buffer)
 		{
@@ -1966,7 +1967,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
 				}
 			}
 
-			SDL_free(buffer);
+			free(buffer);
 		}
 	}
 	else if (strlen(console->romName))
@@ -2277,7 +2278,7 @@ static void processConsoleTab(Console* console)
 
 	if(strlen(input))
 	{
-		char* param = SDL_strchr(input, ' ');
+		char* param = strchr(input, ' ');
 
 		if(param && strlen(++param))
 		{
@@ -2305,7 +2306,7 @@ static void toUpperStr(char* str)
 {
 	while(*str)
 	{
-		*str = SDL_toupper(*str);
+		*str = toupper(*str);
 		str++;
 	}
 }
@@ -2375,15 +2376,15 @@ static s32 tic_strcasecmp(const char *str1, const char *str2)
 	char a = 0;
 	char b = 0;
 	while (*str1 && *str2) {
-		a = SDL_toupper((unsigned char) *str1);
-		b = SDL_toupper((unsigned char) *str2);
+		a = toupper((unsigned char) *str1);
+		b = toupper((unsigned char) *str2);
 		if (a != b)
 			break;
 		++str1;
 		++str2;
 	}
-	a = SDL_toupper(*str1);
-	b = SDL_toupper(*str2);
+	a = toupper(*str1);
+	b = toupper(*str2);
 	return (int) ((unsigned char) a - (unsigned char) b);
 }
 
@@ -2397,7 +2398,7 @@ static void processCommand(Console* console, const char* command)
 	while(*end == ' ' && end > command)
 		*end-- = '\0';
 
-	char* param = SDL_strchr(command, ' ');
+	char* param = strchr(command, ' ');
 
 	if(param)
 		*param++ = '\0';
@@ -2458,8 +2459,8 @@ static void onHistoryDown(Console* console)
 
 static void appendHistory(Console* console, const char* value)
 {
-	HistoryItem* item = (HistoryItem*)SDL_malloc(sizeof(HistoryItem));
-	item->value = SDL_strdup(value);
+	HistoryItem* item = (HistoryItem*)malloc(sizeof(HistoryItem));
+	item->value = strdup(value);
 	item->next = NULL;
 	item->prev = NULL;
 
@@ -2540,7 +2541,7 @@ static void checkNewVersion(Console* console)
 	if(net)
 	{
 		NetVersion version = netVersionRequest(net);
-		SDL_free(net);
+		free(net);
 
 		if((version.major > TIC_VERSION_MAJOR) ||
 			(version.major == TIC_VERSION_MAJOR && version.minor > TIC_VERSION_MINOR) ||
@@ -2773,7 +2774,7 @@ static bool cmdLoadCart(Console* console, const char* name)
 			done = true;
 		}
 		
-		SDL_free(data);
+		free(data);
 	}
 
 	return done;
@@ -2796,8 +2797,8 @@ static bool loadFileIntoBuffer(Console* console, char* buffer, const char* fileN
 			printError(console, messageBuffer);
 		}
 
-		memcpy(buffer, contents, SDL_min(size, TIC_CODE_SIZE-1));
-		SDL_free(contents);
+		memcpy(buffer, contents, MIN(size, TIC_CODE_SIZE-1));
+		free(contents);
 
 		return true;
 	}
@@ -2861,8 +2862,8 @@ static bool cmdInjectSprites(Console* console, const char* param, const char* na
 					Height = TIC_SPRITESHEET_SIZE*2,
 				};
 
-				s32 w = SDL_min(Width, image->width);
-				s32 h = SDL_min(Height, image->height);
+				s32 w = MIN(Width, image->width);
+				s32 h = MIN(Height, image->height);
 
 				for (s32 y = 0; y < h; y++)
 					for (s32 x = 0; x < w; x++)
@@ -2878,7 +2879,7 @@ static bool cmdInjectSprites(Console* console, const char* param, const char* na
 				gif_close(image);
 			}
 
-			SDL_free(sprites);
+			free(sprites);
 
 			console->embed.yes = true;
 			console->skipStart = true;
@@ -2910,7 +2911,7 @@ static bool cmdInjectMap(Console* console, const char* param, const char* name)
 				done = true;
 			}
 
-			SDL_free(map);
+			free(map);
 		}
 	}
 
@@ -2919,9 +2920,9 @@ static bool cmdInjectMap(Console* console, const char* param, const char* name)
 
 void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config, s32 argc, char **argv)
 {
-	if(!console->buffer) console->buffer = SDL_malloc(CONSOLE_BUFFER_SIZE);
-	if(!console->colorBuffer) console->colorBuffer = SDL_malloc(CONSOLE_BUFFER_SIZE);
-	if(!console->embed.file) console->embed.file = SDL_malloc(sizeof(tic_cartridge));
+	if(!console->buffer) console->buffer = malloc(CONSOLE_BUFFER_SIZE);
+	if(!console->colorBuffer) console->colorBuffer = malloc(CONSOLE_BUFFER_SIZE);
+	if(!console->embed.file) console->embed.file = malloc(sizeof(tic_cartridge));
 
 	*console = (Console)
 	{
@@ -2980,7 +2981,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 	{
 		strcpy(console->appPath, argv[0]);
 
-#if defined(__WINDOWS__)
+#if defined(__TIC_WINDOWS__)
 		if(!strstr(console->appPath, ExeExt))
 			strcat(console->appPath, ExeExt);
 #endif
@@ -3055,9 +3056,9 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 		{
 			if(~argp & 1 << i)
 			{
-				char buf[256];
-				sprintf(buf, "parameter or file not processed: %s\n", argv[i]);
-				SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Warning", buf, NULL);
+				// char buf[256];
+				// sprintf(buf, "parameter or file not processed: %s\n", argv[i]);
+				// SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Warning", buf, NULL);
 			}
 		}
 	}
@@ -3089,7 +3090,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 			s32 size = unzip(&data, cartPtr, cartSize);
 			loadCart(tic, console->embed.file, data, size, true);
 
-			SDL_free(data);
+			free(data);
 
 			EM_ASM_({Module._free($0);}, cartPtr);
 		}
@@ -3124,7 +3125,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 							loadCart(tic, console->embed.file, data, dataSize, true);
 							console->embed.yes = true;
 							
-							SDL_free(data);
+							free(data);
 						}
 
 						break;
@@ -3138,7 +3139,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 				else break;
 			}
 
-			SDL_free(app);
+			free(app);
 		}
 	}
 

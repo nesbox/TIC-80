@@ -40,6 +40,7 @@
 #include "fs.h"
 
 #include <zlib.h>
+#include <ctype.h>
 #include "net.h"
 #include "ext/gif.h"
 #include "ext/md5.h"
@@ -122,7 +123,7 @@ static struct
 
 		// SDL_Texture* texture;
 		// const u8* src;
-		SDL_SystemCursor system;
+		tic_cursor system;
 	} mouse;
 
 	struct
@@ -423,7 +424,7 @@ void toClipboard(const void* data, s32 size, bool flip)
 	{
 		enum {Len = 2};
 
-		char* clipboard = (char*)SDL_malloc(size*Len + 1);
+		char* clipboard = (char*)malloc(size*Len + 1);
 
 		if(clipboard)
 		{
@@ -441,8 +442,8 @@ void toClipboard(const void* data, s32 size, bool flip)
 				}
 			}
 
-			SDL_SetClipboardText(clipboard);
-			SDL_free(clipboard);
+			setClipboardText(clipboard);
+			free(clipboard);
 		}
 	}
 }
@@ -475,7 +476,7 @@ static void removeWhiteSpaces(char* str)
 	s32 len = strlen(str);
 
 	for (s32 j = 0; j < len; j++)
-		if(!SDL_isspace(str[j]))
+		if(!isspace(str[j]))
 			str[i++] = str[j];
 
 	str[i] = '\0';
@@ -485,9 +486,9 @@ bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces)
 {
 	if(data)
 	{
-		if(SDL_HasClipboardText())
+		if(hasClipboardText())
 		{
-			char* clipboard = SDL_GetClipboardText();
+			char* clipboard = getClipboardText();
 
 			if(clipboard)
 			{
@@ -498,7 +499,7 @@ bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces)
 
 				if(valid) str2buf(clipboard, strlen(clipboard), data, flip);
 
-				SDL_free(clipboard);
+				free(clipboard);
 
 				return valid;
 			}
@@ -581,7 +582,7 @@ static void drawExtrabar(tic_mem* tic)
 
 		if(checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
 			color = Colors[i];
 			showTooltip(Tips[i]);
@@ -639,7 +640,7 @@ static void drawBankIcon(s32 x, s32 y)
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		over = true;
 
@@ -662,13 +663,13 @@ static void drawBankIcon(s32 x, s32 y)
 			bool over = false;
 			if(checkMousePos(&rect))
 			{
-				setCursor(SDL_SYSTEM_CURSOR_HAND);
+				setCursor(tic_cursor_hand);
 				over = true;
 
 				if(checkMouseClick(&rect, tic_mouse_left))
 				{
 					if(studioImpl.bank.chained) 
-						SDL_memset(studioImpl.bank.indexes, i, sizeof studioImpl.bank.indexes);
+						memset(studioImpl.bank.indexes, i, sizeof studioImpl.bank.indexes);
 					else studioImpl.bank.indexes[mode] = i;
 				}
 			}
@@ -699,7 +700,7 @@ static void drawBankIcon(s32 x, s32 y)
 
 			if(checkMousePos(&rect))
 			{
-				setCursor(SDL_SYSTEM_CURSOR_HAND);
+				setCursor(tic_cursor_hand);
 
 				over = true;
 
@@ -708,7 +709,7 @@ static void drawBankIcon(s32 x, s32 y)
 					studioImpl.bank.chained = !studioImpl.bank.chained;
 
 					if(studioImpl.bank.chained)
-						SDL_memset(studioImpl.bank.indexes, studioImpl.bank.indexes[mode], sizeof studioImpl.bank.indexes);
+						memset(studioImpl.bank.indexes, studioImpl.bank.indexes[mode], sizeof studioImpl.bank.indexes);
 				}
 			}
 
@@ -802,7 +803,7 @@ void drawToolbar(tic_mem* tic, u8 color, bool bg)
 
 		if(checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
 			over = true;
 
@@ -892,28 +893,28 @@ void setStudioEvent(StudioEvent event)
 	}
 }
 
-ClipboardEvent getClipboardEvent(SDL_Keycode keycode)
+ClipboardEvent getClipboardEvent(tic_keycode keycode)
 {
-	SDL_Keymod keymod = SDL_GetModState();
+	// SDL_Keymod keymod = SDL_GetModState();
 
-	if(keymod & TIC_MOD_CTRL)
-	{
-		switch(keycode)
-		{
-		case SDLK_INSERT:
-		case SDLK_c: return TIC_CLIPBOARD_COPY;
-		case SDLK_x: return TIC_CLIPBOARD_CUT;
-		case SDLK_v: return TIC_CLIPBOARD_PASTE;
-		}
-	}
-	else if(keymod & KMOD_SHIFT)
-	{
-		switch(keycode)
-		{
-		case SDLK_DELETE: return TIC_CLIPBOARD_CUT;
-		case SDLK_INSERT: return TIC_CLIPBOARD_PASTE;
-		}
-	}
+	// if(keymod & TIC_MOD_CTRL)
+	// {
+	// 	switch(keycode)
+	// 	{
+	// 	case SDLK_INSERT:
+	// 	case SDLK_c: return TIC_CLIPBOARD_COPY;
+	// 	case SDLK_x: return TIC_CLIPBOARD_CUT;
+	// 	case SDLK_v: return TIC_CLIPBOARD_PASTE;
+	// 	}
+	// }
+	// else if(keymod & KMOD_SHIFT)
+	// {
+	// 	switch(keycode)
+	// 	{
+	// 	case SDLK_DELETE: return TIC_CLIPBOARD_CUT;
+	// 	case SDLK_INSERT: return TIC_CLIPBOARD_PASTE;
+	// 	}
+	// }
 
 	return TIC_CLIPBOARD_NONE;
 }
@@ -1017,12 +1018,12 @@ void resumeRunMode()
 	studioImpl.mode = TIC_RUN_MODE;
 }
 
-static void showSoftKeyboard()
-{
-	if(studioImpl.mode == TIC_CONSOLE_MODE || studioImpl.mode == TIC_CODE_MODE)
-		if(!SDL_IsTextInputActive())
-			SDL_StartTextInput();
-}
+// static void showSoftKeyboard()
+// {
+// 	if(studioImpl.mode == TIC_CONSOLE_MODE || studioImpl.mode == TIC_CODE_MODE)
+// 		if(!SDL_IsTextInputActive())
+// 			SDL_StartTextInput();
+// }
 
 void setStudioMode(EditorMode mode)
 {
@@ -1060,7 +1061,7 @@ void setStudioMode(EditorMode mode)
 
 		studioImpl.mode = mode;
 
-		showSoftKeyboard();
+		// showSoftKeyboard();
 	}
 }
 
@@ -1082,14 +1083,14 @@ void changeStudioMode(s32 dir)
 	}
 }
 
-static void showGameMenu()
-{
-	studioImpl.studio.tic->api.pause(studioImpl.studio.tic);
-	studioImpl.studio.tic->api.reset(studioImpl.studio.tic);
+// static void showGameMenu()
+// {
+// 	studioImpl.studio.tic->api.pause(studioImpl.studio.tic);
+// 	studioImpl.studio.tic->api.reset(studioImpl.studio.tic);
 
-	initMenuMode();
-	studioImpl.mode = TIC_MENU_MODE;
-}
+// 	initMenuMode();
+// 	studioImpl.mode = TIC_MENU_MODE;
+// }
 
 void hideGameMenu()
 {
@@ -1158,9 +1159,9 @@ bool getGesturePos(tic_point* pos)
 	return false;
 }
 
-void setCursor(SDL_SystemCursor id)
+void setCursor(tic_cursor id)
 {
-	if(id != SDL_SYSTEM_CURSOR_ARROW)
+	if(id != tic_cursor_arrow)
 		studioImpl.mouse.system = id;
 }
 
@@ -1186,7 +1187,7 @@ void showDialog(const char** text, s32 rows, DialogCallback callback, void* data
 
 static void resetBanks()
 {
-	SDL_memset(studioImpl.bank.indexes, 0, sizeof studioImpl.bank.indexes);
+	memset(studioImpl.bank.indexes, 0, sizeof studioImpl.bank.indexes);
 }
 
 static void initModules()
@@ -1586,33 +1587,33 @@ static bool isGameMenu()
 // 	studioImpl.studio.tic->ram.input.gamepads.data |= studioImpl.gamepad.joystick.data;
 // }
 
-static void processGesture()
-{
-	SDL_TouchID id = SDL_GetTouchDevice(0);
-	s32 fingers = SDL_GetNumTouchFingers(id);
+// static void processGesture()
+// {
+// 	SDL_TouchID id = SDL_GetTouchDevice(0);
+// 	s32 fingers = SDL_GetNumTouchFingers(id);
 
-	enum{Fingers = 2};
+// 	enum{Fingers = 2};
 
-	if(fingers == Fingers)
-	{
-		tic_point point = {0, 0};
+// 	if(fingers == Fingers)
+// 	{
+// 		tic_point point = {0, 0};
 
-		for(s32 f = 0; f < fingers; f++)
-		{
-			SDL_Finger* finger = SDL_GetTouchFinger(id, 0);
+// 		for(s32 f = 0; f < fingers; f++)
+// 		{
+// 			SDL_Finger* finger = SDL_GetTouchFinger(id, 0);
 
-			point.x += (s32)(finger->x * TIC80_WIDTH);
-			point.y += (s32)(finger->y * TIC80_HEIGHT);
-		}
+// 			point.x += (s32)(finger->x * TIC80_WIDTH);
+// 			point.y += (s32)(finger->y * TIC80_HEIGHT);
+// 		}
 
-		point.x /= Fingers;
-		point.y /= Fingers;
+// 		point.x /= Fingers;
+// 		point.y /= Fingers;
 
-		studioImpl.gesture.pos = point;
+// 		studioImpl.gesture.pos = point;
 
-		studioImpl.gesture.active = true;
-	}
-}
+// 		studioImpl.gesture.active = true;
+// 	}
+// }
 
 // static void processMouse()
 // {
@@ -1675,7 +1676,7 @@ static void saveProject()
 		sprintf(buffer, "%s SAVED :)", studioImpl.console->romName);
 
 		for(s32 i = 0; i < (s32)strlen(buffer); i++)
-			buffer[i] = SDL_toupper(buffer[i]);
+			buffer[i] = toupper(buffer[i]);
 
 		showPopupMessage(buffer);
 	}
@@ -1689,7 +1690,7 @@ static void screen2buffer(u32* buffer, const u32* pixels, tic_rect rect)
 
 	for(s32 i = 0; i < rect.h; i++)
 	{
-		SDL_memcpy(buffer, pixels + rect.x, rect.w * sizeof(pixels[0]));
+		memcpy(buffer, pixels + rect.x, rect.w * sizeof(pixels[0]));
 		pixels += TIC80_FULLWIDTH;
 		buffer += rect.w;
 	}
@@ -1705,7 +1706,7 @@ static void setCoverImage()
 
 	// 	tic->api.blit(tic, tic->api.scanline, tic->api.overlap, NULL);
 
-	// 	u32* buffer = SDL_malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32));
+	// 	u32* buffer = malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32));
 
 	// 	if(buffer)
 	// 	{
@@ -1716,7 +1717,7 @@ static void setCoverImage()
 	// 		gif_write_animation(studioImpl.studio.tic->cart.cover.data, &studioImpl.studio.tic->cart.cover.size,
 	// 			TIC80_WIDTH, TIC80_HEIGHT, (const u8*)buffer, 1, TIC_FRAMERATE, 1);
 
-	// 		SDL_free(buffer);
+	// 		free(buffer);
 
 	// 		showPopupMessage("COVER IMAGE SAVED :)");
 	// 	}
@@ -1737,14 +1738,14 @@ static void stopVideoRecord()
 	{
 		{
 			s32 size = 0;
-			u8* data = SDL_malloc(FRAME_SIZE * studioImpl.video.frame);
+			u8* data = malloc(FRAME_SIZE * studioImpl.video.frame);
 
 			gif_write_animation(data, &size, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, (const u8*)studioImpl.video.buffer, studioImpl.video.frame, TIC_FRAMERATE, getConfig()->gifScale);
 
 			fsGetFileData(onVideoExported, "screen.gif", data, size, DEFAULT_CHMOD, NULL);
 		}
 
-		SDL_free(studioImpl.video.buffer);
+		free(studioImpl.video.buffer);
 		studioImpl.video.buffer = NULL;
 	}
 
@@ -1762,7 +1763,7 @@ static void startVideoRecord()
 	else
 	{
 		studioImpl.video.frames = getConfig()->gifLength * TIC_FRAMERATE;
-		studioImpl.video.buffer = SDL_malloc(FRAME_SIZE * studioImpl.video.frames);
+		studioImpl.video.buffer = malloc(FRAME_SIZE * studioImpl.video.frames);
 
 		if(studioImpl.video.buffer)
 		{
@@ -1777,7 +1778,7 @@ static void startVideoRecord()
 static void takeScreenshot()
 {
 	studioImpl.video.frames = 1;
-	studioImpl.video.buffer = SDL_malloc(FRAME_SIZE);
+	studioImpl.video.buffer = malloc(FRAME_SIZE);
 
 	if(studioImpl.video.buffer)
 	{
@@ -2043,15 +2044,15 @@ static void processShortcuts()
 // 			input->keyboard.keys[c++] = KeyboardCodes[i];
 // }
 
-#if defined(TIC80_PRO)
+// #if defined(TIC80_PRO)
 
-static void reloadConfirm(bool yes, void* data)
-{
-	if(yes)
-		studioImpl.console->updateProject(studioImpl.console);
-}
+// static void reloadConfirm(bool yes, void* data)
+// {
+// 	if(yes)
+// 		studioImpl.console->updateProject(studioImpl.console);
+// }
 
-#endif
+// #endif
 
 // SDL_Event* pollEvent()
 // {
@@ -2198,7 +2199,7 @@ static void reloadConfirm(bool yes, void* data)
 
 // 	if(studioImpl.audio.cvt.needed)
 // 	{
-// 		SDL_memcpy(studioImpl.audio.cvt.buf, studioImpl.studio.tic->samples.buffer, studioImpl.studio.tic->samples.size);
+// 		memcpy(studioImpl.audio.cvt.buf, studioImpl.studio.tic->samples.buffer, studioImpl.studio.tic->samples.size);
 // 		SDL_ConvertAudio(&studioImpl.audio.cvt);
 // 		SDL_QueueAudio(studioImpl.audio.device, studioImpl.audio.cvt.buf, studioImpl.audio.cvt.len_cvt);
 // 	}
@@ -2319,7 +2320,7 @@ static void recordFrame(u32* pixels)
 // 	}
 
 // 	tic->api.blit(tic, scanline, overlap, data);
-// 	SDL_memcpy(pixels, tic->screen, sizeof tic->screen);
+// 	memcpy(pixels, tic->screen, sizeof tic->screen);
 
 // 	recordFrame(pixels);
 // 	drawDesyncLabel(pixels);
@@ -2366,8 +2367,8 @@ static void recordFrame(u32* pixels)
 // 	}
 // }
 
-static void blitCursor(const u8* in)
-{
+// static void blitCursor(const u8* in)
+// {
 	// if(!studioImpl.mouse.texture)
 	// {
 	// 	studioImpl.mouse.texture = SDL_CreateTexture(studioImpl.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING, TIC_SPRITESIZE, TIC_SPRITESIZE);
@@ -2418,27 +2419,27 @@ static void blitCursor(const u8* in)
 
 	// if(SDL_GetWindowFlags(studioImpl.window) & SDL_WINDOW_MOUSE_FOCUS)
 	// 	SDL_RenderCopy(studioImpl.renderer, studioImpl.mouse.texture, &src, &dst);
-}
+// }
 
-static void renderCursor()
-{
-	if(studioImpl.mode == TIC_RUN_MODE && !studioImpl.studio.tic->input.mouse)
-	{
-		SDL_ShowCursor(SDL_DISABLE);
-		return;
-	}
-	if(studioImpl.mode == TIC_RUN_MODE && studioImpl.studio.tic->ram.vram.vars.cursor)
-	{
-		SDL_ShowCursor(SDL_DISABLE);
-		blitCursor(studioImpl.studio.tic->ram.sprites.data[studioImpl.studio.tic->ram.vram.vars.cursor].data);
-		return;
-	}
+// static void renderCursor()
+// {
+// 	if(studioImpl.mode == TIC_RUN_MODE && !studioImpl.studio.tic->input.mouse)
+// 	{
+// 		SDL_ShowCursor(SDL_DISABLE);
+// 		return;
+// 	}
+// 	if(studioImpl.mode == TIC_RUN_MODE && studioImpl.studio.tic->ram.vram.vars.cursor)
+// 	{
+// 		SDL_ShowCursor(SDL_DISABLE);
+// 		blitCursor(studioImpl.studio.tic->ram.sprites.data[studioImpl.studio.tic->ram.vram.vars.cursor].data);
+// 		return;
+// 	}
 
-	SDL_ShowCursor(getConfig()->theme.cursor.sprite >= 0 ? SDL_DISABLE : SDL_ENABLE);
+// 	SDL_ShowCursor(getConfig()->theme.cursor.sprite >= 0 ? SDL_DISABLE : SDL_ENABLE);
 
-	if(getConfig()->theme.cursor.sprite >= 0)
-		blitCursor(studioImpl.studio.tic->config.bank0.tiles.data[getConfig()->theme.cursor.sprite].data);
-}
+// 	if(getConfig()->theme.cursor.sprite >= 0)
+// 		blitCursor(studioImpl.studio.tic->config.bank0.tiles.data[getConfig()->theme.cursor.sprite].data);
+// }
 
 static void useSystemPalette()
 {
@@ -2549,7 +2550,7 @@ static void renderStudio()
 	drawPopup();
 
 	if(getConfig()->noSound)
-		SDL_memset(tic->ram.registers, 0, sizeof tic->ram.registers);
+		memset(tic->ram.registers, 0, sizeof tic->ram.registers);
 
 	studioImpl.studio.tic->api.tick_end(studioImpl.studio.tic);
 
@@ -2651,7 +2652,7 @@ static void renderStudio()
 // 		return;
 // 	}
 
-// 	SDL_SystemCursor cursor = studioImpl.mouse.system;
+// 	tic_cursor cursor = studioImpl.mouse.system;
 // 	studioImpl.mouse.system = SDL_SYSTEM_CURSOR_ARROW;
 
 // 	SDL_RenderClear(studioImpl.renderer);
@@ -2689,7 +2690,7 @@ static void renderStudio()
 // 	if(studioImpl.audio.cvt.needed)
 // 	{
 // 		studioImpl.audio.cvt.len = studioImpl.audio.spec.freq * sizeof studioImpl.studio.tic->samples.buffer[0] / TIC_FRAMERATE;
-// 		studioImpl.audio.cvt.buf = SDL_malloc(studioImpl.audio.cvt.len * studioImpl.audio.cvt.len_mult);
+// 		studioImpl.audio.cvt.buf = malloc(studioImpl.audio.cvt.len * studioImpl.audio.cvt.len_mult);
 // 	}
 // }
 
@@ -2720,7 +2721,7 @@ static void renderStudio()
 
 static void updateSystemFont()
 {
-	SDL_memset(studioImpl.studio.tic->font.data, 0, sizeof(tic_font));
+	memset(studioImpl.studio.tic->font.data, 0, sizeof(tic_font));
 
 	for(s32 i = 0; i < TIC_FONT_CHARS; i++)
 		for(s32 y = 0; y < TIC_SPRITESIZE; y++)
@@ -2744,7 +2745,7 @@ void studioConfigChanged()
 // 	enum{ Size = 64, TileSize = 16, ColorKey = 14, Cols = TileSize / TIC_SPRITESIZE, Scale = Size/TileSize};
 // 	studioImpl.studio.tic->api.clear(studioImpl.studio.tic, 0);
 
-// 	u32* pixels = SDL_malloc(Size * Size * sizeof(u32));
+// 	u32* pixels = malloc(Size * Size * sizeof(u32));
 
 // 	const u32* pal = tic_palette_blit(&studioImpl.studio.tic->config.palette);
 
@@ -2760,8 +2761,8 @@ void studioConfigChanged()
 // 		0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
 
 // 	SDL_SetWindowIcon(studioImpl.window, surface);
-// 	SDL_FreeSurface(surface);
-// 	SDL_free(pixels);
+// 	freeSurface(surface);
+// 	free(pixels);
 // }
 
 u32 unzip(u8** dest, const u8* source, size_t size)
@@ -2771,18 +2772,18 @@ u32 unzip(u8** dest, const u8* source, size_t size)
 
 	unsigned long destSize = DestSize;
 
-	u8* buffer = (u8*)SDL_malloc(destSize);
+	u8* buffer = (u8*)malloc(destSize);
 
 	if(buffer)
 	{
 		if(uncompress(buffer, &destSize, source, (unsigned long)size) == Z_OK)
 		{
-			*dest = (u8*)SDL_malloc(destSize+1);
+			*dest = (u8*)malloc(destSize+1);
 			memcpy(*dest, buffer, destSize);
 			(*dest)[destSize] = '\0';
 		}
 
-		SDL_free(buffer);
+		free(buffer);
 
 		return destSize;
 	}
@@ -2802,7 +2803,7 @@ static void initKeymap()
 	// 	if(size == KEYMAP_SIZE)
 	// 		memcpy(getKeymap(), data, KEYMAP_SIZE);
 
-	// 	SDL_free(data);
+	// 	free(data);
 	// }
 }
 
@@ -2832,21 +2833,21 @@ static void onFSInitialized(FileSystem* fs)
 	{
 		for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
 		{
-			studioImpl.editor[i].code	= SDL_calloc(1, sizeof(Code));
-			studioImpl.editor[i].sprite	= SDL_calloc(1, sizeof(Sprite));
-			studioImpl.editor[i].map 	= SDL_calloc(1, sizeof(Map));
-			studioImpl.editor[i].sfx 	= SDL_calloc(1, sizeof(Sfx));
-			studioImpl.editor[i].music 	= SDL_calloc(1, sizeof(Music));
+			studioImpl.editor[i].code	= calloc(1, sizeof(Code));
+			studioImpl.editor[i].sprite	= calloc(1, sizeof(Sprite));
+			studioImpl.editor[i].map 	= calloc(1, sizeof(Map));
+			studioImpl.editor[i].sfx 	= calloc(1, sizeof(Sfx));
+			studioImpl.editor[i].music 	= calloc(1, sizeof(Music));
 		}
 
-		studioImpl.start 	= SDL_calloc(1, sizeof(Start));
-		studioImpl.console 	= SDL_calloc(1, sizeof(Console));
-		studioImpl.run 		= SDL_calloc(1, sizeof(Run));
-		studioImpl.world 	= SDL_calloc(1, sizeof(World));
-		studioImpl.config 	= SDL_calloc(1, sizeof(Config));
-		studioImpl.dialog 	= SDL_calloc(1, sizeof(Dialog));
-		studioImpl.menu 	= SDL_calloc(1, sizeof(Menu));
-		studioImpl.surf 	= SDL_calloc(1, sizeof(Surf));
+		studioImpl.start 	= calloc(1, sizeof(Start));
+		studioImpl.console 	= calloc(1, sizeof(Console));
+		studioImpl.run 		= calloc(1, sizeof(Run));
+		studioImpl.world 	= calloc(1, sizeof(World));
+		studioImpl.config 	= calloc(1, sizeof(Config));
+		studioImpl.dialog 	= calloc(1, sizeof(Dialog));
+		studioImpl.menu 	= calloc(1, sizeof(Menu));
+		studioImpl.surf 	= calloc(1, sizeof(Surf));
 	}
 
 	fsMakeDir(fs, TIC_LOCAL);
@@ -3021,7 +3022,7 @@ void studioTick(void* pixels)
 		}
 
 		tic->api.blit(tic, scanline, overlap, data);
-		SDL_memcpy(pixels, tic->screen, sizeof tic->screen);
+		memcpy(pixels, tic->screen, sizeof tic->screen);
 
 		recordFrame(pixels);
 		drawDesyncLabel(pixels);
@@ -3035,28 +3036,28 @@ void studioClose()
 	{
 		for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
 		{
-			SDL_free(studioImpl.editor[i].code);
-			SDL_free(studioImpl.editor[i].sprite);
-			SDL_free(studioImpl.editor[i].map);
-			SDL_free(studioImpl.editor[i].sfx);
-			SDL_free(studioImpl.editor[i].music);
+			free(studioImpl.editor[i].code);
+			free(studioImpl.editor[i].sprite);
+			free(studioImpl.editor[i].map);
+			free(studioImpl.editor[i].sfx);
+			free(studioImpl.editor[i].music);
 		}
 
-		SDL_free(studioImpl.start);
-		SDL_free(studioImpl.console);
-		SDL_free(studioImpl.run);
-		SDL_free(studioImpl.world);
-		SDL_free(studioImpl.config);
-		SDL_free(studioImpl.dialog);
-		SDL_free(studioImpl.menu);
-		SDL_free(studioImpl.surf);
+		free(studioImpl.start);
+		free(studioImpl.console);
+		free(studioImpl.run);
+		free(studioImpl.world);
+		free(studioImpl.config);
+		free(studioImpl.dialog);
+		free(studioImpl.menu);
+		free(studioImpl.surf);
 	}
 
 	if(studioImpl.tic80local)
 		tic80_delete((tic80*)studioImpl.tic80local);
 
 	// if(studioImpl.audio.cvt.buf)
-	// 	SDL_free(studioImpl.audio.cvt.buf);
+	// 	free(studioImpl.audio.cvt.buf);
 
 	// SDL_DestroyTexture(studioImpl.gamepad.texture);
 	// SDL_DestroyTexture(studioImpl.texture);

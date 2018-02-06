@@ -53,7 +53,7 @@ static void getRequest(Net* net, const char* path, NetResponse callback, void* d
 static void netClearCache(Net* net)
 {
 	if(net->cache.buffer)
-		SDL_free(net->cache.buffer);
+		free(net->cache.buffer);
 
 	net->cache.buffer = NULL;
 	net->cache.size = 0;
@@ -95,7 +95,7 @@ static Buffer httpRequest(const char* path, s32 timeout)
 					if(SDLNet_CheckSockets(set, timeout) == 1 && SDLNet_SocketReady(sock))
 					{
 						enum {Size = 4*1024+1};
-						buffer.data = SDL_malloc(Size);
+						buffer.data = malloc(Size);
 						s32 size = 0;
 
 						for(;;)
@@ -105,7 +105,7 @@ static Buffer httpRequest(const char* path, s32 timeout)
 							if(size > 0)
 							{
 								buffer.size += size;
-								buffer.data = SDL_realloc(buffer.data, buffer.size + Size);
+								buffer.data = realloc(buffer.data, buffer.size + Size);
 							}
 							else break;
 						}
@@ -141,34 +141,34 @@ static void getRequest(Net* net, const char* path, NetResponse callback, void* d
 
 		if(buffer.data && buffer.size)
 		{
-			if(SDL_strstr((char*)buffer.data, "200 OK"))
+			if(strstr((char*)buffer.data, "200 OK"))
 			{
 				s32 contentLength = 0;
 
 				{
 					static const char ContentLength[] = "Content-Length:";
 
-					char* start = SDL_strstr((char*)buffer.data, ContentLength);
+					char* start = strstr((char*)buffer.data, ContentLength);
 
 					if(start)
-						contentLength = SDL_atoi(start + sizeof(ContentLength));
+						contentLength = atoi(start + sizeof(ContentLength));
 				}
 
 				static const char Start[] = "\r\n\r\n";
-				u8* start = (u8*)SDL_strstr((char*)buffer.data, Start);
+				u8* start = (u8*)strstr((char*)buffer.data, Start);
 
 				if(start)
 				{
 					strcpy(net->cache.path, path);
 					net->cache.size = contentLength ? contentLength : buffer.size - (s32)(start - buffer.data);
-					net->cache.buffer = (u8*)SDL_malloc(net->cache.size);
-					SDL_memcpy(net->cache.buffer, start + sizeof Start - 1, net->cache.size);
+					net->cache.buffer = (u8*)malloc(net->cache.size);
+					memcpy(net->cache.buffer, start + sizeof Start - 1, net->cache.size);
 					callback(net->cache.buffer, net->cache.size, data);
 					done = true;
 				}
 			}
 
-			SDL_free(buffer.data);
+			free(buffer.data);
 		}
 
 		if(!done)
@@ -306,9 +306,9 @@ static void onGetResponse(u8* buffer, s32 size, void* data)
 {
 	NetGetData* netGetData = (NetGetData*)data;
 
-	netGetData->buffer = SDL_malloc(size);
+	netGetData->buffer = malloc(size);
 	*netGetData->size = size;
-	SDL_memcpy(netGetData->buffer, buffer, size);
+	memcpy(netGetData->buffer, buffer, size);
 }
 
 void* netGetRequest(Net* net, const char* path, s32* size)
@@ -360,7 +360,7 @@ Net* createNet()
 {
 	SDLNet_Init();
 
-	Net* net = (Net*)SDL_malloc(sizeof(Net));
+	Net* net = (Net*)malloc(sizeof(Net));
 
 	*net = (Net)
 	{
@@ -377,7 +377,7 @@ Net* createNet()
 
 void closeNet(Net* net)
 {
-	SDL_free(net);
+	free(net);
 	
 	SDLNet_Quit();
 }

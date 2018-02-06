@@ -95,10 +95,10 @@ static void tick(Run* run)
 
 	enum {Size = sizeof(tic_persistent)};
 
-	if(SDL_memcmp(&run->tic->persistent, &run->persistent, Size) != 0)
+	if(memcmp(&run->tic->persistent, &run->persistent, Size) != 0)
 	{		
 		fsSaveRootFile(run->console->fs, run->saveid, &run->tic->persistent, Size, true);
-		SDL_memcpy(&run->persistent, &run->tic->persistent, Size);
+		memcpy(&run->persistent, &run->tic->persistent, Size);
 	}
 
 	if(run->exit)
@@ -139,7 +139,7 @@ static void processDoFile(void* data, char* dst)
 
 						return;
 					}
-					else SDL_memcpy(dst, buffer, size);
+					else memcpy(dst, buffer, size);
 				}
 			}
 			else
@@ -186,8 +186,8 @@ void initRun(Run* run, Console* console, tic_mem* tic)
 		{
 			.error = onError,
 			.trace = onTrace,
-			.counter = SDL_GetPerformanceCounter,
-			.freq = SDL_GetPerformanceFrequency,
+			.counter = getPerformanceCounter,
+			.freq = getPerformanceFrequency,
 			.start = 0,
 			.data = run,
 			.exit = onExit,
@@ -198,7 +198,7 @@ void initRun(Run* run, Console* console, tic_mem* tic)
 
 	{
 		enum {Size = sizeof(tic_persistent)};
-		SDL_memset(&run->tic->persistent, 0, Size);
+		memset(&run->tic->persistent, 0, Size);
 
 		initPMemName(run);
 
@@ -209,11 +209,11 @@ void initRun(Run* run, Console* console, tic_mem* tic)
 
 		if(data)
 		{
-			SDL_memcpy(&run->tic->persistent, data, size);
-			SDL_memcpy(&run->persistent, data, size);
+			memcpy(&run->tic->persistent, data, size);
+			memcpy(&run->persistent, data, size);
 		}
 
-		if(data) SDL_free(data);
+		if(data) free(data);
 	}
 
 	preseed();

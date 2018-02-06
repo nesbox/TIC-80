@@ -89,7 +89,7 @@ static s32 drawWorldButton(Map* map, s32 x, s32 y)
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		over = true;
 
@@ -127,7 +127,7 @@ static s32 drawGridButton(Map* map, s32 x, s32 y)
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		over = true;
 
@@ -175,7 +175,7 @@ static s32 drawSheetButton(Map* map, s32 x, s32 y)
 	bool over = false;
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		over = true;
 		showTooltip("SHOW TILES [shift]");
@@ -200,7 +200,7 @@ static s32 drawToolButton(Map* map, s32 x, s32 y, const u8* Icon, s32 width, con
 	bool over = false;
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		over = true;
 
@@ -359,7 +359,7 @@ static void drawSheetOvr(Map* map, s32 x, s32 y)
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		if(checkMouseDown(&rect, tic_mouse_left))
 		{
@@ -371,10 +371,10 @@ static void drawSheetOvr(Map* map, s32 x, s32 y)
 
 			if(map->sheet.drag)
 			{
-				s32 rl = SDL_min(mx, map->sheet.start.x);
-				s32 rt = SDL_min(my, map->sheet.start.y);
-				s32 rr = SDL_max(mx, map->sheet.start.x);
-				s32 rb = SDL_max(my, map->sheet.start.y);
+				s32 rl = MIN(mx, map->sheet.start.x);
+				s32 rt = MIN(my, map->sheet.start.y);
+				s32 rr = MAX(mx, map->sheet.start.x);
+				s32 rb = MAX(my, map->sheet.start.y);
 
 				map->sheet.rect = (tic_rect){rl, rt, rr-rl+1, rb-rt+1};
 
@@ -480,7 +480,7 @@ static void processMouseDrawMode(Map* map)
 {
 	tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
-	setCursor(SDL_SYSTEM_CURSOR_HAND);
+	setCursor(tic_cursor_hand);
 
 	drawTileCursor(map);
 
@@ -508,7 +508,7 @@ static void processMouseDrawMode(Map* map)
 		map->canvas.draw	= false;
 	}
 
-	if(checkMouseDown(&rect, SDL_BUTTON_MIDDLE))
+	if(checkMouseDown(&rect, tic_mouse_middle))
 	{
 		s32 tx = 0, ty = 0;
 		getMouseMap(map, &tx, &ty);
@@ -531,7 +531,7 @@ static void processScrolling(Map* map, bool pressed)
 
 			normalizeMap(&map->scroll.x, &map->scroll.y);
 
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 		}
 		else map->scroll.active = false;
 	}
@@ -597,7 +597,7 @@ static void drawPasteData(Map* map)
 
 		history_add(map->history);
 
-		SDL_free(map->paste);
+		free(map->paste);
 		map->paste = NULL;
 	}
 	else
@@ -646,10 +646,10 @@ static void processMouseSelectMode(Map* map)
 
 				if(map->select.drag)
 				{
-					s32 rl = SDL_min(mx, map->select.start.x);
-					s32 rt = SDL_min(my, map->select.start.y);
-					s32 rr = SDL_max(mx, map->select.start.x);
-					s32 rb = SDL_max(my, map->select.start.y);
+					s32 rl = MIN(mx, map->select.start.x);
+					s32 rt = MIN(my, map->select.start.y);
+					s32 rr = MAX(mx, map->select.start.x);
+					s32 rb = MAX(my, map->select.start.y);
 
 					map->select.rect = (tic_rect){rl, rt, rr - rl + 1, rb - rt + 1};
 				}
@@ -732,7 +732,7 @@ static void fillMap(Map* map, s32 x, s32 y, u8 tile)
 	static FillStack stack = {NULL, NULL};
 
 	if(!stack.data)
-		stack.data = (tic_point*)SDL_malloc(FILL_STACK_SIZE * sizeof(tic_point));
+		stack.data = (tic_point*)malloc(FILL_STACK_SIZE * sizeof(tic_point));
 
 	stack.head = NULL;
 
@@ -792,7 +792,7 @@ static void processMouseFillMode(Map* map)
 {
 	tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
-	setCursor(SDL_SYSTEM_CURSOR_HAND);
+	setCursor(tic_cursor_hand);
 
 	drawTileCursor(map);
 
@@ -938,7 +938,7 @@ static void copySelectionToClipboard(Map* map)
 	if(sel->w > 0 && sel->h > 0)
 	{	
 		s32 size = sel->w * sel->h + 2;
-		u8* buffer = SDL_malloc(size);
+		u8* buffer = malloc(size);
 
 		if(buffer)
 		{
@@ -958,7 +958,7 @@ static void copySelectionToClipboard(Map* map)
 				}		
 
 			toClipboard(buffer, size, true);
-			SDL_free(buffer);			
+			free(buffer);			
 		}
 	}
 }
@@ -998,9 +998,9 @@ static void cutToClipboard(Map* map)
 
 static void copyFromClipboard(Map* map)
 {
-	if(SDL_HasClipboardText())
+	if(hasClipboardText())
 	{
-		char* clipboard = SDL_GetClipboardText();
+		char* clipboard = getClipboardText();
 
 		if(clipboard)
 		{
@@ -1008,7 +1008,7 @@ static void copyFromClipboard(Map* map)
 
 			if(size > 2)
 			{
-				u8* data = SDL_malloc(size);
+				u8* data = malloc(size);
 
 				str2buf(clipboard, strlen(clipboard), data, true);
 
@@ -1017,65 +1017,65 @@ static void copyFromClipboard(Map* map)
 					map->paste = data;
 					map->mode = MAP_SELECT_MODE;
 				}
-				else SDL_free(data);
+				else free(data);
 			}
 
-			SDL_free(clipboard);
+			free(clipboard);
 		}
 	}
 }
 
-static void processKeydown(Map* map, SDL_Keycode keycode)
-{
-	SDL_Keymod keymod = SDL_GetModState();
+// static void processKeydown(Map* map, tic_keycode keycode)
+// {
+// 	SDL_Keymod keymod = SDL_GetModState();
 
-	switch(getClipboardEvent(keycode))
-	{
-	case TIC_CLIPBOARD_CUT: cutToClipboard(map); break;
-	case TIC_CLIPBOARD_COPY: copyToClipboard(map); break;
-	case TIC_CLIPBOARD_PASTE: copyFromClipboard(map); break;
-	default: break;
-	}
+// 	switch(getClipboardEvent(keycode))
+// 	{
+// 	case TIC_CLIPBOARD_CUT: cutToClipboard(map); break;
+// 	case TIC_CLIPBOARD_COPY: copyToClipboard(map); break;
+// 	case TIC_CLIPBOARD_PASTE: copyFromClipboard(map); break;
+// 	default: break;
+// 	}
 	
-	if(keymod & TIC_MOD_CTRL)
-	{
-		switch(keycode)
-		{
-		case SDLK_z: undo(map); break;
-		case SDLK_y: redo(map); break;
-		}
-	}
-	else
-	{
-		switch(keycode)
-		{
-		case SDLK_TAB: setStudioMode(TIC_WORLD_MODE); break;
-		case SDLK_1:
-		case SDLK_2:
-		case SDLK_3:
-		case SDLK_4:
-			map->mode = keycode - SDLK_1;
-			break;
-		case SDLK_DELETE:
-			deleteSelection(map);
-			break;
-		case SDLK_BACKQUOTE:
-			map->canvas.grid = !map->canvas.grid;
-			break;
-		}
-	}
+// 	if(keymod & TIC_MOD_CTRL)
+// 	{
+// 		switch(keycode)
+// 		{
+// 		case SDLK_z: undo(map); break;
+// 		case SDLK_y: redo(map); break;
+// 		}
+// 	}
+// 	else
+// 	{
+// 		switch(keycode)
+// 		{
+// 		case SDLK_TAB: setStudioMode(TIC_WORLD_MODE); break;
+// 		case SDLK_1:
+// 		case SDLK_2:
+// 		case SDLK_3:
+// 		case SDLK_4:
+// 			map->mode = keycode - SDLK_1;
+// 			break;
+// 		case SDLK_DELETE:
+// 			deleteSelection(map);
+// 			break;
+// 		case SDLK_BACKQUOTE:
+// 			map->canvas.grid = !map->canvas.grid;
+// 			break;
+// 		}
+// 	}
 
-	if(keymod & KMOD_SHIFT)
-		map->sheet.show = true;
-}
+// 	if(keymod & KMOD_SHIFT)
+// 		map->sheet.show = true;
+// }
 
-static void processKeyup(Map* map, SDL_Keycode keycode)
-{
-	SDL_Keymod keymod = SDL_GetModState();
+// static void processKeyup(Map* map, tic_keycode keycode)
+// {
+// 	SDL_Keymod keymod = SDL_GetModState();
 
-	if(!(keymod & KMOD_SHIFT))
-		map->sheet.show = false;
-}
+// 	if(!(keymod & KMOD_SHIFT))
+// 		map->sheet.show = false;
+// }
 
 static void processGesture(Map* map)
 {

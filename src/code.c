@@ -74,8 +74,8 @@ static void drawCode(Code* code, bool withCursor)
 
 	u8* colorPointer = code->colorBuffer;
 
-	struct { char* start; char* end; } selection = {SDL_min(code->cursor.selection, code->cursor.position),
-		SDL_max(code->cursor.selection, code->cursor.position)};
+	struct { char* start; char* end; } selection = {MIN(code->cursor.selection, code->cursor.position),
+		MAX(code->cursor.selection, code->cursor.position)};
 
 	struct { s32 x; s32 y; char symbol;	} cursor = {-1, -1, 0};
 
@@ -425,8 +425,8 @@ static bool replaceSelection(Code* code)
 
 	if(sel && sel != pos)
 	{
-		char* start = SDL_min(sel, pos);
-		char* end = SDL_max(sel, pos);
+		char* start = MIN(sel, pos);
+		char* end = MAX(sel, pos);
 
 		memmove(start, end, strlen(end) + 1);
 
@@ -525,8 +525,8 @@ static void copyToClipboard(Code* code)
 
 	if(sel && sel != pos)
 	{
-		start = SDL_min(sel, pos);
-		size = SDL_max(sel, pos) - start;
+		start = MIN(sel, pos);
+		size = MAX(sel, pos) - start;
 	}
 	else
 	{
@@ -534,14 +534,14 @@ static void copyToClipboard(Code* code)
 		size = getNextLine(code) - start;
 	}
 
-	char* clipboard = (char*)SDL_malloc(size+1);
+	char* clipboard = (char*)malloc(size+1);
 
 	if(clipboard)
 	{
 		memcpy(clipboard, start, size);
 		clipboard[size] = '\0';
-		SDL_SetClipboardText(clipboard);
-		SDL_free(clipboard);
+		setClipboardText(clipboard);
+		free(clipboard);
 	}
 }
 
@@ -554,9 +554,9 @@ static void cutToClipboard(Code* code)
 
 static void copyFromClipboard(Code* code)
 {
-	if(SDL_HasClipboardText())
+	if(hasClipboardText())
 	{
-		char* clipboard = SDL_GetClipboardText();
+		char* clipboard = getClipboardText();
 
 		if(clipboard)
 		{
@@ -590,7 +590,7 @@ static void copyFromClipboard(Code* code)
 				parseSyntaxColor(code);
 			}
 
-			SDL_free(clipboard);
+			free(clipboard);
 		}
 	}
 }
@@ -633,8 +633,8 @@ static void doTab(Code* code, bool shift, bool crtl)
 		bool changed = false;
 		
 		if(cursor_selection) {
-			start = SDL_min(cursor_selection, cursor_position);
-			end = SDL_max(cursor_selection, cursor_position);
+			start = MIN(cursor_selection, cursor_position);
+			end = MAX(cursor_selection, cursor_position);
 		} else {
 			start = end = cursor_position;
 		}
@@ -684,8 +684,8 @@ static void setFindMode(Code* code)
 {
 	if(code->cursor.selection)
 	{
-		const char* end = SDL_max(code->cursor.position, code->cursor.selection);
-		const char* start = SDL_min(code->cursor.position, code->cursor.selection);
+		const char* end = MAX(code->cursor.position, code->cursor.selection);
+		const char* start = MIN(code->cursor.position, code->cursor.selection);
 		size_t len = end - start;
 
 		if(len > 0 && len < sizeof code->popup.text - 1)
@@ -709,7 +709,8 @@ static int funcCompare(const void* a, const void* b)
 	if(item1->pos == NULL) return 1;
 	if(item2->pos == NULL) return -1;
 
-	return SDL_strcasecmp(item1->name, item2->name);
+	// return SDL_strcasecmp(item1->name, item2->name);
+	return strcmp(item1->name, item2->name);
 }
 
 static void normalizeScroll(Code* code)
@@ -761,8 +762,10 @@ static void initOutlineMode(Code* code)
 
 	char buffer[STUDIO_TEXT_BUFFER_WIDTH] = {0};
 	char filter[STUDIO_TEXT_BUFFER_WIDTH] = {0};
-	SDL_strlcpy(filter, code->popup.text, sizeof(filter));
-	SDL_strlwr(filter);
+	strncpy(filter, code->popup.text, sizeof(filter));
+
+	// TODO: uncomment this
+	// SDL_strlwr(filter);
 
 	const tic_script_config* config = tic->api.get_script_config(tic);
 
@@ -779,12 +782,14 @@ static void initOutlineMode(Code* code)
 			{
 				out->pos = code->src + item->pos;
 				memset(out->name, 0, STUDIO_TEXT_BUFFER_WIDTH);
-				memcpy(out->name, out->pos, SDL_min(item->size, STUDIO_TEXT_BUFFER_WIDTH-1));
+				memcpy(out->name, out->pos, MIN(item->size, STUDIO_TEXT_BUFFER_WIDTH-1));
 
 				if(*filter)
 				{
-					SDL_strlcpy(buffer, out->name, sizeof(buffer));
-					SDL_strlwr(buffer);
+					strncpy(buffer, out->name, sizeof(buffer));
+
+					// TODO: uncomment this
+					// SDL_strlwr(buffer);
 
 					if(strstr(buffer, filter)) out++;
 					else out->pos = NULL;
@@ -865,106 +870,106 @@ static void commentLine(Code* code)
 	parseSyntaxColor(code);
 }
 
-static void processKeydown(Code* code, SDL_Keycode keycode)
-{
-	switch(keycode)
-	{
-	case SDLK_LCTRL:
-	case SDLK_RCTRL:
-	case SDLK_LSHIFT:
-	case SDLK_RSHIFT:
-	case SDLK_LALT:
-	case SDLK_RALT:
-		return;
-	}
+// static void processKeydown(Code* code, tic_keycode keycode)
+// {
+// 	switch(keycode)
+// 	{
+// 	case SDLK_LCTRL:
+// 	case SDLK_RCTRL:
+// 	case SDLK_LSHIFT:
+// 	case SDLK_RSHIFT:
+// 	case SDLK_LALT:
+// 	case SDLK_RALT:
+// 		return;
+// 	}
 
-	switch(getClipboardEvent(keycode))
-	{
-	case TIC_CLIPBOARD_CUT: cutToClipboard(code); break;
-	case TIC_CLIPBOARD_COPY: copyToClipboard(code); break;
-	case TIC_CLIPBOARD_PASTE: copyFromClipboard(code); break;
-	default: break;
-	}
+// 	switch(getClipboardEvent(keycode))
+// 	{
+// 	case TIC_CLIPBOARD_CUT: cutToClipboard(code); break;
+// 	case TIC_CLIPBOARD_COPY: copyToClipboard(code); break;
+// 	case TIC_CLIPBOARD_PASTE: copyFromClipboard(code); break;
+// 	default: break;
+// 	}
 
-	SDL_Keymod keymod = SDL_GetModState();
+// 	SDL_Keymod keymod = SDL_GetModState();
 
-	switch(keycode)
-	{
-	case SDLK_UP:
-	case SDLK_DOWN:
-	case SDLK_LEFT:
-	case SDLK_RIGHT:
-	case SDLK_HOME:
-	case SDLK_END:
-	case SDLK_PAGEUP:
-	case SDLK_PAGEDOWN:
+// 	switch(keycode)
+// 	{
+// 	case SDLK_UP:
+// 	case SDLK_DOWN:
+// 	case SDLK_LEFT:
+// 	case SDLK_RIGHT:
+// 	case SDLK_HOME:
+// 	case SDLK_END:
+// 	case SDLK_PAGEUP:
+// 	case SDLK_PAGEDOWN:
 
-		if(!(keymod & KMOD_SHIFT)) code->cursor.selection = NULL;
-		else if(code->cursor.selection == NULL) code->cursor.selection = code->cursor.position;
-	}
+// 		if(!(keymod & KMOD_SHIFT)) code->cursor.selection = NULL;
+// 		else if(code->cursor.selection == NULL) code->cursor.selection = code->cursor.position;
+// 	}
 
-	if(keymod & TIC_MOD_CTRL)
-	{
-		if(keymod & KMOD_CTRL)
-		{
-			switch(keycode)
-			{
-			case SDLK_LEFT: 	leftWord(code); break;
-			case SDLK_RIGHT: 	rightWord(code); break;
-			case SDLK_TAB:		doTab(code, keymod & KMOD_SHIFT, keymod & KMOD_CTRL); break;
-			}
-		}
-		else if(keymod & KMOD_GUI)
-		{
-			switch(keycode)
-			{
-			case SDLK_LEFT: 	goHome(code); break;
-			case SDLK_RIGHT: 	goEnd(code); break;
-			}
-		}
+// 	if(keymod & TIC_MOD_CTRL)
+// 	{
+// 		if(keymod & KMOD_CTRL)
+// 		{
+// 			switch(keycode)
+// 			{
+// 			case SDLK_LEFT: 	leftWord(code); break;
+// 			case SDLK_RIGHT: 	rightWord(code); break;
+// 			case SDLK_TAB:		doTab(code, keymod & KMOD_SHIFT, keymod & KMOD_CTRL); break;
+// 			}
+// 		}
+// 		else if(keymod & KMOD_GUI)
+// 		{
+// 			switch(keycode)
+// 			{
+// 			case SDLK_LEFT: 	goHome(code); break;
+// 			case SDLK_RIGHT: 	goEnd(code); break;
+// 			}
+// 		}
 
-		switch(keycode)
-		{
-		case SDLK_a:	selectAll(code); break;
-		case SDLK_z: 	undo(code); break;
-		case SDLK_y: 	redo(code); break;
-		case SDLK_f: 	setCodeMode(code, TEXT_FIND_MODE); break;
-		case SDLK_g: 	setCodeMode(code, TEXT_GOTO_MODE); break;
-		case SDLK_o: 	setCodeMode(code, TEXT_OUTLINE_MODE); break;
-		case SDLK_SLASH: commentLine(code);	break;
-		case SDLK_HOME: goCodeHome(code); break;
-		case SDLK_END: 	goCodeEnd(code); break;
-		}
-	}
-	else if(keymod & KMOD_ALT)
-	{
-		switch(keycode)
-		{
-		case SDLK_LEFT: 	leftWord(code); break;
-		case SDLK_RIGHT: 	rightWord(code); break;
-		}
-	}
-	else
-	{
-		switch(keycode)
-		{
-		case SDLK_UP: 			upLine(code); break;
-		case SDLK_DOWN: 		downLine(code); break;
-		case SDLK_LEFT: 		leftColumn(code); break;
-		case SDLK_RIGHT: 		rightColumn(code); break;
-		case SDLK_HOME: 		goHome(code); break;
-		case SDLK_END: 			goEnd(code); break;
-		case SDLK_PAGEUP: 		pageUp(code); break;
-		case SDLK_PAGEDOWN: 	pageDown(code); break;
-		case SDLK_DELETE: 		deleteChar(code); break;
-		case SDLK_BACKSPACE: 	backspaceChar(code); break;
-		case SDLK_RETURN: 		newLine(code); break;
-		case SDLK_TAB: 			doTab(code, keymod & KMOD_SHIFT, keymod & KMOD_CTRL); break;
-		}
-	}
+// 		switch(keycode)
+// 		{
+// 		case SDLK_a:	selectAll(code); break;
+// 		case SDLK_z: 	undo(code); break;
+// 		case SDLK_y: 	redo(code); break;
+// 		case SDLK_f: 	setCodeMode(code, TEXT_FIND_MODE); break;
+// 		case SDLK_g: 	setCodeMode(code, TEXT_GOTO_MODE); break;
+// 		case SDLK_o: 	setCodeMode(code, TEXT_OUTLINE_MODE); break;
+// 		case SDLK_SLASH: commentLine(code);	break;
+// 		case SDLK_HOME: goCodeHome(code); break;
+// 		case SDLK_END: 	goCodeEnd(code); break;
+// 		}
+// 	}
+// 	else if(keymod & KMOD_ALT)
+// 	{
+// 		switch(keycode)
+// 		{
+// 		case SDLK_LEFT: 	leftWord(code); break;
+// 		case SDLK_RIGHT: 	rightWord(code); break;
+// 		}
+// 	}
+// 	else
+// 	{
+// 		switch(keycode)
+// 		{
+// 		case SDLK_UP: 			upLine(code); break;
+// 		case SDLK_DOWN: 		downLine(code); break;
+// 		case SDLK_LEFT: 		leftColumn(code); break;
+// 		case SDLK_RIGHT: 		rightColumn(code); break;
+// 		case SDLK_HOME: 		goHome(code); break;
+// 		case SDLK_END: 			goEnd(code); break;
+// 		case SDLK_PAGEUP: 		pageUp(code); break;
+// 		case SDLK_PAGEDOWN: 	pageDown(code); break;
+// 		case SDLK_DELETE: 		deleteChar(code); break;
+// 		case SDLK_BACKSPACE: 	backspaceChar(code); break;
+// 		case SDLK_RETURN: 		newLine(code); break;
+// 		case SDLK_TAB: 			doTab(code, keymod & KMOD_SHIFT, keymod & KMOD_CTRL); break;
+// 		}
+// 	}
 
-	updateEditor(code);
-}
+// 	updateEditor(code);
+// }
 
 static void processGestures(Code* code)
 {
@@ -993,7 +998,7 @@ static void processMouse(Code* code)
 {
 	if(checkMousePos(&code->rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_IBEAM);
+		setCursor(tic_cursor_ibeam);
 
 		if(code->scroll.active)
 		{
@@ -1019,16 +1024,16 @@ static void processMouse(Code* code)
 				char* position = code->cursor.position;
 				setCursorPosition(code, x + code->scroll.x, y + code->scroll.y);
 
-				if(SDL_GetModState() & KMOD_SHIFT)
-				{
-					code->cursor.selection = code->cursor.position;
-					code->cursor.position = position;
-				}
-				else if(!code->cursor.mouseDownPosition)
-				{
-					code->cursor.selection = code->cursor.position;
-					code->cursor.mouseDownPosition = code->cursor.position;
-				}
+				// if(SDL_GetModState() & KMOD_SHIFT)
+				// {
+				// 	code->cursor.selection = code->cursor.position;
+				// 	code->cursor.position = position;
+				// }
+				// else if(!code->cursor.mouseDownPosition)
+				// {
+				// 	code->cursor.selection = code->cursor.position;
+				// 	code->cursor.mouseDownPosition = code->cursor.position;
+				// }
 			}
 			else
 			{
@@ -1163,10 +1168,10 @@ static void textFindTick(Code* code)
 	// 		case SDLK_RIGHT:
 	// 			if(*code->popup.text)
 	// 			{
-	// 				SDL_Keycode keycode = event->key.keysym.sym;
+	// 				tic_keycode keycode = event->key.keysym.sym;
 	// 				bool reverse = keycode == SDLK_UP || keycode == SDLK_LEFT;
 	// 				char* (*func)(const char*, const char*, const char*) = reverse ? upStrStr : downStrStr;
-	// 				char* from = reverse ? SDL_min(code->cursor.position, code->cursor.selection) : SDL_max(code->cursor.position, code->cursor.selection);
+	// 				char* from = reverse ? MIN(code->cursor.position, code->cursor.selection) : MAX(code->cursor.position, code->cursor.selection);
 	// 				char* pos = func(code->src, from, code->popup.text);
 	// 				updateFindCode(code, pos);
 	// 			}
@@ -1285,7 +1290,7 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 
 		if(mx < OUTLINE_SIZE && code->outline.items[mx].pos)
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
 			if(checkMouseDown(&rect, tic_mouse_left))
 			{
@@ -1434,7 +1439,7 @@ static void drawCodeToolbar(Code* code)
 		bool over = false;
 		if(checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
 			showTooltip(Tips[i]);
 
@@ -1516,7 +1521,7 @@ static void onStudioEvent(Code* code, StudioEvent event)
 void initCode(Code* code, tic_mem* tic, tic_code* src)
 {
 	if(code->outline.items == NULL)
-		code->outline.items = (OutlineItem*)SDL_malloc(OUTLINE_ITEMS_SIZE);
+		code->outline.items = (OutlineItem*)malloc(OUTLINE_ITEMS_SIZE);
 
 	if(code->history) history_delete(code->history);
 	if(code->cursorHistory) history_delete(code->cursorHistory);

@@ -1,6 +1,8 @@
 #include "main.h"
 #include "studio.h"
 
+#include <SDL.h>
+
 #define STUDIO_UI_SCALE 3
 #define STUDIO_PIXEL_FORMAT SDL_PIXELFORMAT_ARGB8888
 #define TEXTURE_SIZE (TIC80_FULLWIDTH)
@@ -899,4 +901,33 @@ s32 main(s32 argc, char **argv)
 	SDL_CloseAudioDevice(platform.audio.device);
 
 	return 0;
+}
+
+
+////////////////////////
+
+
+void setClipboardText(const char* text)
+{
+	SDL_SetClipboardText(text);
+}
+
+bool hasClipboardText()
+{
+	return SDL_HasClipboardText();
+}
+
+char* getClipboardText()
+{
+	return SDL_GetClipboardText();
+}
+
+u64 getPerformanceCounter()
+{
+	return SDL_GetPerformanceCounter();
+}
+
+u64 getPerformanceFrequency()
+{
+	return SDL_GetPerformanceFrequency();
 }

@@ -27,7 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <SDL.h>
+// #include <SDL.h>
 
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
@@ -41,7 +41,7 @@
 #define TIC_LOCAL ".local/"
 #define TIC_CACHE TIC_LOCAL "cache/"
 
-#define TIC_MOD_CTRL (KMOD_GUI|KMOD_CTRL)
+// #define TIC_MOD_CTRL (KMOD_GUI|KMOD_CTRL)
 
 #define TOOLBAR_SIZE 7
 #define STUDIO_TEXT_WIDTH (TIC_FONT_WIDTH)
@@ -134,7 +134,7 @@ typedef struct
 } tic_rect;
 
 // SDL_Event* pollEvent();
-void setCursor(SDL_SystemCursor id);
+void setCursor(tic_cursor id);
 
 s32 getMouseX();
 s32 getMouseY();
@@ -171,7 +171,7 @@ typedef enum
 	TIC_CLIPBOARD_PASTE,
 } ClipboardEvent;
 
-ClipboardEvent getClipboardEvent(SDL_Keycode keycode);
+ClipboardEvent getClipboardEvent(tic_keycode keycode);
 
 typedef enum
 {
@@ -224,3 +224,10 @@ void studioClose();
 char getKeyboardText();
 bool isKeyWasDown(tic_key key);
 bool isAnyKeyWasDown();
+
+void setClipboardText(const char* text);
+bool hasClipboardText();
+char* getClipboardText();
+
+u64 getPerformanceCounter();
+u64 getPerformanceFrequency();

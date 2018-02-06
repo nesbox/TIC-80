@@ -82,7 +82,7 @@ static void drawDialog(Menu* menu)
 
 	if(checkMousePos(&header))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		if(checkMouseDown(&header, tic_mouse_left))
 		{
@@ -98,7 +98,7 @@ static void drawDialog(Menu* menu)
 
 	if(menu->drag.active)
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		menu->pos.x = menu->drag.start.x - getMouseX();
 		menu->pos.y = menu->drag.start.y - getMouseY();
@@ -138,7 +138,7 @@ static void drawTabDisabled(Menu* menu, s32 x, s32 y, s32 id)
 
 	if(menu->gamepad.tab != id && checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 		over = true;
 
 		if(checkMouseDown(&rect, tic_mouse_left))
@@ -179,47 +179,47 @@ static void drawTab(Menu* menu, s32 x, s32 y, s32 id)
 
 static void drawPlayerButtons(Menu* menu, s32 x, s32 y)
 {
-	tic_mem* tic = menu->tic;
+	// tic_mem* tic = menu->tic;
 
-	u8 chromakey = 0;
+	// u8 chromakey = 0;
 
-	SDL_Scancode* codes = getKeymap();
+	// SDL_Scancode* codes = getKeymap();
 
-	enum {Width = 41, Height = TIC_SPRITESIZE, Rows = 4, Cols = 2, MaxChars = 5, Buttons = 8};
+	// enum {Width = 41, Height = TIC_SPRITESIZE, Rows = 4, Cols = 2, MaxChars = 5, Buttons = 8};
 
-	for(s32 i = 0; i < Buttons; i++)
-	{
-		tic_rect rect = {x + i / Rows * (Width+2), y + (i%Rows)*(Height+1), Width, TIC_SPRITESIZE};
-		bool over = false;
+	// for(s32 i = 0; i < Buttons; i++)
+	// {
+	// 	tic_rect rect = {x + i / Rows * (Width+2), y + (i%Rows)*(Height+1), Width, TIC_SPRITESIZE};
+	// 	bool over = false;
 
-		s32 index = i+menu->gamepad.tab * Buttons;
+	// 	s32 index = i+menu->gamepad.tab * Buttons;
 
-		if(checkMousePos(&rect))
-		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+	// 	if(checkMousePos(&rect))
+	// 	{
+	// 		setCursor(tic_cursor_hand);
 
-			over = true;
+	// 		over = true;
 
-			if(checkMouseClick(&rect, tic_mouse_left))
-			{
-				menu->gamepad.selected = menu->gamepad.selected != index ? index : -1;
-			}
-		}
+	// 		if(checkMouseClick(&rect, tic_mouse_left))
+	// 		{
+	// 			menu->gamepad.selected = menu->gamepad.selected != index ? index : -1;
+	// 		}
+	// 	}
 
-		if(menu->gamepad.selected == index && menu->ticks % TIC_FRAMERATE < TIC_FRAMERATE / 2)
-			continue;
+	// 	if(menu->gamepad.selected == index && menu->ticks % TIC_FRAMERATE < TIC_FRAMERATE / 2)
+	// 		continue;
 
-		tic->api.sprite_ex(tic, &tic->config.bank0.tiles, 8+i, rect.x, rect.y, 1, 1, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);
+	// 	tic->api.sprite_ex(tic, &tic->config.bank0.tiles, 8+i, rect.x, rect.y, 1, 1, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);
 
-		s32 code = codes[index];
-		char label[32];
-		strcpy(label, code ? SDL_GetKeyName(SDL_GetKeyFromScancode(code)) : "...");
+	// 	s32 code = codes[index];
+	// 	char label[32];
+	// 	strcpy(label, code ? SDL_GetKeyName(SDL_GetKeyFromScancode(code)) : "...");
 
-		if(strlen(label) > MaxChars)
-			label[MaxChars] = '\0';
+	// 	if(strlen(label) > MaxChars)
+	// 		label[MaxChars] = '\0';
 
-		tic->api.text(tic, label, rect.x+10, rect.y+2, (over ? tic_color_gray : tic_color_black));
-	}
+	// 	tic->api.text(tic, label, rect.x+10, rect.y+2, (over ? tic_color_gray : tic_color_black));
+	// }
 }
 
 static void drawGamepadSetupTabs(Menu* menu, s32 x, s32 y)
@@ -257,7 +257,7 @@ static void drawGamepadMenu(Menu* menu)
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		over = true;
 
@@ -324,7 +324,7 @@ static void drawMainMenu(Menu* menu)
 
 			if(checkMousePos(&label))
 			{
-				setCursor(SDL_SYSTEM_CURSOR_HAND);
+				setCursor(tic_cursor_hand);
 
 				over = true;
 
@@ -432,27 +432,27 @@ static void saveMapping(Menu* menu)
 	fsSaveRootFile(menu->fs, KEYMAP_DAT_PATH, getKeymap(), KEYMAP_SIZE, true);
 }
 
-static void processKeydown(Menu* menu, SDL_Keysym* keysum)
-{
-	if(menu->gamepad.selected < 0)
-		return;
+// static void processKeydown(Menu* menu, SDL_Keysym* keysum)
+// {
+// 	if(menu->gamepad.selected < 0)
+// 		return;
 
-	SDL_Scancode scancode = keysum->scancode;
+// 	SDL_Scancode scancode = keysum->scancode;
 
-	switch(scancode)
-	{
-	case SDL_SCANCODE_ESCAPE: break;
-	default:
-		{
-			SDL_Scancode* codes = getKeymap();
-			codes[menu->gamepad.selected] = scancode;
+// 	switch(scancode)
+// 	{
+// 	case SDL_SCANCODE_ESCAPE: break;
+// 	default:
+// 		{
+// 			SDL_Scancode* codes = getKeymap();
+// 			codes[menu->gamepad.selected] = scancode;
 
-			saveMapping(menu);
-		}
-	}
+// 			saveMapping(menu);
+// 		}
+// 	}
 
-	menu->gamepad.selected = -1;
-}
+// 	menu->gamepad.selected = -1;
+// }
 
 static void tick(Menu* menu)
 {
@@ -479,7 +479,7 @@ static void tick(Menu* menu)
 		menu->init = true;
 	}
 
-	SDL_memcpy(menu->tic->ram.vram.screen.data, menu->bg, sizeof menu->tic->ram.vram.screen.data);
+	memcpy(menu->tic->ram.vram.screen.data, menu->bg, sizeof menu->tic->ram.vram.screen.data);
 
 	switch(menu->mode)
 	{
@@ -525,8 +525,8 @@ void initMenu(Menu* menu, tic_mem* tic, FileSystem* fs)
 	enum{Size = sizeof tic->ram.vram.screen.data};
 
 	if(!menu->bg)
-		menu->bg = SDL_malloc(Size);
+		menu->bg = malloc(Size);
 
 	if(menu->bg)
-		SDL_memcpy(menu->bg, tic->ram.vram.screen.data, Size);
+		memcpy(menu->bg, tic->ram.vram.screen.data, Size);
 }

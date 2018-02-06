@@ -33,7 +33,7 @@
 
 static void clearCanvasSelection(Sprite* sprite)
 {
-	SDL_memset(&sprite->select.rect, 0, sizeof(tic_rect));
+	memset(&sprite->select.rect, 0, sizeof(tic_rect));
 }
 
 static u8 getSheetPixel(Sprite* sprite, s32 x, s32 y)
@@ -91,7 +91,7 @@ static void processPickerCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 s
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		s32 mx = getMouseX() - x;
 		s32 my = getMouseY() - y;
@@ -116,7 +116,7 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		s32 mx = getMouseX() - x;
 		s32 my = getMouseY() - y;
@@ -193,7 +193,7 @@ static void copySelection(Sprite* sprite)
 
 	{
 		tic_rect* rect = &sprite->select.rect;
-		SDL_memset(sprite->select.front, 0, CANVAS_SIZE * CANVAS_SIZE);
+		memset(sprite->select.front, 0, CANVAS_SIZE * CANVAS_SIZE);
 
 		for(s32 j = rect->y, index = 0; j < (rect->y + rect->h); j++)
 			for(s32 i = rect->x; i < (rect->x + rect->w); i++)
@@ -212,7 +212,7 @@ static void processSelectCanvasMouse(Sprite* sprite, s32 x, s32 y)
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		s32 mx = getMouseX() - x;
 		s32 my = getMouseY() - y;
@@ -229,10 +229,10 @@ static void processSelectCanvasMouse(Sprite* sprite, s32 x, s32 y)
 				s32 x = mx / Size;
 				s32 y = my / Size;
 
-				s32 rl = SDL_min(x, sprite->select.start.x);
-				s32 rt = SDL_min(y, sprite->select.start.y);
-				s32 rr = SDL_max(x, sprite->select.start.x);
-				s32 rb = SDL_max(y, sprite->select.start.y);
+				s32 rl = MIN(x, sprite->select.start.x);
+				s32 rt = MIN(y, sprite->select.start.y);
+				s32 rr = MAX(x, sprite->select.start.x);
+				s32 rb = MAX(y, sprite->select.start.y);
 
 				sprite->select.rect = (tic_rect){rl, rt, rr - rl + 1, rb - rt + 1};
 			}
@@ -279,7 +279,7 @@ static void processFillCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 l, s32 t)
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		s32 mx = getMouseX() - x;
 		s32 my = getMouseY() - y;
@@ -294,20 +294,20 @@ static void processFillCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 l, s32 t)
 
 		if(left || right)
 		{
-			s32 sx = l + mx / Size;
-			s32 sy = t + my / Size;
+			// s32 sx = l + mx / Size;
+			// s32 sy = t + my / Size;
 
-			u8 color = getSheetPixel(sprite, sx, sy);
-			u8 fill = left ? sprite->color : sprite->color2;
+			// u8 color = getSheetPixel(sprite, sx, sy);
+			// u8 fill = left ? sprite->color : sprite->color2;
 
-			if(color != fill)
-			{
-				SDL_Keymod keymod = SDL_GetModState();
+			// if(color != fill)
+			// {
+			// 	SDL_Keymod keymod = SDL_GetModState();
 
-				keymod & TIC_MOD_CTRL 
-					? replaceColor(sprite, l, t, l + sprite->size-1, t + sprite->size-1, sx, sy, color, fill)
-					: floodFill(sprite, l, t, l + sprite->size-1, t + sprite->size-1, sx, sy, color, fill);
-			}
+			// 	keymod & TIC_MOD_CTRL 
+			// 		? replaceColor(sprite, l, t, l + sprite->size-1, t + sprite->size-1, sx, sy, color, fill)
+			// 		: floodFill(sprite, l, t, l + sprite->size-1, t + sprite->size-1, sx, sy, color, fill);
+			// }
 
 			history_add(sprite->history);
 		}
@@ -328,7 +328,7 @@ static void drawBrushSlider(Sprite* sprite, s32 x, s32 y)
 	bool over = false;
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		showTooltip("BRUSH SIZE");
 		over = true;
@@ -415,7 +415,7 @@ static void drawCanvasOvr(Sprite* sprite, s32 x, s32 y)
 	}
 
 	tic_rect canvasRect = {x, y, CANVAS_SIZE, CANVAS_SIZE};
-	if(checkMouseDown(&canvasRect, SDL_BUTTON_MIDDLE))
+	if(checkMouseDown(&canvasRect, tic_mouse_middle))
 	{
 		s32 mx = getMouseX() - x;
 		s32 my = getMouseY() - y;
@@ -483,7 +483,7 @@ static void rotateSelectRect(Sprite* sprite)
 
 static void rotateCanvas(Sprite* sprite)
 {
-	u8* buffer = (u8*)SDL_malloc(CANVAS_SIZE*CANVAS_SIZE);
+	u8* buffer = (u8*)malloc(CANVAS_SIZE*CANVAS_SIZE);
 
 	if(buffer)
 	{
@@ -507,7 +507,7 @@ static void rotateCanvas(Sprite* sprite)
 			history_add(sprite->history);
 		}
 
-		SDL_free(buffer);
+		free(buffer);
 	}
 }
 
@@ -636,7 +636,7 @@ static void drawMoveButtons(Sprite* sprite)
 
 			if(checkMousePos(&Rects[i]))
 			{
-				setCursor(SDL_SYSTEM_CURSOR_HAND);
+				setCursor(tic_cursor_hand);
 
 				if(checkMouseDown(&Rects[i], tic_mouse_left)) down = true;
 
@@ -672,7 +672,7 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 
 		if(checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
 			if(checkMouseDown(&rect, tic_mouse_left))
 			{
@@ -715,7 +715,7 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 		bool down = false;
 		if(checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
 			if(checkMouseDown(&rect, tic_mouse_left))
 				down = true;
@@ -753,7 +753,7 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 		bool down = false;
 		if(checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
 			if(checkMouseDown(&rect, tic_mouse_left))
 				down = true;
@@ -803,7 +803,7 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
 
 		if(checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
 			showTooltip("COPY PALETTE");
 			over = true;
@@ -846,7 +846,7 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
 
 		if(checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
 			showTooltip("PASTE PALETTE");
 			over = true;
@@ -902,7 +902,7 @@ static void drawPalette(Sprite* sprite, s32 x, s32 y)
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		bool left = checkMouseDown(&rect, tic_mouse_left);
 		bool right = checkMouseDown(&rect, tic_mouse_right);
@@ -952,7 +952,7 @@ static void drawPalette(Sprite* sprite, s32 x, s32 y)
 		bool over = false;
 		if(checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 			over = true;
 
 			showTooltip("EDIT PALETTE");
@@ -1047,7 +1047,7 @@ static void drawSheet(Sprite* sprite, s32 x, s32 y)
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		if(checkMouseDown(&rect, tic_mouse_left))
 		{
@@ -1109,7 +1109,7 @@ static void flipSpriteVert(Sprite* sprite)
 static void rotateSprite(Sprite* sprite)
 {
 	const s32 Size = sprite->size;
-	u8* buffer = (u8*)SDL_malloc(Size * Size);
+	u8* buffer = (u8*)malloc(Size * Size);
 
 	if(buffer)
 	{
@@ -1129,7 +1129,7 @@ static void rotateSprite(Sprite* sprite)
 			history_add(sprite->history);
 		}
 
-		SDL_free(buffer);
+		free(buffer);
 	}
 }
 
@@ -1204,7 +1204,7 @@ static void drawSpriteTools(Sprite* sprite, s32 x, s32 y)
 
 		if(checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
 			over = true;
 
@@ -1288,7 +1288,7 @@ static void drawTools(Sprite* sprite, s32 x, s32 y)
 		bool over = false;
 		if(checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 			over = true;
 
 			static const char* Tooltips[] = {"BRUSH [1]", "COLOR PICKER [2]", "SELECT [3]", "FILL [4]"};
@@ -1337,7 +1337,7 @@ static void drawTools(Sprite* sprite, s32 x, s32 y)
 static void copyToClipboard(Sprite* sprite)
 {
 	s32 size = sprite->size * sprite->size * TIC_PALETTE_BPP / BITS_IN_BYTE;
-	u8* buffer = SDL_malloc(size);
+	u8* buffer = malloc(size);
 
 	if(buffer)
 	{
@@ -1351,7 +1351,7 @@ static void copyToClipboard(Sprite* sprite)
 
 		toClipboard(buffer, size, true);
 
-		SDL_free(buffer);
+		free(buffer);
 	}
 }
 
@@ -1367,7 +1367,7 @@ static void copyFromClipboard(Sprite* sprite)
 		pasteColor(sprite);
 
 	s32 size = sprite->size * sprite->size * TIC_PALETTE_BPP / BITS_IN_BYTE;
-	u8* buffer = SDL_malloc(size);
+	u8* buffer = malloc(size);
 
 	if(buffer)
 	{
@@ -1384,7 +1384,7 @@ static void copyFromClipboard(Sprite* sprite)
 			history_add(sprite->history);
 		}
 
-		SDL_free(buffer);
+		free(buffer);
 
 	}
 }
@@ -1428,81 +1428,81 @@ static void switchBanks(Sprite* sprite)
 	clearCanvasSelection(sprite);
 }
 
-static void processKeydown(Sprite* sprite, SDL_Keycode keycode)
-{
-	switch(getClipboardEvent(keycode))
-	{
-	case TIC_CLIPBOARD_CUT: cutToClipboard(sprite); break;
-	case TIC_CLIPBOARD_COPY: copyToClipboard(sprite); break;
-	case TIC_CLIPBOARD_PASTE: copyFromClipboard(sprite); break;
-	default: break;
-	}
+// static void processKeydown(Sprite* sprite, tic_keycode keycode)
+// {
+// 	switch(getClipboardEvent(keycode))
+// 	{
+// 	case TIC_CLIPBOARD_CUT: cutToClipboard(sprite); break;
+// 	case TIC_CLIPBOARD_COPY: copyToClipboard(sprite); break;
+// 	case TIC_CLIPBOARD_PASTE: copyFromClipboard(sprite); break;
+// 	default: break;
+// 	}
 
-	SDL_Keymod keymod = SDL_GetModState();
+// 	SDL_Keymod keymod = SDL_GetModState();
 
-	if(keymod & TIC_MOD_CTRL)
-	{
-		switch(keycode)
-		{
-		case SDLK_z: 	undo(sprite); break;
-		case SDLK_y: 	redo(sprite); break;
-		}
-	}
-	else
-	{
-		if(hasCanvasSelection(sprite))
-		{
-			switch(keycode)
-			{
-			case SDLK_UP: 		upCanvas(sprite); break;
-			case SDLK_DOWN: 	downCanvas(sprite); break;
-			case SDLK_LEFT: 	leftCanvas(sprite); break;
-			case SDLK_RIGHT: 	rightCanvas(sprite); break;
-			case SDLK_DELETE:	deleteCanvas(sprite); break;
-			}
-		}
-		else
-		{
-			switch(keycode)
-			{
-			case SDLK_DELETE: 	deleteSprite(sprite); break;
-			case SDLK_UP: 		upSprite(sprite); break;
-			case SDLK_DOWN: 	downSprite(sprite); break;
-			case SDLK_LEFT: 	leftSprite(sprite); break;
-			case SDLK_RIGHT: 	rightSprite(sprite); break;
-			case SDLK_TAB: 		switchBanks(sprite); break;
-			}
+// 	if(keymod & TIC_MOD_CTRL)
+// 	{
+// 		switch(keycode)
+// 		{
+// 		case SDLK_z: 	undo(sprite); break;
+// 		case SDLK_y: 	redo(sprite); break;
+// 		}
+// 	}
+// 	else
+// 	{
+// 		if(hasCanvasSelection(sprite))
+// 		{
+// 			switch(keycode)
+// 			{
+// 			case SDLK_UP: 		upCanvas(sprite); break;
+// 			case SDLK_DOWN: 	downCanvas(sprite); break;
+// 			case SDLK_LEFT: 	leftCanvas(sprite); break;
+// 			case SDLK_RIGHT: 	rightCanvas(sprite); break;
+// 			case SDLK_DELETE:	deleteCanvas(sprite); break;
+// 			}
+// 		}
+// 		else
+// 		{
+// 			switch(keycode)
+// 			{
+// 			case SDLK_DELETE: 	deleteSprite(sprite); break;
+// 			case SDLK_UP: 		upSprite(sprite); break;
+// 			case SDLK_DOWN: 	downSprite(sprite); break;
+// 			case SDLK_LEFT: 	leftSprite(sprite); break;
+// 			case SDLK_RIGHT: 	rightSprite(sprite); break;
+// 			case SDLK_TAB: 		switchBanks(sprite); break;
+// 			}
 
-			if(!sprite->editPalette)
-			{
-				switch(keycode)
-				{
-				case SDLK_1:
-				case SDLK_2:
-				case SDLK_3:
-				case SDLK_4:
-					sprite->mode = keycode - SDLK_1;
-					break;
-				case SDLK_5:
-				case SDLK_6:
-				case SDLK_7:
-				case SDLK_8:
-					SpriteToolsFunc[keycode - SDLK_5](sprite);
-					break;
-				}
+// 			if(!sprite->editPalette)
+// 			{
+// 				switch(keycode)
+// 				{
+// 				case SDLK_1:
+// 				case SDLK_2:
+// 				case SDLK_3:
+// 				case SDLK_4:
+// 					sprite->mode = keycode - SDLK_1;
+// 					break;
+// 				case SDLK_5:
+// 				case SDLK_6:
+// 				case SDLK_7:
+// 				case SDLK_8:
+// 					SpriteToolsFunc[keycode - SDLK_5](sprite);
+// 					break;
+// 				}
 
-				if(sprite->mode == SPRITE_DRAW_MODE)
-				{
-					switch(keycode)
-					{
-					case SDLK_LEFTBRACKET: if(sprite->brushSize > 1) sprite->brushSize--; break;
-					case SDLK_RIGHTBRACKET: if(sprite->brushSize < 4) sprite->brushSize++; break;
-					}
-				}				
-			}
-		}
-	}
-}
+// 				if(sprite->mode == SPRITE_DRAW_MODE)
+// 				{
+// 					switch(keycode)
+// 					{
+// 					case SDLK_LEFTBRACKET: if(sprite->brushSize > 1) sprite->brushSize--; break;
+// 					case SDLK_RIGHTBRACKET: if(sprite->brushSize < 4) sprite->brushSize++; break;
+// 					}
+// 				}				
+// 			}
+// 		}
+// 	}
+// }
 
 static void drawSpriteToolbar(Sprite* sprite)
 {
@@ -1514,7 +1514,7 @@ static void drawSpriteToolbar(Sprite* sprite)
 
 		if(checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
 			showTooltip("CANVAS ZOOM");
 
@@ -1553,7 +1553,7 @@ static void drawSpriteToolbar(Sprite* sprite)
 
 		if(checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
 			showTooltip("TILES [tab]");
 
@@ -1573,7 +1573,7 @@ static void drawSpriteToolbar(Sprite* sprite)
 
 		if(checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
 			showTooltip("SPRITES [tab]");
 
@@ -1658,8 +1658,8 @@ static void overlap(tic_mem* tic, void* data)
 
 void initSprite(Sprite* sprite, tic_mem* tic, tic_tiles* src)
 {
-	if(sprite->select.back == NULL) sprite->select.back = (u8*)SDL_malloc(CANVAS_SIZE*CANVAS_SIZE);
-	if(sprite->select.front == NULL) sprite->select.front = (u8*)SDL_malloc(CANVAS_SIZE*CANVAS_SIZE);
+	if(sprite->select.back == NULL) sprite->select.back = (u8*)malloc(CANVAS_SIZE*CANVAS_SIZE);
+	if(sprite->select.front == NULL) sprite->select.front = (u8*)malloc(CANVAS_SIZE*CANVAS_SIZE);
 	if(sprite->history) history_delete(sprite->history);
 	
 	*sprite = (Sprite)

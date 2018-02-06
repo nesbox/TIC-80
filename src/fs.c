@@ -29,7 +29,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#if defined(__WINRT__) || defined(__WINDOWS__)
+#if defined(__WINRT__) || defined(__TIC_WINDOWS__)
 #include <direct.h>
 #include <windows.h>
 #else
@@ -67,7 +67,7 @@ static const char* getFilePath(FileSystem* fs, const char* name)
 
 	strcat(path, name);
 
-#if defined(__WINDOWS__)
+#if defined(__TIC_WINDOWS__)
 	char* ptr = path;
 	while (*ptr)
 	{
@@ -103,7 +103,7 @@ bool fsIsInPublicDir(FileSystem* fs)
 	return isPublic(fs);
 }
 
-#if defined(__WINDOWS__) || defined(__WINRT__)
+#if defined(__TIC_WINDOWS__) || defined(__WINRT__)
 
 #define UTF8ToString(S) (wchar_t *)SDL_iconv_string("UTF-16LE", "UTF-8", (char *)(S), SDL_strlen(S)+1)
 #define StringToUTF8(S) SDL_iconv_string("UTF-8", "UTF-16LE", (char *)(S), (SDL_wcslen(S)+1)*sizeof(wchar_t))
@@ -141,7 +141,7 @@ int _wremove(const wchar_t *);
 #define tic_stat stat
 #define tic_remove remove
 #define tic_fopen fopen
-#define tic_mkdir(name) mkdir(name, 0700)
+#define tic_mkdir(name) mkdir(name)//, 0700)
 #define tic_system system
 
 #endif
@@ -194,7 +194,7 @@ void fsEnumFiles(FileSystem* fs, ListCallback callback, void* data)
 
 bool fsDeleteDir(FileSystem* fs, const char* name)
 {
-#if defined(__WINRT__) || defined(__WINDOWS__)
+#if defined(__WINRT__) || defined(__TIC_WINDOWS__)
 	const char* path = getFilePath(fs, name);
 	bool result = tic_rmdir(UTF8ToString(path));
 #else
@@ -253,7 +253,7 @@ static void onAddFile(const char* name, const u8* buffer, s32 size, void* data, 
 				fwrite(buffer, 1, size, dest);
 				fclose(dest);
 
-#if !defined(__WINRT__) && !defined(__WINDOWS__)
+#if !defined(__WINRT__) && !defined(__TIC_WINDOWS__)
 				if(mode)
 					chmod(path, mode);
 #endif
@@ -271,12 +271,12 @@ static void onAddFile(const char* name, const u8* buffer, s32 size, void* data, 
 		addFileData->callback(name, FS_FILE_NOT_ADDED, addFileData->data);
 	}
 
-	SDL_free(addFileData);
+	free(addFileData);
 }
 
 void fsAddFile(FileSystem* fs, AddCallback callback, void* data)
 {
-	AddFileData* addFileData = (AddFileData*)SDL_malloc(sizeof(AddFileData));
+	AddFileData* addFileData = (AddFileData*)malloc(sizeof(AddFileData));
 
 	*addFileData = (AddFileData) { fs, callback, data };
 
@@ -296,14 +296,14 @@ static void onGetFile(bool result, void* data)
 
 	command->callback(result ? FS_FILE_DOWNLOADED : FS_FILE_NOT_DOWNLOADED, command->data);
 
-	SDL_free(command->buffer);
-	SDL_free(command);
+	free(command->buffer);
+	free(command);
 }
 
 static u32 fsGetMode(FileSystem* fs, const char* name)
 {
 
-#if defined(__WINRT__) || defined(__WINDOWS__)
+#if defined(__WINRT__) || defined(__TIC_WINDOWS__)
 	return 0;
 #else
 	const char* path = getFilePath(fs, name);
@@ -409,7 +409,7 @@ bool fsIsDir(FileSystem* fs, const char* name)
 
 void fsGetFileData(GetCallback callback, const char* name, void* buffer, size_t size, u32 mode, void* data)
 {
-	GetFileData* command = (GetFileData*)SDL_malloc(sizeof(GetFileData));
+	GetFileData* command = (GetFileData*)malloc(sizeof(GetFileData));
 	*command = (GetFileData) {callback, data, buffer};
 
 	file_dialog_save(onGetFile, name, buffer, size, command, mode);
@@ -427,12 +427,12 @@ static void onOpenFileData(const char* name, const u8* buffer, s32 size, void* d
 
 	command->callback(name, buffer, size, command->data);
 
-	SDL_free(command);
+	free(command);
 }
 
 void fsOpenFileData(OpenCallback callback, void* data)
 {
-	OpenFileData* command = (OpenFileData*)SDL_malloc(sizeof(OpenFileData));
+	OpenFileData* command = (OpenFileData*)malloc(sizeof(OpenFileData));
 
 	*command = (OpenFileData){callback, data};
 
@@ -446,7 +446,7 @@ void fsGetFile(FileSystem* fs, GetCallback callback, const char* name, void* dat
 
 	if(buffer)
 	{
-		GetFileData* command = (GetFileData*)SDL_malloc(sizeof(GetFileData));
+		GetFileData* command = (GetFileData*)malloc(sizeof(GetFileData));
 		*command = (GetFileData) {callback, data, buffer};
 
 		s32 mode = fsGetMode(fs, name);
@@ -489,7 +489,7 @@ bool fsCopyFile(const char* src, const char* dst)
 			size = ftell(file);
 			fseek(file, 0, SEEK_SET);
 
-			if((buffer = SDL_malloc(size)) && fread(buffer, size, 1, file)) {}
+			if((buffer = malloc(size)) && fread(buffer, size, 1, file)) {}
 
 			fclose(file);
 		}		
@@ -507,7 +507,7 @@ bool fsCopyFile(const char* src, const char* dst)
 			done = true;
 		}
 
-		SDL_free(buffer);
+		free(buffer);
 	}
 
 	return done;
@@ -525,7 +525,7 @@ void* fsReadFile(const char* path, s32* size)
 		*size = ftell(file);
 		fseek(file, 0, SEEK_SET);
 
-		if((buffer = SDL_malloc(*size)) && fread(buffer, *size, 1, file)) {}
+		if((buffer = malloc(*size)) && fread(buffer, *size, 1, file)) {}
 
 		fclose(file);
 	}
@@ -554,7 +554,7 @@ const char* fsFullname(const char *path)
 {
 	char* result = NULL;
 
-#if defined(__WINDOWS__) || defined(__WINRT__)
+#if defined(__TIC_WINDOWS__) || defined(__WINRT__)
 	static wchar_t wpath[FILENAME_MAX];
 	GetFullPathNameW(UTF8ToString(path), sizeof(wpath), wpath, NULL);
 
@@ -572,7 +572,7 @@ const char* fsBasename(const char *path)
 {
 	char* result = NULL;
 
-#if defined(__WINDOWS__) || defined(__WINRT__)
+#if defined(__TIC_WINDOWS__) || defined(__WINRT__)
 #define SEP "\\"
 #else
 #define SEP "/"
@@ -720,7 +720,7 @@ void* fsLoadFile(FileSystem* fs, const char* name, s32* size)
 			*size = ftell(file);
 			fseek(file, 0, SEEK_SET);
 
-			u8* buffer = SDL_malloc(*size);
+			u8* buffer = malloc(*size);
 
 			if(buffer && fread(buffer, *size, 1, file)) ptr = buffer;
 
@@ -751,13 +751,13 @@ void fsMakeDir(FileSystem* fs, const char* name)
 	makeDir(getFilePath(fs, name));
 }
 
-#if defined(__WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
+#if defined(__TIC_WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
 
 s32 fsOpenSystemPath(FileSystem* fs, const char* path)
 {
 	char command[FILENAME_MAX];
 
-#if defined(__WINDOWS__)
+#if defined(__TIC_WINDOWS__)
 
 	sprintf(command, "explorer \"%s\"", path);
 
@@ -795,7 +795,7 @@ void fsOpenWorkingFolder(FileSystem* fs)
 
 void createFileSystem(const char* path, void(*callback)(FileSystem*))
 {
-	FileSystem* fs = (FileSystem*)SDL_malloc(sizeof(FileSystem));
+	FileSystem* fs = (FileSystem*)malloc(sizeof(FileSystem));
 	memset(fs, 0, sizeof(FileSystem));
 
 	fs->net = createNet();
@@ -823,7 +823,7 @@ void createFileSystem(const char* path, void(*callback)(FileSystem*))
 
 		char* path = SDL_GetPrefPath(TIC_PACKAGE, TIC_NAME);
 		strcpy(fs->dir, path);
-		SDL_free(path);
+		free(path);
 
 #endif
 		

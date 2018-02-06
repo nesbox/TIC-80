@@ -418,7 +418,7 @@ typedef union
 	u8 data[TIC_RAM_SIZE];
 } tic_ram;
 
-enum
+typedef enum
 {
 	tic_key_unknown,
 
@@ -511,7 +511,7 @@ enum
 	////////////////
 
 	tic_keys_count
-};
+} tic_keycode;
 
 enum
 {
@@ -519,3 +519,10 @@ enum
 	tic_mouse_middle,
 	tic_mouse_right,
 };
+
+typedef enum
+{
+	tic_cursor_arrow,
+	tic_cursor_hand,
+	tic_cursor_ibeam,
+} tic_cursor;

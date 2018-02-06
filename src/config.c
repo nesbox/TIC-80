@@ -228,7 +228,7 @@ static void update(Config* config, const u8* buffer, size_t size)
 
 static void setDefault(Config* config)
 {
-	SDL_memset(&config->data, 0, sizeof(StudioConfig));
+	memset(&config->data, 0, sizeof(StudioConfig));
 
 	{
 		static const u8 DefaultBiosZip[] = 
@@ -243,14 +243,14 @@ static void setDefault(Config* config)
 		{
 			update(config, embedBios, size);
 
-			SDL_free(embedBios);
+			free(embedBios);
 		}
 	}
 }
 
 static void saveConfig(Config* config, bool overwrite)
 {
-	u8* buffer = SDL_malloc(sizeof(tic_cartridge));
+	u8* buffer = malloc(sizeof(tic_cartridge));
 
 	if(buffer)
 	{
@@ -258,7 +258,7 @@ static void saveConfig(Config* config, bool overwrite)
 
 		fsSaveRootFile(config->fs, CONFIG_TIC_PATH, buffer, size, overwrite);
 
-		SDL_free(buffer);
+		free(buffer);
 	}
 }
 
@@ -270,7 +270,7 @@ static void reset(Config* config)
 
 static void save(Config* config)
 {
-	SDL_memcpy(&config->tic->config, &config->tic->cart, sizeof(tic_cartridge));
+	memcpy(&config->tic->config, &config->tic->cart, sizeof(tic_cartridge));
 	readConfig(config);
 	saveConfig(config, true);
 
@@ -296,7 +296,7 @@ void initConfig(Config* config, tic_mem* tic, FileSystem* fs)
 	{
 		update(config, data, size);
 
-		SDL_free(data);
+		free(data);
 	}
 	else saveConfig(config, false);
 

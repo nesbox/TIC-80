@@ -42,7 +42,7 @@ static void drawGrid(World* world)
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		s32 mx = getMouseX();
 		s32 my = getMouseY();
@@ -61,13 +61,13 @@ static void drawGrid(World* world)
 		TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, (tic_color_red));
 }
 
-static void processKeydown(World* world, SDL_Keycode keycode)
-{
-	switch(keycode)
-	{
-	case SDLK_TAB: setStudioMode(TIC_MAP_MODE); break;
-	}
-}
+// static void processKeydown(World* world, tic_keycode keycode)
+// {
+// 	switch(keycode)
+// 	{
+// 	case SDLK_TAB: setStudioMode(TIC_MAP_MODE); break;
+// 	}
+// }
 
 static void tick(World* world)
 {
@@ -82,7 +82,7 @@ static void tick(World* world)
 	// 	}
 	// }
 
-	SDL_memcpy(&world->tic->ram.vram, world->preview, PREVIEW_SIZE);
+	memcpy(&world->tic->ram.vram, world->preview, PREVIEW_SIZE);
 
 	drawGrid(world);
 }
@@ -90,7 +90,7 @@ static void tick(World* world)
 void initWorld(World* world, tic_mem* tic, Map* map)
 {
 	if(!world->preview)
-		world->preview = SDL_malloc(PREVIEW_SIZE);
+		world->preview = malloc(PREVIEW_SIZE);
 
 	*world = (World)
 	{
@@ -100,7 +100,7 @@ void initWorld(World* world, tic_mem* tic, Map* map)
 		.preview = world->preview,
 	};
 
-	SDL_memset(world->preview, 0, PREVIEW_SIZE);
+	memset(world->preview, 0, PREVIEW_SIZE);
 	s32 colors[TIC_PALETTE_SIZE];
 
 	for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
@@ -109,7 +109,7 @@ void initWorld(World* world, tic_mem* tic, Map* map)
 
 		if(index)
 		{
-			SDL_memset(colors, 0, sizeof colors);
+			memset(colors, 0, sizeof colors);
 
 			tic_tile* tile = &getBankTiles()->data[index];
 
@@ -123,7 +123,7 @@ void initWorld(World* world, tic_mem* tic, Map* map)
 
 			s32 max = 0;
 
-			for(s32 c = 0; c < SDL_arraysize(colors); c++)
+			for(s32 c = 0; c < COUNT_OF(colors); c++)
 				if(colors[c] > colors[max]) max = c;
 
 			tic_tool_poke4(world->preview, i, max);

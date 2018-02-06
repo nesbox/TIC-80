@@ -34,7 +34,7 @@ static void drawButton(Dialog* dlg, const char* label, s32 x, s32 y, u8 color, u
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 		over = true;
 
 		if(checkMouseDown(&rect, tic_mouse_left))
@@ -91,29 +91,29 @@ static void onNo(Dialog* dlg)
 	hideDialog();
 }
 
-static void processKeydown(Dialog* dlg, SDL_Keysym* keysum)
-{
-	SDL_Scancode scancode = keysum->scancode;
+// static void processKeydown(Dialog* dlg, SDL_Keysym* keysum)
+// {
+// 	SDL_Scancode scancode = keysum->scancode;
 
-	switch(scancode)
-	{
-	case SDL_SCANCODE_LEFT:
-		dlg->focus = (dlg->focus-1) % 2;
-		playSystemSfx(2);
-		break;
-	case SDL_SCANCODE_RIGHT:
-	case SDL_SCANCODE_TAB:
-		dlg->focus = (dlg->focus+1) % 2;
-		playSystemSfx(2);
-		break;
-	case SDL_SCANCODE_RETURN:
-	case SDL_SCANCODE_SPACE:
-		dlg->focus == 0 ? onYes(dlg) : onNo(dlg);
-		break;
-	default:
-		break;
-	}
-}
+// 	switch(scancode)
+// 	{
+// 	case SDL_SCANCODE_LEFT:
+// 		dlg->focus = (dlg->focus-1) % 2;
+// 		playSystemSfx(2);
+// 		break;
+// 	case SDL_SCANCODE_RIGHT:
+// 	case SDL_SCANCODE_TAB:
+// 		dlg->focus = (dlg->focus+1) % 2;
+// 		playSystemSfx(2);
+// 		break;
+// 	case SDL_SCANCODE_RETURN:
+// 	case SDL_SCANCODE_SPACE:
+// 		dlg->focus == 0 ? onYes(dlg) : onNo(dlg);
+// 		break;
+// 	default:
+// 		break;
+// 	}
+// }
 
 static void drawDialog(Dialog* dlg)
 {
@@ -130,7 +130,7 @@ static void drawDialog(Dialog* dlg)
 
 	if(checkMousePos(&header))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		if(checkMouseDown(&header, tic_mouse_left))
 		{
@@ -146,7 +146,7 @@ static void drawDialog(Dialog* dlg)
 
 	if(dlg->drag.active)
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		dlg->pos.x = dlg->drag.start.x - getMouseX();
 		dlg->pos.y = dlg->drag.start.y - getMouseY();
@@ -209,7 +209,7 @@ static void tick(Dialog* dlg)
 		dlg->init = true;
 	}
 
-	SDL_memcpy(dlg->tic->ram.vram.screen.data, dlg->bg, sizeof dlg->tic->ram.vram.screen.data);
+	memcpy(dlg->tic->ram.vram.screen.data, dlg->bg, sizeof dlg->tic->ram.vram.screen.data);
 
 	drawDialog(dlg);
 }
@@ -245,8 +245,8 @@ void initDialog(Dialog* dlg, tic_mem* tic, const char** text, s32 rows, DialogCa
 	enum{Size = sizeof tic->ram.vram.screen.data};
 
 	if(!dlg->bg)
-		dlg->bg = SDL_malloc(Size);
+		dlg->bg = malloc(Size);
 
 	if(dlg->bg)
-		SDL_memcpy(dlg->bg, tic->ram.vram.screen.data, Size);
+		memcpy(dlg->bg, tic->ram.vram.screen.data, Size);
 }

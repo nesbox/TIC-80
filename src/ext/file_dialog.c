@@ -24,7 +24,7 @@
 
 #include <SDL.h>
 
-#if defined(__WINDOWS__)
+#if defined(__TIC_WINDOWS__)
 
 #include <windows.h>
 #include <commdlg.h>
@@ -104,7 +104,7 @@ void file_dialog_save(file_dialog_save_callback callback, const char* name, cons
 			fwrite(buffer, 1, size, file);
 			fclose(file);
 
-#if !defined(__WINDOWS__)
+#if !defined(__TIC_WINDOWS__)
 			chmod(filename, mode);
 #endif
 			callback(true, data);
