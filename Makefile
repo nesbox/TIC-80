@@ -46,14 +46,15 @@ LINUX_INCLUDES= \
 
 LINUX_LIBS= \
 	$(GTK_LIBS) \
-	`sdl2-config --static-libs`
+	`sdl2-config --static-libs` \
+	-L$(3RD_PARTY)/wren-0.1.0/lib
 
 LINUX64_LIBS= \
-	$(LINUX_LIBS) \
+	$(GTK_LIBS) \
 	-L$(PRE_BUILT)/linux64
 
 LINUX32_LIBS= \
-	$(LINUX_LIBS) \
+	$(GTK_LIBS) \
 	-L$(PRE_BUILT)/linux32
 
 LINUX_ARM_LIBS= \
@@ -323,14 +324,14 @@ run: mingw-pro
 	$(MINGW_OUTPUT)
 
 linux64-lto:
-	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) $(INCLUDES) $(LINUX64_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o $(BIN_NAME)
+	$(CC) $(GTK_INCLUDES) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) $(INCLUDES) $(LINUX64_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o $(BIN_NAME)
 
 linux64-lto-pro:
 	$(eval OPT += $(OPT_PRO))
 	make linux64-lto OPT="$(OPT)"
 
 linux32-lto:
-	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) $(INCLUDES) $(LINUX32_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o $(BIN_NAME)
+	$(CC) $(GTK_INCLUDES) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) $(INCLUDES) $(LINUX32_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o $(BIN_NAME)
 
 linux32-lto-pro:
 	$(eval OPT += $(OPT_PRO))

@@ -2941,7 +2941,7 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate)
 	}
 	else createFileSystem(NULL, onFSInitialized);
 
-	emscripten_set_main_loop(emstick, TIC_FRAMERATE, 1);
+	// emscripten_set_main_loop(emstick, TIC_FRAMERATE, 1);
 
 #else
 

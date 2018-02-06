@@ -839,6 +839,7 @@ s32 main(s32 argc, char **argv)
 #elif defined(__EMSCRIPTEN__)
 		SDL_RENDERER_ACCELERATED
 #else
+		// TODO: uncomment this later
 		SDL_RENDERER_ACCELERATED// | (getConfig()->useVsync ? SDL_RENDERER_PRESENTVSYNC : 0)
 #endif
 	);
@@ -850,7 +851,9 @@ s32 main(s32 argc, char **argv)
 	initTouchGamepad();
 
 #if defined(__EMSCRIPTEN__)
-	emscripten_set_main_loop(emstick, TIC_FRAMERATE, 1);
+
+	// call this after FS is initialized
+	emscripten_set_main_loop(getConfig()->useVsync ? tick : emstick, TIC_FRAMERATE, 1);
 #else
 	{
 		u64 nextTick = SDL_GetPerformanceCounter();
@@ -872,12 +875,7 @@ s32 main(s32 argc, char **argv)
 					nextTick -= delay;
 					platform.missedFrame = true;
 				}
-				else
-				{
-					u32 time = (u32)(delay * 1000 / SDL_GetPerformanceFrequency());
-					if(time >= 10)
-						SDL_Delay(time);
-				}
+				else SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
 			}
 		}
 	}
