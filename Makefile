@@ -49,11 +49,11 @@ LINUX_LIBS= \
 	`sdl2-config --static-libs`
 
 LINUX64_LIBS= \
-	$(LINUX_LIBS) \
+	$(GTK_LIBS) \
 	-L$(PRE_BUILT)/linux64
 
 LINUX32_LIBS= \
-	$(LINUX_LIBS) \
+	$(GTK_LIBS) \
 	-L$(PRE_BUILT)/linux32
 
 LINUX_ARM_LIBS= \
@@ -69,7 +69,8 @@ LINUX_LINKER_LTO_FLAGS= \
 	-lm \
 	-lpthread \
 	-lrt \
-	-lz
+	-lz \
+	-lsndio
 
 LINUX_LINKER_FLAGS= \
 	-D_GNU_SOURCE \
