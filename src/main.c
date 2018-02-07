@@ -1,6 +1,6 @@
 #include "main.h"
 #include "studio.h"
-
+#include "net.h"
 #include <SDL.h>
 
 #define STUDIO_UI_SCALE 3
@@ -814,6 +814,98 @@ static void tick()
 	blitSound();
 }
 
+// should work async with callback
+static const char* getAppFolder()
+{
+
+	static char appFolder[FILENAME_MAX];
+
+#if defined(__EMSCRIPTEN__)
+
+		strcpy(appFolder, "/" TIC_PACKAGE "/" TIC_NAME "/");
+
+#elif defined(__ANDROID__)
+
+		strcpy(appFolder, SDL_AndroidGetExternalStoragePath());
+		const char AppFolder[] = "/" TIC_NAME "/";
+		strcat(appFolder, AppFolder);
+		mkdir(appFolder, 0700);
+
+#else
+
+		char* path = SDL_GetPrefPath(TIC_PACKAGE, TIC_NAME);
+		strcpy(appFolder, path);
+		free(path);
+
+#endif
+		
+#if defined(__EMSCRIPTEN__)
+		EM_ASM_
+		(
+			{
+				var dir = "";
+				Module.Pointer_stringify($0).split("/").forEach(function(val)
+				{
+					if(val.length)
+					{
+						dir += "/" + val;
+						FS.mkdir(dir);
+					}
+				});
+				
+				FS.mount(IDBFS, {}, dir);
+				FS.syncfs(true, function(error)
+				{
+					if(error) console.log(error);
+					else Runtime.dynCall('vi', $1, [$2]);
+				});			
+			}, appFolder, callback, fs
+		);
+#endif
+
+	return appFolder;
+}
+
+void setClipboardText(const char* text)
+{
+	SDL_SetClipboardText(text);
+}
+
+bool hasClipboardText()
+{
+	return SDL_HasClipboardText();
+}
+
+char* getClipboardText()
+{
+	return SDL_GetClipboardText();
+}
+
+u64 getPerformanceCounter()
+{
+	return SDL_GetPerformanceCounter();
+}
+
+u64 getPerformanceFrequency()
+{
+	return SDL_GetPerformanceFrequency();
+}
+
+static System sysHandlers = 
+{
+	.setClipboardText = setClipboardText,
+	.hasClipboardText = hasClipboardText,
+	.getClipboardText = getClipboardText,
+	.getPerformanceCounter = getPerformanceCounter,
+	.getPerformanceFrequency = getPerformanceFrequency,
+
+	.netVersionRequest = netVersionRequest,
+	.netDirRequest = netDirRequest,
+	.netGetRequest = netGetRequest,
+	.createNet = createNet,
+	.closeNet = closeNet,
+};
+
 s32 main(s32 argc, char **argv)
 {
 	SDL_SetHint(SDL_HINT_WINRT_HANDLE_BACK_BUTTON, "1");
@@ -841,14 +933,14 @@ s32 main(s32 argc, char **argv)
 #elif defined(__EMSCRIPTEN__)
 		SDL_RENDERER_ACCELERATED
 #else
-		// TODO: uncomment this later
+		// TODO: uncomment this later, also init FS before read config
 		SDL_RENDERER_ACCELERATED// | (getConfig()->useVsync ? SDL_RENDERER_PRESENTVSYNC : 0)
 #endif
 	);
 
 	platform.texture = SDL_CreateTexture(platform.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING, TEXTURE_SIZE, TEXTURE_SIZE);
 
-	platform.studio = studioInit(argc, argv, platform.audio.spec.freq);
+	platform.studio = studioInit(argc, argv, platform.audio.spec.freq, getAppFolder(), &sysHandlers);
 
 	initTouchGamepad();
 
@@ -901,33 +993,4 @@ s32 main(s32 argc, char **argv)
 	SDL_CloseAudioDevice(platform.audio.device);
 
 	return 0;
-}
-
-
-////////////////////////
-
-
-void setClipboardText(const char* text)
-{
-	SDL_SetClipboardText(text);
-}
-
-bool hasClipboardText()
-{
-	return SDL_HasClipboardText();
-}
-
-char* getClipboardText()
-{
-	return SDL_GetClipboardText();
-}
-
-u64 getPerformanceCounter()
-{
-	return SDL_GetPerformanceCounter();
-}
-
-u64 getPerformanceFrequency()
-{
-	return SDL_GetPerformanceFrequency();
 }

@@ -105,8 +105,28 @@ bool fsIsInPublicDir(FileSystem* fs)
 
 #if defined(__TIC_WINDOWS__) || defined(__WINRT__)
 
-#define UTF8ToString(S) (wchar_t *)SDL_iconv_string("UTF-16LE", "UTF-8", (char *)(S), SDL_strlen(S)+1)
-#define StringToUTF8(S) SDL_iconv_string("UTF-8", "UTF-16LE", (char *)(S), (SDL_wcslen(S)+1)*sizeof(wchar_t))
+// #define UTF8ToString(S) (wchar_t *)SDL_iconv_string("UTF-16LE", "UTF-8", (char *)(S), strlen(S)+1)
+// #define StringToUTF8(S) SDL_iconv_string("UTF-8", "UTF-16LE", (char *)(S), (wcslen(S)+1)*sizeof(wchar_t))
+
+static const wchar_t* UTF8ToString(const char* str)
+{
+	// TODO: ugly hack
+	wchar_t* wstr = calloc(1, FILENAME_MAX * sizeof(wchar_t));
+
+	mbstowcs(wstr, str, FILENAME_MAX);
+
+	return wstr;
+}
+
+static char* StringToUTF8(const wchar_t* wstr)
+{
+	// TODO: ugly hack
+	char* str = calloc(1, FILENAME_MAX);
+
+	wcstombs(str, wstr, FILENAME_MAX);
+
+	return str;
+}
 
 FILE* _wfopen(const wchar_t *, const wchar_t *);
 int _wremove(const wchar_t *);
@@ -154,7 +174,7 @@ void fsEnumFiles(FileSystem* fs, ListCallback callback, void* data)
 
 	if(isPublic(fs))
 	{
-		netDirRequest(fs->net, fs->work + sizeof(TIC_HOST), callback, data);
+		_netDirRequest(fs->net, fs->work + sizeof(TIC_HOST), callback, data);
 		return;
 	}
 
@@ -701,7 +721,7 @@ void* fsLoadFile(FileSystem* fs, const char* name, s32* size)
 
 			char path[FILENAME_MAX] = {0};
 			sprintf(path, "/cart/%s/cart.tic", loadPublicCartData.hash);
-			void* data = netGetRequest(fs->net, path, size);
+			void* data = _netGetRequest(fs->net, path, size);
 
 			if(data)
 				fsSaveRootFile(fs, cachePath, data, *size, false);
@@ -798,59 +818,57 @@ void createFileSystem(const char* path, void(*callback)(FileSystem*))
 	FileSystem* fs = (FileSystem*)malloc(sizeof(FileSystem));
 	memset(fs, 0, sizeof(FileSystem));
 
-	fs->net = createNet();
+	fs->net = _createNet();
 
-	if(path)
-	{
-		strcpy(fs->dir, path);
-		callback(fs);
-	}
-	else
-	{
+	strcpy(fs->dir, path);
+	callback(fs);
 
-#if defined(__EMSCRIPTEN__)
+// 	else
+// 	{
 
-		strcpy(fs->dir, "/" TIC_PACKAGE "/" TIC_NAME "/");
+// #if defined(__EMSCRIPTEN__)
 
-#elif defined(__ANDROID__)
+// 		strcpy(fs->dir, "/" TIC_PACKAGE "/" TIC_NAME "/");
 
-		strcpy(fs->dir, SDL_AndroidGetExternalStoragePath());
-		const char AppFolder[] = "/" TIC_NAME "/";
-		strcat(fs->dir, AppFolder);
-		mkdir(fs->dir, 0700);
+// #elif defined(__ANDROID__)
 
-#else
+// 		strcpy(fs->dir, SDL_AndroidGetExternalStoragePath());
+// 		const char AppFolder[] = "/" TIC_NAME "/";
+// 		strcat(fs->dir, AppFolder);
+// 		mkdir(fs->dir, 0700);
 
-		char* path = SDL_GetPrefPath(TIC_PACKAGE, TIC_NAME);
-		strcpy(fs->dir, path);
-		free(path);
+// #else
 
-#endif
+// 		char* path = SDL_GetPrefPath(TIC_PACKAGE, TIC_NAME);
+// 		strcpy(fs->dir, path);
+// 		free(path);
+
+// #endif
 		
-#if defined(__EMSCRIPTEN__)
-		EM_ASM_
-		(
-			{
-				var dir = "";
-				Module.Pointer_stringify($0).split("/").forEach(function(val)
-				{
-					if(val.length)
-					{
-						dir += "/" + val;
-						FS.mkdir(dir);
-					}
-				});
+// #if defined(__EMSCRIPTEN__)
+// 		EM_ASM_
+// 		(
+// 			{
+// 				var dir = "";
+// 				Module.Pointer_stringify($0).split("/").forEach(function(val)
+// 				{
+// 					if(val.length)
+// 					{
+// 						dir += "/" + val;
+// 						FS.mkdir(dir);
+// 					}
+// 				});
 				
-				FS.mount(IDBFS, {}, dir);
-				FS.syncfs(true, function(error)
-				{
-					if(error) console.log(error);
-					else Runtime.dynCall('vi', $1, [$2]);
-				});			
-			}, fs->dir, callback, fs
-		);
-#else
-		callback(fs);
-#endif
-	}
+// 				FS.mount(IDBFS, {}, dir);
+// 				FS.syncfs(true, function(error)
+// 				{
+// 					if(error) console.log(error);
+// 					else Runtime.dynCall('vi', $1, [$2]);
+// 				});			
+// 			}, fs->dir, callback, fs
+// 		);
+// #else
+// 		callback(fs);
+// #endif
+	// }
 }

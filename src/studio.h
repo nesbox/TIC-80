@@ -37,6 +37,7 @@
 #include "ticapi.h"
 #include "defines.h"
 #include "tools.h"
+#include "net.h"
 
 #define TIC_LOCAL ".local/"
 #define TIC_CACHE TIC_LOCAL "cache/"
@@ -187,7 +188,7 @@ void showTooltip(const char* text);
 
 tic_key* getKeymap();
 
-const StudioConfig* getConfig();
+TIC80_API const StudioConfig* getConfig();
 
 void setSpritePixel(tic_tile* tiles, s32 x, s32 y, u8 color);
 u8 getSpritePixel(tic_tile* tiles, s32 x, s32 y);
@@ -217,9 +218,25 @@ typedef struct
 
 } Studio;
 
-Studio* studioInit(s32 argc, char **argv, s32 samplerate);
-void studioTick(void* pixels);
-void studioClose();
+typedef struct
+{
+	void	(*setClipboardText)(const char* text);
+	bool	(*hasClipboardText)();
+	char* 	(*getClipboardText)();
+	u64 	(*getPerformanceCounter)();
+	u64 	(*getPerformanceFrequency)();
+
+	NetVersion 	(*netVersionRequest)(Net* net);
+	void 		(*netDirRequest)(Net* net, const char* path, ListCallback callback, void* data);
+	void* 		(*netGetRequest)(Net* net, const char* path, s32* size);
+	Net* 		(*createNet)();
+	void 		(*closeNet)(Net* net);
+
+} System;
+
+TIC80_API Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* appFolder, System* system);
+TIC80_API void studioTick(void* pixels);
+TIC80_API void studioClose();
 
 char getKeyboardText();
 bool isKeyWasDown(tic_key key);
@@ -231,3 +248,9 @@ char* getClipboardText();
 
 u64 getPerformanceCounter();
 u64 getPerformanceFrequency();
+
+NetVersion _netVersionRequest(Net* net);
+void _netDirRequest(Net* net, const char* path, ListCallback callback, void* data);
+void* _netGetRequest(Net* net, const char* path, s32* size);
+Net* _createNet();
+void _closeNet(Net* net);

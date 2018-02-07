@@ -88,6 +88,7 @@ static const EditorMode Modes[] =
 static struct
 {
 	Studio studio;
+	System* system;
 
 	tic80_local* tic80local;
 
@@ -2927,12 +2928,14 @@ static void emstick()
 
 #endif
 
-Studio* studioInit(s32 argc, char **argv, s32 samplerate)
+Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, System* system)
 {
 	setbuf(stdout, NULL);
 	studioImpl.argc = argc;
 	studioImpl.argv = argv;
 	studioImpl.samplerate = samplerate;
+
+	studioImpl.system = system;
 
 #if defined(__EMSCRIPTEN__)
 
@@ -2946,7 +2949,7 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate)
 
 #else
 
-	createFileSystem(argc > 1 && fsExists(argv[1]) ? fsBasename(argv[1]) : NULL, onFSInitialized);
+	createFileSystem(argc > 1 && fsExists(argv[1]) ? fsBasename(argv[1]) : folder, onFSInitialized);
 
 #endif
 
@@ -3031,7 +3034,7 @@ void studioTick(void* pixels)
 
 void studioClose()
 {
-	closeNet(studioImpl.surf->net);
+	_closeNet(studioImpl.surf->net);
 
 	{
 		for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
@@ -3075,4 +3078,54 @@ void studioClose()
 // #endif
 
 	// exit(0);
+}
+
+void setClipboardText(const char* text)
+{
+	studioImpl.system->setClipboardText(text);
+}
+
+bool hasClipboardText()
+{
+	return studioImpl.system->hasClipboardText();
+}
+
+char* getClipboardText()
+{
+	return studioImpl.system->getClipboardText();
+}
+
+u64 getPerformanceCounter()
+{
+	return studioImpl.system->getPerformanceCounter();
+}
+
+u64 getPerformanceFrequency()
+{
+	return studioImpl.system->getPerformanceFrequency();
+}
+
+NetVersion _netVersionRequest(Net* net)
+{
+	return studioImpl.system->netVersionRequest(net);
+}
+
+void _netDirRequest(Net* net, const char* path, ListCallback callback, void* data)
+{
+	return studioImpl.system->netDirRequest(net, path, callback, data);
+}
+
+void* _netGetRequest(Net* net, const char* path, s32* size)
+{
+	return studioImpl.system->netGetRequest(net, path, size);
+}
+
+Net* _createNet()
+{
+	return studioImpl.system->createNet();
+}
+
+void _closeNet(Net* net)
+{
+	return studioImpl.system->closeNet(net);
 }

@@ -251,6 +251,12 @@ bin/surf.o: src/surf.c $(TIC80_H) $(TIC_H)
 bin/main.o: src/main.c src/keycodes.c $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
+SDL_NET = \
+	bin/SDLnet.o \
+	bin/SDLnetTCP.o \
+	bin/SDLnetselect.o \
+	bin/net.o
+
 TIC_O=\
 	bin/studio.o \
 	bin/console.o \
@@ -258,9 +264,6 @@ TIC_O=\
 	bin/file_dialog.o \
 	bin/md5.o \
 	bin/gif.o \
-	bin/SDLnet.o \
-	bin/SDLnetTCP.o \
-	bin/SDLnetselect.o \
 	bin/fs.o \
 	bin/tools.o \
 	bin/start.o \
@@ -272,11 +275,9 @@ TIC_O=\
 	bin/world.o \
 	bin/config.o \
 	bin/code.o \
-	bin/net.o \
 	bin/dialog.o \
 	bin/menu.o \
-	bin/surf.o \
-	bin/main.o
+	bin/surf.o
 
 bin/tic80.o: src/tic80.c $(TIC80_H)
 	$(CC) $< $(OPT) $(INCLUDES) -DTIC80_SHARED -c -o $@
@@ -304,8 +305,14 @@ TIC80_O = bin/tic80.o bin/tic.o bin/tools.o bin/blip_buf.o bin/jsapi.o bin/luaap
 TIC80_A = bin/libtic80.a
 TIC80_DLL = bin/tic80.dll
 
+STUDIO_A = bin/libstudio.a
+STUDIO_DLL = bin/studio.dll
+
 $(TIC80_DLL): $(TIC80_O)
 	$(CC) $(OPT) -shared $(TIC80_O) -L$(PRE_BUILT)/mingw -llua -lwren -lgif -Wl,--out-implib,$(TIC80_A) -o $@
+
+$(STUDIO_DLL): $(DEMO_ASSETS) $(TIC80_DLL) $(TIC_O) bin/html.o
+	$(CC) $(TIC_O) bin/html.o $(TIC80_A) $(OPT) -shared $(INCLUDES) -L$(PRE_BUILT)/mingw -llua -lz -lgif -Wl,--out-implib,$(STUDIO_A) -o $@
 
 emscripten:
 	$(EMS_CC) $(SOURCES) $(TIC80_SRC) $(OPT) $(INCLUDES) $(EMS_OPT) $(EMS_LINKER_FLAGS) -o build/html/tic.js
@@ -313,8 +320,8 @@ emscripten:
 wasm:
 	$(EMS_CC) $(SOURCES) $(TIC80_SRC) $(OPT) $(INCLUDES) $(EMS_OPT) -s WASM=1 $(EMS_LINKER_FLAGS) -o build/html/tic.js
 
-mingw: $(DEMO_ASSETS) $(TIC80_DLL) $(TIC_O) bin/html.o bin/res.o
-	$(CC) $(TIC_O) bin/html.o bin/res.o $(TIC80_A) $(OPT) $(INCLUDES) $(MINGW_LINKER_FLAGS) -o $(MINGW_OUTPUT)
+mingw: $(STUDIO_DLL) $(SDL_NET) bin/main.o bin/res.o
+	$(CC) bin/main.o bin/res.o $(STUDIO_A) $(SDL_NET) $(OPT) $(INCLUDES) $(MINGW_LINKER_FLAGS) -o $(MINGW_OUTPUT)
 
 mingw-pro:
 	$(eval OPT += $(OPT_PRO))
