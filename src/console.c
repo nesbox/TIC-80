@@ -2536,11 +2536,11 @@ static void processGesture(Console* console)
 
 static void checkNewVersion(Console* console)
 {
-	Net* net = createNet();
+	Net* net = _createNet();
 
 	if(net)
 	{
-		NetVersion version = netVersionRequest(net);
+		NetVersion version = _netVersionRequest(net);
 		free(net);
 
 		if((version.major > TIC_VERSION_MAJOR) ||
