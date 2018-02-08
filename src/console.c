@@ -2540,7 +2540,7 @@ static void checkNewVersion(Console* console)
 
 	if(net)
 	{
-		NetVersion version = _netVersionRequest(net);
+		NetVersion version = netVersionRequest(net);
 		free(net);
 
 		if((version.major > TIC_VERSION_MAJOR) ||

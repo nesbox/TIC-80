@@ -227,8 +227,6 @@ typedef struct
 	u64 	(*getPerformanceCounter)();
 	u64 	(*getPerformanceFrequency)();
 
-	NetVersion 	(*netVersionRequest)(Net* net);
-	void 		(*netDirRequest)(Net* net, const char* path, ListCallback callback, void* data);
 	void* 		(*netGetRequest)(Net* net, const char* path, s32* size);
 	Net* 		(*createNet)();
 	void 		(*closeNet)(Net* net);
@@ -253,11 +251,19 @@ char* getClipboardText();
 u64 getPerformanceCounter();
 u64 getPerformanceFrequency();
 
-NetVersion _netVersionRequest(Net* net);
-void _netDirRequest(Net* net, const char* path, ListCallback callback, void* data);
 void* _netGetRequest(Net* net, const char* path, s32* size);
 Net* _createNet();
 void _closeNet(Net* net);
 
 void _file_dialog_load(file_dialog_load_callback callback, void* data);
 void _file_dialog_save(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode);
+
+typedef struct
+{
+	s32 major;
+	s32 minor;
+	s32 patch;
+} NetVersion;
+
+NetVersion netVersionRequest(Net* net);
+void netDirRequest(Net* net, const char* path, ListCallback callback, void* data);

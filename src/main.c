@@ -899,8 +899,6 @@ static System sysHandlers =
 	.getPerformanceCounter = getPerformanceCounter,
 	.getPerformanceFrequency = getPerformanceFrequency,
 
-	.netVersionRequest = netVersionRequest,
-	.netDirRequest = netDirRequest,
 	.netGetRequest = netGetRequest,
 	.createNet = createNet,
 	.closeNet = closeNet,

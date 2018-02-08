@@ -174,7 +174,7 @@ void fsEnumFiles(FileSystem* fs, ListCallback callback, void* data)
 
 	if(isPublic(fs))
 	{
-		_netDirRequest(fs->net, fs->work + sizeof(TIC_HOST), callback, data);
+		netDirRequest(fs->net, fs->work + sizeof(TIC_HOST), callback, data);
 		return;
 	}
 

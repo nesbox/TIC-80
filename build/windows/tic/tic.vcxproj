@@ -41,9 +41,6 @@
     <ProjectReference Include="..\..\..\3rd-party\SDL2-2.0.7\VisualC\SDL\SDL.vcxproj">
       <Project>{81ce8daf-ebb2-4761-8e45-b71abcca8c68}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\lua\lua.vcxproj">
-      <Project>{57d2471b-3138-495e-af18-6e290d098ffc}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\studio\studio.vcxproj">
       <Project>{6181f6a6-aa1b-4cd2-b306-e242cfde9b20}</Project>
     </ProjectReference>
