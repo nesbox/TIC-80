@@ -904,6 +904,9 @@ static System sysHandlers =
 	.netGetRequest = netGetRequest,
 	.createNet = createNet,
 	.closeNet = closeNet,
+
+	.file_dialog_load = file_dialog_load,
+	.file_dialog_save = file_dialog_save,
 };
 
 s32 main(s32 argc, char **argv)

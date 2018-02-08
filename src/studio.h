@@ -38,6 +38,7 @@
 #include "defines.h"
 #include "tools.h"
 #include "net.h"
+#include "ext/file_dialog.h"
 
 #define TIC_LOCAL ".local/"
 #define TIC_CACHE TIC_LOCAL "cache/"
@@ -232,6 +233,9 @@ typedef struct
 	Net* 		(*createNet)();
 	void 		(*closeNet)(Net* net);
 
+	void (*file_dialog_load)(file_dialog_load_callback callback, void* data);
+	void (*file_dialog_save)(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode);
+
 } System;
 
 TIC80_API Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* appFolder, System* system);
@@ -254,3 +258,6 @@ void _netDirRequest(Net* net, const char* path, ListCallback callback, void* dat
 void* _netGetRequest(Net* net, const char* path, s32* size);
 Net* _createNet();
 void _closeNet(Net* net);
+
+void _file_dialog_load(file_dialog_load_callback callback, void* data);
+void _file_dialog_save(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode);

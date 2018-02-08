@@ -280,7 +280,6 @@
     <ClCompile Include="..\..\..\src\config.c" />
     <ClCompile Include="..\..\..\src\console.c" />
     <ClCompile Include="..\..\..\src\dialog.c" />
-    <ClCompile Include="..\..\..\src\ext\file_dialog.c" />
     <ClCompile Include="..\..\..\src\ext\gif.c" />
     <ClCompile Include="..\..\..\src\ext\md5.c" />
     <ClCompile Include="..\..\..\src\fs.c" />

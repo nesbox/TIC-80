@@ -3129,3 +3129,13 @@ void _closeNet(Net* net)
 {
 	return studioImpl.system->closeNet(net);
 }
+
+void _file_dialog_load(file_dialog_load_callback callback, void* data)
+{
+	studioImpl.system->file_dialog_load(callback, data);
+}
+
+void _file_dialog_save(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode)
+{
+	studioImpl.system->file_dialog_save(callback, name, buffer, size, data, mode);
+}

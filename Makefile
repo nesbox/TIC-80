@@ -257,11 +257,13 @@ SDL_NET = \
 	bin/SDLnetselect.o \
 	bin/net.o
 
+FILE_DIALOG = \
+	bin/file_dialog.o
+
 TIC_O=\
 	bin/studio.o \
 	bin/console.o \
 	bin/run.o \
-	bin/file_dialog.o \
 	bin/md5.o \
 	bin/gif.o \
 	bin/fs.o \
@@ -320,8 +322,8 @@ emscripten:
 wasm:
 	$(EMS_CC) $(SOURCES) $(TIC80_SRC) $(OPT) $(INCLUDES) $(EMS_OPT) -s WASM=1 $(EMS_LINKER_FLAGS) -o build/html/tic.js
 
-mingw: $(STUDIO_DLL) $(SDL_NET) bin/main.o bin/res.o
-	$(CC) bin/main.o bin/res.o $(STUDIO_A) $(SDL_NET) $(OPT) $(INCLUDES) $(MINGW_LINKER_FLAGS) -o $(MINGW_OUTPUT)
+mingw: $(STUDIO_DLL) $(SDL_NET) $(FILE_DIALOG) bin/main.o bin/res.o
+	$(CC) bin/main.o bin/res.o $(STUDIO_A) $(SDL_NET) $(FILE_DIALOG) $(OPT) $(INCLUDES) $(MINGW_LINKER_FLAGS) -o $(MINGW_OUTPUT)
 
 mingw-pro:
 	$(eval OPT += $(OPT_PRO))

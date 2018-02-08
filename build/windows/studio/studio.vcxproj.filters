@@ -63,9 +63,6 @@
     <ClCompile Include="..\..\..\src\world.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\ext\file_dialog.c">
-      <Filter>src\ext</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\ext\md5.c">
       <Filter>src\ext</Filter>
     </ClCompile>
