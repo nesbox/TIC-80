@@ -179,47 +179,47 @@ static void drawTab(Menu* menu, s32 x, s32 y, s32 id)
 
 static void drawPlayerButtons(Menu* menu, s32 x, s32 y)
 {
-	// tic_mem* tic = menu->tic;
+	tic_mem* tic = menu->tic;
 
-	// u8 chromakey = 0;
+	u8 chromakey = 0;
 
-	// SDL_Scancode* codes = getKeymap();
+	tic_key* codes = getKeymap();
 
-	// enum {Width = 41, Height = TIC_SPRITESIZE, Rows = 4, Cols = 2, MaxChars = 5, Buttons = 8};
+	enum {Width = 41, Height = TIC_SPRITESIZE, Rows = 4, Cols = 2, MaxChars = 5, Buttons = 8};
 
-	// for(s32 i = 0; i < Buttons; i++)
-	// {
-	// 	tic_rect rect = {x + i / Rows * (Width+2), y + (i%Rows)*(Height+1), Width, TIC_SPRITESIZE};
-	// 	bool over = false;
+	for(s32 i = 0; i < Buttons; i++)
+	{
+		tic_rect rect = {x + i / Rows * (Width+2), y + (i%Rows)*(Height+1), Width, TIC_SPRITESIZE};
+		bool over = false;
 
-	// 	s32 index = i+menu->gamepad.tab * Buttons;
+		s32 index = i+menu->gamepad.tab * Buttons;
 
-	// 	if(checkMousePos(&rect))
-	// 	{
-	// 		setCursor(tic_cursor_hand);
+		if(checkMousePos(&rect))
+		{
+			setCursor(tic_cursor_hand);
 
-	// 		over = true;
+			over = true;
 
-	// 		if(checkMouseClick(&rect, tic_mouse_left))
-	// 		{
-	// 			menu->gamepad.selected = menu->gamepad.selected != index ? index : -1;
-	// 		}
-	// 	}
+			if(checkMouseClick(&rect, tic_mouse_left))
+			{
+				menu->gamepad.selected = menu->gamepad.selected != index ? index : -1;
+			}
+		}
 
-	// 	if(menu->gamepad.selected == index && menu->ticks % TIC_FRAMERATE < TIC_FRAMERATE / 2)
-	// 		continue;
+		if(menu->gamepad.selected == index && menu->ticks % TIC_FRAMERATE < TIC_FRAMERATE / 2)
+			continue;
 
-	// 	tic->api.sprite_ex(tic, &tic->config.bank0.tiles, 8+i, rect.x, rect.y, 1, 1, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);
+		tic->api.sprite_ex(tic, &tic->config.bank0.tiles, 8+i, rect.x, rect.y, 1, 1, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);
 
-	// 	s32 code = codes[index];
-	// 	char label[32];
-	// 	strcpy(label, code ? SDL_GetKeyName(SDL_GetKeyFromScancode(code)) : "...");
+		s32 code = codes[index];
+		char label[32] = "fix names...";
+		// strcpy(label, code ? SDL_GetKeyName(SDL_GetKeyFromScancode(code)) : "...");
 
-	// 	if(strlen(label) > MaxChars)
-	// 		label[MaxChars] = '\0';
+		if(strlen(label) > MaxChars)
+			label[MaxChars] = '\0';
 
-	// 	tic->api.text(tic, label, rect.x+10, rect.y+2, (over ? tic_color_gray : tic_color_black));
-	// }
+		tic->api.text(tic, label, rect.x+10, rect.y+2, (over ? tic_color_gray : tic_color_black));
+	}
 }
 
 static void drawGamepadSetupTabs(Menu* menu, s32 x, s32 y)
@@ -432,42 +432,38 @@ static void saveMapping(Menu* menu)
 	fsSaveRootFile(menu->fs, KEYMAP_DAT_PATH, getKeymap(), KEYMAP_SIZE, true);
 }
 
-// static void processKeydown(Menu* menu, SDL_Keysym* keysum)
-// {
-// 	if(menu->gamepad.selected < 0)
-// 		return;
+static void processKeyboard(Menu* menu)
+{
+	tic_mem* tic = menu->tic;
 
-// 	SDL_Scancode scancode = keysum->scancode;
+	if(menu->gamepad.selected < 0)
+		return;
 
-// 	switch(scancode)
-// 	{
-// 	case SDL_SCANCODE_ESCAPE: break;
-// 	default:
-// 		{
-// 			SDL_Scancode* codes = getKeymap();
-// 			codes[menu->gamepad.selected] = scancode;
+	if(isKeyBeenPressed(tic_key_escape));
+	else if(isAnyKeyBeenPressed())
+	{
+		for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
+		{
+			tic_key key = tic->ram.input.keyboard.keys[i];
 
-// 			saveMapping(menu);
-// 		}
-// 	}
+			if(tic->api.keyp(tic, key, -1, -1))
+			{
+				tic_key* codes = getKeymap();
+				codes[menu->gamepad.selected] = key;
+				saveMapping(menu);
+				break;
+			}
+		}
+	}
 
-// 	menu->gamepad.selected = -1;
-// }
+	menu->gamepad.selected = -1;
+}
 
 static void tick(Menu* menu)
 {
 	menu->ticks++;
 
-	// SDL_Event* event = NULL;
-	// while ((event = pollEvent()))
-	// {
-	// 	switch(event->type)
-	// 	{
-	// 	case SDL_KEYUP:
-	// 		processKeydown(menu, &event->key.keysym);
-	// 		break;
-	// 	}
-	// }
+	processKeyboard(menu);
 
 	if(getStudioMode() != TIC_MENU_MODE)
 		return;
