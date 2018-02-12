@@ -385,7 +385,12 @@ typedef union
 				s8 y;
 			} offset;
 
-			u8 cursor;
+			struct
+			{
+				u8 sprite:7;
+				bool system:1;
+			} cursor;
+
 		} vars;
 
 		u8 reserved[4];

@@ -130,7 +130,7 @@ static struct
 
 		// SDL_Texture* texture;
 		// const u8* src;
-		tic_cursor system;
+		// tic_cursor system;
 	} mouse;
 
 	struct
@@ -1153,7 +1153,6 @@ bool checkMouseDown(const tic_rect* rect, s32 button)
 	return state->down && pointInRect(&state->start, rect);
 }
 
-
 bool getGesturePos(tic_point* pos)
 {
 	if(studioImpl.gesture.active)
@@ -1168,8 +1167,9 @@ bool getGesturePos(tic_point* pos)
 
 void setCursor(tic_cursor id)
 {
-	if(id != tic_cursor_arrow)
-		studioImpl.mouse.system = id;
+	tic_mem* tic = studioImpl.studio.tic;
+
+	tic->ram.vram.vars.cursor.sprite = id;
 }
 
 void hideDialog()
@@ -2968,6 +2968,9 @@ static void processMouseStates()
 		studioImpl.mouse.state[i].click = false;
 
 	tic_mem* tic = studioImpl.studio.tic;
+
+	tic->ram.vram.vars.cursor.sprite = tic_cursor_arrow;
+	tic->ram.vram.vars.cursor.system = true;
 
 	for(int i = 0; i < COUNT_OF(studioImpl.mouse.state); i++)
 	{

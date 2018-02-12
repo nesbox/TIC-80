@@ -513,7 +513,10 @@ static void processGamepad()
 static void pollEvent()
 {
 	tic80_input* input = &platform.studio->tic->ram.input;
-	input->mouse.btns = 0;
+
+	{
+		input->mouse.btns = 0;
+	}
 
 	SDL_Event event;
 
@@ -784,6 +787,44 @@ static void renderGamepad()
 		platform.gamepad.show = false;
 }
 
+static void renderCursor()
+{
+	if(platform.studio->tic->ram.vram.vars.cursor.system)
+	{
+		SDL_SystemCursor sdlCursor = SDL_SYSTEM_CURSOR_ARROW;
+
+		switch(platform.studio->tic->ram.vram.vars.cursor.sprite)
+		{
+		case tic_cursor_hand: sdlCursor = SDL_SYSTEM_CURSOR_HAND; break;
+		case tic_cursor_ibeam: sdlCursor = SDL_SYSTEM_CURSOR_IBEAM; break;
+		default: sdlCursor = SDL_SYSTEM_CURSOR_ARROW;
+		}
+
+		SDL_SetCursor(SDL_CreateSystemCursor(sdlCursor));
+	}
+	else
+	{
+		// render cursor here
+	}
+
+// 	if(studioImpl.mode == TIC_RUN_MODE && !studioImpl.studio.tic->input.mouse)
+// 	{
+// 		SDL_ShowCursor(SDL_DISABLE);
+// 		return;
+// 	}
+// 	if(studioImpl.mode == TIC_RUN_MODE && studioImpl.studio.tic->ram.vram.vars.cursor)
+// 	{
+// 		SDL_ShowCursor(SDL_DISABLE);
+// 		blitCursor(studioImpl.studio.tic->ram.sprites.data[studioImpl.studio.tic->ram.vram.vars.cursor].data);
+// 		return;
+// 	}
+
+// 	SDL_ShowCursor(getConfig()->theme.cursor.sprite >= 0 ? SDL_DISABLE : SDL_ENABLE);
+
+// 	if(getConfig()->theme.cursor.sprite >= 0)
+// 		blitCursor(studioImpl.studio.tic->config.bank0.tiles.data[getConfig()->theme.cursor.sprite].data);
+}
+
 static void tick()
 {
 	pollEvent();
@@ -807,6 +848,8 @@ static void tick()
 
 	
 	blitTexture();
+
+	renderCursor();
 
 	// if(platform.mode == TIC_RUN_MODE && platform.studio->tic->input.gamepad)
 	renderGamepad();
