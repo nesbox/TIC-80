@@ -882,7 +882,6 @@ static void drawMapOvr(Map* map)
 	if(!map->sheet.show && checkMousePos(&rect))
 	{
 		if(tic->api.key(tic, tic_key_space))
-		// if(getKeyboard()[SDL_SCANCODE_SPACE])
 		{
 			processScrolling(map, checkMouseDown(&rect, tic_mouse_left) || checkMouseDown(&rect, tic_mouse_right));
 		}
@@ -898,27 +897,6 @@ static void drawMapOvr(Map* map)
 	}
 
 	drawSelection(map);
-}
-
-static void processKeyboard(Map* map)
-{
-	enum{Step = 1};
-
-	tic_mem* tic = map->tic;
-
-	if(tic->api.key(tic, tic_key_up)) map->scroll.y -= Step;
-	if(tic->api.key(tic, tic_key_down)) map->scroll.y += Step;
-	if(tic->api.key(tic, tic_key_left)) map->scroll.x -= Step;
-	if(tic->api.key(tic, tic_key_right)) map->scroll.x += Step;
-
-	static const tic_key Keycodes[] = {tic_key_up, tic_key_down, tic_key_left, tic_key_right};
-
-	for(s32 i = 0; i < COUNT_OF(Keycodes); i++)
-		if(tic->api.key(tic, Keycodes[i]))
-		{
-			normalizeMap(&map->scroll.x, &map->scroll.y);
-			break;
-		}
 }
 
 static void undo(Map* map)
@@ -1025,57 +1003,57 @@ static void copyFromClipboard(Map* map)
 	}
 }
 
-// static void processKeydown(Map* map, tic_keycode keycode)
-// {
-// 	SDL_Keymod keymod = SDL_GetModState();
+static void processKeyboard(Map* map)
+{
+	tic_mem* tic = map->tic;
+	map->sheet.show = false;
 
-// 	switch(getClipboardEvent())
-// 	{
-// 	case TIC_CLIPBOARD_CUT: cutToClipboard(map); break;
-// 	case TIC_CLIPBOARD_COPY: copyToClipboard(map); break;
-// 	case TIC_CLIPBOARD_PASTE: copyFromClipboard(map); break;
-// 	default: break;
-// 	}
+	bool shift = tic->api.key(tic, tic_key_shift);
+	bool ctrl = tic->api.key(tic, tic_key_ctrl);
+
+	switch(getClipboardEvent())
+	{
+	case TIC_CLIPBOARD_CUT: cutToClipboard(map); break;
+	case TIC_CLIPBOARD_COPY: copyToClipboard(map); break;
+	case TIC_CLIPBOARD_PASTE: copyFromClipboard(map); break;
+	default: break;
+	}
 	
-// 	if(keymod & TIC_MOD_CTRL)
-// 	{
-// 		switch(keycode)
-// 		{
-// 		case SDLK_z: undo(map); break;
-// 		case SDLK_y: redo(map); break;
-// 		}
-// 	}
-// 	else
-// 	{
-// 		switch(keycode)
-// 		{
-// 		case SDLK_TAB: setStudioMode(TIC_WORLD_MODE); break;
-// 		case SDLK_1:
-// 		case SDLK_2:
-// 		case SDLK_3:
-// 		case SDLK_4:
-// 			map->mode = keycode - SDLK_1;
-// 			break;
-// 		case SDLK_DELETE:
-// 			deleteSelection(map);
-// 			break;
-// 		case SDLK_BACKQUOTE:
-// 			map->canvas.grid = !map->canvas.grid;
-// 			break;
-// 		}
-// 	}
+	if(ctrl)
+	{
+		if(isKeyBeenPressed(tic_key_z)) 		undo(map);
+		else if(isKeyBeenPressed(tic_key_y)) 	redo(map);
+	}
+	else
+	{
+		if(isKeyBeenPressed(tic_key_tab)) setStudioMode(TIC_WORLD_MODE);
+		else if(isKeyBeenPressed(tic_key_1)) map->mode = MAP_DRAW_MODE;
+		else if(isKeyBeenPressed(tic_key_2)) map->mode = MAP_DRAG_MODE;
+		else if(isKeyBeenPressed(tic_key_3)) map->mode = MAP_SELECT_MODE;
+		else if(isKeyBeenPressed(tic_key_4)) map->mode = MAP_FILL_MODE;
+		else if(isKeyBeenPressed(tic_key_delete)) deleteSelection(map);
+		else if(isKeyBeenPressed(tic_key_grave)) map->canvas.grid = !map->canvas.grid;
+	}
 
-// 	if(keymod & KMOD_SHIFT)
-// 		map->sheet.show = true;
-// }
+	if(shift)
+		map->sheet.show = true;
 
-// static void processKeyup(Map* map, tic_keycode keycode)
-// {
-// 	SDL_Keymod keymod = SDL_GetModState();
+	enum{Step = 1};
 
-// 	if(!(keymod & KMOD_SHIFT))
-// 		map->sheet.show = false;
-// }
+	if(tic->api.key(tic, tic_key_up)) map->scroll.y -= Step;
+	if(tic->api.key(tic, tic_key_down)) map->scroll.y += Step;
+	if(tic->api.key(tic, tic_key_left)) map->scroll.x -= Step;
+	if(tic->api.key(tic, tic_key_right)) map->scroll.x += Step;
+
+	static const tic_key Keycodes[] = {tic_key_up, tic_key_down, tic_key_left, tic_key_right};
+
+	for(s32 i = 0; i < COUNT_OF(Keycodes); i++)
+		if(tic->api.key(tic, Keycodes[i]))
+		{
+			normalizeMap(&map->scroll.x, &map->scroll.y);
+			break;
+		}
+}
 
 static void processGesture(Map* map)
 {
@@ -1103,20 +1081,6 @@ static void processGesture(Map* map)
 static void tick(Map* map)
 {
 	map->tickCounter++;
-
-	// SDL_Event* event = NULL;
-	// while ((event = pollEvent()))
-	// {
-	// 	switch(event->type)
-	// 	{
-	// 	case SDL_KEYDOWN:
-	// 		processKeydown(map, event->key.keysym.sym);
-	// 		break;
-	// 	case SDL_KEYUP:
-	// 		processKeyup(map, event->key.keysym.sym);
-	// 		break;
-	// 	}
-	// }
 
 	processKeyboard(map);
 	processGesture(map);
