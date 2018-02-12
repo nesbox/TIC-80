@@ -91,29 +91,23 @@ static void onNo(Dialog* dlg)
 	hideDialog();
 }
 
-// static void processKeydown(Dialog* dlg, SDL_Keysym* keysum)
-// {
-// 	SDL_Scancode scancode = keysum->scancode;
-
-// 	switch(scancode)
-// 	{
-// 	case SDL_SCANCODE_LEFT:
-// 		dlg->focus = (dlg->focus-1) % 2;
-// 		playSystemSfx(2);
-// 		break;
-// 	case SDL_SCANCODE_RIGHT:
-// 	case SDL_SCANCODE_TAB:
-// 		dlg->focus = (dlg->focus+1) % 2;
-// 		playSystemSfx(2);
-// 		break;
-// 	case SDL_SCANCODE_RETURN:
-// 	case SDL_SCANCODE_SPACE:
-// 		dlg->focus == 0 ? onYes(dlg) : onNo(dlg);
-// 		break;
-// 	default:
-// 		break;
-// 	}
-// }
+static void processKeyboard(Dialog* dlg)
+{
+	if(isKeyBeenPressed(tic_key_left))
+	{
+		dlg->focus = (dlg->focus-1) % 2;
+		playSystemSfx(2);
+	}
+	else if(isKeyBeenPressed(tic_key_right) || isKeyBeenPressed(tic_key_tab))
+	{
+		dlg->focus = (dlg->focus+1) % 2;
+		playSystemSfx(2);
+	}
+	else if(isKeyBeenPressed(tic_key_return) || isKeyBeenPressed(tic_key_space))
+	{
+		dlg->focus == 0 ? onYes(dlg) : onNo(dlg);
+	}
+}
 
 static void drawDialog(Dialog* dlg)
 {
@@ -191,16 +185,7 @@ static void drawDialog(Dialog* dlg)
 
 static void tick(Dialog* dlg)
 {
-	// SDL_Event* event = NULL;
-	// while ((event = pollEvent()))
-	// {
-	// 	switch(event->type)
-	// 	{
-	// 	case SDL_KEYDOWN:
-	// 		processKeydown(dlg, &event->key.keysym);
-	// 		break;
-	// 	}	
-	// }
+	processKeyboard(dlg);
 
 	if(!dlg->init)
 	{
