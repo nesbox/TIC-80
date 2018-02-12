@@ -274,6 +274,7 @@ static void replaceColor(Sprite* sprite, s32 l, s32 t, s32 r, s32 b, s32 x, s32 
 
 static void processFillCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 l, s32 t)
 {
+	tic_mem* tic = sprite->tic;
 	tic_rect rect = {x, y, CANVAS_SIZE, CANVAS_SIZE};
 	const s32 Size = CANVAS_SIZE / sprite->size;
 
@@ -294,20 +295,18 @@ static void processFillCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 l, s32 t)
 
 		if(left || right)
 		{
-			// s32 sx = l + mx / Size;
-			// s32 sy = t + my / Size;
+			s32 sx = l + mx / Size;
+			s32 sy = t + my / Size;
 
-			// u8 color = getSheetPixel(sprite, sx, sy);
-			// u8 fill = left ? sprite->color : sprite->color2;
+			u8 color = getSheetPixel(sprite, sx, sy);
+			u8 fill = left ? sprite->color : sprite->color2;
 
-			// if(color != fill)
-			// {
-			// 	SDL_Keymod keymod = SDL_GetModState();
-
-			// 	keymod & TIC_MOD_CTRL 
-			// 		? replaceColor(sprite, l, t, l + sprite->size-1, t + sprite->size-1, sx, sy, color, fill)
-			// 		: floodFill(sprite, l, t, l + sprite->size-1, t + sprite->size-1, sx, sy, color, fill);
-			// }
+			if(color != fill)
+			{
+				tic->api.key(tic, tic_key_ctrl)
+					? replaceColor(sprite, l, t, l + sprite->size-1, t + sprite->size-1, sx, sy, color, fill)
+					: floodFill(sprite, l, t, l + sprite->size-1, t + sprite->size-1, sx, sy, color, fill);
+			}
 
 			history_add(sprite->history);
 		}
@@ -1428,81 +1427,66 @@ static void switchBanks(Sprite* sprite)
 	clearCanvasSelection(sprite);
 }
 
-// static void processKeydown(Sprite* sprite, tic_keycode keycode)
-// {
-// 	switch(getClipboardEvent())
-// 	{
-// 	case TIC_CLIPBOARD_CUT: cutToClipboard(sprite); break;
-// 	case TIC_CLIPBOARD_COPY: copyToClipboard(sprite); break;
-// 	case TIC_CLIPBOARD_PASTE: copyFromClipboard(sprite); break;
-// 	default: break;
-// 	}
+static void processKeyboard(Sprite* sprite)
+{
+	tic_mem* tic = sprite->tic;
 
-// 	SDL_Keymod keymod = SDL_GetModState();
+	switch(getClipboardEvent())
+	{
+	case TIC_CLIPBOARD_CUT: cutToClipboard(sprite); break;
+	case TIC_CLIPBOARD_COPY: copyToClipboard(sprite); break;
+	case TIC_CLIPBOARD_PASTE: copyFromClipboard(sprite); break;
+	default: break;
+	}
 
-// 	if(keymod & TIC_MOD_CTRL)
-// 	{
-// 		switch(keycode)
-// 		{
-// 		case SDLK_z: 	undo(sprite); break;
-// 		case SDLK_y: 	redo(sprite); break;
-// 		}
-// 	}
-// 	else
-// 	{
-// 		if(hasCanvasSelection(sprite))
-// 		{
-// 			switch(keycode)
-// 			{
-// 			case SDLK_UP: 		upCanvas(sprite); break;
-// 			case SDLK_DOWN: 	downCanvas(sprite); break;
-// 			case SDLK_LEFT: 	leftCanvas(sprite); break;
-// 			case SDLK_RIGHT: 	rightCanvas(sprite); break;
-// 			case SDLK_DELETE:	deleteCanvas(sprite); break;
-// 			}
-// 		}
-// 		else
-// 		{
-// 			switch(keycode)
-// 			{
-// 			case SDLK_DELETE: 	deleteSprite(sprite); break;
-// 			case SDLK_UP: 		upSprite(sprite); break;
-// 			case SDLK_DOWN: 	downSprite(sprite); break;
-// 			case SDLK_LEFT: 	leftSprite(sprite); break;
-// 			case SDLK_RIGHT: 	rightSprite(sprite); break;
-// 			case SDLK_TAB: 		switchBanks(sprite); break;
-// 			}
+	bool ctrl = tic->api.key(tic, tic_key_ctrl);
 
-// 			if(!sprite->editPalette)
-// 			{
-// 				switch(keycode)
-// 				{
-// 				case SDLK_1:
-// 				case SDLK_2:
-// 				case SDLK_3:
-// 				case SDLK_4:
-// 					sprite->mode = keycode - SDLK_1;
-// 					break;
-// 				case SDLK_5:
-// 				case SDLK_6:
-// 				case SDLK_7:
-// 				case SDLK_8:
-// 					SpriteToolsFunc[keycode - SDLK_5](sprite);
-// 					break;
-// 				}
+	if(ctrl)
+	{	
+		if(isKeyBeenPressed(tic_key_z)) 		undo(sprite);
+		else if(isKeyBeenPressed(tic_key_y))	redo(sprite);
+	}
+	else
+	{
+		if(hasCanvasSelection(sprite))
+		{
+			if(isKeyBeenPressed(tic_key_up)) 			upCanvas(sprite);
+			else if(isKeyBeenPressed(tic_key_down)) 	downCanvas(sprite);
+			else if(isKeyBeenPressed(tic_key_left)) 	leftCanvas(sprite);
+			else if(isKeyBeenPressed(tic_key_right)) 	rightCanvas(sprite);
+			else if(isKeyBeenPressed(tic_key_delete)) 	deleteCanvas(sprite);
+		}
+		else
+		{
+			if(isKeyBeenPressed(tic_key_up)) 			upSprite(sprite);
+			else if(isKeyBeenPressed(tic_key_down)) 	downSprite(sprite);
+			else if(isKeyBeenPressed(tic_key_left)) 	leftSprite(sprite);
+			else if(isKeyBeenPressed(tic_key_right)) 	rightSprite(sprite);
+			else if(isKeyBeenPressed(tic_key_delete)) 	deleteSprite(sprite);
+			else if(isKeyBeenPressed(tic_key_tab)) 		switchBanks(sprite);
 
-// 				if(sprite->mode == SPRITE_DRAW_MODE)
-// 				{
-// 					switch(keycode)
-// 					{
-// 					case SDLK_LEFTBRACKET: if(sprite->brushSize > 1) sprite->brushSize--; break;
-// 					case SDLK_RIGHTBRACKET: if(sprite->brushSize < 4) sprite->brushSize++; break;
-// 					}
-// 				}				
-// 			}
-// 		}
-// 	}
-// }
+			if(!sprite->editPalette)
+			{
+
+				if(isKeyBeenPressed(tic_key_1)) 		sprite->mode = SPRITE_DRAW_MODE;
+				else if(isKeyBeenPressed(tic_key_2)) 	sprite->mode = SPRITE_PICK_MODE;
+				else if(isKeyBeenPressed(tic_key_3)) 	sprite->mode = SPRITE_SELECT_MODE;
+				else if(isKeyBeenPressed(tic_key_4)) 	sprite->mode = SPRITE_FILL_MODE;
+
+				else if(isKeyBeenPressed(tic_key_5)) 	flipSpriteHorz(sprite);
+				else if(isKeyBeenPressed(tic_key_6)) 	flipSpriteVert(sprite);
+				else if(isKeyBeenPressed(tic_key_7)) 	rotateSprite(sprite);
+				else if(isKeyBeenPressed(tic_key_8)) 	deleteSprite(sprite);
+
+				if(sprite->mode == SPRITE_DRAW_MODE)
+				{
+					if(isKeyBeenPressed(tic_key_leftbracket)) {if(sprite->brushSize > 1) sprite->brushSize--;}
+					else if(isKeyBeenPressed(tic_key_rightbracket)) {if(sprite->brushSize < 4) sprite->brushSize++;}
+				}				
+			}
+		}
+	}
+}
 
 static void drawSpriteToolbar(Sprite* sprite)
 {
@@ -1607,16 +1591,7 @@ static void tick(Sprite* sprite)
 		}
 	}
 
-	// SDL_Event* event = NULL;
-	// while ((event = pollEvent()))
-	// {
-	// 	switch(event->type)
-	// 	{
-	// 	case SDL_KEYDOWN:
-	// 		processKeydown(sprite, event->key.keysym.sym);
-	// 		break;
-	// 	}
-	// }
+	processKeyboard(sprite);
 
 	sprite->tic->api.clear(sprite->tic, (tic_color_gray));
 
