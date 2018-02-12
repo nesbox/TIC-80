@@ -349,13 +349,13 @@ char getKeyboardText()
 	return 0;
 }
 
-bool isKeyWasDown(tic_key key)
+bool isKeyBeenPressed(tic_key key)
 {
 	tic_mem* tic = studioImpl.studio.tic;
 	return tic->api.keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD);
 }
 
-bool isAnyKeyWasDown()
+bool isAnyKeyBeenPressed()
 {
 	tic_mem* tic = studioImpl.studio.tic;
 
@@ -909,14 +909,14 @@ ClipboardEvent getClipboardEvent()
 
 	if(ctrl)
 	{
-		if(isKeyWasDown(tic_key_insert) || isKeyWasDown(tic_key_c)) return TIC_CLIPBOARD_COPY;
-		else if(isKeyWasDown(tic_key_x)) return TIC_CLIPBOARD_CUT;
-		else if(isKeyWasDown(tic_key_v)) return TIC_CLIPBOARD_PASTE;
+		if(isKeyBeenPressed(tic_key_insert) || isKeyBeenPressed(tic_key_c)) return TIC_CLIPBOARD_COPY;
+		else if(isKeyBeenPressed(tic_key_x)) return TIC_CLIPBOARD_CUT;
+		else if(isKeyBeenPressed(tic_key_v)) return TIC_CLIPBOARD_PASTE;
 	}
 	else if(shift)
 	{
-		if(isKeyWasDown(tic_key_delete)) return TIC_CLIPBOARD_CUT;
-		else if(isKeyWasDown(tic_key_insert)) return TIC_CLIPBOARD_PASTE;
+		if(isKeyBeenPressed(tic_key_delete)) return TIC_CLIPBOARD_CUT;
+		else if(isKeyBeenPressed(tic_key_insert)) return TIC_CLIPBOARD_PASTE;
 	}
 
 	return TIC_CLIPBOARD_NONE;
@@ -1790,7 +1790,7 @@ static void takeScreenshot()
 	}
 }
 
-static inline bool isKeyWasDownOnce(s32 key)
+static inline bool isKeyBeenPressedOnce(s32 key)
 {
 	tic_mem* tic = studioImpl.studio.tic;
 
@@ -1848,13 +1848,13 @@ static void processShortcuts()
 
 	if(alt)
 	{
-		if(isKeyWasDownOnce(tic_key_grave)) setStudioMode(TIC_CONSOLE_MODE);
-		else if(isKeyWasDownOnce(tic_key_1)) setStudioMode(TIC_CODE_MODE);
-		else if(isKeyWasDownOnce(tic_key_2)) setStudioMode(TIC_SPRITE_MODE);
-		else if(isKeyWasDownOnce(tic_key_3)) setStudioMode(TIC_MAP_MODE);
-		else if(isKeyWasDownOnce(tic_key_4)) setStudioMode(TIC_SFX_MODE);
-		else if(isKeyWasDownOnce(tic_key_5)) setStudioMode(TIC_MUSIC_MODE);
-		else if(isKeyWasDownOnce(tic_key_return)) goFullscreen();
+		if(isKeyBeenPressedOnce(tic_key_grave)) setStudioMode(TIC_CONSOLE_MODE);
+		else if(isKeyBeenPressedOnce(tic_key_1)) setStudioMode(TIC_CODE_MODE);
+		else if(isKeyBeenPressedOnce(tic_key_2)) setStudioMode(TIC_SPRITE_MODE);
+		else if(isKeyBeenPressedOnce(tic_key_3)) setStudioMode(TIC_MAP_MODE);
+		else if(isKeyBeenPressedOnce(tic_key_4)) setStudioMode(TIC_SFX_MODE);
+		else if(isKeyBeenPressedOnce(tic_key_5)) setStudioMode(TIC_MUSIC_MODE);
+		else if(isKeyBeenPressedOnce(tic_key_return)) goFullscreen();
 
 		// switch(event->keysym.sym)
 		// {
@@ -1869,12 +1869,12 @@ static void processShortcuts()
 	}
 	else if(ctrl)
 	{
-		if(isKeyWasDownOnce(tic_key_pageup)) changeStudioMode(-1);
-		else if(isKeyWasDownOnce(tic_key_pagedown)) changeStudioMode(1);
-		else if(isKeyWasDownOnce(tic_key_q)) exitStudio();
-		else if(isKeyWasDownOnce(tic_key_r)) runProject();
-		else if(isKeyWasDownOnce(tic_key_return)) runProject();
-		else if(isKeyWasDownOnce(tic_key_s)) saveProject();
+		if(isKeyBeenPressedOnce(tic_key_pageup)) changeStudioMode(-1);
+		else if(isKeyBeenPressedOnce(tic_key_pagedown)) changeStudioMode(1);
+		else if(isKeyBeenPressedOnce(tic_key_q)) exitStudio();
+		else if(isKeyBeenPressedOnce(tic_key_r)) runProject();
+		else if(isKeyBeenPressedOnce(tic_key_return)) runProject();
+		else if(isKeyBeenPressedOnce(tic_key_s)) saveProject();
 
 
 //         switch(event->keysym.sym)
@@ -1885,18 +1885,18 @@ static void processShortcuts()
 	}
 	else
 	{
-		if(isKeyWasDownOnce(tic_key_f1)) setStudioMode(TIC_CODE_MODE);
-		else if(isKeyWasDownOnce(tic_key_f2)) setStudioMode(TIC_SPRITE_MODE);
-		else if(isKeyWasDownOnce(tic_key_f3)) setStudioMode(TIC_MAP_MODE);
-		else if(isKeyWasDownOnce(tic_key_f4)) setStudioMode(TIC_SFX_MODE);
-		else if(isKeyWasDownOnce(tic_key_f5)) setStudioMode(TIC_MUSIC_MODE);
-		else if(isKeyWasDownOnce(tic_key_f7)) setCoverImage();
-		else if(isKeyWasDownOnce(tic_key_f8)) takeScreenshot();
+		if(isKeyBeenPressedOnce(tic_key_f1)) setStudioMode(TIC_CODE_MODE);
+		else if(isKeyBeenPressedOnce(tic_key_f2)) setStudioMode(TIC_SPRITE_MODE);
+		else if(isKeyBeenPressedOnce(tic_key_f3)) setStudioMode(TIC_MAP_MODE);
+		else if(isKeyBeenPressedOnce(tic_key_f4)) setStudioMode(TIC_SFX_MODE);
+		else if(isKeyBeenPressedOnce(tic_key_f5)) setStudioMode(TIC_MUSIC_MODE);
+		else if(isKeyBeenPressedOnce(tic_key_f7)) setCoverImage();
+		else if(isKeyBeenPressedOnce(tic_key_f8)) takeScreenshot();
 #if !defined(__EMSCRIPTEN__)
-		else if(isKeyWasDownOnce(tic_key_f9)) startVideoRecord();
+		else if(isKeyBeenPressedOnce(tic_key_f9)) startVideoRecord();
 #endif
-		else if(isKeyWasDownOnce(tic_key_f11)) goFullscreen();
-		else if(isKeyWasDownOnce(tic_key_escape))
+		else if(isKeyBeenPressedOnce(tic_key_f11)) goFullscreen();
+		else if(isKeyBeenPressedOnce(tic_key_escape))
 		{
 			Code* code = studioImpl.editor[studioImpl.bank.index.code].code;
 
