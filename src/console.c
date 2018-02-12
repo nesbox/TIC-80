@@ -2992,9 +2992,9 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 		{
 			if(~argp & 1 << i)
 			{
-				// char buf[256];
-				// sprintf(buf, "parameter or file not processed: %s\n", argv[i]);
-				// SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Warning", buf, NULL);
+				char buf[256];
+				sprintf(buf, "parameter or file not processed: %s\n", argv[i]);
+				showMessageBox("Warning", buf);
 			}
 		}
 	}

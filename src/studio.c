@@ -3292,3 +3292,8 @@ void netDirRequest(Net* net, const char* path, ListCallback callback, void* data
 	NetDirData netDirData = {callback, data};
 	onDirResponse(buffer, size, &netDirData);
 }
+
+void showMessageBox(const char* title, const char* message)
+{
+	// SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Warning", buf, NULL);
+}
