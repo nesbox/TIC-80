@@ -86,8 +86,6 @@ static void initPMemName(Run* run)
 
 static void tick(Run* run)
 {
-	// while(pollEvent());
-
 	if (getStudioMode() != TIC_RUN_MODE)
 		return;
 
@@ -169,8 +167,6 @@ static void preseed()
 
 static bool forceExit(void* data)
 {
-	// while(pollEvent());
-
 	return getStudioMode() != TIC_RUN_MODE;
 }
 

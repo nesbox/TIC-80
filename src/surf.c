@@ -803,9 +803,6 @@ static void tick(Surf* surf)
 
 	surf->ticks++;
 
-	// while (pollEvent());
-
-
 	tic_mem* tic = surf->tic;
 	tic->api.clear(tic, TIC_COLOR_BG);
 

@@ -135,7 +135,6 @@ typedef struct
 	s32 x, y, w, h;
 } tic_rect;
 
-// SDL_Event* pollEvent();
 void setCursor(tic_cursor id);
 
 s32 getMouseX();
@@ -145,8 +144,6 @@ bool checkMouseClick(const tic_rect* rect, s32 button);
 bool checkMouseDown(const tic_rect* rect, s32 button);
 
 bool getGesturePos(tic_point* pos);
-
-// const u8* getKeyboard();
 
 void drawToolbar(tic_mem* tic, u8 color, bool bg);
 void drawBitIcon(s32 x, s32 y, const u8* ptr, u8 color);

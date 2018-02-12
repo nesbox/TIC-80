@@ -1515,9 +1515,6 @@ static void drawMusicToolbar(Music* music)
 
 static void drawPianoLayout(Music* music)
 {
-	// SDL_Event* event = NULL;
-	// while ((event = pollEvent())){}
-
 	music->tic->api.clear(music->tic, (tic_color_gray));
 
 	static const char Wip[] = "PIANO MODE - WORK IN PROGRESS...";
