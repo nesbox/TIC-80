@@ -900,28 +900,24 @@ void setStudioEvent(StudioEvent event)
 	}
 }
 
-ClipboardEvent getClipboardEvent(tic_keycode keycode)
+ClipboardEvent getClipboardEvent()
 {
-	// SDL_Keymod keymod = SDL_GetModState();
+	tic_mem* tic = studioImpl.studio.tic;
 
-	// if(keymod & TIC_MOD_CTRL)
-	// {
-	// 	switch(keycode)
-	// 	{
-	// 	case SDLK_INSERT:
-	// 	case SDLK_c: return TIC_CLIPBOARD_COPY;
-	// 	case SDLK_x: return TIC_CLIPBOARD_CUT;
-	// 	case SDLK_v: return TIC_CLIPBOARD_PASTE;
-	// 	}
-	// }
-	// else if(keymod & KMOD_SHIFT)
-	// {
-	// 	switch(keycode)
-	// 	{
-	// 	case SDLK_DELETE: return TIC_CLIPBOARD_CUT;
-	// 	case SDLK_INSERT: return TIC_CLIPBOARD_PASTE;
-	// 	}
-	// }
+	bool shift = tic->api.key(tic, tic_key_shift);
+	bool ctrl = tic->api.key(tic, tic_key_ctrl);
+
+	if(ctrl)
+	{
+		if(isKeyWasDown(tic_key_insert) || isKeyWasDown(tic_key_c)) return TIC_CLIPBOARD_COPY;
+		else if(isKeyWasDown(tic_key_x)) return TIC_CLIPBOARD_CUT;
+		else if(isKeyWasDown(tic_key_v)) return TIC_CLIPBOARD_PASTE;
+	}
+	else if(shift)
+	{
+		if(isKeyWasDown(tic_key_delete)) return TIC_CLIPBOARD_CUT;
+		else if(isKeyWasDown(tic_key_insert)) return TIC_CLIPBOARD_PASTE;
+	}
 
 	return TIC_CLIPBOARD_NONE;
 }

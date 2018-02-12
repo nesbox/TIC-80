@@ -1007,7 +1007,7 @@ static void selectAll(Music* music)
 // {
 // 	tic_keycode keycode = keysum->sym;
 
-// 	switch(getClipboardEvent(keycode))
+// 	switch(getClipboardEvent())
 // 	{
 // 	case TIC_CLIPBOARD_CUT: copyToClipboard(music, true); break;
 // 	case TIC_CLIPBOARD_COPY: copyToClipboard(music, false); break;

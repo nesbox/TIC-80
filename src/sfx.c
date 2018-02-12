@@ -676,7 +676,7 @@ static void processKeyboard(Sfx* sfx)
 
 // static void processKeydown(Sfx* sfx, tic_keycode keycode)
 // {
-// 	switch(getClipboardEvent(keycode))
+// 	switch(getClipboardEvent())
 // 	{
 // 	case TIC_CLIPBOARD_CUT: cutToClipboard(sfx); break;
 // 	case TIC_CLIPBOARD_COPY: copyToClipboard(sfx); break;
@@ -706,7 +706,7 @@ static void processKeyboard(Sfx* sfx)
 
 // static void processWaveformKeydown(Sfx* sfx, tic_keycode keycode)
 // {
-// 	switch(getClipboardEvent(keycode))
+// 	switch(getClipboardEvent())
 // 	{
 // 	case TIC_CLIPBOARD_CUT: cutWaveToClipboard(sfx); break;
 // 	case TIC_CLIPBOARD_COPY: copyWaveToClipboard(sfx); break;

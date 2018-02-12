@@ -173,7 +173,7 @@ typedef enum
 	TIC_CLIPBOARD_PASTE,
 } ClipboardEvent;
 
-ClipboardEvent getClipboardEvent(tic_keycode keycode);
+ClipboardEvent getClipboardEvent();
 
 typedef enum
 {

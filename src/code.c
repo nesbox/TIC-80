@@ -764,8 +764,7 @@ static void initOutlineMode(Code* code)
 	char filter[STUDIO_TEXT_BUFFER_WIDTH] = {0};
 	strncpy(filter, code->popup.text, sizeof(filter));
 
-	// TODO: uncomment this
-	// SDL_strlwr(filter);
+	_strlwr(filter);
 
 	const tic_script_config* config = tic->api.get_script_config(tic);
 
@@ -788,8 +787,7 @@ static void initOutlineMode(Code* code)
 				{
 					strncpy(buffer, out->name, sizeof(buffer));
 
-					// TODO: uncomment this
-					// SDL_strlwr(buffer);
+					_strlwr(buffer);
 
 					if(strstr(buffer, filter)) out++;
 					else out->pos = NULL;
@@ -870,106 +868,85 @@ static void commentLine(Code* code)
 	parseSyntaxColor(code);
 }
 
-// static void processKeydown(Code* code, tic_keycode keycode)
-// {
-// 	switch(keycode)
-// 	{
-// 	case SDLK_LCTRL:
-// 	case SDLK_RCTRL:
-// 	case SDLK_LSHIFT:
-// 	case SDLK_RSHIFT:
-// 	case SDLK_LALT:
-// 	case SDLK_RALT:
-// 		return;
-// 	}
+static void processKeyboard(Code* code)
+{
+	tic_mem* tic = code->tic;
 
-// 	switch(getClipboardEvent(keycode))
-// 	{
-// 	case TIC_CLIPBOARD_CUT: cutToClipboard(code); break;
-// 	case TIC_CLIPBOARD_COPY: copyToClipboard(code); break;
-// 	case TIC_CLIPBOARD_PASTE: copyFromClipboard(code); break;
-// 	default: break;
-// 	}
+	switch(getClipboardEvent(0))
+	{
+	case TIC_CLIPBOARD_CUT: cutToClipboard(code); break;
+	case TIC_CLIPBOARD_COPY: copyToClipboard(code); break;
+	case TIC_CLIPBOARD_PASTE: copyFromClipboard(code); break;
+	default: break;
+	}
 
-// 	SDL_Keymod keymod = SDL_GetModState();
+	bool shift = tic->api.key(tic, tic_key_shift);
+	bool ctrl = tic->api.key(tic, tic_key_ctrl);
+	bool alt = tic->api.key(tic, tic_key_alt);
 
-// 	switch(keycode)
-// 	{
-// 	case SDLK_UP:
-// 	case SDLK_DOWN:
-// 	case SDLK_LEFT:
-// 	case SDLK_RIGHT:
-// 	case SDLK_HOME:
-// 	case SDLK_END:
-// 	case SDLK_PAGEUP:
-// 	case SDLK_PAGEDOWN:
+	if(isKeyWasDown(tic_key_up)
+		|| isKeyWasDown(tic_key_down)
+		|| isKeyWasDown(tic_key_left)
+		|| isKeyWasDown(tic_key_right)
+		|| isKeyWasDown(tic_key_home)
+		|| isKeyWasDown(tic_key_end)
+		|| isKeyWasDown(tic_key_pageup)
+		|| isKeyWasDown(tic_key_pagedown))
+	{
+		if(!shift) code->cursor.selection = NULL;
+		else if(code->cursor.selection == NULL) code->cursor.selection = code->cursor.position;
+	}
 
-// 		if(!(keymod & KMOD_SHIFT)) code->cursor.selection = NULL;
-// 		else if(code->cursor.selection == NULL) code->cursor.selection = code->cursor.position;
-// 	}
+	if(ctrl)
+	{
+		if(ctrl)
+		{
+			if(isKeyWasDown(tic_key_left)) leftWord(code);
+			else if(isKeyWasDown(tic_key_right)) rightWord(code);
+			else if(isKeyWasDown(tic_key_tab)) doTab(code, shift, ctrl);
+		}
+		// else if(keymod & KMOD_GUI)
+		// {
+		// 	switch(keycode)
+		// 	{
+		// 	case SDLK_LEFT: 	goHome(code); break;
+		// 	case SDLK_RIGHT: 	goEnd(code); break;
+		// 	}
+		// }
 
-// 	if(keymod & TIC_MOD_CTRL)
-// 	{
-// 		if(keymod & KMOD_CTRL)
-// 		{
-// 			switch(keycode)
-// 			{
-// 			case SDLK_LEFT: 	leftWord(code); break;
-// 			case SDLK_RIGHT: 	rightWord(code); break;
-// 			case SDLK_TAB:		doTab(code, keymod & KMOD_SHIFT, keymod & KMOD_CTRL); break;
-// 			}
-// 		}
-// 		else if(keymod & KMOD_GUI)
-// 		{
-// 			switch(keycode)
-// 			{
-// 			case SDLK_LEFT: 	goHome(code); break;
-// 			case SDLK_RIGHT: 	goEnd(code); break;
-// 			}
-// 		}
+		if(isKeyWasDown(tic_key_a)) 			selectAll(code);
+		else if(isKeyWasDown(tic_key_z)) 		undo(code);
+		else if(isKeyWasDown(tic_key_y)) 		redo(code);
+		else if(isKeyWasDown(tic_key_f)) 		setCodeMode(code, TEXT_FIND_MODE);
+		else if(isKeyWasDown(tic_key_g)) 		setCodeMode(code, TEXT_GOTO_MODE);
+		else if(isKeyWasDown(tic_key_o)) 		setCodeMode(code, TEXT_OUTLINE_MODE);
+		else if(isKeyWasDown(tic_key_slash)) 	commentLine(code);
+		else if(isKeyWasDown(tic_key_home)) 	goCodeHome(code);
+		else if(isKeyWasDown(tic_key_end)) 		goCodeEnd(code);
+	}
+	else if(alt)
+	{
+		if(isKeyWasDown(tic_key_left)) leftWord(code);
+		else if(isKeyWasDown(tic_key_right)) rightWord(code);
+	}
+	else
+	{
+		if(isKeyWasDown(tic_key_up)) 				upLine(code);
+		else if(isKeyWasDown(tic_key_down)) 		downLine(code);
+		else if(isKeyWasDown(tic_key_left)) 		leftColumn(code);
+		else if(isKeyWasDown(tic_key_right)) 		rightColumn(code);
+		else if(isKeyWasDown(tic_key_home)) 		goHome(code);
+		else if(isKeyWasDown(tic_key_end)) 			goEnd(code);
+		else if(isKeyWasDown(tic_key_pageup)) 		pageUp(code);
+		else if(isKeyWasDown(tic_key_pagedown)) 	pageDown(code);
+		else if(isKeyWasDown(tic_key_delete)) 		deleteChar(code);
+		else if(isKeyWasDown(tic_key_backspace)) 	backspaceChar(code);
+		else if(isKeyWasDown(tic_key_return)) 		newLine(code);
+		else if(isKeyWasDown(tic_key_tab)) 			doTab(code, shift, ctrl);
+	}
 
-// 		switch(keycode)
-// 		{
-// 		case SDLK_a:	selectAll(code); break;
-// 		case SDLK_z: 	undo(code); break;
-// 		case SDLK_y: 	redo(code); break;
-// 		case SDLK_f: 	setCodeMode(code, TEXT_FIND_MODE); break;
-// 		case SDLK_g: 	setCodeMode(code, TEXT_GOTO_MODE); break;
-// 		case SDLK_o: 	setCodeMode(code, TEXT_OUTLINE_MODE); break;
-// 		case SDLK_SLASH: commentLine(code);	break;
-// 		case SDLK_HOME: goCodeHome(code); break;
-// 		case SDLK_END: 	goCodeEnd(code); break;
-// 		}
-// 	}
-// 	else if(keymod & KMOD_ALT)
-// 	{
-// 		switch(keycode)
-// 		{
-// 		case SDLK_LEFT: 	leftWord(code); break;
-// 		case SDLK_RIGHT: 	rightWord(code); break;
-// 		}
-// 	}
-// 	else
-// 	{
-// 		switch(keycode)
-// 		{
-// 		case SDLK_UP: 			upLine(code); break;
-// 		case SDLK_DOWN: 		downLine(code); break;
-// 		case SDLK_LEFT: 		leftColumn(code); break;
-// 		case SDLK_RIGHT: 		rightColumn(code); break;
-// 		case SDLK_HOME: 		goHome(code); break;
-// 		case SDLK_END: 			goEnd(code); break;
-// 		case SDLK_PAGEUP: 		pageUp(code); break;
-// 		case SDLK_PAGEDOWN: 	pageDown(code); break;
-// 		case SDLK_DELETE: 		deleteChar(code); break;
-// 		case SDLK_BACKSPACE: 	backspaceChar(code); break;
-// 		case SDLK_RETURN: 		newLine(code); break;
-// 		case SDLK_TAB: 			doTab(code, keymod & KMOD_SHIFT, keymod & KMOD_CTRL); break;
-// 		}
-// 	}
-
-// 	updateEditor(code);
-// }
+	updateEditor(code);
+}
 
 static void processGestures(Code* code)
 {
@@ -1059,6 +1036,8 @@ static void processMouse(Code* code)
 
 static void textEditTick(Code* code)
 {
+	tic_mem* tic = code->tic;
+
 	// process scroll
 	{
 		tic80_input* input = &code->tic->ram.input;
@@ -1073,30 +1052,18 @@ static void textEditTick(Code* code)
 		}
 	}
 
-// 	SDL_Event* event = NULL;
-// 	while ((event = pollEvent()))
-// 	{
-// 		switch(event->type)
-// 		{
-// 		case SDL_KEYDOWN:
-// 			processKeydown(code, event->key.keysym.sym);
-// 			break;
-// 		case SDL_TEXTINPUT:
+	processKeyboard(code);
 
-// #if defined(__LINUX__)
-// 			if(!(SDL_GetModState() & KMOD_LALT))
-// #endif
+	if(!tic->api.key(tic, tic_key_ctrl) && !tic->api.key(tic, tic_key_alt))
+	{
+		char sym = getKeyboardText();
 
-// 			if(strlen(event->text.text) == 1)
-// 			{
-
-
-// 				inputSymbol(code, *event->text.text);
-// 				updateEditor(code);
-// 			}
-// 			break;
-// 		}
-// 	}
+		if(sym)
+		{
+			inputSymbol(code, sym);
+			updateEditor(code);
+		}
+	}
 
 	processGestures(code);
 	processMouse(code);
@@ -1157,54 +1124,41 @@ static char* downStrStr(const char* start, const char* from, const char* substr)
 
 static void textFindTick(Code* code)
 {
-	// SDL_Event* event = NULL;
-	// while ((event = pollEvent()))
-	// {
-	// 	switch(event->type)
-	// 	{
-	// 	case SDL_KEYDOWN:
-	// 		switch(event->key.keysym.sym)
-	// 		{
-	// 		case SDLK_RETURN:
-	// 			setCodeMode(code, TEXT_EDIT_MODE);
-	// 			break;
-	// 		case SDLK_UP:
-	// 		case SDLK_LEFT:
-	// 		case SDLK_DOWN:
-	// 		case SDLK_RIGHT:
-	// 			if(*code->popup.text)
-	// 			{
-	// 				tic_keycode keycode = event->key.keysym.sym;
-	// 				bool reverse = keycode == SDLK_UP || keycode == SDLK_LEFT;
-	// 				char* (*func)(const char*, const char*, const char*) = reverse ? upStrStr : downStrStr;
-	// 				char* from = reverse ? MIN(code->cursor.position, code->cursor.selection) : MAX(code->cursor.position, code->cursor.selection);
-	// 				char* pos = func(code->src, from, code->popup.text);
-	// 				updateFindCode(code, pos);
-	// 			}
-	// 			break;
-	// 		case SDLK_BACKSPACE:
-	// 			if(*code->popup.text)
-	// 			{
-	// 				code->popup.text[strlen(code->popup.text)-1] = '\0';
-	// 				updateFindCode(code, strstr(code->src, code->popup.text));
-	// 			}
-	// 			break;
-	// 		default: break;
-	// 		}
-	// 		break;
-	// 	case SDL_TEXTINPUT:
-	// 		if(strlen(event->text.text) == 1)
-	// 		{
-	// 			if(strlen(code->popup.text) + 1 < sizeof code->popup.text)
-	// 			{
-	// 				strcat(code->popup.text, event->text.text);
-	// 				updateFindCode(code, strstr(code->src, code->popup.text));
-	// 			}
-	// 		}
-	// 		break;
-	// 	default: break;
-	// 	}
-	// }
+	if(isKeyWasDown(tic_key_return)) setCodeMode(code, TEXT_EDIT_MODE);
+	else if(isKeyWasDown(tic_key_up)
+		|| isKeyWasDown(tic_key_down)
+		|| isKeyWasDown(tic_key_left)
+		|| isKeyWasDown(tic_key_right))
+	{
+		if(*code->popup.text)
+		{
+			bool reverse = isKeyWasDown(tic_key_up) || isKeyWasDown(tic_key_left);
+			char* (*func)(const char*, const char*, const char*) = reverse ? upStrStr : downStrStr;
+			char* from = reverse ? MIN(code->cursor.position, code->cursor.selection) : MAX(code->cursor.position, code->cursor.selection);
+			char* pos = func(code->src, from, code->popup.text);
+			updateFindCode(code, pos);
+		}
+	}
+	else if(isKeyWasDown(tic_key_backspace))
+	{
+		if(*code->popup.text)
+		{
+			code->popup.text[strlen(code->popup.text)-1] = '\0';
+			updateFindCode(code, strstr(code->src, code->popup.text));
+		}
+	}
+
+	char sym = getKeyboardText();
+
+	if(sym)
+	{
+		if(strlen(code->popup.text) + 1 < sizeof code->popup.text)
+		{
+			char str[] = {sym , 0};
+			strcat(code->popup.text, str);
+			updateFindCode(code, strstr(code->src, code->popup.text));
+		}
+	}
 
 	code->tic->api.clear(code->tic, getConfig()->theme.code.bg);
 
@@ -1234,51 +1188,41 @@ static void updateGotoCode(Code* code)
 
 static void textGoToTick(Code* code)
 {
-	// SDL_Event* event = NULL;
-	// while ((event = pollEvent()))
-	// {
-	// 	switch(event->type)
-	// 	{
-	// 	case SDL_KEYDOWN:
-	// 		switch(event->key.keysym.sym)
-	// 		{
-	// 		case SDLK_RETURN:
-	// 			if(*code->popup.text)
-	// 				updateGotoCode(code);
+	tic_mem* tic = code->tic;
 
-	// 			setCodeMode(code, TEXT_EDIT_MODE);
-	// 			break;
-	// 		case SDLK_BACKSPACE:
-	// 			if(*code->popup.text)
-	// 			{
-	// 				code->popup.text[strlen(code->popup.text)-1] = '\0';
-	// 				updateGotoCode(code);
-	// 			}
-	// 			break;
-	// 		default: break;
-	// 		}
-	// 		break;
-	// 	case SDL_TEXTINPUT:
-	// 		if(strlen(event->text.text) == 1)
-	// 		{
-	// 			char sym = *event->text.text;
+	if(isKeyWasDown(tic_key_return))
+	{
+		if(*code->popup.text)
+			updateGotoCode(code);
 
-	// 			if(strlen(code->popup.text)+1 < sizeof code->popup.text && sym >= '0' && sym <= '9')
-	// 			{
-	// 				strcat(code->popup.text, event->text.text);
-	// 				updateGotoCode(code);
-	// 			}
-	// 		}
-	// 		break;
-	// 	default: break;
-	// 	}
-	// }
+		setCodeMode(code, TEXT_EDIT_MODE);
+	}
+	else if(isKeyWasDown(tic_key_backspace))
+	{
+		if(*code->popup.text)
+		{
+			code->popup.text[strlen(code->popup.text)-1] = '\0';
+			updateGotoCode(code);
+		}
+	}
 
-	code->tic->api.clear(code->tic, getConfig()->theme.code.bg);
+	char sym = getKeyboardText();
+
+	if(sym)
+	{
+		if(strlen(code->popup.text)+1 < sizeof code->popup.text && sym >= '0' && sym <= '9')
+		{
+			char str[] = {sym, 0};
+			strcat(code->popup.text, str);
+			updateGotoCode(code);
+		}
+	}
+
+	tic->api.clear(tic, getConfig()->theme.code.bg);
 
 	if(code->jump.line >= 0)
-		code->tic->api.rect(code->tic, 0, (code->jump.line - code->scroll.y) * TIC_FONT_HEIGHT + TOOLBAR_SIZE + 1,
-			TIC80_WIDTH, TIC_FONT_HEIGHT+1, getConfig()->theme.code.select);
+		tic->api.rect(tic, 0, (code->jump.line - code->scroll.y) * (TIC_FONT_HEIGHT+1) + TOOLBAR_SIZE,
+			TIC80_WIDTH, TIC_FONT_HEIGHT+2, getConfig()->theme.code.select);
 
 	drawCode(code, false);
 	drawPopupBar(code, " GOTO:");
@@ -1332,55 +1276,47 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 
 static void textOutlineTick(Code* code)
 {
-	// SDL_Event* event = NULL;
-	// while ((event = pollEvent()))
-	// {
-	// 	switch(event->type)
-	// 	{
-	// 	case SDL_KEYDOWN:
-	// 		switch(event->key.keysym.sym)
-	// 		{
-	// 		case SDLK_UP:
-	// 			if(code->outline.index > 0)
-	// 			{
-	// 				code->outline.index--;
-	// 				updateOutlineCode(code);
-	// 			}
-	// 			break;
-	// 		case SDLK_DOWN:
-	// 			if(code->outline.index < OUTLINE_SIZE - 1 && code->outline.items[code->outline.index + 1].pos)
-	// 			{
-	// 				code->outline.index++;
-	// 				updateOutlineCode(code);
-	// 			}
-	// 			break;
-	// 		case SDLK_RETURN:
-	// 			updateOutlineCode(code);
-	// 			setCodeMode(code, TEXT_EDIT_MODE);
-	// 			break;
-	// 		case SDLK_BACKSPACE:
-	// 			if(*code->popup.text)
-	// 			{
-	// 				code->popup.text[strlen(code->popup.text)-1] = '\0';
-	// 				setOutlineMode(code);
-	// 			}
-	// 			break;
-	// 		default: break;
-	// 		}
-	// 		break;
-	// 	case SDL_TEXTINPUT:
-	// 		if(strlen(event->text.text) == 1)
-	// 		{
-	// 			if(strlen(code->popup.text) + 1 < sizeof code->popup.text)
-	// 			{
-	// 				strcat(code->popup.text, event->text.text);
-	// 				setOutlineMode(code);
-	// 			}
-	// 		}
-	// 		break;
-	// 	default: break;
-	// 	}
-	// }
+	if(isKeyWasDown(tic_key_up))
+	{
+		if(code->outline.index > 0)
+		{
+			code->outline.index--;
+			updateOutlineCode(code);
+		}
+	}
+	else if(isKeyWasDown(tic_key_down))
+	{
+		if(code->outline.index < OUTLINE_SIZE - 1 && code->outline.items[code->outline.index + 1].pos)
+		{
+			code->outline.index++;
+			updateOutlineCode(code);
+		}
+	}
+	else if(isKeyWasDown(tic_key_return))
+	{
+		updateOutlineCode(code);
+		setCodeMode(code, TEXT_EDIT_MODE);
+	}
+	else if(isKeyWasDown(tic_key_backspace))
+	{
+		if(*code->popup.text)
+		{
+			code->popup.text[strlen(code->popup.text)-1] = '\0';
+			setOutlineMode(code);
+		}
+	}
+
+	char sym = getKeyboardText();
+
+	if(sym)
+	{
+		if(strlen(code->popup.text) + 1 < sizeof code->popup.text)
+		{
+			char str[] = {sym, 0};
+			strcat(code->popup.text, str);
+			setOutlineMode(code);
+		}
+	}
 
 	code->tic->api.clear(code->tic, getConfig()->theme.code.bg);
 

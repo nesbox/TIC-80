@@ -1029,7 +1029,7 @@ static void copyFromClipboard(Map* map)
 // {
 // 	SDL_Keymod keymod = SDL_GetModState();
 
-// 	switch(getClipboardEvent(keycode))
+// 	switch(getClipboardEvent())
 // 	{
 // 	case TIC_CLIPBOARD_CUT: cutToClipboard(map); break;
 // 	case TIC_CLIPBOARD_COPY: copyToClipboard(map); break;

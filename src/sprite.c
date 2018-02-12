@@ -1430,7 +1430,7 @@ static void switchBanks(Sprite* sprite)
 
 // static void processKeydown(Sprite* sprite, tic_keycode keycode)
 // {
-// 	switch(getClipboardEvent(keycode))
+// 	switch(getClipboardEvent())
 // 	{
 // 	case TIC_CLIPBOARD_CUT: cutToClipboard(sprite); break;
 // 	case TIC_CLIPBOARD_COPY: copyToClipboard(sprite); break;
