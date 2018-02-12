@@ -629,110 +629,101 @@ static void copyWaveFromClipboard(Sfx* sfx)
 
 static void processKeyboard(Sfx* sfx)
 {
-// 	s32 keyboardButton = -1;
+	tic_mem* tic = sfx->tic;
 
-// 	static const s32 Keycodes[] = 
-// 	{
-// 		tic_key_z,
-// 		tic_key_s,
-// 		tic_key_x,
-// 		tic_key_d,
-// 		tic_key_c,
-// 		tic_key_v,
-// 		tic_key_g,
-// 		tic_key_b,
-// 		tic_key_h,
-// 		tic_key_n,
-// 		tic_key_j,
-// 		tic_key_m,
-// 	};
+	bool ctrl = tic->api.key(tic, tic_key_ctrl);
 
-// 	tic_mem* tic = sfx->tic;
+	s32 keyboardButton = -1;
 
-// 	SDL_Keymod keymod = SDL_GetModState();
+	static const s32 Keycodes[] = 
+	{
+		tic_key_z,
+		tic_key_s,
+		tic_key_x,
+		tic_key_d,
+		tic_key_c,
+		tic_key_v,
+		tic_key_g,
+		tic_key_b,
+		tic_key_h,
+		tic_key_n,
+		tic_key_j,
+		tic_key_m,
+	};
 
-// 	if(keymod & TIC_MOD_CTRL)
-// 	{
+	if(ctrl)
+	{
 
-// 	}
-// 	else
-// 	{
-// 		for(int i = 0; i < COUNT_OF(Keycodes); i++)
-// 			if(tic->api.key(tic, Keycodes[i]))
-// 				keyboardButton = i;        
-// 	}
+	}
+	else
+	{
+		for(int i = 0; i < COUNT_OF(Keycodes); i++)
+			if(tic->api.key(tic, Keycodes[i]))
+				keyboardButton = i;        
+	}
 
-// 	tic_sample* effect = getEffect(sfx);
+	tic_sample* effect = getEffect(sfx);
 
-// 	if(keyboardButton >= 0)
-// 	{
-// 		effect->note = keyboardButton;
-// 		sfx->play.active = true;
-// 	}
+	if(keyboardButton >= 0)
+	{
+		effect->note = keyboardButton;
+		sfx->play.active = true;
+	}
 
-// 	if(tic->api.key(tic, tic_key_space))
-// 		sfx->play.active = true;
+	if(tic->api.key(tic, tic_key_space))
+		sfx->play.active = true;
 }
 
-// static void processKeydown(Sfx* sfx, tic_keycode keycode)
-// {
-// 	switch(getClipboardEvent())
-// 	{
-// 	case TIC_CLIPBOARD_CUT: cutToClipboard(sfx); break;
-// 	case TIC_CLIPBOARD_COPY: copyToClipboard(sfx); break;
-// 	case TIC_CLIPBOARD_PASTE: copyFromClipboard(sfx); break;
-// 	default: break;
-// 	}
+static void processEnvelopesKeyboard(Sfx* sfx)
+{
+	tic_mem* tic = sfx->tic;
+	bool ctrl = tic->api.key(tic, tic_key_ctrl);
 
-// 	SDL_Keymod keymod = SDL_GetModState();
+	switch(getClipboardEvent())
+	{
+	case TIC_CLIPBOARD_CUT: cutToClipboard(sfx); break;
+	case TIC_CLIPBOARD_COPY: copyToClipboard(sfx); break;
+	case TIC_CLIPBOARD_PASTE: copyFromClipboard(sfx); break;
+	default: break;
+	}
 
-// 	if(keymod & TIC_MOD_CTRL)
-// 	{
-// 		switch(keycode)
-// 		{
-// 		case SDLK_z: 	undo(sfx); break;
-// 		case SDLK_y: 	redo(sfx); break;
-// 		}
-// 	}
+	if(ctrl)
+	{
+		if(isKeyBeenPressed(tic_key_z)) 		undo(sfx);
+		else if(isKeyBeenPressed(tic_key_y)) 	redo(sfx);
+	}
 
-// 	switch(keycode)
-// 	{
-// 	case SDLK_TAB: sfx->tab = SFX_WAVEFORM_TAB; break;
-// 	case SDLK_LEFT: sfx->index--; break;
-// 	case SDLK_RIGHT: sfx->index++; break;
-// 	case SDLK_DELETE: resetSfx(sfx); break;
-// 	}
-// }
+	if(isKeyBeenPressed(tic_key_tab)) 			sfx->tab = SFX_WAVEFORM_TAB;
+	else if(isKeyBeenPressed(tic_key_left))  	sfx->index--;
+	else if(isKeyBeenPressed(tic_key_right)) 	sfx->index++;
+	else if(isKeyBeenPressed(tic_key_delete)) 	resetSfx(sfx);
+}
 
-// static void processWaveformKeydown(Sfx* sfx, tic_keycode keycode)
-// {
-// 	switch(getClipboardEvent())
-// 	{
-// 	case TIC_CLIPBOARD_CUT: cutWaveToClipboard(sfx); break;
-// 	case TIC_CLIPBOARD_COPY: copyWaveToClipboard(sfx); break;
-// 	case TIC_CLIPBOARD_PASTE: copyWaveFromClipboard(sfx); break;
-// 	default: break;
-// 	}
+static void processWaveformKeyboard(Sfx* sfx)
+{
+	tic_mem* tic = sfx->tic;
 
-// 	SDL_Keymod keymod = SDL_GetModState();
+	bool ctrl = tic->api.key(tic, tic_key_ctrl);
 
-// 	if(keymod & TIC_MOD_CTRL)
-// 	{
-// 		switch(keycode)
-// 		{
-// 		case SDLK_z: 	undo(sfx); break;
-// 		case SDLK_y: 	redo(sfx); break;
-// 		}
-// 	}
+	switch(getClipboardEvent())
+	{
+	case TIC_CLIPBOARD_CUT: cutWaveToClipboard(sfx); break;
+	case TIC_CLIPBOARD_COPY: copyWaveToClipboard(sfx); break;
+	case TIC_CLIPBOARD_PASTE: copyWaveFromClipboard(sfx); break;
+	default: break;
+	}
 
-// 	switch(keycode)
-// 	{
-// 	case SDLK_TAB: sfx->tab = SFX_ENVELOPES_TAB; break;
-// 	case SDLK_LEFT: sfx->waveform.index--; break;
-// 	case SDLK_RIGHT: sfx->waveform.index++; break;
-// 	case SDLK_DELETE: resetWave(sfx); break;
-// 	}
-// }
+	if(ctrl)
+	{
+		if(isKeyBeenPressed(tic_key_z)) 		undo(sfx);
+		else if(isKeyBeenPressed(tic_key_y)) 	redo(sfx);
+	}
+
+	if(isKeyBeenPressed(tic_key_tab)) 			sfx->tab = SFX_ENVELOPES_TAB;
+	else if(isKeyBeenPressed(tic_key_left))  	sfx->waveform.index--;
+	else if(isKeyBeenPressed(tic_key_right)) 	sfx->waveform.index++;
+	else if(isKeyBeenPressed(tic_key_delete)) 	resetWave(sfx);
+}
 
 static void drawModeTabs(Sfx* sfx)
 {
@@ -825,18 +816,8 @@ static void drawSfxToolbar(Sfx* sfx)
 
 static void envelopesTick(Sfx* sfx)
 {
-	// SDL_Event* event = NULL;
-	// while ((event = pollEvent()))
-	// {
-	// 	switch(event->type)
-	// 	{
-	// 	case SDL_KEYDOWN:
-	// 		processKeydown(sfx, event->key.keysym.sym);
-	// 		break;
-	// 	}
-	// }
-
 	processKeyboard(sfx);
+	processEnvelopesKeyboard(sfx);
 
 	sfx->tic->api.clear(sfx->tic, TIC_COLOR_BG);
 
@@ -956,18 +937,8 @@ static void drawWaveformCanvas(Sfx* sfx, s32 x, s32 y)
 
 static void waveformTick(Sfx* sfx)
 {
-	// SDL_Event* event = NULL;
-	// while ((event = pollEvent()))
-	// {
-	// 	switch(event->type)
-	// 	{
-	// 	case SDL_KEYDOWN:
-	// 		processWaveformKeydown(sfx, event->key.keysym.sym);
-	// 		break;
-	// 	}
-	// }
-
 	processKeyboard(sfx);
+	processWaveformKeyboard(sfx);
 
 	sfx->tic->api.clear(sfx->tic, TIC_COLOR_BG);
 
