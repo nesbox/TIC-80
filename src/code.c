@@ -996,6 +996,8 @@ static void processGestures(Code* code)
 
 static void processMouse(Code* code)
 {
+	tic_mem* tic = code->tic;
+
 	if(checkMousePos(&code->rect))
 	{
 		setCursor(tic_cursor_ibeam);
@@ -1024,16 +1026,16 @@ static void processMouse(Code* code)
 				char* position = code->cursor.position;
 				setCursorPosition(code, x + code->scroll.x, y + code->scroll.y);
 
-				// if(SDL_GetModState() & KMOD_SHIFT)
-				// {
-				// 	code->cursor.selection = code->cursor.position;
-				// 	code->cursor.position = position;
-				// }
-				// else if(!code->cursor.mouseDownPosition)
-				// {
-				// 	code->cursor.selection = code->cursor.position;
-				// 	code->cursor.mouseDownPosition = code->cursor.position;
-				// }
+				if(tic->api.key(tic, tic_key_shift))
+				{
+					code->cursor.selection = code->cursor.position;
+					code->cursor.position = position;
+				}
+				else if(!code->cursor.mouseDownPosition)
+				{
+					code->cursor.selection = code->cursor.position;
+					code->cursor.mouseDownPosition = code->cursor.position;
+				}
 			}
 			else
 			{
