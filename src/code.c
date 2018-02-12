@@ -1057,21 +1057,25 @@ static void processMouse(Code* code)
 
 static void textEditTick(Code* code)
 {
+	// process scroll
+	{
+		tic80_input* input = &code->tic->ram.input;
+
+		if(input->mouse.scrolly)
+		{
+			enum{Scroll = 3};
+			s32 delta = input->mouse.scrolly > 0 ? -Scroll : Scroll;
+			code->scroll.y += delta;
+
+			normalizeScroll(code);
+		}
+	}
+
 // 	SDL_Event* event = NULL;
 // 	while ((event = pollEvent()))
 // 	{
 // 		switch(event->type)
 // 		{
-// 		case SDL_MOUSEWHEEL:
-// 			{
-// 				enum{Scroll = 3};
-// 				s32 delta = event->wheel.y > 0 ? -Scroll : Scroll;
-
-// 				code->scroll.y += delta;
-
-// 				normalizeScroll(code);
-// 			}
-// 			break;
 // 		case SDL_KEYDOWN:
 // 			processKeydown(code, event->key.keysym.sym);
 // 			break;

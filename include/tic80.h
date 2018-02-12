@@ -98,7 +98,10 @@ typedef struct
 			u16 middle:1;
 			u16 right:1;
 
-			u16 scroll:13;
+			s16 scrollx:6;
+			s16 scrolly:6;
+
+			u16 temp:1;
 		};
 
 		u16 btns;

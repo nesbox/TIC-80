@@ -512,15 +512,24 @@ static void processGamepad()
 
 static void pollEvent()
 {
+	tic80_input* input = &platform.studio->tic->ram.input;
+	input->mouse.btns = 0;
+
 	SDL_Event event;
 
-	if(SDL_PollEvent(&event))
+	while(SDL_PollEvent(&event))
 	{
 		switch(event.type)
 		{
 // 		case SDL_KEYDOWN:
 // 			if(processShortcuts(&event.key)) return NULL;
 // 			break;
+		case SDL_MOUSEWHEEL:
+			{
+				input->mouse.scrollx = event.wheel.x;
+				input->mouse.scrolly = event.wheel.y;				
+			}
+			break;
 		case SDL_JOYDEVICEADDED:
 			{
 				s32 id = event.jdevice.which;

@@ -1571,26 +1571,35 @@ static void scrollNotes(Music* music, s32 delta)
 
 static void drawTrackerLayout(Music* music)
 {
+	tic_mem* tic = music->tic;
+
+	// process scroll
+	{
+		tic80_input* input = &tic->ram.input;
+
+		if(input->mouse.scrolly)
+		{
+			if(tic->api.key(tic, tic_key_ctrl))
+			{
+				scrollNotes(music, input->mouse.scrolly > 0 ? 1 : -1);
+			}
+			else
+			{		
+				enum{Scroll = NOTES_PER_BEET};
+				s32 delta = input->mouse.scrolly > 0 ? -Scroll : Scroll;
+
+				music->tracker.scroll += delta;
+
+				updateScroll(music);
+			}
+		}
+	}
+
 	// SDL_Event* event = NULL;
 	// while ((event = pollEvent()))
 	// {
 	// 	switch (event->type)
 	// 	{
-	// 	case SDL_MOUSEWHEEL:
-	// 		if(SDL_GetModState() & TIC_MOD_CTRL)
-	// 		{
-	// 			scrollNotes(music, event->wheel.y > 0 ? 1 : -1);
-	// 		}
-	// 		else
-	// 		{		
-	// 			enum{Scroll = NOTES_PER_BEET};
-	// 			s32 delta = event->wheel.y > 0 ? -Scroll : Scroll;
-
-	// 			music->tracker.scroll += delta;
-
-	// 			updateScroll(music);
-	// 		}
-	// 		break;
 	// 	case SDL_KEYDOWN:
 	// 		processKeydown(music, &event->key.keysym);
 	// 		break;

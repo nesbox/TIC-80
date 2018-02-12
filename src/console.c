@@ -2556,18 +2556,23 @@ static void checkNewVersion(Console* console)
 
 static void tick(Console* console)
 {
+	// process scroll
+	{
+		tic80_input* input = &console->tic->ram.input;
+
+		if(input->mouse.scrolly)
+		{
+			enum{Scroll = 3};
+			s32 delta = input->mouse.scrolly > 0 ? -Scroll : Scroll;
+			setScroll(console, console->scroll.pos + delta);
+		}
+	}
+
 	// SDL_Event* event = NULL;
 	// while ((event = pollEvent()))
 	// {
 	// 	switch(event->type)
 	// 	{
-	// 	case SDL_MOUSEWHEEL:
-	// 		{
-	// 			enum{Scroll = 3};
-	// 			s32 delta = event->wheel.y > 0 ? -Scroll : Scroll;
-	// 			setScroll(console, console->scroll.pos + delta);
-	// 		}
-	// 		break;
 	// 	case SDL_KEYDOWN:
 	// 		{
 	// 			switch(event->key.keysym.sym)
