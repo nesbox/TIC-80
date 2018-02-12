@@ -61,26 +61,9 @@ static void drawGrid(World* world)
 		TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, (tic_color_red));
 }
 
-// static void processKeydown(World* world, tic_keycode keycode)
-// {
-// 	switch(keycode)
-// 	{
-// 	case SDLK_TAB: setStudioMode(TIC_MAP_MODE); break;
-// 	}
-// }
-
 static void tick(World* world)
 {
-	// SDL_Event* event = NULL;
-	// while ((event = pollEvent()))
-	// {
-	// 	switch(event->type)
-	// 	{
-	// 	case SDL_KEYDOWN:
-	// 		processKeydown(world, event->key.keysym.sym);
-	// 		break;
-	// 	}
-	// }
+	if(isKeyBeenPressed(tic_key_tab)) setStudioMode(TIC_MAP_MODE);
 
 	memcpy(&world->tic->ram.vram, world->preview, PREVIEW_SIZE);
 
@@ -128,6 +111,5 @@ void initWorld(World* world, tic_mem* tic, Map* map)
 
 			tic_tool_poke4(world->preview, i, max);
 		}
-
 	}
 }
