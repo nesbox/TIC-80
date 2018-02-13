@@ -93,14 +93,36 @@ static void readCursorTheme(Config* config, lua_State* lua)
 	if(lua_type(lua, -1) == LUA_TTABLE)
 	{
 		{
-			lua_getfield(lua, -1, "SPRITE");
+			lua_getfield(lua, -1, "ARROW");
 
 			if(lua_isinteger(lua, -1))
 			{
-				config->data.theme.cursor.sprite = (s32)lua_tointeger(lua, -1);
+				config->data.theme.cursor.arrow = (s32)lua_tointeger(lua, -1);
 			}
 
-			lua_pop(lua, 1);			
+			lua_pop(lua, 1);
+		}
+
+		{
+			lua_getfield(lua, -1, "HAND");
+
+			if(lua_isinteger(lua, -1))
+			{
+				config->data.theme.cursor.hand = (s32)lua_tointeger(lua, -1);
+			}
+
+			lua_pop(lua, 1);
+		}
+
+		{
+			lua_getfield(lua, -1, "IBEAM");
+
+			if(lua_isinteger(lua, -1))
+			{
+				config->data.theme.cursor.ibeam = (s32)lua_tointeger(lua, -1);
+			}
+
+			lua_pop(lua, 1);
 		}
 
 		{

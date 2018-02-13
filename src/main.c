@@ -48,6 +48,12 @@ static struct
 		} part;
 	} gamepad;
 
+	struct
+	{
+		SDL_Texture* texture;
+		const u8* src;
+	} mouse;
+
 	bool missedFrame;
 	bool fullscreen;
 } platform;
@@ -244,9 +250,9 @@ static void calcTextureRect(SDL_Rect* rect)
 // 		point.x /= Fingers;
 // 		point.y /= Fingers;
 
-// 		studioImpl.gesture.pos = point;
+// 		platform.gesture.pos = point;
 
-// 		studioImpl.gesture.active = true;
+// 		platform.gesture.active = true;
 // 	}
 // }
 
@@ -709,97 +715,120 @@ static void renderGamepad()
 		platform.gamepad.show = false;
 }
 
-// static void blitCursor(const u8* in)
-// {
-	// if(!studioImpl.mouse.texture)
-	// {
-	// 	studioImpl.mouse.texture = SDL_CreateTexture(studioImpl.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING, TIC_SPRITESIZE, TIC_SPRITESIZE);
-	// 	SDL_SetTextureBlendMode(studioImpl.mouse.texture, SDL_BLENDMODE_BLEND);
-	// }
+static void blitCursor(const u8* in)
+{
+	if(!platform.mouse.texture)
+	{
+		platform.mouse.texture = SDL_CreateTexture(platform.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING, TIC_SPRITESIZE, TIC_SPRITESIZE);
+		SDL_SetTextureBlendMode(platform.mouse.texture, SDL_BLENDMODE_BLEND);
+	}
 
-	// if(studioImpl.mouse.src != in)
-	// {
-	// 	studioImpl.mouse.src = in;
+	if(platform.mouse.src != in)
+	{
+		platform.mouse.src = in;
 
-	// 	void* pixels = NULL;
-	// 	s32 pitch = 0;
-	// 	SDL_LockTexture(studioImpl.mouse.texture, NULL, &pixels, &pitch);
+		void* pixels = NULL;
+		s32 pitch = 0;
+		SDL_LockTexture(platform.mouse.texture, NULL, &pixels, &pitch);
 
-	// 	{
-	// 		const u8* end = in + sizeof(tic_tile);
-	// 		const u32* pal = tic_palette_blit(&studioImpl.studio.tic->ram.vram.palette);
-	// 		u32* out = pixels;
+		{
+			const u8* end = in + sizeof(tic_tile);
+			const u32* pal = tic_palette_blit(&platform.studio->tic->ram.vram.palette);
+			u32* out = pixels;
 
-	// 		while(in != end)
-	// 		{
-	// 			u8 low = *in & 0x0f;
-	// 			u8 hi = (*in & 0xf0) >> TIC_PALETTE_BPP;
-	// 			*out++ = low ? (*(pal + low) | 0xff000000) : 0;
-	// 			*out++ = hi ? (*(pal + hi) | 0xff000000) : 0;
+			while(in != end)
+			{
+				u8 low = *in & 0x0f;
+				u8 hi = (*in & 0xf0) >> TIC_PALETTE_BPP;
+				*out++ = low ? (*(pal + low) | 0xff000000) : 0;
+				*out++ = hi ? (*(pal + hi) | 0xff000000) : 0;
 
-	// 			in++;
-	// 		}
-	// 	}
+				in++;
+			}
+		}
 
-	// 	SDL_UnlockTexture(studioImpl.mouse.texture);
-	// }
+		SDL_UnlockTexture(platform.mouse.texture);
+	}
 
-	// tic_rect rect = {0, 0, 0, 0};
-	// calcTextureRect(&rect);
-	// s32 scale = rect.w / TIC80_WIDTH;
+	SDL_Rect rect = {0, 0, 0, 0};
+	calcTextureRect(&rect);
+	s32 scale = rect.w / TIC80_WIDTH;
 
-	// tic_rect src = {0, 0, TIC_SPRITESIZE, TIC_SPRITESIZE};
-	// tic_rect dst = {0, 0, TIC_SPRITESIZE * scale, TIC_SPRITESIZE * scale};
+	SDL_Rect src = {0, 0, TIC_SPRITESIZE, TIC_SPRITESIZE};
+	SDL_Rect dst = {0, 0, TIC_SPRITESIZE * scale, TIC_SPRITESIZE * scale};
 
-	// SDL_GetMouseState(&dst.x, &dst.y);
+	SDL_GetMouseState(&dst.x, &dst.y);
 
-	// if(getConfig()->theme.cursor.pixelPerfect)
-	// {
-	// 	dst.x -= (dst.x - rect.x) % scale;
-	// 	dst.y -= (dst.y - rect.y) % scale;
-	// }
+	if(getConfig()->theme.cursor.pixelPerfect)
+	{
+		dst.x -= (dst.x - rect.x) % scale;
+		dst.y -= (dst.y - rect.y) % scale;
+	}
 
-	// if(SDL_GetWindowFlags(studioImpl.window) & SDL_WINDOW_MOUSE_FOCUS)
-	// 	SDL_RenderCopy(studioImpl.renderer, studioImpl.mouse.texture, &src, &dst);
-// }
-
+	if(SDL_GetWindowFlags(platform.window) & SDL_WINDOW_MOUSE_FOCUS)
+		SDL_RenderCopy(platform.renderer, platform.mouse.texture, &src, &dst);
+}
 
 static void renderCursor()
 {
 	if(platform.studio->tic->ram.vram.vars.cursor.system)
 	{
-		SDL_SystemCursor sdlCursor = SDL_SYSTEM_CURSOR_ARROW;
-
 		switch(platform.studio->tic->ram.vram.vars.cursor.sprite)
 		{
-		case tic_cursor_hand: sdlCursor = SDL_SYSTEM_CURSOR_HAND; break;
-		case tic_cursor_ibeam: sdlCursor = SDL_SYSTEM_CURSOR_IBEAM; break;
-		default: sdlCursor = SDL_SYSTEM_CURSOR_ARROW;
+		case tic_cursor_hand: 
+			{
+				if(getConfig()->theme.cursor.hand >= 0)
+				{
+					SDL_ShowCursor(SDL_DISABLE);
+					blitCursor(platform.studio->tic->config.bank0.tiles.data[getConfig()->theme.cursor.hand].data);
+				}
+				else
+				{
+					SDL_ShowCursor(SDL_ENABLE);
+					SDL_SetCursor(SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND));
+				}
+			}
+			break;
+		case tic_cursor_ibeam:
+			{
+				if(getConfig()->theme.cursor.ibeam >= 0)
+				{
+					SDL_ShowCursor(SDL_DISABLE);
+					blitCursor(platform.studio->tic->config.bank0.tiles.data[getConfig()->theme.cursor.ibeam].data);
+				}
+				else
+				{
+					SDL_ShowCursor(SDL_ENABLE);
+					SDL_SetCursor(SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_IBEAM));
+				}
+			}
+			break;
+		default:
+			{
+				if(getConfig()->theme.cursor.arrow >= 0)
+				{
+					SDL_ShowCursor(SDL_DISABLE);
+					blitCursor(platform.studio->tic->config.bank0.tiles.data[getConfig()->theme.cursor.arrow].data);
+				}
+				else
+				{
+					SDL_ShowCursor(SDL_ENABLE);
+					SDL_SetCursor(SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW));
+				}
+			}
 		}
-
-		SDL_SetCursor(SDL_CreateSystemCursor(sdlCursor));
 	}
 	else
 	{
-		// render cursor here
+		SDL_ShowCursor(SDL_DISABLE);
+		blitCursor(platform.studio->tic->ram.sprites.data[platform.studio->tic->ram.vram.vars.cursor.sprite].data);
 	}
 
-// 	if(studioImpl.mode == TIC_RUN_MODE && !studioImpl.studio.tic->input.mouse)
+// 	if(platform.mode == TIC_RUN_MODE && !platform.studio.tic->input.mouse)
 // 	{
 // 		SDL_ShowCursor(SDL_DISABLE);
 // 		return;
 // 	}
-// 	if(studioImpl.mode == TIC_RUN_MODE && studioImpl.studio.tic->ram.vram.vars.cursor)
-// 	{
-// 		SDL_ShowCursor(SDL_DISABLE);
-// 		blitCursor(studioImpl.studio.tic->ram.sprites.data[studioImpl.studio.tic->ram.vram.vars.cursor].data);
-// 		return;
-// 	}
-
-// 	SDL_ShowCursor(getConfig()->theme.cursor.sprite >= 0 ? SDL_DISABLE : SDL_ENABLE);
-
-// 	if(getConfig()->theme.cursor.sprite >= 0)
-// 		blitCursor(studioImpl.studio.tic->config.bank0.tiles.data[getConfig()->theme.cursor.sprite].data);
 }
 
 static void tick()
@@ -1016,8 +1045,8 @@ s32 main(s32 argc, char **argv)
 	if(platform.audio.cvt.buf)
 		SDL_free(platform.audio.cvt.buf);
 
-	// if(platform.mouse.texture)
-		// SDL_DestroyTexture(platform.mouse.texture);
+	if(platform.mouse.texture)
+		SDL_DestroyTexture(platform.mouse.texture);
 
 	SDL_DestroyTexture(platform.gamepad.texture);
 

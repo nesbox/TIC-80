@@ -74,7 +74,10 @@ typedef struct
 	{
 		struct
 		{
-			s32 sprite;
+			s32 arrow;
+			s32 hand;
+			s32 ibeam;
+			
 			bool pixelPerfect;
 		} cursor;
 
