@@ -586,14 +586,11 @@ static void pollEvent()
 			}
 			break;
 		case SDL_QUIT:
-			platform.studio->quit = true;
-			// exitStudio();
+			exitStudio();
 			break;
 		default:
 			break;
 		}
-
-		// return &event;
 	}
 
 	// if(platform.mode != TIC_RUN_MODE)
@@ -604,22 +601,10 @@ static void pollEvent()
 	processMouse();
 	processGamepad();
 	processKeyboard();
-
-	// if(platform.mode == TIC_RUN_MODE)
-	// {
-	// 	if(platform.studio->tic->input.gamepad) 	processGamepadInput();
-	// 	if(platform.studio->tic->input.mouse) 	processMouseInput();
-	// 	if(platform.studio->tic->input.keyboard) 	processKeyboardInput();
-	// }
-	// else
-	// {
-	// 	processGamepadInput();
-	// }
 }
 
 static void blitTexture()
 {
-	// tic_mem* tic = platform.studio->tic;
 	SDL_Rect rect = {0, 0, 0, 0};
 	calcTextureRect(&rect);
 
@@ -628,40 +613,6 @@ static void blitTexture()
 	SDL_LockTexture(platform.texture, NULL, &pixels, &pitch);
 
 	studioTick(pixels);
-
-	// tic_scanline scanline = NULL;
-	// tic_overlap overlap = NULL;
-	// void* data = NULL;
-
-	// switch(platform.mode)
-	// {
-	// case TIC_RUN_MODE:
-	// 	scanline = tic->api.scanline;
-	// 	overlap = tic->api.overlap;
-	// 	break;
-	// case TIC_SPRITE_MODE:
-	// 	{
-	// 		Sprite* sprite = platform.editor[platform.bank.index.sprites].sprite;
-	// 		overlap = sprite->overlap;
-	// 		data = sprite;
-	// 	}
-	// 	break;
-	// case TIC_MAP_MODE:
-	// 	{
-	// 		Map* map = platform.editor[platform.bank.index.map].map;
-	// 		overlap = map->overlap;
-	// 		data = map;
-	// 	}
-	// 	break;
-	// default:
-	// 	break;
-	// }
-
-	// tic->api.blit(tic, scanline, overlap, data);
-	// SDL_memcpy(pixels, tic->screen, sizeof tic->screen);
-
-	// recordFrame(pixels);
-	// drawDesyncLabel(pixels);
 
 	SDL_UnlockTexture(platform.texture);
 
