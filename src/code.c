@@ -905,14 +905,6 @@ static void processKeyboard(Code* code)
 			else if(keyWasPressed(tic_key_right)) rightWord(code);
 			else if(keyWasPressed(tic_key_tab)) doTab(code, shift, ctrl);
 		}
-		// else if(keymod & KMOD_GUI)
-		// {
-		// 	switch(keycode)
-		// 	{
-		// 	case SDLK_LEFT: 	goHome(code); break;
-		// 	case SDLK_RIGHT: 	goEnd(code); break;
-		// 	}
-		// }
 
 		if(keyWasPressed(tic_key_a)) 			selectAll(code);
 		else if(keyWasPressed(tic_key_z)) 		undo(code);
@@ -936,13 +928,13 @@ static void processKeyboard(Code* code)
 		else if(keyWasPressed(tic_key_left)) 		leftColumn(code);
 		else if(keyWasPressed(tic_key_right)) 		rightColumn(code);
 		else if(keyWasPressed(tic_key_home)) 		goHome(code);
-		else if(keyWasPressed(tic_key_end)) 			goEnd(code);
+		else if(keyWasPressed(tic_key_end)) 		goEnd(code);
 		else if(keyWasPressed(tic_key_pageup)) 		pageUp(code);
 		else if(keyWasPressed(tic_key_pagedown)) 	pageDown(code);
 		else if(keyWasPressed(tic_key_delete)) 		deleteChar(code);
 		else if(keyWasPressed(tic_key_backspace)) 	backspaceChar(code);
 		else if(keyWasPressed(tic_key_return)) 		newLine(code);
-		else if(keyWasPressed(tic_key_tab)) 			doTab(code, shift, ctrl);
+		else if(keyWasPressed(tic_key_tab)) 		doTab(code, shift, ctrl);
 	}
 
 	updateEditor(code);

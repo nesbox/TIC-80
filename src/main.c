@@ -28,7 +28,6 @@ static struct
 
 	struct
 	{
-		// tic80_gamepads keyboard;
 		tic80_gamepads touch;
 		tic80_gamepads joystick;
 
@@ -37,7 +36,6 @@ static struct
 		bool show;
 		s32 counter;
 		s32 alpha;
-		bool backProcessed;
 
 		struct
 		{
@@ -483,26 +481,24 @@ static void processJoysticks()
 						gamepad->x = SDL_JoystickGetButton(joystick, 2);
 						gamepad->y = SDL_JoystickGetButton(joystick, 3);
 
-						// for(s32 i = 5; i < numButtons; i++)
-						// {
-						// 	s32 back = SDL_JoystickGetButton(joystick, i);
+						for(s32 i = 5; i < numButtons; i++)
+						{
+							s32 back = SDL_JoystickGetButton(joystick, i);
 
-						// 	if(back)
-						// 	{
-						// 		if(!platform.gamepad.backProcessed)
-						// 		{
-						// 			if(isGameMenu())
-						// 			{
-						// 				platform.mode == TIC_MENU_MODE ? hideGameMenu() : showGameMenu();
-						// 				platform.gamepad.backProcessed = true;
-						// 			}
-						// 		}
+							if(back)
+							{
+								tic_mem* tic = platform.studio->tic;
 
-						// 		return;
-						// 	}
-						// }
-
-						// platform.gamepad.backProcessed = false;
+								for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
+								{
+									if(!tic->ram.input.keyboard.keys[i])
+									{
+										tic->ram.input.keyboard.keys[i] = tic_key_escape;
+										break;
+									}
+								}
+							}
+						}
 					}
 				}
 
@@ -514,8 +510,6 @@ static void processJoysticks()
 
 static void processGamepad()
 {
-	// processKeyboardGamepad();
-
 #if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
 	processTouchGamepad();
 #endif
@@ -524,7 +518,6 @@ static void processGamepad()
 	{
 		platform.studio->tic->ram.input.gamepads.data = 0;
 
-		// platform.studio->tic->ram.input.gamepads.data |= platform.gamepad.keyboard.data;
 		platform.studio->tic->ram.input.gamepads.data |= platform.gamepad.touch.data;
 		platform.studio->tic->ram.input.gamepads.data |= platform.gamepad.joystick.data;
 	}
@@ -544,9 +537,6 @@ static void pollEvent()
 	{
 		switch(event.type)
 		{
-// 		case SDL_KEYDOWN:
-// 			if(processShortcuts(&event.key)) return NULL;
-// 			break;
 		case SDL_MOUSEWHEEL:
 			{
 				input->mouse.scrollx = event.wheel.x;
@@ -599,8 +589,8 @@ static void pollEvent()
 	// if(!platform.gesture.active)
 
 	processMouse();
-	processGamepad();
 	processKeyboard();
+	processGamepad();
 }
 
 static void blitTexture()
@@ -828,25 +818,11 @@ static void tick()
 // 		return;
 // 	}
 
-	// SDL_SystemCursor cursor = platform.mouse.system;
-	// platform.mouse.system = SDL_SYSTEM_CURSOR_ARROW;
-
 	SDL_RenderClear(platform.renderer);
-
 	
 	blitTexture();
-
 	renderCursor();
-
-	// if(platform.mode == TIC_RUN_MODE && platform.studio->tic->input.gamepad)
 	renderGamepad();
-
-	// if(platform.mode == TIC_MENU_MODE || platform.mode == TIC_SURF_MODE)
-		// renderGamepad();
-
-	// if(platform.mouse.system != cursor)
-		// SDL_SetCursor(SDL_CreateSystemCursor(platform.mouse.system));
-
 
 	SDL_RenderPresent(platform.renderer);
 
@@ -856,7 +832,6 @@ static void tick()
 // should work async with callback
 static const char* getAppFolder()
 {
-
 	static char appFolder[FILENAME_MAX];
 
 #if defined(__EMSCRIPTEN__)

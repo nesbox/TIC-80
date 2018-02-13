@@ -155,7 +155,7 @@ void studioConfigChanged();
 void setStudioMode(EditorMode mode);
 void resumeRunMode();
 EditorMode getStudioMode();
-void exitStudio();
+TIC80_API void exitStudio();
 u32 unzip(u8** dest, const u8* source, size_t size);
 
 void str2buf(const char* str, s32 size, void* buf, bool flip);
@@ -269,4 +269,4 @@ typedef struct
 NetVersion netVersionRequest(Net* net);
 void netDirRequest(Net* net, const char* path, ListCallback callback, void* data);
 void showMessageBox(const char* title, const char* message);
-void updateStudioProject();
+TIC80_API void updateStudioProject();
