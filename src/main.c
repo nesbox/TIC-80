@@ -75,29 +75,41 @@ static void initSound()
 	}
 }
 
+static u8* _getSpritePtr(tic_tile* tiles, s32 x, s32 y)
+{
+	enum { SheetCols = (TIC_SPRITESHEET_SIZE / TIC_SPRITESIZE) };
+	return tiles[x / TIC_SPRITESIZE + y / TIC_SPRITESIZE * SheetCols].data;
+}
+
+static u8 _getSpritePixel(tic_tile* tiles, s32 x, s32 y)
+{
+	// TODO: check spritesheet rect
+	return tic_tool_peek4(_getSpritePtr(tiles, x, y), (x % TIC_SPRITESIZE) + (y % TIC_SPRITESIZE) * TIC_SPRITESIZE);
+}
+
 static void setWindowIcon()
 {
-	// enum{ Size = 64, TileSize = 16, ColorKey = 14, Cols = TileSize / TIC_SPRITESIZE, Scale = Size/TileSize};
-	// platform.studio->tic->api.clear(platform.studio->tic, 0);
+	enum{ Size = 64, TileSize = 16, ColorKey = 14, Cols = TileSize / TIC_SPRITESIZE, Scale = Size/TileSize};
+	platform.studio->tic->api.clear(platform.studio->tic, 0);
 
-	// u32* pixels = SDL_malloc(Size * Size * sizeof(u32));
+	u32* pixels = SDL_malloc(Size * Size * sizeof(u32));
 
-	// const u32* pal = tic_palette_blit(&platform.studio->tic->config.palette);
+	const u32* pal = tic_palette_blit(&platform.studio->tic->config.palette);
 
-	// for(s32 j = 0, index = 0; j < Size; j++)
-	// 	for(s32 i = 0; i < Size; i++, index++)
-	// 	{
-	// 		u8 color = getSpritePixel(platform.studio->tic->config.bank0.tiles.data, i/Scale, j/Scale);
-	// 		pixels[index] = color == ColorKey ? 0 : pal[color];
-	// 	}
+	for(s32 j = 0, index = 0; j < Size; j++)
+		for(s32 i = 0; i < Size; i++, index++)
+		{
+			u8 color = _getSpritePixel(platform.studio->tic->config.bank0.tiles.data, i/Scale, j/Scale);
+			pixels[index] = color == ColorKey ? 0 : pal[color];
+		}
 
-	// SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, Size, Size,
-	// 	sizeof(s32) * BITS_IN_BYTE, Size * sizeof(s32),
-	// 	0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
+	SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, Size, Size,
+		sizeof(s32) * BITS_IN_BYTE, Size * sizeof(s32),
+		0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
 
-	// SDL_SetWindowIcon(platform.window, surface);
-	// SDL_FreeSurface(surface);
-	// SDL_free(pixels);
+	SDL_SetWindowIcon(platform.window, surface);
+	SDL_FreeSurface(surface);
+	SDL_free(pixels);
 }
 
 static void updateGamepadParts()
@@ -965,6 +977,8 @@ s32 main(s32 argc, char **argv)
 #endif
 		);
 
+	platform.studio = studioInit(argc, argv, platform.audio.spec.freq, getAppFolder(), &sysHandlers);
+
 	// set the window icon before renderer is created (issues on Linux)
 	setWindowIcon();
 
@@ -980,8 +994,6 @@ s32 main(s32 argc, char **argv)
 	);
 
 	platform.texture = SDL_CreateTexture(platform.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING, TEXTURE_SIZE, TEXTURE_SIZE);
-
-	platform.studio = studioInit(argc, argv, platform.audio.spec.freq, getAppFolder(), &sysHandlers);
 
 	initTouchGamepad();
 

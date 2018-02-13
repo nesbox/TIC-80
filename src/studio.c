@@ -2541,31 +2541,6 @@ void studioConfigChanged()
 	updateSystemFont();
 }
 
-// static void setWindowIcon()
-// {
-// 	enum{ Size = 64, TileSize = 16, ColorKey = 14, Cols = TileSize / TIC_SPRITESIZE, Scale = Size/TileSize};
-// 	studioImpl.studio.tic->api.clear(studioImpl.studio.tic, 0);
-
-// 	u32* pixels = malloc(Size * Size * sizeof(u32));
-
-// 	const u32* pal = tic_palette_blit(&studioImpl.studio.tic->config.palette);
-
-// 	for(s32 j = 0, index = 0; j < Size; j++)
-// 		for(s32 i = 0; i < Size; i++, index++)
-// 		{
-// 			u8 color = getSpritePixel(studioImpl.studio.tic->config.bank0.tiles.data, i/Scale, j/Scale);
-// 			pixels[index] = color == ColorKey ? 0 : pal[color];
-// 		}
-
-// 	SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, Size, Size,
-// 		sizeof(s32) * BITS_IN_BYTE, Size * sizeof(s32),
-// 		0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000);
-
-// 	SDL_SetWindowIcon(studioImpl.window, surface);
-// 	freeSurface(surface);
-// 	free(pixels);
-// }
-
 u32 unzip(u8** dest, const u8* source, size_t size)
 {
 	// TODO: remove this size
@@ -2612,22 +2587,6 @@ static void onFSInitialized(FileSystem* fs)
 {
 	studioImpl.fs = fs;
 
-	// SDL_SetHint(SDL_HINT_WINRT_HANDLE_BACK_BUTTON, "1");
-	// SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
-
-	// SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK);
-
-// 	studioImpl.window = SDL_CreateWindow( TIC_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-// 		(TIC80_FULLWIDTH) * STUDIO_UI_SCALE,
-// 		(TIC80_FULLHEIGHT) * STUDIO_UI_SCALE,
-// 		SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
-// #if defined(__CHIP__)
-// 			| SDL_WINDOW_FULLSCREEN_DESKTOP
-// #endif
-// 		);
-
-	// initSound();
-
 	studioImpl.tic80local = (tic80_local*)tic80_create(studioImpl.samplerate);
 	studioImpl.studio.tic = studioImpl.tic80local->memory;
 
@@ -2673,23 +2632,6 @@ static void onFSInitialized(FileSystem* fs)
 	{
 		goFullscreen();
 	}
-
-	// // set the window icon before renderer is created (issues on Linux)
-	// setWindowIcon();
-
-// 	studioImpl.renderer = SDL_CreateRenderer(studioImpl.window, -1, 
-// #if defined(__CHIP__)
-// 		SDL_RENDERER_SOFTWARE
-// #elif defined(__EMSCRIPTEN__)
-// 		SDL_RENDERER_ACCELERATED
-// #else
-// 		SDL_RENDERER_ACCELERATED | (getConfig()->useVsync ? SDL_RENDERER_PRESENTVSYNC : 0)
-// #endif
-// 	);
-
-// 	studioImpl.texture = SDL_CreateTexture(studioImpl.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING, TEXTURE_SIZE, TEXTURE_SIZE);
-
-	// initTouchGamepad();
 }
 
 #if defined(__EMSCRIPTEN__)
