@@ -439,8 +439,8 @@ static void processKeyboard(Menu* menu)
 	if(menu->gamepad.selected < 0)
 		return;
 
-	if(isKeyBeenPressed(tic_key_escape));
-	else if(isAnyKeyBeenPressed())
+	if(keyWasPressed(tic_key_escape));
+	else if(anyKeyWasPressed())
 	{
 		for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
 		{

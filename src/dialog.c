@@ -93,17 +93,17 @@ static void onNo(Dialog* dlg)
 
 static void processKeyboard(Dialog* dlg)
 {
-	if(isKeyBeenPressed(tic_key_left))
+	if(keyWasPressed(tic_key_left))
 	{
 		dlg->focus = (dlg->focus-1) % 2;
 		playSystemSfx(2);
 	}
-	else if(isKeyBeenPressed(tic_key_right) || isKeyBeenPressed(tic_key_tab))
+	else if(keyWasPressed(tic_key_right) || keyWasPressed(tic_key_tab))
 	{
 		dlg->focus = (dlg->focus+1) % 2;
 		playSystemSfx(2);
 	}
-	else if(isKeyBeenPressed(tic_key_return) || isKeyBeenPressed(tic_key_space))
+	else if(keyWasPressed(tic_key_return) || keyWasPressed(tic_key_space))
 	{
 		dlg->focus == 0 ? onYes(dlg) : onNo(dlg);
 	}

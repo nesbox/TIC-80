@@ -754,37 +754,37 @@ static void processTrackerKeyboard(Music* music)
 
 	if(shift)
 	{
-		if(isKeyBeenPressed(tic_key_up)
-			|| isKeyBeenPressed(tic_key_down)
-			|| isKeyBeenPressed(tic_key_left)
-			|| isKeyBeenPressed(tic_key_right)
-			|| isKeyBeenPressed(tic_key_home)
-			|| isKeyBeenPressed(tic_key_end)
-			|| isKeyBeenPressed(tic_key_pageup)
-			|| isKeyBeenPressed(tic_key_pagedown)
-			|| isKeyBeenPressed(tic_key_tab))
+		if(keyWasPressed(tic_key_up)
+			|| keyWasPressed(tic_key_down)
+			|| keyWasPressed(tic_key_left)
+			|| keyWasPressed(tic_key_right)
+			|| keyWasPressed(tic_key_home)
+			|| keyWasPressed(tic_key_end)
+			|| keyWasPressed(tic_key_pageup)
+			|| keyWasPressed(tic_key_pagedown)
+			|| keyWasPressed(tic_key_tab))
 		{
 			checkSelection(music);
 		}
 	}
 
-	if(isKeyBeenPressed(tic_key_up)) 			upRow(music);
-	else if(isKeyBeenPressed(tic_key_down)) 	downRow(music);
-	else if(isKeyBeenPressed(tic_key_left)) 	leftCol(music);
-	else if(isKeyBeenPressed(tic_key_right)) 	rightCol(music);
-	else if(isKeyBeenPressed(tic_key_home)) 	goHome(music);
-	else if(isKeyBeenPressed(tic_key_end)) 		goEnd(music);
-	else if(isKeyBeenPressed(tic_key_pageup)) 	pageUp(music);
-	else if(isKeyBeenPressed(tic_key_pagedown)) pageDown(music);
-	else if(isKeyBeenPressed(tic_key_tab)) 		doTab(music);
-	else if(isKeyBeenPressed(tic_key_delete)) 		
+	if(keyWasPressed(tic_key_up)) 			upRow(music);
+	else if(keyWasPressed(tic_key_down)) 	downRow(music);
+	else if(keyWasPressed(tic_key_left)) 	leftCol(music);
+	else if(keyWasPressed(tic_key_right)) 	rightCol(music);
+	else if(keyWasPressed(tic_key_home)) 	goHome(music);
+	else if(keyWasPressed(tic_key_end)) 		goEnd(music);
+	else if(keyWasPressed(tic_key_pageup)) 	pageUp(music);
+	else if(keyWasPressed(tic_key_pagedown)) pageDown(music);
+	else if(keyWasPressed(tic_key_tab)) 		doTab(music);
+	else if(keyWasPressed(tic_key_delete)) 		
 	{
 		deleteSelection(music);
 		history_add(music->history);
 		downRow(music);
 	}
-	else if(isKeyBeenPressed(tic_key_space)) playNote(music);
-	else if(isKeyBeenPressed(tic_key_return))
+	else if(keyWasPressed(tic_key_space)) playNote(music);
+	else if(keyWasPressed(tic_key_return))
 	{
 		const tic_music_pos* pos = getMusicPos(music);
 		pos->track < 0
@@ -794,15 +794,15 @@ static void processTrackerKeyboard(Music* music)
 
 	if(shift)
 	{
-		if(isKeyBeenPressed(tic_key_up)
-			|| isKeyBeenPressed(tic_key_down)
-			|| isKeyBeenPressed(tic_key_left)
-			|| isKeyBeenPressed(tic_key_right)
-			|| isKeyBeenPressed(tic_key_home)
-			|| isKeyBeenPressed(tic_key_end)
-			|| isKeyBeenPressed(tic_key_pageup)
-			|| isKeyBeenPressed(tic_key_pagedown)
-			|| isKeyBeenPressed(tic_key_tab))
+		if(keyWasPressed(tic_key_up)
+			|| keyWasPressed(tic_key_down)
+			|| keyWasPressed(tic_key_left)
+			|| keyWasPressed(tic_key_right)
+			|| keyWasPressed(tic_key_home)
+			|| keyWasPressed(tic_key_end)
+			|| keyWasPressed(tic_key_pageup)
+			|| keyWasPressed(tic_key_pagedown)
+			|| keyWasPressed(tic_key_tab))
 		{
 			updateSelection(music);
 		}
@@ -847,7 +847,7 @@ static void processTrackerKeyboard(Music* music)
 		{
 		case ColumnNote:
 		case ColumnSemitone:
-			if (isKeyBeenPressed(tic_key_1) || isKeyBeenPressed(tic_key_a))
+			if (keyWasPressed(tic_key_1) || keyWasPressed(tic_key_a))
 			{
 				setStopNote(music);
 				downRow(music);
@@ -858,7 +858,7 @@ static void processTrackerKeyboard(Music* music)
 
 				for (s32 i = 0; i < COUNT_OF(Piano); i++)
 				{
-					if (isKeyBeenPressed(Piano[i]))
+					if (keyWasPressed(Piano[i]))
 					{
 						s32 note = i % NOTES;
 
@@ -951,12 +951,12 @@ static void processPatternKeyboard(Music* music)
 {
 	s32 channel = music->tracker.col / CHANNEL_COLS;
 
-	if(isKeyBeenPressed(tic_key_delete)) 		setChannelPatternValue(music, 0, channel);
-	else if(isKeyBeenPressed(tic_key_tab)) 		nextPattern(music);
-	else if(isKeyBeenPressed(tic_key_left)) 	patternColLeft(music);
-	else if(isKeyBeenPressed(tic_key_right)) 	patternColRight(music);
-	else if(isKeyBeenPressed(tic_key_down) 
-		|| isKeyBeenPressed(tic_key_return)) 
+	if(keyWasPressed(tic_key_delete)) 		setChannelPatternValue(music, 0, channel);
+	else if(keyWasPressed(tic_key_tab)) 		nextPattern(music);
+	else if(keyWasPressed(tic_key_left)) 	patternColLeft(music);
+	else if(keyWasPressed(tic_key_right)) 	patternColRight(music);
+	else if(keyWasPressed(tic_key_down) 
+		|| keyWasPressed(tic_key_return)) 
 		music->tracker.row = music->tracker.scroll;
 	else
 	{
@@ -1015,11 +1015,11 @@ static void processKeyboard(Music* music)
 
 	if (ctrl)
 	{
-		if(isKeyBeenPressed(tic_key_a)) 		selectAll(music);
-		else if(isKeyBeenPressed(tic_key_z)) 	undo(music);
-		else if(isKeyBeenPressed(tic_key_y)) 	redo(music);
-		else if(isKeyBeenPressed(tic_key_up)) 	upFrame(music);
-		else if(isKeyBeenPressed(tic_key_down)) downFrame(music);
+		if(keyWasPressed(tic_key_a)) 		selectAll(music);
+		else if(keyWasPressed(tic_key_z)) 	undo(music);
+		else if(keyWasPressed(tic_key_y)) 	redo(music);
+		else if(keyWasPressed(tic_key_up)) 	upFrame(music);
+		else if(keyWasPressed(tic_key_down)) downFrame(music);
 	}
 	else
 	{

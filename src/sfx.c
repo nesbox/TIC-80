@@ -689,14 +689,14 @@ static void processEnvelopesKeyboard(Sfx* sfx)
 
 	if(ctrl)
 	{
-		if(isKeyBeenPressed(tic_key_z)) 		undo(sfx);
-		else if(isKeyBeenPressed(tic_key_y)) 	redo(sfx);
+		if(keyWasPressed(tic_key_z)) 		undo(sfx);
+		else if(keyWasPressed(tic_key_y)) 	redo(sfx);
 	}
 
-	if(isKeyBeenPressed(tic_key_tab)) 			sfx->tab = SFX_WAVEFORM_TAB;
-	else if(isKeyBeenPressed(tic_key_left))  	sfx->index--;
-	else if(isKeyBeenPressed(tic_key_right)) 	sfx->index++;
-	else if(isKeyBeenPressed(tic_key_delete)) 	resetSfx(sfx);
+	if(keyWasPressed(tic_key_tab)) 			sfx->tab = SFX_WAVEFORM_TAB;
+	else if(keyWasPressed(tic_key_left))  	sfx->index--;
+	else if(keyWasPressed(tic_key_right)) 	sfx->index++;
+	else if(keyWasPressed(tic_key_delete)) 	resetSfx(sfx);
 }
 
 static void processWaveformKeyboard(Sfx* sfx)
@@ -715,14 +715,14 @@ static void processWaveformKeyboard(Sfx* sfx)
 
 	if(ctrl)
 	{
-		if(isKeyBeenPressed(tic_key_z)) 		undo(sfx);
-		else if(isKeyBeenPressed(tic_key_y)) 	redo(sfx);
+		if(keyWasPressed(tic_key_z)) 		undo(sfx);
+		else if(keyWasPressed(tic_key_y)) 	redo(sfx);
 	}
 
-	if(isKeyBeenPressed(tic_key_tab)) 			sfx->tab = SFX_ENVELOPES_TAB;
-	else if(isKeyBeenPressed(tic_key_left))  	sfx->waveform.index--;
-	else if(isKeyBeenPressed(tic_key_right)) 	sfx->waveform.index++;
-	else if(isKeyBeenPressed(tic_key_delete)) 	resetWave(sfx);
+	if(keyWasPressed(tic_key_tab)) 			sfx->tab = SFX_ENVELOPES_TAB;
+	else if(keyWasPressed(tic_key_left))  	sfx->waveform.index--;
+	else if(keyWasPressed(tic_key_right)) 	sfx->waveform.index++;
+	else if(keyWasPressed(tic_key_delete)) 	resetWave(sfx);
 }
 
 static void drawModeTabs(Sfx* sfx)

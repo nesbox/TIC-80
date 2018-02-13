@@ -2571,28 +2571,28 @@ static void tick(Console* console)
 	}
 
 	{
-		if(isKeyBeenPressed(tic_key_up)) onHistoryUp(console);
-		else if(isKeyBeenPressed(tic_key_down)) onHistoryDown(console);
-		else if(isKeyBeenPressed(tic_key_left))
+		if(keyWasPressed(tic_key_up)) onHistoryUp(console);
+		else if(keyWasPressed(tic_key_down)) onHistoryDown(console);
+		else if(keyWasPressed(tic_key_left))
 		{
 			if(console->inputPosition > 0)
 				console->inputPosition--;
 		}
-		else if(isKeyBeenPressed(tic_key_right))
+		else if(keyWasPressed(tic_key_right))
 		{
 			console->inputPosition++;
 			size_t len = strlen(console->inputBuffer);
 			if(console->inputPosition > len)
 				console->inputPosition = len;
 		}
-		else if(isKeyBeenPressed(tic_key_return)) processConsoleCommand(console);
-		else if(isKeyBeenPressed(tic_key_backspace)) processConsoleBackspace(console);
-		else if(isKeyBeenPressed(tic_key_delete)) processConsoleDel(console);
-		else if(isKeyBeenPressed(tic_key_home)) processConsoleHome(console);
-		else if(isKeyBeenPressed(tic_key_end)) processConsoleEnd(console);
-		else if(isKeyBeenPressed(tic_key_tab)) processConsoleTab(console);
+		else if(keyWasPressed(tic_key_return)) processConsoleCommand(console);
+		else if(keyWasPressed(tic_key_backspace)) processConsoleBackspace(console);
+		else if(keyWasPressed(tic_key_delete)) processConsoleDel(console);
+		else if(keyWasPressed(tic_key_home)) processConsoleHome(console);
+		else if(keyWasPressed(tic_key_end)) processConsoleEnd(console);
+		else if(keyWasPressed(tic_key_tab)) processConsoleTab(console);
 
-		if(isAnyKeyBeenPressed())
+		if(anyKeyWasPressed())
 		{
 			scrollConsole(console);
 			console->cursor.delay = CONSOLE_CURSOR_DELAY;

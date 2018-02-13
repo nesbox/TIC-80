@@ -63,7 +63,7 @@ static void drawGrid(World* world)
 
 static void tick(World* world)
 {
-	if(isKeyBeenPressed(tic_key_tab)) setStudioMode(TIC_MAP_MODE);
+	if(keyWasPressed(tic_key_tab)) setStudioMode(TIC_MAP_MODE);
 
 	memcpy(&world->tic->ram.vram, world->preview, PREVIEW_SIZE);
 

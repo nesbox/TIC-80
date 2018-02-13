@@ -1443,45 +1443,45 @@ static void processKeyboard(Sprite* sprite)
 
 	if(ctrl)
 	{	
-		if(isKeyBeenPressed(tic_key_z)) 		undo(sprite);
-		else if(isKeyBeenPressed(tic_key_y))	redo(sprite);
+		if(keyWasPressed(tic_key_z)) 		undo(sprite);
+		else if(keyWasPressed(tic_key_y))	redo(sprite);
 	}
 	else
 	{
 		if(hasCanvasSelection(sprite))
 		{
-			if(isKeyBeenPressed(tic_key_up)) 			upCanvas(sprite);
-			else if(isKeyBeenPressed(tic_key_down)) 	downCanvas(sprite);
-			else if(isKeyBeenPressed(tic_key_left)) 	leftCanvas(sprite);
-			else if(isKeyBeenPressed(tic_key_right)) 	rightCanvas(sprite);
-			else if(isKeyBeenPressed(tic_key_delete)) 	deleteCanvas(sprite);
+			if(keyWasPressed(tic_key_up)) 			upCanvas(sprite);
+			else if(keyWasPressed(tic_key_down)) 	downCanvas(sprite);
+			else if(keyWasPressed(tic_key_left)) 	leftCanvas(sprite);
+			else if(keyWasPressed(tic_key_right)) 	rightCanvas(sprite);
+			else if(keyWasPressed(tic_key_delete)) 	deleteCanvas(sprite);
 		}
 		else
 		{
-			if(isKeyBeenPressed(tic_key_up)) 			upSprite(sprite);
-			else if(isKeyBeenPressed(tic_key_down)) 	downSprite(sprite);
-			else if(isKeyBeenPressed(tic_key_left)) 	leftSprite(sprite);
-			else if(isKeyBeenPressed(tic_key_right)) 	rightSprite(sprite);
-			else if(isKeyBeenPressed(tic_key_delete)) 	deleteSprite(sprite);
-			else if(isKeyBeenPressed(tic_key_tab)) 		switchBanks(sprite);
+			if(keyWasPressed(tic_key_up)) 			upSprite(sprite);
+			else if(keyWasPressed(tic_key_down)) 	downSprite(sprite);
+			else if(keyWasPressed(tic_key_left)) 	leftSprite(sprite);
+			else if(keyWasPressed(tic_key_right)) 	rightSprite(sprite);
+			else if(keyWasPressed(tic_key_delete)) 	deleteSprite(sprite);
+			else if(keyWasPressed(tic_key_tab)) 		switchBanks(sprite);
 
 			if(!sprite->editPalette)
 			{
 
-				if(isKeyBeenPressed(tic_key_1)) 		sprite->mode = SPRITE_DRAW_MODE;
-				else if(isKeyBeenPressed(tic_key_2)) 	sprite->mode = SPRITE_PICK_MODE;
-				else if(isKeyBeenPressed(tic_key_3)) 	sprite->mode = SPRITE_SELECT_MODE;
-				else if(isKeyBeenPressed(tic_key_4)) 	sprite->mode = SPRITE_FILL_MODE;
+				if(keyWasPressed(tic_key_1)) 		sprite->mode = SPRITE_DRAW_MODE;
+				else if(keyWasPressed(tic_key_2)) 	sprite->mode = SPRITE_PICK_MODE;
+				else if(keyWasPressed(tic_key_3)) 	sprite->mode = SPRITE_SELECT_MODE;
+				else if(keyWasPressed(tic_key_4)) 	sprite->mode = SPRITE_FILL_MODE;
 
-				else if(isKeyBeenPressed(tic_key_5)) 	flipSpriteHorz(sprite);
-				else if(isKeyBeenPressed(tic_key_6)) 	flipSpriteVert(sprite);
-				else if(isKeyBeenPressed(tic_key_7)) 	rotateSprite(sprite);
-				else if(isKeyBeenPressed(tic_key_8)) 	deleteSprite(sprite);
+				else if(keyWasPressed(tic_key_5)) 	flipSpriteHorz(sprite);
+				else if(keyWasPressed(tic_key_6)) 	flipSpriteVert(sprite);
+				else if(keyWasPressed(tic_key_7)) 	rotateSprite(sprite);
+				else if(keyWasPressed(tic_key_8)) 	deleteSprite(sprite);
 
 				if(sprite->mode == SPRITE_DRAW_MODE)
 				{
-					if(isKeyBeenPressed(tic_key_leftbracket)) {if(sprite->brushSize > 1) sprite->brushSize--;}
-					else if(isKeyBeenPressed(tic_key_rightbracket)) {if(sprite->brushSize < 4) sprite->brushSize++;}
+					if(keyWasPressed(tic_key_leftbracket)) {if(sprite->brushSize > 1) sprite->brushSize--;}
+					else if(keyWasPressed(tic_key_rightbracket)) {if(sprite->brushSize < 4) sprite->brushSize++;}
 				}				
 			}
 		}

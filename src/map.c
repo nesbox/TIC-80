@@ -1021,18 +1021,18 @@ static void processKeyboard(Map* map)
 	
 	if(ctrl)
 	{
-		if(isKeyBeenPressed(tic_key_z)) 		undo(map);
-		else if(isKeyBeenPressed(tic_key_y)) 	redo(map);
+		if(keyWasPressed(tic_key_z)) 		undo(map);
+		else if(keyWasPressed(tic_key_y)) 	redo(map);
 	}
 	else
 	{
-		if(isKeyBeenPressed(tic_key_tab)) setStudioMode(TIC_WORLD_MODE);
-		else if(isKeyBeenPressed(tic_key_1)) map->mode = MAP_DRAW_MODE;
-		else if(isKeyBeenPressed(tic_key_2)) map->mode = MAP_DRAG_MODE;
-		else if(isKeyBeenPressed(tic_key_3)) map->mode = MAP_SELECT_MODE;
-		else if(isKeyBeenPressed(tic_key_4)) map->mode = MAP_FILL_MODE;
-		else if(isKeyBeenPressed(tic_key_delete)) deleteSelection(map);
-		else if(isKeyBeenPressed(tic_key_grave)) map->canvas.grid = !map->canvas.grid;
+		if(keyWasPressed(tic_key_tab)) setStudioMode(TIC_WORLD_MODE);
+		else if(keyWasPressed(tic_key_1)) map->mode = MAP_DRAW_MODE;
+		else if(keyWasPressed(tic_key_2)) map->mode = MAP_DRAG_MODE;
+		else if(keyWasPressed(tic_key_3)) map->mode = MAP_SELECT_MODE;
+		else if(keyWasPressed(tic_key_4)) map->mode = MAP_FILL_MODE;
+		else if(keyWasPressed(tic_key_delete)) deleteSelection(map);
+		else if(keyWasPressed(tic_key_grave)) map->canvas.grid = !map->canvas.grid;
 	}
 
 	if(shift)

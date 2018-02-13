@@ -884,14 +884,14 @@ static void processKeyboard(Code* code)
 	bool ctrl = tic->api.key(tic, tic_key_ctrl);
 	bool alt = tic->api.key(tic, tic_key_alt);
 
-	if(isKeyBeenPressed(tic_key_up)
-		|| isKeyBeenPressed(tic_key_down)
-		|| isKeyBeenPressed(tic_key_left)
-		|| isKeyBeenPressed(tic_key_right)
-		|| isKeyBeenPressed(tic_key_home)
-		|| isKeyBeenPressed(tic_key_end)
-		|| isKeyBeenPressed(tic_key_pageup)
-		|| isKeyBeenPressed(tic_key_pagedown))
+	if(keyWasPressed(tic_key_up)
+		|| keyWasPressed(tic_key_down)
+		|| keyWasPressed(tic_key_left)
+		|| keyWasPressed(tic_key_right)
+		|| keyWasPressed(tic_key_home)
+		|| keyWasPressed(tic_key_end)
+		|| keyWasPressed(tic_key_pageup)
+		|| keyWasPressed(tic_key_pagedown))
 	{
 		if(!shift) code->cursor.selection = NULL;
 		else if(code->cursor.selection == NULL) code->cursor.selection = code->cursor.position;
@@ -901,9 +901,9 @@ static void processKeyboard(Code* code)
 	{
 		if(ctrl)
 		{
-			if(isKeyBeenPressed(tic_key_left)) leftWord(code);
-			else if(isKeyBeenPressed(tic_key_right)) rightWord(code);
-			else if(isKeyBeenPressed(tic_key_tab)) doTab(code, shift, ctrl);
+			if(keyWasPressed(tic_key_left)) leftWord(code);
+			else if(keyWasPressed(tic_key_right)) rightWord(code);
+			else if(keyWasPressed(tic_key_tab)) doTab(code, shift, ctrl);
 		}
 		// else if(keymod & KMOD_GUI)
 		// {
@@ -914,35 +914,35 @@ static void processKeyboard(Code* code)
 		// 	}
 		// }
 
-		if(isKeyBeenPressed(tic_key_a)) 			selectAll(code);
-		else if(isKeyBeenPressed(tic_key_z)) 		undo(code);
-		else if(isKeyBeenPressed(tic_key_y)) 		redo(code);
-		else if(isKeyBeenPressed(tic_key_f)) 		setCodeMode(code, TEXT_FIND_MODE);
-		else if(isKeyBeenPressed(tic_key_g)) 		setCodeMode(code, TEXT_GOTO_MODE);
-		else if(isKeyBeenPressed(tic_key_o)) 		setCodeMode(code, TEXT_OUTLINE_MODE);
-		else if(isKeyBeenPressed(tic_key_slash)) 	commentLine(code);
-		else if(isKeyBeenPressed(tic_key_home)) 	goCodeHome(code);
-		else if(isKeyBeenPressed(tic_key_end)) 		goCodeEnd(code);
+		if(keyWasPressed(tic_key_a)) 			selectAll(code);
+		else if(keyWasPressed(tic_key_z)) 		undo(code);
+		else if(keyWasPressed(tic_key_y)) 		redo(code);
+		else if(keyWasPressed(tic_key_f)) 		setCodeMode(code, TEXT_FIND_MODE);
+		else if(keyWasPressed(tic_key_g)) 		setCodeMode(code, TEXT_GOTO_MODE);
+		else if(keyWasPressed(tic_key_o)) 		setCodeMode(code, TEXT_OUTLINE_MODE);
+		else if(keyWasPressed(tic_key_slash)) 	commentLine(code);
+		else if(keyWasPressed(tic_key_home)) 	goCodeHome(code);
+		else if(keyWasPressed(tic_key_end)) 		goCodeEnd(code);
 	}
 	else if(alt)
 	{
-		if(isKeyBeenPressed(tic_key_left)) leftWord(code);
-		else if(isKeyBeenPressed(tic_key_right)) rightWord(code);
+		if(keyWasPressed(tic_key_left)) leftWord(code);
+		else if(keyWasPressed(tic_key_right)) rightWord(code);
 	}
 	else
 	{
-		if(isKeyBeenPressed(tic_key_up)) 				upLine(code);
-		else if(isKeyBeenPressed(tic_key_down)) 		downLine(code);
-		else if(isKeyBeenPressed(tic_key_left)) 		leftColumn(code);
-		else if(isKeyBeenPressed(tic_key_right)) 		rightColumn(code);
-		else if(isKeyBeenPressed(tic_key_home)) 		goHome(code);
-		else if(isKeyBeenPressed(tic_key_end)) 			goEnd(code);
-		else if(isKeyBeenPressed(tic_key_pageup)) 		pageUp(code);
-		else if(isKeyBeenPressed(tic_key_pagedown)) 	pageDown(code);
-		else if(isKeyBeenPressed(tic_key_delete)) 		deleteChar(code);
-		else if(isKeyBeenPressed(tic_key_backspace)) 	backspaceChar(code);
-		else if(isKeyBeenPressed(tic_key_return)) 		newLine(code);
-		else if(isKeyBeenPressed(tic_key_tab)) 			doTab(code, shift, ctrl);
+		if(keyWasPressed(tic_key_up)) 				upLine(code);
+		else if(keyWasPressed(tic_key_down)) 		downLine(code);
+		else if(keyWasPressed(tic_key_left)) 		leftColumn(code);
+		else if(keyWasPressed(tic_key_right)) 		rightColumn(code);
+		else if(keyWasPressed(tic_key_home)) 		goHome(code);
+		else if(keyWasPressed(tic_key_end)) 			goEnd(code);
+		else if(keyWasPressed(tic_key_pageup)) 		pageUp(code);
+		else if(keyWasPressed(tic_key_pagedown)) 	pageDown(code);
+		else if(keyWasPressed(tic_key_delete)) 		deleteChar(code);
+		else if(keyWasPressed(tic_key_backspace)) 	backspaceChar(code);
+		else if(keyWasPressed(tic_key_return)) 		newLine(code);
+		else if(keyWasPressed(tic_key_tab)) 			doTab(code, shift, ctrl);
 	}
 
 	updateEditor(code);
@@ -1124,22 +1124,22 @@ static char* downStrStr(const char* start, const char* from, const char* substr)
 
 static void textFindTick(Code* code)
 {
-	if(isKeyBeenPressed(tic_key_return)) setCodeMode(code, TEXT_EDIT_MODE);
-	else if(isKeyBeenPressed(tic_key_up)
-		|| isKeyBeenPressed(tic_key_down)
-		|| isKeyBeenPressed(tic_key_left)
-		|| isKeyBeenPressed(tic_key_right))
+	if(keyWasPressed(tic_key_return)) setCodeMode(code, TEXT_EDIT_MODE);
+	else if(keyWasPressed(tic_key_up)
+		|| keyWasPressed(tic_key_down)
+		|| keyWasPressed(tic_key_left)
+		|| keyWasPressed(tic_key_right))
 	{
 		if(*code->popup.text)
 		{
-			bool reverse = isKeyBeenPressed(tic_key_up) || isKeyBeenPressed(tic_key_left);
+			bool reverse = keyWasPressed(tic_key_up) || keyWasPressed(tic_key_left);
 			char* (*func)(const char*, const char*, const char*) = reverse ? upStrStr : downStrStr;
 			char* from = reverse ? MIN(code->cursor.position, code->cursor.selection) : MAX(code->cursor.position, code->cursor.selection);
 			char* pos = func(code->src, from, code->popup.text);
 			updateFindCode(code, pos);
 		}
 	}
-	else if(isKeyBeenPressed(tic_key_backspace))
+	else if(keyWasPressed(tic_key_backspace))
 	{
 		if(*code->popup.text)
 		{
@@ -1190,14 +1190,14 @@ static void textGoToTick(Code* code)
 {
 	tic_mem* tic = code->tic;
 
-	if(isKeyBeenPressed(tic_key_return))
+	if(keyWasPressed(tic_key_return))
 	{
 		if(*code->popup.text)
 			updateGotoCode(code);
 
 		setCodeMode(code, TEXT_EDIT_MODE);
 	}
-	else if(isKeyBeenPressed(tic_key_backspace))
+	else if(keyWasPressed(tic_key_backspace))
 	{
 		if(*code->popup.text)
 		{
@@ -1276,7 +1276,7 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 
 static void textOutlineTick(Code* code)
 {
-	if(isKeyBeenPressed(tic_key_up))
+	if(keyWasPressed(tic_key_up))
 	{
 		if(code->outline.index > 0)
 		{
@@ -1284,7 +1284,7 @@ static void textOutlineTick(Code* code)
 			updateOutlineCode(code);
 		}
 	}
-	else if(isKeyBeenPressed(tic_key_down))
+	else if(keyWasPressed(tic_key_down))
 	{
 		if(code->outline.index < OUTLINE_SIZE - 1 && code->outline.items[code->outline.index + 1].pos)
 		{
@@ -1292,12 +1292,12 @@ static void textOutlineTick(Code* code)
 			updateOutlineCode(code);
 		}
 	}
-	else if(isKeyBeenPressed(tic_key_return))
+	else if(keyWasPressed(tic_key_return))
 	{
 		updateOutlineCode(code);
 		setCodeMode(code, TEXT_EDIT_MODE);
 	}
-	else if(isKeyBeenPressed(tic_key_backspace))
+	else if(keyWasPressed(tic_key_backspace))
 	{
 		if(*code->popup.text)
 		{

@@ -240,8 +240,8 @@ TIC80_API void studioTick(void* pixels);
 TIC80_API void studioClose();
 
 char getKeyboardText();
-bool isKeyBeenPressed(tic_key key);
-bool isAnyKeyBeenPressed();
+bool keyWasPressed(tic_key key);
+bool anyKeyWasPressed();
 
 void setClipboardText(const char* text);
 bool hasClipboardText();
