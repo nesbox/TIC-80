@@ -232,6 +232,7 @@ typedef struct
 	void (*file_dialog_save)(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode);
 
 	void (*goFullscreen)();
+	void (*showMessageBox)(const char* title, const char* message);
 
 } System;
 

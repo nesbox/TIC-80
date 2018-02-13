@@ -2569,18 +2569,18 @@ u32 unzip(u8** dest, const u8* source, size_t size)
 
 static void initKeymap()
 {
-	// FileSystem* fs = studioImpl.fs;
+	FileSystem* fs = studioImpl.fs;
 
-	// s32 size = 0;
-	// u8* data = (u8*)fsLoadFile(fs, KEYMAP_DAT_PATH, &size);
+	s32 size = 0;
+	u8* data = (u8*)fsLoadFile(fs, KEYMAP_DAT_PATH, &size);
 
-	// if(data)
-	// {
-	// 	if(size == KEYMAP_SIZE)
-	// 		memcpy(getKeymap(), data, KEYMAP_SIZE);
+	if(data)
+	{
+		if(size == KEYMAP_SIZE)
+			memcpy(getKeymap(), data, KEYMAP_SIZE);
 
-	// 	free(data);
-	// }
+		free(data);
+	}
 }
 
 static void onFSInitialized(FileSystem* fs)
@@ -2803,26 +2803,6 @@ void studioClose()
 
 	if(studioImpl.tic80local)
 		tic80_delete((tic80*)studioImpl.tic80local);
-
-	// if(studioImpl.audio.cvt.buf)
-	// 	free(studioImpl.audio.cvt.buf);
-
-	// SDL_DestroyTexture(studioImpl.gamepad.texture);
-	// SDL_DestroyTexture(studioImpl.texture);
-
-	// if(studioImpl.mouse.texture)
-	// 	SDL_DestroyTexture(studioImpl.mouse.texture);
-
-		// SDL_DestroyRenderer(studioImpl.renderer);
-	// SDL_DestroyWindow(studioImpl.window);
-
-// #if !defined (__MACOSX__)
-	// stucks here on macos
-	// SDL_CloseAudioDevice(studioImpl.audio.device);
-	// SDL_Quit();
-// #endif
-
-	// exit(0);
 }
 
 void setClipboardText(const char* text)
@@ -3035,5 +3015,5 @@ void netDirRequest(Net* net, const char* path, ListCallback callback, void* data
 
 void showMessageBox(const char* title, const char* message)
 {
-	// SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "Warning", buf, NULL);
+	studioImpl.system->showMessageBox(title, message);
 }

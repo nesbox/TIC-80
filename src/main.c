@@ -941,6 +941,11 @@ static void _goFullscreen()
 	SDL_SetWindowFullscreen(platform.window, platform.fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
 }
 
+static void _showMessageBox(const char* title, const char* message)
+{
+	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, title, message, NULL);
+}
+
 static System sysHandlers = 
 {
 	.setClipboardText = _setClipboardText,
@@ -957,6 +962,7 @@ static System sysHandlers =
 	.file_dialog_save = file_dialog_save,
 
 	.goFullscreen = _goFullscreen,
+	.showMessageBox = _showMessageBox,
 };
 
 s32 main(s32 argc, char **argv)
