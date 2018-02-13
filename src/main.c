@@ -51,6 +51,7 @@ static struct
 	} gamepad;
 
 	bool missedFrame;
+	bool fullscreen;
 } platform;
 
 static void initSound()
@@ -233,27 +234,6 @@ static void processMouse()
 		input->mouse.middle = mb & SDL_BUTTON_MMASK;
 		input->mouse.right = mb & SDL_BUTTON_RMASK;
 	}
-
-	// for(int i = 0; i < COUNT_OF(platform.mouse.state); i++)
-	// {
-	// 	MouseState* state = &platform.mouse.state[i];
-
-	// 	if(!state->down && (platform.mouse.button & SDL_BUTTON(i + 1)))
-	// 	{
-	// 		state->down = true;
-
-	// 		state->start.x = platform.mouse.cursor.x;
-	// 		state->start.y = platform.mouse.cursor.y;
-	// 	}
-	// 	else if(state->down && !(platform.mouse.button & SDL_BUTTON(i + 1)))
-	// 	{
-	// 		state->end.x = platform.mouse.cursor.x;
-	// 		state->end.y = platform.mouse.cursor.y;
-
-	// 		state->click = true;
-	// 		state->down = false;
-	// 	}
-	// }
 }
 
 static void processKeyboard()
@@ -918,38 +898,44 @@ static const char* getAppFolder()
 	return appFolder;
 }
 
-void setClipboardText(const char* text)
+static void _setClipboardText(const char* text)
 {
 	SDL_SetClipboardText(text);
 }
 
-bool hasClipboardText()
+static bool _hasClipboardText()
 {
 	return SDL_HasClipboardText();
 }
 
-char* getClipboardText()
+static char* _getClipboardText()
 {
 	return SDL_GetClipboardText();
 }
 
-u64 getPerformanceCounter()
+static u64 _getPerformanceCounter()
 {
 	return SDL_GetPerformanceCounter();
 }
 
-u64 getPerformanceFrequency()
+static u64 _getPerformanceFrequency()
 {
 	return SDL_GetPerformanceFrequency();
 }
 
+static void _goFullscreen()
+{
+	platform.fullscreen = !platform.fullscreen;
+	SDL_SetWindowFullscreen(platform.window, platform.fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+}
+
 static System sysHandlers = 
 {
-	.setClipboardText = setClipboardText,
-	.hasClipboardText = hasClipboardText,
-	.getClipboardText = getClipboardText,
-	.getPerformanceCounter = getPerformanceCounter,
-	.getPerformanceFrequency = getPerformanceFrequency,
+	.setClipboardText = _setClipboardText,
+	.hasClipboardText = _hasClipboardText,
+	.getClipboardText = _getClipboardText,
+	.getPerformanceCounter = _getPerformanceCounter,
+	.getPerformanceFrequency = _getPerformanceFrequency,
 
 	.netGetRequest = netGetRequest,
 	.createNet = createNet,
@@ -957,6 +943,8 @@ static System sysHandlers =
 
 	.file_dialog_load = file_dialog_load,
 	.file_dialog_save = file_dialog_save,
+
+	.goFullscreen = _goFullscreen,
 };
 
 s32 main(s32 argc, char **argv)

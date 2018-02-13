@@ -231,6 +231,8 @@ typedef struct
 	void (*file_dialog_load)(file_dialog_load_callback callback, void* data);
 	void (*file_dialog_save)(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode);
 
+	void (*goFullscreen)();
+
 } System;
 
 TIC80_API Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* appFolder, System* system);

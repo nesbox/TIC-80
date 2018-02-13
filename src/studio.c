@@ -104,33 +104,13 @@ static struct
 		u64 mdate;
 	}cart;
 
-	// SDL_Window* window;
-	// SDL_Renderer* renderer;
-	// SDL_Texture* texture;
-
-	// struct
-	// {
-	// 	SDL_AudioSpec 		spec;
-	// 	SDL_AudioDeviceID 	device;
-	// 	SDL_AudioCVT 		cvt;
-	// } audio;
-
-	// SDL_Joystick* joysticks[TIC_GAMEPADS];
-
 	EditorMode mode;
 	EditorMode prevMode;
 	EditorMode dialogMode;
 
 	struct
 	{
-		// tic_point cursor;
-		// u32 button;
-
 		MouseState state[3];
-
-		// SDL_Texture* texture;
-		// const u8* src;
-		// tic_cursor system;
 	} mouse;
 
 	struct
@@ -139,33 +119,7 @@ static struct
 		bool active;
 	} gesture;
 
-	// const u8* keyboard;
-
 	tic_key keycodes[KEYMAP_COUNT];
-
-	// struct
-	// {
-	// 	tic80_gamepads keyboard;
-	// 	tic80_gamepads touch;
-	// 	tic80_gamepads joystick;
-
-	// 	SDL_Texture* texture;
-
-	// 	bool show;
-	// 	s32 counter;
-	// 	s32 alpha;
-	// 	bool backProcessed;
-
-	// 	struct
-	// 	{
-	// 		s32 size;
-	// 		tic_point axis;
-	// 		tic_point a;
-	// 		tic_point b;
-	// 		tic_point x;
-	// 		tic_point y;
-	// 	} part;
-	// } gamepad;
 
 	struct
 	{
@@ -209,8 +163,6 @@ static struct
 
 	} video;
 
-	bool fullscreen;
-
 	struct
 	{
 		Code* 	code;
@@ -243,35 +195,14 @@ static struct
 } studioImpl =
 {
 	.tic80local = NULL,
-	// .tic = NULL,
-
-	// .window = NULL,
-	// .renderer = NULL,
-	// .texture = NULL,
-	// .audio = 
-	// {
-	// 	.device = 0,
-	// },
-
 	.cart = 
 	{
 		.mdate = 0,
 	},
 
-	// .joysticks = {NULL, NULL, NULL, NULL},
-
 	.mode = TIC_START_MODE,
 	.prevMode = TIC_CODE_MODE,
 	.dialogMode = TIC_CONSOLE_MODE,
-
-	// .mouse =
-	// {
-	// 	.cursor = {-1, -1},
-	// 	.button = 0,
-	// 	.src = NULL,
-	// 	.texture = NULL,
-	// 	.system = SDL_SYSTEM_CURSOR_ARROW,
-	// },
 
 	.gesture =
 	{
@@ -279,7 +210,6 @@ static struct
 		.active = false,
 	},
 
-	// .keyboard = NULL,
 	.keycodes =
 	{
 		tic_key_up,
@@ -292,11 +222,6 @@ static struct
 		tic_key_a, // x
 		tic_key_s, // y
 	},
-
-	// .gamepad =
-	// {
-	// 	.show = false,
-	// },
 
 	.bank = 
 	{
@@ -322,7 +247,6 @@ static struct
 		.frames = 0,
 	},
 
-	.fullscreen = false,
 	.missedFrame = false,
 	.argc = 0,
 	.argv = NULL,
@@ -922,11 +846,6 @@ ClipboardEvent getClipboardEvent()
 	return TIC_CLIPBOARD_NONE;
 }
 
-// const u8* getKeyboard()
-// {
-// 	return studioImpl.keyboard;
-// }
-
 static void showPopupMessage(const char* text)
 {
 	studioImpl.popup.counter = POPUP_DUR;
@@ -1021,13 +940,6 @@ void resumeRunMode()
 	studioImpl.mode = TIC_RUN_MODE;
 }
 
-// static void showSoftKeyboard()
-// {
-// 	if(studioImpl.mode == TIC_CONSOLE_MODE || studioImpl.mode == TIC_CODE_MODE)
-// 		if(!SDL_IsTextInputActive())
-// 			SDL_StartTextInput();
-// }
-
 void setStudioMode(EditorMode mode)
 {
 	if(mode != studioImpl.mode)
@@ -1063,8 +975,6 @@ void setStudioMode(EditorMode mode)
 		}
 
 		studioImpl.mode = mode;
-
-		// showSoftKeyboard();
 	}
 }
 
@@ -1086,14 +996,14 @@ void changeStudioMode(s32 dir)
 	}
 }
 
-// static void showGameMenu()
-// {
-// 	studioImpl.studio.tic->api.pause(studioImpl.studio.tic);
-// 	studioImpl.studio.tic->api.reset(studioImpl.studio.tic);
+static void showGameMenu()
+{
+	studioImpl.studio.tic->api.pause(studioImpl.studio.tic);
+	studioImpl.studio.tic->api.reset(studioImpl.studio.tic);
 
-// 	initMenuMode();
-// 	studioImpl.mode = TIC_MENU_MODE;
-// }
+	initMenuMode();
+	studioImpl.mode = TIC_MENU_MODE;
+}
 
 void hideGameMenu()
 {
@@ -1654,8 +1564,7 @@ static bool isGameMenu()
 
 static void goFullscreen()
 {
-	// studioImpl.fullscreen = !studioImpl.fullscreen;
-	// SDL_SetWindowFullscreen(studioImpl.window, studioImpl.fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+	studioImpl.system->goFullscreen();
 }
 
 void runProject()
@@ -1799,52 +1708,34 @@ static inline bool isKeyBeenPressedOnce(s32 key)
 
 static void processShortcuts()
 {
-	// if(event->repeat) return false;
-
 	tic_mem* tic = studioImpl.studio.tic;
-
-	// SDL_Keymod mod = event->keysym.mod;
 
 	if(studioImpl.mode == TIC_START_MODE) return;
 	if(studioImpl.mode == TIC_CONSOLE_MODE && !studioImpl.console->active) return;
 
-	if(isGameMenu())
-	{
-// 		switch(event->keysym.sym)
-// 		{
-// 		case SDLK_ESCAPE:
-// 		case SDLK_AC_BACK:
-// 			studioImpl.mode == TIC_MENU_MODE ? hideGameMenu() : showGameMenu();
-// 			// studioImpl.gamepad.backProcessed = true;
-// 			return true;
-// 		case SDLK_F11:
-// 			goFullscreen();
-// 			return true;
-// 		case SDLK_RETURN:
-// 			if(mod & KMOD_RALT)
-// 			{
-// 				goFullscreen();
-// 				return true;
-// 			}
-// 			break;
-// 		case SDLK_F7:
-// 			setCoverImage();
-// 			return true;
-// 		case SDLK_F8:
-// 			takeScreenshot();
-// 			return true;
-// #if !defined(__EMSCRIPTEN__)
-// 		case SDLK_F9:
-// 			startVideoRecord();
-// 			return true;
-// #endif
-// 		default:
-// 			return false;
-// 		}
-	}
-
 	bool alt = tic->api.key(tic, tic_key_alt);
 	bool ctrl = tic->api.key(tic, tic_key_ctrl);
+
+	if(isGameMenu())
+	{
+		if(isKeyBeenPressedOnce(tic_key_escape))
+		{
+			studioImpl.mode == TIC_MENU_MODE ? hideGameMenu() : showGameMenu();
+			// studioImpl.gamepad.backProcessed = true;
+			return;
+		}
+		else if(isKeyBeenPressedOnce(tic_key_f11)) goFullscreen();
+		else if(isKeyBeenPressedOnce(tic_key_return))
+		{
+			if(alt) goFullscreen();
+		}
+		else if(isKeyBeenPressedOnce(tic_key_f7)) setCoverImage();
+		else if(isKeyBeenPressedOnce(tic_key_f8)) takeScreenshot();
+#if !defined(__EMSCRIPTEN__)
+		else if(isKeyBeenPressedOnce(tic_key_f9)) startVideoRecord();
+#endif
+
+	}
 
 	if(alt)
 	{
@@ -1855,17 +1746,6 @@ static void processShortcuts()
 		else if(isKeyBeenPressedOnce(tic_key_4)) setStudioMode(TIC_SFX_MODE);
 		else if(isKeyBeenPressedOnce(tic_key_5)) setStudioMode(TIC_MUSIC_MODE);
 		else if(isKeyBeenPressedOnce(tic_key_return)) goFullscreen();
-
-		// switch(event->keysym.sym)
-		// {
-		// case SDLK_BACKQUOTE: setStudioMode(TIC_CONSOLE_MODE); return true;
-		// case SDLK_1: setStudioMode(TIC_CODE_MODE); return true;
-		// case SDLK_2: setStudioMode(TIC_SPRITE_MODE); return true;
-		// case SDLK_3: setStudioMode(TIC_MAP_MODE); return true;
-		// case SDLK_4: setStudioMode(TIC_SFX_MODE); return true;
-		// case SDLK_5: setStudioMode(TIC_MUSIC_MODE); return true;
-		// default:  break;
-		// }
 	}
 	else if(ctrl)
 	{
@@ -1875,13 +1755,6 @@ static void processShortcuts()
 		else if(isKeyBeenPressedOnce(tic_key_r)) runProject();
 		else if(isKeyBeenPressedOnce(tic_key_return)) runProject();
 		else if(isKeyBeenPressedOnce(tic_key_s)) saveProject();
-
-
-//         switch(event->keysym.sym)
-//         {
-//         case SDLK_PAGEUP: changeStudioMode(-1); return true;
-//         case SDLK_PAGEDOWN: changeStudioMode(1); return true;
-//         }
 	}
 	else
 	{
@@ -1914,82 +1787,7 @@ static void processShortcuts()
 
 			setStudioMode(studioImpl.mode == TIC_CONSOLE_MODE ? studioImpl.prevMode : TIC_CONSOLE_MODE);
 		}
-
-// 		switch(event->keysym.sym)
-// 		{
-// 		case SDLK_F1: setStudioMode(TIC_CODE_MODE); return true;
-// 		case SDLK_F2: setStudioMode(TIC_SPRITE_MODE); return true;
-// 		case SDLK_F3: setStudioMode(TIC_MAP_MODE); return true;
-// 		case SDLK_F4: setStudioMode(TIC_SFX_MODE); return true;
-// 		case SDLK_F5: setStudioMode(TIC_MUSIC_MODE); return true;
-// 		case SDLK_F7: setCoverImage(); return true;
-// 		case SDLK_F8: takeScreenshot(); return true;
-// #if !defined(__EMSCRIPTEN__)
-// 		case SDLK_F9: startVideoRecord(); return true;
-// #endif
-// 		default:  break;
-// 		}
 	}
-
-// 	switch(event->keysym.sym)
-// 	{
-// 	case SDLK_q:
-// 		if(mod & TIC_MOD_CTRL)
-// 		{
-// 			exitStudio();
-// 			return true;
-// 		}
-// 		break;
-// 	case SDLK_r:
-// 		if(mod & TIC_MOD_CTRL)
-// 		{
-// 			runProject();
-// 			return true;
-// 		}
-// 		break;
-// 	case SDLK_s:
-// 		if(mod & TIC_MOD_CTRL)
-// 		{
-// 			saveProject();
-// 			return true;
-// 		}
-// 		break;
-// 	case SDLK_F11: goFullscreen(); return true;
-// 	case SDLK_RETURN:
-// 		if(mod & KMOD_RALT)
-// 		{
-// 			goFullscreen();
-// 			return true;
-// 		}
-// 		else if(mod & TIC_MOD_CTRL)
-// 		{
-// 			runProject();
-// 			return true;
-// 		}
-// 		break;
-// 	case SDLK_ESCAPE:
-// 	case SDLK_AC_BACK:
-// 		{
-// 			Code* code = studioImpl.editor[studioImpl.bank.index.code].code;
-
-// 			if(studioImpl.mode == TIC_CODE_MODE && code->mode != TEXT_EDIT_MODE)
-// 			{
-// 				code->escape(code);
-// 				return true;
-// 			}
-
-// 			if(studioImpl.mode == TIC_DIALOG_MODE)
-// 			{
-// 				studioImpl.dialog->escape(studioImpl.dialog);
-// 				return true;
-// 			}
-
-// 			setStudioMode(studioImpl.mode == TIC_CONSOLE_MODE ? studioImpl.prevMode : TIC_CONSOLE_MODE);
-// 		}
-// 		return true;
-// 	default: break;
-// 	}
-
 }
 
 // static void processGamepad()
