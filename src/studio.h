@@ -233,6 +233,7 @@ typedef struct
 
 	void (*goFullscreen)();
 	void (*showMessageBox)(const char* title, const char* message);
+	void (*setWindowTitle)(const char* title);
 
 } System;
 

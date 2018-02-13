@@ -946,6 +946,11 @@ static void _showMessageBox(const char* title, const char* message)
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, title, message, NULL);
 }
 
+static void _setWindowTitle(const char* title)
+{
+	SDL_SetWindowTitle(platform.window, title);
+}
+
 static System sysHandlers = 
 {
 	.setClipboardText = _setClipboardText,
@@ -963,6 +968,7 @@ static System sysHandlers =
 
 	.goFullscreen = _goFullscreen,
 	.showMessageBox = _showMessageBox,
+	.setWindowTitle = _setWindowTitle,
 };
 
 s32 main(s32 argc, char **argv)

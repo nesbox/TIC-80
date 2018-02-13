@@ -1133,12 +1133,12 @@ static void updateMDate()
 
 static void updateTitle()
 {
-	// char name[FILENAME_MAX] = TIC_TITLE;
+	char name[FILENAME_MAX] = TIC_TITLE;
 
-	// if(strlen(studioImpl.console->romName))
-	// 	sprintf(name, "%s [%s]", TIC_TITLE, studioImpl.console->romName);
+	if(strlen(studioImpl.console->romName))
+		sprintf(name, "%s [%s]", TIC_TITLE, studioImpl.console->romName);
 
-	// SDL_SetWindowTitle(studioImpl.window, name);
+	studioImpl.system->setWindowTitle(name);
 }
 
 void studioRomSaved()
@@ -1722,7 +1722,6 @@ static void processShortcuts()
 		{
 			studioImpl.mode == TIC_MENU_MODE ? hideGameMenu() : showGameMenu();
 			// studioImpl.gamepad.backProcessed = true;
-			return;
 		}
 		else if(keyWasPressedOnce(tic_key_f11)) goFullscreen();
 		else if(keyWasPressedOnce(tic_key_return))
@@ -1735,6 +1734,7 @@ static void processShortcuts()
 		else if(keyWasPressedOnce(tic_key_f9)) startVideoRecord();
 #endif
 
+		return;
 	}
 
 	if(alt)

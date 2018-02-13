@@ -93,6 +93,7 @@ static void tick(Run* run)
 
 	enum {Size = sizeof(tic_persistent)};
 
+	// TODO: remove PMEM checking...
 	if(memcmp(&run->tic->persistent, &run->persistent, Size) != 0)
 	{		
 		fsSaveRootFile(run->console->fs, run->saveid, &run->tic->persistent, Size, true);
