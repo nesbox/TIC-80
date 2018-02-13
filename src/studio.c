@@ -2151,3 +2151,8 @@ void showMessageBox(const char* title, const char* message)
 {
 	studioImpl.system->showMessageBox(title, message);
 }
+
+void openSystemPath(const char* path)
+{
+	studioImpl.system->openSystemPath(path);
+}

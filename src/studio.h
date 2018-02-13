@@ -77,7 +77,7 @@ typedef struct
 			s32 arrow;
 			s32 hand;
 			s32 ibeam;
-			
+
 			bool pixelPerfect;
 		} cursor;
 
@@ -238,6 +238,8 @@ typedef struct
 	void (*showMessageBox)(const char* title, const char* message);
 	void (*setWindowTitle)(const char* title);
 
+	void (*openSystemPath)(const char* path);
+
 } System;
 
 TIC80_API Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* appFolder, System* system);
@@ -273,3 +275,5 @@ NetVersion netVersionRequest(Net* net);
 void netDirRequest(Net* net, const char* path, ListCallback callback, void* data);
 void showMessageBox(const char* title, const char* message);
 TIC80_API void updateStudioProject();
+
+void openSystemPath(const char* path);

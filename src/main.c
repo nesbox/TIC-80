@@ -950,6 +950,42 @@ static void _setWindowTitle(const char* title)
 	SDL_SetWindowTitle(platform.window, title);
 }
 
+#if defined(__WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
+
+static void _openSystemPath(const char* path)
+{
+	char command[FILENAME_MAX];
+
+#if defined(__WINDOWS__)
+
+	sprintf(command, "explorer \"%s\"", path);
+
+	printf("%s\n", command);
+
+	wchar_t wcommand[FILENAME_MAX];
+	mbstowcs(wcommand, command, FILENAME_MAX);
+
+	_wsystem(wcommand);
+
+#elif defined(__LINUX__)
+
+	sprintf(command, "xdg-open \"%s\"", path);
+	system(command);
+
+#elif defined(__MACOSX__)
+
+	sprintf(command, "open \"%s\"", path);
+	system(command);
+
+#endif
+}
+
+#else
+
+void _openSystemPath(const char* path) {}
+
+#endif
+
 static System sysHandlers = 
 {
 	.setClipboardText = _setClipboardText,
@@ -968,6 +1004,8 @@ static System sysHandlers =
 	.goFullscreen = _goFullscreen,
 	.showMessageBox = _showMessageBox,
 	.setWindowTitle = _setWindowTitle,
+
+	.openSystemPath = _openSystemPath,
 };
 
 s32 main(s32 argc, char **argv)

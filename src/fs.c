@@ -143,7 +143,6 @@ int _wremove(const wchar_t *);
 #define tic_remove _wremove
 #define tic_fopen _wfopen
 #define tic_mkdir(name) _wmkdir(name)
-#define tic_system _wsystem
 
 #else
 
@@ -162,7 +161,6 @@ int _wremove(const wchar_t *);
 #define tic_remove remove
 #define tic_fopen fopen
 #define tic_mkdir(name) mkdir(name)//, 0700)
-#define tic_system system
 
 #endif
 
@@ -771,38 +769,6 @@ void fsMakeDir(FileSystem* fs, const char* name)
 	makeDir(getFilePath(fs, name));
 }
 
-#if defined(__TIC_WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
-
-s32 fsOpenSystemPath(FileSystem* fs, const char* path)
-{
-	char command[FILENAME_MAX];
-
-#if defined(__TIC_WINDOWS__)
-
-	sprintf(command, "explorer \"%s\"", path);
-
-#elif defined(__LINUX__)
-
-	sprintf(command, "xdg-open \"%s\"", path);
-
-#elif defined(__MACOSX__)
-
-	sprintf(command, "open \"%s\"", path);
-
-#endif
-
-	return tic_system(UTF8ToString(command));
-}
-
-#else
-
-s32 fsOpenSystemPath(FileSystem* fs, const char* path)
-{
-	return 0;
-}
-
-#endif
-
 void fsOpenWorkingFolder(FileSystem* fs)
 {
 	const char* path = getFilePath(fs, "");
@@ -810,7 +776,7 @@ void fsOpenWorkingFolder(FileSystem* fs)
 	if(isPublic(fs))
 		path = fs->dir;
 
-	fsOpenSystemPath(fs, path);
+	openSystemPath(path);
 }
 
 void createFileSystem(const char* path, void(*callback)(FileSystem*))

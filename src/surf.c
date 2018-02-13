@@ -781,7 +781,7 @@ static void processGamepad(Surf* surf)
 			{
 				char url[FILENAME_MAX];
 				sprintf(url, "https://" TIC_HOST "/play?cart=%i", item->id);
-				fsOpenSystemPath(surf->fs, url);
+				openSystemPath(url);
 			}
 		}
 #endif
