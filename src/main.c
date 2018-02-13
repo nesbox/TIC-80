@@ -224,6 +224,34 @@ static void calcTextureRect(SDL_Rect* rect)
 	}
 }
 
+// static void processGesture()
+// {
+// 	SDL_TouchID id = SDL_GetTouchDevice(0);
+// 	s32 fingers = SDL_GetNumTouchFingers(id);
+
+// 	enum{Fingers = 2};
+
+// 	if(fingers == Fingers)
+// 	{
+// 		tic_point point = {0, 0};
+
+// 		for(s32 f = 0; f < fingers; f++)
+// 		{
+// 			SDL_Finger* finger = SDL_GetTouchFinger(id, 0);
+
+// 			point.x += (s32)(finger->x * TIC80_WIDTH);
+// 			point.y += (s32)(finger->y * TIC80_HEIGHT);
+// 		}
+
+// 		point.x /= Fingers;
+// 		point.y /= Fingers;
+
+// 		studioImpl.gesture.pos = point;
+
+// 		studioImpl.gesture.active = true;
+// 	}
+// }
+
 static void processMouse()
 {
 	s32 mx = 0, my = 0;
@@ -554,48 +582,9 @@ static void pollEvent()
 			switch(event.window.event)
 			{
 			case SDL_WINDOWEVENT_RESIZED: updateGamepadParts(); break;
-// 			case SDL_WINDOWEVENT_FOCUS_GAINED:
-
-// #if defined(TIC80_PRO)
-
-// 				if(platform.mode != TIC_START_MODE)
-// 				{
-// 					Console* console = platform.console;
-
-// 					u64 mdate = fsMDate(console->fs, console->romName);
-
-// 					if(platform.cart.mdate && mdate > platform.cart.mdate)
-// 					{
-// 						if(studioCartChanged())
-// 						{
-// 							static const char* Rows[] =
-// 							{
-// 								"",
-// 								"CART HAS CHANGED!",
-// 								"",
-// 								"DO YOU WANT",
-// 								"TO RELOAD IT?"
-// 							};
-
-// 							showDialog(Rows, COUNT_OF(Rows), reloadConfirm, NULL);
-// 						}
-// 						else console->updateProject(console);						
-// 					}
-// 				}
-
-// #endif
-// 				{
-// 					Code* code = platform.editor[platform.bank.index.code].code;
-// 					platform.console->codeLiveReload.reload(platform.console, code->src);
-// 					if(platform.console->codeLiveReload.active && code->update)
-// 						code->update(code);
-// 				}
-				// break;
+			case SDL_WINDOWEVENT_FOCUS_GAINED: updateStudioProject(); break;
 			}
 			break;
-// 		case SDL_FINGERUP:
-// 			showSoftKeyboard();
-// 			break;
 		case SDL_QUIT:
 			platform.studio->quit = true;
 			// exitStudio();
@@ -778,6 +767,61 @@ static void renderGamepad()
 	if(platform.gamepad.counter >= 5 * TIC_FRAMERATE)
 		platform.gamepad.show = false;
 }
+
+// static void blitCursor(const u8* in)
+// {
+	// if(!studioImpl.mouse.texture)
+	// {
+	// 	studioImpl.mouse.texture = SDL_CreateTexture(studioImpl.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING, TIC_SPRITESIZE, TIC_SPRITESIZE);
+	// 	SDL_SetTextureBlendMode(studioImpl.mouse.texture, SDL_BLENDMODE_BLEND);
+	// }
+
+	// if(studioImpl.mouse.src != in)
+	// {
+	// 	studioImpl.mouse.src = in;
+
+	// 	void* pixels = NULL;
+	// 	s32 pitch = 0;
+	// 	SDL_LockTexture(studioImpl.mouse.texture, NULL, &pixels, &pitch);
+
+	// 	{
+	// 		const u8* end = in + sizeof(tic_tile);
+	// 		const u32* pal = tic_palette_blit(&studioImpl.studio.tic->ram.vram.palette);
+	// 		u32* out = pixels;
+
+	// 		while(in != end)
+	// 		{
+	// 			u8 low = *in & 0x0f;
+	// 			u8 hi = (*in & 0xf0) >> TIC_PALETTE_BPP;
+	// 			*out++ = low ? (*(pal + low) | 0xff000000) : 0;
+	// 			*out++ = hi ? (*(pal + hi) | 0xff000000) : 0;
+
+	// 			in++;
+	// 		}
+	// 	}
+
+	// 	SDL_UnlockTexture(studioImpl.mouse.texture);
+	// }
+
+	// tic_rect rect = {0, 0, 0, 0};
+	// calcTextureRect(&rect);
+	// s32 scale = rect.w / TIC80_WIDTH;
+
+	// tic_rect src = {0, 0, TIC_SPRITESIZE, TIC_SPRITESIZE};
+	// tic_rect dst = {0, 0, TIC_SPRITESIZE * scale, TIC_SPRITESIZE * scale};
+
+	// SDL_GetMouseState(&dst.x, &dst.y);
+
+	// if(getConfig()->theme.cursor.pixelPerfect)
+	// {
+	// 	dst.x -= (dst.x - rect.x) % scale;
+	// 	dst.y -= (dst.y - rect.y) % scale;
+	// }
+
+	// if(SDL_GetWindowFlags(studioImpl.window) & SDL_WINDOW_MOUSE_FOCUS)
+	// 	SDL_RenderCopy(studioImpl.renderer, studioImpl.mouse.texture, &src, &dst);
+// }
+
 
 static void renderCursor()
 {

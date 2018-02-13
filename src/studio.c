@@ -1165,40 +1165,6 @@ bool studioCartChanged()
 	return memcmp(hash.data, studioImpl.cart.hash.data, sizeof(CartHash)) != 0;
 }
 
-// static void updateGamepadParts();
-
-// static void calcTextureRect(tic_rect* rect)
-// {
-// 	SDL_GetWindowSize(studioImpl.window, &rect->w, &rect->h);
-
-// 	if (rect->w * TIC80_HEIGHT < rect->h * TIC80_WIDTH)
-// 	{
-// 		s32 discreteWidth = rect->w - rect->w % TIC80_WIDTH;
-// 		s32 discreteHeight = TIC80_HEIGHT * discreteWidth / TIC80_WIDTH;
-
-// 		rect->x = (rect->w - discreteWidth) / 2;
-
-// 		rect->y = rect->w > rect->h 
-// 			? (rect->h - discreteHeight) / 2 
-// 			: OFFSET_LEFT*discreteWidth/TIC80_WIDTH;
-
-// 		rect->w = discreteWidth;
-// 		rect->h = discreteHeight;
-
-// 	}
-// 	else
-// 	{
-// 		s32 discreteHeight = rect->h - rect->h % TIC80_HEIGHT;
-// 		s32 discreteWidth = TIC80_WIDTH * discreteHeight / TIC80_HEIGHT;
-
-// 		rect->x = (rect->w - discreteWidth) / 2;
-// 		rect->y = (rect->h - discreteHeight) / 2;
-
-// 		rect->w = discreteWidth;
-// 		rect->h = discreteHeight;
-// 	}
-// }
-
 tic_key* getKeymap()
 {
 	return studioImpl.keycodes;
@@ -1213,354 +1179,10 @@ static void processGamepadMapping()
 			tic->ram.input.gamepads.data |= 1 << i;
 }
 
-// #if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
-
-// static bool checkTouch(const tic_rect* rect, s32* x, s32* y)
-// {
-// 	s32 devices = SDL_GetNumTouchDevices();
-// 	s32 width = 0, height = 0;
-// 	SDL_GetWindowSize(studioImpl.window, &width, &height);
-
-// 	for (s32 i = 0; i < devices; i++)
-// 	{
-// 		SDL_TouchID id = SDL_GetTouchDevice(i);
-
-// 		// very strange, but on Android id always == 0
-// 		//if (id)
-// 		{
-// 			s32 fingers = SDL_GetNumTouchFingers(id);
-
-// 			if(fingers)
-// 			{
-// 				studioImpl.gamepad.counter = 0;
-
-// 				if (!studioImpl.gamepad.show)
-// 				{
-// 					studioImpl.gamepad.alpha = getConfig()->theme.gamepad.touch.alpha;
-// 					SDL_SetTextureAlphaMod(studioImpl.gamepad.texture, studioImpl.gamepad.alpha);
-// 					studioImpl.gamepad.show = true;
-// 					return false;
-// 				}
-// 			}
-
-// 			for (s32 f = 0; f < fingers; f++)
-// 			{
-// 				SDL_Finger* finger = SDL_GetTouchFinger(id, f);
-
-// 				if (finger && finger->pressure > 0.0f)
-// 				{
-// 					tic_point point = { (s32)(finger->x * width), (s32)(finger->y * height) };
-// 					if (pointInRect(&point, rect))
-// 					{
-// 						*x = point.x;
-// 						*y = point.y;
-// 						return true;
-// 					}
-// 				}
-// 			}
-// 		}
-// 	}
-
-// 	return false;
-// }
-
-// static void processTouchGamepad()
-// {
-// 	studioImpl.gamepad.touch.data = 0;
-
-// 	const s32 size = studioImpl.gamepad.part.size;
-// 	s32 x = 0, y = 0;
-
-// 	{
-// 		tic_rect axis = {studioImpl.gamepad.part.axis.x, studioImpl.gamepad.part.axis.y, size*3, size*3};
-
-// 		if(checkTouch(&axis, &x, &y))
-// 		{
-// 			x -= axis.x;
-// 			y -= axis.y;
-
-// 			s32 xt = x / size;
-// 			s32 yt = y / size;
-
-// 			if(yt == 0) studioImpl.gamepad.touch.first.up = true;
-// 			else if(yt == 2) studioImpl.gamepad.touch.first.down = true;
-
-// 			if(xt == 0) studioImpl.gamepad.touch.first.left = true;
-// 			else if(xt == 2) studioImpl.gamepad.touch.first.right = true;
-
-// 			if(xt == 1 && yt == 1)
-// 			{
-// 				xt = (x - size)/(size/3);
-// 				yt = (y - size)/(size/3);
-
-// 				if(yt == 0) studioImpl.gamepad.touch.first.up = true;
-// 				else if(yt == 2) studioImpl.gamepad.touch.first.down = true;
-
-// 				if(xt == 0) studioImpl.gamepad.touch.first.left = true;
-// 				else if(xt == 2) studioImpl.gamepad.touch.first.right = true;
-// 			}
-// 		}
-// 	}
-
-// 	{
-// 		tic_rect a = {studioImpl.gamepad.part.a.x, studioImpl.gamepad.part.a.y, size, size};
-// 		if(checkTouch(&a, &x, &y)) studioImpl.gamepad.touch.first.a = true;
-// 	}
-
-// 	{
-// 		tic_rect b = {studioImpl.gamepad.part.b.x, studioImpl.gamepad.part.b.y, size, size};
-// 		if(checkTouch(&b, &x, &y)) studioImpl.gamepad.touch.first.b = true;
-// 	}
-
-// 	{
-// 		tic_rect xb = {studioImpl.gamepad.part.x.x, studioImpl.gamepad.part.x.y, size, size};
-// 		if(checkTouch(&xb, &x, &y)) studioImpl.gamepad.touch.first.x = true;
-// 	}
-
-// 	{
-// 		tic_rect yb = {studioImpl.gamepad.part.y.x, studioImpl.gamepad.part.y.y, size, size};
-// 		if(checkTouch(&yb, &x, &y)) studioImpl.gamepad.touch.first.y = true;
-// 	}
-// }
-
-// #endif
-
-// static s32 getAxisMask(SDL_Joystick* joystick)
-// {
-// 	s32 mask = 0;
-
-// 	s32 axesCount = SDL_JoystickNumAxes(joystick);
-
-// 	for (s32 a = 0; a < axesCount; a++)
-// 	{
-// 		s32 axe = SDL_JoystickGetAxis(joystick, a);
-
-// 		if (axe)
-// 		{
-// 			if (a == 0)
-// 			{
-// 				if (axe > 16384) mask |= SDL_HAT_RIGHT;
-// 				else if(axe < -16384) mask |= SDL_HAT_LEFT;
-// 			}
-// 			else if (a == 1)
-// 			{
-// 				if (axe > 16384) mask |= SDL_HAT_DOWN;
-// 				else if (axe < -16384) mask |= SDL_HAT_UP;
-// 			}
-// 		}
-// 	}
-
-// 	return mask;
-// }
-
-// static s32 getJoystickHatMask(s32 hat)
-// {
-// 	tic80_gamepads gamepad;
-// 	gamepad.data = 0;
-
-// 	gamepad.first.up = hat & SDL_HAT_UP;
-// 	gamepad.first.down = hat & SDL_HAT_DOWN;
-// 	gamepad.first.left = hat & SDL_HAT_LEFT;
-// 	gamepad.first.right = hat & SDL_HAT_RIGHT;
-
-// 	return gamepad.data;
-// }
-
 static bool isGameMenu()
 {
 	return (studioImpl.mode == TIC_RUN_MODE && studioImpl.console->showGameMenu) || studioImpl.mode == TIC_MENU_MODE;
 }
-
-// static void processJoysticksWithMouseInput()
-// {
-// 	s32 index = 0;
-
-// 	for(s32 i = 0; i < COUNT_OF(studioImpl.joysticks); i++)
-// 	{
-// 		SDL_Joystick* joystick = studioImpl.joysticks[i];
-
-// 		if(joystick && SDL_JoystickGetAttached(joystick))
-// 		{
-// 			tic80_gamepad* gamepad = NULL;
-
-// 			switch(index)
-// 			{
-// 			case 0: gamepad = &studioImpl.gamepad.joystick.first; break;
-// 			case 1: gamepad = &studioImpl.gamepad.joystick.second; break;
-// 			}
-
-// 			if(gamepad)
-// 			{
-// 				s32 numButtons = SDL_JoystickNumButtons(joystick);
-// 				for(s32 i = 5; i < numButtons; i++)
-// 				{
-// 					s32 back = SDL_JoystickGetButton(joystick, i);
-
-// 					if(back)
-// 					{
-// 						if(!studioImpl.gamepad.backProcessed)
-// 						{
-// 							if(isGameMenu())
-// 							{
-// 								studioImpl.mode == TIC_MENU_MODE ? hideGameMenu() : showGameMenu();
-// 								studioImpl.gamepad.backProcessed = true;
-// 							}
-// 						}
-
-// 						return;
-// 					}
-// 				}
-
-// 				studioImpl.gamepad.backProcessed = false;
-
-// 				index++;
-// 			}
-// 		}
-// 	}
-// }
-
-// static void processJoysticks()
-// {
-// 	studioImpl.gamepad.joystick.data = 0;
-// 	s32 index = 0;
-
-// 	for(s32 i = 0; i < COUNT_OF(studioImpl.joysticks); i++)
-// 	{
-// 		SDL_Joystick* joystick = studioImpl.joysticks[i];
-
-// 		if(joystick && SDL_JoystickGetAttached(joystick))
-// 		{
-// 			tic80_gamepad* gamepad = NULL;
-
-// 			switch(index)
-// 			{
-// 			case 0: gamepad = &studioImpl.gamepad.joystick.first; break;
-// 			case 1: gamepad = &studioImpl.gamepad.joystick.second; break;
-// 			}
-
-// 			if(gamepad)
-// 			{
-// 				gamepad->data |= getJoystickHatMask(getAxisMask(joystick));
-
-// 				for (s32 h = 0; h < SDL_JoystickNumHats(joystick); h++)
-// 					gamepad->data |= getJoystickHatMask(SDL_JoystickGetHat(joystick, h));
-
-// 				s32 numButtons = SDL_JoystickNumButtons(joystick);
-// 				if(numButtons >= 2)
-// 				{
-// 					gamepad->a = SDL_JoystickGetButton(joystick, 0);
-// 					gamepad->b = SDL_JoystickGetButton(joystick, 1);
-
-// 					if(numButtons >= 4)
-// 					{
-// 						gamepad->x = SDL_JoystickGetButton(joystick, 2);
-// 						gamepad->y = SDL_JoystickGetButton(joystick, 3);
-
-// 						for(s32 i = 5; i < numButtons; i++)
-// 						{
-// 							s32 back = SDL_JoystickGetButton(joystick, i);
-
-// 							if(back)
-// 							{
-// 								if(!studioImpl.gamepad.backProcessed)
-// 								{
-// 									if(isGameMenu())
-// 									{
-// 										studioImpl.mode == TIC_MENU_MODE ? hideGameMenu() : showGameMenu();
-// 										studioImpl.gamepad.backProcessed = true;
-// 									}
-// 								}
-
-// 								return;
-// 							}
-// 						}
-
-// 						studioImpl.gamepad.backProcessed = false;
-// 					}
-// 				}
-
-// 				index++;
-// 			}
-// 		}
-// 	}
-
-// 	if(studioImpl.mode == TIC_CONSOLE_MODE && studioImpl.gamepad.joystick.data)
-// 	{
-// 		studioImpl.gamepad.joystick.data = 0;
-// 		setStudioMode(TIC_SURF_MODE);
-// 	}
-// }
-
-// static void processGamepad()
-// {
-// 	studioImpl.studio.tic->ram.input.gamepads.data = 0;
-
-// 	studioImpl.studio.tic->ram.input.gamepads.data |= studioImpl.gamepad.keyboard.data;
-// 	studioImpl.studio.tic->ram.input.gamepads.data |= studioImpl.gamepad.touch.data;
-// 	studioImpl.studio.tic->ram.input.gamepads.data |= studioImpl.gamepad.joystick.data;
-// }
-
-// static void processGesture()
-// {
-// 	SDL_TouchID id = SDL_GetTouchDevice(0);
-// 	s32 fingers = SDL_GetNumTouchFingers(id);
-
-// 	enum{Fingers = 2};
-
-// 	if(fingers == Fingers)
-// 	{
-// 		tic_point point = {0, 0};
-
-// 		for(s32 f = 0; f < fingers; f++)
-// 		{
-// 			SDL_Finger* finger = SDL_GetTouchFinger(id, 0);
-
-// 			point.x += (s32)(finger->x * TIC80_WIDTH);
-// 			point.y += (s32)(finger->y * TIC80_HEIGHT);
-// 		}
-
-// 		point.x /= Fingers;
-// 		point.y /= Fingers;
-
-// 		studioImpl.gesture.pos = point;
-
-// 		studioImpl.gesture.active = true;
-// 	}
-// }
-
-// static void processMouse()
-// {
-// 	studioImpl.mouse.button = SDL_GetMouseState(&studioImpl.mouse.cursor.x, &studioImpl.mouse.cursor.y);
-
-// 	{
-// 		tic_rect rect = {0, 0, 0, 0};
-// 		calcTextureRect(&rect);
-
-// 		if(rect.w) studioImpl.mouse.cursor.x = (studioImpl.mouse.cursor.x - rect.x) * TIC80_WIDTH / rect.w;
-// 		if(rect.h) studioImpl.mouse.cursor.y = (studioImpl.mouse.cursor.y - rect.y) * TIC80_HEIGHT / rect.h;
-// 	}
-
-// 	for(int i = 0; i < COUNT_OF(studioImpl.mouse.state); i++)
-// 	{
-// 		MouseState* state = &studioImpl.mouse.state[i];
-
-// 		if(!state->down && (studioImpl.mouse.button & SDL_BUTTON(i + 1)))
-// 		{
-// 			state->down = true;
-
-// 			state->start.x = studioImpl.mouse.cursor.x;
-// 			state->start.y = studioImpl.mouse.cursor.y;
-// 		}
-// 		else if(state->down && !(studioImpl.mouse.button & SDL_BUTTON(i + 1)))
-// 		{
-// 			state->end.x = studioImpl.mouse.cursor.x;
-// 			state->end.y = studioImpl.mouse.cursor.y;
-
-// 			state->click = true;
-// 			state->down = false;
-// 		}
-// 	}
-// }
 
 static void goFullscreen()
 {
@@ -1610,30 +1232,32 @@ static void screen2buffer(u32* buffer, const u32* pixels, tic_rect rect)
 
 static void setCoverImage()
 {
-	// tic_mem* tic = studioImpl.studio.tic;
+	tic_mem* tic = studioImpl.studio.tic;
 
-	// if(studioImpl.mode == TIC_RUN_MODE)
-	// {
-	// 	enum {Pitch = TIC80_FULLWIDTH*sizeof(u32)};
+	if(studioImpl.mode == TIC_RUN_MODE)
+	{
+		enum {Pitch = TIC80_FULLWIDTH*sizeof(u32)};
 
-	// 	tic->api.blit(tic, tic->api.scanline, tic->api.overlap, NULL);
+		tic->api.blit(tic, tic->api.scanline, tic->api.overlap, NULL);
 
-	// 	u32* buffer = malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32));
+		u32* buffer = malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32));
 
-	// 	if(buffer)
-	// 	{
-	// 		tic_rect rect = {OFFSET_LEFT, OFFSET_TOP, TIC80_WIDTH, TIC80_HEIGHT};
+		if(buffer)
+		{
+			enum{OffsetLeft = (TIC80_FULLWIDTH-TIC80_WIDTH)/2, OffsetTop = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2};
 
-	// 		screen2buffer(buffer, tic->screen, rect);
+			tic_rect rect = {OffsetLeft, OffsetTop, TIC80_WIDTH, TIC80_HEIGHT};
 
-	// 		gif_write_animation(studioImpl.studio.tic->cart.cover.data, &studioImpl.studio.tic->cart.cover.size,
-	// 			TIC80_WIDTH, TIC80_HEIGHT, (const u8*)buffer, 1, TIC_FRAMERATE, 1);
+			screen2buffer(buffer, tic->screen, rect);
 
-	// 		free(buffer);
+			gif_write_animation(studioImpl.studio.tic->cart.cover.data, &studioImpl.studio.tic->cart.cover.size,
+				TIC80_WIDTH, TIC80_HEIGHT, (const u8*)buffer, 1, TIC_FRAMERATE, 1);
 
-	// 		showPopupMessage("COVER IMAGE SAVED :)");
-	// 	}
-	// }
+			free(buffer);
+
+			showPopupMessage("COVER IMAGE SAVED :)");
+		}
+	}
 }
 
 static void onVideoExported(GetResult result, void* data)
@@ -1790,70 +1414,54 @@ static void processShortcuts()
 	}
 }
 
-// static void processGamepad()
-// {
-// 	// processKeyboardGamepad();
+#if defined(TIC80_PRO)
 
-// #if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
-// 	processTouchGamepad();
-// #endif
-// 	processJoysticks();
-	
-// 	{
-// 		studioImpl.studio.tic->ram.input.gamepads.data = 0;
+static void reloadConfirm(bool yes, void* data)
+{
+	if(yes)
+		studioImpl.console->updateProject(studioImpl.console);
+}
 
-// 		// studioImpl.studio.tic->ram.input.gamepads.data |= studioImpl.gamepad.keyboard.data;
-// 		studioImpl.studio.tic->ram.input.gamepads.data |= studioImpl.gamepad.touch.data;
-// 		studioImpl.studio.tic->ram.input.gamepads.data |= studioImpl.gamepad.joystick.data;
-// 	}
-// }
+#endif
 
-// static void processMouseInput()
-// {
-// 	processJoysticksWithMouseInput();
+void updateStudioProject()
+{
+#if defined(TIC80_PRO)
 
-// 	s32 x = studioImpl.mouse.cursor.x;
-// 	s32 y = studioImpl.mouse.cursor.y;
+	if(studioImpl.mode != TIC_START_MODE)
+	{
+		Console* console = studioImpl.console;
 
-// 	if(x < 0) x = 0;
-// 	if(y < 0) y = 0;
-// 	if(x >= TIC80_WIDTH) x = TIC80_WIDTH-1;
-// 	if(y >= TIC80_HEIGHT) y = TIC80_HEIGHT-1;
+		u64 mdate = fsMDate(console->fs, console->romName);
 
-// 	tic80_mouse* mouse = &studioImpl.studio.tic->ram.input.mouse;
-// 	mouse->x = x;
-// 	mouse->y = y;
-// 	mouse->left = studioImpl.mouse.state[0].down ? 1 : 0;
-// 	mouse->middle = studioImpl.mouse.state[1].down ? 1 : 0;
-// 	mouse->right = studioImpl.mouse.state[2].down ? 1 : 0;
-// }
+		if(studioImpl.cart.mdate && mdate > studioImpl.cart.mdate)
+		{
+			if(studioCartChanged())
+			{
+				static const char* Rows[] =
+				{
+					"",
+					"CART HAS CHANGED!",
+					"",
+					"DO YOU WANT",
+					"TO RELOAD IT?"
+				};
 
-// static void processKeyboardInput()
-// {
-// 	static const u8 KeyboardCodes[] = 
-// 	{
-// 		#include "keycodes.c"
-// 	};
+				showDialog(Rows, COUNT_OF(Rows), reloadConfirm, NULL);
+			}
+			else console->updateProject(console);						
+		}
+	}
 
-// 	tic80_input* input = &studioImpl.studio.tic->ram.input;
-// 	input->keyboard.data = 0;
+#endif
+	{
+		Code* code = studioImpl.editor[studioImpl.bank.index.code].code;
+		studioImpl.console->codeLiveReload.reload(studioImpl.console, code->src);
+		if(studioImpl.console->codeLiveReload.active && code->update)
+			code->update(code);
+	}
 
-// 	studioImpl.keyboard = SDL_GetKeyboardState(NULL);
-
-// 	for(s32 i = 0, c = 0; i < COUNT_OF(KeyboardCodes) && c < COUNT_OF(input->keyboard.keys); i++)
-// 		if(studioImpl.keyboard[i] && KeyboardCodes[i] > tic_key_unknown)
-// 			input->keyboard.keys[c++] = KeyboardCodes[i];
-// }
-
-// #if defined(TIC80_PRO)
-
-// static void reloadConfirm(bool yes, void* data)
-// {
-// 	if(yes)
-// 		studioImpl.console->updateProject(studioImpl.console);
-// }
-
-// #endif
+}
 
 // SDL_Event* pollEvent()
 // {
@@ -1967,46 +1575,6 @@ static void processShortcuts()
 // 	return NULL;
 // }
 
-// static void transparentBlit(u32* out, s32 pitch)
-// {
-// 	const u8* in = studioImpl.studio.tic->ram.vram.screen.data;
-// 	const u8* end = in + sizeof(studioImpl.studio.tic->ram.vram.screen);
-// 	const u32* pal = tic_palette_blit(&studioImpl.studio.tic->config.palette);
-// 	const u32 Delta = (pitch/sizeof *out - TIC80_WIDTH);
-
-// 	s32 col = 0;
-
-// 	while(in != end)
-// 	{
-// 		u8 low = *in & 0x0f;
-// 		u8 hi = (*in & 0xf0) >> TIC_PALETTE_BPP;
-// 		*out++ = low ? (*(pal + low) | 0xff000000) : 0;
-// 		*out++ = hi ? (*(pal + hi) | 0xff000000) : 0;
-// 		in++;
-
-// 		col += BITS_IN_BYTE / TIC_PALETTE_BPP;
-
-// 		if (col == TIC80_WIDTH)
-// 		{
-// 			col = 0;
-// 			out += Delta;
-// 		}
-// 	}
-// }
-
-// static void blitSound()
-// {
-// 	SDL_PauseAudioDevice(studioImpl.audio.device, 0);
-
-// 	if(studioImpl.audio.cvt.needed)
-// 	{
-// 		memcpy(studioImpl.audio.cvt.buf, studioImpl.studio.tic->samples.buffer, studioImpl.studio.tic->samples.size);
-// 		SDL_ConvertAudio(&studioImpl.audio.cvt);
-// 		SDL_QueueAudio(studioImpl.audio.device, studioImpl.audio.cvt.buf, studioImpl.audio.cvt.len_cvt);
-// 	}
-// 	else SDL_QueueAudio(studioImpl.audio.device, studioImpl.studio.tic->samples.buffer, studioImpl.studio.tic->samples.size);
-// }
-
 static void drawRecordLabel(u32* frame, s32 sx, s32 sy, const u32* color)
 {
 	static const u16 RecLabel[] =
@@ -2082,166 +1650,6 @@ static void recordFrame(u32* pixels)
 	}
 }
 
-// static void blitTexture()
-// {
-// 	tic_mem* tic = studioImpl.studio.tic;
-// 	tic_rect rect = {0, 0, 0, 0};
-// 	calcTextureRect(&rect);
-
-// 	void* pixels = NULL;
-// 	s32 pitch = 0;
-// 	SDL_LockTexture(studioImpl.texture, NULL, &pixels, &pitch);
-
-// 	tic_scanline scanline = NULL;
-// 	tic_overlap overlap = NULL;
-// 	void* data = NULL;
-
-// 	switch(studioImpl.mode)
-// 	{
-// 	case TIC_RUN_MODE:
-// 		scanline = tic->api.scanline;
-// 		overlap = tic->api.overlap;
-// 		break;
-// 	case TIC_SPRITE_MODE:
-// 		{
-// 			Sprite* sprite = studioImpl.editor[studioImpl.bank.index.sprites].sprite;
-// 			overlap = sprite->overlap;
-// 			data = sprite;
-// 		}
-// 		break;
-// 	case TIC_MAP_MODE:
-// 		{
-// 			Map* map = studioImpl.editor[studioImpl.bank.index.map].map;
-// 			overlap = map->overlap;
-// 			data = map;
-// 		}
-// 		break;
-// 	default:
-// 		break;
-// 	}
-
-// 	tic->api.blit(tic, scanline, overlap, data);
-// 	memcpy(pixels, tic->screen, sizeof tic->screen);
-
-// 	recordFrame(pixels);
-// 	drawDesyncLabel(pixels);
-
-// 	SDL_UnlockTexture(studioImpl.texture);
-
-// 	{
-// 		enum {Header = OFFSET_TOP};
-// 		tic_rect srcRect = {0, 0, TIC80_FULLWIDTH, Header};
-// 		tic_rect dstRect = {0};
-// 		SDL_GetWindowSize(studioImpl.window, &dstRect.w, &dstRect.h);
-// 		dstRect.h = rect.y;
-// 		SDL_RenderCopy(studioImpl.renderer, studioImpl.texture, &srcRect, &dstRect);
-// 	}
-
-// 	{
-// 		enum {Header = OFFSET_TOP};
-// 		tic_rect srcRect = {0, TIC80_FULLHEIGHT - Header, TIC80_FULLWIDTH, Header};
-// 		tic_rect dstRect = {0};
-// 		SDL_GetWindowSize(studioImpl.window, &dstRect.w, &dstRect.h);
-// 		dstRect.y = rect.y + rect.h;
-// 		dstRect.h = rect.y;
-// 		SDL_RenderCopy(studioImpl.renderer, studioImpl.texture, &srcRect, &dstRect);
-// 	}
-
-// 	{
-// 		enum {Header = OFFSET_TOP};
-// 		enum {Left = OFFSET_LEFT};
-// 		tic_rect srcRect = {0, Header, Left, TIC80_HEIGHT};
-// 		tic_rect dstRect = {0};
-// 		SDL_GetWindowSize(studioImpl.window, &dstRect.w, &dstRect.h);
-// 		dstRect.y = rect.y;
-// 		dstRect.h = rect.h;
-// 		SDL_RenderCopy(studioImpl.renderer, studioImpl.texture, &srcRect, &dstRect);
-// 	}
-
-// 	{
-// 		enum {Top = OFFSET_TOP};
-// 		enum {Left = OFFSET_LEFT};
-
-// 		tic_rect srcRect = {Left, Top, TIC80_WIDTH, TIC80_HEIGHT};
-
-// 		SDL_RenderCopy(studioImpl.renderer, studioImpl.texture, &srcRect, &rect);
-// 	}
-// }
-
-// static void blitCursor(const u8* in)
-// {
-	// if(!studioImpl.mouse.texture)
-	// {
-	// 	studioImpl.mouse.texture = SDL_CreateTexture(studioImpl.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING, TIC_SPRITESIZE, TIC_SPRITESIZE);
-	// 	SDL_SetTextureBlendMode(studioImpl.mouse.texture, SDL_BLENDMODE_BLEND);
-	// }
-
-	// if(studioImpl.mouse.src != in)
-	// {
-	// 	studioImpl.mouse.src = in;
-
-	// 	void* pixels = NULL;
-	// 	s32 pitch = 0;
-	// 	SDL_LockTexture(studioImpl.mouse.texture, NULL, &pixels, &pitch);
-
-	// 	{
-	// 		const u8* end = in + sizeof(tic_tile);
-	// 		const u32* pal = tic_palette_blit(&studioImpl.studio.tic->ram.vram.palette);
-	// 		u32* out = pixels;
-
-	// 		while(in != end)
-	// 		{
-	// 			u8 low = *in & 0x0f;
-	// 			u8 hi = (*in & 0xf0) >> TIC_PALETTE_BPP;
-	// 			*out++ = low ? (*(pal + low) | 0xff000000) : 0;
-	// 			*out++ = hi ? (*(pal + hi) | 0xff000000) : 0;
-
-	// 			in++;
-	// 		}
-	// 	}
-
-	// 	SDL_UnlockTexture(studioImpl.mouse.texture);
-	// }
-
-	// tic_rect rect = {0, 0, 0, 0};
-	// calcTextureRect(&rect);
-	// s32 scale = rect.w / TIC80_WIDTH;
-
-	// tic_rect src = {0, 0, TIC_SPRITESIZE, TIC_SPRITESIZE};
-	// tic_rect dst = {0, 0, TIC_SPRITESIZE * scale, TIC_SPRITESIZE * scale};
-
-	// SDL_GetMouseState(&dst.x, &dst.y);
-
-	// if(getConfig()->theme.cursor.pixelPerfect)
-	// {
-	// 	dst.x -= (dst.x - rect.x) % scale;
-	// 	dst.y -= (dst.y - rect.y) % scale;
-	// }
-
-	// if(SDL_GetWindowFlags(studioImpl.window) & SDL_WINDOW_MOUSE_FOCUS)
-	// 	SDL_RenderCopy(studioImpl.renderer, studioImpl.mouse.texture, &src, &dst);
-// }
-
-// static void renderCursor()
-// {
-// 	if(studioImpl.mode == TIC_RUN_MODE && !studioImpl.studio.tic->input.mouse)
-// 	{
-// 		SDL_ShowCursor(SDL_DISABLE);
-// 		return;
-// 	}
-// 	if(studioImpl.mode == TIC_RUN_MODE && studioImpl.studio.tic->ram.vram.vars.cursor)
-// 	{
-// 		SDL_ShowCursor(SDL_DISABLE);
-// 		blitCursor(studioImpl.studio.tic->ram.sprites.data[studioImpl.studio.tic->ram.vram.vars.cursor].data);
-// 		return;
-// 	}
-
-// 	SDL_ShowCursor(getConfig()->theme.cursor.sprite >= 0 ? SDL_DISABLE : SDL_ENABLE);
-
-// 	if(getConfig()->theme.cursor.sprite >= 0)
-// 		blitCursor(studioImpl.studio.tic->config.bank0.tiles.data[getConfig()->theme.cursor.sprite].data);
-// }
-
 static void useSystemPalette()
 {
 	memcpy(studioImpl.studio.tic->ram.vram.palette.data, studioImpl.studio.tic->config.palette.data, sizeof(tic_palette));
@@ -2276,9 +1684,6 @@ static void renderStudio()
 	showTooltip("");
 
 	studioImpl.gesture.active = false;
-	// studioImpl.mouse.cursor.x = studioImpl.mouse.cursor.y = -1;
-	// for(int i = 0; i < COUNT_OF(studioImpl.mouse.state); i++)
-	// 	studioImpl.mouse.state[i].click = false;
 
 	{
 		const tic_sfx* sfx = NULL;
@@ -2358,167 +1763,8 @@ static void renderStudio()
 	if(studioImpl.mode != TIC_RUN_MODE)
 		useSystemPalette();
 	
-	// blitTexture();
-
 	// renderCursor();
 }
-
-// static void updateGamepadParts()
-// {
-// 	s32 tileSize = TIC_SPRITESIZE;
-// 	s32 offset = 0;
-// 	tic_rect rect;
-
-// 	const s32 JoySize = 3;
-// 	SDL_GetWindowSize(studioImpl.window, &rect.w, &rect.h);
-
-// 	if(rect.w < rect.h)
-// 	{
-// 		tileSize = rect.w / 2 / JoySize;
-// 		offset = (rect.h * 2 - JoySize * tileSize) / 3;
-// 	}
-// 	else
-// 	{
-// 		tileSize = rect.w / 5 / JoySize;
-// 		offset = (rect.h - JoySize * tileSize) / 2;
-// 	}
-
-// 	studioImpl.gamepad.part.size = tileSize;
-// 	studioImpl.gamepad.part.axis = (tic_point){0, offset};
-// 	studioImpl.gamepad.part.a = (tic_point){rect.w - 2*tileSize, 2*tileSize + offset};
-// 	studioImpl.gamepad.part.b = (tic_point){rect.w - 1*tileSize, 1*tileSize + offset};
-// 	studioImpl.gamepad.part.x = (tic_point){rect.w - 3*tileSize, 1*tileSize + offset};
-// 	studioImpl.gamepad.part.y = (tic_point){rect.w - 2*tileSize, 0*tileSize + offset};
-// }
-
-// static void renderGamepad()
-// {
-// 	if(studioImpl.gamepad.show || studioImpl.gamepad.alpha); else return;
-
-// 	const s32 tileSize = studioImpl.gamepad.part.size;
-// 	const tic_point axis = studioImpl.gamepad.part.axis;
-// 	typedef struct { bool press; s32 x; s32 y;} Tile;
-// 	const Tile Tiles[] =
-// 	{
-// 		{studioImpl.studio.tic->ram.input.gamepads.first.up, 		axis.x + 1*tileSize, axis.y + 0*tileSize},
-// 		{studioImpl.studio.tic->ram.input.gamepads.first.down, 	axis.x + 1*tileSize, axis.y + 2*tileSize},
-// 		{studioImpl.studio.tic->ram.input.gamepads.first.left, 	axis.x + 0*tileSize, axis.y + 1*tileSize},
-// 		{studioImpl.studio.tic->ram.input.gamepads.first.right, 	axis.x + 2*tileSize, axis.y + 1*tileSize},
-
-// 		{studioImpl.studio.tic->ram.input.gamepads.first.a, 		studioImpl.gamepad.part.a.x, studioImpl.gamepad.part.a.y},
-// 		{studioImpl.studio.tic->ram.input.gamepads.first.b, 		studioImpl.gamepad.part.b.x, studioImpl.gamepad.part.b.y},
-// 		{studioImpl.studio.tic->ram.input.gamepads.first.x, 		studioImpl.gamepad.part.x.x, studioImpl.gamepad.part.x.y},
-// 		{studioImpl.studio.tic->ram.input.gamepads.first.y, 		studioImpl.gamepad.part.y.x, studioImpl.gamepad.part.y.y},
-// 	};
-
-// 	enum {ButtonsCount = 8};
-
-// 	for(s32 i = 0; i < COUNT_OF(Tiles); i++)
-// 	{
-// 		const Tile* tile = Tiles + i;
-// 		tic_rect src = {(tile->press ? ButtonsCount + i : i) * TIC_SPRITESIZE, 0, TIC_SPRITESIZE, TIC_SPRITESIZE};
-// 		tic_rect dest = {tile->x, tile->y, tileSize, tileSize};
-
-// 		SDL_RenderCopy(studioImpl.renderer, studioImpl.gamepad.texture, &src, &dest);
-// 	}
-
-// 	if(!studioImpl.gamepad.show && studioImpl.gamepad.alpha)
-// 	{
-// 		enum {Step = 3};
-
-// 		if(studioImpl.gamepad.alpha - Step >= 0) studioImpl.gamepad.alpha -= Step;
-// 		else studioImpl.gamepad.alpha = 0;
-
-// 		SDL_SetTextureAlphaMod(studioImpl.gamepad.texture, studioImpl.gamepad.alpha);
-// 	}
-
-// 	studioImpl.gamepad.counter = studioImpl.gamepad.touch.data ? 0 : studioImpl.gamepad.counter+1;
-
-// 	// wait 5 seconds and hide touch gamepad
-// 	if(studioImpl.gamepad.counter >= 5 * TIC_FRAMERATE)
-// 		studioImpl.gamepad.show = false;
-// }
-
-// static void tick()
-// {
-// 	if(!studioImpl.fs) return;
-
-// 	if(studioImpl.studio.quit)
-// 	{
-// #if defined __EMSCRIPTEN__
-// 		studioImpl.studio.tic->api.clear(studioImpl.studio.tic, TIC_COLOR_BG);
-// 		blitTexture();
-// 		emscripten_cancel_main_loop();
-// #endif
-// 		return;
-// 	}
-
-// 	tic_cursor cursor = studioImpl.mouse.system;
-// 	studioImpl.mouse.system = SDL_SYSTEM_CURSOR_ARROW;
-
-// 	SDL_RenderClear(studioImpl.renderer);
-
-// 	renderStudio();
-
-// 	if(studioImpl.mode == TIC_RUN_MODE && studioImpl.studio.tic->input.gamepad)
-// 		renderGamepad();
-
-// 	if(studioImpl.mode == TIC_MENU_MODE || studioImpl.mode == TIC_SURF_MODE)
-// 		renderGamepad();
-
-// 	if(studioImpl.mouse.system != cursor)
-// 		SDL_SetCursor(SDL_CreateSystemCursor(studioImpl.mouse.system));
-
-// 	SDL_RenderPresent(studioImpl.renderer);
-
-// 	blitSound();
-// }
-
-// static void initSound()
-// {
-// 	SDL_AudioSpec want =
-// 	{
-// 		.freq = 44100,
-// 		.format = AUDIO_S16,
-// 		.channels = 1,
-// 		.userdata = NULL,
-// 	};
-
-// 	studioImpl.audio.device = SDL_OpenAudioDevice(NULL, 0, &want, &studioImpl.audio.spec, SDL_AUDIO_ALLOW_ANY_CHANGE);
-
-// 	SDL_BuildAudioCVT(&studioImpl.audio.cvt, want.format, want.channels, studioImpl.audio.spec.freq, studioImpl.audio.spec.format, studioImpl.audio.spec.channels, studioImpl.audio.spec.freq);
-
-// 	if(studioImpl.audio.cvt.needed)
-// 	{
-// 		studioImpl.audio.cvt.len = studioImpl.audio.spec.freq * sizeof studioImpl.studio.tic->samples.buffer[0] / TIC_FRAMERATE;
-// 		studioImpl.audio.cvt.buf = malloc(studioImpl.audio.cvt.len * studioImpl.audio.cvt.len_mult);
-// 	}
-// }
-
-// static void initTouchGamepad()
-// {
-// 	if (!studioImpl.renderer)
-// 		return;
-
-// 	studioImpl.studio.tic->api.map(studioImpl.studio.tic, &studioImpl.studio.tic->config.bank0.map, &studioImpl.studio.tic->config.bank0.tiles, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, -1, 1);
-
-// 	if(!studioImpl.gamepad.texture)
-// 	{
-// 		studioImpl.gamepad.texture = SDL_CreateTexture(studioImpl.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING, TEXTURE_SIZE, TEXTURE_SIZE);
-// 		SDL_SetTextureBlendMode(studioImpl.gamepad.texture, SDL_BLENDMODE_BLEND);
-// 	}
-
-// 	{
-// 		void* pixels = NULL;
-// 		s32 pitch = 0;
-
-// 		SDL_LockTexture(studioImpl.gamepad.texture, NULL, &pixels, &pitch);
-// 		transparentBlit(pixels, pitch);
-// 		SDL_UnlockTexture(studioImpl.gamepad.texture);
-// 	}
-
-// 	updateGamepadParts();
-// }
 
 static void updateSystemFont()
 {

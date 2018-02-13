@@ -269,3 +269,4 @@ typedef struct
 NetVersion netVersionRequest(Net* net);
 void netDirRequest(Net* net, const char* path, ListCallback callback, void* data);
 void showMessageBox(const char* title, const char* message);
+void updateStudioProject();
