@@ -477,6 +477,8 @@ static void processJoysticks()
 			{
 			case 0: gamepad = &platform.gamepad.joystick.first; break;
 			case 1: gamepad = &platform.gamepad.joystick.second; break;
+			case 2: gamepad = &platform.gamepad.joystick.third; break;
+			case 3: gamepad = &platform.gamepad.joystick.fourth; break;
 			}
 
 			if(gamepad)
@@ -547,7 +549,7 @@ static void pollEvent()
 		input->mouse.btns = 0;
 	}
 
-	SDL_Event event;
+	static SDL_Event event;
 
 	while(SDL_PollEvent(&event))
 	{
