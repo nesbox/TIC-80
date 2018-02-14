@@ -274,9 +274,9 @@ static void processMouse()
 	}
 
 	{
-		input->mouse.left = mb & SDL_BUTTON_LMASK;
-		input->mouse.middle = mb & SDL_BUTTON_MMASK;
-		input->mouse.right = mb & SDL_BUTTON_RMASK;
+		input->mouse.left = mb & SDL_BUTTON_LMASK ? 1 : 0;
+		input->mouse.middle = mb & SDL_BUTTON_MMASK ? 1 : 0;
+		input->mouse.right = mb & SDL_BUTTON_RMASK ? 1 : 0;
 	}
 }
 
