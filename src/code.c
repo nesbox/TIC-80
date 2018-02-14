@@ -937,7 +937,8 @@ static void processKeyboard(Code* code)
 		else if(keyWasPressed(tic_key_tab)) 		doTab(code, shift, ctrl);
 	}
 
-	updateEditor(code);
+	if(tic->ram.input.keyboard.data)
+		updateEditor(code);
 }
 
 static void processGestures(Code* code)
@@ -1410,8 +1411,6 @@ static void tick(Code* code)
 	if(code->cursor.delay)
 		code->cursor.delay--;
 
-	code->cursor.tick++;
-
 	switch(code->mode)
 	{
 	case TEXT_RUN_CODE: runProject(); break;
@@ -1466,7 +1465,7 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
 		.src = src->data,
 		.tick = tick,
 		.escape = escape,
-		.cursor = {{src->data, NULL, 0, 0}, NULL, 0},
+		.cursor = {{src->data, NULL, 0}, NULL, 0},
 		.rect = {0, TOOLBAR_SIZE + 1, TIC80_WIDTH, TIC80_HEIGHT - TOOLBAR_SIZE - TIC_FONT_HEIGHT - 1},
 		.scroll = {0, 0, {0, 0}, false},
 		.tickCounter = 0,

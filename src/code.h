@@ -39,7 +39,6 @@ struct Code
 		{
 			char* position;
 			char* selection;
-			s32 tick;
 			s32 column;
 		};
 
