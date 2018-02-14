@@ -161,7 +161,7 @@ int _wremove(const wchar_t *);
 #define tic_stat stat
 #define tic_remove remove
 #define tic_fopen fopen
-#define tic_mkdir(name) mkdir(name)//, 0700)
+#define tic_mkdir(name) mkdir(name, 0700)
 
 #endif
 
@@ -679,12 +679,10 @@ void* fsReadFile(const char* path, s32* size)
 
 static void makeDir(const char* name)
 {
-#if defined(__EMSCRIPTEN__)
-	mkdir(name, 0700);
-
-	EM_ASM(FS.syncfs(function(){}));
-#else
 	tic_mkdir(UTF8ToString(name));
+
+#if defined(__EMSCRIPTEN__)
+	EM_ASM(FS.syncfs(function(){}));
 #endif
 }
 

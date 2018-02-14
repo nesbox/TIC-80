@@ -753,6 +753,18 @@ static void updateOutlineCode(Code* code)
 	updateEditor(code);
 }
 
+static char* ticStrlwr(char *string)
+{
+	char *bufp = string;
+	while (*bufp) 
+	{
+		*bufp = tolower((u8)*bufp);
+		++bufp;
+	}
+	
+	return string;
+}
+
 static void initOutlineMode(Code* code)
 {
 	OutlineItem* out = code->outline.items;
@@ -764,7 +776,7 @@ static void initOutlineMode(Code* code)
 	char filter[STUDIO_TEXT_BUFFER_WIDTH] = {0};
 	strncpy(filter, code->popup.text, sizeof(filter));
 
-	strlwr(filter);
+	ticStrlwr(filter);
 
 	const tic_script_config* config = tic->api.get_script_config(tic);
 
@@ -787,7 +799,7 @@ static void initOutlineMode(Code* code)
 				{
 					strncpy(buffer, out->name, sizeof(buffer));
 
-					strlwr(buffer);
+					ticStrlwr(buffer);
 
 					if(strstr(buffer, filter)) out++;
 					else out->pos = NULL;

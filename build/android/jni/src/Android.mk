@@ -52,7 +52,8 @@ LOCAL_SRC_FILES := \
 	$(SRC_PATH)/dialog.c \
 	$(SRC_PATH)/menu.c \
 	$(SRC_PATH)/surf.c \
-	$(SRC_PATH)/tic80.c
+	$(SRC_PATH)/tic80.c \
+	$(SRC_PATH)/system.c
 
 LOCAL_SHARED_LIBRARIES := SDL2 lua z gif wren
 
