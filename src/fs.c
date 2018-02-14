@@ -420,7 +420,7 @@ void fsAddFile(FileSystem* fs, AddCallback callback, void* data)
 
 	*addFileData = (AddFileData) { fs, callback, data };
 
-	getSystem()->file_dialog_load(&onAddFile, addFileData);
+	getSystem()->fileDialogLoad(&onAddFile, addFileData);
 }
 
 typedef struct
@@ -552,7 +552,7 @@ void fsGetFileData(GetCallback callback, const char* name, void* buffer, size_t 
 	GetFileData* command = (GetFileData*)malloc(sizeof(GetFileData));
 	*command = (GetFileData) {callback, data, buffer};
 
-	getSystem()->file_dialog_save(onGetFile, name, buffer, size, command, mode);
+	getSystem()->fileDialogSave(onGetFile, name, buffer, size, command, mode);
 }
 
 typedef struct
@@ -576,7 +576,7 @@ void fsOpenFileData(OpenCallback callback, void* data)
 
 	*command = (OpenFileData){callback, data};
 
-	getSystem()->file_dialog_load(onOpenFileData, command);
+	getSystem()->fileDialogLoad(onOpenFileData, command);
 }
 
 void fsGetFile(FileSystem* fs, GetCallback callback, const char* name, void* data)
@@ -590,7 +590,7 @@ void fsGetFile(FileSystem* fs, GetCallback callback, const char* name, void* dat
 		*command = (GetFileData) {callback, data, buffer};
 
 		s32 mode = fsGetMode(fs, name);
-		getSystem()->file_dialog_save(onGetFile, name, buffer, size, command, mode);
+		getSystem()->fileDialogSave(onGetFile, name, buffer, size, command, mode);
 	}
 	else callback(FS_FILE_NOT_DOWNLOADED, data);
 }

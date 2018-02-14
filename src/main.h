@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tic.h"
+#include "ticapi.h"
 #include "ext/file_dialog.h"
 
 typedef struct
@@ -13,8 +13,8 @@ typedef struct
 
 	void* (*getUrlRequest)(const char* url, s32* size);
 
-	void (*file_dialog_load)(file_dialog_load_callback callback, void* data);
-	void (*file_dialog_save)(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode);
+	void (*fileDialogLoad)(file_dialog_load_callback callback, void* data);
+	void (*fileDialogSave)(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode);
 
 	void (*goFullscreen)();
 	void (*showMessageBox)(const char* title, const char* message);
@@ -24,4 +24,15 @@ typedef struct
 
 } System;
 
-System* getSystem();
+typedef struct
+{
+	tic_mem* tic;
+	bool quit;
+
+	void (*tick)(void* pixels);
+	void (*close)();
+	void (*updateProject)();
+
+} Studio;
+
+TIC80_API Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* appFolder, System* system);

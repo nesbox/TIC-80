@@ -580,7 +580,7 @@ static void pollEvent()
 			switch(event.window.event)
 			{
 			case SDL_WINDOWEVENT_RESIZED: updateGamepadParts(); break;
-			case SDL_WINDOWEVENT_FOCUS_GAINED: updateStudioProject(); break;
+			case SDL_WINDOWEVENT_FOCUS_GAINED: platform.studio->updateProject(); break;
 			}
 			break;
 		case SDL_QUIT:
@@ -610,7 +610,7 @@ static void blitTexture()
 	s32 pitch = 0;
 	SDL_LockTexture(platform.texture, NULL, &pixels, &pitch);
 
-	studioTick(pixels);
+	platform.studio->tick(pixels);
 
 	SDL_UnlockTexture(platform.texture);
 
@@ -882,50 +882,50 @@ static const char* getAppFolder()
 	return appFolder;
 }
 
-static void _setClipboardText(const char* text)
+static void setClipboardText(const char* text)
 {
 	SDL_SetClipboardText(text);
 }
 
-static bool _hasClipboardText()
+static bool hasClipboardText()
 {
 	return SDL_HasClipboardText();
 }
 
-static char* _getClipboardText()
+static char* getClipboardText()
 {
 	return SDL_GetClipboardText();
 }
 
-static u64 _getPerformanceCounter()
+static u64 getPerformanceCounter()
 {
 	return SDL_GetPerformanceCounter();
 }
 
-static u64 _getPerformanceFrequency()
+static u64 getPerformanceFrequency()
 {
 	return SDL_GetPerformanceFrequency();
 }
 
-static void _goFullscreen()
+static void goFullscreen()
 {
 	platform.fullscreen = !platform.fullscreen;
 	SDL_SetWindowFullscreen(platform.window, platform.fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
 }
 
-static void _showMessageBox(const char* title, const char* message)
+static void showMessageBox(const char* title, const char* message)
 {
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, title, message, NULL);
 }
 
-static void _setWindowTitle(const char* title)
+static void setWindowTitle(const char* title)
 {
 	SDL_SetWindowTitle(platform.window, title);
 }
 
 #if defined(__WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
 
-static void _openSystemPath(const char* path)
+static void openSystemPath(const char* path)
 {
 	char command[FILENAME_MAX];
 
@@ -955,33 +955,33 @@ static void _openSystemPath(const char* path)
 
 #else
 
-void _openSystemPath(const char* path) {}
+static void openSystemPath(const char* path) {}
 
 #endif
 
-static void* _getUrlRequest(const char* url, s32* size)
+static void* getUrlRequest(const char* url, s32* size)
 {
 	return netGetRequest(platform.net, url, size);
 }
 
-static System sysHandlers = 
+static System systemInterface = 
 {
-	.setClipboardText = _setClipboardText,
-	.hasClipboardText = _hasClipboardText,
-	.getClipboardText = _getClipboardText,
-	.getPerformanceCounter = _getPerformanceCounter,
-	.getPerformanceFrequency = _getPerformanceFrequency,
+	.setClipboardText = setClipboardText,
+	.hasClipboardText = hasClipboardText,
+	.getClipboardText = getClipboardText,
+	.getPerformanceCounter = getPerformanceCounter,
+	.getPerformanceFrequency = getPerformanceFrequency,
 
-	.getUrlRequest = _getUrlRequest,
+	.getUrlRequest = getUrlRequest,
 
-	.file_dialog_load = file_dialog_load,
-	.file_dialog_save = file_dialog_save,
+	.fileDialogLoad = file_dialog_load,
+	.fileDialogSave = file_dialog_save,
 
-	.goFullscreen = _goFullscreen,
-	.showMessageBox = _showMessageBox,
-	.setWindowTitle = _setWindowTitle,
+	.goFullscreen = goFullscreen,
+	.showMessageBox = showMessageBox,
+	.setWindowTitle = setWindowTitle,
 
-	.openSystemPath = _openSystemPath,
+	.openSystemPath = openSystemPath,
 };
 
 #if defined(__EMSCRIPTEN__)
@@ -1010,55 +1010,6 @@ static void emstick()
 
 #endif
 
-// 	else
-// 	{
-
-// #if defined(__EMSCRIPTEN__)
-
-// 		strcpy(fs->dir, "/" TIC_PACKAGE "/" TIC_NAME "/");
-
-// #elif defined(__ANDROID__)
-
-// 		strcpy(fs->dir, SDL_AndroidGetExternalStoragePath());
-// 		const char AppFolder[] = "/" TIC_NAME "/";
-// 		strcat(fs->dir, AppFolder);
-// 		mkdir(fs->dir, 0700);
-
-// #else
-
-// 		char* path = SDL_GetPrefPath(TIC_PACKAGE, TIC_NAME);
-// 		strcpy(fs->dir, path);
-// 		free(path);
-
-// #endif
-		
-// #if defined(__EMSCRIPTEN__)
-// 		EM_ASM_
-// 		(
-// 			{
-// 				var dir = "";
-// 				Module.Pointer_stringify($0).split("/").forEach(function(val)
-// 				{
-// 					if(val.length)
-// 					{
-// 						dir += "/" + val;
-// 						FS.mkdir(dir);
-// 					}
-// 				});
-				
-// 				FS.mount(IDBFS, {}, dir);
-// 				FS.syncfs(true, function(error)
-// 				{
-// 					if(error) console.log(error);
-// 					else Runtime.dynCall('vi', $1, [$2]);
-// 				});			
-// 			}, fs->dir, callback, fs
-// 		);
-// #else
-// 		callback(fs);
-// #endif
-	// }
-
 static s32 start(s32 argc, char **argv, const char* folder)
 {
 	SDL_SetHint(SDL_HINT_WINRT_HANDLE_BACK_BUTTON, "1");
@@ -1079,7 +1030,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
 #endif
 		);
 
-	platform.studio = studioInit(argc, argv, platform.audio.spec.freq, folder, &sysHandlers);
+	platform.studio = studioInit(argc, argv, platform.audio.spec.freq, folder, &systemInterface);
 
 	// set the window icon before renderer is created (issues on Linux)
 	setWindowIcon();
@@ -1128,7 +1079,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
 
 #endif
 
-	studioClose();
+	platform.studio->close();
 
 	closeNet(platform.net);
 

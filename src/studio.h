@@ -212,13 +212,4 @@ char getKeyboardText();
 bool keyWasPressed(tic_key key);
 bool anyKeyWasPressed();
 
-typedef struct
-{
-	tic_mem* tic;
-	bool quit;
-} Studio;
-
-TIC80_API Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* appFolder, System* system);
-TIC80_API void studioTick(void* pixels);
-TIC80_API void studioClose();
-TIC80_API void updateStudioProject();
+System* getSystem();

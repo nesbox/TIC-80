@@ -1418,7 +1418,7 @@ static void reloadConfirm(bool yes, void* data)
 
 #endif
 
-void updateStudioProject()
+static void updateStudioProject()
 {
 #if defined(TIC80_PRO)
 
@@ -1709,6 +1709,111 @@ static void initKeymap()
 	}
 }
 
+static void processMouseStates()
+{
+	for(int i = 0; i < COUNT_OF(studioImpl.mouse.state); i++)
+		studioImpl.mouse.state[i].click = false;
+
+	tic_mem* tic = studioImpl.studio.tic;
+
+	tic->ram.vram.vars.cursor.sprite = tic_cursor_arrow;
+	tic->ram.vram.vars.cursor.system = true;
+
+	for(int i = 0; i < COUNT_OF(studioImpl.mouse.state); i++)
+	{
+		MouseState* state = &studioImpl.mouse.state[i];
+
+		if(!state->down && (tic->ram.input.mouse.btns & (1 << i)))
+		{
+			state->down = true;
+
+			state->start.x = tic->ram.input.mouse.x;
+			state->start.y = tic->ram.input.mouse.y;
+		}
+		else if(state->down && !(tic->ram.input.mouse.btns & (1 << i)))
+		{
+			state->end.x = tic->ram.input.mouse.x;
+			state->end.y = tic->ram.input.mouse.y;
+
+			state->click = true;
+			state->down = false;
+		}
+	}
+}
+
+static void studioTick(void* pixels)
+{
+	processShortcuts();
+	processMouseStates();
+	processGamepadMapping();
+
+	renderStudio();
+
+	tic_mem* tic = studioImpl.studio.tic;
+	
+	{
+		tic_scanline scanline = NULL;
+		tic_overlap overlap = NULL;
+		void* data = NULL;
+
+		switch(studioImpl.mode)
+		{
+		case TIC_RUN_MODE:
+			scanline = tic->api.scanline;
+			overlap = tic->api.overlap;
+			break;
+		case TIC_SPRITE_MODE:
+			{
+				Sprite* sprite = studioImpl.editor[studioImpl.bank.index.sprites].sprite;
+				overlap = sprite->overlap;
+				data = sprite;
+			}
+			break;
+		case TIC_MAP_MODE:
+			{
+				Map* map = studioImpl.editor[studioImpl.bank.index.map].map;
+				overlap = map->overlap;
+				data = map;
+			}
+			break;
+		default:
+			break;
+		}
+
+		tic->api.blit(tic, scanline, overlap, data);
+		memcpy(pixels, tic->screen, sizeof tic->screen);
+
+		recordFrame(pixels);
+		drawDesyncLabel(pixels);
+	}
+}
+
+static void studioClose()
+{
+	{
+		for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
+		{
+			free(studioImpl.editor[i].code);
+			free(studioImpl.editor[i].sprite);
+			free(studioImpl.editor[i].map);
+			free(studioImpl.editor[i].sfx);
+			free(studioImpl.editor[i].music);
+		}
+
+		free(studioImpl.start);
+		free(studioImpl.console);
+		free(studioImpl.run);
+		free(studioImpl.world);
+		free(studioImpl.config);
+		free(studioImpl.dialog);
+		free(studioImpl.menu);
+		free(studioImpl.surf);
+	}
+
+	if(studioImpl.tic80local)
+		tic80_delete((tic80*)studioImpl.tic80local);
+}
+
 Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, System* system)
 {
 	setbuf(stdout, NULL);
@@ -1766,112 +1871,11 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, Sy
 		goFullscreen();
 	}
 
+	studioImpl.studio.tick = studioTick;
+	studioImpl.studio.close = studioClose;
+	studioImpl.studio.updateProject = updateStudioProject;
+
 	return &studioImpl.studio;
-}
-
-static void processMouseStates()
-{
-	for(int i = 0; i < COUNT_OF(studioImpl.mouse.state); i++)
-		studioImpl.mouse.state[i].click = false;
-
-	tic_mem* tic = studioImpl.studio.tic;
-
-	tic->ram.vram.vars.cursor.sprite = tic_cursor_arrow;
-	tic->ram.vram.vars.cursor.system = true;
-
-	for(int i = 0; i < COUNT_OF(studioImpl.mouse.state); i++)
-	{
-		MouseState* state = &studioImpl.mouse.state[i];
-
-		if(!state->down && (tic->ram.input.mouse.btns & (1 << i)))
-		{
-			state->down = true;
-
-			state->start.x = tic->ram.input.mouse.x;
-			state->start.y = tic->ram.input.mouse.y;
-		}
-		else if(state->down && !(tic->ram.input.mouse.btns & (1 << i)))
-		{
-			state->end.x = tic->ram.input.mouse.x;
-			state->end.y = tic->ram.input.mouse.y;
-
-			state->click = true;
-			state->down = false;
-		}
-	}
-}
-
-void studioTick(void* pixels)
-{
-	processShortcuts();
-	processMouseStates();
-	processGamepadMapping();
-
-	renderStudio();
-
-	tic_mem* tic = studioImpl.studio.tic;
-	
-	{
-		tic_scanline scanline = NULL;
-		tic_overlap overlap = NULL;
-		void* data = NULL;
-
-		switch(studioImpl.mode)
-		{
-		case TIC_RUN_MODE:
-			scanline = tic->api.scanline;
-			overlap = tic->api.overlap;
-			break;
-		case TIC_SPRITE_MODE:
-			{
-				Sprite* sprite = studioImpl.editor[studioImpl.bank.index.sprites].sprite;
-				overlap = sprite->overlap;
-				data = sprite;
-			}
-			break;
-		case TIC_MAP_MODE:
-			{
-				Map* map = studioImpl.editor[studioImpl.bank.index.map].map;
-				overlap = map->overlap;
-				data = map;
-			}
-			break;
-		default:
-			break;
-		}
-
-		tic->api.blit(tic, scanline, overlap, data);
-		memcpy(pixels, tic->screen, sizeof tic->screen);
-
-		recordFrame(pixels);
-		drawDesyncLabel(pixels);
-	}
-}
-
-void studioClose()
-{
-	{
-		for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
-		{
-			free(studioImpl.editor[i].code);
-			free(studioImpl.editor[i].sprite);
-			free(studioImpl.editor[i].map);
-			free(studioImpl.editor[i].sfx);
-			free(studioImpl.editor[i].music);
-		}
-
-		free(studioImpl.start);
-		free(studioImpl.console);
-		free(studioImpl.run);
-		free(studioImpl.world);
-		free(studioImpl.config);
-		free(studioImpl.dialog);
-		free(studioImpl.menu);
-		free(studioImpl.surf);
-	}
-
-	if(studioImpl.tic80local)
-		tic80_delete((tic80*)studioImpl.tic80local);
 }
 
 System* getSystem()
