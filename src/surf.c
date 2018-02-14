@@ -22,7 +22,6 @@
 
 #include "surf.h"
 #include "fs.h"
-#include "net.h"
 #include "console.h"
 
 #include "ext/gif.h"
@@ -478,7 +477,7 @@ static void* requestCover(Surf* surf, const char* hash, s32* size)
 
 	char path[FILENAME_MAX] = {0};
 	sprintf(path, "/cart/%s/cover.gif", hash);
-	void* data = _netGetRequest(surf->net, path, size);
+	void* data = getUrlRequest(path, size);
 
 	if(data)
 	{
@@ -861,7 +860,6 @@ void initSurf(Surf* surf, tic_mem* tic, struct Console* console)
 			.items = NULL,
 			.count = 0,
 		},
-		.net = _createNet(),
 	};
 
 	fsMakeDir(surf->fs, TIC_CACHE);

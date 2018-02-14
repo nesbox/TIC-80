@@ -23,7 +23,6 @@
 #include "console.h"
 #include "fs.h"
 #include "config.h"
-#include "net.h"
 #include "ext/gif.h"
 #include "ext/file_dialog.h"
 
@@ -31,6 +30,10 @@
 #include <ctype.h>
 #include <string.h>
 #include <stddef.h>
+
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
 
 #define CONSOLE_CURSOR_COLOR ((tic_color_red))
 #define CONSOLE_BACK_TEXT_COLOR ((tic_color_dark_gray))
@@ -2535,23 +2538,80 @@ static void processGesture(Console* console)
 	else console->scroll.active = false;
 }
 
+typedef struct
+{
+	s32 major;
+	s32 minor;
+	s32 patch;
+} NetVersion;
+
+static lua_State* netLuaInit(u8* buffer, s32 size)
+{
+	if (buffer && size)
+	{
+		lua_State* lua = luaL_newstate();
+
+		if(lua)
+		{
+			if(luaL_loadstring(lua, (char*)buffer) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
+				return lua;
+
+			else lua_close(lua);
+		}
+	}
+
+	return NULL;
+}
+
+static NetVersion netVersionRequest()
+{
+	NetVersion version = 
+	{
+		.major = TIC_VERSION_MAJOR,
+		.minor = TIC_VERSION_MINOR,
+		.patch = TIC_VERSION_PATCH,
+	};
+
+	s32 size = 0;
+	void* buffer = getUrlRequest("/api?fn=version", &size);
+
+	if(buffer && size)
+	{
+		lua_State* lua = netLuaInit(buffer, size);
+
+		if(lua)
+		{
+			static const char* Fields[] = {"major", "minor", "patch"};
+
+			for(s32 i = 0; i < COUNT_OF(Fields); i++)
+			{
+				lua_getglobal(lua, Fields[i]);
+
+				if(lua_isinteger(lua, -1))
+					((s32*)&version)[i] = (s32)lua_tointeger(lua, -1);
+
+				lua_pop(lua, 1);
+			}
+
+			lua_close(lua);
+		}
+	}
+
+	return version;
+}
+
 static void checkNewVersion(Console* console)
 {
-	Net* net = _createNet();
 
-	if(net)
+	NetVersion version = netVersionRequest();
+
+	if((version.major > TIC_VERSION_MAJOR) ||
+		(version.major == TIC_VERSION_MAJOR && version.minor > TIC_VERSION_MINOR) ||
+		(version.major == TIC_VERSION_MAJOR && version.minor == TIC_VERSION_MINOR && version.patch > TIC_VERSION_PATCH))
 	{
-		NetVersion version = netVersionRequest(net);
-		free(net);
-
-		if((version.major > TIC_VERSION_MAJOR) ||
-			(version.major == TIC_VERSION_MAJOR && version.minor > TIC_VERSION_MINOR) ||
-			(version.major == TIC_VERSION_MAJOR && version.minor == TIC_VERSION_MINOR && version.patch > TIC_VERSION_PATCH))
-		{
-			char msg[FILENAME_MAX] = {0};
-			sprintf(msg, "\n A new version %i.%i.%i is available.\n", version.major, version.minor, version.patch);
-			consolePrint(console, msg, (tic_color_light_green));
-		}
+		char msg[FILENAME_MAX] = {0};
+		sprintf(msg, "\n A new version %i.%i.%i is available.\n", version.major, version.minor, version.patch);
+		consolePrint(console, msg, (tic_color_light_green));
 	}
 }
 

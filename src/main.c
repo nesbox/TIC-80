@@ -54,6 +54,8 @@ static struct
 		const u8* src;
 	} mouse;
 
+	Net* net;
+
 	bool missedFrame;
 	bool fullscreen;
 } platform;
@@ -957,6 +959,11 @@ void _openSystemPath(const char* path) {}
 
 #endif
 
+static void* _getUrlRequest(const char* url, s32* size)
+{
+	return netGetRequest(platform.net, url, size);
+}
+
 static System sysHandlers = 
 {
 	.setClipboardText = _setClipboardText,
@@ -965,9 +972,7 @@ static System sysHandlers =
 	.getPerformanceCounter = _getPerformanceCounter,
 	.getPerformanceFrequency = _getPerformanceFrequency,
 
-	.netGetRequest = netGetRequest,
-	.createNet = createNet,
-	.closeNet = closeNet,
+	.getUrlRequest = _getUrlRequest,
 
 	.file_dialog_load = file_dialog_load,
 	.file_dialog_save = file_dialog_save,
@@ -1063,6 +1068,8 @@ static s32 start(s32 argc, char **argv, const char* folder)
 
 	initSound();
 
+	platform.net = createNet();
+
 	platform.window = SDL_CreateWindow( TIC_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 		(TIC80_FULLWIDTH) * STUDIO_UI_SCALE,
 		(TIC80_FULLHEIGHT) * STUDIO_UI_SCALE,
@@ -1122,6 +1129,8 @@ static s32 start(s32 argc, char **argv, const char* folder)
 #endif
 
 	studioClose();
+
+	closeNet(platform.net);
 
 	if(platform.audio.cvt.buf)
 		SDL_free(platform.audio.cvt.buf);

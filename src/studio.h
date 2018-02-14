@@ -37,7 +37,6 @@
 #include "ticapi.h"
 #include "defines.h"
 #include "tools.h"
-#include "net.h"
 #include "ext/file_dialog.h"
 
 #define TIC_LOCAL ".local/"
@@ -227,9 +226,7 @@ typedef struct
 	u64 	(*getPerformanceCounter)();
 	u64 	(*getPerformanceFrequency)();
 
-	void* 		(*netGetRequest)(Net* net, const char* path, s32* size);
-	Net* 		(*createNet)();
-	void 		(*closeNet)(Net* net);
+	void* (*getUrlRequest)(const char* url, s32* size);
 
 	void (*file_dialog_load)(file_dialog_load_callback callback, void* data);
 	void (*file_dialog_save)(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode);
@@ -257,23 +254,11 @@ char* getClipboardText();
 u64 getPerformanceCounter();
 u64 getPerformanceFrequency();
 
-void* _netGetRequest(Net* net, const char* path, s32* size);
-Net* _createNet();
-void _closeNet(Net* net);
-
 void _file_dialog_load(file_dialog_load_callback callback, void* data);
 void _file_dialog_save(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode);
 
-typedef struct
-{
-	s32 major;
-	s32 minor;
-	s32 patch;
-} NetVersion;
-
-NetVersion netVersionRequest(Net* net);
-void netDirRequest(Net* net, const char* path, ListCallback callback, void* data);
 void showMessageBox(const char* title, const char* message);
 TIC80_API void updateStudioProject();
 
 void openSystemPath(const char* path);
+void* getUrlRequest(const char* url, s32* size);

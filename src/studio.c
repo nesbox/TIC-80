@@ -39,7 +39,6 @@
 
 #include "fs.h"
 
-#include "net.h"
 #include "ext/gif.h"
 #include "ext/md5.h"
 
@@ -1912,8 +1911,6 @@ void studioTick(void* pixels)
 
 void studioClose()
 {
-	_closeNet(studioImpl.surf->net);
-
 	{
 		for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
 		{
@@ -1963,21 +1960,6 @@ u64 getPerformanceFrequency()
 	return studioImpl.system->getPerformanceFrequency();
 }
 
-void* _netGetRequest(Net* net, const char* path, s32* size)
-{
-	return studioImpl.system->netGetRequest(net, path, size);
-}
-
-Net* _createNet()
-{
-	return studioImpl.system->createNet();
-}
-
-void _closeNet(Net* net)
-{
-	return studioImpl.system->closeNet(net);
-}
-
 void _file_dialog_load(file_dialog_load_callback callback, void* data)
 {
 	studioImpl.system->file_dialog_load(callback, data);
@@ -1988,164 +1970,6 @@ void _file_dialog_save(file_dialog_save_callback callback, const char* name, con
 	studioImpl.system->file_dialog_save(callback, name, buffer, size, data, mode);
 }
 
-static lua_State* netLuaInit(u8* buffer, s32 size)
-{
-    if (buffer && size)
-    {
-        lua_State* lua = luaL_newstate();
-
-        if(lua)
-        {
-            if(luaL_loadstring(lua, (char*)buffer) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
-                return lua;
-
-            else lua_close(lua);
-        }
-    }
-
-    return NULL;
-}
-
-NetVersion netVersionRequest(Net* net)
-{
-	NetVersion version = 
-	{
-		.major = TIC_VERSION_MAJOR,
-		.minor = TIC_VERSION_MINOR,
-		.patch = TIC_VERSION_PATCH,
-	};
-
-	s32 size = 0;
-	void* buffer = _netGetRequest(net, "/api?fn=version", &size);
-
-	if(buffer && size)
-	{
-		lua_State* lua = netLuaInit(buffer, size);
-
-		if(lua)
-		{
-			static const char* Fields[] = {"major", "minor", "patch"};
-
-			for(s32 i = 0; i < COUNT_OF(Fields); i++)
-			{
-				lua_getglobal(lua, Fields[i]);
-
-				if(lua_isinteger(lua, -1))
-					((s32*)&version)[i] = (s32)lua_tointeger(lua, -1);
-
-				lua_pop(lua, 1);
-			}
-
-			lua_close(lua);
-		}
-	}
-
-	return version;
-}
-
-typedef struct
-{
-	ListCallback callback;
-	void* data;
-} NetDirData;
-
-static void onDirResponse(u8* buffer, s32 size, void* data)
-{
-	NetDirData* netDirData = (NetDirData*)data;
-
-	lua_State* lua = netLuaInit(buffer, size);
-
-	if(lua)
-	{
-		{
-			lua_getglobal(lua, "folders");
-
-			if(lua_type(lua, -1) == LUA_TTABLE)
-			{
-				s32 count = (s32)lua_rawlen(lua, -1);
-
-				for(s32 i = 1; i <= count; i++)
-				{
-					lua_geti(lua, -1, i);
-
-					{
-						lua_getfield(lua, -1, "name");
-						if(lua_isstring(lua, -1))
-							netDirData->callback(lua_tostring(lua, -1), NULL, 0, netDirData->data, true);
-
-						lua_pop(lua, 1);
-					}
-
-					lua_pop(lua, 1);
-				}
-			}
-
-			lua_pop(lua, 1);
-		}
-
-		{
-			lua_getglobal(lua, "files");
-
-			if(lua_type(lua, -1) == LUA_TTABLE)
-			{
-				s32 count = (s32)lua_rawlen(lua, -1);
-
-				for(s32 i = 1; i <= count; i++)
-				{
-					lua_geti(lua, -1, i);
-
-					char hash[FILENAME_MAX] = {0};
-					char name[FILENAME_MAX] = {0};
-
-					{
-						lua_getfield(lua, -1, "hash");
-						if(lua_isstring(lua, -1))
-							strcpy(hash, lua_tostring(lua, -1));
-
-						lua_pop(lua, 1);
-					}
-
-					{
-						lua_getfield(lua, -1, "name");
-
-						if(lua_isstring(lua, -1))
-							strcpy(name, lua_tostring(lua, -1));
-
-						lua_pop(lua, 1);
-					}
-
-					{
-						lua_getfield(lua, -1, "id");
-
-						if(lua_isinteger(lua, -1))
-							netDirData->callback(name, hash, lua_tointeger(lua, -1), netDirData->data, false);
-
-						lua_pop(lua, 1);
-					}
-
-					lua_pop(lua, 1);
-				}
-			}
-
-			lua_pop(lua, 1);
-		}
-
-		lua_close(lua);
-	}
-}
-
-void netDirRequest(Net* net, const char* path, ListCallback callback, void* data)
-{
-	char request[FILENAME_MAX] = {'\0'};
-	sprintf(request, "/api?fn=dir&path=%s", path);
-
-	s32 size = 0;
-	void* buffer = _netGetRequest(net, request, &size);
-
-	NetDirData netDirData = {callback, data};
-	onDirResponse(buffer, size, &netDirData);
-}
-
 void showMessageBox(const char* title, const char* message)
 {
 	studioImpl.system->showMessageBox(title, message);
@@ -2154,4 +1978,9 @@ void showMessageBox(const char* title, const char* message)
 void openSystemPath(const char* path)
 {
 	studioImpl.system->openSystemPath(path);
+}
+
+void* getUrlRequest(const char* url, s32* size)
+{
+	return studioImpl.system->getUrlRequest(url, size);
 }
