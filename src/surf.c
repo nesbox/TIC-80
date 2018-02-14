@@ -37,7 +37,7 @@
 #define COVER_Y 5
 #define COVER_X (TIC80_WIDTH - COVER_WIDTH - COVER_Y)
 
-#if defined(__TIC_WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
+#if defined(__TIC_WINDOWS__) || defined(__TIC_LINUX__) || defined(__TIC_MACOSX__)
 #define CAN_OPEN_URL 1
 #endif
 

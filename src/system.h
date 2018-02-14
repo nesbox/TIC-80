@@ -21,6 +21,8 @@ typedef struct
 	void (*setWindowTitle)(const char* title);
 
 	void (*openSystemPath)(const char* path);
+	
+	void (*preseed)();
 
 } System;
 

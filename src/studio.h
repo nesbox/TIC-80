@@ -27,10 +27,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#if defined(__EMSCRIPTEN__)
-#include <emscripten.h>
-#endif
-
 #include "tic.h"
 #include "ticapi.h"
 #include "defines.h"

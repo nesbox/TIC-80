@@ -165,6 +165,8 @@ int _wremove(const wchar_t *);
 
 #endif
 
+#if !defined(__EMSCRIPTEN__)
+
 typedef struct
 {
 	ListCallback callback;
@@ -285,6 +287,8 @@ static void netDirRequest(const char* path, ListCallback callback, void* data)
 	NetDirData netDirData = {callback, data};
 	onDirResponse(buffer, size, &netDirData);
 }
+
+#endif
 
 void fsEnumFiles(FileSystem* fs, ListCallback callback, void* data)
 {

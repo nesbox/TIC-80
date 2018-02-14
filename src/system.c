@@ -4,7 +4,12 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 #include <SDL.h>
+
+#if defined(__EMSCRIPTEN__)
+#include <emscripten.h>
+#endif
 
 #define STUDIO_UI_SCALE 3
 #define STUDIO_PIXEL_FORMAT SDL_PIXELFORMAT_ARGB8888
@@ -967,6 +972,17 @@ static void* getUrlRequest(const char* url, s32* size)
 	return netGetRequest(platform.net, url, size);
 }
 
+static void preseed()
+{
+#if defined(__MACOSX__)
+	srandom(time(NULL));
+	random();
+#else
+	srand(time(NULL));
+	rand();
+#endif
+}
+
 static System systemInterface = 
 {
 	.setClipboardText = setClipboardText,
@@ -985,6 +1001,7 @@ static System systemInterface =
 	.setWindowTitle = setWindowTitle,
 
 	.openSystemPath = openSystemPath,
+	.preseed = preseed,
 };
 
 #if defined(__EMSCRIPTEN__)

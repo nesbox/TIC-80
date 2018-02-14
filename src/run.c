@@ -155,16 +155,6 @@ static void processDoFile(void* data, char* dst)
 	return;
 }
 
-static void preseed()
-{
-#if defined(__MACOSX__)
-	srandom(time(NULL));
-	random();
-#else
-	srand(time(NULL));
-	rand();
-#endif
-}
 
 static bool forceExit(void* data)
 {
@@ -213,5 +203,5 @@ void initRun(Run* run, Console* console, tic_mem* tic)
 		if(data) free(data);
 	}
 
-	preseed();
+	getSystem()->preseed();
 }

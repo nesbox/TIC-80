@@ -35,6 +35,10 @@
 #include <lauxlib.h>
 #include <lualib.h>
 
+#if defined(__EMSCRIPTEN__)
+#include <emscripten.h>
+#endif
+
 #define CONSOLE_CURSOR_COLOR ((tic_color_red))
 #define CONSOLE_BACK_TEXT_COLOR ((tic_color_dark_gray))
 #define CONSOLE_FRONT_TEXT_COLOR ((tic_color_white))
@@ -54,7 +58,7 @@ typedef enum
 	WrenScript,
 } ScriptLang;
 
-#if defined(__TIC_WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
+#if defined(__TIC_WINDOWS__) || defined(__TIC_LINUX__) || defined(__TIC_MACOSX__)
 #define CAN_EXPORT 1
 #endif
 
@@ -1644,9 +1648,7 @@ static void onConsoleExportCommand(Console* console, const char* param)
 
 #else
 
-#if !defined(__ANDROID__) && !defined(__MACOSX__) && !defined(__LINUX__)
-
-static void *memmem(const void* haystack, size_t hlen, const void* needle, size_t nlen)
+static void *ticMemmem(const void* haystack, size_t hlen, const void* needle, size_t nlen)
 {
 	const u8* p = haystack;
 	size_t plen = hlen;
@@ -1666,8 +1668,6 @@ static void *memmem(const void* haystack, size_t hlen, const void* needle, size_
 
 	return NULL;
 }
-
-#endif
 
 typedef struct
 {
@@ -1722,7 +1722,7 @@ static void onConsoleExportHtmlCommand(Console* console, const char* name)
 	u8* EmbedTicJs = NULL;
 	u32 EmbedTicJsSize = unzip(&EmbedTicJs, EmbedTicJsZip, EmbedTicJsZipSize);
 
-	u8* ptr = memmem(EmbedIndex, EmbedIndexSize, Placeholder, sizeof(Placeholder)-1);
+	u8* ptr = ticMemmem(EmbedIndex, EmbedIndexSize, Placeholder, sizeof(Placeholder)-1);
 
 	if(ptr)
 	{
@@ -2363,13 +2363,7 @@ static void onConsoleHelpCommand(Console* console, const char* param)
 	}
 
 	printBack(console, "\npress ");
-
-#if defined(__ANDROID__)
-	printFront(console, "BACK");
-#else
 	printFront(console, "ESC");
-#endif
-
 	printBack(console, " to enter UI mode\n");
 
 	commandDone(console);
@@ -3108,7 +3102,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 
 			while(true)
 			{
-				const EmbedHeader* header = (const EmbedHeader*)memmem(ptr, size, TicCartSig, SIG_SIZE);
+				const EmbedHeader* header = (const EmbedHeader*)ticMemmem(ptr, size, TicCartSig, SIG_SIZE);
 
 				if(header)
 				{
