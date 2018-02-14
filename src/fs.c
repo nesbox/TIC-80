@@ -32,7 +32,7 @@
 #include <lauxlib.h>
 #include <lualib.h>
 
-#if defined(__WINRT__) || defined(__TIC_WINDOWS__)
+#if defined(__TIC_WINRT__) || defined(__TIC_WINDOWS__)
 #include <direct.h>
 #include <windows.h>
 #else
@@ -104,7 +104,7 @@ bool fsIsInPublicDir(FileSystem* fs)
 	return isPublic(fs);
 }
 
-#if defined(__TIC_WINDOWS__) || defined(__WINRT__)
+#if defined(__TIC_WINDOWS__) || defined(__TIC_WINRT__)
 
 // #define UTF8ToString(S) (wchar_t *)SDL_iconv_string("UTF-16LE", "UTF-8", (char *)(S), strlen(S)+1)
 // #define StringToUTF8(S) SDL_iconv_string("UTF-8", "UTF-16LE", (char *)(S), (wcslen(S)+1)*sizeof(wchar_t))
@@ -334,7 +334,7 @@ void fsEnumFiles(FileSystem* fs, ListCallback callback, void* data)
 
 bool fsDeleteDir(FileSystem* fs, const char* name)
 {
-#if defined(__WINRT__) || defined(__TIC_WINDOWS__)
+#if defined(__TIC_WINRT__) || defined(__TIC_WINDOWS__)
 	const char* path = getFilePath(fs, name);
 	bool result = tic_rmdir(UTF8ToString(path));
 #else
@@ -393,7 +393,7 @@ static void onAddFile(const char* name, const u8* buffer, s32 size, void* data, 
 				fwrite(buffer, 1, size, dest);
 				fclose(dest);
 
-#if !defined(__WINRT__) && !defined(__TIC_WINDOWS__)
+#if !defined(__TIC_WINRT__) && !defined(__TIC_WINDOWS__)
 				if(mode)
 					chmod(path, mode);
 #endif
@@ -443,7 +443,7 @@ static void onGetFile(bool result, void* data)
 static u32 fsGetMode(FileSystem* fs, const char* name)
 {
 
-#if defined(__WINRT__) || defined(__TIC_WINDOWS__)
+#if defined(__TIC_WINRT__) || defined(__TIC_WINDOWS__)
 	return 0;
 #else
 	const char* path = getFilePath(fs, name);
@@ -696,7 +696,7 @@ const char* fsFullname(const char *path)
 {
 	char* result = NULL;
 
-#if defined(__TIC_WINDOWS__) || defined(__WINRT__)
+#if defined(__TIC_WINDOWS__) || defined(__TIC_WINRT__)
 	static wchar_t wpath[FILENAME_MAX];
 	GetFullPathNameW(UTF8ToString(path), sizeof(wpath), wpath, NULL);
 
@@ -714,7 +714,7 @@ const char* fsBasename(const char *path)
 {
 	char* result = NULL;
 
-#if defined(__TIC_WINDOWS__) || defined(__WINRT__)
+#if defined(__TIC_WINDOWS__) || defined(__TIC_WINRT__)
 #define SEP "\\"
 #else
 #define SEP "/"
