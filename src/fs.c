@@ -553,10 +553,12 @@ void* fsReadFile(const char* path, s32* size)
 
 static void makeDir(const char* name)
 {
-	tic_mkdir(UTF8ToString(name));
-
 #if defined(__EMSCRIPTEN__)
+	mkdir(name, 0700);
+
 	EM_ASM(FS.syncfs(function(){}));
+#else
+	tic_mkdir(UTF8ToString(name));
 #endif
 }
 
@@ -779,7 +781,7 @@ void fsOpenWorkingFolder(FileSystem* fs)
 	openSystemPath(path);
 }
 
-void createFileSystem(const char* path, void(*callback)(FileSystem*))
+FileSystem* createFileSystem(const char* path)
 {
 	FileSystem* fs = (FileSystem*)malloc(sizeof(FileSystem));
 	memset(fs, 0, sizeof(FileSystem));
@@ -787,54 +789,6 @@ void createFileSystem(const char* path, void(*callback)(FileSystem*))
 	fs->net = _createNet();
 
 	strcpy(fs->dir, path);
-	callback(fs);
 
-// 	else
-// 	{
-
-// #if defined(__EMSCRIPTEN__)
-
-// 		strcpy(fs->dir, "/" TIC_PACKAGE "/" TIC_NAME "/");
-
-// #elif defined(__ANDROID__)
-
-// 		strcpy(fs->dir, SDL_AndroidGetExternalStoragePath());
-// 		const char AppFolder[] = "/" TIC_NAME "/";
-// 		strcat(fs->dir, AppFolder);
-// 		mkdir(fs->dir, 0700);
-
-// #else
-
-// 		char* path = SDL_GetPrefPath(TIC_PACKAGE, TIC_NAME);
-// 		strcpy(fs->dir, path);
-// 		free(path);
-
-// #endif
-		
-// #if defined(__EMSCRIPTEN__)
-// 		EM_ASM_
-// 		(
-// 			{
-// 				var dir = "";
-// 				Module.Pointer_stringify($0).split("/").forEach(function(val)
-// 				{
-// 					if(val.length)
-// 					{
-// 						dir += "/" + val;
-// 						FS.mkdir(dir);
-// 					}
-// 				});
-				
-// 				FS.mount(IDBFS, {}, dir);
-// 				FS.syncfs(true, function(error)
-// 				{
-// 					if(error) console.log(error);
-// 					else Runtime.dynCall('vi', $1, [$2]);
-// 				});			
-// 			}, fs->dir, callback, fs
-// 		);
-// #else
-// 		callback(fs);
-// #endif
-	// }
+	return fs;
 }

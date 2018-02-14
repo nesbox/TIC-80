@@ -30,6 +30,7 @@
 #include <zlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <stddef.h>
 
 #define CONSOLE_CURSOR_COLOR ((tic_color_red))
 #define CONSOLE_BACK_TEXT_COLOR ((tic_color_dark_gray))

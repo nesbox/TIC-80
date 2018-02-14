@@ -47,7 +47,7 @@ typedef void(*OpenCallback)(const char* name, const void* buffer, size_t size, v
 
 typedef struct FileSystem FileSystem;
 
-void createFileSystem(const char* path, void(*callback)(FileSystem*));
+FileSystem* createFileSystem(const char* path);
 
 void fsEnumFiles(FileSystem* fs, ListCallback callback, void* data);
 void fsAddFile(FileSystem* fs, AddCallback callback, void* data);

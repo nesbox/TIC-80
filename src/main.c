@@ -835,17 +835,13 @@ static void tick()
 {
 	pollEvent();
 
-	// if(!platform.fs) return;
-
-// 	if(platform.quit)
-// 	{
-// #if defined __EMSCRIPTEN__
-// 		platform.studio->tic->api.clear(platform.studio->tic, TIC_COLOR_BG);
-// 		blitTexture();
-// 		emscripten_cancel_main_loop();
-// #endif
-// 		return;
-// 	}
+	if(platform.studio->quit)
+	{
+#if defined __EMSCRIPTEN__
+		emscripten_cancel_main_loop();
+#endif
+		return;
+	}
 
 	SDL_RenderClear(platform.renderer);
 	
@@ -858,7 +854,6 @@ static void tick()
 	blitSound();
 }
 
-// should work async with callback
 static const char* getAppFolder()
 {
 	static char appFolder[FILENAME_MAX];
@@ -878,32 +873,8 @@ static const char* getAppFolder()
 
 		char* path = SDL_GetPrefPath(TIC_PACKAGE, TIC_NAME);
 		strcpy(appFolder, path);
-		free(path);
+		SDL_free(path);
 
-#endif
-		
-#if defined(__EMSCRIPTEN__)
-		EM_ASM_
-		(
-			{
-				var dir = "";
-				Module.Pointer_stringify($0).split("/").forEach(function(val)
-				{
-					if(val.length)
-					{
-						dir += "/" + val;
-						FS.mkdir(dir);
-					}
-				});
-				
-				FS.mount(IDBFS, {}, dir);
-				FS.syncfs(true, function(error)
-				{
-					if(error) console.log(error);
-					else Runtime.dynCall('vi', $1, [$2]);
-				});			
-			}, appFolder, callback, fs
-		);
 #endif
 
 	return appFolder;
@@ -1008,7 +979,82 @@ static System sysHandlers =
 	.openSystemPath = _openSystemPath,
 };
 
-s32 main(s32 argc, char **argv)
+#if defined(__EMSCRIPTEN__)
+
+static void emstick()
+{
+	static double nextTick = -1.0;
+
+	platform.missedFrame = false;
+
+	if(nextTick < 0.0)
+		nextTick = emscripten_get_now();
+
+	nextTick += 1000.0/TIC_FRAMERATE;
+	tick();
+	double delay = nextTick - emscripten_get_now();
+
+	if(delay < 0.0)
+	{
+		nextTick -= delay;
+		platform.missedFrame = true;
+	}
+	else
+		emscripten_set_main_loop_timing(EM_TIMING_SETTIMEOUT, delay);
+}
+
+#endif
+
+// 	else
+// 	{
+
+// #if defined(__EMSCRIPTEN__)
+
+// 		strcpy(fs->dir, "/" TIC_PACKAGE "/" TIC_NAME "/");
+
+// #elif defined(__ANDROID__)
+
+// 		strcpy(fs->dir, SDL_AndroidGetExternalStoragePath());
+// 		const char AppFolder[] = "/" TIC_NAME "/";
+// 		strcat(fs->dir, AppFolder);
+// 		mkdir(fs->dir, 0700);
+
+// #else
+
+// 		char* path = SDL_GetPrefPath(TIC_PACKAGE, TIC_NAME);
+// 		strcpy(fs->dir, path);
+// 		free(path);
+
+// #endif
+		
+// #if defined(__EMSCRIPTEN__)
+// 		EM_ASM_
+// 		(
+// 			{
+// 				var dir = "";
+// 				Module.Pointer_stringify($0).split("/").forEach(function(val)
+// 				{
+// 					if(val.length)
+// 					{
+// 						dir += "/" + val;
+// 						FS.mkdir(dir);
+// 					}
+// 				});
+				
+// 				FS.mount(IDBFS, {}, dir);
+// 				FS.syncfs(true, function(error)
+// 				{
+// 					if(error) console.log(error);
+// 					else Runtime.dynCall('vi', $1, [$2]);
+// 				});			
+// 			}, fs->dir, callback, fs
+// 		);
+// #else
+// 		callback(fs);
+// #endif
+	// }
+
+static s32 start(s32 argc, char **argv, const char* folder)
 {
 	SDL_SetHint(SDL_HINT_WINRT_HANDLE_BACK_BUTTON, "1");
 	SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
@@ -1026,7 +1072,7 @@ s32 main(s32 argc, char **argv)
 #endif
 		);
 
-	platform.studio = studioInit(argc, argv, platform.audio.spec.freq, getAppFolder(), &sysHandlers);
+	platform.studio = studioInit(argc, argv, platform.audio.spec.freq, folder, &sysHandlers);
 
 	// set the window icon before renderer is created (issues on Linux)
 	setWindowIcon();
@@ -1034,11 +1080,8 @@ s32 main(s32 argc, char **argv)
 	platform.renderer = SDL_CreateRenderer(platform.window, -1, 
 #if defined(__CHIP__)
 		SDL_RENDERER_SOFTWARE
-#elif defined(__EMSCRIPTEN__)
-		SDL_RENDERER_ACCELERATED
 #else
-		// TODO: uncomment this later, also init FS before read config
-		SDL_RENDERER_ACCELERATED// | (getConfig()->useVsync ? SDL_RENDERER_PRESENTVSYNC : 0)
+		SDL_RENDERER_ACCELERATED | (getConfig()->useVsync ? SDL_RENDERER_PRESENTVSYNC : 0)
 #endif
 	);
 
@@ -1048,8 +1091,8 @@ s32 main(s32 argc, char **argv)
 
 #if defined(__EMSCRIPTEN__)
 
-	// call this after FS is initialized
-	emscripten_set_main_loop(getConfig()->useVsync ? tick : emstick, TIC_FRAMERATE, 1);
+	emscripten_set_main_loop(getConfig()->useVsync ? tick : emstick, 0, 1);
+
 #else
 	{
 		u64 nextTick = SDL_GetPerformanceCounter();
@@ -1095,4 +1138,73 @@ s32 main(s32 argc, char **argv)
 	SDL_CloseAudioDevice(platform.audio.device);
 
 	return 0;
+}
+
+#if defined(__EMSCRIPTEN__)
+
+#define DEFAULT_CART "cart.tic"
+
+static struct
+{
+	s32 argc;
+	char **argv;
+	const char* folder;
+} startVars;
+
+static void onEmscriptenWget(const char* file)
+{
+	startVars.argv[1] = DEFAULT_CART;
+	start(startVars.argc, startVars.argv, startVars.folder);
+}
+
+static void onEmscriptenWgetError(const char* error) {}
+
+static void emsStart(s32 argc, char **argv, const char* folder)
+{
+	if(argc == 2)
+	{
+		startVars.argc = argc;
+		startVars.argv = argv;
+		startVars.folder = folder;
+
+		emscripten_async_wget(argv[1], DEFAULT_CART, onEmscriptenWget, onEmscriptenWgetError);
+	}
+	else start(argc, argv, folder);
+}
+
+#endif
+
+s32 main(s32 argc, char **argv)
+{
+	const char* folder = getAppFolder();
+
+#if defined(__EMSCRIPTEN__)
+
+	EM_ASM_
+	(
+		{
+			var dir = "";
+			Module.Pointer_stringify($0).split("/").forEach(function(val)
+			{
+				if(val.length)
+				{
+					dir += "/" + val;
+					FS.mkdir(dir);
+				}
+			});
+			
+			FS.mount(IDBFS, {}, dir);
+			FS.syncfs(true, function()
+			{
+				Runtime.dynCall('viii', $1, [$2, $3, $0]);
+			});
+
+		}, folder, emsStart, argc, argv
+	);
+
+#else
+
+	return start(argc, argv, folder);
+	
+#endif
 }

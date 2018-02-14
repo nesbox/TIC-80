@@ -1717,9 +1717,70 @@ static void initKeymap()
 	}
 }
 
-static void onFSInitialized(FileSystem* fs)
+// #if defined(__EMSCRIPTEN__)
+
+// #define DEFAULT_CART "cart.tic"
+
+// static void onEmscriptenWget(const char* file)
+// {
+// 	studioImpl.argv[1] = DEFAULT_CART;
+// 	createFileSystem(NULL, onFSInitialized);
+// }
+
+// static void onEmscriptenWgetError(const char* error) {}
+
+// static void emstick()
+// {
+// 	static double nextTick = -1.0;
+
+// 	studioImpl.missedFrame = false;
+
+// 	if(nextTick < 0.0)
+// 		nextTick = emscripten_get_now();
+
+// 	nextTick += 1000.0/TIC_FRAMERATE;
+// 	tick();
+// 	double delay = nextTick - emscripten_get_now();
+
+// 	if(delay < 0.0)
+// 	{
+// 		nextTick -= delay;
+// 		studioImpl.missedFrame = true;
+// 	}
+// 	else
+// 		emscripten_set_main_loop_timing(EM_TIMING_SETTIMEOUT, delay);
+// }
+
+// #endif
+
+// #if defined(__EMSCRIPTEN__)
+
+// 	if(studioImpl.argc == 2)
+// 	{
+// 		emscripten_async_wget(studioImpl.argv[1], DEFAULT_CART, onEmscriptenWget, onEmscriptenWgetError);
+// 	}
+// 	else createFileSystem(NULL, onFSInitialized);
+
+// 	// emscripten_set_main_loop(emstick, TIC_FRAMERATE, 1);
+
+// #else
+
+// 	FileSystem* fs = createFileSystem(argc > 1 && fsExists(argv[1]) ? fsBasename(argv[1]) : folder);
+// 	onFSInitialized(fs);
+
+// #endif
+
+
+Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, System* system)
 {
-	studioImpl.fs = fs;
+	setbuf(stdout, NULL);
+	studioImpl.argc = argc;
+	studioImpl.argv = argv;
+	studioImpl.samplerate = samplerate;
+
+	studioImpl.system = system;
+
+	studioImpl.fs = createFileSystem(argc > 1 && fsExists(argv[1]) ? fsBasename(argv[1]) : folder);
 
 	studioImpl.tic80local = (tic80_local*)tic80_create(studioImpl.samplerate);
 	studioImpl.studio.tic = studioImpl.tic80local->memory;
@@ -1744,7 +1805,7 @@ static void onFSInitialized(FileSystem* fs)
 		studioImpl.surf 	= calloc(1, sizeof(Surf));
 	}
 
-	fsMakeDir(fs, TIC_LOCAL);
+	fsMakeDir(studioImpl.fs, TIC_LOCAL);
 	initConfig(studioImpl.config, studioImpl.studio.tic, studioImpl.fs);
 
 	initKeymap();
@@ -1766,68 +1827,6 @@ static void onFSInitialized(FileSystem* fs)
 	{
 		goFullscreen();
 	}
-}
-
-#if defined(__EMSCRIPTEN__)
-
-#define DEFAULT_CART "cart.tic"
-
-static void onEmscriptenWget(const char* file)
-{
-	studioImpl.argv[1] = DEFAULT_CART;
-	createFileSystem(NULL, onFSInitialized);
-}
-
-static void onEmscriptenWgetError(const char* error) {}
-
-static void emstick()
-{
-	static double nextTick = -1.0;
-
-	studioImpl.missedFrame = false;
-
-	if(nextTick < 0.0)
-		nextTick = emscripten_get_now();
-
-	nextTick += 1000.0/TIC_FRAMERATE;
-	tick();
-	double delay = nextTick - emscripten_get_now();
-
-	if(delay < 0.0)
-	{
-		nextTick -= delay;
-		studioImpl.missedFrame = true;
-	}
-	else
-		emscripten_set_main_loop_timing(EM_TIMING_SETTIMEOUT, delay);
-}
-
-#endif
-
-Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, System* system)
-{
-	setbuf(stdout, NULL);
-	studioImpl.argc = argc;
-	studioImpl.argv = argv;
-	studioImpl.samplerate = samplerate;
-
-	studioImpl.system = system;
-
-#if defined(__EMSCRIPTEN__)
-
-	if(studioImpl.argc == 2)
-	{
-		emscripten_async_wget(studioImpl.argv[1], DEFAULT_CART, onEmscriptenWget, onEmscriptenWgetError);
-	}
-	else createFileSystem(NULL, onFSInitialized);
-
-	// emscripten_set_main_loop(emstick, TIC_FRAMERATE, 1);
-
-#else
-
-	createFileSystem(argc > 1 && fsExists(argv[1]) ? fsBasename(argv[1]) : folder, onFSInitialized);
-
-#endif
 
 	return &studioImpl.studio;
 }

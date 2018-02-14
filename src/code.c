@@ -764,7 +764,7 @@ static void initOutlineMode(Code* code)
 	char filter[STUDIO_TEXT_BUFFER_WIDTH] = {0};
 	strncpy(filter, code->popup.text, sizeof(filter));
 
-	_strlwr(filter);
+	strlwr(filter);
 
 	const tic_script_config* config = tic->api.get_script_config(tic);
 
@@ -787,7 +787,7 @@ static void initOutlineMode(Code* code)
 				{
 					strncpy(buffer, out->name, sizeof(buffer));
 
-					_strlwr(buffer);
+					strlwr(buffer);
 
 					if(strstr(buffer, filter)) out++;
 					else out->pos = NULL;
