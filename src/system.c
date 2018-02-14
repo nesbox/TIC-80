@@ -1,4 +1,4 @@
-#include "main.h"
+#include "system.h"
 #include "studio.h"
 #include "net.h"
 #include <SDL.h>

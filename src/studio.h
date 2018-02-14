@@ -36,7 +36,7 @@
 #include "defines.h"
 #include "tools.h"
 #include "ext/file_dialog.h"
-#include "main.h"
+#include "system.h"
 
 #define TIC_LOCAL ".local/"
 #define TIC_CACHE TIC_LOCAL "cache/"

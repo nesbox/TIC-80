@@ -50,8 +50,8 @@
     <ClCompile Include="..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetselect.c" />
     <ClCompile Include="..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetTCP.c" />
     <ClCompile Include="..\..\..\src\ext\file_dialog.c" />
-    <ClCompile Include="..\..\..\src\main.c" />
     <ClCompile Include="..\..\..\src\net.c" />
+    <ClCompile Include="..\..\..\src\system.c" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="icon.ico" />

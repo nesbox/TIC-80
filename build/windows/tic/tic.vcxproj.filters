@@ -24,14 +24,14 @@
     <ClCompile Include="..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetTCP.c">
       <Filter>src\ext\net</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\main.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\net.c">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\ext\file_dialog.c">
       <Filter>src\ext</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\system.c">
+      <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
