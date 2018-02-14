@@ -64,50 +64,6 @@
 #define PROJECT_JS_EXT ".js"
 #define PROJECT_WREN_EXT ".wren"
 
-typedef struct
-{
-	struct
-	{
-		struct
-		{
-			s32 arrow;
-			s32 hand;
-			s32 ibeam;
-
-			bool pixelPerfect;
-		} cursor;
-
-		struct
-		{
-			tic_code_theme syntax;
-
-			u8 bg;
-			u8 select;
-			u8 cursor;
-			bool shadow;
-		} code;
-
-		struct
-		{
-			struct
-			{
-				u8 alpha;
-			} touch;
-
-		} gamepad;
-
-	} theme;
-
-	s32 gifScale;
-	s32 gifLength;
-	
-	bool checkNewVersion;
-	bool noSound;
-	bool useVsync;
-	bool showSync;
-
-} StudioConfig;
-
 typedef enum
 {
 	TIC_START_MODE,
@@ -185,7 +141,7 @@ void showTooltip(const char* text);
 
 tic_key* getKeymap();
 
-TIC80_API const StudioConfig* getConfig();
+const StudioConfig* getConfig();
 
 void setSpritePixel(tic_tile* tiles, s32 x, s32 y, u8 color);
 u8 getSpritePixel(tic_tile* tiles, s32 x, s32 y);

@@ -26,6 +26,50 @@ typedef struct
 
 typedef struct
 {
+	struct
+	{
+		struct
+		{
+			s32 arrow;
+			s32 hand;
+			s32 ibeam;
+
+			bool pixelPerfect;
+		} cursor;
+
+		struct
+		{
+			tic_code_theme syntax;
+
+			u8 bg;
+			u8 select;
+			u8 cursor;
+			bool shadow;
+		} code;
+
+		struct
+		{
+			struct
+			{
+				u8 alpha;
+			} touch;
+
+		} gamepad;
+
+	} theme;
+
+	s32 gifScale;
+	s32 gifLength;
+	
+	bool checkNewVersion;
+	bool noSound;
+	bool useVsync;
+	bool showSync;
+
+} StudioConfig;
+
+typedef struct
+{
 	tic_mem* tic;
 	bool quit;
 
@@ -33,6 +77,7 @@ typedef struct
 	void (*exit)();
 	void (*close)();
 	void (*updateProject)();
+	const StudioConfig* (*config)();
 
 } Studio;
 

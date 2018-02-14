@@ -1875,6 +1875,7 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, Sy
 	studioImpl.studio.close = studioClose;
 	studioImpl.studio.updateProject = updateStudioProject;
 	studioImpl.studio.exit = exitStudio;
+	studioImpl.studio.config = getConfig;
 
 	return &studioImpl.studio;
 }

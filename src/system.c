@@ -322,7 +322,7 @@ static bool checkTouch(const SDL_Rect* rect, s32* x, s32* y)
 
 				if (!platform.gamepad.show)
 				{
-					platform.gamepad.alpha = getConfig()->theme.gamepad.touch.alpha;
+					platform.gamepad.alpha = platform.studio->config()->theme.gamepad.touch.alpha;
 					SDL_SetTextureAlphaMod(platform.gamepad.texture, platform.gamepad.alpha);
 					platform.gamepad.show = true;
 					return false;
@@ -761,7 +761,7 @@ static void blitCursor(const u8* in)
 
 	SDL_GetMouseState(&dst.x, &dst.y);
 
-	if(getConfig()->theme.cursor.pixelPerfect)
+	if(platform.studio->config()->theme.cursor.pixelPerfect)
 	{
 		dst.x -= (dst.x - rect.x) % scale;
 		dst.y -= (dst.y - rect.y) % scale;
@@ -779,10 +779,10 @@ static void renderCursor()
 		{
 		case tic_cursor_hand: 
 			{
-				if(getConfig()->theme.cursor.hand >= 0)
+				if(platform.studio->config()->theme.cursor.hand >= 0)
 				{
 					SDL_ShowCursor(SDL_DISABLE);
-					blitCursor(platform.studio->tic->config.bank0.tiles.data[getConfig()->theme.cursor.hand].data);
+					blitCursor(platform.studio->tic->config.bank0.tiles.data[platform.studio->config()->theme.cursor.hand].data);
 				}
 				else
 				{
@@ -793,10 +793,10 @@ static void renderCursor()
 			break;
 		case tic_cursor_ibeam:
 			{
-				if(getConfig()->theme.cursor.ibeam >= 0)
+				if(platform.studio->config()->theme.cursor.ibeam >= 0)
 				{
 					SDL_ShowCursor(SDL_DISABLE);
-					blitCursor(platform.studio->tic->config.bank0.tiles.data[getConfig()->theme.cursor.ibeam].data);
+					blitCursor(platform.studio->tic->config.bank0.tiles.data[platform.studio->config()->theme.cursor.ibeam].data);
 				}
 				else
 				{
@@ -807,10 +807,10 @@ static void renderCursor()
 			break;
 		default:
 			{
-				if(getConfig()->theme.cursor.arrow >= 0)
+				if(platform.studio->config()->theme.cursor.arrow >= 0)
 				{
 					SDL_ShowCursor(SDL_DISABLE);
-					blitCursor(platform.studio->tic->config.bank0.tiles.data[getConfig()->theme.cursor.arrow].data);
+					blitCursor(platform.studio->tic->config.bank0.tiles.data[platform.studio->config()->theme.cursor.arrow].data);
 				}
 				else
 				{
@@ -1039,7 +1039,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
 #if defined(__CHIP__)
 		SDL_RENDERER_SOFTWARE
 #else
-		SDL_RENDERER_ACCELERATED | (getConfig()->useVsync ? SDL_RENDERER_PRESENTVSYNC : 0)
+		SDL_RENDERER_ACCELERATED | (platform.studio->config()->useVsync ? SDL_RENDERER_PRESENTVSYNC : 0)
 #endif
 	);
 
@@ -1049,7 +1049,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
 
 #if defined(__EMSCRIPTEN__)
 
-	emscripten_set_main_loop(getConfig()->useVsync ? tick : emstick, 0, 1);
+	emscripten_set_main_loop(platform.studio->config()->useVsync ? tick : emstick, 0, 1);
 
 #else
 	{
