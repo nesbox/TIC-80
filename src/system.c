@@ -584,7 +584,7 @@ static void pollEvent()
 			}
 			break;
 		case SDL_QUIT:
-			exitStudio();
+			platform.studio->exit();
 			break;
 		default:
 			break;

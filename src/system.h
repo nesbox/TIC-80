@@ -30,6 +30,7 @@ typedef struct
 	bool quit;
 
 	void (*tick)(void* pixels);
+	void (*exit)();
 	void (*close)();
 	void (*updateProject)();
 
