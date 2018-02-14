@@ -141,8 +141,6 @@ void showTooltip(const char* text);
 
 tic_key* getKeymap();
 
-const StudioConfig* getConfig();
-
 void setSpritePixel(tic_tile* tiles, s32 x, s32 y, u8 color);
 u8 getSpritePixel(tic_tile* tiles, s32 x, s32 y);
 
@@ -168,4 +166,5 @@ char getKeyboardText();
 bool keyWasPressed(tic_key key);
 bool anyKeyWasPressed();
 
+const StudioConfig* getConfig();
 System* getSystem();

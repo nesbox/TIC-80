@@ -52,6 +52,7 @@
     <ClCompile Include="..\..\..\src\ext\file_dialog.c" />
     <ClCompile Include="..\..\..\src\net.c" />
     <ClCompile Include="..\..\..\src\system.c" />
+    <ClCompile Include="..\..\..\src\tools.c" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="icon.ico" />

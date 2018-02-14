@@ -1,6 +1,9 @@
 #include "system.h"
-#include "studio.h"
 #include "net.h"
+#include "tools.h"
+
+#include <stdlib.h>
+#include <stdio.h>
 #include <SDL.h>
 
 #define STUDIO_UI_SCALE 3
