@@ -976,9 +976,9 @@ static void cutToClipboard(Map* map)
 
 static void copyFromClipboard(Map* map)
 {
-	if(hasClipboardText())
+	if(getSystem()->hasClipboardText())
 	{
-		char* clipboard = getClipboardText();
+		char* clipboard = getSystem()->getClipboardText();
 
 		if(clipboard)
 		{

@@ -49,12 +49,7 @@
 #include <lauxlib.h>
 #include <lualib.h>
 
-
-// #define TEXTURE_SIZE (TIC80_FULLWIDTH)
-// #define STUDIO_PIXEL_FORMAT SDL_PIXELFORMAT_ARGB8888
 #define FRAME_SIZE (TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32))
-// #define OFFSET_LEFT ((TIC80_FULLWIDTH-TIC80_WIDTH)/2)
-// #define OFFSET_TOP ((TIC80_FULLHEIGHT-TIC80_HEIGHT)/2)
 #define POPUP_DUR (TIC_FRAMERATE*2)
 
 #define KEYBOARD_HOLD 20
@@ -372,7 +367,7 @@ void toClipboard(const void* data, s32 size, bool flip)
 				}
 			}
 
-			setClipboardText(clipboard);
+			getSystem()->setClipboardText(clipboard);
 			free(clipboard);
 		}
 	}
@@ -416,9 +411,9 @@ bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces)
 {
 	if(data)
 	{
-		if(hasClipboardText())
+		if(getSystem()->hasClipboardText())
 		{
-			char* clipboard = getClipboardText();
+			char* clipboard = getSystem()->getClipboardText();
 
 			if(clipboard)
 			{
@@ -1649,8 +1644,6 @@ static void renderStudio()
 
 	if(studioImpl.mode != TIC_RUN_MODE)
 		useSystemPalette();
-	
-	// renderCursor();
 }
 
 static void updateSystemFont()
@@ -1715,60 +1708,6 @@ static void initKeymap()
 		free(data);
 	}
 }
-
-// #if defined(__EMSCRIPTEN__)
-
-// #define DEFAULT_CART "cart.tic"
-
-// static void onEmscriptenWget(const char* file)
-// {
-// 	studioImpl.argv[1] = DEFAULT_CART;
-// 	createFileSystem(NULL, onFSInitialized);
-// }
-
-// static void onEmscriptenWgetError(const char* error) {}
-
-// static void emstick()
-// {
-// 	static double nextTick = -1.0;
-
-// 	studioImpl.missedFrame = false;
-
-// 	if(nextTick < 0.0)
-// 		nextTick = emscripten_get_now();
-
-// 	nextTick += 1000.0/TIC_FRAMERATE;
-// 	tick();
-// 	double delay = nextTick - emscripten_get_now();
-
-// 	if(delay < 0.0)
-// 	{
-// 		nextTick -= delay;
-// 		studioImpl.missedFrame = true;
-// 	}
-// 	else
-// 		emscripten_set_main_loop_timing(EM_TIMING_SETTIMEOUT, delay);
-// }
-
-// #endif
-
-// #if defined(__EMSCRIPTEN__)
-
-// 	if(studioImpl.argc == 2)
-// 	{
-// 		emscripten_async_wget(studioImpl.argv[1], DEFAULT_CART, onEmscriptenWget, onEmscriptenWgetError);
-// 	}
-// 	else createFileSystem(NULL, onFSInitialized);
-
-// 	// emscripten_set_main_loop(emstick, TIC_FRAMERATE, 1);
-
-// #else
-
-// 	FileSystem* fs = createFileSystem(argc > 1 && fsExists(argv[1]) ? fsBasename(argv[1]) : folder);
-// 	onFSInitialized(fs);
-
-// #endif
-
 
 Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, System* system)
 {
@@ -1935,52 +1874,7 @@ void studioClose()
 		tic80_delete((tic80*)studioImpl.tic80local);
 }
 
-void setClipboardText(const char* text)
+System* getSystem()
 {
-	studioImpl.system->setClipboardText(text);
-}
-
-bool hasClipboardText()
-{
-	return studioImpl.system->hasClipboardText();
-}
-
-char* getClipboardText()
-{
-	return studioImpl.system->getClipboardText();
-}
-
-u64 getPerformanceCounter()
-{
-	return studioImpl.system->getPerformanceCounter();
-}
-
-u64 getPerformanceFrequency()
-{
-	return studioImpl.system->getPerformanceFrequency();
-}
-
-void _file_dialog_load(file_dialog_load_callback callback, void* data)
-{
-	studioImpl.system->file_dialog_load(callback, data);
-}
-
-void _file_dialog_save(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode)
-{
-	studioImpl.system->file_dialog_save(callback, name, buffer, size, data, mode);
-}
-
-void showMessageBox(const char* title, const char* message)
-{
-	studioImpl.system->showMessageBox(title, message);
-}
-
-void openSystemPath(const char* path)
-{
-	studioImpl.system->openSystemPath(path);
-}
-
-void* getUrlRequest(const char* url, s32* size)
-{
-	return studioImpl.system->getUrlRequest(url, size);
+	return studioImpl.system;
 }

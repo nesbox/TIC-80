@@ -183,8 +183,8 @@ void initRun(Run* run, Console* console, tic_mem* tic)
 		{
 			.error = onError,
 			.trace = onTrace,
-			.counter = getPerformanceCounter,
-			.freq = getPerformanceFrequency,
+			.counter = getSystem()->getPerformanceCounter,
+			.freq = getSystem()->getPerformanceFrequency,
 			.start = 0,
 			.data = run,
 			.exit = onExit,

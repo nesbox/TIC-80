@@ -477,7 +477,7 @@ static void* requestCover(Surf* surf, const char* hash, s32* size)
 
 	char path[FILENAME_MAX] = {0};
 	sprintf(path, "/cart/%s/cover.gif", hash);
-	void* data = getUrlRequest(path, size);
+	void* data = getSystem()->getUrlRequest(path, size);
 
 	if(data)
 	{
@@ -780,7 +780,7 @@ static void processGamepad(Surf* surf)
 			{
 				char url[FILENAME_MAX];
 				sprintf(url, "https://" TIC_HOST "/play?cart=%i", item->id);
-				openSystemPath(url);
+				getSystem()->openSystemPath(url);
 			}
 		}
 #endif

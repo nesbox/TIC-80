@@ -280,7 +280,7 @@ static void netDirRequest(const char* path, ListCallback callback, void* data)
 	sprintf(request, "/api?fn=dir&path=%s", path);
 
 	s32 size = 0;
-	void* buffer = getUrlRequest(request, &size);
+	void* buffer = getSystem()->getUrlRequest(request, &size);
 
 	NetDirData netDirData = {callback, data};
 	onDirResponse(buffer, size, &netDirData);
@@ -420,7 +420,7 @@ void fsAddFile(FileSystem* fs, AddCallback callback, void* data)
 
 	*addFileData = (AddFileData) { fs, callback, data };
 
-	_file_dialog_load(&onAddFile, addFileData);
+	getSystem()->file_dialog_load(&onAddFile, addFileData);
 }
 
 typedef struct
@@ -552,7 +552,7 @@ void fsGetFileData(GetCallback callback, const char* name, void* buffer, size_t 
 	GetFileData* command = (GetFileData*)malloc(sizeof(GetFileData));
 	*command = (GetFileData) {callback, data, buffer};
 
-	_file_dialog_save(onGetFile, name, buffer, size, command, mode);
+	getSystem()->file_dialog_save(onGetFile, name, buffer, size, command, mode);
 }
 
 typedef struct
@@ -576,7 +576,7 @@ void fsOpenFileData(OpenCallback callback, void* data)
 
 	*command = (OpenFileData){callback, data};
 
-	_file_dialog_load(onOpenFileData, command);
+	getSystem()->file_dialog_load(onOpenFileData, command);
 }
 
 void fsGetFile(FileSystem* fs, GetCallback callback, const char* name, void* data)
@@ -590,7 +590,7 @@ void fsGetFile(FileSystem* fs, GetCallback callback, const char* name, void* dat
 		*command = (GetFileData) {callback, data, buffer};
 
 		s32 mode = fsGetMode(fs, name);
-		_file_dialog_save(onGetFile, name, buffer, size, command, mode);
+		getSystem()->file_dialog_save(onGetFile, name, buffer, size, command, mode);
 	}
 	else callback(FS_FILE_NOT_DOWNLOADED, data);
 }
@@ -843,7 +843,7 @@ void* fsLoadFile(FileSystem* fs, const char* name, s32* size)
 
 			char path[FILENAME_MAX] = {0};
 			sprintf(path, "/cart/%s/cart.tic", loadPublicCartData.hash);
-			void* data = getUrlRequest(path, size);
+			void* data = getSystem()->getUrlRequest(path, size);
 
 			if(data)
 				fsSaveRootFile(fs, cachePath, data, *size, false);
@@ -900,7 +900,7 @@ void fsOpenWorkingFolder(FileSystem* fs)
 	if(isPublic(fs))
 		path = fs->dir;
 
-	openSystemPath(path);
+	getSystem()->openSystemPath(path);
 }
 
 FileSystem* createFileSystem(const char* path)

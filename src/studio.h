@@ -27,8 +27,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-// #include <SDL.h>
-
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
 #endif
@@ -38,11 +36,10 @@
 #include "defines.h"
 #include "tools.h"
 #include "ext/file_dialog.h"
+#include "main.h"
 
 #define TIC_LOCAL ".local/"
 #define TIC_CACHE TIC_LOCAL "cache/"
-
-// #define TIC_MOD_CTRL (KMOD_GUI|KMOD_CTRL)
 
 #define TOOLBAR_SIZE 7
 #define STUDIO_TEXT_WIDTH (TIC_FONT_WIDTH)
@@ -211,54 +208,17 @@ void runProject();
 tic_tiles* getBankTiles();
 tic_map* getBankMap();
 
-typedef struct
-{
-	tic_mem* tic;
-	bool quit;
-
-} Studio;
-
-typedef struct
-{
-	void	(*setClipboardText)(const char* text);
-	bool	(*hasClipboardText)();
-	char* 	(*getClipboardText)();
-	u64 	(*getPerformanceCounter)();
-	u64 	(*getPerformanceFrequency)();
-
-	void* (*getUrlRequest)(const char* url, s32* size);
-
-	void (*file_dialog_load)(file_dialog_load_callback callback, void* data);
-	void (*file_dialog_save)(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode);
-
-	void (*goFullscreen)();
-	void (*showMessageBox)(const char* title, const char* message);
-	void (*setWindowTitle)(const char* title);
-
-	void (*openSystemPath)(const char* path);
-
-} System;
-
-TIC80_API Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* appFolder, System* system);
-TIC80_API void studioTick(void* pixels);
-TIC80_API void studioClose();
-
 char getKeyboardText();
 bool keyWasPressed(tic_key key);
 bool anyKeyWasPressed();
 
-void setClipboardText(const char* text);
-bool hasClipboardText();
-char* getClipboardText();
+typedef struct
+{
+	tic_mem* tic;
+	bool quit;
+} Studio;
 
-u64 getPerformanceCounter();
-u64 getPerformanceFrequency();
-
-void _file_dialog_load(file_dialog_load_callback callback, void* data);
-void _file_dialog_save(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode);
-
-void showMessageBox(const char* title, const char* message);
+TIC80_API Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* appFolder, System* system);
+TIC80_API void studioTick(void* pixels);
+TIC80_API void studioClose();
 TIC80_API void updateStudioProject();
-
-void openSystemPath(const char* path);
-void* getUrlRequest(const char* url, s32* size);

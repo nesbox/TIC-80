@@ -2573,7 +2573,7 @@ static NetVersion netVersionRequest()
 	};
 
 	s32 size = 0;
-	void* buffer = getUrlRequest("/api?fn=version", &size);
+	void* buffer = getSystem()->getUrlRequest("/api?fn=version", &size);
 
 	if(buffer && size)
 	{
@@ -3055,7 +3055,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 			{
 				char buf[256];
 				sprintf(buf, "parameter or file not processed: %s\n", argv[i]);
-				showMessageBox("Warning", buf);
+				getSystem()->showMessageBox("Warning", buf);
 			}
 		}
 	}

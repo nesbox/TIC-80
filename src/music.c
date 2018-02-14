@@ -619,9 +619,9 @@ static void copyFromClipboard(Music* music)
 {
 	tic_track_pattern* pattern = getChannelPattern(music);
 
-	if(pattern && hasClipboardText())
+	if(pattern && getSystem()->hasClipboardText())
 	{
-		char* clipboard = getClipboardText();
+		char* clipboard = getSystem()->getClipboardText();
 
 		if(clipboard)
 		{

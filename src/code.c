@@ -540,7 +540,7 @@ static void copyToClipboard(Code* code)
 	{
 		memcpy(clipboard, start, size);
 		clipboard[size] = '\0';
-		setClipboardText(clipboard);
+		getSystem()->setClipboardText(clipboard);
 		free(clipboard);
 	}
 }
@@ -554,9 +554,9 @@ static void cutToClipboard(Code* code)
 
 static void copyFromClipboard(Code* code)
 {
-	if(hasClipboardText())
+	if(getSystem()->hasClipboardText())
 	{
-		char* clipboard = getClipboardText();
+		char* clipboard = getSystem()->getClipboardText();
 
 		if(clipboard)
 		{
