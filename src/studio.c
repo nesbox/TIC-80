@@ -1145,7 +1145,7 @@ static void processGamepadMapping()
 	tic_mem* tic = impl.studio.tic;
 
 	for(s32 i = 0; i < KEYMAP_COUNT; i++)
-		if(tic->api.key(tic, impl.keycodes[i]))
+		if(impl.keycodes[i] && tic->api.key(tic, impl.keycodes[i]))
 			tic->ram.input.gamepads.data |= 1 << i;
 }
 
