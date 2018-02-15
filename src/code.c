@@ -884,6 +884,8 @@ static void processKeyboard(Code* code)
 {
 	tic_mem* tic = code->tic;
 
+	if(tic->ram.input.keyboard.data == 0) return;
+
 	switch(getClipboardEvent(0))
 	{
 	case TIC_CLIPBOARD_CUT: cutToClipboard(code); break;
@@ -949,31 +951,7 @@ static void processKeyboard(Code* code)
 		else if(keyWasPressed(tic_key_tab)) 		doTab(code, shift, ctrl);
 	}
 
-	if(tic->ram.input.keyboard.data)
-		updateEditor(code);
-}
-
-static void processGestures(Code* code)
-{
-	tic_point point = {0, 0};
-
-	if(getGesturePos(&point))
-	{
-		if(code->scroll.gesture)
-		{
-			code->scroll.x = (code->scroll.start.x - point.x) / STUDIO_TEXT_WIDTH;
-			code->scroll.y = (code->scroll.start.y - point.y) / STUDIO_TEXT_HEIGHT;
-
-			normalizeScroll(code);
-		}
-		else
-		{
-			code->scroll.start.x = point.x + code->scroll.x * STUDIO_TEXT_WIDTH;
-			code->scroll.start.y = point.y + code->scroll.y * STUDIO_TEXT_HEIGHT;
-			code->scroll.gesture = true;
-		}
-	}
-	else code->scroll.gesture = false;
+	updateEditor(code);
 }
 
 static void processMouse(Code* code)
@@ -1070,7 +1048,6 @@ static void textEditTick(Code* code)
 		}
 	}
 
-	processGestures(code);
 	processMouse(code);
 
 	code->tic->api.clear(code->tic, getConfig()->theme.code.bg);

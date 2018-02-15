@@ -94,8 +94,6 @@ bool checkMousePos(const tic_rect* rect);
 bool checkMouseClick(const tic_rect* rect, s32 button);
 bool checkMouseDown(const tic_rect* rect, s32 button);
 
-bool getGesturePos(tic_point* pos);
-
 void drawToolbar(tic_mem* tic, u8 color, bool bg);
 void drawBitIcon(s32 x, s32 y, const u8* ptr, u8 color);
 

@@ -436,6 +436,8 @@ static void processKeyboard(Menu* menu)
 {
 	tic_mem* tic = menu->tic;
 
+	if(tic->ram.input.keyboard.data == 0) return;
+
 	if(menu->gamepad.selected < 0)
 		return;
 

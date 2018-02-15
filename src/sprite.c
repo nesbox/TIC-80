@@ -1431,6 +1431,8 @@ static void processKeyboard(Sprite* sprite)
 {
 	tic_mem* tic = sprite->tic;
 
+	if(tic->ram.input.keyboard.data == 0) return;
+
 	switch(getClipboardEvent())
 	{
 	case TIC_CLIPBOARD_CUT: cutToClipboard(sprite); break;

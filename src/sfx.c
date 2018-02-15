@@ -631,6 +631,8 @@ static void processKeyboard(Sfx* sfx)
 {
 	tic_mem* tic = sfx->tic;
 
+	if(tic->ram.input.keyboard.data == 0) return;
+
 	bool ctrl = tic->api.key(tic, tic_key_ctrl);
 
 	s32 keyboardButton = -1;

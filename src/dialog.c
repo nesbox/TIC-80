@@ -93,6 +93,10 @@ static void onNo(Dialog* dlg)
 
 static void processKeyboard(Dialog* dlg)
 {
+	tic_mem* tic = dlg->tic;
+	
+	if(tic->ram.input.keyboard.data == 0) return;
+
 	if(keyWasPressed(tic_key_left))
 	{
 		dlg->focus = (dlg->focus-1) % 2;

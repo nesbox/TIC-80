@@ -107,12 +107,6 @@ static struct
 		MouseState state[3];
 	} mouse;
 
-	struct
-	{
-		tic_point pos;
-		bool active;
-	} gesture;
-
 	tic_key keycodes[KEYMAP_COUNT];
 
 	struct
@@ -197,12 +191,6 @@ static struct
 	.mode = TIC_START_MODE,
 	.prevMode = TIC_CODE_MODE,
 	.dialogMode = TIC_CONSOLE_MODE,
-
-	.gesture =
-	{
-		.pos = {0, 0},
-		.active = false,
-	},
 
 	.keycodes =
 	{
@@ -1053,18 +1041,6 @@ bool checkMouseDown(const tic_rect* rect, s32 button)
 	return state->down && pointInRect(&state->start, rect);
 }
 
-bool getGesturePos(tic_point* pos)
-{
-	if(studioImpl.gesture.active)
-	{
-		*pos = studioImpl.gesture.pos;
-
-		return true;
-	}
-
-	return false;
-}
-
 void setCursor(tic_cursor id)
 {
 	tic_mem* tic = studioImpl.studio.tic;
@@ -1564,8 +1540,6 @@ static void renderStudio()
 	tic_mem* tic = studioImpl.studio.tic;
 
 	showTooltip("");
-
-	studioImpl.gesture.active = false;
 
 	{
 		const tic_sfx* sfx = NULL;

@@ -2515,23 +2515,6 @@ static void setScroll(Console* console, s32 val)
 	}
 }
 
-static void processGesture(Console* console)
-{
-	tic_point point = {0, 0};
-
-	if(getGesturePos(&point))
-	{
-		if(console->scroll.active)
-			setScroll(console, (console->scroll.start - point.y) / STUDIO_TEXT_HEIGHT);
-		else
-		{
-			console->scroll.start = point.y + console->scroll.pos * STUDIO_TEXT_HEIGHT;
-			console->scroll.active = true;
-		}
-	}
-	else console->scroll.active = false;
-}
-
 typedef struct
 {
 	s32 major;
@@ -2625,6 +2608,7 @@ static void tick(Console* console)
 		}
 	}
 
+	if(tic->ram.input.keyboard.data != 0)
 	{
 		if(keyWasPressed(tic_key_up)) onHistoryUp(console);
 		else if(keyWasPressed(tic_key_down)) onHistoryDown(console);
@@ -2652,27 +2636,25 @@ static void tick(Console* console)
 			scrollConsole(console);
 			console->cursor.delay = CONSOLE_CURSOR_DELAY;
 		}
-	}
 
-	char sym = getKeyboardText();
+		char sym = getKeyboardText();
 
-	if(sym)
-	{
-		size_t size = strlen(console->inputBuffer);
-
-		if(size < sizeof(console->inputBuffer))
+		if(sym)
 		{
-			char* pos = console->inputBuffer + console->inputPosition;
-			memmove(pos + 1, pos, strlen(pos));
+			size_t size = strlen(console->inputBuffer);
 
-			*(console->inputBuffer + console->inputPosition) = sym;
-			console->inputPosition++;
+			if(size < sizeof(console->inputBuffer))
+			{
+				char* pos = console->inputBuffer + console->inputPosition;
+				memmove(pos + 1, pos, strlen(pos));
+
+				*(console->inputBuffer + console->inputPosition) = sym;
+				console->inputPosition++;
+			}
+
+			console->cursor.delay = CONSOLE_CURSOR_DELAY;
 		}
-
-		console->cursor.delay = CONSOLE_CURSOR_DELAY;
 	}
-
-	processGesture(console);
 
 	if(console->tickCounter == 0)
 	{

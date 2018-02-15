@@ -1008,6 +1008,8 @@ static void processKeyboard(Map* map)
 	tic_mem* tic = map->tic;
 	map->sheet.show = false;
 
+	if(tic->ram.input.keyboard.data == 0) return;
+
 	bool shift = tic->api.key(tic, tic_key_shift);
 	bool ctrl = tic->api.key(tic, tic_key_ctrl);
 
@@ -1055,36 +1057,11 @@ static void processKeyboard(Map* map)
 		}
 }
 
-static void processGesture(Map* map)
-{
-	tic_point point = {0, 0};
-
-	if(getGesturePos(&point))
-	{
-		if(map->scroll.gesture)
-		{
-			map->scroll.x = map->scroll.start.x - point.x;
-			map->scroll.y = map->scroll.start.y - point.y;
-
-			normalizeMap(&map->scroll.x, &map->scroll.y);
-		}
-		else
-		{
-			map->scroll.start.x = point.x + map->scroll.x;
-			map->scroll.start.y = point.y + map->scroll.y;
-			map->scroll.gesture = true;
-		}
-	}
-	else map->scroll.gesture = false;
-}
-
 static void tick(Map* map)
 {
 	map->tickCounter++;
 
 	processKeyboard(map);
-	processGesture(map);
-
 	map->tic->api.clear(map->tic, TIC_COLOR_BG);
 
 	drawSheet(map, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, TOOLBAR_SIZE);

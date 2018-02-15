@@ -1003,6 +1003,8 @@ static void processKeyboard(Music* music)
 {
 	tic_mem* tic = music->tic;
 
+	if(tic->ram.input.keyboard.data == 0) return;
+
 	switch(getClipboardEvent())
 	{
 	case TIC_CLIPBOARD_CUT: copyToClipboard(music, true); break;
