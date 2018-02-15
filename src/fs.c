@@ -106,13 +106,12 @@ bool fsIsInPublicDir(FileSystem* fs)
 
 #if defined(__TIC_WINDOWS__) || defined(__TIC_WINRT__)
 
-// #define UTF8ToString(S) (wchar_t *)SDL_iconv_string("UTF-16LE", "UTF-8", (char *)(S), strlen(S)+1)
-// #define StringToUTF8(S) SDL_iconv_string("UTF-8", "UTF-16LE", (char *)(S), (wcslen(S)+1)*sizeof(wchar_t))
+#define __S(x) L ## x 
+#define _S(x) __S(x)
 
 static const wchar_t* UTF8ToString(const char* str)
 {
-	// TODO: ugly hack
-	wchar_t* wstr = calloc(1, FILENAME_MAX * sizeof(wchar_t));
+	static wchar_t wstr[FILENAME_MAX];
 
 	mbstowcs(wstr, str, FILENAME_MAX);
 
@@ -121,8 +120,7 @@ static const wchar_t* UTF8ToString(const char* str)
 
 static char* StringToUTF8(const wchar_t* wstr)
 {
-	// TODO: ugly hack
-	char* str = calloc(1, FILENAME_MAX);
+	static char str[FILENAME_MAX];
 
 	wcstombs(str, wstr, FILENAME_MAX);
 
@@ -146,6 +144,8 @@ int _wremove(const wchar_t *);
 #define tic_mkdir(name) _wmkdir(name)
 
 #else
+
+#define _S(x) (x)
 
 #define UTF8ToString(S) (S)
 #define StringToUTF8(S) (S)
@@ -380,7 +380,7 @@ static void onAddFile(const char* name, const u8* buffer, s32 size, void* data, 
 	{
 		const char* destname = getFilePath(fs, name);
 
-		FILE* file = tic_fopen(UTF8ToString(destname), UTF8ToString("rb"));
+		FILE* file = tic_fopen(UTF8ToString(destname), _S("rb"));
 		if(file)
 		{
 			fclose(file);
@@ -390,7 +390,7 @@ static void onAddFile(const char* name, const u8* buffer, s32 size, void* data, 
 		else
 		{
 			const char* path = getFilePath(fs, name);
-			FILE* dest = tic_fopen(UTF8ToString(path), UTF8ToString("wb"));
+			FILE* dest = tic_fopen(UTF8ToString(path), _S("wb"));
 
 			if (dest)
 			{
@@ -601,7 +601,7 @@ void fsGetFile(FileSystem* fs, GetCallback callback, const char* name, void* dat
 
 bool fsWriteFile(const char* name, const void* buffer, s32 size)
 {
-	FILE* file = tic_fopen(UTF8ToString(name), UTF8ToString("wb"));
+	FILE* file = tic_fopen(UTF8ToString(name), _S("wb"));
 
 	if(file)
 	{
@@ -626,7 +626,7 @@ bool fsCopyFile(const char* src, const char* dst)
 	s32 size = 0;
 
 	{
-		FILE* file = tic_fopen(UTF8ToString(src), UTF8ToString("rb"));
+		FILE* file = tic_fopen(UTF8ToString(src), _S("rb"));
 		if(file)
 		{
 			fseek(file, 0, SEEK_END);
@@ -641,7 +641,7 @@ bool fsCopyFile(const char* src, const char* dst)
 
 	if(buffer)
 	{
-		FILE* file = tic_fopen(UTF8ToString(dst), UTF8ToString("wb"));
+		FILE* file = tic_fopen(UTF8ToString(dst), _S("wb"));
 
 		if(file)
 		{
@@ -659,7 +659,7 @@ bool fsCopyFile(const char* src, const char* dst)
 
 void* fsReadFile(const char* path, s32* size)
 {
-	FILE* file = tic_fopen(UTF8ToString(path), UTF8ToString("rb"));
+	FILE* file = tic_fopen(UTF8ToString(path), _S("rb"));
 	void* buffer = NULL;
 
 	if(file)
@@ -855,7 +855,7 @@ void* fsLoadFile(FileSystem* fs, const char* name, s32* size)
 	}
 	else
 	{
-		FILE* file = tic_fopen(UTF8ToString(getFilePath(fs, name)), UTF8ToString("rb"));
+		FILE* file = tic_fopen(UTF8ToString(getFilePath(fs, name)), _S("rb"));
 		void* ptr = NULL;
 
 		if(file)

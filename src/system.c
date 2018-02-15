@@ -89,16 +89,15 @@ static void initSound()
 	}
 }
 
-static u8* _getSpritePtr(tic_tile* tiles, s32 x, s32 y)
+static u8* getSpritePtr(tic_tile* tiles, s32 x, s32 y)
 {
 	enum { SheetCols = (TIC_SPRITESHEET_SIZE / TIC_SPRITESIZE) };
 	return tiles[x / TIC_SPRITESIZE + y / TIC_SPRITESIZE * SheetCols].data;
 }
 
-static u8 _getSpritePixel(tic_tile* tiles, s32 x, s32 y)
+static u8 getSpritePixel(tic_tile* tiles, s32 x, s32 y)
 {
-	// TODO: check spritesheet rect
-	return tic_tool_peek4(_getSpritePtr(tiles, x, y), (x % TIC_SPRITESIZE) + (y % TIC_SPRITESIZE) * TIC_SPRITESIZE);
+	return tic_tool_peek4(getSpritePtr(tiles, x, y), (x % TIC_SPRITESIZE) + (y % TIC_SPRITESIZE) * TIC_SPRITESIZE);
 }
 
 static void setWindowIcon()
@@ -113,7 +112,7 @@ static void setWindowIcon()
 	for(s32 j = 0, index = 0; j < Size; j++)
 		for(s32 i = 0; i < Size; i++, index++)
 		{
-			u8 color = _getSpritePixel(platform.studio->tic->config.bank0.tiles.data, i/Scale, j/Scale);
+			u8 color = getSpritePixel(platform.studio->tic->config.bank0.tiles.data, i/Scale, j/Scale);
 			pixels[index] = color == ColorKey ? 0 : pal[color];
 		}
 
@@ -237,34 +236,6 @@ static void calcTextureRect(SDL_Rect* rect)
 		rect->h = discreteHeight;
 	}
 }
-
-// static void processGesture()
-// {
-// 	SDL_TouchID id = SDL_GetTouchDevice(0);
-// 	s32 fingers = SDL_GetNumTouchFingers(id);
-
-// 	enum{Fingers = 2};
-
-// 	if(fingers == Fingers)
-// 	{
-// 		tic_point point = {0, 0};
-
-// 		for(s32 f = 0; f < fingers; f++)
-// 		{
-// 			SDL_Finger* finger = SDL_GetTouchFinger(id, 0);
-
-// 			point.x += (s32)(finger->x * TIC80_WIDTH);
-// 			point.y += (s32)(finger->y * TIC80_HEIGHT);
-// 		}
-
-// 		point.x /= Fingers;
-// 		point.y /= Fingers;
-
-// 		platform.gesture.pos = point;
-
-// 		platform.gesture.active = true;
-// 	}
-// }
 
 static void processMouse()
 {
@@ -600,11 +571,6 @@ static void pollEvent()
 			break;
 		}
 	}
-
-	// if(platform.mode != TIC_RUN_MODE)
-		// processGesture();
-
-	// if(!platform.gesture.active)
 
 	processMouse();
 	processKeyboard();
@@ -942,8 +908,6 @@ static void openSystemPath(const char* path)
 #if defined(__WINDOWS__)
 
 	sprintf(command, "explorer \"%s\"", path);
-
-	printf("%s\n", command);
 
 	wchar_t wcommand[FILENAME_MAX];
 	mbstowcs(wcommand, command, FILENAME_MAX);
