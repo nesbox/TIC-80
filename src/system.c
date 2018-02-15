@@ -968,6 +968,7 @@ static System systemInterface =
 
 	.openSystemPath = openSystemPath,
 	.preseed = preseed,
+	.poll = pollEvent,
 };
 
 #if defined(__EMSCRIPTEN__)

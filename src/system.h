@@ -23,6 +23,7 @@ typedef struct
 	void (*openSystemPath)(const char* path);
 	
 	void (*preseed)();
+	void (*poll)();
 
 } System;
 

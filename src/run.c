@@ -158,7 +158,11 @@ static void processDoFile(void* data, char* dst)
 
 static bool forceExit(void* data)
 {
-	return getStudioMode() != TIC_RUN_MODE;
+	getSystem()->poll();
+
+	tic_mem* tic = ((Run*)data)->tic;
+
+	return tic->api.key(tic, tic_key_escape);
 }
 
 void initRun(Run* run, Console* console, tic_mem* tic)
