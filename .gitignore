@@ -109,3 +109,5 @@ build/uwp/studio/Debug/
 build/uwp/studio/Debug Pro/
 build/uwp/studio/Release/
 build/uwp/studio/Release Pro/
+build/uwp/studio/ARM/
+build/uwp/studio/x64/
