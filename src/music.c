@@ -91,19 +91,19 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
 	};
 
 	{
-		SDL_Rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
+		tic_rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
 
 		bool over = false;
 		bool down = false;
 		if (checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 			over = true;
 
-			if (checkMouseDown(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseDown(&rect, tic_mouse_left))
 				down = true;
 
-			if (checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseClick(&rect, tic_mouse_left))
 				set(music, -1, channel);
 		}
 
@@ -113,13 +113,13 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
 	{
 		x += TIC_FONT_WIDTH;
 
-		SDL_Rect rect = { x-1, y-1, TIC_FONT_WIDTH*2+1, TIC_FONT_HEIGHT+1 };
+		tic_rect rect = { x-1, y-1, TIC_FONT_WIDTH*2+1, TIC_FONT_HEIGHT+1 };
 
 		if (checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
-			if (checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseClick(&rect, tic_mouse_left))
 			{
 				music->tracker.row = -1;
 				music->tracker.col = channel * CHANNEL_COLS;
@@ -145,19 +145,19 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
 	{
 		x += 2*TIC_FONT_WIDTH;
 
-		SDL_Rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
+		tic_rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
 
 		bool over = false;
 		bool down = false;
 		if (checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 			over = true;
 
-			if (checkMouseDown(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseDown(&rect, tic_mouse_left))
 				down = true;
 
-			if (checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseClick(&rect, tic_mouse_left))
 				set(music, +1, channel);
 		}
 
@@ -197,20 +197,20 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
 	{
 		x += (s32)strlen(label)*TIC_FONT_WIDTH;
 
-		SDL_Rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
+		tic_rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
 
 		bool over = false;
 		bool down = false;
 		if (checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
 			over = true;
 
-			if (checkMouseDown(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseDown(&rect, tic_mouse_left))
 				down = true;
 
-			if (checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseClick(&rect, tic_mouse_left))
 				set(music, -1, data);
 		}
 
@@ -227,20 +227,20 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
 	{
 		x += (value > 99 ? 3 : 2)*TIC_FONT_WIDTH;
 
-		SDL_Rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
+		tic_rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
 
 		bool over = false;
 		bool down = false;
 		if (checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
 			over = true;
 
-			if (checkMouseDown(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseDown(&rect, tic_mouse_left))
 				down = true;
 
-			if (checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseClick(&rect, tic_mouse_left))
 				set(music, +1, data);
 		}
 
@@ -546,8 +546,8 @@ static void stopTrack(Music* music)
 
 static void resetSelection(Music* music)
 {
-	music->tracker.select.start = (SDL_Point){-1, -1};
-	music->tracker.select.rect = (SDL_Rect){0, 0, 0, 0};
+	music->tracker.select.start = (tic_point){-1, -1};
+	music->tracker.select.rect = (tic_rect){0, 0, 0, 0};
 }
 
 static void deleteSelection(Music* music)
@@ -556,7 +556,7 @@ static void deleteSelection(Music* music)
 
 	if(pattern)
 	{
-		SDL_Rect rect = music->tracker.select.rect;
+		tic_rect rect = music->tracker.select.rect;
 
 		if(rect.h <= 0)
 		{
@@ -565,7 +565,7 @@ static void deleteSelection(Music* music)
 		}
 
 		enum{RowSize = sizeof(tic_track_pattern) / MUSIC_PATTERN_ROWS};
-		SDL_memset(&pattern->rows[rect.y], 0, RowSize * rect.h);
+		memset(&pattern->rows[rect.y], 0, RowSize * rect.h);
 	}
 }
 
@@ -580,7 +580,7 @@ static void copyToClipboard(Music* music, bool cut)
 
 	if(pattern)
 	{
-		SDL_Rect rect = music->tracker.select.rect;
+		tic_rect rect = music->tracker.select.rect;
 
 		if(rect.h <= 0)
 		{
@@ -593,16 +593,16 @@ static void copyToClipboard(Music* music, bool cut)
 		enum{RowSize = sizeof(tic_track_pattern) / MUSIC_PATTERN_ROWS, HeaderSize = sizeof(ClipboardHeader)};
 
 		s32 size = rect.h * RowSize + HeaderSize;
-		u8* data = SDL_malloc(size);
+		u8* data = malloc(size);
 
 		if(data)
 		{
-			SDL_memcpy(data, &header, HeaderSize);
-			SDL_memcpy(data + HeaderSize, &pattern->rows[rect.y], RowSize * rect.h);
+			memcpy(data, &header, HeaderSize);
+			memcpy(data + HeaderSize, &pattern->rows[rect.y], RowSize * rect.h);
 
 			toClipboard(data, size, true);
 
-			SDL_free(data);
+			free(data);
 
 			if(cut)
 			{
@@ -619,9 +619,9 @@ static void copyFromClipboard(Music* music)
 {
 	tic_track_pattern* pattern = getChannelPattern(music);
 
-	if(pattern && SDL_HasClipboardText())
+	if(pattern && getSystem()->hasClipboardText())
 	{
-		char* clipboard = SDL_GetClipboardText();
+		char* clipboard = getSystem()->getClipboardText();
 
 		if(clipboard)
 		{
@@ -631,27 +631,27 @@ static void copyFromClipboard(Music* music)
 
 			if(size > HeaderSize)
 			{
-				u8* data = SDL_malloc(size);
+				u8* data = malloc(size);
 
 				str2buf(clipboard, strlen(clipboard), data, true);
 
 				ClipboardHeader header = {0};
 
-				SDL_memcpy(&header, data, HeaderSize);
+				memcpy(&header, data, HeaderSize);
 
 				if(header.size * RowSize == size - HeaderSize)
 				{
 					if(header.size + music->tracker.row > MUSIC_PATTERN_ROWS)
 						header.size = MUSIC_PATTERN_ROWS - music->tracker.row;
 
-					SDL_memcpy(&pattern->rows[music->tracker.row], data + HeaderSize, header.size * RowSize);
+					memcpy(&pattern->rows[music->tracker.row], data + HeaderSize, header.size * RowSize);
 					history_add(music->history);
 				}
 
-				SDL_free(data);
+				free(data);
 			}
 
-			SDL_free(clipboard);
+			free(clipboard);
 		}
 	}
 }
@@ -726,116 +726,117 @@ static void checkSelection(Music* music)
 
 static void updateSelection(Music* music)
 {
-	s32 rl = SDL_min(music->tracker.col, music->tracker.select.start.x);
-	s32 rt = SDL_min(music->tracker.row, music->tracker.select.start.y);
-	s32 rr = SDL_max(music->tracker.col, music->tracker.select.start.x);
-	s32 rb = SDL_max(music->tracker.row, music->tracker.select.start.y);
+	s32 rl = MIN(music->tracker.col, music->tracker.select.start.x);
+	s32 rt = MIN(music->tracker.row, music->tracker.select.start.y);
+	s32 rr = MAX(music->tracker.col, music->tracker.select.start.x);
+	s32 rb = MAX(music->tracker.row, music->tracker.select.start.y);
 
-	SDL_Rect* rect = &music->tracker.select.rect;
-	*rect = (SDL_Rect){rl, rt, rr - rl + 1, rb - rt + 1};
+	tic_rect* rect = &music->tracker.select.rect;
+	*rect = (tic_rect){rl, rt, rr - rl + 1, rb - rt + 1};
 
 	if(rect->x % CHANNEL_COLS + rect->w > CHANNEL_COLS)
 		resetSelection(music);
 }
 
-static void processTrackerKeydown(Music* music, SDL_Keysym* keysum)
+static void processTrackerKeyboard(Music* music)
 {
-	SDL_Keycode keycode = keysum->sym;
-	SDL_Scancode scancode = keysum->scancode;
+	tic_mem* tic = music->tic;
 
-	bool shift = SDL_GetModState() & KMOD_SHIFT;
+	if(tic->ram.input.keyboard.data == 0)
+	{
+		music->tracker.note = -1;
+		s32 channel = music->tracker.col / CHANNEL_COLS;
+		music->tic->api.sfx_stop(music->tic, channel);
+		return;
+	}
+
+	bool shift = tic->api.key(tic, tic_key_shift);
 
 	if(shift)
 	{
-		switch (keycode)
+		if(keyWasPressed(tic_key_up)
+			|| keyWasPressed(tic_key_down)
+			|| keyWasPressed(tic_key_left)
+			|| keyWasPressed(tic_key_right)
+			|| keyWasPressed(tic_key_home)
+			|| keyWasPressed(tic_key_end)
+			|| keyWasPressed(tic_key_pageup)
+			|| keyWasPressed(tic_key_pagedown)
+			|| keyWasPressed(tic_key_tab))
 		{
-		case SDLK_UP:
-		case SDLK_DOWN:
-		case SDLK_LEFT:
-		case SDLK_RIGHT:
-		case SDLK_HOME:
-		case SDLK_END:
-		case SDLK_PAGEUP:
-		case SDLK_PAGEDOWN:
-		case SDLK_TAB:
 			checkSelection(music);
 		}
 	}
 
-	switch (keycode)
+	if(keyWasPressed(tic_key_up)) 			upRow(music);
+	else if(keyWasPressed(tic_key_down)) 	downRow(music);
+	else if(keyWasPressed(tic_key_left)) 	leftCol(music);
+	else if(keyWasPressed(tic_key_right)) 	rightCol(music);
+	else if(keyWasPressed(tic_key_home)) 	goHome(music);
+	else if(keyWasPressed(tic_key_end)) 		goEnd(music);
+	else if(keyWasPressed(tic_key_pageup)) 	pageUp(music);
+	else if(keyWasPressed(tic_key_pagedown)) pageDown(music);
+	else if(keyWasPressed(tic_key_tab)) 		doTab(music);
+	else if(keyWasPressed(tic_key_delete)) 		
 	{
-	case SDLK_UP: 			upRow(music); break;
-	case SDLK_DOWN:			downRow(music); break;
-	case SDLK_LEFT: 		leftCol(music); break;
-	case SDLK_RIGHT:		rightCol(music); break;
-	case SDLK_HOME: 		goHome(music); break;
-	case SDLK_END: 			goEnd(music); break;
-	case SDLK_PAGEUP: 		pageUp(music); break;
-	case SDLK_PAGEDOWN: 	pageDown(music); break;
-	case SDLK_TAB: 			doTab(music); break;
-	case SDLK_DELETE:
 		deleteSelection(music);
 		history_add(music->history);
 		downRow(music);
-		break;
-	case SDLK_SPACE:	playNote(music); break;
-	case SDLK_RETURN:
-	case SDLK_KP_ENTER:
-		{
+	}
+	else if(keyWasPressed(tic_key_space)) playNote(music);
+	else if(keyWasPressed(tic_key_return))
+	{
 		const tic_music_pos* pos = getMusicPos(music);
 		pos->track < 0
 			? (shift ? playFrameRow(music) : playFrame(music))
 			: stopTrack(music);        
-		}
-		break;
 	}
 
 	if(shift)
 	{
-		switch (keycode)
+		if(keyWasPressed(tic_key_up)
+			|| keyWasPressed(tic_key_down)
+			|| keyWasPressed(tic_key_left)
+			|| keyWasPressed(tic_key_right)
+			|| keyWasPressed(tic_key_home)
+			|| keyWasPressed(tic_key_end)
+			|| keyWasPressed(tic_key_pageup)
+			|| keyWasPressed(tic_key_pagedown)
+			|| keyWasPressed(tic_key_tab))
 		{
-		case SDLK_UP:
-		case SDLK_DOWN:
-		case SDLK_LEFT:
-		case SDLK_RIGHT:
-		case SDLK_HOME:
-		case SDLK_END:
-		case SDLK_PAGEUP:
-		case SDLK_PAGEDOWN:
-		case SDLK_TAB:
 			updateSelection(music);
 		}
 	}
 	else resetSelection(music);
 
-	static const SDL_Scancode Piano[] =
+	static const tic_keycode Piano[] =
 	{
-		SDL_SCANCODE_Z,
-		SDL_SCANCODE_S,
-		SDL_SCANCODE_X,
-		SDL_SCANCODE_D,
-		SDL_SCANCODE_C,
-		SDL_SCANCODE_V,
-		SDL_SCANCODE_G,
-		SDL_SCANCODE_B,
-		SDL_SCANCODE_H,
-		SDL_SCANCODE_N,
-		SDL_SCANCODE_J,
-		SDL_SCANCODE_M,
+		tic_key_z,
+		tic_key_s,
+		tic_key_x,
+		tic_key_d,
+		tic_key_c,
+		tic_key_v,
+		tic_key_g,
+		tic_key_b,
+		tic_key_h,
+		tic_key_n,
+		tic_key_j,
+		tic_key_m,
 
 		// octave +1
-		SDL_SCANCODE_Q,
-		SDL_SCANCODE_2,
-		SDL_SCANCODE_W,
-		SDL_SCANCODE_3,
-		SDL_SCANCODE_E,
-		SDL_SCANCODE_R,
-		SDL_SCANCODE_5,
-		SDL_SCANCODE_T,
-		SDL_SCANCODE_6,
-		SDL_SCANCODE_Y,
-		SDL_SCANCODE_7,
-		SDL_SCANCODE_U,
+		tic_key_q,
+		tic_key_2,
+		tic_key_w,
+		tic_key_3,
+		tic_key_e,
+		tic_key_r,
+		tic_key_5,
+		tic_key_t,
+		tic_key_6,
+		tic_key_y,
+		tic_key_7,
+		tic_key_u,
 	};
 
 	if (getChannelPattern(music))
@@ -846,7 +847,7 @@ static void processTrackerKeydown(Music* music, SDL_Keysym* keysum)
 		{
 		case ColumnNote:
 		case ColumnSemitone:
-			if (scancode == SDL_SCANCODE_1 || scancode == SDL_SCANCODE_A)
+			if (keyWasPressed(tic_key_1) || keyWasPressed(tic_key_a))
 			{
 				setStopNote(music);
 				downRow(music);
@@ -857,7 +858,7 @@ static void processTrackerKeydown(Music* music, SDL_Keysym* keysum)
 
 				for (s32 i = 0; i < COUNT_OF(Piano); i++)
 				{
-					if (scancode == Piano[i])
+					if (keyWasPressed(Piano[i]))
 					{
 						s32 note = i % NOTES;
 
@@ -877,8 +878,7 @@ static void processTrackerKeydown(Music* music, SDL_Keysym* keysum)
 						downRow(music);
 
 						break;
-					}
-				
+					}				
 				}
 			}
 			break;
@@ -886,8 +886,10 @@ static void processTrackerKeydown(Music* music, SDL_Keysym* keysum)
 			if(getNote(music) >= 0)
 			{
 				s32 octave = -1;
-				if (keycode >= SDLK_1 && keycode <= SDLK_8) octave = keycode - SDLK_1;
-				if (keycode >= SDLK_KP_1 && keycode <= SDLK_KP_8) octave = keycode - SDLK_KP_1;
+
+				char sym = getKeyboardText();
+
+				if(sym >= '1' && sym <= '8') octave = sym - '1';
 
 				if(octave >= 0)
 				{
@@ -901,10 +903,10 @@ static void processTrackerKeydown(Music* music, SDL_Keysym* keysum)
 			if(getNote(music) >= 0)
 			{
 				s32 val = -1;
+
+				char sym = getKeyboardText();
 							
-				if (keycode >= SDLK_0 && keycode <= SDLK_9) val = keycode - SDLK_0;
-				if (keycode >= SDLK_KP_1 && keycode <= SDLK_KP_9) val = keycode - SDLK_KP_1 + 1;
-				if (keycode == SDLK_KP_0) val = 0;
+				if (sym >= '0' && sym <= '9') val = sym - '0';
 
 				if(val >= 0)
 				{
@@ -927,10 +929,10 @@ static void processTrackerKeydown(Music* music, SDL_Keysym* keysum)
 			{
 				s32 val = -1;
 							
-				if(keycode >= SDLK_0 && keycode <= SDLK_9) val = keycode - SDLK_0;
-				if(keycode >= SDLK_a && keycode <= SDLK_f) val = keycode - SDLK_a + 10;
-				if(keycode >= SDLK_KP_1 && keycode <= SDLK_KP_9) val = keycode - SDLK_KP_1 + 1;
-				if(keycode == SDLK_KP_0) val = 0;
+				char sym = getKeyboardText();
+
+				if(sym >= '0' && sym <= '9') val = sym - '0';
+				if(sym >= 'a' && sym <= 'f') val = sym - 'a' + 10;
 
 				if(val >= 0)
 				{
@@ -945,46 +947,40 @@ static void processTrackerKeydown(Music* music, SDL_Keysym* keysum)
 	}
 }
 
-static void processPatternKeydown(Music* music, SDL_Keysym* keysum)
+static void processPatternKeyboard(Music* music)
 {
-	SDL_Keycode keycode = keysum->sym;
-
 	s32 channel = music->tracker.col / CHANNEL_COLS;
 
-	switch (keycode)
+	if(keyWasPressed(tic_key_delete)) 		setChannelPatternValue(music, 0, channel);
+	else if(keyWasPressed(tic_key_tab)) 		nextPattern(music);
+	else if(keyWasPressed(tic_key_left)) 	patternColLeft(music);
+	else if(keyWasPressed(tic_key_right)) 	patternColRight(music);
+	else if(keyWasPressed(tic_key_down) 
+		|| keyWasPressed(tic_key_return)) 
+		music->tracker.row = music->tracker.scroll;
+	else
 	{
-	case SDLK_DELETE: setChannelPatternValue(music, 0, channel); break;
-	case SDLK_TAB: nextPattern(music); break;
-	case SDLK_DOWN:
-	case SDLK_KP_ENTER:
-	case SDLK_RETURN: music->tracker.row = music->tracker.scroll; break;
-	case SDLK_LEFT: patternColLeft(music); break;
-	case SDLK_RIGHT: patternColRight(music); break;
-	default:
+		s32 val = -1;
+
+		char sym = getKeyboardText();
+
+		if(sym >= '0' && sym <= '9') val = sym - '0';
+
+		if(val >= 0)
 		{
-			s32 val = -1;
+			enum {Base = 10};
+			s32 patternId = tic_tool_get_pattern_id(getTrack(music), music->tracker.frame, channel);
 
-			if(keycode >= SDLK_0 && keycode <= SDLK_9) val = keycode - SDLK_0;
-			if(keycode >= SDLK_KP_1 && keycode <= SDLK_KP_9) val = keycode - SDLK_KP_1 + 1;
-			if(keycode == SDLK_KP_0) val = 0;
+			patternId = music->tracker.patternCol == 0
+				? val * Base + patternId % Base
+				: patternId / Base * Base + val % Base;
 
-
-			if(val >= 0)
+			if(patternId <= MUSIC_PATTERNS)
 			{
-				enum {Base = 10};
-				s32 patternId = tic_tool_get_pattern_id(getTrack(music), music->tracker.frame, channel);
+				setChannelPatternValue(music, patternId, channel);
 
-				patternId = music->tracker.patternCol == 0
-					? val * Base + patternId % Base
-					: patternId / Base * Base + val % Base;
-
-				if(patternId <= MUSIC_PATTERNS)
-				{
-					setChannelPatternValue(music, patternId, channel);
-
-					if(music->tracker.patternCol == 0)
-						patternColRight(music);		 				
-				}
+				if(music->tracker.patternCol == 0)
+					patternColRight(music);		 				
 			}
 		}
 	}
@@ -996,18 +992,20 @@ static void selectAll(Music* music)
 
 	s32 col = music->tracker.col - music->tracker.col % CHANNEL_COLS;
 
-	music->tracker.select.start = (SDL_Point){col, 0};
+	music->tracker.select.start = (tic_point){col, 0};
 	music->tracker.col = col + CHANNEL_COLS-1;
 	music->tracker.row = MUSIC_PATTERN_ROWS-1;
 
 	updateSelection(music);
 }
 
-static void processKeydown(Music* music, SDL_Keysym* keysum)
+static void processKeyboard(Music* music)
 {
-	SDL_Keycode keycode = keysum->sym;
+	tic_mem* tic = music->tic;
 
-	switch(getClipboardEvent(keycode))
+	if(tic->ram.input.keyboard.data == 0) return;
+
+	switch(getClipboardEvent())
 	{
 	case TIC_CLIPBOARD_CUT: copyToClipboard(music, true); break;
 	case TIC_CLIPBOARD_COPY: copyToClipboard(music, false); break;
@@ -1015,32 +1013,22 @@ static void processKeydown(Music* music, SDL_Keysym* keysum)
 	default: break;
 	}
 
-	SDL_Keymod keymod = SDL_GetModState();
+	bool ctrl = tic->api.key(tic, tic_key_ctrl);
 
-	if (keymod & TIC_MOD_CTRL)
+	if (ctrl)
 	{
-		switch (keycode)
-		{
-		case SDLK_a:	selectAll(music); break;
-		case SDLK_z: 	undo(music); break;
-		case SDLK_y: 	redo(music); break;
-		case SDLK_UP: 	upFrame(music); break;
-		case SDLK_DOWN:	downFrame(music); break;
-		}
+		if(keyWasPressed(tic_key_a)) 		selectAll(music);
+		else if(keyWasPressed(tic_key_z)) 	undo(music);
+		else if(keyWasPressed(tic_key_y)) 	redo(music);
+		else if(keyWasPressed(tic_key_up)) 	upFrame(music);
+		else if(keyWasPressed(tic_key_down)) downFrame(music);
 	}
 	else
 	{
 		music->tracker.row >= 0 
-			? processTrackerKeydown(music, keysum)
-			: processPatternKeydown(music, keysum);
+			? processTrackerKeyboard(music)
+			: processPatternKeyboard(music);
 	}
-}
-
-static void processKeyup(Music* music, SDL_Keysym* keysum)
-{
-	music->tracker.note = -1;
-	s32 channel = music->tracker.col / CHANNEL_COLS;
-	music->tic->api.sfx_stop(music->tic, channel);
 }
 
 static void setIndex(Music* music, s32 delta, void* data)
@@ -1134,13 +1122,13 @@ static void drawTrackerFrames(Music* music, s32 x, s32 y)
 	};
 
 	{
-		SDL_Rect rect = { x - Border, y - Border, Width, MUSIC_FRAMES * TIC_FONT_HEIGHT + Border };
+		tic_rect rect = { x - Border, y - Border, Width, MUSIC_FRAMES * TIC_FONT_HEIGHT + Border };
 
 		if (checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
-			if (checkMouseDown(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseDown(&rect, tic_mouse_left))
 			{
 				s32 my = getMouseY() - rect.y - Border;
 				music->tracker.frame = my / TIC_FONT_HEIGHT;
@@ -1216,13 +1204,13 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 		Width = TIC_FONT_WIDTH * 8 + Border,
 	};
 
-	SDL_Rect rect = {x - Border, y - Border, Width, Rows*TIC_FONT_HEIGHT + Border};
+	tic_rect rect = {x - Border, y - Border, Width, Rows*TIC_FONT_HEIGHT + Border};
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 		{
 			s32 mx = getMouseX() - rect.x - Border;
 			s32 my = getMouseY() - rect.y - Border;
@@ -1237,7 +1225,7 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 			else
 			{
 				resetSelection(music);
-				music->tracker.select.start = (SDL_Point){col, row};
+				music->tracker.select.start = (tic_point){col, row};
 
 				music->tracker.select.drag = true;
 			}
@@ -1246,8 +1234,8 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 
 	if(music->tracker.select.drag)
 	{
-		SDL_Rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
-		if(!checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
+		if(!checkMouseDown(&rect, tic_mouse_left))
 		{
 			music->tracker.select.drag = false;
 		}
@@ -1274,7 +1262,7 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 		// draw selection
 		if (selectedChannel)
 		{
-			SDL_Rect rect = music->tracker.select.rect;
+			tic_rect rect = music->tracker.select.rect;
 			if (rect.h > 1 && i >= rect.y && i < rect.y + rect.h)
 			{
 				s32 sx = x - 1;
@@ -1346,22 +1334,22 @@ static void drawTumbler(Music* music, s32 x, s32 y, s32 index)
 
 	enum{On=36, Off = 52, Size=5, Chroma=14};
 	
-	SDL_Rect rect = {x, y, Size, Size};
+	tic_rect rect = {x, y, Size, Size};
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		showTooltip("on/off channel");
 
-		if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseClick(&rect, tic_mouse_left))
 		{
-			if (SDL_GetModState() & KMOD_CTRL)
-			{
-				for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
-					music->tracker.patterns[i] = i == index;
-			}
-			else music->tracker.patterns[index] = !music->tracker.patterns[index];
+			// if (SDL_GetModState() & KMOD_CTRL)
+			// {
+			// 	for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
+			// 		music->tracker.patterns[i] = i == index;
+			// }
+			// else music->tracker.patterns[index] = !music->tracker.patterns[index];
 		}
 	}
 
@@ -1438,13 +1426,13 @@ static void drawPlayButtons(Music* music)
 
 	for (s32 i = 0; i < Count; i++)
 	{
-		SDL_Rect rect = { Offset + Width * i, 0, Width, Height };
+		tic_rect rect = { Offset + Width * i, 0, Width, Height };
 
 		bool over = false;
 
 		if (checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 			over = true;
 
 			static const char* Tooltips[] = { "RECORD MUSIC", "PLAY FRAME [enter]", "PLAY TRACK", "STOP [enter]" };
@@ -1452,7 +1440,7 @@ static void drawPlayButtons(Music* music)
 
 			static void(*const Handlers[])(Music*) = { enableFollowMode, playFrame, playTrack, stopTrack };
 
-			if (checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseClick(&rect, tic_mouse_left))
 				Handlers[i](music);
 		}
 
@@ -1490,7 +1478,7 @@ static void drawModeTabs(Music* music)
 
 	for (s32 i = 0; i < Count; i++)
 	{
-		SDL_Rect rect = { TIC80_WIDTH - Width * (Count - i), 0, Width, Height };
+		tic_rect rect = { TIC80_WIDTH - Width * (Count - i), 0, Width, Height };
 
 
 		static const s32 Tabs[] = { MUSIC_PIANO_TAB, MUSIC_TRACKER_TAB };
@@ -1499,13 +1487,13 @@ static void drawModeTabs(Music* music)
 
 		if (checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 			over = true;
 
 			static const char* Tooltips[] = { "PIANO MODE", "TRACKER MODE" };
 			showTooltip(Tooltips[i]);
 
-			if (checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseClick(&rect, tic_mouse_left))
 				music->tab = Tabs[i];
 		}
 
@@ -1529,9 +1517,6 @@ static void drawMusicToolbar(Music* music)
 
 static void drawPianoLayout(Music* music)
 {
-	SDL_Event* event = NULL;
-	while ((event = pollEvent())){}
-
 	music->tic->api.clear(music->tic, (tic_color_gray));
 
 	static const char Wip[] = "PIANO MODE - WORK IN PROGRESS...";
@@ -1544,7 +1529,7 @@ static void scrollNotes(Music* music, s32 delta)
 
 	if(pattern)
 	{
-		SDL_Rect rect = music->tracker.select.rect;
+		tic_rect rect = music->tracker.select.rect;
 
 		if(rect.h <= 0)
 		{
@@ -1571,34 +1556,31 @@ static void scrollNotes(Music* music, s32 delta)
 
 static void drawTrackerLayout(Music* music)
 {
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
+	tic_mem* tic = music->tic;
+
+	// process scroll
 	{
-		switch (event->type)
+		tic80_input* input = &tic->ram.input;
+
+		if(input->mouse.scrolly)
 		{
-		case SDL_MOUSEWHEEL:
-			if(SDL_GetModState() & TIC_MOD_CTRL)
+			if(tic->api.key(tic, tic_key_ctrl))
 			{
-				scrollNotes(music, event->wheel.y > 0 ? 1 : -1);
+				scrollNotes(music, input->mouse.scrolly > 0 ? 1 : -1);
 			}
 			else
 			{		
 				enum{Scroll = NOTES_PER_BEET};
-				s32 delta = event->wheel.y > 0 ? -Scroll : Scroll;
+				s32 delta = input->mouse.scrolly > 0 ? -Scroll : Scroll;
 
 				music->tracker.scroll += delta;
 
 				updateScroll(music);
 			}
-			break;
-		case SDL_KEYDOWN:
-			processKeydown(music, &event->key.keysym);
-			break;
-		case SDL_KEYUP:
-			processKeyup(music, &event->key.keysym);
-			break;
 		}
 	}
+
+	processKeyboard(music);
 
 	if(music->tracker.follow)
 	{

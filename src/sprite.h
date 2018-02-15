@@ -44,8 +44,8 @@ struct Sprite
 
 	struct
 	{
-		SDL_Rect rect;
-		SDL_Point start;
+		tic_rect rect;
+		tic_point start;
 		bool drag;
 		u8* back;
 		u8* front;

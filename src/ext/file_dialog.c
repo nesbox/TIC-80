@@ -115,40 +115,6 @@ void file_dialog_save(file_dialog_save_callback callback, const char* name, cons
 	callback(false, data);
 }
 
-#include <shlobj.h>
-
-const char* folder_dialog(void* data)
-{
-
-	BROWSEINFOW bi = { 0 };
-	bi.lpszTitle  = L"Browse for folder...";
-	bi.ulFlags    = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
-	bi.lParam     = (LPARAM) NULL;
-
-	LPITEMIDLIST pidl = SHBrowseForFolderW ( &bi );
-
-	if ( pidl != 0 )
-	{
-		wchar_t path[MAX_PATH];
-		SHGetPathFromIDListW (pidl, path);
-
-		LPMALLOC imalloc = NULL;
-		if ( SUCCEEDED( SHGetMalloc ( &imalloc )) )
-		{
-			imalloc->lpVtbl->Free (imalloc, pidl );
-			imalloc->lpVtbl->Release (imalloc);
-		}
-
-		{
-			static char result[MAX_PATH];
-			strcpy(result, StringToUTF8(path));
-			return result;
-		}
-	}
-
-	return NULL;
-}
-
 #elif defined(__EMSCRIPTEN__)
 
 #include <emscripten.h>

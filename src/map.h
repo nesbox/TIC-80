@@ -46,14 +46,14 @@ struct Map
 	{
 		bool grid;
 		bool draw;
-		SDL_Point start;
+		tic_point start;
 	} canvas;
 
 	struct
 	{
 		bool show;
-		SDL_Rect rect;
-		SDL_Point start;
+		tic_rect rect;
+		tic_point start;
 		bool drag;
 	} sheet;
 
@@ -62,7 +62,7 @@ struct Map
 		s32 x;
 		s32 y;
 
-		SDL_Point start;
+		tic_point start;
 
 		bool active;
 		bool gesture;
@@ -71,8 +71,8 @@ struct Map
 
 	struct
 	{
-		SDL_Rect rect;
-		SDL_Point start;
+		tic_rect rect;
+		tic_point start;
 		bool drag;
 	} select;
 

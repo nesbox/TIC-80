@@ -68,13 +68,13 @@ static void drawSwitch(Sfx* sfx, s32 x, s32 y, const char* label, s32 value, voi
 	{
 		x += (s32)strlen(label)*TIC_FONT_WIDTH;
 
-		SDL_Rect rect = {x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
+		tic_rect rect = {x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
 
 		if(checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 				set(sfx, -1);
 		}
 
@@ -90,13 +90,13 @@ static void drawSwitch(Sfx* sfx, s32 x, s32 y, const char* label, s32 value, voi
 	{
 		x += 2*TIC_FONT_WIDTH;
 
-		SDL_Rect rect = {x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
+		tic_rect rect = {x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
 
 		if(checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 				set(sfx, +1);
 		}
 
@@ -207,16 +207,16 @@ static void drawWaveButtons(Sfx* sfx, s32 x, s32 y)
 
 	for(s32 i = 0; i < Count; i++)
 	{
-		SDL_Rect rect = {x, y + (Count - i - 1)*(Height+Gap), Width, Height};
+		tic_rect rect = {x, y + (Count - i - 1)*(Height+Gap), Width, Height};
 
 		bool over = false;
 
 		if(checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 			over = true;
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 			{
 				sfx->waveform.index = i;
 				sfx->tab = SFX_WAVEFORM_TAB;
@@ -238,15 +238,15 @@ static void drawWaveButtons(Sfx* sfx, s32 x, s32 y)
 
 		{
 			enum{Size = 5};
-			SDL_Rect iconRect = {x+Width+HGap, y + (Count - i - 1)*(Height+Gap), Size, Size};
+			tic_rect iconRect = {x+Width+HGap, y + (Count - i - 1)*(Height+Gap), Size, Size};
 
 			bool over = false;
 			if(checkMousePos(&iconRect))
 			{
-				setCursor(SDL_SYSTEM_CURSOR_HAND);
+				setCursor(tic_cursor_hand);
 				over = true;
 
-				if(checkMouseClick(&iconRect, SDL_BUTTON_LEFT))
+				if(checkMouseClick(&iconRect, tic_mouse_left))
 				{
 					tic_sample* effect = getEffect(sfx);
 					for(s32 c = 0; c < SFX_TICKS; c++)
@@ -295,13 +295,13 @@ static void drawCanvasTabs(Sfx* sfx, s32 x, s32 y)
 	{
 		s32 size = sfx->tic->api.text(sfx->tic, Labels[i], 0, -TIC_FONT_HEIGHT, (tic_color_black));
 
-		SDL_Rect rect = {x - size, sy, size, TIC_FONT_HEIGHT};
+		tic_rect rect = {x - size, sy, size, TIC_FONT_HEIGHT};
 
 		if(checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 			{
 				sfx->canvasTab = i;
 			}
@@ -318,13 +318,13 @@ static void drawCanvasTabs(Sfx* sfx, s32 x, s32 y)
 		{
 			static const char Label[] = "x16";
 			enum{Width = (sizeof Label - 1) * TIC_FONT_WIDTH};
-			SDL_Rect rect = {(x - Width)/2, y + Height * 6, Width, TIC_FONT_HEIGHT};
+			tic_rect rect = {(x - Width)/2, y + Height * 6, Width, TIC_FONT_HEIGHT};
 
 			if(checkMousePos(&rect))
 			{
-				setCursor(SDL_SYSTEM_CURSOR_HAND);
+				setCursor(tic_cursor_hand);
 
-				if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+				if(checkMouseClick(&rect, tic_mouse_left))
 					effect->pitch16x++;
 			}
 
@@ -335,13 +335,13 @@ static void drawCanvasTabs(Sfx* sfx, s32 x, s32 y)
 		{
 			static const char Label[] = "DOWN";
 			enum{Width = (sizeof Label - 1) * TIC_FONT_WIDTH};
-			SDL_Rect rect = {(x - Width)/2, y + Height * 6, Width, TIC_FONT_HEIGHT};
+			tic_rect rect = {(x - Width)/2, y + Height * 6, Width, TIC_FONT_HEIGHT};
 
 			if(checkMousePos(&rect))
 			{
-				setCursor(SDL_SYSTEM_CURSOR_HAND);
+				setCursor(tic_cursor_hand);
 
-				if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+				if(checkMouseClick(&rect, tic_mouse_left))
 					effect->reverse++;
 			}
 
@@ -370,13 +370,13 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y)
 			sfx->tic->api.rect(sfx->tic, x + tickIndex * CANVAS_SIZE, y, CANVAS_SIZE + 1, CANVAS_HEIGHT + 1, (tic_color_white));
 	}
 
-	SDL_Rect rect = {x, y, CANVAS_WIDTH, CANVAS_HEIGHT};
+	tic_rect rect = {x, y, CANVAS_WIDTH, CANVAS_HEIGHT};
 
 	tic_sample* effect = getEffect(sfx);
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		s32 mx = getMouseX() - x;
 		s32 my = getMouseY() - y;
@@ -384,7 +384,7 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y)
 		mx -= mx % CANVAS_SIZE;
 		my -= my % CANVAS_SIZE;
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 		{
 			mx /= CANVAS_SIZE;
 			my /= CANVAS_SIZE;
@@ -420,7 +420,7 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y)
 			break;
 		case SFX_PITCH_TAB:
 			{
-				for(s32 j = SDL_min(0, effect->data[i].pitch); j <= SDL_max(0, effect->data[i].pitch); j++)
+				for(s32 j = MIN(0, effect->data[i].pitch); j <= MAX(0, effect->data[i].pitch); j++)
 					sfx->tic->api.rect(sfx->tic, x + i * CANVAS_SIZE + 1, y + 1 + (CANVAS_HEIGHT/2 - (j+1)*CANVAS_SIZE), 
 						CANVAS_SIZE-1, CANVAS_SIZE-1, (tic_color_red));
 			}
@@ -451,26 +451,26 @@ static void drawPiano(Sfx* sfx, s32 x, s32 y)
 
 	static const s32 ButtonIndixes[] = {0, 2, 4, 5, 7, 9, 11, 1, 3, -1, 6, 8, 10};
 
-	SDL_Rect buttons[COUNT_OF(ButtonIndixes)];
+	tic_rect buttons[COUNT_OF(ButtonIndixes)];
 
 	for(s32 i = 0; i < COUNT_OF(buttons); i++)
 	{
 		buttons[i] = i < PIANO_WHITE_BUTTONS 
-			? (SDL_Rect){x + (PIANO_BUTTON_WIDTH+1)*i, y, PIANO_BUTTON_WIDTH + 1, PIANO_BUTTON_HEIGHT}
-			: (SDL_Rect){x + (7 + 3) * (i - PIANO_WHITE_BUTTONS) + 6, y, 7, 8};
+			? (tic_rect){x + (PIANO_BUTTON_WIDTH+1)*i, y, PIANO_BUTTON_WIDTH + 1, PIANO_BUTTON_HEIGHT}
+			: (tic_rect){x + (7 + 3) * (i - PIANO_WHITE_BUTTONS) + 6, y, 7, 8};
 	}
 
-	SDL_Rect rect = {x, y, PIANO_WIDTH, PIANO_HEIGHT};
+	tic_rect rect = {x, y, PIANO_WIDTH, PIANO_HEIGHT};
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		static const char* Tooltips[] = {"C [z]", "C# [s]", "D [x]", "D# [d]", "E [c]", "F [v]", "F# [g]", "G [b]", "G# [h]", "A [n]", "A# [j]", "B [m]" };
 
 		for(s32 i = COUNT_OF(buttons) - 1; i >= 0; i--)
 		{
-			SDL_Rect* rect = buttons + i;
+			tic_rect* rect = buttons + i;
 
 			if(checkMousePos(rect))
 				if(ButtonIndixes[i] >= 0)
@@ -480,11 +480,11 @@ static void drawPiano(Sfx* sfx, s32 x, s32 y)
 				}
 		}
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 		{
 			for(s32 i = COUNT_OF(buttons) - 1; i >= 0; i--)
 			{
-				SDL_Rect* rect = buttons + i;
+				tic_rect* rect = buttons + i;
 				s32 index = ButtonIndixes[i];
 
 				if(index >= 0)
@@ -502,7 +502,7 @@ static void drawPiano(Sfx* sfx, s32 x, s32 y)
 
 	for(s32 i = 0; i < COUNT_OF(buttons); i++)
 	{
-		SDL_Rect* rect = buttons + i;
+		tic_rect* rect = buttons + i;
 		bool white = i < PIANO_WHITE_BUTTONS;
 		s32 index = ButtonIndixes[i];
 
@@ -525,13 +525,13 @@ static void drawOctavePanel(Sfx* sfx, s32 x, s32 y)
 
 	for(s32 i = 0; i < OCTAVES; i++)
 	{
-		SDL_Rect rect = {x + i * (TIC_FONT_WIDTH + Gap), y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
+		tic_rect rect = {x + i * (TIC_FONT_WIDTH + Gap), y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
 
 		if(checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 			{
 				effect->octave = i;
 			}
@@ -629,34 +629,38 @@ static void copyWaveFromClipboard(Sfx* sfx)
 
 static void processKeyboard(Sfx* sfx)
 {
+	tic_mem* tic = sfx->tic;
+
+	if(tic->ram.input.keyboard.data == 0) return;
+
+	bool ctrl = tic->api.key(tic, tic_key_ctrl);
+
 	s32 keyboardButton = -1;
 
-	static const s32 Scancodes[] = 
+	static const s32 Keycodes[] = 
 	{
-		SDL_SCANCODE_Z,
-		SDL_SCANCODE_S,
-		SDL_SCANCODE_X,
-		SDL_SCANCODE_D,
-		SDL_SCANCODE_C,
-		SDL_SCANCODE_V,
-		SDL_SCANCODE_G,
-		SDL_SCANCODE_B,
-		SDL_SCANCODE_H,
-		SDL_SCANCODE_N,
-		SDL_SCANCODE_J,
-		SDL_SCANCODE_M,
+		tic_key_z,
+		tic_key_s,
+		tic_key_x,
+		tic_key_d,
+		tic_key_c,
+		tic_key_v,
+		tic_key_g,
+		tic_key_b,
+		tic_key_h,
+		tic_key_n,
+		tic_key_j,
+		tic_key_m,
 	};
 
-	SDL_Keymod keymod = SDL_GetModState();
-
-	if(keymod & TIC_MOD_CTRL)
+	if(ctrl)
 	{
 
 	}
 	else
 	{
-		for(int i = 0; i < COUNT_OF(Scancodes); i++)
-			if(getKeyboard()[Scancodes[i]])
+		for(int i = 0; i < COUNT_OF(Keycodes); i++)
+			if(tic->api.key(tic, Keycodes[i]))
 				keyboardButton = i;        
 	}
 
@@ -668,13 +672,16 @@ static void processKeyboard(Sfx* sfx)
 		sfx->play.active = true;
 	}
 
-	if(getKeyboard()[SDL_SCANCODE_SPACE])
+	if(tic->api.key(tic, tic_key_space))
 		sfx->play.active = true;
 }
 
-static void processKeydown(Sfx* sfx, SDL_Keycode keycode)
+static void processEnvelopesKeyboard(Sfx* sfx)
 {
-	switch(getClipboardEvent(keycode))
+	tic_mem* tic = sfx->tic;
+	bool ctrl = tic->api.key(tic, tic_key_ctrl);
+
+	switch(getClipboardEvent())
 	{
 	case TIC_CLIPBOARD_CUT: cutToClipboard(sfx); break;
 	case TIC_CLIPBOARD_COPY: copyToClipboard(sfx); break;
@@ -682,29 +689,25 @@ static void processKeydown(Sfx* sfx, SDL_Keycode keycode)
 	default: break;
 	}
 
-	SDL_Keymod keymod = SDL_GetModState();
-
-	if(keymod & TIC_MOD_CTRL)
+	if(ctrl)
 	{
-		switch(keycode)
-		{
-		case SDLK_z: 	undo(sfx); break;
-		case SDLK_y: 	redo(sfx); break;
-		}
+		if(keyWasPressed(tic_key_z)) 		undo(sfx);
+		else if(keyWasPressed(tic_key_y)) 	redo(sfx);
 	}
 
-	switch(keycode)
-	{
-	case SDLK_TAB: sfx->tab = SFX_WAVEFORM_TAB; break;
-	case SDLK_LEFT: sfx->index--; break;
-	case SDLK_RIGHT: sfx->index++; break;
-	case SDLK_DELETE: resetSfx(sfx); break;
-	}
+	if(keyWasPressed(tic_key_tab)) 			sfx->tab = SFX_WAVEFORM_TAB;
+	else if(keyWasPressed(tic_key_left))  	sfx->index--;
+	else if(keyWasPressed(tic_key_right)) 	sfx->index++;
+	else if(keyWasPressed(tic_key_delete)) 	resetSfx(sfx);
 }
 
-static void processWaveformKeydown(Sfx* sfx, SDL_Keycode keycode)
+static void processWaveformKeyboard(Sfx* sfx)
 {
-	switch(getClipboardEvent(keycode))
+	tic_mem* tic = sfx->tic;
+
+	bool ctrl = tic->api.key(tic, tic_key_ctrl);
+
+	switch(getClipboardEvent())
 	{
 	case TIC_CLIPBOARD_CUT: cutWaveToClipboard(sfx); break;
 	case TIC_CLIPBOARD_COPY: copyWaveToClipboard(sfx); break;
@@ -712,24 +715,16 @@ static void processWaveformKeydown(Sfx* sfx, SDL_Keycode keycode)
 	default: break;
 	}
 
-	SDL_Keymod keymod = SDL_GetModState();
-
-	if(keymod & TIC_MOD_CTRL)
+	if(ctrl)
 	{
-		switch(keycode)
-		{
-		case SDLK_z: 	undo(sfx); break;
-		case SDLK_y: 	redo(sfx); break;
-		}
+		if(keyWasPressed(tic_key_z)) 		undo(sfx);
+		else if(keyWasPressed(tic_key_y)) 	redo(sfx);
 	}
 
-	switch(keycode)
-	{
-	case SDLK_TAB: sfx->tab = SFX_ENVELOPES_TAB; break;
-	case SDLK_LEFT: sfx->waveform.index--; break;
-	case SDLK_RIGHT: sfx->waveform.index++; break;
-	case SDLK_DELETE: resetWave(sfx); break;
-	}
+	if(keyWasPressed(tic_key_tab)) 			sfx->tab = SFX_ENVELOPES_TAB;
+	else if(keyWasPressed(tic_key_left))  	sfx->waveform.index--;
+	else if(keyWasPressed(tic_key_right)) 	sfx->waveform.index++;
+	else if(keyWasPressed(tic_key_delete)) 	resetWave(sfx);
 }
 
 static void drawModeTabs(Sfx* sfx)
@@ -759,7 +754,7 @@ static void drawModeTabs(Sfx* sfx)
 
 	for (s32 i = 0; i < Count; i++)
 	{
-		SDL_Rect rect = { TIC80_WIDTH - Width * (Count - i), 0, Width, Height };
+		tic_rect rect = { TIC80_WIDTH - Width * (Count - i), 0, Width, Height };
 
 		bool over = false;
 
@@ -767,13 +762,13 @@ static void drawModeTabs(Sfx* sfx)
 
 		if (checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 			over = true;
 
 			static const char* Tooltips[] = { "WAVEFORMS [tab]", "ENVELOPES [tab]" };
 			showTooltip(Tooltips[i]);
 
-			if (checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if (checkMouseClick(&rect, tic_mouse_left))
 				sfx->tab = Tabs[i];
 		}
 
@@ -792,17 +787,17 @@ static void drawSfxToolbar(Sfx* sfx)
 	s32 x = TIC80_WIDTH - Width - TIC_SPRITESIZE*3;
 	s32 y = 1;
 
-	SDL_Rect rect = {x, y, Width, TIC_FONT_HEIGHT};
+	tic_rect rect = {x, y, Width, TIC_FONT_HEIGHT};
 	bool over = false;
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 		over = true;
 
 		showTooltip("PLAY SFX [space]");
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 		{
 			sfx->play.active = true;
 		}
@@ -823,18 +818,8 @@ static void drawSfxToolbar(Sfx* sfx)
 
 static void envelopesTick(Sfx* sfx)
 {
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
-	{
-		switch(event->type)
-		{
-		case SDL_KEYDOWN:
-			processKeydown(sfx, event->key.keysym.sym);
-			break;
-		}
-	}
-
 	processKeyboard(sfx);
+	processEnvelopesKeyboard(sfx);
 
 	sfx->tic->api.clear(sfx->tic, TIC_COLOR_BG);
 
@@ -869,13 +854,13 @@ static void drawWaveformBar(Sfx* sfx, s32 x, s32 y)
 
 	for(s32 i = 0; i < ENVELOPES_COUNT; i++)
 	{
-		SDL_Rect rect = {x + (i%Cols)*(Width+Gap), y + (i/Cols)*(Height+Gap), Width, Height};
+		tic_rect rect = {x + (i%Cols)*(Width+Gap), y + (i/Cols)*(Height+Gap), Width, Height};
 
 		if(checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 				sfx->waveform.index = i;
 		}
 
@@ -909,7 +894,7 @@ static void drawWaveformCanvas(Sfx* sfx, s32 x, s32 y)
 {
 	enum {Rows = CANVAS_ROWS, Width = ENVELOPE_VALUES * CANVAS_SIZE, Height = CANVAS_HEIGHT};
 
-	SDL_Rect rect = {x, y, Width, Height};
+	tic_rect rect = {x, y, Width, Height};
 
 	sfx->tic->api.rect(sfx->tic, rect.x, rect.y, rect.w, rect.h, (tic_color_dark_red));
 
@@ -921,9 +906,9 @@ static void drawWaveformCanvas(Sfx* sfx, s32 x, s32 y)
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 		{
 			s32 mx = getMouseX() - x;
 			s32 my = getMouseY() - y;
@@ -954,18 +939,8 @@ static void drawWaveformCanvas(Sfx* sfx, s32 x, s32 y)
 
 static void waveformTick(Sfx* sfx)
 {
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
-	{
-		switch(event->type)
-		{
-		case SDL_KEYDOWN:
-			processWaveformKeydown(sfx, event->key.keysym.sym);
-			break;
-		}
-	}
-
 	processKeyboard(sfx);
+	processWaveformKeyboard(sfx);
 
 	sfx->tic->api.clear(sfx->tic, TIC_COLOR_BG);
 

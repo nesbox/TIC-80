@@ -905,6 +905,7 @@ static void wren_pmem(WrenVM* vm)
 		if(top > 2)
 		{
 			memory->persistent.data[index] = getWrenNumber(vm, 2);
+			machine->data->syncPMEM = true;
 		}
 
 		wrenSetSlotDouble(vm, 0, val);

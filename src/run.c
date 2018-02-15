@@ -86,8 +86,6 @@ static void initPMemName(Run* run)
 
 static void tick(Run* run)
 {
-	while(pollEvent());
-
 	if (getStudioMode() != TIC_RUN_MODE)
 		return;
 
@@ -95,10 +93,11 @@ static void tick(Run* run)
 
 	enum {Size = sizeof(tic_persistent)};
 
-	if(SDL_memcmp(&run->tic->persistent, &run->persistent, Size) != 0)
+	if(run->tickData.syncPMEM)
 	{		
 		fsSaveRootFile(run->console->fs, run->saveid, &run->tic->persistent, Size, true);
-		SDL_memcpy(&run->persistent, &run->tic->persistent, Size);
+		memcpy(&run->persistent, &run->tic->persistent, Size);
+		run->tickData.syncPMEM = false;
 	}
 
 	if(run->exit)
@@ -139,7 +138,7 @@ static void processDoFile(void* data, char* dst)
 
 						return;
 					}
-					else SDL_memcpy(dst, buffer, size);
+					else memcpy(dst, buffer, size);
 				}
 			}
 			else
@@ -156,22 +155,14 @@ static void processDoFile(void* data, char* dst)
 	return;
 }
 
-static void preseed()
-{
-#if defined(__MACOSX__)
-	srandom(time(NULL));
-	random();
-#else
-	srand(time(NULL));
-	rand();
-#endif
-}
 
 static bool forceExit(void* data)
 {
-	while(pollEvent());
+	getSystem()->poll();
 
-	return getStudioMode() != TIC_RUN_MODE;
+	tic_mem* tic = ((Run*)data)->tic;
+
+	return tic->api.key(tic, tic_key_escape);
 }
 
 void initRun(Run* run, Console* console, tic_mem* tic)
@@ -186,19 +177,20 @@ void initRun(Run* run, Console* console, tic_mem* tic)
 		{
 			.error = onError,
 			.trace = onTrace,
-			.counter = SDL_GetPerformanceCounter,
-			.freq = SDL_GetPerformanceFrequency,
+			.counter = getSystem()->getPerformanceCounter,
+			.freq = getSystem()->getPerformanceFrequency,
 			.start = 0,
 			.data = run,
 			.exit = onExit,
 			.preprocessor = processDoFile,
 			.forceExit = forceExit,
+			.syncPMEM = false,
 		},
 	};
 
 	{
 		enum {Size = sizeof(tic_persistent)};
-		SDL_memset(&run->tic->persistent, 0, Size);
+		memset(&run->tic->persistent, 0, Size);
 
 		initPMemName(run);
 
@@ -209,12 +201,12 @@ void initRun(Run* run, Console* console, tic_mem* tic)
 
 		if(data)
 		{
-			SDL_memcpy(&run->tic->persistent, data, size);
-			SDL_memcpy(&run->persistent, data, size);
+			memcpy(&run->tic->persistent, data, size);
+			memcpy(&run->persistent, data, size);
 		}
 
-		if(data) SDL_free(data);
+		if(data) free(data);
 	}
 
-	preseed();
+	getSystem()->preseed();
 }

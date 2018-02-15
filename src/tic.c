@@ -1264,7 +1264,7 @@ static bool isNoiseWaveform(const tic_waveform* wave)
 
 static bool isKeyPressed(const tic80_keyboard* input, tic_key key)
 {
-	for(s32 i = 0; i < TIC_KEY_BUFFER; i++)
+	for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
 		if(input->keys[i] == key)
 			return true;
 
@@ -1696,7 +1696,7 @@ static bool api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
 		return !prevDown && down;
 	}
 
-	for(s32 i = 0; i < TIC_KEY_BUFFER; i++)
+	for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
 	{
 		tic_key key = tic->ram.input.keyboard.keys[i];
 
@@ -1704,7 +1704,7 @@ static bool api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
 		{
 			bool wasPressed = false;
 
-			for(s32 p = 0; p < TIC_KEY_BUFFER; p++)
+			for(s32 p = 0; p < TIC80_KEY_BUFFER; p++)
 			{
 				if(machine->state.keyboard.previous.keys[p] == key)
 				{
@@ -1720,7 +1720,6 @@ static bool api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
 
 	return false;
 }
-
 
 static void api_load(tic_cartridge* cart, const u8* buffer, s32 size, bool palette)
 {

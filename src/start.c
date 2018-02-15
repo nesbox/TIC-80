@@ -78,8 +78,6 @@ static void tick(Start* start)
 		start->initialized = true;
 	}
 
-	while (pollEvent());
-
 	start->tic->api.clear(start->tic, TIC_COLOR_BG);
 
 	static void(*const steps[])(Start*) = {reset, header, end};

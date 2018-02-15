@@ -22,7 +22,6 @@
 
 #include "surf.h"
 #include "fs.h"
-#include "net.h"
 #include "console.h"
 
 #include "ext/gif.h"
@@ -38,7 +37,7 @@
 #define COVER_Y 5
 #define COVER_X (TIC80_WIDTH - COVER_WIDTH - COVER_Y)
 
-#if defined(__WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
+#if defined(__TIC_WINDOWS__) || defined(__TIC_LINUX__) || defined(__TIC_MACOSX__)
 #define CAN_OPEN_URL 1
 #endif
 
@@ -401,18 +400,18 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 	{
 		MenuItem* item = &data->items[data->count++];
 
-		item->name = SDL_strdup(name);
+		item->name = strdup(name);
 		bool project = false;
 		if(dir)
 		{
 			char folder[FILENAME_MAX];
 			sprintf(folder, "[%s]", name);
-			item->label = SDL_strdup(folder);
+			item->label = strdup(folder);
 		}
 		else
 		{
 
-			item->label = SDL_strdup(name);
+			item->label = strdup(name);
 
 			if(hasExt(name, CartExt))
 				cutExt(item->label, CartExt);
@@ -426,7 +425,7 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 			replace(item->label, "&#39;", "'");
 		}
 
-		item->hash = info ? SDL_strdup(info) : NULL;
+		item->hash = info ? strdup(info) : NULL;
 		item->id = id;
 		item->dir = dir;
 		item->cover = NULL;
@@ -442,19 +441,19 @@ static void resetMenu(Surf* surf)
 	{
 		for(s32 i = 0; i < surf->menu.count; i++)
 		{
-			SDL_free((void*)surf->menu.items[i].name);
+			free((void*)surf->menu.items[i].name);
 
 			const char* hash = surf->menu.items[i].hash;
-			if(hash) SDL_free((void*)hash);
+			if(hash) free((void*)hash);
 
 			tic_screen* cover = surf->menu.items[i].cover;
-			if(cover) SDL_free(cover);
+			if(cover) free(cover);
 
 			const char* label = surf->menu.items[i].label;
-			if(label) SDL_free((void*)label);
+			if(label) free((void*)label);
 		}
 
-		SDL_free(surf->menu.items);
+		free(surf->menu.items);
 
 		surf->menu.items = NULL;
 		surf->menu.count = 0;
@@ -478,7 +477,7 @@ static void* requestCover(Surf* surf, const char* hash, s32* size)
 
 	char path[FILENAME_MAX] = {0};
 	sprintf(path, "/cart/%s/cover.gif", hash);
-	void* data = netGetRequest(surf->net, path, size);
+	void* data = getSystem()->getUrlRequest(path, size);
 
 	if(data)
 	{
@@ -494,8 +493,7 @@ static void updateMenuItemCover(Surf* surf, const u8* cover, s32 size)
 
 	MenuItem* item = &surf->menu.items[surf->menu.pos];
 
-
-	item->cover = SDL_malloc(sizeof(tic_screen));
+	item->cover = malloc(sizeof(tic_screen));
 
 	gif_image* image = gif_read_data(cover, size);
 
@@ -532,7 +530,7 @@ static void loadCover(Surf* surf)
 
 		if(data)
 		{
-			tic_cartridge* cart = (tic_cartridge*)SDL_malloc(sizeof(tic_cartridge));
+			tic_cartridge* cart = (tic_cartridge*)malloc(sizeof(tic_cartridge));
 
 			if(cart)
 			{
@@ -544,10 +542,10 @@ static void loadCover(Surf* surf)
 				if(cart->cover.size)
 					updateMenuItemCover(surf, cart->cover.data, cart->cover.size);
 
-				SDL_free(cart);
+				free(cart);
 			}
 
-			SDL_free(data);
+			free(data);
 		}
 	}
 	else if(item->hash && !item->cover)
@@ -559,7 +557,7 @@ static void loadCover(Surf* surf)
 		if(cover)
 		{
 			updateMenuItemCover(surf, cover, size);
-			SDL_free(cover);
+			free(cover);
 		}       
 	}
 }
@@ -573,7 +571,7 @@ static void initMenu(Surf* surf)
 
 	AddMenuItem data = 
 	{
-		.items = SDL_malloc(Size),
+		.items = malloc(Size),
 		.count = 0,
 		.surf = surf,
 	};
@@ -649,7 +647,7 @@ static void onPlayCart(Surf* surf)
 
 	if(item->project)
 	{
-		tic_cartridge* cart = SDL_malloc(sizeof(tic_cartridge));
+		tic_cartridge* cart = malloc(sizeof(tic_cartridge));
 
 		if(cart)
 		{
@@ -658,11 +656,11 @@ static void onPlayCart(Surf* surf)
 
 			surf->console->loadProject(surf->console, item->name, data, size, cart);
 
-			SDL_memcpy(&surf->tic->cart, cart, sizeof(tic_cartridge));
+			memcpy(&surf->tic->cart, cart, sizeof(tic_cartridge));
 
 			studioRomLoaded();
 
-			SDL_free(cart);
+			free(cart);
 		}
 	}
 	else
@@ -782,7 +780,7 @@ static void processGamepad(Surf* surf)
 			{
 				char url[FILENAME_MAX];
 				sprintf(url, "https://" TIC_HOST "/play?cart=%i", item->id);
-				fsOpenSystemPath(surf->fs, url);
+				getSystem()->openSystemPath(url);
 			}
 		}
 #endif
@@ -803,9 +801,6 @@ static void tick(Surf* surf)
 	}
 
 	surf->ticks++;
-
-	while (pollEvent());
-
 
 	tic_mem* tic = surf->tic;
 	tic->api.clear(tic, TIC_COLOR_BG);
@@ -865,7 +860,6 @@ void initSurf(Surf* surf, tic_mem* tic, struct Console* console)
 			.items = NULL,
 			.count = 0,
 		},
-		.net = createNet(),
 	};
 
 	fsMakeDir(surf->fs, TIC_CACHE);

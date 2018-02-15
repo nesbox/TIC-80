@@ -101,3 +101,11 @@ build/uwp/wren/x64/
 build/uwp/wren/Release/
 build/uwp/wren/ARM/
 build/uwp/wren/Debug/
+build/windows/studio/Debug/
+build/windows/studio/Debug Pro/
+build/windows/studio/Release/
+build/windows/studio/Release Pro/
+build/uwp/studio/Debug/
+build/uwp/studio/Debug Pro/
+build/uwp/studio/Release/
+build/uwp/studio/Release Pro/

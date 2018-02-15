@@ -385,7 +385,12 @@ typedef union
 				s8 y;
 			} offset;
 
-			u8 cursor;
+			struct
+			{
+				u8 sprite:7;
+				bool system:1;
+			} cursor;
+
 		} vars;
 
 		u8 reserved[4];
@@ -418,7 +423,7 @@ typedef union
 	u8 data[TIC_RAM_SIZE];
 } tic_ram;
 
-enum
+typedef enum
 {
 	tic_key_unknown,
 
@@ -511,4 +516,18 @@ enum
 	////////////////
 
 	tic_keys_count
-};
+} tic_keycode;
+
+typedef enum
+{
+	tic_mouse_left,
+	tic_mouse_middle,
+	tic_mouse_right,
+} tic_mouse_btn;
+
+typedef enum
+{
+	tic_cursor_arrow,
+	tic_cursor_hand,
+	tic_cursor_ibeam,
+} tic_cursor;

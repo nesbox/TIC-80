@@ -28,22 +28,22 @@ static void drawButton(Dialog* dlg, const char* label, s32 x, s32 y, u8 color, u
 
 	enum {BtnWidth = 20, BtnHeight = 9};
 
-	SDL_Rect rect = {x, y, BtnWidth, BtnHeight};
+	tic_rect rect = {x, y, BtnWidth, BtnHeight};
 	bool down = false;
 	bool over = false;
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 		over = true;
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 		{
 			down = true;
 			dlg->focus = id;
 		}
 
-		if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseClick(&rect, tic_mouse_left))
 			callback(dlg);
 	}
 	
@@ -91,27 +91,25 @@ static void onNo(Dialog* dlg)
 	hideDialog();
 }
 
-static void processKeydown(Dialog* dlg, SDL_Keysym* keysum)
+static void processKeyboard(Dialog* dlg)
 {
-	SDL_Scancode scancode = keysum->scancode;
+	tic_mem* tic = dlg->tic;
+	
+	if(tic->ram.input.keyboard.data == 0) return;
 
-	switch(scancode)
+	if(keyWasPressed(tic_key_left))
 	{
-	case SDL_SCANCODE_LEFT:
 		dlg->focus = (dlg->focus-1) % 2;
 		playSystemSfx(2);
-		break;
-	case SDL_SCANCODE_RIGHT:
-	case SDL_SCANCODE_TAB:
+	}
+	else if(keyWasPressed(tic_key_right) || keyWasPressed(tic_key_tab))
+	{
 		dlg->focus = (dlg->focus+1) % 2;
 		playSystemSfx(2);
-		break;
-	case SDL_SCANCODE_RETURN:
-	case SDL_SCANCODE_SPACE:
+	}
+	else if(keyWasPressed(tic_key_return) || keyWasPressed(tic_key_space))
+	{
 		dlg->focus == 0 ? onYes(dlg) : onNo(dlg);
-		break;
-	default:
-		break;
 	}
 }
 
@@ -121,18 +119,18 @@ static void drawDialog(Dialog* dlg)
 
 	tic_mem* tic = dlg->tic;
 
-	SDL_Rect rect = {(TIC80_WIDTH - Width)/2, (TIC80_HEIGHT - Height)/2, Width, Height};
+	tic_rect rect = {(TIC80_WIDTH - Width)/2, (TIC80_HEIGHT - Height)/2, Width, Height};
 
 	rect.x -= dlg->pos.x;
 	rect.y -= dlg->pos.y;
 
-	SDL_Rect header = {rect.x, rect.y-(TOOLBAR_SIZE-1), rect.w, TOOLBAR_SIZE};
+	tic_rect header = {rect.x, rect.y-(TOOLBAR_SIZE-1), rect.w, TOOLBAR_SIZE};
 
 	if(checkMousePos(&header))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
-		if(checkMouseDown(&header, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&header, tic_mouse_left))
 		{
 			if(!dlg->drag.active)
 			{
@@ -146,13 +144,13 @@ static void drawDialog(Dialog* dlg)
 
 	if(dlg->drag.active)
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		dlg->pos.x = dlg->drag.start.x - getMouseX();
 		dlg->pos.y = dlg->drag.start.y - getMouseY();
 
-		SDL_Rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
-		if(!checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
+		if(!checkMouseDown(&rect, tic_mouse_left))
 			dlg->drag.active = false;
 	}
 
@@ -191,16 +189,7 @@ static void drawDialog(Dialog* dlg)
 
 static void tick(Dialog* dlg)
 {
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
-	{
-		switch(event->type)
-		{
-		case SDL_KEYDOWN:
-			processKeydown(dlg, &event->key.keysym);
-			break;
-		}	
-	}
+	processKeyboard(dlg);
 
 	if(!dlg->init)
 	{
@@ -209,7 +198,7 @@ static void tick(Dialog* dlg)
 		dlg->init = true;
 	}
 
-	SDL_memcpy(dlg->tic->ram.vram.screen.data, dlg->bg, sizeof dlg->tic->ram.vram.screen.data);
+	memcpy(dlg->tic->ram.vram.screen.data, dlg->bg, sizeof dlg->tic->ram.vram.screen.data);
 
 	drawDialog(dlg);
 }
@@ -245,8 +234,8 @@ void initDialog(Dialog* dlg, tic_mem* tic, const char** text, s32 rows, DialogCa
 	enum{Size = sizeof tic->ram.vram.screen.data};
 
 	if(!dlg->bg)
-		dlg->bg = SDL_malloc(Size);
+		dlg->bg = malloc(Size);
 
 	if(dlg->bg)
-		SDL_memcpy(dlg->bg, tic->ram.vram.screen.data, Size);
+		memcpy(dlg->bg, tic->ram.vram.screen.data, Size);
 }
