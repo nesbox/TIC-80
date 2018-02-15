@@ -518,12 +518,12 @@ typedef enum
 	tic_keys_count
 } tic_keycode;
 
-enum
+typedef enum
 {
 	tic_mouse_left,
 	tic_mouse_middle,
 	tic_mouse_right,
-};
+} tic_mouse_btn;
 
 typedef enum
 {

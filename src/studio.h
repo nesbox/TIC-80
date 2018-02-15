@@ -91,8 +91,8 @@ void setCursor(tic_cursor id);
 s32 getMouseX();
 s32 getMouseY();
 bool checkMousePos(const tic_rect* rect);
-bool checkMouseClick(const tic_rect* rect, s32 button);
-bool checkMouseDown(const tic_rect* rect, s32 button);
+bool checkMouseClick(const tic_rect* rect, tic_mouse_btn button);
+bool checkMouseDown(const tic_rect* rect, tic_mouse_btn button);
 
 void drawToolbar(tic_mem* tic, u8 color, bool bg);
 void drawBitIcon(s32 x, s32 y, const u8* ptr, u8 color);
