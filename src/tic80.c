@@ -104,6 +104,7 @@ TIC80_API void tic80_load(tic80* tic, void* cart, s32 size)
 		tic80->tickData.start = 0;
 		tic80->tickData.freq = getFreq;
 		tic80->tickData.counter = getCounter;
+		tic80->tickData.syncPMEM = false;
 		TickCounter = 0;
 	}
 

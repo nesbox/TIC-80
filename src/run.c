@@ -93,11 +93,11 @@ static void tick(Run* run)
 
 	enum {Size = sizeof(tic_persistent)};
 
-	// TODO: remove PMEM checking...
-	if(memcmp(&run->tic->persistent, &run->persistent, Size) != 0)
+	if(run->tickData.syncPMEM)
 	{		
 		fsSaveRootFile(run->console->fs, run->saveid, &run->tic->persistent, Size, true);
 		memcpy(&run->persistent, &run->tic->persistent, Size);
+		run->tickData.syncPMEM = false;
 	}
 
 	if(run->exit)
@@ -184,6 +184,7 @@ void initRun(Run* run, Console* console, tic_mem* tic)
 			.exit = onExit,
 			.preprocessor = processDoFile,
 			.forceExit = forceExit,
+			.syncPMEM = false,
 		},
 	};
 

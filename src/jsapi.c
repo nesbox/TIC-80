@@ -564,7 +564,10 @@ static duk_ret_t duk_pmem(duk_context* duk)
 		s32 val = memory->persistent.data[index];
 
 		if(!duk_is_null_or_undefined(duk, 1))
+		{
 			memory->persistent.data[index] = duk_to_int(duk, 1);
+			machine->data->syncPMEM = true;
+		}
 		
 		duk_push_int(duk, val);
 

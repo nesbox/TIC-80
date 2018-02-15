@@ -58,6 +58,8 @@ typedef struct
 	u64 (*freq)();
 	u64 start;
 
+	bool syncPMEM;
+
 	void (*preprocessor)(void* data, char* dst);
 
 	void* data;

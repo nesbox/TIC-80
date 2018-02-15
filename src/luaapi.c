@@ -1069,6 +1069,7 @@ static s32 lua_pmem(lua_State *lua)
 			if(top >= 2)
 			{
 				memory->persistent.data[index] = getLuaNumber(lua, 2);
+				machine->data->syncPMEM = true;
 			}
 
 			lua_pushinteger(lua, val);
