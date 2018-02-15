@@ -1210,6 +1210,7 @@ static bool initLua(tic_mem* tic, const char* code)
 		{ LUA_TABLIBNAME, luaopen_table },
 		{ LUA_STRLIBNAME, luaopen_string },
 		{ LUA_MATHLIBNAME, luaopen_math },
+		{ LUA_DBLIBNAME, luaopen_debug },
 		{ NULL, NULL }
 	};
 
