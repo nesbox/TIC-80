@@ -27,19 +27,11 @@ static struct
 
 	struct
 	{
-		SDL_AudioSpec 		spec;
-		SDL_AudioDeviceID 	device;
-		SDL_AudioCVT 		cvt;
-	} audio;
+		SDL_Joystick* ports[TIC_GAMEPADS];
+		SDL_Texture* texture;
 
-	SDL_Joystick* joysticks[TIC_GAMEPADS];
-
-	struct
-	{
 		tic80_gamepads touch;
 		tic80_gamepads joystick;
-
-		SDL_Texture* texture;
 
 		bool show;
 		s32 counter;
@@ -66,6 +58,13 @@ static struct
 
 	bool missedFrame;
 	bool fullscreen;
+
+	struct
+	{
+		SDL_AudioSpec 		spec;
+		SDL_AudioDeviceID 	device;
+		SDL_AudioCVT 		cvt;
+	} audio;
 } platform;
 
 static void initSound()
@@ -436,9 +435,9 @@ static void processJoysticks()
 	platform.gamepad.joystick.data = 0;
 	s32 index = 0;
 
-	for(s32 i = 0; i < COUNT_OF(platform.joysticks); i++)
+	for(s32 i = 0; i < COUNT_OF(platform.gamepad.ports); i++)
 	{
-		SDL_Joystick* joystick = platform.joysticks[i];
+		SDL_Joystick* joystick = platform.gamepad.ports[i];
 
 		if(joystick && SDL_JoystickGetAttached(joystick))
 		{
@@ -520,7 +519,7 @@ static void pollEvent()
 		input->mouse.btns = 0;
 	}
 
-	static SDL_Event event;
+	SDL_Event event;
 
 	while(SDL_PollEvent(&event))
 	{
@@ -538,10 +537,10 @@ static void pollEvent()
 
 				if (id < TIC_GAMEPADS)
 				{
-					if(platform.joysticks[id])
-						SDL_JoystickClose(platform.joysticks[id]);
+					if(platform.gamepad.ports[id])
+						SDL_JoystickClose(platform.gamepad.ports[id]);
 
-					platform.joysticks[id] = SDL_JoystickOpen(id);
+					platform.gamepad.ports[id] = SDL_JoystickOpen(id);
 				}
 			}
 			break;
@@ -550,10 +549,10 @@ static void pollEvent()
 			{
 				s32 id = event.jdevice.which;
 
-				if (id < TIC_GAMEPADS && platform.joysticks[id])
+				if (id < TIC_GAMEPADS && platform.gamepad.ports[id])
 				{
-					SDL_JoystickClose(platform.joysticks[id]);
-					platform.joysticks[id] = NULL;
+					SDL_JoystickClose(platform.gamepad.ports[id]);
+					platform.gamepad.ports[id] = NULL;
 				}
 			}
 			break;
@@ -635,7 +634,7 @@ static void blitSound()
 	tic_mem* tic = platform.studio->tic;
 
 	SDL_PauseAudioDevice(platform.audio.device, 0);
-
+	
 	if(platform.audio.cvt.needed)
 	{
 		SDL_memcpy(platform.audio.cvt.buf, tic->samples.buffer, tic->samples.size);
