@@ -900,7 +900,7 @@ static void wren_pmem(WrenVM* vm)
 
 	if(index < TIC_PERSISTENT_SIZE)
 	{
-		s32 val = memory->persistent.data[index];
+		u32 val = memory->persistent.data[index];
 
 		if(top > 2)
 		{

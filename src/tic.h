@@ -401,7 +401,7 @@ typedef union
 
 typedef struct
 {
-	s32 data[TIC_PERSISTENT_SIZE];
+	u32 data[TIC_PERSISTENT_SIZE];
 } tic_persistent;
 
 typedef union
