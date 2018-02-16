@@ -558,10 +558,23 @@ void tic_close(tic_mem* memory)
 
 	machine->state.initialized = false;
 
+#if defined(TIC_BUILD_WITH_LUA)
 	getLuaScriptConfig()->close(memory);
+
+#	if defined(TIC_BUILD_WITH_MOON)
 	getMoonScriptConfig()->close(memory);
+#	endif
+
+#endif /* defined(TIC_BUILD_WITH_LUA) */
+
+
+#if defined(TIC_BUILD_WITH_JS)
 	getJsScriptConfig()->close(memory);
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
 	getWrenScriptConfig()->close(memory);
+#endif
 
 	blip_delete(machine->blip);
 
@@ -1517,29 +1530,32 @@ static bool compareMetatag(const char* code, const char* tag, const char* value,
 	return result;
 }
 
-static bool isMoonscript(const char* code)
-{
-	return compareMetatag(code, "script", "moon", getMoonScriptConfig()->singleComment) 
-		|| compareMetatag(code, "script", "moonscript", getMoonScriptConfig()->singleComment);
-}
-
-static bool isJavascript(const char* code)
-{
-	return compareMetatag(code, "script", "js", getJsScriptConfig()->singleComment) 
-		|| compareMetatag(code, "script", "javascript", getJsScriptConfig()->singleComment);
-}
-
-static bool isWren(const char* code)
-{
-	return compareMetatag(code, "script", "wren", getWrenScriptConfig()->singleComment);
-}
-
 static const tic_script_config* getScriptConfig(const char* code)
 {
-	if(isMoonscript(code)) return getMoonScriptConfig();
-	if(isJavascript(code)) return getJsScriptConfig();
-	if(isWren(code)) return getWrenScriptConfig();
+#if defined(TIC_BUILD_WITH_MOON)
+	if(compareMetatag(code, "script", "moon", getMoonScriptConfig()->singleComment) ||
+		compareMetatag(code, "script", "moonscript", getMoonScriptConfig()->singleComment)) 
+		return getMoonScriptConfig();
+#endif
+
+#if defined(TIC_BUILD_WITH_JS)
+	if(compareMetatag(code, "script", "js", getJsScriptConfig()->singleComment) ||
+		compareMetatag(code, "script", "javascript", getJsScriptConfig()->singleComment)) 
+		return getJsScriptConfig();
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
+	if(compareMetatag(code, "script", "wren", getWrenScriptConfig()->singleComment)) 
+		return getWrenScriptConfig();
+#endif
+
+#if defined(TIC_BUILD_WITH_LUA)
 	return getLuaScriptConfig();
+#elif defined(TIC_BUILD_WITH_JS)
+	return getJsScriptConfig();
+#elif defined(TIC_BUILD_WITH_WREN)
+	return getWrenScriptConfig();
+#endif
 }
 
 static const tic_script_config* api_get_script_config(tic_mem* memory)
@@ -1592,6 +1608,7 @@ static void api_tick(tic_mem* tic, tic_tick_data* data)
 				config = getScriptConfig(code);
 				cart2ram(tic);
 
+				machine->state.synced = 0;
 				tic->input.data = 0;
 				
 				if(compareMetatag(code, "input", "mouse", config->singleComment))

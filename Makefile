@@ -1,5 +1,5 @@
 CC=gcc
-OPT=-O3 -Wall -std=c99
+OPT=-O3 -Wall -std=gnu99
 OPT_PRO=-DTIC80_PRO
 BIN_NAME= bin/tic80
 
@@ -57,7 +57,6 @@ LINUX_ARM_LIBS= \
 	-L$(PRE_BUILT)/arm
 
 LINUX_LINKER_LTO_FLAGS= \
-	-D_GNU_SOURCE \
 	-lSDL2 \
 	-llua \
 	-lwren \
@@ -69,7 +68,6 @@ LINUX_LINKER_LTO_FLAGS= \
 	-lz
 
 LINUX_LINKER_FLAGS= \
-	-D_GNU_SOURCE \
 	-llua5.3 \
 	-lwren \
 	-ldl \
@@ -82,7 +80,6 @@ MINGW_OUTPUT=$(BIN_NAME).exe
 
 EMS_CC=emcc
 EMS_OPT= \
-	-D_GNU_SOURCE \
 	-Wno-typedef-redefinition \
 	-s USE_SDL=2 \
 	-s TOTAL_MEMORY=67108864 \
@@ -101,8 +98,7 @@ EMS_LINKER_FLAGS= \
 MACOSX_OPT= \
 	-mmacosx-version-min=10.6 \
 	-Wno-typedef-redefinition \
-	-D_THREAD_SAFE \
-	-D_GNU_SOURCE
+	-D_THREAD_SAFE
 
 MACOSX_LIBS= \
 	-L$(PRE_BUILT)/macos \

@@ -22,46 +22,44 @@
 
 #pragma once
 
+#define TIC_BUILD_WITH_LUA 		1
+#define TIC_BUILD_WITH_MOON 	1
+#define TIC_BUILD_WITH_JS 		1
+#define TIC_BUILD_WITH_WREN 	1
+
 #if defined(__APPLE__)
-/* lets us know what version of Mac OS X we're compiling on */
-#include "AvailabilityMacros.h"
-#include "TargetConditionals.h"
-
-	#ifndef TARGET_OS_IPHONE
-		#undef __TIC_MACOSX__
-		#define __TIC_MACOSX__  1
-		#if MAC_OS_X_VERSION_MIN_REQUIRED < 1060
-			# error SDL for Mac OS X only supports deploying on 10.6 and above.
-		#endif /* MAC_OS_X_VERSION_MIN_REQUIRED < 1060 */
-	#endif /* TARGET_OS_IPHONE */
-
+#	include "AvailabilityMacros.h"
+#	include "TargetConditionals.h"
+#	ifndef TARGET_OS_IPHONE
+#		undef __TIC_MACOSX__
+#		define __TIC_MACOSX__ 1
+#		if MAC_OS_X_VERSION_MIN_REQUIRED < 1060
+#			error SDL for Mac OS X only supports deploying on 10.6 and above.
+#		endif /* MAC_OS_X_VERSION_MIN_REQUIRED < 1060 */
+#	endif /* TARGET_OS_IPHONE */
 #endif /* defined(__APPLE__) */
 
 #if defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__)
-/* Try to find out if we're compiling for WinRT or non-WinRT */
-#if defined(_MSC_VER) && defined(__has_include)
-#define HAVE_WINAPIFAMILY_H __has_include(<winapifamily.h>)
-/* If _USING_V110_SDK71_ is defined it means we are using the Windows XP toolset. */
-#elif defined(_MSC_VER) && (_MSC_VER >= 1700 && !_USING_V110_SDK71_)    /* _MSC_VER == 1700 for Visual Studio 2012 */
-#define HAVE_WINAPIFAMILY_H 1
-#else
-#define HAVE_WINAPIFAMILY_H 0
-#endif
-
-#if HAVE_WINAPIFAMILY_H
-#include <winapifamily.h>
-#define WINAPI_FAMILY_WINRT (!WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP))
-#else
-#define WINAPI_FAMILY_WINRT 0
-#endif /* HAVE_WINAPIFAMILY_H */
-
-#if WINAPI_FAMILY_WINRT
-#undef __TIC_WINRT__
-#define __TIC_WINRT__ 1
-#else
-#undef __TIC_WINDOWS__
-#define __TIC_WINDOWS__ 1
-#endif
+#	if defined(_MSC_VER) && defined(__has_include)
+#		define HAVE_WINAPIFAMILY_H __has_include(<winapifamily.h>)
+#	elif defined(_MSC_VER) && (_MSC_VER >= 1700 && !_USING_V110_SDK71_)
+#		define HAVE_WINAPIFAMILY_H 1
+#	else
+#		define HAVE_WINAPIFAMILY_H 0
+#	endif
+#	if HAVE_WINAPIFAMILY_H
+#		include <winapifamily.h>
+#		define WINAPI_FAMILY_WINRT (!WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP))
+#	else
+#		define WINAPI_FAMILY_WINRT 0
+#	endif /* HAVE_WINAPIFAMILY_H */
+#	if WINAPI_FAMILY_WINRT
+#		undef __TIC_WINRT__
+#		define __TIC_WINRT__ 1
+#	else
+#		undef __TIC_WINDOWS__
+#		define __TIC_WINDOWS__ 1
+#	endif
 #endif 
 
 #if (defined(linux) || defined(__linux) || defined(__linux__))

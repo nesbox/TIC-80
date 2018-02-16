@@ -20,15 +20,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include "machine.h"
+
+#if defined(TIC_BUILD_WITH_LUA)
+
 #include <stdlib.h>
 #include <string.h>
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
 #include <ctype.h>
-
-#include "machine.h"
-#include "moonscript.h"
 
 #define LUA_LOC_STACK 1E8 // 100.000.000
 
@@ -1130,22 +1131,6 @@ static s32 lua_loadfile(lua_State *lua)
 	return 0;
 }
 
-
-static void setloaded(lua_State* l, char* name)
-{
-	s32 top = lua_gettop(l);
-	lua_getglobal(l, "package");
-	lua_getfield(l, -1, "loaded");
-	lua_getfield(l, -1, name);
-	if (lua_isnil(l, -1)) {
-		lua_pop(l, 1);
-		lua_pushvalue(l, top);
-		lua_setfield(l, -2, name);
-	}
-
-	lua_settop(l, top);
-}
-
 static const char* const ApiKeywords[] = API_KEYWORDS;
 static const lua_CFunction ApiFunc[] = 
 {
@@ -1231,82 +1216,6 @@ static bool initLua(tic_mem* tic, const char* code)
 		{
 			machine->data->error(machine->data->data, lua_tostring(lua, -1));
 			return false;
-		}
-	}
-
-	return true;
-}
-
-#define MOON_CODE(...) #__VA_ARGS__
-
-static const char* execute_moonscript_src = MOON_CODE(
-	local fn, err = require('moonscript.base').loadstring(...)
-
-	if not fn then
-		return err
-	end
-	return fn()
-);
-
-static bool initMoonscript(tic_mem* tic, const char* code)
-{
-	tic_machine* machine = (tic_machine*)tic;
-	closeLua(tic);
-
-	lua_State* lua = machine->lua = luaL_newstate();
-
-	static const luaL_Reg loadedlibs[] =
-	{
-		{ "_G", luaopen_base },
-		{ LUA_LOADLIBNAME, luaopen_package },
-		{ LUA_COLIBNAME, luaopen_coroutine },
-		{ LUA_TABLIBNAME, luaopen_table },
-		{ LUA_STRLIBNAME, luaopen_string },
-		{ LUA_MATHLIBNAME, luaopen_math },
-		{ LUA_DBLIBNAME, luaopen_debug },
-		{ NULL, NULL }
-	};
-
-	for (const luaL_Reg *lib = loadedlibs; lib->func; lib++)
-	{
-		luaL_requiref(lua, lib->name, lib->func, 1);
-		lua_pop(lua, 1);
-	}
-
-	luaopen_lpeg(lua);
-	setloaded(lua, "lpeg");
-
-	initAPI(machine);
-
-	{
-		lua_State* moon = machine->lua;
-
-		lua_settop(moon, 0);
-
-		if (luaL_loadbuffer(moon, (const char *)moonscript_lua, moonscript_lua_len, "moonscript.lua") != LUA_OK)
-		{
-			machine->data->error(machine->data->data, "failed to load moonscript.lua");
-			return false;
-		}
-
-		lua_call(moon, 0, 0);
-
-		if (luaL_loadbuffer(moon, execute_moonscript_src, strlen(execute_moonscript_src), "execute_moonscript") != LUA_OK)
-		{
-			machine->data->error(machine->data->data, "failed to load moonscript compiler");
-			return false;
-		}
-
-		lua_pushstring(moon, code);
-		if (lua_pcall(moon, 1, 1, 0) != LUA_OK)
-		{
-			const char* msg = lua_tostring(moon, -1);
-
-			if (msg)
-			{
-				machine->data->error(machine->data->data, msg);
-				return false;
-			}
 		}
 	}
 
@@ -1482,6 +1391,101 @@ const tic_script_config* getLuaScriptConfig()
 	return &LuaSyntaxConfig;
 }
 
+#if defined(TIC_BUILD_WITH_MOON)
+
+#include "moonscript.h"
+
+#define MOON_CODE(...) #__VA_ARGS__
+
+static const char* execute_moonscript_src = MOON_CODE(
+	local fn, err = require('moonscript.base').loadstring(...)
+
+	if not fn then
+		return err
+	end
+	return fn()
+);
+
+static void setloaded(lua_State* l, char* name)
+{
+	s32 top = lua_gettop(l);
+	lua_getglobal(l, "package");
+	lua_getfield(l, -1, "loaded");
+	lua_getfield(l, -1, name);
+	if (lua_isnil(l, -1)) {
+		lua_pop(l, 1);
+		lua_pushvalue(l, top);
+		lua_setfield(l, -2, name);
+	}
+
+	lua_settop(l, top);
+}
+
+static bool initMoonscript(tic_mem* tic, const char* code)
+{
+	tic_machine* machine = (tic_machine*)tic;
+	closeLua(tic);
+
+	lua_State* lua = machine->lua = luaL_newstate();
+
+	static const luaL_Reg loadedlibs[] =
+	{
+		{ "_G", luaopen_base },
+		{ LUA_LOADLIBNAME, luaopen_package },
+		{ LUA_COLIBNAME, luaopen_coroutine },
+		{ LUA_TABLIBNAME, luaopen_table },
+		{ LUA_STRLIBNAME, luaopen_string },
+		{ LUA_MATHLIBNAME, luaopen_math },
+		{ LUA_DBLIBNAME, luaopen_debug },
+		{ NULL, NULL }
+	};
+
+	for (const luaL_Reg *lib = loadedlibs; lib->func; lib++)
+	{
+		luaL_requiref(lua, lib->name, lib->func, 1);
+		lua_pop(lua, 1);
+	}
+
+	luaopen_lpeg(lua);
+	setloaded(lua, "lpeg");
+
+	initAPI(machine);
+
+	{
+		lua_State* moon = machine->lua;
+
+		lua_settop(moon, 0);
+
+		if (luaL_loadbuffer(moon, (const char *)moonscript_lua, moonscript_lua_len, "moonscript.lua") != LUA_OK)
+		{
+			machine->data->error(machine->data->data, "failed to load moonscript.lua");
+			return false;
+		}
+
+		lua_call(moon, 0, 0);
+
+		if (luaL_loadbuffer(moon, execute_moonscript_src, strlen(execute_moonscript_src), "execute_moonscript") != LUA_OK)
+		{
+			machine->data->error(machine->data->data, "failed to load moonscript compiler");
+			return false;
+		}
+
+		lua_pushstring(moon, code);
+		if (lua_pcall(moon, 1, 1, 0) != LUA_OK)
+		{
+			const char* msg = lua_tostring(moon, -1);
+
+			if (msg)
+			{
+				machine->data->error(machine->data->data, msg);
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
 static const char* const MoonKeywords [] =
 {
 	"false", "true", "nil", "return",
@@ -1571,3 +1575,7 @@ const tic_script_config* getMoonScriptConfig()
 {
 	return &MoonSyntaxConfig;
 }
+
+#endif /* defined(TIC_BUILD_WITH_MOON) */
+
+#endif /* defined(TIC_BUILD_WITH_LUA) */

@@ -52,10 +52,23 @@
 
 typedef enum
 {
+#if defined(TIC_BUILD_WITH_LUA)
 	LuaScript,	
-	MoonScript,
-	JavaScript,
-	WrenScript,
+
+#	if defined(TIC_BUILD_WITH_MOON)
+	MoonScript,	
+#	endif
+
+#endif /* defined(TIC_BUILD_WITH_LUA) */
+
+#if defined(TIC_BUILD_WITH_JS)
+	JavaScript,	
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
+	WrenScript,	
+#endif
+
 } ScriptLang;
 
 #if defined(__TIC_WINDOWS__) || defined(__TIC_LINUX__) || defined(__TIC_MACOSX__)
@@ -80,10 +93,23 @@ typedef struct
 static const char* ExeExt = ".exe";
 #endif
 
+#if defined(TIC_BUILD_WITH_LUA)
 static const char DefaultLuaTicPath[] = TIC_LOCAL "default.tic";
+
+#	if defined(TIC_BUILD_WITH_MOON)
 static const char DefaultMoonTicPath[] = TIC_LOCAL "default_moon.tic";
+#	endif
+
+#endif /* defined(TIC_BUILD_WITH_LUA) */
+
+#if defined(TIC_BUILD_WITH_JS)
 static const char DefaultJSTicPath[] = TIC_LOCAL "default_js.tic";
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
 static const char DefaultWrenTicPath[] = TIC_LOCAL "default_wren.tic";
+#endif
+	
 
 static const char* getName(const char* name, const char* ext)
 {
@@ -421,18 +447,22 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 	{
 		switch(script)
 		{
-		case LuaScript:
-			strcpy(path, DefaultLuaTicPath);
-			break;
-		case MoonScript:
-			strcpy(path, DefaultMoonTicPath);
-			break;
-		case JavaScript:
-			strcpy(path, DefaultJSTicPath);
-			break;
-		case WrenScript:
-			strcpy(path, DefaultWrenTicPath);
-			break;
+#if defined(TIC_BUILD_WITH_LUA)
+		case LuaScript: strcpy(path, DefaultLuaTicPath); break;
+
+#	if defined(TIC_BUILD_WITH_MOON)
+		case MoonScript: strcpy(path, DefaultMoonTicPath); break;
+#	endif
+
+#endif /* defined(TIC_BUILD_WITH_LUA) */
+
+#if defined(TIC_BUILD_WITH_JS)
+		case JavaScript: strcpy(path, DefaultJSTicPath); break;
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
+		case WrenScript: strcpy(path, DefaultWrenTicPath); break;
+#endif			
 		}
 
 		void* data = fsLoadRootFile(console->fs, path, size);
@@ -441,47 +471,68 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 			return data;
 	}
 
-	static const u8 LuaDemoRom[] =
-	{
-		#include "../bin/assets/luademo.tic.dat"
-	};
-
-	static const u8 JsDemoRom[] =
-	{
-		#include "../bin/assets/jsdemo.tic.dat"
-	};
-
-	static const u8 MoonDemoRom[] =
-	{
-		#include "../bin/assets/moondemo.tic.dat"
-	};
-
-	static const u8 WrenDemoRom[] =
-	{
-		#include "../bin/assets/wrendemo.tic.dat"
-	};
-
 	const u8* demo = NULL;
 	s32 romSize = 0;
 
 	switch(script)
 	{
+#if defined(TIC_BUILD_WITH_LUA)
 	case LuaScript:
-		demo = LuaDemoRom;
-		romSize = sizeof LuaDemoRom;
+		{
+			static const u8 LuaDemoRom[] =
+			{
+				#include "../bin/assets/luademo.tic.dat"
+			};
+
+			demo = LuaDemoRom;
+			romSize = sizeof LuaDemoRom;			
+		}
 		break;
+
+#	if defined(TIC_BUILD_WITH_MOON)
 	case MoonScript:
-		demo = MoonDemoRom;
-		romSize = sizeof MoonDemoRom;
+		{
+			static const u8 MoonDemoRom[] =
+			{
+				#include "../bin/assets/moondemo.tic.dat"
+			};
+
+			demo = MoonDemoRom;
+			romSize = sizeof MoonDemoRom;			
+		}
 		break;
+#	endif
+
+#endif /* defined(TIC_BUILD_WITH_LUA) */
+
+
+#if defined(TIC_BUILD_WITH_JS)
 	case JavaScript:
-		demo = JsDemoRom;
-		romSize = sizeof JsDemoRom;
+		{
+			static const u8 JsDemoRom[] =
+			{
+				#include "../bin/assets/jsdemo.tic.dat"
+			};
+
+			demo = JsDemoRom;
+			romSize = sizeof JsDemoRom;
+		}
 		break;
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
 	case WrenScript:
-		demo = WrenDemoRom;
-		romSize = sizeof WrenDemoRom;
+		{
+			static const u8 WrenDemoRom[] =
+			{
+				#include "../bin/assets/wrendemo.tic.dat"
+			};
+
+			demo = WrenDemoRom;
+			romSize = sizeof WrenDemoRom;			
+		}
 		break;
+#endif		
 	}
 
 	u8* data = NULL;
@@ -508,14 +559,26 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 
 	console->showGameMenu = false;
 
+#if defined(TIC_BUILD_WITH_LUA)
 	if(strcmp(param, DefaultLuaTicPath) == 0)
 		data = getDemoCart(console, LuaScript, &size);
-	else if(strcmp(param, DefaultMoonTicPath) == 0)
+
+#	if defined(TIC_BUILD_WITH_MOON)
+	if(strcmp(param, DefaultMoonTicPath) == 0)
 		data = getDemoCart(console, MoonScript, &size);
-	else if(strcmp(param, DefaultJSTicPath) == 0)
+#	endif
+
+#endif /* defined(TIC_BUILD_WITH_LUA) */
+
+#if defined(TIC_BUILD_WITH_JS)
+	if(strcmp(param, DefaultJSTicPath) == 0)
 		data = getDemoCart(console, JavaScript, &size);
-	else if(strcmp(param, DefaultWrenTicPath) == 0)
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
+	if(strcmp(param, DefaultWrenTicPath) == 0)
 		data = getDemoCart(console, WrenScript, &size);
+#endif
 
 	const char* name = getCartName(param);
 
@@ -1073,17 +1136,44 @@ static void loadDemo(Console* console, ScriptLang script)
 
 static void onConsoleNewCommandConfirmed(Console* console, const char* param)
 {
+	bool done = false;
+
 	if(param && strlen(param))
 	{
+#if defined(TIC_BUILD_WITH_LUA)
 		if(strcmp(param, "lua") == 0)
+		{
 			loadDemo(console, LuaScript);
-		else if(strcmp(param, "moon") == 0 || strcmp(param, "moonscript") == 0)
+			done = true;
+		}
+
+#	if defined(TIC_BUILD_WITH_MOON)
+		if(strcmp(param, "moon") == 0 || strcmp(param, "moonscript") == 0)
+		{
 			loadDemo(console, MoonScript);
-		else if(strcmp(param, "js") == 0 || strcmp(param, "javascript") == 0)
+			done = true;
+		}
+#	endif
+
+#endif /* defined(TIC_BUILD_WITH_LUA) */
+
+#if defined(TIC_BUILD_WITH_JS)
+		if(strcmp(param, "js") == 0 || strcmp(param, "javascript") == 0)
+		{
 			loadDemo(console, JavaScript);
-		else if(strcmp(param, "wren") == 0)
+			done = true;
+		}
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
+		if(strcmp(param, "wren") == 0)
+		{
 			loadDemo(console, WrenScript);
-		else
+			done = true;
+		}
+#endif			
+
+		if(!done)
 		{
 			printError(console, "\nunknown parameter: ");
 			printError(console, param);
@@ -1091,9 +1181,14 @@ static void onConsoleNewCommandConfirmed(Console* console, const char* param)
 			return;
 		}
 	}
-	else loadDemo(console, LuaScript);
 
-	printBack(console, "\nnew cart is created");
+#if defined(TIC_BUILD_WITH_LUA)
+	else loadDemo(console, LuaScript);
+#endif
+
+	if(done) printBack(console, "\nnew cart is created");
+	else printError(console, "\ncart not created");
+
 	commandDone(console);
 }
 
@@ -1335,22 +1430,36 @@ static void onConsoleConfigCommand(Console* console, const char* param)
 		console->config->reset(console->config);
 		printBack(console, "\nconfiguration reset :)");
 	}
+
+#if defined(TIC_BUILD_WITH_LUA)
 	else if(strcmp(param, "default") == 0 || strcmp(param, "default lua") == 0)
 	{
 		onConsoleLoadDemoCommand(console, DefaultLuaTicPath);
 	}
+
+#	if defined(TIC_BUILD_WITH_MOON)
 	else if(strcmp(param, "default moon") == 0 || strcmp(param, "default moonscript") == 0)
 	{
 		onConsoleLoadDemoCommand(console, DefaultMoonTicPath);
 	}
+#	endif
+
+#endif /* defined(TIC_BUILD_WITH_LUA) */
+
+#if defined(TIC_BUILD_WITH_JS)
 	else if(strcmp(param, "default js") == 0)
 	{
 		onConsoleLoadDemoCommand(console, DefaultJSTicPath);
 	}
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
 	else if(strcmp(param, "default wren") == 0)
 	{
 		onConsoleLoadDemoCommand(console, DefaultWrenTicPath);
 	}
+#endif
+	
 	else
 	{
 		printError(console, "\nunknown parameter: ");
@@ -2660,7 +2769,13 @@ static void tick(Console* console)
 	{
 		if(!console->embed.yes)
 		{
+#if defined(TIC_BUILD_WITH_LUA)
 			loadDemo(console, LuaScript);
+#elif defined(TIC_BUILD_WITH_JS)
+			loadDemo(console, JavaScript);
+#elif defined(TIC_BUILD_WITH_WREN)
+			loadDemo(console, WrenScript);
+#endif			
 
 			printBack(console, "\n hello! type ");
 			printFront(console, "help");

@@ -21,6 +21,9 @@
 // SOFTWARE.
 
 #include "machine.h"
+
+#if defined(TIC_BUILD_WITH_JS)
+
 #include "tools.h"
 
 #include <ctype.h>
@@ -1026,3 +1029,9 @@ const tic_script_config* getJsScriptConfig()
 {
 	return &JsSyntaxConfig;
 }
+
+#else
+
+s32 duk_timeout_check(void* udata){return 0;}
+
+#endif /* defined(TIC_BUILD_WITH_JS) */

@@ -20,12 +20,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include "machine.h"
+
+#if defined(TIC_BUILD_WITH_WREN)
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
 
-#include "machine.h"
 #include "tools.h"
 #include "wren.h"
 
@@ -1369,3 +1372,5 @@ const tic_script_config* getWrenScriptConfig()
 {
 	return &WrenSyntaxConfig;
 }
+
+#endif /* defined(TIC_BUILD_WITH_WREN) */

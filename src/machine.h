@@ -123,9 +123,17 @@ typedef struct
 
 	struct
 	{
+#if defined(TIC_BUILD_WITH_LUA) || defined(TIC_BUILD_WITH_MOON)
+		struct lua_State* lua;
+#endif
+
+#if defined(TIC_BUILD_WITH_JS)
 		struct duk_hthread* js;
-		struct lua_State* lua;	
-		struct WrenVM* wren;	
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
+		struct WrenVM* wren;
+#endif	
 	};
 
 	blip_buffer_t* blip;
@@ -161,7 +169,20 @@ s32 drawSpriteFont(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 heig
 s32 drawFixedSpriteFont(tic_mem* memory, u8 index, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale);
 void parseCode(const tic_script_config* config, const char* start, u8* color, const tic_code_theme* theme);
 
+#if defined(TIC_BUILD_WITH_LUA)
 const tic_script_config* getLuaScriptConfig();
+
+#	if defined(TIC_BUILD_WITH_MOON)
 const tic_script_config* getMoonScriptConfig();
+#	endif
+
+#endif /* defined(TIC_BUILD_WITH_LUA) */
+
+
+#if defined(TIC_BUILD_WITH_JS)
 const tic_script_config* getJsScriptConfig();
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
 const tic_script_config* getWrenScriptConfig();
+#endif
