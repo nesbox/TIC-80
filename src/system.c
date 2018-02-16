@@ -57,7 +57,6 @@ static struct
 	Net* net;
 
 	bool missedFrame;
-	bool fullscreen;
 
 	struct
 	{
@@ -884,8 +883,7 @@ static u64 getPerformanceFrequency()
 
 static void goFullscreen()
 {
-	platform.fullscreen = !platform.fullscreen;
-	SDL_SetWindowFullscreen(platform.window, platform.fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+	SDL_SetWindowFullscreen(platform.window, SDL_GetWindowFlags(platform.window) & SDL_WINDOW_FULLSCREEN_DESKTOP ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
 }
 
 static void showMessageBox(const char* title, const char* message)
