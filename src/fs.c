@@ -106,29 +106,33 @@ bool fsIsInPublicDir(FileSystem* fs)
 
 #if defined(__TIC_WINDOWS__) || defined(__TIC_WINRT__)
 
+typedef wchar_t fsString;
+
 #define __S(x) L ## x 
 #define _S(x) __S(x)
 
-static const wchar_t* UTF8ToString(const char* str)
+static const fsString* utf8ToString(const char* str)
 {
-	static wchar_t wstr[FILENAME_MAX];
+	fsString* wstr = malloc(FILENAME_MAX * sizeof(fsString));
 
 	mbstowcs(wstr, str, FILENAME_MAX);
 
 	return wstr;
 }
 
-static char* StringToUTF8(const wchar_t* wstr)
+static const char* stringToUtf8(const fsString* wstr)
 {
-	static char str[FILENAME_MAX];
+	char* str = malloc(FILENAME_MAX * sizeof(char));
 
 	wcstombs(str, wstr, FILENAME_MAX);
 
 	return str;
 }
 
-FILE* _wfopen(const wchar_t *, const wchar_t *);
-int _wremove(const wchar_t *);
+#define freeString(S) free((void*)S)
+
+FILE* _wfopen(const fsString *, const fsString *);
+int _wremove(const fsString *);
 
 #define TIC_DIR _WDIR
 #define tic_dirent _wdirent
@@ -145,10 +149,14 @@ int _wremove(const wchar_t *);
 
 #else
 
+typedef char fsString;
+
 #define _S(x) (x)
 
-#define UTF8ToString(S) (S)
-#define StringToUTF8(S) (S)
+#define utf8ToString(S) (S)
+#define stringToUtf8(S) (S)
+
+#define freeString(S)
 
 #define TIC_DIR DIR
 #define tic_dirent dirent
@@ -309,30 +317,50 @@ void fsEnumFiles(FileSystem* fs, ListCallback callback, void* data)
 
 	const char* path = getFilePath(fs, "");
 
-	if ((dir = tic_opendir(UTF8ToString(path))) != NULL)
 	{
-		while ((ent = tic_readdir(dir)) != NULL)
+		const fsString* pathString = utf8ToString(path);
+
+		if ((dir = tic_opendir(pathString)) != NULL)
 		{
-			if (ent->d_type == DT_DIR && *ent->d_name != '.')
+			while ((ent = tic_readdir(dir)) != NULL)
 			{
-				if (!callback(StringToUTF8(ent->d_name), NULL, 0, data, true))break;
+				if (ent->d_type == DT_DIR && *ent->d_name != _S('.'))
+				{
+					const char* name = stringToUtf8(ent->d_name);
+					bool result = callback(name, NULL, 0, data, true);
+					freeString(name);
+
+					if(!result) break;
+				}
 			}
+
+			tic_closedir(dir);
 		}
 
-		tic_closedir(dir);
+		freeString(pathString);
 	}
 
-	if ((dir = tic_opendir(UTF8ToString(path))) != NULL)
 	{
-		while ((ent = tic_readdir(dir)) != NULL)
+		const fsString* pathString = utf8ToString(path);
+
+		if ((dir = tic_opendir(pathString)) != NULL)
 		{
-			if (ent->d_type == DT_REG)
+			while ((ent = tic_readdir(dir)) != NULL)
 			{
-				if (!callback(StringToUTF8(ent->d_name), NULL, 0, data, false))break;
+				if (ent->d_type == DT_REG)
+				{
+					const char* name = stringToUtf8(ent->d_name);
+					bool result = callback(name, NULL, 0, data, false);
+					freeString(name);
+
+					if (!result)break;
+				}
 			}
+
+			tic_closedir(dir);
 		}
 
-		tic_closedir(dir);
+		freeString(pathString);	
 	}
 }
 
@@ -340,7 +368,11 @@ bool fsDeleteDir(FileSystem* fs, const char* name)
 {
 #if defined(__TIC_WINRT__) || defined(__TIC_WINDOWS__)
 	const char* path = getFilePath(fs, name);
-	bool result = tic_rmdir(UTF8ToString(path));
+
+	const fsString* pathString = utf8ToString(path);
+	bool result = tic_rmdir(pathString);
+	freeString(pathString);
+
 #else
 	bool result = rmdir(getFilePath(fs, name));
 #endif
@@ -355,7 +387,10 @@ bool fsDeleteDir(FileSystem* fs, const char* name)
 bool fsDeleteFile(FileSystem* fs, const char* name)
 {
 	const char* path = getFilePath(fs, name);
-	bool result = tic_remove(UTF8ToString(path));
+
+	const fsString* pathString = utf8ToString(path);
+	bool result = tic_remove(pathString);
+	freeString(pathString);
 
 #if defined(__EMSCRIPTEN__)
 	EM_ASM(FS.syncfs(function(){}));
@@ -380,7 +415,10 @@ static void onAddFile(const char* name, const u8* buffer, s32 size, void* data, 
 	{
 		const char* destname = getFilePath(fs, name);
 
-		FILE* file = tic_fopen(UTF8ToString(destname), _S("rb"));
+		const fsString* destString = utf8ToString(destname);
+		FILE* file = tic_fopen(destString, _S("rb"));
+		freeString(destString);
+
 		if(file)
 		{
 			fclose(file);
@@ -390,7 +428,10 @@ static void onAddFile(const char* name, const u8* buffer, s32 size, void* data, 
 		else
 		{
 			const char* path = getFilePath(fs, name);
-			FILE* dest = tic_fopen(UTF8ToString(path), _S("wb"));
+
+			const fsString* pathString = utf8ToString(path);
+			FILE* dest = tic_fopen(pathString, _S("wb"));
+			freeString(pathString);
 
 			if (dest)
 			{
@@ -548,7 +589,11 @@ bool fsIsDir(FileSystem* fs, const char* name)
 
 	const char* path = getFilePath(fs, name);
 	struct tic_stat_struct s;
-	return tic_stat(UTF8ToString(path), &s) == 0 && S_ISDIR(s.st_mode);
+	const fsString* pathString = utf8ToString(path);
+	bool ret = tic_stat(pathString, &s) == 0 && S_ISDIR(s.st_mode);
+	freeString(pathString);
+
+	return ret;
 }
 
 void fsGetFileData(GetCallback callback, const char* name, void* buffer, size_t size, u32 mode, void* data)
@@ -601,7 +646,9 @@ void fsGetFile(FileSystem* fs, GetCallback callback, const char* name, void* dat
 
 bool fsWriteFile(const char* name, const void* buffer, s32 size)
 {
-	FILE* file = tic_fopen(UTF8ToString(name), _S("wb"));
+	const fsString* pathString = utf8ToString(name);
+	FILE* file = tic_fopen(pathString, _S("wb"));
+	freeString(pathString);
 
 	if(file)
 	{
@@ -626,7 +673,10 @@ bool fsCopyFile(const char* src, const char* dst)
 	s32 size = 0;
 
 	{
-		FILE* file = tic_fopen(UTF8ToString(src), _S("rb"));
+		const fsString* pathString = utf8ToString(src);
+		FILE* file = tic_fopen(pathString, _S("rb"));
+		freeString(pathString);
+
 		if(file)
 		{
 			fseek(file, 0, SEEK_END);
@@ -641,7 +691,9 @@ bool fsCopyFile(const char* src, const char* dst)
 
 	if(buffer)
 	{
-		FILE* file = tic_fopen(UTF8ToString(dst), _S("wb"));
+		const fsString* pathString = utf8ToString(dst);
+		FILE* file = tic_fopen(pathString, _S("wb"));
+		freeString(pathString);
 
 		if(file)
 		{
@@ -659,7 +711,10 @@ bool fsCopyFile(const char* src, const char* dst)
 
 void* fsReadFile(const char* path, s32* size)
 {
-	FILE* file = tic_fopen(UTF8ToString(path), _S("rb"));
+	const fsString* pathString = utf8ToString(path);
+	FILE* file = tic_fopen(pathString, _S("rb"));
+	freeString(pathString);
+
 	void* buffer = NULL;
 
 	if(file)
@@ -679,37 +734,43 @@ void* fsReadFile(const char* path, s32* size)
 
 static void makeDir(const char* name)
 {
-	tic_mkdir(UTF8ToString(name));
+	const fsString* pathString = utf8ToString(name);
+	tic_mkdir(pathString);
+	freeString(pathString);
 
 #if defined(__EMSCRIPTEN__)
 	EM_ASM(FS.syncfs(function(){}));
 #endif
 }
 
-const char* fsFilename(const char *path)
+static void fsFullname(const char *path, char *fullname)
 {
-	const char* full = fsFullname(path);
-	const char* base = fsBasename(path);
-
-	return base ? full + strlen(fsBasename(path)) : NULL;
-}
-
-const char* fsFullname(const char *path)
-{
-	char* result = NULL;
-
 #if defined(__TIC_WINDOWS__) || defined(__TIC_WINRT__)
 	static wchar_t wpath[FILENAME_MAX];
-	GetFullPathNameW(UTF8ToString(path), sizeof(wpath), wpath, NULL);
 
-	result = StringToUTF8(wpath);
+	const fsString* pathString = utf8ToString(path);
+	GetFullPathNameW(pathString, sizeof(wpath), wpath, NULL);
+	freeString(pathString);
+
+	const char* res = stringToUtf8(wpath);
 #else
 
-	result = realpath(path, NULL);
+	const char* res = realpath(path, NULL);
 
 #endif
 
-	return result;
+	strcpy(fullname, res);
+	free((void*)res);
+}
+
+const char* fsFilename(const char *path)
+{
+	static char full[FILENAME_MAX];
+	fsFullname(path, full);
+
+	const char* base = fsBasename(path);
+
+	return base ? full + strlen(fsBasename(path)) : NULL;
 }
 
 const char* fsBasename(const char *path)
@@ -723,10 +784,16 @@ const char* fsBasename(const char *path)
 #endif
 
 	{
-		char* full = (char*)fsFullname(path);
+		static char full[FILENAME_MAX];
+		fsFullname(path, full);
 
 		struct tic_stat_struct s;
-		if(tic_stat(UTF8ToString(full), &s) == 0)
+
+		const fsString* fullString = utf8ToString(full);
+		s32 ret = tic_stat(fullString, &s);
+		freeString(fullString);
+
+		if(ret == 0)
 		{
 			result = full;
 
@@ -757,7 +824,12 @@ const char* fsBasename(const char *path)
 bool fsExists(const char* name)
 {
 	struct tic_stat_struct s;
-	return tic_stat(UTF8ToString(name), &s) == 0;
+
+	const fsString* pathString = utf8ToString(name);
+	bool ret = tic_stat(pathString, &s) == 0;
+	freeString(pathString);
+
+	return ret;
 }
 
 bool fsExistsFile(FileSystem* fs, const char* name)
@@ -769,7 +841,11 @@ u64 fsMDate(FileSystem* fs, const char* name)
 {
 	struct tic_stat_struct s;
 
-	if(tic_stat(UTF8ToString(getFilePath(fs, name)), &s) == 0 && S_ISREG(s.st_mode))
+	const fsString* pathString = utf8ToString(getFilePath(fs, name));
+	s32 ret = tic_stat(pathString, &s);
+	freeString(pathString);
+
+	if(ret == 0 && S_ISREG(s.st_mode))
 	{
 		return s.st_mtime;
 	}
@@ -855,7 +931,10 @@ void* fsLoadFile(FileSystem* fs, const char* name, s32* size)
 	}
 	else
 	{
-		FILE* file = tic_fopen(UTF8ToString(getFilePath(fs, name)), _S("rb"));
+		const fsString* pathString = utf8ToString(getFilePath(fs, name));
+		FILE* file = tic_fopen(pathString, _S("rb"));
+		freeString(pathString);
+
 		void* ptr = NULL;
 
 		if(file)

@@ -64,7 +64,6 @@ u64 fsMDate(FileSystem* fs, const char* name);
 
 const char* fsBasename(const char *path);
 const char* fsFilename(const char *path);
-const char* fsFullname(const char *path);
 bool fsExists(const char* name);
 void* fsReadFile(const char* path, s32* size);
 bool fsWriteFile(const char* path, const void* data, s32 size);
