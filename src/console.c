@@ -2973,7 +2973,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 		// trying to load cart
 		for (s32 i = 1; i < argc; i++)
 		{
-			if(cmdLoadCart(console, argv[i]))
+			if(strcmp(argv[i], ".") == 0 || cmdLoadCart(console, argv[i]))
 			{
 				argp |= 1 << i;
 				break;
