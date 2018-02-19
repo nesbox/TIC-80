@@ -35,7 +35,7 @@
 
 static const char TicMachine[] = "_TIC80";
 
-s32 luaopen_lpeg(lua_State *L);
+s32 luaopen_lpeg(lua_State *lua);
 
 // !TODO: get rid of this wrap
 static s32 getLuaNumber(lua_State* lua, s32 index)
@@ -865,7 +865,7 @@ static s32 lua_memcpy(lua_State* lua)
 		s32 dest = getLuaNumber(lua, 1);
 		s32 src = getLuaNumber(lua, 2);
 		s32 size = getLuaNumber(lua, 3);
-                s32 bound = sizeof(tic_ram) - size;
+				s32 bound = sizeof(tic_ram) - size;
 
 		if(size >= 0 && size <= sizeof(tic_ram) && dest >= 0 && src >= 0 && dest <= bound && src <= bound)
 		{
@@ -1226,18 +1226,19 @@ static bool initLua(tic_mem* tic, const char* code)
 ** Message handler which appends stract trace to exceptions.
 ** This function was extractred from lua.c.
 */
-static int msghandler (lua_State *L) {
-  const char *msg = lua_tostring(L, 1);
-  if (msg == NULL) {  /* is error object not a string? */
-    if (luaL_callmeta(L, 1, "__tostring") &&  /* does it have a metamethod */
-        lua_type(L, -1) == LUA_TSTRING)  /* that produces a string? */
-      return 1;  /* that is the message */
-    else
-      msg = lua_pushfstring(L, "(error object is a %s value)",
-                               luaL_typename(L, 1));
-  }
-  luaL_traceback(L, L, msg, 1);  /* append a standard traceback */
-  return 1;  /* return the traceback */
+static s32 msghandler (lua_State *lua) 
+{
+	const char *msg = lua_tostring(lua, 1);
+	if (msg == NULL) /* is error object not a string? */
+	{
+		if (luaL_callmeta(lua, 1, "__tostring") &&  /* does it have a metamethod */
+			lua_type(lua, -1) == LUA_TSTRING)  /* that produces a string? */
+			return 1;  /* that is the message */
+		else
+			msg = lua_pushfstring(lua, "(error object is a %s value)", luaL_typename(lua, 1));
+	}
+	luaL_traceback(lua, lua, msg, 1);  /* append a standard traceback */
+	return 1;  /* return the traceback */
 }
 
 /*
@@ -1245,26 +1246,27 @@ static int msghandler (lua_State *L) {
 ** Please use this function for all top level lua functions.
 ** This function was extractred from lua.c (and stripped of signal handling)
 */
-static int docall (lua_State *L, int narg, int nres) {
-  int status;
-  int base = lua_gettop(L) - narg;  /* function index */
-  lua_pushcfunction(L, msghandler);  /* push message handler */
-  lua_insert(L, base);  /* put it under function and args */
-  status = lua_pcall(L, narg, nres, base);
-  lua_remove(L, base);  /* remove message handler from the stack */
-  return status;
+static s32 docall (lua_State *lua, s32 narg, s32 nres) 
+{
+	s32 status = 0;
+	s32 base = lua_gettop(lua) - narg;  /* function index */
+	lua_pushcfunction(lua, msghandler);  /* push message handler */
+	lua_insert(lua, base);  /* put it under function and args */
+	status = lua_pcall(lua, narg, nres, base);
+	lua_remove(lua, base);  /* remove message handler from the stack */
+	return status;
 }
 
 static void callLuaTick(tic_mem* tic)
 {
 	tic_machine* machine = (tic_machine*)tic;
 
- 	const char* TicFunc = ApiKeywords[0];
+	const char* TicFunc = ApiKeywords[0];
 
- 	lua_State* lua = machine->lua;
+	lua_State* lua = machine->lua;
 
- 	if(lua)
- 	{
+	if(lua)
+	{
 		lua_getglobal(lua, TicFunc);
 		if(lua_isfunction(lua, -1)) 
 		{
@@ -1275,8 +1277,8 @@ static void callLuaTick(tic_mem* tic)
 		{		
 			lua_pop(lua, 1);
 			machine->data->error(machine->data->data, "'function TIC()...' isn't found :(");
-		} 		
- 	}
+		}
+	}
 }
 
 static void callLuaScanlineName(tic_mem* memory, s32 row, void* data, const char* name)
