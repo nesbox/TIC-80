@@ -1222,6 +1222,39 @@ static bool initLua(tic_mem* tic, const char* code)
 	return true;
 }
 
+/*
+** Message handler which appends stract trace to exceptions.
+** This function was extractred from lua.c.
+*/
+static int msghandler (lua_State *L) {
+  const char *msg = lua_tostring(L, 1);
+  if (msg == NULL) {  /* is error object not a string? */
+    if (luaL_callmeta(L, 1, "__tostring") &&  /* does it have a metamethod */
+        lua_type(L, -1) == LUA_TSTRING)  /* that produces a string? */
+      return 1;  /* that is the message */
+    else
+      msg = lua_pushfstring(L, "(error object is a %s value)",
+                               luaL_typename(L, 1));
+  }
+  luaL_traceback(L, L, msg, 1);  /* append a standard traceback */
+  return 1;  /* return the traceback */
+}
+
+/*
+** Interface to 'lua_pcall', which sets appropriate message handler function.
+** Please use this function for all top level lua functions.
+** This function was extractred from lua.c (and stripped of signal handling)
+*/
+static int docall (lua_State *L, int narg, int nres) {
+  int status;
+  int base = lua_gettop(L) - narg;  /* function index */
+  lua_pushcfunction(L, msghandler);  /* push message handler */
+  lua_insert(L, base);  /* put it under function and args */
+  status = lua_pcall(L, narg, nres, base);
+  lua_remove(L, base);  /* remove message handler from the stack */
+  return status;
+}
+
 static void callLuaTick(tic_mem* tic)
 {
 	tic_machine* machine = (tic_machine*)tic;
@@ -1235,7 +1268,7 @@ static void callLuaTick(tic_mem* tic)
 		lua_getglobal(lua, TicFunc);
 		if(lua_isfunction(lua, -1)) 
 		{
-			if(lua_pcall(lua, 0, 0, 0) != LUA_OK)	
+			if(docall(lua, 0, 0) != LUA_OK)	
 				machine->data->error(machine->data->data, lua_tostring(lua, -1));
 		}
 		else 
@@ -1257,7 +1290,7 @@ static void callLuaScanlineName(tic_mem* memory, s32 row, void* data, const char
 		if(lua_isfunction(lua, -1))
 		{
 			lua_pushinteger(lua, row);
-			if(lua_pcall(lua, 1, 0, 0) != LUA_OK)
+			if(docall(lua, 1, 0) != LUA_OK)
 				machine->data->error(machine->data->data, lua_tostring(lua, -1));
 		}
 		else lua_pop(lua, 1);
@@ -1284,7 +1317,7 @@ static void callLuaOverlap(tic_mem* memory, void* data)
 		lua_getglobal(lua, OvrFunc);
 		if(lua_isfunction(lua, -1)) 
 		{
-			if(lua_pcall(lua, 0, 0, 0) != LUA_OK)
+			if(docall(lua, 0, 0) != LUA_OK)
 				machine->data->error(machine->data->data, lua_tostring(lua, -1));
 		}
 		else lua_pop(lua, 1);
