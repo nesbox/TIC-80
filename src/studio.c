@@ -1715,7 +1715,7 @@ static void processMouseStates()
 	}
 }
 
-static void studioTick(void* pixels)
+static void studioTick()
 {
 	processShortcuts();
 	processMouseStates();
@@ -1755,10 +1755,10 @@ static void studioTick(void* pixels)
 		}
 
 		tic->api.blit(tic, scanline, overlap, data);
-		memcpy(pixels, tic->screen, sizeof tic->screen);
 
-		recordFrame(pixels);
-		drawDesyncLabel(pixels);
+		recordFrame(tic->screen);
+		drawDesyncLabel(tic->screen);
+	
 	}
 }
 

@@ -17,6 +17,7 @@ INCLUDES= \
 	-I$(3RD_PARTY)/zlib-1.2.8 \
 	-I$(3RD_PARTY)/giflib-5.1.4/lib \
 	-I$(3RD_PARTY)/SDL2-2.0.7/include \
+	-I$(3RD_PARTY)/sdl-gpu/include \
 	-I$(3RD_PARTY)/wren-0.1.0/src/include \
 	-I$(3RD_PARTY)/moonscript \
 	-I$(BLIPBUF_LIB) \
@@ -26,11 +27,14 @@ INCLUDES= \
 
 MINGW_LINKER_FLAGS= \
 	-L$(PRE_BUILT)/mingw \
+	-L$(3RD_PARTY)/sdl-gpu \
 	-lmingw32 \
-	-lSDL2main \
-	-lSDL2 \
 	-lcomdlg32 \
 	-lws2_32 \
+	-lSDL2_gpu \
+	-lSDL2main \
+	-lSDL2 \
+	-lopengl32 \
 	-mwindows
 
 GTK_INCLUDES= `pkg-config --cflags gtk+-3.0`

@@ -7,6 +7,8 @@
 #include <time.h>
 #include <SDL.h>
 
+#include <SDL_gpu.h>
+
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
 #endif
@@ -577,6 +579,8 @@ static void pollEvent()
 
 static void blitTexture()
 {
+	tic_mem* tic = platform.studio->tic;
+
 	SDL_Rect rect = {0, 0, 0, 0};
 	calcTextureRect(&rect);
 
@@ -584,7 +588,9 @@ static void blitTexture()
 	s32 pitch = 0;
 	SDL_LockTexture(platform.texture, NULL, &pixels, &pitch);
 
-	platform.studio->tick(pixels);
+	platform.studio->tick();
+
+	memcpy(pixels, tic->screen, sizeof tic->screen);
 
 	SDL_UnlockTexture(platform.texture);
 
@@ -996,10 +1002,85 @@ static void emstick()
 
 static s32 start(s32 argc, char **argv, const char* folder)
 {
+	initSound();
+
+	platform.net = createNet();
+
+	platform.studio = studioInit(argc, argv, platform.audio.spec.freq, folder, &systemInterface);
+	tic_mem* tic = platform.studio->tic;
+
+	setWindowIcon();
+
+	initTouchGamepad();
+
+	GPU_Target* screen = GPU_Init(TIC80_FULLWIDTH * STUDIO_UI_SCALE, TIC80_FULLHEIGHT * STUDIO_UI_SCALE, GPU_INIT_DISABLE_VSYNC);
+	GPU_Image* texture = GPU_CreateImage(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, GPU_FORMAT_BGRA);
+
+	{
+		{
+			u64 nextTick = SDL_GetPerformanceCounter();
+			const u64 Delta = SDL_GetPerformanceFrequency() / TIC_FRAMERATE;
+
+			while (!platform.studio->quit)
+			{
+				platform.missedFrame = false;
+
+				nextTick += Delta;
+
+				
+				{
+					pollEvent();
+
+					GPU_Clear(screen);
+				
+					{
+						platform.studio->tick();
+						GPU_UpdateImageBytes(texture, NULL, tic->screen, TIC80_FULLWIDTH * sizeof(u32));
+					}
+
+					GPU_BlitScale(texture, NULL, screen, TIC80_FULLWIDTH/2*STUDIO_UI_SCALE, TIC80_FULLHEIGHT/2*STUDIO_UI_SCALE, STUDIO_UI_SCALE, STUDIO_UI_SCALE);
+
+					GPU_Flip(screen);
+
+					blitSound();
+				}
+
+
+				{
+					s64 delay = nextTick - SDL_GetPerformanceCounter();
+
+					if(delay < 0)
+					{
+						nextTick -= delay;
+						platform.missedFrame = true;
+					}
+					else SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
+				}
+			}
+		}
+
+	}
+
+	platform.studio->close();
+
+	closeNet(platform.net);
+
+	SDL_CloseAudioDevice(platform.audio.device);
+
+	GPU_FreeImage(texture);
+
+	GPU_Quit();
+
+	return 0;
+}
+
+static s32 start2(s32 argc, char **argv, const char* folder)
+{
 	SDL_SetHint(SDL_HINT_WINRT_HANDLE_BACK_BUTTON, "1");
 	SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
 
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK);
+
 
 	initSound();
 

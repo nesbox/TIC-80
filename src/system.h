@@ -76,7 +76,7 @@ typedef struct
 	tic_mem* tic;
 	bool quit;
 
-	void (*tick)(void* pixels);
+	void (*tick)();
 	void (*exit)();
 	void (*close)();
 	void (*updateProject)();
