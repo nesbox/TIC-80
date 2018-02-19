@@ -207,7 +207,10 @@ static void initTouchGamepad()
 
 static void calcTextureRect(SDL_Rect* rect)
 {
-	SDL_GetWindowSize(platform.window, &rect->w, &rect->h);
+	// SDL_GetWindowSize(platform.window, &rect->w, &rect->h);
+
+	rect->w = TIC80_FULLWIDTH * STUDIO_UI_SCALE;
+	rect->h = TIC80_FULLHEIGHT * STUDIO_UI_SCALE;
 
 	if (rect->w * TIC80_HEIGHT < rect->h * TIC80_WIDTH)
 	{
@@ -889,7 +892,8 @@ static u64 getPerformanceFrequency()
 
 static void goFullscreen()
 {
-	SDL_SetWindowFullscreen(platform.window, SDL_GetWindowFlags(platform.window) & SDL_WINDOW_FULLSCREEN_DESKTOP ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
+	GPU_SetFullscreen(GPU_GetFullscreen() ? false : true, true);
+	// SDL_SetWindowFullscreen(platform.window, SDL_GetWindowFlags(platform.window) & SDL_WINDOW_FULLSCREEN_DESKTOP ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);
 }
 
 static void showMessageBox(const char* title, const char* message)
@@ -1000,8 +1004,107 @@ static void emstick()
 
 #endif
 
+Uint32 load_shader(GPU_ShaderEnum shader_type, const char* filename)
+{
+	SDL_RWops* rwops;
+	Uint32 shader;
+	char* source;
+	int header_size, file_size;
+	const char* header = "";
+	GPU_Renderer* renderer = GPU_GetCurrentRenderer();
+	
+	// Open file
+	rwops = SDL_RWFromFile(filename, "rb");
+	if(rwops == NULL)
+	{
+		GPU_PushErrorCode("load_shader", GPU_ERROR_FILE_NOT_FOUND, "Shader file \"%s\" not found", filename);
+		return 0;
+	}
+	
+	// Get file size
+	file_size = SDL_RWseek(rwops, 0, SEEK_END);
+	SDL_RWseek(rwops, 0, SEEK_SET);
+	
+	// Get size from header
+	if(renderer->shader_language == GPU_LANGUAGE_GLSL)
+	{
+		if(renderer->max_shader_version >= 120)
+			header = "#version 120\n";
+		else
+			header = "#version 110\n";  // Maybe this is good enough?
+	}
+	else if(renderer->shader_language == GPU_LANGUAGE_GLSLES)
+		header = "#version 100\nprecision mediump int;\nprecision mediump float;\n";
+	
+	header_size = strlen(header);
+	
+	// Allocate source buffer
+	source = (char*)malloc(sizeof(char)*(header_size + file_size + 1));
+	
+	// Prepend header
+	strcpy(source, header);
+	
+	// Read in source code
+	SDL_RWread(rwops, source + strlen(source), 1, file_size);
+	source[header_size + file_size] = '\0';
+	
+	// Compile the shader
+	shader = GPU_CompileShader(shader_type, source);
+	
+	// Clean up
+	free(source);
+	SDL_RWclose(rwops);
+	
+	return shader;
+}
+
+GPU_ShaderBlock load_shader_program(Uint32* p, const char* vertex_shader_file, const char* fragment_shader_file)
+{
+	Uint32 v, f;
+	v = load_shader(GPU_VERTEX_SHADER, vertex_shader_file);
+	
+	if(!v)
+		GPU_LogError("Failed to load vertex shader (%s): %s\n", vertex_shader_file, GPU_GetShaderMessage());
+	
+	f = load_shader(GPU_PIXEL_SHADER, fragment_shader_file);
+	
+	if(!f)
+		GPU_LogError("Failed to load fragment shader (%s): %s\n", fragment_shader_file, GPU_GetShaderMessage());
+	
+	*p = GPU_LinkShaders(v, f);
+	
+	if(!*p)
+	{
+		GPU_ShaderBlock b = {-1, -1, -1, -1};
+		GPU_LogError("Failed to link shader program (%s + %s): %s\n", vertex_shader_file, fragment_shader_file, GPU_GetShaderMessage());
+		return b;
+	}
+	
+	{
+		GPU_ShaderBlock block = GPU_LoadShaderBlock(*p, "gpu_Vertex", "gpu_TexCoord", "gpu_Color", "gpu_ModelViewProjectionMatrix");
+		GPU_ActivateShaderProgram(*p, &block);
+
+		return block;
+	}
+}
+
+void free_shader(Uint32 p)
+{
+	GPU_FreeShaderProgram(p);
+}
+
+void update_color_shader(float r, float g, float b, float a, int color_loc)
+{
+	float fcolor[4] = {r, g, b, a};
+	GPU_SetUniformfv(color_loc, 4, 1, fcolor);
+}
+
+#include <math.h>
+
 static s32 start(s32 argc, char **argv, const char* folder)
 {
+	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK);
+
 	initSound();
 
 	platform.net = createNet();
@@ -1016,49 +1119,54 @@ static s32 start(s32 argc, char **argv, const char* folder)
 	GPU_Target* screen = GPU_Init(TIC80_FULLWIDTH * STUDIO_UI_SCALE, TIC80_FULLHEIGHT * STUDIO_UI_SCALE, GPU_INIT_DISABLE_VSYNC);
 	GPU_Image* texture = GPU_CreateImage(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, GPU_FORMAT_BGRA);
 
+	s32 color_shader = 0;
+	GPU_ShaderBlock color_block = load_shader_program(&color_shader, "data/shaders/common.vert", "data/shaders/color.frag");
+	int color_loc = GPU_GetUniformLocation(color_shader, "myColor");
+
 	{
+		u64 nextTick = SDL_GetPerformanceCounter();
+		const u64 Delta = SDL_GetPerformanceFrequency() / TIC_FRAMERATE;
+
+		while (!platform.studio->quit)
 		{
-			u64 nextTick = SDL_GetPerformanceCounter();
-			const u64 Delta = SDL_GetPerformanceFrequency() / TIC_FRAMERATE;
+			platform.missedFrame = false;
 
-			while (!platform.studio->quit)
+			nextTick += Delta;
+			
 			{
-				platform.missedFrame = false;
+				pollEvent();
 
-				nextTick += Delta;
+				float t = SDL_GetTicks()/1000.0f;
 
-				
+				GPU_Clear(screen);
+			
 				{
-					pollEvent();
-
-					GPU_Clear(screen);
-				
-					{
-						platform.studio->tick();
-						GPU_UpdateImageBytes(texture, NULL, tic->screen, TIC80_FULLWIDTH * sizeof(u32));
-					}
-
-					GPU_BlitScale(texture, NULL, screen, TIC80_FULLWIDTH/2*STUDIO_UI_SCALE, TIC80_FULLHEIGHT/2*STUDIO_UI_SCALE, STUDIO_UI_SCALE, STUDIO_UI_SCALE);
-
-					GPU_Flip(screen);
-
-					blitSound();
+					platform.studio->tick();
+					GPU_UpdateImageBytes(texture, NULL, (const u8*)tic->screen, TIC80_FULLWIDTH * sizeof(u32));
 				}
 
+				GPU_ActivateShaderProgram(color_shader, &color_block);
+				update_color_shader((1+sin(t))/2, (1+sin(t+1))/2, (1+sin(t+2))/2, 1.0f, color_loc);
 
+				// GPU_BlitScale(texture, NULL, screen, TIC80_FULLWIDTH/2*STUDIO_UI_SCALE, TIC80_FULLHEIGHT/2*STUDIO_UI_SCALE, STUDIO_UI_SCALE, STUDIO_UI_SCALE);
+				GPU_Blit(texture, NULL, screen, TIC80_FULLWIDTH/2*STUDIO_UI_SCALE, TIC80_FULLHEIGHT/2*STUDIO_UI_SCALE);
+
+				GPU_Flip(screen);
+
+				blitSound();
+			}
+
+			{
+				s64 delay = nextTick - SDL_GetPerformanceCounter();
+
+				if(delay < 0)
 				{
-					s64 delay = nextTick - SDL_GetPerformanceCounter();
-
-					if(delay < 0)
-					{
-						nextTick -= delay;
-						platform.missedFrame = true;
-					}
-					else SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
+					nextTick -= delay;
+					platform.missedFrame = true;
 				}
+				else SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
 			}
 		}
-
 	}
 
 	platform.studio->close();
@@ -1080,7 +1188,6 @@ static s32 start2(s32 argc, char **argv, const char* folder)
 	SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
 
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK);
-
 
 	initSound();
 
