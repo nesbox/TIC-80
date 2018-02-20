@@ -1093,12 +1093,6 @@ void free_shader(Uint32 p)
 	GPU_FreeShaderProgram(p);
 }
 
-void update_color_shader(float r, float g, float b, float a, int color_loc)
-{
-	float fcolor[4] = {r, g, b, a};
-	GPU_SetUniformfv(color_loc, 4, 1, fcolor);
-}
-
 #include <math.h>
 
 static s32 start(s32 argc, char **argv, const char* folder)
@@ -1119,9 +1113,9 @@ static s32 start(s32 argc, char **argv, const char* folder)
 	GPU_Target* screen = GPU_Init(TIC80_FULLWIDTH * STUDIO_UI_SCALE, TIC80_FULLHEIGHT * STUDIO_UI_SCALE, GPU_INIT_DISABLE_VSYNC);
 	GPU_Image* texture = GPU_CreateImage(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, GPU_FORMAT_BGRA);
 
-	s32 color_shader = 0;
-	GPU_ShaderBlock color_block = load_shader_program(&color_shader, "data/shaders/common.vert", "data/shaders/crt-simple.frag");
-	int color_loc = GPU_GetUniformLocation(color_shader, "myColor");
+	u32 crt_shader = 0;
+	GPU_ShaderBlock crt_block = load_shader_program(&crt_shader, "data/shaders/common.vert", "data/shaders/crt-simple.frag");
+	GPU_ActivateShaderProgram(crt_shader, &crt_block);
 
 	{
 		u64 nextTick = SDL_GetPerformanceCounter();
@@ -1136,17 +1130,12 @@ static s32 start(s32 argc, char **argv, const char* folder)
 			{
 				pollEvent();
 
-				float t = SDL_GetTicks()/1000.0f;
-
 				GPU_Clear(screen);
 			
 				{
 					platform.studio->tick();
 					GPU_UpdateImageBytes(texture, NULL, (const u8*)tic->screen, TIC80_FULLWIDTH * sizeof(u32));
 				}
-
-				GPU_ActivateShaderProgram(color_shader, &color_block);
-				update_color_shader((1+sin(t))/2, (1+sin(t+1))/2, (1+sin(t+2))/2, 1.0f, color_loc);
 
 				GPU_BlitScale(texture, NULL, screen, TIC80_FULLWIDTH/2*STUDIO_UI_SCALE, TIC80_FULLHEIGHT/2*STUDIO_UI_SCALE, STUDIO_UI_SCALE, STUDIO_UI_SCALE);
 				// GPU_Blit(texture, NULL, screen, TIC80_FULLWIDTH/2*STUDIO_UI_SCALE, TIC80_FULLHEIGHT/2*STUDIO_UI_SCALE);
@@ -1174,6 +1163,8 @@ static s32 start(s32 argc, char **argv, const char* folder)
 	closeNet(platform.net);
 
 	SDL_CloseAudioDevice(platform.audio.device);
+
+	free_shader(crt_shader);
 
 	GPU_FreeImage(texture);
 
