@@ -1,14 +1,12 @@
-//uniform sampler2D source[];
-//uniform vec4 sourceSize[];
-//uniform vec4 targetSize;
-
 in vec2 texCoord;
 out vec4 fragColor;
 
 uniform sampler2D tex;
 
 // Emulated input resolution.
-	vec2 res=vec2(256.0,144.0);//sourceSize[0].xy;
+vec2 res=vec2(256.0,144.0);
+
+vec2 trg=res*4.0;
 
 // Hardness of scanline.
 //  -8.0 = soft
@@ -116,12 +114,11 @@ vec3 Mask(vec2 pos){
 	else mask.b=maskLight;
 	return mask;}    
 
-void main() {
-		vec2 pos = gl_FragCoord.xy/vec2(256.0*4.0,144.0*4.0);//targetSize.xy;
-			hardScan=-12.0;
-//      maskDark=maskLight;
-			pos=Warp(gl_FragCoord.xy/vec2(256.0*4.0,144.0*4.0));
-		fragColor.rgb=Tri(pos)*Mask(gl_FragCoord.xy);    
+void main() 
+{
+//	maskDark=maskLight;
+	vec2 pos=Warp(gl_FragCoord.xy/trg);
+	fragColor.rgb=Tri(vec2(pos.s, 1.0 - pos.t))*Mask(gl_FragCoord.xy);
 	fragColor.a=1.0;
 	fragColor = vec4(ToSrgb(fragColor.rgb), fragColor.a);
 }
