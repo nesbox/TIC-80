@@ -13,7 +13,7 @@
 #include <emscripten.h>
 #endif
 
-#define STUDIO_UI_SCALE 3
+#define STUDIO_UI_SCALE 4
 #define STUDIO_PIXEL_FORMAT SDL_PIXELFORMAT_ARGB8888
 #define TEXTURE_SIZE (TIC80_FULLWIDTH)
 #define OFFSET_LEFT ((TIC80_FULLWIDTH-TIC80_WIDTH)/2)
@@ -1120,7 +1120,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
 	GPU_Image* texture = GPU_CreateImage(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, GPU_FORMAT_BGRA);
 
 	s32 color_shader = 0;
-	GPU_ShaderBlock color_block = load_shader_program(&color_shader, "data/shaders/common.vert", "data/shaders/color.frag");
+	GPU_ShaderBlock color_block = load_shader_program(&color_shader, "data/shaders/common.vert", "data/shaders/crt-simple.frag");
 	int color_loc = GPU_GetUniformLocation(color_shader, "myColor");
 
 	{
@@ -1148,8 +1148,8 @@ static s32 start(s32 argc, char **argv, const char* folder)
 				GPU_ActivateShaderProgram(color_shader, &color_block);
 				update_color_shader((1+sin(t))/2, (1+sin(t+1))/2, (1+sin(t+2))/2, 1.0f, color_loc);
 
-				// GPU_BlitScale(texture, NULL, screen, TIC80_FULLWIDTH/2*STUDIO_UI_SCALE, TIC80_FULLHEIGHT/2*STUDIO_UI_SCALE, STUDIO_UI_SCALE, STUDIO_UI_SCALE);
-				GPU_Blit(texture, NULL, screen, TIC80_FULLWIDTH/2*STUDIO_UI_SCALE, TIC80_FULLHEIGHT/2*STUDIO_UI_SCALE);
+				GPU_BlitScale(texture, NULL, screen, TIC80_FULLWIDTH/2*STUDIO_UI_SCALE, TIC80_FULLHEIGHT/2*STUDIO_UI_SCALE, STUDIO_UI_SCALE, STUDIO_UI_SCALE);
+				// GPU_Blit(texture, NULL, screen, TIC80_FULLWIDTH/2*STUDIO_UI_SCALE, TIC80_FULLHEIGHT/2*STUDIO_UI_SCALE);
 
 				GPU_Flip(screen);
 
