@@ -27,7 +27,6 @@
 #include <math.h>
 #include <ctype.h>
 #include <stddef.h>
-#include <stddef.h>
 
 #include "ticapi.h"
 #include "tools.h"
@@ -824,8 +823,10 @@ static struct
 {
 	s16 Left[TIC80_HEIGHT];
 	s16 Right[TIC80_HEIGHT];	
-	s32 ULeft[TIC80_HEIGHT];
-	s32 VLeft[TIC80_HEIGHT];
+	float ULeft[TIC80_HEIGHT];
+	float VLeft[TIC80_HEIGHT];
+	float URight[TIC80_HEIGHT];
+	float VRight[TIC80_HEIGHT];
 } SidesBuffer;
 
 static void initSidesBuffer()
@@ -851,12 +852,14 @@ static void setSideTexPixel(s32 x, s32 y, float u, float v)
 		if (x < SidesBuffer.Left[yy])
 		{
 			SidesBuffer.Left[yy] = x;
-			SidesBuffer.ULeft[yy] = u*65536.0f;
-			SidesBuffer.VLeft[yy] = v*65536.0f;
+			SidesBuffer.ULeft[yy] = u;
+			SidesBuffer.VLeft[yy] = v;
 		}
 		if (x > SidesBuffer.Right[yy])
 		{
 			SidesBuffer.Right[yy] = x;
+			SidesBuffer.URight[yy] = u;
+			SidesBuffer.VRight[yy] = v;
 		}
 	}
 }
@@ -1012,37 +1015,22 @@ static void api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, 
 	V0.x = (float)x1; 	V0.y = (float)y1; 	V0.u = (float)u1; 	V0.v = (float)v1;
 	V1.x = (float)x2; 	V1.y = (float)y2; 	V1.u = (float)u2; 	V1.v = (float)v2;
 	V2.x = (float)x3; 	V2.y = (float)y3; 	V2.u = (float)u3; 	V2.v = (float)v3;
-
-	//	calculate the slope of the surface 
-	//	use floats here 
-	double denom = (V0.x - V2.x) * (V1.y - V2.y) - (V1.x - V2.x) * (V0.y - V2.y);
-	if (denom == 0.0)
-	{
-		return;
-	}
-	double id = 1.0 / denom;
-	float dudx, dvdx;
-	//	this is the UV slope across the surface
-	dudx = ((V0.u - V2.u) * (V1.y - V2.y) - (V1.u - V2.u) * (V0.y - V2.y)) * id;
-	dvdx = ((V0.v - V2.v) * (V1.y - V2.y) - (V1.v - V2.v) * (V0.y - V2.y)) * id;
-	//	convert to fixed
-	s32 dudxs = dudx * 65536.0f;
-	s32 dvdxs = dvdx * 65536.0f;
-
 	initSidesBuffer();
 
 	ticTexLine(memory, &V0, &V1);
 	ticTexLine(memory, &V1, &V2);
 	ticTexLine(memory, &V2, &V0);
-	
+
 	{
 		for (s32 y = 0; y < TIC80_HEIGHT; y++)
 		{
 			float width = SidesBuffer.Right[y] - SidesBuffer.Left[y];
 			if (width > 0)
 			{
-				s32 u = SidesBuffer.ULeft[y];
-				s32 v = SidesBuffer.VLeft[y];
+				float du = (SidesBuffer.URight[y] - SidesBuffer.ULeft[y]) / width;
+				float dv = (SidesBuffer.VRight[y] - SidesBuffer.VLeft[y]) / width;
+				float u = SidesBuffer.ULeft[y];
+				float v = SidesBuffer.VLeft[y];
 
 				for (s32 x = (s32)SidesBuffer.Left[y]; x <= (s32)SidesBuffer.Right[y]; ++x)
 				{
@@ -1052,8 +1040,8 @@ static void api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, 
 						{
 							enum {MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE, MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE};
 
-							s32 iu = (u >> 16) % MapWidth;
-							s32 iv = (v >> 16) % MapHeight;
+							s32 iu = (s32)u % MapWidth;
+							s32 iv = (s32)v % MapHeight;
 
 							while (iu < 0) iu += MapWidth;
 							while (iv < 0) iv += MapHeight;
@@ -1068,22 +1056,21 @@ static void api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, 
 						{
 							enum{SheetWidth = TIC_SPRITESHEET_SIZE, SheetHeight = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS};
 
-							s32 iu = (u>>16) & (SheetWidth - 1);
-							s32 iv = (v>>16) & (SheetHeight - 1);
+							s32 iu = (s32)(u) & (SheetWidth - 1);
+							s32 iv = (s32)(v) & (SheetHeight - 1);
 							const u8 *buffer = &ptr[((iu >> 3) + ((iv >> 3) << 4)) << 5];
 							u8 color = tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) << 3));
 							if (color != chroma)
 								setPixel(machine, x, y, color);
 						}
 					}
-					u += dudxs;
-					v += dvdxs;
+					u += du;
+					v += dv;
 				}
 			}
 		}
 	}
 }
-
 
 
 static void api_sprite(tic_mem* memory, const tic_tiles* src, s32 index, s32 x, s32 y, u8* colors, s32 count)
