@@ -1129,10 +1129,10 @@ static s32 start(s32 argc, char **argv, const char* folder)
 	GPU_Target* screen = GPU_Init(Width, Height, GPU_INIT_DISABLE_VSYNC);
 
 	GPU_Image* texture = GPU_CreateImage(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, GPU_FORMAT_BGRA);
-	// GPU_SetImageFilter(texture, GPU_FILTER_NEAREST);
+	GPU_SetImageFilter(texture, GPU_FILTER_NEAREST);
 
 	u32 crt_shader = 0;
-	load_shader_program(&crt_shader, "data/shaders/common.vert", "data/shaders/crt-geom.frag");
+	load_shader_program(&crt_shader, "data/shaders/common.vert", "data/shaders/crt-lottes.frag");
 	{
 		u64 nextTick = SDL_GetPerformanceCounter();
 		const u64 Delta = SDL_GetPerformanceFrequency() / TIC_FRAMERATE;
