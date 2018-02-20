@@ -1114,7 +1114,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
 	GPU_Image* texture = GPU_CreateImage(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, GPU_FORMAT_BGRA);
 
 	u32 crt_shader = 0;
-	GPU_ShaderBlock crt_block = load_shader_program(&crt_shader, "data/shaders/common.vert", "data/shaders/crt-simple.frag");
+	GPU_ShaderBlock crt_block = load_shader_program(&crt_shader, "data/shaders/common.vert", "data/shaders/crt-geom.frag");
 	GPU_ActivateShaderProgram(crt_shader, &crt_block);
 
 	{
