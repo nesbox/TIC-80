@@ -1162,7 +1162,6 @@ static s32 start(s32 argc, char **argv, const char* folder)
 	platform.studio = studioInit(argc, argv, platform.audio.spec.freq, folder, &systemInterface);
 	tic_mem* tic = platform.studio->tic;
 
-	setWindowIcon();
 
 	initTouchGamepad();
 
@@ -1170,6 +1169,8 @@ static s32 start(s32 argc, char **argv, const char* folder)
 
 	platform.window = SDL_CreateWindow( TIC_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 		Width, Height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE| SDL_WINDOW_OPENGL);
+
+	setWindowIcon();
 
 	GPU_SetInitWindow(SDL_GetWindowID(platform.window));
 

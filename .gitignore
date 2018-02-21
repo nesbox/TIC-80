@@ -111,3 +111,7 @@ build/uwp/studio/Release/
 build/uwp/studio/Release Pro/
 build/uwp/studio/ARM/
 build/uwp/studio/x64/
+build/windows/sdl-gpu/Debug/
+build/windows/sdl-gpu/Debug Pro/
+build/windows/sdl-gpu/Release/
+build/windows/sdl-gpu/Release Pro/
