@@ -115,3 +115,10 @@ build/windows/sdl-gpu/Debug/
 build/windows/sdl-gpu/Debug Pro/
 build/windows/sdl-gpu/Release/
 build/windows/sdl-gpu/Release Pro/
+build/uwp/sdl-gpu/Debug/
+build/uwp/sdl-gpu/Debug Pro/
+build/uwp/sdl-gpu/Release/
+build/uwp/sdl-gpu/Release Pro/
+build/uwp/sdl-gpu/ARM/
+build/uwp/sdl-gpu/x64/
+build/uwp/tic/packages/

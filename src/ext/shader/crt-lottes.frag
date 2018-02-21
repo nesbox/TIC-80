@@ -1,5 +1,11 @@
-in vec2 texCoord;
-out vec4 fragColor;
+CODE(
+
+#version 100\n
+precision highp float;
+precision mediump int;
+
+varying vec2 texCoord;
+//vec4 fragColor;
 
 uniform sampler2D tex;
 uniform float trg_w;
@@ -120,7 +126,8 @@ void main()
 {
 //	maskDark=maskLight;
 	vec2 pos=Warp(gl_FragCoord.xy/trg);
+	vec4 fragColor;
 	fragColor.rgb=Tri(vec2(pos.s, 1.0 - pos.t))*Mask(gl_FragCoord.xy);
 	fragColor.a=1.0;
-	fragColor = vec4(ToSrgb(fragColor.rgb), fragColor.a);
-}
+	gl_FragColor = vec4(ToSrgb(fragColor.rgb), fragColor.a);
+})

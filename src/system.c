@@ -1060,87 +1060,44 @@ static void emstick()
 
 #endif
 
-Uint32 load_shader(GPU_ShaderEnum shader_type, const char* filename)
-{
-	SDL_RWops* rwops;
-	Uint32 shader;
-	char* source;
-	int header_size, file_size;
-	const char* header = "";
-	GPU_Renderer* renderer = GPU_GetCurrentRenderer();
-	
-	// Open file
-	rwops = SDL_RWFromFile(filename, "rb");
-	if(rwops == NULL)
-	{
-		GPU_PushErrorCode("load_shader", GPU_ERROR_FILE_NOT_FOUND, "Shader file \"%s\" not found", filename);
-		return 0;
-	}
-	
-	// Get file size
-	file_size = SDL_RWseek(rwops, 0, SEEK_END);
-	SDL_RWseek(rwops, 0, SEEK_SET);
-	
-	// Get size from header
-	if(renderer->shader_language == GPU_LANGUAGE_GLSL)
-	{
-		if(renderer->max_shader_version >= 120)
-			header = "#version 120\n";
-		else
-			header = "#version 110\n";  // Maybe this is good enough?
-	}
-	else if(renderer->shader_language == GPU_LANGUAGE_GLSLES)
-		header = "#version 100\nprecision mediump int;\nprecision mediump float;\n";
-	
-	header_size = strlen(header);
-	
-	// Allocate source buffer
-	source = (char*)malloc(sizeof(char)*(header_size + file_size + 1));
-	
-	// Prepend header
-	strcpy(source, header);
-	
-	// Read in source code
-	SDL_RWread(rwops, source + strlen(source), 1, file_size);
-	source[header_size + file_size] = '\0';
-	
-	// Compile the shader
-	shader = GPU_CompileShader(shader_type, source);
-	
-	// Clean up
-	free(source);
-	SDL_RWclose(rwops);
-	
-	return shader;
-}
+#define CODE(...) #__VA_ARGS__
 
-GPU_ShaderBlock load_shader_program(Uint32* p, const char* vertex_shader_file, const char* fragment_shader_file)
+u32 load_shader_program()
 {
 	Uint32 v, f;
-	v = load_shader(GPU_VERTEX_SHADER, vertex_shader_file);
+
+	static const char* VertexShader = 
+		#include "ext/shader/common.vert"
+	;
+
+	v = GPU_CompileShader(GPU_VERTEX_SHADER, VertexShader);
 	
 	if(!v)
-		GPU_LogError("Failed to load vertex shader (%s): %s\n", vertex_shader_file, GPU_GetShaderMessage());
-	
-	f = load_shader(GPU_PIXEL_SHADER, fragment_shader_file);
+		GPU_LogError("Failed to load vertex shader: %s\n", GPU_GetShaderMessage());
+
+	static const char* PixelShader = 
+		#include "ext/shader/crt-lottes.frag"
+	;
+
+	f = GPU_CompileShader(GPU_PIXEL_SHADER, PixelShader);
 	
 	if(!f)
-		GPU_LogError("Failed to load fragment shader (%s): %s\n", fragment_shader_file, GPU_GetShaderMessage());
+		GPU_LogError("Failed to load fragment shader: %s\n", GPU_GetShaderMessage());
 	
-	*p = GPU_LinkShaders(v, f);
+	u32 p = GPU_LinkShaders(v, f);
 	
-	if(!*p)
+	if(!p)
 	{
 		GPU_ShaderBlock b = {-1, -1, -1, -1};
-		GPU_LogError("Failed to link shader program (%s + %s): %s\n", vertex_shader_file, fragment_shader_file, GPU_GetShaderMessage());
-		return b;
+		GPU_LogError("Failed to link shader program: %s\n", GPU_GetShaderMessage());
+		return p;
 	}
 	
 	{
-		GPU_ShaderBlock block = GPU_LoadShaderBlock(*p, "gpu_Vertex", "gpu_TexCoord", "gpu_Color", "gpu_ModelViewProjectionMatrix");
-		GPU_ActivateShaderProgram(*p, &block);
+		GPU_ShaderBlock block = GPU_LoadShaderBlock(p, "gpu_Vertex", "gpu_TexCoord", "gpu_Color", "gpu_ModelViewProjectionMatrix");
+		GPU_ActivateShaderProgram(p, &block);
 
-		return block;
+		return p;
 	}
 }
 
@@ -1176,12 +1133,11 @@ static s32 start(s32 argc, char **argv, const char* folder)
 
 	GPU_Target* screen = GPU_Init(Width, Height, GPU_INIT_DISABLE_VSYNC);
 
-	GPU_Image* texture = GPU_CreateImage(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, GPU_FORMAT_BGRA);
+	GPU_Image* texture = GPU_CreateImage(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, GPU_FORMAT_RGBA);// GPU_FORMAT_BGRA);
 	GPU_SetAnchor(texture, 0, 0);
 	GPU_SetImageFilter(texture, GPU_FILTER_NEAREST);
 
-	u32 crt_shader = 0;
-	load_shader_program(&crt_shader, "data/shaders/common.vert", "data/shaders/crt-lottes.frag");
+	u32 crt_shader = load_shader_program(&crt_shader);
 
 	{
 		u64 nextTick = SDL_GetPerformanceCounter();
