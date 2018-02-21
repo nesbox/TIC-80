@@ -565,6 +565,7 @@ static void pollEvent()
 				s32 w = 0, h = 0;
 				SDL_GetWindowSize(platform.window, &w, &h);
 				GPU_SetWindowResolution(w, h);
+
 				updateGamepadParts(); break;
 			}
 			case SDL_WINDOWEVENT_FOCUS_GAINED: platform.studio->updateProject(); break;
@@ -637,6 +638,41 @@ static void blitTexture()
 		SDL_Rect srcRect = {Left, Top, TIC80_WIDTH, TIC80_HEIGHT};
 
 		SDL_RenderCopy(platform.renderer, platform.texture, &srcRect, &rect);
+	}
+}
+
+static void blitGpuTexture(GPU_Target* screen, GPU_Image* texture)
+{
+	SDL_Rect rect = {0, 0, 0, 0};
+	calcTextureRect(&rect);
+
+	enum {Header = OFFSET_TOP, Top = OFFSET_TOP, Left = OFFSET_LEFT};
+
+	s32 width = 0;
+	SDL_GetWindowSize(platform.window, &width, NULL);
+
+	{
+		GPU_Rect srcRect = {0, 0, TIC80_FULLWIDTH, Header};
+		GPU_Rect dstRect = {0, 0, width, rect.y};
+		GPU_BlitScale(texture, &srcRect, screen, dstRect.x, dstRect.y, dstRect.w / srcRect.w, dstRect.h / srcRect.h);
+	}
+
+	{
+		GPU_Rect srcRect = {0, TIC80_FULLHEIGHT - Header, TIC80_FULLWIDTH, Header};
+		GPU_Rect dstRect = {0, rect.y + rect.h, width, rect.y};
+		GPU_BlitScale(texture, &srcRect, screen, dstRect.x, dstRect.y, dstRect.w / srcRect.w, dstRect.h / srcRect.h);
+	}
+
+	{
+		GPU_Rect srcRect = {0, Header, Left, TIC80_HEIGHT};
+		GPU_Rect dstRect = {0, rect.y, width, rect.h};
+		GPU_BlitScale(texture, &srcRect, screen, dstRect.x, dstRect.y, dstRect.w / srcRect.w, dstRect.h / srcRect.h);
+	}
+
+	{
+		GPU_Rect srcRect = {Left, Top, TIC80_WIDTH, TIC80_HEIGHT};
+		GPU_Rect dstRect = {rect.x, rect.y, rect.w, rect.h};
+		GPU_BlitScale(texture, &srcRect, screen, dstRect.x, dstRect.y, dstRect.w / srcRect.w, dstRect.h / srcRect.h);
 	}
 }
 
@@ -1122,13 +1158,14 @@ static s32 start(s32 argc, char **argv, const char* folder)
 	enum{Width = TIC80_FULLWIDTH * STUDIO_UI_SCALE, Height = TIC80_FULLHEIGHT * STUDIO_UI_SCALE};
 
 	platform.window = SDL_CreateWindow( TIC_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-		Width, Height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE	| SDL_WINDOW_OPENGL);
+		Width, Height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE| SDL_WINDOW_OPENGL);
 
 	GPU_SetInitWindow(SDL_GetWindowID(platform.window));
 
 	GPU_Target* screen = GPU_Init(Width, Height, GPU_INIT_DISABLE_VSYNC);
 
 	GPU_Image* texture = GPU_CreateImage(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, GPU_FORMAT_BGRA);
+	GPU_SetAnchor(texture, 0, 0);
 	GPU_SetImageFilter(texture, GPU_FILTER_NEAREST);
 
 	u32 crt_shader = 0;
@@ -1154,17 +1191,8 @@ static s32 start(s32 argc, char **argv, const char* folder)
 					renderGamepad();
 
 					GPU_UpdateImageBytes(texture, NULL, (const u8*)tic->screen, TIC80_FULLWIDTH * sizeof(u32));
-				}
 
-				{
-					SDL_Rect rect;
-					calcTextureRect(&rect);
-
-					float sx = (float)rect.w / TIC80_WIDTH;
-					float sy = (float)rect.h / TIC80_HEIGHT;
-
-					GPU_BlitScale(texture, NULL, screen, 
-						rect.x + rect.w/2, rect.y + rect.h/2, sx, sy);
+					blitGpuTexture(screen, texture);
 				}
 
 				GPU_Flip(screen);
