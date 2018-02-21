@@ -2,11 +2,13 @@ in vec2 texCoord;
 out vec4 fragColor;
 
 uniform sampler2D tex;
+uniform float trg_w;
+uniform float trg_h;
 
 // Emulated input resolution.
 vec2 res=vec2(256.0,144.0);
 
-vec2 trg=res*4.0;
+vec2 trg=vec2(trg_w, trg_h);
 
 // Hardness of scanline.
 //  -8.0 = soft

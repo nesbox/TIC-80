@@ -207,6 +207,17 @@ static void initTouchGamepad()
 
 static void calcTextureRect(SDL_Rect* rect)
 {
+	s32 w, h;
+	SDL_GetWindowSize(platform.window, &w, &h);
+
+	rect->x = OFFSET_LEFT * w / TIC80_FULLWIDTH;
+	rect->y = OFFSET_TOP * h / TIC80_FULLHEIGHT;
+	rect->w = TIC80_WIDTH * w / TIC80_FULLWIDTH;
+	rect->h = TIC80_HEIGHT * h / TIC80_FULLHEIGHT;
+}
+
+static void calcTextureRect2(SDL_Rect* rect)
+{
 	SDL_GetWindowSize(platform.window, &rect->w, &rect->h);
 
 	if (rect->w * TIC80_HEIGHT < rect->h * TIC80_WIDTH)
@@ -1170,6 +1181,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
 
 	u32 crt_shader = 0;
 	load_shader_program(&crt_shader, "data/shaders/common.vert", "data/shaders/crt-lottes.frag");
+
 	{
 		u64 nextTick = SDL_GetPerformanceCounter();
 		const u64 Delta = SDL_GetPerformanceFrequency() / TIC_FRAMERATE;
@@ -1192,7 +1204,15 @@ static s32 start(s32 argc, char **argv, const char* folder)
 
 					GPU_UpdateImageBytes(texture, NULL, (const u8*)tic->screen, TIC80_FULLWIDTH * sizeof(u32));
 
-					blitGpuTexture(screen, texture);
+					{
+						s32 w, h;
+						SDL_GetWindowSize(platform.window, &w, &h);
+
+						GPU_SetUniformf(GPU_GetUniformLocation(crt_shader, "trg_w"), w);
+						GPU_SetUniformf(GPU_GetUniformLocation(crt_shader, "trg_h"), h);
+
+						GPU_BlitScale(texture, NULL, screen, 0, 0, (float)w / TIC80_FULLWIDTH, (float)h / TIC80_FULLHEIGHT);
+					}
 				}
 
 				GPU_Flip(screen);
