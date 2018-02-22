@@ -1006,9 +1006,10 @@ static void copyFromClipboard(Map* map)
 static void processKeyboard(Map* map)
 {
 	tic_mem* tic = map->tic;
-	map->sheet.show = false;
 
 	if(tic->ram.input.keyboard.data == 0) return;
+	
+	map->sheet.show = false;
 
 	bool shift = tic->api.key(tic, tic_key_shift);
 	bool ctrl = tic->api.key(tic, tic_key_ctrl);
