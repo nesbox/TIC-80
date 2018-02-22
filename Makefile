@@ -27,7 +27,6 @@ INCLUDES= \
 
 MINGW_LINKER_FLAGS= \
 	-L$(PRE_BUILT)/mingw \
-	-L$(3RD_PARTY)/sdl-gpu \
 	-lmingw32 \
 	-lcomdlg32 \
 	-lws2_32 \
@@ -62,6 +61,7 @@ LINUX_ARM_LIBS= \
 
 LINUX_LINKER_LTO_FLAGS= \
 	-lSDL2 \
+	-lsdlgpu \
 	-llua \
 	-lwren \
 	-lgif \
@@ -69,7 +69,8 @@ LINUX_LINKER_LTO_FLAGS= \
 	-lm \
 	-lpthread \
 	-lrt \
-	-lz
+	-lz \
+	-lGL
 
 LINUX_LINKER_FLAGS= \
 	-llua5.3 \
