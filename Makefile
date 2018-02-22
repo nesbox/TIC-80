@@ -31,7 +31,7 @@ MINGW_LINKER_FLAGS= \
 	-lmingw32 \
 	-lcomdlg32 \
 	-lws2_32 \
-	-lSDL2_gpu \
+	-lsdlgpu \
 	-lSDL2main \
 	-lSDL2 \
 	-lopengl32 \
@@ -97,7 +97,8 @@ EMS_LINKER_FLAGS= \
 	-llua \
 	-lwren \
 	-lgif \
-	-lz
+	-lz \
+	-lsdlgpu
 
 MACOSX_OPT= \
 	-mmacosx-version-min=10.6 \

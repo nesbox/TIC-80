@@ -29,6 +29,13 @@ static struct
 
 	struct
 	{
+		GPU_Target* screen;
+		GPU_Image* texture;
+		u32 crt_shader;
+	} gpu;
+
+	struct
+	{
 		SDL_Joystick* ports[TIC_GAMEPADS];
 		SDL_Texture* texture;
 
@@ -1034,6 +1041,37 @@ static System systemInterface =
 	.poll = pollEvent,
 };
 
+static void gpuTick()
+{
+	tic_mem* tic = platform.studio->tic;
+
+	pollEvent();
+
+	GPU_Clear(platform.gpu.screen);
+
+	{
+		platform.studio->tick();
+		renderCursor();
+		renderGamepad();
+
+		GPU_UpdateImageBytes(platform.gpu.texture, NULL, (const u8*)tic->screen, TIC80_FULLWIDTH * sizeof(u32));
+
+		{
+			s32 w, h;
+			SDL_GetWindowSize(platform.window, &w, &h);
+
+			GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "trg_w"), w);
+			GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "trg_h"), h);
+
+			GPU_BlitScale(platform.gpu.texture, NULL, platform.gpu.screen, 0, 0, (float)w / TIC80_FULLWIDTH, (float)h / TIC80_FULLHEIGHT);
+		}
+	}
+
+	GPU_Flip(platform.gpu.screen);
+
+	blitSound();
+}
+
 #if defined(__EMSCRIPTEN__)
 
 static void emstick()
@@ -1047,6 +1085,28 @@ static void emstick()
 
 	nextTick += 1000.0/TIC_FRAMERATE;
 	tick();
+	double delay = nextTick - emscripten_get_now();
+
+	if(delay < 0.0)
+	{
+		nextTick -= delay;
+		platform.missedFrame = true;
+	}
+	else
+		emscripten_set_main_loop_timing(EM_TIMING_SETTIMEOUT, delay);
+}
+
+static void emsGpuTick()
+{
+	static double nextTick = -1.0;
+
+	platform.missedFrame = false;
+
+	if(nextTick < 0.0)
+		nextTick = emscripten_get_now();
+
+	nextTick += 1000.0/TIC_FRAMERATE;
+	gpuTick();
 	double delay = nextTick - emscripten_get_now();
 
 	if(delay < 0.0)
@@ -1088,7 +1148,6 @@ u32 load_shader_program()
 	
 	if(!p)
 	{
-		GPU_ShaderBlock b = {-1, -1, -1, -1};
 		GPU_LogError("Failed to link shader program: %s\n", GPU_GetShaderMessage());
 		return p;
 	}
@@ -1112,8 +1171,6 @@ static s32 start(s32 argc, char **argv, const char* folder)
 	platform.net = createNet();
 
 	platform.studio = studioInit(argc, argv, platform.audio.spec.freq, folder, &systemInterface);
-	tic_mem* tic = platform.studio->tic;
-
 
 	initTouchGamepad();
 
@@ -1126,14 +1183,19 @@ static s32 start(s32 argc, char **argv, const char* folder)
 
 	GPU_SetInitWindow(SDL_GetWindowID(platform.window));
 
-	GPU_Target* screen = GPU_Init(Width, Height, GPU_INIT_DISABLE_VSYNC);
+	platform.gpu.screen = GPU_Init(Width, Height, GPU_INIT_DISABLE_VSYNC);
 
-	GPU_Image* texture = GPU_CreateImage(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, GPU_FORMAT_RGBA);
-	GPU_SetAnchor(texture, 0, 0);
-	GPU_SetImageFilter(texture, GPU_FILTER_NEAREST);
+	platform.gpu.texture = GPU_CreateImage(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, GPU_FORMAT_RGBA);
+	GPU_SetAnchor(platform.gpu.texture, 0, 0);
+	GPU_SetImageFilter(platform.gpu.texture, GPU_FILTER_NEAREST);
 
-	u32 crt_shader = load_shader_program(&crt_shader);
+	platform.gpu.crt_shader = load_shader_program();
 
+#if defined(__EMSCRIPTEN__)
+
+	emscripten_set_main_loop(emsGpuTick, 0, 1);
+
+#else
 	{
 		u64 nextTick = SDL_GetPerformanceCounter();
 		const u64 Delta = SDL_GetPerformanceFrequency() / TIC_FRAMERATE;
@@ -1144,33 +1206,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
 
 			nextTick += Delta;
 			
-			{
-				pollEvent();
-
-				GPU_Clear(screen);
-			
-				{
-					platform.studio->tick();
-					renderCursor();
-					renderGamepad();
-
-					GPU_UpdateImageBytes(texture, NULL, (const u8*)tic->screen, TIC80_FULLWIDTH * sizeof(u32));
-
-					{
-						s32 w, h;
-						SDL_GetWindowSize(platform.window, &w, &h);
-
-						GPU_SetUniformf(GPU_GetUniformLocation(crt_shader, "trg_w"), w);
-						GPU_SetUniformf(GPU_GetUniformLocation(crt_shader, "trg_h"), h);
-
-						GPU_BlitScale(texture, NULL, screen, 0, 0, (float)w / TIC80_FULLWIDTH, (float)h / TIC80_FULLHEIGHT);
-					}
-				}
-
-				GPU_Flip(screen);
-
-				blitSound();
-			}
+			gpuTick();
 
 			{
 				s64 delay = nextTick - SDL_GetPerformanceCounter();
@@ -1185,14 +1221,16 @@ static s32 start(s32 argc, char **argv, const char* folder)
 		}
 	}
 
+#endif
+
 	platform.studio->close();
 
 	closeNet(platform.net);
 
 	SDL_CloseAudioDevice(platform.audio.device);
 
-	GPU_FreeShaderProgram(crt_shader);
-	GPU_FreeImage(texture);
+	GPU_FreeShaderProgram(platform.gpu.crt_shader);
+	GPU_FreeImage(platform.gpu.texture);
 	GPU_Quit();
 
 	return 0;
