@@ -939,8 +939,9 @@ static void api_tri(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32
 	ticLine(memory, x3, y3, x1, y1, color, triPixelFunc);
 
 	u8 final_color = mapColor(&machine->memory, color);
-	s32 yt = max(0, min(y1, min(y2, y3)));
-	s32 yb = min(TIC80_HEIGHT, max(y1, max(y2, y3)) + 1);
+	s32 yt = max(machine->state.clip.t, min(y1, min(y2, y3)));
+	s32 yb = min(machine->state.clip.b, max(y1, max(y2, y3)) + 1);
+
 	for(s32 y = yt; y < yb; y++) {
 		s32 xl = max(SidesBuffer.Left[y], machine->state.clip.l);
 		s32 xr = min(SidesBuffer.Right[y]+1, machine->state.clip.r);
