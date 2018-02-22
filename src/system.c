@@ -14,7 +14,7 @@
 #endif
 
 #define STUDIO_UI_SCALE 4
-#define STUDIO_PIXEL_FORMAT SDL_PIXELFORMAT_ARGB8888
+#define STUDIO_PIXEL_FORMAT SDL_PIXELFORMAT_ABGR8888
 #define TEXTURE_SIZE (TIC80_FULLWIDTH)
 #define OFFSET_LEFT ((TIC80_FULLWIDTH-TIC80_WIDTH)/2)
 #define OFFSET_TOP ((TIC80_FULLHEIGHT-TIC80_HEIGHT)/2)
@@ -1101,11 +1101,6 @@ u32 load_shader_program()
 	}
 }
 
-void free_shader(Uint32 p)
-{
-	GPU_FreeShaderProgram(p);
-}
-
 #include <math.h>
 
 static s32 start(s32 argc, char **argv, const char* folder)
@@ -1133,7 +1128,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
 
 	GPU_Target* screen = GPU_Init(Width, Height, GPU_INIT_DISABLE_VSYNC);
 
-	GPU_Image* texture = GPU_CreateImage(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, GPU_FORMAT_RGBA);// GPU_FORMAT_BGRA);
+	GPU_Image* texture = GPU_CreateImage(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, GPU_FORMAT_RGBA);
 	GPU_SetAnchor(texture, 0, 0);
 	GPU_SetImageFilter(texture, GPU_FILTER_NEAREST);
 
@@ -1196,10 +1191,8 @@ static s32 start(s32 argc, char **argv, const char* folder)
 
 	SDL_CloseAudioDevice(platform.audio.device);
 
-	free_shader(crt_shader);
-
+	GPU_FreeShaderProgram(crt_shader);
 	GPU_FreeImage(texture);
-
 	GPU_Quit();
 
 	return 0;
