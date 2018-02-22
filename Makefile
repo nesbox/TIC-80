@@ -110,13 +110,15 @@ MACOSX_LIBS= \
 	-L$(PRE_BUILT)/macos \
 	-L/usr/local/lib \
 	-lSDL2 -lm -liconv -lobjc -llua -lwren -lz -lgif \
+	-lsdlgpu \
 	-Wl,-framework,CoreAudio \
 	-Wl,-framework,AudioToolbox \
 	-Wl,-framework,ForceFeedback \
 	-Wl,-framework,CoreVideo \
 	-Wl,-framework,Cocoa \
 	-Wl,-framework,Carbon \
-	-Wl,-framework,IOKit
+	-Wl,-framework,IOKit \
+	-Wl,-framework,OpenGL
 
 SOURCES=\
 	src/studio.c \

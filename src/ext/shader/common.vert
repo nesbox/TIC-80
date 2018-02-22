@@ -1,4 +1,4 @@
-SHADER(
+SHADER(#version 100\n
 
 precision highp float;
 precision mediump int;
