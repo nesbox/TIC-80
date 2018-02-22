@@ -1,4 +1,4 @@
-CODE(
+SHADER(
 
 precision highp float;
 

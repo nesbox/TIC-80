@@ -93,7 +93,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_WINDOWS;GLEW_STATIC;SDL_GPU_DISABLE_GLES;STBI_FAILURE_USERMSG;SDL_GPU_USE_BUFFER_RESET;WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>GLEW_STATIC;SDL_GPU_DISABLE_GLES;WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <AdditionalIncludeDirectories>..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\3rd-party\sdl-gpu\include;..\..\..\3rd-party\sdl-gpu\src;..\..\..\3rd-party\sdl-gpu\src\externals\glew;..\..\..\3rd-party\sdl-gpu\src\externals\glew\GL;..\..\..\3rd-party\sdl-gpu\src\externals\stb_image;..\..\..\3rd-party\sdl-gpu\src\externals\stb_image_write</AdditionalIncludeDirectories>
     </ClCompile>
@@ -107,7 +107,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_WINDOWS;GLEW_STATIC;SDL_GPU_DISABLE_GLES;STBI_FAILURE_USERMSG;SDL_GPU_USE_BUFFER_RESET;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>GLEW_STATIC;SDL_GPU_DISABLE_GLES;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <AdditionalIncludeDirectories>..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\3rd-party\sdl-gpu\include;..\..\..\3rd-party\sdl-gpu\src;..\..\..\3rd-party\sdl-gpu\src\externals\glew;..\..\..\3rd-party\sdl-gpu\src\externals\glew\GL;..\..\..\3rd-party\sdl-gpu\src\externals\stb_image;..\..\..\3rd-party\sdl-gpu\src\externals\stb_image_write</AdditionalIncludeDirectories>
     </ClCompile>

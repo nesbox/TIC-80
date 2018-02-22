@@ -1060,7 +1060,7 @@ static void emstick()
 
 #endif
 
-#define CODE(...) #__VA_ARGS__
+#define SHADER(...) #__VA_ARGS__
 
 u32 load_shader_program()
 {
