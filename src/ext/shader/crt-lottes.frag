@@ -1,15 +1,12 @@
 CODE(
 
-#version 100\n
 precision highp float;
 precision mediump int;
-
-varying vec2 texCoord;
-//vec4 fragColor;
 
 uniform sampler2D tex;
 uniform float trg_w;
 uniform float trg_h;
+
 
 // Emulated input resolution.
 vec2 res=vec2(256.0,144.0);
@@ -51,7 +48,7 @@ vec3 ToSrgb(vec3 c){return vec3(ToSrgb1(c.r),ToSrgb1(c.g),ToSrgb1(c.b));}
 // Also zero's off screen.
 vec3 Fetch(vec2 pos,vec2 off){
 	pos=(floor(pos*res+off)+vec2(0.5,0.5))/res;
-	return ToLinear(1.2 * texture2D(tex,pos.xy,-16.0).rgb);} //vec2???
+	return ToLinear(1.2 * texture2D(tex,pos.xy,-16.0).rgb);}
 
 // Distance in emulated pixels to nearest texel.
 vec2 Dist(vec2 pos){pos=pos*res;return -((pos-floor(pos))-vec2(0.5));}
@@ -124,10 +121,10 @@ vec3 Mask(vec2 pos){
 
 void main() 
 {
+	vec2 pos = gl_FragCoord.xy/trg.xy;
+	hardScan=-12.0;
 //	maskDark=maskLight;
-	vec2 pos=Warp(gl_FragCoord.xy/trg);
-	vec4 fragColor;
-	fragColor.rgb=Tri(vec2(pos.s, 1.0 - pos.t))*Mask(gl_FragCoord.xy);
-	fragColor.a=1.0;
-	gl_FragColor = vec4(ToSrgb(fragColor.rgb), fragColor.a);
+	pos=Warp(gl_FragCoord.xy/trg.xy);
+	gl_FragColor.rgb=Tri(vec2(pos.s, 1.0 - pos.t))*Mask(gl_FragCoord.xy);
+	gl_FragColor = vec4(ToSrgb(gl_FragColor.rgb), 1.0);
 })
