@@ -1183,7 +1183,11 @@ static void onConsoleNewCommandConfirmed(Console* console, const char* param)
 	}
 
 #if defined(TIC_BUILD_WITH_LUA)
-	else loadDemo(console, LuaScript);
+	else
+	{
+		loadDemo(console, LuaScript);
+		done = true;
+	}
 #endif
 
 	if(done) printBack(console, "\nnew cart is created");
