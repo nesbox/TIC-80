@@ -17,6 +17,7 @@ LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/SDL2_net-2.0.1 \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/moonscript \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/wren-0.1.0\src\include \
+	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/sdl-gpu/include \
 	$(LOCAL_PATH)/../../../../include
 
 # Add your application source files here...
@@ -55,7 +56,7 @@ LOCAL_SRC_FILES := \
 	$(SRC_PATH)/tic80.c \
 	$(SRC_PATH)/system.c
 
-LOCAL_SHARED_LIBRARIES := SDL2 lua z gif wren
+LOCAL_SHARED_LIBRARIES := SDL2 lua z gif wren sdlgpu
 
 LOCAL_LDLIBS := -lGLESv1_CM -lGLESv2 -llog
 
