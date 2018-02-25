@@ -214,29 +214,35 @@ static void initTouchGamepad()
 	updateGamepadParts();
 }
 
-// static void calcTextureRect(SDL_Rect* rect)
-// {
-// 	s32 w, h;
-// 	SDL_GetWindowSize(platform.window, &w, &h);
-
-// 	rect->x = OFFSET_LEFT * w / TIC80_FULLWIDTH;
-// 	rect->y = OFFSET_TOP * h / TIC80_FULLHEIGHT;
-// 	rect->w = TIC80_WIDTH * w / TIC80_FULLWIDTH;
-// 	rect->h = TIC80_HEIGHT * h / TIC80_FULLHEIGHT;
-// }
-
 static void calcTextureRect(SDL_Rect* rect)
 {
 	SDL_GetWindowSize(platform.window, &rect->w, &rect->h);
 
-	enum{Width = TIC80_WIDTH, Height = TIC80_HEIGHT};
-
 	if(platform.useShader)
 	{
+		enum{Width = TIC80_FULLWIDTH, Height = TIC80_FULLHEIGHT};
 
+		if (rect->w * Height < rect->h * Width)
+		{
+			rect->x = 0;
+			rect->y = 0;
+
+			rect->h = Height * rect->w / Width;
+		}
+		else
+		{
+			s32 width = Width * rect->h / Height;
+
+			rect->x = (rect->w - width) / 2;
+			rect->y = 0;
+
+			rect->w = width;
+		}
 	}
 	else
 	{
+		enum{Width = TIC80_WIDTH, Height = TIC80_HEIGHT};
+
 		if (rect->w * Height < rect->h * Width)
 		{
 			s32 discreteWidth = rect->w - rect->w % Width;
@@ -279,8 +285,16 @@ static void processMouse()
 		SDL_Rect rect = {0, 0, 0, 0};
 		calcTextureRect(&rect);
 
-		if(rect.w) input->mouse.x = (mx - rect.x) * TIC80_WIDTH / rect.w;
-		if(rect.h) input->mouse.y = (my - rect.y) * TIC80_HEIGHT / rect.h;
+		if(platform.useShader)
+		{
+			if(rect.w) input->mouse.x = (mx - rect.x) * TIC80_FULLWIDTH / rect.w - OFFSET_LEFT;
+			if(rect.h) input->mouse.y = (my - rect.y) * TIC80_FULLHEIGHT / rect.h - OFFSET_TOP;
+		}
+		else
+		{
+			if(rect.w) input->mouse.x = (mx - rect.x) * TIC80_WIDTH / rect.w;
+			if(rect.h) input->mouse.y = (my - rect.y) * TIC80_HEIGHT / rect.h;
+		}
 	}
 
 	{
@@ -1080,8 +1094,6 @@ static void gpuTick()
 			if(platform.useShader)
 			{
 				SDL_Rect rect = {0, 0, 0, 0};
-				// SDL_GetWindowSize(platform.window, &rect.w, &rect.h);
-
 				calcTextureRect(&rect);
 
 				GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "trg_x"), rect.x);
@@ -1096,7 +1108,7 @@ static void gpuTick()
 					GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "scr_h"), h);
 				}
 
-			// GPU_BlitScale(platform.gpu.texture, NULL, platform.gpu.screen, 0, 0, (float)w / TIC80_FULLWIDTH, (float)h / TIC80_FULLHEIGHT);
+				GPU_BlitScale(platform.gpu.texture, NULL, platform.gpu.screen, rect.x, rect.y, (float)rect.w / TIC80_FULLWIDTH, (float)rect.h / TIC80_FULLHEIGHT);
 			}
 			else
 			{
@@ -1226,7 +1238,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
 	GPU_SetAnchor(platform.gpu.texture, 0, 0);
 	GPU_SetImageFilter(platform.gpu.texture, GPU_FILTER_NEAREST);
 
-	platform.useShader = false;
+	platform.useShader = true;
 
 	if(platform.useShader)
 		platform.gpu.crt_shader = load_shader_program();
