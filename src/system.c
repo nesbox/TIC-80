@@ -23,6 +23,8 @@ static struct
 {
 	Studio* studio;
 
+	bool useShader;
+
 	SDL_Window* window;
 	SDL_Renderer* renderer;
 	SDL_Texture* texture;
@@ -214,44 +216,59 @@ static void initTouchGamepad()
 
 static void calcTextureRect(SDL_Rect* rect)
 {
-	s32 w, h;
-	SDL_GetWindowSize(platform.window, &w, &h);
-
-	rect->x = OFFSET_LEFT * w / TIC80_FULLWIDTH;
-	rect->y = OFFSET_TOP * h / TIC80_FULLHEIGHT;
-	rect->w = TIC80_WIDTH * w / TIC80_FULLWIDTH;
-	rect->h = TIC80_HEIGHT * h / TIC80_FULLHEIGHT;
-}
-
-static void calcTextureRect2(SDL_Rect* rect)
-{
 	SDL_GetWindowSize(platform.window, &rect->w, &rect->h);
 
-	if (rect->w * TIC80_HEIGHT < rect->h * TIC80_WIDTH)
+	if(platform.useShader)
 	{
-		s32 discreteWidth = rect->w - rect->w % TIC80_WIDTH;
-		s32 discreteHeight = TIC80_HEIGHT * discreteWidth / TIC80_WIDTH;
+		enum{Width = TIC80_FULLWIDTH, Height = TIC80_FULLHEIGHT};
 
-		rect->x = (rect->w - discreteWidth) / 2;
+		if (rect->w * Height < rect->h * Width)
+		{
+			rect->x = 0;
+			rect->y = 0;
 
-		rect->y = rect->w > rect->h 
-			? (rect->h - discreteHeight) / 2 
-			: OFFSET_LEFT*discreteWidth/TIC80_WIDTH;
+			rect->h = Height * rect->w / Width;
+		}
+		else
+		{
+			s32 width = Width * rect->h / Height;
 
-		rect->w = discreteWidth;
-		rect->h = discreteHeight;
+			rect->x = (rect->w - width) / 2;
+			rect->y = 0;
 
+			rect->w = width;
+		}
 	}
 	else
 	{
-		s32 discreteHeight = rect->h - rect->h % TIC80_HEIGHT;
-		s32 discreteWidth = TIC80_WIDTH * discreteHeight / TIC80_HEIGHT;
+		enum{Width = TIC80_WIDTH, Height = TIC80_HEIGHT};
 
-		rect->x = (rect->w - discreteWidth) / 2;
-		rect->y = (rect->h - discreteHeight) / 2;
+		if (rect->w * Height < rect->h * Width)
+		{
+			s32 discreteWidth = rect->w - rect->w % Width;
+			s32 discreteHeight = Height * discreteWidth / Width;
 
-		rect->w = discreteWidth;
-		rect->h = discreteHeight;
+			rect->x = (rect->w - discreteWidth) / 2;
+
+			rect->y = rect->w > rect->h 
+				? (rect->h - discreteHeight) / 2 
+				: OFFSET_TOP*discreteWidth/Width;
+
+			rect->w = discreteWidth;
+			rect->h = discreteHeight;
+
+		}
+		else
+		{
+			s32 discreteHeight = rect->h - rect->h % Height;
+			s32 discreteWidth = Width * discreteHeight / Height;
+
+			rect->x = (rect->w - discreteWidth) / 2;
+			rect->y = (rect->h - discreteHeight) / 2;
+
+			rect->w = discreteWidth;
+			rect->h = discreteHeight;
+		}
 	}
 }
 
@@ -268,8 +285,16 @@ static void processMouse()
 		SDL_Rect rect = {0, 0, 0, 0};
 		calcTextureRect(&rect);
 
-		if(rect.w) input->mouse.x = (mx - rect.x) * TIC80_WIDTH / rect.w;
-		if(rect.h) input->mouse.y = (my - rect.y) * TIC80_HEIGHT / rect.h;
+		if(platform.useShader)
+		{
+			if(rect.w) input->mouse.x = (mx - rect.x) * TIC80_FULLWIDTH / rect.w - OFFSET_LEFT;
+			if(rect.h) input->mouse.y = (my - rect.y) * TIC80_FULLHEIGHT / rect.h - OFFSET_TOP;
+		}
+		else
+		{
+			if(rect.w) input->mouse.x = (mx - rect.x) * TIC80_WIDTH / rect.w;
+			if(rect.h) input->mouse.y = (my - rect.y) * TIC80_HEIGHT / rect.h;
+		}
 	}
 
 	{
@@ -658,6 +683,14 @@ static void blitTexture()
 		SDL_RenderCopy(platform.renderer, platform.texture, &srcRect, &rect);
 	}
 }
+
+// static void blitGpuTexture(GPU_Target* screen, GPU_Image* texture)
+// {
+// 	SDL_Rect rect = {0, 0, 0, 0};
+// 	calcTextureRect(&rect);
+
+// 	GPU_BlitScale(texture, NULL, platform.gpu.screen, rect.x, rect.y, (float)rect.w / TIC80_FULLWIDTH, (float)rect.h / TIC80_FULLHEIGHT);
+// }
 
 static void blitGpuTexture(GPU_Target* screen, GPU_Image* texture)
 {
@@ -1057,13 +1090,31 @@ static void gpuTick()
 		GPU_UpdateImageBytes(platform.gpu.texture, NULL, (const u8*)tic->screen, TIC80_FULLWIDTH * sizeof(u32));
 
 		{
-			s32 w, h;
-			SDL_GetWindowSize(platform.window, &w, &h);
 
-			GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "trg_w"), w);
-			GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "trg_h"), h);
+			if(platform.useShader)
+			{
+				SDL_Rect rect = {0, 0, 0, 0};
+				calcTextureRect(&rect);
 
-			GPU_BlitScale(platform.gpu.texture, NULL, platform.gpu.screen, 0, 0, (float)w / TIC80_FULLWIDTH, (float)h / TIC80_FULLHEIGHT);
+				GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "trg_x"), rect.x);
+				GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "trg_y"), rect.y);
+				GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "trg_w"), rect.w);
+				GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "trg_h"), rect.h);
+
+				{
+					s32 w, h;
+					SDL_GetWindowSize(platform.window, &w, &h);
+					GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "scr_w"), w);
+					GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "scr_h"), h);
+				}
+
+				GPU_BlitScale(platform.gpu.texture, NULL, platform.gpu.screen, rect.x, rect.y, (float)rect.w / TIC80_FULLWIDTH, (float)rect.h / TIC80_FULLHEIGHT);
+			}
+			else
+			{
+				blitGpuTexture(platform.gpu.screen, platform.gpu.texture);				
+			}
+
 		}
 	}
 
@@ -1124,13 +1175,11 @@ static void emsGpuTick()
 
 u32 load_shader_program()
 {
-	Uint32 v, f;
-
 	static const char* VertexShader = 
 		#include "ext/shader/common.vert"
 	;
 
-	v = GPU_CompileShader(GPU_VERTEX_SHADER, VertexShader);
+	u32 v = GPU_CompileShader(GPU_VERTEX_SHADER, VertexShader);
 	
 	if(!v)
 		GPU_LogError("Failed to load vertex shader: %s\n", GPU_GetShaderMessage());
@@ -1139,7 +1188,7 @@ u32 load_shader_program()
 		#include "ext/shader/crt-lottes.frag"
 	;
 
-	f = GPU_CompileShader(GPU_PIXEL_SHADER, PixelShader);
+	u32 f = GPU_CompileShader(GPU_PIXEL_SHADER, PixelShader);
 	
 	if(!f)
 		GPU_LogError("Failed to load fragment shader: %s\n", GPU_GetShaderMessage());
@@ -1189,7 +1238,10 @@ static s32 start(s32 argc, char **argv, const char* folder)
 	GPU_SetAnchor(platform.gpu.texture, 0, 0);
 	GPU_SetImageFilter(platform.gpu.texture, GPU_FILTER_NEAREST);
 
-	platform.gpu.crt_shader = load_shader_program();
+	platform.useShader = true;
+
+	if(platform.useShader)
+		platform.gpu.crt_shader = load_shader_program();
 
 #if defined(__EMSCRIPTEN__)
 
