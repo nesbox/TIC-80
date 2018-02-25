@@ -23,6 +23,8 @@ static struct
 {
 	Studio* studio;
 
+	bool useShader;
+
 	SDL_Window* window;
 	SDL_Renderer* renderer;
 	SDL_Texture* texture;
@@ -227,21 +229,24 @@ static void calcTextureRect(SDL_Rect* rect)
 {
 	SDL_GetWindowSize(platform.window, &rect->w, &rect->h);
 
-	enum{Width = TIC80_FULLWIDTH, Height = TIC80_FULLHEIGHT};
+	enum{Width = TIC80_WIDTH, Height = TIC80_HEIGHT};
 
+	if(platform.useShader)
+	{
+
+	}
+	else
 	{
 		if (rect->w * Height < rect->h * Width)
 		{
-			s32 discreteWidth = rect->w;// - rect->w % Width;
+			s32 discreteWidth = rect->w - rect->w % Width;
 			s32 discreteHeight = Height * discreteWidth / Width;
 
 			rect->x = (rect->w - discreteWidth) / 2;
 
-			rect->y = 0;//
-			//(rect->h - discreteHeight) / 2 ;
-			// rect->w > rect->h 
-			// 	? (rect->h - discreteHeight) / 2 
-			// 	: OFFSET_LEFT*discreteWidth/Width;
+			rect->y = rect->w > rect->h 
+				? (rect->h - discreteHeight) / 2 
+				: OFFSET_TOP*discreteWidth/Width;
 
 			rect->w = discreteWidth;
 			rect->h = discreteHeight;
@@ -249,11 +254,11 @@ static void calcTextureRect(SDL_Rect* rect)
 		}
 		else
 		{
-			s32 discreteHeight = rect->h;// - rect->h % Height;
+			s32 discreteHeight = rect->h - rect->h % Height;
 			s32 discreteWidth = Width * discreteHeight / Height;
 
 			rect->x = (rect->w - discreteWidth) / 2;
-			rect->y = 0;//(rect->h - discreteHeight) / 2;
+			rect->y = (rect->h - discreteHeight) / 2;
 
 			rect->w = discreteWidth;
 			rect->h = discreteHeight;
@@ -274,8 +279,8 @@ static void processMouse()
 		SDL_Rect rect = {0, 0, 0, 0};
 		calcTextureRect(&rect);
 
-		if(rect.w) input->mouse.x = (mx - rect.x) * TIC80_FULLWIDTH / rect.w;
-		if(rect.h) input->mouse.y = (my - rect.y) * TIC80_FULLHEIGHT / rect.h;
+		if(rect.w) input->mouse.x = (mx - rect.x) * TIC80_WIDTH / rect.w;
+		if(rect.h) input->mouse.y = (my - rect.y) * TIC80_HEIGHT / rect.h;
 	}
 
 	{
@@ -665,15 +670,15 @@ static void blitTexture()
 	}
 }
 
+// static void blitGpuTexture(GPU_Target* screen, GPU_Image* texture)
+// {
+// 	SDL_Rect rect = {0, 0, 0, 0};
+// 	calcTextureRect(&rect);
+
+// 	GPU_BlitScale(texture, NULL, platform.gpu.screen, rect.x, rect.y, (float)rect.w / TIC80_FULLWIDTH, (float)rect.h / TIC80_FULLHEIGHT);
+// }
+
 static void blitGpuTexture(GPU_Target* screen, GPU_Image* texture)
-{
-	SDL_Rect rect = {0, 0, 0, 0};
-	calcTextureRect(&rect);
-
-	GPU_BlitScale(texture, NULL, platform.gpu.screen, rect.x, rect.y, (float)rect.w / TIC80_FULLWIDTH, (float)rect.h / TIC80_FULLHEIGHT);
-}
-
-static void blitGpuTextureDiscrete(GPU_Target* screen, GPU_Image* texture)
 {
 	SDL_Rect rect = {0, 0, 0, 0};
 	calcTextureRect(&rect);
@@ -1071,25 +1076,33 @@ static void gpuTick()
 		GPU_UpdateImageBytes(platform.gpu.texture, NULL, (const u8*)tic->screen, TIC80_FULLWIDTH * sizeof(u32));
 
 		{
-			SDL_Rect rect = {0, 0, 0, 0};
-			// SDL_GetWindowSize(platform.window, &rect.w, &rect.h);
 
-			calcTextureRect(&rect);
-
-			GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "trg_x"), rect.x);
-			GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "trg_y"), rect.y);
-			GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "trg_w"), rect.w);
-			GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "trg_h"), rect.h);
-
+			if(platform.useShader)
 			{
-				s32 w, h;
-				SDL_GetWindowSize(platform.window, &w, &h);						
-				GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "scr_w"), w);
-				GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "scr_h"), h);
+				SDL_Rect rect = {0, 0, 0, 0};
+				// SDL_GetWindowSize(platform.window, &rect.w, &rect.h);
+
+				calcTextureRect(&rect);
+
+				GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "trg_x"), rect.x);
+				GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "trg_y"), rect.y);
+				GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "trg_w"), rect.w);
+				GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "trg_h"), rect.h);
+
+				{
+					s32 w, h;
+					SDL_GetWindowSize(platform.window, &w, &h);
+					GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "scr_w"), w);
+					GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.crt_shader, "scr_h"), h);
+				}
+
+			// GPU_BlitScale(platform.gpu.texture, NULL, platform.gpu.screen, 0, 0, (float)w / TIC80_FULLWIDTH, (float)h / TIC80_FULLHEIGHT);
+			}
+			else
+			{
+				blitGpuTexture(platform.gpu.screen, platform.gpu.texture);				
 			}
 
-			blitGpuTexture(platform.gpu.screen, platform.gpu.texture);
-			// GPU_BlitScale(platform.gpu.texture, NULL, platform.gpu.screen, 0, 0, (float)w / TIC80_FULLWIDTH, (float)h / TIC80_FULLHEIGHT);
 		}
 	}
 
@@ -1213,7 +1226,10 @@ static s32 start(s32 argc, char **argv, const char* folder)
 	GPU_SetAnchor(platform.gpu.texture, 0, 0);
 	GPU_SetImageFilter(platform.gpu.texture, GPU_FILTER_NEAREST);
 
-	platform.gpu.crt_shader = load_shader_program();
+	platform.useShader = false;
+
+	if(platform.useShader)
+		platform.gpu.crt_shader = load_shader_program();
 
 #if defined(__EMSCRIPTEN__)
 
