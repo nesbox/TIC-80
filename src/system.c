@@ -684,14 +684,6 @@ static void blitTexture()
 	}
 }
 
-// static void blitGpuTexture(GPU_Target* screen, GPU_Image* texture)
-// {
-// 	SDL_Rect rect = {0, 0, 0, 0};
-// 	calcTextureRect(&rect);
-
-// 	GPU_BlitScale(texture, NULL, platform.gpu.screen, rect.x, rect.y, (float)rect.w / TIC80_FULLWIDTH, (float)rect.h / TIC80_FULLHEIGHT);
-// }
-
 static void blitGpuTexture(GPU_Target* screen, GPU_Image* texture)
 {
 	SDL_Rect rect = {0, 0, 0, 0};
