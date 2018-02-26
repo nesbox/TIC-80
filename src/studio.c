@@ -1300,6 +1300,11 @@ static inline bool keyWasPressedOnce(s32 key)
 	return tic->api.keyp(tic, key, -1, -1);
 }
 
+static void switchCrtMonitor()
+{
+	impl.config->data.crtMonitor = !impl.config->data.crtMonitor;
+}
+
 static void processShortcuts()
 {
 	tic_mem* tic = impl.studio.tic;
@@ -1309,6 +1314,8 @@ static void processShortcuts()
 
 	bool alt = tic->api.key(tic, tic_key_alt);
 	bool ctrl = tic->api.key(tic, tic_key_ctrl);
+
+	if(keyWasPressedOnce(tic_key_f6)) switchCrtMonitor();
 
 	if(isGameMenu())
 	{
@@ -1637,8 +1644,9 @@ void studioConfigChanged()
 	if(code->update)
 		code->update(code);
 
-	// initTouchGamepad();
 	updateSystemFont();
+
+	getSystem()->updateConfig();
 }
 
 u32 unzip(u8** dest, const u8* source, size_t size)
@@ -1715,7 +1723,7 @@ static void processMouseStates()
 	}
 }
 
-static void studioTick(void* pixels)
+static void studioTick()
 {
 	processShortcuts();
 	processMouseStates();
@@ -1755,15 +1763,17 @@ static void studioTick(void* pixels)
 		}
 
 		tic->api.blit(tic, scanline, overlap, data);
-		memcpy(pixels, tic->screen, sizeof tic->screen);
 
-		recordFrame(pixels);
-		drawDesyncLabel(pixels);
+		recordFrame(tic->screen);
+		drawDesyncLabel(tic->screen);
+	
 	}
 }
 
 static void studioClose()
 {
+	free((void*)getConfig()->crtShader);
+
 	{
 		for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
 		{

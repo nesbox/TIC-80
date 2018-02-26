@@ -12,6 +12,7 @@ public class TIC extends SDLActivity
 	protected String[] getLibraries() {
 		return new String[] {
 			"SDL2",
+			"sdlgpu",
 			"lua",
 			"wren",
 			"z",
