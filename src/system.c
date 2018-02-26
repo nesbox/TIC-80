@@ -23,7 +23,6 @@ static struct
 {
 	Studio* studio;
 
-	bool useShader;
 
 	SDL_Window* window;
 	SDL_Renderer* renderer;
@@ -34,6 +33,7 @@ static struct
 		GPU_Target* screen;
 		GPU_Image* texture;
 		u32 crt_shader;
+		bool useShader;
 	} gpu;
 
 	struct
@@ -218,7 +218,7 @@ static void calcTextureRect(SDL_Rect* rect)
 {
 	SDL_GetWindowSize(platform.window, &rect->w, &rect->h);
 
-	if(platform.useShader)
+	if(platform.gpu.useShader)
 	{
 		enum{Width = TIC80_FULLWIDTH, Height = TIC80_FULLHEIGHT};
 
@@ -285,7 +285,7 @@ static void processMouse()
 		SDL_Rect rect = {0, 0, 0, 0};
 		calcTextureRect(&rect);
 
-		if(platform.useShader)
+		if(platform.gpu.useShader)
 		{
 			if(rect.w) input->mouse.x = (mx - rect.x) * TIC80_FULLWIDTH / rect.w - OFFSET_LEFT;
 			if(rect.h) input->mouse.y = (my - rect.y) * TIC80_FULLHEIGHT / rect.h - OFFSET_TOP;
@@ -1083,7 +1083,7 @@ static void gpuTick()
 
 		{
 
-			if(platform.useShader)
+			if(platform.gpu.useShader)
 			{
 				SDL_Rect rect = {0, 0, 0, 0};
 				calcTextureRect(&rect);
@@ -1104,7 +1104,7 @@ static void gpuTick()
 			}
 			else
 			{
-				blitGpuTexture(platform.gpu.screen, platform.gpu.texture);				
+				blitGpuTexture(platform.gpu.screen, platform.gpu.texture);
 			}
 
 		}
@@ -1230,9 +1230,9 @@ static s32 start(s32 argc, char **argv, const char* folder)
 	GPU_SetAnchor(platform.gpu.texture, 0, 0);
 	GPU_SetImageFilter(platform.gpu.texture, GPU_FILTER_NEAREST);
 
-	platform.useShader = true;
+	platform.gpu.useShader = true;
 
-	if(platform.useShader)
+	if(platform.gpu.useShader)
 		platform.gpu.crt_shader = load_shader_program();
 
 #if defined(__EMSCRIPTEN__)
