@@ -66,7 +66,6 @@ typedef struct
 	
 	bool checkNewVersion;
 	bool noSound;
-	bool useVsync;
 	bool showSync;
 
 } StudioConfig;

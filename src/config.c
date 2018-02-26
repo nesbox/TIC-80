@@ -76,16 +76,6 @@ static void readConfigShowSync(Config* config, lua_State* lua)
 	lua_pop(lua, 1);
 }
 
-static void readConfigUseVsync(Config* config, lua_State* lua)
-{
-	lua_getglobal(lua, "USE_VSYNC");
-
-	if(lua_isboolean(lua, -1))
-		config->data.useVsync = lua_toboolean(lua, -1);
-
-	lua_pop(lua, 1);
-}
-
 static void readCursorTheme(Config* config, lua_State* lua)
 {
 	lua_getfield(lua, -1, "CURSOR");
@@ -232,7 +222,6 @@ static void readConfig(Config* config)
 			readConfigCheckNewVersion(config, lua);
 			readConfigNoSound(config, lua);
 			readConfigShowSync(config, lua);
-			readConfigUseVsync(config, lua);
 			readTheme(config, lua);
 		}
 
