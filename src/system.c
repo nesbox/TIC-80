@@ -12,7 +12,7 @@
 #include <emscripten.h>
 #endif
 
-#define STUDIO_UI_SCALE 4
+#define STUDIO_UI_SCALE 3
 #define STUDIO_PIXEL_FORMAT GPU_FORMAT_RGBA
 #define TEXTURE_SIZE (TIC80_FULLWIDTH)
 #define OFFSET_LEFT ((TIC80_FULLWIDTH-TIC80_WIDTH)/2)
@@ -30,7 +30,6 @@ static struct
 		GPU_Image* texture;
 		u32 shader;
 		GPU_ShaderBlock block;
-		bool useShader;
 	} gpu;
 
 	struct
@@ -212,7 +211,7 @@ static void calcTextureRect(SDL_Rect* rect)
 {
 	SDL_GetWindowSize(platform.window, &rect->w, &rect->h);
 
-	if(platform.gpu.useShader)
+	if(platform.studio->config()->crtMonitor)
 	{
 		enum{Width = TIC80_FULLWIDTH, Height = TIC80_FULLHEIGHT};
 
@@ -279,7 +278,7 @@ static void processMouse()
 		SDL_Rect rect = {0, 0, 0, 0};
 		calcTextureRect(&rect);
 
-		if(platform.gpu.useShader)
+		if(platform.studio->config()->crtMonitor)
 		{
 			if(rect.w) input->mouse.x = (mx - rect.x) * TIC80_FULLWIDTH / rect.w - OFFSET_LEFT;
 			if(rect.h) input->mouse.y = (my - rect.y) * TIC80_FULLHEIGHT / rect.h - OFFSET_TOP;
@@ -946,6 +945,73 @@ static void preseed()
 #endif
 }
 
+static void loadCrtShader()
+{
+	static const char* VertexShader = "#version 100\n\
+		precision highp float;\n\
+		precision mediump int;\n\
+		attribute vec2 gpu_Vertex;\n\
+		attribute vec2 gpu_TexCoord;\n\
+		attribute mediump vec4 gpu_Color;\n\
+		uniform mat4 gpu_ModelViewProjectionMatrix;\n\
+		varying mediump vec4 color;\n\
+		varying vec2 texCoord;\n\
+		void main(void)\n\
+		{\n\
+			color = gpu_Color;\n\
+			texCoord = vec2(gpu_TexCoord);\n\
+			gl_Position = gpu_ModelViewProjectionMatrix * vec4(gpu_Vertex, 0.0, 1.0);\n\
+		}";
+
+	u32 vertex = GPU_CompileShader(GPU_VERTEX_SHADER, VertexShader);
+	
+	if(!vertex)
+	{
+		char msg[1024];
+		sprintf(msg, "Failed to load vertex shader: %s\n", GPU_GetShaderMessage());
+		showMessageBox("Error", msg);
+		return;
+	}
+
+	u32 fragment = GPU_CompileShader(GPU_PIXEL_SHADER, platform.studio->config()->crtShader);
+	
+	if(!fragment)
+	{
+		char msg[1024];
+		sprintf(msg, "Failed to load fragment shader: %s\n", GPU_GetShaderMessage());
+		showMessageBox("Error", msg);
+		return;
+	}
+	
+	if(platform.gpu.shader)
+		GPU_FreeShaderProgram(platform.gpu.shader);
+
+	platform.gpu.shader = GPU_LinkShaders(vertex, fragment);
+	
+	if(platform.gpu.shader)
+	{
+		platform.gpu.block = GPU_LoadShaderBlock(platform.gpu.shader, "gpu_Vertex", "gpu_TexCoord", "gpu_Color", "gpu_ModelViewProjectionMatrix");
+		GPU_ActivateShaderProgram(platform.gpu.shader, &platform.gpu.block);
+	}
+	else
+	{
+		char msg[1024];
+		sprintf(msg, "Failed to link shader program: %s\n", GPU_GetShaderMessage());
+		showMessageBox("Error", msg);
+	}
+}
+
+static void updateConfig()
+{
+	if(platform.gpu.screen)
+	{
+		initTouchGamepad();
+
+		if(platform.studio->config()->crtMonitor)
+			loadCrtShader();
+	}
+}
+
 static System systemInterface = 
 {
 	.setClipboardText = setClipboardText,
@@ -966,6 +1032,7 @@ static System systemInterface =
 	.openSystemPath = openSystemPath,
 	.preseed = preseed,
 	.poll = pollEvent,
+	.updateConfig = updateConfig,
 };
 
 static void gpuTick()
@@ -990,7 +1057,7 @@ static void gpuTick()
 		GPU_UpdateImageBytes(platform.gpu.texture, NULL, (const u8*)tic->screen, TIC80_FULLWIDTH * sizeof(u32));
 
 		{
-			if(platform.gpu.useShader)
+			if(platform.studio->config()->crtMonitor && platform.gpu.shader)
 			{
 				SDL_Rect rect = {0, 0, 0, 0};
 				calcTextureRect(&rect);
@@ -1012,10 +1079,11 @@ static void gpuTick()
 				GPU_BlitScale(platform.gpu.texture, NULL, platform.gpu.screen, rect.x, rect.y, 
 					(float)rect.w / TIC80_FULLWIDTH, (float)rect.h / TIC80_FULLHEIGHT);
 
-				GPU_ActivateShaderProgram(0, NULL);
+				GPU_DeactivateShaderProgram();
 			}
 			else
 			{
+				GPU_DeactivateShaderProgram();
 				blitGpuTexture(platform.gpu.screen, platform.gpu.texture);
 			}
 		}
@@ -1077,57 +1145,6 @@ static void emsGpuTick()
 
 #endif
 
-#define SHADER(...) #__VA_ARGS__
-
-static void loadCrtShader()
-{
-	static const char* VertexShader = "#version 100\n\
-		precision highp float;\n\
-		precision mediump int;\n\
-		attribute vec2 gpu_Vertex;\n\
-		attribute vec2 gpu_TexCoord;\n\
-		attribute mediump vec4 gpu_Color;\n\
-		uniform mat4 gpu_ModelViewProjectionMatrix;\n\
-		varying mediump vec4 color;\n\
-		varying vec2 texCoord;\n\
-		void main(void)\n\
-		{\n\
-			color = gpu_Color;\n\
-			texCoord = vec2(gpu_TexCoord);\n\
-			gl_Position = gpu_ModelViewProjectionMatrix * vec4(gpu_Vertex, 0.0, 1.0);\n\
-		}";
-
-	u32 vertex = GPU_CompileShader(GPU_VERTEX_SHADER, VertexShader);
-	
-	if(!vertex)
-	{
-		GPU_LogError("Failed to load vertex shader: %s\n", GPU_GetShaderMessage());
-		return;
-	}
-
-	static const char* PixelShader = 
-		#include "ext/shader/crt-lottes.frag"
-	;
-
-	u32 fragment = GPU_CompileShader(GPU_PIXEL_SHADER, PixelShader);
-	
-	if(!fragment)
-	{
-		GPU_LogError("Failed to load fragment shader: %s\n", GPU_GetShaderMessage());
-		return;
-	}
-	
-	platform.gpu.shader = GPU_LinkShaders(vertex, fragment);
-	
-	if(platform.gpu.shader)
-	{
-		platform.gpu.block = GPU_LoadShaderBlock(platform.gpu.shader, "gpu_Vertex", "gpu_TexCoord", "gpu_Color", "gpu_ModelViewProjectionMatrix");
-		GPU_ActivateShaderProgram(platform.gpu.shader, &platform.gpu.block);
-	}
-	else
-		GPU_LogError("Failed to link shader program: %s\n", GPU_GetShaderMessage());
-}
-
 static s32 start(s32 argc, char **argv, const char* folder)
 {
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK);
@@ -1155,9 +1172,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
 	GPU_SetAnchor(platform.gpu.texture, 0, 0);
 	GPU_SetImageFilter(platform.gpu.texture, GPU_FILTER_NEAREST);
 
-	platform.gpu.useShader = true;
-
-	if(platform.gpu.useShader)
+	if(platform.studio->config()->crtMonitor)
 		loadCrtShader();
 
 #if defined(__EMSCRIPTEN__)

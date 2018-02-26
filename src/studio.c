@@ -1637,8 +1637,9 @@ void studioConfigChanged()
 	if(code->update)
 		code->update(code);
 
-	// initTouchGamepad();
 	updateSystemFont();
+
+	getSystem()->updateConfig();
 }
 
 u32 unzip(u8** dest, const u8* source, size_t size)
@@ -1764,6 +1765,8 @@ static void studioTick()
 
 static void studioClose()
 {
+	free((void*)getConfig()->crtShader);
+
 	{
 		for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
 		{

@@ -277,9 +277,9 @@ static bool AddLoop(GifFileType *gif)
 
 static const u8* toColor(const u8* ptr, gif_color* color)
 {
-	color->b = *ptr++;
-	color->g = *ptr++;
 	color->r = *ptr++;
+	color->g = *ptr++;
+	color->b = *ptr++;
 	ptr++;
 
 	return ptr;

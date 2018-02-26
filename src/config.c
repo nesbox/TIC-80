@@ -76,6 +76,31 @@ static void readConfigShowSync(Config* config, lua_State* lua)
 	lua_pop(lua, 1);
 }
 
+static void readConfigCrtMonitor(Config* config, lua_State* lua)
+{
+	lua_getglobal(lua, "CRT_MONITOR");
+
+	if(lua_isboolean(lua, -1))
+		config->data.crtMonitor = lua_toboolean(lua, -1);
+
+	lua_pop(lua, 1);
+}
+
+static void readConfigCrtShader(Config* config, lua_State* lua)
+{
+	lua_getglobal(lua, "CRT_SHADER");
+
+	if(lua_isstring(lua, -1))
+	{
+		if(!config->data.crtShader)
+			config->data.crtShader = calloc(1, sizeof(tic_code));
+
+		strcpy((char*)config->data.crtShader, lua_tostring(lua, -1));
+	}
+
+	lua_pop(lua, 1);
+}
+
 static void readCursorTheme(Config* config, lua_State* lua)
 {
 	lua_getfield(lua, -1, "CURSOR");
@@ -222,7 +247,13 @@ static void readConfig(Config* config)
 			readConfigCheckNewVersion(config, lua);
 			readConfigNoSound(config, lua);
 			readConfigShowSync(config, lua);
+			readConfigCrtMonitor(config, lua);
 			readTheme(config, lua);
+		}
+
+		if(luaL_loadstring(lua, config->tic->config.bank1.code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
+		{
+			readConfigCrtShader(config, lua);
 		}
 
 		lua_close(lua);

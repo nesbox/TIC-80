@@ -25,6 +25,8 @@ typedef struct
 	void (*preseed)();
 	void (*poll)();
 
+	void (*updateConfig)();
+
 } System;
 
 typedef struct
@@ -67,6 +69,9 @@ typedef struct
 	bool checkNewVersion;
 	bool noSound;
 	bool showSync;
+	bool crtMonitor;
+
+	const char* crtShader;
 
 } StudioConfig;
 
