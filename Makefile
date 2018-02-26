@@ -144,7 +144,9 @@ SOURCES=\
 	src/dialog.c \
 	src/menu.c \
 	src/net.c \
-	src/surf.c \
+	src/surf.c
+
+SYSTEM=\
 	src/system.c
 
 SOURCES_EXT= \
@@ -252,6 +254,9 @@ bin/surf.o: src/surf.c $(TIC80_H) $(TIC_H)
 bin/system.o: src/system.c src/keycodes.c src/ext/shader/* $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
+bin/chip.o: src/system/chip.c src/keycodes.c $(TIC80_H) $(TIC_H)
+	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
+
 SDL_NET = \
 	bin/SDLnet.o \
 	bin/SDLnetTCP.o \
@@ -318,10 +323,10 @@ $(STUDIO_DLL): $(DEMO_ASSETS) $(TIC80_DLL) $(TIC_O) bin/html.o
 	$(CC) $(TIC_O) bin/html.o $(TIC80_A) $(OPT) -shared $(INCLUDES) -L$(PRE_BUILT)/mingw -llua -lz -lgif -Wl,--out-implib,$(STUDIO_A) -o $@
 
 emscripten:
-	$(EMS_CC) $(SOURCES) $(TIC80_SRC) $(OPT) $(INCLUDES) $(EMS_OPT) $(EMS_LINKER_FLAGS) -o build/html/tic.js
+	$(EMS_CC) $(SOURCES) $(SYSTEM) $(TIC80_SRC) $(OPT) $(INCLUDES) $(EMS_OPT) $(EMS_LINKER_FLAGS) -o build/html/tic.js
 
 wasm:
-	$(EMS_CC) $(SOURCES) $(TIC80_SRC) $(OPT) $(INCLUDES) $(EMS_OPT) -s WASM=1 $(EMS_LINKER_FLAGS) -o build/html/tic.js
+	$(EMS_CC) $(SOURCES) $(SYSTEM) $(TIC80_SRC) $(OPT) $(INCLUDES) $(EMS_OPT) -s WASM=1 $(EMS_LINKER_FLAGS) -o build/html/tic.js
 
 mingw: $(STUDIO_DLL) $(SDL_NET) $(FILE_DIALOG) bin/system.o bin/res.o
 	$(CC) bin/system.o bin/res.o $(STUDIO_A) $(SDL_NET) $(FILE_DIALOG) $(OPT) $(INCLUDES) $(MINGW_LINKER_FLAGS) -o $(MINGW_OUTPUT)
@@ -334,35 +339,35 @@ run: mingw-pro
 	$(MINGW_OUTPUT)
 
 linux64-lto:
-	$(CC) $(GTK_INCLUDES) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) $(INCLUDES) $(LINUX64_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o $(BIN_NAME)
+	$(CC) $(GTK_INCLUDES) $(SOURCES) $(SYSTEM) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) $(INCLUDES) $(LINUX64_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o $(BIN_NAME)
 
 linux64-lto-pro:
 	$(eval OPT += $(OPT_PRO))
 	make linux64-lto OPT="$(OPT)"
 
 linux32-lto:
-	$(CC) $(GTK_INCLUDES) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) $(INCLUDES) $(LINUX32_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o $(BIN_NAME)
+	$(CC) $(GTK_INCLUDES) $(SOURCES) $(SYSTEM) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) $(INCLUDES) $(LINUX32_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o $(BIN_NAME)
 
 linux32-lto-pro:
 	$(eval OPT += $(OPT_PRO))
 	make linux32-lto OPT="$(OPT)"
 
 chip-lto:
-	$(CC) $(LINUX_INCLUDES) $(GTK_INCLUDES) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) $(OPT) -D__CHIP__ $(INCLUDES) $(LINUX_ARM_LIBS) $(GTK_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o $(BIN_NAME)
+	$(CC) $(LINUX_INCLUDES) $(GTK_INCLUDES) $(SOURCES) src/system/chip.c $(TIC80_SRC) $(SOURCES_EXT) $(OPT) -D__CHIP__ $(INCLUDES) $(LINUX_ARM_LIBS) $(GTK_LIBS) $(LINUX_LINKER_LTO_FLAGS) -flto -o $(BIN_NAME)
 
 chip-lto-pro:
 	$(eval OPT += $(OPT_PRO))
 	make chip-lto OPT="$(OPT)"
 
 linux:
-	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(LPEG_SRC) $(GIF_SRC) $(SOURCES_EXT) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_LIBS) $(LINUX_LINKER_FLAGS) -o $(BIN_NAME)
+	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(SYSTEM) $(LPEG_SRC) $(GIF_SRC) $(SOURCES_EXT) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_LIBS) $(LINUX_LINKER_FLAGS) -o $(BIN_NAME)
 
 linux-pro:
 	$(eval OPT += $(OPT_PRO))
 	make linux OPT="$(OPT)"
 
 macosx:
-	$(CC) $(SOURCES) $(TIC80_SRC) $(SOURCES_EXT) src/ext/file_dialog.m $(OPT) $(MACOSX_OPT) $(INCLUDES) $(MACOSX_LIBS) -o $(BIN_NAME)
+	$(CC) $(SOURCES) $(SYSTEM) $(TIC80_SRC) $(SOURCES_EXT) src/ext/file_dialog.m $(OPT) $(MACOSX_OPT) $(INCLUDES) $(MACOSX_LIBS) -o $(BIN_NAME)
 
 macosx-pro:
 	$(eval OPT += $(OPT_PRO))
