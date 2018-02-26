@@ -68,9 +68,8 @@ run the following commands in the Terminal
 ```
 sudo apt-get install git build-essential libgtk-3-dev libsdl2-dev lua5.3-dev zlib1g-dev
 git clone --recursive https://github.com/nesbox/TIC-80
-cd 3rd-party/wren-0.1.0/
-make static
-cd ../..
+make static -C 3rd-party/wren-0.1.0/
+make -C 3rd-party/sdl-gpu/build/linux/
 make linux
 ```
 

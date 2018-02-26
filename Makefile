@@ -46,7 +46,8 @@ LINUX_INCLUDES= \
 LINUX_LIBS= \
 	$(GTK_LIBS) \
 	`sdl2-config --static-libs` \
-	-L$(3RD_PARTY)/wren-0.1.0/lib
+	-L$(3RD_PARTY)/wren-0.1.0/lib \
+	-L$(3RD_PARTY)/sdl-gpu/build/linux
 
 LINUX64_LIBS= \
 	$(GTK_LIBS) \
@@ -79,7 +80,9 @@ LINUX_LINKER_FLAGS= \
 	-lm \
 	-lpthread \
 	-lrt \
-	-lz
+	-lz \
+	-lsdlgpu \
+	-lGL
 
 MINGW_OUTPUT=$(BIN_NAME).exe
 
