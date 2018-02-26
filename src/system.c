@@ -1099,28 +1099,6 @@ static void gpuTick()
 
 #if defined(__EMSCRIPTEN__)
 
-static void emstick()
-{
-	static double nextTick = -1.0;
-
-	platform.missedFrame = false;
-
-	if(nextTick < 0.0)
-		nextTick = emscripten_get_now();
-
-	nextTick += 1000.0/TIC_FRAMERATE;
-	tick();
-	double delay = nextTick - emscripten_get_now();
-
-	if(delay < 0.0)
-	{
-		nextTick -= delay;
-		platform.missedFrame = true;
-	}
-	else
-		emscripten_set_main_loop_timing(EM_TIMING_SETTIMEOUT, delay);
-}
-
 static void emsGpuTick()
 {
 	static double nextTick = -1.0;
