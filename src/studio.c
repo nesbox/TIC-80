@@ -1300,6 +1300,11 @@ static inline bool keyWasPressedOnce(s32 key)
 	return tic->api.keyp(tic, key, -1, -1);
 }
 
+static void switchCrtMonitor()
+{
+	impl.config->data.crtMonitor = !impl.config->data.crtMonitor;
+}
+
 static void processShortcuts()
 {
 	tic_mem* tic = impl.studio.tic;
@@ -1309,6 +1314,8 @@ static void processShortcuts()
 
 	bool alt = tic->api.key(tic, tic_key_alt);
 	bool ctrl = tic->api.key(tic, tic_key_ctrl);
+
+	if(keyWasPressedOnce(tic_key_f6)) switchCrtMonitor();
 
 	if(isGameMenu())
 	{
