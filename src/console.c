@@ -359,8 +359,7 @@ static void loadCart(tic_mem* tic, tic_cartridge* cart, const u8* buffer, s32 si
 	tic->api.load(cart, buffer, size, palette);
 
 	if(!palette)
-		for(s32 i = 0; i < TIC_BANKS; i++)
-			memcpy(cart->banks[i].palette.data, tic->config.banks[i].palette.data, sizeof(tic_palette));
+		memcpy(cart->bank0.palette.data, tic->config.bank0.palette.data, sizeof(tic_palette));
 }
 
 static bool loadRom(tic_mem* tic, const void* data, s32 size, bool palette)
