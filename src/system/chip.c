@@ -592,6 +592,8 @@ static void preseed()
 #endif
 }
 
+static void updateConfig() {}
+
 static System systemInterface = 
 {
 	.setClipboardText = setClipboardText,
@@ -612,6 +614,7 @@ static System systemInterface =
 	.openSystemPath = openSystemPath,
 	.preseed = preseed,
 	.poll = pollEvent,
+	.updateConfig = updateConfig,
 };
 
 s32 main(s32 argc, char **argv)
