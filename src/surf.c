@@ -226,9 +226,10 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
 	tic->api.rect(tic, x, y + Height, TIC80_WIDTH, 1, tic_color_black);
 	{
 		char label[FILENAME_MAX];
+		char dir[FILENAME_MAX];
+		fsGetDir(surf->fs, dir);
 
-		sprintf(label, "/%s", fsGetDir(surf->fs));
-
+		sprintf(label, "/%s", dir);
 		s32 xl = x + MAIN_OFFSET;
 		s32 yl = y + (Height - TIC_FONT_HEIGHT)/2;
 		tic->api.text(tic, label, xl, yl+1, tic_color_black);
@@ -576,7 +577,10 @@ static void initMenu(Surf* surf)
 		.surf = surf,
 	};
 
-	if(strcmp(fsGetDir(surf->fs), "") != 0)
+	char dir[FILENAME_MAX];
+	fsGetDir(surf->fs, dir);
+
+	if(strcmp(dir, "") != 0)
 		addMenuItem("..", NULL, 0, &data, true);
 
 	fsEnumFiles(surf->fs, addMenuItem, &data);
@@ -588,12 +592,13 @@ static void initMenu(Surf* surf)
 static void onGoBackDir(Surf* surf)
 {
 	char last[FILENAME_MAX];
-	strcpy(last, fsGetDir(surf->fs));
+	fsGetDir(surf->fs, last);
 
 	fsDirBack(surf->fs);
 	initMenu(surf);
 
-	const char* current = fsGetDir(surf->fs);
+	char current[FILENAME_MAX];
+	fsGetDir(surf->fs, current);
 
 	for(s32 i = 0; i < surf->menu.count; i++)
 	{
@@ -628,7 +633,10 @@ static void changeDirectory(Surf* surf, const char* dir)
 {
 	if(strcmp(dir, "..") == 0)
 	{
-		if(strcmp(fsGetDir(surf->fs), "") != 0)
+		char dir[FILENAME_MAX];
+		fsGetDir(surf->fs, dir);
+
+		if(strcmp(dir, "") != 0)
 		{
 			playSystemSfx(2);
 			resetMovie(surf, &MenuRightHideState, onGoBackDir);

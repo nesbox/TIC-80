@@ -523,9 +523,9 @@ void fsDirBack(FileSystem* fs)
 	*ptr = '\0';
 }
 
-const char* fsGetDir(FileSystem* fs)
+void fsGetDir(FileSystem* fs, char* dir)
 {
-	return fs->work;
+	strcpy(dir, fs->work);
 }
 
 bool fsChangeDir(FileSystem* fs, const char* dir)
@@ -753,6 +753,7 @@ static void fsFullname(const char *path, char *fullname)
 	freeString(pathString);
 
 	const char* res = stringToUtf8(wpath);
+
 #else
 
 	const char* res = realpath(path, NULL);
@@ -763,17 +764,18 @@ static void fsFullname(const char *path, char *fullname)
 	free((void*)res);
 }
 
-const char* fsFilename(const char *path)
+void fsFilename(const char *path, char* out)
 {
-	static char full[FILENAME_MAX];
+	char full[FILENAME_MAX];
 	fsFullname(path, full);
 
-	const char* base = fsBasename(path);
+	char base[FILENAME_MAX];
+	fsBasename(path, base);
 
-	return base ? full + strlen(fsBasename(path)) : NULL;
+	strcpy(out, full + strlen(base));
 }
 
-const char* fsBasename(const char *path)
+void fsBasename(const char *path, char* out)
 {
 	char* result = NULL;
 
@@ -784,7 +786,7 @@ const char* fsBasename(const char *path)
 #endif
 
 	{
-		static char full[FILENAME_MAX];
+		char full[FILENAME_MAX];
 		fsFullname(path, full);
 
 		struct tic_stat_struct s;
@@ -818,7 +820,7 @@ const char* fsBasename(const char *path)
 	if(result && result[strlen(result)-1] != SEP[0])
 		strcat(result, SEP);
 
-	return result;
+	strcpy(out, result);
 }
 
 bool fsExists(const char* name)

@@ -62,8 +62,8 @@ void fsMakeDir(FileSystem* fs, const char* name);
 bool fsExistsFile(FileSystem* fs, const char* name);
 u64 fsMDate(FileSystem* fs, const char* name);
 
-const char* fsBasename(const char *path);
-const char* fsFilename(const char *path);
+void fsBasename(const char *path, char* out);
+void fsFilename(const char *path, char* out);
 bool fsExists(const char* name);
 void* fsReadFile(const char* path, s32* size);
 bool fsWriteFile(const char* path, const void* data, s32 size);
@@ -74,6 +74,6 @@ void fsOpenWorkingFolder(FileSystem* fs);
 bool fsIsDir(FileSystem* fs, const char* dir);
 bool fsIsInPublicDir(FileSystem* fs);
 bool fsChangeDir(FileSystem* fs, const char* dir);
-const char* fsGetDir(FileSystem* fs);
+void fsGetDir(FileSystem* fs, char* out);
 void fsDirBack(FileSystem* fs);
 void fsHomeDir(FileSystem* fs);

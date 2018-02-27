@@ -213,8 +213,10 @@ static void commandDoneLine(Console* console, bool newLine)
 	if(newLine)
 		printLine(console);
 
-	if(strlen(fsGetDir(console->fs)))
-		printBack(console, fsGetDir(console->fs));
+	char dir[FILENAME_MAX];
+	fsGetDir(console->fs, dir);
+	if(strlen(dir))
+		printBack(console, dir);
 
 	printFront(console, ">");
 }
@@ -2854,7 +2856,9 @@ static bool cmdLoadCart(Console* console, const char* name)
 		if(hasProjectExt(name))
 		{
 			loadProject(console, name, data, size, console->embed.file);
-			setCartName(console, fsFilename(name));
+			char cartName[FILENAME_MAX];
+			fsFilename(name, cartName);
+			setCartName(console, cartName);
 			console->embed.yes = true;
 			console->skipStart = true;
 			done = true;
@@ -2864,8 +2868,13 @@ static bool cmdLoadCart(Console* console, const char* name)
 
 		if(hasExt(name, CART_EXT))
 		{
-			loadCart(console->tic, console->embed.file, data, size, true);			
-			setCartName(console, fsFilename(name));
+			loadCart(console->tic, console->embed.file, data, size, true);	
+
+			char cartName[FILENAME_MAX];
+			fsFilename(name, cartName);
+		
+			setCartName(console, cartName);
+
 			console->embed.yes = true;
 			done = true;
 		}
