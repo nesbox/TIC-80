@@ -117,7 +117,7 @@ static void setWindowIcon()
 
 	u32* pixels = SDL_malloc(Size * Size * sizeof(u32));
 
-	const u32* pal = tic_palette_blit(&platform.studio->tic->config.palette);
+	const u32* pal = tic_palette_blit(&platform.studio->tic->config.bank0.palette);
 
 	for(s32 j = 0, index = 0; j < Size; j++)
 		for(s32 i = 0; i < Size; i++, index++)
@@ -182,7 +182,7 @@ static void initTouchGamepad()
 
 		const u8* in = platform.studio->tic->ram.vram.screen.data;
 		const u8* end = in + sizeof(platform.studio->tic->ram.vram.screen);
-		const u32* pal = tic_palette_blit(&platform.studio->tic->config.palette);
+		const u32* pal = tic_palette_blit(&platform.studio->tic->config.bank0.palette);
 		const u32 Delta = ((TIC80_FULLWIDTH*sizeof(u32))/sizeof *out - TIC80_WIDTH);
 
 		s32 col = 0;

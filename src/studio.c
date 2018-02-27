@@ -286,6 +286,11 @@ tic_map* getBankMap()
 	return &impl.studio.tic->cart.banks[impl.bank.index.map].map;
 }
 
+tic_palette* getBankPalette()
+{
+	return &impl.studio.tic->cart.banks[impl.bank.index.sprites].palette;
+}
+
 void playSystemSfx(s32 id)
 {
 	const tic_sample* effect = &impl.studio.tic->config.bank0.sfx.samples.data[id];
@@ -1476,7 +1481,7 @@ static void drawDesyncLabel(u32* frame)
 		
 		enum{sx = TIC80_WIDTH-24, sy = 8, Cols = sizeof DesyncLabel[0]*BITS_IN_BYTE, Rows = COUNT_OF(DesyncLabel)};
 
-		const u32* pal = tic_palette_blit(&impl.studio.tic->config.palette);
+		const u32* pal = tic_palette_blit(&impl.studio.tic->config.bank0.palette);
 		const u32* color = &pal[tic_color_red];
 
 		for(s32 y = 0; y < Rows; y++)
@@ -1501,7 +1506,7 @@ static void recordFrame(u32* pixels)
 
 			if(impl.video.frame % TIC_FRAMERATE < TIC_FRAMERATE / 2)
 			{
-				const u32* pal = tic_palette_blit(&impl.studio.tic->config.palette);
+				const u32* pal = tic_palette_blit(&impl.studio.tic->config.bank0.palette);
 				drawRecordLabel(pixels, TIC80_WIDTH-24, 8, &pal[tic_color_red]);
 			}
 
@@ -1742,7 +1747,7 @@ static void studioTick()
 				overline = sprite->overline;
 				scanline = sprite->scanline;
 				data = sprite;
-				memcpy(&tic->ram.vram.palette, &tic->cart.palette, sizeof(tic_palette));
+				memcpy(&tic->ram.vram.palette, getBankPalette(), sizeof(tic_palette));
 			}
 			break;
 		case TIC_MAP_MODE:
@@ -1751,11 +1756,11 @@ static void studioTick()
 				overline = map->overline;
 				scanline = map->scanline;
 				data = map;
-				memcpy(&tic->ram.vram.palette, &tic->cart.palette, sizeof(tic_palette));
+				memcpy(&tic->ram.vram.palette, getBankPalette(), sizeof(tic_palette));
 			}
 			break;
 		default:
-			memcpy(&tic->ram.vram.palette, &tic->config.palette, sizeof(tic_palette));
+			memcpy(&tic->ram.vram.palette, &tic->config.bank0.palette, sizeof(tic_palette));
 			break;
 		}
 

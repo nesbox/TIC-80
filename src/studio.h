@@ -154,6 +154,7 @@ void exitFromGameMenu();
 void runProject();
 
 tic_tiles* getBankTiles();
+tic_palette* getBankPalette();
 tic_map* getBankMap();
 
 char getKeyboardText();

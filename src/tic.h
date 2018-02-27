@@ -328,12 +328,13 @@ typedef struct
 
 typedef struct
 {
-	tic_tiles tiles;
-	tic_tiles sprites;
-	tic_map map;
-	tic_sfx sfx;
-	tic_music music;
-	tic_code code;
+	tic_tiles 	tiles;
+	tic_tiles 	sprites;
+	tic_map 	map;
+	tic_sfx 	sfx;
+	tic_music 	music;
+	tic_code 	code;
+	tic_palette palette;
 } tic_bank;
 
 typedef struct
@@ -355,7 +356,6 @@ typedef struct
 		tic_bank banks[TIC_BANKS];
 	};
 	
-	tic_palette palette;
 	tic_cover_image cover;
 } tic_cartridge;
 
