@@ -362,7 +362,16 @@ chip-lto-pro:
 	$(eval OPT += $(OPT_PRO))
 	make chip-lto OPT="$(OPT)"
 
-linux:
+WREN_A=$(3RD_PARTY)/wren-0.1.0/lib/libwren.a
+SDLGPU_A=$(3RD_PARTY)/sdl-gpu/build/linux/libsdlgpu.a
+
+$(WREN_A):
+	make static -C $(3RD_PARTY)/wren-0.1.0/
+
+$(SDLGPU_A):
+	make -C $(3RD_PARTY)/sdl-gpu/build/linux/
+
+linux: $(WREN_A) $(SDLGPU_A)
 	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(SYSTEM) $(LPEG_SRC) $(GIF_SRC) $(SOURCES_EXT) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_LIBS) $(LINUX_LINKER_FLAGS) -o $(BIN_NAME)
 
 linux-pro:
