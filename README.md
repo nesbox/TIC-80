@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/nesbox/TIC-80.svg?branch=master)](https://travis-ci.org/nesbox/TIC-80)
+
 ![TIC-80](https://tic.computer/img/logo64.png)
 **TIC-80 TINY COMPUTER** - [https://tic.computer/](https://tic.computer/)
 
