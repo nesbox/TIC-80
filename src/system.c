@@ -602,13 +602,14 @@ static void pollEvent()
 			switch(event.window.event)
 			{
 			case SDL_WINDOWEVENT_RESIZED: 
-			{
-				s32 w = 0, h = 0;
-				SDL_GetWindowSize(platform.window, &w, &h);
-				GPU_SetWindowResolution(w, h);
+				{
+					s32 w = 0, h = 0;
+					SDL_GetWindowSize(platform.window, &w, &h);
+					GPU_SetWindowResolution(w, h);
 
-				updateGamepadParts(); break;
-			}
+					updateGamepadParts();
+				}
+				break;
 			case SDL_WINDOWEVENT_FOCUS_GAINED: platform.studio->updateProject(); break;
 			}
 			break;
@@ -950,11 +951,35 @@ static void preseed()
 #endif
 }
 
+static char* prepareShader(const char* code)
+{
+	GPU_Renderer* renderer = GPU_GetCurrentRenderer();
+ 	const char* header = "";
+
+	if(renderer->shader_language == GPU_LANGUAGE_GLSL)
+	{
+		if(renderer->max_shader_version >= 120)
+			header = "#version 120\n";
+		else
+			header = "#version 110\n";
+	}
+	else if(renderer->shader_language == GPU_LANGUAGE_GLSLES)
+		header = "#version 100\nprecision mediump int;\nprecision mediump float;\n";
+
+	char* shader = SDL_malloc(strlen(header) + strlen(code) + 2);
+
+	if(shader)
+	{
+		strcpy(shader, header);
+		strcat(shader, code);		
+	}
+
+	return shader;
+}
+
 static void loadCrtShader()
 {
-	static const char* VertexShader = "#version 100\n\
-		precision highp float;\n\
-		precision mediump int;\n\
+	char* vertextShader = prepareShader("\
 		attribute vec2 gpu_Vertex;\n\
 		attribute vec2 gpu_TexCoord;\n\
 		attribute mediump vec4 gpu_Color;\n\
@@ -966,9 +991,14 @@ static void loadCrtShader()
 			color = gpu_Color;\n\
 			texCoord = vec2(gpu_TexCoord);\n\
 			gl_Position = gpu_ModelViewProjectionMatrix * vec4(gpu_Vertex, 0.0, 1.0);\n\
-		}";
+		}");
 
-	u32 vertex = GPU_CompileShader(GPU_VERTEX_SHADER, VertexShader);
+	u32 vertex = 0;
+	if(vertextShader)
+	{
+		vertex = GPU_CompileShader(GPU_VERTEX_SHADER, vertextShader);
+		SDL_free(vertextShader);		
+	}
 	
 	if(!vertex)
 	{
@@ -978,7 +1008,14 @@ static void loadCrtShader()
 		return;
 	}
 
-	u32 fragment = GPU_CompileShader(GPU_PIXEL_SHADER, platform.studio->config()->crtShader);
+	char* fragmentShader = prepareShader(platform.studio->config()->crtShader);
+
+	u32 fragment = 0;
+	if(fragmentShader)
+	{
+		fragment = GPU_CompileShader(GPU_PIXEL_SHADER, fragmentShader);
+		SDL_free(fragmentShader);		
+	}
 	
 	if(!fragment)
 	{
@@ -1146,6 +1183,12 @@ static s32 start(s32 argc, char **argv, const char* folder)
 	GPU_SetInitWindow(SDL_GetWindowID(platform.window));
 
 	platform.gpu.screen = GPU_Init(Width, Height, GPU_INIT_DISABLE_VSYNC);
+
+	{
+		s32 w = 0, h = 0;
+		SDL_GetWindowSize(platform.window, &w, &h);
+		GPU_SetWindowResolution(w, h);
+	}
 
 	initTouchGamepad();
 
