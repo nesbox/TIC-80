@@ -1855,6 +1855,11 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, Sy
 		goFullscreen();
 	}
 
+	if(impl.console->crtMonitor)
+	{
+		impl.config->data.crtMonitor = true;
+	}
+
 	impl.studio.tick = studioTick;
 	impl.studio.close = studioClose;
 	impl.studio.updateProject = updateStudioProject;

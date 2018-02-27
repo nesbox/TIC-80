@@ -3062,6 +3062,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 		.startSurf = false,
 		.skipStart = false,
 		.goFullscreen = false,
+		.crtMonitor = false,
 	};
 
 	memset(console->buffer, 0, CONSOLE_BUFFER_SIZE);
@@ -3137,6 +3138,9 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 
 				else if(strcmp(arg, "-save") == 0)
 					saveCart(console);
+
+				else if(strcmp(arg, "-crt-monitor") == 0)
+					console->crtMonitor = true;
 
 				else continue;
 
