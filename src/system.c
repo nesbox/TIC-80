@@ -73,6 +73,11 @@ static struct
 	} audio;
 } platform;
 
+static inline bool crtMonitorEnabled()
+{
+	return platform.studio->config()->crtMonitor && platform.gpu.shader;
+}
+
 static void initSound()
 {
 	SDL_AudioSpec want =
@@ -211,7 +216,7 @@ static void calcTextureRect(SDL_Rect* rect)
 {
 	SDL_GetWindowSize(platform.window, &rect->w, &rect->h);
 
-	if(platform.studio->config()->crtMonitor)
+	if(crtMonitorEnabled())
 	{
 		enum{Width = TIC80_FULLWIDTH, Height = TIC80_FULLHEIGHT};
 
@@ -278,7 +283,7 @@ static void processMouse()
 		SDL_Rect rect = {0, 0, 0, 0};
 		calcTextureRect(&rect);
 
-		if(platform.studio->config()->crtMonitor)
+		if(crtMonitorEnabled())
 		{
 			if(rect.w) input->mouse.x = (mx - rect.x) * TIC80_FULLWIDTH / rect.w - OFFSET_LEFT;
 			if(rect.h) input->mouse.y = (my - rect.y) * TIC80_FULLHEIGHT / rect.h - OFFSET_TOP;
@@ -1006,9 +1011,7 @@ static void updateConfig()
 	if(platform.gpu.screen)
 	{
 		initTouchGamepad();
-
-		if(platform.studio->config()->crtMonitor)
-			loadCrtShader();
+		loadCrtShader();
 	}
 }
 
@@ -1057,7 +1060,7 @@ static void gpuTick()
 		GPU_UpdateImageBytes(platform.gpu.texture, NULL, (const u8*)tic->screen, TIC80_FULLWIDTH * sizeof(u32));
 
 		{
-			if(platform.studio->config()->crtMonitor && platform.gpu.shader)
+			if(crtMonitorEnabled())
 			{
 				SDL_Rect rect = {0, 0, 0, 0};
 				calcTextureRect(&rect);
@@ -1150,8 +1153,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
 	GPU_SetAnchor(platform.gpu.texture, 0, 0);
 	GPU_SetImageFilter(platform.gpu.texture, GPU_FILTER_NEAREST);
 
-	if(platform.studio->config()->crtMonitor)
-		loadCrtShader();
+	loadCrtShader();
 
 #if defined(__EMSCRIPTEN__)
 
