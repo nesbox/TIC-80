@@ -323,6 +323,12 @@ static void processConsoleBackspace(Console* console)
 
 static void onConsoleHelpCommand(Console* console, const char* param);
 
+static void onConsoleWikiCommand(Console* console, const char* param)
+{
+	getSystem()->openSystemPath("https://github.com/nesbox/TIC-80/wiki");
+	commandDone(console);
+}
+
 static void onConsoleExitCommand(Console* console, const char* param)
 {
 	exitStudio();
@@ -2350,6 +2356,7 @@ static const struct
 } AvailableConsoleCommands[] =
 {
 	{"help", 	NULL, "show this info", 			onConsoleHelpCommand},
+	{"wiki", 	NULL, "open github wiki page", 		onConsoleWikiCommand},
 	{"ram", 	NULL, "show memory info", 			onConsoleRamCommand},
 	{"exit", 	"quit", "exit the application", 	onConsoleExitCommand},
 	{"new", 	NULL, "create new cart",			onConsoleNewCommand},
