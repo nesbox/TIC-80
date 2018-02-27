@@ -1749,6 +1749,7 @@ static void studioTick()
 			{
 				Map* map = impl.editor[impl.bank.index.map].map;
 				overline = map->overline;
+				scanline = map->scanline;
 				data = map;
 				memcpy(&tic->ram.vram.palette, &tic->cart.palette, sizeof(tic_palette));
 			}
