@@ -980,17 +980,17 @@ static char* prepareShader(const char* code)
 static void loadCrtShader()
 {
 	char* vertextShader = prepareShader("\
-		attribute vec2 gpu_Vertex;\n\
+		attribute vec3 gpu_Vertex;\n\
 		attribute vec2 gpu_TexCoord;\n\
-		attribute mediump vec4 gpu_Color;\n\
+		attribute vec4 gpu_Color;\n\
 		uniform mat4 gpu_ModelViewProjectionMatrix;\n\
-		varying mediump vec4 color;\n\
+		varying vec4 color;\n\
 		varying vec2 texCoord;\n\
 		void main(void)\n\
 		{\n\
 			color = gpu_Color;\n\
 			texCoord = vec2(gpu_TexCoord);\n\
-			gl_Position = gpu_ModelViewProjectionMatrix * vec4(gpu_Vertex, 0.0, 1.0);\n\
+			gl_Position = gpu_ModelViewProjectionMatrix * vec4(gpu_Vertex, 1.0);\n\
 		}");
 
 	u32 vertex = 0;
