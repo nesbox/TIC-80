@@ -885,6 +885,8 @@ static bool loadBinarySection(const char* project, const char* comment, const ch
 
 static bool loadProject(Console* console, const char* name, const char* data, s32 size, tic_cartridge* dst)
 {
+    tic_mem* tic = console->tic;
+
 	char* project = (char*)malloc(size+1);
 
 	bool done = false;
@@ -905,6 +907,7 @@ static bool loadProject(Console* console, const char* name, const char* data, s3
 		if(cart)
 		{
 			memset(cart, 0, sizeof(tic_cartridge));
+            memcpy(&cart->bank0.palette, &tic->config.bank0.palette.data, sizeof(tic_palette));
 
 			const char* comment = projectComment(name);
 			char tag[16];
@@ -2964,7 +2967,7 @@ static bool cmdInjectSprites(Console* console, const char* param, const char* na
 						u8 src = image->buffer[x + y * image->width];
 						const gif_color* c = &image->palette[src];
 						tic_rgb rgb = {c->r, c->g, c->b};
-						u8 color = tic_tool_find_closest_color(getBankPalette()->colors, &rgb);
+						u8 color = tic_tool_find_closest_color(console->embed.file->bank0.palette.colors, &rgb);
 
 						setSpritePixel(console->embed.file->bank0.tiles.data, x, y, color);
 					}
@@ -3114,7 +3117,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 				if(cmdInjectCode(console, first, second)
 					|| cmdInjectSprites(console, first, second)
 					|| cmdInjectMap(console, first, second))
-					argp |= mask;				
+					argp |= mask;
 			}
 		}
 
