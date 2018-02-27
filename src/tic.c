@@ -1393,7 +1393,6 @@ static void api_tick_end(tic_mem* memory)
 	machine->state.setpix = setPixelOvr;
 	machine->state.getpix = getPixelOvr;
 	machine->state.drawhline = drawHLineOvr;
-	memcpy(machine->state.ovr.palette, tic_palette_blit(&memory->cart.palette), sizeof machine->state.ovr.palette);
 }
 
 
@@ -1667,7 +1666,7 @@ static void api_tick(tic_mem* tic, tic_tick_data* data)
 			{
 				machine->state.tick = config->tick;
 				machine->state.scanline = config->scanline;
-				machine->state.ovr.callback = config->overlap;
+				machine->state.ovr.callback = config->overline;
 
 				machine->state.initialized = true;
 			}
@@ -1686,7 +1685,7 @@ static void api_scanline(tic_mem* memory, s32 row, void* data)
 		machine->state.scanline(memory, row, data);
 }
 
-static void api_overlap(tic_mem* memory, void* data)
+static void api_overline(tic_mem* memory, void* data)
 {
 	tic_machine* machine = (tic_machine*)memory;
 
@@ -1910,9 +1909,14 @@ static inline void memset4(void *dst, u32 val, u32 dwords)
 #endif
 }
 
-static void api_blit(tic_mem* tic, tic_scanline scanline, tic_overlap overlap, void* data)
+static void api_blit(tic_mem* tic, tic_scanline scanline, tic_overline overline, void* data)
 {
 	const u32* pal = tic_palette_blit(&tic->ram.vram.palette);
+
+	{
+		tic_machine* machine = (tic_machine*)tic;
+		memcpy(machine->state.ovr.palette, pal, sizeof machine->state.ovr.palette);
+	}
 
 	if(scanline)
 	{
@@ -1954,8 +1958,8 @@ static void api_blit(tic_mem* tic, tic_scanline scanline, tic_overlap overlap, v
 
 	memset4(&out[(TIC80_FULLHEIGHT-Bottom) * TIC80_FULLWIDTH], pal[tic->ram.vram.vars.border], TIC80_FULLWIDTH*Bottom);
 
-	if(overlap)
-		overlap(tic, data);
+	if(overline)
+		overline(tic, data);
 }
 
 static void initApi(tic_api* api)
@@ -1992,7 +1996,7 @@ static void initApi(tic_api* api)
 	INIT_API(time);
 	INIT_API(tick);
 	INIT_API(scanline);
-	INIT_API(overlap);
+	INIT_API(overline);
 	INIT_API(reset);
 	INIT_API(pause);
 	INIT_API(resume);

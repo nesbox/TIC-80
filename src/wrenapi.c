@@ -36,7 +36,7 @@ static WrenHandle* game_class;
 static WrenHandle* new_handle;
 static WrenHandle* update_handle;
 static WrenHandle* scanline_handle;
-static WrenHandle* overlap_handle;
+static WrenHandle* overline_handle;
 
 static bool loaded = false;
 
@@ -199,7 +199,7 @@ static void closeWren(tic_mem* tic)
 			wrenReleaseHandle(machine->wren, new_handle);
 			wrenReleaseHandle(machine->wren, update_handle);
 			wrenReleaseHandle(machine->wren, scanline_handle);
-			wrenReleaseHandle(machine->wren, overlap_handle);
+			wrenReleaseHandle(machine->wren, overline_handle);
 			if (game_class != NULL) {
 				wrenReleaseHandle(machine->wren, game_class);
 			}
@@ -1263,7 +1263,7 @@ static bool initWren(tic_mem* tic, const char* code)
 	new_handle = wrenMakeCallHandle(vm, "new()");
 	update_handle = wrenMakeCallHandle(vm, TIC_FN "()");
 	scanline_handle = wrenMakeCallHandle(vm, SCN_FN "(_)");
-	overlap_handle = wrenMakeCallHandle(vm, OVR_FN "()");
+	overline_handle = wrenMakeCallHandle(vm, OVR_FN "()");
 
 	// create game class
 	if (game_class)
@@ -1313,7 +1313,7 @@ static void callWrenScanline(tic_mem* memory, s32 row, void* data)
 	}
 }
 
-static void callWrenOverlap(tic_mem* memory, void* data)
+static void callWrenOverline(tic_mem* memory, void* data)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	WrenVM* vm = machine->wren;
@@ -1322,7 +1322,7 @@ static void callWrenOverlap(tic_mem* memory, void* data)
 	{
 		wrenEnsureSlots(vm, 1);
 		wrenSetSlotHandle(vm, 0, game_class);
-		wrenCall(vm, overlap_handle);
+		wrenCall(vm, overline_handle);
 	}
 }
 
@@ -1350,7 +1350,7 @@ static const tic_script_config WrenSyntaxConfig =
 	.close 				= closeWren,
 	.tick 				= callWrenTick,
 	.scanline 			= callWrenScanline,
-	.overlap 			= callWrenOverlap,
+	.overline 			= callWrenOverline,
 
 	.getOutline			= getWrenOutline,
 	.parse 				= parseCode,

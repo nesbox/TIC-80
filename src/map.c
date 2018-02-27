@@ -142,6 +142,12 @@ static s32 drawGridButton(Map* map, s32 x, s32 y)
 	return x;
 }
 
+static bool sheetVisible(Map* map)
+{
+	tic_mem* tic = map->tic;
+	return tic->api.key(tic, tic_key_shift) || map->sheet.show;
+}
+
 static s32 drawSheetButton(Map* map, s32 x, s32 y)
 {
 	static const u8 DownIcon[] = 
@@ -186,7 +192,7 @@ static s32 drawSheetButton(Map* map, s32 x, s32 y)
 		}
 	}
 
-	drawBitIcon(rect.x, rect.y, map->sheet.show ? UpIcon : DownIcon, over ? (tic_color_dark_gray) : (tic_color_light_blue));
+	drawBitIcon(rect.x, rect.y, sheetVisible(map) ? UpIcon : DownIcon, over ? (tic_color_dark_gray) : (tic_color_light_blue));
 
 	return x;
 }
@@ -291,7 +297,7 @@ static void drawTileIndex(Map* map, s32 x, s32 y)
 {
 	s32 index = -1;
 
-	if(map->sheet.show)
+	if(sheetVisible(map))
 	{
 		tic_rect rect = {TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, TOOLBAR_SIZE, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
 		
@@ -344,7 +350,7 @@ static void drawMapToolbar(Map* map, s32 x, s32 y)
 
 static void drawSheet(Map* map, s32 x, s32 y)
 {
-	if(!map->sheet.show)return;
+	if(!sheetVisible(map))return;
 
 	tic_rect rect = {x, y, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
 
@@ -353,7 +359,7 @@ static void drawSheet(Map* map, s32 x, s32 y)
 
 static void drawSheetOvr(Map* map, s32 x, s32 y)
 {
-	if(!map->sheet.show)return;
+	if(!sheetVisible(map))return;
 
 	tic_rect rect = {x, y, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
 
@@ -879,7 +885,7 @@ static void drawMapOvr(Map* map)
 		tic->api.line(tic, TIC80_WIDTH - screenScrollX, 0, TIC80_WIDTH - screenScrollX, TIC80_HEIGHT, (tic_color_gray));
 	}
 
-	if(!map->sheet.show && checkMousePos(&rect))
+	if(!sheetVisible(map) && checkMousePos(&rect))
 	{
 		if(tic->api.key(tic, tic_key_space))
 		{
@@ -1009,9 +1015,6 @@ static void processKeyboard(Map* map)
 
 	if(tic->ram.input.keyboard.data == 0) return;
 	
-	map->sheet.show = false;
-
-	bool shift = tic->api.key(tic, tic_key_shift);
 	bool ctrl = tic->api.key(tic, tic_key_ctrl);
 
 	switch(getClipboardEvent())
@@ -1037,9 +1040,6 @@ static void processKeyboard(Map* map)
 		else if(keyWasPressed(tic_key_delete)) deleteSelection(map);
 		else if(keyWasPressed(tic_key_grave)) map->canvas.grid = !map->canvas.grid;
 	}
-
-	if(shift)
-		map->sheet.show = true;
 
 	enum{Step = 1};
 
@@ -1083,11 +1083,17 @@ static void onStudioEvent(Map* map, StudioEvent event)
 	}
 }
 
-static void overlap(tic_mem* tic, void* data)
+static void scanline(tic_mem* tic, s32 row, void* data)
+{
+	if(row == 0)
+		memcpy(tic->ram.vram.palette.data, tic->config.palette.data, sizeof(tic_palette));
+}
+
+static void overline(tic_mem* tic, void* data)
 {
 	Map* map = (Map*)data;
 
-	tic->api.clip(tic, 0, TOOLBAR_SIZE, TIC80_WIDTH - (map->sheet.show ? TIC_SPRITESHEET_SIZE+2 : 0), TIC80_HEIGHT - TOOLBAR_SIZE);
+	tic->api.clip(tic, 0, TOOLBAR_SIZE, TIC80_WIDTH - (sheetVisible(map) ? TIC_SPRITESHEET_SIZE+2 : 0), TIC80_HEIGHT - TOOLBAR_SIZE);
 	drawMapOvr(map);
 	tic->api.clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
 	drawSheetOvr(map, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, TOOLBAR_SIZE);
@@ -1134,7 +1140,8 @@ void initMap(Map* map, tic_mem* tic, tic_map* src)
 		},
 		.history = history_create(src, sizeof(tic_map)),
 		.event = onStudioEvent,
-		.overlap = overlap,
+		.overline = overline,
+		.scanline = scanline,
 	};
 
 	normalizeMap(&map->scroll.x, &map->scroll.y);

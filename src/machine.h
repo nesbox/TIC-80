@@ -103,7 +103,7 @@ typedef struct
 
 	struct
 	{
-		tic_overlap callback;
+		tic_overline callback;
 		u32 palette[TIC_PALETTE_SIZE];
 	} ovr;
 

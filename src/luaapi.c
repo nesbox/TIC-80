@@ -1307,7 +1307,7 @@ static void callLuaScanline(tic_mem* memory, s32 row, void* data)
 	callLuaScanlineName(memory, row, data, "scanline");
 }
 
-static void callLuaOverlap(tic_mem* memory, void* data)
+static void callLuaOverline(tic_mem* memory, void* data)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	lua_State* lua = machine->lua;
@@ -1403,7 +1403,7 @@ static const tic_script_config LuaSyntaxConfig =
 	.close 				= closeLua,
 	.tick 				= callLuaTick,
 	.scanline 			= callLuaScanline,
-	.overlap 			= callLuaOverlap,
+	.overline 			= callLuaOverline,
 
 	.getOutline			= getLuaOutline,
 	.parse 				= parseCode,
@@ -1588,7 +1588,7 @@ static const tic_script_config MoonSyntaxConfig =
 	.close 				= closeLua,
 	.tick 				= callLuaTick,
 	.scanline 			= callLuaScanline,
-	.overlap 			= callLuaOverlap,
+	.overline 			= callLuaOverline,
 
 	.getOutline			= getMoonOutline,
 	.parse 				= parseCode,

@@ -915,7 +915,7 @@ static void callJavascriptScanline(tic_mem* memory, s32 row, void* data)
 	callJavascriptScanlineName(memory, row, data, "scanline");
 }
 
-static void callJavascriptOverlap(tic_mem* memory, void* data)
+static void callJavascriptOverline(tic_mem* memory, void* data)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	duk_context* duk = machine->js;
@@ -1007,7 +1007,7 @@ static const tic_script_config JsSyntaxConfig =
 	.close 				= closeJavascript,
 	.tick 				= callJavascriptTick,
 	.scanline 			= callJavascriptScanline,
-	.overlap 			= callJavascriptOverlap,
+	.overline 			= callJavascriptOverline,
 
 	.getOutline			= getJsOutline,
 	.parse 				= parseCode,

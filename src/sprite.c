@@ -1625,7 +1625,13 @@ static void onStudioEvent(Sprite* sprite, StudioEvent event)
 	}
 }
 
-static void overlap(tic_mem* tic, void* data)
+static void scanline(tic_mem* tic, s32 row, void* data)
+{
+	if(row == 0)
+		memcpy(tic->ram.vram.palette.data, tic->config.palette.data, sizeof(tic_palette));
+}
+
+static void overline(tic_mem* tic, void* data)
 {
 	Sprite* sprite = (Sprite*)data;
 
@@ -1666,6 +1672,7 @@ void initSprite(Sprite* sprite, tic_mem* tic, tic_tiles* src)
 		.mode = SPRITE_DRAW_MODE,
 		.history = history_create(src, TIC_SPRITES * sizeof(tic_tile)),
 		.event = onStudioEvent,
-		.overlap = overlap,
+		.overline = overline,
+		.scanline = scanline,
 	};
 }

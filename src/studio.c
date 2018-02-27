@@ -1208,7 +1208,7 @@ static void setCoverImage()
 	{
 		enum {Pitch = TIC80_FULLWIDTH*sizeof(u32)};
 
-		tic->api.blit(tic, tic->api.scanline, tic->api.overlap, NULL);
+		tic->api.blit(tic, tic->api.scanline, tic->api.overline, NULL);
 
 		u32* buffer = malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32));
 
@@ -1515,11 +1515,6 @@ static void recordFrame(u32* pixels)
 	}
 }
 
-static void useSystemPalette()
-{
-	memcpy(impl.studio.tic->ram.vram.palette.data, impl.studio.tic->config.palette.data, sizeof(tic_palette));
-}
-
 static void drawPopup()
 {
 	if(impl.popup.counter > 0)
@@ -1622,9 +1617,6 @@ static void renderStudio()
 		memset(tic->ram.registers, 0, sizeof tic->ram.registers);
 
 	impl.studio.tic->api.tick_end(impl.studio.tic);
-
-	if(impl.mode != TIC_RUN_MODE)
-		useSystemPalette();
 }
 
 static void updateSystemFont()
@@ -1735,34 +1727,38 @@ static void studioTick()
 	
 	{
 		tic_scanline scanline = NULL;
-		tic_overlap overlap = NULL;
+		tic_overline overline = NULL;
 		void* data = NULL;
 
 		switch(impl.mode)
 		{
 		case TIC_RUN_MODE:
 			scanline = tic->api.scanline;
-			overlap = tic->api.overlap;
+			overline = tic->api.overline;
 			break;
 		case TIC_SPRITE_MODE:
 			{
 				Sprite* sprite = impl.editor[impl.bank.index.sprites].sprite;
-				overlap = sprite->overlap;
+				overline = sprite->overline;
+				scanline = sprite->scanline;
 				data = sprite;
+				memcpy(&tic->ram.vram.palette, &tic->cart.palette, sizeof(tic_palette));
 			}
 			break;
 		case TIC_MAP_MODE:
 			{
 				Map* map = impl.editor[impl.bank.index.map].map;
-				overlap = map->overlap;
+				overline = map->overline;
 				data = map;
+				memcpy(&tic->ram.vram.palette, &tic->cart.palette, sizeof(tic_palette));
 			}
 			break;
 		default:
+			memcpy(&tic->ram.vram.palette, &tic->config.palette, sizeof(tic_palette));
 			break;
 		}
 
-		tic->api.blit(tic, scanline, overlap, data);
+		tic->api.blit(tic, scanline, overline, data);
 
 		recordFrame(tic->screen);
 		drawDesyncLabel(tic->screen);
