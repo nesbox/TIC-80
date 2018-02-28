@@ -19,9 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\nesbox\research\sdl-gpu\src\externals\glew\glew.c" />
-    <ClCompile Include="..\..\..\..\..\nesbox\research\sdl-gpu\src\externals\stb_image\stb_image.c" />
-    <ClCompile Include="..\..\..\..\..\nesbox\research\sdl-gpu\src\externals\stb_image_write\stb_image_write.c" />
+    <ClCompile Include="..\..\..\3rd-party\sdl-gpu\src\externals\glew\glew.c" />
+    <ClCompile Include="..\..\..\3rd-party\sdl-gpu\src\externals\stb_image\stb_image.c" />
+    <ClCompile Include="..\..\..\3rd-party\sdl-gpu\src\externals\stb_image_write\stb_image_write.c" />
     <ClCompile Include="..\..\..\3rd-party\sdl-gpu\src\renderer_GLES_1.c" />
     <ClCompile Include="..\..\..\3rd-party\sdl-gpu\src\renderer_GLES_2.c" />
     <ClCompile Include="..\..\..\3rd-party\sdl-gpu\src\renderer_GLES_3.c" />

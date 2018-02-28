@@ -4,18 +4,6 @@
     <Filter Include="src">
       <UniqueIdentifier>{5d881051-9638-476c-95f1-3279cce1274e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\externals">
-      <UniqueIdentifier>{d8b8c914-cf54-44de-ad8d-a3107e066f74}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\externals\glew">
-      <UniqueIdentifier>{3ace8cd1-b71d-4f36-81a0-11d8bf4a30de}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\externals\stb_image">
-      <UniqueIdentifier>{71f11ae7-8fcc-4c68-9624-abfa04c0db5f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="src\externals\stb_image_write">
-      <UniqueIdentifier>{d04f6c6c-a486-4805-bafb-c0b5bd02058f}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\3rd-party\sdl-gpu\src\renderer_GLES_1.c">
@@ -54,14 +42,14 @@
     <ClCompile Include="..\..\..\3rd-party\sdl-gpu\src\SDL_gpu_shapes.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\nesbox\research\sdl-gpu\src\externals\glew\glew.c">
-      <Filter>src\externals\glew</Filter>
+    <ClCompile Include="..\..\..\3rd-party\sdl-gpu\src\externals\stb_image_write\stb_image_write.c">
+      <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\nesbox\research\sdl-gpu\src\externals\stb_image\stb_image.c">
-      <Filter>src\externals\stb_image</Filter>
+    <ClCompile Include="..\..\..\3rd-party\sdl-gpu\src\externals\stb_image\stb_image.c">
+      <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\nesbox\research\sdl-gpu\src\externals\stb_image_write\stb_image_write.c">
-      <Filter>src\externals\stb_image_write</Filter>
+    <ClCompile Include="..\..\..\3rd-party\sdl-gpu\src\externals\glew\glew.c">
+      <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
