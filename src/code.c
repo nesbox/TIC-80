@@ -590,7 +590,7 @@ static void copyFromClipboard(Code* code)
 				parseSyntaxColor(code);
 			}
 
-			free(clipboard);
+			getSystem()->freeClipboardText(clipboard);
 		}
 	}
 }

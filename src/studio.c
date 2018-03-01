@@ -417,7 +417,7 @@ bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces)
 
 				if(valid) str2buf(clipboard, strlen(clipboard), data, flip);
 
-				free(clipboard);
+				getSystem()->freeClipboardText(clipboard);
 
 				return valid;
 			}

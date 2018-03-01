@@ -1004,7 +1004,7 @@ static void copyFromClipboard(Map* map)
 				else free(data);
 			}
 
-			free(clipboard);
+			getSystem()->freeClipboardText(clipboard);
 		}
 	}
 }

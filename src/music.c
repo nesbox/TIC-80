@@ -651,7 +651,7 @@ static void copyFromClipboard(Music* music)
 				free(data);
 			}
 
-			free(clipboard);
+			getSystem()->freeClipboardText(clipboard);
 		}
 	}
 }

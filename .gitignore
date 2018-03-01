@@ -122,3 +122,5 @@ build/uwp/sdl-gpu-static/Release Pro/
 build/uwp/sdl-gpu-static/ARM/
 build/uwp/sdl-gpu-static/x64/
 build/uwp/tic/packages/
+build/windows/studio/x64/
+build/windows/sdl-gpu/x64/

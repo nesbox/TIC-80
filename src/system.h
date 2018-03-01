@@ -8,6 +8,8 @@ typedef struct
 	void	(*setClipboardText)(const char* text);
 	bool	(*hasClipboardText)();
 	char* 	(*getClipboardText)();
+	void 	(*freeClipboardText)(const char* text);
+
 	u64 	(*getPerformanceCounter)();
 	u64 	(*getPerformanceFrequency)();
 

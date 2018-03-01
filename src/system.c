@@ -876,6 +876,11 @@ static char* getClipboardText()
 	return SDL_GetClipboardText();
 }
 
+static void freeClipboardText(const char* text)
+{
+	SDL_free((void*)text);
+}
+
 static u64 getPerformanceCounter()
 {
 	return SDL_GetPerformanceCounter();
@@ -1057,6 +1062,8 @@ static System systemInterface =
 	.setClipboardText = setClipboardText,
 	.hasClipboardText = hasClipboardText,
 	.getClipboardText = getClipboardText,
+	.freeClipboardText = freeClipboardText,
+
 	.getPerformanceCounter = getPerformanceCounter,
 	.getPerformanceFrequency = getPerformanceFrequency,
 
