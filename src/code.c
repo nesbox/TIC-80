@@ -27,16 +27,19 @@
 
 #define TEXT_CURSOR_DELAY (TIC_FRAMERATE / 2)
 #define TEXT_CURSOR_BLINK_PERIOD TIC_FRAMERATE
-#define TEXT_BUFFER_WIDTH STUDIO_TEXT_BUFFER_WIDTH
-#define TEXT_BUFFER_HEIGHT ((TIC80_HEIGHT - TOOLBAR_SIZE - STUDIO_TEXT_HEIGHT) / STUDIO_TEXT_HEIGHT)
+
+static inline s32 TextBufferHeight(const tic_mem* tic)
+{
+	return ((TIC80_HEIGHT - TOOLBAR_SIZE - TextHeight(tic)) / TextHeight(tic));
+}
 
 struct OutlineItem
 {
-	char name[STUDIO_TEXT_BUFFER_WIDTH];
+	char name[TIC80_WIDTH];
 	char* pos;
 };
 
-#define OUTLINE_SIZE ((TIC80_HEIGHT - TOOLBAR_SIZE*2)/TIC_FONT_HEIGHT)
+#define OUTLINE_SIZE (TIC80_HEIGHT)
 #define OUTLINE_ITEMS_SIZE (OUTLINE_SIZE * sizeof(OutlineItem))
 
 static void history(Code* code)
@@ -47,18 +50,23 @@ static void history(Code* code)
 
 static void drawStatus(Code* code)
 {
-	const s32 Height = TIC_FONT_HEIGHT + 1;
-	code->tic->api.rect(code->tic, 0, TIC80_HEIGHT - Height, TIC80_WIDTH, Height, (tic_color_white));
-	code->tic->api.fixed_text(code->tic, code->status, 0, TIC80_HEIGHT - TIC_FONT_HEIGHT, getConfig()->theme.code.bg);
+	tic_mem* tic = code->tic;
+	const s32 Height = tic->font.height + 1;
+
+	tic->api.rect(tic, 0, TIC80_HEIGHT - Height, TIC80_WIDTH, Height, (tic_color_white));
+	tic->api.fixed_text(tic, code->status.left, 0, TIC80_HEIGHT - tic->font.height, getConfig()->theme.code.bg);
+	tic->api.fixed_text(tic, code->status.right, TIC80_WIDTH - (strlen(code->status.right) * tic->font.width), 
+		TIC80_HEIGHT - tic->font.height, getConfig()->theme.code.bg);
 }
 
 static void drawCursor(Code* code, s32 x, s32 y, char symbol)
 {
+	tic_mem* tic = code->tic;
 	bool inverse = code->cursor.delay || code->tickCounter % TEXT_CURSOR_BLINK_PERIOD < TEXT_CURSOR_BLINK_PERIOD / 2;
 
 	if(inverse)
 	{
-		code->tic->api.rect(code->tic, x-1, y-1, TIC_FONT_WIDTH+1, TIC_FONT_HEIGHT+1, getConfig()->theme.code.cursor);
+		code->tic->api.rect(code->tic, x-1, y-1, tic->font.width+1, tic->font.height+1, getConfig()->theme.code.cursor);
 
 		if(symbol)
 			code->tic->api.draw_char(code->tic, symbol, x, y, getConfig()->theme.code.bg);
@@ -67,9 +75,10 @@ static void drawCursor(Code* code, s32 x, s32 y, char symbol)
 
 static void drawCode(Code* code, bool withCursor)
 {
-	s32 xStart = code->rect.x - code->scroll.x * STUDIO_TEXT_WIDTH;
+	tic_mem* tic = code->tic;
+	s32 xStart = code->rect.x - code->scroll.x * TextWidth(tic);
 	s32 x = xStart;
-	s32 y = code->rect.y - code->scroll.y * STUDIO_TEXT_HEIGHT;
+	s32 y = code->rect.y - code->scroll.y * TextHeight(tic);
 	char* pointer = code->src;
 
 	u8* colorPointer = code->colorBuffer;
@@ -83,10 +92,10 @@ static void drawCode(Code* code, bool withCursor)
 	{
 		char symbol = *pointer;
 
-		if(x >= -TIC_FONT_WIDTH && x < TIC80_WIDTH && y >= -TIC_FONT_HEIGHT && y < TIC80_HEIGHT )
+		if(x >= -tic->font.width && x < TIC80_WIDTH && y >= -tic->font.height && y < TIC80_HEIGHT )
 		{
 			if(code->cursor.selection && pointer >= selection.start && pointer < selection.end)
-				code->tic->api.rect(code->tic, x-1, y-1, TIC_FONT_WIDTH+1, TIC_FONT_HEIGHT+1, getConfig()->theme.code.select);
+				code->tic->api.rect(code->tic, x-1, y-1, tic->font.width+1, tic->font.height+1, getConfig()->theme.code.select);
 			else if(getConfig()->theme.code.shadow)
 			{
 				code->tic->api.draw_char(code->tic, symbol, x+1, y+1, 0);
@@ -101,9 +110,9 @@ static void drawCode(Code* code, bool withCursor)
 		if(symbol == '\n')
 		{
 			x = xStart;
-			y += STUDIO_TEXT_HEIGHT;
+			y += TextHeight(tic);
 		}
-		else x += STUDIO_TEXT_WIDTH;
+		else x += TextWidth(tic);
 
 		pointer++;
 		colorPointer++;
@@ -159,34 +168,31 @@ static void removeInvalidChars(char* code)
 
 static void updateEditor(Code* code)
 {
+	tic_mem* tic = code->tic;
+
 	s32 column = 0;
 	s32 line = 0;
 	getCursorPosition(code, &column, &line);
 
 	if(column < code->scroll.x) code->scroll.x = column;
-	else if(column >= code->scroll.x + TEXT_BUFFER_WIDTH)
-		code->scroll.x = column - TEXT_BUFFER_WIDTH + 1;
+	else if(column >= code->scroll.x + BufferWidth(tic))
+		code->scroll.x = column - BufferWidth(tic) + 1;
 
 	if(line < code->scroll.y) code->scroll.y = line;
-	else if(line >= code->scroll.y + TEXT_BUFFER_HEIGHT)
-		code->scroll.y = line - TEXT_BUFFER_HEIGHT + 1;
+	else if(line >= code->scroll.y + TextBufferHeight(tic))
+		code->scroll.y = line - TextBufferHeight(tic) + 1;
 
 	code->cursor.delay = TEXT_CURSOR_DELAY;
 
 	// update status
 	{
-		memset(code->status, ' ', sizeof code->status - 1);
-
-		char status[STUDIO_TEXT_BUFFER_WIDTH];
 		s32 count = getLinesCount(code);
-		sprintf(status, "line %i/%i col %i", line + 1, count + 1, column + 1);
-		memcpy(code->status, status, strlen(status));
+		sprintf(code->status.left, "line %i/%i col %i", line + 1, count + 1, column + 1);
 
 		size_t codeLen = strlen(code->src);
-		sprintf(status, "%i/%i", (u32)codeLen, TIC_CODE_SIZE);
+		sprintf(code->status.right, "%i/%i", (u32)codeLen, TIC_CODE_SIZE);
 
 		memset(code->src + codeLen, '\0', TIC_CODE_SIZE - codeLen);
-		memcpy(code->status + sizeof code->status - strlen(status) - 1, status, strlen(status));
 	}
 }
 
@@ -403,19 +409,21 @@ static void goCodeEnd(Code *code)
 
 static void pageUp(Code* code)
 {
+	tic_mem* tic = code->tic;
 	s32 column = 0;
 	s32 line = 0;
 	getCursorPosition(code, &column, &line);
-	setCursorPosition(code, column, line > TEXT_BUFFER_HEIGHT ? line - TEXT_BUFFER_HEIGHT : 0);
+	setCursorPosition(code, column, line > TextBufferHeight(tic) ? line - TextBufferHeight(tic) : 0);
 }
 
 static void pageDown(Code* code)
 {
+	tic_mem* tic = code->tic;
 	s32 column = 0;
 	s32 line = 0;
 	getCursorPosition(code, &column, &line);
 	s32 lines = getLinesCount(code);
-	setCursorPosition(code, column, line < lines - TEXT_BUFFER_HEIGHT ? line + TEXT_BUFFER_HEIGHT : lines);
+	setCursorPosition(code, column, line < lines - TextBufferHeight(tic) ? line + TextBufferHeight(tic) : lines);
 }
 
 static bool replaceSelection(Code* code)
@@ -726,10 +734,12 @@ static void normalizeScroll(Code* code)
 
 static void centerScroll(Code* code)
 {
+	tic_mem* tic = code->tic;
+
 	s32 col, line;
 	getCursorPosition(code, &col, &line);
-	code->scroll.x = col - TEXT_BUFFER_WIDTH / 2;
-	code->scroll.y = line - TEXT_BUFFER_HEIGHT / 2;
+	code->scroll.x = col - BufferWidth(tic) / 2;
+	code->scroll.y = line - TextBufferHeight(tic) / 2;
 
 	normalizeScroll(code);
 }
@@ -772,8 +782,8 @@ static void initOutlineMode(Code* code)
 
 	tic_mem* tic = code->tic;
 
-	char buffer[STUDIO_TEXT_BUFFER_WIDTH] = {0};
-	char filter[STUDIO_TEXT_BUFFER_WIDTH] = {0};
+	char buffer[TIC80_WIDTH] = {0};
+	char filter[TIC80_WIDTH] = {0};
 	strncpy(filter, code->popup.text, sizeof(filter));
 
 	ticStrlwr(filter);
@@ -792,8 +802,8 @@ static void initOutlineMode(Code* code)
 			if(out < end)
 			{
 				out->pos = code->src + item->pos;
-				memset(out->name, 0, STUDIO_TEXT_BUFFER_WIDTH);
-				memcpy(out->name, out->pos, MIN(item->size, STUDIO_TEXT_BUFFER_WIDTH-1));
+				memset(out->name, 0, TIC80_WIDTH);
+				memcpy(out->name, out->pos, MIN(item->size, TIC80_WIDTH-1));
 
 				if(*filter)
 				{
@@ -966,8 +976,8 @@ static void processMouse(Code* code)
 		{
 			if(checkMouseDown(&code->rect, tic_mouse_right))
 			{
-				code->scroll.x = (code->scroll.start.x - getMouseX()) / STUDIO_TEXT_WIDTH;
-				code->scroll.y = (code->scroll.start.y - getMouseY()) / STUDIO_TEXT_HEIGHT;
+				code->scroll.x = (code->scroll.start.x - getMouseX()) / TextWidth(tic);
+				code->scroll.y = (code->scroll.start.y - getMouseY()) / TextHeight(tic);
 
 				normalizeScroll(code);
 			}
@@ -980,8 +990,8 @@ static void processMouse(Code* code)
 				s32 mx = getMouseX();
 				s32 my = getMouseY();
 
-				s32 x = (mx - code->rect.x) / STUDIO_TEXT_WIDTH;
-				s32 y = (my - code->rect.y) / STUDIO_TEXT_HEIGHT;
+				s32 x = (mx - code->rect.x) / TextWidth(tic);
+				s32 y = (my - code->rect.y) / TextHeight(tic);
 
 				char* position = code->cursor.position;
 				setCursorPosition(code, x + code->scroll.x, y + code->scroll.y);
@@ -1009,8 +1019,8 @@ static void processMouse(Code* code)
 			{
 				code->scroll.active = true;
 
-				code->scroll.start.x = getMouseX() + code->scroll.x * STUDIO_TEXT_WIDTH;
-				code->scroll.start.y = getMouseY() + code->scroll.y * STUDIO_TEXT_HEIGHT;
+				code->scroll.start.x = getMouseX() + code->scroll.x * TextWidth(tic);
+				code->scroll.start.y = getMouseY() + code->scroll.y * TextHeight(tic);
 			}
 
 		}
@@ -1058,14 +1068,16 @@ static void textEditTick(Code* code)
 
 static void drawPopupBar(Code* code, const char* title)
 {
+	tic_mem* tic = code->tic;
+
 	enum {TextY = TOOLBAR_SIZE + 1};
 
-	code->tic->api.rect(code->tic, 0, TOOLBAR_SIZE, TIC80_WIDTH, TIC_FONT_HEIGHT + 1, (tic_color_blue));
+	code->tic->api.rect(code->tic, 0, TOOLBAR_SIZE, TIC80_WIDTH, tic->font.height + 1, (tic_color_blue));
 	code->tic->api.fixed_text(code->tic, title, 0, TextY, (tic_color_white));
 
-	code->tic->api.fixed_text(code->tic, code->popup.text, (s32)strlen(title)*TIC_FONT_WIDTH, TextY, (tic_color_white));
+	code->tic->api.fixed_text(code->tic, code->popup.text, (s32)strlen(title)*tic->font.width, TextY, (tic_color_white));
 
-	drawCursor(code, (s32)(strlen(title) + strlen(code->popup.text)) * TIC_FONT_WIDTH, TextY, ' ');
+	drawCursor(code, (s32)(strlen(title) + strlen(code->popup.text)) * tic->font.width, TextY, ' ');
 }
 
 static void updateFindCode(Code* code, char* pos)
@@ -1203,8 +1215,8 @@ static void textGoToTick(Code* code)
 	tic->api.clear(tic, getConfig()->theme.code.bg);
 
 	if(code->jump.line >= 0)
-		tic->api.rect(tic, 0, (code->jump.line - code->scroll.y) * (TIC_FONT_HEIGHT+1) + TOOLBAR_SIZE,
-			TIC80_WIDTH, TIC_FONT_HEIGHT+2, getConfig()->theme.code.select);
+		tic->api.rect(tic, 0, (code->jump.line - code->scroll.y) * (tic->font.height+1) + TOOLBAR_SIZE,
+			TIC80_WIDTH, tic->font.height+2, getConfig()->theme.code.select);
 
 	drawCode(code, false);
 	drawPopupBar(code, " GOTO:");
@@ -1213,12 +1225,14 @@ static void textGoToTick(Code* code)
 
 static void drawOutlineBar(Code* code, s32 x, s32 y)
 {
+	tic_mem* tic = code->tic;
+
 	tic_rect rect = {x, y, TIC80_WIDTH - x, TIC80_HEIGHT - y};
 
 	if(checkMousePos(&rect))
 	{
 		s32 mx = getMouseY() - rect.y;
-		mx /= STUDIO_TEXT_HEIGHT;
+		mx /= TextHeight(tic);
 
 		if(mx < OUTLINE_SIZE && code->outline.items[mx].pos)
 		{
@@ -1244,13 +1258,13 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 
 	if(ptr->pos)
 	{
-		code->tic->api.rect(code->tic, rect.x - 1, rect.y + code->outline.index*STUDIO_TEXT_HEIGHT,
-			rect.w + 1, TIC_FONT_HEIGHT + 1, (tic_color_red));
+		code->tic->api.rect(code->tic, rect.x - 1, rect.y + code->outline.index*TextHeight(tic),
+			rect.w + 1, tic->font.height + 1, (tic_color_red));
 		while(ptr->pos)
 		{
 			code->tic->api.fixed_text(code->tic, ptr->name, x, y, (tic_color_white));
 			ptr++;
-			y += STUDIO_TEXT_HEIGHT;
+			y += TextHeight(tic);
 		}
 	}
 	else code->tic->api.fixed_text(code->tic, "(empty)", x, y, (tic_color_white));
@@ -1258,6 +1272,8 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 
 static void textOutlineTick(Code* code)
 {
+	tic_mem* tic = code->tic;
+	
 	if(keyWasPressed(tic_key_up))
 	{
 		if(code->outline.index > 0)
@@ -1305,7 +1321,7 @@ static void textOutlineTick(Code* code)
 	drawCode(code, false);
 	drawPopupBar(code, " FUNC:");
 	drawStatus(code);
-	drawOutlineBar(code, TIC80_WIDTH - 12 * TIC_FONT_WIDTH, 2*(TIC_FONT_HEIGHT+1));
+	drawOutlineBar(code, TIC80_WIDTH - 12 * tic->font.width, 2*(tic->font.height+1));
 }
 
 static void drawCodeToolbar(Code* code)
@@ -1455,7 +1471,7 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
 		.tick = tick,
 		.escape = escape,
 		.cursor = {{src->data, NULL, 0}, NULL, 0},
-		.rect = {0, TOOLBAR_SIZE + 1, TIC80_WIDTH, TIC80_HEIGHT - TOOLBAR_SIZE - TIC_FONT_HEIGHT - 1},
+		.rect = {0, TOOLBAR_SIZE + 1, TIC80_WIDTH, TIC80_HEIGHT - TOOLBAR_SIZE - tic->font.height - 1},
 		.scroll = {0, 0, {0, 0}, false},
 		.tickCounter = 0,
 		.history = NULL,

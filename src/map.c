@@ -334,9 +334,11 @@ static void drawTileIndex(Map* map, s32 x, s32 y)
 
 static void drawMapToolbar(Map* map, s32 x, s32 y)
 {
+	tic_mem* tic = map->tic;
+
 	map->tic->api.rect(map->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, (tic_color_white));
 
-	drawTileIndex(map, TIC80_WIDTH/2 - TIC_FONT_WIDTH, y);
+	drawTileIndex(map, TIC80_WIDTH/2 - tic->font.width, y);
 
 	x = drawSheetButton(map, TIC80_WIDTH, 0);
 	x = drawFillButton(map, x, 0);
@@ -417,6 +419,8 @@ static void drawSheetOvr(Map* map, s32 x, s32 y)
 
 static void drawCursorPos(Map* map, s32 x, s32 y)
 {
+	tic_mem* tic = map->tic;
+
 	char pos[] = "999:999";
 
 	s32 tx = 0, ty = 0;
@@ -429,10 +433,10 @@ static void drawCursorPos(Map* map, s32 x, s32 y)
 	s32 px = x + (TIC_SPRITESIZE + 3);
 	if(px + width >= TIC80_WIDTH) px = x - (width + 2);
 
-	s32 py = y - (TIC_FONT_HEIGHT + 2);
+	s32 py = y - (tic->font.height + 2);
 	if(py <= TOOLBAR_SIZE) py = y + (TIC_SPRITESIZE + 3);
 
-	map->tic->api.rect(map->tic, px - 1, py - 1, width + 1, TIC_FONT_HEIGHT + 1, (tic_color_white));
+	map->tic->api.rect(map->tic, px - 1, py - 1, width + 1, tic->font.height + 1, (tic_color_white));
 	map->tic->api.text(map->tic, pos, px, py, (tic_color_light_blue));
 }
 
@@ -1060,13 +1064,14 @@ static void processKeyboard(Map* map)
 
 static void tick(Map* map)
 {
+	tic_mem* tic = map->tic;
 	map->tickCounter++;
 
 	processKeyboard(map);
 	map->tic->api.clear(map->tic, TIC_COLOR_BG);
 
 	drawSheet(map, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, TOOLBAR_SIZE);
-	drawMapToolbar(map, TIC80_WIDTH - 9*TIC_FONT_WIDTH, 1);
+	drawMapToolbar(map, TIC80_WIDTH - 9*tic->font.width, 1);
 	drawToolbar(map->tic, TIC_COLOR_BG, false);
 }
 

@@ -78,7 +78,7 @@ struct Console
 	char* buffer;
 	u8* colorBuffer;
 
-	char inputBuffer[STUDIO_TEXT_BUFFER_WIDTH * STUDIO_TEXT_BUFFER_HEIGHT];
+	char inputBuffer[TIC80_WIDTH];
 	size_t inputPosition;
 
 	tic_mem* tic;

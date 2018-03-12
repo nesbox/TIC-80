@@ -38,10 +38,7 @@
 #define TIC_CACHE TIC_LOCAL "cache/"
 
 #define TOOLBAR_SIZE 7
-#define STUDIO_TEXT_WIDTH (TIC_FONT_WIDTH)
-#define STUDIO_TEXT_HEIGHT (TIC_FONT_HEIGHT+1)
-#define STUDIO_TEXT_BUFFER_WIDTH (TIC80_WIDTH / STUDIO_TEXT_WIDTH)
-#define STUDIO_TEXT_BUFFER_HEIGHT (TIC80_HEIGHT / STUDIO_TEXT_HEIGHT)
+#define TEXT_LINE_SPACE 1
 
 #define TIC_COLOR_BG 	(tic_color_black)
 #define DEFAULT_CHMOD 0755
@@ -163,3 +160,8 @@ bool anyKeyWasPressed();
 
 const StudioConfig* getConfig();
 System* getSystem();
+
+inline s32 TextWidth(const tic_mem* tic) { return tic->font.width; }
+inline s32 TextHeight(const tic_mem* tic) { return tic->font.height + TEXT_LINE_SPACE; }
+inline s32 BufferWidth(const tic_mem* tic) { return TIC80_WIDTH/TextWidth(tic); }
+inline s32 BufferHeight(const tic_mem* tic) { return TIC80_HEIGHT/TextHeight(tic); }

@@ -118,7 +118,7 @@ static void drawDialog(Menu* menu)
 
 	{
 		static const char Label[] = "GAME MENU";
-		s32 size = tic->api.text(tic, Label, 0, -TIC_FONT_HEIGHT, 0);
+		s32 size = tic->api.text(tic, Label, 0, -tic->font.height, 0);
 		tic->api.text(tic, Label, rect.x + (DIALOG_WIDTH - size)/2, rect.y-(TOOLBAR_SIZE-2), (tic_color_gray));
 	}
 
@@ -252,7 +252,7 @@ static void drawGamepadMenu(Menu* menu)
 
 	static const char Label[] = "BACK";
 
-	tic_rect rect = {dlgRect.x + 25, dlgRect.y + 49, (sizeof(Label)-1)*TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
+	tic_rect rect = {dlgRect.x + 25, dlgRect.y + 49, (sizeof(Label)-1)*tic->font.width, tic->font.height};
 
 	bool over = false;
 	bool down = false;
@@ -320,7 +320,7 @@ static void drawMainMenu(Menu* menu)
 		{
 			if(!*Rows[i])continue;
 
-			tic_rect label = {rect.x + 22, rect.y + (TIC_FONT_HEIGHT+1)*i + 16, 86, TIC_FONT_HEIGHT+1};
+			tic_rect label = {rect.x + 22, rect.y + (tic->font.height+1)*i + 16, 86, tic->font.height+1};
 			bool over = false;
 			bool down = false;
 

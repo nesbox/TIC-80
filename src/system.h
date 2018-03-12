@@ -63,6 +63,12 @@ typedef struct
 
 		} gamepad;
 
+		struct
+		{
+			s32 width;
+			s32 height;
+		} font;
+
 	} theme;
 
 	s32 gifScale;

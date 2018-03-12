@@ -39,13 +39,15 @@
 
 static void drawSwitch(Sfx* sfx, s32 x, s32 y, const char* label, s32 value, void(*set)(Sfx*, s32))
 {
+	tic_mem* tic = sfx->tic;
+
 	static const u8 LeftArrow[] = 
 	{
-		0b00010000,
-		0b00110000,
-		0b01110000,
-		0b00110000,
-		0b00010000,
+		0b00100000,
+		0b01100000,
+		0b11100000,
+		0b01100000,
+		0b00100000,
 		0b00000000,
 		0b00000000,
 		0b00000000,
@@ -53,22 +55,24 @@ static void drawSwitch(Sfx* sfx, s32 x, s32 y, const char* label, s32 value, voi
 
 	static const u8 RightArrow[] = 
 	{
-		0b01000000,
-		0b01100000,
-		0b01110000,
-		0b01100000,
-		0b01000000,
+		0b10000000,
+		0b11000000,
+		0b11100000,
+		0b11000000,
+		0b10000000,
 		0b00000000,
 		0b00000000,
 		0b00000000,
 	};
 
+	enum{ArrowWidth = 4, ArrowHeight = 6};
+
 	sfx->tic->api.text(sfx->tic, label, x, y, (tic_color_white));
 
 	{
-		x += (s32)strlen(label)*TIC_FONT_WIDTH;
+		x += (s32)strlen(label)*tic->font.width;
 
-		tic_rect rect = {x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
+		tic_rect rect = {x, y, ArrowWidth, ArrowHeight};
 
 		if(checkMousePos(&rect))
 		{
@@ -84,13 +88,13 @@ static void drawSwitch(Sfx* sfx, s32 x, s32 y, const char* label, s32 value, voi
 	{
 		char val[] = "99";
 		sprintf(val, "%02i", value);
-		sfx->tic->api.fixed_text(sfx->tic, val, x += TIC_FONT_WIDTH, y, (tic_color_white));
+		sfx->tic->api.fixed_text(sfx->tic, val, x += ArrowWidth, y, (tic_color_white));
 	}
 
 	{
-		x += 2*TIC_FONT_WIDTH;
+		x += 2*tic->font.width;
 
-		tic_rect rect = {x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
+		tic_rect rect = {x, y, ArrowWidth, ArrowHeight};
 
 		if(checkMousePos(&rect))
 		{
@@ -125,7 +129,8 @@ static void setSpeed(Sfx* sfx, s32 delta)
 
 static void drawTopPanel(Sfx* sfx, s32 x, s32 y)
 {
-	const s32 Gap = 8*TIC_FONT_WIDTH;
+	tic_mem* tic = sfx->tic;
+	const s32 Gap = 8*tic->font.width;
 
 	drawSwitch(sfx, x, y, "IDX", sfx->index, setIndex);
 
@@ -156,6 +161,7 @@ static void setLoopSize(Sfx* sfx, s32 delta)
 
 static void drawLoopPanel(Sfx* sfx, s32 x, s32 y)
 {
+	tic_mem* tic = sfx->tic;
 	sfx->tic->api.text(sfx->tic, "LOOP:", x, y, (tic_color_dark_gray));
 
 	enum {Gap = 2};
@@ -163,8 +169,8 @@ static void drawLoopPanel(Sfx* sfx, s32 x, s32 y)
 	tic_sample* effect = getEffect(sfx);
 	tic_sound_loop* loop = effect->loops + sfx->canvasTab;
 
-	drawSwitch(sfx, x, y += Gap + TIC_FONT_HEIGHT, "", loop->size, setLoopSize);
-	drawSwitch(sfx, x, y += Gap + TIC_FONT_HEIGHT, "", loop->start, setLoopStart);
+	drawSwitch(sfx, x, y += Gap + tic->font.height, "", loop->size, setLoopSize);
+	drawSwitch(sfx, x, y += Gap + tic->font.height, "", loop->start, setLoopStart);
 }
 
 static tic_waveform* getWaveformById(Sfx* sfx, s32 i)
@@ -287,15 +293,16 @@ static void drawWaveButtons(Sfx* sfx, s32 x, s32 y)
 
 static void drawCanvasTabs(Sfx* sfx, s32 x, s32 y)
 {
+	tic_mem* tic = sfx->tic;
 	static const char* Labels[] = {"WAVE", "VOLUME", "ARPEGG", "PITCH"};
 
-	enum {Height = TIC_FONT_HEIGHT+2};
+	s32 height = tic->font.height+2;
 
-	for(s32 i = 0, sy = y; i < COUNT_OF(Labels); sy += Height, i++)
+	for(s32 i = 0, sy = y; i < COUNT_OF(Labels); sy += height, i++)
 	{
-		s32 size = sfx->tic->api.text(sfx->tic, Labels[i], 0, -TIC_FONT_HEIGHT, (tic_color_black));
+		s32 size = sfx->tic->api.text(sfx->tic, Labels[i], 0, -tic->font.height, (tic_color_black));
 
-		tic_rect rect = {x - size, sy, size, TIC_FONT_HEIGHT};
+		tic_rect rect = {x - size, sy, size, tic->font.height};
 
 		if(checkMousePos(&rect))
 		{
@@ -317,8 +324,8 @@ static void drawCanvasTabs(Sfx* sfx, s32 x, s32 y)
 	case SFX_PITCH_TAB:
 		{
 			static const char Label[] = "x16";
-			enum{Width = (sizeof Label - 1) * TIC_FONT_WIDTH};
-			tic_rect rect = {(x - Width)/2, y + Height * 6, Width, TIC_FONT_HEIGHT};
+			s32 width = (sizeof Label - 1) * tic->font.width;
+			tic_rect rect = {(x - width)/2, y + height * 6, width, tic->font.height};
 
 			if(checkMousePos(&rect))
 			{
@@ -334,8 +341,8 @@ static void drawCanvasTabs(Sfx* sfx, s32 x, s32 y)
 	case SFX_ARPEGGIO_TAB:
 		{
 			static const char Label[] = "DOWN";
-			enum{Width = (sizeof Label - 1) * TIC_FONT_WIDTH};
-			tic_rect rect = {(x - Width)/2, y + Height * 6, Width, TIC_FONT_HEIGHT};
+			s32 width = (sizeof Label - 1) * tic->font.width;
+			tic_rect rect = {(x - width)/2, y + height * 6, width, tic->font.height};
 
 			if(checkMousePos(&rect))
 			{
@@ -514,18 +521,19 @@ static void drawPiano(Sfx* sfx, s32 x, s32 y)
 
 static void drawOctavePanel(Sfx* sfx, s32 x, s32 y)
 {
+	tic_mem* tic = sfx->tic;
 	tic_sample* effect = getEffect(sfx);
 
 	static const char Label[] = "OCT";
 	sfx->tic->api.text(sfx->tic, Label, x, y, (tic_color_white));
 
-	x += sizeof(Label)*TIC_FONT_WIDTH;
+	x += sizeof(Label)*tic->font.width;
 
 	enum {Gap = 5};
 
 	for(s32 i = 0; i < OCTAVES; i++)
 	{
-		tic_rect rect = {x + i * (TIC_FONT_WIDTH + Gap), y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
+		tic_rect rect = {x + i * (tic->font.width + Gap), y, tic->font.width, tic->font.height};
 
 		if(checkMousePos(&rect))
 		{
@@ -781,13 +789,14 @@ static void drawModeTabs(Sfx* sfx)
 
 static void drawSfxToolbar(Sfx* sfx)
 {
+	tic_mem* tic = sfx->tic;
 	sfx->tic->api.rect(sfx->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, (tic_color_white));
 
-	enum{Width = 3 * TIC_FONT_WIDTH};
-	s32 x = TIC80_WIDTH - Width - TIC_SPRITESIZE*3;
+	s32 width = 3 * tic->font.width;
+	s32 x = TIC80_WIDTH - width - TIC_SPRITESIZE*3;
 	s32 y = 1;
 
-	tic_rect rect = {x, y, Width, TIC_FONT_HEIGHT};
+	tic_rect rect = {x, y, width, tic->font.height};
 	bool over = false;
 
 	if(checkMousePos(&rect))
@@ -818,6 +827,7 @@ static void drawSfxToolbar(Sfx* sfx)
 
 static void envelopesTick(Sfx* sfx)
 {
+	tic_mem* tic = sfx->tic;
 	processKeyboard(sfx);
 	processEnvelopesKeyboard(sfx);
 
@@ -830,13 +840,13 @@ static void envelopesTick(Sfx* sfx)
 	drawToolbar(sfx->tic, TIC_COLOR_BG, false);
 
 	drawTopPanel(sfx, Start, TOOLBAR_SIZE + Gap);
-	drawCanvasTabs(sfx, Start-Gap, TOOLBAR_SIZE + Gap + TIC_FONT_HEIGHT+2);
+	drawCanvasTabs(sfx, Start-Gap, TOOLBAR_SIZE + Gap + tic->font.height+2);
 	if(sfx->canvasTab == SFX_WAVE_TAB)
-		drawWaveButtons(sfx, Start + CANVAS_WIDTH + Gap-1, TOOLBAR_SIZE + Gap + TIC_FONT_HEIGHT+2);
+		drawWaveButtons(sfx, Start + CANVAS_WIDTH + Gap-1, TOOLBAR_SIZE + Gap + tic->font.height+2);
 
-	drawLoopPanel(sfx, Gap, TOOLBAR_SIZE + Gap + TIC_FONT_HEIGHT+92);
-	drawCanvas(sfx, Start-1, TOOLBAR_SIZE + Gap + TIC_FONT_HEIGHT + 1);
-	drawOctavePanel(sfx, Start + Gap + PIANO_WIDTH + Gap-1, TIC80_HEIGHT - TIC_FONT_HEIGHT - (PIANO_HEIGHT - TIC_FONT_HEIGHT)/2 - Gap);
+	drawLoopPanel(sfx, Gap, TOOLBAR_SIZE + Gap + tic->font.height+92);
+	drawCanvas(sfx, Start-1, TOOLBAR_SIZE + Gap + tic->font.height + 1);
+	drawOctavePanel(sfx, Start + Gap + PIANO_WIDTH + Gap-1, TIC80_HEIGHT - tic->font.height - (PIANO_HEIGHT - tic->font.height)/2 - Gap);
 }
 
 static void drawWaveformBar(Sfx* sfx, s32 x, s32 y)

@@ -62,7 +62,11 @@ struct Code
 
 	u8 colorBuffer[TIC_CODE_SIZE];
 
-	char status[STUDIO_TEXT_BUFFER_WIDTH+1];
+	struct
+	{
+		char left[TIC80_WIDTH];
+		char right[TIC80_WIDTH];
+	} status;
 
 	u32 tickCounter;
 
@@ -80,7 +84,7 @@ struct Code
 
 	struct
 	{
-		char text[STUDIO_TEXT_BUFFER_WIDTH - sizeof "FIND:"];
+		char text[TIC80_WIDTH];
 
 		char* prevPos;
 		char* prevSel;
