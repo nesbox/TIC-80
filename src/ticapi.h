@@ -173,7 +173,6 @@ struct tic_mem
 {
 	tic_ram 			ram;
 	tic_cartridge 		cart;
-	tic_cartridge		config;
 	tic_font 			font;
 	tic_api 			api;
 	tic_persistent		persistent;

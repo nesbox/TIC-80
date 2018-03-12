@@ -201,14 +201,14 @@ static void drawTopToolbar(Surf* surf, s32 x, s32 y)
 	enum{Gap = 10, TipX = 150, SelectWidth = 54};
 
 	u8 colorkey = 0;
-	tic->api.sprite_ex(tic, &tic->config.bank0.tiles, 12, TipX, y+1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
+	tic->api.sprite_ex(tic, &getConfig()->cart->bank0.tiles, 12, TipX, y+1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
 	{
 		static const char Label[] = "SELECT";
 		tic->api.text(tic, Label, TipX + Gap, y+3, tic_color_black);
 		tic->api.text(tic, Label, TipX + Gap, y+2, tic_color_white);		
 	}
 
-	tic->api.sprite_ex(tic, &tic->config.bank0.tiles, 13, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
+	tic->api.sprite_ex(tic, &getConfig()->cart->bank0.tiles, 13, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
 	{
 		static const char Label[] = "BACK";
 		tic->api.text(tic, Label, TipX + Gap + SelectWidth, y +3, tic_color_black);
@@ -244,7 +244,7 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
 
 		u8 colorkey = 0;
 
-		tic->api.sprite_ex(tic, &tic->config.bank0.tiles, 15, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
+		tic->api.sprite_ex(tic, &getConfig()->cart->bank0.tiles, 15, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
 		{
 			static const char Label[] = "WEBSITE";
 			tic->api.text(tic, Label, TipX + Gap + SelectWidth, y +3, tic_color_black);
@@ -355,7 +355,7 @@ static void drawBG(Surf* surf)
 	for(s32 j = 0; j < Height + 1; j++)
 		for(s32 i = 0; i < Width + 1; i++)
 			if(counter++ % 2)
-				tic->api.sprite_ex(tic, &tic->config.bank0.tiles, 34, i*Size - offset, j*Size - offset, 2, 2, 0, 0, 1, tic_no_flip, tic_no_rotate);
+				tic->api.sprite_ex(tic, &getConfig()->cart->bank0.tiles, 34, i*Size - offset, j*Size - offset, 2, 2, 0, 0, 1, tic_no_flip, tic_no_rotate);
 }
 
 static void replace(char* src, const char* what, const char* with)
@@ -490,8 +490,6 @@ static void* requestCover(Surf* surf, const char* hash, s32* size)
 
 static void updateMenuItemCover(Surf* surf, const u8* cover, s32 size)
 {
-	tic_mem* tic = surf->tic;
-
 	MenuItem* item = &surf->menu.items[surf->menu.pos];
 
 	item->cover = malloc(sizeof(tic_screen));
@@ -508,7 +506,7 @@ static void updateMenuItemCover(Surf* surf, const u8* cover, s32 size)
 			{
 				const gif_color* c = &image->palette[image->buffer[i]];
 				tic_rgb rgb = { c->r, c->g, c->b };
-				u8 color = tic_tool_find_closest_color(tic->config.bank0.palette.colors, &rgb);
+				u8 color = tic_tool_find_closest_color(getConfig()->cart->bank0.palette.colors, &rgb);
 				tic_tool_poke4(item->cover->data, i, color);
 			}
 		}

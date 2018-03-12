@@ -361,7 +361,7 @@ static void loadCart(tic_mem* tic, tic_cartridge* cart, const u8* buffer, s32 si
 	tic->api.load(cart, buffer, size, palette);
 
 	if(!palette)
-		memcpy(cart->bank0.palette.data, tic->config.bank0.palette.data, sizeof(tic_palette));
+		memcpy(cart->bank0.palette.data, getConfig()->cart->bank0.palette.data, sizeof(tic_palette));
 }
 
 static bool loadRom(tic_mem* tic, const void* data, s32 size, bool palette)
@@ -887,8 +887,6 @@ static bool loadBinarySection(const char* project, const char* comment, const ch
 
 static bool loadProject(Console* console, const char* name, const char* data, s32 size, tic_cartridge* dst)
 {
-    tic_mem* tic = console->tic;
-
 	char* project = (char*)malloc(size+1);
 
 	bool done = false;
@@ -909,7 +907,7 @@ static bool loadProject(Console* console, const char* name, const char* data, s3
 		if(cart)
 		{
 			memset(cart, 0, sizeof(tic_cartridge));
-            memcpy(&cart->bank0.palette, &tic->config.bank0.palette.data, sizeof(tic_palette));
+            memcpy(&cart->bank0.palette, &getConfig()->cart->bank0.palette.data, sizeof(tic_palette));
 
 			const char* comment = projectComment(name);
 			char tag[16];
@@ -3099,7 +3097,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 
 	if(argc > 1)
 	{
-		memcpy(console->embed.file->bank0.palette.data, tic->config.bank0.palette.data, sizeof(tic_palette));
+		memcpy(console->embed.file->bank0.palette.data, getConfig()->cart->bank0.palette.data, sizeof(tic_palette));
 
 		u32 argp = 1;
 

@@ -240,7 +240,7 @@ static void readConfig(Config* config)
 
 	if(lua)
 	{
-		if(luaL_loadstring(lua, config->tic->config.bank0.code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
+		if(luaL_loadstring(lua, config->cart.bank0.code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
 		{
 			readConfigVideoLength(config, lua);
 			readConfigVideoScale(config, lua);
@@ -251,7 +251,7 @@ static void readConfig(Config* config)
 			readTheme(config, lua);
 		}
 
-		if(luaL_loadstring(lua, config->tic->config.bank1.code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
+		if(luaL_loadstring(lua, config->cart.bank1.code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
 		{
 			readConfigCrtShader(config, lua);
 		}
@@ -262,7 +262,7 @@ static void readConfig(Config* config)
 
 static void update(Config* config, const u8* buffer, size_t size)
 {
-	config->tic->api.load(&config->tic->config, buffer, size, true);
+	config->tic->api.load(&config->cart, buffer, size, true);
 
 	readConfig(config);
 	studioConfigChanged();
@@ -271,6 +271,8 @@ static void update(Config* config, const u8* buffer, size_t size)
 static void setDefault(Config* config)
 {
 	memset(&config->data, 0, sizeof(StudioConfig));
+
+	config->data.cart = &config->cart;
 
 	{
 		static const u8 DefaultBiosZip[] = 
@@ -296,7 +298,7 @@ static void saveConfig(Config* config, bool overwrite)
 
 	if(buffer)
 	{
-		s32 size = config->tic->api.save(&config->tic->config, buffer);
+		s32 size = config->tic->api.save(&config->cart, buffer);
 
 		fsSaveRootFile(config->fs, CONFIG_TIC_PATH, buffer, size, overwrite);
 
@@ -312,7 +314,7 @@ static void reset(Config* config)
 
 static void save(Config* config)
 {
-	memcpy(&config->tic->config, &config->tic->cart, sizeof(tic_cartridge));
+	memcpy(&config->cart, &config->tic->cart, sizeof(tic_cartridge));
 	readConfig(config);
 	saveConfig(config, true);
 

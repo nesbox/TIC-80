@@ -293,7 +293,7 @@ tic_palette* getBankPalette()
 
 void playSystemSfx(s32 id)
 {
-	const tic_sample* effect = &impl.studio.tic->config.bank0.sfx.samples.data[id];
+	const tic_sample* effect = &impl.config->cart.bank0.sfx.samples.data[id];
 	impl.studio.tic->api.sfx_ex(impl.studio.tic, id, effect->note, effect->octave, -1, 0, MAX_VOLUME, 0);
 }
 
@@ -1481,7 +1481,7 @@ static void drawDesyncLabel(u32* frame)
 		
 		enum{sx = TIC80_WIDTH-24, sy = 8, Cols = sizeof DesyncLabel[0]*BITS_IN_BYTE, Rows = COUNT_OF(DesyncLabel)};
 
-		const u32* pal = tic_palette_blit(&impl.studio.tic->config.bank0.palette);
+		const u32* pal = tic_palette_blit(&impl.config->cart.bank0.palette);
 		const u32* color = &pal[tic_color_red];
 
 		for(s32 y = 0; y < Rows; y++)
@@ -1506,7 +1506,7 @@ static void recordFrame(u32* pixels)
 
 			if(impl.video.frame % TIC_FRAMERATE < TIC_FRAMERATE / 2)
 			{
-				const u32* pal = tic_palette_blit(&impl.studio.tic->config.bank0.palette);
+				const u32* pal = tic_palette_blit(&impl.config->cart.bank0.palette);
 				drawRecordLabel(pixels, TIC80_WIDTH-24, 8, &pal[tic_color_red]);
 			}
 
@@ -1562,8 +1562,8 @@ static void renderStudio()
 		case TIC_DIALOG_MODE:
 		case TIC_MENU_MODE:
 		case TIC_SURF_MODE:
-			sfx = &impl.studio.tic->config.bank0.sfx;
-			music = &impl.studio.tic->config.bank0.music;
+			sfx = &impl.config->cart.bank0.sfx;
+			music = &impl.config->cart.bank0.music;
 			break;
 		default:
 			sfx = &impl.studio.tic->cart.banks[impl.bank.index.sfx].sfx;
@@ -1631,7 +1631,7 @@ static void updateSystemFont()
 	for(s32 i = 0; i < TIC_FONT_CHARS; i++)
 		for(s32 y = 0; y < TIC_SPRITESIZE; y++)
 			for(s32 x = 0; x < TIC_SPRITESIZE; x++)
-				if(tic_tool_peek4(&impl.studio.tic->config.bank0.sprites.data[i], TIC_SPRITESIZE*(y+1) - x-1))
+				if(tic_tool_peek4(&impl.config->cart.bank0.sprites.data[i], TIC_SPRITESIZE*(y+1) - x-1))
 					impl.studio.tic->font.data[i*BITS_IN_BYTE+y] |= 1 << x;
 }
 
@@ -1760,7 +1760,7 @@ static void studioTick()
 			}
 			break;
 		default:
-			memcpy(&tic->ram.vram.palette, &tic->config.bank0.palette, sizeof(tic_palette));
+			memcpy(&tic->ram.vram.palette, &impl.config->cart.bank0.palette, sizeof(tic_palette));
 			break;
 		}
 

@@ -99,13 +99,13 @@ static void initSound()
 	}
 }
 
-static u8* getSpritePtr(tic_tile* tiles, s32 x, s32 y)
+static const u8* getSpritePtr(const tic_tile* tiles, s32 x, s32 y)
 {
 	enum { SheetCols = (TIC_SPRITESHEET_SIZE / TIC_SPRITESIZE) };
 	return tiles[x / TIC_SPRITESIZE + y / TIC_SPRITESIZE * SheetCols].data;
 }
 
-static u8 getSpritePixel(tic_tile* tiles, s32 x, s32 y)
+static u8 getSpritePixel(const tic_tile* tiles, s32 x, s32 y)
 {
 	return tic_tool_peek4(getSpritePtr(tiles, x, y), (x % TIC_SPRITESIZE) + (y % TIC_SPRITESIZE) * TIC_SPRITESIZE);
 }
@@ -117,12 +117,12 @@ static void setWindowIcon()
 
 	u32* pixels = SDL_malloc(Size * Size * sizeof(u32));
 
-	const u32* pal = tic_palette_blit(&platform.studio->tic->config.bank0.palette);
+	const u32* pal = tic_palette_blit(&platform.studio->config()->cart->bank0.palette);
 
 	for(s32 j = 0, index = 0; j < Size; j++)
 		for(s32 i = 0; i < Size; i++, index++)
 		{
-			u8 color = getSpritePixel(platform.studio->tic->config.bank0.tiles.data, i/Scale, j/Scale);
+			u8 color = getSpritePixel(platform.studio->config()->cart->bank0.tiles.data, i/Scale, j/Scale);
 			pixels[index] = color == ColorKey ? 0 : pal[color];
 		}
 
@@ -165,7 +165,7 @@ static void updateGamepadParts()
 
 static void initTouchGamepad()
 {
-	platform.studio->tic->api.map(platform.studio->tic, &platform.studio->tic->config.bank0.map, &platform.studio->tic->config.bank0.tiles, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, -1, 1);
+	platform.studio->tic->api.map(platform.studio->tic, &platform.studio->config()->cart->bank0.map, &platform.studio->config()->cart->bank0.tiles, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, -1, 1);
 
 	if(!platform.gamepad.texture)
 	{		
@@ -182,7 +182,7 @@ static void initTouchGamepad()
 
 		const u8* in = platform.studio->tic->ram.vram.screen.data;
 		const u8* end = in + sizeof(platform.studio->tic->ram.vram.screen);
-		const u32* pal = tic_palette_blit(&platform.studio->tic->config.bank0.palette);
+		const u32* pal = tic_palette_blit(&platform.studio->config()->cart->bank0.palette);
 		const u32 Delta = ((TIC80_FULLWIDTH*sizeof(u32))/sizeof *out - TIC80_WIDTH);
 
 		s32 col = 0;
@@ -784,7 +784,7 @@ static void renderCursor()
 				if(platform.studio->config()->theme.cursor.hand >= 0)
 				{
 					SDL_ShowCursor(SDL_DISABLE);
-					blitCursor(platform.studio->tic->config.bank0.tiles.data[platform.studio->config()->theme.cursor.hand].data);
+					blitCursor(platform.studio->config()->cart->bank0.tiles.data[platform.studio->config()->theme.cursor.hand].data);
 				}
 				else
 				{
@@ -798,7 +798,7 @@ static void renderCursor()
 				if(platform.studio->config()->theme.cursor.ibeam >= 0)
 				{
 					SDL_ShowCursor(SDL_DISABLE);
-					blitCursor(platform.studio->tic->config.bank0.tiles.data[platform.studio->config()->theme.cursor.ibeam].data);
+					blitCursor(platform.studio->config()->cart->bank0.tiles.data[platform.studio->config()->theme.cursor.ibeam].data);
 				}
 				else
 				{
@@ -812,7 +812,7 @@ static void renderCursor()
 				if(platform.studio->config()->theme.cursor.arrow >= 0)
 				{
 					SDL_ShowCursor(SDL_DISABLE);
-					blitCursor(platform.studio->tic->config.bank0.tiles.data[platform.studio->config()->theme.cursor.arrow].data);
+					blitCursor(platform.studio->config()->cart->bank0.tiles.data[platform.studio->config()->theme.cursor.arrow].data);
 				}
 				else
 				{

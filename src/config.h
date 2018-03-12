@@ -32,6 +32,7 @@ struct Config
 	struct FileSystem* fs;
 
 	StudioConfig data;
+	tic_cartridge cart;
 
 	void(*save)(Config*);
 	void(*reset)(Config*);

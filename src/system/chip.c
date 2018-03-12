@@ -423,7 +423,7 @@ static void renderCursor()
 				if(platform.studio->config()->theme.cursor.hand >= 0)
 				{
 					SDL_ShowCursor(SDL_DISABLE);
-					blitCursor(platform.studio->tic->config.bank0.tiles.data[platform.studio->config()->theme.cursor.hand].data);
+					blitCursor(platform.studio->config()->cart->bank0.tiles.data[platform.studio->config()->theme.cursor.hand].data);
 				}
 				else
 				{
@@ -437,7 +437,7 @@ static void renderCursor()
 				if(platform.studio->config()->theme.cursor.ibeam >= 0)
 				{
 					SDL_ShowCursor(SDL_DISABLE);
-					blitCursor(platform.studio->tic->config.bank0.tiles.data[platform.studio->config()->theme.cursor.ibeam].data);
+					blitCursor(platform.studio->config()->cart->bank0.tiles.data[platform.studio->config()->theme.cursor.ibeam].data);
 				}
 				else
 				{
@@ -451,7 +451,7 @@ static void renderCursor()
 				if(platform.studio->config()->theme.cursor.arrow >= 0)
 				{
 					SDL_ShowCursor(SDL_DISABLE);
-					blitCursor(platform.studio->tic->config.bank0.tiles.data[platform.studio->config()->theme.cursor.arrow].data);
+					blitCursor(platform.studio->config()->cart->bank0.tiles.data[platform.studio->config()->theme.cursor.arrow].data);
 				}
 				else
 				{

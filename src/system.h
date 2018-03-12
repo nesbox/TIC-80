@@ -74,6 +74,7 @@ typedef struct
 	bool crtMonitor;
 
 	const char* crtShader;
+	const tic_cartridge* cart;
 
 } StudioConfig;
 

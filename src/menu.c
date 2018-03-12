@@ -124,7 +124,7 @@ static void drawDialog(Menu* menu)
 
 	{
 		u8 chromakey = 14;
-		tic->api.sprite_ex(tic, &tic->config.bank0.tiles, 0, rect.x+6, rect.y-4, 2, 2, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);
+		tic->api.sprite_ex(tic, &getConfig()->cart->bank0.tiles, 0, rect.x+6, rect.y-4, 2, 2, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);
 	}	
 }
 
@@ -209,7 +209,7 @@ static void drawPlayerButtons(Menu* menu, s32 x, s32 y)
 		if(menu->gamepad.selected == index && menu->ticks % TIC_FRAMERATE < TIC_FRAMERATE / 2)
 			continue;
 
-		tic->api.sprite_ex(tic, &tic->config.bank0.tiles, 8+i, rect.x, rect.y, 1, 1, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);
+		tic->api.sprite_ex(tic, &getConfig()->cart->bank0.tiles, 8+i, rect.x, rect.y, 1, 1, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);
 
 		static const char* const Names[tic_keys_count] = {"...", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "minus", "equals", "leftbracket", "rightbracket", "backslash", "semicolon", "apostrophe", "grave", "comma", "period", "slash", "space", "tab", "return", "backspace", "delete", "insert", "pageup", "pagedown", "home", "end", "up", "down", "left", "right", "capslock", "ctrl", "shift", "alt", "escape", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12"};
 
