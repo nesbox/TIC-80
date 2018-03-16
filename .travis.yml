@@ -1,3 +1,6 @@
 language: c
-before_install: sudo apt-get install libgtk-3-dev
-script: make linux64-lto-pro
+before_install:
+	sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+	sudo apt-get update -q
+	sudo apt-get install git build-essential libgtk-3-dev libsdl2-dev lua5.3-dev zlib1g-dev -y
+script: make linux
