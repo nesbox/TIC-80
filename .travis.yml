@@ -1,7 +1,5 @@
 language: c
-script: 
-  - cd 3rd-party/SDL2-2.0.7 && ./configure && make && sudo make install && cd ../..
-  - make linux
+script: make linux
 
 addons:
   apt:
