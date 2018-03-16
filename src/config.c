@@ -352,13 +352,12 @@ static void save(Config* config)
 
 void initConfig(Config* config, tic_mem* tic, FileSystem* fs)
 {
-	*config = (Config)
 	{
-		.tic = tic,
-		.save = save,
-		.reset = reset,
-		.fs = fs,
-	};
+		config->tic = tic;
+		config->save = save;
+		config->reset = reset;
+		config->fs = fs;
+	}
 
 	setDefault(config);
 
