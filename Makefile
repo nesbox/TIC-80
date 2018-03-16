@@ -47,7 +47,8 @@ LINUX_LIBS= \
 	$(GTK_LIBS) \
 	`sdl2-config --static-libs` \
 	-L$(3RD_PARTY)/wren-0.1.0/lib \
-	-L$(3RD_PARTY)/sdl-gpu/build/linux
+	-L$(3RD_PARTY)/sdl-gpu/build/linux \
+	-L$(3RD_PARTY)/lua-5.3.1/src
 
 LINUX64_LIBS= \
 	$(GTK_LIBS) \
@@ -74,7 +75,7 @@ LINUX_LINKER_LTO_FLAGS= \
 	-lGL
 
 LINUX_LINKER_FLAGS= \
-	-llua5.3 \
+	-llua \
 	-lwren \
 	-ldl \
 	-lm \
@@ -364,6 +365,7 @@ chip-lto-pro:
 
 WREN_A=$(3RD_PARTY)/wren-0.1.0/lib/libwren.a
 SDLGPU_A=$(3RD_PARTY)/sdl-gpu/build/linux/libsdlgpu.a
+LUA_A=$(3RD_PARTY)/lua-5.3.1/src/liblua.a
 
 $(WREN_A):
 	make static -C $(3RD_PARTY)/wren-0.1.0/
@@ -371,7 +373,10 @@ $(WREN_A):
 $(SDLGPU_A):
 	make -C $(3RD_PARTY)/sdl-gpu/build/linux/
 
-linux: $(WREN_A) $(SDLGPU_A)
+$(LUA_A):
+	make linux -C $(3RD_PARTY)/lua-5.3.1/
+
+linux: $(WREN_A) $(SDLGPU_A) $(LUA_A)
 	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(SYSTEM) $(LPEG_SRC) $(GIF_SRC) $(SOURCES_EXT) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_LIBS) $(LINUX_LINKER_FLAGS) -o $(BIN_NAME)
 
 linux-pro:
