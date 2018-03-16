@@ -1,6 +1,5 @@
 language: c
 before_install:
-	sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-	sudo apt-get update -q
-	sudo apt-get install git build-essential libgtk-3-dev libsdl2-dev lua5.3-dev zlib1g-dev -y
-script: make linux
+	sudo apt-get install build-essential mercurial make cmake autoconf automake libtool libasound2-dev libpulse-dev libaudio-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxinerama-dev libxxf86vm-dev libxss-dev libgl1-mesa-dev libesd0-dev libdbus-1-dev libudev-dev libgles1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libibus-1.0-dev fcitx-libs-dev libsamplerate0-dev libsndio-dev -y
+script: 
+	cd 3rd-party/SDL2-2.0.7 && ./configure && make && sudo make install && cd ../..
