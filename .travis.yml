@@ -1,4 +1,3 @@
 language: c
-sudo: false
 before_install:	sudo apt-get install build-essential mercurial make cmake autoconf automake libtool libasound2-dev libpulse-dev libaudio-dev libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxinerama-dev libxxf86vm-dev libxss-dev libgl1-mesa-dev libesd0-dev libdbus-1-dev libudev-dev libgles1-mesa-dev libgles2-mesa-dev libegl1-mesa-dev libibus-1.0-dev fcitx-libs-dev libsamplerate0-dev libsndio-dev -y
-script: cd 3rd-party/SDL2-2.0.7 && ./configure && make && make install && cd ../..
+script: cd 3rd-party/SDL2-2.0.7 && ./configure && make && sudo make install && cd ../..
