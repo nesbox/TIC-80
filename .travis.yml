@@ -41,4 +41,3 @@ addons:
       - zlib1g-dev
       - libwayland-dev
       - libxkbcommon-dev
-      - wayland-protocols
