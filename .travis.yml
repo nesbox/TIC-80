@@ -1,5 +1,7 @@
 language: c
-script: make linux
+script: 
+      - make linux
+      - make linux-pro
 
 addons:
   apt:
