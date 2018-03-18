@@ -39,3 +39,6 @@ addons:
       - libsndio-dev
       - libgtk-3-dev
       - zlib1g-dev
+      - libwayland-dev
+      - libxkbcommon-dev
+      - wayland-protocols
