@@ -83,7 +83,7 @@ LINUX_LINKER_FLAGS= \
 	-lz \
 	-lsdlgpu \
 	-lGL \
-	-lSDL2
+	-l:libSDL2.a
 
 
 MINGW_OUTPUT=$(BIN_NAME).exe
