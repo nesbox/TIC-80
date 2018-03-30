@@ -379,7 +379,7 @@ $(LUA_A):
 	make linux -C $(3RD_PARTY)/lua-5.3.1/
 
 $(SDL2_A):
-	cd $(3RD_PARTY)/SDL2-2.0.7/ && ./configure && make && cd ../..
+	cd $(3RD_PARTY)/SDL2-2.0.7/ && ./configure --enable-sndio=no && make && cd ../..
 
 linux: $(WREN_A) $(SDLGPU_A) $(LUA_A) $(SDL2_A)
 	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(SYSTEM) $(LPEG_SRC) $(GIF_SRC) $(SOURCES_EXT) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_LIBS) $(LINUX_LINKER_FLAGS) -o $(BIN_NAME)
