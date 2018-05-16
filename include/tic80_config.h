@@ -24,6 +24,7 @@
 
 #define TIC_BUILD_WITH_LUA 		1
 #define TIC_BUILD_WITH_MOON 	1
+#define TIC_BUILD_WITH_FENNEL 	1
 #define TIC_BUILD_WITH_JS 		1
 #define TIC_BUILD_WITH_WREN 	1
 

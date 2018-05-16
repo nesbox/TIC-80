@@ -123,7 +123,7 @@ typedef struct
 
 	struct
 	{
-#if defined(TIC_BUILD_WITH_LUA) || defined(TIC_BUILD_WITH_MOON)
+#if defined(TIC_BUILD_WITH_LUA) || defined(TIC_BUILD_WITH_MOON) || defined(TIC_BUILD_WITH_FENNEL)
 		struct lua_State* lua;
 #endif
 
@@ -174,6 +174,10 @@ const tic_script_config* getLuaScriptConfig();
 
 #	if defined(TIC_BUILD_WITH_MOON)
 const tic_script_config* getMoonScriptConfig();
+#	endif
+
+#	if defined(TIC_BUILD_WITH_FENNEL)
+const tic_script_config* getFennelConfig();
 #	endif
 
 #endif /* defined(TIC_BUILD_WITH_LUA) */

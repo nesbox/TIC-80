@@ -1613,4 +1613,167 @@ const tic_script_config* getMoonScriptConfig()
 
 #endif /* defined(TIC_BUILD_WITH_MOON) */
 
+#if defined(TIC_BUILD_WITH_FENNEL)
+
+#include "fennel.h"
+
+#define FENNEL_CODE(...) #__VA_ARGS__
+
+static const char* execute_fennel_src = FENNEL_CODE(
+	local ok, val = pcall(require('fennel').eval, ...)
+    -- allow you to return a function instead of setting TIC global
+    if(not TIC and type(val) == "function") then TIC = val end
+	return val
+);
+
+static bool initFennel(tic_mem* tic, const char* code)
+{
+	tic_machine* machine = (tic_machine*)tic;
+	closeLua(tic);
+
+	lua_State* lua = machine->lua = luaL_newstate();
+
+	static const luaL_Reg loadedlibs[] =
+	{
+		{ "_G", luaopen_base },
+		{ LUA_LOADLIBNAME, luaopen_package },
+		{ LUA_COLIBNAME, luaopen_coroutine },
+		{ LUA_TABLIBNAME, luaopen_table },
+		{ LUA_STRLIBNAME, luaopen_string },
+		{ LUA_MATHLIBNAME, luaopen_math },
+		{ LUA_DBLIBNAME, luaopen_debug },
+		{ NULL, NULL }
+	};
+
+	for (const luaL_Reg *lib = loadedlibs; lib->func; lib++)
+	{
+		luaL_requiref(lua, lib->name, lib->func, 1);
+		lua_pop(lua, 1);
+	}
+
+	initAPI(machine);
+
+	{
+		lua_State* fennel = machine->lua;
+
+		lua_settop(fennel, 0);
+
+		if (luaL_loadbuffer(fennel, (const char *)fennel_lua, fennel_lua_len, "fennel.lua") != LUA_OK)
+		{
+			machine->data->error(machine->data->data, "failed to load fennel.lua");
+			return false;
+		}
+
+		lua_call(fennel, 0, 0);
+
+		if (luaL_loadbuffer(fennel, execute_fennel_src, strlen(execute_fennel_src), "execute_fennel") != LUA_OK)
+		{
+			machine->data->error(machine->data->data, "failed to load fennel compiler");
+			return false;
+		}
+
+		lua_pushstring(fennel, code);
+		if (lua_pcall(fennel, 1, 1, 0) != LUA_OK)
+		{
+			const char* msg = lua_tostring(fennel, -1);
+
+			if (msg)
+			{
+				machine->data->error(machine->data->data, msg);
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+static const char* const FennelKeywords [] =
+{
+	"do", "values", "if", "when", "each", "for", "fn", "lambda", "partial",
+	"while", "set", "global", "var", "local", "let", "tset",
+	"or", "and", "true", "false", "nil", "#", ":", "->", "->>"
+};
+
+static const tic_outline_item* getFennelOutline(const char* code, s32* size)
+{
+	enum{Size = sizeof(tic_outline_item)};
+
+	*size = 0;
+
+	static tic_outline_item* items = NULL;
+
+	if(items)
+	{
+		free(items);
+		items = NULL;
+	}
+
+	const char* ptr = code;
+
+	while(true)
+	{
+		static const char FuncString[] = "fn"; /* this probably doesn't work */
+
+		ptr = strstr(ptr, FuncString);
+
+		if(ptr)
+		{
+			const char* end = ptr;
+
+			ptr += sizeof FuncString - 1;
+
+			while(end >= code && !isalnum_(*end))  end--;
+
+			const char* start = end;
+
+			for (const char* val = start-1; val >= code && (isalnum_(*val)); val--, start--);
+
+			if(end > start)
+			{
+				items = items ? realloc(items, (*size + 1) * Size) : malloc(Size);
+
+				items[*size].pos = start - code;
+				items[*size].size = end - start + 1;
+
+				(*size)++;
+			}
+		}
+		else break;
+	}
+
+	return items;
+}
+
+static const tic_script_config FennelSyntaxConfig =
+{
+	.init 				= initFennel,
+	.close 				= closeLua,
+	.tick 				= callLuaTick,
+	.scanline 			= callLuaScanline,
+	.overline 			= callLuaOverline,
+
+	.getOutline			= getFennelOutline,
+	.parse 				= parseCode,
+
+	.blockCommentStart 	= NULL,
+	.blockCommentEnd 	= NULL,
+	.blockStringStart	= NULL,
+	.blockStringEnd		= NULL,
+	.singleComment 		= ";",
+
+	.keywords 			= FennelKeywords,
+	.keywordsCount 		= COUNT_OF(FennelKeywords),
+
+	.api 				= ApiKeywords,
+	.apiCount 			= COUNT_OF(ApiKeywords),
+};
+
+const tic_script_config* getFennelConfig()
+{
+	return &FennelSyntaxConfig;
+}
+
+#endif /* defined(TIC_BUILD_WITH_FENNEL) */
+
 #endif /* defined(TIC_BUILD_WITH_LUA) */
