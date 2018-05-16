@@ -566,6 +566,10 @@ void tic_close(tic_mem* tic)
 	getMoonScriptConfig()->close(tic);
 #	endif
 
+#	if defined(TIC_BUILD_WITH_FENNEL)
+	getFennelConfig()->close(tic);
+#	endif
+
 #endif /* defined(TIC_BUILD_WITH_LUA) */
 
 
@@ -1564,6 +1568,11 @@ static const tic_script_config* getScriptConfig(const char* code)
 	if(compareMetatag(code, "script", "moon", getMoonScriptConfig()->singleComment) ||
 		compareMetatag(code, "script", "moonscript", getMoonScriptConfig()->singleComment)) 
 		return getMoonScriptConfig();
+#endif
+
+#if defined(TIC_BUILD_WITH_FENNEL)
+	if(compareMetatag(code, "script", "fennel", getFennelConfig()->singleComment))
+		return getFennelConfig();
 #endif
 
 #if defined(TIC_BUILD_WITH_JS)

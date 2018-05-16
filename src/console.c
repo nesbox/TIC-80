@@ -56,6 +56,10 @@ typedef enum
 	MoonScript,	
 #	endif
 
+#	if defined(TIC_BUILD_WITH_FENNEL)
+	Fennel,
+#	endif
+
 #endif /* defined(TIC_BUILD_WITH_LUA) */
 
 #if defined(TIC_BUILD_WITH_JS)
@@ -95,6 +99,10 @@ static const char DefaultLuaTicPath[] = TIC_LOCAL "default.tic";
 
 #	if defined(TIC_BUILD_WITH_MOON)
 static const char DefaultMoonTicPath[] = TIC_LOCAL "default_moon.tic";
+#	endif
+
+#	if defined(TIC_BUILD_WITH_FENNEL)
+static const char DefaultFennelTicPath[] = TIC_LOCAL "default_fennel.tic";
 #	endif
 
 #endif /* defined(TIC_BUILD_WITH_LUA) */
@@ -470,6 +478,10 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 		case MoonScript: strcpy(path, DefaultMoonTicPath); break;
 #	endif
 
+#	if defined(TIC_BUILD_WITH_MOON)
+		case Fennel: strcpy(path, DefaultFennelTicPath); break;
+#	endif
+
 #endif /* defined(TIC_BUILD_WITH_LUA) */
 
 #if defined(TIC_BUILD_WITH_JS)
@@ -515,6 +527,20 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 
 			demo = MoonDemoRom;
 			romSize = sizeof MoonDemoRom;			
+		}
+		break;
+#	endif
+
+#	if defined(TIC_BUILD_WITH_FENNEL)
+	case Fennel:
+		{
+			static const u8 FennelDemoRom[] =
+			{
+				#include "../bin/assets/fenneldemo.tic.dat"
+			};
+
+			demo = FennelDemoRom;
+			romSize = sizeof FennelDemoRom;
 		}
 		break;
 #	endif
@@ -582,6 +608,11 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 #	if defined(TIC_BUILD_WITH_MOON)
 	if(strcmp(param, DefaultMoonTicPath) == 0)
 		data = getDemoCart(console, MoonScript, &size);
+#	endif
+
+#	if defined(TIC_BUILD_WITH_FENNEL)
+	if(strcmp(param, DefaultFennelTicPath) == 0)
+		data = getDemoCart(console, Fennel, &size);
 #	endif
 
 #endif /* defined(TIC_BUILD_WITH_LUA) */
@@ -1166,6 +1197,14 @@ static void onConsoleNewCommandConfirmed(Console* console, const char* param)
 		}
 #	endif
 
+#	if defined(TIC_BUILD_WITH_FENNEL)
+		if(strcmp(param, "fennel") == 0)
+		{
+			loadDemo(console, Fennel);
+			done = true;
+		}
+#	endif
+
 #endif /* defined(TIC_BUILD_WITH_LUA) */
 
 #if defined(TIC_BUILD_WITH_JS)
@@ -1457,6 +1496,13 @@ static void onConsoleConfigCommand(Console* console, const char* param)
 	else if(strcmp(param, "default moon") == 0 || strcmp(param, "default moonscript") == 0)
 	{
 		onConsoleLoadDemoCommand(console, DefaultMoonTicPath);
+	}
+#	endif
+
+#	if defined(TIC_BUILD_WITH_FENNEL)
+	else if(strcmp(param, "default fennel") == 0)
+	{
+		onConsoleLoadDemoCommand(console, DefaultFennelTicPath);
 	}
 #	endif
 

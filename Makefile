@@ -20,6 +20,7 @@ INCLUDES= \
 	-I$(3RD_PARTY)/sdl-gpu/include \
 	-I$(3RD_PARTY)/wren-0.1.0/src/include \
 	-I$(3RD_PARTY)/moonscript \
+	-I$(3RD_PARTY)/fennel \
 	-I$(BLIPBUF_LIB) \
 	-I$(DUKTAPE_LIB) \
 	-I$(SDL_NET_LIB) \
@@ -173,6 +174,7 @@ DEMO_ASSETS= \
 	bin/assets/jsdemo.tic.dat \
 	bin/assets/luademo.tic.dat \
 	bin/assets/moondemo.tic.dat \
+	bin/assets/fenneldemo.tic.dat \
 	bin/assets/wrendemo.tic.dat \
 	bin/assets/benchmark.tic.dat \
 	bin/assets/config.tic.dat
@@ -442,6 +444,9 @@ bin/assets/wrendemo.tic.dat: demos/wrendemo.tic
 	$(BIN2TXT) $< $@ -z
 
 bin/assets/moondemo.tic.dat: demos/moondemo.tic
+	$(BIN2TXT) $< $@ -z
+
+bin/assets/fenneldemo.tic.dat: demos/fenneldemo.tic
 	$(BIN2TXT) $< $@ -z
 
 bin/assets/benchmark.tic.dat: demos/benchmark.tic
