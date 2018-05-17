@@ -131,6 +131,8 @@ target_include_directories(tic80lib PRIVATE 3rd-party/fennel)
 add_dependencies(tic80lib lua lpeg wren giflib)
 target_link_libraries(tic80lib lua lpeg wren giflib)
 
+set(SDL_STATIC ON)
+set(HAVE_LIBC TRUE)
 add_subdirectory(3rd-party/SDL2-2.0.7)
 
 set(EXAMPLE_DIR examples)
@@ -138,11 +140,15 @@ set(EXAMPLE_SRC
     ${EXAMPLE_DIR}/sdl-renderer.c
 )
 
-add_executable(example ${EXAMPLE_SRC})
+if(WIN32)
+	add_executable(example WIN32 ${EXAMPLE_SRC})
+else()
+	add_executable(example ${EXAMPLE_SRC})
+endif()
 
 target_include_directories(example PRIVATE 3rd-party/SDL2-2.0.7/include)
 target_include_directories(example PRIVATE include)
 target_include_directories(example PRIVATE src)
 
-add_dependencies(example tic80lib SDL2 SDL2main)
-target_link_libraries(example tic80lib SDL2 SDL2main)
+add_dependencies(example tic80lib SDL2-static SDL2main)
+target_link_libraries(example tic80lib SDL2-static SDL2main)
