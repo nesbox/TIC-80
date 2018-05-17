@@ -60,7 +60,7 @@ int main(int argc, char **argv)
 
 			{
 				SDL_Window* window = SDL_CreateWindow("TIC-80 SDL demo", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-				SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);// TODO: disable vsync
+				SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 				SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, TIC80_FULLWIDTH, TIC80_FULLHEIGHT);
 				
 				SDL_AudioDeviceID audioDevice = 0;
@@ -99,6 +99,9 @@ int main(int argc, char **argv)
 				
 				if(tic)
 				{
+					u64 nextTick = SDL_GetPerformanceCounter();
+					const u64 Delta = SDL_GetPerformanceFrequency() / TIC_FRAMERATE;
+
 					while(!state.quit)
 					{
 						SDL_Event event;
@@ -139,6 +142,8 @@ int main(int argc, char **argv)
 							}
 						}
 
+						nextTick += Delta;
+
 						tic80_tick(tic, input);
 
 						if (!audioStarted && audioDevice)
@@ -172,6 +177,15 @@ int main(int argc, char **argv)
 						}
 
 						SDL_RenderPresent(renderer);
+
+						{
+							s64 delay = nextTick - SDL_GetPerformanceCounter();
+
+							if (delay < 0) 
+								nextTick -= delay;
+							else SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
+						}
+
 					}
 
 					tic80_delete(tic);
