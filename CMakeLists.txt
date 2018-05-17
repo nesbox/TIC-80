@@ -1,4 +1,4 @@
-project(tic80)
+project(TIC-80)
 
 set(CMAKE_C_STANDARD 99)
 
@@ -61,19 +61,6 @@ set(LPEG_SRC
 add_library(lpeg STATIC ${LPEG_SRC})
 target_include_directories(lpeg PRIVATE 3rd-party/lua-5.3.1/src)
 
-set(TIC80_DIR src)
-set(TIC80_SRC
-    ${TIC80_DIR}/tic80.c
-	${TIC80_DIR}/tic.c 
-	${TIC80_DIR}/tools.c 
-	${TIC80_DIR}/jsapi.c 
-	${TIC80_DIR}/luaapi.c 
-	${TIC80_DIR}/wrenapi.c 
-	${TIC80_DIR}/ext/gif.c
-	3rd-party/blip-buf/blip_buf.c # TODO: link it as lib?
-	3rd-party/duktape-2.2.0/src/duktape.c # TODO: link it as lib?
-)
-
 ################################
 # WREN
 ################################
@@ -117,7 +104,20 @@ target_include_directories(giflib PRIVATE ${GIFLIB_DIR})
 # TIC-80 lib
 ################################
 
-add_library(tic80lib STATIC ${TIC80_SRC})
+set(TIC80LIB_DIR src)
+set(TIC80LIB_SRC
+    ${TIC80LIB_DIR}/tic80.c
+	${TIC80LIB_DIR}/tic.c 
+	${TIC80LIB_DIR}/tools.c 
+	${TIC80LIB_DIR}/jsapi.c 
+	${TIC80LIB_DIR}/luaapi.c 
+	${TIC80LIB_DIR}/wrenapi.c 
+	${TIC80LIB_DIR}/ext/gif.c
+	3rd-party/blip-buf/blip_buf.c # TODO: link it as lib?
+	3rd-party/duktape-2.2.0/src/duktape.c # TODO: link it as lib?
+)
+
+add_library(tic80lib STATIC ${TIC80LIB_SRC})
 
 target_include_directories(tic80lib PRIVATE include)
 target_include_directories(tic80lib PRIVATE 3rd-party/blip-buf)
@@ -131,12 +131,20 @@ target_include_directories(tic80lib PRIVATE 3rd-party/fennel)
 add_dependencies(tic80lib lua lpeg wren giflib)
 target_link_libraries(tic80lib lua lpeg wren giflib)
 
+################################
+# SDL2
+################################
+
 if(WIN32)
 	set(HAVE_LIBC TRUE)
 endif()
 
 set(SDL_STATIC ON)
 add_subdirectory(3rd-party/SDL2-2.0.7)
+
+################################
+# SDL2 renderer example
+################################
 
 set(EXAMPLE_DIR examples)
 set(EXAMPLE_SRC 
@@ -155,3 +163,112 @@ target_include_directories(sdl-renderer PRIVATE src)
 
 add_dependencies(sdl-renderer tic80lib SDL2-static SDL2main)
 target_link_libraries(sdl-renderer tic80lib SDL2-static SDL2main)
+
+################################
+# SDL GPU
+################################
+
+set(SDLGPU_DIR 3rd-party/sdl-gpu/src)
+set(SDLGPU_SRC
+    ${SDLGPU_DIR}/renderer_GLES_1.c
+	${SDLGPU_DIR}/renderer_GLES_2.c
+	${SDLGPU_DIR}/renderer_GLES_3.c
+	${SDLGPU_DIR}/renderer_OpenGL_1.c
+	${SDLGPU_DIR}/renderer_OpenGL_1_BASE.c
+	${SDLGPU_DIR}/renderer_OpenGL_2.c
+	${SDLGPU_DIR}/renderer_OpenGL_3.c
+	${SDLGPU_DIR}/renderer_OpenGL_4.c
+	${SDLGPU_DIR}/SDL_gpu.c
+	${SDLGPU_DIR}/SDL_gpu_matrix.c
+	${SDLGPU_DIR}/SDL_gpu_renderer.c
+	${SDLGPU_DIR}/SDL_gpu_shapes.c
+	${SDLGPU_DIR}/externals/glew/glew.c
+	${SDLGPU_DIR}/externals/stb_image/stb_image.c
+	${SDLGPU_DIR}/externals/stb_image_write/stb_image_write.c
+)
+
+add_library(sdlgpu STATIC ${SDLGPU_SRC})
+
+target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC SDL_GPU_DISABLE_GLES)
+
+target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/include)
+target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/src/externals/glew)
+target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/src/externals/glew/GL)
+target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/src/externals/stb_image)
+target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/src/externals/stb_image_write)
+target_include_directories(sdlgpu PRIVATE 3rd-party/SDL2-2.0.7/include)
+
+add_dependencies(sdlgpu SDL2-static)
+target_link_libraries(sdlgpu SDL2-static opengl32)
+
+################################
+# SDL NET
+################################
+
+set(SDLNET_DIR 3rd-party/SDL2_net-2.0.1)
+set(SDLNET_SRC 
+	${SDLNET_DIR}/SDLnet.c
+	${SDLNET_DIR}/SDLnetTCP.c
+	${SDLNET_DIR}/SDLnetselect.c
+)
+
+add_library(sdlnet STATIC ${SDLNET_SRC})
+target_include_directories(sdlnet PRIVATE 3rd-party/SDL2-2.0.7/include)
+
+target_link_libraries(sdlnet ws2_32)
+
+################################
+# ZLIB
+################################
+
+set(BUILD_SHARED_LIBS FALSE)
+add_subdirectory(3rd-party/zlib-1.2.11)
+
+################################
+# TIC-80
+################################
+
+set(TIC80_DIR src)
+set(TIC80_SRC
+	${TIC80_DIR}/studio.c
+	${TIC80_DIR}/console.c
+	${TIC80_DIR}/run.c
+	${TIC80_DIR}/ext/file_dialog.c
+	${TIC80_DIR}/ext/md5.c
+	${TIC80_DIR}/ext/gif.c
+	${TIC80_DIR}/fs.c
+	${TIC80_DIR}/tools.c
+	${TIC80_DIR}/start.c
+	${TIC80_DIR}/sprite.c
+	${TIC80_DIR}/map.c
+	${TIC80_DIR}/sfx.c
+	${TIC80_DIR}/music.c
+	${TIC80_DIR}/history.c
+	${TIC80_DIR}/world.c
+	${TIC80_DIR}/config.c
+	${TIC80_DIR}/code.c
+	${TIC80_DIR}/dialog.c
+	${TIC80_DIR}/menu.c
+	${TIC80_DIR}/net.c
+	${TIC80_DIR}/surf.c
+	${TIC80_DIR}/html.c
+	${TIC80_DIR}/system.c
+)
+
+if(WIN32)
+	add_executable(tic80 WIN32 ${TIC80_SRC})
+	target_include_directories(tic80 PRIVATE build/windows/include)
+else()
+	add_executable(tic80 ${TIC80_SRC})
+endif()
+
+target_include_directories(tic80 PRIVATE include)
+target_include_directories(tic80 PRIVATE 3rd-party/SDL2-2.0.7/include)
+target_include_directories(tic80 PRIVATE 3rd-party/sdl-gpu/include)
+target_include_directories(tic80 PRIVATE 3rd-party/SDL2_net-2.0.1)
+target_include_directories(tic80 PRIVATE 3rd-party/giflib-5.1.4/lib)
+target_include_directories(tic80 PRIVATE 3rd-party/zlib-1.2.11)
+target_include_directories(tic80 PRIVATE 3rd-party/lua-5.3.1/src)
+
+add_dependencies(tic80 tic80lib sdlgpu sdlnet SDL2main zlibstatic)
+target_link_libraries(tic80 tic80lib sdlgpu sdlnet SDL2main zlibstatic)
