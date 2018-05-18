@@ -101,35 +101,35 @@ add_library(giflib STATIC ${GIFLIB_SRC})
 target_include_directories(giflib PRIVATE ${GIFLIB_DIR})
 
 ################################
-# TIC-80 lib
+# TIC-80 core
 ################################
 
-set(TIC80LIB_DIR src)
-set(TIC80LIB_SRC
-    ${TIC80LIB_DIR}/tic80.c
-	${TIC80LIB_DIR}/tic.c 
-	${TIC80LIB_DIR}/tools.c 
-	${TIC80LIB_DIR}/jsapi.c 
-	${TIC80LIB_DIR}/luaapi.c 
-	${TIC80LIB_DIR}/wrenapi.c 
-	${TIC80LIB_DIR}/ext/gif.c
+set(TIC80CORE_DIR src)
+set(TIC80CORE_SRC
+    ${TIC80CORE_DIR}/tic80.c
+	${TIC80CORE_DIR}/tic.c 
+	${TIC80CORE_DIR}/tools.c 
+	${TIC80CORE_DIR}/jsapi.c 
+	${TIC80CORE_DIR}/luaapi.c 
+	${TIC80CORE_DIR}/wrenapi.c 
+	${TIC80CORE_DIR}/ext/gif.c
 	3rd-party/blip-buf/blip_buf.c # TODO: link it as lib?
 	3rd-party/duktape-2.2.0/src/duktape.c # TODO: link it as lib?
 )
 
-add_library(tic80lib STATIC ${TIC80LIB_SRC})
+add_library(tic80core STATIC ${TIC80CORE_SRC})
 
-target_include_directories(tic80lib PRIVATE include)
-target_include_directories(tic80lib PRIVATE 3rd-party/blip-buf)
-target_include_directories(tic80lib PRIVATE 3rd-party/duktape-2.2.0/src)
-target_include_directories(tic80lib PRIVATE 3rd-party/lua-5.3.1/src)
-target_include_directories(tic80lib PRIVATE 3rd-party/giflib-5.1.4/lib)
-target_include_directories(tic80lib PRIVATE 3rd-party/wren-0.1.0/src/include)
-target_include_directories(tic80lib PRIVATE 3rd-party/moonscript)
-target_include_directories(tic80lib PRIVATE 3rd-party/fennel)
+target_include_directories(tic80core PRIVATE include)
+target_include_directories(tic80core PRIVATE 3rd-party/blip-buf)
+target_include_directories(tic80core PRIVATE 3rd-party/duktape-2.2.0/src)
+target_include_directories(tic80core PRIVATE 3rd-party/lua-5.3.1/src)
+target_include_directories(tic80core PRIVATE 3rd-party/giflib-5.1.4/lib)
+target_include_directories(tic80core PRIVATE 3rd-party/wren-0.1.0/src/include)
+target_include_directories(tic80core PRIVATE 3rd-party/moonscript)
+target_include_directories(tic80core PRIVATE 3rd-party/fennel)
 
-add_dependencies(tic80lib lua lpeg wren giflib)
-target_link_libraries(tic80lib lua lpeg wren giflib)
+add_dependencies(tic80core lua lpeg wren giflib)
+target_link_libraries(tic80core lua lpeg wren giflib)
 
 ################################
 # SDL2
@@ -161,8 +161,8 @@ target_include_directories(sdl-renderer PRIVATE 3rd-party/SDL2-2.0.7/include)
 target_include_directories(sdl-renderer PRIVATE include)
 target_include_directories(sdl-renderer PRIVATE src)
 
-add_dependencies(sdl-renderer tic80lib SDL2-static SDL2main)
-target_link_libraries(sdl-renderer tic80lib SDL2-static SDL2main)
+add_dependencies(sdl-renderer tic80core SDL2-static SDL2main)
+target_link_libraries(sdl-renderer tic80core SDL2-static SDL2main)
 
 ################################
 # SDL GPU
@@ -270,5 +270,5 @@ target_include_directories(tic80 PRIVATE 3rd-party/giflib-5.1.4/lib)
 target_include_directories(tic80 PRIVATE 3rd-party/zlib-1.2.11)
 target_include_directories(tic80 PRIVATE 3rd-party/lua-5.3.1/src)
 
-add_dependencies(tic80 tic80lib sdlgpu sdlnet SDL2main zlibstatic)
-target_link_libraries(tic80 tic80lib sdlgpu sdlnet SDL2main zlibstatic)
+add_dependencies(tic80 tic80core sdlgpu sdlnet SDL2main zlibstatic)
+target_link_libraries(tic80 tic80core sdlgpu sdlnet SDL2main zlibstatic)
