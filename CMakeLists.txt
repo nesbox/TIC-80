@@ -207,7 +207,7 @@ set(SDLGPU_SRC
 
 add_library(sdlgpu STATIC ${SDLGPU_SRC})
 
-target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC SDL_GPU_DISABLE_GLES)
+target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC SDL_GPU_DISABLE_GLES SDL_GPU_DISABLE_OPENGL_3 SDL_GPU_DISABLE_OPENGL_4)
 
 target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/include)
 target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/src/externals/glew)
