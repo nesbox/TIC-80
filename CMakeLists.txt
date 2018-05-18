@@ -1,6 +1,29 @@
-project(TIC-80)
+cmake_minimum_required(VERSION 3.9)
+
+project(TIC-80 C)
+message("Building for target : ${CMAKE_SYSTEM_NAME}")
 
 set(CMAKE_C_STANDARD 99)
+
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+include(FindPkgConfig)
+if(NOT PKG_CONFIG_FOUND AND CMAKE_SYSTEM_NAME STREQUAL "Linux") 
+ message(FATAL_ERROR "We need pkg-config to compile this project")
+endif()
+
+#platform specific includes
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	pkg_check_modules(GTK REQUIRED gtk+-3.0)
+endif()
 
 ################################
 # LUA
@@ -139,6 +162,7 @@ if(WIN32)
 	set(HAVE_LIBC TRUE)
 endif()
 
+set(SDL_SHARED OFF)
 set(SDL_STATIC ON)
 add_subdirectory(3rd-party/SDL2-2.0.7)
 
@@ -199,7 +223,15 @@ target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/src/externals/stb_im
 target_include_directories(sdlgpu PRIVATE 3rd-party/SDL2-2.0.7/include)
 
 add_dependencies(sdlgpu SDL2-static)
-target_link_libraries(sdlgpu SDL2-static opengl32)
+target_link_libraries(sdlgpu SDL2-static)
+
+if(WIN32)
+	target_link_libraries(sdlgpu opengl32)
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+target_link_libraries(sdlgpu GL)
+endif()
 
 ################################
 # SDL NET
@@ -215,7 +247,9 @@ set(SDLNET_SRC
 add_library(sdlnet STATIC ${SDLNET_SRC})
 target_include_directories(sdlnet PRIVATE 3rd-party/SDL2-2.0.7/include)
 
-target_link_libraries(sdlnet ws2_32)
+if(WIN32)
+	target_link_libraries(sdlnet ws2_32)
+endif()
 
 ################################
 # ZLIB
@@ -281,6 +315,11 @@ if(WIN32)
 	add_executable(tic80 WIN32 ${TIC80_SRC})
 else()
 	add_executable(tic80 ${TIC80_SRC})
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+	target_include_directories(tic80 PRIVATE ${GTK_INCLUDE_DIRS})
+	target_link_libraries(tic80 ${GTK_LIBRARIES})
 endif()
 
 target_include_directories(tic80 PRIVATE include)
