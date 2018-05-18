@@ -1,4 +1,25 @@
-version: 1.0.{build}
+version: {build}
 image: Visual Studio 2017
+
+configuration:
+- Release
+- Debug
+
+platform:
+- x64
+
+environment:
+  matrix:
+  - arch: Win64
+
+before_build:
+- cmd: |-
+    mkdir build
+    cd build
+    cmake --version
+    cmake .. -G "Visual Studio 15 2017Win64"
+
 build:
+  project: c:\projects\tic-80\build\template.sln
   verbosity: minimal
+  parallel: true
