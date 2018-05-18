@@ -13,5 +13,4 @@ matrix:
       addons:
         apt:
           packages:
-            - cmake
             - libgtk-3-dev
