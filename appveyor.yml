@@ -19,6 +19,5 @@ before_build:
 
 build:
   project: c:\projects\tic-80\TIC-80.sln
-
-verbosity: minimal
-parallel: true
+  verbosity: minimal
+  parallel: true
