@@ -253,8 +253,26 @@ endif()
 # ZLIB
 ################################
 
-set(BUILD_SHARED_LIBS FALSE)
-add_subdirectory(3rd-party/zlib-1.2.11)
+set(ZLIB_DIR 3rd-party/zlib-1.2.11)
+set(ZLIB_SRC 
+    ${ZLIB_DIR}/adler32.c
+    ${ZLIB_DIR}/compress.c
+    ${ZLIB_DIR}/crc32.c
+    ${ZLIB_DIR}/deflate.c
+    ${ZLIB_DIR}/gzclose.c
+    ${ZLIB_DIR}/gzlib.c
+    ${ZLIB_DIR}/gzread.c
+    ${ZLIB_DIR}/gzwrite.c
+    ${ZLIB_DIR}/inflate.c
+    ${ZLIB_DIR}/infback.c
+    ${ZLIB_DIR}/inftrees.c
+    ${ZLIB_DIR}/inffast.c
+    ${ZLIB_DIR}/trees.c
+    ${ZLIB_DIR}/uncompr.c
+    ${ZLIB_DIR}/zutil.c
+)
+
+add_library(zlib STATIC ${ZLIB_SRC})
 
 ################################
 # TIC-80 lib
@@ -295,8 +313,8 @@ target_include_directories(tic80lib PRIVATE 3rd-party/giflib-5.1.4/lib)
 target_include_directories(tic80lib PRIVATE 3rd-party/zlib-1.2.11)
 target_include_directories(tic80lib PRIVATE 3rd-party/lua-5.3.1/src)
 
-add_dependencies(tic80lib tic80core zlibstatic)
-target_link_libraries(tic80lib tic80core zlibstatic)
+add_dependencies(tic80lib tic80core zlib)
+target_link_libraries(tic80lib tic80core zlib)
 
 ################################
 # TIC-80 app
