@@ -156,8 +156,7 @@ if(WIN32)
 	set(HAVE_LIBC TRUE)
 endif()
 
-set(SDL_SHARED OFF)
-set(SDL_STATIC ON)
+set(SDL_SHARED_ENABLED_BY_DEFAULT OFF)
 add_subdirectory(3rd-party/SDL2-2.0.7)
 
 ################################
