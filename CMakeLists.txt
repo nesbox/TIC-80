@@ -225,39 +225,60 @@ set(BUILD_SHARED_LIBS FALSE)
 add_subdirectory(3rd-party/zlib-1.2.11)
 
 ################################
-# TIC-80
+# TIC-80 lib
+################################
+
+set(TIC80LIB_DIR src)
+set(TIC80LIB_SRC
+	${TIC80LIB_DIR}/studio.c
+	${TIC80LIB_DIR}/console.c
+	${TIC80LIB_DIR}/run.c
+	${TIC80LIB_DIR}/ext/md5.c
+	${TIC80LIB_DIR}/ext/gif.c
+	${TIC80LIB_DIR}/fs.c
+	${TIC80LIB_DIR}/tools.c
+	${TIC80LIB_DIR}/start.c
+	${TIC80LIB_DIR}/sprite.c
+	${TIC80LIB_DIR}/map.c
+	${TIC80LIB_DIR}/sfx.c
+	${TIC80LIB_DIR}/music.c
+	${TIC80LIB_DIR}/history.c
+	${TIC80LIB_DIR}/world.c
+	${TIC80LIB_DIR}/config.c
+	${TIC80LIB_DIR}/code.c
+	${TIC80LIB_DIR}/dialog.c
+	${TIC80LIB_DIR}/menu.c
+	${TIC80LIB_DIR}/surf.c
+	${TIC80LIB_DIR}/html.c
+)
+
+add_library(tic80lib STATIC ${TIC80LIB_SRC})
+
+if(WIN32)
+	target_include_directories(tic80lib PRIVATE build/windows/include)
+endif()
+
+target_include_directories(tic80lib PRIVATE include)
+target_include_directories(tic80lib PRIVATE 3rd-party/giflib-5.1.4/lib)
+target_include_directories(tic80lib PRIVATE 3rd-party/zlib-1.2.11)
+target_include_directories(tic80lib PRIVATE 3rd-party/lua-5.3.1/src)
+
+add_dependencies(tic80lib tic80core zlibstatic)
+target_link_libraries(tic80lib tic80core zlibstatic)
+
+################################
+# TIC-80 app
 ################################
 
 set(TIC80_DIR src)
 set(TIC80_SRC
-	${TIC80_DIR}/studio.c
-	${TIC80_DIR}/console.c
-	${TIC80_DIR}/run.c
-	${TIC80_DIR}/ext/file_dialog.c
-	${TIC80_DIR}/ext/md5.c
-	${TIC80_DIR}/ext/gif.c
-	${TIC80_DIR}/fs.c
-	${TIC80_DIR}/tools.c
-	${TIC80_DIR}/start.c
-	${TIC80_DIR}/sprite.c
-	${TIC80_DIR}/map.c
-	${TIC80_DIR}/sfx.c
-	${TIC80_DIR}/music.c
-	${TIC80_DIR}/history.c
-	${TIC80_DIR}/world.c
-	${TIC80_DIR}/config.c
-	${TIC80_DIR}/code.c
-	${TIC80_DIR}/dialog.c
-	${TIC80_DIR}/menu.c
 	${TIC80_DIR}/net.c
-	${TIC80_DIR}/surf.c
-	${TIC80_DIR}/html.c
 	${TIC80_DIR}/system.c
+	${TIC80_DIR}/ext/file_dialog.c
 )
 
 if(WIN32)
 	add_executable(tic80 WIN32 ${TIC80_SRC})
-	target_include_directories(tic80 PRIVATE build/windows/include)
 else()
 	add_executable(tic80 ${TIC80_SRC})
 endif()
@@ -266,9 +287,6 @@ target_include_directories(tic80 PRIVATE include)
 target_include_directories(tic80 PRIVATE 3rd-party/SDL2-2.0.7/include)
 target_include_directories(tic80 PRIVATE 3rd-party/sdl-gpu/include)
 target_include_directories(tic80 PRIVATE 3rd-party/SDL2_net-2.0.1)
-target_include_directories(tic80 PRIVATE 3rd-party/giflib-5.1.4/lib)
-target_include_directories(tic80 PRIVATE 3rd-party/zlib-1.2.11)
-target_include_directories(tic80 PRIVATE 3rd-party/lua-5.3.1/src)
 
-add_dependencies(tic80 tic80core sdlgpu sdlnet SDL2main zlibstatic)
-target_link_libraries(tic80 tic80core sdlgpu sdlnet SDL2main zlibstatic)
+add_dependencies(tic80 tic80lib sdlgpu sdlnet SDL2main)
+target_link_libraries(tic80 tic80lib sdlgpu sdlnet SDL2main)
