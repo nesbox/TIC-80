@@ -19,16 +19,6 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-include(FindPkgConfig)
-if(NOT PKG_CONFIG_FOUND AND LINUX) 
- message(FATAL_ERROR "We need pkg-config to compile this project")
-endif()
-
-#platform specific includes
-if(LINUX)
-	pkg_check_modules(GTK REQUIRED gtk+-3.0)
-endif()
-
 ################################
 # LUA
 ################################
@@ -310,26 +300,6 @@ add_dependencies(tic80lib tic80core zlibstatic)
 target_link_libraries(tic80lib tic80core zlibstatic)
 
 ################################
-# File Save/Load dialog
-################################
-
-set(FILE_DIALOG_SRC src/ext/file_dialog.c)
-
-if(APPLE)
-	set(FILE_DIALOG_SRC ${FILE_DIALOG_SRC} src/ext/file_dialog.m)
-endif()
-
-add_library(file_dialog STATIC ${FILE_DIALOG_SRC})
-
-target_include_directories(file_dialog PRIVATE include)
-target_include_directories(file_dialog PRIVATE 3rd-party/SDL2-2.0.7/include)
-
-if(LINUX)
-	target_include_directories(file_dialog PRIVATE ${GTK_INCLUDE_DIRS})
-	target_link_libraries(file_dialog ${GTK_LIBRARIES})
-endif()
-
-################################
 # TIC-80 app
 ################################
 
@@ -337,7 +307,12 @@ set(TIC80_DIR src)
 set(TIC80_SRC
 	${TIC80_DIR}/net.c
 	${TIC80_DIR}/system.c
+	${TIC80_DIR}/ext/file_dialog.c
 )
+
+if(APPLE)
+	set(TIC80_SRC ${TIC80_SRC} ${TIC80_DIR}/ext/file_dialog.m)
+endif()
 
 if(WIN32)
 	add_executable(tic80 WIN32 ${TIC80_SRC})
@@ -350,5 +325,17 @@ target_include_directories(tic80 PRIVATE 3rd-party/SDL2-2.0.7/include)
 target_include_directories(tic80 PRIVATE 3rd-party/sdl-gpu/include)
 target_include_directories(tic80 PRIVATE 3rd-party/SDL2_net-2.0.1)
 
-add_dependencies(tic80 tic80lib file_dialog sdlgpu sdlnet SDL2main)
-target_link_libraries(tic80 tic80lib file_dialog sdlgpu sdlnet SDL2main)
+add_dependencies(tic80 tic80lib sdlgpu sdlnet SDL2main)
+target_link_libraries(tic80 tic80lib sdlgpu sdlnet SDL2main)
+
+if(LINUX)
+	include(FindPkgConfig)
+	if(NOT PKG_CONFIG_FOUND) 
+		message(FATAL_ERROR "We need pkg-config to compile this project")
+	endif()
+
+	pkg_check_modules(GTK REQUIRED gtk+-3.0)
+
+	target_include_directories(tic80 PRIVATE ${GTK_INCLUDE_DIRS})
+	target_link_libraries(tic80 ${GTK_LIBRARIES})
+endif()
