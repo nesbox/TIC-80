@@ -18,6 +18,6 @@ before_build:
 - cmd: cmake -G "Visual Studio 15 2017 Win64"   
 
 build:
-  project: c:\projects\tic-80\template.sln
+  project: c:\projects\tic-80\TIC-80.sln
   verbosity: minimal
   parallel: true
