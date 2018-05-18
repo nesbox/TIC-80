@@ -12,6 +12,8 @@ environment:
   matrix:
   - arch: Win64
 
+install: git submodule update --init --recursive
+
 before_build:
 - cmd: cmake -G "Visual Studio 15 2017 Win64"   
 
