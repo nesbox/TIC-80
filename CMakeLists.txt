@@ -334,9 +334,18 @@ if(APPLE)
 endif()
 
 if(WIN32)
-	add_executable(tic80 WIN32 ${TIC80_SRC})
+
+	set(TIC80_RES ${CMAKE_CURRENT_BINARY_DIR}/tic80res.obj)
+
+    add_custom_command(OUTPUT ${TIC80_RES} 
+    	COMMAND windres ${CMAKE_CURRENT_SOURCE_DIR}/build/mingw/res.rc ${TIC80_RES})
+
+	add_executable(tic80 WIN32 ${TIC80_SRC} ${TIC80_RES})
+
 else()
+
 	add_executable(tic80 ${TIC80_SRC})
+
 endif()
 
 target_include_directories(tic80 PRIVATE include)
