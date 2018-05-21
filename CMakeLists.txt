@@ -335,10 +335,11 @@ endif()
 
 if(WIN32)
 
+	# add version and icon
+	set(TIC80_RES_SRC ${CMAKE_CURRENT_SOURCE_DIR}/build/windows/tic/tic80.rc)
 	set(TIC80_RES ${CMAKE_CURRENT_BINARY_DIR}/tic80res.obj)
-
-    add_custom_command(OUTPUT ${TIC80_RES} 
-    	COMMAND windres ${CMAKE_CURRENT_SOURCE_DIR}/build/mingw/res.rc ${TIC80_RES})
+	add_custom_command(OUTPUT ${TIC80_RES} 
+		COMMAND windres -i ${TIC80_RES_SRC} -o ${TIC80_RES})
 
 	add_executable(tic80 WIN32 ${TIC80_SRC} ${TIC80_RES})
 
