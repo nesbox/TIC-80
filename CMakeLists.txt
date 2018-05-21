@@ -62,6 +62,8 @@ set(LUA_SRC
 
 add_library(lua STATIC ${LUA_SRC})
 
+target_compile_definitions(lua PRIVATE LUA_COMPAT_5_2)
+
 ################################
 # LPEG
 ################################
