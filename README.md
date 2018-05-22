@@ -75,4 +75,4 @@ cd TIC-80
 ```
 
 ## iOS / tvOS
-You can find iOS/tvOS version here https://github.com/CliffsDover/TIC-80
+You can find iOS/tvOS version here https://github.com/brunophilipe/TIC-80 
