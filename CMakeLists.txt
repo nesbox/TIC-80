@@ -7,13 +7,29 @@ if(UNIX AND NOT APPLE)
 	set(LINUX TRUE)
 endif()
 
-set(CMAKE_C_STANDARD 99)
+if(MSVC)
+	
+	# use static runtime
+	foreach(flag_var CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
+		CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO)
 
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
+		if(${flag_var} MATCHES "/MD")
+			string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
+		endif(${flag_var} MATCHES "/MD")
+	endforeach(flag_var)
+
+	set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /O2")
+else()
+
+	set(CMAKE_C_STANDARD 99)
+
+	if(CMAKE_BUILD_TYPE MATCHES "Debug")
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -ggdb3")
+	else()
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
+	endif()
+
 endif()
-
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -125,7 +141,7 @@ target_include_directories(giflib PRIVATE ${GIFLIB_DIR})
 
 set(TIC80CORE_DIR src)
 set(TIC80CORE_SRC
-    ${TIC80CORE_DIR}/tic80.c
+	${TIC80CORE_DIR}/tic80.c
 	${TIC80CORE_DIR}/tic.c 
 	${TIC80CORE_DIR}/tools.c 
 	${TIC80CORE_DIR}/jsapi.c 
@@ -167,7 +183,7 @@ add_subdirectory(3rd-party/SDL2-2.0.7)
 
 set(EXAMPLE_DIR examples)
 set(EXAMPLE_SRC 
-    ${EXAMPLE_DIR}/sdl-renderer.c
+	${EXAMPLE_DIR}/sdl-renderer.c
 )
 
 if(WIN32)
@@ -189,7 +205,7 @@ target_link_libraries(sdl-renderer tic80core SDL2-static SDL2main)
 
 set(SDLGPU_DIR 3rd-party/sdl-gpu/src)
 set(SDLGPU_SRC
-    ${SDLGPU_DIR}/renderer_GLES_1.c
+	${SDLGPU_DIR}/renderer_GLES_1.c
 	${SDLGPU_DIR}/renderer_GLES_2.c
 	${SDLGPU_DIR}/renderer_GLES_3.c
 	${SDLGPU_DIR}/renderer_OpenGL_1.c
@@ -257,21 +273,21 @@ endif()
 
 set(ZLIB_DIR 3rd-party/zlib-1.2.11)
 set(ZLIB_SRC 
-    ${ZLIB_DIR}/adler32.c
-    ${ZLIB_DIR}/compress.c
-    ${ZLIB_DIR}/crc32.c
-    ${ZLIB_DIR}/deflate.c
-    ${ZLIB_DIR}/gzclose.c
-    ${ZLIB_DIR}/gzlib.c
-    ${ZLIB_DIR}/gzread.c
-    ${ZLIB_DIR}/gzwrite.c
-    ${ZLIB_DIR}/inflate.c
-    ${ZLIB_DIR}/infback.c
-    ${ZLIB_DIR}/inftrees.c
-    ${ZLIB_DIR}/inffast.c
-    ${ZLIB_DIR}/trees.c
-    ${ZLIB_DIR}/uncompr.c
-    ${ZLIB_DIR}/zutil.c
+	${ZLIB_DIR}/adler32.c
+	${ZLIB_DIR}/compress.c
+	${ZLIB_DIR}/crc32.c
+	${ZLIB_DIR}/deflate.c
+	${ZLIB_DIR}/gzclose.c
+	${ZLIB_DIR}/gzlib.c
+	${ZLIB_DIR}/gzread.c
+	${ZLIB_DIR}/gzwrite.c
+	${ZLIB_DIR}/inflate.c
+	${ZLIB_DIR}/infback.c
+	${ZLIB_DIR}/inftrees.c
+	${ZLIB_DIR}/inffast.c
+	${ZLIB_DIR}/trees.c
+	${ZLIB_DIR}/uncompr.c
+	${ZLIB_DIR}/zutil.c
 )
 
 add_library(zlib STATIC ${ZLIB_SRC})
@@ -334,7 +350,10 @@ if(APPLE)
 endif()
 
 if(WIN32)
-	add_executable(tic80 WIN32 ${TIC80_SRC} build/windows/tic/tic80.rc)
+	# TODO: uncomment this (temporary disabled for VS2017)
+	# set(TIC80_SRC ${TIC80_SRC} build/windows/tic/tic80.rc)
+
+	add_executable(tic80 WIN32 ${TIC80_SRC})
 else()
 	add_executable(tic80 ${TIC80_SRC})
 endif()
