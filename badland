@@ -1,0 +1,21 @@
+-- title:  badland
+-- author: romapps
+-- desc:   badland game
+-- script: lua
+-- input: gamepad, mouse
+
+goed=0
+iyyi=80
+function TIC()
+cls(1)
+x,y,t=mouse()
+print("badland demo -!- press b to restart")
+if btn(4) then iyyi=iyyi-2 end
+if iyyi>0 then iyyi=iyyi+1 end
+if t then iyyi=iyyi-2 end
+if iyyi==0 then iyyi=iyyi+2 end
+if iyyi==130 then iyyi=iyyi-2 end
+if btn(5) then iyyi=80 end
+goed=goed+0.50
+spr(0,goed,iyyi)
+end
