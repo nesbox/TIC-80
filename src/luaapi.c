@@ -1131,6 +1131,27 @@ static s32 lua_loadfile(lua_State *lua)
 	return 0;
 }
 
+static void lua_open_builtins(lua_State *lua)
+{
+	static const luaL_Reg loadedlibs[] =
+	{
+		{ "_G", luaopen_base },
+		{ LUA_LOADLIBNAME, luaopen_package },
+		{ LUA_COLIBNAME, luaopen_coroutine },
+		{ LUA_TABLIBNAME, luaopen_table },
+		{ LUA_STRLIBNAME, luaopen_string },
+		{ LUA_MATHLIBNAME, luaopen_math },
+		{ LUA_DBLIBNAME, luaopen_debug },
+		{ NULL, NULL }
+	};
+
+	for (const luaL_Reg *lib = loadedlibs; lib->func; lib++)
+	{
+		luaL_requiref(lua, lib->name, lib->func, 1);
+		lua_pop(lua, 1);
+	}
+}
+
 static const char* const ApiKeywords[] = API_KEYWORDS;
 static const lua_CFunction ApiFunc[] = 
 {
@@ -1187,23 +1208,7 @@ static bool initLua(tic_mem* tic, const char* code)
 	closeLua(tic);
 
 	lua_State* lua = machine->lua = luaL_newstate();
-
-	static const luaL_Reg loadedlibs[] =
-	{
-		{ "_G", luaopen_base },
-		{ LUA_COLIBNAME, luaopen_coroutine },
-		{ LUA_TABLIBNAME, luaopen_table },
-		{ LUA_STRLIBNAME, luaopen_string },
-		{ LUA_MATHLIBNAME, luaopen_math },
-		{ LUA_DBLIBNAME, luaopen_debug },
-		{ NULL, NULL }
-	};
-
-	for (const luaL_Reg *lib = loadedlibs; lib->func; lib++)
-	{
-		luaL_requiref(lua, lib->name, lib->func, 1);
-		lua_pop(lua, 1);
-	}
+	lua_open_builtins(lua);
 
 	initAPI(machine);
 
@@ -1462,24 +1467,7 @@ static bool initMoonscript(tic_mem* tic, const char* code)
 	closeLua(tic);
 
 	lua_State* lua = machine->lua = luaL_newstate();
-
-	static const luaL_Reg loadedlibs[] =
-	{
-		{ "_G", luaopen_base },
-		{ LUA_LOADLIBNAME, luaopen_package },
-		{ LUA_COLIBNAME, luaopen_coroutine },
-		{ LUA_TABLIBNAME, luaopen_table },
-		{ LUA_STRLIBNAME, luaopen_string },
-		{ LUA_MATHLIBNAME, luaopen_math },
-		{ LUA_DBLIBNAME, luaopen_debug },
-		{ NULL, NULL }
-	};
-
-	for (const luaL_Reg *lib = loadedlibs; lib->func; lib++)
-	{
-		luaL_requiref(lua, lib->name, lib->func, 1);
-		lua_pop(lua, 1);
-	}
+	lua_open_builtins(lua);
 
 	luaopen_lpeg(lua);
 	setloaded(lua, "lpeg");
@@ -1630,24 +1618,7 @@ static bool initFennel(tic_mem* tic, const char* code)
 	closeLua(tic);
 
 	lua_State* lua = machine->lua = luaL_newstate();
-
-	static const luaL_Reg loadedlibs[] =
-	{
-		{ "_G", luaopen_base },
-		{ LUA_LOADLIBNAME, luaopen_package },
-		{ LUA_COLIBNAME, luaopen_coroutine },
-		{ LUA_TABLIBNAME, luaopen_table },
-		{ LUA_STRLIBNAME, luaopen_string },
-		{ LUA_MATHLIBNAME, luaopen_math },
-		{ LUA_DBLIBNAME, luaopen_debug },
-		{ NULL, NULL }
-	};
-
-	for (const luaL_Reg *lib = loadedlibs; lib->func; lib++)
-	{
-		luaL_requiref(lua, lib->name, lib->func, 1);
-		lua_pop(lua, 1);
-	}
+	lua_open_builtins(lua);
 
 	initAPI(machine);
 
