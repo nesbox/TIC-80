@@ -1620,10 +1620,8 @@ const tic_script_config* getMoonScriptConfig()
 #define FENNEL_CODE(...) #__VA_ARGS__
 
 static const char* execute_fennel_src = FENNEL_CODE(
-	local ok, val = pcall(require('fennel').eval, ...)
-    -- allow you to return a function instead of setting TIC global
-    if(not TIC and type(val) == "function") then TIC = val end
-	return val
+  local ok, msg = pcall(require('fennel').eval, ..., {filename="game", correlate=true})
+  if(not ok) then return msg end
 );
 
 static bool initFennel(tic_mem* tic, const char* code)
@@ -1660,7 +1658,7 @@ static bool initFennel(tic_mem* tic, const char* code)
 
 		if (luaL_loadbuffer(fennel, (const char *)fennel_lua, fennel_lua_len, "fennel.lua") != LUA_OK)
 		{
-			machine->data->error(machine->data->data, "failed to load fennel.lua");
+			machine->data->error(machine->data->data, "failed to load fennel compiler");
 			return false;
 		}
 
@@ -1673,15 +1671,13 @@ static bool initFennel(tic_mem* tic, const char* code)
 		}
 
 		lua_pushstring(fennel, code);
-		if (lua_pcall(fennel, 1, 1, 0) != LUA_OK)
-		{
-			const char* msg = lua_tostring(fennel, -1);
+        lua_call(fennel, 1, 1);
+        const char* err = lua_tostring(fennel, -1);
 
-			if (msg)
-			{
-				machine->data->error(machine->data->data, msg);
-				return false;
-			}
+        if (err)
+		{
+		   	machine->data->error(machine->data->data, err);
+	   		return false;
 		}
 	}
 
