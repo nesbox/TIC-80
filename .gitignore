@@ -52,6 +52,8 @@ build/macosx/tic80.dmg
 build/macosx/3rd-party/
 build/macosx/CMakeScripts/
 build/macosx/TIC-80.xcodeproj/
+build/macosx/TIC-80.build/
+build/macosx/bin/
 tools/bundler/assets/
 tools/bundler/bin/
 tools/bin2txt/*.exe
