@@ -31,7 +31,7 @@
 #if defined(__APPLE__)
 #	include "AvailabilityMacros.h"
 #	include "TargetConditionals.h"
-#	ifndef TARGET_OS_IPHONE
+#	if !TARGET_OS_IPHONE
 #		undef __TIC_MACOSX__
 #		define __TIC_MACOSX__ 1
 #		if MAC_OS_X_VERSION_MIN_REQUIRED < 1060
