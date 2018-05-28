@@ -1131,6 +1131,27 @@ static s32 lua_loadfile(lua_State *lua)
 	return 0;
 }
 
+static void lua_open_builtins(lua_State *lua)
+{
+	static const luaL_Reg loadedlibs[] =
+	{
+		{ "_G", luaopen_base },
+		{ LUA_LOADLIBNAME, luaopen_package },
+		{ LUA_COLIBNAME, luaopen_coroutine },
+		{ LUA_TABLIBNAME, luaopen_table },
+		{ LUA_STRLIBNAME, luaopen_string },
+		{ LUA_MATHLIBNAME, luaopen_math },
+		{ LUA_DBLIBNAME, luaopen_debug },
+		{ NULL, NULL }
+	};
+
+	for (const luaL_Reg *lib = loadedlibs; lib->func; lib++)
+	{
+		luaL_requiref(lua, lib->name, lib->func, 1);
+		lua_pop(lua, 1);
+	}
+}
+
 static const char* const ApiKeywords[] = API_KEYWORDS;
 static const lua_CFunction ApiFunc[] = 
 {
@@ -1187,23 +1208,7 @@ static bool initLua(tic_mem* tic, const char* code)
 	closeLua(tic);
 
 	lua_State* lua = machine->lua = luaL_newstate();
-
-	static const luaL_Reg loadedlibs[] =
-	{
-		{ "_G", luaopen_base },
-		{ LUA_COLIBNAME, luaopen_coroutine },
-		{ LUA_TABLIBNAME, luaopen_table },
-		{ LUA_STRLIBNAME, luaopen_string },
-		{ LUA_MATHLIBNAME, luaopen_math },
-		{ LUA_DBLIBNAME, luaopen_debug },
-		{ NULL, NULL }
-	};
-
-	for (const luaL_Reg *lib = loadedlibs; lib->func; lib++)
-	{
-		luaL_requiref(lua, lib->name, lib->func, 1);
-		lua_pop(lua, 1);
-	}
+	lua_open_builtins(lua);
 
 	initAPI(machine);
 
@@ -1462,24 +1467,7 @@ static bool initMoonscript(tic_mem* tic, const char* code)
 	closeLua(tic);
 
 	lua_State* lua = machine->lua = luaL_newstate();
-
-	static const luaL_Reg loadedlibs[] =
-	{
-		{ "_G", luaopen_base },
-		{ LUA_LOADLIBNAME, luaopen_package },
-		{ LUA_COLIBNAME, luaopen_coroutine },
-		{ LUA_TABLIBNAME, luaopen_table },
-		{ LUA_STRLIBNAME, luaopen_string },
-		{ LUA_MATHLIBNAME, luaopen_math },
-		{ LUA_DBLIBNAME, luaopen_debug },
-		{ NULL, NULL }
-	};
-
-	for (const luaL_Reg *lib = loadedlibs; lib->func; lib++)
-	{
-		luaL_requiref(lua, lib->name, lib->func, 1);
-		lua_pop(lua, 1);
-	}
+	lua_open_builtins(lua);
 
 	luaopen_lpeg(lua);
 	setloaded(lua, "lpeg");
@@ -1620,10 +1608,8 @@ const tic_script_config* getMoonScriptConfig()
 #define FENNEL_CODE(...) #__VA_ARGS__
 
 static const char* execute_fennel_src = FENNEL_CODE(
-	local ok, val = pcall(require('fennel').eval, ...)
-    -- allow you to return a function instead of setting TIC global
-    if(not TIC and type(val) == "function") then TIC = val end
-	return val
+  local ok, msg = pcall(require('fennel').eval, ..., {filename="game", correlate=true})
+  if(not ok) then return msg end
 );
 
 static bool initFennel(tic_mem* tic, const char* code)
@@ -1632,24 +1618,7 @@ static bool initFennel(tic_mem* tic, const char* code)
 	closeLua(tic);
 
 	lua_State* lua = machine->lua = luaL_newstate();
-
-	static const luaL_Reg loadedlibs[] =
-	{
-		{ "_G", luaopen_base },
-		{ LUA_LOADLIBNAME, luaopen_package },
-		{ LUA_COLIBNAME, luaopen_coroutine },
-		{ LUA_TABLIBNAME, luaopen_table },
-		{ LUA_STRLIBNAME, luaopen_string },
-		{ LUA_MATHLIBNAME, luaopen_math },
-		{ LUA_DBLIBNAME, luaopen_debug },
-		{ NULL, NULL }
-	};
-
-	for (const luaL_Reg *lib = loadedlibs; lib->func; lib++)
-	{
-		luaL_requiref(lua, lib->name, lib->func, 1);
-		lua_pop(lua, 1);
-	}
+	lua_open_builtins(lua);
 
 	initAPI(machine);
 
@@ -1660,7 +1629,7 @@ static bool initFennel(tic_mem* tic, const char* code)
 
 		if (luaL_loadbuffer(fennel, (const char *)fennel_lua, fennel_lua_len, "fennel.lua") != LUA_OK)
 		{
-			machine->data->error(machine->data->data, "failed to load fennel.lua");
+			machine->data->error(machine->data->data, "failed to load fennel compiler");
 			return false;
 		}
 
@@ -1673,15 +1642,13 @@ static bool initFennel(tic_mem* tic, const char* code)
 		}
 
 		lua_pushstring(fennel, code);
-		if (lua_pcall(fennel, 1, 1, 0) != LUA_OK)
-		{
-			const char* msg = lua_tostring(fennel, -1);
+        lua_call(fennel, 1, 1);
+        const char* err = lua_tostring(fennel, -1);
 
-			if (msg)
-			{
-				machine->data->error(machine->data->data, msg);
-				return false;
-			}
+        if (err)
+		{
+		   	machine->data->error(machine->data->data, err);
+	   		return false;
 		}
 	}
 
