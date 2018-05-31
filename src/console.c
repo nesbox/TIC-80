@@ -25,6 +25,7 @@
 #include "config.h"
 #include "ext/gif.h"
 #include "ext/file_dialog.h"
+#include "machine.h"
 
 #include <zlib.h>
 #include <ctype.h>
@@ -2216,6 +2217,28 @@ static void onConsoleResumeCommand(Console* console, const char* param)
 	resumeRunMode();
 }
 
+static void onConsoleEvalCommand(Console* console, const char* param)
+{
+	printLine(console);
+
+	tic_machine* machine = (tic_machine*)console->tic;
+	lua_State* lua = machine->lua;
+
+	// TODO: check for other languages/runtimes?
+	if(lua)
+	{
+		if(luaL_dostring(lua, param) != LUA_OK)
+        {
+			printError(console, lua_tostring(lua, -1));
+		}
+		lua_settop(lua, 0);
+	}
+	else
+		printError(console, "Lua state uninitialized.\n");
+
+	commandDone(console);
+}
+
 static void onAddFile(const char* name, AddResult result, void* data)
 {
 	Console* console = (Console*)data;
@@ -2418,6 +2441,7 @@ static const struct
 	{"save", 	NULL, "save cart",	 				onConsoleSaveCommand},
 	{"run",		NULL, "run loaded cart",			onConsoleRunCommand},
 	{"resume",	NULL, "resume run cart",			onConsoleResumeCommand},
+	{"eval",	"=",  "run code",					onConsoleEvalCommand},
 	{"dir",		"ls", "show list of files", 		onConsoleDirCommand},
 	{"cd",		NULL, "change directory", 			onConsoleChangeDirectory},
 	{"mkdir",	NULL, "make directory", 			onConsoleMakeDirectory},
