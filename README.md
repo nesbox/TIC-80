@@ -15,7 +15,10 @@ To make a retro styled game, the whole process of creation and execution takes p
 ![TIC-80](https://user-images.githubusercontent.com/1101448/29687467-3ddc432e-8925-11e7-8156-5cec3700cc04.gif)
 
 ### Features
-- Multiple progamming languages: Lua, Moonscript, Javascript and Wren
+- Multiple progamming languages: [Lua](https://www.lua.org),
+  [Moonscript](https://moonscript.org),
+  [Javascript](https://developer.mozilla.org/en-US/docs/Web/JavaScript),
+  [Wren](http://wren.io/), and [Fennel](https://fennel-lang.org).
 - Games can have mouse and keyboard as input
 - Games can have up to 4 controllers as input
 - Builtin editors: for code, sprites, world maps, sound effects and music
