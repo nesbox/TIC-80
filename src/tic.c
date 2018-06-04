@@ -1072,7 +1072,7 @@ static void api_textri(tic_mem* tic, float x1, float y1, float x2, float y2, flo
 			//	are we drawing from the map . ok then at least check before the inner loop
 			if (use_map == true)
 			{
-				for (s32 x = left; x = right; ++x)
+				for (s32 x = left; x < right; ++x)
 				{
 					enum { MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE, MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE };
 					s32 iu = (u >> 16) % MapWidth;
