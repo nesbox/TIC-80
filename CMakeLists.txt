@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.9)
 project(TIC-80 C)
 message("Building for target : ${CMAKE_SYSTEM_NAME}")
 
-if(UNIX AND NOT APPLE)
+if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN)
 	set(LINUX TRUE)
 endif()
 
@@ -28,6 +28,11 @@ else()
 	else()
 		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
 	endif()
+
+if(EMSCRIPTEN)
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2 -s TOTAL_MEMORY=67108864 --pre-js build/html/prejs.js --memory-init-file 0")
+	# TODO: add: -s \'EXTRA_EXPORTED_RUNTIME_METHODS=[\"writeArrayToMemory\"]\'
+endif()
 
 endif()
 
@@ -170,34 +175,40 @@ target_link_libraries(tic80core lua lpeg wren giflib)
 # SDL2
 ################################
 
-if(WIN32)
-	set(HAVE_LIBC TRUE)
-endif()
+if(NOT EMSCRIPTEN)
 
-set(SDL_SHARED_ENABLED_BY_DEFAULT OFF)
-add_subdirectory(3rd-party/SDL2-2.0.7)
+	if(WIN32)
+		set(HAVE_LIBC TRUE)
+	endif()
+
+	set(SDL_SHARED_ENABLED_BY_DEFAULT OFF)
+	add_subdirectory(3rd-party/SDL2-2.0.7)
+
+endif()
 
 ################################
 # SDL2 renderer example
 ################################
 
-set(EXAMPLE_DIR examples)
-set(EXAMPLE_SRC 
-	${EXAMPLE_DIR}/sdl-renderer.c
-)
+if(NOT EMSCRIPTEN)
+	set(EXAMPLE_DIR examples)
+	set(EXAMPLE_SRC 
+		${EXAMPLE_DIR}/sdl-renderer.c
+	)
 
-if(WIN32)
-	add_executable(sdl-renderer WIN32 ${EXAMPLE_SRC})
-else()
-	add_executable(sdl-renderer ${EXAMPLE_SRC})
+	if(WIN32)
+		add_executable(sdl-renderer WIN32 ${EXAMPLE_SRC})
+	else()
+		add_executable(sdl-renderer ${EXAMPLE_SRC})
+	endif()
+
+	target_include_directories(sdl-renderer PRIVATE 3rd-party/SDL2-2.0.7/include)
+	target_include_directories(sdl-renderer PRIVATE include)
+	target_include_directories(sdl-renderer PRIVATE src)
+
+	add_dependencies(sdl-renderer tic80core SDL2-static SDL2main)
+	target_link_libraries(sdl-renderer tic80core SDL2-static SDL2main)
 endif()
-
-target_include_directories(sdl-renderer PRIVATE 3rd-party/SDL2-2.0.7/include)
-target_include_directories(sdl-renderer PRIVATE include)
-target_include_directories(sdl-renderer PRIVATE src)
-
-add_dependencies(sdl-renderer tic80core SDL2-static SDL2main)
-target_link_libraries(sdl-renderer tic80core SDL2-static SDL2main)
 
 ################################
 # SDL GPU
@@ -224,7 +235,11 @@ set(SDLGPU_SRC
 
 add_library(sdlgpu STATIC ${SDLGPU_SRC})
 
-target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC SDL_GPU_DISABLE_GLES SDL_GPU_DISABLE_OPENGL_3 SDL_GPU_DISABLE_OPENGL_4)
+if(EMSCRIPTEN)
+	target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC DSDL_GPU_DISABLE_OPENGL SDL_GPU_DISABLE_GLES_1 SDL_GPU_DISABLE_GLES_3)
+else()
+	target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC SDL_GPU_DISABLE_GLES SDL_GPU_DISABLE_OPENGL_3 SDL_GPU_DISABLE_OPENGL_4)
+endif()
 
 target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/include)
 target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/src/externals/glew)
@@ -233,8 +248,8 @@ target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/src/externals/stb_im
 target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/src/externals/stb_image_write)
 target_include_directories(sdlgpu PRIVATE 3rd-party/SDL2-2.0.7/include)
 
-add_dependencies(sdlgpu SDL2-static)
-target_link_libraries(sdlgpu SDL2-static)
+#add_dependencies(sdlgpu SDL2-static)
+#target_link_libraries(sdlgpu SDL2-static)
 
 if(WIN32)
 	target_link_libraries(sdlgpu opengl32)
@@ -277,10 +292,6 @@ set(ZLIB_SRC
 	${ZLIB_DIR}/compress.c
 	${ZLIB_DIR}/crc32.c
 	${ZLIB_DIR}/deflate.c
-	${ZLIB_DIR}/gzclose.c
-	${ZLIB_DIR}/gzlib.c
-	${ZLIB_DIR}/gzread.c
-	${ZLIB_DIR}/gzwrite.c
 	${ZLIB_DIR}/inflate.c
 	${ZLIB_DIR}/infback.c
 	${ZLIB_DIR}/inftrees.c
@@ -363,8 +374,13 @@ target_include_directories(tic80 PRIVATE 3rd-party/SDL2-2.0.7/include)
 target_include_directories(tic80 PRIVATE 3rd-party/sdl-gpu/include)
 target_include_directories(tic80 PRIVATE 3rd-party/SDL2_net-2.0.1)
 
-add_dependencies(tic80 tic80lib sdlgpu sdlnet SDL2main)
-target_link_libraries(tic80 tic80lib sdlgpu sdlnet SDL2main)
+if(NOT EMSCRIPTEN)
+	add_dependencies(tic80 SDL2-static SDL2main)
+	target_link_libraries(tic80 SDL2-static SDL2main)
+endif()
+
+add_dependencies(tic80 tic80lib sdlnet sdlgpu)
+target_link_libraries(tic80 tic80lib sdlnet sdlgpu)
 
 if(LINUX)
 	include(FindPkgConfig)

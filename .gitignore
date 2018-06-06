@@ -129,3 +129,4 @@ CMakeFiles/
 lib/
 *.cmake
 CMakeCache.txt
+Makefile
