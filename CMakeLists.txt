@@ -30,8 +30,8 @@ else()
 	endif()
 
 if(EMSCRIPTEN)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2 -s TOTAL_MEMORY=67108864 --pre-js build/html/prejs.js --memory-init-file 0")
 	# TODO: add: -s \'EXTRA_EXPORTED_RUNTIME_METHODS=[\"writeArrayToMemory\"]\'
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2 -s TOTAL_MEMORY=67108864 --pre-js build/html/prejs.js --memory-init-file 0")
 endif()
 
 endif()
