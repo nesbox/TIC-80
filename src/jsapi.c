@@ -775,7 +775,7 @@ static duk_ret_t duk_reset(duk_context* duk)
 	return 0;
 }
 
-static const char* const Apis[] = API_KEYWORDS;
+static const char* const ApiKeywords[] = API_KEYWORDS;
 static const struct{duk_c_function func; s32 params;} ApiFunc[] = 
 {
 	{NULL, 0},
