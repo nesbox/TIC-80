@@ -775,7 +775,7 @@ static duk_ret_t duk_reset(duk_context* duk)
 	return 0;
 }
 
-static const char* const ApiKeywords[] = API_KEYWORDS;
+static const char* const Apis[] = API_KEYWORDS;
 static const struct{duk_c_function func; s32 params;} ApiFunc[] = 
 {
 	{NULL, 0},
@@ -936,7 +936,8 @@ static const char* const JsKeywords [] =
 	"break", "do", "instanceof", "typeof", "case", "else", "new",
 	"var", "catch", "finally", "return", "void", "continue", "for",
 	"switch", "while", "debugger", "function", "this", "with",
-	"default", "if", "throw", "delete", "in", "try", "const"
+	"default", "if", "throw", "delete", "in", "try", "const",
+	"true", "false"
 };
 
 static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
