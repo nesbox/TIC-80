@@ -252,9 +252,6 @@ target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/src/externals/stb_im
 target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/src/externals/stb_image_write)
 target_include_directories(sdlgpu PRIVATE 3rd-party/SDL2-2.0.7/include)
 
-#add_dependencies(sdlgpu SDL2-static)
-#target_link_libraries(sdlgpu SDL2-static)
-
 if(WIN32)
 	target_link_libraries(sdlgpu opengl32)
 endif()
@@ -306,6 +303,43 @@ set(ZLIB_SRC
 )
 
 add_library(zlib STATIC ${ZLIB_SRC})
+
+################################
+# bin2txt
+################################
+
+if(NOT EMSCRIPTEN)
+	set(BIN2TXT_DIR tools/bin2txt)
+	set(BIN2TXT_SRC 
+		${BIN2TXT_DIR}/bin2txt.c
+	)
+
+	add_executable(bin2txt ${BIN2TXT_SRC})
+
+	target_include_directories(bin2txt PRIVATE 3rd-party/zlib-1.2.11)
+
+	add_dependencies(bin2txt zlib)
+	target_link_libraries(bin2txt zlib)
+
+	file(GLOB DEMO_CARTS "${CMAKE_SOURCE_DIR}/demos/*.tic" )
+
+	foreach(cart_var ${DEMO_CARTS})
+
+		get_filename_component(cart_name ${cart_var} NAME)
+
+		add_custom_command(TARGET bin2txt POST_BUILD 
+			COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${cart_var} ${CMAKE_SOURCE_DIR}/bin/assets/${cart_name}.dat -z)
+
+	endforeach(cart_var)
+
+	add_custom_command(TARGET bin2txt POST_BUILD 
+		COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${CMAKE_SOURCE_DIR}/config.tic ${CMAKE_SOURCE_DIR}/bin/assets/config.tic.dat -z)
+	add_custom_command(TARGET bin2txt POST_BUILD 
+		COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${CMAKE_SOURCE_DIR}/build/html/index.html ${CMAKE_SOURCE_DIR}/bin/assets/index.html.dat -z)
+	add_custom_command(TARGET bin2txt POST_BUILD 
+		COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${CMAKE_SOURCE_DIR}/build/html/tic.js ${CMAKE_SOURCE_DIR}/bin/assets/tic.js.dat -z)
+
+endif()
 
 ################################
 # TIC-80 lib
@@ -379,7 +413,7 @@ target_include_directories(tic80 PRIVATE 3rd-party/sdl-gpu/include)
 target_include_directories(tic80 PRIVATE 3rd-party/SDL2_net-2.0.1)
 
 if(NOT EMSCRIPTEN)
-	add_dependencies(tic80 SDL2-static SDL2main)
+	add_dependencies(tic80 SDL2-static SDL2main bin2txt)
 	target_link_libraries(tic80 SDL2-static SDL2main)
 endif()
 
