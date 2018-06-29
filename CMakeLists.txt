@@ -321,7 +321,7 @@ if(NOT EMSCRIPTEN)
 	add_dependencies(bin2txt zlib)
 	target_link_libraries(bin2txt zlib)
 
-	file(GLOB DEMO_CARTS "${CMAKE_SOURCE_DIR}/demos/*.tic" )
+	file(GLOB DEMO_CARTS ${CMAKE_SOURCE_DIR}/demos/*.tic )
 
 	list(APPEND DEMO_CARTS 
 		${CMAKE_SOURCE_DIR}/config.tic
@@ -331,22 +331,20 @@ if(NOT EMSCRIPTEN)
 
 	set(DEMO_CARTS_OUT)
 
-	foreach(cart_var ${DEMO_CARTS})
+	foreach(CART_FILE ${DEMO_CARTS})
 
-		get_filename_component(cart_name ${cart_var} NAME)
+		get_filename_component(cart_name ${CART_FILE} NAME)
 
-		list(APPEND DEMO_CARTS_OUT "${CMAKE_SOURCE_DIR}/bin/assets/${cart_name}.dat")
+		set(OUTNAME ${CMAKE_SOURCE_DIR}/bin/assets/${cart_name}.dat)
 
-		add_custom_command(OUTPUT "${CMAKE_SOURCE_DIR}/bin/assets/${cart_name}.dat"
-			COMMAND "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt" "${cart_var}" "${CMAKE_SOURCE_DIR}/bin/assets/${cart_name}.dat" -z
-			DEPENDS bin2txt "${cart_var}"
-			COMMENT "encoding carts"
-			VERBATIM
+		list(APPEND DEMO_CARTS_OUT ${OUTNAME})
+
+		add_custom_command(OUTPUT ${OUTNAME}
+			COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${CART_FILE} ${OUTNAME} -z
+			DEPENDS bin2txt ${CART_FILE}
 		)
 
-	endforeach(cart_var)
-
-	add_custom_target(encoded_carts DEPENDS ${DEMO_CARTS_OUT})
+	endforeach(CART_FILE)
 
 endif()
 
@@ -378,7 +376,7 @@ set(TIC80LIB_SRC
 	${TIC80LIB_DIR}/html.c
 )
 
-add_library(tic80lib STATIC ${TIC80LIB_SRC})
+add_library(tic80lib STATIC ${TIC80LIB_SRC} ${DEMO_CARTS_OUT})
 
 if(WIN32)
 	target_include_directories(tic80lib PRIVATE build/windows/include)
@@ -422,7 +420,7 @@ target_include_directories(tic80 PRIVATE 3rd-party/sdl-gpu/include)
 target_include_directories(tic80 PRIVATE 3rd-party/SDL2_net-2.0.1)
 
 if(NOT EMSCRIPTEN)
-	add_dependencies(tic80 SDL2-static SDL2main encoded_carts)
+	add_dependencies(tic80 SDL2-static SDL2main)
 	target_link_libraries(tic80 SDL2-static SDL2main)
 
 endif()
