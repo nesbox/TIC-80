@@ -385,7 +385,7 @@ set(TIC80LIB_SRC
 add_library(tic80lib STATIC ${TIC80LIB_SRC} ${DEMO_CARTS_OUT})
 
 if(WIN32)
-	target_include_directories(tic80lib PRIVATE build/windows/include)
+	target_include_directories(tic80lib PRIVATE 3rd-party/dirent)
 endif()
 
 target_include_directories(tic80lib PRIVATE include)
@@ -413,7 +413,7 @@ endif()
 
 if(WIN32)
 	# TODO: uncomment this (temporary disabled for VS2017)
-	# set(TIC80_SRC ${TIC80_SRC} build/windows/tic/tic80.rc)
+	# set(TIC80_SRC ${TIC80_SRC} build/windows/tic80.rc)
 
 	add_executable(tic80 WIN32 ${TIC80_SRC})
 else()
