@@ -382,19 +382,27 @@ set(TIC80LIB_SRC
 	${TIC80LIB_DIR}/html.c
 )
 
-add_library(tic80lib STATIC ${TIC80LIB_SRC} ${DEMO_CARTS_OUT})
+set(TIC80_OUTPUTS tic80 tic80pro)
 
-if(WIN32)
-	target_include_directories(tic80lib PRIVATE 3rd-party/dirent)
-endif()
+foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 
-target_include_directories(tic80lib PRIVATE include)
-target_include_directories(tic80lib PRIVATE 3rd-party/giflib-5.1.4/lib)
-target_include_directories(tic80lib PRIVATE 3rd-party/zlib-1.2.11)
-target_include_directories(tic80lib PRIVATE 3rd-party/lua-5.3.1/src)
+	add_library(${TIC80_OUTPUT}lib STATIC ${TIC80LIB_SRC} ${DEMO_CARTS_OUT})
 
-add_dependencies(tic80lib tic80core zlib)
-target_link_libraries(tic80lib tic80core zlib)
+	if(WIN32)
+		target_include_directories(${TIC80_OUTPUT}lib PRIVATE 3rd-party/dirent)
+	endif()
+
+	target_include_directories(${TIC80_OUTPUT}lib PRIVATE include)
+	target_include_directories(${TIC80_OUTPUT}lib PRIVATE 3rd-party/giflib-5.1.4/lib)
+	target_include_directories(${TIC80_OUTPUT}lib PRIVATE 3rd-party/zlib-1.2.11)
+	target_include_directories(${TIC80_OUTPUT}lib PRIVATE 3rd-party/lua-5.3.1/src)
+
+	add_dependencies(${TIC80_OUTPUT}lib tic80core zlib)
+	target_link_libraries(${TIC80_OUTPUT}lib tic80core zlib)
+
+endforeach(CART_FILE)
+
+target_compile_definitions(tic80prolib PRIVATE TIC80_PRO)
 
 ################################
 # TIC-80 app
@@ -411,37 +419,41 @@ if(APPLE)
 	set(TIC80_SRC ${TIC80_SRC} ${TIC80_DIR}/ext/file_dialog.m)
 endif()
 
-if(WIN32)
-	# TODO: uncomment this (temporary disabled for VS2017)
-	# set(TIC80_SRC ${TIC80_SRC} build/windows/tic80.rc)
+foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 
-	add_executable(tic80 WIN32 ${TIC80_SRC})
-else()
-	add_executable(tic80 ${TIC80_SRC})
-endif()
+	if(WIN32)
+		# TODO: uncomment this (temporary disabled for VS2017)
+		# set(TIC80_SRC ${TIC80_SRC} build/windows/tic80.rc)
 
-target_include_directories(tic80 PRIVATE include)
-target_include_directories(tic80 PRIVATE 3rd-party/SDL2-2.0.7/include)
-target_include_directories(tic80 PRIVATE 3rd-party/sdl-gpu/include)
-target_include_directories(tic80 PRIVATE 3rd-party/SDL2_net-2.0.1)
-
-if(NOT EMSCRIPTEN)
-	add_dependencies(tic80 SDL2-static SDL2main)
-	target_link_libraries(tic80 SDL2-static SDL2main)
-
-endif()
-
-add_dependencies(tic80 tic80lib sdlnet sdlgpu)
-target_link_libraries(tic80 tic80lib sdlnet sdlgpu)
-
-if(LINUX)
-	include(FindPkgConfig)
-	if(NOT PKG_CONFIG_FOUND) 
-		message(FATAL_ERROR "We need pkg-config to compile this project")
+		add_executable(${TIC80_OUTPUT} WIN32 ${TIC80_SRC})
+	else()
+		add_executable(${TIC80_OUTPUT} ${TIC80_SRC})
 	endif()
 
-	pkg_check_modules(GTK REQUIRED gtk+-3.0)
+	target_include_directories(${TIC80_OUTPUT} PRIVATE include)
+	target_include_directories(${TIC80_OUTPUT} PRIVATE 3rd-party/SDL2-2.0.7/include)
+	target_include_directories(${TIC80_OUTPUT} PRIVATE 3rd-party/sdl-gpu/include)
+	target_include_directories(${TIC80_OUTPUT} PRIVATE 3rd-party/SDL2_net-2.0.1)
 
-	target_include_directories(tic80 PRIVATE ${GTK_INCLUDE_DIRS})
-	target_link_libraries(tic80 ${GTK_LIBRARIES})
-endif()
+	if(NOT EMSCRIPTEN)
+		add_dependencies(${TIC80_OUTPUT} SDL2-static SDL2main)
+		target_link_libraries(${TIC80_OUTPUT} SDL2-static SDL2main)
+
+	endif()
+
+	add_dependencies(${TIC80_OUTPUT} ${TIC80_OUTPUT}lib sdlnet sdlgpu)
+	target_link_libraries(${TIC80_OUTPUT} ${TIC80_OUTPUT}lib sdlnet sdlgpu)
+
+	if(LINUX)
+		include(FindPkgConfig)
+		if(NOT PKG_CONFIG_FOUND) 
+			message(FATAL_ERROR "We need pkg-config to compile this project")
+		endif()
+
+		pkg_check_modules(GTK REQUIRED gtk+-3.0)
+
+		target_include_directories(${TIC80_OUTPUT} PRIVATE ${GTK_INCLUDE_DIRS})
+		target_link_libraries(${TIC80_OUTPUT} ${GTK_LIBRARIES})
+	endif()
+
+endforeach()
