@@ -1680,28 +1680,36 @@ static const tic_outline_item* getFennelOutline(const char* code, s32* size)
 
 	while(true)
 	{
-		static const char FuncString[] = "fn"; /* this probably doesn't work */
+		static const char FuncString[] = "(fn ";
 
 		ptr = strstr(ptr, FuncString);
 
 		if(ptr)
 		{
-			const char* end = ptr;
-
 			ptr += sizeof FuncString - 1;
 
-			while(end >= code && !isalnum_(*end))  end--;
+			const char* start = ptr;
+			const char* end = start;
 
-			const char* start = end;
+			while(*ptr)
+			{
+				char c = *ptr;
 
-			for (const char* val = start-1; val >= code && (isalnum_(*val)); val--, start--);
+				if(c == ' ' || c == '\t' || c == '\n' || c == '[')
+				{
+					end = ptr;
+					break;
+				}
+
+				ptr++;
+			}
 
 			if(end > start)
 			{
 				items = items ? realloc(items, (*size + 1) * Size) : malloc(Size);
 
 				items[*size].pos = start - code;
-				items[*size].size = end - start + 1;
+				items[*size].size = end - start;
 
 				(*size)++;
 			}
