@@ -1402,6 +1402,22 @@ static const tic_outline_item* getLuaOutline(const char* code, s32* size)
 	return items;
 }
 
+void evalLua(tic_mem* tic, const char* code) {
+	tic_machine* machine = (tic_machine*)tic;
+	lua_State* lua = machine->lua;
+
+	lua_settop(lua, 0);
+
+	if(luaL_loadstring(lua, code) != LUA_OK || lua_pcall(lua, 0, LUA_MULTRET, 0) != LUA_OK)
+	{
+		machine->data->error(machine->data->data, lua_tostring(lua, -1));
+	}
+}
+
+void evalPlaceholder(tic_mem* tic, const char* code) {
+	printf("TODO: not yet implemented\n.");
+}
+
 static const tic_script_config LuaSyntaxConfig = 
 {
 	.init 				= initLua,
@@ -1412,6 +1428,7 @@ static const tic_script_config LuaSyntaxConfig =
 
 	.getOutline			= getLuaOutline,
 	.parse 				= parseCode,
+	.eval				= evalLua,
 
 	.blockCommentStart 	= "--[[",
 	.blockCommentEnd 	= "]]",
@@ -1580,6 +1597,7 @@ static const tic_script_config MoonSyntaxConfig =
 
 	.getOutline			= getMoonOutline,
 	.parse 				= parseCode,
+	.eval				= evalPlaceholder,
 
 	.blockCommentStart 	= NULL,
 	.blockCommentEnd 	= NULL,
@@ -1712,6 +1730,28 @@ static const tic_outline_item* getFennelOutline(const char* code, s32* size)
 	return items;
 }
 
+void evalFennel(tic_mem* tic, const char* code) {
+	tic_machine* machine = (tic_machine*)tic;
+	lua_State* fennel = machine->lua;
+
+	lua_settop(fennel, 0);
+
+	if (luaL_loadbuffer(fennel, execute_fennel_src, strlen(execute_fennel_src), "execute_fennel") != LUA_OK)
+	{
+		machine->data->error(machine->data->data, "failed to load fennel compiler");
+	}
+
+	lua_pushstring(fennel, code);
+	lua_call(fennel, 1, 1);
+	const char* err = lua_tostring(fennel, -1);
+
+	if (err)
+	{
+		machine->data->error(machine->data->data, err);
+	}
+}
+
+
 static const tic_script_config FennelSyntaxConfig =
 {
 	.init 				= initFennel,
@@ -1722,6 +1762,7 @@ static const tic_script_config FennelSyntaxConfig =
 
 	.getOutline			= getFennelOutline,
 	.parse 				= parseCode,
+	.eval				= evalFennel,
 
 	.blockCommentStart 	= NULL,
 	.blockCommentEnd 	= NULL,

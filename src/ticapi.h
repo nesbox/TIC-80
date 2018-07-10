@@ -106,6 +106,7 @@ struct tic_script_config
 
 	const tic_outline_item* (*getOutline)(const char* code, s32* size);
 	void (*parse)(const tic_script_config* config, const char* start, u8* color, const tic_code_theme* theme);
+	void (*eval)(tic_mem* tic, const char* code);
 
 	const char* blockCommentStart;
 	const char* blockCommentEnd;

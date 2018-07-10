@@ -1344,6 +1344,10 @@ static const tic_outline_item* getWrenOutline(const char* code, s32* size)
 	return items;
 }
 
+void evalWren(tic_mem* tic, const char* code) {
+	printf("TODO: Wren eval not yet implemented\n.");
+}
+
 static const tic_script_config WrenSyntaxConfig = 
 {
 	.init 				= initWren,
@@ -1354,6 +1358,7 @@ static const tic_script_config WrenSyntaxConfig =
 
 	.getOutline			= getWrenOutline,
 	.parse 				= parseCode,
+	.eval				= evalWren,
 
 	.blockCommentStart 	= "/*",
 	.blockCommentEnd 	= "*/",

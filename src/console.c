@@ -25,7 +25,6 @@
 #include "config.h"
 #include "ext/gif.h"
 #include "ext/file_dialog.h"
-#include "machine.h"
 
 #include <zlib.h>
 #include <ctype.h>
@@ -2221,20 +2220,8 @@ static void onConsoleEvalCommand(Console* console, const char* param)
 {
 	printLine(console);
 
-	tic_machine* machine = (tic_machine*)console->tic;
-	lua_State* lua = machine->lua;
-
-	// TODO: check for other languages/runtimes?
-	if(lua)
-	{
-		if(luaL_dostring(lua, param) != LUA_OK)
-        {
-			printError(console, lua_tostring(lua, -1));
-		}
-		lua_settop(lua, 0);
-	}
-	else
-		printError(console, "Lua state uninitialized.\n");
+	const tic_script_config* script_config = console->tic->api.get_script_config(console->tic);
+	script_config->eval(console->tic, param);
 
 	commandDone(console);
 }

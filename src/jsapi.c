@@ -1001,6 +1001,10 @@ static const tic_outline_item* getJsOutline(const char* code, s32* size)
 	return items;
 }
 
+void evalJs(tic_mem* tic, const char* code) {
+	printf("TODO: JS eval not yet implemented\n.");
+}
+
 static const tic_script_config JsSyntaxConfig = 
 {
 	.init 				= initJavascript,
@@ -1011,6 +1015,7 @@ static const tic_script_config JsSyntaxConfig =
 
 	.getOutline			= getJsOutline,
 	.parse 				= parseCode,
+	.eval				= evalJs,
 
 	.blockCommentStart 	= "/*",
 	.blockCommentEnd 	= "*/",
