@@ -2216,6 +2216,16 @@ static void onConsoleResumeCommand(Console* console, const char* param)
 	resumeRunMode();
 }
 
+static void onConsoleEvalCommand(Console* console, const char* param)
+{
+	printLine(console);
+
+	const tic_script_config* script_config = console->tic->api.get_script_config(console->tic);
+	script_config->eval(console->tic, param);
+
+	commandDone(console);
+}
+
 static void onAddFile(const char* name, AddResult result, void* data)
 {
 	Console* console = (Console*)data;
@@ -2418,6 +2428,7 @@ static const struct
 	{"save", 	NULL, "save cart",	 				onConsoleSaveCommand},
 	{"run",		NULL, "run loaded cart",			onConsoleRunCommand},
 	{"resume",	NULL, "resume run cart",			onConsoleResumeCommand},
+	{"eval",	"=",  "run code",					onConsoleEvalCommand},
 	{"dir",		"ls", "show list of files", 		onConsoleDirCommand},
 	{"cd",		NULL, "change directory", 			onConsoleChangeDirectory},
 	{"mkdir",	NULL, "make directory", 			onConsoleMakeDirectory},
