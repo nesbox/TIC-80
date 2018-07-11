@@ -14,7 +14,7 @@ RM= rm -f
 
 INCLUDES= \
 	-I$(3RD_PARTY)/lua-5.3.1/src \
-	-I$(3RD_PARTY)/zlib-1.2.8 \
+	-I$(3RD_PARTY)/zlib-1.2.11 \
 	-I$(3RD_PARTY)/giflib-5.1.4/lib \
 	-I$(3RD_PARTY)/SDL2-2.0.7/include \
 	-I$(3RD_PARTY)/sdl-gpu/include \
