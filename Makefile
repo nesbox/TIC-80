@@ -330,7 +330,7 @@ $(STUDIO_DLL): $(DEMO_ASSETS) $(TIC80_DLL) $(TIC_O) bin/html.o
 	$(CC) $(TIC_O) bin/html.o $(TIC80_A) $(OPT) -shared $(INCLUDES) -L$(PRE_BUILT)/mingw -llua -lz -lgif -Wl,--out-implib,$(STUDIO_A) -o $@
 
 emscripten:
-	$(EMS_CC) $(SOURCES) $(SYSTEM) $(TIC80_SRC) $(OPT) $(INCLUDES) $(EMS_OPT) $(EMS_LINKER_FLAGS) -o build/html/tic.js
+	$(EMS_CC) $(SOURCES) $(SYSTEM) $(TIC80_SRC) $(OPT) $(INCLUDES) $(EMS_OPT) -s WASM=0 $(EMS_LINKER_FLAGS) -o build/html/tic.js
 
 wasm:
 	$(EMS_CC) $(SOURCES) $(SYSTEM) $(TIC80_SRC) $(OPT) $(INCLUDES) $(EMS_OPT) -s WASM=1 $(EMS_LINKER_FLAGS) -o build/html/tic.js
