@@ -200,7 +200,8 @@ static void closeWren(tic_mem* tic)
 			wrenReleaseHandle(machine->wren, update_handle);
 			wrenReleaseHandle(machine->wren, scanline_handle);
 			wrenReleaseHandle(machine->wren, overline_handle);
-			if (game_class != NULL) {
+			if (game_class != NULL) 
+			{
 				wrenReleaseHandle(machine->wren, game_class);
 			}
 		}
@@ -231,10 +232,10 @@ static void wren_map_height(WrenVM* vm)
 
 static void wren_mgeti(WrenVM* vm)
 {
-
 	s32 index = getWrenNumber(vm, 1);
 
-	if(index < 0 || index >= TIC_MAP_WIDTH * TIC_MAP_HEIGHT) {
+	if(index < 0 || index >= TIC_MAP_WIDTH * TIC_MAP_HEIGHT) 
+	{
 		wrenSetSlotDouble(vm, 0, 0);
 		return;
 	}
@@ -498,12 +499,14 @@ static void wren_spr(WrenVM* vm)
 			{
 				if(isList(vm, 4))
 				{
+					wrenEnsureSlots(vm, top+1);
+					int list_count = wrenGetListCount(vm, 4);
 					for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
 					{
-						wrenGetListElement(vm, 4, i, 0); // todo, can be bug cause in slot 0 is object?
-						if(isNumber(vm, 0))
+						wrenGetListElement(vm, 4, i, top);
+						if(i < list_count && isNumber(vm, top))
 						{
-							colors[i] = getWrenNumber(vm, 0);
+							colors[i] = getWrenNumber(vm, top);
 							count++;
 						}
 						else
@@ -549,24 +552,33 @@ static void wren_spr(WrenVM* vm)
 
 static void wren_spr_internal(WrenVM* vm) 
 {	
+	s32 top = wrenGetSlotCount(vm);
+
 	s32 index = getWrenNumber(vm, 1);
 	s32 x = getWrenNumber(vm, 2);
 	s32 y = getWrenNumber(vm, 3);
 
 	static u8 colors[TIC_PALETTE_SIZE];
 	s32 count = 0;
-
-	if(isList(vm, 4)) {
-		for(s32 i = 0; i < TIC_PALETTE_SIZE; i++) {
-			wrenGetListElement(vm, 4, i, 0); // todo, can be bug cause in slot 0 is object?
-			if(isNumber(vm, 0)) {
-				colors[i] = getWrenNumber(vm, 0);
+			
+	if(isList(vm, 4))
+	{
+		wrenEnsureSlots(vm, top+1);
+		int list_count = wrenGetListCount(vm, 4);
+		for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+		{
+			wrenGetListElement(vm, 4, i, top);
+			if(i < list_count && isNumber(vm, top))
+			{
+				colors[i] = getWrenNumber(vm, top);
 				count++;
-			} else {
+			}
+			else
+			{
 				break;
 			}
 		}
-	} 
+	}
 	else 
 	{
 		colors[0] = getWrenNumber(vm, 4);
@@ -630,7 +642,6 @@ static void wren_map(WrenVM* vm)
 
 static void wren_mset(WrenVM* vm)
 {
-
 	s32 x = getWrenNumber(vm, 1);
 	s32 y = getWrenNumber(vm, 2);
 	u8 value = getWrenNumber(vm, 3);
@@ -657,7 +668,8 @@ static void wren_textri(WrenVM* vm)
 
 	float pt[12];
 
-	for (s32 i = 0; i < COUNT_OF(pt); i++){
+	for (s32 i = 0; i < COUNT_OF(pt); i++)
+	{
 		pt[i] = (float)getWrenNumber(vm, i + 1);
 	}
 
@@ -666,12 +678,14 @@ static void wren_textri(WrenVM* vm)
 	bool use_map = false;
 
 	//	check for use map 
-	if (top > 13){
+	if (top > 13)
+	{
 		use_map = wrenGetSlotBool(vm, 13);
 	}
 
 	//	check for chroma 
-	if (top > 14){
+	if (top > 14)
+	{
 		chroma = (u8)getWrenNumber(vm, 14);
 	}
 
@@ -721,7 +735,8 @@ static void wren_line(WrenVM* vm)
 static void wren_circ(WrenVM* vm)
 {
 	s32 radius = getWrenNumber(vm, 3);
-	if(radius < 0) {
+	if(radius < 0) 
+	{
 		return;
 	}
 	
@@ -737,7 +752,10 @@ static void wren_circ(WrenVM* vm)
 static void wren_circb(WrenVM* vm)
 {
 	s32 radius = getWrenNumber(vm, 3);
-	if(radius < 0) return;
+	if(radius < 0) 
+	{
+		return;
+	}
 	
 	s32 x = getWrenNumber(vm, 1);
 	s32 y = getWrenNumber(vm, 2);
@@ -778,7 +796,8 @@ static void wren_tri(WrenVM* vm)
 {		
 	s32 pt[6];
 
-	for(s32 i = 0; i < COUNT_OF(pt); i++){
+	for(s32 i = 0; i < COUNT_OF(pt); i++)
+	{
 		pt[i] = getWrenNumber(vm, i+1);
 	}
 	
@@ -1082,7 +1101,6 @@ static const char* const ApiKeywords[] = API_KEYWORDS;
 
 static WrenForeignMethodFn foreignTicMethods(const char* signature)
 {
-
 	if (strcmp(signature, "static TIC.btn(_)"                	) == 0) return wren_btn;
 	if (strcmp(signature, "static TIC.btnp(_)"                  ) == 0) return wren_btnp;
 	if (strcmp(signature, "static TIC.btnp(_,_,_)"              ) == 0) return wren_btnp;
@@ -1177,14 +1195,13 @@ static WrenForeignMethodFn bindForeignMethod(
 	WrenVM* vm, const char* module, const char* className,
 	bool isStatic, const char* signature)
 {  
-	
 	if (strcmp(module, "main") != 0) return NULL;
 
-	// For convenience, concatenate all of the method qualifiers into a single
-	// signature string.
+	// For convenience, concatenate all of the method qualifiers into a single signature string.
 	char fullName[256];
 	fullName[0] = '\0';
-	if (isStatic) {
+	if (isStatic) 
+	{
 		strcat(fullName, "static ");
 	}
 
@@ -1205,7 +1222,7 @@ static void initAPI(tic_machine* machine)
 
 	if (wrenInterpret(machine->wren, tic_wren_api) != WREN_RESULT_SUCCESS)
 	{					
-		machine->data->error(machine->data->data, "can't load Tic wren api");
+		machine->data->error(machine->data->data, "can't load TIC wren api");
 	}
 }
 
@@ -1232,10 +1249,10 @@ static void writeFn(WrenVM* vm, const char* text)
 	machine->data->trace(machine->data->data, text ? text : "null", color);
 }
 
-static bool initWren(tic_mem* tic, const char* code)
+static bool initWren(tic_mem* memory, const char* code)
 {
-	tic_machine* machine = (tic_machine*)tic;
-	closeWren(tic);
+	tic_machine* machine = (tic_machine*)memory;
+	closeWren(memory);
 
 	WrenConfiguration config; 
 	wrenInitConfiguration(&config);
@@ -1249,7 +1266,8 @@ static bool initWren(tic_mem* tic, const char* code)
 
 	initAPI(machine);
 	
-	if (wrenInterpret(machine->wren, code) != WREN_RESULT_SUCCESS){
+	if (wrenInterpret(machine->wren, code) != WREN_RESULT_SUCCESS)
+	{
 		return false;
 	}
 
@@ -1273,7 +1291,8 @@ static bool initWren(tic_mem* tic, const char* code)
 		wrenCall(vm, new_handle);
 		wrenReleaseHandle(machine->wren, game_class); // release game class handle
 		game_class = NULL;
-		if (wrenGetSlotCount(vm) == 0) {
+		if (wrenGetSlotCount(vm) == 0) 
+		{
 			machine->data->error(machine->data->data, "Error in game class :(");
 			return false;
 		}
@@ -1286,9 +1305,9 @@ static bool initWren(tic_mem* tic, const char* code)
 	return true;
 }
 
-static void callWrenTick(tic_mem* tic)
+static void callWrenTick(tic_mem* memory)
 {
-	tic_machine* machine = (tic_machine*)tic;
+	tic_machine* machine = (tic_machine*)memory;
 	WrenVM* vm = machine->wren;
 
 	if(vm && game_class)
@@ -1328,9 +1347,9 @@ static void callWrenOverline(tic_mem* memory, void* data)
 
 static const char* const WrenKeywords [] =
 {
-	"false", "true", "null", "break", "class", "construct", 
-	"else", "for", "foreign", "if", "import", "in", "is", 
-	"return", "static", "super", "var", "while", "this"
+	"break", "class", "construct", "else", "false", "for", 
+	"foreign", "if", "import", "in", "is", "null", "return", 
+	"static", "super", "this", "true", "var", "while"
 };
 
 static const tic_outline_item* getWrenOutline(const char* code, s32* size)
@@ -1344,8 +1363,10 @@ static const tic_outline_item* getWrenOutline(const char* code, s32* size)
 	return items;
 }
 
-void evalWren(tic_mem* tic, const char* code) {
-	printf("TODO: Wren eval not yet implemented\n.");
+void evalWren(tic_mem* memory, const char* code) 
+{
+	tic_machine* machine = (tic_machine*)memory;
+	wrenInterpret(machine->wren, code);
 }
 
 static const tic_script_config WrenSyntaxConfig = 
