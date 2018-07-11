@@ -14,7 +14,7 @@ RM= rm -f
 
 INCLUDES= \
 	-I$(3RD_PARTY)/lua-5.3.1/src \
-	-I$(3RD_PARTY)/zlib-1.2.8 \
+	-I$(3RD_PARTY)/zlib-1.2.11 \
 	-I$(3RD_PARTY)/giflib-5.1.4/lib \
 	-I$(3RD_PARTY)/SDL2-2.0.7/include \
 	-I$(3RD_PARTY)/sdl-gpu/include \
@@ -330,7 +330,7 @@ $(STUDIO_DLL): $(DEMO_ASSETS) $(TIC80_DLL) $(TIC_O) bin/html.o
 	$(CC) $(TIC_O) bin/html.o $(TIC80_A) $(OPT) -shared $(INCLUDES) -L$(PRE_BUILT)/mingw -llua -lz -lgif -Wl,--out-implib,$(STUDIO_A) -o $@
 
 emscripten:
-	$(EMS_CC) $(SOURCES) $(SYSTEM) $(TIC80_SRC) $(OPT) $(INCLUDES) $(EMS_OPT) $(EMS_LINKER_FLAGS) -o build/html/tic.js
+	$(EMS_CC) $(SOURCES) $(SYSTEM) $(TIC80_SRC) $(OPT) $(INCLUDES) $(EMS_OPT) -s WASM=0 $(EMS_LINKER_FLAGS) -o build/html/tic.js
 
 wasm:
 	$(EMS_CC) $(SOURCES) $(SYSTEM) $(TIC80_SRC) $(OPT) $(INCLUDES) $(EMS_OPT) -s WASM=1 $(EMS_LINKER_FLAGS) -o build/html/tic.js
