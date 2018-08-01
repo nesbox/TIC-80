@@ -3089,6 +3089,24 @@ static bool cmdInjectMap(Console* console, const char* param, const char* name)
 	return done;
 }
 
+static bool checkUIScale(Console* console, const char* param, const char* value)
+{
+	bool done = false;
+
+	if(strcmp(param, "-uiscale") == 0)
+	{
+		s32 scale = atoi(value);
+
+		if(scale > 0)
+		{
+			console->config->data.uiScale = scale;
+			done = true;
+		}
+	}
+
+	return done;
+}
+
 void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config, s32 argc, char **argv)
 {
 	if(!console->buffer) console->buffer = malloc(BufferSize(tic));
@@ -3191,7 +3209,8 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 
 				if(cmdInjectCode(console, first, second)
 					|| cmdInjectSprites(console, first, second)
-					|| cmdInjectMap(console, first, second))
+					|| cmdInjectMap(console, first, second)
+					|| checkUIScale(console, first, second))
 					argp |= mask;
 			}
 		}
