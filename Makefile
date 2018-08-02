@@ -21,6 +21,7 @@ INCLUDES= \
 	-I$(3RD_PARTY)/wren-0.1.0/src/include \
 	-I$(3RD_PARTY)/moonscript \
 	-I$(3RD_PARTY)/fennel \
+	-I$(3RD_PARTY)/squirrel3.1/include \
 	-I$(BLIPBUF_LIB) \
 	-I$(DUKTAPE_LIB) \
 	-I$(SDL_NET_LIB) \
@@ -48,6 +49,7 @@ LINUX_LIBS= \
 	-L$(3RD_PARTY)/wren-0.1.0/lib \
 	-L$(3RD_PARTY)/sdl-gpu/build/linux \
 	-L$(3RD_PARTY)/lua-5.3.1/src \
+	-L$(3RD_PARTY)/squirrel3.1/lib \
 	-L$(3RD_PARTY)/SDL2-2.0.7/build/.libs
 
 LINUX64_LIBS= \
@@ -66,6 +68,7 @@ LINUX_LINKER_LTO_FLAGS= \
 	-lsdlgpu \
 	-llua \
 	-lwren \
+	-lsquirrel -lsqstdlib -lstdc++ \
 	-lgif \
 	-ldl \
 	-lm \
@@ -77,6 +80,7 @@ LINUX_LINKER_LTO_FLAGS= \
 LINUX_LINKER_FLAGS= \
 	-llua \
 	-lwren \
+	-lsquirrel -lsqstdlib -lstdc++ \
 	-ldl \
 	-lm \
 	-lpthread \
@@ -103,6 +107,7 @@ EMS_LINKER_FLAGS= \
 	-L$(PRE_BUILT)/emscripten \
 	-llua \
 	-lwren \
+	-lsquirrel \
 	-lgif \
 	-lz \
 	-lsdlgpu
@@ -309,14 +314,17 @@ bin/jsapi.o: src/jsapi.c $(TIC80_H)
 bin/luaapi.o: src/luaapi.c $(TIC80_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
+bin/squirrelapi.o: src/squirrelapi.c $(TIC80_H)
+	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
+	
 bin/wrenapi.o: src/wrenapi.c $(TIC80_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
 bin/duktape.o: $(DUKTAPE_LIB)/duktape.c $(TIC80_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
-TIC80_SRC = src/tic80.c src/tic.c $(BLIP_SRC) src/jsapi.c src/luaapi.c src/wrenapi.c $(DUKTAPE_LIB)/duktape.c
-TIC80_O = bin/tic80.o bin/tic.o bin/tools.o bin/blip_buf.o bin/jsapi.o bin/luaapi.o bin/wrenapi.o bin/duktape.o bin/gif.o
+TIC80_SRC = src/tic80.c src/tic.c $(BLIP_SRC) src/jsapi.c src/luaapi.c src/wrenapi.c src/squirrelapi.c $(DUKTAPE_LIB)/duktape.c
+TIC80_O = bin/squirrelapi.o bin/tic80.o bin/tic.o bin/tools.o bin/blip_buf.o bin/jsapi.o bin/luaapi.o bin/wrenapi.o bin/duktape.o bin/gif.o
 TIC80_A = bin/libtic80.a
 TIC80_DLL = bin/tic80.dll
 
@@ -370,6 +378,7 @@ WREN_A=$(3RD_PARTY)/wren-0.1.0/lib/libwren.a
 SDLGPU_A=$(3RD_PARTY)/sdl-gpu/build/linux/libsdlgpu.a
 LUA_A=$(3RD_PARTY)/lua-5.3.1/src/liblua.a
 SDL2_A=$(3RD_PARTY)/SDL2-2.0.7/build/.libs/libSDL2.a
+SQUIRREL_A=$(3RD_PARTY)/squirrel3.1/lib/libsquirrel.a
 
 $(WREN_A):
 	make static -C $(3RD_PARTY)/wren-0.1.0/
@@ -383,7 +392,10 @@ $(LUA_A):
 $(SDL2_A):
 	cd $(3RD_PARTY)/SDL2-2.0.7/ && ./configure --enable-sndio=no && make && cd ../..
 
-linux: $(WREN_A) $(SDLGPU_A) $(LUA_A) $(SDL2_A)
+$(SQUIRREL_A):
+	cd $(3RD_PARTY)/squirrel3.1/ && make && cd ../..
+	
+linux: $(WREN_A) $(SDLGPU_A) $(LUA_A) $(SDL2_A) $(SQUIRREL_A)
 	$(CC) $(LINUX_INCLUDES) $(SOURCES) $(SYSTEM) $(LPEG_SRC) $(GIF_SRC) $(SOURCES_EXT) $(TIC80_SRC) $(OPT) $(INCLUDES) $(LINUX_LIBS) $(LINUX_LINKER_FLAGS) -o $(BIN_NAME)
 
 linux-pro:
