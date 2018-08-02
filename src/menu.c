@@ -24,7 +24,7 @@
 #include "fs.h"
 
 #define DIALOG_WIDTH (TIC80_WIDTH/2)
-#define DIALOG_HEIGHT (TIC80_HEIGHT/2-TOOLBAR_SIZE)
+#define DIALOG_HEIGHT (TIC80_HEIGHT/2)
 
 static const char* Rows[] = 
 {
@@ -32,7 +32,8 @@ static const char* Rows[] =
 	"RESET GAME",
 	"GAMEPAD CONFIG",
 	"",
-	"EXIT TO TIC-80",
+	"CLOSE GAME",
+	"QUIT TIC-80",
 };
 
 static void resumeGame(Menu* menu)
@@ -56,12 +57,12 @@ static void gamepadConfig(Menu* menu)
 	menu->gamepad.tab = 0;
 }
 
-static void exitToTIC(Menu* menu)
+static void closeGame(Menu* menu)
 {
 	exitFromGameMenu();
 }
 
-static void(*const MenuHandlers[])(Menu*) = {resumeGame, resetGame, gamepadConfig, NULL, exitToTIC};
+static void(*const MenuHandlers[])(Menu*) = {resumeGame, resetGame, gamepadConfig, NULL, closeGame, exitStudio};
 
 static tic_rect getRect(Menu* menu)
 {
@@ -252,7 +253,7 @@ static void drawGamepadMenu(Menu* menu)
 
 	static const char Label[] = "BACK";
 
-	tic_rect rect = {dlgRect.x + 25, dlgRect.y + 49, (sizeof(Label)-1)*tic->font.width, tic->font.height};
+	tic_rect rect = {dlgRect.x + 25, dlgRect.y + 56, (sizeof(Label)-1)*tic->font.width, tic->font.height};
 
 	bool over = false;
 	bool down = false;
