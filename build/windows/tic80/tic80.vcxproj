@@ -40,12 +40,22 @@
     <ClCompile Include="..\..\..\src\ext\gif.c" />
     <ClCompile Include="..\..\..\src\jsapi.c" />
     <ClCompile Include="..\..\..\src\luaapi.c" />
+    <ClCompile Include="..\..\..\src\squirrelapi.c" />
     <ClCompile Include="..\..\..\src\tic.c" />
     <ClCompile Include="..\..\..\src\tic80.c" />
     <ClCompile Include="..\..\..\src\tools.c" />
     <ClCompile Include="..\..\..\src\wrenapi.c" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\3rd-party\squirrel3.1\sqstdlib\sqstdlib.vcxproj">
+      <Project>{0db18a2f-37c4-4cad-8324-c449707ef93b}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\3rd-party\squirrel3.1\squirrel\squirrel.vcxproj">
+      <Project>{634f4d99-b265-45d1-852a-01aaa166c54b}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\3rd-party\SQUIRREL3\sqstdlib\sqstdlib.vcxproj">
+      <Project>{7a5c55b7-2f8c-4189-a666-7046d19b6db9}</Project>
+    </ProjectReference>
     <ProjectReference Include="..\gif\gif.vcxproj">
       <Project>{6ea9d998-7557-4aed-abfc-142f9960c9b6}</Project>
     </ProjectReference>
@@ -176,7 +186,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;TIC80_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;..\..\..\3rd-party\wren-0.1.0\src\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\fennel;..\..\..\3rd-party\squirrel3.1\include</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -191,7 +201,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>TIC80_PRO;WIN32;_DEBUG;_WINDOWS;_USRDLL;TIC80_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;..\..\..\3rd-party\wren-0.1.0\src\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\fennel;..\..\..\3rd-party\squirrel3.1\include</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -206,7 +216,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_WINDOWS;_USRDLL;TIC80_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;..\..\..\3rd-party\wren-0.1.0\src\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\fennel;..\..\..\3rd-party\squirrel3.1\include</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -221,7 +231,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>TIC80_PRO;_DEBUG;_WINDOWS;_USRDLL;TIC80_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;..\..\..\3rd-party\wren-0.1.0\src\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\fennel;..\..\..\3rd-party\squirrel3.1\include</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -238,7 +248,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;TIC80_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;..\..\..\3rd-party\wren-0.1.0\src\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\fennel;..\..\..\3rd-party\squirrel3.1\include</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -257,7 +267,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>TIC80_PRO;WIN32;NDEBUG;_WINDOWS;_USRDLL;TIC80_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;..\..\..\3rd-party\wren-0.1.0\src\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\fennel;..\..\..\3rd-party\squirrel3.1\include</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -276,7 +286,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;_USRDLL;TIC80_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;..\..\..\3rd-party\wren-0.1.0\src\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\fennel;..\..\..\3rd-party\squirrel3.1\include</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -295,7 +305,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>TIC80_PRO;NDEBUG;_WINDOWS;_USRDLL;TIC80_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;..\..\..\3rd-party\wren-0.1.0\src\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\duktape-2.2.0\src;..\..\..\3rd-party\blip-buf;..\..\..\3rd-party\moonscript;..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\fennel;..\..\..\3rd-party\squirrel3.1\include</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>

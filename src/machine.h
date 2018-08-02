@@ -134,6 +134,11 @@ typedef struct
 #if defined(TIC_BUILD_WITH_WREN)
 		struct WrenVM* wren;
 #endif	
+
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+		struct SQVM* squirrel;
+#endif
+
 	};
 
 	blip_buffer_t* blip;
@@ -168,6 +173,10 @@ s32 drawText(tic_mem* memory, const char* text, s32 x, s32 y, s32 width, s32 hei
 s32 drawSpriteFont(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale);
 s32 drawFixedSpriteFont(tic_mem* memory, u8 index, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale);
 void parseCode(const tic_script_config* config, const char* start, u8* color, const tic_code_theme* theme);
+
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+const tic_script_config* getSquirrelScriptConfig();
+#endif
 
 #if defined(TIC_BUILD_WITH_LUA)
 const tic_script_config* getLuaScriptConfig();

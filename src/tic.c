@@ -559,6 +559,10 @@ void tic_close(tic_mem* tic)
 
 	machine->state.initialized = false;
 
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+	getSquirrelScriptConfig()->close(tic);
+#endif
+
 #if defined(TIC_BUILD_WITH_LUA)
 	getLuaScriptConfig()->close(tic);
 
@@ -1586,12 +1590,19 @@ static const tic_script_config* getScriptConfig(const char* code)
 		return getWrenScriptConfig();
 #endif
 
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+	if (compareMetatag(code, "script", "squirrel", getSquirrelScriptConfig()->singleComment))
+		return getSquirrelScriptConfig();
+#endif
+
 #if defined(TIC_BUILD_WITH_LUA)
 	return getLuaScriptConfig();
 #elif defined(TIC_BUILD_WITH_JS)
 	return getJsScriptConfig();
 #elif defined(TIC_BUILD_WITH_WREN)
 	return getWrenScriptConfig();
+#elif defined(TIC_BUILD_WITH_SQUIRREL)
+	return getSquirrelScriptConfig();
 #endif
 }
 
