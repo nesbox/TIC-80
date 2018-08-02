@@ -12,7 +12,6 @@
 #include <emscripten.h>
 #endif
 
-#define STUDIO_UI_SCALE 3
 #define STUDIO_PIXEL_FORMAT GPU_FORMAT_RGBA
 #define TEXTURE_SIZE (TIC80_FULLWIDTH)
 #define OFFSET_LEFT ((TIC80_FULLWIDTH-TIC80_WIDTH)/2)
@@ -1180,7 +1179,8 @@ static s32 start(s32 argc, char **argv, const char* folder)
 
 	platform.studio = studioInit(argc, argv, platform.audio.spec.freq, folder, &systemInterface);
 
-	enum{Width = TIC80_FULLWIDTH * STUDIO_UI_SCALE, Height = TIC80_FULLHEIGHT * STUDIO_UI_SCALE};
+	const s32 Width = TIC80_FULLWIDTH * platform.studio->config()->uiScale;
+	const s32 Height = TIC80_FULLHEIGHT * platform.studio->config()->uiScale;
 
 	platform.window = SDL_CreateWindow( TIC_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 		Width, Height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE| SDL_WINDOW_OPENGL);
