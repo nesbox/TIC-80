@@ -342,12 +342,6 @@ typedef struct
 		{
 			tic_bank bank0;
 			tic_bank bank1;
-			tic_bank bank2;
-			tic_bank bank3;
-			tic_bank bank4;
-			tic_bank bank5;
-			tic_bank bank6;
-			tic_bank bank7;
 		};
 
 		tic_bank banks[TIC_BANKS];
