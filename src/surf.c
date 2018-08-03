@@ -670,7 +670,7 @@ static void onPlayCart(Surf* surf)
 		}
 	}
 	else
-		surf->console->load(surf->console, item->name);
+		surf->console->load(surf->console, item->name, item->hash);
 
 	runGameFromSurf();
 }

@@ -899,6 +899,26 @@ static bool onLoadPublicCart(const char* name, const char* info, s32 id, void* d
 	return true;
 }
 
+void* fsLoadFileByHash(FileSystem* fs, const char* hash, s32* size)
+{
+	char cachePath[FILENAME_MAX] = {0};
+	sprintf(cachePath, TIC_CACHE "%s.tic", hash);
+
+	{
+		void* data = fsLoadRootFile(fs, cachePath, size);
+		if(data) return data;
+	}
+
+	char path[FILENAME_MAX] = {0};
+	sprintf(path, "/cart/%s/cart.tic", hash);
+	void* data = getSystem()->getUrlRequest(path, size);
+
+	if(data)
+		fsSaveRootFile(fs, cachePath, data, *size, false);
+
+	return data;
+}
+
 void* fsLoadFile(FileSystem* fs, const char* name, s32* size)
 {
 	if(isPublic(fs))
@@ -912,24 +932,7 @@ void* fsLoadFile(FileSystem* fs, const char* name, s32* size)
 		fsEnumFiles(fs, onLoadPublicCart, &loadPublicCartData);
 
 		if(strlen(loadPublicCartData.hash))
-		{
-			char cachePath[FILENAME_MAX] = {0};
-			sprintf(cachePath, TIC_CACHE "%s.tic", loadPublicCartData.hash);
-
-			{
-				void* data = fsLoadRootFile(fs, cachePath, size);
-				if(data) return data;
-			}
-
-			char path[FILENAME_MAX] = {0};
-			sprintf(path, "/cart/%s/cart.tic", loadPublicCartData.hash);
-			void* data = getSystem()->getUrlRequest(path, size);
-
-			if(data)
-				fsSaveRootFile(fs, cachePath, data, *size, false);
-
-			return data;
-		}
+			return fsLoadFileByHash(fs, loadPublicCartData.hash, size);
 	}
 	else
 	{

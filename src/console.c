@@ -1081,6 +1081,26 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 	commandDone(console);
 }
 
+static void load(Console* console, const char* path, const char* hash)
+{
+	s32 size = 0;
+	const char* name = getCartName(path);
+
+	void* data = fsLoadFileByHash(console->fs, hash, &size);
+
+	if(data)
+	{
+		console->showGameMenu = true;
+
+		loadRom(console->tic, data, size, true);
+		onCartLoaded(console, name);
+
+		free(data);		
+	}
+
+	commandDone(console);
+}
+
 typedef void(*ConfirmCallback)(Console* console, const char* param);
 
 typedef struct
@@ -3117,7 +3137,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 	{
 		.tic = tic,
 		.config = config,
-		.load = onConsoleLoadCommandConfirmed,
+		.load = load,
 
 #if defined(TIC80_PRO)
 		.loadProject = loadProject,

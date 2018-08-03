@@ -57,6 +57,7 @@ bool fsDeleteDir(FileSystem* fs, const char* name);
 bool fsSaveFile(FileSystem* fs, const char* name, const void* data, size_t size, bool overwrite);
 bool fsSaveRootFile(FileSystem* fs, const char* name, const void* data, size_t size, bool overwrite);
 void* fsLoadFile(FileSystem* fs, const char* name, s32* size);
+void* fsLoadFileByHash(FileSystem* fs, const char* hash, s32* size);
 void* fsLoadRootFile(FileSystem* fs, const char* name, s32* size);
 void fsMakeDir(FileSystem* fs, const char* name);
 bool fsExistsFile(FileSystem* fs, const char* name);
