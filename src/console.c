@@ -45,7 +45,10 @@
 #define CONSOLE_ERROR_TEXT_COLOR ((tic_color_red))
 #define CONSOLE_CURSOR_BLINK_PERIOD (TIC_FRAMERATE)
 #define CONSOLE_CURSOR_DELAY (TIC_FRAMERATE / 2)
+#define CONSOLE_BUFFER_WIDTH (STUDIO_TEXT_BUFFER_WIDTH)
+#define CONSOLE_BUFFER_HEIGHT (STUDIO_TEXT_BUFFER_HEIGHT)
 #define CONSOLE_BUFFER_SCREENS 64
+#define CONSOLE_BUFFER_SIZE (CONSOLE_BUFFER_WIDTH * CONSOLE_BUFFER_HEIGHT * CONSOLE_BUFFER_SCREENS)
 
 typedef enum
 {
@@ -114,11 +117,7 @@ static const char DefaultJSTicPath[] = TIC_LOCAL "default_js.tic";
 #if defined(TIC_BUILD_WITH_WREN)
 static const char DefaultWrenTicPath[] = TIC_LOCAL "default_wren.tic";
 #endif
-
-static inline s32 BufferSize(const tic_mem* tic)
-{
-	return BufferWidth(tic) * BufferHeight(tic) * CONSOLE_BUFFER_SCREENS;
-}
+	
 
 static const char* getName(const char* name, const char* ext)
 {
@@ -140,33 +139,29 @@ static const char* getCartName(const char* name)
 	return getName(name, CART_EXT);
 }
 
-static void scrollBuffer(tic_mem* tic, char* buffer)
+static void scrollBuffer(char* buffer)
 {
-	memmove(buffer, buffer + BufferWidth(tic), BufferSize(tic) - BufferWidth(tic));
-	memset(buffer + BufferSize(tic) - BufferWidth(tic), 0, BufferWidth(tic));
+	memmove(buffer, buffer + CONSOLE_BUFFER_WIDTH, CONSOLE_BUFFER_SIZE - CONSOLE_BUFFER_WIDTH);
+	memset(buffer + CONSOLE_BUFFER_SIZE - CONSOLE_BUFFER_WIDTH, 0, CONSOLE_BUFFER_WIDTH);
 }
 
 static void scrollConsole(Console* console)
 {
-	tic_mem* tic = console->tic;
-
-	while(console->cursor.y >= BufferHeight(tic) * CONSOLE_BUFFER_SCREENS)
+	while(console->cursor.y >= CONSOLE_BUFFER_HEIGHT * CONSOLE_BUFFER_SCREENS)
 	{
-		scrollBuffer(tic, console->buffer);
-		scrollBuffer(tic, (char*)console->colorBuffer);
+		scrollBuffer(console->buffer);
+		scrollBuffer((char*)console->colorBuffer);
 
 		console->cursor.y--;
 	}
 
-	s32 minScroll = console->cursor.y - BufferHeight(tic) + 1;
+	s32 minScroll = console->cursor.y - CONSOLE_BUFFER_HEIGHT + 1;
 	if(console->scroll.pos < minScroll)
 		console->scroll.pos = minScroll;
 }
 
 static void consolePrint(Console* console, const char* text, u8 color)
 {
-	tic_mem* tic = console->tic;
-
 	printf("%s", text);
 
 	const char* textPointer = text;
@@ -185,13 +180,13 @@ static void consolePrint(Console* console, const char* text, u8 color)
 		}
 		else
 		{
-			s32 offset = console->cursor.x + console->cursor.y * BufferWidth(tic);
+			s32 offset = console->cursor.x + console->cursor.y * CONSOLE_BUFFER_WIDTH;
 			*(console->buffer + offset) = symbol;
 			*(console->colorBuffer + offset) = color;
 
 			console->cursor.x++;
 
-			if(console->cursor.x >= BufferWidth(tic))
+			if(console->cursor.x >= CONSOLE_BUFFER_WIDTH)
 			{
 				console->cursor.x = 0;
 				console->cursor.y++;
@@ -241,22 +236,20 @@ static void commandDone(Console* console)
 
 static void drawCursor(Console* console, s32 x, s32 y, u8 symbol)
 {
-	tic_mem* tic = console->tic;
 	bool inverse = console->cursor.delay || console->tickCounter % CONSOLE_CURSOR_BLINK_PERIOD < CONSOLE_CURSOR_BLINK_PERIOD / 2;
 
 	if(inverse)
-		console->tic->api.rect(console->tic, x-1, y-1, tic->font.width+1, tic->font.height+1, CONSOLE_CURSOR_COLOR);
+		console->tic->api.rect(console->tic, x-1, y-1, TIC_FONT_WIDTH+1, TIC_FONT_HEIGHT+1, CONSOLE_CURSOR_COLOR);
 
-	console->tic->api.draw_char(console->tic, symbol, x, y, inverse ? TIC_COLOR_BG : CONSOLE_FRONT_TEXT_COLOR);
+	console->tic->api.draw_char(console->tic, symbol, x, y, inverse ? TIC_COLOR_BG : CONSOLE_FRONT_TEXT_COLOR, false);
 }
 
 static void drawConsoleText(Console* console)
 {
-	tic_mem* tic = console->tic;
-	char* pointer = console->buffer + console->scroll.pos * BufferWidth(tic);
-	u8* colorPointer = console->colorBuffer + console->scroll.pos * BufferWidth(tic);
+	char* pointer = console->buffer + console->scroll.pos * CONSOLE_BUFFER_WIDTH;
+	u8* colorPointer = console->colorBuffer + console->scroll.pos * CONSOLE_BUFFER_WIDTH;
 
-	const char* end = console->buffer + BufferSize(tic);
+	const char* end = console->buffer + CONSOLE_BUFFER_SIZE;
 	s32 x = 0;
 	s32 y = 0;
 
@@ -266,9 +259,9 @@ static void drawConsoleText(Console* console)
 		u8 color = *colorPointer++;
 
 		if(symbol)
-			console->tic->api.draw_char(console->tic, symbol, x * TextWidth(tic), y * TextHeight(tic), color);
+			console->tic->api.draw_char(console->tic, symbol, x * STUDIO_TEXT_WIDTH, y * STUDIO_TEXT_HEIGHT, color, false);
 
-		if(++x == BufferWidth(tic))
+		if(++x == CONSOLE_BUFFER_WIDTH)
 		{
 			y++;
 			x = 0;
@@ -278,9 +271,8 @@ static void drawConsoleText(Console* console)
 
 static void drawConsoleInputText(Console* console)
 {
-	tic_mem* tic = console->tic;
-	s32 x = console->cursor.x * TextWidth(tic);
-	s32 y = (console->cursor.y - console->scroll.pos) * TextHeight(tic);
+	s32 x = console->cursor.x * STUDIO_TEXT_WIDTH;
+	s32 y = (console->cursor.y - console->scroll.pos) * STUDIO_TEXT_HEIGHT;
 
 	const char* pointer = console->inputBuffer;
 	const char* end = pointer + strlen(console->inputBuffer);
@@ -293,14 +285,14 @@ static void drawConsoleInputText(Console* console)
 		if(console->inputPosition == index)
 			drawCursor(console, x, y, symbol);
 		else
-			console->tic->api.draw_char(console->tic, symbol, x, y, CONSOLE_FRONT_TEXT_COLOR);
+			console->tic->api.draw_char(console->tic, symbol, x, y, CONSOLE_FRONT_TEXT_COLOR, false);
 
 		index++;
 
-		x += TextWidth(tic);
-		if(x == (BufferWidth(tic) * TextWidth(tic)))
+		x += STUDIO_TEXT_WIDTH;
+		if(x == (CONSOLE_BUFFER_WIDTH * STUDIO_TEXT_WIDTH))
 		{
-			y += TextHeight(tic);
+			y += STUDIO_TEXT_HEIGHT;
 			x = 0;
 		}
 
@@ -1382,9 +1374,8 @@ static void onConsoleFolderCommand(Console* console, const char* param)
 
 static void onConsoleClsCommand(Console* console, const char* param)
 {
-	tic_mem* tic = console->tic;
-	memset(console->buffer, 0, BufferSize(tic));
-	memset(console->colorBuffer, TIC_COLOR_BG, BufferSize(tic));
+	memset(console->buffer, 0, CONSOLE_BUFFER_SIZE);
+	memset(console->colorBuffer, TIC_COLOR_BG, CONSOLE_BUFFER_SIZE);
 	console->scroll.pos = 0;
 	console->cursor.x = console->cursor.y = 0;
 
@@ -2325,8 +2316,6 @@ static void onConsoleDelCommand(Console* console, const char* param)
 
 static void printTable(Console* console, const char* text)
 {
-	tic_mem* tic = console->tic;
-
 	printf("%s", text);
 
 	const char* textPointer = text;
@@ -2345,7 +2334,7 @@ static void printTable(Console* console, const char* text)
 		}
 		else
 		{
-			s32 offset = console->cursor.x + console->cursor.y * BufferWidth(tic);
+			s32 offset = console->cursor.x + console->cursor.y * CONSOLE_BUFFER_WIDTH;
 			*(console->buffer + offset) = symbol;
 
 			u8 color = 0;
@@ -2365,7 +2354,7 @@ static void printTable(Console* console, const char* text)
 
 			console->cursor.x++;
 
-			if(console->cursor.x >= BufferWidth(tic))
+			if(console->cursor.x >= CONSOLE_BUFFER_WIDTH)
 			{
 				console->cursor.x = 0;
 				console->cursor.y++;
@@ -2377,7 +2366,7 @@ static void printTable(Console* console, const char* text)
 
 static void printRamInfo(Console* console, s32 addr, const char* name, s32 size)
 {
-	char buf[TIC80_WIDTH];
+	char buf[STUDIO_TEXT_BUFFER_WIDTH];
 	sprintf(buf, "\n| %05X | %-17s | %-5i |", addr, name, size);
 	printTable(console, buf);
 }
@@ -3129,8 +3118,8 @@ static bool checkUIScale(Console* console, const char* param, const char* value)
 
 void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config, s32 argc, char **argv)
 {
-	if(!console->buffer) console->buffer = malloc(BufferSize(tic));
-	if(!console->colorBuffer) console->colorBuffer = malloc(BufferSize(tic));
+	if(!console->buffer) console->buffer = malloc(CONSOLE_BUFFER_SIZE);
+	if(!console->colorBuffer) console->colorBuffer = malloc(CONSOLE_BUFFER_SIZE);
 	if(!console->embed.file) console->embed.file = malloc(sizeof(tic_cartridge));
 
 	*console = (Console)
@@ -3182,8 +3171,8 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 		.crtMonitor = false,
 	};
 
-	memset(console->buffer, 0, BufferSize(tic));
-	memset(console->colorBuffer, TIC_COLOR_BG, BufferSize(tic));
+	memset(console->buffer, 0, CONSOLE_BUFFER_SIZE);
+	memset(console->colorBuffer, TIC_COLOR_BG, CONSOLE_BUFFER_SIZE);
 
 	memset(console->codeLiveReload.fileName, 0, FILENAME_MAX);
 

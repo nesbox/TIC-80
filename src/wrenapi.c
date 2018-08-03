@@ -397,7 +397,9 @@ static void wren_print(WrenVM* vm)
 		return;
 	}
 
-	s32 size = memory->api.text_ex(memory, text, x, y, color, fixed, scale);
+	bool alt = wrenGetSlotBool(vm, 7);
+
+	s32 size = memory->api.text_ex(memory, text, x, y, color, fixed, scale, alt);
 
 	wrenSetSlotDouble(vm, 0, size);
 }
@@ -422,6 +424,7 @@ static void wren_font(WrenVM* vm)
 		u8 chromakey = 0;
 		bool fixed = false;
 		s32 scale = 1;
+		bool alt = false;
 
 		if(top > 3)
 		{
@@ -444,6 +447,11 @@ static void wren_font(WrenVM* vm)
 						if(top > 8)
 						{
 							scale = getWrenNumber(vm, 8);
+
+							if(top > 9)
+							{
+								alt = wrenGetSlotBool(vm, 9);
+							}
 						}
 					}
 				}
@@ -456,7 +464,7 @@ static void wren_font(WrenVM* vm)
 			return;
 		}
 
-		s32 size = drawText(memory, text ? text : "null", x, y, width, height, chromakey, scale, fixed ? drawSpriteFont : drawFixedSpriteFont);
+		s32 size = drawText(memory, text ? text : "null", x, y, width, height, chromakey, scale, fixed ? drawSpriteFont : drawFixedSpriteFont, alt);
 		wrenSetSlotDouble(vm, 0, size);
 	}
 }

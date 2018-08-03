@@ -206,34 +206,6 @@ static void readCodeTheme(Config* config, lua_State* lua)
 	lua_pop(lua, 1);
 }
 
-static void readFontTheme(Config* config, lua_State* lua)
-{
-	lua_getfield(lua, -1, "FONT");
-
-	if(lua_type(lua, -1) == LUA_TTABLE)
-	{
-		{
-			lua_getfield(lua, -1, "WIDTH");
-
-			if(lua_isinteger(lua, -1))
-				config->data.theme.font.width = lua_tointeger(lua, -1);
-
-			lua_pop(lua, 1);
-		}
-
-		{
-			lua_getfield(lua, -1, "HEIGHT");
-
-			if(lua_isinteger(lua, -1))
-				config->data.theme.font.height = lua_tointeger(lua, -1);
-
-			lua_pop(lua, 1);
-		}
-	}
-
-	lua_pop(lua, 1);
-}
-
 static void readGamepadTheme(Config* config, lua_State* lua)
 {
 	lua_getfield(lua, -1, "GAMEPAD");
@@ -267,7 +239,6 @@ static void readTheme(Config* config, lua_State* lua)
 		readCursorTheme(config, lua);
 		readCodeTheme(config, lua);
 		readGamepadTheme(config, lua);
-		readFontTheme(config, lua);
 	}
 
 	lua_pop(lua, 1);

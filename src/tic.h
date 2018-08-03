@@ -53,6 +53,9 @@
 
 #define TIC_VRAM_SIZE (16*1024) //16K
 #define TIC_RAM_SIZE (80*1024) //80K
+#define TIC_FONT_WIDTH 6
+#define TIC_FONT_HEIGHT 6
+#define TIC_ALTFONT_WIDTH 4
 #define TIC_PALETTE_BPP 4
 #define TIC_PALETTE_SIZE (1 << TIC_PALETTE_BPP)
 #define TIC_FRAMERATE 60
@@ -109,6 +112,7 @@
 #define TIC_GAMEPADS (sizeof(tic80_gamepads) / sizeof(tic80_gamepad))
 
 #define SFX_NOTES {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+#define TIC_FONT_CHARS 256
 
 enum
 {
@@ -349,6 +353,11 @@ typedef struct
 	
 	tic_cover_image cover;
 } tic_cartridge;
+
+typedef struct
+{
+	u8 data[TIC_FONT_CHARS * BITS_IN_BYTE];
+} tic_font;
 
 typedef struct
 {
