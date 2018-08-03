@@ -328,7 +328,7 @@ static void drawTileIndex(Map* map, s32 x, s32 y)
 	{
 		char buf[] = "#999";
 		sprintf(buf, "#%03i", index);
-		map->tic->api.text(map->tic, buf, x, y, (tic_color_light_blue));
+		map->tic->api.text(map->tic, buf, x, y, (tic_color_light_blue), false);
 	}
 }
 
@@ -424,7 +424,7 @@ static void drawCursorPos(Map* map, s32 x, s32 y)
 
 	sprintf(pos, "%03i:%03i", tx, ty);
 
-	s32 width = map->tic->api.text(map->tic, pos, TIC80_WIDTH, 0, (tic_color_gray));
+	s32 width = map->tic->api.text(map->tic, pos, TIC80_WIDTH, 0, (tic_color_gray), false);
 
 	s32 px = x + (TIC_SPRITESIZE + 3);
 	if(px + width >= TIC80_WIDTH) px = x - (width + 2);
@@ -433,7 +433,7 @@ static void drawCursorPos(Map* map, s32 x, s32 y)
 	if(py <= TOOLBAR_SIZE) py = y + (TIC_SPRITESIZE + 3);
 
 	map->tic->api.rect(map->tic, px - 1, py - 1, width + 1, TIC_FONT_HEIGHT + 1, (tic_color_white));
-	map->tic->api.text(map->tic, pos, px, py, (tic_color_light_blue));
+	map->tic->api.text(map->tic, pos, px, py, (tic_color_light_blue), false);
 }
 
 static void setMapSprite(Map* map, s32 x, s32 y)

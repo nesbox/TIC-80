@@ -615,25 +615,25 @@ static void api_clear(tic_mem* memory, u8 color)
 	}
 }
 
-static s32 drawChar(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale)
+static s32 drawChar(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale, bool alt)
 {
-	const u8* ptr = memory->font.data + symbol*BITS_IN_BYTE;
+	const u8* ptr = memory->font.data + (symbol + (alt ? TIC_FONT_CHARS / 2 : 0))*BITS_IN_BYTE;
 	x += (BITS_IN_BYTE - 1)*scale;
 
 	for(s32 i = 0, ys = y; i < TIC_FONT_HEIGHT; i++, ptr++, ys += scale)
-		for(s32 col = BITS_IN_BYTE - TIC_FONT_WIDTH, xs = x - col; col < BITS_IN_BYTE; col++, xs -= scale)
+		for(s32 col = BITS_IN_BYTE - (alt ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH), xs = x - col; col < BITS_IN_BYTE; col++, xs -= scale)
 			if(*ptr & 1 << col)
 				api_rect(memory, xs, ys, scale, scale, color);
 
-	return TIC_FONT_WIDTH*scale;
+	return (alt ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH)*scale;
 }
 
-static s32 api_draw_char(tic_mem* memory, u8 symbol, s32 x, s32 y, u8 color)
+static s32 api_draw_char(tic_mem* memory, u8 symbol, s32 x, s32 y, u8 color, bool alt)
 {
-	return drawChar(memory, symbol, x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT, color, 1);
+	return drawChar(memory, symbol, x, y, alt ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH, TIC_FONT_HEIGHT, color, 1, alt);
 }
 
-s32 drawText(tic_mem* memory, const char* text, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale, DrawCharFunc* func)
+s32 drawText(tic_mem* memory, const char* text, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale, DrawCharFunc* func, bool alt)
 {
 	s32 pos = x;
 	s32 max = x;
@@ -649,26 +649,28 @@ s32 drawText(tic_mem* memory, const char* text, s32 x, s32 y, s32 width, s32 hei
 			pos = x;
 			y += height * scale;
 		}
-		else pos += func(memory, sym, pos, y, width, height, color, scale);
+		else pos += func(memory, sym, pos, y, width, height, color, scale, alt);
 	}
 
 	return pos > max ? pos - x : max - x;
 }
 
-static s32 api_fixed_text(tic_mem* memory, const char* text, s32 x, s32 y, u8 color)
+static s32 api_fixed_text(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, bool alt)
 {
-	return drawText(memory, text, x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT, color, 1, drawChar);
+	return drawText(memory, text, x, y, alt ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH, TIC_FONT_HEIGHT, color, 1, drawChar, alt);
 }
 
-static s32 drawNonFixedChar(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale)
+static s32 drawNonFixedChar(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale, bool alt)
 {
-	const u8* ptr = memory->font.data + (symbol)*BITS_IN_BYTE;
+	const u8* ptr = memory->font.data + (symbol)*BITS_IN_BYTE + (alt ? TIC_FONT_CHARS / 2 : 0);
+
+	const s32 FontWidth = alt ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH;
 
 	s32 start = 0;
-	s32 end = TIC_FONT_WIDTH;
+	s32 end = FontWidth;
 	s32 i = 0;
 
-	for(s32 col = 0; col < TIC_FONT_WIDTH; col++)
+	for(s32 col = 0; col < FontWidth; col++)
 	{
 		for(i = 0; i < TIC_FONT_HEIGHT; i++)
 			if(*(ptr + i) & 0b10000000 >> col) break;
@@ -678,7 +680,7 @@ static s32 drawNonFixedChar(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width,
 
 	x -= start * scale;
 	
-	for(s32 col = TIC_FONT_WIDTH - 1; col >= start; col--)
+	for(s32 col = FontWidth - 1; col >= start; col--)
 	{
 		for(i = 0; i < TIC_FONT_HEIGHT; i++)
 			if(*(ptr + i) & 0b10000000 >> col) break;
@@ -692,17 +694,17 @@ static s32 drawNonFixedChar(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width,
 				api_rect(memory, xs, ys, scale, scale, color);
 
 	s32 size = end - start;
-	return (size ? size + 1 : TIC_FONT_WIDTH - 2) * scale;
+	return (size ? size + 1 : FontWidth - 2) * scale;
 }
 
-static s32 api_text(tic_mem* memory, const char* text, s32 x, s32 y, u8 color)
+static s32 api_text(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, bool alt)
 {
-	return drawText(memory, text, x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT, color, 1, drawNonFixedChar);
+	return drawText(memory, text, x, y, alt ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH, TIC_FONT_HEIGHT, color, 1, drawNonFixedChar, alt);
 }
 
-static s32 api_text_ex(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, bool fixed, s32 scale)
+static s32 api_text_ex(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, bool fixed, s32 scale, bool alt)
 {
-	return drawText(memory, text, x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT, color, scale, fixed ? drawChar : drawNonFixedChar);
+	return drawText(memory, text, x, y, alt ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH, TIC_FONT_HEIGHT, color, scale, fixed ? drawChar : drawNonFixedChar, alt);
 }
 
 static void drawSprite(tic_mem* memory, const tic_tiles* src, s32 index, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
@@ -753,14 +755,14 @@ static void api_sprite_ex(tic_mem* memory, const tic_tiles* src, s32 index, s32 
 	}
 }
 
-s32 drawSpriteFont(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale)
+s32 drawSpriteFont(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale, bool alt)
 {
 	api_sprite_ex(memory, &memory->ram.sprites, symbol, x, y, 1, 1, &chromakey, 1, scale, tic_no_flip, tic_no_rotate);
 
 	return width * scale;
 }
 
-s32 drawFixedSpriteFont(tic_mem* memory, u8 index, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale)
+s32 drawFixedSpriteFont(tic_mem* memory, u8 index, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale, bool alt)
 {
 	const u8* ptr = memory->ram.sprites.data[index].data;
 

@@ -121,10 +121,10 @@ struct tic_script_config
 
 typedef struct
 {
-	s32  (*draw_char)			(tic_mem* memory, u8 symbol, s32 x, s32 y, u8 color);
-	s32  (*text)				(tic_mem* memory, const char* text, s32 x, s32 y, u8 color);
-	s32  (*fixed_text)			(tic_mem* memory, const char* text, s32 x, s32 y, u8 color);
-	s32  (*text_ex)				(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, bool fixed, s32 scale);
+	s32  (*draw_char)			(tic_mem* memory, u8 symbol, s32 x, s32 y, u8 color, bool alt);
+	s32  (*text)				(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, bool alt);
+	s32  (*fixed_text)			(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, bool alt);
+	s32  (*text_ex)				(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, bool fixed, s32 scale, bool alt);
 	void (*clear)				(tic_mem* memory, u8 color);
 	void (*pixel)				(tic_mem* memory, s32 x, s32 y, u8 color);
 	u8   (*get_pixel)			(tic_mem* memory, s32 x, s32 y);

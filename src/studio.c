@@ -595,7 +595,7 @@ static void drawBankIcon(s32 x, s32 y)
 			if(i == impl.bank.indexes[mode])
 				tic->api.rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_red);
 
-			tic->api.draw_char(tic, '0' + i, rect.x+1, rect.y+1, i == impl.bank.indexes[mode] ? tic_color_white : over ? tic_color_red : tic_color_peach);
+			tic->api.draw_char(tic, '0' + i, rect.x+1, rect.y+1, i == impl.bank.indexes[mode] ? tic_color_white : over ? tic_color_red : tic_color_peach, false);
 
 		}
 
@@ -764,11 +764,11 @@ void drawToolbar(tic_mem* tic, u8 color, bool bg)
 	{
 		if(strlen(impl.tooltip.text))
 		{
-			impl.studio.tic->api.text(tic, impl.tooltip.text, TextOffset, 1, (tic_color_black));
+			impl.studio.tic->api.text(tic, impl.tooltip.text, TextOffset, 1, (tic_color_black), false);
 		}
 		else
 		{
-			impl.studio.tic->api.text(tic, Names[mode], TextOffset, 1, (tic_color_dark_gray));
+			impl.studio.tic->api.text(tic, Names[mode], TextOffset, 1, (tic_color_dark_gray), false);
 		}
 	}
 }
@@ -1538,7 +1538,7 @@ static void drawPopup()
 		impl.studio.tic->api.rect(impl.studio.tic, 0, anim, TIC80_WIDTH, TIC_FONT_HEIGHT+1, (tic_color_red));
 		impl.studio.tic->api.text(impl.studio.tic, impl.popup.message, 
 			(s32)(TIC80_WIDTH - strlen(impl.popup.message)*TIC_FONT_WIDTH)/2,
-			anim + 1, (tic_color_white));
+			anim + 1, (tic_color_white), false);
 	}
 }
 

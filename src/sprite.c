@@ -366,8 +366,8 @@ static void drawCanvas(Sprite* sprite, s32 x, s32 y)
 
 		s32 ix = x + (CANVAS_SIZE - 4*TIC_FONT_WIDTH)/2;
 		s32 iy = TIC_SPRITESIZE + 2;
-		sprite->tic->api.text(sprite->tic, buf, ix, iy+1, (tic_color_black));
-		sprite->tic->api.text(sprite->tic, buf, ix, iy, (tic_color_white));
+		sprite->tic->api.text(sprite->tic, buf, ix, iy+1, (tic_color_black), false);
+		sprite->tic->api.text(sprite->tic, buf, ix, iy, (tic_color_white), false);
 	}
 
 	sprite->tic->api.rect_border(sprite->tic, x-1, y-1, CANVAS_SIZE+2, CANVAS_SIZE+2, (tic_color_white));
@@ -692,7 +692,7 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 		{
 			char buf[] = "FF";
 			sprintf(buf, "%02X", *value);
-			sprite->tic->api.text(sprite->tic, buf, x - 18, y - 2, (tic_color_dark_gray));
+			sprite->tic->api.text(sprite->tic, buf, x - 18, y - 2, (tic_color_dark_gray), false);
 		}
 	}
 
@@ -1535,7 +1535,7 @@ static void drawSpriteToolbar(Sprite* sprite)
 		static const char Label[] = "BG";
 		tic_rect rect = {TIC80_WIDTH - 2 * TIC_FONT_WIDTH - 2, 0, 2 * TIC_FONT_WIDTH + 1, TIC_SPRITESIZE-1};
 		sprite->tic->api.rect(sprite->tic, rect.x, rect.y, rect.w, rect.h, bg ? (tic_color_black) : (tic_color_gray));
-		sprite->tic->api.fixed_text(sprite->tic, Label, rect.x+1, rect.y+1, (tic_color_white));
+		sprite->tic->api.fixed_text(sprite->tic, Label, rect.x+1, rect.y+1, (tic_color_white), false);
 
 		if(checkMousePos(&rect))
 		{
@@ -1555,7 +1555,7 @@ static void drawSpriteToolbar(Sprite* sprite)
 		static const char Label[] = "FG";
 		tic_rect rect = {TIC80_WIDTH - 4 * TIC_FONT_WIDTH - 4, 0, 2 * TIC_FONT_WIDTH + 1, TIC_SPRITESIZE-1};
 		sprite->tic->api.rect(sprite->tic, rect.x, rect.y, rect.w, rect.h, bg ? (tic_color_gray) : (tic_color_black));
-		sprite->tic->api.fixed_text(sprite->tic, Label, rect.x+1, rect.y+1, (tic_color_white));
+		sprite->tic->api.fixed_text(sprite->tic, Label, rect.x+1, rect.y+1, (tic_color_white), false);
 
 		if(checkMousePos(&rect))
 		{

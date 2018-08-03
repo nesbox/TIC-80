@@ -49,7 +49,7 @@ static void drawStatus(Code* code)
 {
 	const s32 Height = TIC_FONT_HEIGHT + 1;
 	code->tic->api.rect(code->tic, 0, TIC80_HEIGHT - Height, TIC80_WIDTH, Height, (tic_color_white));
-	code->tic->api.fixed_text(code->tic, code->status, 0, TIC80_HEIGHT - TIC_FONT_HEIGHT, getConfig()->theme.code.bg);
+	code->tic->api.fixed_text(code->tic, code->status, 0, TIC80_HEIGHT - TIC_FONT_HEIGHT, getConfig()->theme.code.bg, false);
 }
 
 static void drawCursor(Code* code, s32 x, s32 y, char symbol)
@@ -58,16 +58,16 @@ static void drawCursor(Code* code, s32 x, s32 y, char symbol)
 
 	if(inverse)
 	{
-		code->tic->api.rect(code->tic, x-1, y-1, TIC_FONT_WIDTH+1, TIC_FONT_HEIGHT+1, getConfig()->theme.code.cursor);
+		code->tic->api.rect(code->tic, x-1, y-1, (code->altFont ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH)+1, TIC_FONT_HEIGHT+1, getConfig()->theme.code.cursor);
 
 		if(symbol)
-			code->tic->api.draw_char(code->tic, symbol, x, y, getConfig()->theme.code.bg);
+			code->tic->api.draw_char(code->tic, symbol, x, y, getConfig()->theme.code.bg, code->altFont);
 	}
 }
 
 static void drawCode(Code* code, bool withCursor)
 {
-	s32 xStart = code->rect.x - code->scroll.x * STUDIO_TEXT_WIDTH;
+	s32 xStart = code->rect.x - code->scroll.x * (code->altFont ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH);
 	s32 x = xStart;
 	s32 y = code->rect.y - code->scroll.y * STUDIO_TEXT_HEIGHT;
 	char* pointer = code->src;
@@ -89,10 +89,10 @@ static void drawCode(Code* code, bool withCursor)
 				code->tic->api.rect(code->tic, x-1, y-1, TIC_FONT_WIDTH+1, TIC_FONT_HEIGHT+1, getConfig()->theme.code.select);
 			else if(getConfig()->theme.code.shadow)
 			{
-				code->tic->api.draw_char(code->tic, symbol, x+1, y+1, 0);
+				code->tic->api.draw_char(code->tic, symbol, x+1, y+1, 0, code->altFont);
 			}
 
-			code->tic->api.draw_char(code->tic, symbol, x, y, *colorPointer);			
+			code->tic->api.draw_char(code->tic, symbol, x, y, *colorPointer, code->altFont);	
 		}
 
 		if(code->cursor.position == pointer)
@@ -103,7 +103,7 @@ static void drawCode(Code* code, bool withCursor)
 			x = xStart;
 			y += STUDIO_TEXT_HEIGHT;
 		}
-		else x += STUDIO_TEXT_WIDTH;
+		else x += (code->altFont ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH);
 
 		pointer++;
 		colorPointer++;
@@ -966,7 +966,7 @@ static void processMouse(Code* code)
 		{
 			if(checkMouseDown(&code->rect, tic_mouse_right))
 			{
-				code->scroll.x = (code->scroll.start.x - getMouseX()) / STUDIO_TEXT_WIDTH;
+				code->scroll.x = (code->scroll.start.x - getMouseX()) / (code->altFont ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH);
 				code->scroll.y = (code->scroll.start.y - getMouseY()) / STUDIO_TEXT_HEIGHT;
 
 				normalizeScroll(code);
@@ -980,7 +980,7 @@ static void processMouse(Code* code)
 				s32 mx = getMouseX();
 				s32 my = getMouseY();
 
-				s32 x = (mx - code->rect.x) / STUDIO_TEXT_WIDTH;
+				s32 x = (mx - code->rect.x) / (code->altFont ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH);
 				s32 y = (my - code->rect.y) / STUDIO_TEXT_HEIGHT;
 
 				char* position = code->cursor.position;
@@ -1009,7 +1009,7 @@ static void processMouse(Code* code)
 			{
 				code->scroll.active = true;
 
-				code->scroll.start.x = getMouseX() + code->scroll.x * STUDIO_TEXT_WIDTH;
+				code->scroll.start.x = getMouseX() + code->scroll.x * (code->altFont ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH);
 				code->scroll.start.y = getMouseY() + code->scroll.y * STUDIO_TEXT_HEIGHT;
 			}
 
@@ -1061,9 +1061,9 @@ static void drawPopupBar(Code* code, const char* title)
 	enum {TextY = TOOLBAR_SIZE + 1};
 
 	code->tic->api.rect(code->tic, 0, TOOLBAR_SIZE, TIC80_WIDTH, TIC_FONT_HEIGHT + 1, (tic_color_blue));
-	code->tic->api.fixed_text(code->tic, title, 0, TextY, (tic_color_white));
+	code->tic->api.fixed_text(code->tic, title, 0, TextY, (tic_color_white), false);
 
-	code->tic->api.fixed_text(code->tic, code->popup.text, (s32)strlen(title)*TIC_FONT_WIDTH, TextY, (tic_color_white));
+	code->tic->api.fixed_text(code->tic, code->popup.text, (s32)strlen(title)*TIC_FONT_WIDTH, TextY, (tic_color_white), false);
 
 	drawCursor(code, (s32)(strlen(title) + strlen(code->popup.text)) * TIC_FONT_WIDTH, TextY, ' ');
 }
@@ -1248,12 +1248,12 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 			rect.w + 1, TIC_FONT_HEIGHT + 1, (tic_color_red));
 		while(ptr->pos)
 		{
-			code->tic->api.fixed_text(code->tic, ptr->name, x, y, (tic_color_white));
+			code->tic->api.fixed_text(code->tic, ptr->name, x, y, (tic_color_white), false);
 			ptr++;
 			y += STUDIO_TEXT_HEIGHT;
 		}
 	}
-	else code->tic->api.fixed_text(code->tic, "(empty)", x, y, (tic_color_white));
+	else code->tic->api.fixed_text(code->tic, "(empty)", x, y, (tic_color_white), false);
 }
 
 static void textOutlineTick(Code* code)
@@ -1306,6 +1306,32 @@ static void textOutlineTick(Code* code)
 	drawPopupBar(code, " FUNC:");
 	drawStatus(code);
 	drawOutlineBar(code, TIC80_WIDTH - 12 * TIC_FONT_WIDTH, 2*(TIC_FONT_HEIGHT+1));
+}
+
+static void drawFontButton(Code* code, s32 x, s32 y)
+{
+	tic_mem* tic = code->tic;
+
+	enum {Size = TIC_FONT_WIDTH};
+	tic_rect rect = {x, y, Size, Size};
+
+	bool over = false;
+	if(checkMousePos(&rect))
+	{
+		setCursor(tic_cursor_hand);
+
+		showTooltip("SWITCH FONT");
+
+		over = true;
+
+		if(checkMouseClick(&rect, tic_mouse_left))
+		{
+			code->altFont = !code->altFont;
+		}
+	}
+
+
+	tic->api.draw_char(tic, 'F', x, y, over ? tic_color_dark_gray : tic_color_light_blue, code->altFont);
 }
 
 static void drawCodeToolbar(Code* code)
@@ -1392,6 +1418,8 @@ static void drawCodeToolbar(Code* code)
 		drawBitIcon(rect.x, rect.y, Icons + i*BITS_IN_BYTE, active ? (tic_color_white) : (over ? (tic_color_dark_gray) : (tic_color_light_blue)));
 	}
 
+	drawFontButton(code, TIC80_WIDTH - (Count+2) * Size, 1);
+
 	drawToolbar(code->tic, getConfig()->theme.code.bg, false);
 }
 
@@ -1472,6 +1500,7 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
 			.items = code->outline.items,
 			.index = 0,
 		},
+		.altFont = true,
 		.event = onStudioEvent,
 		.update = update,
 	};

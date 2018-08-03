@@ -933,6 +933,7 @@ static s32 lua_font(lua_State* lua)
 		u8 chromakey = 0;
 		bool fixed = false;
 		s32 scale = 1;
+		bool alt = false;
 
 		if(top >= 3)
 		{
@@ -955,6 +956,11 @@ static s32 lua_font(lua_State* lua)
 						if(top >= 8)
 						{
 							scale = getLuaNumber(lua, 8);
+
+							if(top >= 9)
+							{
+								alt = lua_toboolean(lua, 9);
+							}
 						}
 					}
 				}
@@ -967,7 +973,7 @@ static s32 lua_font(lua_State* lua)
 			return 1;
 		}
 
-		s32 size = drawText(memory, text, x, y, width, height, chromakey, scale, fixed ? drawSpriteFont : drawFixedSpriteFont);
+		s32 size = drawText(memory, text, x, y, width, height, chromakey, scale, fixed ? drawSpriteFont : drawFixedSpriteFont, alt);
 
 		lua_pushinteger(lua, size);
 
@@ -991,6 +997,7 @@ static s32 lua_print(lua_State* lua)
 		s32 color = TIC_PALETTE_SIZE-1;
 		bool fixed = false;
 		s32 scale = 1;
+		bool alt = false;
 
 		const char* text = printString(lua, 1);
 
@@ -1010,6 +1017,11 @@ static s32 lua_print(lua_State* lua)
 					if(top >= 6)
 					{
 						scale = getLuaNumber(lua, 6);
+
+						if(top >= 7)
+						{
+							alt = lua_toboolean(lua, 7);
+						}
 					}
 				}
 			}
@@ -1021,7 +1033,7 @@ static s32 lua_print(lua_State* lua)
 			return 1;
 		}
 
-		s32 size = memory->api.text_ex(memory, text ? text : "nil", x, y, color, fixed, scale);
+		s32 size = memory->api.text_ex(memory, text ? text : "nil", x, y, color, fixed, scale, alt);
 
 		lua_pushinteger(lua, size);
 

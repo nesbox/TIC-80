@@ -98,6 +98,8 @@ struct Code
 		s32 index;
 	} outline;
 
+	bool altFont;
+
 	void(*tick)(Code*);
 	void(*escape)(Code*);
 	void(*event)(Code*, StudioEvent);

@@ -119,8 +119,8 @@ static void drawDialog(Menu* menu)
 
 	{
 		static const char Label[] = "GAME MENU";
-		s32 size = tic->api.text(tic, Label, 0, -TIC_FONT_HEIGHT, 0);
-		tic->api.text(tic, Label, rect.x + (DIALOG_WIDTH - size)/2, rect.y-(TOOLBAR_SIZE-2), (tic_color_gray));
+		s32 size = tic->api.text(tic, Label, 0, -TIC_FONT_HEIGHT, 0, false);
+		tic->api.text(tic, Label, rect.x + (DIALOG_WIDTH - size)/2, rect.y-(TOOLBAR_SIZE-2), (tic_color_gray), false);
 	}
 
 	{
@@ -157,7 +157,7 @@ static void drawTabDisabled(Menu* menu, s32 x, s32 y, s32 id)
 	{
 		char buf[] = "#1";
 		sprintf(buf, "#%i", id+1);
-		tic->api.fixed_text(tic, buf, x+2, y, (over ? tic_color_light_blue : tic_color_gray));
+		tic->api.fixed_text(tic, buf, x+2, y, (over ? tic_color_light_blue : tic_color_gray), false);
 	}
 }
 
@@ -174,7 +174,7 @@ static void drawTab(Menu* menu, s32 x, s32 y, s32 id)
 	{
 		char buf[] = "#1";
 		sprintf(buf, "#%i", id+1);
-		tic->api.fixed_text(tic, buf, x+2, y, (tic_color_gray));
+		tic->api.fixed_text(tic, buf, x+2, y, (tic_color_gray), false);
 	}
 }
 
@@ -221,7 +221,7 @@ static void drawPlayerButtons(Menu* menu, s32 x, s32 y)
 		if(strlen(label) > MaxChars)
 			label[MaxChars] = '\0';
 
-		tic->api.text(tic, label, rect.x+10, rect.y+2, (over ? tic_color_gray : tic_color_black));
+		tic->api.text(tic, label, rect.x+10, rect.y+2, (over ? tic_color_gray : tic_color_black), false);
 	}
 }
 
@@ -280,12 +280,12 @@ static void drawGamepadMenu(Menu* menu)
 
 	if(down)
 	{
-		tic->api.text(tic, Label, rect.x, rect.y+1, (tic_color_light_blue));
+		tic->api.text(tic, Label, rect.x, rect.y+1, (tic_color_light_blue), false);
 	}
 	else
 	{
-		tic->api.text(tic, Label, rect.x, rect.y+1, (tic_color_black));
-		tic->api.text(tic, Label, rect.x, rect.y, (over ? tic_color_light_blue : tic_color_white));			
+		tic->api.text(tic, Label, rect.x, rect.y+1, (tic_color_black), false);
+		tic->api.text(tic, Label, rect.x, rect.y, (over ? tic_color_light_blue : tic_color_white), false);
 	}
 
 	{
@@ -346,12 +346,12 @@ static void drawMainMenu(Menu* menu)
 
 			if(down)
 			{
-				tic->api.text(tic, Rows[i], label.x, label.y+1, (tic_color_light_blue));
+				tic->api.text(tic, Rows[i], label.x, label.y+1, (tic_color_light_blue), false);
 			}
 			else
 			{
-				tic->api.text(tic, Rows[i], label.x, label.y+1, (tic_color_black));
-				tic->api.text(tic, Rows[i], label.x, label.y, (over ? tic_color_light_blue : tic_color_white));			
+				tic->api.text(tic, Rows[i], label.x, label.y+1, (tic_color_black), false);
+				tic->api.text(tic, Rows[i], label.x, label.y, (over ? tic_color_light_blue : tic_color_white), false);
 			}
 
 			if(i == menu->main.focus)

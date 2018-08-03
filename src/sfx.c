@@ -63,7 +63,7 @@ static void drawSwitch(Sfx* sfx, s32 x, s32 y, const char* label, s32 value, voi
 		0b00000000,
 	};
 
-	sfx->tic->api.text(sfx->tic, label, x, y, (tic_color_white));
+	sfx->tic->api.text(sfx->tic, label, x, y, (tic_color_white), false);
 
 	{
 		x += (s32)strlen(label)*TIC_FONT_WIDTH;
@@ -84,7 +84,7 @@ static void drawSwitch(Sfx* sfx, s32 x, s32 y, const char* label, s32 value, voi
 	{
 		char val[] = "99";
 		sprintf(val, "%02i", value);
-		sfx->tic->api.fixed_text(sfx->tic, val, x += TIC_FONT_WIDTH, y, (tic_color_white));
+		sfx->tic->api.fixed_text(sfx->tic, val, x += TIC_FONT_WIDTH, y, (tic_color_white), false);
 	}
 
 	{
@@ -156,7 +156,7 @@ static void setLoopSize(Sfx* sfx, s32 delta)
 
 static void drawLoopPanel(Sfx* sfx, s32 x, s32 y)
 {
-	sfx->tic->api.text(sfx->tic, "LOOP:", x, y, (tic_color_dark_gray));
+	sfx->tic->api.text(sfx->tic, "LOOP:", x, y, (tic_color_dark_gray), false);
 
 	enum {Gap = 2};
 
@@ -293,7 +293,7 @@ static void drawCanvasTabs(Sfx* sfx, s32 x, s32 y)
 
 	for(s32 i = 0, sy = y; i < COUNT_OF(Labels); sy += Height, i++)
 	{
-		s32 size = sfx->tic->api.text(sfx->tic, Labels[i], 0, -TIC_FONT_HEIGHT, (tic_color_black));
+		s32 size = sfx->tic->api.text(sfx->tic, Labels[i], 0, -TIC_FONT_HEIGHT, (tic_color_black), false);
 
 		tic_rect rect = {x - size, sy, size, TIC_FONT_HEIGHT};
 
@@ -307,7 +307,7 @@ static void drawCanvasTabs(Sfx* sfx, s32 x, s32 y)
 			}
 		}
 
-		sfx->tic->api.text(sfx->tic, Labels[i], rect.x, rect.y, i == sfx->canvasTab ? (tic_color_white) : (tic_color_dark_gray));
+		sfx->tic->api.text(sfx->tic, Labels[i], rect.x, rect.y, i == sfx->canvasTab ? (tic_color_white) : (tic_color_dark_gray), false);
 	}
 
 	tic_sample* effect = getEffect(sfx);
@@ -328,7 +328,7 @@ static void drawCanvasTabs(Sfx* sfx, s32 x, s32 y)
 					effect->pitch16x++;
 			}
 
-			sfx->tic->api.fixed_text(sfx->tic, Label, rect.x, rect.y, (effect->pitch16x ? tic_color_white : tic_color_dark_gray));			
+			sfx->tic->api.fixed_text(sfx->tic, Label, rect.x, rect.y, (effect->pitch16x ? tic_color_white : tic_color_dark_gray), false);
 		}
 		break;
 	case SFX_ARPEGGIO_TAB:
@@ -345,7 +345,7 @@ static void drawCanvasTabs(Sfx* sfx, s32 x, s32 y)
 					effect->reverse++;
 			}
 
-			sfx->tic->api.text(sfx->tic, Label, rect.x, rect.y, (effect->reverse ? tic_color_white : tic_color_dark_gray));
+			sfx->tic->api.text(sfx->tic, Label, rect.x, rect.y, (effect->reverse ? tic_color_white : tic_color_dark_gray), false);
 		}	
 		break;
 	default: break;
@@ -517,7 +517,7 @@ static void drawOctavePanel(Sfx* sfx, s32 x, s32 y)
 	tic_sample* effect = getEffect(sfx);
 
 	static const char Label[] = "OCT";
-	sfx->tic->api.text(sfx->tic, Label, x, y, (tic_color_white));
+	sfx->tic->api.text(sfx->tic, Label, x, y, (tic_color_white), false);
 
 	x += sizeof(Label)*TIC_FONT_WIDTH;
 
@@ -537,7 +537,7 @@ static void drawOctavePanel(Sfx* sfx, s32 x, s32 y)
 			}
 		}
 
-		sfx->tic->api.draw_char(sfx->tic, i + '1', rect.x, rect.y, (i == effect->octave ? tic_color_white : tic_color_dark_gray));
+		sfx->tic->api.draw_char(sfx->tic, i + '1', rect.x, rect.y, (i == effect->octave ? tic_color_white : tic_color_dark_gray), false);
 	}
 }
 
@@ -810,7 +810,7 @@ static void drawSfxToolbar(Sfx* sfx)
 		char buf[] = "C#4";
 		sprintf(buf, "%s%i", Notes[effect->note], effect->octave+1);
 
-		sfx->tic->api.fixed_text(sfx->tic, buf, x, y, (over ? tic_color_dark_gray : tic_color_light_blue));
+		sfx->tic->api.fixed_text(sfx->tic, buf, x, y, (over ? tic_color_dark_gray : tic_color_light_blue), false);
 	}
 
 	drawModeTabs(sfx);

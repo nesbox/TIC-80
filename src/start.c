@@ -38,9 +38,9 @@ static void reset(Start* start)
 
 static void drawHeader(Start* start)
 {
-	start->tic->api.fixed_text(start->tic, TIC_NAME_FULL, STUDIO_TEXT_WIDTH, STUDIO_TEXT_HEIGHT, (tic_color_white));
-	start->tic->api.fixed_text(start->tic, TIC_VERSION_LABEL, (sizeof(TIC_NAME_FULL) + 1) * STUDIO_TEXT_WIDTH, STUDIO_TEXT_HEIGHT, (tic_color_dark_gray));
-	start->tic->api.fixed_text(start->tic, TIC_COPYRIGHT, STUDIO_TEXT_WIDTH, STUDIO_TEXT_HEIGHT*2, (tic_color_dark_gray));
+	start->tic->api.fixed_text(start->tic, TIC_NAME_FULL, STUDIO_TEXT_WIDTH, STUDIO_TEXT_HEIGHT, (tic_color_white), false);
+	start->tic->api.fixed_text(start->tic, TIC_VERSION_LABEL, (sizeof(TIC_NAME_FULL) + 1) * STUDIO_TEXT_WIDTH, STUDIO_TEXT_HEIGHT, (tic_color_dark_gray), false);
+	start->tic->api.fixed_text(start->tic, TIC_COPYRIGHT, STUDIO_TEXT_WIDTH, STUDIO_TEXT_HEIGHT*2, (tic_color_dark_gray), false);
 }
 
 static void header(Start* start)
