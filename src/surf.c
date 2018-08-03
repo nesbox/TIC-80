@@ -193,7 +193,7 @@ static void drawTopToolbar(Surf* surf, s32 x, s32 y)
 		sprintf(label, "%s", "TIC-80 SURF");
 
 		s32 xl = x + MAIN_OFFSET;
-		s32 yl = y + (Height - tic->font.height)/2;
+		s32 yl = y + (Height - TIC_FONT_HEIGHT)/2;
 		tic->api.text(tic, label, xl, yl+1, tic_color_black);
 		tic->api.text(tic, label, xl, yl, tic_color_white);
 	}
@@ -231,7 +231,7 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
 
 		sprintf(label, "/%s", dir);
 		s32 xl = x + MAIN_OFFSET;
-		s32 yl = y + (Height - tic->font.height)/2;
+		s32 yl = y + (Height - TIC_FONT_HEIGHT)/2;
 		tic->api.text(tic, label, xl, yl+1, tic_color_black);
 		tic->api.text(tic, label, xl, yl, tic_color_white);
 	}
@@ -327,13 +327,13 @@ static void drawMenu(Surf* surf, s32 x, s32 y, bool bg)
 	{
 		const char* name = surf->menu.items[i].label;
 
-		s32 ym = Height * i + y - surf->menu.pos*MENU_HEIGHT - surf->menu.anim + (MENU_HEIGHT - tic->font.height)/2;
+		s32 ym = Height * i + y - surf->menu.pos*MENU_HEIGHT - surf->menu.anim + (MENU_HEIGHT - TIC_FONT_HEIGHT)/2;
 
 		if(bg)
 		{
-			s32 size = tic->api.text(tic, name, 0, -tic->font.height, 0);
+			s32 size = tic->api.text(tic, name, 0, -TIC_FONT_HEIGHT, 0);
 
-			drawInverseRect(tic, x + MAIN_OFFSET - 1, ym-1, size+1, tic->font.height+2);
+			drawInverseRect(tic, x + MAIN_OFFSET - 1, ym-1, size+1, TIC_FONT_HEIGHT+2);
 		}
 		else
 		{
@@ -837,8 +837,8 @@ static void tick(Surf* surf)
 	else
 	{
 		static const char Label[] = "You don't have any files...";
-		s32 size = tic->api.text(tic, Label, 0, -tic->font.height, tic_color_white);
-		tic->api.text(tic, Label, (TIC80_WIDTH - size) / 2, (TIC80_HEIGHT - tic->font.height)/2, tic_color_white);
+		s32 size = tic->api.text(tic, Label, 0, -TIC_FONT_HEIGHT, tic_color_white);
+		tic->api.text(tic, Label, (TIC80_WIDTH - size) / 2, (TIC80_HEIGHT - TIC_FONT_HEIGHT)/2, tic_color_white);
 	}
 }
 

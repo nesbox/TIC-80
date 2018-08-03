@@ -24,8 +24,6 @@
 
 #include "tic.h"
 
-#define TIC_FONT_CHARS 128
-
 typedef struct { u8 index; tic_flip flip; tic_rotate rotate; } RemapResult;
 typedef void(*RemapFunc)(void*, s32 x, s32 y, RemapResult* result);
 typedef struct
@@ -176,6 +174,7 @@ struct tic_mem
 {
 	tic_ram 			ram;
 	tic_cartridge 		cart;
+	tic_font 			font;
 	tic_api 			api;
 	tic_persistent		persistent;
 
@@ -200,13 +199,6 @@ struct tic_mem
 	} samples;
 
 	u32 screen[TIC80_FULLWIDTH * TIC80_FULLHEIGHT];
-
-	struct
-	{
-		u8 data[TIC_FONT_CHARS * BITS_IN_BYTE];
-		s32 width;
-		s32 height;
-	} font;
 };
 
 tic_mem* tic_create(s32 samplerate);
