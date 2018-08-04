@@ -70,6 +70,10 @@ typedef enum
 	WrenScript,	
 #endif
 
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+	Squirrel,	
+#endif
+
 } ScriptLang;
 
 #if defined(__TIC_WINDOWS__) || defined(__TIC_LINUX__) || defined(__TIC_MACOSX__)
@@ -113,6 +117,10 @@ static const char DefaultJSTicPath[] = TIC_LOCAL "default_js.tic";
 
 #if defined(TIC_BUILD_WITH_WREN)
 static const char DefaultWrenTicPath[] = TIC_LOCAL "default_wren.tic";
+#endif
+
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+static const char DefaultSquirrelTicPath[] = TIC_LOCAL "default_squirrel.tic";
 #endif
 
 static inline s32 BufferSize(const tic_mem* tic)
@@ -491,6 +499,9 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 #if defined(TIC_BUILD_WITH_WREN)
 		case WrenScript: strcpy(path, DefaultWrenTicPath); break;
 #endif			
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+		case Squirrel: strcpy(path, DefaultSquirrelTicPath); break;
+#endif			
 		}
 
 		void* data = fsLoadRootFile(console->fs, path, size);
@@ -545,8 +556,22 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 		break;
 #	endif
 
+
 #endif /* defined(TIC_BUILD_WITH_LUA) */
 
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+	case Squirrel:
+		{
+			static const u8 SquirrelDemoRom[] =
+			{
+				#include "../bin/assets/squirreldemo.tic.dat"
+			};
+
+			demo = SquirrelDemoRom;
+			romSize = sizeof SquirrelDemoRom;
+		}
+		break;
+#endif
 
 #if defined(TIC_BUILD_WITH_JS)
 	case JavaScript:
@@ -627,6 +652,10 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 		data = getDemoCart(console, WrenScript, &size);
 #endif
 
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+	if(strcmp(param, DefaultSquirrelTicPath) == 0)
+		data = getDemoCart(console, Squirrel, &size);
+#endif
 	const char* name = getCartName(param);
 
 	setCartName(console, name);
@@ -665,12 +694,12 @@ static bool hasExt(const char* name, const char* ext)
 
 static bool hasProjectExt(const char* name)
 {
-	return hasExt(name, PROJECT_LUA_EXT) || hasExt(name, PROJECT_MOON_EXT) || hasExt(name, PROJECT_JS_EXT) || hasExt(name, PROJECT_WREN_EXT);
+	return hasExt(name, PROJECT_LUA_EXT) || hasExt(name, PROJECT_MOON_EXT) || hasExt(name, PROJECT_JS_EXT) || hasExt(name, PROJECT_WREN_EXT) || hasExt(name, PROJECT_SQUIRREL_EXT);
 }
 
 static const char* projectComment(const char* name)
 {
-	return hasExt(name, PROJECT_JS_EXT) || hasExt(name, PROJECT_WREN_EXT) ? "//" : "--";
+	return (hasExt(name, PROJECT_SQUIRREL_EXT) || hasExt(name, PROJECT_JS_EXT) || hasExt(name, PROJECT_WREN_EXT)) ? "//" : "--";
 }
 
 static void buf2str(const void* data, s32 size, char* ptr, bool flip)
@@ -1058,7 +1087,10 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 			if(!fsExistsFile(console->fs, name))
 				name = getName(param, PROJECT_WREN_EXT);
 
-			void* data = fsLoadFile(console->fs, name, &size);
+			if(!fsExistsFile(console->fs, name))
+				name = getName(param, PROJECT_SQUIRREL_EXT);
+
+                        void* data = fsLoadFile(console->fs, name, &size);
 
 			if(data)
 			{
@@ -1223,7 +1255,15 @@ static void onConsoleNewCommandConfirmed(Console* console, const char* param)
 		}
 #endif			
 
-		if(!done)
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+		if(strcmp(param, "squirrel") == 0)
+		{
+			loadDemo(console, Squirrel);
+			done = true;
+		}
+#endif			
+
+                if(!done)
 		{
 			printError(console, "\nunknown parameter: ");
 			printError(console, param);
@@ -1506,6 +1546,7 @@ static void onConsoleConfigCommand(Console* console, const char* param)
 	}
 #	endif
 
+
 #endif /* defined(TIC_BUILD_WITH_LUA) */
 
 #if defined(TIC_BUILD_WITH_JS)
@@ -1521,7 +1562,14 @@ static void onConsoleConfigCommand(Console* console, const char* param)
 		onConsoleLoadDemoCommand(console, DefaultWrenTicPath);
 	}
 #endif
-	
+
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+	else if(strcmp(param, "default squirrel") == 0)
+	{
+		onConsoleLoadDemoCommand(console, DefaultSquirrelTicPath);
+	}
+#endif
+
 	else
 	{
 		printError(console, "\nunknown parameter: ");
@@ -2851,6 +2899,8 @@ static void tick(Console* console)
 			loadDemo(console, JavaScript);
 #elif defined(TIC_BUILD_WITH_WREN)
 			loadDemo(console, WrenScript);
+#elif defined(TIC_BUILD_WITH_SQUIRREL)
+			loadDemo(console, Squirrel);
 #endif			
 
 			printBack(console, "\n hello! type ");

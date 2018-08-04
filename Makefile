@@ -181,6 +181,7 @@ DEMO_ASSETS= \
 	bin/assets/moondemo.tic.dat \
 	bin/assets/fenneldemo.tic.dat \
 	bin/assets/wrendemo.tic.dat \
+	bin/assets/squirreldemo.tic.dat \
 	bin/assets/benchmark.tic.dat \
 	bin/assets/config.tic.dat
 
@@ -461,6 +462,9 @@ bin/assets/moondemo.tic.dat: demos/moondemo.tic
 bin/assets/fenneldemo.tic.dat: demos/fenneldemo.tic
 	$(BIN2TXT) $< $@ -z
 
+bin/assets/squirreldemo.tic.dat: demos/squirreldemo.tic
+	$(BIN2TXT) $< $@ -z
+	
 bin/assets/benchmark.tic.dat: demos/benchmark.tic
 	$(BIN2TXT) $< $@ -z
 
