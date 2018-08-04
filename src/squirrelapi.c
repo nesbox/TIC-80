@@ -86,6 +86,16 @@ static tic_machine* getSquirrelMachine(HSQUIRRELVM vm)
 #endif
 }
 
+void squirrel_compilerError(HSQUIRRELVM vm, const SQChar* desc, const SQChar* source, 
+                             SQInteger line, SQInteger column)
+{
+    tic_machine* machine = getSquirrelMachine(vm);
+    char buffer[1024];
+    snprintf(buffer, 1023, "%.40s line %.6d column %.6d: %s\n", source, (int)line, (int)column, desc);
+    
+    machine->data->error(machine->data->data, buffer);
+}
+
 static SQInteger squirrel_errorHandler(HSQUIRRELVM vm)
 {
 	tic_machine* machine = getSquirrelMachine(vm);
@@ -1257,7 +1267,9 @@ static void initAPI(tic_machine* machine)
 	//lua_setglobal(machine->lua, TicMachine);
 	HSQUIRRELVM vm = machine->squirrel;
 	
-	sq_pushregistrytable(vm);
+        sq_setcompilererrorhandler(vm, squirrel_compilerError);
+        
+        sq_pushregistrytable(vm);
 	sq_pushstring(vm, TicMachine, -1);
 	sq_pushuserpointer(machine->squirrel, machine);
 	sq_newslot(vm, -3, SQTrue);
@@ -1311,7 +1323,7 @@ static bool initSquirrel(tic_mem* tic, const char* code)
 
 		sq_settop(vm, 0);
 
-		if((SQ_FAILED(sq_compilebuffer(vm, code, strlen(code), "squirrel", SQFalse))) || 
+		if((SQ_FAILED(sq_compilebuffer(vm, code, strlen(code), "squirrel", SQTrue))) || 
 			(sq_pushroottable(vm), false) ||
 			(SQ_FAILED(sq_call(vm, 1, SQFalse, SQTrue))))
 		{
@@ -1512,7 +1524,7 @@ void evalSquirrel(tic_mem* tic, const char* code) {
 
 	sq_settop(vm, 0);
 
-	if((SQ_FAILED(sq_compilebuffer(vm, code, strlen(code), "squirrel", SQFalse))) || 
+	if((SQ_FAILED(sq_compilebuffer(vm, code, strlen(code), "squirrel", SQTrue))) || 
 		(sq_pushroottable(vm), false) ||
 		(SQ_FAILED(sq_call(vm, 1, SQFalse, SQTrue))))
 	{
