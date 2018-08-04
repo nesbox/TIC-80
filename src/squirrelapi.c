@@ -93,7 +93,8 @@ void squirrel_compilerError(HSQUIRRELVM vm, const SQChar* desc, const SQChar* so
     char buffer[1024];
     snprintf(buffer, 1023, "%.40s line %.6d column %.6d: %s\n", source, (int)line, (int)column, desc);
     
-    machine->data->error(machine->data->data, buffer);
+    if (machine->data)
+		machine->data->error(machine->data->data, buffer);
 }
 
 static SQInteger squirrel_errorHandler(HSQUIRRELVM vm)
@@ -107,7 +108,8 @@ static SQInteger squirrel_errorHandler(HSQUIRRELVM vm)
 		char buffer[100];
 		snprintf(buffer, 99, "%.40s %.40s %.6d\n", si.funcname, si.source, (int)si.line);
 		
-		machine->data->error(machine->data->data, buffer);
+		if (machine->data)
+			machine->data->error(machine->data->data, buffer);
 		++level;
 	}
 
@@ -1142,7 +1144,8 @@ static SQInteger squirrel_trace(HSQUIRRELVM vm)
 			color = getSquirrelNumber(vm, 3);
 		}
 
-		machine->data->trace(machine->data->data, text ? text : "nil", color);
+		if (machine->data)
+			machine->data->trace(machine->data->data, text ? text : "nil", color);
 	}
 
 	return 0;
@@ -1194,7 +1197,8 @@ static SQInteger squirrel_exit(HSQUIRRELVM vm)
 {
 	tic_machine* machine = getSquirrelMachine(vm);
 
-	machine->data->exit(machine->data->data);
+	if (machine->data)
+		machine->data->exit(machine->data->data);
 	
 	return 0;
 }
@@ -1257,7 +1261,7 @@ static void checkForceExit(HSQUIRRELVM vm, SQInteger type, const SQChar* sourceN
 	tic_machine* machine = getSquirrelMachine(vm);
 	tic_tick_data* tick = machine->data;
 
-	if(tick->forceExit && tick->forceExit(tick->data))
+	if(tick && tick->forceExit && tick->forceExit(tick->data))
 		sq_throwerror(vm, "script execution was interrupted");
 }
 
@@ -1332,7 +1336,8 @@ static bool initSquirrel(tic_mem* tic, const char* code)
 			const SQChar* errorString = "unknown error";
 			sq_getstring(vm, -1, &errorString);
 
-			machine->data->error(machine->data->data, errorString);
+			if (machine->data)
+				machine->data->error(machine->data->data, errorString);
 			
 			sq_pop(vm, 2); // error and error string
 
@@ -1367,14 +1372,16 @@ static void callSquirrelTick(tic_mem* tic)
 				const SQChar* errorString = "unknown error";
 				sq_getstring(vm, -1, &errorString);
 
-				machine->data->error(machine->data->data, errorString);
+				if (machine->data)
+					machine->data->error(machine->data->data, errorString);
 				sq_pop(vm, 3); // remove string, error and root table.
 			}
 		}
 		else 
 		{		
 			sq_pop(vm, 1);
-			machine->data->error(machine->data->data, "'function TIC()...' isn't found :(");
+			if (machine->data)
+				machine->data->error(machine->data->data, "'function TIC()...' isn't found :(");
 		}
 	}
 }
@@ -1400,7 +1407,8 @@ static void callSquirrelScanlineName(tic_mem* memory, s32 row, void* data, const
 
 				const SQChar* errorString = "unknown error";
 				sq_getstring(vm, -1, &errorString);
-				machine->data->error(machine->data->data, errorString);
+				if (machine->data)
+					machine->data->error(machine->data->data, errorString);
 				sq_pop(vm, 3); // error string, error and root table
 			}
 		}
@@ -1437,7 +1445,8 @@ static void callSquirrelOverline(tic_mem* memory, void* data)
 				sq_tostring(vm, -1);
 				const SQChar* errorString = "unknown error";
 				sq_getstring(vm, -1, &errorString);
-				machine->data->error(machine->data->data, errorString);
+				if (machine->data)
+					machine->data->error(machine->data->data, errorString);
 				sq_pop(vm, 3);
 			}
 		}
@@ -1522,6 +1531,14 @@ void evalSquirrel(tic_mem* tic, const char* code) {
 	tic_machine* machine = (tic_machine*)tic;
 	HSQUIRRELVM vm = machine->squirrel;
 
+	// make sure that the Squirrel interpreter is initialized.
+	if (vm == NULL)
+	{
+		if (!initSquirrel(tic, ""))
+			return;
+		vm = machine->squirrel;
+	}
+	
 	sq_settop(vm, 0);
 
 	if((SQ_FAILED(sq_compilebuffer(vm, code, strlen(code), "squirrel", SQTrue))) || 
@@ -1532,9 +1549,11 @@ void evalSquirrel(tic_mem* tic, const char* code) {
 		sq_tostring(vm, -1);
 		const SQChar* errorString = "unknown error";
 		sq_getstring(vm, -1, &errorString);
-		machine->data->error(machine->data->data, errorString);
-		sq_pop(vm, 3);
+		if (machine->data)
+			machine->data->error(machine->data->data, errorString);
 	}
+
+	sq_settop(vm, 0);
 }
 
 static const tic_script_config SquirrelSyntaxConfig = 
