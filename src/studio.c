@@ -526,6 +526,11 @@ const StudioConfig* getConfig()
 	return &impl.config->data;
 }
 
+static bool isRunMode()
+{
+	return impl.mode == TIC_RUN_MODE;
+}
+
 #if defined (TIC80_PRO)
 
 static void drawBankIcon(s32 x, s32 y)
@@ -1873,6 +1878,7 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, Sy
 	impl.studio.updateProject = updateStudioProject;
 	impl.studio.exit = exitStudio;
 	impl.studio.config = getConfig;
+	impl.studio.isRunMode = isRunMode;
 
 	return &impl.studio;
 }
