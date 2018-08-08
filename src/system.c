@@ -168,6 +168,26 @@ static void updateGamepadParts()
 	platform.gamepad.part.y = (SDL_Point){rect.w - 2*tileSize, 0*tileSize + offset};
 }
 
+static void drawKeyboardLabels(s32 shift)
+{
+	tic_mem* tic = platform.studio->tic;
+
+	enum{Color = tic_color_dark_gray};
+
+	typedef struct {const char* text; s32 x; s32 y; bool alt;} Label;
+	static const Label Labels[] =
+	{
+		#include "kbdlabels.inl"
+	};
+
+	for(s32 i = 0; i < COUNT_OF(Labels); i++)
+	{
+		const Label* label = Labels + i;
+		if(label->text)
+			tic->api.text(tic, label->text, label->x, label->y + shift, Color, label->alt);
+	}
+}
+
 static void initTouchKeyboard()
 {
 	tic_mem* tic = platform.studio->tic;
@@ -190,7 +210,7 @@ static void initTouchKeyboard()
 		tic->api.map(tic, &platform.studio->config()->cart->bank0.map, 
 			&platform.studio->config()->cart->bank0.tiles, 8, 0, Cols, Rows, 0, 0, -1, 1);
 
-		// drawKeyboardLabels(0);
+		drawKeyboardLabels(0);
 
 		tic->api.blit(tic, NULL, NULL, NULL);
 
@@ -210,7 +230,7 @@ static void initTouchKeyboard()
 		tic->api.map(tic, &platform.studio->config()->cart->bank0.map, 
 			&platform.studio->config()->cart->bank0.tiles, TIC_MAP_SCREEN_WIDTH+8, 0, Cols, Rows, 0, 0, -1, 1);
 
-	// 	drawKeyboardLabels(2);
+		drawKeyboardLabels(2);
 
 		tic->api.blit(tic, NULL, NULL, NULL);
 

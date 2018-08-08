@@ -258,7 +258,7 @@ bin/menu.o: src/menu.c $(TIC80_H) $(TIC_H)
 bin/surf.o: src/surf.c $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
-bin/system.o: src/system.c src/keycodes.inl src/kbdlayout.inl $(TIC80_H) $(TIC_H)
+bin/system.o: src/system.c src/keycodes.inl src/kbdlayout.inl src/kbdlabels.inl $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
 bin/chip.o: src/system/chip.c src/keycodes.c $(TIC80_H) $(TIC_H)
