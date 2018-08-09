@@ -92,7 +92,7 @@ typedef struct
 	const StudioConfig* (*config)();
 
 	// TODO: remove this method, system has to know nothing about current mode
-	bool (*isRunMode)();
+	bool (*isGamepadMode)();
 } Studio;
 
 TIC80_API Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* appFolder, System* system);

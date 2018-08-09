@@ -437,6 +437,64 @@ static bool checkTouch(const SDL_Rect* rect, s32* x, s32* y)
 	return false;
 }
 
+static void processTouchKeyboard()
+{
+	enum{Cols=KBD_COLS, Rows=KBD_ROWS};
+
+	s32 w, h;
+	SDL_GetWindowSize(platform.window, &w, &h);
+
+	float scale = (float)w / (KBD_COLS*TIC_SPRITESIZE);
+
+	SDL_Rect kbd = {0, h - KBD_ROWS*TIC_SPRITESIZE*scale, 
+		KBD_COLS*TIC_SPRITESIZE*scale, KBD_ROWS*TIC_SPRITESIZE*scale};
+
+	static const tic_key KbdLayout[] = 
+	{
+		#include "kbdlayout.inl"
+	};
+
+	tic80_input* input = &platform.studio->tic->ram.input;
+
+	s32 devices = SDL_GetNumTouchDevices();
+
+	for (s32 i = 0; i < devices; i++)
+	{
+		SDL_TouchID id = SDL_GetTouchDevice(i);
+		s32 fingers = SDL_GetNumTouchFingers(id);
+
+		for (s32 f = 0; f < fingers; f++)
+		{
+			SDL_Finger* finger = SDL_GetTouchFinger(id, f);
+
+			if (finger && finger->pressure > 0.0f)
+			{
+				SDL_Point pt = {finger->x * w, finger->y * h};
+
+				if(SDL_PointInRect(&pt, &kbd))
+				{
+					pt.x -= kbd.x;
+					pt.y -= kbd.y;
+
+					pt.x /= scale;
+					pt.y /= scale;
+
+					for(s32 i = 0; i < COUNT_OF(input->keyboard.keys); i++)
+					{
+						tic_key* key = &input->keyboard.keys[i];
+
+						if(*key == tic_key_unknown)
+						{
+							*key = KbdLayout[pt.x / TIC_SPRITESIZE + pt.y / TIC_SPRITESIZE * Cols];
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 static void processTouchGamepad()
 {
 	platform.gamepad.touch.data = 0;
@@ -609,6 +667,7 @@ static void processGamepad()
 {
 #if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
 	processTouchGamepad();
+	processTouchKeyboard();
 #endif
 	processJoysticks();
 	
@@ -748,10 +807,10 @@ static void renderKeyboard()
 	SDL_Rect rect;
 	SDL_GetWindowSize(platform.window, &rect.w, &rect.h);
 
+
 	GPU_Rect src = {OFFSET_LEFT, OFFSET_TOP, KBD_COLS*TIC_SPRITESIZE, KBD_ROWS*TIC_SPRITESIZE};
 	float scale = rect.w/src.w;
-
-	GPU_Rect dst = {0, rect.h - KBD_ROWS*TIC_SPRITESIZE*scale, scale, scale};
+	GPU_Rect dst = (GPU_Rect){0, rect.h - KBD_ROWS*TIC_SPRITESIZE*scale, scale, scale};
 
 	{
 		SDL_Rect rect;
@@ -1233,7 +1292,7 @@ static void gpuTick()
 
 		renderCursor();
 
-		platform.studio->isRunMode()
+		platform.studio->isGamepadMode()
 			? renderGamepad()
 			: renderKeyboard();
 	}
