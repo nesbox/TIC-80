@@ -63,6 +63,8 @@ static struct
 
 	} keyboard;
 
+	u32 touchCounter;
+
 	struct
 	{
 		GPU_Image* texture;
@@ -439,6 +441,8 @@ static bool checkTouch(const SDL_Rect* rect, s32* x, s32* y)
 
 static void processTouchKeyboard()
 {
+	if(platform.touchCounter == 0) return;
+
 	enum{Cols=KBD_COLS, Rows=KBD_ROWS};
 
 	s32 w, h;
@@ -496,8 +500,10 @@ static void processTouchKeyboard()
 }
 
 static void processTouchGamepad()
-{
+{	
 	platform.gamepad.touch.data = 0;
+
+	if(platform.touchCounter == 0) return;
 
 	const s32 size = platform.gamepad.part.size;
 	s32 x = 0, y = 0;
@@ -666,6 +672,16 @@ static void processJoysticks()
 static void processGamepad()
 {
 #if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
+	{
+		s32 devices = SDL_GetNumTouchDevices();
+		for (s32 i = 0; i < devices; i++)
+			if(SDL_GetNumTouchFingers(SDL_GetTouchDevice(i)) > 0)
+				platform.touchCounter = 10 * TIC_FRAMERATE;
+
+		if(platform.touchCounter)
+			platform.touchCounter--;
+	}
+
 	processTouchGamepad();
 	processTouchKeyboard();
 #endif
@@ -804,9 +820,10 @@ static void blitSound()
 
 static void renderKeyboard()
 {
+	if(platform.touchCounter == 0) return;
+
 	SDL_Rect rect;
 	SDL_GetWindowSize(platform.window, &rect.w, &rect.h);
-
 
 	GPU_Rect src = {OFFSET_LEFT, OFFSET_TOP, KBD_COLS*TIC_SPRITESIZE, KBD_ROWS*TIC_SPRITESIZE};
 	float scale = rect.w/src.w;
@@ -853,6 +870,8 @@ static void renderKeyboard()
 
 static void renderGamepad()
 {
+	if(platform.touchCounter == 0) return;
+
 	const s32 tileSize = platform.gamepad.part.size;
 	const SDL_Point axis = platform.gamepad.part.axis;
 	typedef struct { bool press; s32 x; s32 y;} Tile;
@@ -1292,9 +1311,11 @@ static void gpuTick()
 
 		renderCursor();
 
+#if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
 		platform.studio->isGamepadMode()
 			? renderGamepad()
 			: renderKeyboard();
+#endif
 	}
 
 	GPU_Flip(platform.gpu.screen);
