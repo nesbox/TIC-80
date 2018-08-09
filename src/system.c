@@ -682,8 +682,9 @@ static void processGamepad()
 			platform.touchCounter--;
 	}
 
-	processTouchGamepad();
-	processTouchKeyboard();
+	platform.studio->isGamepadMode()
+		? processTouchGamepad()
+		: processTouchKeyboard();
 #endif
 	processJoysticks();
 	
