@@ -40,6 +40,7 @@
 [SDL_SCANCODE_0] = tic_key_0,
 [SDL_SCANCODE_RETURN] = tic_key_return,
 [SDL_SCANCODE_ESCAPE] = tic_key_escape,
+[SDL_SCANCODE_AC_BACK] = tic_key_escape,
 [SDL_SCANCODE_BACKSPACE] = tic_key_backspace,
 [SDL_SCANCODE_TAB] = tic_key_tab,
 [SDL_SCANCODE_SPACE] = tic_key_space,

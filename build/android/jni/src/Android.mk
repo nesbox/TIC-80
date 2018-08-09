@@ -18,6 +18,7 @@ LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/moonscript \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/wren-0.1.0\src\include \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/sdl-gpu/include \
+	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/fennel \
 	$(LOCAL_PATH)/../../../../include
 
 # Add your application source files here...

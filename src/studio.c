@@ -1334,7 +1334,6 @@ static void processShortcuts()
 		if(keyWasPressedOnce(tic_key_escape))
 		{
 			impl.mode == TIC_MENU_MODE ? hideGameMenu() : showGameMenu();
-			// impl.gamepad.backProcessed = true;
 		}
 		else if(keyWasPressedOnce(tic_key_f11)) goFullscreen();
 		else if(keyWasPressedOnce(tic_key_return))

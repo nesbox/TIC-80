@@ -666,15 +666,7 @@ static void processJoysticks()
 							if(back)
 							{
 								tic_mem* tic = platform.studio->tic;
-
-								for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
-								{
-									if(!tic->ram.input.keyboard.keys[i])
-									{
-										tic->ram.input.keyboard.keys[i] = tic_key_escape;
-										break;
-									}
-								}
+								tic->ram.input.keyboard.keys[0] = tic_key_escape;
 							}
 						}
 					}
@@ -688,7 +680,19 @@ static void processJoysticks()
 
 static void processGamepad()
 {
-#if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
+	processJoysticks();
+	
+	{
+		platform.studio->tic->ram.input.gamepads.data = 0;
+
+		platform.studio->tic->ram.input.gamepads.data |= platform.gamepad.touch.data;
+		platform.studio->tic->ram.input.gamepads.data |= platform.gamepad.joystick.data;
+	}
+}
+
+static void processTouchInput()
+{
+	#if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
 	{
 		s32 devices = SDL_GetNumTouchDevices();
 		for (s32 i = 0; i < devices; i++)
@@ -703,19 +707,12 @@ static void processGamepad()
 		? processTouchGamepad()
 		: processTouchKeyboard();
 #endif
-	processJoysticks();
-	
-	{
-		platform.studio->tic->ram.input.gamepads.data = 0;
-
-		platform.studio->tic->ram.input.gamepads.data |= platform.gamepad.touch.data;
-		platform.studio->tic->ram.input.gamepads.data |= platform.gamepad.joystick.data;
-	}
 }
 
 static void pollEvent()
 {
-	tic80_input* input = &platform.studio->tic->ram.input;
+	tic_mem* tic = platform.studio->tic;
+	tic80_input* input = &tic->ram.input;
 
 	{
 		input->mouse.btns = 0;
@@ -783,6 +780,7 @@ static void pollEvent()
 
 	processMouse();
 	processKeyboard();
+	processTouchInput();
 	processGamepad();
 }
 
@@ -1361,6 +1359,9 @@ static void emsGpuTick()
 
 static s32 start(s32 argc, char **argv, const char* folder)
 {
+	SDL_SetHint(SDL_HINT_WINRT_HANDLE_BACK_BUTTON, "1");
+	SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
+
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK);
 
 	initSound();

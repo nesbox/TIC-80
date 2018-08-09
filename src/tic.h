@@ -29,7 +29,7 @@
 #define TIC_VERSION_MAJOR 0
 #define TIC_VERSION_MINOR 70
 #define TIC_VERSION_PATCH 0
-#define TIC_VERSION_STATUS "-dev.2"
+#define TIC_VERSION_STATUS "-dev.5"
 
 #if defined(TIC80_PRO)
 #define TIC_VERSION_POST " Pro"
