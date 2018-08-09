@@ -172,9 +172,7 @@ static void drawKeyboardLabels(s32 shift)
 {
 	tic_mem* tic = platform.studio->tic;
 
-	enum{Color = tic_color_dark_gray};
-
-	typedef struct {const char* text; s32 x; s32 y; bool alt;} Label;
+	typedef struct {const char* text; s32 x; s32 y; bool alt; const char* shift;} Label;
 	static const Label Labels[] =
 	{
 		#include "kbdlabels.inl"
@@ -184,7 +182,10 @@ static void drawKeyboardLabels(s32 shift)
 	{
 		const Label* label = Labels + i;
 		if(label->text)
-			tic->api.text(tic, label->text, label->x, label->y + shift, Color, label->alt);
+			tic->api.text(tic, label->text, label->x, label->y + shift, tic_color_dark_gray, label->alt);
+
+		if(label->shift)
+			tic->api.fixed_text(tic, label->shift, label->x + 6, label->y + shift + 2, tic_color_light_blue, label->alt);
 	}
 }
 
