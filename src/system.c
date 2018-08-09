@@ -367,16 +367,20 @@ static void processMouse()
 		SDL_Rect rect = {0, 0, 0, 0};
 		calcTextureRect(&rect);
 
+		s32 x = -1, y = -1;
 		if(crtMonitorEnabled())
 		{
-			if(rect.w) input->mouse.x = (mx - rect.x) * TIC80_FULLWIDTH / rect.w - OFFSET_LEFT;
-			if(rect.h) input->mouse.y = (my - rect.y) * TIC80_FULLHEIGHT / rect.h - OFFSET_TOP;
+			if(rect.w) x = (mx - rect.x) * TIC80_FULLWIDTH / rect.w - OFFSET_LEFT;
+			if(rect.h) y = (my - rect.y) * TIC80_FULLHEIGHT / rect.h - OFFSET_TOP;
 		}
 		else
 		{
-			if(rect.w) input->mouse.x = (mx - rect.x) * TIC80_WIDTH / rect.w;
-			if(rect.h) input->mouse.y = (my - rect.y) * TIC80_HEIGHT / rect.h;
+			if(rect.w) x = (mx - rect.x) * TIC80_WIDTH / rect.w;
+			if(rect.h) y = (my - rect.y) * TIC80_HEIGHT / rect.h;
 		}
+
+		input->mouse.x = x >= 0 && x < 0xff ? x : 0xff;
+		input->mouse.y = y >= 0 && y < 0xff ? y : 0xff;
 	}
 
 	{
@@ -439,9 +443,22 @@ static bool checkTouch(const SDL_Rect* rect, s32* x, s32* y)
 	return false;
 }
 
+static bool isKbdVisible()
+{
+	s32 w, h;
+	SDL_GetWindowSize(platform.window, &w, &h);
+
+	SDL_Rect rect;
+	calcTextureRect(&rect);
+
+	float scale = (float)w / (KBD_COLS*TIC_SPRITESIZE);
+
+	return h - KBD_ROWS*TIC_SPRITESIZE*scale - (rect.h + rect.y*2) >= 0;
+}
+
 static void processTouchKeyboard()
 {
-	if(platform.touchCounter == 0) return;
+	if(platform.touchCounter == 0 || !isKbdVisible()) return;
 
 	enum{Cols=KBD_COLS, Rows=KBD_ROWS};
 
@@ -821,7 +838,7 @@ static void blitSound()
 
 static void renderKeyboard()
 {
-	if(platform.touchCounter == 0) return;
+	if(platform.touchCounter == 0 || !isKbdVisible()) return;
 
 	SDL_Rect rect;
 	SDL_GetWindowSize(platform.window, &rect.w, &rect.h);
@@ -829,14 +846,6 @@ static void renderKeyboard()
 	GPU_Rect src = {OFFSET_LEFT, OFFSET_TOP, KBD_COLS*TIC_SPRITESIZE, KBD_ROWS*TIC_SPRITESIZE};
 	float scale = rect.w/src.w;
 	GPU_Rect dst = (GPU_Rect){0, rect.h - KBD_ROWS*TIC_SPRITESIZE*scale, scale, scale};
-
-	{
-		SDL_Rect rect;
-		calcTextureRect(&rect);
-
-		if(dst.y - (rect.h + rect.y*2) < 0)
-			return;
-	}
 
 	GPU_BlitScale(platform.keyboard.texture.up, &src, platform.gpu.screen, dst.x, dst.y, dst.w, dst.h);
 
