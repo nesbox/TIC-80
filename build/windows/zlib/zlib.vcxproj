@@ -35,21 +35,21 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\adler32.c" />
-    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\compress.c" />
-    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\crc32.c" />
-    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\deflate.c" />
-    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\gzclose.c" />
-    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\gzlib.c" />
-    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\gzread.c" />
-    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\gzwrite.c" />
-    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\infback.c" />
-    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\inffast.c" />
-    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\inflate.c" />
-    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\inftrees.c" />
-    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\trees.c" />
-    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\uncompr.c" />
-    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.8\zutil.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.11\adler32.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.11\compress.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.11\crc32.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.11\deflate.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.11\gzclose.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.11\gzlib.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.11\gzread.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.11\gzwrite.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.11\infback.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.11\inffast.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.11\inflate.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.11\inftrees.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.11\trees.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.11\uncompr.c" />
+    <ClCompile Include="..\..\..\3rd-party\zlib-1.2.11\zutil.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{1DFBDFA2-F204-42FF-B99E-250E4B2EBA04}</ProjectGuid>
@@ -61,7 +61,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v140_xp</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug Pro|Win32'" Label="Configuration">
@@ -73,7 +73,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140_xp</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -87,7 +87,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v140_xp</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug Pro|x64'" Label="Configuration">
@@ -99,7 +99,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140_xp</PlatformToolset>
+    <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>

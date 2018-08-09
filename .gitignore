@@ -124,3 +124,4 @@ build/uwp/sdl-gpu-static/x64/
 build/uwp/tic/packages/
 build/windows/studio/x64/
 build/windows/sdl-gpu/x64/
+build/windows/tic/.vs/

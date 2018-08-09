@@ -112,15 +112,16 @@ class TIC {\n\
 	foreign static map_width__\n\
 	foreign static map_height__\n\
 	foreign static spritesize__\n\
-	foreign static print__(v, x, y, color, fixed, scale)\n\
+	foreign static print__(v, x, y, color, fixed, scale, alt)\n\
 	foreign static trace__(msg, color)\n\
 	foreign static spr__(id, x, y, alpha_color, scale, flip, rotate)\n\
 	foreign static mgeti__(index)\n\
-	static print(v) { TIC.print__(v.toString, 0, 0, 15, false, 1) }\n\
-	static print(v,x,y) { TIC.print__(v.toString, x, y, 15, false, 1) }\n\
-	static print(v,x,y,color) { TIC.print__(v.toString, x, y, color, false, 1) }\n\
-	static print(v,x,y,color,fixed) { TIC.print__(v.toString, x, y, color, fixed, 1) }\n\
-	static print(v,x,y,color,fixed,scale) { TIC.print__(v.toString, x, y, color, fixed, scale) }\n\
+	static print(v) { TIC.print__(v.toString, 0, 0, 15, false, 1, false) }\n\
+	static print(v,x,y) { TIC.print__(v.toString, x, y, 15, false, 1, false) }\n\
+	static print(v,x,y,color) { TIC.print__(v.toString, x, y, color, false, 1, false) }\n\
+	static print(v,x,y,color,fixed) { TIC.print__(v.toString, x, y, color, fixed, 1, false) }\n\
+	static print(v,x,y,color,fixed,scale) { TIC.print__(v.toString, x, y, color, fixed, scale, false) }\n\
+	static print(v,x,y,color,fixed,scale,alt) { TIC.print__(v.toString, x, y, color, fixed, scale, alt) }\n\
 	static trace(v) { TIC.trace__(v.toString, 15) }\n\
 	static trace(v,color) { TIC.trace__(v.toString, color) }\n\
 	static map(cell_x, cell_y, cell_w, cell_h, x, y, alpha_color, scale, remap) {\n\
@@ -1191,7 +1192,7 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
 	if (strcmp(signature, "static TIC.map_width__"                ) == 0) return wren_map_width;
 	if (strcmp(signature, "static TIC.map_height__"               ) == 0) return wren_map_height;
 	if (strcmp(signature, "static TIC.spritesize__"               ) == 0) return wren_spritesize;
-	if (strcmp(signature, "static TIC.print__(_,_,_,_,_,_)"     ) == 0) return wren_print;
+	if (strcmp(signature, "static TIC.print__(_,_,_,_,_,_,_)"     ) == 0) return wren_print;
 	if (strcmp(signature, "static TIC.trace__(_,_)"             ) == 0) return wren_trace;
 	if (strcmp(signature, "static TIC.spr__(_,_,_,_,_,_,_)"	    ) == 0) return wren_spr_internal;
 	if (strcmp(signature, "static TIC.mgeti__(_)"                 ) == 0) return wren_mgeti;

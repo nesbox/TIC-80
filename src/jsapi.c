@@ -783,7 +783,7 @@ static const struct{duk_c_function func; s32 params;} ApiFunc[] =
 	{NULL, 0},
 	{NULL, 1},
 	{NULL, 0},
-	{duk_print, 6},
+	{duk_print, 7},
 	{duk_cls, 1},
 	{duk_pix, 3},
 	{duk_line, 5},
