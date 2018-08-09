@@ -17,6 +17,9 @@
 #define OFFSET_LEFT ((TIC80_FULLWIDTH-TIC80_WIDTH)/2)
 #define OFFSET_TOP ((TIC80_FULLHEIGHT-TIC80_HEIGHT)/2)
 
+#define KBD_COLS 22
+#define KBD_ROWS 17
+
 static struct
 {
 	Studio* studio;
@@ -193,7 +196,7 @@ static void initTouchKeyboard()
 {
 	tic_mem* tic = platform.studio->tic;
 
-	enum{Cols=11*2, Rows=17};
+	enum{Cols=KBD_COLS, Rows=KBD_ROWS};
 
 	// TODO: add touch keyboard to one texture with gamepad (and mouse cursor???)
 	if(!platform.keyboard.texture.up)
@@ -745,8 +748,18 @@ static void renderKeyboard()
 	SDL_Rect rect;
 	SDL_GetWindowSize(platform.window, &rect.w, &rect.h);
 
-	GPU_Rect src = {OFFSET_LEFT, OFFSET_TOP, 176, 136};
-	GPU_Rect dst = {0, 0, rect.w/src.w, rect.h/src.h};
+	GPU_Rect src = {OFFSET_LEFT, OFFSET_TOP, KBD_COLS*TIC_SPRITESIZE, KBD_ROWS*TIC_SPRITESIZE};
+	float scale = rect.w/src.w;
+
+	GPU_Rect dst = {0, rect.h - KBD_ROWS*TIC_SPRITESIZE*scale, scale, scale};
+
+	{
+		SDL_Rect rect;
+		calcTextureRect(&rect);
+
+		if(dst.y - (rect.h + rect.y*2) < 0)
+			return;
+	}
 
 	GPU_BlitScale(platform.keyboard.texture.up, &src, platform.gpu.screen, dst.x, dst.y, dst.w, dst.h);
 
@@ -757,7 +770,7 @@ static void renderKeyboard()
 
 	tic80_input* input = &platform.studio->tic->ram.input;
 
-	enum{Cols=22, Rows=17};
+	enum{Cols=KBD_COLS, Rows=KBD_ROWS};
 
 	for(s32 i = 0; i < COUNT_OF(input->keyboard.keys); i++)
 	{
@@ -772,7 +785,7 @@ static void renderKeyboard()
 						TIC_SPRITESIZE, TIC_SPRITESIZE};
 
 					GPU_BlitScale(platform.keyboard.texture.down, &src, platform.gpu.screen, 
-						(src.x - OFFSET_LEFT) * dst.w, (src.y - OFFSET_TOP) * dst.h, dst.w, dst.h);
+						(src.x - OFFSET_LEFT) * dst.w, (src.y - OFFSET_TOP) * dst.h + dst.y, dst.w, dst.h);
 				}
 			}
 		}		
