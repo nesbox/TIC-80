@@ -526,6 +526,13 @@ const StudioConfig* getConfig()
 	return &impl.config->data;
 }
 
+static bool isGamepadMode()
+{
+	return impl.mode == TIC_RUN_MODE
+		|| impl.mode == TIC_SURF_MODE
+		|| impl.mode == TIC_MENU_MODE;
+}
+
 #if defined (TIC80_PRO)
 
 static void drawBankIcon(s32 x, s32 y)
@@ -1873,6 +1880,7 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, Sy
 	impl.studio.updateProject = updateStudioProject;
 	impl.studio.exit = exitStudio;
 	impl.studio.config = getConfig;
+	impl.studio.isGamepadMode = isGamepadMode;
 
 	return &impl.studio;
 }

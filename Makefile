@@ -186,7 +186,7 @@ TIC80_H = include/tic80_types.h include/tic80.h include/tic80_config.h src/tic.h
 TIC_H= src/*.h \
 	src/ext/*.h
 
-bin/studio.o: src/studio.c src/keycodes.c $(TIC80_H) $(TIC_H)
+bin/studio.o: src/studio.c $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
 bin/console.o: src/console.c $(TIC80_H) $(TIC_H) $(DEMO_ASSETS)
@@ -258,7 +258,7 @@ bin/menu.o: src/menu.c $(TIC80_H) $(TIC_H)
 bin/surf.o: src/surf.c $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
-bin/system.o: src/system.c src/keycodes.c $(TIC80_H) $(TIC_H)
+bin/system.o: src/system.c src/keycodes.inl src/kbdlayout.inl src/kbdlabels.inl $(TIC80_H) $(TIC_H)
 	$(CC) $< $(OPT) $(INCLUDES) -c -o $@
 
 bin/chip.o: src/system/chip.c src/keycodes.c $(TIC80_H) $(TIC_H)

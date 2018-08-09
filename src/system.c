@@ -17,6 +17,9 @@
 #define OFFSET_LEFT ((TIC80_FULLWIDTH-TIC80_WIDTH)/2)
 #define OFFSET_TOP ((TIC80_FULLHEIGHT-TIC80_HEIGHT)/2)
 
+#define KBD_COLS 22
+#define KBD_ROWS 17
+
 static struct
 {
 	Studio* studio;
@@ -39,10 +42,6 @@ static struct
 		tic80_gamepads touch;
 		tic80_gamepads joystick;
 
-		bool show;
-		s32 counter;
-		s32 alpha;
-
 		struct
 		{
 			s32 size;
@@ -53,6 +52,18 @@ static struct
 			SDL_Point y;
 		} part;
 	} gamepad;
+
+	struct
+	{
+		struct
+		{
+			GPU_Image* up;
+			GPU_Image* down;
+		} texture;
+
+	} keyboard;
+
+	u32 touchCounter;
 
 	struct
 	{
@@ -162,15 +173,89 @@ static void updateGamepadParts()
 	platform.gamepad.part.y = (SDL_Point){rect.w - 2*tileSize, 0*tileSize + offset};
 }
 
+static void drawKeyboardLabels(s32 shift)
+{
+	tic_mem* tic = platform.studio->tic;
+
+	typedef struct {const char* text; s32 x; s32 y; bool alt; const char* shift;} Label;
+	static const Label Labels[] =
+	{
+		#include "kbdlabels.inl"
+	};
+
+	for(s32 i = 0; i < COUNT_OF(Labels); i++)
+	{
+		const Label* label = Labels + i;
+		if(label->text)
+			tic->api.text(tic, label->text, label->x, label->y + shift, tic_color_dark_gray, label->alt);
+
+		if(label->shift)
+			tic->api.fixed_text(tic, label->shift, label->x + 6, label->y + shift + 2, tic_color_light_blue, label->alt);
+	}
+}
+
+static void initTouchKeyboard()
+{
+	tic_mem* tic = platform.studio->tic;
+
+	enum{Cols=KBD_COLS, Rows=KBD_ROWS};
+
+	// TODO: add touch keyboard to one texture with gamepad (and mouse cursor???)
+	if(!platform.keyboard.texture.up)
+	{		
+		platform.keyboard.texture.up = GPU_CreateImage(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, STUDIO_PIXEL_FORMAT);
+		GPU_SetAnchor(platform.keyboard.texture.up, 0, 0);
+		GPU_SetImageFilter(platform.keyboard.texture.up, GPU_FILTER_NEAREST);
+	}
+
+	{
+
+		memcpy(tic->ram.vram.palette.data, platform.studio->config()->cart->bank0.palette.data, sizeof(tic_palette));
+
+		tic->api.clear(tic, 0);
+		tic->api.map(tic, &platform.studio->config()->cart->bank0.map, 
+			&platform.studio->config()->cart->bank0.tiles, 8, 0, Cols, Rows, 0, 0, -1, 1);
+
+		drawKeyboardLabels(0);
+
+		tic->api.blit(tic, NULL, NULL, NULL);
+
+		GPU_UpdateImageBytes(platform.keyboard.texture.up, NULL, (const u8*)tic->screen, TIC80_FULLWIDTH * sizeof(u32));
+	}
+
+	if(!platform.keyboard.texture.down)
+	{		
+		platform.keyboard.texture.down = GPU_CreateImage(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, STUDIO_PIXEL_FORMAT);
+		GPU_SetAnchor(platform.keyboard.texture.down, 0, 0);
+		GPU_SetImageFilter(platform.keyboard.texture.down, GPU_FILTER_NEAREST);
+	}
+
+	{
+		memcpy(tic->ram.vram.palette.data, platform.studio->config()->cart->bank0.palette.data, sizeof(tic_palette));
+
+		tic->api.map(tic, &platform.studio->config()->cart->bank0.map, 
+			&platform.studio->config()->cart->bank0.tiles, TIC_MAP_SCREEN_WIDTH+8, 0, Cols, Rows, 0, 0, -1, 1);
+
+		drawKeyboardLabels(2);
+
+		tic->api.blit(tic, NULL, NULL, NULL);
+
+		GPU_UpdateImageBytes(platform.keyboard.texture.down, NULL, (const u8*)tic->screen, TIC80_FULLWIDTH * sizeof(u32));
+	}
+
+}
+
 static void initTouchGamepad()
 {
-	platform.studio->tic->api.map(platform.studio->tic, &platform.studio->config()->cart->bank0.map, &platform.studio->config()->cart->bank0.tiles, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, -1, 1);
+	platform.studio->tic->api.map(platform.studio->tic, &platform.studio->config()->cart->bank0.map, 
+		&platform.studio->config()->cart->bank0.tiles, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, -1, 1);
 
 	if(!platform.gamepad.texture)
 	{		
 		platform.gamepad.texture = GPU_CreateImage(TEXTURE_SIZE, TEXTURE_SIZE, STUDIO_PIXEL_FORMAT);
 		GPU_SetAnchor(platform.gamepad.texture, 0, 0);
 		GPU_SetImageFilter(platform.gamepad.texture, GPU_FILTER_NEAREST);
+		GPU_SetRGBA(platform.gamepad.texture, 0xff, 0xff, 0xff, platform.studio->config()->theme.gamepad.touch.alpha);
 	}
 
 	u32* data = SDL_malloc(TEXTURE_SIZE * TEXTURE_SIZE * sizeof(u32));
@@ -305,7 +390,7 @@ static void processKeyboard()
 {
 	static const u8 KeyboardCodes[] = 
 	{
-		#include "keycodes.c"
+		#include "keycodes.inl"
 	};
 
 	tic80_input* input = &platform.studio->tic->ram.input;
@@ -330,23 +415,8 @@ static bool checkTouch(const SDL_Rect* rect, s32* x, s32* y)
 	{
 		SDL_TouchID id = SDL_GetTouchDevice(i);
 
-		// very strange, but on Android id always == 0
-		//if (id)
 		{
 			s32 fingers = SDL_GetNumTouchFingers(id);
-
-			if(fingers)
-			{
-				platform.gamepad.counter = 0;
-
-				if (!platform.gamepad.show)
-				{
-					platform.gamepad.alpha = platform.studio->config()->theme.gamepad.touch.alpha;
-					GPU_SetRGBA(platform.gamepad.texture, 0xff, 0xff, 0xff, platform.gamepad.alpha);
-					platform.gamepad.show = true;
-					return false;
-				}
-			}
 
 			for (s32 f = 0; f < fingers; f++)
 			{
@@ -369,9 +439,71 @@ static bool checkTouch(const SDL_Rect* rect, s32* x, s32* y)
 	return false;
 }
 
-static void processTouchGamepad()
+static void processTouchKeyboard()
 {
+	if(platform.touchCounter == 0) return;
+
+	enum{Cols=KBD_COLS, Rows=KBD_ROWS};
+
+	s32 w, h;
+	SDL_GetWindowSize(platform.window, &w, &h);
+
+	float scale = (float)w / (KBD_COLS*TIC_SPRITESIZE);
+
+	SDL_Rect kbd = {0, h - KBD_ROWS*TIC_SPRITESIZE*scale, 
+		KBD_COLS*TIC_SPRITESIZE*scale, KBD_ROWS*TIC_SPRITESIZE*scale};
+
+	static const tic_key KbdLayout[] = 
+	{
+		#include "kbdlayout.inl"
+	};
+
+	tic80_input* input = &platform.studio->tic->ram.input;
+
+	s32 devices = SDL_GetNumTouchDevices();
+
+	for (s32 i = 0; i < devices; i++)
+	{
+		SDL_TouchID id = SDL_GetTouchDevice(i);
+		s32 fingers = SDL_GetNumTouchFingers(id);
+
+		for (s32 f = 0; f < fingers; f++)
+		{
+			SDL_Finger* finger = SDL_GetTouchFinger(id, f);
+
+			if (finger && finger->pressure > 0.0f)
+			{
+				SDL_Point pt = {finger->x * w, finger->y * h};
+
+				if(SDL_PointInRect(&pt, &kbd))
+				{
+					pt.x -= kbd.x;
+					pt.y -= kbd.y;
+
+					pt.x /= scale;
+					pt.y /= scale;
+
+					for(s32 i = 0; i < COUNT_OF(input->keyboard.keys); i++)
+					{
+						tic_key* key = &input->keyboard.keys[i];
+
+						if(*key == tic_key_unknown)
+						{
+							*key = KbdLayout[pt.x / TIC_SPRITESIZE + pt.y / TIC_SPRITESIZE * Cols];
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+static void processTouchGamepad()
+{	
 	platform.gamepad.touch.data = 0;
+
+	if(platform.touchCounter == 0) return;
 
 	const s32 size = platform.gamepad.part.size;
 	s32 x = 0, y = 0;
@@ -540,7 +672,19 @@ static void processJoysticks()
 static void processGamepad()
 {
 #if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
-	processTouchGamepad();
+	{
+		s32 devices = SDL_GetNumTouchDevices();
+		for (s32 i = 0; i < devices; i++)
+			if(SDL_GetNumTouchFingers(SDL_GetTouchDevice(i)) > 0)
+				platform.touchCounter = 10 * TIC_FRAMERATE;
+
+		if(platform.touchCounter)
+			platform.touchCounter--;
+	}
+
+	platform.studio->isGamepadMode()
+		? processTouchGamepad()
+		: processTouchKeyboard();
 #endif
 	processJoysticks();
 	
@@ -675,9 +819,59 @@ static void blitSound()
 	else SDL_QueueAudio(platform.audio.device, tic->samples.buffer, tic->samples.size);
 }
 
+static void renderKeyboard()
+{
+	if(platform.touchCounter == 0) return;
+
+	SDL_Rect rect;
+	SDL_GetWindowSize(platform.window, &rect.w, &rect.h);
+
+	GPU_Rect src = {OFFSET_LEFT, OFFSET_TOP, KBD_COLS*TIC_SPRITESIZE, KBD_ROWS*TIC_SPRITESIZE};
+	float scale = rect.w/src.w;
+	GPU_Rect dst = (GPU_Rect){0, rect.h - KBD_ROWS*TIC_SPRITESIZE*scale, scale, scale};
+
+	{
+		SDL_Rect rect;
+		calcTextureRect(&rect);
+
+		if(dst.y - (rect.h + rect.y*2) < 0)
+			return;
+	}
+
+	GPU_BlitScale(platform.keyboard.texture.up, &src, platform.gpu.screen, dst.x, dst.y, dst.w, dst.h);
+
+	static const tic_key KbdLayout[] = 
+	{
+		#include "kbdlayout.inl"
+	};
+
+	tic80_input* input = &platform.studio->tic->ram.input;
+
+	enum{Cols=KBD_COLS, Rows=KBD_ROWS};
+
+	for(s32 i = 0; i < COUNT_OF(input->keyboard.keys); i++)
+	{
+		tic_key key = input->keyboard.keys[i];
+		if(key > tic_key_unknown)
+		{
+			for(s32 k = 0; k < COUNT_OF(KbdLayout); k++)
+			{
+				if(key == KbdLayout[k])
+				{
+					GPU_Rect src = {(k % Cols)*TIC_SPRITESIZE + OFFSET_LEFT, (k / Cols)*TIC_SPRITESIZE + OFFSET_TOP, 
+						TIC_SPRITESIZE, TIC_SPRITESIZE};
+
+					GPU_BlitScale(platform.keyboard.texture.down, &src, platform.gpu.screen, 
+						(src.x - OFFSET_LEFT) * dst.w, (src.y - OFFSET_TOP) * dst.h + dst.y, dst.w, dst.h);
+				}
+			}
+		}		
+	}
+}
+
 static void renderGamepad()
 {
-	if(platform.gamepad.show || platform.gamepad.alpha); else return;
+	if(platform.touchCounter == 0) return;
 
 	const s32 tileSize = platform.gamepad.part.size;
 	const SDL_Point axis = platform.gamepad.part.axis;
@@ -695,33 +889,15 @@ static void renderGamepad()
 		{platform.studio->tic->ram.input.gamepads.first.y, 		platform.gamepad.part.y.x, platform.gamepad.part.y.y},
 	};
 
-	enum {ButtonsCount = 8};
-
 	for(s32 i = 0; i < COUNT_OF(Tiles); i++)
 	{
 		const Tile* tile = Tiles + i;
-		GPU_Rect src = {(tile->press ? ButtonsCount + i : i) * TIC_SPRITESIZE, 0, TIC_SPRITESIZE, TIC_SPRITESIZE};
+		GPU_Rect src = {i * TIC_SPRITESIZE, tile->press ? TIC_SPRITESIZE : 0, TIC_SPRITESIZE, TIC_SPRITESIZE};
 		GPU_Rect dest = {tile->x, tile->y, tileSize, tileSize};
 
 		GPU_BlitScale(platform.gamepad.texture, &src, platform.gpu.screen, dest.x, dest.y,
 			(float)dest.w / TIC_SPRITESIZE, (float)dest.h / TIC_SPRITESIZE);
 	}
-
-	if(!platform.gamepad.show && platform.gamepad.alpha)
-	{
-		enum {Step = 3};
-
-		if(platform.gamepad.alpha - Step >= 0) platform.gamepad.alpha -= Step;
-		else platform.gamepad.alpha = 0;
-
-		GPU_SetRGBA(platform.gamepad.texture, 0xff, 0xff, 0xff, platform.gamepad.alpha);
-	}
-
-	platform.gamepad.counter = platform.gamepad.touch.data ? 0 : platform.gamepad.counter+1;
-
-	// wait 5 seconds and hide touch gamepad
-	if(platform.gamepad.counter >= 5 * TIC_FRAMERATE)
-		platform.gamepad.show = false;
 }
 
 static void blitCursor(const u8* in)
@@ -1135,7 +1311,12 @@ static void gpuTick()
 		}
 
 		renderCursor();
-		renderGamepad();
+
+#if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
+		platform.studio->isGamepadMode()
+			? renderGamepad()
+			: renderKeyboard();
+#endif
 	}
 
 	GPU_Flip(platform.gpu.screen);
@@ -1198,6 +1379,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
 	}
 
 	initTouchGamepad();
+	initTouchKeyboard();
 
 	platform.gpu.texture = GPU_CreateImage(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, STUDIO_PIXEL_FORMAT);
 	GPU_SetAnchor(platform.gpu.texture, 0, 0);
@@ -1251,6 +1433,12 @@ static s32 start(s32 argc, char **argv, const char* folder)
 
 	if(platform.gamepad.texture)
 		GPU_FreeImage(platform.gamepad.texture);
+
+	if(platform.keyboard.texture.up)
+		GPU_FreeImage(platform.keyboard.texture.up);
+
+	if(platform.keyboard.texture.down)
+		GPU_FreeImage(platform.keyboard.texture.down);
 
 	if(platform.mouse.texture)
 		GPU_FreeImage(platform.mouse.texture);

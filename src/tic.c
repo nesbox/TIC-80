@@ -662,7 +662,7 @@ static s32 api_fixed_text(tic_mem* memory, const char* text, s32 x, s32 y, u8 co
 
 static s32 drawNonFixedChar(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale, bool alt)
 {
-	const u8* ptr = memory->font.data + (symbol)*BITS_IN_BYTE + (alt ? TIC_FONT_CHARS / 2 : 0);
+	const u8* ptr = memory->font.data + (symbol + (alt ? TIC_FONT_CHARS / 2 : 0))*BITS_IN_BYTE;
 
 	const s32 FontWidth = alt ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH;
 
