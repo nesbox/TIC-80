@@ -1075,22 +1075,26 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 
 static void load(Console* console, const char* path, const char* hash)
 {
-	s32 size = 0;
-	const char* name = getCartName(path);
-
-	void* data = fsLoadFileByHash(console->fs, hash, &size);
-
-	if(data)
+	if(hash)
 	{
-		console->showGameMenu = true;
+		s32 size = 0;
+		const char* name = getCartName(path);
 
-		loadRom(console->tic, data, size, true);
-		onCartLoaded(console, name);
+		void* data = fsLoadFileByHash(console->fs, hash, &size);
 
-		free(data);		
+		if(data)
+		{
+			console->showGameMenu = true;
+
+			loadRom(console->tic, data, size, true);
+			onCartLoaded(console, name);
+
+			free(data);		
+		}
+
+		commandDone(console);
 	}
-
-	commandDone(console);
+	else onConsoleLoadCommandConfirmed(console, path);
 }
 
 typedef void(*ConfirmCallback)(Console* console, const char* param);
