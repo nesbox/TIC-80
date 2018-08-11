@@ -834,6 +834,8 @@ static void blitSound()
 	else SDL_QueueAudio(platform.audio.device, tic->samples.buffer, tic->samples.size);
 }
 
+#if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
+
 static void renderKeyboard()
 {
 	if(platform.touchCounter == 0 || !isKbdVisible()) return;
@@ -906,6 +908,8 @@ static void renderGamepad()
 			(float)dest.w / TIC_SPRITESIZE, (float)dest.h / TIC_SPRITESIZE);
 	}
 }
+
+#endif
 
 static void blitCursor(const u8* in)
 {
