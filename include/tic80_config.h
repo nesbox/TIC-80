@@ -29,15 +29,16 @@
 #define TIC_BUILD_WITH_WREN 	1
 
 #if defined(__APPLE__)
+// TODO: this disables macos config 
 #	include "AvailabilityMacros.h"
 #	include "TargetConditionals.h"
-#	ifndef TARGET_OS_IPHONE
+// #	ifndef TARGET_OS_IPHONE
 #		undef __TIC_MACOSX__
 #		define __TIC_MACOSX__ 1
 #		if MAC_OS_X_VERSION_MIN_REQUIRED < 1060
 #			error SDL for Mac OS X only supports deploying on 10.6 and above.
 #		endif /* MAC_OS_X_VERSION_MIN_REQUIRED < 1060 */
-#	endif /* TARGET_OS_IPHONE */
+// #	endif /* TARGET_OS_IPHONE */
 #endif /* defined(__APPLE__) */
 
 #if defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__)
