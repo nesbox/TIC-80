@@ -27,8 +27,8 @@
 #include "defines.h"
 
 #define TIC_VERSION_MAJOR 0
-#define TIC_VERSION_MINOR 60
-#define TIC_VERSION_PATCH 3
+#define TIC_VERSION_MINOR 70
+#define TIC_VERSION_PATCH 1
 #define TIC_VERSION_STATUS ""
 
 #if defined(TIC80_PRO)
@@ -43,7 +43,7 @@
 #define DEF2STR2(x) #x
 #define DEF2STR(x) DEF2STR2(x)
 
-#define TIC_VERSION_LABEL DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "." DEF2STR(TIC_VERSION_PATCH) TIC_VERSION_POST TIC_VERSION_STATUS
+#define TIC_VERSION_LABEL DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "." DEF2STR(TIC_VERSION_PATCH) TIC_VERSION_STATUS TIC_VERSION_POST
 #define TIC_PACKAGE "com.nesbox.tic"
 #define TIC_NAME "TIC-80"
 #define TIC_NAME_FULL TIC_NAME " tiny computer"
@@ -55,6 +55,7 @@
 #define TIC_RAM_SIZE (80*1024) //80K
 #define TIC_FONT_WIDTH 6
 #define TIC_FONT_HEIGHT 6
+#define TIC_ALTFONT_WIDTH 4
 #define TIC_PALETTE_BPP 4
 #define TIC_PALETTE_SIZE (1 << TIC_PALETTE_BPP)
 #define TIC_FRAMERATE 60
@@ -111,7 +112,7 @@
 #define TIC_GAMEPADS (sizeof(tic80_gamepads) / sizeof(tic80_gamepad))
 
 #define SFX_NOTES {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
-#define TIC_FONT_CHARS 128
+#define TIC_FONT_CHARS 256
 
 enum
 {
@@ -328,23 +329,28 @@ typedef struct
 
 typedef struct
 {
-	tic_tiles tiles;
-	tic_tiles sprites;
-	tic_map map;
-	tic_sfx sfx;
-	tic_music music;
-	tic_code code;
+	tic_tiles 	tiles;
+	tic_tiles 	sprites;
+	tic_map 	map;
+	tic_sfx 	sfx;
+	tic_music 	music;
+	tic_code 	code;
+	tic_palette palette;
 } tic_bank;
 
 typedef struct
 {
 	union
 	{
-		tic_bank bank0;
+		struct
+		{
+			tic_bank bank0;
+			tic_bank bank1;
+		};
+
 		tic_bank banks[TIC_BANKS];
 	};
 	
-	tic_palette palette;
 	tic_cover_image cover;
 } tic_cartridge;
 
@@ -385,7 +391,12 @@ typedef union
 				s8 y;
 			} offset;
 
-			u8 cursor;
+			struct
+			{
+				u8 sprite:7;
+				bool system:1;
+			} cursor;
+
 		} vars;
 
 		u8 reserved[4];
@@ -396,7 +407,7 @@ typedef union
 
 typedef struct
 {
-	s32 data[TIC_PERSISTENT_SIZE];
+	u32 data[TIC_PERSISTENT_SIZE];
 } tic_persistent;
 
 typedef union
@@ -418,7 +429,7 @@ typedef union
 	u8 data[TIC_RAM_SIZE];
 } tic_ram;
 
-enum
+typedef enum
 {
 	tic_key_unknown,
 
@@ -511,4 +522,18 @@ enum
 	////////////////
 
 	tic_keys_count
-};
+} tic_keycode;
+
+typedef enum
+{
+	tic_mouse_left,
+	tic_mouse_middle,
+	tic_mouse_right,
+} tic_mouse_btn;
+
+typedef enum
+{
+	tic_cursor_arrow,
+	tic_cursor_hand,
+	tic_cursor_ibeam,
+} tic_cursor;

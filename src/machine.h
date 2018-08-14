@@ -28,7 +28,11 @@
 
 #define SFX_DEF_SPEED (1 << SFX_SPEED_BITS)
 
-#define API_KEYWORDS {"TIC", "scanline", "OVR", "print", "cls", "pix", "line", "rect", "rectb", \
+#define TIC_FN "TIC"
+#define SCN_FN "SCN"
+#define OVR_FN "OVR"
+
+#define API_KEYWORDS {TIC_FN, SCN_FN, OVR_FN, "print", "cls", "pix", "line", "rect", "rectb", \
 	"spr", "btn", "btnp", "sfx", "map", "mget", "mset", "peek", "poke", "peek4", "poke4", \
 	"memcpy", "memset", "trace", "pmem", "time", "exit", "font", "mouse", "circ", "circb", "tri", "textri", \
 	"clip", "music", "sync", "reset", "key", "keyp"}
@@ -99,7 +103,7 @@ typedef struct
 
 	struct
 	{
-		tic_overlap callback;
+		tic_overline callback;
 		u32 palette[TIC_PALETTE_SIZE];
 	} ovr;
 
@@ -119,8 +123,17 @@ typedef struct
 
 	struct
 	{
+#if defined(TIC_BUILD_WITH_LUA) || defined(TIC_BUILD_WITH_MOON) || defined(TIC_BUILD_WITH_FENNEL)
+		struct lua_State* lua;
+#endif
+
+#if defined(TIC_BUILD_WITH_JS)
 		struct duk_hthread* js;
-		struct lua_State* lua;	
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
+		struct WrenVM* wren;
+#endif	
 	};
 
 	blip_buffer_t* blip;
@@ -150,12 +163,30 @@ typedef struct
 
 } tic_machine;
 
-typedef s32(DrawCharFunc)(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale);
-s32 drawText(tic_mem* memory, const char* text, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale, DrawCharFunc* func);
-s32 drawSpriteFont(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale);
-s32 drawFixedSpriteFont(tic_mem* memory, u8 index, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale);
+typedef s32(DrawCharFunc)(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale, bool alt);
+s32 drawText(tic_mem* memory, const char* text, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale, DrawCharFunc* func, bool alt);
+s32 drawSpriteFont(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale, bool alt);
+s32 drawFixedSpriteFont(tic_mem* memory, u8 index, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale, bool alt);
 void parseCode(const tic_script_config* config, const char* start, u8* color, const tic_code_theme* theme);
 
+#if defined(TIC_BUILD_WITH_LUA)
 const tic_script_config* getLuaScriptConfig();
+
+#	if defined(TIC_BUILD_WITH_MOON)
 const tic_script_config* getMoonScriptConfig();
+#	endif
+
+#	if defined(TIC_BUILD_WITH_FENNEL)
+const tic_script_config* getFennelConfig();
+#	endif
+
+#endif /* defined(TIC_BUILD_WITH_LUA) */
+
+
+#if defined(TIC_BUILD_WITH_JS)
 const tic_script_config* getJsScriptConfig();
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
+const tic_script_config* getWrenScriptConfig();
+#endif

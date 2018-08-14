@@ -1,0 +1,3 @@
+[submodule "3rd-party"]
+	path = 3rd-party
+	url = https://github.com/nesbox/3rd-party.git

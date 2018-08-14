@@ -104,6 +104,7 @@ TIC80_API void tic80_load(tic80* tic, void* cart, s32 size)
 		tic80->tickData.start = 0;
 		tic80->tickData.freq = getFreq;
 		tic80->tickData.counter = getCounter;
+		tic80->tickData.syncPMEM = false;
 		TickCounter = 0;
 	}
 
@@ -123,7 +124,7 @@ TIC80_API void tic80_tick(tic80* tic, tic80_input input)
 	tic80->memory->api.tick(tic80->memory, &tic80->tickData);
 	tic80->memory->api.tick_end(tic80->memory);
 
-	tic80->memory->api.blit(tic80->memory, tic80->memory->api.scanline, tic80->memory->api.overlap, NULL);
+	tic80->memory->api.blit(tic80->memory, tic80->memory->api.scanline, tic80->memory->api.overline, NULL);
 
 	TickCounter++;
 }

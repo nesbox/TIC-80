@@ -24,7 +24,7 @@
 #include "fs.h"
 
 #define DIALOG_WIDTH (TIC80_WIDTH/2)
-#define DIALOG_HEIGHT (TIC80_HEIGHT/2-TOOLBAR_SIZE)
+#define DIALOG_HEIGHT (TIC80_HEIGHT/2)
 
 static const char* Rows[] = 
 {
@@ -32,7 +32,8 @@ static const char* Rows[] =
 	"RESET GAME",
 	"GAMEPAD CONFIG",
 	"",
-	"EXIT TO TIC-80",
+	"CLOSE GAME",
+	"QUIT TIC-80",
 };
 
 static void resumeGame(Menu* menu)
@@ -56,16 +57,16 @@ static void gamepadConfig(Menu* menu)
 	menu->gamepad.tab = 0;
 }
 
-static void exitToTIC(Menu* menu)
+static void closeGame(Menu* menu)
 {
 	exitFromGameMenu();
 }
 
-static void(*const MenuHandlers[])(Menu*) = {resumeGame, resetGame, gamepadConfig, NULL, exitToTIC};
+static void(*const MenuHandlers[])(Menu*) = {resumeGame, resetGame, gamepadConfig, NULL, closeGame, exitStudio};
 
-static SDL_Rect getRect(Menu* menu)
+static tic_rect getRect(Menu* menu)
 {
-	SDL_Rect rect = {(TIC80_WIDTH - DIALOG_WIDTH)/2, (TIC80_HEIGHT - DIALOG_HEIGHT)/2, DIALOG_WIDTH, DIALOG_HEIGHT};
+	tic_rect rect = {(TIC80_WIDTH - DIALOG_WIDTH)/2, (TIC80_HEIGHT - DIALOG_HEIGHT)/2, DIALOG_WIDTH, DIALOG_HEIGHT};
 
 	rect.x -= menu->pos.x;
 	rect.y -= menu->pos.y;
@@ -74,17 +75,17 @@ static SDL_Rect getRect(Menu* menu)
 }
 static void drawDialog(Menu* menu)
 {
-	SDL_Rect rect = getRect(menu);
+	tic_rect rect = getRect(menu);
 
 	tic_mem* tic = menu->tic;
 
-	SDL_Rect header = {rect.x, rect.y-(TOOLBAR_SIZE-1), rect.w, TOOLBAR_SIZE};
+	tic_rect header = {rect.x, rect.y-(TOOLBAR_SIZE-1), rect.w, TOOLBAR_SIZE};
 
 	if(checkMousePos(&header))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
-		if(checkMouseDown(&header, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&header, tic_mouse_left))
 		{
 			if(!menu->drag.active)
 			{
@@ -98,13 +99,13 @@ static void drawDialog(Menu* menu)
 
 	if(menu->drag.active)
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		menu->pos.x = menu->drag.start.x - getMouseX();
 		menu->pos.y = menu->drag.start.y - getMouseY();
 
-		SDL_Rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
-		if(!checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
+		if(!checkMouseDown(&rect, tic_mouse_left))
 			menu->drag.active = false;
 	}
 
@@ -118,13 +119,13 @@ static void drawDialog(Menu* menu)
 
 	{
 		static const char Label[] = "GAME MENU";
-		s32 size = tic->api.text(tic, Label, 0, -TIC_FONT_HEIGHT, 0);
-		tic->api.text(tic, Label, rect.x + (DIALOG_WIDTH - size)/2, rect.y-(TOOLBAR_SIZE-2), (tic_color_gray));
+		s32 size = tic->api.text(tic, Label, 0, -TIC_FONT_HEIGHT, 0, false);
+		tic->api.text(tic, Label, rect.x + (DIALOG_WIDTH - size)/2, rect.y-(TOOLBAR_SIZE-2), (tic_color_gray), false);
 	}
 
 	{
 		u8 chromakey = 14;
-		tic->api.sprite_ex(tic, &tic->config.bank0.tiles, 0, rect.x+6, rect.y-4, 2, 2, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);
+		tic->api.sprite_ex(tic, &getConfig()->cart->bank0.tiles, 0, rect.x+6, rect.y-4, 2, 2, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);
 	}	
 }
 
@@ -133,15 +134,15 @@ static void drawTabDisabled(Menu* menu, s32 x, s32 y, s32 id)
 	enum{Width = 15, Height = 7};
 	tic_mem* tic = menu->tic;
 
-	SDL_Rect rect = {x, y, Width, Height};
+	tic_rect rect = {x, y, Width, Height};
 	bool over = false;
 
 	if(menu->gamepad.tab != id && checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 		over = true;
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 		{
 			menu->gamepad.tab = id;
 			menu->gamepad.selected = -1;
@@ -156,7 +157,7 @@ static void drawTabDisabled(Menu* menu, s32 x, s32 y, s32 id)
 	{
 		char buf[] = "#1";
 		sprintf(buf, "#%i", id+1);
-		tic->api.fixed_text(tic, buf, x+2, y, (over ? tic_color_light_blue : tic_color_gray));
+		tic->api.fixed_text(tic, buf, x+2, y, (over ? tic_color_light_blue : tic_color_gray), false);
 	}
 }
 
@@ -173,7 +174,7 @@ static void drawTab(Menu* menu, s32 x, s32 y, s32 id)
 	{
 		char buf[] = "#1";
 		sprintf(buf, "#%i", id+1);
-		tic->api.fixed_text(tic, buf, x+2, y, (tic_color_gray));
+		tic->api.fixed_text(tic, buf, x+2, y, (tic_color_gray), false);
 	}
 }
 
@@ -183,24 +184,24 @@ static void drawPlayerButtons(Menu* menu, s32 x, s32 y)
 
 	u8 chromakey = 0;
 
-	SDL_Scancode* codes = getKeymap();
+	tic_key* codes = getKeymap();
 
 	enum {Width = 41, Height = TIC_SPRITESIZE, Rows = 4, Cols = 2, MaxChars = 5, Buttons = 8};
 
 	for(s32 i = 0; i < Buttons; i++)
 	{
-		SDL_Rect rect = {x + i / Rows * (Width+2), y + (i%Rows)*(Height+1), Width, TIC_SPRITESIZE};
+		tic_rect rect = {x + i / Rows * (Width+2), y + (i%Rows)*(Height+1), Width, TIC_SPRITESIZE};
 		bool over = false;
 
 		s32 index = i+menu->gamepad.tab * Buttons;
 
 		if(checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
 			over = true;
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 			{
 				menu->gamepad.selected = menu->gamepad.selected != index ? index : -1;
 			}
@@ -209,16 +210,18 @@ static void drawPlayerButtons(Menu* menu, s32 x, s32 y)
 		if(menu->gamepad.selected == index && menu->ticks % TIC_FRAMERATE < TIC_FRAMERATE / 2)
 			continue;
 
-		tic->api.sprite_ex(tic, &tic->config.bank0.tiles, 8+i, rect.x, rect.y, 1, 1, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);
+		tic->api.sprite_ex(tic, &getConfig()->cart->bank0.tiles, 8+i, rect.x, rect.y, 1, 1, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);
+
+		static const char* const Names[tic_keys_count] = {"...", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "minus", "equals", "leftbracket", "rightbracket", "backslash", "semicolon", "apostrophe", "grave", "comma", "period", "slash", "space", "tab", "return", "backspace", "delete", "insert", "pageup", "pagedown", "home", "end", "up", "down", "left", "right", "capslock", "ctrl", "shift", "alt", "escape", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12"};
 
 		s32 code = codes[index];
 		char label[32];
-		strcpy(label, code ? SDL_GetKeyName(SDL_GetKeyFromScancode(code)) : "...");
+		strcpy(label, Names[code]);
 
 		if(strlen(label) > MaxChars)
 			label[MaxChars] = '\0';
 
-		tic->api.text(tic, label, rect.x+10, rect.y+2, (over ? tic_color_gray : tic_color_black));
+		tic->api.text(tic, label, rect.x+10, rect.y+2, (over ? tic_color_gray : tic_color_black), false);
 	}
 }
 
@@ -246,27 +249,27 @@ static void drawGamepadMenu(Menu* menu)
 
 	tic_mem* tic = menu->tic;
 
-	SDL_Rect dlgRect = getRect(menu);
+	tic_rect dlgRect = getRect(menu);
 
 	static const char Label[] = "BACK";
 
-	SDL_Rect rect = {dlgRect.x + 25, dlgRect.y + 49, (sizeof(Label)-1)*TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
+	tic_rect rect = {dlgRect.x + 25, dlgRect.y + 56, (sizeof(Label)-1)*TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
 
 	bool over = false;
 	bool down = false;
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		over = true;
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 		{
 			down = true;
 		}
 
-		if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseClick(&rect, tic_mouse_left))
 		{
 			menu->gamepad.selected = -1;
 			menu->mode = MAIN_MENU_MODE;
@@ -277,12 +280,12 @@ static void drawGamepadMenu(Menu* menu)
 
 	if(down)
 	{
-		tic->api.text(tic, Label, rect.x, rect.y+1, (tic_color_light_blue));
+		tic->api.text(tic, Label, rect.x, rect.y+1, (tic_color_light_blue), false);
 	}
 	else
 	{
-		tic->api.text(tic, Label, rect.x, rect.y+1, (tic_color_black));
-		tic->api.text(tic, Label, rect.x, rect.y, (over ? tic_color_light_blue : tic_color_white));			
+		tic->api.text(tic, Label, rect.x, rect.y+1, (tic_color_black), false);
+		tic->api.text(tic, Label, rect.x, rect.y, (over ? tic_color_light_blue : tic_color_white), false);
 	}
 
 	{
@@ -311,30 +314,30 @@ static void drawMainMenu(Menu* menu)
 
 	drawDialog(menu);
 
-	SDL_Rect rect = getRect(menu);
+	tic_rect rect = getRect(menu);
 
 	{
 		for(s32 i = 0; i < COUNT_OF(Rows); i++)
 		{
 			if(!*Rows[i])continue;
 
-			SDL_Rect label = {rect.x + 22, rect.y + (TIC_FONT_HEIGHT+1)*i + 16, 86, TIC_FONT_HEIGHT+1};
+			tic_rect label = {rect.x + 22, rect.y + (TIC_FONT_HEIGHT+1)*i + 16, 86, TIC_FONT_HEIGHT+1};
 			bool over = false;
 			bool down = false;
 
 			if(checkMousePos(&label))
 			{
-				setCursor(SDL_SYSTEM_CURSOR_HAND);
+				setCursor(tic_cursor_hand);
 
 				over = true;
 
-				if(checkMouseDown(&label, SDL_BUTTON_LEFT))
+				if(checkMouseDown(&label, tic_mouse_left))
 				{
 					down = true;
 					menu->main.focus = i;
 				}
 
-				if(checkMouseClick(&label, SDL_BUTTON_LEFT))
+				if(checkMouseClick(&label, tic_mouse_left))
 				{
 					MenuHandlers[i](menu);
 					return;
@@ -343,12 +346,12 @@ static void drawMainMenu(Menu* menu)
 
 			if(down)
 			{
-				tic->api.text(tic, Rows[i], label.x, label.y+1, (tic_color_light_blue));
+				tic->api.text(tic, Rows[i], label.x, label.y+1, (tic_color_light_blue), false);
 			}
 			else
 			{
-				tic->api.text(tic, Rows[i], label.x, label.y+1, (tic_color_black));
-				tic->api.text(tic, Rows[i], label.x, label.y, (over ? tic_color_light_blue : tic_color_white));			
+				tic->api.text(tic, Rows[i], label.x, label.y+1, (tic_color_black), false);
+				tic->api.text(tic, Rows[i], label.x, label.y, (over ? tic_color_light_blue : tic_color_white), false);
 			}
 
 			if(i == menu->main.focus)
@@ -432,22 +435,29 @@ static void saveMapping(Menu* menu)
 	fsSaveRootFile(menu->fs, KEYMAP_DAT_PATH, getKeymap(), KEYMAP_SIZE, true);
 }
 
-static void processKeydown(Menu* menu, SDL_Keysym* keysum)
+static void processKeyboard(Menu* menu)
 {
+	tic_mem* tic = menu->tic;
+
+	if(tic->ram.input.keyboard.data == 0) return;
+
 	if(menu->gamepad.selected < 0)
 		return;
 
-	SDL_Scancode scancode = keysum->scancode;
-
-	switch(scancode)
+	if(keyWasPressed(tic_key_escape));
+	else if(anyKeyWasPressed())
 	{
-	case SDL_SCANCODE_ESCAPE: break;
-	default:
+		for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
 		{
-			SDL_Scancode* codes = getKeymap();
-			codes[menu->gamepad.selected] = scancode;
+			tic_key key = tic->ram.input.keyboard.keys[i];
 
-			saveMapping(menu);
+			if(tic->api.keyp(tic, key, -1, -1))
+			{
+				tic_key* codes = getKeymap();
+				codes[menu->gamepad.selected] = key;
+				saveMapping(menu);
+				break;
+			}
 		}
 	}
 
@@ -458,16 +468,7 @@ static void tick(Menu* menu)
 {
 	menu->ticks++;
 
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
-	{
-		switch(event->type)
-		{
-		case SDL_KEYUP:
-			processKeydown(menu, &event->key.keysym);
-			break;
-		}
-	}
+	processKeyboard(menu);
 
 	if(getStudioMode() != TIC_MENU_MODE)
 		return;
@@ -479,7 +480,7 @@ static void tick(Menu* menu)
 		menu->init = true;
 	}
 
-	SDL_memcpy(menu->tic->ram.vram.screen.data, menu->bg, sizeof menu->tic->ram.vram.screen.data);
+	memcpy(menu->tic->ram.vram.screen.data, menu->bg, sizeof menu->tic->ram.vram.screen.data);
 
 	switch(menu->mode)
 	{
@@ -525,8 +526,8 @@ void initMenu(Menu* menu, tic_mem* tic, FileSystem* fs)
 	enum{Size = sizeof tic->ram.vram.screen.data};
 
 	if(!menu->bg)
-		menu->bg = SDL_malloc(Size);
+		menu->bg = malloc(Size);
 
 	if(menu->bg)
-		SDL_memcpy(menu->bg, tic->ram.vram.screen.data, Size);
+		memcpy(menu->bg, tic->ram.vram.screen.data, Size);
 }

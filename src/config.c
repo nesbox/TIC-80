@@ -66,22 +66,47 @@ static void readConfigNoSound(Config* config, lua_State* lua)
 	lua_pop(lua, 1);
 }
 
-static void readConfigShowMissedFrames(Config* config, lua_State* lua)
+static void readConfigShowSync(Config* config, lua_State* lua)
 {
-	lua_getglobal(lua, "MISSED_FRAMES");
+	lua_getglobal(lua, "SHOW_SYNC");
 
-	if(lua_isinteger(lua, -1))
-		config->data.missedFrames = lua_tointeger(lua, -1);
+	if(lua_isboolean(lua, -1))
+		config->data.showSync = lua_toboolean(lua, -1);
 
 	lua_pop(lua, 1);
 }
 
-static void readConfigUseVsync(Config* config, lua_State* lua)
+static void readConfigCrtMonitor(Config* config, lua_State* lua)
 {
-	lua_getglobal(lua, "USE_VSYNC");
+	lua_getglobal(lua, "CRT_MONITOR");
 
 	if(lua_isboolean(lua, -1))
-		config->data.useVsync = lua_toboolean(lua, -1);
+		config->data.crtMonitor = lua_toboolean(lua, -1);
+
+	lua_pop(lua, 1);
+}
+
+static void readConfigUiScale(Config* config, lua_State* lua)
+{
+	lua_getglobal(lua, "UI_SCALE");
+
+	if(lua_isinteger(lua, -1))
+		config->data.uiScale = lua_tointeger(lua, -1);
+
+	lua_pop(lua, 1);
+}
+
+static void readConfigCrtShader(Config* config, lua_State* lua)
+{
+	lua_getglobal(lua, "CRT_SHADER");
+
+	if(lua_isstring(lua, -1))
+	{
+		if(!config->data.crtShader)
+			config->data.crtShader = calloc(1, sizeof(tic_code));
+
+		strcpy((char*)config->data.crtShader, lua_tostring(lua, -1));
+	}
 
 	lua_pop(lua, 1);
 }
@@ -93,14 +118,36 @@ static void readCursorTheme(Config* config, lua_State* lua)
 	if(lua_type(lua, -1) == LUA_TTABLE)
 	{
 		{
-			lua_getfield(lua, -1, "SPRITE");
+			lua_getfield(lua, -1, "ARROW");
 
 			if(lua_isinteger(lua, -1))
 			{
-				config->data.theme.cursor.sprite = (s32)lua_tointeger(lua, -1);
+				config->data.theme.cursor.arrow = (s32)lua_tointeger(lua, -1);
 			}
 
-			lua_pop(lua, 1);			
+			lua_pop(lua, 1);
+		}
+
+		{
+			lua_getfield(lua, -1, "HAND");
+
+			if(lua_isinteger(lua, -1))
+			{
+				config->data.theme.cursor.hand = (s32)lua_tointeger(lua, -1);
+			}
+
+			lua_pop(lua, 1);
+		}
+
+		{
+			lua_getfield(lua, -1, "IBEAM");
+
+			if(lua_isinteger(lua, -1))
+			{
+				config->data.theme.cursor.ibeam = (s32)lua_tointeger(lua, -1);
+			}
+
+			lua_pop(lua, 1);
 		}
 
 		{
@@ -203,15 +250,21 @@ static void readConfig(Config* config)
 
 	if(lua)
 	{
-		if(luaL_loadstring(lua, config->tic->config.bank0.code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
+		if(luaL_loadstring(lua, config->cart.bank0.code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
 		{
 			readConfigVideoLength(config, lua);
 			readConfigVideoScale(config, lua);
 			readConfigCheckNewVersion(config, lua);
 			readConfigNoSound(config, lua);
-			readConfigShowMissedFrames(config, lua);
-			readConfigUseVsync(config, lua);
+			readConfigShowSync(config, lua);
+			readConfigCrtMonitor(config, lua);
+			readConfigUiScale(config, lua);
 			readTheme(config, lua);
+		}
+
+		if(luaL_loadstring(lua, config->cart.bank1.code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
+		{
+			readConfigCrtShader(config, lua);
 		}
 
 		lua_close(lua);
@@ -220,7 +273,7 @@ static void readConfig(Config* config)
 
 static void update(Config* config, const u8* buffer, size_t size)
 {
-	config->tic->api.load(&config->tic->config, buffer, size, true);
+	config->tic->api.load(&config->cart, buffer, size, true);
 
 	readConfig(config);
 	studioConfigChanged();
@@ -228,7 +281,9 @@ static void update(Config* config, const u8* buffer, size_t size)
 
 static void setDefault(Config* config)
 {
-	SDL_memset(&config->data, 0, sizeof(StudioConfig));
+	memset(&config->data, 0, sizeof(StudioConfig));
+
+	config->data.cart = &config->cart;
 
 	{
 		static const u8 DefaultBiosZip[] = 
@@ -243,22 +298,22 @@ static void setDefault(Config* config)
 		{
 			update(config, embedBios, size);
 
-			SDL_free(embedBios);
+			free(embedBios);
 		}
 	}
 }
 
 static void saveConfig(Config* config, bool overwrite)
 {
-	u8* buffer = SDL_malloc(sizeof(tic_cartridge));
+	u8* buffer = malloc(sizeof(tic_cartridge));
 
 	if(buffer)
 	{
-		s32 size = config->tic->api.save(&config->tic->config, buffer);
+		s32 size = config->tic->api.save(&config->cart, buffer);
 
 		fsSaveRootFile(config->fs, CONFIG_TIC_PATH, buffer, size, overwrite);
 
-		SDL_free(buffer);
+		free(buffer);
 	}
 }
 
@@ -270,7 +325,7 @@ static void reset(Config* config)
 
 static void save(Config* config)
 {
-	SDL_memcpy(&config->tic->config, &config->tic->cart, sizeof(tic_cartridge));
+	memcpy(&config->cart, &config->tic->cart, sizeof(tic_cartridge));
 	readConfig(config);
 	saveConfig(config, true);
 
@@ -279,13 +334,12 @@ static void save(Config* config)
 
 void initConfig(Config* config, tic_mem* tic, FileSystem* fs)
 {
-	*config = (Config)
 	{
-		.tic = tic,
-		.save = save,
-		.reset = reset,
-		.fs = fs,
-	};
+		config->tic = tic;
+		config->save = save;
+		config->reset = reset;
+		config->fs = fs;
+	}
 
 	setDefault(config);
 
@@ -296,7 +350,7 @@ void initConfig(Config* config, tic_mem* tic, FileSystem* fs)
 	{
 		update(config, data, size);
 
-		SDL_free(data);
+		free(data);
 	}
 	else saveConfig(config, false);
 

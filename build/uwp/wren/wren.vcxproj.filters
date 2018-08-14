@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{7ad0ea3c-f232-4a85-aa42-acd2fd0f1d6b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\vm">
+      <UniqueIdentifier>{530552c5-b8aa-496d-8bd6-255dc647f6b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\optional">
+      <UniqueIdentifier>{9e502f35-bbe6-4594-980c-c1645d31225e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_compiler.c">
+      <Filter>src\vm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_core.c">
+      <Filter>src\vm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_debug.c">
+      <Filter>src\vm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_primitive.c">
+      <Filter>src\vm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_utils.c">
+      <Filter>src\vm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_value.c">
+      <Filter>src\vm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_vm.c">
+      <Filter>src\vm</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\optional\wren_opt_meta.c">
+      <Filter>src\optional</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\optional\wren_opt_random.c">
+      <Filter>src\optional</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

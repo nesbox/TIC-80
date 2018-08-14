@@ -45,86 +45,33 @@
     <None Include="tic_TemporaryKey.pfx" />
     <None Include="Package.StoreAssociation.xml" />
     <None Include="tic_StoreKey.pfx" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\src\console.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\fs.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\map.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\music.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\run.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\sfx.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\sprite.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\start.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\studio.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\src\ext\file_dialog.cpp">
       <Filter>src\ext</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\history.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\world.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\html.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\code.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\config.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\ext\gif.c">
-      <Filter>src\ext</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\ext\md5.c">
-      <Filter>src\ext</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\net.c">
-      <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\src\tools.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\dialog.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\menu.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\surf.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\3rd-party\SDL2-2.0.7\src\main\winrt\SDL_winrt_main_NonXAML.cpp" />
-    <ClCompile Include="..\..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetTCP.c">
+    <ClCompile Include="..\..\..\3rd-party\SDL2-2.0.7\src\main\winrt\SDL_winrt_main_NonXAML.cpp" />
+    <ClCompile Include="..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetTCP.c">
       <Filter>src\ext\net</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\3rd-party\SDL2_net-2.0.1\SDLnet.c">
+    <ClCompile Include="..\..\..\3rd-party\SDL2_net-2.0.1\SDLnet.c">
       <Filter>src\ext\net</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetselect.c">
+    <ClCompile Include="..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetselect.c">
       <Filter>src\ext\net</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\system.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\net.c">
+      <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\..\..\..\3rd-party\SDL2-2.0.7\src\main\winrt\SDL2-WinRTResources.rc" />
+    <ResourceCompile Include="..\..\..\3rd-party\SDL2-2.0.7\src\main\winrt\SDL2-WinRTResources.rc" />
   </ItemGroup>
 </Project>

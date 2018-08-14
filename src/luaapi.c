@@ -20,6 +20,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include "machine.h"
+
+#if defined(TIC_BUILD_WITH_LUA)
+
 #include <stdlib.h>
 #include <string.h>
 #include <lua.h>
@@ -27,14 +31,11 @@
 #include <lualib.h>
 #include <ctype.h>
 
-#include "machine.h"
-#include "moonscript.h"
-
 #define LUA_LOC_STACK 1E8 // 100.000.000
 
 static const char TicMachine[] = "_TIC80";
 
-s32 luaopen_lpeg(lua_State *L);
+s32 luaopen_lpeg(lua_State *lua);
 
 // !TODO: get rid of this wrap
 static s32 getLuaNumber(lua_State* lua, s32 index)
@@ -795,7 +796,7 @@ static s32 lua_key(lua_State* lua)
 	{
 		tic_key key = getLuaNumber(lua, 1);
 
-		if(key < tic_keys_count)
+		if(key < tic_key_escape)
 			lua_pushboolean(lua, tic->api.key(tic, key));
 		else
 		{
@@ -827,7 +828,7 @@ static s32 lua_keyp(lua_State* lua)
 	{
 		tic_key key = getLuaNumber(lua, 1);
 
-		if(key >= tic_keys_count)
+		if(key >= tic_key_escape)
 		{
 			luaL_error(lua, "unknown keyboard code\n");
 		}
@@ -864,7 +865,7 @@ static s32 lua_memcpy(lua_State* lua)
 		s32 dest = getLuaNumber(lua, 1);
 		s32 src = getLuaNumber(lua, 2);
 		s32 size = getLuaNumber(lua, 3);
-                s32 bound = sizeof(tic_ram) - size;
+				s32 bound = sizeof(tic_ram) - size;
 
 		if(size >= 0 && size <= sizeof(tic_ram) && dest >= 0 && src >= 0 && dest <= bound && src <= bound)
 		{
@@ -932,6 +933,7 @@ static s32 lua_font(lua_State* lua)
 		u8 chromakey = 0;
 		bool fixed = false;
 		s32 scale = 1;
+		bool alt = false;
 
 		if(top >= 3)
 		{
@@ -954,6 +956,11 @@ static s32 lua_font(lua_State* lua)
 						if(top >= 8)
 						{
 							scale = getLuaNumber(lua, 8);
+
+							if(top >= 9)
+							{
+								alt = lua_toboolean(lua, 9);
+							}
 						}
 					}
 				}
@@ -966,7 +973,7 @@ static s32 lua_font(lua_State* lua)
 			return 1;
 		}
 
-		s32 size = drawText(memory, text, x, y, width, height, chromakey, scale, fixed ? drawSpriteFont : drawFixedSpriteFont);
+		s32 size = drawText(memory, text, x, y, width, height, chromakey, scale, fixed ? drawSpriteFont : drawFixedSpriteFont, alt);
 
 		lua_pushinteger(lua, size);
 
@@ -990,6 +997,7 @@ static s32 lua_print(lua_State* lua)
 		s32 color = TIC_PALETTE_SIZE-1;
 		bool fixed = false;
 		s32 scale = 1;
+		bool alt = false;
 
 		const char* text = printString(lua, 1);
 
@@ -1009,6 +1017,11 @@ static s32 lua_print(lua_State* lua)
 					if(top >= 6)
 					{
 						scale = getLuaNumber(lua, 6);
+
+						if(top >= 7)
+						{
+							alt = lua_toboolean(lua, 7);
+						}
 					}
 				}
 			}
@@ -1020,7 +1033,7 @@ static s32 lua_print(lua_State* lua)
 			return 1;
 		}
 
-		s32 size = memory->api.text_ex(memory, text ? text : "nil", x, y, color, fixed, scale);
+		s32 size = memory->api.text_ex(memory, text ? text : "nil", x, y, color, fixed, scale, alt);
 
 		lua_pushinteger(lua, size);
 
@@ -1064,11 +1077,12 @@ static s32 lua_pmem(lua_State *lua)
 
 		if(index < TIC_PERSISTENT_SIZE)
 		{
-			s32 val = memory->persistent.data[index];
+			u32 val = memory->persistent.data[index];
 
 			if(top >= 2)
 			{
-				memory->persistent.data[index] = getLuaNumber(lua, 2);
+				memory->persistent.data[index] = lua_tointeger(lua, 2);
+				machine->data->syncPMEM = true;
 			}
 
 			lua_pushinteger(lua, val);
@@ -1129,20 +1143,25 @@ static s32 lua_loadfile(lua_State *lua)
 	return 0;
 }
 
-
-static void setloaded(lua_State* l, char* name)
+static void lua_open_builtins(lua_State *lua)
 {
-	s32 top = lua_gettop(l);
-	lua_getglobal(l, "package");
-	lua_getfield(l, -1, "loaded");
-	lua_getfield(l, -1, name);
-	if (lua_isnil(l, -1)) {
-		lua_pop(l, 1);
-		lua_pushvalue(l, top);
-		lua_setfield(l, -2, name);
-	}
+	static const luaL_Reg loadedlibs[] =
+	{
+		{ "_G", luaopen_base },
+		{ LUA_LOADLIBNAME, luaopen_package },
+		{ LUA_COLIBNAME, luaopen_coroutine },
+		{ LUA_TABLIBNAME, luaopen_table },
+		{ LUA_STRLIBNAME, luaopen_string },
+		{ LUA_MATHLIBNAME, luaopen_math },
+		{ LUA_DBLIBNAME, luaopen_debug },
+		{ NULL, NULL }
+	};
 
-	lua_settop(l, top);
+	for (const luaL_Reg *lib = loadedlibs; lib->func; lib++)
+	{
+		luaL_requiref(lua, lib->name, lib->func, 1);
+		lua_pop(lua, 1);
+	}
 }
 
 static const char* const ApiKeywords[] = API_KEYWORDS;
@@ -1201,22 +1220,7 @@ static bool initLua(tic_mem* tic, const char* code)
 	closeLua(tic);
 
 	lua_State* lua = machine->lua = luaL_newstate();
-
-	static const luaL_Reg loadedlibs[] =
-	{
-		{ "_G", luaopen_base },
-		{ LUA_COLIBNAME, luaopen_coroutine },
-		{ LUA_TABLIBNAME, luaopen_table },
-		{ LUA_STRLIBNAME, luaopen_string },
-		{ LUA_MATHLIBNAME, luaopen_math },
-		{ NULL, NULL }
-	};
-
-	for (const luaL_Reg *lib = loadedlibs; lib->func; lib++)
-	{
-		luaL_requiref(lua, lib->name, lib->func, 1);
-		lua_pop(lua, 1);
-	}
+	lua_open_builtins(lua);
 
 	initAPI(machine);
 
@@ -1235,127 +1239,92 @@ static bool initLua(tic_mem* tic, const char* code)
 	return true;
 }
 
-#define MOON_CODE(...) #__VA_ARGS__
-
-static const char* execute_moonscript_src = MOON_CODE(
-	local fn, err = require('moonscript.base').loadstring(...)
-
-	if not fn then
-		return err
-	end
-	return fn()
-);
-
-static bool initMoonscript(tic_mem* tic, const char* code)
+/*
+** Message handler which appends stract trace to exceptions.
+** This function was extractred from lua.c.
+*/
+static s32 msghandler (lua_State *lua) 
 {
-	tic_machine* machine = (tic_machine*)tic;
-	closeLua(tic);
-
-	lua_State* lua = machine->lua = luaL_newstate();
-
-	static const luaL_Reg loadedlibs[] =
+	const char *msg = lua_tostring(lua, 1);
+	if (msg == NULL) /* is error object not a string? */
 	{
-		{ "_G", luaopen_base },
-		{ LUA_LOADLIBNAME, luaopen_package },
-		{ LUA_COLIBNAME, luaopen_coroutine },
-		{ LUA_TABLIBNAME, luaopen_table },
-		{ LUA_STRLIBNAME, luaopen_string },
-		{ LUA_MATHLIBNAME, luaopen_math },
-		{ LUA_DBLIBNAME, luaopen_debug },
-		{ NULL, NULL }
-	};
-
-	for (const luaL_Reg *lib = loadedlibs; lib->func; lib++)
-	{
-		luaL_requiref(lua, lib->name, lib->func, 1);
-		lua_pop(lua, 1);
+		if (luaL_callmeta(lua, 1, "__tostring") &&  /* does it have a metamethod */
+			lua_type(lua, -1) == LUA_TSTRING)  /* that produces a string? */
+			return 1;  /* that is the message */
+		else
+			msg = lua_pushfstring(lua, "(error object is a %s value)", luaL_typename(lua, 1));
 	}
+	luaL_traceback(lua, lua, msg, 1);  /* append a standard traceback */
+	return 1;  /* return the traceback */
+}
 
-	luaopen_lpeg(lua);
-	setloaded(lua, "lpeg");
-
-	initAPI(machine);
-
-	{
-		lua_State* moon = machine->lua;
-
-		lua_settop(moon, 0);
-
-		if (luaL_loadbuffer(moon, (const char *)moonscript_lua, moonscript_lua_len, "moonscript.lua") != LUA_OK)
-		{
-			machine->data->error(machine->data->data, "failed to load moonscript.lua");
-			return false;
-		}
-
-		lua_call(moon, 0, 0);
-
-		if (luaL_loadbuffer(moon, execute_moonscript_src, strlen(execute_moonscript_src), "execute_moonscript") != LUA_OK)
-		{
-			machine->data->error(machine->data->data, "failed to load moonscript compiler");
-			return false;
-		}
-
-		lua_pushstring(moon, code);
-		if (lua_pcall(moon, 1, 1, 0) != LUA_OK)
-		{
-			const char* msg = lua_tostring(moon, -1);
-
-			if (msg)
-			{
-				machine->data->error(machine->data->data, msg);
-				return false;
-			}
-		}
-	}
-
-	return true;
+/*
+** Interface to 'lua_pcall', which sets appropriate message handler function.
+** Please use this function for all top level lua functions.
+** This function was extractred from lua.c (and stripped of signal handling)
+*/
+static s32 docall (lua_State *lua, s32 narg, s32 nres) 
+{
+	s32 status = 0;
+	s32 base = lua_gettop(lua) - narg;  /* function index */
+	lua_pushcfunction(lua, msghandler);  /* push message handler */
+	lua_insert(lua, base);  /* put it under function and args */
+	status = lua_pcall(lua, narg, nres, base);
+	lua_remove(lua, base);  /* remove message handler from the stack */
+	return status;
 }
 
 static void callLuaTick(tic_mem* tic)
 {
 	tic_machine* machine = (tic_machine*)tic;
 
- 	const char* TicFunc = ApiKeywords[0];
+	const char* TicFunc = ApiKeywords[0];
 
- 	lua_State* lua = machine->lua;
+	lua_State* lua = machine->lua;
 
- 	if(lua)
- 	{
+	if(lua)
+	{
 		lua_getglobal(lua, TicFunc);
 		if(lua_isfunction(lua, -1)) 
 		{
-			if(lua_pcall(lua, 0, 0, 0) != LUA_OK)	
+			if(docall(lua, 0, 0) != LUA_OK)	
 				machine->data->error(machine->data->data, lua_tostring(lua, -1));
 		}
 		else 
 		{		
 			lua_pop(lua, 1);
 			machine->data->error(machine->data->data, "'function TIC()...' isn't found :(");
-		} 		
- 	}
+		}
+	}
 }
 
-static void callLuaScanline(tic_mem* memory, s32 row, void* data)
+static void callLuaScanlineName(tic_mem* memory, s32 row, void* data, const char* name)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	lua_State* lua = machine->lua;
 
 	if (lua)
 	{
-		const char* ScanlineFunc = ApiKeywords[1];
-
-		lua_getglobal(lua, ScanlineFunc);
-		if(lua_isfunction(lua, -1)) 
+		lua_getglobal(lua, name);
+		if(lua_isfunction(lua, -1))
 		{
 			lua_pushinteger(lua, row);
-			if(lua_pcall(lua, 1, 0, 0) != LUA_OK)
+			if(docall(lua, 1, 0) != LUA_OK)
 				machine->data->error(machine->data->data, lua_tostring(lua, -1));
 		}
 		else lua_pop(lua, 1);
 	}
 }
 
-static void callLuaOverlap(tic_mem* memory, void* data)
+static void callLuaScanline(tic_mem* memory, s32 row, void* data)
+{
+	callLuaScanlineName(memory, row, data, ApiKeywords[1]);
+
+	// try to call old scanline
+	callLuaScanlineName(memory, row, data, "scanline");
+}
+
+static void callLuaOverline(tic_mem* memory, void* data)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	lua_State* lua = machine->lua;
@@ -1367,7 +1336,7 @@ static void callLuaOverlap(tic_mem* memory, void* data)
 		lua_getglobal(lua, OvrFunc);
 		if(lua_isfunction(lua, -1)) 
 		{
-			if(lua_pcall(lua, 0, 0, 0) != LUA_OK)
+			if(docall(lua, 0, 0) != LUA_OK)
 				machine->data->error(machine->data->data, lua_tostring(lua, -1));
 		}
 		else lua_pop(lua, 1);
@@ -1445,16 +1414,33 @@ static const tic_outline_item* getLuaOutline(const char* code, s32* size)
 	return items;
 }
 
+void evalLua(tic_mem* tic, const char* code) {
+	tic_machine* machine = (tic_machine*)tic;
+	lua_State* lua = machine->lua;
+
+	lua_settop(lua, 0);
+
+	if(luaL_loadstring(lua, code) != LUA_OK || lua_pcall(lua, 0, LUA_MULTRET, 0) != LUA_OK)
+	{
+		machine->data->error(machine->data->data, lua_tostring(lua, -1));
+	}
+}
+
+void evalPlaceholder(tic_mem* tic, const char* code) {
+	printf("TODO: not yet implemented\n.");
+}
+
 static const tic_script_config LuaSyntaxConfig = 
 {
 	.init 				= initLua,
 	.close 				= closeLua,
 	.tick 				= callLuaTick,
 	.scanline 			= callLuaScanline,
-	.overlap 			= callLuaOverlap,
+	.overline 			= callLuaOverline,
 
 	.getOutline			= getLuaOutline,
 	.parse 				= parseCode,
+	.eval				= evalLua,
 
 	.blockCommentStart 	= "--[[",
 	.blockCommentEnd 	= "]]",
@@ -1472,6 +1458,84 @@ static const tic_script_config LuaSyntaxConfig =
 const tic_script_config* getLuaScriptConfig()
 {
 	return &LuaSyntaxConfig;
+}
+
+#if defined(TIC_BUILD_WITH_MOON)
+
+#include "moonscript.h"
+
+#define MOON_CODE(...) #__VA_ARGS__
+
+static const char* execute_moonscript_src = MOON_CODE(
+	local fn, err = require('moonscript.base').loadstring(...)
+
+	if not fn then
+		return err
+	end
+	return fn()
+);
+
+static void setloaded(lua_State* l, char* name)
+{
+	s32 top = lua_gettop(l);
+	lua_getglobal(l, "package");
+	lua_getfield(l, -1, "loaded");
+	lua_getfield(l, -1, name);
+	if (lua_isnil(l, -1)) {
+		lua_pop(l, 1);
+		lua_pushvalue(l, top);
+		lua_setfield(l, -2, name);
+	}
+
+	lua_settop(l, top);
+}
+
+static bool initMoonscript(tic_mem* tic, const char* code)
+{
+	tic_machine* machine = (tic_machine*)tic;
+	closeLua(tic);
+
+	lua_State* lua = machine->lua = luaL_newstate();
+	lua_open_builtins(lua);
+
+	luaopen_lpeg(lua);
+	setloaded(lua, "lpeg");
+
+	initAPI(machine);
+
+	{
+		lua_State* moon = machine->lua;
+
+		lua_settop(moon, 0);
+
+		if (luaL_loadbuffer(moon, (const char *)moonscript_lua, moonscript_lua_len, "moonscript.lua") != LUA_OK)
+		{
+			machine->data->error(machine->data->data, "failed to load moonscript.lua");
+			return false;
+		}
+
+		lua_call(moon, 0, 0);
+
+		if (luaL_loadbuffer(moon, execute_moonscript_src, strlen(execute_moonscript_src), "execute_moonscript") != LUA_OK)
+		{
+			machine->data->error(machine->data->data, "failed to load moonscript compiler");
+			return false;
+		}
+
+		lua_pushstring(moon, code);
+		if (lua_pcall(moon, 1, 1, 0) != LUA_OK)
+		{
+			const char* msg = lua_tostring(moon, -1);
+
+			if (msg)
+			{
+				machine->data->error(machine->data->data, msg);
+				return false;
+			}
+		}
+	}
+
+	return true;
 }
 
 static const char* const MoonKeywords [] =
@@ -1541,10 +1605,11 @@ static const tic_script_config MoonSyntaxConfig =
 	.close 				= closeLua,
 	.tick 				= callLuaTick,
 	.scanline 			= callLuaScanline,
-	.overlap 			= callLuaOverlap,
+	.overline 			= callLuaOverline,
 
 	.getOutline			= getMoonOutline,
 	.parse 				= parseCode,
+	.eval				= evalPlaceholder,
 
 	.blockCommentStart 	= NULL,
 	.blockCommentEnd 	= NULL,
@@ -1563,3 +1628,180 @@ const tic_script_config* getMoonScriptConfig()
 {
 	return &MoonSyntaxConfig;
 }
+
+#endif /* defined(TIC_BUILD_WITH_MOON) */
+
+#if defined(TIC_BUILD_WITH_FENNEL)
+
+#include "fennel.h"
+
+#define FENNEL_CODE(...) #__VA_ARGS__
+
+static const char* execute_fennel_src = FENNEL_CODE(
+  local ok, msg = pcall(require('fennel').eval, ..., {filename="game", correlate=true})
+  if(not ok) then return msg end
+);
+
+static bool initFennel(tic_mem* tic, const char* code)
+{
+	tic_machine* machine = (tic_machine*)tic;
+	closeLua(tic);
+
+	lua_State* lua = machine->lua = luaL_newstate();
+	lua_open_builtins(lua);
+
+	initAPI(machine);
+
+	{
+		lua_State* fennel = machine->lua;
+
+		lua_settop(fennel, 0);
+
+		if (luaL_loadbuffer(fennel, (const char *)fennel_lua, fennel_lua_len, "fennel.lua") != LUA_OK)
+		{
+			machine->data->error(machine->data->data, "failed to load fennel compiler");
+			return false;
+		}
+
+		lua_call(fennel, 0, 0);
+
+		if (luaL_loadbuffer(fennel, execute_fennel_src, strlen(execute_fennel_src), "execute_fennel") != LUA_OK)
+		{
+			machine->data->error(machine->data->data, "failed to load fennel compiler");
+			return false;
+		}
+
+		lua_pushstring(fennel, code);
+        lua_call(fennel, 1, 1);
+        const char* err = lua_tostring(fennel, -1);
+
+        if (err)
+		{
+		   	machine->data->error(machine->data->data, err);
+	   		return false;
+		}
+	}
+
+	return true;
+}
+
+static const char* const FennelKeywords [] =
+{
+	"do", "values", "if", "when", "each", "for", "fn", "lambda", "partial",
+	"while", "set", "global", "var", "local", "let", "tset",
+	"or", "and", "true", "false", "nil", "#", ":", "->", "->>"
+};
+
+static const tic_outline_item* getFennelOutline(const char* code, s32* size)
+{
+	enum{Size = sizeof(tic_outline_item)};
+
+	*size = 0;
+
+	static tic_outline_item* items = NULL;
+
+	if(items)
+	{
+		free(items);
+		items = NULL;
+	}
+
+	const char* ptr = code;
+
+	while(true)
+	{
+		static const char FuncString[] = "(fn ";
+
+		ptr = strstr(ptr, FuncString);
+
+		if(ptr)
+		{
+			ptr += sizeof FuncString - 1;
+
+			const char* start = ptr;
+			const char* end = start;
+
+			while(*ptr)
+			{
+				char c = *ptr;
+
+				if(c == ' ' || c == '\t' || c == '\n' || c == '[')
+				{
+					end = ptr;
+					break;
+				}
+
+				ptr++;
+			}
+
+			if(end > start)
+			{
+				items = items ? realloc(items, (*size + 1) * Size) : malloc(Size);
+
+				items[*size].pos = start - code;
+				items[*size].size = end - start;
+
+				(*size)++;
+			}
+		}
+		else break;
+	}
+
+	return items;
+}
+
+void evalFennel(tic_mem* tic, const char* code) {
+	tic_machine* machine = (tic_machine*)tic;
+	lua_State* fennel = machine->lua;
+
+	lua_settop(fennel, 0);
+
+	if (luaL_loadbuffer(fennel, execute_fennel_src, strlen(execute_fennel_src), "execute_fennel") != LUA_OK)
+	{
+		machine->data->error(machine->data->data, "failed to load fennel compiler");
+	}
+
+	lua_pushstring(fennel, code);
+	lua_call(fennel, 1, 1);
+	const char* err = lua_tostring(fennel, -1);
+
+	if (err)
+	{
+		machine->data->error(machine->data->data, err);
+	}
+}
+
+
+static const tic_script_config FennelSyntaxConfig =
+{
+	.init 				= initFennel,
+	.close 				= closeLua,
+	.tick 				= callLuaTick,
+	.scanline 			= callLuaScanline,
+	.overline 			= callLuaOverline,
+
+	.getOutline			= getFennelOutline,
+	.parse 				= parseCode,
+	.eval				= evalFennel,
+
+	.blockCommentStart 	= NULL,
+	.blockCommentEnd 	= NULL,
+	.blockStringStart	= NULL,
+	.blockStringEnd		= NULL,
+	.singleComment 		= ";",
+
+	.keywords 			= FennelKeywords,
+	.keywordsCount 		= COUNT_OF(FennelKeywords),
+
+	.api 				= ApiKeywords,
+	.apiCount 			= COUNT_OF(ApiKeywords),
+};
+
+const tic_script_config* getFennelConfig()
+{
+	return &FennelSyntaxConfig;
+}
+
+#endif /* defined(TIC_BUILD_WITH_FENNEL) */
+
+#endif /* defined(TIC_BUILD_WITH_LUA) */

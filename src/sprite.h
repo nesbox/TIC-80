@@ -44,8 +44,8 @@ struct Sprite
 
 	struct
 	{
-		SDL_Rect rect;
-		SDL_Point start;
+		tic_rect rect;
+		tic_point start;
 		bool drag;
 		u8* back;
 		u8* front;
@@ -63,7 +63,8 @@ struct Sprite
 
 	void (*tick)(Sprite*);
 	void (*event)(Sprite*, StudioEvent);
-	void (*overlap)(tic_mem* tic, void* data);
+	void (*scanline)(tic_mem* tic, s32 row, void* data);
+	void (*overline)(tic_mem* tic, void* data);
 };
 
 void initSprite(Sprite*, tic_mem*, tic_tiles* src);

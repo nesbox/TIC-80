@@ -34,9 +34,6 @@ FILE* _wfopen(const wchar_t *, const wchar_t *);
 wchar_t* wcsrchr(const wchar_t *, wchar_t);
 wchar_t* wcscpy(wchar_t *, const wchar_t *);
 
-#define UTF8ToString(S) (wchar_t *)SDL_iconv_string("UTF-16LE", "UTF-8", (char *)(S), SDL_strlen(S)+1)
-#define StringToUTF8(S) SDL_iconv_string("UTF-8", "UTF-16LE", (char *)(S), (SDL_wcslen(S)+1)*sizeof(wchar_t))
-
 void file_dialog_load(file_dialog_load_callback callback, void* data)
 {
 	OPENFILENAMEW ofn;
@@ -71,7 +68,10 @@ void file_dialog_load(file_dialog_load_callback callback, void* data)
 				const wchar_t* basename = wcsrchr(filename, L'\\');
 				const wchar_t* name = basename ? basename + 1 : filename;
 
-				callback(StringToUTF8(name), buffer, size, data, 0);
+				char resName[MAX_PATH];
+				wcstombs(resName, name, MAX_PATH);
+				callback(resName, buffer, size, data, 0);
+
 				free(buffer);
 				return;
 			}
@@ -87,8 +87,7 @@ void file_dialog_save(file_dialog_save_callback callback, const char* name, cons
 	SDL_zero(ofn);
 
 	wchar_t filename[MAX_PATH];
-	memset(filename, 0, sizeof(filename));
-	wcscpy(filename, UTF8ToString(name));
+	mbstowcs(filename, name, MAX_PATH);
 
 	ofn.lStructSize = sizeof(ofn);
 	ofn.lpstrFile = filename;
@@ -113,40 +112,6 @@ void file_dialog_save(file_dialog_save_callback callback, const char* name, cons
 	}
 
 	callback(false, data);
-}
-
-#include <shlobj.h>
-
-const char* folder_dialog(void* data)
-{
-
-	BROWSEINFOW bi = { 0 };
-	bi.lpszTitle  = L"Browse for folder...";
-	bi.ulFlags    = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
-	bi.lParam     = (LPARAM) NULL;
-
-	LPITEMIDLIST pidl = SHBrowseForFolderW ( &bi );
-
-	if ( pidl != 0 )
-	{
-		wchar_t path[MAX_PATH];
-		SHGetPathFromIDListW (pidl, path);
-
-		LPMALLOC imalloc = NULL;
-		if ( SUCCEEDED( SHGetMalloc ( &imalloc )) )
-		{
-			imalloc->lpVtbl->Free (imalloc, pidl );
-			imalloc->lpVtbl->Release (imalloc);
-		}
-
-		{
-			static char result[MAX_PATH];
-			strcpy(result, StringToUTF8(path));
-			return result;
-		}
-	}
-
-	return NULL;
 }
 
 #elif defined(__EMSCRIPTEN__)

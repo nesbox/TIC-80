@@ -24,9 +24,8 @@
 #include "tic.h"
 #include "SDL_net.h"
 
-#include <lua.h>
-#include <lauxlib.h>
-#include <lualib.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 struct Net
 {
@@ -53,7 +52,7 @@ static void getRequest(Net* net, const char* path, NetResponse callback, void* d
 static void netClearCache(Net* net)
 {
 	if(net->cache.buffer)
-		SDL_free(net->cache.buffer);
+		free(net->cache.buffer);
 
 	net->cache.buffer = NULL;
 	net->cache.size = 0;
@@ -95,7 +94,7 @@ static Buffer httpRequest(const char* path, s32 timeout)
 					if(SDLNet_CheckSockets(set, timeout) == 1 && SDLNet_SocketReady(sock))
 					{
 						enum {Size = 4*1024+1};
-						buffer.data = SDL_malloc(Size);
+						buffer.data = malloc(Size);
 						s32 size = 0;
 
 						for(;;)
@@ -105,7 +104,7 @@ static Buffer httpRequest(const char* path, s32 timeout)
 							if(size > 0)
 							{
 								buffer.size += size;
-								buffer.data = SDL_realloc(buffer.data, buffer.size + Size);
+								buffer.data = realloc(buffer.data, buffer.size + Size);
 							}
 							else break;
 						}
@@ -141,34 +140,34 @@ static void getRequest(Net* net, const char* path, NetResponse callback, void* d
 
 		if(buffer.data && buffer.size)
 		{
-			if(SDL_strstr((char*)buffer.data, "200 OK"))
+			if(strstr((char*)buffer.data, "200 OK"))
 			{
 				s32 contentLength = 0;
 
 				{
 					static const char ContentLength[] = "Content-Length:";
 
-					char* start = SDL_strstr((char*)buffer.data, ContentLength);
+					char* start = strstr((char*)buffer.data, ContentLength);
 
 					if(start)
-						contentLength = SDL_atoi(start + sizeof(ContentLength));
+						contentLength = atoi(start + sizeof(ContentLength));
 				}
 
 				static const char Start[] = "\r\n\r\n";
-				u8* start = (u8*)SDL_strstr((char*)buffer.data, Start);
+				u8* start = (u8*)strstr((char*)buffer.data, Start);
 
 				if(start)
 				{
 					strcpy(net->cache.path, path);
 					net->cache.size = contentLength ? contentLength : buffer.size - (s32)(start - buffer.data);
-					net->cache.buffer = (u8*)SDL_malloc(net->cache.size);
-					SDL_memcpy(net->cache.buffer, start + sizeof Start - 1, net->cache.size);
+					net->cache.buffer = (u8*)malloc(net->cache.size);
+					memcpy(net->cache.buffer, start + sizeof Start - 1, net->cache.size);
 					callback(net->cache.buffer, net->cache.size, data);
 					done = true;
 				}
 			}
 
-			SDL_free(buffer.data);
+			free(buffer.data);
 		}
 
 		if(!done)
@@ -177,124 +176,6 @@ static void getRequest(Net* net, const char* path, NetResponse callback, void* d
 }
 
 #endif
-
-static lua_State* netLuaInit(u8* buffer, s32 size)
-{
-	if (buffer && size)
-	{
-		lua_State* lua = luaL_newstate();
-
-		if(lua)
-		{
-			if(luaL_loadstring(lua, (char*)buffer) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
-				return lua;
-
-			else lua_close(lua);
-		}
-	}
-
-	return NULL;
-}
-
-typedef struct
-{
-	ListCallback callback;
-	void* data;
-} NetDirData;
-
-static void onDirResponse(u8* buffer, s32 size, void* data)
-{
-	NetDirData* netDirData = (NetDirData*)data;
-
-	lua_State* lua = netLuaInit(buffer, size);
-
-	if(lua)
-	{
-		{
-			lua_getglobal(lua, "folders");
-
-			if(lua_type(lua, -1) == LUA_TTABLE)
-			{
-				s32 count = (s32)lua_rawlen(lua, -1);
-
-				for(s32 i = 1; i <= count; i++)
-				{
-					lua_geti(lua, -1, i);
-
-					{
-						lua_getfield(lua, -1, "name");
-						if(lua_isstring(lua, -1))
-							netDirData->callback(lua_tostring(lua, -1), NULL, 0, netDirData->data, true);
-
-						lua_pop(lua, 1);
-					}
-
-					lua_pop(lua, 1);
-				}
-			}
-
-			lua_pop(lua, 1);
-		}
-
-		{
-			lua_getglobal(lua, "files");
-
-			if(lua_type(lua, -1) == LUA_TTABLE)
-			{
-				s32 count = (s32)lua_rawlen(lua, -1);
-
-				for(s32 i = 1; i <= count; i++)
-				{
-					lua_geti(lua, -1, i);
-
-					char hash[FILENAME_MAX] = {0};
-					char name[FILENAME_MAX] = {0};
-
-					{
-						lua_getfield(lua, -1, "hash");
-						if(lua_isstring(lua, -1))
-							strcpy(hash, lua_tostring(lua, -1));
-
-						lua_pop(lua, 1);
-					}
-
-					{
-						lua_getfield(lua, -1, "name");
-
-						if(lua_isstring(lua, -1))
-							strcpy(name, lua_tostring(lua, -1));
-
-						lua_pop(lua, 1);
-					}
-
-					{
-						lua_getfield(lua, -1, "id");
-
-						if(lua_isinteger(lua, -1))
-							netDirData->callback(name, hash, lua_tointeger(lua, -1), netDirData->data, false);
-
-						lua_pop(lua, 1);
-					}
-
-					lua_pop(lua, 1);
-				}
-			}
-
-			lua_pop(lua, 1);
-		}
-
-		lua_close(lua);
-	}
-}
-
-void netDirRequest(Net* net, const char* path, ListCallback callback, void* data)
-{
-	char request[FILENAME_MAX] = {'\0'};
-	sprintf(request, "/api?fn=dir&path=%s", path);
-
-	NetDirData netDirData = {callback, data};
-	getRequest(net, request, onDirResponse, &netDirData);
-}
 
 typedef struct
 {
@@ -306,9 +187,9 @@ static void onGetResponse(u8* buffer, s32 size, void* data)
 {
 	NetGetData* netGetData = (NetGetData*)data;
 
-	netGetData->buffer = SDL_malloc(size);
+	netGetData->buffer = malloc(size);
 	*netGetData->size = size;
-	SDL_memcpy(netGetData->buffer, buffer, size);
+	memcpy(netGetData->buffer, buffer, size);
 }
 
 void* netGetRequest(Net* net, const char* path, s32* size)
@@ -319,48 +200,11 @@ void* netGetRequest(Net* net, const char* path, s32* size)
 	return netGetData.buffer;
 }
 
-NetVersion netVersionRequest(Net* net)
-{
-	NetVersion version = 
-	{
-		.major = TIC_VERSION_MAJOR,
-		.minor = TIC_VERSION_MINOR,
-		.patch = TIC_VERSION_PATCH,
-	};
-
-	s32 size = 0;
-	void* buffer = netGetRequest(net, "/api?fn=version", &size);
-
-	if(buffer && size)
-	{
-		lua_State* lua = netLuaInit(buffer, size);
-
-		if(lua)
-		{
-			static const char* Fields[] = {"major", "minor", "patch"};
-
-			for(s32 i = 0; i < COUNT_OF(Fields); i++)
-			{
-				lua_getglobal(lua, Fields[i]);
-
-				if(lua_isinteger(lua, -1))
-					((s32*)&version)[i] = (s32)lua_tointeger(lua, -1);
-
-				lua_pop(lua, 1);				
-			}
-
-			lua_close(lua);
-		}
-	}
-
-	return version;
-}
-
 Net* createNet()
 {
 	SDLNet_Init();
 
-	Net* net = (Net*)SDL_malloc(sizeof(Net));
+	Net* net = (Net*)malloc(sizeof(Net));
 
 	*net = (Net)
 	{
@@ -377,7 +221,7 @@ Net* createNet()
 
 void closeNet(Net* net)
 {
-	SDL_free(net);
+	free(net);
 	
 	SDLNet_Quit();
 }
