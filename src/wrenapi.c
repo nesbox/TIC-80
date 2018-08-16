@@ -1066,7 +1066,7 @@ static void wren_sync(WrenVM* vm)
 {
 	tic_mem* memory = (tic_mem*)getWrenMachine(vm);
 
-	bool toCart = true;
+	bool toCart = false;
 	u32 mask = 0;
 	s32 bank = 0;
 
