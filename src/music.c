@@ -1342,12 +1342,12 @@ static void drawTumbler(Music* music, s32 x, s32 y, s32 index)
 
 		if(checkMouseClick(&rect, tic_mouse_left))
 		{
-			// if (SDL_GetModState() & KMOD_CTRL)
-			// {
-			// 	for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
-			// 		music->tracker.patterns[i] = i == index;
-			// }
-			// else music->tracker.patterns[index] = !music->tracker.patterns[index];
+			if (tic->api.key(tic, tic_key_ctrl))
+			{
+				for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
+					music->tracker.patterns[i] = i == index;
+			}
+			else music->tracker.patterns[index] = !music->tracker.patterns[index];
 		}
 	}
 
