@@ -32,7 +32,7 @@
 
 struct OutlineItem
 {
-	char name[STUDIO_TEXT_BUFFER_WIDTH];
+	char name[TEXT_BUFFER_WIDTH];
 	char* pos;
 };
 
@@ -52,13 +52,18 @@ static void drawStatus(Code* code)
 	code->tic->api.fixed_text(code->tic, code->status, 0, TIC80_HEIGHT - TIC_FONT_HEIGHT, getConfig()->theme.code.bg, false);
 }
 
+static inline s32 getFontWidth(Code* code)
+{
+	return code->altFont ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH;
+}
+
 static void drawCursor(Code* code, s32 x, s32 y, char symbol)
 {
 	bool inverse = code->cursor.delay || code->tickCounter % TEXT_CURSOR_BLINK_PERIOD < TEXT_CURSOR_BLINK_PERIOD / 2;
 
 	if(inverse)
 	{
-		code->tic->api.rect(code->tic, x-1, y-1, (code->altFont ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH)+1, TIC_FONT_HEIGHT+1, getConfig()->theme.code.cursor);
+		code->tic->api.rect(code->tic, x-1, y-1, (getFontWidth(code))+1, TIC_FONT_HEIGHT+1, getConfig()->theme.code.cursor);
 
 		if(symbol)
 			code->tic->api.draw_char(code->tic, symbol, x, y, getConfig()->theme.code.bg, code->altFont);
@@ -67,7 +72,7 @@ static void drawCursor(Code* code, s32 x, s32 y, char symbol)
 
 static void drawCode(Code* code, bool withCursor)
 {
-	s32 xStart = code->rect.x - code->scroll.x * (code->altFont ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH);
+	s32 xStart = code->rect.x - code->scroll.x * (getFontWidth(code));
 	s32 x = xStart;
 	s32 y = code->rect.y - code->scroll.y * STUDIO_TEXT_HEIGHT;
 	char* pointer = code->src;
@@ -103,7 +108,7 @@ static void drawCode(Code* code, bool withCursor)
 			x = xStart;
 			y += STUDIO_TEXT_HEIGHT;
 		}
-		else x += (code->altFont ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH);
+		else x += (getFontWidth(code));
 
 		pointer++;
 		colorPointer++;
@@ -163,9 +168,11 @@ static void updateEditor(Code* code)
 	s32 line = 0;
 	getCursorPosition(code, &column, &line);
 
+	const s32 BufferWidth = TIC80_WIDTH / getFontWidth(code);
+
 	if(column < code->scroll.x) code->scroll.x = column;
-	else if(column >= code->scroll.x + TEXT_BUFFER_WIDTH)
-		code->scroll.x = column - TEXT_BUFFER_WIDTH + 1;
+	else if(column >= code->scroll.x + BufferWidth)
+		code->scroll.x = column - BufferWidth + 1;
 
 	if(line < code->scroll.y) code->scroll.y = line;
 	else if(line >= code->scroll.y + TEXT_BUFFER_HEIGHT)
@@ -177,7 +184,7 @@ static void updateEditor(Code* code)
 	{
 		memset(code->status, ' ', sizeof code->status - 1);
 
-		char status[STUDIO_TEXT_BUFFER_WIDTH];
+		char status[TEXT_BUFFER_WIDTH];
 		s32 count = getLinesCount(code);
 		sprintf(status, "line %i/%i col %i", line + 1, count + 1, column + 1);
 		memcpy(code->status, status, strlen(status));
@@ -728,7 +735,7 @@ static void centerScroll(Code* code)
 {
 	s32 col, line;
 	getCursorPosition(code, &col, &line);
-	code->scroll.x = col - TEXT_BUFFER_WIDTH / 2;
+	code->scroll.x = col - TIC80_WIDTH / getFontWidth(code) / 2;
 	code->scroll.y = line - TEXT_BUFFER_HEIGHT / 2;
 
 	normalizeScroll(code);
@@ -772,8 +779,8 @@ static void initOutlineMode(Code* code)
 
 	tic_mem* tic = code->tic;
 
-	char buffer[STUDIO_TEXT_BUFFER_WIDTH] = {0};
-	char filter[STUDIO_TEXT_BUFFER_WIDTH] = {0};
+	char buffer[TEXT_BUFFER_WIDTH] = {0};
+	char filter[TEXT_BUFFER_WIDTH] = {0};
 	strncpy(filter, code->popup.text, sizeof(filter));
 
 	ticStrlwr(filter);
@@ -792,8 +799,8 @@ static void initOutlineMode(Code* code)
 			if(out < end)
 			{
 				out->pos = code->src + item->pos;
-				memset(out->name, 0, STUDIO_TEXT_BUFFER_WIDTH);
-				memcpy(out->name, out->pos, MIN(item->size, STUDIO_TEXT_BUFFER_WIDTH-1));
+				memset(out->name, 0, TEXT_BUFFER_WIDTH);
+				memcpy(out->name, out->pos, MIN(item->size, TEXT_BUFFER_WIDTH-1));
 
 				if(*filter)
 				{
@@ -966,7 +973,7 @@ static void processMouse(Code* code)
 		{
 			if(checkMouseDown(&code->rect, tic_mouse_right))
 			{
-				code->scroll.x = (code->scroll.start.x - getMouseX()) / (code->altFont ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH);
+				code->scroll.x = (code->scroll.start.x - getMouseX()) / (getFontWidth(code));
 				code->scroll.y = (code->scroll.start.y - getMouseY()) / STUDIO_TEXT_HEIGHT;
 
 				normalizeScroll(code);
@@ -980,7 +987,7 @@ static void processMouse(Code* code)
 				s32 mx = getMouseX();
 				s32 my = getMouseY();
 
-				s32 x = (mx - code->rect.x) / (code->altFont ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH);
+				s32 x = (mx - code->rect.x) / (getFontWidth(code));
 				s32 y = (my - code->rect.y) / STUDIO_TEXT_HEIGHT;
 
 				char* position = code->cursor.position;
@@ -1009,7 +1016,7 @@ static void processMouse(Code* code)
 			{
 				code->scroll.active = true;
 
-				code->scroll.start.x = getMouseX() + code->scroll.x * (code->altFont ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH);
+				code->scroll.start.x = getMouseX() + code->scroll.x * (getFontWidth(code));
 				code->scroll.start.y = getMouseY() + code->scroll.y * STUDIO_TEXT_HEIGHT;
 			}
 
