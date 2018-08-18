@@ -1500,7 +1500,7 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
 			.items = code->outline.items,
 			.index = 0,
 		},
-		.altFont = false,
+		.altFont = getConfig()->theme.code.altFont,
 		.event = onStudioEvent,
 		.update = update,
 	};

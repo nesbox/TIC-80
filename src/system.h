@@ -52,6 +52,8 @@ typedef struct
 			u8 select;
 			u8 cursor;
 			bool shadow;
+			bool altFont;
+
 		} code;
 
 		struct

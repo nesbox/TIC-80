@@ -201,6 +201,15 @@ static void readCodeTheme(Config* config, lua_State* lua)
 
 			lua_pop(lua, 1);
 		}
+
+		{
+			lua_getfield(lua, -1, "ALT_FONT");
+
+			if(lua_isboolean(lua, -1))
+				config->data.theme.code.altFont = lua_toboolean(lua, -1);
+
+			lua_pop(lua, 1);
+		}
 	}
 
 	lua_pop(lua, 1);
