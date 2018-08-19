@@ -240,21 +240,7 @@ static struct
 char getKeyboardText()
 {
 	tic_mem* tic = impl.studio.tic;
-
-	static const char Symbols[] = 	"abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
-	static const char Shift[] = 	"ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
-
-	enum{Count = sizeof Symbols};
-
-	for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
-	{
-		tic_key key = tic->ram.input.keyboard.keys[i];
-
-		if(key > 0 && key < Count && tic->api.keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD))
-			return tic->api.key(tic, tic_key_shift) ? Shift[key-1] : Symbols[key-1];
-	}
-
-	return 0;
+	return tic->ram.input.text_char;
 }
 
 bool keyWasPressed(tic_key key)
