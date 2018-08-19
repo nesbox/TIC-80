@@ -121,7 +121,7 @@ typedef struct
 	tic80_gamepads gamepads;
 	tic80_mouse mouse;
 	tic80_keyboard keyboard;
-
+	s8 text_char;
 } tic80_input;
 
 TIC80_API tic80* tic80_create(s32 samplerate);

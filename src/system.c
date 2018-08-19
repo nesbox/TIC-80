@@ -715,6 +715,7 @@ static void pollEvent()
 	tic80_input* input = &tic->ram.input;
 
 	{
+		input->text_char = '\0';
 		input->mouse.btns = 0;
 	}
 
@@ -724,6 +725,14 @@ static void pollEvent()
 	{
 		switch(event.type)
 		{
+		case SDL_TEXTINPUT:
+			{
+				const char* symbol = event.text.text;
+
+				if(strlen(symbol) == 1)
+					input->text_char = *symbol;
+			}
+			break;
 		case SDL_MOUSEWHEEL:
 			{
 				input->mouse.scrollx = event.wheel.x;
