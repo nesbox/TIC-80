@@ -406,7 +406,7 @@ static char getKeyboardText()
 
 static void processKeyboard()
 {
-	static const u8 KeyboardCodes[] = 
+	static const u32 KeyboardCodes[tic_keys_count] = 
 	{
 		#include "keycodes.inl"
 	};
@@ -427,9 +427,22 @@ static void processKeyboard()
 
 	const u8* keyboard = SDL_GetKeyboardState(NULL);
 
-	for(s32 i = 0; i < COUNT_OF(KeyboardCodes) && c < COUNT_OF(input->keyboard.keys); i++)
-		if(keyboard[i] && KeyboardCodes[i] > tic_key_unknown)
-			input->keyboard.keys[c++] = KeyboardCodes[i];
+	for(s32 i = 0; i < SDL_NUM_SCANCODES && c < BufSize; i++)
+	{
+		if(keyboard[i])
+		{
+			u32 keycode = SDL_GetKeyFromScancode(i);
+
+			for(s32 k = 0; k < COUNT_OF(KeyboardCodes); k++)
+			{
+				if(KeyboardCodes[k] == keycode)
+				{
+					input->keyboard.keys[c++] = k;
+					break;
+				}
+			}
+		}
+	}
 }
 
 #if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
