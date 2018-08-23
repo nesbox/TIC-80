@@ -241,8 +241,8 @@ char getKeyboardText()
 {
 	tic_mem* tic = impl.studio.tic;
 
-	static const char Symbols[] = 	"abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
-	static const char Shift[] = 	"ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
+	static const char Symbols[] = 	" abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
+	static const char Shift[] = 	" ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
 
 	enum{Count = sizeof Symbols};
 
@@ -251,7 +251,16 @@ char getKeyboardText()
 		tic_key key = tic->ram.input.keyboard.keys[i];
 
 		if(key > 0 && key < Count && tic->api.keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD))
-			return tic->api.key(tic, tic_key_shift) ? Shift[key-1] : Symbols[key-1];
+		{
+			bool caps = tic->api.key(tic, tic_key_capslock);
+			bool shift = tic->api.key(tic, tic_key_shift);
+
+			return caps
+				? key >= tic_key_a && key <= tic_key_z 
+					? shift ? Symbols[key] : Shift[key]
+					: shift ? Shift[key] : Symbols[key]
+				: shift ? Shift[key] : Symbols[key];
+		}
 	}
 
 	return 0;
