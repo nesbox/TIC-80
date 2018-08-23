@@ -1261,10 +1261,7 @@ static void loadCrtShader()
 static void updateConfig()
 {
 	if(platform.gpu.screen)
-	{
 		initTouchGamepad();
-		loadCrtShader();
-	}
 }
 
 static System systemInterface = 
@@ -1314,8 +1311,11 @@ static void gpuTick()
 		GPU_UpdateImageBytes(platform.gpu.texture, NULL, (const u8*)tic->screen, TIC80_FULLWIDTH * sizeof(u32));
 
 		{
-			if(crtMonitorEnabled())
+			if(platform.studio->config()->crtMonitor)
 			{
+				if(platform.gpu.shader == 0)
+					loadCrtShader();
+
 				SDL_Rect rect = {0, 0, 0, 0};
 				calcTextureRect(&rect);
 
@@ -1422,8 +1422,6 @@ static s32 start(s32 argc, char **argv, const char* folder)
 	platform.gpu.texture = GPU_CreateImage(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, STUDIO_PIXEL_FORMAT);
 	GPU_SetAnchor(platform.gpu.texture, 0, 0);
 	GPU_SetImageFilter(platform.gpu.texture, GPU_FILTER_NEAREST);
-
-	loadCrtShader();
 
 #if defined(__EMSCRIPTEN__)
 
