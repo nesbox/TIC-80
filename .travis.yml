@@ -41,3 +41,4 @@ addons:
       - zlib1g-dev
       - libwayland-dev
       - libxkbcommon-dev
+      - libglu-dev
