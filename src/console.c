@@ -77,6 +77,7 @@ typedef enum
 
 #if defined(__TIC_WINDOWS__) || defined(__TIC_LINUX__) || defined(__TIC_MACOSX__)
 #define CAN_EXPORT 1
+#define CAN_OPEN_URL 1
 #endif
 
 #if defined(CAN_EXPORT)
@@ -333,11 +334,13 @@ static void processConsoleBackspace(Console* console)
 
 static void onConsoleHelpCommand(Console* console, const char* param);
 
+#if defined(CAN_OPEN_URL)
 static void onConsoleWikiCommand(Console* console, const char* param)
 {
 	getSystem()->openSystemPath("https://github.com/nesbox/TIC-80/wiki");
 	commandDone(console);
 }
+#endif
 
 static void onConsoleExitCommand(Console* console, const char* param)
 {
@@ -2433,7 +2436,9 @@ static const struct
 } AvailableConsoleCommands[] =
 {
 	{"help", 	NULL, "show this info", 			onConsoleHelpCommand},
+#if defined(CAN_OPEN_URL)
 	{"wiki", 	NULL, "open github wiki page", 		onConsoleWikiCommand},
+#endif
 	{"ram", 	NULL, "show memory info", 			onConsoleRamCommand},
 	{"exit", 	"quit", "exit the application", 	onConsoleExitCommand},
 	{"new", 	NULL, "create new cart",			onConsoleNewCommand},
