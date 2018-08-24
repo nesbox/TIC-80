@@ -404,16 +404,16 @@ static void processKeyboard()
 	tic80_input* input = &platform.studio->tic->ram.input;
 	input->keyboard.data = 0;
 
-    enum{BufSize = COUNT_OF(input->keyboard.keys)};
+	enum{BufSize = COUNT_OF(input->keyboard.keys)};
 
-    s32 c = 0;
-    {
-        SDL_Keymod mod = SDL_GetModState();
-        if(mod & KMOD_SHIFT) input->keyboard.keys[c++] = tic_key_shift;
-        if(mod & (KMOD_CTRL | KMOD_GUI)) input->keyboard.keys[c++] = tic_key_ctrl;
-        if(mod & KMOD_ALT) input->keyboard.keys[c++] = tic_key_alt;
-        if(mod & KMOD_CAPS) input->keyboard.keys[c++] = tic_key_capslock;
-    }
+	s32 c = 0;
+	{
+		SDL_Keymod mod = SDL_GetModState();
+		if(mod & KMOD_SHIFT) input->keyboard.keys[c++] = tic_key_shift;
+		if(mod & (KMOD_CTRL | KMOD_GUI)) input->keyboard.keys[c++] = tic_key_ctrl;
+		if(mod & KMOD_ALT) input->keyboard.keys[c++] = tic_key_alt;
+		if(mod & KMOD_CAPS) input->keyboard.keys[c++] = tic_key_capslock;
+	}
 
 	const u8* keyboard = SDL_GetKeyboardState(NULL);
 
@@ -1160,7 +1160,7 @@ static void preseed()
 static char* prepareShader(const char* code)
 {
 	GPU_Renderer* renderer = GPU_GetCurrentRenderer();
- 	const char* header = "";
+	const char* header = "";
 
 	if(renderer->shader_language == GPU_LANGUAGE_GLSL)
 	{
