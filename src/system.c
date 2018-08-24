@@ -478,8 +478,10 @@ static void processKeyboard()
 	for(s32 i = 0; i < SDL_NUM_SCANCODES; i++)
 	{
 		if(keyboard[i])
-		{
-			SDL_Keycode keycode = SDL_GetKeyFromScancode(i);
+		{			
+			SDL_Keycode keycode = i == SDL_SCANCODE_AC_BACK 
+				? SDLK_ESCAPE
+				: SDL_GetKeyFromScancode(i);
 
 			for(s32 k = 0; k < COUNT_OF(KeyboardCodes); k++)
 			{
