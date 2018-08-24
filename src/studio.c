@@ -237,6 +237,10 @@ static struct
 
 char getKeyboardText()
 {
+	char text = getSystem()->getKeyboardText();
+
+	if(text) return text;
+
 	tic_mem* tic = impl.studio.tic;
 
 	static const char Symbols[] = 	" abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";

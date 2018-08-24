@@ -65,6 +65,7 @@ static struct
 			GPU_Image* down;
 		} texture;
 
+		char text;
 	} keyboard;
 
 	u32 touchCounter;
@@ -392,6 +393,15 @@ static void processMouse()
 		input->mouse.middle = mb & SDL_BUTTON_MMASK ? 1 : 0;
 		input->mouse.right = mb & SDL_BUTTON_RMASK ? 1 : 0;
 	}
+}
+
+// TODO: ugly hack, but I didn't find a better solution
+// will try to fix it later
+static char getKeyboardText()
+{
+	char text = platform.keyboard.text;
+	platform.keyboard.text = 0;
+	return text;
 }
 
 static void processKeyboard()
@@ -783,6 +793,14 @@ static void pollEvent()
 				}
 				break;
 			case SDL_WINDOWEVENT_FOCUS_GAINED: platform.studio->updateProject(); break;
+			}
+			break;
+		case SDL_TEXTINPUT:
+			{
+				const char* text = event.text.text;
+
+				if(strlen(text) == 1)
+					platform.keyboard.text = *text;
 			}
 			break;
 		case SDL_QUIT:
@@ -1278,6 +1296,7 @@ static System systemInterface =
 	.preseed = preseed,
 	.poll = pollEvent,
 	.updateConfig = updateConfig,
+	.getKeyboardText = getKeyboardText,
 };
 
 static void gpuTick()
