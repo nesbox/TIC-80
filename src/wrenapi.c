@@ -1372,7 +1372,7 @@ static const tic_outline_item* getWrenOutline(const char* code, s32* size)
 	return items;
 }
 
-void evalWren(tic_mem* memory, const char* code) 
+static void evalWren(tic_mem* memory, const char* code)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	wrenInterpret(machine->wren, code);

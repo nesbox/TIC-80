@@ -1414,9 +1414,11 @@ static const tic_outline_item* getLuaOutline(const char* code, s32* size)
 	return items;
 }
 
-void evalLua(tic_mem* tic, const char* code) {
+static void evalLua(tic_mem* tic, const char* code) {
 	tic_machine* machine = (tic_machine*)tic;
 	lua_State* lua = machine->lua;
+
+	if (!lua) return;
 
 	lua_settop(lua, 0);
 
@@ -1424,10 +1426,6 @@ void evalLua(tic_mem* tic, const char* code) {
 	{
 		machine->data->error(machine->data->data, lua_tostring(lua, -1));
 	}
-}
-
-void evalPlaceholder(tic_mem* tic, const char* code) {
-	printf("TODO: not yet implemented\n.");
 }
 
 static const tic_script_config LuaSyntaxConfig = 
@@ -1609,7 +1607,7 @@ static const tic_script_config MoonSyntaxConfig =
 
 	.getOutline			= getMoonOutline,
 	.parse 				= parseCode,
-	.eval				= evalPlaceholder,
+	.eval				= NULL,
 
 	.blockCommentStart 	= NULL,
 	.blockCommentEnd 	= NULL,
@@ -1750,7 +1748,7 @@ static const tic_outline_item* getFennelOutline(const char* code, s32* size)
 	return items;
 }
 
-void evalFennel(tic_mem* tic, const char* code) {
+static void evalFennel(tic_mem* tic, const char* code) {
 	tic_machine* machine = (tic_machine*)tic;
 	lua_State* fennel = machine->lua;
 

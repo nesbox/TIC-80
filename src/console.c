@@ -2239,7 +2239,17 @@ static void onConsoleEvalCommand(Console* console, const char* param)
 	printLine(console);
 
 	const tic_script_config* script_config = console->tic->api.get_script_config(console->tic);
-	script_config->eval(console->tic, param);
+
+	if (script_config->eval)
+	{
+		if(param)
+			script_config->eval(console->tic, param);
+		else printError(console, "nothing to eval");
+	}
+	else
+	{
+		printError(console, "'eval' not implemented for the script");
+	}
 
 	commandDone(console);
 }
