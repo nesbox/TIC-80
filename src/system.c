@@ -396,7 +396,7 @@ static void processMouse()
 
 static void processKeyboard()
 {
-	static const u32 KeyboardCodes[tic_keys_count] = 
+	static const u8 KeyboardCodes[] = 
 	{
 		#include "keycodes.inl"
 	};
@@ -404,37 +404,22 @@ static void processKeyboard()
 	tic80_input* input = &platform.studio->tic->ram.input;
 	input->keyboard.data = 0;
 
+    enum{BufSize = COUNT_OF(input->keyboard.keys)};
+
+    s32 c = 0;
+    {
+        SDL_Keymod mod = SDL_GetModState();
+        if(mod & KMOD_SHIFT) input->keyboard.keys[c++] = tic_key_shift;
+        if(mod & (KMOD_CTRL | KMOD_GUI)) input->keyboard.keys[c++] = tic_key_ctrl;
+        if(mod & KMOD_ALT) input->keyboard.keys[c++] = tic_key_alt;
+        if(mod & KMOD_CAPS) input->keyboard.keys[c++] = tic_key_capslock;
+    }
+
 	const u8* keyboard = SDL_GetKeyboardState(NULL);
 
-	enum{BufSize = COUNT_OF(input->keyboard.keys)};
-
-	s32 c = 0;
-	{
-		SDL_Keymod mod = SDL_GetModState();
-		if(mod & KMOD_RSHIFT) input->keyboard.keys[c++] = tic_key_shift;
-		if(mod & (KMOD_RCTRL | KMOD_GUI)) input->keyboard.keys[c++] = tic_key_ctrl;
-		if(mod & KMOD_RALT) input->keyboard.keys[c++] = tic_key_alt;
-		if(mod & KMOD_CAPS) input->keyboard.keys[c++] = tic_key_capslock;
-	}
-
-	for(s32 i = 0; i < SDL_NUM_SCANCODES && c < BufSize; i++)
-	{
-		if(keyboard[i])
-		{			
-			SDL_Keycode keycode = i == SDL_SCANCODE_AC_BACK 
-				? SDLK_ESCAPE
-				: SDL_GetKeyFromScancode(i);
-
-			for(s32 k = 0; k < COUNT_OF(KeyboardCodes); k++)
-			{
-				if(KeyboardCodes[k] == keycode)
-				{
-					input->keyboard.keys[c++] = k;
-					break;
-				}
-			}
-		}
-	}
+	for(s32 i = 0; i < COUNT_OF(KeyboardCodes) && c < COUNT_OF(input->keyboard.keys); i++)
+		if(keyboard[i] && KeyboardCodes[i] > tic_key_unknown)
+			input->keyboard.keys[c++] = KeyboardCodes[i];
 }
 
 #if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
