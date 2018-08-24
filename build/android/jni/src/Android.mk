@@ -1,7 +1,7 @@
 LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
-LOCAL_CFLAGS += -O3 -Wall -std=gnu99 -D"log2(x)=(log(x)/log(2))"
+LOCAL_CFLAGS += -O3 -Wall -std=gnu99 -D"log2(x)=(log(x)/log(2))" -DTIC80_PRO
 LOCAL_MODULE := main
 
 SRC_PATH := ../../../../src
