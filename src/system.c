@@ -65,8 +65,7 @@ static struct
 			GPU_Image* down;
 		} texture;
 
-		u8 text;
-
+		char text;
 	} keyboard;
 
 	u32 touchCounter;
@@ -396,107 +395,41 @@ static void processMouse()
 	}
 }
 
-static void appendKeycode(tic_keycode code)
+// TODO: ugly hack, but I didn't find a better solution
+// will try to fix it later
+static char getKeyboardText()
 {
-	tic80_input* input = &platform.studio->tic->ram.input;
-
-	enum{BufSize = COUNT_OF(input->keyboard.keys)};
-
-	for(s32 i = 0; i < BufSize; i++)
-	{
-		if(input->keyboard.keys[i] == tic_key_unknown)
-		{
-			input->keyboard.keys[i] = code;
-			return;
-		}
-		else if(input->keyboard.keys[i] == code) return;
-	}
+	char text = platform.keyboard.text;
+	platform.keyboard.text = 0;
+	return text;
 }
 
 static void processKeyboard()
 {
-	tic80_input* input = &platform.studio->tic->ram.input;
-	input->keyboard.data = 0;
-
-	SDL_Keymod mod = SDL_GetModState();
-
-	if(mod & KMOD_RALT)
-	{
-		static const struct {tic_keycode code; tic_keycode shift;} TextCodes[] =
-		{
-			['-'] = {tic_key_minus, tic_key_unknown},
-			['='] = {tic_key_equals, tic_key_unknown},
-			['['] = {tic_key_leftbracket, tic_key_unknown},
-			[']'] = {tic_key_rightbracket, tic_key_unknown},
-			['\\'] = {tic_key_backslash, tic_key_unknown},
-			[';'] = {tic_key_semicolon, tic_key_unknown},
-			['\''] = {tic_key_apostrophe, tic_key_unknown},
-			['`'] = {tic_key_grave, tic_key_unknown},
-			[','] = {tic_key_comma, tic_key_unknown},
-			['.'] = {tic_key_period, tic_key_unknown},
-			['/'] = {tic_key_slash, tic_key_unknown},
-			[')'] = {tic_key_0, tic_key_shift},
-			['!'] = {tic_key_1, tic_key_shift},
-			['@'] = {tic_key_2, tic_key_shift},
-			['#'] = {tic_key_3, tic_key_shift},
-			['$'] = {tic_key_4, tic_key_shift},
-			['%'] = {tic_key_5, tic_key_shift},
-			['^'] = {tic_key_6, tic_key_shift},
-			['&'] = {tic_key_7, tic_key_shift},
-			['*'] = {tic_key_8, tic_key_shift},
-			['('] = {tic_key_9, tic_key_shift},
-			['_'] = {tic_key_minus, tic_key_shift},
-			['+'] = {tic_key_equals, tic_key_shift},
-			['{'] = {tic_key_leftbracket, tic_key_shift},
-			['}'] = {tic_key_rightbracket, tic_key_shift},
-			['|'] = {tic_key_backslash, tic_key_shift},
-			[':'] = {tic_key_semicolon, tic_key_shift},
-			['"'] = {tic_key_apostrophe, tic_key_shift},
-			['~'] = {tic_key_grave, tic_key_shift},
-			['<'] = {tic_key_comma, tic_key_shift},
-			['>'] = {tic_key_period, tic_key_shift},
-			['?'] = {tic_key_slash, tic_key_shift},
-		};
-
-		if(platform.keyboard.text && platform.keyboard.text < COUNT_OF(TextCodes))
-		{
-			appendKeycode(TextCodes[platform.keyboard.text].code);
-			appendKeycode(TextCodes[platform.keyboard.text].shift);
-			platform.keyboard.text = 0;
-		}
-
-		return;
-	}
-
-	const u8* keyboard = SDL_GetKeyboardState(NULL);
-
-	if(mod & KMOD_SHIFT) appendKeycode(tic_key_shift);
-	if(mod & (KMOD_CTRL | KMOD_GUI)) appendKeycode(tic_key_ctrl);
-	if(mod & KMOD_CAPS) appendKeycode(tic_key_capslock);
-
-	static const SDL_Keycode KeyboardCodes[tic_keys_count] = 
+	static const u8 KeyboardCodes[] = 
 	{
 		#include "keycodes.inl"
 	};
 
-	for(s32 i = 0; i < SDL_NUM_SCANCODES; i++)
-	{
-		if(keyboard[i])
-		{			
-			SDL_Keycode keycode = i == SDL_SCANCODE_AC_BACK 
-				? SDLK_ESCAPE
-				: SDL_GetKeyFromScancode(i);
+	tic80_input* input = &platform.studio->tic->ram.input;
+	input->keyboard.data = 0;
 
-			for(s32 k = 0; k < COUNT_OF(KeyboardCodes); k++)
-			{
-				if(KeyboardCodes[k] == keycode)
-				{
-					appendKeycode(k);
-					break;
-				}
-			}
-		}
+	enum{BufSize = COUNT_OF(input->keyboard.keys)};
+
+	s32 c = 0;
+	{
+		SDL_Keymod mod = SDL_GetModState();
+		if(mod & KMOD_SHIFT) input->keyboard.keys[c++] = tic_key_shift;
+		if(mod & (KMOD_CTRL | KMOD_GUI)) input->keyboard.keys[c++] = tic_key_ctrl;
+		if(mod & KMOD_ALT) input->keyboard.keys[c++] = tic_key_alt;
+		if(mod & KMOD_CAPS) input->keyboard.keys[c++] = tic_key_capslock;
 	}
+
+	const u8* keyboard = SDL_GetKeyboardState(NULL);
+
+	for(s32 i = 0; i < COUNT_OF(KeyboardCodes) && c < COUNT_OF(input->keyboard.keys); i++)
+		if(keyboard[i] && KeyboardCodes[i] > tic_key_unknown)
+			input->keyboard.keys[c++] = KeyboardCodes[i];
 }
 
 #if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
@@ -864,14 +797,11 @@ static void pollEvent()
 			break;
 		case SDL_TEXTINPUT:
 			{
-				const char* symbol = event.text.text;
-				if(strlen(symbol) == 1)
-					platform.keyboard.text = *symbol;
+				const char* text = event.text.text;
+
+				if(strlen(text) == 1)
+					platform.keyboard.text = *text;
 			}
-			break;
-		case SDL_KEYDOWN:
-			if(event.key.keysym.sym == SDLK_RALT)
-				platform.keyboard.text = 0;
 			break;
 		case SDL_QUIT:
 			platform.studio->exit();
@@ -1248,7 +1178,7 @@ static void preseed()
 static char* prepareShader(const char* code)
 {
 	GPU_Renderer* renderer = GPU_GetCurrentRenderer();
- 	const char* header = "";
+	const char* header = "";
 
 	if(renderer->shader_language == GPU_LANGUAGE_GLSL)
 	{
@@ -1366,6 +1296,7 @@ static System systemInterface =
 	.preseed = preseed,
 	.poll = pollEvent,
 	.updateConfig = updateConfig,
+	.getKeyboardText = getKeyboardText,
 };
 
 static void gpuTick()

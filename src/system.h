@@ -29,6 +29,8 @@ typedef struct
 
 	void (*updateConfig)();
 
+	char (*getKeyboardText)();
+
 } System;
 
 typedef struct
