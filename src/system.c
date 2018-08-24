@@ -20,6 +20,10 @@
 #define KBD_COLS 22
 #define KBD_ROWS 17
 
+#if defined(__TIC_WINRT__) || defined(__TIC_WINDOWS__)
+#include <windows.h>
+#endif
+
 static struct
 {
 	Studio* studio;
@@ -1202,7 +1206,7 @@ static void openSystemPath(const char* path)
 	sprintf(command, "explorer \"%s\"", path);
 
 	wchar_t wcommand[FILENAME_MAX];
-	mbstowcs(wcommand, command, FILENAME_MAX);
+	MultiByteToWideChar(CP_UTF8, 0, command, FILENAME_MAX, wcommand, FILENAME_MAX);
 
 	_wsystem(wcommand);
 

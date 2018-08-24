@@ -115,7 +115,7 @@ static const fsString* utf8ToString(const char* str)
 {
 	fsString* wstr = malloc(FILENAME_MAX * sizeof(fsString));
 
-	mbstowcs(wstr, str, FILENAME_MAX);
+	MultiByteToWideChar(CP_UTF8, 0, str, FILENAME_MAX, wstr, FILENAME_MAX);
 
 	return wstr;
 }
@@ -124,7 +124,7 @@ static const char* stringToUtf8(const fsString* wstr)
 {
 	char* str = malloc(FILENAME_MAX * sizeof(char));
 
-	wcstombs(str, wstr, FILENAME_MAX);
+	WideCharToMultiByte(CP_UTF8, 0, wstr, FILENAME_MAX, str, FILENAME_MAX, 0, 0);
 
 	return str;
 }

@@ -49,8 +49,6 @@
 #include <lauxlib.h>
 #include <lualib.h>
 
-#include <locale.h>
-
 #define FRAME_SIZE (TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32))
 #define POPUP_DUR (TIC_FRAMERATE*2)
 
@@ -1819,7 +1817,6 @@ static void studioClose()
 
 Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, System* system)
 {
-	setlocale(LC_CTYPE, "");
 	setbuf(stdout, NULL);
 	impl.argc = argc;
 	impl.argv = argv;
