@@ -395,55 +395,97 @@ static void processMouse()
 	}
 }
 
-// TODO: ugly hack, but I didn't find a better solution
-// will try to fix it later
-static char getKeyboardText()
-{
-	char text = platform.keyboard.text;
-	platform.keyboard.text = 0;
-	return text;
-}
-
 static void processKeyboard()
 {
-	static const u32 KeyboardCodes[tic_keys_count] = 
-	{
-		#include "keycodes.inl"
-	};
-
 	tic80_input* input = &platform.studio->tic->ram.input;
 	input->keyboard.data = 0;
 
 	enum{BufSize = COUNT_OF(input->keyboard.keys)};
 
-	s32 c = 0;
+	SDL_Keymod mod = SDL_GetModState();
+
+	// TODO: the ugliest hack ever
+	// will try to remove it
+	if(mod & KMOD_RALT)
 	{
-		SDL_Keymod mod = SDL_GetModState();
-		if(mod & KMOD_SHIFT) input->keyboard.keys[c++] = tic_key_shift;
-		if(mod & (KMOD_CTRL | KMOD_GUI)) input->keyboard.keys[c++] = tic_key_ctrl;
-		if(mod & KMOD_ALT) input->keyboard.keys[c++] = tic_key_alt;
-		if(mod & KMOD_CAPS) input->keyboard.keys[c++] = tic_key_capslock;
+		static const struct {tic_keycode code; tic_keycode shift;} TextCodes[] =	
+		{	
+			['-'] = {tic_key_minus, tic_key_unknown},	
+			['='] = {tic_key_equals, tic_key_unknown},	
+			['['] = {tic_key_leftbracket, tic_key_unknown},	
+			[']'] = {tic_key_rightbracket, tic_key_unknown},	
+			['\\'] = {tic_key_backslash, tic_key_unknown},	
+			[';'] = {tic_key_semicolon, tic_key_unknown},	
+			['\''] = {tic_key_apostrophe, tic_key_unknown},	
+			['`'] = {tic_key_grave, tic_key_unknown},	
+			[','] = {tic_key_comma, tic_key_unknown},	
+			['.'] = {tic_key_period, tic_key_unknown},	
+			['/'] = {tic_key_slash, tic_key_unknown},	
+			[')'] = {tic_key_0, tic_key_shift},	
+			['!'] = {tic_key_1, tic_key_shift},	
+			['@'] = {tic_key_2, tic_key_shift},	
+			['#'] = {tic_key_3, tic_key_shift},	
+			['$'] = {tic_key_4, tic_key_shift},	
+			['%'] = {tic_key_5, tic_key_shift},	
+			['^'] = {tic_key_6, tic_key_shift},	
+			['&'] = {tic_key_7, tic_key_shift},	
+			['*'] = {tic_key_8, tic_key_shift},	
+			['('] = {tic_key_9, tic_key_shift},	
+			['_'] = {tic_key_minus, tic_key_shift},	
+			['+'] = {tic_key_equals, tic_key_shift},	
+			['{'] = {tic_key_leftbracket, tic_key_shift},	
+			['}'] = {tic_key_rightbracket, tic_key_shift},	
+			['|'] = {tic_key_backslash, tic_key_shift},	
+			[':'] = {tic_key_semicolon, tic_key_shift},	
+			['"'] = {tic_key_apostrophe, tic_key_shift},	
+			['~'] = {tic_key_grave, tic_key_shift},	
+			['<'] = {tic_key_comma, tic_key_shift},	
+			['>'] = {tic_key_period, tic_key_shift},	
+			['?'] = {tic_key_slash, tic_key_shift},	
+		};
+
+		u8 text = platform.keyboard.text;
+
+		if(text && text < COUNT_OF(TextCodes))
+		{
+			input->keyboard.keys[0] = TextCodes[text].code;
+			input->keyboard.keys[1] = TextCodes[text].shift;
+		}
 	}
-
-	const u8* keyboard = SDL_GetKeyboardState(NULL);
-
-	for(s32 i = 0; i < SDL_NUM_SCANCODES && c < BufSize; i++)
+	else
 	{
-		if(keyboard[i])
-		{			
-			SDL_Keycode keycode = i == SDL_SCANCODE_AC_BACK 
-				? SDLK_ESCAPE
-				: SDL_GetKeyFromScancode(i);
+		static const u32 KeyboardCodes[tic_keys_count] = 
+		{
+			#include "keycodes.inl"
+		};
 
-			for(s32 k = 0; k < COUNT_OF(KeyboardCodes); k++)
-			{
-				if(KeyboardCodes[k] == keycode)
+		s32 c = 0;
+		{
+			if(mod & KMOD_SHIFT) input->keyboard.keys[c++] = tic_key_shift;
+			if(mod & KMOD_CTRL) input->keyboard.keys[c++] = tic_key_ctrl;
+			if(mod & KMOD_CAPS) input->keyboard.keys[c++] = tic_key_capslock;
+		}
+
+		const u8* keyboard = SDL_GetKeyboardState(NULL);
+
+		for(s32 i = 0; i < SDL_NUM_SCANCODES && c < BufSize; i++)
+		{
+			if(keyboard[i])
+			{			
+				SDL_Keycode keycode = i == SDL_SCANCODE_AC_BACK 
+					? SDLK_ESCAPE
+					: SDL_GetKeyFromScancode(i);
+
+				for(s32 k = 0; k < COUNT_OF(KeyboardCodes); k++)
 				{
-					input->keyboard.keys[c++] = k;
-					break;
+					if(KeyboardCodes[k] == keycode)
+					{
+						input->keyboard.keys[c++] = k;
+						break;
+					}
 				}
 			}
-		}
+		}		
 	}
 }
 
@@ -756,6 +798,7 @@ static void pollEvent()
 
 	{
 		input->mouse.btns = 0;
+		platform.keyboard.text = 0;
 	}
 
 	SDL_Event event;
@@ -1311,7 +1354,6 @@ static System systemInterface =
 	.preseed = preseed,
 	.poll = pollEvent,
 	.updateConfig = updateConfig,
-	.getKeyboardText = getKeyboardText,
 };
 
 static void gpuTick()
