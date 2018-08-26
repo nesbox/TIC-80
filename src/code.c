@@ -891,7 +891,7 @@ static void processKeyboard(Code* code)
 {
 	tic_mem* tic = code->tic;
 
-	if(tic->ram.input.keyboard.data == 0) return;
+	if(tic->ram.input.keyboard.data == 0 || tic->ram.input.keyboard.text != 0) return;
 
 	switch(getClipboardEvent(0))
 	{
@@ -1044,7 +1044,6 @@ static void textEditTick(Code* code)
 
 	processKeyboard(code);
 
-	if(!tic->api.key(tic, tic_key_ctrl) && !tic->api.key(tic, tic_key_alt))
 	{
 		char sym = tic->ram.input.keyboard.text;
 
@@ -1268,7 +1267,7 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 static void textOutlineTick(Code* code)
 {
 	tic_mem* tic = code->tic;
-	
+
 	if(keyWasPressed(tic_key_up))
 	{
 		if(code->outline.index > 0)
