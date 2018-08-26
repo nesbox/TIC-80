@@ -1046,7 +1046,7 @@ static void textEditTick(Code* code)
 
 	if(!tic->api.key(tic, tic_key_ctrl) && !tic->api.key(tic, tic_key_alt))
 	{
-		char sym = getKeyboardText();
+		char sym = tic->ram.input.keyboard.text;
 
 		if(sym)
 		{
@@ -1113,6 +1113,8 @@ static char* downStrStr(const char* start, const char* from, const char* substr)
 
 static void textFindTick(Code* code)
 {
+	tic_mem* tic = code->tic;
+
 	if(keyWasPressed(tic_key_return)) setCodeMode(code, TEXT_EDIT_MODE);
 	else if(keyWasPressed(tic_key_up)
 		|| keyWasPressed(tic_key_down)
@@ -1137,7 +1139,7 @@ static void textFindTick(Code* code)
 		}
 	}
 
-	char sym = getKeyboardText();
+	char sym = tic->ram.input.keyboard.text;
 
 	if(sym)
 	{
@@ -1195,7 +1197,7 @@ static void textGoToTick(Code* code)
 		}
 	}
 
-	char sym = getKeyboardText();
+	char sym = tic->ram.input.keyboard.text;
 
 	if(sym)
 	{
@@ -1265,6 +1267,8 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 
 static void textOutlineTick(Code* code)
 {
+	tic_mem* tic = code->tic;
+	
 	if(keyWasPressed(tic_key_up))
 	{
 		if(code->outline.index > 0)
@@ -1295,7 +1299,7 @@ static void textOutlineTick(Code* code)
 		}
 	}
 
-	char sym = getKeyboardText();
+	char sym = tic->ram.input.keyboard.text;
 
 	if(sym)
 	{

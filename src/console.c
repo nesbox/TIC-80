@@ -2850,7 +2850,7 @@ static void tick(Console* console)
 			console->cursor.delay = CONSOLE_CURSOR_DELAY;
 		}
 
-		char sym = getKeyboardText();
+		char sym = tic->ram.input.keyboard.text;
 
 		if(sym)
 		{

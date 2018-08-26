@@ -234,36 +234,6 @@ static struct
 	.argv = NULL,
 };
 
-
-char getKeyboardText()
-{
-    tic_mem* tic = impl.studio.tic;
-
-    static const char Symbols[] = 	" abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
-    static const char Shift[] =		" ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
-
-    enum{Count = sizeof Symbols};
-
-    for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
-    {
-        tic_key key = tic->ram.input.keyboard.keys[i];
-
-        if(key > 0 && key < Count && tic->api.keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD))
-        {
-            bool caps = tic->api.key(tic, tic_key_capslock);
-            bool shift = tic->api.key(tic, tic_key_shift);
-
-            return caps
-                ? key >= tic_key_a && key <= tic_key_z 
-                    ? shift ? Symbols[key] : Shift[key]
-                    : shift ? Shift[key] : Symbols[key]
-                : shift ? Shift[key] : Symbols[key];
-        }
-    }
-
-    return 0;
-}
-
 bool keyWasPressed(tic_key key)
 {
 	tic_mem* tic = impl.studio.tic;

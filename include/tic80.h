@@ -110,10 +110,17 @@ typedef struct
 
 typedef u8 tic_key;
 
-typedef union
+typedef struct
 {
-	tic_key keys[TIC80_KEY_BUFFER];
-	u32 data;
+	union
+	{
+		tic_key keys[TIC80_KEY_BUFFER];
+		u32 data;		
+	};
+
+	s8 text;
+	u8 temp[3];
+
 } tic80_keyboard;
 
 typedef struct
@@ -121,7 +128,6 @@ typedef struct
 	tic80_gamepads gamepads;
 	tic80_mouse mouse;
 	tic80_keyboard keyboard;
-
 } tic80_input;
 
 TIC80_API tic80* tic80_create(s32 samplerate);

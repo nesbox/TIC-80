@@ -81,7 +81,7 @@ STATIC_ASSERT(tic_track, sizeof(tic_track) == 3*MUSIC_FRAMES+3);
 STATIC_ASSERT(tic_vram, sizeof(tic_vram) == TIC_VRAM_SIZE);
 STATIC_ASSERT(tic_ram, sizeof(tic_ram) == TIC_RAM_SIZE);
 STATIC_ASSERT(tic_sound_register, sizeof(tic_sound_register) == 16+2);
-STATIC_ASSERT(tic80_input, sizeof(tic80_input) == 12);
+STATIC_ASSERT(tic80_input, sizeof(tic80_input) == 16);
 
 static void update_amp(blip_buffer_t* blip, tic_sound_register_data* data, s32 new_amp )
 {
