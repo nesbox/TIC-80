@@ -397,16 +397,17 @@ static void processMouse()
 
 static void processKeyboard()
 {
+	tic_mem* tic = platform.studio->tic;
+
 	{
 		SDL_Keymod mod = SDL_GetModState();
 
 		platform.keyboard.state[tic_key_shift] = mod & KMOD_SHIFT;
 		platform.keyboard.state[tic_key_ctrl] = mod & (KMOD_CTRL | KMOD_GUI);
-		platform.keyboard.state[tic_key_alt] = mod & KMOD_ALT;
 		platform.keyboard.state[tic_key_capslock] = mod & KMOD_CAPS;
 	}	
 
-	tic80_input* input = &platform.studio->tic->ram.input;
+	tic80_input* input = &tic->ram.input;
 	input->keyboard.data = 0;
 
 	enum{BufSize = COUNT_OF(input->keyboard.keys)};
