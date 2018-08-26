@@ -401,7 +401,7 @@ static void processKeyboard()
 		SDL_Keymod mod = SDL_GetModState();
 
 		platform.keyboard.state[tic_key_shift] = mod & KMOD_SHIFT;
-		platform.keyboard.state[tic_key_ctrl] = mod & KMOD_CTRL;
+		platform.keyboard.state[tic_key_ctrl] = mod & (KMOD_CTRL | KMOD_GUI);
 		platform.keyboard.state[tic_key_alt] = mod & KMOD_ALT;
 		platform.keyboard.state[tic_key_capslock] = mod & KMOD_CAPS;
 	}	
