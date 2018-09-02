@@ -750,6 +750,9 @@ static void processTrackerKeyboard(Music* music)
 		return;
 	}
 
+	if(tic->api.key(tic, tic_key_ctrl) || tic->api.key(tic, tic_key_alt))
+		return;
+
 	bool shift = tic->api.key(tic, tic_key_shift);
 
 	if(shift)
@@ -952,8 +955,11 @@ static void processPatternKeyboard(Music* music)
 	tic_mem* tic = music->tic;
 	s32 channel = music->tracker.col / CHANNEL_COLS;
 
+	if(tic->api.key(tic, tic_key_ctrl) || tic->api.key(tic, tic_key_alt))
+		return;
+
 	if(keyWasPressed(tic_key_delete)) 		setChannelPatternValue(music, 0, channel);
-	else if(keyWasPressed(tic_key_tab)) 		nextPattern(music);
+	else if(keyWasPressed(tic_key_tab)) 	nextPattern(music);
 	else if(keyWasPressed(tic_key_left)) 	patternColLeft(music);
 	else if(keyWasPressed(tic_key_right)) 	patternColRight(music);
 	else if(keyWasPressed(tic_key_down) 

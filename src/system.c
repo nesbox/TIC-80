@@ -404,7 +404,12 @@ static void processKeyboard()
 
 		platform.keyboard.state[tic_key_shift] = mod & KMOD_SHIFT;
 		platform.keyboard.state[tic_key_ctrl] = mod & (KMOD_CTRL | KMOD_GUI);
+		platform.keyboard.state[tic_key_alt] = mod & KMOD_LALT;
 		platform.keyboard.state[tic_key_capslock] = mod & KMOD_CAPS;
+
+		// it's weird, but system sends CTRL when you press RALT
+		if(mod & KMOD_RALT)
+			platform.keyboard.state[tic_key_ctrl] = false;
 	}	
 
 	tic80_input* input = &tic->ram.input;
@@ -485,9 +490,13 @@ static void processTouchKeyboard()
 		#include "kbdlayout.inl"
 	};
 
-	tic80_input* input = &platform.studio->tic->ram.input;
+	tic_mem* tic = platform.studio->tic;
+
+	tic80_input* input = &tic->ram.input;
 
 	s32 devices = SDL_GetNumTouchDevices();
+
+	enum {BufSize = COUNT_OF(input->keyboard.keys)};
 
 	for (s32 i = 0; i < devices; i++)
 	{
@@ -510,13 +519,37 @@ static void processTouchKeyboard()
 					pt.x /= scale;
 					pt.y /= scale;
 
-					for(s32 i = 0; i < COUNT_OF(input->keyboard.keys); i++)
+					for(s32 i = 0; i < BufSize; i++)
 					{
 						tic_key* key = &input->keyboard.keys[i];
 
 						if(*key == tic_key_unknown)
 						{
 							*key = KbdLayout[pt.x / TIC_SPRITESIZE + pt.y / TIC_SPRITESIZE * Cols];
+							if(input->keyboard.text == 0)
+							{
+								static const char Symbols[] = " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
+								static const char Shift[]   = " ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
+
+								enum{Count = sizeof Symbols};
+
+								for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
+								{
+									tic_key key = tic->ram.input.keyboard.keys[i];
+
+									if(key > 0 && key < Count && tic->api.keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD))
+									{
+										bool caps = tic->api.key(tic, tic_key_capslock);
+										bool shift = tic->api.key(tic, tic_key_shift);
+
+										input->keyboard.text = caps
+											? key >= tic_key_a && key <= tic_key_z 
+												? shift ? Symbols[key] : Shift[key]
+												: shift ? Shift[key] : Symbols[key]
+											: shift ? Shift[key] : Symbols[key];
+									}
+								}
+							}
 							break;
 						}
 					}
@@ -734,6 +767,9 @@ static void handleKeydown(SDL_Keycode keycode, bool down)
 			break;
 		}
 	}
+
+	if(keycode == SDLK_AC_BACK)
+		platform.keyboard.state[tic_key_escape] = down;
 }
 
 static void pollEvent()
@@ -742,7 +778,7 @@ static void pollEvent()
 	tic80_input* input = &tic->ram.input;
 
 	input->mouse.btns = 0;
-	tic->ram.input.keyboard.text = 0;
+	input->keyboard.text = 0;
 
 	SDL_Event event;
 

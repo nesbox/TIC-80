@@ -52,9 +52,6 @@
 #define FRAME_SIZE (TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32))
 #define POPUP_DUR (TIC_FRAMERATE*2)
 
-#define KEYBOARD_HOLD 20
-#define KEYBOARD_PERIOD 3
-
 #if defined(TIC80_PRO)
 #define TIC_EDITOR_BANKS (TIC_BANKS)
 #else
