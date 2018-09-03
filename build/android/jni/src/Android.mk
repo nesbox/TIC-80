@@ -12,11 +12,11 @@ LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/lua-5.3.1/src \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/giflib-5.1.4/lib \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/zlib-1.2.8 \
-	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/duktape-2.2.0\src \
+	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/duktape-2.2.0/src \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/blip-buf \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/SDL2_net-2.0.1 \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/moonscript \
-	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/wren-0.1.0\src\include \
+	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/wren-0.1.0/src/include \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/sdl-gpu/include \
 	$(LOCAL_PATH)/$(THIRD_PARTY_PATH)/fennel \
 	$(LOCAL_PATH)/../../../../include
