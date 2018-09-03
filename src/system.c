@@ -66,6 +66,12 @@ static struct
 		} texture;
 
 		bool state[tic_keys_count];
+
+		struct
+		{
+			bool state[tic_keys_count];			
+		} touch;
+
 	} keyboard;
 
 	u32 touchCounter;
@@ -418,8 +424,33 @@ static void processKeyboard()
 	enum{BufSize = COUNT_OF(input->keyboard.keys)};
 
 	for(s32 i = 0, c = 0; i < COUNT_OF(platform.keyboard.state) && c < BufSize; i++)
-		if(platform.keyboard.state[i])
+		if(platform.keyboard.state[i] || platform.keyboard.touch.state[i])
 			input->keyboard.keys[c++] = i;
+
+	if(input->keyboard.text == 0)
+	{
+		static const char Symbols[] = " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
+		static const char Shift[]   = " ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
+
+		enum{Count = sizeof Symbols};
+
+		for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
+		{
+			tic_key key = tic->ram.input.keyboard.keys[i];
+
+			if(key > 0 && key < Count && tic->api.keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD))
+			{
+				bool caps = tic->api.key(tic, tic_key_capslock);
+				bool shift = tic->api.key(tic, tic_key_shift);
+
+				input->keyboard.text = caps
+					? key >= tic_key_a && key <= tic_key_z 
+						? shift ? Symbols[key] : Shift[key]
+						: shift ? Shift[key] : Symbols[key]
+					: shift ? Shift[key] : Symbols[key];
+			}
+		}
+	}
 }
 
 #if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
@@ -498,6 +529,8 @@ static void processTouchKeyboard()
 
 	enum {BufSize = COUNT_OF(input->keyboard.keys)};
 
+	SDL_memset(&platform.keyboard.touch.state, 0, sizeof platform.keyboard.touch.state);
+
 	for (s32 i = 0; i < devices; i++)
 	{
 		SDL_TouchID id = SDL_GetTouchDevice(i);
@@ -519,40 +552,7 @@ static void processTouchKeyboard()
 					pt.x /= scale;
 					pt.y /= scale;
 
-					for(s32 i = 0; i < BufSize; i++)
-					{
-						tic_key* key = &input->keyboard.keys[i];
-
-						if(*key == tic_key_unknown)
-						{
-							*key = KbdLayout[pt.x / TIC_SPRITESIZE + pt.y / TIC_SPRITESIZE * Cols];
-							if(input->keyboard.text == 0)
-							{
-								static const char Symbols[] = " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
-								static const char Shift[]   = " ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
-
-								enum{Count = sizeof Symbols};
-
-								for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
-								{
-									tic_key key = tic->ram.input.keyboard.keys[i];
-
-									if(key > 0 && key < Count && tic->api.keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD))
-									{
-										bool caps = tic->api.key(tic, tic_key_capslock);
-										bool shift = tic->api.key(tic, tic_key_shift);
-
-										input->keyboard.text = caps
-											? key >= tic_key_a && key <= tic_key_z 
-												? shift ? Symbols[key] : Shift[key]
-												: shift ? Shift[key] : Symbols[key]
-											: shift ? Shift[key] : Symbols[key];
-									}
-								}
-							}
-							break;
-						}
-					}
+					platform.keyboard.touch.state[KbdLayout[pt.x / TIC_SPRITESIZE + pt.y / TIC_SPRITESIZE * Cols]] = true;
 				}
 			}
 		}
@@ -855,8 +855,8 @@ static void pollEvent()
 	}
 
 	processMouse();
-	processKeyboard();
 	processTouchInput();
+	processKeyboard();
 	processGamepad();
 }
 
