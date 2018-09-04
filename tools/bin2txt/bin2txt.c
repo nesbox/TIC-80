@@ -6,6 +6,8 @@
 
 int main(int argc, char** argv)
 {
+	int res = -1;
+
 	if(argc >= 3)
 	{
 		bool useZip = false;
@@ -57,8 +59,10 @@ int main(int argc, char** argv)
 						fprintf(txt, "0x%02x, ", buffer[i]);
 
 					fclose(txt);
+
+					res = 0;
 				}
-				else printf("cannot open bin file\n");
+				else printf("cannot open text file\n");
 
 				free(buffer);
 			}
@@ -68,5 +72,5 @@ int main(int argc, char** argv)
 	}
 	else printf("usage: bin2txt <bin> <txt>\n");
 
-	return 0;
+	return res;
 }
