@@ -1858,124 +1858,6 @@ static void *ticMemmem(const void* haystack, size_t hlen, const void* needle, si
 	return NULL;
 }
 
-typedef struct
-{
-	Console* console;
-	const char* cartName;
-} AppFileReadParam;
-
-typedef struct
-{
-	u8* data;
-	size_t size;
-} MemoryBuffer;
-
-static void writeMemoryData(MemoryBuffer* memory, const u8* src, size_t size)
-{
-	memcpy(memory->data + memory->size, src, size);
-	memory->size += size;
-}
-
-static void writeMemoryString(MemoryBuffer* memory, const char* str)
-{
-	size_t size = strlen(str);
-	memcpy(memory->data + memory->size, str, size);
-	memory->size += size;
-}
-
-static void onConsoleExportHtmlCommand(Console* console, const char* name)
-{
-	tic_mem* tic = console->tic;
-
-	char cartName[FILENAME_MAX];
-	strcpy(cartName, name);
-
-	{
-		static const char HtmlExt[] = ".html";
-		const char* pos = NULL;
-
-		if((pos = strstr(name, HtmlExt)) && strcmp(pos, HtmlExt) == 0);
-		else strcat(cartName, HtmlExt);
-	}
-
-	extern const u8 EmbedIndexZip[];
-	extern const s32 EmbedIndexZipSize;
-	extern const u8 EmbedTicJsZip[];
-	extern const s32 EmbedTicJsZipSize;
-
-	static const char Placeholder[] = "<script async type=\"text/javascript\" src=\"tic.js\"></script>";
-
-	u8* EmbedIndex = NULL;
-	u32 EmbedIndexSize = unzip(&EmbedIndex, EmbedIndexZip, EmbedIndexZipSize);
-
-	u8* EmbedTicJs = NULL;
-	u32 EmbedTicJsSize = unzip(&EmbedTicJs, EmbedTicJsZip, EmbedTicJsZipSize);
-
-	u8* ptr = ticMemmem(EmbedIndex, EmbedIndexSize, Placeholder, sizeof(Placeholder)-1);
-
-	if(ptr)
-	{
-		MemoryBuffer output = {(u8*)malloc(EmbedTicJsSize * 2), 0};
-
-		if(output.data)
-		{
-			writeMemoryData(&output, EmbedIndex, ptr - EmbedIndex);
-			writeMemoryString(&output, "<script type='text/javascript'>\n");
-
-			u8* buffer = (u8*)malloc(sizeof(tic_cartridge));
-
-			if(buffer)
-			{
-				writeMemoryString(&output, "var cartridge = [");
-
-				s32 size = tic->api.save(&tic->cart, buffer);
-
-				if(size)
-				{
-					// zip buffer
-					{
-						unsigned long outSize = sizeof(tic_cartridge);
-						u8* output = (u8*)malloc(outSize);
-
-						compress2(output, &outSize, buffer, size, Z_BEST_COMPRESSION);
-						free(buffer);
-
-						buffer = output;
-						size = outSize;
-					}
-
-					{
-						u8* ptr = buffer;
-						u8* end = ptr + size;
-
-						char value[] = "999,";
-						while(ptr != end)
-						{
-							sprintf(value, "%i,", *ptr++);
-							writeMemoryString(&output, value);
-						}
-					}
-
-					free(buffer);
-
-					writeMemoryString(&output, "];\n");
-
-					writeMemoryData(&output, EmbedTicJs, EmbedTicJsSize);
-					writeMemoryString(&output, "</script>\n");
-
-					ptr += sizeof(Placeholder)-1;
-					writeMemoryData(&output, ptr, EmbedIndexSize - (ptr - EmbedIndex));
-
-					fsGetFileData(onFileDownloaded, cartName, output.data, output.size, DEFAULT_CHMOD, console);					
-				}
-			}
-		}
-	}
-
-	free(EmbedIndex);
-	free(EmbedTicJs);
-}
-
 #if defined(CAN_EXPORT)
 
 static void* embedCart(Console* console, s32* size)
@@ -2054,20 +1936,15 @@ static void onConsoleExportNativeCommand(Console* console, const char* cartName)
 
 #endif
 
-static const char* getExportName(Console* console, bool html)
+static const char* getExportName(Console* console)
 {
 	static char name[FILENAME_MAX];
 
 	strcpy(name, strlen(console->romName) ? console->romName : "game");
 
-	if(html)
-		strcat(name, ".html");
-	else
-	{
 #if defined(__TIC_WINDOWS__)
-		strcat(name, ExeExt);
+	strcat(name, ExeExt);
 #endif
-	}
 
 	return name;
 }
@@ -2076,42 +1953,38 @@ static void onConsoleExportCommand(Console* console, const char* param)
 {
 	if(param)
 	{
-		if(strcmp(param, "html") == 0) onConsoleExportHtmlCommand(console, getExportName(console, true));
-		else
+		if(strcmp(param, "native") == 0)
 		{
-			if(strcmp(param, "native") == 0)
-			{
 #if defined(CAN_EXPORT)
-				onConsoleExportNativeCommand(console, getExportName(console, false));
+			onConsoleExportNativeCommand(console, getExportName(console));
 #else
 
-				printBack(console, "\nnative export isn't supported on this platform\n");
-				commandDone(console);
+			printBack(console, "\nnative export isn't supported on this platform\n");
+			commandDone(console);
 #endif
-			}
-			else if(strcmp(param, "sprites") == 0)
-			{
-				exportSprites(console);
-			}
-			else if(strcmp(param, "map") == 0)
-			{
-				exportMap(console);
-			}
-			else if(strcmp(param, "cover") == 0)
-			{
-				exportCover(console);
-			}
-			else
-			{
-				printError(console, "\nunknown parameter: ");
-				printError(console, param);
-				commandDone(console);
-			}
+		}
+		else if(strcmp(param, "sprites") == 0)
+		{
+			exportSprites(console);
+		}
+		else if(strcmp(param, "map") == 0)
+		{
+			exportMap(console);
+		}
+		else if(strcmp(param, "cover") == 0)
+		{
+			exportCover(console);
+		}
+		else
+		{
+			printError(console, "\nunknown parameter: ");
+			printError(console, param);
+			commandDone(console);
 		}
 	}
 	else
 	{
-		onConsoleExportHtmlCommand(console, getExportName(console, true));
+		onConsoleExportNativeCommand(console, getExportName(console));
 	}
 }
 
@@ -2465,7 +2338,7 @@ static const struct
 #endif
 	{"add",		NULL, "add file", 					onConsoleAddCommand},
 	{"get",		NULL, "download file", 				onConsoleGetCommand},
-	{"export",	NULL, "export html or native game",	onConsoleExportCommand},
+	{"export",	NULL, "export native game",			onConsoleExportCommand},
 	{"import",	NULL, "import sprites from .gif",	onConsoleImportCommand},
 	{"del",		NULL, "delete file or dir",			onConsoleDelCommand},
 	{"cls",		NULL, "clear screen",				onConsoleClsCommand},

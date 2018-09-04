@@ -335,8 +335,6 @@ if(NOT EMSCRIPTEN)
 
 	list(APPEND DEMO_CARTS 
 		${CMAKE_SOURCE_DIR}/config.tic
-		${CMAKE_SOURCE_DIR}/build/html/index.html
-		${CMAKE_SOURCE_DIR}/build/html/tic.js
 	)
 
 	set(DEMO_CARTS_OUT)
@@ -383,7 +381,6 @@ set(TIC80LIB_SRC
 	${TIC80LIB_DIR}/dialog.c
 	${TIC80LIB_DIR}/menu.c
 	${TIC80LIB_DIR}/surf.c
-	${TIC80LIB_DIR}/html.c
 )
 
 set(TIC80_OUTPUTS tic80 tic80pro)
