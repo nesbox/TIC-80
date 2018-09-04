@@ -422,7 +422,7 @@ typedef union
 		tic_tiles sprites;
 		tic_map map;
 		tic80_input input;
-		u8 unknown[12];
+		u8 unknown[16];
 		tic_sound_register registers[TIC_SOUND_CHANNELS];
 		tic_sfx sfx;
 		tic_music music;

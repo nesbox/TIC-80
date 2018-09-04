@@ -890,7 +890,7 @@ static void processTrackerKeyboard(Music* music)
 			{
 				s32 octave = -1;
 
-				char sym = tic->ram.input.keyboard.text;
+				char sym = getKeyboardText();
 
 				if(sym >= '1' && sym <= '8') octave = sym - '1';
 
@@ -907,7 +907,7 @@ static void processTrackerKeyboard(Music* music)
 			{
 				s32 val = -1;
 
-				char sym = tic->ram.input.keyboard.text;
+				char sym = getKeyboardText();
 							
 				if (sym >= '0' && sym <= '9') val = sym - '0';
 
@@ -932,7 +932,7 @@ static void processTrackerKeyboard(Music* music)
 			{
 				s32 val = -1;
 							
-				char sym = tic->ram.input.keyboard.text;
+				char sym = getKeyboardText();
 
 				if(sym >= '0' && sym <= '9') val = sym - '0';
 				if(sym >= 'a' && sym <= 'f') val = sym - 'a' + 10;
@@ -969,7 +969,7 @@ static void processPatternKeyboard(Music* music)
 	{
 		s32 val = -1;
 
-		char sym = tic->ram.input.keyboard.text;
+		char sym = getKeyboardText();
 
 		if(sym >= '0' && sym <= '9') val = sym - '0';
 
