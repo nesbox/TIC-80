@@ -499,8 +499,6 @@ static void processTouchKeyboard()
 
 	enum {BufSize = COUNT_OF(input->keyboard.keys)};
 
-	SDL_memset(&platform.keyboard.touch.state, 0, sizeof platform.keyboard.touch.state);
-
 	for (s32 i = 0; i < devices; i++)
 	{
 		SDL_TouchID id = SDL_GetTouchDevice(i);
