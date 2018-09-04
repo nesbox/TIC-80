@@ -79,9 +79,7 @@ mingw32-make -j4
 ## Linux (Ubuntu 14.04)
 run the following commands in the Terminal
 ```
-wget "https://cmake.org/files/v3.12/cmake-3.12.0-Linux-x86_64.sh"
-sudo sh cmake-3.12.0-Linux-x86_64.sh --skip-license --prefix=/usr
-sudo apt-get install git libgtk-3-dev libgles1-mesa-dev libglu-dev -y
+sudo apt-get install git cmake libgtk-3-dev libgles1-mesa-dev libglu-dev -y
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80
 cmake . && make -j4
 ```
