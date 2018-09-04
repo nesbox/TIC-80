@@ -58,6 +58,8 @@ typedef struct
 	u64 (*freq)();
 	u64 start;
 
+	bool syncPMEM;
+
 	void (*preprocessor)(void* data, char* dst);
 
 	void* data;
@@ -66,7 +68,7 @@ typedef struct
 typedef struct tic_mem tic_mem;
 typedef void(*tic_tick)(tic_mem* memory);
 typedef void(*tic_scanline)(tic_mem* memory, s32 row, void* data);
-typedef void(*tic_overlap)(tic_mem* memory, void* data);
+typedef void(*tic_overline)(tic_mem* memory, void* data);
 
 typedef struct
 {
@@ -97,11 +99,12 @@ struct tic_script_config
 
 		tic_tick tick;
 		tic_scanline scanline;
-		tic_overlap overlap;		
+		tic_overline overline;		
 	};
 
 	const tic_outline_item* (*getOutline)(const char* code, s32* size);
 	void (*parse)(const tic_script_config* config, const char* start, u8* color, const tic_code_theme* theme);
+	void (*eval)(tic_mem* tic, const char* code);
 
 	const char* blockCommentStart;
 	const char* blockCommentEnd;
@@ -118,10 +121,10 @@ struct tic_script_config
 
 typedef struct
 {
-	s32  (*draw_char)			(tic_mem* memory, u8 symbol, s32 x, s32 y, u8 color);
-	s32  (*text)				(tic_mem* memory, const char* text, s32 x, s32 y, u8 color);
-	s32  (*fixed_text)			(tic_mem* memory, const char* text, s32 x, s32 y, u8 color);
-	s32  (*text_ex)				(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, bool fixed, s32 scale);
+	s32  (*draw_char)			(tic_mem* memory, u8 symbol, s32 x, s32 y, u8 color, bool alt);
+	s32  (*text)				(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, bool alt);
+	s32  (*fixed_text)			(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, bool alt);
+	s32  (*text_ex)				(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, bool fixed, s32 scale, bool alt);
 	void (*clear)				(tic_mem* memory, u8 color);
 	void (*pixel)				(tic_mem* memory, s32 x, s32 y, u8 color);
 	u8   (*get_pixel)			(tic_mem* memory, s32 x, s32 y);
@@ -148,7 +151,7 @@ typedef struct
 	double (*time)				(tic_mem* memory);
 	void (*tick)				(tic_mem* memory, tic_tick_data* data);
 	void (*scanline)			(tic_mem* memory, s32 row, void* data);
-	void (*overlap)				(tic_mem* memory, void* data);
+	void (*overline)				(tic_mem* memory, void* data);
 	void (*reset)				(tic_mem* memory);
 	void (*pause)				(tic_mem* memory);
 	void (*resume)				(tic_mem* memory);
@@ -162,7 +165,7 @@ typedef struct
 
 	void (*tick_start)			(tic_mem* memory, const tic_sfx* sfx, const tic_music* music);
 	void (*tick_end)			(tic_mem* memory);
-	void (*blit)				(tic_mem* tic, tic_scanline scanline, tic_overlap overlap, void* data);
+	void (*blit)				(tic_mem* tic, tic_scanline scanline, tic_overline overline, void* data);
 
 	const tic_script_config* (*get_script_config)(tic_mem* memory);
 } tic_api;
@@ -171,7 +174,6 @@ struct tic_mem
 {
 	tic_ram 			ram;
 	tic_cartridge 		cart;
-	tic_cartridge		config;
 	tic_font 			font;
 	tic_api 			api;
 	tic_persistent		persistent;

@@ -47,14 +47,14 @@ static void normalizeMap(s32* x, s32* y)
 	while(*y >= MAX_SCROLL_Y) *y -= MAX_SCROLL_Y;
 }
 
-static SDL_Point getTileOffset(Map* map)
+static tic_point getTileOffset(Map* map)
 {
-	return (SDL_Point){(map->sheet.rect.w - 1)*TIC_SPRITESIZE / 2, (map->sheet.rect.h - 1)*TIC_SPRITESIZE / 2};
+	return (tic_point){(map->sheet.rect.w - 1)*TIC_SPRITESIZE / 2, (map->sheet.rect.h - 1)*TIC_SPRITESIZE / 2};
 }
 
 static void getMouseMap(Map* map, s32* x, s32* y)
 {
-	SDL_Point offset = getTileOffset(map);
+	tic_point offset = getTileOffset(map);
 
 	s32 mx = getMouseX() + map->scroll.x - offset.x;
 	s32 my = getMouseY() + map->scroll.y - offset.y;
@@ -83,19 +83,19 @@ static s32 drawWorldButton(Map* map, s32 x, s32 y)
 
 	x -= Size;
 
-	SDL_Rect rect = {x, y, Size, ICON_SIZE};
+	tic_rect rect = {x, y, Size, ICON_SIZE};
 
 	bool over = false;
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		over = true;
 
 		showTooltip("WORLD MAP [tab]");
 
-		if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseClick(&rect, tic_mouse_left))
 			setStudioMode(TIC_WORLD_MODE);
 	}
 
@@ -121,25 +121,31 @@ static s32 drawGridButton(Map* map, s32 x, s32 y)
 
 	x -= ICON_SIZE;
 
-	SDL_Rect rect = {x, y, ICON_SIZE, ICON_SIZE};
+	tic_rect rect = {x, y, ICON_SIZE, ICON_SIZE};
 
 	bool over = false;
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		over = true;
 
 		showTooltip("SHOW/HIDE GRID [`]");
 
-		if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseClick(&rect, tic_mouse_left))
 			map->canvas.grid = !map->canvas.grid;
 	}
 
 	drawBitIcon(x, y, GridIcon, map->canvas.grid ? (tic_color_black) : over ? (tic_color_dark_gray) : (tic_color_light_blue));
 
 	return x;
+}
+
+static bool sheetVisible(Map* map)
+{
+	tic_mem* tic = map->tic;
+	return tic->api.key(tic, tic_key_shift) || map->sheet.show;
 }
 
 static s32 drawSheetButton(Map* map, s32 x, s32 y)
@@ -170,23 +176,23 @@ static s32 drawSheetButton(Map* map, s32 x, s32 y)
 
 	x -= ICON_SIZE;
 
-	SDL_Rect rect = {x, y, ICON_SIZE, ICON_SIZE};
+	tic_rect rect = {x, y, ICON_SIZE, ICON_SIZE};
 
 	bool over = false;
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		over = true;
 		showTooltip("SHOW TILES [shift]");
 
-		if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseClick(&rect, tic_mouse_left))
 		{
 			map->sheet.show = !map->sheet.show;
 		}
 	}
 
-	drawBitIcon(rect.x, rect.y, map->sheet.show ? UpIcon : DownIcon, over ? (tic_color_dark_gray) : (tic_color_light_blue));
+	drawBitIcon(rect.x, rect.y, sheetVisible(map) ? UpIcon : DownIcon, over ? (tic_color_dark_gray) : (tic_color_light_blue));
 
 	return x;
 }
@@ -195,18 +201,18 @@ static s32 drawToolButton(Map* map, s32 x, s32 y, const u8* Icon, s32 width, con
 {
 	x -= width;
 
-	SDL_Rect rect = {x, y, width, ICON_SIZE};
+	tic_rect rect = {x, y, width, ICON_SIZE};
 
 	bool over = false;
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
 		over = true;
 
 		showTooltip(tip);
 
-		if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseClick(&rect, tic_mouse_left))
 		{
 			map->mode = mode;
 		}
@@ -291,9 +297,9 @@ static void drawTileIndex(Map* map, s32 x, s32 y)
 {
 	s32 index = -1;
 
-	if(map->sheet.show)
+	if(sheetVisible(map))
 	{
-		SDL_Rect rect = {TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, TOOLBAR_SIZE, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
+		tic_rect rect = {TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, TOOLBAR_SIZE, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
 		
 		if(checkMousePos(&rect))
 		{
@@ -308,7 +314,7 @@ static void drawTileIndex(Map* map, s32 x, s32 y)
 	}
 	else
 	{
-		SDL_Rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+		tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
 		if(checkMousePos(&rect))
 		{
@@ -322,7 +328,7 @@ static void drawTileIndex(Map* map, s32 x, s32 y)
 	{
 		char buf[] = "#999";
 		sprintf(buf, "#%03i", index);
-		map->tic->api.text(map->tic, buf, x, y, (tic_color_light_blue));
+		map->tic->api.text(map->tic, buf, x, y, (tic_color_light_blue), false);
 	}
 }
 
@@ -344,24 +350,24 @@ static void drawMapToolbar(Map* map, s32 x, s32 y)
 
 static void drawSheet(Map* map, s32 x, s32 y)
 {
-	if(!map->sheet.show)return;
+	if(!sheetVisible(map))return;
 
-	SDL_Rect rect = {x, y, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
+	tic_rect rect = {x, y, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
 
 	map->tic->api.rect_border(map->tic, rect.x - 1, rect.y - 1, rect.w + 2, rect.h + 2, (tic_color_white));
 }
 
 static void drawSheetOvr(Map* map, s32 x, s32 y)
 {
-	if(!map->sheet.show)return;
+	if(!sheetVisible(map))return;
 
-	SDL_Rect rect = {x, y, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
+	tic_rect rect = {x, y, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
 
 	if(checkMousePos(&rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_HAND);
+		setCursor(tic_cursor_hand);
 
-		if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+		if(checkMouseDown(&rect, tic_mouse_left))
 		{
 			s32 mx = getMouseX() - rect.x;
 			s32 my = getMouseY() - rect.y;
@@ -371,19 +377,19 @@ static void drawSheetOvr(Map* map, s32 x, s32 y)
 
 			if(map->sheet.drag)
 			{
-				s32 rl = SDL_min(mx, map->sheet.start.x);
-				s32 rt = SDL_min(my, map->sheet.start.y);
-				s32 rr = SDL_max(mx, map->sheet.start.x);
-				s32 rb = SDL_max(my, map->sheet.start.y);
+				s32 rl = MIN(mx, map->sheet.start.x);
+				s32 rt = MIN(my, map->sheet.start.y);
+				s32 rr = MAX(mx, map->sheet.start.x);
+				s32 rb = MAX(my, map->sheet.start.y);
 
-				map->sheet.rect = (SDL_Rect){rl, rt, rr-rl+1, rb-rt+1};
+				map->sheet.rect = (tic_rect){rl, rt, rr-rl+1, rb-rt+1};
 
 				map->mode = MAP_DRAW_MODE;
 			}
 			else
 			{
 				map->sheet.drag = true;
-				map->sheet.start = (SDL_Point){mx, my};
+				map->sheet.start = (tic_point){mx, my};
 			}
 		}
 		else
@@ -418,7 +424,7 @@ static void drawCursorPos(Map* map, s32 x, s32 y)
 
 	sprintf(pos, "%03i:%03i", tx, ty);
 
-	s32 width = map->tic->api.text(map->tic, pos, TIC80_WIDTH, 0, (tic_color_gray));
+	s32 width = map->tic->api.text(map->tic, pos, TIC80_WIDTH, 0, (tic_color_gray), false);
 
 	s32 px = x + (TIC_SPRITESIZE + 3);
 	if(px + width >= TIC80_WIDTH) px = x - (width + 2);
@@ -427,7 +433,7 @@ static void drawCursorPos(Map* map, s32 x, s32 y)
 	if(py <= TOOLBAR_SIZE) py = y + (TIC_SPRITESIZE + 3);
 
 	map->tic->api.rect(map->tic, px - 1, py - 1, width + 1, TIC_FONT_HEIGHT + 1, (tic_color_white));
-	map->tic->api.text(map->tic, pos, px, py, (tic_color_light_blue));
+	map->tic->api.text(map->tic, pos, px, py, (tic_color_light_blue), false);
 }
 
 static void setMapSprite(Map* map, s32 x, s32 y)
@@ -447,7 +453,7 @@ static void drawTileCursor(Map* map)
 	if(map->scroll.active)
 		return;
 
-	SDL_Point offset = getTileOffset(map);
+	tic_point offset = getTileOffset(map);
 
 	s32 mx = getMouseX() + map->scroll.x - offset.x;
 	s32 my = getMouseY() + map->scroll.y - offset.y;
@@ -478,13 +484,13 @@ static void drawTileCursor(Map* map)
 
 static void processMouseDrawMode(Map* map)
 {
-	SDL_Rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+	tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
-	setCursor(SDL_SYSTEM_CURSOR_HAND);
+	setCursor(tic_cursor_hand);
 
 	drawTileCursor(map);
 
-	if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+	if(checkMouseDown(&rect, tic_mouse_left))
 	{
 		s32 tx = 0, ty = 0;
 		getMouseMap(map, &tx, &ty);
@@ -500,7 +506,7 @@ static void processMouseDrawMode(Map* map)
 		else
 		{
 			map->canvas.draw	= true;
-			map->canvas.start = (SDL_Point){tx, ty};
+			map->canvas.start = (tic_point){tx, ty};
 		}
 	}
 	else
@@ -508,19 +514,19 @@ static void processMouseDrawMode(Map* map)
 		map->canvas.draw	= false;
 	}
 
-	if(checkMouseDown(&rect, SDL_BUTTON_MIDDLE))
+	if(checkMouseDown(&rect, tic_mouse_middle))
 	{
 		s32 tx = 0, ty = 0;
 		getMouseMap(map, &tx, &ty);
 		s32 index = map->tic->api.map_get(map->tic, map->src, tx, ty);
 
-		map->sheet.rect = (SDL_Rect){index % SHEET_COLS, index / SHEET_COLS, 1, 1};
+		map->sheet.rect = (tic_rect){index % SHEET_COLS, index / SHEET_COLS, 1, 1};
 	}
 }
 
 static void processScrolling(Map* map, bool pressed)
 {
-	SDL_Rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+	tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
 	if(map->scroll.active)
 	{
@@ -531,7 +537,7 @@ static void processScrolling(Map* map, bool pressed)
 
 			normalizeMap(&map->scroll.x, &map->scroll.y);
 
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 		}
 		else map->scroll.active = false;
 	}
@@ -549,15 +555,15 @@ static void processScrolling(Map* map, bool pressed)
 
 static void processMouseDragMode(Map* map)
 {
-	SDL_Rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+	tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
-	processScrolling(map, checkMouseDown(&rect, SDL_BUTTON_LEFT) || 
-		checkMouseDown(&rect, SDL_BUTTON_RIGHT));
+	processScrolling(map, checkMouseDown(&rect, tic_mouse_left) || 
+		checkMouseDown(&rect, tic_mouse_right));
 }
 
 static void resetSelection(Map* map)
 {
-	map->select.rect = (SDL_Rect){0,0,0,0};
+	map->select.rect = (tic_rect){0,0,0,0};
 }
 
 static void drawSelectionRect(Map* map, s32 x, s32 y, s32 w, s32 h)
@@ -582,9 +588,9 @@ static void drawPasteData(Map* map)
 	s32 mx = getMouseX() + map->scroll.x - (w - 1)*TIC_SPRITESIZE / 2;
 	s32 my = getMouseY() + map->scroll.y - (h - 1)*TIC_SPRITESIZE / 2;
 
-	SDL_Rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+	tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
-	if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+	if(checkMouseClick(&rect, tic_mouse_left))
 	{
 		normalizeMap(&mx, &my);
 
@@ -597,7 +603,7 @@ static void drawPasteData(Map* map)
 
 		history_add(map->history);
 
-		SDL_free(map->paste);
+		free(map->paste);
 		map->paste = NULL;
 	}
 	else
@@ -626,7 +632,7 @@ static void normalizeMapRect(s32* x, s32* y)
 
 static void processMouseSelectMode(Map* map)
 {
-	SDL_Rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+	tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
 	if(checkMousePos(&rect))
 	{
@@ -634,7 +640,7 @@ static void processMouseSelectMode(Map* map)
 			drawPasteData(map);
 		else
 		{
-			if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseDown(&rect, tic_mouse_left))
 			{
 				s32 mx = getMouseX() + map->scroll.x;
 				s32 my = getMouseY() + map->scroll.y;
@@ -646,18 +652,18 @@ static void processMouseSelectMode(Map* map)
 
 				if(map->select.drag)
 				{
-					s32 rl = SDL_min(mx, map->select.start.x);
-					s32 rt = SDL_min(my, map->select.start.y);
-					s32 rr = SDL_max(mx, map->select.start.x);
-					s32 rb = SDL_max(my, map->select.start.y);
+					s32 rl = MIN(mx, map->select.start.x);
+					s32 rt = MIN(my, map->select.start.y);
+					s32 rr = MAX(mx, map->select.start.x);
+					s32 rb = MAX(my, map->select.start.y);
 
-					map->select.rect = (SDL_Rect){rl, rt, rr - rl + 1, rb - rt + 1};
+					map->select.rect = (tic_rect){rl, rt, rr - rl + 1, rb - rt + 1};
 				}
 				else
 				{
 					map->select.drag = true;
-					map->select.start = (SDL_Point){mx, my};
-					map->select.rect = (SDL_Rect){map->select.start.x, map->select.start.y, 1, 1};
+					map->select.start = (tic_point){mx, my};
+					map->select.rect = (tic_rect){map->select.start.x, map->select.start.y, 1, 1};
 				}
 			}
 			else if(map->select.drag)
@@ -673,8 +679,8 @@ static void processMouseSelectMode(Map* map)
 
 typedef struct
 {
-	SDL_Point* data;
-	SDL_Point* head;
+	tic_point* data;
+	tic_point* head;
 } FillStack;
 
 static bool push(FillStack* stack, s32 x, s32 y)
@@ -732,7 +738,7 @@ static void fillMap(Map* map, s32 x, s32 y, u8 tile)
 	static FillStack stack = {NULL, NULL};
 
 	if(!stack.data)
-		stack.data = (SDL_Point*)SDL_malloc(FILL_STACK_SIZE * sizeof(SDL_Point));
+		stack.data = (tic_point*)malloc(FILL_STACK_SIZE * sizeof(tic_point));
 
 	stack.head = NULL;
 
@@ -790,13 +796,13 @@ static void fillMap(Map* map, s32 x, s32 y, u8 tile)
 
 static void processMouseFillMode(Map* map)
 {
-	SDL_Rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+	tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
-	setCursor(SDL_SYSTEM_CURSOR_HAND);
+	setCursor(tic_cursor_hand);
 
 	drawTileCursor(map);
 
-	if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+	if(checkMouseClick(&rect, tic_mouse_left))
 	{
 		s32 tx = 0, ty = 0;
 		getMouseMap(map, &tx, &ty);
@@ -808,7 +814,7 @@ static void processMouseFillMode(Map* map)
 
 static void drawSelection(Map* map)
 {
-	SDL_Rect* sel = &map->select.rect;
+	tic_rect* sel = &map->select.rect;
 
 	if(sel->w > 0 && sel->h > 0)
 	{
@@ -859,12 +865,13 @@ static void drawGrid(Map* map)
 
 static void drawMapOvr(Map* map)
 {
-	SDL_Rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
+	tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
 	s32 scrollX = map->scroll.x % TIC_SPRITESIZE;
 	s32 scrollY = map->scroll.y % TIC_SPRITESIZE;
 
-	map->tic->api.map(map->tic, map->src, getBankTiles(), map->scroll.x / TIC_SPRITESIZE, map->scroll.y / TIC_SPRITESIZE, 
+	tic_mem* tic = map->tic;
+	tic->api.map(tic, map->src, getBankTiles(), map->scroll.x / TIC_SPRITESIZE, map->scroll.y / TIC_SPRITESIZE, 
 		TIC_MAP_SCREEN_WIDTH + 1, TIC_MAP_SCREEN_HEIGHT + 1, -scrollX, -scrollY, -1, 1);
 
 	if(map->canvas.grid || map->scroll.active)
@@ -874,15 +881,15 @@ static void drawMapOvr(Map* map)
 		s32 screenScrollX = map->scroll.x % TIC80_WIDTH;
 		s32 screenScrollY = map->scroll.y % TIC80_HEIGHT;
 
-		map->tic->api.line(map->tic, 0, TIC80_HEIGHT - screenScrollY, TIC80_WIDTH, TIC80_HEIGHT - screenScrollY, (tic_color_gray));
-		map->tic->api.line(map->tic, TIC80_WIDTH - screenScrollX, 0, TIC80_WIDTH - screenScrollX, TIC80_HEIGHT, (tic_color_gray));
+		tic->api.line(tic, 0, TIC80_HEIGHT - screenScrollY, TIC80_WIDTH, TIC80_HEIGHT - screenScrollY, (tic_color_gray));
+		tic->api.line(tic, TIC80_WIDTH - screenScrollX, 0, TIC80_WIDTH - screenScrollX, TIC80_HEIGHT, (tic_color_gray));
 	}
 
-	if(!map->sheet.show && checkMousePos(&rect))
+	if(!sheetVisible(map) && checkMousePos(&rect))
 	{
-		if(getKeyboard()[SDL_SCANCODE_SPACE])
+		if(tic->api.key(tic, tic_key_space))
 		{
-			processScrolling(map, checkMouseDown(&rect, SDL_BUTTON_LEFT) || checkMouseDown(&rect, SDL_BUTTON_RIGHT));
+			processScrolling(map, checkMouseDown(&rect, tic_mouse_left) || checkMouseDown(&rect, tic_mouse_right));
 		}
 		else
 		{
@@ -891,30 +898,11 @@ static void drawMapOvr(Map* map)
 			Handlers[map->mode](map);
 
 			if(map->mode != MAP_DRAG_MODE)
-				processScrolling(map, checkMouseDown(&rect, SDL_BUTTON_RIGHT));
+				processScrolling(map, checkMouseDown(&rect, tic_mouse_right));
 		}
 	}
 
 	drawSelection(map);
-}
-
-static void processKeyboard(Map* map)
-{
-	enum{Step = 1};
-
-	if(getKeyboard()[SDL_SCANCODE_UP]) map->scroll.y -= Step;
-	if(getKeyboard()[SDL_SCANCODE_DOWN]) map->scroll.y += Step;
-	if(getKeyboard()[SDL_SCANCODE_LEFT]) map->scroll.x -= Step;
-	if(getKeyboard()[SDL_SCANCODE_RIGHT]) map->scroll.x += Step;
-
-	static const u8 Scancodes[] = {SDL_SCANCODE_UP, SDL_SCANCODE_DOWN, SDL_SCANCODE_LEFT, SDL_SCANCODE_RIGHT};
-
-	for(s32 i = 0; i < COUNT_OF(Scancodes); i++)
-		if(getKeyboard()[Scancodes[i]])
-		{
-			normalizeMap(&map->scroll.x, &map->scroll.y);
-			break;
-		}
 }
 
 static void undo(Map* map)
@@ -929,12 +917,12 @@ static void redo(Map* map)
 
 static void copySelectionToClipboard(Map* map)
 {
-	SDL_Rect* sel = &map->select.rect;
+	tic_rect* sel = &map->select.rect;
 
 	if(sel->w > 0 && sel->h > 0)
 	{	
 		s32 size = sel->w * sel->h + 2;
-		u8* buffer = SDL_malloc(size);
+		u8* buffer = malloc(size);
 
 		if(buffer)
 		{
@@ -954,7 +942,7 @@ static void copySelectionToClipboard(Map* map)
 				}		
 
 			toClipboard(buffer, size, true);
-			SDL_free(buffer);			
+			free(buffer);			
 		}
 	}
 }
@@ -967,7 +955,7 @@ static void copyToClipboard(Map* map)
 
 static void deleteSelection(Map* map)
 {
-	SDL_Rect* sel = &map->select.rect;
+	tic_rect* sel = &map->select.rect;
 
 	if(sel->w > 0 && sel->h > 0)
 	{
@@ -994,9 +982,9 @@ static void cutToClipboard(Map* map)
 
 static void copyFromClipboard(Map* map)
 {
-	if(SDL_HasClipboardText())
+	if(getSystem()->hasClipboardText())
 	{
-		char* clipboard = SDL_GetClipboardText();
+		char* clipboard = getSystem()->getClipboardText();
 
 		if(clipboard)
 		{
@@ -1004,7 +992,7 @@ static void copyFromClipboard(Map* map)
 
 			if(size > 2)
 			{
-				u8* data = SDL_malloc(size);
+				u8* data = malloc(size);
 
 				str2buf(clipboard, strlen(clipboard), data, true);
 
@@ -1013,19 +1001,23 @@ static void copyFromClipboard(Map* map)
 					map->paste = data;
 					map->mode = MAP_SELECT_MODE;
 				}
-				else SDL_free(data);
+				else free(data);
 			}
 
-			SDL_free(clipboard);
+			getSystem()->freeClipboardText(clipboard);
 		}
 	}
 }
 
-static void processKeydown(Map* map, SDL_Keycode keycode)
+static void processKeyboard(Map* map)
 {
-	SDL_Keymod keymod = SDL_GetModState();
+	tic_mem* tic = map->tic;
 
-	switch(getClipboardEvent(keycode))
+	if(tic->ram.input.keyboard.data == 0) return;
+	
+	bool ctrl = tic->api.key(tic, tic_key_ctrl);
+
+	switch(getClipboardEvent())
 	{
 	case TIC_CLIPBOARD_CUT: cutToClipboard(map); break;
 	case TIC_CLIPBOARD_COPY: copyToClipboard(map); break;
@@ -1033,90 +1025,44 @@ static void processKeydown(Map* map, SDL_Keycode keycode)
 	default: break;
 	}
 	
-	if(keymod & TIC_MOD_CTRL)
+	if(ctrl)
 	{
-		switch(keycode)
-		{
-		case SDLK_z: undo(map); break;
-		case SDLK_y: redo(map); break;
-		}
+		if(keyWasPressed(tic_key_z)) 		undo(map);
+		else if(keyWasPressed(tic_key_y)) 	redo(map);
 	}
 	else
 	{
-		switch(keycode)
-		{
-		case SDLK_TAB: setStudioMode(TIC_WORLD_MODE); break;
-		case SDLK_1:
-		case SDLK_2:
-		case SDLK_3:
-		case SDLK_4:
-			map->mode = keycode - SDLK_1;
-			break;
-		case SDLK_DELETE:
-			deleteSelection(map);
-			break;
-		case SDLK_BACKQUOTE:
-			map->canvas.grid = !map->canvas.grid;
-			break;
-		}
+		if(keyWasPressed(tic_key_tab)) setStudioMode(TIC_WORLD_MODE);
+		else if(keyWasPressed(tic_key_1)) map->mode = MAP_DRAW_MODE;
+		else if(keyWasPressed(tic_key_2)) map->mode = MAP_DRAG_MODE;
+		else if(keyWasPressed(tic_key_3)) map->mode = MAP_SELECT_MODE;
+		else if(keyWasPressed(tic_key_4)) map->mode = MAP_FILL_MODE;
+		else if(keyWasPressed(tic_key_delete)) deleteSelection(map);
+		else if(keyWasPressed(tic_key_grave)) map->canvas.grid = !map->canvas.grid;
 	}
 
-	if(keymod & KMOD_SHIFT)
-		map->sheet.show = true;
-}
+	enum{Step = 1};
 
-static void processKeyup(Map* map, SDL_Keycode keycode)
-{
-	SDL_Keymod keymod = SDL_GetModState();
+	if(tic->api.key(tic, tic_key_up)) map->scroll.y -= Step;
+	if(tic->api.key(tic, tic_key_down)) map->scroll.y += Step;
+	if(tic->api.key(tic, tic_key_left)) map->scroll.x -= Step;
+	if(tic->api.key(tic, tic_key_right)) map->scroll.x += Step;
 
-	if(!(keymod & KMOD_SHIFT))
-		map->sheet.show = false;
-}
+	static const tic_key Keycodes[] = {tic_key_up, tic_key_down, tic_key_left, tic_key_right};
 
-static void processGesture(Map* map)
-{
-	SDL_Point point = {0, 0};
-
-	if(getGesturePos(&point))
-	{
-		if(map->scroll.gesture)
+	for(s32 i = 0; i < COUNT_OF(Keycodes); i++)
+		if(tic->api.key(tic, Keycodes[i]))
 		{
-			map->scroll.x = map->scroll.start.x - point.x;
-			map->scroll.y = map->scroll.start.y - point.y;
-
 			normalizeMap(&map->scroll.x, &map->scroll.y);
+			break;
 		}
-		else
-		{
-			map->scroll.start.x = point.x + map->scroll.x;
-			map->scroll.start.y = point.y + map->scroll.y;
-			map->scroll.gesture = true;
-		}
-	}
-	else map->scroll.gesture = false;
 }
 
 static void tick(Map* map)
 {
 	map->tickCounter++;
 
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
-	{
-		switch(event->type)
-		{
-		case SDL_KEYDOWN:
-			processKeydown(map, event->key.keysym.sym);
-			break;
-		case SDL_KEYUP:
-			processKeyup(map, event->key.keysym.sym);
-			break;
-		}
-	}
-
 	processKeyboard(map);
-	processGesture(map);
-
 	map->tic->api.clear(map->tic, TIC_COLOR_BG);
 
 	drawSheet(map, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, TOOLBAR_SIZE);
@@ -1137,11 +1083,17 @@ static void onStudioEvent(Map* map, StudioEvent event)
 	}
 }
 
-static void overlap(tic_mem* tic, void* data)
+static void scanline(tic_mem* tic, s32 row, void* data)
+{
+	if(row == 0)
+		memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.data, sizeof(tic_palette));
+}
+
+static void overline(tic_mem* tic, void* data)
 {
 	Map* map = (Map*)data;
 
-	tic->api.clip(tic, 0, TOOLBAR_SIZE, TIC80_WIDTH - (map->sheet.show ? TIC_SPRITESHEET_SIZE+2 : 0), TIC80_HEIGHT - TOOLBAR_SIZE);
+	tic->api.clip(tic, 0, TOOLBAR_SIZE, TIC80_WIDTH - (sheetVisible(map) ? TIC_SPRITESHEET_SIZE+2 : 0), TIC80_HEIGHT - TOOLBAR_SIZE);
 	drawMapOvr(map);
 	tic->api.clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
 	drawSheetOvr(map, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, TOOLBAR_SIZE);
@@ -1188,7 +1140,8 @@ void initMap(Map* map, tic_mem* tic, tic_map* src)
 		},
 		.history = history_create(src, sizeof(tic_map)),
 		.event = onStudioEvent,
-		.overlap = overlap,
+		.overline = overline,
+		.scanline = scanline,
 	};
 
 	normalizeMap(&map->scroll.x, &map->scroll.y);

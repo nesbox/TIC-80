@@ -22,14 +22,17 @@
 
 #include "studio.h"
 #include "fs.h"
-#include "net.h"
 #include "ext/file_dialog.h"
 
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#if defined(__WINRT__) || defined(__WINDOWS__)
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
+
+#if defined(__TIC_WINRT__) || defined(__TIC_WINDOWS__)
 #include <direct.h>
 #include <windows.h>
 #else
@@ -49,8 +52,6 @@ struct FileSystem
 {
 	char dir[FILENAME_MAX];
 	char work[FILENAME_MAX];
-
-	Net* net;
 };
 
 static const char* getFilePath(FileSystem* fs, const char* name)
@@ -67,7 +68,7 @@ static const char* getFilePath(FileSystem* fs, const char* name)
 
 	strcat(path, name);
 
-#if defined(__WINDOWS__)
+#if defined(__TIC_WINDOWS__)
 	char* ptr = path;
 	while (*ptr)
 	{
@@ -103,13 +104,33 @@ bool fsIsInPublicDir(FileSystem* fs)
 	return isPublic(fs);
 }
 
-#if defined(__WINDOWS__) || defined(__WINRT__)
+#if defined(__TIC_WINDOWS__) || defined(__TIC_WINRT__)
 
-#define UTF8ToString(S) (wchar_t *)SDL_iconv_string("UTF-16LE", "UTF-8", (char *)(S), SDL_strlen(S)+1)
-#define StringToUTF8(S) SDL_iconv_string("UTF-8", "UTF-16LE", (char *)(S), (SDL_wcslen(S)+1)*sizeof(wchar_t))
+typedef wchar_t fsString;
 
-FILE* _wfopen(const wchar_t *, const wchar_t *);
-int _wremove(const wchar_t *);
+#define __S(x) L ## x 
+#define _S(x) __S(x)
+
+static const fsString* utf8ToString(const char* str)
+{
+	fsString* wstr = malloc(FILENAME_MAX * sizeof(fsString));
+
+	MultiByteToWideChar(CP_UTF8, 0, str, FILENAME_MAX, wstr, FILENAME_MAX);
+
+	return wstr;
+}
+
+static const char* stringToUtf8(const fsString* wstr)
+{
+	char* str = malloc(FILENAME_MAX * sizeof(char));
+
+	WideCharToMultiByte(CP_UTF8, 0, wstr, FILENAME_MAX, str, FILENAME_MAX, 0, 0);
+
+	return str;
+}
+
+#define freeString(S) free((void*)S)
+
 
 #define TIC_DIR _WDIR
 #define tic_dirent _wdirent
@@ -123,12 +144,19 @@ int _wremove(const wchar_t *);
 #define tic_remove _wremove
 #define tic_fopen _wfopen
 #define tic_mkdir(name) _wmkdir(name)
-#define tic_system _wsystem
+#define tic_strcpy wcscpy
+#define tic_strcat wcscat
 
 #else
 
-#define UTF8ToString(S) (S)
-#define StringToUTF8(S) (S)
+typedef char fsString;
+
+#define _S(x) (x)
+
+#define utf8ToString(S) (S)
+#define stringToUtf8(S) (S)
+
+#define freeString(S)
 
 #define TIC_DIR DIR
 #define tic_dirent dirent
@@ -142,9 +170,171 @@ int _wremove(const wchar_t *);
 #define tic_remove remove
 #define tic_fopen fopen
 #define tic_mkdir(name) mkdir(name, 0700)
-#define tic_system system
+#define tic_strcpy strcpy
+#define tic_strcat strcat
 
 #endif
+
+#if !defined(__EMSCRIPTEN__)
+
+typedef struct
+{
+	ListCallback callback;
+	void* data;
+} NetDirData;
+
+static lua_State* netLuaInit(u8* buffer, s32 size)
+{
+    if (buffer && size)
+    {
+        lua_State* lua = luaL_newstate();
+
+        if(lua)
+        {
+            if(luaL_loadstring(lua, (char*)buffer) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
+                return lua;
+
+            else lua_close(lua);
+        }
+    }
+
+    return NULL;
+}
+
+static void onDirResponse(u8* buffer, s32 size, void* data)
+{
+	NetDirData* netDirData = (NetDirData*)data;
+
+	lua_State* lua = netLuaInit(buffer, size);
+
+	if(lua)
+	{
+		{
+			lua_getglobal(lua, "folders");
+
+			if(lua_type(lua, -1) == LUA_TTABLE)
+			{
+				s32 count = (s32)lua_rawlen(lua, -1);
+
+				for(s32 i = 1; i <= count; i++)
+				{
+					lua_geti(lua, -1, i);
+
+					{
+						lua_getfield(lua, -1, "name");
+						if(lua_isstring(lua, -1))
+							netDirData->callback(lua_tostring(lua, -1), NULL, 0, netDirData->data, true);
+
+						lua_pop(lua, 1);
+					}
+
+					lua_pop(lua, 1);
+				}
+			}
+
+			lua_pop(lua, 1);
+		}
+
+		{
+			lua_getglobal(lua, "files");
+
+			if(lua_type(lua, -1) == LUA_TTABLE)
+			{
+				s32 count = (s32)lua_rawlen(lua, -1);
+
+				for(s32 i = 1; i <= count; i++)
+				{
+					lua_geti(lua, -1, i);
+
+					char hash[FILENAME_MAX] = {0};
+					char name[FILENAME_MAX] = {0};
+
+					{
+						lua_getfield(lua, -1, "hash");
+						if(lua_isstring(lua, -1))
+							strcpy(hash, lua_tostring(lua, -1));
+
+						lua_pop(lua, 1);
+					}
+
+					{
+						lua_getfield(lua, -1, "name");
+
+						if(lua_isstring(lua, -1))
+							strcpy(name, lua_tostring(lua, -1));
+
+						lua_pop(lua, 1);
+					}
+
+					{
+						lua_getfield(lua, -1, "id");
+
+						if(lua_isinteger(lua, -1))
+							netDirData->callback(name, hash, lua_tointeger(lua, -1), netDirData->data, false);
+
+						lua_pop(lua, 1);
+					}
+
+					lua_pop(lua, 1);
+				}
+			}
+
+			lua_pop(lua, 1);
+		}
+
+		lua_close(lua);
+	}
+}
+
+static void netDirRequest(const char* path, ListCallback callback, void* data)
+{
+	char request[FILENAME_MAX] = {'\0'};
+	sprintf(request, "/api?fn=dir&path=%s", path);
+
+	s32 size = 0;
+	void* buffer = getSystem()->getUrlRequest(request, &size);
+
+	NetDirData netDirData = {callback, data};
+	onDirResponse(buffer, size, &netDirData);
+}
+
+#endif
+
+static void enumFiles(FileSystem* fs, const char* path, ListCallback callback, void* data, bool folder)
+{
+	TIC_DIR *dir = NULL;
+	struct tic_dirent* ent = NULL;
+
+	const fsString* pathString = utf8ToString(path);
+
+	if ((dir = tic_opendir(pathString)) != NULL)
+	{
+		fsString fullPath[FILENAME_MAX];
+		struct tic_stat_struct s;
+		
+		while ((ent = tic_readdir(dir)) != NULL)
+		{
+			if(*ent->d_name != _S('.'))
+			{
+				tic_strcpy(fullPath, pathString);
+				tic_strcat(fullPath, ent->d_name);
+
+				if(tic_stat(fullPath, &s) == 0 && folder ? S_ISDIR(s.st_mode) : S_ISREG(s.st_mode))
+				{
+					const char* name = stringToUtf8(ent->d_name);
+					bool result = callback(name, NULL, 0, data, folder);
+					freeString(name);
+
+					if(!result) break;
+				}
+			}
+		}
+
+		tic_closedir(dir);
+	}
+
+	freeString(pathString);
+}
 
 void fsEnumFiles(FileSystem* fs, ListCallback callback, void* data)
 {
@@ -154,49 +344,27 @@ void fsEnumFiles(FileSystem* fs, ListCallback callback, void* data)
 
 	if(isPublic(fs))
 	{
-		netDirRequest(fs->net, fs->work + sizeof(TIC_HOST), callback, data);
+		netDirRequest(fs->work + sizeof(TIC_HOST), callback, data);
 		return;
 	}
 
 #endif
 
-	TIC_DIR *dir = NULL;
-	struct tic_dirent* ent = NULL;
-
 	const char* path = getFilePath(fs, "");
 
-	if ((dir = tic_opendir(UTF8ToString(path))) != NULL)
-	{
-		while ((ent = tic_readdir(dir)) != NULL)
-		{
-			if (ent->d_type == DT_DIR && *ent->d_name != '.')
-			{
-				if (!callback(StringToUTF8(ent->d_name), NULL, 0, data, true))break;
-			}
-		}
-
-		tic_closedir(dir);
-	}
-
-	if ((dir = tic_opendir(UTF8ToString(path))) != NULL)
-	{
-		while ((ent = tic_readdir(dir)) != NULL)
-		{
-			if (ent->d_type == DT_REG)
-			{
-				if (!callback(StringToUTF8(ent->d_name), NULL, 0, data, false))break;
-			}
-		}
-
-		tic_closedir(dir);
-	}
+	enumFiles(fs, path, callback, data, true);
+	enumFiles(fs, path, callback, data, false);
 }
 
 bool fsDeleteDir(FileSystem* fs, const char* name)
 {
-#if defined(__WINRT__) || defined(__WINDOWS__)
+#if defined(__TIC_WINRT__) || defined(__TIC_WINDOWS__)
 	const char* path = getFilePath(fs, name);
-	bool result = tic_rmdir(UTF8ToString(path));
+
+	const fsString* pathString = utf8ToString(path);
+	bool result = tic_rmdir(pathString);
+	freeString(pathString);
+
 #else
 	bool result = rmdir(getFilePath(fs, name));
 #endif
@@ -211,7 +379,10 @@ bool fsDeleteDir(FileSystem* fs, const char* name)
 bool fsDeleteFile(FileSystem* fs, const char* name)
 {
 	const char* path = getFilePath(fs, name);
-	bool result = tic_remove(UTF8ToString(path));
+
+	const fsString* pathString = utf8ToString(path);
+	bool result = tic_remove(pathString);
+	freeString(pathString);
 
 #if defined(__EMSCRIPTEN__)
 	EM_ASM(FS.syncfs(function(){}));
@@ -236,7 +407,10 @@ static void onAddFile(const char* name, const u8* buffer, s32 size, void* data, 
 	{
 		const char* destname = getFilePath(fs, name);
 
-		FILE* file = tic_fopen(UTF8ToString(destname), UTF8ToString("rb"));
+		const fsString* destString = utf8ToString(destname);
+		FILE* file = tic_fopen(destString, _S("rb"));
+		freeString(destString);
+
 		if(file)
 		{
 			fclose(file);
@@ -246,14 +420,17 @@ static void onAddFile(const char* name, const u8* buffer, s32 size, void* data, 
 		else
 		{
 			const char* path = getFilePath(fs, name);
-			FILE* dest = tic_fopen(UTF8ToString(path), UTF8ToString("wb"));
+
+			const fsString* pathString = utf8ToString(path);
+			FILE* dest = tic_fopen(pathString, _S("wb"));
+			freeString(pathString);
 
 			if (dest)
 			{
 				fwrite(buffer, 1, size, dest);
 				fclose(dest);
 
-#if !defined(__WINRT__) && !defined(__WINDOWS__)
+#if !defined(__TIC_WINRT__) && !defined(__TIC_WINDOWS__)
 				if(mode)
 					chmod(path, mode);
 #endif
@@ -271,16 +448,16 @@ static void onAddFile(const char* name, const u8* buffer, s32 size, void* data, 
 		addFileData->callback(name, FS_FILE_NOT_ADDED, addFileData->data);
 	}
 
-	SDL_free(addFileData);
+	free(addFileData);
 }
 
 void fsAddFile(FileSystem* fs, AddCallback callback, void* data)
 {
-	AddFileData* addFileData = (AddFileData*)SDL_malloc(sizeof(AddFileData));
+	AddFileData* addFileData = (AddFileData*)malloc(sizeof(AddFileData));
 
 	*addFileData = (AddFileData) { fs, callback, data };
 
-	file_dialog_load(&onAddFile, addFileData);
+	getSystem()->fileDialogLoad(&onAddFile, addFileData);
 }
 
 typedef struct
@@ -296,14 +473,14 @@ static void onGetFile(bool result, void* data)
 
 	command->callback(result ? FS_FILE_DOWNLOADED : FS_FILE_NOT_DOWNLOADED, command->data);
 
-	SDL_free(command->buffer);
-	SDL_free(command);
+	free(command->buffer);
+	free(command);
 }
 
 static u32 fsGetMode(FileSystem* fs, const char* name)
 {
 
-#if defined(__WINRT__) || defined(__WINDOWS__)
+#if defined(__TIC_WINRT__) || defined(__TIC_WINDOWS__)
 	return 0;
 #else
 	const char* path = getFilePath(fs, name);
@@ -338,9 +515,9 @@ void fsDirBack(FileSystem* fs)
 	*ptr = '\0';
 }
 
-const char* fsGetDir(FileSystem* fs)
+void fsGetDir(FileSystem* fs, char* dir)
 {
-	return fs->work;
+	strcpy(dir, fs->work);
 }
 
 bool fsChangeDir(FileSystem* fs, const char* dir)
@@ -404,15 +581,19 @@ bool fsIsDir(FileSystem* fs, const char* name)
 
 	const char* path = getFilePath(fs, name);
 	struct tic_stat_struct s;
-	return tic_stat(UTF8ToString(path), &s) == 0 && S_ISDIR(s.st_mode);
+	const fsString* pathString = utf8ToString(path);
+	bool ret = tic_stat(pathString, &s) == 0 && S_ISDIR(s.st_mode);
+	freeString(pathString);
+
+	return ret;
 }
 
 void fsGetFileData(GetCallback callback, const char* name, void* buffer, size_t size, u32 mode, void* data)
 {
-	GetFileData* command = (GetFileData*)SDL_malloc(sizeof(GetFileData));
+	GetFileData* command = (GetFileData*)malloc(sizeof(GetFileData));
 	*command = (GetFileData) {callback, data, buffer};
 
-	file_dialog_save(onGetFile, name, buffer, size, command, mode);
+	getSystem()->fileDialogSave(onGetFile, name, buffer, size, command, mode);
 }
 
 typedef struct
@@ -427,16 +608,16 @@ static void onOpenFileData(const char* name, const u8* buffer, s32 size, void* d
 
 	command->callback(name, buffer, size, command->data);
 
-	SDL_free(command);
+	free(command);
 }
 
 void fsOpenFileData(OpenCallback callback, void* data)
 {
-	OpenFileData* command = (OpenFileData*)SDL_malloc(sizeof(OpenFileData));
+	OpenFileData* command = (OpenFileData*)malloc(sizeof(OpenFileData));
 
 	*command = (OpenFileData){callback, data};
 
-	file_dialog_load(onOpenFileData, command);
+	getSystem()->fileDialogLoad(onOpenFileData, command);
 }
 
 void fsGetFile(FileSystem* fs, GetCallback callback, const char* name, void* data)
@@ -446,18 +627,20 @@ void fsGetFile(FileSystem* fs, GetCallback callback, const char* name, void* dat
 
 	if(buffer)
 	{
-		GetFileData* command = (GetFileData*)SDL_malloc(sizeof(GetFileData));
+		GetFileData* command = (GetFileData*)malloc(sizeof(GetFileData));
 		*command = (GetFileData) {callback, data, buffer};
 
 		s32 mode = fsGetMode(fs, name);
-		file_dialog_save(onGetFile, name, buffer, size, command, mode);
+		getSystem()->fileDialogSave(onGetFile, name, buffer, size, command, mode);
 	}
 	else callback(FS_FILE_NOT_DOWNLOADED, data);
 }
 
 bool fsWriteFile(const char* name, const void* buffer, s32 size)
 {
-	FILE* file = tic_fopen(UTF8ToString(name), UTF8ToString("wb"));
+	const fsString* pathString = utf8ToString(name);
+	FILE* file = tic_fopen(pathString, _S("wb"));
+	freeString(pathString);
 
 	if(file)
 	{
@@ -482,14 +665,17 @@ bool fsCopyFile(const char* src, const char* dst)
 	s32 size = 0;
 
 	{
-		FILE* file = tic_fopen(UTF8ToString(src), UTF8ToString("rb"));
+		const fsString* pathString = utf8ToString(src);
+		FILE* file = tic_fopen(pathString, _S("rb"));
+		freeString(pathString);
+
 		if(file)
 		{
 			fseek(file, 0, SEEK_END);
 			size = ftell(file);
 			fseek(file, 0, SEEK_SET);
 
-			if((buffer = SDL_malloc(size)) && fread(buffer, size, 1, file)) {}
+			if((buffer = malloc(size)) && fread(buffer, size, 1, file)) {}
 
 			fclose(file);
 		}		
@@ -497,7 +683,9 @@ bool fsCopyFile(const char* src, const char* dst)
 
 	if(buffer)
 	{
-		FILE* file = tic_fopen(UTF8ToString(dst), UTF8ToString("wb"));
+		const fsString* pathString = utf8ToString(dst);
+		FILE* file = tic_fopen(pathString, _S("wb"));
+		freeString(pathString);
 
 		if(file)
 		{
@@ -507,7 +695,7 @@ bool fsCopyFile(const char* src, const char* dst)
 			done = true;
 		}
 
-		SDL_free(buffer);
+		free(buffer);
 	}
 
 	return done;
@@ -515,7 +703,10 @@ bool fsCopyFile(const char* src, const char* dst)
 
 void* fsReadFile(const char* path, s32* size)
 {
-	FILE* file = tic_fopen(UTF8ToString(path), UTF8ToString("rb"));
+	const fsString* pathString = utf8ToString(path);
+	FILE* file = tic_fopen(pathString, _S("rb"));
+	freeString(pathString);
+
 	void* buffer = NULL;
 
 	if(file)
@@ -525,7 +716,7 @@ void* fsReadFile(const char* path, s32* size)
 		*size = ftell(file);
 		fseek(file, 0, SEEK_SET);
 
-		if((buffer = SDL_malloc(*size)) && fread(buffer, *size, 1, file)) {}
+		if((buffer = malloc(*size)) && fread(buffer, *size, 1, file)) {}
 
 		fclose(file);
 	}
@@ -535,54 +726,68 @@ void* fsReadFile(const char* path, s32* size)
 
 static void makeDir(const char* name)
 {
-	tic_mkdir(UTF8ToString(name));
+	const fsString* pathString = utf8ToString(name);
+	tic_mkdir(pathString);
+	freeString(pathString);
 
 #if defined(__EMSCRIPTEN__)
 	EM_ASM(FS.syncfs(function(){}));
 #endif
 }
 
-const char* fsFilename(const char *path)
+static void fsFullname(const char *path, char *fullname)
 {
-	const char* full = fsFullname(path);
-	const char* base = fsBasename(path);
-
-	return base ? full + strlen(fsBasename(path)) : NULL;
-}
-
-const char* fsFullname(const char *path)
-{
-	char* result = NULL;
-
-#if defined(__WINDOWS__) || defined(__WINRT__)
+#if defined(__TIC_WINDOWS__) || defined(__TIC_WINRT__)
 	static wchar_t wpath[FILENAME_MAX];
-	GetFullPathNameW(UTF8ToString(path), sizeof(wpath), wpath, NULL);
 
-	result = StringToUTF8(wpath);
+	const fsString* pathString = utf8ToString(path);
+	GetFullPathNameW(pathString, sizeof(wpath), wpath, NULL);
+	freeString(pathString);
+
+	const char* res = stringToUtf8(wpath);
+
 #else
 
-	result = realpath(path, NULL);
+	const char* res = realpath(path, NULL);
 
 #endif
 
-	return result;
+	strcpy(fullname, res);
+	free((void*)res);
 }
 
-const char* fsBasename(const char *path)
+void fsFilename(const char *path, char* out)
+{
+	char full[FILENAME_MAX];
+	fsFullname(path, full);
+
+	char base[FILENAME_MAX];
+	fsBasename(path, base);
+
+	strcpy(out, full + strlen(base));
+}
+
+void fsBasename(const char *path, char* out)
 {
 	char* result = NULL;
 
-#if defined(__WINDOWS__) || defined(__WINRT__)
+#if defined(__TIC_WINDOWS__) || defined(__TIC_WINRT__)
 #define SEP "\\"
 #else
 #define SEP "/"
 #endif
 
 	{
-		char* full = (char*)fsFullname(path);
+		char full[FILENAME_MAX];
+		fsFullname(path, full);
 
 		struct tic_stat_struct s;
-		if(tic_stat(UTF8ToString(full), &s) == 0)
+
+		const fsString* fullString = utf8ToString(full);
+		s32 ret = tic_stat(fullString, &s);
+		freeString(fullString);
+
+		if(ret == 0)
 		{
 			result = full;
 
@@ -607,13 +812,18 @@ const char* fsBasename(const char *path)
 	if(result && result[strlen(result)-1] != SEP[0])
 		strcat(result, SEP);
 
-	return result;
+	strcpy(out, result);
 }
 
 bool fsExists(const char* name)
 {
 	struct tic_stat_struct s;
-	return tic_stat(UTF8ToString(name), &s) == 0;
+
+	const fsString* pathString = utf8ToString(name);
+	bool ret = tic_stat(pathString, &s) == 0;
+	freeString(pathString);
+
+	return ret;
 }
 
 bool fsExistsFile(FileSystem* fs, const char* name)
@@ -625,7 +835,11 @@ u64 fsMDate(FileSystem* fs, const char* name)
 {
 	struct tic_stat_struct s;
 
-	if(tic_stat(UTF8ToString(getFilePath(fs, name)), &s) == 0 && S_ISREG(s.st_mode))
+	const fsString* pathString = utf8ToString(getFilePath(fs, name));
+	s32 ret = tic_stat(pathString, &s);
+	freeString(pathString);
+
+	if(ret == 0 && S_ISREG(s.st_mode))
 	{
 		return s.st_mtime;
 	}
@@ -677,6 +891,26 @@ static bool onLoadPublicCart(const char* name, const char* info, s32 id, void* d
 	return true;
 }
 
+void* fsLoadFileByHash(FileSystem* fs, const char* hash, s32* size)
+{
+	char cachePath[FILENAME_MAX] = {0};
+	sprintf(cachePath, TIC_CACHE "%s.tic", hash);
+
+	{
+		void* data = fsLoadRootFile(fs, cachePath, size);
+		if(data) return data;
+	}
+
+	char path[FILENAME_MAX] = {0};
+	sprintf(path, "/cart/%s/cart.tic", hash);
+	void* data = getSystem()->getUrlRequest(path, size);
+
+	if(data)
+		fsSaveRootFile(fs, cachePath, data, *size, false);
+
+	return data;
+}
+
 void* fsLoadFile(FileSystem* fs, const char* name, s32* size)
 {
 	if(isPublic(fs))
@@ -690,28 +924,14 @@ void* fsLoadFile(FileSystem* fs, const char* name, s32* size)
 		fsEnumFiles(fs, onLoadPublicCart, &loadPublicCartData);
 
 		if(strlen(loadPublicCartData.hash))
-		{
-			char cachePath[FILENAME_MAX] = {0};
-			sprintf(cachePath, TIC_CACHE "%s.tic", loadPublicCartData.hash);
-
-			{
-				void* data = fsLoadRootFile(fs, cachePath, size);
-				if(data) return data;
-			}
-
-			char path[FILENAME_MAX] = {0};
-			sprintf(path, "/cart/%s/cart.tic", loadPublicCartData.hash);
-			void* data = netGetRequest(fs->net, path, size);
-
-			if(data)
-				fsSaveRootFile(fs, cachePath, data, *size, false);
-
-			return data;
-		}
+			return fsLoadFileByHash(fs, loadPublicCartData.hash, size);
 	}
 	else
 	{
-		FILE* file = tic_fopen(UTF8ToString(getFilePath(fs, name)), UTF8ToString("rb"));
+		const fsString* pathString = utf8ToString(getFilePath(fs, name));
+		FILE* file = tic_fopen(pathString, _S("rb"));
+		freeString(pathString);
+
 		void* ptr = NULL;
 
 		if(file)
@@ -720,7 +940,7 @@ void* fsLoadFile(FileSystem* fs, const char* name, s32* size)
 			*size = ftell(file);
 			fseek(file, 0, SEEK_SET);
 
-			u8* buffer = SDL_malloc(*size);
+			u8* buffer = malloc(*size);
 
 			if(buffer && fread(buffer, *size, 1, file)) ptr = buffer;
 
@@ -751,38 +971,6 @@ void fsMakeDir(FileSystem* fs, const char* name)
 	makeDir(getFilePath(fs, name));
 }
 
-#if defined(__WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
-
-s32 fsOpenSystemPath(FileSystem* fs, const char* path)
-{
-	char command[FILENAME_MAX];
-
-#if defined(__WINDOWS__)
-
-	sprintf(command, "explorer \"%s\"", path);
-
-#elif defined(__LINUX__)
-
-	sprintf(command, "xdg-open \"%s\"", path);
-
-#elif defined(__MACOSX__)
-
-	sprintf(command, "open \"%s\"", path);
-
-#endif
-
-	return tic_system(UTF8ToString(command));
-}
-
-#else
-
-s32 fsOpenSystemPath(FileSystem* fs, const char* path)
-{
-	return 0;
-}
-
-#endif
-
 void fsOpenWorkingFolder(FileSystem* fs)
 {
 	const char* path = getFilePath(fs, "");
@@ -790,67 +978,15 @@ void fsOpenWorkingFolder(FileSystem* fs)
 	if(isPublic(fs))
 		path = fs->dir;
 
-	fsOpenSystemPath(fs, path);
+	getSystem()->openSystemPath(path);
 }
 
-void createFileSystem(const char* path, void(*callback)(FileSystem*))
+FileSystem* createFileSystem(const char* path)
 {
-	FileSystem* fs = (FileSystem*)SDL_malloc(sizeof(FileSystem));
+	FileSystem* fs = (FileSystem*)malloc(sizeof(FileSystem));
 	memset(fs, 0, sizeof(FileSystem));
 
-	fs->net = createNet();
+	strcpy(fs->dir, path);
 
-	if(path)
-	{
-		strcpy(fs->dir, path);
-		callback(fs);
-	}
-	else
-	{
-
-#if defined(__EMSCRIPTEN__)
-
-		strcpy(fs->dir, "/" TIC_PACKAGE "/" TIC_NAME "/");
-
-#elif defined(__ANDROID__)
-
-		strcpy(fs->dir, SDL_AndroidGetExternalStoragePath());
-		const char AppFolder[] = "/" TIC_NAME "/";
-		strcat(fs->dir, AppFolder);
-		mkdir(fs->dir, 0700);
-
-#else
-
-		char* path = SDL_GetPrefPath(TIC_PACKAGE, TIC_NAME);
-		strcpy(fs->dir, path);
-		SDL_free(path);
-
-#endif
-		
-#if defined(__EMSCRIPTEN__)
-		EM_ASM_
-		(
-			{
-				var dir = "";
-				Module.Pointer_stringify($0).split("/").forEach(function(val)
-				{
-					if(val.length)
-					{
-						dir += "/" + val;
-						FS.mkdir(dir);
-					}
-				});
-				
-				FS.mount(IDBFS, {}, dir);
-				FS.syncfs(true, function(error)
-				{
-					if(error) console.log(error);
-					else Runtime.dynCall('vi', $1, [$2]);
-				});			
-			}, fs->dir, callback, fs
-		);
-#else
-		callback(fs);
-#endif
-	}
+	return fs;
 }

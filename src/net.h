@@ -26,16 +26,6 @@
 
 typedef struct Net Net;
 
-typedef struct
-{
-	s32 major;
-	s32 minor;
-	s32 patch;
-} NetVersion;
-
-NetVersion netVersionRequest(Net* net);
-void netDirRequest(Net* net, const char* path, ListCallback callback, void* data);
-void* netGetRequest(Net* net, const char* path, s32* size);
-
 Net* createNet();
+void* netGetRequest(Net* net, const char* path, s32* size);
 void closeNet(Net* net);

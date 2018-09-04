@@ -48,7 +48,7 @@ static void onExit(void* data)
 	run->exit = true;
 }
 
-static char* data2md5(const void* data, s32 length)
+static const char* data2md5(const void* data, s32 length)
 {
 	const char *str = data;
 	MD5_CTX c;
@@ -66,11 +66,12 @@ static char* data2md5(const void* data, s32 length)
 	}
 
 	{
-		u8 digest[16];
+		enum{Size = 16};
+		u8 digest[Size];
 		MD5_Final(digest, &c);
 
-		for (s32 n = 0; n < 16; ++n)
-			snprintf(&(out[n*2]), 16*2, "%02x", (u32)digest[n]);
+		for (s32 n = 0; n < Size; ++n)
+			snprintf(out + n*2, sizeof("ff"), "%02x", digest[n]);
 	}
 
 	return out;
@@ -79,15 +80,13 @@ static char* data2md5(const void* data, s32 length)
 static void initPMemName(Run* run)
 {
 	const char* data = strlen(run->tic->saveid) ? run->tic->saveid : run->tic->cart.bank0.code.data;
-	char* md5 = data2md5(data, (s32)strlen(data));
+	const char* md5 = data2md5(data, strlen(data));
 	strcpy(run->saveid, TIC_LOCAL);
 	strcat(run->saveid, md5);
 }
 
 static void tick(Run* run)
 {
-	while(pollEvent());
-
 	if (getStudioMode() != TIC_RUN_MODE)
 		return;
 
@@ -95,10 +94,11 @@ static void tick(Run* run)
 
 	enum {Size = sizeof(tic_persistent)};
 
-	if(SDL_memcmp(&run->tic->persistent, &run->persistent, Size) != 0)
+	if(run->tickData.syncPMEM)
 	{		
 		fsSaveRootFile(run->console->fs, run->saveid, &run->tic->persistent, Size, true);
-		SDL_memcpy(&run->persistent, &run->tic->persistent, Size);
+		memcpy(&run->persistent, &run->tic->persistent, Size);
+		run->tickData.syncPMEM = false;
 	}
 
 	if(run->exit)
@@ -139,7 +139,7 @@ static void processDoFile(void* data, char* dst)
 
 						return;
 					}
-					else SDL_memcpy(dst, buffer, size);
+					else memcpy(dst, buffer, size);
 				}
 			}
 			else
@@ -156,22 +156,14 @@ static void processDoFile(void* data, char* dst)
 	return;
 }
 
-static void preseed()
-{
-#if defined(__MACOSX__)
-	srandom(time(NULL));
-	random();
-#else
-	srand(time(NULL));
-	rand();
-#endif
-}
 
 static bool forceExit(void* data)
 {
-	while(pollEvent());
+	getSystem()->poll();
 
-	return getStudioMode() != TIC_RUN_MODE;
+	tic_mem* tic = ((Run*)data)->tic;
+
+	return tic->api.key(tic, tic_key_escape);
 }
 
 void initRun(Run* run, Console* console, tic_mem* tic)
@@ -186,19 +178,20 @@ void initRun(Run* run, Console* console, tic_mem* tic)
 		{
 			.error = onError,
 			.trace = onTrace,
-			.counter = SDL_GetPerformanceCounter,
-			.freq = SDL_GetPerformanceFrequency,
+			.counter = getSystem()->getPerformanceCounter,
+			.freq = getSystem()->getPerformanceFrequency,
 			.start = 0,
 			.data = run,
 			.exit = onExit,
 			.preprocessor = processDoFile,
 			.forceExit = forceExit,
+			.syncPMEM = false,
 		},
 	};
 
 	{
 		enum {Size = sizeof(tic_persistent)};
-		SDL_memset(&run->tic->persistent, 0, Size);
+		memset(&run->tic->persistent, 0, Size);
 
 		initPMemName(run);
 
@@ -209,12 +202,12 @@ void initRun(Run* run, Console* console, tic_mem* tic)
 
 		if(data)
 		{
-			SDL_memcpy(&run->tic->persistent, data, size);
-			SDL_memcpy(&run->persistent, data, size);
+			memcpy(&run->tic->persistent, data, size);
+			memcpy(&run->persistent, data, size);
 		}
 
-		if(data) SDL_free(data);
+		if(data) free(data);
 	}
 
-	preseed();
+	getSystem()->preseed();
 }

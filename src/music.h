@@ -54,8 +54,8 @@ struct Music
 
 		struct
 		{
-			SDL_Point start;
-			SDL_Rect rect;
+			tic_point start;
+			tic_rect rect;
 			bool drag;
 		} select;
 

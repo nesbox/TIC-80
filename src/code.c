@@ -32,7 +32,7 @@
 
 struct OutlineItem
 {
-	char name[STUDIO_TEXT_BUFFER_WIDTH];
+	char name[TEXT_BUFFER_WIDTH];
 	char* pos;
 };
 
@@ -49,7 +49,12 @@ static void drawStatus(Code* code)
 {
 	const s32 Height = TIC_FONT_HEIGHT + 1;
 	code->tic->api.rect(code->tic, 0, TIC80_HEIGHT - Height, TIC80_WIDTH, Height, (tic_color_white));
-	code->tic->api.fixed_text(code->tic, code->status, 0, TIC80_HEIGHT - TIC_FONT_HEIGHT, getConfig()->theme.code.bg);
+	code->tic->api.fixed_text(code->tic, code->status, 0, TIC80_HEIGHT - TIC_FONT_HEIGHT, getConfig()->theme.code.bg, false);
+}
+
+static inline s32 getFontWidth(Code* code)
+{
+	return code->altFont ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH;
 }
 
 static void drawCursor(Code* code, s32 x, s32 y, char symbol)
@@ -58,24 +63,24 @@ static void drawCursor(Code* code, s32 x, s32 y, char symbol)
 
 	if(inverse)
 	{
-		code->tic->api.rect(code->tic, x-1, y-1, TIC_FONT_WIDTH+1, TIC_FONT_HEIGHT+1, getConfig()->theme.code.cursor);
+		code->tic->api.rect(code->tic, x-1, y-1, (getFontWidth(code))+1, TIC_FONT_HEIGHT+1, getConfig()->theme.code.cursor);
 
 		if(symbol)
-			code->tic->api.draw_char(code->tic, symbol, x, y, getConfig()->theme.code.bg);
+			code->tic->api.draw_char(code->tic, symbol, x, y, getConfig()->theme.code.bg, code->altFont);
 	}
 }
 
 static void drawCode(Code* code, bool withCursor)
 {
-	s32 xStart = code->rect.x - code->scroll.x * STUDIO_TEXT_WIDTH;
+	s32 xStart = code->rect.x - code->scroll.x * (getFontWidth(code));
 	s32 x = xStart;
 	s32 y = code->rect.y - code->scroll.y * STUDIO_TEXT_HEIGHT;
 	char* pointer = code->src;
 
 	u8* colorPointer = code->colorBuffer;
 
-	struct { char* start; char* end; } selection = {SDL_min(code->cursor.selection, code->cursor.position),
-		SDL_max(code->cursor.selection, code->cursor.position)};
+	struct { char* start; char* end; } selection = {MIN(code->cursor.selection, code->cursor.position),
+		MAX(code->cursor.selection, code->cursor.position)};
 
 	struct { s32 x; s32 y; char symbol;	} cursor = {-1, -1, 0};
 
@@ -89,10 +94,10 @@ static void drawCode(Code* code, bool withCursor)
 				code->tic->api.rect(code->tic, x-1, y-1, TIC_FONT_WIDTH+1, TIC_FONT_HEIGHT+1, getConfig()->theme.code.select);
 			else if(getConfig()->theme.code.shadow)
 			{
-				code->tic->api.draw_char(code->tic, symbol, x+1, y+1, 0);
+				code->tic->api.draw_char(code->tic, symbol, x+1, y+1, 0, code->altFont);
 			}
 
-			code->tic->api.draw_char(code->tic, symbol, x, y, *colorPointer);			
+			code->tic->api.draw_char(code->tic, symbol, x, y, *colorPointer, code->altFont);	
 		}
 
 		if(code->cursor.position == pointer)
@@ -103,7 +108,7 @@ static void drawCode(Code* code, bool withCursor)
 			x = xStart;
 			y += STUDIO_TEXT_HEIGHT;
 		}
-		else x += STUDIO_TEXT_WIDTH;
+		else x += (getFontWidth(code));
 
 		pointer++;
 		colorPointer++;
@@ -163,9 +168,11 @@ static void updateEditor(Code* code)
 	s32 line = 0;
 	getCursorPosition(code, &column, &line);
 
+	const s32 BufferWidth = TIC80_WIDTH / getFontWidth(code);
+
 	if(column < code->scroll.x) code->scroll.x = column;
-	else if(column >= code->scroll.x + TEXT_BUFFER_WIDTH)
-		code->scroll.x = column - TEXT_BUFFER_WIDTH + 1;
+	else if(column >= code->scroll.x + BufferWidth)
+		code->scroll.x = column - BufferWidth + 1;
 
 	if(line < code->scroll.y) code->scroll.y = line;
 	else if(line >= code->scroll.y + TEXT_BUFFER_HEIGHT)
@@ -177,7 +184,7 @@ static void updateEditor(Code* code)
 	{
 		memset(code->status, ' ', sizeof code->status - 1);
 
-		char status[STUDIO_TEXT_BUFFER_WIDTH];
+		char status[TEXT_BUFFER_WIDTH];
 		s32 count = getLinesCount(code);
 		sprintf(status, "line %i/%i col %i", line + 1, count + 1, column + 1);
 		memcpy(code->status, status, strlen(status));
@@ -425,8 +432,8 @@ static bool replaceSelection(Code* code)
 
 	if(sel && sel != pos)
 	{
-		char* start = SDL_min(sel, pos);
-		char* end = SDL_max(sel, pos);
+		char* start = MIN(sel, pos);
+		char* end = MAX(sel, pos);
 
 		memmove(start, end, strlen(end) + 1);
 
@@ -525,8 +532,8 @@ static void copyToClipboard(Code* code)
 
 	if(sel && sel != pos)
 	{
-		start = SDL_min(sel, pos);
-		size = SDL_max(sel, pos) - start;
+		start = MIN(sel, pos);
+		size = MAX(sel, pos) - start;
 	}
 	else
 	{
@@ -534,14 +541,14 @@ static void copyToClipboard(Code* code)
 		size = getNextLine(code) - start;
 	}
 
-	char* clipboard = (char*)SDL_malloc(size+1);
+	char* clipboard = (char*)malloc(size+1);
 
 	if(clipboard)
 	{
 		memcpy(clipboard, start, size);
 		clipboard[size] = '\0';
-		SDL_SetClipboardText(clipboard);
-		SDL_free(clipboard);
+		getSystem()->setClipboardText(clipboard);
+		free(clipboard);
 	}
 }
 
@@ -554,9 +561,9 @@ static void cutToClipboard(Code* code)
 
 static void copyFromClipboard(Code* code)
 {
-	if(SDL_HasClipboardText())
+	if(getSystem()->hasClipboardText())
 	{
-		char* clipboard = SDL_GetClipboardText();
+		char* clipboard = getSystem()->getClipboardText();
 
 		if(clipboard)
 		{
@@ -590,7 +597,7 @@ static void copyFromClipboard(Code* code)
 				parseSyntaxColor(code);
 			}
 
-			SDL_free(clipboard);
+			getSystem()->freeClipboardText(clipboard);
 		}
 	}
 }
@@ -633,8 +640,8 @@ static void doTab(Code* code, bool shift, bool crtl)
 		bool changed = false;
 		
 		if(cursor_selection) {
-			start = SDL_min(cursor_selection, cursor_position);
-			end = SDL_max(cursor_selection, cursor_position);
+			start = MIN(cursor_selection, cursor_position);
+			end = MAX(cursor_selection, cursor_position);
 		} else {
 			start = end = cursor_position;
 		}
@@ -684,8 +691,8 @@ static void setFindMode(Code* code)
 {
 	if(code->cursor.selection)
 	{
-		const char* end = SDL_max(code->cursor.position, code->cursor.selection);
-		const char* start = SDL_min(code->cursor.position, code->cursor.selection);
+		const char* end = MAX(code->cursor.position, code->cursor.selection);
+		const char* start = MIN(code->cursor.position, code->cursor.selection);
 		size_t len = end - start;
 
 		if(len > 0 && len < sizeof code->popup.text - 1)
@@ -709,7 +716,8 @@ static int funcCompare(const void* a, const void* b)
 	if(item1->pos == NULL) return 1;
 	if(item2->pos == NULL) return -1;
 
-	return SDL_strcasecmp(item1->name, item2->name);
+	// return SDL_strcasecmp(item1->name, item2->name);
+	return strcmp(item1->name, item2->name);
 }
 
 static void normalizeScroll(Code* code)
@@ -727,7 +735,7 @@ static void centerScroll(Code* code)
 {
 	s32 col, line;
 	getCursorPosition(code, &col, &line);
-	code->scroll.x = col - TEXT_BUFFER_WIDTH / 2;
+	code->scroll.x = col - TIC80_WIDTH / getFontWidth(code) / 2;
 	code->scroll.y = line - TEXT_BUFFER_HEIGHT / 2;
 
 	normalizeScroll(code);
@@ -752,6 +760,18 @@ static void updateOutlineCode(Code* code)
 	updateEditor(code);
 }
 
+static char* ticStrlwr(char *string)
+{
+	char *bufp = string;
+	while (*bufp) 
+	{
+		*bufp = tolower((u8)*bufp);
+		++bufp;
+	}
+	
+	return string;
+}
+
 static void initOutlineMode(Code* code)
 {
 	OutlineItem* out = code->outline.items;
@@ -759,10 +779,11 @@ static void initOutlineMode(Code* code)
 
 	tic_mem* tic = code->tic;
 
-	char buffer[STUDIO_TEXT_BUFFER_WIDTH] = {0};
-	char filter[STUDIO_TEXT_BUFFER_WIDTH] = {0};
-	SDL_strlcpy(filter, code->popup.text, sizeof(filter));
-	SDL_strlwr(filter);
+	char buffer[TEXT_BUFFER_WIDTH] = {0};
+	char filter[TEXT_BUFFER_WIDTH] = {0};
+	strncpy(filter, code->popup.text, sizeof(filter));
+
+	ticStrlwr(filter);
 
 	const tic_script_config* config = tic->api.get_script_config(tic);
 
@@ -778,13 +799,14 @@ static void initOutlineMode(Code* code)
 			if(out < end)
 			{
 				out->pos = code->src + item->pos;
-				memset(out->name, 0, STUDIO_TEXT_BUFFER_WIDTH);
-				memcpy(out->name, out->pos, SDL_min(item->size, STUDIO_TEXT_BUFFER_WIDTH-1));
+				memset(out->name, 0, TEXT_BUFFER_WIDTH);
+				memcpy(out->name, out->pos, MIN(item->size, TEXT_BUFFER_WIDTH-1));
 
 				if(*filter)
 				{
-					SDL_strlcpy(buffer, out->name, sizeof(buffer));
-					SDL_strlwr(buffer);
+					strncpy(buffer, out->name, sizeof(buffer));
+
+					ticStrlwr(buffer);
 
 					if(strstr(buffer, filter)) out++;
 					else out->pos = NULL;
@@ -865,20 +887,13 @@ static void commentLine(Code* code)
 	parseSyntaxColor(code);
 }
 
-static void processKeydown(Code* code, SDL_Keycode keycode)
+static void processKeyboard(Code* code)
 {
-	switch(keycode)
-	{
-	case SDLK_LCTRL:
-	case SDLK_RCTRL:
-	case SDLK_LSHIFT:
-	case SDLK_RSHIFT:
-	case SDLK_LALT:
-	case SDLK_RALT:
-		return;
-	}
+	tic_mem* tic = code->tic;
 
-	switch(getClipboardEvent(keycode))
+	if(tic->ram.input.keyboard.data == 0) return;
+
+	switch(getClipboardEvent(0))
 	{
 	case TIC_CLIPBOARD_CUT: cutToClipboard(code); break;
 	case TIC_CLIPBOARD_COPY: copyToClipboard(code); break;
@@ -886,120 +901,79 @@ static void processKeydown(Code* code, SDL_Keycode keycode)
 	default: break;
 	}
 
-	SDL_Keymod keymod = SDL_GetModState();
+	bool shift = tic->api.key(tic, tic_key_shift);
+	bool ctrl = tic->api.key(tic, tic_key_ctrl);
+	bool alt = tic->api.key(tic, tic_key_alt);
 
-	switch(keycode)
+	if(keyWasPressed(tic_key_up)
+		|| keyWasPressed(tic_key_down)
+		|| keyWasPressed(tic_key_left)
+		|| keyWasPressed(tic_key_right)
+		|| keyWasPressed(tic_key_home)
+		|| keyWasPressed(tic_key_end)
+		|| keyWasPressed(tic_key_pageup)
+		|| keyWasPressed(tic_key_pagedown))
 	{
-	case SDLK_UP:
-	case SDLK_DOWN:
-	case SDLK_LEFT:
-	case SDLK_RIGHT:
-	case SDLK_HOME:
-	case SDLK_END:
-	case SDLK_PAGEUP:
-	case SDLK_PAGEDOWN:
-
-		if(!(keymod & KMOD_SHIFT)) code->cursor.selection = NULL;
+		if(!shift) code->cursor.selection = NULL;
 		else if(code->cursor.selection == NULL) code->cursor.selection = code->cursor.position;
 	}
 
-	if(keymod & TIC_MOD_CTRL)
+	if(ctrl)
 	{
-		if(keymod & KMOD_CTRL)
+		if(ctrl)
 		{
-			switch(keycode)
-			{
-			case SDLK_LEFT: 	leftWord(code); break;
-			case SDLK_RIGHT: 	rightWord(code); break;
-			case SDLK_TAB:		doTab(code, keymod & KMOD_SHIFT, keymod & KMOD_CTRL); break;
-			}
-		}
-		else if(keymod & KMOD_GUI)
-		{
-			switch(keycode)
-			{
-			case SDLK_LEFT: 	goHome(code); break;
-			case SDLK_RIGHT: 	goEnd(code); break;
-			}
+			if(keyWasPressed(tic_key_left)) leftWord(code);
+			else if(keyWasPressed(tic_key_right)) rightWord(code);
+			else if(keyWasPressed(tic_key_tab)) doTab(code, shift, ctrl);
 		}
 
-		switch(keycode)
-		{
-		case SDLK_a:	selectAll(code); break;
-		case SDLK_z: 	undo(code); break;
-		case SDLK_y: 	redo(code); break;
-		case SDLK_f: 	setCodeMode(code, TEXT_FIND_MODE); break;
-		case SDLK_g: 	setCodeMode(code, TEXT_GOTO_MODE); break;
-		case SDLK_o: 	setCodeMode(code, TEXT_OUTLINE_MODE); break;
-		case SDLK_SLASH: commentLine(code);	break;
-		case SDLK_HOME: goCodeHome(code); break;
-		case SDLK_END: 	goCodeEnd(code); break;
-		}
+		if(keyWasPressed(tic_key_a)) 			selectAll(code);
+		else if(keyWasPressed(tic_key_z)) 		undo(code);
+		else if(keyWasPressed(tic_key_y)) 		redo(code);
+		else if(keyWasPressed(tic_key_f)) 		setCodeMode(code, TEXT_FIND_MODE);
+		else if(keyWasPressed(tic_key_g)) 		setCodeMode(code, TEXT_GOTO_MODE);
+		else if(keyWasPressed(tic_key_o)) 		setCodeMode(code, TEXT_OUTLINE_MODE);
+		else if(keyWasPressed(tic_key_slash)) 	commentLine(code);
+		else if(keyWasPressed(tic_key_home)) 	goCodeHome(code);
+		else if(keyWasPressed(tic_key_end)) 		goCodeEnd(code);
 	}
-	else if(keymod & KMOD_ALT)
+	else if(alt)
 	{
-		switch(keycode)
-		{
-		case SDLK_LEFT: 	leftWord(code); break;
-		case SDLK_RIGHT: 	rightWord(code); break;
-		}
+		if(keyWasPressed(tic_key_left)) leftWord(code);
+		else if(keyWasPressed(tic_key_right)) rightWord(code);
 	}
 	else
 	{
-		switch(keycode)
-		{
-		case SDLK_UP: 			upLine(code); break;
-		case SDLK_DOWN: 		downLine(code); break;
-		case SDLK_LEFT: 		leftColumn(code); break;
-		case SDLK_RIGHT: 		rightColumn(code); break;
-		case SDLK_HOME: 		goHome(code); break;
-		case SDLK_END: 			goEnd(code); break;
-		case SDLK_PAGEUP: 		pageUp(code); break;
-		case SDLK_PAGEDOWN: 	pageDown(code); break;
-		case SDLK_DELETE: 		deleteChar(code); break;
-		case SDLK_BACKSPACE: 	backspaceChar(code); break;
-		case SDLK_RETURN: 		newLine(code); break;
-		case SDLK_TAB: 			doTab(code, keymod & KMOD_SHIFT, keymod & KMOD_CTRL); break;
-		}
+		if(keyWasPressed(tic_key_up)) 				upLine(code);
+		else if(keyWasPressed(tic_key_down)) 		downLine(code);
+		else if(keyWasPressed(tic_key_left)) 		leftColumn(code);
+		else if(keyWasPressed(tic_key_right)) 		rightColumn(code);
+		else if(keyWasPressed(tic_key_home)) 		goHome(code);
+		else if(keyWasPressed(tic_key_end)) 		goEnd(code);
+		else if(keyWasPressed(tic_key_pageup)) 		pageUp(code);
+		else if(keyWasPressed(tic_key_pagedown)) 	pageDown(code);
+		else if(keyWasPressed(tic_key_delete)) 		deleteChar(code);
+		else if(keyWasPressed(tic_key_backspace)) 	backspaceChar(code);
+		else if(keyWasPressed(tic_key_return)) 		newLine(code);
+		else if(keyWasPressed(tic_key_tab)) 		doTab(code, shift, ctrl);
 	}
 
 	updateEditor(code);
 }
 
-static void processGestures(Code* code)
-{
-	SDL_Point point = {0, 0};
-
-	if(getGesturePos(&point))
-	{
-		if(code->scroll.gesture)
-		{
-			code->scroll.x = (code->scroll.start.x - point.x) / STUDIO_TEXT_WIDTH;
-			code->scroll.y = (code->scroll.start.y - point.y) / STUDIO_TEXT_HEIGHT;
-
-			normalizeScroll(code);
-		}
-		else
-		{
-			code->scroll.start.x = point.x + code->scroll.x * STUDIO_TEXT_WIDTH;
-			code->scroll.start.y = point.y + code->scroll.y * STUDIO_TEXT_HEIGHT;
-			code->scroll.gesture = true;
-		}
-	}
-	else code->scroll.gesture = false;
-}
-
 static void processMouse(Code* code)
 {
+	tic_mem* tic = code->tic;
+
 	if(checkMousePos(&code->rect))
 	{
-		setCursor(SDL_SYSTEM_CURSOR_IBEAM);
+		setCursor(tic_cursor_ibeam);
 
 		if(code->scroll.active)
 		{
-			if(checkMouseDown(&code->rect, SDL_BUTTON_RIGHT))
+			if(checkMouseDown(&code->rect, tic_mouse_right))
 			{
-				code->scroll.x = (code->scroll.start.x - getMouseX()) / STUDIO_TEXT_WIDTH;
+				code->scroll.x = (code->scroll.start.x - getMouseX()) / (getFontWidth(code));
 				code->scroll.y = (code->scroll.start.y - getMouseY()) / STUDIO_TEXT_HEIGHT;
 
 				normalizeScroll(code);
@@ -1008,18 +982,18 @@ static void processMouse(Code* code)
 		}
 		else
 		{
-			if(checkMouseDown(&code->rect, SDL_BUTTON_LEFT))
+			if(checkMouseDown(&code->rect, tic_mouse_left))
 			{
 				s32 mx = getMouseX();
 				s32 my = getMouseY();
 
-				s32 x = (mx - code->rect.x) / STUDIO_TEXT_WIDTH;
+				s32 x = (mx - code->rect.x) / (getFontWidth(code));
 				s32 y = (my - code->rect.y) / STUDIO_TEXT_HEIGHT;
 
 				char* position = code->cursor.position;
 				setCursorPosition(code, x + code->scroll.x, y + code->scroll.y);
 
-				if(SDL_GetModState() & KMOD_SHIFT)
+				if(tic->api.key(tic, tic_key_shift))
 				{
 					code->cursor.selection = code->cursor.position;
 					code->cursor.position = position;
@@ -1038,11 +1012,11 @@ static void processMouse(Code* code)
 				code->cursor.mouseDownPosition = NULL;
 			}
 
-			if(checkMouseDown(&code->rect, SDL_BUTTON_RIGHT))
+			if(checkMouseDown(&code->rect, tic_mouse_right))
 			{
 				code->scroll.active = true;
 
-				code->scroll.start.x = getMouseX() + code->scroll.x * STUDIO_TEXT_WIDTH;
+				code->scroll.start.x = getMouseX() + code->scroll.x * (getFontWidth(code));
 				code->scroll.start.y = getMouseY() + code->scroll.y * STUDIO_TEXT_HEIGHT;
 			}
 
@@ -1052,42 +1026,35 @@ static void processMouse(Code* code)
 
 static void textEditTick(Code* code)
 {
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
+	tic_mem* tic = code->tic;
+
+	// process scroll
 	{
-		switch(event->type)
+		tic80_input* input = &code->tic->ram.input;
+
+		if(input->mouse.scrolly)
 		{
-		case SDL_MOUSEWHEEL:
-			{
-				enum{Scroll = 3};
-				s32 delta = event->wheel.y > 0 ? -Scroll : Scroll;
+			enum{Scroll = 3};
+			s32 delta = input->mouse.scrolly > 0 ? -Scroll : Scroll;
+			code->scroll.y += delta;
 
-				code->scroll.y += delta;
-
-				normalizeScroll(code);
-			}
-			break;
-		case SDL_KEYDOWN:
-			processKeydown(code, event->key.keysym.sym);
-			break;
-		case SDL_TEXTINPUT:
-
-#if defined(__LINUX__)
-			if(!(SDL_GetModState() & KMOD_LALT))
-#endif
-
-			if(strlen(event->text.text) == 1)
-			{
-
-
-				inputSymbol(code, *event->text.text);
-				updateEditor(code);
-			}
-			break;
+			normalizeScroll(code);
 		}
 	}
 
-	processGestures(code);
+	processKeyboard(code);
+
+	if(!tic->api.key(tic, tic_key_ctrl) && !tic->api.key(tic, tic_key_alt))
+	{
+		char sym = tic->ram.input.keyboard.text;
+
+		if(sym)
+		{
+			inputSymbol(code, sym);
+			updateEditor(code);
+		}
+	}
+
 	processMouse(code);
 
 	code->tic->api.clear(code->tic, getConfig()->theme.code.bg);
@@ -1101,9 +1068,9 @@ static void drawPopupBar(Code* code, const char* title)
 	enum {TextY = TOOLBAR_SIZE + 1};
 
 	code->tic->api.rect(code->tic, 0, TOOLBAR_SIZE, TIC80_WIDTH, TIC_FONT_HEIGHT + 1, (tic_color_blue));
-	code->tic->api.fixed_text(code->tic, title, 0, TextY, (tic_color_white));
+	code->tic->api.fixed_text(code->tic, title, 0, TextY, (tic_color_white), false);
 
-	code->tic->api.fixed_text(code->tic, code->popup.text, (s32)strlen(title)*TIC_FONT_WIDTH, TextY, (tic_color_white));
+	code->tic->api.fixed_text(code->tic, code->popup.text, (s32)strlen(title)*TIC_FONT_WIDTH, TextY, (tic_color_white), false);
 
 	drawCursor(code, (s32)(strlen(title) + strlen(code->popup.text)) * TIC_FONT_WIDTH, TextY, ' ');
 }
@@ -1146,52 +1113,41 @@ static char* downStrStr(const char* start, const char* from, const char* substr)
 
 static void textFindTick(Code* code)
 {
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
+	tic_mem* tic = code->tic;
+
+	if(keyWasPressed(tic_key_return)) setCodeMode(code, TEXT_EDIT_MODE);
+	else if(keyWasPressed(tic_key_up)
+		|| keyWasPressed(tic_key_down)
+		|| keyWasPressed(tic_key_left)
+		|| keyWasPressed(tic_key_right))
 	{
-		switch(event->type)
+		if(*code->popup.text)
 		{
-		case SDL_KEYDOWN:
-			switch(event->key.keysym.sym)
-			{
-			case SDLK_RETURN:
-				setCodeMode(code, TEXT_EDIT_MODE);
-				break;
-			case SDLK_UP:
-			case SDLK_LEFT:
-			case SDLK_DOWN:
-			case SDLK_RIGHT:
-				if(*code->popup.text)
-				{
-					SDL_Keycode keycode = event->key.keysym.sym;
-					bool reverse = keycode == SDLK_UP || keycode == SDLK_LEFT;
-					char* (*func)(const char*, const char*, const char*) = reverse ? upStrStr : downStrStr;
-					char* from = reverse ? SDL_min(code->cursor.position, code->cursor.selection) : SDL_max(code->cursor.position, code->cursor.selection);
-					char* pos = func(code->src, from, code->popup.text);
-					updateFindCode(code, pos);
-				}
-				break;
-			case SDLK_BACKSPACE:
-				if(*code->popup.text)
-				{
-					code->popup.text[strlen(code->popup.text)-1] = '\0';
-					updateFindCode(code, strstr(code->src, code->popup.text));
-				}
-				break;
-			default: break;
-			}
-			break;
-		case SDL_TEXTINPUT:
-			if(strlen(event->text.text) == 1)
-			{
-				if(strlen(code->popup.text) + 1 < sizeof code->popup.text)
-				{
-					strcat(code->popup.text, event->text.text);
-					updateFindCode(code, strstr(code->src, code->popup.text));
-				}
-			}
-			break;
-		default: break;
+			bool reverse = keyWasPressed(tic_key_up) || keyWasPressed(tic_key_left);
+			char* (*func)(const char*, const char*, const char*) = reverse ? upStrStr : downStrStr;
+			char* from = reverse ? MIN(code->cursor.position, code->cursor.selection) : MAX(code->cursor.position, code->cursor.selection);
+			char* pos = func(code->src, from, code->popup.text);
+			updateFindCode(code, pos);
+		}
+	}
+	else if(keyWasPressed(tic_key_backspace))
+	{
+		if(*code->popup.text)
+		{
+			code->popup.text[strlen(code->popup.text)-1] = '\0';
+			updateFindCode(code, strstr(code->src, code->popup.text));
+		}
+	}
+
+	char sym = tic->ram.input.keyboard.text;
+
+	if(sym)
+	{
+		if(strlen(code->popup.text) + 1 < sizeof code->popup.text)
+		{
+			char str[] = {sym , 0};
+			strcat(code->popup.text, str);
+			updateFindCode(code, strstr(code->src, code->popup.text));
 		}
 	}
 
@@ -1223,51 +1179,41 @@ static void updateGotoCode(Code* code)
 
 static void textGoToTick(Code* code)
 {
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
+	tic_mem* tic = code->tic;
+
+	if(keyWasPressed(tic_key_return))
 	{
-		switch(event->type)
+		if(*code->popup.text)
+			updateGotoCode(code);
+
+		setCodeMode(code, TEXT_EDIT_MODE);
+	}
+	else if(keyWasPressed(tic_key_backspace))
+	{
+		if(*code->popup.text)
 		{
-		case SDL_KEYDOWN:
-			switch(event->key.keysym.sym)
-			{
-			case SDLK_RETURN:
-				if(*code->popup.text)
-					updateGotoCode(code);
-
-				setCodeMode(code, TEXT_EDIT_MODE);
-				break;
-			case SDLK_BACKSPACE:
-				if(*code->popup.text)
-				{
-					code->popup.text[strlen(code->popup.text)-1] = '\0';
-					updateGotoCode(code);
-				}
-				break;
-			default: break;
-			}
-			break;
-		case SDL_TEXTINPUT:
-			if(strlen(event->text.text) == 1)
-			{
-				char sym = *event->text.text;
-
-				if(strlen(code->popup.text)+1 < sizeof code->popup.text && sym >= '0' && sym <= '9')
-				{
-					strcat(code->popup.text, event->text.text);
-					updateGotoCode(code);
-				}
-			}
-			break;
-		default: break;
+			code->popup.text[strlen(code->popup.text)-1] = '\0';
+			updateGotoCode(code);
 		}
 	}
 
-	code->tic->api.clear(code->tic, getConfig()->theme.code.bg);
+	char sym = tic->ram.input.keyboard.text;
+
+	if(sym)
+	{
+		if(strlen(code->popup.text)+1 < sizeof code->popup.text && sym >= '0' && sym <= '9')
+		{
+			char str[] = {sym, 0};
+			strcat(code->popup.text, str);
+			updateGotoCode(code);
+		}
+	}
+
+	tic->api.clear(tic, getConfig()->theme.code.bg);
 
 	if(code->jump.line >= 0)
-		code->tic->api.rect(code->tic, 0, (code->jump.line - code->scroll.y) * TIC_FONT_HEIGHT + TOOLBAR_SIZE + 1,
-			TIC80_WIDTH, TIC_FONT_HEIGHT+1, getConfig()->theme.code.select);
+		tic->api.rect(tic, 0, (code->jump.line - code->scroll.y) * (TIC_FONT_HEIGHT+1) + TOOLBAR_SIZE,
+			TIC80_WIDTH, TIC_FONT_HEIGHT+2, getConfig()->theme.code.select);
 
 	drawCode(code, false);
 	drawPopupBar(code, " GOTO:");
@@ -1276,7 +1222,7 @@ static void textGoToTick(Code* code)
 
 static void drawOutlineBar(Code* code, s32 x, s32 y)
 {
-	SDL_Rect rect = {x, y, TIC80_WIDTH - x, TIC80_HEIGHT - y};
+	tic_rect rect = {x, y, TIC80_WIDTH - x, TIC80_HEIGHT - y};
 
 	if(checkMousePos(&rect))
 	{
@@ -1285,16 +1231,16 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 
 		if(mx < OUTLINE_SIZE && code->outline.items[mx].pos)
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
-			if(checkMouseDown(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseDown(&rect, tic_mouse_left))
 			{
 				code->outline.index = mx;
 				updateOutlineCode(code);
 
 			}
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 				setCodeMode(code, TEXT_EDIT_MODE);
 		}
 	}
@@ -1311,63 +1257,57 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 			rect.w + 1, TIC_FONT_HEIGHT + 1, (tic_color_red));
 		while(ptr->pos)
 		{
-			code->tic->api.fixed_text(code->tic, ptr->name, x, y, (tic_color_white));
+			code->tic->api.fixed_text(code->tic, ptr->name, x, y, (tic_color_white), false);
 			ptr++;
 			y += STUDIO_TEXT_HEIGHT;
 		}
 	}
-	else code->tic->api.fixed_text(code->tic, "(empty)", x, y, (tic_color_white));
+	else code->tic->api.fixed_text(code->tic, "(empty)", x, y, (tic_color_white), false);
 }
 
 static void textOutlineTick(Code* code)
 {
-	SDL_Event* event = NULL;
-	while ((event = pollEvent()))
+	tic_mem* tic = code->tic;
+
+	if(keyWasPressed(tic_key_up))
 	{
-		switch(event->type)
+		if(code->outline.index > 0)
 		{
-		case SDL_KEYDOWN:
-			switch(event->key.keysym.sym)
-			{
-			case SDLK_UP:
-				if(code->outline.index > 0)
-				{
-					code->outline.index--;
-					updateOutlineCode(code);
-				}
-				break;
-			case SDLK_DOWN:
-				if(code->outline.index < OUTLINE_SIZE - 1 && code->outline.items[code->outline.index + 1].pos)
-				{
-					code->outline.index++;
-					updateOutlineCode(code);
-				}
-				break;
-			case SDLK_RETURN:
-				updateOutlineCode(code);
-				setCodeMode(code, TEXT_EDIT_MODE);
-				break;
-			case SDLK_BACKSPACE:
-				if(*code->popup.text)
-				{
-					code->popup.text[strlen(code->popup.text)-1] = '\0';
-					setOutlineMode(code);
-				}
-				break;
-			default: break;
-			}
-			break;
-		case SDL_TEXTINPUT:
-			if(strlen(event->text.text) == 1)
-			{
-				if(strlen(code->popup.text) + 1 < sizeof code->popup.text)
-				{
-					strcat(code->popup.text, event->text.text);
-					setOutlineMode(code);
-				}
-			}
-			break;
-		default: break;
+			code->outline.index--;
+			updateOutlineCode(code);
+		}
+	}
+	else if(keyWasPressed(tic_key_down))
+	{
+		if(code->outline.index < OUTLINE_SIZE - 1 && code->outline.items[code->outline.index + 1].pos)
+		{
+			code->outline.index++;
+			updateOutlineCode(code);
+		}
+	}
+	else if(keyWasPressed(tic_key_return))
+	{
+		updateOutlineCode(code);
+		setCodeMode(code, TEXT_EDIT_MODE);
+	}
+	else if(keyWasPressed(tic_key_backspace))
+	{
+		if(*code->popup.text)
+		{
+			code->popup.text[strlen(code->popup.text)-1] = '\0';
+			setOutlineMode(code);
+		}
+	}
+
+	char sym = tic->ram.input.keyboard.text;
+
+	if(sym)
+	{
+		if(strlen(code->popup.text) + 1 < sizeof code->popup.text)
+		{
+			char str[] = {sym, 0};
+			strcat(code->popup.text, str);
+			setOutlineMode(code);
 		}
 	}
 
@@ -1377,6 +1317,32 @@ static void textOutlineTick(Code* code)
 	drawPopupBar(code, " FUNC:");
 	drawStatus(code);
 	drawOutlineBar(code, TIC80_WIDTH - 12 * TIC_FONT_WIDTH, 2*(TIC_FONT_HEIGHT+1));
+}
+
+static void drawFontButton(Code* code, s32 x, s32 y)
+{
+	tic_mem* tic = code->tic;
+
+	enum {Size = TIC_FONT_WIDTH};
+	tic_rect rect = {x, y, Size, Size};
+
+	bool over = false;
+	if(checkMousePos(&rect))
+	{
+		setCursor(tic_cursor_hand);
+
+		showTooltip("SWITCH FONT");
+
+		over = true;
+
+		if(checkMouseClick(&rect, tic_mouse_left))
+		{
+			code->altFont = !code->altFont;
+		}
+	}
+
+
+	tic->api.draw_char(tic, 'F', x, y, over ? tic_color_dark_gray : tic_color_light_blue, code->altFont);
 }
 
 static void drawCodeToolbar(Code* code)
@@ -1429,18 +1395,18 @@ static void drawCodeToolbar(Code* code)
 
 	for(s32 i = 0; i < Count; i++)
 	{
-		SDL_Rect rect = {TIC80_WIDTH + (i - Count) * Size, 0, Size, Size};
+		tic_rect rect = {TIC80_WIDTH + (i - Count) * Size, 0, Size, Size};
 
 		bool over = false;
 		if(checkMousePos(&rect))
 		{
-			setCursor(SDL_SYSTEM_CURSOR_HAND);
+			setCursor(tic_cursor_hand);
 
 			showTooltip(Tips[i]);
 
 			over = true;
 
-			if(checkMouseClick(&rect, SDL_BUTTON_LEFT))
+			if(checkMouseClick(&rect, tic_mouse_left))
 			{
 				if (i == TEXT_RUN_CODE)
 				{
@@ -1463,6 +1429,8 @@ static void drawCodeToolbar(Code* code)
 		drawBitIcon(rect.x, rect.y, Icons + i*BITS_IN_BYTE, active ? (tic_color_white) : (over ? (tic_color_dark_gray) : (tic_color_light_blue)));
 	}
 
+	drawFontButton(code, TIC80_WIDTH - (Count+2) * Size, 1);
+
 	drawToolbar(code->tic, getConfig()->theme.code.bg, false);
 }
 
@@ -1470,8 +1438,6 @@ static void tick(Code* code)
 {
 	if(code->cursor.delay)
 		code->cursor.delay--;
-
-	code->cursor.tick++;
 
 	switch(code->mode)
 	{
@@ -1516,7 +1482,7 @@ static void onStudioEvent(Code* code, StudioEvent event)
 void initCode(Code* code, tic_mem* tic, tic_code* src)
 {
 	if(code->outline.items == NULL)
-		code->outline.items = (OutlineItem*)SDL_malloc(OUTLINE_ITEMS_SIZE);
+		code->outline.items = (OutlineItem*)malloc(OUTLINE_ITEMS_SIZE);
 
 	if(code->history) history_delete(code->history);
 	if(code->cursorHistory) history_delete(code->cursorHistory);
@@ -1527,7 +1493,7 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
 		.src = src->data,
 		.tick = tick,
 		.escape = escape,
-		.cursor = {{src->data, NULL, 0, 0}, NULL, 0},
+		.cursor = {{src->data, NULL, 0}, NULL, 0},
 		.rect = {0, TOOLBAR_SIZE + 1, TIC80_WIDTH, TIC80_HEIGHT - TOOLBAR_SIZE - TIC_FONT_HEIGHT - 1},
 		.scroll = {0, 0, {0, 0}, false},
 		.tickCounter = 0,
@@ -1545,6 +1511,7 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
 			.items = code->outline.items,
 			.index = 0,
 		},
+		.altFont = getConfig()->theme.code.altFont,
 		.event = onStudioEvent,
 		.update = update,
 	};

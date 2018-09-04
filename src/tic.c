@@ -27,6 +27,7 @@
 #include <math.h>
 #include <ctype.h>
 #include <stddef.h>
+#include <stddef.h>
 
 #include "ticapi.h"
 #include "tools.h"
@@ -80,7 +81,7 @@ STATIC_ASSERT(tic_track, sizeof(tic_track) == 3*MUSIC_FRAMES+3);
 STATIC_ASSERT(tic_vram, sizeof(tic_vram) == TIC_VRAM_SIZE);
 STATIC_ASSERT(tic_ram, sizeof(tic_ram) == TIC_RAM_SIZE);
 STATIC_ASSERT(tic_sound_register, sizeof(tic_sound_register) == 16+2);
-STATIC_ASSERT(tic80_input, sizeof(tic80_input) == 12);
+STATIC_ASSERT(tic80_input, sizeof(tic80_input) == 16);
 
 static void update_amp(blip_buffer_t* blip, tic_sound_register_data* data, s32 new_amp )
 {
@@ -149,7 +150,7 @@ static void runNoise(blip_buffer_t* blip, tic_sound_register* reg, tic_sound_reg
 static void resetPalette(tic_mem* memory)
 {
 	static const u8 DefaultMapping[] = {16, 50, 84, 118, 152, 186, 220, 254};
-	memcpy(memory->ram.vram.palette.data, memory->cart.palette.data, sizeof(tic_palette));
+	memcpy(memory->ram.vram.palette.data, memory->cart.bank0.palette.data, sizeof(tic_palette));
 	memcpy(memory->ram.vram.mapping, DefaultMapping, sizeof DefaultMapping);
 }
 
@@ -558,9 +559,27 @@ void tic_close(tic_mem* memory)
 
 	machine->state.initialized = false;
 
+#if defined(TIC_BUILD_WITH_LUA)
 	getLuaScriptConfig()->close(memory);
+
+#	if defined(TIC_BUILD_WITH_MOON)
 	getMoonScriptConfig()->close(memory);
+#	endif
+
+#	if defined(TIC_BUILD_WITH_FENNEL)
+	getFennelConfig()->close(memory);
+#	endif
+
+#endif /* defined(TIC_BUILD_WITH_LUA) */
+
+
+#if defined(TIC_BUILD_WITH_JS)
 	getJsScriptConfig()->close(memory);
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
+	getWrenScriptConfig()->close(memory);
+#endif
 
 	blip_delete(machine->blip);
 
@@ -596,25 +615,25 @@ static void api_clear(tic_mem* memory, u8 color)
 	}
 }
 
-static s32 drawChar(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale)
+static s32 drawChar(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale, bool alt)
 {
-	const u8* ptr = memory->font.data + symbol*BITS_IN_BYTE;
+	const u8* ptr = memory->font.data + (symbol + (alt ? TIC_FONT_CHARS / 2 : 0))*BITS_IN_BYTE;
 	x += (BITS_IN_BYTE - 1)*scale;
 
 	for(s32 i = 0, ys = y; i < TIC_FONT_HEIGHT; i++, ptr++, ys += scale)
-		for(s32 col = BITS_IN_BYTE - TIC_FONT_WIDTH, xs = x - col; col < BITS_IN_BYTE; col++, xs -= scale)
+		for(s32 col = BITS_IN_BYTE - (alt ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH), xs = x - col; col < BITS_IN_BYTE; col++, xs -= scale)
 			if(*ptr & 1 << col)
 				api_rect(memory, xs, ys, scale, scale, color);
 
-	return TIC_FONT_WIDTH*scale;
+	return (alt ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH)*scale;
 }
 
-static s32 api_draw_char(tic_mem* memory, u8 symbol, s32 x, s32 y, u8 color)
+static s32 api_draw_char(tic_mem* memory, u8 symbol, s32 x, s32 y, u8 color, bool alt)
 {
-	return drawChar(memory, symbol, x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT, color, 1);
+	return drawChar(memory, symbol, x, y, alt ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH, TIC_FONT_HEIGHT, color, 1, alt);
 }
 
-s32 drawText(tic_mem* memory, const char* text, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale, DrawCharFunc* func)
+s32 drawText(tic_mem* memory, const char* text, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale, DrawCharFunc* func, bool alt)
 {
 	s32 pos = x;
 	s32 max = x;
@@ -630,26 +649,28 @@ s32 drawText(tic_mem* memory, const char* text, s32 x, s32 y, s32 width, s32 hei
 			pos = x;
 			y += height * scale;
 		}
-		else pos += func(memory, sym, pos, y, width, height, color, scale);
+		else pos += func(memory, sym, pos, y, width, height, color, scale, alt);
 	}
 
 	return pos > max ? pos - x : max - x;
 }
 
-static s32 api_fixed_text(tic_mem* memory, const char* text, s32 x, s32 y, u8 color)
+static s32 api_fixed_text(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, bool alt)
 {
-	return drawText(memory, text, x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT, color, 1, drawChar);
+	return drawText(memory, text, x, y, alt ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH, TIC_FONT_HEIGHT, color, 1, drawChar, alt);
 }
 
-static s32 drawNonFixedChar(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale)
+static s32 drawNonFixedChar(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale, bool alt)
 {
-	const u8* ptr = memory->font.data + (symbol)*BITS_IN_BYTE;
+	const u8* ptr = memory->font.data + (symbol + (alt ? TIC_FONT_CHARS / 2 : 0))*BITS_IN_BYTE;
+
+	const s32 FontWidth = alt ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH;
 
 	s32 start = 0;
-	s32 end = TIC_FONT_WIDTH;
+	s32 end = FontWidth;
 	s32 i = 0;
 
-	for(s32 col = 0; col < TIC_FONT_WIDTH; col++)
+	for(s32 col = 0; col < FontWidth; col++)
 	{
 		for(i = 0; i < TIC_FONT_HEIGHT; i++)
 			if(*(ptr + i) & 0b10000000 >> col) break;
@@ -659,7 +680,7 @@ static s32 drawNonFixedChar(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width,
 
 	x -= start * scale;
 	
-	for(s32 col = TIC_FONT_WIDTH - 1; col >= start; col--)
+	for(s32 col = FontWidth - 1; col >= start; col--)
 	{
 		for(i = 0; i < TIC_FONT_HEIGHT; i++)
 			if(*(ptr + i) & 0b10000000 >> col) break;
@@ -673,17 +694,17 @@ static s32 drawNonFixedChar(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width,
 				api_rect(memory, xs, ys, scale, scale, color);
 
 	s32 size = end - start;
-	return (size ? size + 1 : TIC_FONT_WIDTH - 2) * scale;
+	return (size ? size + 1 : FontWidth - 2) * scale;
 }
 
-static s32 api_text(tic_mem* memory, const char* text, s32 x, s32 y, u8 color)
+static s32 api_text(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, bool alt)
 {
-	return drawText(memory, text, x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT, color, 1, drawNonFixedChar);
+	return drawText(memory, text, x, y, alt ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH, TIC_FONT_HEIGHT, color, 1, drawNonFixedChar, alt);
 }
 
-static s32 api_text_ex(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, bool fixed, s32 scale)
+static s32 api_text_ex(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, bool fixed, s32 scale, bool alt)
 {
-	return drawText(memory, text, x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT, color, scale, fixed ? drawChar : drawNonFixedChar);
+	return drawText(memory, text, x, y, alt ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH, TIC_FONT_HEIGHT, color, scale, fixed ? drawChar : drawNonFixedChar, alt);
 }
 
 static void drawSprite(tic_mem* memory, const tic_tiles* src, s32 index, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
@@ -734,14 +755,14 @@ static void api_sprite_ex(tic_mem* memory, const tic_tiles* src, s32 index, s32 
 	}
 }
 
-s32 drawSpriteFont(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale)
+s32 drawSpriteFont(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale, bool alt)
 {
 	api_sprite_ex(memory, &memory->ram.sprites, symbol, x, y, 1, 1, &chromakey, 1, scale, tic_no_flip, tic_no_rotate);
 
 	return width * scale;
 }
 
-s32 drawFixedSpriteFont(tic_mem* memory, u8 index, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale)
+s32 drawFixedSpriteFont(tic_mem* memory, u8 index, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale, bool alt)
 {
 	const u8* ptr = memory->ram.sprites.data[index].data;
 
@@ -809,10 +830,8 @@ static struct
 {
 	s16 Left[TIC80_HEIGHT];
 	s16 Right[TIC80_HEIGHT];	
-	float ULeft[TIC80_HEIGHT];
-	float VLeft[TIC80_HEIGHT];
-	float URight[TIC80_HEIGHT];
-	float VRight[TIC80_HEIGHT];
+	s32 ULeft[TIC80_HEIGHT];
+	s32 VLeft[TIC80_HEIGHT];
 } SidesBuffer;
 
 static void initSidesBuffer()
@@ -832,20 +851,18 @@ static void setSidePixel(s32 x, s32 y)
 
 static void setSideTexPixel(s32 x, s32 y, float u, float v)
 {
-	s32 yy = (s32)y;
+	s32 yy = y;
 	if (yy >= 0 && yy < TIC80_HEIGHT)
 	{
 		if (x < SidesBuffer.Left[yy])
 		{
 			SidesBuffer.Left[yy] = x;
-			SidesBuffer.ULeft[yy] = u;
-			SidesBuffer.VLeft[yy] = v;
+			SidesBuffer.ULeft[yy] = u*65536.0f;
+			SidesBuffer.VLeft[yy] = v*65536.0f;
 		}
 		if (x > SidesBuffer.Right[yy])
 		{
 			SidesBuffer.Right[yy] = x;
-			SidesBuffer.URight[yy] = u;
-			SidesBuffer.VRight[yy] = v;
 		}
 	}
 }
@@ -928,8 +945,9 @@ static void api_tri(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32
 	ticLine(memory, x3, y3, x1, y1, color, triPixelFunc);
 
 	u8 final_color = mapColor(&machine->memory, color);
-	s32 yt = max(0, min(y1, min(y2, y3)));
-	s32 yb = min(TIC80_HEIGHT, max(y1, max(y2, y3)) + 1);
+	s32 yt = max(machine->state.clip.t, min(y1, min(y2, y3)));
+	s32 yb = min(machine->state.clip.b, max(y1, max(y2, y3)) + 1);
+
 	for(s32 y = yt; y < yb; y++) {
 		s32 xl = max(SidesBuffer.Left[y], machine->state.clip.l);
 		s32 xr = min(SidesBuffer.Right[y]+1, machine->state.clip.r);
@@ -956,11 +974,16 @@ static void ticTexLine(tic_mem* memory, TexVert *v0, TexVert *v1)
 	}
 
 	float dy = bot->y - top->y;
-	if ((s32)dy == 0)	return;
-	
-	float step_x = (bot->x - top->x) / dy;
-	float step_u = (bot->u - top->u) / dy;
-	float step_v = (bot->v - top->v) / dy;
+	float step_x = (bot->x - top->x);
+	float step_u = (bot->u - top->u);
+	float step_v = (bot->v - top->v);
+
+	if ((s32)dy != 0)
+	{
+		step_x /= dy;
+		step_u /= dy;
+		step_v /= dy;
+	}
 
 	float x = top->x;
 	float y = top->y;
@@ -982,7 +1005,7 @@ static void ticTexLine(tic_mem* memory, TexVert *v0, TexVert *v1)
 	if(botY > TIC80_HEIGHT)
 		botY = TIC80_HEIGHT;
 
-	for (; y < botY; y++)
+	for (; y <botY; ++y)
 	{
 		setSideTexPixel(x, y, u, v);
 		x += step_x;
@@ -998,60 +1021,90 @@ static void api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, 
 	const u8* ptr = memory->ram.tiles.data[0].data;
 	const u8* map = memory->ram.map.data;
 
-	V0.x = (float)x1; 	V0.y = (float)y1; 	V0.u = (float)u1; 	V0.v = (float)v1;
-	V1.x = (float)x2; 	V1.y = (float)y2; 	V1.u = (float)u2; 	V1.v = (float)v2;
-	V2.x = (float)x3; 	V2.y = (float)y3; 	V2.u = (float)u3; 	V2.v = (float)v3;
-	initSidesBuffer();
+	V0.x = x1; 	V0.y = y1; 	V0.u = u1; 	V0.v = v1;
+	V1.x = x2; 	V1.y = y2; 	V1.u = u2; 	V1.v = v2;
+	V2.x = x3; 	V2.y = y3; 	V2.u = u3; 	V2.v = v3;
 
+	//	calculate the slope of the surface 
+	//	use floats here 
+	double denom = (V0.x - V2.x) * (V1.y - V2.y) - (V1.x - V2.x) * (V0.y - V2.y);
+	if (denom == 0.0)
+	{
+		return;
+	}
+	double id = 1.0 / denom;
+	float dudx, dvdx;
+	//	this is the UV slope across the surface
+	dudx = ((V0.u - V2.u) * (V1.y - V2.y) - (V1.u - V2.u) * (V0.y - V2.y)) * id;
+	dvdx = ((V0.v - V2.v) * (V1.y - V2.y) - (V1.v - V2.v) * (V0.y - V2.y)) * id;
+	//	convert to fixed
+	s32 dudxs = dudx * 65536.0f;
+	s32 dvdxs = dvdx * 65536.0f;
+	//	fill the buffer 
+	initSidesBuffer();
+	//	parse each line and decide where in the buffer to store them ( left or right ) 
 	ticTexLine(memory, &V0, &V1);
 	ticTexLine(memory, &V1, &V2);
 	ticTexLine(memory, &V2, &V0);
 
+	for (s32 y = 0; y < TIC80_HEIGHT; y++)
 	{
-		for (s32 y = 0; y < TIC80_HEIGHT; y++)
+		//	if it's backwards skip it
+		s32 width = SidesBuffer.Right[y] - SidesBuffer.Left[y];
+		//	if it's off top or bottom , skip this line
+		if ((y < machine->state.clip.t) || (y > machine->state.clip.b))
+			width = 0;
+		if (width > 0)
 		{
-			float width = SidesBuffer.Right[y] - SidesBuffer.Left[y];
-			if (width > 0)
+			s32 u = SidesBuffer.ULeft[y];
+			s32 v = SidesBuffer.VLeft[y];
+			s32 left = SidesBuffer.Left[y];
+			s32 right = SidesBuffer.Right[y];
+			//	check right edge, and clamp it
+			if (right > machine->state.clip.r)
+				right = machine->state.clip.r;
+			//	check left edge and offset UV's if we are off the left 
+			if (left < machine->state.clip.l)
 			{
-				float du = (SidesBuffer.URight[y] - SidesBuffer.ULeft[y]) / width;
-				float dv = (SidesBuffer.VRight[y] - SidesBuffer.VLeft[y]) / width;
-				float u = SidesBuffer.ULeft[y];
-				float v = SidesBuffer.VLeft[y];
-
-				for (s32 x = (s32)SidesBuffer.Left[y]; x <= (s32)SidesBuffer.Right[y]; ++x)
+				s32 dist = machine->state.clip.l - SidesBuffer.Left[y];
+				u += dudxs * dist;
+				v += dvdxs * dist;
+				left = machine->state.clip.l;
+			}
+			//	are we drawing from the map . ok then at least check before the inner loop
+			if (use_map == true)
+			{
+				for (s32 x = left; x < right; ++x)
 				{
-					if ((x >= 0) && (x < TIC80_WIDTH))
-					{
-						if (use_map == true)
-						{
-							enum {MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE, MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE};
+					enum { MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE, MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE };
+					s32 iu = (u >> 16) % MapWidth;
+					s32 iv = (v >> 16) % MapHeight;
 
-							s32 iu = (s32)u % MapWidth;
-							s32 iv = (s32)v % MapHeight;
-
-							while (iu < 0) iu += MapWidth;
-							while (iv < 0) iv += MapHeight;
-
-							u8 tile = map[(iv>>3) * TIC_MAP_WIDTH + (iu>>3)];
-							const u8 *buffer = &ptr[tile << 5];
-							u8 color = tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) << 3));
-							if (color != chroma)
-								setPixel(machine, x, y, color);
-						}
-						else
-						{
-							enum{SheetWidth = TIC_SPRITESHEET_SIZE, SheetHeight = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS};
-
-							s32 iu = (s32)(u) & (SheetWidth - 1);
-							s32 iv = (s32)(v) & (SheetHeight - 1);
-							const u8 *buffer = &ptr[((iu >> 3) + ((iv >> 3) << 4)) << 5];
-							u8 color = tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) << 3));
-							if (color != chroma)
-								setPixel(machine, x, y, color);
-						}
-					}
-					u += du;
-					v += dv;
+					while (iu < 0) iu += MapWidth;
+					while (iv < 0) iv += MapHeight;
+					u8 tile = map[(iv >> 3) * TIC_MAP_WIDTH + (iu >> 3)];
+					const u8 *buffer = &ptr[tile << 5];
+					u8 color = tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) << 3));
+					if (color != chroma)
+						setPixel(machine, x, y, color);
+					u += dudxs;
+					v += dvdxs;
+				}
+			}
+			else
+			{
+				//	direct from tile ram 
+				for (s32 x = left; x < right; ++x)
+				{
+					enum{SheetWidth = TIC_SPRITESHEET_SIZE, SheetHeight = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS};
+					s32 iu = (u>>16) & (SheetWidth - 1);
+					s32 iv = (v>>16) & (SheetHeight - 1);
+					const u8 *buffer = &ptr[((iu >> 3) + ((iv >> 3) << 4)) << 5];
+					u8 color = tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) << 3));
+					if (color != chroma)
+						setPixel(machine, x, y, color);
+					u += dudxs;
+					v += dvdxs;
 				}
 			}
 		}
@@ -1263,7 +1316,7 @@ static bool isNoiseWaveform(const tic_waveform* wave)
 
 static bool isKeyPressed(const tic80_keyboard* input, tic_key key)
 {
-	for(s32 i = 0; i < TIC_KEY_BUFFER; i++)
+	for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
 		if(input->keys[i] == key)
 			return true;
 
@@ -1346,7 +1399,6 @@ static void api_tick_end(tic_mem* memory)
 	machine->state.setpix = setPixelOvr;
 	machine->state.getpix = getPixelOvr;
 	machine->state.drawhline = drawHLineOvr;
-	memcpy(machine->state.ovr.palette, tic_palette_blit(&memory->cart.palette), sizeof machine->state.ovr.palette);
 }
 
 
@@ -1403,13 +1455,13 @@ static void initCover(tic_mem* tic)
 				{
 					const gif_color* c = &image->palette[image->buffer[i]];
 					tic_rgb rgb = { c->r, c->g, c->b };
-					u8 color = tic_tool_find_closest_color(tic->cart.palette.colors, &rgb);
+					u8 color = tic_tool_find_closest_color(tic->cart.bank0.palette.colors, &rgb);
 					tic_tool_poke4(tic->ram.vram.screen.data, i, color);
 				}
 			}
 
 			gif_close(image);
-		}		
+		}
 	}
 }
 
@@ -1419,14 +1471,15 @@ static void api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
 
 	static const struct {s32 bank; s32 ram; s32 size;} Sections[] = 
 	{
-		{offsetof(tic_bank, tiles), 	offsetof(tic_ram, tiles), 	sizeof(tic_tiles)	},
-		{offsetof(tic_bank, sprites),	offsetof(tic_ram, sprites), sizeof(tic_tiles)	},
-		{offsetof(tic_bank, map), 		offsetof(tic_ram, map), 	sizeof(tic_map)		},
-		{offsetof(tic_bank, sfx), 		offsetof(tic_ram, sfx), 	sizeof(tic_sfx)		},
-		{offsetof(tic_bank, music), 	offsetof(tic_ram, music), 	sizeof(tic_music)	},
+		{offsetof(tic_bank, tiles), 	offsetof(tic_ram, tiles), 			sizeof(tic_tiles)	},
+		{offsetof(tic_bank, sprites),	offsetof(tic_ram, sprites), 		sizeof(tic_tiles)	},
+		{offsetof(tic_bank, map), 		offsetof(tic_ram, map), 			sizeof(tic_map)		},
+		{offsetof(tic_bank, sfx), 		offsetof(tic_ram, sfx), 			sizeof(tic_sfx)		},
+		{offsetof(tic_bank, music), 	offsetof(tic_ram, music), 			sizeof(tic_music)	},
+		{offsetof(tic_bank, palette), 	offsetof(tic_ram, vram.palette), 	sizeof(tic_palette)	},
 	};
 
-	enum{Count = COUNT_OF(Sections), Mask = (1 << (Count+1)) - 1, PaletteMask = 1 << Count};
+	enum{Count = COUNT_OF(Sections), Mask = (1 << Count) - 1};
 
 	if(mask == 0) mask = Mask;
 	
@@ -1441,11 +1494,6 @@ static void api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
 				? memcpy((u8*)&tic->cart.banks[bank] + Sections[i].bank, (u8*)&tic->ram + Sections[i].ram, Sections[i].size)
 				: memcpy((u8*)&tic->ram + Sections[i].ram, (u8*)&tic->cart.banks[bank] + Sections[i].bank, Sections[i].size);
 	}
-
-	if(mask & PaletteMask)
-		toCart
-			? memcpy(&tic->cart.palette, &tic->ram.vram.palette, sizeof(tic_palette))
-			: memcpy(&tic->ram.vram.palette, &tic->cart.palette, sizeof(tic_palette));
 
 	machine->state.synced |= mask;
 }
@@ -1516,23 +1564,37 @@ static bool compareMetatag(const char* code, const char* tag, const char* value,
 	return result;
 }
 
-static bool isMoonscript(const char* code)
-{
-	return compareMetatag(code, "script", "moon", getMoonScriptConfig()->singleComment) 
-		|| compareMetatag(code, "script", "moonscript", getMoonScriptConfig()->singleComment);
-}
-
-static bool isJavascript(const char* code)
-{
-	return compareMetatag(code, "script", "js", getJsScriptConfig()->singleComment) 
-		|| compareMetatag(code, "script", "javascript", getJsScriptConfig()->singleComment);
-}
-
 static const tic_script_config* getScriptConfig(const char* code)
 {
-	if(isMoonscript(code)) return getMoonScriptConfig();
-	if(isJavascript(code)) return getJsScriptConfig();
+#if defined(TIC_BUILD_WITH_MOON)
+	if(compareMetatag(code, "script", "moon", getMoonScriptConfig()->singleComment) ||
+		compareMetatag(code, "script", "moonscript", getMoonScriptConfig()->singleComment)) 
+		return getMoonScriptConfig();
+#endif
+
+#if defined(TIC_BUILD_WITH_FENNEL)
+	if(compareMetatag(code, "script", "fennel", getFennelConfig()->singleComment))
+		return getFennelConfig();
+#endif
+
+#if defined(TIC_BUILD_WITH_JS)
+	if(compareMetatag(code, "script", "js", getJsScriptConfig()->singleComment) ||
+		compareMetatag(code, "script", "javascript", getJsScriptConfig()->singleComment)) 
+		return getJsScriptConfig();
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
+	if(compareMetatag(code, "script", "wren", getWrenScriptConfig()->singleComment)) 
+		return getWrenScriptConfig();
+#endif
+
+#if defined(TIC_BUILD_WITH_LUA)
 	return getLuaScriptConfig();
+#elif defined(TIC_BUILD_WITH_JS)
+	return getJsScriptConfig();
+#elif defined(TIC_BUILD_WITH_WREN)
+	return getWrenScriptConfig();
+#endif
 }
 
 static const tic_script_config* api_get_script_config(tic_mem* memory)
@@ -1585,6 +1647,7 @@ static void api_tick(tic_mem* tic, tic_tick_data* data)
 				config = getScriptConfig(code);
 				cart2ram(tic);
 
+				machine->state.synced = 0;
 				tic->input.data = 0;
 				
 				if(compareMetatag(code, "input", "mouse", config->singleComment))
@@ -1610,7 +1673,7 @@ static void api_tick(tic_mem* tic, tic_tick_data* data)
 			{
 				machine->state.tick = config->tick;
 				machine->state.scanline = config->scanline;
-				machine->state.ovr.callback = config->overlap;
+				machine->state.ovr.callback = config->overline;
 
 				machine->state.initialized = true;
 			}
@@ -1629,7 +1692,7 @@ static void api_scanline(tic_mem* memory, s32 row, void* data)
 		machine->state.scanline(memory, row, data);
 }
 
-static void api_overlap(tic_mem* memory, void* data)
+static void api_overline(tic_mem* memory, void* data)
 {
 	tic_machine* machine = (tic_machine*)memory;
 
@@ -1689,7 +1752,7 @@ static bool api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
 		return !prevDown && down;
 	}
 
-	for(s32 i = 0; i < TIC_KEY_BUFFER; i++)
+	for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
 	{
 		tic_key key = tic->ram.input.keyboard.keys[i];
 
@@ -1697,7 +1760,7 @@ static bool api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
 		{
 			bool wasPressed = false;
 
-			for(s32 p = 0; p < TIC_KEY_BUFFER; p++)
+			for(s32 p = 0; p < TIC80_KEY_BUFFER; p++)
 			{
 				if(machine->state.keyboard.previous.keys[p] == key)
 				{
@@ -1714,7 +1777,6 @@ static bool api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
 	return false;
 }
 
-
 static void api_load(tic_cartridge* cart, const u8* buffer, s32 size, bool palette)
 {
 	const u8* end = buffer + size;
@@ -1723,7 +1785,8 @@ static void api_load(tic_cartridge* cart, const u8* buffer, s32 size, bool palet
 	if(palette)
 	{
 		static const u8 DB16[] = {0x14, 0x0c, 0x1c, 0x44, 0x24, 0x34, 0x30, 0x34, 0x6d, 0x4e, 0x4a, 0x4e, 0x85, 0x4c, 0x30, 0x34, 0x65, 0x24, 0xd0, 0x46, 0x48, 0x75, 0x71, 0x61, 0x59, 0x7d, 0xce, 0xd2, 0x7d, 0x2c, 0x85, 0x95, 0xa1, 0x6d, 0xaa, 0x2c, 0xd2, 0xaa, 0x99, 0x6d, 0xc2, 0xca, 0xda, 0xd4, 0x5e, 0xde, 0xee, 0xd6};
-		memcpy(cart->palette.data, DB16, sizeof(tic_palette));				
+
+		memcpy(cart->bank0.palette.data, DB16, sizeof(tic_palette));
 	}
 
 	#define LOAD_CHUNK(to) memcpy(&to, buffer, min(sizeof(to), chunk.size))
@@ -1744,10 +1807,7 @@ static void api_load(tic_cartridge* cart, const u8* buffer, s32 size, bool palet
 		case CHUNK_WAVEFORM:	LOAD_CHUNK(cart->banks[chunk.bank].sfx.waveform); 	break;
 		case CHUNK_MUSIC:		LOAD_CHUNK(cart->banks[chunk.bank].music.tracks); 	break;
 		case CHUNK_PATTERNS:	LOAD_CHUNK(cart->banks[chunk.bank].music.patterns);	break;
-		case CHUNK_PALETTE:		
-			if(palette)
-				LOAD_CHUNK(cart->palette);
-			break;
+		case CHUNK_PALETTE:		LOAD_CHUNK(cart->banks[chunk.bank].palette);		break;
 		case CHUNK_COVER: 	
 			LOAD_CHUNK(cart->cover.data);
 			cart->cover.size = chunk.size;
@@ -1815,9 +1875,9 @@ static s32 api_save(const tic_cartridge* cart, u8* buffer)
 		buffer = SAVE_CHUNK(CHUNK_WAVEFORM, cart->banks[i].sfx.waveform, 	i);
 		buffer = SAVE_CHUNK(CHUNK_PATTERNS, cart->banks[i].music.patterns, 	i);
 		buffer = SAVE_CHUNK(CHUNK_MUSIC, 	cart->banks[i].music.tracks, 	i);
+		buffer = SAVE_CHUNK(CHUNK_PALETTE, 	cart->banks[i].palette, 		i);
 	}
 
-	buffer = SAVE_CHUNK(CHUNK_PALETTE, 	cart->palette, 0);
 	buffer = saveFixedChunk(buffer, CHUNK_COVER, cart->cover.data, cart->cover.size, 0);
 
 	#undef SAVE_CHUNK
@@ -1854,9 +1914,14 @@ static inline void memset4(void *dst, u32 val, u32 dwords)
 #endif
 }
 
-static void api_blit(tic_mem* tic, tic_scanline scanline, tic_overlap overlap, void* data)
+static void api_blit(tic_mem* tic, tic_scanline scanline, tic_overline overline, void* data)
 {
 	const u32* pal = tic_palette_blit(&tic->ram.vram.palette);
+
+	{
+		tic_machine* machine = (tic_machine*)tic;
+		memcpy(machine->state.ovr.palette, pal, sizeof machine->state.ovr.palette);
+	}
 
 	if(scanline)
 	{
@@ -1898,8 +1963,8 @@ static void api_blit(tic_mem* tic, tic_scanline scanline, tic_overlap overlap, v
 
 	memset4(&out[(TIC80_FULLHEIGHT-Bottom) * TIC80_FULLWIDTH], pal[tic->ram.vram.vars.border], TIC80_FULLWIDTH*Bottom);
 
-	if(overlap)
-		overlap(tic, data);
+	if(overline)
+		overline(tic, data);
 }
 
 static void initApi(tic_api* api)
@@ -1936,7 +2001,7 @@ static void initApi(tic_api* api)
 	INIT_API(time);
 	INIT_API(tick);
 	INIT_API(scanline);
-	INIT_API(overlap);
+	INIT_API(overline);
 	INIT_API(reset);
 	INIT_API(pause);
 	INIT_API(resume);

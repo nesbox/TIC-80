@@ -31,7 +31,6 @@ struct Surf
 	tic_mem* tic;
 	struct FileSystem* fs;
 	struct Console* console;
-	struct Net* net;
 	struct Movie* state;
 
 	bool init;

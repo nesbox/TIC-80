@@ -35,51 +35,27 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\3rd-party\SDL2-2.0.7\VisualC\SDLmain\SDLmain.vcxproj">
+    <ProjectReference Include="..\..\..\3rd-party\SDL2-2.0.7\VisualC\SDLmain\SDLmain.vcxproj">
       <Project>{da956fd3-e142-46f2-9dd5-c78bebb56b7a}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\3rd-party\SDL2-2.0.7\VisualC\SDL\SDL.vcxproj">
+    <ProjectReference Include="..\..\..\3rd-party\SDL2-2.0.7\VisualC\SDL\SDL.vcxproj">
       <Project>{81ce8daf-ebb2-4761-8e45-b71abcca8c68}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\gif\gif.vcxproj">
-      <Project>{6ea9d998-7557-4aed-abfc-142f9960c9b6}</Project>
+    <ProjectReference Include="..\sdl-gpu\sdl-gpu.vcxproj">
+      <Project>{d0b6ae7f-601b-43f4-afd3-c40136232595}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\lua\lua.vcxproj">
-      <Project>{57d2471b-3138-495e-af18-6e290d098ffc}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\tic80\tic80.vcxproj">
-      <Project>{c4d8bc10-ebf6-42bb-9b5d-6712fb428a50}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\zlib\zlib.vcxproj">
-      <Project>{1dfbdfa2-f204-42ff-b99e-250e4b2eba04}</Project>
+    <ProjectReference Include="..\studio\studio.vcxproj">
+      <Project>{6181f6a6-aa1b-4cd2-b306-e242cfde9b20}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\3rd-party\SDL2_net-2.0.1\SDLnet.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetselect.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetTCP.c" />
-    <ClCompile Include="..\..\..\src\code.c" />
-    <ClCompile Include="..\..\..\src\config.c" />
-    <ClCompile Include="..\..\..\src\console.c" />
-    <ClCompile Include="..\..\..\src\dialog.c" />
+    <ClCompile Include="..\..\..\3rd-party\SDL2_net-2.0.1\SDLnet.c" />
+    <ClCompile Include="..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetselect.c" />
+    <ClCompile Include="..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetTCP.c" />
     <ClCompile Include="..\..\..\src\ext\file_dialog.c" />
-    <ClCompile Include="..\..\..\src\ext\gif.c" />
-    <ClCompile Include="..\..\..\src\ext\md5.c" />
-    <ClCompile Include="..\..\..\src\fs.c" />
-    <ClCompile Include="..\..\..\src\history.c" />
-    <ClCompile Include="..\..\..\src\html.c" />
-    <ClCompile Include="..\..\..\src\map.c" />
-    <ClCompile Include="..\..\..\src\menu.c" />
-    <ClCompile Include="..\..\..\src\music.c" />
     <ClCompile Include="..\..\..\src\net.c" />
-    <ClCompile Include="..\..\..\src\run.c" />
-    <ClCompile Include="..\..\..\src\sfx.c" />
-    <ClCompile Include="..\..\..\src\sprite.c" />
-    <ClCompile Include="..\..\..\src\start.c" />
-    <ClCompile Include="..\..\..\src\studio.c" />
-    <ClCompile Include="..\..\..\src\surf.c" />
+    <ClCompile Include="..\..\..\src\system.c" />
     <ClCompile Include="..\..\..\src\tools.c" />
-    <ClCompile Include="..\..\..\src\world.c" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="icon.ico" />
@@ -210,12 +186,12 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\SDL2_net-2.0.1</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\zlib-1.2.8;..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\3rd-party\SDL2_net-2.0.1;..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\sdl-gpu\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ws2_32.lib;version.lib;Imm32.lib;Winmm.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;ws2_32.lib;version.lib;Imm32.lib;Winmm.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\..\lib\windows</AdditionalLibraryDirectories>
       <OutputFile>$(OutDir)tic80$(TargetExt)</OutputFile>
     </Link>
@@ -227,12 +203,12 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>TIC80_PRO;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\SDL2_net-2.0.1</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\zlib-1.2.8;..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\3rd-party\SDL2_net-2.0.1;..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\sdl-gpu\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ws2_32.lib;version.lib;Imm32.lib;Winmm.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;ws2_32.lib;version.lib;Imm32.lib;Winmm.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\..\lib\windows</AdditionalLibraryDirectories>
       <OutputFile>$(OutDir)tic80$(TargetExt)</OutputFile>
     </Link>
@@ -244,12 +220,12 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\SDL2_net-2.0.1</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\zlib-1.2.8;..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\3rd-party\SDL2_net-2.0.1;..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\sdl-gpu\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ws2_32.lib;version.lib;Imm32.lib;Winmm.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;ws2_32.lib;version.lib;Imm32.lib;Winmm.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\..\lib\windows</AdditionalLibraryDirectories>
       <OutputFile>$(OutDir)tic80$(TargetExt)</OutputFile>
     </Link>
@@ -261,12 +237,12 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>TIC80_PRO;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\SDL2_net-2.0.1</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\zlib-1.2.8;..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\3rd-party\SDL2_net-2.0.1;..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\sdl-gpu\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ws2_32.lib;version.lib;Imm32.lib;Winmm.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;ws2_32.lib;version.lib;Imm32.lib;Winmm.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\..\lib\windows</AdditionalLibraryDirectories>
       <OutputFile>$(OutDir)tic80$(TargetExt)</OutputFile>
     </Link>
@@ -280,14 +256,14 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\SDL2_net-2.0.1</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\zlib-1.2.8;..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\3rd-party\SDL2_net-2.0.1;..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\sdl-gpu\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ws2_32.lib;version.lib;Imm32.lib;Winmm.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;ws2_32.lib;version.lib;Imm32.lib;Winmm.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\..\lib\windows</AdditionalLibraryDirectories>
       <OutputFile>$(OutDir)tic80$(TargetExt)</OutputFile>
     </Link>
@@ -301,14 +277,14 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>TIC80_PRO;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\SDL2_net-2.0.1</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\zlib-1.2.8;..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\3rd-party\SDL2_net-2.0.1;..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\sdl-gpu\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ws2_32.lib;version.lib;Imm32.lib;Winmm.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;ws2_32.lib;version.lib;Imm32.lib;Winmm.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\..\lib\windows</AdditionalLibraryDirectories>
       <OutputFile>$(OutDir)tic80$(TargetExt)</OutputFile>
     </Link>
@@ -322,14 +298,14 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\SDL2_net-2.0.1</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\zlib-1.2.8;..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\3rd-party\SDL2_net-2.0.1;..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\sdl-gpu\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ws2_32.lib;version.lib;Imm32.lib;Winmm.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;ws2_32.lib;version.lib;Imm32.lib;Winmm.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\..\lib\windows</AdditionalLibraryDirectories>
       <OutputFile>$(OutDir)tic80$(TargetExt)</OutputFile>
     </Link>
@@ -343,14 +319,14 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>TIC80_PRO;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\SDL2_net-2.0.1</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\zlib-1.2.8;..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\3rd-party\SDL2_net-2.0.1;..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\sdl-gpu\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ws2_32.lib;version.lib;Imm32.lib;Winmm.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;ws2_32.lib;version.lib;Imm32.lib;Winmm.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>..\..\..\lib\windows</AdditionalLibraryDirectories>
       <OutputFile>$(OutDir)tic80$(TargetExt)</OutputFile>
     </Link>

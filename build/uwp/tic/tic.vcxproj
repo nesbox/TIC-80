@@ -109,7 +109,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <CompileAsWinRT>false</CompileAsWinRT>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2_net-2.0.1;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\3rd-party\sdl-gpu\include;..\..\..\3rd-party\zlib-1.2.8;..\..\..\3rd-party\SDL2_net-2.0.1;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>
       </BufferSecurityCheck>
       <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;_ARM_WINAPI_PARTITION_DESKTOP_SDK_AVAILABLE=1;%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -125,7 +125,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <CompileAsWinRT>false</CompileAsWinRT>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2_net-2.0.1;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\3rd-party\sdl-gpu\include;..\..\..\3rd-party\zlib-1.2.8;..\..\..\3rd-party\SDL2_net-2.0.1;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>
       </BufferSecurityCheck>
       <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;_ARM_WINAPI_PARTITION_DESKTOP_SDK_AVAILABLE=1;%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -141,7 +141,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <CompileAsWinRT>false</CompileAsWinRT>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2_net-2.0.1;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\3rd-party\sdl-gpu\include;..\..\..\3rd-party\zlib-1.2.8;..\..\..\3rd-party\SDL2_net-2.0.1;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>
       </BufferSecurityCheck>
       <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -157,7 +157,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <CompileAsWinRT>false</CompileAsWinRT>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2_net-2.0.1;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\3rd-party\sdl-gpu\include;..\..\..\3rd-party\zlib-1.2.8;..\..\..\3rd-party\SDL2_net-2.0.1;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>
       </BufferSecurityCheck>
       <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -173,7 +173,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <CompileAsWinRT>false</CompileAsWinRT>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2_net-2.0.1;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\3rd-party\sdl-gpu\include;..\..\..\3rd-party\zlib-1.2.8;..\..\..\3rd-party\SDL2_net-2.0.1;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>
       </BufferSecurityCheck>
       <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -189,7 +189,7 @@
       <DisableSpecificWarnings>4453;28204</DisableSpecificWarnings>
       <CompileAsWinRT>false</CompileAsWinRT>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\..\3rd-party\lua-5.3.1\src;..\..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\..\3rd-party\zlib-1.2.8;..\..\..\..\3rd-party\SDL2_net-2.0.1;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\include;..\..\..\include;..\..\..\3rd-party\lua-5.3.1\src;..\..\..\3rd-party\giflib-5.1.4\lib;..\..\..\3rd-party\SDL2-2.0.7\include;..\..\..\3rd-party\sdl-gpu\include;..\..\..\3rd-party\zlib-1.2.8;..\..\..\3rd-party\SDL2_net-2.0.1;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <BufferSecurityCheck>
       </BufferSecurityCheck>
       <PreprocessorDefinitions>_WINSOCK_DEPRECATED_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;LUA_COMPAT_5_2;_UNICODE;UNICODE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -203,6 +203,7 @@
     <AppxManifest Include="Package.appxmanifest">
       <SubType>Designer</SubType>
     </AppxManifest>
+    <None Include="packages.config" />
     <None Include="tic_StoreKey.pfx" />
     <None Include="tic_TemporaryKey.pfx" />
   </ItemGroup>
@@ -216,24 +217,18 @@
     <Image Include="Assets\Wide310x150Logo.scale-200.png" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\3rd-party\SDL2-2.0.7\VisualC-WinRT\UWP_VS2015\SDL-UWP.vcxproj">
+    <ProjectReference Include="..\..\..\3rd-party\SDL2-2.0.7\VisualC-WinRT\UWP_VS2015\SDL-UWP.vcxproj">
       <Project>{89e9b32e-a86a-47c3-a948-d2b1622925ce}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\..\..\3rd-party\zlib-1.2.8\winrt\zlib-uwp\zlib-uwp.vcxproj">
-      <Project>{978f53db-f959-4cb4-84a7-463af29949be}</Project>
+    <ProjectReference Include="..\sdl-gpu-static\sdl-gpu-static.vcxproj">
+      <Project>{361dfddb-f86e-4c2c-abee-03acf4b8ac33}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\gif\gif.vcxproj">
-      <Project>{bc1084df-210a-48d6-a077-761d8c16947b}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\lua\lua.vcxproj">
-      <Project>{53802f21-41da-4ac1-8b62-0dac2ccb8af8}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\tic80\tic80.vcxproj">
-      <Project>{9c39acf1-5f52-4a2b-a467-9f2805d6174b}</Project>
+    <ProjectReference Include="..\studio\studio.vcxproj">
+      <Project>{6a22403a-6cf5-49f2-a012-ec04c9496306}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\3rd-party\SDL2-2.0.7\src\main\winrt\SDL_winrt_main_NonXAML.cpp">
+    <ClCompile Include="..\..\..\3rd-party\SDL2-2.0.7\src\main\winrt\SDL_winrt_main_NonXAML.cpp">
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">true</CompileAsWinRT>
@@ -241,13 +236,9 @@
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</CompileAsWinRT>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\3rd-party\SDL2_net-2.0.1\SDLnet.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetselect.c" />
-    <ClCompile Include="..\..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetTCP.c" />
-    <ClCompile Include="..\..\..\src\code.c" />
-    <ClCompile Include="..\..\..\src\config.c" />
-    <ClCompile Include="..\..\..\src\console.c" />
-    <ClCompile Include="..\..\..\src\dialog.c" />
+    <ClCompile Include="..\..\..\3rd-party\SDL2_net-2.0.1\SDLnet.c" />
+    <ClCompile Include="..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetselect.c" />
+    <ClCompile Include="..\..\..\3rd-party\SDL2_net-2.0.1\SDLnetTCP.c" />
     <ClCompile Include="..\..\..\src\ext\file_dialog.cpp">
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</CompileAsWinRT>
@@ -256,31 +247,24 @@
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</CompileAsWinRT>
       <CompileAsWinRT Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</CompileAsWinRT>
     </ClCompile>
-    <ClCompile Include="..\..\..\src\ext\gif.c" />
-    <ClCompile Include="..\..\..\src\ext\md5.c" />
-    <ClCompile Include="..\..\..\src\fs.c" />
-    <ClCompile Include="..\..\..\src\history.c" />
-    <ClCompile Include="..\..\..\src\html.c" />
-    <ClCompile Include="..\..\..\src\map.c" />
-    <ClCompile Include="..\..\..\src\menu.c" />
-    <ClCompile Include="..\..\..\src\music.c" />
     <ClCompile Include="..\..\..\src\net.c" />
-    <ClCompile Include="..\..\..\src\run.c" />
-    <ClCompile Include="..\..\..\src\sfx.c" />
-    <ClCompile Include="..\..\..\src\sprite.c" />
-    <ClCompile Include="..\..\..\src\start.c" />
-    <ClCompile Include="..\..\..\src\studio.c" />
-    <ClCompile Include="..\..\..\src\surf.c" />
+    <ClCompile Include="..\..\..\src\system.c" />
     <ClCompile Include="..\..\..\src\tools.c" />
-    <ClCompile Include="..\..\..\src\world.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Package.StoreAssociation.xml" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="..\..\..\..\3rd-party\SDL2-2.0.7\src\main\winrt\SDL2-WinRTResources.rc" />
+    <ResourceCompile Include="..\..\..\3rd-party\SDL2-2.0.7\src\main\winrt\SDL2-WinRTResources.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="packages\ANGLE.WindowsStore.2.1.13\build\native\ANGLE.WindowsStore.targets" Condition="Exists('packages\ANGLE.WindowsStore.2.1.13\build\native\ANGLE.WindowsStore.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('packages\ANGLE.WindowsStore.2.1.13\build\native\ANGLE.WindowsStore.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\ANGLE.WindowsStore.2.1.13\build\native\ANGLE.WindowsStore.targets'))" />
+  </Target>
 </Project>

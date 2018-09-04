@@ -15,7 +15,6 @@ build/android/libs/
 build/android/obj/
 build/itch.io/tic.js
 build/itch.io/console.zip
-build/html/tic.js
 build/uwp/code8/ARM/
 build/uwp/code8/x64/
 build/uwp/code8/code8.VC.db
@@ -95,3 +94,34 @@ build/windows/example/Release Pro/
 build/windows/example/Debug Pro/
 TIC80.sublime-project
 TIC80.sublime-workspace
+build/windows/wren/Release/
+build/windows/wren/Debug/
+build/windows/wren/x64/
+build/uwp/wren/x64/
+build/uwp/wren/Release/
+build/uwp/wren/ARM/
+build/uwp/wren/Debug/
+build/windows/studio/Debug/
+build/windows/studio/Debug Pro/
+build/windows/studio/Release/
+build/windows/studio/Release Pro/
+build/uwp/studio/Debug/
+build/uwp/studio/Debug Pro/
+build/uwp/studio/Release/
+build/uwp/studio/Release Pro/
+build/uwp/studio/ARM/
+build/uwp/studio/x64/
+build/windows/sdl-gpu/Debug/
+build/windows/sdl-gpu/Debug Pro/
+build/windows/sdl-gpu/Release/
+build/windows/sdl-gpu/Release Pro/
+build/uwp/sdl-gpu-static/Debug/
+build/uwp/sdl-gpu-static/Debug Pro/
+build/uwp/sdl-gpu-static/Release/
+build/uwp/sdl-gpu-static/Release Pro/
+build/uwp/sdl-gpu-static/ARM/
+build/uwp/sdl-gpu-static/x64/
+build/uwp/tic/packages/
+build/windows/studio/x64/
+build/windows/sdl-gpu/x64/
+build/windows/tic/.vs/
