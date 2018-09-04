@@ -192,7 +192,7 @@ if(NOT EMSCRIPTEN)
 	endif()
 
 	set(SDL_SHARED_ENABLED_BY_DEFAULT OFF)
-	add_subdirectory(3rd-party/SDL2-2.0.7)
+	add_subdirectory(3rd-party/SDL2-2.0.8)
 
 endif()
 
@@ -212,7 +212,7 @@ if(NOT EMSCRIPTEN)
 		add_executable(sdl-renderer ${EXAMPLE_SRC})
 	endif()
 
-	target_include_directories(sdl-renderer PRIVATE 3rd-party/SDL2-2.0.7/include)
+	target_include_directories(sdl-renderer PRIVATE 3rd-party/SDL2-2.0.8/include)
 	target_include_directories(sdl-renderer PRIVATE include)
 	target_include_directories(sdl-renderer PRIVATE src)
 
@@ -260,7 +260,7 @@ target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/src/externals/glew)
 target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/src/externals/glew/GL)
 target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/src/externals/stb_image)
 target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/src/externals/stb_image_write)
-target_include_directories(sdlgpu PRIVATE 3rd-party/SDL2-2.0.7/include)
+target_include_directories(sdlgpu PRIVATE 3rd-party/SDL2-2.0.8/include)
 
 if(WIN32)
 	target_link_libraries(sdlgpu opengl32)
@@ -287,7 +287,7 @@ set(SDLNET_SRC
 )
 
 add_library(sdlnet STATIC ${SDLNET_SRC})
-target_include_directories(sdlnet PRIVATE 3rd-party/SDL2-2.0.7/include)
+target_include_directories(sdlnet PRIVATE 3rd-party/SDL2-2.0.8/include)
 
 if(WIN32)
 	target_link_libraries(sdlnet ws2_32)
@@ -437,7 +437,7 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 	endif()
 
 	target_include_directories(${TIC80_OUTPUT} PRIVATE include)
-	target_include_directories(${TIC80_OUTPUT} PRIVATE 3rd-party/SDL2-2.0.7/include)
+	target_include_directories(${TIC80_OUTPUT} PRIVATE 3rd-party/SDL2-2.0.8/include)
 	target_include_directories(${TIC80_OUTPUT} PRIVATE 3rd-party/sdl-gpu/include)
 	target_include_directories(${TIC80_OUTPUT} PRIVATE 3rd-party/SDL2_net-2.0.1)
 
