@@ -30,7 +30,6 @@
 #include <commdlg.h>
 #include <stdio.h>
 
-FILE* _wfopen(const wchar_t *, const wchar_t *);
 wchar_t* wcsrchr(const wchar_t *, wchar_t);
 wchar_t* wcscpy(wchar_t *, const wchar_t *);
 

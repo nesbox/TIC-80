@@ -216,6 +216,10 @@ if(NOT EMSCRIPTEN)
 	target_include_directories(sdl-renderer PRIVATE include)
 	target_include_directories(sdl-renderer PRIVATE src)
 
+	if(MINGW)
+		target_link_libraries(sdl-renderer mingw32)
+	endif()
+
 	add_dependencies(sdl-renderer tic80core SDL2-static SDL2main)
 	target_link_libraries(sdl-renderer tic80core SDL2-static SDL2main)
 endif()
@@ -400,7 +404,7 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 	add_dependencies(${TIC80_OUTPUT}lib tic80core zlib)
 	target_link_libraries(${TIC80_OUTPUT}lib tic80core zlib)
 
-endforeach(CART_FILE)
+endforeach()
 
 target_compile_definitions(tic80prolib PRIVATE TIC80_PRO)
 
@@ -422,9 +426,7 @@ endif()
 foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 
 	if(WIN32)
-		# TODO: uncomment this (temporary disabled for VS2017)
-		# set(TIC80_SRC ${TIC80_SRC} build/windows/tic80.rc)
-
+		set(TIC80_SRC ${TIC80_SRC} build/windows/tic80.rc)
 		add_executable(${TIC80_OUTPUT} WIN32 ${TIC80_SRC})
 	else()
 		add_executable(${TIC80_OUTPUT} ${TIC80_SRC})
@@ -435,10 +437,13 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 	target_include_directories(${TIC80_OUTPUT} PRIVATE 3rd-party/sdl-gpu/include)
 	target_include_directories(${TIC80_OUTPUT} PRIVATE 3rd-party/SDL2_net-2.0.1)
 
-	if(NOT EMSCRIPTEN)
-		add_dependencies(${TIC80_OUTPUT} SDL2-static SDL2main)
-		target_link_libraries(${TIC80_OUTPUT} SDL2-static SDL2main)
+	if(MINGW)
+		target_link_libraries(${TIC80_OUTPUT} mingw32)
+	endif()
 
+	if(NOT EMSCRIPTEN)
+		add_dependencies(${TIC80_OUTPUT} SDL2main SDL2-static)
+		target_link_libraries(${TIC80_OUTPUT} SDL2-static SDL2main)
 	endif()
 
 	add_dependencies(${TIC80_OUTPUT} ${TIC80_OUTPUT}lib sdlnet sdlgpu)
