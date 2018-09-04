@@ -55,27 +55,44 @@ The [wiki](https://github.com/nesbox/tic.computer/wiki) holds TIC-80 documentati
 # Build instructions
 
 ## Windows
-### with Visual Studio 2015
-- install Visual Studio 2015
-- install GIT
+### with Visual Studio 2017
+- install `Visual Studio 2017`
+- install `git`
 - run following commands in `cmd`
 ```
 git clone --recursive https://github.com/nesbox/TIC-80
+cmake -G "Visual Studio 15 2017 Win64"
 ```
-- open `TIC-80\build\windows\tic\tic.sln` and build
+- open `TIC-80.sln` and build
 - enjoy :)
 
-### with MinGW32
-follow the instructions in the tutorial https://matheuslessarodrigues.github.io/tic80-build-tutorial/
-made by [@matheuslessarodrigues](https://github.com/matheuslessarodrigues)
+### with MinGW
+- install `mingw-w64` (http://mingw-w64.org)
+- install `git`
+- run following commands in `cmd`
+```
+git clone --recursive https://github.com/nesbox/TIC-80
+cmake -G "MinGW Makefiles"
+mingw32-make -j4
+```
 
 ## Linux
 run the following commands in the Terminal
 ```
-sudo apt-get install git 
+sudo apt-get install git libgtk-3-dev cmake
 git clone --recursive https://github.com/nesbox/TIC-80
 cd TIC-80
-./build.sh
+cmake . && make -j4
+```
+
+## MacOS
+install `Command Line Tools for Xcode` and `brew` package manager
+run the following commands in the Terminal
+```
+brew install git cmake
+git clone --recursive https://github.com/nesbox/TIC-80
+cd TIC-80
+cmake . && make -j4
 ```
 
 ## iOS / tvOS
