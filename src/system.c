@@ -67,6 +67,11 @@ static struct
 
 		bool state[tic_keys_count];
 
+		struct 
+		{
+			bool state[tic_keys_count];
+		} touch;
+
 	} keyboard;
 
 	u32 touchCounter;
@@ -419,7 +424,7 @@ static void processKeyboard()
 	enum{BufSize = COUNT_OF(input->keyboard.keys)};
 
 	for(s32 i = 0, c = 0; i < COUNT_OF(platform.keyboard.state) && c < BufSize; i++)
-		if(platform.keyboard.state[i])
+		if(platform.keyboard.state[i] || platform.keyboard.touch.state[i])
 			input->keyboard.keys[c++] = i;
 }
 
@@ -498,6 +503,8 @@ static void processTouchKeyboard()
 	s32 devices = SDL_GetNumTouchDevices();
 
 	enum {BufSize = COUNT_OF(input->keyboard.keys)};
+
+	SDL_memset(&platform.keyboard.touch.state, 0, sizeof platform.keyboard.touch.state);
 
 	for (s32 i = 0; i < devices; i++)
 	{
