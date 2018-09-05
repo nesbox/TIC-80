@@ -1099,7 +1099,7 @@ static void initModules()
 
 	for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
 	{
-		initCode(impl.editor[i].code, impl.studio.tic, &tic->cart.banks[i].code);
+		initCode(impl.editor[i].code, impl.studio.tic, &tic->cart.code);
 		initSprite(impl.editor[i].sprite, impl.studio.tic, &tic->cart.banks[i].tiles);
 		initMap(impl.editor[i].map, impl.studio.tic, &tic->cart.banks[i].map);
 		initSfx(impl.editor[i].sfx, impl.studio.tic, &tic->cart.banks[i].sfx);

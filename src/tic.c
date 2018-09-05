@@ -1599,13 +1599,13 @@ static const tic_script_config* getScriptConfig(const char* code)
 
 static const tic_script_config* api_get_script_config(tic_mem* memory)
 {
-	return getScriptConfig(memory->cart.bank0.code.data);
+	return getScriptConfig(memory->cart.code.data);
 }
 
 static void updateSaveid(tic_mem* memory)
 {
 	memset(memory->saveid, 0, sizeof memory->saveid);
-	const char* saveid = readMetatag(memory->cart.bank0.code.data, "saveid", api_get_script_config(memory)->singleComment);
+	const char* saveid = readMetatag(memory->cart.code.data, "saveid", api_get_script_config(memory)->singleComment);
 	if(saveid)
 	{
 		strncpy(memory->saveid, saveid, TIC_SAVEID_SIZE-1);
@@ -1621,20 +1621,13 @@ static void api_tick(tic_mem* tic, tic_tick_data* data)
 	
 	if(!machine->state.initialized)
 	{
-		enum{CodeSize = sizeof(tic_code) * TIC_BANKS};
+		enum{CodeSize = sizeof(tic_code)};
 		char* code = malloc(CodeSize);
 
 		if(code)
 		{
 			memset(code, 0, CodeSize);
-
-			for(s32 i = TIC_BANKS - 1; i >= 0; i--)
-			{
-				const char* bankCode = tic->cart.banks[i].code.data;
-
-				if(strlen(bankCode))
-					strcat(code, bankCode);
-			}
+			strcpy(code, tic->cart.code.data);
 
 			if(data->preprocessor)
 				data->preprocessor(data->data, code);
@@ -1802,12 +1795,15 @@ static void api_load(tic_cartridge* cart, const u8* buffer, s32 size, bool palet
 		case CHUNK_TILES: 		LOAD_CHUNK(cart->banks[chunk.bank].tiles); 			break;
 		case CHUNK_SPRITES: 	LOAD_CHUNK(cart->banks[chunk.bank].sprites); 		break;
 		case CHUNK_MAP: 		LOAD_CHUNK(cart->banks[chunk.bank].map); 			break;
-		case CHUNK_CODE: 		LOAD_CHUNK(cart->banks[chunk.bank].code); 			break;
 		case CHUNK_SAMPLES: 	LOAD_CHUNK(cart->banks[chunk.bank].sfx.samples); 	break;
 		case CHUNK_WAVEFORM:	LOAD_CHUNK(cart->banks[chunk.bank].sfx.waveform); 	break;
 		case CHUNK_MUSIC:		LOAD_CHUNK(cart->banks[chunk.bank].music.tracks); 	break;
 		case CHUNK_PATTERNS:	LOAD_CHUNK(cart->banks[chunk.bank].music.patterns);	break;
 		case CHUNK_PALETTE:		LOAD_CHUNK(cart->banks[chunk.bank].palette);		break;
+		case CHUNK_CODE: 		
+			if(chunk.bank == 0)
+				LOAD_CHUNK(cart->code);
+			break;
 		case CHUNK_COVER: 	
 			LOAD_CHUNK(cart->cover.data);
 			cart->cover.size = chunk.size;
@@ -1870,7 +1866,6 @@ static s32 api_save(const tic_cartridge* cart, u8* buffer)
 		buffer = SAVE_CHUNK(CHUNK_TILES, 	cart->banks[i].tiles, 			i);
 		buffer = SAVE_CHUNK(CHUNK_SPRITES, 	cart->banks[i].sprites, 		i);
 		buffer = SAVE_CHUNK(CHUNK_MAP, 		cart->banks[i].map, 			i);
-		buffer = SAVE_CHUNK(CHUNK_CODE, 	cart->banks[i].code, 			i);
 		buffer = SAVE_CHUNK(CHUNK_SAMPLES, 	cart->banks[i].sfx.samples, 	i);
 		buffer = SAVE_CHUNK(CHUNK_WAVEFORM, cart->banks[i].sfx.waveform, 	i);
 		buffer = SAVE_CHUNK(CHUNK_PATTERNS, cart->banks[i].music.patterns, 	i);
@@ -1878,6 +1873,7 @@ static s32 api_save(const tic_cartridge* cart, u8* buffer)
 		buffer = SAVE_CHUNK(CHUNK_PALETTE, 	cart->banks[i].palette, 		i);
 	}
 
+	buffer = SAVE_CHUNK(CHUNK_CODE, cart->code, 0);
 	buffer = saveFixedChunk(buffer, CHUNK_COVER, cart->cover.data, cart->cover.size, 0);
 
 	#undef SAVE_CHUNK

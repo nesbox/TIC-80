@@ -428,7 +428,7 @@ static bool onConsoleLoadSectionCommand(Console* console, const char* param)
 						case 0: memcpy(&tic->cart.cover, 			&cart->cover, 			sizeof cart->cover); break;
 						case 1: memcpy(&tic->cart.bank0.tiles, 		&cart->bank0.tiles, 	sizeof(tic_tiles)*2); break;
 						case 2: memcpy(&tic->cart.bank0.map, 		&cart->bank0.map, 		sizeof(tic_map)); break;
-						case 3: memcpy(&tic->cart.bank0.code, 		&cart->bank0.code, 		sizeof(tic_code)); break;
+						case 3: memcpy(&tic->cart.code, 			&cart->code, 			sizeof(tic_code)); break;
 						case 4: memcpy(&tic->cart.bank0.sfx, 		&cart->bank0.sfx, 		sizeof(tic_sfx)); break;
 						case 5: memcpy(&tic->cart.bank0.music, 		&cart->bank0.music, 	sizeof(tic_music)); break;
 						case 6: memcpy(&tic->cart.bank0.palette, 	&cart->bank0.palette,	sizeof(tic_palette)); break;
@@ -779,14 +779,8 @@ static s32 saveProject(Console* console, void* buffer, const char* comment)
 	tic_mem* tic = console->tic;
 
 	char* stream = buffer;
-	char* ptr = saveTextSection(stream, tic->cart.bank0.code.data);
+	char* ptr = saveTextSection(stream, tic->cart.code.data);
 	char tag[16];
-
-	for(s32 b = 1; b < TIC_BANKS; b++)
-	{
-		makeTag("CODE", tag, b);
-		ptr = saveTextSectionBank(ptr, comment, tag, tic->cart.banks[b].code.data);
-	}
 
 	for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
 	{
@@ -946,16 +940,8 @@ static bool loadProject(Console* console, const char* name, const char* data, s3
 			const char* comment = projectComment(name);
 			char tag[16];
 
-			if(loadTextSection(project, comment, cart->bank0.code.data, sizeof(tic_code)))
+			if(loadTextSection(project, comment, cart->code.data, sizeof(tic_code)))
 				done = true;
-
-			for(s32 b = 1; b < TIC_BANKS; b++)
-			{
-				makeTag("CODE", tag, b);
-
-				if(loadTextSectionBank(project, comment, tag, cart->banks[b].code.data, sizeof(tic_code)))
-					done = true;
-			}
 
 			for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
 			{
@@ -2894,7 +2880,7 @@ static bool cmdInjectCode(Console* console, const char* param, const char* name)
 	bool watch = strcmp(param, "-code-watch") == 0;
 	if(watch || strcmp(param, "-code") == 0)
 	{
-		bool loaded = loadFileIntoBuffer(console, console->embed.file->bank0.code.data, name);
+		bool loaded = loadFileIntoBuffer(console, console->embed.file->code.data, name);
 
 		if(loaded)
 		{
