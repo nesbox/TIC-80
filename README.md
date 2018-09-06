@@ -67,11 +67,13 @@ cmake -G "Visual Studio 15 2017 Win64"
 - enjoy :)
 
 ### with MinGW
-- install `mingw-w64` (http://mingw-w64.org)
+- install `mingw-w64` (http://mingw-w64.org) and add `.../mingw/bin` path to the *System Variables Path*
 - install `git`
-- run following commands in `cmd`
+- install `cmake` (https://cmake.org)
+- run following commands in `terminal`
 ```
 git clone --recursive https://github.com/nesbox/TIC-80
+cd TIC-80
 cmake -G "MinGW Makefiles"
 mingw32-make -j4
 ```
@@ -92,6 +94,7 @@ sudo sh cmake-3.12.0-Linux-x86_64.sh --skip-license --prefix=/usr
 
 ## Mac
 install `Command Line Tools for Xcode` and `brew` package manager
+
 run the following commands in the Terminal
 ```
 brew install git cmake
