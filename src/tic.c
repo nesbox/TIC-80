@@ -124,11 +124,16 @@ static void runEnvelope(blip_buffer_t* blip, tic_sound_register* reg, tic_sound_
 {
 	s32 period = freq2period(reg->freq * ENVELOPE_FREQ_SCALE);
 
-	for ( ; data->time < end_time; data->time += period )
+	while (data->time < end_time)
 	{
+		s32 from = getAmp(reg, tic_tool_peek4(reg->waveform.data, data->phase));
 		data->phase = (data->phase + 1) % ENVELOPE_VALUES;
-
-		update_amp(blip, data, getAmp(reg, tic_tool_peek4(reg->waveform.data, data->phase)));
+		s32 to   = getAmp(reg, tic_tool_peek4(reg->waveform.data, data->phase));
+		for (int i = 0; i < period; ++i) {
+			s32 d2 = to - from;
+			update_amp(blip, data, from + d2 * ((float)i / period));
+			data->time += 1;
+		}
 	}
 }
 
