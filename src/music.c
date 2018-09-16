@@ -49,9 +49,9 @@ static void redo(Music* music)
 	history_redo(music->history);
 }
 
-const tic_music_pos* getMusicPos(Music* music)
+static const tic_sound_state* getMusicPos(Music* music)
 {
-	return &music->tic->ram.music_pos;
+	return &music->tic->ram.sound_state;
 }
 
 static void drawDownBorder(Music* music, s32 x, s32 y, s32 w, s32 h)
@@ -298,8 +298,8 @@ static void upRow(Music* music)
 
 static void downRow(Music* music)
 {
-	const tic_music_pos* pos = getMusicPos(music);
-	if(pos->track == music->track && music->tracker.follow) return;
+	const tic_sound_state* pos = getMusicPos(music);
+	if(pos->music.track == music->track && music->tracker.follow) return;
 
 	if (music->tracker.row < getRows(music) - 1)
 	{
@@ -386,17 +386,17 @@ static void downFrame(Music* music)
 
 static bool checkPlayFrame(Music* music, s32 frame)
 {
-	const tic_music_pos* pos = getMusicPos(music);
+	const tic_sound_state* pos = getMusicPos(music);
 
-	return pos->track == music->track &&
-		pos->frame == frame;
+	return pos->music.track == music->track &&
+		pos->music.frame == frame;
 }
 
 static bool checkPlayRow(Music* music, s32 row)
 {
-	const tic_music_pos* pos = getMusicPos(music);
+	const tic_sound_state* pos = getMusicPos(music);
 
-	return checkPlayFrame(music, music->tracker.frame) && pos->row == row;
+	return checkPlayFrame(music, music->tracker.frame) && pos->music.row == row;
 }
 
 static tic_track_pattern* getPattern(Music* music, s32 channel)
@@ -789,8 +789,8 @@ static void processTrackerKeyboard(Music* music)
 	else if(keyWasPressed(tic_key_space)) playNote(music);
 	else if(keyWasPressed(tic_key_return))
 	{
-		const tic_music_pos* pos = getMusicPos(music);
-		pos->track < 0
+		const tic_sound_state* pos = getMusicPos(music);
+		pos->music.track < 0
 			? (shift ? playFrameRow(music) : playFrame(music))
 			: stopTrack(music);        
 	}
@@ -1589,14 +1589,14 @@ static void drawTrackerLayout(Music* music)
 
 	if(music->tracker.follow)
 	{
-		const tic_music_pos* pos = getMusicPos(music);
+		const tic_sound_state* pos = getMusicPos(music);
 
-		if(pos->track == music->track && 
+		if(pos->music.track == music->track && 
 			music->tracker.row >= 0 &&
-			pos->row >= 0)
+			pos->music.row >= 0)
 		{
-			music->tracker.frame = pos->frame;
-			music->tracker.row = pos->row;
+			music->tracker.frame = pos->music.frame;
+			music->tracker.row = pos->music.row;
 			updateTracker(music);
 		}
 	}

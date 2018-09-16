@@ -86,15 +86,7 @@ typedef struct
 	Channel channels[TIC_SOUND_CHANNELS];
 	struct
 	{
-		enum
-		{
-			MusicStop = 0,
-			MusicPlayFrame,
-			MusicPlay,
-		} play;
-
 		s32 ticks;
-
 		Channel channels[TIC_SOUND_CHANNELS];
 	} music;
 

@@ -79,6 +79,7 @@
 #define TIC_SAVEID_SIZE 64
 
 #define TIC_SOUND_CHANNELS 4
+#define TIC_STEREO_CHANNLES 2
 #define SFX_TICKS 30
 #define SFX_COUNT_BITS 6
 #define SFX_COUNT (1 << SFX_COUNT_BITS)
@@ -266,18 +267,32 @@ typedef struct
 	tic_tracks tracks;
 }tic_music;
 
+typedef enum
+{
+	tic_music_stop,
+	tic_music_play_frame,
+	tic_music_play,
+} tic_music_state;
+
 typedef struct
 {
-	s8 track;
-	s8 frame;
-	s8 row;
+	struct
+	{
+		s8 track;
+		s8 frame;
+		s8 row;
+	} music;
 	
 	struct
 	{
-		bool loop:1;
+		u8 music_loop:1;
+		u8 music_state:2; // enum tic_music_state
+		u8 unknown:1;
+		u8 stereo_mute_left:1;
+		u8 stereo_mute_right:1;
 	} flag;
 
-} tic_music_pos;
+} tic_sound_state;
 
 typedef struct
 {
@@ -421,7 +436,7 @@ typedef union
 		tic_sound_register registers[TIC_SOUND_CHANNELS];
 		tic_sfx sfx;
 		tic_music music;
-		tic_music_pos music_pos;
+		tic_sound_state sound_state;
 	};
 
 	u8 data[TIC_RAM_SIZE];

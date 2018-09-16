@@ -105,7 +105,7 @@ static void initSound()
 	{
 		.freq = 44100,
 		.format = AUDIO_S16,
-		.channels = 1,
+		.channels = TIC_STEREO_CHANNLES,
 		.userdata = NULL,
 	};
 
@@ -115,7 +115,7 @@ static void initSound()
 
 	if(platform.audio.cvt.needed)
 	{
-		platform.audio.cvt.len = platform.audio.spec.freq * sizeof(s16) / TIC_FRAMERATE;
+		platform.audio.cvt.len = platform.audio.spec.freq * platform.audio.spec.channels * sizeof(s16) / TIC_FRAMERATE;
 		platform.audio.cvt.buf = SDL_malloc(platform.audio.cvt.len * platform.audio.cvt.len_mult);
 	}
 }

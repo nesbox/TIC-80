@@ -2278,7 +2278,7 @@ static void onConsoleRamCommand(Console* console, const char* param)
 		{offsetof(tic_ram, sfx.samples),				"SFX"},
 		{offsetof(tic_ram, music.patterns.data), 		"MUSIC PATTERNS"},
 		{offsetof(tic_ram, music.tracks.data), 			"MUSIC TRACKS"},
-		{offsetof(tic_ram, music_pos), 					"MUSIC POS"},
+		{offsetof(tic_ram, sound_state), 				"SOUND STATE"},
 		{TIC_RAM_SIZE, 									"..."},
 	};
 

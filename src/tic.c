@@ -417,19 +417,19 @@ static void setMusic(tic_machine* machine, s32 index, s32 frame, s32 row, bool l
 {
 	tic_mem* memory = (tic_mem*)machine;
 
-	memory->ram.music_pos.track = index;
+	memory->ram.sound_state.music.track = index;
 
 	if(index < 0)
 	{
-		machine->state.music.play = MusicStop;
+		memory->ram.sound_state.flag.music_state = tic_music_stop;
 		resetMusic(memory);
 	}
 	else
 	{
-		memory->ram.music_pos.row = row;
-		memory->ram.music_pos.frame = frame < 0 ? 0 : frame;
-		memory->ram.music_pos.flag.loop = loop;
-		machine->state.music.play = MusicPlay;
+		memory->ram.sound_state.music.row = row;
+		memory->ram.sound_state.music.frame = frame < 0 ? 0 : frame;
+		memory->ram.sound_state.flag.music_loop = loop;
+		memory->ram.sound_state.flag.music_state = tic_music_play;
 
 		const tic_track* track = &machine->sound.music->tracks.data[index];
 		machine->state.music.ticks = row >= 0 ? row * (track->speed + DEFAULT_SPEED) * NOTES_PER_MUNUTE / (track->tempo + DEFAULT_TEMPO) / DEFAULT_SPEED : 0;
@@ -443,7 +443,7 @@ static void api_music(tic_mem* memory, s32 index, s32 frame, s32 row, bool loop)
 	setMusic(machine, index, frame, row, loop);
 
 	if(index >= 0)
-		machine->state.music.play = MusicPlay;
+		memory->ram.sound_state.flag.music_state = tic_music_play;
 }
 
 static void soundClear(tic_mem* memory)
@@ -1214,9 +1214,9 @@ static void processMusic(tic_mem* memory)
 {
 	tic_machine* machine = (tic_machine*)memory;
 
-	if(machine->state.music.play == MusicStop) return;
+	if(memory->ram.sound_state.flag.music_state == tic_music_stop) return;
 
-	const tic_track* track = &machine->sound.music->tracks.data[memory->ram.music_pos.track];
+	const tic_track* track = &machine->sound.music->tracks.data[memory->ram.sound_state.music.track];
 	s32 row = machine->state.music.ticks * (track->tempo + DEFAULT_TEMPO) * DEFAULT_SPEED / (track->speed + DEFAULT_SPEED) / NOTES_PER_MUNUTE;
 
 	s32 rows = MUSIC_PATTERN_ROWS - track->rows;
@@ -1226,14 +1226,14 @@ static void processMusic(tic_mem* memory)
 		machine->state.music.ticks = 0;
 		resetMusic(memory);
 
-		if(machine->state.music.play == MusicPlay)
+		if(memory->ram.sound_state.flag.music_state == tic_music_play)
 		{
-			memory->ram.music_pos.frame++;
+			memory->ram.sound_state.music.frame++;
 
-			if(memory->ram.music_pos.frame >= MUSIC_FRAMES)
+			if(memory->ram.sound_state.music.frame >= MUSIC_FRAMES)
 			{
-				if(memory->ram.music_pos.flag.loop)
-					memory->ram.music_pos.frame = 0;
+				if(memory->ram.sound_state.flag.music_loop)
+					memory->ram.sound_state.music.frame = 0;
 				else
 				{
 					api_music(memory, -1, 0, 0, false);
@@ -1244,12 +1244,12 @@ static void processMusic(tic_mem* memory)
 			{
 				s32 val = 0;
 				for (s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
-					val += tic_tool_get_pattern_id(track, memory->ram.music_pos.frame, c);
+					val += tic_tool_get_pattern_id(track, memory->ram.sound_state.music.frame, c);
 
 				if(!val)
 				{
-					if(memory->ram.music_pos.flag.loop)
-						memory->ram.music_pos.frame = 0;
+					if(memory->ram.sound_state.flag.music_loop)
+						memory->ram.sound_state.music.frame = 0;
 					else
 					{
 						api_music(memory, -1, 0, 0, false);
@@ -1258,9 +1258,9 @@ static void processMusic(tic_mem* memory)
 				}
 			}
 		}
-		else if(machine->state.music.play == MusicPlayFrame)
+		else if(memory->ram.sound_state.flag.music_state == tic_music_play_frame)
 		{
-			if(!memory->ram.music_pos.flag.loop)
+			if(!memory->ram.sound_state.flag.music_loop)
 			{
 				api_music(memory, -1, 0, 0, false);
 				return;
@@ -1268,18 +1268,18 @@ static void processMusic(tic_mem* memory)
 		}
 	}
 
-	if (row != memory->ram.music_pos.row)
+	if (row != memory->ram.sound_state.music.row)
 	{
-		memory->ram.music_pos.row = row;
+		memory->ram.sound_state.music.row = row;
 
 		for (s32 channel = 0; channel < TIC_SOUND_CHANNELS; channel++)
 		{
-			s32 patternId = tic_tool_get_pattern_id(track, memory->ram.music_pos.frame, channel);
+			s32 patternId = tic_tool_get_pattern_id(track, memory->ram.sound_state.music.frame, channel);
 			if (!patternId) continue;
 
 			const tic_track_pattern* pattern = &machine->sound.music->patterns.data[patternId - PATTERN_START];
 
-			s32 note = pattern->rows[memory->ram.music_pos.row].note;
+			s32 note = pattern->rows[memory->ram.sound_state.music.row].note;
 
 			if (note > NoteNone)
 			{
@@ -1287,9 +1287,9 @@ static void processMusic(tic_mem* memory)
 
 				if (note >= NoteStart)
 				{
-					s32 octave = pattern->rows[memory->ram.music_pos.row].octave;
+					s32 octave = pattern->rows[memory->ram.sound_state.music.row].octave;
 					s32 sfx = (pattern->rows[row].sfxhi << MUSIC_SFXID_LOW_BITS) | pattern->rows[row].sfxlow;
-					s32 volume = pattern->rows[memory->ram.music_pos.row].volume;
+					s32 volume = pattern->rows[memory->ram.sound_state.music.row].volume;
 					musicSfx(memory, sfx, note - NoteStart, octave, volume, channel);
 				}
 			}
@@ -1394,7 +1394,8 @@ static void api_tick_end(tic_mem* memory)
 	}
 	
 	blip_end_frame(machine->blip, EndTime);
-	blip_read_samples(machine->blip, machine->memory.samples.buffer, machine->samplerate / TIC_FRAMERATE, 0);
+	blip_read_samples(machine->blip, machine->memory.samples.buffer, machine->samplerate / TIC_FRAMERATE, 
+		!memory->ram.sound_state.flag.stereo_mute_left, !memory->ram.sound_state.flag.stereo_mute_right);
 
 	machine->state.setpix = setPixelOvr;
 	machine->state.getpix = getPixelOvr;
@@ -1434,7 +1435,7 @@ static void api_music_frame(tic_mem* memory, s32 index, s32 frame, s32 row, bool
 	setMusic(machine, index, frame, row, loop);
 
 	if(index >= 0)
-		machine->state.music.play = MusicPlayFrame;
+		memory->ram.sound_state.flag.music_state = tic_music_play_frame;
 }
 
 static void initCover(tic_mem* tic)
@@ -2030,7 +2031,7 @@ tic_mem* tic_create(s32 samplerate)
 	initApi(&machine->memory.api);
 
 	machine->samplerate = samplerate;
-	machine->memory.samples.size = samplerate / TIC_FRAMERATE * sizeof(s16);
+	machine->memory.samples.size = samplerate * TIC_STEREO_CHANNLES / TIC_FRAMERATE * sizeof(s16);
 	machine->memory.samples.buffer = malloc(machine->memory.samples.size);
 
 	machine->blip = blip_new(samplerate / 10);
