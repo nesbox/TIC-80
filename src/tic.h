@@ -27,9 +27,9 @@
 #include "defines.h"
 
 #define TIC_VERSION_MAJOR 0
-#define TIC_VERSION_MINOR 70
-#define TIC_VERSION_PATCH 6
-#define TIC_VERSION_STATUS ""
+#define TIC_VERSION_MINOR 80
+#define TIC_VERSION_PATCH 0
+#define TIC_VERSION_STATUS "-dev"
 
 #if defined(TIC80_PRO)
 #define TIC_VERSION_POST " Pro"
