@@ -186,8 +186,8 @@ typedef struct
 		s8 speed:3;
 		u8 reverse:1; // arpeggio reverse
 		u8 note:4;
-		u8 chain:1;
-		u8 temp:3;
+		u8 panning:2; // 00 - center, 01 - left, 10 - right, 11 - mute
+		u8 temp:2;
 	};
 
 	union
@@ -287,12 +287,30 @@ typedef struct
 	{
 		u8 music_loop:1;
 		u8 music_state:2; // enum tic_music_state
-		u8 unknown:1;
-		u8 stereo_mute_left:1;
-		u8 stereo_mute_right:1;
+		u8 unknown:5;
 	} flag;
 
 } tic_sound_state;
+
+typedef union
+{
+	struct
+	{
+		u8 l1:1;
+		u8 r1:1;
+
+		u8 l2:1;
+		u8 r2:1;
+
+		u8 l3:1;
+		u8 r3:1;
+
+		u8 l4:1;
+		u8 r4:1;
+	};
+
+	u8 data;
+} tic_sound_panning;
 
 typedef struct
 {
@@ -432,7 +450,8 @@ typedef union
 		tic_tiles sprites;
 		tic_map map;
 		tic80_input input;
-		u8 unknown[16];
+		u8 unknown[15];
+		tic_sound_panning panning;
 		tic_sound_register registers[TIC_SOUND_CHANNELS];
 		tic_sfx sfx;
 		tic_music music;

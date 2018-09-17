@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.9)
 project(TIC-80 C)
 message("Building for target : ${CMAKE_SYSTEM_NAME}")
 
-if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN)
+if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID)
 	set(LINUX TRUE)
 endif()
 

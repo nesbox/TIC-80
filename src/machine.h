@@ -82,7 +82,12 @@ typedef struct
 
 	Clip clip;
 
-	tic_sound_register_data registers[TIC_SOUND_CHANNELS];
+	struct
+	{
+		tic_sound_register_data left[TIC_SOUND_CHANNELS];
+		tic_sound_register_data right[TIC_SOUND_CHANNELS];
+	} registers;
+
 	Channel channels[TIC_SOUND_CHANNELS];
 	struct
 	{
@@ -128,7 +133,12 @@ typedef struct
 #endif	
 	};
 
-	blip_buffer_t* blip;
+	struct
+	{
+		blip_buffer_t* left;
+		blip_buffer_t* right;
+	} blip;
+	
 	s32 samplerate;
 
 	struct
