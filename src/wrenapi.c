@@ -91,6 +91,7 @@ class TIC {\n\
 	foreign static poke4(addr, val)\n\
 	foreign static memcpy(dst, src, size)\n\
 	foreign static memset(dst, src, size)\n\
+	foreign static pmem(index)\n\
 	foreign static pmem(index, val)\n\
 	foreign static sfx(id)\n\
 	foreign static sfx(id, note)\n\
@@ -1167,6 +1168,7 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
 	if (strcmp(signature, "static TIC.poke4(_,_)"   			) == 0) return wren_poke4;
 	if (strcmp(signature, "static TIC.memcpy(_,_,_)"			) == 0) return wren_memcpy;
 	if (strcmp(signature, "static TIC.memset(_,_,_)"			) == 0) return wren_memset;
+	if (strcmp(signature, "static TIC.pmem(_)"      			) == 0) return wren_pmem;
 	if (strcmp(signature, "static TIC.pmem(_,_)"    			) == 0) return wren_pmem;
 
 	if (strcmp(signature, "static TIC.sfx(_)"    		        ) == 0) return wren_sfx;
