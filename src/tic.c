@@ -120,7 +120,7 @@ static inline s32 getAmp(const tic_sound_register* reg, s32 amp)
 	return amp * MaxAmp * reg->volume / MAX_VOLUME;
 }
 
-static void runEnvelope(blip_buffer_t* blip, tic_sound_register* reg, tic_sound_register_data* data, s32 end_time, bool mute)
+static void runEnvelope(blip_buffer_t* blip, tic_sound_register* reg, tic_sound_register_data* data, s32 end_time, u8 masterVolume)
 {
 	s32 period = freq2period(reg->freq * ENVELOPE_FREQ_SCALE);
 
@@ -128,11 +128,11 @@ static void runEnvelope(blip_buffer_t* blip, tic_sound_register* reg, tic_sound_
 	{
 		data->phase = (data->phase + 1) % ENVELOPE_VALUES;
 
-		update_amp(blip, data, mute ? 0 : getAmp(reg, tic_tool_peek4(reg->waveform.data, data->phase)));
+		update_amp(blip, data, getAmp(reg, tic_tool_peek4(reg->waveform.data, data->phase) * masterVolume / MAX_VOLUME));
 	}
 }
 
-static void runNoise(blip_buffer_t* blip, tic_sound_register* reg, tic_sound_register_data* data, s32 end_time, bool mute)
+static void runNoise(blip_buffer_t* blip, tic_sound_register* reg, tic_sound_register_data* data, s32 end_time, u8 masterVolume)
 {
 	// phase is noise LFSR, which must never be zero 
 	if ( data->phase == 0 )
@@ -143,7 +143,7 @@ static void runNoise(blip_buffer_t* blip, tic_sound_register* reg, tic_sound_reg
 	for ( ; data->time < end_time; data->time += period )
 	{
 		data->phase = ((data->phase & 1) * (0b11 << 13)) ^ (data->phase >> 1);
-		update_amp(blip, data, mute ? 0 : getAmp(reg, (data->phase & 1) ? MAX_VOLUME : 0));
+		update_amp(blip, data, getAmp(reg, (data->phase & 1) ? masterVolume : 0));
 	}
 }
 
@@ -1170,7 +1170,7 @@ static s32 calcLoopPos(const tic_sound_loop* loop, s32 pos)
 	return offset;
 }
 
-static void sfx(tic_mem* memory, s32 index, s32 freq, Channel* channel, tic_sound_register* reg)
+static void sfx(tic_mem* memory, s32 index, s32 freq, Channel* channel, tic_sound_register* reg, s32 channelIndex)
 {
 	tic_machine* machine = (tic_machine*)memory;
 
@@ -1213,6 +1213,9 @@ static void sfx(tic_mem* memory, s32 index, s32 freq, Channel* channel, tic_soun
 		u8 wave = effect->data[channel->pos.wave].wave;
 		const tic_waveform* waveform = &machine->sound.sfx->waveform.envelopes[wave];
 		memcpy(reg->waveform.data, waveform->data, sizeof(tic_waveform));
+
+		tic_tool_poke4(&memory->ram.stereo.data, channelIndex*2, MAX_VOLUME * effect->stereo_left);
+		tic_tool_poke4(&memory->ram.stereo.data, channelIndex*2+1, MAX_VOLUME * effect->stereo_right);
 	}
 }
 
@@ -1307,7 +1310,7 @@ static void processMusic(tic_mem* memory)
 		Channel* c = &machine->state.music.channels[i];
 		
 		if(c->index >= 0)
-			sfx(memory, c->index, c->freq, c, &memory->ram.registers[i]);
+			sfx(memory, c->index, c->freq, c, &memory->ram.registers[i], i);
 	}
 
 	machine->state.music.ticks++;
@@ -1339,7 +1342,7 @@ static void api_tick_start(tic_mem* memory, const tic_sfx* sfxsrc, const tic_mus
 	for (s32 i = 0; i < TIC_SOUND_CHANNELS; ++i )
 		memset(&memory->ram.registers[i], 0, sizeof(tic_sound_register));
 
-	memory->ram.panning.data = 0;
+	memory->ram.stereo.data = 0;
 
 	processMusic(memory);
 
@@ -1348,7 +1351,7 @@ static void api_tick_start(tic_mem* memory, const tic_sfx* sfxsrc, const tic_mus
 		Channel* c = &machine->state.channels[i];
 		
 		if(c->index >= 0)
-			sfx(memory, c->index, c->freq, c, &memory->ram.registers[i]);
+			sfx(memory, c->index, c->freq, c, &memory->ram.registers[i], i);
 	}
 
 	// process gamepad
@@ -1381,19 +1384,19 @@ static void api_tick_start(tic_mem* memory, const tic_sfx* sfxsrc, const tic_mus
 	machine->state.drawhline = drawHLineDma;
 }
 
-static void stereo_tick_end(tic_mem* memory, tic_sound_register_data* registers, blip_buffer_t* blip, u8 panningStart)
+static void stereo_tick_end(tic_mem* memory, tic_sound_register_data* registers, blip_buffer_t* blip, u8 stereoRight)
 {
 	enum {EndTime = CLOCKRATE / TIC_FRAMERATE};
 	for (s32 i = 0; i < TIC_SOUND_CHANNELS; ++i )
 	{
-		bool mute = memory->ram.panning.data & (panningStart << (i << 1)) ? true : false;
+		u8 masterVol = MAX_VOLUME - tic_tool_peek4(&memory->ram.stereo.data, stereoRight + i*2);
 
 		tic_sound_register* reg = &memory->ram.registers[i];
 		tic_sound_register_data* data = registers + i;
 
 		isNoiseWaveform(&reg->waveform)
-			? runNoise(blip, reg, data, EndTime, mute)
-			: runEnvelope(blip, reg, data, EndTime, mute);
+			? runNoise(blip, reg, data, EndTime, masterVol)
+			: runEnvelope(blip, reg, data, EndTime, masterVol);
 
 		data->time -= EndTime;
 	}
@@ -1408,8 +1411,8 @@ static void api_tick_end(tic_mem* memory)
 	machine->state.gamepads.previous.data = machine->memory.ram.input.gamepads.data;
 	machine->state.keyboard.previous.data = machine->memory.ram.input.keyboard.data;
 
-	stereo_tick_end(memory, machine->state.registers.left, machine->blip.left, 1);
-	stereo_tick_end(memory, machine->state.registers.right, machine->blip.right, 2);
+	stereo_tick_end(memory, machine->state.registers.left, machine->blip.left, 0);
+	stereo_tick_end(memory, machine->state.registers.right, machine->blip.right, 1);
 
 	blip_read_samples(machine->blip.left, machine->memory.samples.buffer, machine->samplerate / TIC_FRAMERATE, TIC_STEREO_CHANNLES);
 	blip_read_samples(machine->blip.right, machine->memory.samples.buffer + 1, machine->samplerate / TIC_FRAMERATE, TIC_STEREO_CHANNLES);
