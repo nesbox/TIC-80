@@ -259,6 +259,14 @@ static tic80* tic = NULL;
 
 static void app_init(void)
 {
+    saudio_desc desc = {0};
+    desc.num_channels = 2;
+
+    saudio_setup(&desc);
+
+    printf("channels %i\n", saudio_channels());
+    printf("samplerate %i\n", saudio_sample_rate());
+
     FILE* file = fopen("cart.tic", "rb");
 
     if(file)
@@ -274,7 +282,7 @@ static void app_init(void)
         if(cart)
         {
             printf("%s\n", "cart loaded");
-            tic = tic80_create(44100);
+            tic = tic80_create(saudio_sample_rate());
 
             if(tic)
             {
@@ -298,6 +306,15 @@ static void app_frame(void)
     }
 
     gfx_draw();
+
+    static float floatSamples[44100/60];
+
+    // TODO: remove /2 for stereo sound
+    for(s32 i = 0; i < tic->sound.count/2; i++)
+        floatSamples[i] = (float)tic->sound.samples[i*2] / 32768.0f;
+
+    // TODO: remove /2 for stero sound
+    saudio_push(floatSamples, tic->sound.count/2);
 }
 
 static void app_input(const sapp_event* event)
