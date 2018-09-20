@@ -235,6 +235,7 @@ set(SOKOL_SRC
 )
 
 if(APPLE)
+	add_definitions(-DSOKOL_METAL)
     set(SOKOL_SRC ${SOKOL_SRC} ${SOKOL_DIR}/sokol.m)
 endif()
 
