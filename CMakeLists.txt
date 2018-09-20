@@ -225,6 +225,46 @@ if(NOT EMSCRIPTEN)
 endif()
 
 ################################
+# Sokol renderer example
+################################
+
+set(SOKOL_DIR sokol)
+
+set(SOKOL_SRC 
+	${SOKOL_DIR}/main.c
+)
+
+if(APPLE)
+    set(SOKOL_SRC ${SOKOL_SRC} ${SOKOL_DIR}/sokol.m)
+endif()
+
+add_executable(sokol ${SOKOL_SRC})
+
+if(APPLE)
+	set_property (TARGET sokol APPEND_STRING PROPERTY 
+    	COMPILE_FLAGS "-fobjc-arc")
+
+	target_link_libraries(sokol 
+		"-framework Cocoa" 
+		"-framework QuartzCore"
+		"-framework Metal"
+		"-framework MetalKit"
+		"-framework AudioToolbox"
+	)
+endif()
+
+target_include_directories(sokol PRIVATE include)
+target_include_directories(sokol PRIVATE ../sokol)
+target_include_directories(sokol PRIVATE src)
+
+if(MINGW)
+  target_link_libraries(sokol mingw32)
+endif()
+
+add_dependencies(sokol tic80core)
+target_link_libraries(sokol tic80core)
+
+################################
 # SDL GPU
 ################################
 
