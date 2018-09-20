@@ -302,7 +302,38 @@ static void app_frame(void)
 
 static void app_input(const sapp_event* event)
 {
+    static const sapp_keycode Keys[] = 
+    { 
+        SAPP_KEYCODE_UP,
+        SAPP_KEYCODE_DOWN,
+        SAPP_KEYCODE_LEFT,
+        SAPP_KEYCODE_RIGHT,
 
+        SAPP_KEYCODE_Z,
+        SAPP_KEYCODE_X,
+        SAPP_KEYCODE_A,
+        SAPP_KEYCODE_S,
+    };
+
+    switch (event->type)
+    {
+    case SAPP_EVENTTYPE_KEY_DOWN:
+    case SAPP_EVENTTYPE_KEY_UP:
+
+        for (int i = 0; i < sizeof Keys / sizeof Keys[0]; i++)
+        {
+            if (event->key_code == Keys[i])
+            {
+                if(event->type == SAPP_EVENTTYPE_KEY_DOWN)
+                    tic_input.gamepads.first.data |= (1 << i);
+                else
+                    tic_input.gamepads.first.data &= ~(1 << i);
+            }
+        }
+        break;
+    default:
+        break;
+    }
 }
 
 static void app_cleanup(void)
