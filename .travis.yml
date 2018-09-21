@@ -14,3 +14,4 @@ matrix:
         apt:
           packages:
             - libgtk-3-dev
+            - libasound2-dev
