@@ -260,6 +260,7 @@ if(APPLE)
 		"-framework AudioToolbox"
 	)
 elseif(LINUX)
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
 	target_link_libraries(sokol X11 GL m dl asound)
 endif()
 
