@@ -260,7 +260,6 @@ static tic80* tic = NULL;
 static void app_init(void)
 {
     saudio_desc desc = {0};
-    desc.num_channels = 2;
 
     saudio_setup(&desc);
 
@@ -307,14 +306,16 @@ static void app_frame(void)
 
     gfx_draw();
 
-    static float floatSamples[44100/60];
+    // TODO: Sokol doesn't support stereo at the moment
+    // will fix it later
+    enum {Channels = 1};
 
-    // TODO: remove /2 for stereo sound
-    for(s32 i = 0; i < tic->sound.count/2; i++)
-        floatSamples[i] = (float)tic->sound.samples[i*2] / 32768.0f;
+    static float floatSamples[44100/60 * Channels];
 
-    // TODO: remove /2 for stero sound
-    saudio_push(floatSamples, tic->sound.count/2);
+    for(s32 i = 0; i < tic->sound.count; i+=2)
+        floatSamples[i>>1] = (float)(tic->sound.samples[i] + tic->sound.samples[i+1]) / 65536.0f;
+
+    saudio_push(floatSamples, tic->sound.count / 2);
 }
 
 static void app_input(const sapp_event* event)
