@@ -255,7 +255,7 @@ if(APPLE)
 endif()
 
 target_include_directories(sokol PRIVATE include)
-target_include_directories(sokol PRIVATE ../sokol)
+target_include_directories(sokol PRIVATE 3rd-party/sokol)
 target_include_directories(sokol PRIVATE src)
 
 if(MINGW)

@@ -8,8 +8,7 @@
 #include <string.h>
 #include <tic80.h>
 
-#define GFX_MAX_FB_WIDTH (TIC80_FULLWIDTH)
-#define GFX_MAX_FB_HEIGHT (TIC80_FULLWIDTH)
+static tic80* tic = NULL;
 
 #if defined(SOKOL_GLCORE33)
 static const char* gfx_vs_src =
@@ -104,7 +103,6 @@ typedef struct {
     int fb_height;
     int fb_aspect_scale_x;
     int fb_aspect_scale_y;
-    uint32_t rgba8_buffer[GFX_MAX_FB_WIDTH * GFX_MAX_FB_HEIGHT];
 } gfx_state;
 
 static gfx_state gfx;
@@ -233,7 +231,7 @@ void gfx_draw() {
     /* copy emulator pixel data into upscaling source texture */
     sg_update_image(gfx.upscale_draw_state.fs_images[0], &(sg_image_content){
         .subimage[0][0] = { 
-            .ptr = gfx.rgba8_buffer,
+            .ptr = tic->screen,
             .size = gfx.fb_width*gfx.fb_height*sizeof(uint32_t)
         }
     });
@@ -253,18 +251,11 @@ void gfx_draw() {
     sg_commit();
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////
-
-static tic80* tic = NULL;
-
 static void app_init(void)
 {
     saudio_desc desc = {0};
 
     saudio_setup(&desc);
-
-    printf("channels %i\n", saudio_channels());
-    printf("samplerate %i\n", saudio_sample_rate());
 
     FILE* file = fopen("cart.tic", "rb");
 
@@ -299,10 +290,7 @@ static tic80_input tic_input;
 static void app_frame(void)
 {
     if(tic)
-    {
         tic80_tick(tic, tic_input);
-        memcpy(gfx.rgba8_buffer, tic->screen, sizeof gfx.rgba8_buffer);
-    }
 
     gfx_draw();
 
