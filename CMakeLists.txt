@@ -234,7 +234,16 @@ set(SOKOL_SRC
 
 if(APPLE)
 	add_definitions(-DSOKOL_METAL)
+elseif(WIN32)
+	add_definitions(-DSOKOL_D3D11)
+elseif(LINUX)
+	add_definitions(-DSOKOL_GLCORE33)
+endif()
+
+if(APPLE)
     set(SOKOL_SRC ${SOKOL_SRC} ${EXAMPLE_DIR}/sokol/sokol.m)
+else()
+	set(SOKOL_SRC ${SOKOL_SRC} ${EXAMPLE_DIR}/sokol/sokol.c)
 endif()
 
 add_executable(sokol ${SOKOL_SRC})
@@ -250,6 +259,8 @@ if(APPLE)
 		"-framework MetalKit"
 		"-framework AudioToolbox"
 	)
+elseif(LINUX)
+	target_link_libraries(sokol X11 GL m dl asound)
 endif()
 
 target_include_directories(sokol PRIVATE include)
