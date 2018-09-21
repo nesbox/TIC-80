@@ -203,7 +203,7 @@ endif()
 if(NOT EMSCRIPTEN)
 	set(EXAMPLE_DIR examples)
 	set(EXAMPLE_SRC 
-		${EXAMPLE_DIR}/sdl-renderer.c
+		${EXAMPLE_DIR}/sdl/main.c
 	)
 
 	if(WIN32)
@@ -228,15 +228,13 @@ endif()
 # Sokol renderer example
 ################################
 
-set(SOKOL_DIR sokol)
-
 set(SOKOL_SRC 
-	${SOKOL_DIR}/main.c
+	${EXAMPLE_DIR}/sokol/main.c
 )
 
 if(APPLE)
 	add_definitions(-DSOKOL_METAL)
-    set(SOKOL_SRC ${SOKOL_SRC} ${SOKOL_DIR}/sokol.m)
+    set(SOKOL_SRC ${SOKOL_SRC} ${EXAMPLE_DIR}/sokol/sokol.m)
 endif()
 
 add_executable(sokol ${SOKOL_SRC})
