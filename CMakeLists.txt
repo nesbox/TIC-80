@@ -181,6 +181,10 @@ target_include_directories(tic80core PRIVATE 3rd-party/fennel)
 add_dependencies(tic80core lua lpeg wren giflib)
 target_link_libraries(tic80core lua lpeg wren giflib)
 
+if(LINUX)
+	target_link_libraries(tic80core m)
+endif()
+
 ################################
 # SDL2
 ################################
@@ -260,7 +264,7 @@ if(APPLE)
 		"-framework AudioToolbox"
 	)
 elseif(LINUX)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread -static")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
 	target_link_libraries(sokol X11 GL m dl asound)
 endif()
 
