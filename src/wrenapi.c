@@ -1363,6 +1363,8 @@ static const char* const WrenKeywords [] =
 	"static", "super", "this", "true", "var", "while"
 };
 
+static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+
 static const tic_outline_item* getWrenOutline(const char* code, s32* size)
 {
 	enum{Size = sizeof(tic_outline_item)};
@@ -1370,6 +1372,55 @@ static const tic_outline_item* getWrenOutline(const char* code, s32* size)
 	*size = 0;
 
 	static tic_outline_item* items = NULL;
+
+	if(items)
+	{
+		free(items);
+		items = NULL;
+	}
+
+	const char* ptr = code;
+
+	while(true)
+	{
+		static const char ClassString[] = "class ";
+
+		ptr = strstr(ptr, ClassString);
+
+		if(ptr)
+		{
+			ptr += sizeof ClassString - 1;
+
+			const char* start = ptr;
+			const char* end = start;
+
+			while(*ptr)
+			{
+				char c = *ptr;
+
+				if(isalnum_(c));
+				else if(c == ' ' || c == '{')
+				{
+					end = ptr;
+					break;
+				}
+				else break;
+
+				ptr++;
+			}
+
+			if(end > start)
+			{
+				items = items ? realloc(items, (*size + 1) * Size) : malloc(Size);
+
+				items[*size].pos = start - code;
+				items[*size].size = end - start;
+
+				(*size)++;
+			}
+		}
+		else break;
+	}
 
 	return items;
 }
