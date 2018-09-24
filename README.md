@@ -58,6 +58,7 @@ The [wiki](https://github.com/nesbox/tic.computer/wiki) holds TIC-80 documentati
 ### with Visual Studio 2017
 - install `Visual Studio 2017`
 - install `git`
+- install `cmake` (https://cmake.org)
 - run following commands in `cmd`
 ```
 git clone --recursive https://github.com/nesbox/TIC-80
