@@ -250,13 +250,13 @@ else()
 	set(SOKOL_SRC ${SOKOL_SRC} ${EXAMPLE_DIR}/sokol/sokol.c)
 endif()
 
-add_executable(sokol ${SOKOL_SRC})
+add_executable(sokol-renderer ${SOKOL_SRC})
 
 if(APPLE)
-	set_property (TARGET sokol APPEND_STRING PROPERTY 
+	set_property (TARGET sokol-renderer APPEND_STRING PROPERTY 
     	COMPILE_FLAGS "-fobjc-arc")
 
-	target_link_libraries(sokol 
+	target_link_libraries(sokol-renderer 
 		"-framework Cocoa" 
 		"-framework QuartzCore"
 		"-framework Metal"
@@ -265,19 +265,19 @@ if(APPLE)
 	)
 elseif(LINUX)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
-	target_link_libraries(sokol X11 GL m dl asound)
+	target_link_libraries(sokol-renderer X11 GL m dl asound)
 endif()
 
-target_include_directories(sokol PRIVATE include)
-target_include_directories(sokol PRIVATE 3rd-party/sokol)
-target_include_directories(sokol PRIVATE src)
+target_include_directories(sokol-renderer PRIVATE include)
+target_include_directories(sokol-renderer PRIVATE 3rd-party/sokol)
+target_include_directories(sokol-renderer PRIVATE src)
 
 if(MINGW)
-  target_link_libraries(sokol mingw32)
+	target_link_libraries(sokol-renderer mingw32)
 endif()
 
-add_dependencies(sokol tic80core)
-target_link_libraries(sokol tic80core)
+add_dependencies(sokol-renderer tic80core)
+target_link_libraries(sokol-renderer tic80core)
 
 ################################
 # SDL GPU

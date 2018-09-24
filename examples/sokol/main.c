@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
+
 #include <tic80.h>
 
 static tic80* tic = NULL;
@@ -254,7 +256,7 @@ void gfx_draw() {
 static void app_init(void)
 {
     saudio_desc desc = {0};
-
+    desc.num_channels = 2;
     saudio_setup(&desc);
 
     FILE* file = fopen("cart.tic", "rb");
@@ -294,14 +296,10 @@ static void app_frame(void)
 
     gfx_draw();
 
-    // TODO: Sokol doesn't support stereo at the moment
-    // will fix it later
-    enum {Channels = 1};
+    static float floatSamples[44100 / 60 * 2];
 
-    static float floatSamples[44100/60 * Channels];
-
-    for(s32 i = 0; i < tic->sound.count; i+=2)
-        floatSamples[i>>1] = (float)(tic->sound.samples[i] + tic->sound.samples[i+1]) / 65536.0f;
+    for(s32 i = 0; i < tic->sound.count; i++)
+        floatSamples[i] = (float)tic->sound.samples[i] / SHRT_MAX;
 
     saudio_push(floatSamples, tic->sound.count / 2);
 }
