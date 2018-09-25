@@ -237,20 +237,24 @@ set(SOKOL_SRC
 )
 
 if(APPLE)
-	add_definitions(-DSOKOL_METAL)
-elseif(WIN32)
-	add_definitions(-DSOKOL_D3D11)
-elseif(LINUX)
-	add_definitions(-DSOKOL_GLCORE33)
-endif()
-
-if(APPLE)
     set(SOKOL_SRC ${SOKOL_SRC} ${EXAMPLE_DIR}/sokol/sokol.m)
 else()
 	set(SOKOL_SRC ${SOKOL_SRC} ${EXAMPLE_DIR}/sokol/sokol.c)
 endif()
 
-add_executable(sokol-renderer ${SOKOL_SRC})
+if(APPLE)
+	set_source_files_properties(${SOKOL_SRC} PROPERTIES COMPILE_FLAGS -DSOKOL_METAL)
+elseif(WIN32)
+	set_source_files_properties(${SOKOL_SRC} PROPERTIES COMPILE_FLAGS "-DSOKOL_D3D11 -DSOKOL_D3D11_SHADER_COMPILER")
+elseif(LINUX)
+	set_source_files_properties(${SOKOL_SRC} PROPERTIES COMPILE_FLAGS -DSOKOL_GLCORE33)
+endif()
+
+if(WIN32)
+	add_executable(sokol-renderer WIN32 ${SOKOL_SRC})
+else()
+	add_executable(sokol-renderer ${SOKOL_SRC})
+endif()
 
 if(APPLE)
 	set_property (TARGET sokol-renderer APPEND_STRING PROPERTY 
@@ -263,6 +267,12 @@ if(APPLE)
 		"-framework MetalKit"
 		"-framework AudioToolbox"
 	)
+elseif(WIN32)
+	target_link_libraries(sokol-renderer D3D11)
+
+	if(MINGW)
+		target_link_libraries(sokol-renderer D3dcompiler_47 mingw32)
+	endif()
 elseif(LINUX)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
 	target_link_libraries(sokol-renderer X11 GL m dl asound)
@@ -271,10 +281,6 @@ endif()
 target_include_directories(sokol-renderer PRIVATE include)
 target_include_directories(sokol-renderer PRIVATE 3rd-party/sokol)
 target_include_directories(sokol-renderer PRIVATE src)
-
-if(MINGW)
-	target_link_libraries(sokol-renderer mingw32)
-endif()
 
 add_dependencies(sokol-renderer tic80core)
 target_link_libraries(sokol-renderer tic80core)
