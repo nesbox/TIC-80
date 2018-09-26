@@ -10,5 +10,5 @@ install: git submodule update --init --recursive
 
 build_script:
   - if [%COMPILER%]==[MSVC15] cmake -G "Visual Studio 15 2017" -DCMAKE_BUILD_TYPE=MinSizeRel .
-  - if [%COMPILER%]==[MinGW-w64] cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=MinSizeRel .
+  - if [%COMPILER%]==[MinGW-w64] cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_SH=CMAKE_SH-NOTFOUND .
   - cmake --build .
