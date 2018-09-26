@@ -473,7 +473,7 @@ target_compile_definitions(tic80prolib PRIVATE TIC80_PRO)
 set(TIC80_DIR src)
 set(TIC80_SRC
 	${TIC80_DIR}/net.c
-	${TIC80_DIR}/system.c
+	${TIC80_DIR}/system/sdlgpu.c
 	${TIC80_DIR}/ext/file_dialog.c
 )
 
@@ -495,6 +495,7 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 	endif()
 
 	target_include_directories(${TIC80_OUTPUT} PRIVATE include)
+	target_include_directories(${TIC80_OUTPUT} PRIVATE src)
 	target_include_directories(${TIC80_OUTPUT} PRIVATE 3rd-party/SDL2-2.0.8/include)
 	target_include_directories(${TIC80_OUTPUT} PRIVATE 3rd-party/sdl-gpu/include)
 	target_include_directories(${TIC80_OUTPUT} PRIVATE 3rd-party/SDL2_net-2.0.1)
