@@ -9,7 +9,7 @@ environment:
 install: 
   - git submodule update --init --recursive
   - if [%COMPILER%]==[MinGW-w64] set PATH=C:\mingw-w64\x86_64-7.2.0-posix-seh-rt_v5-rev1\bin;%PATH%
-  - cd C:\mingw-w64\x86_64-7.2.0-posix-seh-rt_v5-rev1\bin
+  - cd C:\mingw-w64\x86_64-7.2.0-posix-seh-rt_v5-rev1
   - dir
 
 build_script:
