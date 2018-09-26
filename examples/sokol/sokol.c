@@ -14,10 +14,6 @@
 #define AUDCLNT_STREAMFLAGS_SRC_DEFAULT_QUALITY 0x08000000
 #endif
 
-#ifndef D3D11_STANDARD_MULTISAMPLE_PATTERN
-#define D3D11_STANDARD_MULTISAMPLE_PATTERN 0xffffffff
-#endif
-
 #endif
 
 #include "sokol_app.h"

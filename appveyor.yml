@@ -1,16 +1,16 @@
 version: '{build}'
-image: Visual Studio 2017
+image: Visual Studio 2015
 
 environment:
   matrix:
-    - COMPILER: MSVC15
+    - COMPILER: MSVC
     - COMPILER: MinGW-w64
 
 install: 
   - git submodule update --init --recursive
-  - if [%COMPILER%]==[MinGW-w64] set PATH=C:\mingw-w64\x86_64-7.2.0-posix-seh-rt_v5-rev1\mingw64\bin;%PATH%
+  - if [%COMPILER%]==[MinGW-w64] set PATH=C:\mingw-w64\x86_64-7.3.0-posix-seh-rt_v5-rev0\mingw64\bin;%PATH%
 
 build_script:
   - if [%COMPILER%]==[MinGW-w64] cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_SH=CMAKE_SH-NOTFOUND .
-  - if [%COMPILER%]==[MSVC15] cmake -G "Visual Studio 15 2017 Win64" -DCMAKE_BUILD_TYPE=MinSizeRel .
+  - if [%COMPILER%]==[MSVC] cmake -G "Visual Studio 14 2015 Win64" -DCMAKE_BUILD_TYPE=MinSizeRel .
   - cmake --build .
