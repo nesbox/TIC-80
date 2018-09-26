@@ -3,12 +3,12 @@ image: Visual Studio 2017
 
 environment:
   matrix:
-    - COMPILER: MSVC15
+    # - COMPILER: MSVC15
     - COMPILER: MinGW-w64
 
 install: 
   - git submodule update --init --recursive
-  - if [%COMPILER%]==[MinGW-w64] set PATH=C:\mingw-w64\x86_64-7.3.0-posix-seh-rt_v5-rev0\bin;%PATH%
+  - if [%COMPILER%]==[MinGW-w64] set PATH=C:\mingw-w64\x86_64-6.3.0-posix-seh-rt_v5-rev1\bin;%PATH%
 
 build_script:
   - if [%COMPILER%]==[MinGW-w64] cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_SH=CMAKE_SH-NOTFOUND .
