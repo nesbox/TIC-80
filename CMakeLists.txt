@@ -229,38 +229,32 @@ if(NOT EMSCRIPTEN)
 endif()
 
 ################################
-# Sokol renderer example
+# Sokol
 ################################
 
-set(SOKOL_SRC 
-	${EXAMPLE_DIR}/sokol/main.c
-)
-
 if(APPLE)
-    set(SOKOL_SRC ${SOKOL_SRC} ${EXAMPLE_DIR}/sokol/sokol.m)
+    add_library(sokol src/ext/sokol_impl.m)
 else()
-	set(SOKOL_SRC ${SOKOL_SRC} ${EXAMPLE_DIR}/sokol/sokol.c)
+	add_library(sokol src/ext/sokol_impl.c)
 endif()
 
 if(APPLE)
-	set_source_files_properties(${SOKOL_SRC} PROPERTIES COMPILE_FLAGS -DSOKOL_METAL)
+	target_compile_definitions(sokol PRIVATE SOKOL_METAL)
 elseif(WIN32)
-	set_source_files_properties(${SOKOL_SRC} PROPERTIES COMPILE_FLAGS "-DSOKOL_D3D11 -DSOKOL_D3D11_SHADER_COMPILER")
+	target_compile_definitions(sokol PRIVATE SOKOL_D3D11 SOKOL_D3D11_SHADER_COMPILER)
 elseif(LINUX)
-	set_source_files_properties(${SOKOL_SRC} PROPERTIES COMPILE_FLAGS -DSOKOL_GLCORE33)
+	target_compile_definitions(sokol PRIVATE SOKOL_GLCORE33)
 endif()
 
-if(WIN32)
-	add_executable(sokol-renderer WIN32 ${SOKOL_SRC})
-else()
-	add_executable(sokol-renderer ${SOKOL_SRC})
-endif()
+	#set_source_files_properties(${SOKOL_SRC} PROPERTIES COMPILE_FLAGS -DSOKOL_METAL)
+	# set_source_files_properties(${SOKOL_SRC} PROPERTIES COMPILE_FLAGS "-DSOKOL_D3D11 -DSOKOL_D3D11_SHADER_COMPILER")
+	#set_source_files_properties(${SOKOL_SRC} PROPERTIES COMPILE_FLAGS -DSOKOL_GLCORE33)
 
 if(APPLE)
-	set_property (TARGET sokol-renderer APPEND_STRING PROPERTY 
+	set_property (TARGET sokol APPEND_STRING PROPERTY 
     	COMPILE_FLAGS "-fobjc-arc")
 
-	target_link_libraries(sokol-renderer 
+	target_link_libraries(sokol 
 		"-framework Cocoa" 
 		"-framework QuartzCore"
 		"-framework Metal"
@@ -268,22 +262,51 @@ if(APPLE)
 		"-framework AudioToolbox"
 	)
 elseif(WIN32)
-	target_link_libraries(sokol-renderer D3D11)
+	target_link_libraries(sokol D3D11)
 
 	if(MINGW)
-		target_link_libraries(sokol-renderer D3dcompiler_47 mingw32)
+		target_link_libraries(sokol D3dcompiler_47)
 	endif()
 elseif(LINUX)
 	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
-	target_link_libraries(sokol-renderer X11 GL m dl asound)
+	target_link_libraries(sokol X11 GL m dl asound)
+endif()
+
+target_include_directories(sokol PRIVATE 3rd-party/sokol)
+
+################################
+# Sokol renderer example
+################################
+
+set(SOKOL_SRC 
+	${EXAMPLE_DIR}/sokol/main.c
+)
+
+if(WIN32)
+	add_executable(sokol-renderer WIN32 ${SOKOL_SRC})
+else()
+	add_executable(sokol-renderer ${SOKOL_SRC})
+endif()
+
+if(MINGW)
+	target_link_libraries(sokol-renderer mingw32)
+endif()
+
+# TODO: remove this and define shaders in the sokol lib
+if(APPLE)
+	target_compile_definitions(sokol-renderer PRIVATE SOKOL_METAL)
+elseif(WIN32)
+	target_compile_definitions(sokol-renderer PRIVATE SOKOL_D3D11)
+elseif(LINUX)
+	target_compile_definitions(sokol-renderer PRIVATE SOKOL_GLCORE33)
 endif()
 
 target_include_directories(sokol-renderer PRIVATE include)
 target_include_directories(sokol-renderer PRIVATE 3rd-party/sokol)
 target_include_directories(sokol-renderer PRIVATE src)
 
-add_dependencies(sokol-renderer tic80core)
-target_link_libraries(sokol-renderer tic80core)
+add_dependencies(sokol-renderer tic80core sokol)
+target_link_libraries(sokol-renderer tic80core sokol)
 
 ################################
 # SDL GPU
@@ -470,18 +493,31 @@ target_compile_definitions(tic80prolib PRIVATE TIC80_PRO)
 # TIC-80 app
 ################################
 
-set(TIC80_DIR src)
-set(TIC80_SRC
-	${TIC80_DIR}/net.c
-	${TIC80_DIR}/system/sdlgpu.c
-	${TIC80_DIR}/ext/file_dialog.c
-)
+set(TIC80_OUTPUTS ${TIC80_OUTPUTS} tic80-sokol tic80pro-sokol)
 
 if(APPLE)
-	set(TIC80_SRC ${TIC80_SRC} ${TIC80_DIR}/ext/file_dialog.m)
+	set(TIC80_SRC_COMMON ${TIC80_SRC_COMMON} src/ext/file_dialog.m)
+else()
+	set(TIC80_SRC_COMMON ${TIC80_SRC_COMMON} src/ext/file_dialog.c)
 endif()
 
 foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
+
+	if(TIC80_OUTPUT MATCHES "-sokol")
+		set(SOKOL_RENDERER TRUE)
+	else() 
+		set(SOKOL_RENDERER FALSE)
+	endif()
+
+	message("SOKOL_RENDERER ${SOKOL_RENDERER}")
+
+	set(TIC80_SRC ${TIC80_SRC_COMMON})
+
+	if(SOKOL_RENDERER)
+		set(TIC80_SRC ${TIC80_SRC} src/system/sokol.c)
+	else()
+		set(TIC80_SRC ${TIC80_SRC} src/net.c src/system/sdlgpu.c)
+	endif()
 
 	if(WIN32)
 		set(TIC80_SRC ${TIC80_SRC} build/windows/tic80.rc)
@@ -496,21 +532,31 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 
 	target_include_directories(${TIC80_OUTPUT} PRIVATE include)
 	target_include_directories(${TIC80_OUTPUT} PRIVATE src)
-	target_include_directories(${TIC80_OUTPUT} PRIVATE 3rd-party/SDL2-2.0.8/include)
-	target_include_directories(${TIC80_OUTPUT} PRIVATE 3rd-party/sdl-gpu/include)
 	target_include_directories(${TIC80_OUTPUT} PRIVATE 3rd-party/SDL2_net-2.0.1)
+	target_include_directories(${TIC80_OUTPUT} PRIVATE 3rd-party/SDL2-2.0.8/include)
+
+	if(SOKOL_RENDERER)
+		target_include_directories(${TIC80_OUTPUT} PRIVATE 3rd-party/sokol)
+	else()
+		target_include_directories(${TIC80_OUTPUT} PRIVATE 3rd-party/sdl-gpu/include)
+	endif()
 
 	if(MINGW)
 		target_link_libraries(${TIC80_OUTPUT} mingw32)
 	endif()
 
-	if(NOT EMSCRIPTEN)
-		add_dependencies(${TIC80_OUTPUT} SDL2main SDL2-static)
-		target_link_libraries(${TIC80_OUTPUT} SDL2-static SDL2main)
-	endif()
+	if(SOKOL_RENDERER)
+		add_dependencies(${TIC80_OUTPUT} sokol)
+		target_link_libraries(${TIC80_OUTPUT} sokol)
+	else()
+		if(NOT EMSCRIPTEN)
+			add_dependencies(${TIC80_OUTPUT} SDL2main SDL2-static)
+			target_link_libraries(${TIC80_OUTPUT} SDL2-static SDL2main)
+		endif()
 
-	add_dependencies(${TIC80_OUTPUT} ${TIC80_OUTPUT}lib sdlnet sdlgpu)
-	target_link_libraries(${TIC80_OUTPUT} ${TIC80_OUTPUT}lib sdlnet sdlgpu)
+		add_dependencies(${TIC80_OUTPUT} ${TIC80_OUTPUT}lib sdlnet sdlgpu)
+		target_link_libraries(${TIC80_OUTPUT} ${TIC80_OUTPUT}lib sdlnet sdlgpu)
+	endif()
 
 	if(LINUX)
 		include(FindPkgConfig)
