@@ -495,12 +495,6 @@ target_compile_definitions(tic80prolib PRIVATE TIC80_PRO)
 
 set(TIC80_OUTPUTS ${TIC80_OUTPUTS} tic80-sokol tic80pro-sokol)
 
-if(APPLE)
-	set(TIC80_SRC_COMMON ${TIC80_SRC_COMMON} src/ext/file_dialog.m)
-else()
-	set(TIC80_SRC_COMMON ${TIC80_SRC_COMMON} src/ext/file_dialog.c)
-endif()
-
 foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 
 	if(TIC80_OUTPUT MATCHES "-sokol")
@@ -509,9 +503,11 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 		set(SOKOL_RENDERER FALSE)
 	endif()
 
-	message("SOKOL_RENDERER ${SOKOL_RENDERER}")
+	set(TIC80_SRC src/ext/file_dialog.c)
 
-	set(TIC80_SRC ${TIC80_SRC_COMMON})
+	if(APPLE)
+		set(TIC80_SRC ${TIC80_SRC} src/ext/file_dialog.m)
+	endif()
 
 	if(SOKOL_RENDERER)
 		set(TIC80_SRC ${TIC80_SRC} src/system/sokol.c)
