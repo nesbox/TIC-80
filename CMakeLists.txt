@@ -542,8 +542,18 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 	endif()
 
 	if(SOKOL_RENDERER)
-		add_dependencies(${TIC80_OUTPUT} sokol)
-		target_link_libraries(${TIC80_OUTPUT} sokol)
+		# TODO fix Pro tic80lib
+		add_dependencies(${TIC80_OUTPUT} tic80lib sokol)
+		target_link_libraries(${TIC80_OUTPUT} tic80lib sokol)
+
+		if(APPLE)
+			target_compile_definitions(${TIC80_OUTPUT} PRIVATE SOKOL_METAL)
+		elseif(WIN32)
+			target_compile_definitions(${TIC80_OUTPUT} PRIVATE SOKOL_D3D11)
+		elseif(LINUX)
+			target_compile_definitions(${TIC80_OUTPUT} PRIVATE SOKOL_GLCORE33)
+		endif()
+
 	else()
 		if(NOT EMSCRIPTEN)
 			add_dependencies(${TIC80_OUTPUT} SDL2main SDL2-static)

@@ -228,7 +228,7 @@ static void apply_viewport(void) {
     sg_apply_viewport(vp_x, vp_y, vp_w, vp_h, true);
 }
 
-void gfx_draw() {
+static void gfx_draw() {
 
     /* copy emulator pixel data into upscaling source texture */
     sg_update_image(gfx.upscale_draw_state.fs_images[0], &(sg_image_content){
