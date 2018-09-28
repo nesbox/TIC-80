@@ -4,6 +4,7 @@ image: Visual Studio 2015
 environment:
   matrix:
     - COMPILER: MSVC
+    - COMPILER: MSVC64
     - COMPILER: MinGW-w64
 
 install: 
@@ -12,5 +13,6 @@ install:
 
 build_script:
   - if [%COMPILER%]==[MinGW-w64] cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_SH=CMAKE_SH-NOTFOUND .
-  - if [%COMPILER%]==[MSVC] cmake -G "Visual Studio 14 2015 Win64" -DCMAKE_BUILD_TYPE=MinSizeRel .
+  - if [%COMPILER%]==[MSVC] cmake -G "Visual Studio 14 2015" -DCMAKE_BUILD_TYPE=MinSizeRel .
+  - if [%COMPILER%]==[MSVC64] cmake -G "Visual Studio 14 2015 Win64" -DCMAKE_BUILD_TYPE=MinSizeRel .
   - cmake --build .
