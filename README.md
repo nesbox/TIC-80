@@ -11,7 +11,7 @@ With TIC-80 you get built-in tools for development: code, sprites, maps, sound e
 
 Games are packeged into a cartridge file, which can be easily distributed. TIC-80 works on all popular platforms. This means your cartridge can be played in any device.
 
-To make a retro styled game, the whole process of creation and execution takes place under some technical limitations: 240x136 pixels display, 16 color palette, 256 8x8 color sprites, 4 channel sound and etc.
+To make a retro styled game, the whole process of creation and execution takes place under some technical limitations: 240x136 pixel display, 16 color palette, 256 8x8 color sprites, 4 channel sound, etc.
 
 ![TIC-80](https://user-images.githubusercontent.com/1101448/29687467-3ddc432e-8925-11e7-8156-5cec3700cc04.gif)
 
@@ -21,16 +21,16 @@ To make a retro styled game, the whole process of creation and execution takes p
   [Javascript](https://developer.mozilla.org/en-US/docs/Web/JavaScript),
   [Wren](http://wren.io/), and [Fennel](https://fennel-lang.org).
 - Games can have mouse and keyboard as input
-- Games can have up to 4 controllers as input
-- Builtin editors: for code, sprites, world maps, sound effects and music
+- Games can have up to 4 controllers as input (with up to 8 buttons, each)
+- Built-in editors: for code, sprites, world maps, sound effects and music
 - An aditional memory bank: load different assets from your cartridge while your game is executing
 
-# Binaries Downloads
+# Binary Downloads
 You can download compiled versions for the major operating systems directly from our [releases page](https://github.com/nesbox/TIC-80/releases).
 
 # Pro Version
-To help supporting the TIC-80 development, we have a [PRO Version](https://nesbox.itch.io/tic).
-This version has a few aditional features and can only be download on [our Itch.io page](https://nesbox.itch.io/tic).
+To help support TIC-80 development, we have a [PRO Version](https://nesbox.itch.io/tic).
+This version has a few aditional features and binaries can only be downloaded on [our Itch.io page](https://nesbox.itch.io/tic).
 
 For users who can't spend the money, we made it easy to build the pro version from the source code.
 
@@ -38,12 +38,12 @@ For users who can't spend the money, we made it easy to build the pro version fr
 
 - Save/load cartridges in text format, and create your game in any editor you want, also useful for version control systems.
 - Even more memory banks: instead of having only 1 memory bank you have 8.
-- Export your game only without editors, and then publish it to app stores (WIP).
+- Export your game without editors, and then publish it to app stores (WIP).
 
 # Community
 You can play and share games, tools and music at [tic.computer](https://tic.computer/play).
 
-The community also hangs and discuss on [Discord chat](https://discord.gg/DkD73dP).
+The community also hangs out and discusses on [Discord chat](https://discord.gg/DkD73dP).
 
 # Contributing
 You are can contribute by issuing a bug or requesting a new feature on our [issues page](https://github.com/nesbox/tic.computer/issues).
