@@ -23,8 +23,8 @@
 #pragma once
 
 #include "studio.h"
+#include "map.h"
 
-typedef struct Map Map;
 typedef struct World World;
 
 struct World

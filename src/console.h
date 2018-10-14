@@ -78,7 +78,7 @@ struct Console
 	char* buffer;
 	u8* colorBuffer;
 
-	char inputBuffer[TIC80_WIDTH];
+	char inputBuffer[STUDIO_TEXT_BUFFER_WIDTH * STUDIO_TEXT_BUFFER_HEIGHT];
 	size_t inputPosition;
 
 	tic_mem* tic;
@@ -103,7 +103,7 @@ struct Console
 		bool crtMonitor;
 	};
 
-	void(*load)(Console*, const char* name);
+	void(*load)(Console*, const char* path, const char* hash);
 	bool(*loadProject)(Console*, const char* name, const char* data, s32 size, tic_cartridge* dst);
 	void(*updateProject)(Console*);
 	void(*error)(Console*, const char*);

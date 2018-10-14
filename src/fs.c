@@ -115,7 +115,7 @@ static const fsString* utf8ToString(const char* str)
 {
 	fsString* wstr = malloc(FILENAME_MAX * sizeof(fsString));
 
-	mbstowcs(wstr, str, FILENAME_MAX);
+	MultiByteToWideChar(CP_UTF8, 0, str, FILENAME_MAX, wstr, FILENAME_MAX);
 
 	return wstr;
 }
@@ -124,15 +124,13 @@ static const char* stringToUtf8(const fsString* wstr)
 {
 	char* str = malloc(FILENAME_MAX * sizeof(char));
 
-	wcstombs(str, wstr, FILENAME_MAX);
+	WideCharToMultiByte(CP_UTF8, 0, wstr, FILENAME_MAX, str, FILENAME_MAX, 0, 0);
 
 	return str;
 }
 
 #define freeString(S) free((void*)S)
 
-FILE* _wfopen(const fsString *, const fsString *);
-int _wremove(const fsString *);
 
 #define TIC_DIR _WDIR
 #define tic_dirent _wdirent
@@ -146,6 +144,8 @@ int _wremove(const fsString *);
 #define tic_remove _wremove
 #define tic_fopen _wfopen
 #define tic_mkdir(name) _wmkdir(name)
+#define tic_strcpy wcscpy
+#define tic_strcat wcscat
 
 #else
 
@@ -170,6 +170,8 @@ typedef char fsString;
 #define tic_remove remove
 #define tic_fopen fopen
 #define tic_mkdir(name) mkdir(name, 0700)
+#define tic_strcpy strcpy
+#define tic_strcat strcat
 
 #endif
 
@@ -298,6 +300,42 @@ static void netDirRequest(const char* path, ListCallback callback, void* data)
 
 #endif
 
+static void enumFiles(FileSystem* fs, const char* path, ListCallback callback, void* data, bool folder)
+{
+	TIC_DIR *dir = NULL;
+	struct tic_dirent* ent = NULL;
+
+	const fsString* pathString = utf8ToString(path);
+
+	if ((dir = tic_opendir(pathString)) != NULL)
+	{
+		fsString fullPath[FILENAME_MAX];
+		struct tic_stat_struct s;
+		
+		while ((ent = tic_readdir(dir)) != NULL)
+		{
+			if(*ent->d_name != _S('.'))
+			{
+				tic_strcpy(fullPath, pathString);
+				tic_strcat(fullPath, ent->d_name);
+
+				if(tic_stat(fullPath, &s) == 0 && folder ? S_ISDIR(s.st_mode) : S_ISREG(s.st_mode))
+				{
+					const char* name = stringToUtf8(ent->d_name);
+					bool result = callback(name, NULL, 0, data, folder);
+					freeString(name);
+
+					if(!result) break;
+				}
+			}
+		}
+
+		tic_closedir(dir);
+	}
+
+	freeString(pathString);
+}
+
 void fsEnumFiles(FileSystem* fs, ListCallback callback, void* data)
 {
 #if !defined(__EMSCRIPTEN__)
@@ -312,56 +350,10 @@ void fsEnumFiles(FileSystem* fs, ListCallback callback, void* data)
 
 #endif
 
-	TIC_DIR *dir = NULL;
-	struct tic_dirent* ent = NULL;
-
 	const char* path = getFilePath(fs, "");
 
-	{
-		const fsString* pathString = utf8ToString(path);
-
-		if ((dir = tic_opendir(pathString)) != NULL)
-		{
-			while ((ent = tic_readdir(dir)) != NULL)
-			{
-				if (ent->d_type == DT_DIR && *ent->d_name != _S('.'))
-				{
-					const char* name = stringToUtf8(ent->d_name);
-					bool result = callback(name, NULL, 0, data, true);
-					freeString(name);
-
-					if(!result) break;
-				}
-			}
-
-			tic_closedir(dir);
-		}
-
-		freeString(pathString);
-	}
-
-	{
-		const fsString* pathString = utf8ToString(path);
-
-		if ((dir = tic_opendir(pathString)) != NULL)
-		{
-			while ((ent = tic_readdir(dir)) != NULL)
-			{
-				if (ent->d_type == DT_REG)
-				{
-					const char* name = stringToUtf8(ent->d_name);
-					bool result = callback(name, NULL, 0, data, false);
-					freeString(name);
-
-					if (!result)break;
-				}
-			}
-
-			tic_closedir(dir);
-		}
-
-		freeString(pathString);	
-	}
+	enumFiles(fs, path, callback, data, true);
+	enumFiles(fs, path, callback, data, false);
 }
 
 bool fsDeleteDir(FileSystem* fs, const char* name)
@@ -899,6 +891,26 @@ static bool onLoadPublicCart(const char* name, const char* info, s32 id, void* d
 	return true;
 }
 
+void* fsLoadFileByHash(FileSystem* fs, const char* hash, s32* size)
+{
+	char cachePath[FILENAME_MAX] = {0};
+	sprintf(cachePath, TIC_CACHE "%s.tic", hash);
+
+	{
+		void* data = fsLoadRootFile(fs, cachePath, size);
+		if(data) return data;
+	}
+
+	char path[FILENAME_MAX] = {0};
+	sprintf(path, "/cart/%s/cart.tic", hash);
+	void* data = getSystem()->getUrlRequest(path, size);
+
+	if(data)
+		fsSaveRootFile(fs, cachePath, data, *size, false);
+
+	return data;
+}
+
 void* fsLoadFile(FileSystem* fs, const char* name, s32* size)
 {
 	if(isPublic(fs))
@@ -912,24 +924,7 @@ void* fsLoadFile(FileSystem* fs, const char* name, s32* size)
 		fsEnumFiles(fs, onLoadPublicCart, &loadPublicCartData);
 
 		if(strlen(loadPublicCartData.hash))
-		{
-			char cachePath[FILENAME_MAX] = {0};
-			sprintf(cachePath, TIC_CACHE "%s.tic", loadPublicCartData.hash);
-
-			{
-				void* data = fsLoadRootFile(fs, cachePath, size);
-				if(data) return data;
-			}
-
-			char path[FILENAME_MAX] = {0};
-			sprintf(path, "/cart/%s/cart.tic", loadPublicCartData.hash);
-			void* data = getSystem()->getUrlRequest(path, size);
-
-			if(data)
-				fsSaveRootFile(fs, cachePath, data, *size, false);
-
-			return data;
-		}
+			return fsLoadFileByHash(fs, loadPublicCartData.hash, size);
 	}
 	else
 	{

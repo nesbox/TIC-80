@@ -24,6 +24,9 @@
 #include <SDL.h>
 #include <tic80.h>
 
+// TODO: take from tic.h??
+#define TIC_FRAMERATE 60
+
 static struct
 {
 	bool quit;
@@ -57,11 +60,12 @@ int main(int argc, char **argv)
 
 			{
 				SDL_Window* window = SDL_CreateWindow("TIC-80 SDL demo", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
-				SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-				SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, TIC80_FULLWIDTH, TIC80_FULLHEIGHT);
+				SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+				SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, TIC80_FULLWIDTH, TIC80_FULLHEIGHT);
 				
 				SDL_AudioDeviceID audioDevice = 0;
 				SDL_AudioSpec audioSpec;
+				SDL_AudioCVT cvt;
 				bool audioStarted = false;
 
 				{
@@ -74,6 +78,14 @@ int main(int argc, char **argv)
 					};
 
 					audioDevice = SDL_OpenAudioDevice(NULL, 0, &want, &audioSpec, SDL_AUDIO_ALLOW_ANY_CHANGE);
+
+					SDL_BuildAudioCVT(&cvt, want.format, want.channels, audioSpec.freq, audioSpec.format, audioSpec.channels, audioSpec.freq);
+
+					if (cvt.needed)
+					{
+						cvt.len = audioSpec.freq * sizeof(s16) / TIC_FRAMERATE;
+						cvt.buf = SDL_malloc(cvt.len * cvt.len_mult);
+					}
 				}
 
 				tic80_input input;
@@ -87,6 +99,9 @@ int main(int argc, char **argv)
 				
 				if(tic)
 				{
+					u64 nextTick = SDL_GetPerformanceCounter();
+					const u64 Delta = SDL_GetPerformanceFrequency() / TIC_FRAMERATE;
+
 					while(!state.quit)
 					{
 						SDL_Event event;
@@ -127,6 +142,8 @@ int main(int argc, char **argv)
 							}
 						}
 
+						nextTick += Delta;
+
 						tic80_tick(tic, input);
 
 						if (!audioStarted && audioDevice)
@@ -135,7 +152,18 @@ int main(int argc, char **argv)
 							SDL_PauseAudioDevice(audioDevice, 0);
 						}
 
-						SDL_QueueAudio(audioDevice, tic->sound.samples, tic->sound.count * sizeof(tic->sound.samples[0]));
+						{
+							SDL_PauseAudioDevice(audioDevice, 0);
+							s32 size = tic->sound.count * sizeof(tic->sound.samples[0]);
+
+							if (cvt.needed)
+							{
+								SDL_memcpy(cvt.buf, tic->sound.samples, size);
+								SDL_ConvertAudio(&cvt);
+								SDL_QueueAudio(audioDevice, cvt.buf, cvt.len_cvt);
+							}
+							else SDL_QueueAudio(audioDevice, tic->sound.samples, size);
+						}
 
 						SDL_RenderClear(renderer);
 
@@ -143,12 +171,21 @@ int main(int argc, char **argv)
 							void* pixels = NULL;
 							int pitch = 0;
 							SDL_LockTexture(texture, NULL, &pixels, &pitch);
-							SDL_memcpy(pixels, tic->screen, TIC80_FULLWIDTH * TIC80_FULLHEIGHT);
+							SDL_memcpy(pixels, tic->screen, pitch * TIC80_FULLHEIGHT);
 							SDL_UnlockTexture(texture);
 							SDL_RenderCopy(renderer, texture, NULL, NULL);
 						}
 
 						SDL_RenderPresent(renderer);
+
+						{
+							s64 delay = nextTick - SDL_GetPerformanceCounter();
+
+							if (delay < 0) 
+								nextTick -= delay;
+							else SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
+						}
+
 					}
 
 					tic80_delete(tic);

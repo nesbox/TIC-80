@@ -933,6 +933,7 @@ static s32 lua_font(lua_State* lua)
 		u8 chromakey = 0;
 		bool fixed = false;
 		s32 scale = 1;
+		bool alt = false;
 
 		if(top >= 3)
 		{
@@ -955,6 +956,11 @@ static s32 lua_font(lua_State* lua)
 						if(top >= 8)
 						{
 							scale = getLuaNumber(lua, 8);
+
+							if(top >= 9)
+							{
+								alt = lua_toboolean(lua, 9);
+							}
 						}
 					}
 				}
@@ -967,7 +973,7 @@ static s32 lua_font(lua_State* lua)
 			return 1;
 		}
 
-		s32 size = drawText(memory, text, x, y, width, height, chromakey, scale, fixed ? drawSpriteFont : drawFixedSpriteFont);
+		s32 size = drawText(memory, text, x, y, width, height, chromakey, scale, fixed ? drawSpriteFont : drawFixedSpriteFont, alt);
 
 		lua_pushinteger(lua, size);
 
@@ -991,6 +997,7 @@ static s32 lua_print(lua_State* lua)
 		s32 color = TIC_PALETTE_SIZE-1;
 		bool fixed = false;
 		s32 scale = 1;
+		bool alt = false;
 
 		const char* text = printString(lua, 1);
 
@@ -1010,6 +1017,11 @@ static s32 lua_print(lua_State* lua)
 					if(top >= 6)
 					{
 						scale = getLuaNumber(lua, 6);
+
+						if(top >= 7)
+						{
+							alt = lua_toboolean(lua, 7);
+						}
 					}
 				}
 			}
@@ -1021,7 +1033,7 @@ static s32 lua_print(lua_State* lua)
 			return 1;
 		}
 
-		s32 size = memory->api.text_ex(memory, text ? text : "nil", x, y, color, fixed, scale);
+		s32 size = memory->api.text_ex(memory, text ? text : "nil", x, y, color, fixed, scale, alt);
 
 		lua_pushinteger(lua, size);
 
@@ -1402,9 +1414,11 @@ static const tic_outline_item* getLuaOutline(const char* code, s32* size)
 	return items;
 }
 
-void evalLua(tic_mem* tic, const char* code) {
+static void evalLua(tic_mem* tic, const char* code) {
 	tic_machine* machine = (tic_machine*)tic;
 	lua_State* lua = machine->lua;
+
+	if (!lua) return;
 
 	lua_settop(lua, 0);
 
@@ -1412,10 +1426,6 @@ void evalLua(tic_mem* tic, const char* code) {
 	{
 		machine->data->error(machine->data->data, lua_tostring(lua, -1));
 	}
-}
-
-void evalPlaceholder(tic_mem* tic, const char* code) {
-	printf("TODO: not yet implemented\n.");
 }
 
 static const tic_script_config LuaSyntaxConfig = 
@@ -1597,7 +1607,7 @@ static const tic_script_config MoonSyntaxConfig =
 
 	.getOutline			= getMoonOutline,
 	.parse 				= parseCode,
-	.eval				= evalPlaceholder,
+	.eval				= NULL,
 
 	.blockCommentStart 	= NULL,
 	.blockCommentEnd 	= NULL,
@@ -1738,7 +1748,7 @@ static const tic_outline_item* getFennelOutline(const char* code, s32* size)
 	return items;
 }
 
-void evalFennel(tic_mem* tic, const char* code) {
+static void evalFennel(tic_mem* tic, const char* code) {
 	tic_machine* machine = (tic_machine*)tic;
 	lua_State* fennel = machine->lua;
 

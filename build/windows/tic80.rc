@@ -1,0 +1,34 @@
+101 ICON "icon.ico"
+
+1 VERSIONINFO
+	FILEVERSION 0,70,6,0
+	PRODUCTVERSION 0,70,6,0
+	FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+	FILEFLAGS 0x1L
+#else
+	FILEFLAGS 0x0L
+#endif
+	FILEOS 0x40004L
+	FILETYPE 0x0L
+	FILESUBTYPE 0x0L
+BEGIN
+	BLOCK "StringFileInfo"
+	BEGIN
+		BLOCK "040904E4"
+		BEGIN
+			VALUE "CompanyName", "Nesbox"
+			VALUE "FileDescription", "TIC-80"
+			VALUE "FileVersion", "0.70.6.0"
+			VALUE "InternalName", "tic80.exe"
+			VALUE "LegalCopyright", "http://tic.computer (C) 2017"
+			VALUE "OriginalFilename", "tic80.exe"
+			VALUE "ProductName", "TIC-80"
+			VALUE "ProductVersion", "0.70.6.0"
+		END
+	END
+	BLOCK "VarFileInfo"
+	BEGIN
+		VALUE "Translation", 0x409, 1252
+	END
+END

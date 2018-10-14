@@ -52,6 +52,8 @@ typedef struct
 			u8 select;
 			u8 cursor;
 			bool shadow;
+			bool altFont;
+
 		} code;
 
 		struct
@@ -62,12 +64,6 @@ typedef struct
 			} touch;
 
 		} gamepad;
-
-		struct
-		{
-			s32 width;
-			s32 height;
-		} font;
 
 	} theme;
 
@@ -97,6 +93,8 @@ typedef struct
 	void (*updateProject)();
 	const StudioConfig* (*config)();
 
+	// TODO: remove this method, system has to know nothing about current mode
+	bool (*isGamepadMode)();
 } Studio;
 
 TIC80_API Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* appFolder, System* system);

@@ -63,8 +63,9 @@ static duk_ret_t duk_print(duk_context* duk)
 	s32 color = duk_is_null_or_undefined(duk, 3) ? (TIC_PALETTE_SIZE-1) : duk_to_int(duk, 3);
 	bool fixed = duk_is_null_or_undefined(duk, 4) ? false : duk_to_boolean(duk, 4);
 	s32 scale = duk_is_null_or_undefined(duk, 5) ? 1 : duk_to_int(duk, 5);
+	bool alt = duk_is_null_or_undefined(duk, 6) ? false : duk_to_boolean(duk, 6);
 
-	s32 size = memory->api.text_ex(memory, text ? text : "nil", x, y, color, fixed, scale);
+	s32 size = memory->api.text_ex(memory, text ? text : "nil", x, y, color, fixed, scale, alt);
 
 	duk_push_uint(duk, size);
 
@@ -611,6 +612,7 @@ static duk_ret_t duk_font(duk_context* duk)
 	s32 height =  duk_is_null_or_undefined(duk, 5) ? TIC_SPRITESIZE : duk_to_int(duk, 5);
 	bool fixed = duk_is_null_or_undefined(duk, 6) ? false : duk_to_boolean(duk, 6);
 	s32 scale = duk_is_null_or_undefined(duk, 7) ? 1 : duk_to_int(duk, 7);
+	bool alt = duk_is_null_or_undefined(duk, 8) ? false : duk_to_boolean(duk, 8);
 
 	if(scale == 0)
 	{
@@ -618,7 +620,7 @@ static duk_ret_t duk_font(duk_context* duk)
 		return 1;
 	}
 
-	s32 size = drawText(memory, text, x, y, width, height, chromakey, scale, fixed ? drawSpriteFont : drawFixedSpriteFont);
+	s32 size = drawText(memory, text, x, y, width, height, chromakey, scale, fixed ? drawSpriteFont : drawFixedSpriteFont, alt);
 
 	duk_push_int(duk, size);
 
@@ -781,7 +783,7 @@ static const struct{duk_c_function func; s32 params;} ApiFunc[] =
 	{NULL, 0},
 	{NULL, 1},
 	{NULL, 0},
-	{duk_print, 6},
+	{duk_print, 7},
 	{duk_cls, 1},
 	{duk_pix, 3},
 	{duk_line, 5},

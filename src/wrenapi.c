@@ -91,6 +91,7 @@ class TIC {\n\
 	foreign static poke4(addr, val)\n\
 	foreign static memcpy(dst, src, size)\n\
 	foreign static memset(dst, src, size)\n\
+	foreign static pmem(index)\n\
 	foreign static pmem(index, val)\n\
 	foreign static sfx(id)\n\
 	foreign static sfx(id, note)\n\
@@ -112,15 +113,16 @@ class TIC {\n\
 	foreign static map_width__\n\
 	foreign static map_height__\n\
 	foreign static spritesize__\n\
-	foreign static print__(v, x, y, color, fixed, scale)\n\
+	foreign static print__(v, x, y, color, fixed, scale, alt)\n\
 	foreign static trace__(msg, color)\n\
 	foreign static spr__(id, x, y, alpha_color, scale, flip, rotate)\n\
 	foreign static mgeti__(index)\n\
-	static print(v) { TIC.print__(v.toString, 0, 0, 15, false, 1) }\n\
-	static print(v,x,y) { TIC.print__(v.toString, x, y, 15, false, 1) }\n\
-	static print(v,x,y,color) { TIC.print__(v.toString, x, y, color, false, 1) }\n\
-	static print(v,x,y,color,fixed) { TIC.print__(v.toString, x, y, color, fixed, 1) }\n\
-	static print(v,x,y,color,fixed,scale) { TIC.print__(v.toString, x, y, color, fixed, scale) }\n\
+	static print(v) { TIC.print__(v.toString, 0, 0, 15, false, 1, false) }\n\
+	static print(v,x,y) { TIC.print__(v.toString, x, y, 15, false, 1, false) }\n\
+	static print(v,x,y,color) { TIC.print__(v.toString, x, y, color, false, 1, false) }\n\
+	static print(v,x,y,color,fixed) { TIC.print__(v.toString, x, y, color, fixed, 1, false) }\n\
+	static print(v,x,y,color,fixed,scale) { TIC.print__(v.toString, x, y, color, fixed, scale, false) }\n\
+	static print(v,x,y,color,fixed,scale,alt) { TIC.print__(v.toString, x, y, color, fixed, scale, alt) }\n\
 	static trace(v) { TIC.trace__(v.toString, 15) }\n\
 	static trace(v,color) { TIC.trace__(v.toString, color) }\n\
 	static map(cell_x, cell_y, cell_w, cell_h, x, y, alpha_color, scale, remap) {\n\
@@ -397,7 +399,9 @@ static void wren_print(WrenVM* vm)
 		return;
 	}
 
-	s32 size = memory->api.text_ex(memory, text, x, y, color, fixed, scale);
+	bool alt = wrenGetSlotBool(vm, 7);
+
+	s32 size = memory->api.text_ex(memory, text, x, y, color, fixed, scale, alt);
 
 	wrenSetSlotDouble(vm, 0, size);
 }
@@ -422,6 +426,7 @@ static void wren_font(WrenVM* vm)
 		u8 chromakey = 0;
 		bool fixed = false;
 		s32 scale = 1;
+		bool alt = false;
 
 		if(top > 3)
 		{
@@ -444,6 +449,11 @@ static void wren_font(WrenVM* vm)
 						if(top > 8)
 						{
 							scale = getWrenNumber(vm, 8);
+
+							if(top > 9)
+							{
+								alt = wrenGetSlotBool(vm, 9);
+							}
 						}
 					}
 				}
@@ -456,7 +466,7 @@ static void wren_font(WrenVM* vm)
 			return;
 		}
 
-		s32 size = drawText(memory, text ? text : "null", x, y, width, height, chromakey, scale, fixed ? drawSpriteFont : drawFixedSpriteFont);
+		s32 size = drawText(memory, text ? text : "null", x, y, width, height, chromakey, scale, fixed ? drawSpriteFont : drawFixedSpriteFont, alt);
 		wrenSetSlotDouble(vm, 0, size);
 	}
 }
@@ -1057,7 +1067,7 @@ static void wren_sync(WrenVM* vm)
 {
 	tic_mem* memory = (tic_mem*)getWrenMachine(vm);
 
-	bool toCart = true;
+	bool toCart = false;
 	u32 mask = 0;
 	s32 bank = 0;
 
@@ -1158,6 +1168,7 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
 	if (strcmp(signature, "static TIC.poke4(_,_)"   			) == 0) return wren_poke4;
 	if (strcmp(signature, "static TIC.memcpy(_,_,_)"			) == 0) return wren_memcpy;
 	if (strcmp(signature, "static TIC.memset(_,_,_)"			) == 0) return wren_memset;
+	if (strcmp(signature, "static TIC.pmem(_)"      			) == 0) return wren_pmem;
 	if (strcmp(signature, "static TIC.pmem(_,_)"    			) == 0) return wren_pmem;
 
 	if (strcmp(signature, "static TIC.sfx(_)"    		        ) == 0) return wren_sfx;
@@ -1183,7 +1194,7 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
 	if (strcmp(signature, "static TIC.map_width__"                ) == 0) return wren_map_width;
 	if (strcmp(signature, "static TIC.map_height__"               ) == 0) return wren_map_height;
 	if (strcmp(signature, "static TIC.spritesize__"               ) == 0) return wren_spritesize;
-	if (strcmp(signature, "static TIC.print__(_,_,_,_,_,_)"     ) == 0) return wren_print;
+	if (strcmp(signature, "static TIC.print__(_,_,_,_,_,_,_)"     ) == 0) return wren_print;
 	if (strcmp(signature, "static TIC.trace__(_,_)"             ) == 0) return wren_trace;
 	if (strcmp(signature, "static TIC.spr__(_,_,_,_,_,_,_)"	    ) == 0) return wren_spr_internal;
 	if (strcmp(signature, "static TIC.mgeti__(_)"                 ) == 0) return wren_mgeti;
@@ -1352,6 +1363,8 @@ static const char* const WrenKeywords [] =
 	"static", "super", "this", "true", "var", "while"
 };
 
+static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+
 static const tic_outline_item* getWrenOutline(const char* code, s32* size)
 {
 	enum{Size = sizeof(tic_outline_item)};
@@ -1360,10 +1373,59 @@ static const tic_outline_item* getWrenOutline(const char* code, s32* size)
 
 	static tic_outline_item* items = NULL;
 
+	if(items)
+	{
+		free(items);
+		items = NULL;
+	}
+
+	const char* ptr = code;
+
+	while(true)
+	{
+		static const char ClassString[] = "class ";
+
+		ptr = strstr(ptr, ClassString);
+
+		if(ptr)
+		{
+			ptr += sizeof ClassString - 1;
+
+			const char* start = ptr;
+			const char* end = start;
+
+			while(*ptr)
+			{
+				char c = *ptr;
+
+				if(isalnum_(c));
+				else if(c == ' ' || c == '{')
+				{
+					end = ptr;
+					break;
+				}
+				else break;
+
+				ptr++;
+			}
+
+			if(end > start)
+			{
+				items = items ? realloc(items, (*size + 1) * Size) : malloc(Size);
+
+				items[*size].pos = start - code;
+				items[*size].size = end - start;
+
+				(*size)++;
+			}
+		}
+		else break;
+	}
+
 	return items;
 }
 
-void evalWren(tic_mem* memory, const char* code) 
+static void evalWren(tic_mem* memory, const char* code)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	wrenInterpret(machine->wren, code);

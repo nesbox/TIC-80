@@ -82,19 +82,16 @@ typedef struct
 
 	Clip clip;
 
-	tic_sound_register_data registers[TIC_SOUND_CHANNELS];
+	struct
+	{
+		tic_sound_register_data left[TIC_SOUND_CHANNELS];
+		tic_sound_register_data right[TIC_SOUND_CHANNELS];
+	} registers;
+
 	Channel channels[TIC_SOUND_CHANNELS];
 	struct
 	{
-		enum
-		{
-			MusicStop = 0,
-			MusicPlayFrame,
-			MusicPlay,
-		} play;
-
 		s32 ticks;
-
 		Channel channels[TIC_SOUND_CHANNELS];
 	} music;
 
@@ -141,7 +138,12 @@ typedef struct
 
 	};
 
-	blip_buffer_t* blip;
+	struct
+	{
+		blip_buffer_t* left;
+		blip_buffer_t* right;
+	} blip;
+	
 	s32 samplerate;
 
 	struct
@@ -168,10 +170,10 @@ typedef struct
 
 } tic_machine;
 
-typedef s32(DrawCharFunc)(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale);
-s32 drawText(tic_mem* memory, const char* text, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale, DrawCharFunc* func);
-s32 drawSpriteFont(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale);
-s32 drawFixedSpriteFont(tic_mem* memory, u8 index, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale);
+typedef s32(DrawCharFunc)(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale, bool alt);
+s32 drawText(tic_mem* memory, const char* text, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale, DrawCharFunc* func, bool alt);
+s32 drawSpriteFont(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale, bool alt);
+s32 drawFixedSpriteFont(tic_mem* memory, u8 index, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale, bool alt);
 void parseCode(const tic_script_config* config, const char* start, u8* color, const tic_code_theme* theme);
 
 #if defined(TIC_BUILD_WITH_SQUIRREL)

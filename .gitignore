@@ -46,9 +46,6 @@ lib/windows/res.aps
 lib/windows/tic.aps
 .DS_Store
 lib/macos/.DS_Store
-build/macosx/tic80.icns
-build/macosx/tic80.app/
-build/macosx/tic80.dmg
 tools/bundler/assets/
 tools/bundler/bin/
 tools/bin2txt/*.exe
@@ -124,3 +121,9 @@ build/uwp/sdl-gpu-static/x64/
 build/uwp/tic/packages/
 build/windows/studio/x64/
 build/windows/sdl-gpu/x64/
+.vs/
+CMakeFiles/
+lib/
+*.cmake
+CMakeCache.txt
+Makefile

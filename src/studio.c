@@ -52,9 +52,6 @@
 #define FRAME_SIZE (TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32))
 #define POPUP_DUR (TIC_FRAMERATE*2)
 
-#define KEYBOARD_HOLD 20
-#define KEYBOARD_PERIOD 3
-
 #if defined(TIC80_PRO)
 #define TIC_EDITOR_BANKS (TIC_BANKS)
 #else
@@ -133,12 +130,12 @@ static struct
 	struct
 	{
 		s32 counter;
-		char message[TIC80_WIDTH];
+		char message[STUDIO_TEXT_BUFFER_WIDTH];
 	} popup;
 
 	struct
 	{
-		char text[TIC80_WIDTH];
+		char text[STUDIO_TEXT_BUFFER_WIDTH];
 	} tooltip;
 
 	struct
@@ -237,22 +234,31 @@ static struct
 
 char getKeyboardText()
 {
-	tic_mem* tic = impl.studio.tic;
+    tic_mem* tic = impl.studio.tic;
 
-	static const char Symbols[] = 	"abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
-	static const char Shift[] = 	"ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
+    static const char Symbols[] = 	" abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
+    static const char Shift[] =		" ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
 
-	enum{Count = sizeof Symbols};
+    enum{Count = sizeof Symbols};
 
-	for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
-	{
-		tic_key key = tic->ram.input.keyboard.keys[i];
+    for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
+    {
+        tic_key key = tic->ram.input.keyboard.keys[i];
 
-		if(key > 0 && key < Count && tic->api.keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD))
-			return tic->api.key(tic, tic_key_shift) ? Shift[key-1] : Symbols[key-1];
-	}
+        if(key > 0 && key < Count && tic->api.keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD))
+        {
+            bool caps = tic->api.key(tic, tic_key_capslock);
+            bool shift = tic->api.key(tic, tic_key_shift);
 
-	return 0;
+            return caps
+                ? key >= tic_key_a && key <= tic_key_z 
+                    ? shift ? Symbols[key] : Shift[key]
+                    : shift ? Shift[key] : Symbols[key]
+                : shift ? Shift[key] : Symbols[key];
+        }
+    }
+
+    return 0;
 }
 
 bool keyWasPressed(tic_key key)
@@ -436,7 +442,7 @@ static void drawExtrabar(tic_mem* tic)
 {
 	enum {Size = 7};
 
-	s32 x = (COUNT_OF(Modes) + 1) * Size + 102;
+	s32 x = (COUNT_OF(Modes) + 1) * Size + 17 * TIC_FONT_WIDTH;
 	s32 y = 0;
 
 	static const u8 Icons[] =
@@ -526,13 +532,20 @@ const StudioConfig* getConfig()
 	return &impl.config->data;
 }
 
+static bool isGamepadMode()
+{
+	return impl.mode == TIC_RUN_MODE
+		|| impl.mode == TIC_SURF_MODE
+		|| impl.mode == TIC_MENU_MODE;
+}
+
 #if defined (TIC80_PRO)
 
 static void drawBankIcon(s32 x, s32 y)
 {
 	tic_mem* tic = impl.studio.tic;
 
-	tic_rect rect = {x, y, tic->font.width, tic->font.height};
+	tic_rect rect = {x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
 
 	static const u8 Icon[] =
 	{
@@ -574,11 +587,9 @@ static void drawBankIcon(s32 x, s32 y)
 
 		enum{Size = TOOLBAR_SIZE};
 
-		x += Size+2;
-
 		for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
 		{
-			tic_rect rect = {x + i*Size, 0, Size, Size};
+			tic_rect rect = {x + 2 + (i+1)*Size, 0, Size, Size};
 
 			bool over = false;
 			if(checkMousePos(&rect))
@@ -597,7 +608,7 @@ static void drawBankIcon(s32 x, s32 y)
 			if(i == impl.bank.indexes[mode])
 				tic->api.rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_red);
 
-			tic->api.draw_char(tic, '0' + i, rect.x+(Size-tic->font.width+1)/2, rect.y+1, i == impl.bank.indexes[mode] ? tic_color_white : over ? tic_color_red : tic_color_peach);
+			tic->api.draw_char(tic, '0' + i, rect.x+1, rect.y+1, i == impl.bank.indexes[mode] ? tic_color_white : over ? tic_color_red : tic_color_peach, false);
 
 		}
 
@@ -614,7 +625,7 @@ static void drawBankIcon(s32 x, s32 y)
 				0b00000000,
 			};
 
-			tic_rect rect = {x + 2 + TIC_EDITOR_BANKS*Size, 0, Size, Size};
+			tic_rect rect = {x + 4 + (TIC_EDITOR_BANKS+1)*Size, 0, Size, Size};
 
 			bool over = false;
 
@@ -766,11 +777,11 @@ void drawToolbar(tic_mem* tic, u8 color, bool bg)
 	{
 		if(strlen(impl.tooltip.text))
 		{
-			impl.studio.tic->api.text(tic, impl.tooltip.text, TextOffset, 1, (tic_color_black));
+			impl.studio.tic->api.text(tic, impl.tooltip.text, TextOffset, 1, (tic_color_black), false);
 		}
 		else
 		{
-			impl.studio.tic->api.text(tic, Names[mode], TextOffset, 1, (tic_color_dark_gray));
+			impl.studio.tic->api.text(tic, Names[mode], TextOffset, 1, (tic_color_dark_gray), false);
 		}
 	}
 }
@@ -1088,7 +1099,7 @@ static void initModules()
 
 	for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
 	{
-		initCode(impl.editor[i].code, impl.studio.tic, &tic->cart.banks[i].code);
+		initCode(impl.editor[i].code, impl.studio.tic, &tic->cart.code);
 		initSprite(impl.editor[i].sprite, impl.studio.tic, &tic->cart.banks[i].tiles);
 		initMap(impl.editor[i].map, impl.studio.tic, &tic->cart.banks[i].map);
 		initSfx(impl.editor[i].sfx, impl.studio.tic, &tic->cart.banks[i].sfx);
@@ -1329,7 +1340,6 @@ static void processShortcuts()
 		if(keyWasPressedOnce(tic_key_escape))
 		{
 			impl.mode == TIC_MENU_MODE ? hideGameMenu() : showGameMenu();
-			// impl.gamepad.backProcessed = true;
 		}
 		else if(keyWasPressedOnce(tic_key_f11)) goFullscreen();
 		else if(keyWasPressedOnce(tic_key_return))
@@ -1524,8 +1534,6 @@ static void recordFrame(u32* pixels)
 
 static void drawPopup()
 {
-	tic_mem* tic = impl.studio.tic;
-
 	if(impl.popup.counter > 0)
 	{
 		impl.popup.counter--;
@@ -1535,14 +1543,14 @@ static void drawPopup()
 		enum{Dur = TIC_FRAMERATE/2};
 
 		if(impl.popup.counter < Dur)
-			anim = -((Dur - impl.popup.counter) * (tic->font.height+1) / Dur);
+			anim = -((Dur - impl.popup.counter) * (TIC_FONT_HEIGHT+1) / Dur);
 		else if(impl.popup.counter >= (POPUP_DUR - Dur))
-			anim = (((POPUP_DUR - Dur) - impl.popup.counter) * (tic->font.height+1) / Dur);
+			anim = (((POPUP_DUR - Dur) - impl.popup.counter) * (TIC_FONT_HEIGHT+1) / Dur);
 
-		impl.studio.tic->api.rect(impl.studio.tic, 0, anim, TIC80_WIDTH, tic->font.height+1, (tic_color_red));
+		impl.studio.tic->api.rect(impl.studio.tic, 0, anim, TIC80_WIDTH, TIC_FONT_HEIGHT+1, (tic_color_red));
 		impl.studio.tic->api.text(impl.studio.tic, impl.popup.message, 
-			(s32)(TIC80_WIDTH - strlen(impl.popup.message)*tic->font.width)/2,
-			anim + 1, (tic_color_white));
+			(s32)(TIC80_WIDTH - strlen(impl.popup.message)*TIC_FONT_WIDTH)/2,
+			anim + 1, (tic_color_white), false);
 	}
 }
 
@@ -1630,12 +1638,7 @@ static void renderStudio()
 
 static void updateSystemFont()
 {
-	tic_mem* tic = impl.studio.tic;
-
-	memset(tic->font.data, 0, sizeof tic->font.data);
-
-	tic->font.width = impl.config->data.theme.font.width;
-	tic->font.height = impl.config->data.theme.font.height;
+	memset(impl.studio.tic->font.data, 0, sizeof(tic_font));
 
 	for(s32 i = 0; i < TIC_FONT_CHARS; i++)
 		for(s32 y = 0; y < TIC_SPRITESIZE; y++)
@@ -1882,6 +1885,7 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, Sy
 	impl.studio.updateProject = updateStudioProject;
 	impl.studio.exit = exitStudio;
 	impl.studio.config = getConfig;
+	impl.studio.isGamepadMode = isGamepadMode;
 
 	return &impl.studio;
 }

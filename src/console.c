@@ -70,10 +70,6 @@ typedef enum
 	WrenScript,	
 #endif
 
-#if defined(TIC_BUILD_WITH_SQUIRREL)
-	Squirrel,	
-#endif
-
 } ScriptLang;
 
 #if defined(__TIC_WINDOWS__) || defined(__TIC_LINUX__) || defined(__TIC_MACOSX__)
@@ -498,10 +494,11 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 
 #if defined(TIC_BUILD_WITH_WREN)
 		case WrenScript: strcpy(path, DefaultWrenTicPath); break;
-#endif			
+#endif	
 #if defined(TIC_BUILD_WITH_SQUIRREL)
 		case Squirrel: strcpy(path, DefaultSquirrelTicPath); break;
 #endif			
+		
 		}
 
 		void* data = fsLoadRootFile(console->fs, path, size);
@@ -555,7 +552,6 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 		}
 		break;
 #	endif
-
 
 #endif /* defined(TIC_BUILD_WITH_LUA) */
 
@@ -1545,7 +1541,6 @@ static void onConsoleConfigCommand(Console* console, const char* param)
 		onConsoleLoadDemoCommand(console, DefaultFennelTicPath);
 	}
 #	endif
-
 
 #endif /* defined(TIC_BUILD_WITH_LUA) */
 

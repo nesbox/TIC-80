@@ -27,9 +27,9 @@
 #include "defines.h"
 
 #define TIC_VERSION_MAJOR 0
-#define TIC_VERSION_MINOR 70
+#define TIC_VERSION_MINOR 80
 #define TIC_VERSION_PATCH 0
-#define TIC_VERSION_STATUS "-dev.2"
+#define TIC_VERSION_STATUS "-dev"
 
 #if defined(TIC80_PRO)
 #define TIC_VERSION_POST " Pro"
@@ -53,6 +53,9 @@
 
 #define TIC_VRAM_SIZE (16*1024) //16K
 #define TIC_RAM_SIZE (80*1024) //80K
+#define TIC_FONT_WIDTH 6
+#define TIC_FONT_HEIGHT 6
+#define TIC_ALTFONT_WIDTH 4
 #define TIC_PALETTE_BPP 4
 #define TIC_PALETTE_SIZE (1 << TIC_PALETTE_BPP)
 #define TIC_FRAMERATE 60
@@ -76,6 +79,7 @@
 #define TIC_SAVEID_SIZE 64
 
 #define TIC_SOUND_CHANNELS 4
+#define TIC_STEREO_CHANNLES 2
 #define SFX_TICKS 30
 #define SFX_COUNT_BITS 6
 #define SFX_COUNT (1 << SFX_COUNT_BITS)
@@ -109,6 +113,10 @@
 #define TIC_GAMEPADS (sizeof(tic80_gamepads) / sizeof(tic80_gamepad))
 
 #define SFX_NOTES {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
+#define TIC_FONT_CHARS 256
+
+#define KEYBOARD_HOLD 20
+#define KEYBOARD_PERIOD 3
 
 enum
 {
@@ -178,8 +186,9 @@ typedef struct
 		s8 speed:3;
 		u8 reverse:1; // arpeggio reverse
 		u8 note:4;
-		u8 chain:1;
-		u8 temp:3;
+		u8 stereo_left:1;
+		u8 stereo_right:1;
+		u8 temp:2;
 	};
 
 	union
@@ -259,18 +268,50 @@ typedef struct
 	tic_tracks tracks;
 }tic_music;
 
+typedef enum
+{
+	tic_music_stop,
+	tic_music_play_frame,
+	tic_music_play,
+} tic_music_state;
+
 typedef struct
 {
-	s8 track;
-	s8 frame;
-	s8 row;
+	struct
+	{
+		s8 track;
+		s8 frame;
+		s8 row;
+	} music;
 	
 	struct
 	{
-		bool loop:1;
+		u8 music_loop:1;
+		u8 music_state:2; // enum tic_music_state
+		u8 unknown:5;
 	} flag;
 
-} tic_music_pos;
+} tic_sound_state;
+
+typedef union
+{
+	struct
+	{
+		u8 left1:4;
+		u8 right1:4;
+
+		u8 left2:4;
+		u8 right2:4;
+
+		u8 left3:4;
+		u8 right3:4;
+
+		u8 left4:4;
+		u8 right4:4;
+	};
+
+	u32 data;
+} tic_stereo_volume;
 
 typedef struct
 {
@@ -330,7 +371,6 @@ typedef struct
 	tic_map 	map;
 	tic_sfx 	sfx;
 	tic_music 	music;
-	tic_code 	code;
 	tic_palette palette;
 } tic_bank;
 
@@ -338,23 +378,18 @@ typedef struct
 {
 	union
 	{
-		struct
-		{
-			tic_bank bank0;
-			tic_bank bank1;
-			tic_bank bank2;
-			tic_bank bank3;
-			tic_bank bank4;
-			tic_bank bank5;
-			tic_bank bank6;
-			tic_bank bank7;
-		};
-
+		tic_bank bank0;
 		tic_bank banks[TIC_BANKS];
 	};
-	
+
+	tic_code 	code;	
 	tic_cover_image cover;
 } tic_cartridge;
+
+typedef struct
+{
+	u8 data[TIC_FONT_CHARS * BITS_IN_BYTE];
+} tic_font;
 
 typedef struct
 {
@@ -416,11 +451,12 @@ typedef union
 		tic_tiles sprites;
 		tic_map map;
 		tic80_input input;
-		u8 unknown[16];
+		u8 unknown[12];
+		tic_stereo_volume stereo;
 		tic_sound_register registers[TIC_SOUND_CHANNELS];
 		tic_sfx sfx;
 		tic_music music;
-		tic_music_pos music_pos;
+		tic_sound_state sound_state;
 	};
 
 	u8 data[TIC_RAM_SIZE];

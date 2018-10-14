@@ -48,7 +48,7 @@ static void onExit(void* data)
 	run->exit = true;
 }
 
-static char* data2md5(const void* data, s32 length)
+static const char* data2md5(const void* data, s32 length)
 {
 	const char *str = data;
 	MD5_CTX c;
@@ -66,11 +66,12 @@ static char* data2md5(const void* data, s32 length)
 	}
 
 	{
-		u8 digest[16];
+		enum{Size = 16};
+		u8 digest[Size];
 		MD5_Final(digest, &c);
 
-		for (s32 n = 0; n < 16; ++n)
-			snprintf(&(out[n*2]), 16*2, "%02x", (u32)digest[n]);
+		for (s32 n = 0; n < Size; ++n)
+			snprintf(out + n*2, sizeof("ff"), "%02x", digest[n]);
 	}
 
 	return out;
@@ -78,8 +79,8 @@ static char* data2md5(const void* data, s32 length)
 
 static void initPMemName(Run* run)
 {
-	const char* data = strlen(run->tic->saveid) ? run->tic->saveid : run->tic->cart.bank0.code.data;
-	char* md5 = data2md5(data, (s32)strlen(data));
+	const char* data = strlen(run->tic->saveid) ? run->tic->saveid : run->tic->cart.code.data;
+	const char* md5 = data2md5(data, strlen(data));
 	strcpy(run->saveid, TIC_LOCAL);
 	strcat(run->saveid, md5);
 }
@@ -112,9 +113,9 @@ static void processDoFile(void* data, char* dst)
 	static const char DoFileTag[] = "dofile(";
 	enum {Size = sizeof DoFileTag - 1};
 
-	if (memcmp(tic->cart.bank0.code.data, DoFileTag, Size) == 0)
+	if (memcmp(tic->cart.code.data, DoFileTag, Size) == 0)
 	{
-		const char* start = tic->cart.bank0.code.data + Size;
+		const char* start = tic->cart.code.data + Size;
 		const char* end = strchr(start, ')');
 
 		if(end && *start == *(end-1) && (*start == '"' || *start == '\''))

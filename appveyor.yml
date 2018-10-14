@@ -1,0 +1,22 @@
+version: '{build}'
+image: Visual Studio 2017
+
+configuration:
+- Release
+
+platform:
+- x64
+
+environment:
+  matrix:
+  - arch: Win64
+
+install: git submodule update --init --recursive
+
+before_build:
+  cmd: cmake -G "Visual Studio 15 2017 Win64"   
+
+build:
+  project: c:\projects\tic-80\TIC-80.sln
+  verbosity: minimal
+  parallel: true
