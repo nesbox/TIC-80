@@ -1028,6 +1028,7 @@ static SQInteger squirrel_font(HSQUIRRELVM vm)
 		s32 height = TIC_SPRITESIZE;
 		u8 chromakey = 0;
 		bool fixed = false;
+                bool alt = false;
 		s32 scale = 1;
 
 		if(top >= 4)
@@ -1053,6 +1054,14 @@ static SQInteger squirrel_font(HSQUIRRELVM vm)
 						if(top >= 9)
 						{
 							scale = getSquirrelNumber(vm, 9);
+                                                        
+                                                        if (top >= 10)
+                                                        {
+                                                            SQBool b = SQFalse;
+                                                            sq_getbool(vm, 10, &b);
+                                                            alt = (b != SQFalse);
+                                                        }
+                                                        
 						}
 					}
 				}
@@ -1065,7 +1074,7 @@ static SQInteger squirrel_font(HSQUIRRELVM vm)
 			return 1;
 		}
 
-		s32 size = drawText(memory, text, x, y, width, height, chromakey, scale, fixed ? drawSpriteFont : drawFixedSpriteFont);
+		s32 size = drawText(memory, text, x, y, width, height, chromakey, scale, fixed ? drawSpriteFont : drawFixedSpriteFont, alt);
 
 		sq_pushinteger(vm, size);
 		return 1;
@@ -1086,6 +1095,7 @@ static SQInteger squirrel_print(HSQUIRRELVM vm)
 		s32 y = 0;
 		s32 color = TIC_PALETTE_SIZE-1;
 		bool fixed = false;
+                bool alt = false;
 		s32 scale = 1;
 
 		const char* text = printString(vm, 2);
@@ -1108,6 +1118,13 @@ static SQInteger squirrel_print(HSQUIRRELVM vm)
 					if(top >= 7)
 					{
 						scale = getSquirrelNumber(vm, 7);
+                                                
+                                                if (top >= 8)
+                                                {
+                                                    SQBool b = SQFalse;
+                                                    sq_getbool(vm, 8, &b);
+                                                    alt = (b != SQFalse);
+                                                }
 					}
 				}
 			}
@@ -1119,7 +1136,7 @@ static SQInteger squirrel_print(HSQUIRRELVM vm)
 			return 1;
 		}
 
-		s32 size = memory->api.text_ex(memory, text ? text : "nil", x, y, color, fixed, scale);
+		s32 size = memory->api.text_ex(memory, text ? text : "nil", x, y, color, fixed, scale, alt);
 
 		sq_pushinteger(vm, size);
 

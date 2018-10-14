@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.9)
 
-project(TIC-80 C)
+project(TIC-80 C CXX)
 message("Building for target : ${CMAKE_SYSTEM_NAME}")
 
 if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID)
@@ -134,6 +134,40 @@ target_include_directories(wren PRIVATE 3rd-party/wren-0.1.0/src/optional)
 target_include_directories(wren PRIVATE 3rd-party/wren-0.1.0/src/vm)
 
 ################################
+# SQUIRREL
+################################
+
+set(SQUIRREL_DIR 3rd-party/squirrel3.1)
+set(SQUIRREL_SRC
+    ${SQUIRREL_DIR}/squirrel/sqapi.cpp
+    ${SQUIRREL_DIR}/squirrel/sqbaselib.cpp
+    ${SQUIRREL_DIR}/squirrel/sqclass.cpp
+    ${SQUIRREL_DIR}/squirrel/sqcompiler.cpp
+    ${SQUIRREL_DIR}/squirrel/sqdebug.cpp
+    ${SQUIRREL_DIR}/squirrel/sqfuncstate.cpp
+    ${SQUIRREL_DIR}/squirrel/sqlexer.cpp
+    ${SQUIRREL_DIR}/squirrel/sqmem.cpp
+    ${SQUIRREL_DIR}/squirrel/sqobject.cpp
+    ${SQUIRREL_DIR}/squirrel/sqstate.cpp
+    ${SQUIRREL_DIR}/squirrel/sqtable.cpp
+    ${SQUIRREL_DIR}/squirrel/sqvm.cpp
+    ${SQUIRREL_DIR}/sqstdlib/sqstdaux.cpp
+    ${SQUIRREL_DIR}/sqstdlib/sqstdblob.cpp
+    ${SQUIRREL_DIR}/sqstdlib/sqstdio.cpp
+    ${SQUIRREL_DIR}/sqstdlib/sqstdmath.cpp
+    ${SQUIRREL_DIR}/sqstdlib/sqstdrex.cpp
+    ${SQUIRREL_DIR}/sqstdlib/sqstdstream.cpp
+    ${SQUIRREL_DIR}/sqstdlib/sqstdstring.cpp
+    ${SQUIRREL_DIR}/sqstdlib/sqstdsystem.cpp
+)
+
+add_library(squirrel STATIC ${SQUIRREL_SRC})
+set_target_properties(squirrel PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories(squirrel PRIVATE 3rd-party/squirrel3.1/include)
+target_include_directories(squirrel PRIVATE 3rd-party/squirrel3.1/squirrel)
+target_include_directories(squirrel PRIVATE 3rd-party/squirrel3.1/sqstdlib)
+
+################################
 # GIFLIB
 ################################
 
@@ -162,6 +196,7 @@ set(TIC80CORE_SRC
 	${TIC80CORE_DIR}/jsapi.c 
 	${TIC80CORE_DIR}/luaapi.c 
 	${TIC80CORE_DIR}/wrenapi.c 
+        ${TIC80CORE_DIR}/squirrelapi.c
 	${TIC80CORE_DIR}/ext/gif.c
 	3rd-party/blip-buf/blip_buf.c # TODO: link it as lib?
 	3rd-party/duktape-2.2.0/src/duktape.c # TODO: link it as lib?
@@ -175,11 +210,12 @@ target_include_directories(tic80core PRIVATE 3rd-party/duktape-2.2.0/src)
 target_include_directories(tic80core PRIVATE 3rd-party/lua-5.3.1/src)
 target_include_directories(tic80core PRIVATE 3rd-party/giflib-5.1.4/lib)
 target_include_directories(tic80core PRIVATE 3rd-party/wren-0.1.0/src/include)
+target_include_directories(tic80core PRIVATE 3rd-party/squirrel3.1/include)
 target_include_directories(tic80core PRIVATE 3rd-party/moonscript)
 target_include_directories(tic80core PRIVATE 3rd-party/fennel)
 
-add_dependencies(tic80core lua lpeg wren giflib)
-target_link_libraries(tic80core lua lpeg wren giflib)
+add_dependencies(tic80core lua lpeg wren squirrel giflib)
+target_link_libraries(tic80core lua lpeg wren squirrel giflib)
 
 ################################
 # SDL2

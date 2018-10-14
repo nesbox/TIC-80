@@ -575,7 +575,7 @@ void tic_close(tic_mem* memory)
 	machine->state.initialized = false;
 
 #if defined(TIC_BUILD_WITH_SQUIRREL)
-	getSquirrelScriptConfig()->close(tic);
+	getSquirrelScriptConfig()->close(memory);
 #endif
 
 #if defined(TIC_BUILD_WITH_LUA)
