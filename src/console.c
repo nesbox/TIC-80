@@ -45,7 +45,10 @@
 #define CONSOLE_ERROR_TEXT_COLOR ((tic_color_red))
 #define CONSOLE_CURSOR_BLINK_PERIOD (TIC_FRAMERATE)
 #define CONSOLE_CURSOR_DELAY (TIC_FRAMERATE / 2)
+#define CONSOLE_BUFFER_WIDTH (STUDIO_TEXT_BUFFER_WIDTH)
+#define CONSOLE_BUFFER_HEIGHT (STUDIO_TEXT_BUFFER_HEIGHT)
 #define CONSOLE_BUFFER_SCREENS 64
+#define CONSOLE_BUFFER_SIZE (CONSOLE_BUFFER_WIDTH * CONSOLE_BUFFER_HEIGHT * CONSOLE_BUFFER_SCREENS)
 
 typedef enum
 {
@@ -74,6 +77,7 @@ typedef enum
 
 #if defined(__TIC_WINDOWS__) || defined(__TIC_LINUX__) || defined(__TIC_MACOSX__)
 #define CAN_EXPORT 1
+#define CAN_OPEN_URL 1
 #endif
 
 #if defined(CAN_EXPORT)
@@ -114,15 +118,7 @@ static const char DefaultJSTicPath[] = TIC_LOCAL "default_js.tic";
 #if defined(TIC_BUILD_WITH_WREN)
 static const char DefaultWrenTicPath[] = TIC_LOCAL "default_wren.tic";
 #endif
-
-#if defined(TIC_BUILD_WITH_SQUIRREL)
-static const char DefaultSquirrelTicPath[] = TIC_LOCAL "default_squirrel.tic";
-#endif
-
-static inline s32 BufferSize(const tic_mem* tic)
-{
-	return BufferWidth(tic) * BufferHeight(tic) * CONSOLE_BUFFER_SCREENS;
-}
+	
 
 static const char* getName(const char* name, const char* ext)
 {
@@ -144,33 +140,29 @@ static const char* getCartName(const char* name)
 	return getName(name, CART_EXT);
 }
 
-static void scrollBuffer(tic_mem* tic, char* buffer)
+static void scrollBuffer(char* buffer)
 {
-	memmove(buffer, buffer + BufferWidth(tic), BufferSize(tic) - BufferWidth(tic));
-	memset(buffer + BufferSize(tic) - BufferWidth(tic), 0, BufferWidth(tic));
+	memmove(buffer, buffer + CONSOLE_BUFFER_WIDTH, CONSOLE_BUFFER_SIZE - CONSOLE_BUFFER_WIDTH);
+	memset(buffer + CONSOLE_BUFFER_SIZE - CONSOLE_BUFFER_WIDTH, 0, CONSOLE_BUFFER_WIDTH);
 }
 
 static void scrollConsole(Console* console)
 {
-	tic_mem* tic = console->tic;
-
-	while(console->cursor.y >= BufferHeight(tic) * CONSOLE_BUFFER_SCREENS)
+	while(console->cursor.y >= CONSOLE_BUFFER_HEIGHT * CONSOLE_BUFFER_SCREENS)
 	{
-		scrollBuffer(tic, console->buffer);
-		scrollBuffer(tic, (char*)console->colorBuffer);
+		scrollBuffer(console->buffer);
+		scrollBuffer((char*)console->colorBuffer);
 
 		console->cursor.y--;
 	}
 
-	s32 minScroll = console->cursor.y - BufferHeight(tic) + 1;
+	s32 minScroll = console->cursor.y - CONSOLE_BUFFER_HEIGHT + 1;
 	if(console->scroll.pos < minScroll)
 		console->scroll.pos = minScroll;
 }
 
 static void consolePrint(Console* console, const char* text, u8 color)
 {
-	tic_mem* tic = console->tic;
-
 	printf("%s", text);
 
 	const char* textPointer = text;
@@ -189,13 +181,13 @@ static void consolePrint(Console* console, const char* text, u8 color)
 		}
 		else
 		{
-			s32 offset = console->cursor.x + console->cursor.y * BufferWidth(tic);
+			s32 offset = console->cursor.x + console->cursor.y * CONSOLE_BUFFER_WIDTH;
 			*(console->buffer + offset) = symbol;
 			*(console->colorBuffer + offset) = color;
 
 			console->cursor.x++;
 
-			if(console->cursor.x >= BufferWidth(tic))
+			if(console->cursor.x >= CONSOLE_BUFFER_WIDTH)
 			{
 				console->cursor.x = 0;
 				console->cursor.y++;
@@ -245,22 +237,20 @@ static void commandDone(Console* console)
 
 static void drawCursor(Console* console, s32 x, s32 y, u8 symbol)
 {
-	tic_mem* tic = console->tic;
 	bool inverse = console->cursor.delay || console->tickCounter % CONSOLE_CURSOR_BLINK_PERIOD < CONSOLE_CURSOR_BLINK_PERIOD / 2;
 
 	if(inverse)
-		console->tic->api.rect(console->tic, x-1, y-1, tic->font.width+1, tic->font.height+1, CONSOLE_CURSOR_COLOR);
+		console->tic->api.rect(console->tic, x-1, y-1, TIC_FONT_WIDTH+1, TIC_FONT_HEIGHT+1, CONSOLE_CURSOR_COLOR);
 
-	console->tic->api.draw_char(console->tic, symbol, x, y, inverse ? TIC_COLOR_BG : CONSOLE_FRONT_TEXT_COLOR);
+	console->tic->api.draw_char(console->tic, symbol, x, y, inverse ? TIC_COLOR_BG : CONSOLE_FRONT_TEXT_COLOR, false);
 }
 
 static void drawConsoleText(Console* console)
 {
-	tic_mem* tic = console->tic;
-	char* pointer = console->buffer + console->scroll.pos * BufferWidth(tic);
-	u8* colorPointer = console->colorBuffer + console->scroll.pos * BufferWidth(tic);
+	char* pointer = console->buffer + console->scroll.pos * CONSOLE_BUFFER_WIDTH;
+	u8* colorPointer = console->colorBuffer + console->scroll.pos * CONSOLE_BUFFER_WIDTH;
 
-	const char* end = console->buffer + BufferSize(tic);
+	const char* end = console->buffer + CONSOLE_BUFFER_SIZE;
 	s32 x = 0;
 	s32 y = 0;
 
@@ -270,9 +260,9 @@ static void drawConsoleText(Console* console)
 		u8 color = *colorPointer++;
 
 		if(symbol)
-			console->tic->api.draw_char(console->tic, symbol, x * TextWidth(tic), y * TextHeight(tic), color);
+			console->tic->api.draw_char(console->tic, symbol, x * STUDIO_TEXT_WIDTH, y * STUDIO_TEXT_HEIGHT, color, false);
 
-		if(++x == BufferWidth(tic))
+		if(++x == CONSOLE_BUFFER_WIDTH)
 		{
 			y++;
 			x = 0;
@@ -282,9 +272,8 @@ static void drawConsoleText(Console* console)
 
 static void drawConsoleInputText(Console* console)
 {
-	tic_mem* tic = console->tic;
-	s32 x = console->cursor.x * TextWidth(tic);
-	s32 y = (console->cursor.y - console->scroll.pos) * TextHeight(tic);
+	s32 x = console->cursor.x * STUDIO_TEXT_WIDTH;
+	s32 y = (console->cursor.y - console->scroll.pos) * STUDIO_TEXT_HEIGHT;
 
 	const char* pointer = console->inputBuffer;
 	const char* end = pointer + strlen(console->inputBuffer);
@@ -297,14 +286,14 @@ static void drawConsoleInputText(Console* console)
 		if(console->inputPosition == index)
 			drawCursor(console, x, y, symbol);
 		else
-			console->tic->api.draw_char(console->tic, symbol, x, y, CONSOLE_FRONT_TEXT_COLOR);
+			console->tic->api.draw_char(console->tic, symbol, x, y, CONSOLE_FRONT_TEXT_COLOR, false);
 
 		index++;
 
-		x += TextWidth(tic);
-		if(x == (BufferWidth(tic) * TextWidth(tic)))
+		x += STUDIO_TEXT_WIDTH;
+		if(x == (CONSOLE_BUFFER_WIDTH * STUDIO_TEXT_WIDTH))
 		{
-			y += TextHeight(tic);
+			y += STUDIO_TEXT_HEIGHT;
 			x = 0;
 		}
 
@@ -345,11 +334,13 @@ static void processConsoleBackspace(Console* console)
 
 static void onConsoleHelpCommand(Console* console, const char* param);
 
+#if defined(CAN_OPEN_URL)
 static void onConsoleWikiCommand(Console* console, const char* param)
 {
 	getSystem()->openSystemPath("https://github.com/nesbox/TIC-80/wiki");
 	commandDone(console);
 }
+#endif
 
 static void onConsoleExitCommand(Console* console, const char* param)
 {
@@ -437,7 +428,7 @@ static bool onConsoleLoadSectionCommand(Console* console, const char* param)
 						case 0: memcpy(&tic->cart.cover, 			&cart->cover, 			sizeof cart->cover); break;
 						case 1: memcpy(&tic->cart.bank0.tiles, 		&cart->bank0.tiles, 	sizeof(tic_tiles)*2); break;
 						case 2: memcpy(&tic->cart.bank0.map, 		&cart->bank0.map, 		sizeof(tic_map)); break;
-						case 3: memcpy(&tic->cart.bank0.code, 		&cart->bank0.code, 		sizeof(tic_code)); break;
+						case 3: memcpy(&tic->cart.code, 			&cart->code, 			sizeof(tic_code)); break;
 						case 4: memcpy(&tic->cart.bank0.sfx, 		&cart->bank0.sfx, 		sizeof(tic_sfx)); break;
 						case 5: memcpy(&tic->cart.bank0.music, 		&cart->bank0.music, 	sizeof(tic_music)); break;
 						case 6: memcpy(&tic->cart.bank0.palette, 	&cart->bank0.palette,	sizeof(tic_palette)); break;
@@ -494,11 +485,7 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 
 #if defined(TIC_BUILD_WITH_WREN)
 		case WrenScript: strcpy(path, DefaultWrenTicPath); break;
-#endif	
-#if defined(TIC_BUILD_WITH_SQUIRREL)
-		case Squirrel: strcpy(path, DefaultSquirrelTicPath); break;
 #endif			
-		
 		}
 
 		void* data = fsLoadRootFile(console->fs, path, size);
@@ -555,19 +542,6 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 
 #endif /* defined(TIC_BUILD_WITH_LUA) */
 
-#if defined(TIC_BUILD_WITH_SQUIRREL)
-	case Squirrel:
-		{
-			static const u8 SquirrelDemoRom[] =
-			{
-				#include "../bin/assets/squirreldemo.tic.dat"
-			};
-
-			demo = SquirrelDemoRom;
-			romSize = sizeof SquirrelDemoRom;
-		}
-		break;
-#endif
 
 #if defined(TIC_BUILD_WITH_JS)
 	case JavaScript:
@@ -648,10 +622,6 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 		data = getDemoCart(console, WrenScript, &size);
 #endif
 
-#if defined(TIC_BUILD_WITH_SQUIRREL)
-	if(strcmp(param, DefaultSquirrelTicPath) == 0)
-		data = getDemoCart(console, Squirrel, &size);
-#endif
 	const char* name = getCartName(param);
 
 	setCartName(console, name);
@@ -690,12 +660,12 @@ static bool hasExt(const char* name, const char* ext)
 
 static bool hasProjectExt(const char* name)
 {
-	return hasExt(name, PROJECT_LUA_EXT) || hasExt(name, PROJECT_MOON_EXT) || hasExt(name, PROJECT_JS_EXT) || hasExt(name, PROJECT_WREN_EXT) || hasExt(name, PROJECT_SQUIRREL_EXT);
+	return hasExt(name, PROJECT_LUA_EXT) || hasExt(name, PROJECT_MOON_EXT) || hasExt(name, PROJECT_JS_EXT) || hasExt(name, PROJECT_WREN_EXT);
 }
 
 static const char* projectComment(const char* name)
 {
-	return (hasExt(name, PROJECT_SQUIRREL_EXT) || hasExt(name, PROJECT_JS_EXT) || hasExt(name, PROJECT_WREN_EXT)) ? "//" : "--";
+	return hasExt(name, PROJECT_JS_EXT) || hasExt(name, PROJECT_WREN_EXT) ? "//" : "--";
 }
 
 static void buf2str(const void* data, s32 size, char* ptr, bool flip)
@@ -809,14 +779,8 @@ static s32 saveProject(Console* console, void* buffer, const char* comment)
 	tic_mem* tic = console->tic;
 
 	char* stream = buffer;
-	char* ptr = saveTextSection(stream, tic->cart.bank0.code.data);
+	char* ptr = saveTextSection(stream, tic->cart.code.data);
 	char tag[16];
-
-	for(s32 b = 1; b < TIC_BANKS; b++)
-	{
-		makeTag("CODE", tag, b);
-		ptr = saveTextSectionBank(ptr, comment, tag, tic->cart.banks[b].code.data);
-	}
 
 	for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
 	{
@@ -976,16 +940,8 @@ static bool loadProject(Console* console, const char* name, const char* data, s3
 			const char* comment = projectComment(name);
 			char tag[16];
 
-			if(loadTextSection(project, comment, cart->bank0.code.data, sizeof(tic_code)))
+			if(loadTextSection(project, comment, cart->code.data, sizeof(tic_code)))
 				done = true;
-
-			for(s32 b = 1; b < TIC_BANKS; b++)
-			{
-				makeTag("CODE", tag, b);
-
-				if(loadTextSectionBank(project, comment, tag, cart->banks[b].code.data, sizeof(tic_code)))
-					done = true;
-			}
 
 			for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
 			{
@@ -1083,10 +1039,7 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 			if(!fsExistsFile(console->fs, name))
 				name = getName(param, PROJECT_WREN_EXT);
 
-			if(!fsExistsFile(console->fs, name))
-				name = getName(param, PROJECT_SQUIRREL_EXT);
-
-                        void* data = fsLoadFile(console->fs, name, &size);
+			void* data = fsLoadFile(console->fs, name, &size);
 
 			if(data)
 			{
@@ -1107,6 +1060,30 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 	else printBack(console, "\ncart name is missing");
 
 	commandDone(console);
+}
+
+static void load(Console* console, const char* path, const char* hash)
+{
+	if(hash)
+	{
+		s32 size = 0;
+		const char* name = getCartName(path);
+
+		void* data = fsLoadFileByHash(console->fs, hash, &size);
+
+		if(data)
+		{
+			console->showGameMenu = true;
+
+			loadRom(console->tic, data, size, true);
+			onCartLoaded(console, name);
+
+			free(data);		
+		}
+
+		commandDone(console);
+	}
+	else onConsoleLoadCommandConfirmed(console, path);
 }
 
 typedef void(*ConfirmCallback)(Console* console, const char* param);
@@ -1251,15 +1228,7 @@ static void onConsoleNewCommandConfirmed(Console* console, const char* param)
 		}
 #endif			
 
-#if defined(TIC_BUILD_WITH_SQUIRREL)
-		if(strcmp(param, "squirrel") == 0)
-		{
-			loadDemo(console, Squirrel);
-			done = true;
-		}
-#endif			
-
-                if(!done)
+		if(!done)
 		{
 			printError(console, "\nunknown parameter: ");
 			printError(console, param);
@@ -1398,9 +1367,8 @@ static void onConsoleFolderCommand(Console* console, const char* param)
 
 static void onConsoleClsCommand(Console* console, const char* param)
 {
-	tic_mem* tic = console->tic;
-	memset(console->buffer, 0, BufferSize(tic));
-	memset(console->colorBuffer, TIC_COLOR_BG, BufferSize(tic));
+	memset(console->buffer, 0, CONSOLE_BUFFER_SIZE);
+	memset(console->colorBuffer, TIC_COLOR_BG, CONSOLE_BUFFER_SIZE);
 	console->scroll.pos = 0;
 	console->cursor.x = console->cursor.y = 0;
 
@@ -1557,14 +1525,7 @@ static void onConsoleConfigCommand(Console* console, const char* param)
 		onConsoleLoadDemoCommand(console, DefaultWrenTicPath);
 	}
 #endif
-
-#if defined(TIC_BUILD_WITH_SQUIRREL)
-	else if(strcmp(param, "default squirrel") == 0)
-	{
-		onConsoleLoadDemoCommand(console, DefaultSquirrelTicPath);
-	}
-#endif
-
+	
 	else
 	{
 		printError(console, "\nunknown parameter: ");
@@ -1883,124 +1844,6 @@ static void *ticMemmem(const void* haystack, size_t hlen, const void* needle, si
 	return NULL;
 }
 
-typedef struct
-{
-	Console* console;
-	const char* cartName;
-} AppFileReadParam;
-
-typedef struct
-{
-	u8* data;
-	size_t size;
-} MemoryBuffer;
-
-static void writeMemoryData(MemoryBuffer* memory, const u8* src, size_t size)
-{
-	memcpy(memory->data + memory->size, src, size);
-	memory->size += size;
-}
-
-static void writeMemoryString(MemoryBuffer* memory, const char* str)
-{
-	size_t size = strlen(str);
-	memcpy(memory->data + memory->size, str, size);
-	memory->size += size;
-}
-
-static void onConsoleExportHtmlCommand(Console* console, const char* name)
-{
-	tic_mem* tic = console->tic;
-
-	char cartName[FILENAME_MAX];
-	strcpy(cartName, name);
-
-	{
-		static const char HtmlExt[] = ".html";
-		const char* pos = NULL;
-
-		if((pos = strstr(name, HtmlExt)) && strcmp(pos, HtmlExt) == 0);
-		else strcat(cartName, HtmlExt);
-	}
-
-	extern const u8 EmbedIndexZip[];
-	extern const s32 EmbedIndexZipSize;
-	extern const u8 EmbedTicJsZip[];
-	extern const s32 EmbedTicJsZipSize;
-
-	static const char Placeholder[] = "<script async type=\"text/javascript\" src=\"tic.js\"></script>";
-
-	u8* EmbedIndex = NULL;
-	u32 EmbedIndexSize = unzip(&EmbedIndex, EmbedIndexZip, EmbedIndexZipSize);
-
-	u8* EmbedTicJs = NULL;
-	u32 EmbedTicJsSize = unzip(&EmbedTicJs, EmbedTicJsZip, EmbedTicJsZipSize);
-
-	u8* ptr = ticMemmem(EmbedIndex, EmbedIndexSize, Placeholder, sizeof(Placeholder)-1);
-
-	if(ptr)
-	{
-		MemoryBuffer output = {(u8*)malloc(EmbedTicJsSize * 2), 0};
-
-		if(output.data)
-		{
-			writeMemoryData(&output, EmbedIndex, ptr - EmbedIndex);
-			writeMemoryString(&output, "<script type='text/javascript'>\n");
-
-			u8* buffer = (u8*)malloc(sizeof(tic_cartridge));
-
-			if(buffer)
-			{
-				writeMemoryString(&output, "var cartridge = [");
-
-				s32 size = tic->api.save(&tic->cart, buffer);
-
-				if(size)
-				{
-					// zip buffer
-					{
-						unsigned long outSize = sizeof(tic_cartridge);
-						u8* output = (u8*)malloc(outSize);
-
-						compress2(output, &outSize, buffer, size, Z_BEST_COMPRESSION);
-						free(buffer);
-
-						buffer = output;
-						size = outSize;
-					}
-
-					{
-						u8* ptr = buffer;
-						u8* end = ptr + size;
-
-						char value[] = "999,";
-						while(ptr != end)
-						{
-							sprintf(value, "%i,", *ptr++);
-							writeMemoryString(&output, value);
-						}
-					}
-
-					free(buffer);
-
-					writeMemoryString(&output, "];\n");
-
-					writeMemoryData(&output, EmbedTicJs, EmbedTicJsSize);
-					writeMemoryString(&output, "</script>\n");
-
-					ptr += sizeof(Placeholder)-1;
-					writeMemoryData(&output, ptr, EmbedIndexSize - (ptr - EmbedIndex));
-
-					fsGetFileData(onFileDownloaded, cartName, output.data, output.size, DEFAULT_CHMOD, console);					
-				}
-			}
-		}
-	}
-
-	free(EmbedIndex);
-	free(EmbedTicJs);
-}
-
 #if defined(CAN_EXPORT)
 
 static void* embedCart(Console* console, s32* size)
@@ -2079,20 +1922,15 @@ static void onConsoleExportNativeCommand(Console* console, const char* cartName)
 
 #endif
 
-static const char* getExportName(Console* console, bool html)
+static const char* getExportName(Console* console)
 {
 	static char name[FILENAME_MAX];
 
 	strcpy(name, strlen(console->romName) ? console->romName : "game");
 
-	if(html)
-		strcat(name, ".html");
-	else
-	{
 #if defined(__TIC_WINDOWS__)
-		strcat(name, ExeExt);
+	strcat(name, ExeExt);
 #endif
-	}
 
 	return name;
 }
@@ -2101,42 +1939,38 @@ static void onConsoleExportCommand(Console* console, const char* param)
 {
 	if(param)
 	{
-		if(strcmp(param, "html") == 0) onConsoleExportHtmlCommand(console, getExportName(console, true));
-		else
+		if(strcmp(param, "native") == 0)
 		{
-			if(strcmp(param, "native") == 0)
-			{
 #if defined(CAN_EXPORT)
-				onConsoleExportNativeCommand(console, getExportName(console, false));
+			onConsoleExportNativeCommand(console, getExportName(console));
 #else
 
-				printBack(console, "\nnative export isn't supported on this platform\n");
-				commandDone(console);
+			printBack(console, "\nnative export isn't supported on this platform\n");
+			commandDone(console);
 #endif
-			}
-			else if(strcmp(param, "sprites") == 0)
-			{
-				exportSprites(console);
-			}
-			else if(strcmp(param, "map") == 0)
-			{
-				exportMap(console);
-			}
-			else if(strcmp(param, "cover") == 0)
-			{
-				exportCover(console);
-			}
-			else
-			{
-				printError(console, "\nunknown parameter: ");
-				printError(console, param);
-				commandDone(console);
-			}
+		}
+		else if(strcmp(param, "sprites") == 0)
+		{
+			exportSprites(console);
+		}
+		else if(strcmp(param, "map") == 0)
+		{
+			exportMap(console);
+		}
+		else if(strcmp(param, "cover") == 0)
+		{
+			exportCover(console);
+		}
+		else
+		{
+			printError(console, "\nunknown parameter: ");
+			printError(console, param);
+			commandDone(console);
 		}
 	}
 	else
 	{
-		onConsoleExportHtmlCommand(console, getExportName(console, true));
+		onConsoleExportNativeCommand(console, getExportName(console));
 	}
 }
 
@@ -2264,7 +2098,17 @@ static void onConsoleEvalCommand(Console* console, const char* param)
 	printLine(console);
 
 	const tic_script_config* script_config = console->tic->api.get_script_config(console->tic);
-	script_config->eval(console->tic, param);
+
+	if (script_config->eval)
+	{
+		if(param)
+			script_config->eval(console->tic, param);
+		else printError(console, "nothing to eval");
+	}
+	else
+	{
+		printError(console, "'eval' not implemented for the script");
+	}
 
 	commandDone(console);
 }
@@ -2348,8 +2192,6 @@ static void onConsoleDelCommand(Console* console, const char* param)
 
 static void printTable(Console* console, const char* text)
 {
-	tic_mem* tic = console->tic;
-
 	printf("%s", text);
 
 	const char* textPointer = text;
@@ -2368,7 +2210,7 @@ static void printTable(Console* console, const char* text)
 		}
 		else
 		{
-			s32 offset = console->cursor.x + console->cursor.y * BufferWidth(tic);
+			s32 offset = console->cursor.x + console->cursor.y * CONSOLE_BUFFER_WIDTH;
 			*(console->buffer + offset) = symbol;
 
 			u8 color = 0;
@@ -2388,7 +2230,7 @@ static void printTable(Console* console, const char* text)
 
 			console->cursor.x++;
 
-			if(console->cursor.x >= BufferWidth(tic))
+			if(console->cursor.x >= CONSOLE_BUFFER_WIDTH)
 			{
 				console->cursor.x = 0;
 				console->cursor.y++;
@@ -2400,7 +2242,7 @@ static void printTable(Console* console, const char* text)
 
 static void printRamInfo(Console* console, s32 addr, const char* name, s32 size)
 {
-	char buf[TIC80_WIDTH];
+	char buf[STUDIO_TEXT_BUFFER_WIDTH];
 	sprintf(buf, "\n| %05X | %-17s | %-5i |", addr, name, size);
 	printTable(console, buf);
 }
@@ -2436,7 +2278,7 @@ static void onConsoleRamCommand(Console* console, const char* param)
 		{offsetof(tic_ram, sfx.samples),				"SFX"},
 		{offsetof(tic_ram, music.patterns.data), 		"MUSIC PATTERNS"},
 		{offsetof(tic_ram, music.tracks.data), 			"MUSIC TRACKS"},
-		{offsetof(tic_ram, music_pos), 					"MUSIC POS"},
+		{offsetof(tic_ram, sound_state), 				"SOUND STATE"},
 		{TIC_RAM_SIZE, 									"..."},
 	};
 
@@ -2463,7 +2305,9 @@ static const struct
 } AvailableConsoleCommands[] =
 {
 	{"help", 	NULL, "show this info", 			onConsoleHelpCommand},
+#if defined(CAN_OPEN_URL)
 	{"wiki", 	NULL, "open github wiki page", 		onConsoleWikiCommand},
+#endif
 	{"ram", 	NULL, "show memory info", 			onConsoleRamCommand},
 	{"exit", 	"quit", "exit the application", 	onConsoleExitCommand},
 	{"new", 	NULL, "create new cart",			onConsoleNewCommand},
@@ -2480,7 +2324,7 @@ static const struct
 #endif
 	{"add",		NULL, "add file", 					onConsoleAddCommand},
 	{"get",		NULL, "download file", 				onConsoleGetCommand},
-	{"export",	NULL, "export html or native game",	onConsoleExportCommand},
+	{"export",	NULL, "export native game",			onConsoleExportCommand},
 	{"import",	NULL, "import sprites from .gif",	onConsoleImportCommand},
 	{"del",		NULL, "delete file or dir",			onConsoleDelCommand},
 	{"cls",		NULL, "clear screen",				onConsoleClsCommand},
@@ -2894,8 +2738,6 @@ static void tick(Console* console)
 			loadDemo(console, JavaScript);
 #elif defined(TIC_BUILD_WITH_WREN)
 			loadDemo(console, WrenScript);
-#elif defined(TIC_BUILD_WITH_SQUIRREL)
-			loadDemo(console, Squirrel);
 #endif			
 
 			printBack(console, "\n hello! type ");
@@ -3038,7 +2880,7 @@ static bool cmdInjectCode(Console* console, const char* param, const char* name)
 	bool watch = strcmp(param, "-code-watch") == 0;
 	if(watch || strcmp(param, "-code") == 0)
 	{
-		bool loaded = loadFileIntoBuffer(console, console->embed.file->bank0.code.data, name);
+		bool loaded = loadFileIntoBuffer(console, console->embed.file->code.data, name);
 
 		if(loaded)
 		{
@@ -3154,15 +2996,15 @@ static bool checkUIScale(Console* console, const char* param, const char* value)
 
 void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config, s32 argc, char **argv)
 {
-	if(!console->buffer) console->buffer = malloc(BufferSize(tic));
-	if(!console->colorBuffer) console->colorBuffer = malloc(BufferSize(tic));
+	if(!console->buffer) console->buffer = malloc(CONSOLE_BUFFER_SIZE);
+	if(!console->colorBuffer) console->colorBuffer = malloc(CONSOLE_BUFFER_SIZE);
 	if(!console->embed.file) console->embed.file = malloc(sizeof(tic_cartridge));
 
 	*console = (Console)
 	{
 		.tic = tic,
 		.config = config,
-		.load = onConsoleLoadCommandConfirmed,
+		.load = load,
 
 #if defined(TIC80_PRO)
 		.loadProject = loadProject,
@@ -3207,8 +3049,8 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 		.crtMonitor = false,
 	};
 
-	memset(console->buffer, 0, BufferSize(tic));
-	memset(console->colorBuffer, TIC_COLOR_BG, BufferSize(tic));
+	memset(console->buffer, 0, CONSOLE_BUFFER_SIZE);
+	memset(console->colorBuffer, TIC_COLOR_BG, CONSOLE_BUFFER_SIZE);
 
 	memset(console->codeLiveReload.fileName, 0, FILENAME_MAX);
 
