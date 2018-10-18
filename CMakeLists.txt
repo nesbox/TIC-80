@@ -137,7 +137,7 @@ target_include_directories(wren PRIVATE 3rd-party/wren-0.1.0/src/vm)
 # SQUIRREL
 ################################
 
-set(SQUIRREL_DIR 3rd-party/squirrel3.1)
+set(SQUIRREL_DIR 3rd-party/squirrel)
 set(SQUIRREL_SRC
     ${SQUIRREL_DIR}/squirrel/sqapi.cpp
     ${SQUIRREL_DIR}/squirrel/sqbaselib.cpp
@@ -163,9 +163,9 @@ set(SQUIRREL_SRC
 
 add_library(squirrel STATIC ${SQUIRREL_SRC})
 set_target_properties(squirrel PROPERTIES LINKER_LANGUAGE CXX)
-target_include_directories(squirrel PRIVATE 3rd-party/squirrel3.1/include)
-target_include_directories(squirrel PRIVATE 3rd-party/squirrel3.1/squirrel)
-target_include_directories(squirrel PRIVATE 3rd-party/squirrel3.1/sqstdlib)
+target_include_directories(squirrel PRIVATE 3rd-party/squirrel/include)
+target_include_directories(squirrel PRIVATE 3rd-party/squirrel/squirrel)
+target_include_directories(squirrel PRIVATE 3rd-party/squirrel/sqstdlib)
 
 ################################
 # GIFLIB
@@ -210,7 +210,7 @@ target_include_directories(tic80core PRIVATE 3rd-party/duktape-2.2.0/src)
 target_include_directories(tic80core PRIVATE 3rd-party/lua-5.3.1/src)
 target_include_directories(tic80core PRIVATE 3rd-party/giflib-5.1.4/lib)
 target_include_directories(tic80core PRIVATE 3rd-party/wren-0.1.0/src/include)
-target_include_directories(tic80core PRIVATE 3rd-party/squirrel3.1/include)
+target_include_directories(tic80core PRIVATE 3rd-party/squirrel/include)
 target_include_directories(tic80core PRIVATE 3rd-party/moonscript)
 target_include_directories(tic80core PRIVATE 3rd-party/fennel)
 

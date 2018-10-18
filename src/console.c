@@ -73,6 +73,10 @@ typedef enum
 	WrenScript,	
 #endif
 
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+	SquirrelScript,
+#endif
+
 } ScriptLang;
 
 #if defined(__TIC_WINDOWS__) || defined(__TIC_LINUX__) || defined(__TIC_MACOSX__)
@@ -118,7 +122,10 @@ static const char DefaultJSTicPath[] = TIC_LOCAL "default_js.tic";
 #if defined(TIC_BUILD_WITH_WREN)
 static const char DefaultWrenTicPath[] = TIC_LOCAL "default_wren.tic";
 #endif
-	
+
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+static const char DefaultSquirrelTicPath[] = TIC_LOCAL "default_squirrel.tic";
+#endif	
 
 static const char* getName(const char* name, const char* ext)
 {
@@ -485,6 +492,10 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 
 #if defined(TIC_BUILD_WITH_WREN)
 		case WrenScript: strcpy(path, DefaultWrenTicPath); break;
+#endif
+
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+		case SquirrelScript: strcpy(path, DefaultSquirrelTicPath); break;
 #endif			
 		}
 
@@ -570,6 +581,20 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 		}
 		break;
 #endif		
+
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+	case SquirrelScript:
+		{
+			static const u8 SquirrelDemoRom[] =
+			{
+				#include "../bin/assets/squirreldemo.tic.dat"
+			};
+
+			demo = SquirrelDemoRom;
+			romSize = sizeof SquirrelDemoRom;			
+		}
+		break;
+#endif				
 	}
 
 	u8* data = NULL;
@@ -620,6 +645,11 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 #if defined(TIC_BUILD_WITH_WREN)
 	if(strcmp(param, DefaultWrenTicPath) == 0)
 		data = getDemoCart(console, WrenScript, &size);
+#endif
+
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+	if(strcmp(param, DefaultSquirrelTicPath) == 0)
+		data = getDemoCart(console, SquirrelScript, &size);
 #endif
 
 	const char* name = getCartName(param);
@@ -1228,6 +1258,14 @@ static void onConsoleNewCommandConfirmed(Console* console, const char* param)
 		}
 #endif			
 
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+		if(strcmp(param, "squirrel") == 0)
+		{
+			loadDemo(console, SquirrelScript);
+			done = true;
+		}
+#endif			
+
 		if(!done)
 		{
 			printError(console, "\nunknown parameter: ");
@@ -1523,6 +1561,13 @@ static void onConsoleConfigCommand(Console* console, const char* param)
 	else if(strcmp(param, "default wren") == 0)
 	{
 		onConsoleLoadDemoCommand(console, DefaultWrenTicPath);
+	}
+#endif
+
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+	else if(strcmp(param, "default squirrel") == 0)
+	{
+		onConsoleLoadDemoCommand(console, DefaultSquirrelTicPath);
 	}
 #endif
 	
@@ -2738,6 +2783,8 @@ static void tick(Console* console)
 			loadDemo(console, JavaScript);
 #elif defined(TIC_BUILD_WITH_WREN)
 			loadDemo(console, WrenScript);
+#elif defined(TIC_BUILD_WITH_SQUIRREL)
+			loadDemo(console, SquirrelScript);
 #endif			
 
 			printBack(console, "\n hello! type ");
