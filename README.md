@@ -78,7 +78,8 @@ cmake -G "MinGW Makefiles"
 mingw32-make -j4
 ```
 
-## Linux (Ubuntu 14.04)
+## Linux 
+### Ubuntu 14.04
 run the following commands in the Terminal
 ```
 sudo apt-get install git cmake libgtk-3-dev libgles1-mesa-dev libglu-dev -y
@@ -90,6 +91,15 @@ to install the latest CMake:
 ```
 wget "https://cmake.org/files/v3.12/cmake-3.12.0-Linux-x86_64.sh"
 sudo sh cmake-3.12.0-Linux-x86_64.sh --skip-license --prefix=/usr
+```
+
+### Ubuntu 18.04
+
+run the following commands in the Terminal
+```
+sudo apt-get install git cmake libgtk-3-dev libglvnd-dev libglu1-mesa-dev freeglut3-dev -y
+git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80
+cmake . && make -j4
 ```
 
 ## Mac
