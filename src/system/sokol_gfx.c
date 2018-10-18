@@ -197,25 +197,23 @@ static void apply_viewport(void) {
     const int canvas_height = sapp_height();
     const float canvas_aspect = (float)canvas_width / (float)canvas_height;
     const float fb_aspect = (float)(sokol_gfx.fb_width*sokol_gfx.fb_aspect_scale_x) / (float)(sokol_gfx.fb_height*sokol_gfx.fb_aspect_scale_y);
-    const int frame_x = 5;
-    const int frame_y = 5;
     int vp_x, vp_y, vp_w, vp_h;
     if (fb_aspect < canvas_aspect) {
-        vp_y = frame_y;
-        vp_h = canvas_height - 2 * frame_y;
-        vp_w = (int) (canvas_height * fb_aspect) - 2 * frame_x;
+        vp_y = 0;
+        vp_h = canvas_height;
+        vp_w = (int) (canvas_height * fb_aspect);
         vp_x = (canvas_width - vp_w) / 2;
     }
     else {
-        vp_x = frame_x;
-        vp_w = canvas_width - 2 * frame_x;
-        vp_h = (int) (canvas_width / fb_aspect) - 2 * frame_y;
+        vp_x = 0;
+        vp_w = canvas_width;
+        vp_h = (int) (canvas_width / fb_aspect);
 
         // align top
-        // vp_y = frame_y;
+        vp_y = 0;
 
         // align vcenter
-        vp_y = (canvas_height - vp_h) / 2;
+        //vp_y = (canvas_height - vp_h) / 2;
     }
     sg_apply_viewport(vp_x, vp_y, vp_w, vp_h, true);
 }
