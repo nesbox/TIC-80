@@ -1164,7 +1164,7 @@ static void processGamepadMapping()
 
 	for(s32 i = 0; i < KEYMAP_COUNT; i++)
 		if(impl.keycodes[i] && tic->api.key(tic, impl.keycodes[i]))
-			tic->ram.input.gamepads.data |= 1 << i;
+ 			tic->ram.input.gamepads.data |= 1 << i;
 }
 
 static bool isGameMenu()

@@ -59,6 +59,7 @@
 #define PROJECT_MOON_EXT ".moon"
 #define PROJECT_JS_EXT ".js"
 #define PROJECT_WREN_EXT ".wren"
+#define PROJECT_SQUIRREL_EXT ".nut"
 
 typedef enum
 {

@@ -27,6 +27,7 @@
 #define TIC_BUILD_WITH_FENNEL 	1
 #define TIC_BUILD_WITH_JS 		1
 #define TIC_BUILD_WITH_WREN 	1
+#define TIC_BUILD_WITH_SQUIRREL 1
 
 #if defined(__APPLE__)
 // TODO: this disables macos config 
