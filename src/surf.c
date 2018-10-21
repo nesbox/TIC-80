@@ -396,6 +396,7 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 		|| hasExt(name, PROJECT_MOON_EXT)
 		|| hasExt(name, PROJECT_JS_EXT)
 		|| hasExt(name, PROJECT_WREN_EXT)
+		|| hasExt(name, PROJECT_FENNEL_EXT)
 #endif
 		)
 	{
@@ -533,7 +534,7 @@ static void loadCover(Surf* surf)
 
 			if(cart)
 			{
-				if(hasExt(item->name, PROJECT_LUA_EXT))
+				if(hasExt(item->name, PROJECT_LUA_EXT) || hasExt(item->name, PROJECT_FENNEL_EXT))
 					surf->console->loadProject(surf->console, item->name, data, size, cart);
 				else
 					tic->api.load(cart, data, size, true);

@@ -60,6 +60,7 @@
 #define PROJECT_JS_EXT ".js"
 #define PROJECT_WREN_EXT ".wren"
 #define PROJECT_SQUIRREL_EXT ".nut"
+#define PROJECT_FENNEL_EXT ".fnl"
 
 typedef enum
 {
