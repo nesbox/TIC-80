@@ -480,7 +480,7 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 		case MoonScript: strcpy(path, DefaultMoonTicPath); break;
 #	endif
 
-#	if defined(TIC_BUILD_WITH_MOON)
+#	if defined(TIC_BUILD_WITH_FENNEL)
 		case Fennel: strcpy(path, DefaultFennelTicPath); break;
 #	endif
 
@@ -690,12 +690,25 @@ static bool hasExt(const char* name, const char* ext)
 
 static bool hasProjectExt(const char* name)
 {
-	return hasExt(name, PROJECT_LUA_EXT) || hasExt(name, PROJECT_MOON_EXT) || hasExt(name, PROJECT_JS_EXT) || hasExt(name, PROJECT_WREN_EXT);
+	return  hasExt(name, PROJECT_LUA_EXT) ||
+		hasExt(name, PROJECT_MOON_EXT) ||
+		hasExt(name, PROJECT_JS_EXT) ||
+		hasExt(name, PROJECT_WREN_EXT) ||
+		hasExt(name, PROJECT_FENNEL_EXT);
 }
 
 static const char* projectComment(const char* name)
 {
-	return hasExt(name, PROJECT_JS_EXT) || hasExt(name, PROJECT_WREN_EXT) ? "//" : "--";
+	char* comment;
+
+	if(hasExt(name, PROJECT_JS_EXT) || hasExt(name, PROJECT_WREN_EXT))
+		comment = "//";
+	else if(hasExt(name, PROJECT_FENNEL_EXT))
+		comment = ";;";
+	else
+		comment = "--";
+
+	return comment;
 }
 
 static void buf2str(const void* data, s32 size, char* ptr, bool flip)
@@ -1068,6 +1081,9 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 
 			if(!fsExistsFile(console->fs, name))
 				name = getName(param, PROJECT_WREN_EXT);
+
+			if(!fsExistsFile(console->fs, name))
+				name = getName(param, PROJECT_FENNEL_EXT);
 
 			void* data = fsLoadFile(console->fs, name, &size);
 
