@@ -690,18 +690,21 @@ static bool hasExt(const char* name, const char* ext)
 
 static bool hasProjectExt(const char* name)
 {
-	return  hasExt(name, PROJECT_LUA_EXT) ||
-		hasExt(name, PROJECT_MOON_EXT) ||
-		hasExt(name, PROJECT_JS_EXT) ||
-		hasExt(name, PROJECT_WREN_EXT) ||
-		hasExt(name, PROJECT_FENNEL_EXT);
+	return hasExt(name, PROJECT_LUA_EXT)
+		|| hasExt(name, PROJECT_MOON_EXT)
+		|| hasExt(name, PROJECT_JS_EXT)
+		|| hasExt(name, PROJECT_WREN_EXT)
+		|| hasExt(name, PROJECT_SQUIRREL_EXT)
+		|| hasExt(name, PROJECT_FENNEL_EXT);
 }
 
 static const char* projectComment(const char* name)
 {
 	char* comment;
 
-	if(hasExt(name, PROJECT_JS_EXT) || hasExt(name, PROJECT_WREN_EXT))
+	if(hasExt(name, PROJECT_JS_EXT) 
+		|| hasExt(name, PROJECT_WREN_EXT)
+		|| hasExt(name, PROJECT_SQUIRREL_EXT))
 		comment = "//";
 	else if(hasExt(name, PROJECT_FENNEL_EXT))
 		comment = ";;";
@@ -1084,6 +1087,9 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 
 			if(!fsExistsFile(console->fs, name))
 				name = getName(param, PROJECT_FENNEL_EXT);
+
+			if(!fsExistsFile(console->fs, name))
+				name = getName(param, PROJECT_SQUIRREL_EXT);
 
 			void* data = fsLoadFile(console->fs, name, &size);
 
