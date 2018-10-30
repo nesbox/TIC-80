@@ -9,14 +9,14 @@ TIC-80 is a **FREE** and **OPEN SOURCE** fantasy computer for making, playing an
 
 With TIC-80 you get built-in tools for development: code, sprites, maps, sound editors and the command line, which is enough to create a mini retro game.
 
-Games are packeged into a cartridge file, which can be easily distributed. TIC-80 works on all popular platforms. This means your cartridge can be played in any device.
+Games are packaged into a cartridge file, which can be easily distributed. TIC-80 works on all popular platforms. This means your cartridge can be played in any device.
 
 To make a retro styled game, the whole process of creation and execution takes place under some technical limitations: 240x136 pixel display, 16 color palette, 256 8x8 color sprites, 4 channel sound, etc.
 
 ![TIC-80](https://user-images.githubusercontent.com/1101448/29687467-3ddc432e-8925-11e7-8156-5cec3700cc04.gif)
 
 ### Features
-- Multiple progamming languages: [Lua](https://www.lua.org),
+- Multiple programming languages: [Lua](https://www.lua.org),
   [Moonscript](https://moonscript.org),
   [Javascript](https://developer.mozilla.org/en-US/docs/Web/JavaScript),
   [Wren](http://wren.io/), and [Fennel](https://fennel-lang.org).
@@ -30,7 +30,7 @@ You can download compiled versions for the major operating systems directly from
 
 # Pro Version
 To help support TIC-80 development, we have a [PRO Version](https://nesbox.itch.io/tic).
-This version has a few aditional features and binaries can only be downloaded on [our Itch.io page](https://nesbox.itch.io/tic).
+This version has a few additional features and binaries can only be downloaded on [our Itch.io page](https://nesbox.itch.io/tic).
 
 For users who can't spend the money, we made it easy to build the pro version from the source code.
 
