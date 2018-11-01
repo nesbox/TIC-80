@@ -21,6 +21,7 @@ INCLUDES= \
 	-I$(3RD_PARTY)/wren-0.1.0/src/include \
 	-I$(3RD_PARTY)/moonscript \
 	-I$(3RD_PARTY)/fennel \
+	-I$(3RD_PARTY)/curl \
 	-I$(BLIPBUF_LIB) \
 	-I$(DUKTAPE_LIB) \
 	-I$(SDL_NET_LIB) \
@@ -48,7 +49,8 @@ LINUX_LIBS= \
 	-L$(3RD_PARTY)/wren-0.1.0/lib \
 	-L$(3RD_PARTY)/sdl-gpu/build/linux \
 	-L$(3RD_PARTY)/lua-5.3.1/src \
-	-L$(3RD_PARTY)/SDL2-2.0.7/build/.libs
+	-L$(3RD_PARTY)/SDL2-2.0.7/build/.libs \
+	-L$(3RD_PARTY)/curl/lib
 
 LINUX64_LIBS= \
 	$(GTK_LIBS) \
@@ -72,7 +74,8 @@ LINUX_LINKER_LTO_FLAGS= \
 	-lpthread \
 	-lrt \
 	-lz \
-	-lGL
+	-lGL \
+	-lcurl
 
 LINUX_LINKER_FLAGS= \
 	-llua \
@@ -84,7 +87,8 @@ LINUX_LINKER_FLAGS= \
 	-lz \
 	-lsdlgpu \
 	-lGL \
-	-l:libSDL2.a
+	-l:libSDL2.a \
+	-lcurl
 
 
 MINGW_OUTPUT=$(BIN_NAME).exe
@@ -105,7 +109,8 @@ EMS_LINKER_FLAGS= \
 	-lwren \
 	-lgif \
 	-lz \
-	-lsdlgpu
+	-lsdlgpu \
+	-lcurl
 
 MACOSX_OPT= \
 	-mmacosx-version-min=10.6 \
@@ -115,7 +120,7 @@ MACOSX_OPT= \
 MACOSX_LIBS= \
 	-L$(PRE_BUILT)/macos \
 	-L/usr/local/lib \
-	-lSDL2 -lm -liconv -lobjc -llua -lwren -lz -lgif \
+	-lSDL2 -lm -liconv -lobjc -llua -lwren -lz -lgif -lcurl \
 	-lsdlgpu \
 	-Wl,-framework,CoreAudio \
 	-Wl,-framework,AudioToolbox \
