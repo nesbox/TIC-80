@@ -1528,15 +1528,21 @@ static void onEmscriptenWgetError(const char* error) {}
 
 static void emsStart(s32 argc, char **argv, const char* folder)
 {
-	if(argc == 2)
+	if (argc >= 2)
 	{
-		startVars.argc = argc;
-		startVars.argv = argv;
-		startVars.folder = folder;
+		int pos = strlen(argv[1]) - strlen(".tic");
+		if (pos >= 0 && strcmp(&argv[1][pos], ".tic") == 0)
+		{
+			startVars.argc = argc;
+			startVars.argv = argv;
+			startVars.folder = folder;
 
-		emscripten_async_wget(argv[1], DEFAULT_CART, onEmscriptenWget, onEmscriptenWgetError);
+			emscripten_async_wget(argv[1], DEFAULT_CART, onEmscriptenWget, onEmscriptenWgetError);
+			return;
+		}
 	}
-	else start(argc, argv, folder);
+
+	start(argc, argv, folder);
 }
 
 #endif
