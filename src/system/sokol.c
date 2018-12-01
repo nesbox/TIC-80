@@ -154,10 +154,7 @@ static void app_frame(void)
 {
 	tic_mem* tic = platform.studio->tic;
 
-	if(platform.studio->quit)
-	{
-		return;
-	}
+	if(platform.studio->quit) exit(0);
 
 	tic80_input* input = &tic->ram.input;
 
@@ -319,6 +316,7 @@ static void processMouse(sapp_mousebutton btn, s32 down)
 	case SAPP_MOUSEBUTTON_LEFT: input->mouse.left = down; break;
 	case SAPP_MOUSEBUTTON_MIDDLE: input->mouse.middle = down; break;
 	case SAPP_MOUSEBUTTON_RIGHT: input->mouse.right = down; break;
+	default: break;
 	}
 }
 
@@ -375,7 +373,7 @@ sapp_desc sokol_main(s32 argc, char* argv[])
 	platform.audio.desc.num_channels = TIC_STEREO_CHANNLES;
 	saudio_setup(&platform.audio.desc);
 
-	platform.studio = studioInit(argc, argv, saudio_sample_rate(), ".", &systemInterface);
+	platform.studio = studioInit(argc, argv, saudio_sample_rate(), "./", &systemInterface);
 
 	const s32 Width = TIC80_FULLWIDTH * platform.studio->config()->uiScale;
 	const s32 Height = TIC80_FULLHEIGHT * platform.studio->config()->uiScale;
