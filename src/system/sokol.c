@@ -159,7 +159,9 @@ static void app_frame(void)
 		return;
 	}
 
-	tic->ram.input.gamepads.data = 0;
+	tic80_input* input = &tic->ram.input;
+
+	input->gamepads.data = 0;
 	handleKeyboard();
 	platform.studio->tick();
 
@@ -170,6 +172,8 @@ static void app_frame(void)
 		platform.audio.samples[i] = (float)tic->samples.buffer[i] / SHRT_MAX;
 
 	saudio_push(platform.audio.samples, count / 2);
+	
+	input->mouse.scrollx = input->mouse.scrolly = 0;
 }
 
 static void handleKeydown(sapp_keycode keycode, bool down)
@@ -289,11 +293,11 @@ static void handleKeydown(sapp_keycode keycode, bool down)
 		[SAPP_KEYCODE_KP_ENTER] = tic_key_return,
 		[SAPP_KEYCODE_KP_EQUAL] = tic_key_equals,
 		[SAPP_KEYCODE_LEFT_SHIFT] = tic_key_shift,
-		[SAPP_KEYCODE_LEFT_CONTROL] = tic_key_unknown,
+		[SAPP_KEYCODE_LEFT_CONTROL] = tic_key_ctrl,
 		[SAPP_KEYCODE_LEFT_ALT] = tic_key_alt,
 		[SAPP_KEYCODE_LEFT_SUPER] = tic_key_unknown,
 		[SAPP_KEYCODE_RIGHT_SHIFT] = tic_key_shift,
-		[SAPP_KEYCODE_RIGHT_CONTROL] = tic_key_unknown,
+		[SAPP_KEYCODE_RIGHT_CONTROL] = tic_key_ctrl,
 		[SAPP_KEYCODE_RIGHT_ALT] = tic_key_alt,
 		[SAPP_KEYCODE_RIGHT_SUPER] = tic_key_unknown,
 		[SAPP_KEYCODE_MENU] = tic_key_unknown,
@@ -303,6 +307,18 @@ static void handleKeydown(sapp_keycode keycode, bool down)
 	if(KeyboardCodes[keycode] > tic_key_unknown)
 	{
 		platform.keyboard.state[KeyboardCodes[keycode]] = down;
+	}
+}
+
+static void processMouse(sapp_mousebutton btn, s32 down)
+{
+	tic80_input* input = &platform.studio->tic->ram.input;
+
+	switch(btn)
+	{
+	case SAPP_MOUSEBUTTON_LEFT: input->mouse.left = down; break;
+	case SAPP_MOUSEBUTTON_MIDDLE: input->mouse.middle = down; break;
+	case SAPP_MOUSEBUTTON_RIGHT: input->mouse.right = down; break;
 	}
 }
 
@@ -319,19 +335,27 @@ static void app_input(const sapp_event* event)
 		handleKeydown(event->key_code, false);
 		break;
 	case SAPP_EVENTTYPE_MOUSE_MOVE:
-
 		{
-		
-		}
-				// if(rect.w) x = (mx - rect.x) * TIC80_WIDTH / rect.w;
-			// if(rect.h) y = (my - rect.y) * TIC80_HEIGHT / rect.h;
+			struct {s32 x, y, w, h;}rect;
+    		sokol_calc_viewport(&rect.x, &rect.y, &rect.w, &rect.h);
 
-		input->mouse.x = event->mouse_x >= 0 && event->mouse_x < 0xff ? event->mouse_x : 0xff;
-		input->mouse.y = event->mouse_y >= 0 && event->mouse_y < 0xff ? event->mouse_y : 0xff;
+    		s32 mx = -1, my = -1;
+			if(rect.w) mx = ((s32)event->mouse_x - rect.x) * TIC80_FULLWIDTH / rect.w - TIC80_OFFSET_LEFT;
+			if(rect.h) my = ((s32)event->mouse_y - rect.y) * TIC80_FULLHEIGHT / rect.h - TIC80_OFFSET_TOP;
+
+			input->mouse.x = mx >= 0 && mx < 0xff ? mx : 0xff;
+			input->mouse.y = my >= 0 && my < 0xff ? my : 0xff;
+		}
 		break;
-	case SAPP_EVENTTYPE_MOUSE_DOWN:
+	case SAPP_EVENTTYPE_MOUSE_DOWN: 
+		processMouse(event->mouse_button, 1); break;
 		break;
 	case SAPP_EVENTTYPE_MOUSE_UP:
+		processMouse(event->mouse_button, 0); break;
+		break;
+	case SAPP_EVENTTYPE_MOUSE_SCROLL:
+		input->mouse.scrollx = event->scroll_x;
+		input->mouse.scrolly = event->scroll_y;
 		break;
 	default:
 		break;

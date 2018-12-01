@@ -14,8 +14,6 @@
 
 #define STUDIO_PIXEL_FORMAT GPU_FORMAT_RGBA
 #define TEXTURE_SIZE (TIC80_FULLWIDTH)
-#define OFFSET_LEFT ((TIC80_FULLWIDTH-TIC80_WIDTH)/2)
-#define OFFSET_TOP ((TIC80_FULLHEIGHT-TIC80_HEIGHT)/2)
 
 #define KBD_COLS 22
 #define KBD_ROWS 17
@@ -345,7 +343,7 @@ static void calcTextureRect(SDL_Rect* rect)
 
 			rect->y = rect->w > rect->h 
 				? (rect->h - discreteHeight) / 2 
-				: OFFSET_TOP*discreteWidth/Width;
+				: TIC80_OFFSET_TOP*discreteWidth/Width;
 
 			rect->w = discreteWidth;
 			rect->h = discreteHeight;
@@ -381,8 +379,8 @@ static void processMouse()
 		s32 x = -1, y = -1;
 		if(crtMonitorEnabled())
 		{
-			if(rect.w) x = (mx - rect.x) * TIC80_FULLWIDTH / rect.w - OFFSET_LEFT;
-			if(rect.h) y = (my - rect.y) * TIC80_FULLHEIGHT / rect.h - OFFSET_TOP;
+			if(rect.w) x = (mx - rect.x) * TIC80_FULLWIDTH / rect.w - TIC80_OFFSET_LEFT;
+			if(rect.h) y = (my - rect.y) * TIC80_FULLHEIGHT / rect.h - TIC80_OFFSET_TOP;
 		}
 		else
 		{
@@ -833,7 +831,7 @@ static void blitGpuTexture(GPU_Target* screen, GPU_Image* texture)
 	SDL_Rect rect = {0, 0, 0, 0};
 	calcTextureRect(&rect);
 
-	enum {Header = OFFSET_TOP, Top = OFFSET_TOP, Left = OFFSET_LEFT};
+	enum {Header = TIC80_OFFSET_TOP, Top = TIC80_OFFSET_TOP, Left = TIC80_OFFSET_LEFT};
 
 	s32 width = 0;
 	SDL_GetWindowSize(platform.window, &width, NULL);
@@ -887,7 +885,7 @@ static void renderKeyboard()
 	SDL_Rect rect;
 	SDL_GetWindowSize(platform.window, &rect.w, &rect.h);
 
-	GPU_Rect src = {OFFSET_LEFT, OFFSET_TOP, KBD_COLS*TIC_SPRITESIZE, KBD_ROWS*TIC_SPRITESIZE};
+	GPU_Rect src = {TIC80_OFFSET_LEFT, TIC80_OFFSET_TOP, KBD_COLS*TIC_SPRITESIZE, KBD_ROWS*TIC_SPRITESIZE};
 	float scale = rect.w/src.w;
 	GPU_Rect dst = (GPU_Rect){0, rect.h - KBD_ROWS*TIC_SPRITESIZE*scale, scale, scale};
 
@@ -911,11 +909,11 @@ static void renderKeyboard()
 			{
 				if(key == KbdLayout[k])
 				{
-					GPU_Rect src = {(k % Cols)*TIC_SPRITESIZE + OFFSET_LEFT, (k / Cols)*TIC_SPRITESIZE + OFFSET_TOP, 
+					GPU_Rect src = {(k % Cols)*TIC_SPRITESIZE + TIC80_OFFSET_LEFT, (k / Cols)*TIC_SPRITESIZE + TIC80_OFFSET_TOP, 
 						TIC_SPRITESIZE, TIC_SPRITESIZE};
 
 					GPU_BlitScale(platform.keyboard.texture.down, &src, platform.gpu.screen, 
-						(src.x - OFFSET_LEFT) * dst.w, (src.y - OFFSET_TOP) * dst.h + dst.y, dst.w, dst.h);
+						(src.x - TIC80_OFFSET_LEFT) * dst.w, (src.y - TIC80_OFFSET_TOP) * dst.h + dst.y, dst.w, dst.h);
 				}
 			}
 		}		

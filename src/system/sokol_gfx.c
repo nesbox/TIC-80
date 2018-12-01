@@ -198,7 +198,8 @@ static const sg_pass_action gfx_draw_pass_action = {
     .colors[0] = { .action = SG_ACTION_CLEAR, .val = { 0.05f, 0.05f, 0.05f, 1.0f } }
 };
 
-static void apply_viewport(void) {
+void sokol_calc_viewport(int* x, int* y, int* w, int* h)
+{
     int vp_x = 0, vp_y = 0, vp_w = sapp_width(), vp_h = sapp_height();
 
     if (vp_w * sokol_gfx.fb_height < vp_h * sokol_gfx.fb_width)
@@ -225,6 +226,18 @@ static void apply_viewport(void) {
         vp_w = discreteWidth;
         vp_h = discreteHeight;
     }
+
+    *x = vp_x;
+    *y = vp_y;
+    *w = vp_w;
+    *h = vp_h;
+}
+
+
+static void apply_viewport(void) {
+
+    int vp_x, vp_y, vp_w, vp_h;
+    sokol_calc_viewport(&vp_x, &vp_y, &vp_w, &vp_h);
 
     sg_apply_viewport(vp_x, vp_y, vp_w, vp_h, true);
 }
