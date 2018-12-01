@@ -2,13 +2,16 @@
 
 static struct 
 {
-	sg_draw_state upscale_draw_state;
-	sg_pass upscale_pass;
-	sg_draw_state draw_state;
-	int fb_width;
-	int fb_height;
-	int fb_aspect_scale_x;
-	int fb_aspect_scale_y;
+    sg_draw_state upscale_draw_state;
+    sg_pass upscale_pass;
+    sg_draw_state draw_state;
+    int fb_width;
+    int fb_height;
+    int fb_aspect_scale_x;
+    int fb_aspect_scale_y;
+
+    bool integer_scale;
+    bool portrait_top_align;
 } sokol_gfx;
 
 #if defined(SOKOL_GLCORE33)
@@ -96,11 +99,14 @@ static const char* gfx_fs_src =
     "}\n";
 #endif
 
-void sokol_gfx_init(int w, int h, int sx, int sy) {
+void sokol_gfx_init(int w, int h, int sx, int sy, bool integer_scale, bool portrait_top_align) {
     sokol_gfx.fb_width = w;
     sokol_gfx.fb_height = h;
     sokol_gfx.fb_aspect_scale_x = sx;
     sokol_gfx.fb_aspect_scale_y = sy;
+    sokol_gfx.integer_scale = integer_scale;
+    sokol_gfx.portrait_top_align = portrait_top_align;
+
     sg_setup(&(sg_desc){
         .mtl_device = sapp_metal_get_device(),
         .mtl_renderpass_descriptor_cb = sapp_metal_get_renderpass_descriptor,
@@ -193,28 +199,33 @@ static const sg_pass_action gfx_draw_pass_action = {
 };
 
 static void apply_viewport(void) {
-    const int canvas_width = sapp_width();
-    const int canvas_height = sapp_height();
-    const float canvas_aspect = (float)canvas_width / (float)canvas_height;
-    const float fb_aspect = (float)(sokol_gfx.fb_width*sokol_gfx.fb_aspect_scale_x) / (float)(sokol_gfx.fb_height*sokol_gfx.fb_aspect_scale_y);
-    int vp_x, vp_y, vp_w, vp_h;
-    if (fb_aspect < canvas_aspect) {
-        vp_y = 0;
-        vp_h = canvas_height;
-        vp_w = (int) (canvas_height * fb_aspect);
-        vp_x = (canvas_width - vp_w) / 2;
-    }
-    else {
-        vp_x = 0;
-        vp_w = canvas_width;
-        vp_h = (int) (canvas_width / fb_aspect);
+    int vp_x = 0, vp_y = 0, vp_w = sapp_width(), vp_h = sapp_height();
 
-        // align top
-        vp_y = 0;
+    if (vp_w * sokol_gfx.fb_height < vp_h * sokol_gfx.fb_width)
+    {
+        int discreteWidth = vp_w - (sokol_gfx.integer_scale ? vp_w % sokol_gfx.fb_width : 0);
+        int discreteHeight = sokol_gfx.fb_height * discreteWidth / sokol_gfx.fb_width;
 
-        // align vcenter
-        //vp_y = (canvas_height - vp_h) / 2;
+        vp_x = (vp_w - discreteWidth) / 2;
+        vp_y = sokol_gfx.portrait_top_align && vp_w < vp_h
+            ? 0 
+            : (vp_h - discreteHeight) / 2;
+
+        vp_w = discreteWidth;
+        vp_h = discreteHeight;
     }
+    else
+    {
+        int discreteHeight = vp_h - (sokol_gfx.integer_scale ? vp_h % sokol_gfx.fb_height : 0);
+        int discreteWidth = sokol_gfx.fb_width * discreteHeight / sokol_gfx.fb_height;
+
+        vp_x = (vp_w - discreteWidth) / 2;
+        vp_y = (vp_h - discreteHeight) / 2;
+
+        vp_w = discreteWidth;
+        vp_h = discreteHeight;
+    }
+
     sg_apply_viewport(vp_x, vp_y, vp_w, vp_h, true);
 }
 

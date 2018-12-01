@@ -131,7 +131,7 @@ static System systemInterface =
 
 static void app_init(void)
 {
-	sokol_gfx_init(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, 1, 1);
+	sokol_gfx_init(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, 1, 1, false, true);
 
 	platform.audio.samples = calloc(sizeof platform.audio.samples[0], saudio_sample_rate() / TIC_FRAMERATE * TIC_STEREO_CHANNLES);
 }
@@ -303,38 +303,6 @@ static void handleKeydown(sapp_keycode keycode, bool down)
 	if(KeyboardCodes[keycode] > tic_key_unknown)
 	{
 		platform.keyboard.state[KeyboardCodes[keycode]] = down;
-	}
-}
-
-static void calcViewportSize(tic_rect* rect)
-{
-	enum{Width = TIC80_WIDTH, Height = TIC80_HEIGHT};
-
-	if (rect->w * Height < rect->h * Width)
-	{
-		s32 discreteWidth = rect->w;// - rect->w % Width;
-		s32 discreteHeight = Height * discreteWidth / Width;
-
-		rect->x = (rect->w - discreteWidth) / 2;
-
-		rect->y = rect->w > rect->h 
-			? (rect->h - discreteHeight) / 2 
-			: OFFSET_TOP*discreteWidth/Width;
-
-		rect->w = discreteWidth;
-		rect->h = discreteHeight;
-
-	}
-	else
-	{
-		s32 discreteHeight = rect->h;// - rect->h % Height;
-		s32 discreteWidth = Width * discreteHeight / Height;
-
-		rect->x = (rect->w - discreteWidth) / 2;
-		rect->y = (rect->h - discreteHeight) / 2;
-
-		rect->w = discreteWidth;
-		rect->h = discreteHeight;
 	}
 }
 
