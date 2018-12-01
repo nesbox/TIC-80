@@ -22,12 +22,20 @@
 
 #pragma once
 
+#if !defined(TIC_BUILD_WITH_LUA) && \
+	!defined(TIC_BUILD_WITH_MOON) && \
+	!defined(TIC_BUILD_WITH_FENNEL) && \
+	!defined(TIC_BUILD_WITH_JS) && \
+	!defined(TIC_BUILD_WITH_WREN)
+
 #define TIC_BUILD_WITH_LUA 		1
 #define TIC_BUILD_WITH_MOON 	1
 #define TIC_BUILD_WITH_FENNEL 	1
 #define TIC_BUILD_WITH_JS 		1
 #define TIC_BUILD_WITH_WREN 	1
 #define TIC_BUILD_WITH_SQUIRREL 1
+
+#endif
 
 #if defined(__APPLE__)
 // TODO: this disables macos config 

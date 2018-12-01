@@ -22,9 +22,9 @@
 
 #include "file_dialog.h"
 
-#include <SDL.h>
+#include <tic80_config.h>
 
-#if defined(__WINDOWS__)
+#if defined(__TIC_WINDOWS__)
 
 #include <windows.h>
 #include <commdlg.h>
@@ -36,7 +36,7 @@ wchar_t* wcscpy(wchar_t *, const wchar_t *);
 void file_dialog_load(file_dialog_load_callback callback, void* data)
 {
 	OPENFILENAMEW ofn;
-	SDL_zero(ofn);
+	memset(&ofn, 0, sizeof ofn);
 
 	wchar_t filename[MAX_PATH];
 	memset(filename, 0, sizeof(filename));
@@ -83,7 +83,7 @@ void file_dialog_load(file_dialog_load_callback callback, void* data)
 void file_dialog_save(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode)
 {
 	OPENFILENAMEW ofn;
-	SDL_zero(ofn);
+	memset(&ofn, 0, sizeof ofn);
 
 	wchar_t filename[MAX_PATH];
 	mbstowcs(filename, name, MAX_PATH);
@@ -102,7 +102,7 @@ void file_dialog_save(file_dialog_save_callback callback, const char* name, cons
 			fwrite(buffer, 1, size, file);
 			fclose(file);
 
-#if !defined(__WINDOWS__)
+#if !defined(__TIC_WINDOWS__)
 			chmod(filename, mode);
 #endif
 			callback(true, data);
@@ -157,7 +157,7 @@ void file_dialog_save(file_dialog_save_callback callback, const char* name, cons
 	callback(true, data);
 }
 
-#elif defined(__LINUX__)
+#elif defined(__TIC_LINUX__)
 
 #include <stdlib.h>
 #include <string.h>
@@ -267,7 +267,7 @@ void file_dialog_save(file_dialog_save_callback callback, const char* name, cons
 		callback(false, data);
 }
 
-#elif defined(__MACOSX__)
+#elif defined(__TIC_MACOSX__)
 
 #include <string.h>
 #include <stdio.h>
@@ -345,7 +345,7 @@ void file_dialog_save(file_dialog_save_callback callback, const char* name, cons
 		callback(false, data);
 }
 
-#elif defined(__ANDROID__)
+#elif defined(__TIC_ANDROID__)
 
 #include <jni.h>
 #include <sys/stat.h>

@@ -1,22 +1,18 @@
 version: '{build}'
-image: Visual Studio 2017
-
-configuration:
-- Release
-
-platform:
-- x64
+image: Visual Studio 2015
 
 environment:
   matrix:
-  - arch: Win64
+    - COMPILER: MSVC
+    - COMPILER: MSVC64
+    - COMPILER: MinGW-w64
 
-install: git submodule update --init --recursive
+install: 
+  - git submodule update --init --recursive
+  - if [%COMPILER%]==[MinGW-w64] set PATH=C:\mingw-w64\x86_64-7.3.0-posix-seh-rt_v5-rev0\mingw64\bin;%PATH%
 
-before_build:
-  cmd: cmake -G "Visual Studio 15 2017 Win64"   
-
-build:
-  project: c:\projects\tic-80\TIC-80.sln
-  verbosity: minimal
-  parallel: true
+build_script:
+  - if [%COMPILER%]==[MinGW-w64] cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_SH=CMAKE_SH-NOTFOUND .
+  - if [%COMPILER%]==[MSVC] cmake -G "Visual Studio 14 2015" -DCMAKE_BUILD_TYPE=MinSizeRel .
+  - if [%COMPILER%]==[MSVC64] cmake -G "Visual Studio 14 2015 Win64" -DCMAKE_BUILD_TYPE=MinSizeRel .
+  - cmake --build .
