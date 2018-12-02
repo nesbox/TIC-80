@@ -15,3 +15,11 @@ matrix:
           packages:
             - libgtk-3-dev
             - libasound2-dev
+
+deploy:
+  provider: s3
+  access_key_id: ${ACCESS_KEY_ID}
+  secret_access_key: ${SECRET_ACCESS_KEY}
+  bucket: "tic80"
+  skip_cleanup: true
+  local_dir: bin
