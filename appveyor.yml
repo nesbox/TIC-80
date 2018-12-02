@@ -16,3 +16,17 @@ build_script:
   - if [%COMPILER%]==[MSVC] cmake -G "Visual Studio 14 2015" -DCMAKE_BUILD_TYPE=MinSizeRel .
   - if [%COMPILER%]==[MSVC64] cmake -G "Visual Studio 14 2015 Win64" -DCMAKE_BUILD_TYPE=MinSizeRel .
   - cmake --build .
+
+deploy:
+  provider: S3
+  access_key_id:
+    secure: wO/OHsY1kAsqhKf6i/Nkdt30s7CgwW3KELrKzpD8Qb4=
+  secret_access_key:
+    secure: l9j5rSQDNmgj2AvqGrLQb7ii0lOLsXReThT97Dyi7IoNx8Uqm0w0hAdE1fx2bgSI
+  bucket: tic80
+  region: eu-central-1
+  artifact: bin
+  # folder:
+  # artifact:
+  # unzip: true|false (disabled by default)
+  # set_public: true|false (disabled by default)
