@@ -2326,13 +2326,6 @@ static void onConsoleRamCommand(Console* console, const char* param)
 
 	static const struct{s32 addr; const char* info;} Layout[] =
 	{
-		{offsetof(tic_ram, vram.screen), 				"SCREEN"},
-		{offsetof(tic_ram, vram.palette), 				"PALETTE"},
-		{offsetof(tic_ram, vram.mapping), 				"PALETTE MAP"},
-		{offsetof(tic_ram, vram.vars.colors), 			"BORDER"},
-		{offsetof(tic_ram, vram.vars.offset), 			"SCREEN OFFSET"},
-		{offsetof(tic_ram, vram.vars.cursor), 			"MOUSE CURSOR"},
-		{offsetof(tic_ram, vram.reserved), 				"..."},
 		{offsetof(tic_ram, tiles), 						"TILES"},
 		{offsetof(tic_ram, sprites), 					"SPRITES"},
 		{offsetof(tic_ram, map), 						"MAP"},
@@ -2346,15 +2339,43 @@ static void onConsoleRamCommand(Console* console, const char* param)
 		{offsetof(tic_ram, music.patterns.data), 		"MUSIC PATTERNS"},
 		{offsetof(tic_ram, music.tracks.data), 			"MUSIC TRACKS"},
 		{offsetof(tic_ram, sound_state), 				"SOUND STATE"},
-		{TIC_RAM_SIZE, 									"..."},
+		{offsetof(tic_ram, free), 						"..."},
+		{TIC_RAM_SIZE, 									""},
 	};
 
-	enum{Last = COUNT_OF(Layout)-1};
-
-	for(s32 i = 0; i < Last; i++)
+	for(s32 i = 0; i < COUNT_OF(Layout)-1; i++)
 		printRamInfo(console, Layout[i].addr, Layout[i].info, Layout[i+1].addr-Layout[i].addr);
 
-	printRamInfo(console, Layout[Last].addr, Layout[Last].info, 0);
+	printTable(console, "\n+-------+-------------------+-------+");
+
+	printLine(console);
+	commandDone(console);
+}
+
+static void onConsoleVRamCommand(Console* console, const char* param)
+{
+	printLine(console);
+
+	printTable(console, "\n+-----------------------------------+" \
+						"\n|           16K VRAM LAYOUT         |" \
+						"\n+-------+-------------------+-------+" \
+						"\n| ADDR  | INFO              | SIZE  |" \
+						"\n+-------+-------------------+-------+");
+
+	static const struct{s32 addr; const char* info;} Layout[] =
+	{
+		{offsetof(tic_ram, vram.screen), 			"SCREEN"},
+		{offsetof(tic_ram, vram.palette), 			"PALETTE"},
+		{offsetof(tic_ram, vram.mapping), 			"PALETTE MAP"},
+		{offsetof(tic_ram, vram.vars.colors), 		"BORDER"},
+		{offsetof(tic_ram, vram.vars.offset), 		"SCREEN OFFSET"},
+		{offsetof(tic_ram, vram.vars.cursor), 		"MOUSE CURSOR"},
+		{offsetof(tic_ram, vram.reserved), 			"..."},
+		{TIC_VRAM_SIZE, 							""},
+	};
+
+	for(s32 i = 0; i < COUNT_OF(Layout)-1; i++)
+		printRamInfo(console, Layout[i].addr, Layout[i].info, Layout[i+1].addr-Layout[i].addr);
 
 	printTable(console, "\n+-------+-------------------+-------+");
 
@@ -2375,7 +2396,8 @@ static const struct
 #if defined(CAN_OPEN_URL)
 	{"wiki", 	NULL, "open github wiki page", 		onConsoleWikiCommand},
 #endif
-	{"ram", 	NULL, "show memory info", 			onConsoleRamCommand},
+	{"ram", 	NULL, "show 80K RAM layout", 		onConsoleRamCommand},
+	{"vram", 	NULL, "show 16K VRAM layout", 		onConsoleVRamCommand},
 	{"exit", 	"quit", "exit the application", 	onConsoleExitCommand},
 	{"new", 	NULL, "create new cart",			onConsoleNewCommand},
 	{"load", 	NULL, "load cart", 					onConsoleLoadCommand},

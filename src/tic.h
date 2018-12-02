@@ -52,7 +52,7 @@
 #define TIC_COPYRIGHT "http://" TIC_HOST " (C) 2017"
 
 #define TIC_VRAM_SIZE (16*1024) //16K
-#define TIC_RAM_SIZE (80*1024) //80K
+#define TIC_RAM_SIZE (TIC_VRAM_SIZE+80*1024) //16K+80K
 #define TIC_FONT_WIDTH 6
 #define TIC_FONT_HEIGHT 6
 #define TIC_ALTFONT_WIDTH 4
@@ -457,9 +457,11 @@ typedef union
 		tic_sfx sfx;
 		tic_music music;
 		tic_sound_state sound_state;
+		u8 free[16*1024];
 	};
 
 	u8 data[TIC_RAM_SIZE];
+
 } tic_ram;
 
 typedef enum

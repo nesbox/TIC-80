@@ -30,7 +30,7 @@
 
 #define MAIN_OFFSET 4
 #define MENU_HEIGHT 10
-#define MAX_CARTS 256
+#define MAX_CARTS 512
 #define ANIM 10
 #define COVER_WIDTH 140
 #define COVER_HEIGHT 116
