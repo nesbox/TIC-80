@@ -18,6 +18,7 @@ matrix:
 
 deploy:
   provider: s3
+  region: eu-central-1
   access_key_id: ${ACCESS_KEY_ID}
   secret_access_key: ${SECRET_ACCESS_KEY}
   bucket: "tic80"
