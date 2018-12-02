@@ -25,8 +25,7 @@ deploy:
     secure: l9j5rSQDNmgj2AvqGrLQb7ii0lOLsXReThT97Dyi7IoNx8Uqm0w0hAdE1fx2bgSI
   bucket: tic80
   region: eu-central-1
-  artifact: bin
-  # folder:
-  # artifact:
+  artifact: C:\projects\tic-80\bin\tic80-sokol.exe
+  folder: win
   # unzip: true|false (disabled by default)
   # set_public: true|false (disabled by default)
