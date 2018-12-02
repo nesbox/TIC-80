@@ -17,6 +17,13 @@ build_script:
   - if [%COMPILER%]==[MSVC64] cmake -G "Visual Studio 14 2015 Win64" -DCMAKE_BUILD_TYPE=MinSizeRel .
   - cmake --build .
 
+after_build:
+  7z a tic80.zip %APPVEYOR_BUILD_FOLDER%\bin\*.exe
+
+artifacts:
+  - path: tic80.zip
+    name: tic80
+
 deploy:
   provider: S3
   access_key_id:
@@ -25,7 +32,7 @@ deploy:
     secure: l9j5rSQDNmgj2AvqGrLQb7ii0lOLsXReThT97Dyi7IoNx8Uqm0w0hAdE1fx2bgSI
   bucket: tic80
   region: eu-central-1
-  artifact: C:\projects\tic-80\bin\tic80-sokol.exe
+  artifact: tic80
   folder: win
   # unzip: true|false (disabled by default)
   # set_public: true|false (disabled by default)
