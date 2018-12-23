@@ -1468,7 +1468,7 @@ static const char* execute_moonscript_src = MOON_CODE(
 	local fn, err = require('moonscript.base').loadstring(...)
 
 	if not fn then
-		return err
+		error(err)
 	end
 	return fn()
 );
