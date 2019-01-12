@@ -297,6 +297,11 @@ tic_palette* getBankPalette()
 	return &impl.studio.tic->cart.banks[impl.bank.index.sprites].palette;
 }
 
+tic_flags* getBankFlags()
+{
+	return &impl.studio.tic->cart.banks[impl.bank.index.sprites].flags;
+}
+
 void playSystemSfx(s32 id)
 {
 	const tic_sample* effect = &impl.config->cart.bank0.sfx.samples.data[id];

@@ -52,7 +52,7 @@ typedef enum
 	CHUNK_COVER, 	// 3
 	CHUNK_MAP, 		// 4
 	CHUNK_CODE, 	// 5
-	CHUNK_TEMP,		// 6
+	CHUNK_FLAGS,	// 6
 	CHUNK_TEMP2, 	// 7
 	CHUNK_TEMP3,	// 8
 	CHUNK_SAMPLES,	// 9
@@ -773,6 +773,28 @@ static void api_sprite_ex(tic_mem* memory, const tic_tiles* src, s32 index, s32 
 				drawSprite(memory, src, index + mx+my*Cols, x+j*step, y+i*step, colors, count, scale, flip, rotate);
 		}
 	}
+}
+
+static inline u8* getFlag(tic_mem* memory, s32 index, u8 flag)
+{
+	static u8 stub;
+	if(index >= TIC_FLAGS || flag >= BITS_IN_BYTE)
+		return &stub;
+
+	return memory->ram.flags.data + index;
+}
+
+static bool api_get_flag(tic_mem* memory, s32 index, u8 flag)
+{
+	return *getFlag(memory, index, flag) & (1 << flag);
+}
+
+static void api_set_flag(tic_mem* memory, s32 index, u8 flag, bool value)
+{
+	if(value)
+		*getFlag(memory, index, flag) |= (1 << flag);
+	else 
+		*getFlag(memory, index, flag) &= ~(1 << flag);
 }
 
 s32 drawSpriteFont(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale, bool alt)
@@ -1512,6 +1534,7 @@ static void api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
 		{offsetof(tic_bank, sfx), 		offsetof(tic_ram, sfx), 			sizeof(tic_sfx)		},
 		{offsetof(tic_bank, music), 	offsetof(tic_ram, music), 			sizeof(tic_music)	},
 		{offsetof(tic_bank, palette), 	offsetof(tic_ram, vram.palette), 	sizeof(tic_palette)	},
+		{offsetof(tic_bank, flags), 	offsetof(tic_ram, flags), 			sizeof(tic_flags)	},
 	};
 
 	enum{Count = COUNT_OF(Sections), Mask = (1 << Count) - 1};
@@ -1842,6 +1865,7 @@ static void api_load(tic_cartridge* cart, const u8* buffer, s32 size, bool palet
 		case CHUNK_MUSIC:		LOAD_CHUNK(cart->banks[chunk.bank].music.tracks); 	break;
 		case CHUNK_PATTERNS:	LOAD_CHUNK(cart->banks[chunk.bank].music.patterns);	break;
 		case CHUNK_PALETTE:		LOAD_CHUNK(cart->banks[chunk.bank].palette);		break;
+		case CHUNK_FLAGS:		LOAD_CHUNK(cart->banks[chunk.bank].flags);			break;
 		case CHUNK_CODE: 		
 			if(chunk.bank == 0)
 				LOAD_CHUNK(cart->code);
@@ -1913,6 +1937,7 @@ static s32 api_save(const tic_cartridge* cart, u8* buffer)
 		buffer = SAVE_CHUNK(CHUNK_PATTERNS, cart->banks[i].music.patterns, 	i);
 		buffer = SAVE_CHUNK(CHUNK_MUSIC, 	cart->banks[i].music.tracks, 	i);
 		buffer = SAVE_CHUNK(CHUNK_PALETTE, 	cart->banks[i].palette, 		i);
+		buffer = SAVE_CHUNK(CHUNK_FLAGS, 	cart->banks[i].flags, 			i);
 	}
 
 	buffer = SAVE_CHUNK(CHUNK_CODE, cart->code, 0);
@@ -2021,6 +2046,8 @@ static void initApi(tic_api* api)
 	INIT_API(rect_border);
 	INIT_API(sprite);
 	INIT_API(sprite_ex);
+	INIT_API(get_flag);
+	INIT_API(set_flag);
 	INIT_API(map);
 	INIT_API(remap);
 	INIT_API(map_set);

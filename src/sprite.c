@@ -572,6 +572,83 @@ static void flipCanvasVert(Sprite* sprite)
 	copySelection(sprite);
 }
 
+static s32* getSpriteIndexes(Sprite* sprite)
+{
+	static s32 indexes[TIC_SPRITESIZE*TIC_SPRITESIZE+1];
+	memset(indexes, -1, sizeof indexes);
+
+	{
+		tic_rect r = {sprite->index % SHEET_COLS, sprite->index / SHEET_COLS
+			, sprite->size / TIC_SPRITESIZE, sprite->size / TIC_SPRITESIZE};
+
+		s32 c = 0;
+		for(s32 j = r.y; j < r.h + r.y; j++)
+			for(s32 i = r.x; i < r.w + r.x; i++)
+				indexes[c++] = i + j * SHEET_COLS;
+
+	}
+
+	return indexes;
+}
+
+static void drawFlags(Sprite* sprite, s32 x, s32 y)
+{
+	if(hasCanvasSelection(sprite)) return;
+
+	enum {Flags = 8, Size = 5};
+
+	u8* flags = getBankFlags()->data;
+	u8 or = 0;
+	u8 and = 0xff;
+
+	s32* indexes = getSpriteIndexes(sprite);
+
+	{
+		s32* i = indexes;
+		while(*i >= 0)
+		{
+			or |= flags[*i];
+			and &= flags[*i];
+			i++;
+		}		
+	}
+
+	for(s32 i = 0; i < Flags; i++)
+	{
+		const u8 mask = 1 << i;
+		tic_rect rect = {x, y + (Size+1)*i, Size, Size};
+
+		bool over = false;
+		if(checkMousePos(&rect))
+		{
+			setCursor(tic_cursor_hand);
+			over = true;
+
+			if(checkMouseClick(&rect, tic_mouse_left))
+			{
+				s32* i = indexes;
+
+				if(or & mask)
+					while(*i >= 0)
+						flags[*i++] &= ~mask;
+				else
+					while(*i >= 0)
+						flags[*i++] |= mask;
+			}
+		}
+
+		sprite->tic->api.rect(sprite->tic, rect.x, rect.y, Size, Size, tic_color_black);
+
+		if(or & mask)
+			sprite->tic->api.pixel(sprite->tic, rect.x+2, rect.y+2, over ? tic_color_white : tic_color_gray);
+
+		if(and & mask)
+			sprite->tic->api.rect(sprite->tic, rect.x+1, rect.y+1, Size-2, Size-2, over ? tic_color_white : tic_color_gray);
+
+		sprite->tic->api.draw_char(sprite->tic, '0' + i, rect.x + (Size+2), rect.y, tic_color_dark_gray, true);
+	}
+}
+
 static void drawMoveButtons(Sprite* sprite)
 {
 	if(hasCanvasSelection(sprite))
@@ -1599,6 +1676,7 @@ static void tick(Sprite* sprite)
 
 	drawCanvas(sprite, 24, 20);
 	drawMoveButtons(sprite);
+	drawFlags(sprite, 24+64+7, 20+8);
 
 	sprite->editPalette 
 		? drawRGBSliders(sprite, 24, 91) 

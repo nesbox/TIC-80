@@ -64,6 +64,7 @@
 #define BITS_IN_BYTE 8
 #define TIC_BANK_SPRITES (1 << BITS_IN_BYTE)
 #define TIC_SPRITE_BANKS 2
+#define TIC_FLAGS (TIC_BANK_SPRITES * TIC_SPRITE_BANKS)
 #define TIC_SPRITES (TIC_BANK_SPRITES * TIC_SPRITE_BANKS)
 
 #define TIC_SPRITESHEET_SIZE 128
@@ -366,12 +367,18 @@ typedef struct
 
 typedef struct
 {
+	u8 data[TIC_FLAGS];
+} tic_flags;
+
+typedef struct
+{
 	tic_tiles 	tiles;
 	tic_tiles 	sprites;
 	tic_map 	map;
 	tic_sfx 	sfx;
 	tic_music 	music;
 	tic_palette palette;
+	tic_flags	flags;
 } tic_bank;
 
 typedef struct
@@ -457,7 +464,8 @@ typedef union
 		tic_sfx sfx;
 		tic_music music;
 		tic_sound_state sound_state;
-		u8 free[16*1024];
+		tic_flags flags;
+		u8 free[16*1024 - sizeof(tic_flags)];
 	};
 
 	u8 data[TIC_RAM_SIZE];

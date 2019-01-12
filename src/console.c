@@ -811,6 +811,7 @@ static const BinarySection BinarySections[] =
 	{"SFX", 		SFX_COUNT, 			offsetof(tic_bank, sfx.samples), 	sizeof(tic_sample), 		true},
 	{"PATTERNS", 	MUSIC_PATTERNS, 	offsetof(tic_bank, music.patterns), sizeof(tic_track_pattern), 	true},
 	{"TRACKS", 		MUSIC_TRACKS, 		offsetof(tic_bank, music.tracks), 	sizeof(tic_track), 			true},
+	{"FLAGS", 		TIC_SPRITE_BANKS, 	offsetof(tic_bank, flags), 			TIC_BANK_SPRITES, 			true},
 	{"PALETTE", 	1, 					offsetof(tic_bank, palette), 		sizeof(tic_palette), 		false},
 };
 
@@ -2339,6 +2340,7 @@ static void onConsoleRamCommand(Console* console, const char* param)
 		{offsetof(tic_ram, music.patterns.data), 		"MUSIC PATTERNS"},
 		{offsetof(tic_ram, music.tracks.data), 			"MUSIC TRACKS"},
 		{offsetof(tic_ram, sound_state), 				"SOUND STATE"},
+		{offsetof(tic_ram, flags), 						"SPRITE FLAGS"},
 		{offsetof(tic_ram, free), 						"..."},
 		{TIC_RAM_SIZE, 									""},
 	};

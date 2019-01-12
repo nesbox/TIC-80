@@ -132,6 +132,8 @@ typedef struct
 	void (*rect)				(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 color);
 	void (*rect_border)			(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 color);
 	void (*sprite)				(tic_mem* memory, const tic_tiles* src, s32 index, s32 x, s32 y, u8* colors, s32 count);
+	bool (*get_flag)			(tic_mem* memory, s32 index, u8 flag);
+	void (*set_flag)			(tic_mem* memory, s32 index, u8 flag, bool value);
 	void (*sprite_ex)			(tic_mem* memory, const tic_tiles* src, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate);
 	void (*map)					(tic_mem* memory, const tic_map* src, const tic_tiles* tiles, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale);
 	void (*remap)				(tic_mem* memory, const tic_map* src, const tic_tiles* tiles, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale, RemapFunc remap, void* data);
