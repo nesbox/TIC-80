@@ -1875,11 +1875,6 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, Sy
 		setStudioMode(TIC_CONSOLE_MODE);
 	}
 
-	if(impl.console->goFullscreen)
-	{
-		goFullscreen();
-	}
-
 	if(impl.console->crtMonitor)
 	{
 		impl.config->data.crtMonitor = true;
@@ -1893,6 +1888,15 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, Sy
 	impl.studio.isGamepadMode = isGamepadMode;
 
 	return &impl.studio;
+}
+
+void studioInitPost() {
+
+	if(impl.console->goFullscreen)
+	{
+		goFullscreen();
+	}
+
 }
 
 System* getSystem()
