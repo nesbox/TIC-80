@@ -1455,6 +1455,8 @@ static s32 start(s32 argc, char **argv, const char* folder)
 		SDL_GetWindowSize(platform.window, &w, &h);
 		GPU_SetWindowResolution(w, h);
 	}
+	
+	studioInitPost();
 
 	initTouchGamepad();
 	initTouchKeyboard();
