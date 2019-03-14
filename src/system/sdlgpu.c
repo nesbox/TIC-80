@@ -776,6 +776,7 @@ static void pollEvent()
 
 	SDL_Event event;
 
+	SDL_PumpEvents();
 	while(SDL_PollEvent(&event))
 	{
 		switch(event.type)
