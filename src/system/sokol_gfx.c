@@ -2,8 +2,6 @@
 
 static struct 
 {
-    sg_draw_state upscale_draw_state;
-    sg_pass upscale_pass;
     sg_draw_state draw_state;
     int fb_width;
     int fb_height;
@@ -130,13 +128,9 @@ void sokol_gfx_init(int w, int h, int sx, int sy, bool integer_scale, bool portr
         0.0f, 1.0f, 0.0f, 0.0f,
         1.0f, 1.0f,  1.0f, 0.0f
     };
-    sokol_gfx.upscale_draw_state.vertex_buffers[0] = sg_make_buffer(&(sg_buffer_desc){
-        .size = sizeof(verts),
-        .content = verts,
-    });
     sokol_gfx.draw_state.vertex_buffers[0] = sg_make_buffer(&(sg_buffer_desc){
         .size = sizeof(verts),
-        .content = sg_query_feature(SG_FEATURE_ORIGIN_TOP_LEFT) ? verts : verts_flipped
+        .content = sg_query_feature(SG_FEATURE_ORIGIN_TOP_LEFT) ? verts_flipped : verts,
     });
 
     /* a shader to render a textured quad */
@@ -148,7 +142,7 @@ void sokol_gfx_init(int w, int h, int sx, int sy, bool integer_scale, bool portr
         .fs.source = gfx_fs_src,
     });
 
-    /* 2 pipeline-state-objects, one for upscaling, one for rendering */
+    /* a pipeline-state-object for rendering */
     sg_pipeline_desc pip_desc = {
         .layout = {
             .attrs[0] = { .name="in_pos", .sem_name="POS", .format=SG_VERTEXFORMAT_FLOAT2 },
@@ -158,11 +152,9 @@ void sokol_gfx_init(int w, int h, int sx, int sy, bool integer_scale, bool portr
         .primitive_type = SG_PRIMITIVETYPE_TRIANGLE_STRIP
     };
     sokol_gfx.draw_state.pipeline = sg_make_pipeline(&pip_desc);
-    pip_desc.blend.depth_format = SG_PIXELFORMAT_NONE;
-    sokol_gfx.upscale_draw_state.pipeline = sg_make_pipeline(&pip_desc);
 
-    /* a texture with the emulator's raw pixel data */
-    sokol_gfx.upscale_draw_state.fs_images[0] = sg_make_image(&(sg_image_desc){
+    /* a texture with the pixel data */
+    sokol_gfx.draw_state.fs_images[0] = sg_make_image(&(sg_image_desc){
         .width = sokol_gfx.fb_width,
         .height = sokol_gfx.fb_height,
         .pixel_format = SG_PIXELFORMAT_RGBA8,
@@ -172,27 +164,7 @@ void sokol_gfx_init(int w, int h, int sx, int sy, bool integer_scale, bool portr
         .wrap_u = SG_WRAP_CLAMP_TO_EDGE,
         .wrap_v = SG_WRAP_CLAMP_TO_EDGE
     });
-    /* a 2x upscaled render-target-texture */
-    sokol_gfx.draw_state.fs_images[0] = sg_make_image(&(sg_image_desc){
-        .render_target = true,
-        .width = 2*sokol_gfx.fb_width,
-        .height = 2*sokol_gfx.fb_height,
-        .pixel_format = SG_PIXELFORMAT_RGBA8,
-        .min_filter = SG_FILTER_NEAREST,
-        .mag_filter = SG_FILTER_NEAREST,
-        .wrap_u = SG_WRAP_CLAMP_TO_EDGE,
-        .wrap_v = SG_WRAP_CLAMP_TO_EDGE
-    });
-
-    /* a render pass for the 2x upscaling */
-    sokol_gfx.upscale_pass = sg_make_pass(&(sg_pass_desc){
-        .color_attachments[0].image = sokol_gfx.draw_state.fs_images[0]
-    });
 }
-
-static const sg_pass_action gfx_upscale_pass_action = {
-    .colors[0] = { .action = SG_ACTION_DONTCARE }
-};
 
 static const sg_pass_action gfx_draw_pass_action = {
     .colors[0] = { .action = SG_ACTION_CLEAR, .val = { 0.05f, 0.05f, 0.05f, 1.0f } }
@@ -244,21 +216,15 @@ static void apply_viewport(void) {
 
 void sokol_gfx_draw(const uint32_t* ptr) {
 
-    /* copy emulator pixel data into upscaling source texture */
-    sg_update_image(sokol_gfx.upscale_draw_state.fs_images[0], &(sg_image_content){
+    /* copy pixel data into the source texture */
+    sg_update_image(sokol_gfx.draw_state.fs_images[0], &(sg_image_content){
         .subimage[0][0] = { 
             .ptr = ptr,
             .size = sokol_gfx.fb_width*sokol_gfx.fb_height*sizeof ptr[0]
         }
     });
 
-    /* upscale the original framebuffer 2x with nearest filtering */
-    sg_begin_pass(sokol_gfx.upscale_pass, &gfx_upscale_pass_action);
-    sg_apply_draw_state(&sokol_gfx.upscale_draw_state);
-    sg_draw(0, 4, 1);
-    sg_end_pass();
-
-    /* draw the final pass with linear filtering */
+    /* draw to the screen */
     sg_begin_default_pass(&gfx_draw_pass_action, sapp_width(), sapp_height());
     apply_viewport();
     sg_apply_draw_state(&sokol_gfx.draw_state);
