@@ -266,8 +266,8 @@ static void floodFill(Sprite* sprite, s32 l, s32 t, s32 r, s32 b, s32 x, s32 y, 
 
 static void replaceColor(Sprite* sprite, s32 l, s32 t, s32 r, s32 b, s32 x, s32 y, u8 color, u8 fill)
 {
-	for(s32 sy = t; sy < b; sy++)
-		for(s32 sx = l; sx < r; sx++)
+	for(s32 sy = t; sy <= b; sy++)
+		for(s32 sx = l; sx <= r; sx++)
 			if(getSheetPixel(sprite, sx, sy) == color)
 				setSheetPixel(sprite, sx, sy, fill);
 }
