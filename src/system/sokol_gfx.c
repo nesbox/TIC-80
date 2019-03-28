@@ -115,14 +115,8 @@ void sokol_gfx_init(int w, int h, int sx, int sy, bool integer_scale, bool portr
         .d3d11_depth_stencil_view_cb = sapp_d3d11_get_depth_stencil_view
     });
 
-    /* quad vertex buffers with and without flipped UVs */
+    /* the vertex buffer representing screen rectangle */
     float verts[] = {
-        0.0f, 0.0f, 0.0f, 0.0f,
-        1.0f, 0.0f, 1.0f, 0.0f,
-        0.0f, 1.0f, 0.0f, 1.0f,
-        1.0f, 1.0f,  1.0f, 1.0f
-    };
-    float verts_flipped[] = {
         0.0f, 0.0f, 0.0f, 1.0f,
         1.0f, 0.0f, 1.0f, 1.0f,
         0.0f, 1.0f, 0.0f, 0.0f,
@@ -130,7 +124,7 @@ void sokol_gfx_init(int w, int h, int sx, int sy, bool integer_scale, bool portr
     };
     sokol_gfx.draw_state.vertex_buffers[0] = sg_make_buffer(&(sg_buffer_desc){
         .size = sizeof(verts),
-        .content = sg_query_feature(SG_FEATURE_ORIGIN_TOP_LEFT) ? verts_flipped : verts,
+        .content = verts,
     });
 
     /* a shader to render a textured quad */
