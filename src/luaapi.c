@@ -1538,13 +1538,13 @@ static bool initMoonscript(tic_mem* tic, const char* code)
 
 static const char* const MoonKeywords [] =
 {
-	"false", "true", "nil", "return",
+	"false", "true", "nil", "local", "return",
 	"break", "continue", "for", "while",
 	"if", "else", "elseif", "unless", "switch",
 	"when", "and", "or", "in", "do",
 	"not", "super", "try", "catch",
 	"with", "export", "import", "then",
-	"from", "class", "extends", "new"
+	"from", "class", "extends", "new", "using",
 };
 
 static const tic_outline_item* getMoonOutline(const char* code, s32* size)
