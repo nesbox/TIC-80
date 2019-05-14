@@ -2156,6 +2156,11 @@ static void onConsoleResumeCommand(Console* console, const char* param)
 {
 	commandDone(console);
 
+	const tic_script_config* script_config = console->tic->api.get_script_config(console->tic);
+	if (script_config->eval && console->codeLiveReload.active)
+	{
+		script_config->eval(console->tic, console->tic->cart.code.data);
+	}
 	console->tic->api.resume(console->tic);
 
 	resumeRunMode();
