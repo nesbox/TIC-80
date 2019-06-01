@@ -4,6 +4,7 @@ project(TIC-80 C CXX)
 message("Building for target : ${CMAKE_SYSTEM_NAME}")
 
 option(BUILD_SOKOL "Sokol Enabled" TRUE)
+option(BUILD_SDL "SDL Enabled" TRUE)
 
 if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID)
 	set(LINUX TRUE)
@@ -226,8 +227,7 @@ endif()
 ################################
 # SDL2
 ################################
-
-if(NOT EMSCRIPTEN)
+if(BUILD_SDL AND NOT EMSCRIPTEN)
 
 	if(WIN32)
 		set(HAVE_LIBC TRUE)
@@ -242,7 +242,7 @@ endif()
 # SDL2 renderer example
 ################################
 
-if(NOT EMSCRIPTEN)
+if(BUILD_SDL AND NOT EMSCRIPTEN)
 	set(EXAMPLE_DIR examples)
 	set(EXAMPLE_SRC 
 		${EXAMPLE_DIR}/sdl/main.c
@@ -345,6 +345,7 @@ endif()
 # SDL GPU
 ################################
 
+if(BUILD_SDL)
 set(SDLGPU_DIR 3rd-party/sdl-gpu/src)
 set(SDLGPU_SRC
 	${SDLGPU_DIR}/renderer_GLES_1.c
@@ -391,11 +392,13 @@ if(APPLE)
 	FIND_LIBRARY(OPENGL_LIBRARY OpenGL)
 	target_link_libraries(sdlgpu ${OPENGL_LIBRARY})
 endif()
+endif()
 
 ################################
 # SDL NET
 ################################
 
+if(BUILD_SDL)
 set(SDLNET_DIR 3rd-party/SDL2_net-2.0.1)
 set(SDLNET_SRC 
 	${SDLNET_DIR}/SDLnet.c
@@ -408,6 +411,7 @@ target_include_directories(sdlnet PRIVATE 3rd-party/SDL2-2.0.8/include)
 
 if(WIN32)
 	target_link_libraries(sdlnet ws2_32)
+endif()
 endif()
 
 ################################
@@ -526,6 +530,7 @@ target_compile_definitions(tic80prolib PRIVATE TIC80_PRO)
 # TIC-80 app
 ################################
 
+if(BUILD_SDL)
 foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 
 	set(TIC80_SRC src/ext/file_dialog.c)
@@ -584,7 +589,7 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 	endif()
 
 endforeach()
-
+endif()
 
 ################################
 # TIC-80 app (Sokol)
