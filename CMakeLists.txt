@@ -336,6 +336,31 @@ add_dependencies(sokol-renderer tic80core sokol)
 target_link_libraries(sokol-renderer tic80core sokol)
 
 ################################
+# libretro renderer example
+################################
+
+if(NOT EMSCRIPTEN)
+	set(LIBRETRO_SRC 
+		${EXAMPLE_DIR}/libretro/tic80_libretro.c
+	)
+
+	add_library(tic80_libretro SHARED
+		${LIBRETRO_SRC}
+	)
+
+	target_include_directories(tic80_libretro PRIVATE include)
+	target_include_directories(tic80_libretro PRIVATE src)
+
+	if(MINGW)
+		target_link_libraries(tic80_libretro mingw32)
+	endif()
+
+	add_dependencies(tic80_libretro tic80core)
+	target_link_libraries(tic80_libretro tic80core)
+	set_target_properties(tic80_libretro PROPERTIES PREFIX "")
+endif()
+
+################################
 # SDL GPU
 ################################
 
