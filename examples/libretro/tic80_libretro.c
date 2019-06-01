@@ -286,22 +286,22 @@ void retro_run(void)
 		return;
 	}
 
-	// Ensure it's time to run the tick.
+	// Run a tick if needed.
 	if (tic && state.timeCounter >= 1000000 / TIC_FRAMERATE) {
 		// Update the input and run a tick.
 		tic80_libretro_update();
 
-		// Render the screen.
-		tic80_libretro_draw();
-
-		// See if there are any options to update.
-		bool updated = false;
-		if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated) {
-			tic80_libretro_variables();
-		}
-
 		// Reset the game timer.
 		state.timeCounter = 0;
+	}
+
+	// Render the screen.
+	tic80_libretro_draw();
+
+	// See if there are any options to update.
+	bool updated = false;
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated) {
+		tic80_libretro_variables();
 	}
 }
 
