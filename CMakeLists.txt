@@ -360,6 +360,8 @@ set(LIBRETRO_SRC
 	${EXAMPLE_DIR}/libretro/libretro-common/features/features_cpu.c
 	${EXAMPLE_DIR}/libretro/libretro-common/lists/string_list.c
 	${EXAMPLE_DIR}/libretro/libretro-common/streams/file_stream.c
+	${EXAMPLE_DIR}/libretro/libretro-common/vfs/vfs_implementation.c
+	${EXAMPLE_DIR}/libretro/libretro-common/compat/compat_strcasestr.c
 )
 
 add_library(tic80_libretro SHARED
