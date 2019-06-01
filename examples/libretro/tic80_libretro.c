@@ -264,14 +264,6 @@ static void tic80_libretro_draw(void)
 }
 
 /**
- * Update the state of the core variables.
- */
-static void tic80_libretro_variables(void)
-{
-	// Nothing
-}
-
-/**
  * libretro callback; Run a single tick of the game.
  */
 void retro_run(void)
@@ -297,12 +289,6 @@ void retro_run(void)
 
 	// Render the screen.
 	tic80_libretro_draw();
-
-	// See if there are any options to update.
-	bool updated = false;
-	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated) {
-		tic80_libretro_variables();
-	}
 }
 
 /**
@@ -373,9 +359,6 @@ bool retro_load_game(const struct retro_game_info *info)
 		tic80_libretro_audio_set_state
 	};
 	environ_cb(RETRO_ENVIRONMENT_SET_AUDIO_CALLBACK, &retro_audio);
-
-	// Set up the variables.
-	tic80_libretro_variables();
 
 	// Update the input button descriptions.
 	tic80_libretro_input_descriptors();
