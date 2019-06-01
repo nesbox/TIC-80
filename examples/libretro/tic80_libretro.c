@@ -246,7 +246,7 @@ static void tic80_libretro_update(void)
 	//tic80_libretro_update_gamepad(&input.gamepads.third, 2);
 	//tic80_libretro_update_gamepad(&input.gamepads.fourth, 3);
 	tic80_libretro_update_mouse(&input.mouse);
-	// TODO: Add keyboard input.
+	// TODO: Add keyboard support
 
 	// Update the game state.
 	tic80_tick(tic, input);

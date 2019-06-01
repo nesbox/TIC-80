@@ -354,6 +354,11 @@ set(LIBRETRO_SRC
 	${EXAMPLE_DIR}/libretro/libretro-common/audio/conversion/s16_to_float.c
 	${EXAMPLE_DIR}/libretro/libretro-common/audio/conversion/s16_to_float_neon.c
 	${EXAMPLE_DIR}/libretro/libretro-common/file/config_file_userdata.c
+	${EXAMPLE_DIR}/libretro/libretro-common/file/config_file.c
+	${EXAMPLE_DIR}/libretro/libretro-common/file/file_path.c
+	${EXAMPLE_DIR}/libretro/libretro-common/memmap/memalign.c
+	${EXAMPLE_DIR}/libretro/libretro-common/features/features_cpu.c
+	${EXAMPLE_DIR}/libretro/libretro-common/lists/string_list.c
 )
 
 add_library(tic80_libretro SHARED
