@@ -343,12 +343,25 @@ target_link_libraries(sokol-renderer tic80core sokol)
 if(NOT EMSCRIPTEN)
 	set(LIBRETRO_SRC
 		${EXAMPLE_DIR}/libretro/tic80_libretro.c
+		${EXAMPLE_DIR}/libretro/libretro-common/audio/audio_mix.c
+		${EXAMPLE_DIR}/libretro/libretro-common/audio/audio_mixer.c
+		${EXAMPLE_DIR}/libretro/libretro-common/audio/resampler/audio_resampler.c
+		${EXAMPLE_DIR}/libretro/libretro-common/audio/resampler/drivers/nearest_resampler.c
+		${EXAMPLE_DIR}/libretro/libretro-common/audio/resampler/drivers/null_resampler.c
+		${EXAMPLE_DIR}/libretro/libretro-common/audio/resampler/drivers/sinc_resampler.c
+		${EXAMPLE_DIR}/libretro/libretro-common/formats/wav/rwav.c
+		${EXAMPLE_DIR}/libretro/libretro-common/audio/conversion/float_to_s16.c
+		${EXAMPLE_DIR}/libretro/libretro-common/audio/conversion/float_to_s16_neon.c
+		${EXAMPLE_DIR}/libretro/libretro-common/audio/conversion/s16_to_float.c
+		${EXAMPLE_DIR}/libretro/libretro-common/audio/conversion/s16_to_float_neon.c
+		${EXAMPLE_DIR}/libretro/libretro-common/file/config_file_userdata.c
 	)
 
 	add_library(tic80_libretro SHARED
 		${LIBRETRO_SRC}
 	)
 
+	target_include_directories(tic80_libretro PRIVATE ${EXAMPLE_DIR}/libretro/libretro-common/include)
 	target_include_directories(tic80_libretro PRIVATE include)
 	target_include_directories(tic80_libretro PRIVATE src)
 
