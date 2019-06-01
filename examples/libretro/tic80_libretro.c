@@ -300,7 +300,7 @@ void tic80_libretro_frame_time_cb(retro_usec_t usec) {
  */
 void tic80_libretro_audio_cb() {
 	// Tell libretro about the samples.
-	audio_batch_cb(tic->sound.samples, TIC_FREQUENCY / TIC_FRAMERATE);
+	audio_batch_cb(tic->sound.samples, tic->sound.count / 2);
 }
 
 /**
