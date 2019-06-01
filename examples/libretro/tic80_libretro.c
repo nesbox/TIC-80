@@ -5,10 +5,7 @@
 #include <string.h>
 #include <math.h>
 #include <tic.h>
-#include <libretro.h>
-#include <audio/audio_resampler.h>
-#include <audio/audio_mixer.h>
-#include <audio/conversion/float_to_s16.h>
+#include "libretro.h"
 
 #define TIC_FRAMERATE 60
 #define TIC_FREQUENCY 44100
@@ -302,21 +299,8 @@ void tic80_libretro_frame_time_cb(retro_usec_t usec) {
  * libretro callback; Play the audio.
  */
 void tic80_libretro_audio_cb() {
-	// Create the buffer and sample data.
-	int bufferSize = TIC_FREQUENCY / TIC_FRAMERATE;
-	float samples[1470] = { 0 };  // 44100 / 60 * 2
-	int16_t samples2[1470] = { 0 };  // 44100 / 60 * 2
-
-	// Retrieve the samples.
-    for(int i = 0; i < tic->sound.count; i++)
-        samples[i] = (float)tic->sound.samples[i] / SHRT_MAX;
-
-    // Convert the samples to a format libretro understands.
-	audio_mixer_mix(samples, bufferSize, 1.0, false);
-	convert_float_to_s16(samples2, samples, 2 * bufferSize);
-
 	// Tell libretro about the samples.
-	audio_batch_cb(samples2, bufferSize);
+	audio_batch_cb(tic->sound.samples, TIC_FREQUENCY / TIC_FRAMERATE);
 }
 
 /**

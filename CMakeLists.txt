@@ -342,37 +342,12 @@ target_link_libraries(sokol-renderer tic80core sokol)
 
 set(LIBRETRO_SRC
 	${EXAMPLE_DIR}/libretro/tic80_libretro.c
-	${EXAMPLE_DIR}/libretro/libretro-common/audio/audio_mix.c
-	${EXAMPLE_DIR}/libretro/libretro-common/audio/audio_mixer.c
-	${EXAMPLE_DIR}/libretro/libretro-common/audio/resampler/audio_resampler.c
-	${EXAMPLE_DIR}/libretro/libretro-common/audio/resampler/drivers/nearest_resampler.c
-	${EXAMPLE_DIR}/libretro/libretro-common/audio/resampler/drivers/null_resampler.c
-	${EXAMPLE_DIR}/libretro/libretro-common/audio/resampler/drivers/sinc_resampler.c
-	${EXAMPLE_DIR}/libretro/libretro-common/formats/wav/rwav.c
-	${EXAMPLE_DIR}/libretro/libretro-common/audio/conversion/float_to_s16.c
-	${EXAMPLE_DIR}/libretro/libretro-common/audio/conversion/float_to_s16_neon.c
-	${EXAMPLE_DIR}/libretro/libretro-common/audio/conversion/s16_to_float.c
-	${EXAMPLE_DIR}/libretro/libretro-common/audio/conversion/s16_to_float_neon.c
-	${EXAMPLE_DIR}/libretro/libretro-common/file/config_file_userdata.c
-	${EXAMPLE_DIR}/libretro/libretro-common/file/config_file.c
-	${EXAMPLE_DIR}/libretro/libretro-common/file/file_path.c
-	${EXAMPLE_DIR}/libretro/libretro-common/memmap/memalign.c
-	${EXAMPLE_DIR}/libretro/libretro-common/features/features_cpu.c
-	${EXAMPLE_DIR}/libretro/libretro-common/lists/string_list.c
-	${EXAMPLE_DIR}/libretro/libretro-common/streams/file_stream.c
-	${EXAMPLE_DIR}/libretro/libretro-common/vfs/vfs_implementation.c
-	${EXAMPLE_DIR}/libretro/libretro-common/compat/compat_posix_string.c
-	${EXAMPLE_DIR}/libretro/libretro-common/compat/compat_strcasestr.c
-	${EXAMPLE_DIR}/libretro/libretro-common/compat/compat_strl.c
-	${EXAMPLE_DIR}/libretro/libretro-common/compat/fopen_utf8.c
-	${EXAMPLE_DIR}/libretro/libretro-common/encodings/encoding_utf.c
 )
 
 add_library(tic80_libretro SHARED
 	${LIBRETRO_SRC}
 )
 
-target_include_directories(tic80_libretro PRIVATE ${EXAMPLE_DIR}/libretro/libretro-common/include)
 target_include_directories(tic80_libretro PRIVATE include)
 target_include_directories(tic80_libretro PRIVATE src)
 
