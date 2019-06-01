@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.9)
 project(TIC-80 C CXX)
 message("Building for target : ${CMAKE_SYSTEM_NAME}")
 
+option(BUILD_SOKOL "Sokol Example Enabled" TRUE)
+
 if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID)
 	set(LINUX TRUE)
 endif()
@@ -268,72 +270,76 @@ endif()
 # Sokol
 ################################
 
-set(SOKOL_LIB_SRC src/system/sokol_gfx.c)
+if(BUILD_SOKOL)
+	set(SOKOL_LIB_SRC src/system/sokol_gfx.c)
 
-if(APPLE)
-    set(SOKOL_LIB_SRC ${SOKOL_LIB_SRC} src/system/sokol_impl.m)
-else()
-	set(SOKOL_LIB_SRC ${SOKOL_LIB_SRC} src/system/sokol_impl.c)
-endif()
-
-add_library(sokol ${SOKOL_LIB_SRC})
-
-if(APPLE)
-	target_compile_definitions(sokol PRIVATE SOKOL_METAL)
-elseif(WIN32)
-	target_compile_definitions(sokol PRIVATE SOKOL_D3D11 SOKOL_D3D11_SHADER_COMPILER)
-elseif(LINUX)
-	target_compile_definitions(sokol PRIVATE SOKOL_GLCORE33)
-endif()
-
-if(APPLE)
-	set_property (TARGET sokol APPEND_STRING PROPERTY 
-    	COMPILE_FLAGS "-fobjc-arc")
-
-	target_link_libraries(sokol 
-		"-framework Cocoa" 
-		"-framework QuartzCore"
-		"-framework Metal"
-		"-framework MetalKit"
-		"-framework AudioToolbox"
-	)
-elseif(WIN32)
-	target_link_libraries(sokol D3D11)
-
-	if(MINGW)
-		target_link_libraries(sokol D3dcompiler_47)
+	if(APPLE)
+	    set(SOKOL_LIB_SRC ${SOKOL_LIB_SRC} src/system/sokol_impl.m)
+	else()
+		set(SOKOL_LIB_SRC ${SOKOL_LIB_SRC} src/system/sokol_impl.c)
 	endif()
-elseif(LINUX)
-	find_package (Threads)
-	target_link_libraries(sokol X11 GL m dl asound ${CMAKE_THREAD_LIBS_INIT})
-endif()
 
-target_include_directories(sokol PRIVATE 3rd-party/sokol)
+	add_library(sokol ${SOKOL_LIB_SRC})
+
+	if(APPLE)
+		target_compile_definitions(sokol PRIVATE SOKOL_METAL)
+	elseif(WIN32)
+		target_compile_definitions(sokol PRIVATE SOKOL_D3D11 SOKOL_D3D11_SHADER_COMPILER)
+	elseif(LINUX)
+		target_compile_definitions(sokol PRIVATE SOKOL_GLCORE33)
+	endif()
+
+	if(APPLE)
+		set_property (TARGET sokol APPEND_STRING PROPERTY 
+	    	COMPILE_FLAGS "-fobjc-arc")
+
+		target_link_libraries(sokol 
+			"-framework Cocoa" 
+			"-framework QuartzCore"
+			"-framework Metal"
+			"-framework MetalKit"
+			"-framework AudioToolbox"
+		)
+	elseif(WIN32)
+		target_link_libraries(sokol D3D11)
+
+		if(MINGW)
+			target_link_libraries(sokol D3dcompiler_47)
+		endif()
+	elseif(LINUX)
+		find_package (Threads)
+		target_link_libraries(sokol X11 GL m dl asound ${CMAKE_THREAD_LIBS_INIT})
+	endif()
+
+	target_include_directories(sokol PRIVATE 3rd-party/sokol)
+endif()
 
 ################################
 # Sokol renderer example
 ################################
 
-set(SOKOL_SRC 
-	${EXAMPLE_DIR}/sokol/main.c
-)
+if(BUILD_SOKOL)
+	set(SOKOL_SRC 
+		${EXAMPLE_DIR}/sokol/main.c
+	)
 
-if(WIN32)
-	add_executable(sokol-renderer WIN32 ${SOKOL_SRC})
-else()
-	add_executable(sokol-renderer ${SOKOL_SRC})
+	if(WIN32)
+		add_executable(sokol-renderer WIN32 ${SOKOL_SRC})
+	else()
+		add_executable(sokol-renderer ${SOKOL_SRC})
+	endif()
+
+	if(MINGW)
+		target_link_libraries(sokol-renderer mingw32)
+	endif()
+
+	target_include_directories(sokol-renderer PRIVATE include)
+	target_include_directories(sokol-renderer PRIVATE 3rd-party/sokol)
+	target_include_directories(sokol-renderer PRIVATE src)
+
+	add_dependencies(sokol-renderer tic80core sokol)
+	target_link_libraries(sokol-renderer tic80core sokol)
 endif()
-
-if(MINGW)
-	target_link_libraries(sokol-renderer mingw32)
-endif()
-
-target_include_directories(sokol-renderer PRIVATE include)
-target_include_directories(sokol-renderer PRIVATE 3rd-party/sokol)
-target_include_directories(sokol-renderer PRIVATE src)
-
-add_dependencies(sokol-renderer tic80core sokol)
-target_link_libraries(sokol-renderer tic80core sokol)
 
 ################################
 # SDL GPU
