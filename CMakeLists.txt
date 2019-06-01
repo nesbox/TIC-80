@@ -365,7 +365,7 @@ set(LIBRETRO_SRC
 	${EXAMPLE_DIR}/libretro/libretro-common/compat/compat_strcasestr.c
 	${EXAMPLE_DIR}/libretro/libretro-common/compat/compat_strl.c
 	${EXAMPLE_DIR}/libretro/libretro-common/compat/fopen_utf8.c
-	${EXAMPLE_DIR}/libretro/libretro-common/encodings/encoding_utf.c:
+	${EXAMPLE_DIR}/libretro/libretro-common/encodings/encoding_utf.c
 )
 
 add_library(tic80_libretro SHARED
