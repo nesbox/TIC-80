@@ -5,29 +5,25 @@
 #include <string.h>
 #include <math.h>
 #include <tic.h>
+#include <libretro.h>
 #include <audio/audio_resampler.h>
 #include <audio/audio_mixer.h>
 #include <audio/conversion/float_to_s16.h>
 
-#include "libretro.h"
-
-static struct retro_log_callback logging;
-static retro_log_printf_t log_cb;
-int64_t timeCounter = 0;
-int mouseX = 0;
-int mouseY = 0;
-
 #define TIC_FRAMERATE 60
 #define TIC_FREQUENCY 44100
 
+static struct retro_log_callback logging;
+static retro_log_printf_t log_cb;
 tic80* tic;
-
 static struct
 {
 	bool quit;
+	int64_t timeCounter;
 } state =
 {
 	.quit = false,
+	.timeCounter = 0,
 };
 
 /**
@@ -66,7 +62,7 @@ static void tic80_libretro_fallback_log(enum retro_log_level level, const char *
  */
 void retro_init(void)
 {
-	/* Nothing */
+	// Nothing
 }
 
 /**
@@ -74,7 +70,8 @@ void retro_init(void)
  */
 void retro_deinit(void)
 {
-	/* Nothing */
+	// Try to force another unload of the game.
+	retro_unload_game();
 }
 
 /**
@@ -271,7 +268,7 @@ static void tic80_libretro_draw(void)
  */
 static void tic80_libretro_variables(void)
 {
-	/* Nothing */
+	// Nothing
 }
 
 /**
@@ -281,7 +278,7 @@ void retro_run(void)
 {
 	// Check if we are to quit.
 	if (state.quit) {
-		// If the game was running, shut it down.
+		// If the game is still running, ask it to shut it down.
 		if (tic) {
 			environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
 			retro_unload_game();
@@ -290,7 +287,7 @@ void retro_run(void)
 	}
 
 	// Ensure it's time to run the tick.
-	if (tic && timeCounter >= 1000000 / TIC_FRAMERATE) {
+	if (tic && state.timeCounter >= 1000000 / TIC_FRAMERATE) {
 		// Update the input and run a tick.
 		tic80_libretro_update();
 
@@ -304,7 +301,7 @@ void retro_run(void)
 		}
 
 		// Reset the game timer.
-		timeCounter = 0;
+		state.timeCounter = 0;
 	}
 }
 
@@ -312,7 +309,7 @@ void retro_run(void)
  * libretro callback; Step the core forwards a step.
  */
 void tic80_libretro_frame_time_cb(retro_usec_t usec) {
-	timeCounter += usec;
+	state.timeCounter += usec;
 }
 
 /**

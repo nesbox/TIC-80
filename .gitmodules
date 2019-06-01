@@ -4,3 +4,4 @@
 [submodule "examples/libretro/libretro-common"]
 	path = examples/libretro/libretro-common
 	url = https://github.com/libretro/libretro-common.git
+	ignore = dirty
