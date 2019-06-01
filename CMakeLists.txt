@@ -362,6 +362,7 @@ set(LIBRETRO_SRC
 	${EXAMPLE_DIR}/libretro/libretro-common/streams/file_stream.c
 	${EXAMPLE_DIR}/libretro/libretro-common/vfs/vfs_implementation.c
 	${EXAMPLE_DIR}/libretro/libretro-common/compat/compat_strcasestr.c
+	${EXAMPLE_DIR}/libretro/libretro-common/compat/compat_strl.c
 )
 
 add_library(tic80_libretro SHARED
