@@ -8,9 +8,9 @@
 
 #include "libretro.h"
 
-static uint32_t *frame_buf;
 static struct retro_log_callback logging;
 static retro_log_printf_t log_cb;
+int64_t timeCounter = 0;
 
 #define TIC_FRAMERATE 60
 
@@ -40,13 +40,10 @@ static void fallback_log(enum retro_log_level level, const char *fmt, ...)
 
 void retro_init(void)
 {
-	frame_buf = calloc(320 * 240, sizeof(uint32_t));
 }
 
 void retro_deinit(void)
 {
-	free(frame_buf);
-	frame_buf = NULL;
 }
 
 unsigned retro_api_version(void)
@@ -83,10 +80,10 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
 	};
 
 	info->geometry = (struct retro_game_geometry) {
-		.base_width   = TIC80_WIDTH,
-		.base_height  = TIC80_HEIGHT,
-		.max_width    = TIC80_WIDTH,
-		.max_height   = TIC80_HEIGHT,
+		.base_width   = TIC80_FULLWIDTH,
+		.base_height  = TIC80_FULLHEIGHT,
+		.max_width    = TIC80_FULLWIDTH,
+		.max_height   = TIC80_FULLHEIGHT,
 		.aspect_ratio = (float)TIC80_WIDTH / (float)TIC80_HEIGHT,
 	};
 }
@@ -129,49 +126,30 @@ void retro_set_video_refresh(retro_video_refresh_t cb)
 	video_cb = cb;
 }
 
-static unsigned x_coord;
-static unsigned y_coord;
-static int mouse_rel_x;
-static int mouse_rel_y;
-
 void retro_reset(void)
 {
-	x_coord = 0;
-	y_coord = 0;
 }
 
 static void update_input(void)
 {
 	input_poll_cb();
-	if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP))
-	{
-		/* stub */
-	}
+
+	tic80_input input;
+	input.gamepads.first.up = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP);
+	input.gamepads.first.down = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN);
+	input.gamepads.first.left = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT);
+	input.gamepads.first.right = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT);
+	input.gamepads.first.a = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A);
+	input.gamepads.first.b = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B);
+	input.gamepads.first.x = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X);
+	input.gamepads.first.y = input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y);
+
+	tic80_tick(tic, input);
 }
 
 static void render_checkered(void)
 {
-	uint32_t *buf    = frame_buf;
-	unsigned stride  = TIC80_WIDTH;
-	uint32_t color_r = 0xff << 16;
-	uint32_t color_g = 0xff <<  8;
-	uint32_t *line   = buf;
-
-	for (unsigned y = 0; y < TIC80_HEIGHT; y++, line += stride)
-	{
-		unsigned index_y = ((y - y_coord) >> 4) & 1;
-		for (unsigned x = 0; x < TIC80_WIDTH; x++)
-		{
-			unsigned index_x = ((x - x_coord) >> 4) & 1;
-			line[x] = (index_y ^ index_x) ? color_r : color_g;
-		}
-	}
-
-	for (unsigned y = mouse_rel_y - 5; y <= mouse_rel_y + 5; y++)
-		for (unsigned x = mouse_rel_x - 5; x <= mouse_rel_x + 5; x++)
-			buf[y * stride + x] = 0xff;
-
-	video_cb(buf, TIC80_WIDTH, TIC80_HEIGHT, stride << 2);
+	video_cb(tic->screen, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, TIC80_FULLWIDTH << 2);
 }
 
 static void check_variables(void)
@@ -184,39 +162,92 @@ static void audio_callback(void)
 	audio_cb(0, 0);
 }
 
+
 void retro_run(void)
 {
-	update_input();
-	render_checkered();
-	audio_callback();
+	if (timeCounter >= 1000000 / TIC_FRAMERATE) {
+		update_input();
+		render_checkered();
+		audio_callback();
 
-	bool updated = false;
-	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
-		check_variables();
+		bool updated = false;
+		if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated)
+			check_variables();
+
+		timeCounter = 0;
+	}
 }
 
+/**
+ * libretro callback; Step the core forwards a step.
+ */
+void frame_time_cb(retro_usec_t usec) {
+	timeCounter += usec;
+}
+
+void retro_audio_cb() {
+	int bufferSize = 44100 / TIC_FRAMERATE;
+	float samples[1470] = { 0 };  // 44100 / 60 * 2
+	int16_t samples2[1470] = { 0 };  // 44100 / 60 * 2
+	audio_mixer_mix(samples, bufferSize, 1.0, false);
+	convert_float_to_s16(samples2, samples, 2 * bufferSize);
+	audio_batch_cb(samples2, bufferSize);
+}
+
+/**
+ * libretro callback; Set the current state of the audio.
+ */
+void audio_set_state(bool enabled) {
+	printf("CAlled audio_set_state()\n");
+}
+
+retro_audio_sample_t audio_cb;
 bool retro_load_game(const struct retro_game_info *info)
 {
+	// Pixel format.
 	enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
 	if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt))
 	{
-		log_cb(RETRO_LOG_INFO, "XRGB8888 is not supported.\n");
+		log_cb(RETRO_LOG_INFO, "RETRO_PIXEL_FORMAT_XRGB8888 is not supported.\n");
 		return false;
 	}
 
+	// Frame timer.
+	struct retro_frame_time_callback frame_cb = {
+		frame_time_cb,
+		1000000 / TIC_FRAMERATE
+	};
+	if (!environ_cb(RETRO_ENVIRONMENT_SET_FRAME_TIME_CALLBACK, &frame_cb)) {
+		log_cb(RETRO_LOG_INFO, "Failed to set frame time callback.\n");
+		return false;
+	}
+
+	// Set the audio callback.
+	struct retro_audio_callback retro_audio = { retro_audio_cb, audio_set_state };
+	ChaiLove::environ_cb(RETRO_ENVIRONMENT_SET_AUDIO_CALLBACK, &retro_audio);
+
+	// Set up the variables.
 	check_variables();
 
-
+	// Load the game.
+	if (info == NULL) {
+		printf("info IS NULL\n");
+		return false;
+	}
 	if (info->data == NULL) {
 		printf("DATA IS NULL\n");
 		return false;
 	}
+	printf("LOADING! %i\n", info->size);
 
-	tic80_load(tic, (void*)info->data, info->size);
+	// Ensure the game is not loaded before loading.
+	retro_unload_game();
+	tic = tic80_create(44100);
+	state.quit = false;
+	tic->callback.exit = onExit;
+	tic80_load(tic, (void*)(info->data), info->size);
 	if (tic) {
-		printf("LOADED!");
-		tic->callback.exit = onExit;
-		state.quit = false;
+		printf("LOADED!\n");
 	}
 
 	(void)info;
@@ -226,7 +257,10 @@ bool retro_load_game(const struct retro_game_info *info)
 void retro_unload_game(void)
 {
 	onExit();
-	tic80_delete(tic);
+	if (tic != NULL) {
+		tic80_delete(tic);
+		tic = NULL;
+	}
 }
 
 unsigned retro_get_region(void)
@@ -253,9 +287,6 @@ bool retro_serialize(void *data_, size_t size)
 	if (size < 2)
 		return false;
 
-	uint8_t *data = data_;
-	data[0] = x_coord;
-	data[1] = y_coord;
 	return true;
 }
 
@@ -264,9 +295,6 @@ bool retro_unserialize(const void *data_, size_t size)
 	if (size < 2)
 		return false;
 
-	const uint8_t *data = data_;
-	x_coord = data[0] & 31;
-	y_coord = data[1] & 31;
 	return true;
 }
 
