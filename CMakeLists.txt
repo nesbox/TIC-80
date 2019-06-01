@@ -340,7 +340,7 @@ target_link_libraries(sokol-renderer tic80core sokol)
 ################################
 
 if(NOT EMSCRIPTEN)
-	set(LIBRETRO_SRC 
+	set(LIBRETRO_SRC
 		${EXAMPLE_DIR}/libretro/tic80_libretro.c
 	)
 
