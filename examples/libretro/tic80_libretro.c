@@ -10,6 +10,7 @@
 #define TIC_FRAMERATE 60
 #define TIC_FREQUENCY 44100
 
+static uint32_t *frame_buf;
 static struct retro_log_callback logging;
 static retro_log_printf_t log_cb;
 tic80* tic;
@@ -57,7 +58,7 @@ static void tic80_libretro_fallback_log(enum retro_log_level level, const char *
  */
 void retro_init(void)
 {
-	// Nothing
+	frame_buf = calloc(320 * 240, sizeof(uint32_t));
 }
 
 /**
@@ -67,6 +68,10 @@ void retro_deinit(void)
 {
 	// Try to force another unload of the game.
 	retro_unload_game();
+
+	// Clear out the frame buffer.
+	free(frame_buf);
+	frame_buf = NULL;
 }
 
 /**
@@ -251,14 +256,40 @@ static void tic80_libretro_update(retro_usec_t usec)
 }
 
 /**
+ * Convert between argb8888 and abgr8888.
+ *
+ * TODO: Use directly from libretro-common instead?
+ */
+void tic80_libretro_conv_argb8888_abgr8888(void *output_, const void *input_,
+      int width, int height,
+      int out_stride, int in_stride)
+{
+	int h, w;
+	const uint32_t *input = (const uint32_t*)input_;
+	uint32_t *output = (uint32_t*)output_;
+
+	for (h = 0; h < height; h++, output += out_stride >> 2, input += in_stride >> 2) {
+		for (w = 0; w < width; w++) {
+			uint32_t col = input[w];
+			output[w] = ((col << 16) & 0xff0000) | 
+				((col >> 16) & 0xff) |
+				(col & 0xff00ff00);
+		}
+	}
+}
+
+/**
  * Draw the screen.
  */
 static void tic80_libretro_draw(void)
 {
 	// Check if there is a screen to render.
 	if (tic && tic->screen) {
-		// TODO: Fix the color pallete.
-		video_cb(tic->screen, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, TIC80_FULLWIDTH << 2);
+		// TIC-80 uses ABGR8888, so we need to convert it.
+		tic80_libretro_conv_argb8888_abgr8888(frame_buf, tic->screen, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, TIC80_FULLWIDTH << 2, TIC80_FULLWIDTH << 2);
+
+		// Render to the screen.
+		video_cb(frame_buf, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, TIC80_FULLWIDTH << 2);
 	}
 }
 
@@ -274,7 +305,7 @@ void tic80_libretro_audio() {
 }
 
 /**
- * libretro callback; Run a single tick of the game.
+ * libretro callback; Render the screen and play the audio.
  */
 void retro_run(void)
 {
