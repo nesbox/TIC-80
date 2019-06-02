@@ -16,11 +16,9 @@ tic80* tic;
 static struct
 {
 	bool quit;
-	int64_t timeCounter;
 } state =
 {
 	.quit = false,
-	.timeCounter = 0,
 };
 
 /**
@@ -231,22 +229,25 @@ static void tic80_libretro_update_mouse(tic80_mouse* mouse) {
 	mouse->middle = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE);
 }
 
-static void tic80_libretro_update(void)
+static void tic80_libretro_update(retro_usec_t usec)
 {
-	// Let libretro know that we need updated input states.
-	input_poll_cb();
+	// Make sure we only act when a TIC-80 environment is available.
+	if (tic) {
+		// Let libretro know that we need updated input states.
+		input_poll_cb();
 
-	// Port the libretro inputs to TIC-80.
-	tic80_input input;
-	tic80_libretro_update_gamepad(&input.gamepads.first, 0);
-	tic80_libretro_update_gamepad(&input.gamepads.second, 1);
-	//tic80_libretro_update_gamepad(&input.gamepads.third, 2);
-	//tic80_libretro_update_gamepad(&input.gamepads.fourth, 3);
-	tic80_libretro_update_mouse(&input.mouse);
-	// TODO: Add keyboard support
+		// Port the libretro inputs to TIC-80.
+		tic80_input input;
+		tic80_libretro_update_gamepad(&input.gamepads.first, 0);
+		tic80_libretro_update_gamepad(&input.gamepads.second, 1);
+		//tic80_libretro_update_gamepad(&input.gamepads.third, 2);
+		//tic80_libretro_update_gamepad(&input.gamepads.fourth, 3);
+		tic80_libretro_update_mouse(&input.mouse);
+		// TODO: Add keyboard support
 
-	// Update the game state.
-	tic80_tick(tic, input);
+		// Update the game state.
+		tic80_tick(tic, input);
+	}
 }
 
 /**
@@ -254,9 +255,21 @@ static void tic80_libretro_update(void)
  */
 static void tic80_libretro_draw(void)
 {
+	// Check if there is a screen to render.
 	if (tic && tic->screen) {
 		// TODO: Fix the color pallete.
 		video_cb(tic->screen, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, TIC80_FULLWIDTH << 2);
+	}
+}
+
+/**
+ * libretro callback; Play the audio.
+ */
+void tic80_libretro_audio() {
+	// Only render audio if there is a TIC-80 environment.
+	if (tic) {
+		// Tell libretro about the samples.
+		audio_batch_cb(tic->sound.samples, tic->sound.count / 2);
 	}
 }
 
@@ -275,32 +288,11 @@ void retro_run(void)
 		return;
 	}
 
-	// Run a tick if needed.
-	if (tic && state.timeCounter >= 1000000 / TIC_FRAMERATE) {
-		// Update the input and run a tick.
-		tic80_libretro_update();
-
-		// Reset the game timer.
-		state.timeCounter = 0;
-	}
-
 	// Render the screen.
 	tic80_libretro_draw();
-}
 
-/**
- * libretro callback; Step the core forwards a step.
- */
-void tic80_libretro_frame_time_cb(retro_usec_t usec) {
-	state.timeCounter += usec;
-}
-
-/**
- * libretro callback; Play the audio.
- */
-void tic80_libretro_audio_cb() {
-	// Tell libretro about the samples.
-	audio_batch_cb(tic->sound.samples, tic->sound.count / 2);
+	// Play the audio.
+	tic80_libretro_audio();
 }
 
 /**
@@ -329,20 +321,13 @@ bool retro_load_game(const struct retro_game_info *info)
 
 	// Frame timer.
 	struct retro_frame_time_callback frame_cb = {
-		tic80_libretro_frame_time_cb,
+		tic80_libretro_update,
 		1000000 / TIC_FRAMERATE
 	};
 	if (!environ_cb(RETRO_ENVIRONMENT_SET_FRAME_TIME_CALLBACK, &frame_cb)) {
 		log_cb(RETRO_LOG_INFO, "[TIC-80] Failed to set frame time callback.\n");
 		return false;
 	}
-
-	// Audio callback.
-	struct retro_audio_callback retro_audio = {
-		tic80_libretro_audio_cb,
-		tic80_libretro_audio_set_state
-	};
-	environ_cb(RETRO_ENVIRONMENT_SET_AUDIO_CALLBACK, &retro_audio);
 
 	// Update the input button descriptions.
 	tic80_libretro_input_descriptors();
