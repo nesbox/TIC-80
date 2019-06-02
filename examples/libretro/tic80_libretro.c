@@ -17,6 +17,8 @@ tic80* tic;
 static struct
 {
 	bool quit;
+	tic80_input input;
+	int keymap[tic_keys_count];
 } state =
 {
 	.quit = false,
@@ -58,7 +60,91 @@ static void tic80_libretro_fallback_log(enum retro_log_level level, const char *
  */
 void retro_init(void)
 {
+	// Create the frame buffer.
 	frame_buf = calloc(320 * 240, sizeof(uint32_t));
+
+	// Initialize the keyboard mappings.
+	state.keymap[tic_key_unknown] = RETROK_UNKNOWN;
+	state.keymap[tic_key_a] = RETROK_a;
+	state.keymap[tic_key_b] = RETROK_b;
+	state.keymap[tic_key_c] = RETROK_c;
+	state.keymap[tic_key_d] = RETROK_d;
+	state.keymap[tic_key_e] = RETROK_e;
+	state.keymap[tic_key_f] = RETROK_f;
+	state.keymap[tic_key_g] = RETROK_g;
+	state.keymap[tic_key_h] = RETROK_h;
+	state.keymap[tic_key_i] = RETROK_i;
+	state.keymap[tic_key_j] = RETROK_j;
+	state.keymap[tic_key_k] = RETROK_k;
+	state.keymap[tic_key_l] = RETROK_l;
+	state.keymap[tic_key_m] = RETROK_m;
+	state.keymap[tic_key_n] = RETROK_n;
+	state.keymap[tic_key_o] = RETROK_o;
+	state.keymap[tic_key_p] = RETROK_p;
+	state.keymap[tic_key_q] = RETROK_q;
+	state.keymap[tic_key_r] = RETROK_r;
+	state.keymap[tic_key_s] = RETROK_s;
+	state.keymap[tic_key_t] = RETROK_t;
+	state.keymap[tic_key_u] = RETROK_u;
+	state.keymap[tic_key_v] = RETROK_v;
+	state.keymap[tic_key_w] = RETROK_w;
+	state.keymap[tic_key_x] = RETROK_x;
+	state.keymap[tic_key_y] = RETROK_y;
+	state.keymap[tic_key_z] = RETROK_z;
+	state.keymap[tic_key_0] = RETROK_0;
+	state.keymap[tic_key_1] = RETROK_1;
+	state.keymap[tic_key_2] = RETROK_2;
+	state.keymap[tic_key_3] = RETROK_3;
+	state.keymap[tic_key_4] = RETROK_4;
+	state.keymap[tic_key_5] = RETROK_5;
+	state.keymap[tic_key_6] = RETROK_6;
+	state.keymap[tic_key_7] = RETROK_7;
+	state.keymap[tic_key_8] = RETROK_8;
+	state.keymap[tic_key_9] = RETROK_9;
+	state.keymap[tic_key_minus] = RETROK_MINUS;
+	state.keymap[tic_key_equals] = RETROK_EQUALS;
+	state.keymap[tic_key_leftbracket] = RETROK_LEFTBRACKET;
+	state.keymap[tic_key_rightbracket] = RETROK_RIGHTBRACKET;
+	state.keymap[tic_key_backslash] = RETROK_BACKSLASH;
+	state.keymap[tic_key_semicolon] = RETROK_SEMICOLON;
+	state.keymap[tic_key_apostrophe] = RETROK_QUOTE;
+	state.keymap[tic_key_grave] = RETROK_TILDE;
+	state.keymap[tic_key_comma] = RETROK_COMMA;
+	state.keymap[tic_key_period] = RETROK_PERIOD;
+	state.keymap[tic_key_slash] = RETROK_SLASH;
+	state.keymap[tic_key_space] = RETROK_SPACE;
+	state.keymap[tic_key_tab] = RETROK_TAB;
+	state.keymap[tic_key_return] = RETROK_RETURN;
+	state.keymap[tic_key_backspace] = RETROK_BACKSPACE;
+	state.keymap[tic_key_delete] = RETROK_DELETE;
+	state.keymap[tic_key_insert] = RETROK_INSERT;
+	state.keymap[tic_key_pageup] = RETROK_PAGEUP;
+	state.keymap[tic_key_pagedown] = RETROK_PAGEDOWN;
+	state.keymap[tic_key_home] = RETROK_HOME;
+	state.keymap[tic_key_end] = RETROK_END;
+	state.keymap[tic_key_up] = RETROK_UP;
+	state.keymap[tic_key_down] = RETROK_DOWN;
+	state.keymap[tic_key_left] = RETROK_LEFT;
+	state.keymap[tic_key_right] = RETROK_RIGHT;
+	state.keymap[tic_key_capslock] = RETROK_CAPSLOCK;
+	state.keymap[tic_key_ctrl] = RETROK_LCTRL;
+	state.keymap[tic_key_shift] = RETROK_LSHIFT;
+	state.keymap[tic_key_alt] = RETROK_LALT;
+	state.keymap[tic_key_escape] = RETROK_ESCAPE;
+	state.keymap[tic_key_f1] = RETROK_F1;
+	state.keymap[tic_key_f2] = RETROK_F2;
+	state.keymap[tic_key_f3] = RETROK_F3;
+	state.keymap[tic_key_f4] = RETROK_F4;
+	state.keymap[tic_key_f5] = RETROK_F5;
+	state.keymap[tic_key_f6] = RETROK_F6;
+	state.keymap[tic_key_f7] = RETROK_F7;
+	state.keymap[tic_key_f8] = RETROK_F8;
+	state.keymap[tic_key_f9] = RETROK_F9;
+	state.keymap[tic_key_f10] = RETROK_F10;
+	state.keymap[tic_key_f11] = RETROK_F11;
+	state.keymap[tic_key_f12] = RETROK_F12;
+	state.keymap[tic_key_f12] = RETROK_F12;
+	state.keymap[tic_keys_count] = RETROK_LAST;
 }
 
 /**
@@ -124,7 +210,7 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
 		.base_height  = TIC80_FULLHEIGHT,
 		.max_width    = TIC80_FULLWIDTH,
 		.max_height   = TIC80_FULLHEIGHT,
-		.aspect_ratio = (float)TIC80_WIDTH / (float)TIC80_HEIGHT,
+		.aspect_ratio = (float)TIC80_FULLWIDTH / (float)TIC80_FULLHEIGHT,
 	};
 }
 
@@ -136,7 +222,7 @@ void retro_set_environment(retro_environment_t cb)
 	// Update the environment callback to make environment calls.
 	environ_cb = cb;
 
-	// TIC-80 requires a cartridge.
+	// TIC-80 runner requires a cartridge.
 	bool no_content = false;
 	cb(RETRO_ENVIRONMENT_SET_SUPPORT_NO_GAME, &no_content);
 
@@ -176,14 +262,16 @@ void retro_set_video_refresh(retro_video_refresh_t cb)
 
 void retro_reset(void)
 {
-	// TODO: Allow reseting the cartridge.
+	// TODO: Allow reseting the game?
 }
 
 /**
  * libretro callback; Load the labels for the input buttons.
  */
 void tic80_libretro_input_descriptors() {
+	// TIC-80's controller has flipped A/B and X/Y buttons than RetroPad.
 	struct retro_input_descriptor desc[] = {
+		// Player 1
 		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT, "D-Pad Left" },
 		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP, "D-Pad Up" },
 		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN, "D-Pad Down" },
@@ -193,6 +281,7 @@ void tic80_libretro_input_descriptors() {
 		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X, "Y" },
 		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y, "X" },
 
+		// Player 2
 		{ 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT, "D-Pad Left" },
 		{ 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP, "D-Pad Up" },
 		{ 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN, "D-Pad Down" },
@@ -201,6 +290,30 @@ void tic80_libretro_input_descriptors() {
 		{ 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "B" },
 		{ 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X, "Y" },
 		{ 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y, "X" },
+
+		// Player 3: Disabled for now.
+		/*
+		{ 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT, "D-Pad Left" },
+		{ 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP, "D-Pad Up" },
+		{ 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN, "D-Pad Down" },
+		{ 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "D-Pad Right" },
+		{ 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B, "A" },
+		{ 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "B" },
+		{ 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X, "Y" },
+		{ 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y, "X" },
+		*/
+
+		// Player 4: Disabled for now.
+		/*
+		{ 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT, "D-Pad Left" },
+		{ 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP, "D-Pad Up" },
+		{ 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN, "D-Pad Down" },
+		{ 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT, "D-Pad Right" },
+		{ 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B, "A" },
+		{ 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "B" },
+		{ 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X, "Y" },
+		{ 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y, "X" },
+		*/
 
 		{ 0 },
 	};
@@ -212,6 +325,7 @@ void tic80_libretro_input_descriptors() {
  * Retrieve gamepad information from libretro.
  */
 static void tic80_libretro_update_gamepad(tic80_gamepad* gamepad, int player) {
+	// D-Pad
 	gamepad->up = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP);
 	gamepad->down = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN);
 	gamepad->left = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT);
@@ -228,10 +342,29 @@ static void tic80_libretro_update_gamepad(tic80_gamepad* gamepad, int player) {
  * Retrieve gamepad information from libretro.
  */
 static void tic80_libretro_update_mouse(tic80_mouse* mouse) {
-	// TODO: Add mouse X and Y
+	// TODO: Is there a cleaner way to handle the mouse?
+	mouse->x += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
+	mouse->y += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_Y);
 	mouse->left = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT);
 	mouse->right = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT);
 	mouse->middle = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE);
+}
+
+/**
+ * Retrieve keyboard information from libretro.
+ */
+static void tic80_libretro_update_keyboard(tic80_keyboard* keyboard) {
+	// Clear the key buffer.
+	for (uint keybuffer = 0; keybuffer < TIC80_KEY_BUFFER; keybuffer++) {
+		keyboard->keys[keybuffer] = tic_key_unknown;
+	}
+
+	// Load up the active keys into the buffer.
+	for (uint key = tic_key_unknown, keyBuffer = 0; key < tic_keys_count && keyBuffer < TIC80_KEY_BUFFER; key++) {
+		if (input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, state.keymap[key])) {
+			keyboard->keys[keyBuffer++] = key;
+		}
+	}
 }
 
 static void tic80_libretro_update(retro_usec_t usec)
@@ -242,32 +375,29 @@ static void tic80_libretro_update(retro_usec_t usec)
 		input_poll_cb();
 
 		// Port the libretro inputs to TIC-80.
-		tic80_input input;
-		tic80_libretro_update_gamepad(&input.gamepads.first, 0);
-		tic80_libretro_update_gamepad(&input.gamepads.second, 1);
-		//tic80_libretro_update_gamepad(&input.gamepads.third, 2);
-		//tic80_libretro_update_gamepad(&input.gamepads.fourth, 3);
-		tic80_libretro_update_mouse(&input.mouse);
-		// TODO: Add keyboard support
+		tic80_libretro_update_gamepad(&state.input.gamepads.first, 0);
+		tic80_libretro_update_gamepad(&state.input.gamepads.second, 1);
+
+		// Player 3 and 4 are commented out for now.
+		// tic80_libretro_update_gamepad(&state.input.gamepads.third, 2);
+		// tic80_libretro_update_gamepad(&state.input.gamepads.fourth, 3);
+
+		tic80_libretro_update_mouse(&state.input.mouse);
+		tic80_libretro_update_keyboard(&state.input.keyboard);
 
 		// Update the game state.
-		tic80_tick(tic, input);
+		tic80_tick(tic, state.input);
 	}
 }
 
 /**
  * Convert between argb8888 and abgr8888.
- *
- * TODO: Use directly from libretro-common instead?
  */
-void tic80_libretro_conv_argb8888_abgr8888(void *output_, const void *input_,
-      int width, int height,
-      int out_stride, int in_stride)
+void tic80_libretro_conv_argb8888_abgr8888(uint32_t *output, uint32_t *input,
+	int width, int height,
+	int out_stride, int in_stride)
 {
 	int h, w;
-	const uint32_t *input = (const uint32_t*)input_;
-	uint32_t *output = (uint32_t*)output_;
-
 	for (h = 0; h < height; h++, output += out_stride >> 2, input += in_stride >> 2) {
 		for (w = 0; w < width; w++) {
 			uint32_t col = input[w];
@@ -286,7 +416,9 @@ static void tic80_libretro_draw(void)
 	// Check if there is a screen to render.
 	if (tic && tic->screen) {
 		// TIC-80 uses ABGR8888, so we need to convert it.
-		tic80_libretro_conv_argb8888_abgr8888(frame_buf, tic->screen, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, TIC80_FULLWIDTH << 2, TIC80_FULLWIDTH << 2);
+		tic80_libretro_conv_argb8888_abgr8888(frame_buf, tic->screen,
+			TIC80_FULLWIDTH, TIC80_FULLHEIGHT,
+			TIC80_FULLWIDTH << 2, TIC80_FULLWIDTH << 2);
 
 		// Render to the screen.
 		video_cb(frame_buf, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, TIC80_FULLWIDTH << 2);
@@ -378,10 +510,14 @@ bool retro_load_game(const struct retro_game_info *info)
 
 	// Set up the TIC-80 environment.
 	tic = tic80_create(TIC_FREQUENCY);
-	state.quit = false;
 	tic->callback.exit = tic80_libretro_exit;
 	tic->callback.error = tic80_libretro_error;
 	tic->callback.trace = tic80_libretro_trace;
+
+	// Initialize some of the game state.
+	state.quit = false;
+	state.input.mouse.x = 0;
+	state.input.mouse.y = 0;
 
 	// Load the content.
 	tic80_load(tic, (void*)(info->data), info->size);
