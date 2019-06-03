@@ -355,12 +355,12 @@ static void tic80_libretro_update_mouse(tic80_mouse* mouse) {
  */
 static void tic80_libretro_update_keyboard(tic80_keyboard* keyboard) {
 	// Clear the key buffer.
-	for (uint keybuffer = 0; keybuffer < TIC80_KEY_BUFFER; keybuffer++) {
-		keyboard->keys[keybuffer] = tic_key_unknown;
+	for (int i = 0; i < TIC80_KEY_BUFFER; i++) {
+		keyboard->keys[i] = tic_key_unknown;
 	}
 
 	// Load up the active keys into the buffer.
-	for (uint key = tic_key_unknown, keyBuffer = 0; key < tic_keys_count && keyBuffer < TIC80_KEY_BUFFER; key++) {
+	for (int key = tic_key_unknown, keyBuffer = 0; key < tic_keys_count && keyBuffer < TIC80_KEY_BUFFER; key++) {
 		if (input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, state.keymap[key])) {
 			keyboard->keys[keyBuffer++] = key;
 		}
