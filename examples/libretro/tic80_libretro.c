@@ -243,10 +243,7 @@ void retro_set_environment(retro_environment_t cb)
 		},
 		{ NULL, NULL },
 	};
-	if (!environ_cb(RETRO_ENVIRONMENT_SET_VARIABLES, variables)) {
-		log_cb(RETRO_LOG_ERROR, "[TIC-80] Failed to create the variables.\n");
-		return false;
-	}
+	environ_cb(RETRO_ENVIRONMENT_SET_VARIABLES, variables);
 }
 
 void retro_set_audio_sample(retro_audio_sample_t cb)
@@ -356,10 +353,8 @@ static void tic80_libretro_update_gamepad(tic80_gamepad* gamepad, int player) {
  * Converts a Pointer API coordinates to screen pixel position.
  */
 static int tic80_libretro_mouse_pointer_convert(float coord, float full) {
-	float range = (float)0x7fff;
-	float coordInRange = coord + range;
-	float percentOfSize = coordInRange / (range * 2.0f);
-	return (int)(percentOfSize * full);
+	float max = 0x7fff;
+	return (coord + max) / (max * 2.0f) * full;
 }
 
 /**
@@ -391,6 +386,7 @@ static void tic80_libretro_update_mouse(tic80_mouse* mouse) {
 	}
 	else {
 		// Get the Pointer X and Y, and convert it to screen position.
+		// TODO: Pointer: Consider the padding around the screen?
 		mouse->x = tic80_libretro_mouse_pointer_convert(input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X), TIC80_WIDTH);
 		mouse->y = tic80_libretro_mouse_pointer_convert(input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_Y), TIC80_HEIGHT);
 
