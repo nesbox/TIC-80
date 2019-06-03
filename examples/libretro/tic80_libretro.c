@@ -338,13 +338,23 @@ static void tic80_libretro_update_gamepad(tic80_gamepad* gamepad, int player) {
 	gamepad->y = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X);
 }
 
+static int tic80_libretro_mouse_convert(float coord, float full) {
+	float range = (float)0x7fff;
+	float coordInRange = coord + range;
+	float percentOfSize = coordInRange / (range * 2.0f);
+	return (int)(percentOfSize * full);
+}
+
 /**
  * Retrieve gamepad information from libretro.
  */
 static void tic80_libretro_update_mouse(tic80_mouse* mouse) {
-	// TODO: Is there a cleaner way to handle the mouse?
-	mouse->x += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
-	mouse->y += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_Y);
+	// TODO: Allow use of POINTER or MOUSE.
+	mouse->x = tic80_libretro_mouse_convert(input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X), TIC80_WIDTH);
+	mouse->y = tic80_libretro_mouse_convert(input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_Y), TIC80_HEIGHT);
+
+	//mouse->x += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
+	//mouse->y += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_Y);
 	mouse->left = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT);
 	mouse->right = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT);
 	mouse->middle = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE);
