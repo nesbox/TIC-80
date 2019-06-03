@@ -364,6 +364,11 @@ static void tic80_libretro_update_keyboard(tic80_keyboard* keyboard) {
 	}
 }
 
+/**
+ * libretro callback; Update the input state, and tick the game.
+ *
+ * @param usec The amount of time that had passed since last tick.
+ */
 static void tic80_libretro_update(retro_usec_t usec)
 {
 	// Make sure we only act when a TIC-80 environment is available.
