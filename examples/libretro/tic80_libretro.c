@@ -152,9 +152,6 @@ void retro_init(void)
  */
 void retro_deinit(void)
 {
-	// Try to force another unload of the game.
-	retro_unload_game();
-
 	// Clear out the frame buffer.
 	free(frame_buf);
 	frame_buf = NULL;
