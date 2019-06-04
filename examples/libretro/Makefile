@@ -1,8 +1,12 @@
 target: build
-	cp ../../lib/tic80_libretro* .
+	cp -f ../../lib/tic80_libretro* .
 
-build: libretro-common
-	cd ../.. && cmake . && make
-
-libretro-common:
+../../3rd-party/squirrel/squirrel/sqapi.cpp:
 	git submodule update --init --recursive
+
+build: ../../3rd-party/squirrel/squirrel/sqapi.cpp
+	cmake ../..
+	make -C ../..
+
+clean:
+	rm -f tic80_libretro.so
