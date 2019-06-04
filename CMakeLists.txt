@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.9)
 project(TIC-80 C CXX)
 message("Building for target : ${CMAKE_SYSTEM_NAME}")
 
+option(BUILD_LIBRETRO "libretro Enabled" TRUE)
+
 if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID)
 	set(LINUX TRUE)
 endif()
@@ -241,8 +243,8 @@ endif()
 # SDL2 renderer example
 ################################
 
+set(EXAMPLE_DIR examples)
 if(NOT EMSCRIPTEN)
-	set(EXAMPLE_DIR examples)
 	set(EXAMPLE_SRC 
 		${EXAMPLE_DIR}/sdl/main.c
 	)
@@ -340,45 +342,26 @@ target_link_libraries(sokol-renderer tic80core sokol)
 # libretro renderer example
 ################################
 
-set(LIBRETRO_SRC
-	${EXAMPLE_DIR}/libretro/tic80_libretro.c
-	${EXAMPLE_DIR}/libretro/libretro-common/audio/audio_mix.c
-	${EXAMPLE_DIR}/libretro/libretro-common/audio/audio_mixer.c
-	${EXAMPLE_DIR}/libretro/libretro-common/audio/resampler/audio_resampler.c
-	${EXAMPLE_DIR}/libretro/libretro-common/audio/resampler/drivers/nearest_resampler.c
-	${EXAMPLE_DIR}/libretro/libretro-common/audio/resampler/drivers/null_resampler.c
-	${EXAMPLE_DIR}/libretro/libretro-common/audio/resampler/drivers/sinc_resampler.c
-	${EXAMPLE_DIR}/libretro/libretro-common/formats/wav/rwav.c
-	${EXAMPLE_DIR}/libretro/libretro-common/audio/conversion/float_to_s16.c
-	${EXAMPLE_DIR}/libretro/libretro-common/audio/conversion/float_to_s16_neon.c
-	${EXAMPLE_DIR}/libretro/libretro-common/audio/conversion/s16_to_float.c
-	${EXAMPLE_DIR}/libretro/libretro-common/audio/conversion/s16_to_float_neon.c
-	${EXAMPLE_DIR}/libretro/libretro-common/file/config_file_userdata.c
-	${EXAMPLE_DIR}/libretro/libretro-common/file/config_file.c
-	${EXAMPLE_DIR}/libretro/libretro-common/file/file_path.c
-	${EXAMPLE_DIR}/libretro/libretro-common/memmap/memalign.c
-	${EXAMPLE_DIR}/libretro/libretro-common/features/features_cpu.c
-	${EXAMPLE_DIR}/libretro/libretro-common/lists/string_list.c
-	${EXAMPLE_DIR}/libretro/libretro-common/streams/file_stream.c
-	${EXAMPLE_DIR}/libretro/libretro-common/vfs/vfs_implementation.c
-	${EXAMPLE_DIR}/libretro/libretro-common/compat/compat_strcasestr.c
-)
+if(BUILD_LIBRETRO)
+	set(LIBRETRO_SRC
+		${EXAMPLE_DIR}/libretro/tic80_libretro.c
+	)
 
-add_library(tic80_libretro SHARED
-	${LIBRETRO_SRC}
-)
+	add_library(tic80_libretro SHARED
+		${LIBRETRO_SRC}
+	)
 
-target_include_directories(tic80_libretro PRIVATE ${EXAMPLE_DIR}/libretro/libretro-common/include)
-target_include_directories(tic80_libretro PRIVATE include)
-target_include_directories(tic80_libretro PRIVATE src)
+	target_include_directories(tic80_libretro PRIVATE include)
+	target_include_directories(tic80_libretro PRIVATE src)
 
-if(MINGW)
-	target_link_libraries(tic80_libretro mingw32)
+	if(MINGW)
+		target_link_libraries(tic80_libretro mingw32)
+	endif()
+
+	add_dependencies(tic80_libretro tic80core)
+	target_link_libraries(tic80_libretro tic80core)
+	set_target_properties(tic80_libretro PROPERTIES PREFIX "")
 endif()
-
-add_dependencies(tic80_libretro tic80core)
-target_link_libraries(tic80_libretro tic80core)
-set_target_properties(tic80_libretro PROPERTIES PREFIX "")
 
 ################################
 # SDL GPU
