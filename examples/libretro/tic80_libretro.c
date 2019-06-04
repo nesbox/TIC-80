@@ -145,7 +145,6 @@ void retro_init(void)
 	state.keymap[tic_key_f11] = RETROK_F11;
 	state.keymap[tic_key_f12] = RETROK_F12;
 	state.keymap[tic_key_f12] = RETROK_F12;
-	state.keymap[tic_keys_count] = RETROK_LAST;
 }
 
 /**
