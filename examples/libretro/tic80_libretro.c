@@ -366,10 +366,8 @@ static void tic80_libretro_update_keyboard(tic80_keyboard* keyboard) {
 
 /**
  * libretro callback; Update the input state, and tick the game.
- *
- * @param usec The amount of time that had passed since last tick.
  */
-static void tic80_libretro_update(retro_usec_t usec)
+static void tic80_libretro_update()
 {
 	// Make sure we only act when a TIC-80 environment is available.
 	if (tic) {
@@ -453,6 +451,9 @@ void retro_run(void)
 		return;
 	}
 
+	// Update the TIC-80 environment.
+	tic80_libretro_update();
+
 	// Render the screen.
 	tic80_libretro_draw();
 
@@ -481,16 +482,6 @@ bool retro_load_game(const struct retro_game_info *info)
 	enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
 	if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt)) {
 		log_cb(RETRO_LOG_INFO, "[TIC-80] RETRO_PIXEL_FORMAT_XRGB8888 is not supported.\n");
-		return false;
-	}
-
-	// Frame timer.
-	struct retro_frame_time_callback frame_cb = {
-		tic80_libretro_update,
-		1000000 / TIC_FRAMERATE
-	};
-	if (!environ_cb(RETRO_ENVIRONMENT_SET_FRAME_TIME_CALLBACK, &frame_cb)) {
-		log_cb(RETRO_LOG_INFO, "[TIC-80] Failed to set frame time callback.\n");
 		return false;
 	}
 
