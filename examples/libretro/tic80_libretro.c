@@ -7,7 +7,6 @@
 #include <tic.h>
 #include "libretro.h"
 
-#define TIC_FRAMERATE 60
 #define TIC_FREQUENCY 44100
 
 static uint32_t *frame_buf;
