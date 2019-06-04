@@ -18,9 +18,11 @@ static struct
 	bool quit;
 	tic80_input input;
 	int keymap[tic_keys_count];
+	bool variableMouseApi;
 } state =
 {
 	.quit = false,
+	.variableMouseApi = false,
 };
 
 /**
@@ -229,6 +231,15 @@ void retro_set_environment(retro_environment_t cb)
 	else {
 		log_cb = tic80_libretro_fallback_log;
 	}
+
+	// Variables/Core Options
+	struct retro_variable variables[] = {
+		{
+			"tic80_mouse", "Mouse API instead of Pointer; disabled|enabled",
+		},
+		{ NULL, NULL },
+	};
+	environ_cb(RETRO_ENVIRONMENT_SET_VARIABLES, variables);
 }
 
 void retro_set_audio_sample(retro_audio_sample_t cb)
@@ -335,13 +346,51 @@ static void tic80_libretro_update_gamepad(tic80_gamepad* gamepad, int player) {
 }
 
 /**
+ * Converts a Pointer API coordinates to screen pixel position.
+ */
+static int tic80_libretro_mouse_pointer_convert(float coord, float full) {
+	float max = 0x7fff;
+	return (coord + max) / (max * 2.0f) * full;
+}
+
+/**
  * Retrieve gamepad information from libretro.
  */
 static void tic80_libretro_update_mouse(tic80_mouse* mouse) {
-	// TODO: Is there a cleaner way to handle the mouse?
-	mouse->x += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
-	mouse->y += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_Y);
-	mouse->left = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT);
+	// Use the Mouse API instead of Pointer API, if desired.
+	if (state.variableMouseApi) {
+		// Get the Mouse X and Y, which is the relative positioning from last tick.
+		mouse->x += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
+		mouse->y += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_Y);
+
+		// Keep the mouse on the screen.
+		if (mouse->x > TIC80_WIDTH) {
+			mouse->x = TIC80_WIDTH;
+		}
+		if (mouse->y > TIC80_HEIGHT) {
+			mouse->y = TIC80_HEIGHT;
+		}
+		if (mouse->x < 0) {
+			mouse->x = 0;
+		}
+		if (mouse->y < 0) {
+			mouse->y = 0;
+		}
+
+		// Left mouse button.
+		mouse->left = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT);
+	}
+	else {
+		// Get the Pointer X and Y, and convert it to screen position.
+		// TODO: Pointer: Consider the padding around the screen?
+		mouse->x = tic80_libretro_mouse_pointer_convert(input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X), TIC80_WIDTH);
+		mouse->y = tic80_libretro_mouse_pointer_convert(input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_Y), TIC80_HEIGHT);
+
+		// Pointer pressed is considered mouse left button.
+		mouse->left = input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_PRESSED);
+	}
+
+	// Get the mouse buttons.
 	mouse->right = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT);
 	mouse->middle = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE);
 }
@@ -436,6 +485,25 @@ void tic80_libretro_audio() {
 }
 
 /**
+ * Update the state of the core variables.
+ */
+static void tic80_libretro_variables(void)
+{
+	// Check all the individual variables for the core.
+	struct retro_variable var;
+
+	// Use Mouse API instead of the Pointer.
+	var.key = "tic80_mouse";
+	var.value = NULL;
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
+		state.variableMouseApi = strcmp(var.value, "enabled") == 0;
+ 	}
+ 	else {
+ 		state.variableMouseApi = false;
+ 	}
+}
+
+/**
  * libretro callback; Render the screen and play the audio.
  */
 void retro_run(void)
@@ -458,6 +526,12 @@ void retro_run(void)
 
 	// Play the audio.
 	tic80_libretro_audio();
+
+	// Update core options if needed.
+	bool updated = false;
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated) {
+		tic80_libretro_variables();
+	}
 }
 
 /**
@@ -510,6 +584,9 @@ bool retro_load_game(const struct retro_game_info *info)
 	state.quit = false;
 	state.input.mouse.x = 0;
 	state.input.mouse.y = 0;
+
+	// Load up any core variables.
+	tic80_libretro_variables();
 
 	// Load the content.
 	tic80_load(tic, (void*)(info->data), info->size);
