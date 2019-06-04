@@ -5,8 +5,7 @@ target: build
 	git submodule update --init --recursive
 
 build: ../../3rd-party/squirrel/squirrel/sqapi.cpp
-	cmake ../..
-	make -C ../..
+	cd ../.. && cmake . && make
 
 clean:
 	rm -f tic80_libretro.so
