@@ -12,6 +12,12 @@
 static uint32_t *frame_buf;
 static struct retro_log_callback logging;
 static retro_log_printf_t log_cb;
+static retro_video_refresh_t video_cb;
+static retro_audio_sample_t audio_cb;
+static retro_audio_sample_batch_t audio_batch_cb;
+static retro_environment_t environ_cb;
+static retro_input_poll_t input_poll_cb;
+static retro_input_state_t input_state_cb;
 tic80* tic;
 static struct
 {
@@ -36,17 +42,22 @@ static void tic80_libretro_exit()
 /** 
  * TIC-80 callback; Report an error from the TIC-80 cart.
  */
-static void tic80_libretro_error(const char* info) {
+static void tic80_libretro_error(const char* info)
+{
 	log_cb(RETRO_LOG_ERROR, info);
 }
 
 /**
  * TIC-80 callback; Report a trace log from the TIC-80 cart.
  */
-static void tic80_libretro_trace(const char* text, u8 color) {
+static void tic80_libretro_trace(const char* text, u8 color)
+{
 	log_cb(RETRO_LOG_INFO, text);
 }
 
+/**
+ * libretro callback; Handles the logging internally when the logging isn't set.
+ */
 static void tic80_libretro_fallback_log(enum retro_log_level level, const char *fmt, ...)
 {
 	(void)level;
@@ -65,6 +76,7 @@ void retro_init(void)
 	frame_buf = calloc(320 * 240, sizeof(uint32_t));
 
 	// Initialize the keyboard mappings.
+	// TODO: Switch the handles to be `[RETROK] = tic_key` so that it can handle duplicate keys (lshift/rshift).
 	state.keymap[tic_key_unknown] = RETROK_UNKNOWN;
 	state.keymap[tic_key_a] = RETROK_a;
 	state.keymap[tic_key_b] = RETROK_b;
@@ -185,13 +197,6 @@ void retro_get_system_info(struct retro_system_info *info)
 	info->valid_extensions = "tic";
 }
 
-static retro_video_refresh_t video_cb;
-static retro_audio_sample_t audio_cb;
-static retro_audio_sample_batch_t audio_batch_cb;
-static retro_environment_t environ_cb;
-static retro_input_poll_t input_poll_cb;
-static retro_input_state_t input_state_cb;
-
 /**
  * libretro callback; Get information about the desired audio and video.
  */
@@ -241,31 +246,51 @@ void retro_set_environment(retro_environment_t cb)
 	environ_cb(RETRO_ENVIRONMENT_SET_VARIABLES, variables);
 }
 
+/**
+ * libretro callback; Set up the audio sample callback.
+ */
 void retro_set_audio_sample(retro_audio_sample_t cb)
 {
 	audio_cb = cb;
 }
 
+/**
+ * libretro callback; Set up the audio sample batch callback.
+ *
+ * @see tic80_libretro_audio()
+ */
 void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb)
 {
 	audio_batch_cb = cb;
 }
 
+/**
+ * libretro callback; Set up the input poll callback.
+ */
 void retro_set_input_poll(retro_input_poll_t cb)
 {
 	input_poll_cb = cb;
 }
 
+/**
+ * libretro callback; Set up the input state callback.
+ */
 void retro_set_input_state(retro_input_state_t cb)
 {
 	input_state_cb = cb;
 }
 
+/**
+ * libretro callback; Set up the video refresh callback.
+ */
 void retro_set_video_refresh(retro_video_refresh_t cb)
 {
 	video_cb = cb;
 }
 
+/**
+ * libretro callback; Reset the game.
+ */
 void retro_reset(void)
 {
 	// TODO: Allow reseting the game?
@@ -273,6 +298,8 @@ void retro_reset(void)
 
 /**
  * libretro callback; Load the labels for the input buttons.
+ *
+ * @see tic80_libretro_update()
  */
 void tic80_libretro_input_descriptors() {
 	// TIC-80's controller has flipped A/B and X/Y buttons than RetroPad.
@@ -329,6 +356,8 @@ void tic80_libretro_input_descriptors() {
 
 /**
  * Retrieve gamepad information from libretro.
+ *
+ * @see tic80_libretro_update()
  */
 static void tic80_libretro_update_gamepad(tic80_gamepad* gamepad, int player) {
 	// D-Pad
@@ -346,6 +375,8 @@ static void tic80_libretro_update_gamepad(tic80_gamepad* gamepad, int player) {
 
 /**
  * Converts a Pointer API coordinates to screen pixel position.
+ *
+ * @see tic80_libretro_update_mouse()
  */
 static int tic80_libretro_mouse_pointer_convert(float coord, float full) {
 	float max = 0x7fff;
@@ -412,29 +443,26 @@ static void tic80_libretro_update_keyboard(tic80_keyboard* keyboard) {
 }
 
 /**
- * libretro callback; Update the input state, and tick the game.
+ * Update the input state, and tick the game.
  */
-static void tic80_libretro_update()
+static void tic80_libretro_update(tic80* game)
 {
-	// Make sure we only act when a TIC-80 environment is available.
-	if (tic) {
-		// Let libretro know that we need updated input states.
-		input_poll_cb();
+	// Let libretro know that we need updated input states.
+	input_poll_cb();
 
-		// Port the libretro inputs to TIC-80.
-		tic80_libretro_update_gamepad(&state.input.gamepads.first, 0);
-		tic80_libretro_update_gamepad(&state.input.gamepads.second, 1);
+	// Port the libretro inputs to TIC-80.
+	tic80_libretro_update_gamepad(&state.input.gamepads.first, 0);
+	tic80_libretro_update_gamepad(&state.input.gamepads.second, 1);
 
-		// Player 3 and 4 are commented out for now.
-		// tic80_libretro_update_gamepad(&state.input.gamepads.third, 2);
-		// tic80_libretro_update_gamepad(&state.input.gamepads.fourth, 3);
+	// Player 3 and 4 are commented out for now.
+	// tic80_libretro_update_gamepad(&state.input.gamepads.third, 2);
+	// tic80_libretro_update_gamepad(&state.input.gamepads.fourth, 3);
 
-		tic80_libretro_update_mouse(&state.input.mouse);
-		tic80_libretro_update_keyboard(&state.input.keyboard);
+	tic80_libretro_update_mouse(&state.input.mouse);
+	tic80_libretro_update_keyboard(&state.input.keyboard);
 
-		// Update the game state.
-		tic80_tick(tic, state.input);
-	}
+	// Update the game state.
+	tic80_tick(game, state.input);
 }
 
 /**
@@ -458,33 +486,27 @@ void tic80_libretro_conv_argb8888_abgr8888(uint32_t *output, uint32_t *input,
 /**
  * Draw the screen.
  */
-static void tic80_libretro_draw(void)
+static void tic80_libretro_draw(tic80* game)
 {
-	// Check if there is a screen to render.
-	if (tic && tic->screen) {
-		// TIC-80 uses ABGR8888, so we need to convert it.
-		tic80_libretro_conv_argb8888_abgr8888(frame_buf, tic->screen,
-			TIC80_FULLWIDTH, TIC80_FULLHEIGHT,
-			TIC80_FULLWIDTH << 2, TIC80_FULLWIDTH << 2);
+	// TIC-80 uses ABGR8888, so we need to convert it.
+	tic80_libretro_conv_argb8888_abgr8888(frame_buf, game->screen,
+		TIC80_FULLWIDTH, TIC80_FULLHEIGHT,
+		TIC80_FULLWIDTH << 2, TIC80_FULLWIDTH << 2);
 
-		// Render to the screen.
-		video_cb(frame_buf, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, TIC80_FULLWIDTH << 2);
-	}
+	// Render to the screen.
+	video_cb(frame_buf, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, TIC80_FULLWIDTH << 2);
 }
 
 /**
- * libretro callback; Play the audio.
+ * Play the TIC-80 audio.
  */
-void tic80_libretro_audio() {
-	// Only render audio if there is a TIC-80 environment.
-	if (tic) {
-		// Tell libretro about the samples.
-		audio_batch_cb(tic->sound.samples, tic->sound.count / 2);
-	}
+void tic80_libretro_audio(tic80* game) {
+	// Tell libretro about the samples.
+	audio_batch_cb(game->sound.samples, game->sound.count / 2);
 }
 
 /**
- * Update the state of the core variables.
+ * libretro callback; Update the state of the core variables.
  */
 static void tic80_libretro_variables(void)
 {
@@ -517,14 +539,19 @@ void retro_run(void)
 		return;
 	}
 
+	// Ensure we act only when a tic instance is available.
+	if (!tic) {
+		return;
+	}
+
 	// Update the TIC-80 environment.
-	tic80_libretro_update();
+	tic80_libretro_update(tic);
 
 	// Render the screen.
-	tic80_libretro_draw();
+	tic80_libretro_draw(tic);
 
 	// Play the audio.
-	tic80_libretro_audio();
+	tic80_libretro_audio(tic);
 
 	// Update core options if needed.
 	bool updated = false;
@@ -541,6 +568,7 @@ void tic80_libretro_audio_set_state(bool enabled) {
 		log_cb(RETRO_LOG_INFO, "[TIC-80] Audio: Enabled\n");
 	}
 	else {
+		// TODO: Inform the user that Audio Synchronization is required for the core to run properly.
 		log_cb(RETRO_LOG_INFO, "[TIC-80] Audio: Disabled\n");
 	}
 }
@@ -597,6 +625,9 @@ bool retro_load_game(const struct retro_game_info *info)
 	return true;
 }
 
+/**
+ * libretro callback; Tells the core to unload the game.
+ */
 void retro_unload_game(void)
 {
 	// Close the game if it's loaded.
@@ -607,47 +638,76 @@ void retro_unload_game(void)
 	}
 }
 
+/**
+ * libretro callback; Retrieves the region for the content.
+ */
 unsigned retro_get_region(void)
 {
 	return RETRO_REGION_NTSC;
 }
 
+/**
+ * libretro callback; Load a game using a subsystem.
+ */
 bool retro_load_game_special(unsigned type, const struct retro_game_info *info, size_t num)
 {
+	// Forward subsystem requests over to retro_load_game().
 	return retro_load_game(info);
 }
 
+/**
+ * libretro callback; Retrieve the size of the serialized memory.
+ */
 size_t retro_serialize_size(void)
 {
 	return 0;
 }
 
+/**
+ * libretro callback; Get the current persistent memory.
+ */
 bool retro_serialize(void *data_, size_t size)
 {
 	return false;
 }
 
+/**
+ * libretro callback; Given the serialized data, load it into the persistent memory.
+ */
 bool retro_unserialize(const void *data_, size_t size)
 {
 	return false;
 }
 
+/**
+ * libretro callback; Gets region of memory. Used for achievement tracking.
+ */
 void *retro_get_memory_data(unsigned id)
 {
 	(void)id;
 	return NULL;
 }
 
+/**
+ * libretro callback; Gets the size of memory. Used for achievement tracking.
+ */
 size_t retro_get_memory_size(unsigned id)
 {
 	(void)id;
 	return 0;
 }
 
+/**
+ * libretro callback; Reset all cheats to disabled.
+ */
 void retro_cheat_reset(void)
 {
+	// Nothing.
 }
 
+/**
+ * libretro callback; Enable/disable the given cheat code.
+ */
 void retro_cheat_set(unsigned index, bool enabled, const char *code)
 {
 	(void)index;
