@@ -7,7 +7,11 @@
 #include <tic.h>
 #include "libretro.h"
 
+// Audio sample frequency for TIC-80
 #define TIC_FREQUENCY 44100
+
+// The maximum amount of inputs (2, 3 or 4)
+#define TIC_MAXPLAYERS 2
 
 static uint32_t *frame_buf;
 static struct retro_log_callback logging;
@@ -324,8 +328,8 @@ void tic80_libretro_input_descriptors() {
 		{ 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X, "Y" },
 		{ 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y, "X" },
 
-		// Player 3: Disabled for now.
-		/*
+#if TIC_MAXPLAYERS >= 3
+		// Player 3
 		{ 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT, "D-Pad Left" },
 		{ 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP, "D-Pad Up" },
 		{ 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN, "D-Pad Down" },
@@ -334,10 +338,10 @@ void tic80_libretro_input_descriptors() {
 		{ 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "B" },
 		{ 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X, "Y" },
 		{ 2, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y, "X" },
-		*/
+#endif
 
-		// Player 4: Disabled for now.
-		/*
+#if TIC_MAXPLAYERS >= 4
+		// Player 4
 		{ 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT, "D-Pad Left" },
 		{ 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP, "D-Pad Up" },
 		{ 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN, "D-Pad Down" },
@@ -346,7 +350,7 @@ void tic80_libretro_input_descriptors() {
 		{ 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "B" },
 		{ 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X, "Y" },
 		{ 3, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y, "X" },
-		*/
+#endif
 
 		{ 0 },
 	};
@@ -450,15 +454,21 @@ static void tic80_libretro_update(tic80* game)
 	// Let libretro know that we need updated input states.
 	input_poll_cb();
 
-	// Port the libretro inputs to TIC-80.
+	// Gamepads
 	tic80_libretro_update_gamepad(&state.input.gamepads.first, 0);
 	tic80_libretro_update_gamepad(&state.input.gamepads.second, 1);
 
-	// Player 3 and 4 are commented out for now.
-	// tic80_libretro_update_gamepad(&state.input.gamepads.third, 2);
-	// tic80_libretro_update_gamepad(&state.input.gamepads.fourth, 3);
+#if TIC_MAXPLAYERS >= 3
+	tic80_libretro_update_gamepad(&state.input.gamepads.third, 2);
+#endif
+#if TIC_MAXPLAYERS >= 4
+	tic80_libretro_update_gamepad(&state.input.gamepads.fourth, 3);
+#endif
 
+	// Mouse
 	tic80_libretro_update_mouse(&state.input.mouse);
+
+	// Keyboard
 	tic80_libretro_update_keyboard(&state.input.keyboard);
 
 	// Update the game state.
@@ -467,6 +477,11 @@ static void tic80_libretro_update(tic80* game)
 
 /**
  * Convert between argb8888 and abgr8888.
+ *
+ * This was copied from libretro-common's scaler.c:
+ * https://github.com/libretro/libretro-common/blob/master/gfx/scaler/scaler.c
+ *
+ * @see tic80_libretro_draw()
  */
 void tic80_libretro_conv_argb8888_abgr8888(uint32_t *output, uint32_t *input,
 	int width, int height,
@@ -499,6 +514,8 @@ static void tic80_libretro_draw(tic80* game)
 
 /**
  * Play the TIC-80 audio.
+ *
+ * @see retro_run()
  */
 void tic80_libretro_audio(tic80* game) {
 	// Tell libretro about the samples.
@@ -506,7 +523,9 @@ void tic80_libretro_audio(tic80* game) {
 }
 
 /**
- * libretro callback; Update the state of the core variables.
+ * Update the state of the core variables.
+ *
+ * @see retro_run()
  */
 static void tic80_libretro_variables(void)
 {
@@ -553,23 +572,10 @@ void retro_run(void)
 	// Play the audio.
 	tic80_libretro_audio(tic);
 
-	// Update core options if needed.
+	// Update core options, if needed.
 	bool updated = false;
 	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated) {
 		tic80_libretro_variables();
-	}
-}
-
-/**
- * libretro callback; Set the current state of the audio.
- */
-void tic80_libretro_audio_set_state(bool enabled) {
-	if (enabled) {
-		log_cb(RETRO_LOG_INFO, "[TIC-80] Audio: Enabled\n");
-	}
-	else {
-		// TODO: Inform the user that Audio Synchronization is required for the core to run properly.
-		log_cb(RETRO_LOG_INFO, "[TIC-80] Audio: Disabled\n");
 	}
 }
 
@@ -585,6 +591,8 @@ bool retro_load_game(const struct retro_game_info *info)
 		return false;
 	}
 
+	// TODO: Warn that Audio Synchronization needs to be enabled in order to run games properly.
+
 	// Update the input button descriptions.
 	tic80_libretro_input_descriptors();
 
@@ -593,6 +601,8 @@ bool retro_load_game(const struct retro_game_info *info)
 		log_cb(RETRO_LOG_ERROR, "[TIC-80] No content information provided.\n");
 		return false;
 	}
+
+	// Ensure content data is available.
 	if (info->data == NULL) {
 		log_cb(RETRO_LOG_ERROR, "[TIC-80] No content data provided.\n");
 		return false;
