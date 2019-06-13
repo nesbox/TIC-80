@@ -242,8 +242,8 @@ endif()
 # SDL2 renderer example
 ################################
 
+set(EXAMPLE_DIR examples)
 if(BUILD_SDL AND NOT EMSCRIPTEN)
-	set(EXAMPLE_DIR examples)
 	set(EXAMPLE_SRC 
 		${EXAMPLE_DIR}/sdl/main.c
 	)
