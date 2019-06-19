@@ -7,12 +7,12 @@ Provided is a [TIC-80](https://tic.computer) libretro core to render TIC-80 cart
 To build the core, run the following commands.
 
 ```
-cd examples/libretro
+cmake . -DBUILD_SDL=0 -DBUILD_SOKOL=0
 make
 ```
 
 ## Usage
 
 ```
-retroarch -L tic80_libretro.so ../../demos/sfx.tic
+retroarch -L lib/tic80_libretro.so demos/sfx.tic
 ```
