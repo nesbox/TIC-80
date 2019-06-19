@@ -42,7 +42,8 @@ static void onExit()
 
 int main(int argc, char **argv)
 {
-	FILE* file = fopen("cart.tic", "rb");
+	char* cart = (argc > 1) ? argv[1] : "cart.tic";
+	FILE* file = fopen(cart, "rb");
 
 	if(file)
 	{
