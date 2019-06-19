@@ -30,7 +30,7 @@
     <ClCompile Include="..\..\..\src\ext\gif.c">
       <Filter>src\ext</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\3rd-party\duktape-2.2.0\src\duktape.c">
+    <ClCompile Include="..\..\..\3rd-party\duktape\src\duktape.c">
       <Filter>src\ext\duktape</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\3rd-party\blip-buf\blip_buf.c">

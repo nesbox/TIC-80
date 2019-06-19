@@ -202,14 +202,14 @@ set(TIC80CORE_SRC
         ${TIC80CORE_DIR}/squirrelapi.c
 	${TIC80CORE_DIR}/ext/gif.c
 	3rd-party/blip-buf/blip_buf.c # TODO: link it as lib?
-	3rd-party/duktape-2.2.0/src/duktape.c # TODO: link it as lib?
+	3rd-party/duktape/src/duktape.c # TODO: link it as lib?
 )
 
 add_library(tic80core STATIC ${TIC80CORE_SRC})
 
 target_include_directories(tic80core PRIVATE include)
 target_include_directories(tic80core PRIVATE 3rd-party/blip-buf)
-target_include_directories(tic80core PRIVATE 3rd-party/duktape-2.2.0/src)
+target_include_directories(tic80core PRIVATE 3rd-party/duktape/src)
 target_include_directories(tic80core PRIVATE 3rd-party/lua-5.3.1/src)
 target_include_directories(tic80core PRIVATE 3rd-party/giflib-5.1.4/lib)
 target_include_directories(tic80core PRIVATE 3rd-party/wren-0.1.0/src/include)
