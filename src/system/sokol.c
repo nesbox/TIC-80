@@ -155,7 +155,7 @@ static void app_init(void)
 {
 	sokol_gfx_init(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, 1, 1, false, true);
 
-	platform.audio.samples = calloc(sizeof platform.audio.samples[0], saudio_sample_rate() / TIC_FRAMERATE * TIC_STEREO_CHANNLES);
+	platform.audio.samples = calloc(sizeof platform.audio.samples[0], saudio_sample_rate() / TIC_FRAMERATE * TIC_STEREO_CHANNELS);
 }
 
 static void handleKeyboard()
@@ -398,7 +398,7 @@ sapp_desc sokol_main(s32 argc, char* argv[])
 {
 	memset(&platform, 0, sizeof platform);
 
-	platform.audio.desc.num_channels = TIC_STEREO_CHANNLES;
+	platform.audio.desc.num_channels = TIC_STEREO_CHANNELS;
 	saudio_setup(&platform.audio.desc);
 
 	platform.studio = studioInit(argc, argv, saudio_sample_rate(), "./", &systemInterface);

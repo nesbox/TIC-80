@@ -125,7 +125,7 @@ static void initSound()
 	{
 		.freq = 44100,
 		.format = AUDIO_S16,
-		.channels = TIC_STEREO_CHANNLES,
+		.channels = TIC_STEREO_CHANNELS,
 		.userdata = NULL,
 	};
 
