@@ -1,3 +1,5 @@
 # Do not ignore the Makefile
 !Makefile
-tic80_libretro*
+tic80_libretro.dylib
+tic80_libretro.dll
+tic80_libretro.so
