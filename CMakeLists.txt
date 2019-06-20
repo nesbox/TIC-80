@@ -364,6 +364,10 @@ if(BUILD_LIBRETRO)
 		target_link_libraries(tic80_libretro mingw32)
 	endif()
 
+	if(ANDROID)
+		set_target_properties(tic80_libretro PROPERTIES SUFFIX "_android.so")
+	endif()
+
 	add_dependencies(tic80_libretro tic80core)
 	target_link_libraries(tic80_libretro tic80core)
 	set_target_properties(tic80_libretro PROPERTIES PREFIX "")
