@@ -348,8 +348,9 @@ endif()
 ################################
 
 if(BUILD_LIBRETRO)
+	set(LIBRETRO_DIR ${TIC80CORE_DIR}/system/libretro)
 	set(LIBRETRO_SRC
-		${EXAMPLE_DIR}/libretro/tic80_libretro.c
+		${LIBRETRO_DIR}/tic80_libretro.c
 	)
 
 	add_library(tic80_libretro SHARED
@@ -357,7 +358,7 @@ if(BUILD_LIBRETRO)
 	)
 
 	target_include_directories(tic80_libretro PRIVATE include)
-	target_include_directories(tic80_libretro PRIVATE src)
+	target_include_directories(tic80_libretro PRIVATE ${TIC80CORE_DIR})
 
 	if(MINGW)
 		target_link_libraries(tic80_libretro mingw32)
