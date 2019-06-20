@@ -519,7 +519,7 @@ static void tic80_libretro_draw(tic80* game)
  */
 void tic80_libretro_audio(tic80* game) {
 	// Tell libretro about the samples.
-	audio_batch_cb(game->sound.samples, game->sound.count / 2);
+	audio_batch_cb(game->sound.samples, game->sound.count / TIC_STEREO_CHANNELS);
 }
 
 /**
