@@ -1450,8 +1450,8 @@ static void api_tick_end(tic_mem* memory)
 	stereo_tick_end(memory, machine->state.registers.left, machine->blip.left, 0);
 	stereo_tick_end(memory, machine->state.registers.right, machine->blip.right, 1);
 
-	blip_read_samples(machine->blip.left, machine->memory.samples.buffer, machine->samplerate / TIC_FRAMERATE, TIC_STEREO_CHANNLES);
-	blip_read_samples(machine->blip.right, machine->memory.samples.buffer + 1, machine->samplerate / TIC_FRAMERATE, TIC_STEREO_CHANNLES);
+	blip_read_samples(machine->blip.left, machine->memory.samples.buffer, machine->samplerate / TIC_FRAMERATE, TIC_STEREO_CHANNELS);
+	blip_read_samples(machine->blip.right, machine->memory.samples.buffer + 1, machine->samplerate / TIC_FRAMERATE, TIC_STEREO_CHANNELS);
 
 	machine->state.setpix = setPixelOvr;
 	machine->state.getpix = getPixelOvr;
@@ -2099,7 +2099,7 @@ tic_mem* tic_create(s32 samplerate)
 	initApi(&machine->memory.api);
 
 	machine->samplerate = samplerate;
-	machine->memory.samples.size = samplerate * TIC_STEREO_CHANNLES / TIC_FRAMERATE * sizeof(s16);
+	machine->memory.samples.size = samplerate * TIC_STEREO_CHANNELS / TIC_FRAMERATE * sizeof(s16);
 	machine->memory.samples.buffer = malloc(machine->memory.samples.size);
 
 	machine->blip.left = blip_new(samplerate / 10);
