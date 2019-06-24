@@ -310,7 +310,10 @@ void retro_set_video_refresh(retro_video_refresh_t cb)
  */
 void retro_reset(void)
 {
-	// TODO: Allow reseting the game?
+	if (tic) {
+		tic80_local* tic80 = (tic80_local*)tic;
+		tic80->memory->api.reset(tic80->memory);
+	}
 }
 
 /**
