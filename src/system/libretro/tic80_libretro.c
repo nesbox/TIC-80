@@ -708,6 +708,7 @@ bool retro_serialize(void *data, size_t size)
 	for (int i = 0; i < TIC_PERSISTENT_SIZE; i++) {
 		udata[i] = tic80->memory->persistent.data[i];
 	}
+	tic80->tickData.syncPMEM = true;
 
 	return true;
 }
@@ -726,6 +727,7 @@ bool retro_unserialize(const void *data, size_t size)
 	for (int i = 0; i < TIC_PERSISTENT_SIZE; i++) {
 		tic80->memory->persistent.data[i] = uData[i];
 	}
+	tic80->tickData.syncPMEM = true;
 
 	return true;
 }
