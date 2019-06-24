@@ -6,6 +6,7 @@
 #include <math.h>
 #include <tic.h>
 #include "libretro.h"
+#include "../../ticapi.h"
 
 // Audio sample frequency for TIC-80
 #define TIC_FREQUENCY 44100
@@ -690,23 +691,43 @@ bool retro_load_game_special(unsigned type, const struct retro_game_info *info, 
  */
 size_t retro_serialize_size(void)
 {
-	return 0;
+	return TIC_PERSISTENT_SIZE * sizeof(u32);
 }
 
 /**
  * libretro callback; Get the current persistent memory.
  */
-bool retro_serialize(void *data_, size_t size)
+bool retro_serialize(void *data, size_t size)
 {
-	return false;
+	if (!tic || !data) {
+		return false;
+	}
+
+	tic80_local* tic80 = (tic80_local*)tic;
+	u32* udata = (u32*)data;
+	for (int i = 0; i < TIC_PERSISTENT_SIZE; i++) {
+		udata[i] = tic80->memory->persistent.data[i];
+	}
+
+	return true;
 }
 
 /**
  * libretro callback; Given the serialized data, load it into the persistent memory.
  */
-bool retro_unserialize(const void *data_, size_t size)
+bool retro_unserialize(const void *data, size_t size)
 {
-	return false;
+	if (!tic || size != retro_serialize_size() || !data) {
+		return false;
+	}
+
+	tic80_local* tic80 = (tic80_local*)tic;
+	u32* uData = (u32*)data;
+	for (int i = 0; i < TIC_PERSISTENT_SIZE; i++) {
+		tic80->memory->persistent.data[i] = uData[i];
+	}
+
+	return true;
 }
 
 /**
@@ -714,8 +735,12 @@ bool retro_unserialize(const void *data_, size_t size)
  */
 void *retro_get_memory_data(unsigned id)
 {
-	(void)id;
-	return NULL;
+	if (!tic || id >= TIC_PERSISTENT_SIZE) {
+		return NULL;
+	}
+
+	tic80_local* tic80 = (tic80_local*)tic;
+	return &(tic80->memory->persistent.data[id]);
 }
 
 /**
@@ -723,8 +748,7 @@ void *retro_get_memory_data(unsigned id)
  */
 size_t retro_get_memory_size(unsigned id)
 {
-	(void)id;
-	return 0;
+	return sizeof(u32);
 }
 
 /**
