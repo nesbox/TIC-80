@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 					{
 						.freq = 44100,
 						.format = AUDIO_S16,
-						.channels = 1,
+						.channels = 2,
 						.userdata = NULL,
 					};
 
