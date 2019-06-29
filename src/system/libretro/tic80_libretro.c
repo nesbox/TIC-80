@@ -422,11 +422,11 @@ static void tic80_libretro_update_mouse(tic80_mouse* mouse) {
 		mouse->x = tic80_libretro_mouse_pointer_convert(
 			input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X),
 			TIC80_FULLWIDTH,
-			(TIC80_FULLWIDTH - TIC80_WIDTH) / 2);
+			TIC80_OFFSET_LEFT);
 		mouse->y = tic80_libretro_mouse_pointer_convert(
 			input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_Y),
 			TIC80_FULLHEIGHT,
-			(TIC80_FULLHEIGHT - TIC80_HEIGHT) / 2);
+			TIC80_OFFSET_TOP);
 
 		// Pointer pressed is considered mouse left button.
 		mouse->left = input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_PRESSED);
