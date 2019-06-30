@@ -55,11 +55,13 @@ endif()
 
 endif()
 
+set(THIRDPARTY_DIR ${CMAKE_SOURCE_DIR}/3rd-party)
+
 ################################
 # LUA
 ################################
 
-set(LUA_DIR 3rd-party/lua-5.3.1/src)
+set(LUA_DIR ${THIRDPARTY_DIR}/lua-5.3.1/src)
 set(LUA_SRC 
 	${LUA_DIR}/lapi.c
 	${LUA_DIR}/lcode.c
@@ -104,7 +106,7 @@ target_compile_definitions(lua PRIVATE LUA_COMPAT_5_2)
 # LPEG
 ################################
 
-set(LPEG_DIR 3rd-party/lpeg-1.0.1)
+set(LPEG_DIR ${THIRDPARTY_DIR}/lpeg-1.0.1)
 set(LPEG_SRC 
 	${LPEG_DIR}/lpcap.c
 	${LPEG_DIR}/lpcode.c
@@ -114,13 +116,13 @@ set(LPEG_SRC
 )
 
 add_library(lpeg STATIC ${LPEG_SRC})
-target_include_directories(lpeg PRIVATE 3rd-party/lua-5.3.1/src)
+target_include_directories(lpeg PRIVATE ${LUA_DIR})
 
 ################################
 # WREN
 ################################
 
-set(WREN_DIR 3rd-party/wren-0.1.0/src)
+set(WREN_DIR ${THIRDPARTY_DIR}/wren-0.1.0/src)
 set(WREN_SRC 
 	${WREN_DIR}/optional/wren_opt_meta.c
 	${WREN_DIR}/optional/wren_opt_random.c
@@ -134,15 +136,15 @@ set(WREN_SRC
 )
 
 add_library(wren STATIC ${WREN_SRC})
-target_include_directories(wren PRIVATE 3rd-party/wren-0.1.0/src/include)
-target_include_directories(wren PRIVATE 3rd-party/wren-0.1.0/src/optional)
-target_include_directories(wren PRIVATE 3rd-party/wren-0.1.0/src/vm)
+target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren-0.1.0/src/include)
+target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren-0.1.0/src/optional)
+target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren-0.1.0/src/vm)
 
 ################################
 # SQUIRREL
 ################################
 
-set(SQUIRREL_DIR 3rd-party/squirrel)
+set(SQUIRREL_DIR ${THIRDPARTY_DIR}/squirrel)
 set(SQUIRREL_SRC
     ${SQUIRREL_DIR}/squirrel/sqapi.cpp
     ${SQUIRREL_DIR}/squirrel/sqbaselib.cpp
@@ -168,15 +170,15 @@ set(SQUIRREL_SRC
 
 add_library(squirrel STATIC ${SQUIRREL_SRC})
 set_target_properties(squirrel PROPERTIES LINKER_LANGUAGE CXX)
-target_include_directories(squirrel PRIVATE 3rd-party/squirrel/include)
-target_include_directories(squirrel PRIVATE 3rd-party/squirrel/squirrel)
-target_include_directories(squirrel PRIVATE 3rd-party/squirrel/sqstdlib)
+target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/include)
+target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/squirrel)
+target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/sqstdlib)
 
 ################################
 # GIFLIB
 ################################
 
-set(GIFLIB_DIR 3rd-party/giflib-5.1.4/lib)
+set(GIFLIB_DIR ${THIRDPARTY_DIR}/giflib-5.1.4/lib)
 set(GIFLIB_SRC
 	${GIFLIB_DIR}/dgif_lib.c
 	${GIFLIB_DIR}/egif_lib.c
@@ -193,7 +195,7 @@ target_include_directories(giflib PRIVATE ${GIFLIB_DIR})
 # TIC-80 core
 ################################
 
-set(TIC80CORE_DIR src)
+set(TIC80CORE_DIR ${CMAKE_SOURCE_DIR}/src)
 set(TIC80CORE_SRC
 	${TIC80CORE_DIR}/tic80.c
 	${TIC80CORE_DIR}/tic.c 
@@ -203,21 +205,21 @@ set(TIC80CORE_SRC
 	${TIC80CORE_DIR}/wrenapi.c 
         ${TIC80CORE_DIR}/squirrelapi.c
 	${TIC80CORE_DIR}/ext/gif.c
-	3rd-party/blip-buf/blip_buf.c # TODO: link it as lib?
-	3rd-party/duktape/src/duktape.c # TODO: link it as lib?
+	${THIRDPARTY_DIR}/blip-buf/blip_buf.c # TODO: link it as lib?
+	${THIRDPARTY_DIR}/duktape/src/duktape.c # TODO: link it as lib?
 )
 
 add_library(tic80core STATIC ${TIC80CORE_SRC})
 
-target_include_directories(tic80core PRIVATE include)
-target_include_directories(tic80core PRIVATE 3rd-party/blip-buf)
-target_include_directories(tic80core PRIVATE 3rd-party/duktape/src)
-target_include_directories(tic80core PRIVATE 3rd-party/lua-5.3.1/src)
-target_include_directories(tic80core PRIVATE 3rd-party/giflib-5.1.4/lib)
-target_include_directories(tic80core PRIVATE 3rd-party/wren-0.1.0/src/include)
-target_include_directories(tic80core PRIVATE 3rd-party/squirrel/include)
-target_include_directories(tic80core PRIVATE 3rd-party/moonscript)
-target_include_directories(tic80core PRIVATE 3rd-party/fennel)
+target_include_directories(tic80core PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/blip-buf)
+target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/duktape/src)
+target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/lua-5.3.1/src)
+target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/giflib-5.1.4/lib)
+target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/wren-0.1.0/src/include)
+target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/squirrel/include)
+target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/moonscript)
+target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/fennel)
 
 add_dependencies(tic80core lua lpeg wren squirrel giflib)
 target_link_libraries(tic80core lua lpeg wren squirrel giflib)
@@ -236,7 +238,7 @@ if(BUILD_SDL AND NOT EMSCRIPTEN)
 	endif()
 
 	set(SDL_SHARED_ENABLED_BY_DEFAULT OFF)
-	add_subdirectory(3rd-party/SDL2-2.0.8)
+	add_subdirectory(${THIRDPARTY_DIR}/SDL2-2.0.8)
 
 endif()
 
@@ -244,7 +246,7 @@ endif()
 # SDL2 renderer example
 ################################
 
-set(EXAMPLE_DIR examples)
+set(EXAMPLE_DIR ${CMAKE_SOURCE_DIR}/examples)
 if(BUILD_SDL AND NOT EMSCRIPTEN)
 	set(EXAMPLE_SRC 
 		${EXAMPLE_DIR}/sdl/main.c
@@ -256,9 +258,9 @@ if(BUILD_SDL AND NOT EMSCRIPTEN)
 		add_executable(sdl-renderer ${EXAMPLE_SRC})
 	endif()
 
-	target_include_directories(sdl-renderer PRIVATE 3rd-party/SDL2-2.0.8/include)
-	target_include_directories(sdl-renderer PRIVATE include)
-	target_include_directories(sdl-renderer PRIVATE src)
+	target_include_directories(sdl-renderer PRIVATE ${THIRDPARTY_DIR}/SDL2-2.0.8/include)
+	target_include_directories(sdl-renderer PRIVATE ${CMAKE_SOURCE_DIR}/include)
+	target_include_directories(sdl-renderer PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
 	if(MINGW)
 		target_link_libraries(sdl-renderer mingw32)
@@ -273,12 +275,12 @@ endif()
 ################################
 
 if(BUILD_SOKOL)
-set(SOKOL_LIB_SRC src/system/sokol_gfx.c)
+set(SOKOL_LIB_SRC ${CMAKE_SOURCE_DIR}/src/system/sokol_gfx.c)
 
 if(APPLE)
-    set(SOKOL_LIB_SRC ${SOKOL_LIB_SRC} src/system/sokol_impl.m)
+    set(SOKOL_LIB_SRC ${SOKOL_LIB_SRC} ${CMAKE_SOURCE_DIR}/src/system/sokol_impl.m)
 else()
-	set(SOKOL_LIB_SRC ${SOKOL_LIB_SRC} src/system/sokol_impl.c)
+	set(SOKOL_LIB_SRC ${SOKOL_LIB_SRC} ${CMAKE_SOURCE_DIR}/src/system/sokol_impl.c)
 endif()
 
 add_library(sokol ${SOKOL_LIB_SRC})
@@ -313,7 +315,7 @@ elseif(LINUX)
 	target_link_libraries(sokol X11 GL m dl asound ${CMAKE_THREAD_LIBS_INIT})
 endif()
 
-target_include_directories(sokol PRIVATE 3rd-party/sokol)
+target_include_directories(sokol PRIVATE ${THIRDPARTY_DIR}/sokol)
 endif()
 
 ################################
@@ -335,9 +337,9 @@ if(MINGW)
 	target_link_libraries(sokol-renderer mingw32)
 endif()
 
-target_include_directories(sokol-renderer PRIVATE include)
-target_include_directories(sokol-renderer PRIVATE 3rd-party/sokol)
-target_include_directories(sokol-renderer PRIVATE src)
+target_include_directories(sokol-renderer PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(sokol-renderer PRIVATE ${THIRDPARTY_DIR}/sokol)
+target_include_directories(sokol-renderer PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
 add_dependencies(sokol-renderer tic80core sokol)
 target_link_libraries(sokol-renderer tic80core sokol)
@@ -357,7 +359,7 @@ if(BUILD_LIBRETRO)
 		${LIBRETRO_SRC}
 	)
 
-	target_include_directories(tic80_libretro PRIVATE include)
+	target_include_directories(tic80_libretro PRIVATE ${CMAKE_SOURCE_DIR}/include)
 	target_include_directories(tic80_libretro PRIVATE ${TIC80CORE_DIR})
 
 	if(MINGW)
@@ -374,7 +376,7 @@ endif()
 ################################
 
 if(BUILD_SDL)
-set(SDLGPU_DIR 3rd-party/sdl-gpu/src)
+set(SDLGPU_DIR ${THIRDPARTY_DIR}/sdl-gpu/src)
 set(SDLGPU_SRC
 	${SDLGPU_DIR}/renderer_GLES_1.c
 	${SDLGPU_DIR}/renderer_GLES_2.c
@@ -401,12 +403,12 @@ else()
 	target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC SDL_GPU_DISABLE_GLES SDL_GPU_DISABLE_OPENGL_3 SDL_GPU_DISABLE_OPENGL_4)
 endif()
 
-target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/include)
-target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/src/externals/glew)
-target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/src/externals/glew/GL)
-target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/src/externals/stb_image)
-target_include_directories(sdlgpu PRIVATE 3rd-party/sdl-gpu/src/externals/stb_image_write)
-target_include_directories(sdlgpu PRIVATE 3rd-party/SDL2-2.0.8/include)
+target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/include)
+target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/externals/glew)
+target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/externals/glew/GL)
+target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/externals/stb_image)
+target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/externals/stb_image_write)
+target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/SDL2-2.0.8/include)
 
 if(WIN32)
 	target_link_libraries(sdlgpu opengl32)
@@ -427,7 +429,7 @@ endif()
 ################################
 
 if(BUILD_SDL)
-set(SDLNET_DIR 3rd-party/SDL2_net-2.0.1)
+set(SDLNET_DIR ${THIRDPARTY_DIR}/SDL2_net-2.0.1)
 set(SDLNET_SRC 
 	${SDLNET_DIR}/SDLnet.c
 	${SDLNET_DIR}/SDLnetTCP.c
@@ -435,7 +437,7 @@ set(SDLNET_SRC
 )
 
 add_library(sdlnet STATIC ${SDLNET_SRC})
-target_include_directories(sdlnet PRIVATE 3rd-party/SDL2-2.0.8/include)
+target_include_directories(sdlnet PRIVATE ${THIRDPARTY_DIR}/SDL2-2.0.8/include)
 
 if(WIN32)
 	target_link_libraries(sdlnet ws2_32)
@@ -446,7 +448,7 @@ endif()
 # ZLIB
 ################################
 
-set(ZLIB_DIR 3rd-party/zlib-1.2.11)
+set(ZLIB_DIR ${THIRDPARTY_DIR}/zlib-1.2.11)
 set(ZLIB_SRC 
 	${ZLIB_DIR}/adler32.c
 	${ZLIB_DIR}/compress.c
@@ -468,14 +470,14 @@ add_library(zlib STATIC ${ZLIB_SRC})
 ################################
 
 if(NOT EMSCRIPTEN)
-	set(BIN2TXT_DIR tools/bin2txt)
+	set(BIN2TXT_DIR ${CMAKE_SOURCE_DIR}/tools/bin2txt)
 	set(BIN2TXT_SRC 
 		${BIN2TXT_DIR}/bin2txt.c
 	)
 
 	add_executable(bin2txt ${BIN2TXT_SRC})
 
-	target_include_directories(bin2txt PRIVATE 3rd-party/zlib-1.2.11)
+	target_include_directories(bin2txt PRIVATE ${THIRDPARTY_DIR}/zlib-1.2.11)
 
 	add_dependencies(bin2txt zlib)
 	target_link_libraries(bin2txt zlib)
@@ -509,7 +511,7 @@ endif()
 # TIC-80 lib
 ################################
 
-set(TIC80LIB_DIR src)
+set(TIC80LIB_DIR ${CMAKE_SOURCE_DIR}/src)
 set(TIC80LIB_SRC
 	${TIC80LIB_DIR}/studio.c
 	${TIC80LIB_DIR}/console.c
@@ -539,13 +541,13 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 	add_library(${TIC80_OUTPUT}lib STATIC ${TIC80LIB_SRC} ${DEMO_CARTS_OUT})
 
 	if(WIN32)
-		target_include_directories(${TIC80_OUTPUT}lib PRIVATE 3rd-party/dirent)
+		target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${THIRDPARTY_DIR}/dirent)
 	endif()
 
-	target_include_directories(${TIC80_OUTPUT}lib PRIVATE include)
-	target_include_directories(${TIC80_OUTPUT}lib PRIVATE 3rd-party/giflib-5.1.4/lib)
-	target_include_directories(${TIC80_OUTPUT}lib PRIVATE 3rd-party/zlib-1.2.11)
-	target_include_directories(${TIC80_OUTPUT}lib PRIVATE 3rd-party/lua-5.3.1/src)
+	target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${CMAKE_SOURCE_DIR}/include)
+	target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${THIRDPARTY_DIR}/giflib-5.1.4/lib)
+	target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${THIRDPARTY_DIR}/zlib-1.2.11)
+	target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${THIRDPARTY_DIR}/lua-5.3.1/src)
 
 	add_dependencies(${TIC80_OUTPUT}lib tic80core zlib)
 	target_link_libraries(${TIC80_OUTPUT}lib tic80core zlib)
@@ -561,13 +563,13 @@ target_compile_definitions(tic80prolib PRIVATE TIC80_PRO)
 if(BUILD_SDL)
 foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 
-	set(TIC80_SRC src/ext/file_dialog.c)
+	set(TIC80_SRC ${CMAKE_SOURCE_DIR}/src/ext/file_dialog.c)
 
 	if(APPLE)
-		set(TIC80_SRC ${TIC80_SRC} src/ext/file_dialog.m)
+		set(TIC80_SRC ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/src/ext/file_dialog.m)
 	endif()
 
-	set(TIC80_SRC ${TIC80_SRC} src/net.c src/system/sdlgpu.c)
+	set(TIC80_SRC ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/src/net.c src/system/sdlgpu.c)
 
 	if(WIN32)
 		set(TIC80_SRC ${TIC80_SRC} build/windows/tic80.rc)
@@ -585,12 +587,12 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 		add_executable(${TIC80_OUTPUT} ${TIC80_SRC})
 	endif()
 
-	target_include_directories(${TIC80_OUTPUT} PRIVATE include)
-	target_include_directories(${TIC80_OUTPUT} PRIVATE src)
-	target_include_directories(${TIC80_OUTPUT} PRIVATE 3rd-party/SDL2_net-2.0.1)
-	target_include_directories(${TIC80_OUTPUT} PRIVATE 3rd-party/SDL2-2.0.8/include)
+	target_include_directories(${TIC80_OUTPUT} PRIVATE ${CMAKE_SOURCE_DIR}/include)
+	target_include_directories(${TIC80_OUTPUT} PRIVATE ${CMAKE_SOURCE_DIR}/src)
+	target_include_directories(${TIC80_OUTPUT} PRIVATE ${THIRDPARTY_DIR}/SDL2_net-2.0.1)
+	target_include_directories(${TIC80_OUTPUT} PRIVATE ${THIRDPARTY_DIR}/SDL2-2.0.8/include)
 
-	target_include_directories(${TIC80_OUTPUT} PRIVATE 3rd-party/sdl-gpu/include)
+	target_include_directories(${TIC80_OUTPUT} PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/include)
 
 	if(MINGW)
 		target_link_libraries(${TIC80_OUTPUT} mingw32)
@@ -626,13 +628,13 @@ endif()
 if(BUILD_SOKOL)
 foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 
-	set(TIC80_SRC src/ext/file_dialog.c)
+	set(TIC80_SRC ${CMAKE_SOURCE_DIR}/src/ext/file_dialog.c)
 
 	if(APPLE)
-		set(TIC80_SRC ${TIC80_SRC} src/ext/file_dialog.m)
+		set(TIC80_SRC ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/src/ext/file_dialog.m)
 	endif()
 
-	set(TIC80_SRC ${TIC80_SRC} src/system/sokol.c)
+	set(TIC80_SRC ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/src/system/sokol.c)
 
 	if(WIN32)
 		set(TIC80_SRC ${TIC80_SRC} build/windows/tic80.rc)
@@ -650,12 +652,12 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 		add_executable(${TIC80_OUTPUT}-sokol ${TIC80_SRC})
 	endif()
 
-	target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE include)
-	target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE src)
-	target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE 3rd-party/SDL2_net-2.0.1)
-	target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE 3rd-party/SDL2-2.0.8/include)
+	target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE ${CMAKE_SOURCE_DIR}/include)
+	target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE ${CMAKE_SOURCE_DIR}/src)
+	target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE ${THIRDPARTY_DIR}/SDL2_net-2.0.1)
+	target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE ${THIRDPARTY_DIR}/SDL2-2.0.8/include)
 
-	target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE 3rd-party/sokol)
+	target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE ${THIRDPARTY_DIR}/sokol)
 
 	if(MINGW)
 		target_link_libraries(${TIC80_OUTPUT}-sokol mingw32)
