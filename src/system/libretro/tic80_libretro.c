@@ -6,6 +6,7 @@
 #include <math.h>
 #include <tic.h>
 #include "libretro.h"
+#include "../../ticapi.h"
 
 // Audio sample frequency for TIC-80
 #define TIC_FREQUENCY 44100
@@ -27,7 +28,7 @@ static struct
 {
 	bool quit;
 	tic80_input input;
-	int keymap[tic_keys_count];
+	int keymap[RETROK_LAST];
 	bool variableMouseApi;
 } state =
 {
@@ -77,90 +78,102 @@ static void tic80_libretro_fallback_log(enum retro_log_level level, const char *
 void retro_init(void)
 {
 	// Create the frame buffer.
-	frame_buf = calloc(320 * 240, sizeof(uint32_t));
+	frame_buf = calloc(TIC80_FULLWIDTH * TIC80_FULLHEIGHT, sizeof(uint32_t));
 
 	// Initialize the keyboard mappings.
-	// TODO: Switch the handles to be `[RETROK] = tic_key` so that it can handle duplicate keys (lshift/rshift).
-	state.keymap[tic_key_unknown] = RETROK_UNKNOWN;
-	state.keymap[tic_key_a] = RETROK_a;
-	state.keymap[tic_key_b] = RETROK_b;
-	state.keymap[tic_key_c] = RETROK_c;
-	state.keymap[tic_key_d] = RETROK_d;
-	state.keymap[tic_key_e] = RETROK_e;
-	state.keymap[tic_key_f] = RETROK_f;
-	state.keymap[tic_key_g] = RETROK_g;
-	state.keymap[tic_key_h] = RETROK_h;
-	state.keymap[tic_key_i] = RETROK_i;
-	state.keymap[tic_key_j] = RETROK_j;
-	state.keymap[tic_key_k] = RETROK_k;
-	state.keymap[tic_key_l] = RETROK_l;
-	state.keymap[tic_key_m] = RETROK_m;
-	state.keymap[tic_key_n] = RETROK_n;
-	state.keymap[tic_key_o] = RETROK_o;
-	state.keymap[tic_key_p] = RETROK_p;
-	state.keymap[tic_key_q] = RETROK_q;
-	state.keymap[tic_key_r] = RETROK_r;
-	state.keymap[tic_key_s] = RETROK_s;
-	state.keymap[tic_key_t] = RETROK_t;
-	state.keymap[tic_key_u] = RETROK_u;
-	state.keymap[tic_key_v] = RETROK_v;
-	state.keymap[tic_key_w] = RETROK_w;
-	state.keymap[tic_key_x] = RETROK_x;
-	state.keymap[tic_key_y] = RETROK_y;
-	state.keymap[tic_key_z] = RETROK_z;
-	state.keymap[tic_key_0] = RETROK_0;
-	state.keymap[tic_key_1] = RETROK_1;
-	state.keymap[tic_key_2] = RETROK_2;
-	state.keymap[tic_key_3] = RETROK_3;
-	state.keymap[tic_key_4] = RETROK_4;
-	state.keymap[tic_key_5] = RETROK_5;
-	state.keymap[tic_key_6] = RETROK_6;
-	state.keymap[tic_key_7] = RETROK_7;
-	state.keymap[tic_key_8] = RETROK_8;
-	state.keymap[tic_key_9] = RETROK_9;
-	state.keymap[tic_key_minus] = RETROK_MINUS;
-	state.keymap[tic_key_equals] = RETROK_EQUALS;
-	state.keymap[tic_key_leftbracket] = RETROK_LEFTBRACKET;
-	state.keymap[tic_key_rightbracket] = RETROK_RIGHTBRACKET;
-	state.keymap[tic_key_backslash] = RETROK_BACKSLASH;
-	state.keymap[tic_key_semicolon] = RETROK_SEMICOLON;
-	state.keymap[tic_key_apostrophe] = RETROK_QUOTE;
-	state.keymap[tic_key_grave] = RETROK_TILDE;
-	state.keymap[tic_key_comma] = RETROK_COMMA;
-	state.keymap[tic_key_period] = RETROK_PERIOD;
-	state.keymap[tic_key_slash] = RETROK_SLASH;
-	state.keymap[tic_key_space] = RETROK_SPACE;
-	state.keymap[tic_key_tab] = RETROK_TAB;
-	state.keymap[tic_key_return] = RETROK_RETURN;
-	state.keymap[tic_key_backspace] = RETROK_BACKSPACE;
-	state.keymap[tic_key_delete] = RETROK_DELETE;
-	state.keymap[tic_key_insert] = RETROK_INSERT;
-	state.keymap[tic_key_pageup] = RETROK_PAGEUP;
-	state.keymap[tic_key_pagedown] = RETROK_PAGEDOWN;
-	state.keymap[tic_key_home] = RETROK_HOME;
-	state.keymap[tic_key_end] = RETROK_END;
-	state.keymap[tic_key_up] = RETROK_UP;
-	state.keymap[tic_key_down] = RETROK_DOWN;
-	state.keymap[tic_key_left] = RETROK_LEFT;
-	state.keymap[tic_key_right] = RETROK_RIGHT;
-	state.keymap[tic_key_capslock] = RETROK_CAPSLOCK;
-	state.keymap[tic_key_ctrl] = RETROK_LCTRL;
-	state.keymap[tic_key_shift] = RETROK_LSHIFT;
-	state.keymap[tic_key_alt] = RETROK_LALT;
-	state.keymap[tic_key_escape] = RETROK_ESCAPE;
-	state.keymap[tic_key_f1] = RETROK_F1;
-	state.keymap[tic_key_f2] = RETROK_F2;
-	state.keymap[tic_key_f3] = RETROK_F3;
-	state.keymap[tic_key_f4] = RETROK_F4;
-	state.keymap[tic_key_f5] = RETROK_F5;
-	state.keymap[tic_key_f6] = RETROK_F6;
-	state.keymap[tic_key_f7] = RETROK_F7;
-	state.keymap[tic_key_f8] = RETROK_F8;
-	state.keymap[tic_key_f9] = RETROK_F9;
-	state.keymap[tic_key_f10] = RETROK_F10;
-	state.keymap[tic_key_f11] = RETROK_F11;
-	state.keymap[tic_key_f12] = RETROK_F12;
-	state.keymap[tic_key_f12] = RETROK_F12;
+	state.keymap[RETROK_UNKNOWN] = tic_key_unknown;
+	state.keymap[RETROK_a] = tic_key_a;
+	state.keymap[RETROK_b] = tic_key_b;
+	state.keymap[RETROK_c] = tic_key_c;
+	state.keymap[RETROK_d] = tic_key_d;
+	state.keymap[RETROK_e] = tic_key_e;
+	state.keymap[RETROK_f] = tic_key_f;
+	state.keymap[RETROK_g] = tic_key_g;
+	state.keymap[RETROK_h] = tic_key_h;
+	state.keymap[RETROK_i] = tic_key_i;
+	state.keymap[RETROK_j] = tic_key_j;
+	state.keymap[RETROK_k] = tic_key_k;
+	state.keymap[RETROK_l] = tic_key_l;
+	state.keymap[RETROK_m] = tic_key_m;
+	state.keymap[RETROK_n] = tic_key_n;
+	state.keymap[RETROK_o] = tic_key_o;
+	state.keymap[RETROK_p] = tic_key_p;
+	state.keymap[RETROK_q] = tic_key_q;
+	state.keymap[RETROK_r] = tic_key_r;
+	state.keymap[RETROK_s] = tic_key_s;
+	state.keymap[RETROK_t] = tic_key_t;
+	state.keymap[RETROK_u] = tic_key_u;
+	state.keymap[RETROK_v] = tic_key_v;
+	state.keymap[RETROK_w] = tic_key_w;
+	state.keymap[RETROK_x] = tic_key_x;
+	state.keymap[RETROK_y] = tic_key_y;
+	state.keymap[RETROK_z] = tic_key_z;
+	state.keymap[RETROK_0] = tic_key_0;
+	state.keymap[RETROK_1] = tic_key_1;
+	state.keymap[RETROK_2] = tic_key_2;
+	state.keymap[RETROK_3] = tic_key_3;
+	state.keymap[RETROK_4] = tic_key_4;
+	state.keymap[RETROK_5] = tic_key_5;
+	state.keymap[RETROK_6] = tic_key_6;
+	state.keymap[RETROK_7] = tic_key_7;
+	state.keymap[RETROK_8] = tic_key_8;
+	state.keymap[RETROK_9] = tic_key_9;
+	state.keymap[RETROK_KP0] = tic_key_0;
+	state.keymap[RETROK_KP1] = tic_key_1;
+	state.keymap[RETROK_KP2] = tic_key_2;
+	state.keymap[RETROK_KP3] = tic_key_3;
+	state.keymap[RETROK_KP4] = tic_key_4;
+	state.keymap[RETROK_KP5] = tic_key_5;
+	state.keymap[RETROK_KP6] = tic_key_6;
+	state.keymap[RETROK_KP7] = tic_key_7;
+	state.keymap[RETROK_KP8] = tic_key_8;
+	state.keymap[RETROK_KP9] = tic_key_9;
+	state.keymap[RETROK_MINUS] = tic_key_minus;
+	state.keymap[RETROK_EQUALS] = tic_key_equals;
+	state.keymap[RETROK_LEFTBRACKET] = tic_key_leftbracket;
+	state.keymap[RETROK_RIGHTBRACKET] = tic_key_rightbracket;
+	state.keymap[RETROK_BACKSLASH] = tic_key_backslash;
+	state.keymap[RETROK_SEMICOLON] = tic_key_semicolon;
+	state.keymap[RETROK_QUOTE] = tic_key_apostrophe;
+	state.keymap[RETROK_TILDE] = tic_key_grave;
+	state.keymap[RETROK_COMMA] = tic_key_comma;
+	state.keymap[RETROK_PERIOD] = tic_key_period;
+	state.keymap[RETROK_SLASH] = tic_key_slash;
+	state.keymap[RETROK_SPACE] = tic_key_space;
+	state.keymap[RETROK_TAB] = tic_key_tab;
+	state.keymap[RETROK_RETURN] = tic_key_return;
+	state.keymap[RETROK_BACKSPACE] = tic_key_backspace;
+	state.keymap[RETROK_DELETE] = tic_key_delete;
+	state.keymap[RETROK_INSERT] = tic_key_insert;
+	state.keymap[RETROK_PAGEUP] = tic_key_pageup;
+	state.keymap[RETROK_PAGEDOWN] = tic_key_pagedown;
+	state.keymap[RETROK_HOME] = tic_key_home;
+	state.keymap[RETROK_END] = tic_key_end;
+	state.keymap[RETROK_UP] = tic_key_up;
+	state.keymap[RETROK_DOWN] = tic_key_down;
+	state.keymap[RETROK_LEFT] = tic_key_left;
+	state.keymap[RETROK_RIGHT] = tic_key_right;
+	state.keymap[RETROK_CAPSLOCK] = tic_key_capslock;
+	state.keymap[RETROK_LCTRL] = tic_key_ctrl;
+	state.keymap[RETROK_RCTRL] = tic_key_ctrl;
+	state.keymap[RETROK_LSHIFT] = tic_key_shift;
+	state.keymap[RETROK_RSHIFT] = tic_key_shift;
+	state.keymap[RETROK_LALT] = tic_key_alt;
+	state.keymap[RETROK_RALT] = tic_key_alt;
+	state.keymap[RETROK_ESCAPE] = tic_key_escape;
+	state.keymap[RETROK_F1] = tic_key_f1;
+	state.keymap[RETROK_F2] = tic_key_f2;
+	state.keymap[RETROK_F3] = tic_key_f3;
+	state.keymap[RETROK_F4] = tic_key_f4;
+	state.keymap[RETROK_F5] = tic_key_f5;
+	state.keymap[RETROK_F6] = tic_key_f6;
+	state.keymap[RETROK_F7] = tic_key_f7;
+	state.keymap[RETROK_F8] = tic_key_f8;
+	state.keymap[RETROK_F9] = tic_key_f9;
+	state.keymap[RETROK_F10] = tic_key_f10;
+	state.keymap[RETROK_F11] = tic_key_f11;
+	state.keymap[RETROK_F12] = tic_key_f12;
+	state.keymap[RETROK_F12] = tic_key_f12;
 }
 
 /**
@@ -297,7 +310,10 @@ void retro_set_video_refresh(retro_video_refresh_t cb)
  */
 void retro_reset(void)
 {
-	// TODO: Allow reseting the game?
+	if (tic) {
+		tic80_local* tic80 = (tic80_local*)tic;
+		tic80->memory->api.reset(tic80->memory);
+	}
 }
 
 /**
@@ -381,10 +397,11 @@ static void tic80_libretro_update_gamepad(tic80_gamepad* gamepad, int player) {
  * Converts a Pointer API coordinates to screen pixel position.
  *
  * @see tic80_libretro_update_mouse()
+ * @see RETRO_DEVICE_POINTER
  */
-static int tic80_libretro_mouse_pointer_convert(float coord, float full) {
+static int tic80_libretro_mouse_pointer_convert(float coord, float full, int padding) {
 	float max = 0x7fff;
-	return (coord + max) / (max * 2.0f) * full;
+	return ((coord + max) / (max * 2.0f) * full) - padding;
 }
 
 /**
@@ -397,36 +414,43 @@ static void tic80_libretro_update_mouse(tic80_mouse* mouse) {
 		mouse->x += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
 		mouse->y += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_Y);
 
-		// Keep the mouse on the screen.
-		if (mouse->x > TIC80_WIDTH) {
-			mouse->x = TIC80_WIDTH;
-		}
-		if (mouse->y > TIC80_HEIGHT) {
-			mouse->y = TIC80_HEIGHT;
-		}
-		if (mouse->x < 0) {
-			mouse->x = 0;
-		}
-		if (mouse->y < 0) {
-			mouse->y = 0;
-		}
-
 		// Left mouse button.
 		mouse->left = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT);
 	}
 	else {
 		// Get the Pointer X and Y, and convert it to screen position.
-		// TODO: Pointer: Consider the padding around the screen?
-		mouse->x = tic80_libretro_mouse_pointer_convert(input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X), TIC80_WIDTH);
-		mouse->y = tic80_libretro_mouse_pointer_convert(input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_Y), TIC80_HEIGHT);
+		mouse->x = tic80_libretro_mouse_pointer_convert(
+			input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X),
+			TIC80_FULLWIDTH,
+			(TIC80_FULLWIDTH - TIC80_WIDTH) / 2);
+		mouse->y = tic80_libretro_mouse_pointer_convert(
+			input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_Y),
+			TIC80_FULLHEIGHT,
+			(TIC80_FULLHEIGHT - TIC80_HEIGHT) / 2);
 
 		// Pointer pressed is considered mouse left button.
 		mouse->left = input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_PRESSED);
 	}
 
+	// Keep the mouse on the screen.
+	if (mouse->x > TIC80_WIDTH) {
+		mouse->x = TIC80_WIDTH;
+	}
+	if (mouse->y > TIC80_HEIGHT) {
+		mouse->y = TIC80_HEIGHT;
+	}
+	if (mouse->x < 0) {
+		mouse->x = 0;
+	}
+	if (mouse->y < 0) {
+		mouse->y = 0;
+	}
+
 	// Get the mouse buttons.
 	mouse->right = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT);
 	mouse->middle = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE);
+
+	// TODO: Add Mouse Wheel Scrolling. scrollx and scrolly
 }
 
 /**
@@ -439,9 +463,9 @@ static void tic80_libretro_update_keyboard(tic80_keyboard* keyboard) {
 	}
 
 	// Load up the active keys into the buffer.
-	for (int key = tic_key_unknown, keyBuffer = 0; key < tic_keys_count && keyBuffer < TIC80_KEY_BUFFER; key++) {
-		if (input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, state.keymap[key])) {
-			keyboard->keys[keyBuffer++] = key;
+	for (int key = RETROK_FIRST, keyBuffer = 0; key < RETROK_LAST && keyBuffer < TIC80_KEY_BUFFER; key++) {
+		if (input_state_cb(0, RETRO_DEVICE_KEYBOARD, 0, key)) {
+			keyboard->keys[keyBuffer++] = state.keymap[key];
 		}
 	}
 }
@@ -537,10 +561,10 @@ static void tic80_libretro_variables(void)
 	var.value = NULL;
 	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
 		state.variableMouseApi = strcmp(var.value, "enabled") == 0;
- 	}
- 	else {
- 		state.variableMouseApi = false;
- 	}
+	}
+	else {
+		state.variableMouseApi = false;
+	}
 }
 
 /**
@@ -552,8 +576,8 @@ void retro_run(void)
 	if (state.quit) {
 		// If the game is still running, ask it to shut it down.
 		if (tic) {
-			environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
 			retro_unload_game();
+			environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
 		}
 		return;
 	}
@@ -670,23 +694,45 @@ bool retro_load_game_special(unsigned type, const struct retro_game_info *info, 
  */
 size_t retro_serialize_size(void)
 {
-	return 0;
+	return TIC_PERSISTENT_SIZE * sizeof(u32);
 }
 
 /**
  * libretro callback; Get the current persistent memory.
  */
-bool retro_serialize(void *data_, size_t size)
+bool retro_serialize(void *data, size_t size)
 {
-	return false;
+	if (!tic || !data) {
+		return false;
+	}
+
+	tic80_local* tic80 = (tic80_local*)tic;
+	u32* udata = (u32*)data;
+	for (int i = 0; i < TIC_PERSISTENT_SIZE; i++) {
+		udata[i] = tic80->memory->persistent.data[i];
+	}
+	tic80->tickData.syncPMEM = true;
+
+	return true;
 }
 
 /**
  * libretro callback; Given the serialized data, load it into the persistent memory.
  */
-bool retro_unserialize(const void *data_, size_t size)
+bool retro_unserialize(const void *data, size_t size)
 {
-	return false;
+	if (!tic || size != retro_serialize_size() || !data) {
+		return false;
+	}
+
+	tic80_local* tic80 = (tic80_local*)tic;
+	u32* uData = (u32*)data;
+	for (int i = 0; i < TIC_PERSISTENT_SIZE; i++) {
+		tic80->memory->persistent.data[i] = uData[i];
+	}
+	tic80->tickData.syncPMEM = true;
+
+	return true;
 }
 
 /**
@@ -694,8 +740,12 @@ bool retro_unserialize(const void *data_, size_t size)
  */
 void *retro_get_memory_data(unsigned id)
 {
-	(void)id;
-	return NULL;
+	if (!tic || id >= TIC_PERSISTENT_SIZE) {
+		return NULL;
+	}
+
+	tic80_local* tic80 = (tic80_local*)tic;
+	return &(tic80->memory->persistent.data[id]);
 }
 
 /**
@@ -703,8 +753,7 @@ void *retro_get_memory_data(unsigned id)
  */
 size_t retro_get_memory_size(unsigned id)
 {
-	(void)id;
-	return 0;
+	return sizeof(u32);
 }
 
 /**
