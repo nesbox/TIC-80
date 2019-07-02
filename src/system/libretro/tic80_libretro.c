@@ -8,6 +8,11 @@
 #include "libretro.h"
 #include "../../ticapi.h"
 
+/**
+ * system.h is used for TIC80_OFFSET_LEFT and TIC80_OFFSET_TOP
+ */
+#include "../../system.h"
+
 // Audio sample frequency for TIC-80
 #define TIC_FREQUENCY 44100
 
@@ -608,14 +613,15 @@ void retro_run(void)
  */
 bool retro_load_game(const struct retro_game_info *info)
 {
+	// TODO: Warn that Audio Synchronization required to run at a proper speed.
+	// TODO: Warn that the core doesn't support Runahead.
+
 	// Pixel format.
 	enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
 	if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt)) {
 		log_cb(RETRO_LOG_INFO, "[TIC-80] RETRO_PIXEL_FORMAT_XRGB8888 is not supported.\n");
 		return false;
 	}
-
-	// TODO: Warn that Audio Synchronization needs to be enabled in order to run games properly.
 
 	// Update the input button descriptions.
 	tic80_libretro_input_descriptors();
