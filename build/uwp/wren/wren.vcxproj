@@ -27,15 +27,15 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\optional\wren_opt_meta.c" />
-    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\optional\wren_opt_random.c" />
-    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_compiler.c" />
-    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_core.c" />
-    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_debug.c" />
-    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_primitive.c" />
-    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_utils.c" />
-    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_value.c" />
-    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_vm.c" />
+    <ClCompile Include="..\..\..\3rd-party\wren\src\optional\wren_opt_meta.c" />
+    <ClCompile Include="..\..\..\3rd-party\wren\src\optional\wren_opt_random.c" />
+    <ClCompile Include="..\..\..\3rd-party\wren\src\vm\wren_compiler.c" />
+    <ClCompile Include="..\..\..\3rd-party\wren\src\vm\wren_core.c" />
+    <ClCompile Include="..\..\..\3rd-party\wren\src\vm\wren_debug.c" />
+    <ClCompile Include="..\..\..\3rd-party\wren\src\vm\wren_primitive.c" />
+    <ClCompile Include="..\..\..\3rd-party\wren\src\vm\wren_utils.c" />
+    <ClCompile Include="..\..\..\3rd-party\wren\src\vm\wren_value.c" />
+    <ClCompile Include="..\..\..\3rd-party\wren\src\vm\wren_vm.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{bbb0d01a-b124-416c-be26-e6993154a555}</ProjectGuid>
@@ -131,7 +131,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\wren-0.1.0\src\optional;..\..\..\3rd-party\wren-0.1.0\src\vm;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\3rd-party\wren\src\include;..\..\..\3rd-party\wren\src\optional;..\..\..\3rd-party\wren\src\vm;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -144,7 +144,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\wren-0.1.0\src\optional;..\..\..\3rd-party\wren-0.1.0\src\vm;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\3rd-party\wren\src\include;..\..\..\3rd-party\wren\src\optional;..\..\..\3rd-party\wren\src\vm;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -157,7 +157,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\wren-0.1.0\src\optional;..\..\..\3rd-party\wren-0.1.0\src\vm;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\3rd-party\wren\src\include;..\..\..\3rd-party\wren\src\optional;..\..\..\3rd-party\wren\src\vm;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -170,7 +170,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\wren-0.1.0\src\optional;..\..\..\3rd-party\wren-0.1.0\src\vm;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\3rd-party\wren\src\include;..\..\..\3rd-party\wren\src\optional;..\..\..\3rd-party\wren\src\vm;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -183,7 +183,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\wren-0.1.0\src\optional;..\..\..\3rd-party\wren-0.1.0\src\vm;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\3rd-party\wren\src\include;..\..\..\3rd-party\wren\src\optional;..\..\..\3rd-party\wren\src\vm;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -196,7 +196,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <CompileAsWinRT>false</CompileAsWinRT>
       <SDLCheck>false</SDLCheck>
-      <AdditionalIncludeDirectories>..\..\..\3rd-party\wren-0.1.0\src\include;..\..\..\3rd-party\wren-0.1.0\src\optional;..\..\..\3rd-party\wren-0.1.0\src\vm;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\..\3rd-party\wren\src\include;..\..\..\3rd-party\wren\src\optional;..\..\..\3rd-party\wren\src\vm;$(ProjectDir);$(GeneratedFilesDir);$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

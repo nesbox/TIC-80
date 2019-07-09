@@ -122,7 +122,7 @@ target_include_directories(lpeg PRIVATE ${LUA_DIR})
 # WREN
 ################################
 
-set(WREN_DIR ${THIRDPARTY_DIR}/wren-0.1.0/src)
+set(WREN_DIR ${THIRDPARTY_DIR}/wren/src)
 set(WREN_SRC 
 	${WREN_DIR}/optional/wren_opt_meta.c
 	${WREN_DIR}/optional/wren_opt_random.c
@@ -136,9 +136,9 @@ set(WREN_SRC
 )
 
 add_library(wren STATIC ${WREN_SRC})
-target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren-0.1.0/src/include)
-target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren-0.1.0/src/optional)
-target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren-0.1.0/src/vm)
+target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/include)
+target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/optional)
+target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/vm)
 
 ################################
 # SQUIRREL
@@ -216,7 +216,7 @@ target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/blip-buf)
 target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/duktape/src)
 target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/lua-5.3.1/src)
 target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/giflib-5.1.4/lib)
-target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/wren-0.1.0/src/include)
+target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/wren/src/include)
 target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/squirrel/include)
 target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/moonscript)
 target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/fennel)
