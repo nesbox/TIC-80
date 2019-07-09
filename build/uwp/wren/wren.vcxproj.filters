@@ -12,31 +12,31 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_compiler.c">
+    <ClCompile Include="..\..\..\3rd-party\wren\src\vm\wren_compiler.c">
       <Filter>src\vm</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_core.c">
+    <ClCompile Include="..\..\..\3rd-party\wren\src\vm\wren_core.c">
       <Filter>src\vm</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_debug.c">
+    <ClCompile Include="..\..\..\3rd-party\wren\src\vm\wren_debug.c">
       <Filter>src\vm</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_primitive.c">
+    <ClCompile Include="..\..\..\3rd-party\wren\src\vm\wren_primitive.c">
       <Filter>src\vm</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_utils.c">
+    <ClCompile Include="..\..\..\3rd-party\wren\src\vm\wren_utils.c">
       <Filter>src\vm</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_value.c">
+    <ClCompile Include="..\..\..\3rd-party\wren\src\vm\wren_value.c">
       <Filter>src\vm</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\vm\wren_vm.c">
+    <ClCompile Include="..\..\..\3rd-party\wren\src\vm\wren_vm.c">
       <Filter>src\vm</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\optional\wren_opt_meta.c">
+    <ClCompile Include="..\..\..\3rd-party\wren\src\optional\wren_opt_meta.c">
       <Filter>src\optional</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\3rd-party\wren-0.1.0\src\optional\wren_opt_random.c">
+    <ClCompile Include="..\..\..\3rd-party\wren\src\optional\wren_opt_random.c">
       <Filter>src\optional</Filter>
     </ClCompile>
   </ItemGroup>
