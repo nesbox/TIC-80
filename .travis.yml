@@ -8,6 +8,8 @@ matrix:
   include:
     - os: osx
       osx_image: xcode9.3
+      env:
+        - OS_FOLDER=mac
 
     - os: linux
       addons:
@@ -15,12 +17,10 @@ matrix:
           packages:
             - libgtk-3-dev
             - libasound2-dev
+      env:
+        - OS_FOLDER=linux
 
-deploy:
-  provider: s3
-  region: eu-central-1
-  access_key_id: ${ACCESS_KEY_ID}
-  secret_access_key: ${SECRET_ACCESS_KEY}
-  bucket: "tic80"
-  skip_cleanup: true
-  local_dir: bin
+after_success:
+  - BUILDS_SERVER_PATH=${BUILD_SERVER}/files/$TRAVIS_BRANCH/$(date +%Y.%m.%d)/$OS_FOLDER/
+  - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/bin tic80 tic80-sokol
+  - curl --retry 3 --ftp-create-dirs -T tic80.tar.gz $BUILDS_SERVER_PATH/
