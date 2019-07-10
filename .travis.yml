@@ -10,6 +10,7 @@ matrix:
       osx_image: xcode9.3
       env:
         - OS_FOLDER=mac
+        - EXE_FILE=tic80.app
 
     - os: linux
       addons:
@@ -19,8 +20,9 @@ matrix:
             - libasound2-dev
       env:
         - OS_FOLDER=linux
+        - EXE_FILE=tic80
 
 after_success:
-  - BUILDS_SERVER_PATH=${BUILD_SERVER}/files/$TRAVIS_BRANCH/$(date +%Y.%m.%d)/$OS_FOLDER/
-  - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/bin tic80 tic80-sokol
+  - BUILDS_SERVER_PATH=${BUILD_SERVER}/files/$TRAVIS_BRANCH/$(date +%Y.%m.%d)/$OS_FOLDER
+  - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/bin $EXE_FILE
   - curl --retry 3 --ftp-create-dirs -T tic80.tar.gz $BUILDS_SERVER_PATH/
