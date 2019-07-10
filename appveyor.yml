@@ -6,6 +6,8 @@ environment:
     - COMPILER: MSVC
     - COMPILER: MSVC64
     - COMPILER: MinGW-w64
+  BUILD_SERVER:
+    secure: LONrmrMRv+m7++Sxtki7FpSe5kDZY/ak0CJmAknnLFGUJ55JVsIwBBOhIdijhMcF
 
 install: 
   - git submodule update --init --recursive
@@ -20,19 +22,10 @@ build_script:
 after_build:
   7z a tic80.zip %APPVEYOR_BUILD_FOLDER%\bin\*.exe
 
-artifacts:
-  - path: tic80.zip
-    name: tic80
-
-deploy:
-  provider: S3
-  access_key_id:
-    secure: wO/OHsY1kAsqhKf6i/Nkdt30s7CgwW3KELrKzpD8Qb4=
-  secret_access_key:
-    secure: l9j5rSQDNmgj2AvqGrLQb7ii0lOLsXReThT97Dyi7IoNx8Uqm0w0hAdE1fx2bgSI
-  bucket: tic80
-  region: eu-central-1
-  artifact: tic80
-  folder: win
-  # unzip: true|false (disabled by default)
-  # set_public: true|false (disabled by default)
+on_success:
+- ps: $env:DATE=[TimeZoneInfo]::ConvertTimeBySystemTimeZoneId([DateTime]::UtcNow, "Belarus Standard Time").ToString('yyyy.MM.dd')
+- ps: $env:TIME=[TimeZoneInfo]::ConvertTimeBySystemTimeZoneId([DateTime]::UtcNow, "Belarus Standard Time").ToString('HH:mm:ss')
+- cmd: >-
+    set BUILDS_SERVER_PATH=%BUILD_SERVER%/files/%APPVEYOR_REPO_BRANCH%/%DATE%/win
+              
+    curl --retry 3 --ftp-create-dirs -T tic80.zip %BUILDS_SERVER_PATH%/tic80-%COMPILER%.zip
