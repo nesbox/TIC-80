@@ -6,6 +6,7 @@ message("Building for target : ${CMAKE_SYSTEM_NAME}")
 option(BUILD_SDL "SDL Enabled" TRUE)
 option(BUILD_SOKOL "Sokol Enabled" TRUE)
 option(BUILD_LIBRETRO "libretro Enabled" TRUE)
+option(BUILD_DEMO_CARTS "Demo Carts Enabled" TRUE)
 
 if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID)
 	set(LINUX TRUE)
@@ -478,7 +479,7 @@ add_library(zlib STATIC ${ZLIB_SRC})
 # bin2txt
 ################################
 
-if(NOT EMSCRIPTEN)
+if(NOT EMSCRIPTEN AND BUILD_DEMO_CARTS)
 	set(BIN2TXT_DIR ${CMAKE_SOURCE_DIR}/tools/bin2txt)
 	set(BIN2TXT_SRC 
 		${BIN2TXT_DIR}/bin2txt.c
@@ -560,6 +561,10 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 
 	add_dependencies(${TIC80_OUTPUT}lib tic80core zlib)
 	target_link_libraries(${TIC80_OUTPUT}lib tic80core zlib)
+
+	if(BUILD_DEMO_CARTS)
+		target_compile_definitions(${TIC80_OUTPUT}lib PUBLIC BUILD_DEMO_CARTS)
+	endif()
 
 endforeach()
 

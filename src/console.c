@@ -510,6 +510,7 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 
 	switch(script)
 	{
+#if defined(BUILD_DEMO_CARTS)
 #if defined(TIC_BUILD_WITH_LUA)
 	case LuaScript:
 		{
@@ -566,7 +567,7 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 			romSize = sizeof JsDemoRom;
 		}
 		break;
-#endif
+#endif /* defined(TIC_BUILD_WITH_JS) */
 
 #if defined(TIC_BUILD_WITH_WREN)
 	case WrenScript:
@@ -580,7 +581,7 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 			romSize = sizeof WrenDemoRom;			
 		}
 		break;
-#endif		
+#endif /* defined(TIC_BUILD_WITH_WREN) */
 
 #if defined(TIC_BUILD_WITH_SQUIRREL)
 	case SquirrelScript:
@@ -594,7 +595,8 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 			romSize = sizeof SquirrelDemoRom;			
 		}
 		break;
-#endif				
+#endif /* defined(TIC_BUILD_WITH_SQUIRREL) */
+#endif /* BUILD_DEMO_CARTS */
 	}
 
 	u8* data = NULL;
@@ -1446,6 +1448,7 @@ static void installDemoCart(FileSystem* fs, const char* name, const void* cart, 
 
 static void onConsoleInstallDemosCommand(Console* console, const char* param)
 {
+#if BUILD_DEMO_CARTS
 	static const u8 DemoFire[] =
 	{
 		#include "../bin/assets/fire.tic.dat"
@@ -1490,11 +1493,13 @@ static void onConsoleInstallDemosCommand(Console* console, const char* param)
 	{
 		#include "../bin/assets/benchmark.tic.dat"
 	};
+#endif
 
 	FileSystem* fs = console->fs;
 
 	static const struct {const char* name; const u8* data; s32 size;} Demos[] =
 	{
+#if BUILD_DEMO_CARTS
 		{"fire.tic", 		DemoFire, 		sizeof DemoFire},
 		{"font.tic", 		DemoFont, 		sizeof DemoFont},
 		{"music.tic", 		DemoMusic, 		sizeof DemoMusic},
@@ -1504,6 +1509,7 @@ static void onConsoleInstallDemosCommand(Console* console, const char* param)
 		{"sfx.tic", 		DemoSFX, 		sizeof DemoSFX},
 		{"tetris.tic", 		GameTetris, 	sizeof GameTetris},
 		{"benchmark.tic", 	Benchmark, 		sizeof Benchmark},
+#endif
 	};
 
 	printBack(console, "\nadded carts:\n\n");
