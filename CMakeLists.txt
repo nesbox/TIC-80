@@ -43,15 +43,9 @@ else()
 
 	set(CMAKE_C_STANDARD 99)
 
-	if(CMAKE_BUILD_TYPE MATCHES "Debug")
-		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -ggdb3")
-	else()
-		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
-	endif()
 
 if(EMSCRIPTEN)
-	# TODO: add: -s \'EXTRA_EXPORTED_RUNTIME_METHODS=[\"writeArrayToMemory\"]\'
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2 -s TOTAL_MEMORY=67108864 --pre-js build/html/prejs.js --memory-init-file 0")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2")
 endif()
 
 endif()
@@ -612,7 +606,9 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 		target_link_libraries(${TIC80_OUTPUT} mingw32)
 	endif()
 
-	if(NOT EMSCRIPTEN)
+	if(EMSCRIPTEN)
+		set_target_properties(${TIC80_OUTPUT} PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s TOTAL_MEMORY=67108864 --pre-js build/html/prejs.js --memory-init-file 0")
+	else()
 		add_dependencies(${TIC80_OUTPUT} SDL2main SDL2-static)
 		target_link_libraries(${TIC80_OUTPUT} SDL2-static SDL2main)
 	endif()

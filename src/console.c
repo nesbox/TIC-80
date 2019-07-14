@@ -3258,7 +3258,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 			{
 				var ptr = Module._malloc(cartridge.length);
 
-				Module.writeArrayToMemory(cartridge, ptr);
+				writeArrayToMemory(cartridge, ptr);
 
 				return ptr;
 			}

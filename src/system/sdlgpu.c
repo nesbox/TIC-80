@@ -1579,7 +1579,7 @@ s32 main(s32 argc, char **argv)
 	(
 		{
 			var dir = "";
-			Module.Pointer_stringify($0).split("/").forEach(function(val)
+			Pointer_stringify($0).split("/").forEach(function(val)
 			{
 				if(val.length)
 				{
