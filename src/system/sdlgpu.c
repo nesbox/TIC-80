@@ -1579,7 +1579,7 @@ s32 main(s32 argc, char **argv)
 	(
 		{
 			var dir = "";
-			Pointer_stringify($0).split("/").forEach(function(val)
+			UTF8ToString($0).split("/").forEach(function(val)
 			{
 				if(val.length)
 				{
@@ -1591,7 +1591,7 @@ s32 main(s32 argc, char **argv)
 			FS.mount(IDBFS, {}, dir);
 			FS.syncfs(true, function()
 			{
-				Runtime.dynCall('viii', $1, [$2, $3, $0]);
+				dynCall('viii', $1, [$2, $3, $0]);
 			});
 
 		}, folder, emsStart, argc, argv

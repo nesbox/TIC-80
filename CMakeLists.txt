@@ -7,6 +7,7 @@ option(BUILD_SDL "SDL Enabled" TRUE)
 option(BUILD_SOKOL "Sokol Enabled" TRUE)
 option(BUILD_LIBRETRO "libretro Enabled" TRUE)
 option(BUILD_DEMO_CARTS "Demo Carts Enabled" TRUE)
+option(BUILD_PRO "Build PRO version" FALSE)
 
 if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID)
 	set(LINUX TRUE)
@@ -402,7 +403,7 @@ set(SDLGPU_SRC
 add_library(sdlgpu STATIC ${SDLGPU_SRC})
 
 if(EMSCRIPTEN)
-	target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC DSDL_GPU_DISABLE_OPENGL SDL_GPU_DISABLE_GLES_1 SDL_GPU_DISABLE_GLES_3)
+	target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC DSDL_GPU_DISABLE_OPENGL SDL_GPU_DISABLE_GLES_1 SDL_GPU_DISABLE_GLES_3 SDL_GPU_DISABLE_OPENGL)
 else()
 	target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC SDL_GPU_DISABLE_GLES SDL_GPU_DISABLE_OPENGL_3 SDL_GPU_DISABLE_OPENGL_4)
 endif()
@@ -509,6 +510,8 @@ if(NOT EMSCRIPTEN AND BUILD_DEMO_CARTS)
 
 	endforeach(CART_FILE)
 
+	add_custom_target(generate_demo_carts DEPENDS ${DEMO_CARTS_OUT})
+
 endif()
 
 ################################
@@ -538,7 +541,11 @@ set(TIC80LIB_SRC
 	${TIC80LIB_DIR}/surf.c
 )
 
-set(TIC80_OUTPUTS tic80 tic80pro)
+set(TIC80_OUTPUTS tic80)
+
+if(BUILD_PRO)
+	list(APPEND TIC80_OUTPUTS tic80pro)
+endif()
 
 foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 
@@ -562,7 +569,9 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 
 endforeach()
 
-target_compile_definitions(tic80prolib PRIVATE TIC80_PRO)
+if(BUILD_PRO)
+	target_compile_definitions(tic80prolib PRIVATE TIC80_PRO)
+endif()
 
 ################################
 # TIC-80 app
@@ -607,7 +616,7 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 	endif()
 
 	if(EMSCRIPTEN)
-		set_target_properties(${TIC80_OUTPUT} PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s TOTAL_MEMORY=67108864 --pre-js build/html/prejs.js --memory-init-file 0")
+		set_target_properties(${TIC80_OUTPUT} PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s TOTAL_MEMORY=67108864 --pre-js build/html/prejs.js")
 	else()
 		add_dependencies(${TIC80_OUTPUT} SDL2main SDL2-static)
 		target_link_libraries(${TIC80_OUTPUT} SDL2-static SDL2main)

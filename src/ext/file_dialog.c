@@ -125,7 +125,7 @@ void file_dialog_load(file_dialog_load_callback callback, void* data)
 		{
 			if(filename == null || rom == null)
 			{
-				Runtime.dynCall('viiiii', $0, [0, 0, 0, $1, 0]);
+				dynCall('viiiii', $0, [0, 0, 0, $1, 0]);
 			}
 			else
 			{
@@ -135,7 +135,7 @@ void file_dialog_load(file_dialog_load_callback callback, void* data)
 				var dataPtr = Module._malloc(rom.length);
 				writeArrayToMemory(rom, dataPtr);
 
-				Runtime.dynCall('viiiii', $0, [filePtr, dataPtr, rom.length, $1, 0]);
+				dynCall('viiiii', $0, [filePtr, dataPtr, rom.length, $1, 0]);
 
 				Module._free(filePtr);
 				Module._free(dataPtr);
@@ -148,7 +148,7 @@ void file_dialog_save(file_dialog_save_callback callback, const char* name, cons
 {
 	EM_ASM_
 	({
-		var name = Pointer_stringify($0);
+		var name = UTF8ToString($0);
 		var blob = new Blob([HEAPU8.subarray($1, $1 + $2)], {type: "application/octet-stream"});
 
 		Module.saveAs(blob, name);

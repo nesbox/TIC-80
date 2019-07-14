@@ -1,8 +1,8 @@
 language: c
 
 script:
-  - cmake .
-  - make
+  - cmake -DCMAKE_BUILD_TYPE=MinSizeRel .
+  - make -j4
 
 matrix:
   include:
@@ -21,6 +21,23 @@ matrix:
       env:
         - OS_FOLDER=linux
         - EXE_FILE=tic80
+
+    - os: linux
+      env:
+        - OS_FOLDER=wasm
+        - EXE_FILE="tic80.js tic80.wasm"
+      sudo: required
+      services:
+        - docker
+      before_install:
+        - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit bash
+      script:
+        - cmake -DBUILD_SDL=Off -DBUILD_SOKOL=Off .
+        - make generate_demo_carts
+        - git clean -xdf -e *.tic.dat
+        - git submodule foreach --recursive git clean -xfd        
+        - docker exec -it emscripten emcmake cmake -DBUILD_SOKOL=Off -DBUILD_LIBRETRO=Off -DCMAKE_BUILD_TYPE=MinSizeRel .
+        - docker exec -it emscripten make -j4
 
 after_success:
   - BUILDS_SERVER_PATH=${BUILD_SERVER}/files/$TRAVIS_BRANCH/$(date +%Y.%m.%d)/$OS_FOLDER
