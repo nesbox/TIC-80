@@ -170,8 +170,21 @@ static inline void wrenError(WrenVM* vm, const char* msg)
 	wrenAbortFiber(vm, 0);
 }
 
+static inline bool isNull(WrenVM* vm, s32 index)
+{
+	return wrenGetSlotType(vm, index) == WREN_TYPE_NULL;
+}
+
 static inline s32 getWrenNumber(WrenVM* vm, s32 index)
 {
+	return (s32)wrenGetSlotDouble(vm, index);
+}
+
+static inline s32 getWrenNumberDefault(WrenVM* vm, s32 index, s32 def)
+{
+	if(isNull(vm, index)) {
+		return def;
+	}
 	return (s32)wrenGetSlotDouble(vm, index);
 }
 
@@ -527,26 +540,26 @@ static void wren_spr(WrenVM* vm)
 				}
 				else 
 				{
-					colors[0] = getWrenNumber(vm, 4);
+					colors[0] = getWrenNumberDefault(vm, 4, -1);
 					count = 1;
 				}
 
 				if(top > 5)
 				{
-					scale = getWrenNumber(vm, 5);
+					scale = getWrenNumberDefault(vm, 5, scale);
 
 					if(top > 6)
 					{
-						flip = getWrenNumber(vm, 6);
+						flip = getWrenNumberDefault(vm, 6, flip);
 
 						if(top > 7)
 						{
-							rotate = getWrenNumber(vm, 7);
+							rotate = getWrenNumberDefault(vm, 7, rotate);
 
 							if(top > 9)
 							{
-								w = getWrenNumber(vm, 8);
-								h = getWrenNumber(vm, 9);
+								w = getWrenNumberDefault(vm, 8, w);
+								h = getWrenNumberDefault(vm, 9, h);
 							}
 						}
 					}

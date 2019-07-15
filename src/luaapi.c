@@ -43,6 +43,15 @@ static s32 getLuaNumber(lua_State* lua, s32 index)
 	return (s32)lua_tonumber(lua, index);
 }
 
+static s32 getLuaNumberDefault(lua_State* lua, s32 index, s32 def)
+{
+	if(lua_isnil(lua, index))
+	{
+		return def;
+	}
+	return (s32)lua_tonumber(lua, index);
+}
+
 static void registerLuaFunction(tic_machine* machine, lua_CFunction func, const char *name)
 {
 	lua_pushcfunction(machine->lua, func);
@@ -460,26 +469,26 @@ static s32 lua_spr(lua_State* lua)
 				}
 				else 
 				{
-					colors[0] = getLuaNumber(lua, 4);
+					colors[0] = getLuaNumberDefault(lua, 4, -1);
 					count = 1;
 				}
 
 				if(top >= 5)
 				{
-					scale = getLuaNumber(lua, 5);
+					scale = getLuaNumberDefault(lua, 5, scale);
 
 					if(top >= 6)
 					{
-						flip = getLuaNumber(lua, 6);
+						flip = getLuaNumberDefault(lua, 6, flip);
 
 						if(top >= 7)
 						{
-							rotate = getLuaNumber(lua, 7);
+							rotate = getLuaNumberDefault(lua, 7, rotate);
 
 							if(top >= 9)
 							{
-								w = getLuaNumber(lua, 8);
-								h = getLuaNumber(lua, 9);
+								w = getLuaNumberDefault(lua, 8, w);
+								h = getLuaNumberDefault(lua, 9, h);
 							}
 						}
 					}

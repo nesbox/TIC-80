@@ -53,6 +53,14 @@ static s32 getSquirrelNumber(HSQUIRRELVM vm, s32 index)
 	return 0;
 }
 
+static s32 getSquirrelNumberDefault(HSQUIRRELVM vm, s32 index, s32 def)
+{
+	if (sq_gettype(vm, index) == OT_NULL) {
+		return def;
+	}
+	return getSquirrelNumber(vm, index);
+}
+
 static void registerSquirrelFunction(tic_machine* machine, SQFUNCTION func, const char *name)
 {
 	sq_pushroottable(machine->squirrel);
@@ -534,26 +542,26 @@ static SQInteger squirrel_spr(HSQUIRRELVM vm)
 				}
 				else 
 				{
-					colors[0] = getSquirrelNumber(vm, 5);
+					colors[0] = getSquirrelNumberDefault(vm, 5, -1);
 					count = 1;
 				}
 
 				if(top >= 6)
 				{
-					scale = getSquirrelNumber(vm, 6);
+					scale = getSquirrelNumberDefault(vm, 6, scale);
 
 					if(top >= 7)
 					{
-						flip = getSquirrelNumber(vm, 7);
+						flip = getSquirrelNumberDefault(vm, 7, flip);
 
 						if(top >= 8)
 						{
-							rotate = getSquirrelNumber(vm, 8);
+							rotate = getSquirrelNumberDefault(vm, 8, rotate);
 
 							if(top >= 10)
 							{
-								w = getSquirrelNumber(vm, 9);
-								h = getSquirrelNumber(vm, 10);
+								w = getSquirrelNumberDefault(vm, 9, w);
+								h = getSquirrelNumberDefault(vm, 10, h);
 							}
 						}
 					}
