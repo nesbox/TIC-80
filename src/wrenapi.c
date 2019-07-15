@@ -1244,7 +1244,7 @@ static void initAPI(tic_machine* machine)
 {
 	wrenSetUserData(machine->wren, machine);
 
-	if (wrenInterpret(machine->wren, tic_wren_api) != WREN_RESULT_SUCCESS)
+	if (wrenInterpret(machine->wren, "main", tic_wren_api) != WREN_RESULT_SUCCESS)
 	{					
 		machine->data->error(machine->data->data, "can't load TIC wren api");
 	}
@@ -1290,7 +1290,7 @@ static bool initWren(tic_mem* memory, const char* code)
 
 	initAPI(machine);
 	
-	if (wrenInterpret(machine->wren, code) != WREN_RESULT_SUCCESS)
+	if (wrenInterpret(machine->wren, "main", code) != WREN_RESULT_SUCCESS)
 	{
 		return false;
 	}
@@ -1441,7 +1441,7 @@ static const tic_outline_item* getWrenOutline(const char* code, s32* size)
 static void evalWren(tic_mem* memory, const char* code)
 {
 	tic_machine* machine = (tic_machine*)memory;
-	wrenInterpret(machine->wren, code);
+	wrenInterpret(machine->wren, "main", code);
 }
 
 static const tic_script_config WrenSyntaxConfig = 

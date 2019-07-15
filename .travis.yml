@@ -1,13 +1,16 @@
 language: c
 
 script:
-  - cmake .
-  - make
+  - cmake -DCMAKE_BUILD_TYPE=MinSizeRel .
+  - make -j4
 
 matrix:
   include:
     - os: osx
       osx_image: xcode9.3
+      env:
+        - OS_FOLDER=mac
+        - EXE_FILE=tic80.app
 
     - os: linux
       addons:
@@ -15,12 +18,28 @@ matrix:
           packages:
             - libgtk-3-dev
             - libasound2-dev
+      env:
+        - OS_FOLDER=linux
+        - EXE_FILE=tic80
 
-deploy:
-  provider: s3
-  region: eu-central-1
-  access_key_id: ${ACCESS_KEY_ID}
-  secret_access_key: ${SECRET_ACCESS_KEY}
-  bucket: "tic80"
-  skip_cleanup: true
-  local_dir: bin
+    - os: linux
+      env:
+        - OS_FOLDER=wasm
+        - EXE_FILE="tic80.js tic80.wasm"
+      sudo: required
+      services:
+        - docker
+      before_install:
+        - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit bash
+      script:
+        - cmake -DBUILD_SDL=Off -DBUILD_SOKOL=Off .
+        - make generate_demo_carts
+        - git clean -xdf -e *.tic.dat
+        - git submodule foreach --recursive git clean -xfd        
+        - docker exec -it emscripten emcmake cmake -DBUILD_SOKOL=Off -DBUILD_LIBRETRO=Off -DCMAKE_BUILD_TYPE=MinSizeRel .
+        - docker exec -it emscripten make -j4
+
+after_success:
+  - BUILDS_SERVER_PATH=${BUILD_SERVER}/files/$TRAVIS_BRANCH/$(date +%Y.%m.%d)/$OS_FOLDER
+  - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/bin $EXE_FILE
+  - curl --retry 3 --ftp-create-dirs -T tic80.tar.gz $BUILDS_SERVER_PATH/

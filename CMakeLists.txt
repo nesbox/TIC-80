@@ -6,6 +6,8 @@ message("Building for target : ${CMAKE_SYSTEM_NAME}")
 option(BUILD_SDL "SDL Enabled" TRUE)
 option(BUILD_SOKOL "Sokol Enabled" TRUE)
 option(BUILD_LIBRETRO "libretro Enabled" TRUE)
+option(BUILD_DEMO_CARTS "Demo Carts Enabled" TRUE)
+option(BUILD_PRO "Build PRO version" FALSE)
 
 if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID)
 	set(LINUX TRUE)
@@ -42,15 +44,9 @@ else()
 
 	set(CMAKE_C_STANDARD 99)
 
-	if(CMAKE_BUILD_TYPE MATCHES "Debug")
-		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O0 -ggdb3")
-	else()
-		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3")
-	endif()
 
 if(EMSCRIPTEN)
-	# TODO: add: -s \'EXTRA_EXPORTED_RUNTIME_METHODS=[\"writeArrayToMemory\"]\'
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2 -s TOTAL_MEMORY=67108864 --pre-js build/html/prejs.js --memory-init-file 0")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2")
 endif()
 
 endif()
@@ -122,7 +118,7 @@ target_include_directories(lpeg PRIVATE ${LUA_DIR})
 # WREN
 ################################
 
-set(WREN_DIR ${THIRDPARTY_DIR}/wren-0.1.0/src)
+set(WREN_DIR ${THIRDPARTY_DIR}/wren/src)
 set(WREN_SRC 
 	${WREN_DIR}/optional/wren_opt_meta.c
 	${WREN_DIR}/optional/wren_opt_random.c
@@ -136,9 +132,9 @@ set(WREN_SRC
 )
 
 add_library(wren STATIC ${WREN_SRC})
-target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren-0.1.0/src/include)
-target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren-0.1.0/src/optional)
-target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren-0.1.0/src/vm)
+target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/include)
+target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/optional)
+target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/vm)
 
 ################################
 # SQUIRREL
@@ -216,7 +212,7 @@ target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/blip-buf)
 target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/duktape/src)
 target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/lua-5.3.1/src)
 target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/giflib-5.1.4/lib)
-target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/wren-0.1.0/src/include)
+target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/wren/src/include)
 target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/squirrel/include)
 target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/moonscript)
 target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/fennel)
@@ -407,7 +403,7 @@ set(SDLGPU_SRC
 add_library(sdlgpu STATIC ${SDLGPU_SRC})
 
 if(EMSCRIPTEN)
-	target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC DSDL_GPU_DISABLE_OPENGL SDL_GPU_DISABLE_GLES_1 SDL_GPU_DISABLE_GLES_3)
+	target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC DSDL_GPU_DISABLE_OPENGL SDL_GPU_DISABLE_GLES_1 SDL_GPU_DISABLE_GLES_3 SDL_GPU_DISABLE_OPENGL)
 else()
 	target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC SDL_GPU_DISABLE_GLES SDL_GPU_DISABLE_OPENGL_3 SDL_GPU_DISABLE_OPENGL_4)
 endif()
@@ -478,7 +474,7 @@ add_library(zlib STATIC ${ZLIB_SRC})
 # bin2txt
 ################################
 
-if(NOT EMSCRIPTEN)
+if(NOT EMSCRIPTEN AND BUILD_DEMO_CARTS)
 	set(BIN2TXT_DIR ${CMAKE_SOURCE_DIR}/tools/bin2txt)
 	set(BIN2TXT_SRC 
 		${BIN2TXT_DIR}/bin2txt.c
@@ -514,6 +510,8 @@ if(NOT EMSCRIPTEN)
 
 	endforeach(CART_FILE)
 
+	add_custom_target(generate_demo_carts DEPENDS ${DEMO_CARTS_OUT})
+
 endif()
 
 ################################
@@ -543,7 +541,11 @@ set(TIC80LIB_SRC
 	${TIC80LIB_DIR}/surf.c
 )
 
-set(TIC80_OUTPUTS tic80 tic80pro)
+set(TIC80_OUTPUTS tic80)
+
+if(BUILD_PRO)
+	list(APPEND TIC80_OUTPUTS tic80pro)
+endif()
 
 foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 
@@ -561,9 +563,15 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 	add_dependencies(${TIC80_OUTPUT}lib tic80core zlib)
 	target_link_libraries(${TIC80_OUTPUT}lib tic80core zlib)
 
+	if(BUILD_DEMO_CARTS)
+		target_compile_definitions(${TIC80_OUTPUT}lib PUBLIC BUILD_DEMO_CARTS)
+	endif()
+
 endforeach()
 
-target_compile_definitions(tic80prolib PRIVATE TIC80_PRO)
+if(BUILD_PRO)
+	target_compile_definitions(tic80prolib PRIVATE TIC80_PRO)
+endif()
 
 ################################
 # TIC-80 app
@@ -607,7 +615,9 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 		target_link_libraries(${TIC80_OUTPUT} mingw32)
 	endif()
 
-	if(NOT EMSCRIPTEN)
+	if(EMSCRIPTEN)
+		set_target_properties(${TIC80_OUTPUT} PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s TOTAL_MEMORY=67108864 --pre-js build/html/prejs.js")
+	else()
 		add_dependencies(${TIC80_OUTPUT} SDL2main SDL2-static)
 		target_link_libraries(${TIC80_OUTPUT} SDL2-static SDL2main)
 	endif()
