@@ -1129,7 +1129,7 @@ static void updateTitle()
 	char name[FILENAME_MAX] = TIC_TITLE;
 
 	if(strlen(impl.console->romName))
-		sprintf(name, "%s [%s]", TIC_TITLE, impl.console->romName);
+		snprintf(name, FILENAME_MAX, "%s [%s]", TIC_TITLE, impl.console->romName);
 
 	impl.system->setWindowTitle(name);
 }
@@ -1200,7 +1200,7 @@ static void saveProject()
 	if(rom == CART_SAVE_OK)
 	{
 		char buffer[FILENAME_MAX];
-		sprintf(buffer, "%s SAVED :)", impl.console->romName);
+		snprintf(buffer, FILENAME_MAX, "%s SAVED :)", impl.console->romName);
 
 		for(s32 i = 0; i < (s32)strlen(buffer); i++)
 			buffer[i] = toupper(buffer[i]);

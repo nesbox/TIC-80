@@ -219,6 +219,7 @@ target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/fennel)
 
 add_dependencies(tic80core lua lpeg wren squirrel giflib)
 target_link_libraries(tic80core lua lpeg wren squirrel giflib)
+target_compile_options(tic80core PRIVATE -Wformat-truncation=0)
 
 if(LINUX)
 	target_link_libraries(tic80core m)
