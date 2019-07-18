@@ -17,7 +17,7 @@
 #define TIC_FREQUENCY 44100
 
 // The maximum amount of inputs (2, 3 or 4)
-#define TIC_MAXPLAYERS 2
+#define TIC_MAXPLAYERS 4
 
 static uint32_t *frame_buf;
 static struct retro_log_callback logging;
