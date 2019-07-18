@@ -6,6 +6,7 @@
 #include <math.h>
 #include <tic.h>
 #include "libretro.h"
+#include "libretro_core_options.h"
 #include "../../ticapi.h"
 
 /**
@@ -215,8 +216,9 @@ void retro_get_system_info(struct retro_system_info *info)
 	memset(info, 0, sizeof(*info));
 	info->library_name     = TIC_NAME;
 	info->library_version  = TIC_VERSION_LABEL;
-	info->need_fullpath    = false;
 	info->valid_extensions = "tic";
+	info->need_fullpath    = false;
+	info->block_extract    = false;
 }
 
 /**
@@ -258,14 +260,8 @@ void retro_set_environment(retro_environment_t cb)
 		log_cb = tic80_libretro_fallback_log;
 	}
 
-	// Variables/Core Options
-	struct retro_variable variables[] = {
-		{
-			"tic80_mouse", "Mouse API instead of Pointer; disabled|enabled",
-		},
-		{ NULL, NULL },
-	};
-	environ_cb(RETRO_ENVIRONMENT_SET_VARIABLES, variables);
+	// Configure the core settings.
+	libretro_set_core_options(environ_cb);
 }
 
 /**
