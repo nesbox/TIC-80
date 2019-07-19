@@ -34,13 +34,13 @@
 #include "machine.h"
 #include "ext/gif.h"
 
-#define CLOCKRATE (TIC_FRAMERATE*30000)
+#define CLOCKRATE (TIC80_FRAMERATE*30000)
 #define MIN_PERIOD_VALUE 10
 #define MAX_PERIOD_VALUE 4096
 #define BASE_NOTE_FREQ 440.0
 #define BASE_NOTE_POS 49.0
 #define ENVELOPE_FREQ_SCALE 2
-#define NOTES_PER_MUNUTE (TIC_FRAMERATE / NOTES_PER_BEET * 60)
+#define NOTES_PER_MUNUTE (TIC80_FRAMERATE / NOTES_PER_BEET * 60)
 #define min(a,b) ((a) < (b) ? (a) : (b))
 #define max(a,b) ((a) > (b) ? (a) : (b))
 
@@ -1422,7 +1422,7 @@ static void api_tick_start(tic_mem* memory, const tic_sfx* sfxsrc, const tic_mus
 
 static void stereo_tick_end(tic_mem* memory, tic_sound_register_data* registers, blip_buffer_t* blip, u8 stereoRight)
 {
-	enum {EndTime = CLOCKRATE / TIC_FRAMERATE};
+	enum {EndTime = CLOCKRATE / TIC80_FRAMERATE};
 	for (s32 i = 0; i < TIC_SOUND_CHANNELS; ++i )
 	{
 		u8 masterVol = MAX_VOLUME - tic_tool_peek4(&memory->ram.stereo.data, stereoRight + i*2);
@@ -1450,8 +1450,8 @@ static void api_tick_end(tic_mem* memory)
 	stereo_tick_end(memory, machine->state.registers.left, machine->blip.left, 0);
 	stereo_tick_end(memory, machine->state.registers.right, machine->blip.right, 1);
 
-	blip_read_samples(machine->blip.left, machine->memory.samples.buffer, machine->samplerate / TIC_FRAMERATE, TIC_STEREO_CHANNELS);
-	blip_read_samples(machine->blip.right, machine->memory.samples.buffer + 1, machine->samplerate / TIC_FRAMERATE, TIC_STEREO_CHANNELS);
+	blip_read_samples(machine->blip.left, machine->memory.samples.buffer, machine->samplerate / TIC80_FRAMERATE, TIC_STEREO_CHANNELS);
+	blip_read_samples(machine->blip.right, machine->memory.samples.buffer + 1, machine->samplerate / TIC80_FRAMERATE, TIC_STEREO_CHANNELS);
 
 	machine->state.setpix = setPixelOvr;
 	machine->state.getpix = getPixelOvr;
@@ -2099,7 +2099,7 @@ tic_mem* tic_create(s32 samplerate)
 	initApi(&machine->memory.api);
 
 	machine->samplerate = samplerate;
-	machine->memory.samples.size = samplerate * TIC_STEREO_CHANNELS / TIC_FRAMERATE * sizeof(s16);
+	machine->memory.samples.size = samplerate * TIC_STEREO_CHANNELS / TIC80_FRAMERATE * sizeof(s16);
 	machine->memory.samples.buffer = malloc(machine->memory.samples.size);
 
 	machine->blip.left = blip_new(samplerate / 10);

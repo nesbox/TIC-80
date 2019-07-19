@@ -55,7 +55,7 @@ static void onExit(void* data)
 
 static u64 getFreq()
 {
-	return TIC_FRAMERATE;
+	return TIC80_FRAMERATE;
 }
 
 static u64 TickCounter = 0;

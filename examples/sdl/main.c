@@ -24,10 +24,6 @@
 #include <SDL.h>
 #include <tic80.h>
 
-// TODO: take from tic.h??
-#define TIC_FRAMERATE 60
-#define TIC_FREQUENCY 44100
-
 static struct
 {
 	bool quit;
@@ -73,7 +69,7 @@ int main(int argc, char **argv)
 				{
 					SDL_AudioSpec want = 
 					{
-						.freq = TIC_FREQUENCY,
+						.freq = TIC80_SAMPLERATE,
 						.format = AUDIO_S16,
 						.channels = 2,
 						.userdata = NULL,
@@ -85,7 +81,7 @@ int main(int argc, char **argv)
 
 					if (cvt.needed)
 					{
-						cvt.len = audioSpec.freq * sizeof(s16) / TIC_FRAMERATE;
+						cvt.len = audioSpec.freq * sizeof(s16) / TIC80_FRAMERATE;
 						cvt.buf = SDL_malloc(cvt.len * cvt.len_mult);
 					}
 				}
@@ -102,7 +98,7 @@ int main(int argc, char **argv)
 				if(tic)
 				{
 					u64 nextTick = SDL_GetPerformanceCounter();
-					const u64 Delta = SDL_GetPerformanceFrequency() / TIC_FRAMERATE;
+					const u64 Delta = SDL_GetPerformanceFrequency() / TIC80_FRAMERATE;
 
 					while(!state.quit)
 					{

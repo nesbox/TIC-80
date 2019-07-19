@@ -50,7 +50,7 @@
 #include <lualib.h>
 
 #define FRAME_SIZE (TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32))
-#define POPUP_DUR (TIC_FRAMERATE*2)
+#define POPUP_DUR (TIC80_FRAMERATE*2)
 
 #if defined(TIC80_PRO)
 #define TIC_EDITOR_BANKS (TIC_BANKS)
@@ -1244,7 +1244,7 @@ static void setCoverImage()
 			screen2buffer(buffer, tic->screen, rect);
 
 			gif_write_animation(impl.studio.tic->cart.cover.data, &impl.studio.tic->cart.cover.size,
-				TIC80_WIDTH, TIC80_HEIGHT, (const u8*)buffer, 1, TIC_FRAMERATE, 1);
+				TIC80_WIDTH, TIC80_HEIGHT, (const u8*)buffer, 1, TIC80_FRAMERATE, 1);
 
 			free(buffer);
 
@@ -1269,7 +1269,7 @@ static void stopVideoRecord()
 			s32 size = 0;
 			u8* data = malloc(FRAME_SIZE * impl.video.frame);
 
-			gif_write_animation(data, &size, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, (const u8*)impl.video.buffer, impl.video.frame, TIC_FRAMERATE, getConfig()->gifScale);
+			gif_write_animation(data, &size, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, (const u8*)impl.video.buffer, impl.video.frame, TIC80_FRAMERATE, getConfig()->gifScale);
 
 			fsGetFileData(onVideoExported, "screen.gif", data, size, DEFAULT_CHMOD, NULL);
 		}
@@ -1291,7 +1291,7 @@ static void startVideoRecord()
 	}
 	else
 	{
-		impl.video.frames = getConfig()->gifLength * TIC_FRAMERATE;
+		impl.video.frames = getConfig()->gifLength * TIC80_FRAMERATE;
 		impl.video.buffer = malloc(FRAME_SIZE * impl.video.frames);
 
 		if(impl.video.buffer)
@@ -1521,7 +1521,7 @@ static void recordFrame(u32* pixels)
 			tic_rect rect = {0, 0, TIC80_FULLWIDTH, TIC80_FULLHEIGHT};
 			screen2buffer(impl.video.buffer + (TIC80_FULLWIDTH*TIC80_FULLHEIGHT) * impl.video.frame, pixels, rect);
 
-			if(impl.video.frame % TIC_FRAMERATE < TIC_FRAMERATE / 2)
+			if(impl.video.frame % TIC80_FRAMERATE < TIC80_FRAMERATE / 2)
 			{
 				const u32* pal = tic_palette_blit(&impl.config->cart.bank0.palette);
 				drawRecordLabel(pixels, TIC80_WIDTH-24, 8, &pal[tic_color_red]);
@@ -1545,7 +1545,7 @@ static void drawPopup()
 
 		s32 anim = 0;
 
-		enum{Dur = TIC_FRAMERATE/2};
+		enum{Dur = TIC80_FRAMERATE/2};
 
 		if(impl.popup.counter < Dur)
 			anim = -((Dur - impl.popup.counter) * (TIC_FONT_HEIGHT+1) / Dur);

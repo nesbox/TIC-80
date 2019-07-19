@@ -123,7 +123,7 @@ static void initSound()
 {
 	SDL_AudioSpec want =
 	{
-		.freq = TIC_FREQUENCY,
+		.freq = TIC80_SAMPLERATE,
 		.format = AUDIO_S16,
 		.channels = TIC_STEREO_CHANNELS,
 		.userdata = NULL,
@@ -135,7 +135,7 @@ static void initSound()
 
 	if(platform.audio.cvt.needed)
 	{
-		platform.audio.cvt.len = platform.audio.spec.freq * platform.audio.spec.channels * sizeof(s16) / TIC_FRAMERATE;
+		platform.audio.cvt.len = platform.audio.spec.freq * platform.audio.spec.channels * sizeof(s16) / TIC80_FRAMERATE;
 		platform.audio.cvt.buf = SDL_malloc(platform.audio.cvt.len * platform.audio.cvt.len_mult);
 	}
 }
@@ -735,7 +735,7 @@ static void processTouchInput()
 		s32 devices = SDL_GetNumTouchDevices();
 		for (s32 i = 0; i < devices; i++)
 			if(SDL_GetNumTouchFingers(SDL_GetTouchDevice(i)) > 0)
-				platform.touchCounter = 10 * TIC_FRAMERATE;
+				platform.touchCounter = 10 * TIC80_FRAMERATE;
 
 		if(platform.touchCounter)
 			platform.touchCounter--;
@@ -1410,7 +1410,7 @@ static void emsGpuTick()
 	if(nextTick < 0.0)
 		nextTick = emscripten_get_now();
 
-	nextTick += 1000.0/TIC_FRAMERATE;
+	nextTick += 1000.0/TIC80_FRAMERATE;
 	gpuTick();
 	double delay = nextTick - emscripten_get_now();
 
@@ -1472,7 +1472,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
 #else
 	{
 		u64 nextTick = SDL_GetPerformanceCounter();
-		const u64 Delta = SDL_GetPerformanceFrequency() / TIC_FRAMERATE;
+		const u64 Delta = SDL_GetPerformanceFrequency() / TIC80_FRAMERATE;
 
 		while (!platform.studio->quit)
 		{

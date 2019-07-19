@@ -43,8 +43,8 @@
 #define CONSOLE_BACK_TEXT_COLOR ((tic_color_dark_gray))
 #define CONSOLE_FRONT_TEXT_COLOR ((tic_color_white))
 #define CONSOLE_ERROR_TEXT_COLOR ((tic_color_red))
-#define CONSOLE_CURSOR_BLINK_PERIOD (TIC_FRAMERATE)
-#define CONSOLE_CURSOR_DELAY (TIC_FRAMERATE / 2)
+#define CONSOLE_CURSOR_BLINK_PERIOD (TIC80_FRAMERATE)
+#define CONSOLE_CURSOR_DELAY (TIC80_FRAMERATE / 2)
 #define CONSOLE_BUFFER_WIDTH (STUDIO_TEXT_BUFFER_WIDTH)
 #define CONSOLE_BUFFER_HEIGHT (STUDIO_TEXT_BUFFER_HEIGHT)
 #define CONSOLE_BUFFER_SCREENS 64
@@ -2861,7 +2861,7 @@ static void tick(Console* console)
 
 	if(console->embed.yes)
 	{
-		if(console->tickCounter >= (u32)(console->skipStart ? 1 : TIC_FRAMERATE))
+		if(console->tickCounter >= (u32)(console->skipStart ? 1 : TIC80_FRAMERATE))
 		{
 			if(!console->skipStart)
 				console->showGameMenu = true;

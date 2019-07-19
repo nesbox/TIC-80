@@ -155,7 +155,7 @@ static void app_init(void)
 {
 	sokol_gfx_init(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, 1, 1, false, true);
 
-	platform.audio.samples = calloc(sizeof platform.audio.samples[0], saudio_sample_rate() / TIC_FRAMERATE * TIC_STEREO_CHANNELS);
+	platform.audio.samples = calloc(sizeof platform.audio.samples[0], saudio_sample_rate() / TIC80_FRAMERATE * TIC_STEREO_CHANNELS);
 }
 
 static void handleKeyboard()

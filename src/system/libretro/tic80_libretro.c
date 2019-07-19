@@ -224,8 +224,8 @@ void retro_get_system_info(struct retro_system_info *info)
 void retro_get_system_av_info(struct retro_system_av_info *info)
 {
 	info->timing = (struct retro_system_timing) {
-		.fps = TIC_FRAMERATE,
-		.sample_rate = TIC_FREQUENCY,
+		.fps = TIC80_FRAMERATE,
+		.sample_rate = TIC80_SAMPLERATE,
 	};
 
 	info->geometry = (struct retro_game_geometry) {
@@ -635,7 +635,7 @@ bool retro_load_game(const struct retro_game_info *info)
 	retro_unload_game();
 
 	// Set up the TIC-80 environment.
-	tic = tic80_create(TIC_FREQUENCY);
+	tic = tic80_create(TIC80_SAMPLERATE);
 	tic->callback.exit = tic80_libretro_exit;
 	tic->callback.error = tic80_libretro_error;
 	tic->callback.trace = tic80_libretro_trace;

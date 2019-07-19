@@ -7,10 +7,6 @@
 
 #include <tic80.h>
 
-// TODO: take from tic.h??
-#define TIC_FRAMERATE 60
-#define TIC_FREQUENCY 44100
-
 static tic80* tic = NULL;
 
 static void app_init(void)
@@ -56,7 +52,7 @@ static void app_frame(void)
 
     sokol_gfx_draw(tic->screen);
 
-    static float floatSamples[TIC_FREQUENCY / TIC_FRAMERATE * 2];
+    static float floatSamples[TIC80_SAMPLERATE / TIC80_FRAMERATE * 2];
 
     for(s32 i = 0; i < tic->sound.count; i++)
         floatSamples[i] = (float)tic->sound.samples[i] / SHRT_MAX;
