@@ -7,7 +7,7 @@ Provided is a [TIC-80](https://tic.computer) libretro core to render TIC-80 cart
 To build the core, run the following commands.
 
 ```
-cmake . -DBUILD_SDL=0 -DBUILD_SOKOL=0
+cmake . -DBUILD_SDL=0 -DBUILD_SOKOL=0 -DBUILD_DEMO_CARTS=0
 make
 ```
 
