@@ -787,8 +787,8 @@ void retro_cheat_reset(void)
  */
 void retro_cheat_set(unsigned index, bool enabled, const char *code)
 {
-	// 40 slots allows for 20 index:value pairs.
-	int codes[40];
+	// 80 slots allows for 40 index:value pairs.
+	long codes[80];
 	int codeIndex = 0;
 	char *str = (char*)code;
 	char *end = str;
