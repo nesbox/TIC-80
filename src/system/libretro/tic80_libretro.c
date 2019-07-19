@@ -768,10 +768,44 @@ void retro_cheat_reset(void)
 
 /**
  * libretro callback; Enable/disable the given cheat code.
+ *
+ * TIC-80 codes expect a space-seperated list of paired
+ * integers. The first number is the index in pmem(), the
+ * second value is the value for the pmem() call. Example:
+ *
+ * cheats = 1
+ *
+ * cheat0_desc = "3 Lives"
+ * cheat0_code = "255 3"
+ * cheat0_enable = false
+ *
+ * The above cheat would be the same as calling:
+ *
+ * pmem(255, 3)
+ *
+ * @see https://github.com/nesbox/TIC-80/wiki/pmem
  */
 void retro_cheat_set(unsigned index, bool enabled, const char *code)
 {
-	(void)index;
-	(void)enabled;
-	(void)code;
+	// 40 slots allows for 20 index:value pairs.
+	int codes[40];
+	int codeIndex = 0;
+	char *str = (char*)code;
+	char *end = str;
+
+	// Split the code by spaces, to get an array of integers.
+	while (*end) {
+		codes[codeIndex++] = strtol(str, &end, 10);
+		while (*end == ' ') {
+			end++;
+		}
+		str = end;
+	}
+
+	// Finally, set each given code pair.
+	tic80_local* tic80 = (tic80_local*)tic;
+	for (int i = 0; i < codeIndex; i = i + 2) {
+		tic80->memory->persistent.data[codes[i]] = codes[i+1];
+		tic80->tickData.syncPMEM = true;
+	}
 }
