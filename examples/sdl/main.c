@@ -26,6 +26,7 @@
 
 // TODO: take from tic.h??
 #define TIC_FRAMERATE 60
+#define TIC_FREQUENCY 44100
 
 static struct
 {
@@ -72,7 +73,7 @@ int main(int argc, char **argv)
 				{
 					SDL_AudioSpec want = 
 					{
-						.freq = 44100,
+						.freq = TIC_FREQUENCY,
 						.format = AUDIO_S16,
 						.channels = 2,
 						.userdata = NULL,

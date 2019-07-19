@@ -123,7 +123,7 @@ static void initSound()
 {
 	SDL_AudioSpec want =
 	{
-		.freq = 44100,
+		.freq = TIC_FREQUENCY,
 		.format = AUDIO_S16,
 		.channels = TIC_STEREO_CHANNELS,
 		.userdata = NULL,

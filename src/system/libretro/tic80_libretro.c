@@ -14,9 +14,6 @@
  */
 #include "../../system.h"
 
-// Audio sample frequency for TIC-80
-#define TIC_FREQUENCY 44100
-
 // The maximum amount of inputs (2, 3 or 4)
 #define TIC_MAXPLAYERS 4
 
