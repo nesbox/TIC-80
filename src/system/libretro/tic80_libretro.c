@@ -787,14 +787,13 @@ void retro_cheat_reset(void)
  */
 void retro_cheat_set(unsigned index, bool enabled, const char *code)
 {
-	// 80 slots allows for 40 index:value pairs.
-	long codes[80];
+	u32 codes[TIC_PERSISTENT_SIZE];
 	int codeIndex = 0;
 	char *str = (char*)code;
 	char *end = str;
 
 	// Split the code by spaces, to get an array of integers.
-	while (*end) {
+	while (*end && codeIndex < TIC_PERSISTENT_SIZE) {
 		codes[codeIndex++] = strtol(str, &end, 10);
 		while (*end == ' ') {
 			end++;
