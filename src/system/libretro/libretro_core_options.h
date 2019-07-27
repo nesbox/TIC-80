@@ -38,6 +38,19 @@ struct retro_core_option_definition option_defs_us[] = {
 		},
 		"disabled"
 	},
+	{
+		"tic80_mouse_cursor",
+		"Mouse Cursor",
+		"Display a software-rendered mouse cursor on the screen.",
+		{
+			{ "disabled", NULL },
+			{ "dot", "Dot" },
+			{ "cross", "Cross" },
+			{ "arrow", "Arrow" },
+			{ NULL, NULL },
+		},
+		0
+	},
 	{ NULL, NULL, NULL, {{0}}, NULL },
 };
 

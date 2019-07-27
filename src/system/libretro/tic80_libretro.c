@@ -33,10 +33,12 @@ static struct
 	tic80_input input;
 	int keymap[RETROK_LAST];
 	bool variableMouseApi;
+	int mouseCursor;
 } state =
 {
 	.quit = false,
 	.variableMouseApi = false,
+	.mouseCursor = 0
 };
 
 /**
@@ -452,6 +454,27 @@ static void tic80_libretro_update_mouse(tic80_mouse* mouse) {
 }
 
 /**
+ * Draws a software cursor on the screen where the mouse is.
+ */
+static void tic80_libretro_mousecursor(tic80_local* game, tic80_mouse* mouse, int cursortype) {
+	switch (state.mouseCursor) {
+		case 1: // Dot
+			game->memory->api.pixel(game->memory, state.input.mouse.x, state.input.mouse.y, 15);
+		break;
+		case 2: // Cursor
+			game->memory->api.line(game->memory, state.input.mouse.x - 4, state.input.mouse.y, state.input.mouse.x - 2, state.input.mouse.y, 15);
+			game->memory->api.line(game->memory, state.input.mouse.x + 2, state.input.mouse.y, state.input.mouse.x + 4, state.input.mouse.y, 15);
+			game->memory->api.line(game->memory, state.input.mouse.x, state.input.mouse.y - 4, state.input.mouse.x, state.input.mouse.y - 2, 15);
+			game->memory->api.line(game->memory, state.input.mouse.x, state.input.mouse.y + 2, state.input.mouse.x, state.input.mouse.y + 4, 15);
+		break;
+		case 3: // Arrow
+			game->memory->api.tri(game->memory, state.input.mouse.x, state.input.mouse.y, state.input.mouse.x + 3, state.input.mouse.y, state.input.mouse.x, state.input.mouse.y + 3, 15);
+			game->memory->api.line(game->memory, state.input.mouse.x + 3, state.input.mouse.y, state.input.mouse.x, state.input.mouse.y + 3, 0);
+		break;
+	}
+}
+
+/**
  * Retrieve keyboard information from libretro.
  */
 static void tic80_libretro_update_keyboard(tic80_keyboard* keyboard) {
@@ -525,6 +548,9 @@ void tic80_libretro_conv_argb8888_abgr8888(uint32_t *output, uint32_t *input,
  */
 static void tic80_libretro_draw(tic80* game)
 {
+	// Mouse Cursor
+	tic80_libretro_mousecursor((tic80_local*)game, &state.input.mouse, state.mouseCursor);
+
 	// TIC-80 uses ABGR8888, so we need to convert it.
 	tic80_libretro_conv_argb8888_abgr8888(frame_buf, game->screen,
 		TIC80_FULLWIDTH, TIC80_FULLHEIGHT,
@@ -554,14 +580,28 @@ static void tic80_libretro_variables(void)
 	// Check all the individual variables for the core.
 	struct retro_variable var;
 
-	// Use Mouse API instead of the Pointer.
+	// Mouse API instead of Pointer.
+	state.variableMouseApi = false;
 	var.key = "tic80_mouse";
 	var.value = NULL;
 	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
 		state.variableMouseApi = strcmp(var.value, "enabled") == 0;
 	}
-	else {
-		state.variableMouseApi = false;
+
+	// Mouse Cursor
+	state.mouseCursor = 0;
+	var.key = "tic80_mouse_cursor";
+	var.value = NULL;
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
+		if (strcmp(var.value, "dot") == 0) {
+			state.mouseCursor = 1;
+		}
+		else if (strcmp(var.value, "cross") == 0) {
+			state.mouseCursor = 2;
+		}
+		else if (strcmp(var.value, "arrow") == 0) {
+			state.mouseCursor = 3;
+		}
 	}
 }
 
