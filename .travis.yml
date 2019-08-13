@@ -13,6 +13,7 @@ matrix:
         - EXE_FILE=tic80.app
 
     - os: linux
+      dist: trusty
       addons:
         apt:
           packages:
