@@ -1,5 +1,7 @@
 language: c
 
+before_install:
+  - BUILDS_SERVER_PATH=${BUILD_SERVER}/files/$TRAVIS_BRANCH/$(date +%Y.%m.%d)/$OS_FOLDER
 script:
   - mkdir out && cd out
   - cmake -DCMAKE_BUILD_TYPE=MinSizeRel ..
@@ -26,6 +28,8 @@ matrix:
 
     - os: linux
       language: android
+      env:
+        - OS_FOLDER=android
       install:
         - wget https://dl.google.com/android/repository/android-ndk-r18b-linux-x86_64.zip
         - unzip android-ndk-r18b-linux-x86_64.zip -d $HOME
@@ -41,7 +45,7 @@ matrix:
 
       after_success:
         - cp app/build/outputs/apk/universal/release/app-universal-release.apk tic80.apk
-        - curl --retry 3 --ftp-create-dirs -T tic80.apk ${BUILD_SERVER}/files/$TRAVIS_BRANCH/$(date +%Y.%m.%d)/android/
+        - curl --retry 3 --ftp-create-dirs -T tic80.apk $BUILDS_SERVER_PATH/
 
     - os: linux
       dist: trusty
@@ -51,14 +55,13 @@ matrix:
       sudo: required
       services:
         - docker
-      before_install:
+      install:
         - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit bash
       script:
         - bash build_demos.sh
         - docker exec -it emscripten emcmake cmake -DCMAKE_BUILD_TYPE=MinSizeRel .
-        - docker exec -it emscripten make -j4
+        - docker exec -it emscripten make -j$(nproc)
 
 after_success:
-  - BUILDS_SERVER_PATH=${BUILD_SERVER}/files/$TRAVIS_BRANCH/$(date +%Y.%m.%d)/$OS_FOLDER
   - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/out/bin $EXE_FILE
   - curl --retry 3 --ftp-create-dirs -T tic80.tar.gz $BUILDS_SERVER_PATH/
