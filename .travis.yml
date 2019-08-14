@@ -1,8 +1,9 @@
 language: c
 
 script:
-  - cmake -DCMAKE_BUILD_TYPE=MinSizeRel .
-  - make -j4
+  - mkdir out && cd out
+  - cmake -DCMAKE_BUILD_TYPE=MinSizeRel ..
+  - make -j$(nproc)
 
 matrix:
   include:
@@ -24,6 +25,26 @@ matrix:
         - EXE_FILE=tic80
 
     - os: linux
+      language: android
+      install:
+        - wget https://dl.google.com/android/repository/android-ndk-r18b-linux-x86_64.zip
+        - unzip android-ndk-r18b-linux-x86_64.zip -d $HOME
+        - export ANDROID_NDK_HOME=$HOME/android-ndk-r18b
+        - touch $HOME/.android/repositories.cfg
+        - yes | sdkmanager "platforms;android-26"
+        - yes | sdkmanager "build-tools;28.0.3"
+
+      script:
+        - bash build_demos.sh
+        - cd build/android
+        - ./gradlew assembleRelease
+
+      after_success:
+        - cp app/build/outputs/apk/universal/release/app-universal-release.apk tic80.apk
+        - curl --retry 3 --ftp-create-dirs -T tic80.apk ${BUILD_SERVER}/files/$TRAVIS_BRANCH/$(date +%Y.%m.%d)/android/
+
+    - os: linux
+      dist: trusty
       env:
         - OS_FOLDER=wasm
         - EXE_FILE="tic80.js tic80.wasm"
@@ -33,14 +54,11 @@ matrix:
       before_install:
         - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit bash
       script:
-        - cmake -DBUILD_SDL=Off -DBUILD_SOKOL=Off .
-        - make generate_demo_carts
-        - git clean -xdf -e *.tic.dat
-        - git submodule foreach --recursive git clean -xfd        
-        - docker exec -it emscripten emcmake cmake -DBUILD_SOKOL=Off -DBUILD_LIBRETRO=Off -DCMAKE_BUILD_TYPE=MinSizeRel .
+        - bash build_demos.sh
+        - docker exec -it emscripten emcmake cmake -DCMAKE_BUILD_TYPE=MinSizeRel .
         - docker exec -it emscripten make -j4
 
 after_success:
   - BUILDS_SERVER_PATH=${BUILD_SERVER}/files/$TRAVIS_BRANCH/$(date +%Y.%m.%d)/$OS_FOLDER
-  - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/bin $EXE_FILE
+  - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/out/bin $EXE_FILE
   - curl --retry 3 --ftp-create-dirs -T tic80.tar.gz $BUILDS_SERVER_PATH/

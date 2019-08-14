@@ -347,6 +347,7 @@ void file_dialog_save(file_dialog_save_callback callback, const char* name, cons
 
 #elif defined(__TIC_ANDROID__)
 
+#include <stdlib.h>
 #include <jni.h>
 #include <sys/stat.h>
 

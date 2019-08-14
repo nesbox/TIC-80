@@ -290,7 +290,6 @@ static void setDefault(Config* config)
 
 	config->data.cart = &config->cart;
 
-#if BUILD_DEMO_CARTS
 	{
 		static const u8 DefaultBiosZip[] = 
 		{
@@ -307,7 +306,6 @@ static void setDefault(Config* config)
 			free(embedBios);
 		}
 	}
-#endif
 }
 
 static void saveConfig(Config* config, bool overwrite)

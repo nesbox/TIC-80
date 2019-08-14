@@ -3,10 +3,20 @@ cmake_minimum_required(VERSION 3.3)
 project(TIC-80 C CXX)
 message("Building for target : ${CMAKE_SYSTEM_NAME}")
 
-option(BUILD_SDL "SDL Enabled" TRUE)
-option(BUILD_SOKOL "Sokol Enabled" TRUE)
-option(BUILD_LIBRETRO "libretro Enabled" TRUE)
-option(BUILD_DEMO_CARTS "Demo Carts Enabled" TRUE)
+if(ANDROID OR EMSCRIPTEN)
+	set(BUILD_SOKOL_DEFAULT OFF)
+	set(BUILD_LIBRETRO_DEFAULT OFF)
+	set(BUILD_DEMO_CARTS_DEFAULT OFF)
+else()
+	set(BUILD_SOKOL_DEFAULT ON)
+	set(BUILD_LIBRETRO_DEFAULT ON)
+	set(BUILD_DEMO_CARTS_DEFAULT ON)
+endif()
+
+option(BUILD_SDL "SDL Enabled" ON)
+option(BUILD_SOKOL "Sokol Enabled" ${BUILD_SOKOL_DEFAULT})
+option(BUILD_LIBRETRO "libretro Enabled" ${BUILD_LIBRETRO_DEFAULT})
+option(BUILD_DEMO_CARTS "Demo Carts Enabled" ${BUILD_DEMO_CARTS_DEFAULT})
 option(BUILD_PRO "Build PRO version" FALSE)
 
 if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID)
@@ -233,8 +243,12 @@ if(BUILD_SDL AND NOT EMSCRIPTEN)
 		set(HAVE_LIBC TRUE)
 	endif()
 
-	set(SDL_SHARED_ENABLED_BY_DEFAULT OFF)
-	add_subdirectory(${THIRDPARTY_DIR}/SDL2-2.0.8)
+	if(ANDROID)
+		set(SDL_SHARED_ENABLED_BY_DEFAULT OFF CACHE BOOL "Build a shared version of the library")
+        include_directories(${ANDROID_NDK}/sources/android/cpufeatures)
+    endif()
+
+	add_subdirectory(${THIRDPARTY_DIR}/sdl2)
 
 endif()
 
@@ -243,7 +257,7 @@ endif()
 ################################
 
 set(EXAMPLE_DIR ${CMAKE_SOURCE_DIR}/examples)
-if(BUILD_SDL AND NOT EMSCRIPTEN)
+if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT ANDROID)
 	set(EXAMPLE_SRC 
 		${EXAMPLE_DIR}/sdl/main.c
 	)
@@ -254,7 +268,7 @@ if(BUILD_SDL AND NOT EMSCRIPTEN)
 		add_executable(sdl-renderer ${EXAMPLE_SRC})
 	endif()
 
-	target_include_directories(sdl-renderer PRIVATE ${THIRDPARTY_DIR}/SDL2-2.0.8/include)
+	target_include_directories(sdl-renderer PRIVATE ${THIRDPARTY_DIR}/sdl2/include)
 	target_include_directories(sdl-renderer PRIVATE ${CMAKE_SOURCE_DIR}/include)
 	target_include_directories(sdl-renderer PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
@@ -279,7 +293,7 @@ else()
 	set(SOKOL_LIB_SRC ${SOKOL_LIB_SRC} ${CMAKE_SOURCE_DIR}/src/system/sokol_impl.c)
 endif()
 
-add_library(sokol ${SOKOL_LIB_SRC})
+add_library(sokol STATIC ${SOKOL_LIB_SRC})
 
 if(APPLE)
 	target_compile_definitions(sokol PRIVATE SOKOL_METAL)
@@ -383,27 +397,32 @@ endif()
 if(BUILD_SDL)
 set(SDLGPU_DIR ${THIRDPARTY_DIR}/sdl-gpu/src)
 set(SDLGPU_SRC
-	${SDLGPU_DIR}/renderer_GLES_1.c
 	${SDLGPU_DIR}/renderer_GLES_2.c
-	${SDLGPU_DIR}/renderer_GLES_3.c
-	${SDLGPU_DIR}/renderer_OpenGL_1.c
-	${SDLGPU_DIR}/renderer_OpenGL_1_BASE.c
-	${SDLGPU_DIR}/renderer_OpenGL_2.c
-	${SDLGPU_DIR}/renderer_OpenGL_3.c
-	${SDLGPU_DIR}/renderer_OpenGL_4.c
 	${SDLGPU_DIR}/SDL_gpu.c
 	${SDLGPU_DIR}/SDL_gpu_matrix.c
 	${SDLGPU_DIR}/SDL_gpu_renderer.c
-	${SDLGPU_DIR}/SDL_gpu_shapes.c
-	${SDLGPU_DIR}/externals/glew/glew.c
 	${SDLGPU_DIR}/externals/stb_image/stb_image.c
 	${SDLGPU_DIR}/externals/stb_image_write/stb_image_write.c
 )
 
+if(NOT ANDROID)
+	list(APPEND SDLGPU_SRC 
+		${SDLGPU_DIR}/renderer_GLES_1.c
+		${SDLGPU_DIR}/renderer_GLES_3.c
+		${SDLGPU_DIR}/renderer_OpenGL_1.c
+		${SDLGPU_DIR}/renderer_OpenGL_1_BASE.c
+		${SDLGPU_DIR}/renderer_OpenGL_2.c
+		${SDLGPU_DIR}/renderer_OpenGL_3.c
+		${SDLGPU_DIR}/renderer_OpenGL_4.c
+		${SDLGPU_DIR}/SDL_gpu_shapes.c	
+		${SDLGPU_DIR}/externals/glew/glew.c
+	)
+endif()
+
 add_library(sdlgpu STATIC ${SDLGPU_SRC})
 
-if(EMSCRIPTEN)
-	target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC DSDL_GPU_DISABLE_OPENGL SDL_GPU_DISABLE_GLES_1 SDL_GPU_DISABLE_GLES_3 SDL_GPU_DISABLE_OPENGL)
+if(EMSCRIPTEN OR ANDROID)
+	target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC SDL_GPU_DISABLE_GLES_1 SDL_GPU_DISABLE_GLES_3 SDL_GPU_DISABLE_OPENGL)
 else()
 	target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC SDL_GPU_DISABLE_GLES SDL_GPU_DISABLE_OPENGL_3 SDL_GPU_DISABLE_OPENGL_4)
 endif()
@@ -413,7 +432,7 @@ target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/external
 target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/externals/glew/GL)
 target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/externals/stb_image)
 target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/externals/stb_image_write)
-target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/SDL2-2.0.8/include)
+target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl2/include)
 
 if(WIN32)
 	target_link_libraries(sdlgpu opengl32)
@@ -424,9 +443,26 @@ if(LINUX)
 endif()
 
 if(APPLE)
-	FIND_LIBRARY(OPENGL_LIBRARY OpenGL)
+	find_library(OPENGL_LIBRARY OpenGL)
 	target_link_libraries(sdlgpu ${OPENGL_LIBRARY})
 endif()
+
+if(ANDROID)
+	find_library( ANDROID_LOG_LIBRARY log )
+	find_library( ANDROID_GLES2_LIBRARY GLESv2 )
+	find_library( ANDROID_GLES1_LIBRARY GLESv1_CM )
+	target_link_libraries(sdlgpu
+		${ANDROID_LOG_LIBRARY}
+		${ANDROID_GLES2_LIBRARY}
+		${ANDROID_GLES1_LIBRARY}
+	)
+endif()
+
+if(NOT EMSCRIPTEN)
+	add_dependencies(sdlgpu SDL2-static)
+	target_link_libraries(sdlgpu SDL2-static)
+endif()
+
 endif()
 
 ################################
@@ -442,7 +478,7 @@ set(SDLNET_SRC
 )
 
 add_library(sdlnet STATIC ${SDLNET_SRC})
-target_include_directories(sdlnet PRIVATE ${THIRDPARTY_DIR}/SDL2-2.0.8/include)
+target_include_directories(sdlnet PRIVATE ${THIRDPARTY_DIR}/sdl2/include)
 
 if(WIN32)
 	target_link_libraries(sdlnet ws2_32)
@@ -474,7 +510,7 @@ add_library(zlib STATIC ${ZLIB_SRC})
 # bin2txt
 ################################
 
-if(NOT EMSCRIPTEN AND BUILD_DEMO_CARTS)
+if(BUILD_DEMO_CARTS)
 	set(BIN2TXT_DIR ${CMAKE_SOURCE_DIR}/tools/bin2txt)
 	set(BIN2TXT_SRC 
 		${BIN2TXT_DIR}/bin2txt.c
@@ -563,10 +599,6 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 	add_dependencies(${TIC80_OUTPUT}lib tic80core zlib)
 	target_link_libraries(${TIC80_OUTPUT}lib tic80core zlib)
 
-	if(BUILD_DEMO_CARTS)
-		target_compile_definitions(${TIC80_OUTPUT}lib PUBLIC BUILD_DEMO_CARTS)
-	endif()
-
 endforeach()
 
 if(BUILD_PRO)
@@ -597,9 +629,15 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 
 		add_executable(${TIC80_OUTPUT} ${SYSTEM_TYPE} ${TIC80_SRC})
 	elseif(APPLE)
-		add_executable(${TIC80_OUTPUT} MACOSX_BUNDLE ${TIC80_SRC} build/macosx/tic80.icns)
-		set_source_files_properties(build/macosx/tic80.icns PROPERTIES MACOSX_PACKAGE_LOCATION RESOURCES)
-		set_target_properties(${TIC80_OUTPUT} PROPERTIES MACOSX_BUNDLE_INFO_PLIST build/macosx/${TIC80_OUTPUT}.plist)
+		add_executable(${TIC80_OUTPUT} MACOSX_BUNDLE ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/build/macosx/tic80.icns)
+		set_source_files_properties(${CMAKE_SOURCE_DIR}/build/macosx/tic80.icns PROPERTIES MACOSX_PACKAGE_LOCATION RESOURCES)
+		set_target_properties(${TIC80_OUTPUT} PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/build/macosx/${TIC80_OUTPUT}.plist)
+	elseif(ANDROID)
+
+		set(TIC80_SRC ${TIC80_SRC} ${ANDROID_NDK}/sources/android/cpufeatures/cpu-features.c)
+
+		add_library(${TIC80_OUTPUT} SHARED ${TIC80_SRC})
+		target_link_libraries(${TIC80_OUTPUT} hidapi)
 	else()
 		add_executable(${TIC80_OUTPUT} ${TIC80_SRC})
 	endif()
@@ -607,7 +645,7 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 	target_include_directories(${TIC80_OUTPUT} PRIVATE ${CMAKE_SOURCE_DIR}/include)
 	target_include_directories(${TIC80_OUTPUT} PRIVATE ${CMAKE_SOURCE_DIR}/src)
 	target_include_directories(${TIC80_OUTPUT} PRIVATE ${THIRDPARTY_DIR}/SDL2_net-2.0.1)
-	target_include_directories(${TIC80_OUTPUT} PRIVATE ${THIRDPARTY_DIR}/SDL2-2.0.8/include)
+	target_include_directories(${TIC80_OUTPUT} PRIVATE ${THIRDPARTY_DIR}/sdl2/include)
 
 	target_include_directories(${TIC80_OUTPUT} PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/include)
 
@@ -616,10 +654,10 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 	endif()
 
 	if(EMSCRIPTEN)
-		set_target_properties(${TIC80_OUTPUT} PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s TOTAL_MEMORY=67108864 --pre-js build/html/prejs.js")
-	else()
-		add_dependencies(${TIC80_OUTPUT} SDL2main SDL2-static)
-		target_link_libraries(${TIC80_OUTPUT} SDL2-static SDL2main)
+		set_target_properties(${TIC80_OUTPUT} PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s TOTAL_MEMORY=67108864 --pre-js ${CMAKE_SOURCE_DIR}/build/html/prejs.js")		
+	elseif(NOT ANDROID)
+		add_dependencies(${TIC80_OUTPUT} SDL2main)
+		target_link_libraries(${TIC80_OUTPUT} SDL2main)
 	endif()
 
 	add_dependencies(${TIC80_OUTPUT} ${TIC80_OUTPUT}lib sdlnet sdlgpu)
@@ -664,9 +702,9 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 
 		add_executable(${TIC80_OUTPUT}-sokol ${SYSTEM_TYPE} ${TIC80_SRC})
 	elseif(APPLE)
-		add_executable(${TIC80_OUTPUT}-sokol MACOSX_BUNDLE ${TIC80_SRC} build/macosx/tic80.icns)
-		set_source_files_properties(build/macosx/tic80.icns PROPERTIES MACOSX_PACKAGE_LOCATION RESOURCES)
-		set_target_properties(${TIC80_OUTPUT}-sokol PROPERTIES MACOSX_BUNDLE_INFO_PLIST build/macosx/${TIC80_OUTPUT}-sokol.plist)
+		add_executable(${TIC80_OUTPUT}-sokol MACOSX_BUNDLE ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/build/macosx/tic80.icns)
+		set_source_files_properties(${CMAKE_SOURCE_DIR}/build/macosx/tic80.icns PROPERTIES MACOSX_PACKAGE_LOCATION RESOURCES)
+		set_target_properties(${TIC80_OUTPUT}-sokol PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/build/macosx/${TIC80_OUTPUT}-sokol.plist)
 	else()
 		add_executable(${TIC80_OUTPUT}-sokol ${TIC80_SRC})
 	endif()
@@ -674,7 +712,7 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 	target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE ${CMAKE_SOURCE_DIR}/include)
 	target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE ${CMAKE_SOURCE_DIR}/src)
 	target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE ${THIRDPARTY_DIR}/SDL2_net-2.0.1)
-	target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE ${THIRDPARTY_DIR}/SDL2-2.0.8/include)
+	target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE ${THIRDPARTY_DIR}/sdl2/include)
 
 	target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE ${THIRDPARTY_DIR}/sokol)
 

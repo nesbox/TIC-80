@@ -73,9 +73,12 @@
 #	endif
 #endif 
 
-#if (defined(linux) || defined(__linux) || defined(__linux__))
+#if defined(ANDROID) || defined(__ANDROID__)
+#	undef __TIC_ANDROID__
+#	define __TIC_ANDROID__ 1
+#elif (defined(linux) || defined(__linux) || defined(__linux__))
 #	undef __TIC_LINUX__
-#	define __TIC_LINUX__   1
+#	define __TIC_LINUX__ 1
 #endif
 
 #ifndef TIC80_API
