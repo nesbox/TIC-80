@@ -60,8 +60,8 @@ matrix:
       script:
         - bash build_demos.sh
         - mkdir out && cd out
-        - docker exec -it emscripten "emcmake cmake -DCMAKE_BUILD_TYPE=MinSizeRel .."
-        - docker exec -it emscripten "make -j$(nproc)"
+        - docker exec -it emscripten emcmake cmake -DCMAKE_BUILD_TYPE=MinSizeRel ./..
+        - docker exec -it emscripten make -j$(nproc)
 
 after_success:
   - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/out/bin $EXE_FILE
