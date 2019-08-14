@@ -13,7 +13,9 @@ matrix:
       osx_image: xcode9.3
       env:
         - OS_FOLDER=mac
-        - EXE_FILE=tic80.app
+      after_success:
+        - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/out/bin tic80.app
+        - curl --retry 3 --ftp-create-dirs -T tic80.tar.gz $BUILDS_SERVER_PATH/
 
     - os: linux
       dist: trusty
@@ -24,7 +26,9 @@ matrix:
             - libasound2-dev
       env:
         - OS_FOLDER=linux
-        - EXE_FILE=tic80
+      after_success:
+        - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/out/bin tic80
+        - curl --retry 3 --ftp-create-dirs -T tic80.tar.gz $BUILDS_SERVER_PATH/
 
     - os: linux
       language: android
@@ -51,7 +55,6 @@ matrix:
       dist: trusty
       env:
         - OS_FOLDER=wasm
-        - EXE_FILE="tic80.js tic80.wasm"
       sudo: required
       services:
         - docker
@@ -59,10 +62,8 @@ matrix:
         - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit bash
       script:
         - bash build_demos.sh
-        - mkdir out && cd out
-        - docker exec -it emscripten emcmake cmake -DCMAKE_BUILD_TYPE=MinSizeRel ./..
+        - docker exec -it emscripten emcmake cmake -DCMAKE_BUILD_TYPE=MinSizeRel .
         - docker exec -it emscripten make -j$(nproc)
-
-after_success:
-  - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/out/bin $EXE_FILE
-  - curl --retry 3 --ftp-create-dirs -T tic80.tar.gz $BUILDS_SERVER_PATH/
+      after_success:
+        - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/bin tic80.js tic80.wasm
+        - curl --retry 3 --ftp-create-dirs -T tic80.tar.gz $BUILDS_SERVER_PATH/
