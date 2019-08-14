@@ -432,7 +432,6 @@ target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/external
 target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/externals/glew/GL)
 target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/externals/stb_image)
 target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/externals/stb_image_write)
-target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl2/include)
 
 if(WIN32)
 	target_link_libraries(sdlgpu opengl32)
