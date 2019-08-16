@@ -5,7 +5,7 @@
 #include <string.h>
 #include <math.h>
 #include <tic.h>
-#include "libretro.h"
+#include "libretro-common/include/libretro.h"
 #include "libretro_core_options.h"
 #include "../../ticapi.h"
 

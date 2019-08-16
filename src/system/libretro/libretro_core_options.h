@@ -4,8 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "libretro.h"
-#include "retro_inline.h"
+#include "libretro-common/include/libretro.h"
+#include "libretro-common/include/retro_inline.h"
 
 // TODO: Add translations to the core options.
 #define HAVE_NO_LANGEXTRA

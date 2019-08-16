@@ -7,7 +7,7 @@
 #pragma warning(disable:4566)
 #endif
 
-#include "libretro.h"
+#include "libretro-common/include/libretro.h"
 
 /*
  ********************************
