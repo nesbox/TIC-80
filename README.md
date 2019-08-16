@@ -84,7 +84,9 @@ run the following commands in the Terminal
 ```
 sudo apt-get install git cmake libgtk-3-dev libgles1-mesa-dev libglu-dev -y
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80
-cmake . && make -j4
+cd build
+cmake ..
+make -j4
 ```
 
 to install the latest CMake:
@@ -99,7 +101,9 @@ run the following commands in the Terminal
 ```
 sudo apt-get install git cmake libgtk-3-dev libglvnd-dev libglu1-mesa-dev freeglut3-dev -y
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80
-cmake . && make -j4
+cd build
+cmake ..
+make -j4
 ```
 
 ## Mac
@@ -109,8 +113,9 @@ run the following commands in the Terminal
 ```
 brew install git cmake
 git clone --recursive https://github.com/nesbox/TIC-80
-cd TIC-80
-cmake . && make -j4
+cd TIC-80/build
+cmake ..
+make -j4
 ```
 
 ## iOS / tvOS
