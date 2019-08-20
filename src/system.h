@@ -100,5 +100,15 @@ typedef struct
 	bool (*isGamepadMode)();
 } Studio;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 TIC80_API Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* appFolder, System* system);
 TIC80_API void studioInitPost();
+
+#ifdef __cplusplus
+}
+#endif
+
