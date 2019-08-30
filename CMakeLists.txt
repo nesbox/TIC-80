@@ -536,12 +536,14 @@ if(BUILD_DEMO_CARTS)
 
 		set(OUTNAME ${CMAKE_SOURCE_DIR}/bin/assets/${cart_name}.dat)
 
-		list(APPEND DEMO_CARTS_OUT ${OUTNAME})
+		if(NOT EXISTS ${OUTNAME})
+			list(APPEND DEMO_CARTS_OUT ${OUTNAME})
 
-		add_custom_command(OUTPUT ${OUTNAME}
-			COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${CART_FILE} ${OUTNAME} -z
-			DEPENDS bin2txt ${CART_FILE}
-		)
+			add_custom_command(OUTPUT ${OUTNAME}
+				COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${CART_FILE} ${OUTNAME} -z
+				DEPENDS bin2txt ${CART_FILE}
+			)
+		endif()
 
 	endforeach(CART_FILE)
 
