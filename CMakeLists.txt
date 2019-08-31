@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.3)
 project(TIC-80 C CXX)
 message("Building for target : ${CMAKE_SYSTEM_NAME}")
 
+
+
 if(ANDROID OR EMSCRIPTEN)
 	set(BUILD_SOKOL_DEFAULT OFF)
 	set(BUILD_LIBRETRO_DEFAULT OFF)
@@ -18,6 +20,59 @@ option(BUILD_SOKOL "Sokol Enabled" ${BUILD_SOKOL_DEFAULT})
 option(BUILD_LIBRETRO "libretro Enabled" ${BUILD_LIBRETRO_DEFAULT})
 option(BUILD_DEMO_CARTS "Demo Carts Enabled" ${BUILD_DEMO_CARTS_DEFAULT})
 option(BUILD_PRO "Build PRO version" FALSE)
+
+if (BAREMETALPI)
+
+set(BUILD_SDL off)
+set(BUILD_DEMO_CARTS OFF)
+
+set(CMAKE_SYSTEM_NAME Generic)
+set(CMAKE_SYSTEM_PROCESSOR ARM)
+
+if(MINGW OR CYGWIN OR WIN32)
+    set(UTIL_SEARCH_CMD where)
+elseif(UNIX OR APPLE)
+    set(UTIL_SEARCH_CMD which)
+endif()
+
+set(TOOLCHAIN_PREFIX arm-none-eabi-)
+
+execute_process(
+  COMMAND ${UTIL_SEARCH_CMD} ${TOOLCHAIN_PREFIX}gcc
+  OUTPUT_VARIABLE BINUTILS_PATH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+message("Crosscompiler path is ${BINUTILS_PATH}")
+get_filename_component(ARM_TOOLCHAIN_DIR ${BINUTILS_PATH} DIRECTORY)
+
+# Without that flag CMake is not able to pass test compilation check
+if (${CMAKE_VERSION} VERSION_EQUAL "3.6.0" OR ${CMAKE_VERSION} VERSION_GREATER "3.6")
+    set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+else()
+    set(CMAKE_EXE_LINKER_FLAGS_INIT "-Wl,-E")
+endif()
+
+# removed squirrel language as it doesn't seem to compile under arm. Needs investigation.
+# note: hardcoded flags are for RPI2. Should try to use the ones
+# generated in CIRCLE during config
+set(CMAKE_C_FLAGS " -DTIC_BUILD_WITH_FENNEL -DTIC_BUILD_WITH_MOON -DTIC_BUILD_WITH_JS -DTIC_BUILD_WITH_WREN -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv7-a+neon-vfpv4  -D AARCH=32 -D __circle__ -D BAREMETALPI  --specs=nosys.specs -O3 -mabi=aapcs -marm  -mfloat-abi=hard -mfpu=neon-vfpv4  -D__DYNAMIC_REENT__")
+
+set(CMAKE_C_COMPILER ${TOOLCHAIN_PREFIX}gcc)
+set(CMAKE_ASM_COMPILER ${CMAKE_C_COMPILER})
+set(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}g++)
+
+set(CMAKE_OBJCOPY ${ARM_TOOLCHAIN_DIR}/${TOOLCHAIN_PREFIX}objcopy CACHE INTERNAL "objcopy tool")
+set(CMAKE_SIZE_UTIL ${ARM_TOOLCHAIN_DIR}/${TOOLCHAIN_PREFIX}size CACHE INTERNAL "size tool")
+
+set(CMAKE_SYSROOT ${ARM_TOOLCHAIN_DIR}/../arm-none-eabi)
+set(CMAKE_FIND_ROOT_PATH ${BINUTILS_PATH})
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+
+endif()
+
+
 
 if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID)
 	set(LINUX TRUE)
