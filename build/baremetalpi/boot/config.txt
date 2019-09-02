@@ -1,0 +1,3 @@
+hdmi_group=1
+hdmi_mode=16
+scaling_kernel=8

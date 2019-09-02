@@ -130,6 +130,8 @@ lib/
 *.cmake
 CMakeCache.txt
 Makefile
+!build/baremetalpi/Makefile
+!build/baremetalpi/boot/Makefile
 build/android/.gradle/
 build/android/app/.externalNativeBuild/
 build/android/app/build/

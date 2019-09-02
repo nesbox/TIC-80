@@ -153,6 +153,7 @@ struct MenuItem
 	const char* hash;
 	s32 id;
 	tic_screen* cover;
+	bool coverLoaded;
 	bool dir;
 	bool project;
 };
@@ -432,6 +433,7 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 		item->id = id;
 		item->dir = dir;
 		item->cover = NULL;
+		item->coverLoaded = false;
 		item->project = project;
 	}
 
@@ -523,6 +525,12 @@ static void loadCover(Surf* surf)
 	
 	MenuItem* item = &surf->menu.items[surf->menu.pos];
 	
+	if(item->coverLoaded)
+	{
+		return;
+	}
+	item->coverLoaded = true;
+
 	if(!fsIsInPublicDir(surf->fs))
 	{
 
