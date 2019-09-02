@@ -1,3 +1,4 @@
 *
 !.gitignore
-!assets/
+!assets
+!assets/*
