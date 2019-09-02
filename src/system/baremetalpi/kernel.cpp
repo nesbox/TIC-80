@@ -404,10 +404,10 @@ TShutdownMode Run(void)
 
 
 	// sound system
-	mVCHIQSound.AllocateQueue(1000);
-	mVCHIQSound.SetWriteFormat(SoundFormatSigned16);
+	mSound->AllocateQueue(1000);
+	mSound->SetWriteFormat(SoundFormatSigned16);
 
-	if (!mVCHIQSound.Start())
+	if (! (mSound -> Start()) )
 	{
 		Die("Could not start sound.");
 	}
@@ -419,7 +419,7 @@ TShutdownMode Run(void)
 		platform.studio->tick();
 		keyspinlock.Release();
 
-		mVCHIQSound.Write(tic->samples.buffer, tic->samples.size);
+		mSound->Write(tic->samples.buffer, tic->samples.size);
 
 		mScreen.vsync();
 
