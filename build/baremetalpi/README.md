@@ -29,13 +29,23 @@ cd TIC-80
 sh build_demos.sh
 ```
 
-Clone and build circle/circle-stdlib:
+Clone circle/circle-stdlib:
 
 ```
 cd 3rd-party
 git clone --recursive https://github.com/smuehlst/circle-stdlib.git
+```
+
+Now you have to edit file in circle-stdlib/libs/circle/include/circle/sysconfig.h and uncomment the following define to enable it:
+```
+#define USE_USB_SOF_INTR
+```
+
+Now build circle-stdlib:
+
+```
 cd circle-stdlib
-./configure -r 2
+./configure -r 3
 make
 ```
 
@@ -68,9 +78,9 @@ cd baremetalpi
 make
 ```
 
-This generates the final `kernel7.img` file. Copy it into your SD card root.
+This generates the final `kernel8-32.img` file. Copy it into your SD card root.
 
-Now you have to prepare some bootup files that need to be copied to the SD card root together with your kernel7.img. This only need to be done once:
+Now you have to prepare some bootup files that need to be copied to the SD card root together with your kernel8-32.img. This only need to be done once:
 
 ```
 cd boot
