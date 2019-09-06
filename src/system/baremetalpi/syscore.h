@@ -187,7 +187,7 @@ boolean initializeCore()
 	CLogger::Get()->Write("TEST", LogError, "Test Logging!");
 	dbg("data:\n");
 	//dbg("Memory: %p\n", &mMemory);
-	dbg("Snd: %p\n", &mVCHIQSound);
+	//dbg("Snd: %p\n", &mVCHIQSound);
 
 	
 
