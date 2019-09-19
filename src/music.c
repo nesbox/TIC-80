@@ -840,6 +840,13 @@ static void processTrackerKeyboard(Music* music)
 		tic_key_y,
 		tic_key_7,
 		tic_key_u,
+		
+		// extra keys
+		tic_key_i,
+		tic_key_9,
+		tic_key_o,
+		tic_key_0,
+		tic_key_p,
 	};
 
 	if (getChannelPattern(music))
