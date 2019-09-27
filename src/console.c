@@ -374,17 +374,9 @@ static s32 writeGifData(const tic_mem* tic, u8* dst, const u8* src, s32 width, s
 	return size;
 }
 
-static void loadCart(tic_mem* tic, tic_cartridge* cart, const u8* buffer, s32 size, bool palette)
+static bool loadRom(tic_mem* tic, const void* data, s32 size)
 {
-	tic->api.load(cart, buffer, size, palette);
-
-	if(!palette)
-		memcpy(cart->bank0.palette.data, getConfig()->cart->bank0.palette.data, sizeof(tic_palette));
-}
-
-static bool loadRom(tic_mem* tic, const void* data, s32 size, bool palette)
-{
-	loadCart(tic, &tic->cart, data, size, palette);
+    tic->api.load(&tic->cart, data, size);
 	tic->api.reset(tic);
 
 	return true;
@@ -427,8 +419,8 @@ static bool onConsoleLoadSectionCommand(Console* console, const char* param)
 
 					if(cart)
 					{
-						loadCart(console->tic, cart, data, size, true);
 						tic_mem* tic = console->tic;
+                        tic->api.load(cart, data, size);
 
 						switch(i)
 						{
@@ -656,7 +648,7 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 
 	setCartName(console, name);
 
-	loadRom(console->tic, data, size, true);
+	loadRom(console->tic, data, size);
 
 	studioRomLoaded();
 
@@ -1066,7 +1058,7 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 		{
 			console->showGameMenu = fsIsInPublicDir(console->fs);
 
-			loadRom(console->tic, data, size, true);
+			loadRom(console->tic, data, size);
 
 			onCartLoaded(console, name);
 
@@ -1128,7 +1120,7 @@ static void load(Console* console, const char* path, const char* hash)
 		{
 			console->showGameMenu = true;
 
-			loadRom(console->tic, data, size, true);
+			loadRom(console->tic, data, size);
 			onCartLoaded(console, name);
 
 			free(data);		
@@ -1224,8 +1216,7 @@ static void loadDemo(Console* console, ScriptLang script)
 
 	if(data)
 	{
-		loadRom(console->tic, data, size, false);
-
+		loadRom(console->tic, data, size);
 		free(data);
 	}
 
@@ -2920,7 +2911,8 @@ static bool cmdLoadCart(Console* console, const char* name)
 
 		if(hasExt(name, CART_EXT))
 		{
-			loadCart(console->tic, console->embed.file, data, size, true);	
+            tic_mem* tic = console->tic;
+            tic->api.load(console->embed.file, data, size);
 
 			char cartName[FILENAME_MAX];
 			fsFilename(name, cartName);
@@ -3268,7 +3260,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 
 			u8* data = NULL;
 			s32 size = unzip(&data, cartPtr, cartSize);
-			loadCart(tic, console->embed.file, data, size, true);
+            tic->api.load(console->embed.file, data, size);
 
 			free(data);
 
@@ -3302,7 +3294,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 
 						if(data)
 						{
-							loadCart(tic, console->embed.file, data, dataSize, true);
+                            tic->api.load(console->embed.file, data, dataSize);
 							console->embed.yes = true;
 							
 							free(data);

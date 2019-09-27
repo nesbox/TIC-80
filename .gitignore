@@ -136,3 +136,4 @@ build/android/.gradle/
 build/android/app/.externalNativeBuild/
 build/android/app/build/
 build/android/build/
+out/

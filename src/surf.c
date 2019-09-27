@@ -546,7 +546,7 @@ static void loadCover(Surf* surf)
 				if(hasExt(item->name, PROJECT_LUA_EXT) || hasExt(item->name, PROJECT_FENNEL_EXT))
 					surf->console->loadProject(surf->console, item->name, data, size, cart);
 				else
-					tic->api.load(cart, data, size, true);
+					tic->api.load(cart, data, size);
 
 				if(cart->cover.size)
 					updateMenuItemCover(surf, cart->cover.data, cart->cover.size);

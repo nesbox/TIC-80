@@ -278,7 +278,7 @@ static void readConfig(Config* config)
 
 static void update(Config* config, const u8* buffer, size_t size)
 {
-	config->tic->api.load(&config->cart, buffer, size, true);
+	config->tic->api.load(&config->cart, buffer, size);
 
 	readConfig(config);
 	studioConfigChanged();
