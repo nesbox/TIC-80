@@ -43,7 +43,6 @@ matrix:
         - yes | sdkmanager "build-tools;28.0.3"
 
       script:
-        - bash build_demos.sh
         - cd build/android
         - ./gradlew assembleRelease
 
@@ -61,7 +60,6 @@ matrix:
       install:
         - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit bash
       script:
-        - bash build_demos.sh
         - docker exec -it emscripten emcmake cmake -DCMAKE_BUILD_TYPE=MinSizeRel .
         - docker exec -it emscripten make -j$(nproc)
       after_success:
