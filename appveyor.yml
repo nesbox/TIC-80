@@ -6,8 +6,6 @@ environment:
     - COMPILER: MSVC
     - COMPILER: MSVC64
     - COMPILER: MinGW-w64
-  BUILD_SERVER:
-    secure: LONrmrMRv+m7++Sxtki7FpSe5kDZY/ak0CJmAknnLFGUJ55JVsIwBBOhIdijhMcF
   BUILD_TYPE: MinSizeRel
 
 install: 
