@@ -60,8 +60,8 @@ The [wiki](https://github.com/nesbox/tic.computer/wiki) holds TIC-80 documentati
 - install `git`
 - run following commands in `cmd`
 ```
-git clone --recursive https://github.com/nesbox/TIC-80
-cmake -G "Visual Studio 15 2017 Win64"
+git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
+cmake -G "Visual Studio 15 2017 Win64" ..
 ```
 - open `TIC-80.sln` and build
 - enjoy :)
@@ -72,9 +72,8 @@ cmake -G "Visual Studio 15 2017 Win64"
 - install `cmake` (https://cmake.org)
 - run following commands in `terminal`
 ```
-git clone --recursive https://github.com/nesbox/TIC-80
-cd TIC-80
-cmake -G "MinGW Makefiles"
+git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
+cmake -G "MinGW Makefiles" ..
 mingw32-make -j4
 ```
 
@@ -83,8 +82,7 @@ mingw32-make -j4
 run the following commands in the Terminal
 ```
 sudo apt-get install git cmake libgtk-3-dev libgles1-mesa-dev libglu-dev -y
-git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80
-cd build
+git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
 ```
@@ -100,8 +98,7 @@ sudo sh cmake-3.12.0-Linux-x86_64.sh --skip-license --prefix=/usr
 run the following commands in the Terminal
 ```
 sudo apt-get install git cmake libgtk-3-dev libglvnd-dev libglu1-mesa-dev freeglut3-dev -y
-git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80
-cd build
+git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
 ```
@@ -112,8 +109,7 @@ install `Command Line Tools for Xcode` and `brew` package manager
 run the following commands in the Terminal
 ```
 brew install git cmake
-git clone --recursive https://github.com/nesbox/TIC-80
-cd TIC-80/build
+git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
 ```
