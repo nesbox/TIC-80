@@ -35,7 +35,6 @@
 #include "gamepads.h"
 #include "syscore.h"
 
-
 static const char* KN = "TIC80"; // kernel name
 
 // currently pressed keys and modifiers
@@ -305,6 +304,8 @@ void inputToTic()
 	if (gamepad.buttons & 0x200) tic_input->gamepads.first.b = true;
 	if (gamepad.buttons & 0x400) tic_input->gamepads.first.x = true;
 	if (gamepad.buttons & 0x800) tic_input->gamepads.first.y = true;
+	// map ESC to a gamepad button to exit the game
+	if (gamepad.buttons & 0x1000) tic_input->keyboard.keys[keynum++]= tic_key_escape;
 
 	// TODO use min and max instead of hardcoded range
 	if (gamepad.naxes > 0)
@@ -401,12 +402,29 @@ TShutdownMode Run(void)
 
 	dbg("Calling studio init instance..\n");
 
-	// TODO we can pass -surf here to start in surf mode
-	platform.studio = studioInit(0, NULL, 44100, "tic80/", &systemInterface);
+	char** argv = NULL;
+	int argc = 0;
+	if (pKeyboard)
+	{
+		argv = NULL;
+		argc   = 0;
+	}
+	else
+	{
+		//  if no keyboard, start in surf mode!
+		char  arg0[] = "xxkernel";
+		char  arg1[] = "-surf";
+		argv = { &arg0[0], &arg1[0], NULL };
+		argc = 2;
+	}
+	platform.studio = studioInit(argc, argv, 44100, "tic80/", &systemInterface);
 	if( !platform.studio)
 	{
 		Die("Could not init studio");
 	}
+
+	// gotoSurf();
+
 	dbg("Studio init ok..\n");
 
 	if (pKeyboard){

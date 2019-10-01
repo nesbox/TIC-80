@@ -992,7 +992,7 @@ bool fsExists(const char* name)
 	FILINFO s;
 
 	FRESULT res = f_stat(name, &s);
-	return res;
+	return res == FR_OK;
 #else
 	struct tic_stat_struct s;
 
