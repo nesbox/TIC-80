@@ -136,4 +136,13 @@ build/android/.gradle/
 build/android/app/.externalNativeBuild/
 build/android/app/build/
 build/android/build/
+build/3rd-party/sdl2/SDL2.spec
+build/3rd-party/sdl2/include/SDL_config.h
+build/3rd-party/sdl2/sdl2-config
+build/3rd-party/sdl2/sdl2.pc
+build/bin/bin2txt
+build/bin/sdl-renderer
+build/bin/sokol-renderer
+build/bin/tic80
+build/bin/tic80-sokol
 out/
