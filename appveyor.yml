@@ -28,4 +28,4 @@ on_success:
 - cmd: >-
     set BUILDS_SERVER_PATH=%BUILD_SERVER%/files/%APPVEYOR_REPO_BRANCH%/%DATE%/win
               
-    curl --retry 3 --ftp-create-dirs -T tic80.zip %BUILDS_SERVER_PATH%/tic80-%COMPILER%.zip
+    curl --retry 3 --ftp-create-dirs -T tic80.zip %BUILDS_SERVER_PATH%/tic80-%COMPILER%.zip || true
