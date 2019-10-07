@@ -160,10 +160,12 @@ boolean initializeCore()
 	}
 
 	pKeyboard = (CUSBKeyboardDevice *) mDeviceNameService.GetDevice ("ukbd1", FALSE);
+	/*
+	keep going in "surf mode"
 	if (pKeyboard == 0)
 	{
 		return Die("Keyboard not found");
-	}
+	}*/
 
 	pMouse = (CMouseDevice *) mDeviceNameService.GetDevice ("mouse1", FALSE);
 	if (pMouse == 0)

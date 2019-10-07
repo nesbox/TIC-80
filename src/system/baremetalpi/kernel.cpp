@@ -402,22 +402,22 @@ TShutdownMode Run(void)
 
 	dbg("Calling studio init instance..\n");
 
-	char** argv = NULL;
-	int argc = 0;
 	if (pKeyboard)
 	{
-		argv = NULL;
-		argc   = 0;
+		dbg("With keyboard\n");
+		platform.studio = studioInit(0, NULL, 44100, "tic80/", &systemInterface);
 	}
 	else
 	{
 		//  if no keyboard, start in surf mode!
 		char  arg0[] = "xxkernel";
 		char  arg1[] = "-surf";
-		argv = { &arg0[0], &arg1[0], NULL };
-		argc = 2;
+		char* argv[] = { &arg0[0], &arg1[0], NULL };
+		int argc = 2;
+		dbg("Without keyboard\n");
+		platform.studio = studioInit(argc, argv, 44100, "tic80/", &systemInterface);
 	}
-	platform.studio = studioInit(argc, argv, 44100, "tic80/", &systemInterface);
+
 	if( !platform.studio)
 	{
 		Die("Could not init studio");
