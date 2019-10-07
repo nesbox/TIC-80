@@ -21,12 +21,11 @@ First, set the path to include the arm toolkit (fix the command with your path):
 PATH=/home/you/gcc-arm-none-eabi-8-2018-q4-major/bin/:$PATH
 ```
 
-Get a fresh copy of TIC-80 repository and build demo carts:
+Get a fresh copy of TIC-80 repository:
 
 ```
 git clone --recursive https://github.com/nesbox/TIC-80
 cd TIC-80
-sh build_demos.sh
 ```
 
 Clone circle/circle-stdlib:
