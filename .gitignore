@@ -146,3 +146,4 @@ build/bin/sokol-renderer
 build/bin/tic80
 build/bin/tic80-sokol
 out/
+build/bin/
