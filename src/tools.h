@@ -52,3 +52,4 @@ s32 tic_tool_get_pattern_id(const tic_track* track, s32 frame, s32 channel);
 void tic_tool_set_pattern_id(tic_track* track, s32 frame, s32 channel, s32 id);
 u32 tic_tool_find_closest_color(const tic_rgb* palette, const tic_rgb* color);
 u32* tic_palette_blit(const tic_palette* src);
+bool tic_tool_has_ext(const char* name, const char* ext);

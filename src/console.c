@@ -376,7 +376,7 @@ static s32 writeGifData(const tic_mem* tic, u8* dst, const u8* src, s32 width, s
 
 static bool loadRom(tic_mem* tic, const void* data, s32 size)
 {
-    tic->api.load(&tic->cart, data, size);
+	tic->api.load(&tic->cart, data, size);
 	tic->api.reset(tic);
 
 	return true;
@@ -673,32 +673,17 @@ static void onCartLoaded(Console* console, const char* name)
 
 }
 
-static bool hasExt(const char* name, const char* ext)
-{
-	return strcmp(name + strlen(name) - strlen(ext), ext) == 0;
-}
-
 #if defined(TIC80_PRO)
-
-static bool hasProjectExt(const char* name)
-{
-	return hasExt(name, PROJECT_LUA_EXT)
-		|| hasExt(name, PROJECT_MOON_EXT)
-		|| hasExt(name, PROJECT_JS_EXT)
-		|| hasExt(name, PROJECT_WREN_EXT)
-		|| hasExt(name, PROJECT_SQUIRREL_EXT)
-		|| hasExt(name, PROJECT_FENNEL_EXT);
-}
 
 static const char* projectComment(const char* name)
 {
 	char* comment;
 
-	if(hasExt(name, PROJECT_JS_EXT) 
-		|| hasExt(name, PROJECT_WREN_EXT)
-		|| hasExt(name, PROJECT_SQUIRREL_EXT))
+	if(tic_tool_has_ext(name, PROJECT_JS_EXT) 
+		|| tic_tool_has_ext(name, PROJECT_WREN_EXT)
+		|| tic_tool_has_ext(name, PROJECT_SQUIRREL_EXT))
 		comment = "//";
-	else if(hasExt(name, PROJECT_FENNEL_EXT))
+	else if(tic_tool_has_ext(name, PROJECT_FENNEL_EXT))
 		comment = ";;";
 	else
 		comment = "--";
@@ -974,6 +959,8 @@ static bool loadProject(Console* console, const char* name, const char* data, s3
 		if(cart)
 		{
 			memset(cart, 0, sizeof(tic_cartridge));
+
+			// TODO: should we use DB16 default palette here?
             memcpy(&cart->bank0.palette, &getConfig()->cart->bank0.palette.data, sizeof(tic_palette));
 
 			const char* comment = projectComment(name);
@@ -2909,7 +2896,7 @@ static bool cmdLoadCart(Console* console, const char* name)
 		else
 #endif
 
-		if(hasExt(name, CART_EXT))
+		if(tic_tool_has_ext(name, CART_EXT))
 		{
             tic_mem* tic = console->tic;
             tic->api.load(console->embed.file, data, size);
@@ -3161,6 +3148,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 
 	if(argc > 1)
 	{
+		// TODO: should we use default DB16 palette here???
 		memcpy(console->embed.file->bank0.palette.data, getConfig()->cart->bank0.palette.data, sizeof(tic_palette));
 
 		u32 argp = 1;

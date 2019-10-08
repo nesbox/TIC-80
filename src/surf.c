@@ -374,11 +374,6 @@ static void replace(char* src, const char* what, const char* with)
 	}
 }
 
-static bool hasExt(const char* name, const char* ext)
-{
-	return strcmp(name + strlen(name) - strlen(ext), ext) == 0;
-}
-
 static void cutExt(char* name, const char* ext)
 {
 	name[strlen(name)-strlen(ext)] = '\0';
@@ -391,14 +386,9 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 	static const char CartExt[] = CART_EXT;
 
 	if(dir 
-		|| hasExt(name, CartExt)
-#if defined(TIC80_PRO)		
-		|| hasExt(name, PROJECT_LUA_EXT)
-		|| hasExt(name, PROJECT_MOON_EXT)
-		|| hasExt(name, PROJECT_JS_EXT)
-		|| hasExt(name, PROJECT_WREN_EXT)
-		|| hasExt(name, PROJECT_FENNEL_EXT)
-		|| hasExt(name, PROJECT_SQUIRREL_EXT)
+		|| tic_tool_has_ext(name, CartExt)
+#if defined(TIC80_PRO)
+		|| hasProjectExt(name)
 #endif
 		)
 	{
@@ -417,7 +407,7 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 
 			item->label = strdup(name);
 
-			if(hasExt(name, CartExt))
+			if(tic_tool_has_ext(name, CartExt))
 				cutExt(item->label, CartExt);
 			else
 			{
@@ -543,9 +533,13 @@ static void loadCover(Surf* surf)
 
 			if(cart)
 			{
-				if(hasExt(item->name, PROJECT_LUA_EXT) || hasExt(item->name, PROJECT_FENNEL_EXT))
+#if defined(TIC80_PRO)
+
+				if(hasProjectExt(item->name))
 					surf->console->loadProject(surf->console, item->name, data, size, cart);
 				else
+
+#endif					
 					tic->api.load(cart, data, size);
 
 				if(cart->cover.size)

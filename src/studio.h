@@ -166,3 +166,9 @@ bool anyKeyWasPressed();
 
 const StudioConfig* getConfig();
 System* getSystem();
+
+#if defined(TIC80_PRO)
+
+bool hasProjectExt(const char* name);
+
+#endif

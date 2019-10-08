@@ -105,3 +105,8 @@ u32* tic_palette_blit(const tic_palette* srcpal)
 
 	return pal;
 }
+
+bool tic_tool_has_ext(const char* name, const char* ext)
+{
+	return strcmp(name + strlen(name) - strlen(ext), ext) == 0;
+}
