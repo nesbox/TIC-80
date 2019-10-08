@@ -496,7 +496,7 @@ static void updateMenuItemCover(Surf* surf, const u8* cover, s32 size)
 {
 	MenuItem* item = &surf->menu.items[surf->menu.pos];
 
-	item->cover = malloc(sizeof(tic_screen));
+	item->cover = calloc(1, sizeof(tic_screen));
 
 	gif_image* image = gif_read_data(cover, size);
 
