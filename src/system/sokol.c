@@ -26,6 +26,7 @@
 #include <limits.h>
 
 #include "system.h"
+#include "net.h"
 #include "system/sokol.h"
 
 static struct
@@ -44,6 +45,8 @@ static struct
 	} audio;
 
 	char* clipboard;
+
+    Net* net;
 
 } platform;
 
@@ -85,7 +88,7 @@ static u64 getPerformanceFrequency()
 
 static void* getUrlRequest(const char* url, s32* size)
 {
-	return NULL;
+	return netGetRequest(platform.net, url, size);
 }
 
 static void goFullscreen()
@@ -391,6 +394,7 @@ static void app_input(const sapp_event* event)
 static void app_cleanup(void)
 {
 	platform.studio->close();
+	closeNet(platform.net);
 	free(platform.audio.samples);
 }
 
@@ -400,6 +404,8 @@ sapp_desc sokol_main(s32 argc, char* argv[])
 
 	platform.audio.desc.num_channels = TIC_STEREO_CHANNELS;
 	saudio_setup(&platform.audio.desc);
+
+    platform.net = createNet();
 
 	platform.studio = studioInit(argc, argv, saudio_sample_rate(), "./", &systemInterface);
 

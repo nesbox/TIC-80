@@ -147,3 +147,6 @@ build/bin/tic80
 build/bin/tic80-sokol
 out/
 build/bin/
+build/3rd-party/curl/libcurl.pc
+build/3rd-party/curl/curl-config
+build/3rd-party/curl/DartConfiguration.tcl

@@ -48,8 +48,8 @@
 #define TIC_NAME "TIC-80"
 #define TIC_NAME_FULL TIC_NAME " tiny computer"
 #define TIC_TITLE TIC_NAME_FULL " " TIC_VERSION_LABEL
-#define TIC_HOST "tic.computer"
-#define TIC_COPYRIGHT "http://" TIC_HOST " (C) 2019"
+#define TIC_HOST "tic80.com"
+#define TIC_COPYRIGHT "https://" TIC_HOST " (C) 2019"
 
 #define TIC_VRAM_SIZE (16*1024) //16K
 #define TIC_RAM_SIZE (TIC_VRAM_SIZE+80*1024) //16K+80K

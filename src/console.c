@@ -2673,15 +2673,19 @@ static lua_State* netLuaInit(u8* buffer, s32 size)
 {
 	if (buffer && size)
 	{
+		char* script = calloc(1, size + 1);
+		memcpy(script, buffer, size);
 		lua_State* lua = luaL_newstate();
 
 		if(lua)
 		{
-			if(luaL_loadstring(lua, (char*)buffer) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
+			if(luaL_loadstring(lua, (char*)script) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
 				return lua;
 
 			else lua_close(lua);
 		}
+
+		free(script);
 	}
 
 	return NULL;
@@ -2702,6 +2706,7 @@ static NetVersion netVersionRequest()
 	if(buffer && size)
 	{
 		lua_State* lua = netLuaInit(buffer, size);
+		free(buffer);
 
 		if(lua)
 		{

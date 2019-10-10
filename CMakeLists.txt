@@ -3,8 +3,6 @@ cmake_minimum_required(VERSION 3.3)
 project(TIC-80 C CXX)
 message("Building for target : ${CMAKE_SYSTEM_NAME}")
 
-
-
 if(ANDROID OR EMSCRIPTEN)
 	set(BUILD_SOKOL_DEFAULT OFF)
 	set(BUILD_LIBRETRO_DEFAULT OFF)
@@ -282,7 +280,6 @@ target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/squirrel/include)
 target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/moonscript)
 target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/fennel)
 
-add_dependencies(tic80core lua lpeg wren squirrel giflib)
 target_link_libraries(tic80core lua lpeg wren squirrel giflib)
 
 if(LINUX)
@@ -331,7 +328,6 @@ if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT ANDROID)
 		target_link_libraries(sdl-renderer mingw32)
 	endif()
 
-	add_dependencies(sdl-renderer tic80core SDL2-static SDL2main)
 	target_link_libraries(sdl-renderer tic80core SDL2-static SDL2main)
 endif()
 
@@ -406,7 +402,6 @@ target_include_directories(sokol-renderer PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_include_directories(sokol-renderer PRIVATE ${THIRDPARTY_DIR}/sokol)
 target_include_directories(sokol-renderer PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
-add_dependencies(sokol-renderer tic80core sokol)
 target_link_libraries(sokol-renderer tic80core sokol)
 endif()
 
@@ -440,7 +435,6 @@ if(BUILD_LIBRETRO)
 		RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
 	)
 
-	add_dependencies(tic80_libretro tic80core)
 	target_link_libraries(tic80_libretro tic80core)
 	set_target_properties(tic80_libretro PROPERTIES PREFIX "")
 endif()
@@ -513,31 +507,28 @@ if(ANDROID)
 endif()
 
 if(NOT EMSCRIPTEN)
-	add_dependencies(sdlgpu SDL2-static)
 	target_link_libraries(sdlgpu SDL2-static)
 endif()
 
 endif()
 
 ################################
-# SDL NET
+# CURL
 ################################
 
-if(BUILD_SDL)
-set(SDLNET_DIR ${THIRDPARTY_DIR}/SDL2_net-2.0.1)
-set(SDLNET_SRC 
-	${SDLNET_DIR}/SDLnet.c
-	${SDLNET_DIR}/SDLnetTCP.c
-	${SDLNET_DIR}/SDLnetselect.c
-)
-
-add_library(sdlnet STATIC ${SDLNET_SRC})
-target_include_directories(sdlnet PRIVATE ${THIRDPARTY_DIR}/sdl2/include)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
 
 if(WIN32)
-	target_link_libraries(sdlnet ws2_32)
+    set(CURL_STATIC_CRT ON CACHE BOOL "")
 endif()
-endif()
+
+set(CMAKE_USE_OPENSSL OFF CACHE BOOL "" )
+set(HTTP_ONLY ON CACHE BOOL "")
+set(BUILD_CURL_EXE OFF CACHE BOOL "")
+set(CURL_CA_BUNDLE "none" CACHE STRING "")
+set(CURL_CA_PATH "none" CACHE STRING "")
+
+add_subdirectory(${THIRDPARTY_DIR}/curl)
 
 ################################
 # ZLIB
@@ -574,7 +565,6 @@ if(BUILD_DEMO_CARTS)
 
 	target_include_directories(bin2txt PRIVATE ${THIRDPARTY_DIR}/zlib-1.2.11)
 
-	add_dependencies(bin2txt zlib)
 	target_link_libraries(bin2txt zlib)
 
 	file(GLOB DEMO_CARTS ${CMAKE_SOURCE_DIR}/demos/*.tic )
@@ -629,6 +619,7 @@ set(TIC80LIB_SRC
 	${TIC80LIB_DIR}/dialog.c
 	${TIC80LIB_DIR}/menu.c
 	${TIC80LIB_DIR}/surf.c
+	${TIC80LIB_DIR}/net.c
 )
 
 set(TIC80_OUTPUTS tic80)
@@ -649,9 +640,9 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 	target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${THIRDPARTY_DIR}/giflib-5.1.4/lib)
 	target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${THIRDPARTY_DIR}/zlib-1.2.11)
 	target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${THIRDPARTY_DIR}/lua-5.3.1/src)
+	target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${THIRDPARTY_DIR}/curl/include)
 
-	add_dependencies(${TIC80_OUTPUT}lib tic80core zlib)
-	target_link_libraries(${TIC80_OUTPUT}lib tic80core zlib)
+	target_link_libraries(${TIC80_OUTPUT}lib tic80core zlib libcurl)
 
 endforeach()
 
@@ -672,7 +663,7 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 		set(TIC80_SRC ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/src/ext/file_dialog.m)
 	endif()
 
-	set(TIC80_SRC ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/src/net.c src/system/sdlgpu.c)
+	set(TIC80_SRC ${TIC80_SRC} src/system/sdlgpu.c)
 
 	if(WIN32)
 		set(TIC80_SRC ${TIC80_SRC} build/windows/tic80.rc)
@@ -698,7 +689,6 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 
 	target_include_directories(${TIC80_OUTPUT} PRIVATE ${CMAKE_SOURCE_DIR}/include)
 	target_include_directories(${TIC80_OUTPUT} PRIVATE ${CMAKE_SOURCE_DIR}/src)
-	target_include_directories(${TIC80_OUTPUT} PRIVATE ${THIRDPARTY_DIR}/SDL2_net-2.0.1)
 	target_include_directories(${TIC80_OUTPUT} PRIVATE ${THIRDPARTY_DIR}/sdl2/include)
 
 	target_include_directories(${TIC80_OUTPUT} PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/include)
@@ -710,12 +700,10 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 	if(EMSCRIPTEN)
 		set_target_properties(${TIC80_OUTPUT} PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s TOTAL_MEMORY=67108864 --pre-js ${CMAKE_SOURCE_DIR}/build/html/prejs.js")		
 	elseif(NOT ANDROID)
-		add_dependencies(${TIC80_OUTPUT} SDL2main)
 		target_link_libraries(${TIC80_OUTPUT} SDL2main)
 	endif()
 
-	add_dependencies(${TIC80_OUTPUT} ${TIC80_OUTPUT}lib sdlnet sdlgpu)
-	target_link_libraries(${TIC80_OUTPUT} ${TIC80_OUTPUT}lib sdlnet sdlgpu)
+	target_link_libraries(${TIC80_OUTPUT} ${TIC80_OUTPUT}lib sdlgpu)
 
 	if(LINUX)
 		include(FindPkgConfig)
@@ -765,7 +753,6 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 
 	target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE ${CMAKE_SOURCE_DIR}/include)
 	target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE ${CMAKE_SOURCE_DIR}/src)
-	target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE ${THIRDPARTY_DIR}/SDL2_net-2.0.1)
 	target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE ${THIRDPARTY_DIR}/sdl2/include)
 
 	target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE ${THIRDPARTY_DIR}/sokol)
@@ -774,7 +761,6 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 		target_link_libraries(${TIC80_OUTPUT}-sokol mingw32)
 	endif()
 
-	add_dependencies(${TIC80_OUTPUT}-sokol ${TIC80_OUTPUT}lib sokol)
 	target_link_libraries(${TIC80_OUTPUT}-sokol ${TIC80_OUTPUT}lib sokol)
 
 	if(LINUX)

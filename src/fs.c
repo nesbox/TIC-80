@@ -196,15 +196,20 @@ static lua_State* netLuaInit(u8* buffer, s32 size)
 {
     if (buffer && size)
     {
+		char* script = calloc(1, size + 1);
+		memcpy(script, buffer, size);
+
         lua_State* lua = luaL_newstate();
 
         if(lua)
         {
-            if(luaL_loadstring(lua, (char*)buffer) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
+            if(luaL_loadstring(lua, script) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
                 return lua;
 
             else lua_close(lua);
         }
+
+        free(script);
     }
 
     return NULL;
@@ -214,84 +219,88 @@ static void onDirResponse(u8* buffer, s32 size, void* data)
 {
 	NetDirData* netDirData = (NetDirData*)data;
 
-	lua_State* lua = netLuaInit(buffer, size);
-
-	if(lua)
+	if(buffer && size)
 	{
+		lua_State* lua = netLuaInit(buffer, size);
+		free(buffer);
+
+		if(lua)
 		{
-			lua_getglobal(lua, "folders");
-
-			if(lua_type(lua, -1) == LUA_TTABLE)
 			{
-				s32 count = (s32)lua_rawlen(lua, -1);
+				lua_getglobal(lua, "folders");
 
-				for(s32 i = 1; i <= count; i++)
+				if(lua_type(lua, -1) == LUA_TTABLE)
 				{
-					lua_geti(lua, -1, i);
+					s32 count = (s32)lua_rawlen(lua, -1);
 
+					for(s32 i = 1; i <= count; i++)
 					{
-						lua_getfield(lua, -1, "name");
-						if(lua_isstring(lua, -1))
-							netDirData->callback(lua_tostring(lua, -1), NULL, 0, netDirData->data, true);
+						lua_geti(lua, -1, i);
+
+						{
+							lua_getfield(lua, -1, "name");
+							if(lua_isstring(lua, -1))
+								netDirData->callback(lua_tostring(lua, -1), NULL, 0, netDirData->data, true);
+
+							lua_pop(lua, 1);
+						}
 
 						lua_pop(lua, 1);
 					}
-
-					lua_pop(lua, 1);
 				}
+
+				lua_pop(lua, 1);
 			}
 
-			lua_pop(lua, 1);
-		}
-
-		{
-			lua_getglobal(lua, "files");
-
-			if(lua_type(lua, -1) == LUA_TTABLE)
 			{
-				s32 count = (s32)lua_rawlen(lua, -1);
+				lua_getglobal(lua, "files");
 
-				for(s32 i = 1; i <= count; i++)
+				if(lua_type(lua, -1) == LUA_TTABLE)
 				{
-					lua_geti(lua, -1, i);
+					s32 count = (s32)lua_rawlen(lua, -1);
 
-					char hash[FILENAME_MAX] = {0};
-					char name[FILENAME_MAX] = {0};
-
+					for(s32 i = 1; i <= count; i++)
 					{
-						lua_getfield(lua, -1, "hash");
-						if(lua_isstring(lua, -1))
-							strcpy(hash, lua_tostring(lua, -1));
+						lua_geti(lua, -1, i);
+
+						char hash[FILENAME_MAX] = {0};
+						char name[FILENAME_MAX] = {0};
+
+						{
+							lua_getfield(lua, -1, "hash");
+							if(lua_isstring(lua, -1))
+								strcpy(hash, lua_tostring(lua, -1));
+
+							lua_pop(lua, 1);
+						}
+
+						{
+							lua_getfield(lua, -1, "name");
+
+							if(lua_isstring(lua, -1))
+								strcpy(name, lua_tostring(lua, -1));
+
+							lua_pop(lua, 1);
+						}
+
+						{
+							lua_getfield(lua, -1, "id");
+
+							if(lua_isinteger(lua, -1))
+								netDirData->callback(name, hash, lua_tointeger(lua, -1), netDirData->data, false);
+
+							lua_pop(lua, 1);
+						}
 
 						lua_pop(lua, 1);
 					}
-
-					{
-						lua_getfield(lua, -1, "name");
-
-						if(lua_isstring(lua, -1))
-							strcpy(name, lua_tostring(lua, -1));
-
-						lua_pop(lua, 1);
-					}
-
-					{
-						lua_getfield(lua, -1, "id");
-
-						if(lua_isinteger(lua, -1))
-							netDirData->callback(name, hash, lua_tointeger(lua, -1), netDirData->data, false);
-
-						lua_pop(lua, 1);
-					}
-
-					lua_pop(lua, 1);
 				}
+
+				lua_pop(lua, 1);
 			}
 
-			lua_pop(lua, 1);
+			lua_close(lua);
 		}
-
-		lua_close(lua);
 	}
 }
 

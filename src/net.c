@@ -22,206 +22,74 @@
 
 #include "net.h"
 #include "tic.h"
-#include "SDL_net.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 
+#include <curl/curl.h>
+
 struct Net
 {
-	struct
-	{
-		u8* buffer;
-		s32 size;
-		char path[FILENAME_MAX];
-	} cache;
+	struct Curl_easy* curl;
 };
 
-
-typedef void(*NetResponse)(u8* buffer, s32 size, void* data);
-
-#if defined(__EMSCRIPTEN__)
-
-static void getRequest(Net* net, const char* path, NetResponse callback, void* data)
-{
-	callback(NULL, 0, data);
-}
-
-#else
-
-static void netClearCache(Net* net)
-{
-	if(net->cache.buffer)
-		free(net->cache.buffer);
-
-	net->cache.buffer = NULL;
-	net->cache.size = 0;
-	memset(net->cache.path, 0, sizeof net->cache.path);
-}
-
 typedef struct
 {
-	u8* data;
-	s32 size;
-}Buffer;
+    void* buffer;
+    s32 size;
+} CurlData;
 
-static Buffer httpRequest(const char* path, s32 timeout)
+static size_t writeCallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
-	Buffer buffer = {.data = NULL, .size = 0};
+	CurlData* data = (CurlData*)userp;
 
-	{
-		IPaddress ip;
+	const size_t total = size * nmemb;
+	data->buffer = realloc(data->buffer, data->size + total);
+	memcpy((u8*)data->buffer + data->size, contents, total);
+	data->size += total;
 
-		if (SDLNet_ResolveHost(&ip, TIC_HOST, 80) >= 0)
-		{
-			TCPsocket sock = SDLNet_TCP_Open(&ip);
-
-			if (sock)
-			{
-				SDLNet_SocketSet set = SDLNet_AllocSocketSet(1);
-
-				if(set)
-				{
-					SDLNet_TCP_AddSocket(set, sock);
-
-					{
-						char message[FILENAME_MAX];
-						memset(message, 0, sizeof message);
-						sprintf(message, "GET %s HTTP/1.0\r\nHost: " TIC_HOST "\r\n\r\n", path);
-						SDLNet_TCP_Send(sock, message, (s32)strlen(message) + 1);
-					}
-
-					if(SDLNet_CheckSockets(set, timeout) == 1 && SDLNet_SocketReady(sock))
-					{
-						enum {Size = 4*1024+1};
-						buffer.data = malloc(Size);
-						s32 size = 0;
-
-						for(;;)
-						{
-							size = SDLNet_TCP_Recv(sock, buffer.data + buffer.size, Size-1);
-
-							if(size > 0)
-							{
-								buffer.size += size;
-								buffer.data = realloc(buffer.data, buffer.size + Size);
-							}
-							else break;
-						}
-
-						buffer.data[buffer.size] = '\0';
-					}
-					
-					SDLNet_FreeSocketSet(set);
-				}
-
-				SDLNet_TCP_Close(sock);
-			}
-		}
-	}
-
-	return buffer;
-}
-
-static void getRequest(Net* net, const char* path, NetResponse callback, void* data)
-{
-	if(strcmp(net->cache.path, path) == 0)
-	{
-		callback(net->cache.buffer, net->cache.size, data);
-	}
-	else
-	{
-		netClearCache(net);
-
-		bool done = false;
-
-		enum {Timeout = 3000};
-		Buffer buffer = httpRequest(path, Timeout);
-
-		if(buffer.data && buffer.size)
-		{
-			if(strstr((char*)buffer.data, "200 OK"))
-			{
-				s32 contentLength = 0;
-
-				{
-					static const char ContentLength[] = "Content-Length:";
-
-					char* start = strstr((char*)buffer.data, ContentLength);
-
-					if(start)
-						contentLength = atoi(start + sizeof(ContentLength));
-				}
-
-				static const char Start[] = "\r\n\r\n";
-				u8* start = (u8*)strstr((char*)buffer.data, Start);
-
-				if(start)
-				{
-					strcpy(net->cache.path, path);
-					net->cache.size = contentLength ? contentLength : buffer.size - (s32)(start - buffer.data);
-					net->cache.buffer = (u8*)malloc(net->cache.size);
-					memcpy(net->cache.buffer, start + sizeof Start - 1, net->cache.size);
-					callback(net->cache.buffer, net->cache.size, data);
-					done = true;
-				}
-			}
-
-			free(buffer.data);
-		}
-
-		if(!done)
-			callback(NULL, 0, data);
-	}
-}
-
-#endif
-
-typedef struct
-{
-	void* buffer;
-	s32* size;
-} NetGetData;
-
-static void onGetResponse(u8* buffer, s32 size, void* data)
-{
-	NetGetData* netGetData = (NetGetData*)data;
-
-	netGetData->buffer = malloc(size);
-	*netGetData->size = size;
-	memcpy(netGetData->buffer, buffer, size);
+	return total;
 }
 
 void* netGetRequest(Net* net, const char* path, s32* size)
 {
-	NetGetData netGetData = {NULL, size};
-	getRequest(net, path, onGetResponse, &netGetData);
+	CurlData data = {NULL, 0};
 
-	return netGetData.buffer;
+	if(net->curl)
+	{
+		char url[FILENAME_MAX] = "http://" TIC_HOST;
+		strcat(url, path);
+		
+		curl_easy_setopt(net->curl, CURLOPT_URL, url);
+		curl_easy_setopt(net->curl, CURLOPT_WRITEDATA, &data);
+
+		if(curl_easy_perform(net->curl) != CURLE_OK)
+			return NULL;
+	}
+
+	*size = data.size;
+
+    return data.buffer;
 }
 
 Net* createNet()
 {
-	SDLNet_Init();
-
 	Net* net = (Net*)malloc(sizeof(Net));
 
 	*net = (Net)
 	{
-		.cache = 
-		{
-			.buffer = NULL,
-			.size = 0,
-			.path = {0},
-		},
+		.curl = curl_easy_init()
 	};
+
+	curl_easy_setopt(net->curl, CURLOPT_WRITEFUNCTION, writeCallback);
 
 	return net;
 }
 
 void closeNet(Net* net)
 {
+	if(net->curl)
+		curl_easy_cleanup(net->curl);
+
 	free(net);
-	
-	SDLNet_Quit();
 }
