@@ -89,14 +89,10 @@ static const char* getFilePath(FileSystem* fs, const char* name)
 	return path;
 }
 
-#if !defined(__EMSCRIPTEN__)
-
 static bool isRoot(FileSystem* fs)
 {
 	return strlen(fs->work) == 0;
 }
-
-#endif
 
 static bool isPublicRoot(FileSystem* fs)
 {
@@ -183,8 +179,6 @@ typedef char fsString;
 #define tic_strcat strcat
 
 #endif
-
-#if !defined(__EMSCRIPTEN__)
 
 typedef struct
 {
@@ -316,8 +310,6 @@ static void netDirRequest(const char* path, ListCallback callback, void* data)
 	onDirResponse(buffer, size, &netDirData);
 }
 
-#endif
-
 static void enumFiles(FileSystem* fs, const char* path, ListCallback callback, void* data, bool folder)
 {
 #if defined(BAREMETALPI)
@@ -400,8 +392,6 @@ static void enumFiles(FileSystem* fs, const char* path, ListCallback callback, v
 
 void fsEnumFiles(FileSystem* fs, ListCallback callback, void* data)
 {
-#if !defined(__EMSCRIPTEN__)
-
 	if(isRoot(fs) && !callback(PublicDir, NULL, 0, data, true))return;
 
 	if(isPublic(fs))
@@ -409,8 +399,6 @@ void fsEnumFiles(FileSystem* fs, ListCallback callback, void* data)
 		netDirRequest(fs->work + sizeof(TIC_HOST), callback, data);
 		return;
 	}
-
-#endif
 
 	const char* path = getFilePath(fs, "");
 
@@ -628,7 +616,6 @@ typedef struct
 
 } EnumPublicDirsData;
 
-#if !defined(__EMSCRIPTEN__)
 static bool onEnumPublicDirs(const char* name, const char* info, s32 id, void* data, bool dir)
 {
 	EnumPublicDirsData* enumPublicDirsData = (EnumPublicDirsData*)data;
@@ -641,7 +628,6 @@ static bool onEnumPublicDirs(const char* name, const char* info, s32 id, void* d
 
 	return true;
 }
-#endif
 
 bool fsIsDir(FileSystem* fs, const char* name)
 {
@@ -656,7 +642,6 @@ bool fsIsDir(FileSystem* fs, const char* name)
 	return s.fattrib & AM_DIR;
 #else
 
-#if !defined(__EMSCRIPTEN__)
 	if(isRoot(fs) && strcmp(name, PublicDir) == 0)
 		return true;
 
@@ -672,7 +657,6 @@ bool fsIsDir(FileSystem* fs, const char* name)
 
 		return enumPublicDirsData.found;
 	}
-#endif
 
 	const char* path = getFilePath(fs, name);
 	struct tic_stat_struct s;
