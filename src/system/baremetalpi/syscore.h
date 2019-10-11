@@ -1,5 +1,7 @@
 #pragma once
 
+#define HDMI_SOUND 1
+
 #include <circle/actled.h>
 #include <circle/koptions.h>
 #include <circle/devicenameservice.h>
@@ -15,8 +17,14 @@
 #include <circle/usb/dwhcidevice.h>
 #include <SDCard/emmc.h>
 #include <fatfs/ff.h>
-#include <vc4/vchiq/vchiqdevice.h>
-#include <vc4/sound/vchiqsoundbasedevice.h>
+
+#ifdef HDMI_SOUND
+  #include <vc4/vchiq/vchiqdevice.h>
+  #include <vc4/sound/vchiqsoundbasedevice.h>
+#else
+  #include <circle/pwmsoundbasedevice.h>
+#endif
+
 #include <circle/input/mouse.h>
 #include <circle/input/console.h>
 #include <circle/sched/scheduler.h>
@@ -25,9 +33,12 @@
 
 #include <circle_glue.h>
 
-#define MOUSE_SENS 2
 
-static	CMemorySystem	   mMemory;
+// mouse sensitivity
+#define MOUSE_SENS 2
+#define SAMPLE_RATE 44100
+#define CHUNK_SIZE 4000
+
 static        CActLED            mActLED;
 static        CKernelOptions     mOptions;
 static       CDeviceNameService mDeviceNameService;
@@ -43,11 +54,11 @@ static        CEMMCDevice     mEMMC(&mInterrupt, &mTimer, &mActLED);
 static        CConsole        mConsole(&mScreen);
 static	FATFS		mFileSystem;
 static	CScheduler		mScheduler;
-static	CVCHIQDevice		mVCHIQ(&mMemory, &mInterrupt);
-static	CVCHIQSoundBaseDevice	mVCHIQSound(&mVCHIQ, 44100, 4000 /* TODO verify */,  (TVCHIQSoundDestination) mOptions.GetSoundOption ()); //VCHIQSoundDestinationHDMI);
-
 static CUSBKeyboardDevice *pKeyboard = NULL;
 static CMouseDevice *pMouse= NULL;
+
+static CSoundBaseDevice	*mSound;
+
 
 boolean Die(const char *msg)
 {
@@ -124,10 +135,20 @@ boolean initializeCore()
         	return false;
 	}
 
-	if (!mVCHIQ.Initialize ())
+#ifdef HDMI_SOUND
+	// use HDMI sound, which need initialization
+	CMemorySystem *mMemory = new CMemorySystem();
+
+	CVCHIQDevice *mVCHIQ = new CVCHIQDevice(mMemory, &mInterrupt);
+	if (!(mVCHIQ->Initialize ()))
         {
                         return false;
         }
+	mSound = new CVCHIQSoundBaseDevice(mVCHIQ, SAMPLE_RATE, CHUNK_SIZE,  (TVCHIQSoundDestination) mOptions.GetSoundOption ()); //VCHIQSoundDestinationHDMI);
+#else
+	// jack audio
+	mSound = new CPWMSoundBaseDevice (&mInterrupt, SAMPLE_RATE, CHUNK_SIZE);
+#endif
 
 
         // Initialize newlib stdio with a reference to Circle's file system and console
@@ -139,10 +160,12 @@ boolean initializeCore()
 	}
 
 	pKeyboard = (CUSBKeyboardDevice *) mDeviceNameService.GetDevice ("ukbd1", FALSE);
+	/*
+	keep going in "surf mode"
 	if (pKeyboard == 0)
 	{
 		return Die("Keyboard not found");
-	}
+	}*/
 
 	pMouse = (CMouseDevice *) mDeviceNameService.GetDevice ("mouse1", FALSE);
 	if (pMouse == 0)
@@ -165,8 +188,8 @@ boolean initializeCore()
 
 	CLogger::Get()->Write("TEST", LogError, "Test Logging!");
 	dbg("data:\n");
-	dbg("Memory: %p\n", &mMemory);
-	dbg("Snd: %p\n", &mVCHIQSound);
+	//dbg("Memory: %p\n", &mMemory);
+	//dbg("Snd: %p\n", &mVCHIQSound);
 
 	
 
