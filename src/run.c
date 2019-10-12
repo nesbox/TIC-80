@@ -96,8 +96,7 @@ static void tick(Run* run)
 
 	if(run->tickData.syncPMEM)
 	{		
-		fsSaveRootFile(run->console->fs, run->saveid, &run->tic->persistent, Size, true);
-		memcpy(&run->persistent, &run->tic->persistent, Size);
+		fsSaveRootFile(run->console->fs, run->saveid, &run->tic->ram.persistent, Size, true);
 		run->tickData.syncPMEM = false;
 	}
 
@@ -191,7 +190,7 @@ void initRun(Run* run, Console* console, tic_mem* tic)
 
 	{
 		enum {Size = sizeof(tic_persistent)};
-		memset(&run->tic->persistent, 0, Size);
+		memset(&run->tic->ram.persistent, 0, Size);
 
 		initPMemName(run);
 
@@ -201,10 +200,7 @@ void initRun(Run* run, Console* console, tic_mem* tic)
 		if(size > Size) size = Size;
 
 		if(data)
-		{
-			memcpy(&run->tic->persistent, data, size);
-			memcpy(&run->persistent, data, size);
-		}
+			memcpy(&run->tic->ram.persistent, data, size);
 
 		if(data) free(data);
 	}

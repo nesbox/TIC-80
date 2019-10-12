@@ -932,11 +932,11 @@ static void wren_pmem(WrenVM* vm)
 
 	if(index < TIC_PERSISTENT_SIZE)
 	{
-		u32 val = memory->persistent.data[index];
+		u32 val = memory->ram.persistent.data[index];
 
 		if(top > 2)
 		{
-			memory->persistent.data[index] = getWrenNumber(vm, 2);
+			memory->ram.persistent.data[index] = getWrenNumber(vm, 2);
 			machine->data->syncPMEM = true;
 		}
 

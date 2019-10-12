@@ -1073,11 +1073,11 @@ static s32 lua_pmem(lua_State *lua)
 
 		if(index < TIC_PERSISTENT_SIZE)
 		{
-			u32 val = memory->persistent.data[index];
+			u32 val = memory->ram.persistent.data[index];
 
 			if(top >= 2)
 			{
-				memory->persistent.data[index] = lua_tointeger(lua, 2);
+				memory->ram.persistent.data[index] = lua_tointeger(lua, 2);
 				machine->data->syncPMEM = true;
 			}
 

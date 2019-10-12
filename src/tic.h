@@ -452,19 +452,24 @@ typedef union
 {
 	struct
 	{
-		tic_vram vram;
-		tic_tiles tiles;
-		tic_tiles sprites;
-		tic_map map;
-		tic80_input input;
-		u8 unknown[12];
-		tic_stereo_volume stereo;
-		tic_sound_register registers[TIC_SOUND_CHANNELS];
-		tic_sfx sfx;
-		tic_music music;
-		tic_sound_state sound_state;
-		tic_flags flags;
-		u8 free[16*1024 - sizeof(tic_flags)];
+		tic_vram 			vram;
+		tic_tiles 			tiles;
+		tic_tiles 			sprites;
+		tic_map 			map;
+		tic80_input 		input;
+		u8 					unknown[12];
+		tic_stereo_volume 	stereo;
+		tic_sound_register 	registers[TIC_SOUND_CHANNELS];
+		tic_sfx 			sfx;
+		tic_music 			music;
+		tic_sound_state 	sound_state;
+		tic_persistent		persistent;
+		tic_flags 			flags;
+
+		u8 free[16*1024 
+			- sizeof(tic_flags) 
+			- sizeof(tic_persistent) 
+			];
 	};
 
 	u8 data[TIC_RAM_SIZE];

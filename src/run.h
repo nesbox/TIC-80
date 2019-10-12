@@ -34,7 +34,6 @@ struct Run
 
 	bool exit;
 	
-	tic_persistent persistent;
 	char saveid[TIC_SAVEID_SIZE];
 
 	void(*tick)(Run*);

@@ -1180,13 +1180,13 @@ static SQInteger squirrel_pmem(HSQUIRRELVM vm)
 
 		if(index < TIC_PERSISTENT_SIZE)
 		{
-			u32 val = memory->persistent.data[index];
+			u32 val = memory->ram.persistent.data[index];
 
 			if(top >= 3)
 			{
 				SQInteger i = 0;
 				sq_getinteger(vm, 3, &i);
-				memory->persistent.data[index] = (u32)i;
+				memory->ram.persistent.data[index] = (u32)i;
 				machine->data->syncPMEM = true;
 			}
 

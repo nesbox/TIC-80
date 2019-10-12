@@ -2324,6 +2324,7 @@ static void onConsoleRamCommand(Console* console, const char* param)
 		{offsetof(tic_ram, music.patterns.data), 		"MUSIC PATTERNS"},
 		{offsetof(tic_ram, music.tracks.data), 			"MUSIC TRACKS"},
 		{offsetof(tic_ram, sound_state), 				"SOUND STATE"},
+		{offsetof(tic_ram, persistent),					"PERSISTENT MEMORY"},
 		{offsetof(tic_ram, flags), 						"SPRITE FLAGS"},
 		{offsetof(tic_ram, free), 						"..."},
 		{TIC_RAM_SIZE, 									""},
