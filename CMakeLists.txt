@@ -125,7 +125,7 @@ set(THIRDPARTY_DIR ${CMAKE_SOURCE_DIR}/3rd-party)
 # LUA
 ################################
 
-set(LUA_DIR ${THIRDPARTY_DIR}/lua-5.3.1/src)
+set(LUA_DIR ${THIRDPARTY_DIR}/lua)
 set(LUA_SRC 
 	${LUA_DIR}/lapi.c
 	${LUA_DIR}/lcode.c
@@ -149,7 +149,6 @@ set(LUA_SRC
 	${LUA_DIR}/lzio.c
 	${LUA_DIR}/lauxlib.c
 	${LUA_DIR}/lbaselib.c
-	${LUA_DIR}/lbitlib.c
 	${LUA_DIR}/lcorolib.c
 	${LUA_DIR}/ldblib.c
 	${LUA_DIR}/liolib.c
@@ -165,12 +164,13 @@ set(LUA_SRC
 add_library(lua STATIC ${LUA_SRC})
 
 target_compile_definitions(lua PRIVATE LUA_COMPAT_5_2)
+target_include_directories(lua INTERFACE ${THIRDPARTY_DIR}/lua)
 
 ################################
 # LPEG
 ################################
 
-set(LPEG_DIR ${THIRDPARTY_DIR}/lpeg-1.0.1)
+set(LPEG_DIR ${THIRDPARTY_DIR}/lpeg)
 set(LPEG_SRC 
 	${LPEG_DIR}/lpcap.c
 	${LPEG_DIR}/lpcode.c
@@ -242,7 +242,7 @@ target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/sqstdlib)
 # GIFLIB
 ################################
 
-set(GIFLIB_DIR ${THIRDPARTY_DIR}/giflib-5.1.4/lib)
+set(GIFLIB_DIR ${THIRDPARTY_DIR}/giflib)
 set(GIFLIB_SRC
 	${GIFLIB_DIR}/dgif_lib.c
 	${GIFLIB_DIR}/egif_lib.c
@@ -253,7 +253,9 @@ set(GIFLIB_SRC
 	${GIFLIB_DIR}/openbsd-reallocarray.c
 )
 add_library(giflib STATIC ${GIFLIB_SRC})
-target_include_directories(giflib PRIVATE ${GIFLIB_DIR})
+target_include_directories(giflib 
+	PRIVATE ${GIFLIB_DIR}
+	INTERFACE ${THIRDPARTY_DIR}/giflib)
 
 ################################
 # TIC-80 core
@@ -278,8 +280,6 @@ add_library(tic80core STATIC ${TIC80CORE_SRC})
 target_include_directories(tic80core PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/blip-buf)
 target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/duktape/src)
-target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/lua-5.3.1/src)
-target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/giflib-5.1.4/lib)
 target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/wren/src/include)
 target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/squirrel/include)
 target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/moonscript)
@@ -526,7 +526,7 @@ add_subdirectory(${THIRDPARTY_DIR}/curl)
 # ZLIB
 ################################
 
-set(ZLIB_DIR ${THIRDPARTY_DIR}/zlib-1.2.11)
+set(ZLIB_DIR ${THIRDPARTY_DIR}/zlib)
 set(ZLIB_SRC 
 	${ZLIB_DIR}/adler32.c
 	${ZLIB_DIR}/compress.c
@@ -542,6 +542,7 @@ set(ZLIB_SRC
 )
 
 add_library(zlib STATIC ${ZLIB_SRC})
+target_include_directories(zlib INTERFACE ${THIRDPARTY_DIR}/zlib)
 
 ################################
 # bin2txt
@@ -554,8 +555,6 @@ if(BUILD_DEMO_CARTS)
 	)
 
 	add_executable(bin2txt ${BIN2TXT_SRC})
-
-	target_include_directories(bin2txt PRIVATE ${THIRDPARTY_DIR}/zlib-1.2.11)
 
 	target_link_libraries(bin2txt zlib)
 
@@ -625,12 +624,10 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 	add_library(${TIC80_OUTPUT}lib STATIC ${TIC80LIB_SRC} ${DEMO_CARTS_OUT})
 
 	if(WIN32)
-		target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${THIRDPARTY_DIR}/dirent)
+		target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${THIRDPARTY_DIR}/dirent/include)
 	endif()
 
 	target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${CMAKE_SOURCE_DIR}/include)
-	target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${THIRDPARTY_DIR}/giflib-5.1.4/lib)
-	target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${THIRDPARTY_DIR}/zlib-1.2.11)
 	target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${THIRDPARTY_DIR}/lua-5.3.1/src)
 	target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${THIRDPARTY_DIR}/curl/include)
 
