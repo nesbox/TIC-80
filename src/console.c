@@ -507,7 +507,7 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 		{
 			static const u8 LuaDemoRom[] =
 			{
-				#include "../bin/assets/luademo.tic.dat"
+				#include "../build/assets/luademo.tic.dat"
 			};
 
 			demo = LuaDemoRom;
@@ -520,7 +520,7 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 		{
 			static const u8 MoonDemoRom[] =
 			{
-				#include "../bin/assets/moondemo.tic.dat"
+				#include "../build/assets/moondemo.tic.dat"
 			};
 
 			demo = MoonDemoRom;
@@ -534,7 +534,7 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 		{
 			static const u8 FennelDemoRom[] =
 			{
-				#include "../bin/assets/fenneldemo.tic.dat"
+				#include "../build/assets/fenneldemo.tic.dat"
 			};
 
 			demo = FennelDemoRom;
@@ -551,7 +551,7 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 		{
 			static const u8 JsDemoRom[] =
 			{
-				#include "../bin/assets/jsdemo.tic.dat"
+				#include "../build/assets/jsdemo.tic.dat"
 			};
 
 			demo = JsDemoRom;
@@ -565,7 +565,7 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 		{
 			static const u8 WrenDemoRom[] =
 			{
-				#include "../bin/assets/wrendemo.tic.dat"
+				#include "../build/assets/wrendemo.tic.dat"
 			};
 
 			demo = WrenDemoRom;
@@ -579,7 +579,7 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 		{
 			static const u8 SquirrelDemoRom[] =
 			{
-				#include "../bin/assets/squirreldemo.tic.dat"
+				#include "../build/assets/squirreldemo.tic.dat"
 			};
 
 			demo = SquirrelDemoRom;
@@ -1426,47 +1426,47 @@ static void onConsoleInstallDemosCommand(Console* console, const char* param)
 {
 	static const u8 DemoFire[] =
 	{
-		#include "../bin/assets/fire.tic.dat"
+		#include "../build/assets/fire.tic.dat"
 	};
 
 	static const u8 DemoP3D[] =
 	{
-		#include "../bin/assets/p3d.tic.dat"
+		#include "../build/assets/p3d.tic.dat"
 	};
 
 	static const u8 DemoSFX[] =
 	{
-		#include "../bin/assets/sfx.tic.dat"
+		#include "../build/assets/sfx.tic.dat"
 	};
 
 	static const u8 DemoPalette[] =
 	{
-		#include "../bin/assets/palette.tic.dat"
+		#include "../build/assets/palette.tic.dat"
 	};
 
 	static const u8 DemoFont[] =
 	{
-		#include "../bin/assets/font.tic.dat"
+		#include "../build/assets/font.tic.dat"
 	};
 
 	static const u8 DemoMusic[] =
 	{
-		#include "../bin/assets/music.tic.dat"
+		#include "../build/assets/music.tic.dat"
 	};
 
 	static const u8 GameQuest[] =
 	{
-		#include "../bin/assets/quest.tic.dat"
+		#include "../build/assets/quest.tic.dat"
 	};
 
 	static const u8 GameTetris[] =
 	{
-		#include "../bin/assets/tetris.tic.dat"
+		#include "../build/assets/tetris.tic.dat"
 	};
 
 	static const u8 Benchmark[] =
 	{
-		#include "../bin/assets/benchmark.tic.dat"
+		#include "../build/assets/benchmark.tic.dat"
 	};
 
 	FileSystem* fs = console->fs;

@@ -7,10 +7,12 @@ if(ANDROID OR EMSCRIPTEN)
 	set(BUILD_SOKOL_DEFAULT OFF)
 	set(BUILD_LIBRETRO_DEFAULT OFF)
 	set(BUILD_DEMO_CARTS_DEFAULT OFF)
+	set(BUILD_PLAYER_DEFAULT OFF)
 else()
 	set(BUILD_SOKOL_DEFAULT ON)
 	set(BUILD_LIBRETRO_DEFAULT ON)
 	set(BUILD_DEMO_CARTS_DEFAULT ON)
+	set(BUILD_PLAYER_DEFAULT ON)
 endif()
 
 option(BUILD_SDL "SDL Enabled" ON)
@@ -18,6 +20,7 @@ option(BUILD_SOKOL "Sokol Enabled" ${BUILD_SOKOL_DEFAULT})
 option(BUILD_LIBRETRO "libretro Enabled" ${BUILD_LIBRETRO_DEFAULT})
 option(BUILD_DEMO_CARTS "Demo Carts Enabled" ${BUILD_DEMO_CARTS_DEFAULT})
 option(BUILD_PRO "Build PRO version" FALSE)
+option(BUILD_PLAYER "Build standalone players" ${BUILD_PLAYER_DEFAULT})
 
 if (BAREMETALPI)
 
@@ -110,10 +113,9 @@ else()
 
 	set(CMAKE_C_STANDARD 99)
 
-
-if(EMSCRIPTEN)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2")
-endif()
+	if(EMSCRIPTEN)
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2")
+	endif()
 
 endif()
 
@@ -308,30 +310,23 @@ if(BUILD_SDL AND NOT EMSCRIPTEN)
 endif()
 
 ################################
-# SDL2 renderer example
+# SDL2 standalone cart player
 ################################
 
-set(EXAMPLE_DIR ${CMAKE_SOURCE_DIR}/examples)
-if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT ANDROID)
-	set(EXAMPLE_SRC 
-		${EXAMPLE_DIR}/sdl/main.c
-	)
+if(BUILD_PLAYER)
 
-	if(WIN32)
-		add_executable(sdl-renderer WIN32 ${EXAMPLE_SRC})
-	else()
-		add_executable(sdl-renderer ${EXAMPLE_SRC})
-	endif()
+	add_executable(player-sdl WIN32 ${CMAKE_SOURCE_DIR}/src/player/sdl.c)
 
-	target_include_directories(sdl-renderer PRIVATE ${THIRDPARTY_DIR}/sdl2/include)
-	target_include_directories(sdl-renderer PRIVATE ${CMAKE_SOURCE_DIR}/include)
-	target_include_directories(sdl-renderer PRIVATE ${CMAKE_SOURCE_DIR}/src)
+	target_include_directories(player-sdl PRIVATE 
+		${THIRDPARTY_DIR}/sdl2/include 
+		${CMAKE_SOURCE_DIR}/include 
+		${CMAKE_SOURCE_DIR}/src)
 
 	if(MINGW)
-		target_link_libraries(sdl-renderer mingw32)
+		target_link_libraries(player-sdl mingw32)
 	endif()
 
-	target_link_libraries(sdl-renderer tic80core SDL2-static SDL2main)
+	target_link_libraries(player-sdl tic80core SDL2-static SDL2main)
 endif()
 
 ################################
@@ -383,29 +378,23 @@ target_include_directories(sokol PRIVATE ${THIRDPARTY_DIR}/sokol)
 endif()
 
 ################################
-# Sokol renderer example
+# Sokol standalone cart player
 ################################
 
-if(BUILD_SOKOL)
-set(SOKOL_SRC 
-	${EXAMPLE_DIR}/sokol/main.c
-)
+if(BUILD_PLAYER AND BUILD_SOKOL)
 
-if(WIN32)
-	add_executable(sokol-renderer WIN32 ${SOKOL_SRC})
-else()
-	add_executable(sokol-renderer ${SOKOL_SRC})
-endif()
+	add_executable(player-sokol WIN32 ${CMAKE_SOURCE_DIR}/src/player/sokol.c)
 
-if(MINGW)
-	target_link_libraries(sokol-renderer mingw32)
-endif()
+	if(MINGW)
+		target_link_libraries(player-sokol mingw32)
+	endif()
 
-target_include_directories(sokol-renderer PRIVATE ${CMAKE_SOURCE_DIR}/include)
-target_include_directories(sokol-renderer PRIVATE ${THIRDPARTY_DIR}/sokol)
-target_include_directories(sokol-renderer PRIVATE ${CMAKE_SOURCE_DIR}/src)
+	target_include_directories(player-sokol PRIVATE 
+		${CMAKE_SOURCE_DIR}/include 
+		${THIRDPARTY_DIR}/sokol 
+		${CMAKE_SOURCE_DIR}/src)
 
-target_link_libraries(sokol-renderer tic80core sokol)
+	target_link_libraries(player-sokol tic80core sokol)
 endif()
 
 ################################
@@ -559,7 +548,7 @@ add_library(zlib STATIC ${ZLIB_SRC})
 ################################
 
 if(BUILD_DEMO_CARTS)
-	set(BIN2TXT_DIR ${CMAKE_SOURCE_DIR}/tools/bin2txt)
+	set(BIN2TXT_DIR ${CMAKE_SOURCE_DIR}/build/tools/bin2txt)
 	set(BIN2TXT_SRC 
 		${BIN2TXT_DIR}/bin2txt.c
 	)
@@ -582,7 +571,7 @@ if(BUILD_DEMO_CARTS)
 
 		get_filename_component(cart_name ${CART_FILE} NAME)
 
-		set(OUTNAME ${CMAKE_SOURCE_DIR}/bin/assets/${cart_name}.dat)
+		set(OUTNAME ${CMAKE_SOURCE_DIR}/build/assets/${cart_name}.dat)
 
 		list(APPEND DEMO_CARTS_OUT ${OUTNAME})
 

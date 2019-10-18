@@ -293,7 +293,7 @@ static void setDefault(Config* config)
 	{
 		static const u8 DefaultBiosZip[] = 
 		{
-			#include "../bin/assets/config.tic.dat"
+			#include "../build/assets/config.tic.dat"
 		};
 
 		u8* embedBios = NULL;
