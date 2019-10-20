@@ -30,7 +30,6 @@
 
 #define MAIN_OFFSET 4
 #define MENU_HEIGHT 10
-#define MAX_CARTS 512
 #define ANIM 10
 #define COVER_WIDTH 140
 #define COVER_HEIGHT 116
@@ -392,7 +391,8 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 #endif
 		)
 	{
-		MenuItem* item = &data->items[data->count++];
+		data->items = realloc(data->items, sizeof(MenuItem) * ++data->count);
+		MenuItem* item = &data->items[data->count-1];
 
 		item->name = strdup(name);
 		bool project = false;
@@ -427,7 +427,7 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 		item->project = project;
 	}
 
-	return data->count < MAX_CARTS;
+	return true;
 }
 
 static void resetMenu(Surf* surf)
@@ -569,12 +569,9 @@ static void initMenu(Surf* surf)
 {
 	resetMenu(surf);
 
-	// TODO: calc files count before
-	enum{Count = MAX_CARTS, Size = sizeof(MenuItem) * Count};
-
 	AddMenuItem data = 
 	{
-		.items = malloc(Size),
+		.items = NULL,
 		.count = 0,
 		.surf = surf,
 	};
