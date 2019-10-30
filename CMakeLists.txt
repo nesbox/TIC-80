@@ -269,7 +269,7 @@ set(TIC80CORE_SRC
 	${TIC80CORE_DIR}/jsapi.c 
 	${TIC80CORE_DIR}/luaapi.c 
 	${TIC80CORE_DIR}/wrenapi.c 
-        ${TIC80CORE_DIR}/squirrelapi.c
+	${TIC80CORE_DIR}/squirrelapi.c
 	${TIC80CORE_DIR}/ext/gif.c
 	${THIRDPARTY_DIR}/blip-buf/blip_buf.c # TODO: link it as lib?
 	${THIRDPARTY_DIR}/duktape/src/duktape.c # TODO: link it as lib?
