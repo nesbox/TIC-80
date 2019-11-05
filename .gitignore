@@ -4,6 +4,7 @@
 *.suo
 sexit
 .vscode/
+build/3rd-party/
 build/uwp/tic/Debug/
 build/uwp/tic/Release/
 build/uwp/tic/x64/
