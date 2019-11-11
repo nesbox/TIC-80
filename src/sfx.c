@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "sfx.h"
+#include "collab.h"
 #include "history.h"
 
 #define CANVAS_SIZE 6
@@ -37,7 +38,13 @@
 
 #define DEFAULT_CHANNEL 0
 
-static void drawSwitch(Sfx* sfx, s32 x, s32 y, const char* label, s32 value, void(*set)(Sfx*, s32))
+#if defined(TIC_BUILD_WITH_COLLAB)
+#define SWITCH_CURRENT_VALUE_IS_CHANGED (1<<0)
+#define SWITCH_LATER_VALUE_IS_CHANGED (1<<1)
+#define SWITCH_PRIOR_VALUE_IS_CHANGED (1<<2)
+#endif
+
+static void drawSwitch(Sfx* sfx, s32 x, s32 y, u8 changed, const char* label, s32 value, void(*set)(Sfx*, s32))
 {
 	static const u8 LeftArrow[] = 
 	{
@@ -78,13 +85,23 @@ static void drawSwitch(Sfx* sfx, s32 x, s32 y, const char* label, s32 value, voi
 				set(sfx, -1);
 		}
 
-		drawBitIcon(rect.x, rect.y, LeftArrow, (tic_color_dark_gray));
+		u8 color = (tic_color_dark_gray);
+#if defined(TIC_BUILD_WITH_COLLAB)
+		if(collabShowDiffs() && (changed & SWITCH_PRIOR_VALUE_IS_CHANGED))
+			color = (tic_color_yellow);
+#endif
+		drawBitIcon(rect.x, rect.y, LeftArrow, color);
 	}
 
 	{
+		u8 color = (tic_color_white);
+#if defined(TIC_BUILD_WITH_COLLAB)
+		if(collabShowDiffs() && (changed & SWITCH_CURRENT_VALUE_IS_CHANGED))
+			color = (tic_color_yellow);
+#endif
 		char val[] = "99";
 		sprintf(val, "%02i", value);
-		sfx->tic->api.fixed_text(sfx->tic, val, x += TIC_FONT_WIDTH, y, (tic_color_white), false);
+		sfx->tic->api.fixed_text(sfx->tic, val, x += TIC_FONT_WIDTH, y, color, false);
 	}
 
 	{
@@ -100,7 +117,12 @@ static void drawSwitch(Sfx* sfx, s32 x, s32 y, const char* label, s32 value, voi
 				set(sfx, +1);
 		}
 
-		drawBitIcon(rect.x, rect.y, RightArrow, (tic_color_dark_gray));
+		u8 color = (tic_color_white);
+#if defined(TIC_BUILD_WITH_COLLAB)
+		if(collabShowDiffs() && (changed & SWITCH_LATER_VALUE_IS_CHANGED))
+			color = (tic_color_yellow);
+#endif
+		drawBitIcon(rect.x, rect.y, RightArrow, color);
 	}
 }
 
@@ -126,6 +148,9 @@ static void setSpeed(Sfx* sfx, s32 delta)
 static void drawStereoSwitch(Sfx* sfx, s32 x, s32 y)
 {
 	tic_sample* effect = getEffect(sfx);
+#if defined(TIC_BUILD_WITH_COLLAB)
+	tic_sample* server = (tic_sample*)collab_data(sfx->collab.samples, sfx->tic, sfx->index);
+#endif
 
 	{
 		tic_rect rect = {x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
@@ -141,6 +166,11 @@ static void drawStereoSwitch(Sfx* sfx, s32 x, s32 y)
 		}
 
 		sfx->tic->api.text(sfx->tic, "L", x, y, effect->stereo_left ? tic_color_dark_gray : tic_color_white, false);
+
+#if defined(TIC_BUILD_WITH_COLLAB)
+		if(collabShowDiffs() && (effect->stereo_left != server->stereo_left))
+			drawDiffRect(sfx->tic, x, y+6, 5, 1);
+#endif
 	}
 
 	{
@@ -157,6 +187,11 @@ static void drawStereoSwitch(Sfx* sfx, s32 x, s32 y)
 		}
 
 		sfx->tic->api.text(sfx->tic, "R", x, y, effect->stereo_right ? tic_color_dark_gray : tic_color_white, false);
+
+#if defined(TIC_BUILD_WITH_COLLAB)
+		if(collabShowDiffs() && (effect->stereo_right != server->stereo_right))
+			drawDiffRect(sfx->tic, x, y+6, 5, 1);
+#endif
 	}
 }
 
@@ -164,11 +199,36 @@ static void drawTopPanel(Sfx* sfx, s32 x, s32 y)
 {
 	const s32 Gap = 8*TIC_FONT_WIDTH;
 
-	drawSwitch(sfx, x, y, "IDX", sfx->index, setIndex);
+	{
+		u8 changed = 0;
+#if defined(TIC_BUILD_WITH_COLLAB)
+		if(collabShowDiffs())
+		{
+			if(collab_isChanged(sfx->collab.samples, sfx->index))
+				changed |= SWITCH_CURRENT_VALUE_IS_CHANGED;
 
-	tic_sample* effect = getEffect(sfx);
+			for(s32 i = sfx->index-1; i >= 0; i--)
+				if(collab_isChanged(sfx->collab.samples, i))
+					changed |= SWITCH_PRIOR_VALUE_IS_CHANGED;
 
-	drawSwitch(sfx, x += Gap, y, "SPD", effect->speed, setSpeed);
+			for(s32 i = sfx->index+1; i < SFX_COUNT; i++)
+				if(collab_isChanged(sfx->collab.samples, i))
+					changed |= SWITCH_LATER_VALUE_IS_CHANGED;
+		}
+#endif
+		drawSwitch(sfx, x, y, changed, "IDX", sfx->index, setIndex);
+	}
+
+	{
+		tic_sample* effect = getEffect(sfx);
+		u8 changed = 0;
+#if defined(TIC_BUILD_WITH_COLLAB)
+		tic_sample* server = (tic_sample*)collab_data(sfx->collab.samples, sfx->tic, sfx->index);
+		if(collabShowDiffs() && effect->speed != server->speed)
+			changed = SWITCH_CURRENT_VALUE_IS_CHANGED;
+#endif
+		drawSwitch(sfx, x += Gap, y, changed, "SPD", effect->speed, setSpeed);
+	}
 
 	drawStereoSwitch(sfx, x += Gap, y);
 }
@@ -202,8 +262,28 @@ static void drawLoopPanel(Sfx* sfx, s32 x, s32 y)
 	tic_sample* effect = getEffect(sfx);
 	tic_sound_loop* loop = effect->loops + sfx->canvasTab;
 
-	drawSwitch(sfx, x, y += Gap + TIC_FONT_HEIGHT, "", loop->size, setLoopSize);
-	drawSwitch(sfx, x, y += Gap + TIC_FONT_HEIGHT, "", loop->start, setLoopStart);
+#if defined(TIC_BUILD_WITH_COLLAB)
+	tic_sample* server = (tic_sample*)collab_data(sfx->collab.samples, sfx->tic, sfx->index);
+	tic_sound_loop* serverLoop = server->loops + sfx->canvasTab;
+#endif
+
+	{
+		u8 changed = 0;
+#if defined(TIC_BUILD_WITH_COLLAB)
+		if(collabShowDiffs() && loop->size != serverLoop->size)
+			changed = SWITCH_CURRENT_VALUE_IS_CHANGED;
+#endif
+		drawSwitch(sfx, x, y += Gap + TIC_FONT_HEIGHT, changed, "", loop->size, setLoopSize);
+	}
+
+	{
+		u8 changed = 0;
+#if defined(TIC_BUILD_WITH_COLLAB)
+		if(collabShowDiffs() && loop->start != serverLoop->start) 
+			changed = SWITCH_CURRENT_VALUE_IS_CHANGED;
+#endif
+		drawSwitch(sfx, x, y += Gap + TIC_FONT_HEIGHT, changed, "", loop->start, setLoopStart);
+	}
 }
 
 static tic_waveform* getWaveformById(Sfx* sfx, s32 i)
@@ -330,6 +410,28 @@ static void drawCanvasTabs(Sfx* sfx, s32 x, s32 y)
 
 	enum {Height = TIC_FONT_HEIGHT+2};
 
+	tic_sample* effect = getEffect(sfx);
+
+#if defined(TIC_BUILD_WITH_COLLAB)
+	tic_sample* server = (tic_sample*)collab_data(sfx->collab.samples, sfx->tic, sfx->index);
+
+	bool changed[4] = {false, false, false, false};
+	if(collabShowDiffs())
+	{
+		for(s32 i = 0; i < SFX_TICKS; i++)
+		{
+			if(effect->data[i].wave != server->data[i].wave)
+				changed[0] = true;
+			if(effect->data[i].volume != server->data[i].volume)
+				changed[1] = true;
+			if(effect->data[i].arpeggio != server->data[i].arpeggio)
+				changed[2] = true;
+			if(effect->data[i].pitch != server->data[i].pitch)
+				changed[3] = true;
+		}
+	}
+#endif
+
 	for(s32 i = 0, sy = y; i < COUNT_OF(Labels); sy += Height, i++)
 	{
 		s32 size = sfx->tic->api.text(sfx->tic, Labels[i], 0, -TIC_FONT_HEIGHT, (tic_color_black), false);
@@ -347,9 +449,12 @@ static void drawCanvasTabs(Sfx* sfx, s32 x, s32 y)
 		}
 
 		sfx->tic->api.text(sfx->tic, Labels[i], rect.x, rect.y, i == sfx->canvasTab ? (tic_color_white) : (tic_color_dark_gray), false);
-	}
 
-	tic_sample* effect = getEffect(sfx);
+#if defined(TIC_BUILD_WITH_COLLAB)
+		if(collabShowDiffs() && changed[i])
+			drawDiffRect(sfx->tic, rect.x + size, rect.y, 1, 5);
+#endif
+	}
 
 	switch(sfx->canvasTab)
 	{
@@ -479,7 +584,7 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y)
 		if(loop->start > 0 || loop->size > 0)
 		{
 			for(s32 i = 0; i < loop->size; i++)
-				sfx->tic->api.rect(sfx->tic, x + (loop->start+i) * CANVAS_SIZE+1, y + CANVAS_HEIGHT - 2, CANVAS_SIZE-1, 2, (tic_color_yellow));
+				sfx->tic->api.rect(sfx->tic, x + (loop->start+i) * CANVAS_SIZE+1, y + CANVAS_HEIGHT - 2, CANVAS_SIZE-1, 2, (tic_color_white));
 		}
 	}
 }
@@ -666,6 +771,50 @@ static void copyWaveFromClipboard(Sfx* sfx)
 		history_add(sfx->history);
 }
 
+#if defined(TIC_BUILD_WITH_COLLAB)
+
+static void pushToServer(Sfx* sfx)
+{
+	if(sfx->tic->api.key(sfx->tic, tic_key_shift))
+	{
+		collab_put(sfx->collab.waveform, sfx->tic);
+		collab_put(sfx->collab.samples, sfx->tic);
+	}
+	else
+	{
+		if(sfx->tab == SFX_ENVELOPES_TAB)
+			collab_putRange(sfx->collab.samples, sfx->tic, sfx->index, 1);
+		else
+			collab_putRange(sfx->collab.waveform, sfx->tic, sfx->waveform.index, 1);
+	}
+}
+
+static void pullFromServer(Sfx* sfx)
+{
+	if(sfx->tic->api.key(sfx->tic, tic_key_shift))
+	{
+		collab_get(sfx->collab.waveform, sfx->tic);
+		collab_get(sfx->collab.samples, sfx->tic);
+	}
+	else
+	{
+		if(sfx->tab == SFX_ENVELOPES_TAB)
+			collab_getRange(sfx->collab.samples, sfx->tic, sfx->index, 1);
+		else
+			collab_getRange(sfx->collab.waveform, sfx->tic, sfx->waveform.index, 1);
+	}
+
+	history_add(sfx->history);
+}
+
+static void onDiff(Sfx *sfx)
+{
+	collab_diff(sfx->collab.waveform, sfx->tic);
+	collab_diff(sfx->collab.samples, sfx->tic);
+}
+
+#endif
+
 static void processKeyboard(Sfx* sfx)
 {
 	tic_mem* tic = sfx->tic;
@@ -728,6 +877,15 @@ static void processEnvelopesKeyboard(Sfx* sfx)
 	default: break;
 	}
 
+#if defined(TIC_BUILD_WITH_COLLAB)
+	switch(getCollabEvent())
+	{
+	case TIC_COLLAB_PULL: pullFromServer(sfx); break;
+	case TIC_COLLAB_PUSH: pushToServer(sfx); break;
+	default: break;
+	}
+#endif
+
 	if(ctrl)
 	{
 		if(keyWasPressed(tic_key_z)) 		undo(sfx);
@@ -753,6 +911,15 @@ static void processWaveformKeyboard(Sfx* sfx)
 	case TIC_CLIPBOARD_PASTE: copyWaveFromClipboard(sfx); break;
 	default: break;
 	}
+
+#if defined(TIC_BUILD_WITH_COLLAB)
+	switch(getCollabEvent())
+	{
+	case TIC_COLLAB_PULL: pullFromServer(sfx); break;
+	case TIC_COLLAB_PUSH: pushToServer(sfx); break;
+	default: break;
+	}
+#endif
 
 	if(ctrl)
 	{
@@ -917,6 +1084,11 @@ static void drawWaveformBar(Sfx* sfx, s32 x, s32 y)
 		if(sfx->waveform.index == i)
 			sfx->tic->api.rect_border(sfx->tic, rect.x-2, rect.y-2, rect.w+4, rect.h+4, (tic_color_white));
 
+#if defined(TIC_BUILD_WITH_COLLAB)
+		if(collabShowDiffs() && collab_isChanged(sfx->collab.waveform, i))
+			drawDiffRect(sfx->tic, rect.x+1, rect.y+1, rect.w-2, rect.h-2);
+#endif
+		
 		{
 			tic_waveform* wave = getWaveformById(sfx, i);
 
@@ -1001,6 +1173,11 @@ static void tick(Sfx* sfx)
 	}
 
 	playSound(sfx);
+
+#if defined(TIC_BUILD_WITH_COLLAB)
+	if(collabEnabled())
+		onDiff(sfx);
+#endif
 }
 
 static void onStudioEnvelopeEvent(Sfx* sfx, StudioEvent event)
@@ -1012,6 +1189,10 @@ static void onStudioEnvelopeEvent(Sfx* sfx, StudioEvent event)
 	case TIC_TOOLBAR_PASTE: copyFromClipboard(sfx); break;
 	case TIC_TOOLBAR_UNDO: undo(sfx); break;
 	case TIC_TOOLBAR_REDO: redo(sfx); break;
+#if defined(TIC_BUILD_WITH_COLLAB)
+	case TIC_TOOLBAR_PUSH: pushToServer(sfx); break;
+	case TIC_TOOLBAR_PULL: pullFromServer(sfx); break;
+#endif
 	default: break;
 	}
 }
@@ -1025,6 +1206,10 @@ static void onStudioWaveformEvent(Sfx* sfx, StudioEvent event)
 	case TIC_TOOLBAR_PASTE: copyWaveFromClipboard(sfx); break;
 	case TIC_TOOLBAR_UNDO: undo(sfx); break;
 	case TIC_TOOLBAR_REDO: redo(sfx); break;
+#if defined(TIC_BUILD_WITH_COLLAB)
+	case TIC_TOOLBAR_PUSH: pushToServer(sfx); break;
+	case TIC_TOOLBAR_PULL: pullFromServer(sfx); break;
+#endif
 	default: break;
 	}
 }
@@ -1039,15 +1224,19 @@ static void onStudioEvent(Sfx* sfx, StudioEvent event)
 	}
 }
 
-void initSfx(Sfx* sfx, tic_mem* tic, tic_sfx* src)
+void initSfx(Sfx* sfx, tic_mem* tic, s32 bank)
 {
 	if(sfx->history) history_delete(sfx->history);
+#if defined(TIC_BUILD_WITH_COLLAB)
+	if(sfx->collab.waveform) collab_delete(sfx->collab.waveform);
+	if(sfx->collab.samples) collab_delete(sfx->collab.samples);
+#endif
 	
 	*sfx = (Sfx)
 	{
 		.tic = tic,
 		.tick = tick,
-		.src = src,
+		.src = &tic->cart.banks[bank].sfx,
 		.index = 0,
 		.play = 
 		{
@@ -1060,7 +1249,17 @@ void initSfx(Sfx* sfx, tic_mem* tic, tic_sfx* src)
 		},
 		.canvasTab = SFX_WAVE_TAB,
 		.tab = SFX_ENVELOPES_TAB,
-		.history = history_create(src, sizeof(tic_sfx)),
+		.history = history_create(&tic->cart.banks[bank].sfx, sizeof(tic_sfx)),
+#if defined(TIC_BUILD_WITH_COLLAB)
+		.collab =
+		{
+ 			.waveform = collab_create(tic_tool_cart_offset(&tic->cart, tic->cart.banks[bank].sfx.waveform.envelopes), sizeof(tic_waveform), ENVELOPES_COUNT),
+			.samples = collab_create(tic_tool_cart_offset(&tic->cart, tic->cart.banks[bank].sfx.samples.data), sizeof(tic_sample), SFX_COUNT),
+		},
+#endif
 		.event = onStudioEvent,
+#if defined(TIC_BUILD_WITH_COLLAB)
+		.diff = onDiff,
+#endif
 	};
 }

@@ -471,7 +471,7 @@ static void* requestCover(Surf* surf, const char* hash, s32* size)
 	}
 
 	char path[FILENAME_MAX] = {0};
-	sprintf(path, "/cart/%s/cover.gif", hash);
+	sprintf(path, "http://"TIC_HOST"/cart/%s/cover.gif", hash);
 	void* data = getSystem()->getUrlRequest(path, size);
 
 	if(data)

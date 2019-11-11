@@ -31,6 +31,7 @@
 #include "sfx.h"
 #include "music.h"
 #include "history.h"
+#include "collab.h"
 #include "config.h"
 #include "code.h"
 #include "dialog.h"
@@ -147,6 +148,15 @@ static struct
 		s32 frame;
 
 	} video;
+
+#if defined(TIC_BUILD_WITH_COLLAB)
+	struct
+	{
+		bool enabled;
+		bool showDiffs;
+		char url[FILENAME_MAX];
+	} collab;
+#endif
 
 	struct
 	{
@@ -443,11 +453,20 @@ void showTooltip(const char* text)
 	strncpy(impl.tooltip.text, text, sizeof impl.tooltip.text - 1);
 }
 
+static bool isToolbarButtonEnabled(StudioEvent event)
+{
+#if defined(TIC_BUILD_WITH_COLLAB)
+	if(event == TIC_TOOLBAR_PUSH || event == TIC_TOOLBAR_PULL)
+		return collabEnabled();
+#endif
+	return true;
+}
+
 static void drawExtrabar(tic_mem* tic)
 {
 	enum {Size = 7};
 
-	s32 x = (COUNT_OF(Modes) + 1) * Size + 17 * TIC_FONT_WIDTH;
+	s32 x = (COUNT_OF(Modes) + 1) * Size + 16 * TIC_FONT_WIDTH;
 	s32 y = 0;
 
 	static const u8 Icons[] =
@@ -496,39 +515,65 @@ static void drawExtrabar(tic_mem* tic)
 		0b00110000,
 		0b00000000,
 		0b00000000,
+
+#if defined(TIC_BUILD_WITH_COLLAB)
+		0b00000000,
+		0b00010000,
+		0b00110000,
+		0b01110000,
+		0b00010000,
+		0b00010000,
+		0b00000000,
+		0b00000000,
+
+		0b00000000,
+		0b01000000,
+		0b01000000,
+		0b01110000,
+		0b01100000,
+		0b01000000,
+		0b00000000,
+		0b00000000,
+#endif		
 	};
 
-	static const s32 Colors[] = {8, 9, 6, 5, 5};
-	static const StudioEvent Events[] = {TIC_TOOLBAR_CUT, TIC_TOOLBAR_COPY, TIC_TOOLBAR_PASTE,	TIC_TOOLBAR_UNDO, TIC_TOOLBAR_REDO};
-	static const char* Tips[] = {"CUT [ctrl+x]", "COPY [ctrl+c]", "PASTE [ctrl+v]", "UNDO [ctrl+z]", "REDO [ctrl+y]"};
+	static const s32 Widths[] = {6, 6, 7, 6, 7, IF_COLLAB(4, 4)};
+	static const s32 Colors[] = {8, 9, 6, 5, 5, IF_COLLAB(6, 6)};
+	static const StudioEvent Events[] = {TIC_TOOLBAR_CUT, TIC_TOOLBAR_COPY, TIC_TOOLBAR_PASTE,	TIC_TOOLBAR_UNDO, TIC_TOOLBAR_REDO, IF_COLLAB(TIC_TOOLBAR_PUSH, TIC_TOOLBAR_PULL)};
+	static const char* Tips[] = {"CUT [ctrl+x]", "COPY [ctrl+c]", "PASTE [ctrl+v]", "UNDO [ctrl+z]", "REDO [ctrl+y]", IF_COLLAB("PUSH [ctrl-p]", "PULL [ctrl-l]")};
 
 	for(s32 i = 0; i < sizeof Icons / BITS_IN_BYTE; i++)
 	{
-		tic_rect rect = {x + i*Size, y, Size, Size};
+		tic_rect rect = {x, y, Widths[i], Size};
 
 		u8 bgcolor = (tic_color_white);
 		u8 color = (tic_color_light_blue);
 
-		if(checkMousePos(&rect))
+		if(isToolbarButtonEnabled(Events[i]))
 		{
-			setCursor(tic_cursor_hand);
-
-			color = Colors[i];
-			showTooltip(Tips[i]);
-
-			if(checkMouseDown(&rect, tic_mouse_left))
+			if(checkMousePos(&rect))
 			{
-				bgcolor = color;
-				color = (tic_color_white);
+				setCursor(tic_cursor_hand);
+
+				color = Colors[i];
+				showTooltip(Tips[i]);
+
+				if(checkMouseDown(&rect, tic_mouse_left))
+				{
+					bgcolor = color;
+					color = (tic_color_white);
+				}
+				else if(checkMouseClick(&rect, tic_mouse_left))
+				{
+					setStudioEvent(Events[i]);
+				}
 			}
-			else if(checkMouseClick(&rect, tic_mouse_left))
-			{
-				setStudioEvent(Events[i]);
-			}
+
+			impl.studio.tic->api.rect(tic, x, y, Widths[i], Size, bgcolor);
+			drawBitIcon(x, y, Icons + i*BITS_IN_BYTE, color);
 		}
 
-		impl.studio.tic->api.rect(tic, x + i * Size, y, Size, Size, bgcolor);
-		drawBitIcon(x + i * Size, y, Icons + i*BITS_IN_BYTE, color);
+		x += Widths[i];
 	}
 }
 
@@ -660,6 +705,33 @@ static void drawBankIcon(s32 x, s32 y)
 
 #endif
 
+#if defined(TIC_BUILD_WITH_COLLAB)
+
+bool modeHasChanges(EditorMode mode)
+{
+	switch(mode)
+	{
+	case TIC_CODE_MODE:
+		return collab_anyChanged(impl.editor[impl.bank.index.code].code->collab.collab);
+	case TIC_SPRITE_MODE:
+		return collab_anyChanged(impl.editor[impl.bank.index.sprites].sprite->collab.tiles) ||
+		       collab_anyChanged(impl.editor[impl.bank.index.sprites].sprite->collab.flags) ||
+			   collab_anyChanged(impl.editor[impl.bank.index.sprites].sprite->collab.palette);
+	case TIC_MAP_MODE:
+		return collab_anyChanged(impl.editor[impl.bank.index.map].map->collab);
+	case TIC_SFX_MODE:
+		return collab_anyChanged(impl.editor[impl.bank.index.sfx].sfx->collab.waveform) ||
+		       collab_anyChanged(impl.editor[impl.bank.index.sfx].sfx->collab.samples);
+	case TIC_MUSIC_MODE:
+		return collab_anyChanged(impl.editor[impl.bank.index.music].music->collab.patterns) ||
+		       collab_anyChanged(impl.editor[impl.bank.index.music].music->collab.tracks);
+	default:
+		return false;
+	}
+}
+
+#endif
+
 void drawToolbar(tic_mem* tic, u8 color, bool bg)
 {
 	if(bg)
@@ -757,7 +829,15 @@ void drawToolbar(tic_mem* tic, u8 color, bool bg)
 		if(mode == i)
 			drawBitIcon(i * Size, 1, Icons + i * BITS_IN_BYTE, tic_color_black);
 
-		drawBitIcon(i * Size, 0, Icons + i * BITS_IN_BYTE, mode == i ? (tic_color_white) : (over ? (tic_color_dark_gray) : (tic_color_light_blue)));
+		u8 icon =
+#if defined(TIC_BUILD_WITH_COLLAB)
+			(collabEnabled() && modeHasChanges(Modes[i])) ? tic_color_yellow :
+#endif
+			(mode == i) ? tic_color_white :
+			over ? tic_color_dark_gray :
+			tic_color_light_blue;
+
+		drawBitIcon(i * Size, 0, Icons + i * BITS_IN_BYTE, icon);
 	}
 
 	if(mode >= 0) drawExtrabar(tic);
@@ -795,13 +875,13 @@ void setStudioEvent(StudioEvent event)
 {
 	switch(impl.mode)
 	{
-	case TIC_CODE_MODE: 	
+	case TIC_CODE_MODE:
 		{
 			Code* code = impl.editor[impl.bank.index.code].code;
 			code->event(code, event); 			
 		}
 		break;
-	case TIC_SPRITE_MODE:	
+	case TIC_SPRITE_MODE:
 		{
 			Sprite* sprite = impl.editor[impl.bank.index.sprites].sprite;
 			sprite->event(sprite, event); 
@@ -850,6 +930,28 @@ ClipboardEvent getClipboardEvent()
 
 	return TIC_CLIPBOARD_NONE;
 }
+
+#if defined(TIC_BUILD_WITH_COLLAB)
+
+CollabEvent getCollabEvent()
+{
+	if(collabEnabled())
+	{
+		tic_mem* tic = impl.studio.tic;
+
+		bool ctrl = tic->api.key(tic, tic_key_ctrl);
+
+		if(ctrl)
+		{
+			if(keyWasPressed(tic_key_p)) return TIC_COLLAB_PUSH;
+			else if(keyWasPressed(tic_key_l)) return TIC_COLLAB_PULL;
+		}
+	}
+
+	return TIC_COLLAB_NONE;
+}
+
+#endif
 
 static void showPopupMessage(const char* text)
 {
@@ -1105,10 +1207,10 @@ static void initModules()
 	for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
 	{
 		initCode(impl.editor[i].code, impl.studio.tic, &tic->cart.code);
-		initSprite(impl.editor[i].sprite, impl.studio.tic, &tic->cart.banks[i].tiles);
-		initMap(impl.editor[i].map, impl.studio.tic, &tic->cart.banks[i].map);
-		initSfx(impl.editor[i].sfx, impl.studio.tic, &tic->cart.banks[i].sfx);
-		initMusic(impl.editor[i].music, impl.studio.tic, &tic->cart.banks[i].music);
+		initSprite(impl.editor[i].sprite, impl.studio.tic, i);
+		initMap(impl.editor[i].map, impl.studio.tic, i);
+		initSfx(impl.editor[i].sfx, impl.studio.tic, i);
+		initMusic(impl.editor[i].music, impl.studio.tic, i);
 	}
 
 	initWorldMap();
@@ -1157,6 +1259,83 @@ bool studioCartChanged()
 
 	return memcmp(hash.data, impl.cart.hash.data, sizeof(CartHash)) != 0;
 }
+
+#if defined(TIC_BUILD_WITH_COLLAB)
+
+bool collabEnabled()
+{
+	return impl.collab.enabled;
+}
+
+bool collabShowDiffs()
+{
+	return impl.collab.enabled && impl.collab.showDiffs;
+}
+
+void drawDiffRect(tic_mem *tic, s32 x, s32 y, s32 w, s32 h)
+{
+	tic->api.rect_border(tic, x, y, w, h, (tic_color_yellow));
+}
+
+void toggleShowDiffs()
+{
+	impl.collab.showDiffs = !impl.collab.showDiffs;
+}
+
+void onCollabChanges()
+{
+	{
+		Code* code = impl.editor[impl.bank.index.code].code;
+		code->collab.diffNeeded++;
+	}
+
+	{
+		Sprite* sprite = impl.editor[impl.bank.index.sprites].sprite;
+		sprite->diff(sprite);
+	}
+
+	{
+		Map* map = impl.editor[impl.bank.index.map].map;
+		map->diff(map);
+	}
+
+	{
+		Sfx* sfx = impl.editor[impl.bank.index.sfx].sfx;
+		sfx->diff(sfx);
+	}
+
+	{
+		Music* music = impl.editor[impl.bank.index.music].music;
+		music->diff(music);
+	}
+}
+
+void setCollabUrl(const char* collabUrl, bool initPlz)
+{
+	impl.collab.enabled = true;
+	impl.collab.showDiffs = true;
+
+	snprintf(impl.collab.url, sizeof(impl.collab.url), "%s", collabUrl);
+
+	if(initPlz)
+		collab_putInitialData(impl.studio.tic);
+	
+	collab_startChangesStream(impl.studio.tic);
+}
+
+char* getCollabUrl()
+{
+	return impl.collab.url;
+}
+
+void disableCollab()
+{
+	impl.collab.enabled = false;
+
+	collab_stopChangesStream();
+}
+
+#endif
 
 tic_key* getKeymap()
 {
@@ -1378,6 +1557,9 @@ static void processShortcuts()
 		else if(keyWasPressedOnce(tic_key_r)) runProject();
 		else if(keyWasPressedOnce(tic_key_return)) runProject();
 		else if(keyWasPressedOnce(tic_key_s)) saveProject();
+#if defined(TIC_BUILD_WITH_COLLAB)
+		else if(keyWasPressedOnce(tic_key_d)) toggleShowDiffs();
+#endif
 	}
 	else
 	{

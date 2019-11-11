@@ -123,6 +123,19 @@ typedef enum
 
 ClipboardEvent getClipboardEvent();
 
+#if defined(TIC_BUILD_WITH_COLLAB)
+
+typedef enum
+{
+	TIC_COLLAB_NONE,
+	TIC_COLLAB_PULL,
+	TIC_COLLAB_PUSH,
+} CollabEvent;
+
+CollabEvent getCollabEvent();
+
+#endif
+
 typedef enum
 {
 	TIC_TOOLBAR_CUT,
@@ -130,10 +143,24 @@ typedef enum
 	TIC_TOOLBAR_PASTE,
 	TIC_TOOLBAR_UNDO,
 	TIC_TOOLBAR_REDO,
+#if defined(TIC_BUILD_WITH_COLLAB)
+	TIC_TOOLBAR_PUSH,
+	TIC_TOOLBAR_PULL,
+#endif
 } StudioEvent;
 
 void setStudioEvent(StudioEvent event);
 void showTooltip(const char* text);
+
+#if defined(TIC_BUILD_WITH_COLLAB)
+bool collabEnabled();
+bool collabShowDiffs();
+void drawDiffRect(tic_mem *tic, s32 x, s32 y, s32 w, s32 h);
+void onCollabChanges();
+void setCollabUrl(const char* collabUrl, bool initPlz);
+char* getCollabUrl();
+void disableCollab();
+#endif
 
 tic_key* getKeymap();
 

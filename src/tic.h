@@ -51,6 +51,8 @@
 #define TIC_HOST "tic80.com"
 #define TIC_COPYRIGHT "https://" TIC_HOST " (C) 2019"
 
+#define TIC_COLLAB_PROTOCOL_VERSION 1
+
 #define TIC_VRAM_SIZE (16*1024) //16K
 #define TIC_RAM_SIZE (TIC_VRAM_SIZE+80*1024) //16K+80K
 #define TIC_FONT_WIDTH 6

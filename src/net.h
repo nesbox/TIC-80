@@ -26,6 +26,11 @@
 
 typedef struct Net Net;
 
+typedef void(*NetResponse)(u8* buffer, s32 size, void* data);
+
 Net* createNet();
-void* netGetRequest(Net* net, const char* path, s32* size);
+void netTick(Net *net);
+void* netGetRequest(Net* net, const char *url, s32* size);
+void netPutRequest(Net* net, const char *url, void *data, s32 size);
+void netGetStream(Net* net, const char *url, NetResponse callback, void* data);
 void closeNet(Net* net);

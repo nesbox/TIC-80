@@ -1503,6 +1503,45 @@ static void onConsoleSurfCommand(Console* console, const char* param)
 	commandDone(console);
 }
 
+#if defined(TIC_BUILD_WITH_COLLAB)
+
+static void onConsoleCollabCommand(Console* console, const char* param)
+{
+	if(param && strlen(param))
+	{
+		if(strcmp(param, "off") == 0)
+		{
+			disableCollab();
+			printBack(console, "\ncollab disabled");
+		}
+		else
+		{
+			s32 size;
+			char *buffer = (char*)getSystem()->getUrlRequest(param, &size);
+			if(buffer && size)
+			{
+				if(buffer[0] == TIC_COLLAB_PROTOCOL_VERSION)
+				{
+					setCollabUrl(param, buffer[1] != 0);
+					
+					char welcome[1024];
+					snprintf(welcome, sizeof(welcome), "\n%.*s", size - 2, buffer + 2);
+					printFront(console, welcome);
+				}
+				else printBack(console, "\nincompatible server");
+			}
+			else printBack(console, "\nfailed to connect");
+			if(buffer)
+				free(buffer);
+		}
+	}
+	else printBack(console, "\ninvalid collab server");
+
+	commandDone(console);
+}
+
+#endif
+
 static void onConsoleCodeCommand(Console* console, const char* param)
 {
 	gotoCode();
@@ -2409,6 +2448,9 @@ static const struct
 	{"version",	NULL, "show the current version",	onConsoleVersionCommand},
 	{"edit",	NULL, "open cart editor",			onConsoleCodeCommand},
 	{"surf",	NULL, "open carts browser",			onConsoleSurfCommand},
+#if defined(TIC_BUILD_WITH_COLLAB)
+	{"collab",	NULL, "connect to collab server",	onConsoleCollabCommand},
+#endif
 };
 
 static bool predictFilename(const char* name, const char* info, s32 id, void* data, bool dir)
@@ -2702,7 +2744,7 @@ static NetVersion netVersionRequest()
 	};
 
 	s32 size = 0;
-	void* buffer = getSystem()->getUrlRequest("/api?fn=version", &size);
+	void* buffer = getSystem()->getUrlRequest("http://"TIC_HOST"/api?fn=version", &size);
 
 	if(buffer && size)
 	{

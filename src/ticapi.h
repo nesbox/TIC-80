@@ -176,6 +176,9 @@ struct tic_mem
 {
 	tic_ram 			ram;
 	tic_cartridge 		cart;
+#if defined(TIC_BUILD_WITH_COLLAB)
+	tic_cartridge 		collab;
+#endif
 	tic_font 			font;
 	tic_api 			api;
 

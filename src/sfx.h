@@ -26,6 +26,10 @@
 
 typedef struct Sfx Sfx;
 
+#if defined(TIC_BUILD_WITH_COLLAB)
+typedef struct Collab Collab;
+#endif
+
 struct Sfx
 {
 	tic_mem* tic;
@@ -60,9 +64,19 @@ struct Sfx
 	} tab;
 
 	struct History* history;
+#if defined(TIC_BUILD_WITH_COLLAB)
+	struct
+	{
+		Collab* waveform;
+		Collab* samples;
+	} collab;
+#endif
 
 	void(*tick)(Sfx*);
 	void(*event)(Sfx*, StudioEvent);
+#if defined(TIC_BUILD_WITH_COLLAB)
+	void(*diff)(Sfx*);
+#endif
 };
 
-void initSfx(Sfx*, tic_mem*, tic_sfx* src);
+void initSfx(Sfx*, tic_mem*, s32 bank);

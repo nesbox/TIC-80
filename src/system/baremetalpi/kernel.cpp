@@ -111,6 +111,14 @@ static void* getUrlRequest(const char* url, s32* size)
 	return NULL;
 }
 
+static void putUrlRequest(const char* url, void *data, s32 size)
+{
+}
+
+static void getUrlStream(const char* url, url_stream_callback callback, void *data)
+{
+}
+
 static void agoFullscreen()
 {
 }
@@ -161,6 +169,8 @@ static System systemInterface =
 	.getPerformanceFrequency = getPerformanceFrequency,
 
 	.getUrlRequest = getUrlRequest,
+	.putUrlRequest = putUrlRequest,
+	.getUrlStream = getUrlStream,
 
 	.fileDialogLoad = NULL, //file_dialog_load,
 	.fileDialogSave = NULL, //file_dialog_save,

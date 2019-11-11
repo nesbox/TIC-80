@@ -6,6 +6,8 @@
 #define TIC80_OFFSET_LEFT ((TIC80_FULLWIDTH-TIC80_WIDTH)/2)
 #define TIC80_OFFSET_TOP ((TIC80_FULLHEIGHT-TIC80_HEIGHT)/2)
 
+typedef void(*url_stream_callback)(u8* buffer, s32 size, void* data);
+
 typedef struct
 {
 	void	(*setClipboardText)(const char* text);
@@ -17,6 +19,9 @@ typedef struct
 	u64 	(*getPerformanceFrequency)();
 
 	void* (*getUrlRequest)(const char* url, s32* size);
+	void  (*putUrlRequest)(const char* url, void *data, s32 size);
+
+	void  (*getUrlStream)(const char* url, url_stream_callback callback, void *data);
 
 	void (*fileDialogLoad)(file_dialog_load_callback callback, void* data);
 	void (*fileDialogSave)(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode);

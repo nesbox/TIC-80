@@ -26,6 +26,10 @@
 
 typedef struct Music Music;
 
+#if defined(TIC_BUILD_WITH_COLLAB)
+typedef struct Collab Collab;
+#endif
+
 struct Music
 {
 	tic_mem* tic;
@@ -70,9 +74,20 @@ struct Music
 	} tab;
 
 	struct History* history;
-	
+
+#if defined(TIC_BUILD_WITH_COLLAB)
+	struct
+	{
+		Collab* patterns;
+		Collab* tracks;
+	} collab;
+#endif
+
 	void(*tick)(Music*);
 	void(*event)(Music*, StudioEvent);
+#if defined(TIC_BUILD_WITH_COLLAB)
+	void(*diff)(Music*);
+#endif
 };
 
-void initMusic(Music*, tic_mem*, tic_music* src);
+void initMusic(Music*, tic_mem*, s32 bank);

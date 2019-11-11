@@ -22,68 +22,33 @@
 
 #pragma once
 
-#include "studio.h"
-
-typedef struct Sprite Sprite;
-
-typedef struct History History;
 #if defined(TIC_BUILD_WITH_COLLAB)
+#define IF_COLLAB( ... ) __VA_ARGS__
+#else
+#define IF_COLLAB( ... )
+#endif
+
+#if defined(TIC_BUILD_WITH_COLLAB)
+
+#include <tic80_types.h>
+
+typedef struct tic_mem tic_mem;
+
 typedef struct Collab Collab;
+
+struct Collab* collab_create(s32 offset, s32 size, s32 count);
+void collab_delete(Collab* collab);
+void collab_diff(Collab *collab, tic_mem *tic);
+void* collab_data(Collab *collab, tic_mem *tic, s32 index);
+bool collab_isChanged(Collab *collab, s32 index);
+void collab_setChanged(Collab* collab, s32 index, u8 value);
+bool collab_anyChanged(Collab *collab);
+void collab_put(Collab* collab, tic_mem* tic);
+void collab_get(Collab* collab, tic_mem* tic);
+void collab_putRange(Collab* collab, tic_mem* tic, s32 first, s32 count);
+void collab_getRange(Collab* collab, tic_mem* tic, s32 first, s32 count);
+void collab_putInitialData(tic_mem *tic);
+void collab_startChangesStream(tic_mem *tic);
+void collab_stopChangesStream();
+
 #endif
-
-struct Sprite
-{
-	tic_mem* tic;
-
-	tic_tiles* src;
-
-	s32 bank;
-	
-	u32 tickCounter;
-
-	u16 index;
-	u8 color;
-	u8 color2;
-	u8 size;
-	u8 brushSize;
-
-	bool editPalette;
-
-	struct
-	{
-		tic_rect rect;
-		tic_point start;
-		bool drag;
-		u8* back;
-		u8* front;
-	}select;
-
-	enum
-	{
-		SPRITE_DRAW_MODE,
-		SPRITE_PICK_MODE,
-		SPRITE_SELECT_MODE,
-		SPRITE_FILL_MODE,
-	}mode;
-
-	struct History* history;
-
-#if defined(TIC_BUILD_WITH_COLLAB)
-	struct
-	{
-		struct Collab* tiles;
-		struct Collab* flags;
-		struct Collab* palette;
-	}collab;
-#endif
-	
-	void (*tick)(Sprite*);
-	void (*event)(Sprite*, StudioEvent);
-#if defined(TIC_BUILD_WITH_COLLAB)
-	void (*diff)(Sprite*);
-#endif
-	void (*scanline)(tic_mem* tic, s32 row, void* data);
-	void (*overline)(tic_mem* tic, void* data);
-};
-
-void initSprite(Sprite*, tic_mem*, s32 bank);

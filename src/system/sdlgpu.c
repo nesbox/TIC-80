@@ -1195,6 +1195,16 @@ static void* getUrlRequest(const char* url, s32* size)
 	return netGetRequest(platform.net, url, size);
 }
 
+static void putUrlRequest(const char* url, void *data, s32 size)
+{
+	netPutRequest(platform.net, url, data, size);
+}
+
+static void getUrlStream(const char* url, url_stream_callback callback, void *data)
+{
+	netGetStream(platform.net, url, callback, data);
+}
+
 static void preseed()
 {
 #if defined(__MACOSX__)
@@ -1315,6 +1325,8 @@ static System systemInterface =
 	.getPerformanceFrequency = getPerformanceFrequency,
 
 	.getUrlRequest = getUrlRequest,
+	.putUrlRequest = putUrlRequest,
+	.getUrlStream = getUrlStream,
 
 	.fileDialogLoad = file_dialog_load,
 	.fileDialogSave = file_dialog_save,
@@ -1334,6 +1346,8 @@ static void gpuTick()
 	tic_mem* tic = platform.studio->tic;
 
 	pollEvent();
+
+	netTick(platform.net);
 
 	if(platform.studio->quit)
 	{

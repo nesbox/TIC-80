@@ -21,11 +21,18 @@
 // SOFTWARE.
 
 #include "music.h"
+#include "collab.h"
 #include "history.h"
 
 #define TRACKER_ROWS (MUSIC_PATTERN_ROWS / 4)
 #define CHANNEL_COLS 8
 #define TRACKER_COLS (TIC_SOUND_CHANNELS * CHANNEL_COLS)
+
+#if defined(TIC_BUILD_WITH_COLLAB)
+#define SWITCH_CURRENT_VALUE_IS_CHANGED (1<<0)
+#define SWITCH_LATER_VALUE_IS_CHANGED (1<<1)
+#define SWITCH_PRIOR_VALUE_IS_CHANGED (1<<2)
+#endif
 
 enum
 {
@@ -64,7 +71,7 @@ static void drawDownBorder(Music* music, s32 x, s32 y, s32 w, s32 h)
 	tic->api.rect(tic, x+w, y, 1, h, tic_color_light_blue);
 }
 
-static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*, s32, s32 channel), s32 channel)
+static void drawEditbox(Music* music, s32 x, s32 y, u8 color, s32 value, void(*set)(Music*, s32, s32 channel), s32 channel)
 {
 	static const u8 LeftArrow[] =
 	{
@@ -139,7 +146,7 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
 
 		char val[] = "99";
 		sprintf(val, "%02i", value);
-		music->tic->api.fixed_text(music->tic, val, x, y, (tic_color_white), false);
+		music->tic->api.fixed_text(music->tic, val, x, y, color, false);
 	}
 
 	{
@@ -165,7 +172,7 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
 	}
 }
 
-static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value, void(*set)(Music*, s32, void* data), void* data)
+static void drawSwitch(Music* music, s32 x, s32 y, u8 changed, const char* label, s32 value, void(*set)(Music*, s32, void* data), void* data)
 {
 	static const u8 LeftArrow[] =
 	{
@@ -214,14 +221,25 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
 				set(music, -1, data);
 		}
 
-		drawBitIcon(rect.x, rect.y + (down ? 1 : 0), LeftArrow, over ? tic_color_light_blue : tic_color_dark_gray);
+		u8 color = over ? tic_color_light_blue : tic_color_dark_gray;
+#if defined(TIC_BUILD_WITH_COLLAB)
+		if(collabShowDiffs() && (changed & SWITCH_PRIOR_VALUE_IS_CHANGED))
+			color = tic_color_yellow;
+#endif
+		drawBitIcon(rect.x, rect.y + (down ? 1 : 0), LeftArrow, color);
 	}
 
 	{
+		u8 color = (tic_color_white);
+#if defined(TIC_BUILD_WITH_COLLAB)
+		if (collabShowDiffs() && (changed & SWITCH_CURRENT_VALUE_IS_CHANGED))
+			color = (tic_color_yellow);
+#endif
+
 		char val[] = "999";
 		sprintf(val, "%02i", value);
 		music->tic->api.fixed_text(music->tic, val, x + TIC_FONT_WIDTH, y+1, (tic_color_black), false);
-		music->tic->api.fixed_text(music->tic, val, x += TIC_FONT_WIDTH, y, (tic_color_white), false);
+		music->tic->api.fixed_text(music->tic, val, x += TIC_FONT_WIDTH, y, color, false);
 	}
 
 	{
@@ -244,7 +262,13 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
 				set(music, +1, data);
 		}
 
-		drawBitIcon(rect.x, rect.y + (down ? 1 : 0), RightArrow, over ? tic_color_light_blue : tic_color_dark_gray);
+		u8 color = 
+#if defined(TIC_BUILD_WITH_COLLAB)
+		    (collabShowDiffs() && (changed & SWITCH_LATER_VALUE_IS_CHANGED)) ? tic_color_yellow : 
+#endif
+		    over ? tic_color_light_blue : tic_color_dark_gray;
+
+		drawBitIcon(rect.x, rect.y + (down ? 1 : 0), RightArrow, color);
 	}
 }
 
@@ -656,6 +680,79 @@ static void copyFromClipboard(Music* music)
 	}
 }
 
+#if defined(TIC_BUILD_WITH_COLLAB)
+
+static void pushToServer(Music* music)
+{
+	if(music->tic->api.key(music->tic, tic_key_shift))
+	{
+		collab_put(music->collab.patterns, music->tic);
+		collab_put(music->collab.tracks, music->tic);
+	}
+	else
+	{
+		collab_putRange(music->collab.tracks, music->tic, music->track, 1);
+
+		for (s32 frame = 0; frame < MUSIC_FRAMES; frame++)
+		{
+			for (s32 channel = 0; channel < TIC_SOUND_CHANNELS; channel++)
+			{
+				s32 patternId = tic_tool_get_pattern_id(getTrack(music), frame, channel);
+				if(patternId)
+					collab_putRange(music->collab.patterns, music->tic, patternId - PATTERN_START, 1);
+			}
+		}
+	}
+}
+
+static void pullFromServer(Music* music)
+{
+	if(music->tic->api.key(music->tic, tic_key_shift))
+	{
+		collab_get(music->collab.patterns, music->tic);
+		collab_get(music->collab.tracks, music->tic);
+	}
+	else
+	{
+		collab_getRange(music->collab.tracks, music->tic, music->track, 1);
+
+		for (s32 frame = 0; frame < MUSIC_FRAMES; frame++)
+		{
+			for (s32 channel = 0; channel < TIC_SOUND_CHANNELS; channel++)
+			{
+				s32 patternId = tic_tool_get_pattern_id(getTrack(music), frame, channel);
+				if(patternId)
+					collab_getRange(music->collab.patterns, music->tic, patternId - PATTERN_START, 1);
+			}
+		}
+	}
+
+	history_add(music->history);
+}
+
+static void onDiff(Music *music)
+{
+	collab_diff(music->collab.patterns, music->tic);
+	collab_diff(music->collab.tracks, music->tic);
+
+	for(s32 i = 0; i < MUSIC_TRACKS; i++)
+	{
+		tic_track* track = (tic_track*)collab_data(music->collab.tracks, music->tic, i);
+
+		for(s32 frame = 0; frame < MUSIC_FRAMES; frame++)
+		{
+			for(s32 channel = 0; channel < TIC_SOUND_CHANNELS; channel++)
+			{
+				s32 patternId = tic_tool_get_pattern_id(track, frame, channel);
+				if(patternId && collab_isChanged(music->collab.patterns, patternId - PATTERN_START))
+					collab_setChanged(music->collab.tracks, i, true);
+			}
+		}
+	}
+}
+
+#endif
+
 static void setChannelPatternValue(Music* music, s32 patternId, s32 channel)
 {
 	tic_track* track = getTrack(music);
@@ -1025,6 +1122,15 @@ static void processKeyboard(Music* music)
 	default: break;
 	}
 
+#if defined(TIC_BUILD_WITH_COLLAB)
+	switch(getCollabEvent())
+	{
+	case TIC_COLLAB_PULL: pullFromServer(music); break;
+	case TIC_COLLAB_PUSH: pushToServer(music); break;
+	default: break;
+	}
+#endif
+
 	bool ctrl = tic->api.key(tic, tic_key_ctrl);
 
 	if (ctrl)
@@ -1118,11 +1224,56 @@ static void setRows(Music* music, s32 delta, void* data)
 static void drawTopPanel(Music* music, s32 x, s32 y)
 {
 	tic_track* track = getTrack(music);
+#if defined(TIC_BUILD_WITH_COLLAB)
+	tic_track* server = (tic_track*)collab_data(music->collab.tracks, music->tic, music->track);
+#endif
 
-	drawSwitch(music, x, y, "TRACK", music->track, setIndex, NULL);
-	drawSwitch(music, x += TIC_FONT_WIDTH * 10, y, "TEMPO", track->tempo + DEFAULT_TEMPO, setTempo, NULL);
-	drawSwitch(music, x += TIC_FONT_WIDTH * 11, y, "SPD", track->speed + DEFAULT_SPEED, setSpeed, NULL);
-	drawSwitch(music, x += TIC_FONT_WIDTH * 8, y, "ROWS", MUSIC_PATTERN_ROWS - track->rows, setRows, NULL);
+	{
+		u8 changed = 0;
+#if defined(TIC_BUILD_WITH_COLLAB)
+		if(collabShowDiffs())
+		{
+			if(collab_isChanged(music->collab.tracks, music->track))
+				changed |= SWITCH_CURRENT_VALUE_IS_CHANGED;
+
+			for(s32 i = music->track-1; i >= 0; i--)
+				if(collab_isChanged(music->collab.tracks, i))
+					changed |= SWITCH_PRIOR_VALUE_IS_CHANGED;
+
+			for(s32 i = music->track+1; i < MUSIC_TRACKS; i++)
+				if(collab_isChanged(music->collab.tracks, i))
+					changed |= SWITCH_LATER_VALUE_IS_CHANGED;
+		}
+#endif
+		drawSwitch(music, x, y, changed, "TRACK", music->track, setIndex, NULL);
+	}
+
+	{
+		u8 changed = 0;
+#if defined(TIC_BUILD_WITH_COLLAB)
+		if(collabShowDiffs() && (track->tempo != server->tempo))
+			changed = SWITCH_CURRENT_VALUE_IS_CHANGED;
+#endif
+		drawSwitch(music, x += TIC_FONT_WIDTH * 10, y, changed, "TEMPO", track->tempo + DEFAULT_TEMPO, setTempo, NULL);
+	}
+
+	{
+		u8 changed = 0;
+#if defined(TIC_BUILD_WITH_COLLAB)
+		if(collabShowDiffs() && (track->speed != server->speed))
+			changed = SWITCH_CURRENT_VALUE_IS_CHANGED;
+#endif
+		drawSwitch(music, x += TIC_FONT_WIDTH * 11, y, changed, "SPD", track->speed + DEFAULT_SPEED, setSpeed, NULL);
+	}
+
+	{
+		u8 changed = 0;
+#if defined(TIC_BUILD_WITH_COLLAB)
+		if(collabShowDiffs() && (track->rows != server->rows))
+			changed = SWITCH_CURRENT_VALUE_IS_CHANGED;
+#endif
+		drawSwitch(music, x += TIC_FONT_WIDTH * 8, y, changed, "ROWS", MUSIC_PATTERN_ROWS - track->rows, setRows, NULL);
+	}
 }
 
 static void drawTrackerFrames(Music* music, s32 x, s32 y)
@@ -1176,9 +1327,26 @@ static void drawTrackerFrames(Music* music, s32 x, s32 y)
 			music->tic->api.rect(music->tic, x - 1, y - 1 + i*TIC_FONT_HEIGHT, Width, TIC_FONT_HEIGHT + 1, (tic_color_white));
 		}
 
+		u8 color = tic_color_dark_gray;
+
+#if defined(TIC_BUILD_WITH_COLLAB)
+		if(collabShowDiffs())
+		{
+			tic_track* serverTrack = (tic_track*)collab_data(music->collab.tracks, music->tic, music->track);
+			for(s32 channel = 0; channel < TIC_SOUND_CHANNELS; channel++)
+			{
+				s32 patternId = tic_tool_get_pattern_id(getTrack(music), i, channel);
+				if(patternId != tic_tool_get_pattern_id(serverTrack, i, channel))
+					color = tic_color_yellow;
+				else if(patternId && collab_isChanged(music->collab.patterns, patternId - PATTERN_START))
+					color = tic_color_yellow;
+			}
+		}
+#endif
+
 		char buf[] = "99";
 		sprintf(buf, "%02i", i);
-		music->tic->api.fixed_text(music->tic, buf, x, y + i*TIC_FONT_HEIGHT, (tic_color_dark_gray), false);
+		music->tic->api.fixed_text(music->tic, buf, x, y + i*TIC_FONT_HEIGHT, color, false);
 	}
 
 	if(music->tracker.row >= 0)
@@ -1278,13 +1446,13 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 			if (rect.h > 1 && i >= rect.y && i < rect.y + rect.h)
 			{
 				s32 sx = x - 1;
-				tic->api.rect(tic, sx, rowy - 1, CHANNEL_COLS * TIC_FONT_WIDTH + 1, TIC_FONT_HEIGHT + 1, (tic_color_yellow));
+				tic->api.rect(tic, sx, rowy - 1, CHANNEL_COLS * TIC_FONT_WIDTH + 1, TIC_FONT_HEIGHT + 1, (tic_color_white));
 			}
 		}
 
 		if (checkPlayRow(music, i))
 		{
-			music->tic->api.rect(music->tic, x - 1, rowy - 1, Width, TIC_FONT_HEIGHT + 1, (tic_color_white));
+			music->tic->api.rect(music->tic, x - 1, rowy - 1, Width, TIC_FONT_HEIGHT + 1, (tic_color_red));
 		}
 
 		char rowStr[] = "--------";
@@ -1338,6 +1506,15 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 		if (i % NOTES_PER_BEET == 0)
 			music->tic->api.pixel(music->tic, x - 4, y + pos*TIC_FONT_HEIGHT + 2, (tic_color_black));
 	}
+
+#if defined(TIC_BUILD_WITH_COLLAB)
+	if(collabShowDiffs())
+	{
+		s32 patternId = tic_tool_get_pattern_id(getTrack(music), music->tracker.frame, channel);
+		if(patternId && collab_isChanged(music->collab.patterns, patternId - PATTERN_START))
+			drawDiffRect(music->tic, rect.x, rect.y, rect.w, rect.h);
+	}
+#endif
 }
 
 static void drawTumbler(Music* music, s32 x, s32 y, s32 index)
@@ -1377,10 +1554,21 @@ static void drawTracker(Music* music, s32 x, s32 y)
 
 	enum{ChannelWidth = TIC_FONT_WIDTH * 9};
 
+#if defined(TIC_BUILD_WITH_COLLAB)
+	tic_track* serverTrack = (tic_track*)collab_data(music->collab.tracks, music->tic, music->track);
+#endif
+
 	for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
 	{
 		s32 patternId = tic_tool_get_pattern_id(getTrack(music), music->tracker.frame, i);
-		drawEditbox(music, x + ChannelWidth * i + 2*TIC_FONT_WIDTH, y - 11, patternId, setChannelPattern, i);
+
+		u8 color = (tic_color_white);
+#if defined(TIC_BUILD_WITH_COLLAB)
+		s32 serverPatternId = tic_tool_get_pattern_id(serverTrack, music->tracker.frame, i);
+		if(collabShowDiffs() && patternId != serverPatternId)
+			color = (tic_color_yellow);
+#endif
+		drawEditbox(music, x + ChannelWidth * i + 2*TIC_FONT_WIDTH, y - 11, color, patternId, setChannelPattern, i);
 		drawTumbler(music, x + ChannelWidth * i + 7*TIC_FONT_WIDTH, y - 11, i);
 	}
 
@@ -1630,6 +1818,11 @@ static void tick(Music* music)
 
 	drawMusicToolbar(music);
 	drawToolbar(music->tic, (tic_color_gray), false);
+
+#if defined(TIC_BUILD_WITH_COLLAB)
+	if(collabEnabled())
+		onDiff(music);
+#endif
 }
 
 static void onStudioEvent(Music* music, StudioEvent event)
@@ -1641,19 +1834,27 @@ static void onStudioEvent(Music* music, StudioEvent event)
 	case TIC_TOOLBAR_PASTE: copyFromClipboard(music); break;
 	case TIC_TOOLBAR_UNDO: undo(music); break;
 	case TIC_TOOLBAR_REDO: redo(music); break;
+#if defined(TIC_BUILD_WITH_COLLAB)
+	case TIC_TOOLBAR_PUSH: pushToServer(music); break;
+	case TIC_TOOLBAR_PULL: pullFromServer(music); break;
+#endif
 	default: break;
 	}
 }
 
-void initMusic(Music* music, tic_mem* tic, tic_music* src)
+void initMusic(Music* music, tic_mem* tic, s32 bank)
 {
 	if (music->history) history_delete(music->history);
+#if defined(TIC_BUILD_WITH_COLLAB)
+	if (music->collab.patterns) collab_delete(music->collab.patterns);
+	if (music->collab.tracks) collab_delete(music->collab.tracks);
+#endif
 
 	*music = (Music)
 	{
 		.tic = tic,
 		.tick = tick,
-		.src = src,
+		.src = &tic->cart.banks[bank].music,
 		.track = 0,
 		.tracker =
 		{
@@ -1681,8 +1882,18 @@ void initMusic(Music* music, tic_mem* tic, tic_music* src)
 		},
 
 		.tab = MUSIC_TRACKER_TAB,
-		.history = history_create(src, sizeof(tic_music)),
+		.history = history_create(&tic->cart.banks[bank].music, sizeof(tic_music)),
+#if defined(TIC_BUILD_WITH_COLLAB)
+		.collab = 
+		{
+			.patterns = collab_create(tic_tool_cart_offset(&tic->cart, tic->cart.banks[bank].music.patterns.data), sizeof(tic_track_pattern), MUSIC_PATTERNS),
+			.tracks = collab_create(tic_tool_cart_offset(&tic->cart, tic->cart.banks[bank].music.tracks.data), sizeof(tic_track), MUSIC_TRACKS),
+		},
+#endif
 		.event = onStudioEvent,
+#if defined(TIC_BUILD_WITH_COLLAB)
+		.diff = onDiff,
+#endif
 	};
 
 	resetSelection(music);

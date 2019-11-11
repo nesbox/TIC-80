@@ -24,6 +24,24 @@
 
 #include "tic.h"
 
+#define BITARRAY_SIZE(n) ((n + BITS_IN_BYTE - 1) / BITS_IN_BYTE)
+
+inline void tic_tool_poke1(void* addr, u32 index, u8 value)
+{
+	u8* val = (u8*)addr + (index >> 3);
+	u8 bit = 1 << (index & 7);
+	*val &= ~bit;
+	if(value)
+		*val |= bit;
+}
+
+inline u8 tic_tool_peek1(const void* addr, u32 index)
+{
+	u8 val = ((u8*)addr)[index >> 3];
+	u8 bit = 1 << (index & 7);
+	return (val & bit) ? 1 : 0;
+}
+
 inline void tic_tool_poke4(void* addr, u32 index, u8 value)
 {
 	u8* val = (u8*)addr + (index >> 1);
@@ -53,3 +71,4 @@ void tic_tool_set_pattern_id(tic_track* track, s32 frame, s32 channel, s32 id);
 u32 tic_tool_find_closest_color(const tic_rgb* palette, const tic_rgb* color);
 u32* tic_palette_blit(const tic_palette* src);
 bool tic_tool_has_ext(const char* name, const char* ext);
+s32 tic_tool_cart_offset(const tic_cartridge *tic, const void* addr);

@@ -21,6 +21,7 @@ option(BUILD_LIBRETRO "libretro Enabled" ${BUILD_LIBRETRO_DEFAULT})
 option(BUILD_DEMO_CARTS "Demo Carts Enabled" ${BUILD_DEMO_CARTS_DEFAULT})
 option(BUILD_PRO "Build PRO version" FALSE)
 option(BUILD_PLAYER "Build standalone players" ${BUILD_PLAYER_DEFAULT})
+option(BUILD_COLLAB "Build with collaboration feature" OFF)
 
 if (BAREMETALPI)
 
@@ -276,6 +277,10 @@ set(TIC80CORE_SRC
 )
 
 add_library(tic80core STATIC ${TIC80CORE_SRC})
+
+if(BUILD_COLLAB)
+	target_compile_definitions(tic80core PUBLIC TIC_BUILD_WITH_COLLAB)
+endif()
 
 target_include_directories(tic80core PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_include_directories(tic80core PRIVATE ${THIRDPARTY_DIR}/blip-buf)
@@ -612,6 +617,10 @@ set(TIC80LIB_SRC
 	${TIC80LIB_DIR}/surf.c
 	${TIC80LIB_DIR}/net.c
 )
+
+if(BUILD_COLLAB)
+	list(APPEND TIC80LIB_SRC ${TIC80LIB_DIR}/collab.c)
+endif()
 
 set(TIC80_OUTPUTS tic80)
 

@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "code.h"
+#include "collab.h"
 #include "history.h"
 
 #include <ctype.h>
@@ -38,6 +39,22 @@ struct OutlineItem
 
 #define OUTLINE_SIZE ((TIC80_HEIGHT - TOOLBAR_SIZE*2)/TIC_FONT_HEIGHT)
 #define OUTLINE_ITEMS_SIZE (OUTLINE_SIZE * sizeof(OutlineItem))
+
+#if defined(TIC_BUILD_WITH_COLLAB)
+#define EDIT_INSERT 0
+#define EDIT_DELETE 1
+#define EDIT_SAME   2
+#define EDIT_CHANGE 3
+
+struct Edit
+{
+	s32 kind;
+	s32 from;
+	s32 to;
+};
+
+static void diff(Code *code);
+#endif
 
 static void history(Code* code)
 {
@@ -113,6 +130,35 @@ static void drawCode(Code* code, bool withCursor)
 		pointer++;
 		colorPointer++;
 	}
+
+#if defined(TIC_BUILD_WITH_COLLAB)
+	if(collabShowDiffs())
+	{
+		for(s32 i = 0; i < code->collab.editCount; i++)
+		{
+			Edit* edit = &code->collab.edits[i];
+			if(edit->kind != EDIT_SAME)
+			{
+				s32 y = code->rect.y - code->scroll.y * STUDIO_TEXT_HEIGHT + edit->to * STUDIO_TEXT_HEIGHT - 1;
+				if(y >= -TIC_FONT_HEIGHT && y < TIC80_HEIGHT)
+				{
+					if(edit->kind == EDIT_INSERT)
+						drawDiffRect(code->tic, TIC80_WIDTH - 1, y, 1, TIC_FONT_HEIGHT);
+					else if(edit->kind == EDIT_DELETE)
+					{
+						drawDiffRect(code->tic, TIC80_WIDTH - 3, y, 3, 1);
+						drawDiffRect(code->tic, TIC80_WIDTH - 1, y, 1, 2);
+					}
+					else if(edit->kind == EDIT_CHANGE)
+					{
+						for(s32 d = 1; d < TIC_FONT_HEIGHT; d += 2)
+							drawDiffRect(code->tic, TIC80_WIDTH - 1, y + d, 1, 1);
+					}
+				}
+			}
+		}
+	}
+#endif
 
 	if(code->cursor.position == pointer)
 		cursor.x = x, cursor.y = y;
@@ -441,7 +487,9 @@ static bool replaceSelection(Code* code)
 		code->cursor.selection = NULL;
 
 		history(code);
-
+#if defined(TIC_BUILD_WITH_COLLAB)
+		diff(code);
+#endif
 		parseSyntaxColor(code);
 
 		return true;
@@ -457,6 +505,9 @@ static void deleteChar(Code* code)
 		char* pos = code->cursor.position;
 		memmove(pos, pos + 1, strlen(pos));
 		history(code);
+#if defined(TIC_BUILD_WITH_COLLAB)
+		diff(code);
+#endif
 		parseSyntaxColor(code);
 	}
 }
@@ -468,6 +519,9 @@ static void backspaceChar(Code* code)
 		char* pos = --code->cursor.position;
 		memmove(pos, pos + 1, strlen(pos));
 		history(code);
+#if defined(TIC_BUILD_WITH_COLLAB)
+		diff(code);
+#endif
 		parseSyntaxColor(code);
 	}
 }
@@ -484,6 +538,9 @@ static void inputSymbolBase(Code* code, char sym)
 	*code->cursor.position++ = sym;
 
 	history(code);
+#if defined(TIC_BUILD_WITH_COLLAB)
+	diff(code);
+#endif
 
 	updateColumn(code);
 
@@ -557,6 +614,9 @@ static void cutToClipboard(Code* code)
 	copyToClipboard(code);
 	replaceSelection(code);
 	history(code);
+#if defined(TIC_BUILD_WITH_COLLAB)
+	diff(code);
+#endif
 }
 
 static void copyFromClipboard(Code* code)
@@ -593,7 +653,9 @@ static void copyFromClipboard(Code* code)
 				code->cursor.position += size;
 
 				history(code);
-
+#if defined(TIC_BUILD_WITH_COLLAB)
+				diff(code);
+#endif
 				parseSyntaxColor(code);
 			}
 
@@ -602,9 +664,480 @@ static void copyFromClipboard(Code* code)
 	}
 }
 
+#if defined(TIC_BUILD_WITH_COLLAB)
+
+typedef struct
+{
+	char* text;
+	s32* words;
+	s32 wordCount;
+	s32* lines;
+	s32 lineCount;
+} Text;
+
+#define CHAR_NONE    -1
+#define CHAR_END     -2
+#define CHAR_NEWLINE -3
+#define CHAR_SPACE   -4
+#define CHAR_ALPHA   -5
+#define CHAR_DIGIT   -6
+
+static s32 charType(char ch)
+{
+	if(ch == '\0')
+		return CHAR_END;
+	if(ch == '\n')
+		return CHAR_NEWLINE;
+	if(ch == ' ' || ch == '\t')
+		return CHAR_SPACE;
+	if(ch >= 'A' && ch <= 'z')
+		return CHAR_ALPHA;
+	if(ch >= '0' && ch <= '9')
+		return CHAR_DIGIT;
+	return ch;
+}
+
+static s32 nextWord(char* src, s32 offset, s32* type)
+{
+	s32 priorType = charType(src[offset]);
+	while(offset < TIC_CODE_SIZE)
+	{
+		s32 currentType = charType(src[offset]);
+		if(currentType == CHAR_END || currentType != priorType)
+			break;
+		priorType = currentType;
+		offset++;
+		if(currentType == CHAR_NEWLINE)
+			break;
+	}
+	*type = priorType;
+	return offset;
+}
+
+static Text splitText(char* src)
+{
+	Text text = {.text = src, .words = NULL, .wordCount = 0, .lines = NULL, .lineCount = 0};
+
+	s32 type = CHAR_NONE;
+	s32 offset = 0;
+
+	for (; type != CHAR_END; offset = nextWord(src, offset, &type))
+	{
+		text.wordCount++;
+		if(type == CHAR_NEWLINE)
+			text.lineCount++;
+	}
+
+	text.words = (s32*)malloc((text.wordCount + 1) * sizeof(s32));
+	text.lines = (s32*)malloc((text.lineCount + 1) * sizeof(s32));
+	
+	s32 wordIndex = 0;
+	s32 lineIndex = 0;
+
+	type = CHAR_NONE;
+	offset = 0;
+
+	text.words[0] = offset;
+	text.lines[0] = offset;
+
+	for (; type != CHAR_END; offset = nextWord(src, offset, &type))
+	{
+		text.words[++wordIndex] = offset;
+		if(type == CHAR_NEWLINE)
+			text.lines[++lineIndex] = offset;
+	}
+
+	return text;
+}
+
+static void freeText(Text *text)
+{
+	free(text->words);
+	free(text->lines);
+}
+
+static s32 offsetToLine(s32 offset, Text *text)
+{
+	s32 l = 0;
+	s32 r = text->lineCount;
+	while(l < r)
+	{
+		s32 m = (l + r) / 2;
+		if(offset >= text->lines[m + 1])
+			l = m + 1;
+		else
+			r = m;
+	}
+	return l;
+}
+
+static void addLine(char* newSrc, s32* pos, Text* text, s32 line)
+{
+	if(line >= text->lineCount)
+		return;
+
+	s32 offset = text->lines[line];
+	s32 length = text->lines[line + 1] - offset;
+
+	if(*pos + length > TIC_CODE_SIZE - 1)
+		length = TIC_CODE_SIZE - 1 - *pos;
+
+	if(length <= 0)
+		return;
+
+	memcpy(newSrc + *pos, text->text + offset, length);
+
+	*pos += length;
+}
+
+static void pushToServer(Code* code)
+{
+	if(code->tic->api.key(code->tic, tic_key_shift))
+	{
+		collab_put(code->collab.collab, code->tic);
+	}
+	else
+	{
+		s32 position = code->cursor.position - code->src;
+		s32 selection = code->cursor.selection ? (code->cursor.selection - code->src) : position;
+
+		Text text = splitText(code->tic->cart.code.data);
+		Text serverText = splitText(code->tic->collab.code.data);
+
+		s32 positionLine = offsetToLine(position, &text);
+		s32 selectionLine = offsetToLine(selection, &text);
+
+		s32 startLine = MIN(positionLine, selectionLine);
+		s32 endLine = MAX(positionLine, selectionLine);
+
+		char* backupSrc = (char*)malloc(TIC_CODE_SIZE);
+		memcpy(backupSrc, code->tic->cart.code.data, TIC_CODE_SIZE);
+
+		char* newSrc = (char*)malloc(TIC_CODE_SIZE);
+		s32 offset = 0;
+
+		for(s32 e = 0; e < code->collab.editCount; e++)
+		{
+			Edit* edit = &code->collab.edits[e];
+			if(edit->kind == EDIT_SAME)
+				addLine(newSrc, &offset, &text, edit->to);
+			else if(edit->kind == EDIT_INSERT)
+			{
+				if(edit->to >= startLine && edit->to <= endLine)
+					addLine(newSrc, &offset, &text, edit->to);
+			} 
+			else if (edit->kind == EDIT_DELETE)
+			{
+				if(edit->to < startLine || edit->to > endLine)
+					addLine(newSrc, &offset, &serverText, edit->from);
+			}
+			else if (edit->kind == EDIT_CHANGE)
+			{
+				if(edit->to >= startLine && edit->to <= endLine)
+					addLine(newSrc, &offset, &text, edit->to);
+				else
+					addLine(newSrc, &offset, &serverText, edit->from);
+			}
+		}
+
+		newSrc[offset] = '\0';
+		memcpy(code->src, newSrc, offset + 1);
+		free(newSrc);
+
+		collab_put(code->collab.collab, code->tic);
+
+		memcpy(code->tic->cart.code.data, backupSrc, TIC_CODE_SIZE);
+		free(backupSrc);
+
+		freeText(&text);
+		freeText(&serverText);
+	}
+
+	diff(code);
+}
+
+static void pullFromServer(Code* code)
+{
+	if(code->tic->api.key(code->tic, tic_key_shift))
+	{
+		collab_get(code->collab.collab, code->tic);
+	}
+	else
+	{
+		s32 position = code->cursor.position - code->src;
+		s32 selection = code->cursor.selection ? (code->cursor.selection - code->src) : position;
+
+		Text text = splitText(code->tic->cart.code.data);
+		Text serverText = splitText(code->tic->collab.code.data);
+
+		s32 positionLine = offsetToLine(position, &text);
+		s32 selectionLine = offsetToLine(selection, &text);
+
+		s32 startLine = MIN(positionLine, selectionLine);
+		s32 endLine = MAX(positionLine, selectionLine);
+
+		char* newSrc = (char*)malloc(TIC_CODE_SIZE);
+		s32 offset = 0;
+
+		for(s32 e = 0; e < code->collab.editCount; e++)
+		{
+			Edit* edit = &code->collab.edits[e];
+			if(edit->kind == EDIT_SAME)
+				addLine(newSrc, &offset, &text, edit->to);
+			else if(edit->kind == EDIT_INSERT)
+			{
+				if(edit->to < startLine || edit->to > endLine)
+					addLine(newSrc, &offset, &text, edit->to);
+			} 
+			else if (edit->kind == EDIT_DELETE)
+			{
+				if(edit->to >= startLine && edit->to <= endLine)
+					addLine(newSrc, &offset, &serverText, edit->from);
+			}
+			else if (edit->kind == EDIT_CHANGE)
+			{
+				if(edit->to >= startLine && edit->to <= endLine)
+					addLine(newSrc, &offset, &serverText, edit->from);
+				else
+					addLine(newSrc, &offset, &text, edit->to);
+			}
+		}
+
+		newSrc[offset] = '\0';
+		memcpy(code->src, newSrc, offset + 1);
+		free(newSrc);
+
+		code->cursor.position = code->src + text.lines[startLine];
+		code->cursor.selection = NULL;
+
+		freeText(&text);
+		freeText(&serverText);
+	}
+
+	history(code);
+	diff(code);
+	parseSyntaxColor(code);
+}
+
+bool wordsEqual(Text *a, s32 aWord, Text *b, s32 bWord)
+{
+	s32 aOffset = a->words[aWord];
+	s32 aLength = a->words[aWord + 1] - aOffset;
+
+	s32 bOffset = b->words[bWord];
+	s32 bLength = b->words[bWord + 1] - bOffset;
+
+	if(aLength != bLength)
+		return false;
+
+	return strncmp(a->text + aOffset, b->text + bOffset, aLength) == 0;
+}
+
+void myersDiff(Text *a, Text *b, Edit** edits, s32* editCount)
+{
+    s32 n = a->wordCount;
+    s32 m = b->wordCount;
+    s32 max = n + m;
+    s32 w = 2 * max + 1;
+
+    s32** trace = (s32**)malloc((max + 1) * sizeof(s32*));
+
+    s32 *v = (s32*)malloc(w * sizeof(s32));
+    v[1] = 0;
+
+#define V(index_) (v[((index_) + w) % w])
+
+    s32 d;
+    for(d = 0; d <= max; d++)
+    {
+        trace[d] = (s32*)malloc(w * sizeof(s32));
+        memcpy(trace[d], v, w * sizeof(s32));
+
+        for(s32 k = -d; k <= d; k += 2)
+        {
+            s32 x;
+            if(k == -d || (k != d && V(k - 1) < V(k + 1)))
+                x = V(k + 1);
+            else
+                x = V(k - 1) + 1;
+
+            s32 y = x - k;
+            while(x < n && y < m && wordsEqual(a, x, b, y))
+            {
+                x++;
+                y++;
+            }
+
+            V(k) = x;
+
+            if(x >= n && y >= m)
+                goto found;
+        }
+    }
+found:;
+
+    free(v);
+
+    *edits = (Edit*)malloc(max * sizeof(Edit));
+    s32 e = max;
+
+    s32 x = n;
+    s32 y = m;
+
+    for(; d >= 0; d--)
+    {
+        v = trace[d];
+
+        s32 k = x - y;
+
+        s32 prev_k;
+        if(k == -d || (k != d && V(k - 1) < V(k + 1)))
+            prev_k = k + 1;
+        else
+            prev_k = k - 1;
+
+        s32 prev_x = V(prev_k);
+        s32 prev_y = prev_x - prev_k;
+
+        while(x > prev_x && y > prev_y)
+        {
+            x--;
+            y--;
+            (*edits)[--e] = (Edit){.kind = EDIT_SAME, .from = x, .to = y};
+        }
+
+        if(d > 0)
+        {
+            if(x == prev_x)
+                (*edits)[--e] = (Edit){.kind = EDIT_INSERT, .from = prev_x, .to = prev_y};
+            else
+                (*edits)[--e] = (Edit){.kind = EDIT_DELETE, .from = prev_x, .to = prev_y};
+        }
+
+        x = prev_x;
+        y = prev_y;
+
+        free(v);
+    }
+
+#undef V
+
+    free(trace);
+
+    *editCount = max - e;
+
+    memmove(*edits, *edits + e, *editCount * sizeof(Edit));
+}
+
+static void wordToLineEdits(Text *fromLines, Text *toLines, Edit *wordEdits, s32 wordEditCount, Edit** lineEditsOut, s32 *lineEditCountOut)
+{
+	Edit *lineEdits = (Edit*)malloc(wordEditCount * sizeof(Edit));
+	s32 lineEditCount = 0;
+
+	s32 lineContents = 0;
+	s32 fromLineCount = 0;
+	s32 toLineCount = 0;
+
+	// printf("lines:\n");
+	for(s32 index = 0; index < wordEditCount + 1; index++)
+	{
+		bool endOfLine;
+		if(index < wordEditCount)
+		{
+			Edit* wordEdit = &wordEdits[index];
+
+			lineContents |= 1 << wordEdit->kind;
+
+			char firstChar = (wordEdit->kind == EDIT_DELETE) ? 
+				fromLines->text[fromLines->words[wordEdit->from]] : 
+				toLines->text[toLines->words[wordEdit->to]];
+
+			endOfLine = firstChar == '\n';
+		}
+		else
+		{
+			endOfLine = true;
+		}
+
+		if(endOfLine)
+		{
+			Edit* lineEdit = &lineEdits[lineEditCount++];
+			lineEdit->from = fromLineCount;
+			lineEdit->to = toLineCount;
+
+			if(lineContents == (1<<EDIT_INSERT))
+			{
+				lineEdit->kind = EDIT_INSERT;
+				toLineCount++;
+			}
+			else if(lineContents == (1<<EDIT_DELETE))
+			{
+				lineEdit->kind = EDIT_DELETE;
+				fromLineCount++;
+			}
+			else if(lineContents == (1<<EDIT_SAME) || lineContents == 0)
+			{
+				lineEdit->kind = EDIT_SAME;
+				fromLineCount++;
+				toLineCount++;
+			}
+			else
+			{
+				lineEdit->kind = EDIT_CHANGE;
+				fromLineCount++;
+				toLineCount++;
+			}
+			
+			// const char* kinds[] = {"insert", "delete", "same", "change"};
+			// printf("%02d %02d | %s\n", lineEdit->from, lineEdit->to, kinds[lineEdit->kind]);
+
+			lineContents = 0;
+		}
+	}
+
+	lineEdits = (Edit*)realloc(lineEdits, lineEditCount * sizeof(Edit));
+
+	*lineEditsOut = lineEdits;
+	*lineEditCountOut = lineEditCount;
+}
+
+static void diff(Code *code)
+{
+	if(collabEnabled())
+	{
+		collab_diff(code->collab.collab, code->tic);
+
+		Text text = splitText(code->tic->cart.code.data);
+		Text serverText = splitText(code->tic->collab.code.data);
+
+		if(code->collab.edits)
+			free(code->collab.edits);
+
+		Edit* wordEdits;
+		s32 wordEditCount;
+		myersDiff(&serverText, &text, &wordEdits, &wordEditCount);
+
+		Edit* lineEdits;
+		s32 lineEditCount;
+		wordToLineEdits(&serverText, &text, wordEdits, wordEditCount, &lineEdits, &lineEditCount);
+
+		code->collab.edits = lineEdits;
+		code->collab.editCount = lineEditCount;
+
+		free(wordEdits);
+		freeText(&text);
+		freeText(&serverText);
+	}
+}
+
+#endif
+
 static void update(Code* code)
 {
 	updateEditor(code);
+#if defined(TIC_BUILD_WITH_COLLAB)
+	diff(code);
+#endif
 	parseSyntaxColor(code);
 }
 
@@ -681,6 +1214,9 @@ static void doTab(Code* code, bool shift, bool crtl)
 			else if (start <= end) code->cursor.position = end;
 			
 			history(code);
+#if defined(TIC_BUILD_WITH_COLLAB)
+			diff(code);
+#endif
 			parseSyntaxColor(code);
 		}
 	}
@@ -883,7 +1419,9 @@ static void commentLine(Code* code)
 	code->cursor.selection = NULL;	
 
 	history(code);
-
+#if defined(TIC_BUILD_WITH_COLLAB)
+	diff(code);
+#endif
 	parseSyntaxColor(code);
 }
 
@@ -900,6 +1438,15 @@ static void processKeyboard(Code* code)
 	case TIC_CLIPBOARD_PASTE: copyFromClipboard(code); break;
 	default: break;
 	}
+
+#if defined(TIC_BUILD_WITH_COLLAB)
+	switch(getCollabEvent())
+	{
+	case TIC_COLLAB_PULL: pullFromServer(code); break;
+	case TIC_COLLAB_PUSH: pushToServer(code); break;
+	default: break;
+	}
+#endif
 
 	bool shift = tic->api.key(tic, tic_key_shift);
 	bool ctrl = tic->api.key(tic, tic_key_ctrl);
@@ -1446,6 +1993,14 @@ static void tick(Code* code)
 
 	drawCodeToolbar(code);
 
+#if defined(TIC_BUILD_WITH_COLLAB)
+	if(code->collab.diffNeeded != code->collab.diffCounter)
+	{
+		code->collab.diffNeeded = code->collab.diffCounter;
+		code->diff(code);
+	}
+#endif
+
 	code->tickCounter++;
 }
 
@@ -1472,6 +2027,10 @@ static void onStudioEvent(Code* code, StudioEvent event)
 	case TIC_TOOLBAR_PASTE: copyFromClipboard(code); break;
 	case TIC_TOOLBAR_UNDO: undo(code); break;
 	case TIC_TOOLBAR_REDO: redo(code); break;
+#if defined(TIC_BUILD_WITH_COLLAB)
+	case TIC_TOOLBAR_PUSH: pushToServer(code); break;
+	case TIC_TOOLBAR_PULL: pullFromServer(code); break;
+#endif
 	}
 }
 
@@ -1482,6 +2041,10 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
 
 	if(code->history) history_delete(code->history);
 	if(code->cursorHistory) history_delete(code->cursorHistory);
+
+#if defined(TIC_BUILD_WITH_COLLAB)
+	if (code->collab.collab) collab_delete(code->collab.collab);
+#endif
 
 	*code = (Code)
 	{
@@ -1495,6 +2058,14 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
 		.tickCounter = 0,
 		.history = NULL,
 		.cursorHistory = NULL,
+#if defined(TIC_BUILD_WITH_COLLAB)
+		.collab = 
+		{
+			.collab = collab_create(tic_tool_cart_offset(&tic->cart, tic->cart.code.data), 1, sizeof(tic_code)),
+			.edits = NULL,
+			.editCount = 0,
+		},
+#endif
 		.mode = TEXT_EDIT_MODE,
 		.jump = {.line = -1},
 		.popup =
@@ -1509,6 +2080,9 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
 		},
 		.altFont = getConfig()->theme.code.altFont,
 		.event = onStudioEvent,
+#if defined(TIC_BUILD_WITH_COLLAB)
+		.diff = diff,
+#endif
 		.update = update,
 	};
 

@@ -25,7 +25,12 @@
 #include "studio.h"
 
 typedef struct Code Code;
+
 typedef struct OutlineItem OutlineItem;
+#if defined(TIC_BUILD_WITH_COLLAB)
+typedef struct Edit Edit;
+typedef struct Collab Collab;
+#endif
 
 struct Code
 {
@@ -69,6 +74,19 @@ struct Code
 	struct History* history;
 	struct History* cursorHistory;
 
+#if defined(TIC_BUILD_WITH_COLLAB)
+	struct
+	{
+		Collab* collab;
+		
+		Edit* edits;
+		s32 editCount;
+
+		s32 diffCounter;
+		s32 diffNeeded;
+	} collab;
+#endif
+
 	enum
 	{
 		TEXT_RUN_CODE,
@@ -103,6 +121,9 @@ struct Code
 	void(*tick)(Code*);
 	void(*escape)(Code*);
 	void(*event)(Code*, StudioEvent);
+#if defined(TIC_BUILD_WITH_COLLAB)
+	void(*diff)(Code*);
+#endif
 	void(*update)(Code*);
 };
 

@@ -301,7 +301,7 @@ static void onDirResponse(u8* buffer, s32 size, void* data)
 static void netDirRequest(const char* path, ListCallback callback, void* data)
 {
 	char request[FILENAME_MAX] = {'\0'};
-	sprintf(request, "/api?fn=dir&path=%s", path);
+	sprintf(request, "http://"TIC_HOST"/api?fn=dir&path=%s", path);
 
 	s32 size = 0;
 	void* buffer = getSystem()->getUrlRequest(request, &size);
@@ -1083,7 +1083,7 @@ void* fsLoadFileByHash(FileSystem* fs, const char* hash, s32* size)
 	}
 
 	char path[FILENAME_MAX] = {0};
-	sprintf(path, "/cart/%s/cart.tic", hash);
+	sprintf(path, "http://"TIC_HOST"/cart/%s/cart.tic", hash);
 	void* data = getSystem()->getUrlRequest(path, size);
 
 	if(data)
