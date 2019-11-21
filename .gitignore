@@ -90,8 +90,6 @@ build/windows/zlib/Debug Pro/
 build/windows/zlib/Release Pro/
 build/windows/example/Release Pro/
 build/windows/example/Debug Pro/
-TIC80.sublime-project
-TIC80.sublime-workspace
 build/windows/wren/Release/
 build/windows/wren/Debug/
 build/windows/wren/x64/
@@ -151,3 +149,7 @@ build/bin/
 build/3rd-party/curl/libcurl.pc
 build/3rd-party/curl/curl-config
 build/3rd-party/curl/DartConfiguration.tcl
+build/.ninja_deps
+build/.ninja_log
+*.ninja
+tic80.sublime-workspace

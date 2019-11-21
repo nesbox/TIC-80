@@ -1,0 +1,22 @@
+{
+	"build_systems":
+    [
+    	{
+    		"name": "cmake build",
+    		"shell_cmd": "cd ${project_path}/build && cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel .. && ninja && ${project_path}/build/bin/tic80",
+    		"file_regex": "/([^/:]+):(\\d+):(\\d+): ",
+    		"variants": [
+    			{
+    				"name": "clean",
+    				"shell_cmd": "git clean -xdf"
+    			}
+    		]
+    	}
+    ],
+	"folders":
+	[
+		{
+			"path": "."
+		}
+	]
+}
