@@ -1632,7 +1632,8 @@ const tic_script_config* getMoonScriptConfig()
 #define FENNEL_CODE(...) #__VA_ARGS__
 
 static const char* execute_fennel_src = FENNEL_CODE(
-  local ok, msg = pcall(require('fennel').eval, ..., {filename="game", correlate=true})
+  local opts = {filename="game", correlate=true, allowedGlobals=false}
+  local ok, msg = pcall(require('fennel').eval, ..., opts)
   if(not ok) then return msg end
 );
 
@@ -1681,9 +1682,11 @@ static bool initFennel(tic_mem* tic, const char* code)
 
 static const char* const FennelKeywords [] =
 {
+	"lua", "hashfn","macro", "macros",
 	"do", "values", "if", "when", "each", "for", "fn", "lambda", "partial",
-	"while", "set", "global", "var", "local", "let", "tset",
-	"or", "and", "true", "false", "nil", "#", ":", "->", "->>"
+	"while", "set", "global", "var", "local", "let", "tset", "doto", "match",
+	"or", "and", "true", "false", "nil", "not", "not=",
+	".", "..", "#", "...", ":", "->", "->>", "-?>", "-?>>", "$"
 };
 
 static const tic_outline_item* getFennelOutline(const char* code, s32* size)
