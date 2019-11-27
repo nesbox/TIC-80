@@ -1681,9 +1681,11 @@ static bool initFennel(tic_mem* tic, const char* code)
 
 static const char* const FennelKeywords [] =
 {
+	"lua", "hashfn","macro", "macros",
 	"do", "values", "if", "when", "each", "for", "fn", "lambda", "partial",
-	"while", "set", "global", "var", "local", "let", "tset",
-	"or", "and", "true", "false", "nil", "#", ":", "->", "->>"
+	"while", "set", "global", "var", "local", "let", "tset", "doto", "match",
+	"or", "and", "true", "false", "nil", "not", "not=",
+	".", "..", "#", "...", ":", "->", "->>", "-?>", "-?>>", "$"
 };
 
 static const tic_outline_item* getFennelOutline(const char* code, s32* size)
