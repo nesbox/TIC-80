@@ -1632,7 +1632,8 @@ const tic_script_config* getMoonScriptConfig()
 #define FENNEL_CODE(...) #__VA_ARGS__
 
 static const char* execute_fennel_src = FENNEL_CODE(
-  local ok, msg = pcall(require('fennel').eval, ..., {filename="game", correlate=true})
+  local opts = {filename="game", correlate=true, allowedGlobals=false}
+  local ok, msg = pcall(require('fennel').eval, ..., opts)
   if(not ok) then return msg end
 );
 
