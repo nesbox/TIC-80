@@ -472,6 +472,37 @@ static void backspaceChar(Code* code)
 	}
 }
 
+static void deleteWord(Code* code)
+{
+	const char* end = code->src + strlen(code->src);
+	char* pos = code->cursor.position;
+
+	if(pos < end)
+	{
+		if(isalnum_(*pos)) while(pos < end && isalnum_(*pos)) pos++;
+		else while(pos < end && !isalnum_(*pos)) pos++;
+		memmove(code->cursor.position, pos, strlen(pos) + 1);
+		history(code);
+		parseSyntaxColor(code);
+	}
+}
+
+static void backspaceWord(Code* code)
+{
+	const char* start = code->src;
+	char* pos = code->cursor.position-1;
+
+	if(pos > start)
+	{
+		if(isalnum_(*pos)) while(pos > start && isalnum_(*(pos-1))) pos--;
+		else while(pos > start && !isalnum_(*(pos-1))) pos--;
+		memmove(pos, code->cursor.position, strlen(code->cursor.position) + 1);
+		code->cursor.position = pos;
+		history(code);
+		parseSyntaxColor(code);
+	}
+}
+
 static void inputSymbolBase(Code* code, char sym)
 {
 	if (strlen(code->src) >= sizeof(tic_code))
@@ -554,6 +585,12 @@ static void copyToClipboard(Code* code)
 
 static void cutToClipboard(Code* code)
 {
+	if(code->cursor.selection == NULL || code->cursor.position == code->cursor.selection)
+	{
+		code->cursor.position = getLine(code);
+		code->cursor.selection = getNextLine(code);
+	}
+	
 	copyToClipboard(code);
 	replaceSelection(code);
 	history(code);
@@ -772,6 +809,34 @@ static char* ticStrlwr(char *string)
 	return string;
 }
 
+static bool isFilterMatch(const char* buffer, const char* filter)
+{
+	const char *b = buffer;
+	const char *f = filter;
+	while(*b)
+	{
+		if(*b == *f)
+			f++;
+		b++;
+	}
+	return *f == 0;
+}
+
+static void drawFilterMatch(Code *code, s32 x, s32 y, const char* buffer, const char* filter)
+{
+	const char *b = buffer;
+	const char *f = filter;
+	while(*b)
+	{
+		u8 color = (*b == *f) ? (tic_color_black) : (tic_color_white);
+		code->tic->api.draw_char(code->tic, *b, x, y, color, false);
+		x += TIC_FONT_WIDTH;
+		if(*b == *f)
+			f++;
+		b++;
+	}
+}
+
 static void initOutlineMode(Code* code)
 {
 	OutlineItem* out = code->outline.items;
@@ -808,7 +873,7 @@ static void initOutlineMode(Code* code)
 
 					ticStrlwr(buffer);
 
-					if(strstr(buffer, filter)) out++;
+					if(isFilterMatch(buffer, filter)) out++;
 					else out->pos = NULL;
 				}
 				else out++;
@@ -920,27 +985,25 @@ static void processKeyboard(Code* code)
 
 	if(ctrl)
 	{
-		if(ctrl)
-		{
-			if(keyWasPressed(tic_key_left)) leftWord(code);
-			else if(keyWasPressed(tic_key_right)) rightWord(code);
-			else if(keyWasPressed(tic_key_tab)) doTab(code, shift, ctrl);
-		}
-
-		if(keyWasPressed(tic_key_a)) 			selectAll(code);
-		else if(keyWasPressed(tic_key_z)) 		undo(code);
-		else if(keyWasPressed(tic_key_y)) 		redo(code);
-		else if(keyWasPressed(tic_key_f)) 		setCodeMode(code, TEXT_FIND_MODE);
-		else if(keyWasPressed(tic_key_g)) 		setCodeMode(code, TEXT_GOTO_MODE);
-		else if(keyWasPressed(tic_key_o)) 		setCodeMode(code, TEXT_OUTLINE_MODE);
-		else if(keyWasPressed(tic_key_slash)) 	commentLine(code);
-		else if(keyWasPressed(tic_key_home)) 	goCodeHome(code);
+		if(keyWasPressed(tic_key_left)) 			leftWord(code);
+		else if(keyWasPressed(tic_key_right)) 		rightWord(code);
+		else if(keyWasPressed(tic_key_tab)) 		doTab(code, shift, ctrl);
+		else if(keyWasPressed(tic_key_a)) 			selectAll(code);
+		else if(keyWasPressed(tic_key_z)) 			undo(code);
+		else if(keyWasPressed(tic_key_y)) 			redo(code);
+		else if(keyWasPressed(tic_key_f)) 			setCodeMode(code, TEXT_FIND_MODE);
+		else if(keyWasPressed(tic_key_g)) 			setCodeMode(code, TEXT_GOTO_MODE);
+		else if(keyWasPressed(tic_key_o)) 			setCodeMode(code, TEXT_OUTLINE_MODE);
+		else if(keyWasPressed(tic_key_slash)) 		commentLine(code);
+		else if(keyWasPressed(tic_key_home)) 		goCodeHome(code);
 		else if(keyWasPressed(tic_key_end)) 		goCodeEnd(code);
+		else if(keyWasPressed(tic_key_delete)) 		deleteWord(code);
+		else if(keyWasPressed(tic_key_backspace)) 	backspaceWord(code);
 	}
 	else if(alt)
 	{
-		if(keyWasPressed(tic_key_left)) leftWord(code);
-		else if(keyWasPressed(tic_key_right)) rightWord(code);
+		if(keyWasPressed(tic_key_left)) 		leftWord(code);
+		else if(keyWasPressed(tic_key_right)) 	rightWord(code);
 	}
 	else
 	{
@@ -1249,13 +1312,24 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 
 	y++;
 
+	char buffer[TEXT_BUFFER_WIDTH] = {0};
+	char filter[TEXT_BUFFER_WIDTH] = {0};
+	strncpy(filter, code->popup.text, sizeof(filter));
+
+	ticStrlwr(filter);
+
 	if(ptr->pos)
 	{
 		code->tic->api.rect(code->tic, rect.x - 1, rect.y + code->outline.index*STUDIO_TEXT_HEIGHT,
 			rect.w + 1, TIC_FONT_HEIGHT + 1, (tic_color_red));
 		while(ptr->pos)
 		{
-			code->tic->api.fixed_text(code->tic, ptr->name, x, y, (tic_color_white), false);
+			strncpy(buffer, ptr->name, sizeof(buffer));
+
+			ticStrlwr(buffer);
+
+			drawFilterMatch(code, x, y, buffer, filter);
+
 			ptr++;
 			y += STUDIO_TEXT_HEIGHT;
 		}
