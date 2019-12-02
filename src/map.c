@@ -648,8 +648,6 @@ static void processMouseSelectMode(Map* map)
 				mx /= TIC_SPRITESIZE;
 				my /= TIC_SPRITESIZE;
 
-				normalizeMapRect(&mx, &my);
-
 				if(map->select.drag)
 				{
 					s32 rl = MIN(mx, map->select.start.x);
