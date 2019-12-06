@@ -26,6 +26,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#define NO_TAG -1
+
 typedef struct
 {
 	u8* buffer;
@@ -39,6 +41,8 @@ struct Item
 {
 	Item* next;
 	Item* prev;
+
+	s32 tag;
 
 	Data data;
 };
@@ -58,11 +62,12 @@ static void list_delete(Item* list, Item* from)
 	}
 }
 
-static Item* list_insert(Item* list, Data* data)
+static Item* list_insert(Item* list, s32 tag, Data* data)
 {
 	Item* item = (Item*)malloc(sizeof(Item));
 	item->next = NULL;
 	item->prev = NULL;
+	item->tag = tag;
 	item->data = *data;
 
 	if(list)
@@ -105,8 +110,7 @@ History* history_create(void* data, u32 size)
 	history->state = malloc(size);
 	memcpy(history->state, data, history->size);
 
-	// empty diff
-	history->list = list_insert(history->list, &(Data){NULL, 0, 0});
+	history_add(history);
 
 	return history;
 }
@@ -145,9 +149,16 @@ static u32 trim_right(u8* data, u32 size)
 	return 0;
 }
 
-bool history_add(History* history)
+void history_add_with_tag(History* history, s32 tag)
 {
-	if (memcmp(history->state, history->data, history->size) == 0) return false;
+	if(tag != NO_TAG)
+	{
+		while (history->list && history->list->tag == tag)
+		{
+			history_diff(history, &history->list->data);
+			history->list = history->list->prev;
+		}
+	}
 
 	history_diff(history, &(Data){history->data, 0, history->size});
 
@@ -155,39 +166,85 @@ bool history_add(History* history)
 		Data data;
 		data.start = trim_left(history->state, history->size);
 		data.end = trim_right(history->state, history->size);
-		u32 size = data.end - data.start;
-		data.buffer = malloc(size);
 
-		memcpy(data.buffer, (u8*)history->state + data.start, size);
+		if(data.end > data.start)
+		{
+			u32 size = data.end - data.start;
+			data.buffer = malloc(size);
 
-		history->list = list_insert(history->list, &data);
+			memcpy(data.buffer, (u8*)history->state + data.start, size);
+		}
+		else data.buffer = NULL;
+
+		history->list = list_insert(history->list, tag, &data);
 	}
 
 	memcpy(history->state, history->data, history->size);
+}
 
-	return true;
+void history_undo_to_tag(History* history, s32 tag)
+{
+	Item *target = NULL;
+
+	for(Item* iter = history->list->prev; iter; iter = iter->prev)
+		if(iter->tag == tag)
+		{
+			target = iter;
+			break;
+		}
+
+	if(target)
+	{
+		while (history->list != target)
+		{
+			history_diff(history, &history->list->data);
+			history->list = history->list->prev;
+		}
+	}
+
+	memcpy(history->data, history->state, history->size);
+}
+
+void history_redo_to_tag(History* history, s32 tag)
+{
+	Item *target = NULL;
+
+	for(Item* iter = history->list->next; iter; iter = iter->next)
+		if(iter->tag == tag)
+		{
+			target = iter;
+			break;
+		}
+
+	if(target)
+	{
+		do
+		{
+			history->list = history->list->next;
+			history_diff(history, &history->list->data);
+		} while (history->list != target);
+	}
+
+	memcpy(history->data, history->state, history->size);
+}
+
+void history_add(History* history)
+{
+	history_add_with_tag(history, NO_TAG);
 }
 
 void history_undo(History* history)
 {
-	if(history->list->prev)
-	{
-		history_diff(history, &history->list->data);
-
-		history->list = history->list->prev;
-	}
-
-	memcpy(history->data, history->state, history->size);
+	history_undo_to_tag(history, NO_TAG);
 }
 
 void history_redo(History* history)
 {
-	if(history->list->next)
-	{
-		history->list = history->list->next;
+	history_redo_to_tag(history, NO_TAG);
+}
 
-		history_diff(history, &history->list->data);
-	}
-
-	memcpy(history->data, history->state, history->size);
+void history_add_if_changed(History* history)
+{
+	if(memcmp(history->data, history->state, history->size))
+		history_add_with_tag(history, NO_TAG);
 }

@@ -151,7 +151,7 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
 				for(s32 i = 0; i < pixels; i++)
 					setSheetPixel(sprite, sx+i, sy+j, color);
 
-			history_add(sprite->history);
+			history_add_if_changed(sprite->history);
 		}
 	}
 }
@@ -178,7 +178,7 @@ static void pasteSelection(Sprite* sprite)
 		for(s32 sx = l; sx < r; sx++)
 			setSheetPixel(sprite, sx, sy, sprite->select.front[i++]);
 
-	history_add(sprite->history);
+	history_add_if_changed(sprite->history);
 }
 
 static void copySelection(Sprite* sprite)
@@ -308,7 +308,7 @@ static void processFillCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 l, s32 t)
 					: floodFill(sprite, l, t, l + sprite->size-1, t + sprite->size-1, sx, sy, color, fill);
 			}
 
-			history_add(sprite->history);
+			history_add_if_changed(sprite->history);
 		}
 	}
 }
@@ -503,7 +503,7 @@ static void rotateCanvas(Sprite* sprite)
 			
 			rotateSelectRect(sprite);
 			pasteSelection(sprite);
-			history_add(sprite->history);
+			history_add_if_changed(sprite->history);
 		}
 
 		free(buffer);
@@ -525,7 +525,7 @@ static void deleteCanvas(Sprite* sprite)
 
 	clearCanvasSelection(sprite);
 	
-	history_add(sprite->history);
+	history_add_if_changed(sprite->history);
 }
 
 static void flipCanvasHorz(Sprite* sprite)
@@ -546,7 +546,7 @@ static void flipCanvasHorz(Sprite* sprite)
 			setSheetPixel(sprite, i, y, color);
 		}
 
-	history_add(sprite->history);
+	history_add_if_changed(sprite->history);
 	copySelection(sprite);
 }
 
@@ -568,7 +568,7 @@ static void flipCanvasVert(Sprite* sprite)
 			setSheetPixel(sprite, x, i, color);
 		}
 
-	history_add(sprite->history);
+	history_add_if_changed(sprite->history);
 	copySelection(sprite);
 }
 
@@ -1162,7 +1162,7 @@ static void flipSpriteHorz(Sprite* sprite)
 			setSheetPixel(sprite, i, y, color);
 		}
 
-	history_add(sprite->history);
+	history_add_if_changed(sprite->history);
 }
 
 static void flipSpriteVert(Sprite* sprite)
@@ -1179,7 +1179,7 @@ static void flipSpriteVert(Sprite* sprite)
 			setSheetPixel(sprite, x, i, color);
 		}
 
-	history_add(sprite->history);
+	history_add_if_changed(sprite->history);
 }
 
 static void rotateSprite(Sprite* sprite)
@@ -1202,7 +1202,7 @@ static void rotateSprite(Sprite* sprite)
 				for(s32 x = rect.x, i = 0; x < r; x++, i++)
 					setSheetPixel(sprite, x, y, buffer[j + (Size-i-1)*Size]);
 
-			history_add(sprite->history);
+			history_add_if_changed(sprite->history);
 		}
 
 		free(buffer);
@@ -1221,7 +1221,7 @@ static void deleteSprite(Sprite* sprite)
 
 	clearCanvasSelection(sprite);
 
-	history_add(sprite->history);
+	history_add_if_changed(sprite->history);
 }
 
 static void(* const SpriteToolsFunc[])(Sprite*) = {flipSpriteHorz, flipSpriteVert, rotateSprite, deleteSprite};
@@ -1457,7 +1457,7 @@ static void copyFromClipboard(Sprite* sprite)
 				for(s32 x = rect.x; x < r; x++)
 					setSheetPixel(sprite, x, y, tic_tool_peek4(buffer, i++));
 
-			history_add(sprite->history);
+			history_add_if_changed(sprite->history);
 		}
 
 		free(buffer);

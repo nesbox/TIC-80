@@ -445,7 +445,7 @@ static void setMapSprite(Map* map, s32 x, s32 y)
 		for(s32 i = 0; i < map->sheet.rect.w; i++)
 			map->tic->api.map_set(map->tic, map->src, (x+i)%TIC_MAP_WIDTH, (y+j)%TIC_MAP_HEIGHT, (mx+i) + (my+j) * SHEET_COLS);
 
-	history_add(map->history);
+	history_add_if_changed(map->history);
 }
 
 static void drawTileCursor(Map* map)
@@ -601,7 +601,7 @@ static void drawPasteData(Map* map)
 			for(s32 i = 0; i < w; i++)
 				map->tic->api.map_set(map->tic, map->src, (mx+i)%TIC_MAP_WIDTH, (my+j)%TIC_MAP_HEIGHT, data[i + j * w]);
 
-		history_add(map->history);
+		history_add_if_changed(map->history);
 
 		free(map->paste);
 		map->paste = NULL;
@@ -806,7 +806,7 @@ static void processMouseFillMode(Map* map)
 		getMouseMap(map, &tx, &ty);
 
 		fillMap(map, tx, ty, map->tic->api.map_get(map->tic, map->src, tx, ty));
-		history_add(map->history);
+		history_add_if_changed(map->history);
 	}
 }
 
@@ -967,7 +967,7 @@ static void deleteSelection(Map* map)
 				map->src->data[index] = 0;
 			}
 
-		history_add(map->history);
+		history_add_if_changed(map->history);
 	}
 }
 

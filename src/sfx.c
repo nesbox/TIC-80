@@ -120,7 +120,7 @@ static void setSpeed(Sfx* sfx, s32 delta)
 
 	effect->speed += delta;
 
-	history_add(sfx->history);
+	history_add_if_changed(sfx->history);
 }
 
 static void drawStereoSwitch(Sfx* sfx, s32 x, s32 y)
@@ -180,7 +180,7 @@ static void setLoopStart(Sfx* sfx, s32 delta)
 
 	loop->start += delta;
 
-	history_add(sfx->history);
+	history_add_if_changed(sfx->history);
 }
 
 static void setLoopSize(Sfx* sfx, s32 delta)
@@ -190,7 +190,7 @@ static void setLoopSize(Sfx* sfx, s32 delta)
 
 	loop->size += delta;
 
-	history_add(sfx->history);
+	history_add_if_changed(sfx->history);
 }
 
 static void drawLoopPanel(Sfx* sfx, s32 x, s32 y)
@@ -437,7 +437,7 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y)
 			default: break;
 			}
 
-			history_add(sfx->history);
+			history_add_if_changed(sfx->history);
 		}
 	}
 
@@ -627,7 +627,7 @@ static void resetSfx(Sfx* sfx)
 	tic_sample* effect = getEffect(sfx);
 	memset(effect, 0, sizeof(tic_sample));
 
-	history_add(sfx->history);
+	history_add_if_changed(sfx->history);
 }
 
 static void resetWave(Sfx* sfx)
@@ -635,7 +635,7 @@ static void resetWave(Sfx* sfx)
 	tic_waveform* wave = getWaveform(sfx);
 	memset(wave, 0, sizeof(tic_waveform));
 
-	history_add(sfx->history);
+	history_add_if_changed(sfx->history);
 }
 
 static void cutToClipboard(Sfx* sfx)
@@ -655,7 +655,7 @@ static void copyFromClipboard(Sfx* sfx)
 	tic_sample* effect = getEffect(sfx);
 
 	if(fromClipboard(effect, sizeof(tic_sample), true, false))
-		history_add(sfx->history);
+		history_add_if_changed(sfx->history);
 }
 
 static void copyWaveFromClipboard(Sfx* sfx)
@@ -663,7 +663,7 @@ static void copyWaveFromClipboard(Sfx* sfx)
 	tic_waveform* wave = getWaveform(sfx);
 
 	if(fromClipboard(wave, sizeof(tic_waveform), true, false))
-		history_add(sfx->history);
+		history_add_if_changed(sfx->history);
 }
 
 static void processKeyboard(Sfx* sfx)
@@ -962,7 +962,7 @@ static void drawWaveformCanvas(Sfx* sfx, s32 x, s32 y)
 
 			tic_tool_poke4(wave->data, mx, Rows - my - 1);
 
-			history_add(sfx->history);
+			history_add_if_changed(sfx->history);
 		}
 	}
 

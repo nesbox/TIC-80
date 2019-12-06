@@ -629,7 +629,7 @@ static void copyToClipboard(Music* music, bool cut)
 			if(cut)
 			{
 				deleteSelection(music);
-				history_add(music->history);
+				history_add_if_changed(music->history);
 			}
 
 			resetSelection(music);
@@ -667,7 +667,7 @@ static void copyFromClipboard(Music* music)
 						header.size = MUSIC_PATTERN_ROWS - music->tracker.row;
 
 					memcpy(&pattern->rows[music->tracker.row], data + HeaderSize, header.size * RowSize);
-					history_add(music->history);
+					history_add_if_changed(music->history);
 				}
 
 				free(data);
@@ -698,7 +698,7 @@ static void setChannelPatternValue(Music* music, s32 patternId, s32 channel)
 	for(s32 b = 0; b < TRACK_PATTERNS_SIZE; b++)
 		track->data[frame * TRACK_PATTERNS_SIZE + b] = (patternData >> (b * BITS_IN_BYTE)) & 0xff;
 
-	history_add(music->history);
+	history_add_if_changed(music->history);
 }
 
 static void prevPattern(Music* music)
@@ -805,7 +805,7 @@ static void processTrackerKeyboard(Music* music)
 	else if(keyWasPressed(tic_key_delete)) 		
 	{
 		deleteSelection(music);
-		history_add(music->history);
+		history_add_if_changed(music->history);
 		downRow(music);
 	}
 	else if(keyWasPressed(tic_key_space)) playNote(music);
@@ -988,7 +988,7 @@ static void processTrackerKeyboard(Music* music)
 			break;			
 		}
 
-		history_add(music->history);
+		history_add_if_changed(music->history);
 	}
 }
 
@@ -1102,7 +1102,7 @@ static void setTempo(Music* music, s32 delta, void* data)
 
 	track->tempo = tempo;
 
-	history_add(music->history);
+	history_add_if_changed(music->history);
 }
 
 static void setSpeed(Music* music, s32 delta, void* data)
@@ -1124,7 +1124,7 @@ static void setSpeed(Music* music, s32 delta, void* data)
 
 	track->speed = speed;
 
-	history_add(music->history);
+	history_add_if_changed(music->history);
 }
 
 static void setRows(Music* music, s32 delta, void* data)
@@ -1147,7 +1147,7 @@ static void setRows(Music* music, s32 delta, void* data)
 
 	updateTracker(music);
 
-	history_add(music->history);
+	history_add_if_changed(music->history);
 }
 
 static void drawTopPanel(Music* music, s32 x, s32 y)
@@ -1596,7 +1596,7 @@ static void scrollNotes(Music* music, s32 delta)
 			}
 		}
 
-		history_add(music->history);
+		history_add_if_changed(music->history);
 	}
 }
 

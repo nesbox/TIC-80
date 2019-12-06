@@ -27,7 +27,12 @@
 typedef struct History History;
 
 History* history_create(void* data, u32 size);
-bool history_add(History* history);
+void history_add(History* history);
+void history_add_if_changed(History* history);
 void history_undo(History* history);
 void history_redo(History* history);
 void history_delete(History* history);
+
+void history_add_with_tag(History* history, s32 tag);
+void history_undo_to_tag(History* history, s32 tag);
+void history_redo_to_tag(History* history, s32 tag);

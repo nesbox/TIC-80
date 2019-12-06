@@ -27,24 +27,29 @@
 typedef struct Code Code;
 typedef struct OutlineItem OutlineItem;
 
+typedef struct Cursor Cursor;
+
+struct Cursor
+{
+	struct
+	{
+		char* position;
+		char* selection;
+		s32 column;
+	};
+
+	char* mouseDownPosition;
+	s32 delay;
+};
+
 struct Code
 {
 	tic_mem* tic;
 
 	char* src;
+	bool changed;
 
-	struct
-	{
-		struct
-		{
-			char* position;
-			char* selection;
-			s32 column;
-		};
-
-		char* mouseDownPosition;
-		s32 delay;
-	} cursor;
+	Cursor cursor;
 
 	tic_rect rect;
 
