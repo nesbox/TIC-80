@@ -24,59 +24,57 @@ option(BUILD_PLAYER "Build standalone players" ${BUILD_PLAYER_DEFAULT})
 
 if (BAREMETALPI)
 
-set(BUILD_SDL off)
-set(BUILD_DEMO_CARTS OFF)
+	set(BUILD_SDL off)
+	set(BUILD_DEMO_CARTS OFF)
 
-set(CMAKE_SYSTEM_NAME Generic)
-set(CMAKE_SYSTEM_PROCESSOR ARM)
+	set(CMAKE_SYSTEM_NAME Generic)
+	set(CMAKE_SYSTEM_PROCESSOR ARM)
 
-if(MINGW OR CYGWIN OR WIN32)
-    set(UTIL_SEARCH_CMD where)
-elseif(UNIX OR APPLE)
-    set(UTIL_SEARCH_CMD which)
+	if(MINGW OR CYGWIN OR WIN32)
+		set(UTIL_SEARCH_CMD where)
+	elseif(UNIX OR APPLE)
+		set(UTIL_SEARCH_CMD which)
+	endif()
+
+	set(TOOLCHAIN_PREFIX arm-none-eabi-)
+
+	execute_process(
+	  COMMAND ${UTIL_SEARCH_CMD} ${TOOLCHAIN_PREFIX}gcc
+	  OUTPUT_VARIABLE BINUTILS_PATH
+	  OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+	message("Crosscompiler path is ${BINUTILS_PATH}")
+	get_filename_component(ARM_TOOLCHAIN_DIR ${BINUTILS_PATH} DIRECTORY)
+
+	# Without that flag CMake is not able to pass test compilation check
+	if (${CMAKE_VERSION} VERSION_EQUAL "3.6.0" OR ${CMAKE_VERSION} VERSION_GREATER "3.6")
+		set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+	else()
+		set(CMAKE_EXE_LINKER_FLAGS_INIT "-Wl,-E")
+	endif()
+
+	# removed squirrel language as it doesn't seem to compile under arm. Needs investigation.
+	# Ideally should use the CFLAGS defined in circle build files, not hardwire them here too.
+	# For RPI2
+	#set(CMAKE_C_FLAGS " -DTIC_BUILD_WITH_FENNEL -DTIC_BUILD_WITH_MOON -DTIC_BUILD_WITH_JS -DTIC_BUILD_WITH_WREN -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv7-a+neon-vfpv4  -D AARCH=32 -D __circle__ -D BAREMETALPI  --specs=nosys.specs -O3 -mabi=aapcs -marm  -mfloat-abi=hard -mfpu=neon-vfpv4  -D__DYNAMIC_REENT__")
+	# For RPI3
+	# investigate -funsafe-math-optimizations and -march=armv8-a+crc -mcpu=cortex-a53
+	set(CMAKE_C_FLAGS " -DTIC_BUILD_WITH_FENNEL -DTIC_BUILD_WITH_MOON -DTIC_BUILD_WITH_JS -DTIC_BUILD_WITH_WREN -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv8-a  -D AARCH=32 -mtune=cortex-a53  -D __circle__ -D BAREMETALPI  --specs=nosys.specs -O3 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__")
+
+	set(CMAKE_C_COMPILER ${TOOLCHAIN_PREFIX}gcc)
+	set(CMAKE_ASM_COMPILER ${CMAKE_C_COMPILER})
+	set(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}g++)
+
+	set(CMAKE_OBJCOPY ${ARM_TOOLCHAIN_DIR}/${TOOLCHAIN_PREFIX}objcopy CACHE INTERNAL "objcopy tool")
+	set(CMAKE_SIZE_UTIL ${ARM_TOOLCHAIN_DIR}/${TOOLCHAIN_PREFIX}size CACHE INTERNAL "size tool")
+
+	set(CMAKE_SYSROOT ${ARM_TOOLCHAIN_DIR}/../arm-none-eabi)
+	set(CMAKE_FIND_ROOT_PATH ${BINUTILS_PATH})
+	set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+	set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+	set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+
 endif()
-
-set(TOOLCHAIN_PREFIX arm-none-eabi-)
-
-execute_process(
-  COMMAND ${UTIL_SEARCH_CMD} ${TOOLCHAIN_PREFIX}gcc
-  OUTPUT_VARIABLE BINUTILS_PATH
-  OUTPUT_STRIP_TRAILING_WHITESPACE
-)
-message("Crosscompiler path is ${BINUTILS_PATH}")
-get_filename_component(ARM_TOOLCHAIN_DIR ${BINUTILS_PATH} DIRECTORY)
-
-# Without that flag CMake is not able to pass test compilation check
-if (${CMAKE_VERSION} VERSION_EQUAL "3.6.0" OR ${CMAKE_VERSION} VERSION_GREATER "3.6")
-    set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
-else()
-    set(CMAKE_EXE_LINKER_FLAGS_INIT "-Wl,-E")
-endif()
-
-# removed squirrel language as it doesn't seem to compile under arm. Needs investigation.
-# Ideally should use the CFLAGS defined in circle build files, not hardwire them here too.
-# For RPI2
-#set(CMAKE_C_FLAGS " -DTIC_BUILD_WITH_FENNEL -DTIC_BUILD_WITH_MOON -DTIC_BUILD_WITH_JS -DTIC_BUILD_WITH_WREN -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv7-a+neon-vfpv4  -D AARCH=32 -D __circle__ -D BAREMETALPI  --specs=nosys.specs -O3 -mabi=aapcs -marm  -mfloat-abi=hard -mfpu=neon-vfpv4  -D__DYNAMIC_REENT__")
-# For RPI3
-# investigate -funsafe-math-optimizations and -march=armv8-a+crc -mcpu=cortex-a53
-set(CMAKE_C_FLAGS " -DTIC_BUILD_WITH_FENNEL -DTIC_BUILD_WITH_MOON -DTIC_BUILD_WITH_JS -DTIC_BUILD_WITH_WREN -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv8-a  -D AARCH=32 -mtune=cortex-a53  -D __circle__ -D BAREMETALPI  --specs=nosys.specs -O3 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__")
-
-set(CMAKE_C_COMPILER ${TOOLCHAIN_PREFIX}gcc)
-set(CMAKE_ASM_COMPILER ${CMAKE_C_COMPILER})
-set(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}g++)
-
-set(CMAKE_OBJCOPY ${ARM_TOOLCHAIN_DIR}/${TOOLCHAIN_PREFIX}objcopy CACHE INTERNAL "objcopy tool")
-set(CMAKE_SIZE_UTIL ${ARM_TOOLCHAIN_DIR}/${TOOLCHAIN_PREFIX}size CACHE INTERNAL "size tool")
-
-set(CMAKE_SYSROOT ${ARM_TOOLCHAIN_DIR}/../arm-none-eabi)
-set(CMAKE_FIND_ROOT_PATH ${BINUTILS_PATH})
-set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
-set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-
-endif()
-
-
 
 if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID)
 	set(LINUX TRUE)
@@ -301,9 +299,10 @@ if(BUILD_SDL AND NOT EMSCRIPTEN)
 	endif()
 
 	if(ANDROID)
-		set(SDL_SHARED_ENABLED_BY_DEFAULT OFF CACHE BOOL "Build a shared version of the library")
         include_directories(${ANDROID_NDK}/sources/android/cpufeatures)
     endif()
+	
+	set(SDL_SHARED OFF CACHE BOOL "" FORCE)
 
 	add_subdirectory(${THIRDPARTY_DIR}/sdl2)
 
@@ -436,6 +435,7 @@ endif()
 ################################
 
 if(BUILD_SDL)
+
 set(SDLGPU_DIR ${THIRDPARTY_DIR}/sdl-gpu/src)
 set(SDLGPU_SRC
 	${SDLGPU_DIR}/renderer_GLES_2.c
@@ -655,23 +655,33 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 	set(TIC80_SRC ${TIC80_SRC} src/system/sdlgpu.c)
 
 	if(WIN32)
+		
 		set(TIC80_SRC ${TIC80_SRC} build/windows/tic80.rc)
+
+		# Debug build is a console app.
 		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 		else()
 			set(SYSTEM_TYPE WIN32)
 		endif()
 
 		add_executable(${TIC80_OUTPUT} ${SYSTEM_TYPE} ${TIC80_SRC})
+
 	elseif(APPLE)
+		
 		add_executable(${TIC80_OUTPUT} MACOSX_BUNDLE ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/build/macosx/tic80.icns)
+		
 		set_source_files_properties(${CMAKE_SOURCE_DIR}/build/macosx/tic80.icns PROPERTIES MACOSX_PACKAGE_LOCATION RESOURCES)
+		
 		set_target_properties(${TIC80_OUTPUT} PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/build/macosx/${TIC80_OUTPUT}.plist)
+
 	elseif(ANDROID)
 
 		set(TIC80_SRC ${TIC80_SRC} ${ANDROID_NDK}/sources/android/cpufeatures/cpu-features.c)
 
 		add_library(${TIC80_OUTPUT} SHARED ${TIC80_SRC})
+
 		target_link_libraries(${TIC80_OUTPUT} hidapi)
+
 	else()
 		add_executable(${TIC80_OUTPUT} ${TIC80_SRC})
 	endif()
@@ -725,17 +735,18 @@ foreach(TIC80_OUTPUT ${TIC80_OUTPUTS})
 	set(TIC80_SRC ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/src/system/sokol.c)
 
 	if(WIN32)
-		set(TIC80_SRC ${TIC80_SRC} build/windows/tic80.rc)
-		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-		else()
-			set(SYSTEM_TYPE WIN32)
-		endif()
 
-		add_executable(${TIC80_OUTPUT}-sokol ${SYSTEM_TYPE} ${TIC80_SRC})
+		set(TIC80_SRC ${TIC80_SRC} build/windows/tic80.rc)
+		
+		add_executable(${TIC80_OUTPUT}-sokol WIN32 ${TIC80_SRC})
+
 	elseif(APPLE)
+
 		add_executable(${TIC80_OUTPUT}-sokol MACOSX_BUNDLE ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/build/macosx/tic80.icns)
+	
 		set_source_files_properties(${CMAKE_SOURCE_DIR}/build/macosx/tic80.icns PROPERTIES MACOSX_PACKAGE_LOCATION RESOURCES)
 		set_target_properties(${TIC80_OUTPUT}-sokol PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/build/macosx/${TIC80_OUTPUT}-sokol.plist)
+	
 	else()
 		add_executable(${TIC80_OUTPUT}-sokol ${TIC80_SRC})
 	endif()
