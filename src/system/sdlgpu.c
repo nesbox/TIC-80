@@ -602,8 +602,6 @@ static void processTouchKeyboard()
 
 	enum {BufSize = COUNT_OF(input->keyboard.keys)};
 
-	SDL_memset(&platform.keyboard.touch.state, 0, sizeof platform.keyboard.touch.state);
-
 	for (s32 i = 0; i < devices; i++)
 	{
 		SDL_TouchID id = SDL_GetTouchDevice(i);
@@ -634,8 +632,6 @@ static void processTouchKeyboard()
 
 static void processTouchGamepad()
 {	
-	platform.gamepad.touch.data = 0;
-
 	if(platform.touch.counter == 0 || platform.touch.debounce) return;
 
 	const s32 size = platform.gamepad.part.size;
@@ -808,7 +804,7 @@ static void processGamepad()
 
 static void processTouchInput()
 {
-	#if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
+#if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
 	{
 		s32 devices = SDL_GetNumTouchDevices();
 		bool anyTouch = false;
@@ -825,6 +821,9 @@ static void processTouchInput()
 		if(platform.touch.debounce && !anyTouch)
 			platform.touch.debounce = false;
 	}
+
+	SDL_memset(&platform.keyboard.touch.state, 0, sizeof platform.keyboard.touch.state);
+	platform.gamepad.touch.data = 0;
 
 	platform.studio->isGamepadMode()
 		? processTouchGamepad()
