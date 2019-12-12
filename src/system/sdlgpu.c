@@ -37,6 +37,8 @@
 #define STUDIO_PIXEL_FORMAT GPU_FORMAT_RGBA
 #define TEXTURE_SIZE (TIC80_FULLWIDTH)
 
+#define TOUCH_TIMEOUT (10 * TIC80_FRAMERATE)
+
 #define KBD_COLS 22
 #define KBD_ROWS 17
 
@@ -97,7 +99,10 @@ static struct
 
 	} keyboard;
 
-	u32 touchCounter;
+	struct {
+		u32 counter;
+		bool debounce;
+	} touch;
 
 	struct
 	{
@@ -116,7 +121,10 @@ static struct
 		SDL_AudioDeviceID 	device;
 		SDL_AudioCVT 		cvt;
 	} audio;
-} platform;
+} platform =
+{
+	.touch = { .counter = TOUCH_TIMEOUT },
+};
 
 static inline bool crtMonitorEnabled()
 {
@@ -569,7 +577,7 @@ static bool isKbdVisible()
 
 static void processTouchKeyboard()
 {
-	if(platform.touchCounter == 0 || !isKbdVisible()) return;
+	if(platform.touch.counter == 0 || platform.touch.debounce || !isKbdVisible()) return;
 
 	enum{Cols=KBD_COLS, Rows=KBD_ROWS};
 
@@ -593,8 +601,6 @@ static void processTouchKeyboard()
 	s32 devices = SDL_GetNumTouchDevices();
 
 	enum {BufSize = COUNT_OF(input->keyboard.keys)};
-
-	SDL_memset(&platform.keyboard.touch.state, 0, sizeof platform.keyboard.touch.state);
 
 	for (s32 i = 0; i < devices; i++)
 	{
@@ -626,9 +632,7 @@ static void processTouchKeyboard()
 
 static void processTouchGamepad()
 {	
-	platform.gamepad.touch.data = 0;
-
-	if(platform.touchCounter == 0) return;
+	if(platform.touch.counter == 0 || platform.touch.debounce) return;
 
 	const s32 size = platform.gamepad.part.size;
 	s32 x = 0, y = 0;
@@ -800,16 +804,26 @@ static void processGamepad()
 
 static void processTouchInput()
 {
-	#if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
+#if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
 	{
 		s32 devices = SDL_GetNumTouchDevices();
+		bool anyTouch = false;
 		for (s32 i = 0; i < devices; i++)
 			if(SDL_GetNumTouchFingers(SDL_GetTouchDevice(i)) > 0)
-				platform.touchCounter = 10 * TIC80_FRAMERATE;
-
-		if(platform.touchCounter)
-			platform.touchCounter--;
+			{
+				if(!platform.touch.debounce && !platform.touch.counter)
+					platform.touch.debounce = true;
+				anyTouch = true;
+				platform.touch.counter = TOUCH_TIMEOUT;
+			}
+		if(platform.touch.counter)
+			platform.touch.counter--;
+		if(platform.touch.debounce && !anyTouch)
+			platform.touch.debounce = false;
 	}
+
+	SDL_memset(&platform.keyboard.touch.state, 0, sizeof platform.keyboard.touch.state);
+	platform.gamepad.touch.data = 0;
 
 	platform.studio->isGamepadMode()
 		? processTouchGamepad()
@@ -905,6 +919,7 @@ static void pollEvent()
 		case SDL_APP_DIDENTERFOREGROUND:
 			initGPU();
 			platform.inBackground = false;
+			platform.touch.counter = TOUCH_TIMEOUT;
 			break;
 		case SDL_KEYDOWN:
 			handleKeydown(event.key.keysym.sym, true);
@@ -980,7 +995,7 @@ static void blitSound()
 
 static void renderKeyboard()
 {
-	if(platform.touchCounter == 0 || !isKbdVisible()) return;
+	if(platform.touch.counter == 0 || !isKbdVisible()) return;
 
 	SDL_Rect rect;
 	SDL_GetWindowSize(platform.window, &rect.w, &rect.h);
@@ -1022,7 +1037,7 @@ static void renderKeyboard()
 
 static void renderGamepad()
 {
-	if(platform.touchCounter == 0) return;
+	if(platform.touch.counter == 0) return;
 
 	const s32 tileSize = platform.gamepad.part.size;
 	const SDL_Point axis = platform.gamepad.part.axis;
