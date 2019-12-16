@@ -487,14 +487,14 @@ typedef union
 		tic_sfx 			sfx;
 		tic_music 			music;
 		tic_sound_state 	sound_state;
+		tic_persistent		persistent;
+		tic_flags 			flags;
 
 		u8 free[16*1024 
 			- sizeof(tic_flags) 
 			- sizeof(tic_persistent) 
 			];
 
-		tic_persistent		persistent;
-		tic_flags 			flags;
 	};
 
 	u8 data[TIC_RAM_SIZE];
