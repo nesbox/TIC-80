@@ -110,3 +110,14 @@ bool tic_tool_has_ext(const char* name, const char* ext)
 {
 	return strcmp(name + strlen(name) - strlen(ext), ext) == 0;
 }
+
+s32 tic_get_track_row_sfx(const tic_track_row* row)
+{
+	return (row->sfxhi << MUSIC_SFXID_LOW_BITS) | row->sfxlow;
+}
+
+void tic_set_track_row_sfx(tic_track_row* row, s32 sfx)
+{
+	row->sfxhi = (sfx & 0b00100000) >> MUSIC_SFXID_LOW_BITS;
+	row->sfxlow = sfx & 0b00011111;
+}

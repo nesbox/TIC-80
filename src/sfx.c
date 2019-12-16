@@ -326,7 +326,7 @@ static void drawWaveButtons(Sfx* sfx, s32 x, s32 y)
 
 static void drawCanvasTabs(Sfx* sfx, s32 x, s32 y)
 {
-	static const char* Labels[] = {"WAVE", "VOLUME", "ARPEGG", "PITCH"};
+	static const char* Labels[] = {"WAVE", "VOLUME", "CHORD", "PITCH"};
 
 	enum {Height = TIC_FONT_HEIGHT+2};
 
@@ -370,7 +370,7 @@ static void drawCanvasTabs(Sfx* sfx, s32 x, s32 y)
 			sfx->tic->api.fixed_text(sfx->tic, Label, rect.x, rect.y, (effect->pitch16x ? tic_color_white : tic_color_dark_gray), false);
 		}
 		break;
-	case SFX_ARPEGGIO_TAB:
+	case SFX_CHORD_TAB:
 		{
 			static const char Label[] = "DOWN";
 			enum{Width = (sizeof Label - 1) * TIC_FONT_WIDTH};
@@ -431,7 +431,7 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y)
 			switch(sfx->canvasTab)
 			{
 			case SFX_VOLUME_TAB: 	effect->data[mx].volume = my; break;
-			case SFX_ARPEGGIO_TAB: 	effect->data[mx].arpeggio = CANVAS_ROWS - my - 1; break;
+			case SFX_CHORD_TAB: 	effect->data[mx].chord = CANVAS_ROWS - my - 1; break;
 			case SFX_PITCH_TAB: 	effect->data[mx].pitch = CANVAS_ROWS / 2 - my - 1; break;
 			case SFX_WAVE_TAB: 		effect->data[mx].wave = CANVAS_ROWS - my - 1; break;
 			default: break;
@@ -451,10 +451,10 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y)
 					sfx->tic->api.rect(sfx->tic, x + i * CANVAS_SIZE + 1, y + 1 + start, CANVAS_SIZE-1, CANVAS_SIZE-1, (tic_color_red));				
 			}
 			break;
-		case SFX_ARPEGGIO_TAB:
+		case SFX_CHORD_TAB:
 			{
 				sfx->tic->api.rect(sfx->tic, x + i * CANVAS_SIZE + 1, 
-					y + 1 + (CANVAS_HEIGHT - (effect->data[i].arpeggio+1)*CANVAS_SIZE), CANVAS_SIZE-1, CANVAS_SIZE-1, (tic_color_red));
+					y + 1 + (CANVAS_HEIGHT - (effect->data[i].chord+1)*CANVAS_SIZE), CANVAS_SIZE-1, CANVAS_SIZE-1, (tic_color_red));
 			}
 			break;
 		case SFX_PITCH_TAB:

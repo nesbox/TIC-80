@@ -34,7 +34,7 @@ typedef struct
 		{
 			s8 wave;
 			s8 volume;
-			s8 arpeggio;
+			s8 chord;
 			s8 pitch;
 		};
 
@@ -58,6 +58,7 @@ typedef struct
 	u64 (*freq)();
 	u64 start;
 
+	// !TODO: get rid of this flag, because pmem now peekable through api
 	bool syncPMEM;
 
 	void (*preprocessor)(void* data, char* dst);

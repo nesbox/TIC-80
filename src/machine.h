@@ -49,11 +49,51 @@ typedef struct
 	s32 tick;
 	tic_sfx_pos pos;
 	s32 index;
-	u16 freq;
-	u8 volume:4;
+	s32 note;
+	struct
+	{
+		u8 left:4;
+		u8 right:4;
+	} volume;
 	s8 speed:SFX_SPEED_BITS;
 	s32 duration;
-} Channel;
+} tic_channel_data;
+
+typedef struct
+{
+	struct
+	{
+		s32 tick;
+		u8 note1:4;
+		u8 note2:4;
+	} chord;
+
+	struct
+	{
+		s32 tick;
+		u8 period:4;
+		u8 depth:4;
+	} vibrato;
+
+	struct
+	{
+		s32 tick;
+		u8 note;
+		s32 duration;
+	} slide;
+
+	struct
+	{
+		s32 value;
+	} finepitch;
+
+	struct
+	{
+		const tic_track_row* row;
+		s32 ticks;
+	} delay;
+
+} tic_command_data;
 
 typedef struct
 {
@@ -61,7 +101,7 @@ typedef struct
 	s32 t;
 	s32 r;
 	s32 b;
-} Clip;
+} tic_clip_data;
 
 typedef struct
 {
@@ -80,7 +120,7 @@ typedef struct
 		u32 holds[tic_keys_count];
 	} keyboard;
 
-	Clip clip;
+	tic_clip_data clip;
 
 	struct
 	{
@@ -88,11 +128,12 @@ typedef struct
 		tic_sound_register_data right[TIC_SOUND_CHANNELS];
 	} registers;
 
-	Channel channels[TIC_SOUND_CHANNELS];
+	tic_channel_data channels[TIC_SOUND_CHANNELS];
 	struct
 	{
 		s32 ticks;
-		Channel channels[TIC_SOUND_CHANNELS];
+		tic_channel_data channels[TIC_SOUND_CHANNELS];
+		tic_command_data commands[TIC_SOUND_CHANNELS];
 	} music;
 
 	tic_tick tick;
@@ -111,7 +152,7 @@ typedef struct
 	u32 synced;
 
 	bool initialized;
-} MachineState;
+} tic_machine_state_data;
 
 typedef struct
 {
@@ -154,17 +195,17 @@ typedef struct
 
 	tic_tick_data* data;
 
-	MachineState state;
+	tic_machine_state_data state;
 
 	struct
 	{
-		MachineState state;	
+		tic_machine_state_data state;	
 		tic_ram ram;
 
 		struct
 		{
 			u64 start;
-			u64 paused;			
+			u64 paused;
 		} time;
 	} pause;
 
