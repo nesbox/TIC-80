@@ -105,6 +105,13 @@ typedef struct
 
 typedef struct
 {
+	bool active;
+	s32 frame;
+	s32 row;
+} tic_jump_command;
+
+typedef struct
+{
 
 	struct
 	{
@@ -134,6 +141,8 @@ typedef struct
 		s32 ticks;
 		tic_channel_data channels[TIC_SOUND_CHANNELS];
 		tic_command_data commands[TIC_SOUND_CHANNELS];
+		tic_jump_command jump;
+
 	} music;
 
 	tic_tick tick;

@@ -432,6 +432,7 @@ static void resetMusicChannels(tic_mem* memory)
 
 	tic_machine* machine = (tic_machine*)memory;
 	memset(machine->state.music.commands, 0, sizeof machine->state.music.commands);
+	memset(&machine->state.music.jump, 0, sizeof(tic_jump_command));
 	memset(&machine->state.registers, 0, sizeof machine->state.registers);
 }
 
@@ -507,7 +508,7 @@ static void soundClear(tic_mem* memory)
 		memset(&memory->ram.registers, 0, sizeof memory->ram.registers);
 		memset(&machine->state.registers, 0, sizeof machine->state.registers);
 		memset(&machine->state.music.commands, 0, sizeof machine->state.music.commands);
-
+		memset(&machine->state.music.jump, 0, sizeof(tic_jump_command));
 		stopMusic(memory);
 	}
 
@@ -1272,6 +1273,16 @@ static void processMusic(tic_mem* memory)
 
 	const tic_track* track = &machine->sound.music->tracks.data[sound_state->music.track];
 	s32 row = tick2row(track, machine->state.music.ticks);
+	tic_jump_command* jumpCmd = &machine->state.music.jump;
+
+	if (row != sound_state->music.row 
+		&& jumpCmd->active)
+	{
+		sound_state->music.frame = jumpCmd->frame;
+		sound_state->music.row = jumpCmd->row;
+		machine->state.music.ticks = row2tick(track, jumpCmd->row);
+		memset(jumpCmd, 0, sizeof(tic_jump_command));
+	}
 
 	s32 rows = MUSIC_PATTERN_ROWS - track->rows;
 	if (row >= rows)
@@ -1384,13 +1395,10 @@ static void processMusic(tic_mem* memory)
 					break;
 
 				case tic_music_cmd_jump:
-					sound_state->music.row = -1;
-					sound_state->music.frame = trackRow->param1;
-					machine->state.music.ticks = row2tick(track, trackRow->param2);
-
-					if(sound_state->music.row != 0)
-						processMusic(memory);
-					return;
+					machine->state.music.jump.active = true;
+					machine->state.music.jump.frame = trackRow->param1;
+					machine->state.music.jump.row = trackRow->param2;
+					break;
 
 				case tic_music_cmd_vibrato:
 					cmdData->vibrato.tick = 0;
