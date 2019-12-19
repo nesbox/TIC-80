@@ -1,0 +1,73 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 26
+    defaultConfig {
+        applicationId 'com.nesbox.tic'
+        minSdkVersion 16
+        targetSdkVersion 26
+        versionCode 8000
+        versionName '0.80.0'
+    }
+
+    signingConfigs {
+
+        release {
+           storeFile file(RELEASE_STORE_FILE)
+           storePassword RELEASE_STORE_PASSWORD
+           keyAlias RELEASE_KEY_ALIAS
+           keyPassword RELEASE_KEY_PASSWORD
+       }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'),
+                    'proguard-rules.pro'
+            signingConfig signingConfigs.release
+        }
+    }
+    externalNativeBuild {
+        cmake {
+            path '../../../CMakeLists.txt'
+        }
+    }
+
+    flavorDimensions 'cpuArch'
+    productFlavors {
+        // arm7 {
+        //     dimension 'cpuArch'
+        //     ndk {
+        //         abiFilter 'armeabi-v7a'
+        //     }
+        // }
+        // arm8 {
+        //     dimension 'cpuArch'
+        //     ndk {
+        //         abiFilters 'arm64-v8a'
+        //     }
+        // }
+        // x86 {
+        //     dimension 'cpuArch'
+        //     ndk {
+        //         abiFilter 'x86'
+        //     }
+        // }
+        // x86_64 {
+        //     dimension 'cpuArch'
+        //     ndk {
+        //         abiFilter 'x86_64'
+        //     }
+        // }
+        universal {
+            dimension 'cpuArch'
+            // include all default ABIs. with NDK-r16,  it is:
+            //   armeabi-v7a, arm64-v8a, x86, x86_64
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+}

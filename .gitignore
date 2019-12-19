@@ -4,6 +4,7 @@
 *.suo
 sexit
 .vscode/
+build/3rd-party/
 build/uwp/tic/Debug/
 build/uwp/tic/Release/
 build/uwp/tic/x64/
@@ -46,9 +47,6 @@ lib/windows/res.aps
 lib/windows/tic.aps
 .DS_Store
 lib/macos/.DS_Store
-build/macosx/tic80.icns
-build/macosx/tic80.app/
-build/macosx/tic80.dmg
 tools/bundler/assets/
 tools/bundler/bin/
 tools/bin2txt/*.exe
@@ -92,8 +90,6 @@ build/windows/zlib/Debug Pro/
 build/windows/zlib/Release Pro/
 build/windows/example/Release Pro/
 build/windows/example/Debug Pro/
-TIC80.sublime-project
-TIC80.sublime-workspace
 build/windows/wren/Release/
 build/windows/wren/Debug/
 build/windows/wren/x64/
@@ -124,4 +120,36 @@ build/uwp/sdl-gpu-static/x64/
 build/uwp/tic/packages/
 build/windows/studio/x64/
 build/windows/sdl-gpu/x64/
-build/windows/tic/.vs/
+demos/*.rtc
+demos/*.srm
+demos/.local
+.vs/
+CMakeFiles/
+lib/
+*.cmake
+CMakeCache.txt
+Makefile
+!build/baremetalpi/Makefile
+!build/baremetalpi/boot/Makefile
+build/android/.gradle/
+build/android/app/.externalNativeBuild/
+build/android/app/build/
+build/android/build/
+build/3rd-party/sdl2/SDL2.spec
+build/3rd-party/sdl2/include/SDL_config.h
+build/3rd-party/sdl2/sdl2-config
+build/3rd-party/sdl2/sdl2.pc
+build/bin/bin2txt
+build/bin/sdl-renderer
+build/bin/sokol-renderer
+build/bin/tic80
+build/bin/tic80-sokol
+out/
+build/bin/
+build/3rd-party/curl/libcurl.pc
+build/3rd-party/curl/curl-config
+build/3rd-party/curl/DartConfiguration.tcl
+build/.ninja_deps
+build/.ninja_log
+*.ninja
+tic80.sublime-workspace

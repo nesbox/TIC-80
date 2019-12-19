@@ -59,6 +59,8 @@
 #define PROJECT_MOON_EXT ".moon"
 #define PROJECT_JS_EXT ".js"
 #define PROJECT_WREN_EXT ".wren"
+#define PROJECT_SQUIRREL_EXT ".nut"
+#define PROJECT_FENNEL_EXT ".fnl"
 
 typedef enum
 {
@@ -155,10 +157,18 @@ void runProject();
 
 tic_tiles* getBankTiles();
 tic_palette* getBankPalette();
+tic_flags* getBankFlags();
 tic_map* getBankMap();
 
+char getKeyboardText();
 bool keyWasPressed(tic_key key);
 bool anyKeyWasPressed();
 
 const StudioConfig* getConfig();
 System* getSystem();
+
+#if defined(TIC80_PRO)
+
+bool hasProjectExt(const char* name);
+
+#endif

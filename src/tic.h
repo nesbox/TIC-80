@@ -27,9 +27,9 @@
 #include "defines.h"
 
 #define TIC_VERSION_MAJOR 0
-#define TIC_VERSION_MINOR 70
-#define TIC_VERSION_PATCH 6
-#define TIC_VERSION_STATUS ""
+#define TIC_VERSION_MINOR 80
+#define TIC_VERSION_PATCH 0
+#define TIC_VERSION_STATUS "-dev"
 
 #if defined(TIC80_PRO)
 #define TIC_VERSION_POST " Pro"
@@ -48,22 +48,22 @@
 #define TIC_NAME "TIC-80"
 #define TIC_NAME_FULL TIC_NAME " tiny computer"
 #define TIC_TITLE TIC_NAME_FULL " " TIC_VERSION_LABEL
-#define TIC_HOST "tic.computer"
-#define TIC_COPYRIGHT "http://" TIC_HOST " (C) 2017"
+#define TIC_HOST "tic80.com"
+#define TIC_COPYRIGHT "https://" TIC_HOST " (C) 2019"
 
 #define TIC_VRAM_SIZE (16*1024) //16K
-#define TIC_RAM_SIZE (80*1024) //80K
+#define TIC_RAM_SIZE (TIC_VRAM_SIZE+80*1024) //16K+80K
 #define TIC_FONT_WIDTH 6
 #define TIC_FONT_HEIGHT 6
 #define TIC_ALTFONT_WIDTH 4
 #define TIC_PALETTE_BPP 4
 #define TIC_PALETTE_SIZE (1 << TIC_PALETTE_BPP)
-#define TIC_FRAMERATE 60
 #define TIC_SPRITESIZE 8
 
 #define BITS_IN_BYTE 8
 #define TIC_BANK_SPRITES (1 << BITS_IN_BYTE)
 #define TIC_SPRITE_BANKS 2
+#define TIC_FLAGS (TIC_BANK_SPRITES * TIC_SPRITE_BANKS)
 #define TIC_SPRITES (TIC_BANK_SPRITES * TIC_SPRITE_BANKS)
 
 #define TIC_SPRITESHEET_SIZE 128
@@ -79,6 +79,7 @@
 #define TIC_SAVEID_SIZE 64
 
 #define TIC_SOUND_CHANNELS 4
+#define TIC_STEREO_CHANNELS 2
 #define SFX_TICKS 30
 #define SFX_COUNT_BITS 6
 #define SFX_COUNT (1 << SFX_COUNT_BITS)
@@ -89,6 +90,7 @@
 #define MAX_VOLUME 15
 #define MUSIC_PATTERN_ROWS 64
 #define MUSIC_PATTERNS 60
+#define MUSIC_CMD_BITS 3
 #define TRACK_PATTERN_BITS 6
 #define TRACK_PATTERN_MASK ((1 << TRACK_PATTERN_BITS) - 1)
 #define TRACK_PATTERNS_SIZE (TRACK_PATTERN_BITS * TIC_SOUND_CHANNELS / BITS_IN_BYTE)
@@ -97,6 +99,7 @@
 #define MUSIC_TRACKS (1 << MUSIC_TRACKS_BITS)
 #define DEFAULT_TEMPO 150
 #define DEFAULT_SPEED 6
+#define PITCH_DELTA 128
 #define NOTES_PER_BEET 4
 #define PATTERN_START 1
 #define MUSIC_SFXID_LOW_BITS 5
@@ -174,7 +177,7 @@ typedef struct
 	{
 		u8 volume:4;
 		u8 wave:4;
-		u8 arpeggio:4;
+		u8 chord:4;
 		s8 pitch:4;
 	} data[SFX_TICKS];
 
@@ -183,10 +186,11 @@ typedef struct
 		u8 octave:3;
 		u8 pitch16x:1; // pitch factor
 		s8 speed:3;
-		u8 reverse:1; // arpeggio reverse
+		u8 reverse:1; // chord reverse
 		u8 note:4;
-		u8 chain:1;
-		u8 temp:3;
+		u8 stereo_left:1;
+		u8 stereo_right:1;
+		u8 temp:2;
 	};
 
 	union
@@ -195,7 +199,7 @@ typedef struct
 		{
 			tic_sound_loop wave;
 			tic_sound_loop volume;
-			tic_sound_loop arpeggio;
+			tic_sound_loop chord;
 			tic_sound_loop pitch;
 		};
 
@@ -214,18 +218,40 @@ typedef struct
 	tic_waveform envelopes[ENVELOPES_COUNT];
 } tic_waveforms;
 
+#define MUSIC_CMD_LIST(macro) 																	\
+	macro(empty, 	0, )																		\
+	macro(volume, 	m, "master volume for the left/right channels")								\
+	macro(chord, 	c, "play chord, C37 plays +0,+3,+7 notes")									\
+	macro(jump, 	j, "jump to frame/row")														\
+	macro(slide, 	s, "slide to note (legato) with given given number of ticks")				\
+	macro(pitch, 	p, "finepitch up/down")														\
+	macro(vibrato, 	v, "vibrato with period and depth")											\
+	macro(delay, 	d, "delay triggering of a note with given number of ticks")
+
+typedef enum
+{
+#define ENUM_ITEM(name, _, __) tic_music_cmd_##name,
+	MUSIC_CMD_LIST(ENUM_ITEM)
+#undef ENUM_ITEM
+
+	tic_music_cmd_count
+} tic_music_command;
+
 typedef struct
 {
-	struct
-	{
-		u8 note:4;
-		u8 volume:4;
-		u8 param:4;
-		u8 effect:3;
-		u8 sfxhi:1;
-		u8 sfxlow:MUSIC_SFXID_LOW_BITS;
-		u8 octave:3;
-	} rows[MUSIC_PATTERN_ROWS];
+	u8 note 	:4;
+	u8 param1	:4;
+	u8 param2	:4;
+	u8 command 	:MUSIC_CMD_BITS; // tic_music_command
+	u8 sfxhi	:1;
+	u8 sfxlow 	:MUSIC_SFXID_LOW_BITS;
+	u8 octave 	:3;
+
+} tic_track_row;
+
+typedef struct
+{
+	tic_track_row rows[MUSIC_PATTERN_ROWS];
 
 } tic_track_pattern;
 
@@ -266,18 +292,50 @@ typedef struct
 	tic_tracks tracks;
 }tic_music;
 
+typedef enum
+{
+	tic_music_stop,
+	tic_music_play_frame,
+	tic_music_play,
+} tic_music_state;
+
 typedef struct
 {
-	s8 track;
-	s8 frame;
-	s8 row;
+	struct
+	{
+		s8 track;
+		s8 frame;
+		s8 row;
+	} music;
 	
 	struct
 	{
-		bool loop:1;
+		u8 music_loop:1;
+		u8 music_state:2; // enum tic_music_state
+		u8 unknown:5;
 	} flag;
 
-} tic_music_pos;
+} tic_sound_state;
+
+typedef union
+{
+	struct
+	{
+		u8 left1:4;
+		u8 right1:4;
+
+		u8 left2:4;
+		u8 right2:4;
+
+		u8 left3:4;
+		u8 right3:4;
+
+		u8 left4:4;
+		u8 right4:4;
+	};
+
+	u32 data;
+} tic_stereo_volume;
 
 typedef struct
 {
@@ -332,28 +390,29 @@ typedef struct
 
 typedef struct
 {
+	u8 data[TIC_FLAGS];
+} tic_flags;
+
+typedef struct
+{
 	tic_tiles 	tiles;
 	tic_tiles 	sprites;
 	tic_map 	map;
 	tic_sfx 	sfx;
 	tic_music 	music;
-	tic_code 	code;
 	tic_palette palette;
+	tic_flags	flags;
 } tic_bank;
 
 typedef struct
 {
 	union
 	{
-		struct
-		{
-			tic_bank bank0;
-			tic_bank bank1;
-		};
-
+		tic_bank bank0;
 		tic_bank banks[TIC_BANKS];
 	};
-	
+
+	tic_code 	code;	
 	tic_cover_image cover;
 } tic_cartridge;
 
@@ -417,19 +476,29 @@ typedef union
 {
 	struct
 	{
-		tic_vram vram;
-		tic_tiles tiles;
-		tic_tiles sprites;
-		tic_map map;
-		tic80_input input;
-		u8 unknown[12];
-		tic_sound_register registers[TIC_SOUND_CHANNELS];
-		tic_sfx sfx;
-		tic_music music;
-		tic_music_pos music_pos;
+		tic_vram 			vram;
+		tic_tiles 			tiles;
+		tic_tiles 			sprites;
+		tic_map 			map;
+		tic80_input 		input;
+		u8 					unknown[12];
+		tic_stereo_volume 	stereo;
+		tic_sound_register 	registers[TIC_SOUND_CHANNELS];
+		tic_sfx 			sfx;
+		tic_music 			music;
+		tic_sound_state 	sound_state;
+		tic_persistent		persistent;
+		tic_flags 			flags;
+
+		u8 free[16*1024 
+			- sizeof(tic_flags) 
+			- sizeof(tic_persistent) 
+			];
+
 	};
 
 	u8 data[TIC_RAM_SIZE];
+
 } tic_ram;
 
 typedef enum

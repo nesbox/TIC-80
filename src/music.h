@@ -49,7 +49,6 @@ struct Music
 		{
 			s32 octave;
 			s32 sfx;
-			s32 volume;
 		} last;
 
 		struct

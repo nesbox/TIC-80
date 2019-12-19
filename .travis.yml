@@ -1,44 +1,67 @@
 language: c
-script: 
-      - make linux
-      - make linux-pro
 
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      - build-essential
-      - mercurial
-      - make
-      - cmake
-      - autoconf
-      - automake
-      - libtool
-      - libasound2-dev
-      - libpulse-dev
-      - libaudio-dev
-      - libx11-dev
-      - libxext-dev
-      - libxrandr-dev
-      - libxcursor-dev
-      - libxi-dev
-      - libxinerama-dev
-      - libxxf86vm-dev
-      - libxss-dev
-      - libgl1-mesa-dev
-      - libesd0-dev
-      - libdbus-1-dev
-      - libudev-dev
-      - libgles1-mesa-dev
-      - libgles2-mesa-dev
-      - libegl1-mesa-dev
-      - libibus-1.0-dev
-      - fcitx-libs-dev
-      - libsamplerate0-dev
-      - libsndio-dev
-      - libgtk-3-dev
-      - zlib1g-dev
-      - libwayland-dev
-      - libxkbcommon-dev
-      - libglu-dev
+before_install:
+  - BUILDS_SERVER_PATH=${BUILD_SERVER}/files/$TRAVIS_BRANCH/$(date +%Y.%m.%d)/$OS_FOLDER
+script:
+  - mkdir out && cd out
+  - cmake -DCMAKE_BUILD_TYPE=MinSizeRel ..
+  - make -j$(nproc)
+
+matrix:
+  include:
+    - os: osx
+      osx_image: xcode9.3
+      env:
+        - OS_FOLDER=mac
+      after_success:
+        - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/out/bin tic80.app
+        - curl --retry 3 --ftp-create-dirs -T tic80.tar.gz $BUILDS_SERVER_PATH/
+
+    - os: linux
+      dist: trusty
+      addons:
+        apt:
+          packages:
+            - libgtk-3-dev
+            - libasound2-dev
+      env:
+        - OS_FOLDER=linux
+      after_success:
+        - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/out/bin tic80
+        - curl --retry 3 --ftp-create-dirs -T tic80.tar.gz $BUILDS_SERVER_PATH/
+
+    - os: linux
+      language: android
+      env:
+        - OS_FOLDER=android
+      install:
+        - wget https://dl.google.com/android/repository/android-ndk-r18b-linux-x86_64.zip
+        - unzip android-ndk-r18b-linux-x86_64.zip -d $HOME
+        - export ANDROID_NDK_HOME=$HOME/android-ndk-r18b
+        - touch $HOME/.android/repositories.cfg
+        - yes | sdkmanager "platforms;android-26"
+        - yes | sdkmanager "build-tools;28.0.3"
+
+      script:
+        - cd build/android
+        - ./gradlew assembleRelease
+
+      after_success:
+        - cp app/build/outputs/apk/universal/release/app-universal-release.apk tic80.apk
+        - curl --retry 3 --ftp-create-dirs -T tic80.apk $BUILDS_SERVER_PATH/
+
+    - os: linux
+      dist: trusty
+      env:
+        - OS_FOLDER=wasm
+      sudo: required
+      services:
+        - docker
+      install:
+        - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit bash
+      script:
+        - docker exec -it emscripten emcmake cmake -DCMAKE_BUILD_TYPE=MinSizeRel .
+        - docker exec -it emscripten make -j$(nproc)
+      after_success:
+        - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/bin tic80.js tic80.wasm
+        - curl --retry 3 --ftp-create-dirs -T tic80.tar.gz $BUILDS_SERVER_PATH/

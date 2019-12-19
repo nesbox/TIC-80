@@ -91,6 +91,7 @@ class TIC {\n\
 	foreign static poke4(addr, val)\n\
 	foreign static memcpy(dst, src, size)\n\
 	foreign static memset(dst, src, size)\n\
+	foreign static pmem(index)\n\
 	foreign static pmem(index, val)\n\
 	foreign static sfx(id)\n\
 	foreign static sfx(id, note)\n\
@@ -931,11 +932,11 @@ static void wren_pmem(WrenVM* vm)
 
 	if(index < TIC_PERSISTENT_SIZE)
 	{
-		u32 val = memory->persistent.data[index];
+		u32 val = memory->ram.persistent.data[index];
 
 		if(top > 2)
 		{
-			memory->persistent.data[index] = getWrenNumber(vm, 2);
+			memory->ram.persistent.data[index] = getWrenNumber(vm, 2);
 			machine->data->syncPMEM = true;
 		}
 
@@ -1167,6 +1168,7 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
 	if (strcmp(signature, "static TIC.poke4(_,_)"   			) == 0) return wren_poke4;
 	if (strcmp(signature, "static TIC.memcpy(_,_,_)"			) == 0) return wren_memcpy;
 	if (strcmp(signature, "static TIC.memset(_,_,_)"			) == 0) return wren_memset;
+	if (strcmp(signature, "static TIC.pmem(_)"      			) == 0) return wren_pmem;
 	if (strcmp(signature, "static TIC.pmem(_,_)"    			) == 0) return wren_pmem;
 
 	if (strcmp(signature, "static TIC.sfx(_)"    		        ) == 0) return wren_sfx;
@@ -1229,7 +1231,7 @@ static void initAPI(tic_machine* machine)
 {
 	wrenSetUserData(machine->wren, machine);
 
-	if (wrenInterpret(machine->wren, tic_wren_api) != WREN_RESULT_SUCCESS)
+	if (wrenInterpret(machine->wren, "main", tic_wren_api) != WREN_RESULT_SUCCESS)
 	{					
 		machine->data->error(machine->data->data, "can't load TIC wren api");
 	}
@@ -1275,7 +1277,7 @@ static bool initWren(tic_mem* memory, const char* code)
 
 	initAPI(machine);
 	
-	if (wrenInterpret(machine->wren, code) != WREN_RESULT_SUCCESS)
+	if (wrenInterpret(machine->wren, "main", code) != WREN_RESULT_SUCCESS)
 	{
 		return false;
 	}
@@ -1361,6 +1363,8 @@ static const char* const WrenKeywords [] =
 	"static", "super", "this", "true", "var", "while"
 };
 
+static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+
 static const tic_outline_item* getWrenOutline(const char* code, s32* size)
 {
 	enum{Size = sizeof(tic_outline_item)};
@@ -1369,13 +1373,62 @@ static const tic_outline_item* getWrenOutline(const char* code, s32* size)
 
 	static tic_outline_item* items = NULL;
 
+	if(items)
+	{
+		free(items);
+		items = NULL;
+	}
+
+	const char* ptr = code;
+
+	while(true)
+	{
+		static const char ClassString[] = "class ";
+
+		ptr = strstr(ptr, ClassString);
+
+		if(ptr)
+		{
+			ptr += sizeof ClassString - 1;
+
+			const char* start = ptr;
+			const char* end = start;
+
+			while(*ptr)
+			{
+				char c = *ptr;
+
+				if(isalnum_(c));
+				else if(c == ' ' || c == '{')
+				{
+					end = ptr;
+					break;
+				}
+				else break;
+
+				ptr++;
+			}
+
+			if(end > start)
+			{
+				items = items ? realloc(items, (*size + 1) * Size) : malloc(Size);
+
+				items[*size].pos = start - code;
+				items[*size].size = end - start;
+
+				(*size)++;
+			}
+		}
+		else break;
+	}
+
 	return items;
 }
 
 static void evalWren(tic_mem* memory, const char* code)
 {
 	tic_machine* machine = (tic_machine*)memory;
-	wrenInterpret(machine->wren, code);
+	wrenInterpret(machine->wren, "main", code);
 }
 
 static const tic_script_config WrenSyntaxConfig = 

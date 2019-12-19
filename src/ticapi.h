@@ -34,7 +34,7 @@ typedef struct
 		{
 			s8 wave;
 			s8 volume;
-			s8 arpeggio;
+			s8 chord;
 			s8 pitch;
 		};
 
@@ -58,6 +58,7 @@ typedef struct
 	u64 (*freq)();
 	u64 start;
 
+	// !TODO: get rid of this flag, because pmem now peekable through api
 	bool syncPMEM;
 
 	void (*preprocessor)(void* data, char* dst);
@@ -132,6 +133,8 @@ typedef struct
 	void (*rect)				(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 color);
 	void (*rect_border)			(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 color);
 	void (*sprite)				(tic_mem* memory, const tic_tiles* src, s32 index, s32 x, s32 y, u8* colors, s32 count);
+	bool (*get_flag)			(tic_mem* memory, s32 index, u8 flag);
+	void (*set_flag)			(tic_mem* memory, s32 index, u8 flag, bool value);
 	void (*sprite_ex)			(tic_mem* memory, const tic_tiles* src, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate);
 	void (*map)					(tic_mem* memory, const tic_map* src, const tic_tiles* tiles, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale);
 	void (*remap)				(tic_mem* memory, const tic_map* src, const tic_tiles* tiles, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale, RemapFunc remap, void* data);
@@ -160,7 +163,7 @@ typedef struct
 	bool (*key)					(tic_mem* memory, tic_key key);
 	bool (*keyp)				(tic_mem* memory, tic_key key, s32 hold, s32 period);
 
-	void (*load)				(tic_cartridge* rom, const u8* buffer, s32 size, bool palette);
+	void (*load)				(tic_cartridge* rom, const u8* buffer, s32 size);
 	s32  (*save)				(const tic_cartridge* rom, u8* buffer);
 
 	void (*tick_start)			(tic_mem* memory, const tic_sfx* sfx, const tic_music* music);
@@ -176,7 +179,6 @@ struct tic_mem
 	tic_cartridge 		cart;
 	tic_font 			font;
 	tic_api 			api;
-	tic_persistent		persistent;
 
 	char saveid[TIC_SAVEID_SIZE];
 

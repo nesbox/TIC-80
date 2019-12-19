@@ -50,7 +50,7 @@
 #include <lualib.h>
 
 #define FRAME_SIZE (TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32))
-#define POPUP_DUR (TIC_FRAMERATE*2)
+#define POPUP_DUR (TIC80_FRAMERATE*2)
 
 #if defined(TIC80_PRO)
 #define TIC_EDITOR_BANKS (TIC_BANKS)
@@ -231,6 +231,36 @@ static struct
 	.argv = NULL,
 };
 
+
+char getKeyboardText()
+{
+    tic_mem* tic = impl.studio.tic;
+
+    static const char Symbols[] = 	" abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
+    static const char Shift[] =		" ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
+
+    enum{Count = sizeof Symbols};
+
+    for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
+    {
+        tic_key key = tic->ram.input.keyboard.keys[i];
+
+        if(key > 0 && key < Count && tic->api.keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD))
+        {
+            bool caps = tic->api.key(tic, tic_key_capslock);
+            bool shift = tic->api.key(tic, tic_key_shift);
+
+            return caps
+                ? key >= tic_key_a && key <= tic_key_z 
+                    ? shift ? Symbols[key] : Shift[key]
+                    : shift ? Shift[key] : Symbols[key]
+                : shift ? Shift[key] : Symbols[key];
+        }
+    }
+
+    return 0;
+}
+
 bool keyWasPressed(tic_key key)
 {
 	tic_mem* tic = impl.studio.tic;
@@ -265,6 +295,11 @@ tic_map* getBankMap()
 tic_palette* getBankPalette()
 {
 	return &impl.studio.tic->cart.banks[impl.bank.index.sprites].palette;
+}
+
+tic_flags* getBankFlags()
+{
+	return &impl.studio.tic->cart.banks[impl.bank.index.sprites].flags;
 }
 
 void playSystemSfx(s32 id)
@@ -1069,7 +1104,7 @@ static void initModules()
 
 	for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
 	{
-		initCode(impl.editor[i].code, impl.studio.tic, &tic->cart.banks[i].code);
+		initCode(impl.editor[i].code, impl.studio.tic, &tic->cart.code);
 		initSprite(impl.editor[i].sprite, impl.studio.tic, &tic->cart.banks[i].tiles);
 		initMap(impl.editor[i].map, impl.studio.tic, &tic->cart.banks[i].map);
 		initSfx(impl.editor[i].sfx, impl.studio.tic, &tic->cart.banks[i].sfx);
@@ -1094,7 +1129,7 @@ static void updateTitle()
 	char name[FILENAME_MAX] = TIC_TITLE;
 
 	if(strlen(impl.console->romName))
-		sprintf(name, "%s [%s]", TIC_TITLE, impl.console->romName);
+		snprintf(name, FILENAME_MAX, "%s [%s]", TIC_TITLE, impl.console->romName);
 
 	impl.system->setWindowTitle(name);
 }
@@ -1134,7 +1169,7 @@ static void processGamepadMapping()
 
 	for(s32 i = 0; i < KEYMAP_COUNT; i++)
 		if(impl.keycodes[i] && tic->api.key(tic, impl.keycodes[i]))
-			tic->ram.input.gamepads.data |= 1 << i;
+ 			tic->ram.input.gamepads.data |= 1 << i;
 }
 
 static bool isGameMenu()
@@ -1165,7 +1200,7 @@ static void saveProject()
 	if(rom == CART_SAVE_OK)
 	{
 		char buffer[FILENAME_MAX];
-		sprintf(buffer, "%s SAVED :)", impl.console->romName);
+		snprintf(buffer, FILENAME_MAX, "%s SAVED :)", impl.console->romName);
 
 		for(s32 i = 0; i < (s32)strlen(buffer); i++)
 			buffer[i] = toupper(buffer[i]);
@@ -1209,7 +1244,7 @@ static void setCoverImage()
 			screen2buffer(buffer, tic->screen, rect);
 
 			gif_write_animation(impl.studio.tic->cart.cover.data, &impl.studio.tic->cart.cover.size,
-				TIC80_WIDTH, TIC80_HEIGHT, (const u8*)buffer, 1, TIC_FRAMERATE, 1);
+				TIC80_WIDTH, TIC80_HEIGHT, (const u8*)buffer, 1, TIC80_FRAMERATE, 1);
 
 			free(buffer);
 
@@ -1234,7 +1269,7 @@ static void stopVideoRecord()
 			s32 size = 0;
 			u8* data = malloc(FRAME_SIZE * impl.video.frame);
 
-			gif_write_animation(data, &size, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, (const u8*)impl.video.buffer, impl.video.frame, TIC_FRAMERATE, getConfig()->gifScale);
+			gif_write_animation(data, &size, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, (const u8*)impl.video.buffer, impl.video.frame, TIC80_FRAMERATE, getConfig()->gifScale);
 
 			fsGetFileData(onVideoExported, "screen.gif", data, size, DEFAULT_CHMOD, NULL);
 		}
@@ -1256,7 +1291,7 @@ static void startVideoRecord()
 	}
 	else
 	{
-		impl.video.frames = getConfig()->gifLength * TIC_FRAMERATE;
+		impl.video.frames = getConfig()->gifLength * TIC80_FRAMERATE;
 		impl.video.buffer = malloc(FRAME_SIZE * impl.video.frames);
 
 		if(impl.video.buffer)
@@ -1486,7 +1521,7 @@ static void recordFrame(u32* pixels)
 			tic_rect rect = {0, 0, TIC80_FULLWIDTH, TIC80_FULLHEIGHT};
 			screen2buffer(impl.video.buffer + (TIC80_FULLWIDTH*TIC80_FULLHEIGHT) * impl.video.frame, pixels, rect);
 
-			if(impl.video.frame % TIC_FRAMERATE < TIC_FRAMERATE / 2)
+			if(impl.video.frame % TIC80_FRAMERATE < TIC80_FRAMERATE / 2)
 			{
 				const u32* pal = tic_palette_blit(&impl.config->cart.bank0.palette);
 				drawRecordLabel(pixels, TIC80_WIDTH-24, 8, &pal[tic_color_red]);
@@ -1510,7 +1545,7 @@ static void drawPopup()
 
 		s32 anim = 0;
 
-		enum{Dur = TIC_FRAMERATE/2};
+		enum{Dur = TIC80_FRAMERATE/2};
 
 		if(impl.popup.counter < Dur)
 			anim = -((Dur - impl.popup.counter) * (TIC_FONT_HEIGHT+1) / Dur);
@@ -1840,11 +1875,6 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, Sy
 		setStudioMode(TIC_CONSOLE_MODE);
 	}
 
-	if(impl.console->goFullscreen)
-	{
-		goFullscreen();
-	}
-
 	if(impl.console->crtMonitor)
 	{
 		impl.config->data.crtMonitor = true;
@@ -1860,7 +1890,28 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, Sy
 	return &impl.studio;
 }
 
+void studioInitPost() {
+
+	if(impl.console->goFullscreen)
+	{
+		goFullscreen();
+	}
+
+}
+
 System* getSystem()
 {
 	return impl.system;
 }
+
+#if defined(TIC80_PRO)
+bool hasProjectExt(const char* name)
+{
+	return tic_tool_has_ext(name, PROJECT_LUA_EXT)
+		|| tic_tool_has_ext(name, PROJECT_MOON_EXT)
+		|| tic_tool_has_ext(name, PROJECT_JS_EXT)
+		|| tic_tool_has_ext(name, PROJECT_WREN_EXT)
+		|| tic_tool_has_ext(name, PROJECT_SQUIRREL_EXT)
+		|| tic_tool_has_ext(name, PROJECT_FENNEL_EXT);
+}
+#endif

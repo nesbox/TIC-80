@@ -24,7 +24,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <math.h>
 #include <ctype.h>
 #include <stddef.h>
 #include <stddef.h>
@@ -34,15 +33,14 @@
 #include "machine.h"
 #include "ext/gif.h"
 
-#define CLOCKRATE (TIC_FRAMERATE*30000)
-#define MIN_PERIOD_VALUE 10
-#define MAX_PERIOD_VALUE 4096
-#define BASE_NOTE_FREQ 440.0
-#define BASE_NOTE_POS 49.0
+#define CLOCKRATE (255<<13)
 #define ENVELOPE_FREQ_SCALE 2
-#define NOTES_PER_MUNUTE (TIC_FRAMERATE / NOTES_PER_BEET * 60)
-#define min(a,b) ((a) < (b) ? (a) : (b))
-#define max(a,b) ((a) > (b) ? (a) : (b))
+#define SECONDS_PER_MINUTE 60
+#define NOTES_PER_MUNUTE (TIC80_FRAMERATE / NOTES_PER_BEET * SECONDS_PER_MINUTE)
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#define CLAMP(v,a,b) (MIN(MAX(v,a),b))
+#define PIANO_START 8
 
 typedef enum
 {
@@ -52,16 +50,16 @@ typedef enum
 	CHUNK_COVER, 	// 3
 	CHUNK_MAP, 		// 4
 	CHUNK_CODE, 	// 5
-	CHUNK_TEMP,		// 6
+	CHUNK_FLAGS,	// 6
 	CHUNK_TEMP2, 	// 7
 	CHUNK_TEMP3,	// 8
 	CHUNK_SAMPLES,	// 9
 	CHUNK_WAVEFORM,	// 10
 	CHUNK_TEMP4,	// 11
 	CHUNK_PALETTE, 	// 12
-	CHUNK_PATTERNS, // 13
+	CHUNK_PATTERNS_DEP, // 13 - deprecated chunk
 	CHUNK_MUSIC,	// 14
-
+	CHUNK_PATTERNS, // 15
 } ChunkType;
 
 typedef struct
@@ -81,7 +79,30 @@ STATIC_ASSERT(tic_track, sizeof(tic_track) == 3*MUSIC_FRAMES+3);
 STATIC_ASSERT(tic_vram, sizeof(tic_vram) == TIC_VRAM_SIZE);
 STATIC_ASSERT(tic_ram, sizeof(tic_ram) == TIC_RAM_SIZE);
 STATIC_ASSERT(tic_sound_register, sizeof(tic_sound_register) == 16+2);
-STATIC_ASSERT(tic80_input, sizeof(tic80_input) == 16);
+STATIC_ASSERT(tic80_input, sizeof(tic80_input) == 12);
+STATIC_ASSERT(tic_music_cmd_count, tic_music_cmd_count == 1 << MUSIC_CMD_BITS);
+
+static const u16 NoteFreqs[] = {0x10, 0x11, 0x12, 0x13, 0x15, 0x16, 0x17, 0x18, 0x1a, 0x1c, 0x1d, 0x1f, 0x21, 0x23, 0x25, 0x27, 0x29, 0x2c, 0x2e, 0x31, 0x34, 0x37, 0x3a, 0x3e, 0x41, 0x45, 0x49, 0x4e, 0x52, 0x57, 0x5c, 0x62, 0x68, 0x6e, 0x75, 0x7b, 0x83, 0x8b, 0x93, 0x9c, 0xa5, 0xaf, 0xb9, 0xc4, 0xd0, 0xdc, 0xe9, 0xf7, 0x106, 0x115, 0x126, 0x137, 0x14a, 0x15d, 0x172, 0x188, 0x19f, 0x1b8, 0x1d2, 0x1ee, 0x20b, 0x22a, 0x24b, 0x26e, 0x293, 0x2ba, 0x2e4, 0x310, 0x33f, 0x370, 0x3a4, 0x3dc, 0x417, 0x455, 0x497, 0x4dd, 0x527, 0x575, 0x5c8, 0x620, 0x67d, 0x6e0, 0x749, 0x7b8, 0x82d, 0x8a9, 0x92d, 0x9b9, 0xa4d, 0xaea, 0xb90, 0xc40, 0xcfa, 0xdc0, 0xe91, 0xf6f, 0x105a, 0x1153, 0x125b, 0x1372, 0x149a, 0x15d4, 0x1720, 0x1880};
+STATIC_ASSERT(count_of_freqs, COUNT_OF(NoteFreqs) == NOTES*OCTAVES + PIANO_START);
+
+static inline s32 getTempo(const tic_track* track) { return track->tempo + DEFAULT_TEMPO; }
+static inline s32 getSpeed(const tic_track* track) { return track->speed + DEFAULT_SPEED; }
+
+static s32 tick2row(const tic_track* track, s32 tick)
+{
+	// BPM = tempo * 6 / speed
+	return tick * getTempo(track) * DEFAULT_SPEED / getSpeed(track) / NOTES_PER_MUNUTE;
+}
+
+static s32 row2tick(const tic_track* track, s32 row)
+{
+	return row * getSpeed(track) * NOTES_PER_MUNUTE / getTempo(track) / DEFAULT_SPEED;
+}
+
+static inline s32 param2val(const tic_track_row* row)
+{
+	return (row->param1 << 4) | row->param2;
+}
 
 static void update_amp(blip_buffer_t* blip, tic_sound_register_data* data, s32 new_amp )
 {
@@ -90,27 +111,18 @@ static void update_amp(blip_buffer_t* blip, tic_sound_register_data* data, s32 n
 	blip_add_delta( blip, data->time, delta );
 }
 
-static inline double freq2note(double freq)
+static inline s32 freq2period(s32 freq)
 {
-	return (double)NOTES * log2(freq / BASE_NOTE_FREQ) + BASE_NOTE_POS;
-}
+	enum
+	{
+		MinPeriodValue = 10,
+		MaxPeriodValue = 4096,
+		Rate = CLOCKRATE * ENVELOPE_FREQ_SCALE / ENVELOPE_VALUES
+	};
 
-static inline s32 note2freq(double note)
-{
-	return round(pow(2, (note - BASE_NOTE_POS) / (double)NOTES) * BASE_NOTE_FREQ);
-}
+	if(freq == 0) return MaxPeriodValue;
 
-static inline s32 freq2period(double freq)
-{
-	if(freq == 0.0) return MAX_PERIOD_VALUE;
-
-	enum {Rate = CLOCKRATE * ENVELOPE_FREQ_SCALE / ENVELOPE_VALUES};
-	s32 period = round((double)Rate / freq - 1.0);
-
-	if(period < MIN_PERIOD_VALUE) return MIN_PERIOD_VALUE;
-	if(period > MAX_PERIOD_VALUE) return MAX_PERIOD_VALUE;
-
-	return period;
+	return CLAMP(Rate / freq - 1, MinPeriodValue, MaxPeriodValue);
 }
 
 static inline s32 getAmp(const tic_sound_register* reg, s32 amp)
@@ -120,7 +132,7 @@ static inline s32 getAmp(const tic_sound_register* reg, s32 amp)
 	return amp * MaxAmp * reg->volume / MAX_VOLUME;
 }
 
-static void runEnvelope(blip_buffer_t* blip, tic_sound_register* reg, tic_sound_register_data* data, s32 end_time )
+static void runEnvelope(blip_buffer_t* blip, tic_sound_register* reg, tic_sound_register_data* data, s32 end_time, u8 volume)
 {
 	s32 period = freq2period(reg->freq * ENVELOPE_FREQ_SCALE);
 
@@ -128,11 +140,11 @@ static void runEnvelope(blip_buffer_t* blip, tic_sound_register* reg, tic_sound_
 	{
 		data->phase = (data->phase + 1) % ENVELOPE_VALUES;
 
-		update_amp(blip, data, getAmp(reg, tic_tool_peek4(reg->waveform.data, data->phase)));
+		update_amp(blip, data, getAmp(reg, tic_tool_peek4(reg->waveform.data, data->phase) * volume / MAX_VOLUME));
 	}
 }
 
-static void runNoise(blip_buffer_t* blip, tic_sound_register* reg, tic_sound_register_data* data, s32 end_time )
+static void runNoise(blip_buffer_t* blip, tic_sound_register* reg, tic_sound_register_data* data, s32 end_time, u8 volume)
 {
 	// phase is noise LFSR, which must never be zero 
 	if ( data->phase == 0 )
@@ -143,7 +155,7 @@ static void runNoise(blip_buffer_t* blip, tic_sound_register* reg, tic_sound_reg
 	for ( ; data->time < end_time; data->time += period )
 	{
 		data->phase = ((data->phase & 1) * (0b11 << 13)) ^ (data->phase >> 1);
-		update_amp(blip, data, getAmp(reg, (data->phase & 1) ? MAX_VOLUME : 0));
+		update_amp(blip, data, getAmp(reg, (data->phase & 1) ? volume : 0));
 	}
 }
 
@@ -244,8 +256,8 @@ static void drawHLine(tic_machine* machine, s32 x, s32 y, s32 width, u8 color)
 {
 	if(y < machine->state.clip.t || machine->state.clip.b <= y) return;
 	u8 final_color = mapColor(&machine->memory, color);
-	s32 xl = max(x, machine->state.clip.l);
-	s32 xr = min(x + width, machine->state.clip.r);
+	s32 xl = MAX(x, machine->state.clip.l);
+	s32 xr = MIN(x + width, machine->state.clip.r);
 	machine->state.drawhline(&machine->memory, xl, xr, y, final_color);
 }
 
@@ -293,8 +305,18 @@ static void drawRectBorder(tic_machine* machine, s32 x, s32 y, s32 width, s32 he
 static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
 	static u8 mapping[TIC_PALETTE_SIZE];
-	for (s32 i = 0; i < TIC_PALETTE_SIZE; i++) mapping[i] = tic_tool_peek4(machine->memory.ram.vram.mapping, i);
-	for (s32 i = 0; i < count; i++) mapping[colors[i]] = 255;
+	for (s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+	{
+		u8 mapped = tic_tool_peek4(machine->memory.ram.vram.mapping, i);
+		for (s32 j = 0; j < count; j++)
+		{
+			if (mapped == colors[j]) {
+				mapped = 255;
+				break;
+			}
+		}
+		mapping[i] = mapped;
+	}
 
 	rotate &= 0b11;
 	u32 orientation = flip & 0b11;
@@ -371,68 +393,72 @@ static void drawMap(tic_machine* machine, const tic_map* src, const tic_tiles* t
 		}
 }
 
-static void resetSfx(Channel* channel)
+static void resetSfx(tic_channel_data* channel)
 {
 	memset(channel->pos.data, -1, sizeof(tic_sfx_pos));
 	channel->tick = -1;
 }
 
-static void channelSfx(tic_mem* memory, s32 index, s32 note, s32 octave, s32 duration, Channel* c, s32 volume, s32 speed)
+static void setChannelData(tic_mem* memory, s32 index, s32 note, s32 octave, s32 duration, tic_channel_data* channel, s32 volumeLeft, s32 volumeRight, s32 speed)
 {
 	tic_machine* machine = (tic_machine*)memory;
 
-	c->volume = volume;
+	channel->volume.left = volumeLeft;
+	channel->volume.right = volumeRight;
 
 	if(index >= 0)
 	{
 		struct {s8 speed:SFX_SPEED_BITS;} temp = {speed};
-		c->speed = speed == temp.speed ? speed : machine->sound.sfx->samples.data[index].speed;
+		channel->speed = speed == temp.speed ? speed : machine->sound.sfx->samples.data[index].speed;
 	}
 
-	// start index of idealized piano
-	enum {PianoStart = -8};
+	channel->note = note + octave * NOTES;
+	channel->duration = duration;
+	channel->index = index;
 
-	s32 freq = note2freq(note + octave * NOTES + PianoStart);
-
-	c->duration = duration;
-	c->freq = freq;
-	c->index = index;
-
-	resetSfx(c);
+	resetSfx(channel);
 }
 
-static void musicSfx(tic_mem* memory, s32 index, s32 note, s32 octave, s32 volume, s32 channel)
+static void setMusicChannelData(tic_mem* memory, s32 index, s32 note, s32 octave, s32 left, s32 right, s32 channelIndex)
 {
 	tic_machine* machine = (tic_machine*)memory;
-	channelSfx(memory, index, note, octave, -1, &machine->state.music.channels[channel], MAX_VOLUME - volume, SFX_DEF_SPEED);
+	setChannelData(memory, index, note, octave, -1, &machine->state.music.channels[channelIndex], left, right, SFX_DEF_SPEED);
 }
 
-static void resetMusic(tic_mem* memory)
+static void resetMusicChannels(tic_mem* memory)
 {
 	for (s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
-		musicSfx(memory, -1, 0, 0, 0, c);
+		setMusicChannelData(memory, -1, 0, 0, 0, 0, c);
+
+	tic_machine* machine = (tic_machine*)memory;
+	memset(machine->state.music.commands, 0, sizeof machine->state.music.commands);
+	memset(&machine->state.music.jump, 0, sizeof(tic_jump_command));
+	memset(&machine->state.registers, 0, sizeof machine->state.registers);
 }
 
 static void setMusic(tic_machine* machine, s32 index, s32 frame, s32 row, bool loop)
 {
 	tic_mem* memory = (tic_mem*)machine;
 
-	memory->ram.music_pos.track = index;
+	memory->ram.sound_state.music.track = index;
 
 	if(index < 0)
 	{
-		machine->state.music.play = MusicStop;
-		resetMusic(memory);
+		memory->ram.sound_state.flag.music_state = tic_music_stop;
+		resetMusicChannels(memory);
 	}
 	else
 	{
-		memory->ram.music_pos.row = row;
-		memory->ram.music_pos.frame = frame < 0 ? 0 : frame;
-		memory->ram.music_pos.flag.loop = loop;
-		machine->state.music.play = MusicPlay;
+		for (s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
+			setMusicChannelData(memory, -1, 0, 0, MAX_VOLUME, MAX_VOLUME, c);
+
+		memory->ram.sound_state.music.row = row;
+		memory->ram.sound_state.music.frame = frame < 0 ? 0 : frame;
+		memory->ram.sound_state.flag.music_loop = loop;
+		memory->ram.sound_state.flag.music_state = tic_music_play;
 
 		const tic_track* track = &machine->sound.music->tracks.data[index];
-		machine->state.music.ticks = row >= 0 ? row * (track->speed + DEFAULT_SPEED) * NOTES_PER_MUNUTE / (track->tempo + DEFAULT_TEMPO) / DEFAULT_SPEED : 0;
+		machine->state.music.ticks = row >= 0 ? row2tick(track, row) : 0;
 	}
 }
 
@@ -443,7 +469,12 @@ static void api_music(tic_mem* memory, s32 index, s32 frame, s32 row, bool loop)
 	setMusic(machine, index, frame, row, loop);
 
 	if(index >= 0)
-		machine->state.music.play = MusicPlay;
+		memory->ram.sound_state.flag.music_state = tic_music_play;
+}
+
+static void stopMusic(tic_mem* memory)
+{
+	api_music(memory, -1, 0, 0, false);
 }
 
 static void soundClear(tic_mem* memory)
@@ -451,19 +482,19 @@ static void soundClear(tic_mem* memory)
 	{
 		tic_machine* machine = (tic_machine*)memory;
 
-		Channel channel =
+		tic_channel_data channel =
 		{ 
 			.tick = -1,
 			.pos = 
 			{
 				.volume = -1,
 				.wave = -1, 
-				.arpeggio = -1, 
+				.chord = -1, 
 				.pitch = -1,				
 			},
 			.index = -1,
-			.freq = 0,
-			.volume = MAX_VOLUME,
+			.note = 0,
+			.volume = {0, 0},
 			.speed = 0,
 			.duration = -1,
 		};
@@ -472,19 +503,13 @@ static void soundClear(tic_mem* memory)
 		{
 			memcpy(machine->state.channels+i, &channel, sizeof channel);
 			memcpy(machine->state.music.channels+i, &channel, sizeof channel);
-			
-			{
-				tic_sound_register* reg = &memory->ram.registers[i];
-				memset(reg, 0, sizeof(tic_sound_register));
-			}
-			
-			{
-				tic_sound_register_data* data = &machine->state.registers[i];
-				memset(data, 0, sizeof(tic_sound_register_data));				
-			}
 		}
 
-		api_music(memory, -1, 0, 0, false);
+		memset(&memory->ram.registers, 0, sizeof memory->ram.registers);
+		memset(&machine->state.registers, 0, sizeof machine->state.registers);
+		memset(&machine->state.music.commands, 0, sizeof machine->state.music.commands);
+		memset(&machine->state.music.jump, 0, sizeof(tic_jump_command));
+		stopMusic(memory);
 	}
 
 	memset(memory->samples.buffer, 0, memory->samples.size);
@@ -533,7 +558,7 @@ static void api_pause(tic_mem* memory)
 {
 	tic_machine* machine = (tic_machine*)memory;
 
-	memcpy(&machine->pause.state, &machine->state, sizeof(MachineState));
+	memcpy(&machine->pause.state, &machine->state, sizeof(tic_machine_state_data));
 	memcpy(&machine->pause.ram, &memory->ram, sizeof(tic_ram));
 
 	machine->pause.time.start = machine->data->start;
@@ -546,7 +571,7 @@ static void api_resume(tic_mem* memory)
 
 	if (machine->data)
 	{
-		memcpy(&machine->state, &machine->pause.state, sizeof(MachineState));
+		memcpy(&machine->state, &machine->pause.state, sizeof(tic_machine_state_data));
 		memcpy(&memory->ram, &machine->pause.ram, sizeof(tic_ram));
 
 		machine->data->start = machine->pause.time.start + machine->data->counter() - machine->pause.time.paused;
@@ -558,6 +583,10 @@ void tic_close(tic_mem* memory)
 	tic_machine* machine = (tic_machine*)memory;
 
 	machine->state.initialized = false;
+
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+	getSquirrelScriptConfig()->close(memory);
+#endif
 
 #if defined(TIC_BUILD_WITH_LUA)
 	getLuaScriptConfig()->close(memory);
@@ -581,7 +610,8 @@ void tic_close(tic_mem* memory)
 	getWrenScriptConfig()->close(memory);
 #endif
 
-	blip_delete(machine->blip);
+	blip_delete(machine->blip.left);
+	blip_delete(machine->blip.right);
 
 	free(memory->samples.buffer);
 	free(machine);
@@ -600,11 +630,11 @@ static void api_rect(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 co
 
 static void api_clear(tic_mem* memory, u8 color)
 {
-	static const Clip EmptyClip = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
+	static const tic_clip_data EmptyClip = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
 
 	tic_machine* machine = (tic_machine*)memory;
 
-	if(memcmp(&machine->state.clip, &EmptyClip, sizeof(Clip)) == 0)
+	if(memcmp(&machine->state.clip, &EmptyClip, sizeof(tic_clip_data)) == 0)
 	{
 		color &= 0b00001111;
 		memset(memory->ram.vram.screen.data, color | (color << TIC_PALETTE_BPP), sizeof(memory->ram.vram.screen.data));		
@@ -636,15 +666,15 @@ static s32 api_draw_char(tic_mem* memory, u8 symbol, s32 x, s32 y, u8 color, boo
 s32 drawText(tic_mem* memory, const char* text, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale, DrawCharFunc* func, bool alt)
 {
 	s32 pos = x;
-	s32 max = x;
+	s32 MAX = x;
 	char sym = 0;
 
 	while((sym = *text++))
 	{
 		if(sym == '\n')
 		{
-			if(pos > max)
-				max = pos;
+			if(pos > MAX)
+				MAX = pos;
 
 			pos = x;
 			y += height * scale;
@@ -652,7 +682,7 @@ s32 drawText(tic_mem* memory, const char* text, s32 x, s32 y, s32 width, s32 hei
 		else pos += func(memory, sym, pos, y, width, height, color, scale, alt);
 	}
 
-	return pos > max ? pos - x : max - x;
+	return pos > MAX ? pos - x : MAX - x;
 }
 
 static s32 api_fixed_text(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, bool alt)
@@ -753,6 +783,28 @@ static void api_sprite_ex(tic_mem* memory, const tic_tiles* src, s32 index, s32 
 				drawSprite(memory, src, index + mx+my*Cols, x+j*step, y+i*step, colors, count, scale, flip, rotate);
 		}
 	}
+}
+
+static inline u8* getFlag(tic_mem* memory, s32 index, u8 flag)
+{
+	static u8 stub;
+	if(index >= TIC_FLAGS || flag >= BITS_IN_BYTE)
+		return &stub;
+
+	return memory->ram.flags.data + index;
+}
+
+static bool api_get_flag(tic_mem* memory, s32 index, u8 flag)
+{
+	return *getFlag(memory, index, flag) & (1 << flag);
+}
+
+static void api_set_flag(tic_mem* memory, s32 index, u8 flag, bool value)
+{
+	if(value)
+		*getFlag(memory, index, flag) |= (1 << flag);
+	else 
+		*getFlag(memory, index, flag) &= ~(1 << flag);
 }
 
 s32 drawSpriteFont(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale, bool alt)
@@ -887,12 +939,12 @@ static void api_circle(tic_mem* memory, s32 xm, s32 ym, s32 radius, u8 color)
 		if (r > x || err > y) err += ++x*2+1;
 	} while (x < 0);
 
-	s32 yt = max(machine->state.clip.t, ym-radius);
-	s32 yb = min(machine->state.clip.b, ym+radius+1);
+	s32 yt = MAX(machine->state.clip.t, ym-radius);
+	s32 yb = MIN(machine->state.clip.b, ym+radius+1);
 	u8 final_color = mapColor(&machine->memory, color);
 	for(s32 y = yt; y < yb; y++) {
-		s32 xl = max(SidesBuffer.Left[y], machine->state.clip.l);
-		s32 xr = min(SidesBuffer.Right[y]+1, machine->state.clip.r);
+		s32 xl = MAX(SidesBuffer.Left[y], machine->state.clip.l);
+		s32 xr = MIN(SidesBuffer.Right[y]+1, machine->state.clip.r);
 		machine->state.drawhline(&machine->memory, xl, xr, y, final_color);
 	}
 }
@@ -945,12 +997,12 @@ static void api_tri(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32
 	ticLine(memory, x3, y3, x1, y1, color, triPixelFunc);
 
 	u8 final_color = mapColor(&machine->memory, color);
-	s32 yt = max(machine->state.clip.t, min(y1, min(y2, y3)));
-	s32 yb = min(machine->state.clip.b, max(y1, max(y2, y3)) + 1);
+	s32 yt = MAX(machine->state.clip.t, MIN(y1, MIN(y2, y3)));
+	s32 yb = MIN(machine->state.clip.b, MAX(y1, MAX(y2, y3)) + 1);
 
 	for(s32 y = yt; y < yb; y++) {
-		s32 xl = max(SidesBuffer.Left[y], machine->state.clip.l);
-		s32 xr = min(SidesBuffer.Right[y]+1, machine->state.clip.r);
+		s32 xl = MAX(SidesBuffer.Left[y], machine->state.clip.l);
+		s32 xr = MIN(SidesBuffer.Right[y]+1, machine->state.clip.r);
 		machine->state.drawhline(&machine->memory, xl, xr, y, final_color);
 	}
 }
@@ -1060,7 +1112,7 @@ static void api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, 
 			s32 v = SidesBuffer.VLeft[y];
 			s32 left = SidesBuffer.Left[y];
 			s32 right = SidesBuffer.Right[y];
-			//	check right edge, and clamp it
+			//	check right edge, and CLAMP it
 			if (right > machine->state.clip.r)
 				right = machine->state.clip.r;
 			//	check left edge and offset UV's if we are off the left 
@@ -1164,7 +1216,7 @@ static s32 calcLoopPos(const tic_sound_loop* loop, s32 pos)
 	return offset;
 }
 
-static void sfx(tic_mem* memory, s32 index, s32 freq, Channel* channel, tic_sound_register* reg)
+static void sfx(tic_mem* memory, s32 index, s32 note, s32 pitch, tic_channel_data* channel, tic_sound_register* reg, s32 channelIndex)
 {
 	tic_machine* machine = (tic_machine*)memory;
 
@@ -1191,52 +1243,70 @@ static void sfx(tic_mem* memory, s32 index, s32 freq, Channel* channel, tic_soun
 	for(s32 i = 0; i < sizeof(tic_sfx_pos); i++)
 		*(channel->pos.data+i) = calcLoopPos(effect->loops + i, pos);
 
-	u8 volume = (MAX_VOLUME - effect->data[channel->pos.volume].volume) * channel->volume / MAX_VOLUME;
+	u8 volume = MAX_VOLUME - effect->data[channel->pos.volume].volume;
 
 	if(volume > 0)
 	{
-		s8 arp = effect->data[channel->pos.arpeggio].arpeggio * (effect->reverse ? -1 : 1);
-	 
-		if(arp) freq = note2freq(freq2note(freq)+arp);
+		s8 arp = effect->data[channel->pos.chord].chord * (effect->reverse ? -1 : 1);
+		if(arp) note += arp;
 
-		freq += effect->data[channel->pos.pitch].pitch * (effect->pitch16x ? 16 : 1);
+		note = CLAMP(note, 0, COUNT_OF(NoteFreqs)-1);
 
-		reg->freq = freq;
+		reg->freq = NoteFreqs[note] + effect->data[channel->pos.pitch].pitch * (effect->pitch16x ? 16 : 1) + pitch;
 		reg->volume = volume;
 
 		u8 wave = effect->data[channel->pos.wave].wave;
 		const tic_waveform* waveform = &machine->sound.sfx->waveform.envelopes[wave];
 		memcpy(reg->waveform.data, waveform->data, sizeof(tic_waveform));
+
+		tic_tool_poke4(&memory->ram.stereo.data, channelIndex*2, channel->volume.left * !effect->stereo_left);
+		tic_tool_poke4(&memory->ram.stereo.data, channelIndex*2+1, channel->volume.right * !effect->stereo_right);
 	}
 }
 
 static void processMusic(tic_mem* memory)
 {
 	tic_machine* machine = (tic_machine*)memory;
+	tic_sound_state* sound_state = &memory->ram.sound_state;
 
-	if(machine->state.music.play == MusicStop) return;
+	if(sound_state->flag.music_state == tic_music_stop) return;
 
-	const tic_track* track = &machine->sound.music->tracks.data[memory->ram.music_pos.track];
-	s32 row = machine->state.music.ticks * (track->tempo + DEFAULT_TEMPO) * DEFAULT_SPEED / (track->speed + DEFAULT_SPEED) / NOTES_PER_MUNUTE;
+	const tic_track* track = &machine->sound.music->tracks.data[sound_state->music.track];
+	s32 row = tick2row(track, machine->state.music.ticks);
+	tic_jump_command* jumpCmd = &machine->state.music.jump;
+
+	if (row != sound_state->music.row 
+		&& jumpCmd->active)
+	{
+		sound_state->music.frame = jumpCmd->frame;
+		sound_state->music.row = jumpCmd->row;
+		machine->state.music.ticks = row2tick(track, jumpCmd->row);
+		memset(jumpCmd, 0, sizeof(tic_jump_command));
+	}
 
 	s32 rows = MUSIC_PATTERN_ROWS - track->rows;
 	if (row >= rows)
 	{
 		row = 0;
 		machine->state.music.ticks = 0;
-		resetMusic(memory);
 
-		if(machine->state.music.play == MusicPlay)
+		// !TODO: reset only if you see 'stop' command
+		resetMusicChannels(memory);
+
+		for (s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
+			setMusicChannelData(memory, -1, 0, 0, MAX_VOLUME, MAX_VOLUME, c);
+
+		if(sound_state->flag.music_state == tic_music_play)
 		{
-			memory->ram.music_pos.frame++;
+			sound_state->music.frame++;
 
-			if(memory->ram.music_pos.frame >= MUSIC_FRAMES)
+			if(sound_state->music.frame >= MUSIC_FRAMES)
 			{
-				if(memory->ram.music_pos.flag.loop)
-					memory->ram.music_pos.frame = 0;
+				if(sound_state->flag.music_loop)
+					sound_state->music.frame = 0;
 				else
 				{
-					api_music(memory, -1, 0, 0, false);
+					stopMusic(memory);
 					return;
 				}
 			}
@@ -1244,53 +1314,107 @@ static void processMusic(tic_mem* memory)
 			{
 				s32 val = 0;
 				for (s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
-					val += tic_tool_get_pattern_id(track, memory->ram.music_pos.frame, c);
+					val += tic_tool_get_pattern_id(track, sound_state->music.frame, c);
 
+				// empty frame detected
 				if(!val)
 				{
-					if(memory->ram.music_pos.flag.loop)
-						memory->ram.music_pos.frame = 0;
+					if(sound_state->flag.music_loop)
+						sound_state->music.frame = 0;
 					else
 					{
-						api_music(memory, -1, 0, 0, false);
+						stopMusic(memory);
 						return;
 					}					
 				}
 			}
 		}
-		else if(machine->state.music.play == MusicPlayFrame)
+		else if(sound_state->flag.music_state == tic_music_play_frame)
 		{
-			if(!memory->ram.music_pos.flag.loop)
+			if(!sound_state->flag.music_loop)
 			{
-				api_music(memory, -1, 0, 0, false);
+				stopMusic(memory);
 				return;
 			}
 		}
 	}
 
-	if (row != memory->ram.music_pos.row)
+	if (row != sound_state->music.row)
 	{
-		memory->ram.music_pos.row = row;
+		sound_state->music.row = row;
 
-		for (s32 channel = 0; channel < TIC_SOUND_CHANNELS; channel++)
+		for (s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
 		{
-			s32 patternId = tic_tool_get_pattern_id(track, memory->ram.music_pos.frame, channel);
+			s32 patternId = tic_tool_get_pattern_id(track, sound_state->music.frame, c);
 			if (!patternId) continue;
 
 			const tic_track_pattern* pattern = &machine->sound.music->patterns.data[patternId - PATTERN_START];
+			const tic_track_row* trackRow = &pattern->rows[sound_state->music.row];
+			tic_channel_data* channel = &machine->state.music.channels[c];
+			tic_command_data* cmdData = &machine->state.music.commands[c];
 
-			s32 note = pattern->rows[memory->ram.music_pos.row].note;
-
-			if (note > NoteNone)
+			if(trackRow->command == tic_music_cmd_delay)
 			{
-				musicSfx(memory, -1, 0, 0, 0, channel);
+				cmdData->delay.row = trackRow;
+				cmdData->delay.ticks = param2val(trackRow);
+				trackRow = NULL;
+			}
+			
+			if(cmdData->delay.row && cmdData->delay.ticks == 0)
+			{
+				trackRow = cmdData->delay.row;
+				cmdData->delay.row = NULL;
+			}
 
-				if (note >= NoteStart)
+			if(trackRow)
+			{
+				// reset commands data
+				if(trackRow->note)
 				{
-					s32 octave = pattern->rows[memory->ram.music_pos.row].octave;
-					s32 sfx = (pattern->rows[row].sfxhi << MUSIC_SFXID_LOW_BITS) | pattern->rows[row].sfxlow;
-					s32 volume = pattern->rows[memory->ram.music_pos.row].volume;
-					musicSfx(memory, sfx, note - NoteStart, octave, volume, channel);
+					cmdData->slide.tick = 0;
+					cmdData->slide.note = channel->note;
+				}
+
+				if(trackRow->note == NoteStop)
+					setMusicChannelData(memory, -1, 0, 0, channel->volume.left, channel->volume.right, c);
+				else if (trackRow->note >= NoteStart)
+					setMusicChannelData(memory, tic_get_track_row_sfx(trackRow), trackRow->note - NoteStart, trackRow->octave, 
+						channel->volume.left, channel->volume.right, c);
+
+				switch(trackRow->command)
+				{
+				case tic_music_cmd_volume:
+					channel->volume.left = trackRow->param1;
+					channel->volume.right = trackRow->param2;
+					break;
+
+				case tic_music_cmd_chord:
+					cmdData->chord.tick = 0;
+					cmdData->chord.note1 = trackRow->param1;
+					cmdData->chord.note2 = trackRow->param2;
+					break;
+
+				case tic_music_cmd_jump:
+					machine->state.music.jump.active = true;
+					machine->state.music.jump.frame = trackRow->param1;
+					machine->state.music.jump.row = trackRow->param2;
+					break;
+
+				case tic_music_cmd_vibrato:
+					cmdData->vibrato.tick = 0;
+					cmdData->vibrato.period = trackRow->param1;
+					cmdData->vibrato.depth = trackRow->param2;
+					break;
+
+				case tic_music_cmd_slide:
+					cmdData->slide.duration = param2val(trackRow);
+					break;
+
+				case tic_music_cmd_pitch:
+					cmdData->finepitch.value = param2val(trackRow) - PITCH_DELTA;
+					break;
+
+				default: break;
 				}
 			}
 		}
@@ -1298,10 +1422,51 @@ static void processMusic(tic_mem* memory)
 
 	for (s32 i = 0; i < TIC_SOUND_CHANNELS; ++i )
 	{
-		Channel* c = &machine->state.music.channels[i];
+		tic_channel_data* channel = &machine->state.music.channels[i];
+		tic_command_data* cmdData = &machine->state.music.commands[i];
 		
-		if(c->index >= 0)
-			sfx(memory, c->index, c->freq, c, &memory->ram.registers[i]);
+		if(channel->index >= 0)
+		{
+			s32 note = channel->note;
+			s32 pitch = 0;
+			
+			// process chord commmand
+			{
+				s32 chord[] = 
+				{
+					0, 
+					cmdData->chord.note1, 
+					cmdData->chord.note2
+				};
+
+				note += chord[cmdData->chord.tick % (cmdData->chord.note2 == 0 ? 2 : 3)];
+			}
+
+			// process vibrato commmand
+			if(cmdData->vibrato.period && cmdData->vibrato.depth)
+			{
+				static const s32 VibData[] = {0x0, 0x31f1, 0x61f8, 0x8e3a, 0xb505, 0xd4db, 0xec83, 0xfb15, 0x10000, 0xfb15, 0xec83, 0xd4db, 0xb505, 0x8e3a, 0x61f8, 0x31f1, 0x0, 0xffffce0f, 0xffff9e08, 0xffff71c6, 0xffff4afb, 0xffff2b25, 0xffff137d, 0xffff04eb, 0xffff0000, 0xffff04eb, 0xffff137d, 0xffff2b25, 0xffff4afb, 0xffff71c6, 0xffff9e08, 0xffffce0f};
+				STATIC_ASSERT(VibData, COUNT_OF(VibData) == 32);
+
+				s32 p = cmdData->vibrato.period << 1;
+				pitch += (VibData[(cmdData->vibrato.tick % p) * COUNT_OF(VibData) / p] * cmdData->vibrato.depth) >> 16;
+			}
+
+			// process slide command
+			if(cmdData->slide.tick < cmdData->slide.duration)
+				pitch += (NoteFreqs[channel->note] - NoteFreqs[note = cmdData->slide.note]) * cmdData->slide.tick / cmdData->slide.duration;
+
+			pitch += cmdData->finepitch.value;
+
+			sfx(memory, channel->index, note, pitch, channel, &memory->ram.registers[i], i);
+		}
+
+		++cmdData->chord.tick;
+		++cmdData->vibrato.tick;
+		++cmdData->slide.tick;
+
+		if(cmdData->delay.ticks)
+			cmdData->delay.ticks--;
 	}
 
 	machine->state.music.ticks++;
@@ -1333,14 +1498,16 @@ static void api_tick_start(tic_mem* memory, const tic_sfx* sfxsrc, const tic_mus
 	for (s32 i = 0; i < TIC_SOUND_CHANNELS; ++i )
 		memset(&memory->ram.registers[i], 0, sizeof(tic_sound_register));
 
+	memory->ram.stereo.data = 0;
+
 	processMusic(memory);
 
 	for (s32 i = 0; i < TIC_SOUND_CHANNELS; ++i )
 	{
-		Channel* c = &machine->state.channels[i];
+		tic_channel_data* c = &machine->state.channels[i];
 		
 		if(c->index >= 0)
-			sfx(memory, c->index, c->freq, c, &memory->ram.registers[i]);
+			sfx(memory, c->index, c->note, 0, c, &memory->ram.registers[i], i);
 	}
 
 	// process gamepad
@@ -1373,6 +1540,26 @@ static void api_tick_start(tic_mem* memory, const tic_sfx* sfxsrc, const tic_mus
 	machine->state.drawhline = drawHLineDma;
 }
 
+static void stereo_tick_end(tic_mem* memory, tic_sound_register_data* registers, blip_buffer_t* blip, u8 stereoRight)
+{
+	enum {EndTime = CLOCKRATE / TIC80_FRAMERATE};
+	for (s32 i = 0; i < TIC_SOUND_CHANNELS; ++i )
+	{
+		u8 volume = tic_tool_peek4(&memory->ram.stereo.data, stereoRight + i*2);
+
+		tic_sound_register* reg = &memory->ram.registers[i];
+		tic_sound_register_data* data = registers + i;
+
+		isNoiseWaveform(&reg->waveform)
+			? runNoise(blip, reg, data, EndTime, volume)
+			: runEnvelope(blip, reg, data, EndTime, volume);
+
+		data->time -= EndTime;
+	}
+	
+	blip_end_frame(blip, EndTime);
+}
+
 static void api_tick_end(tic_mem* memory)
 {
 	tic_machine* machine = (tic_machine*)memory;
@@ -1380,21 +1567,11 @@ static void api_tick_end(tic_mem* memory)
 	machine->state.gamepads.previous.data = machine->memory.ram.input.gamepads.data;
 	machine->state.keyboard.previous.data = machine->memory.ram.input.keyboard.data;
 
-	enum {EndTime = CLOCKRATE / TIC_FRAMERATE};
-	for (s32 i = 0; i < TIC_SOUND_CHANNELS; ++i )
-	{
-		tic_sound_register* reg = &memory->ram.registers[i];
-		tic_sound_register_data* data = &machine->state.registers[i];
+	stereo_tick_end(memory, machine->state.registers.left, machine->blip.left, 0);
+	stereo_tick_end(memory, machine->state.registers.right, machine->blip.right, 1);
 
-		isNoiseWaveform(&reg->waveform)
-			? runNoise(machine->blip, reg, data, EndTime)
-			: runEnvelope(machine->blip, reg, data, EndTime);
-
-		data->time -= EndTime;
-	}
-	
-	blip_end_frame(machine->blip, EndTime);
-	blip_read_samples(machine->blip, machine->memory.samples.buffer, machine->samplerate / TIC_FRAMERATE, 0);
+	blip_read_samples(machine->blip.left, machine->memory.samples.buffer, machine->samplerate / TIC80_FRAMERATE, TIC_STEREO_CHANNELS);
+	blip_read_samples(machine->blip.right, machine->memory.samples.buffer + 1, machine->samplerate / TIC80_FRAMERATE, TIC_STEREO_CHANNELS);
 
 	machine->state.setpix = setPixelOvr;
 	machine->state.getpix = getPixelOvr;
@@ -1406,7 +1583,7 @@ static tic_sfx_pos api_sfx_pos(tic_mem* memory, s32 channel)
 {
 	tic_machine* machine = (tic_machine*)memory;
 
-	Channel* c = &machine->state.channels[channel];
+	tic_channel_data* c = &machine->state.channels[channel];
 
 	return c->pos;
 }
@@ -1414,7 +1591,7 @@ static tic_sfx_pos api_sfx_pos(tic_mem* memory, s32 channel)
 static void api_sfx_ex(tic_mem* memory, s32 index, s32 note, s32 octave, s32 duration, s32 channel, s32 volume, s32 speed)
 {
 	tic_machine* machine = (tic_machine*)memory;
-	channelSfx(memory, index, note, octave, duration, &machine->state.channels[channel], volume, speed);
+	setChannelData(memory, index, note, octave, duration, &machine->state.channels[channel], volume, volume, speed);
 }
 
 static void api_sfx(tic_mem* memory, s32 index, s32 note, s32 octave, s32 duration, s32 channel)
@@ -1434,7 +1611,7 @@ static void api_music_frame(tic_mem* memory, s32 index, s32 frame, s32 row, bool
 	setMusic(machine, index, frame, row, loop);
 
 	if(index >= 0)
-		machine->state.music.play = MusicPlayFrame;
+		memory->ram.sound_state.flag.music_state = tic_music_play_frame;
 }
 
 static void initCover(tic_mem* tic)
@@ -1477,6 +1654,7 @@ static void api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
 		{offsetof(tic_bank, sfx), 		offsetof(tic_ram, sfx), 			sizeof(tic_sfx)		},
 		{offsetof(tic_bank, music), 	offsetof(tic_ram, music), 			sizeof(tic_music)	},
 		{offsetof(tic_bank, palette), 	offsetof(tic_ram, vram.palette), 	sizeof(tic_palette)	},
+		{offsetof(tic_bank, flags), 	offsetof(tic_ram, flags), 			sizeof(tic_flags)	},
 	};
 
 	enum{Count = COUNT_OF(Sections), Mask = (1 << Count) - 1};
@@ -1588,24 +1766,31 @@ static const tic_script_config* getScriptConfig(const char* code)
 		return getWrenScriptConfig();
 #endif
 
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+	if (compareMetatag(code, "script", "squirrel", getSquirrelScriptConfig()->singleComment))
+		return getSquirrelScriptConfig();
+#endif
+
 #if defined(TIC_BUILD_WITH_LUA)
 	return getLuaScriptConfig();
 #elif defined(TIC_BUILD_WITH_JS)
 	return getJsScriptConfig();
 #elif defined(TIC_BUILD_WITH_WREN)
 	return getWrenScriptConfig();
+#elif defined(TIC_BUILD_WITH_SQUIRREL)
+	return getSquirrelScriptConfig();
 #endif
 }
 
 static const tic_script_config* api_get_script_config(tic_mem* memory)
 {
-	return getScriptConfig(memory->cart.bank0.code.data);
+	return getScriptConfig(memory->cart.code.data);
 }
 
 static void updateSaveid(tic_mem* memory)
 {
 	memset(memory->saveid, 0, sizeof memory->saveid);
-	const char* saveid = readMetatag(memory->cart.bank0.code.data, "saveid", api_get_script_config(memory)->singleComment);
+	const char* saveid = readMetatag(memory->cart.code.data, "saveid", api_get_script_config(memory)->singleComment);
 	if(saveid)
 	{
 		strncpy(memory->saveid, saveid, TIC_SAVEID_SIZE-1);
@@ -1621,20 +1806,13 @@ static void api_tick(tic_mem* tic, tic_tick_data* data)
 	
 	if(!machine->state.initialized)
 	{
-		enum{CodeSize = sizeof(tic_code) * TIC_BANKS};
+		enum{CodeSize = sizeof(tic_code)};
 		char* code = malloc(CodeSize);
 
 		if(code)
 		{
 			memset(code, 0, CodeSize);
-
-			for(s32 i = TIC_BANKS - 1; i >= 0; i--)
-			{
-				const char* bankCode = tic->cart.banks[i].code.data;
-
-				if(strlen(bankCode))
-					strcat(code, bankCode);
-			}
+			strcpy(code, tic->cart.code.data);
 
 			if(data->preprocessor)
 				data->preprocessor(data->data, code);
@@ -1777,19 +1955,14 @@ static bool api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
 	return false;
 }
 
-static void api_load(tic_cartridge* cart, const u8* buffer, s32 size, bool palette)
+static void api_load(tic_cartridge* cart, const u8* buffer, s32 size)
 {
 	const u8* end = buffer + size;
 	memset(cart, 0, sizeof(tic_cartridge));
 
-	if(palette)
-	{
-		static const u8 DB16[] = {0x14, 0x0c, 0x1c, 0x44, 0x24, 0x34, 0x30, 0x34, 0x6d, 0x4e, 0x4a, 0x4e, 0x85, 0x4c, 0x30, 0x34, 0x65, 0x24, 0xd0, 0x46, 0x48, 0x75, 0x71, 0x61, 0x59, 0x7d, 0xce, 0xd2, 0x7d, 0x2c, 0x85, 0x95, 0xa1, 0x6d, 0xaa, 0x2c, 0xd2, 0xaa, 0x99, 0x6d, 0xc2, 0xca, 0xda, 0xd4, 0x5e, 0xde, 0xee, 0xd6};
+	#define LOAD_CHUNK(to) memcpy(&to, buffer, MIN(sizeof(to), chunk.size))
 
-		memcpy(cart->bank0.palette.data, DB16, sizeof(tic_palette));
-	}
-
-	#define LOAD_CHUNK(to) memcpy(&to, buffer, min(sizeof(to), chunk.size))
+	bool paletteExists = false;
 
 	while(buffer < end)
 	{
@@ -1802,23 +1975,56 @@ static void api_load(tic_cartridge* cart, const u8* buffer, s32 size, bool palet
 		case CHUNK_TILES: 		LOAD_CHUNK(cart->banks[chunk.bank].tiles); 			break;
 		case CHUNK_SPRITES: 	LOAD_CHUNK(cart->banks[chunk.bank].sprites); 		break;
 		case CHUNK_MAP: 		LOAD_CHUNK(cart->banks[chunk.bank].map); 			break;
-		case CHUNK_CODE: 		LOAD_CHUNK(cart->banks[chunk.bank].code); 			break;
 		case CHUNK_SAMPLES: 	LOAD_CHUNK(cart->banks[chunk.bank].sfx.samples); 	break;
 		case CHUNK_WAVEFORM:	LOAD_CHUNK(cart->banks[chunk.bank].sfx.waveform); 	break;
 		case CHUNK_MUSIC:		LOAD_CHUNK(cart->banks[chunk.bank].music.tracks); 	break;
 		case CHUNK_PATTERNS:	LOAD_CHUNK(cart->banks[chunk.bank].music.patterns);	break;
 		case CHUNK_PALETTE:		LOAD_CHUNK(cart->banks[chunk.bank].palette);		break;
-		case CHUNK_COVER: 	
+		case CHUNK_FLAGS:		LOAD_CHUNK(cart->banks[chunk.bank].flags);			break;
+		case CHUNK_CODE: 		
+			if(chunk.bank == 0)
+				LOAD_CHUNK(cart->code);
+			break;
+		case CHUNK_COVER:
 			LOAD_CHUNK(cart->cover.data);
 			cart->cover.size = chunk.size;
+			break;
+		case CHUNK_PATTERNS_DEP: 
+			{
+				// workaround to load deprecated music patterns section
+				// and automatically convert volume value to a command
+				tic_patterns* ptrns = &cart->banks[chunk.bank].music.patterns;
+				LOAD_CHUNK(*ptrns);
+				for(s32 i = 0; i < MUSIC_PATTERNS; i++)
+					for(s32 r = 0; r < MUSIC_PATTERN_ROWS; r++)
+					{
+						tic_track_row* row = &ptrns->data[i].rows[r];
+						if(row->note >= NoteStart && row->command == tic_music_cmd_empty)
+						{
+							row->command = tic_music_cmd_volume;
+							row->param2 = row->param1 = MAX_VOLUME - row->param1;
+						}
+					}
+			}
 			break;
 		default: break;
 		}
 
 		buffer += chunk.size;
+
+		if(chunk.bank == 0 && chunk.type == CHUNK_PALETTE)
+			paletteExists = true;
 	}
 
 	#undef LOAD_CHUNK
+
+	// workaround to support ancient carts without palette
+	// load DB16 palette if it not exists
+	if(!paletteExists)
+	{
+		static const u8 DB16[] = {0x14, 0x0c, 0x1c, 0x44, 0x24, 0x34, 0x30, 0x34, 0x6d, 0x4e, 0x4a, 0x4e, 0x85, 0x4c, 0x30, 0x34, 0x65, 0x24, 0xd0, 0x46, 0x48, 0x75, 0x71, 0x61, 0x59, 0x7d, 0xce, 0xd2, 0x7d, 0x2c, 0x85, 0x95, 0xa1, 0x6d, 0xaa, 0x2c, 0xd2, 0xaa, 0x99, 0x6d, 0xc2, 0xca, 0xda, 0xd4, 0x5e, 0xde, 0xee, 0xd6};
+		memcpy(cart->bank0.palette.data, DB16, sizeof(tic_palette));
+	}
 }
 
 
@@ -1870,14 +2076,15 @@ static s32 api_save(const tic_cartridge* cart, u8* buffer)
 		buffer = SAVE_CHUNK(CHUNK_TILES, 	cart->banks[i].tiles, 			i);
 		buffer = SAVE_CHUNK(CHUNK_SPRITES, 	cart->banks[i].sprites, 		i);
 		buffer = SAVE_CHUNK(CHUNK_MAP, 		cart->banks[i].map, 			i);
-		buffer = SAVE_CHUNK(CHUNK_CODE, 	cart->banks[i].code, 			i);
 		buffer = SAVE_CHUNK(CHUNK_SAMPLES, 	cart->banks[i].sfx.samples, 	i);
 		buffer = SAVE_CHUNK(CHUNK_WAVEFORM, cart->banks[i].sfx.waveform, 	i);
 		buffer = SAVE_CHUNK(CHUNK_PATTERNS, cart->banks[i].music.patterns, 	i);
 		buffer = SAVE_CHUNK(CHUNK_MUSIC, 	cart->banks[i].music.tracks, 	i);
 		buffer = SAVE_CHUNK(CHUNK_PALETTE, 	cart->banks[i].palette, 		i);
+		buffer = SAVE_CHUNK(CHUNK_FLAGS, 	cart->banks[i].flags, 			i);
 	}
 
+	buffer = SAVE_CHUNK(CHUNK_CODE, cart->code, 0);
 	buffer = saveFixedChunk(buffer, CHUNK_COVER, cart->cover.data, cart->cover.size, 0);
 
 	#undef SAVE_CHUNK
@@ -1983,6 +2190,8 @@ static void initApi(tic_api* api)
 	INIT_API(rect_border);
 	INIT_API(sprite);
 	INIT_API(sprite_ex);
+	INIT_API(get_flag);
+	INIT_API(set_flag);
 	INIT_API(map);
 	INIT_API(remap);
 	INIT_API(map_set);
@@ -2034,12 +2243,14 @@ tic_mem* tic_create(s32 samplerate)
 	initApi(&machine->memory.api);
 
 	machine->samplerate = samplerate;
-	machine->memory.samples.size = samplerate / TIC_FRAMERATE * sizeof(s16);
+	machine->memory.samples.size = samplerate * TIC_STEREO_CHANNELS / TIC80_FRAMERATE * sizeof(s16);
 	machine->memory.samples.buffer = malloc(machine->memory.samples.size);
 
-	machine->blip = blip_new(samplerate / 10);
+	machine->blip.left = blip_new(samplerate / 10);
+	machine->blip.right = blip_new(samplerate / 10);
 
-	blip_set_rates(machine->blip, CLOCKRATE, samplerate);
+	blip_set_rates(machine->blip.left, CLOCKRATE, samplerate);
+	blip_set_rates(machine->blip.right, CLOCKRATE, samplerate);
 
 	machine->memory.api.reset(&machine->memory);
 

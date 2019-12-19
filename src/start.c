@@ -29,7 +29,7 @@ static void reset(Start* start)
 	start->tic->api.clear(start->tic, (tic_color_black));
 
 	static const u8 Reset[] = {0x00, 0x06, 0x96, 0x00};
-	u8 val = Reset[sizeof(Reset) * (start->ticks % TIC_FRAMERATE) / TIC_FRAMERATE];
+	u8 val = Reset[sizeof(Reset) * (start->ticks % TIC80_FRAMERATE) / TIC80_FRAMERATE];
 
 	for(s32 i = 0; i < sizeof(tic_tile); i++) tile[i] = val;
 
@@ -82,7 +82,7 @@ static void tick(Start* start)
 
 	static void(*const steps[])(Start*) = {reset, header, end};
 
-	steps[start->ticks / TIC_FRAMERATE](start);
+	steps[start->ticks / TIC80_FRAMERATE](start);
 
 	start->ticks++;
 }

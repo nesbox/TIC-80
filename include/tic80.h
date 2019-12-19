@@ -35,6 +35,8 @@ extern "C" {
 #define TIC80_FULLWIDTH (1 << TIC80_FULLWIDTH_BITS)
 #define TIC80_FULLHEIGHT (TIC80_FULLWIDTH*9/16)
 #define TIC80_KEY_BUFFER 4
+#define TIC80_SAMPLERATE 44100
+#define TIC80_FRAMERATE 60
 
 typedef struct 
 {
@@ -110,17 +112,10 @@ typedef struct
 
 typedef u8 tic_key;
 
-typedef struct
+typedef union
 {
-	union
-	{
-		tic_key keys[TIC80_KEY_BUFFER];
-		u32 data;		
-	};
-
-	s8 text;
-	u8 temp[3];
-
+	tic_key keys[TIC80_KEY_BUFFER];
+	u32 data;
 } tic80_keyboard;
 
 typedef struct
@@ -128,6 +123,7 @@ typedef struct
 	tic80_gamepads gamepads;
 	tic80_mouse mouse;
 	tic80_keyboard keyboard;
+
 } tic80_input;
 
 TIC80_API tic80* tic80_create(s32 samplerate);

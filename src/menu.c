@@ -207,7 +207,7 @@ static void drawPlayerButtons(Menu* menu, s32 x, s32 y)
 			}
 		}
 
-		if(menu->gamepad.selected == index && menu->ticks % TIC_FRAMERATE < TIC_FRAMERATE / 2)
+		if(menu->gamepad.selected == index && menu->ticks % TIC80_FRAMERATE < TIC80_FRAMERATE / 2)
 			continue;
 
 		tic->api.sprite_ex(tic, &getConfig()->cart->bank0.tiles, 8+i, rect.x, rect.y, 1, 1, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);

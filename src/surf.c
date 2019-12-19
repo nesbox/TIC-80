@@ -30,7 +30,6 @@
 
 #define MAIN_OFFSET 4
 #define MENU_HEIGHT 10
-#define MAX_CARTS 256
 #define ANIM 10
 #define COVER_WIDTH 140
 #define COVER_HEIGHT 116
@@ -153,6 +152,7 @@ struct MenuItem
 	const char* hash;
 	s32 id;
 	tic_screen* cover;
+	bool coverLoaded;
 	bool dir;
 	bool project;
 };
@@ -373,11 +373,6 @@ static void replace(char* src, const char* what, const char* with)
 	}
 }
 
-static bool hasExt(const char* name, const char* ext)
-{
-	return strcmp(name + strlen(name) - strlen(ext), ext) == 0;
-}
-
 static void cutExt(char* name, const char* ext)
 {
 	name[strlen(name)-strlen(ext)] = '\0';
@@ -390,16 +385,14 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 	static const char CartExt[] = CART_EXT;
 
 	if(dir 
-		|| hasExt(name, CartExt)
-#if defined(TIC80_PRO)		
-		|| hasExt(name, PROJECT_LUA_EXT)
-		|| hasExt(name, PROJECT_MOON_EXT)
-		|| hasExt(name, PROJECT_JS_EXT)
-		|| hasExt(name, PROJECT_WREN_EXT)
+		|| tic_tool_has_ext(name, CartExt)
+#if defined(TIC80_PRO)
+		|| hasProjectExt(name)
 #endif
 		)
 	{
-		MenuItem* item = &data->items[data->count++];
+		data->items = realloc(data->items, sizeof(MenuItem) * ++data->count);
+		MenuItem* item = &data->items[data->count-1];
 
 		item->name = strdup(name);
 		bool project = false;
@@ -414,7 +407,7 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 
 			item->label = strdup(name);
 
-			if(hasExt(name, CartExt))
+			if(tic_tool_has_ext(name, CartExt))
 				cutExt(item->label, CartExt);
 			else
 			{
@@ -430,10 +423,11 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 		item->id = id;
 		item->dir = dir;
 		item->cover = NULL;
+		item->coverLoaded = false;
 		item->project = project;
 	}
 
-	return data->count < MAX_CARTS;
+	return true;
 }
 
 static void resetMenu(Surf* surf)
@@ -492,7 +486,7 @@ static void updateMenuItemCover(Surf* surf, const u8* cover, s32 size)
 {
 	MenuItem* item = &surf->menu.items[surf->menu.pos];
 
-	item->cover = malloc(sizeof(tic_screen));
+	item->cover = calloc(1, sizeof(tic_screen));
 
 	gif_image* image = gif_read_data(cover, size);
 
@@ -521,6 +515,12 @@ static void loadCover(Surf* surf)
 	
 	MenuItem* item = &surf->menu.items[surf->menu.pos];
 	
+	if(item->coverLoaded)
+	{
+		return;
+	}
+	item->coverLoaded = true;
+
 	if(!fsIsInPublicDir(surf->fs))
 	{
 
@@ -533,10 +533,14 @@ static void loadCover(Surf* surf)
 
 			if(cart)
 			{
-				if(hasExt(item->name, PROJECT_LUA_EXT))
+#if defined(TIC80_PRO)
+
+				if(hasProjectExt(item->name))
 					surf->console->loadProject(surf->console, item->name, data, size, cart);
 				else
-					tic->api.load(cart, data, size, true);
+
+#endif					
+					tic->api.load(cart, data, size);
 
 				if(cart->cover.size)
 					updateMenuItemCover(surf, cart->cover.data, cart->cover.size);
@@ -565,12 +569,9 @@ static void initMenu(Surf* surf)
 {
 	resetMenu(surf);
 
-	// TODO: calc files count before
-	enum{Count = MAX_CARTS, Size = sizeof(MenuItem) * Count};
-
 	AddMenuItem data = 
 	{
-		.items = malloc(Size),
+		.items = NULL,
 		.count = 0,
 		.surf = surf,
 	};

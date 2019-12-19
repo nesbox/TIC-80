@@ -123,6 +123,43 @@ static void setSpeed(Sfx* sfx, s32 delta)
 	history_add(sfx->history);
 }
 
+static void drawStereoSwitch(Sfx* sfx, s32 x, s32 y)
+{
+	tic_sample* effect = getEffect(sfx);
+
+	{
+		tic_rect rect = {x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
+
+		if(checkMousePos(&rect))
+		{
+			setCursor(tic_cursor_hand);
+
+			showTooltip("left stereo");
+
+			if(checkMouseClick(&rect, tic_mouse_left))
+				effect->stereo_left = !effect->stereo_left;
+		}
+
+		sfx->tic->api.text(sfx->tic, "L", x, y, effect->stereo_left ? tic_color_dark_gray : tic_color_white, false);
+	}
+
+	{
+		tic_rect rect = {x += TIC_FONT_WIDTH, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
+
+		if(checkMousePos(&rect))
+		{
+			setCursor(tic_cursor_hand);
+
+			showTooltip("right stereo");
+
+			if(checkMouseClick(&rect, tic_mouse_left))
+				effect->stereo_right = !effect->stereo_right;
+		}
+
+		sfx->tic->api.text(sfx->tic, "R", x, y, effect->stereo_right ? tic_color_dark_gray : tic_color_white, false);
+	}
+}
+
 static void drawTopPanel(Sfx* sfx, s32 x, s32 y)
 {
 	const s32 Gap = 8*TIC_FONT_WIDTH;
@@ -132,6 +169,8 @@ static void drawTopPanel(Sfx* sfx, s32 x, s32 y)
 	tic_sample* effect = getEffect(sfx);
 
 	drawSwitch(sfx, x += Gap, y, "SPD", effect->speed, setSpeed);
+
+	drawStereoSwitch(sfx, x += Gap, y);
 }
 
 static void setLoopStart(Sfx* sfx, s32 delta)
@@ -287,7 +326,7 @@ static void drawWaveButtons(Sfx* sfx, s32 x, s32 y)
 
 static void drawCanvasTabs(Sfx* sfx, s32 x, s32 y)
 {
-	static const char* Labels[] = {"WAVE", "VOLUME", "ARPEGG", "PITCH"};
+	static const char* Labels[] = {"WAVE", "VOLUME", "CHORD", "PITCH"};
 
 	enum {Height = TIC_FONT_HEIGHT+2};
 
@@ -331,7 +370,7 @@ static void drawCanvasTabs(Sfx* sfx, s32 x, s32 y)
 			sfx->tic->api.fixed_text(sfx->tic, Label, rect.x, rect.y, (effect->pitch16x ? tic_color_white : tic_color_dark_gray), false);
 		}
 		break;
-	case SFX_ARPEGGIO_TAB:
+	case SFX_CHORD_TAB:
 		{
 			static const char Label[] = "DOWN";
 			enum{Width = (sizeof Label - 1) * TIC_FONT_WIDTH};
@@ -392,7 +431,7 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y)
 			switch(sfx->canvasTab)
 			{
 			case SFX_VOLUME_TAB: 	effect->data[mx].volume = my; break;
-			case SFX_ARPEGGIO_TAB: 	effect->data[mx].arpeggio = CANVAS_ROWS - my - 1; break;
+			case SFX_CHORD_TAB: 	effect->data[mx].chord = CANVAS_ROWS - my - 1; break;
 			case SFX_PITCH_TAB: 	effect->data[mx].pitch = CANVAS_ROWS / 2 - my - 1; break;
 			case SFX_WAVE_TAB: 		effect->data[mx].wave = CANVAS_ROWS - my - 1; break;
 			default: break;
@@ -412,10 +451,10 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y)
 					sfx->tic->api.rect(sfx->tic, x + i * CANVAS_SIZE + 1, y + 1 + start, CANVAS_SIZE-1, CANVAS_SIZE-1, (tic_color_red));				
 			}
 			break;
-		case SFX_ARPEGGIO_TAB:
+		case SFX_CHORD_TAB:
 			{
 				sfx->tic->api.rect(sfx->tic, x + i * CANVAS_SIZE + 1, 
-					y + 1 + (CANVAS_HEIGHT - (effect->data[i].arpeggio+1)*CANVAS_SIZE), CANVAS_SIZE-1, CANVAS_SIZE-1, (tic_color_red));
+					y + 1 + (CANVAS_HEIGHT - (effect->data[i].chord+1)*CANVAS_SIZE), CANVAS_SIZE-1, CANVAS_SIZE-1, (tic_color_red));
 			}
 			break;
 		case SFX_PITCH_TAB:
@@ -825,11 +864,11 @@ static void envelopesTick(Sfx* sfx)
 
 	enum{ Gap = 3, Start = 40};
 	drawPiano(sfx, Start, TIC80_HEIGHT - PIANO_HEIGHT - Gap);
+	drawTopPanel(sfx, Start, TOOLBAR_SIZE + Gap);
 
 	drawSfxToolbar(sfx);
 	drawToolbar(sfx->tic, TIC_COLOR_BG, false);
 
-	drawTopPanel(sfx, Start, TOOLBAR_SIZE + Gap);
 	drawCanvasTabs(sfx, Start-Gap, TOOLBAR_SIZE + Gap + TIC_FONT_HEIGHT+2);
 	if(sfx->canvasTab == SFX_WAVE_TAB)
 		drawWaveButtons(sfx, Start + CANVAS_WIDTH + Gap-1, TOOLBAR_SIZE + Gap + TIC_FONT_HEIGHT+2);

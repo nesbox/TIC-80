@@ -259,7 +259,7 @@ static void readConfig(Config* config)
 
 	if(lua)
 	{
-		if(luaL_loadstring(lua, config->cart.bank0.code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
+		if(luaL_loadstring(lua, config->cart.code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
 		{
 			readConfigVideoLength(config, lua);
 			readConfigVideoScale(config, lua);
@@ -269,10 +269,6 @@ static void readConfig(Config* config)
 			readConfigCrtMonitor(config, lua);
 			readConfigUiScale(config, lua);
 			readTheme(config, lua);
-		}
-
-		if(luaL_loadstring(lua, config->cart.bank1.code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
-		{
 			readConfigCrtShader(config, lua);
 		}
 
@@ -282,7 +278,7 @@ static void readConfig(Config* config)
 
 static void update(Config* config, const u8* buffer, size_t size)
 {
-	config->tic->api.load(&config->cart, buffer, size, true);
+	config->tic->api.load(&config->cart, buffer, size);
 
 	readConfig(config);
 	studioConfigChanged();
@@ -297,7 +293,7 @@ static void setDefault(Config* config)
 	{
 		static const u8 DefaultBiosZip[] = 
 		{
-			#include "../bin/assets/config.tic.dat"
+			#include "../build/assets/config.tic.dat"
 		};
 
 		u8* embedBios = NULL;

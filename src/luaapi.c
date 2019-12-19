@@ -33,8 +33,6 @@
 
 #define LUA_LOC_STACK 1E8 // 100.000.000
 
-static const char TicMachine[] = "_TIC80";
-
 s32 luaopen_lpeg(lua_State *lua);
 
 // !TODO: get rid of this wrap
@@ -49,12 +47,10 @@ static void registerLuaFunction(tic_machine* machine, lua_CFunction func, const 
 	lua_setglobal(machine->lua, name);
 }
 
-static tic_machine* getLuaMachine(lua_State* lua)
+static tic_machine* CurrentMachine = NULL;
+static inline tic_machine* getLuaMachine(lua_State* lua)
 {
-	lua_getglobal(lua, TicMachine);
-	tic_machine* machine = lua_touserdata(lua, -1);
-	lua_pop(lua, 1);
-	return machine;
+	return CurrentMachine;
 }
 
 static s32 lua_peek(lua_State* lua)
@@ -1077,11 +1073,11 @@ static s32 lua_pmem(lua_State *lua)
 
 		if(index < TIC_PERSISTENT_SIZE)
 		{
-			u32 val = memory->persistent.data[index];
+			u32 val = memory->ram.persistent.data[index];
 
 			if(top >= 2)
 			{
-				memory->persistent.data[index] = lua_tointeger(lua, 2);
+				memory->ram.persistent.data[index] = lua_tointeger(lua, 2);
 				machine->data->syncPMEM = true;
 			}
 
@@ -1189,8 +1185,7 @@ static void checkForceExit(lua_State *lua, lua_Debug *luadebug)
 
 static void initAPI(tic_machine* machine)
 {
-	lua_pushlightuserdata(machine->lua, machine);
-	lua_setglobal(machine->lua, TicMachine);
+	CurrentMachine = machine;
 
 	for (s32 i = 0; i < COUNT_OF(ApiFunc); i++)
 		if (ApiFunc[i])
@@ -1210,6 +1205,7 @@ static void closeLua(tic_mem* tic)
 	{
 		lua_close(machine->lua);
 		machine->lua = NULL;
+		CurrentMachine = NULL;
 	}
 }
 
@@ -1468,7 +1464,7 @@ static const char* execute_moonscript_src = MOON_CODE(
 	local fn, err = require('moonscript.base').loadstring(...)
 
 	if not fn then
-		return err
+		error(err)
 	end
 	return fn()
 );
@@ -1538,13 +1534,13 @@ static bool initMoonscript(tic_mem* tic, const char* code)
 
 static const char* const MoonKeywords [] =
 {
-	"false", "true", "nil", "return",
+	"false", "true", "nil", "local", "return",
 	"break", "continue", "for", "while",
 	"if", "else", "elseif", "unless", "switch",
 	"when", "and", "or", "in", "do",
 	"not", "super", "try", "catch",
 	"with", "export", "import", "then",
-	"from", "class", "extends", "new"
+	"from", "class", "extends", "new", "using",
 };
 
 static const tic_outline_item* getMoonOutline(const char* code, s32* size)
@@ -1636,7 +1632,8 @@ const tic_script_config* getMoonScriptConfig()
 #define FENNEL_CODE(...) #__VA_ARGS__
 
 static const char* execute_fennel_src = FENNEL_CODE(
-  local ok, msg = pcall(require('fennel').eval, ..., {filename="game", correlate=true})
+  local opts = {filename="game", correlate=true, allowedGlobals=false}
+  local ok, msg = pcall(require('fennel').eval, ..., opts)
   if(not ok) then return msg end
 );
 
@@ -1685,9 +1682,11 @@ static bool initFennel(tic_mem* tic, const char* code)
 
 static const char* const FennelKeywords [] =
 {
+	"lua", "hashfn","macro", "macros",
 	"do", "values", "if", "when", "each", "for", "fn", "lambda", "partial",
-	"while", "set", "global", "var", "local", "let", "tset",
-	"or", "and", "true", "false", "nil", "#", ":", "->", "->>"
+	"while", "set", "global", "var", "local", "let", "tset", "doto", "match",
+	"or", "and", "true", "false", "nil", "not", "not=",
+	".", "..", "#", "...", ":", "->", "->>", "-?>", "-?>>", "$"
 };
 
 static const tic_outline_item* getFennelOutline(const char* code, s32* size)

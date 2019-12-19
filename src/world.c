@@ -51,14 +51,29 @@ static void drawGrid(World* world)
 		{
 			map->scroll.x = (mx - TIC_MAP_SCREEN_WIDTH/2) * TIC_SPRITESIZE;
 			map->scroll.y = (my - TIC_MAP_SCREEN_HEIGHT/2) * TIC_SPRITESIZE;
+			if(map->scroll.x < 0)
+				map->scroll.x += TIC_MAP_WIDTH * TIC_SPRITESIZE;
+			if(map->scroll.y < 0)
+				map->scroll.y += TIC_MAP_HEIGHT * TIC_SPRITESIZE;
 		}
 
 		if(checkMouseClick(&rect, tic_mouse_left))
 			setStudioMode(TIC_MAP_MODE);
 	}
 
-	world->tic->api.rect_border(world->tic, map->scroll.x / TIC_SPRITESIZE, map->scroll.y / TIC_SPRITESIZE, 
-		TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, (tic_color_red));
+	s32 x = map->scroll.x / TIC_SPRITESIZE;
+	s32 y = map->scroll.y / TIC_SPRITESIZE;
+
+	world->tic->api.rect_border(world->tic, x, y, TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, (tic_color_red));
+
+	if(x >= TIC_MAP_WIDTH - TIC_MAP_SCREEN_WIDTH)
+		world->tic->api.rect_border(world->tic, x - TIC_MAP_WIDTH, y, TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, (tic_color_red));
+
+	if(y >= TIC_MAP_HEIGHT - TIC_MAP_SCREEN_HEIGHT)
+		world->tic->api.rect_border(world->tic, x, y - TIC_MAP_HEIGHT, TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, (tic_color_red));
+
+	if(x >= TIC_MAP_WIDTH - TIC_MAP_SCREEN_WIDTH && y >= TIC_MAP_HEIGHT - TIC_MAP_SCREEN_HEIGHT)
+		world->tic->api.rect_border(world->tic, x - TIC_MAP_WIDTH, y - TIC_MAP_HEIGHT, TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, (tic_color_red));
 }
 
 static void tick(World* world)

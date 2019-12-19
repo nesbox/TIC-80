@@ -44,7 +44,7 @@ struct Sfx
 	{
 		SFX_WAVE_TAB = 0,
 		SFX_VOLUME_TAB,
-		SFX_ARPEGGIO_TAB,
+		SFX_CHORD_TAB,
 		SFX_PITCH_TAB,
 	}canvasTab;
 

@@ -25,8 +25,6 @@
 #include <tic80_types.h>
 #include <string.h>
 
-typedef struct FileSystem FileSystem;
-
 typedef enum
 {
 	FS_FILE_NOT_ADDED,

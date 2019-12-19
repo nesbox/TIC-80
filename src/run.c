@@ -79,7 +79,7 @@ static const char* data2md5(const void* data, s32 length)
 
 static void initPMemName(Run* run)
 {
-	const char* data = strlen(run->tic->saveid) ? run->tic->saveid : run->tic->cart.bank0.code.data;
+	const char* data = strlen(run->tic->saveid) ? run->tic->saveid : run->tic->cart.code.data;
 	const char* md5 = data2md5(data, strlen(data));
 	strcpy(run->saveid, TIC_LOCAL);
 	strcat(run->saveid, md5);
@@ -96,8 +96,7 @@ static void tick(Run* run)
 
 	if(run->tickData.syncPMEM)
 	{		
-		fsSaveRootFile(run->console->fs, run->saveid, &run->tic->persistent, Size, true);
-		memcpy(&run->persistent, &run->tic->persistent, Size);
+		fsSaveRootFile(run->console->fs, run->saveid, &run->tic->ram.persistent, Size, true);
 		run->tickData.syncPMEM = false;
 	}
 
@@ -113,9 +112,9 @@ static void processDoFile(void* data, char* dst)
 	static const char DoFileTag[] = "dofile(";
 	enum {Size = sizeof DoFileTag - 1};
 
-	if (memcmp(tic->cart.bank0.code.data, DoFileTag, Size) == 0)
+	if (memcmp(tic->cart.code.data, DoFileTag, Size) == 0)
 	{
-		const char* start = tic->cart.bank0.code.data + Size;
+		const char* start = tic->cart.code.data + Size;
 		const char* end = strchr(start, ')');
 
 		if(end && *start == *(end-1) && (*start == '"' || *start == '\''))
@@ -191,7 +190,7 @@ void initRun(Run* run, Console* console, tic_mem* tic)
 
 	{
 		enum {Size = sizeof(tic_persistent)};
-		memset(&run->tic->persistent, 0, Size);
+		memset(&run->tic->ram.persistent, 0, Size);
 
 		initPMemName(run);
 
@@ -201,10 +200,7 @@ void initRun(Run* run, Console* console, tic_mem* tic)
 		if(size > Size) size = Size;
 
 		if(data)
-		{
-			memcpy(&run->tic->persistent, data, size);
-			memcpy(&run->persistent, data, size);
-		}
+			memcpy(&run->tic->ram.persistent, data, size);
 
 		if(data) free(data);
 	}

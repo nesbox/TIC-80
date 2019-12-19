@@ -3,6 +3,9 @@
 #include "ticapi.h"
 #include "ext/file_dialog.h"
 
+#define TIC80_OFFSET_LEFT ((TIC80_FULLWIDTH-TIC80_WIDTH)/2)
+#define TIC80_OFFSET_TOP ((TIC80_FULLHEIGHT-TIC80_HEIGHT)/2)
+
 typedef struct
 {
 	void	(*setClipboardText)(const char* text);
@@ -97,4 +100,15 @@ typedef struct
 	bool (*isGamepadMode)();
 } Studio;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 TIC80_API Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* appFolder, System* system);
+TIC80_API void studioInitPost();
+
+#ifdef __cplusplus
+}
+#endif
+
