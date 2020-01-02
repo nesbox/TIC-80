@@ -1256,7 +1256,7 @@ static void reportError(WrenVM* vm, WrenErrorType type, const char* module, int 
 static void writeFn(WrenVM* vm, const char* text) 
 {
 	tic_machine* machine = getWrenMachine(vm);
-	u8 color = tic_color_blue;
+	u8 color = tic_color_8;
 	machine->data->trace(machine->data->data, text ? text : "null", color);
 }
 

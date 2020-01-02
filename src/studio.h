@@ -35,6 +35,7 @@
 #include "system.h"
 
 #define TIC_LOCAL ".local/"
+#define TIC_LOCAL_VERSION TIC_LOCAL TIC_VERSION_LABEL "/"
 #define TIC_CACHE TIC_LOCAL "cache/"
 
 #define TOOLBAR_SIZE 7
@@ -43,16 +44,16 @@
 #define STUDIO_TEXT_BUFFER_WIDTH (TIC80_WIDTH / STUDIO_TEXT_WIDTH)
 #define STUDIO_TEXT_BUFFER_HEIGHT (TIC80_HEIGHT / STUDIO_TEXT_HEIGHT)
 
-#define TIC_COLOR_BG 	(tic_color_black)
+#define TIC_COLOR_BG tic_color_0
 #define DEFAULT_CHMOD 0755
 
-#define CONFIG_TIC "config " TIC_VERSION_LABEL ".tic"
-#define CONFIG_TIC_PATH TIC_LOCAL CONFIG_TIC
+#define CONFIG_TIC "config.tic"
+#define CONFIG_TIC_PATH TIC_LOCAL_VERSION CONFIG_TIC
 
 #define KEYMAP_COUNT (sizeof(tic80_gamepads) * BITS_IN_BYTE)
 #define KEYMAP_SIZE (KEYMAP_COUNT)
 #define KEYMAP_DAT "keymap.dat"
-#define KEYMAP_DAT_PATH TIC_LOCAL KEYMAP_DAT
+#define KEYMAP_DAT_PATH TIC_LOCAL_VERSION KEYMAP_DAT
 
 #define CART_EXT ".tic"
 #define PROJECT_LUA_EXT ".lua"
@@ -96,7 +97,7 @@ bool checkMousePos(const tic_rect* rect);
 bool checkMouseClick(const tic_rect* rect, tic_mouse_btn button);
 bool checkMouseDown(const tic_rect* rect, tic_mouse_btn button);
 
-void drawToolbar(tic_mem* tic, u8 color, bool bg);
+void drawToolbar(tic_mem* tic, bool bg);
 void drawBitIcon(s32 x, s32 y, const u8* ptr, u8 color);
 
 void studioRomLoaded();

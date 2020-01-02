@@ -1048,7 +1048,7 @@ static s32 lua_trace(lua_State *lua)
 	if(top >= 1)
 	{
 		const char* text = printString(lua, 1);
-		u8 color = tic_color_white;
+		u8 color = tic_color_12;
 
 		if(top >= 2)
 		{

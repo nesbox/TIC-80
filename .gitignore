@@ -151,5 +151,7 @@ build/3rd-party/curl/curl-config
 build/3rd-party/curl/DartConfiguration.tcl
 build/.ninja_deps
 build/.ninja_log
+build/version.h
+build/windows/tic80.rc
 *.ninja
 tic80.sublime-workspace

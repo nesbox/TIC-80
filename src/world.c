@@ -28,7 +28,7 @@
 static void drawGrid(World* world)
 {
 	Map* map = world->map;
-	u8 color = (tic_color_light_blue);
+	u8 color = tic_color_14;
 
 	for(s32 c = 0; c < TIC80_WIDTH; c += TIC_MAP_SCREEN_WIDTH)
 		world->tic->api.line(world->tic, c, 0, c, TIC80_HEIGHT, color);
@@ -64,16 +64,16 @@ static void drawGrid(World* world)
 	s32 x = map->scroll.x / TIC_SPRITESIZE;
 	s32 y = map->scroll.y / TIC_SPRITESIZE;
 
-	world->tic->api.rect_border(world->tic, x, y, TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, (tic_color_red));
+	world->tic->api.rect_border(world->tic, x, y, TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, tic_color_2);
 
 	if(x >= TIC_MAP_WIDTH - TIC_MAP_SCREEN_WIDTH)
-		world->tic->api.rect_border(world->tic, x - TIC_MAP_WIDTH, y, TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, (tic_color_red));
+		world->tic->api.rect_border(world->tic, x - TIC_MAP_WIDTH, y, TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, tic_color_2);
 
 	if(y >= TIC_MAP_HEIGHT - TIC_MAP_SCREEN_HEIGHT)
-		world->tic->api.rect_border(world->tic, x, y - TIC_MAP_HEIGHT, TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, (tic_color_red));
+		world->tic->api.rect_border(world->tic, x, y - TIC_MAP_HEIGHT, TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, tic_color_2);
 
 	if(x >= TIC_MAP_WIDTH - TIC_MAP_SCREEN_WIDTH && y >= TIC_MAP_HEIGHT - TIC_MAP_SCREEN_HEIGHT)
-		world->tic->api.rect_border(world->tic, x - TIC_MAP_WIDTH, y - TIC_MAP_HEIGHT, TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, (tic_color_red));
+		world->tic->api.rect_border(world->tic, x - TIC_MAP_WIDTH, y - TIC_MAP_HEIGHT, TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, tic_color_2);
 }
 
 static void tick(World* world)

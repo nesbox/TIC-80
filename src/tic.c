@@ -26,7 +26,6 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <stddef.h>
-#include <stddef.h>
 
 #include "ticapi.h"
 #include "tools.h"

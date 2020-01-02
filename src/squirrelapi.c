@@ -1154,7 +1154,7 @@ static SQInteger squirrel_trace(HSQUIRRELVM vm)
 	if(top >= 2)
 	{
 		const char* text = printString(vm, 2);
-		u8 color = tic_color_white;
+		u8 color = tic_color_12;
 
 		if(top >= 3)
 		{
