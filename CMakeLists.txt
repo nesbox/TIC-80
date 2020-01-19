@@ -348,7 +348,7 @@ endif()
 # SDL2 standalone cart player
 ################################
 
-if(BUILD_PLAYER)
+if(BUILD_SDL AND BUILD_PLAYER)
 
 	add_executable(player-sdl WIN32 ${CMAKE_SOURCE_DIR}/src/player/sdl.c)
 
