@@ -32,12 +32,12 @@ static struct
 	bool quit;
 	tic80_input input;
 	int keymap[RETROK_LAST];
-	bool variableMouseApi;
+	bool variablePointerApi;
 	int mouseCursor;
 } state =
 {
 	.quit = false,
-	.variableMouseApi = false,
+	.variablePointerApi = false,
 	.mouseCursor = 0
 };
 
@@ -408,14 +408,16 @@ static int tic80_libretro_mouse_pointer_convert(float coord, float full, int pad
  * Retrieve gamepad information from libretro.
  */
 static void tic80_libretro_update_mouse(tic80_mouse* mouse) {
-	// Use the Mouse API instead of Pointer API, if desired.
-	if (state.variableMouseApi) {
+	// Check if we are to use the Mouse API or Pointer API.
+	if (!state.variablePointerApi) {
 		// Get the Mouse X and Y, which is the relative positioning from last tick.
 		mouse->x += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
 		mouse->y += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_Y);
 
-		// Left mouse button.
+		// Mouse buttons.
 		mouse->left = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT);
+		mouse->right = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT);
+		mouse->middle = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE);
 	}
 	else {
 		// Get the Pointer X and Y, and convert it to screen position.
@@ -445,10 +447,6 @@ static void tic80_libretro_update_mouse(tic80_mouse* mouse) {
 	if (mouse->y < 0) {
 		mouse->y = 0;
 	}
-
-	// Get the mouse buttons.
-	mouse->right = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT);
-	mouse->middle = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE);
 
 	// TODO: Add Mouse Wheel Scrolling. scrollx and scrolly
 }
@@ -580,12 +578,12 @@ static void tic80_libretro_variables(void)
 	// Check all the individual variables for the core.
 	struct retro_variable var;
 
-	// Mouse API instead of Pointer.
-	state.variableMouseApi = false;
-	var.key = "tic80_mouse";
+	// Mouse is Pointer device.
+	state.variablePointerApi = false;
+	var.key = "tic80_mouse_pointer";
 	var.value = NULL;
 	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
-		state.variableMouseApi = strcmp(var.value, "enabled") == 0;
+		state.variablePointerApi = strcmp(var.value, "enabled") == 0;
 	}
 
 	// Mouse Cursor
