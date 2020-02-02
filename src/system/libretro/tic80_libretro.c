@@ -17,6 +17,9 @@
 // The maximum amount of inputs (2, 3 or 4)
 #define TIC_MAXPLAYERS 4
 
+// How long to wait before hiding the mouse.
+#define TIC_LIBRETRO_MOUSE_HIDE_TIMER_START 300
+
 static uint32_t *frame_buf;
 static struct retro_log_callback logging;
 static retro_log_printf_t log_cb;
@@ -33,12 +36,18 @@ static struct
 	tic80_input input;
 	int keymap[RETROK_LAST];
 	bool variablePointerApi;
-	int mouseCursor;
+	u8 mouseCursor;
+	u16 mousePreviousX;
+	u16 mousePreviousY;
+	u16 mouseHideTimer;
 } state =
 {
 	.quit = false,
 	.variablePointerApi = false,
-	.mouseCursor = 0
+	.mouseCursor = 0,
+	.mousePreviousX = 0,
+	.mousePreviousY = 0,
+	.mouseHideTimer = TIC_LIBRETRO_MOUSE_HIDE_TIMER_START
 };
 
 /**
@@ -399,7 +408,8 @@ static void tic80_libretro_update_gamepad(tic80_gamepad* gamepad, int player) {
  * @see tic80_libretro_update_mouse()
  * @see RETRO_DEVICE_POINTER
  */
-static int tic80_libretro_mouse_pointer_convert(float coord, float full, int padding) {
+static int tic80_libretro_mouse_pointer_convert(float coord, float full, int padding)
+{
 	float max = 0x7fff;
 	return ((coord + max) / (max * 2.0f) * full) - padding;
 }
@@ -407,7 +417,8 @@ static int tic80_libretro_mouse_pointer_convert(float coord, float full, int pad
 /**
  * Retrieve gamepad information from libretro.
  */
-static void tic80_libretro_update_mouse(tic80_mouse* mouse) {
+static void tic80_libretro_update_mouse(tic80_mouse* mouse)
+{
 	// Check if we are to use the Mouse API or Pointer API.
 	if (!state.variablePointerApi) {
 		// Get the Mouse X and Y, which is the relative positioning from last tick.
@@ -449,12 +460,29 @@ static void tic80_libretro_update_mouse(tic80_mouse* mouse) {
 	}
 
 	// TODO: Add Mouse Wheel Scrolling. scrollx and scrolly
+
+	// Have the mouse disappear after a certain time of inactivity.
+	if (mouse->x != state.mousePreviousX || mouse->y != state.mousePreviousY) {
+		state.mouseHideTimer = TIC_LIBRETRO_MOUSE_HIDE_TIMER_START;
+		state.mousePreviousX = mouse->x;
+		state.mousePreviousY = mouse->y;
+	}
+	if (state.mouseHideTimer > 0) {
+		state.mouseHideTimer--;
+	}
 }
 
 /**
  * Draws a software cursor on the screen where the mouse is.
  */
-static void tic80_libretro_mousecursor(tic80_local* game, tic80_mouse* mouse, int cursortype) {
+static void tic80_libretro_mousecursor(tic80_local* game, tic80_mouse* mouse, int cursortype)
+{
+	// Only draw the mouse cursor if it's active.
+	if (state.mouseHideTimer <= 0) {
+		return;
+	}
+
+	// Determine which cursor to draw.
 	switch (state.mouseCursor) {
 		case 1: // Dot
 			game->memory->api.pixel(game->memory, state.input.mouse.x, state.input.mouse.y, 15);
@@ -475,7 +503,8 @@ static void tic80_libretro_mousecursor(tic80_local* game, tic80_mouse* mouse, in
 /**
  * Retrieve keyboard information from libretro.
  */
-static void tic80_libretro_update_keyboard(tic80_keyboard* keyboard) {
+static void tic80_libretro_update_keyboard(tic80_keyboard* keyboard)
+{
 	// Clear the key buffer.
 	for (int i = 0; i < TIC80_KEY_BUFFER; i++) {
 		keyboard->keys[i] = tic_key_unknown;
@@ -563,7 +592,8 @@ static void tic80_libretro_draw(tic80* game)
  *
  * @see retro_run()
  */
-void tic80_libretro_audio(tic80* game) {
+void tic80_libretro_audio(tic80* game)
+{
 	// Tell libretro about the samples.
 	audio_batch_cb(game->sound.samples, game->sound.count / TIC_STEREO_CHANNELS);
 }
