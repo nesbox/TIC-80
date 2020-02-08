@@ -65,6 +65,10 @@ typedef enum
 
 #endif /* defined(TIC_BUILD_WITH_LUA) */
 
+#if defined(TIC_BUILD_WITH_MRUBY)
+	MRubyScript,
+#endif
+
 #if defined(TIC_BUILD_WITH_JS)
 	JavaScript,	
 #endif
@@ -114,6 +118,10 @@ static const char DefaultFennelTicPath[] = TIC_LOCAL_VERSION "default_fennel.tic
 #	endif
 
 #endif /* defined(TIC_BUILD_WITH_LUA) */
+
+#if defined(TIC_BUILD_WITH_MRUBY)
+static const char DefaultMRubyTicPath[] = TIC_LOCAL_VERSION "default_ruby.tic";
+#endif
 
 #if defined(TIC_BUILD_WITH_JS)
 static const char DefaultJSTicPath[] = TIC_LOCAL_VERSION "default_js.tic";
@@ -478,6 +486,10 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 
 #endif /* defined(TIC_BUILD_WITH_LUA) */
 
+#if defined(TIC_BUILD_WITH_MRUBY)
+		case MRubyScript: strcpy(path, DefaultMRubyTicPath); break;
+#endif
+
 #if defined(TIC_BUILD_WITH_JS)
 		case JavaScript: strcpy(path, DefaultJSTicPath); break;
 #endif
@@ -545,6 +557,19 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 
 #endif /* defined(TIC_BUILD_WITH_LUA) */
 
+#if defined(TIC_BUILD_WITH_MRUBY)
+	case MRubyScript:
+		{
+			static const u8 RubyDemoRom[] =
+			{
+				#include "../build/assets/rubydemo.tic.dat"
+			};
+
+			demo = RubyDemoRom;
+			romSize = sizeof RubyDemoRom;
+		}
+		break;
+#endif /* defined(TIC_BUILD_WITH_MRUBY) */
 
 #if defined(TIC_BUILD_WITH_JS)
 	case JavaScript:
@@ -628,6 +653,11 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 #	endif
 
 #endif /* defined(TIC_BUILD_WITH_LUA) */
+
+#if defined(TIC_BUILD_WITH_MRUBY)
+	if(strcmp(param, DefaultMRubyTicPath) == 0)
+		data = getDemoCart(console, MRubyScript, &size);
+#endif
 
 #if defined(TIC_BUILD_WITH_JS)
 	if(strcmp(param, DefaultJSTicPath) == 0)
@@ -1243,6 +1273,14 @@ static void onConsoleNewCommandConfirmed(Console* console, const char* param)
 
 #endif /* defined(TIC_BUILD_WITH_LUA) */
 
+#if defined(TIC_BUILD_WITH_MRUBY)
+		if(strcmp(param, "ruby") == 0)
+		{
+			loadDemo(console, MRubyScript);
+			done = true;
+		}
+#endif
+
 #if defined(TIC_BUILD_WITH_JS)
 		if(strcmp(param, "js") == 0 || strcmp(param, "javascript") == 0)
 		{
@@ -1550,6 +1588,13 @@ static void onConsoleConfigCommand(Console* console, const char* param)
 #	endif
 
 #endif /* defined(TIC_BUILD_WITH_LUA) */
+
+#if defined(TIC_BUILD_WITH_MRUBY)
+	else if(strcmp(param, "default ruby") == 0)
+	{
+		onConsoleLoadDemoCommand(console, DefaultMRubyTicPath);
+	}
+#endif
 
 #if defined(TIC_BUILD_WITH_JS)
 	else if(strcmp(param, "default js") == 0)
@@ -2817,6 +2862,8 @@ static void tick(Console* console)
 			loadDemo(console, LuaScript);
 #elif defined(TIC_BUILD_WITH_JS)
 			loadDemo(console, JavaScript);
+#elif defined(TIC_BUILD_WITH_MRUBY)
+			loadDemo(console, MRubyScript);
 #elif defined(TIC_BUILD_WITH_WREN)
 			loadDemo(console, WrenScript);
 #elif defined(TIC_BUILD_WITH_SQUIRREL)

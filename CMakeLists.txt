@@ -17,7 +17,7 @@ if(Git_FOUND)
     string(LENGTH "${RESULT_STRING}" LENGTH_RESULT_STRING)
 
     if(${LENGTH_RESULT_STRING} EQUAL 0)
-        
+
         execute_process(
             COMMAND ${GIT_EXECUTABLE} rev-list HEAD --count
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -35,6 +35,8 @@ message("PROJECT_VERSION: ${PROJECT_VERSION}${VERSION_STATUS}")
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/version.h")
 
+string(APPEND CMAKE_CXX_FLAGS_DEBUG " -g3 -O0")
+
 if(ANDROID OR EMSCRIPTEN)
 	set(BUILD_SOKOL_DEFAULT OFF)
 	set(BUILD_LIBRETRO_DEFAULT OFF)
@@ -47,6 +49,7 @@ else()
 	set(BUILD_PLAYER_DEFAULT ON)
 endif()
 
+option(BUILD_MRUBY "Ruby scripting support (via MRuby) Enabled" ON)
 option(BUILD_SDL "SDL Enabled" ON)
 option(BUILD_SOKOL "Sokol Enabled" ${BUILD_SOKOL_DEFAULT})
 option(BUILD_LIBRETRO "libretro Enabled" ${BUILD_LIBRETRO_DEFAULT})
@@ -93,6 +96,10 @@ if (BAREMETALPI)
 	# investigate -funsafe-math-optimizations and -march=armv8-a+crc -mcpu=cortex-a53
 	set(CMAKE_C_FLAGS " -DTIC_BUILD_WITH_FENNEL -DTIC_BUILD_WITH_MOON -DTIC_BUILD_WITH_JS -DTIC_BUILD_WITH_WREN -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv8-a  -D AARCH=32 -mtune=cortex-a53  -D __circle__ -D BAREMETALPI  --specs=nosys.specs -O3 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__")
 
+	if(BUILD_MRUBY)
+		string(APPEND CMAKE_C_FLAGS " -DTIC_BUILD_WITH_MRUBY")
+	endif()
+
 	set(CMAKE_C_COMPILER ${TOOLCHAIN_PREFIX}gcc)
 	set(CMAKE_ASM_COMPILER ${CMAKE_C_COMPILER})
 	set(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}g++)
@@ -125,7 +132,7 @@ if(MSVC)
 	    set( CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/lib )
 	    set( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/bin )
 	endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
-	
+
 	SET(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /OPT:REF /INCREMENTAL:NO")
 	SET(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /OPT:REF /INCREMENTAL:NO")
 	SET(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "${CMAKE_EXE_LINKER_FLAGS_MINSIZEREL} /OPT:REF /INCREMENTAL:NO")
@@ -156,7 +163,7 @@ set(THIRDPARTY_DIR ${CMAKE_SOURCE_DIR}/3rd-party)
 ################################
 
 set(LUA_DIR ${THIRDPARTY_DIR}/lua)
-set(LUA_SRC 
+set(LUA_SRC
 	${LUA_DIR}/lapi.c
 	${LUA_DIR}/lcode.c
 	${LUA_DIR}/lctype.c
@@ -197,11 +204,39 @@ target_compile_definitions(lua PRIVATE LUA_COMPAT_5_2)
 target_include_directories(lua INTERFACE ${THIRDPARTY_DIR}/lua)
 
 ################################
+# MRUBY
+################################
+
+if(BUILD_MRUBY)
+	include(ExternalProject)
+
+	find_package(Ruby)
+	find_package(BISON)
+
+	set(MRUBY_DIR ${THIRDPARTY_DIR}/mruby)
+	set(MRUBY_LIBRARIES ${MRUBY_DIR}/build/host/lib/libmruby.a)
+	set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/tic_mruby_build_config.rb)
+
+	ExternalProject_Add(
+		mruby
+
+		CONFIGURE_COMMAND ""
+		INSTALL_COMMAND ""
+
+		BUILD_COMMAND rake MRUBY_CONFIG=${MRUBY_CONFIG}
+		BUILD_BYPRODUCTS ${MRUBY_LIBRARIES}
+
+		SOURCE_DIR ${THIRDPARTY_DIR}/mruby
+		BUILD_IN_SOURCE 1
+	)
+endif()
+
+################################
 # LPEG
 ################################
 
 set(LPEG_DIR ${THIRDPARTY_DIR}/lpeg)
-set(LPEG_SRC 
+set(LPEG_SRC
 	${LPEG_DIR}/lpcap.c
 	${LPEG_DIR}/lpcode.c
 	${LPEG_DIR}/lpprint.c
@@ -217,7 +252,7 @@ target_include_directories(lpeg PRIVATE ${LUA_DIR})
 ################################
 
 set(WREN_DIR ${THIRDPARTY_DIR}/wren/src)
-set(WREN_SRC 
+set(WREN_SRC
 	${WREN_DIR}/optional/wren_opt_meta.c
 	${WREN_DIR}/optional/wren_opt_random.c
 	${WREN_DIR}/vm/wren_compiler.c
@@ -298,6 +333,7 @@ set(TIC80CORE_SRC
 	${TIC80CORE_DIR}/tools.c 
 	${TIC80CORE_DIR}/jsapi.c 
 	${TIC80CORE_DIR}/luaapi.c 
+	${TIC80CORE_DIR}/mrbapi.c
 	${TIC80CORE_DIR}/wrenapi.c 
 	${TIC80CORE_DIR}/squirrelapi.c
 	${TIC80CORE_DIR}/ext/gif.c
@@ -307,8 +343,21 @@ set(TIC80CORE_SRC
 
 add_library(tic80core STATIC ${TIC80CORE_SRC})
 
-target_include_directories(tic80core 
-	PRIVATE 
+if(BUILD_MRUBY)
+	add_dependencies(tic80core mruby)
+
+	target_include_directories(tic80core
+		PRIVATE
+			${THIRDPARTY_DIR}/mruby/include)
+
+	target_link_libraries(tic80core ${MRUBY_LIBRARIES})
+	if(WIN32)
+		target_link_libraries(tic80core Ws2_32.lib)
+	endif()
+endif()
+
+target_include_directories(tic80core
+	PRIVATE
 		${CMAKE_SOURCE_DIR}/include
 		${THIRDPARTY_DIR}/blip-buf
 		${THIRDPARTY_DIR}/duktape/src
@@ -316,7 +365,7 @@ target_include_directories(tic80core
 		${THIRDPARTY_DIR}/squirrel/include
 		${THIRDPARTY_DIR}/moonscript
 		${THIRDPARTY_DIR}/fennel
-	PUBLIC 
+	PUBLIC
 		${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(tic80core lua lpeg wren squirrel giflib)

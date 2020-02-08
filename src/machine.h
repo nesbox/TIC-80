@@ -174,6 +174,11 @@ typedef struct
 		struct lua_State* lua;
 #endif
 
+#if defined(TIC_BUILD_WITH_MRUBY)
+		struct mrb_state* mrb;
+		struct mrbc_context* mrb_cxt;
+#endif
+
 #if defined(TIC_BUILD_WITH_JS)
 		struct duk_hthread* js;
 #endif
@@ -243,6 +248,9 @@ const tic_script_config* getFennelConfig();
 
 #endif /* defined(TIC_BUILD_WITH_LUA) */
 
+#if defined(TIC_BUILD_WITH_MRUBY)
+const tic_script_config* getMRubyScriptConfig();
+#endif
 
 #if defined(TIC_BUILD_WITH_JS)
 const tic_script_config* getJsScriptConfig();

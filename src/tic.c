@@ -601,6 +601,10 @@ void tic_close(tic_mem* memory)
 #endif /* defined(TIC_BUILD_WITH_LUA) */
 
 
+#if defined(TIC_BUILD_WITH_MRUBY)
+	getMRubyScriptConfig()->close(memory);
+#endif
+
 #if defined(TIC_BUILD_WITH_JS)
 	getJsScriptConfig()->close(memory);
 #endif
@@ -1743,6 +1747,11 @@ static bool compareMetatag(const char* code, const char* tag, const char* value,
 
 static const tic_script_config* getScriptConfig(const char* code)
 {
+#if defined(TIC_BUILD_WITH_MRUBY)
+	if(compareMetatag(code, "script", "ruby", getMRubyScriptConfig()->singleComment))
+		return getMRubyScriptConfig();
+#endif
+
 #if defined(TIC_BUILD_WITH_MOON)
 	if(compareMetatag(code, "script", "moon", getMoonScriptConfig()->singleComment) ||
 		compareMetatag(code, "script", "moonscript", getMoonScriptConfig()->singleComment)) 
@@ -1774,6 +1783,8 @@ static const tic_script_config* getScriptConfig(const char* code)
 	return getLuaScriptConfig();
 #elif defined(TIC_BUILD_WITH_JS)
 	return getJsScriptConfig();
+#elif defined(TIC_BUILD_WITH_MRUBY)
+	return getMRubyScriptConfig();
 #elif defined(TIC_BUILD_WITH_WREN)
 	return getWrenScriptConfig();
 #elif defined(TIC_BUILD_WITH_SQUIRREL)
