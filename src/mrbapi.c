@@ -390,12 +390,31 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
 	RemapData* remap = (RemapData*)data;
 	mrb_state* mrb = remap->mrb;
 
-	mrb_value vals[] = { result->index, x, y };
-	mrb_value ary = mrb_yield_argv(mrb, remap->block, 3, vals);
+	mrb_value vals[] = {
+		mrb_fixnum_value(result->index),
+		mrb_fixnum_value(x),
+		mrb_fixnum_value(y)
+	};
+	mrb_value out = mrb_yield_argv(mrb, remap->block, 3, vals);
 
-	result->index = mrb_int(mrb, mrb_ary_entry(ary, 0));
-	result->flip = mrb_int(mrb, mrb_ary_entry(ary, 1));
-	result->rotate = mrb_int(mrb, mrb_ary_entry(ary, 2));
+	if (mrb_array_p(out))
+	{
+		mrb_int len = ARY_LEN(RARRAY(out));
+		if (len > 3) len = 3;
+		switch (len)
+		{
+		case 3:
+			result->rotate = mrb_int(mrb, mrb_ary_entry(out, 2));
+		case 2:
+			result->flip = mrb_int(mrb, mrb_ary_entry(out, 1));
+		case 1:
+			result->index = mrb_int(mrb, mrb_ary_entry(out, 0));
+		}
+	}
+	else
+	{
+		result->index = mrb_int(mrb, out);
+	}
 }
 
 static mrb_value mrb_map(mrb_state* mrb, mrb_value self)
