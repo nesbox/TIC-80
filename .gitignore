@@ -16,6 +16,7 @@ build/android/libs/
 build/android/obj/
 build/itch.io/tic.js
 build/itch.io/console.zip
+build/mruby-prefix
 build/uwp/code8/ARM/
 build/uwp/code8/x64/
 build/uwp/code8/code8.VC.db
@@ -47,6 +48,7 @@ lib/windows/res.aps
 lib/windows/tic.aps
 .DS_Store
 lib/macos/.DS_Store
+tic_mruby_build_config.rb.lock
 tools/bundler/assets/
 tools/bundler/bin/
 tools/bin2txt/*.exe
