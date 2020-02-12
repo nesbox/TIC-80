@@ -459,8 +459,6 @@ static void tic80_libretro_update_mouse(tic80_mouse* mouse)
 		mouse->y = 0;
 	}
 
-	// TODO: Add Mouse Wheel Scrolling. scrollx and scrolly
-
 	// Have the mouse disappear after a certain time of inactivity.
 	if (mouse->x != state.mousePreviousX || mouse->y != state.mousePreviousY) {
 		state.mouseHideTimer = TIC_LIBRETRO_MOUSE_HIDE_TIMER_START;
@@ -469,6 +467,19 @@ static void tic80_libretro_update_mouse(tic80_mouse* mouse)
 	}
 	if (state.mouseHideTimer > 0) {
 		state.mouseHideTimer--;
+	}
+
+	// Mouse Scroll Wheels
+	mouse->scrollx = mouse->scrolly = 0;
+	if (input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_HORIZ_WHEELUP) > 0) {
+		mouse->scrollx = 1;
+	} else if (input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_HORIZ_WHEELDOWN) > 0) {
+		mouse->scrollx = -1;
+	}
+	if (input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_WHEELUP) > 0) {
+		mouse->scrolly = 1;
+	} else if (input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_WHEELDOWN) > 0) {
+		mouse->scrolly = -1;
 	}
 }
 

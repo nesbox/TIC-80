@@ -1121,8 +1121,10 @@ static s32 lua_mouse(lua_State *lua)
 	lua_pushboolean(lua, mouse->left);
 	lua_pushboolean(lua, mouse->middle);
 	lua_pushboolean(lua, mouse->right);
+	lua_pushinteger(lua, mouse->scrollx);
+	lua_pushinteger(lua, mouse->scrolly);
 
-	return 5;
+	return 7;
 }
 
 static s32 lua_dofile(lua_State *lua)
