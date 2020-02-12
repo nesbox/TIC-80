@@ -210,8 +210,8 @@ target_include_directories(lua INTERFACE ${THIRDPARTY_DIR}/lua)
 if(BUILD_MRUBY)
 	include(ExternalProject)
 
-	find_package(Ruby)
-	find_package(BISON)
+	find_package(Ruby REQUIRED)
+	find_package(BISON REQUIRED)
 
 	set(MRUBY_DIR ${THIRDPARTY_DIR}/mruby)
 	set(MRUBY_LIBRARIES ${MRUBY_DIR}/build/host/lib/libmruby.a)
