@@ -56,12 +56,16 @@ option(BUILD_DEMO_CARTS "Demo Carts Enabled" ${BUILD_DEMO_CARTS_DEFAULT})
 option(BUILD_PRO "Build PRO version" FALSE)
 option(BUILD_PLAYER "Build standalone players" ${BUILD_PLAYER_DEFAULT})
 
-# MRuby
-find_program(RAKE_EXECUTABLE "rake")
-if(RAKE_EXECUTABLE)
-	set(RAKE_EXECUTABLE_FOUND ON)
-else()
-	set(RAKE_EXECUTABLE_FOUND OFF)
+# Ruby
+find_package(Ruby)
+if (Ruby_FOUND)
+	find_program(RAKE_EXECUTABLE "rake")
+	if(RAKE_EXECUTABLE)
+		set(RAKE_EXECUTABLE_FOUND ON)
+	else()
+		set(RAKE_EXECUTABLE_FOUND OFF)
+		message(FATAL_ERROR "MRuby: Could not find rake executable.")
+	endif()
 endif()
 option(BUILD_MRUBY "Ruby scripting support (via MRuby) Enabled" ${RAKE_EXECUTABLE_FOUND})
 
@@ -214,7 +218,6 @@ target_include_directories(lua INTERFACE ${THIRDPARTY_DIR}/lua)
 if(BUILD_MRUBY)
 	include(ExternalProject)
 
-	find_package(Ruby REQUIRED)
 	find_package(BISON REQUIRED)
 
 	set(MRUBY_DIR ${THIRDPARTY_DIR}/mruby)
