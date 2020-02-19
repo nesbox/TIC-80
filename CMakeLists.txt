@@ -49,13 +49,25 @@ else()
 	set(BUILD_PLAYER_DEFAULT ON)
 endif()
 
-option(BUILD_MRUBY "Ruby scripting support (via MRuby) Enabled" ON)
 option(BUILD_SDL "SDL Enabled" ON)
 option(BUILD_SOKOL "Sokol Enabled" ${BUILD_SOKOL_DEFAULT})
 option(BUILD_LIBRETRO "libretro Enabled" ${BUILD_LIBRETRO_DEFAULT})
 option(BUILD_DEMO_CARTS "Demo Carts Enabled" ${BUILD_DEMO_CARTS_DEFAULT})
 option(BUILD_PRO "Build PRO version" FALSE)
 option(BUILD_PLAYER "Build standalone players" ${BUILD_PLAYER_DEFAULT})
+
+# Ruby
+find_package(Ruby)
+if (Ruby_FOUND)
+	find_program(RAKE_EXECUTABLE "rake")
+	if(RAKE_EXECUTABLE)
+		set(RAKE_EXECUTABLE_FOUND ON)
+	else()
+		set(RAKE_EXECUTABLE_FOUND OFF)
+		message(FATAL_ERROR "MRuby: Could not find rake executable.")
+	endif()
+endif()
+option(BUILD_MRUBY "Ruby scripting support (via MRuby) Enabled" ${RAKE_EXECUTABLE_FOUND})
 
 if (BAREMETALPI)
 
@@ -95,10 +107,6 @@ if (BAREMETALPI)
 	# For RPI3
 	# investigate -funsafe-math-optimizations and -march=armv8-a+crc -mcpu=cortex-a53
 	set(CMAKE_C_FLAGS " -DTIC_BUILD_WITH_FENNEL -DTIC_BUILD_WITH_MOON -DTIC_BUILD_WITH_JS -DTIC_BUILD_WITH_WREN -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv8-a  -D AARCH=32 -mtune=cortex-a53  -D __circle__ -D BAREMETALPI  --specs=nosys.specs -O3 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__")
-
-	if(BUILD_MRUBY)
-		string(APPEND CMAKE_C_FLAGS " -DTIC_BUILD_WITH_MRUBY")
-	endif()
 
 	set(CMAKE_C_COMPILER ${TOOLCHAIN_PREFIX}gcc)
 	set(CMAKE_ASM_COMPILER ${CMAKE_C_COMPILER})
@@ -210,7 +218,6 @@ target_include_directories(lua INTERFACE ${THIRDPARTY_DIR}/lua)
 if(BUILD_MRUBY)
 	include(ExternalProject)
 
-	find_package(Ruby REQUIRED)
 	find_package(BISON REQUIRED)
 
 	set(MRUBY_DIR ${THIRDPARTY_DIR}/mruby)
@@ -223,12 +230,14 @@ if(BUILD_MRUBY)
 		CONFIGURE_COMMAND ""
 		INSTALL_COMMAND ""
 
-		BUILD_COMMAND rake MRUBY_CONFIG=${MRUBY_CONFIG}
+		BUILD_COMMAND ${RAKE_EXECUTABLE} MRUBY_CONFIG=${MRUBY_CONFIG}
 		BUILD_BYPRODUCTS ${MRUBY_LIBRARIES}
 
 		SOURCE_DIR ${THIRDPARTY_DIR}/mruby
 		BUILD_IN_SOURCE 1
 	)
+
+	string(APPEND CMAKE_C_FLAGS " -DTIC_BUILD_WITH_MRUBY")
 endif()
 
 ################################
