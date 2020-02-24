@@ -307,8 +307,6 @@ set(TIC80CORE_SRC
 
 add_library(tic80core STATIC ${TIC80CORE_SRC})
 
-target_compile_definitions(tic80core PRIVATE DUK_USE_DATE_NOW_WINDOWS) # Avoid API introduced after Win7
-
 target_include_directories(tic80core 
 	PRIVATE 
 		${CMAKE_SOURCE_DIR}/include
