@@ -1132,7 +1132,9 @@ static void renderCursor()
 				else
 				{
 					SDL_ShowCursor(SDL_ENABLE);
-					SDL_SetCursor(SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND));
+					SDL_Cursor* cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND);
+					SDL_SetCursor(cursor);
+					SDL_FreeCursor(cursor);
 				}
 			}
 			break;
@@ -1146,7 +1148,9 @@ static void renderCursor()
 				else
 				{
 					SDL_ShowCursor(SDL_ENABLE);
-					SDL_SetCursor(SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_IBEAM));
+					SDL_Cursor* cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_IBEAM);
+					SDL_SetCursor(cursor);
+					SDL_FreeCursor(cursor);
 				}
 			}
 			break;
@@ -1160,7 +1164,9 @@ static void renderCursor()
 				else
 				{
 					SDL_ShowCursor(SDL_ENABLE);
-					SDL_SetCursor(SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW));
+					SDL_Cursor* cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
+					SDL_SetCursor(cursor);
+					SDL_FreeCursor(cursor);
 				}
 			}
 		}
