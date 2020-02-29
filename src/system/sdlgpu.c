@@ -46,6 +46,20 @@
 #include <windows.h>
 #endif
 
+typedef enum
+{
+	HandCursor,
+	IBeamCursor,
+	ArrowCursor
+} CursorType;
+
+static const SDL_SystemCursor SystemCursors[] = 
+{
+	[HandCursor] = SDL_SYSTEM_CURSOR_HAND,
+	[IBeamCursor] = SDL_SYSTEM_CURSOR_IBEAM,
+	[ArrowCursor] = SDL_SYSTEM_CURSOR_ARROW
+};
+
 static struct
 {
 	Studio* studio;
@@ -108,6 +122,7 @@ static struct
 	{
 		GPU_Image* texture;
 		const u8* src;
+		SDL_Cursor* cursors[COUNT_OF(SystemCursors)];
 	} mouse;
 
 	Net* net;
@@ -1132,9 +1147,7 @@ static void renderCursor()
 				else
 				{
 					SDL_ShowCursor(SDL_ENABLE);
-					SDL_Cursor* cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND);
-					SDL_SetCursor(cursor);
-					SDL_FreeCursor(cursor);
+					SDL_SetCursor(platform.mouse.cursors[HandCursor]);
 				}
 			}
 			break;
@@ -1148,9 +1161,7 @@ static void renderCursor()
 				else
 				{
 					SDL_ShowCursor(SDL_ENABLE);
-					SDL_Cursor* cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_IBEAM);
-					SDL_SetCursor(cursor);
-					SDL_FreeCursor(cursor);
+					SDL_SetCursor(platform.mouse.cursors[IBeamCursor]);
 				}
 			}
 			break;
@@ -1164,9 +1175,7 @@ static void renderCursor()
 				else
 				{
 					SDL_ShowCursor(SDL_ENABLE);
-					SDL_Cursor* cursor = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
-					SDL_SetCursor(cursor);
-					SDL_FreeCursor(cursor);
+					SDL_SetCursor(platform.mouse.cursors[ArrowCursor]);
 				}
 			}
 		}
@@ -1527,6 +1536,12 @@ static void emsGpuTick()
 
 #endif
 
+static void createMouseCursors()
+{
+	for(s32 i = 0; i < COUNT_OF(platform.mouse.cursors); i++)
+		platform.mouse.cursors[i] = SDL_CreateSystemCursor(SystemCursors[i]);
+}
+
 static s32 start(s32 argc, char **argv, const char* folder)
 {
 	SDL_SetHint(SDL_HINT_WINRT_HANDLE_BACK_BUTTON, "1");
@@ -1547,7 +1562,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
 		Width, Height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE| SDL_WINDOW_OPENGL);
 
 	setWindowIcon();
-
+	createMouseCursors();
 	studioInitPost();
 
 	initGPU();
@@ -1602,6 +1617,9 @@ static s32 start(s32 argc, char **argv, const char* folder)
 
 	SDL_DestroyWindow(platform.window);
 	SDL_CloseAudioDevice(platform.audio.device);
+
+	for(s32 i = 0; i < COUNT_OF(platform.mouse.cursors); i++)
+		SDL_FreeCursor(platform.mouse.cursors[i]);
 
 	return 0;
 }
