@@ -116,7 +116,7 @@ static inline s32 freq2period(s32 freq)
 	{
 		MinPeriodValue = 10,
 		MaxPeriodValue = 4096,
-		Rate = CLOCKRATE * ENVELOPE_FREQ_SCALE / ENVELOPE_VALUES
+		Rate = CLOCKRATE * ENVELOPE_FREQ_SCALE / WAVE_VALUES
 	};
 
 	if(freq == 0) return MaxPeriodValue;
@@ -137,7 +137,7 @@ static void runEnvelope(blip_buffer_t* blip, tic_sound_register* reg, tic_sound_
 
 	for ( ; data->time < end_time; data->time += period )
 	{
-		data->phase = (data->phase + 1) % ENVELOPE_VALUES;
+		data->phase = (data->phase + 1) % WAVE_VALUES;
 
 		update_amp(blip, data, getAmp(reg, tic_tool_peek4(reg->waveform.data, data->phase) * volume / MAX_VOLUME));
 	}
@@ -1255,7 +1255,7 @@ static void sfx(tic_mem* memory, s32 index, s32 note, s32 pitch, tic_channel_dat
 		reg->volume = volume;
 
 		u8 wave = effect->data[channel->pos.wave].wave;
-		const tic_waveform* waveform = &machine->sound.sfx->waveform.envelopes[wave];
+		const tic_waveform* waveform = &machine->sound.sfx->waveforms.items[wave];
 		memcpy(reg->waveform.data, waveform->data, sizeof(tic_waveform));
 
 		tic_tool_poke4(&memory->ram.stereo.data, channelIndex*2, channel->volume.left * !effect->stereo_left);
@@ -1975,7 +1975,7 @@ static void api_load(tic_cartridge* cart, const u8* buffer, s32 size)
 		case CHUNK_SPRITES: 	LOAD_CHUNK(cart->banks[chunk.bank].sprites); 		break;
 		case CHUNK_MAP: 		LOAD_CHUNK(cart->banks[chunk.bank].map); 			break;
 		case CHUNK_SAMPLES: 	LOAD_CHUNK(cart->banks[chunk.bank].sfx.samples); 	break;
-		case CHUNK_WAVEFORM:	LOAD_CHUNK(cart->banks[chunk.bank].sfx.waveform); 	break;
+		case CHUNK_WAVEFORM:	LOAD_CHUNK(cart->banks[chunk.bank].sfx.waveforms); 	break;
 		case CHUNK_MUSIC:		LOAD_CHUNK(cart->banks[chunk.bank].music.tracks); 	break;
 		case CHUNK_PATTERNS:	LOAD_CHUNK(cart->banks[chunk.bank].music.patterns);	break;
 		case CHUNK_PALETTE:		LOAD_CHUNK(cart->banks[chunk.bank].palette);		break;
@@ -2076,7 +2076,7 @@ static s32 api_save(const tic_cartridge* cart, u8* buffer)
 		buffer = SAVE_CHUNK(CHUNK_SPRITES, 	cart->banks[i].sprites, 		i);
 		buffer = SAVE_CHUNK(CHUNK_MAP, 		cart->banks[i].map, 			i);
 		buffer = SAVE_CHUNK(CHUNK_SAMPLES, 	cart->banks[i].sfx.samples, 	i);
-		buffer = SAVE_CHUNK(CHUNK_WAVEFORM, cart->banks[i].sfx.waveform, 	i);
+		buffer = SAVE_CHUNK(CHUNK_WAVEFORM, cart->banks[i].sfx.waveforms, 	i);
 		buffer = SAVE_CHUNK(CHUNK_PATTERNS, cart->banks[i].music.patterns, 	i);
 		buffer = SAVE_CHUNK(CHUNK_MUSIC, 	cart->banks[i].music.tracks, 	i);
 		buffer = SAVE_CHUNK(CHUNK_PALETTE, 	cart->banks[i].palette, 		i);
