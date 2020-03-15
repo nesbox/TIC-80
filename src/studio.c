@@ -232,33 +232,23 @@ static struct
 };
 
 
+static inline bool isCharacterValidSymbol(char c)
+{
+    static const char symbols[] = " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>?";
+	return index(symbols, c) != NULL;
+}
+
 char getKeyboardText()
 {
-    tic_mem* tic = impl.studio.tic;
+    const char* text = impl.studio.textInput;
+    if (!strlen(text) == 1) // all valid symbols are 1-char long
+        return '\0';
 
-    static const char Symbols[] = 	" abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
-    static const char Shift[] =		" ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
+    const char character = text[0];
+    if (!isCharacterValidSymbol(character))
+        return '\0';
 
-    enum{Count = sizeof Symbols};
-
-    for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
-    {
-        tic_key key = tic->ram.input.keyboard.keys[i];
-
-        if(key > 0 && key < Count && tic->api.keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD))
-        {
-            bool caps = tic->api.key(tic, tic_key_capslock);
-            bool shift = tic->api.key(tic, tic_key_shift);
-
-            return caps
-                ? key >= tic_key_a && key <= tic_key_z 
-                    ? shift ? Symbols[key] : Shift[key]
-                    : shift ? Shift[key] : Symbols[key]
-                : shift ? Shift[key] : Symbols[key];
-        }
-    }
-
-    return 0;
+    return character;
 }
 
 bool keyWasPressed(tic_key key)

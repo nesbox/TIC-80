@@ -161,6 +161,11 @@ static void app_init(void)
 	platform.audio.samples = calloc(sizeof platform.audio.samples[0], saudio_sample_rate() / TIC80_FRAMERATE * TIC_STEREO_CHANNELS);
 }
 
+static void clearTextInput()
+{
+	platform.studio->textInput[0] = '\0';
+}
+
 static void handleKeyboard()
 {
 	tic_mem* tic = platform.studio->tic;
@@ -196,6 +201,7 @@ static void app_frame(void)
 	saudio_push(platform.audio.samples, count / 2);
 	
 	input->mouse.scrollx = input->mouse.scrolly = 0;
+	clearTextInput();
 }
 
 static void handleKeydown(sapp_keycode keycode, bool down)
@@ -338,6 +344,18 @@ static void handleKeydown(sapp_keycode keycode, bool down)
 	}
 }
 
+static void handleTextInput(u32 charCode)
+{
+	const char text[5] = {
+		(char)(charCode & 0xFF),
+		(char)(charCode >> 8 & 0xFF),
+		(char)(charCode >> 16 & 0xFF),
+		(char)(charCode >> 24 & 0xFF),
+		'\0'
+	};
+	strcpy(platform.studio->textInput, text);
+}
+
 static void processMouse(sapp_mousebutton btn, s32 down)
 {
 	tic80_input* input = &platform.studio->tic->ram.input;
@@ -362,6 +380,9 @@ static void app_input(const sapp_event* event)
 		break;
 	case SAPP_EVENTTYPE_KEY_UP:
 		handleKeydown(event->key_code, false);
+		break;
+	case SAPP_EVENTTYPE_CHAR:
+		handleTextInput(event->char_code);
 		break;
 	case SAPP_EVENTTYPE_MOUSE_MOVE:
 		{

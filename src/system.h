@@ -6,6 +6,10 @@
 #define TIC80_OFFSET_LEFT ((TIC80_FULLWIDTH-TIC80_WIDTH)/2)
 #define TIC80_OFFSET_TOP ((TIC80_FULLHEIGHT-TIC80_HEIGHT)/2)
 
+// SDL text input event max string size, conservative choice for any implementation
+// excludes null character
+#define TEXT_INPUT_SIZE (31)
+
 typedef struct
 {
 	void	(*setClipboardText)(const char* text);
@@ -88,6 +92,7 @@ typedef struct
 typedef struct
 {
 	tic_mem* tic;
+	char textInput[TEXT_INPUT_SIZE + 1];
 	bool quit;
 
 	void (*tick)();

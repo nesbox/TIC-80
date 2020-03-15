@@ -866,6 +866,18 @@ static void handleKeydown(SDL_Keycode keycode, bool down)
 		platform.keyboard.state[tic_key_escape] = down;
 }
 
+static void clearTextInput()
+{
+	platform.studio->textInput[0] = '\0';
+}
+
+static void handleTextInput(const char* text)
+{
+	// use fixed-size copy to avoid buffer overflow
+	strncpy(platform.studio->textInput, text, TEXT_INPUT_SIZE);
+	platform.studio->textInput[TEXT_INPUT_SIZE] = '\0';
+}
+
 static void pollEvent()
 {
 	tic_mem* tic = platform.studio->tic;
@@ -942,6 +954,9 @@ static void pollEvent()
 		case SDL_KEYUP:
 			handleKeydown(event.key.keysym.sym, false);
 			break;			
+		case SDL_TEXTINPUT:
+			handleTextInput(event.text.text);
+			break;
 		case SDL_QUIT:
 			platform.studio->exit();
 			break;
@@ -1441,6 +1456,7 @@ static void gpuTick()
 {
 	tic_mem* tic = platform.studio->tic;
 
+	clearTextInput();
 	pollEvent();
 
 	if(platform.studio->quit)
