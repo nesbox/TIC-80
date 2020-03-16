@@ -235,7 +235,7 @@ static struct
 static inline bool isCharacterValidSymbol(char c)
 {
     static const char symbols[] = " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>?";
-	return index(symbols, c) != NULL;
+	return strchr(symbols, c) != NULL;
 }
 
 char getKeyboardText()
