@@ -446,9 +446,19 @@ if(BUILD_LIBRETRO)
 		${LIBRETRO_DIR}/tic80_libretro.c
 	)
 
-	add_library(tic80_libretro SHARED
+        if (LIBRETRO_STATIC)
+	    add_library(tic80_libretro STATIC
 		${LIBRETRO_SRC}
-	)
+	    )
+	  set_target_properties(tic80_libretro PROPERTIES SUFFIX "_partial.a")
+	  add_custom_command(TARGET tic80_libretro
+	           POST_BUILD
+                   COMMAND ${CMAKE_SOURCE_DIR}/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.a ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a)
+	else()
+	    add_library(tic80_libretro SHARED
+		${LIBRETRO_SRC}
+	    )
+	endif()
 
 	target_include_directories(tic80_libretro PRIVATE 
 		${CMAKE_SOURCE_DIR}/include
