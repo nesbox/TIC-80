@@ -108,6 +108,10 @@ if (BAREMETALPI)
 
 endif()
 
+if (DISABLE_NETWORKING)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DDISABLE_NETWORKING")
+endif()
+
 if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID)
 	set(LINUX TRUE)
 endif()
@@ -545,6 +549,7 @@ endif()
 # CURL
 ################################
 
+if (NOT DISABLE_NETWORKING)
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
 
 if(WIN32)
@@ -558,6 +563,7 @@ set(CURL_CA_BUNDLE "none" CACHE STRING "")
 set(CURL_CA_PATH "none" CACHE STRING "")
 
 add_subdirectory(${THIRDPARTY_DIR}/curl)
+endif()
 
 ################################
 # ZLIB
@@ -647,8 +653,13 @@ set(TIC80LIB_SRC
 	${TIC80LIB_DIR}/dialog.c
 	${TIC80LIB_DIR}/menu.c
 	${TIC80LIB_DIR}/surf.c
-	${TIC80LIB_DIR}/net.c
 )
+
+if(NOT DISABLE_NETWORKING)
+  set(TIC80LIB_SRC ${TIC80LIB_SRC} ${TIC80LIB_DIR}/net.c)
+else()
+  set(TIC80LIB_SRC ${TIC80LIB_SRC} ${TIC80LIB_DIR}/net-dummy.c)
+endif()      
 
 set(TIC80_OUTPUT tic80)
 
