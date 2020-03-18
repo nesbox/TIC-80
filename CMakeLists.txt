@@ -663,13 +663,8 @@ set(TIC80LIB_SRC
 	${TIC80LIB_DIR}/dialog.c
 	${TIC80LIB_DIR}/menu.c
 	${TIC80LIB_DIR}/surf.c
+	${TIC80LIB_DIR}/net.c
 )
-
-if(NOT DISABLE_NETWORKING)
-  set(TIC80LIB_SRC ${TIC80LIB_SRC} ${TIC80LIB_DIR}/net.c)
-else()
-  set(TIC80LIB_SRC ${TIC80LIB_SRC} ${TIC80LIB_DIR}/net-dummy.c)
-endif()      
 
 set(TIC80_OUTPUT tic80)
 
