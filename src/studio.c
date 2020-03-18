@@ -587,7 +587,7 @@ static void drawBankIcon(s32 x, s32 y)
 
 	if(impl.bank.show)
 	{
-		drawBitIcon(x, y, Icon, tic_color_6);
+		drawBitIcon(x, y, Icon, tic_color_2);
 
 		enum{Size = TOOLBAR_SIZE};
 
@@ -610,9 +610,9 @@ static void drawBankIcon(s32 x, s32 y)
 			}
 
 			if(i == impl.bank.indexes[mode])
-				tic->api.rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_6);
+				tic->api.rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_2);
 
-			tic->api.draw_char(tic, '0' + i, rect.x+1, rect.y+1, i == impl.bank.indexes[mode] ? tic_color_12 : over ? tic_color_6 : tic_color_13, false);
+			tic->api.draw_char(tic, '0' + i, rect.x+1, rect.y+1, i == impl.bank.indexes[mode] ? tic_color_12 : over ? tic_color_2 : tic_color_13, false);
 
 		}
 
@@ -648,12 +648,12 @@ static void drawBankIcon(s32 x, s32 y)
 				}
 			}
 
-			drawBitIcon(rect.x, rect.y, PinIcon, impl.bank.chained ? tic_color_0 : over ? tic_color_3 : tic_color_10);
+			drawBitIcon(rect.x, rect.y, PinIcon, impl.bank.chained || over ? tic_color_2 : tic_color_13);
 		}
 	}
 	else
 	{
-		drawBitIcon(x, y, Icon, over ? tic_color_6 : tic_color_13);
+		drawBitIcon(x, y, Icon, over ? tic_color_2 : tic_color_13);
 	}
 }
 
@@ -1523,7 +1523,7 @@ static void recordFrame(u32* pixels)
 			if(impl.video.frame % TIC80_FRAMERATE < TIC80_FRAMERATE / 2)
 			{
 				const u32* pal = tic_palette_blit(&impl.config->cart.bank0.palette);
-				drawRecordLabel(pixels, TIC80_WIDTH-24, 8, &pal[tic_color_6]);
+				drawRecordLabel(pixels, TIC80_WIDTH-24, 8, &pal[tic_color_2]);
 			}
 
 			impl.video.frame++;

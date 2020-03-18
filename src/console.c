@@ -784,7 +784,7 @@ static const BinarySection BinarySections[] =
 	{"TILES", 		TIC_BANK_SPRITES, 	offsetof(tic_bank, tiles), 			sizeof(tic_tile), 			true},
 	{"SPRITES", 	TIC_BANK_SPRITES, 	offsetof(tic_bank, sprites), 		sizeof(tic_tile), 			true},
 	{"MAP", 		TIC_MAP_HEIGHT, 	offsetof(tic_bank, map), 			TIC_MAP_WIDTH, 				true},
-	{"WAVES", 		WAVES_COUNT, 		offsetof(tic_bank, sfx.waveform), 	sizeof(tic_waveform), 		true},
+	{"WAVES", 		WAVES_COUNT, 		offsetof(tic_bank, sfx.waveforms), 	sizeof(tic_waveform), 		true},
 	{"SFX", 		SFX_COUNT, 			offsetof(tic_bank, sfx.samples), 	sizeof(tic_sample), 		true},
 	{"PATTERNS", 	MUSIC_PATTERNS, 	offsetof(tic_bank, music.patterns), sizeof(tic_track_pattern), 	true},
 	{"TRACKS", 		MUSIC_TRACKS, 		offsetof(tic_bank, music.tracks), 	sizeof(tic_track), 			true},
