@@ -89,6 +89,7 @@ typedef struct
 {
 	tic_mem* tic;
 	bool quit;
+	char text;
 
 	void (*tick)();
 	void (*exit)();
