@@ -822,8 +822,9 @@ static void drawSpeedPanel(Sfx* sfx, s32 x, s32 y)
 		hover = spd;
 
 		{
-			char buf[] = "0";
-			sprintf(buf, "set speed to %i", spd);
+			static const char Format[] = "set speed to %i";
+			char buf[sizeof Format];
+			sprintf(buf, Format, spd);
 			showTooltip(buf);
 		}
 
