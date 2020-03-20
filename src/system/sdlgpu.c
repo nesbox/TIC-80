@@ -541,8 +541,9 @@ static void processKeyboard()
 			input->keyboard.keys[c++] = i;
 
 
-#if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)		
+#if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
 	// process touch keyboard buttons
+	if(!platform.studio->text)
 	{
 		static const char Symbols[] = 	" abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
 	    static const char Shift[] =		" ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
