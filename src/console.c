@@ -2784,7 +2784,11 @@ static void tick(Console* console)
 		else if(keyWasPressed(tic_key_end)) processConsoleEnd(console);
 		else if(keyWasPressed(tic_key_tab)) processConsoleTab(console);
 
-		if(anyKeyWasPressed())
+		if(keyWasPressed(tic_key_capslock) 
+			|| keyWasPressed(tic_key_ctrl) 
+			|| keyWasPressed(tic_key_shift) 
+			|| keyWasPressed(tic_key_alt));
+		else if(anyKeyWasPressed())
 		{
 			scrollConsole(console);
 			console->cursor.delay = CONSOLE_CURSOR_DELAY;
