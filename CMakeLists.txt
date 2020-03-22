@@ -472,6 +472,10 @@ if(BUILD_LIBRETRO)
         set_target_properties(tic80_libretro PROPERTIES SUFFIX "_android.so")
     endif()
 
+    if(EMSCRIPTEN)
+        set_target_properties(tic80_libretro PROPERTIES SUFFIX "_emscripten.bc")
+    endif()
+
     # MSYS2 builds libretro to ./bin, despite it being a DLL. This forces it to ./lib.
     set_target_properties(tic80_libretro PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
