@@ -644,6 +644,10 @@ static duk_ret_t duk_mouse(duk_context* duk)
 	duk_put_prop_index(duk, idx, 3);
 	duk_push_boolean(duk, mouse->right);
 	duk_put_prop_index(duk, idx, 4);
+	duk_push_int(duk, mouse->scrollx);
+	duk_put_prop_index(duk, idx, 5);
+	duk_push_int(duk, mouse->scrolly);
+	duk_put_prop_index(duk, idx, 6);
 
 	return 1;
 }

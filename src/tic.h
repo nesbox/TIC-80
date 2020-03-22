@@ -98,10 +98,10 @@
 #define NOTES_PER_BEET 4
 #define PATTERN_START 1
 #define MUSIC_SFXID_LOW_BITS 5
-#define ENVELOPES_COUNT 16
-#define ENVELOPE_VALUES 32
-#define ENVELOPE_VALUE_BITS 4
-#define ENVELOPE_SIZE (ENVELOPE_VALUES * ENVELOPE_VALUE_BITS / BITS_IN_BYTE)
+#define WAVES_COUNT 16
+#define WAVE_VALUES 32
+#define WAVE_VALUE_BITS 4
+#define WAVE_SIZE (WAVE_VALUES * WAVE_VALUE_BITS / BITS_IN_BYTE)
 
 #define TIC_CODE_SIZE (0x10000)
 
@@ -124,7 +124,7 @@ enum
 	NoteStart,
 };
 
-enum
+typedef enum
 {
 	tic_color_0,
 	tic_color_1,
@@ -180,7 +180,7 @@ typedef struct
 	{
 		u8 octave:3;
 		u8 pitch16x:1; // pitch factor
-		s8 speed:3;
+		s8 speed:SFX_SPEED_BITS;
 		u8 reverse:1; // chord reverse
 		u8 note:4;
 		u8 stereo_left:1;
@@ -205,12 +205,12 @@ typedef struct
 
 typedef struct
 {
-	u8 data[ENVELOPE_SIZE];
+	u8 data[WAVE_SIZE];
 }tic_waveform;
 
 typedef struct
 {
-	tic_waveform envelopes[ENVELOPES_COUNT];
+	tic_waveform items[WAVES_COUNT];
 } tic_waveforms;
 
 #define MUSIC_CMD_LIST(macro) 																	\
@@ -277,7 +277,7 @@ typedef struct
 
 typedef struct
 {
-	tic_waveforms waveform;
+	tic_waveforms waveforms;
 	tic_samples samples;
 }tic_sfx;
 
