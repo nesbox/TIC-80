@@ -994,7 +994,7 @@ static void processKeyboard(Code* code)
 	bool ctrl = tic->api.key(tic, tic_key_ctrl);
 	bool alt = tic->api.key(tic, tic_key_alt);
 
-	bool selectionChanged = false;
+	bool changedSelection = false;
 	if(keyWasPressed(tic_key_up)
 		|| keyWasPressed(tic_key_down)
 		|| keyWasPressed(tic_key_left)
@@ -1006,10 +1006,10 @@ static void processKeyboard(Code* code)
 	{
 		if(!shift) code->cursor.selection = NULL;
 		else if(code->cursor.selection == NULL) code->cursor.selection = code->cursor.position;
-		selectionChanged = true;
+		changedSelection = true;
 	}
 
-	bool modified = true;
+	bool usedKeybinding = true;
 
 	if(ctrl)
 	{
@@ -1027,13 +1027,13 @@ static void processKeyboard(Code* code)
 		else if(keyWasPressed(tic_key_end)) 		goCodeEnd(code);
 		else if(keyWasPressed(tic_key_delete)) 		deleteWord(code);
 		else if(keyWasPressed(tic_key_backspace)) 	backspaceWord(code);
-		else 										modified = false;
+		else 										usedKeybinding = false;
 	}
 	else if(alt)
 	{
 		if(keyWasPressed(tic_key_left)) 		leftWord(code);
 		else if(keyWasPressed(tic_key_right)) 	rightWord(code);
-		else 									modified = false;
+		else 									usedKeybinding = false;
 	}
 	else
 	{
@@ -1049,10 +1049,10 @@ static void processKeyboard(Code* code)
 		else if(keyWasPressed(tic_key_backspace)) 	backspaceChar(code);
 		else if(keyWasPressed(tic_key_return)) 		newLine(code);
 		else if(keyWasPressed(tic_key_tab)) 		doTab(code, shift, ctrl);
-		else 										modified = false;
+		else 										usedKeybinding = false;
 	}
 
-	if(usedClipboard || selectionChanged || modified) updateEditor(code);
+	if(usedClipboard || changedSelection || usedKeybinding) updateEditor(code);
 }
 
 static void processMouse(Code* code)
