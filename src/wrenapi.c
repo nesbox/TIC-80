@@ -364,7 +364,7 @@ static void wren_mouse(WrenVM* vm)
 
 	const tic80_mouse* mouse = &machine->memory.ram.input.mouse;
 
-	wrenEnsureSlots(vm, 4);
+	wrenEnsureSlots(vm, 6);
 	wrenSetSlotNewList(vm, 0);
 	wrenSetSlotDouble(vm, 1, mouse->x);
 	wrenInsertInList(vm, 0, 0, 1);
@@ -376,6 +376,10 @@ static void wren_mouse(WrenVM* vm)
 	wrenInsertInList(vm, 0, 3, 1);
 	wrenSetSlotBool(vm, 1, mouse->right);
 	wrenInsertInList(vm, 0, 4, 1);
+	wrenSetSlotDouble(vm, 1, mouse->scrollx);
+	wrenInsertInList(vm, 0, 5, 1);
+	wrenSetSlotDouble(vm, 1, mouse->scrolly);
+	wrenInsertInList(vm, 0, 6, 1);
 }
 
 static void wren_print(WrenVM* vm)
@@ -1256,7 +1260,7 @@ static void reportError(WrenVM* vm, WrenErrorType type, const char* module, int 
 static void writeFn(WrenVM* vm, const char* text) 
 {
 	tic_machine* machine = getWrenMachine(vm);
-	u8 color = tic_color_blue;
+	u8 color = tic_color_8;
 	machine->data->trace(machine->data->data, text ? text : "null", color);
 }
 

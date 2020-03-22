@@ -1154,7 +1154,7 @@ static SQInteger squirrel_trace(HSQUIRRELVM vm)
 	if(top >= 2)
 	{
 		const char* text = printString(vm, 2);
-		u8 color = tic_color_white;
+		u8 color = tic_color_12;
 
 		if(top >= 3)
 		{
@@ -1226,7 +1226,7 @@ static SQInteger squirrel_mouse(HSQUIRRELVM vm)
 
 	const tic80_mouse* mouse = &machine->memory.ram.input.mouse;
 
-	sq_newarray(vm, 5);
+	sq_newarray(vm, 7);
 	sq_pushinteger(vm, mouse->x);
 	sq_arrayappend(vm, -2);
 	sq_pushinteger(vm, mouse->y);
@@ -1236,6 +1236,10 @@ static SQInteger squirrel_mouse(HSQUIRRELVM vm)
 	sq_pushbool(vm, mouse->middle ? SQTrue : SQFalse);
 	sq_arrayappend(vm, -2);
 	sq_pushbool(vm, mouse->right ? SQTrue : SQFalse);
+	sq_arrayappend(vm, -2);
+	sq_pushinteger(vm, mouse->scrollx);
+	sq_arrayappend(vm, -2);
+	sq_pushinteger(vm, mouse->scrolly);
 	sq_arrayappend(vm, -2);
 
 	return 1;

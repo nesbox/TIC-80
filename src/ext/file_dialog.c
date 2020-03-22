@@ -30,9 +30,6 @@
 #include <commdlg.h>
 #include <stdio.h>
 
-wchar_t* wcsrchr(const wchar_t *, wchar_t);
-wchar_t* wcscpy(wchar_t *, const wchar_t *);
-
 void file_dialog_load(file_dialog_load_callback callback, void* data)
 {
 	OPENFILENAMEW ofn;

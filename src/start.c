@@ -26,9 +26,9 @@ static void reset(Start* start)
 {
 	u8* tile = (u8*)start->tic->ram.tiles.data;
 
-	start->tic->api.clear(start->tic, (tic_color_black));
+	start->tic->api.clear(start->tic, tic_color_0);
 
-	static const u8 Reset[] = {0x00, 0x06, 0x96, 0x00};
+	static const u8 Reset[] = {0x0, 0x2, 0x42, 0x00};
 	u8 val = Reset[sizeof(Reset) * (start->ticks % TIC80_FRAMERATE) / TIC80_FRAMERATE];
 
 	for(s32 i = 0; i < sizeof(tic_tile); i++) tile[i] = val;
@@ -38,9 +38,9 @@ static void reset(Start* start)
 
 static void drawHeader(Start* start)
 {
-	start->tic->api.fixed_text(start->tic, TIC_NAME_FULL, STUDIO_TEXT_WIDTH, STUDIO_TEXT_HEIGHT, (tic_color_white), false);
-	start->tic->api.fixed_text(start->tic, TIC_VERSION_LABEL, (sizeof(TIC_NAME_FULL) + 1) * STUDIO_TEXT_WIDTH, STUDIO_TEXT_HEIGHT, (tic_color_dark_gray), false);
-	start->tic->api.fixed_text(start->tic, TIC_COPYRIGHT, STUDIO_TEXT_WIDTH, STUDIO_TEXT_HEIGHT*2, (tic_color_dark_gray), false);
+	start->tic->api.fixed_text(start->tic, TIC_NAME_FULL, STUDIO_TEXT_WIDTH, STUDIO_TEXT_HEIGHT, tic_color_12, false);
+	start->tic->api.fixed_text(start->tic, TIC_VERSION_LABEL, (sizeof(TIC_NAME_FULL) + 1) * STUDIO_TEXT_WIDTH, STUDIO_TEXT_HEIGHT, tic_color_14, false);
+	start->tic->api.fixed_text(start->tic, TIC_COPYRIGHT, STUDIO_TEXT_WIDTH, STUDIO_TEXT_HEIGHT*2, tic_color_14, false);
 }
 
 static void header(Start* start)

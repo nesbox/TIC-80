@@ -363,6 +363,10 @@ static void app_input(const sapp_event* event)
 	case SAPP_EVENTTYPE_KEY_UP:
 		handleKeydown(event->key_code, false);
 		break;
+	case SAPP_EVENTTYPE_CHAR:
+		if(event->char_code < 128)
+			platform.studio->text = event->char_code;
+		break;
 	case SAPP_EVENTTYPE_MOUSE_MOVE:
 		{
 			struct {s32 x, y, w, h;}rect;

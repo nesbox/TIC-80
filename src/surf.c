@@ -185,8 +185,8 @@ static void drawTopToolbar(Surf* surf, s32 x, s32 y)
 
 	enum{Height = MENU_HEIGHT};
 
-	tic->api.rect(tic, x, y, TIC80_WIDTH, Height, tic_color_blue);
-	tic->api.rect(tic, x, y + Height, TIC80_WIDTH, 1, tic_color_black);
+	tic->api.rect(tic, x, y, TIC80_WIDTH, Height, tic_color_14);
+	tic->api.rect(tic, x, y + Height, TIC80_WIDTH, 1, tic_color_0);
 	{
 		char label[FILENAME_MAX];
 
@@ -194,8 +194,8 @@ static void drawTopToolbar(Surf* surf, s32 x, s32 y)
 
 		s32 xl = x + MAIN_OFFSET;
 		s32 yl = y + (Height - TIC_FONT_HEIGHT)/2;
-		tic->api.text(tic, label, xl, yl+1, tic_color_black, false);
-		tic->api.text(tic, label, xl, yl, tic_color_white, false);
+		tic->api.text(tic, label, xl, yl+1, tic_color_0, false);
+		tic->api.text(tic, label, xl, yl, tic_color_12, false);
 	}
 
 	enum{Gap = 10, TipX = 150, SelectWidth = 54};
@@ -204,15 +204,15 @@ static void drawTopToolbar(Surf* surf, s32 x, s32 y)
 	tic->api.sprite_ex(tic, &getConfig()->cart->bank0.tiles, 12, TipX, y+1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
 	{
 		static const char Label[] = "SELECT";
-		tic->api.text(tic, Label, TipX + Gap, y+3, tic_color_black, false);
-		tic->api.text(tic, Label, TipX + Gap, y+2, tic_color_white, false);
+		tic->api.text(tic, Label, TipX + Gap, y+3, tic_color_0, false);
+		tic->api.text(tic, Label, TipX + Gap, y+2, tic_color_12, false);
 	}
 
 	tic->api.sprite_ex(tic, &getConfig()->cart->bank0.tiles, 13, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
 	{
 		static const char Label[] = "BACK";
-		tic->api.text(tic, Label, TipX + Gap + SelectWidth, y +3, tic_color_black, false);
-		tic->api.text(tic, Label, TipX + Gap + SelectWidth, y +2, tic_color_white, false);
+		tic->api.text(tic, Label, TipX + Gap + SelectWidth, y +3, tic_color_0, false);
+		tic->api.text(tic, Label, TipX + Gap + SelectWidth, y +2, tic_color_12, false);
 	}
 }
 
@@ -222,8 +222,8 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
 
 	enum{Height = MENU_HEIGHT};
 
-	tic->api.rect(tic, x, y, TIC80_WIDTH, Height, tic_color_blue);
-	tic->api.rect(tic, x, y + Height, TIC80_WIDTH, 1, tic_color_black);
+	tic->api.rect(tic, x, y, TIC80_WIDTH, Height, tic_color_14);
+	tic->api.rect(tic, x, y + Height, TIC80_WIDTH, 1, tic_color_0);
 	{
 		char label[FILENAME_MAX];
 		char dir[FILENAME_MAX];
@@ -232,8 +232,8 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
 		sprintf(label, "/%s", dir);
 		s32 xl = x + MAIN_OFFSET;
 		s32 yl = y + (Height - TIC_FONT_HEIGHT)/2;
-		tic->api.text(tic, label, xl, yl+1, tic_color_black, false);
-		tic->api.text(tic, label, xl, yl, tic_color_white, false);
+		tic->api.text(tic, label, xl, yl+1, tic_color_0, false);
+		tic->api.text(tic, label, xl, yl, tic_color_12, false);
 	}
 
 #ifdef CAN_OPEN_URL	
@@ -247,8 +247,8 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
 		tic->api.sprite_ex(tic, &getConfig()->cart->bank0.tiles, 15, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
 		{
 			static const char Label[] = "WEBSITE";
-			tic->api.text(tic, Label, TipX + Gap + SelectWidth, y +3, tic_color_black, false);
-			tic->api.text(tic, Label, TipX + Gap + SelectWidth, y +2, tic_color_white, false);
+			tic->api.text(tic, Label, TipX + Gap + SelectWidth, y +3, tic_color_0, false);
+			tic->api.text(tic, Label, TipX + Gap + SelectWidth, y +2, tic_color_12, false);
 		}
 	}
 #endif
@@ -320,7 +320,7 @@ static void drawMenu(Surf* surf, s32 x, s32 y, bool bg)
 	}
 	else
 	{
-		tic->api.rect(tic, 0, y + (MENU_HEIGHT - AnimVar.menuHeight)/2, TIC80_WIDTH, AnimVar.menuHeight, tic_color_red);
+		tic->api.rect(tic, 0, y + (MENU_HEIGHT - AnimVar.menuHeight)/2, TIC80_WIDTH, AnimVar.menuHeight, tic_color_2);
 	}
 
 	for(s32 i = 0; i < surf->menu.count; i++)
@@ -337,8 +337,8 @@ static void drawMenu(Surf* surf, s32 x, s32 y, bool bg)
 		}
 		else
 		{
-			tic->api.text(tic, name, x + MAIN_OFFSET, ym + 1, tic_color_black, false);
-			tic->api.text(tic, name, x + MAIN_OFFSET, ym, tic_color_white, false);
+			tic->api.text(tic, name, x + MAIN_OFFSET, ym + 1, tic_color_0, false);
+			tic->api.text(tic, name, x + MAIN_OFFSET, ym, tic_color_12, false);
 		}
 	}
 }
@@ -838,8 +838,8 @@ static void tick(Surf* surf)
 	else
 	{
 		static const char Label[] = "You don't have any files...";
-		s32 size = tic->api.text(tic, Label, 0, -TIC_FONT_HEIGHT, tic_color_white, false);
-		tic->api.text(tic, Label, (TIC80_WIDTH - size) / 2, (TIC80_HEIGHT - TIC_FONT_HEIGHT)/2, tic_color_white, false);
+		s32 size = tic->api.text(tic, Label, 0, -TIC_FONT_HEIGHT, tic_color_12, false);
+		tic->api.text(tic, Label, (TIC80_WIDTH - size) / 2, (TIC80_HEIGHT - TIC_FONT_HEIGHT)/2, tic_color_12, false);
 	}
 }
 

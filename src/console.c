@@ -39,11 +39,11 @@
 #include <emscripten.h>
 #endif
 
-#define CONSOLE_CURSOR_COLOR ((tic_color_red))
-#define CONSOLE_BACK_TEXT_COLOR ((tic_color_dark_gray))
-#define CONSOLE_FRONT_TEXT_COLOR ((tic_color_white))
-#define CONSOLE_ERROR_TEXT_COLOR ((tic_color_red))
-#define CONSOLE_CURSOR_BLINK_PERIOD (TIC80_FRAMERATE)
+#define CONSOLE_CURSOR_COLOR tic_color_2
+#define CONSOLE_BACK_TEXT_COLOR tic_color_14
+#define CONSOLE_FRONT_TEXT_COLOR tic_color_12
+#define CONSOLE_ERROR_TEXT_COLOR tic_color_2
+#define CONSOLE_CURSOR_BLINK_PERIOD TIC80_FRAMERATE
 #define CONSOLE_CURSOR_DELAY (TIC80_FRAMERATE / 2)
 #define CONSOLE_BUFFER_WIDTH (STUDIO_TEXT_BUFFER_WIDTH)
 #define CONSOLE_BUFFER_HEIGHT (STUDIO_TEXT_BUFFER_HEIGHT)
@@ -103,28 +103,28 @@ static const char* ExeExt = ".exe";
 #endif
 
 #if defined(TIC_BUILD_WITH_LUA)
-static const char DefaultLuaTicPath[] = TIC_LOCAL "default.tic";
+static const char DefaultLuaTicPath[] = TIC_LOCAL_VERSION "default.tic";
 
 #	if defined(TIC_BUILD_WITH_MOON)
-static const char DefaultMoonTicPath[] = TIC_LOCAL "default_moon.tic";
+static const char DefaultMoonTicPath[] = TIC_LOCAL_VERSION "default_moon.tic";
 #	endif
 
 #	if defined(TIC_BUILD_WITH_FENNEL)
-static const char DefaultFennelTicPath[] = TIC_LOCAL "default_fennel.tic";
+static const char DefaultFennelTicPath[] = TIC_LOCAL_VERSION "default_fennel.tic";
 #	endif
 
 #endif /* defined(TIC_BUILD_WITH_LUA) */
 
 #if defined(TIC_BUILD_WITH_JS)
-static const char DefaultJSTicPath[] = TIC_LOCAL "default_js.tic";
+static const char DefaultJSTicPath[] = TIC_LOCAL_VERSION "default_js.tic";
 #endif
 
 #if defined(TIC_BUILD_WITH_WREN)
-static const char DefaultWrenTicPath[] = TIC_LOCAL "default_wren.tic";
+static const char DefaultWrenTicPath[] = TIC_LOCAL_VERSION "default_wren.tic";
 #endif
 
 #if defined(TIC_BUILD_WITH_SQUIRREL)
-static const char DefaultSquirrelTicPath[] = TIC_LOCAL "default_squirrel.tic";
+static const char DefaultSquirrelTicPath[] = TIC_LOCAL_VERSION "default_squirrel.tic";
 #endif	
 
 static const char* getName(const char* name, const char* ext)
@@ -784,7 +784,7 @@ static const BinarySection BinarySections[] =
 	{"TILES", 		TIC_BANK_SPRITES, 	offsetof(tic_bank, tiles), 			sizeof(tic_tile), 			true},
 	{"SPRITES", 	TIC_BANK_SPRITES, 	offsetof(tic_bank, sprites), 		sizeof(tic_tile), 			true},
 	{"MAP", 		TIC_MAP_HEIGHT, 	offsetof(tic_bank, map), 			TIC_MAP_WIDTH, 				true},
-	{"WAVES", 		ENVELOPES_COUNT, 	offsetof(tic_bank, sfx.waveform), 	sizeof(tic_waveform), 		true},
+	{"WAVES", 		WAVES_COUNT, 		offsetof(tic_bank, sfx.waveforms), 	sizeof(tic_waveform), 		true},
 	{"SFX", 		SFX_COUNT, 			offsetof(tic_bank, sfx.samples), 	sizeof(tic_sample), 		true},
 	{"PATTERNS", 	MUSIC_PATTERNS, 	offsetof(tic_bank, music.patterns), sizeof(tic_track_pattern), 	true},
 	{"TRACKS", 		MUSIC_TRACKS, 		offsetof(tic_bank, music.tracks), 	sizeof(tic_track), 			true},
@@ -2272,10 +2272,10 @@ static void printTable(Console* console, const char* text)
 			case '+':
 			case '|':
 			case '-':
-				color = (tic_color_gray);
+				color = CONSOLE_BACK_TEXT_COLOR;
 				break;
 			default:
-				color = (tic_color_white);
+				color = CONSOLE_FRONT_TEXT_COLOR;
 			}
 
 			*(console->colorBuffer + offset) = color;
@@ -2319,7 +2319,7 @@ static void onConsoleRamCommand(Console* console, const char* param)
 		{offsetof(tic_ram, input.keyboard),				"KEYBOARD"},
 		{offsetof(tic_ram, unknown), 					"..."},
 		{offsetof(tic_ram, registers), 					"SOUND REGISTERS"},
-		{offsetof(tic_ram, sfx.waveform), 				"WAVEFORMS"},
+		{offsetof(tic_ram, sfx.waveforms), 				"WAVEFORMS"},
 		{offsetof(tic_ram, sfx.samples),				"SFX"},
 		{offsetof(tic_ram, music.patterns.data), 		"MUSIC PATTERNS"},
 		{offsetof(tic_ram, music.tracks.data), 			"MUSIC TRACKS"},
@@ -2642,7 +2642,7 @@ static void processConsoleCommand(Console* console)
 
 static void error(Console* console, const char* info)
 {
-	consolePrint(console, info ? info : "unknown error", (tic_color_red));
+	consolePrint(console, info ? info : "unknown error", CONSOLE_ERROR_TEXT_COLOR);
 	commandDone(console);
 }
 
@@ -2698,7 +2698,7 @@ static NetVersion netVersionRequest()
 	{
 		.major = TIC_VERSION_MAJOR,
 		.minor = TIC_VERSION_MINOR,
-		.patch = TIC_VERSION_PATCH,
+		.patch = TIC_VERSION_REVISION,
 	};
 
 	s32 size = 0;
@@ -2737,11 +2737,11 @@ static void checkNewVersion(Console* console)
 
 	if((version.major > TIC_VERSION_MAJOR) ||
 		(version.major == TIC_VERSION_MAJOR && version.minor > TIC_VERSION_MINOR) ||
-		(version.major == TIC_VERSION_MAJOR && version.minor == TIC_VERSION_MINOR && version.patch > TIC_VERSION_PATCH))
+		(version.major == TIC_VERSION_MAJOR && version.minor == TIC_VERSION_MINOR && version.patch > TIC_VERSION_REVISION))
 	{
 		char msg[FILENAME_MAX] = {0};
 		sprintf(msg, "\n A new version %i.%i.%i is available.\n", version.major, version.minor, version.patch);
-		consolePrint(console, msg, (tic_color_light_green));
+		consolePrint(console, msg, CONSOLE_BACK_TEXT_COLOR);
 	}
 }
 

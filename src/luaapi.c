@@ -1048,7 +1048,7 @@ static s32 lua_trace(lua_State *lua)
 	if(top >= 1)
 	{
 		const char* text = printString(lua, 1);
-		u8 color = tic_color_white;
+		u8 color = tic_color_12;
 
 		if(top >= 2)
 		{
@@ -1121,8 +1121,10 @@ static s32 lua_mouse(lua_State *lua)
 	lua_pushboolean(lua, mouse->left);
 	lua_pushboolean(lua, mouse->middle);
 	lua_pushboolean(lua, mouse->right);
+	lua_pushinteger(lua, mouse->scrollx);
+	lua_pushinteger(lua, mouse->scrolly);
 
-	return 5;
+	return 7;
 }
 
 static s32 lua_dofile(lua_State *lua)

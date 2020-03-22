@@ -1,5 +1,8 @@
 language: c
 
+git:
+  depth: false
+  
 before_install:
   - BUILDS_SERVER_PATH=${BUILD_SERVER}/files/$TRAVIS_BRANCH/$(date +%Y.%m.%d)/$OS_FOLDER
 script:

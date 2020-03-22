@@ -19,11 +19,11 @@
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
-  <string>0.70.6</string>
+  <string>@VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_REVISION@</string>
   <key>CFBundleVersion</key>
-  <string>0.70.6</string>
+  <string>@VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_REVISION@</string>
   <key>NSHumanReadableCopyright</key>
-  <string>http://tic.computer © 2017</string>
+  <string>https://tic80.com © 2019</string>
   <key>NSHighResolutionCapable</key>
   <true/>
 </dict>

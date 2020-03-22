@@ -549,7 +549,7 @@ static duk_ret_t duk_trace(duk_context* duk)
 	tic_machine* machine = getDukMachine(duk);
 
 	const char* text = duk_is_null_or_undefined(duk, 0) ? "" : duk_to_string(duk, 0);
-	u8 color = duk_is_null_or_undefined(duk, 1) ? tic_color_white : duk_to_int(duk, 1);
+	u8 color = duk_is_null_or_undefined(duk, 1) ? tic_color_12 : duk_to_int(duk, 1);
 
 	machine->data->trace(machine->data->data, text ? text : "nil", color);
 
@@ -644,6 +644,10 @@ static duk_ret_t duk_mouse(duk_context* duk)
 	duk_put_prop_index(duk, idx, 3);
 	duk_push_boolean(duk, mouse->right);
 	duk_put_prop_index(duk, idx, 4);
+	duk_push_int(duk, mouse->scrollx);
+	duk_put_prop_index(duk, idx, 5);
+	duk_push_int(duk, mouse->scrolly);
+	duk_put_prop_index(duk, idx, 6);
 
 	return 1;
 }
