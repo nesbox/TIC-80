@@ -859,7 +859,15 @@ void drawBitIcon(s32 x, s32 y, const u8* ptr, u8 color)
 	for(s32 i = 0; i < TIC_SPRITESIZE; i++, ptr++)
 		for(s32 col = 0; col < TIC_SPRITESIZE; col++)
 			if(*ptr & 1 << col)
-				impl.studio.tic->api.pixel(impl.studio.tic, x + TIC_SPRITESIZE - col - 1, y + i, color);
+				impl.studio.tic->api.pixel(impl.studio.tic, x - col + (TIC_SPRITESIZE - 1), y + i, color);
+}
+
+void drawBitIcon16(tic_mem* tic, s32 x, s32 y, const u16* ptr, u8 color)
+{
+	for(s32 i = 0; i < TIC_SPRITESIZE*2; i++, ptr++)
+		for(s32 col = 0; col < TIC_SPRITESIZE*2; col++)
+			if(*ptr & 1 << col)
+				tic->api.pixel(tic, x - col + (TIC_SPRITESIZE*2 - 1), y + i, color);
 }
 
 static void initWorldMap()
@@ -1738,7 +1746,7 @@ static void studioTick()
 				overline = sprite->overline;
 				scanline = sprite->scanline;
 				data = sprite;
-				memcpy(&tic->ram.vram.palette, getBankPalette(), sizeof(tic_palette));
+				memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.data, sizeof(tic_palette));
 			}
 			break;
 		case TIC_MAP_MODE:

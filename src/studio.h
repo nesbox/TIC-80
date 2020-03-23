@@ -63,6 +63,14 @@
 #define PROJECT_SQUIRREL_EXT ".nut"
 #define PROJECT_FENNEL_EXT ".fnl"
 
+#define SHOW_TOOLTIP(FORMAT, ...) 			\
+{ 											\
+	static const char Format[] = FORMAT; 	\
+	char buf[sizeof Format]; 				\
+	sprintf(buf, Format, __VA_ARGS__); 		\
+	showTooltip(buf); 						\
+}
+
 typedef enum
 {
 	TIC_START_MODE,
@@ -99,6 +107,7 @@ bool checkMouseDown(const tic_rect* rect, tic_mouse_btn button);
 
 void drawToolbar(tic_mem* tic, bool bg);
 void drawBitIcon(s32 x, s32 y, const u8* ptr, u8 color);
+void drawBitIcon16(tic_mem* tic, s32 x, s32 y, const u16* ptr, u8 color);
 
 void studioRomLoaded();
 void studioRomSaved();

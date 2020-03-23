@@ -31,7 +31,7 @@ struct Dialog
 	tic_mem* tic;
 
 	bool init;
-	void* bg;
+	// void* bg;
 	DialogCallback callback;
 	void* data;
 	const char** text;
