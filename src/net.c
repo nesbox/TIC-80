@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#ifndef DISABLE_NETWORKING
 #include <curl/curl.h>
 
 struct Net
@@ -50,9 +51,13 @@ static size_t writeCallback(void *contents, size_t size, size_t nmemb, void *use
 
 	return total;
 }
+#endif
 
 void* netGetRequest(Net* net, const char* path, s32* size)
 {
+#ifdef DISABLE_NETWORKING
+	return NULL;
+#else
 	CurlData data = {NULL, 0};
 
 	if(net->curl)
@@ -70,10 +75,14 @@ void* netGetRequest(Net* net, const char* path, s32* size)
 	*size = data.size;
 
     return data.buffer;
+#endif
 }
 
 Net* createNet()
 {
+#ifdef DISABLE_NETWORKING
+	return NULL;
+#else
 	Net* net = (Net*)malloc(sizeof(Net));
 
 	*net = (Net)
@@ -84,12 +93,15 @@ Net* createNet()
 	curl_easy_setopt(net->curl, CURLOPT_WRITEFUNCTION, writeCallback);
 
 	return net;
+#endif
 }
 
 void closeNet(Net* net)
 {
+#ifndef DISABLE_NETWORKING
 	if(net->curl)
 		curl_easy_cleanup(net->curl);
 
 	free(net);
+#endif
 }
