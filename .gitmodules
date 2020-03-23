@@ -1,4 +1,39 @@
-[submodule "3rd-party"]
-	path = 3rd-party
-	url = https://github.com/nesbox/3rd-party.git
-	ignore = all
+[submodule "vendor/blip-buf"]
+	path = vendor/blip-buf
+	url = https://github.com/nesbox/blip-buf.git
+[submodule "vendor/curl"]
+	path = vendor/curl
+	url = https://github.com/nesbox/curl.git
+[submodule "vendor/dirent"]
+	path = vendor/dirent
+	url = https://github.com/tronkko/dirent.git
+[submodule "vendor/duktape"]
+	path = vendor/duktape
+	url = https://github.com/svaarala/duktape-releases.git
+[submodule "vendor/giflib"]
+	path = vendor/giflib
+	url = https://github.com/nesbox/giflib.git
+[submodule "vendor/lpeg"]
+	path = vendor/lpeg
+	url = https://github.com/nesbox/lpeg.git
+[submodule "vendor/lua"]
+	path = vendor/lua
+	url = https://github.com/lua/lua.git
+[submodule "vendor/sdl-gpu"]
+	path = vendor/sdl-gpu
+	url = https://github.com/grimfang4/sdl-gpu.git
+[submodule "vendor/sdl2"]
+	path = vendor/sdl2
+	url = https://github.com/SDL-mirror/SDL.git
+[submodule "vendor/sokol"]
+	path = vendor/sokol
+	url = https://github.com/floooh/sokol.git
+[submodule "vendor/squirrel"]
+	path = vendor/squirrel
+	url = https://github.com/albertodemichelis/squirrel.git
+[submodule "vendor/wren"]
+	path = vendor/wren
+	url = https://github.com/wren-lang/wren.git
+[submodule "vendor/zlib"]
+	path = vendor/zlib
+	url = https://github.com/madler/zlib.git

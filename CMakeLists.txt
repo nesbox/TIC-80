@@ -155,7 +155,7 @@ else()
 
 endif()
 
-set(THIRDPARTY_DIR ${CMAKE_SOURCE_DIR}/3rd-party)
+set(THIRDPARTY_DIR ${CMAKE_SOURCE_DIR}/vendor)
 
 ################################
 # LUA

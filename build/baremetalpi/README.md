@@ -31,7 +31,7 @@ cd TIC-80
 Clone circle/circle-stdlib:
 
 ```
-cd 3rd-party
+cd vendor
 git clone --recursive https://github.com/smuehlst/circle-stdlib.git
 ```
 

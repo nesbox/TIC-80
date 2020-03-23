@@ -1,0 +1,12 @@
+sdl2/CMakeFiles/
+sdl2/include/SDL_config.h
+sdl2/wayland-generated-protocols/
+sdl2/sdl2-config
+sdl2/sdl2.pc
+sdl2/Makefile
+zlib/CMakeFiles/
+zlib/zlib.pc
+*.cmake
+*.tlog
+*.obj
+*.filters
