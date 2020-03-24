@@ -756,11 +756,11 @@ void drawToolbar(tic_mem* tic, bool bg)
 	{
 		if(strlen(impl.tooltip.text))
 		{
-			impl.studio.tic->api.text(tic, impl.tooltip.text, TextOffset, 1, tic_color_14, false);
+			impl.studio.tic->api.text(tic, impl.tooltip.text, TextOffset, 1, tic_color_15, false);
 		}
 		else
 		{
-			impl.studio.tic->api.text(tic, Names[mode], TextOffset, 1, tic_color_15, false);
+			impl.studio.tic->api.text(tic, Names[mode], TextOffset, 1, tic_color_14, false);
 		}
 	}
 }

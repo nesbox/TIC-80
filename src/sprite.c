@@ -1057,6 +1057,7 @@ static void drawPaletteOvr(Sprite* sprite, s32 x, s32 y)
 			0b0000000000000000,
 			0b0000000000000000,
 			0b0000000000000000,
+			0b0000000000000000,
 		};
 
 		s32 offsetX = x + (sprite->color2 % PALETTE_COLS) * PALETTE_CELL_SIZE;

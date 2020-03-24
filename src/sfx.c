@@ -104,12 +104,7 @@ static void drawCanvasLeds(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
 		default: break;
 		}
 
-		{
-			static const char Format[] = "[x:%02i y:%02i]";
-			char buf[sizeof Format];
-			sprintf(buf, Format, mx, vy);
-			showTooltip(buf);
-		}
+		SHOW_TOOLTIP("[x=%02i y=%02i]", mx, vy);
 
 		if(checkMouseDown(&rect, tic_mouse_left))
 		{
@@ -569,12 +564,7 @@ static void drawWaves(Sfx* sfx, s32 x, s32 y)
 
 			hover = true;
 
-			{
-				static const char Format[] = "select wave #%02i";
-				char buf[sizeof Format];
-				sprintf(buf, Format, i);
-				showTooltip(buf);
-			}
+			SHOW_TOOLTIP("select wave #%02i", i);
 
 			if(checkMouseClick(&rect, tic_mouse_left))
 			{
@@ -652,12 +642,7 @@ static void drawWavePanel(Sfx* sfx, s32 x, s32 y)
 			s32 cx = (getMouseX() - rect.x) / Scale;
 			s32 cy = MaxValue - (getMouseY() - rect.y) / Scale;
 
-			{
-				static const char Format[] = "[x=%02i y=%02i]";
-				char buf[sizeof Format];
-				sprintf(buf, Format, cx, cy);
-				showTooltip(buf);
-			}
+			SHOW_TOOLTIP("[x=%02i y=%02i]", cx, cy);
 
 			enum {Border = 1};
 			tic->api.rect_border(tic, rect.x + cx*Scale - Border, 
@@ -744,10 +729,7 @@ static void drawPianoOctave(Sfx* sfx, s32 x, s32 y, s32 octave)
 
 				{
 					static const char* Notes[] = SFX_NOTES;
-					static const char Format[] = "play %s%i note";
-					char buf[sizeof Format];
-					sprintf(buf, Format, Notes[btn->note], octave + 1);
-					showTooltip(buf);
+					SHOW_TOOLTIP("play %s%i note", Notes[btn->note], octave + 1)
 				}
 
 				if(checkMouseDown(&rect, tic_mouse_left))
@@ -821,12 +803,7 @@ static void drawSpeedPanel(Sfx* sfx, s32 x, s32 y)
 		s32 spd = (getMouseX() - rect.x) / ColWidthGap;
 		hover = spd;
 
-		{
-			static const char Format[] = "set speed to %i";
-			char buf[sizeof Format];
-			sprintf(buf, Format, spd);
-			showTooltip(buf);
-		}
+		SHOW_TOOLTIP("set speed to %i", spd);
 
 		if(checkMouseDown(&rect, tic_mouse_left))
 		{
@@ -868,12 +845,7 @@ static void drawSelectorPanel(Sfx* sfx, s32 x, s32 y)
 						setCursor(tic_cursor_hand);
 						hover = i;
 
-						{
-							static const char Format[] = "edit sfx #%02i";
-							char buf[sizeof Format];
-							sprintf(buf, Format, hover);
-							showTooltip(buf);
-						}
+						SHOW_TOOLTIP("edit sfx #%02i", hover);
 
 						if(checkMouseClick(&rect, tic_mouse_left))
 							sfx->index = i;
