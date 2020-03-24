@@ -1746,7 +1746,6 @@ static void studioTick()
 				overline = sprite->overline;
 				scanline = sprite->scanline;
 				data = sprite;
-				memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.data, sizeof(tic_palette));
 			}
 			break;
 		case TIC_MAP_MODE:
@@ -1755,13 +1754,19 @@ static void studioTick()
 				overline = map->overline;
 				scanline = map->scanline;
 				data = map;
-				memcpy(&tic->ram.vram.palette, getBankPalette(), sizeof(tic_palette));
 			}
 			break;
-		default:
-			memcpy(&tic->ram.vram.palette, &impl.config->cart.bank0.palette, sizeof(tic_palette));
+		case TIC_WORLD_MODE:
+			{
+				overline = impl.world->overline;
+				scanline = impl.world->scanline;
+				data = impl.world;
+			}
 			break;
 		}
+
+		if(impl.mode != TIC_RUN_MODE)
+			memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.data, sizeof(tic_palette));
 
 		tic->api.blit(tic, scanline, overline, data);
 

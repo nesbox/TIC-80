@@ -81,6 +81,17 @@ static void tick(World* world)
 	if(keyWasPressed(tic_key_tab)) setStudioMode(TIC_MAP_MODE);
 
 	memcpy(&world->tic->ram.vram, world->preview, PREVIEW_SIZE);
+}
+
+static void scanline(tic_mem* tic, s32 row, void* data)
+{
+	if(row == 0)
+		memcpy(&tic->ram.vram.palette, getBankPalette(), sizeof(tic_palette));
+}
+
+static void overline(tic_mem* tic, void* data)
+{
+	World* world = (World*)data;
 
 	drawGrid(world);
 }
@@ -96,6 +107,8 @@ void initWorld(World* world, tic_mem* tic, Map* map)
 		.map = map,
 		.tick = tick,
 		.preview = world->preview,
+		.overline = overline,
+		.scanline = scanline,
 	};
 
 	memset(world->preview, 0, PREVIEW_SIZE);
