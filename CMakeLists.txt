@@ -149,7 +149,7 @@ else()
 
     set(CMAKE_C_STANDARD 99)
 
-    if(EMSCRIPTEN)
+    if(EMSCRIPTEN AND NOT BUILD_LIBRETRO)
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2")
     endif()
 
