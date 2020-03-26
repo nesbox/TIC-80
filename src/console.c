@@ -511,7 +511,7 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 			};
 
 			demo = LuaDemoRom;
-			romSize = sizeof LuaDemoRom;			
+			romSize = sizeof LuaDemoRom;
 		}
 		break;
 
@@ -524,7 +524,7 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 			};
 
 			demo = MoonDemoRom;
-			romSize = sizeof MoonDemoRom;			
+			romSize = sizeof MoonDemoRom;
 		}
 		break;
 #	endif
@@ -569,7 +569,7 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 			};
 
 			demo = WrenDemoRom;
-			romSize = sizeof WrenDemoRom;			
+			romSize = sizeof WrenDemoRom;
 		}
 		break;
 #endif /* defined(TIC_BUILD_WITH_WREN) */
@@ -583,7 +583,7 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 			};
 
 			demo = SquirrelDemoRom;
-			romSize = sizeof SquirrelDemoRom;			
+			romSize = sizeof SquirrelDemoRom;
 		}
 		break;
 #endif /* defined(TIC_BUILD_WITH_SQUIRREL) */
@@ -1966,17 +1966,110 @@ static void onConsoleExportNativeCommand(Console* console, const char* cartName)
 	}
 }
 
+#include "zip.h"
+
+static void onConsoleExportHtmlCommand(Console* console, const char* cartName)
+{
+	tic_mem* tic = console->tic;
+
+	static const char ErrorMessage[] = "game not exported :(\n";
+
+	printBack(console, "\nexporting html...\n");
+
+	static const char HtmlName[] = TIC_CACHE "html.zip";
+	const char* name = fsGetFilePath(console->fs, HtmlName);
+
+	struct zip_t *zip = zip_open(name, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+
+	if(zip)
+	{
+		static const char* Files[] = {"tic80.js", "tic80.wasm"};
+
+		for(s32 i = 0; i < COUNT_OF(Files); i++)
+		{
+			char url[FILENAME_MAX] = "/js/";
+			strcat(url, Files[i]);
+
+			s32 size = 0;
+			void* buffer = getSystem()->getUrlRequest(url, &size);
+
+			if(buffer)
+			{
+				zip_entry_open(zip, Files[i]);
+				zip_entry_write(zip, buffer, size);
+				zip_entry_close(zip);				
+			}
+			else
+			{
+				printError(console, ErrorMessage);
+				break;
+			}
+		}
+
+		// save cart
+		{
+			void* cart = malloc(sizeof(tic_cartridge));
+
+			if(cart)
+			{
+				s32 cartSize = tic->api.save(&tic->cart, cart);
+
+				zip_entry_open(zip, "cart.tic");
+				zip_entry_write(zip, cart, cartSize);
+				zip_entry_close(zip);
+
+				free(cart);
+			}
+			else printError(console, ErrorMessage);
+		}
+
+		// save index.html
+		{
+			static const u8 Html[] =
+			{
+				#include "../build/assets/embed.html.dat"
+			};
+
+			u8* data = NULL;
+			s32 size = unzip(&data, Html, sizeof Html);
+
+			if(data)
+			{
+				zip_entry_open(zip, "index.html");
+				zip_entry_write(zip, data, size);
+				zip_entry_close(zip);
+
+				free(data);
+			}
+			else printError(console, ErrorMessage);
+		}
+
+		zip_close(zip);
+
+		{
+			s32 size = 0;
+			void* data = fsLoadRootFile(console->fs, HtmlName, &size);
+
+			if(data)
+				return fsGetFileData(onFileDownloaded, cartName, data, size, DEFAULT_CHMOD, console);
+			else printError(console, ErrorMessage);
+		}
+	}
+	else printError(console, ErrorMessage);
+
+	commandDone(console);
+}
+
 #endif
 
-static const char* getExportName(Console* console)
+static const char* getExportName(Console* console, const char* ext)
 {
 	static char name[FILENAME_MAX];
 
 	strcpy(name, strlen(console->romName) ? console->romName : "game");
 
-#if defined(__TIC_WINDOWS__)
-	strcat(name, ExeExt);
-#endif
+	if(ext)
+		strcat(name, ext);
 
 	return name;
 }
@@ -1985,15 +2078,33 @@ static void onConsoleExportCommand(Console* console, const char* param)
 {
 	if(param)
 	{
-		if(strcmp(param, "native") == 0)
+		if(strcmp(param, "native") == 0 || strcmp(param, "") == 0)
 		{
 #if defined(CAN_EXPORT)
-			onConsoleExportNativeCommand(console, getExportName(console));
+
+#if defined(__TIC_WINDOWS__)
+			const char* ext = ExeExt;
+#else			
+			const char* ext = NULL;
+#endif
+
+			const char* name = getExportName(console, ext);
+			onConsoleExportNativeCommand(console, name);
 #else
 
-			printBack(console, "\nnative export isn't supported on this platform\n");
+			printBack(console, "\ngame export isn't supported on this platform\n");
 			commandDone(console);
 #endif
+		}
+		else if(strcmp(param, "html") == 0)
+		{
+#if defined(CAN_EXPORT)
+			onConsoleExportHtmlCommand(console, getExportName(console, ".zip"));
+#else
+
+			printBack(console, "\nhtml export isn't supported on this platform\n");
+			commandDone(console);
+#endif			
 		}
 		else if(strcmp(param, "sprites") == 0)
 		{
@@ -2016,7 +2127,7 @@ static void onConsoleExportCommand(Console* console, const char* param)
 	}
 	else
 	{
-		printError(console, "\nhtml export not implemented\n");
+		printError(console, "\nplease, specify parameter\n");
 		commandDone(console);
 	}
 }

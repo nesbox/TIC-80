@@ -63,7 +63,7 @@ struct FileSystem
 	char work[FILENAME_MAX];
 };
 
-static const char* getFilePath(FileSystem* fs, const char* name)
+const char* fsGetFilePath(FileSystem* fs, const char* name)
 {
 	static char path[FILENAME_MAX] = {0};
 
@@ -400,7 +400,7 @@ void fsEnumFiles(FileSystem* fs, ListCallback callback, void* data)
 		return;
 	}
 
-	const char* path = getFilePath(fs, "");
+	const char* path = fsGetFilePath(fs, "");
 
 	enumFiles(fs, path, callback, data, true);
 	enumFiles(fs, path, callback, data, false);
@@ -414,14 +414,14 @@ bool fsDeleteDir(FileSystem* fs, const char* name)
 	return 0;
 #else
 #if defined(__TIC_WINRT__) || defined(__TIC_WINDOWS__)
-	const char* path = getFilePath(fs, name);
+	const char* path = fsGetFilePath(fs, name);
 
 	const fsString* pathString = utf8ToString(path);
 	bool result = tic_rmdir(pathString);
 	freeString(pathString);
 
 #else
-	bool result = rmdir(getFilePath(fs, name));
+	bool result = rmdir(fsGetFilePath(fs, name));
 #endif
 
 #if defined(__EMSCRIPTEN__)
@@ -439,7 +439,7 @@ bool fsDeleteFile(FileSystem* fs, const char* name)
 	// TODO BAREMETALPI
 	return false;
 #else
-	const char* path = getFilePath(fs, name);
+	const char* path = fsGetFilePath(fs, name);
 
 	const fsString* pathString = utf8ToString(path);
 	bool result = tic_remove(pathString);
@@ -471,7 +471,7 @@ static void onAddFile(const char* name, const u8* buffer, s32 size, void* data, 
 
 	if(name)
 	{
-		const char* destname = getFilePath(fs, name);
+		const char* destname = fsGetFilePath(fs, name);
 
 		const fsString* destString = utf8ToString(destname);
 		FILE* file = tic_fopen(destString, _S("rb"));
@@ -485,7 +485,7 @@ static void onAddFile(const char* name, const u8* buffer, s32 size, void* data, 
 		}
 		else
 		{
-			const char* path = getFilePath(fs, name);
+			const char* path = fsGetFilePath(fs, name);
 
 			const fsString* pathString = utf8ToString(path);
 			FILE* dest = tic_fopen(pathString, _S("wb"));
@@ -555,7 +555,7 @@ static u32 fsGetMode(FileSystem* fs, const char* name)
 #if defined(__TIC_WINRT__) || defined(__TIC_WINDOWS__)
 	return 0;
 #else
-	const char* path = getFilePath(fs, name);
+	const char* path = fsGetFilePath(fs, name);
 	mode_t mode = 0;
 	struct stat s;
 	if(stat(path, &s) == 0)
@@ -658,7 +658,7 @@ bool fsIsDir(FileSystem* fs, const char* name)
 		return enumPublicDirsData.found;
 	}
 
-	const char* path = getFilePath(fs, name);
+	const char* path = fsGetFilePath(fs, name);
 	struct tic_stat_struct s;
 	const fsString* pathString = utf8ToString(path);
 	bool ret = tic_stat(pathString, &s) == 0 && S_ISDIR(s.st_mode);
@@ -999,7 +999,7 @@ bool fsExists(const char* name)
 
 bool fsExistsFile(FileSystem* fs, const char* name)
 {
-	return fsExists(getFilePath(fs, name));
+	return fsExists(fsGetFilePath(fs, name));
 }
 
 u64 fsMDate(FileSystem* fs, const char* name)
@@ -1011,7 +1011,7 @@ u64 fsMDate(FileSystem* fs, const char* name)
 #else
 	struct tic_stat_struct s;
 
-	const fsString* pathString = utf8ToString(getFilePath(fs, name));
+	const fsString* pathString = utf8ToString(fsGetFilePath(fs, name));
 	s32 ret = tic_stat(pathString, &s);
 	freeString(pathString);
 
@@ -1032,7 +1032,7 @@ bool fsSaveFile(FileSystem* fs, const char* name, const void* data, size_t size,
 			return false;
 	}
 
-	return fsWriteFile(getFilePath(fs, name), data, size);
+	return fsWriteFile(fsGetFilePath(fs, name), data, size);
 }
 
 bool fsSaveRootFile(FileSystem* fs, const char* name, const void* data, size_t size, bool overwrite)
@@ -1108,7 +1108,7 @@ void* fsLoadFile(FileSystem* fs, const char* name, s32* size)
 	else
 	{
 		dbg("non public \n");
-		const char* fp = getFilePath(fs, name);
+		const char* fp = fsGetFilePath(fs, name);
 		dbg("loading: %s\n", fp);
 
 
@@ -1164,7 +1164,7 @@ void* fsLoadFile(FileSystem* fs, const char* name, s32* size)
 	}
 	else
 	{
-		const fsString* pathString = utf8ToString(getFilePath(fs, name));
+		const fsString* pathString = utf8ToString(fsGetFilePath(fs, name));
 		FILE* file = tic_fopen(pathString, _S("rb"));
 		freeString(pathString);
 
@@ -1205,12 +1205,12 @@ void* fsLoadRootFile(FileSystem* fs, const char* name, s32* size)
 
 void fsMakeDir(FileSystem* fs, const char* name)
 {
-	makeDir(getFilePath(fs, name));
+	makeDir(fsGetFilePath(fs, name));
 }
 
 void fsOpenWorkingFolder(FileSystem* fs)
 {
-	const char* path = getFilePath(fs, "");
+	const char* path = fsGetFilePath(fs, "");
 
 	if(isPublic(fs))
 		path = fs->dir;

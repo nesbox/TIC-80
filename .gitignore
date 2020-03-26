@@ -19,7 +19,6 @@ build/itch.io/console.zip
 build/uwp/code8/ARM/
 build/uwp/code8/x64/
 build/uwp/code8/code8.VC.db
-embed.html
 build/uwp/code8/Release/
 build/uwp/code8/AppPackages/code8/code8_0.0.3.0_Test/
 build/uwp/code8/BundleArtifacts/

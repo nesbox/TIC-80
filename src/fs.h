@@ -57,6 +57,7 @@ bool fsSaveRootFile(FileSystem* fs, const char* name, const void* data, size_t s
 void* fsLoadFile(FileSystem* fs, const char* name, s32* size);
 void* fsLoadFileByHash(FileSystem* fs, const char* hash, s32* size);
 void* fsLoadRootFile(FileSystem* fs, const char* name, s32* size);
+const char* fsGetFilePath(FileSystem* fs, const char* name);
 void fsMakeDir(FileSystem* fs, const char* name);
 bool fsExistsFile(FileSystem* fs, const char* name);
 u64 fsMDate(FileSystem* fs, const char* name);

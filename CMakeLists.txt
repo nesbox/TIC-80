@@ -604,6 +604,13 @@ add_library(zlib STATIC ${ZLIB_SRC})
 target_include_directories(zlib INTERFACE ${THIRDPARTY_DIR}/zlib)
 
 ################################
+# ZIP
+################################
+
+set(CMAKE_DISABLE_TESTING ON CACHE BOOL "" FORCE)
+add_subdirectory(${THIRDPARTY_DIR}/zip)
+
+################################
 # bin2txt
 ################################
 
@@ -621,6 +628,7 @@ if(BUILD_DEMO_CARTS)
 
     list(APPEND DEMO_CARTS 
         ${CMAKE_SOURCE_DIR}/config.tic
+        ${CMAKE_SOURCE_DIR}/build/html/embed.html
     )
 
     set(DEMO_CARTS_OUT)
@@ -684,7 +692,7 @@ target_include_directories(${TIC80_OUTPUT}lib PRIVATE
     ${CMAKE_SOURCE_DIR}/include
     ${THIRDPARTY_DIR}/curl/include)
 
-target_link_libraries(${TIC80_OUTPUT}lib tic80core zlib libcurl)
+target_link_libraries(${TIC80_OUTPUT}lib tic80core zlib libcurl zip)
 
 if(BUILD_PRO)
     target_compile_definitions(tic80lib PRIVATE TIC80_PRO)

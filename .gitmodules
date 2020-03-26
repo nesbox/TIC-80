@@ -37,3 +37,6 @@
 [submodule "vendor/zlib"]
 	path = vendor/zlib
 	url = https://github.com/madler/zlib.git
+[submodule "vendor/zip"]
+	path = vendor/zip
+	url = https://github.com/kuba--/zip.git
