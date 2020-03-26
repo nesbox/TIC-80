@@ -134,7 +134,9 @@ endif()
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+if (NOT DEFINED CMAKE_POSITION_INDEPENDENT_CODE)
+  set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
 
 if(MSVC)
 
@@ -168,7 +170,7 @@ else()
 
 endif()
 
-set(THIRDPARTY_DIR ${CMAKE_SOURCE_DIR}/3rd-party)
+set(THIRDPARTY_DIR ${CMAKE_SOURCE_DIR}/vendor)
 
 ################################
 # LUA
@@ -527,6 +529,10 @@ if(BUILD_LIBRETRO)
 
     if(ANDROID)
         set_target_properties(tic80_libretro PROPERTIES SUFFIX "_android.so")
+    endif()
+
+    if(EMSCRIPTEN)
+        set_target_properties(tic80_libretro PROPERTIES SUFFIX "_emscripten.bc")
     endif()
 
     # MSYS2 builds libretro to ./bin, despite it being a DLL. This forces it to ./lib.

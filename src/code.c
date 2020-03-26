@@ -980,18 +980,21 @@ static void processKeyboard(Code* code)
 
 	if(tic->ram.input.keyboard.data == 0) return;
 
+	bool usedClipboard = true;
+
 	switch(getClipboardEvent(0))
 	{
 	case TIC_CLIPBOARD_CUT: cutToClipboard(code); break;
 	case TIC_CLIPBOARD_COPY: copyToClipboard(code); break;
 	case TIC_CLIPBOARD_PASTE: copyFromClipboard(code); break;
-	default: break;
+	default: usedClipboard = false; break;
 	}
 
 	bool shift = tic->api.key(tic, tic_key_shift);
 	bool ctrl = tic->api.key(tic, tic_key_ctrl);
 	bool alt = tic->api.key(tic, tic_key_alt);
 
+	bool changedSelection = false;
 	if(keyWasPressed(tic_key_up)
 		|| keyWasPressed(tic_key_down)
 		|| keyWasPressed(tic_key_left)
@@ -1003,7 +1006,10 @@ static void processKeyboard(Code* code)
 	{
 		if(!shift) code->cursor.selection = NULL;
 		else if(code->cursor.selection == NULL) code->cursor.selection = code->cursor.position;
+		changedSelection = true;
 	}
+
+	bool usedKeybinding = true;
 
 	if(ctrl)
 	{
@@ -1021,11 +1027,13 @@ static void processKeyboard(Code* code)
 		else if(keyWasPressed(tic_key_end)) 		goCodeEnd(code);
 		else if(keyWasPressed(tic_key_delete)) 		deleteWord(code);
 		else if(keyWasPressed(tic_key_backspace)) 	backspaceWord(code);
+		else 										usedKeybinding = false;
 	}
 	else if(alt)
 	{
 		if(keyWasPressed(tic_key_left)) 		leftWord(code);
 		else if(keyWasPressed(tic_key_right)) 	rightWord(code);
+		else 									usedKeybinding = false;
 	}
 	else
 	{
@@ -1041,9 +1049,10 @@ static void processKeyboard(Code* code)
 		else if(keyWasPressed(tic_key_backspace)) 	backspaceChar(code);
 		else if(keyWasPressed(tic_key_return)) 		newLine(code);
 		else if(keyWasPressed(tic_key_tab)) 		doTab(code, shift, ctrl);
+		else 										usedKeybinding = false;
 	}
 
-	updateEditor(code);
+	if(usedClipboard || changedSelection || usedKeybinding) updateEditor(code);
 }
 
 static void processMouse(Code* code)

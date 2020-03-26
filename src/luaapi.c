@@ -33,6 +33,8 @@
 
 #define LUA_LOC_STACK 1E8 // 100.000.000
 
+static const char TicMachine[] = "_TIC80";
+
 s32 luaopen_lpeg(lua_State *lua);
 
 // !TODO: get rid of this wrap
@@ -47,10 +49,12 @@ static void registerLuaFunction(tic_machine* machine, lua_CFunction func, const 
 	lua_setglobal(machine->lua, name);
 }
 
-static tic_machine* CurrentMachine = NULL;
-static inline tic_machine* getLuaMachine(lua_State* lua)
+static tic_machine* getLuaMachine(lua_State* lua)
 {
-	return CurrentMachine;
+	lua_getglobal(lua, TicMachine);
+	tic_machine* machine = lua_touserdata(lua, -1);
+	lua_pop(lua, 1);
+	return machine;
 }
 
 static s32 lua_peek(lua_State* lua)
@@ -1187,7 +1191,8 @@ static void checkForceExit(lua_State *lua, lua_Debug *luadebug)
 
 static void initAPI(tic_machine* machine)
 {
-	CurrentMachine = machine;
+	lua_pushlightuserdata(machine->lua, machine);
+	lua_setglobal(machine->lua, TicMachine);
 
 	for (s32 i = 0; i < COUNT_OF(ApiFunc); i++)
 		if (ApiFunc[i])
@@ -1207,7 +1212,6 @@ static void closeLua(tic_mem* tic)
 	{
 		lua_close(machine->lua);
 		machine->lua = NULL;
-		CurrentMachine = NULL;
 	}
 }
 
