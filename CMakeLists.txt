@@ -148,11 +148,6 @@ if(MSVC)
 else()
 
     set(CMAKE_C_STANDARD 99)
-
-    if(EMSCRIPTEN)
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2")
-    endif()
-
 endif()
 
 set(THIRDPARTY_DIR ${CMAKE_SOURCE_DIR}/vendor)
@@ -755,7 +750,8 @@ if(BUILD_SDL)
     endif()
 
     if(EMSCRIPTEN)
-        set_target_properties(${TIC80_OUTPUT} PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s TOTAL_MEMORY=67108864 --pre-js ${CMAKE_SOURCE_DIR}/build/html/prejs.js")     
+        set_target_properties(${TIC80_OUTPUT} PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s TOTAL_MEMORY=67108864 --pre-js ${CMAKE_SOURCE_DIR}/build/html/prejs.js")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2")
     elseif(NOT ANDROID)
         target_link_libraries(${TIC80_OUTPUT} SDL2main)
     endif()
