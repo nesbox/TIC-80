@@ -1980,33 +1980,41 @@ static void onConsoleExportHtmlCommand(Console* console, const char* cartName)
 	const char* name = fsGetFilePath(console->fs, HtmlName);
 
 	struct zip_t *zip = zip_open(name, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+	bool errorOccured = false;
 
 	if(zip)
 	{
-		static const char* Files[] = {"tic80.js", "tic80.wasm"};
+		// download and save wasm code
+		static struct{void* buffer; s32 size; const char* name;} Files[] = 
+		{
+			{NULL, 0, "tic80.js"},
+			{NULL, 0, "tic80.wasm"},
+		};
 
 		for(s32 i = 0; i < COUNT_OF(Files); i++)
 		{
-			char url[FILENAME_MAX] = "/js/";
-			strcat(url, Files[i]);
-
-			s32 size = 0;
-			void* buffer = getSystem()->getUrlRequest(url, &size);
-
-			if(buffer)
+			if(!Files[i].buffer)
 			{
-				zip_entry_open(zip, Files[i]);
-				zip_entry_write(zip, buffer, size);
-				zip_entry_close(zip);				
+				char url[FILENAME_MAX] = "/js/";
+				strcat(url, Files[i].name);
+				Files[i].buffer = getSystem()->getUrlRequest(url, &Files[i].size);
+			}
+
+			if(Files[i].buffer)
+			{
+				zip_entry_open(zip, Files[i].name);
+				zip_entry_write(zip, Files[i].buffer, Files[i].size);
+				zip_entry_close(zip);
 			}
 			else
 			{
-				printError(console, ErrorMessage);
+				errorOccured = true;
 				break;
 			}
 		}
 
 		// save cart
+		if(!errorOccured)
 		{
 			void* cart = malloc(sizeof(tic_cartridge));
 
@@ -2020,10 +2028,11 @@ static void onConsoleExportHtmlCommand(Console* console, const char* cartName)
 
 				free(cart);
 			}
-			else printError(console, ErrorMessage);
+			else errorOccured = true;
 		}
 
 		// save index.html
+		if(!errorOccured)
 		{
 			static const u8 Html[] =
 			{
@@ -2041,21 +2050,25 @@ static void onConsoleExportHtmlCommand(Console* console, const char* cartName)
 
 				free(data);
 			}
-			else printError(console, ErrorMessage);
+			else errorOccured = true;
 		}
 
 		zip_close(zip);
 
+		if(!errorOccured)
 		{
 			s32 size = 0;
 			void* data = fsLoadRootFile(console->fs, HtmlName, &size);
 
 			if(data)
 				return fsGetFileData(onFileDownloaded, cartName, data, size, DEFAULT_CHMOD, console);
-			else printError(console, ErrorMessage);
+			else errorOccured = true;
 		}
 	}
-	else printError(console, ErrorMessage);
+	else errorOccured = true;
+
+	if(errorOccured)
+		printError(console, ErrorMessage);
 
 	commandDone(console);
 }
