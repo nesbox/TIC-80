@@ -26,8 +26,8 @@
 #include <limits.h>
 
 #include "system.h"
-#include "net.h"
 #include "system/sokol.h"
+#include "net.h"
 
 static struct
 {
@@ -86,9 +86,14 @@ static u64 getPerformanceFrequency()
 	return 1000;
 }
 
-static void* getUrlRequest(const char* url, s32* size)
+static void* httpGetSync(const char* url, s32* size)
 {
-	return netGetRequest(platform.net, url, size);
+	return netGetSync(platform.net, url, size);
+}
+
+static void httpGet(const char* url, HttpGetCallback callback, void* calldata)
+{
+	return netGet(platform.net, url, callback, calldata);
 }
 
 static void goFullscreen()
@@ -139,7 +144,8 @@ static System systemInterface =
 	.getPerformanceCounter = getPerformanceCounter,
 	.getPerformanceFrequency = getPerformanceFrequency,
 
-	.getUrlRequest = getUrlRequest,
+	.httpGetSync = httpGetSync,
+	.httpGet = httpGet,
 
 	.fileDialogLoad = file_dialog_load,
 	.fileDialogSave = file_dialog_save,

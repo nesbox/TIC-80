@@ -8,6 +8,42 @@
 
 typedef struct
 {
+	enum
+	{
+		HttpGetProgress,
+		HttpGetDone,
+		HttpGetError,
+	} type;
+
+	union
+	{
+		struct
+		{
+			s32 size;
+			s32 total;
+		} progress;
+
+		struct
+		{
+			s32 size;
+			u8* data;
+		} done;
+
+		struct
+		{
+			s32 code;
+		} error;
+	};
+
+	void* calldata;
+	const char* url;
+
+} HttpGetData;
+
+typedef void(*HttpGetCallback)(const HttpGetData*);
+
+typedef struct
+{
 	void	(*setClipboardText)(const char* text);
 	bool	(*hasClipboardText)();
 	char* 	(*getClipboardText)();
@@ -16,7 +52,8 @@ typedef struct
 	u64 	(*getPerformanceCounter)();
 	u64 	(*getPerformanceFrequency)();
 
-	void* (*getUrlRequest)(const char* url, s32* size);
+	void* (*httpGetSync)(const char* url, s32* size);
+	void (*httpGet)(const char* url, HttpGetCallback callback, void* userdata);
 
 	void (*fileDialogLoad)(file_dialog_load_callback callback, void* data);
 	void (*fileDialogSave)(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode);

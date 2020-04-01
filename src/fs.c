@@ -304,7 +304,7 @@ static void netDirRequest(const char* path, ListCallback callback, void* data)
 	sprintf(request, "/api?fn=dir&path=%s", path);
 
 	s32 size = 0;
-	void* buffer = getSystem()->getUrlRequest(request, &size);
+	void* buffer = getSystem()->httpGetSync(request, &size);
 
 	NetDirData netDirData = {callback, data};
 	onDirResponse(buffer, size, &netDirData);
@@ -1084,7 +1084,7 @@ void* fsLoadFileByHash(FileSystem* fs, const char* hash, s32* size)
 
 	char path[FILENAME_MAX] = {0};
 	sprintf(path, "/cart/%s/cart.tic", hash);
-	void* data = getSystem()->getUrlRequest(path, size);
+	void* data = getSystem()->httpGetSync(path, size);
 
 	if(data)
 		fsSaveRootFile(fs, cachePath, data, *size, false);

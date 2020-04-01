@@ -21,8 +21,8 @@
 // SOFTWARE.
 
 #include "system.h"
-#include "net.h"
 #include "tools.h"
+#include "net.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1333,9 +1333,14 @@ static void openSystemPath(const char* path) {}
 
 #endif
 
-static void* getUrlRequest(const char* url, s32* size)
+static void* httpGetSync(const char* url, s32* size)
 {
-	return netGetRequest(platform.net, url, size);
+	return netGetSync(platform.net, url, size);
+}
+
+static void httpGet(const char* url, HttpGetCallback callback, void* calldata)
+{
+	return netGet(platform.net, url, callback, calldata);
 }
 
 static void preseed()
@@ -1457,7 +1462,8 @@ static System systemInterface =
 	.getPerformanceCounter = getPerformanceCounter,
 	.getPerformanceFrequency = getPerformanceFrequency,
 
-	.getUrlRequest = getUrlRequest,
+	.httpGetSync = httpGetSync,
+	.httpGet = httpGet,
 
 	.fileDialogLoad = file_dialog_load,
 	.fileDialogSave = file_dialog_save,
@@ -1475,6 +1481,8 @@ static System systemInterface =
 static void gpuTick()
 {
 	tic_mem* tic = platform.studio->tic;
+
+	netTick(platform.net);
 
 	pollEvent();
 

@@ -1968,13 +1968,64 @@ static void onConsoleExportNativeCommand(Console* console, const char* cartName)
 
 #include "zip.h"
 
-static void onConsoleExportHtmlCommand(Console* console, const char* cartName)
+static void onConsoleExportHtmlCommand(Console* console);
+
+static const char* getExportName(Console* console, const char* ext)
+{
+	static char name[FILENAME_MAX];
+
+	strcpy(name, strlen(console->romName) ? console->romName : "game");
+
+	if(ext)
+		strcat(name, ext);
+
+	return name;
+}
+
+static void onHttpGet(const HttpGetData* data)
+{
+	Console* console = (Console*)data->calldata;
+
+	switch(data->type)
+	{
+	case HttpGetProgress:
+		{
+			static const char Format[FILENAME_MAX] = "GET %s [%i%%]";
+			static char buf[sizeof Format];
+			sprintf(buf, Format, data->url, data->progress.size * 100 / data->progress.total);
+			console->cursor.x = 0;
+			printBack(console, buf);
+
+			if(data->progress.size == data->progress.total)
+				printLine(console);
+		}
+		break;
+	case HttpGetDone:
+		{
+			char path[FILENAME_MAX] = TIC_LOCAL_VERSION;
+			strcat(path, md5str(data->url, strlen(data->url)));
+
+			if(fsSaveRootFile(console->fs, path, data->done.data, data->done.size, false))
+			{
+				onConsoleExportHtmlCommand(console);
+			}
+			else
+			{
+				printError(console, "file saving error :(");
+				commandDone(console);
+			}
+		}
+		break;
+	case HttpGetError:
+		printError(console, "file downloading error :(");
+		commandDone(console);
+		break;
+	}
+}
+
+static void onConsoleExportHtmlCommand(Console* console)
 {
 	tic_mem* tic = console->tic;
-
-	static const char ErrorMessage[] = "game not exported :(\n";
-
-	printBack(console, "\nexporting html...\n");
 
 	static const char HtmlName[] = TIC_CACHE "html.zip";
 	const char* name = fsGetFilePath(console->fs, HtmlName);
@@ -1984,34 +2035,39 @@ static void onConsoleExportHtmlCommand(Console* console, const char* cartName)
 
 	if(zip)
 	{
-		// download and save wasm code
-		static struct{void* buffer; s32 size; const char* name;} Files[] = 
+		static const char* Files[] = 
 		{
-			{NULL, 0, "tic80.js"},
-			{NULL, 0, "tic80.wasm"},
+			"tic80.wasm", "tic80.js"
 		};
 
 		for(s32 i = 0; i < COUNT_OF(Files); i++)
 		{
-			if(!Files[i].buffer)
-			{
-				char url[FILENAME_MAX] = "/js/";
-				strcat(url, Files[i].name);
-				Files[i].buffer = getSystem()->getUrlRequest(url, &Files[i].size);
-			}
+			char url[FILENAME_MAX] = "/js/";
+			strcat(url, Files[i]);
+			s32 size = 0;
 
-			if(Files[i].buffer)
+			char path[FILENAME_MAX] = TIC_LOCAL_VERSION;
+			strcat(path, md5str(url, strlen(url)));
+
+			void* data = fsLoadRootFile(console->fs, path, &size);
+
+			if(data)
 			{
-				zip_entry_open(zip, Files[i].name);
-				zip_entry_write(zip, Files[i].buffer, Files[i].size);
+				zip_entry_open(zip, Files[i]);
+				zip_entry_write(zip, data, size);
 				zip_entry_close(zip);
+
+				free(data);
 			}
 			else
 			{
-				errorOccured = true;
-				break;
+				zip_close(zip);
+				printLine(console);
+				return getSystem()->httpGet(url, onHttpGet, console);
 			}
 		}
+
+		printBack(console, "\nexporting html...\n");
 
 		// save cart
 		if(!errorOccured)
@@ -2061,31 +2117,19 @@ static void onConsoleExportHtmlCommand(Console* console, const char* cartName)
 			void* data = fsLoadRootFile(console->fs, HtmlName, &size);
 
 			if(data)
-				return fsGetFileData(onFileDownloaded, cartName, data, size, DEFAULT_CHMOD, console);
+				return fsGetFileData(onFileDownloaded, getExportName(console, ".zip"), data, size, DEFAULT_CHMOD, console);
 			else errorOccured = true;
 		}
 	}
 	else errorOccured = true;
 
 	if(errorOccured)
-		printError(console, ErrorMessage);
+		printError(console, "game not exported :(\n");
 
 	commandDone(console);
 }
 
 #endif
-
-static const char* getExportName(Console* console, const char* ext)
-{
-	static char name[FILENAME_MAX];
-
-	strcpy(name, strlen(console->romName) ? console->romName : "game");
-
-	if(ext)
-		strcat(name, ext);
-
-	return name;
-}
 
 static void onConsoleExportCommand(Console* console, const char* param)
 {
@@ -2112,7 +2156,7 @@ static void onConsoleExportCommand(Console* console, const char* param)
 		else if(strcmp(param, "html") == 0)
 		{
 #if defined(CAN_EXPORT)
-			onConsoleExportHtmlCommand(console, getExportName(console, ".zip"));
+			onConsoleExportHtmlCommand(console);
 #else
 
 			printBack(console, "\nhtml export isn't supported on this platform\n");
@@ -2826,7 +2870,7 @@ static NetVersion netVersionRequest()
 	};
 
 	s32 size = 0;
-	void* buffer = getSystem()->getUrlRequest("/api?fn=version", &size);
+	void* buffer = getSystem()->httpGetSync("/api?fn=version", &size);
 
 	if(buffer && size)
 	{

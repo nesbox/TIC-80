@@ -66,7 +66,7 @@
 #define SHOW_TOOLTIP(FORMAT, ...) 			\
 { 											\
 	static const char Format[] = FORMAT; 	\
-	char buf[sizeof Format]; 				\
+	static char buf[sizeof Format]; 		\
 	sprintf(buf, Format, __VA_ARGS__); 		\
 	showTooltip(buf); 						\
 }
@@ -176,6 +176,8 @@ bool anyKeyWasPressed();
 
 const StudioConfig* getConfig();
 System* getSystem();
+
+const char* md5str(const void* data, s32 length);
 
 #if defined(TIC80_PRO)
 

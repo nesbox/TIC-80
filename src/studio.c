@@ -58,9 +58,11 @@
 #define TIC_EDITOR_BANKS 1
 #endif
 
+#define MD5_HASHSIZE 16
+
 typedef struct
 {
-	u8 data[16];
+	u8 data[MD5_HASHSIZE];
 } CartHash;
 
 typedef struct
@@ -283,7 +285,7 @@ void playSystemSfx(s32 id)
 	impl.studio.tic->api.sfx_ex(impl.studio.tic, id, effect->note, effect->octave, -1, 0, MAX_VOLUME, 0);
 }
 
-static void md5(const void* voidData, s32 length, u8* digest)
+static void md5(const void* voidData, s32 length, u8 digest[MD5_HASHSIZE])
 {
 	enum {Size = 512};
 
@@ -301,6 +303,20 @@ static void md5(const void* voidData, s32 length, u8* digest)
 	}
 
 	MD5_Final(digest, &c);
+}
+
+const char* md5str(const void* data, s32 length)
+{
+	static char res[MD5_HASHSIZE * 2 + 1];
+
+	u8 digest[MD5_HASHSIZE];
+
+	md5(data, length, digest);
+
+	for (s32 n = 0; n < MD5_HASHSIZE; ++n)
+		snprintf(res + n*2, sizeof("ff"), "%02x", digest[n]);
+
+	return res;
 }
 
 static u8* getSpritePtr(tic_tile* tiles, s32 x, s32 y)
