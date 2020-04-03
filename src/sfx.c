@@ -99,6 +99,7 @@ static void drawCanvasLeds(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
 		switch(canvasTab)
 		{
 		case SFX_VOLUME_PANEL: vy = MAX_VOLUME - my; break;
+		case SFX_WAVE_PANEL:   sfx->hoverWave = vy = my = Rows - my - 1; break;
 		case SFX_CHORD_PANEL:  vy = my = Rows - my - 1; break;
 		case SFX_PITCH_PANEL:  vy = my = Rows / 2 - my - 1; break;
 		default: break;
@@ -110,6 +111,7 @@ static void drawCanvasLeds(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
 		{
 			switch(canvasTab)
 			{
+			case SFX_WAVE_PANEL:   effect->data[mx].wave = my; break;
 			case SFX_VOLUME_PANEL: effect->data[mx].volume = my; break;
 			case SFX_CHORD_PANEL:  effect->data[mx].chord = my; break;
 			case SFX_PITCH_PANEL:  effect->data[mx].pitch = my; break;
@@ -124,9 +126,14 @@ static void drawCanvasLeds(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
 	{
 		switch(canvasTab)
 		{
+		case SFX_WAVE_PANEL:
+			for(s32 j = 1, start = Height - LedHeight, value = effect->data[i].wave + 1; j <= value; j++, start -= LedHeight)
+				tic->api.rect(tic, x + i * LedWidth + Gap, y + start, LedWidth-Gap, LedHeight-Gap, j == value ? tic_color_2 : tic_color_3);
+			break;
+
 		case SFX_VOLUME_PANEL:
 			for(s32 j = 1, start = Height - LedHeight, value = Rows - effect->data[i].volume; j <= value; j++, start -= LedHeight)
-				tic->api.rect(tic, x + i * LedWidth + Gap, y + start, LedWidth-Gap, LedHeight-Gap, j == value ? tic_color_9 : tic_color_10);				
+				tic->api.rect(tic, x + i * LedWidth + Gap, y + start, LedWidth-Gap, LedHeight-Gap, j == value ? tic_color_9 : tic_color_10);
 			break;
 
 		case SFX_CHORD_PANEL:
@@ -259,6 +266,41 @@ static void drawPitchSwitch(Sfx* sfx, s32 x, s32 y)
 	}
 }
 
+static void drawVolWaveSelector(Sfx* sfx, s32 x, s32 y)
+{
+	tic_mem* tic = sfx->tic;
+
+	typedef struct {const char* label; s32 panel; tic_rect rect; const char* tip;} Item;
+	static const Item Items[] = 
+	{
+		{"WAV", SFX_WAVE_PANEL, {TIC_ALTFONT_WIDTH * 3, 0, TIC_ALTFONT_WIDTH * 3, TIC_FONT_HEIGHT}, "wave data"},
+		{"VOL", SFX_VOLUME_PANEL, {0, 0, TIC_ALTFONT_WIDTH * 3, TIC_FONT_HEIGHT}, "volume data"},
+	};
+
+	for(s32 i = 0; i < COUNT_OF(Items); i++)
+	{
+		const Item* item = &Items[i];
+
+		tic_rect rect = {x + item->rect.x, y + item->rect.y, item->rect.w, item->rect.h};
+
+		bool hover = false;
+
+		if(checkMousePos(&rect))
+		{
+			showTooltip(item->tip);
+
+			setCursor(tic_cursor_hand);
+
+			hover = true;
+
+			if(checkMouseClick(&rect, tic_mouse_left))
+				sfx->volwave = item->panel;
+		}
+
+		tic->api.text(tic, item->label, x + item->rect.x, y + item->rect.y, item->panel == sfx->volwave ? tic_color_5 : hover ? tic_color_14 : tic_color_15, true);
+	}
+}
+
 static void drawCanvas(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
 {
 	tic_mem* tic = sfx->tic;
@@ -270,16 +312,28 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
 
 	drawPanelBorder(tic, x, y, Width, Height, tic_color_0);
 
-	static const char* Labels[] = {"", "VOLUME", "ARPEGG", "PITCH"};
+	static const char* Labels[] = {"", "", "ARPEGG", "PITCH"};
+	tic->api.text(tic, Labels[canvasTab], x + 2, y + 2, tic_color_15, true);
 
 	switch(canvasTab)
 	{
-	case SFX_VOLUME_PANEL:	drawVolumeStereo(sfx, x + 2, y + 9); break;
-	case SFX_CHORD_PANEL:	drawArppeggioSwitch(sfx, x + 2, y + 9); break;
-	case SFX_PITCH_PANEL:	drawPitchSwitch(sfx, x + 2, y + 9); break;
+	case SFX_WAVE_PANEL:
+		drawVolWaveSelector(sfx, x + 2, y + 2);
+		break;
+	case SFX_VOLUME_PANEL:
+		drawVolWaveSelector(sfx, x + 2, y + 2);
+		drawVolumeStereo(sfx, x + 2, y + 9);
+		break;
+	case SFX_CHORD_PANEL:
+		drawArppeggioSwitch(sfx, x + 2, y + 9);
+		break;
+	case SFX_PITCH_PANEL:
+		drawPitchSwitch(sfx, x + 2, y + 9);
+		break;
+	default:
+		break;
 	}
 
-	tic->api.text(tic, Labels[canvasTab], x + 2, y + 2, tic_color_15, true);
 	tic->api.text(tic, "LOOP:", x + 2, y + 20, tic_color_15, true);
 
 	static const u8 LeftArrow[] =
@@ -578,7 +632,7 @@ static void drawWaves(Sfx* sfx, s32 x, s32 y)
 		bool sel = i == effect->data->wave;
 
 		tic_sfx_pos pos = tic->api.sfx_pos(tic, DEFAULT_CHANNEL);
-		bool active = *pos.data < 0 ? false : i == effect->data[*pos.data].wave;
+		bool active = *pos.data < 0 ? sfx->hoverWave == i : i == effect->data[*pos.data].wave;
 
 		drawPanelBorder(tic, rect.x, rect.y, rect.w, rect.h, active ? tic_color_3 : sel ? tic_color_5 : tic_color_0);
 
@@ -891,21 +945,20 @@ static void tick(Sfx* sfx)
 	tic_mem* tic = sfx->tic;
 
 	sfx->play.active = false;
+	sfx->hoverWave = -1;
 
 	processKeyboard(sfx);
 	processEnvelopesKeyboard(sfx);
 
 	tic->api.clear(tic, tic_color_14);
 
-	drawSelector(sfx, 9, 12);
-	drawWavePanel(sfx, 7, 41);
-
-	drawCanvas(sfx, 88, 12, SFX_VOLUME_PANEL);
+	drawCanvas(sfx, 88, 12, sfx->volwave);
 	drawCanvas(sfx, 88, 51, SFX_CHORD_PANEL);
 	drawCanvas(sfx, 88, 90, SFX_PITCH_PANEL);
 
+	drawSelector(sfx, 9, 12);
+	drawWavePanel(sfx, 7, 41);
 	drawPiano(sfx, 5, 127);
-
 	drawToolbar(tic, true);
 
 	playSound(sfx);
@@ -934,6 +987,8 @@ void initSfx(Sfx* sfx, tic_mem* tic, tic_sfx* src)
 		.tick = tick,
 		.src = src,
 		.index = 0,
+		.volwave = SFX_VOLUME_PANEL,
+		.hoverWave = -1,
 		.play = 
 		{
 			.note = -1,

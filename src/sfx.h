@@ -33,6 +33,8 @@ struct Sfx
 	tic_sfx* src;
 
 	u8 index:SFX_COUNT_BITS;
+	s32 volwave;
+	s32 hoverWave;
 
 	struct
 	{
