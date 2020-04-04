@@ -466,6 +466,8 @@ static void processKeyboard(Menu* menu)
 
 static void tick(Menu* menu)
 {
+	tic_mem* tic = menu->tic;
+
 	menu->ticks++;
 
 	processKeyboard(menu);
@@ -480,7 +482,7 @@ static void tick(Menu* menu)
 		menu->init = true;
 	}
 
-	memcpy(menu->tic->ram.vram.screen.data, menu->bg, sizeof menu->tic->ram.vram.screen.data);
+	drawBGAnimation(tic, menu->ticks);
 
 	switch(menu->mode)
 	{
@@ -503,7 +505,6 @@ void initMenu(Menu* menu, tic_mem* tic, FileSystem* fs)
 		.fs = fs,
 		.tic = tic,
 		.tick = tick,
-		.bg = menu->bg,
 		.ticks = 0,
 		.pos = {0, 0},
 		.main =
@@ -522,12 +523,4 @@ void initMenu(Menu* menu, tic_mem* tic, FileSystem* fs)
 		},
 		.mode = MAIN_MENU_MODE,
 	};
-
-	enum{Size = sizeof tic->ram.vram.screen.data};
-
-	if(!menu->bg)
-		menu->bg = malloc(Size);
-
-	if(menu->bg)
-		memcpy(menu->bg, tic->ram.vram.screen.data, Size);
 }

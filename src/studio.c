@@ -233,6 +233,22 @@ static struct
 	.argv = NULL,
 };
 
+void drawBGAnimation(tic_mem* tic, s32 ticks)
+{
+	enum{Size = 16, Width = TIC80_WIDTH/Size+1, Height = TIC80_HEIGHT/Size+1, AnimSprite = 34};
+
+	s32 offset = ticks % Size;
+	s32 counter = 0;
+
+	tic->api.clear(tic, TIC_COLOR_BG);
+
+	for(s32 j = 0; j < Height + 1; j++)
+		for(s32 i = 0; i < Width + 1; i++)
+			if(counter++ % 2)
+				tic->api.sprite_ex(tic, &getConfig()->cart->bank0.tiles, AnimSprite, 
+					i*Size - offset, j*Size - offset, 2, 2, 0, 0, 1, tic_no_flip, tic_no_rotate);
+}
+
 char getKeyboardText()
 {
 	return impl.studio.text;

@@ -36,6 +36,7 @@ struct Dialog
 	void* data;
 	const char** text;
 	s32 rows;
+	s32 ticks;
 
 	u32 focus;
 

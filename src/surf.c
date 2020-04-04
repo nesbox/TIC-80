@@ -292,21 +292,6 @@ static void drawMenu(Surf* surf, s32 x, s32 y)
 	}
 }
 
-static void drawBG(Surf* surf)
-{
-	tic_mem* tic = surf->tic;
-
-	enum{Size = 16, Width = TIC80_WIDTH/Size+1, Height = TIC80_HEIGHT/Size+1};
-
-	s32 offset = surf->ticks % Size;
-	s32 counter = 0;
-
-	for(s32 j = 0; j < Height + 1; j++)
-		for(s32 i = 0; i < Width + 1; i++)
-			if(counter++ % 2)
-				tic->api.sprite_ex(tic, &getConfig()->cart->bank0.tiles, 34, i*Size - offset, j*Size - offset, 2, 2, 0, 0, 1, tic_no_flip, tic_no_rotate);
-}
-
 static void replace(char* src, const char* what, const char* with)
 {
 	while(true)
@@ -843,7 +828,7 @@ static void overline(tic_mem* tic, void* data)
 	if(surf->menu.count > 0)
 	{
 		if(!surf->menu.items[surf->menu.pos].cover)
-			drawBG(surf);
+			drawBGAnimation(surf->tic, surf->ticks);
 
 		drawMenu(surf, AnimVar.menuX, (TIC80_HEIGHT - MENU_HEIGHT)/2);
 
@@ -852,7 +837,7 @@ static void overline(tic_mem* tic, void* data)
 	}
 	else
 	{
-		drawBG(surf);
+		drawBGAnimation(surf->tic, surf->ticks);
 
 		static const char Label[] = "You don't have any files...";
 		s32 size = tic->api.text(tic, Label, 0, -TIC_FONT_HEIGHT, tic_color_12, false);

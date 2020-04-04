@@ -164,6 +164,7 @@ void gotoCode();
 void gotoSurf();
 void exitFromGameMenu();
 void runProject();
+void drawBGAnimation(tic_mem* tic, s32 ticks);
 
 tic_tiles* getBankTiles();
 tic_palette* getBankPalette();

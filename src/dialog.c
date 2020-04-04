@@ -189,6 +189,8 @@ static void drawDialog(Dialog* dlg)
 
 static void tick(Dialog* dlg)
 {
+	dlg->ticks++;
+
 	processKeyboard(dlg);
 
 	if(!dlg->init)
@@ -199,8 +201,7 @@ static void tick(Dialog* dlg)
 	}
 
 	tic_mem* tic = dlg->tic;
-	tic->api.clear(tic, tic_color_14);
-	// memcpy(dlg->tic->ram.vram.screen.data, dlg->bg, sizeof dlg->tic->ram.vram.screen.data);
+	drawBGAnimation(tic, dlg->ticks);
 
 	drawDialog(dlg);
 }
@@ -219,7 +220,7 @@ void initDialog(Dialog* dlg, tic_mem* tic, const char** text, s32 rows, DialogCa
 		.tic = tic,
 		.tick = tick,
 		.escape = escape,
-		// .bg = dlg->bg,
+		.ticks = 0,
 		.callback = callback,
 		.data = data,
 		.text = text,
@@ -232,12 +233,4 @@ void initDialog(Dialog* dlg, tic_mem* tic, const char** text, s32 rows, DialogCa
 			.active = 0,
 		},
 	};
-
-	enum{Size = sizeof tic->ram.vram.screen.data};
-
-	// if(!dlg->bg)
-	// 	dlg->bg = malloc(Size);
-
-	// if(dlg->bg)
-	// 	memcpy(dlg->bg, tic->ram.vram.screen.data, Size);
 }

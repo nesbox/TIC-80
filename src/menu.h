@@ -32,7 +32,6 @@ struct Menu
 	struct FileSystem* fs;
 
 	bool init;
-	void* bg;
 	s32 ticks;
 
 	struct
