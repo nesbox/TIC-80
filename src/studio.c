@@ -1779,6 +1779,13 @@ static void studioTick()
 				data = impl.world;
 			}
 			break;
+		case TIC_SURF_MODE:
+			{
+				overline = impl.surf->overline;
+				scanline = impl.surf->scanline;
+				data = impl.surf;
+			}
+			break;
 		}
 
 		if(impl.mode != TIC_RUN_MODE)

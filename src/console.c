@@ -1672,8 +1672,7 @@ static void onImportSprites(const char* name, const void* buffer, size_t size, v
 					{
 						u8 src = image->buffer[x + y * image->width];
 						const gif_color* c = &image->palette[src];
-						tic_rgb rgb = {c->r, c->g, c->b};
-						u8 color = tic_tool_find_closest_color(getBankPalette()->colors, &rgb);
+						u8 color = tic_tool_find_closest_color(getBankPalette()->colors, c);
 
 						setSpritePixel(getBankTiles()->data, x, y, color);
 					}
@@ -3184,8 +3183,7 @@ static bool cmdInjectSprites(Console* console, const char* param, const char* na
 					{
 						u8 src = image->buffer[x + y * image->width];
 						const gif_color* c = &image->palette[src];
-						tic_rgb rgb = {c->r, c->g, c->b};
-						u8 color = tic_tool_find_closest_color(console->embed.file->bank0.palette.colors, &rgb);
+						u8 color = tic_tool_find_closest_color(console->embed.file->bank0.palette.colors, c);
 
 						setSpritePixel(console->embed.file->bank0.tiles.data, x, y, color);
 					}

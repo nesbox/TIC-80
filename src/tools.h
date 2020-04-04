@@ -23,6 +23,7 @@
 #pragma once
 
 #include "tic.h"
+#include "ext/gif.h"
 
 inline void tic_tool_poke4(void* addr, u32 index, u8 value)
 {
@@ -50,7 +51,7 @@ inline u8 tic_tool_peek4(const void* addr, u32 index)
 bool tic_tool_parse_note(const char* noteStr, s32* note, s32* octave);
 s32 tic_tool_get_pattern_id(const tic_track* track, s32 frame, s32 channel);
 void tic_tool_set_pattern_id(tic_track* track, s32 frame, s32 channel, s32 id);
-u32 tic_tool_find_closest_color(const tic_rgb* palette, const tic_rgb* color);
+u32 tic_tool_find_closest_color(const tic_rgb* palette, const gif_color* color);
 u32* tic_palette_blit(const tic_palette* src);
 bool tic_tool_has_ext(const char* name, const char* ext);
 s32 tic_get_track_row_sfx(const tic_track_row* row);

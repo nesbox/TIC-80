@@ -21,7 +21,6 @@
 // SOFTWARE.
 
 #include "tools.h"
-#include "ext/gif.h"
 
 #include <string.h>
 
@@ -59,7 +58,7 @@ bool tic_tool_parse_note(const char* noteStr, s32* note, s32* octave)
 	return false;
 }
 
-u32 tic_tool_find_closest_color(const tic_rgb* palette, const tic_rgb* color)
+u32 tic_tool_find_closest_color(const tic_rgb* palette, const gif_color* color)
 {
 	u32 minDst = -1;
 	u32 closetColor = 0;

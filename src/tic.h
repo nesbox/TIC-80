@@ -115,9 +115,6 @@
 #define SFX_NOTES {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
 #define TIC_FONT_CHARS 256
 
-#define KEYBOARD_HOLD 20
-#define KEYBOARD_PERIOD 3
-
 enum
 {
 	NoteNone = 0,

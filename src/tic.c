@@ -1630,8 +1630,7 @@ static void initCover(tic_mem* tic)
 				for (s32 i = 0; i < Size; i++)
 				{
 					const gif_color* c = &image->palette[image->buffer[i]];
-					tic_rgb rgb = { c->r, c->g, c->b };
-					u8 color = tic_tool_find_closest_color(tic->cart.bank0.palette.colors, &rgb);
+					u8 color = tic_tool_find_closest_color(tic->cart.bank0.palette.colors, c);
 					tic_tool_poke4(tic->ram.vram.screen.data, i, color);
 				}
 			}
