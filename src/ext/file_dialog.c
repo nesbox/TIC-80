@@ -278,7 +278,7 @@ void file_dialog_load(file_dialog_load_callback callback, void* data)
 {
 	bool done = false;
 
-	char filename[TICNAME_MAX];
+	char filename[FILENAME_MAX];
 	if(file_dialog_load_path(filename))
 	{
 		FILE* source = fopen(filename, "rb");
@@ -321,7 +321,7 @@ void file_dialog_save(file_dialog_save_callback callback, const char* name, cons
 {
 	bool done = false;
 
-	char filename[TICNAME_MAX];
+	char filename[FILENAME_MAX];
 	if(file_dialog_save_path(name, filename))
 	{
 		FILE* file = fopen(filename, "wb");
