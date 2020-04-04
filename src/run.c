@@ -119,7 +119,7 @@ static void processDoFile(void* data, char* dst)
 
 		if(end && *start == *(end-1) && (*start == '"' || *start == '\''))
 		{
-			char filename[FILENAME_MAX] = {0};
+			char filename[TICNAME_MAX] = {0};
 			memcpy(filename, start + 1, end - start - 2);
 			memset(dst, 0, sizeof(tic_code));
 

@@ -36,7 +36,7 @@ typedef struct
     struct Curl_easy* async;
     HttpGetCallback callback;
     void* calldata;
-    char url[FILENAME_MAX];
+    char url[TICNAME_MAX];
 } CurlData;
 
 struct Net
@@ -113,7 +113,7 @@ void netGet(Net* net, const char* path, HttpGetCallback callback, void* calldata
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
 
 	{
-		char url[FILENAME_MAX] = TIC_WEBSITE;
+		char url[TICNAME_MAX] = TIC_WEBSITE;
 		strcat(url, path);
 
 		curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -135,7 +135,7 @@ void* netGetSync(Net* net, const char* path, s32* size)
 
 	if(net->sync)
 	{
-		char url[FILENAME_MAX] = TIC_WEBSITE;
+		char url[TICNAME_MAX] = TIC_WEBSITE;
 		strcat(url, path);
 
 		curl_easy_setopt(net->sync, CURLOPT_URL, url);

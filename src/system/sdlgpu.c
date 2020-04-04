@@ -1230,7 +1230,7 @@ static void renderCursor()
 
 static const char* getAppFolder()
 {
-	static char appFolder[FILENAME_MAX];
+	static char appFolder[TICNAME_MAX];
 
 #if defined(__EMSCRIPTEN__)
 
@@ -1303,14 +1303,14 @@ static void setWindowTitle(const char* title)
 
 static void openSystemPath(const char* path)
 {
-	char command[FILENAME_MAX];
+	char command[TICNAME_MAX];
 
 #if defined(__WINDOWS__)
 
 	sprintf(command, "explorer \"%s\"", path);
 
-	wchar_t wcommand[FILENAME_MAX];
-	MultiByteToWideChar(CP_UTF8, 0, command, FILENAME_MAX, wcommand, FILENAME_MAX);
+	wchar_t wcommand[TICNAME_MAX];
+	MultiByteToWideChar(CP_UTF8, 0, command, TICNAME_MAX, wcommand, TICNAME_MAX);
 
 	_wsystem(wcommand);
 

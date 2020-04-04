@@ -59,13 +59,13 @@ static const char* PublicDir = PUBLIC_DIR;
 
 struct FileSystem
 {
-	char dir[FILENAME_MAX];
-	char work[FILENAME_MAX];
+	char dir[TICNAME_MAX];
+	char work[TICNAME_MAX];
 };
 
 const char* fsGetFilePath(FileSystem* fs, const char* name)
 {
-	static char path[FILENAME_MAX] = {0};
+	static char path[TICNAME_MAX] = {0};
 
 	strcpy(path, fs->dir);
 
@@ -118,18 +118,18 @@ typedef wchar_t fsString;
 
 static const fsString* utf8ToString(const char* str)
 {
-	fsString* wstr = malloc(FILENAME_MAX * sizeof(fsString));
+	fsString* wstr = malloc(TICNAME_MAX * sizeof(fsString));
 
-	MultiByteToWideChar(CP_UTF8, 0, str, FILENAME_MAX, wstr, FILENAME_MAX);
+	MultiByteToWideChar(CP_UTF8, 0, str, TICNAME_MAX, wstr, TICNAME_MAX);
 
 	return wstr;
 }
 
 static const char* stringToUtf8(const fsString* wstr)
 {
-	char* str = malloc(FILENAME_MAX * sizeof(char));
+	char* str = malloc(TICNAME_MAX * sizeof(char));
 
-	WideCharToMultiByte(CP_UTF8, 0, wstr, FILENAME_MAX, str, FILENAME_MAX, 0, 0);
+	WideCharToMultiByte(CP_UTF8, 0, wstr, TICNAME_MAX, str, TICNAME_MAX, 0, 0);
 
 	return str;
 }
@@ -257,8 +257,8 @@ static void onDirResponse(u8* buffer, s32 size, void* data)
 					{
 						lua_geti(lua, -1, i);
 
-						char hash[FILENAME_MAX] = {0};
-						char name[FILENAME_MAX] = {0};
+						char hash[TICNAME_MAX] = {0};
+						char name[TICNAME_MAX] = {0};
 
 						{
 							lua_getfield(lua, -1, "hash");
@@ -300,7 +300,7 @@ static void onDirResponse(u8* buffer, s32 size, void* data)
 
 static void netDirRequest(const char* path, ListCallback callback, void* data)
 {
-	char request[FILENAME_MAX] = {'\0'};
+	char request[TICNAME_MAX] = {'\0'};
 	sprintf(request, "/api?fn=dir&path=%s", path);
 
 	s32 size = 0;
@@ -323,7 +323,7 @@ static void enumFiles(FileSystem* fs, const char* path, ListCallback callback, v
 		return;
 	}
 
-	static char path2[FILENAME_MAX] = {0};
+	static char path2[TICNAME_MAX] = {0};
 	strcpy(path2, path);
 
 	if (path2[strlen(path2) - 1] == '/')    // one character
@@ -362,7 +362,7 @@ static void enumFiles(FileSystem* fs, const char* path, ListCallback callback, v
 
 	if ((dir = tic_opendir(pathString)) != NULL)
 	{
-		fsString fullPath[FILENAME_MAX];
+		fsString fullPath[TICNAME_MAX];
 		struct tic_stat_struct s;
 		
 		while ((ent = tic_readdir(dir)) != NULL)
@@ -894,7 +894,7 @@ static void fsFullname(const char *path, char *fullname)
 	// TODO BAREMETALPI
 #else
 #if defined(__TIC_WINDOWS__) || defined(__TIC_WINRT__)
-	static wchar_t wpath[FILENAME_MAX];
+	static wchar_t wpath[TICNAME_MAX];
 
 	const fsString* pathString = utf8ToString(path);
 	GetFullPathNameW(pathString, sizeof(wpath), wpath, NULL);
@@ -915,10 +915,10 @@ static void fsFullname(const char *path, char *fullname)
 
 void fsFilename(const char *path, char* out)
 {
-	char full[FILENAME_MAX];
+	char full[TICNAME_MAX];
 	fsFullname(path, full);
 
-	char base[FILENAME_MAX];
+	char base[TICNAME_MAX];
 	fsBasename(path, base);
 
 	strcpy(out, full + strlen(base));
@@ -940,7 +940,7 @@ void fsBasename(const char *path, char* out)
 #endif
 
 	{
-		char full[FILENAME_MAX];
+		char full[TICNAME_MAX];
 		fsFullname(path, full);
 
 		struct tic_stat_struct s;
@@ -1037,7 +1037,7 @@ bool fsSaveFile(FileSystem* fs, const char* name, const void* data, size_t size,
 
 bool fsSaveRootFile(FileSystem* fs, const char* name, const void* data, size_t size, bool overwrite)
 {
-	char path[FILENAME_MAX];
+	char path[TICNAME_MAX];
 	strcpy(path, fs->work);
 	fsHomeDir(fs);
 
@@ -1051,7 +1051,7 @@ bool fsSaveRootFile(FileSystem* fs, const char* name, const void* data, size_t s
 typedef struct
 {
 	const char* name;
-	char hash[FILENAME_MAX];
+	char hash[TICNAME_MAX];
 
 } LoadPublicCartData;
 
@@ -1074,7 +1074,7 @@ void* fsLoadFileByHash(FileSystem* fs, const char* hash, s32* size)
 	// TODO BAREMETALPI
 	return NULL;
 #else
-	char cachePath[FILENAME_MAX] = {0};
+	char cachePath[TICNAME_MAX] = {0};
 	sprintf(cachePath, TIC_CACHE "%s.tic", hash);
 
 	{
@@ -1082,7 +1082,7 @@ void* fsLoadFileByHash(FileSystem* fs, const char* hash, s32* size)
 		if(data) return data;
 	}
 
-	char path[FILENAME_MAX] = {0};
+	char path[TICNAME_MAX] = {0};
 	sprintf(path, "/cart/%s/cart.tic", hash);
 	void* data = getSystem()->httpGetSync(path, size);
 
@@ -1192,7 +1192,7 @@ void* fsLoadFile(FileSystem* fs, const char* name, s32* size)
 
 void* fsLoadRootFile(FileSystem* fs, const char* name, s32* size)
 {
-	char path[FILENAME_MAX];
+	char path[TICNAME_MAX];
 	strcpy(path, fs->work);
 	fsHomeDir(fs);
 

@@ -1124,10 +1124,10 @@ static void updateMDate()
 
 static void updateTitle()
 {
-	char name[FILENAME_MAX] = TIC_TITLE;
+	char name[TICNAME_MAX] = TIC_TITLE;
 
 	if(strlen(impl.console->romName))
-		snprintf(name, FILENAME_MAX, "%s [%s]", TIC_TITLE, impl.console->romName);
+		snprintf(name, TICNAME_MAX, "%s [%s]", TIC_TITLE, impl.console->romName);
 
 	impl.system->setWindowTitle(name);
 }
@@ -1197,8 +1197,8 @@ static void saveProject()
 
 	if(rom == CART_SAVE_OK)
 	{
-		char buffer[FILENAME_MAX];
-		snprintf(buffer, FILENAME_MAX, "%s SAVED :)", impl.console->romName);
+		char buffer[TICNAME_MAX];
+		snprintf(buffer, TICNAME_MAX, "%s SAVED :)", impl.console->romName);
 
 		for(s32 i = 0; i < (s32)strlen(buffer); i++)
 			buffer[i] = toupper(buffer[i]);
@@ -1833,7 +1833,7 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, Sy
 
 	if(argc > 1 && fsExists(argv[1]))
 	{
-		char name[FILENAME_MAX];
+		char name[TICNAME_MAX];
 		fsBasename(argv[1], name);
 		impl.fs = createFileSystem(name);
 	}

@@ -129,7 +129,7 @@ static const char DefaultSquirrelTicPath[] = TIC_LOCAL_VERSION "default_squirrel
 
 static const char* getName(const char* name, const char* ext)
 {
-	static char path[FILENAME_MAX];
+	static char path[TICNAME_MAX];
 
 	strcpy(path, name);
 
@@ -229,7 +229,7 @@ static void commandDoneLine(Console* console, bool newLine)
 	if(newLine)
 		printLine(console);
 
-	char dir[FILENAME_MAX];
+	char dir[TICNAME_MAX];
 	fsGetDir(console->fs, dir);
 	if(strlen(dir))
 		printBack(console, dir);
@@ -460,7 +460,7 @@ static bool onConsoleLoadSectionCommand(Console* console, const char* param)
 
 static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 {
-	char path[FILENAME_MAX] = {0};
+	char path[TICNAME_MAX] = {0};
 
 	{
 		switch(script)
@@ -1972,7 +1972,7 @@ static void onConsoleExportHtmlCommand(Console* console);
 
 static const char* getExportName(Console* console, const char* ext)
 {
-	static char name[FILENAME_MAX];
+	static char name[TICNAME_MAX];
 
 	strcpy(name, strlen(console->romName) ? console->romName : "game");
 
@@ -1990,7 +1990,7 @@ static void onHttpGet(const HttpGetData* data)
 	{
 	case HttpGetProgress:
 		{
-			static const char Format[FILENAME_MAX] = "GET %s [%i%%]";
+			static const char Format[TICNAME_MAX] = "GET %s [%i%%]";
 			static char buf[sizeof Format];
 			sprintf(buf, Format, data->url, data->progress.size * 100 / data->progress.total);
 			console->cursor.x = 0;
@@ -2002,7 +2002,7 @@ static void onHttpGet(const HttpGetData* data)
 		break;
 	case HttpGetDone:
 		{
-			char path[FILENAME_MAX] = TIC_LOCAL_VERSION;
+			char path[TICNAME_MAX] = TIC_LOCAL_VERSION;
 			strcat(path, md5str(data->url, strlen(data->url)));
 
 			if(fsSaveRootFile(console->fs, path, data->done.data, data->done.size, false))
@@ -2042,11 +2042,11 @@ static void onConsoleExportHtmlCommand(Console* console)
 
 		for(s32 i = 0; i < COUNT_OF(Files); i++)
 		{
-			char url[FILENAME_MAX] = "/js/";
+			char url[TICNAME_MAX] = "/js/";
 			strcat(url, Files[i]);
 			s32 size = 0;
 
-			char path[FILENAME_MAX] = TIC_LOCAL_VERSION;
+			char path[TICNAME_MAX] = TIC_LOCAL_VERSION;
 			strcat(path, md5str(url, strlen(url)));
 
 			void* data = fsLoadRootFile(console->fs, path, &size);
@@ -2907,7 +2907,7 @@ static void checkNewVersion(Console* console)
 		(version.major == TIC_VERSION_MAJOR && version.minor > TIC_VERSION_MINOR) ||
 		(version.major == TIC_VERSION_MAJOR && version.minor == TIC_VERSION_MINOR && version.patch > TIC_VERSION_REVISION))
 	{
-		char msg[FILENAME_MAX] = {0};
+		char msg[TICNAME_MAX] = {0};
 		sprintf(msg, "\n A new version %i.%i.%i is available.\n", version.major, version.minor, version.patch);
 		consolePrint(console, msg, CONSOLE_BACK_TEXT_COLOR);
 	}
@@ -3064,7 +3064,7 @@ static bool cmdLoadCart(Console* console, const char* name)
 		if(hasProjectExt(name))
 		{
 			loadProject(console, name, data, size, console->embed.file);
-			char cartName[FILENAME_MAX];
+			char cartName[TICNAME_MAX];
 			fsFilename(name, cartName);
 			setCartName(console, cartName);
 			console->embed.yes = true;
@@ -3079,7 +3079,7 @@ static bool cmdLoadCart(Console* console, const char* name)
             tic_mem* tic = console->tic;
             tic->api.load(console->embed.file, data, size);
 
-			char cartName[FILENAME_MAX];
+			char cartName[TICNAME_MAX];
 			fsFilename(name, cartName);
 		
 			setCartName(console, cartName);
@@ -3308,7 +3308,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 	memset(console->buffer, 0, CONSOLE_BUFFER_SIZE);
 	memset(console->colorBuffer, TIC_COLOR_BG, CONSOLE_BUFFER_SIZE);
 
-	memset(console->codeLiveReload.fileName, 0, FILENAME_MAX);
+	memset(console->codeLiveReload.fileName, 0, TICNAME_MAX);
 
 	if(argc)
 	{

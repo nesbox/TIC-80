@@ -63,7 +63,7 @@ struct Console
 
 	struct
 	{
-		char fileName[FILENAME_MAX];
+		char fileName[TICNAME_MAX];
 		bool active;
 
 		void(*reload)(Console*, char*);
@@ -85,8 +85,8 @@ struct Console
 
 	struct FileSystem* fs;
 
-	char romName[FILENAME_MAX];
-	char appPath[FILENAME_MAX];
+	char romName[TICNAME_MAX];
+	char appPath[TICNAME_MAX];
 
 	HistoryItem* history;
 	HistoryItem* historyHead;

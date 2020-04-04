@@ -128,12 +128,12 @@ static Anim* MenuRightShowMovieItems[] =
 static Movie EmptyState;
 static Movie MenuModeState;
 
-#define DECLARE_MOVIE(NAME, NEXT) static Movie NAME ## State = \
-{ \
-	.items = NAME ## MovieItems, \
-	.count = COUNT_OF(NAME ## MovieItems), \
-	.duration = ANIM, \
-	.next = & NEXT ## State, \
+#define DECLARE_MOVIE(NAME, NEXT) static Movie NAME ## State = 	\
+{ 																\
+	.items = NAME ## MovieItems, 								\
+	.count = COUNT_OF(NAME ## MovieItems), 						\
+	.duration = ANIM, 											\
+	.next = & NEXT ## State, 									\
 }
 
 DECLARE_MOVIE(MenuModeShow, MenuMode);
@@ -187,15 +187,13 @@ static void drawTopToolbar(Surf* surf, s32 x, s32 y)
 
 	tic->api.rect(tic, x, y, TIC80_WIDTH, Height, tic_color_14);
 	tic->api.rect(tic, x, y + Height, TIC80_WIDTH, 1, tic_color_0);
+
 	{
-		char label[FILENAME_MAX];
-
-		sprintf(label, "%s", "TIC-80 SURF");
-
+		static const char Label[] = "TIC-80 SURF";
 		s32 xl = x + MAIN_OFFSET;
 		s32 yl = y + (Height - TIC_FONT_HEIGHT)/2;
-		tic->api.text(tic, label, xl, yl+1, tic_color_0, false);
-		tic->api.text(tic, label, xl, yl, tic_color_12, false);
+		tic->api.text(tic, Label, xl, yl+1, tic_color_0, false);
+		tic->api.text(tic, Label, xl, yl, tic_color_12, false);
 	}
 
 	enum{Gap = 10, TipX = 150, SelectWidth = 54};
@@ -225,8 +223,8 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
 	tic->api.rect(tic, x, y, TIC80_WIDTH, Height, tic_color_14);
 	tic->api.rect(tic, x, y + Height, TIC80_WIDTH, 1, tic_color_0);
 	{
-		char label[FILENAME_MAX];
-		char dir[FILENAME_MAX];
+		char label[TICNAME_MAX];
+		char dir[TICNAME_MAX];
 		fsGetDir(surf->fs, dir);
 
 		sprintf(label, "/%s", dir);
@@ -247,8 +245,8 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
 		tic->api.sprite_ex(tic, &getConfig()->cart->bank0.tiles, 15, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
 		{
 			static const char Label[] = "WEBSITE";
-			tic->api.text(tic, Label, TipX + Gap + SelectWidth, y +3, tic_color_0, false);
-			tic->api.text(tic, Label, TipX + Gap + SelectWidth, y +2, tic_color_12, false);
+			tic->api.text(tic, Label, TipX + Gap + SelectWidth, y + 3, tic_color_0, false);
+			tic->api.text(tic, Label, TipX + Gap + SelectWidth, y + 2, tic_color_12, false);
 		}
 	}
 #endif
@@ -398,7 +396,7 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 		bool project = false;
 		if(dir)
 		{
-			char folder[FILENAME_MAX];
+			char folder[TICNAME_MAX];
 			sprintf(folder, "[%s]", name);
 			item->label = strdup(folder);
 		}
@@ -460,7 +458,7 @@ static void resetMenu(Surf* surf)
 
 static void* requestCover(Surf* surf, const char* hash, s32* size)
 {
-	char cachePath[FILENAME_MAX] = {0};
+	char cachePath[TICNAME_MAX] = {0};
 	sprintf(cachePath, TIC_CACHE "%s.gif", hash);
 
 	{
@@ -470,7 +468,7 @@ static void* requestCover(Surf* surf, const char* hash, s32* size)
 			return data;
 	}
 
-	char path[FILENAME_MAX] = {0};
+	char path[TICNAME_MAX] = {0};
 	sprintf(path, "/cart/%s/cover.gif", hash);
 	void* data = getSystem()->httpGetSync(path, size);
 
@@ -539,7 +537,7 @@ static void loadCover(Surf* surf)
 					surf->console->loadProject(surf->console, item->name, data, size, cart);
 				else
 
-#endif					
+#endif
 					tic->api.load(cart, data, size);
 
 				if(cart->cover.size)
@@ -576,7 +574,7 @@ static void initMenu(Surf* surf)
 		.surf = surf,
 	};
 
-	char dir[FILENAME_MAX];
+	char dir[TICNAME_MAX];
 	fsGetDir(surf->fs, dir);
 
 	if(strcmp(dir, "") != 0)
@@ -590,13 +588,13 @@ static void initMenu(Surf* surf)
 
 static void onGoBackDir(Surf* surf)
 {
-	char last[FILENAME_MAX];
+	char last[TICNAME_MAX];
 	fsGetDir(surf->fs, last);
 
 	fsDirBack(surf->fs);
 	initMenu(surf);
 
-	char current[FILENAME_MAX];
+	char current[TICNAME_MAX];
 	fsGetDir(surf->fs, current);
 
 	for(s32 i = 0; i < surf->menu.count; i++)
@@ -605,7 +603,7 @@ static void onGoBackDir(Surf* surf)
 
 		if(item->dir)
 		{
-			char path[FILENAME_MAX];
+			char path[TICNAME_MAX];
 
 			if(strlen(current))
 				sprintf(path, "%s/%s", current, item->name);
@@ -632,7 +630,7 @@ static void changeDirectory(Surf* surf, const char* dir)
 {
 	if(strcmp(dir, "..") == 0)
 	{
-		char dir[FILENAME_MAX];
+		char dir[TICNAME_MAX];
 		fsGetDir(surf->fs, dir);
 
 		if(strcmp(dir, "") != 0)
@@ -785,7 +783,7 @@ static void processGamepad(Surf* surf)
 
 			if(!item->dir)
 			{
-				char url[FILENAME_MAX];
+				char url[TICNAME_MAX];
 				sprintf(url, TIC_WEBSITE "/play?cart=%i", item->id);
 				getSystem()->openSystemPath(url);
 			}
