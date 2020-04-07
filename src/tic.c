@@ -1812,9 +1812,6 @@ static void api_tick(tic_mem* tic, tic_tick_data* data)
 			memset(code, 0, CodeSize);
 			strcpy(code, tic->cart.code.data);
 
-			if(data->preprocessor)
-				data->preprocessor(data->data, code);
-
 			bool done = false;
 			const tic_script_config* config = NULL;
 

@@ -61,8 +61,6 @@ typedef struct
 	// !TODO: get rid of this flag, because pmem now peekable through api
 	bool syncPMEM;
 
-	void (*preprocessor)(void* data, char* dst);
-
 	void* data;
 } tic_tick_data;
 
