@@ -2570,7 +2570,7 @@ static const struct
 	{"export",	NULL, "export native game",			onConsoleExportCommand},
 	{"import",	NULL, "import sprites from .gif",	onConsoleImportCommand},
 	{"del",		NULL, "delete file or dir",			onConsoleDelCommand},
-	{"cls",		NULL, "clear screen",				onConsoleClsCommand},
+	{"cls",		"clear", "clear screen",			onConsoleClsCommand},
 	{"demo",	NULL, "install demo carts",			onConsoleInstallDemosCommand},
 	{"config",	NULL, "edit TIC config",			onConsoleConfigCommand},
 	{"version",	NULL, "show the current version",	onConsoleVersionCommand},
@@ -2912,21 +2912,9 @@ static void checkNewVersion(Console* console)
 	}
 }
 
-static void tick(Console* console)
+static void processKeyboard(Console* console)
 {
 	tic_mem* tic = console->tic;
-
-	// process scroll
-	{
-		tic80_input* input = &console->tic->ram.input;
-
-		if(input->mouse.scrolly)
-		{
-			enum{Scroll = 3};
-			s32 delta = input->mouse.scrolly > 0 ? -Scroll : Scroll;
-			setScroll(console, console->scroll.pos + delta);
-		}
-	}
 
 	if(tic->ram.input.keyboard.data != 0)
 	{
@@ -2961,6 +2949,13 @@ static void tick(Console* console)
 			console->cursor.delay = CONSOLE_CURSOR_DELAY;
 		}
 
+		if(tic->api.key(tic, tic_key_ctrl) 
+			&& tic->api.key(tic, tic_key_k))
+		{
+			onConsoleClsCommand(console, NULL);
+			return;
+		}
+
 		char sym = getKeyboardText();
 
 		if(sym)
@@ -2979,6 +2974,25 @@ static void tick(Console* console)
 			console->cursor.delay = CONSOLE_CURSOR_DELAY;
 		}
 	}
+}
+
+static void tick(Console* console)
+{
+	tic_mem* tic = console->tic;
+
+	// process scroll
+	{
+		tic80_input* input = &console->tic->ram.input;
+
+		if(input->mouse.scrolly)
+		{
+			enum{Scroll = 3};
+			s32 delta = input->mouse.scrolly > 0 ? -Scroll : Scroll;
+			setScroll(console, console->scroll.pos + delta);
+		}
+	}
+
+	processKeyboard(console);
 
 	if(console->tickCounter == 0)
 	{
