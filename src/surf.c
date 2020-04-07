@@ -320,9 +320,7 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 
 	if(dir 
 		|| tic_tool_has_ext(name, CartExt)
-#if defined(TIC80_PRO)
 		|| hasProjectExt(name)
-#endif
 		)
 	{
 		data->items = realloc(data->items, sizeof(MenuItem) * ++data->count);
@@ -508,13 +506,10 @@ static void loadCover(Surf* surf)
 
 			if(cart)
 			{
-#if defined(TIC80_PRO)
 
 				if(hasProjectExt(item->name))
 					surf->console->loadProject(surf->console, item->name, data, size, cart);
 				else
-
-#endif
 					tic->api.load(cart, data, size);
 
 				if(cart->cover.size)

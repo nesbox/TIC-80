@@ -1427,20 +1427,14 @@ static void processShortcuts()
 	}
 }
 
-#if defined(TIC80_PRO)
-
 static void reloadConfirm(bool yes, void* data)
 {
 	if(yes)
 		impl.console->updateProject(impl.console);
 }
 
-#endif
-
 static void updateStudioProject()
 {
-#if defined(TIC80_PRO)
-
 	if(impl.mode != TIC_START_MODE)
 	{
 		Console* console = impl.console;
@@ -1466,14 +1460,12 @@ static void updateStudioProject()
 		}
 	}
 
-#endif
 	{
 		Code* code = impl.editor[impl.bank.index.code].code;
 		impl.console->codeLiveReload.reload(impl.console, code->src);
 		if(impl.console->codeLiveReload.active && code->update)
 			code->update(code);
 	}
-
 }
 
 static void drawRecordLabel(u32* frame, s32 sx, s32 sy, const u32* color)
@@ -1934,7 +1926,6 @@ System* getSystem()
 	return impl.system;
 }
 
-#if defined(TIC80_PRO)
 bool hasProjectExt(const char* name)
 {
 	return tic_tool_has_ext(name, PROJECT_LUA_EXT)
@@ -1944,4 +1935,3 @@ bool hasProjectExt(const char* name)
 		|| tic_tool_has_ext(name, PROJECT_SQUIRREL_EXT)
 		|| tic_tool_has_ext(name, PROJECT_FENNEL_EXT);
 }
-#endif

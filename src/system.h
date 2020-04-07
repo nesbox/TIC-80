@@ -2,6 +2,30 @@
 
 #include "ticapi.h"
 #include "ext/file_dialog.h"
+#include "version.h"
+
+#if defined(TIC80_PRO)
+#define TIC_VERSION_POST " Pro"
+#else
+#define TIC_VERSION_POST ""
+#endif
+
+#define TIC_MAKE_VERSION(major, minor, patch) ((major) * 10000 + (minor) * 100 + (patch))
+#define TIC_VERSION TIC_MAKE_VERSION(MYPROJ_VERSION_MAJOR, MYPROJ_VERSION_MINOR, MYPROJ_VERSION_PATCH)
+
+#define DEF2STR2(x) #x
+#define DEF2STR(x) DEF2STR2(x)
+
+#define TIC_VERSION_LABEL DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "." DEF2STR(TIC_VERSION_REVISION) TIC_VERSION_STATUS TIC_VERSION_POST
+#define TIC_PACKAGE "com.nesbox.tic"
+#define TIC_NAME "TIC-80"
+#define TIC_NAME_FULL TIC_NAME " tiny computer"
+#define TIC_TITLE TIC_NAME_FULL " " TIC_VERSION_LABEL
+#define TIC_HTTP "http://"
+#define TIC_HOST "tic80.com"
+#define TIC_WEBSITE TIC_HTTP TIC_HOST
+#define TIC_YEAR "2020"
+#define TIC_COPYRIGHT TIC_WEBSITE " (C) " TIC_YEAR
 
 #define TIC80_OFFSET_LEFT ((TIC80_FULLWIDTH-TIC80_WIDTH)/2)
 #define TIC80_OFFSET_TOP ((TIC80_FULLHEIGHT-TIC80_HEIGHT)/2)

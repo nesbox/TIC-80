@@ -673,8 +673,6 @@ static void onCartLoaded(Console* console, const char* name)
 
 }
 
-#if defined(TIC80_PRO)
-
 static const char* projectComment(const char* name)
 {
 	char* comment;
@@ -1026,8 +1024,6 @@ static void updateProject(Console* console)
 	}
 }
 
-#endif
-
 static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 {
 	if(onConsoleLoadSectionCommand(console, param)) return;
@@ -1053,7 +1049,6 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 		}
 		else
 		{
-#if defined(TIC80_PRO)
 			const char* name = getName(param, PROJECT_LUA_EXT);
 
 			if(!fsExistsFile(console->fs, name))
@@ -1084,9 +1079,6 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 			{
 				printBack(console, "\ncart loading error");
 			}
-#else
-			printBack(console, "\ncart loading error");
-#endif
 		}
 	}
 	else printBack(console, "\ncart name is missing");
@@ -2213,13 +2205,11 @@ static CartSaveResult saveCartName(Console* console, const char* name)
 			{
 				s32 size = 0;
 
-#if defined(TIC80_PRO)
 				if(hasProjectExt(name))
 				{
 					size = saveProject(console, buffer, projectComment(name));
 				}
 				else
-#endif
 				{
 					name = getCartName(name);
 					size = tic->api.save(&tic->cart, buffer);
@@ -3073,7 +3063,6 @@ static bool cmdLoadCart(Console* console, const char* name)
 
 	if(data)
 	{
-#if defined(TIC80_PRO)
 		if(hasProjectExt(name))
 		{
 			loadProject(console, name, data, size, console->embed.file);
@@ -3084,10 +3073,7 @@ static bool cmdLoadCart(Console* console, const char* name)
 			console->skipStart = true;
 			done = true;
 		}
-		else
-#endif
-
-		if(tic_tool_has_ext(name, CART_EXT))
+		else if(tic_tool_has_ext(name, CART_EXT))
 		{
             tic_mem* tic = console->tic;
             tic->api.load(console->embed.file, data, size);
@@ -3273,14 +3259,8 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 		.tic = tic,
 		.config = config,
 		.load = load,
-
-#if defined(TIC80_PRO)
 		.loadProject = loadProject,
 		.updateProject = updateProject,
-#else
-		.loadProject = NULL,
-		.updateProject = NULL,
-#endif
 		.error = error,
 		.trace = trace,
 		.tick = tick,

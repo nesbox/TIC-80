@@ -179,9 +179,4 @@ const StudioConfig* getConfig();
 System* getSystem();
 
 const char* md5str(const void* data, s32 length);
-
-#if defined(TIC80_PRO)
-
 bool hasProjectExt(const char* name);
-
-#endif
