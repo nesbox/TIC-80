@@ -20,7 +20,7 @@
 // How long to wait before hiding the mouse.
 #define TIC_LIBRETRO_MOUSE_HIDE_TIMER_START 300
 
-static uint32_t *frame_buf;
+static uint32_t *frame_buf = NULL;
 static struct retro_log_callback logging;
 static retro_log_printf_t log_cb;
 static retro_video_refresh_t video_cb;
@@ -195,9 +195,11 @@ void retro_init(void)
  */
 void retro_deinit(void)
 {
-	// Clear out the frame buffer.
-	free(frame_buf);
-	frame_buf = NULL;
+	// Clear out the frame buffer if it exists.
+	if (frame_buf != NULL) {
+		free(frame_buf);
+		frame_buf = NULL;
+	}
 }
 
 /**
