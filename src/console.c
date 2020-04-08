@@ -3393,40 +3393,6 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 		}
 	}
 
-#if defined(__EMSCRIPTEN__)
-
-	if(!console->embed.yes)
-	{
-		void* cartPtr = (void*)EM_ASM_INT_V
-		(
-			if(typeof cartridge != 'undefined' && cartridge.length)
-			{
-				var ptr = Module._malloc(cartridge.length);
-
-				writeArrayToMemory(cartridge, ptr);
-
-				return ptr;
-			}
-			else return 0;
-		);
-
-		if(cartPtr)
-		{
-			console->embed.yes = true;
-
-			s32 cartSize = EM_ASM_INT_V(return cartridge.length;);
-
-			u8* data = NULL;
-			s32 size = unzip(&data, cartPtr, cartSize);
-            tic->api.load(console->embed.file, data, size);
-
-			free(data);
-
-			EM_ASM_({Module._free($0);}, cartPtr);
-		}
-	}
-#endif
-
 #if defined(CAN_EXPORT)
 
 	if(!console->embed.yes)
