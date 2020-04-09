@@ -1210,6 +1210,15 @@ static SQInteger squirrel_time(HSQUIRRELVM vm)
 	return 1;
 }
 
+static SQInteger squirrel_timestamp(HSQUIRRELVM vm)
+{
+	tic_mem* memory = (tic_mem*)getSquirrelMachine(vm);
+	
+	sq_pushinteger(vm, (SQFloat)(memory->api.timestamp(memory)));
+
+	return 1;
+}
+
 static SQInteger squirrel_exit(HSQUIRRELVM vm)
 {
 	tic_machine* machine = getSquirrelMachine(vm);
@@ -1270,7 +1279,7 @@ static const SQFUNCTION ApiFunc[] =
 	NULL, NULL, NULL, squirrel_print, squirrel_cls, squirrel_pix, squirrel_line, squirrel_rect, 
 	squirrel_rectb, squirrel_spr, squirrel_btn, squirrel_btnp, squirrel_sfx, squirrel_map, squirrel_mget, 
 	squirrel_mset, squirrel_peek, squirrel_poke, squirrel_peek4, squirrel_poke4, squirrel_memcpy, 
-	squirrel_memset, squirrel_trace, squirrel_pmem, squirrel_time, squirrel_exit, squirrel_font, squirrel_mouse, 
+	squirrel_memset, squirrel_trace, squirrel_pmem, squirrel_time, squirrel_timestamp, squirrel_exit, squirrel_font, squirrel_mouse, 
 	squirrel_circ, squirrel_circb, squirrel_tri, squirrel_textri, squirrel_clip, squirrel_music, squirrel_sync, squirrel_reset,
 	squirrel_key, squirrel_keyp
 };

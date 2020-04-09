@@ -1105,6 +1105,15 @@ static s32 lua_time(lua_State *lua)
 	return 1;
 }
 
+static s32 lua_timestamp(lua_State *lua)
+{
+	tic_mem* memory = (tic_mem*)getLuaMachine(lua);
+
+	lua_pushnumber(lua, memory->api.timestamp(memory));
+
+	return 1;
+}
+
 static s32 lua_exit(lua_State *lua)
 {
 	tic_machine* machine = getLuaMachine(lua);
@@ -1172,7 +1181,7 @@ static const lua_CFunction ApiFunc[] =
 	NULL, NULL, NULL, lua_print, lua_cls, lua_pix, lua_line, lua_rect, 
 	lua_rectb, lua_spr, lua_btn, lua_btnp, lua_sfx, lua_map, lua_mget, 
 	lua_mset, lua_peek, lua_poke, lua_peek4, lua_poke4, lua_memcpy, 
-	lua_memset, lua_trace, lua_pmem, lua_time, lua_exit, lua_font, lua_mouse, 
+	lua_memset, lua_trace, lua_pmem, lua_time, lua_timestamp, lua_exit, lua_font, lua_mouse, 
 	lua_circ, lua_circb, lua_tri, lua_textri, lua_clip, lua_music, lua_sync, lua_reset,
 	lua_key, lua_keyp
 };

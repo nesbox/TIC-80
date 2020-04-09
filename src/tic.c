@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <stddef.h>
+#include <time.h>
 
 #include "ticapi.h"
 #include "tools.h"
@@ -1879,6 +1880,12 @@ static double api_time(tic_mem* memory)
 	return (double)((machine->data->counter() - machine->data->start)*1000)/machine->data->freq();
 }
 
+static int api_timestamp(tic_mem* memory)
+{
+	tic_machine* machine = (tic_machine*)memory;
+	return (int)time(NULL);
+}
+
 static u32 api_btnp(tic_mem* tic, s32 index, s32 hold, s32 period)
 {
 	tic_machine* machine = (tic_machine*)tic;
@@ -2203,6 +2210,7 @@ static void initApi(tic_api* api)
 	INIT_API(music);
 	INIT_API(music_frame);
 	INIT_API(time);
+	INIT_API(timestamp);
 	INIT_API(tick);
 	INIT_API(scanline);
 	INIT_API(overline);
