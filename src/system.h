@@ -141,6 +141,7 @@ typedef struct
 	bool noSound;
 	bool showSync;
 	bool crtMonitor;
+	bool goFullscreen;
 
 	const char* crtShader;
 	const tic_cartridge* cart;
@@ -171,7 +172,6 @@ extern "C" {
 
 
 TIC80_API Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* appFolder, System* system);
-TIC80_API void studioInitPost();
 
 #ifdef __cplusplus
 }

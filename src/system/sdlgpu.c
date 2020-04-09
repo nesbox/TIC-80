@@ -1608,9 +1608,11 @@ static s32 start(s32 argc, char **argv, const char* folder)
 
 	setWindowIcon();
 	createMouseCursors();
-	studioInitPost();
 
 	initGPU();
+
+	if(platform.studio->config()->goFullscreen)
+		goFullscreen();
 
 #if defined(__EMSCRIPTEN__)
 
