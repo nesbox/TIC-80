@@ -1880,7 +1880,7 @@ static double api_time(tic_mem* memory)
 	return (double)((machine->data->counter() - machine->data->start)*1000)/machine->data->freq();
 }
 
-static int api_date(tic_mem* memory)
+static int api_timestamp(tic_mem* memory)
 {
 	tic_machine* machine = (tic_machine*)memory;
 	return (int)time(NULL);
@@ -2210,7 +2210,7 @@ static void initApi(tic_api* api)
 	INIT_API(music);
 	INIT_API(music_frame);
 	INIT_API(time);
-	INIT_API(date);
+	INIT_API(timestamp);
 	INIT_API(tick);
 	INIT_API(scanline);
 	INIT_API(overline);

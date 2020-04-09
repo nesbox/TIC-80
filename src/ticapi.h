@@ -150,7 +150,7 @@ typedef struct
 	void (*music)				(tic_mem* memory, s32 track, s32 frame, s32 row, bool loop);
 	void (*music_frame)			(tic_mem* memory, s32 track, s32 frame, s32 row, bool loop);
 	double (*time)				(tic_mem* memory);
-	int (*date)                 (tic_mem* memory);
+	int  (*timestamp)			(tic_mem* memory);
 	void (*tick)				(tic_mem* memory, tic_tick_data* data);
 	void (*scanline)			(tic_mem* memory, s32 row, void* data);
 	void (*overline)				(tic_mem* memory, void* data);
