@@ -721,13 +721,6 @@ if(BUILD_SDL)
 
         add_executable(${TIC80_OUTPUT} ${SYSTEM_TYPE} ${TIC80_SRC})
 
-    elseif(APPLE)
-        
-        add_executable(${TIC80_OUTPUT} MACOSX_BUNDLE ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/build/macosx/tic80.icns)
-        set_source_files_properties(${CMAKE_SOURCE_DIR}/build/macosx/tic80.icns PROPERTIES MACOSX_PACKAGE_LOCATION RESOURCES)
-        configure_file("${CMAKE_SOURCE_DIR}/build/macosx/${TIC80_OUTPUT}.plist.in" "${CMAKE_CURRENT_BINARY_DIR}/macosx/${TIC80_OUTPUT}.plist")
-        set_target_properties(${TIC80_OUTPUT} PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_BINARY_DIR}/macosx/${TIC80_OUTPUT}.plist)
-
     elseif(ANDROID)
 
         set(TIC80_SRC ${TIC80_SRC} ${ANDROID_NDK}/sources/android/cpufeatures/cpu-features.c)
@@ -791,16 +784,7 @@ if(BUILD_SOKOL)
 
         set(TIC80_SRC ${TIC80_SRC} build/windows/tic80.rc)
         
-        add_executable(${TIC80_OUTPUT}-sokol WIN32 ${TIC80_SRC})
-
-    elseif(APPLE)
-
-        add_executable(${TIC80_OUTPUT}-sokol MACOSX_BUNDLE ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/build/macosx/tic80.icns)
-    
-        set_source_files_properties(${CMAKE_SOURCE_DIR}/build/macosx/tic80.icns PROPERTIES MACOSX_PACKAGE_LOCATION RESOURCES)
-        configure_file("${CMAKE_SOURCE_DIR}/build/macosx/${TIC80_OUTPUT}-sokol.plist.in" "${CMAKE_CURRENT_BINARY_DIR}/macosx/${TIC80_OUTPUT}-sokol.plist")
-        set_target_properties(${TIC80_OUTPUT}-sokol PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_BINARY_DIR}/macosx/${TIC80_OUTPUT}-sokol.plist)
-    
+        add_executable(${TIC80_OUTPUT}-sokol WIN32 ${TIC80_SRC})        
     else()
         add_executable(${TIC80_OUTPUT}-sokol ${TIC80_SRC})
     endif()

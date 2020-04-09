@@ -17,7 +17,7 @@ matrix:
       env:
         - OS_FOLDER=mac
       after_success:
-        - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/out/bin tic80.app
+        - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/out/bin tic80
         - curl --retry 3 --ftp-create-dirs -T tic80.tar.gz $BUILDS_SERVER_PATH/
 
     - os: linux
