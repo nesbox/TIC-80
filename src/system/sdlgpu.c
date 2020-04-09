@@ -371,6 +371,7 @@ static void initGPU()
 		platform.gpu.screen = GPU_Init(w, h, GPU_INIT_DISABLE_VSYNC);
 
 		GPU_SetWindowResolution(w, h);
+		GPU_SetVirtualResolution(platform.gpu.screen, w, h);
 	}
 
 	platform.gpu.texture = GPU_CreateImage(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, STUDIO_PIXEL_FORMAT);
@@ -944,11 +945,12 @@ static void pollEvent()
 		case SDL_WINDOWEVENT:
 			switch(event.window.event)
 			{
-			case SDL_WINDOWEVENT_RESIZED: 
+			case SDL_WINDOWEVENT_SIZE_CHANGED:
 				{
 					s32 w = 0, h = 0;
 					SDL_GetWindowSize(platform.window, &w, &h);
 					GPU_SetWindowResolution(w, h);
+					GPU_SetVirtualResolution(platform.gpu.screen, w, h);
 
 					updateGamepadParts();
 				}
@@ -1602,7 +1604,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
 	const s32 Height = TIC80_FULLHEIGHT * platform.studio->config()->uiScale;
 
 	platform.window = SDL_CreateWindow( TIC_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-		Width, Height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE| SDL_WINDOW_OPENGL);
+		Width, Height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE| SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
 
 	setWindowIcon();
 	createMouseCursors();
