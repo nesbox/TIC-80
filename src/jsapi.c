@@ -591,6 +591,15 @@ static duk_ret_t duk_time(duk_context* duk)
 	return 1;
 }
 
+static duk_ret_t duk_date(duk_context* duk)
+{
+	tic_mem* memory = (tic_mem*)getDukMachine(duk);
+
+	duk_push_number(duk, memory->api.date(memory));
+
+	return 1;
+}
+
 static duk_ret_t duk_exit(duk_context* duk)
 {
 	tic_machine* machine = getDukMachine(duk);
@@ -809,6 +818,7 @@ static const struct{duk_c_function func; s32 params;} ApiFunc[] =
 	{duk_trace, 2},
 	{duk_pmem, 2},
 	{duk_time, 0},
+	{duk_date, 0},
 	{duk_exit, 0},
 	{duk_font, 8},
 	{duk_mouse, 0},

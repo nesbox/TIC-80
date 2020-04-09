@@ -104,6 +104,7 @@ class TIC {\n\
 	foreign static music(track, frame)\n\
 	foreign static music(track, frame, loop)\n\
 	foreign static time()\n\
+	foreign static date()\n\
 	foreign static sync()\n\
 	foreign static sync(mask)\n\
 	foreign static sync(mask, bank)\n\
@@ -1067,6 +1068,13 @@ static void wren_time(WrenVM* vm)
 	wrenSetSlotDouble(vm, 0, memory->api.time(memory));
 }
 
+static void wren_date(WrenVM* vm)
+{
+	tic_mem* memory = (tic_mem*)getWrenMachine(vm);
+
+	wrenSetSlotDouble(vm, 0, memory->api.date(memory));
+}
+
 static void wren_sync(WrenVM* vm)
 {
 	tic_mem* memory = (tic_mem*)getWrenMachine(vm);
@@ -1187,6 +1195,7 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
 	if (strcmp(signature, "static TIC.music(_,_,_)"    			) == 0) return wren_music;
 
 	if (strcmp(signature, "static TIC.time()"    			    ) == 0) return wren_time;
+	if (strcmp(signature, "static TIC.date()"    			    ) == 0) return wren_date;
 	if (strcmp(signature, "static TIC.sync()"    			    ) == 0) return wren_sync;
 	if (strcmp(signature, "static TIC.sync(_)"                  ) == 0) return wren_sync;
 	if (strcmp(signature, "static TIC.sync(_,_)"                ) == 0) return wren_sync;
