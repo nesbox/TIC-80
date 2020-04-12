@@ -790,6 +790,33 @@ static duk_ret_t duk_reset(duk_context* duk)
 	return 0;
 }
 
+static duk_ret_t duk_fget(duk_context* duk)
+{
+	tic_mem* tic = (tic_mem*)getDukMachine(duk);
+
+	u32 index = duk_is_null_or_undefined(duk, 0) ? 0 : duk_to_int(duk, 0);
+	u32 flag = duk_is_null_or_undefined(duk, 1) ? 0 : duk_to_int(duk, 1);
+
+	bool value = tic->api.get_flag(tic, index, flag);
+
+	duk_push_boolean(duk, value);
+
+	return 1;
+}
+
+static duk_ret_t duk_fset(duk_context* duk)
+{
+	tic_mem* tic = (tic_mem*)getDukMachine(duk);
+
+	u32 index = duk_is_null_or_undefined(duk, 0) ? 0 : duk_to_int(duk, 0);
+	u32 flag = duk_is_null_or_undefined(duk, 1) ? 0 : duk_to_int(duk, 1);
+	bool value = duk_is_null_or_undefined(duk, 1) ? false : duk_to_boolean(duk, 2);
+
+	tic->api.set_flag(tic, index, flag, value);
+
+	return 0;
+}
+
 static const char* const ApiKeywords[] = API_KEYWORDS;
 static const struct{duk_c_function func; s32 params;} ApiFunc[] = 
 {
@@ -832,6 +859,8 @@ static const struct{duk_c_function func; s32 params;} ApiFunc[] =
 	{duk_reset, 0},
 	{duk_key, 1},
 	{duk_keyp, 3},
+	{duk_fget, 2},
+	{duk_fset, 3},
 };
 
 STATIC_ASSERT(api_func, COUNT_OF(ApiKeywords) == COUNT_OF(ApiFunc));

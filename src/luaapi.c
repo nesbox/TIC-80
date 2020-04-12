@@ -1140,6 +1140,55 @@ static s32 lua_mouse(lua_State *lua)
 	return 7;
 }
 
+static s32 lua_fget(lua_State* lua)
+{
+	tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+	s32 top = lua_gettop(lua);
+
+	if(top >= 1)
+	{
+		u32 index = getLuaNumber(lua, 1);
+
+		if(top >= 2)
+		{
+			u32 flag = getLuaNumber(lua, 2);
+			lua_pushboolean(lua, tic->api.get_flag(tic, index, flag));
+			return 1;
+		}
+	}
+
+	luaL_error(lua, "invalid params, fget(sprite,flag)\n");
+
+	return 0;
+}
+
+static s32 lua_fset(lua_State* lua)
+{
+	tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+	s32 top = lua_gettop(lua);
+
+	if(top >= 1)
+	{
+		u32 index = getLuaNumber(lua, 1);
+
+		if(top >= 2)
+		{
+			u32 flag = getLuaNumber(lua, 2);
+
+			if(top >= 3)
+			{
+				bool value = lua_toboolean(lua, 3);
+				tic->api.set_flag(tic, index, flag, value);
+				return 0;
+			}
+		}
+	}
+
+	luaL_error(lua, "invalid params, fset(sprite,flag,value)\n");
+
+	return 0;
+}
+
 static s32 lua_dofile(lua_State *lua)
 {
 	luaL_error(lua, "unknown method: \"dofile\"\n");
@@ -1183,7 +1232,7 @@ static const lua_CFunction ApiFunc[] =
 	lua_mset, lua_peek, lua_poke, lua_peek4, lua_poke4, lua_memcpy, 
 	lua_memset, lua_trace, lua_pmem, lua_time, lua_timestamp, lua_exit, lua_font, lua_mouse, 
 	lua_circ, lua_circb, lua_tri, lua_textri, lua_clip, lua_music, lua_sync, lua_reset,
-	lua_key, lua_keyp
+	lua_key, lua_keyp, lua_fget, lua_fset
 };
 
 STATIC_ASSERT(api_func, COUNT_OF(ApiKeywords) == COUNT_OF(ApiFunc));

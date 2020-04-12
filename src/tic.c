@@ -787,7 +787,7 @@ static void api_sprite_ex(tic_mem* memory, const tic_tiles* src, s32 index, s32 
 
 static inline u8* getFlag(tic_mem* memory, s32 index, u8 flag)
 {
-	static u8 stub;
+	static u8 stub = 0;
 	if(index >= TIC_FLAGS || flag >= BITS_IN_BYTE)
 		return &stub;
 

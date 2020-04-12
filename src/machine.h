@@ -32,10 +32,10 @@
 #define SCN_FN "SCN"
 #define OVR_FN "OVR"
 
-#define API_KEYWORDS {TIC_FN, SCN_FN, OVR_FN, "print", "cls", "pix", "line", "rect", "rectb", \
-	"spr", "btn", "btnp", "sfx", "map", "mget", "mset", "peek", "poke", "peek4", "poke4", \
-	"memcpy", "memset", "trace", "pmem", "time", "timestamp", "exit", "font", "mouse", "circ", "circb", "tri", "textri", \
-	"clip", "music", "sync", "reset", "key", "keyp"}
+#define API_KEYWORDS {TIC_FN, SCN_FN, OVR_FN, "print", "cls", "pix", "line", "rect", "rectb", 								\
+	"spr", "btn", "btnp", "sfx", "map", "mget", "mset", "peek", "poke", "peek4", "poke4", 									\
+	"memcpy", "memset", "trace", "pmem", "time", "timestamp", "exit", "font", "mouse", "circ", "circb", "tri", "textri", 	\
+	"clip", "music", "sync", "reset", "key", "keyp", "fget", "fset"}
 	
 typedef struct
 {
