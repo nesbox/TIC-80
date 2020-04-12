@@ -818,50 +818,16 @@ static duk_ret_t duk_fset(duk_context* duk)
 }
 
 static const char* const ApiKeywords[] = API_KEYWORDS;
+
+#define API_FUNC_DEF(name, paramsCount) {duk_ ## name, paramsCount},
 static const struct{duk_c_function func; s32 params;} ApiFunc[] = 
 {
 	{NULL, 0},
 	{NULL, 1},
 	{NULL, 0},
-	{duk_print, 7},
-	{duk_cls, 1},
-	{duk_pix, 3},
-	{duk_line, 5},
-	{duk_rect, 5},
-	{duk_rectb, 5},
-	{duk_spr, 9},
-	{duk_btn, 1},
-	{duk_btnp, 3},
-	{duk_sfx, 6},
-	{duk_map, 9},
-	{duk_mget, 2},
-	{duk_mset, 3},
-	{duk_peek, 1},
-	{duk_poke, 2},
-	{duk_peek4, 1},
-	{duk_poke4, 2},
-	{duk_memcpy, 3},
-	{duk_memset, 3},
-	{duk_trace, 2},
-	{duk_pmem, 2},
-	{duk_time, 0},
-	{duk_timestamp, 0},
-	{duk_exit, 0},
-	{duk_font, 8},
-	{duk_mouse, 0},
-	{duk_circ, 4},
-	{duk_circb, 4},
-	{duk_tri, 7},
-	{duk_textri,14},
-	{duk_clip, 4},
-	{duk_music, 4},
-	{duk_sync, 3},
-	{duk_reset, 0},
-	{duk_key, 1},
-	{duk_keyp, 3},
-	{duk_fget, 2},
-	{duk_fset, 3},
+	TIC_API_LIST(API_FUNC_DEF)
 };
+#undef API_FUNC_DEF
 
 STATIC_ASSERT(api_func, COUNT_OF(ApiKeywords) == COUNT_OF(ApiFunc));
 

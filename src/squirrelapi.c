@@ -1327,15 +1327,10 @@ static void squirrel_open_builtins(HSQUIRRELVM vm)
 }
 
 static const char* const ApiKeywords[] = API_KEYWORDS;
-static const SQFUNCTION ApiFunc[] = 
-{
-	NULL, NULL, NULL, squirrel_print, squirrel_cls, squirrel_pix, squirrel_line, squirrel_rect, 
-	squirrel_rectb, squirrel_spr, squirrel_btn, squirrel_btnp, squirrel_sfx, squirrel_map, squirrel_mget, 
-	squirrel_mset, squirrel_peek, squirrel_poke, squirrel_peek4, squirrel_poke4, squirrel_memcpy, 
-	squirrel_memset, squirrel_trace, squirrel_pmem, squirrel_time, squirrel_timestamp, squirrel_exit, squirrel_font, squirrel_mouse, 
-	squirrel_circ, squirrel_circb, squirrel_tri, squirrel_textri, squirrel_clip, squirrel_music, squirrel_sync, squirrel_reset,
-	squirrel_key, squirrel_keyp, squirrel_fget, squirrel_fset
-};
+
+#define API_FUNC_DEF(name, _) squirrel_ ## name,
+static const SQFUNCTION ApiFunc[] = {NULL, NULL, NULL, TIC_API_LIST(API_FUNC_DEF)};
+#undef API_FUNC_DEF
 
 STATIC_ASSERT(api_func, COUNT_OF(ApiKeywords) == COUNT_OF(ApiFunc));
 
@@ -1350,13 +1345,11 @@ static void checkForceExit(HSQUIRRELVM vm, SQInteger type, const SQChar* sourceN
 
 static void initAPI(tic_machine* machine)
 {
-	//lua_pushlightuserdata(machine->lua, machine);
-	//lua_setglobal(machine->lua, TicMachine);
 	HSQUIRRELVM vm = machine->squirrel;
 	
-        sq_setcompilererrorhandler(vm, squirrel_compilerError);
+	sq_setcompilererrorhandler(vm, squirrel_compilerError);
         
-        sq_pushregistrytable(vm);
+    sq_pushregistrytable(vm);
 	sq_pushstring(vm, TicMachine, -1);
 	sq_pushuserpointer(machine->squirrel, machine);
 	sq_newslot(vm, -3, SQTrue);

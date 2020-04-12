@@ -1225,15 +1225,10 @@ static void lua_open_builtins(lua_State *lua)
 }
 
 static const char* const ApiKeywords[] = API_KEYWORDS;
-static const lua_CFunction ApiFunc[] = 
-{
-	NULL, NULL, NULL, lua_print, lua_cls, lua_pix, lua_line, lua_rect, 
-	lua_rectb, lua_spr, lua_btn, lua_btnp, lua_sfx, lua_map, lua_mget, 
-	lua_mset, lua_peek, lua_poke, lua_peek4, lua_poke4, lua_memcpy, 
-	lua_memset, lua_trace, lua_pmem, lua_time, lua_timestamp, lua_exit, lua_font, lua_mouse, 
-	lua_circ, lua_circb, lua_tri, lua_textri, lua_clip, lua_music, lua_sync, lua_reset,
-	lua_key, lua_keyp, lua_fget, lua_fset
-};
+
+#define API_FUNC_DEF(name, _) lua_ ## name,
+static const lua_CFunction ApiFunc[] = {NULL, NULL, NULL, TIC_API_LIST(API_FUNC_DEF)};
+#undef API_FUNC_DEF
 
 STATIC_ASSERT(api_func, COUNT_OF(ApiKeywords) == COUNT_OF(ApiFunc));
 
