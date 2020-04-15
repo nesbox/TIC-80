@@ -224,7 +224,7 @@ static inline bool islineend(char c) {return c == '\n' || c == '\0';}
 static inline bool isalpha_(char c) {return isalpha(c) || c == '_';}
 static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
 
-static void parseCode(const tic_script_config* config, const char* start, u8* color, const tic_code_theme* theme)
+static void parseCode(const tic_script_config* config, const char* start, u8* color, const struct tic_code_theme* theme)
 {
     const char* ptr = start;
 

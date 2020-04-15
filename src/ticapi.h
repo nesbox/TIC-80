@@ -62,20 +62,6 @@ typedef struct
 
 typedef struct
 {
-    u8 string;
-    u8 number;
-    u8 keyword;
-    u8 api;
-    u8 comment;
-    u8 sign;
-    u8 var;
-    u8 other;
-} tic_code_theme;
-
-typedef struct tic_script_config tic_script_config;
-
-struct tic_script_config
-{
     struct
     {
         bool(*init)(tic_mem* memory, const char* code);
@@ -97,7 +83,7 @@ struct tic_script_config
 
     const char* const * keywords;
     s32 keywordsCount;
-};
+} tic_script_config;
 
 #define TIC_FN "TIC"
 #define SCN_FN "SCN"

@@ -113,7 +113,17 @@ typedef struct
 
         struct
         {
-            tic_code_theme syntax;
+            struct tic_code_theme
+            {
+                u8 string;
+                u8 number;
+                u8 keyword;
+                u8 api;
+                u8 comment;
+                u8 sign;
+                u8 var;
+                u8 other;
+            } syntax;
 
             u8 bg;
             u8 select;
