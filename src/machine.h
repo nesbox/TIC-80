@@ -26,203 +26,188 @@
 #include "tools.h"
 #include "blip_buf.h"
 
-#define SFX_DEF_SPEED (1 << SFX_SPEED_BITS)
-
-#define TIC_FN "TIC"
-#define SCN_FN "SCN"
-#define OVR_FN "OVR"
-
-#define API_KEYWORD_DEF(name, _) #name,
-#define API_KEYWORDS {TIC_KEYWORDS_LIST(API_KEYWORD_DEF)}
-
 typedef struct
 {
-	s32 time;       /* clock time of next delta */
-	s32 phase;      /* position within waveform */
-	s32 amp;        /* current amplitude in delta buffer */
+    s32 time;       /* clock time of next delta */
+    s32 phase;      /* position within waveform */
+    s32 amp;        /* current amplitude in delta buffer */
 }tic_sound_register_data;
 
 typedef struct
 {
-	s32 tick;
-	tic_sfx_pos pos;
-	s32 index;
-	s32 note;
-	struct
-	{
-		u8 left:4;
-		u8 right:4;
-	} volume;
-	s8 speed:SFX_SPEED_BITS;
-	s32 duration;
+    s32 tick;
+    tic_sfx_pos* pos;
+    s32 index;
+    s32 note;
+    struct
+    {
+        u8 left:4;
+        u8 right:4;
+    } volume;
+    s8 speed:SFX_SPEED_BITS;
+    s32 duration;
 } tic_channel_data;
 
 typedef struct
 {
-	struct
-	{
-		s32 tick;
-		u8 note1:4;
-		u8 note2:4;
-	} chord;
+    struct
+    {
+        s32 tick;
+        u8 note1:4;
+        u8 note2:4;
+    } chord;
 
-	struct
-	{
-		s32 tick;
-		u8 period:4;
-		u8 depth:4;
-	} vibrato;
+    struct
+    {
+        s32 tick;
+        u8 period:4;
+        u8 depth:4;
+    } vibrato;
 
-	struct
-	{
-		s32 tick;
-		u8 note;
-		s32 duration;
-	} slide;
+    struct
+    {
+        s32 tick;
+        u8 note;
+        s32 duration;
+    } slide;
 
-	struct
-	{
-		s32 value;
-	} finepitch;
+    struct
+    {
+        s32 value;
+    } finepitch;
 
-	struct
-	{
-		const tic_track_row* row;
-		s32 ticks;
-	} delay;
+    struct
+    {
+        const tic_track_row* row;
+        s32 ticks;
+    } delay;
 
 } tic_command_data;
 
 typedef struct
 {
-	s32 l;
-	s32 t;
-	s32 r;
-	s32 b;
+    s32 l;
+    s32 t;
+    s32 r;
+    s32 b;
 } tic_clip_data;
 
 typedef struct
 {
-	bool active;
-	s32 frame;
-	s32 row;
+    bool active;
+    s32 frame;
+    s32 row;
 } tic_jump_command;
 
 typedef struct
 {
 
-	struct
-	{
-		tic80_gamepads previous;
+    struct
+    {
+        tic80_gamepads previous;
 
-		u32 holds[sizeof(tic80_gamepads) * BITS_IN_BYTE];
-	} gamepads;
+        u32 holds[sizeof(tic80_gamepads) * BITS_IN_BYTE];
+    } gamepads;
 
-	struct 
-	{
-		tic80_keyboard previous;
+    struct 
+    {
+        tic80_keyboard previous;
 
-		u32 holds[tic_keys_count];
-	} keyboard;
+        u32 holds[tic_keys_count];
+    } keyboard;
 
-	tic_clip_data clip;
+    tic_clip_data clip;
 
-	struct
-	{
-		tic_sound_register_data left[TIC_SOUND_CHANNELS];
-		tic_sound_register_data right[TIC_SOUND_CHANNELS];
-	} registers;
+    struct
+    {
+        tic_sound_register_data left[TIC_SOUND_CHANNELS];
+        tic_sound_register_data right[TIC_SOUND_CHANNELS];
+    } registers;
 
-	tic_channel_data channels[TIC_SOUND_CHANNELS];
-	struct
-	{
-		s32 ticks;
-		tic_channel_data channels[TIC_SOUND_CHANNELS];
-		tic_command_data commands[TIC_SOUND_CHANNELS];
-		tic_jump_command jump;
+    tic_channel_data channels[TIC_SOUND_CHANNELS];
+    struct
+    {
+        s32 ticks;
+        tic_channel_data channels[TIC_SOUND_CHANNELS];
+        tic_command_data commands[TIC_SOUND_CHANNELS];
+        tic_sfx_pos sfxpos[TIC_SOUND_CHANNELS];
+        tic_jump_command jump;
 
-	} music;
+    } music;
 
-	tic_tick tick;
-	tic_scanline scanline;
+    tic_tick tick;
+    tic_scanline scanline;
 
-	struct
-	{
-		tic_overline callback;
-		u32 palette[TIC_PALETTE_SIZE];
-	} ovr;
+    struct
+    {
+        tic_overline callback;
+        u32 palette[TIC_PALETTE_SIZE];
+    } ovr;
 
-	void (*setpix)(tic_mem* memory, s32 x, s32 y, u8 color);
-	u8 (*getpix)(tic_mem* memory, s32 x, s32 y);
-	void (*drawhline)(tic_mem* memory, s32 xl, s32 xr, s32 y, u8 color);
+    void (*setpix)(tic_mem* memory, s32 x, s32 y, u8 color);
+    u8 (*getpix)(tic_mem* memory, s32 x, s32 y);
+    void (*drawhline)(tic_mem* memory, s32 xl, s32 xr, s32 y, u8 color);
 
-	u32 synced;
+    u32 synced;
 
-	bool initialized;
+    bool initialized;
 } tic_machine_state_data;
 
 typedef struct
 {
-	tic_mem memory; // it should be first
-	tic_api api;
+    tic_mem memory; // it should be first
 
-	struct
-	{
+    struct
+    {
 #if defined(TIC_BUILD_WITH_LUA) || defined(TIC_BUILD_WITH_MOON) || defined(TIC_BUILD_WITH_FENNEL)
-		struct lua_State* lua;
+        struct lua_State* lua;
 #endif
 
 #if defined(TIC_BUILD_WITH_JS)
-		struct duk_hthread* js;
+        struct duk_hthread* js;
 #endif
 
 #if defined(TIC_BUILD_WITH_WREN)
-		struct WrenVM* wren;
-#endif	
+        struct WrenVM* wren;
+#endif  
 
 #if defined(TIC_BUILD_WITH_SQUIRREL)
-		struct SQVM* squirrel;
+        struct SQVM* squirrel;
 #endif
 
-	};
+    };
 
-	struct
-	{
-		blip_buffer_t* left;
-		blip_buffer_t* right;
-	} blip;
-	
-	s32 samplerate;
+    struct
+    {
+        blip_buffer_t* left;
+        blip_buffer_t* right;
+    } blip;
+    
+    s32 samplerate;
 
-	struct
-	{
-		const tic_sfx* sfx;
-		const tic_music* music;
-	} sound;
+    struct
+    {
+        const tic_sfx* sfx;
+        const tic_music* music;
+    } sound;
 
-	tic_tick_data* data;
+    tic_tick_data* data;
 
-	tic_machine_state_data state;
+    tic_machine_state_data state;
 
-	struct
-	{
-		tic_machine_state_data state;	
-		tic_ram ram;
+    struct
+    {
+        tic_machine_state_data state;   
+        tic_ram ram;
 
-		struct
-		{
-			u64 start;
-			u64 paused;
-		} time;
-	} pause;
+        struct
+        {
+            u64 start;
+            u64 paused;
+        } time;
+    } pause;
 
 } tic_machine;
-
-typedef s32(DrawCharFunc)(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale, bool alt);
-s32 drawText(tic_mem* memory, const char* text, s32 x, s32 y, s32 width, s32 height, u8 color, s32 scale, DrawCharFunc* func, bool alt);
-s32 drawSpriteFont(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale, bool alt);
-s32 drawFixedSpriteFont(tic_mem* memory, u8 index, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale, bool alt);
-void parseCode(const tic_script_config* config, const char* start, u8* color, const tic_code_theme* theme);
 
 #if defined(TIC_BUILD_WITH_SQUIRREL)
 const tic_script_config* getSquirrelScriptConfig();
@@ -231,16 +216,15 @@ const tic_script_config* getSquirrelScriptConfig();
 #if defined(TIC_BUILD_WITH_LUA)
 const tic_script_config* getLuaScriptConfig();
 
-#	if defined(TIC_BUILD_WITH_MOON)
+#   if defined(TIC_BUILD_WITH_MOON)
 const tic_script_config* getMoonScriptConfig();
-#	endif
+#   endif
 
-#	if defined(TIC_BUILD_WITH_FENNEL)
+#   if defined(TIC_BUILD_WITH_FENNEL)
 const tic_script_config* getFennelConfig();
-#	endif
+#   endif
 
 #endif /* defined(TIC_BUILD_WITH_LUA) */
-
 
 #if defined(TIC_BUILD_WITH_JS)
 const tic_script_config* getJsScriptConfig();

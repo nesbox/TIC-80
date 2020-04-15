@@ -41,52 +41,52 @@ typedef struct
 
 struct Net
 {
-	CURLM* multi;
-	struct Curl_easy* sync;
+    CURLM* multi;
+    struct Curl_easy* sync;
 };
 
 static size_t writeCallbackSync(void *contents, size_t size, size_t nmemb, void *userp)
 {
-	CurlData* data = (CurlData*)userp;
+    CurlData* data = (CurlData*)userp;
 
-	const size_t total = size * nmemb;
-	data->buffer = realloc(data->buffer, data->size + total);
-	memcpy(data->buffer + data->size, contents, total);
-	data->size += total;
+    const size_t total = size * nmemb;
+    data->buffer = realloc(data->buffer, data->size + total);
+    memcpy(data->buffer + data->size, contents, total);
+    data->size += total;
 
-	return total;
+    return total;
 }
 
 static size_t writeCallback(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
-	CurlData* data = (CurlData*)userdata;
+    CurlData* data = (CurlData*)userdata;
 
-	const size_t total = size * nmemb;
-	data->buffer = realloc(data->buffer, data->size + total);
-	memcpy(data->buffer + data->size, ptr, total);
-	data->size += total;
+    const size_t total = size * nmemb;
+    data->buffer = realloc(data->buffer, data->size + total);
+    memcpy(data->buffer + data->size, ptr, total);
+    data->size += total;
 
-	double cl;
-	curl_easy_getinfo(data->async, CURLINFO_CONTENT_LENGTH_DOWNLOAD, &cl);
+    double cl;
+    curl_easy_getinfo(data->async, CURLINFO_CONTENT_LENGTH_DOWNLOAD, &cl);
 
-	if(cl > 0)
-	{
-		HttpGetData getData = 
-		{
-			.type = HttpGetProgress,
-			.progress = 
-			{
-				.size = data->size,
-				.total = cl,
-			},
-			.calldata = data->calldata,
-			.url = data->url,
-		};
+    if(cl > 0)
+    {
+        HttpGetData getData = 
+        {
+            .type = HttpGetProgress,
+            .progress = 
+            {
+                .size = data->size,
+                .total = cl,
+            },
+            .calldata = data->calldata,
+            .url = data->url,
+        };
 
-		data->callback(&getData);
-	}
+        data->callback(&getData);
+    }
 
-	return total;
+    return total;
 }
 
 #endif
@@ -94,34 +94,34 @@ static size_t writeCallback(char *ptr, size_t size, size_t nmemb, void *userdata
 void netGet(Net* net, const char* path, HttpGetCallback callback, void* calldata)
 {
 #ifdef DISABLE_NETWORKING
-	// !TODO: call callback here
-	return NULL;
+    // !TODO: call callback here
+    return NULL;
 #else
 
-	struct Curl_easy* curl = curl_easy_init();
+    struct Curl_easy* curl = curl_easy_init();
 
-	CurlData* data = calloc(1, sizeof(CurlData));
-	*data = (CurlData)
-	{
-		.async = curl,
-		.callback = callback,
-		.calldata = calldata,
-	};
+    CurlData* data = calloc(1, sizeof(CurlData));
+    *data = (CurlData)
+    {
+        .async = curl,
+        .callback = callback,
+        .calldata = calldata,
+    };
 
-	strcpy(data->url, path);
+    strcpy(data->url, path);
 
-	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
 
-	{
-		char url[TICNAME_MAX] = TIC_WEBSITE;
-		strcat(url, path);
+    {
+        char url[TICNAME_MAX] = TIC_WEBSITE;
+        strcat(url, path);
 
-		curl_easy_setopt(curl, CURLOPT_URL, url);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, data);
-		curl_easy_setopt(curl, CURLOPT_PRIVATE, data);
+        curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, data);
+        curl_easy_setopt(curl, CURLOPT_PRIVATE, data);
 
-		curl_multi_add_handle(net->multi, curl);
-	}
+        curl_multi_add_handle(net->multi, curl);
+    }
 
 #endif
 }
@@ -129,28 +129,28 @@ void netGet(Net* net, const char* path, HttpGetCallback callback, void* calldata
 void* netGetSync(Net* net, const char* path, s32* size)
 {
 #ifdef DISABLE_NETWORKING
-	return NULL;
+    return NULL;
 #else
-	CurlData data = {NULL, 0};
+    CurlData data = {NULL, 0};
 
-	if(net->sync)
-	{
-		char url[TICNAME_MAX] = TIC_WEBSITE;
-		strcat(url, path);
+    if(net->sync)
+    {
+        char url[TICNAME_MAX] = TIC_WEBSITE;
+        strcat(url, path);
 
-		curl_easy_setopt(net->sync, CURLOPT_URL, url);
-		curl_easy_setopt(net->sync, CURLOPT_WRITEDATA, &data);
+        curl_easy_setopt(net->sync, CURLOPT_URL, url);
+        curl_easy_setopt(net->sync, CURLOPT_WRITEDATA, &data);
 
-		if(curl_easy_perform(net->sync) == CURLE_OK)
-		{
-			long httpCode = 0;
-			curl_easy_getinfo(net->sync, CURLINFO_RESPONSE_CODE, &httpCode);
-			if(httpCode != 200) return NULL;
-		}
-		else return NULL;
-	}
+        if(curl_easy_perform(net->sync) == CURLE_OK)
+        {
+            long httpCode = 0;
+            curl_easy_getinfo(net->sync, CURLINFO_RESPONSE_CODE, &httpCode);
+            if(httpCode != 200) return NULL;
+        }
+        else return NULL;
+    }
 
-	*size = data.size;
+    *size = data.size;
 
     return data.buffer;
 
@@ -161,83 +161,83 @@ void netTick(Net *net)
 {
 #ifndef DISABLE_NETWORKING
 
-	{
-		s32 running = 0;
-		curl_multi_perform(net->multi, &running);
-	}
+    {
+        s32 running = 0;
+        curl_multi_perform(net->multi, &running);
+    }
 
-	s32 pending = 0;
-	CURLMsg* msg = NULL;
+    s32 pending = 0;
+    CURLMsg* msg = NULL;
 
-	while(msg = curl_multi_info_read(net->multi, &pending))
-	{
-		if(msg->msg == CURLMSG_DONE)
-		{
-			CurlData* data = NULL;
-			curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, (char**)&data);
+    while(msg = curl_multi_info_read(net->multi, &pending))
+    {
+        if(msg->msg == CURLMSG_DONE)
+        {
+            CurlData* data = NULL;
+            curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, (char**)&data);
 
-			long httpCode = 0;
-			curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &httpCode);
+            long httpCode = 0;
+            curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &httpCode);
 
-			if(httpCode == 200)
-			{
-				HttpGetData getData = 
-				{
-					.type = HttpGetDone,
-					.done = 
-					{
-						.size = data->size,
-						.data = data->buffer,
-					},
-					.calldata = data->calldata,
-					.url = data->url,
-				};
+            if(httpCode == 200)
+            {
+                HttpGetData getData = 
+                {
+                    .type = HttpGetDone,
+                    .done = 
+                    {
+                        .size = data->size,
+                        .data = data->buffer,
+                    },
+                    .calldata = data->calldata,
+                    .url = data->url,
+                };
 
-				data->callback(&getData);
+                data->callback(&getData);
 
-				free(data->buffer);
-			}
-			else
-			{
-				HttpGetData getData = 
-				{
-					.type = HttpGetError,
-					.error = 
-					{
-						.code = httpCode,
-					},
-					.calldata = data->calldata,
-					.url = data->url,
-				};
+                free(data->buffer);
+            }
+            else
+            {
+                HttpGetData getData = 
+                {
+                    .type = HttpGetError,
+                    .error = 
+                    {
+                        .code = httpCode,
+                    },
+                    .calldata = data->calldata,
+                    .url = data->url,
+                };
 
-				data->callback(&getData);
-			}
+                data->callback(&getData);
+            }
 
-			free(data);
-			
-			curl_multi_remove_handle(net->multi, msg->easy_handle);
-			curl_easy_cleanup(msg->easy_handle);
-		}
-	}
+            free(data);
+            
+            curl_multi_remove_handle(net->multi, msg->easy_handle);
+            curl_easy_cleanup(msg->easy_handle);
+        }
+    }
 #endif
 }
 
 Net* createNet()
 {
 #ifdef DISABLE_NETWORKING
-	return NULL;
+    return NULL;
 #else
-	Net* net = (Net*)malloc(sizeof(Net));
+    Net* net = (Net*)malloc(sizeof(Net));
 
-	*net = (Net)
-	{
-		.sync = curl_easy_init(),
-		.multi = curl_multi_init(),
-	};
+    *net = (Net)
+    {
+        .sync = curl_easy_init(),
+        .multi = curl_multi_init(),
+    };
 
-	curl_easy_setopt(net->sync, CURLOPT_WRITEFUNCTION, writeCallbackSync);
+    curl_easy_setopt(net->sync, CURLOPT_WRITEFUNCTION, writeCallbackSync);
 
-	return net;
+    return net;
 #endif
 }
 
@@ -245,12 +245,12 @@ void closeNet(Net* net)
 {
 #ifndef DISABLE_NETWORKING
 
-	if(net->sync)
-		curl_easy_cleanup(net->sync);
+    if(net->sync)
+        curl_easy_cleanup(net->sync);
 
-	if(net->multi)
-		curl_multi_cleanup(net->multi);
+    if(net->multi)
+        curl_multi_cleanup(net->multi);
 
-	free(net);
+    free(net);
 #endif
 }

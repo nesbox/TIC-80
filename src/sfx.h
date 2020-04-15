@@ -28,24 +28,24 @@ typedef struct Sfx Sfx;
 
 struct Sfx
 {
-	tic_mem* tic;
+    tic_mem* tic;
 
-	tic_sfx* src;
+    tic_sfx* src;
 
-	u8 index:SFX_COUNT_BITS;
-	s32 volwave;
-	s32 hoverWave;
+    u8 index:SFX_COUNT_BITS;
+    s32 volwave;
+    s32 hoverWave;
 
-	struct
-	{
-		bool active;
-		s32 note;
-	} play;
-	
-	struct History* history;
+    struct
+    {
+        bool active;
+        s32 note;
+    } play;
+    
+    struct History* history;
 
-	void(*tick)(Sfx*);
-	void(*event)(Sfx*, StudioEvent);
+    void(*tick)(Sfx*);
+    void(*event)(Sfx*, StudioEvent);
 };
 
 void initSfx(Sfx*, tic_mem*, tic_sfx* src);

@@ -28,166 +28,166 @@
 
 typedef struct
 {
-	u8* buffer;
-	u32 start;
-	u32 end;
+    u8* buffer;
+    u32 start;
+    u32 end;
 } Data;
 
 typedef struct Item Item;
 
 struct Item
 {
-	Item* next;
-	Item* prev;
+    Item* next;
+    Item* prev;
 
-	Data data;
+    Data data;
 };
 
 static void list_delete(Item* list, Item* from)
 {
-	Item* it = from;
+    Item* it = from;
 
-	while(it)
-	{
-		Item* next = it->next;
+    while(it)
+    {
+        Item* next = it->next;
 
-		if(it->data.buffer) free(it->data.buffer);
-		if(it) free(it);
+        if(it->data.buffer) free(it->data.buffer);
+        if(it) free(it);
 
-		it = next;
-	}
+        it = next;
+    }
 }
 
 static Item* list_insert(Item* list, Data* data)
 {
-	Item* item = (Item*)malloc(sizeof(Item));
-	item->next = NULL;
-	item->prev = NULL;
-	item->data = *data;
+    Item* item = (Item*)malloc(sizeof(Item));
+    item->next = NULL;
+    item->prev = NULL;
+    item->data = *data;
 
-	if(list)
-	{
-		list_delete(list, list->next);
+    if(list)
+    {
+        list_delete(list, list->next);
 
-		list->next = item;
-		item->prev = list;
-	}
+        list->next = item;
+        item->prev = list;
+    }
 
-	return item;
+    return item;
 }
 
 static Item* list_first(Item* list)
 {
-	Item* it = list;
-	while(it->prev) it = it->prev;
+    Item* it = list;
+    while(it->prev) it = it->prev;
 
-	return it;
+    return it;
 }
 
 struct History
 {
-	Item* list;
+    Item* list;
 
-	u32 size;
-	u8* state;
+    u32 size;
+    u8* state;
 
-	void* data;
+    void* data;
 };
 
 History* history_create(void* data, u32 size)
 {
-	History* history = (History*)malloc(sizeof(History));
-	history->data = data;
+    History* history = (History*)malloc(sizeof(History));
+    history->data = data;
 
-	history->list = NULL;
-	history->size = size;
+    history->list = NULL;
+    history->size = size;
 
-	history->state = malloc(size);
-	memcpy(history->state, data, history->size);
+    history->state = malloc(size);
+    memcpy(history->state, data, history->size);
 
-	// empty diff
-	history->list = list_insert(history->list, &(Data){NULL, 0, 0});
+    // empty diff
+    history->list = list_insert(history->list, &(Data){NULL, 0, 0});
 
-	return history;
+    return history;
 }
 
 void history_delete(History* history)
 {
-	if(history)
-	{
-		free(history->state);
+    if(history)
+    {
+        free(history->state);
 
-		list_delete(history->list, list_first(history->list));
+        list_delete(history->list, list_first(history->list));
 
-		free(history);
-	}
+        free(history);
+    }
 }
 
 static void history_diff(History* history, Data* data)
 {
-	for (u32 i = data->start, k = 0; i < data->end; ++i, ++k)
-		history->state[i] ^= data->buffer[k];
+    for (u32 i = data->start, k = 0; i < data->end; ++i, ++k)
+        history->state[i] ^= data->buffer[k];
 }
 
 static u32 trim_left(u8* data, u32 size)
 {
-	for(u32 i = 0; i < size; i++)
-		if(data[i]) return i;
+    for(u32 i = 0; i < size; i++)
+        if(data[i]) return i;
 
-	return size;
+    return size;
 }
 
 static u32 trim_right(u8* data, u32 size)
 {
-	for(u32 i = 0; i < size; i++)
-		if(data[size - i - 1]) return size - i;
+    for(u32 i = 0; i < size; i++)
+        if(data[size - i - 1]) return size - i;
 
-	return 0;
+    return 0;
 }
 
 bool history_add(History* history)
 {
-	if (memcmp(history->state, history->data, history->size) == 0) return false;
+    if (memcmp(history->state, history->data, history->size) == 0) return false;
 
-	history_diff(history, &(Data){history->data, 0, history->size});
+    history_diff(history, &(Data){history->data, 0, history->size});
 
-	{
-		Data data;
-		data.start = trim_left(history->state, history->size);
-		data.end = trim_right(history->state, history->size);
-		u32 size = data.end - data.start;
-		data.buffer = malloc(size);
+    {
+        Data data;
+        data.start = trim_left(history->state, history->size);
+        data.end = trim_right(history->state, history->size);
+        u32 size = data.end - data.start;
+        data.buffer = malloc(size);
 
-		memcpy(data.buffer, (u8*)history->state + data.start, size);
+        memcpy(data.buffer, (u8*)history->state + data.start, size);
 
-		history->list = list_insert(history->list, &data);
-	}
+        history->list = list_insert(history->list, &data);
+    }
 
-	memcpy(history->state, history->data, history->size);
+    memcpy(history->state, history->data, history->size);
 
-	return true;
+    return true;
 }
 
 void history_undo(History* history)
 {
-	if(history->list->prev)
-	{
-		history_diff(history, &history->list->data);
+    if(history->list->prev)
+    {
+        history_diff(history, &history->list->data);
 
-		history->list = history->list->prev;
-	}
+        history->list = history->list->prev;
+    }
 
-	memcpy(history->data, history->state, history->size);
+    memcpy(history->data, history->state, history->size);
 }
 
 void history_redo(History* history)
 {
-	if(history->list->next)
-	{
-		history->list = history->list->next;
+    if(history->list->next)
+    {
+        history->list = history->list->next;
 
-		history_diff(history, &history->list->data);
-	}
+        history_diff(history, &history->list->data);
+    }
 
-	memcpy(history->data, history->state, history->size);
+    memcpy(history->data, history->state, history->size);
 }

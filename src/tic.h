@@ -58,6 +58,7 @@
 #define SFX_COUNT_BITS 6
 #define SFX_COUNT (1 << SFX_COUNT_BITS)
 #define SFX_SPEED_BITS 3
+#define SFX_DEF_SPEED (1 << SFX_SPEED_BITS)
 
 #define NOTES 12
 #define OCTAVES 8
@@ -181,6 +182,22 @@ typedef struct
 
 typedef struct
 {
+    union
+    {
+        struct
+        {
+            s8 wave;
+            s8 volume;
+            s8 chord;
+            s8 pitch;
+        };
+
+        s8 data[4];
+    };
+} tic_sfx_pos;
+
+typedef struct
+{
     u8 data[WAVE_SIZE];
 }tic_waveform;
 
@@ -201,7 +218,7 @@ typedef struct
 
 typedef enum
 {
-#define ENUM_ITEM(name, _, __) tic_music_cmd_##name,
+#define ENUM_ITEM(name, ...) tic_music_cmd_##name,
     MUSIC_CMD_LIST(ENUM_ITEM)
 #undef ENUM_ITEM
 
@@ -452,18 +469,19 @@ typedef union
         tic_tiles           sprites;
         tic_map             map;
         tic80_input         input;
-        u8                  unknown[12];
-        tic_stereo_volume   stereo;
+        tic_sfx_pos         sfxpos[TIC_SOUND_CHANNELS];
         tic_sound_register  registers[TIC_SOUND_CHANNELS];
         tic_sfx             sfx;
         tic_music           music;
         tic_sound_state     sound_state;
+        tic_stereo_volume   stereo;
         tic_persistent      persistent;
         tic_flags           flags;
 
         u8 free[16*1024 
-            - sizeof(tic_flags) 
-            - sizeof(tic_persistent) 
+            - sizeof(tic_stereo_volume)
+            - sizeof(tic_flags)
+            - sizeof(tic_persistent)
             ];
 
     };
@@ -580,52 +598,3 @@ typedef enum
     tic_cursor_hand,
     tic_cursor_ibeam,
 } tic_cursor;
-
-#define TIC_INTERRUPTS_LIST(macro)  \
-    macro(TIC, 0)                   \
-    macro(SCN, 1)                   \
-    macro(OVR, 0)
-
-#define TIC_API_LIST(macro)     \
-    macro(print,        7)      \
-    macro(cls,          1)      \
-    macro(pix,          3)      \
-    macro(line,         5)      \
-    macro(rect,         5)      \
-    macro(rectb,        5)      \
-    macro(spr,          9)      \
-    macro(btn,          1)      \
-    macro(btnp,         3)      \
-    macro(sfx,          6)      \
-    macro(map,          9)      \
-    macro(mget,         2)      \
-    macro(mset,         3)      \
-    macro(peek,         1)      \
-    macro(poke,         2)      \
-    macro(peek4,        1)      \
-    macro(poke4,        2)      \
-    macro(memcpy,       3)      \
-    macro(memset,       3)      \
-    macro(trace,        2)      \
-    macro(pmem,         2)      \
-    macro(time,         0)      \
-    macro(timestamp,    0)      \
-    macro(exit,         0)      \
-    macro(font,         8)      \
-    macro(mouse,        0)      \
-    macro(circ,         4)      \
-    macro(circb,        4)      \
-    macro(tri,          7)      \
-    macro(textri,       14)     \
-    macro(clip,         4)      \
-    macro(music,        4)      \
-    macro(sync,         3)      \
-    macro(reset,        0)      \
-    macro(key,          1)      \
-    macro(keyp,         3)      \
-    macro(fget,         2)      \
-    macro(fset,         3)
-
-#define TIC_KEYWORDS_LIST(macro)    \
-    TIC_INTERRUPTS_LIST(macro)      \
-    TIC_API_LIST(macro)

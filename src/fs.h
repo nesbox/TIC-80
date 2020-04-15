@@ -27,15 +27,15 @@
 
 typedef enum
 {
-	FS_FILE_NOT_ADDED,
-	FS_FILE_ADDED,
-	FS_FILE_EXISTS,
+    FS_FILE_NOT_ADDED,
+    FS_FILE_ADDED,
+    FS_FILE_EXISTS,
 } AddResult;
 
 typedef enum
 {
-	FS_FILE_NOT_DOWNLOADED,
-	FS_FILE_DOWNLOADED,
+    FS_FILE_NOT_DOWNLOADED,
+    FS_FILE_DOWNLOADED,
 } GetResult;
 
 typedef bool(*ListCallback)(const char* name, const char* info, s32 id, void* data, bool dir);

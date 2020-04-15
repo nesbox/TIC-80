@@ -28,14 +28,14 @@ typedef struct Config Config;
 
 struct Config
 {
-	tic_mem* tic;
-	struct FileSystem* fs;
+    tic_mem* tic;
+    struct FileSystem* fs;
 
-	StudioConfig data;
-	tic_cartridge cart;
+    StudioConfig data;
+    tic_cartridge cart;
 
-	void(*save)(Config*);
-	void(*reset)(Config*);
+    void(*save)(Config*);
+    void(*reset)(Config*);
 };
 
 void initConfig(Config* config, tic_mem* tic, struct FileSystem* fs);

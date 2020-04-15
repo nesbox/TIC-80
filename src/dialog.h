@@ -28,28 +28,28 @@ typedef struct Dialog Dialog;
 
 struct Dialog
 {
-	tic_mem* tic;
+    tic_mem* tic;
 
-	bool init;
-	// void* bg;
-	DialogCallback callback;
-	void* data;
-	const char** text;
-	s32 rows;
-	s32 ticks;
+    bool init;
+    // void* bg;
+    DialogCallback callback;
+    void* data;
+    const char** text;
+    s32 rows;
+    s32 ticks;
 
-	u32 focus;
+    u32 focus;
 
-	tic_point pos;
+    tic_point pos;
 
-	struct
-	{
-		tic_point start;
-		bool active;
-	} drag;
-	
-	void(*tick)(Dialog* Dialog);
-	void(*escape)(Dialog* Dialog);
+    struct
+    {
+        tic_point start;
+        bool active;
+    } drag;
+    
+    void(*tick)(Dialog* Dialog);
+    void(*escape)(Dialog* Dialog);
 };
 
 void initDialog(Dialog* dialog, tic_mem* tic, const char** text, s32 rows, DialogCallback callback, void* data);

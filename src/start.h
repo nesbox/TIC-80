@@ -28,15 +28,15 @@ typedef struct Start Start;
 
 struct Start
 {
-	tic_mem* tic;
+    tic_mem* tic;
 
-	bool initialized;
+    bool initialized;
 
-	u32 phase;
-	u32 ticks;
-	bool play;
+    u32 phase;
+    u32 ticks;
+    bool play;
 
-	void (*tick)(Start*);
+    void (*tick)(Start*);
 };
 
 void initStart(Start* start, tic_mem* tic);

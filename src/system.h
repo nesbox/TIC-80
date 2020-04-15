@@ -35,35 +35,35 @@
 
 typedef struct
 {
-	enum
-	{
-		HttpGetProgress,
-		HttpGetDone,
-		HttpGetError,
-	} type;
+    enum
+    {
+        HttpGetProgress,
+        HttpGetDone,
+        HttpGetError,
+    } type;
 
-	union
-	{
-		struct
-		{
-			s32 size;
-			s32 total;
-		} progress;
+    union
+    {
+        struct
+        {
+            s32 size;
+            s32 total;
+        } progress;
 
-		struct
-		{
-			s32 size;
-			u8* data;
-		} done;
+        struct
+        {
+            s32 size;
+            u8* data;
+        } done;
 
-		struct
-		{
-			s32 code;
-		} error;
-	};
+        struct
+        {
+            s32 code;
+        } error;
+    };
 
-	void* calldata;
-	const char* url;
+    void* calldata;
+    const char* url;
 
 } HttpGetData;
 
@@ -71,99 +71,99 @@ typedef void(*HttpGetCallback)(const HttpGetData*);
 
 typedef struct
 {
-	void	(*setClipboardText)(const char* text);
-	bool	(*hasClipboardText)();
-	char* 	(*getClipboardText)();
-	void 	(*freeClipboardText)(const char* text);
+    void    (*setClipboardText)(const char* text);
+    bool    (*hasClipboardText)();
+    char*   (*getClipboardText)();
+    void    (*freeClipboardText)(const char* text);
 
-	u64 	(*getPerformanceCounter)();
-	u64 	(*getPerformanceFrequency)();
+    u64     (*getPerformanceCounter)();
+    u64     (*getPerformanceFrequency)();
 
-	void* (*httpGetSync)(const char* url, s32* size);
-	void (*httpGet)(const char* url, HttpGetCallback callback, void* userdata);
+    void* (*httpGetSync)(const char* url, s32* size);
+    void (*httpGet)(const char* url, HttpGetCallback callback, void* userdata);
 
-	void (*fileDialogLoad)(file_dialog_load_callback callback, void* data);
-	void (*fileDialogSave)(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode);
+    void (*fileDialogLoad)(file_dialog_load_callback callback, void* data);
+    void (*fileDialogSave)(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode);
 
-	void (*goFullscreen)();
-	void (*showMessageBox)(const char* title, const char* message);
-	void (*setWindowTitle)(const char* title);
+    void (*goFullscreen)();
+    void (*showMessageBox)(const char* title, const char* message);
+    void (*setWindowTitle)(const char* title);
 
-	void (*openSystemPath)(const char* path);
-	
-	void (*preseed)();
-	void (*poll)();
+    void (*openSystemPath)(const char* path);
+    
+    void (*preseed)();
+    void (*poll)();
 
-	void (*updateConfig)();
+    void (*updateConfig)();
 
 } System;
 
 typedef struct
 {
-	struct
-	{
-		struct
-		{
-			s32 arrow;
-			s32 hand;
-			s32 ibeam;
+    struct
+    {
+        struct
+        {
+            s32 arrow;
+            s32 hand;
+            s32 ibeam;
 
-			bool pixelPerfect;
-		} cursor;
+            bool pixelPerfect;
+        } cursor;
 
-		struct
-		{
-			tic_code_theme syntax;
+        struct
+        {
+            tic_code_theme syntax;
 
-			u8 bg;
-			u8 select;
-			u8 cursor;
-			bool shadow;
-			bool altFont;
+            u8 bg;
+            u8 select;
+            u8 cursor;
+            bool shadow;
+            bool altFont;
 
-		} code;
+        } code;
 
-		struct
-		{
-			struct
-			{
-				u8 alpha;
-			} touch;
+        struct
+        {
+            struct
+            {
+                u8 alpha;
+            } touch;
 
-		} gamepad;
+        } gamepad;
 
-	} theme;
+    } theme;
 
-	s32 gifScale;
-	s32 gifLength;
-	
-	bool checkNewVersion;
-	bool noSound;
-	bool showSync;
-	bool crtMonitor;
-	bool goFullscreen;
+    s32 gifScale;
+    s32 gifLength;
+    
+    bool checkNewVersion;
+    bool noSound;
+    bool showSync;
+    bool crtMonitor;
+    bool goFullscreen;
 
-	const char* crtShader;
-	const tic_cartridge* cart;
+    const char* crtShader;
+    const tic_cartridge* cart;
 
-	s32 uiScale;
+    s32 uiScale;
 
 } StudioConfig;
 
 typedef struct
 {
-	tic_mem* tic;
-	bool quit;
-	char text;
+    tic_mem* tic;
+    bool quit;
+    char text;
 
-	void (*tick)();
-	void (*exit)();
-	void (*close)();
-	void (*updateProject)();
-	const StudioConfig* (*config)();
+    void (*tick)();
+    void (*exit)();
+    void (*close)();
+    void (*updateProject)();
+    const StudioConfig* (*config)();
 
-	// TODO: remove this method, system has to know nothing about current mode
-	bool (*isGamepadMode)();
+    // TODO: remove this method, system has to know nothing about current mode
+    bool (*isGamepadMode)();
 } Studio;
 
 #ifdef __cplusplus

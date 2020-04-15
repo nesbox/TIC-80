@@ -27,117 +27,117 @@
 
 static void drawGrid(World* world)
 {
-	Map* map = world->map;
-	u8 color = tic_color_14;
+    Map* map = world->map;
+    u8 color = tic_color_14;
 
-	for(s32 c = 0; c < TIC80_WIDTH; c += TIC_MAP_SCREEN_WIDTH)
-		world->tic->api.line(world->tic, c, 0, c, TIC80_HEIGHT, color);
+    for(s32 c = 0; c < TIC80_WIDTH; c += TIC_MAP_SCREEN_WIDTH)
+        tic_api_line(world->tic, c, 0, c, TIC80_HEIGHT, color);
 
-	for(s32 r = 0; r < TIC80_HEIGHT; r += TIC_MAP_SCREEN_HEIGHT)
-		world->tic->api.line(world->tic, 0, r, TIC80_WIDTH, r, color);
+    for(s32 r = 0; r < TIC80_HEIGHT; r += TIC_MAP_SCREEN_HEIGHT)
+        tic_api_line(world->tic, 0, r, TIC80_WIDTH, r, color);
 
-	world->tic->api.rect_border(world->tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT, color);
+    tic_api_rectb(world->tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT, color);
 
-	tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
+    tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
 
-	if(checkMousePos(&rect))
-	{
-		setCursor(tic_cursor_hand);
+    if(checkMousePos(&rect))
+    {
+        setCursor(tic_cursor_hand);
 
-		s32 mx = getMouseX();
-		s32 my = getMouseY();
+        s32 mx = getMouseX();
+        s32 my = getMouseY();
 
-		if(checkMouseDown(&rect, tic_mouse_left))
-		{
-			map->scroll.x = (mx - TIC_MAP_SCREEN_WIDTH/2) * TIC_SPRITESIZE;
-			map->scroll.y = (my - TIC_MAP_SCREEN_HEIGHT/2) * TIC_SPRITESIZE;
-			if(map->scroll.x < 0)
-				map->scroll.x += TIC_MAP_WIDTH * TIC_SPRITESIZE;
-			if(map->scroll.y < 0)
-				map->scroll.y += TIC_MAP_HEIGHT * TIC_SPRITESIZE;
-		}
+        if(checkMouseDown(&rect, tic_mouse_left))
+        {
+            map->scroll.x = (mx - TIC_MAP_SCREEN_WIDTH/2) * TIC_SPRITESIZE;
+            map->scroll.y = (my - TIC_MAP_SCREEN_HEIGHT/2) * TIC_SPRITESIZE;
+            if(map->scroll.x < 0)
+                map->scroll.x += TIC_MAP_WIDTH * TIC_SPRITESIZE;
+            if(map->scroll.y < 0)
+                map->scroll.y += TIC_MAP_HEIGHT * TIC_SPRITESIZE;
+        }
 
-		if(checkMouseClick(&rect, tic_mouse_left))
-			setStudioMode(TIC_MAP_MODE);
-	}
+        if(checkMouseClick(&rect, tic_mouse_left))
+            setStudioMode(TIC_MAP_MODE);
+    }
 
-	s32 x = map->scroll.x / TIC_SPRITESIZE;
-	s32 y = map->scroll.y / TIC_SPRITESIZE;
+    s32 x = map->scroll.x / TIC_SPRITESIZE;
+    s32 y = map->scroll.y / TIC_SPRITESIZE;
 
-	world->tic->api.rect_border(world->tic, x, y, TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, tic_color_2);
+    tic_api_rectb(world->tic, x, y, TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, tic_color_2);
 
-	if(x >= TIC_MAP_WIDTH - TIC_MAP_SCREEN_WIDTH)
-		world->tic->api.rect_border(world->tic, x - TIC_MAP_WIDTH, y, TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, tic_color_2);
+    if(x >= TIC_MAP_WIDTH - TIC_MAP_SCREEN_WIDTH)
+        tic_api_rectb(world->tic, x - TIC_MAP_WIDTH, y, TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, tic_color_2);
 
-	if(y >= TIC_MAP_HEIGHT - TIC_MAP_SCREEN_HEIGHT)
-		world->tic->api.rect_border(world->tic, x, y - TIC_MAP_HEIGHT, TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, tic_color_2);
+    if(y >= TIC_MAP_HEIGHT - TIC_MAP_SCREEN_HEIGHT)
+        tic_api_rectb(world->tic, x, y - TIC_MAP_HEIGHT, TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, tic_color_2);
 
-	if(x >= TIC_MAP_WIDTH - TIC_MAP_SCREEN_WIDTH && y >= TIC_MAP_HEIGHT - TIC_MAP_SCREEN_HEIGHT)
-		world->tic->api.rect_border(world->tic, x - TIC_MAP_WIDTH, y - TIC_MAP_HEIGHT, TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, tic_color_2);
+    if(x >= TIC_MAP_WIDTH - TIC_MAP_SCREEN_WIDTH && y >= TIC_MAP_HEIGHT - TIC_MAP_SCREEN_HEIGHT)
+        tic_api_rectb(world->tic, x - TIC_MAP_WIDTH, y - TIC_MAP_HEIGHT, TIC_MAP_SCREEN_WIDTH+1, TIC_MAP_SCREEN_HEIGHT+1, tic_color_2);
 }
 
 static void tick(World* world)
 {
-	if(keyWasPressed(tic_key_tab)) setStudioMode(TIC_MAP_MODE);
+    if(keyWasPressed(tic_key_tab)) setStudioMode(TIC_MAP_MODE);
 
-	memcpy(&world->tic->ram.vram, world->preview, PREVIEW_SIZE);
+    memcpy(&world->tic->ram.vram, world->preview, PREVIEW_SIZE);
 }
 
 static void scanline(tic_mem* tic, s32 row, void* data)
 {
-	if(row == 0)
-		memcpy(&tic->ram.vram.palette, getBankPalette(), sizeof(tic_palette));
+    if(row == 0)
+        memcpy(&tic->ram.vram.palette, getBankPalette(), sizeof(tic_palette));
 }
 
 static void overline(tic_mem* tic, void* data)
 {
-	World* world = (World*)data;
+    World* world = (World*)data;
 
-	drawGrid(world);
+    drawGrid(world);
 }
 
 void initWorld(World* world, tic_mem* tic, Map* map)
 {
-	if(!world->preview)
-		world->preview = malloc(PREVIEW_SIZE);
+    if(!world->preview)
+        world->preview = malloc(PREVIEW_SIZE);
 
-	*world = (World)
-	{
-		.tic = tic,
-		.map = map,
-		.tick = tick,
-		.preview = world->preview,
-		.overline = overline,
-		.scanline = scanline,
-	};
+    *world = (World)
+    {
+        .tic = tic,
+        .map = map,
+        .tick = tick,
+        .preview = world->preview,
+        .overline = overline,
+        .scanline = scanline,
+    };
 
-	memset(world->preview, 0, PREVIEW_SIZE);
-	s32 colors[TIC_PALETTE_SIZE];
+    memset(world->preview, 0, PREVIEW_SIZE);
+    s32 colors[TIC_PALETTE_SIZE];
 
-	for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
-	{
-		u8 index = getBankMap()->data[i];
+    for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
+    {
+        u8 index = getBankMap()->data[i];
 
-		if(index)
-		{
-			memset(colors, 0, sizeof colors);
+        if(index)
+        {
+            memset(colors, 0, sizeof colors);
 
-			tic_tile* tile = &getBankTiles()->data[index];
+            tic_tile* tile = &getBankTiles()->data[index];
 
-			for(s32 p = 0; p < TIC_SPRITESIZE * TIC_SPRITESIZE; p++)
-			{
-				u8 color = tic_tool_peek4(tile, p);
+            for(s32 p = 0; p < TIC_SPRITESIZE * TIC_SPRITESIZE; p++)
+            {
+                u8 color = tic_tool_peek4(tile, p);
 
-				if(color)
-					colors[color]++;
-			}
+                if(color)
+                    colors[color]++;
+            }
 
-			s32 max = 0;
+            s32 max = 0;
 
-			for(s32 c = 0; c < COUNT_OF(colors); c++)
-				if(colors[c] > colors[max]) max = c;
+            for(s32 c = 0; c < COUNT_OF(colors); c++)
+                if(colors[c] > colors[max]) max = c;
 
-			tic_tool_poke4(world->preview, i, max);
-		}
-	}
+            tic_tool_poke4(world->preview, i, max);
+        }
+    }
 }
