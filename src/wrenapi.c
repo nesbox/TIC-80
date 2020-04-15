@@ -70,6 +70,8 @@ class TIC {\n\
 	foreign static mset(cell_x, cell_y)\n\
 	foreign static mset(cell_x, cell_y, index)\n\
 	foreign static mget(cell_x, cell_y)\n\
+	foreign static fset(index, flag, value)\n\
+	foreign static fget(index, flag)\n\
 	foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3)\n\
 	foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, use_map)\n\
 	foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, use_map, alpha_color)\n\
@@ -381,6 +383,27 @@ static void wren_mouse(WrenVM* vm)
 	wrenInsertInList(vm, 0, 5, 1);
 	wrenSetSlotDouble(vm, 1, mouse->scrolly);
 	wrenInsertInList(vm, 0, 6, 1);
+}
+
+static void wren_fget(WrenVM* vm)
+{
+	tic_mem* tic = (tic_mem*)getWrenMachine(vm);
+	s32 top = wrenGetSlotCount(vm);
+
+	u32 index = getWrenNumber(vm, 1);
+	u32 flag = getWrenNumber(vm, 2);
+	wrenSetSlotBool(vm, 0, tic->api.get_flag(tic, index, flag));
+}
+
+static void wren_fset(WrenVM* vm)
+{
+	tic_mem* tic = (tic_mem*)getWrenMachine(vm);
+	s32 top = wrenGetSlotCount(vm);
+
+	u32 index = getWrenNumber(vm, 1);
+	u32 flag = getWrenNumber(vm, 2);
+	bool value = wrenGetSlotBool(vm, 3);
+	tic->api.set_flag(tic, index, flag, value);
 }
 
 static void wren_print(WrenVM* vm)
@@ -1155,6 +1178,9 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
 	if (strcmp(signature, "static TIC.mset(_,_)"	            ) == 0) return wren_mset;
 	if (strcmp(signature, "static TIC.mset(_,_,_)"	            ) == 0) return wren_mset;
 	if (strcmp(signature, "static TIC.mget(_,_)"	            ) == 0) return wren_mget;
+
+	if (strcmp(signature, "static TIC.fset(_,_,_)"	            ) == 0) return wren_fset;
+	if (strcmp(signature, "static TIC.fget(_,_)"	            ) == 0) return wren_fget;
 
 	if (strcmp(signature, "static TIC.textri(_,_,_,_,_,_,_,_,_,_,_,_)"	     ) == 0) return wren_textri;
 	if (strcmp(signature, "static TIC.textri(_,_,_,_,_,_,_,_,_,_,_,_,_)"	 ) == 0) return wren_textri;
