@@ -1818,7 +1818,7 @@ double tic_api_time(tic_mem* memory)
     return (double)((machine->data->counter() - machine->data->start)*1000)/machine->data->freq();
 }
 
-s32 tic_api_timestamp(tic_mem* memory)
+s32 tic_api_tstamp(tic_mem* memory)
 {
     tic_machine* machine = (tic_machine*)memory;
     return (s32)time(NULL);

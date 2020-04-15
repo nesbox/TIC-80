@@ -1051,11 +1051,11 @@ static void wren_time(WrenVM* vm)
     wrenSetSlotDouble(vm, 0, tic_api_time(tic));
 }
 
-static void wren_timestamp(WrenVM* vm)
+static void wren_tstamp(WrenVM* vm)
 {
     tic_mem* tic = (tic_mem*)getWrenMachine(vm);
 
-    wrenSetSlotDouble(vm, 0, tic_api_timestamp(tic));
+    wrenSetSlotDouble(vm, 0, tic_api_tstamp(tic));
 }
 
 static void wren_sync(WrenVM* vm)
@@ -1220,7 +1220,7 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     if (strcmp(signature, "static TIC.music(_,_,_)"             ) == 0) return wren_music;
 
     if (strcmp(signature, "static TIC.time()"                   ) == 0) return wren_time;
-    if (strcmp(signature, "static TIC.timestamp()"              ) == 0) return wren_timestamp;
+    if (strcmp(signature, "static TIC.tstamp()"                 ) == 0) return wren_tstamp;
     if (strcmp(signature, "static TIC.sync()"                   ) == 0) return wren_sync;
     if (strcmp(signature, "static TIC.sync(_)"                  ) == 0) return wren_sync;
     if (strcmp(signature, "static TIC.sync(_,_)"                ) == 0) return wren_sync;

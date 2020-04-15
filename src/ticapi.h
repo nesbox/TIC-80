@@ -131,7 +131,7 @@ struct tic_script_config
     macro(trace,        2,  void,   tic_mem*, const char* text, u8 color) \
     macro(pmem,         2,  u32,    tic_mem*, s32 index, u32 value, bool get) \
     macro(time,         0,  double, tic_mem*) \
-    macro(timestamp,    0,  s32,    tic_mem*) \
+    macro(tstamp,       0,  s32,    tic_mem*) \
     macro(exit,         0,  void,   tic_mem*) \
     macro(font,         8,  s32,    tic_mem*, const char* text, s32 x, s32 y, u8 chromakey, s32 w, s32 h, bool fixed, s32 scale, bool alt) \
     macro(mouse,        0,  void,   tic_mem*) \

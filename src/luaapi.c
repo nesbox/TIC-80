@@ -1088,11 +1088,11 @@ static s32 lua_time(lua_State *lua)
     return 1;
 }
 
-static s32 lua_timestamp(lua_State *lua)
+static s32 lua_tstamp(lua_State *lua)
 {
     tic_mem* tic = (tic_mem*)getLuaMachine(lua);
 
-    lua_pushnumber(lua, tic_api_timestamp(tic));
+    lua_pushnumber(lua, tic_api_tstamp(tic));
 
     return 1;
 }

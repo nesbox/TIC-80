@@ -557,11 +557,11 @@ static duk_ret_t duk_time(duk_context* duk)
     return 1;
 }
 
-static duk_ret_t duk_timestamp(duk_context* duk)
+static duk_ret_t duk_tstamp(duk_context* duk)
 {
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
 
-    duk_push_number(duk, tic_api_timestamp(tic));
+    duk_push_number(duk, tic_api_tstamp(tic));
 
     return 1;
 }

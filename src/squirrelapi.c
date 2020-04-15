@@ -1181,11 +1181,11 @@ static SQInteger squirrel_time(HSQUIRRELVM vm)
     return 1;
 }
 
-static SQInteger squirrel_timestamp(HSQUIRRELVM vm)
+static SQInteger squirrel_tstamp(HSQUIRRELVM vm)
 {
     tic_mem* tic = (tic_mem*)getSquirrelMachine(vm);
     
-    sq_pushinteger(vm, (SQFloat)(tic_api_timestamp(tic)));
+    sq_pushinteger(vm, (SQFloat)(tic_api_tstamp(tic)));
 
     return 1;
 }
