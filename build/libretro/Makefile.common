@@ -7,6 +7,7 @@ INCLUDES   :=  \
 	$(CORE_DIR)/vendor/blip-buf \
 	$(CORE_DIR)/vendor/duktape/src \
 	$(CORE_DIR)/vendor/fennel \
+	$(CORE_DIR)/vendor/giflib \
 	$(CORE_DIR)/vendor/lpeg \
 	$(CORE_DIR)/vendor/lua \
 	$(CORE_DIR)/vendor/moonscript \
