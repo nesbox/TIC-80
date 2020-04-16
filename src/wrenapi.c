@@ -104,7 +104,7 @@ class TIC {\n\
     foreign static music(track, frame)\n\
     foreign static music(track, frame, loop)\n\
     foreign static time()\n\
-    foreign static timestamp()\n\
+    foreign static tstamp()\n\
     foreign static sync()\n\
     foreign static sync(mask)\n\
     foreign static sync(mask, bank)\n\
