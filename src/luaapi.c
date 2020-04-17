@@ -152,7 +152,7 @@ static s32 lua_pix(lua_State* lua)
         }
         else
         {
-            lua_pushinteger(lua, tic_api_pix(tic, x, y, 0, false));
+            lua_pushinteger(lua, tic_api_pix(tic, x, y, 0, true));
             return 1;
         }
 
