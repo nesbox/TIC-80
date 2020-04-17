@@ -83,11 +83,12 @@
 #define WAVE_VALUE_BITS 4
 #define WAVE_SIZE (WAVE_VALUES * WAVE_VALUE_BITS / BITS_IN_BYTE)
 
-#define TIC_CODE_SIZE (0x10000)
-
 #define TIC_BANK_BITS 3
 #define TIC_BANKS (1 << TIC_BANK_BITS)
 #define TIC_GAMEPADS (sizeof(tic80_gamepads) / sizeof(tic80_gamepad))
+
+#define TIC_CODE_BANK_SIZE (64 * 1024) // 64K
+#define TIC_CODE_SIZE (TIC_CODE_BANK_SIZE * TIC_BANKS) // in total 512K
 
 #define SFX_NOTES {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
 #define TIC_FONT_CHARS 256
@@ -346,8 +347,13 @@ typedef struct
     u8 data[TIC_SPRITESIZE * TIC_SPRITESIZE * TIC_PALETTE_BPP / BITS_IN_BYTE];
 } tic_tile;
 
-typedef struct
+typedef union
 {
+    struct
+    {
+        char data[TIC_CODE_BANK_SIZE];
+    } banks[TIC_BANKS];
+
     char data[TIC_CODE_SIZE];
 } tic_code;
 

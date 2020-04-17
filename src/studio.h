@@ -117,7 +117,6 @@ void setStudioMode(EditorMode mode);
 void resumeRunMode();
 EditorMode getStudioMode();
 void exitStudio();
-u32 unzip(u8** dest, const u8* source, size_t size);
 
 void str2buf(const char* str, s32 size, void* buf, bool flip);
 void toClipboard(const void* data, s32 size, bool flip);

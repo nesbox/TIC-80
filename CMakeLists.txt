@@ -289,6 +289,28 @@ target_include_directories(giflib
     INTERFACE ${THIRDPARTY_DIR}/giflib)
 
 ################################
+# ZLIB
+################################
+
+set(ZLIB_DIR ${THIRDPARTY_DIR}/zlib)
+set(ZLIB_SRC 
+    ${ZLIB_DIR}/adler32.c
+    ${ZLIB_DIR}/compress.c
+    ${ZLIB_DIR}/crc32.c
+    ${ZLIB_DIR}/deflate.c
+    ${ZLIB_DIR}/inflate.c
+    ${ZLIB_DIR}/infback.c
+    ${ZLIB_DIR}/inftrees.c
+    ${ZLIB_DIR}/inffast.c
+    ${ZLIB_DIR}/trees.c
+    ${ZLIB_DIR}/uncompr.c
+    ${ZLIB_DIR}/zutil.c
+)
+
+add_library(zlib STATIC ${ZLIB_SRC})
+target_include_directories(zlib INTERFACE ${THIRDPARTY_DIR}/zlib)
+
+################################
 # TIC-80 core
 ################################
 
@@ -320,7 +342,7 @@ target_include_directories(tic80core
     PUBLIC 
         ${CMAKE_CURRENT_BINARY_DIR})
 
-target_link_libraries(tic80core lua lpeg wren squirrel giflib)
+target_link_libraries(tic80core lua lpeg wren squirrel giflib zlib)
 
 if(LINUX)
     target_link_libraries(tic80core m)
@@ -578,28 +600,6 @@ add_subdirectory(${THIRDPARTY_DIR}/curl)
 endif()
 
 ################################
-# ZLIB
-################################
-
-set(ZLIB_DIR ${THIRDPARTY_DIR}/zlib)
-set(ZLIB_SRC 
-    ${ZLIB_DIR}/adler32.c
-    ${ZLIB_DIR}/compress.c
-    ${ZLIB_DIR}/crc32.c
-    ${ZLIB_DIR}/deflate.c
-    ${ZLIB_DIR}/inflate.c
-    ${ZLIB_DIR}/infback.c
-    ${ZLIB_DIR}/inftrees.c
-    ${ZLIB_DIR}/inffast.c
-    ${ZLIB_DIR}/trees.c
-    ${ZLIB_DIR}/uncompr.c
-    ${ZLIB_DIR}/zutil.c
-)
-
-add_library(zlib STATIC ${ZLIB_SRC})
-target_include_directories(zlib INTERFACE ${THIRDPARTY_DIR}/zlib)
-
-################################
 # ZIP
 ################################
 
@@ -688,7 +688,7 @@ target_include_directories(${TIC80_OUTPUT}lib PRIVATE
     ${CMAKE_SOURCE_DIR}/include
     ${THIRDPARTY_DIR}/curl/include)
 
-target_link_libraries(${TIC80_OUTPUT}lib tic80core zlib libcurl zip)
+target_link_libraries(${TIC80_OUTPUT}lib tic80core libcurl zip)
 
 if(BUILD_PRO)
     target_compile_definitions(tic80lib PRIVATE TIC80_PRO)
