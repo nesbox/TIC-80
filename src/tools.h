@@ -22,6 +22,8 @@
 
 #pragma once
 
+#include <stddef.h>
+
 #include "tic.h"
 #include "ext/gif.h"
 
@@ -56,6 +58,5 @@ u32*    tic_tool_palette_blit(const tic_palette* src);
 bool    tic_tool_has_ext(const char* name, const char* ext);
 s32     tic_tool_get_track_row_sfx(const tic_track_row* row);
 void    tic_tool_set_track_row_sfx(tic_track_row* row, s32 sfx);
-
 u32     tic_tool_zip(u8* dest, size_t destSize, const u8* source, size_t size);
 u32     tic_tool_unzip(u8* dest, size_t bufSize, const u8* source, size_t size);
