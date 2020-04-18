@@ -42,6 +42,7 @@
 #include "ext/gif.h"
 #include "ext/md5.h"
 
+#include <zlib.h>
 #include <ctype.h>
 
 #include <lua.h>
@@ -83,14 +84,6 @@ static const EditorMode Modes[] =
     TIC_MUSIC_MODE,
 };
 
-static const EditorMode BankModes[] =
-{
-    TIC_SPRITE_MODE,
-    TIC_MAP_MODE,
-    TIC_SFX_MODE,
-    TIC_MUSIC_MODE,
-};
-
 static struct
 {
     Studio studio;
@@ -124,13 +117,14 @@ static struct
         {
             struct
             {
+                s8 code;
                 s8 sprites;
                 s8 map;
                 s8 sfx;
                 s8 music;
             } index;
 
-            s8 indexes[COUNT_OF(BankModes)];
+            s8 indexes[COUNT_OF(Modes)];
         };
 
     } bank;
@@ -158,24 +152,23 @@ static struct
 
     struct
     {
-        Code*       code;
+        Code*   code;
+        Sprite* sprite;
+        Map*    map;
+        Sfx*    sfx;
+        Music*  music;
+    } editor[TIC_EDITOR_BANKS];
 
-        struct
-        {
-            Sprite* sprite[TIC_EDITOR_BANKS];
-            Map*    map[TIC_EDITOR_BANKS];
-            Sfx*    sfx[TIC_EDITOR_BANKS];
-            Music*  music[TIC_EDITOR_BANKS];
-        } banks;
-
-        Start*      start;
-        Console*    console;
-        Run*        run;
-        World*      world;
-        Config*     config;
-        Dialog*     dialog;
-        Menu*       menu;
-        Surf*       surf;
+    struct
+    {
+        Start* start;
+        Console* console;
+        Run* run;
+        World* world;
+        Config* config;
+        Dialog* dialog;
+        Menu* menu;
+        Surf* surf;
     };
 
     FileSystem* fs;
@@ -583,10 +576,10 @@ static void drawBankIcon(s32 x, s32 y)
     };
 
     bool over = false;
-    EditorMode mode = 0;
+    s32 mode = 0;
 
-    for(s32 i = 0; i < COUNT_OF(BankModes); i++)
-        if(BankModes[i] == impl.mode)
+    for(s32 i = 0; i < COUNT_OF(Modes); i++)
+        if(Modes[i] == impl.mode)
         {
             mode = i;
             break;
@@ -667,7 +660,7 @@ static void drawBankIcon(s32 x, s32 y)
                 }
             }
 
-            drawBitIcon(rect.x, rect.y, PinIcon, impl.bank.chained ? tic_color_2 : over ? tic_color_14 : tic_color_13);
+            drawBitIcon(rect.x, rect.y, PinIcon, impl.bank.chained || over ? tic_color_2 : tic_color_13);
         }
     }
     else
@@ -791,13 +784,12 @@ void drawToolbar(tic_mem* tic, bool bg)
 
 #if defined (TIC80_PRO)
     enum {TextOffset = (COUNT_OF(Modes) + 2) * Size - 2};
-    if(mode >= 1)
-        drawBankIcon(COUNT_OF(Modes) * Size + 2, 0);
+    drawBankIcon(COUNT_OF(Modes) * Size + 2, 0);
 #else
     enum {TextOffset = (COUNT_OF(Modes) + 1) * Size};
 #endif
 
-    if(mode == 0 || (mode >= 1 && !impl.bank.show))
+    if(mode >= 0 && !impl.bank.show)
     {
         if(strlen(impl.tooltip.text))
         {
@@ -816,31 +808,31 @@ void setStudioEvent(StudioEvent event)
     {
     case TIC_CODE_MODE:     
         {
-            Code* code = impl.code;
+            Code* code = impl.editor[impl.bank.index.code].code;
             code->event(code, event);           
         }
         break;
     case TIC_SPRITE_MODE:   
         {
-            Sprite* sprite = impl.banks.sprite[impl.bank.index.sprites];
+            Sprite* sprite = impl.editor[impl.bank.index.sprites].sprite;
             sprite->event(sprite, event); 
         }
     break;
     case TIC_MAP_MODE:
         {
-            Map* map = impl.banks.map[impl.bank.index.map];
+            Map* map = impl.editor[impl.bank.index.map].map;
             map->event(map, event);
         }
         break;
     case TIC_SFX_MODE:
         {
-            Sfx* sfx = impl.banks.sfx[impl.bank.index.sfx];
+            Sfx* sfx = impl.editor[impl.bank.index.sfx].sfx;
             sfx->event(sfx, event);
         }
         break;
     case TIC_MUSIC_MODE:
         {
-            Music* music = impl.banks.music[impl.bank.index.music];
+            Music* music = impl.editor[impl.bank.index.music].music;
             music->event(music, event);
         }
         break;
@@ -917,7 +909,7 @@ void drawBitIcon16(tic_mem* tic, s32 x, s32 y, const u16* ptr, u8 color)
 
 static void initWorldMap()
 {
-    initWorld(impl.world, impl.studio.tic, impl.banks.map[impl.bank.index.map]);
+    initWorld(impl.world, impl.studio.tic, impl.editor[impl.bank.index.map].map);
 }
 
 static void initRunMode()
@@ -1129,14 +1121,13 @@ static void initModules()
 
     resetBanks();
 
-    initCode(impl.code, impl.studio.tic, &tic->cart.code);
-
     for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
     {
-        initSprite(impl.banks.sprite[i], impl.studio.tic, &tic->cart.banks[i].tiles);
-        initMap(impl.banks.map[i], impl.studio.tic, &tic->cart.banks[i].map);
-        initSfx(impl.banks.sfx[i], impl.studio.tic, &tic->cart.banks[i].sfx);
-        initMusic(impl.banks.music[i], impl.studio.tic, &tic->cart.banks[i].music);
+        initCode(impl.editor[i].code, impl.studio.tic, &tic->cart.code);
+        initSprite(impl.editor[i].sprite, impl.studio.tic, &tic->cart.banks[i].tiles);
+        initMap(impl.editor[i].map, impl.studio.tic, &tic->cart.banks[i].map);
+        initSfx(impl.editor[i].sfx, impl.studio.tic, &tic->cart.banks[i].sfx);
+        initMusic(impl.editor[i].music, impl.studio.tic, &tic->cart.banks[i].music);
     }
 
     initWorldMap();
@@ -1422,7 +1413,7 @@ static void processShortcuts()
         else if(keyWasPressedOnce(tic_key_f11)) goFullscreen();
         else if(keyWasPressedOnce(tic_key_escape))
         {
-            Code* code = impl.code;
+            Code* code = impl.editor[impl.bank.index.code].code;
 
             if(impl.mode == TIC_CODE_MODE && code->mode != TEXT_EDIT_MODE)
             {
@@ -1475,7 +1466,7 @@ static void updateStudioProject()
     }
 
     {
-        Code* code = impl.code;
+        Code* code = impl.editor[impl.bank.index.code].code;
         impl.console->codeLiveReload.reload(impl.console, code->src);
         if(impl.console->codeLiveReload.active && code->update)
             code->update(code);
@@ -1617,31 +1608,31 @@ static void renderStudio()
     case TIC_RUN_MODE:      impl.run->tick(impl.run); break;
     case TIC_CODE_MODE:     
         {
-            Code* code = impl.code;
+            Code* code = impl.editor[impl.bank.index.code].code;
             code->tick(code);
         }
         break;
     case TIC_SPRITE_MODE:   
         {
-            Sprite* sprite = impl.banks.sprite[impl.bank.index.sprites];
+            Sprite* sprite = impl.editor[impl.bank.index.sprites].sprite;
             sprite->tick(sprite);       
         }
         break;
     case TIC_MAP_MODE:
         {
-            Map* map = impl.banks.map[impl.bank.index.map];
+            Map* map = impl.editor[impl.bank.index.map].map;
             map->tick(map);
         }
         break;
     case TIC_SFX_MODE:
         {
-            Sfx* sfx = impl.banks.sfx[impl.bank.index.sfx];
+            Sfx* sfx = impl.editor[impl.bank.index.sfx].sfx;
             sfx->tick(sfx);
         }
         break;
     case TIC_MUSIC_MODE:
         {
-            Music* music = impl.banks.music[impl.bank.index.music];
+            Music* music = impl.editor[impl.bank.index.music].music;
             music->tick(music);
         }
         break;
@@ -1674,13 +1665,39 @@ static void updateSystemFont()
 
 void studioConfigChanged()
 {
-    Code* code = impl.code;
+    Code* code = impl.editor[impl.bank.index.code].code;
     if(code->update)
         code->update(code);
 
     updateSystemFont();
 
     getSystem()->updateConfig();
+}
+
+u32 unzip(u8** dest, const u8* source, size_t size)
+{
+    // TODO: remove this size
+    enum{DestSize = 10*1024*1024};
+
+    unsigned long destSize = DestSize;
+
+    u8* buffer = (u8*)malloc(destSize);
+
+    if(buffer)
+    {
+        if(uncompress(buffer, &destSize, source, (unsigned long)size) == Z_OK)
+        {
+            *dest = (u8*)malloc(destSize+1);
+            memcpy(*dest, buffer, destSize);
+            (*dest)[destSize] = '\0';
+        }
+
+        free(buffer);
+
+        return destSize;
+    }
+
+    return 0;
 }
 
 static void initKeymap()
@@ -1750,7 +1767,7 @@ static void studioTick()
         {
         case TIC_SPRITE_MODE:
             {
-                Sprite* sprite = impl.banks.sprite[impl.bank.index.sprites];
+                Sprite* sprite = impl.editor[impl.bank.index.sprites].sprite;
                 overline = sprite->overline;
                 scanline = sprite->scanline;
                 data = sprite;
@@ -1758,7 +1775,7 @@ static void studioTick()
             break;
         case TIC_MAP_MODE:
             {
-                Map* map = impl.banks.map[impl.bank.index.map];
+                Map* map = impl.editor[impl.bank.index.map].map;
                 overline = map->overline;
                 scanline = map->scanline;
                 data = map;
@@ -1802,13 +1819,13 @@ static void studioClose()
     {
         for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
         {
-            free(impl.banks.sprite[i]);
-            free(impl.banks.map[i]);
-            free(impl.banks.sfx[i]);
-            free(impl.banks.music[i]);
+            free(impl.editor[i].code);
+            free(impl.editor[i].sprite);
+            free(impl.editor[i].map);
+            free(impl.editor[i].sfx);
+            free(impl.editor[i].music);
         }
 
-        free(impl.code);
         free(impl.start);
         free(impl.console);
         free(impl.run);
@@ -1846,13 +1863,13 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, Sy
     {
         for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
         {
-            impl.banks.sprite[i]   = calloc(1, sizeof(Sprite));
-            impl.banks.map[i]      = calloc(1, sizeof(Map));
-            impl.banks.sfx[i]      = calloc(1, sizeof(Sfx));
-            impl.banks.music[i]    = calloc(1, sizeof(Music));
+            impl.editor[i].code     = calloc(1, sizeof(Code));
+            impl.editor[i].sprite   = calloc(1, sizeof(Sprite));
+            impl.editor[i].map      = calloc(1, sizeof(Map));
+            impl.editor[i].sfx      = calloc(1, sizeof(Sfx));
+            impl.editor[i].music    = calloc(1, sizeof(Music));
         }
 
-        impl.code       = calloc(1, sizeof(Code));
         impl.start      = calloc(1, sizeof(Start));
         impl.console    = calloc(1, sizeof(Console));
         impl.run        = calloc(1, sizeof(Run));

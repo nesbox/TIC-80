@@ -296,14 +296,12 @@ static void setDefault(Config* config)
             #include "../build/assets/config.tic.dat"
         };
 
-        u8* embedBios = calloc(1, sizeof(tic_cartridge));
+        u8* embedBios = NULL;
+        s32 size = unzip((u8**)&embedBios, DefaultBiosZip, sizeof DefaultBiosZip);
 
         if(embedBios)
         {
-            s32 size = tic_tool_unzip(embedBios, sizeof(tic_cartridge), DefaultBiosZip, sizeof DefaultBiosZip);
-
-            if(size)
-                update(config, embedBios, size);
+            update(config, embedBios, size);
 
             free(embedBios);
         }

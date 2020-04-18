@@ -23,7 +23,6 @@
 #include "tools.h"
 
 #include <string.h>
-#include <zlib.h>
 
 extern void tic_tool_poke4(void* addr, u32 index, u8 value);
 extern u8 tic_tool_peek4(const void* addr, u32 index);
@@ -120,14 +119,4 @@ void tic_tool_set_track_row_sfx(tic_track_row* row, s32 sfx)
 {
     row->sfxhi = (sfx & 0b00100000) >> MUSIC_SFXID_LOW_BITS;
     row->sfxlow = sfx & 0b00011111;
-}
-
-u32 tic_tool_zip(u8* dest, size_t destSize, const u8* source, size_t size)
-{
-    return compress2(dest, (unsigned long*)&destSize, source, size, Z_BEST_COMPRESSION) == Z_OK ? destSize : 0;
-}
-
-u32 tic_tool_unzip(u8* dest, size_t destSize, const u8* source, size_t size)
-{
-    return uncompress(dest, (unsigned long*)&destSize, source, size) == Z_OK ? destSize : 0;
 }

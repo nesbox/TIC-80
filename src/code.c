@@ -205,8 +205,18 @@ static void updateEditor(Code* code)
 
     // update status
     {
+        memset(code->status, ' ', sizeof code->status - 1);
+
+        char status[TEXT_BUFFER_WIDTH];
         s32 count = getLinesCount(code);
-        sprintf(code->status, "line %i/%i col %i", line + 1, count + 1, column + 1);
+        sprintf(status, "line %i/%i col %i", line + 1, count + 1, column + 1);
+        memcpy(code->status, status, strlen(status));
+
+        size_t codeLen = strlen(code->src);
+        sprintf(status, "%i/%i", (u32)codeLen, TIC_CODE_SIZE);
+
+        memset(code->src + codeLen, '\0', TIC_CODE_SIZE - codeLen);
+        memcpy(code->status + sizeof code->status - strlen(status) - 1, status, strlen(status));
     }
 }
 
