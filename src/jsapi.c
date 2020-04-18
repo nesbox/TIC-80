@@ -581,12 +581,11 @@ static duk_ret_t duk_font(duk_context* duk)
     s32 x = duk_to_int(duk, 1);
     s32 y = duk_to_int(duk, 2);
     u8 chromakey = duk_to_int(duk, 3);
-    s32 width =  duk_is_null_or_undefined(duk, 4) ? TIC_SPRITESIZE : duk_to_int(duk, 4);
-    s32 height =  duk_is_null_or_undefined(duk, 5) ? TIC_SPRITESIZE : duk_to_int(duk, 5);
-    bool fixed = duk_is_null_or_undefined(duk, 6) ? false : duk_to_boolean(duk, 6);
-    s32 scale = duk_is_null_or_undefined(duk, 7) ? 1 : duk_to_int(duk, 7);
-    bool alt = duk_is_null_or_undefined(duk, 8) ? false : duk_to_boolean(duk, 8);
-
+    s32 width =  duk_opt_int(duk, 4, TIC_SPRITESIZE);
+    s32 height =  duk_opt_int(duk, 5, TIC_SPRITESIZE);
+    bool fixed = duk_opt_boolean(duk, 6, false);
+    s32 scale =  duk_opt_int(duk, 7, 1);
+    bool alt = duk_opt_boolean(duk, 8, false);
     if(scale == 0)
     {
         duk_push_int(duk, 0);
