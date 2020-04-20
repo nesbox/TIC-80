@@ -57,13 +57,13 @@ static duk_ret_t duk_print(duk_context* duk)
 {
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
 
-    const char* text = duk_is_null_or_undefined(duk, 0) ? "" : duk_to_string(duk, 0);
-    s32 x = duk_is_null_or_undefined(duk, 1) ? 0 : duk_to_int(duk, 1);
-    s32 y = duk_is_null_or_undefined(duk, 2) ? 0 : duk_to_int(duk, 2);
-    s32 color = duk_is_null_or_undefined(duk, 3) ? (TIC_PALETTE_SIZE-1) : duk_to_int(duk, 3);
-    bool fixed = duk_is_null_or_undefined(duk, 4) ? false : duk_to_boolean(duk, 4);
-    s32 scale = duk_is_null_or_undefined(duk, 5) ? 1 : duk_to_int(duk, 5);
-    bool alt = duk_is_null_or_undefined(duk, 6) ? false : duk_to_boolean(duk, 6);
+    const char* text = duk_to_string(duk, 0);
+    s32 x = duk_opt_int(duk, 1, 0);
+    s32 y = duk_opt_int(duk, 2, 0);
+    s32 color = duk_opt_int(duk, 3, TIC_PALETTE_SIZE - 1);
+    bool fixed = duk_opt_boolean(duk, 4, false);
+    s32 scale = duk_opt_int(duk, 5, 1);
+    bool alt = duk_opt_boolean(duk, 6, false);
 
     s32 size = tic_api_print(tic, text ? text : "nil", x, y, color, fixed, scale, alt);
 
@@ -76,7 +76,7 @@ static duk_ret_t duk_cls(duk_context* duk)
 {
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
 
-    tic_api_cls(tic, duk_is_null_or_undefined(duk, 0) ? 0 : duk_to_int(duk, 0));
+    tic_api_cls(tic, duk_opt_int(duk, 0, 0));
 
     return 0;
 }
@@ -150,9 +150,9 @@ static duk_ret_t duk_spr(duk_context* duk)
     static u8 colors[TIC_PALETTE_SIZE];
     s32 count = 0;
 
-    s32 index = duk_is_null_or_undefined(duk, 0) ? 0                        : duk_to_int(duk, 0);
-    s32 x = duk_is_null_or_undefined(duk, 1) ? 0                            : duk_to_int(duk, 1);
-    s32 y = duk_is_null_or_undefined(duk, 2) ? 0                            : duk_to_int(duk, 2);
+    s32 index = duk_opt_int(duk, 0, 0);
+    s32 x = duk_opt_int(duk, 1, 0);
+    s32 y = duk_opt_int(duk, 2, 0);
 
     {
         if(!duk_is_null_or_undefined(duk, 3))
@@ -183,11 +183,11 @@ static duk_ret_t duk_spr(duk_context* duk)
         }
     }
 
-    s32 scale = duk_is_null_or_undefined(duk, 4) ? 1                        : duk_to_int(duk, 4);
-    tic_flip flip = duk_is_null_or_undefined(duk, 5) ? tic_no_flip          : duk_to_int(duk, 5);
-    tic_rotate rotate = duk_is_null_or_undefined(duk, 6) ? tic_no_rotate    : duk_to_int(duk, 6);
-    s32 w = duk_is_null_or_undefined(duk, 7) ? 1                            : duk_to_int(duk, 7);
-    s32 h = duk_is_null_or_undefined(duk, 8) ? 1                            : duk_to_int(duk, 8);
+    s32 scale = duk_opt_int(duk, 4, 1);
+    tic_flip flip = duk_opt_int(duk, 5, tic_no_flip);
+    tic_rotate rotate = duk_opt_int(duk, 6, tic_no_rotate);
+    s32 w = duk_opt_int(duk, 7, 1);
+    s32 h = duk_opt_int(duk, 8, 1);
 
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
     tic_api_spr(tic, &tic->ram.tiles, index, x, y, w, h, colors, count, scale, flip, rotate);
@@ -300,7 +300,7 @@ static duk_ret_t duk_sfx(duk_context* duk)
 {
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
 
-    s32 index = duk_is_null_or_undefined(duk, 0) ? -1 : duk_to_int(duk, 0);
+    s32 index = duk_opt_int(duk, 0, -1);
 
     s32 note = -1;
     s32 octave = -1;
@@ -341,12 +341,10 @@ static duk_ret_t duk_sfx(duk_context* duk)
         return duk_error(duk, DUK_ERR_ERROR, "unknown sfx index\n");
     }
 
-    s32 duration = duk_is_null_or_undefined(duk, 2) ? -1 : duk_to_int(duk, 2);
-    s32 channel = duk_is_null_or_undefined(duk, 3) ? 0 : duk_to_int(duk, 3);
-    s32 volume = duk_is_null_or_undefined(duk, 4) ? MAX_VOLUME : duk_to_int(duk, 4);
-
-    if(!duk_is_null_or_undefined(duk, 5))
-        speed = duk_to_int(duk, 5);
+    s32 duration = duk_opt_int(duk, 2, -1);
+    s32 channel = duk_opt_int(duk, 3, 0);
+    s32 volume = duk_opt_int(duk, 4, MAX_VOLUME);
+    speed = duk_opt_int(duk, 5, speed);
 
     if (channel >= 0 && channel < TIC_SOUND_CHANNELS)
     {
@@ -399,14 +397,14 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
 
 static duk_ret_t duk_map(duk_context* duk)
 {
-    s32 x = duk_is_null_or_undefined(duk, 0) ? 0 : duk_to_int(duk, 0);
-    s32 y = duk_is_null_or_undefined(duk, 1) ? 0 : duk_to_int(duk, 1);
-    s32 w = duk_is_null_or_undefined(duk, 2) ? TIC_MAP_SCREEN_WIDTH : duk_to_int(duk, 2);
-    s32 h = duk_is_null_or_undefined(duk, 3) ? TIC_MAP_SCREEN_HEIGHT : duk_to_int(duk, 3);
-    s32 sx = duk_is_null_or_undefined(duk, 4) ? 0 : duk_to_int(duk, 4);
-    s32 sy = duk_is_null_or_undefined(duk, 5) ? 0 : duk_to_int(duk, 5);
-    u8 chromakey = duk_is_null_or_undefined(duk, 6) ? -1 : duk_to_int(duk, 6);
-    s32 scale = duk_is_null_or_undefined(duk, 7) ? 1 : duk_to_int(duk, 7);
+    s32 x = duk_opt_int(duk, 0, 0);
+    s32 y = duk_opt_int(duk, 1, 0);
+    s32 w = duk_opt_int(duk, 2, TIC_MAP_SCREEN_WIDTH);
+    s32 h = duk_opt_int(duk, 3, TIC_MAP_SCREEN_HEIGHT);
+    s32 sx = duk_opt_int(duk, 4, 0);
+    s32 sy = duk_opt_int(duk, 5, 0);
+    u8 chromakey = duk_opt_int(duk, 6, -1);
+    s32 scale = duk_opt_int(duk, 7, 1);
 
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
 
@@ -426,8 +424,8 @@ static duk_ret_t duk_map(duk_context* duk)
 
 static duk_ret_t duk_mget(duk_context* duk)
 {
-    s32 x = duk_is_null_or_undefined(duk, 0) ? 0 : duk_to_int(duk, 0);
-    s32 y = duk_is_null_or_undefined(duk, 1) ? 0 : duk_to_int(duk, 1);
+    s32 x = duk_opt_int(duk, 0, 0);
+    s32 y = duk_opt_int(duk, 1, 0);
 
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
 
@@ -438,9 +436,9 @@ static duk_ret_t duk_mget(duk_context* duk)
 
 static duk_ret_t duk_mset(duk_context* duk)
 {
-    s32 x = duk_is_null_or_undefined(duk, 0) ? 0 : duk_to_int(duk, 0);
-    s32 y = duk_is_null_or_undefined(duk, 1) ? 0 : duk_to_int(duk, 1);
-    u8 value = duk_is_null_or_undefined(duk, 2) ? 0 : duk_to_int(duk, 2);
+    s32 x = duk_opt_int(duk, 0, 0);
+    s32 y = duk_opt_int(duk, 1, 0);
+    u8 value = duk_opt_int(duk, 2, 0);
 
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
 
@@ -517,8 +515,8 @@ static duk_ret_t duk_trace(duk_context* duk)
 {
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
 
-    const char* text = duk_is_null_or_undefined(duk, 0) ? "" : duk_to_string(duk, 0);
-    u8 color = duk_is_null_or_undefined(duk, 1) ? tic_color_12 : duk_to_int(duk, 1);
+    const char* text = duk_opt_string(duk, 0, "");
+    u8 color = duk_opt_int(duk, 1, tic_color_12);
 
     tic_api_trace(tic, text, color);
 
@@ -679,8 +677,8 @@ static duk_ret_t duk_textri(duk_context* duk)
     for (s32 i = 0; i < COUNT_OF(pt); i++)
         pt[i] = (float)duk_to_number(duk, i);
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
-    bool use_map = duk_is_null_or_undefined(duk, 12) ? false : duk_to_boolean(duk, 12);
-    u8 chroma = duk_is_null_or_undefined(duk, 13) ? 0xff : duk_to_int(duk, 13);
+    bool use_map = duk_opt_boolean(duk, 12, false);
+    u8 chroma = duk_opt_int(duk, 13, 0xff);
 
     tic_api_textri(tic, pt[0], pt[1],   //  xy 1
                         pt[2], pt[3],   //  xy 2
@@ -699,8 +697,8 @@ static duk_ret_t duk_clip(duk_context* duk)
 {
     s32 x = duk_to_int(duk, 0);
     s32 y = duk_to_int(duk, 1);
-    s32 w = duk_is_null_or_undefined(duk, 2) ? TIC80_WIDTH : duk_to_int(duk, 2);
-    s32 h = duk_is_null_or_undefined(duk, 3) ? TIC80_HEIGHT : duk_to_int(duk, 3);
+    s32 w = duk_opt_int(duk, 2, TIC80_WIDTH);
+    s32 h = duk_opt_int(duk, 3, TIC80_HEIGHT);
 
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
     
@@ -713,14 +711,14 @@ static duk_ret_t duk_music(duk_context* duk)
 {
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
 
-    s32 track = duk_is_null_or_undefined(duk, 0) ? -1 : duk_to_int(duk, 0);
+    s32 track = duk_opt_int(duk, 0, -1);
     tic_api_music(tic, -1, 0, 0, false);
 
     if(track >= 0)
     {
-        s32 frame = duk_is_null_or_undefined(duk, 1) ? -1 : duk_to_int(duk, 1);
-        s32 row = duk_is_null_or_undefined(duk, 2) ? -1 : duk_to_int(duk, 2);
-        bool loop = duk_is_null_or_undefined(duk, 3) ? true : duk_to_boolean(duk, 3);
+        s32 frame = duk_opt_int(duk, 1, -1);
+        s32 row = duk_opt_int(duk, 2, -1);
+        bool loop = duk_opt_int(duk, 3, true);
 
         tic_api_music(tic, track, frame, row, loop);
     }
@@ -732,9 +730,9 @@ static duk_ret_t duk_sync(duk_context* duk)
 {
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
 
-    u32 mask = duk_is_null_or_undefined(duk, 0) ? 0 : duk_to_int(duk, 0);
-    s32 bank = duk_is_null_or_undefined(duk, 1) ? 0 : duk_to_int(duk, 1);
-    bool toCart = duk_is_null_or_undefined(duk, 2) ? false : duk_to_boolean(duk, 2);
+    u32 mask = duk_opt_int(duk, 0, 0);
+    s32 bank = duk_opt_int(duk, 1, 0);
+    bool toCart = duk_opt_boolean(duk, 2, false);
 
     if(bank >= 0 && bank < TIC_BANKS)
         tic_api_sync(tic, mask, bank, toCart);
@@ -757,8 +755,8 @@ static duk_ret_t duk_fget(duk_context* duk)
 {
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
 
-    u32 index = duk_is_null_or_undefined(duk, 0) ? 0 : duk_to_int(duk, 0);
-    u32 flag = duk_is_null_or_undefined(duk, 1) ? 0 : duk_to_int(duk, 1);
+    u32 index = duk_opt_int(duk, 0, 0);
+    u32 flag = duk_opt_int(duk, 1, 0);
 
     bool value = tic_api_fget(tic, index, flag);
 
@@ -771,9 +769,9 @@ static duk_ret_t duk_fset(duk_context* duk)
 {
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
 
-    u32 index = duk_is_null_or_undefined(duk, 0) ? 0 : duk_to_int(duk, 0);
-    u32 flag = duk_is_null_or_undefined(duk, 1) ? 0 : duk_to_int(duk, 1);
-    bool value = duk_is_null_or_undefined(duk, 1) ? false : duk_to_boolean(duk, 2);
+    u32 index = duk_opt_int(duk, 0, 0);
+    u32 flag = duk_opt_int(duk, 1, 0);
+    bool value = duk_opt_boolean(duk, 2, false);
 
     tic_api_fset(tic, index, flag, value);
 
