@@ -24,6 +24,13 @@
 
 #include "tic80_config.h"
 #include "tic80_types.h"
+// This comes from libretro-common but the header is actually not
+// libretro-specific
+#include "../src/system/libretro/libretro-common/include/retro_endianness.h"
+
+// This is not entirely correct as theoretically
+// compiler can arrange bitfields any way it sees fit.
+#define	TIC80_BIG_ENDIAN_BITS  RETRO_IS_BIG_ENDIAN
 
 #ifdef __cplusplus
 extern "C" {
@@ -61,6 +68,16 @@ typedef union
 {
 	struct
 	{
+#if TIC80_BIG_ENDIAN_BITS
+		bool y:1;
+		bool x:1;
+		bool b:1;
+		bool a:1;
+		bool right:1;
+		bool left:1;
+		bool down:1;
+		bool up:1;
+#else
 		bool up:1;
 		bool down:1;
 		bool left:1;
@@ -69,6 +86,7 @@ typedef union
 		bool b:1;
 		bool x:1;
 		bool y:1;
+#endif
 	};
 
 	u8 data;
@@ -78,10 +96,17 @@ typedef union
 {
 	struct
 	{
+#if RETRO_IS_BIG_ENDIAN
+		tic80_gamepad fourth;
+		tic80_gamepad third;
+		tic80_gamepad second;
+		tic80_gamepad first;
+#else
 		tic80_gamepad first;
 		tic80_gamepad second;
 		tic80_gamepad third;
 		tic80_gamepad fourth;
+#endif
 	};
 
 	u32 data;
