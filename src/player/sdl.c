@@ -23,6 +23,15 @@
 #include <stdio.h>
 #include <SDL.h>
 #include <tic80.h>
+// This comes from libretro-common but the header is actually not
+// libretro-specific
+#include "../system/libretro/libretro-common/include/retro_endianness.h"
+
+#if RETRO_IS_BIG_ENDIAN
+#define TIC_TEXTURE_FORMAT SDL_PIXELFORMAT_RGBA8888
+#else
+#define TIC_TEXTURE_FORMAT SDL_PIXELFORMAT_ABGR8888
+#endif
 
 static struct
 {
@@ -59,7 +68,7 @@ int main(int argc, char **argv)
 			{
 				SDL_Window* window = SDL_CreateWindow("TIC-80 SDL demo", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 				SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-				SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, TIC80_FULLWIDTH, TIC80_FULLHEIGHT);
+				SDL_Texture* texture = SDL_CreateTexture(renderer, TIC_TEXTURE_FORMAT, SDL_TEXTUREACCESS_STREAMING, TIC80_FULLWIDTH, TIC80_FULLHEIGHT);
 				
 				SDL_AudioDeviceID audioDevice = 0;
 				SDL_AudioSpec audioSpec;
