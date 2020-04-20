@@ -1911,6 +1911,24 @@ bool tic_api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
     return false;
 }
 
+void load_chunk_header(const void *raw, Chunk *chunk)
+{
+	const u8 *raw8 = raw;
+	chunk->type = raw8[0] & 0x1f;
+	chunk->bank = (raw8[0] >> 5);
+	chunk->size = (raw8[2] << 8) | raw8[1];
+	chunk->temp = raw8[3];
+}
+
+void save_chunk_header(void *raw, const Chunk *chunk)
+{
+	u8 *raw8 = raw;
+	raw8[0] = (chunk->type & 0x1f) | (chunk->bank << 5);
+	raw8[1] = chunk->size & 0xff;
+	raw8[2] = chunk->size >> 8;
+	raw8[3] = chunk->temp;
+}
+
 void tic_core_load(tic_cartridge* cart, const u8* buffer, s32 size)
 {
     const u8* end = buffer + size;
@@ -1927,7 +1945,7 @@ void tic_core_load(tic_cartridge* cart, const u8* buffer, s32 size)
     while(buffer < end)
     {
         Chunk chunk;
-        memcpy(&chunk, buffer, sizeof(Chunk));
+        load_chunk_header(buffer, &chunk);
         buffer += sizeof(Chunk);
 
         switch(chunk.type)
@@ -2024,7 +2042,7 @@ static u8* saveFixedChunk(u8* buffer, ChunkType type, const void* from, s32 size
     if(size)
     {
         Chunk chunk = {.type = type, .bank = bank, .size = size, .temp = 0};
-        memcpy(buffer, &chunk, sizeof(Chunk));
+        save_chunk_header(buffer, &chunk);
         buffer += sizeof(Chunk);
         memcpy(buffer, from, size);
         buffer += size;
