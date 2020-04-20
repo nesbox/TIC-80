@@ -8,6 +8,7 @@
 #include "libretro-common/include/libretro.h"
 #include "libretro_core_options.h"
 #include "../../ticapi.h"
+#include "libretro-common/include/retro_endianness.h"
 
 /**
  * system.h is used for TIC80_OFFSET_LEFT and TIC80_OFFSET_TOP
@@ -576,9 +577,15 @@ void tic80_libretro_conv_argb8888_abgr8888(uint32_t *output, uint32_t *input,
 	for (h = 0; h < height; h++, output += out_stride >> 2, input += in_stride >> 2) {
 		for (w = 0; w < width; w++) {
 			uint32_t col = input[w];
+#if RETRO_IS_LITTLE_ENDIAN
 			output[w] = ((col << 16) & 0xff0000) | 
 				((col >> 16) & 0xff) |
 				(col & 0xff00ff00);
+#elif RETRO_IS_BIG_ENDIAN
+			output[w] = col >> 8;
+#else
+#error Unknown endianness
+#endif
 		}
 	}
 }
