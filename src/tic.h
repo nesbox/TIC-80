@@ -138,8 +138,13 @@ typedef enum
 
 typedef struct
 {
+#if TIC80_BIG_ENDIAN_BITS
+    u8 size:4;
+    u8 start:4;
+#else
     u8 start:4;
     u8 size:4;
+#endif
 } tic_sound_loop;
 
 typedef struct
@@ -147,14 +152,32 @@ typedef struct
     
     struct
     {
+#if TIC80_BIG_ENDIAN_BITS
+        u8 wave:4;
+        u8 volume:4;
+        s8 pitch:4;
+        u8 chord:4;
+#else
         u8 volume:4;
         u8 wave:4;
         u8 chord:4;
         s8 pitch:4;
+#endif
     } data[SFX_TICKS];
 
     struct
     {
+#if TIC80_BIG_ENDIAN_BITS
+        u8 reverse:1; // chord reverse
+        s8 speed:SFX_SPEED_BITS;
+        u8 pitch16x:1; // pitch factor
+        u8 octave:3;
+
+        u8 temp:2;
+        u8 stereo_right:1;
+        u8 stereo_left:1;
+        u8 note:4;
+#else
         u8 octave:3;
         u8 pitch16x:1; // pitch factor
         s8 speed:SFX_SPEED_BITS;
@@ -163,6 +186,7 @@ typedef struct
         u8 stereo_left:1;
         u8 stereo_right:1;
         u8 temp:2;
+#endif
     };
 
     union
@@ -227,6 +251,17 @@ typedef enum
 
 typedef struct
 {
+#if TIC80_BIG_ENDIAN_BITS
+    u8 param1   :4;
+    u8 note     :4;
+
+    u8 sfxhi    :1;
+    u8 command  :MUSIC_CMD_BITS; // tic_music_command
+    u8 param2   :4;
+
+    u8 octave   :3;
+    u8 sfxlow   :MUSIC_SFXID_LOW_BITS;
+#else
     u8 note     :4;
     u8 param1   :4;
     u8 param2   :4;
@@ -234,7 +269,7 @@ typedef struct
     u8 sfxhi    :1;
     u8 sfxlow   :MUSIC_SFXID_LOW_BITS;
     u8 octave   :3;
-
+#endif
 } tic_track_row;
 
 typedef struct
@@ -298,10 +333,17 @@ typedef struct
     
     struct
     {
+#if TIC80_BIG_ENDIAN_BITS
+        u8 unknown:4;
+        u8 music_sustain:1;
+        u8 music_state:2; // enum tic_music_state
+        u8 music_loop:1;
+#else
         u8 music_loop:1;
         u8 music_state:2; // enum tic_music_state
         u8 music_sustain:1;
         u8 unknown:4;
+#endif
     } flag;
 
 } tic_sound_state;
@@ -328,14 +370,31 @@ typedef union
 
 typedef struct
 {
-    struct
-    {
-        u16 freq:12;
-        u16 volume:4;
-    };
+    u8 freq_volume_raw[2];
 
     tic_waveform waveform;
 } tic_sound_register;
+
+static inline u16 tic_sound_register_get_freq(const tic_sound_register *in)
+{
+  return in->freq_volume_raw[0] | ((in->freq_volume_raw[1] & 0xf) << 8);
+}
+
+static inline u16 tic_sound_register_get_volume(const tic_sound_register *in)
+{
+  return ((in->freq_volume_raw[1] & 0xf0) >> 4);
+}
+
+static inline void tic_sound_register_set_freqvol(tic_sound_register *in, u16 freq, u16 vol)
+{
+  in->freq_volume_raw[0] = freq;
+  in->freq_volume_raw[1] = ((freq >> 8) & 0xf) | (vol << 4);
+}
+
+static inline void tic_sound_register_set_vol(tic_sound_register *in, u16 vol)
+{
+  in->freq_volume_raw[1] = (in->freq_volume_raw[1] & 0xf) | (vol << 4);
+}
 
 typedef struct
 {

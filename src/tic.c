@@ -126,12 +126,12 @@ static inline s32 freq2period(s32 freq)
 static inline s32 getAmp(const tic_sound_register* reg, s32 amp)
 {
     enum{AmpMax = (u16)-1/2};
-    return (amp * AmpMax / MAX_VOLUME) * reg->volume / MAX_VOLUME / TIC_SOUND_CHANNELS;
+    return (amp * AmpMax / MAX_VOLUME) * tic_sound_register_get_volume(reg) / MAX_VOLUME / TIC_SOUND_CHANNELS;
 }
 
 static void runEnvelope(blip_buffer_t* blip, const tic_sound_register* reg, tic_sound_register_data* data, s32 end_time, u8 volume)
 {
-    s32 period = freq2period(reg->freq * ENVELOPE_FREQ_SCALE);
+    s32 period = freq2period(tic_sound_register_get_freq(reg) * ENVELOPE_FREQ_SCALE);
 
     for ( ; data->time < end_time; data->time += period )
     {
@@ -147,7 +147,7 @@ static void runNoise(blip_buffer_t* blip, const tic_sound_register* reg, tic_sou
     if ( data->phase == 0 )
         data->phase = 1;
     
-    s32 period = freq2period(reg->freq);
+    s32 period = freq2period(tic_sound_register_get_freq(reg));
 
     for ( ; data->time < end_time; data->time += period )
     {
@@ -1244,8 +1244,10 @@ static void sfx(tic_mem* memory, s32 index, s32 note, s32 pitch, tic_channel_dat
 
         note = CLAMP(note, 0, COUNT_OF(NoteFreqs)-1);
 
-        reg->freq = NoteFreqs[note] + effect->data[channel->pos->pitch].pitch * (effect->pitch16x ? 16 : 1) + pitch;
-        reg->volume = volume;
+        tic_sound_register_set_freqvol(
+		reg,
+		NoteFreqs[note] + effect->data[channel->pos->pitch].pitch * (effect->pitch16x ? 16 : 1) + pitch,
+		volume);
 
         u8 wave = effect->data[channel->pos->wave].wave;
         const tic_waveform* waveform = &machine->sound.sfx->waveforms.items[wave];

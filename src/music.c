@@ -1714,7 +1714,7 @@ static void tick(Music* music)
 
     for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
         if(!music->tracker.patterns[i])
-            tic->ram.registers[i].volume = 0;
+	  tic_sound_register_set_vol(&tic->ram.registers[i], 0);
 
     switch (music->tab)
     {
