@@ -44,22 +44,22 @@
 
 typedef enum
 {
-    CHUNK_DUMMY,    // 0
-    CHUNK_TILES,    // 1
-    CHUNK_SPRITES,  // 2
-    CHUNK_COVER,    // 3
-    CHUNK_MAP,      // 4
-    CHUNK_CODE,     // 5
-    CHUNK_FLAGS,    // 6
-    CHUNK_TEMP2,    // 7
-    CHUNK_TEMP3,    // 8
-    CHUNK_SAMPLES,  // 9
-    CHUNK_WAVEFORM, // 10
-    CHUNK_TEMP4,    // 11
-    CHUNK_PALETTE,  // 12
+    CHUNK_DUMMY,        // 0
+    CHUNK_TILES,        // 1
+    CHUNK_SPRITES,      // 2
+    CHUNK_COVER,        // 3
+    CHUNK_MAP,          // 4
+    CHUNK_CODE,         // 5
+    CHUNK_FLAGS,        // 6
+    CHUNK_TEMP2,        // 7
+    CHUNK_TEMP3,        // 8
+    CHUNK_SAMPLES,      // 9
+    CHUNK_WAVEFORM,     // 10
+    CHUNK_TEMP4,        // 11
+    CHUNK_PALETTE,      // 12
     CHUNK_PATTERNS_DEP, // 13 - deprecated chunk
-    CHUNK_MUSIC,    // 14
-    CHUNK_PATTERNS, // 15
+    CHUNK_MUSIC,        // 14
+    CHUNK_PATTERNS,     // 15
 } ChunkType;
 
 typedef struct
@@ -1918,6 +1918,10 @@ void tic_core_load(tic_cartridge* cart, const u8* buffer, s32 size)
 
     bool paletteExists = false;
 
+    tic_code* code = calloc(TIC_BANKS, TIC_CODE_SIZE);
+
+    if(!code) return;
+
     while(buffer < end)
     {
         Chunk chunk;
@@ -1935,10 +1939,7 @@ void tic_core_load(tic_cartridge* cart, const u8* buffer, s32 size)
         case CHUNK_PATTERNS:    LOAD_CHUNK(cart->banks[chunk.bank].music.patterns); break;
         case CHUNK_PALETTE:     LOAD_CHUNK(cart->banks[chunk.bank].palette);        break;
         case CHUNK_FLAGS:       LOAD_CHUNK(cart->banks[chunk.bank].flags);          break;
-        case CHUNK_CODE:        
-            if(chunk.bank == 0)
-                LOAD_CHUNK(cart->code);
-            break;
+        case CHUNK_CODE:        LOAD_CHUNK(code[chunk.bank].data);                  break;
         case CHUNK_COVER:
             LOAD_CHUNK(cart->cover.data);
             cart->cover.size = chunk.size;
@@ -1971,6 +1972,24 @@ void tic_core_load(tic_cartridge* cart, const u8* buffer, s32 size)
     }
 
     #undef LOAD_CHUNK
+
+    // workaround to load code from banks
+    if(!strlen(cart->code.data))
+        for(s32 i = TIC_BANKS-1; i >= 0; i--)
+        {
+            // add new line to split code banks
+            {
+                s32 len = strlen(code[i].data);
+                if(len && len < TIC_CODE_SIZE && code[i].data[len - 1] != '\n')
+                    strcat(code[i].data, "\n");
+            }
+
+            if(strlen(code[i].data) + strlen(cart->code.data) < TIC_CODE_SIZE)
+                strcat(cart->code.data, code[i].data);
+            else break;
+        }
+
+    free(code);
 
     // workaround to support ancient carts without palette
     // load DB16 palette if it not exists
@@ -2038,7 +2057,7 @@ s32 tic_core_save(const tic_cartridge* cart, u8* buffer)
         buffer = SAVE_CHUNK(CHUNK_FLAGS,    cart->banks[i].flags,           i);
     }
 
-    buffer = SAVE_CHUNK(CHUNK_CODE, cart->code, 0);
+    buffer = SAVE_CHUNK(CHUNK_CODE, cart->code, 0);   
     buffer = saveFixedChunk(buffer, CHUNK_COVER, cart->cover.data, cart->cover.size, 0);
 
     #undef SAVE_CHUNK
