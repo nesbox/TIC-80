@@ -400,7 +400,7 @@ typedef struct
         tic_bank banks[TIC_BANKS];
     };
 
-    tic_code    code;   
+    tic_code code;
     tic_cover_image cover;
 } tic_cartridge;
 
@@ -478,12 +478,7 @@ typedef union
         tic_persistent      persistent;
         tic_flags           flags;
 
-        u8 free[16*1024 
-            - sizeof(tic_stereo_volume)
-            - sizeof(tic_flags)
-            - sizeof(tic_persistent)
-            ];
-
+        u8 free[];
     };
 
     u8 data[TIC_RAM_SIZE];

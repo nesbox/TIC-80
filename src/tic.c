@@ -2238,10 +2238,7 @@ u32 tic_api_pmem(tic_mem* tic, s32 index, u32 value, bool set)
     u32 old = tic->ram.persistent.data[index];
 
     if(set)
-    {
         tic->ram.persistent.data[index] = value;
-        ((tic_machine*)tic)->data->syncPMEM = true;
-    }
 
     return old;
 }

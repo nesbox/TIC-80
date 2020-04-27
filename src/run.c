@@ -79,8 +79,19 @@ static const char* data2md5(const void* data, s32 length)
 
 static void initPMemName(Run* run)
 {
-    const char* data = strlen(run->tic->saveid) ? run->tic->saveid : run->tic->cart.code.data;
-    const char* md5 = data2md5(data, strlen(data));
+    tic_mem* tic = run->tic;
+
+    const void* data = &tic->cart.bank0;
+    s32 dataSize = sizeof(tic_bank);
+
+    if(strlen(tic->saveid))
+    {
+        data = tic->saveid;
+        dataSize = strlen(data);
+    }
+
+    const char* md5 = data2md5(data, dataSize);
+
     strcpy(run->saveid, TIC_LOCAL);
     strcat(run->saveid, md5);
 }
@@ -90,14 +101,16 @@ static void tick(Run* run)
     if (getStudioMode() != TIC_RUN_MODE)
         return;
 
-    tic_core_tick(run->tic, &run->tickData);
+    tic_mem* tic = run->tic;
+
+    tic_core_tick(tic, &run->tickData);
 
     enum {Size = sizeof(tic_persistent)};
 
-    if(run->tickData.syncPMEM)
-    {       
-        fsSaveRootFile(run->console->fs, run->saveid, &run->tic->ram.persistent, Size, true);
-        run->tickData.syncPMEM = false;
+    if(memcmp(run->pmem.data, tic->ram.persistent.data, Size))
+    {
+        fsSaveRootFile(run->console->fs, run->saveid, &tic->ram.persistent, Size, true);
+        memcpy(run->pmem.data, tic->ram.persistent.data, Size);
     }
 
     if(run->exit)
@@ -131,25 +144,26 @@ void initRun(Run* run, Console* console, tic_mem* tic)
             .data = run,
             .exit = onExit,
             .forceExit = forceExit,
-            .syncPMEM = false,
         },
     };
 
     {
         enum {Size = sizeof(tic_persistent)};
-        memset(&run->tic->ram.persistent, 0, Size);
+        memset(&tic->ram.persistent, 0, Size);
 
         initPMemName(run);
 
         s32 size = 0;
         void* data = fsLoadRootFile(run->console->fs, run->saveid, &size);
 
-        if(size > Size) size = Size;
-
         if(data)
-            memcpy(&run->tic->ram.persistent, data, size);
+        {
+            memset(&tic->ram.persistent, 0, Size);
+            memcpy(&tic->ram.persistent, data, MIN(size, Size));
+            free(data);
+        }
 
-        if(data) free(data);
+        memcpy(run->pmem.data, tic->ram.persistent.data, Size);
     }
 
     getSystem()->preseed();

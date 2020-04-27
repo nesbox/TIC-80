@@ -791,7 +791,6 @@ bool retro_serialize(void *data, size_t size)
 	for (int i = 0; i < TIC_PERSISTENT_SIZE; i++) {
 		udata[i] = tic80->memory->ram.persistent.data[i];
 	}
-	tic80->tickData.syncPMEM = true;
 
 	return true;
 }
@@ -810,7 +809,6 @@ bool retro_unserialize(const void *data, size_t size)
 	for (int i = 0; i < TIC_PERSISTENT_SIZE; i++) {
 		tic80->memory->ram.persistent.data[i] = uData[i];
 	}
-	tic80->tickData.syncPMEM = true;
 
 	return true;
 }
@@ -883,6 +881,5 @@ void retro_cheat_set(unsigned index, bool enabled, const char *code)
 	tic80_local* tic80 = (tic80_local*)tic;
 	for (int i = 0; i < codeIndex; i = i + 2) {
 		tic80->memory->ram.persistent.data[codes[i]] = codes[i+1];
-		tic80->tickData.syncPMEM = true;
 	}
 }

@@ -43,9 +43,6 @@ typedef struct
     u64 (*freq)();
     u64 start;
 
-    // !TODO: get rid of this flag, because pmem now peekable through api
-    bool syncPMEM;
-
     void* data;
 } tic_tick_data;
 
