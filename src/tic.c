@@ -1255,8 +1255,8 @@ static void sfx(tic_mem* memory, s32 index, s32 note, s32 pitch, tic_channel_dat
         const tic_waveform* waveform = &machine->sound.sfx->waveforms.items[wave];
         memcpy(reg->waveform.data, waveform->data, sizeof(tic_waveform));
 
-        tic_tool_poke4(&memory->ram.stereo.data, channelIndex*2, channel->volume.left * !effect->stereo_left);
-        tic_tool_poke4(&memory->ram.stereo.data, channelIndex*2+1, channel->volume.right * !effect->stereo_right);
+        tic_tool_poke4(&memory->ram.stereo.data, channelIndex*2, MAX_VOLUME - channel->volume.left * !effect->stereo_left);
+        tic_tool_poke4(&memory->ram.stereo.data, channelIndex*2+1, MAX_VOLUME - channel->volume.right * !effect->stereo_right);
     }
 }
 
@@ -1541,7 +1541,7 @@ static void stereo_tick_end(tic_mem* memory, tic_sound_register_data* registers,
     enum {EndTime = CLOCKRATE / TIC80_FRAMERATE};
     for (s32 i = 0; i < TIC_SOUND_CHANNELS; ++i )
     {
-        u8 volume = tic_tool_peek4(&memory->ram.stereo.data, stereoRight + i*2);
+        u8 volume = MAX_VOLUME - tic_tool_peek4(&memory->ram.stereo.data, stereoRight + i*2);
 
         tic_sound_register* reg = &memory->ram.registers[i];
         tic_sound_register_data* data = registers + i;
