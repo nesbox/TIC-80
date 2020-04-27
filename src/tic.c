@@ -127,7 +127,7 @@ static inline s32 freq2period(s32 freq)
 
 static inline s32 getAmp(const tic_sound_register* reg, s32 amp)
 {
-    enum{AmpMax = (u16)-1 / 2};
+    enum{AmpMax = (u16)-1};
     return (amp * AmpMax / MAX_VOLUME) * reg->volume / MAX_VOLUME;
 }
 
@@ -487,7 +487,7 @@ static void soundClear(tic_mem* memory)
 
         for(s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
         {
-            static tic_channel_data emptyChannel =
+            static const tic_channel_data EmptyChannel =
             { 
                 .tick = -1,
                 .pos = NULL,
@@ -498,8 +498,8 @@ static void soundClear(tic_mem* memory)
                 .duration = -1,
             };
 
-            memcpy(machine->state.music.channels+i, &emptyChannel, sizeof emptyChannel);
-            memcpy(machine->state.channels+i, &emptyChannel, sizeof emptyChannel);
+            memcpy(machine->state.music.channels+i, &EmptyChannel, sizeof EmptyChannel);
+            memcpy(machine->state.channels+i, &EmptyChannel, sizeof EmptyChannel);
 
             static tic_sfx_pos emptyPos = 
             {
@@ -1259,8 +1259,8 @@ static void sfx(tic_mem* memory, s32 index, s32 note, s32 pitch, tic_channel_dat
         const tic_waveform* waveform = &machine->sound.sfx->waveforms.items[wave];
         memcpy(reg->waveform.data, waveform->data, sizeof(tic_waveform));
 
-        tic_tool_poke4(&memory->ram.stereo.data, channelIndex*2, MAX_VOLUME - channel->volume.left * !effect->stereo_left);
-        tic_tool_poke4(&memory->ram.stereo.data, channelIndex*2+1, MAX_VOLUME - channel->volume.right * !effect->stereo_right);
+        tic_tool_poke4(&memory->ram.stereo.data, channelIndex*2, channel->volume.left * !effect->stereo_left);
+        tic_tool_poke4(&memory->ram.stereo.data, channelIndex*2+1, channel->volume.right * !effect->stereo_right);
     }
 }
 
@@ -1498,7 +1498,7 @@ void tic_core_tick_start(tic_mem* memory, const tic_sfx* sfxsrc, const tic_music
     for (s32 i = 0; i < TIC_SOUND_CHANNELS; ++i )
         memset(&memory->ram.registers[i], 0, sizeof(tic_sound_register));
 
-    memory->ram.stereo.data = 0;
+    memory->ram.stereo.data = -1;
 
     processMusic(memory);
 
@@ -1564,8 +1564,8 @@ void tic_core_tick_end(tic_mem* memory)
 
     for(s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
     {
-        u8 left = MAX_VOLUME - tic_tool_peek4(&memory->ram.stereo.data, 0 + i*TIC_STEREO_CHANNELS);
-        u8 right = MAX_VOLUME - tic_tool_peek4(&memory->ram.stereo.data, 1 + i*TIC_STEREO_CHANNELS);
+        u8 left = tic_tool_peek4(&memory->ram.stereo.data, 0 + i*TIC_STEREO_CHANNELS);
+        u8 right = tic_tool_peek4(&memory->ram.stereo.data, 1 + i*TIC_STEREO_CHANNELS);
 
         stereo_tick_end(memory, &memory->ram.registers[i], &machine->state.registers.left[i], machine->blip[i].left, left);
         stereo_tick_end(memory, &memory->ram.registers[i], &machine->state.registers.right[i], machine->blip[i].right, right);
