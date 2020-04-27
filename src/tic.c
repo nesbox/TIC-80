@@ -127,7 +127,8 @@ static inline s32 freq2period(s32 freq)
 
 static inline s32 getAmp(const tic_sound_register* reg, s32 amp)
 {
-    return (amp * SHRT_MAX / MAX_VOLUME) * reg->volume / MAX_VOLUME;
+    enum{AmpMax = (u16)-1 / 2};
+    return (amp * AmpMax / MAX_VOLUME) * reg->volume / MAX_VOLUME;
 }
 
 static void runEnvelope(blip_buffer_t* blip, const tic_sound_register* reg, tic_sound_register_data* data, s32 end_time, u8 volume)
