@@ -141,7 +141,6 @@ struct tic_mem
 {
     tic_ram             ram;
     tic_cartridge       cart;
-    tic_font            font;
 
     char saveid[TIC_SAVEID_SIZE];
 

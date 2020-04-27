@@ -2456,6 +2456,7 @@ static void onConsoleRamCommand(Console* console, const char* param)
         {offsetof(tic_ram, stereo),                     "STEREO VOLUME"},
         {offsetof(tic_ram, persistent),                 "PERSISTENT MEMORY"},
         {offsetof(tic_ram, flags),                      "SPRITE FLAGS"},
+        {offsetof(tic_ram, font),                       "FONT"},
         {offsetof(tic_ram, free),                       "..."},
         {TIC_RAM_SIZE,                                  ""},
     };

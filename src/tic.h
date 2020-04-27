@@ -477,6 +477,7 @@ typedef union
         tic_stereo_volume   stereo;
         tic_persistent      persistent;
         tic_flags           flags;
+        tic_font            font;
 
         u8 free[];
     };

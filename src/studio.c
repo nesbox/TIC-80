@@ -187,6 +187,8 @@ static struct
     char **argv;
     s32 samplerate;
 
+    tic_font systemFont;
+
 } impl =
 {
     .tic80local = NULL,
@@ -1674,13 +1676,13 @@ static void renderStudio()
 
 static void updateSystemFont()
 {
-    memset(impl.studio.tic->font.data, 0, sizeof(tic_font));
+    memset(impl.systemFont.data, 0, sizeof(tic_font));
 
     for(s32 i = 0; i < TIC_FONT_CHARS; i++)
         for(s32 y = 0; y < TIC_SPRITESIZE; y++)
             for(s32 x = 0; x < TIC_SPRITESIZE; x++)
                 if(tic_tool_peek4(&impl.config->cart.bank0.sprites.data[i], TIC_SPRITESIZE*(y+1) - x-1))
-                    impl.studio.tic->font.data[i*BITS_IN_BYTE+y] |= 1 << x;
+                    impl.systemFont.data[i*BITS_IN_BYTE+y] |= 1 << x;
 }
 
 void studioConfigChanged()
@@ -1792,7 +1794,10 @@ static void studioTick()
         }
 
         if(impl.mode != TIC_RUN_MODE)
+        {
             memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.data, sizeof(tic_palette));
+            memcpy(tic->ram.font.data, impl.systemFont.data, sizeof(tic_font));
+        }
 
         data
             ? tic_core_blit_ex(tic, scanline, overline, data)
