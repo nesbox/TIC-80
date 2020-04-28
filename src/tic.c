@@ -967,8 +967,15 @@ void tic_api_circb(tic_mem* memory, s32 xm, s32 ym, s32 radius, u8 color)
 typedef void(*linePixelFunc)(tic_mem* memory, s32 x, s32 y, u8 color);
 static void ticLine(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, u8 color, linePixelFunc func)
 {
+    if (y1 < y0)
+    {
+        s32 swap;
+        swap=x0; x0=x1; x1=swap;
+        swap=y0; y0=y1; y1=swap;
+    }
+
     s32 dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
-    s32 dy = abs(y1 - y0), sy = y0 < y1 ? 1 : -1; 
+    s32 dy = y1 - y0; 
     s32 err = (dx > dy ? dx : -dy) / 2, e2;
 
     for(;;)
@@ -977,7 +984,7 @@ static void ticLine(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, u8 color, l
         if (x0 == x1 && y0 == y1) break;
         e2 = err;
         if (e2 >-dx) { err -= dy; x0 += sx; }
-        if (e2 < dy) { err += dx; y0 += sy; }
+        if (e2 < dy) { err += dx; y0 += 1; }
     }
 }
 
