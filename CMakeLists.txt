@@ -289,6 +289,20 @@ target_include_directories(giflib
     INTERFACE ${THIRDPARTY_DIR}/giflib)
 
 ################################
+# Blipbuf
+################################
+
+add_library(blipbuf STATIC ${THIRDPARTY_DIR}/blip-buf/blip_buf.c)
+target_include_directories(blipbuf INTERFACE ${THIRDPARTY_DIR}/blip-buf)
+
+################################
+# Duktape
+################################
+
+add_library(duktape STATIC ${THIRDPARTY_DIR}/duktape/src/duktape.c)
+target_include_directories(duktape INTERFACE ${THIRDPARTY_DIR}/duktape/src)
+
+################################
 # TIC-80 core
 ################################
 
@@ -302,17 +316,13 @@ set(TIC80CORE_SRC
     ${TIC80CORE_DIR}/wrenapi.c 
     ${TIC80CORE_DIR}/squirrelapi.c
     ${TIC80CORE_DIR}/ext/gif.c
-    ${THIRDPARTY_DIR}/blip-buf/blip_buf.c # TODO: link it as lib?
-    ${THIRDPARTY_DIR}/duktape/src/duktape.c # TODO: link it as lib?
 )
 
 add_library(tic80core STATIC ${TIC80CORE_SRC})
 
 target_include_directories(tic80core 
     PRIVATE 
-        ${CMAKE_SOURCE_DIR}/include
-        ${THIRDPARTY_DIR}/blip-buf
-        ${THIRDPARTY_DIR}/duktape/src
+        ${CMAKE_SOURCE_DIR}/include        
         ${THIRDPARTY_DIR}/wren/src/include
         ${THIRDPARTY_DIR}/squirrel/include
         ${THIRDPARTY_DIR}/moonscript
@@ -320,7 +330,7 @@ target_include_directories(tic80core
     PUBLIC 
         ${CMAKE_CURRENT_BINARY_DIR})
 
-target_link_libraries(tic80core lua lpeg wren squirrel giflib)
+target_link_libraries(tic80core lua lpeg wren squirrel giflib blipbuf duktape)
 
 if(LINUX)
     target_link_libraries(tic80core m)
