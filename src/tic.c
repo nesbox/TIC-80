@@ -2262,8 +2262,11 @@ tic_mem* tic_core_create(s32 samplerate)
     tic_machine* machine = (tic_machine*)malloc(sizeof(tic_machine));
     memset(machine, 0, sizeof(tic_machine));
 
-    if(machine != (tic_machine*)&machine->memory)
+    if (machine != (tic_machine*)&machine->memory)
+    {
+        free(machine);
         return NULL;
+    }
 
     machine->sound.sfx = &machine->memory.ram.sfx;
     machine->sound.music = &machine->memory.ram.music;

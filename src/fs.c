@@ -91,7 +91,7 @@ const char* fsGetFilePath(FileSystem* fs, const char* name)
 
 static bool isRoot(FileSystem* fs)
 {
-    return strlen(fs->work) == 0;
+    return fs->work[0] == '\0';
 }
 
 static bool isPublicRoot(FileSystem* fs)
@@ -939,42 +939,44 @@ void fsBasename(const char *path, char* out)
 #define SEP "/"
 #endif
 
+
+    char full[TICNAME_MAX];
+    fsFullname(path, full);
+
+    struct tic_stat_struct s;
+
+    const fsString* fullString = utf8ToString(full);
+    s32 ret = tic_stat(fullString, &s);
+    freeString(fullString);
+
+    if(ret == 0)
     {
-        char full[TICNAME_MAX];
-        fsFullname(path, full);
+        result = full;
 
-        struct tic_stat_struct s;
-
-        const fsString* fullString = utf8ToString(full);
-        s32 ret = tic_stat(fullString, &s);
-        freeString(fullString);
-
-        if(ret == 0)
+        if(S_ISREG(s.st_mode))
         {
-            result = full;
+            const char* ptr = result + strlen(result);
 
-            if(S_ISREG(s.st_mode))
+            while(ptr >= result)
             {
-                const char* ptr = result + strlen(result);
-
-                while(ptr >= result)
+                if(*ptr == SEP[0])
                 {
-                    if(*ptr == SEP[0])
-                    {
-                        result[ptr-result] = '\0';
-                        break;
-                    }
-
-                    ptr--;
+                    result[ptr-result] = '\0';
+                    break;
                 }
+
+                ptr--;
             }
         }
     }
 
-    if(result && result[strlen(result)-1] != SEP[0])
-        strcat(result, SEP);
+    if (result)
+    {
+        if (result[strlen(result) - 1] != SEP[0])
+            strcat(result, SEP);
 
-    strcpy(out, result);
+        strcpy(out, result);
+    }
 #endif
 }
 

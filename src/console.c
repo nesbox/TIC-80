@@ -722,7 +722,7 @@ static bool bufferEmpty(const u8* data, s32 size)
 
 static char* saveTextSection(char* ptr, const char* data)
 {
-    if(strlen(data) == 0)
+    if(data[0] == '\0')
         return ptr;
 
     sprintf(ptr, "%s\n", data);
@@ -806,7 +806,7 @@ static s32 saveProject(Console* console, void* buffer, const char* comment)
         }
     }
 
-    ptr = saveBinarySection(ptr, comment, "COVER", 1, &cart->cover, cart->cover.size + sizeof(s32), true);
+    saveBinarySection(ptr, comment, "COVER", 1, &cart->cover, cart->cover.size + sizeof(s32), true);
 
     return strlen(stream);
 }
@@ -1039,8 +1039,7 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
                 onCartLoaded(console, name);
             else printBack(console, "\ncart loading error");
 
-            if(data)
-                free(data);
+            free(data);
         }
     }
     else printBack(console, "\ncart name is missing");
@@ -1098,14 +1097,24 @@ static void onConfirm(bool yes, void* data)
     free(confirmData);
 }
 
+static void printMemoryError(Console* console)
+{
+    printError(console, "Memory allocation error");
+}
+
 static void confirmCommand(Console* console, const char** text, s32 rows, const char* param, ConfirmCallback callback)
 {
     CommandConfirmData* data = malloc(sizeof(CommandConfirmData));
-    data->console = console;
-    data->param = param ? strdup(param) : NULL;
-    data->callback = callback;
+    if (data)
+    {
+        data->console = console;
+        data->param = param ? strdup(param) : NULL;
+        data->callback = callback;
 
-    showDialog(text, rows, onConfirm, data);
+        showDialog(text, rows, onConfirm, data);
+    }
+    else
+        printMemoryError(console);
 }
 
 static void onConsoleLoadDemoCommand(Console* console, const char* param)
@@ -1684,11 +1693,11 @@ static void onConsoleImportCommand(Console* console, const char* param)
         printBack(console, "\nusage: import sprites|cover|map");
         commandDone(console);
     }
-    else if(param && strcmp(param, "sprites") == 0)
+    else if(strcmp(param, "sprites") == 0)
         fsOpenFileData(onImportSprites, console);
-    else if(param && strcmp(param, "map") == 0)
+    else if(strcmp(param, "map") == 0)
         fsOpenFileData(onImportMap, console);
-    else if(param && strcmp(param, "cover") == 0)
+    else if(strcmp(param, "cover") == 0)
         fsOpenFileData(onImportCover, console);
     else
     {
@@ -1729,8 +1738,13 @@ static void exportCover(Console* console)
     if(cover->size)
     {
         void* data = malloc(cover->size);
-        memcpy(data, cover->data, cover->size);
-        fsGetFileData(onCoverExported, "cover.gif", data, cover->size, DEFAULT_CHMOD, console);
+        if (data)
+        {
+            memcpy(data, cover->data, cover->size);
+            fsGetFileData(onCoverExported, "cover.gif", data, cover->size, DEFAULT_CHMOD, console);
+        }
+        else
+            printMemoryError(console);
     }
     else
     {
@@ -2170,7 +2184,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
             {
                 console->config->save(console->config);
                 studioRomSaved();
-
+                free(buffer);
                 return CART_SAVE_OK;
             }
             else

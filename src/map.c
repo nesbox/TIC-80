@@ -338,14 +338,14 @@ static void drawMapToolbar(Map* map, s32 x, s32 y)
 
     drawTileIndex(map, TIC80_WIDTH/2 - TIC_FONT_WIDTH, y);
 
-    x = drawSheetButton(map, TIC80_WIDTH, 0);
+    x = drawSheetButton(map, x, 0);
     x = drawFillButton(map, x, 0);
     x = drawSelectButton(map, x, 0);
     x = drawHandButton(map, x, 0);
     x = drawPenButton(map, x, 0);
 
     x = drawGridButton(map, x - 5, 0);
-    x = drawWorldButton(map, x, 0);
+    drawWorldButton(map, x, 0);
 }
 
 static void drawSheetOvr(Map* map, s32 x, s32 y)
@@ -1142,7 +1142,7 @@ static void overline(tic_mem* tic, void* data)
 
     drawSelectionOvr(map);
 
-    drawMapToolbar(map, TIC80_WIDTH - 9*TIC_FONT_WIDTH, 1);
+    drawMapToolbar(map, TIC80_WIDTH, 1);
     drawToolbar(map->tic, false);
 }
 
