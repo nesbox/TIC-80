@@ -309,7 +309,8 @@ static void upRow(Music* music)
 static void downRow(Music* music)
 {
     const tic_sound_state* pos = getMusicPos(music);
-    if(pos->music.track == music->track && music->tracker.follow) return;
+	// Don't move the cursor if the track is being played/recorded
+    if(pos->music.track == music->track && (music->tracker.record || music->tracker.follow)) return;
 
     if (music->tracker.row < getRows(music) - 1)
     {
@@ -383,20 +384,9 @@ static void toggleFollowMode(Music* music)
     music->tracker.follow = !music->tracker.follow;
 }
 
-static void enableFollowMode(Music* music)
-{
-    music->tracker.follow = true;
-}
-
-static void disableFollowMode(Music* music)
-{
-    music->tracker.follow = false;
-}
-
 static void toggleRecordMode(Music* music)
 {
 	music->tracker.record = !music->tracker.record;
-	enableFollowMode(music);
 }
 
 
@@ -1671,7 +1661,7 @@ static void drawTrackerLayout(Music* music)
 
     processKeyboard(music);
 
-    if(music->tracker.follow)
+    if(music->tracker.follow || music->tracker.record)
     {
         const tic_sound_state* pos = getMusicPos(music);
 
