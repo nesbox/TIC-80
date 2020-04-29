@@ -128,7 +128,7 @@ typedef struct
 
 TIC80_API tic80* tic80_create(s32 samplerate);
 TIC80_API void tic80_load(tic80* tic, void* cart, s32 size);
-TIC80_API void tic80_tick(tic80* tic, tic80_input input);
+TIC80_API void tic80_tick(tic80* tic, const tic80_input* input);
 TIC80_API void tic80_delete(tic80* tic);
 
 #ifdef __cplusplus

@@ -337,7 +337,7 @@ static void parseCode(const tic_script_config* config, const char* start, u8* co
                     && (numberStart[1] == 'x' || numberStart[1] == 'X') 
                     && isxdigit(numberStart[2]))
                 {
-                    if((ptr - numberStart < 2) || (ptr - numberStart >= 2 && isxdigit(c))) ptr++;
+                    if((ptr - numberStart < 2) || isxdigit(c)) ptr++;
                     else break;
                 }
                 else if(c == '.' || c == 'e' || c == 'E')
@@ -1718,12 +1718,11 @@ static void drawCodeToolbar(Code* code)
         }
 
         bool active = i == code->mode - TEXT_EDIT_MODE && i != 0;
-        if(active)
+        if (active)
+        {
             tic_api_rect(code->tic, rect.x, rect.y, Size, Size, tic_color_14);
-
-        if(active)
-            drawBitIcon(rect.x, rect.y+1, Icons + i*BITS_IN_BYTE, tic_color_0);
-
+            drawBitIcon(rect.x, rect.y + 1, Icons + i * BITS_IN_BYTE, tic_color_0);
+        }
         drawBitIcon(rect.x, rect.y, Icons + i*BITS_IN_BYTE, active ? tic_color_12 : (over ? tic_color_14 : tic_color_13));
     }
 

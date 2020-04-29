@@ -782,11 +782,11 @@ void drawToolbar(tic_mem* tic, bool bg)
 
         if(getStudioMode() == Modes[i]) mode = i;
 
-        if(mode == i)
+        if (mode == i)
+        {
             drawBitIcon(i * Size, 0, TabIcon, tic_color_14);
-
-        if(mode == i)
             drawBitIcon(i * Size, 1, Icons + i * BITS_IN_BYTE, tic_color_0);
+        }
 
         drawBitIcon(i * Size, 0, Icons + i * BITS_IN_BYTE, mode == i ? tic_color_12 : (over ? tic_color_14 : tic_color_13));
     }
@@ -1252,15 +1252,15 @@ static void saveProject()
     else showPopupMessage("SAVE ERROR :(");
 }
 
-static void screen2buffer(u32* buffer, const u32* pixels, tic_rect rect)
+static void screen2buffer(u32* buffer, const u32* pixels, const tic_rect* rect)
 {
-    pixels += rect.y * TIC80_FULLWIDTH;
+    pixels += rect->y * TIC80_FULLWIDTH;
 
-    for(s32 i = 0; i < rect.h; i++)
+    for(s32 i = 0; i < rect->h; i++)
     {
-        memcpy(buffer, pixels + rect.x, rect.w * sizeof(pixels[0]));
+        memcpy(buffer, pixels + rect->x, rect->w * sizeof(pixels[0]));
         pixels += TIC80_FULLWIDTH;
-        buffer += rect.w;
+        buffer += rect->w;
     }
 }
 
@@ -1282,7 +1282,7 @@ static void setCoverImage()
 
             tic_rect rect = {OffsetLeft, OffsetTop, TIC80_WIDTH, TIC80_HEIGHT};
 
-            screen2buffer(buffer, tic->screen, rect);
+            screen2buffer(buffer, tic->screen, &rect);
 
             gif_write_animation(impl.studio.tic->cart.cover.data, &impl.studio.tic->cart.cover.size,
                 TIC80_WIDTH, TIC80_HEIGHT, (const u8*)buffer, 1, TIC80_FRAMERATE, 1);
@@ -1552,7 +1552,7 @@ static void recordFrame(u32* pixels)
         if(impl.video.frame < impl.video.frames)
         {
             tic_rect rect = {0, 0, TIC80_FULLWIDTH, TIC80_FULLHEIGHT};
-            screen2buffer(impl.video.buffer + (TIC80_FULLWIDTH*TIC80_FULLHEIGHT) * impl.video.frame, pixels, rect);
+            screen2buffer(impl.video.buffer + (TIC80_FULLWIDTH*TIC80_FULLHEIGHT) * impl.video.frame, pixels, &rect);
 
             if(impl.video.frame % TIC80_FRAMERATE < TIC80_FRAMERATE / 2)
             {

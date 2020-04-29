@@ -569,8 +569,7 @@ static void playFrameRow(Music* music)
 
     tic_api_music(tic, music->track, music->tracker.frame, music->tracker.row, true);
     
-    if(music->track >= 0)
-        tic->ram.sound_state.flag.music_state = tic_music_play_frame;
+    tic->ram.sound_state.flag.music_state = tic_music_play_frame;
 }
 
 static void playFrame(Music* music)
@@ -579,8 +578,7 @@ static void playFrame(Music* music)
 
     tic_api_music(tic, music->track, music->tracker.frame, -1, true);
 
-    if(music->track >= 0)
-        tic->ram.sound_state.flag.music_state = tic_music_play_frame;
+    tic->ram.sound_state.flag.music_state = tic_music_play_frame;
 }
 
 static void playTrack(Music* music)
@@ -1524,7 +1522,7 @@ static void drawPlayButtons(Music* music)
         }
 
         if(i == 0 && music->tracker.record)
-            drawBitIcon(rect.x, rect.y, Icons + i*Rows, over ? tic_color_2 : tic_color_2);
+            drawBitIcon(rect.x, rect.y, Icons + i*Rows, tic_color_2);
         else
             drawBitIcon(rect.x, rect.y, Icons + i*Rows, over ? tic_color_14 : tic_color_13);
     }

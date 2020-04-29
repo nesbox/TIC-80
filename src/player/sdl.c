@@ -142,7 +142,7 @@ int main(int argc, char **argv)
 
 						nextTick += Delta;
 
-						tic80_tick(tic, input);
+						tic80_tick(tic, &input);
 
 						if (!audioStarted && audioDevice)
 						{
