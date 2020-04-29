@@ -127,8 +127,8 @@ static inline s32 freq2period(s32 freq)
 
 static inline s32 getAmp(const tic_sound_register* reg, s32 amp)
 {
-    enum{AmpMax = (u16)-1};
-    return (amp * AmpMax / MAX_VOLUME) * reg->volume / MAX_VOLUME;
+    enum{AmpMax = (u16)-1/2};
+    return (amp * AmpMax / MAX_VOLUME) * reg->volume / MAX_VOLUME / TIC_SOUND_CHANNELS;
 }
 
 static void runEnvelope(blip_buffer_t* blip, const tic_sound_register* reg, tic_sound_register_data* data, s32 end_time, u8 volume)
@@ -625,13 +625,8 @@ void tic_core_close(tic_mem* memory)
     getWrenScriptConfig()->close(memory);
 #endif
 
-    for(s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
-    {
-        blip_delete(machine->blip[i].left);
-        blip_delete(machine->blip[i].right);
-        free(machine->samples[i].left);
-        free(machine->samples[i].right);
-    }
+    blip_delete(machine->blip.left);
+    blip_delete(machine->blip.right);
 
     free(memory->samples.buffer);
     free(machine);
@@ -1540,15 +1535,22 @@ void tic_core_tick_start(tic_mem* memory, const tic_sfx* sfxsrc, const tic_music
     machine->state.drawhline = drawHLineDma;
 }
 
-static void stereo_tick_end(tic_mem* memory, const tic_sound_register* reg, tic_sound_register_data* data, blip_buffer_t* blip, u8 volume)
+static void stereo_tick_end(tic_mem* memory, tic_sound_register_data* registers, blip_buffer_t* blip, u8 stereoRight)
 {
     enum {EndTime = CLOCKRATE / TIC80_FRAMERATE};
+    for (s32 i = 0; i < TIC_SOUND_CHANNELS; ++i )
+    {
+        u8 volume = tic_tool_peek4(&memory->ram.stereo.data, stereoRight + i*2);
 
-    isNoiseWaveform(&reg->waveform)
-        ? runNoise(blip, reg, data, EndTime, volume)
-        : runEnvelope(blip, reg, data, EndTime, volume);
+        const tic_sound_register* reg = &memory->ram.registers[i];
+        tic_sound_register_data* data = registers + i;
 
-    data->time -= EndTime;
+        isNoiseWaveform(&reg->waveform)
+            ? runNoise(blip, reg, data, EndTime, volume)
+            : runEnvelope(blip, reg, data, EndTime, volume);
+
+        data->time -= EndTime;
+    }
     
     blip_end_frame(blip, EndTime);
 }
@@ -1560,34 +1562,11 @@ void tic_core_tick_end(tic_mem* memory)
     machine->state.gamepads.previous.data = machine->memory.ram.input.gamepads.data;
     machine->state.keyboard.previous.data = machine->memory.ram.input.keyboard.data;
 
-    const s32 Size = machine->samplerate / TIC80_FRAMERATE;
+    stereo_tick_end(memory, machine->state.registers.left, machine->blip.left, 0);
+    stereo_tick_end(memory, machine->state.registers.right, machine->blip.right, 1);
 
-    for(s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
-    {
-        u8 left = tic_tool_peek4(&memory->ram.stereo.data, 0 + i*TIC_STEREO_CHANNELS);
-        u8 right = tic_tool_peek4(&memory->ram.stereo.data, 1 + i*TIC_STEREO_CHANNELS);
-
-        stereo_tick_end(memory, &memory->ram.registers[i], &machine->state.registers.left[i], machine->blip[i].left, left);
-        stereo_tick_end(memory, &memory->ram.registers[i], &machine->state.registers.right[i], machine->blip[i].right, right);
-
-        blip_read_samples(machine->blip[i].left, machine->samples[i].left, Size, 0);
-        blip_read_samples(machine->blip[i].right, machine->samples[i].right, Size, 0);
-    }
-
-    for(s32 i = 0; i < Size; i++)
-    {
-        s32 lsum = 0;
-        s32 rsum = 0;
-
-        for(s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
-        {
-            lsum += machine->samples[c].left[i];
-            rsum += machine->samples[c].right[i];
-        }
-
-        machine->memory.samples.buffer[i*TIC_STEREO_CHANNELS] = lsum / TIC_SOUND_CHANNELS;
-        machine->memory.samples.buffer[i*TIC_STEREO_CHANNELS+1] = rsum / TIC_SOUND_CHANNELS;
-    }
+    blip_read_samples(machine->blip.left, machine->memory.samples.buffer, machine->samplerate / TIC80_FRAMERATE, TIC_STEREO_CHANNELS);
+    blip_read_samples(machine->blip.right, machine->memory.samples.buffer + 1, machine->samplerate / TIC80_FRAMERATE, TIC_STEREO_CHANNELS);
 
     machine->state.setpix = setPixelOvr;
     machine->state.getpix = getPixelOvr;
@@ -2293,17 +2272,11 @@ tic_mem* tic_core_create(s32 samplerate)
     machine->memory.samples.size = samplerate * TIC_STEREO_CHANNELS / TIC80_FRAMERATE * sizeof(s16);
     machine->memory.samples.buffer = malloc(machine->memory.samples.size);
 
-    for(s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
-    {
-        machine->blip[i].left = blip_new(samplerate / 10);
-        machine->blip[i].right = blip_new(samplerate / 10);
+    machine->blip.left = blip_new(samplerate / 10);
+    machine->blip.right = blip_new(samplerate / 10);
 
-        blip_set_rates(machine->blip[i].left, CLOCKRATE, samplerate);
-        blip_set_rates(machine->blip[i].right, CLOCKRATE, samplerate);
-
-        machine->samples[i].left = calloc(samplerate / TIC80_FRAMERATE, sizeof(s16));
-        machine->samples[i].right = calloc(samplerate / TIC80_FRAMERATE, sizeof(s16));
-    }
+    blip_set_rates(machine->blip.left, CLOCKRATE, samplerate);
+    blip_set_rates(machine->blip.right, CLOCKRATE, samplerate);
 
     tic_api_reset(&machine->memory);
 

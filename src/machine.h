@@ -181,13 +181,7 @@ typedef struct
     {
         blip_buffer_t* left;
         blip_buffer_t* right;
-    } blip[TIC_SOUND_CHANNELS];
-
-    struct
-    {
-        s16* left;
-        s16* right;
-    } samples[TIC_SOUND_CHANNELS];
+    } blip;
     
     s32 samplerate;
 
