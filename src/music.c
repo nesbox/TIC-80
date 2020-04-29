@@ -1447,9 +1447,25 @@ static void drawTracker(Music* music, s32 x, s32 y)
         drawTrackerChannel(music, x + ChannelWidth * i, y, i);
 }
 
-static void enableFollowMode(Music* music)
+static void toggleFollowMode(Music* music)
 {
     music->tracker.follow = !music->tracker.follow;
+}
+
+static void enableFollowMode(Music* music)
+{
+    music->tracker.follow = true;
+}
+
+static void disableFollowMode(Music* music)
+{
+    music->tracker.follow = false;
+}
+
+static void toggleRecordMode(Music* music)
+{
+	music->tracker.record = !music->tracker.record;
+	enableFollowMode(music);
 }
 
 static void drawPlayButtons(Music* music)
@@ -1509,13 +1525,13 @@ static void drawPlayButtons(Music* music)
             static const char* Tooltips[] = { "RECORD MUSIC", "PLAY FRAME [enter]", "PLAY TRACK", "STOP [enter]" };
             showTooltip(Tooltips[i]);
 
-            static void(*const Handlers[])(Music*) = { enableFollowMode, playFrame, playTrack, stopTrack };
+            static void(*const Handlers[])(Music*) = { toggleRecordMode, playFrame, playTrack, stopTrack };
 
             if (checkMouseClick(&rect, tic_mouse_left))
                 Handlers[i](music);
         }
 
-        if(i == 0 && music->tracker.follow)
+        if(i == 0 && music->tracker.record)
             drawBitIcon(rect.x, rect.y, Icons + i*Rows, over ? tic_color_2 : tic_color_2);
         else
             drawBitIcon(rect.x, rect.y, Icons + i*Rows, over ? tic_color_14 : tic_color_13);
@@ -1716,7 +1732,8 @@ void initMusic(Music* music, tic_mem* tic, tic_music* src)
         .track = 0,
         .tracker =
         {
-            .follow = false,
+            .follow = true,
+            .record = false,
             .frame = 0,
             .col = 0,
             .row = 0,

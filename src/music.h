@@ -37,6 +37,7 @@ struct Music
     struct
     {
         bool follow;
+        bool record;
         s32 patternCol;
 
         s32 frame;
