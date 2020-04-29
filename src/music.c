@@ -378,6 +378,28 @@ static void doTab(Music* music)
     updateTracker(music);
 }
 
+static void toggleFollowMode(Music* music)
+{
+    music->tracker.follow = !music->tracker.follow;
+}
+
+static void enableFollowMode(Music* music)
+{
+    music->tracker.follow = true;
+}
+
+static void disableFollowMode(Music* music)
+{
+    music->tracker.follow = false;
+}
+
+static void toggleRecordMode(Music* music)
+{
+	music->tracker.record = !music->tracker.record;
+	enableFollowMode(music);
+}
+
+
 static void upFrame(Music* music)
 {
     music->tracker.frame--;
@@ -1085,6 +1107,7 @@ static void processKeyboard(Music* music)
         else if(keyWasPressed(tic_key_y))   redo(music);
         else if(keyWasPressed(tic_key_up))  upFrame(music);
         else if(keyWasPressed(tic_key_down)) downFrame(music);
+        else if(keyWasPressed(tic_key_f)) toggleFollowMode(music);
     }
     else
     {
@@ -1445,27 +1468,6 @@ static void drawTracker(Music* music, s32 x, s32 y)
 
     for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
         drawTrackerChannel(music, x + ChannelWidth * i, y, i);
-}
-
-static void toggleFollowMode(Music* music)
-{
-    music->tracker.follow = !music->tracker.follow;
-}
-
-static void enableFollowMode(Music* music)
-{
-    music->tracker.follow = true;
-}
-
-static void disableFollowMode(Music* music)
-{
-    music->tracker.follow = false;
-}
-
-static void toggleRecordMode(Music* music)
-{
-	music->tracker.record = !music->tracker.record;
-	enableFollowMode(music);
 }
 
 static void drawPlayButtons(Music* music)
