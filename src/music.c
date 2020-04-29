@@ -285,14 +285,14 @@ static void updateTracker(Music* music)
 {
     s32 row = music->tracker.row;
 
-    if (row < music->tracker.scroll) music->tracker.scroll = row;
-    else if (row >= music->tracker.scroll + TRACKER_ROWS)
-        music->tracker.scroll = row - TRACKER_ROWS + 1;
+	if (row < music->tracker.scroll + TRACKER_ROWS/2) music->tracker.scroll = row - TRACKER_ROWS/2;
+	else if (row >= music->tracker.scroll + TRACKER_ROWS - TRACKER_ROWS/2)
+		music->tracker.scroll = row - TRACKER_ROWS + TRACKER_ROWS/2;
 
-    {
-        s32 rows = getRows(music);
-        if (music->tracker.row >= rows) music->tracker.row = rows - 1;
-    }
+	{
+		s32 rows = getRows(music);
+		if (music->tracker.row >= rows) music->tracker.row = rows - 1;
+	}
 
     updateScroll(music);
 }
