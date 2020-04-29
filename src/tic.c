@@ -1290,12 +1290,6 @@ static void processMusic(tic_mem* memory)
         row = 0;
         machine->state.music.ticks = 0;
 
-        // !TODO: reset only if you see 'stop' command
-        resetMusicChannels(memory);
-
-        for (s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
-            setMusicChannelData(memory, -1, 0, 0, MAX_VOLUME, MAX_VOLUME, c);
-
         if(sound_state->flag.music_state == tic_music_play)
         {
             sound_state->music.frame++;
