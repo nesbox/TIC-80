@@ -1463,6 +1463,15 @@ static void drawPlayButtons(Music* music)
     static const u8 Icons[] =
     {
         0b00000000,
+        0b00100000,
+        0b00010000,
+        0b10111000,
+        0b00010000,
+        0b00100000,
+        0b00000000,
+        0b00000000,
+
+        0b00000000,
         0b01110000,
         0b11111000,
         0b11111000,
@@ -1512,16 +1521,18 @@ static void drawPlayButtons(Music* music)
             setCursor(tic_cursor_hand);
             over = true;
 
-            static const char* Tooltips[] = { "RECORD MUSIC", "PLAY FRAME [enter]", "PLAY TRACK", "STOP [enter]" };
+            static const char* Tooltips[] = { "FOLLOW [ctrl+f]", "RECORD MUSIC", "PLAY FRAME [enter]", "PLAY TRACK", "STOP [enter]" };
             showTooltip(Tooltips[i]);
 
-            static void(*const Handlers[])(Music*) = { toggleRecordMode, playFrame, playTrack, stopTrack };
+            static void(*const Handlers[])(Music*) = { toggleFollowMode, toggleRecordMode, playFrame, playTrack, stopTrack };
 
             if (checkMouseClick(&rect, tic_mouse_left))
                 Handlers[i](music);
         }
 
-        if(i == 0 && music->tracker.record)
+        if(i == 0 && music->tracker.follow)
+            drawBitIcon(rect.x, rect.y, Icons + i*Rows, tic_color_6);
+        else if(i == 1 && music->tracker.record)
             drawBitIcon(rect.x, rect.y, Icons + i*Rows, tic_color_2);
         else
             drawBitIcon(rect.x, rect.y, Icons + i*Rows, over ? tic_color_14 : tic_color_13);
@@ -1589,7 +1600,9 @@ static void drawMusicToolbar(Music* music)
     tic_api_rect(music->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, tic_color_12);
 
     drawPlayButtons(music);
-    drawModeTabs(music);
+
+    // !TODO: temporary disable mode tabs
+    // drawModeTabs(music);
 }
 
 static void drawPianoLayout(Music* music)
