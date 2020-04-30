@@ -624,15 +624,16 @@ static s32 lua_music(lua_State* lua)
     s32 top = lua_gettop(lua);
     tic_mem* tic = (tic_mem*)getLuaMachine(lua);
 
-    if(top == 0) tic_api_music(tic, -1, 0, 0, false);
+    if(top == 0) tic_api_music(tic, -1, 0, 0, false, false);
     else if(top >= 1)
     {
-        tic_api_music(tic, -1, 0, 0, false);
+        tic_api_music(tic, -1, 0, 0, false, false);
 
         s32 track = getLuaNumber(lua, 1);
         s32 frame = -1;
         s32 row = -1;
         bool loop = true;
+        bool sustain = false;
 
         if(top >= 2)
         {
@@ -649,7 +650,7 @@ static s32 lua_music(lua_State* lua)
             }
         }
 
-        tic_api_music(tic, track, frame, row, loop);
+        tic_api_music(tic, track, frame, row, loop, sustain);
     }
     else luaL_error(lua, "invalid params, use music(track)\n");
 

@@ -103,6 +103,7 @@ class TIC {\n\
     foreign static music(track)\n\
     foreign static music(track, frame)\n\
     foreign static music(track, frame, loop)\n\
+    foreign static music(track, frame, loop, sustain)\n\
     foreign static time()\n\
     foreign static tstamp()\n\
     foreign static sync()\n\
@@ -1020,6 +1021,7 @@ static void wren_music(WrenVM* vm)
     s32 frame = -1;
     s32 row = -1;
     bool loop = true;
+    bool sustain = false;
 
     if(top > 1)
     {
@@ -1036,12 +1038,17 @@ static void wren_music(WrenVM* vm)
                 if(top > 4)
                 {
                     loop = wrenGetSlotBool(vm, 4);
+
+                    if(top > 5)
+                    {
+                        sustain = wrenGetSlotBool(vm, 5);
+                    }
                 }
             }
         }
     }
 
-    tic_api_music(tic, track, frame, row, loop);
+    tic_api_music(tic, track, frame, row, loop, sustain);
 }
 
 static void wren_time(WrenVM* vm)
@@ -1218,6 +1225,7 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     if (strcmp(signature, "static TIC.music(_)"                 ) == 0) return wren_music;
     if (strcmp(signature, "static TIC.music(_,_)"               ) == 0) return wren_music;
     if (strcmp(signature, "static TIC.music(_,_,_)"             ) == 0) return wren_music;
+    if (strcmp(signature, "static TIC.music(_,_,_,_)"           ) == 0) return wren_music;
 
     if (strcmp(signature, "static TIC.time()"                   ) == 0) return wren_time;
     if (strcmp(signature, "static TIC.tstamp()"                 ) == 0) return wren_tstamp;
