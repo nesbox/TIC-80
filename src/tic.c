@@ -440,7 +440,7 @@ static void resetMusicChannels(tic_mem* memory)
     memset(&machine->state.registers, 0, sizeof machine->state.registers);
 }
 
-static void setMusic(tic_machine* machine, s32 index, s32 frame, s32 row, bool loop)
+static void setMusic(tic_machine* machine, s32 index, s32 frame, s32 row, bool loop, bool sustain)
 {
     tic_mem* memory = (tic_mem*)machine;
 
@@ -459,6 +459,7 @@ static void setMusic(tic_machine* machine, s32 index, s32 frame, s32 row, bool l
         memory->ram.sound_state.music.row = row;
         memory->ram.sound_state.music.frame = frame < 0 ? 0 : frame;
         memory->ram.sound_state.flag.music_loop = loop;
+        memory->ram.sound_state.flag.music_sustain = sustain;
         memory->ram.sound_state.flag.music_state = tic_music_play;
 
         const tic_track* track = &machine->sound.music->tracks.data[index];
@@ -466,11 +467,11 @@ static void setMusic(tic_machine* machine, s32 index, s32 frame, s32 row, bool l
     }
 }
 
-void tic_api_music(tic_mem* memory, s32 index, s32 frame, s32 row, bool loop)
+void tic_api_music(tic_mem* memory, s32 index, s32 frame, s32 row, bool loop, bool sustain)
 {
     tic_machine* machine = (tic_machine*)memory;
 
-    setMusic(machine, index, frame, row, loop);
+    setMusic(machine, index, frame, row, loop, sustain);
 
     if(index >= 0)
         memory->ram.sound_state.flag.music_state = tic_music_play;
@@ -478,7 +479,7 @@ void tic_api_music(tic_mem* memory, s32 index, s32 frame, s32 row, bool loop)
 
 static void stopMusic(tic_mem* memory)
 {
-    tic_api_music(memory, -1, 0, 0, false);
+    tic_api_music(memory, -1, 0, 0, false, false);
 }
 
 static void soundClear(tic_mem* memory)
@@ -1292,11 +1293,15 @@ static void processMusic(tic_mem* memory)
         row = 0;
         machine->state.music.ticks = 0;
 
-        // !TODO: reset only if you see 'stop' command
-        resetMusicChannels(memory);
+        // If music is in sustain mode, we only reset the channels if the music stopped.
+        // Otherwise, we reset it on every new frame.
+        if(sound_state->flag.music_state == tic_music_stop || !sound_state->flag.music_sustain)
+        {
+          resetMusicChannels(memory);
 
-        for (s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
-            setMusicChannelData(memory, -1, 0, 0, MAX_VOLUME, MAX_VOLUME, c);
+          for (s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
+              setMusicChannelData(memory, -1, 0, 0, MAX_VOLUME, MAX_VOLUME, c);
+        }
 
         if(sound_state->flag.music_state == tic_music_play)
         {

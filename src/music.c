@@ -309,7 +309,7 @@ static void upRow(Music* music)
 static void downRow(Music* music)
 {
     const tic_sound_state* pos = getMusicPos(music);
-	// Don't move the cursor if the track is being played/recorded
+    // Don't move the cursor if the track is being played/recorded
     if(pos->music.track == music->track && (music->tracker.record || music->tracker.follow)) return;
 
     if (music->tracker.row < getRows(music) - 1)
@@ -378,17 +378,6 @@ static void doTab(Music* music)
 
     updateTracker(music);
 }
-
-static void toggleFollowMode(Music* music)
-{
-    music->tracker.follow = !music->tracker.follow;
-}
-
-static void toggleRecordMode(Music* music)
-{
-	music->tracker.record = !music->tracker.record;
-}
-
 
 static void upFrame(Music* music)
 {
@@ -567,7 +556,7 @@ static void playFrameRow(Music* music)
 {
     tic_mem* tic = music->tic;
 
-    tic_api_music(tic, music->track, music->tracker.frame, music->tracker.row, true);
+    tic_api_music(tic, music->track, music->tracker.frame, music->tracker.row, true, music->tracker.sustain);
     
     tic->ram.sound_state.flag.music_state = tic_music_play_frame;
 }
@@ -576,19 +565,35 @@ static void playFrame(Music* music)
 {
     tic_mem* tic = music->tic;
 
-    tic_api_music(tic, music->track, music->tracker.frame, -1, true);
+    tic_api_music(tic, music->track, music->tracker.frame, -1, true, music->tracker.sustain);
 
     tic->ram.sound_state.flag.music_state = tic_music_play_frame;
 }
 
 static void playTrack(Music* music)
 {
-    tic_api_music(music->tic, music->track, -1, -1, true);
+    tic_api_music(music->tic, music->track, -1, -1, true, music->tracker.sustain);
 }
 
 static void stopTrack(Music* music)
 {
-    tic_api_music(music->tic, -1, -1, -1, false);
+    tic_api_music(music->tic, -1, -1, -1, false, music->tracker.sustain);
+}
+
+static void toggleFollowMode(Music* music)
+{
+    music->tracker.follow = !music->tracker.follow;
+}
+
+static void toggleSustainMode(Music* music)
+{
+    music->tic->ram.sound_state.flag.music_sustain = !music->tracker.sustain;
+    music->tracker.sustain = !music->tracker.sustain;
+}
+
+static void toggleRecordMode(Music* music)
+{
+	music->tracker.record = !music->tracker.record;
 }
 
 static void resetSelection(Music* music)
@@ -1472,6 +1477,15 @@ static void drawPlayButtons(Music* music)
         0b00000000,
 
         0b00000000,
+        0b11110000,
+        0b00001000,
+        0b10001000,
+        0b10000000,
+        0b01111000,
+        0b00000000,
+        0b00000000,
+
+        0b00000000,
         0b01110000,
         0b11111000,
         0b11111000,
@@ -1521,10 +1535,10 @@ static void drawPlayButtons(Music* music)
             setCursor(tic_cursor_hand);
             over = true;
 
-            static const char* Tooltips[] = { "FOLLOW [ctrl+f]", "RECORD MUSIC", "PLAY FRAME [enter]", "PLAY TRACK", "STOP [enter]" };
+            static const char* Tooltips[] = { "FOLLOW [ctrl+f]", "SUSTAIN NOTES", "RECORD MUSIC", "PLAY FRAME [enter]", "PLAY TRACK", "STOP [enter]" };
             showTooltip(Tooltips[i]);
 
-            static void(*const Handlers[])(Music*) = { toggleFollowMode, toggleRecordMode, playFrame, playTrack, stopTrack };
+            static void(*const Handlers[])(Music*) = { toggleFollowMode, toggleSustainMode, toggleRecordMode, playFrame, playTrack, stopTrack };
 
             if (checkMouseClick(&rect, tic_mouse_left))
                 Handlers[i](music);
@@ -1532,7 +1546,9 @@ static void drawPlayButtons(Music* music)
 
         if(i == 0 && music->tracker.follow)
             drawBitIcon(rect.x, rect.y, Icons + i*Rows, tic_color_6);
-        else if(i == 1 && music->tracker.record)
+        else if(i == 1 && music->tracker.sustain)
+            drawBitIcon(rect.x, rect.y, Icons + i*Rows, tic_color_6);
+        else if(i == 2 && music->tracker.record)
             drawBitIcon(rect.x, rect.y, Icons + i*Rows, tic_color_2);
         else
             drawBitIcon(rect.x, rect.y, Icons + i*Rows, over ? tic_color_14 : tic_color_13);
@@ -1736,6 +1752,7 @@ void initMusic(Music* music, tic_mem* tic, tic_music* src)
         .tracker =
         {
             .follow = true,
+            .sustain = false,
             .record = false,
             .frame = 0,
             .col = 0,

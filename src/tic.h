@@ -300,7 +300,8 @@ typedef struct
     {
         u8 music_loop:1;
         u8 music_state:2; // enum tic_music_state
-        u8 unknown:5;
+        u8 music_sustain:1;
+        u8 unknown:4;
     } flag;
 
 } tic_sound_state;

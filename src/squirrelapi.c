@@ -710,15 +710,16 @@ static SQInteger squirrel_music(HSQUIRRELVM vm)
     SQInteger top = sq_gettop(vm);
     tic_mem* tic = (tic_mem*)getSquirrelMachine(vm);
 
-    if(top == 1) tic_api_music(tic, -1, 0, 0, false);
+    if(top == 1) tic_api_music(tic, -1, 0, 0, false, false);
     else if(top >= 2)
     {
-        tic_api_music(tic, -1, 0, 0, false);
+        tic_api_music(tic, -1, 0, 0, false, false);
 
         s32 track = getSquirrelNumber(vm, 2);
         s32 frame = -1;
         s32 row = -1;
         bool loop = true;
+        bool sustain = false;
 
         if(top >= 3)
         {
@@ -733,11 +734,17 @@ static SQInteger squirrel_music(HSQUIRRELVM vm)
                     SQBool b = SQFalse;
                     sq_getbool(vm, 5, &b);
                     loop = (b != SQFalse);
+                    if(top >= 6)
+                    {
+                        SQBool b = SQFalse;
+                        sq_getbool(vm, 6, &b);
+                        sustain = (b != SQFalse);
+                    }
                 }
             }
         }
 
-        tic_api_music(tic, track, frame, row, loop);
+        tic_api_music(tic, track, frame, row, loop, sustain);
     }
     else return sq_throwerror(vm, "invalid params, use music(track)\n");
 
