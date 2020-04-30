@@ -299,8 +299,8 @@ typedef struct
     struct
     {
         u8 music_loop:1;
-        u8 music_sustain:1;
         u8 music_state:2; // enum tic_music_state
+        u8 music_sustain:1;
         u8 unknown:5;
     } flag;
 
