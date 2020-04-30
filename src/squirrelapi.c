@@ -737,7 +737,7 @@ static SQInteger squirrel_music(HSQUIRRELVM vm)
                     if(top >= 6)
                     {
                         SQBool b = SQFalse;
-                        sq_getbool(vm, 5, &b);
+                        sq_getbool(vm, 6, &b);
                         sustain = (b != SQFalse);
                     }
                 }
