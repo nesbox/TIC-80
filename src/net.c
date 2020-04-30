@@ -50,7 +50,13 @@ static size_t writeCallbackSync(void *contents, size_t size, size_t nmemb, void 
     CurlData* data = (CurlData*)userp;
 
     const size_t total = size * nmemb;
-    data->buffer = realloc(data->buffer, data->size + total);
+    u8* newBuffer = realloc(data->buffer, data->size + total);
+    if (newBuffer == NULL)
+    {
+        free(data->buffer);
+        return 0;
+    }
+    data->buffer = newBuffer;
     memcpy(data->buffer + data->size, contents, total);
     data->size += total;
 
@@ -62,7 +68,13 @@ static size_t writeCallback(char *ptr, size_t size, size_t nmemb, void *userdata
     CurlData* data = (CurlData*)userdata;
 
     const size_t total = size * nmemb;
-    data->buffer = realloc(data->buffer, data->size + total);
+    u8* newBuffer = realloc(data->buffer, data->size + total);
+    if (newBuffer == NULL)
+    {
+        free(data->buffer);
+        return 0;
+    }
+    data->buffer = newBuffer;
     memcpy(data->buffer + data->size, ptr, total);
     data->size += total;
 
@@ -95,7 +107,7 @@ void netGet(Net* net, const char* path, HttpGetCallback callback, void* calldata
 {
 #ifdef DISABLE_NETWORKING
     // !TODO: call callback here
-    return NULL;
+    return;
 #else
 
     struct Curl_easy* curl = curl_easy_init();
@@ -228,14 +240,16 @@ Net* createNet()
     return NULL;
 #else
     Net* net = (Net*)malloc(sizeof(Net));
-
-    *net = (Net)
+    if (net != NULL)
     {
-        .sync = curl_easy_init(),
-        .multi = curl_multi_init(),
-    };
+        *net = (Net)
+        {
+            .sync = curl_easy_init(),
+            .multi = curl_multi_init(),
+        };
 
-    curl_easy_setopt(net->sync, CURLOPT_WRITEFUNCTION, writeCallbackSync);
+        curl_easy_setopt(net->sync, CURLOPT_WRITEFUNCTION, writeCallbackSync);
+    }
 
     return net;
 #endif

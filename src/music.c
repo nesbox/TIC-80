@@ -285,14 +285,14 @@ static void updateTracker(Music* music)
 {
     s32 row = music->tracker.row;
 
-    if (row < music->tracker.scroll) music->tracker.scroll = row;
-    else if (row >= music->tracker.scroll + TRACKER_ROWS)
-        music->tracker.scroll = row - TRACKER_ROWS + 1;
+	if (row < music->tracker.scroll + TRACKER_ROWS/2) music->tracker.scroll = row - TRACKER_ROWS/2;
+	else if (row >= music->tracker.scroll + TRACKER_ROWS - TRACKER_ROWS/2)
+		music->tracker.scroll = row - TRACKER_ROWS + TRACKER_ROWS/2;
 
-    {
-        s32 rows = getRows(music);
-        if (music->tracker.row >= rows) music->tracker.row = rows - 1;
-    }
+	{
+		s32 rows = getRows(music);
+		if (music->tracker.row >= rows) music->tracker.row = rows - 1;
+	}
 
     updateScroll(music);
 }
@@ -309,7 +309,8 @@ static void upRow(Music* music)
 static void downRow(Music* music)
 {
     const tic_sound_state* pos = getMusicPos(music);
-    if(pos->music.track == music->track && music->tracker.follow) return;
+	// Don't move the cursor if the track is being played/recorded
+    if(pos->music.track == music->track && (music->tracker.record || music->tracker.follow)) return;
 
     if (music->tracker.row < getRows(music) - 1)
     {
@@ -377,6 +378,17 @@ static void doTab(Music* music)
 
     updateTracker(music);
 }
+
+static void toggleFollowMode(Music* music)
+{
+    music->tracker.follow = !music->tracker.follow;
+}
+
+static void toggleRecordMode(Music* music)
+{
+	music->tracker.record = !music->tracker.record;
+}
+
 
 static void upFrame(Music* music)
 {
@@ -557,8 +569,7 @@ static void playFrameRow(Music* music)
 
     tic_api_music(tic, music->track, music->tracker.frame, music->tracker.row, true);
     
-    if(music->track >= 0)
-        tic->ram.sound_state.flag.music_state = tic_music_play_frame;
+    tic->ram.sound_state.flag.music_state = tic_music_play_frame;
 }
 
 static void playFrame(Music* music)
@@ -567,8 +578,7 @@ static void playFrame(Music* music)
 
     tic_api_music(tic, music->track, music->tracker.frame, -1, true);
 
-    if(music->track >= 0)
-        tic->ram.sound_state.flag.music_state = tic_music_play_frame;
+    tic->ram.sound_state.flag.music_state = tic_music_play_frame;
 }
 
 static void playTrack(Music* music)
@@ -1085,6 +1095,7 @@ static void processKeyboard(Music* music)
         else if(keyWasPressed(tic_key_y))   redo(music);
         else if(keyWasPressed(tic_key_up))  upFrame(music);
         else if(keyWasPressed(tic_key_down)) downFrame(music);
+        else if(keyWasPressed(tic_key_f)) toggleFollowMode(music);
     }
     else
     {
@@ -1447,15 +1458,19 @@ static void drawTracker(Music* music, s32 x, s32 y)
         drawTrackerChannel(music, x + ChannelWidth * i, y, i);
 }
 
-static void enableFollowMode(Music* music)
-{
-    music->tracker.follow = !music->tracker.follow;
-}
-
 static void drawPlayButtons(Music* music)
 {
     static const u8 Icons[] =
     {
+        0b00000000,
+        0b00100000,
+        0b00010000,
+        0b10111000,
+        0b00010000,
+        0b00100000,
+        0b00000000,
+        0b00000000,
+
         0b00000000,
         0b01110000,
         0b11111000,
@@ -1506,17 +1521,19 @@ static void drawPlayButtons(Music* music)
             setCursor(tic_cursor_hand);
             over = true;
 
-            static const char* Tooltips[] = { "RECORD MUSIC", "PLAY FRAME [enter]", "PLAY TRACK", "STOP [enter]" };
+            static const char* Tooltips[] = { "FOLLOW [ctrl+f]", "RECORD MUSIC", "PLAY FRAME [enter]", "PLAY TRACK", "STOP [enter]" };
             showTooltip(Tooltips[i]);
 
-            static void(*const Handlers[])(Music*) = { enableFollowMode, playFrame, playTrack, stopTrack };
+            static void(*const Handlers[])(Music*) = { toggleFollowMode, toggleRecordMode, playFrame, playTrack, stopTrack };
 
             if (checkMouseClick(&rect, tic_mouse_left))
                 Handlers[i](music);
         }
 
         if(i == 0 && music->tracker.follow)
-            drawBitIcon(rect.x, rect.y, Icons + i*Rows, over ? tic_color_2 : tic_color_2);
+            drawBitIcon(rect.x, rect.y, Icons + i*Rows, tic_color_6);
+        else if(i == 1 && music->tracker.record)
+            drawBitIcon(rect.x, rect.y, Icons + i*Rows, tic_color_2);
         else
             drawBitIcon(rect.x, rect.y, Icons + i*Rows, over ? tic_color_14 : tic_color_13);
     }
@@ -1583,7 +1600,9 @@ static void drawMusicToolbar(Music* music)
     tic_api_rect(music->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, tic_color_12);
 
     drawPlayButtons(music);
-    drawModeTabs(music);
+
+    // !TODO: temporary disable mode tabs
+    // drawModeTabs(music);
 }
 
 static void drawPianoLayout(Music* music)
@@ -1653,7 +1672,7 @@ static void drawTrackerLayout(Music* music)
 
     processKeyboard(music);
 
-    if(music->tracker.follow)
+    if(music->tracker.follow || music->tracker.record)
     {
         const tic_sound_state* pos = getMusicPos(music);
 
@@ -1716,7 +1735,8 @@ void initMusic(Music* music, tic_mem* tic, tic_music* src)
         .track = 0,
         .tracker =
         {
-            .follow = false,
+            .follow = true,
+            .record = false,
             .frame = 0,
             .col = 0,
             .row = 0,

@@ -231,7 +231,7 @@ set(WREN_SRC
 )
 
 add_library(wren STATIC ${WREN_SRC})
-target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/include)
+target_include_directories(wren PUBLIC ${THIRDPARTY_DIR}/wren/src/include)
 target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/optional)
 target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/vm)
 
@@ -265,7 +265,7 @@ set(SQUIRREL_SRC
 
 add_library(squirrel STATIC ${SQUIRREL_SRC})
 set_target_properties(squirrel PROPERTIES LINKER_LANGUAGE CXX)
-target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/include)
+target_include_directories(squirrel PUBLIC ${SQUIRREL_DIR}/include)
 target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/squirrel)
 target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/sqstdlib)
 
@@ -289,6 +289,20 @@ target_include_directories(giflib
     INTERFACE ${THIRDPARTY_DIR}/giflib)
 
 ################################
+# Blipbuf
+################################
+
+add_library(blipbuf STATIC ${THIRDPARTY_DIR}/blip-buf/blip_buf.c)
+target_include_directories(blipbuf INTERFACE ${THIRDPARTY_DIR}/blip-buf)
+
+################################
+# Duktape
+################################
+
+add_library(duktape STATIC ${THIRDPARTY_DIR}/duktape/src/duktape.c)
+target_include_directories(duktape INTERFACE ${THIRDPARTY_DIR}/duktape/src)
+
+################################
 # TIC-80 core
 ################################
 
@@ -302,25 +316,18 @@ set(TIC80CORE_SRC
     ${TIC80CORE_DIR}/wrenapi.c 
     ${TIC80CORE_DIR}/squirrelapi.c
     ${TIC80CORE_DIR}/ext/gif.c
-    ${THIRDPARTY_DIR}/blip-buf/blip_buf.c # TODO: link it as lib?
-    ${THIRDPARTY_DIR}/duktape/src/duktape.c # TODO: link it as lib?
 )
 
 add_library(tic80core STATIC ${TIC80CORE_SRC})
 
 target_include_directories(tic80core 
     PRIVATE 
-        ${CMAKE_SOURCE_DIR}/include
-        ${THIRDPARTY_DIR}/blip-buf
-        ${THIRDPARTY_DIR}/duktape/src
-        ${THIRDPARTY_DIR}/wren/src/include
-        ${THIRDPARTY_DIR}/squirrel/include
         ${THIRDPARTY_DIR}/moonscript
         ${THIRDPARTY_DIR}/fennel
-    PUBLIC 
-        ${CMAKE_CURRENT_BINARY_DIR})
+    PUBLIC
+        ${CMAKE_SOURCE_DIR}/include)
 
-target_link_libraries(tic80core lua lpeg wren squirrel giflib)
+target_link_libraries(tic80core lua lpeg wren squirrel giflib blipbuf duktape)
 
 if(LINUX)
     target_link_libraries(tic80core m)
@@ -458,7 +465,7 @@ if(BUILD_LIBRETRO)
     endif()
 
     target_include_directories(tic80_libretro PRIVATE 
-        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_BINARY_DIR}
         ${TIC80CORE_DIR})
 
     if(MINGW)
@@ -483,80 +490,6 @@ if(BUILD_LIBRETRO)
 endif()
 
 ################################
-# SDL GPU
-################################
-
-if(BUILD_SDL)
-
-set(SDLGPU_DIR ${THIRDPARTY_DIR}/sdl-gpu/src)
-set(SDLGPU_SRC
-    ${SDLGPU_DIR}/renderer_GLES_2.c
-    ${SDLGPU_DIR}/SDL_gpu.c
-    ${SDLGPU_DIR}/SDL_gpu_matrix.c
-    ${SDLGPU_DIR}/SDL_gpu_renderer.c
-    ${SDLGPU_DIR}/externals/stb_image/stb_image.c
-    ${SDLGPU_DIR}/externals/stb_image_write/stb_image_write.c
-)
-
-if(NOT ANDROID)
-    list(APPEND SDLGPU_SRC 
-        ${SDLGPU_DIR}/renderer_GLES_1.c
-        ${SDLGPU_DIR}/renderer_GLES_3.c
-        ${SDLGPU_DIR}/renderer_OpenGL_1.c
-        ${SDLGPU_DIR}/renderer_OpenGL_1_BASE.c
-        ${SDLGPU_DIR}/renderer_OpenGL_2.c
-        ${SDLGPU_DIR}/renderer_OpenGL_3.c
-        ${SDLGPU_DIR}/renderer_OpenGL_4.c
-        ${SDLGPU_DIR}/SDL_gpu_shapes.c  
-        ${SDLGPU_DIR}/externals/glew/glew.c
-    )
-endif()
-
-add_library(sdlgpu STATIC ${SDLGPU_SRC})
-
-if(EMSCRIPTEN OR ANDROID)
-    target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC SDL_GPU_DISABLE_GLES_1 SDL_GPU_DISABLE_GLES_3 SDL_GPU_DISABLE_OPENGL)
-else()
-    target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC SDL_GPU_DISABLE_GLES SDL_GPU_DISABLE_OPENGL_3 SDL_GPU_DISABLE_OPENGL_4)
-endif()
-
-target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/include)
-target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/externals/glew)
-target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/externals/glew/GL)
-target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/externals/stb_image)
-target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/externals/stb_image_write)
-
-if(WIN32)
-    target_link_libraries(sdlgpu opengl32)
-endif()
-
-if(LINUX)
-    target_link_libraries(sdlgpu GL)
-endif()
-
-if(APPLE)
-    find_library(OPENGL_LIBRARY OpenGL)
-    target_link_libraries(sdlgpu ${OPENGL_LIBRARY})
-endif()
-
-if(ANDROID)
-    find_library( ANDROID_LOG_LIBRARY log )
-    find_library( ANDROID_GLES2_LIBRARY GLESv2 )
-    find_library( ANDROID_GLES1_LIBRARY GLESv1_CM )
-    target_link_libraries(sdlgpu
-        ${ANDROID_LOG_LIBRARY}
-        ${ANDROID_GLES2_LIBRARY}
-        ${ANDROID_GLES1_LIBRARY}
-    )
-endif()
-
-if(NOT EMSCRIPTEN)
-    target_link_libraries(sdlgpu SDL2-static)
-endif()
-
-endif()
-
-################################
 # CURL
 ################################
 
@@ -575,6 +508,7 @@ set(CURL_CA_BUNDLE "none" CACHE STRING "")
 set(CURL_CA_PATH "none" CACHE STRING "")
 
 add_subdirectory(${THIRDPARTY_DIR}/curl)
+
 endif()
 
 ################################
@@ -684,14 +618,86 @@ if(WIN32)
     target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${THIRDPARTY_DIR}/dirent/include)
 endif()
 
-target_include_directories(${TIC80_OUTPUT}lib PRIVATE 
-    ${CMAKE_SOURCE_DIR}/include
-    ${THIRDPARTY_DIR}/curl/include)
+target_include_directories(${TIC80_OUTPUT}lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(${TIC80_OUTPUT}lib tic80core zlib libcurl zip)
 
 if(BUILD_PRO)
     target_compile_definitions(tic80lib PRIVATE TIC80_PRO)
+endif()
+
+################################
+# SDL GPU
+################################
+
+if(BUILD_SDL)
+
+set(SDLGPU_DIR ${THIRDPARTY_DIR}/sdl-gpu/src)
+set(SDLGPU_SRC
+    ${SDLGPU_DIR}/renderer_GLES_2.c
+    ${SDLGPU_DIR}/SDL_gpu.c
+    ${SDLGPU_DIR}/SDL_gpu_matrix.c
+    ${SDLGPU_DIR}/SDL_gpu_renderer.c
+    ${SDLGPU_DIR}/externals/stb_image/stb_image.c
+    ${SDLGPU_DIR}/externals/stb_image_write/stb_image_write.c
+)
+
+if(NOT ANDROID)
+    list(APPEND SDLGPU_SRC 
+        ${SDLGPU_DIR}/renderer_GLES_1.c
+        ${SDLGPU_DIR}/renderer_GLES_3.c
+        ${SDLGPU_DIR}/renderer_OpenGL_1.c
+        ${SDLGPU_DIR}/renderer_OpenGL_1_BASE.c
+        ${SDLGPU_DIR}/renderer_OpenGL_2.c
+        ${SDLGPU_DIR}/renderer_OpenGL_3.c
+        ${SDLGPU_DIR}/renderer_OpenGL_4.c
+        ${SDLGPU_DIR}/SDL_gpu_shapes.c  
+        ${SDLGPU_DIR}/externals/glew/glew.c
+    )
+endif()
+
+add_library(sdlgpu STATIC ${SDLGPU_SRC})
+
+if(EMSCRIPTEN OR ANDROID)
+    target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC SDL_GPU_DISABLE_GLES_1 SDL_GPU_DISABLE_GLES_3 SDL_GPU_DISABLE_OPENGL)
+else()
+    target_compile_definitions(sdlgpu PRIVATE GLEW_STATIC SDL_GPU_DISABLE_GLES SDL_GPU_DISABLE_OPENGL_3 SDL_GPU_DISABLE_OPENGL_4)
+endif()
+
+target_include_directories(sdlgpu PUBLIC ${THIRDPARTY_DIR}/sdl-gpu/include)
+target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/externals/glew)
+target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/externals/glew/GL)
+target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/externals/stb_image)
+target_include_directories(sdlgpu PRIVATE ${THIRDPARTY_DIR}/sdl-gpu/src/externals/stb_image_write)
+
+if(WIN32)
+    target_link_libraries(sdlgpu opengl32)
+endif()
+
+if(LINUX)
+    target_link_libraries(sdlgpu GL)
+endif()
+
+if(APPLE)
+    find_library(OPENGL_LIBRARY OpenGL)
+    target_link_libraries(sdlgpu ${OPENGL_LIBRARY})
+endif()
+
+if(ANDROID)
+    find_library( ANDROID_LOG_LIBRARY log )
+    find_library( ANDROID_GLES2_LIBRARY GLESv2 )
+    find_library( ANDROID_GLES1_LIBRARY GLESv1_CM )
+    target_link_libraries(sdlgpu
+        ${ANDROID_LOG_LIBRARY}
+        ${ANDROID_GLES2_LIBRARY}
+        ${ANDROID_GLES1_LIBRARY}
+    )
+endif()
+
+if(NOT EMSCRIPTEN)
+    target_link_libraries(sdlgpu SDL2-static)
+endif()
+
 endif()
 
 ################################
@@ -733,11 +739,7 @@ if(BUILD_SDL)
         add_executable(${TIC80_OUTPUT} ${TIC80_SRC})
     endif()
 
-    target_include_directories(${TIC80_OUTPUT} PRIVATE 
-        ${CMAKE_SOURCE_DIR}/include
-        ${CMAKE_SOURCE_DIR}/src
-        ${THIRDPARTY_DIR}/sdl2/include
-        ${THIRDPARTY_DIR}/sdl-gpu/include)
+    target_include_directories(${TIC80_OUTPUT} PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
     if(MINGW)
         target_link_libraries(${TIC80_OUTPUT} mingw32)

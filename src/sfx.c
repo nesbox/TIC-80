@@ -630,7 +630,7 @@ static void drawWaves(Sfx* sfx, s32 x, s32 y)
             }
         }
 
-        bool sel = i == effect->data->wave;
+        bool sel = i == effect->data[0].wave;
 
         const tic_sfx_pos* pos = &tic->ram.sfxpos[DEFAULT_CHANNEL];
         bool active = *pos->data < 0 ? sfx->hoverWave == i : i == effect->data[*pos->data].wave;
@@ -686,7 +686,7 @@ static void drawWavePanel(Sfx* sfx, s32 x, s32 y)
 
         tic_rect rect = {x + 5, y + 5, 64, 32};
         tic_sample* effect = getEffect(sfx);
-        tic_waveform* wave = getWaveformById(sfx, effect->data->wave);
+        tic_waveform* wave = getWaveformById(sfx, effect->data[0].wave);
 
         drawPanelBorder(tic, rect.x - 1, rect.y - 1, rect.w + 2, rect.h + 2, tic_color_5);
 

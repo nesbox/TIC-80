@@ -52,7 +52,8 @@ static void list_delete(Item* list, Item* from)
         Item* next = it->next;
 
         if(it->data.buffer) free(it->data.buffer);
-        if(it) free(it);
+        
+        free(it);
 
         it = next;
     }

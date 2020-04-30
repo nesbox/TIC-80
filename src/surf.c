@@ -170,7 +170,6 @@ static void resetMovie(Surf* surf, Movie* movie, void (*done)(Surf* surf))
 {
     surf->state = movie;
 
-    movie->time = 0;
     for(s32 i = 0; i < movie->count; i++)
     {
         Anim* anim = movie->items[i];
@@ -225,7 +224,7 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
     tic_api_rect(tic, x, y, TIC80_WIDTH, Height, tic_color_14);
     tic_api_rect(tic, x, y + Height, TIC80_WIDTH, 1, tic_color_0);
     {
-        char label[TICNAME_MAX];
+        char label[TICNAME_MAX + 1];
         char dir[TICNAME_MAX];
         fsGetDir(surf->fs, dir);
 
