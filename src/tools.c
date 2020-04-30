@@ -26,6 +26,7 @@
 
 extern void tic_tool_poke4(void* addr, u32 index, u8 value);
 extern u8 tic_tool_peek4(const void* addr, u32 index);
+extern s32 tic_tool_sfx_pos(s32 speed, s32 ticks);
 
 s32 tic_tool_get_pattern_id(const tic_track* track, s32 frame, s32 channel)
 {

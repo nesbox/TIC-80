@@ -25,6 +25,11 @@
 #include "tic.h"
 #include "ext/gif.h"
 
+inline s32 tic_tool_sfx_pos(s32 speed, s32 ticks)
+{
+    return speed > 0 ? ticks * (1 + speed) : ticks / (1 - speed);
+}
+
 inline void tic_tool_poke4(void* addr, u32 index, u8 value)
 {
     u8* val = (u8*)addr + (index >> 1);

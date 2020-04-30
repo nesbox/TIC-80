@@ -37,9 +37,6 @@
 #define ENVELOPE_FREQ_SCALE 2
 #define SECONDS_PER_MINUTE 60
 #define NOTES_PER_MUNUTE (TIC80_FRAMERATE / NOTES_PER_BEET * SECONDS_PER_MINUTE)
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
-#define CLAMP(v,a,b) (MIN(MAX(v,a),b))
 #define PIANO_START 8
 
 typedef enum
@@ -1233,15 +1230,7 @@ static void sfx(tic_mem* memory, s32 index, s32 note, s32 pitch, tic_channel_dat
     }
 
     const tic_sample* effect = &machine->sound.sfx->samples.data[index];
-    s32 pos = ++channel->tick;
-
-    s8 speed = channel->speed;
-
-    if(speed)
-    {
-        if(speed > 0) pos *= 1 + speed;
-        else pos /= 1 - speed;
-    }
+    s32 pos = tic_tool_sfx_pos(channel->speed, ++channel->tick);
 
     for(s32 i = 0; i < sizeof(tic_sfx_pos); i++)
         *(channel->pos->data+i) = calcLoopPos(effect->loops + i, pos);

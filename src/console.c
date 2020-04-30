@@ -1753,6 +1753,46 @@ static void exportCover(Console* console)
     }
 }
 
+static void exportSfx(Console* console, s32 sfx)
+{
+    const char* path = studioExportSfx(sfx);
+
+    s32 size = 0;
+    void* data = fsLoadRootFile(console->fs, path, &size);
+
+    if(data)
+    {
+        char name[TICNAME_MAX];
+        sprintf(name, "sfx %i.wav", sfx);
+        fsGetFileData(onFileDownloaded, name, data, size, DEFAULT_CHMOD, console);
+    }
+    else
+    {
+        printError(console, "\nsfx exporting error :(");
+        commandDone(console);
+    }
+}
+
+static void exportMusic(Console* console, s32 track)
+{
+    const char* path = studioExportMusic(track);
+
+    s32 size = 0;
+    void* data = fsLoadRootFile(console->fs, path, &size);
+
+    if(data)
+    {
+        char name[TICNAME_MAX];
+        sprintf(name, "track %i.wav", track);
+        fsGetFileData(onFileDownloaded, name, data, size, DEFAULT_CHMOD, console);
+    }
+    else
+    {
+        printError(console, "\nmusic exporting error :(");
+        commandDone(console);
+    }
+}
+
 static void exportSprites(Console* console)
 {
     enum
@@ -1843,6 +1883,8 @@ static void onConsoleExportCommand(Console* console, const char* param)
 
 #else
 
+#if defined(CAN_EXPORT)
+
 static void *ticMemmem(const void* haystack, size_t hlen, const void* needle, size_t nlen)
 {
     const u8* p = haystack;
@@ -1863,8 +1905,6 @@ static void *ticMemmem(const void* haystack, size_t hlen, const void* needle, si
 
     return NULL;
 }
-
-#if defined(CAN_EXPORT)
 
 static void* embedCart(Console* console, s32* size)
 {
@@ -2112,6 +2152,8 @@ static void onConsoleExportCommand(Console* console, const char* param)
 {
     if(param)
     {
+        bool errorOccured = false;
+
         if(strcmp(param, "native") == 0 || strcmp(param, "") == 0)
         {
 #if defined(CAN_EXPORT)
@@ -2152,7 +2194,33 @@ static void onConsoleExportCommand(Console* console, const char* param)
         {
             exportCover(console);
         }
-        else
+        else if(strcmp(param, "sfx") == 0)
+        {
+            exportSfx(console, 0);
+        }
+        else if(strcmp(param, "sfx ") > 0)
+        {
+            s32 sfx = atoi(param + sizeof("sfx"));
+
+            if(sfx >= 0 && sfx < SFX_COUNT)
+                exportSfx(console, sfx);
+            else errorOccured = true;
+        }
+        else if(strcmp(param, "music") == 0)
+        {
+            exportMusic(console, 0);
+        }
+        else if(strcmp(param, "music ") > 0)
+        {
+            s32 track = atoi(param + sizeof("music"));
+
+            if(track >= 0 && track < MUSIC_TRACKS)
+                exportMusic(console, track);
+            else errorOccured = true;
+        }
+        else errorOccured = true;
+
+        if(errorOccured)
         {
             printError(console, "\nunknown parameter: ");
             printError(console, param);

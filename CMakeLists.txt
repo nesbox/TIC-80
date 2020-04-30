@@ -583,6 +583,13 @@ if(BUILD_DEMO_CARTS)
 endif()
 
 ################################
+# Wave writer
+################################
+
+add_library(wave_writer STATIC ${THIRDPARTY_DIR}/blip-buf/wave_writer.c)
+target_include_directories(wave_writer INTERFACE ${THIRDPARTY_DIR}/blip-buf)
+
+################################
 # TIC-80 lib
 ################################
 
@@ -620,7 +627,7 @@ endif()
 
 target_include_directories(${TIC80_OUTPUT}lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
-target_link_libraries(${TIC80_OUTPUT}lib tic80core zlib libcurl zip)
+target_link_libraries(${TIC80_OUTPUT}lib tic80core zlib libcurl zip wave_writer)
 
 if(BUILD_PRO)
     target_compile_definitions(tic80lib PRIVATE TIC80_PRO)

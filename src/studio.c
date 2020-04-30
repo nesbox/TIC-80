@@ -41,6 +41,7 @@
 
 #include "ext/gif.h"
 #include "ext/md5.h"
+#include "wave_writer.h"
 
 #include <zlib.h>
 #include <ctype.h>
@@ -242,6 +243,78 @@ static struct
     .argc = 0,
     .argv = NULL,
 };
+
+static const char WavPath[] = TIC_CACHE "temp.wav";
+
+const char* studioExportSfx(s32 index)
+{
+    tic_mem* tic = impl.studio.tic;
+
+    const char* name = fsGetFilePath(impl.fs, WavPath);
+
+    wave_open( impl.samplerate, name );
+
+#if TIC_STEREO_CHANNELS == 2
+    wave_enable_stereo();
+#endif
+
+    const tic_sfx* sfx = &tic->cart.banks[impl.bank.index.sfx].sfx;
+    const tic_music* music = &tic->cart.banks[impl.bank.index.music].music;
+
+    {
+        const tic_sample* effect = &sfx->samples.data[index];
+
+        enum{Channel = 0};
+        sfx_stop(tic, Channel);
+        tic_api_sfx(tic, index, effect->note, effect->octave, -1, Channel, MAX_VOLUME, SFX_DEF_SPEED);
+
+        for(s32 ticks = 0, pos = 0; pos < SFX_TICKS; pos = tic_tool_sfx_pos(effect->speed, ++ticks))
+        {
+            tic_core_tick_start(tic, sfx, music);
+            tic_core_tick_end(tic);
+
+            wave_write(tic->samples.buffer, tic->samples.size / sizeof(s16));
+        }
+
+        sfx_stop(tic, Channel);
+        memset(tic->ram.registers, 0, sizeof tic->ram.registers);
+    }
+
+    wave_close();
+
+    return WavPath;
+}
+
+const char* studioExportMusic(s32 track)
+{
+    tic_mem* tic = impl.studio.tic;
+
+    const char* name = fsGetFilePath(impl.fs, WavPath);
+
+    wave_open( impl.samplerate, name );
+
+#if TIC_STEREO_CHANNELS == 2
+    wave_enable_stereo();
+#endif
+
+    const tic_sfx* sfx = &tic->cart.banks[impl.bank.index.sfx].sfx;
+    const tic_music* music = &tic->cart.banks[impl.bank.index.music].music;
+
+    const tic_sound_state* state = &tic->ram.sound_state;
+    tic_api_music(tic, track, -1, -1, false, false);
+
+    while(state->flag.music_state == tic_music_play)
+    {
+        tic_core_tick_start(tic, sfx, music);
+        tic_core_tick_end(tic);
+
+        wave_write(tic->samples.buffer, tic->samples.size / sizeof(s16));
+    }
+
+    wave_close();
+
+    return WavPath;
+}
 
 u32 zip(u8* dest, size_t destSize, const u8* source, size_t size)
 {

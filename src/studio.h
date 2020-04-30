@@ -184,3 +184,5 @@ System* getSystem();
 const char* md5str(const void* data, s32 length);
 bool hasProjectExt(const char* name);
 void sfx_stop(tic_mem* tic, s32 channel);
+const char* studioExportMusic(s32 track);
+const char* studioExportSfx(s32 sfx);
