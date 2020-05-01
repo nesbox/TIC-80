@@ -463,7 +463,8 @@ static void setSfx(Music* music, s32 sfx)
 
 static void playNote(Music* music)
 {
-
+    tic_mem* tic = music->tic;
+    
     if (getChannelPattern(music))
     {
         s32 note = getNote(music);
@@ -472,10 +473,12 @@ static void playNote(Music* music)
         {
             music->tracker.note = note;
 
-            s32 channel = music->tracker.col / CHANNEL_COLS;
-
-            sfx_stop(music->tic, channel);
-            tic_api_sfx(music->tic, getSfx(music), note, getOctave(music), -1, channel, MAX_VOLUME, 0);
+            if(tic->ram.sound_state.flag.music_state == tic_music_stop)
+            {
+                s32 channel = music->tracker.col / CHANNEL_COLS;
+                sfx_stop(music->tic, channel);
+                tic_api_sfx(music->tic, getSfx(music), note, getOctave(music), -1, channel, MAX_VOLUME, 0);                
+            }
         }
     }
 }
@@ -799,7 +802,8 @@ static void processTrackerKeyboard(Music* music)
         music->tracker.note = -1;
         s32 channel = music->tracker.col / CHANNEL_COLS;
 
-        sfx_stop(tic, channel);
+        if(tic->ram.sound_state.flag.music_state == tic_music_stop)
+            sfx_stop(tic, channel);
         return;
     }
 

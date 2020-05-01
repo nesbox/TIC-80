@@ -124,7 +124,11 @@ typedef struct
         tic_sound_register_data right[TIC_SOUND_CHANNELS];
     } registers;
 
-    tic_channel_data channels[TIC_SOUND_CHANNELS];
+    struct
+    {
+        tic_channel_data channels[TIC_SOUND_CHANNELS];
+    } sfx;
+
     struct
     {
         s32 ticks;

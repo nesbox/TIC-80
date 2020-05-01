@@ -246,11 +246,23 @@ static struct
 
 static const char WavPath[] = TIC_CACHE "temp.wav";
 
+static const tic_sfx* getSfxSrc()
+{
+    tic_mem* tic = impl.studio.tic;
+    return &tic->cart.banks[impl.bank.index.sfx].sfx;
+}
+
+static const tic_music* getMusicSrc()
+{
+    tic_mem* tic = impl.studio.tic;
+    return &tic->cart.banks[impl.bank.index.music].music;
+}
+
 const char* studioExportSfx(s32 index)
 {
     tic_mem* tic = impl.studio.tic;
 
-    const char* name = fsGetFilePath(impl.fs, WavPath);
+    const char* name = fsGetRootFilePath(impl.fs, WavPath);
 
     wave_open( impl.samplerate, name );
 
@@ -258,8 +270,8 @@ const char* studioExportSfx(s32 index)
     wave_enable_stereo();
 #endif
 
-    const tic_sfx* sfx = &tic->cart.banks[impl.bank.index.sfx].sfx;
-    const tic_music* music = &tic->cart.banks[impl.bank.index.music].music;
+    const tic_sfx* sfx = getSfxSrc();
+    const tic_music* music = getMusicSrc();
 
     {
         const tic_sample* effect = &sfx->samples.data[index];
@@ -277,7 +289,7 @@ const char* studioExportSfx(s32 index)
         }
 
         sfx_stop(tic, Channel);
-        memset(tic->ram.registers, 0, sizeof tic->ram.registers);
+        memset(tic->ram.registers, 0, sizeof(tic_sound_register));
     }
 
     wave_close();
@@ -289,7 +301,7 @@ const char* studioExportMusic(s32 track)
 {
     tic_mem* tic = impl.studio.tic;
 
-    const char* name = fsGetFilePath(impl.fs, WavPath);
+    const char* name = fsGetRootFilePath(impl.fs, WavPath);
 
     wave_open( impl.samplerate, name );
 
@@ -297,15 +309,22 @@ const char* studioExportMusic(s32 track)
     wave_enable_stereo();
 #endif
 
-    const tic_sfx* sfx = &tic->cart.banks[impl.bank.index.sfx].sfx;
-    const tic_music* music = &tic->cart.banks[impl.bank.index.music].music;
+    const tic_sfx* sfx = getSfxSrc();
+    const tic_music* music = getMusicSrc();
 
     const tic_sound_state* state = &tic->ram.sound_state;
-    tic_api_music(tic, track, -1, -1, false, false);
+    const Music* editor = impl.banks.music[impl.bank.index.music];
+
+    tic_api_music(tic, track, -1, -1, false, editor->tracker.sustain);
 
     while(state->flag.music_state == tic_music_play)
     {
         tic_core_tick_start(tic, sfx, music);
+
+        for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
+            if(!editor->tracker.patterns[i])
+                tic->ram.registers[i].volume = 0;
+
         tic_core_tick_end(tic);
 
         wave_write(tic->samples.buffer, tic->samples.size / sizeof(s16));
@@ -1689,8 +1708,8 @@ static void renderStudio()
             music = &impl.config->cart.bank0.music;
             break;
         default:
-            sfx = &impl.studio.tic->cart.banks[impl.bank.index.sfx].sfx;
-            music = &impl.studio.tic->cart.banks[impl.bank.index.music].music;
+            sfx = getSfxSrc();
+            music = getMusicSrc();
         }
 
         tic_core_tick_start(impl.studio.tic, sfx, music);

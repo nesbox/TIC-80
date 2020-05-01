@@ -63,19 +63,11 @@ struct FileSystem
     char work[TICNAME_MAX];
 };
 
-const char* fsGetFilePath(FileSystem* fs, const char* name)
+const char* fsGetRootFilePath(FileSystem* fs, const char* name)
 {
     static char path[TICNAME_MAX] = {0};
 
-    strcpy(path, fs->dir);
-
-    if(strlen(fs->work))
-    {
-        strcat(path, fs->work);
-        strcat(path, "/");
-    }
-
-    strcat(path, name);
+    sprintf(path, "%s%s", fs->dir, name);
 
 #if defined(__TIC_WINDOWS__)
     char* ptr = path;
@@ -87,6 +79,18 @@ const char* fsGetFilePath(FileSystem* fs, const char* name)
 #endif
 
     return path;
+}
+
+const char* fsGetFilePath(FileSystem* fs, const char* name)
+{
+    static char path[TICNAME_MAX] = {0};
+
+    if(strlen(fs->work))
+        sprintf(path, "%s/%s", fs->work, name);
+    else 
+        strcpy(path, name);
+
+    return fsGetRootFilePath(fs, path);
 }
 
 static bool isRoot(FileSystem* fs)

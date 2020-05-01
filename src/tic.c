@@ -394,7 +394,7 @@ static void drawMap(tic_machine* machine, const tic_map* src, const tic_tiles* t
         }
 }
 
-static void resetSfx(tic_channel_data* channel)
+static void resetSfxPos(tic_channel_data* channel)
 {
     memset(channel->pos->data, -1, sizeof(tic_sfx_pos));
     channel->tick = -1;
@@ -417,13 +417,28 @@ static void setChannelData(tic_mem* memory, s32 index, s32 note, s32 octave, s32
     channel->duration = duration;
     channel->index = index;
 
-    resetSfx(channel);
+    resetSfxPos(channel);
 }
 
-static void setMusicChannelData(tic_mem* memory, s32 index, s32 note, s32 octave, s32 left, s32 right, s32 channelIndex)
+static void resetChannelRegistersData(tic_mem* memory, s32 channel)
 {
     tic_machine* machine = (tic_machine*)memory;
-    setChannelData(memory, index, note, octave, -1, &machine->state.music.channels[channelIndex], left, right, SFX_DEF_SPEED);
+    memset(&machine->state.registers.left[channel], 0, sizeof(tic_sound_register_data));
+    memset(&machine->state.registers.right[channel], 0, sizeof(tic_sound_register_data));
+}
+
+static void setMusicChannelData(tic_mem* memory, s32 index, s32 note, s32 octave, s32 left, s32 right, s32 channel)
+{
+    tic_machine* machine = (tic_machine*)memory;
+    setChannelData(memory, index, note, octave, -1, &machine->state.music.channels[channel], left, right, SFX_DEF_SPEED);
+    resetChannelRegistersData(memory, channel);
+}
+
+static void setSfxChannelData(tic_mem* memory, s32 index, s32 note, s32 octave, s32 duration, s32 channel, s32 left, s32 right, s32 speed)
+{
+    tic_machine* machine = (tic_machine*)memory;
+    setChannelData(memory, index, note, octave, duration, &machine->state.sfx.channels[channel], left, right, speed);
+    resetChannelRegistersData(memory, channel);
 }
 
 static void resetMusicChannels(tic_mem* memory)
@@ -434,7 +449,6 @@ static void resetMusicChannels(tic_mem* memory)
     tic_machine* machine = (tic_machine*)memory;
     memset(machine->state.music.commands, 0, sizeof machine->state.music.commands);
     memset(&machine->state.music.jump, 0, sizeof(tic_jump_command));
-    memset(&machine->state.registers, 0, sizeof machine->state.registers);
 }
 
 static void setMusic(tic_machine* machine, s32 index, s32 frame, s32 row, bool loop, bool sustain)
@@ -481,52 +495,32 @@ static void stopMusic(tic_mem* memory)
 
 static void soundClear(tic_mem* memory)
 {
+    tic_machine* machine = (tic_machine*)memory;
+
+    for(s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
     {
-        tic_machine* machine = (tic_machine*)memory;
+        static const tic_channel_data EmptyChannel =
+        { 
+            .tick = -1,
+            .pos = NULL,
+            .index = -1,
+            .note = 0,
+            .volume = {0, 0},
+            .speed = 0,
+            .duration = -1,
+        };
 
-        for(s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
-        {
-            static const tic_channel_data EmptyChannel =
-            { 
-                .tick = -1,
-                .pos = NULL,
-                .index = -1,
-                .note = 0,
-                .volume = {0, 0},
-                .speed = 0,
-                .duration = -1,
-            };
+        memcpy(&machine->state.music.channels[i], &EmptyChannel, sizeof EmptyChannel);
+        memcpy(&machine->state.sfx.channels[i], &EmptyChannel, sizeof EmptyChannel);
 
-            memcpy(machine->state.music.channels+i, &EmptyChannel, sizeof EmptyChannel);
-            memcpy(machine->state.channels+i, &EmptyChannel, sizeof EmptyChannel);
-
-            static tic_sfx_pos emptyPos = 
-            {
-                .volume = -1,
-                .wave = -1, 
-                .chord = -1, 
-                .pitch = -1,
-            };
-
-            {
-                tic_sfx_pos* pos = machine->state.channels[i].pos = &memory->ram.sfxpos[i];
-                memcpy(pos, &emptyPos, sizeof emptyPos);
-            }
-
-            {
-                tic_sfx_pos* pos = machine->state.music.channels[i].pos = &machine->state.music.sfxpos[i];
-                memcpy(pos, &emptyPos, sizeof emptyPos);
-            }
-        }
-
-        memset(&memory->ram.registers, 0, sizeof memory->ram.registers);
-        memset(&machine->state.registers, 0, sizeof machine->state.registers);
-        memset(&machine->state.music.commands, 0, sizeof machine->state.music.commands);
-        memset(&machine->state.music.jump, 0, sizeof(tic_jump_command));
-        stopMusic(memory);
+        memset(machine->state.sfx.channels[i].pos = &memory->ram.sfxpos[i], -1, sizeof(tic_sfx_pos));
+        memset(machine->state.music.channels[i].pos = &machine->state.music.sfxpos[i], -1, sizeof(tic_sfx_pos));
     }
 
+    memset(&memory->ram.registers, 0, sizeof memory->ram.registers);
     memset(memory->samples.buffer, 0, memory->samples.size);
+
+    stopMusic(memory);
 }
 
 static void updateSaveid(tic_mem* memory);
@@ -1225,7 +1219,7 @@ static void sfx(tic_mem* memory, s32 index, s32 note, s32 pitch, tic_channel_dat
 
     if(index < 0 || channel->duration == 0)
     {
-        resetSfx(channel);
+        resetSfxPos(channel);
         return;
     }
 
@@ -1500,7 +1494,7 @@ void tic_core_tick_start(tic_mem* memory, const tic_sfx* sfxsrc, const tic_music
 
     for (s32 i = 0; i < TIC_SOUND_CHANNELS; ++i )
     {
-        tic_channel_data* c = &machine->state.channels[i];
+        tic_channel_data* c = &machine->state.sfx.channels[i];
         
         if(c->index >= 0)
             sfx(memory, c->index, c->note, 0, c, &memory->ram.registers[i], i);
@@ -1577,7 +1571,7 @@ void tic_core_tick_end(tic_mem* memory)
 void tic_api_sfx(tic_mem* memory, s32 index, s32 note, s32 octave, s32 duration, s32 channel, s32 volume, s32 speed)
 {
     tic_machine* machine = (tic_machine*)memory;
-    setChannelData(memory, index, note, octave, duration, &machine->state.channels[channel], volume, volume, speed);
+    setSfxChannelData(memory, index, note, octave, duration, channel, volume, volume, speed);    
 }
 
 static void initCover(tic_mem* tic)

@@ -2039,7 +2039,7 @@ static void onConsoleExportHtmlCommand(Console* console)
     tic_mem* tic = console->tic;
 
     static const char HtmlName[] = TIC_CACHE "html.zip";
-    const char* name = fsGetFilePath(console->fs, HtmlName);
+    const char* name = fsGetRootFilePath(console->fs, HtmlName);
 
     struct zip_t *zip = zip_open(name, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
     bool errorOccured = false;
@@ -2141,7 +2141,7 @@ static void onConsoleExportHtmlCommand(Console* console)
     else errorOccured = true;
 
     if(errorOccured)
-        printError(console, "game not exported :(\n");
+        printError(console, "\ngame not exported :(\n");
 
     commandDone(console);
 }
