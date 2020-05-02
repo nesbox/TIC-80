@@ -633,7 +633,7 @@ target_include_directories(${TIC80_OUTPUT}lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
 
 target_link_libraries(${TIC80_OUTPUT}lib tic80core zlib zip wave_writer)
 
-if(NOT EMSCRIPTEN)
+if(NOT DISABLE_NETWORKING)
     target_link_libraries(${TIC80_OUTPUT}lib libcurl)
 endif()
 
@@ -761,7 +761,7 @@ if(BUILD_SDL)
     endif()
 
     if(EMSCRIPTEN)
-        set_target_properties(${TIC80_OUTPUT} PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s TOTAL_MEMORY=67108864 --pre-js ${CMAKE_SOURCE_DIR}/build/html/prejs.js")
+        set_target_properties(${TIC80_OUTPUT} PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s TOTAL_MEMORY=67108864 --pre-js ${CMAKE_SOURCE_DIR}/build/html/prejs.js -lidbfs.js")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2")
     elseif(NOT ANDROID)
         target_link_libraries(${TIC80_OUTPUT} SDL2main)
