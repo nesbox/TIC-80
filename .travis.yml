@@ -18,6 +18,7 @@ matrix:
         - OS_FOLDER=mac
       after_success:
         - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/out/bin tic80
+        - sha256sum tic80.tar.gz
         - curl --retry 3 --ftp-create-dirs -T tic80.tar.gz $BUILDS_SERVER_PATH/
 
     - os: linux
@@ -31,6 +32,7 @@ matrix:
         - OS_FOLDER=linux
       after_success:
         - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/out/bin tic80
+        - sha256sum tic80.tar.gz
         - curl --retry 3 --ftp-create-dirs -T tic80.tar.gz $BUILDS_SERVER_PATH/
 
     - os: linux
@@ -51,6 +53,7 @@ matrix:
 
       after_success:
         - cp app/build/outputs/apk/universal/release/app-universal-release.apk tic80.apk
+        - sha256sum tic80.apk
         - curl --retry 3 --ftp-create-dirs -T tic80.apk $BUILDS_SERVER_PATH/
 
     - os: linux
@@ -67,4 +70,5 @@ matrix:
         - docker exec -it emscripten make -j$(nproc)
       after_success:
         - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/bin tic80.js tic80.wasm
+        - sha256sum tic80.tar.gz
         - curl --retry 3 --ftp-create-dirs -T tic80.tar.gz $BUILDS_SERVER_PATH/
