@@ -265,11 +265,10 @@ static void processSelectCanvasMouse(Sprite* sprite, s32 x, s32 y)
                 sprite->select.rect = (tic_rect){sprite->select.start.x, sprite->select.start.y, 1, 1};
             }
         }
-        else if(sprite->select.drag)
-        {
-            copySelection(sprite);
-            sprite->select.drag = false;
-        }
+    }
+    if(!checkMouseDown(&rect, tic_mouse_left) && sprite->select.drag){
+        copySelection(sprite);
+        sprite->select.drag = false;
     }
 }
 
