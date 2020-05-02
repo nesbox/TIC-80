@@ -108,6 +108,10 @@ if (BAREMETALPI)
 
 endif()
 
+if(EMSCRIPTEN)
+    set(DISABLE_NETWORKING TRUE)
+endif()
+
 if (DISABLE_NETWORKING)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DDISABLE_NETWORKING")
 endif()
@@ -627,7 +631,11 @@ endif()
 
 target_include_directories(${TIC80_OUTPUT}lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
-target_link_libraries(${TIC80_OUTPUT}lib tic80core zlib libcurl zip wave_writer)
+target_link_libraries(${TIC80_OUTPUT}lib tic80core zlib zip wave_writer)
+
+if(NOT EMSCRIPTEN)
+    target_link_libraries(${TIC80_OUTPUT}lib libcurl)
+endif()
 
 if(BUILD_PRO)
     target_compile_definitions(tic80lib PRIVATE TIC80_PRO)

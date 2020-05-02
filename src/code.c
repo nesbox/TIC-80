@@ -1164,7 +1164,7 @@ static void processKeyboard(Code* code)
 
     bool usedClipboard = true;
 
-    switch(getClipboardEvent(0))
+    switch(getClipboardEvent())
     {
     case TIC_CLIPBOARD_CUT: cutToClipboard(code); break;
     case TIC_CLIPBOARD_COPY: copyToClipboard(code); break;
