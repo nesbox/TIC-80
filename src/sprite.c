@@ -229,8 +229,12 @@ static void copySelection(Sprite* sprite)
 
 static void processSelectCanvasMouse(Sprite* sprite, s32 x, s32 y)
 {
+    tic_mem* tic = sprite->tic;
+
     tic_rect rect = {x, y, CANVAS_SIZE, CANVAS_SIZE};
     const s32 Size = CANVAS_SIZE / sprite->size;
+
+    bool endDrag = false;
 
     if(checkMousePos(&rect))
     {
@@ -265,11 +269,14 @@ static void processSelectCanvasMouse(Sprite* sprite, s32 x, s32 y)
                 sprite->select.rect = (tic_rect){sprite->select.start.x, sprite->select.start.y, 1, 1};
             }
         }
-        else if(sprite->select.drag)
-        {
-            copySelection(sprite);
-            sprite->select.drag = false;
-        }
+        else endDrag = sprite->select.drag;
+    }
+    else endDrag = !tic->ram.input.mouse.left && sprite->select.drag;
+
+    if(endDrag)
+    {
+        copySelection(sprite);
+        sprite->select.drag = false;
     }
 }
 
