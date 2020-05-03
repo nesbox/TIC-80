@@ -231,7 +231,6 @@ static void processSelectCanvasMouse(Sprite* sprite, s32 x, s32 y)
 {
     tic_rect rect = {x, y, CANVAS_SIZE, CANVAS_SIZE};
     const s32 Size = CANVAS_SIZE / sprite->size;
-    bool endDrag = false;
 
     if(checkMousePos(&rect))
     {
@@ -266,14 +265,11 @@ static void processSelectCanvasMouse(Sprite* sprite, s32 x, s32 y)
                 sprite->select.rect = (tic_rect){sprite->select.start.x, sprite->select.start.y, 1, 1};
             }
         }
-        else endDrag = sprite->select.drag;
-    }
-    else endDrag = sprite->select.drag;
-
-    if(endDrag)
-    {
-        copySelection(sprite);
-        sprite->select.drag = false;
+        else if(sprite->select.drag)
+        {
+            copySelection(sprite);
+            sprite->select.drag = false;
+        }
     }
 }
 
@@ -1566,11 +1562,14 @@ static void processKeyboard(Sprite* sprite)
     {
         if(hasCanvasSelection(sprite))
         {
-            if(keyWasPressed(tic_key_up))           upCanvas(sprite);
-            else if(keyWasPressed(tic_key_down))    downCanvas(sprite);
-            else if(keyWasPressed(tic_key_left))    leftCanvas(sprite);
-            else if(keyWasPressed(tic_key_right))   rightCanvas(sprite);
-            else if(keyWasPressed(tic_key_delete))  deleteCanvas(sprite);
+            if(!sprite->select.drag)
+            {
+                if(keyWasPressed(tic_key_up))           upCanvas(sprite);
+                else if(keyWasPressed(tic_key_down))    downCanvas(sprite);
+                else if(keyWasPressed(tic_key_left))    leftCanvas(sprite);
+                else if(keyWasPressed(tic_key_right))   rightCanvas(sprite);
+                else if(keyWasPressed(tic_key_delete))  deleteCanvas(sprite);                
+            }
         }
         else
         {
@@ -1579,7 +1578,7 @@ static void processKeyboard(Sprite* sprite)
             else if(keyWasPressed(tic_key_left))    leftSprite(sprite);
             else if(keyWasPressed(tic_key_right))   rightSprite(sprite);
             else if(keyWasPressed(tic_key_delete))  deleteSprite(sprite);
-            else if(keyWasPressed(tic_key_tab))         switchBanks(sprite);
+            else if(keyWasPressed(tic_key_tab))     switchBanks(sprite);
 
             if(!sprite->editPalette)
             {
