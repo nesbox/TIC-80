@@ -1796,6 +1796,10 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
     if(code->outline.items == NULL)
         code->outline.items = (OutlineItem*)malloc(OUTLINE_ITEMS_SIZE);
 
+    // !TODO: free code->syntax on close
+    if(code->syntax == NULL)
+        code->syntax = malloc(TIC_CODE_SIZE);
+
     if(code->history) history_delete(code->history);
     if(code->cursorHistory) history_delete(code->cursorHistory);
 
@@ -1808,7 +1812,7 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
         .cursor = {{src->data, NULL, 0}, NULL, 0},
         .rect = {BOOKMARK_WIDTH, TOOLBAR_SIZE + 1, TIC80_WIDTH, TIC80_HEIGHT - TOOLBAR_SIZE - TIC_FONT_HEIGHT - 1},
         .scroll = {0, 0, {0, 0}, false},
-        .syntax = malloc(TIC_CODE_SIZE),
+        .syntax = code->syntax,
         .tickCounter = 0,
         .history = NULL,
         .cursorHistory = NULL,
