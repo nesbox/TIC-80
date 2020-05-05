@@ -25,7 +25,6 @@
 #include "studio.h"
 
 typedef struct Code Code;
-typedef struct OutlineItem OutlineItem;
 
 struct Code
 {
@@ -62,7 +61,8 @@ struct Code
 
     u8* syntax;
 
-    char status[STUDIO_TEXT_BUFFER_WIDTH+1];
+    char statusLine[STUDIO_TEXT_BUFFER_WIDTH];
+    char statusSize[STUDIO_TEXT_BUFFER_WIDTH];
 
     u32 tickCounter;
 
@@ -93,13 +93,15 @@ struct Code
 
     struct
     {
-        OutlineItem* items;
+        tic_outline_item* items;
 
+        s32 size;
         s32 index;
     } outline;
 
     char* matchedDelim;
     bool altFont;
+    bool shadowText;
 
     void(*tick)(Code*);
     void(*escape)(Code*);

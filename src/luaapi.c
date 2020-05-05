@@ -1430,9 +1430,9 @@ static const tic_outline_item* getLuaOutline(const char* code, s32* size)
 
             if(end > start)
             {
-                items = items ? realloc(items, (*size + 1) * Size) : malloc(Size);
+                items = realloc(items, (*size + 1) * Size);
 
-                items[*size].pos = start - code;
+                items[*size].pos = start;
                 items[*size].size = end - start;
 
                 (*size)++;
@@ -1609,9 +1609,9 @@ static const tic_outline_item* getMoonOutline(const char* code, s32* size)
 
             if(end > start)
             {
-                items = items ? realloc(items, (*size + 1) * Size) : malloc(Size);
+                items = realloc(items, (*size + 1) * Size);
 
-                items[*size].pos = start - code;
+                items[*size].pos = start;
                 items[*size].size = end - start + 1;
 
                 (*size)++;
@@ -1759,9 +1759,9 @@ static const tic_outline_item* getFennelOutline(const char* code, s32* size)
 
             if(end > start)
             {
-                items = items ? realloc(items, (*size + 1) * Size) : malloc(Size);
+                items = realloc(items, (*size + 1) * Size);
 
-                items[*size].pos = start - code;
+                items[*size].pos = start;
                 items[*size].size = end - start;
 
                 (*size)++;

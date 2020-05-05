@@ -946,9 +946,9 @@ static const tic_outline_item* getJsOutline(const char* code, s32* size)
 
             if(end > start)
             {
-                items = items ? realloc(items, (*size + 1) * Size) : malloc(Size);
+                items = realloc(items, (*size + 1) * Size);
 
-                items[*size].pos = start - code;
+                items[*size].pos = start;
                 items[*size].size = end - start;
 
                 (*size)++;

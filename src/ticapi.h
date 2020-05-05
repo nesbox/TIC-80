@@ -53,7 +53,7 @@ typedef void(*tic_overline)(tic_mem* memory, void* data);
 
 typedef struct
 {
-    s32 pos;
+    const char* pos;
     s32 size;
 } tic_outline_item;
 

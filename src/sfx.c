@@ -644,14 +644,14 @@ static void drawWaves(Sfx* sfx, s32 x, s32 y)
             for(s32 i = 0; i < WAVE_VALUES/Scale; i++)
             {
                 s32 value = tic_tool_peek4(wave->data, i*Scale)/Scale;
-                tic_api_pix(tic, rect.x + i+1, rect.y + Height - value - 2, active ? tic_color_2 : sel ? tic_color_7 : hover ? tic_color_13 : tic_color_12, NULL);
+                tic_api_pix(tic, rect.x + i+1, rect.y + Height - value - 2, active ? tic_color_2 : sel ? tic_color_7 : hover ? tic_color_13 : tic_color_12, false);
             }
 
             // draw flare
             if(sel || active)
             {
                 tic_api_rect(tic, rect.x + rect.w - 2, rect.y, 2, 1, tic_color_12);
-                tic_api_pix(tic, rect.x + rect.w - 1, rect.y + 1, tic_color_12, NULL);
+                tic_api_pix(tic, rect.x + rect.w - 1, rect.y + 1, tic_color_12, false);
             }
         }
 
