@@ -60,7 +60,7 @@ struct Code
 
     } scroll;
 
-    u8 colorBuffer[TIC_CODE_SIZE];
+    u8* syntax;
 
     char status[STUDIO_TEXT_BUFFER_WIDTH+1];
 

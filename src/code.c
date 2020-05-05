@@ -40,6 +40,18 @@ struct OutlineItem
 #define OUTLINE_SIZE ((TIC80_HEIGHT - TOOLBAR_SIZE*2)/TIC_FONT_HEIGHT)
 #define OUTLINE_ITEMS_SIZE (OUTLINE_SIZE * sizeof(OutlineItem))
 
+enum
+{
+    SyntaxTypeString    = offsetof(struct SyntaxColors, string),
+    SyntaxTypeNumber    = offsetof(struct SyntaxColors, number),
+    SyntaxTypeKeyword   = offsetof(struct SyntaxColors, keyword),
+    SyntaxTypeApi       = offsetof(struct SyntaxColors, api),
+    SyntaxTypeComment   = offsetof(struct SyntaxColors, comment),
+    SyntaxTypeSign      = offsetof(struct SyntaxColors, sign),
+    SyntaxTypeVar       = offsetof(struct SyntaxColors, var),
+    SyntaxTypeOther     = offsetof(struct SyntaxColors, other),
+};
+
 static void history(Code* code)
 {
     if(history_add(code->history))
@@ -93,7 +105,10 @@ static void drawCode(Code* code, bool withCursor)
     s32 y = code->rect.y - code->scroll.y * STUDIO_TEXT_HEIGHT;
     char* pointer = code->src;
 
-    u8* colorPointer = code->colorBuffer;
+    bool useShadow = getConfig()->theme.code.shadow;
+    u8 selectColor = getConfig()->theme.code.select;
+    const struct tic_code_theme* theme = &getConfig()->theme.code.syntax;
+    const u8* syntaxPointer = code->syntax;
 
     struct { char* start; char* end; } selection = {MIN(code->cursor.selection, code->cursor.position),
         MAX(code->cursor.selection, code->cursor.position)};
@@ -108,18 +123,18 @@ static void drawCode(Code* code, bool withCursor)
         {
             if(code->cursor.selection && pointer >= selection.start && pointer < selection.end)
             {
-                if(getConfig()->theme.code.shadow)
+                if(useShadow)
                     tic_api_rect(code->tic, x, y, TIC_FONT_WIDTH+1, TIC_FONT_HEIGHT+1, tic_color_0);
 
-                tic_api_rect(code->tic, x-1, y-1, TIC_FONT_WIDTH+1, TIC_FONT_HEIGHT+1, getConfig()->theme.code.select);
+                tic_api_rect(code->tic, x-1, y-1, TIC_FONT_WIDTH+1, TIC_FONT_HEIGHT+1, selectColor);
                 drawChar(code->tic, symbol, x, y, tic_color_15, code->altFont);
             }
             else 
             {
-                if(getConfig()->theme.code.shadow)
+                if(useShadow)
                     drawChar(code->tic, symbol, x+1, y+1, 0, code->altFont);
 
-                drawChar(code->tic, symbol, x, y, *colorPointer, code->altFont);
+                drawChar(code->tic, symbol, x, y, theme->colors[*syntaxPointer], code->altFont);
             }
         }
 
@@ -134,7 +149,7 @@ static void drawCode(Code* code, bool withCursor)
         else x += (getFontWidth(code));
 
         pointer++;
-        colorPointer++;
+        syntaxPointer++;
     }
 
     if(code->cursor.position == pointer)
@@ -224,7 +239,7 @@ static inline bool islineend(char c) {return c == '\n' || c == '\0';}
 static inline bool isalpha_(char c) {return isalpha(c) || c == '_';}
 static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
 
-static void parseCode(const tic_script_config* config, const char* start, u8* color, const struct tic_code_theme* theme)
+static void parseCode(const tic_script_config* config, const char* start, u8* syntax)
 {
     const char* ptr = start;
 
@@ -244,7 +259,7 @@ static void parseCode(const tic_script_config* config, const char* start, u8* co
             const char* end = strstr(ptr, config->blockCommentEnd);
 
             ptr = end ? end + strlen(config->blockCommentEnd) : blockCommentStart + strlen(blockCommentStart);
-            memset(color + (blockCommentStart - start), theme->comment, ptr - blockCommentStart);
+            memset(syntax + (blockCommentStart - start), SyntaxTypeComment, ptr - blockCommentStart);
             blockCommentStart = NULL;
             continue;
         }
@@ -253,7 +268,7 @@ static void parseCode(const tic_script_config* config, const char* start, u8* co
             const char* end = strstr(ptr, config->blockStringEnd);
 
             ptr = end ? end + strlen(config->blockStringEnd) : blockStringStart + strlen(blockStringStart);
-            memset(color + (blockStringStart - start), theme->string, ptr - blockStringStart);
+            memset(syntax + (blockStringStart - start), SyntaxTypeString, ptr - blockStringStart);
             blockStringStart = NULL;
             continue;
         }
@@ -281,7 +296,7 @@ static void parseCode(const tic_script_config* config, const char* start, u8* co
                 }
             }
 
-            memset(color + (blockStdStringStart - start), theme->string, ptr - blockStdStringStart);
+            memset(syntax + (blockStdStringStart - start), SyntaxTypeString, ptr - blockStdStringStart);
             blockStdStringStart = NULL;
             continue;
         }
@@ -289,7 +304,7 @@ static void parseCode(const tic_script_config* config, const char* start, u8* co
         {
             while(!islineend(*ptr))ptr++;
 
-            memset(color + (singleCommentStart - start), theme->comment, ptr - singleCommentStart);
+            memset(syntax + (singleCommentStart - start), SyntaxTypeComment, ptr - singleCommentStart);
             singleCommentStart = NULL;
             continue;
         }
@@ -303,7 +318,7 @@ static void parseCode(const tic_script_config* config, const char* start, u8* co
                 for(s32 i = 0; i < config->keywordsCount; i++)
                     if(len == strlen(config->keywords[i]) && memcmp(wordStart, config->keywords[i], len) == 0)
                     {
-                        memset(color + (wordStart - start), theme->keyword, len);
+                        memset(syntax + (wordStart - start), SyntaxTypeKeyword, len);
                         keyword = true;
                         break;
                     }
@@ -318,7 +333,7 @@ static void parseCode(const tic_script_config* config, const char* start, u8* co
                 for(s32 i = 0; i < COUNT_OF(ApiKeywords); i++)
                     if(len == strlen(ApiKeywords[i]) && memcmp(wordStart, ApiKeywords[i], len) == 0)
                     {
-                        memset(color + (wordStart - start), theme->api, len);
+                        memset(syntax + (wordStart - start), SyntaxTypeApi, len);
                         break;
                     }
             }
@@ -348,7 +363,7 @@ static void parseCode(const tic_script_config* config, const char* start, u8* co
                 else break;
             }
 
-            memset(color + (numberStart - start), theme->number, ptr - numberStart);
+            memset(syntax + (numberStart - start), SyntaxTypeNumber, ptr - numberStart);
             numberStart = NULL;
             continue;
         }
@@ -390,8 +405,8 @@ static void parseCode(const tic_script_config* config, const char* start, u8* co
                 ptr++;
                 continue;
             }
-            else if(ispunct(c)) color[ptr - start] = theme->sign;
-            else if(iscntrl(c)) color[ptr - start] = theme->other;
+            else if(ispunct(c)) syntax[ptr - start] = SyntaxTypeSign;
+            else if(iscntrl(c)) syntax[ptr - start] = SyntaxTypeOther;
         }
 
         if(!c) break;
@@ -402,13 +417,13 @@ static void parseCode(const tic_script_config* config, const char* start, u8* co
 
 static void parseSyntaxColor(Code* code)
 {
-    memset(code->colorBuffer, getConfig()->theme.code.syntax.var, sizeof(code->colorBuffer));
+    memset(code->syntax, SyntaxTypeVar, TIC_CODE_SIZE);
 
     tic_mem* tic = code->tic;
 
     const tic_script_config* config = tic_core_script_config(tic);
 
-    parseCode(config, code->src, code->colorBuffer, &getConfig()->theme.code.syntax);
+    parseCode(config, code->src, code->syntax);
 }
 
 static char* getLineByPos(Code* code, char* pos)
@@ -1793,6 +1808,7 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
         .cursor = {{src->data, NULL, 0}, NULL, 0},
         .rect = {BOOKMARK_WIDTH, TOOLBAR_SIZE + 1, TIC80_WIDTH, TIC80_HEIGHT - TOOLBAR_SIZE - TIC_FONT_HEIGHT - 1},
         .scroll = {0, 0, {0, 0}, false},
+        .syntax = malloc(TIC_CODE_SIZE),
         .tickCounter = 0,
         .history = NULL,
         .cursorHistory = NULL,

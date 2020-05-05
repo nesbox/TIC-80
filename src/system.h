@@ -115,14 +115,22 @@ typedef struct
         {
             struct tic_code_theme
             {
-                u8 string;
-                u8 number;
-                u8 keyword;
-                u8 api;
-                u8 comment;
-                u8 sign;
-                u8 var;
-                u8 other;
+                union
+                {
+                    struct SyntaxColors
+                    {
+                        u8 string;
+                        u8 number;
+                        u8 keyword;
+                        u8 api;
+                        u8 comment;
+                        u8 sign;
+                        u8 var;
+                        u8 other;
+                    };
+
+                    u8 colors[sizeof(struct SyntaxColors)];                    
+                };
             } syntax;
 
             u8 bg;
