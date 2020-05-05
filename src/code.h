@@ -99,7 +99,7 @@ struct Code
         s32 index;
     } outline;
 
-    char* matchedDelim;
+    const char* matchedDelim;
     bool altFont;
     bool shadowText;
 

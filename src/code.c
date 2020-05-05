@@ -215,7 +215,7 @@ static void removeInvalidChars(char* code)
     for(s = d = code; (*d = *s); d += (*s++ != '\r'));
 }
 
-char* findMatchedDelim(Code* code, char* current)
+const char* findMatchedDelim(Code* code, const char* current)
 {
     const char* start = code->src;
     // delimiters inside comments and strings don't get to be matched!
@@ -233,7 +233,7 @@ char* findMatchedDelim(Code* code, char* current)
     case ']': seeking = '['; break;
     case '{': seeking = '}'; break;
     case '}': seeking = '{'; break;
-    default: return 0;
+    default: return NULL;
     }
 
     while(*current && (start < current))
@@ -245,7 +245,8 @@ char* findMatchedDelim(Code* code, char* current)
         if(*current == seeking) return current;
         if(*current == initial) current = findMatchedDelim(code, current);
     }
-    return 0;
+
+    return NULL;
 }
 
 static void updateEditor(Code* code)
@@ -1869,6 +1870,7 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
             .size = 0,
             .index = 0,
         },
+        .matchedDelim = NULL,
         .altFont = getConfig()->theme.code.altFont,
         .shadowText = getConfig()->theme.code.shadow,
         .event = onStudioEvent,
