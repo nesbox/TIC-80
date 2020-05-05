@@ -151,8 +151,8 @@ static void drawCode(Code* code, bool withCursor)
 
         if(code->matchedDelim == pointer)
         {
-            matchedDelim.x = x, matchedDelim.y = y,
-                matchedDelim.symbol = symbol, matchedDelim.color = *colorPointer;
+            matchedDelim.x = x, matchedDelim.y = y, matchedDelim.symbol = symbol,
+                matchedDelim.color = theme->colors[*syntaxPointer];
         }
 
         if(symbol == '\n')
@@ -219,9 +219,13 @@ static void removeInvalidChars(char* code)
     for(s = d = code; (*d = *s); d += (*s++ != '\r'));
 }
 
-char* findMatchedDelim(const char* start, char* current)
+char* findMatchedDelim(Code* code, char* current)
 {
-    // TODO: return immediately if inside a string or comment
+    const char* start = code->src;
+    // delimiters inside comments and strings don't get to be matched!
+    if(code->syntax[current - start] == SyntaxTypeComment ||
+       code->syntax[current - start] == SyntaxTypeString) return 0;
+
     char initial = *current;
     char seeking = 0;
     s8 dir = (initial == '(' || initial == '[' || initial == '{') ? 1 : -1;
@@ -239,10 +243,11 @@ char* findMatchedDelim(const char* start, char* current)
     while(*current && (start < current))
     {
         current += dir;
+        // skip over anything inside a comment or string
+        if(code->syntax[current - start] == SyntaxTypeComment ||
+           code->syntax[current - start] == SyntaxTypeString) continue;
         if(*current == seeking) return current;
-        if(*current == initial) current = findMatchedDelim(start, current);
-        // TODO: if we enter a string, skip to the end
-        // TODO: if we enter a comment, skip to the end
+        if(*current == initial) current = findMatchedDelim(code, current);
     }
     return 0;
 }
@@ -252,7 +257,7 @@ static void updateEditor(Code* code)
     s32 column = 0;
     s32 line = 0;
     getCursorPosition(code, &column, &line);
-    code->matchedDelim = findMatchedDelim(code->src, code->cursor.position);
+    code->matchedDelim = findMatchedDelim(code, code->cursor.position);
 
     const s32 BufferWidth = TIC80_WIDTH / getFontWidth(code);
 
