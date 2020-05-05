@@ -96,6 +96,13 @@ static void drawCursor(Code* code, s32 x, s32 y, char symbol)
     }
 }
 
+static void drawMatchedDelim(Code* code, s32 x, s32 y, char symbol, u8 color)
+{
+    tic_api_rectb(code->tic, x-1, y-1, (getFontWidth(code))+1, TIC_FONT_HEIGHT+1,
+                  getConfig()->theme.code.cursor);
+    drawChar(code->tic, symbol, x, y, color, code->altFont);
+}
+
 static void drawCode(Code* code, bool withCursor)
 {
     drawBookmarks(code);
@@ -114,6 +121,7 @@ static void drawCode(Code* code, bool withCursor)
         MAX(code->cursor.selection, code->cursor.position)};
 
     struct { s32 x; s32 y; char symbol; } cursor = {-1, -1, 0};
+    struct { s32 x; s32 y; char symbol; u8 color; } matchedDelim = {-1, -1, 0, 0};
 
     while(*pointer)
     {
@@ -141,6 +149,12 @@ static void drawCode(Code* code, bool withCursor)
         if(code->cursor.position == pointer)
             cursor.x = x, cursor.y = y, cursor.symbol = symbol;
 
+        if(code->matchedDelim == pointer)
+        {
+            matchedDelim.x = x, matchedDelim.y = y,
+                matchedDelim.symbol = symbol, matchedDelim.color = *colorPointer;
+        }
+
         if(symbol == '\n')
         {
             x = xStart;
@@ -157,6 +171,11 @@ static void drawCode(Code* code, bool withCursor)
 
     if(withCursor && cursor.x >= 0 && cursor.y >= 0)
         drawCursor(code, cursor.x, cursor.y, cursor.symbol);
+
+    if(matchedDelim.symbol) {
+        drawMatchedDelim(code, matchedDelim.x, matchedDelim.y,
+                         matchedDelim.symbol, matchedDelim.color);
+    }
 }
 
 static void getCursorPosition(Code* code, s32* x, s32* y)
@@ -200,11 +219,40 @@ static void removeInvalidChars(char* code)
     for(s = d = code; (*d = *s); d += (*s++ != '\r'));
 }
 
+char* findMatchedDelim(const char* start, char* current)
+{
+    // TODO: return immediately if inside a string or comment
+    char initial = *current;
+    char seeking = 0;
+    s8 dir = (initial == '(' || initial == '[' || initial == '{') ? 1 : -1;
+    switch (initial)
+    {
+    case '(': seeking = ')'; break;
+    case ')': seeking = '('; break;
+    case '[': seeking = ']'; break;
+    case ']': seeking = '['; break;
+    case '{': seeking = '}'; break;
+    case '}': seeking = '{'; break;
+    default: return 0;
+    }
+
+    while(*current && (start < current))
+    {
+        current += dir;
+        if(*current == seeking) return current;
+        if(*current == initial) current = findMatchedDelim(start, current);
+        // TODO: if we enter a string, skip to the end
+        // TODO: if we enter a comment, skip to the end
+    }
+    return 0;
+}
+
 static void updateEditor(Code* code)
 {
     s32 column = 0;
     s32 line = 0;
     getCursorPosition(code, &column, &line);
+    code->matchedDelim = findMatchedDelim(code->src, code->cursor.position);
 
     const s32 BufferWidth = TIC80_WIDTH / getFontWidth(code);
 

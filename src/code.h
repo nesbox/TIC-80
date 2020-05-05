@@ -98,6 +98,7 @@ struct Code
         s32 index;
     } outline;
 
+    char* matchedDelim;
     bool altFont;
 
     void(*tick)(Code*);
