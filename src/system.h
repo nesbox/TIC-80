@@ -160,6 +160,7 @@ typedef struct
     bool showSync;
     bool crtMonitor;
     bool goFullscreen;
+    bool matchDelimiters;
 
     const char* crtShader;
     const tic_cartridge* cart;

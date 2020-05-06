@@ -111,6 +111,16 @@ static void readConfigCrtShader(Config* config, lua_State* lua)
     lua_pop(lua, 1);
 }
 
+static void readMatchDelimiters(Config* config, lua_State* lua)
+{
+    lua_getglobal(lua, "MATCH_DELIMITERS");
+
+    if(lua_isboolean(lua, -1))
+        config->data.matchDelimiters = lua_toboolean(lua, -1);
+
+    lua_pop(lua, 1);
+}
+
 static void readCursorTheme(Config* config, lua_State* lua)
 {
     lua_getfield(lua, -1, "CURSOR");
@@ -270,6 +280,7 @@ static void readConfig(Config* config)
             readConfigUiScale(config, lua);
             readTheme(config, lua);
             readConfigCrtShader(config, lua);
+            readMatchDelimiters(config, lua);
         }
 
         lua_close(lua);

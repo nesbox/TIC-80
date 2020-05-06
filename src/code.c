@@ -254,7 +254,8 @@ static void updateEditor(Code* code)
     s32 column = 0;
     s32 line = 0;
     getCursorPosition(code, &column, &line);
-    code->matchedDelim = findMatchedDelim(code, code->cursor.position);
+    if(getConfig()->matchDelimiters)
+        code->matchedDelim = findMatchedDelim(code, code->cursor.position);
 
     const s32 BufferWidth = TIC80_WIDTH / getFontWidth(code);
 
