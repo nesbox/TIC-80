@@ -3306,6 +3306,17 @@ static bool checkUIScale(Console* console, const char* param, const char* value)
     return done;
 }
 
+static bool checkCommand(Console* console, const char* param, const char* value)
+{
+    if(strcmp(param, "-command") == 0)
+    {
+        processCommand(console, value);
+        exitStudio();
+        return true;
+    }
+    return false;
+}
+
 void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config, s32 argc, char **argv)
 {
     if(!console->buffer) console->buffer = malloc(CONSOLE_BUFFER_SIZE);
@@ -3404,7 +3415,8 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
                 if(cmdInjectCode(console, first, second)
                     || cmdInjectSprites(console, first, second)
                     || cmdInjectMap(console, first, second)
-                    || checkUIScale(console, first, second))
+                    || checkUIScale(console, first, second)
+                    || checkCommand(console, first, second))
                     argp |= mask;
             }
         }
