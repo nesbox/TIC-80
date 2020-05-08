@@ -108,3 +108,4 @@ struct Code
 };
 
 void initCode(Code*, tic_mem*, tic_code* src);
+void freeCode(Code*);

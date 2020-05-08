@@ -114,3 +114,4 @@ struct Console
 };
 
 void initConsole(Console*, tic_mem*, struct FileSystem* fs, struct Config* config, s32 argc, char **argv);
+void freeConsole(Console* console);

@@ -234,3 +234,8 @@ void initDialog(Dialog* dlg, tic_mem* tic, const char** text, s32 rows, DialogCa
         },
     };
 }
+
+void freeDialog(Dialog* dialog)
+{
+    free(dialog);
+}

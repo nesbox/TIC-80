@@ -3505,3 +3505,27 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 
     console->active = !console->embed.yes;
 }
+
+void freeConsole(Console* console)
+{
+    free(console->buffer);
+    free(console->colorBuffer);
+    free(console->embed.file);
+
+    {
+        HistoryItem* it = console->historyHead;
+
+        while(it)
+        {
+            HistoryItem* next = it->next;
+
+            if(it->value) free(it->value);
+            
+            free(it);
+
+            it = next;
+        }        
+    }
+
+    free(console);
+}

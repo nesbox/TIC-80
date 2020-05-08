@@ -524,3 +524,8 @@ void initMenu(Menu* menu, tic_mem* tic, FileSystem* fs)
         .mode = MAIN_MENU_MODE,
     };
 }
+
+void freeMenu(Menu* menu)
+{
+    free(menu);
+}

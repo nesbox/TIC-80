@@ -41,3 +41,4 @@ struct Run
 };
 
 void initRun(Run*, struct Console*, tic_mem*);
+void freeRun(Run* run);

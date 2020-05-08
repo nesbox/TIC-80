@@ -49,3 +49,4 @@ struct Sfx
 };
 
 void initSfx(Sfx*, tic_mem*, tic_sfx* src);
+void freeSfx(Sfx* sfx);

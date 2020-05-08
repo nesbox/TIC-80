@@ -87,3 +87,4 @@ struct Map
 };
 
 void initMap(Map*, tic_mem*, tic_map* src);
+void freeMap(Map* map);

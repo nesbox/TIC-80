@@ -51,3 +51,4 @@ struct Surf
 };
 
 void initSurf(Surf* surf, tic_mem* tic, struct Console* console);
+void freeSurf(Surf* surf);

@@ -63,3 +63,4 @@ struct Menu
 };
 
 void initMenu(Menu* menu, tic_mem* tic, struct FileSystem* fs);
+void freeMenu(Menu* menu);

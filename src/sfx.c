@@ -1000,3 +1000,9 @@ void initSfx(Sfx* sfx, tic_mem* tic, tic_sfx* src)
         .event = onStudioEvent,
     };
 }
+
+void freeSfx(Sfx* sfx)
+{
+    history_delete(sfx->history);
+    free(sfx);
+}

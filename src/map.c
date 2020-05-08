@@ -1193,3 +1193,9 @@ void initMap(Map* map, tic_mem* tic, tic_map* src)
 
     normalizeMap(&map->scroll.x, &map->scroll.y);
 }
+
+void freeMap(Map* map)
+{
+    history_delete(map->history);
+    free(map);
+}

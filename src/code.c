@@ -1855,7 +1855,6 @@ static void onStudioEvent(Code* code, StudioEvent event)
 
 void initCode(Code* code, tic_mem* tic, tic_code* src)
 {
-    // !TODO: free code->syntax on close
     if(code->syntax == NULL)
         code->syntax = malloc(TIC_CODE_SIZE);
 
@@ -1898,4 +1897,12 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
     code->cursorHistory = history_create(&code->cursor, sizeof code->cursor);
 
     update(code);
+}
+
+void freeCode(Code* code)
+{
+    free(code->syntax);
+    history_delete(code->history);
+    history_delete(code->cursorHistory);
+    free(code);
 }

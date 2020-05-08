@@ -1786,3 +1786,9 @@ void initMusic(Music* music, tic_mem* tic, tic_music* src)
 
     resetSelection(music);
 }
+
+void freeMusic(Music* music)
+{
+    history_delete(music->history);
+    free(music);
+}

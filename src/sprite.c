@@ -1813,3 +1813,11 @@ void initSprite(Sprite* sprite, tic_mem* tic, tic_tiles* src)
         .scanline = scanline,
     };
 }
+
+void freeSprite(Sprite* sprite)
+{
+    free(sprite->select.back);
+    free(sprite->select.front);
+    history_delete(sprite->history);
+    free(sprite);
+}

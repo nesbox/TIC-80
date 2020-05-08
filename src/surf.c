@@ -864,3 +864,9 @@ void initSurf(Surf* surf, tic_mem* tic, struct Console* console)
 
     fsMakeDir(surf->fs, TIC_CACHE);
 }
+
+void freeSurf(Surf* surf)
+{
+    resetMenu(surf);
+    free(surf);
+}

@@ -77,3 +77,4 @@ struct Music
 };
 
 void initMusic(Music*, tic_mem*, tic_music* src);
+void freeMusic(Music* music);

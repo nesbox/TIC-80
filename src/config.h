@@ -39,3 +39,4 @@ struct Config
 };
 
 void initConfig(Config* config, tic_mem* tic, struct FileSystem* fs);
+void freeConfig(Config* config);

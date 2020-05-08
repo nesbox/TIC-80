@@ -68,3 +68,4 @@ struct Sprite
 };
 
 void initSprite(Sprite*, tic_mem*, tic_tiles* src);
+void freeSprite(Sprite*);

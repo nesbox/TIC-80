@@ -168,3 +168,8 @@ void initRun(Run* run, Console* console, tic_mem* tic)
 
     getSystem()->preseed();
 }
+
+void freeRun(Run* run)
+{
+    free(run);
+}

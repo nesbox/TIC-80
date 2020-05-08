@@ -372,3 +372,8 @@ void initConfig(Config* config, tic_mem* tic, FileSystem* fs)
 
     tic_api_reset(tic);
 }
+
+void freeConfig(Config* config)
+{
+    free(config);
+}

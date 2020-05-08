@@ -1910,25 +1910,27 @@ static void studioClose()
     {
         for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
         {
-            free(impl.banks.sprite[i]);
-            free(impl.banks.map[i]);
-            free(impl.banks.sfx[i]);
-            free(impl.banks.music[i]);
+            freeSprite  (impl.banks.sprite[i]);
+            freeMap     (impl.banks.map[i]);
+            freeSfx     (impl.banks.sfx[i]);
+            freeMusic   (impl.banks.music[i]);
         }
 
-        free(impl.code);
-        free(impl.start);
-        free(impl.console);
-        free(impl.run);
-        free(impl.world);
-        free(impl.config);
-        free(impl.dialog);
-        free(impl.menu);
-        free(impl.surf);
+        freeCode    (impl.code);
+        freeStart   (impl.start);
+        freeConsole (impl.console);
+        freeRun     (impl.run);
+        freeWorld   (impl.world);
+        freeConfig  (impl.config);
+        freeDialog  (impl.dialog);
+        freeMenu    (impl.menu);
+        freeSurf    (impl.surf);
     }
 
     if(impl.tic80local)
         tic80_delete((tic80*)impl.tic80local);
+
+    free(impl.fs);
 }
 
 Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, System* system)

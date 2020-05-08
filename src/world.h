@@ -40,3 +40,4 @@ struct World
 };
 
 void initWorld(World* world, tic_mem* tic, Map* map);
+void freeWorld(World* world);

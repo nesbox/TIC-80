@@ -31,7 +31,6 @@ struct Dialog
     tic_mem* tic;
 
     bool init;
-    // void* bg;
     DialogCallback callback;
     void* data;
     const char** text;
@@ -53,3 +52,4 @@ struct Dialog
 };
 
 void initDialog(Dialog* dialog, tic_mem* tic, const char** text, s32 rows, DialogCallback callback, void* data);
+void freeDialog(Dialog* dialog);

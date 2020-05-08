@@ -100,3 +100,8 @@ void initStart(Start* start, tic_mem* tic)
         .play = false,
     };
 }
+
+void freeStart(Start* start)
+{
+    free(start);
+}

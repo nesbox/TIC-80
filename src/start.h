@@ -40,3 +40,4 @@ struct Start
 };
 
 void initStart(Start* start, tic_mem* tic);
+void freeStart(Start* start);
