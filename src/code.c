@@ -27,9 +27,10 @@
 
 #define TEXT_CURSOR_DELAY (TIC80_FRAMERATE / 2)
 #define TEXT_CURSOR_BLINK_PERIOD TIC80_FRAMERATE
-#define TEXT_BUFFER_WIDTH STUDIO_TEXT_BUFFER_WIDTH
-#define TEXT_BUFFER_HEIGHT ((TIC80_HEIGHT - TOOLBAR_SIZE - STUDIO_TEXT_HEIGHT) / STUDIO_TEXT_HEIGHT)
 #define BOOKMARK_WIDTH 7
+#define CODE_EDITOR_WIDTH (TIC80_WIDTH - BOOKMARK_WIDTH)
+#define CODE_EDITOR_HEIGHT (TIC80_HEIGHT - TOOLBAR_SIZE - STUDIO_TEXT_HEIGHT)
+#define TEXT_BUFFER_HEIGHT (CODE_EDITOR_HEIGHT / STUDIO_TEXT_HEIGHT)
 
 enum
 {
@@ -99,9 +100,11 @@ static void drawMatchedDelim(Code* code, s32 x, s32 y, char symbol, u8 color)
 
 static void drawCode(Code* code, bool withCursor)
 {
-    s32 xStart = code->rect.x - code->scroll.x * getFontWidth(code);
+    tic_rect rect = {BOOKMARK_WIDTH, TOOLBAR_SIZE, CODE_EDITOR_WIDTH, CODE_EDITOR_HEIGHT};
+
+    s32 xStart = rect.x - code->scroll.x * getFontWidth(code);
     s32 x = xStart;
-    s32 y = code->rect.y - code->scroll.y * STUDIO_TEXT_HEIGHT;
+    s32 y = rect.y - code->scroll.y * STUDIO_TEXT_HEIGHT;
     const char* pointer = code->src;
 
     u8 selectColor = getConfig()->theme.code.select;
@@ -257,7 +260,7 @@ static void updateEditor(Code* code)
     if(getConfig()->theme.code.matchDelimiters)
         code->matchedDelim = findMatchedDelim(code, code->cursor.position);
 
-    const s32 BufferWidth = TIC80_WIDTH / getFontWidth(code);
+    const s32 BufferWidth = CODE_EDITOR_WIDTH / getFontWidth(code);
 
     if(column < code->scroll.x) code->scroll.x = column;
     else if(column >= code->scroll.x + BufferWidth)
@@ -1023,7 +1026,7 @@ static void centerScroll(Code* code)
 {
     s32 col, line;
     getCursorPosition(code, &col, &line);
-    code->scroll.x = col - TIC80_WIDTH / getFontWidth(code) / 2;
+    code->scroll.x = col - CODE_EDITOR_WIDTH / getFontWidth(code) / 2;
     code->scroll.y = line - TEXT_BUFFER_HEIGHT / 2;
 
     normalizeScroll(code);
@@ -1101,14 +1104,14 @@ static void initOutlineMode(Code* code)
 
         if(items)
         {
-            char filter[TEXT_BUFFER_WIDTH] = {0};
+            char filter[STUDIO_TEXT_BUFFER_WIDTH] = {0};
             strncpy(filter, code->popup.text, sizeof(filter));
 
             for(s32 i = 0; i < size; i++)
             {
                 const tic_outline_item* item = items + i;
 
-                char buffer[TEXT_BUFFER_WIDTH] = {0};
+                char buffer[STUDIO_TEXT_BUFFER_WIDTH] = {0};
                 memcpy(buffer, item->pos, MIN(item->size, sizeof(buffer)));
 
                 if(code->syntax[item->pos - code->src] == SyntaxTypeComment)
@@ -1278,13 +1281,15 @@ static void processMouse(Code* code)
 {
     tic_mem* tic = code->tic;
 
-    if(checkMousePos(&code->rect))
+    tic_rect rect = {BOOKMARK_WIDTH, TOOLBAR_SIZE, CODE_EDITOR_WIDTH, CODE_EDITOR_HEIGHT};
+
+    if(checkMousePos(&rect))
     {
         setCursor(tic_cursor_ibeam);
 
         if(code->scroll.active)
         {
-            if(checkMouseDown(&code->rect, tic_mouse_right))
+            if(checkMouseDown(&rect, tic_mouse_right))
             {
                 code->scroll.x = (code->scroll.start.x - getMouseX()) / getFontWidth(code);
                 code->scroll.y = (code->scroll.start.y - getMouseY()) / STUDIO_TEXT_HEIGHT;
@@ -1295,13 +1300,13 @@ static void processMouse(Code* code)
         }
         else
         {
-            if(checkMouseDown(&code->rect, tic_mouse_left))
+            if(checkMouseDown(&rect, tic_mouse_left))
             {
                 s32 mx = getMouseX();
                 s32 my = getMouseY();
 
-                s32 x = (mx - code->rect.x) / getFontWidth(code);
-                s32 y = (my - code->rect.y) / STUDIO_TEXT_HEIGHT;
+                s32 x = (mx - rect.x) / getFontWidth(code);
+                s32 y = (my - rect.y) / STUDIO_TEXT_HEIGHT;
 
                 char* position = code->cursor.position;
                 setCursorPosition(code, x + code->scroll.x, y + code->scroll.y);
@@ -1325,7 +1330,7 @@ static void processMouse(Code* code)
                 code->cursor.mouseDownPosition = NULL;
             }
 
-            if(checkMouseDown(&code->rect, tic_mouse_right))
+            if(checkMouseDown(&rect, tic_mouse_right))
             {
                 code->scroll.active = true;
 
@@ -1567,7 +1572,7 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 
     y++;
 
-    char filter[TEXT_BUFFER_WIDTH] = {0};
+    char filter[STUDIO_TEXT_BUFFER_WIDTH] = {0};
     strncpy(filter, code->popup.text, sizeof(filter));
 
     if(code->outline.items)
@@ -1579,7 +1584,7 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
         {
             const tic_outline_item* ptr = &code->outline.items[i];
 
-            char orig[TEXT_BUFFER_WIDTH] = {0};
+            char orig[STUDIO_TEXT_BUFFER_WIDTH] = {0};
             strncpy(orig, ptr->pos, MIN(ptr->size, sizeof(orig)));
 
             drawFilterMatch(code, x, y, orig, filter);
@@ -1686,7 +1691,7 @@ static void drawShadowButton(Code* code, s32 x, s32 y)
     {
         setCursor(tic_cursor_hand);
 
-        showTooltip("SHADOW TEXT");
+        showTooltip("SHOW SHADOW");
 
         over = true;
 
@@ -1696,7 +1701,19 @@ static void drawShadowButton(Code* code, s32 x, s32 y)
         }
     }
 
-    drawChar(tic, 'S', x, y, code->shadowText ? tic_color_0 : over ? tic_color_14 : tic_color_13, false);
+    static const u8 Icon[] =
+    {
+        0b11110000,
+        0b10011000,
+        0b10011000,
+        0b11111000,
+        0b01111000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+    };
+
+    drawBitIcon(x, y, Icon, code->shadowText ? tic_color_0 : over ? tic_color_14 : tic_color_13);
 }
 
 static void drawCodeToolbar(Code* code)
@@ -1852,7 +1869,6 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
         .tick = tick,
         .escape = escape,
         .cursor = {{src->data, NULL, 0}, NULL, 0},
-        .rect = {BOOKMARK_WIDTH, TOOLBAR_SIZE + 1, TIC80_WIDTH, TIC80_HEIGHT - TOOLBAR_SIZE - TIC_FONT_HEIGHT - 1},
         .scroll = {0, 0, {0, 0}, false},
         .syntax = code->syntax,
         .tickCounter = 0,

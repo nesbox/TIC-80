@@ -45,8 +45,6 @@ struct Code
         s32 delay;
     } cursor;
 
-    tic_rect rect;
-
     struct
     {
         s32 x;
