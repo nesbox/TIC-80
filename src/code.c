@@ -1713,7 +1713,22 @@ static void drawShadowButton(Code* code, s32 x, s32 y)
         0b00000000,
     };
 
-    drawBitIcon(x, y, Icon, code->shadowText ? tic_color_0 : over ? tic_color_14 : tic_color_13);
+    static const u8 ShadowIcon[] =
+    {
+        0b00000000,
+        0b00001000,
+        0b00001000,
+        0b00001000,
+        0b01111000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+    };
+
+    drawBitIcon(x, y, Icon, over && !code->shadowText ? tic_color_14 : tic_color_13);
+
+    if(code->shadowText)
+        drawBitIcon(x, y, ShadowIcon, tic_color_0);
 }
 
 static void drawCodeToolbar(Code* code)
