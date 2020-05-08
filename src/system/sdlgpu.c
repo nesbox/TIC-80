@@ -907,6 +907,8 @@ static void pollEvent()
 
     SDL_Event event;
 
+    // Workaround for freeze on fullscreen under macOS #819
+    SDL_PumpEvents();
     while(SDL_PollEvent(&event))
     {
         switch(event.type)
