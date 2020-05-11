@@ -36,7 +36,7 @@
 #define CLOCKRATE (255<<13)
 #define ENVELOPE_FREQ_SCALE 2
 #define SECONDS_PER_MINUTE 60
-#define NOTES_PER_MUNUTE (TIC80_FRAMERATE / NOTES_PER_BEET * SECONDS_PER_MINUTE)
+#define NOTES_PER_MUNUTE (TIC80_FRAMERATE / NOTES_PER_BEAT * SECONDS_PER_MINUTE)
 #define PIANO_START 8
 
 typedef enum
@@ -1158,11 +1158,6 @@ void tic_api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, flo
 }
 
 
-void tic_api_sprite(tic_mem* memory, const tic_tiles* src, s32 index, s32 x, s32 y, u8* colors, s32 count)
-{
-    drawSprite(memory, src, index, x, y, colors, count, 1, tic_no_flip, tic_no_rotate);
-}
-
 void tic_api_map(tic_mem* memory, const tic_map* src, const tic_tiles* tiles, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale, RemapFunc remap, void* data)
 {
     drawMap((tic_machine*)memory, src, tiles, x, y, width, height, sx, sy, chromakey, scale, remap, data);
@@ -1265,8 +1260,8 @@ static void processMusic(tic_mem* memory)
         && jumpCmd->active)
     {
         sound_state->music.frame = jumpCmd->frame;
-        sound_state->music.row = jumpCmd->row;
-        machine->state.music.ticks = row2tick(track, jumpCmd->row);
+        sound_state->music.row = jumpCmd->beat * NOTES_PER_BEAT;
+        machine->state.music.ticks = row2tick(track, sound_state->music.row);
         memset(jumpCmd, 0, sizeof(tic_jump_command));
     }
 
@@ -1387,7 +1382,7 @@ static void processMusic(tic_mem* memory)
                 case tic_music_cmd_jump:
                     machine->state.music.jump.active = true;
                     machine->state.music.jump.frame = trackRow->param1;
-                    machine->state.music.jump.row = trackRow->param2;
+                    machine->state.music.jump.beat = trackRow->param2;
                     break;
 
                 case tic_music_cmd_vibrato:

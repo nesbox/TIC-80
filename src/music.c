@@ -1388,7 +1388,7 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
             const u8 DarkColors[] = { tic_color_6, tic_color_3, tic_color_9 };
             static u8 ColorIndexes[] = { 0, 0, 0, 1, 1, 2, 2, 2 };
 
-            bool beetRow = i % NOTES_PER_BEET == 0;
+            bool beetRow = i % NOTES_PER_BEAT == 0;
 
             for (s32 c = 0, colx = x; c < sizeof rowStr - 1; c++, colx += TIC_FONT_WIDTH)
             {
@@ -1411,7 +1411,7 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
             }
         }
 
-        if (i % NOTES_PER_BEET == 0)
+        if (i % NOTES_PER_BEAT == 0)
             tic_api_pix(music->tic, x - 4, y + pos*TIC_FONT_HEIGHT + 2, tic_color_0, false);
     }
 }
@@ -1680,7 +1680,7 @@ static void drawTrackerLayout(Music* music)
             }
             else
             {       
-                enum{Scroll = NOTES_PER_BEET};
+                enum{Scroll = NOTES_PER_BEAT};
                 s32 delta = input->mouse.scrolly > 0 ? -Scroll : Scroll;
 
                 music->tracker.scroll += delta;

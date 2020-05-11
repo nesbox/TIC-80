@@ -96,7 +96,7 @@ typedef struct
 {
     bool active;
     s32 frame;
-    s32 row;
+    s32 beat;
 } tic_jump_command;
 
 typedef struct
