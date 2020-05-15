@@ -28,41 +28,25 @@ typedef struct Sfx Sfx;
 
 struct Sfx
 {
-	tic_mem* tic;
+    tic_mem* tic;
 
-	tic_sfx* src;
+    tic_sfx* src;
 
-	u8 index:SFX_COUNT_BITS;
+    u8 index:SFX_COUNT_BITS;
+    s32 volwave;
+    s32 hoverWave;
 
-	struct
-	{
-		bool active;
-		s32 note;
-	} play;
-	
-	enum 
-	{
-		SFX_WAVE_TAB = 0,
-		SFX_VOLUME_TAB,
-		SFX_CHORD_TAB,
-		SFX_PITCH_TAB,
-	}canvasTab;
+    struct
+    {
+        bool active;
+        s32 note;
+    } play;
+    
+    struct History* history;
 
-	struct
-	{
-		u8 index:4;
-	} waveform;
-
-	enum
-	{
-		SFX_WAVEFORM_TAB, 
-		SFX_ENVELOPES_TAB,
-	} tab;
-
-	struct History* history;
-
-	void(*tick)(Sfx*);
-	void(*event)(Sfx*, StudioEvent);
+    void(*tick)(Sfx*);
+    void(*event)(Sfx*, StudioEvent);
 };
 
 void initSfx(Sfx*, tic_mem*, tic_sfx* src);
+void freeSfx(Sfx* sfx);

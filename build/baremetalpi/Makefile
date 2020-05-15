@@ -2,7 +2,7 @@
 # Makefile
 #
 TIC80HOME = ../..
-TIC803RD = $(TIC80HOME)/3rd-party
+TIC803RD = $(TIC80HOME)/vendor
 CIRCLESTDLIB = $(TIC803RD)/circle-stdlib/
 CIRCLEHOME = $(CIRCLESTDLIB)/libs/circle
 NEWLIBDIR = $(CIRCLESTDLIB)/install/arm-none-circle

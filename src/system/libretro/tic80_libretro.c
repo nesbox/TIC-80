@@ -17,7 +17,10 @@
 // The maximum amount of inputs (2, 3 or 4)
 #define TIC_MAXPLAYERS 4
 
-static uint32_t *frame_buf;
+// How long to wait before hiding the mouse.
+#define TIC_LIBRETRO_MOUSE_HIDE_TIMER_START 300
+
+static uint32_t *frame_buf = NULL;
 static struct retro_log_callback logging;
 static retro_log_printf_t log_cb;
 static retro_video_refresh_t video_cb;
@@ -32,13 +35,19 @@ static struct
 	bool quit;
 	tic80_input input;
 	int keymap[RETROK_LAST];
-	bool variableMouseApi;
-	int mouseCursor;
+	bool variablePointerApi;
+	u8 mouseCursor;
+	u16 mousePreviousX;
+	u16 mousePreviousY;
+	u16 mouseHideTimer;
 } state =
 {
 	.quit = false,
-	.variableMouseApi = false,
-	.mouseCursor = 0
+	.variablePointerApi = false,
+	.mouseCursor = 0,
+	.mousePreviousX = 0,
+	.mousePreviousY = 0,
+	.mouseHideTimer = TIC_LIBRETRO_MOUSE_HIDE_TIMER_START
 };
 
 /**
@@ -186,9 +195,11 @@ void retro_init(void)
  */
 void retro_deinit(void)
 {
-	// Clear out the frame buffer.
-	free(frame_buf);
-	frame_buf = NULL;
+	// Clear out the frame buffer if it exists.
+	if (frame_buf != NULL) {
+		free(frame_buf);
+		frame_buf = NULL;
+	}
 }
 
 /**
@@ -312,7 +323,7 @@ void retro_reset(void)
 {
 	if (tic) {
 		tic80_local* tic80 = (tic80_local*)tic;
-		tic80->memory->api.reset(tic80->memory);
+		tic_api_reset(tic80->memory);
 	}
 }
 
@@ -399,7 +410,8 @@ static void tic80_libretro_update_gamepad(tic80_gamepad* gamepad, int player) {
  * @see tic80_libretro_update_mouse()
  * @see RETRO_DEVICE_POINTER
  */
-static int tic80_libretro_mouse_pointer_convert(float coord, float full, int padding) {
+static int tic80_libretro_mouse_pointer_convert(float coord, float full, int padding)
+{
 	float max = 0x7fff;
 	return ((coord + max) / (max * 2.0f) * full) - padding;
 }
@@ -407,15 +419,18 @@ static int tic80_libretro_mouse_pointer_convert(float coord, float full, int pad
 /**
  * Retrieve gamepad information from libretro.
  */
-static void tic80_libretro_update_mouse(tic80_mouse* mouse) {
-	// Use the Mouse API instead of Pointer API, if desired.
-	if (state.variableMouseApi) {
+static void tic80_libretro_update_mouse(tic80_mouse* mouse)
+{
+	// Check if we are to use the Mouse API or Pointer API.
+	if (!state.variablePointerApi) {
 		// Get the Mouse X and Y, which is the relative positioning from last tick.
 		mouse->x += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
 		mouse->y += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_Y);
 
-		// Left mouse button.
+		// Mouse buttons.
 		mouse->left = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT);
+		mouse->right = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT);
+		mouse->middle = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE);
 	}
 	else {
 		// Get the Pointer X and Y, and convert it to screen position.
@@ -446,30 +461,54 @@ static void tic80_libretro_update_mouse(tic80_mouse* mouse) {
 		mouse->y = 0;
 	}
 
-	// Get the mouse buttons.
-	mouse->right = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT);
-	mouse->middle = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE);
+	// Have the mouse disappear after a certain time of inactivity.
+	if (mouse->x != state.mousePreviousX || mouse->y != state.mousePreviousY) {
+		state.mouseHideTimer = TIC_LIBRETRO_MOUSE_HIDE_TIMER_START;
+		state.mousePreviousX = mouse->x;
+		state.mousePreviousY = mouse->y;
+	}
+	if (state.mouseHideTimer > 0) {
+		state.mouseHideTimer--;
+	}
 
-	// TODO: Add Mouse Wheel Scrolling. scrollx and scrolly
+	// Mouse Scroll Wheels
+	mouse->scrollx = mouse->scrolly = 0;
+	if (input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_HORIZ_WHEELUP) > 0) {
+		mouse->scrollx = 1;
+	} else if (input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_HORIZ_WHEELDOWN) > 0) {
+		mouse->scrollx = -1;
+	}
+	if (input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_WHEELUP) > 0) {
+		mouse->scrolly = 1;
+	} else if (input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_WHEELDOWN) > 0) {
+		mouse->scrolly = -1;
+	}
 }
 
 /**
  * Draws a software cursor on the screen where the mouse is.
  */
-static void tic80_libretro_mousecursor(tic80_local* game, tic80_mouse* mouse, int cursortype) {
+static void tic80_libretro_mousecursor(tic80_local* game, tic80_mouse* mouse, int cursortype)
+{
+	// Only draw the mouse cursor if it's active.
+	if (state.mouseHideTimer <= 0) {
+		return;
+	}
+
+	// Determine which cursor to draw.
 	switch (state.mouseCursor) {
 		case 1: // Dot
-			game->memory->api.pixel(game->memory, state.input.mouse.x, state.input.mouse.y, 15);
+			tic_api_pix(game->memory, state.input.mouse.x, state.input.mouse.y, 15, false);
 		break;
 		case 2: // Cursor
-			game->memory->api.line(game->memory, state.input.mouse.x - 4, state.input.mouse.y, state.input.mouse.x - 2, state.input.mouse.y, 15);
-			game->memory->api.line(game->memory, state.input.mouse.x + 2, state.input.mouse.y, state.input.mouse.x + 4, state.input.mouse.y, 15);
-			game->memory->api.line(game->memory, state.input.mouse.x, state.input.mouse.y - 4, state.input.mouse.x, state.input.mouse.y - 2, 15);
-			game->memory->api.line(game->memory, state.input.mouse.x, state.input.mouse.y + 2, state.input.mouse.x, state.input.mouse.y + 4, 15);
+			tic_api_line(game->memory, state.input.mouse.x - 4, state.input.mouse.y, state.input.mouse.x - 2, state.input.mouse.y, 15);
+			tic_api_line(game->memory, state.input.mouse.x + 2, state.input.mouse.y, state.input.mouse.x + 4, state.input.mouse.y, 15);
+			tic_api_line(game->memory, state.input.mouse.x, state.input.mouse.y - 4, state.input.mouse.x, state.input.mouse.y - 2, 15);
+			tic_api_line(game->memory, state.input.mouse.x, state.input.mouse.y + 2, state.input.mouse.x, state.input.mouse.y + 4, 15);
 		break;
 		case 3: // Arrow
-			game->memory->api.tri(game->memory, state.input.mouse.x, state.input.mouse.y, state.input.mouse.x + 3, state.input.mouse.y, state.input.mouse.x, state.input.mouse.y + 3, 15);
-			game->memory->api.line(game->memory, state.input.mouse.x + 3, state.input.mouse.y, state.input.mouse.x, state.input.mouse.y + 3, 0);
+			tic_api_tri(game->memory, state.input.mouse.x, state.input.mouse.y, state.input.mouse.x + 3, state.input.mouse.y, state.input.mouse.x, state.input.mouse.y + 3, 15);
+			tic_api_line(game->memory, state.input.mouse.x + 3, state.input.mouse.y, state.input.mouse.x, state.input.mouse.y + 3, 0);
 		break;
 	}
 }
@@ -477,7 +516,8 @@ static void tic80_libretro_mousecursor(tic80_local* game, tic80_mouse* mouse, in
 /**
  * Retrieve keyboard information from libretro.
  */
-static void tic80_libretro_update_keyboard(tic80_keyboard* keyboard) {
+static void tic80_libretro_update_keyboard(tic80_keyboard* keyboard)
+{
 	// Clear the key buffer.
 	for (int i = 0; i < TIC80_KEY_BUFFER; i++) {
 		keyboard->keys[i] = tic_key_unknown;
@@ -517,7 +557,7 @@ static void tic80_libretro_update(tic80* game)
 	tic80_libretro_update_keyboard(&state.input.keyboard);
 
 	// Update the game state.
-	tic80_tick(game, state.input);
+	tic80_tick(game, &state.input);
 }
 
 /**
@@ -565,7 +605,8 @@ static void tic80_libretro_draw(tic80* game)
  *
  * @see retro_run()
  */
-void tic80_libretro_audio(tic80* game) {
+void tic80_libretro_audio(tic80* game)
+{
 	// Tell libretro about the samples.
 	audio_batch_cb(game->sound.samples, game->sound.count / TIC_STEREO_CHANNELS);
 }
@@ -580,12 +621,12 @@ static void tic80_libretro_variables(void)
 	// Check all the individual variables for the core.
 	struct retro_variable var;
 
-	// Mouse API instead of Pointer.
-	state.variableMouseApi = false;
-	var.key = "tic80_mouse";
+	// Mouse is Pointer device.
+	state.variablePointerApi = false;
+	var.key = "tic80_mouse_pointer";
 	var.value = NULL;
 	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
-		state.variableMouseApi = strcmp(var.value, "enabled") == 0;
+		state.variablePointerApi = strcmp(var.value, "enabled") == 0;
 	}
 
 	// Mouse Cursor
@@ -750,7 +791,6 @@ bool retro_serialize(void *data, size_t size)
 	for (int i = 0; i < TIC_PERSISTENT_SIZE; i++) {
 		udata[i] = tic80->memory->ram.persistent.data[i];
 	}
-	tic80->tickData.syncPMEM = true;
 
 	return true;
 }
@@ -769,7 +809,6 @@ bool retro_unserialize(const void *data, size_t size)
 	for (int i = 0; i < TIC_PERSISTENT_SIZE; i++) {
 		tic80->memory->ram.persistent.data[i] = uData[i];
 	}
-	tic80->tickData.syncPMEM = true;
 
 	return true;
 }
@@ -842,6 +881,5 @@ void retro_cheat_set(unsigned index, bool enabled, const char *code)
 	tic80_local* tic80 = (tic80_local*)tic;
 	for (int i = 0; i < codeIndex; i = i + 2) {
 		tic80->memory->ram.persistent.data[codes[i]] = codes[i+1];
-		tic80->tickData.syncPMEM = true;
 	}
 }

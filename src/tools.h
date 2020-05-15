@@ -23,35 +23,42 @@
 #pragma once
 
 #include "tic.h"
+#include "ext/gif.h"
+
+inline s32 tic_tool_sfx_pos(s32 speed, s32 ticks)
+{
+    return speed > 0 ? ticks * (1 + speed) : ticks / (1 - speed);
+}
 
 inline void tic_tool_poke4(void* addr, u32 index, u8 value)
 {
-	u8* val = (u8*)addr + (index >> 1);
+    u8* val = (u8*)addr + (index >> 1);
 
-	if(index & 1)
-	{
-		*val &= 0x0f;
-		*val |= (value << 4);
-	}
-	else
-	{
-		*val &= 0xf0;
-		*val |= value & 0x0f;
-	}
+    if(index & 1)
+    {
+        *val &= 0x0f;
+        *val |= (value << 4);
+    }
+    else
+    {
+        *val &= 0xf0;
+        *val |= value & 0x0f;
+    }
 }
 
 inline u8 tic_tool_peek4(const void* addr, u32 index)
 {
-	u8 val = ((u8*)addr)[index >> 1];
+    u8 val = ((u8*)addr)[index >> 1];
 
-	return index & 1 ? val >> 4 : val & 0xf;
+    return index & 1 ? val >> 4 : val & 0xf;
 }
 
-bool tic_tool_parse_note(const char* noteStr, s32* note, s32* octave);
-s32 tic_tool_get_pattern_id(const tic_track* track, s32 frame, s32 channel);
-void tic_tool_set_pattern_id(tic_track* track, s32 frame, s32 channel, s32 id);
-u32 tic_tool_find_closest_color(const tic_rgb* palette, const tic_rgb* color);
-u32* tic_palette_blit(const tic_palette* src);
-bool tic_tool_has_ext(const char* name, const char* ext);
-s32 tic_get_track_row_sfx(const tic_track_row* row);
-void tic_set_track_row_sfx(tic_track_row* row, s32 sfx);
+bool    tic_tool_parse_note(const char* noteStr, s32* note, s32* octave);
+s32     tic_tool_get_pattern_id(const tic_track* track, s32 frame, s32 channel);
+void    tic_tool_set_pattern_id(tic_track* track, s32 frame, s32 channel, s32 id);
+u32     tic_tool_find_closest_color(const tic_rgb* palette, const gif_color* color);
+u32*    tic_tool_palette_blit(const tic_palette* src);
+bool    tic_tool_has_ext(const char* name, const char* ext);
+s32     tic_tool_get_track_row_sfx(const tic_track_row* row);
+void    tic_tool_set_track_row_sfx(tic_track_row* row, s32 sfx);
+

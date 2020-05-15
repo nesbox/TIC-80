@@ -4,7 +4,7 @@
 *.suo
 sexit
 .vscode/
-build/3rd-party/
+build/vendor/
 build/uwp/tic/Debug/
 build/uwp/tic/Release/
 build/uwp/tic/x64/
@@ -19,7 +19,6 @@ build/itch.io/console.zip
 build/uwp/code8/ARM/
 build/uwp/code8/x64/
 build/uwp/code8/code8.VC.db
-embed.html
 build/uwp/code8/Release/
 build/uwp/code8/AppPackages/code8/code8_0.0.3.0_Test/
 build/uwp/code8/BundleArtifacts/
@@ -120,6 +119,7 @@ build/uwp/sdl-gpu-static/x64/
 build/uwp/tic/packages/
 build/windows/studio/x64/
 build/windows/sdl-gpu/x64/
+build/macosx/*.plist
 demos/*.rtc
 demos/*.srm
 demos/.local
@@ -135,10 +135,10 @@ build/android/.gradle/
 build/android/app/.externalNativeBuild/
 build/android/app/build/
 build/android/build/
-build/3rd-party/sdl2/SDL2.spec
-build/3rd-party/sdl2/include/SDL_config.h
-build/3rd-party/sdl2/sdl2-config
-build/3rd-party/sdl2/sdl2.pc
+build/vendor/sdl2/SDL2.spec
+build/vendor/sdl2/include/SDL_config.h
+build/vendor/sdl2/sdl2-config
+build/vendor/sdl2/sdl2.pc
 build/bin/bin2txt
 build/bin/sdl-renderer
 build/bin/sokol-renderer
@@ -146,10 +146,12 @@ build/bin/tic80
 build/bin/tic80-sokol
 out/
 build/bin/
-build/3rd-party/curl/libcurl.pc
-build/3rd-party/curl/curl-config
-build/3rd-party/curl/DartConfiguration.tcl
+build/vendor/curl/libcurl.pc
+build/vendor/curl/curl-config
+build/vendor/curl/DartConfiguration.tcl
 build/.ninja_deps
 build/.ninja_log
+build/version.h
+build/windows/tic80.rc
 *.ninja
 tic80.sublime-workspace

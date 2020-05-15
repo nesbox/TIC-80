@@ -23,33 +23,7 @@
 #pragma once
 
 #include "tic80.h"
-
 #include "defines.h"
-
-#define TIC_VERSION_MAJOR 0
-#define TIC_VERSION_MINOR 80
-#define TIC_VERSION_PATCH 0
-#define TIC_VERSION_STATUS "-dev"
-
-#if defined(TIC80_PRO)
-#define TIC_VERSION_POST " Pro"
-#else
-#define TIC_VERSION_POST ""
-#endif
-
-#define TIC_MAKE_VERSION(major, minor, patch) ((major) * 10000 + (minor) * 100 + (patch))
-#define TIC_VERSION TIC_MAKE_VERSION(MYPROJ_VERSION_MAJOR, MYPROJ_VERSION_MINOR, MYPROJ_VERSION_PATCH)
-
-#define DEF2STR2(x) #x
-#define DEF2STR(x) DEF2STR2(x)
-
-#define TIC_VERSION_LABEL DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "." DEF2STR(TIC_VERSION_PATCH) TIC_VERSION_STATUS TIC_VERSION_POST
-#define TIC_PACKAGE "com.nesbox.tic"
-#define TIC_NAME "TIC-80"
-#define TIC_NAME_FULL TIC_NAME " tiny computer"
-#define TIC_TITLE TIC_NAME_FULL " " TIC_VERSION_LABEL
-#define TIC_HOST "tic80.com"
-#define TIC_COPYRIGHT "https://" TIC_HOST " (C) 2019"
 
 #define TIC_VRAM_SIZE (16*1024) //16K
 #define TIC_RAM_SIZE (TIC_VRAM_SIZE+80*1024) //16K+80K
@@ -84,6 +58,7 @@
 #define SFX_COUNT_BITS 6
 #define SFX_COUNT (1 << SFX_COUNT_BITS)
 #define SFX_SPEED_BITS 3
+#define SFX_DEF_SPEED (1 << SFX_SPEED_BITS)
 
 #define NOTES 12
 #define OCTAVES 8
@@ -100,15 +75,15 @@
 #define DEFAULT_TEMPO 150
 #define DEFAULT_SPEED 6
 #define PITCH_DELTA 128
-#define NOTES_PER_BEET 4
+#define NOTES_PER_BEAT 4
 #define PATTERN_START 1
 #define MUSIC_SFXID_LOW_BITS 5
-#define ENVELOPES_COUNT 16
-#define ENVELOPE_VALUES 32
-#define ENVELOPE_VALUE_BITS 4
-#define ENVELOPE_SIZE (ENVELOPE_VALUES * ENVELOPE_VALUE_BITS / BITS_IN_BYTE)
+#define WAVES_COUNT 16
+#define WAVE_VALUES 32
+#define WAVE_VALUE_BITS 4
+#define WAVE_SIZE (WAVE_VALUES * WAVE_VALUE_BITS / BITS_IN_BYTE)
 
-#define TIC_CODE_SIZE (0x10000)
+#define TIC_CODE_SIZE (64 * 1024) // 64K
 
 #define TIC_BANK_BITS 3
 #define TIC_BANKS (1 << TIC_BANK_BITS)
@@ -117,495 +92,506 @@
 #define SFX_NOTES {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
 #define TIC_FONT_CHARS 256
 
-#define KEYBOARD_HOLD 20
-#define KEYBOARD_PERIOD 3
-
 enum
 {
-	NoteNone = 0,
-	NoteStop,
-	NoteNone2,
-	NoteNone3,
-	NoteStart,
+    NoteNone = 0,
+    NoteStop,
+    NoteNone2,
+    NoteNone3,
+    NoteStart,
 };
 
-enum
+typedef enum
 {
-	tic_color_black,		// 0
-	tic_color_dark_red,		// 1
-	tic_color_dark_blue,	// 2
-	tic_color_dark_gray,	// 3
-	tic_color_brown,		// 4
-	tic_color_green,		// 5
-	tic_color_red,			// 6
-	tic_color_gray,			// 7
-	tic_color_blue,			// 8
-	tic_color_orange,		// 9
-	tic_color_light_blue,	// 10
-	tic_color_light_green,	// 11
-	tic_color_peach,		// 12
-	tic_color_cyan,			// 13
-	tic_color_yellow,		// 14
-	tic_color_white,		// 15
+    tic_color_0,
+    tic_color_1,
+    tic_color_2,
+    tic_color_3,
+    tic_color_4,
+    tic_color_5,
+    tic_color_6,
+    tic_color_7,
+    tic_color_8,
+    tic_color_9,
+    tic_color_10,
+    tic_color_11,
+    tic_color_12,
+    tic_color_13,
+    tic_color_14,
+    tic_color_15,
 } tic_color;
 
 typedef enum
 {
-	tic_no_flip = 0b00,
-	tic_horz_flip = 0b01,
-	tic_vert_flip = 0b10,
+    tic_no_flip = 0b00,
+    tic_horz_flip = 0b01,
+    tic_vert_flip = 0b10,
 } tic_flip;
 
 typedef enum
 {
-	tic_no_rotate,
-	tic_90_rotate,
-	tic_180_rotate,
-	tic_270_rotate,
+    tic_no_rotate,
+    tic_90_rotate,
+    tic_180_rotate,
+    tic_270_rotate,
 } tic_rotate;
 
 typedef struct
 {
-	u8 start:4;
-	u8 size:4;
+    u8 start:4;
+    u8 size:4;
 } tic_sound_loop;
 
 typedef struct
 {
-	
-	struct
-	{
-		u8 volume:4;
-		u8 wave:4;
-		u8 chord:4;
-		s8 pitch:4;
-	} data[SFX_TICKS];
+    
+    struct
+    {
+        u8 volume:4;
+        u8 wave:4;
+        u8 chord:4;
+        s8 pitch:4;
+    } data[SFX_TICKS];
 
-	struct
-	{
-		u8 octave:3;
-		u8 pitch16x:1; // pitch factor
-		s8 speed:3;
-		u8 reverse:1; // chord reverse
-		u8 note:4;
-		u8 stereo_left:1;
-		u8 stereo_right:1;
-		u8 temp:2;
-	};
+    struct
+    {
+        u8 octave:3;
+        u8 pitch16x:1; // pitch factor
+        s8 speed:SFX_SPEED_BITS;
+        u8 reverse:1; // chord reverse
+        u8 note:4;
+        u8 stereo_left:1;
+        u8 stereo_right:1;
+        u8 temp:2;
+    };
 
-	union
-	{
-		struct
-		{
-			tic_sound_loop wave;
-			tic_sound_loop volume;
-			tic_sound_loop chord;
-			tic_sound_loop pitch;
-		};
+    union
+    {
+        struct
+        {
+            tic_sound_loop wave;
+            tic_sound_loop volume;
+            tic_sound_loop chord;
+            tic_sound_loop pitch;
+        };
 
-		tic_sound_loop loops[4];
-	};
+        tic_sound_loop loops[4];
+    };
 
 } tic_sample;
 
 typedef struct
 {
-	u8 data[ENVELOPE_SIZE];
+    union
+    {
+        struct
+        {
+            s8 wave;
+            s8 volume;
+            s8 chord;
+            s8 pitch;
+        };
+
+        s8 data[4];
+    };
+} tic_sfx_pos;
+
+typedef struct
+{
+    u8 data[WAVE_SIZE];
 }tic_waveform;
 
 typedef struct
 {
-	tic_waveform envelopes[ENVELOPES_COUNT];
+    tic_waveform items[WAVES_COUNT];
 } tic_waveforms;
 
-#define MUSIC_CMD_LIST(macro) 																	\
-	macro(empty, 	0, )																		\
-	macro(volume, 	m, "master volume for the left/right channels")								\
-	macro(chord, 	c, "play chord, C37 plays +0,+3,+7 notes")									\
-	macro(jump, 	j, "jump to frame/row")														\
-	macro(slide, 	s, "slide to note (legato) with given given number of ticks")				\
-	macro(pitch, 	p, "finepitch up/down")														\
-	macro(vibrato, 	v, "vibrato with period and depth")											\
-	macro(delay, 	d, "delay triggering of a note with given number of ticks")
+#define MUSIC_CMD_LIST(macro)                                                                   \
+    macro(empty,    0, )                                                                        \
+    macro(volume,   m, "master volume for the left/right channels")                             \
+    macro(chord,    c, "play chord, C37 plays +0,+3,+7 notes")                                  \
+    macro(jump,     j, "jump to frame/row")                                                     \
+    macro(slide,    s, "slide to note (legato) with given given number of ticks")               \
+    macro(pitch,    p, "finepitch up/down")                                                     \
+    macro(vibrato,  v, "vibrato with period and depth")                                         \
+    macro(delay,    d, "delay triggering of a note with given number of ticks")
 
 typedef enum
 {
-#define ENUM_ITEM(name, _, __) tic_music_cmd_##name,
-	MUSIC_CMD_LIST(ENUM_ITEM)
+#define ENUM_ITEM(name, ...) tic_music_cmd_##name,
+    MUSIC_CMD_LIST(ENUM_ITEM)
 #undef ENUM_ITEM
 
-	tic_music_cmd_count
+    tic_music_cmd_count
 } tic_music_command;
 
 typedef struct
 {
-	u8 note 	:4;
-	u8 param1	:4;
-	u8 param2	:4;
-	u8 command 	:MUSIC_CMD_BITS; // tic_music_command
-	u8 sfxhi	:1;
-	u8 sfxlow 	:MUSIC_SFXID_LOW_BITS;
-	u8 octave 	:3;
+    u8 note     :4;
+    u8 param1   :4;
+    u8 param2   :4;
+    u8 command  :MUSIC_CMD_BITS; // tic_music_command
+    u8 sfxhi    :1;
+    u8 sfxlow   :MUSIC_SFXID_LOW_BITS;
+    u8 octave   :3;
 
 } tic_track_row;
 
 typedef struct
 {
-	tic_track_row rows[MUSIC_PATTERN_ROWS];
+    tic_track_row rows[MUSIC_PATTERN_ROWS];
 
 } tic_track_pattern;
 
 typedef struct
 {
-	u8 data[MUSIC_FRAMES * TRACK_PATTERNS_SIZE]; // sfx - 6bits per channel = 24 bit
+    u8 data[MUSIC_FRAMES * TRACK_PATTERNS_SIZE]; // sfx - 6bits per channel = 24 bit
 
-	s8 tempo; // delta value, rel to 120 bpm * 10 [32-255]
-	u8 rows; // delta value, rel to 64 rows, can be [1-64]
-	s8 speed; // delta value, rel to 6 [1-31]
+    s8 tempo; // delta value, rel to 120 bpm * 10 [32-255]
+    u8 rows; // delta value, rel to 64 rows, can be [1-64]
+    s8 speed; // delta value, rel to 6 [1-31]
 
 } tic_track;
 
 typedef struct
 {
-	tic_track_pattern data[MUSIC_PATTERNS];
+    tic_track_pattern data[MUSIC_PATTERNS];
 } tic_patterns;
 
 typedef struct
 {
-	tic_track data[MUSIC_TRACKS];
+    tic_track data[MUSIC_TRACKS];
 } tic_tracks;
 
 typedef struct
 {
-	tic_sample data[SFX_COUNT];
+    tic_sample data[SFX_COUNT];
 } tic_samples;
 
 typedef struct
 {
-	tic_waveforms waveform;
-	tic_samples samples;
+    tic_waveforms waveforms;
+    tic_samples samples;
 }tic_sfx;
 
 typedef struct
 {
-	tic_patterns patterns;
-	tic_tracks tracks;
+    tic_patterns patterns;
+    tic_tracks tracks;
 }tic_music;
 
 typedef enum
 {
-	tic_music_stop,
-	tic_music_play_frame,
-	tic_music_play,
+    tic_music_stop,
+    tic_music_play_frame,
+    tic_music_play,
 } tic_music_state;
 
 typedef struct
 {
-	struct
-	{
-		s8 track;
-		s8 frame;
-		s8 row;
-	} music;
-	
-	struct
-	{
-		u8 music_loop:1;
-		u8 music_state:2; // enum tic_music_state
-		u8 unknown:5;
-	} flag;
+    struct
+    {
+        s8 track;
+        s8 frame;
+        s8 row;
+    } music;
+    
+    struct
+    {
+        u8 music_loop:1;
+        u8 music_state:2; // enum tic_music_state
+        u8 music_sustain:1;
+        u8 unknown:4;
+    } flag;
 
 } tic_sound_state;
 
 typedef union
 {
-	struct
-	{
-		u8 left1:4;
-		u8 right1:4;
+    struct
+    {
+        u8 left1:4;
+        u8 right1:4;
 
-		u8 left2:4;
-		u8 right2:4;
+        u8 left2:4;
+        u8 right2:4;
 
-		u8 left3:4;
-		u8 right3:4;
+        u8 left3:4;
+        u8 right3:4;
 
-		u8 left4:4;
-		u8 right4:4;
-	};
+        u8 left4:4;
+        u8 right4:4;
+    };
 
-	u32 data;
+    u32 data;
 } tic_stereo_volume;
 
 typedef struct
 {
-	struct
-	{
-		u16 freq:12;
-		u16 volume:4;
-	};
+    struct
+    {
+        u16 freq:12;
+        u16 volume:4;
+    };
 
-	tic_waveform waveform;
+    tic_waveform waveform;
 } tic_sound_register;
 
 typedef struct
 {
-	u8 data[TIC_MAP_WIDTH * TIC_MAP_HEIGHT];
+    u8 data[TIC_MAP_WIDTH * TIC_MAP_HEIGHT];
 } tic_map;
 
 typedef struct
 {
-	u8 data[TIC_SPRITESIZE * TIC_SPRITESIZE * TIC_PALETTE_BPP / BITS_IN_BYTE];
+    u8 data[TIC_SPRITESIZE * TIC_SPRITESIZE * TIC_PALETTE_BPP / BITS_IN_BYTE];
 } tic_tile;
 
 typedef struct
 {
-	char data[TIC_CODE_SIZE];
+    char data[TIC_CODE_SIZE];
 } tic_code;
 
 typedef struct 
 {
-	s32 size;
-	u8 data [TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32)];
+    s32 size;
+    u8 data [TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32)];
 } tic_cover_image;
 
 typedef struct
 {
-	u8 r;
-	u8 g;
-	u8 b;
+    u8 r;
+    u8 g;
+    u8 b;
 } tic_rgb;
 
 typedef union
 {
-	tic_rgb colors[TIC_PALETTE_SIZE];
+    tic_rgb colors[TIC_PALETTE_SIZE];
 
-	u8 data[TIC_PALETTE_SIZE * sizeof(tic_rgb)];
+    u8 data[TIC_PALETTE_SIZE * sizeof(tic_rgb)];
 } tic_palette;
 
 typedef struct
 {
-	tic_tile data[TIC_BANK_SPRITES];
+    tic_tile data[TIC_BANK_SPRITES];
 } tic_tiles;
 
 typedef struct
 {
-	u8 data[TIC_FLAGS];
+    u8 data[TIC_FLAGS];
 } tic_flags;
 
 typedef struct
 {
-	tic_tiles 	tiles;
-	tic_tiles 	sprites;
-	tic_map 	map;
-	tic_sfx 	sfx;
-	tic_music 	music;
-	tic_palette palette;
-	tic_flags	flags;
+    tic_tiles   tiles;
+    tic_tiles   sprites;
+    tic_map     map;
+    tic_sfx     sfx;
+    tic_music   music;
+    tic_palette palette;
+    tic_flags   flags;
 } tic_bank;
 
 typedef struct
 {
-	union
-	{
-		tic_bank bank0;
-		tic_bank banks[TIC_BANKS];
-	};
+    union
+    {
+        tic_bank bank0;
+        tic_bank banks[TIC_BANKS];
+    };
 
-	tic_code 	code;	
-	tic_cover_image cover;
+    tic_code code;
+    tic_cover_image cover;
 } tic_cartridge;
 
 typedef struct
 {
-	u8 data[TIC_FONT_CHARS * BITS_IN_BYTE];
+    u8 data[TIC_FONT_CHARS * BITS_IN_BYTE];
 } tic_font;
 
 typedef struct
 {
-	u8 data[TIC80_WIDTH * TIC80_HEIGHT * TIC_PALETTE_BPP / BITS_IN_BYTE];
+    u8 data[TIC80_WIDTH * TIC80_HEIGHT * TIC_PALETTE_BPP / BITS_IN_BYTE];
 } tic_screen;
 
 typedef union
 {
-	struct
-	{
-		tic_screen screen;
-		tic_palette palette;
-		u8 mapping[TIC_PALETTE_SIZE * TIC_PALETTE_BPP / BITS_IN_BYTE];
+    struct
+    {
+        tic_screen screen;
+        tic_palette palette;
+        u8 mapping[TIC_PALETTE_SIZE * TIC_PALETTE_BPP / BITS_IN_BYTE];
 
-		struct
-		{
-			union
-			{
-				u8 colors;
-							
-				struct
-				{
-					u8 border:TIC_PALETTE_BPP;
-					u8 tmp:TIC_PALETTE_BPP;
-				};
-			};
+        struct
+        {
+            union
+            {
+                u8 colors;
+                            
+                struct
+                {
+                    u8 border:TIC_PALETTE_BPP;
+                    u8 tmp:TIC_PALETTE_BPP;
+                };
+            };
 
-			struct
-			{
-				s8 x;
-				s8 y;
-			} offset;
+            struct
+            {
+                s8 x;
+                s8 y;
+            } offset;
 
-			struct
-			{
-				u8 sprite:7;
-				bool system:1;
-			} cursor;
+            struct
+            {
+                u8 sprite:7;
+                bool system:1;
+            } cursor;
 
-		} vars;
+        } vars;
 
-		u8 reserved[4];
-	};
-	
-	u8 data[TIC_VRAM_SIZE];
+        u8 reserved[4];
+    };
+    
+    u8 data[TIC_VRAM_SIZE];
 } tic_vram;
 
 typedef struct
 {
-	u32 data[TIC_PERSISTENT_SIZE];
+    u32 data[TIC_PERSISTENT_SIZE];
 } tic_persistent;
 
 typedef union
 {
-	struct
-	{
-		tic_vram 			vram;
-		tic_tiles 			tiles;
-		tic_tiles 			sprites;
-		tic_map 			map;
-		tic80_input 		input;
-		u8 					unknown[12];
-		tic_stereo_volume 	stereo;
-		tic_sound_register 	registers[TIC_SOUND_CHANNELS];
-		tic_sfx 			sfx;
-		tic_music 			music;
-		tic_sound_state 	sound_state;
-		tic_persistent		persistent;
-		tic_flags 			flags;
+    struct
+    {
+        tic_vram            vram;
+        tic_tiles           tiles;
+        tic_tiles           sprites;
+        tic_map             map;
+        tic80_input         input;
+        tic_sfx_pos         sfxpos[TIC_SOUND_CHANNELS];
+        tic_sound_register  registers[TIC_SOUND_CHANNELS];
+        tic_sfx             sfx;
+        tic_music           music;
+        tic_sound_state     sound_state;
+        tic_stereo_volume   stereo;
+        tic_persistent      persistent;
+        tic_flags           flags;
+        tic_font            font;
 
-		u8 free[16*1024 
-			- sizeof(tic_flags) 
-			- sizeof(tic_persistent) 
-			];
+        u8 free[];
+    };
 
-	};
-
-	u8 data[TIC_RAM_SIZE];
+    u8 data[TIC_RAM_SIZE];
 
 } tic_ram;
 
 typedef enum
 {
-	tic_key_unknown,
+    tic_key_unknown,
 
-	tic_key_a,
-	tic_key_b,
-	tic_key_c,
-	tic_key_d,
-	tic_key_e,
-	tic_key_f,
-	tic_key_g,
-	tic_key_h,
-	tic_key_i,
-	tic_key_j,
-	tic_key_k,
-	tic_key_l,
-	tic_key_m,
-	tic_key_n,
-	tic_key_o,
-	tic_key_p,
-	tic_key_q,
-	tic_key_r,
-	tic_key_s,
-	tic_key_t,
-	tic_key_u,
-	tic_key_v,
-	tic_key_w,
-	tic_key_x,
-	tic_key_y,
-	tic_key_z,
+    tic_key_a,
+    tic_key_b,
+    tic_key_c,
+    tic_key_d,
+    tic_key_e,
+    tic_key_f,
+    tic_key_g,
+    tic_key_h,
+    tic_key_i,
+    tic_key_j,
+    tic_key_k,
+    tic_key_l,
+    tic_key_m,
+    tic_key_n,
+    tic_key_o,
+    tic_key_p,
+    tic_key_q,
+    tic_key_r,
+    tic_key_s,
+    tic_key_t,
+    tic_key_u,
+    tic_key_v,
+    tic_key_w,
+    tic_key_x,
+    tic_key_y,
+    tic_key_z,
 
-	tic_key_0,
-	tic_key_1,
-	tic_key_2,
-	tic_key_3,
-	tic_key_4,
-	tic_key_5,
-	tic_key_6,
-	tic_key_7,
-	tic_key_8,
-	tic_key_9,
+    tic_key_0,
+    tic_key_1,
+    tic_key_2,
+    tic_key_3,
+    tic_key_4,
+    tic_key_5,
+    tic_key_6,
+    tic_key_7,
+    tic_key_8,
+    tic_key_9,
 
-	tic_key_minus,
-	tic_key_equals,
-	tic_key_leftbracket,
-	tic_key_rightbracket,
-	tic_key_backslash,
-	tic_key_semicolon,
-	tic_key_apostrophe,
-	tic_key_grave,
-	tic_key_comma,
-	tic_key_period,
-	tic_key_slash,
-	
-	tic_key_space,
-	tic_key_tab,
+    tic_key_minus,
+    tic_key_equals,
+    tic_key_leftbracket,
+    tic_key_rightbracket,
+    tic_key_backslash,
+    tic_key_semicolon,
+    tic_key_apostrophe,
+    tic_key_grave,
+    tic_key_comma,
+    tic_key_period,
+    tic_key_slash,
+    
+    tic_key_space,
+    tic_key_tab,
 
-	tic_key_return,
-	tic_key_backspace,
-	tic_key_delete,
-	tic_key_insert,
+    tic_key_return,
+    tic_key_backspace,
+    tic_key_delete,
+    tic_key_insert,
 
-	tic_key_pageup,
-	tic_key_pagedown,
-	tic_key_home,
-	tic_key_end,
-	tic_key_up,
-	tic_key_down,
-	tic_key_left,
-	tic_key_right,
+    tic_key_pageup,
+    tic_key_pagedown,
+    tic_key_home,
+    tic_key_end,
+    tic_key_up,
+    tic_key_down,
+    tic_key_left,
+    tic_key_right,
 
-	tic_key_capslock,
-	tic_key_ctrl,
-	tic_key_shift,
-	tic_key_alt,
+    tic_key_capslock,
+    tic_key_ctrl,
+    tic_key_shift,
+    tic_key_alt,
 
-	tic_key_escape,
-	tic_key_f1,
-	tic_key_f2,
-	tic_key_f3,
-	tic_key_f4,
-	tic_key_f5,
-	tic_key_f6,
-	tic_key_f7,
-	tic_key_f8,
-	tic_key_f9,
-	tic_key_f10,
-	tic_key_f11,
-	tic_key_f12,
+    tic_key_escape,
+    tic_key_f1,
+    tic_key_f2,
+    tic_key_f3,
+    tic_key_f4,
+    tic_key_f5,
+    tic_key_f6,
+    tic_key_f7,
+    tic_key_f8,
+    tic_key_f9,
+    tic_key_f10,
+    tic_key_f11,
+    tic_key_f12,
 
-	////////////////
+    ////////////////
 
-	tic_keys_count
+    tic_keys_count
 } tic_keycode;
 
 typedef enum
 {
-	tic_mouse_left,
-	tic_mouse_middle,
-	tic_mouse_right,
+    tic_mouse_left,
+    tic_mouse_middle,
+    tic_mouse_right,
 } tic_mouse_btn;
 
 typedef enum
 {
-	tic_cursor_arrow,
-	tic_cursor_hand,
-	tic_cursor_ibeam,
+    tic_cursor_arrow,
+    tic_cursor_hand,
+    tic_cursor_ibeam,
 } tic_cursor;

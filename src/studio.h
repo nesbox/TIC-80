@@ -26,6 +26,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 
 #include "tic.h"
 #include "ticapi.h"
@@ -35,6 +36,7 @@
 #include "system.h"
 
 #define TIC_LOCAL ".local/"
+#define TIC_LOCAL_VERSION TIC_LOCAL TIC_VERSION_LABEL "/"
 #define TIC_CACHE TIC_LOCAL "cache/"
 
 #define TOOLBAR_SIZE 7
@@ -43,16 +45,16 @@
 #define STUDIO_TEXT_BUFFER_WIDTH (TIC80_WIDTH / STUDIO_TEXT_WIDTH)
 #define STUDIO_TEXT_BUFFER_HEIGHT (TIC80_HEIGHT / STUDIO_TEXT_HEIGHT)
 
-#define TIC_COLOR_BG 	(tic_color_black)
+#define TIC_COLOR_BG tic_color_0
 #define DEFAULT_CHMOD 0755
 
-#define CONFIG_TIC "config " TIC_VERSION_LABEL ".tic"
-#define CONFIG_TIC_PATH TIC_LOCAL CONFIG_TIC
+#define CONFIG_TIC "config.tic"
+#define CONFIG_TIC_PATH TIC_LOCAL_VERSION CONFIG_TIC
 
 #define KEYMAP_COUNT (sizeof(tic80_gamepads) * BITS_IN_BYTE)
 #define KEYMAP_SIZE (KEYMAP_COUNT)
 #define KEYMAP_DAT "keymap.dat"
-#define KEYMAP_DAT_PATH TIC_LOCAL KEYMAP_DAT
+#define KEYMAP_DAT_PATH TIC_LOCAL_VERSION KEYMAP_DAT
 
 #define CART_EXT ".tic"
 #define PROJECT_LUA_EXT ".lua"
@@ -62,30 +64,38 @@
 #define PROJECT_SQUIRREL_EXT ".nut"
 #define PROJECT_FENNEL_EXT ".fnl"
 
+#define SHOW_TOOLTIP(FORMAT, ...)           \
+{                                           \
+    static const char Format[] = FORMAT;    \
+    static char buf[sizeof Format];         \
+    sprintf(buf, Format, __VA_ARGS__);      \
+    showTooltip(buf);                       \
+}
+
 typedef enum
 {
-	TIC_START_MODE,
-	TIC_CONSOLE_MODE,
-	TIC_RUN_MODE,
-	TIC_CODE_MODE,
-	TIC_SPRITE_MODE,
-	TIC_MAP_MODE,
-	TIC_WORLD_MODE,
-	TIC_SFX_MODE,
-	TIC_MUSIC_MODE,
-	TIC_DIALOG_MODE,
-	TIC_MENU_MODE,
-	TIC_SURF_MODE,
+    TIC_START_MODE,
+    TIC_CONSOLE_MODE,
+    TIC_RUN_MODE,
+    TIC_CODE_MODE,
+    TIC_SPRITE_MODE,
+    TIC_MAP_MODE,
+    TIC_WORLD_MODE,
+    TIC_SFX_MODE,
+    TIC_MUSIC_MODE,
+    TIC_DIALOG_MODE,
+    TIC_MENU_MODE,
+    TIC_SURF_MODE,
 } EditorMode;
 
 typedef struct
 {
-	s32 x, y;
+    s32 x, y;
 } tic_point;
 
 typedef struct
 {
-	s32 x, y, w, h;
+    s32 x, y, w, h;
 } tic_rect;
 
 void setCursor(tic_cursor id);
@@ -96,8 +106,9 @@ bool checkMousePos(const tic_rect* rect);
 bool checkMouseClick(const tic_rect* rect, tic_mouse_btn button);
 bool checkMouseDown(const tic_rect* rect, tic_mouse_btn button);
 
-void drawToolbar(tic_mem* tic, u8 color, bool bg);
+void drawToolbar(tic_mem* tic, bool bg);
 void drawBitIcon(s32 x, s32 y, const u8* ptr, u8 color);
+void drawBitIcon16(tic_mem* tic, s32 x, s32 y, const u16* ptr, u8 color);
 
 void studioRomLoaded();
 void studioRomSaved();
@@ -107,7 +118,9 @@ void setStudioMode(EditorMode mode);
 void resumeRunMode();
 EditorMode getStudioMode();
 void exitStudio();
-u32 unzip(u8** dest, const u8* source, size_t size);
+
+u32 zip(u8* dest, size_t destSize, const u8* source, size_t size);
+u32 unzip(u8* dest, size_t bufSize, const u8* source, size_t size);
 
 void str2buf(const char* str, s32 size, void* buf, bool flip);
 void toClipboard(const void* data, s32 size, bool flip);
@@ -115,21 +128,21 @@ bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces);
 
 typedef enum
 {
-	TIC_CLIPBOARD_NONE,
-	TIC_CLIPBOARD_CUT,
-	TIC_CLIPBOARD_COPY,
-	TIC_CLIPBOARD_PASTE,
+    TIC_CLIPBOARD_NONE,
+    TIC_CLIPBOARD_CUT,
+    TIC_CLIPBOARD_COPY,
+    TIC_CLIPBOARD_PASTE,
 } ClipboardEvent;
 
 ClipboardEvent getClipboardEvent();
 
 typedef enum
 {
-	TIC_TOOLBAR_CUT,
-	TIC_TOOLBAR_COPY,
-	TIC_TOOLBAR_PASTE,
-	TIC_TOOLBAR_UNDO,
-	TIC_TOOLBAR_REDO,
+    TIC_TOOLBAR_CUT,
+    TIC_TOOLBAR_COPY,
+    TIC_TOOLBAR_PASTE,
+    TIC_TOOLBAR_UNDO,
+    TIC_TOOLBAR_REDO,
 } StudioEvent;
 
 void setStudioEvent(StudioEvent event);
@@ -154,6 +167,7 @@ void gotoCode();
 void gotoSurf();
 void exitFromGameMenu();
 void runProject();
+void drawBGAnimation(tic_mem* tic, s32 ticks);
 
 tic_tiles* getBankTiles();
 tic_palette* getBankPalette();
@@ -167,8 +181,8 @@ bool anyKeyWasPressed();
 const StudioConfig* getConfig();
 System* getSystem();
 
-#if defined(TIC80_PRO)
-
+const char* md5str(const void* data, s32 length);
 bool hasProjectExt(const char* name);
-
-#endif
+void sfx_stop(tic_mem* tic, s32 channel);
+const char* studioExportMusic(s32 track);
+const char* studioExportSfx(s32 sfx);

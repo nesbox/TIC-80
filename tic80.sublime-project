@@ -1,30 +1,30 @@
 {
-	"build_systems":
+    "build_systems":
     [
-    	{
-    		"name": "build",
-    		"shell_cmd": "cd ${project_path}/build && cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel .. && ninja",
-    		"file_regex": "/([^/:]+):(\\d+):(\\d+): ",
-    		"variants": [                
+        {
+            "name": "build",
+            "shell_cmd": "cd ${project_path}/build && cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel .. && ninja",
+            "file_regex": "/([^/:]+):(\\d+):(\\d+): ",
+            "variants": [                
                 {
                     "name": "run",
-                    "shell_cmd": "cd ${project_path}/build && ninja && ${project_path}/build/bin/tic80"
+                    "shell_cmd": "cd ${project_path}/build && ninja && ${project_path}/build/bin/tic80 -skip"
                 },
-    			{
-    				"name": "clean",
-    				"shell_cmd": "cd ${project_path}/build && ninja -t clean"
-    			},
+                {
+                    "name": "clean",
+                    "shell_cmd": "cd ${project_path}/build && ninja -t clean"
+                },
                 {
                     "name": "clean rebuild",
                     "shell_cmd": "cd ${project_path}/build && ninja -t clean && ninja"
                 }
-    		]
-    	}
+            ]
+        }
     ],
-	"folders":
-	[
-		{
-			"path": "."
-		}
-	]
+    "folders":
+    [
+        {
+            "path": "."
+        }
+    ]
 }

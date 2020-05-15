@@ -52,9 +52,9 @@ extern "C" {
 
 struct retro_core_option_definition option_defs_us[] = {
    {
-      "tic80_mouse",
-      "Mouse API instead of Pointer",
-      "When enabled, will use the Mouse API instead of the Pointer API for the Mouse.",
+      "tic80_mouse_pointer",
+      "Touch Interface for Mouse",
+      "When enabled, will use the Pointer/Touch API for mouse input.",
       {
          { "disabled", NULL },
          { "enabled",  NULL },

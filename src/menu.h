@@ -28,39 +28,39 @@ typedef struct Menu Menu;
 
 struct Menu
 {
-	tic_mem* tic;
-	struct FileSystem* fs;
+    tic_mem* tic;
+    struct FileSystem* fs;
 
-	bool init;
-	void* bg;
-	s32 ticks;
+    bool init;
+    s32 ticks;
 
-	struct
-	{
-		s32 focus;
-	} main;
+    struct
+    {
+        s32 focus;
+    } main;
 
-	struct
-	{
-		u32 tab;
-		s32 selected;
-	} gamepad;
+    struct
+    {
+        u32 tab;
+        s32 selected;
+    } gamepad;
 
-	tic_point pos;
+    tic_point pos;
 
-	struct
-	{
-		tic_point start;
-		bool active;
-	} drag;
+    struct
+    {
+        tic_point start;
+        bool active;
+    } drag;
 
-	enum
-	{
-		MAIN_MENU_MODE,
-		GAMEPAD_MENU_MODE,
-	} mode;
-	
-	void(*tick)(Menu* Menu);
+    enum
+    {
+        MAIN_MENU_MODE,
+        GAMEPAD_MENU_MODE,
+    } mode;
+    
+    void(*tick)(Menu* Menu);
 };
 
 void initMenu(Menu* menu, tic_mem* tic, struct FileSystem* fs);
+void freeMenu(Menu* menu);

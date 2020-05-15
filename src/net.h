@@ -22,10 +22,12 @@
 
 #pragma once
 
-#include "fs.h"
+#include "system.h"
 
 typedef struct Net Net;
 
 Net* createNet();
-void* netGetRequest(Net* net, const char* path, s32* size);
+void* netGetSync(Net* net, const char* path, s32* size);
+void netGet(Net* net, const char* url, HttpGetCallback callback, void* calldata);
 void closeNet(Net* net);
+void netTick(Net *net);
