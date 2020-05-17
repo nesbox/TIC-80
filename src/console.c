@@ -3306,13 +3306,17 @@ static bool checkUIScale(Console* console, const char* param, const char* value)
     return done;
 }
 
-static bool checkCommand(Console* console, const char* param, const char* value)
+static bool checkCommand(Console* console, const char* command)
 {
-    if(strcmp(param, "-command") == 0)
+    for(s32 i = 0; i < COUNT_OF(AvailableConsoleCommands); i++)
     {
-        processCommand(console, value);
-        exitStudio();
-        return true;
+        if(tic_strcasecmp(command, AvailableConsoleCommands[i].command) == 0 ||
+            (AvailableConsoleCommands[i].alt &&
+             tic_strcasecmp(command, AvailableConsoleCommands[i].alt) == 0))
+        {
+            processCommand(console, command);
+            return true;
+        }
     }
     return false;
 }
@@ -3415,8 +3419,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
                 if(cmdInjectCode(console, first, second)
                     || cmdInjectSprites(console, first, second)
                     || cmdInjectMap(console, first, second)
-                    || checkUIScale(console, first, second)
-                    || checkCommand(console, first, second))
+                    || checkUIScale(console, first, second))
                     argp |= mask;
             }
         }
@@ -3456,9 +3459,12 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
         {
             if(~argp & 1 << i)
             {
-                char buf[256];
-                sprintf(buf, "parameter or file not processed: %s\n", argv[i]);
-                getSystem()->showMessageBox("Warning", buf);
+                if(!checkCommand(console, argv[i]))
+                {
+                    char buf[256];
+                    sprintf(buf, "parameter or file not processed: %s\n", argv[i]);
+                    getSystem()->showMessageBox("Warning", buf);
+                }
             }
         }
     }
