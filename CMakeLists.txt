@@ -355,6 +355,10 @@ set(TIC80CORE_SRC
     ${THIRDPARTY_DIR}/duktape/src/duktape.c # TODO: link it as lib?
 )
 
+if(BUILD_MRUBY)
+	list(APPEND TIC80CORE_SRC ${TIC80CORE_DIR}/mrbapi.c)
+endif()
+
 add_library(tic80core STATIC ${TIC80CORE_SRC})
 
 if(BUILD_MRUBY)
