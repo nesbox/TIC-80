@@ -30,6 +30,10 @@ local unpack = unpack or table.unpack
 -- Main Types and support functions
 --
 
+-- Escape a string for safe use in a Lua pattern
+local function escapepat(str)
+    return string.gsub(str, "[^%w]", "%%%1")
+end
 -- Like pairs, but gives consistent ordering every time. On 5.1, 5.2, and LuaJIT
 -- pairs is already stable, but on 5.3 every run gives different ordering.
 local function stablepairs(t)
@@ -92,8 +96,15 @@ end
 
 local function deref(self) return self[1] end
 
+local nilSym -- haven't defined sym yet; create this later
+
 local function listToString(self, tostring2)
-    return '(' .. table.concat(map(self, tostring2 or tostring), ' ', 1, #self) .. ')'
+    local safe, max = {}, 0
+    for k in pairs(self) do if type(k) == "number" and k>max then max=k end end
+    for i=1,max do -- table.maxn was removed from Lua 5.3 for some reason???
+        safe[i] = self[i] == nil and nilSym or self[i]
+    end
+    return '(' .. table.concat(map(safe, tostring2 or tostring), ' ', 1, max) .. ')'
 end
 
 local SYMBOL_MT = { 'SYMBOL', __tostring = deref, __fennelview = deref }
@@ -101,7 +112,7 @@ local EXPR_MT = { 'EXPR', __tostring = deref }
 local VARARG = setmetatable({ '...' },
     { 'VARARG', __tostring = deref, __fennelview = deref })
 local LIST_MT = { 'LIST', __tostring = listToString, __fennelview = listToString }
-local SEQUENCE_MT = { 'SEQUENCE' }
+local SEQUENCE_MARKER = { 'SEQUENCE' }
 
 -- Load code with an environment in all recent Lua versions
 local function loadCode(code, environment, filename)
@@ -142,11 +153,17 @@ local function sym(str, scope, source)
     return setmetatable(s, SYMBOL_MT)
 end
 
+nilSym = sym("nil")
+
 -- Create a new sequence. Sequences are tables that come from the parser when
 -- it encounters a form with square brackets. They are treated as regular tables
 -- except when certain macros need to look for binding forms, etc specifically.
 local function sequence(...)
-   return setmetatable({...}, SEQUENCE_MT)
+    -- can't use SEQUENCE_MT directly as the sequence metatable like we do with
+    -- the other types without giving up the ability to set source metadata
+    -- on a sequence, (which we need for error reporting) so embed a marker
+    -- value in the metatable instead.
+    return setmetatable({...}, {sequence=SEQUENCE_MARKER})
 end
 
 -- Create a new expr
@@ -187,7 +204,8 @@ end
 
 -- Checks if an object is a sequence (created with a [] literal)
 local function isSequence(x)
-   return type(x) == 'table' and getmetatable(x) == SEQUENCE_MT and x
+    local mt = type(x) == "table" and getmetatable(x)
+    return mt and mt.sequence == SEQUENCE_MARKER and x
 end
 
 -- Returns a shallow copy of its table argument. Returns an empty table on nil.
@@ -229,6 +247,7 @@ end
 
 -- Convert a string into a stream of bytes
 local function stringStream(str)
+    str=str:gsub("^#![^\n]*\n", "") -- remove shebang
     local index = 1
     return function()
         local r = str:byte(index)
@@ -273,6 +292,9 @@ local prefixes = { -- prefix chars substituted while reading
     [35] = 'hashfn' -- #
 }
 
+-- Top level compilation bindings.
+local rootChunk, rootScope, rootOptions
+
 -- The resetRoot function needs to be called at every exit point of the compiler
 -- including when there's a parse error or compiler error. Introduce it up here
 -- so error functions have access to it, and set it when we have values below.
@@ -313,9 +335,11 @@ local function parser(getbyte, filename, options)
     -- If you add new calls to this function, please update fenneldfriend.fnl
     -- as well to add suggestions for how to fix the new error.
     local function parseError(msg)
+        local source = rootOptions and rootOptions.source
         if resetRoot then resetRoot() end
         local override = options and options["parse-error"]
-        if override then override(msg, filename or "unknown", line or "?", byteindex) end
+        if override then override(msg, filename or "unknown", line or "?",
+                                  byteindex, source) end
         return error(("Parse error in %s:%s: %s"):
                 format(filename or "unknown", line or "?", msg), 0)
     end
@@ -393,15 +417,12 @@ local function parser(getbyte, filename, options)
                 if b == 41 then -- ; )
                     val = last
                 elseif b == 93 then -- ; ]
-                    val = sequence()
-                    for i = 1, #last do
-                        val[i] = last[i]
-                    end
+                    val = sequence(unpack(last))
                     -- for table literals we can store file/line/offset source
                     -- data in fields on the table itself, because the AST node
                     -- *is* the table, and the fields would show up in the
                     -- compiled output. keep them on the metatable instead.
-                    setmetatable(val, last)
+                    for k,v in pairs(last) do getmetatable(val)[k]=v end
                 else -- ; }
                     if #last % 2 ~= 0 then
                         byteindex = byteindex - 1
@@ -525,9 +546,6 @@ end
 -- Compilation
 --
 
--- Top level compilation bindings.
-local rootChunk, rootScope, rootOptions
-
 local function setResetRoot(oldChunk, oldScope, oldOptions)
     local oldResetRoot = resetRoot -- this needs to nest!
     resetRoot = function()
@@ -582,9 +600,10 @@ end
 local function assertCompile(condition, msg, ast)
     local override = rootOptions and rootOptions["assert-compile"]
     if override then
+        local source = rootOptions and rootOptions.source
         -- don't make custom handlers deal with resetting root; it's error-prone
         if not condition and resetRoot then resetRoot() end
-        override(condition, msg, ast)
+        override(condition, msg, ast, source)
         -- should we fall thru to the default check, or should we allow the
         -- override to swallow the error?
     end
@@ -1889,28 +1908,29 @@ SPECIALS["each"] = function(ast, scope, parent)
     local iter = table.remove(binding, #binding) -- last item is iterator call
     local destructures = {}
     local newManglings = {}
+    local subScope = makeScope(scope)
     local function destructureBinding(v)
         if isSym(v) then
-            return declareLocal(v, {}, scope, ast, newManglings)
+            return declareLocal(v, {}, subScope, ast, newManglings)
         else
-            local raw = sym(gensym(scope))
+            local raw = sym(gensym(subScope))
             destructures[raw] = v
-            return declareLocal(raw, {}, scope, ast)
+            return declareLocal(raw, {}, subScope, ast)
         end
     end
     local bindVars = map(binding, destructureBinding)
-    local vals = compile1(iter, scope, parent)
+    local vals = compile1(iter, subScope, parent)
     local valNames = map(vals, tostring)
 
     emit(parent, ('for %s in %s do'):format(table.concat(bindVars, ', '),
                                             table.concat(valNames, ", ")), ast)
     local chunk = {}
     for raw, args in stablepairs(destructures) do
-        destructure(args, raw, ast, scope, chunk,
+        destructure(args, raw, ast, subScope, chunk,
                     { declaration = true, nomulti = true })
     end
-    applyManglings(scope, newManglings, ast)
-    compileDo(ast, scope, chunk, 3)
+    applyManglings(subScope, newManglings, ast)
+    compileDo(ast, subScope, chunk, 3)
     emit(parent, chunk, ast)
     emit(parent, 'end', ast)
 end
@@ -1948,19 +1968,20 @@ docSpecial("while", {"condition", "..."},
 SPECIALS["for"] = function(ast, scope, parent)
     local ranges = assertCompile(isTable(ast[2]), "expected binding table", ast)
     local bindingSym = table.remove(ast[2], 1)
+    local subScope = makeScope(scope)
     assertCompile(isSym(bindingSym),
                   ("unable to bind %s %s"):
                       format(type(bindingSym), tostring(bindingSym)), ast[2])
     assertCompile(#ast >= 3, "expected body expression", ast[1])
     local rangeArgs = {}
     for i = 1, math.min(#ranges, 3) do
-        rangeArgs[i] = tostring(compile1(ranges[i], scope, parent, {nval = 1})[1])
+        rangeArgs[i] = tostring(compile1(ranges[i], subScope, parent, {nval = 1})[1])
     end
     emit(parent, ('for %s = %s do'):format(
-             declareLocal(bindingSym, {}, scope, ast),
+             declareLocal(bindingSym, {}, subScope, ast),
              table.concat(rangeArgs, ', ')), ast)
     local chunk = {}
-    compileDo(ast, scope, chunk, 3)
+    compileDo(ast, subScope, chunk, 3)
     emit(parent, chunk, ast)
     emit(parent, 'end', ast)
 end
@@ -2221,7 +2242,7 @@ local function doQuote (form, scope, parent, runtime)
         assertCompile(not runtime, "symbols may only be used at compile time", form)
         -- We should be able to use "%q" for this but Lua 5.1 throws an error
         -- when you try to format nil, because it's extremely bad.
-        local filename = form.filename and ("'%s'"):format(form.filename) or "nil"
+        local filename = form.filename and ('%q'):format(form.filename) or "nil"
         if deref(form):find("#$") then -- autogensym
             return ("sym('%s', nil, {filename=%s, line=%s})"):
                 format(autogensym(deref(form), scope), filename, form.line or "nil")
@@ -2238,14 +2259,21 @@ local function doQuote (form, scope, parent, runtime)
     elseif isList(form) then
         assertCompile(not runtime, "lists may only be used at compile time", form)
         local mapped = kvmap(form, entryTransform(no, q))
-        local filename = form.filename and ("'%s'"):format(form.filename) or "nil"
-        local s = "(function(l) l.filename, l.line = %s, %s return l end)(list(%s))"
-        return (s):format(filename, form.line or "nil", mixedConcat(mapped, ", "))
+        local filename = form.filename and ('%q'):format(form.filename) or "nil"
+        -- Constructing a list and then adding file/line data to it triggers a
+        -- bug where it changes the value of # for lists that contain nils in
+        -- them; constructing the list all in one go with the source data and
+        -- contents is how we construct lists in the parser and works around
+        -- this problem; allowing # to work in a way that lets us see the nils.
+        return ("setmetatable({filename=%s, line=%s, bytestart=%s, %s}" ..
+                    ", getmetatable(list()))")
+            :format(filename, form.line or "nil", form.bytestart or "nil",
+                    mixedConcat(mapped, ", "))
     -- table
     elseif type(form) == 'table' then
         local mapped = kvmap(form, entryTransform(q, q))
         local source = getmetatable(form)
-        local filename = source.filename and ("'%s'"):format(source.filename) or "nil"
+        local filename = source.filename and ('%q'):format(source.filename) or "nil"
         return ("setmetatable({%s}, {filename=%s, line=%s})"):
             format(mixedConcat(mapped, ", "), filename, source and source.line or "nil")
     -- string
@@ -2295,8 +2323,12 @@ local function compileStream(strm, options)
 end
 
 local function compileString(str, options)
-    local strm = stringStream(str)
-    return compileStream(strm, options)
+    options = options or {}
+    local oldSource = options.source
+    options.source = str -- used by fennelfriend
+    local ast = compileStream(stringStream(str), options)
+    options.source = oldSource
+    return ast
 end
 
 ---
@@ -2415,7 +2447,7 @@ local function dofileFennel(filename, options, ...)
         opts.allowedGlobals = currentGlobalNames(opts.env)
     end
     local f = assert(io.open(filename, "rb"))
-    local source = f:read("*all"):gsub("^#![^\n]*\n", "")
+    local source = f:read("*all")
     f:close()
     opts.filename = filename
     return eval(source, opts, ...)
@@ -2447,7 +2479,7 @@ local module = {
     macroLoaded = macroLoaded,
     path = table.concat(pathTable, ";"),
     traceback = traceback,
-    version = "0.4.1-dev",
+    version = "0.4.1",
 }
 
 -- In order to make this more readable, you can switch your editor to treating
@@ -2605,10 +2637,20 @@ module.repl = function(options)
     return eval(replsource, { correlate = true }, module, internals)(options)
 end
 
+-- have searchModule use package.config to process package.path (windows compat)
+local pkgConfig
+do
+    local cfg = string.gmatch(package.config, "([^\n]+)")
+    local dirsep, pathsep, pathmark = cfg() or '/', cfg() or ';', cfg() or '?'
+    pkgConfig = {dirsep = dirsep, pathsep = pathsep, pathmark = pathmark}
+end
+
 local function searchModule(modulename, pathstring)
-    modulename = modulename:gsub("%.", "/")
-    for path in string.gmatch((pathstring or module.path)..";", "([^;]*);") do
-        local filename = path:gsub("%?", modulename)
+    local pathsepesc = escapepat(pkgConfig.pathsep)
+    local pathsplit = string.format("([^%s]*)%s", pathsepesc, escapepat(pkgConfig.pathsep))
+    modulename = modulename:gsub("%.", pkgConfig.dirsep)
+    for path in string.gmatch((pathstring or module.path)..pkgConfig.pathsep, pathsplit) do
+        local filename = path:gsub(escapepat(pkgConfig.pathmark), modulename)
         local file = io.open(filename, "rb")
         if(file) then
             file:close()
@@ -2657,6 +2699,7 @@ local function makeCompilerEnv(ast, scope, parent)
         -- via fennel.myfun, for example (fennel.eval "(print 1)").
         list = list,
         sym = sym,
+        sequence = sequence,
         unpack = unpack,
         gensym = function() return sym(gensym(macroCurrentScope or scope)) end,
         ["list?"] = isList,
@@ -2749,39 +2792,39 @@ SPECIALS['include'] = function(ast, scope, parent, opts)
 
     -- Read source
     local f = io.open(path)
-    local s = f:read('*all')
+    local s = f:read('*all'):gsub('[\r\n]*$', '')
     f:close()
 
     -- splice in source and memoize it in compiler AND package.preload
     -- so we can include it again without duplication, even in runtime
-    local target = 'package.preload["' .. mod .. '"]'
     local ret = expr('require("' .. mod .. '")', 'statement')
+    local target = ('package.preload[%q]'):format(mod)
+    local preloadStr = target .. ' = ' .. target .. ' or function()'
 
-    local subChunk, tempChunk = {}, {}
-    emit(tempChunk, subChunk, ast)
-    -- if lua, simply emit the setting of package.preload
-    if not isFennel then
-        emit(tempChunk, target .. ' = ' .. target .. ' or function()\n' .. s .. '\nend', ast)
-    end
+    local tempChunk, subChunk = {}, {}
+    emit(tempChunk, preloadStr, ast)
+    emit(tempChunk, subChunk)
+    emit(tempChunk, 'end', ast)
     -- Splice tempChunk to begining of rootChunk
-    for i, v in ipairs(tempChunk) do
-        table.insert(rootChunk, i, v)
-    end
+    for i, v in ipairs(tempChunk) do table.insert(rootChunk, i, v) end
 
     -- For fnl source, compile subChunk AFTER splicing into start of rootChunk.
     if isFennel then
-        local subopts = { nval = 1, target = target }
         local subscope = makeScope(rootScope.parent)
         if rootOptions.requireAsInclude then
             subscope.specials.require = requireSpecial
         end
-        local targetForm = list(sym('.'), sym('package.preload'), mod)
-        -- splice "or" statement in so it uses existing package.preload[modname]
-        -- if it's been set by something else, allowing for overrides
-        local forms = list(sym('or'), targetForm, list(sym('fn'), sequence()))
-        local p = parser(stringStream(s), path)
-        for _, val in p do table.insert(forms[3], val) end
-        compile1(forms, subscope, subChunk, subopts)
+        -- parse Fennel src into table of exprs to know which expr is the tail
+        local forms, p = {}, parser(stringStream(s), path)
+        for _, val in p do table.insert(forms, val) end
+        -- Compile the forms into subChunk; compile1 is necessary for all nested
+        -- includes to be emitted in the same rootChunk in the top-level module
+        for i = 1, #forms do
+            local subopts = i == #forms and {nval=1, tail=true} or {}
+            compile1(forms[i], subscope, subChunk, subopts)
+        end
+    else -- for Lua source, simply emit the src into the loader's body
+        emit(subChunk, s, ast)
     end
 
     -- Put in cache and return
@@ -2948,11 +2991,12 @@ that argument name begins with ?."
           (assert (sym? name) "expected symbol for macro name")
           (local args [...])
           `(macros { ,(tostring name) (fn ,name ,(unpack args))}))
- :macrodebug (fn macrodebug [form]
-              "Print the resulting form after performing macroexpansion."
-              (let [(ok view) (pcall require :fennelview)]
-                `(print ,((if ok view tostring)
-                          (macroexpand form _SCOPE)))))
+ :macrodebug (fn macrodebug [form return?]
+              "Print the resulting form after performing macroexpansion.
+With a second argument, returns expanded form as a string instead of printing."
+              (let [(ok view) (pcall require :fennelview)
+                    handle (if return? `do `print)]
+                `(,handle ,((if ok view tostring) (macroexpand form _SCOPE)))))
  :import-macros (fn import-macros [binding1 module-name1 ...]
                   "Binds a table of macros from each macro module according to its binding form.
 Each binding form can be either a symbol or a k/v destructuring table.
@@ -3147,24 +3191,42 @@ local function read_line_from_file(filename, line)
   end
   _ = nil
   local codeline = f:read()
-  local eol = (bytes + #codeline)
   f:close()
-  return codeline, bytes, eol
+  return codeline, bytes
 end
-local function friendly_msg(msg, _0_0)
+local function read_line_from_source(source, line)
+  local lines, bytes, codeline = 0, 0
+  for this_line in string.gmatch((source .. "\n"), "(.-)\13?\n") do
+    lines = (lines + 1)
+    if (lines == line) then
+      codeline = this_line
+      break
+    end
+    bytes = (bytes + 1 + #this_line)
+  end
+  return codeline, bytes
+end
+local function read_line(filename, line, source)
+  if source then
+    return read_line_from_source(source, line)
+  else
+    return read_line_from_file(filename, line)
+  end
+end
+local function friendly_msg(msg, _0_0, source)
   local _1_ = _0_0
   local byteend = _1_["byteend"]
   local bytestart = _1_["bytestart"]
   local filename = _1_["filename"]
   local line = _1_["line"]
-  local ok, codeline, bol, eol = pcall(read_line_from_file, filename, line)
+  local ok, codeline, bol, eol = pcall(read_line, filename, line, source)
   local suggestions0 = suggest(msg)
   local out = {msg, ""}
   if (ok and codeline) then
     table.insert(out, codeline)
   end
   if (ok and codeline and bytestart and byteend) then
-    table.insert(out, (string.rep(" ", (bytestart - bol - 1)) .. "^" .. string.rep("^", math.min((byteend - bytestart), (eol - bytestart)))))
+    table.insert(out, (string.rep(" ", (bytestart - bol - 1)) .. "^" .. string.rep("^", math.min((byteend - bytestart), ((bol + #codeline) - bytestart)))))
   end
   if (ok and codeline and bytestart and not byteend) then
     table.insert(out, (string.rep("-", (bytestart - bol - 1)) .. "^"))
@@ -3177,17 +3239,17 @@ local function friendly_msg(msg, _0_0)
   end
   return table.concat(out, "\n")
 end
-local function assert_compile(condition, msg, ast)
+local function assert_compile(condition, msg, ast, source)
   if not condition then
     local _1_ = ast_source(ast)
     local filename = _1_["filename"]
     local line = _1_["line"]
-    error(friendly_msg(("Compile error in %s:%s\n  %s"):format((filename or "unknown"), (line or "?"), msg), ast_source(ast)), 0)
+    error(friendly_msg(("Compile error in %s:%s\n  %s"):format((filename or "unknown"), (line or "?"), msg), ast_source(ast), source), 0)
   end
   return condition
 end
-local function parse_error(msg, filename, line, bytestart)
-  return error(friendly_msg(("Parse error in %s:%s\n  %s"):format(filename, line, msg), {bytestart = bytestart, filename = filename, line = line}), 0)
+local function parse_error(msg, filename, line, bytestart, source)
+  return error(friendly_msg(("Parse error in %s:%s\n  %s"):format(filename, line, msg), {bytestart = bytestart, filename = filename, line = line}, source), 0)
 end
 return {["assert-compile"] = assert_compile, ["parse-error"] = parse_error}
 end
