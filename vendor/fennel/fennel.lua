@@ -273,6 +273,9 @@ local prefixes = { -- prefix chars substituted while reading
     [35] = 'hashfn' -- #
 }
 
+-- Top level compilation bindings.
+local rootChunk, rootScope, rootOptions
+
 -- The resetRoot function needs to be called at every exit point of the compiler
 -- including when there's a parse error or compiler error. Introduce it up here
 -- so error functions have access to it, and set it when we have values below.
@@ -313,9 +316,11 @@ local function parser(getbyte, filename, options)
     -- If you add new calls to this function, please update fenneldfriend.fnl
     -- as well to add suggestions for how to fix the new error.
     local function parseError(msg)
+        local source = rootOptions and rootOptions.source
         if resetRoot then resetRoot() end
         local override = options and options["parse-error"]
-        if override then override(msg, filename or "unknown", line or "?", byteindex) end
+        if override then override(msg, filename or "unknown", line or "?",
+                                  byteindex, source) end
         return error(("Parse error in %s:%s: %s"):
                 format(filename or "unknown", line or "?", msg), 0)
     end
@@ -525,9 +530,6 @@ end
 -- Compilation
 --
 
--- Top level compilation bindings.
-local rootChunk, rootScope, rootOptions
-
 local function setResetRoot(oldChunk, oldScope, oldOptions)
     local oldResetRoot = resetRoot -- this needs to nest!
     resetRoot = function()
@@ -582,9 +584,10 @@ end
 local function assertCompile(condition, msg, ast)
     local override = rootOptions and rootOptions["assert-compile"]
     if override then
+        local source = rootOptions and rootOptions.source
         -- don't make custom handlers deal with resetting root; it's error-prone
         if not condition and resetRoot then resetRoot() end
-        override(condition, msg, ast)
+        override(condition, msg, ast, source)
         -- should we fall thru to the default check, or should we allow the
         -- override to swallow the error?
     end
@@ -2295,8 +2298,12 @@ local function compileStream(strm, options)
 end
 
 local function compileString(str, options)
-    local strm = stringStream(str)
-    return compileStream(strm, options)
+    options = options or {}
+    local oldSource = options.source
+    options.source = str -- used by fennelfriend
+    local ast = compileStream(stringStream(str), options)
+    options.source = oldSource
+    return ast
 end
 
 ---
@@ -3147,24 +3154,42 @@ local function read_line_from_file(filename, line)
   end
   _ = nil
   local codeline = f:read()
-  local eol = (bytes + #codeline)
   f:close()
-  return codeline, bytes, eol
+  return codeline, bytes
 end
-local function friendly_msg(msg, _0_0)
+local function read_line_from_source(source, line)
+  local lines, bytes, codeline = 0, 0
+  for this_line in string.gmatch((source .. "\n"), "(.-)\13?\n") do
+    lines = (lines + 1)
+    if (lines == line) then
+      codeline = this_line
+      break
+    end
+    bytes = (bytes + 1 + #this_line)
+  end
+  return codeline, bytes
+end
+local function read_line(filename, line, source)
+  if source then
+    return read_line_from_source(source, line)
+  else
+    return read_line_from_file(filename, line)
+  end
+end
+local function friendly_msg(msg, _0_0, source)
   local _1_ = _0_0
   local byteend = _1_["byteend"]
   local bytestart = _1_["bytestart"]
   local filename = _1_["filename"]
   local line = _1_["line"]
-  local ok, codeline, bol, eol = pcall(read_line_from_file, filename, line)
+  local ok, codeline, bol, eol = pcall(read_line, filename, line, source)
   local suggestions0 = suggest(msg)
   local out = {msg, ""}
   if (ok and codeline) then
     table.insert(out, codeline)
   end
   if (ok and codeline and bytestart and byteend) then
-    table.insert(out, (string.rep(" ", (bytestart - bol - 1)) .. "^" .. string.rep("^", math.min((byteend - bytestart), (eol - bytestart)))))
+    table.insert(out, (string.rep(" ", (bytestart - bol - 1)) .. "^" .. string.rep("^", math.min((byteend - bytestart), ((bol + #codeline) - bytestart)))))
   end
   if (ok and codeline and bytestart and not byteend) then
     table.insert(out, (string.rep("-", (bytestart - bol - 1)) .. "^"))
@@ -3177,17 +3202,17 @@ local function friendly_msg(msg, _0_0)
   end
   return table.concat(out, "\n")
 end
-local function assert_compile(condition, msg, ast)
+local function assert_compile(condition, msg, ast, source)
   if not condition then
     local _1_ = ast_source(ast)
     local filename = _1_["filename"]
     local line = _1_["line"]
-    error(friendly_msg(("Compile error in %s:%s\n  %s"):format((filename or "unknown"), (line or "?"), msg), ast_source(ast)), 0)
+    error(friendly_msg(("Compile error in %s:%s\n  %s"):format((filename or "unknown"), (line or "?"), msg), ast_source(ast), source), 0)
   end
   return condition
 end
-local function parse_error(msg, filename, line, bytestart)
-  return error(friendly_msg(("Parse error in %s:%s\n  %s"):format(filename, line, msg), {bytestart = bytestart, filename = filename, line = line}), 0)
+local function parse_error(msg, filename, line, bytestart, source)
+  return error(friendly_msg(("Parse error in %s:%s\n  %s"):format(filename, line, msg), {bytestart = bytestart, filename = filename, line = line}, source), 0)
 end
 return {["assert-compile"] = assert_compile, ["parse-error"] = parse_error}
 end
