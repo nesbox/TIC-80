@@ -1528,7 +1528,7 @@ static void drawPlayButtons(Music* music)
         0b00000000,
     };
 
-    enum { Offset = TIC80_WIDTH - 60, Width = 7, Height = 7, Rows = 8, Count = sizeof Icons / Rows };
+    enum { Offset = TIC80_WIDTH - 58, Width = 7, Height = 7, Rows = 8, Count = sizeof Icons / Rows };
 
     for (s32 i = 0; i < Count; i++)
     {
@@ -1566,25 +1566,25 @@ static void drawModeTabs(Music* music)
     static const u8 Icons[] =
     {
         0b00000000,
-        0b01111111,
+        0b01111100,
         0b00000000,
-        0b01101111,
-        0b01101111,
-        0b01101111,
+        0b01011100,
+        0b01011100,
+        0b01011100,
         0b00000000,
         0b00000000,
 
         0b00000000,
-        0b01111111,
+        0b01111100,
         0b00000000,
-        0b01010101,
-        0b01010101,
-        0b01010101,
+        0b01010100,
+        0b01010100,
+        0b01010100,
         0b00000000,
         0b00000000,
     };
 
-    enum { Width = 9, Height = 7, Rows = 8, Count = sizeof Icons / Rows };
+    enum { Width = 7, Height = 7, Rows = 8, Count = sizeof Icons / Rows };
 
     for (s32 i = 0; i < Count; i++)
     {
@@ -1673,33 +1673,21 @@ static void drawWaveform(Music* music, s32 x, s32 y)
 
     tic_api_rect(tic, x, y, Width, Height, tic_color_0);
 
-    // detect on channels
+    // detect playing channels
     s32 channels = 0;
     for(s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
-    {
-        if(!music->tracker.on[c]) continue;
-
-        s32 val = 0;
-        for(s32 i = 0; i < WAVE_SIZE; i++)
-            val += tic->ram.registers[c].waveform.data[i];
-
-        val *= tic->ram.registers[c].volume;
-
-        if(val)
+        if(music->tracker.on[c] && tic->ram.registers[c].volume)
             channels++;
-    }
 
-    for(s32 i = 0; i < WAVE_VALUES; i++)
+    if(channels)
     {
-        s32 lamp = 0, ramp = 0;
-
-        if(channels)
+        for(s32 i = 0; i < WAVE_VALUES; i++)
         {
+            s32 lamp = 0, ramp = 0;
+
             for(s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
             {
-                s32 index = (i * tic->ram.registers[c].freq >> 7) % WAVE_VALUES;
-                s32 amp = tic_tool_peek4(tic->ram.registers[c].waveform.data, index) 
-                    * tic->ram.registers[c].volume / channels;
+                s32 amp = calcWaveAnimation(tic, i + music->tickCounter, c) / channels;
 
                 lamp += amp * tic_tool_peek4(&tic->ram.stereo.data, c*2);
                 ramp += amp * tic_tool_peek4(&tic->ram.stereo.data, c*2 + 1);
@@ -1707,10 +1695,10 @@ static void drawWaveform(Music* music, s32 x, s32 y)
 
             lamp /= WAVE_MAX_VALUE * WAVE_MAX_VALUE;
             ramp /= WAVE_MAX_VALUE * WAVE_MAX_VALUE;
-        }
 
-        tic_api_rect(tic, x + i, y + (Height-1) - ramp * Height / WaveRows, 1, 1, tic_color_4);
-        tic_api_rect(tic, x + i, y + (Height-1) - lamp * Height / WaveRows, 1, 1, tic_color_5);
+            tic_api_rect(tic, x + i, y + (Height-1) - ramp * Height / WaveRows, 1, 1, tic_color_4);
+            tic_api_rect(tic, x + i, y + (Height-1) - lamp * Height / WaveRows, 1, 1, tic_color_5);
+        }
     }
 }
 
@@ -1779,6 +1767,8 @@ static void tick(Music* music)
 
     drawMusicToolbar(music);
     drawToolbar(music->tic, false);
+
+    music->tickCounter++;
 }
 
 static void onStudioEvent(Music* music, StudioEvent event)
@@ -1830,6 +1820,7 @@ void initMusic(Music* music, tic_mem* tic, tic_music* src)
             },
         },
 
+        .tickCounter = 0,
         .tab = MUSIC_TRACKER_TAB,
         .history = history_create(src, sizeof(tic_music)),
         .event = onStudioEvent,

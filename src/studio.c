@@ -246,6 +246,17 @@ static struct
 
 static const char WavPath[] = TIC_CACHE "temp.wav";
 
+s32 calcWaveAnimation(tic_mem* tic, u32 offset, s32 channel)
+{
+    const tic_sound_register* reg = &tic->ram.registers[channel];
+
+    s32 val = tic_tool_is_noise(&reg->waveform)
+        ? (rand() & 1) * MAX_VOLUME
+        : tic_tool_peek4(reg->waveform.data, ((offset * reg->freq) >> 7) % WAVE_VALUES);
+
+    return val * reg->volume;
+}
+
 static const tic_sfx* getSfxSrc()
 {
     tic_mem* tic = impl.studio.tic;

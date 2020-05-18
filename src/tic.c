@@ -1457,13 +1457,6 @@ static void processMusic(tic_mem* memory)
     machine->state.music.ticks++;
 }
 
-static bool isNoiseWaveform(const tic_waveform* wave)
-{
-    static const tic_waveform NoiseWave = {.data = {0}};
-
-    return memcmp(&NoiseWave.data, &wave->data, sizeof(tic_waveform)) == 0;
-}
-
 static bool isKeyPressed(const tic80_keyboard* input, tic_key key)
 {
     for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
@@ -1535,7 +1528,7 @@ static void stereo_tick_end(tic_mem* memory, tic_sound_register_data* registers,
         const tic_sound_register* reg = &memory->ram.registers[i];
         tic_sound_register_data* data = registers + i;
 
-        isNoiseWaveform(&reg->waveform)
+        tic_tool_is_noise(&reg->waveform)
             ? runNoise(blip, reg, data, EndTime, volume)
             : runEnvelope(blip, reg, data, EndTime, volume);
 

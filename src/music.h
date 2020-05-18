@@ -70,6 +70,8 @@ struct Music
         MUSIC_PIANO_TAB,
     } tab;
 
+    u32 tickCounter;
+
     struct History* history;
     
     void(*tick)(Music*);

@@ -40,6 +40,7 @@ struct Sfx
     {
         bool active;
         s32 note;
+        u32 tick;
     } play;
     
     struct History* history;

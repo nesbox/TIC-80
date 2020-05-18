@@ -694,17 +694,7 @@ static void drawWavePanel(Sfx* sfx, s32 x, s32 y)
         {
             for(s32 i = 0; i < WAVE_VALUES; i++)
             {
-                s32 amp = 0;
-
-                for(s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
-                {
-                    s32 index = (i * tic->ram.registers[c].freq >> 7) % WAVE_VALUES;
-                    amp += tic_tool_peek4(tic->ram.registers[c].waveform.data, index) 
-                        * tic->ram.registers[c].volume;
-                }
-
-                amp /= WAVE_MAX_VALUE;
-
+                s32 amp = calcWaveAnimation(tic, i + sfx->play.tick, 0) / WAVE_MAX_VALUE;
                 tic_api_rect(tic, rect.x + i*Scale, rect.y + (MaxValue - amp) * Scale, Scale, Scale, tic_color_7);
             }
         }
@@ -979,11 +969,16 @@ static void tick(Sfx* sfx)
     drawCanvas(sfx, 88, 90, SFX_PITCH_PANEL);
 
     drawSelector(sfx, 9, 12);
-    drawWavePanel(sfx, 7, 41);
     drawPiano(sfx, 5, 127);
+    drawWavePanel(sfx, 7, 41);
     drawToolbar(tic, true);
 
     playSound(sfx);
+
+    if(sfx->play.active)
+        sfx->play.tick++;
+    else 
+        sfx->play.tick = 0;
 }
 
 static void onStudioEvent(Sfx* sfx, StudioEvent event)
@@ -1015,6 +1010,7 @@ void initSfx(Sfx* sfx, tic_mem* tic, tic_sfx* src)
         {
             .note = -1,
             .active = false,
+            .tick = 0,
         },
 
         .history = history_create(src, sizeof(tic_sfx)),

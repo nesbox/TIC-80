@@ -121,3 +121,12 @@ void tic_tool_set_track_row_sfx(tic_track_row* row, s32 sfx)
     row->sfxhi = (sfx & 0b00100000) >> MUSIC_SFXID_LOW_BITS;
     row->sfxlow = sfx & 0b00011111;
 }
+
+bool tic_tool_is_noise(const tic_waveform* wave)
+{
+    for(s32 i = 0; i < WAVE_SIZE; i++)
+        if(wave->data[i])
+            return false;
+
+    return true;
+}
