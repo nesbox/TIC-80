@@ -682,7 +682,7 @@ static void drawWavePanel(Sfx* sfx, s32 x, s32 y)
 
     // draw current wave shape
     {
-        enum {Scale = 2, MaxValue = (1 << WAVE_VALUE_BITS) - 1};
+        enum {Scale = 2, MaxValue = WAVE_MAX_VALUE};
 
         tic_rect rect = {x + 5, y + 5, 64, 32};
         tic_sample* effect = getEffect(sfx);
@@ -690,33 +690,54 @@ static void drawWavePanel(Sfx* sfx, s32 x, s32 y)
 
         drawPanelBorder(tic, rect.x - 1, rect.y - 1, rect.w + 2, rect.h + 2, tic_color_5);
 
-        if(checkMousePos(&rect))
+        if(sfx->play.active)
         {
-            setCursor(tic_cursor_hand);
-
-            s32 cx = (getMouseX() - rect.x) / Scale;
-            s32 cy = MaxValue - (getMouseY() - rect.y) / Scale;
-
-            SHOW_TOOLTIP("[x=%02i y=%02i]", cx, cy);
-
-            enum {Border = 1};
-            tic_api_rectb(tic, rect.x + cx*Scale - Border, 
-                rect.y + (MaxValue - cy) * Scale - Border, Scale + Border*2, Scale + Border*2, tic_color_7);
-
-            if(checkMouseDown(&rect, tic_mouse_left))
+            for(s32 i = 0; i < WAVE_VALUES; i++)
             {
-                if(tic_tool_peek4(wave->data, cx) != cy)
-                {
-                    tic_tool_poke4(wave->data, cx, cy);
-                    history_add(sfx->history);
-                }
-            }
-        }       
+                s32 amp = 0;
 
-        for(s32 i = 0; i < WAVE_VALUES; i++)
+                for(s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
+                {
+                    s32 index = (i * tic->ram.registers[c].freq >> 7) % WAVE_VALUES;
+                    amp += tic_tool_peek4(tic->ram.registers[c].waveform.data, index) 
+                        * tic->ram.registers[c].volume;
+                }
+
+                amp /= WAVE_MAX_VALUE;
+
+                tic_api_rect(tic, rect.x + i*Scale, rect.y + (MaxValue - amp) * Scale, Scale, Scale, tic_color_7);
+            }
+        }
+        else
         {
-            s32 value = tic_tool_peek4(wave->data, i);
-            tic_api_rect(tic, rect.x + i*Scale, rect.y + (MaxValue - value) * Scale, Scale, Scale, tic_color_7);
+            if(checkMousePos(&rect))
+            {
+                setCursor(tic_cursor_hand);
+
+                s32 cx = (getMouseX() - rect.x) / Scale;
+                s32 cy = MaxValue - (getMouseY() - rect.y) / Scale;
+
+                SHOW_TOOLTIP("[x=%02i y=%02i]", cx, cy);
+
+                enum {Border = 1};
+                tic_api_rectb(tic, rect.x + cx*Scale - Border, 
+                    rect.y + (MaxValue - cy) * Scale - Border, Scale + Border*2, Scale + Border*2, tic_color_7);
+
+                if(checkMouseDown(&rect, tic_mouse_left))
+                {
+                    if(tic_tool_peek4(wave->data, cx) != cy)
+                    {
+                        tic_tool_poke4(wave->data, cx, cy);
+                        history_add(sfx->history);
+                    }
+                }
+            }       
+
+            for(s32 i = 0; i < WAVE_VALUES; i++)
+            {
+                s32 value = tic_tool_peek4(wave->data, i);
+                tic_api_rect(tic, rect.x + i*Scale, rect.y + (MaxValue - value) * Scale, Scale, Scale, tic_color_7);
+            }
         }
 
         // draw flare

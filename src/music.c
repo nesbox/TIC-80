@@ -199,13 +199,15 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
         0b00000000,
     };
 
+    enum {ArrowWidth = 5};
+
     tic_api_print(music->tic, label, x, y+1, tic_color_0, true, 1, false);
     tic_api_print(music->tic, label, x, y, tic_color_12, true, 1, false);
 
     {
         x += (s32)strlen(label)*TIC_FONT_WIDTH;
 
-        tic_rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
+        tic_rect rect = { x, y, ArrowWidth, TIC_FONT_HEIGHT };
 
         bool over = false;
         bool down = false;
@@ -229,14 +231,14 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
     {
         char val[] = "999";
         sprintf(val, "%02i", value);
-        tic_api_print(music->tic, val, x + TIC_FONT_WIDTH, y+1, tic_color_0, true, 1, false);
-        tic_api_print(music->tic, val, x += TIC_FONT_WIDTH, y, tic_color_12, true, 1, false);
+        tic_api_print(music->tic, val, x + ArrowWidth, y+1, tic_color_0, true, 1, false);
+        tic_api_print(music->tic, val, x += ArrowWidth, y, tic_color_4, true, 1, false);
     }
 
     {
-        x += (value > 99 ? 3 : 2)*TIC_FONT_WIDTH;
+        x += (value > 99 ? 3 : 2)*TIC_FONT_WIDTH-1;
 
-        tic_rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
+        tic_rect rect = { x, y, ArrowWidth, TIC_FONT_HEIGHT };
 
         bool over = false;
         bool down = false;
@@ -1191,9 +1193,9 @@ static void drawTopPanel(Music* music, s32 x, s32 y)
     tic_track* track = getTrack(music);
 
     drawSwitch(music, x, y, "TRACK", music->track, setIndex, NULL);
-    drawSwitch(music, x += TIC_FONT_WIDTH * 10, y, "TEMPO", track->tempo + DEFAULT_TEMPO, setTempo, NULL);
-    drawSwitch(music, x += TIC_FONT_WIDTH * 11, y, "SPD", track->speed + DEFAULT_SPEED, setSpeed, NULL);
-    drawSwitch(music, x += TIC_FONT_WIDTH * 8, y, "ROWS", MUSIC_PATTERN_ROWS - track->rows, setRows, NULL);
+    drawSwitch(music, x += TIC_FONT_WIDTH * 9, y, "TEMPO", track->tempo + DEFAULT_TEMPO, setTempo, NULL);
+    drawSwitch(music, x += TIC_FONT_WIDTH * 10, y, "SPD", track->speed + DEFAULT_SPEED, setSpeed, NULL);
+    drawSwitch(music, x += TIC_FONT_WIDTH * 7, y, "ROWS", MUSIC_PATTERN_ROWS - track->rows, setRows, NULL);
 }
 
 static void drawTrackerFrames(Music* music, s32 x, s32 y)
@@ -1435,9 +1437,9 @@ static void drawTumbler(Music* music, s32 x, s32 y, s32 index)
             if (tic_api_key(tic, tic_key_ctrl))
             {
                 for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
-                    music->tracker.patterns[i] = i == index;
+                    music->tracker.on[i] = i == index;
             }
-            else music->tracker.patterns[index] = !music->tracker.patterns[index];
+            else music->tracker.on[index] = !music->tracker.on[index];
         }
     }
 
@@ -1445,7 +1447,7 @@ static void drawTumbler(Music* music, s32 x, s32 y, s32 index)
     tic_api_rect(tic, x, y, Width, Height, tic_color_0);
 
     u8 color = tic_color_0;
-    tic_api_spr(tic, &getConfig()->cart->bank0.tiles, music->tracker.patterns[index] ? On : Off, x, y, 1, 1, &color, 1, 1, tic_no_flip, tic_no_rotate);
+    tic_api_spr(tic, &getConfig()->cart->bank0.tiles, music->tracker.on[index] ? On : Off, x, y, 1, 1, &color, 1, 1, tic_no_flip, tic_no_rotate);
 }
 
 static void drawTracker(Music* music, s32 x, s32 y)
@@ -1459,8 +1461,8 @@ static void drawTracker(Music* music, s32 x, s32 y)
     for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
     {
         s32 patternId = tic_tool_get_pattern_id(getTrack(music), music->tracker.frame, i);
-        drawEditbox(music, x + ChannelWidth * i + 2*TIC_FONT_WIDTH, y - 11, patternId, setChannelPattern, i);
-        drawTumbler(music, x + ChannelWidth * i + 7*TIC_FONT_WIDTH-1, y - 10, i);
+        drawEditbox(music, x + ChannelWidth * i + 2*TIC_FONT_WIDTH, y - 12, patternId, setChannelPattern, i);
+        drawTumbler(music, x + ChannelWidth * i + 7*TIC_FONT_WIDTH-1, y - 11, i);
     }
 
     for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
@@ -1526,7 +1528,7 @@ static void drawPlayButtons(Music* music)
         0b00000000,
     };
 
-    enum { Offset = TIC80_WIDTH - 52, Width = 7, Height = 7, Rows = 8, Count = sizeof Icons / Rows };
+    enum { Offset = TIC80_WIDTH - 60, Width = 7, Height = 7, Rows = 8, Count = sizeof Icons / Rows };
 
     for (s32 i = 0; i < Count; i++)
     {
@@ -1565,19 +1567,19 @@ static void drawModeTabs(Music* music)
     {
         0b00000000,
         0b01111111,
-        0b01010101,
-        0b01010101,
-        0b01000001,
-        0b01111111,
+        0b00000000,
+        0b01101111,
+        0b01101111,
+        0b01101111,
         0b00000000,
         0b00000000,
 
         0b00000000,
-        0b01011011,
+        0b01111111,
         0b00000000,
-        0b01011011,
-        0b00000000,
-        0b01011011,
+        0b01010101,
+        0b01010101,
+        0b01010101,
         0b00000000,
         0b00000000,
     };
@@ -1620,17 +1622,14 @@ static void drawMusicToolbar(Music* music)
     tic_api_rect(music->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, tic_color_12);
 
     drawPlayButtons(music);
-
-    // !TODO: temporary disable mode tabs
-    // drawModeTabs(music);
+    drawModeTabs(music);
 }
 
 static void drawPianoLayout(Music* music)
 {
     tic_api_cls(music->tic, tic_color_14);
 
-    static const char Wip[] = "PIANO MODE - WORK IN PROGRESS...";
-    tic_api_print(music->tic, Wip, (TIC80_WIDTH - (sizeof Wip - 1) * TIC_FONT_WIDTH) / 2, TIC80_HEIGHT / 2, tic_color_12, true, 1, false);
+
 }
 
 static void scrollNotes(Music* music, s32 delta)
@@ -1661,6 +1660,57 @@ static void scrollNotes(Music* music, s32 delta)
         }
 
         history_add(music->history);
+    }
+}
+
+static void drawWaveform(Music* music, s32 x, s32 y)
+{
+    tic_mem* tic = music->tic;
+
+    enum{Width = 32, Height = 8, WaveRows = 1 << WAVE_VALUE_BITS};
+
+    drawEditPanel(music, x, y, Width, Height);
+
+    tic_api_rect(tic, x, y, Width, Height, tic_color_0);
+
+    // detect on channels
+    s32 channels = 0;
+    for(s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
+    {
+        if(!music->tracker.on[c]) continue;
+
+        s32 val = 0;
+        for(s32 i = 0; i < WAVE_SIZE; i++)
+            val += tic->ram.registers[c].waveform.data[i];
+
+        val *= tic->ram.registers[c].volume;
+
+        if(val)
+            channels++;
+    }
+
+    for(s32 i = 0; i < WAVE_VALUES; i++)
+    {
+        s32 lamp = 0, ramp = 0;
+
+        if(channels)
+        {
+            for(s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
+            {
+                s32 index = (i * tic->ram.registers[c].freq >> 7) % WAVE_VALUES;
+                s32 amp = tic_tool_peek4(tic->ram.registers[c].waveform.data, index) 
+                    * tic->ram.registers[c].volume / channels;
+
+                lamp += amp * tic_tool_peek4(&tic->ram.stereo.data, c*2);
+                ramp += amp * tic_tool_peek4(&tic->ram.stereo.data, c*2 + 1);
+            }
+
+            lamp /= WAVE_MAX_VALUE * WAVE_MAX_VALUE;
+            ramp /= WAVE_MAX_VALUE * WAVE_MAX_VALUE;
+        }
+
+        tic_api_rect(tic, x + i, y + (Height-1) - ramp * Height / WaveRows, 1, 1, tic_color_4);
+        tic_api_rect(tic, x + i, y + (Height-1) - lamp * Height / WaveRows, 1, 1, tic_color_5);
     }
 }
 
@@ -1708,8 +1758,9 @@ static void drawTrackerLayout(Music* music)
 
     tic_api_cls(music->tic, tic_color_14);
 
-    drawTopPanel(music, 7, TOOLBAR_SIZE + 4);
+    drawTopPanel(music, 2, TOOLBAR_SIZE + 3);
     drawTracker(music, 7, 35);
+    drawWaveform(music, 205, 9);
 }
 
 static void tick(Music* music)
@@ -1717,7 +1768,7 @@ static void tick(Music* music)
     tic_mem* tic = music->tic;
 
     for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
-        if(!music->tracker.patterns[i])
+        if(!music->tracker.on[i])
             tic->ram.registers[i].volume = 0;
 
     switch (music->tab)
@@ -1770,7 +1821,7 @@ void initMusic(Music* music, tic_mem* tic, tic_music* src)
                 .sfx = 0,
             },
 
-            .patterns = {true, true, true, true},
+            .on = {true, true, true, true},
             .select = 
             {
                 .start = {0, 0},

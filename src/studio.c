@@ -322,7 +322,7 @@ const char* studioExportMusic(s32 track)
         tic_core_tick_start(tic, sfx, music);
 
         for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
-            if(!editor->tracker.patterns[i])
+            if(!editor->tracker.on[i])
                 tic->ram.registers[i].volume = 0;
 
         tic_core_tick_end(tic);

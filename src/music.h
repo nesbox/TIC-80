@@ -60,7 +60,7 @@ struct Music
             bool drag;
         } select;
 
-        bool patterns[TIC_SOUND_CHANNELS];
+        bool on[TIC_SOUND_CHANNELS];
 
     } tracker;
 
