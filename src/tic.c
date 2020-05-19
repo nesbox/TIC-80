@@ -302,18 +302,8 @@ static void drawRectBorder(tic_machine* machine, s32 x, s32 y, s32 width, s32 he
 static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
     static u8 mapping[TIC_PALETTE_SIZE];
-    for (s32 i = 0; i < TIC_PALETTE_SIZE; i++)
-    {
-        u8 mapped = tic_tool_peek4(machine->memory.ram.vram.mapping, i);
-        for (s32 j = 0; j < count; j++)
-        {
-            if (mapped == colors[j]) {
-                mapped = 255;
-                break;
-            }
-        }
-        mapping[i] = mapped;
-    }
+    for (s32 i = 0; i < TIC_PALETTE_SIZE; i++) mapping[i] = tic_tool_peek4(machine->memory.ram.vram.mapping, i);
+    for (s32 i = 0; i < count; i++) mapping[colors[i]] = 255;
 
     rotate &= 0b11;
     u32 orientation = flip & 0b11;
