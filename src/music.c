@@ -312,7 +312,7 @@ static void downRow(Music* music)
 {
     const tic_sound_state* pos = getMusicPos(music);
     // Don't move the cursor if the track is being played/recorded
-    if(pos->music.track == music->track && (music->tracker.record || music->tracker.follow)) return;
+    if(pos->music.track == music->track && music->tracker.follow) return;
 
     if (music->tracker.row < getRows(music) - 1)
     {
@@ -594,11 +594,6 @@ static void toggleSustainMode(Music* music)
 {
     music->tic->ram.sound_state.flag.music_sustain = !music->tracker.sustain;
     music->tracker.sustain = !music->tracker.sustain;
-}
-
-static void toggleRecordMode(Music* music)
-{
-	music->tracker.record = !music->tracker.record;
 }
 
 static void resetSelection(Music* music)
@@ -1252,7 +1247,7 @@ static void drawTrackerFrames(Music* music, s32 x, s32 y)
             tic_api_rect(music->tic, x - 1, y - 1 + i*TIC_FONT_HEIGHT, Width, TIC_FONT_HEIGHT + 1, tic_color_2);
         }
 
-        tic_api_print(music->tic, buf, x, y + i*TIC_FONT_HEIGHT, i == music->tracker.frame ? tic_color_0 : tic_color_13, true, 1, false);
+        tic_api_print(music->tic, buf, x, y + i*TIC_FONT_HEIGHT, i == music->tracker.frame ? tic_color_0 : tic_color_14, true, 1, false);
     }
 
     if(music->tracker.row >= 0)
@@ -1492,15 +1487,6 @@ static void drawPlayButtons(Music* music)
         0b00000000,
 
         0b00000000,
-        0b01110000,
-        0b11111000,
-        0b11111000,
-        0b11111000,
-        0b01110000,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
         0b01010000,
         0b01011000,
         0b01011100,
@@ -1528,7 +1514,7 @@ static void drawPlayButtons(Music* music)
         0b00000000,
     };
 
-    enum { Offset = TIC80_WIDTH - 58, Width = 7, Height = 7, Rows = 8, Count = sizeof Icons / Rows };
+    enum { Offset = TIC80_WIDTH - 54, Width = 7, Height = 7, Rows = 8, Count = sizeof Icons / Rows };
 
     for (s32 i = 0; i < Count; i++)
     {
@@ -1541,10 +1527,10 @@ static void drawPlayButtons(Music* music)
             setCursor(tic_cursor_hand);
             over = true;
 
-            static const char* Tooltips[] = { "FOLLOW [ctrl+f]", "SUSTAIN NOTES", "RECORD MUSIC", "PLAY FRAME [enter]", "PLAY TRACK", "STOP [enter]" };
+            static const char* Tooltips[] = { "FOLLOW [ctrl+f]", "SUSTAIN NOTES", "PLAY FRAME [enter]", "PLAY TRACK", "STOP [enter]" };
             showTooltip(Tooltips[i]);
 
-            static void(*const Handlers[])(Music*) = { toggleFollowMode, toggleSustainMode, toggleRecordMode, playFrame, playTrack, stopTrack };
+            static void(*const Handlers[])(Music*) = { toggleFollowMode, toggleSustainMode, playFrame, playTrack, stopTrack };
 
             if (checkMouseClick(&rect, tic_mouse_left))
                 Handlers[i](music);
@@ -1554,8 +1540,6 @@ static void drawPlayButtons(Music* music)
             drawBitIcon(rect.x, rect.y, Icons + i*Rows, tic_color_6);
         else if(i == 1 && music->tracker.sustain)
             drawBitIcon(rect.x, rect.y, Icons + i*Rows, tic_color_6);
-        else if(i == 2 && music->tracker.record)
-            drawBitIcon(rect.x, rect.y, Icons + i*Rows, tic_color_2);
         else
             drawBitIcon(rect.x, rect.y, Icons + i*Rows, over ? tic_color_14 : tic_color_13);
     }
@@ -1730,7 +1714,7 @@ static void drawTrackerLayout(Music* music)
 
     processKeyboard(music);
 
-    if(music->tracker.follow || music->tracker.record)
+    if(music->tracker.follow)
     {
         const tic_sound_state* pos = getMusicPos(music);
 
@@ -1798,7 +1782,6 @@ void initMusic(Music* music, tic_mem* tic, tic_music* src)
         {
             .follow = true,
             .sustain = false,
-            .record = false,
             .frame = 0,
             .col = 0,
             .row = 0,
