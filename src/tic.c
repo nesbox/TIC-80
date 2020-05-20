@@ -38,6 +38,7 @@
 #define SECONDS_PER_MINUTE 60
 #define NOTES_PER_MUNUTE (TIC80_FRAMERATE / NOTES_PER_BEAT * SECONDS_PER_MINUTE)
 #define PIANO_START 8
+#define TRANSPARENT_COLOR 255
 
 typedef enum
 {
@@ -163,6 +164,14 @@ static void resetPalette(tic_mem* memory)
     memcpy(memory->ram.vram.mapping, DefaultMapping, sizeof DefaultMapping);
 }
 
+static u8* getPalette(tic_mem* tic, u8* colors, u8 count)
+{
+    static u8 mapping[TIC_PALETTE_SIZE];
+    for (s32 i = 0; i < TIC_PALETTE_SIZE; i++) mapping[i] = tic_tool_peek4(tic->ram.vram.mapping, i);
+    for (s32 i = 0; i < count; i++) mapping[colors[i]] = TRANSPARENT_COLOR;
+    return mapping;
+}
+
 static inline u8 mapColor(tic_mem* tic, u8 color)
 {
     return tic_tool_peek4(tic->ram.vram.mapping, color & 0xf);
@@ -213,7 +222,7 @@ static void setPixel(tic_machine* machine, s32 x, s32 y, u8 color)
 {
     if(x < machine->state.clip.l || y < machine->state.clip.t || x >= machine->state.clip.r || y >= machine->state.clip.b) return;
 
-    machine->state.setpix(&machine->memory, x, y, mapColor(&machine->memory, color));
+    machine->state.setpix(&machine->memory, x, y, color);
 }
 
 static u8 getPixel(tic_machine* machine, s32 x, s32 y)
@@ -252,10 +261,9 @@ static void drawHLineOvr(tic_mem* tic, s32 x1, s32 x2, s32 y, u8 color)
 static void drawHLine(tic_machine* machine, s32 x, s32 y, s32 width, u8 color)
 {
     if(y < machine->state.clip.t || machine->state.clip.b <= y) return;
-    u8 final_color = mapColor(&machine->memory, color);
     s32 xl = MAX(x, machine->state.clip.l);
     s32 xr = MIN(x + width, machine->state.clip.r);
-    machine->state.drawhline(&machine->memory, xl, xr, y, final_color);
+    machine->state.drawhline(&machine->memory, xl, xr, y, color);
 }
 
 static void drawVLine(tic_machine* machine, s32 x, s32 y, s32 height, u8 color)
@@ -291,7 +299,7 @@ static void drawRectBorder(tic_machine* machine, s32 x, s32 y, s32 width, s32 he
         for(s32 px=sx; px < ex; px++, xx++) \
         { \
             u8 color = mapping[tic_tool_peek4(buffer, INDEX_EXPR)]; \
-            if(color != 255) machine->state.setpix(&machine->memory, xx, y, color); \
+            if(color != TRANSPARENT_COLOR) machine->state.setpix(&machine->memory, xx, y, color); \
         } \
     } \
     } while(0)
@@ -301,9 +309,7 @@ static void drawRectBorder(tic_machine* machine, s32 x, s32 y, s32 width, s32 he
 
 static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
-    static u8 mapping[TIC_PALETTE_SIZE];
-    for (s32 i = 0; i < TIC_PALETTE_SIZE; i++) mapping[i] = tic_tool_peek4(machine->memory.ram.vram.mapping, i);
-    for (s32 i = 0; i < count; i++) mapping[colors[i]] = 255;
+    u8* mapping = getPalette(&machine->memory, colors, count);
 
     rotate &= 0b11;
     u32 orientation = flip & 0b11;
@@ -349,8 +355,8 @@ static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y,
             } else {
                 i = iy * TIC_SPRITESIZE + ix;
             }
-            u8 color = tic_tool_peek4(buffer, i);
-            if(mapping[color] != 255) drawRect(machine, xx, y, scale, scale, color);
+            u8 color = mapping[tic_tool_peek4(buffer, i)];
+            if(color != TRANSPARENT_COLOR) drawRect(machine, xx, y, scale, scale, color);
         }
     }
 }
@@ -623,7 +629,7 @@ void tic_api_rect(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 color
 {
     tic_machine* machine = (tic_machine*)memory;
 
-    drawRect(machine, x, y, width, height, color);
+    drawRect(machine, x, y, width, height, mapColor(memory, color));
 }
 
 void tic_api_cls(tic_mem* memory, u8 color)
@@ -845,7 +851,7 @@ u8 tic_api_pix(tic_mem* memory, s32 x, s32 y, u8 color, bool get)
 
     if(get) return getPixel(machine, x, y);
 
-    setPixel(machine, x, y, color);
+    setPixel(machine, x, y, mapColor(memory, color));
     return 0;
 }
 
@@ -853,7 +859,7 @@ void tic_api_rectb(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 colo
 {
     tic_machine* machine = (tic_machine*)memory;
 
-    drawRectBorder(machine, x, y, width, height, color);
+    drawRectBorder(machine, x, y, width, height, mapColor(memory, color));
 }
 
 static struct
@@ -929,13 +935,15 @@ void tic_api_circ(tic_mem* memory, s32 xm, s32 ym, s32 radius, u8 color)
 
 void tic_api_circb(tic_mem* memory, s32 xm, s32 ym, s32 radius, u8 color)
 {
+    tic_machine* machine = (tic_machine*)memory;
+    u8 final_color = mapColor(memory, color);
     s32 r = radius;
     s32 x = -r, y = 0, err = 2-2*r;
     do {
-        tic_api_pix(memory, xm-x, ym+y, color, false);
-        tic_api_pix(memory, xm-y, ym-x, color, false);
-        tic_api_pix(memory, xm+x, ym-y, color, false);
-        tic_api_pix(memory, xm+y, ym+x, color, false);
+        setPixel(machine, xm-x, ym+y, final_color);
+        setPixel(machine, xm-y, ym-x, final_color);
+        setPixel(machine, xm+x, ym-y, final_color);
+        setPixel(machine, xm+y, ym+x, final_color);
         r = err;
         if (r <= y) err += ++y*2+1;
         if (r > x || err > y) err += ++x*2+1;
@@ -1052,6 +1060,7 @@ static void ticTexLine(tic_mem* memory, TexVert *v0, TexVert *v1)
 
 void tic_api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8 chroma)
 {
+    u8* mapping = getPalette(memory, &chroma, 1);
     tic_machine* machine = (tic_machine*)memory;
     TexVert V0, V1, V2;
     const u8* ptr = memory->ram.tiles.data[0].data;
@@ -1120,8 +1129,8 @@ void tic_api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, flo
                     while (iv < 0) iv += MapHeight;
                     u8 tile = map[(iv >> 3) * TIC_MAP_WIDTH + (iu >> 3)];
                     const u8 *buffer = &ptr[tile << 5];
-                    u8 color = tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) << 3));
-                    if (color != chroma)
+                    u8 color = mapping[tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) << 3))];
+                    if (color != TRANSPARENT_COLOR)
                         setPixel(machine, x, y, color);
                     u += dudxs;
                     v += dvdxs;
@@ -1136,8 +1145,8 @@ void tic_api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, flo
                     s32 iu = (u>>16) & (SheetWidth - 1);
                     s32 iv = (v>>16) & (SheetHeight - 1);
                     const u8 *buffer = &ptr[((iu >> 3) + ((iv >> 3) << 4)) << 5];
-                    u8 color = tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) << 3));
-                    if (color != chroma)
+                    u8 color = mapping[tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) << 3))];
+                    if (color != TRANSPARENT_COLOR)
                         setPixel(machine, x, y, color);
                     u += dudxs;
                     v += dvdxs;
@@ -1174,7 +1183,7 @@ static inline void setLinePixel(tic_mem* tic, s32 x, s32 y, u8 color)
 
 void tic_api_line(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, u8 color)
 {
-    ticLine(memory, x0, y0, x1, y1, color, setLinePixel);
+    ticLine(memory, x0, y0, x1, y1, mapColor(memory, color), setLinePixel);
 }
 
 static s32 calcLoopPos(const tic_sound_loop* loop, s32 pos)
