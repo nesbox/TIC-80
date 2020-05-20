@@ -247,6 +247,7 @@ const char* findMatchedDelim(Code* code, const char* current)
            code->syntax[current - start] == SyntaxTypeString) continue;
         if(*current == seeking) return current;
         if(*current == initial) current = findMatchedDelim(code, current);
+        if(!current) break;
     }
 
     return NULL;
