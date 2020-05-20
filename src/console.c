@@ -28,6 +28,7 @@
 
 #include <ctype.h>
 #include <string.h>
+#include <malloc.h>
 
 #include <lua.h>
 #include <lauxlib.h>
@@ -3308,7 +3309,8 @@ static bool checkUIScale(Console* console, const char* param, const char* value)
 
 static bool checkCommand(Console* console, const char* argument)
 {
-    char* command = strdup(argument);
+    char* command = alloca(strlen(argument));
+    strcpy(command, argument);
 
     for(char* ptr = command; *ptr; ptr++)
         if(isspace(*ptr))
@@ -3317,7 +3319,6 @@ static bool checkCommand(Console* console, const char* argument)
             break;
         }
 
-    bool res = false;
     for(s32 i = 0; i < COUNT_OF(AvailableConsoleCommands); i++)
     {
         if(tic_strcasecmp(command, AvailableConsoleCommands[i].command) == 0 ||
@@ -3325,14 +3326,11 @@ static bool checkCommand(Console* console, const char* argument)
              tic_strcasecmp(command, AvailableConsoleCommands[i].alt) == 0))
         {
             processCommand(console, argument);
-            res = true;
-            break;
+            return true;
         }
     }
 
-    free(command);
-
-    return res;
+    return false;
 }
 
 void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config, s32 argc, char **argv)
