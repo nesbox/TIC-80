@@ -2735,8 +2735,8 @@ static s32 tic_strcasecmp(const char *str1, const char *str2)
     char a = 0;
     char b = 0;
     while (*str1 && *str2) {
-        a = toupper((unsigned char) *str1);
-        b = toupper((unsigned char) *str2);
+        a = toupper((u8) *str1);
+        b = toupper((u8) *str2);
         if (a != b)
             break;
         ++str1;
@@ -2744,7 +2744,7 @@ static s32 tic_strcasecmp(const char *str1, const char *str2)
     }
     a = toupper(*str1);
     b = toupper(*str2);
-    return (int) ((unsigned char) a - (unsigned char) b);
+    return (s32) ((u8) a - (u8) b);
 }
 
 static void processCommand(Console* console, const char* command)
@@ -3308,29 +3308,31 @@ static bool checkUIScale(Console* console, const char* param, const char* value)
 
 static bool checkCommand(Console* console, const char* argument)
 {
+    char* command = strdup(argument);
+
+    for(char* ptr = command; *ptr; ptr++)
+        if(isspace(*ptr))
+        {
+            *ptr = '\0';
+            break;
+        }
+
+    bool res = false;
     for(s32 i = 0; i < COUNT_OF(AvailableConsoleCommands); i++)
     {
-        char command[16];
-        for(s32 i = 0; i < sizeof(command); i++)
-        {
-            if(argument[i] == ' ' || argument[i] == '\t')
-            {
-                command[i] = 0;
-                break;
-            }
-            command[i] = argument[i];
-        }
-        command[15] = 0;
-
         if(tic_strcasecmp(command, AvailableConsoleCommands[i].command) == 0 ||
             (AvailableConsoleCommands[i].alt &&
              tic_strcasecmp(command, AvailableConsoleCommands[i].alt) == 0))
         {
             processCommand(console, argument);
-            return true;
+            res = true;
+            break;
         }
     }
-    return false;
+
+    free(command);
+
+    return res;
 }
 
 void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config, s32 argc, char **argv)
