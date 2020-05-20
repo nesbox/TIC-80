@@ -3306,6 +3306,33 @@ static bool checkUIScale(Console* console, const char* param, const char* value)
     return done;
 }
 
+static bool checkCommand(Console* console, const char* argument)
+{
+    for(s32 i = 0; i < COUNT_OF(AvailableConsoleCommands); i++)
+    {
+        char command[16];
+        for(s32 i = 0; i < sizeof(command); i++)
+        {
+            if(argument[i] == ' ' || argument[i] == '\t')
+            {
+                command[i] = 0;
+                break;
+            }
+            command[i] = argument[i];
+        }
+        command[15] = 0;
+
+        if(tic_strcasecmp(command, AvailableConsoleCommands[i].command) == 0 ||
+            (AvailableConsoleCommands[i].alt &&
+             tic_strcasecmp(command, AvailableConsoleCommands[i].alt) == 0))
+        {
+            processCommand(console, argument);
+            return true;
+        }
+    }
+    return false;
+}
+
 void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config, s32 argc, char **argv)
 {
     if(!console->buffer) console->buffer = malloc(CONSOLE_BUFFER_SIZE);
@@ -3444,9 +3471,12 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
         {
             if(~argp & 1 << i)
             {
-                char buf[256];
-                sprintf(buf, "parameter or file not processed: %s\n", argv[i]);
-                getSystem()->showMessageBox("Warning", buf);
+                if(!checkCommand(console, argv[i]))
+                {
+                    char buf[256];
+                    sprintf(buf, "parameter or file not processed: %s\n", argv[i]);
+                    getSystem()->showMessageBox("Warning", buf);
+                }
             }
         }
     }
