@@ -28,7 +28,10 @@
 
 #include <ctype.h>
 #include <string.h>
+
+#if !defined(__TIC_MACOSX__)
 #include <malloc.h>
+#endif
 
 #include <lua.h>
 #include <lauxlib.h>
