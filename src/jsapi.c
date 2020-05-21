@@ -709,7 +709,6 @@ static duk_ret_t duk_textri(duk_context* duk)
         pt[i] = (float)duk_to_number(duk, i);
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
     bool use_map = duk_opt_boolean(duk, 12, false);
-    u8 chroma = duk_opt_int(duk, 13, 0xff);
 
     static u8 colors[TIC_PALETTE_SIZE];
     s32 count = 0;
