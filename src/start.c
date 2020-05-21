@@ -33,7 +33,7 @@ static void reset(Start* start)
 
     for(s32 i = 0; i < sizeof(tic_tile); i++) tile[i] = val;
 
-    tic_api_map(start->tic, &start->tic->ram.map, &start->tic->ram.tiles, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT + (TIC80_HEIGHT % TIC_SPRITESIZE ? 1 : 0), 0, 0, -1, 1, NULL, NULL);
+    tic_api_map(start->tic, &start->tic->ram.map, &start->tic->ram.tiles, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT + (TIC80_HEIGHT % TIC_SPRITESIZE ? 1 : 0), 0, 0, 0, 0, 1, NULL, NULL);
 }
 
 static void drawHeader(Start* start)

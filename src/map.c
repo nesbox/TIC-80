@@ -900,7 +900,7 @@ static void drawMapReg(Map* map)
 
     tic_mem* tic = map->tic;
     tic_api_map(tic, map->src, getBankTiles(), map->scroll.x / TIC_SPRITESIZE, map->scroll.y / TIC_SPRITESIZE, 
-        TIC_MAP_SCREEN_WIDTH + 1, TIC_MAP_SCREEN_HEIGHT + 1, -scrollX, -scrollY, -1, 1, NULL, NULL);
+        TIC_MAP_SCREEN_WIDTH + 1, TIC_MAP_SCREEN_HEIGHT + 1, -scrollX, -scrollY, 0, 0, 1, NULL, NULL);
 
     if(map->canvas.grid || map->scroll.active)
         drawGrid(map);

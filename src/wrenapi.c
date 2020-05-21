@@ -620,8 +620,9 @@ static void wren_map(WrenVM* vm)
     s32 h = TIC_MAP_SCREEN_HEIGHT;
     s32 sx = 0;
     s32 sy = 0;
-    u8 chromakey = -1;
     s32 scale = 1;
+    static u8 colors[TIC_PALETTE_SIZE];
+    s32 count = 0;
 
     s32 top = wrenGetSlotCount(vm);
 
@@ -642,7 +643,29 @@ static void wren_map(WrenVM* vm)
 
                 if(top > 7)
                 {
-                    chromakey = getWrenNumber(vm, 7);
+                    if(isList(vm, 7))
+                    {
+                        wrenEnsureSlots(vm, top+1);
+                        int list_count = wrenGetListCount(vm, 7);
+                        for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+                        {
+                            wrenGetListElement(vm, 7, i, top);
+                            if(i < list_count && isNumber(vm, top))
+                            {
+                                colors[i] = getWrenNumber(vm, top);
+                                count++;
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+                    }
+                    else 
+                    {
+                        colors[0] = getWrenNumber(vm, 7);
+                        count = 1;
+                    }
 
                     if(top > 8)
                     {
@@ -655,7 +678,7 @@ static void wren_map(WrenVM* vm)
 
     tic_mem* tic = (tic_mem*)getWrenMachine(vm);
 
-    tic_api_map(tic, &tic->ram.map, &tic->ram.tiles, x, y, w, h, sx, sy, chromakey, scale, NULL, NULL);
+    tic_api_map(tic, &tic->ram.map, &tic->ram.tiles, x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
 }
 
 static void wren_mset(WrenVM* vm)
@@ -692,7 +715,8 @@ static void wren_textri(WrenVM* vm)
     }
 
     tic_mem* tic = (tic_mem*)getWrenMachine(vm);
-    u8 chroma = 0xff;
+    static u8 colors[TIC_PALETTE_SIZE];
+    s32 count = 0;
     bool use_map = false;
 
     //  check for use map 
@@ -702,9 +726,28 @@ static void wren_textri(WrenVM* vm)
     }
 
     //  check for chroma 
-    if (top > 14)
+    if(isList(vm, 14))
     {
-        chroma = (u8)getWrenNumber(vm, 14);
+        wrenEnsureSlots(vm, top+1);
+        int list_count = wrenGetListCount(vm, 14);
+        for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+        {
+            wrenGetListElement(vm, 14, i, top);
+            if(i < list_count && isNumber(vm, top))
+            {
+                colors[i] = getWrenNumber(vm, top);
+                count++;
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+    else 
+    {
+        colors[0] = getWrenNumber(vm, 14);
+        count = 1;
     }
 
     tic_api_textri(tic, pt[0], pt[1],   //  xy 1
@@ -714,7 +757,7 @@ static void wren_textri(WrenVM* vm)
                                 pt[8], pt[9],   //  uv 2
                                 pt[10], pt[11], //  uv 3
                                 use_map,        // use map
-                                chroma);        // chroma
+                                colors, count);        // chroma
 }
 
 static void wren_pix(WrenVM* vm)

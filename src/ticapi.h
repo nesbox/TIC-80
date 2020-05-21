@@ -102,7 +102,7 @@ typedef struct
     macro(btn,          1,  u32,    tic_mem*, s32 id) \
     macro(btnp,         3,  u32,    tic_mem*, s32 id, s32 hold, s32 period) \
     macro(sfx,          6,  void,   tic_mem*, s32 index, s32 note, s32 octave, s32 duration, s32 channel, s32 volume, s32 speed) \
-    macro(map,          9,  void,   tic_mem*, const tic_map* src, const tic_tiles* tiles, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8 chromakey, s32 scale, RemapFunc remap, void* data) \
+    macro(map,          9,  void,   tic_mem*, const tic_map* src, const tic_tiles* tiles, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* colors, s32 count, s32 scale, RemapFunc remap, void* data) \
     macro(mget,         2,  u8,     tic_mem*, const tic_map* src, s32 x, s32 y) \
     macro(mset,         3,  void,   tic_mem*, tic_map* src, s32 x, s32 y, u8 value) \
     macro(peek,         1,  u8,     tic_mem*, s32 address) \
@@ -121,7 +121,7 @@ typedef struct
     macro(circ,         4,  void,   tic_mem*, s32 x, s32 y, s32 radius, u8 color) \
     macro(circb,        4,  void,   tic_mem*, s32 x, s32 y, s32 radius, u8 color) \
     macro(tri,          7,  void,   tic_mem*, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, u8 color) \
-    macro(textri,       14, void,   tic_mem*, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8 chroma) \
+    macro(textri,       14, void,   tic_mem*, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count) \
     macro(clip,         4,  void,   tic_mem*, s32 x, s32 y, s32 width, s32 height) \
     macro(music,        4,  void,   tic_mem*, s32 track, s32 frame, s32 row, bool loop, bool sustain) \
     macro(sync,         3,  void,   tic_mem*, u32 mask, s32 bank, bool toCart) \
