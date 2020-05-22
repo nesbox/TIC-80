@@ -359,7 +359,8 @@ static SQInteger squirrel_textri(HSQUIRRELVM vm)
         }
 
         tic_mem* tic = (tic_mem*)getSquirrelMachine(vm);
-        u8 chroma = 0xff;
+        static u8 colors[TIC_PALETTE_SIZE];
+        s32 count = 0;
         bool use_map = false;
 
         //  check for use map 
@@ -370,8 +371,30 @@ static SQInteger squirrel_textri(HSQUIRRELVM vm)
             use_map = (b != SQFalse);
         }
         //  check for chroma 
-        if (top >= 15)
-            chroma = (u8)getSquirrelNumber(vm, 15);
+        if(OT_ARRAY == sq_gettype(vm, 15))
+        {
+            for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+            {
+                sq_pushinteger(vm, (SQInteger)i);
+                sq_rawget(vm, 15);
+                if(sq_gettype(vm, -1) & (OT_FLOAT|OT_INTEGER))
+                {
+                    colors[i-1] = getSquirrelNumber(vm, -1);
+                    count++;
+                    sq_poptop(vm);
+                }
+                else
+                {
+                    sq_poptop(vm);
+                    break;
+                }
+            }
+        }
+        else 
+        {
+            colors[0] = getSquirrelNumber(vm, 15);
+            count = 1;
+        }
 
         tic_api_textri(tic, pt[0], pt[1],   //  xy 1
                                     pt[2], pt[3],   //  xy 2
@@ -380,7 +403,7 @@ static SQInteger squirrel_textri(HSQUIRRELVM vm)
                                     pt[8], pt[9],   //  uv 2
                                     pt[10], pt[11], //  uv 3
                                     use_map,        // use map
-                                    chroma);        // chroma
+                                    colors, count);        // chroma
     }
     else return sq_throwerror(vm, "invalid parameters, textri(x1,y1,x2,y2,x3,y3,u1,v1,u2,v2,u3,v3,[use_map=false],[chroma=off])\n");
     return 0;
@@ -644,8 +667,9 @@ static SQInteger squirrel_map(HSQUIRRELVM vm)
     s32 h = TIC_MAP_SCREEN_HEIGHT;
     s32 sx = 0;
     s32 sy = 0;
-    u8 chromakey = -1;
     s32 scale = 1;
+    static u8 colors[TIC_PALETTE_SIZE];
+    s32 count = 0;
 
     SQInteger top = sq_gettop(vm);
 
@@ -666,7 +690,30 @@ static SQInteger squirrel_map(HSQUIRRELVM vm)
 
                 if(top >= 8)
                 {
-                    chromakey = getSquirrelNumber(vm, 8);
+                    if(OT_ARRAY == sq_gettype(vm, 8))
+                    {
+                        for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+                        {
+                            sq_pushinteger(vm, (SQInteger)i);
+                            sq_rawget(vm, 8);
+                            if(sq_gettype(vm, -1) & (OT_FLOAT|OT_INTEGER))
+                            {
+                                colors[i-1] = getSquirrelNumber(vm, -1);
+                                count++;
+                                sq_poptop(vm);
+                            }
+                            else
+                            {
+                                sq_poptop(vm);
+                                break;
+                            }
+                        }
+                    }
+                    else 
+                    {
+                        colors[0] = getSquirrelNumber(vm, 8);
+                        count = 1;
+                    }
 
                     if(top >= 9)
                     {
@@ -684,7 +731,7 @@ static SQInteger squirrel_map(HSQUIRRELVM vm)
 
                                 tic_mem* tic = (tic_mem*)getSquirrelMachine(vm);
 
-                                tic_api_map(tic, &tic->ram.map, &tic->ram.tiles, x, y, w, h, sx, sy, chromakey, scale, remapCallback, &data);
+                                tic_api_map(tic, &tic->ram.map, &tic->ram.tiles, x, y, w, h, sx, sy, colors, count, scale, remapCallback, &data);
 
                                 //luaL_unref(lua, LUA_REGISTRYINDEX, data.reg);
                                 sq_release(vm, &data.reg);
@@ -700,7 +747,7 @@ static SQInteger squirrel_map(HSQUIRRELVM vm)
 
     tic_mem* tic = (tic_mem*)getSquirrelMachine(vm);
 
-    tic_api_map((tic_mem*)getSquirrelMachine(vm), &tic->ram.map, &tic->ram.tiles, x, y, w, h, sx, sy, chromakey, scale, NULL, NULL);
+    tic_api_map((tic_mem*)getSquirrelMachine(vm), &tic->ram.map, &tic->ram.tiles, x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
 
     return 0;
 }

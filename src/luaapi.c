@@ -303,15 +303,40 @@ static s32 lua_textri(lua_State* lua)
             pt[i] = (float)lua_tonumber(lua, i + 1);
 
         tic_mem* tic = (tic_mem*)getLuaMachine(lua);
-        u8 chroma = 0xff;
+        static u8 colors[TIC_PALETTE_SIZE];
+        s32 count = 0;
         bool use_map = false;
 
         //  check for use map 
         if (top >= 13)
             use_map = lua_toboolean(lua, 13);
         //  check for chroma 
-        if (top >= 14)
-            chroma = (u8)getLuaNumber(lua, 14);
+        if(top >= 14)
+        {
+            if(lua_istable(lua, 14))
+            {
+                for(s32 i = 1; i <= TIC_PALETTE_SIZE; i++)
+                {
+                    lua_rawgeti(lua, 14, i);
+                    if(lua_isnumber(lua, -1))
+                    {
+                        colors[i-1] = getLuaNumber(lua, -1);
+                        count++;
+                        lua_pop(lua, 1);
+                    }
+                    else
+                    {
+                        lua_pop(lua, 1);
+                        break;
+                    }
+                }
+            }
+            else 
+            {
+                colors[0] = getLuaNumber(lua, 14);
+                count = 1;
+            }
+        }
 
         tic_api_textri(tic, pt[0], pt[1],   //  xy 1
                                     pt[2], pt[3],   //  xy 2
@@ -320,7 +345,7 @@ static s32 lua_textri(lua_State* lua)
                                     pt[8], pt[9],   //  uv 2
                                     pt[10], pt[11], //  uv 3
                                     use_map,        // use map
-                                    chroma);        // chroma
+                                    colors, count);        // chroma
     }
     else luaL_error(lua, "invalid parameters, textri(x1,y1,x2,y2,x3,y3,u1,v1,u2,v2,u3,v3,[use_map=false],[chroma=off])\n");
     return 0;
@@ -561,8 +586,9 @@ static s32 lua_map(lua_State* lua)
     s32 h = TIC_MAP_SCREEN_HEIGHT;
     s32 sx = 0;
     s32 sy = 0;
-    u8 chromakey = -1;
     s32 scale = 1;
+    static u8 colors[TIC_PALETTE_SIZE];
+    s32 count = 0;
 
     s32 top = lua_gettop(lua);
 
@@ -583,7 +609,29 @@ static s32 lua_map(lua_State* lua)
 
                 if(top >= 7)
                 {
-                    chromakey = getLuaNumber(lua, 7);
+                    if(lua_istable(lua, 7))
+                    {
+                        for(s32 i = 1; i <= TIC_PALETTE_SIZE; i++)
+                        {
+                            lua_rawgeti(lua, 7, i);
+                            if(lua_isnumber(lua, -1))
+                            {
+                                colors[i-1] = getLuaNumber(lua, -1);
+                                count++;
+                                lua_pop(lua, 1);
+                            }
+                            else
+                            {
+                                lua_pop(lua, 1);
+                                break;
+                            }
+                        }
+                    }
+                    else 
+                    {
+                        colors[0] = getLuaNumber(lua, 7);
+                        count = 1;
+                    }
 
                     if(top >= 8)
                     {
@@ -599,7 +647,7 @@ static s32 lua_map(lua_State* lua)
 
                                 tic_mem* tic = (tic_mem*)getLuaMachine(lua);
 
-                                tic_api_map(tic, &tic->ram.map, &tic->ram.tiles, x, y, w, h, sx, sy, chromakey, scale, remapCallback, &data);
+                                tic_api_map(tic, &tic->ram.map, &tic->ram.tiles, x, y, w, h, sx, sy, colors, count, scale, remapCallback, &data);
 
                                 luaL_unref(lua, LUA_REGISTRYINDEX, data.reg);
 
@@ -614,7 +662,7 @@ static s32 lua_map(lua_State* lua)
 
     tic_mem* tic = (tic_mem*)getLuaMachine(lua);
 
-    tic_api_map((tic_mem*)getLuaMachine(lua), &tic->ram.map, &tic->ram.tiles, x, y, w, h, sx, sy, chromakey, scale, NULL, NULL);
+    tic_api_map((tic_mem*)getLuaMachine(lua), &tic->ram.map, &tic->ram.tiles, x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
 
     return 0;
 }

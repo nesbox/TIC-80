@@ -265,7 +265,7 @@ static void initTouchKeyboard()
 
         tic_api_cls(tic, 0);
         tic_api_map(tic, &platform.studio->config()->cart->bank0.map, 
-            &platform.studio->config()->cart->bank0.tiles, 8, 0, Cols, Rows, 0, 0, -1, 1, NULL, NULL);
+            &platform.studio->config()->cart->bank0.tiles, 8, 0, Cols, Rows, 0, 0, 0, 0, 1, NULL, NULL);
 
         drawKeyboardLabels(0);
 
@@ -289,7 +289,7 @@ static void initTouchKeyboard()
         memcpy(tic->ram.vram.palette.data, platform.studio->config()->cart->bank0.palette.data, sizeof(tic_palette));
 
         tic_api_map(tic, &platform.studio->config()->cart->bank0.map, 
-            &platform.studio->config()->cart->bank0.tiles, TIC_MAP_SCREEN_WIDTH+8, 0, Cols, Rows, 0, 0, -1, 1, NULL, NULL);
+            &platform.studio->config()->cart->bank0.tiles, TIC_MAP_SCREEN_WIDTH+8, 0, Cols, Rows, 0, 0, 0, 0, 1, NULL, NULL);
 
         drawKeyboardLabels(2);
 
@@ -314,7 +314,7 @@ static void initTouchGamepad()
     if(!platform.gamepad.pixels)
     {
         tic_api_map(platform.studio->tic, &platform.studio->config()->cart->bank0.map, 
-            &platform.studio->config()->cart->bank0.tiles, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, -1, 1, NULL, NULL);
+            &platform.studio->config()->cart->bank0.tiles, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, 0, 0, 1, NULL, NULL);
 
         platform.gamepad.pixels = SDL_malloc(TEXTURE_SIZE * TEXTURE_SIZE * sizeof(u32));
 

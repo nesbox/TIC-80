@@ -403,20 +403,51 @@ static duk_ret_t duk_map(duk_context* duk)
     s32 h = duk_opt_int(duk, 3, TIC_MAP_SCREEN_HEIGHT);
     s32 sx = duk_opt_int(duk, 4, 0);
     s32 sy = duk_opt_int(duk, 5, 0);
-    u8 chromakey = duk_opt_int(duk, 6, -1);
     s32 scale = duk_opt_int(duk, 7, 1);
+
+    static u8 colors[TIC_PALETTE_SIZE];
+    s32 count = 0;
+
+    {
+        if(!duk_is_null_or_undefined(duk, 6))
+        {
+            if(duk_is_array(duk, 6))
+            {
+                for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+                {
+                    duk_get_prop_index(duk, 6, i);
+                    if(duk_is_null_or_undefined(duk, -1))
+                    {
+                        duk_pop(duk);
+                        break;
+                    }
+                    else
+                    {
+                        colors[i] = duk_to_int(duk, -1);
+                        count++;
+                        duk_pop(duk);
+                    }                   
+                }
+            }
+            else
+            {
+                colors[0] = duk_to_int(duk, 6);
+                count = 1;
+            }
+        }
+    }
 
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
 
     if (duk_is_null_or_undefined(duk, 8))
-        tic_api_map(tic, &tic->ram.map, &tic->ram.tiles, x, y, w, h, sx, sy, chromakey, scale, NULL, NULL);
+        tic_api_map(tic, &tic->ram.map, &tic->ram.tiles, x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
     else
     {
         void* remap = duk_get_heapptr(duk, 8);
 
         RemapData data = {duk, remap};
 
-        tic_api_map((tic_mem*)getDukMachine(duk), &tic->ram.map, &tic->ram.tiles, x, y, w, h, sx, sy, chromakey, scale, remapCallback, &data);
+        tic_api_map((tic_mem*)getDukMachine(duk), &tic->ram.map, &tic->ram.tiles, x, y, w, h, sx, sy, colors, count, scale, remapCallback, &data);
     }
 
     return 0;
@@ -678,7 +709,37 @@ static duk_ret_t duk_textri(duk_context* duk)
         pt[i] = (float)duk_to_number(duk, i);
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
     bool use_map = duk_opt_boolean(duk, 12, false);
-    u8 chroma = duk_opt_int(duk, 13, 0xff);
+
+    static u8 colors[TIC_PALETTE_SIZE];
+    s32 count = 0;
+    {
+        if(!duk_is_null_or_undefined(duk, 13))
+        {
+            if(duk_is_array(duk, 13))
+            {
+                for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+                {
+                    duk_get_prop_index(duk, 13, i);
+                    if(duk_is_null_or_undefined(duk, -1))
+                    {
+                        duk_pop(duk);
+                        break;
+                    }
+                    else
+                    {
+                        colors[i] = duk_to_int(duk, -1);
+                        count++;
+                        duk_pop(duk);
+                    }                   
+                }
+            }
+            else
+            {
+                colors[0] = duk_to_int(duk, 13);
+                count = 1;
+            }
+        }
+    }
 
     tic_api_textri(tic, pt[0], pt[1],   //  xy 1
                         pt[2], pt[3],   //  xy 2
@@ -687,7 +748,7 @@ static duk_ret_t duk_textri(duk_context* duk)
                         pt[8], pt[9],   //  uv 2
                         pt[10], pt[11],//  uv 3
                         use_map, // usemap
-                        chroma);    //  chroma
+                        colors, count);    //  chroma
     
     return 0;
 }
