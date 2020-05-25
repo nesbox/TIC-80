@@ -30,6 +30,7 @@
 
 #include "ticapi.h"
 #include "tools.h"
+#include "tilesheet.h"
 #include "machine.h"
 #include "ext/gif.h"
 
@@ -155,6 +156,25 @@ static void runNoise(blip_buffer_t* blip, const tic_sound_register* reg, tic_sou
         data->phase = ((data->phase & 1) * (0b11 << 13)) ^ (data->phase >> 1);
         update_amp(blip, data, getAmp(reg, (data->phase & 1) ? volume : 0));
     }
+}
+
+static void resetBlitSegment(tic_mem* memory)
+{
+    memory->ram.vram.blit.segment = 2;
+}
+
+static tic_tilesheet getTileSheetFromSegment(tic_mem* memory, u8 segment)
+{
+    u8* src;
+    switch(segment){
+        case 0:
+        case 1: 
+            src = (u8*) &memory->ram.font.data; break;
+        default:
+            src = (u8*) &memory->ram.tiles.data; break;
+    }
+
+    return getTileSheet(segment, src);
 }
 
 static void resetPalette(tic_mem* memory)
@@ -292,22 +312,21 @@ static void drawRectBorder(tic_machine* machine, s32 x, s32 y, s32 width, s32 he
     drawVLine(machine, x + width - 1, y, height, color);
 }
 
-#define DRAW_TILE_BODY(INDEX_EXPR) do {\
+#define DRAW_TILE_BODY(X, Y) do {\
     for(s32 py=sy; py < ey; py++, y++) \
     { \
         s32 xx = x; \
         for(s32 px=sx; px < ex; px++, xx++) \
         { \
-            u8 color = mapping[tic_tool_peek4(buffer, INDEX_EXPR)]; \
+            u8 color = mapping[getTilePixel(tile, (X), (Y))];\
             if(color != TRANSPARENT_COLOR) machine->state.setpix(&machine->memory, xx, y, color); \
         } \
     } \
     } while(0)
 
 #define REVERT(X) (TIC_SPRITESIZE - 1 - (X))
-#define INDEX_XY(X, Y) ((Y) * TIC_SPRITESIZE + (X))
 
-static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
+static void drawTile(tic_machine* machine, tic_tileptr* tile, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
     u8* mapping = getPalette(&machine->memory, colors, count);
 
@@ -329,14 +348,14 @@ static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y,
         y += sy;
         x += sx;
         switch (orientation) {
-            case 0b100: DRAW_TILE_BODY(INDEX_XY(py, px)); break;
-            case 0b110: DRAW_TILE_BODY(INDEX_XY(REVERT(py), px)); break;
-            case 0b101: DRAW_TILE_BODY(INDEX_XY(py, REVERT(px))); break;
-            case 0b111: DRAW_TILE_BODY(INDEX_XY(REVERT(py), REVERT(px))); break;
-            case 0b000: DRAW_TILE_BODY(INDEX_XY(px, py)); break;
-            case 0b010: DRAW_TILE_BODY(INDEX_XY(px, REVERT(py))); break;
-            case 0b001: DRAW_TILE_BODY(INDEX_XY(REVERT(px), py)); break;
-            case 0b011: DRAW_TILE_BODY(INDEX_XY(REVERT(px), REVERT(py))); break;
+            case 0b100: DRAW_TILE_BODY(py, px); break;
+            case 0b110: DRAW_TILE_BODY(REVERT(py), px); break;
+            case 0b101: DRAW_TILE_BODY(py, REVERT(px)); break;
+            case 0b111: DRAW_TILE_BODY(REVERT(py), REVERT(px)); break;
+            case 0b000: DRAW_TILE_BODY(px, py); break;
+            case 0b010: DRAW_TILE_BODY(px, REVERT(py)); break;
+            case 0b001: DRAW_TILE_BODY(REVERT(px), py); break;
+            case 0b011: DRAW_TILE_BODY(REVERT(px), REVERT(py)); break;
             default: assert(!"Unknown value of orientation in drawTile");
         }
         return;
@@ -351,11 +370,9 @@ static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y,
             s32 ix = orientation & 0b001 ? TIC_SPRITESIZE - px - 1: px;
             s32 iy = orientation & 0b010 ? TIC_SPRITESIZE - py - 1: py;
             if(orientation & 0b100) {
-                i = ix * TIC_SPRITESIZE + iy;
-            } else {
-                i = iy * TIC_SPRITESIZE + ix;
+                s32 tmp = ix; ix=iy; iy=tmp;
             }
-            u8 color = mapping[tic_tool_peek4(buffer, i)];
+            u8 color = mapping[getTilePixel(tile, ix, iy)];
             if(color != TRANSPARENT_COLOR) drawRect(machine, xx, y, scale, scale, color);
         }
     }
@@ -363,11 +380,65 @@ static void drawTile(tic_machine* machine, const tic_tile* buffer, s32 x, s32 y,
 
 #undef DRAW_TILE_BODY
 #undef REVERT
-#undef INDEX_XY
 
-static void drawMap(tic_machine* machine, const tic_map* src, const tic_tiles* tiles, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* colors, s32 count, s32 scale, RemapFunc remap, void* data)
+static void drawSprite(tic_machine* machine, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
+{
+    tic_tilesheet sheet = getTileSheetFromSegment(&machine->memory, machine->memory.ram.vram.blit.segment);
+    if ( w == 1 && h == 1){
+        tic_tileptr tile = getTile(&sheet, index, false);
+        drawTile(machine, &tile, x, y, colors, count, scale, flip, rotate);
+    }
+    else
+    {
+        s32 step = TIC_SPRITESIZE * scale;
+        s32 cols = sheet.segment.sheet_width;
+
+        const tic_flip vert_horz_flip = tic_horz_flip | tic_vert_flip;
+
+        for(s32 i = 0; i < w; i++)
+        {
+            for(s32 j = 0; j < h; j++)
+            {
+                s32 mx = i;
+                s32 my = j;
+
+                if(flip == tic_horz_flip || flip == vert_horz_flip) mx = w-1-i;
+                if(flip == tic_vert_flip || flip == vert_horz_flip) my = h-1-j;
+
+                if (rotate == tic_180_rotate)
+                {
+                    mx = w-1-mx;
+                    my = h-1-my;
+                }
+                else if(rotate == tic_90_rotate)
+                {
+                    if(flip == tic_no_flip || flip == vert_horz_flip) my = h-1-my;
+                    else mx = w-1-mx;
+                }
+                else if(rotate == tic_270_rotate)
+                {
+                    if(flip == tic_no_flip || flip == vert_horz_flip) mx = w-1-mx;
+                    else my = h-1-my;
+                }
+
+                enum {Cols = TIC_SPRITESHEET_SIZE / TIC_SPRITESIZE};
+
+
+                tic_tileptr tile = getTile(&sheet, index + mx+my*cols, false);
+                if(rotate==0 || rotate==2)
+                    drawTile(machine, &tile, x+i*step, y+j*step, colors, count, scale, flip, rotate);
+                else
+                    drawTile(machine, &tile, x+j*step, y+i*step, colors, count, scale, flip, rotate);
+            }
+        }
+    }
+}
+
+static void drawMap(tic_machine* machine, const tic_map* src, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* colors, s32 count, s32 scale, RemapFunc remap, void* data)
 {
     const s32 size = TIC_SPRITESIZE * scale;
+
+    tic_tilesheet sheet = getTileSheetFromSegment(&machine->memory, machine->memory.ram.vram.blit.segment);
 
     for(s32 j = y, jj = sy; j < y + height; j++, jj += size)
         for(s32 i = x, ii = sx; i < x + width; i++, ii += size)
@@ -381,12 +452,13 @@ static void drawMap(tic_machine* machine, const tic_map* src, const tic_tiles* t
             while(mj >= TIC_MAP_HEIGHT) mj -= TIC_MAP_HEIGHT;
             
             s32 index = mi + mj * TIC_MAP_WIDTH;
-            RemapResult tile = { *(src->data + index), tic_no_flip, tic_no_rotate };
+            RemapResult retile = { *(src->data + index), tic_no_flip, tic_no_rotate };
 
             if (remap)
-                remap(data, mi, mj, &tile);
+                remap(data, mi, mj, &retile);
 
-            drawTile(machine, tiles->data + tile.index, ii, jj, colors, count, scale, tile.flip, tile.rotate);
+            tic_tileptr tile = getTile(&sheet, retile.index, true);
+            drawTile(machine, &tile, ii, jj, colors, count, scale, retile.flip, retile.rotate);
         }
 }
 
@@ -539,6 +611,7 @@ void tic_api_clip(tic_mem* memory, s32 x, s32 y, s32 width, s32 height)
 void tic_api_reset(tic_mem* memory)
 {
     resetPalette(memory);
+    resetBlitSegment(memory);
 
     memset(&memory->ram.vram.vars, 0, sizeof memory->ram.vram.vars);
     
@@ -725,53 +798,9 @@ s32 tic_api_print(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, boo
     return drawText(memory, text, x, y, alt ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH, TIC_FONT_HEIGHT, color, scale, fixed ? drawChar : drawNonFixedChar, alt);
 }
 
-static void drawSprite(tic_mem* memory, const tic_tiles* src, s32 index, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
-{
-    if(index < TIC_SPRITES)
-        drawTile((tic_machine*)memory, src->data + index, x, y, colors, count, scale, flip, rotate);
-}
-
 void tic_api_spr(tic_mem* memory, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
-    const tic_tiles* src = &memory->ram.tiles;
-    s32 step = TIC_SPRITESIZE * scale;
-
-    const tic_flip vert_horz_flip = tic_horz_flip | tic_vert_flip;
-
-    for(s32 i = 0; i < w; i++)
-    {
-        for(s32 j = 0; j < h; j++)
-        {
-            s32 mx = i;
-            s32 my = j;
-
-            if(flip == tic_horz_flip || flip == vert_horz_flip) mx = w-1-i;
-            if(flip == tic_vert_flip || flip == vert_horz_flip) my = h-1-j;
-            
-            if (rotate == tic_180_rotate)
-            {
-                mx = w-1-mx;
-                my = h-1-my;            
-            }
-            else if(rotate == tic_90_rotate)
-            {
-                if(flip == tic_no_flip || flip == vert_horz_flip) my = h-1-my;
-                else mx = w-1-mx;
-            }
-            else if(rotate == tic_270_rotate)
-            {
-                if(flip == tic_no_flip || flip == vert_horz_flip) mx = w-1-mx;
-                else my = h-1-my;
-            }
-
-            enum {Cols = TIC_SPRITESHEET_SIZE / TIC_SPRITESIZE};
-
-            if(rotate==0 || rotate==2)
-                drawSprite(memory, src, index + mx+my*Cols, x+i*step, y+j*step, colors, count, scale, flip, rotate);
-            else
-                drawSprite(memory, src, index + mx+my*Cols, x+j*step, y+i*step, colors, count, scale, flip, rotate);
-        }
-    }
+    drawSprite((tic_machine*)memory, index, x, y, w, h, colors, count, scale, flip, rotate);
 }
 
 static inline u8* getFlag(tic_mem* memory, s32 index, u8 flag)
@@ -1089,8 +1118,9 @@ static void drawTexturedTriangle(tic_machine* machine, float x1, float y1, float
     tic_mem* memory = &machine->memory;
     u8* mapping = getPalette(memory, colors, count);
     TexVert V0, V1, V2;
-    const u8* ptr = memory->ram.tiles.data[0].data;
+
     const u8* map = memory->ram.map.data;
+    tic_tilesheet sheet = getTileSheetFromSegment(memory, memory->ram.vram.blit.segment);
 
     V0.x = x1;  V0.y = y1;  V0.u = u1;  V0.v = v1;
     V1.x = x2;  V1.y = y2;  V1.u = u2;  V1.v = v2;
@@ -1153,9 +1183,11 @@ static void drawTexturedTriangle(tic_machine* machine, float x1, float y1, float
 
                     while (iu < 0) iu += MapWidth;
                     while (iv < 0) iv += MapHeight;
-                    u8 tile = map[(iv >> 3) * TIC_MAP_WIDTH + (iu >> 3)];
-                    const u8 *buffer = &ptr[tile << 5];
-                    u8 color = mapping[tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) << 3))];
+
+                    u8 tileindex = map[(iv >> 3) * TIC_MAP_WIDTH + (iu >> 3)];
+                    tic_tileptr tile = getTile(&sheet, tileindex, true);
+
+                    u8 color = mapping[getTilePixel(&tile, iu & 7, iv & 7)];
                     if (color != TRANSPARENT_COLOR)
                         setPixel(machine, x, y, color);
                     u += dudxs;
@@ -1170,8 +1202,8 @@ static void drawTexturedTriangle(tic_machine* machine, float x1, float y1, float
                     enum{SheetWidth = TIC_SPRITESHEET_SIZE, SheetHeight = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS};
                     s32 iu = (u>>16) & (SheetWidth - 1);
                     s32 iv = (v>>16) & (SheetHeight - 1);
-                    const u8 *buffer = &ptr[((iu >> 3) + ((iv >> 3) << 4)) << 5];
-                    u8 color = mapping[tic_tool_peek4(buffer, (iu & 7) + ((iv & 7) << 3))];
+
+                    u8 color = mapping[getTileSheetPixel(&sheet, iu, iv)];
                     if (color != TRANSPARENT_COLOR)
                         setPixel(machine, x, y, color);
                     u += dudxs;
@@ -1189,7 +1221,7 @@ void tic_api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, flo
 
 void tic_api_map(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* colors, s32 count, s32 scale, RemapFunc remap, void* data)
 {
-    drawMap((tic_machine*)memory, &memory->ram.map, &memory->ram.tiles, x, y, width, height, sx, sy, colors, count, scale, remap, data);
+    drawMap((tic_machine*)memory, &memory->ram.map, x, y, width, height, sx, sy, colors, count, scale, remap, data);
 }
 
 void tic_api_mset(tic_mem* memory, s32 x, s32 y, u8 value)

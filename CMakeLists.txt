@@ -314,6 +314,7 @@ set(TIC80CORE_DIR ${CMAKE_SOURCE_DIR}/src)
 set(TIC80CORE_SRC
     ${TIC80CORE_DIR}/tic80.c
     ${TIC80CORE_DIR}/tic.c 
+    ${TIC80CORE_DIR}/tilesheet.c 
     ${TIC80CORE_DIR}/tools.c 
     ${TIC80CORE_DIR}/jsapi.c 
     ${TIC80CORE_DIR}/luaapi.c 
