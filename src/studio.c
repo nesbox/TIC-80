@@ -1769,8 +1769,6 @@ static void renderStudio()
     default: break;
     }
 
-    drawPopup();
-
     if(getConfig()->noSound)
         memset(tic->ram.registers, 0, sizeof tic->ram.registers);
 
@@ -1910,6 +1908,8 @@ static void studioTick()
         drawDesyncLabel(tic->screen);
     
     }
+
+    drawPopup();
 
     impl.studio.text = '\0';
 }
