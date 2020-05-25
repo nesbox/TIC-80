@@ -256,6 +256,16 @@ void tiles2ram(tic_ram* ram, const tic_tiles* src)
     memcpy(ram->tiles.data, src, sizeof ram->tiles * TIC_SPRITE_BANKS);
 }
 
+static inline void sfx2ram(tic_ram* ram, const tic_sfx* src)
+{
+    memcpy(&ram->sfx, src, sizeof ram->sfx);
+}
+
+static inline void music2ram(tic_ram* ram, const tic_music* src)
+{
+    memcpy(&ram->music, src, sizeof ram->music);
+}
+
 s32 calcWaveAnimation(tic_mem* tic, u32 offset, s32 channel)
 {
     const tic_sound_register* reg = &tic->ram.registers[channel];
@@ -292,7 +302,9 @@ const char* studioExportSfx(s32 index)
 #endif
 
     const tic_sfx* sfx = getSfxSrc();
-    const tic_music* music = getMusicSrc();
+
+    sfx2ram(&tic->ram, sfx);
+    music2ram(&tic->ram, getMusicSrc());
 
     {
         const tic_sample* effect = &sfx->samples.data[index];
@@ -303,7 +315,7 @@ const char* studioExportSfx(s32 index)
 
         for(s32 ticks = 0, pos = 0; pos < SFX_TICKS; pos = tic_tool_sfx_pos(effect->speed, ++ticks))
         {
-            tic_core_tick_start(tic, sfx, music);
+            tic_core_tick_start(tic);
             tic_core_tick_end(tic);
 
             wave_write(tic->samples.buffer, tic->samples.size / sizeof(s16));
@@ -333,6 +345,9 @@ const char* studioExportMusic(s32 track)
     const tic_sfx* sfx = getSfxSrc();
     const tic_music* music = getMusicSrc();
 
+    sfx2ram(&tic->ram, sfx);
+    music2ram(&tic->ram, music);
+
     const tic_sound_state* state = &tic->ram.sound_state;
     const Music* editor = impl.banks.music[impl.bank.index.music];
 
@@ -340,7 +355,7 @@ const char* studioExportMusic(s32 track)
 
     while(state->flag.music_state == tic_music_play)
     {
-        tic_core_tick_start(tic, sfx, music);
+        tic_core_tick_start(tic);
 
         for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
             if(!editor->tracker.on[i])
@@ -1735,7 +1750,10 @@ static void renderStudio()
             music = getMusicSrc();
         }
 
-        tic_core_tick_start(impl.studio.tic, sfx, music);
+        sfx2ram(&tic->ram, sfx);
+        music2ram(&tic->ram, music);
+
+        tic_core_tick_start(impl.studio.tic);
     }
 
     switch(impl.mode)

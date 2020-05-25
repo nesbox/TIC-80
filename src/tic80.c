@@ -114,7 +114,7 @@ TIC80_API void tic80_tick(tic80* tic, const tic80_input* input)
 
     tic80->memory->ram.input = *input;
     
-    tic_core_tick_start(tic80->memory, &tic80->memory->ram.sfx, &tic80->memory->ram.music);
+    tic_core_tick_start(tic80->memory);
     tic_core_tick(tic80->memory, &tic80->tickData);
     tic_core_tick_end(tic80->memory);
 

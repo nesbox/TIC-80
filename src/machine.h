@@ -189,12 +189,6 @@ typedef struct
     
     s32 samplerate;
 
-    struct
-    {
-        const tic_sfx* sfx;
-        const tic_music* music;
-    } sound;
-
     tic_tick_data* data;
 
     tic_machine_state_data state;

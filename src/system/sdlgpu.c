@@ -323,9 +323,9 @@ static void initTouchGamepad()
 {
     if(!platform.gamepad.pixels)
     {
-        tic_api_map(platform.studio->tic, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, 0, 0, 1, NULL, NULL);
-
         map2ram();
+
+        tic_api_map(platform.studio->tic, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, 0, 0, 1, NULL, NULL);
 
         platform.gamepad.pixels = SDL_malloc(TEXTURE_SIZE * TEXTURE_SIZE * sizeof(u32));
 
@@ -391,6 +391,9 @@ static void initGPU()
 
     initTouchGamepad();
     initTouchKeyboard();
+
+    memset(&platform.studio->tic->ram.map, 0, sizeof(tic_map));
+    memset(&platform.studio->tic->ram.tiles, 0, sizeof(tic_tiles) * TIC_SPRITE_BANKS);
 }
 
 static void destroyGPU()
