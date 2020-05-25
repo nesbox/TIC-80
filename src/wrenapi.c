@@ -565,7 +565,7 @@ static void wren_spr(WrenVM* vm)
 
     tic_mem* tic = (tic_mem*)getWrenMachine(vm);
 
-    tic_api_spr(tic, &tic->ram.tiles, index, x, y, w, h, colors, count, scale, flip, rotate);
+    tic_api_spr(tic, index, x, y, w, h, colors, count, scale, flip, rotate);
 }
 
 static void wren_spr_internal(WrenVM* vm) 
@@ -609,7 +609,7 @@ static void wren_spr_internal(WrenVM* vm)
 
     tic_mem* tic = (tic_mem*)getWrenMachine(vm);
 
-    tic_api_spr(tic, &tic->ram.tiles, index, x, y, 1, 1, colors, count, scale, flip, rotate);
+    tic_api_spr(tic, index, x, y, 1, 1, colors, count, scale, flip, rotate);
 }
 
 static void wren_map(WrenVM* vm)
@@ -678,7 +678,7 @@ static void wren_map(WrenVM* vm)
 
     tic_mem* tic = (tic_mem*)getWrenMachine(vm);
 
-    tic_api_map(tic, &tic->ram.map, &tic->ram.tiles, x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
+    tic_api_map(tic, x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
 }
 
 static void wren_mset(WrenVM* vm)
@@ -689,7 +689,7 @@ static void wren_mset(WrenVM* vm)
 
     tic_mem* tic = (tic_mem*)getWrenMachine(vm);
 
-    tic_api_mset(tic, &tic->ram.map, x, y, value);
+    tic_api_mset(tic, x, y, value);
 }
 
 static void wren_mget(WrenVM* vm)
@@ -699,7 +699,7 @@ static void wren_mget(WrenVM* vm)
 
     tic_mem* tic = (tic_mem*)getWrenMachine(vm);
 
-    u8 value = tic_api_mget(tic, &tic->ram.map, x, y);
+    u8 value = tic_api_mget(tic, x, y);
     wrenSetSlotDouble(vm, 0, value);
 }
 

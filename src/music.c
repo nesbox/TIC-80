@@ -1442,7 +1442,8 @@ static void drawTumbler(Music* music, s32 x, s32 y, s32 index)
     tic_api_rect(tic, x, y, Width, Height, tic_color_0);
 
     u8 color = tic_color_0;
-    tic_api_spr(tic, &getConfig()->cart->bank0.tiles, music->tracker.on[index] ? On : Off, x, y, 1, 1, &color, 1, 1, tic_no_flip, tic_no_rotate);
+    tiles2ram(&tic->ram, &getConfig()->cart->bank0.tiles);
+    tic_api_spr(tic, music->tracker.on[index] ? On : Off, x, y, 1, 1, &color, 1, 1, tic_no_flip, tic_no_rotate);
 }
 
 static void drawTracker(Music* music, s32 x, s32 y)

@@ -98,13 +98,13 @@ typedef struct
     macro(line,         5,  void,   tic_mem*, s32 x1, s32 y1, s32 x2, s32 y2, u8 color) \
     macro(rect,         5,  void,   tic_mem*, s32 x, s32 y, s32 width, s32 height, u8 color) \
     macro(rectb,        5,  void,   tic_mem*, s32 x, s32 y, s32 width, s32 height, u8 color) \
-    macro(spr,          9,  void,   tic_mem*, const tic_tiles* src, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate) \
+    macro(spr,          9,  void,   tic_mem*, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate) \
     macro(btn,          1,  u32,    tic_mem*, s32 id) \
     macro(btnp,         3,  u32,    tic_mem*, s32 id, s32 hold, s32 period) \
     macro(sfx,          6,  void,   tic_mem*, s32 index, s32 note, s32 octave, s32 duration, s32 channel, s32 volume, s32 speed) \
-    macro(map,          9,  void,   tic_mem*, const tic_map* src, const tic_tiles* tiles, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* colors, s32 count, s32 scale, RemapFunc remap, void* data) \
-    macro(mget,         2,  u8,     tic_mem*, const tic_map* src, s32 x, s32 y) \
-    macro(mset,         3,  void,   tic_mem*, tic_map* src, s32 x, s32 y, u8 value) \
+    macro(map,          9,  void,   tic_mem*, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* colors, s32 count, s32 scale, RemapFunc remap, void* data) \
+    macro(mget,         2,  u8,     tic_mem*, s32 x, s32 y) \
+    macro(mset,         3,  void,   tic_mem*, s32 x, s32 y, u8 value) \
     macro(peek,         1,  u8,     tic_mem*, s32 address) \
     macro(poke,         2,  void,   tic_mem*, s32 address, u8 value) \
     macro(peek4,        1,  u8,     tic_mem*, s32 address) \

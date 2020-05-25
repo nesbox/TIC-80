@@ -190,7 +190,7 @@ static duk_ret_t duk_spr(duk_context* duk)
     s32 h = duk_opt_int(duk, 8, 1);
 
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
-    tic_api_spr(tic, &tic->ram.tiles, index, x, y, w, h, colors, count, scale, flip, rotate);
+    tic_api_spr(tic, index, x, y, w, h, colors, count, scale, flip, rotate);
 
     return 0;
 }
@@ -440,14 +440,14 @@ static duk_ret_t duk_map(duk_context* duk)
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
 
     if (duk_is_null_or_undefined(duk, 8))
-        tic_api_map(tic, &tic->ram.map, &tic->ram.tiles, x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
+        tic_api_map(tic, x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
     else
     {
         void* remap = duk_get_heapptr(duk, 8);
 
         RemapData data = {duk, remap};
 
-        tic_api_map((tic_mem*)getDukMachine(duk), &tic->ram.map, &tic->ram.tiles, x, y, w, h, sx, sy, colors, count, scale, remapCallback, &data);
+        tic_api_map((tic_mem*)getDukMachine(duk), x, y, w, h, sx, sy, colors, count, scale, remapCallback, &data);
     }
 
     return 0;
@@ -460,7 +460,7 @@ static duk_ret_t duk_mget(duk_context* duk)
 
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
 
-    u8 value = tic_api_mget(tic, &tic->ram.map, x, y);
+    u8 value = tic_api_mget(tic, x, y);
     duk_push_uint(duk, value);
     return 1;
 }
@@ -473,7 +473,7 @@ static duk_ret_t duk_mset(duk_context* duk)
 
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
 
-    tic_api_mset(tic, &tic->ram.map, x, y, value);
+    tic_api_mset(tic, x, y, value);
 
     return 1;
 }

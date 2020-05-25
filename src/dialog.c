@@ -168,7 +168,8 @@ static void drawDialog(Dialog* dlg)
 
     {
         u8 chromakey = 14;
-        tic_api_spr(tic, &getConfig()->cart->bank0.tiles, 2, rect.x+6, rect.y-4, 2, 2, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);
+        tiles2ram(&tic->ram, &getConfig()->cart->bank0.tiles);
+        tic_api_spr(tic, 2, rect.x+6, rect.y-4, 2, 2, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);
     }
 
     {

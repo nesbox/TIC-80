@@ -246,6 +246,16 @@ static struct
 
 static const char WavPath[] = TIC_CACHE "temp.wav";
 
+void map2ram(tic_ram* ram, const tic_map* src)
+{
+    memcpy(ram->map.data, src, sizeof ram->map);
+}
+
+void tiles2ram(tic_ram* ram, const tic_tiles* src)
+{
+    memcpy(ram->tiles.data, src, sizeof ram->tiles * TIC_SPRITE_BANKS);
+}
+
 s32 calcWaveAnimation(tic_mem* tic, u32 offset, s32 channel)
 {
     const tic_sound_register* reg = &tic->ram.registers[channel];
@@ -370,10 +380,12 @@ void drawBGAnimation(tic_mem* tic, s32 ticks)
 
     tic_api_cls(tic, TIC_COLOR_BG);
 
+    tiles2ram(&tic->ram, &getConfig()->cart->bank0.tiles);
+
     for(s32 j = 0; j < Height + 1; j++)
         for(s32 i = 0; i < Width + 1; i++)
             if(counter++ % 2)
-                tic_api_spr(tic, &getConfig()->cart->bank0.tiles, AnimSprite, 
+                tic_api_spr(tic, AnimSprite, 
                     i*Size - offset, j*Size - offset, 2, 2, 0, 0, 1, tic_no_flip, tic_no_rotate);
 }
 

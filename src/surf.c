@@ -200,14 +200,15 @@ static void drawTopToolbar(Surf* surf, s32 x, s32 y)
     enum{Gap = 10, TipX = 150, SelectWidth = 54};
 
     u8 colorkey = 0;
-    tic_api_spr(tic, &getConfig()->cart->bank0.tiles, 12, TipX, y+1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
+    tiles2ram(&tic->ram, &getConfig()->cart->bank0.tiles);
+    tic_api_spr(tic, 12, TipX, y+1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
     {
         static const char Label[] = "SELECT";
         tic_api_print(tic, Label, TipX + Gap, y+3, tic_color_0, true, 1, false);
         tic_api_print(tic, Label, TipX + Gap, y+2, tic_color_12, true, 1, false);
     }
 
-    tic_api_spr(tic, &getConfig()->cart->bank0.tiles, 13, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
+    tic_api_spr(tic, 13, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);//&getConfig()->cart->bank0.tiles, 
     {
         static const char Label[] = "BACK";
         tic_api_print(tic, Label, TipX + Gap + SelectWidth, y +3, tic_color_0, true, 1, false);
@@ -243,7 +244,8 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
 
         u8 colorkey = 0;
 
-        tic_api_spr(tic, &getConfig()->cart->bank0.tiles, 15, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
+        tiles2ram(&tic->ram, &getConfig()->cart->bank0.tiles);
+        tic_api_spr(tic, 15, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
         {
             static const char Label[] = "WEBSITE";
             tic_api_print(tic, Label, TipX + Gap + SelectWidth, y + 3, tic_color_0, true, 1, false);

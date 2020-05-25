@@ -570,7 +570,7 @@ static SQInteger squirrel_spr(HSQUIRRELVM vm)
 
     tic_mem* tic = (tic_mem*)getSquirrelMachine(vm);
 
-    tic_api_spr(tic, &tic->ram.tiles, index, x, y, w, h, colors, count, scale, flip, rotate);
+    tic_api_spr(tic, index, x, y, w, h, colors, count, scale, flip, rotate);
 
     return 0;
 }
@@ -586,7 +586,7 @@ static SQInteger squirrel_mget(HSQUIRRELVM vm)
 
         tic_mem* tic = (tic_mem*)getSquirrelMachine(vm);
 
-        u8 value = tic_api_mget(tic, &tic->ram.map, x, y);
+        u8 value = tic_api_mget(tic, x, y);
         sq_pushinteger(vm, value);
         return 1;
     }
@@ -607,7 +607,7 @@ static SQInteger squirrel_mset(HSQUIRRELVM vm)
 
         tic_mem* tic = (tic_mem*)getSquirrelMachine(vm);
 
-        tic_api_mset(tic, &tic->ram.map, x, y, val);
+        tic_api_mset(tic, x, y, val);
     }
     else return sq_throwerror(vm, "invalid params, mget(x,y)\n");
 
@@ -731,7 +731,7 @@ static SQInteger squirrel_map(HSQUIRRELVM vm)
 
                                 tic_mem* tic = (tic_mem*)getSquirrelMachine(vm);
 
-                                tic_api_map(tic, &tic->ram.map, &tic->ram.tiles, x, y, w, h, sx, sy, colors, count, scale, remapCallback, &data);
+                                tic_api_map(tic, x, y, w, h, sx, sy, colors, count, scale, remapCallback, &data);
 
                                 //luaL_unref(lua, LUA_REGISTRYINDEX, data.reg);
                                 sq_release(vm, &data.reg);
@@ -747,7 +747,7 @@ static SQInteger squirrel_map(HSQUIRRELVM vm)
 
     tic_mem* tic = (tic_mem*)getSquirrelMachine(vm);
 
-    tic_api_map((tic_mem*)getSquirrelMachine(vm), &tic->ram.map, &tic->ram.tiles, x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
+    tic_api_map((tic_mem*)getSquirrelMachine(vm), x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
 
     return 0;
 }

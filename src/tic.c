@@ -731,8 +731,9 @@ static void drawSprite(tic_mem* memory, const tic_tiles* src, s32 index, s32 x, 
         drawTile((tic_machine*)memory, src->data + index, x, y, colors, count, scale, flip, rotate);
 }
 
-void tic_api_spr(tic_mem* memory, const tic_tiles* src, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
+void tic_api_spr(tic_mem* memory, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
+    const tic_tiles* src = &memory->ram.tiles;
     s32 step = TIC_SPRITESIZE * scale;
 
     const tic_flip vert_horz_flip = tic_horz_flip | tic_vert_flip;
@@ -795,14 +796,39 @@ void tic_api_fset(tic_mem* memory, s32 index, u8 flag, bool value)
         *getFlag(memory, index, flag) &= ~(1 << flag);
 }
 
-s32 drawSpriteFont(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale, bool alt)
+static s32 drawFixedSpriteFont(tic_mem* memory, u8 symbol, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale, bool alt)
 {
-    tic_api_spr(memory, &memory->ram.sprites, symbol, x, y, 1, 1, &chromakey, 1, scale, tic_no_flip, tic_no_rotate);
+    const u8* ptr = memory->ram.sprites.data[symbol].data;
+
+    enum {Size = TIC_SPRITESIZE};
+
+    s32 end = Size;
+    s32 i = 0;
+
+   
+    for(s32 col = Size - 1; col >= 0; col--)
+    {
+        for(i = 0; i < Size*Size; i += Size)
+            if(tic_tool_peek4(ptr, col + i) != chromakey) break;
+
+        if(i < Size*Size) break; else end--;
+    }
+
+    for(s32 row = 0, ys = y; row < Size; row++, ys += scale)
+    {
+        for(s32 col = 0, xs = x; col < end; col++, xs += scale)
+        {
+            u8 color = tic_tool_peek4(ptr, col + row * Size);
+
+            if(color != chromakey)
+                tic_api_rect(memory, xs, ys, scale, scale, color);
+        }
+    }
 
     return width * scale;
 }
 
-s32 drawFixedSpriteFont(tic_mem* memory, u8 index, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale, bool alt)
+static s32 drawSpriteFont(tic_mem* memory, u8 index, s32 x, s32 y, s32 width, s32 height, u8 chromakey, s32 scale, bool alt)
 {
     const u8* ptr = memory->ram.sprites.data[index].data;
 
@@ -1161,22 +1187,24 @@ void tic_api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, flo
     drawTexturedTriangle((tic_machine*)memory, x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, use_map, colors, count);
 }
 
-void tic_api_map(tic_mem* memory, const tic_map* src, const tic_tiles* tiles, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* colors, s32 count, s32 scale, RemapFunc remap, void* data)
+void tic_api_map(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* colors, s32 count, s32 scale, RemapFunc remap, void* data)
 {
-    drawMap((tic_machine*)memory, src, tiles, x, y, width, height, sx, sy, colors, count, scale, remap, data);
+    drawMap((tic_machine*)memory, &memory->ram.map, &memory->ram.tiles, x, y, width, height, sx, sy, colors, count, scale, remap, data);
 }
 
-void tic_api_mset(tic_mem* memory, tic_map* src, s32 x, s32 y, u8 value)
+void tic_api_mset(tic_mem* memory, s32 x, s32 y, u8 value)
 {
     if(x < 0 || x >= TIC_MAP_WIDTH || y < 0 || y >= TIC_MAP_HEIGHT) return;
 
+    tic_map* src = &memory->ram.map;
     *(src->data + y * TIC_MAP_WIDTH + x) = value;
 }
 
-u8 tic_api_mget(tic_mem* memory, const tic_map* src, s32 x, s32 y)
+u8 tic_api_mget(tic_mem* memory, s32 x, s32 y)
 {
     if(x < 0 || x >= TIC_MAP_WIDTH || y < 0 || y >= TIC_MAP_HEIGHT) return 0;
     
+    const tic_map* src = &memory->ram.map;
     return *(src->data + y * TIC_MAP_WIDTH + x);
 }
 
@@ -2238,7 +2266,7 @@ void tic_api_exit(tic_mem* tic)
 
 s32 tic_api_font(tic_mem* tic, const char* text, s32 x, s32 y, u8 chromakey, s32 w, s32 h, bool fixed, s32 scale, bool alt)
 {
-    return drawText(tic, text, x, y, w, h, chromakey, scale, fixed ? drawSpriteFont : drawFixedSpriteFont, alt);
+    return drawText(tic, text, x, y, w, h, chromakey, scale, fixed ? drawFixedSpriteFont : drawSpriteFont, alt);
 }
 
 void tic_api_mouse(tic_mem* memory) {}
