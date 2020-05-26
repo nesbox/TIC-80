@@ -1812,7 +1812,7 @@ static void updateSystemFont()
     for(s32 i = 0; i < TIC_FONT_CHARS; i++)
         for(s32 y = 0; y < TIC_SPRITESIZE; y++)
             for(s32 x = 0; x < TIC_SPRITESIZE; x++)
-                if(tic_tool_peek4(&impl.config->cart.bank0.sprites.data[i], TIC_SPRITESIZE*(y+1) - x-1))
+                if(tic_tool_peek4(&impl.config->cart.bank0.sprites.data[i], TIC_SPRITESIZE*y + x))
                     impl.systemFont.data[i*BITS_IN_BYTE+y] |= 1 << x;
 }
 

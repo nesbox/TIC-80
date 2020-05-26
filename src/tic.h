@@ -34,6 +34,8 @@
 #define TIC_PALETTE_SIZE (1 << TIC_PALETTE_BPP)
 #define TIC_SPRITESIZE 8
 
+#define TIC_DEFAULT_BIT_DEPTH 4
+
 #define BITS_IN_BYTE 8
 #define TIC_BANK_SPRITES (1 << BITS_IN_BYTE)
 #define TIC_SPRITE_BANKS 2
@@ -136,6 +138,13 @@ typedef enum
     tic_180_rotate,
     tic_270_rotate,
 } tic_rotate;
+
+typedef enum
+{
+    tic_bpp_4 = 4,
+    tic_bpp_2 = 2,
+    tic_bpp_1 = 1,
+} tic_bpp;
 
 typedef struct
 {
@@ -451,7 +460,13 @@ typedef union
 
         } vars;
 
-        u8 reserved[4];
+        struct
+        {
+            u8 segment:4;
+            u8 reserved:4;
+        } blit;
+
+        u8 reserved[3];
     };
     
     u8 data[TIC_VRAM_SIZE];

@@ -23,6 +23,7 @@
 #pragma once
 
 #include "studio.h"
+#include "tilesheet.h"
 
 typedef struct Sprite Sprite;
 
@@ -31,6 +32,7 @@ struct Sprite
     tic_mem* tic;
 
     tic_tiles* src;
+    tic_tilesheet sheet;
 
     u32 tickCounter;
 
@@ -39,6 +41,11 @@ struct Sprite
     u8 color2;
     u8 size;
     u8 brushSize;
+    tic_bpp bpp;
+    u8 nbPages;
+    u8 page;
+    u8 bank;
+    u16 x,y;
 
     bool editPalette;
 
@@ -67,5 +74,11 @@ struct Sprite
     void (*overline)(tic_mem* tic, void* data);
 };
 
+typedef struct
+{
+    s32 cell_w, cell_h, cols, rows, length;
+} tic_palette_dimensions;
+
 void initSprite(Sprite*, tic_mem*, tic_tiles* src);
 void freeSprite(Sprite*);
+
