@@ -1707,6 +1707,7 @@ const tic_script_config* getMoonScriptConfig()
 
 static const char* execute_fennel_src = FENNEL_CODE(
   local opts = {filename="game", correlate=true, allowedGlobals=false}
+  for k,v in pairs(require("fennelfriend")) do opts[k] = v end
   local ok, msg = pcall(require('fennel').eval, ..., opts)
   if(not ok) then return msg end
 );
@@ -1756,10 +1757,11 @@ static bool initFennel(tic_mem* tic, const char* code)
 
 static const char* const FennelKeywords [] =
 {
-    "lua", "hashfn","macro", "macros",
+    "lua", "hashfn","macro", "macros", "macroexpand", "macrodebug",
     "do", "values", "if", "when", "each", "for", "fn", "lambda", "partial",
     "while", "set", "global", "var", "local", "let", "tset", "doto", "match",
     "or", "and", "true", "false", "nil", "not", "not=",
+    "rshift", "lshift", "bor", "band", "bnot" "bxor", "pick-values", "pick-args",
     ".", "..", "#", "...", ":", "->", "->>", "-?>", "-?>>", "$"
 };
 
