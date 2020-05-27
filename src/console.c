@@ -1983,7 +1983,7 @@ static void onConsoleExportNativeCommand(Console* console, const char* cartName)
 
 #include "zip.h"
 
-static void onConsoleExportHtmlCommand(Console* console);
+static void onConsoleExportHtmlCommand(Console* console, const char* providedName);
 
 static const char* getExportName(Console* console, const char* ext)
 {
@@ -2022,7 +2022,7 @@ static void onHttpGet(const HttpGetData* data)
 
             if(fsSaveRootFile(console->fs, path, data->done.data, data->done.size, false))
             {
-                onConsoleExportHtmlCommand(console);
+                onConsoleExportHtmlCommand(console, NULL);
             }
             else
             {
@@ -2038,7 +2038,7 @@ static void onHttpGet(const HttpGetData* data)
     }
 }
 
-static void onConsoleExportHtmlCommand(Console* console)
+static void onConsoleExportHtmlCommand(Console* console, const char* providedName)
 {
     tic_mem* tic = console->tic;
 
@@ -2131,14 +2131,22 @@ static void onConsoleExportHtmlCommand(Console* console)
         }
 
         zip_close(zip);
-
         if(!errorOccured)
         {
             s32 size = 0;
             void* data = fsLoadRootFile(console->fs, HtmlName, &size);
 
-            if(data)
+            if(data && providedName)
+            {
+                if(fsSaveFile(console->fs, providedName, data, sizeof(data), false))
+                    return onFileDownloaded(FS_FILE_DOWNLOADED, console);
+                else
+                    return onFileDownloaded(FS_FILE_NOT_DOWNLOADED, console);
+            }
+            else if(data)
+            {
                 return fsGetFileData(onFileDownloaded, getExportName(console, ".zip"), data, size, DEFAULT_CHMOD, console);
+            }
             else errorOccured = true;
         }
     }
@@ -2176,10 +2184,11 @@ static void onConsoleExportCommand(Console* console, const char* param)
             commandDone(console);
 #endif
         }
-        else if(strcmp(param, "html") == 0)
+        else if(strncmp(param, "html", 4) == 0 && (param[4] == ' ' || param[4] == 0))
         {
 #if defined(CAN_EXPORT)
-            onConsoleExportHtmlCommand(console);
+            const char* providedName = param[4] ? param + 5 : NULL;
+            onConsoleExportHtmlCommand(console, providedName);
 #else
 
             printBack(console, "\nhtml export isn't supported on this platform\n");
