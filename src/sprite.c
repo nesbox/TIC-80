@@ -1332,9 +1332,9 @@ static void drawSheet(Sprite* sprite, s32 x, s32 y)
 {
     tic_mem* tic = sprite->tic;
     tiles2ram(&tic->ram, sprite->src);
-    tic_tool_poke4(&tic->ram.vram.blit, 0, ((sprite->nbPages + sprite->page)<<1) + sprite->bank);
+    tic_tool_poke4(&tic->ram.vram.blit, 0, ((sprite->nbPages + sprite->page)) + (sprite->bank << 3));
     tic_api_spr(tic, 0, x, y, SHEET_COLS, SHEET_COLS, NULL, 0, 1, tic_no_flip, tic_no_rotate);
-    tic_tool_poke4(&tic->ram.vram.blit, 0, 2);
+    tic_tool_poke4(&tic->ram.vram.blit, 0, 1);
 }
 
 static void flipSpriteHorz(Sprite* sprite)

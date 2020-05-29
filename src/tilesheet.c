@@ -30,22 +30,21 @@ static const tic_blit_segment segments[] = {
 //   |  |  |  |     +sheet_width
 //   |  |  |  |     |   +tile_width
     {0, 0, 1, 256,  16, 8,  TIC_SPRITESIZE,   tic_tool_peek1, tic_tool_poke1}, // system gfx
-    {0, 0, 1, 256,  16, 8,  TIC_SPRITESIZE,   tic_tool_peek1, tic_tool_poke1}, // system font
     {0, 0, 1, 256,  16, 8,  sizeof(tic_tile), tic_tool_peek4, tic_tool_poke4}, // 4bpp p0 bg
-    {0, 1, 1, 256,  16, 8,  sizeof(tic_tile), tic_tool_peek4, tic_tool_poke4}, // 4bpp p0 fg
-              
     {0, 0, 2, 512,  32, 16, sizeof(tic_tile), tic_tool_peek2, tic_tool_poke2}, // 2bpp p0 bg
-    {0, 1, 2, 512,  32, 16, sizeof(tic_tile), tic_tool_peek2, tic_tool_poke2}, // 2bpp p0 fg
     {1, 0, 2, 512,  32, 16, sizeof(tic_tile), tic_tool_peek2, tic_tool_poke2}, // 2bpp p1 bg
-    {1, 1, 2, 512,  32, 16, sizeof(tic_tile), tic_tool_peek2, tic_tool_poke2}, // 2bpp p1 fg
-              
     {0, 0, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p0 bg
-    {0, 1, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p0 fg
     {1, 0, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p1 bg
-    {1, 1, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p1 fg
     {2, 0, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p2 bg
-    {2, 1, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p2 fg
     {3, 0, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p3 bg
+
+    {0, 0, 1, 256,  16, 8,  TIC_SPRITESIZE,   tic_tool_peek1, tic_tool_poke1}, // system font
+    {0, 1, 1, 256,  16, 8,  sizeof(tic_tile), tic_tool_peek4, tic_tool_poke4}, // 4bpp p0 fg
+    {0, 1, 2, 512,  32, 16, sizeof(tic_tile), tic_tool_peek2, tic_tool_poke2}, // 2bpp p0 fg
+    {1, 1, 2, 512,  32, 16, sizeof(tic_tile), tic_tool_peek2, tic_tool_poke2}, // 2bpp p1 fg
+    {0, 1, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p0 fg
+    {1, 1, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p1 fg
+    {2, 1, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p2 fg
     {3, 1, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p3 fg
 };
 

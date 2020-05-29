@@ -160,15 +160,15 @@ static void runNoise(blip_buffer_t* blip, const tic_sound_register* reg, tic_sou
 
 static void resetBlitSegment(tic_mem* memory)
 {
-    memory->ram.vram.blit.segment = 2;
+    memory->ram.vram.blit.segment = 1;
 }
 
 static tic_tilesheet getTileSheetFromSegment(tic_mem* memory, u8 segment)
 {
     u8* src;
     switch(segment){
-        case 0:
-        case 1: 
+        case 0b0000:
+        case 0b1000:
             src = (u8*) &memory->ram.font.data; break;
         default:
             src = (u8*) &memory->ram.tiles.data; break;
@@ -785,14 +785,14 @@ void tic_api_cls(tic_mem* memory, u8 color)
 s32 tic_api_font(tic_mem* memory, const char* text, s32 x, s32 y, u8 chromakey, s32 w, s32 h, bool fixed, s32 scale, bool alt)
 {
     u8* mapping = getPalette(memory, &chromakey, 1);
-    tic_tilesheet font_face = getTileSheetFromSegment(memory, memory->ram.vram.blit.segment ^ 1);
+    tic_tilesheet font_face = getTileSheetFromSegment(memory, (memory->ram.vram.blit.segment+8) & 15);
     return drawText((tic_machine*)memory, &font_face, text, x, y, w, h, fixed, mapping, scale, alt);
 }
 
 s32 tic_api_print(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, bool fixed, s32 scale, bool alt)
 {
     u8 mapping[] = {255, color};
-    tic_tilesheet font_face = getTileSheetFromSegment(memory, 1);
+    tic_tilesheet font_face = getTileSheetFromSegment(memory, 0b1000);
     return drawText((tic_machine*)memory, &font_face, text, x, y, alt ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH, TIC_FONT_HEIGHT+1, fixed, mapping, scale, alt);
 }
 
