@@ -785,7 +785,13 @@ void tic_api_cls(tic_mem* memory, u8 color)
 s32 tic_api_font(tic_mem* memory, const char* text, s32 x, s32 y, u8 chromakey, s32 w, s32 h, bool fixed, s32 scale, bool alt)
 {
     u8* mapping = getPalette(memory, &chromakey, 1);
-    tic_tilesheet font_face = getTileSheetFromSegment(memory, memory->ram.vram.blit.segment ^ 1);
+
+    // Compatibility : flip top and bottom of the spritesheet
+    // to preserve tic_api_font's default target
+    u8 segment = memory->ram.vram.blit.segment >> 1;
+    u8 flipmask = 0; while (segment >>= 1) flipmask<<=1;
+
+    tic_tilesheet font_face = getTileSheetFromSegment(memory, memory->ram.vram.blit.segment ^ flipmask);
     return drawText((tic_machine*)memory, &font_face, text, x, y, w, h, fixed, mapping, scale, alt);
 }
 
