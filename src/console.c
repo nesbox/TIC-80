@@ -1443,6 +1443,11 @@ static void onConsoleInstallDemosCommand(Console* console, const char* param)
         #include "../build/assets/benchmark.tic.dat"
     };
 
+    static const u8 Bpp[] =
+    {
+        #include "../build/assets/bpp.tic.dat"
+    };
+
     FileSystem* fs = console->fs;
 
     static const struct {const char* name; const u8* data; s32 size;} Demos[] =
@@ -1456,6 +1461,7 @@ static void onConsoleInstallDemosCommand(Console* console, const char* param)
         {"sfx.tic",         DemoSFX,        sizeof DemoSFX},
         {"tetris.tic",      GameTetris,     sizeof GameTetris},
         {"benchmark.tic",   Benchmark,      sizeof Benchmark},
+        {"bpp.tic",         Bpp,            sizeof Bpp},
     };
 
     printBack(console, "\nadded carts:\n\n");
