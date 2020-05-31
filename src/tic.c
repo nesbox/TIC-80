@@ -789,7 +789,7 @@ s32 tic_api_font(tic_mem* memory, const char* text, s32 x, s32 y, u8 chromakey, 
     // Compatibility : flip top and bottom of the spritesheet
     // to preserve tic_api_font's default target
     u8 segment = memory->ram.vram.blit.segment >> 1;
-    u8 flipmask = 0; while (segment >>= 1) flipmask<<=1;
+    u8 flipmask = 1; while (segment >>= 1) flipmask<<=1;
 
     tic_tilesheet font_face = getTileSheetFromSegment(memory, memory->ram.vram.blit.segment ^ flipmask);
     return drawText((tic_machine*)memory, &font_face, text, x, y, w, h, fixed, mapping, scale, alt);
@@ -799,7 +799,10 @@ s32 tic_api_print(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, boo
 {
     u8 mapping[] = {255, color};
     tic_tilesheet font_face = getTileSheetFromSegment(memory, 1);
-    return drawText((tic_machine*)memory, &font_face, text, x, y, alt ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH, TIC_FONT_HEIGHT+1, fixed, mapping, scale, alt);
+    // Compatibility : print uses reduced width for non-fixed space
+    u8 width = alt ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH;
+    if (!fixed) width -= 2;
+    return drawText((tic_machine*)memory, &font_face, text, x, y, width, TIC_FONT_HEIGHT, fixed, mapping, scale, alt);
 }
 
 void tic_api_spr(tic_mem* memory, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
