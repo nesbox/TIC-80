@@ -2144,7 +2144,12 @@ static void onConsoleExportHtmlCommand(Console* console, const char* providedNam
 
             if(data && providedName)
             {
-                if(fsSaveFile(console->fs, providedName, data, sizeof(data), false))
+                if(fsExists(providedName))
+                {
+                    printError(console, "\nfile already exists");
+                    return commandDone(console);
+                }
+                else if(fsWriteFile(providedName, data, sizeof(data)))
                     return onFileDownloaded(FS_FILE_DOWNLOADED, console);
                 else
                     return onFileDownloaded(FS_FILE_NOT_DOWNLOADED, console);
