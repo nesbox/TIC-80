@@ -799,7 +799,10 @@ s32 tic_api_print(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, boo
 {
     u8 mapping[] = {255, color};
     tic_tilesheet font_face = getTileSheetFromSegment(memory, 1);
-    return drawText((tic_machine*)memory, &font_face, text, x, y, alt ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH, TIC_FONT_HEIGHT+1, fixed, mapping, scale, alt);
+    // Compatibility : print uses reduced width for non-fixed space
+    u8 width = alt ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH;
+    if (!fixed) width -= 2;
+    return drawText((tic_machine*)memory, &font_face, text, x, y, width, TIC_FONT_HEIGHT, fixed, mapping, scale, alt);
 }
 
 void tic_api_spr(tic_mem* memory, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
