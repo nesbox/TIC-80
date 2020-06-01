@@ -804,7 +804,7 @@ static void drawBitMode(Sprite* sprite, s32 x, s32 y, s32 w, s32 h)
             setCursor(tic_cursor_hand);
             over = true;
 
-            SHOW_TOOLTIP("%i%s PER PIXEL", mode, mode > 1 ? "BITS":"BIT");
+            SHOW_TOOLTIP("%i%s PER PIXEL\0", mode, mode > 1 ? "BITS":"BIT");
 
             if(checkMouseClick(&rect, tic_mouse_left))
             {
@@ -1721,7 +1721,7 @@ static void drawBankTabs(Sprite* sprite, s32 x, s32 y)
 
     enum {Banks = 2, SizeY = 7, SizeX = 10};
     static char *labels[] = {"BG", "FG"};
-    static char *tooltips[] = {"TILES", "SPRITES"};
+    static char *tooltips[] = {"TILES [tab]", "SPRITES [tab]"};
 
     for(s32 i = 0; i < Banks; i++)
     {
@@ -1735,7 +1735,7 @@ static void drawBankTabs(Sprite* sprite, s32 x, s32 y)
             setCursor(tic_cursor_hand);
             over = true;
 
-            SHOW_TOOLTIP("%s [tab]", tooltips[i]);
+            showTooltip(tooltips[i]);
 
             if(checkMouseClick(&rect, tic_mouse_left))
             {
