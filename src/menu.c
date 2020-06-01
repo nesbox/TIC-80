@@ -246,6 +246,9 @@ static void drawGamepadSetupTabs(Menu* menu, s32 x, s32 y)
 
 static void drawGamepadMenu(Menu* menu)
 {
+    if (getStudioMode() != TIC_MENU_MODE)
+        return;
+
     drawDialog(menu);
 
     tic_mem* tic = menu->tic;
@@ -311,6 +314,9 @@ static void drawGamepadMenu(Menu* menu)
 
 static void drawMainMenu(Menu* menu)
 {
+    if (getStudioMode() != TIC_MENU_MODE)
+        return;
+
     tic_mem* tic = menu->tic;
 
     drawDialog(menu);
@@ -467,14 +473,14 @@ static void processKeyboard(Menu* menu)
 
 static void tick(Menu* menu)
 {
+    if(getStudioMode() != TIC_MENU_MODE)
+        return;
+
     tic_mem* tic = menu->tic;
 
     menu->ticks++;
 
     processKeyboard(menu);
-
-    if(getStudioMode() != TIC_MENU_MODE)
-        return;
 
     if(!menu->init)
     {

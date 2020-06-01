@@ -804,7 +804,10 @@ static void drawBitMode(Sprite* sprite, s32 x, s32 y, s32 w, s32 h)
             setCursor(tic_cursor_hand);
             over = true;
 
-            SHOW_TOOLTIP("%i%s PER PIXEL\0", mode, mode > 1 ? "BITS":"BIT");
+            if(mode > 1)
+                SHOW_TOOLTIP("%iBITS PER PIXEL", mode)
+            else
+                SHOW_TOOLTIP("%iBIT PER PIXEL", mode);
 
             if(checkMouseClick(&rect, tic_mouse_left))
             {

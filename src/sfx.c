@@ -795,7 +795,7 @@ static void drawPianoOctave(Sfx* sfx, s32 x, s32 y, s32 octave)
 
                 {
                     static const char* Notes[] = SFX_NOTES;
-                    SHOW_TOOLTIP("play %s%i note", Notes[btn->note], octave + 1)
+                    SHOW_TOOLTIP("play %s%i note", Notes[btn->note], octave + 1);
                 }
 
                 if(checkMouseDown(&rect, tic_mouse_left))
