@@ -1376,7 +1376,7 @@ static void saveProject()
 
         s32 name_len = strlen(impl.console->romName);
         if (name_len + strlen(str_saved) > sizeof(buffer)){
-            char subbuf[sizeof(buffer) - strlen(str_saved) - 5];
+            char subbuf[sizeof(buffer) - sizeof(str_saved) - 5];
             memset(subbuf, '\0', sizeof subbuf);
             strncpy(subbuf, impl.console->romName, sizeof subbuf-1);
 
