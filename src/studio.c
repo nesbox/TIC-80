@@ -1016,7 +1016,8 @@ ClipboardEvent getClipboardEvent()
 static void showPopupMessage(const char* text)
 {
     impl.popup.counter = POPUP_DUR;
-    strcpy(impl.popup.message, text);
+    memset(impl.popup.message, '\0', sizeof impl.popup.message);
+    strncpy(impl.popup.message, text, sizeof(impl.popup.message) - 1);
 }
 
 static void exitConfirm(bool yes, void* data)
@@ -1370,8 +1371,22 @@ static void saveProject()
 
     if(rom == CART_SAVE_OK)
     {
-        char buffer[TICNAME_MAX];
-        snprintf(buffer, TICNAME_MAX, "%s SAVED :)", impl.console->romName);
+        char buffer[STUDIO_TEXT_BUFFER_WIDTH];
+        char str_saved[] = " SAVED :)";
+
+        s32 name_len = strlen(impl.console->romName);
+        if (name_len + strlen(str_saved) > sizeof(buffer)){
+            char subbuf[sizeof(buffer) - sizeof(str_saved) - 5];
+            memset(subbuf, '\0', sizeof subbuf);
+            strncpy(subbuf, impl.console->romName, sizeof subbuf-1);
+
+            snprintf(buffer, sizeof(buffer), "%s[...]%s", subbuf, str_saved);
+        }
+        else
+        {
+            snprintf(buffer, sizeof(buffer), "%s%s", impl.console->romName, str_saved);
+        }
+
 
         for(s32 i = 0; i < (s32)strlen(buffer); i++)
             buffer[i] = toupper(buffer[i]);
