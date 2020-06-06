@@ -883,7 +883,7 @@ static bool initJavascript(tic_mem* tic, const char* code)
 
     if (duk_pcompile_string(duktape, 0, code) != 0 || duk_peval_string(duktape, code) != 0)
     {
-        machine->data->error(machine->data->data, duk_safe_to_string(duktape, -1));
+        machine->data->error(machine->data->data, duk_safe_to_stacktrace(duktape, -1));
         duk_pop(duktape);
         return false;
     }
@@ -903,17 +903,9 @@ static void callJavascriptTick(tic_mem* tic)
     {
         if(duk_get_global_string(duk, TIC_FN))
         {
-            if(duk_pcall(duk, 0) != 0)
+            if(duk_pcall(duk, 0) != DUK_EXEC_SUCCESS)
             {
-              // If thrown is a valid error message, retrieve the stack for it.
-              if(duk_is_error(duk, -1) == 1)
-              {
-                duk_get_prop_string(duk, -1, "stack");
-                machine->data->error(machine->data->data, duk_safe_to_string(duk, -1));
-                duk_pop(duk);
-              } else {
-                machine->data->error(machine->data->data, duk_safe_to_string(duk, -1));
-              }
+                machine->data->error(machine->data->data, duk_safe_to_stacktrace(duk, -1));
             }
         }
         else machine->data->error(machine->data->data, "'function TIC()...' isn't found :(");
@@ -932,7 +924,7 @@ static void callJavascriptScanlineName(tic_mem* tic, s32 row, void* data, const 
         duk_push_int(duk, row);
 
         if(duk_pcall(duk, 1) != 0)
-            machine->data->error(machine->data->data, duk_safe_to_string(duk, -1));
+            machine->data->error(machine->data->data, duk_safe_to_stacktrace(duk, -1));
     }
 
     duk_pop(duk);
@@ -954,7 +946,7 @@ static void callJavascriptOverline(tic_mem* tic, void* data)
     if(duk_get_global_string(duk, OVR_FN))
     {
         if(duk_pcall(duk, 0) != 0)
-            machine->data->error(machine->data->data, duk_safe_to_string(duk, -1));
+            machine->data->error(machine->data->data, duk_safe_to_stacktrace(duk, -1));
     }
 
     duk_pop(duk);
