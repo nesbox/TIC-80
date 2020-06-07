@@ -172,7 +172,7 @@ static duk_ret_t duk_spr(duk_context* duk)
                         colors[i] = duk_to_int(duk, -1);
                         count++;
                         duk_pop(duk);
-                    }                   
+                    }
                 }
             }
             else
@@ -389,7 +389,7 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
     }
     else
     {
-        result->index = duk_to_int(duk, -1);        
+        result->index = duk_to_int(duk, -1);
     }
 
     duk_pop(duk);
@@ -426,7 +426,7 @@ static duk_ret_t duk_map(duk_context* duk)
                         colors[i] = duk_to_int(duk, -1);
                         count++;
                         duk_pop(duk);
-                    }                   
+                    }
                 }
             }
             else
@@ -567,7 +567,7 @@ static duk_ret_t duk_pmem(duk_context* duk)
         {
             tic_api_pmem(tic, index, duk_to_uint(duk, 1), true);
         }
-        
+
         duk_push_int(duk, val);
 
         return 1;
@@ -657,7 +657,7 @@ static duk_ret_t duk_circ(duk_context* duk)
 {
     s32 radius = duk_to_int(duk, 2);
     if(radius < 0) return 0;
-    
+
     s32 x = duk_to_int(duk, 0);
     s32 y = duk_to_int(duk, 1);
     s32 color = duk_to_int(duk, 3);
@@ -673,7 +673,7 @@ static duk_ret_t duk_circb(duk_context* duk)
 {
     s32 radius = duk_to_int(duk, 2);
     if(radius < 0) return 0;
-    
+
     s32 x = duk_to_int(duk, 0);
     s32 y = duk_to_int(duk, 1);
     s32 color = duk_to_int(duk, 3);
@@ -691,7 +691,7 @@ static duk_ret_t duk_tri(duk_context* duk)
 
     for(s32 i = 0; i < COUNT_OF(pt); i++)
         pt[i] = duk_to_int(duk, i);
-    
+
     s32 color = duk_to_int(duk, 6);
 
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
@@ -730,7 +730,7 @@ static duk_ret_t duk_textri(duk_context* duk)
                         colors[i] = duk_to_int(duk, -1);
                         count++;
                         duk_pop(duk);
-                    }                   
+                    }
                 }
             }
             else
@@ -749,7 +749,7 @@ static duk_ret_t duk_textri(duk_context* duk)
                         pt[10], pt[11],//  uv 3
                         use_map, // usemap
                         colors, count);    //  chroma
-    
+
     return 0;
 }
 
@@ -762,7 +762,7 @@ static duk_ret_t duk_clip(duk_context* duk)
     s32 h = duk_opt_int(duk, 3, TIC80_HEIGHT);
 
     tic_mem* tic = (tic_mem*)getDukMachine(duk);
-    
+
     tic_api_clip(tic, x, y, w, h);
 
     return 0;
@@ -882,8 +882,8 @@ static bool initJavascript(tic_mem* tic, const char* code)
     duk_context* duktape = machine->js;
 
     if (duk_pcompile_string(duktape, 0, code) != 0 || duk_peval_string(duktape, code) != 0)
-    {                   
-        machine->data->error(machine->data->data, duk_safe_to_string(duktape, -1));
+    {
+        machine->data->error(machine->data->data, duk_safe_to_stacktrace(duktape, -1));
         duk_pop(duktape);
         return false;
     }
@@ -903,8 +903,10 @@ static void callJavascriptTick(tic_mem* tic)
     {
         if(duk_get_global_string(duk, TIC_FN))
         {
-            if(duk_pcall(duk, 0) != 0)
-                machine->data->error(machine->data->data, duk_safe_to_string(duk, -1));
+            if(duk_pcall(duk, 0) != DUK_EXEC_SUCCESS)
+            {
+                machine->data->error(machine->data->data, duk_safe_to_stacktrace(duk, -1));
+            }
         }
         else machine->data->error(machine->data->data, "'function TIC()...' isn't found :(");
 
@@ -917,12 +919,12 @@ static void callJavascriptScanlineName(tic_mem* tic, s32 row, void* data, const 
     tic_machine* machine = (tic_machine*)tic;
     duk_context* duk = machine->js;
 
-    if(duk_get_global_string(duk, name)) 
+    if(duk_get_global_string(duk, name))
     {
         duk_push_int(duk, row);
 
         if(duk_pcall(duk, 1) != 0)
-            machine->data->error(machine->data->data, duk_safe_to_string(duk, -1));
+            machine->data->error(machine->data->data, duk_safe_to_stacktrace(duk, -1));
     }
 
     duk_pop(duk);
@@ -941,10 +943,10 @@ static void callJavascriptOverline(tic_mem* tic, void* data)
     tic_machine* machine = (tic_machine*)tic;
     duk_context* duk = machine->js;
 
-    if(duk_get_global_string(duk, OVR_FN)) 
+    if(duk_get_global_string(duk, OVR_FN))
     {
         if(duk_pcall(duk, 0) != 0)
-            machine->data->error(machine->data->data, duk_safe_to_string(duk, -1));
+            machine->data->error(machine->data->data, duk_safe_to_stacktrace(duk, -1));
     }
 
     duk_pop(duk);
@@ -1025,7 +1027,7 @@ void evalJs(tic_mem* tic, const char* code) {
     printf("TODO: JS eval not yet implemented\n.");
 }
 
-static const tic_script_config JsSyntaxConfig = 
+static const tic_script_config JsSyntaxConfig =
 {
     .init               = initJavascript,
     .close              = closeJavascript,
