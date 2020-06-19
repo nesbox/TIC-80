@@ -38,6 +38,13 @@ extern "C" {
 #define TIC80_SAMPLERATE 44100
 #define TIC80_FRAMERATE 60
 
+typedef enum {
+    TIC80_PIXEL_COLOR_ARGB8888 = (1 << 8) | 32,
+    TIC80_PIXEL_COLOR_ABGR8888 = (2 << 8) | 32,
+    TIC80_PIXEL_COLOR_RGBA8888 = (3 << 8) | 32,
+    TIC80_PIXEL_COLOR_BGRA8888 = (4 << 8) | 32
+} tic80_pixel_color_format;
+
 typedef struct 
 {
 	struct
@@ -54,6 +61,7 @@ typedef struct
 	} sound;
 
 	u32* screen;
+	tic80_pixel_color_format screen_format;
 	
 } tic80;
 

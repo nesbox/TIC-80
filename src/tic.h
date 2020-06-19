@@ -611,3 +611,12 @@ typedef enum
     tic_cursor_hand,
     tic_cursor_ibeam,
 } tic_cursor;
+
+typedef enum {
+    TIC_PIXEL_COLOR_ARGB8888 = (1 << 8) | 32,
+    TIC_PIXEL_COLOR_ABGR8888 = (2 << 8) | 32,
+    TIC_PIXEL_COLOR_RGBA8888 = (3 << 8) | 32,
+    TIC_PIXEL_COLOR_BGRA8888 = (4 << 8) | 32
+} tic_pixel_color_format;
+
+#define TIC_PIXEL_COLOR_DEPTH(fmt) ((fmt) & 0xFF)

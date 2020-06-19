@@ -20,7 +20,6 @@
 // How long to wait before hiding the mouse.
 #define TIC_LIBRETRO_MOUSE_HIDE_TIMER_START 300
 
-static uint32_t *frame_buf = NULL;
 static struct retro_log_callback logging;
 static retro_log_printf_t log_cb;
 static retro_video_refresh_t video_cb;
@@ -91,9 +90,6 @@ static void tic80_libretro_fallback_log(enum retro_log_level level, const char *
  */
 void retro_init(void)
 {
-	// Create the frame buffer.
-	frame_buf = calloc(TIC80_FULLWIDTH * TIC80_FULLHEIGHT, sizeof(uint32_t));
-
 	// Initialize the keyboard mappings.
 	state.keymap[RETROK_UNKNOWN] = tic_key_unknown;
 	state.keymap[RETROK_a] = tic_key_a;
@@ -195,11 +191,7 @@ void retro_init(void)
  */
 void retro_deinit(void)
 {
-	// Clear out the frame buffer if it exists.
-	if (frame_buf != NULL) {
-		free(frame_buf);
-		frame_buf = NULL;
-	}
+
 }
 
 /**
@@ -559,30 +551,6 @@ static void tic80_libretro_update(tic80* game)
 	// Update the game state.
 	tic80_tick(game, &state.input);
 }
-
-/**
- * Convert between argb8888 and abgr8888.
- *
- * This was copied from libretro-common's scaler.c:
- * https://github.com/libretro/libretro-common/blob/master/gfx/scaler/scaler.c
- *
- * @see tic80_libretro_draw()
- */
-void tic80_libretro_conv_argb8888_abgr8888(uint32_t *output, uint32_t *input,
-	int width, int height,
-	int out_stride, int in_stride)
-{
-	int h, w;
-	for (h = 0; h < height; h++, output += out_stride >> 2, input += in_stride >> 2) {
-		for (w = 0; w < width; w++) {
-			uint32_t col = input[w];
-			output[w] = ((col << 16) & 0xff0000) | 
-				((col >> 16) & 0xff) |
-				(col & 0xff00ff00);
-		}
-	}
-}
-
 /**
  * Draw the screen.
  */
@@ -591,13 +559,8 @@ static void tic80_libretro_draw(tic80* game)
 	// Mouse Cursor
 	tic80_libretro_mousecursor((tic80_local*)game, &state.input.mouse, state.mouseCursor);
 
-	// TIC-80 uses ABGR8888, so we need to convert it.
-	tic80_libretro_conv_argb8888_abgr8888(frame_buf, game->screen,
-		TIC80_FULLWIDTH, TIC80_FULLHEIGHT,
-		TIC80_FULLWIDTH << 2, TIC80_FULLWIDTH << 2);
-
 	// Render to the screen.
-	video_cb(frame_buf, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, TIC80_FULLWIDTH << 2);
+	video_cb(game->screen, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, TIC80_FULLWIDTH << 2);
 }
 
 /**
@@ -717,6 +680,7 @@ bool retro_load_game(const struct retro_game_info *info)
 
 	// Set up the TIC-80 environment.
 	tic = tic80_create(TIC80_SAMPLERATE);
+	tic->screen_format = TIC80_PIXEL_COLOR_BGRA8888;
 	tic->callback.exit = tic80_libretro_exit;
 	tic->callback.error = tic80_libretro_error;
 	tic->callback.trace = tic80_libretro_trace;
