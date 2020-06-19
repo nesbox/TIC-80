@@ -278,17 +278,27 @@ static void drawHLineOvr(tic_mem* tic, s32 x1, s32 x2, s32 y, u8 color)
 }
 
 
+#define EARLY_CLIP(x, y, width, height) \
+    ( \
+        (((y)+(height)-1) < machine->state.clip.t) \
+        || (((x)+(width)-1) < machine->state.clip.l) \
+        || ((y) >= machine->state.clip.b) \
+        || ((x) >= machine->state.clip.r) \
+    )
+
 static void drawHLine(tic_machine* machine, s32 x, s32 y, s32 width, u8 color)
 {
     if(y < machine->state.clip.t || machine->state.clip.b <= y) return;
+
     s32 xl = MAX(x, machine->state.clip.l);
     s32 xr = MIN(x + width, machine->state.clip.r);
+
     machine->state.drawhline(&machine->memory, xl, xr, y, color);
 }
 
 static void drawVLine(tic_machine* machine, s32 x, s32 y, s32 height, u8 color)
 {
-    if(x < 0 || x >= TIC80_WIDTH) return;
+    if(x < machine->state.clip.l || machine->state.clip.r <= x) return;
 
     s32 yl = y < 0 ? 0 : y;
     s32 yr = y + height >= TIC80_HEIGHT ? TIC80_HEIGHT : y + height;
@@ -361,6 +371,8 @@ static void drawTile(tic_machine* machine, tic_tileptr* tile, s32 x, s32 y, u8* 
         return;
     }
 
+    if (EARLY_CLIP(x, y, TIC_SPRITESIZE * scale, TIC_SPRITESIZE * scale)) return;
+
     for(s32 py=0; py < TIC_SPRITESIZE; py++, y+=scale)
     {
         s32 xx = x;
@@ -394,6 +406,8 @@ static void drawSprite(tic_machine* machine, s32 index, s32 x, s32 y, s32 w, s32
         s32 cols = sheet.segment.sheet_width;
 
         const tic_flip vert_horz_flip = tic_horz_flip | tic_vert_flip;
+
+        if (EARLY_CLIP(x, y, w * step, h * step)) return;
 
         for(s32 i = 0; i < w; i++)
         {
@@ -481,6 +495,8 @@ static s32 drawChar(tic_machine* machine, tic_tileptr* font_char, s32 x, s32 y, 
         }
     }
     s32 width = end - start;
+
+    if (EARLY_CLIP(x, y, Size * scale, Size * scale)) return width;
 
     s32 colStart = start, colStep = 1, rowStart = 0 , rowStep = 1;
 
