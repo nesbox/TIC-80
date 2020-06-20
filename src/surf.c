@@ -288,8 +288,10 @@ static void drawMenu(Surf* surf, s32 x, s32 y)
 
         s32 ym = Height * i + y - surf->menu.pos*MENU_HEIGHT - surf->menu.anim + (MENU_HEIGHT - TIC_FONT_HEIGHT)/2;
 
-        tic_api_print(tic, name, x + MAIN_OFFSET, ym + 1, tic_color_0, false, 1, false);
-        tic_api_print(tic, name, x + MAIN_OFFSET, ym, tic_color_12, false, 1, false);
+        if (ym > (-(TIC_FONT_HEIGHT + 1)) && ym <= TIC80_HEIGHT) {
+            tic_api_print(tic, name, x + MAIN_OFFSET, ym + 1, tic_color_0, false, 1, false);
+            tic_api_print(tic, name, x + MAIN_OFFSET, ym, tic_color_12, false, 1, false);
+        }
     }
 }
 
