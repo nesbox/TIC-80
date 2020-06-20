@@ -40,6 +40,7 @@ struct Surf
     {
         s32 pos;
         s32 anim;
+        s32 anim_target;
         struct MenuItem* items;
         s32 count;
     } menu;

@@ -286,7 +286,7 @@ static void drawMenu(Surf* surf, s32 x, s32 y)
     {
         const char* name = surf->menu.items[i].label;
 
-        s32 ym = Height * i + y - surf->menu.pos*MENU_HEIGHT - surf->menu.anim + (MENU_HEIGHT - TIC_FONT_HEIGHT)/2;
+        s32 ym = Height * i + y - surf->menu.pos*MENU_HEIGHT - (surf->menu.anim * surf->menu.anim_target) + (MENU_HEIGHT - TIC_FONT_HEIGHT)/2;
 
         if (ym > (-(TIC_FONT_HEIGHT + 1)) && ym <= TIC80_HEIGHT) {
             tic_api_print(tic, name, x + MAIN_OFFSET, ym + 1, tic_color_0, false, 1, false);
@@ -686,27 +686,28 @@ static void processAnim(Surf* surf)
 
     }
 
-    if(surf->menu.anim)
+    if(surf->menu.anim > 0)
     {
-        if(surf->menu.anim < 0) surf->menu.anim--;
-        if(surf->menu.anim > 0) surf->menu.anim++;
-
-        if(surf->menu.anim <= -Frames)
-        {
-            surf->menu.anim = 0;
-            surf->menu.pos--;
-
-            if(surf->menu.pos < 0)
-                surf->menu.pos = surf->menu.count-1;
-        }
+        surf->menu.anim++;
 
         if(surf->menu.anim >= Frames)
         {
-            surf->menu.anim = 0;
-            surf->menu.pos++;
+            s32 old_pos = surf->menu.pos;
 
-            if(surf->menu.pos >= surf->menu.count)
+            surf->menu.anim = 0;
+            surf->menu.pos += surf->menu.anim_target;
+
+            if(surf->menu.pos < 0)
+            {
                 surf->menu.pos = 0;
+            }
+            else if(surf->menu.pos >= surf->menu.count)
+            {
+                if(old_pos == surf->menu.count - 1)
+                    surf->menu.pos = 0;
+                else
+                    surf->menu.pos = surf->menu.count - 1;
+            }
         }
     }
 }
@@ -727,16 +728,31 @@ static void processGamepad(Surf* surf)
 
         if(tic_api_btnp(tic, Up, Hold, Period))
         {
-            surf->menu.anim = -1;
+            surf->menu.anim = 1;
+            surf->menu.anim_target = -1;
 
             playSystemSfx(2);
         }
-
-        if(tic_api_btnp(tic, Down, Hold, Period))
+        else if(tic_api_btnp(tic, Down, Hold, Period))
         {
             surf->menu.anim = 1;
+            surf->menu.anim_target = 1;
 
             playSystemSfx(2);
+        }
+        else if(
+            tic_api_btnp(tic, Left, Hold, Period)
+            || tic_api_keyp(tic, tic_key_pageup, Hold, Period))
+        {
+            surf->menu.anim = 1;
+            surf->menu.anim_target = -5;
+        }
+        else if(
+            tic_api_btnp(tic, Right, Hold, Period)
+            || tic_api_keyp(tic, tic_key_pagedown, Hold, Period))
+        {
+            surf->menu.anim = 1;
+            surf->menu.anim_target = 5;
         }
 
         if(tic_api_btnp(tic, A, -1, -1))
