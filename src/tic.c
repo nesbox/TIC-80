@@ -2088,9 +2088,9 @@ static inline void memset4(void *dst, u32 val, u32 dwords)
 #endif
 }
 
-void tic_core_blit_ex(tic_mem* tic, tic_scanline scanline, tic_overline overline, void* data)
+void tic_core_blit_ex(tic_mem* tic, tic_pixel_color_format fmt, tic_scanline scanline, tic_overline overline, void* data)
 {
-    const u32* pal = tic_tool_palette_blit(&tic->ram.vram.palette);
+    const u32* pal = tic_tool_palette_blit(&tic->ram.vram.palette, fmt);
 
     {
         tic_machine* machine = (tic_machine*)tic;
@@ -2100,7 +2100,7 @@ void tic_core_blit_ex(tic_mem* tic, tic_scanline scanline, tic_overline overline
     if(scanline)
     {
         scanline(tic, 0, data);
-        pal = tic_tool_palette_blit(&tic->ram.vram.palette);
+        pal = tic_tool_palette_blit(&tic->ram.vram.palette, fmt);
     }
 
     enum {Top = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2, Bottom = Top};
@@ -2131,7 +2131,7 @@ void tic_core_blit_ex(tic_mem* tic, tic_scanline scanline, tic_overline overline
         if(scanline && (r < TIC80_HEIGHT-1))
         {
             scanline(tic, r+1, data);
-            pal = tic_tool_palette_blit(&tic->ram.vram.palette);
+            pal = tic_tool_palette_blit(&tic->ram.vram.palette, fmt);
         }
     }
 
@@ -2158,9 +2158,9 @@ static inline void overline(tic_mem* memory, void* data)
         machine->state.ovr.callback(memory, data);
 }
 
-void tic_core_blit(tic_mem* tic)
+void tic_core_blit(tic_mem* tic, tic_pixel_color_format fmt)
 {
-    tic_core_blit_ex(tic, scanline, overline, NULL);
+    tic_core_blit_ex(tic, fmt, scanline, overline, NULL);
 }
 
 u8 tic_api_peek(tic_mem* memory, s32 address)
@@ -2256,6 +2256,7 @@ tic_mem* tic_core_create(s32 samplerate)
         return NULL;
     }
 
+    machine->memory.screen_format = TIC_PIXEL_COLOR_RGBA8888;
     machine->samplerate = samplerate;
     machine->memory.samples.size = samplerate * TIC_STEREO_CHANNELS / TIC80_FRAMERATE * sizeof(s16);
     machine->memory.samples.buffer = malloc(machine->memory.samples.size);

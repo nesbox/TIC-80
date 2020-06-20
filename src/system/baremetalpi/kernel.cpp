@@ -181,25 +181,14 @@ static System systemInterface =
 	.updateConfig = updateConfig,
 };
 
-u32 rgbaToBgra(u32 u){
-	u8 r = u & 0xFF;
-	u8 g = (u >> 8) & 0xff;
-	u8 b = (u >> 16) & 0xff;
-	return (b & 0xFF)      
-					| ((g & 0xFF) << 8)
-					| ((r & 0xFF)   << 16)
-					| (0xFF << 24);
-}
-
 void screenCopy(CScreenDevice* screen, u32* ts)
 {
 	u32 pitch = screen->GetPitch();
 	u32* buf = screen->GetBuffer();
-	for (int y = 0; y<136;y++)
-	for (int x = 0; x<240;x++)
+	for (int y = 0; y < TIC80_HEIGHT; y++)
 	{
-		u32 p = ts[(y+4)*(8+240+8)+(x+8)];
-		buf[pitch*y + x] = rgbaToBgra(p);
+		u32 *line = ts + ((y+TIC80_OFFSET_TOP)*(TIC80_FULLWIDTH) + TIC80_OFFSET_LEFT);
+		memcpy(buf + (pitch * y), line, TIC80_WIDTH * 4);
 	}
 
 	// single pixel mouse pointer, disappear after 10 seconds unmoved
@@ -209,7 +198,7 @@ void screenCopy(CScreenDevice* screen, u32* ts)
 		buf[midx]= 0xffffff;
 	}
 
-	// memcpy(screen->GetBuffer(), tic->screen, 240*136*4); would have been too good
+	// memcpy(screen->GetBuffer(), tic->screen, TIC80_WIDTH*TIC80_HEIGHT*4); would have been too good
 }
 
 
@@ -430,7 +419,7 @@ TShutdownMode Run(void)
 	}
 
 	// gotoSurf();
-
+	platform.studio->tic->screen_format = TIC_PIXEL_COLOR_BGRA8888;
 	dbg("Studio init ok..\n");
 
 	if (pKeyboard){

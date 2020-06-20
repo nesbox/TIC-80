@@ -91,7 +91,7 @@ u32 tic_tool_find_closest_color(const tic_rgb* palette, const gif_color* color)
     return closetColor;
 }
 
-u32* tic_tool_palette_blit(const tic_palette* srcpal)
+u32* tic_tool_palette_blit(const tic_palette* srcpal, tic_pixel_color_format fmt)
 {
     static u32 pal[TIC_PALETTE_SIZE];
 
@@ -101,10 +101,32 @@ u32* tic_tool_palette_blit(const tic_palette* srcpal)
 
     while(src != end)
     {
-        *dst++ = src->r;
-        *dst++ = src->g;
-        *dst++ = src->b;
-        *dst++ = 0xff;
+        switch(fmt){
+            case TIC_PIXEL_COLOR_BGRA8888:
+                *dst++ = src->b;
+                *dst++ = src->g;
+                *dst++ = src->r;
+                *dst++ = 0xff;
+                break;
+            case TIC_PIXEL_COLOR_RGBA8888:
+                *dst++ = src->r;
+                *dst++ = src->g;
+                *dst++ = src->b;
+                *dst++ = 0xff;
+                break;
+            case TIC_PIXEL_COLOR_ABGR8888:
+                *dst++ = 0xff;
+                *dst++ = src->b;
+                *dst++ = src->g;
+                *dst++ = src->r;
+                break;
+            case TIC_PIXEL_COLOR_ARGB8888:
+                *dst++ = 0xff;
+                *dst++ = src->r;
+                *dst++ = src->g;
+                *dst++ = src->b;
+                break;
+        }
         src++;
     }
 

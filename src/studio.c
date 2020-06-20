@@ -1417,7 +1417,7 @@ static void setCoverImage()
     {
         enum {Pitch = TIC80_FULLWIDTH*sizeof(u32)};
 
-        tic_core_blit(tic);
+        tic_core_blit(tic, TIC_PIXEL_COLOR_RGBA8888);
 
         u32* buffer = malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32));
 
@@ -1661,7 +1661,7 @@ static void drawRecordLabel(u32* frame, s32 sx, s32 sy, const u32* color)
     }
 }
 
-static void drawDesyncLabel(u32* frame)
+static void drawDesyncLabel(u32* frame, tic_pixel_color_format fmt)
 {
     if(getConfig()->showSync && impl.missedFrame)
     {
@@ -1676,7 +1676,7 @@ static void drawDesyncLabel(u32* frame)
         
         enum{sx = TIC80_WIDTH-24, sy = 8, Cols = sizeof DesyncLabel[0]*BITS_IN_BYTE, Rows = COUNT_OF(DesyncLabel)};
 
-        const u32* pal = tic_tool_palette_blit(&impl.config->cart.bank0.palette);
+        const u32* pal = tic_tool_palette_blit(&impl.config->cart.bank0.palette, fmt);
         const u32* color = &pal[tic_color_6];
 
         for(s32 y = 0; y < Rows; y++)
@@ -1690,6 +1690,11 @@ static void drawDesyncLabel(u32* frame)
     }
 }
 
+static bool isRecordFrame(void)
+{
+    return impl.video.record;
+}
+
 static void recordFrame(u32* pixels)
 {
     if(impl.video.record)
@@ -1701,7 +1706,7 @@ static void recordFrame(u32* pixels)
 
             if(impl.video.frame % TIC80_FRAMERATE < TIC80_FRAMERATE / 2)
             {
-                const u32* pal = tic_tool_palette_blit(&impl.config->cart.bank0.palette);
+                const u32* pal = tic_tool_palette_blit(&impl.config->cart.bank0.palette, TIC_PIXEL_COLOR_RGBA8888);
                 drawRecordLabel(pixels, TIC80_WIDTH-24, 8, &pal[tic_color_2]);
             }
 
@@ -1945,12 +1950,18 @@ static void studioTick()
             memcpy(tic->ram.font.data, impl.systemFont.data, sizeof(tic_font));
         }
 
-        data
-            ? tic_core_blit_ex(tic, scanline, overline, data)
-            : tic_core_blit(tic);
+        if(isRecordFrame())
+        {
+            data
+                ? tic_core_blit_ex(tic, TIC_PIXEL_COLOR_RGBA8888, scanline, overline, data)
+                : tic_core_blit(tic, TIC_PIXEL_COLOR_RGBA8888);
+            recordFrame(tic->screen);
+        }
 
-        recordFrame(tic->screen);
-        drawDesyncLabel(tic->screen);
+        data
+            ? tic_core_blit_ex(tic, tic->screen_format, scanline, overline, data)
+            : tic_core_blit(tic, tic->screen_format);
+        drawDesyncLabel(tic->screen, tic->screen_format);
     
     }
 

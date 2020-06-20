@@ -9,7 +9,7 @@
 #include <circle/exceptionhandler.h>
 #include <circle/interrupt.h>
 #include "customscreen.h"
-#include "size.h"
+#include <tic80.h>
 #include "utils.h"
 #include <circle/serial.h>
 #include <circle/timer.h>
@@ -45,7 +45,7 @@ static       CDeviceNameService mDeviceNameService;
 static        CNullDevice        mNullDevice;
 static        CExceptionHandler  mExceptionHandler;
 static        CInterruptSystem   mInterrupt;
-static	CScreenDevice      mScreen(SCREEN_WIDTH, SCREEN_HEIGHT);
+static	CScreenDevice      mScreen(TIC80_WIDTH, TIC80_HEIGHT);
 static        CSerialDevice      mSerial(&mInterrupt);
 static        CTimer             mTimer(&mInterrupt);
 static        CLogger		mLogger(LogWarning /*mOptions.GetLogLevel ()*/, &mTimer);
@@ -174,7 +174,7 @@ boolean initializeCore()
 	}
 	else
 	{
-		if (!pMouse->Setup (SCREEN_WIDTH*MOUSE_SENS, SCREEN_HEIGHT*MOUSE_SENS))
+		if (!pMouse->Setup (TIC80_WIDTH*MOUSE_SENS, TIC80_HEIGHT*MOUSE_SENS))
 		{
 			Die("Cannot setup mouse");
 		}

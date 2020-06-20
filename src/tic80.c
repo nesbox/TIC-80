@@ -74,6 +74,7 @@ tic80* tic80_create(s32 samplerate)
         memset(tic80, 0, sizeof(tic80_local));
 
         tic80->memory = tic_core_create(samplerate);
+        tic80->tic.screen_format = tic80->memory->screen_format;
 
         return &tic80->tic;
     }
@@ -112,13 +113,14 @@ TIC80_API void tic80_tick(tic80* tic, const tic80_input* input)
 {
     tic80_local* tic80 = (tic80_local*)tic;
 
+    tic80->memory->screen_format = tic80->tic.screen_format;
     tic80->memory->ram.input = *input;
     
     tic_core_tick_start(tic80->memory);
     tic_core_tick(tic80->memory, &tic80->tickData);
     tic_core_tick_end(tic80->memory);
 
-    tic_core_blit(tic80->memory);
+    tic_core_blit(tic80->memory, tic80->memory->screen_format);
 
     TickCounter++;
 }

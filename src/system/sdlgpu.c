@@ -185,7 +185,7 @@ static void setWindowIcon()
 
     u32* pixels = SDL_malloc(Size * Size * sizeof(u32));
 
-    const u32* pal = tic_tool_palette_blit(&platform.studio->config()->cart->bank0.palette);
+    const u32* pal = tic_tool_palette_blit(&platform.studio->config()->cart->bank0.palette, platform.studio->tic->screen_format);
 
     for(s32 j = 0, index = 0; j < Size; j++)
         for(s32 i = 0; i < Size; i++, index++)
@@ -278,7 +278,7 @@ static void initTouchKeyboard()
 
         drawKeyboardLabels(0);
 
-        tic_core_blit(tic);
+        tic_core_blit(tic, tic->screen_format);
 
         platform.keyboard.texture.upPixels = SDL_malloc(TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32));
         if(platform.keyboard.texture.upPixels)
@@ -303,7 +303,7 @@ static void initTouchKeyboard()
 
         drawKeyboardLabels(2);
 
-        tic_core_blit(tic);
+        tic_core_blit(tic, tic->screen_format);
 
         platform.keyboard.texture.downPixels = SDL_malloc(TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32));
         if(platform.keyboard.texture.downPixels)
@@ -335,7 +335,7 @@ static void initTouchGamepad()
 
             const u8* in = platform.studio->tic->ram.vram.screen.data;
             const u8* end = in + sizeof(platform.studio->tic->ram.vram.screen);
-            const u32* pal = tic_tool_palette_blit(&platform.studio->config()->cart->bank0.palette);
+            const u32* pal = tic_tool_palette_blit(&platform.studio->config()->cart->bank0.palette, platform.studio->tic->screen_format);
             const u32 Delta = ((TIC80_FULLWIDTH*sizeof(u32))/sizeof *out - TIC80_WIDTH);
 
             s32 col = 0;
@@ -1150,7 +1150,7 @@ static void blitCursor(const u8* in)
         platform.mouse.src = in;
 
         const u8* end = in + sizeof(tic_tile);
-        const u32* pal = tic_tool_palette_blit(&platform.studio->tic->ram.vram.palette);
+        const u32* pal = tic_tool_palette_blit(&platform.studio->tic->ram.vram.palette, platform.studio->tic->screen_format);
         static u32 data[TIC_SPRITESIZE*TIC_SPRITESIZE];
         u32* out = data;
 
