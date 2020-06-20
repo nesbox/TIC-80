@@ -500,7 +500,7 @@ static void onAddFile(const char* name, const u8* buffer, s32 size, void* data, 
                 fwrite(buffer, 1, size, dest);
                 fclose(dest);
 
-#if !defined(__TIC_WINRT__) && !defined(__TIC_WINDOWS__)
+#if !defined(__TIC_WINRT__) && !defined(__TIC_WINDOWS__) && !defined(_3DS)
                 if(mode)
                     chmod(path, mode);
 #endif
@@ -893,7 +893,7 @@ static void makeDir(const char* name)
 
 static void fsFullname(const char *path, char *fullname)
 {
-#if defined(BAREMETALPI)
+#if defined(BAREMETALPI) || defined(_3DS)
     dbg("fsFullname %s", path);
     // TODO BAREMETALPI
 #else
