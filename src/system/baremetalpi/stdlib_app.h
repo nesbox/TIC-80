@@ -17,7 +17,7 @@
 #include <circle/exceptionhandler.h>
 #include <circle/interrupt.h>
 #include "customscreen.h"
-#include "size.h"
+#include <tic80.h>
 #include <circle/serial.h>
 #include <circle/timer.h>
 #include <circle/logger.h>
@@ -34,6 +34,8 @@
 #include <circle/startup.h>
 
 #include <circle_glue.h>
+
+#include <tic80.h>
 
 /**
  * Basic Circle Stdlib application that supports GPIO access.
@@ -94,8 +96,7 @@ class CStdlibAppScreen : public CStdlibApp
 public:
         CStdlibAppScreen(const char *kernel)
                 : CStdlibApp (kernel),
-                  mScreen (SCREEN_WIDTH, SCREEN_HEIGHT),
-//                  mScreen (240, 136),
+                  mScreen (TIC80_WIDTH, TIC80_HEIGHT),
 		mSerial(&mInterrupt),
                   mTimer (&mInterrupt),
                   mLogger (LogWarning /*mOptions.GetLogLevel ()*/, &mTimer)

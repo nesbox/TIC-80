@@ -185,10 +185,10 @@ void screenCopy(CScreenDevice* screen, u32* ts)
 {
 	u32 pitch = screen->GetPitch();
 	u32* buf = screen->GetBuffer();
-	for (int y = 0; y<136;y++)
+	for (int y = 0; y < TIC80_HEIGHT; y++)
 	{
 		u32 *line = ts + ((y+TIC80_OFFSET_TOP)*(TIC80_FULLWIDTH) + TIC80_OFFSET_LEFT);
-		memcpy(buf + (pitch * y), line, 240 * 4);
+		memcpy(buf + (pitch * y), line, TIC80_WIDTH * 4);
 	}
 
 	// single pixel mouse pointer, disappear after 10 seconds unmoved
@@ -198,7 +198,7 @@ void screenCopy(CScreenDevice* screen, u32* ts)
 		buf[midx]= 0xffffff;
 	}
 
-	// memcpy(screen->GetBuffer(), tic->screen, 240*136*4); would have been too good
+	// memcpy(screen->GetBuffer(), tic->screen, TIC80_WIDTH*TIC80_HEIGHT*4); would have been too good
 }
 
 
