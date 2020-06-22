@@ -28,6 +28,10 @@
 #include <stddef.h>
 #include <time.h>
 
+#ifdef _3DS
+#include <3ds.h>
+#endif
+
 #include "ticapi.h"
 #include "tools.h"
 #include "tilesheet.h"
@@ -2258,6 +2262,12 @@ tic_mem* tic_core_create(s32 samplerate)
 
     machine->memory.screen_format = TIC_PIXEL_COLOR_RGBA8888;
     machine->samplerate = samplerate;
+#ifdef _3DS
+    // To feed texture data directly to the 3DS GPU, linearly allocated memory is required, which is
+    // not guaranteed by malloc.
+    // Additionally, allocate TIC80_FULLHEIGHT + 1 lines to minimize glitches in linear scaling mode.
+    machine->memory.screen = linearAlloc(TIC80_FULLWIDTH * (TIC80_FULLHEIGHT + 1) * sizeof(u32));
+#endif
     machine->memory.samples.size = samplerate * TIC_STEREO_CHANNELS / TIC80_FRAMERATE * sizeof(s16);
     machine->memory.samples.buffer = malloc(machine->memory.samples.size);
 

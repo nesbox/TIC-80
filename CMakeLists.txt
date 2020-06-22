@@ -35,7 +35,7 @@ message("PROJECT_VERSION: ${PROJECT_VERSION}${VERSION_STATUS}")
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/version.h")
 
-if(ANDROID OR EMSCRIPTEN)
+if(ANDROID OR EMSCRIPTEN OR N3DS)
     set(BUILD_SOKOL_DEFAULT OFF)
     set(BUILD_LIBRETRO_DEFAULT OFF)
     set(BUILD_DEMO_CARTS_DEFAULT OFF)
@@ -53,6 +53,13 @@ option(BUILD_LIBRETRO "libretro Enabled" ${BUILD_LIBRETRO_DEFAULT})
 option(BUILD_DEMO_CARTS "Demo Carts Enabled" ${BUILD_DEMO_CARTS_DEFAULT})
 option(BUILD_PRO "Build PRO version" FALSE)
 option(BUILD_PLAYER "Build standalone players" ${BUILD_PLAYER_DEFAULT})
+
+if (N3DS)
+    set(BUILD_SDL off)
+    # disable CURL linking - use HTTPC instead
+    set(DISABLE_NETWORKING TRUE)
+    option(N3DS_BUILD_CIA "Build .cia variant - requires bannertool and makerom" FALSE)
+endif()
 
 if (BAREMETALPI)
 
@@ -116,7 +123,7 @@ if (DISABLE_NETWORKING)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DDISABLE_NETWORKING")
 endif()
 
-if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID)
+if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID AND NOT N3DS)
     set(LINUX TRUE)
 endif()
 
@@ -200,6 +207,10 @@ add_library(lua STATIC ${LUA_SRC})
 
 target_compile_definitions(lua PRIVATE LUA_COMPAT_5_2)
 target_include_directories(lua INTERFACE ${THIRDPARTY_DIR}/lua)
+
+if(N3DS)
+    target_compile_definitions(lua PUBLIC LUA_32BITS)
+endif()
 
 ################################
 # LPEG
@@ -499,6 +510,9 @@ endif()
 ################################
 
 if (NOT DISABLE_NETWORKING)
+
+if (NOT N3DS)
+
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
 
 if(WIN32)
@@ -516,9 +530,13 @@ add_subdirectory(${THIRDPARTY_DIR}/curl)
 
 endif()
 
+endif()
+
 ################################
 # ZLIB
 ################################
+
+if (NOT N3DS)
 
 set(ZLIB_DIR ${THIRDPARTY_DIR}/zlib)
 set(ZLIB_SRC 
@@ -538,6 +556,14 @@ set(ZLIB_SRC
 add_library(zlib STATIC ${ZLIB_SRC})
 target_include_directories(zlib INTERFACE ${THIRDPARTY_DIR}/zlib)
 
+else ()
+
+add_library(zlib STATIC IMPORTED)
+set_target_properties( zlib PROPERTIES IMPORTED_LOCATION ${DEVKITPRO}/portlibs/3ds/lib/libz.a )
+target_include_directories(zlib INTERFACE ${DEVKITPRO}/portlibs/3ds/include)
+
+endif ()
+
 ################################
 # ZIP
 ################################
@@ -552,7 +578,7 @@ add_subdirectory(${THIRDPARTY_DIR}/zip)
 if(BUILD_DEMO_CARTS)
     set(BIN2TXT_DIR ${CMAKE_SOURCE_DIR}/build/tools/bin2txt)
     set(BIN2TXT_SRC 
-        ${BIN2TXT_DIR}/bin2txt.c
+      ${BIN2TXT_DIR}/bin2txt.c
     )
 
     add_executable(bin2txt ${BIN2TXT_SRC})
@@ -634,8 +660,17 @@ target_include_directories(${TIC80_OUTPUT}lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
 
 target_link_libraries(${TIC80_OUTPUT}lib tic80core zlib zip wave_writer)
 
+if(N3DS)
+    target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${DEVKITPRO}/portlibs/3ds/include)
+    target_link_directories(${TIC80_OUTPUT}lib PUBLIC ${DEVKITPRO}/portlibs/3ds/lib)
+endif()
+
 if(NOT DISABLE_NETWORKING)
+if(N3DS)
+    target_link_libraries(${TIC80_OUTPUT}lib curl mbedtls mbedx509 mbedcrypto)
+else()
     target_link_libraries(${TIC80_OUTPUT}lib libcurl)
+endif()
 endif()
 
 if(BUILD_PRO)
@@ -831,4 +866,45 @@ if(BUILD_SOKOL)
         target_link_libraries(${TIC80_OUTPUT}-sokol ${GTK_LIBRARIES})
     endif()
 
+endif()
+
+################################
+# TIC-80 app (N3DS)
+################################
+
+if(N3DS)
+    set(TIC80_SRC ${TIC80_SRC}
+        ${CMAKE_SOURCE_DIR}/src/system/n3ds/utils.c
+        ${CMAKE_SOURCE_DIR}/src/system/n3ds/keyboard.c
+        ${CMAKE_SOURCE_DIR}/src/system/n3ds/net_httpc.c
+        ${CMAKE_SOURCE_DIR}/src/system/n3ds/main.c
+    )
+
+    if (DISABLE_NETWORKING)
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DENABLE_HTTPC")
+    endif()
+
+    add_executable(${TIC80_OUTPUT}_n3ds ${TIC80_SRC})
+
+    target_include_directories(${TIC80_OUTPUT}_n3ds PRIVATE
+        ${DEVKITPRO}/portlibs/3ds/include
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/src)
+
+    target_link_directories(${TIC80_OUTPUT}_n3ds PRIVATE ${DEVKITPRO}/libctru/lib)
+    target_link_libraries(${TIC80_OUTPUT}_n3ds ${TIC80_OUTPUT}lib png citro3d)
+
+    if (N3DS_BUILD_CIA)
+        add_custom_command(TARGET tic80_n3ds
+               POST_BUILD
+                   COMMAND ${CMAKE_SOURCE_DIR}/build/n3ds/elf_to_cia.sh
+               WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/build
+        )
+    endif()
+
+    add_custom_command(TARGET tic80_n3ds
+           POST_BUILD
+               COMMAND ${CMAKE_SOURCE_DIR}/build/n3ds/elf_to_3dsx.sh
+           WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/build
+    )
 endif()
