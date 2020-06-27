@@ -1239,7 +1239,7 @@ static void processKeyboard(Code* code)
         if(keyWasPressed(tic_key_left))             leftWord(code);
         else if(keyWasPressed(tic_key_right))       rightWord(code);
         else if(keyWasPressed(tic_key_tab))         doTab(code, shift, ctrl);
-        else if(keyWasPressed(tic_key_a))           selectAll(code);
+        else if(keyWasPressed(tic_key_a) && shift)  selectAll(code);
         else if(keyWasPressed(tic_key_z))           undo(code);
         else if(keyWasPressed(tic_key_y))           redo(code);
         else if(keyWasPressed(tic_key_f))           setCodeMode(code, TEXT_FIND_MODE);
@@ -1250,6 +1250,8 @@ static void processKeyboard(Code* code)
         else if(keyWasPressed(tic_key_end))         goCodeEnd(code);
         else if(keyWasPressed(tic_key_delete))      deleteWord(code);
         else if(keyWasPressed(tic_key_backspace))   backspaceWord(code);
+        else if(keyWasPressed(tic_key_e))           goEnd(code);
+        else if(keyWasPressed(tic_key_a))           goHome(code);
         else                                        usedKeybinding = false;
     }
     else if(alt)
