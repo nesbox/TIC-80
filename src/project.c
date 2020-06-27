@@ -21,7 +21,7 @@
 // SOFTWARE.
 
 #include "project.h"
-#include "studio.h"
+#include "tools.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -224,7 +224,7 @@ static bool loadBinarySection(const char* project, const char* comment, const ch
                     if(index < count)
                     {
                         ptr += sizeof("-- 999:") - 1;
-                        str2buf(ptr, size*2, (u8*)dst + size*index, flip);
+                        tic_tool_str2buf(ptr, size*2, (u8*)dst + size*index, flip);
                         ptr += size*2 + 1;
 
                         ptr = getLineEnd(ptr);
@@ -235,7 +235,7 @@ static bool loadBinarySection(const char* project, const char* comment, const ch
             else
             {
                 ptr += sizeof("-- 999:") - 1;
-                str2buf(ptr, end - ptr, (u8*)dst, flip);
+                tic_tool_str2buf(ptr, end - ptr, (u8*)dst, flip);
             }
 
             done = true;

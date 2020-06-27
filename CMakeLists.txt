@@ -572,18 +572,23 @@ endif ()
 set(CMAKE_DISABLE_TESTING ON CACHE BOOL "" FORCE)
 add_subdirectory(${THIRDPARTY_DIR}/zip)
 
+set(TOOLS_DIR ${CMAKE_SOURCE_DIR}/build/tools)
+
 ################################
-# bin2txt
+# bin2txt cart2prj prj2cart
 ################################
 
 if(BUILD_DEMO_CARTS)
-    set(BIN2TXT_DIR ${CMAKE_SOURCE_DIR}/build/tools/bin2txt)
-    set(BIN2TXT_SRC 
-      ${BIN2TXT_DIR}/bin2txt.c
-    )
 
-    add_executable(bin2txt ${BIN2TXT_SRC})
+    add_executable(cart2prj ${TOOLS_DIR}/cart2prj.c ${CMAKE_SOURCE_DIR}/src/project.c)
+    target_include_directories(cart2prj PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include)
+    target_link_libraries(cart2prj tic80core)
 
+    add_executable(prj2cart ${TOOLS_DIR}/prj2cart.c ${CMAKE_SOURCE_DIR}/src/project.c)
+    target_include_directories(prj2cart PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include)
+    target_link_libraries(prj2cart tic80core)
+
+    add_executable(bin2txt ${TOOLS_DIR}/bin2txt.c)
     target_link_libraries(bin2txt zlib)
 
     file(GLOB DEMO_CARTS ${CMAKE_SOURCE_DIR}/demos/*.tic )

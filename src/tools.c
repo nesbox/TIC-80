@@ -23,6 +23,7 @@
 #include "tools.h"
 
 #include <string.h>
+#include <stdlib.h>
 
 extern void tic_tool_poke4(void* addr, u32 index, u8 value);
 extern u8 tic_tool_peek4(const void* addr, u32 index);
@@ -156,4 +157,26 @@ bool tic_tool_is_noise(const tic_waveform* wave)
             return false;
 
     return true;
+}
+
+void tic_tool_str2buf(const char* str, s32 size, void* buf, bool flip)
+{
+    char val[] = "0x00";
+    const char* ptr = str;
+
+    for(s32 i = 0; i < size/2; i++)
+    {
+        if(flip)
+        {
+            val[3] = *ptr++;
+            val[2] = *ptr++;
+        }
+        else
+        {
+            val[2] = *ptr++;
+            val[3] = *ptr++;
+        }
+
+        ((u8*)buf)[i] = (u8)strtol(val, NULL, 16);
+    }
 }

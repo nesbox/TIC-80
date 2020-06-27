@@ -1047,7 +1047,7 @@ static void copyFromClipboard(Map* map)
             {
                 u8* data = malloc(size);
 
-                str2buf(clipboard, strlen(clipboard), data, true);
+                tic_tool_str2buf(clipboard, strlen(clipboard), data, true);
 
                 if(data[0] * data[1] == size - 2)
                 {

@@ -685,7 +685,7 @@ static void copyFromClipboard(Music* music)
             {
                 u8* data = malloc(size);
 
-                str2buf(clipboard, strlen(clipboard), data, true);
+                tic_tool_str2buf(clipboard, strlen(clipboard), data, true);
 
                 ClipboardHeader header = {0};
 

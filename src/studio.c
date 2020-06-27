@@ -36,6 +36,7 @@
 #include "dialog.h"
 #include "menu.h"
 #include "surf.h"
+#include "project.h"
 
 #include "fs.h"
 
@@ -539,28 +540,6 @@ void toClipboard(const void* data, s32 size, bool flip)
     }
 }
 
-void str2buf(const char* str, s32 size, void* buf, bool flip)
-{
-    char val[] = "0x00";
-    const char* ptr = str;
-
-    for(s32 i = 0; i < size/2; i++)
-    {
-        if(flip)
-        {
-            val[3] = *ptr++;
-            val[2] = *ptr++;
-        }
-        else
-        {
-            val[2] = *ptr++;
-            val[3] = *ptr++;
-        }
-
-        ((u8*)buf)[i] = (u8)strtol(val, NULL, 16);
-    }
-}
-
 static void removeWhiteSpaces(char* str)
 {
     s32 i = 0;
@@ -588,7 +567,7 @@ bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces)
                             
                 bool valid = strlen(clipboard) == size * 2;
 
-                if(valid) str2buf(clipboard, strlen(clipboard), data, flip);
+                if(valid) tic_tool_str2buf(clipboard, strlen(clipboard), data, flip);
 
                 getSystem()->freeClipboardText(clipboard);
 

@@ -82,3 +82,4 @@ bool    tic_tool_has_ext(const char* name, const char* ext);
 s32     tic_tool_get_track_row_sfx(const tic_track_row* row);
 void    tic_tool_set_track_row_sfx(tic_track_row* row, s32 sfx);
 bool    tic_tool_is_noise(const tic_waveform* wave);
+void    tic_tool_str2buf(const char* str, s32 size, void* buf, bool flip);

@@ -20,16 +20,63 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#pragma once
+#include <stdio.h>
+#include <stdlib.h>
+#include "project.h"
 
-#include "cart.h"
+int main(int argc, char** argv)
+{
+	int res = -1;
 
-#define PROJECT_LUA_EXT         ".lua"
-#define PROJECT_MOON_EXT        ".moon"
-#define PROJECT_JS_EXT          ".js"
-#define PROJECT_WREN_EXT        ".wren"
-#define PROJECT_SQUIRREL_EXT    ".nut"
-#define PROJECT_FENNEL_EXT      ".fnl"
+	if(argc == 3)
+	{
+		FILE* project = fopen(argv[1], "rb");
 
-bool tic_project_load(const char* name, const char* data, s32 size, tic_cartridge* dst);
-s32 tic_project_save(const char* name, void* data, const tic_cartridge* cart);
+		if(project)
+		{
+			fseek(project, 0, SEEK_END);
+			int size = ftell(project);
+			fseek(project, 0, SEEK_SET);
+
+			unsigned char* buffer = (unsigned char*)malloc(size);
+
+			if(buffer)
+			{
+				fread(buffer, size, 1, project);
+				fclose(project);
+
+				tic_cartridge cart = {0};
+
+				tic_project_load(argv[1], buffer, size, &cart);
+
+				FILE* cartFile = fopen(argv[2], "wb");
+
+				if(cartFile)
+				{
+					unsigned char* out = (unsigned char*)malloc(sizeof(tic_cartridge));
+
+					if(out)
+					{
+						int outSize = tic_cart_save(&cart, out);
+
+						fwrite(out, outSize, 1, cartFile);
+
+						free(out);
+					}
+
+					fclose(cartFile);
+
+					res = 0;
+				}
+				else printf("cannot open cartridge file\n");
+
+				free(buffer);
+			}
+
+		}
+		else printf("cannot open project file\n");
+	}
+	else printf("usage: prj2cart <project> <cartridge>\n");
+
+	return res;
+}
