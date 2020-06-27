@@ -104,7 +104,6 @@ struct Console
     };
 
     void(*load)(Console*, const char* path, const char* hash);
-    bool(*loadProject)(Console*, const char* name, const char* data, s32 size, tic_cartridge* dst);
     void(*updateProject)(Console*);
     void(*error)(Console*, const char*);
     void(*trace)(Console*, const char*, u8 color);

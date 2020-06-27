@@ -26,6 +26,7 @@
 #include <tic80.h>
 #include "ticapi.h"
 #include "tools.h"
+#include "cart.h"
 
 #include "ext/gif.h"
 
@@ -104,7 +105,7 @@ TIC80_API void tic80_load(tic80* tic, void* cart, s32 size)
     }
 
     {
-        tic_core_load(&tic80->memory->cart, cart, size);
+        tic_cart_load(&tic80->memory->cart, cart, size);
         tic_api_reset(tic80->memory);
     }
 }

@@ -23,6 +23,7 @@
 #include "surf.h"
 #include "fs.h"
 #include "console.h"
+#include "project.h"
 
 #include "ext/gif.h"
 
@@ -511,9 +512,9 @@ static void loadCover(Surf* surf)
             {
 
                 if(hasProjectExt(item->name))
-                    surf->console->loadProject(surf->console, item->name, data, size, cart);
+                    tic_project_load(item->name, data, size, cart);
                 else
-                    tic_core_load(cart, data, size);
+                    tic_cart_load(cart, data, size);
 
                 if(cart->cover.size)
                     updateMenuItemCover(surf, cart->cover.data, cart->cover.size);
@@ -625,26 +626,7 @@ static void onPlayCart(Surf* surf)
 {
     MenuItem* item = &surf->menu.items[surf->menu.pos];
 
-    if(item->project)
-    {
-        tic_cartridge* cart = malloc(sizeof(tic_cartridge));
-
-        if(cart)
-        {
-            s32 size = 0;
-            void* data = fsLoadFile(surf->fs, item->name, &size);
-
-            surf->console->loadProject(surf->console, item->name, data, size, cart);
-
-            memcpy(&surf->tic->cart, cart, sizeof(tic_cartridge));
-
-            studioRomLoaded();
-
-            free(cart);
-        }
-    }
-    else
-        surf->console->load(surf->console, item->name, item->hash);
+    surf->console->load(surf->console, item->name, item->hash);
 
     runGameFromSurf();
 }

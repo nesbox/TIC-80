@@ -332,6 +332,7 @@ set(TIC80CORE_SRC
     ${TIC80CORE_DIR}/wrenapi.c 
     ${TIC80CORE_DIR}/squirrelapi.c
     ${TIC80CORE_DIR}/ext/gif.c
+    ${TIC80CORE_DIR}/cart.c
 )
 
 add_library(tic80core STATIC ${TIC80CORE_SRC})
@@ -646,6 +647,7 @@ set(TIC80LIB_SRC
     ${TIC80LIB_DIR}/menu.c
     ${TIC80LIB_DIR}/surf.c
     ${TIC80LIB_DIR}/net.c
+    ${TIC80LIB_DIR}/project.c
 )
 
 set(TIC80_OUTPUT tic80)

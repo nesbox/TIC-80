@@ -174,8 +174,6 @@ tic_mem* tic_core_create(s32 samplerate);
 void tic_core_close(tic_mem* memory);
 void tic_core_pause(tic_mem* memory);
 void tic_core_resume(tic_mem* memory);
-void tic_core_load(tic_cartridge* rom, const u8* buffer, s32 size);
-s32  tic_core_save(const tic_cartridge* rom, u8* buffer);
 void tic_core_tick_start(tic_mem* memory);
 void tic_core_tick(tic_mem* memory, tic_tick_data* data);
 void tic_core_tick_end(tic_mem* memory);

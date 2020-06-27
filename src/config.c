@@ -22,6 +22,8 @@
 
 #include "config.h"
 #include "fs.h"
+#include "cart.h"
+
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
@@ -287,7 +289,7 @@ static void readConfig(Config* config)
 
 static void update(Config* config, const u8* buffer, size_t size)
 {
-    tic_core_load(&config->cart, buffer, size);
+    tic_cart_load(&config->cart, buffer, size);
 
     readConfig(config);
     studioConfigChanged();
@@ -325,7 +327,7 @@ static void saveConfig(Config* config, bool overwrite)
 
     if(buffer)
     {
-        s32 size = tic_core_save(&config->cart, buffer);
+        s32 size = tic_cart_save(&config->cart, buffer);
 
         fsSaveRootFile(config->fs, CONFIG_TIC_PATH, buffer, size, overwrite);
 
