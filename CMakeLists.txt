@@ -588,17 +588,27 @@ if(BUILD_DEMO_CARTS)
     target_include_directories(prj2cart PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include)
     target_link_libraries(prj2cart tic80core)
 
+    set(CONFIG_PROJECT ${CMAKE_SOURCE_DIR}/config.lua)
+    set(CONFIG_CART_OUT ${CMAKE_SOURCE_DIR}/build/config.tic)
+
+    add_custom_command(OUTPUT ${CONFIG_CART_OUT}
+        COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/prj2cart ${CONFIG_PROJECT} ${CONFIG_CART_OUT}
+        DEPENDS prj2cart ${CONFIG_PROJECT}
+    )
+
     add_executable(bin2txt ${TOOLS_DIR}/bin2txt.c)
     target_link_libraries(bin2txt zlib)
 
     file(GLOB DEMO_CARTS ${CMAKE_SOURCE_DIR}/demos/*.tic )
 
     list(APPEND DEMO_CARTS 
-        ${CMAKE_SOURCE_DIR}/config.tic
+        ${CONFIG_CART_OUT}
         ${CMAKE_SOURCE_DIR}/build/html/embed.html
     )
 
     set(DEMO_CARTS_OUT)
+
+    list(APPEND DEMO_CARTS_OUT)
 
     foreach(CART_FILE ${DEMO_CARTS})
 
@@ -614,8 +624,6 @@ if(BUILD_DEMO_CARTS)
         )
 
     endforeach(CART_FILE)
-
-    add_custom_target(generate_demo_carts DEPENDS ${DEMO_CARTS_OUT})
 
 endif()
 
@@ -657,7 +665,7 @@ set(TIC80LIB_SRC
 
 set(TIC80_OUTPUT tic80)
 
-add_library(${TIC80_OUTPUT}lib STATIC ${TIC80LIB_SRC} ${DEMO_CARTS_OUT})
+add_library(${TIC80_OUTPUT}lib STATIC ${TIC80LIB_SRC} ${DEMO_CARTS_OUT} ${CONFIG_CART_OUT})
 
 if(WIN32)
     target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${THIRDPARTY_DIR}/dirent/include)
