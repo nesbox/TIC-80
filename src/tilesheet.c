@@ -56,37 +56,37 @@ extern void setTilePixel(const tic_tileptr* tile, s32 x, s32 y, u8 value);
 
 tic_tilesheet getTileSheet(u8 segment, u8* ptr)
 {
-    return (tic_tilesheet){segments[segment], ptr};
+    return (tic_tilesheet){&segments[segment], ptr};
 }
 
 tic_tileptr getTile(const tic_tilesheet* sheet, s32 index, bool local)
 {
     enum {Cols=16, Size=8};
-    tic_blit_segment segment = sheet->segment;
+    const tic_blit_segment* segment = sheet->segment;
 
     s32 bank, page, iy, ix;
     if (local) {
         index = index & 255;
-        bank = segment.bank_orig;
-        page = segment.page_orig;
+        bank = segment->bank_orig;
+        page = segment->page_orig;
         div_t ixy = div(index, Cols);
         iy = ixy.quot;
         ix = ixy.rem;
     }
     else {
         // reindex
-        div_t ia = div(index, segment.bank_size);    // bank, bank_index
-        div_t ib = div(ia.rem, segment.sheet_width); // yi, bank_xi
+        div_t ia = div(index, segment->bank_size);    // bank, bank_index
+        div_t ib = div(ia.rem, segment->sheet_width); // yi, bank_xi
         div_t ic = div(ib.rem, Cols);                // page, xi
-        bank = (ia.quot + segment.bank_orig) % 2; 
-        page = (ic.quot + segment.page_orig) % segment.nb_pages;
+        bank = (ia.quot + segment->bank_orig) % 2; 
+        page = (ic.quot + segment->page_orig) % segment->nb_pages;
         iy = ib.quot % Cols;
         ix = ic.rem;
     }
 
-    div_t xdiv = div(ix, segment.nb_pages);    // xbuffer, xoffset
-    u32 ptr_offset = ( bank * Cols + iy ) * Cols + page * Cols / segment.nb_pages + xdiv.quot;
-    u8* ptr = sheet->ptr + segment.ptr_size * ptr_offset;
+    div_t xdiv = div(ix, segment->nb_pages);    // xbuffer, xoffset
+    u32 ptr_offset = ( bank * Cols + iy ) * Cols + page * Cols / segment->nb_pages + xdiv.quot;
+    u8* ptr = sheet->ptr + segment->ptr_size * ptr_offset;
     u32 offset  = (xdiv.rem * Size);
 
     return (tic_tileptr){segment, offset, ptr};

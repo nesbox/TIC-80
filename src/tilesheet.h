@@ -41,13 +41,13 @@ typedef struct
 
 typedef struct
 {
-    tic_blit_segment segment;
+    const tic_blit_segment* segment;
     u8* ptr;
 } tic_tilesheet;
 
 typedef struct
 {
-    tic_blit_segment segment;
+    const tic_blit_segment* segment;
     u32 offset;
     u8* ptr;
 } tic_tileptr;
@@ -58,29 +58,29 @@ tic_tileptr getTile(const tic_tilesheet* sheet, s32 index, bool local);
 inline u8 getTileSheetPixel(const tic_tilesheet* sheet, s32 x, s32 y)
 {
     // tile coord
-    u16 tile_index = ((y >> 3) << 4 ) + (x / sheet->segment.tile_width);
+    u16 tile_index = ((y >> 3) << 4 ) + (x / sheet->segment->tile_width);
     // coord in tile
-    u32 pix_addr = ((x & (sheet->segment.tile_width - 1)) + ((y & 7) * sheet->segment.tile_width)) ;
-    return sheet->segment.peek(sheet->ptr+tile_index * sheet->segment.ptr_size, pix_addr);
+    u32 pix_addr = ((x & (sheet->segment->tile_width - 1)) + ((y & 7) * sheet->segment->tile_width)) ;
+    return sheet->segment->peek(sheet->ptr+tile_index * sheet->segment->ptr_size, pix_addr);
 }
 
 inline void setTileSheetPixel(const tic_tilesheet* sheet, s32 x, s32 y, u8 value)
 {
     // tile coord
-    u16 tile_index = ((y >> 3) << 4 ) + (x / sheet->segment.tile_width);
+    u16 tile_index = ((y >> 3) << 4 ) + (x / sheet->segment->tile_width);
     // coord in tile
-    u32 pix_addr = ((x & (sheet->segment.tile_width - 1)) + ((y & 7) * sheet->segment.tile_width)) ;
-    sheet->segment.poke(sheet->ptr + tile_index * sheet->segment.ptr_size, pix_addr, value);
+    u32 pix_addr = ((x & (sheet->segment->tile_width - 1)) + ((y & 7) * sheet->segment->tile_width)) ;
+    sheet->segment->poke(sheet->ptr + tile_index * sheet->segment->ptr_size, pix_addr, value);
 }
 
 inline u8 getTilePixel(const tic_tileptr* tile, s32 x, s32 y)
 {
-    u32 addr = tile->offset + x + (y * tile->segment.tile_width);
-    return tile->segment.peek(tile->ptr, addr);
+    u32 addr = tile->offset + x + (y * tile->segment->tile_width);
+    return tile->segment->peek(tile->ptr, addr);
 }
 
 inline void setTilePixel(const tic_tileptr* tile, s32 x, s32 y, u8 value)
 {
-    u32 addr = tile->offset + x + (y * tile->segment.tile_width);
-    tile->segment.poke(tile->ptr, addr, value);
+    u32 addr = tile->offset + x + (y * tile->segment->tile_width);
+    tile->segment->poke(tile->ptr, addr, value);
 }

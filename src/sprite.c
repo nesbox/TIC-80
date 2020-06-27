@@ -72,21 +72,6 @@ static void updateIndex(Sprite* sprite)
     clearCanvasSelection(sprite);
 }
 
-static void setIndex(Sprite* sprite, u16 index)
-{
-
-    u16 nb_pages = sprite->nbPages;
-    u16 sheet_w = (nb_pages*SHEET_COLS);
-    u16 sheet_y = index/sheet_w, sheet_x = index%sheet_w;
-
-    sprite->bank = (sheet_y/ SHEET_COLS) & 1;
-    sprite->page = ((sheet_x/SHEET_COLS) & (nb_pages - 1)) ;
-    sprite->x = sheet_x % SHEET_COLS;
-    sprite->y = sheet_y % SHEET_COLS;
-
-    updateIndex(sprite);
-}
-
 static void leftViewport(Sprite* sprite)
 {
     if (sprite->page > 0) sprite->page--;
@@ -106,15 +91,6 @@ static void selectViewportPage(Sprite* sprite, u8 page)
     sprite->page = page;
     updateIndex(sprite);
     initTileSheet(sprite);
-}
-
-static tic_point viewportToSheet(Sprite* sprite, u16 x, u16 y)
-{
-    tic_point sheet_point = {
-        sprite->page*TIC_SPRITESHEET_SIZE + x,
-        sprite->bank*TIC_SPRITESHEET_SIZE + y,
-    };
-    return sheet_point;
 }
 
 static u8 getSheetPixel(Sprite* sprite, s32 x, s32 y)

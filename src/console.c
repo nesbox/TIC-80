@@ -2594,6 +2594,7 @@ static void onConsoleVRamCommand(Console* console, const char* param)
         {offsetof(tic_ram, vram.vars.colors),       "BORDER"},
         {offsetof(tic_ram, vram.vars.offset),       "SCREEN OFFSET"},
         {offsetof(tic_ram, vram.vars.cursor),       "MOUSE CURSOR"},
+        {offsetof(tic_ram, vram.blit),              "BLIT SEGMENT"},
         {offsetof(tic_ram, vram.reserved),          "..."},
         {TIC_VRAM_SIZE,                             ""},
     };

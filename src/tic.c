@@ -407,7 +407,7 @@ static void drawSprite(tic_machine* machine, s32 index, s32 x, s32 y, s32 w, s32
     else
     {
         s32 step = TIC_SPRITESIZE * scale;
-        s32 cols = sheet.segment.sheet_width;
+        s32 cols = sheet.segment->sheet_width;
 
         const tic_flip vert_horz_flip = tic_horz_flip | tic_vert_flip;
 
@@ -516,7 +516,7 @@ static s32 drawChar(tic_machine* machine, tic_tileptr* font_char, s32 x, s32 y, 
     return width;
 }
 
-s32 drawText(tic_machine* machine, tic_tilesheet* font_face, const char* text, s32 x, s32 y, s32 width, s32 height, bool fixed, u8* mapping, s32 scale, bool alt)
+static s32 drawText(tic_machine* machine, tic_tilesheet* font_face, const char* text, s32 x, s32 y, s32 width, s32 height, bool fixed, u8* mapping, s32 scale, bool alt)
 {
     s32 pos = x;
     s32 MAX = x;
@@ -1637,9 +1637,11 @@ void tic_api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
 
 static void cart2ram(tic_mem* memory)
 {
-    static const u8 Font[] = {
-        #include "system/font.inl"
+    static const u8 Font[] = 
+    {
+        #include "font.inl"
     };
+
     memcpy(memory->ram.font.data, Font, sizeof Font);
 
     tic_api_sync(memory, 0, 0, false);
