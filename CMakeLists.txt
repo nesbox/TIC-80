@@ -588,42 +588,40 @@ if(BUILD_DEMO_CARTS)
     target_include_directories(prj2cart PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include)
     target_link_libraries(prj2cart tic80core)
 
-    set(CONFIG_PROJECT ${CMAKE_SOURCE_DIR}/config.lua)
-    set(CONFIG_CART_OUT ${CMAKE_SOURCE_DIR}/build/config.tic)
-
-    add_custom_command(OUTPUT ${CONFIG_CART_OUT}
-        COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/prj2cart ${CONFIG_PROJECT} ${CONFIG_CART_OUT}
-        DEPENDS prj2cart ${CONFIG_PROJECT}
-    )
-
     add_executable(bin2txt ${TOOLS_DIR}/bin2txt.c)
     target_link_libraries(bin2txt zlib)
 
-    file(GLOB DEMO_CARTS ${CMAKE_SOURCE_DIR}/demos/*.tic )
+    file(GLOB DEMO_CARTS ${CMAKE_SOURCE_DIR}/demos/*.* )
 
     list(APPEND DEMO_CARTS 
-        ${CONFIG_CART_OUT}
-        ${CMAKE_SOURCE_DIR}/build/html/embed.html
+        ${CMAKE_SOURCE_DIR}/config.lua
     )
 
     set(DEMO_CARTS_OUT)
 
-    list(APPEND DEMO_CARTS_OUT)
-
     foreach(CART_FILE ${DEMO_CARTS})
 
-        get_filename_component(cart_name ${CART_FILE} NAME)
+        get_filename_component(cart_name ${CART_FILE} NAME_WLE)
 
-        set(OUTNAME ${CMAKE_SOURCE_DIR}/build/assets/${cart_name}.dat)
+        set(OUTNAME ${CMAKE_SOURCE_DIR}/build/assets/${cart_name}.tic.dat)
+        set(OUTPRJ ${CMAKE_SOURCE_DIR}/build/${cart_name}.tic)
 
         list(APPEND DEMO_CARTS_OUT ${OUTNAME})
 
         add_custom_command(OUTPUT ${OUTNAME}
-            COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${CART_FILE} ${OUTNAME} -z
+            COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/prj2cart ${CART_FILE} ${OUTPRJ} && ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${OUTPRJ} ${OUTNAME} -z
             DEPENDS bin2txt ${CART_FILE}
         )
 
     endforeach(CART_FILE)
+
+    SET(HTML_EMBED ${CMAKE_SOURCE_DIR}/build/html/embed.html)
+    SET(HTML_EMBED_OUT ${CMAKE_SOURCE_DIR}/build/assets/embed.html.dat)
+
+    add_custom_command(OUTPUT ${HTML_EMBED_OUT}
+        COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${HTML_EMBED} ${HTML_EMBED_OUT} -z
+        DEPENDS bin2txt ${HTML_EMBED}
+    )
 
 endif()
 
@@ -665,7 +663,7 @@ set(TIC80LIB_SRC
 
 set(TIC80_OUTPUT tic80)
 
-add_library(${TIC80_OUTPUT}lib STATIC ${TIC80LIB_SRC} ${DEMO_CARTS_OUT} ${CONFIG_CART_OUT})
+add_library(${TIC80_OUTPUT}lib STATIC ${TIC80LIB_SRC} ${DEMO_CARTS_OUT} ${HTML_EMBED_OUT})
 
 if(WIN32)
     target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${THIRDPARTY_DIR}/dirent/include)

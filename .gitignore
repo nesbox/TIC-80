@@ -155,4 +155,4 @@ build/version.h
 build/windows/tic80.rc
 *.ninja
 tic80.sublime-workspace
-build/config.tic
+build/*.tic
