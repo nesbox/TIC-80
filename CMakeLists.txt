@@ -610,7 +610,7 @@ if(BUILD_DEMO_CARTS)
 
         add_custom_command(OUTPUT ${OUTNAME}
             COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/prj2cart ${CART_FILE} ${OUTPRJ} && ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${OUTPRJ} ${OUTNAME} -z
-            DEPENDS bin2txt ${CART_FILE}
+            DEPENDS bin2txt prj2cart ${CART_FILE}
         )
 
     endforeach(CART_FILE)
