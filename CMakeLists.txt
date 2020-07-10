@@ -601,10 +601,10 @@ if(BUILD_DEMO_CARTS)
 
     foreach(CART_FILE ${DEMO_CARTS})
 
-        get_filename_component(cart_name ${CART_FILE} NAME_WLE)
+        get_filename_component(CART_NAME ${CART_FILE} NAME_WE)
 
-        set(OUTNAME ${CMAKE_SOURCE_DIR}/build/assets/${cart_name}.tic.dat)
-        set(OUTPRJ ${CMAKE_SOURCE_DIR}/build/${cart_name}.tic)
+        set(OUTNAME ${CMAKE_SOURCE_DIR}/build/assets/${CART_NAME}.tic.dat)
+        set(OUTPRJ ${CMAKE_SOURCE_DIR}/build/${CART_NAME}.tic)
 
         list(APPEND DEMO_CARTS_OUT ${OUTNAME})
 
