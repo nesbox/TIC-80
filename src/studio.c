@@ -677,13 +677,6 @@ const StudioConfig* getConfig()
     return &impl.config->data;
 }
 
-static bool isGamepadMode()
-{
-    return impl.mode == TIC_RUN_MODE
-        || impl.mode == TIC_SURF_MODE
-        || impl.mode == TIC_MENU_MODE;
-}
-
 #if defined (TIC80_PRO)
 
 static void drawBankIcon(s32 x, s32 y)
@@ -1802,6 +1795,18 @@ static void renderStudio()
         memset(tic->ram.registers, 0, sizeof tic->ram.registers);
 
     tic_core_tick_end(impl.studio.tic);
+
+    switch(impl.mode)
+    {
+    case TIC_RUN_MODE: break;
+    case TIC_SURF_MODE:
+    case TIC_MENU_MODE:
+        tic->input.data = -1;
+        break;
+    default:
+        tic->input.data = -1;
+        tic->input.gamepad = 0;
+    }
 }
 
 static void updateSystemFont()
@@ -1876,13 +1881,13 @@ static void processMouseStates()
 
 static void studioTick()
 {
+    tic_mem* tic = impl.studio.tic;
+
     processShortcuts();
     processMouseStates();
     processGamepadMapping();
 
     renderStudio();
-
-    tic_mem* tic = impl.studio.tic;
     
     {
         tic_scanline scanline = NULL;
@@ -2047,7 +2052,6 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, Sy
     impl.studio.updateProject = updateStudioProject;
     impl.studio.exit = exitStudio;
     impl.studio.config = getConfig;
-    impl.studio.isGamepadMode = isGamepadMode;
 
     return &impl.studio;
 }

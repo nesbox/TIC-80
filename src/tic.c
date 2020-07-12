@@ -1525,9 +1525,10 @@ static void stereo_tick_end(tic_mem* memory, tic_sound_register_data* registers,
 void tic_core_tick_end(tic_mem* memory)
 {
     tic_machine* machine = (tic_machine*)memory;
+    tic80_input* input = &machine->memory.ram.input;
 
-    machine->state.gamepads.previous.data = machine->memory.ram.input.gamepads.data;
-    machine->state.keyboard.previous.data = machine->memory.ram.input.keyboard.data;
+    machine->state.gamepads.previous.data = input->gamepads.data;
+    machine->state.keyboard.previous.data = input->keyboard.data;
 
     stereo_tick_end(memory, machine->state.registers.left, machine->blip.left, 0);
     stereo_tick_end(memory, machine->state.registers.right, machine->blip.right, 1);
@@ -1779,6 +1780,17 @@ void tic_core_tick(tic_mem* tic, tic_tick_data* data)
             machine->state.initialized = true;
         }
         else return;
+    }
+
+    {
+        if(!tic->input.keyboard)
+            ZEROMEM(tic->ram.input.keyboard);
+
+        if(!tic->input.gamepad)
+            ZEROMEM(tic->ram.input.gamepads);
+
+        if(!tic->input.mouse)
+            ZEROMEM(tic->ram.input.mouse);
     }
 
     machine->state.tick(tic);

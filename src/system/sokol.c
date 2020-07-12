@@ -183,15 +183,14 @@ static void handleKeyboard()
 
 static void app_frame(void)
 {
-    tic_mem* tic = platform.studio->tic;
-
     if(platform.studio->quit) exit(0);
 
+    tic_mem* tic = platform.studio->tic;
     tic80_input* input = &tic->ram.input;
 
     input->gamepads.data = 0;
     handleKeyboard();
-    platform.studio->tick();
+    platform.studio->tick(input);
 
     sokol_gfx_draw(platform.studio->tic->screen);
 
@@ -346,7 +345,9 @@ static void handleKeydown(sapp_keycode keycode, bool down)
 
 static void processMouse(sapp_mousebutton btn, s32 down)
 {
-    tic80_input* input = &platform.studio->tic->ram.input;
+    tic_mem* tic = platform.studio->tic;
+    tic80_input* input = &tic->ram.input;
+
 
     switch(btn)
     {
@@ -359,7 +360,8 @@ static void processMouse(sapp_mousebutton btn, s32 down)
 
 static void app_input(const sapp_event* event)
 {
-    tic80_input* input = &platform.studio->tic->ram.input;
+    tic_mem* tic = platform.studio->tic;
+    tic80_input* input = &tic->ram.input;
 
     switch(event->type)
     {

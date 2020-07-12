@@ -181,8 +181,6 @@ typedef struct
     void (*updateProject)();
     const StudioConfig* (*config)();
 
-    // TODO: remove this method, system has to know nothing about current mode
-    bool (*isGamepadMode)();
 } Studio;
 
 #ifdef __cplusplus

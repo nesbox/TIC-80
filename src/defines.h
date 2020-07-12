@@ -28,3 +28,4 @@
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 #define CLAMP(v,a,b) (MIN(MAX(v,a),b))
 #define SWAP(a, b, type) do { type temp = a; a = b; b = temp; } while (0)
+#define ZEROMEM(p) memset(&p, 0, sizeof p)

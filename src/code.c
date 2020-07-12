@@ -1338,7 +1338,6 @@ static void processMouse(Code* code)
                 code->scroll.start.x = getMouseX() + code->scroll.x * getFontWidth(code);
                 code->scroll.start.y = getMouseY() + code->scroll.y * STUDIO_TEXT_HEIGHT;
             }
-
         }
     }
 }
