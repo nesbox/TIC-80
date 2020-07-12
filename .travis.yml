@@ -69,6 +69,7 @@ matrix:
         - docker exec -it emscripten emcmake cmake -DCMAKE_BUILD_TYPE=MinSizeRel .
         - docker exec -it emscripten make -j$(nproc)
       after_success:
-        - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/bin tic80.js tic80.wasm
+        - cp $HOME/build/nesbox/TIC-80/build/html/index.html $HOME/build/nesbox/TIC-80/bin/index.html
+        - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/bin tic80.js tic80.wasm index.html
         - sha256sum tic80.tar.gz
         - curl --retry 3 --ftp-create-dirs -T tic80.tar.gz $BUILDS_SERVER_PATH/

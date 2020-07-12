@@ -615,14 +615,6 @@ if(BUILD_DEMO_CARTS)
 
     endforeach(CART_FILE)
 
-    SET(HTML_EMBED ${CMAKE_SOURCE_DIR}/build/html/embed.html)
-    SET(HTML_EMBED_OUT ${CMAKE_SOURCE_DIR}/build/assets/embed.html.dat)
-
-    add_custom_command(OUTPUT ${HTML_EMBED_OUT}
-        COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${HTML_EMBED} ${HTML_EMBED_OUT} -z
-        DEPENDS bin2txt ${HTML_EMBED}
-    )
-
 endif()
 
 ################################
@@ -663,7 +655,7 @@ set(TIC80LIB_SRC
 
 set(TIC80_OUTPUT tic80)
 
-add_library(${TIC80_OUTPUT}lib STATIC ${TIC80LIB_SRC} ${DEMO_CARTS_OUT} ${HTML_EMBED_OUT})
+add_library(${TIC80_OUTPUT}lib STATIC ${TIC80LIB_SRC} ${DEMO_CARTS_OUT})
 
 if(WIN32)
     target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${THIRDPARTY_DIR}/dirent/include)

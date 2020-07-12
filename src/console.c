@@ -1730,14 +1730,13 @@ static void onHttpGet(const HttpGetData* data)
     {
     case HttpGetProgress:
         {
-            static const char Format[TICNAME_MAX] = "GET %s [%i%%]";
-            static char buf[sizeof Format];
-            sprintf(buf, Format, data->url, data->progress.size * 100 / data->progress.total);
             console->cursor.x = 0;
-            printBack(console, buf);
+            printBack(console, "GET ");
+            printFront(console, data->url);
 
-            if(data->progress.size == data->progress.total)
-                printLine(console);
+            char buf[8];
+            sprintf(buf, " [%i%%]", data->progress.size * 100 / data->progress.total);
+            printBack(console, buf);
         }
         break;
     case HttpGetDone:
@@ -1747,6 +1746,11 @@ static void onHttpGet(const HttpGetData* data)
 
             if(fsSaveRootFile(console->fs, path, data->done.data, data->done.size, false))
             {
+                console->cursor.x = 0;
+                printBack(console, "GET ");
+                printFront(console, data->url);
+                printBack(console, " [DONE]");
+
                 onConsoleExportHtmlCommand(console, NULL);
             }
             else
@@ -1777,12 +1781,12 @@ static void onConsoleExportHtmlCommand(Console* console, const char* providedNam
     {
         static const char* Files[] = 
         {
-            "tic80.wasm", "tic80.js"
+            "index.html", "tic80.js", "tic80.wasm"
         };
 
         for(s32 i = 0; i < COUNT_OF(Files); i++)
         {
-            char url[TICNAME_MAX] = "/js/";
+            char url[TICNAME_MAX] = "/export/";
             strcat(url, Files[i]);
             s32 size = 0;
 
@@ -1823,34 +1827,6 @@ static void onConsoleExportHtmlCommand(Console* console, const char* providedNam
                 zip_entry_close(zip);                    
 
                 free(cart);
-            }
-            else errorOccured = true;
-        }
-
-        // save index.html
-        if(!errorOccured)
-        {
-            static const u8 Html[] =
-            {
-                #include "../build/assets/embed.html.dat"
-            };
-
-            enum {HtmlSize = 10*1024}; // 10K
-            u8* data = calloc(1, HtmlSize);
-
-            if(data)
-            {
-                s32 size = unzip(data, HtmlSize, Html, sizeof Html);
-
-                if(size)
-                {
-                    zip_entry_open(zip, "index.html");
-                    zip_entry_write(zip, data, size);
-                    zip_entry_close(zip);
-                }
-                else errorOccured = true;
-
-                free(data);
             }
             else errorOccured = true;
         }
