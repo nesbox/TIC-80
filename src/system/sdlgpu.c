@@ -74,8 +74,11 @@ static struct
     {
         GPU_Target* screen;
         GPU_Image* texture;
+
+#if defined(CRT_SHADER_SUPPORT)
         u32 shader;
         GPU_ShaderBlock block;
+#endif
     } gpu;
 
     struct
@@ -340,11 +343,13 @@ static void destroyGPU()
 {
     GPU_FreeImage(platform.gpu.texture);
 
+#if defined(CRT_SHADER_SUPPORT)
     if(platform.gpu.shader)
     {
         GPU_FreeShaderProgram(platform.gpu.shader);
         platform.gpu.shader = 0;
     }
+#endif
 
 #if defined(TOUCH_INPUT_SUPPORT)
     if(platform.gamepad.touch.texture)
