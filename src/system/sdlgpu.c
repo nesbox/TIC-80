@@ -130,7 +130,9 @@ static struct
 
     Net* net;
 
+#if defined(__TIC_ANDROID__)
     bool inBackground;
+#endif
 
     struct
     {
@@ -283,6 +285,9 @@ static void initTouchGamepad()
 
             updateGamepadParts();
         }
+
+        memset(&platform.studio->tic->ram.map, 0, sizeof(tic_map));
+        memset(&platform.studio->tic->ram.tiles, 0, sizeof(tic_tiles) * TIC_SPRITE_BANKS);
     }
 
     if(!platform.gamepad.touch.texture)
@@ -317,9 +322,6 @@ static void initGPU()
 #if defined(TOUCH_INPUT_SUPPORT)
     initTouchGamepad();
 #endif    
-
-    memset(&platform.studio->tic->ram.map, 0, sizeof(tic_map));
-    memset(&platform.studio->tic->ram.tiles, 0, sizeof(tic_tiles) * TIC_SPRITE_BANKS);
 }
 
 static void destroyGPU()
@@ -830,6 +832,8 @@ static void pollEvent()
                 break;
             }
             break;
+
+#if defined(__TIC_ANDROID__)
         case SDL_APP_WILLENTERBACKGROUND:
             destroyGPU();
             platform.inBackground = true;
@@ -838,6 +842,8 @@ static void pollEvent()
             initGPU();
             platform.inBackground = false;
             break;
+#endif
+
         case SDL_KEYDOWN:
 
 #if defined(TOUCH_INPUT_SUPPORT)
@@ -1353,8 +1359,10 @@ static void gpuTick()
         return;
     }
 
+#if defined(__TIC_ANDROID__)
     if(platform.inBackground)
         return;
+#endif
 
     GPU_Clear(platform.gpu.screen);
 
