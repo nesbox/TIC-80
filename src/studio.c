@@ -1386,7 +1386,7 @@ static void setCoverImage()
     {
         enum {Pitch = TIC80_FULLWIDTH*sizeof(u32)};
 
-        tic_core_blit(tic, TIC_PIXEL_COLOR_RGBA8888);
+        tic_core_blit(tic, TIC80_PIXEL_COLOR_RGBA8888);
 
         u32* buffer = malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32));
 
@@ -1646,7 +1646,7 @@ static void recordFrame(u32* pixels)
 
             if(impl.video.frame % TIC80_FRAMERATE < TIC80_FRAMERATE / 2)
             {
-                const u32* pal = tic_tool_palette_blit(&impl.config->cart.bank0.palette, TIC_PIXEL_COLOR_RGBA8888);
+                const u32* pal = tic_tool_palette_blit(&impl.config->cart.bank0.palette, TIC80_PIXEL_COLOR_RGBA8888);
                 drawRecordLabel(pixels, TIC80_WIDTH-24, 8, &pal[tic_color_2]);
             }
 
@@ -1913,8 +1913,8 @@ static void studioTick()
         if(isRecordFrame())
         {
             data
-                ? tic_core_blit_ex(tic, TIC_PIXEL_COLOR_RGBA8888, scanline, overline, data)
-                : tic_core_blit(tic, TIC_PIXEL_COLOR_RGBA8888);
+                ? tic_core_blit_ex(tic, TIC80_PIXEL_COLOR_RGBA8888, scanline, overline, data)
+                : tic_core_blit(tic, TIC80_PIXEL_COLOR_RGBA8888);
             recordFrame(tic->screen);
         }
     }

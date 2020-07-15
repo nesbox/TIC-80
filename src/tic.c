@@ -1922,7 +1922,7 @@ static inline void memset4(void *dst, u32 val, u32 dwords)
 #endif
 }
 
-void tic_core_blit_ex(tic_mem* tic, tic_pixel_color_format fmt, tic_scanline scanline, tic_overline overline, void* data)
+void tic_core_blit_ex(tic_mem* tic, tic80_pixel_color_format fmt, tic_scanline scanline, tic_overline overline, void* data)
 {
     const u32* pal = tic_tool_palette_blit(&tic->ram.vram.palette, fmt);
 
@@ -1992,7 +1992,7 @@ static inline void overline(tic_mem* memory, void* data)
         machine->state.ovr.callback(memory, data);
 }
 
-void tic_core_blit(tic_mem* tic, tic_pixel_color_format fmt)
+void tic_core_blit(tic_mem* tic, tic80_pixel_color_format fmt)
 {
     tic_core_blit_ex(tic, fmt, scanline, overline, NULL);
 }
@@ -2090,7 +2090,7 @@ tic_mem* tic_core_create(s32 samplerate)
         return NULL;
     }
 
-    machine->memory.screen_format = TIC_PIXEL_COLOR_RGBA8888;
+    machine->memory.screen_format = TIC80_PIXEL_COLOR_RGBA8888;
     machine->samplerate = samplerate;
 #ifdef _3DS
     // To feed texture data directly to the 3DS GPU, linearly allocated memory is required, which is
