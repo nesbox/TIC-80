@@ -36,17 +36,17 @@
 
 #define STUDIO_PIXEL_FORMAT GPU_FORMAT_RGBA
 #define TEXTURE_SIZE (TIC80_FULLWIDTH)
-#define TOUCH_TIMEOUT (10 * TIC80_FRAMERATE)
 
 #if defined(__TIC_WINRT__) || defined(__TIC_WINDOWS__)
 #include <windows.h>
 #endif
 
 #if defined(__TIC_ANDROID__)
+#define TOUCH_TIMEOUT (10 * TIC80_FRAMERATE)
 #define TOUCH_INPUT_SUPPORT
 #endif
 
-#if !defined(__TIC_ANDROID__)
+#if !defined(__TIC_ANDROID__) && !defined(__EMSCRIPTEN__)
 #define CRT_SHADER_SUPPORT
 #endif
 
