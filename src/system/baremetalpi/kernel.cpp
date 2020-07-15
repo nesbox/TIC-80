@@ -419,7 +419,7 @@ TShutdownMode Run(void)
 	}
 
 	// gotoSurf();
-	platform.studio->tic->screen_format = TIC_PIXEL_COLOR_BGRA8888;
+	platform.studio->tic->screen_format = TIC80_PIXEL_COLOR_BGRA8888;
 	dbg("Studio init ok..\n");
 
 	if (pKeyboard){

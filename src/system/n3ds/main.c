@@ -565,7 +565,7 @@ int main(int argc, char **argv) {
     platform.net = createNet();
 #endif
     platform.studio = studioInit(argc_used, argv_used, AUDIO_FREQ, "./", &systemInterface);
-    platform.studio->tic->screen_format = TIC_PIXEL_COLOR_ABGR8888;
+    platform.studio->tic->screen_format = TIC80_PIXEL_COLOR_ABGR8888;
 
     n3ds_sound_init(AUDIO_FREQ);
 
