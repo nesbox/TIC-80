@@ -437,6 +437,8 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
         SDLActivity.nativeQuit();
 
         super.onDestroy();
+
+        System.exit(0);
     }
 
     @Override

@@ -2721,25 +2721,25 @@ static void processKeyboard(Console* console)
             onConsoleClsCommand(console, NULL);
             return;
         }
-
-        char sym = getKeyboardText();
-
-        if(sym)
-        {
-            size_t size = strlen(console->inputBuffer);
-
-            if(size < sizeof(console->inputBuffer))
-            {
-                char* pos = console->inputBuffer + console->inputPosition;
-                memmove(pos + 1, pos, strlen(pos));
-
-                *(console->inputBuffer + console->inputPosition) = sym;
-                console->inputPosition++;
-            }
-
-            console->cursor.delay = CONSOLE_CURSOR_DELAY;
-        }
     }
+
+    char sym = getKeyboardText();
+
+    if(sym)
+    {
+        size_t size = strlen(console->inputBuffer);
+
+        if(size < sizeof(console->inputBuffer))
+        {
+            char* pos = console->inputBuffer + console->inputPosition;
+            memmove(pos + 1, pos, strlen(pos));
+
+            *(console->inputBuffer + console->inputPosition++) = sym;
+        }
+
+        console->cursor.delay = CONSOLE_CURSOR_DELAY;
+    }
+
 }
 
 static void tick(Console* console)

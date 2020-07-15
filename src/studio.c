@@ -183,8 +183,6 @@ static struct
 
     FileSystem* fs;
 
-    bool missedFrame;
-
     s32 argc;
     char **argv;
     s32 samplerate;
@@ -240,7 +238,6 @@ static struct
         .frames = 0,
     },
 
-    .missedFrame = false,
     .argc = 0,
     .argv = NULL,
 };
@@ -1633,35 +1630,6 @@ static void drawRecordLabel(u32* frame, s32 sx, s32 sy, const u32* color)
     }
 }
 
-static void drawDesyncLabel(u32* frame, tic_pixel_color_format fmt)
-{
-    if(getConfig()->showSync && impl.missedFrame)
-    {
-        static const u16 DesyncLabel[] =
-        {
-            0b0110101010010011,
-            0b1000101011010100,
-            0b1110111010110100,
-            0b0010001010010100,
-            0b1100110010010011,
-        };
-        
-        enum{sx = TIC80_WIDTH-24, sy = 8, Cols = sizeof DesyncLabel[0]*BITS_IN_BYTE, Rows = COUNT_OF(DesyncLabel)};
-
-        const u32* pal = tic_tool_palette_blit(&impl.config->cart.bank0.palette, fmt);
-        const u32* color = &pal[tic_color_6];
-
-        for(s32 y = 0; y < Rows; y++)
-        {
-            for(s32 x = 0; x < Cols; x++)
-            {
-                if(DesyncLabel[y] & (1 << x))
-                    memcpy(&frame[sx + Cols - 1 - x + ((y+sy) << TIC80_FULLWIDTH_BITS)], color, sizeof *color);
-            }
-        }
-    }
-}
-
 static bool isRecordFrame(void)
 {
     return impl.video.record;
@@ -1811,6 +1779,8 @@ static void renderStudio()
 
 static void updateSystemFont()
 {
+    tic_mem* tic = impl.studio.tic;
+
     memset(impl.systemFont.data, 0, sizeof(tic_font));
 
     for(s32 i = 0; i < TIC_FONT_CHARS; i++)
@@ -1818,6 +1788,8 @@ static void updateSystemFont()
             for(s32 x = 0; x < TIC_SPRITESIZE; x++)
                 if(tic_tool_peek4(&impl.config->cart.bank0.sprites.data[i], TIC_SPRITESIZE*y + x))
                     impl.systemFont.data[i*BITS_IN_BYTE+y] |= 1 << x;
+
+    memcpy(tic->ram.font.data, impl.systemFont.data, sizeof(tic_font));
 }
 
 void studioConfigChanged()
@@ -1934,6 +1906,10 @@ static void studioTick()
             memcpy(tic->ram.font.data, impl.systemFont.data, sizeof(tic_font));
         }
 
+        data
+            ? tic_core_blit_ex(tic, tic->screen_format, scanline, overline, data)
+            : tic_core_blit(tic, tic->screen_format);
+
         if(isRecordFrame())
         {
             data
@@ -1941,12 +1917,6 @@ static void studioTick()
                 : tic_core_blit(tic, TIC_PIXEL_COLOR_RGBA8888);
             recordFrame(tic->screen);
         }
-
-        data
-            ? tic_core_blit_ex(tic, tic->screen_format, scanline, overline, data)
-            : tic_core_blit(tic, tic->screen_format);
-        drawDesyncLabel(tic->screen, tic->screen_format);
-    
     }
 
     drawPopup();

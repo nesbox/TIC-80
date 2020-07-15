@@ -129,7 +129,7 @@ typedef struct
                         u8 other;
                     };
 
-                    u8 colors[sizeof(struct SyntaxColors)];                    
+                    u8 colors[sizeof(struct SyntaxColors)];
                 };
             } syntax;
 
