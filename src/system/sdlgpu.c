@@ -36,6 +36,7 @@
 
 #define STUDIO_PIXEL_FORMAT GPU_FORMAT_RGBA
 #define TEXTURE_SIZE (TIC80_FULLWIDTH)
+#define TOUCH_TIMEOUT (10 * TIC80_FRAMERATE)
 
 #if defined(__TIC_WINRT__) || defined(__TIC_WINDOWS__)
 #include <windows.h>
@@ -140,7 +141,12 @@ static struct
         SDL_AudioDeviceID   device;
         SDL_AudioCVT        cvt;
     } audio;
-} platform;
+} platform = 
+{
+#if defined(TOUCH_INPUT_SUPPORT)
+    .gamepad.touch.counter = TOUCH_TIMEOUT,
+#endif
+};
 
 static inline bool crtMonitorEnabled()
 {
@@ -541,6 +547,8 @@ static void processTouchGamepad()
     const s32 size = platform.gamepad.touch.button.size;
     s32 x = 0, y = 0;
 
+    tic80_gamepad* joystick = &platform.gamepad.touch.joystick.first;
+
     {
         SDL_Rect axis = {platform.gamepad.touch.button.axis.x, platform.gamepad.touch.button.axis.y, size*3, size*3};
 
@@ -552,44 +560,44 @@ static void processTouchGamepad()
             s32 xt = x / size;
             s32 yt = y / size;
 
-            if(yt == 0) platform.gamepad.touch.joystick.first.up = true;
-            else if(yt == 2) platform.gamepad.touch.joystick.first.down = true;
+            if(yt == 0) joystick->up = true;
+            else if(yt == 2) joystick->down = true;
 
-            if(xt == 0) platform.gamepad.touch.joystick.first.left = true;
-            else if(xt == 2) platform.gamepad.touch.joystick.first.right = true;
+            if(xt == 0) joystick->left = true;
+            else if(xt == 2) joystick->right = true;
 
             if(xt == 1 && yt == 1)
             {
                 xt = (x - size)/(size/3);
                 yt = (y - size)/(size/3);
 
-                if(yt == 0) platform.gamepad.touch.joystick.first.up = true;
-                else if(yt == 2) platform.gamepad.touch.joystick.first.down = true;
+                if(yt == 0) joystick->up = true;
+                else if(yt == 2) joystick->down = true;
 
-                if(xt == 0) platform.gamepad.touch.joystick.first.left = true;
-                else if(xt == 2) platform.gamepad.touch.joystick.first.right = true;
+                if(xt == 0) joystick->left = true;
+                else if(xt == 2) joystick->right = true;
             }
         }
     }
 
     {
         SDL_Rect a = {platform.gamepad.touch.button.a.x, platform.gamepad.touch.button.a.y, size, size};
-        if(checkTouch(&a, &x, &y)) platform.gamepad.touch.joystick.first.a = true;
+        if(checkTouch(&a, &x, &y)) joystick->a = true;
     }
 
     {
         SDL_Rect b = {platform.gamepad.touch.button.b.x, platform.gamepad.touch.button.b.y, size, size};
-        if(checkTouch(&b, &x, &y)) platform.gamepad.touch.joystick.first.b = true;
+        if(checkTouch(&b, &x, &y)) joystick->b = true;
     }
 
     {
         SDL_Rect xb = {platform.gamepad.touch.button.x.x, platform.gamepad.touch.button.x.y, size, size};
-        if(checkTouch(&xb, &x, &y)) platform.gamepad.touch.joystick.first.x = true;
+        if(checkTouch(&xb, &x, &y)) joystick->x = true;
     }
 
     {
         SDL_Rect yb = {platform.gamepad.touch.button.y.x, platform.gamepad.touch.button.y.y, size, size};
-        if(checkTouch(&yb, &x, &y)) platform.gamepad.touch.joystick.first.y = true;
+        if(checkTouch(&yb, &x, &y)) joystick->y = true;
     }
 }
 
@@ -715,17 +723,14 @@ static void processGamepad()
 #if defined(TOUCH_INPUT_SUPPORT)
 static void processTouchInput()
 {
-    if(!platform.gamepad.touch.counter)
-    {
-        s32 devices = SDL_GetNumTouchDevices();
-        
-        for (s32 i = 0; i < devices; i++)
-            if(SDL_GetNumTouchFingers(SDL_GetTouchDevice(i)) > 0)
-            {
-                platform.gamepad.touch.counter = 10 * TIC80_FRAMERATE;
-                break;
-            }
-    }
+    s32 devices = SDL_GetNumTouchDevices();
+    
+    for (s32 i = 0; i < devices; i++)
+        if(SDL_GetNumTouchFingers(SDL_GetTouchDevice(i)) > 0)
+        {
+            platform.gamepad.touch.counter = TOUCH_TIMEOUT;
+            break;
+        }
 
     if(isGamepadVisible())
         processTouchGamepad();
