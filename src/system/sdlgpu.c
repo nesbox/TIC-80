@@ -46,6 +46,10 @@
 #define TOUCH_INPUT_SUPPORT
 #endif
 
+#if !defined(__TIC_ANDROID__)
+#define CRT_SHADER_SUPPORT
+#endif
+
 typedef enum
 {
     HandCursor,
@@ -148,10 +152,12 @@ static struct
 #endif
 };
 
+#if defined(CRT_SHADER_SUPPORT)
 static inline bool crtMonitorEnabled()
 {
     return platform.studio->config()->crtMonitor && platform.gpu.shader;
 }
+#endif
 
 static void initSound()
 {
@@ -363,6 +369,7 @@ static void calcTextureRect(SDL_Rect* rect)
 {
     SDL_GetWindowSize(platform.window, &rect->w, &rect->h);
 
+#if defined(CRT_SHADER_SUPPORT)
     if(crtMonitorEnabled())
     {
         enum{Width = TIC80_FULLWIDTH, Height = TIC80_FULLHEIGHT};
@@ -385,6 +392,7 @@ static void calcTextureRect(SDL_Rect* rect)
         }
     }
     else
+#endif
     {
         enum{Width = TIC80_WIDTH, Height = TIC80_HEIGHT};
 
@@ -432,12 +440,15 @@ static void processMouse()
         calcTextureRect(&rect);
 
         s32 x = -1, y = -1;
+
+#if defined(CRT_SHADER_SUPPORT)        
         if(crtMonitorEnabled())
         {
             if(rect.w) x = (mx - rect.x) * TIC80_FULLWIDTH / rect.w - TIC80_OFFSET_LEFT;
             if(rect.h) y = (my - rect.y) * TIC80_FULLHEIGHT / rect.h - TIC80_OFFSET_TOP;
         }
         else
+#endif            
         {
             if(rect.w) x = (mx - rect.x) * TIC80_WIDTH / rect.w;
             if(rect.h) y = (my - rect.y) * TIC80_HEIGHT / rect.h;
@@ -1222,6 +1233,7 @@ static void preseed()
 #endif
 }
 
+#if defined(CRT_SHADER_SUPPORT)
 static char* prepareShader(const char* code)
 {
     GPU_Renderer* renderer = GPU_GetCurrentRenderer();
@@ -1313,6 +1325,7 @@ static void loadCrtShader()
         showMessageBox("Error", msg);
     }
 }
+#endif
 
 static void updateConfig()
 {
@@ -1376,39 +1389,37 @@ static void gpuTick()
 
         GPU_UpdateImageBytes(platform.gpu.texture, NULL, (const u8*)tic->screen, TIC80_FULLWIDTH * sizeof(u32));
 
+#if defined(CRT_SHADER_SUPPORT)            
+        if(platform.studio->config()->crtMonitor)
         {
-            if(platform.studio->config()->crtMonitor)
+            if(platform.gpu.shader == 0)
+                loadCrtShader();
+
+            SDL_Rect rect = {0, 0, 0, 0};
+            calcTextureRect(&rect);
+
+            GPU_ActivateShaderProgram(platform.gpu.shader, &platform.gpu.block);
+
+            GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "trg_x"), rect.x);
+            GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "trg_y"), rect.y);
+            GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "trg_w"), rect.w);
+            GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "trg_h"), rect.h);
+
             {
-                if(platform.gpu.shader == 0)
-                    loadCrtShader();
-
-                SDL_Rect rect = {0, 0, 0, 0};
-                calcTextureRect(&rect);
-
-                GPU_ActivateShaderProgram(platform.gpu.shader, &platform.gpu.block);
-
-                GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "trg_x"), rect.x);
-                GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "trg_y"), rect.y);
-                GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "trg_w"), rect.w);
-                GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "trg_h"), rect.h);
-
-                {
-                    s32 w, h;
-                    SDL_GetWindowSize(platform.window, &w, &h);
-                    GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "scr_w"), w);
-                    GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "scr_h"), h);
-                }
-
-                GPU_BlitScale(platform.gpu.texture, NULL, platform.gpu.screen, rect.x, rect.y, 
-                    (float)rect.w / TIC80_FULLWIDTH, (float)rect.h / TIC80_FULLHEIGHT);
-
-                GPU_DeactivateShaderProgram();
+                s32 w, h;
+                SDL_GetWindowSize(platform.window, &w, &h);
+                GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "scr_w"), w);
+                GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "scr_h"), h);
             }
-            else
-            {
-                GPU_DeactivateShaderProgram();
-                blitGpuTexture(platform.gpu.screen, platform.gpu.texture);
-            }
+
+            GPU_BlitScale(platform.gpu.texture, NULL, platform.gpu.screen, rect.x, rect.y, 
+                (float)rect.w / TIC80_FULLWIDTH, (float)rect.h / TIC80_FULLHEIGHT);
+        }
+        else
+#endif
+        {
+            GPU_DeactivateShaderProgram();
+            blitGpuTexture(platform.gpu.screen, platform.gpu.texture);
         }
 
         renderCursor();
