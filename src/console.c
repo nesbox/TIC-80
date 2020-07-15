@@ -3094,7 +3094,11 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
         .colorBuffer = console->colorBuffer,
         .fs = fs,
         .showGameMenu = false,
+#if defined(__TIC_ANDROID__)
+        .startSurf = true,
+#else
         .startSurf = false,
+#endif
         .skipStart = false,
         .goFullscreen = false,
         .crtMonitor = false,
