@@ -148,12 +148,13 @@ static struct
         SDL_AudioDeviceID   device;
         SDL_AudioCVT        cvt;
     } audio;
-} platform = 
-{
+} platform
 #if defined(TOUCH_INPUT_SUPPORT)
+= {
     .gamepad.touch.counter = TOUCH_TIMEOUT,
-#endif
 };
+#endif
+;
 
 #if defined(CRT_SHADER_SUPPORT)
 static inline bool crtMonitorEnabled()
