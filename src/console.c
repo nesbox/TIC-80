@@ -2033,7 +2033,9 @@ static void onConsoleSaveCommandConfirmed(Console* console, const char* param)
 
 static void onConsoleSaveCommand(Console* console, const char* param)
 {
-    if(param && strlen(param) && fsExistsFile(console->fs, getCartName(param)))
+    if(param && strlen(param) && 
+        (fsExistsFile(console->fs, param) ||
+            fsExistsFile(console->fs, getCartName(param))))
     {
         static const char* Rows[] =
         {
