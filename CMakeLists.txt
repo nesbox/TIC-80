@@ -913,3 +913,28 @@ if(N3DS)
            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/build
     )
 endif()
+
+if (APPLE)
+
+    set(CPACK_GENERATOR "Bundle")
+    set(CPACK_BUNDLE_NAME "tic80")
+
+    configure_file(${CMAKE_SOURCE_DIR}/build/macosx/tic80.plist.in ${CMAKE_SOURCE_DIR}/build/macosx/tic80.plist)
+    set(CPACK_BUNDLE_PLIST ${CMAKE_SOURCE_DIR}/build/macosx/tic80.plist)
+
+    set(CPACK_BUNDLE_ICON ${CMAKE_SOURCE_DIR}/build/macosx/tic80.icns)
+    set(CPACK_BUNDLE_STARTUP_COMMAND "${CMAKE_BINARY_DIR}/bin/tic80")
+
+    set(CPACK_PACKAGE_NAME "TIC-80")
+    set(CPACK_PACKAGE_VENDOR "Nesbox")
+    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Fantasy computer for making, playing and sharing tiny games.")
+    set(CPACK_PACKAGE_VERSION_MAJOR "${VERSION_MAJOR}")
+    set(CPACK_PACKAGE_VERSION_MINOR "${VERSION_MINOR}")
+    set(CPACK_PACKAGE_VERSION_PATCH "${VERSION_REVISION}")
+    set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+    set(CPACK_PACKAGE_INSTALL_DIRECTORY "TIC-80")
+
+    install(CODE "set(CMAKE_INSTALL_LOCAL_ONLY true)")
+
+    include(CPack)
+endif()

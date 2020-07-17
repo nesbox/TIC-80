@@ -3192,17 +3192,9 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
         }
 
         for (s32 i = 1; i < argc; i++)
-        {
             if(~argp & 1 << i)
-            {
                 if(!checkCommand(console, argv[i]))
-                {
-                    char buf[256];
-                    sprintf(buf, "parameter or file not processed: %s\n", argv[i]);
-                    getSystem()->showMessageBox("Warning", buf);
-                }
-            }
-        }
+                    printf("parameter or file not processed: %s\n", argv[i]);
     }
 
 #if defined(CAN_EXPORT)

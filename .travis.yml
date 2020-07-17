@@ -16,10 +16,13 @@ matrix:
       osx_image: xcode9.3
       env:
         - OS_FOLDER=mac
+      install:
+        - brew uninstall --ignore-dependencies libidn2
       after_success:
-        - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/out/bin tic80
-        - sha256sum tic80.tar.gz
-        - curl --retry 3 --ftp-create-dirs -T tic80.tar.gz $BUILDS_SERVER_PATH/
+        - cpack
+        - cp *.dmg tic80.dmg
+        - sha256sum tic80.dmg
+        - curl --retry 3 --ftp-create-dirs -T tic80.dmg $BUILDS_SERVER_PATH/
 
     - os: linux
       dist: trusty
