@@ -2799,12 +2799,13 @@ static void tick(Console* console)
                 console->showGameMenu = true;
 
             memcpy(&tic->cart, console->embed.file, sizeof(tic_cartridge));
+
+            tic_api_reset(tic);
+
             setStudioMode(TIC_RUN_MODE);
             console->embed.yes = false;
             console->skipStart = false;
             studioRomLoaded();
-
-            tic_api_reset(tic);
 
             printLine(console);
             commandDone(console);
