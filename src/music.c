@@ -925,18 +925,9 @@ static void processTrackerKeyboard(Music* music)
                     if (keyWasPressed(Piano[i]))
                     {
                         s32 note = i % NOTES;
-
-                        if(pattern->rows[music->tracker.row].note > NoteNone)
-                        {
-                            pattern->rows[music->tracker.row].note = note + NoteStart;
-                            playNote(music);
-                        }
-                        else
-                        {
-                            s32 octave = i / NOTES + music->tracker.last.octave;
-                            s32 sfx = music->tracker.last.sfx;
-                            setNote(music, note, octave, sfx);
-                        }
+                        s32 octave = i / NOTES + music->tracker.last.octave;
+                        s32 sfx = music->tracker.last.sfx;
+                        setNote(music, note, octave, sfx);
 
                         downRow(music);
 
