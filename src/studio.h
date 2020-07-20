@@ -150,7 +150,6 @@ typedef void(*DialogCallback)(bool yes, void* data);
 void showDialog(const char** text, s32 rows, DialogCallback callback, void* data);
 void hideDialog();
 
-void hideGameMenu();
 
 bool studioCartChanged();
 void playSystemSfx(s32 id);
@@ -158,7 +157,11 @@ void playSystemSfx(s32 id);
 void runGameFromSurf();
 void gotoCode();
 void gotoSurf();
-void exitFromGameMenu();
+
+void showGameMenu();
+void hideGameMenu();
+void exitGameMenu();
+
 void runProject();
 void drawBGAnimation(tic_mem* tic, s32 ticks);
 

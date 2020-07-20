@@ -690,8 +690,11 @@ void tic_core_pause(tic_mem* memory)
     memcpy(&machine->pause.state, &machine->state, sizeof(tic_machine_state_data));
     memcpy(&machine->pause.ram, &memory->ram, sizeof(tic_ram));
 
-    machine->pause.time.start = machine->data->start;
-    machine->pause.time.paused = machine->data->counter();
+    if (machine->data)
+    {
+        machine->pause.time.start = machine->data->start;
+        machine->pause.time.paused = machine->data->counter();
+    }
 }
 
 void tic_core_resume(tic_mem* memory)

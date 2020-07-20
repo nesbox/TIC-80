@@ -59,7 +59,7 @@ static void gamepadConfig(Menu* menu)
 
 static void closeGame(Menu* menu)
 {
-    exitFromGameMenu();
+    exitGameMenu();
 }
 
 static void(*const MenuHandlers[])(Menu*) = {resumeGame, resetGame, gamepadConfig, NULL, closeGame, exitStudio};

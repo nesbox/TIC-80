@@ -1195,10 +1195,15 @@ static void onConsoleInstallDemosCommand(Console* console, const char* param)
     commandDone(console);
 }
 
+static void onConsoleGameMenuCommand(Console* console, const char* param)
+{
+    showGameMenu();
+    commandDone(console);
+}
+
 static void onConsoleSurfCommand(Console* console, const char* param)
 {
     gotoSurf();
-
     commandDone(console);
 }
 
@@ -2344,6 +2349,7 @@ static const struct
     {"version", NULL, "show the current version",   onConsoleVersionCommand},
     {"edit",    NULL, "open cart editor",           onConsoleCodeCommand},
     {"surf",    NULL, "open carts browser",         onConsoleSurfCommand},
+    {"menu",    NULL, "show game menu",             onConsoleGameMenuCommand},
 };
 
 static bool predictFilename(const char* name, const char* info, s32 id, void* data, bool dir)

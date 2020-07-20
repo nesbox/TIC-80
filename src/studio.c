@@ -1066,7 +1066,7 @@ void runGameFromSurf()
     impl.prevMode = TIC_SURF_MODE;
 }
 
-void exitFromGameMenu()
+void exitGameMenu()
 {
     if(impl.prevMode == TIC_SURF_MODE)
     {
@@ -1141,7 +1141,7 @@ void changeStudioMode(s32 dir)
     }
 }
 
-static void showGameMenu()
+void showGameMenu()
 {
     tic_core_pause(impl.studio.tic);
     tic_api_reset(impl.studio.tic);
