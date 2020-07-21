@@ -45,9 +45,9 @@ int main(int argc, char** argv)
 				fread(buffer, size, 1, cartFile);
 				fclose(cartFile);
 
-				tic_cartridge cart = {0};
+				tic_cartridge* cart = calloc(1, sizeof(tic_cartridge));
 
-				tic_cart_load(&cart, buffer, size);
+				tic_cart_load(cart, buffer, size);
 
 				FILE* project = fopen(argv[2], "wb");
 
@@ -57,7 +57,7 @@ int main(int argc, char** argv)
 
 					if(out)
 					{
-						s32 outSize = tic_project_save(argv[2], out, &cart);
+						s32 outSize = tic_project_save(argv[2], out, cart);
 
 						fwrite(out, outSize, 1, project);
 
@@ -71,6 +71,7 @@ int main(int argc, char** argv)
 				else printf("cannot open project file\n");
 
 				free(buffer);
+				free(cart);
 			}
 
 		}
