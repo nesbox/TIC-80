@@ -24,6 +24,7 @@
 
 #include "tic.h"
 #include "ext/gif.h"
+#include <stddef.h>
 
 inline s32 tic_tool_sfx_pos(s32 speed, s32 ticks)
 {
