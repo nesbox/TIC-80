@@ -113,9 +113,6 @@ void resumeRunMode();
 EditorMode getStudioMode();
 void exitStudio();
 
-u32 zip(u8* dest, size_t destSize, const u8* source, size_t size);
-u32 unzip(u8* dest, size_t bufSize, const u8* source, size_t size);
-
 void toClipboard(const void* data, s32 size, bool flip);
 bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces);
 

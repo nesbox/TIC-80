@@ -44,7 +44,6 @@
 #include "ext/md5.h"
 #include "wave_writer.h"
 
-#include <zlib.h>
 #include <ctype.h>
 
 #include <lua.h>
@@ -367,16 +366,6 @@ const char* studioExportMusic(s32 track)
     wave_close();
 
     return WavPath;
-}
-
-u32 zip(u8* dest, size_t destSize, const u8* source, size_t size)
-{
-    return compress2(dest, (unsigned long*)&destSize, source, size, Z_BEST_COMPRESSION) == Z_OK ? destSize : 0;
-}
-
-u32 unzip(u8* dest, size_t destSize, const u8* source, size_t size)
-{
-    return uncompress(dest, (unsigned long*)&destSize, source, size) == Z_OK ? destSize : 0;
 }
 
 void sfx_stop(tic_mem* tic, s32 channel)

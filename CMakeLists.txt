@@ -344,7 +344,7 @@ target_include_directories(tic80core
     PUBLIC
         ${CMAKE_SOURCE_DIR}/include)
 
-target_link_libraries(tic80core lua lpeg wren squirrel giflib blipbuf duktape)
+target_link_libraries(tic80core lua lpeg wren squirrel giflib blipbuf duktape zlib)
 
 if(LINUX)
     target_link_libraries(tic80core m)
@@ -663,7 +663,7 @@ endif()
 
 target_include_directories(${TIC80_OUTPUT}lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
-target_link_libraries(${TIC80_OUTPUT}lib tic80core zlib zip wave_writer)
+target_link_libraries(${TIC80_OUTPUT}lib tic80core zip wave_writer)
 
 if(N3DS)
     target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${DEVKITPRO}/portlibs/3ds/include)

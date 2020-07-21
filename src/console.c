@@ -601,7 +601,7 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 
     if(data)
     {
-        *size = unzip(data, sizeof(tic_cartridge), demo, romSize);
+        *size = tic_tool_unzip(data, sizeof(tic_cartridge), demo, romSize);
 
         if(*size)
             fsSaveRootFile(console->fs, path, data, *size, false);
@@ -1106,7 +1106,7 @@ static void installDemoCart(FileSystem* fs, const char* name, const void* cart, 
 
     if(data)
     {
-        s32 dataSize = unzip(data, sizeof(tic_cartridge), cart, size);
+        s32 dataSize = tic_tool_unzip(data, sizeof(tic_cartridge), cart, size);
 
         if(dataSize)
             fsSaveFile(fs, name, data, dataSize, true);
@@ -1661,7 +1661,7 @@ static void* embedCart(Console* console, s32* size)
 
             if(zipData)
             {
-                if(zipSize = zip(zipData, zipSize, cart, cartSize))
+                if(zipSize = tic_tool_zip(zipData, zipSize, cart, cartSize))
                 {
                     EmbedHeader header = 
                     {
@@ -1827,9 +1827,13 @@ static void onConsoleExportHtmlCommand(Console* console, const char* providedNam
             {
                 s32 cartSize = tic_cart_save(&tic->cart, cart);
 
-                zip_entry_open(zip, "cart.tic");
-                zip_entry_write(zip, cart, cartSize);
-                zip_entry_close(zip);                    
+                if(cartSize)
+                {
+                    zip_entry_open(zip, "cart.tic");
+                    zip_entry_write(zip, cart, cartSize);
+                    zip_entry_close(zip);                    
+                }
+                else errorOccured = true;
 
                 free(cart);
             }
@@ -3228,7 +3232,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 
                         if(data)
                         {
-                            s32 dataSize = unzip(data, sizeof(tic_cartridge), app + header->appSize + sizeof(EmbedHeader), header->cartSize);
+                            s32 dataSize = tic_tool_unzip(data, sizeof(tic_cartridge), app + header->appSize + sizeof(EmbedHeader), header->cartSize);
 
                             if(dataSize)
                             {

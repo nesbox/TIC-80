@@ -24,6 +24,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <zlib.h>
 
 extern void tic_tool_poke4(void* addr, u32 index, u8 value);
 extern u8 tic_tool_peek4(const void* addr, u32 index);
@@ -179,4 +180,14 @@ void tic_tool_str2buf(const char* str, s32 size, void* buf, bool flip)
 
         ((u8*)buf)[i] = (u8)strtol(val, NULL, 16);
     }
+}
+
+u32 tic_tool_zip(u8* dest, size_t destSize, const u8* source, size_t size)
+{
+    return compress2(dest, (unsigned long*)&destSize, source, size, Z_BEST_COMPRESSION) == Z_OK ? destSize : 0;
+}
+
+u32 tic_tool_unzip(u8* dest, size_t destSize, const u8* source, size_t size)
+{
+    return uncompress(dest, (unsigned long*)&destSize, source, size) == Z_OK ? destSize : 0;
 }

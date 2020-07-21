@@ -311,7 +311,7 @@ static void setDefault(Config* config)
 
         if(embedBios)
         {
-            s32 size = unzip(embedBios, sizeof(tic_cartridge), DefaultBiosZip, sizeof DefaultBiosZip);
+            s32 size = tic_tool_unzip(embedBios, sizeof(tic_cartridge), DefaultBiosZip, sizeof DefaultBiosZip);
 
             if(size)
                 update(config, embedBios, size);

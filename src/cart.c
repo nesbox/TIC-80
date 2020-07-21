@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "cart.h"
+#include "tools.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -42,6 +43,7 @@ typedef enum
     CHUNK_PATTERNS_DEP, // 13 - deprecated chunk
     CHUNK_MUSIC,        // 14
     CHUNK_PATTERNS,     // 15
+    CHUNK_CODE_ZIP,     // 16
 } ChunkType;
 
 typedef struct
@@ -63,7 +65,7 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
 
     bool paletteExists = false;
 
-    tic_code* code = calloc(TIC_BANKS, TIC_CODE_SIZE);
+    tic_code* code = calloc(TIC_BANKS, TIC_CODE_BANK_SIZE);
 
     if(!code) return;
 
@@ -84,7 +86,10 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
         case CHUNK_PATTERNS:    LOAD_CHUNK(cart->banks[chunk.bank].music.patterns); break;
         case CHUNK_PALETTE:     LOAD_CHUNK(cart->banks[chunk.bank].palette);        break;
         case CHUNK_FLAGS:       LOAD_CHUNK(cart->banks[chunk.bank].flags);          break;
-        case CHUNK_CODE:        LOAD_CHUNK(code[chunk.bank].data);                  break;
+        case CHUNK_CODE:        LOAD_CHUNK(code->banks[chunk.bank].data);           break;
+        case CHUNK_CODE_ZIP:
+            tic_tool_unzip(cart->code.data, TIC_CODE_SIZE, buffer, chunk.size);
+            break;
         case CHUNK_COVER:
             LOAD_CHUNK(cart->cover.data);
             cart->cover.size = chunk.size;
@@ -119,19 +124,18 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
     #undef LOAD_CHUNK
 
     // workaround to load code from banks
-    if(!strlen(cart->code.data))
+    if(!*cart->code.data)
         for(s32 i = TIC_BANKS-1; i >= 0; i--)
         {
-            // add new line to split code banks
-            {
-                s32 len = strlen(code[i].data);
-                if(len && len < TIC_CODE_SIZE && code[i].data[len - 1] != '\n')
-                    strcat(code[i].data, "\n");
-            }
+            const char* data = code->banks[i].data;
 
-            if(strlen(code[i].data) + strlen(cart->code.data) < TIC_CODE_SIZE)
-                strcat(cart->code.data, code[i].data);
-            else break;
+            if(*data)
+            {
+                if(*cart->code.data)
+                    strcat(cart->code.data, "\n");
+
+                strcat(cart->code.data, data);
+            }
         }
 
     free(code);
@@ -202,7 +206,21 @@ s32 tic_cart_save(const tic_cartridge* cart, u8* buffer)
         buffer = SAVE_CHUNK(CHUNK_FLAGS,    cart->banks[i].flags,           i);
     }
 
-    buffer = SAVE_CHUNK(CHUNK_CODE, cart->code, 0);   
+    if(strlen(cart->code.data) > TIC_CODE_BANK_SIZE)
+    {
+        char* dst = malloc(TIC_CODE_BANK_SIZE);
+        s32 size = tic_tool_zip(dst, TIC_CODE_BANK_SIZE, cart->code.data, strlen(cart->code.data));
+
+        if(size)
+            buffer = saveFixedChunk(buffer, CHUNK_CODE_ZIP, dst, size, 0);
+
+        free(dst);
+
+        if(!size)
+            return 0;
+    }
+    else buffer = SAVE_CHUNK(CHUNK_CODE, cart->code, 0);
+
     buffer = saveFixedChunk(buffer, CHUNK_COVER, cart->cover.data, cart->cover.size, 0);
 
     #undef SAVE_CHUNK
