@@ -27,6 +27,7 @@
 #include <ctype.h>
 #include <stddef.h>
 #include <time.h>
+#include <math.h>
 
 #ifdef _3DS
 #include <3ds.h>
@@ -846,41 +847,53 @@ void tic_api_rectb(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 colo
 
 static struct
 {
-    s16 Left[TIC80_HEIGHT];
-    s16 Right[TIC80_HEIGHT];    
-    s32 ULeft[TIC80_HEIGHT];
-    s32 VLeft[TIC80_HEIGHT];
-} SidesBuffer;
+    s16 Left;
+    s16 Right;
+} SidesBuffer[TIC80_HEIGHT];
+
+static struct
+{
+    float Left;
+    float Right;
+    float ULeft;
+    float VLeft;
+} SidesTexBuffer[TIC80_HEIGHT];
 
 static void initSidesBuffer()
 {
-    for(s32 i = 0; i < COUNT_OF(SidesBuffer.Left); i++)
-        SidesBuffer.Left[i] = TIC80_WIDTH, SidesBuffer.Right[i] = -1;   
+    for(s32 i = 0; i < COUNT_OF(SidesBuffer); i++)
+        SidesBuffer[i].Left = TIC80_WIDTH, SidesBuffer[i].Right = -1;
+}
+
+static void initSidesTexBuffer()
+{
+    for(s32 i = 0; i < COUNT_OF(SidesBuffer); i++)
+        SidesTexBuffer[i].Left = TIC80_WIDTH, SidesTexBuffer[i].Right = -1;
 }
 
 static void setSidePixel(s32 x, s32 y)
 {
     if(y >= 0 && y < TIC80_HEIGHT)
     {
-        if(x < SidesBuffer.Left[y]) SidesBuffer.Left[y] = x;
-        if(x > SidesBuffer.Right[y]) SidesBuffer.Right[y] = x;
+        if(x < SidesBuffer[y].Left) SidesBuffer[y].Left = x;
+        if(x > SidesBuffer[y].Right) SidesBuffer[y].Right = x;
     }
 }
 
-static void setSideTexPixel(s32 x, s32 y, float u, float v)
+static void setSideTexPixel(float x, float y, float u, float v)
 {
-    s32 yy = y;
+    s32 yy = roundf(y);
     if (yy >= 0 && yy < TIC80_HEIGHT)
     {
-        if (x < SidesBuffer.Left[yy])
+        if (x < SidesTexBuffer[yy].Left)
         {
-            SidesBuffer.Left[yy] = x;
-            SidesBuffer.ULeft[yy] = u*65536.0f;
-            SidesBuffer.VLeft[yy] = v*65536.0f;
+            SidesTexBuffer[yy].Left = x;
+            SidesTexBuffer[yy].ULeft = u*65536.0f;
+            SidesTexBuffer[yy].VLeft = v*65536.0f;
         }
-        if (x > SidesBuffer.Right[yy])
+        if (x > SidesTexBuffer[yy].Right)
         {
-            SidesBuffer.Right[yy] = x;
+            SidesTexBuffer[yy].Right = x;
         }
     }
 }
@@ -909,8 +922,8 @@ void tic_api_circ(tic_mem* memory, s32 xm, s32 ym, s32 radius, u8 color)
     s32 yb = MIN(machine->state.clip.b, ym+radius+1);
     u8 final_color = mapColor(&machine->memory, color);
     for(s32 y = yt; y < yb; y++) {
-        s32 xl = MAX(SidesBuffer.Left[y], machine->state.clip.l);
-        s32 xr = MIN(SidesBuffer.Right[y]+1, machine->state.clip.r);
+        s32 xl = MAX(SidesBuffer[y].Left, machine->state.clip.l);
+        s32 xr = MIN(SidesBuffer[y].Right + 1, machine->state.clip.r);
         machine->state.drawhline(&machine->memory, xl, xr, y, final_color);
     }
 }
@@ -975,23 +988,21 @@ void tic_api_tri(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3
     s32 yb = MIN(machine->state.clip.b, MAX(y1, MAX(y2, y3)) + 1);
 
     for(s32 y = yt; y < yb; y++) {
-        s32 xl = MAX(SidesBuffer.Left[y], machine->state.clip.l);
-        s32 xr = MIN(SidesBuffer.Right[y]+1, machine->state.clip.r);
+        s32 xl = MAX(SidesBuffer[y].Left, machine->state.clip.l);
+        s32 xr = MIN(SidesBuffer[y].Right + 1, machine->state.clip.r);
         machine->state.drawhline(&machine->memory, xl, xr, y, final_color);
     }
 }
-
 
 typedef struct
 {
     float x, y, u, v;
 } TexVert;
 
-
-static void ticTexLine(tic_mem* memory, TexVert *v0, TexVert *v1)
+static void ticTexLine(tic_mem* memory, const TexVert *v0, const TexVert *v1)
 {
-    TexVert *top = v0;
-    TexVert *bot = v1;
+    const TexVert *top = v0;
+    const TexVert *bot = v1;
 
     if (bot->y < top->y)
     {
@@ -1027,22 +1038,23 @@ static void ticTexLine(tic_mem* memory, TexVert *v0, TexVert *v1)
         y = .0f;
     }
 
-    s32 botY = bot->y;
-    if(botY > TIC80_HEIGHT)
-        botY = TIC80_HEIGHT;
+    float botY = bot->y;
+    if(roundf(botY) > (float)TIC80_HEIGHT)
+        botY = (float)TIC80_HEIGHT;
 
-    for (; y <botY; ++y)
+    for (; y < botY; ++y)
     {
         setSideTexPixel(x, y, u, v);
+
         x += step_x;
         u += step_u;
         v += step_v;
     }
 }
 
-static void drawTexturedTriangle(tic_machine* machine, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count)
+void tic_api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count)
 {
-    tic_mem* memory = &machine->memory;
+    tic_machine* machine = (tic_machine*)memory;
     u8* mapping = getPalette(memory, colors, count);
     TexVert V0, V1, V2;
 
@@ -1055,12 +1067,12 @@ static void drawTexturedTriangle(tic_machine* machine, float x1, float y1, float
 
     //  calculate the slope of the surface 
     //  use floats here 
-    double denom = (V0.x - V2.x) * (V1.y - V2.y) - (V1.x - V2.x) * (V0.y - V2.y);
+    float denom = (V0.x - V2.x) * (V1.y - V2.y) - (V1.x - V2.x) * (V0.y - V2.y);
     if (denom == 0.0)
     {
         return;
     }
-    double id = 1.0 / denom;
+    float id = 1.0 / denom;
     float dudx, dvdx;
     //  this is the UV slope across the surface
     dudx = ((V0.u - V2.u) * (V1.y - V2.y) - (V1.u - V2.u) * (V0.y - V2.y)) * id;
@@ -1069,7 +1081,7 @@ static void drawTexturedTriangle(tic_machine* machine, float x1, float y1, float
     s32 dudxs = dudx * 65536.0f;
     s32 dvdxs = dvdx * 65536.0f;
     //  fill the buffer 
-    initSidesBuffer();
+    initSidesTexBuffer();
     //  parse each line and decide where in the buffer to store them ( left or right ) 
     ticTexLine(memory, &V0, &V1);
     ticTexLine(memory, &V1, &V2);
@@ -1078,23 +1090,23 @@ static void drawTexturedTriangle(tic_machine* machine, float x1, float y1, float
     for (s32 y = 0; y < TIC80_HEIGHT; y++)
     {
         //  if it's backwards skip it
-        s32 width = SidesBuffer.Right[y] - SidesBuffer.Left[y];
+        float width = SidesTexBuffer[y].Right - SidesTexBuffer[y].Left;
         //  if it's off top or bottom , skip this line
         if ((y < machine->state.clip.t) || (y > machine->state.clip.b))
             width = 0;
         if (width > 0)
         {
-            s32 u = SidesBuffer.ULeft[y];
-            s32 v = SidesBuffer.VLeft[y];
-            s32 left = SidesBuffer.Left[y];
-            s32 right = SidesBuffer.Right[y];
+            s32 u = SidesTexBuffer[y].ULeft;
+            s32 v = SidesTexBuffer[y].VLeft;
+            float left = SidesTexBuffer[y].Left;
+            float right = SidesTexBuffer[y].Right;
             //  check right edge, and CLAMP it
             if (right > machine->state.clip.r)
                 right = machine->state.clip.r;
             //  check left edge and offset UV's if we are off the left 
             if (left < machine->state.clip.l)
             {
-                s32 dist = machine->state.clip.l - SidesBuffer.Left[y];
+                s32 dist = machine->state.clip.l - SidesTexBuffer[y].Left;
                 u += dudxs * dist;
                 v += dvdxs * dist;
                 left = machine->state.clip.l;
@@ -1102,7 +1114,7 @@ static void drawTexturedTriangle(tic_machine* machine, float x1, float y1, float
             //  are we drawing from the map . ok then at least check before the inner loop
             if (use_map == true)
             {
-                for (s32 x = left; x < right; ++x)
+                for (float x = left; x < right; ++x)
                 {
                     enum { MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE, MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE };
                     s32 iu = (u >> 16) % MapWidth;
@@ -1116,7 +1128,7 @@ static void drawTexturedTriangle(tic_machine* machine, float x1, float y1, float
 
                     u8 color = mapping[getTilePixel(&tile, iu & 7, iv & 7)];
                     if (color != TRANSPARENT_COLOR)
-                        setPixel(machine, x, y, color);
+                        setPixel(machine, roundf(x), y, color);
                     u += dudxs;
                     v += dvdxs;
                 }
@@ -1124,7 +1136,7 @@ static void drawTexturedTriangle(tic_machine* machine, float x1, float y1, float
             else
             {
                 //  direct from tile ram 
-                for (s32 x = left; x < right; ++x)
+                for (float x = left; x < right; ++x)
                 {
                     enum{SheetWidth = TIC_SPRITESHEET_SIZE, SheetHeight = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS};
                     s32 iu = (u>>16) & (SheetWidth - 1);
@@ -1132,18 +1144,13 @@ static void drawTexturedTriangle(tic_machine* machine, float x1, float y1, float
 
                     u8 color = mapping[getTileSheetPixel(&sheet, iu, iv)];
                     if (color != TRANSPARENT_COLOR)
-                        setPixel(machine, x, y, color);
+                        setPixel(machine, roundf(x), y, color);
                     u += dudxs;
                     v += dvdxs;
                 }
             }
         }
     }
-}
-
-void tic_api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count)
-{
-    drawTexturedTriangle((tic_machine*)memory, x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, use_map, colors, count);
 }
 
 void tic_api_map(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* colors, s32 count, s32 scale, RemapFunc remap, void* data)
