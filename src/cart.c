@@ -48,7 +48,7 @@ typedef enum
 
 typedef struct
 {
-    ChunkType type:5;
+    u32 type:5; // ChunkType
     u32 bank:TIC_BANK_BITS;
     u32 size:16; // max chunk size is 64K
     u32 temp:8;
