@@ -52,15 +52,15 @@ static struct
 /**
  * TIC-80 callback; Requests the content to exit.
  */
-static void tic80_libretro_exit()
+void tic80_libretro_exit()
 {
 	state.quit = true;
 }
 
-/** 
+/**
  * TIC-80 callback; Report an error from the TIC-80 cart.
  */
-static void tic80_libretro_error(const char* info)
+void tic80_libretro_error(const char* info)
 {
 	log_cb(RETRO_LOG_ERROR, info);
 }
@@ -68,7 +68,7 @@ static void tic80_libretro_error(const char* info)
 /**
  * TIC-80 callback; Report a trace log from the TIC-80 cart.
  */
-static void tic80_libretro_trace(const char* text, u8 color)
+void tic80_libretro_trace(const char* text, u8 color)
 {
 	log_cb(RETRO_LOG_INFO, text);
 }
@@ -76,7 +76,7 @@ static void tic80_libretro_trace(const char* text, u8 color)
 /**
  * libretro callback; Handles the logging internally when the logging isn't set.
  */
-static void tic80_libretro_fallback_log(enum retro_log_level level, const char *fmt, ...)
+void tic80_libretro_fallback_log(enum retro_log_level level, const char *fmt, ...)
 {
 	(void)level;
 	va_list va;
@@ -382,7 +382,7 @@ void tic80_libretro_input_descriptors() {
  *
  * @see tic80_libretro_update()
  */
-static void tic80_libretro_update_gamepad(tic80_gamepad* gamepad, int player) {
+void tic80_libretro_update_gamepad(tic80_gamepad* gamepad, int player) {
 	// D-Pad
 	gamepad->up = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP);
 	gamepad->down = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN);
@@ -402,7 +402,7 @@ static void tic80_libretro_update_gamepad(tic80_gamepad* gamepad, int player) {
  * @see tic80_libretro_update_mouse()
  * @see RETRO_DEVICE_POINTER
  */
-static int tic80_libretro_mouse_pointer_convert(float coord, float full, int padding)
+int tic80_libretro_mouse_pointer_convert(float coord, float full, int padding)
 {
 	float max = 0x7fff;
 	return ((coord + max) / (max * 2.0f) * full) - padding;
@@ -411,7 +411,7 @@ static int tic80_libretro_mouse_pointer_convert(float coord, float full, int pad
 /**
  * Retrieve gamepad information from libretro.
  */
-static void tic80_libretro_update_mouse(tic80_mouse* mouse)
+void tic80_libretro_update_mouse(tic80_mouse* mouse)
 {
 	// Check if we are to use the Mouse API or Pointer API.
 	if (!state.variablePointerApi) {
@@ -480,7 +480,7 @@ static void tic80_libretro_update_mouse(tic80_mouse* mouse)
 /**
  * Draws a software cursor on the screen where the mouse is.
  */
-static void tic80_libretro_mousecursor(tic80_local* game, tic80_mouse* mouse, int cursortype)
+void tic80_libretro_mousecursor(tic80_local* game, tic80_mouse* mouse, int cursortype)
 {
 	// Only draw the mouse cursor if it's active.
 	if (state.mouseHideTimer <= 0) {
@@ -508,7 +508,7 @@ static void tic80_libretro_mousecursor(tic80_local* game, tic80_mouse* mouse, in
 /**
  * Retrieve keyboard information from libretro.
  */
-static void tic80_libretro_update_keyboard(tic80_keyboard* keyboard)
+void tic80_libretro_update_keyboard(tic80_keyboard* keyboard)
 {
 	// Clear the key buffer.
 	for (int i = 0; i < TIC80_KEY_BUFFER; i++) {
@@ -526,7 +526,7 @@ static void tic80_libretro_update_keyboard(tic80_keyboard* keyboard)
 /**
  * Update the input state, and tick the game.
  */
-static void tic80_libretro_update(tic80* game)
+void tic80_libretro_update(tic80* game)
 {
 	// Let libretro know that we need updated input states.
 	input_poll_cb();
@@ -554,7 +554,7 @@ static void tic80_libretro_update(tic80* game)
 /**
  * Draw the screen.
  */
-static void tic80_libretro_draw(tic80* game)
+void tic80_libretro_draw(tic80* game)
 {
 	// Mouse Cursor
 	tic80_libretro_mousecursor((tic80_local*)game, &state.input.mouse, state.mouseCursor);
@@ -579,7 +579,7 @@ void tic80_libretro_audio(tic80* game)
  *
  * @see retro_run()
  */
-static void tic80_libretro_variables(void)
+void tic80_libretro_variables(void)
 {
 	// Check all the individual variables for the core.
 	struct retro_variable var;

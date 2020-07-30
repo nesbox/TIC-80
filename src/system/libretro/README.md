@@ -11,12 +11,12 @@ git clone https://github.com/nesbox/TIC-80.git
 cd TIC-80
 git submodule update --init --recursive
 cd build
-cmake .. -DBUILD_SDL=0 -DBUILD_SOKOL=0 -DBUILD_LIBRETRO=1
+cmake .. -DBUILD_PLAYER=OFF -DBUILD_SOKOL=OFF -DBUILD_SDL=OFF -DBUILD_DEMO_CARTS=OFF -DBUILD_LIBRETRO=ON
 make
 ```
 
 ## Usage
 
 ```
-retroarch -L lib/tic80_libretro.so demos/sfx.tic
+retroarch -L lib/tic80_libretro.so sfx.tic
 ```
