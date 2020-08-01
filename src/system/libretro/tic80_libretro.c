@@ -97,7 +97,7 @@ void tic80_libretro_fallback_log(enum retro_log_level level, const char *fmt, ..
 /**
  * libretro callback; Global initialization.
  */
-void retro_init(void)
+RETRO_API void retro_init(void)
 {
 	// Ensure the state is initialized.
 	if (!state) {
@@ -209,7 +209,7 @@ void retro_init(void)
 /**
  * libretro callback; Global deinitialization.
  */
-void retro_deinit(void)
+RETRO_API void retro_deinit(void)
 {
 	// Make sure the game is unloaded.
 	retro_unload_game();
@@ -222,7 +222,7 @@ void retro_deinit(void)
 /**
  * libretro callback; Retrieves the internal libretro API version.
  */
-unsigned retro_api_version(void)
+RETRO_API unsigned retro_api_version(void)
 {
 	return RETRO_API_VERSION;
 }
@@ -230,7 +230,7 @@ unsigned retro_api_version(void)
 /**
  * libretro callback; Reports device changes.
  */
-void retro_set_controller_port_device(unsigned port, unsigned device)
+RETRO_API void retro_set_controller_port_device(unsigned port, unsigned device)
 {
 	log_cb(RETRO_LOG_INFO, "[TIC-80] Plugging device %u into port %u.\n", device, port);
 }
@@ -238,7 +238,7 @@ void retro_set_controller_port_device(unsigned port, unsigned device)
 /**
  * libretro callback; Retrieves information about the core.
  */
-void retro_get_system_info(struct retro_system_info *info)
+RETRO_API void retro_get_system_info(struct retro_system_info *info)
 {
 	memset(info, 0, sizeof(*info));
 	info->library_name     = TIC_NAME;
@@ -251,7 +251,7 @@ void retro_get_system_info(struct retro_system_info *info)
 /**
  * libretro callback; Get information about the desired audio and video.
  */
-void retro_get_system_av_info(struct retro_system_av_info *info)
+RETRO_API void retro_get_system_av_info(struct retro_system_av_info *info)
 {
 	info->timing = (struct retro_system_timing) {
 		.fps = TIC80_FRAMERATE,
@@ -270,7 +270,7 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
 /**
  * libretro callback; Sets up the environment callback.
  */
-void retro_set_environment(retro_environment_t cb)
+RETRO_API void retro_set_environment(retro_environment_t cb)
 {
 	// Update the environment callback to make environment calls.
 	environ_cb = cb;
@@ -294,7 +294,7 @@ void retro_set_environment(retro_environment_t cb)
 /**
  * libretro callback; Set up the audio sample callback.
  */
-void retro_set_audio_sample(retro_audio_sample_t cb)
+RETRO_API void retro_set_audio_sample(retro_audio_sample_t cb)
 {
 	audio_cb = cb;
 }
@@ -304,7 +304,7 @@ void retro_set_audio_sample(retro_audio_sample_t cb)
  *
  * @see tic80_libretro_audio()
  */
-void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb)
+RETRO_API void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb)
 {
 	audio_batch_cb = cb;
 }
@@ -312,7 +312,7 @@ void retro_set_audio_sample_batch(retro_audio_sample_batch_t cb)
 /**
  * libretro callback; Set up the input poll callback.
  */
-void retro_set_input_poll(retro_input_poll_t cb)
+RETRO_API void retro_set_input_poll(retro_input_poll_t cb)
 {
 	input_poll_cb = cb;
 }
@@ -320,7 +320,7 @@ void retro_set_input_poll(retro_input_poll_t cb)
 /**
  * libretro callback; Set up the input state callback.
  */
-void retro_set_input_state(retro_input_state_t cb)
+RETRO_API void retro_set_input_state(retro_input_state_t cb)
 {
 	input_state_cb = cb;
 }
@@ -328,7 +328,7 @@ void retro_set_input_state(retro_input_state_t cb)
 /**
  * libretro callback; Set up the video refresh callback.
  */
-void retro_set_video_refresh(retro_video_refresh_t cb)
+RETRO_API void retro_set_video_refresh(retro_video_refresh_t cb)
 {
 	video_cb = cb;
 }
@@ -336,7 +336,7 @@ void retro_set_video_refresh(retro_video_refresh_t cb)
 /**
  * libretro callback; Reset the game.
  */
-void retro_reset(void)
+RETRO_API void retro_reset(void)
 {
 	if (state != NULL && state->tic != NULL) {
 		tic80_local* tic80 = (tic80_local*)state->tic;
@@ -650,7 +650,7 @@ void tic80_libretro_variables(void)
 /**
  * libretro callback; Render the screen and play the audio.
  */
-void retro_run(void)
+RETRO_API void retro_run(void)
 {
 	// Ensure the state is set up.
 	if (state == NULL || state->tic == NULL) {
@@ -684,7 +684,7 @@ void retro_run(void)
 /**
  * libretro callback; Load a game.
  */
-bool retro_load_game(const struct retro_game_info *info)
+RETRO_API bool retro_load_game(const struct retro_game_info *info)
 {
 	// Initialize the core if it hasn't been yet.
 	if (state == NULL) {
@@ -755,7 +755,7 @@ bool retro_load_game(const struct retro_game_info *info)
 /**
  * libretro callback; Tells the core to unload the game.
  */
-void retro_unload_game(void)
+RETRO_API void retro_unload_game(void)
 {
 	if (state != NULL && state->tic != NULL) {
 		tic80_delete(state->tic);
@@ -766,7 +766,7 @@ void retro_unload_game(void)
 /**
  * libretro callback; Retrieves the region for the content.
  */
-unsigned retro_get_region(void)
+RETRO_API unsigned retro_get_region(void)
 {
 	return RETRO_REGION_NTSC;
 }
@@ -774,7 +774,7 @@ unsigned retro_get_region(void)
 /**
  * libretro callback; Load a game using a subsystem.
  */
-bool retro_load_game_special(unsigned type, const struct retro_game_info *info, size_t num)
+RETRO_API bool retro_load_game_special(unsigned type, const struct retro_game_info *info, size_t num)
 {
 	// Forward subsystem requests over to retro_load_game().
 	return retro_load_game(info);
@@ -791,7 +791,7 @@ size_t retro_serialize_size(void)
 /**
  * libretro callback; Get the current persistent memory.
  */
-bool retro_serialize(void *data, size_t size)
+RETRO_API bool retro_serialize(void *data, size_t size)
 {
 	if (state == NULL || state->tic == NULL || data == NULL) {
 		return false;
@@ -809,7 +809,7 @@ bool retro_serialize(void *data, size_t size)
 /**
  * libretro callback; Given the serialized data, load it into the persistent memory.
  */
-bool retro_unserialize(const void *data, size_t size)
+RETRO_API bool retro_unserialize(const void *data, size_t size)
 {
 	if (state == NULL || state->tic == NULL || size != retro_serialize_size() || data == NULL) {
 		return false;
@@ -827,7 +827,7 @@ bool retro_unserialize(const void *data, size_t size)
 /**
  * libretro callback; Gets region of memory. Used for achievement tracking.
  */
-void *retro_get_memory_data(unsigned id)
+RETRO_API void *retro_get_memory_data(unsigned id)
 {
 	if (state == NULL || state->tic == NULL || id >= TIC_PERSISTENT_SIZE) {
 		return NULL;
@@ -840,7 +840,7 @@ void *retro_get_memory_data(unsigned id)
 /**
  * libretro callback; Gets the size of memory. Used for achievement tracking.
  */
-size_t retro_get_memory_size(unsigned id)
+RETRO_API size_t retro_get_memory_size(unsigned id)
 {
 	return sizeof(u32);
 }
@@ -848,7 +848,7 @@ size_t retro_get_memory_size(unsigned id)
 /**
  * libretro callback; Reset all cheats to disabled.
  */
-void retro_cheat_reset(void)
+RETRO_API void retro_cheat_reset(void)
 {
 	// Nothing.
 }
@@ -874,7 +874,7 @@ void retro_cheat_reset(void)
  *
  * @see https://github.com/nesbox/TIC-80/wiki/pmem
  */
-void retro_cheat_set(unsigned index, bool enabled, const char *code)
+RETRO_API void retro_cheat_set(unsigned index, bool enabled, const char *code)
 {
 	if (!state || !state->tic) {
 		return;
