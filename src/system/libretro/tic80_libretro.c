@@ -18,6 +18,7 @@
 #define TIC_MAXPLAYERS 4
 
 // How long to wait before hiding the mouse.
+// TODO: Move the timer start count to a variable.
 #define TIC_LIBRETRO_MOUSE_HIDE_TIMER_START 300
 
 static struct retro_log_callback logging;
@@ -28,8 +29,8 @@ static retro_audio_sample_batch_t audio_batch_cb;
 static retro_environment_t environ_cb;
 static retro_input_poll_t input_poll_cb;
 static retro_input_state_t input_state_cb;
-tic80* tic;
-struct tic80_state {
+struct tic80_state
+{
 	bool quit;
 	tic80_input input;
 	int keymap[RETROK_LAST];
@@ -38,9 +39,9 @@ struct tic80_state {
 	u16 mousePreviousX;
 	u16 mousePreviousY;
 	u16 mouseHideTimer;
+	tic80* tic;
 };
-
-tic80_state* state;
+static struct tic80_state* state;
 
 /**
  * TIC-80 callback; Requests the content to exit.
@@ -57,7 +58,20 @@ void tic80_libretro_exit()
  */
 void tic80_libretro_error(const char* info)
 {
-	log_cb(RETRO_LOG_ERROR, info);
+	// Report the error to the log.
+	log_cb(RETRO_LOG_ERROR, "[TIC-80]: %s\n", info);
+
+	// Display the error on the screen, if possible.
+	if (environ_cb) {
+		struct retro_message msg = {
+			info,
+			400
+		};
+		environ_cb(RETRO_ENVIRONMENT_SET_MESSAGE, &msg);
+	}
+
+	// Finally, on an error, close the core.
+	tic80_libretro_exit();
 }
 
 /**
@@ -65,7 +79,7 @@ void tic80_libretro_error(const char* info)
  */
 void tic80_libretro_trace(const char* text, u8 color)
 {
-	log_cb(RETRO_LOG_INFO, text);
+	log_cb(RETRO_LOG_DEBUG, "[TIC-80] %s\n", text);
 }
 
 /**
@@ -85,6 +99,7 @@ void tic80_libretro_fallback_log(enum retro_log_level level, const char *fmt, ..
  */
 void retro_init(void)
 {
+	// Ensure the state is initialized.
 	if (!state) {
 		state = (struct tic80_state*) malloc(sizeof(struct tic80_state));
 	}
@@ -196,7 +211,9 @@ void retro_init(void)
  */
 void retro_deinit(void)
 {
-	if (state) {
+	// Make sure the game is unloaded.
+	retro_unload_game();
+	if (state != NULL) {
 		free(state);
 		state = NULL;
 	}
@@ -321,8 +338,8 @@ void retro_set_video_refresh(retro_video_refresh_t cb)
  */
 void retro_reset(void)
 {
-	if (tic) {
-		tic80_local* tic80 = (tic80_local*)tic;
+	if (state != NULL && state->tic != NULL) {
+		tic80_local* tic80 = (tic80_local*)state->tic;
 		tic_api_reset(tic80->memory);
 	}
 }
@@ -335,6 +352,8 @@ void retro_reset(void)
 void tic80_libretro_input_descriptors() {
 	// TIC-80's controller has flipped A/B and X/Y buttons than RetroPad.
 	struct retro_input_descriptor desc[] = {
+
+#if TIC_MAXPLAYERS >= 1
 		// Player 1
 		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT, "D-Pad Left" },
 		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP, "D-Pad Up" },
@@ -344,7 +363,9 @@ void tic80_libretro_input_descriptors() {
 		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "B" },
 		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X, "Y" },
 		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y, "X" },
+#endif
 
+#if TIC_MAXPLAYERS >= 2
 		// Player 2
 		{ 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT, "D-Pad Left" },
 		{ 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP, "D-Pad Up" },
@@ -354,6 +375,7 @@ void tic80_libretro_input_descriptors() {
 		{ 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "B" },
 		{ 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X, "Y" },
 		{ 1, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y, "X" },
+#endif
 
 #if TIC_MAXPLAYERS >= 3
 		// Player 3
@@ -445,6 +467,8 @@ void tic80_libretro_update_mouse(tic80_mouse* mouse)
 
 		// Pointer pressed is considered mouse left button.
 		mouse->left = input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_PRESSED);
+		mouse->right = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT);
+		mouse->middle = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE);
 	}
 
 	// Keep the mouse on the screen.
@@ -496,19 +520,19 @@ void tic80_libretro_mousecursor(tic80_local* game, tic80_mouse* mouse, int curso
 	}
 
 	// Determine which cursor to draw.
-	switch (state->mouseCursor) {
+	switch (cursortype) {
 		case 1: // Dot
-			tic_api_pix(game->memory, state->input.mouse.x, state->input.mouse.y, 15, false);
+			tic_api_pix(game->memory, mouse->x, mouse->y, 15, false);
 		break;
 		case 2: // Cursor
-			tic_api_line(game->memory, state->input.mouse.x - 4, state->input.mouse.y, state->input.mouse.x - 2, state->input.mouse.y, 15);
-			tic_api_line(game->memory, state->input.mouse.x + 2, state->input.mouse.y, state->input.mouse.x + 4, state->input.mouse.y, 15);
-			tic_api_line(game->memory, state->input.mouse.x, state->input.mouse.y - 4, state->input.mouse.x, state->input.mouse.y - 2, 15);
-			tic_api_line(game->memory, state->input.mouse.x, state->input.mouse.y + 2, state->input.mouse.x, state->input.mouse.y + 4, 15);
+			tic_api_line(game->memory, mouse->x - 4, mouse->y, mouse->x - 2, mouse->y, 15);
+			tic_api_line(game->memory, mouse->x + 2, mouse->y, mouse->x + 4, mouse->y, 15);
+			tic_api_line(game->memory, mouse->x, mouse->y - 4, mouse->x, mouse->y - 2, 15);
+			tic_api_line(game->memory, mouse->x, mouse->y + 2, mouse->x, mouse->y + 4, 15);
 		break;
 		case 3: // Arrow
-			tic_api_tri(game->memory, state->input.mouse.x, state->input.mouse.y, state->input.mouse.x + 3, state->input.mouse.y, state->input.mouse.x, state->input.mouse.y + 3, 15);
-			tic_api_line(game->memory, state->input.mouse.x + 3, state->input.mouse.y, state->input.mouse.x, state->input.mouse.y + 3, 0);
+			tic_api_tri(game->memory, mouse->x, mouse->y, mouse->x + 3, mouse->y, mouse->x, mouse->y + 3, 15);
+			tic_api_line(game->memory, mouse->x + 3, mouse->y, mouse->x, mouse->y + 3, 0);
 		break;
 	}
 }
@@ -540,12 +564,18 @@ void tic80_libretro_update(tic80* game)
 	input_poll_cb();
 
 	// Gamepads
+#if TIC_MAXPLAYERS >= 1
 	tic80_libretro_update_gamepad(&state->input.gamepads.first, 0);
+#endif
+
+#if TIC_MAXPLAYERS >= 2
 	tic80_libretro_update_gamepad(&state->input.gamepads.second, 1);
+#endif
 
 #if TIC_MAXPLAYERS >= 3
 	tic80_libretro_update_gamepad(&state->input.gamepads.third, 2);
 #endif
+
 #if TIC_MAXPLAYERS >= 4
 	tic80_libretro_update_gamepad(&state->input.gamepads.fourth, 3);
 #endif
@@ -556,7 +586,7 @@ void tic80_libretro_update(tic80* game)
 	// Keyboard
 	tic80_libretro_update_keyboard(&state->input.keyboard);
 
-	// Update the game state->
+	// Update the game state.
 	tic80_tick(game, &state->input);
 }
 /**
@@ -564,7 +594,7 @@ void tic80_libretro_update(tic80* game)
  */
 void tic80_libretro_draw(tic80* game)
 {
-	// Mouse Cursor
+	// Render the mouse cursor if needed.
 	tic80_libretro_mousecursor((tic80_local*)game, &state->input.mouse, state->mouseCursor);
 
 	// Render to the screen.
@@ -622,30 +652,27 @@ void tic80_libretro_variables(void)
  */
 void retro_run(void)
 {
-	// Check if we are to quit.
-	if (state->quit) {
-		// If the game is still running, ask it to shut it down.
-		if (tic) {
-			retro_unload_game();
-			retro_deinit();
-			environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
-		}
-		return;
-	}
-
-	// Ensure we act only when a tic instance is available.
-	if (tic == NULL) {
+	// Ensure the state is set up.
+	if (state == NULL || state->tic == NULL) {
 		return;
 	}
 
 	// Update the TIC-80 environment.
-	tic80_libretro_update(tic);
+	tic80_libretro_update(state->tic);
+
+	// Check if the game requested to quit.
+	if (state->quit) {
+		environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
+		retro_unload_game();
+		retro_deinit();
+		return;
+	}
 
 	// Render the screen.
-	tic80_libretro_draw(tic);
+	tic80_libretro_draw(state->tic);
 
 	// Play the audio.
-	tic80_libretro_audio(tic);
+	tic80_libretro_audio(state->tic);
 
 	// Update core options, if needed.
 	bool updated = false;
@@ -659,21 +686,23 @@ void retro_run(void)
  */
 bool retro_load_game(const struct retro_game_info *info)
 {
+	// Initialize the core if it hasn't been yet.
+	if (state == NULL) {
+		retro_init();
+	}
+
 	// TODO: Warn that Audio Synchronization required to run at a proper speed.
 	// TODO: Warn that the core doesn't support Runahead.
 
 	// Pixel format.
 	enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
 	if (!environ_cb(RETRO_ENVIRONMENT_SET_PIXEL_FORMAT, &fmt)) {
-		log_cb(RETRO_LOG_INFO, "[TIC-80] RETRO_PIXEL_FORMAT_XRGB8888 is not supported.\n");
+		log_cb(RETRO_LOG_ERROR, "[TIC-80] RETRO_PIXEL_FORMAT_XRGB8888 is not supported.\n");
 		return false;
 	}
 
-	// Update the input button descriptions.
-	tic80_libretro_input_descriptors();
-
 	// Check for the content.
-	if (!info) {
+	if (info == NULL) {
 		log_cb(RETRO_LOG_ERROR, "[TIC-80] No content information provided.\n");
 		return false;
 	}
@@ -684,30 +713,41 @@ bool retro_load_game(const struct retro_game_info *info)
 		return false;
 	}
 
-	// Ensure a game is not loaded before loading.
+	// Ensure a game is not currently loaded before loading.
 	retro_unload_game();
 
 	// Set up the TIC-80 environment.
-	tic = tic80_create(TIC80_SAMPLERATE);
-	tic->screen_format = TIC80_PIXEL_COLOR_BGRA8888;
-	tic->callback.exit = tic80_libretro_exit;
-	tic->callback.error = tic80_libretro_error;
-	tic->callback.trace = tic80_libretro_trace;
+	state->tic = tic80_create(TIC80_SAMPLERATE);
+	if (state->tic == NULL) {
+		log_cb(RETRO_LOG_ERROR, "[TIC-80] Failed to initialize TIC-80 environment.\n");
+		return false;
+	}
+
+	// Set up the environment variables.
+	state->tic->screen_format = TIC80_PIXEL_COLOR_BGRA8888;
+	state->tic->callback.exit = tic80_libretro_exit;
+	state->tic->callback.error = tic80_libretro_error;
+	state->tic->callback.trace = tic80_libretro_trace;
 
 	// Initialize some of the game state.
 	state->quit = false;
 	state->input.mouse.x = 0;
 	state->input.mouse.y = 0;
 
-	// Load up any core variables.
-	tic80_libretro_variables();
-
 	// Load the content.
-	tic80_load(tic, (void*)(info->data), info->size);
-	if (!tic) {
+	// TODO: Allow loading code files directly.
+	tic80_load(state->tic, (void*)(info->data), info->size);
+	if (state->tic == NULL) {
 		log_cb(RETRO_LOG_ERROR, "[TIC-80] Content loaded, but failed to load game.\n");
+		retro_unload_game();
 		return false;
 	}
+
+	// Set up the input descriptors.
+	tic80_libretro_input_descriptors();
+
+	// Load up any core variables.
+	tic80_libretro_variables();
 
 	return true;
 }
@@ -717,11 +757,9 @@ bool retro_load_game(const struct retro_game_info *info)
  */
 void retro_unload_game(void)
 {
-	// Close the game if it's loaded.
-	state->quit = true;
-	if (tic != NULL) {
-		tic80_delete(tic);
-		tic = NULL;
+	if (state != NULL && state->tic != NULL) {
+		tic80_delete(state->tic);
+		state->tic = NULL;
 	}
 }
 
@@ -755,11 +793,11 @@ size_t retro_serialize_size(void)
  */
 bool retro_serialize(void *data, size_t size)
 {
-	if (!tic || !data) {
+	if (state == NULL || state->tic == NULL || data == NULL) {
 		return false;
 	}
 
-	tic80_local* tic80 = (tic80_local*)tic;
+	tic80_local* tic80 = (tic80_local*)state->tic;
 	u32* udata = (u32*)data;
 	for (int i = 0; i < TIC_PERSISTENT_SIZE; i++) {
 		udata[i] = tic80->memory->ram.persistent.data[i];
@@ -773,11 +811,11 @@ bool retro_serialize(void *data, size_t size)
  */
 bool retro_unserialize(const void *data, size_t size)
 {
-	if (!tic || size != retro_serialize_size() || !data) {
+	if (state == NULL || state->tic == NULL || size != retro_serialize_size() || data == NULL) {
 		return false;
 	}
 
-	tic80_local* tic80 = (tic80_local*)tic;
+	tic80_local* tic80 = (tic80_local*)state->tic;
 	u32* uData = (u32*)data;
 	for (int i = 0; i < TIC_PERSISTENT_SIZE; i++) {
 		tic80->memory->ram.persistent.data[i] = uData[i];
@@ -791,11 +829,11 @@ bool retro_unserialize(const void *data, size_t size)
  */
 void *retro_get_memory_data(unsigned id)
 {
-	if (!tic || id >= TIC_PERSISTENT_SIZE) {
+	if (state == NULL || state->tic == NULL || id >= TIC_PERSISTENT_SIZE) {
 		return NULL;
 	}
 
-	tic80_local* tic80 = (tic80_local*)tic;
+	tic80_local* tic80 = (tic80_local*)state->tic;
 	return &(tic80->memory->ram.persistent.data[id]);
 }
 
@@ -822,11 +860,13 @@ void retro_cheat_reset(void)
  * integers. The first number is the index in pmem(), the
  * second value is the value for the pmem() call. Example:
  *
+ * ```
  * cheats = 1
  *
  * cheat0_desc = "3 Lives"
  * cheat0_code = "255 3"
  * cheat0_enable = false
+ * ```
  *
  * The above cheat would be the same as calling:
  *
@@ -836,6 +876,10 @@ void retro_cheat_reset(void)
  */
 void retro_cheat_set(unsigned index, bool enabled, const char *code)
 {
+	if (!state || !state->tic) {
+		return;
+	}
+
 	u32 codes[TIC_PERSISTENT_SIZE];
 	int codeIndex = 0;
 	char *str = (char*)code;
@@ -851,7 +895,7 @@ void retro_cheat_set(unsigned index, bool enabled, const char *code)
 	}
 
 	// Finally, set each given code pair.
-	tic80_local* tic80 = (tic80_local*)tic;
+	tic80_local* tic80 = (tic80_local*)state->tic;
 	for (int i = 0; i < codeIndex; i = i + 2) {
 		tic80->memory->ram.persistent.data[codes[i]] = codes[i+1];
 	}

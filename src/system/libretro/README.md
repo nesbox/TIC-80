@@ -1,6 +1,6 @@
 # TIC-80 libretro
 
-Provided is a [TIC-80](https://tic.computer) libretro core to render TIC-80 cartridges through the libretro API and RetroArch.
+Provided is a [TIC-80](https://tic.computer) libretro core to render TIC-80 cartridges through the [libretro](https://www.libretro.com) API and [RetroArch](https://www.retroarch.com).
 
 ## Build
 

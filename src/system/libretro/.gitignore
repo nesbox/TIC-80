@@ -1,6 +1,0 @@
-# Do not ignore the Makefile
-!Makefile
-
-# Ignore all build cores, except the source file.
-tic80_libretro*
-!tic80_libretro.c
