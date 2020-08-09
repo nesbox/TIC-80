@@ -540,25 +540,16 @@ static void setChannelData(tic_mem* memory, s32 index, s32 note, s32 octave, s32
     resetSfxPos(channel);
 }
 
-static void resetChannelRegistersData(tic_mem* memory, s32 channel)
-{
-    tic_machine* machine = (tic_machine*)memory;
-    memset(&machine->state.registers.left[channel], 0, sizeof(tic_sound_register_data));
-    memset(&machine->state.registers.right[channel], 0, sizeof(tic_sound_register_data));
-}
-
 static void setMusicChannelData(tic_mem* memory, s32 index, s32 note, s32 octave, s32 left, s32 right, s32 channel)
 {
     tic_machine* machine = (tic_machine*)memory;
     setChannelData(memory, index, note, octave, -1, &machine->state.music.channels[channel], left, right, SFX_DEF_SPEED);
-    resetChannelRegistersData(memory, channel);
 }
 
 static void setSfxChannelData(tic_mem* memory, s32 index, s32 note, s32 octave, s32 duration, s32 channel, s32 left, s32 right, s32 speed)
 {
     tic_machine* machine = (tic_machine*)memory;
     setChannelData(memory, index, note, octave, duration, &machine->state.sfx.channels[channel], left, right, speed);
-    resetChannelRegistersData(memory, channel);
 }
 
 static void resetMusicChannels(tic_mem* memory)
