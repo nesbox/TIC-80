@@ -674,21 +674,16 @@ static void processAnim(Surf* surf)
 
         if(surf->menu.anim >= Frames)
         {
-            s32 old_pos = surf->menu.pos;
-
             surf->menu.anim = 0;
             surf->menu.pos += surf->menu.anim_target;
 
-            if(surf->menu.pos < 0)
+            if(surf->menu.count)
             {
-                surf->menu.pos = 0;
-            }
-            else if(surf->menu.pos >= surf->menu.count)
-            {
-                if(old_pos == surf->menu.count - 1)
-                    surf->menu.pos = 0;
-                else
-                    surf->menu.pos = surf->menu.count - 1;
+                while(surf->menu.pos < 0)
+                    surf->menu.pos += surf->menu.count;
+
+                while(surf->menu.pos >= surf->menu.count)
+                    surf->menu.pos -= surf->menu.count;                
             }
         }
     }
