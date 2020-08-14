@@ -1901,12 +1901,7 @@ static void studioTick()
             : tic_core_blit(tic, tic->screen_format);
 
         if(isRecordFrame())
-        {
-            data
-                ? tic_core_blit_ex(tic, TIC80_PIXEL_COLOR_RGBA8888, scanline, overline, data)
-                : tic_core_blit(tic, TIC80_PIXEL_COLOR_RGBA8888);
             recordFrame(tic->screen);
-        }
     }
 
     drawPopup();
