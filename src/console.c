@@ -370,7 +370,7 @@ static s32 writeGifData(const tic_mem* tic, u8* dst, const u8* src, s32 width, s
 
     if(palette)
     {
-        const tic_rgb* pal = getBankPalette()->colors;
+        const tic_rgb* pal = getBankPalette(false)->colors;
         for(s32 i = 0; i < TIC_PALETTE_SIZE; i++, pal++)
             palette[i].r = pal->r, palette[i].g = pal->g, palette[i].b = pal->b;
 
@@ -1376,7 +1376,7 @@ static void onImportSprites(const char* name, const void* buffer, size_t size, v
                     {
                         u8 src = image->buffer[x + y * image->width];
                         const gif_color* c = &image->palette[src];
-                        u8 color = tic_tool_find_closest_color(getBankPalette()->colors, c);
+                        u8 color = tic_tool_find_closest_color(getBankPalette(false)->colors, c);
 
                         setSpritePixel(getBankTiles()->data, x, y, color);
                     }
@@ -2974,7 +2974,7 @@ static bool cmdInjectSprites(Console* console, const char* param, const char* na
                     {
                         u8 src = image->buffer[x + y * image->width];
                         const gif_color* c = &image->palette[src];
-                        u8 color = tic_tool_find_closest_color(console->embed.file->bank0.palette.colors, c);
+                        u8 color = tic_tool_find_closest_color(console->embed.file->bank0.palette.scn.colors, c);
 
                         setSpritePixel(console->embed.file->bank0.tiles.data, x, y, color);
                     }
@@ -3139,7 +3139,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
     if(argc > 1)
     {
         // TODO: should we use default DB16 palette here???
-        memcpy(console->embed.file->bank0.palette.data, getConfig()->cart->bank0.palette.data, sizeof(tic_palette));
+        memcpy(console->embed.file->bank0.palette.scn.data, getConfig()->cart->bank0.palette.scn.data, sizeof(tic_palette));
 
         u32 argp = 1;
 

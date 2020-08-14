@@ -145,7 +145,8 @@ typedef struct
     struct
     {
         tic_overline callback;
-        u32 palette[TIC_PALETTE_SIZE];
+        u32 raw[TIC_PALETTE_SIZE];
+        tic_palette palette;
     } ovr;
 
     void (*setpix)(tic_mem* memory, s32 x, s32 y, u8 color);

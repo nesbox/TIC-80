@@ -407,7 +407,13 @@ typedef struct
     tic_map     map;
     tic_sfx     sfx;
     tic_music   music;
-    tic_palette palette;
+
+    struct
+    {
+        tic_palette scn;
+        tic_palette ovr;
+    } palette;
+
     tic_flags   flags;
 } tic_bank;
 

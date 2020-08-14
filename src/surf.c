@@ -442,7 +442,7 @@ static void updateMenuItemCover(Surf* surf, const u8* cover, s32 size)
                         s32 colorIndex = 0;
 
                         // init first color with default background
-                        palette->colors[0] = *getConfig()->cart->bank0.palette.colors;
+                        palette->colors[0] = *getConfig()->cart->bank0.palette.scn.colors;
 
                         for(s32 c = 0; c < TIC80_WIDTH; c++)
                         {

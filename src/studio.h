@@ -163,7 +163,7 @@ void runProject();
 void drawBGAnimation(tic_mem* tic, s32 ticks);
 
 tic_tiles* getBankTiles();
-tic_palette* getBankPalette();
+tic_palette* getBankPalette(bool ovr);
 tic_flags* getBankFlags();
 tic_map* getBankMap();
 

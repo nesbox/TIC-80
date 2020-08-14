@@ -1138,7 +1138,7 @@ static void onStudioEvent(Map* map, StudioEvent event)
 static void scanline(tic_mem* tic, s32 row, void* data)
 {
     if(row == 0)
-        memcpy(&tic->ram.vram.palette, getBankPalette(), sizeof(tic_palette));
+        memcpy(&tic->ram.vram.palette, getBankPalette(false), sizeof(tic_palette));
 }
 
 static void overline(tic_mem* tic, void* data)

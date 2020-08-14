@@ -427,9 +427,10 @@ tic_map* getBankMap()
     return &impl.studio.tic->cart.banks[impl.bank.index.map].map;
 }
 
-tic_palette* getBankPalette()
+tic_palette* getBankPalette(bool ovr)
 {
-    return &impl.studio.tic->cart.banks[impl.bank.index.sprites].palette;
+    tic_bank* bank = &impl.studio.tic->cart.banks[impl.bank.index.sprites];
+    return ovr ? &bank->palette.ovr : &bank->palette.scn;
 }
 
 tic_flags* getBankFlags()
@@ -1635,7 +1636,7 @@ static void recordFrame(u32* pixels)
 
             if(impl.video.frame % TIC80_FRAMERATE < TIC80_FRAMERATE / 2)
             {
-                const u32* pal = tic_tool_palette_blit(&impl.config->cart.bank0.palette, TIC80_PIXEL_COLOR_RGBA8888);
+                const u32* pal = tic_tool_palette_blit(&impl.config->cart.bank0.palette.scn, TIC80_PIXEL_COLOR_RGBA8888);
                 drawRecordLabel(pixels, TIC80_WIDTH-24, 8, &pal[tic_color_2]);
             }
 
@@ -1891,7 +1892,7 @@ static void studioTick()
 
         if(impl.mode != TIC_RUN_MODE)
         {
-            memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.data, sizeof(tic_palette));
+            memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.scn.data, sizeof(tic_palette));
             memcpy(tic->ram.font.data, impl.systemFont.data, sizeof(tic_font));
         }
 

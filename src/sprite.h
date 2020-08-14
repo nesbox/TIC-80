@@ -46,8 +46,13 @@ struct Sprite
     u8 page;
     u8 bank;
     u16 x,y;
+    bool advanced;
 
-    bool editPalette;
+    struct
+    {
+        bool edit;
+        bool ovr;
+    } palette;
 
     struct
     {

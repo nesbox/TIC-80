@@ -156,7 +156,7 @@ static tic_tilesheet getTileSheetFromSegment(tic_mem* memory, u8 segment)
 static void resetPalette(tic_mem* memory)
 {
     static const u8 DefaultMapping[] = {16, 50, 84, 118, 152, 186, 220, 254};
-    memcpy(memory->ram.vram.palette.data, memory->cart.bank0.palette.data, sizeof(tic_palette));
+    memcpy(memory->ram.vram.palette.data, memory->cart.bank0.palette.scn.data, sizeof(tic_palette));
     memcpy(memory->ram.vram.mapping, DefaultMapping, sizeof DefaultMapping);
 }
 
@@ -190,7 +190,7 @@ static void setPixelOvr(tic_mem* tic, s32 x, s32 y, u8 color)
 {
     tic_machine* machine = (tic_machine*)tic;
     
-    *getOvrAddr(tic, x, y) = *(machine->state.ovr.palette + color);
+    *getOvrAddr(tic, x, y) = *(machine->state.ovr.raw + color);
 }
 
 static u8 getPixelOvr(tic_mem* tic, s32 x, s32 y)
@@ -198,7 +198,7 @@ static u8 getPixelOvr(tic_mem* tic, s32 x, s32 y)
     tic_machine* machine = (tic_machine*)tic;
     
     u32 color = *getOvrAddr(tic, x, y);
-    u32* pal = machine->state.ovr.palette;
+    u32* pal = machine->state.ovr.raw;
 
     for(s32 i = 0; i < TIC_PALETTE_SIZE; i++, pal++)
         if(*pal == color)
@@ -247,7 +247,7 @@ static void drawHLineDma(tic_mem* memory, s32 xl, s32 xr, s32 y, u8 color)
 static void drawHLineOvr(tic_mem* tic, s32 x1, s32 x2, s32 y, u8 color)
 {
     tic_machine* machine = (tic_machine*)tic;
-    u32 final_color = *(machine->state.ovr.palette + color);
+    u32 final_color = *(machine->state.ovr.raw + color);
     for(s32 x = x1; x < x2; ++x) {
         *getOvrAddr(tic, x, y) = final_color;
     }
@@ -1558,7 +1558,7 @@ static void initCover(tic_mem* tic)
                 for (s32 i = 0; i < Size; i++)
                 {
                     const gif_color* c = &image->palette[image->buffer[i]];
-                    u8 color = tic_tool_find_closest_color(tic->cart.bank0.palette.colors, c);
+                    u8 color = tic_tool_find_closest_color(tic->cart.bank0.palette.scn.colors, c);
                     tic_tool_poke4(tic->ram.vram.screen.data, i, color);
                 }
             }
@@ -1574,13 +1574,13 @@ void tic_api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
 
     static const struct {s32 bank; s32 ram; s32 size;} Sections[] = 
     {
-        {offsetof(tic_bank, tiles),     offsetof(tic_ram, tiles),           sizeof(tic_tiles)   },
-        {offsetof(tic_bank, sprites),   offsetof(tic_ram, sprites),         sizeof(tic_tiles)   },
-        {offsetof(tic_bank, map),       offsetof(tic_ram, map),             sizeof(tic_map)     },
-        {offsetof(tic_bank, sfx),       offsetof(tic_ram, sfx),             sizeof(tic_sfx)     },
-        {offsetof(tic_bank, music),     offsetof(tic_ram, music),           sizeof(tic_music)   },
-        {offsetof(tic_bank, palette),   offsetof(tic_ram, vram.palette),    sizeof(tic_palette) },
-        {offsetof(tic_bank, flags),     offsetof(tic_ram, flags),           sizeof(tic_flags)   },
+        {offsetof(tic_bank, tiles),         offsetof(tic_ram, tiles),           sizeof(tic_tiles)   },
+        {offsetof(tic_bank, sprites),       offsetof(tic_ram, sprites),         sizeof(tic_tiles)   },
+        {offsetof(tic_bank, map),           offsetof(tic_ram, map),             sizeof(tic_map)     },
+        {offsetof(tic_bank, sfx),           offsetof(tic_ram, sfx),             sizeof(tic_sfx)     },
+        {offsetof(tic_bank, music),         offsetof(tic_ram, music),           sizeof(tic_music)   },
+        {offsetof(tic_bank, palette.scn),   offsetof(tic_ram, vram.palette),    sizeof(tic_palette) },
+        {offsetof(tic_bank, flags),         offsetof(tic_ram, flags),           sizeof(tic_flags)   },
     };
 
     enum{Count = COUNT_OF(Sections), Mask = (1 << Count) - 1};
@@ -1597,6 +1597,16 @@ void tic_api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
             toCart
                 ? memcpy((u8*)&tic->cart.banks[bank] + Sections[i].bank, (u8*)&tic->ram + Sections[i].ram, Sections[i].size)
                 : memcpy((u8*)&tic->ram + Sections[i].ram, (u8*)&tic->cart.banks[bank] + Sections[i].bank, Sections[i].size);
+    }
+
+    // copy OVR palette
+    {
+        enum {PaletteIndex = 5};
+
+        if(mask & (1 << PaletteIndex))
+            toCart
+                ? memcpy(&tic->cart.banks[bank].palette.ovr, &machine->state.ovr.palette, sizeof(tic_palette))
+                : memcpy(&machine->state.ovr.palette, &tic->cart.banks[bank].palette.ovr, sizeof(tic_palette));
     }
 
     machine->state.synced |= mask;
@@ -1918,18 +1928,23 @@ static inline void memset4(void *dst, u32 val, u32 dwords)
 
 void tic_core_blit_ex(tic_mem* tic, tic80_pixel_color_format fmt, tic_scanline scanline, tic_overline overline, void* data)
 {
-    const u32* pal = tic_tool_palette_blit(&tic->ram.vram.palette, fmt);
-
+    // init OVR palette
     {
         tic_machine* machine = (tic_machine*)tic;
-        memcpy(machine->state.ovr.palette, pal, sizeof machine->state.ovr.palette);
+
+        const tic_palette* ovr = &machine->state.ovr.palette;
+        bool ovrEmpty = true;
+        for(s32 i = 0; i < sizeof(tic_palette); i++)
+            if(ovr->data[i])
+                ovrEmpty = false;
+
+        memcpy(machine->state.ovr.raw, tic_tool_palette_blit(ovrEmpty ? &tic->ram.vram.palette : ovr, fmt), sizeof machine->state.ovr.raw);
     }
 
     if(scanline)
-    {
         scanline(tic, 0, data);
-        pal = tic_tool_palette_blit(&tic->ram.vram.palette, fmt);
-    }
+
+    const u32* pal = tic_tool_palette_blit(&tic->ram.vram.palette, fmt);
 
     enum {Top = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2, Bottom = Top};
     enum {Left = (TIC80_FULLWIDTH-TIC80_WIDTH)/2, Right = Left};
