@@ -32,6 +32,7 @@
 #define TIC_ALTFONT_WIDTH 4
 #define TIC_PALETTE_BPP 4
 #define TIC_PALETTE_SIZE (1 << TIC_PALETTE_BPP)
+#define TIC_PALETTES 2
 #define TIC_SPRITESIZE 8
 
 #define TIC_DEFAULT_BIT_DEPTH 4
@@ -407,6 +408,7 @@ typedef struct
     tic_map     map;
     tic_sfx     sfx;
     tic_music   music;
+    tic_flags   flags;
 
     struct
     {
@@ -414,7 +416,6 @@ typedef struct
         tic_palette ovr;
     } palette;
 
-    tic_flags   flags;
 } tic_bank;
 
 typedef struct

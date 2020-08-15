@@ -39,7 +39,7 @@ static const struct BinarySection{const char* tag; s32 count; s32 offset; s32 si
     {"PATTERNS",    MUSIC_PATTERNS,     offsetof(tic_bank, music.patterns), sizeof(tic_track_pattern),  true},
     {"TRACKS",      MUSIC_TRACKS,       offsetof(tic_bank, music.tracks),   sizeof(tic_track),          true},
     {"FLAGS",       TIC_SPRITE_BANKS,   offsetof(tic_bank, flags),          TIC_BANK_SPRITES,           true},
-    {"PALETTE",     1,                  offsetof(tic_bank, palette),        sizeof(tic_palette),        false},
+    {"PALETTE",     TIC_PALETTES,       offsetof(tic_bank, palette),        sizeof(tic_palette),        false},
 };
 
 static void makeTag(const char* tag, char* out, s32 bank)
