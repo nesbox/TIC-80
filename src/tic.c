@@ -680,6 +680,7 @@ void tic_core_pause(tic_mem* memory)
 
     memcpy(&machine->pause.state, &machine->state, sizeof(tic_machine_state_data));
     memcpy(&machine->pause.ram, &memory->ram, sizeof(tic_ram));
+    memset(&machine->state.ovr, 0, sizeof machine->state.ovr);
 
     if (machine->data)
     {
