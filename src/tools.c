@@ -147,6 +147,8 @@ s32 tic_tool_get_track_row_sfx(const tic_track_row* row)
 
 void tic_tool_set_track_row_sfx(tic_track_row* row, s32 sfx)
 {
+    if(sfx >= SFX_COUNT) sfx = SFX_COUNT-1;        
+
     row->sfxhi = (sfx & 0b00100000) >> MUSIC_SFXID_LOW_BITS;
     row->sfxlow = sfx & 0b00011111;
 }

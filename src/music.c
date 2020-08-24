@@ -28,10 +28,23 @@
 #define TRACKER_ROWS (MUSIC_PATTERN_ROWS / 4)
 #define CHANNEL_COLS 8
 #define TRACKER_COLS (TIC_SOUND_CHANNELS * CHANNEL_COLS)
+#define PIANO_PATTERN_HEADER 10
 
 #define CMD_STRING(_, c, ...) DEF2STR(c)
-static const char *MusicCommands = MUSIC_CMD_LIST(CMD_STRING);
+static const char MusicCommands[] = MUSIC_CMD_LIST(CMD_STRING);
 #undef CMD_STRING
+
+enum PianoEditColumns
+{
+    PianoChannel1Column = 0,
+    PianoChannel2Column,
+    PianoChannel3Column,
+    PianoChannel4Column,
+    PianoSfxColumn,
+    PianoXYColumn,
+
+    PianoColumnsCount
+};
 
 enum
 {
@@ -68,6 +81,8 @@ static void drawEditPanel(Music* music, s32 x, s32 y, s32 w, s32 h)
     tic_api_rect(tic, x-1, y, 1, h, tic_color_15);
     tic_api_rect(tic, x, y+h, w, 1, tic_color_13);
     tic_api_rect(tic, x+w, y, 1, h, tic_color_13);
+
+    tic_api_rect(tic, x, y, w, h, tic_color_0);
 }
 
 static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*, s32, s32 channel), s32 channel)
@@ -128,20 +143,19 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
 
             if (checkMouseClick(&rect, tic_mouse_left))
             {
-                music->tracker.row = -1;
-                music->tracker.col = channel * CHANNEL_COLS;
+                music->tracker.edit.y = -1;
+                music->tracker.edit.x = channel * CHANNEL_COLS;
 
                 s32 mx = getMouseX() - rect.x;
-                music->tracker.patternCol = mx / TIC_FONT_WIDTH;
+                music->tracker.col = mx / TIC_FONT_WIDTH;
             }
         }
 
-        tic_api_rect(music->tic, rect.x, rect.y, rect.w, rect.h, tic_color_0);
         drawEditPanel(music, rect.x, rect.y, rect.w, rect.h);
 
-        if(music->tracker.row == -1 && music->tracker.col / CHANNEL_COLS == channel)
+        if(music->tracker.edit.y == -1 && music->tracker.edit.x / CHANNEL_COLS == channel)
         {
-            tic_api_rect(music->tic, x - 1 + music->tracker.patternCol * TIC_FONT_WIDTH, y - 1, TIC_FONT_WIDTH + 1, TIC_FONT_HEIGHT + 1, tic_color_2);
+            tic_api_rect(music->tic, x - 1 + music->tracker.col * TIC_FONT_WIDTH, y - 1, TIC_FONT_WIDTH + 1, TIC_FONT_HEIGHT + 1, tic_color_2);
         }
 
         char val[] = "99";
@@ -274,26 +288,20 @@ static s32 getRows(Music* music)
 
 static void updateScroll(Music* music)
 {
-    s32 rows = getRows(music);
-
-    if (music->tracker.scroll < 0)
-        music->tracker.scroll = 0;
-
-    if (music->tracker.scroll > rows - TRACKER_ROWS)
-        music->tracker.scroll = rows - TRACKER_ROWS;
+    music->scroll = CLAMP(music->scroll, 0, getRows(music) - TRACKER_ROWS);
 }
 
 static void updateTracker(Music* music)
 {
-    s32 row = music->tracker.row;
+    s32 row = music->tracker.edit.y;
 
-	if (row < music->tracker.scroll + TRACKER_ROWS/2) music->tracker.scroll = row - TRACKER_ROWS/2;
-	else if (row >= music->tracker.scroll + TRACKER_ROWS - TRACKER_ROWS/2)
-		music->tracker.scroll = row - TRACKER_ROWS + TRACKER_ROWS/2;
+	if (row < music->scroll + TRACKER_ROWS/2) music->scroll = row - TRACKER_ROWS/2;
+	else if (row >= music->scroll + TRACKER_ROWS - TRACKER_ROWS/2)
+		music->scroll = row - TRACKER_ROWS + TRACKER_ROWS/2;
 
 	{
 		s32 rows = getRows(music);
-		if (music->tracker.row >= rows) music->tracker.row = rows - 1;
+		if (music->tracker.edit.y >= rows) music->tracker.edit.y = rows - 1;
 	}
 
     updateScroll(music);
@@ -301,9 +309,9 @@ static void updateTracker(Music* music)
 
 static void upRow(Music* music)
 {
-    if (music->tracker.row > -1)
+    if (music->tracker.edit.y > -1)
     {
-        music->tracker.row--;
+        music->tracker.edit.y--;
         updateTracker(music);
     }
 }
@@ -312,89 +320,89 @@ static void downRow(Music* music)
 {
     const tic_sound_state* pos = getMusicPos(music);
     // Don't move the cursor if the track is being played/recorded
-    if(pos->music.track == music->track && music->tracker.follow) return;
+    if(pos->music.track == music->track && music->follow) return;
 
-    if (music->tracker.row < getRows(music) - 1)
+    if (music->tracker.edit.y < getRows(music) - 1)
     {
-        music->tracker.row++;
+        music->tracker.edit.y++;
         updateTracker(music);
     }
 }
 
 static void leftCol(Music* music)
 {
-    if (music->tracker.col > 0)
+    if (music->tracker.edit.x > 0)
     {
-        music->tracker.col--;
+        music->tracker.edit.x--;
         updateTracker(music);
     }
 }
 
 static void rightCol(Music* music)
 {
-    if (music->tracker.col < TRACKER_COLS - 1)
+    if (music->tracker.edit.x < TRACKER_COLS - 1)
     {
-        music->tracker.col++;
+        music->tracker.edit.x++;
         updateTracker(music);
     }
 }
 
 static void goHome(Music* music)
 {
-    music->tracker.col -= music->tracker.col % CHANNEL_COLS;
+    music->tracker.edit.x -= music->tracker.edit.x % CHANNEL_COLS;
 }
 
 static void goEnd(Music* music)
 {
-    music->tracker.col -= music->tracker.col % CHANNEL_COLS;
-    music->tracker.col += CHANNEL_COLS-1;
+    music->tracker.edit.x -= music->tracker.edit.x % CHANNEL_COLS;
+    music->tracker.edit.x += CHANNEL_COLS-1;
 }
 
 static void pageUp(Music* music)
 {
-    music->tracker.row -= TRACKER_ROWS;
-    if(music->tracker.row < 0) 
-        music->tracker.row = 0;
+    music->tracker.edit.y -= TRACKER_ROWS;
+    if(music->tracker.edit.y < 0) 
+        music->tracker.edit.y = 0;
 
     updateTracker(music);
 }
 
 static void pageDown(Music* music)
 {
-    if (music->tracker.row < getRows(music) - 1)
+    if (music->tracker.edit.y < getRows(music) - 1)
 
-    music->tracker.row += TRACKER_ROWS;
+    music->tracker.edit.y += TRACKER_ROWS;
     s32 rows = getRows(music);
 
-    if(music->tracker.row >= rows) 
-        music->tracker.row = rows-1;
+    if(music->tracker.edit.y >= rows) 
+        music->tracker.edit.y = rows-1;
     
     updateTracker(music);
 }
 
 static void doTab(Music* music)
 {
-    s32 channel = (music->tracker.col / CHANNEL_COLS + 1) % TIC_SOUND_CHANNELS;
+    s32 channel = (music->tracker.edit.x / CHANNEL_COLS + 1) % TIC_SOUND_CHANNELS;
 
-    music->tracker.col = channel * CHANNEL_COLS + music->tracker.col % CHANNEL_COLS;
+    music->tracker.edit.x = channel * CHANNEL_COLS + music->tracker.edit.x % CHANNEL_COLS;
 
     updateTracker(music);
 }
 
 static void upFrame(Music* music)
 {
-    music->tracker.frame--;
+    music->frame--;
 
-    if(music->tracker.frame < 0)
-        music->tracker.frame = 0;
+    if(music->frame < 0)
+        music->frame = 0;
 }
 
 static void downFrame(Music* music)
 {
-    music->tracker.frame++;
+    music->frame++;
 
-    if(music->tracker.frame >= MUSIC_FRAMES)
-        music->tracker.frame = MUSIC_FRAMES-1;
+    if(music->frame >= MUSIC_FRAMES)
+        music->frame = MUSIC_FRAMES-1;
 }
 
 static bool checkPlayFrame(Music* music, s32 frame)
@@ -409,19 +417,24 @@ static bool checkPlayRow(Music* music, s32 row)
 {
     const tic_sound_state* pos = getMusicPos(music);
 
-    return checkPlayFrame(music, music->tracker.frame) && pos->music.row == row;
+    return checkPlayFrame(music, music->frame) && pos->music.row == row;
 }
 
-static tic_track_pattern* getPattern(Music* music, s32 channel)
+static tic_track_pattern* getFramePattern(Music* music, s32 channel, s32 frame)
 {
-    s32 patternId = tic_tool_get_pattern_id(getTrack(music), music->tracker.frame, channel);
+    s32 patternId = tic_tool_get_pattern_id(getTrack(music), frame, channel);
 
     return patternId ? &music->src->patterns.data[patternId - PATTERN_START] : NULL;
 }
 
+static tic_track_pattern* getPattern(Music* music, s32 channel)
+{
+    return getFramePattern(music, channel, music->frame);
+}
+
 static tic_track_pattern* getChannelPattern(Music* music)
 {
-    s32 channel = music->tracker.col / CHANNEL_COLS;
+    s32 channel = music->tracker.edit.x / CHANNEL_COLS;
 
     return getPattern(music, channel);
 }
@@ -430,20 +443,18 @@ static s32 getNote(Music* music)
 {
     tic_track_pattern* pattern = getChannelPattern(music);
 
-    return pattern->rows[music->tracker.row].note - NoteStart;
+    return pattern->rows[music->tracker.edit.y].note - NoteStart;
 }
 
 static s32 getOctave(Music* music)
 {
     tic_track_pattern* pattern = getChannelPattern(music);
 
-    return pattern->rows[music->tracker.row].octave;
+    return pattern->rows[music->tracker.edit.y].octave;
 }
 
 static void setSfxId(tic_track_pattern* pattern, s32 row, s32 sfx)
 {
-    if(sfx >= SFX_COUNT) sfx = SFX_COUNT-1;
-
     tic_tool_set_track_row_sfx(&pattern->rows[row], sfx);
 }
 
@@ -451,16 +462,26 @@ static s32 getSfx(Music* music)
 {
     tic_track_pattern* pattern = getChannelPattern(music);
 
-    return tic_tool_get_track_row_sfx(&pattern->rows[music->tracker.row]);
+    return tic_tool_get_track_row_sfx(&pattern->rows[music->tracker.edit.y]);
 }
 
 static void setSfx(Music* music, s32 sfx)
 {
     tic_track_pattern* pattern = getChannelPattern(music);
 
-    setSfxId(pattern, music->tracker.row, sfx);
+    setSfxId(pattern, music->tracker.edit.y, sfx);
 
-    music->tracker.last.sfx = tic_tool_get_track_row_sfx(&pattern->rows[music->tracker.row]);
+    music->last.sfx = tic_tool_get_track_row_sfx(&pattern->rows[music->tracker.edit.y]);
+}
+
+static inline tic_music_state getMusicState(Music* music)
+{
+    return music->tic->ram.sound_state.flag.music_state;
+}
+
+static inline void setMusicState(Music* music, tic_music_state state)
+{
+    music->tic->ram.sound_state.flag.music_state = state;
 }
 
 static void playNote(Music* music)
@@ -471,13 +492,13 @@ static void playNote(Music* music)
     {
         s32 note = getNote(music);
 
-        if (note >= 0 && music->tracker.note != note)
+        if (note >= 0 && music->note != note)
         {
-            music->tracker.note = note;
+            music->note = note;
 
-            if(tic->ram.sound_state.flag.music_state == tic_music_stop)
+            if(getMusicState(music) == tic_music_stop)
             {
-                s32 channel = music->tracker.col / CHANNEL_COLS;
+                s32 channel = music->tracker.edit.x / CHANNEL_COLS;
                 sfx_stop(music->tic, channel);
                 tic_api_sfx(music->tic, getSfx(music), note, getOctave(music), -1, channel, MAX_VOLUME, 0);                
             }
@@ -489,17 +510,17 @@ static void setStopNote(Music* music)
 {
     tic_track_pattern* pattern = getChannelPattern(music);
 
-    pattern->rows[music->tracker.row].note = NoteStop;
-    pattern->rows[music->tracker.row].octave = 0;
+    pattern->rows[music->tracker.edit.y].note = NoteStop;
+    pattern->rows[music->tracker.edit.y].octave = 0;
 }
 
 static void setNote(Music* music, s32 note, s32 octave, s32 sfx)
 {
     tic_track_pattern* pattern = getChannelPattern(music);
 
-    pattern->rows[music->tracker.row].note = note + NoteStart;
-    pattern->rows[music->tracker.row].octave = octave;
-    setSfxId(pattern, music->tracker.row, sfx);
+    pattern->rows[music->tracker.edit.y].note = note + NoteStart;
+    pattern->rows[music->tracker.edit.y].octave = octave;
+    setSfxId(pattern, music->tracker.edit.y, sfx);
 
     playNote(music);
 }
@@ -508,9 +529,9 @@ static void setOctave(Music* music, s32 octave)
 {
     tic_track_pattern* pattern = getChannelPattern(music);
 
-    pattern->rows[music->tracker.row].octave = octave;
+    pattern->rows[music->tracker.edit.y].octave = octave;
 
-    music->tracker.last.octave = octave;
+    music->last.octave = octave;
 
     playNote(music);
 }
@@ -518,7 +539,7 @@ static void setOctave(Music* music, s32 octave)
 static void setCommand(Music* music, tic_music_command command)
 {
     tic_track_pattern* pattern = getChannelPattern(music);
-    tic_track_row* row = &pattern->rows[music->tracker.row];
+    tic_track_row* row = &pattern->rows[music->tracker.edit.y];
 
     if(row->command == tic_music_cmd_empty)
     {
@@ -543,7 +564,7 @@ static void setParam1(Music* music, u8 value)
 {
     tic_track_pattern* pattern = getChannelPattern(music);
 
-    pattern->rows[music->tracker.row].param1 = value;
+    pattern->rows[music->tracker.edit.y].param1 = value;
 
     playNote(music);
 }
@@ -552,7 +573,7 @@ static void setParam2(Music* music, u8 value)
 {
     tic_track_pattern* pattern = getChannelPattern(music);
 
-    pattern->rows[music->tracker.row].param2 = value;
+    pattern->rows[music->tracker.edit.y].param2 = value;
 
     playNote(music);
 }
@@ -561,39 +582,39 @@ static void playFrameRow(Music* music)
 {
     tic_mem* tic = music->tic;
 
-    tic_api_music(tic, music->track, music->tracker.frame, music->tracker.row, true, music->tracker.sustain);
+    tic_api_music(tic, music->track, music->frame, music->tracker.edit.y, true, music->sustain);
     
-    tic->ram.sound_state.flag.music_state = tic_music_play_frame;
+    setMusicState(music, tic_music_play_frame);
 }
 
 static void playFrame(Music* music)
 {
     tic_mem* tic = music->tic;
 
-    tic_api_music(tic, music->track, music->tracker.frame, -1, true, music->tracker.sustain);
+    tic_api_music(tic, music->track, music->frame, -1, true, music->sustain);
 
-    tic->ram.sound_state.flag.music_state = tic_music_play_frame;
+    setMusicState(music, tic_music_play_frame);
 }
 
 static void playTrack(Music* music)
 {
-    tic_api_music(music->tic, music->track, -1, -1, true, music->tracker.sustain);
+    tic_api_music(music->tic, music->track, -1, -1, true, music->sustain);
 }
 
 static void stopTrack(Music* music)
 {
-    tic_api_music(music->tic, -1, -1, -1, false, music->tracker.sustain);
+    tic_api_music(music->tic, -1, -1, -1, false, music->sustain);
 }
 
 static void toggleFollowMode(Music* music)
 {
-    music->tracker.follow = !music->tracker.follow;
+    music->follow = !music->follow;
 }
 
 static void toggleSustainMode(Music* music)
 {
-    music->tic->ram.sound_state.flag.music_sustain = !music->tracker.sustain;
-    music->tracker.sustain = !music->tracker.sustain;
+    music->tic->ram.sound_state.flag.music_sustain = !music->sustain;
+    music->sustain = !music->sustain;
 }
 
 static void resetSelection(Music* music)
@@ -612,7 +633,7 @@ static void deleteSelection(Music* music)
 
         if(rect.h <= 0)
         {
-            rect.y = music->tracker.row;
+            rect.y = music->tracker.edit.y;
             rect.h = 1;
         }
 
@@ -626,7 +647,76 @@ typedef struct
     u8 size;
 } ClipboardHeader;
 
-static void copyToClipboard(Music* music, bool cut)
+static void copyPianoToClipboard(Music* music, bool cut)
+{
+    tic_track_pattern* pattern = getFramePattern(music, music->piano.col, music->frame);
+
+    if(pattern)
+    {
+        ClipboardHeader header = {MUSIC_PATTERN_ROWS};
+
+        enum{HeaderSize = sizeof(ClipboardHeader), Size = sizeof(tic_track_pattern) + HeaderSize};
+
+        u8* data = malloc(Size);
+
+        if(data)
+        {
+            memcpy(data, &header, HeaderSize);
+            memcpy(data + HeaderSize, pattern->rows, sizeof(tic_track_pattern));
+
+            toClipboard(data, Size, true);
+
+            free(data);
+
+            if(cut)
+            {
+                memset(pattern->rows, 0, sizeof(tic_track_pattern));
+                history_add(music->history);
+            }
+        }       
+    }
+}
+
+static void copyPianoFromClipboard(Music* music)
+{
+    tic_track_pattern* pattern = getFramePattern(music, music->piano.col, music->frame);
+
+    if(pattern && getSystem()->hasClipboardText())
+    {
+        char* clipboard = getSystem()->getClipboardText();
+
+        if(clipboard)
+        {
+            s32 size = strlen(clipboard)/2;
+
+            enum{RowSize = sizeof(tic_track_pattern) / MUSIC_PATTERN_ROWS, HeaderSize = sizeof(ClipboardHeader)};
+
+            if(size > HeaderSize)
+            {
+                u8* data = malloc(size);
+
+                tic_tool_str2buf(clipboard, strlen(clipboard), data, true);
+
+                ClipboardHeader header = {0};
+
+                memcpy(&header, data, HeaderSize);
+
+                if(size == header.size * RowSize + HeaderSize 
+                    && size == sizeof(tic_track_pattern) + HeaderSize)
+                {
+                    memcpy(pattern->rows, data + HeaderSize, header.size * RowSize);
+                    history_add(music->history);
+                }
+
+                free(data);
+            }
+
+            getSystem()->freeClipboardText(clipboard);
+        }
+    }
+}
+
+static void copyTrackerToClipboard(Music* music, bool cut)
 {
     tic_track_pattern* pattern = getChannelPattern(music);
 
@@ -636,7 +726,7 @@ static void copyToClipboard(Music* music, bool cut)
 
         if(rect.h <= 0)
         {
-            rect.y = music->tracker.row;
+            rect.y = music->tracker.edit.y;
             rect.h = 1;
         }
 
@@ -667,7 +757,7 @@ static void copyToClipboard(Music* music, bool cut)
     }
 }
 
-static void copyFromClipboard(Music* music)
+static void copyTrackerFromClipboard(Music* music)
 {
     tic_track_pattern* pattern = getChannelPattern(music);
 
@@ -693,10 +783,10 @@ static void copyFromClipboard(Music* music)
 
                 if(header.size * RowSize == size - HeaderSize)
                 {
-                    if(header.size + music->tracker.row > MUSIC_PATTERN_ROWS)
-                        header.size = MUSIC_PATTERN_ROWS - music->tracker.row;
+                    if(header.size + music->tracker.edit.y > MUSIC_PATTERN_ROWS)
+                        header.size = MUSIC_PATTERN_ROWS - music->tracker.edit.y;
 
-                    memcpy(&pattern->rows[music->tracker.row], data + HeaderSize, header.size * RowSize);
+                    memcpy(&pattern->rows[music->tracker.edit.y], data + HeaderSize, header.size * RowSize);
                     history_add(music->history);
                 }
 
@@ -708,10 +798,27 @@ static void copyFromClipboard(Music* music)
     }
 }
 
-static void setChannelPatternValue(Music* music, s32 patternId, s32 channel)
+static void copyToClipboard(Music* music, bool cut)
+{
+    switch (music->tab)
+    {
+    case MUSIC_TRACKER_TAB: copyTrackerToClipboard(music, cut); break;
+    case MUSIC_PIANO_TAB: copyPianoToClipboard(music, cut); break;
+    }
+}
+
+static void copyFromClipboard(Music* music)
+{
+    switch (music->tab)
+    {
+    case MUSIC_TRACKER_TAB: copyTrackerFromClipboard(music); break;
+    case MUSIC_PIANO_TAB: copyPianoFromClipboard(music); break;
+    }
+}
+
+static void setChannelPatternValue(Music* music, s32 patternId, s32 frame, s32 channel)
 {
     tic_track* track = getTrack(music);
-    s32 frame = music->tracker.frame;
 
     u32 patternData = 0;
     for(s32 b = 0; b < TRACK_PATTERNS_SIZE; b++)
@@ -733,37 +840,37 @@ static void setChannelPatternValue(Music* music, s32 patternId, s32 channel)
 
 static void prevPattern(Music* music)
 {
-    s32 channel = music->tracker.col / CHANNEL_COLS;
+    s32 channel = music->tracker.edit.x / CHANNEL_COLS;
 
     if (channel > 0)
     {
-        music->tracker.col = (channel-1) * CHANNEL_COLS;
-        music->tracker.patternCol = 1;
+        music->tracker.edit.x = (channel-1) * CHANNEL_COLS;
+        music->tracker.col = 1;
     }
 }
 
 static void nextPattern(Music* music)
 {
-    s32 channel = music->tracker.col / CHANNEL_COLS;
+    s32 channel = music->tracker.edit.x / CHANNEL_COLS;
 
     if (channel < TIC_SOUND_CHANNELS-1)
     {
-        music->tracker.col = (channel+1) * CHANNEL_COLS;
-        music->tracker.patternCol = 0;
+        music->tracker.edit.x = (channel+1) * CHANNEL_COLS;
+        music->tracker.col = 0;
     }
 }
 
-static void patternColLeft(Music* music)
+static void colLeft(Music* music)
 {
-    if(music->tracker.patternCol > 0)
-        music->tracker.patternCol--;
+    if(music->tracker.col > 0)
+        music->tracker.col--;
     else prevPattern(music);
 }
 
-static void patternColRight(Music* music)
+static void colRight(Music* music)
 {
-    if(music->tracker.patternCol < 1)
-        music->tracker.patternCol++;
+    if(music->tracker.col < 1)
+        music->tracker.col++;
     else nextPattern(music);
 }
 
@@ -771,17 +878,17 @@ static void checkSelection(Music* music)
 {
     if(music->tracker.select.start.x < 0 || music->tracker.select.start.y < 0)
     {
-        music->tracker.select.start.x = music->tracker.col;
-        music->tracker.select.start.y = music->tracker.row;
+        music->tracker.select.start.x = music->tracker.edit.x;
+        music->tracker.select.start.y = music->tracker.edit.y;
     }
 }
 
 static void updateSelection(Music* music)
 {
-    s32 rl = MIN(music->tracker.col, music->tracker.select.start.x);
-    s32 rt = MIN(music->tracker.row, music->tracker.select.start.y);
-    s32 rr = MAX(music->tracker.col, music->tracker.select.start.x);
-    s32 rb = MAX(music->tracker.row, music->tracker.select.start.y);
+    s32 rl = MIN(music->tracker.edit.x, music->tracker.select.start.x);
+    s32 rt = MIN(music->tracker.edit.y, music->tracker.select.start.y);
+    s32 rr = MAX(music->tracker.edit.x, music->tracker.select.start.x);
+    s32 rb = MAX(music->tracker.edit.y, music->tracker.select.start.y);
 
     tic_rect* rect = &music->tracker.select.rect;
     *rect = (tic_rect){rl, rt, rr - rl + 1, rb - rt + 1};
@@ -790,16 +897,41 @@ static void updateSelection(Music* music)
         resetSelection(music);
 }
 
+static s32 setDigit(s32 pos, s32 val, s32 digit)
+{
+    enum {Base = 10};
+
+    s32 div = 1;
+    while(pos--) div *= Base;
+
+    return val - (val / div % Base - digit) * div;
+}
+
+static s32 sym2dec(char sym)
+{
+    s32 val = -1;
+    if (sym >= '0' && sym <= '9') val = sym - '0';
+    return val;
+}
+
+static s32 sym2hex(char sym)
+{
+    s32 val = sym2dec(sym);
+    if (sym >= 'a' && sym <= 'f') val = sym - 'a' + 10;
+
+    return val;
+}
+
 static void processTrackerKeyboard(Music* music)
 {
     tic_mem* tic = music->tic;
 
     if(tic->ram.input.keyboard.data == 0)
     {
-        music->tracker.note = -1;
-        s32 channel = music->tracker.col / CHANNEL_COLS;
+        music->note = -1;
+        s32 channel = music->tracker.edit.x / CHANNEL_COLS;
 
-        if(tic->ram.sound_state.flag.music_state == tic_music_stop)
+        if(getMusicState(music) == tic_music_stop)
             sfx_stop(tic, channel);
         return;
     }
@@ -825,14 +957,14 @@ static void processTrackerKeyboard(Music* music)
         }
     }
 
-    if(keyWasPressed(tic_key_up))           upRow(music);
-    else if(keyWasPressed(tic_key_down))    downRow(music);
-    else if(keyWasPressed(tic_key_left))    leftCol(music);
-    else if(keyWasPressed(tic_key_right))   rightCol(music);
-    else if(keyWasPressed(tic_key_home))    goHome(music);
+    if(keyWasPressed(tic_key_up))               upRow(music);
+    else if(keyWasPressed(tic_key_down))        downRow(music);
+    else if(keyWasPressed(tic_key_left))        leftCol(music);
+    else if(keyWasPressed(tic_key_right))       rightCol(music);
+    else if(keyWasPressed(tic_key_home))        goHome(music);
     else if(keyWasPressed(tic_key_end))         goEnd(music);
-    else if(keyWasPressed(tic_key_pageup))  pageUp(music);
-    else if(keyWasPressed(tic_key_pagedown)) pageDown(music);
+    else if(keyWasPressed(tic_key_pageup))      pageUp(music);
+    else if(keyWasPressed(tic_key_pagedown))    pageDown(music);
     else if(keyWasPressed(tic_key_tab))         doTab(music);
     else if(keyWasPressed(tic_key_delete))      
     {
@@ -841,13 +973,6 @@ static void processTrackerKeyboard(Music* music)
         downRow(music);
     }
     else if(keyWasPressed(tic_key_space)) playNote(music);
-    else if(keyWasPressed(tic_key_return))
-    {
-        const tic_sound_state* pos = getMusicPos(music);
-        pos->music.track < 0
-            ? (shift ? playFrameRow(music) : playFrame(music))
-            : stopTrack(music);        
-    }
 
     if(shift)
     {
@@ -905,7 +1030,7 @@ static void processTrackerKeyboard(Music* music)
 
     if (getChannelPattern(music))
     {
-        s32 col = music->tracker.col % CHANNEL_COLS;
+        s32 col = music->tracker.edit.x % CHANNEL_COLS;
 
         switch (col)
         {
@@ -925,8 +1050,8 @@ static void processTrackerKeyboard(Music* music)
                     if (keyWasPressed(Piano[i]))
                     {
                         s32 note = i % NOTES;
-                        s32 octave = i / NOTES + music->tracker.last.octave;
-                        s32 sfx = music->tracker.last.sfx;
+                        s32 octave = i / NOTES + music->last.octave;
+                        s32 sfx = music->last.sfx;
                         setNote(music, note, octave, sfx);
 
                         downRow(music);
@@ -956,20 +1081,11 @@ static void processTrackerKeyboard(Music* music)
         case ColumnSfxLow:
             if(getNote(music) >= 0)
             {
-                s32 val = -1;
-
-                char sym = getKeyboardText();
+                s32 val = sym2dec(getKeyboardText());
                             
-                if (sym >= '0' && sym <= '9') val = sym - '0';
-
                 if(val >= 0)
                 {
-                    enum {Base = 10};
-                    s32 sfx = getSfx(music);
-
-                    sfx = col == 3 
-                        ? val * Base + sfx % Base
-                        : sfx / Base * Base + val % Base;
+                    s32 sfx = setDigit(col == 3 ? 1 : 0, getSfx(music), val);
 
                     setSfx(music, sfx);
 
@@ -984,7 +1100,7 @@ static void processTrackerKeyboard(Music* music)
 
                 if(sym)
                 {
-                    const char* val = strchr(MusicCommands, sym);
+                    const char* val = strchr(MusicCommands, toupper(sym));
                                 
                     if(val)
                         setCommand(music, val - MusicCommands);
@@ -994,12 +1110,7 @@ static void processTrackerKeyboard(Music* music)
         case ColumnParameter1:
         case ColumnParameter2:
             {
-                s32 val = -1;
-
-                char sym = getKeyboardText();
-
-                if (sym >= '0' && sym <= '9') val = sym - '0';
-                if (sym >= 'a' && sym <= 'f') val = sym - 'a' + 10;
+                s32 val = sym2hex(getKeyboardText());
 
                 if(val >= 0)
                 {
@@ -1018,42 +1129,181 @@ static void processTrackerKeyboard(Music* music)
 static void processPatternKeyboard(Music* music)
 {
     tic_mem* tic = music->tic;
-    s32 channel = music->tracker.col / CHANNEL_COLS;
+    s32 channel = music->tracker.edit.x / CHANNEL_COLS;
 
     if(tic_api_key(tic, tic_key_ctrl) || tic_api_key(tic, tic_key_alt))
         return;
 
-    if(keyWasPressed(tic_key_delete))       setChannelPatternValue(music, 0, channel);
+    if(keyWasPressed(tic_key_delete))       setChannelPatternValue(music, 0, music->frame, channel);
     else if(keyWasPressed(tic_key_tab))     nextPattern(music);
-    else if(keyWasPressed(tic_key_left))    patternColLeft(music);
-    else if(keyWasPressed(tic_key_right))   patternColRight(music);
+    else if(keyWasPressed(tic_key_left))    colLeft(music);
+    else if(keyWasPressed(tic_key_right))   colRight(music);
     else if(keyWasPressed(tic_key_down) 
         || keyWasPressed(tic_key_return)) 
-        music->tracker.row = music->tracker.scroll;
+        music->tracker.edit.y = music->scroll;
     else
     {
-        s32 val = -1;
-
-        char sym = getKeyboardText();
-
-        if(sym >= '0' && sym <= '9') val = sym - '0';
+        s32 val = sym2dec(getKeyboardText());
 
         if(val >= 0)
         {
-            enum {Base = 10};
-            s32 patternId = tic_tool_get_pattern_id(getTrack(music), music->tracker.frame, channel);
+            s32 pattern = setDigit(1 - music->tracker.col & 1, tic_tool_get_pattern_id(getTrack(music), 
+                music->frame, channel), val);
 
-            patternId = music->tracker.patternCol == 0
-                ? val * Base + patternId % Base
-                : patternId / Base * Base + val % Base;
-
-            if(patternId <= MUSIC_PATTERNS)
+            if(pattern <= MUSIC_PATTERNS)
             {
-                setChannelPatternValue(music, patternId, channel);
+                setChannelPatternValue(music, pattern, music->frame, channel);
 
-                if(music->tracker.patternCol == 0)
-                    patternColRight(music);                     
+                if(music->tracker.col == 0)
+                    colRight(music);                     
             }
+        }
+    }
+}
+
+static void updatePianoEditPos(Music* music)
+{
+    music->piano.edit.x = CLAMP(music->piano.edit.x, 0, PianoColumnsCount * 2 - 1);
+
+    switch(music->piano.edit.x / 2)
+    {
+    case PianoSfxColumn:
+    case PianoXYColumn:
+        if(music->piano.edit.y < 0)
+            music->scroll += music->piano.edit.y;
+
+        if(music->piano.edit.y > TRACKER_ROWS-1)
+            music->scroll += music->piano.edit.y - (TRACKER_ROWS - 1);
+
+        updateScroll(music);
+        break;
+    }
+
+    music->piano.edit.y = CLAMP(music->piano.edit.y, 0, MUSIC_FRAMES-1);
+}
+
+static void updatePianoEditCol(Music* music)
+{
+    if(music->piano.edit.x & 1)
+    {
+        music->piano.edit.x--;
+        music->piano.edit.y++;
+    }
+    else music->piano.edit.x++;
+
+    updatePianoEditPos(music);
+}
+
+static inline s32 rowIndex(Music* music, s32 row)
+{
+    return row + music->scroll;
+}
+
+static tic_track_row* getPianoRow(Music* music)
+{
+    tic_track_pattern* pattern = getFramePattern(music, music->piano.col, music->frame);
+    return pattern ? &pattern->rows[rowIndex(music, music->piano.edit.y)] : NULL;
+}
+
+static void processPianoKeyboard(Music* music)
+{
+    tic_mem* tic = music->tic;
+
+    if(keyWasPressed(tic_key_up)) music->piano.edit.y--;
+    else if(keyWasPressed(tic_key_down)) music->piano.edit.y++;
+    else if(keyWasPressed(tic_key_left)) music->piano.edit.x--;
+    else if(keyWasPressed(tic_key_right)) music->piano.edit.x++;
+    else if(keyWasPressed(tic_key_home)) music->piano.edit.x = PianoChannel1Column;
+    else if(keyWasPressed(tic_key_end)) music->piano.edit.x = PianoColumnsCount*2+1;
+    else if(keyWasPressed(tic_key_pageup)) music->piano.edit.y -= TRACKER_ROWS;
+    else if(keyWasPressed(tic_key_pagedown)) music->piano.edit.y += TRACKER_ROWS;
+
+    updatePianoEditPos(music);
+
+    if(keyWasPressed(tic_key_delete))
+    {
+        s32 col = music->piano.edit.x / 2;
+        switch(col)
+        {
+        case PianoChannel1Column:
+        case PianoChannel2Column:
+        case PianoChannel3Column:
+        case PianoChannel4Column:
+            setChannelPatternValue(music, 00, music->piano.edit.y, col);
+            break;
+        case PianoSfxColumn:
+            {
+                tic_track_row* row = getPianoRow(music);
+                if(row)
+                {
+                    tic_tool_set_track_row_sfx(row, 0);
+                    history_add(music->history);
+                }
+            }
+            break;
+        case PianoXYColumn:
+            {
+                tic_track_row* row = getPianoRow(music);
+                if(row)
+                {
+                    row->param1 = row->param2 = 0;
+                    history_add(music->history);
+                }
+            }
+            break;
+        }
+    }
+
+    if(getKeyboardText())
+    {
+        s32 col = music->piano.edit.x / 2;
+        s32 dec = sym2dec(getKeyboardText());
+        s32 hex = sym2hex(getKeyboardText());
+        tic_track_row* row = getPianoRow(music);
+
+        switch(col)
+        {
+        case PianoChannel1Column:
+        case PianoChannel2Column:
+        case PianoChannel3Column:
+        case PianoChannel4Column:
+            if(dec >= 0)
+            {
+                s32 pattern = setDigit(1 - music->piano.edit.x & 1, 
+                    tic_tool_get_pattern_id(getTrack(music), music->piano.edit.y, col), dec);
+
+                if(pattern <= MUSIC_PATTERNS)
+                {
+                    setChannelPatternValue(music, pattern, music->piano.edit.y, col);
+                    updatePianoEditCol(music);
+                }
+            }
+            break;
+        case PianoSfxColumn:
+            if(row && row->note >= NoteStart && dec >= 0)
+            {
+                s32 sfx = setDigit(1 - music->piano.edit.x & 1, tic_tool_get_track_row_sfx(row), dec);
+                tic_tool_set_track_row_sfx(row, sfx);
+                history_add(music->history);
+
+                music->last.sfx = tic_tool_get_track_row_sfx(row);
+
+                updatePianoEditCol(music);
+            }
+            break;
+
+        case PianoXYColumn:
+            if(row && row->command > tic_music_cmd_empty && hex >= 0)
+            {
+                if(music->piano.edit.x & 1)
+                    row->param2 = hex;
+                else row->param1 = hex;
+
+                history_add(music->history);
+
+                updatePianoEditCol(music);
+            }
+            break;
         }
     }
 }
@@ -1062,11 +1312,11 @@ static void selectAll(Music* music)
 {
     resetSelection(music);
 
-    s32 col = music->tracker.col - music->tracker.col % CHANNEL_COLS;
+    s32 col = music->tracker.edit.x - music->tracker.edit.x % CHANNEL_COLS;
 
     music->tracker.select.start = (tic_point){col, 0};
-    music->tracker.col = col + CHANNEL_COLS-1;
-    music->tracker.row = MUSIC_PATTERN_ROWS-1;
+    music->tracker.edit.x = col + CHANNEL_COLS-1;
+    music->tracker.edit.y = MUSIC_PATTERN_ROWS-1;
 
     updateSelection(music);
 }
@@ -1084,21 +1334,40 @@ static void processKeyboard(Music* music)
     }
 
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
+    bool shift = tic_api_key(tic, tic_key_shift);
 
     if (ctrl)
     {
-        if(keyWasPressed(tic_key_a))        selectAll(music);
-        else if(keyWasPressed(tic_key_z))   undo(music);
-        else if(keyWasPressed(tic_key_y))   redo(music);
-        else if(keyWasPressed(tic_key_up))  upFrame(music);
-        else if(keyWasPressed(tic_key_down)) downFrame(music);
-        else if(keyWasPressed(tic_key_f)) toggleFollowMode(music);
+        if(keyWasPressed(tic_key_a))            selectAll(music);
+        else if(keyWasPressed(tic_key_z))       undo(music);
+        else if(keyWasPressed(tic_key_y))       redo(music);
+        else if(keyWasPressed(tic_key_up))      upFrame(music);
+        else if(keyWasPressed(tic_key_down))    downFrame(music);
+        else if(keyWasPressed(tic_key_f))       toggleFollowMode(music);
     }
     else
     {
-        music->tracker.row >= 0 
-            ? processTrackerKeyboard(music)
-            : processPatternKeyboard(music);
+        if(keyWasPressed(tic_key_return))
+        {
+            const tic_sound_state* pos = getMusicPos(music);
+            pos->music.track < 0
+                ? (shift && music->tab == MUSIC_TRACKER_TAB
+                    ? playFrameRow(music) 
+                    : playFrame(music))
+                : stopTrack(music);
+        }
+
+        switch (music->tab)
+        {
+        case MUSIC_TRACKER_TAB:
+            music->tracker.edit.y >= 0 
+                ? processTrackerKeyboard(music)
+                : processPatternKeyboard(music);
+            break;
+        case MUSIC_PIANO_TAB:
+            processPianoKeyboard(music);
+            break;
+        }
     }
 }
 
@@ -1202,11 +1471,10 @@ static void drawTrackerFrames(Music* music, s32 x, s32 y)
             if (checkMouseDown(&rect, tic_mouse_left))
             {
                 s32 my = getMouseY() - rect.y - Border;
-                music->tracker.frame = my / TIC_FONT_HEIGHT;
+                music->frame = my / TIC_FONT_HEIGHT;
             }
         }
 
-        tic_api_rect(music->tic, rect.x, rect.y, rect.w, rect.h, tic_color_0);
         drawEditPanel(music, rect.x, rect.y, rect.w, rect.h);
     }
 
@@ -1233,18 +1501,13 @@ static void drawTrackerFrames(Music* music, s32 x, s32 y)
         char buf[] = "99";
         sprintf(buf, "%02i", i);
 
-        if (i == music->tracker.frame)
-        {
-            tic_api_rect(music->tic, x - 1, y - 1 + i*TIC_FONT_HEIGHT, Width, TIC_FONT_HEIGHT + 1, tic_color_2);
-        }
-
-        tic_api_print(music->tic, buf, x, y + i*TIC_FONT_HEIGHT, i == music->tracker.frame ? tic_color_0 : tic_color_14, true, 1, false);
+        tic_api_print(music->tic, buf, x, y + i*TIC_FONT_HEIGHT, i == music->frame ? tic_color_12 : tic_color_14, true, 1, false);
     }
 
-    if(music->tracker.row >= 0)
+    if(music->tracker.edit.y >= 0)
     {
         char buf[] = "99";
-        sprintf(buf, "%02i", music->tracker.row);
+        sprintf(buf, "%02i", music->tracker.edit.y);
         tic_api_print(music->tic, buf, x, y - 10, tic_color_0, true, 1, false);
         tic_api_print(music->tic, buf, x, y - 11, tic_color_12, true, 1, false);
     }
@@ -1253,7 +1516,7 @@ static void drawTrackerFrames(Music* music, s32 x, s32 y)
 static void setChannelPattern(Music* music, s32 delta, s32 channel)
 {
     tic_track* track = getTrack(music);
-    s32 frame = music->tracker.frame;
+    s32 frame = music->frame;
 
     u32 patternData = 0;
     for(s32 b = 0; b < TRACK_PATTERNS_SIZE; b++)
@@ -1262,12 +1525,17 @@ static void setChannelPattern(Music* music, s32 delta, s32 channel)
     s32 shift = channel * TRACK_PATTERN_BITS;
     s32 patternId = (patternData >> shift) & TRACK_PATTERN_MASK;
 
-    setChannelPatternValue(music, patternId + delta, channel);
+    setChannelPatternValue(music, patternId + delta, music->frame, channel);
 }
 
 static inline void drawChar(tic_mem* tic, char symbol, s32 x, s32 y, u8 color, bool alt)
 {
     tic_api_print(tic, (char[]){symbol, '\0'}, x, y, color, true, 1, alt);
+}
+
+static inline bool noteBeat(Music* music, s32 row)
+{
+    return row % (music->beat34 ? 3 : 4) == 0;
 }
 
 static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
@@ -1292,8 +1560,8 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
             s32 mx = getMouseX() - rect.x - Border;
             s32 my = getMouseY() - rect.y - Border;
 
-            s32 col = music->tracker.col = channel * CHANNEL_COLS + mx / TIC_FONT_WIDTH;
-            s32 row = music->tracker.row = my / TIC_FONT_HEIGHT + music->tracker.scroll;
+            s32 col = music->tracker.edit.x = channel * CHANNEL_COLS + mx / TIC_FONT_WIDTH;
+            s32 row = music->tracker.edit.y = my / TIC_FONT_HEIGHT + music->scroll;
 
             if(music->tracker.select.drag)
             {
@@ -1318,10 +1586,9 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
         }
     }
 
-    tic_api_rect(music->tic, rect.x, rect.y, rect.w, rect.h, tic_color_0);
     drawEditPanel(music, rect.x, rect.y, rect.w, rect.h);
 
-    s32 start = music->tracker.scroll;
+    s32 start = music->scroll;
     s32 end = start + Rows;
     bool selectedChannel = music->tracker.select.rect.x / CHANNEL_COLS == channel;
 
@@ -1331,7 +1598,7 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
     {
         s32 rowy = y + pos*TIC_FONT_HEIGHT;
 
-        if (i == music->tracker.row)
+        if (i == music->tracker.edit.y)
         {
             tic_api_rect(music->tic, x - 1, rowy - 1, Width, TIC_FONT_HEIGHT + 1, tic_color_15);
         }
@@ -1370,13 +1637,13 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
                 sprintf(rowStr, "%s%i%02i---", Notes[note - NoteStart], octave + 1, sfx);
 
             if(row->command > tic_music_cmd_empty)
-                sprintf(rowStr+5, "%c%01X%01X", toupper(MusicCommands[row->command]), row->param1, row->param2);
+                sprintf(rowStr+5, "%c%01X%01X", MusicCommands[row->command], row->param1, row->param2);
 
             const u8 Colors[] = { tic_color_5, tic_color_4, tic_color_10 };
             const u8 DarkColors[] = { tic_color_6, tic_color_3, tic_color_9 };
             static u8 ColorIndexes[] = { 0, 0, 0, 1, 1, 2, 2, 2 };
 
-            bool beetRow = i % NOTES_PER_BEAT == 0;
+            bool beetRow = noteBeat(music, i);
 
             for (s32 c = 0, colx = x; c < sizeof rowStr - 1; c++, colx += TIC_FONT_WIDTH)
             {
@@ -1386,20 +1653,20 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
                 drawChar(music->tic, sym, colx, rowy, colors[ColorIndexes[c]], false);
             }
         }
-        else tic_api_print(music->tic, rowStr, x, rowy, i == music->tracker.row ? tic_color_0 : tic_color_15, true, 1, false);
+        else tic_api_print(music->tic, rowStr, x, rowy, i == music->tracker.edit.y ? tic_color_0 : tic_color_15, true, 1, false);
 
-        if (i == music->tracker.row)
+        if (i == music->tracker.edit.y)
         {
-            if (music->tracker.col / CHANNEL_COLS == channel)
+            if (music->tracker.edit.x / CHANNEL_COLS == channel)
             {
-                s32 col = music->tracker.col % CHANNEL_COLS;
+                s32 col = music->tracker.edit.x % CHANNEL_COLS;
                 s32 colx = x - 1 + col * TIC_FONT_WIDTH;
                 tic_api_rect(music->tic, colx, rowy - 1, TIC_FONT_WIDTH + 1, TIC_FONT_HEIGHT + 1, tic_color_2);
                 drawChar(music->tic, rowStr[col], colx + 1, rowy, tic_color_0, false);
             }
         }
 
-        if (i % NOTES_PER_BEAT == 0)
+        if (noteBeat(music, i))
             tic_api_pix(music->tic, x - 4, y + pos*TIC_FONT_HEIGHT + 2, tic_color_0, false);
     }
 }
@@ -1423,21 +1690,20 @@ static void drawTumbler(Music* music, s32 x, s32 y, s32 index)
             if (tic_api_key(tic, tic_key_ctrl))
             {
                 for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
-                    music->tracker.on[i] = i == index;
+                    music->on[i] = i == index;
             }
-            else music->tracker.on[index] = !music->tracker.on[index];
+            else music->on[index] = !music->on[index];
         }
     }
 
     drawEditPanel(music, x, y, Width, Height);
-    tic_api_rect(tic, x, y, Width, Height, tic_color_0);
 
     u8 color = tic_color_0;
     tiles2ram(&tic->ram, &getConfig()->cart->bank0.tiles);
-    tic_api_spr(tic, music->tracker.on[index] ? On : Off, x, y, 1, 1, &color, 1, 1, tic_no_flip, tic_no_rotate);
+    tic_api_spr(tic, music->on[index] ? On : Off, x, y, 1, 1, &color, 1, 1, tic_no_flip, tic_no_rotate);
 }
 
-static void drawTracker(Music* music, s32 x, s32 y)
+static void drawTrackerLayout(Music* music, s32 x, s32 y)
 {
     drawTrackerFrames(music, x, y);
 
@@ -1447,7 +1713,7 @@ static void drawTracker(Music* music, s32 x, s32 y)
 
     for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
     {
-        s32 patternId = tic_tool_get_pattern_id(getTrack(music), music->tracker.frame, i);
+        s32 patternId = tic_tool_get_pattern_id(getTrack(music), music->frame, i);
         drawEditbox(music, x + ChannelWidth * i + 2*TIC_FONT_WIDTH, y - 12, patternId, setChannelPattern, i);
         drawTumbler(music, x + ChannelWidth * i + 7*TIC_FONT_WIDTH-1, y - 11, i);
     }
@@ -1528,9 +1794,9 @@ static void drawPlayButtons(Music* music)
                 Handlers[i](music);
         }
 
-        if(i == 0 && music->tracker.follow)
+        if(i == 0 && music->follow)
             drawBitIcon(rect.x, rect.y, Icons + i*Rows, tic_color_6);
-        else if(i == 1 && music->tracker.sustain)
+        else if(i == 1 && music->sustain)
             drawBitIcon(rect.x, rect.y, Icons + i*Rows, tic_color_6);
         else
             drawBitIcon(rect.x, rect.y, Icons + i*Rows, over ? tic_color_14 : tic_color_13);
@@ -1601,11 +1867,601 @@ static void drawMusicToolbar(Music* music)
     drawModeTabs(music);
 }
 
+static void drawPianoCursor(Music* music, s32 x, s32 y, const char* val)
+{
+    tic_mem* tic = music->tic;
+
+    s32 subCol = music->piano.edit.x & 1;
+    tic_point pos = {x + subCol * TIC_FONT_WIDTH, y};
+    tic_api_rect(tic, pos.x - 1, pos.y - 1, TIC_FONT_WIDTH + 1, TIC_FONT_HEIGHT + 1, tic_color_2);
+    tic_api_print(tic, (char[]){val[subCol], '\0'}, pos.x, pos.y, tic_color_0, true, 1, false);
+}
+
+static const char* getPatternLabel(Music* music, s32 frame, s32 channel)
+{
+    static char index[sizeof "--"];
+
+    strcpy(index, "--");
+
+    s32 pattern = tic_tool_get_pattern_id(getTrack(music), frame, channel);
+
+    if(pattern)
+        sprintf(index, "%02i", pattern);
+
+    return index;
+}
+
+static void drawPianoFrames(Music* music, s32 x, s32 y)
+{
+    tic_mem* tic = music->tic;
+
+    enum {Width = 66, Height = 106, Header = 10, ColWidth = TIC_FONT_WIDTH * 2 + 1};
+
+    drawEditPanel(music, x, y, Width, Height);
+
+    tic_api_print(tic, "FRM", x + 1, y + 2, tic_color_14, true, 1, true);
+
+    {
+        const tic_sound_state* pos = getMusicPos(music);
+        s32 playFrame = pos->music.track == music->track ? pos->music.frame : -1;
+
+        char index[] = "99";
+        for(s32 i = 0; i < MUSIC_FRAMES; i++)
+        {
+            sprintf(index, "%02i", i);
+            tic_api_print(tic, index, x + 1, y + Header + i * TIC_FONT_HEIGHT, playFrame == i ? tic_color_12 : music->frame == i? tic_color_14 : tic_color_15, true, 1, false);
+        }
+
+        if(playFrame >= 0)
+        {
+            static const u8 Icon[] =
+            {
+                0b00000000,
+                0b01000000,
+                0b01100000,
+                0b01110000,
+                0b01100000,
+                0b01000000,
+                0b00000000,
+                0b00000000,
+            };
+
+            drawBitIcon(x - TIC_ALTFONT_WIDTH, y + playFrame * TIC_FONT_HEIGHT + Header, Icon, tic_color_0);
+            drawBitIcon(x - TIC_ALTFONT_WIDTH, y + playFrame * TIC_FONT_HEIGHT + (Header - 1), Icon, tic_color_12);                
+        }
+    }
+
+    x += ColWidth + 1;
+
+    {
+        tic_rect rect = {x, y + Header - 1, (TIC_FONT_WIDTH * 2 + 1) * TIC_SOUND_CHANNELS, MUSIC_FRAMES * TIC_FONT_HEIGHT + 1};
+
+        if(checkMousePos(&rect))
+        {
+            setCursor(tic_cursor_hand);
+
+            if(checkMouseClick(&rect, tic_mouse_left))
+            {
+                s32 col = (getMouseX() - rect.x) * TIC_SOUND_CHANNELS / rect.w;
+                s32 row = (getMouseY() - rect.y) * MUSIC_FRAMES / rect.h;
+
+                // move edit cursor if pattern already selected only 
+                if(col == music->piano.col && row == music->frame)
+                {
+                    music->piano.edit.x = (getMouseX() - rect.x) * TIC_SOUND_CHANNELS * 2 / rect.w;
+                    music->piano.edit.y = row;
+                }
+
+                music->piano.col = col;
+
+                if(getMusicState(music) == tic_music_stop || !music->follow)
+                    music->frame = row;
+            }
+        }
+    }
+
+    for(s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
+    {
+        tic_api_rect(tic, x + c * ColWidth, y + 1, 
+            ColWidth, MUSIC_FRAMES * TIC_FONT_HEIGHT + (Header - 1), c & 1 ? tic_color_0 : tic_color_15);
+
+        tic_api_print(tic, (char[]){'1' + c, '\0'}, x + (ColWidth - (TIC_ALTFONT_WIDTH - 1)) / 2 + c * ColWidth, y + 2, 
+            tic_color_14, true, 1, true);
+
+
+        for(s32 i = 0; i < MUSIC_FRAMES; i++)
+        {
+            const char* index = getPatternLabel(music, i, c);
+
+            tic_point pos = {x + 1 + c * ColWidth, y + Header + i * TIC_FONT_HEIGHT};
+            tic_api_print(tic, index, pos.x, pos.y, c & 1 ? tic_color_15 : tic_color_14, true, 1, false);
+        }
+
+        drawTumbler(music, x + 3 + c * ColWidth, y + 110, c);
+    }
+
+    {
+        const char* index = getPatternLabel(music, music->frame, music->piano.col);
+
+        tic_point pos = {x + 1 + music->piano.col * ColWidth, y + Header + music->frame * TIC_FONT_HEIGHT};
+        tic_api_print(tic, index, pos.x, pos.y + 1, tic_color_0, true, 1, false);
+        tic_api_print(tic, index, pos.x, pos.y, tic_color_12, true, 1, false);
+
+    }
+
+    // draw edit cursor
+    switch(music->piano.edit.x / 2)
+    {
+    case PianoChannel1Column:
+    case PianoChannel2Column:
+    case PianoChannel3Column:
+    case PianoChannel4Column:
+        {
+            const char* label = getPatternLabel(music, music->piano.edit.y, music->piano.edit.x / 2);
+            drawPianoCursor(music, x + 1 + music->piano.edit.x / 2 * ColWidth, y + Header + music->piano.edit.y * TIC_FONT_HEIGHT, label);
+        }
+    }
+}
+
+static void drawStereoSeparator(Music* music, s32 x, s32 y)
+{
+    tic_mem* tic = music->tic;
+    static u8 Colors[] = 
+    {
+        tic_color_7, tic_color_6, tic_color_5, tic_color_5
+    };
+
+    for(s32 i = 0; i < COUNT_OF(Colors); i++)
+        tic_api_rect(tic, x + i * 4, y, 4, 1, Colors[i]);
+
+    for(s32 i = COUNT_OF(Colors)-1; i >= 0; i--)
+        tic_api_rect(tic, x + 27 - i * 4, y, 4, 1, Colors[i]);
+}
+
+static void drawPianoRoll(Music* music, s32 x, s32 y)
+{
+    tic_mem* tic = music->tic;
+
+    static const struct {u8 offset; u8 flip;} Buttons[] = 
+    {
+        {0, tic_no_flip},
+        {3, tic_horz_flip},
+        {8, tic_no_flip},
+        {11, tic_horz_flip},
+        {20, tic_no_flip},
+        {23, tic_horz_flip},
+        {28, tic_no_flip},
+        {31, tic_horz_flip},
+        {36, tic_no_flip},
+        {39, tic_horz_flip},
+    };
+
+    tiles2ram(&tic->ram, &getConfig()->cart->bank0.tiles);
+
+    for(s32 i = 0; i < COUNT_OF(Buttons); i++)
+        tic_api_spr(tic, 39, 
+            x + Buttons[i].offset, y, 1, 1, (u8[]){tic_color_0}, 1, 1, Buttons[i].flip, tic_no_rotate);
+}
+
+static void drawPianoRowColumn(Music* music, s32 x, s32 y)
+{
+    tic_mem* tic = music->tic;
+    const tic_track_pattern* pattern = getFramePattern(music, music->piano.col, music->frame);
+
+    enum{Header = PIANO_PATTERN_HEADER};
+
+    tic_api_print(tic, "ROW", x + 1, y + 2, tic_color_14, true, 1, true);
+
+    for(s32 r = 0; r < TRACKER_ROWS; r++)
+    {
+        s32 index = rowIndex(music, r);
+
+        char label[] = "00";
+        sprintf(label, "%02i", index);
+        tic_api_print(tic, label, x + 1, y + Header + r * TIC_FONT_HEIGHT, pattern && noteBeat(music, index) ? tic_color_14 : tic_color_15, true, 1, false);
+    }
+}
+
+static void drawPianoNoteColumn(Music* music, s32 x, s32 y)
+{
+    tic_mem* tic = music->tic;
+
+    enum{Header = PIANO_PATTERN_HEADER, NoteWidth = 4, NoteHeight = TIC_FONT_HEIGHT};
+
+    drawPianoRoll(music, x, y + 1);
+
+    tic_track_pattern* pattern = getFramePattern(music, music->piano.col, music->frame);
+    if(pattern)
+    {
+        for(s32 r = 0; r < TRACKER_ROWS; r++)
+        {
+            s32 index = rowIndex(music, r);
+
+            tic_track_row* row = &pattern->rows[index];
+
+            // draw piano roll
+            for(s32 n = 0; n < NOTES; n++)
+            {
+                tic_rect rect = {x + n * NoteWidth, y + Header + r * NoteHeight, NoteWidth - 1, NoteHeight - 1};
+
+                bool over = false;
+                if(checkMousePos(&rect))
+                {
+                    setCursor(tic_cursor_hand);
+                    over = true;
+
+                    if(checkMouseClick(&rect, tic_mouse_left))
+                    {
+                        switch(row->note)
+                        {
+                        case NoteNone:
+                            row->note = NoteStart + n;
+                            row->octave = music->last.octave;
+                            tic_tool_set_track_row_sfx(row, music->last.sfx);
+                            break;
+                        case NoteStop:
+                            row->note = NoteNone;
+                            row->octave = 0;
+                            break;
+                        default:
+                            if(row->note - NoteStart == n)
+                            {
+                                row->note = NoteStop;
+                                row->octave = 0;
+                            }
+                            else row->note = NoteStart + n;
+                        }
+
+                        history_add(music->history);
+                    }                    
+                }
+
+                if(row->note == NoteStop)
+                {
+                    // draw stop note
+                    tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_15);
+                    tic_api_rect(tic, x + 1 + n * NoteWidth, y + r * NoteHeight + (Header + NoteHeight / 2 - 1), 1, 1, tic_color_2);
+                }
+                else tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, over ? tic_color_14 : tic_color_15);
+            }
+
+            if(noteBeat(music, index) && row->note != NoteStop)
+            {
+                static u8 Colors[NOTES] = 
+                {
+                    tic_color_14, tic_color_14, tic_color_13, 
+                    tic_color_13, tic_color_13, tic_color_12, 
+                    tic_color_12, tic_color_13, tic_color_13, 
+                    tic_color_13, tic_color_14, tic_color_14
+                };
+
+                for(s32 i = 0; i < COUNT_OF(Colors); i++)
+                    tic_api_rect(tic, x + i * NoteWidth, y + r * NoteHeight + (Header + NoteHeight / 2 - 1), NoteWidth - 1, 1, Colors[i]);
+            }
+
+            if (row->note >= NoteStart)
+                tic_api_rect(tic, x + (row->note - NoteStart) * NoteWidth, y + Header + r * NoteHeight, NoteWidth - 1, NoteHeight - 1, tic_color_5);
+        }
+    }
+    else
+        for(s32 r = 0; r < TRACKER_ROWS; r++)
+            for(s32 i = 0; i < NOTES; i++)
+                tic_api_rect(tic, x + i * NoteWidth, y + r * NoteHeight + (Header + NoteHeight / 2 - 1), NoteWidth - 1, 1, tic_color_15);
+}
+
+static void drawPianoOctaveColumn(Music* music, s32 x, s32 y)
+{
+    tic_mem* tic = music->tic;
+
+    enum{Header = PIANO_PATTERN_HEADER, OctaveWidth = 4, OctaveHeight = TIC_FONT_HEIGHT};
+
+    tic_api_print(tic, "OCTAVE", x + 4, y + 2, tic_color_14, true, 1, true);
+    drawStereoSeparator(music, x, y + 8);
+
+    tic_track_pattern* pattern = getFramePattern(music, music->piano.col, music->frame);
+    if(pattern)
+    {
+        for(s32 r = 0; r < TRACKER_ROWS; r++)
+        {
+            s32 index = rowIndex(music, r);
+            tic_track_row* row = &pattern->rows[index];
+
+            if(row->note >= NoteStart)
+            {
+                for(s32 n = 0; n < OCTAVES; n++)
+                {
+                    tic_rect rect = {x + n * OctaveWidth, y + Header + r * OctaveHeight, OctaveWidth - 1, OctaveHeight - 1};
+
+                    bool over = false;
+                    if(checkMousePos(&rect))
+                    {
+                        setCursor(tic_cursor_hand);
+                        over = true;
+
+                        if(checkMouseClick(&rect, tic_mouse_left))
+                        {
+                            music->last.octave = row->octave = n;
+                            history_add(music->history);
+                        }
+                    }
+
+                    tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, over ? tic_color_14 : tic_color_15);
+                }
+            }
+            else
+                for(s32 i = 0; i < OCTAVES; i++)
+                    tic_api_rect(tic, x + i * OctaveWidth, y + r * OctaveHeight + (Header + OctaveHeight / 2 - 1), OctaveWidth - 1, 1, tic_color_15);                
+
+            if(noteBeat(music, index))
+            {
+                static u8 Colors[OCTAVES] = 
+                {
+                    tic_color_14, tic_color_14, tic_color_13, tic_color_12,
+                    tic_color_12, tic_color_13, tic_color_14, tic_color_14
+                };
+
+                for(s32 i = 0; i < COUNT_OF(Colors); i++)
+                    tic_api_rect(tic, x + i * OctaveWidth, y + r * OctaveHeight + (Header + OctaveHeight / 2 - 1), OctaveWidth - 1, 1, Colors[i]);
+            }
+
+            if(row->note >= NoteStart)
+                tic_api_rect(tic, x + row->octave * OctaveWidth, y + Header + r * OctaveHeight, OctaveWidth - 1, OctaveHeight - 1, tic_color_3);
+        }
+    }
+    else 
+        for(s32 r = 0; r < TRACKER_ROWS; r++)
+            for(s32 i = 0; i < OCTAVES; i++)
+                tic_api_rect(tic, x + i * OctaveWidth, y + r * OctaveHeight + (Header + OctaveHeight / 2 - 1), OctaveWidth - 1, 1, tic_color_15);
+}
+
+static void drawPianoSfxColumn(Music* music, s32 x, s32 y)
+{
+    tic_mem* tic = music->tic;
+
+    enum{Header = PIANO_PATTERN_HEADER};
+
+    {
+        tic_rect rect = {x, y + Header - 1, TIC_FONT_WIDTH * 2, TIC_FONT_HEIGHT * MUSIC_FRAMES};
+
+        if(checkMousePos(&rect))
+        {
+            setCursor(tic_cursor_hand);
+
+            if(checkMouseClick(&rect, tic_mouse_left))
+            {
+                music->piano.edit.x = PianoSfxColumn * 2 + (getMouseX() - rect.x) / TIC_FONT_WIDTH;
+                music->piano.edit.y = (getMouseY() - rect.y) / TIC_FONT_HEIGHT;
+            }
+        }
+    }
+
+    tic_api_rect(tic, x, y + 1, TIC_FONT_WIDTH*2 + 1, Header + TRACKER_ROWS * TIC_FONT_HEIGHT - 1, tic_color_15);
+    tic_api_print(tic, "SFX", x + 1, y + 2, tic_color_14, true, 1, true);
+
+    const tic_track_pattern* pattern = getFramePattern(music, music->piano.col, music->frame);
+    if(pattern)
+    {
+        for(s32 r = 0; r < TRACKER_ROWS; r++)
+        {
+            s32 index = rowIndex(music, r);
+            const tic_track_row* row = &pattern->rows[index];
+
+            if (row->note >= NoteStart)
+            {
+                tic_rect rect = {x, y + Header + r * TIC_FONT_HEIGHT - 1, TIC_FONT_WIDTH*2+1, TIC_FONT_HEIGHT+1};
+
+                char sfx[] = "00";
+                sprintf(sfx, "%02i", tic_tool_get_track_row_sfx(row));
+                tic_api_print(tic, sfx, rect.x + 1, rect.y + 2, tic_color_0, true, 1, false);
+                tic_api_print(tic, sfx, rect.x + 1, rect.y + 1, tic_color_4, true, 1, false);
+            }
+            else
+                tic_api_print(tic, "--", 
+                    x + 1, y + Header + r * TIC_FONT_HEIGHT, 
+                    noteBeat(music, index) ? tic_color_13 : tic_color_14, true, 1, false);
+        }        
+    }
+    else
+        for(s32 r = 0; r < TRACKER_ROWS; r++)
+            tic_api_print(tic, "--", x + 1, y + Header + r * TIC_FONT_HEIGHT, tic_color_14, true, 1, false);
+
+    if(music->piano.edit.x / 2 == PianoSfxColumn)
+    {
+        char sfx[] = "--";
+        const tic_track_row* row = getPianoRow(music);
+        if (row && row->note >= NoteStart)
+            sprintf(sfx, "%02i", tic_tool_get_track_row_sfx(row));
+
+        drawPianoCursor(music, x + 1, y + Header + music->piano.edit.y * TIC_FONT_HEIGHT, sfx);
+    }
+}
+
+static void drawPianoCommandColumn(Music* music, s32 x, s32 y)
+{
+    tic_mem* tic = music->tic;
+
+    enum{Header = PIANO_PATTERN_HEADER};
+
+    tic_track_pattern* pattern = getFramePattern(music, music->piano.col, music->frame);
+    tic_music_command command = tic_music_cmd_empty;
+    s32 overRow = -1;
+    if(pattern)
+    {
+        tic_rect rect = {x, y + Header - 1, TIC_FONT_WIDTH * (tic_music_cmd_count - 1), TIC_FONT_HEIGHT * MUSIC_FRAMES};
+
+        if(checkMousePos(&rect))
+        {
+            setCursor(tic_cursor_hand);
+
+            command = (getMouseX() - rect.x) / TIC_FONT_WIDTH + 1;
+            overRow = (getMouseY() - rect.y) / TIC_FONT_HEIGHT;
+
+            if(checkMouseClick(&rect, tic_mouse_left))
+            {
+                tic_track_row* row = &pattern->rows[rowIndex(music, overRow)];
+
+                row->command = command != row->command ? command : tic_music_cmd_empty;
+
+                if(row->command == tic_music_cmd_empty)
+                    row->param1 = row->param2 = 0;
+
+                history_add(music->history);
+            }
+        }
+    }
+
+    tic_api_print(tic, "COMMAND", x + 8, y + 2, tic_color_14, true, 1, true);
+    drawStereoSeparator(music, x + 6, y + 8);
+
+    if(pattern)
+    {
+        for(s32 r = 0; r < TRACKER_ROWS; r++)
+        {
+            s32 index = rowIndex(music, r);
+            const tic_track_row* row = &pattern->rows[index];
+
+            tic_api_print(tic, MusicCommands + 1, 
+                x + 1, y + Header + r * TIC_FONT_HEIGHT, 
+                noteBeat(music, index) ? tic_color_14 : tic_color_15, true, 1, false);
+
+            if(overRow == r && command > tic_music_cmd_empty)
+                tic_api_print(tic, (char[]){MusicCommands[command], '\0'}, 
+                    x + 1 + (command - 1) * TIC_FONT_WIDTH, y + Header + r * TIC_FONT_HEIGHT, 
+                    noteBeat(music, index) ? tic_color_13 : tic_color_14, true, 1, false);
+
+            if(row->command > tic_music_cmd_empty)
+                tic_api_print(tic, (char[]){MusicCommands[row->command], '\0'}, 
+                    x + 1 + (row->command - 1) * TIC_FONT_WIDTH, y + Header + r * TIC_FONT_HEIGHT, 
+                    tic_color_10, true, 1, false);
+        }        
+    }
+    else
+        for(s32 r = 0; r < TRACKER_ROWS; r++)
+            tic_api_print(tic, MusicCommands + 1, 
+                x + 1, y + Header + r * TIC_FONT_HEIGHT, 
+                tic_color_15, true, 1, false);
+}
+
+static void drawPianoXYColumn(Music* music, s32 x, s32 y)
+{
+    tic_mem* tic = music->tic;
+
+    enum{Header = PIANO_PATTERN_HEADER};
+
+    {
+        tic_rect rect = {x, y + Header - 1, TIC_FONT_WIDTH * 2, TIC_FONT_HEIGHT * MUSIC_FRAMES};
+
+        if(checkMousePos(&rect))
+        {
+            setCursor(tic_cursor_hand);
+
+            if(checkMouseClick(&rect, tic_mouse_left))
+            {
+                music->piano.edit.x = PianoXYColumn * 2 + (getMouseX() - rect.x) / TIC_FONT_WIDTH;
+                music->piano.edit.y = (getMouseY() - rect.y) / TIC_FONT_HEIGHT;
+            }
+        }
+    }
+
+    tic_api_rect(tic, x, y + 1, TIC_FONT_WIDTH*2 + 1, Header + TRACKER_ROWS * TIC_FONT_HEIGHT - 1, tic_color_15);
+    tic_api_print(tic, "X", x + 2, y + 2, tic_color_14, true, 1, true);
+    tic_api_print(tic, "Y", x + 8, y + 2, tic_color_14, true, 1, true);
+
+    const tic_track_pattern* pattern = getFramePattern(music, music->piano.col, music->frame);
+    if(pattern)
+    {
+        for(s32 r = 0; r < TRACKER_ROWS; r++)
+        {
+            s32 index = rowIndex(music, r);
+            const tic_track_row* row = &pattern->rows[index];
+
+            tic_music_command command = MusicCommands[row->command];
+
+            if(row->command > tic_music_cmd_empty)
+            {
+                char xy[] = "00";
+                tic_api_print(tic, xy, x + 1, y + Header + r * TIC_FONT_HEIGHT, tic_color_15, true, 1, false);
+                sprintf(xy, "%01X%01X", row->param1, row->param2);
+                tic_api_print(tic, xy, x + 1, y + Header + r * TIC_FONT_HEIGHT + 1, tic_color_0, true, 1, false);
+                tic_api_print(tic, xy, x + 1, y + Header + r * TIC_FONT_HEIGHT, tic_color_10, true, 1, false);
+            }
+            else
+                tic_api_print(tic, "--", 
+                    x + 1, y + Header + r * TIC_FONT_HEIGHT, 
+                    noteBeat(music, index) ? tic_color_13 : tic_color_14, true, 1, false);
+        }        
+    }
+    else
+        for(s32 r = 0; r < TRACKER_ROWS; r++)
+            tic_api_print(tic, "--", x + 1, y + Header + r * TIC_FONT_HEIGHT, tic_color_14, true, 1, false);
+
+    if(music->piano.edit.x / 2 == PianoXYColumn)
+    {
+        char xy[] = "--";
+        const tic_track_row* row = getPianoRow(music);
+        if(row && row->command > tic_music_cmd_empty)
+            sprintf(xy, "%01X%01X", row->param1, row->param2);
+
+        drawPianoCursor(music, x + 1, y + Header + music->piano.edit.y * TIC_FONT_HEIGHT, xy);
+    }
+}
+
+static void drawPianoPattern(Music* music, s32 x, s32 y)
+{
+    tic_mem* tic = music->tic;
+
+    enum{Width = 164, Height = 106};
+    drawEditPanel(music, x, y, Width, Height);
+
+    // draw playing row
+    if(checkPlayFrame(music, music->frame))
+    {
+        const tic_sound_state* pos = getMusicPos(music);
+        s32 index = pos->music.row - music->scroll;
+
+        if(index >= 0 && index < TRACKER_ROWS)
+            tic_api_rect(tic, x, y + PIANO_PATTERN_HEADER + index * TIC_FONT_HEIGHT - 1, Width, TIC_FONT_HEIGHT + 1, tic_color_13);
+    }
+
+    drawPianoRowColumn(music,       x, y);
+    drawPianoNoteColumn(music,      x + 14, y);
+    drawPianoOctaveColumn(music,    x + 63, y);
+    drawPianoSfxColumn(music,       x + 95, y);
+    drawPianoCommandColumn(music,   x + 108, y);
+    drawPianoXYColumn(music,        x + 151, y);
+}
+
+static void drawBeatButton(Music* music, s32 x, s32 y)
+{
+    tic_mem* tic = music->tic;
+
+    static const char Label44[] = "4/4";
+    static const char Label34[] = "3/4";
+
+    tic_rect rect = {x, y, (sizeof Label44 - 1) * TIC_ALTFONT_WIDTH - 1, TIC_FONT_HEIGHT - 1};
+
+    bool down = false;
+    if(checkMousePos(&rect))
+    {
+        setCursor(tic_cursor_hand);
+        showTooltip(music->beat34 ? "set 4 quarter note" : "set 3 quarter note");
+
+        if(checkMouseDown(&rect, tic_mouse_left))
+            down = true;
+
+        if(checkMouseClick(&rect, tic_mouse_left))
+            music->beat34 = !music->beat34;
+    }
+
+    tic_api_print(tic, music->beat34 ? Label34 : Label44, x, y + 1, tic_color_0, true, 1, true);
+    tic_api_print(tic, music->beat34 ? Label34 : Label44, x, y + (down ? 1 : 0), tic_color_12, true, 1, true);
+}
+
 static void drawPianoLayout(Music* music)
 {
-    tic_api_cls(music->tic, tic_color_14);
-
-
+    drawPianoFrames(music, 3, 20);
+    drawPianoPattern(music, 73, 20);
+    drawBeatButton(music, 4, 129);
 }
 
 static void scrollNotes(Music* music, s32 delta)
@@ -1618,7 +2474,7 @@ static void scrollNotes(Music* music, s32 delta)
 
         if(rect.h <= 0)
         {
-            rect.y = music->tracker.row;
+            rect.y = music->tracker.edit.y;
             rect.h = 1;
         }
         
@@ -1647,12 +2503,10 @@ static void drawWaveform(Music* music, s32 x, s32 y)
 
     drawEditPanel(music, x, y, Width, Height);
 
-    tic_api_rect(tic, x, y, Width, Height, tic_color_0);
-
     // detect playing channels
     s32 channels = 0;
     for(s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
-        if(music->tracker.on[c] && tic->ram.registers[c].volume)
+        if(music->on[c] && tic->ram.registers[c].volume)
             channels++;
 
     if(channels)
@@ -1678,7 +2532,7 @@ static void drawWaveform(Music* music, s32 x, s32 y)
     }
 }
 
-static void drawTrackerLayout(Music* music)
+static void tick(Music* music)
 {
     tic_mem* tic = music->tic;
 
@@ -1697,7 +2551,7 @@ static void drawTrackerLayout(Music* music)
                 enum{Scroll = NOTES_PER_BEAT};
                 s32 delta = input->mouse.scrolly > 0 ? -Scroll : Scroll;
 
-                music->tracker.scroll += delta;
+                music->scroll += delta;
 
                 updateScroll(music);
             }
@@ -1706,38 +2560,31 @@ static void drawTrackerLayout(Music* music)
 
     processKeyboard(music);
 
-    if(music->tracker.follow)
+    if(music->follow)
     {
         const tic_sound_state* pos = getMusicPos(music);
 
         if(pos->music.track == music->track && 
-            music->tracker.row >= 0 &&
+            music->tracker.edit.y >= 0 &&
             pos->music.row >= 0)
         {
-            music->tracker.frame = pos->music.frame;
-            music->tracker.row = pos->music.row;
+            music->frame = pos->music.frame;
+            music->tracker.edit.y = pos->music.row;
             updateTracker(music);
         }
     }
 
-    tic_api_cls(music->tic, tic_color_14);
-
-    drawTopPanel(music, 2, TOOLBAR_SIZE + 3);
-    drawTracker(music, 7, 35);
-    drawWaveform(music, 205, 9);
-}
-
-static void tick(Music* music)
-{
-    tic_mem* tic = music->tic;
-
     for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
-        if(!music->tracker.on[i])
+        if(!music->on[i])
             tic->ram.registers[i].volume = 0;
+
+    tic_api_cls(music->tic, tic_color_14);
+    drawTopPanel(music, 2, TOOLBAR_SIZE + 3);
+    drawWaveform(music, 205, 9);
 
     switch (music->tab)
     {
-    case MUSIC_TRACKER_TAB: drawTrackerLayout(music); break;
+    case MUSIC_TRACKER_TAB: drawTrackerLayout(music, 7, 35); break;
     case MUSIC_PIANO_TAB: drawPianoLayout(music); break;
     }
 
@@ -1770,23 +2617,22 @@ void initMusic(Music* music, tic_mem* tic, tic_music* src)
         .tick = tick,
         .src = src,
         .track = 0,
+        .beat34 = false,
+        .frame = 0,
+        .follow = true,
+        .sustain = false,
+        .scroll = 0,
+        .note = -1,
+        .last =
+        {
+            .octave = 3,
+            .sfx = 0,
+        },
+        .on = {true, true, true, true},
         .tracker =
         {
-            .follow = true,
-            .sustain = false,
-            .frame = 0,
-            .col = 0,
-            .row = 0,
-            .scroll = 0,
-            .note = -1,
+            .edit = {0, 0},
 
-            .last =
-            {
-                .octave = 3,
-                .sfx = 0,
-            },
-
-            .on = {true, true, true, true},
             .select = 
             {
                 .start = {0, 0},
@@ -1795,8 +2641,14 @@ void initMusic(Music* music, tic_mem* tic, tic_music* src)
             },
         },
 
+        .piano =
+        {
+            .col = 0,
+            .edit = {0, 0},
+        },
+
         .tickCounter = 0,
-        .tab = MUSIC_TRACKER_TAB,
+        .tab = MUSIC_PIANO_TAB,
         .history = history_create(src, sizeof(tic_music)),
         .event = onStudioEvent,
     };

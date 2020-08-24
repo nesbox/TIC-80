@@ -348,14 +348,14 @@ const char* studioExportMusic(s32 track)
     const tic_sound_state* state = &tic->ram.sound_state;
     const Music* editor = impl.banks.music[impl.bank.index.music];
 
-    tic_api_music(tic, track, -1, -1, false, editor->tracker.sustain);
+    tic_api_music(tic, track, -1, -1, false, editor->sustain);
 
     while(state->flag.music_state == tic_music_play)
     {
         tic_core_tick_start(tic);
 
         for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
-            if(!editor->tracker.on[i])
+            if(!editor->on[i])
                 tic->ram.registers[i].volume = 0;
 
         tic_core_tick_end(tic);

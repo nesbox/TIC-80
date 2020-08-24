@@ -222,13 +222,13 @@ typedef struct
 
 #define MUSIC_CMD_LIST(macro)                                                                   \
     macro(empty,    0, )                                                                        \
-    macro(volume,   m, "master volume for the left/right channels")                             \
-    macro(chord,    c, "play chord, C37 plays +0,+3,+7 notes")                                  \
-    macro(jump,     j, "jump to frame/row")                                                     \
-    macro(slide,    s, "slide to note (legato) with given given number of ticks")               \
-    macro(pitch,    p, "finepitch up/down")                                                     \
-    macro(vibrato,  v, "vibrato with period and depth")                                         \
-    macro(delay,    d, "delay triggering of a note with given number of ticks")
+    macro(volume,   M, "master volume for the left/right channels")                             \
+    macro(chord,    C, "play chord, C37 plays +0,+3,+7 notes")                                  \
+    macro(jump,     J, "jump to frame/row")                                                     \
+    macro(slide,    S, "slide to note (legato) with given given number of ticks")               \
+    macro(pitch,    P, "finepitch up/down")                                                     \
+    macro(vibrato,  V, "vibrato with period and depth")                                         \
+    macro(delay,    D, "delay triggering of a note with given number of ticks")
 
 typedef enum
 {

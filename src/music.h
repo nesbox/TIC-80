@@ -29,28 +29,28 @@ typedef struct Music Music;
 struct Music
 {
     tic_mem* tic;
-
     tic_music* src;
 
     u8 track:MUSIC_TRACKS_BITS;
+    s32 frame;
+    s32 scroll;
+    s32 note;
+
+    bool beat34;
+    bool follow;
+    bool sustain;
+    bool on[TIC_SOUND_CHANNELS];
 
     struct
     {
-        bool follow;
-        bool sustain;
-        s32 patternCol;
+        s32 octave;
+        s32 sfx;
+    } last;
 
-        s32 frame;
+    struct
+    {
         s32 col;
-        s32 row;
-        s32 scroll;
-        s32 note;
-
-        struct
-        {
-            s32 octave;
-            s32 sfx;
-        } last;
+        tic_point edit;
 
         struct
         {
@@ -58,10 +58,13 @@ struct Music
             tic_rect rect;
             bool drag;
         } select;
-
-        bool on[TIC_SOUND_CHANNELS];
-
     } tracker;
+
+    struct
+    {
+        s32 col;
+        tic_point edit;
+    } piano;
 
     enum
     {
