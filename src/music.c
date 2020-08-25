@@ -2026,25 +2026,33 @@ static void drawPianoRoll(Music* music, s32 x, s32 y)
 {
     tic_mem* tic = music->tic;
 
-    static const struct {u8 offset; u8 flip;} Buttons[] = 
+    static const struct Button {u8 note; u8 up; u8 down; u8 offset; u8 flip;} Buttons[] = 
     {
-        {0, tic_no_flip},
-        {3, tic_horz_flip},
-        {8, tic_no_flip},
-        {11, tic_horz_flip},
-        {20, tic_no_flip},
-        {23, tic_horz_flip},
-        {28, tic_no_flip},
-        {31, tic_horz_flip},
-        {36, tic_no_flip},
-        {39, tic_horz_flip},
+        {0, 39, 40, 0, tic_no_flip},
+        {2, 39, 40, 3, tic_horz_flip},
+        {2, 39, 40, 8, tic_no_flip},
+        {4, 39, 40, 11, tic_horz_flip},
+        {5, 39, 40, 20, tic_no_flip},
+        {7, 39, 40, 23, tic_horz_flip},
+        {7, 39, 40, 28, tic_no_flip},
+        {9, 39, 40, 31, tic_horz_flip},
+        {9, 39, 40, 36, tic_no_flip},
+        {11, 39, 40, 39, tic_horz_flip},
+        {1, 41, 42, 0, tic_no_flip},
+        {3, 41, 42, 8, tic_no_flip},
+        {6, 41, 42, 20, tic_no_flip},
+        {8, 41, 42, 28, tic_no_flip},
+        {10, 41, 42, 36, tic_no_flip},
     };
 
     tiles2ram(&tic->ram, &getConfig()->cart->bank0.tiles);
 
     for(s32 i = 0; i < COUNT_OF(Buttons); i++)
-        tic_api_spr(tic, 39, 
-            x + Buttons[i].offset, y, 1, 1, (u8[]){tic_color_0}, 1, 1, Buttons[i].flip, tic_no_rotate);
+    {
+        const struct Button* btn = &Buttons[i];
+        tic_api_spr(tic, btn->note == music->piano.note[music->piano.col] ? btn->down : btn->up, 
+            x + btn->offset, y, 1, 1, (u8[]){tic_color_3}, 1, 1, btn->flip, tic_no_rotate);
+    }
 }
 
 static void drawPianoRowColumn(Music* music, s32 x, s32 y)
@@ -2385,7 +2393,7 @@ static void drawPianoCommandColumn(Music* music, s32 x, s32 y)
 
             if(command != tic_music_cmd_empty)
             {
-                #define MUSIC_CMD_HINT(_, letter, hint) "["#letter "] " hint,
+                #define MUSIC_CMD_HINT(_, letter, hint) "[" #letter "] " hint,
                 static const char* Hints[] = 
                 {
                     MUSIC_CMD_LIST(MUSIC_CMD_HINT)
@@ -2646,6 +2654,35 @@ static void drawWaveform(Music* music, s32 x, s32 y)
     }
 }
 
+static void updatePianoRollState(Music* music)
+{
+    if(getMusicState(music) != tic_music_stop)
+    {
+        s32 channel = music->piano.col;
+        const tic_sound_state* pos = getMusicPos(music);
+
+        for(s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
+        {
+            const tic_track_pattern* pattern = getFramePattern(music, c, pos->music.frame);
+            if(pattern)
+            {
+                const tic_track_row* row = &pattern->rows[pos->music.row];
+
+                if(pos->music.row == 0 && !music->sustain)
+                    music->piano.note[c] = -1;
+
+                if(row->note >= NoteStart)
+                    music->piano.note[c] = row->note - NoteStart;
+                else if(row->note == NoteStop || (row->note == NoteNone && pos->music.row == 0 && !music->sustain))
+                    music->piano.note[c] = -1;
+            }
+            else if(!music->sustain)
+                music->piano.note[c] = -1;
+        }
+    }
+    else memset(music->piano.note, -1, sizeof music->piano.note);
+}
+
 static void tick(Music* music)
 {
     tic_mem* tic = music->tic;
@@ -2691,6 +2728,8 @@ static void tick(Music* music)
     for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
         if(!music->on[i])
             tic->ram.registers[i].volume = 0;
+
+    updatePianoRollState(music);
 
     tic_api_cls(music->tic, tic_color_14);
     drawTopPanel(music, 2, TOOLBAR_SIZE + 3);
@@ -2759,6 +2798,7 @@ void initMusic(Music* music, tic_mem* tic, tic_music* src)
         {
             .col = 0,
             .edit = {0, 0},
+            .note = {-1, -1, -1, -1},
         },
 
         .tickCounter = 0,
