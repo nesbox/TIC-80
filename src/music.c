@@ -2113,7 +2113,31 @@ static void drawPianoNoteColumn(Music* music, s32 x, s32 y)
                         }
 
                         history_add(music->history);
-                    }                    
+                    }
+                    else if(checkMouseClick(&rect, tic_mouse_right))
+                    {
+                        switch(row->note)
+                        {
+                        case NoteNone:
+                            row->note = NoteStop;
+                            row->octave = 0;
+                            break;
+                        case NoteStop:
+                            row->note = NoteStart + n;
+                            row->octave = music->last.octave;
+                            tic_tool_set_track_row_sfx(row, music->last.sfx);
+                            break;
+                        default:
+                            if(row->note - NoteStart == n)
+                            {
+                                row->note = NoteNone;
+                                row->octave = 0;
+                            }
+                            else row->note = NoteStart + n;
+                        }
+
+                        history_add(music->history);
+                    }
                 }
 
                 if(row->note == NoteStop)
