@@ -1,22 +1,19 @@
 version: '{build}'
-image: Visual Studio 2015
+image: Visual Studio 2019
 
 environment:
   matrix:
     - COMPILER: MSVC
     - COMPILER: MSVC64
-    - COMPILER: MinGW-w64
   BUILD_TYPE: MinSizeRel
 
 install: 
   - git submodule update --init --recursive
-  - if [%COMPILER%]==[MinGW-w64] set PATH=C:\mingw-w64\x86_64-7.3.0-posix-seh-rt_v5-rev0\mingw64\bin;%PATH%
 
 build_script:
   - mkdir out && cd out
-  - if [%COMPILER%]==[MinGW-w64] cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DCMAKE_SH=CMAKE_SH-NOTFOUND ..
-  - if [%COMPILER%]==[MSVC] cmake -G "Visual Studio 14 2015" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
-  - if [%COMPILER%]==[MSVC64] cmake -G "Visual Studio 14 2015 Win64" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
+  - if [%COMPILER%]==[MSVC] cmake -G "Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
+  - if [%COMPILER%]==[MSVC64] cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
   - cmake --build . --parallel --config %BUILD_TYPE%
 
 after_build:
