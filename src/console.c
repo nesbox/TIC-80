@@ -1926,9 +1926,9 @@ static void onConsoleExportCommand(Console* console, const char* param)
         {
             exportSfx(console, 0);
         }
-        else if(strcmp(param, "sfx ") > 0)
+        else if(memcmp(param, "sfx ", sizeof "sfx") == 0)
         {
-            s32 sfx = atoi(param + sizeof("sfx"));
+            s32 sfx = atoi(param + sizeof "sfx");
 
             if(sfx >= 0 && sfx < SFX_COUNT)
                 exportSfx(console, sfx);
@@ -1938,9 +1938,9 @@ static void onConsoleExportCommand(Console* console, const char* param)
         {
             exportMusic(console, 0);
         }
-        else if(strcmp(param, "music ") > 0)
+        else if(memcmp(param, "music ", sizeof "music") == 0)
         {
-            s32 track = atoi(param + sizeof("music"));
+            s32 track = atoi(param + sizeof "music");
 
             if(track >= 0 && track < MUSIC_TRACKS)
                 exportMusic(console, track);
