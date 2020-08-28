@@ -35,7 +35,7 @@ THEME=
 	},
 }
 
-CHECK_NEW_VERSION=false
+CHECK_NEW_VERSION=true
 NO_SOUND=false
 GIF_LENGTH=20 -- in seconds
 GIF_SCALE=2

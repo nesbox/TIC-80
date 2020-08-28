@@ -2608,13 +2608,6 @@ static void setScroll(Console* console, s32 val)
     }
 }
 
-typedef struct
-{
-    s32 major;
-    s32 minor;
-    s32 patch;
-} NetVersion;
-
 static lua_State* netLuaInit(u8* buffer, s32 size)
 {
     if (buffer && size)
@@ -2637,56 +2630,64 @@ static lua_State* netLuaInit(u8* buffer, s32 size)
     return NULL;
 }
 
-static NetVersion netVersionRequest()
+static void onHttpVesrsionGet(const HttpGetData* data)
 {
-    NetVersion version = 
+    Console* console = (Console*)data->calldata;
+
+    switch(data->type)
     {
-        .major = TIC_VERSION_MAJOR,
-        .minor = TIC_VERSION_MINOR,
-        .patch = TIC_VERSION_REVISION,
-    };
-
-    s32 size = 0;
-    void* buffer = getSystem()->httpGetSync("/api?fn=version", &size);
-
-    if(buffer && size)
-    {
-        lua_State* lua = netLuaInit(buffer, size);
-        free(buffer);
-
-        if(lua)
+    case HttpGetDone:
         {
-            static const char* Fields[] = {"major", "minor", "patch"};
+            lua_State* lua = netLuaInit(data->done.data, data->done.size);
 
-            for(s32 i = 0; i < COUNT_OF(Fields); i++)
+            union 
             {
-                lua_getglobal(lua, Fields[i]);
+                struct
+                {
+                    s32 major;
+                    s32 minor;
+                    s32 patch;
+                };
 
-                if(lua_isinteger(lua, -1))
-                    ((s32*)&version)[i] = (s32)lua_tointeger(lua, -1);
+                s32 data[3];
+            } version = 
+            {
+                .major = TIC_VERSION_MAJOR,
+                .minor = TIC_VERSION_MINOR,
+                .patch = TIC_VERSION_REVISION,
+            };
 
-                lua_pop(lua, 1);
+            if(lua)
+            {
+                static const char* Fields[] = {"major", "minor", "patch"};
+
+                for(s32 i = 0; i < COUNT_OF(Fields); i++)
+                {
+                    lua_getglobal(lua, Fields[i]);
+
+                    if(lua_isinteger(lua, -1))
+                        version.data[i] = (s32)lua_tointeger(lua, -1);
+
+                    lua_pop(lua, 1);
+                }
+
+                lua_close(lua);
             }
 
-            lua_close(lua);
+            if((version.major > TIC_VERSION_MAJOR) ||
+                (version.major == TIC_VERSION_MAJOR && version.minor > TIC_VERSION_MINOR) ||
+                (version.major == TIC_VERSION_MAJOR && version.minor == TIC_VERSION_MINOR && version.patch > TIC_VERSION_REVISION))
+            {
+                char msg[TICNAME_MAX];
+                sprintf(msg, " new version %i.%i.%i is available\n", version.major, version.minor, version.patch);
+
+                enum{Offset = (2 * STUDIO_TEXT_BUFFER_WIDTH)};
+
+                memcpy(console->buffer + Offset, msg, strlen(msg));
+                memset(console->colorBuffer + Offset, tic_color_2, STUDIO_TEXT_BUFFER_WIDTH);
+            }
         }
-    }
-
-    return version;
-}
-
-static void checkNewVersion(Console* console)
-{
-
-    NetVersion version = netVersionRequest();
-
-    if((version.major > TIC_VERSION_MAJOR) ||
-        (version.major == TIC_VERSION_MAJOR && version.minor > TIC_VERSION_MINOR) ||
-        (version.major == TIC_VERSION_MAJOR && version.minor == TIC_VERSION_MINOR && version.patch > TIC_VERSION_REVISION))
-    {
-        char msg[TICNAME_MAX] = {0};
-        sprintf(msg, "\n A new version %i.%i.%i is available.\n", version.major, version.minor, version.patch);
-        consolePrint(console, msg, CONSOLE_BACK_TEXT_COLOR);
+        break;
     }
 }
 
@@ -2791,7 +2792,7 @@ static void tick(Console* console)
             printBack(console, " for help\n");
 
             if(getConfig()->checkNewVersion)
-                checkNewVersion(console);
+                getSystem()->httpGet("/api?fn=version", onHttpVesrsionGet, console);
 
             commandDone(console);
         }
