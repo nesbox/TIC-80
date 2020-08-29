@@ -1952,6 +1952,7 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, Sy
     {
         char name[TICNAME_MAX];
         fsBasename(argv[1], name);
+
         impl.fs = createFileSystem(name);
     }
     else impl.fs = createFileSystem(folder);

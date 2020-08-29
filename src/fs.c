@@ -63,6 +63,13 @@ struct FileSystem
     char work[TICNAME_MAX];
 };
 
+#if defined(__EMSCRIPTEN__)
+void syncfs()
+{
+    EM_ASM({Module.syncFSRequests++;});
+}
+#endif 
+
 const char* fsGetRootFilePath(FileSystem* fs, const char* name)
 {
     static char path[TICNAME_MAX] = {0};
@@ -429,7 +436,7 @@ bool fsDeleteDir(FileSystem* fs, const char* name)
 #endif
 
 #if defined(__EMSCRIPTEN__)
-    EM_ASM(FS.syncfs(function(){}));
+    syncfs();
 #endif  
 
     return result;
@@ -450,7 +457,7 @@ bool fsDeleteFile(FileSystem* fs, const char* name)
     freeString(pathString);
 
 #if defined(__EMSCRIPTEN__)
-    EM_ASM(FS.syncfs(function(){}));
+    syncfs();
 #endif  
 
     return result;
@@ -506,7 +513,7 @@ static void onAddFile(const char* name, const u8* buffer, s32 size, void* data, 
 #endif
 
 #if defined(__EMSCRIPTEN__)
-                EM_ASM(FS.syncfs(function(){}));
+                syncfs();
 #endif
                 
                 addFileData->callback(name, FS_FILE_ADDED, addFileData->data);
@@ -758,7 +765,7 @@ bool fsWriteFile(const char* name, const void* buffer, s32 size)
         fclose(file);
 
 #if defined(__EMSCRIPTEN__)
-        EM_ASM(FS.syncfs(function(){}));
+        syncfs();
 #endif
 
         return true;
@@ -886,7 +893,7 @@ static void makeDir(const char* name)
     freeString(pathString);
 
 #if defined(__EMSCRIPTEN__)
-    EM_ASM(FS.syncfs(function(){}));
+    syncfs();
 #endif
 #endif
 }

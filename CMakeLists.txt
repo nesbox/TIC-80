@@ -800,6 +800,11 @@ if(BUILD_SDL)
     if(EMSCRIPTEN)
         set_target_properties(${TIC80_OUTPUT} PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s TOTAL_MEMORY=67108864 --pre-js ${CMAKE_SOURCE_DIR}/build/html/prejs.js -lidbfs.js")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2")
+
+        if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s ASSERTIONS=1")
+        endif()
+
     elseif(NOT ANDROID)
         target_link_libraries(${TIC80_OUTPUT} SDL2main)
     endif()

@@ -67,7 +67,7 @@ matrix:
       services:
         - docker
       install:
-        - docker run -dit --name emscripten -v $(pwd):/src trzeci/emscripten:sdk-incoming-64bit bash
+        - docker run -dit --name emscripten -v $(pwd):/src emscripten/emsdk bash
       script:
         - docker exec -it emscripten emcmake cmake -DCMAKE_BUILD_TYPE=MinSizeRel .
         - docker exec -it emscripten make -j$(nproc)

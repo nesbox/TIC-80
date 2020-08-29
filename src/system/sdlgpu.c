@@ -1455,6 +1455,16 @@ static void emsGpuTick()
 
     nextTick += 1000.0/TIC80_FRAMERATE;
     gpuTick();
+
+    EM_ASM(
+    {
+        if(FS.syncFSRequests == 0 && Module.syncFSRequests)
+        {
+            Module.syncFSRequests = 0;
+            FS.syncfs(false,function(){});
+        }
+    });
+
     double delay = nextTick - emscripten_get_now();
 
     if(delay < 0.0)
@@ -1501,9 +1511,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
         goFullscreen();
 
 #if defined(__EMSCRIPTEN__)
-
     emscripten_set_main_loop(emsGpuTick, 0, 1);
-
 #else
     {
         u64 nextTick = SDL_GetPerformanceCounter();
@@ -1558,40 +1566,67 @@ static s32 start(s32 argc, char **argv, const char* folder)
 
 #if defined(__EMSCRIPTEN__)
 
-#define DEFAULT_CART "cart.tic"
-
-static struct
+static void checkPreloadedFile()
 {
-    s32 argc;
-    char **argv;
-    const char* folder;
-} startVars;
-
-static void onEmscriptenWget(const char* file)
-{
-    startVars.argv[1] = DEFAULT_CART;
-    start(startVars.argc, startVars.argv, startVars.folder);
+    EM_ASM_(
+    {
+        if(Module.filePreloaded)
+        {
+            _emscripten_cancel_main_loop();
+            var start = Module.startArg;
+            dynCall('iiii', $0, [start.argc, start.argv, start.folder]);
+        }
+    }, start);
 }
 
-static void onEmscriptenWgetError(const char* error) {}
-
-static void emsStart(s32 argc, char **argv, const char* folder)
+static s32 emsStart(s32 argc, char **argv, const char* folder)
 {
     if (argc >= 2)
     {
         int pos = strlen(argv[1]) - strlen(".tic");
         if (pos >= 0 && strcmp(&argv[1][pos], ".tic") == 0)
         {
-            startVars.argc = argc;
-            startVars.argv = argv;
-            startVars.folder = folder;
+            const char* url = argv[1];
 
-            emscripten_async_wget(argv[1], DEFAULT_CART, onEmscriptenWget, onEmscriptenWgetError);
-            return;
+            {
+                static char path[TICNAME_MAX];
+                strcpy(path, folder);
+                strcat(path, argv[1]);
+                argv[1] = path;
+            }
+
+            EM_ASM_(
+            {
+                var start = {};
+                start.argc = $0;
+                start.argv = $1;
+                start.folder = $2;
+
+                Module.startArg = start;
+
+                var file = PATH_FS.resolve(UTF8ToString($4));
+
+                Module.filePreloaded = false;
+
+                FS.createPreloadedFile(PATH.dirname(file), PATH.basename(file), UTF8ToString($3), true, true, 
+                    function()
+                    {
+                        Module.filePreloaded = true;
+                    },
+                    function(){}, false, false, function()
+                    {
+                        try{FS.unlink(file);}catch(e){}
+                    });
+
+            }, argc, argv, folder, url, argv[1]);
+
+            emscripten_set_main_loop(checkPreloadedFile, 0, 0);
+
+            return 0;
         }
     }
 
-    start(argc, argv, folder);
+    return start(argc, argv, folder);
 }
 
 #endif
@@ -1605,23 +1640,19 @@ s32 main(s32 argc, char **argv)
     EM_ASM_
     (
         {
-            var dir = "";
-            UTF8ToString($0).split("/").forEach(function(val)
-            {
-                if(val.length)
-                {
-                    dir += "/" + val;
-                    FS.mkdir(dir);
-                }
-            });
-            
+            Module.syncFSRequests = 0;
+
+            var dir = UTF8ToString($0);
+           
+            FS.mkdirTree(dir);
+
             FS.mount(IDBFS, {}, dir);
-            FS.syncfs(true, function()
+            FS.syncfs(true, function(e)
             {
-                dynCall('viii', $1, [$2, $3, $0]);
+                dynCall('iiii', $1, [$2, $3, $0]);
             });
 
-        }, folder, emsStart, argc, argv
+         }, folder, emsStart, argc, argv
     );
 
 #else
