@@ -1791,7 +1791,7 @@ static void onConsoleExportHtmlCommand(Console* console, const char* providedNam
 
         for(s32 i = 0; i < COUNT_OF(Files); i++)
         {
-            char url[TICNAME_MAX] = "/export/";
+            char url[TICNAME_MAX] = "/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "/";
             strcat(url, Files[i]);
             s32 size = 0;
 
@@ -2679,7 +2679,7 @@ static void onHttpVesrsionGet(const HttpGetData* data)
                 (version.major == TIC_VERSION_MAJOR && version.minor == TIC_VERSION_MINOR && version.patch > TIC_VERSION_REVISION))
             {
                 char msg[TICNAME_MAX];
-                sprintf(msg, " new version %i.%i.%i is available\n", version.major, version.minor, version.patch);
+                sprintf(msg, " new version %i.%i.%i available\n", version.major, version.minor, version.patch);
 
                 enum{Offset = (2 * STUDIO_TEXT_BUFFER_WIDTH)};
 
