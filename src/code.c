@@ -60,9 +60,73 @@ static void drawStatus(Code* code)
         StatusY, getConfig()->theme.code.bg, true, 1, false);
 }
 
+static inline s32 compareBookmark(const void* a, const void* b)
+{
+    return *(s32*)a - *(s32*)b;
+}
+
+static void toggleBookmark(Code* code, s32 line)
+{
+    enum {ItemSize = sizeof code->bookmarks.items[0]};
+
+    for(s32 i = 0; i < code->bookmarks.size; i++)
+        if(code->bookmarks.items[i] == line)
+        {
+            s32 size = (--code->bookmarks.size) * ItemSize;
+            s32* pos = code->bookmarks.items + i;
+            memmove(pos, pos + 1, size);
+            code->bookmarks.items = realloc(code->bookmarks.items, size);
+            return;
+        }
+
+    code->bookmarks.items = realloc(code->bookmarks.items, (code->bookmarks.size + 1) * ItemSize);
+    if(code->bookmarks.items)
+    {
+        code->bookmarks.items[code->bookmarks.size++] = line;
+        qsort(code->bookmarks.items, code->bookmarks.size, ItemSize, compareBookmark);
+    }
+}
+
 static void drawBookmarks(Code* code)
 {
-    tic_api_rect(code->tic, 0, TOOLBAR_SIZE, BOOKMARK_WIDTH, TIC80_HEIGHT - TOOLBAR_SIZE, tic_color_14);
+    enum {Width = BOOKMARK_WIDTH, Height = TIC80_HEIGHT - TOOLBAR_SIZE*2};
+    tic_rect rect = {0, TOOLBAR_SIZE, Width, Height};
+
+    static const u8 Icon[] =
+    {
+        0b01111100,
+        0b01111100,
+        0b01111100,
+        0b01101100,
+        0b01000100,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+    };
+
+    tic_api_rect(code->tic, rect.x, rect.y, rect.w, rect.h, tic_color_14);
+
+    if(checkMousePos(&rect))
+    {
+        setCursor(tic_cursor_hand);
+
+        showTooltip("ADD BOOKMARK [f1]");
+
+        s32 line = (getMouseY() - rect.y) / STUDIO_TEXT_HEIGHT;
+
+        drawBitIcon(rect.x, rect.y + line * STUDIO_TEXT_HEIGHT, Icon, tic_color_15);
+
+        if(checkMouseClick(&rect, tic_mouse_left))
+            toggleBookmark(code, line + code->scroll.y);
+    }
+
+    for(s32 i = 0; i < code->bookmarks.size; i++)
+    {
+        s32 pos = rect.y + (code->bookmarks.items[i] - code->scroll.y) * STUDIO_TEXT_HEIGHT;
+
+        drawBitIcon(rect.x, pos + 1, Icon, tic_color_0);
+        drawBitIcon(rect.x, pos, Icon, tic_color_4);
+    }
 }
 
 static inline s32 getFontWidth(Code* code)
@@ -1234,6 +1298,69 @@ static void processKeyboard(Code* code)
 
     bool usedKeybinding = true;
 
+    // handle bookmarks
+    if(keyWasPressed(tic_key_f1))
+    {
+        if(ctrl && shift)
+        {
+            code->bookmarks.size = 0;
+            code->bookmarks.items = realloc(code->bookmarks.items, 0);
+        }
+        else if(ctrl)
+        {
+            s32 col, row;
+            getCursorPosition(code, &col, &row);
+            toggleBookmark(code, row);
+        }
+        else if(shift)
+        {
+            s32 col, row;
+            getCursorPosition(code, &col, &row);
+
+            bool done = false;
+            for(s32 i = code->bookmarks.size - 1; i >= 0; i--)
+            {
+                if(code->bookmarks.items[i] < row)
+                {
+                    setCursorPosition(code, col, code->bookmarks.items[i]);
+                    centerScroll(code);
+                    done = true;
+                    break;
+                }
+            }
+
+            if(!done && code->bookmarks.size)
+            {
+                setCursorPosition(code, col, code->bookmarks.items[code->bookmarks.size-1]);
+                centerScroll(code);
+            }
+        }
+        else
+        {
+            s32 col, row;
+            getCursorPosition(code, &col, &row);
+
+            bool done = false;
+            for(s32 i = 0; i < code->bookmarks.size; i++)
+            {
+                if(code->bookmarks.items[i] > row)
+                {
+                    setCursorPosition(code, col, code->bookmarks.items[i]);
+                    centerScroll(code);
+                    done = true;
+                    break;
+                }
+            }
+
+            if(!done && code->bookmarks.size)
+            {
+                setCursorPosition(code, col, code->bookmarks.items[0]);
+                centerScroll(code);
+            }
+        }
+    }
+    else usedKeybinding = false;
+
     if(ctrl)
     {
         if(keyWasPressed(tic_key_left))             leftWord(code);
@@ -1901,6 +2028,11 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
             .size = 0,
             .index = 0,
         },
+        .bookmarks =
+        {
+            .items = NULL,
+            .size = 0,
+        },
         .matchedDelim = NULL,
         .altFont = getConfig()->theme.code.altFont,
         .shadowText = getConfig()->theme.code.shadow,
@@ -1916,6 +2048,7 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
 
 void freeCode(Code* code)
 {
+    free(code->bookmarks.items);
     free(code->syntax);
     history_delete(code->history);
     history_delete(code->cursorHistory);

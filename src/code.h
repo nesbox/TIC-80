@@ -97,6 +97,12 @@ struct Code
         s32 index;
     } outline;
 
+    struct
+    {
+        s32* items;
+        s32 size;
+    } bookmarks;
+
     const char* matchedDelim;
     bool altFont;
     bool shadowText;
