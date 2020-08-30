@@ -110,7 +110,7 @@ static void drawBookmarks(Code* code)
     {
         setCursor(tic_cursor_hand);
 
-        showTooltip("ADD BOOKMARK [f1]");
+        showTooltip("BOOKMARK [ctrl+f1]");
 
         s32 line = (getMouseY() - rect.y) / STUDIO_TEXT_HEIGHT;
 
