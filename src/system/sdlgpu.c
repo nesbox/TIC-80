@@ -1605,11 +1605,10 @@ static s32 emsStart(s32 argc, char **argv, const char* folder)
                 Module.startArg = start;
 
                 var file = PATH_FS.resolve(UTF8ToString($4));
-                var dir = PATH.dirname(file);
 
                 Module.filePreloaded = false;
 
-                FS.createPreloadedFile(dir, PATH.basename(file), UTF8ToString($3), true, true, 
+                FS.createPreloadedFile(PATH.dirname(file), PATH.basename(file), UTF8ToString($3), true, true, 
                     function()
                     {
                         Module.filePreloaded = true;
@@ -1617,7 +1616,6 @@ static s32 emsStart(s32 argc, char **argv, const char* folder)
                     function(){}, false, false, function()
                     {
                         try{FS.unlink(file);}catch(e){}
-                        FS.mkdirTree(dir);
                     });
 
             }, argc, argv, folder, url, argv[1]);
