@@ -748,6 +748,45 @@ static void pageDown(Code* code)
     setCursorPosition(code, column, line < lines - TEXT_BUFFER_HEIGHT ? line + TEXT_BUFFER_HEIGHT : lines);
 }
 
+static s32 calcLines(const char* start, const char* end)
+{
+    s32 count = 0;
+    while(start < end)
+        if(*start++ == '\n')
+            count++;
+
+    return count;
+}
+
+static void updateBookmarks(Code* code, s32 start, s32 delta)
+{
+    for(s32 i = 0; i < code->bookmarks.size; i++)
+        if(code->bookmarks.items[i] > start)
+            code->bookmarks.items[i] += delta;
+}
+
+static void deleteCode(Code* code, char* start, char* end)
+{
+    s32 count = calcLines(code->src, start);
+    s32 delta = calcLines(start, end);
+
+    memmove(start, end, strlen(end) + 1);
+
+    updateBookmarks(code, count, -delta);
+}
+
+static void insertCode(Code* code, char* dst, const char* src)
+{
+    s32 size = strlen(src);
+    memmove(dst + size, dst, strlen(dst) + 1);
+    memcpy(dst, src, size);
+
+    s32 count = calcLines(code->src, dst);
+    s32 delta = calcLines(dst, dst + size);
+
+    updateBookmarks(code, count, delta);
+}
+
 static bool replaceSelection(Code* code)
 {
     char* pos = code->cursor.position;
@@ -758,7 +797,7 @@ static bool replaceSelection(Code* code)
         char* start = MIN(sel, pos);
         char* end = MAX(sel, pos);
 
-        memmove(start, end, strlen(end) + 1);
+        deleteCode(code, start, end);
 
         code->cursor.position = start;
         code->cursor.selection = NULL;
@@ -777,8 +816,7 @@ static void deleteChar(Code* code)
 {
     if(!replaceSelection(code))
     {
-        char* pos = code->cursor.position;
-        memmove(pos, pos + 1, strlen(pos));
+        deleteCode(code, code->cursor.position, code->cursor.position + 1);
         history(code);
         parseSyntaxColor(code);
     }
@@ -789,7 +827,7 @@ static void backspaceChar(Code* code)
     if(!replaceSelection(code) && code->cursor.position > code->src)
     {
         char* pos = --code->cursor.position;
-        memmove(pos, pos + 1, strlen(pos));
+        deleteCode(code, pos, pos + 1);
         history(code);
         parseSyntaxColor(code);
     }
@@ -804,7 +842,9 @@ static void deleteWord(Code* code)
     {
         if(isalnum_(*pos)) while(pos < end && isalnum_(*pos)) pos++;
         else while(pos < end && !isalnum_(*pos)) pos++;
-        memmove(code->cursor.position, pos, strlen(pos) + 1);
+
+        deleteCode(code, code->cursor.position, pos);
+
         history(code);
         parseSyntaxColor(code);
     }
@@ -819,7 +859,9 @@ static void backspaceWord(Code* code)
     {
         if(isalnum_(*pos)) while(pos > start && isalnum_(*(pos-1))) pos--;
         else while(pos > start && !isalnum_(*(pos-1))) pos--;
-        memmove(pos, code->cursor.position, strlen(code->cursor.position) + 1);
+
+        deleteCode(code, pos, code->cursor.position);
+
         code->cursor.position = pos;
         history(code);
         parseSyntaxColor(code);
@@ -831,11 +873,7 @@ static void inputSymbolBase(Code* code, char sym)
     if (strlen(code->src) >= sizeof(tic_code))
         return;
 
-    char* pos = code->cursor.position;
-
-    memmove(pos + 1, pos, strlen(pos)+1);
-
-    *code->cursor.position++ = sym;
+    insertCode(code, code->cursor.position++, (const char[]){sym, '\0'});
 
     history(code);
 
@@ -947,8 +985,7 @@ static void copyFromClipboard(Code* code)
                     }
                 }
 
-                memmove(pos + size, pos, strlen(pos) + 1);
-                memcpy(pos, clipboard, size);
+                insertCode(code, pos, clipboard);
 
                 code->cursor.position += size;
 
@@ -1014,15 +1051,14 @@ static void doTab(Code* code, bool shift, bool crtl)
             {
                 if(*line == '\t' || *line == ' ')
                 {
-                    memmove(line, line + 1, strlen(line)+1);
+                    deleteCode(code, line, line + 1);
                     end--;
                     changed = true;
                 }
             }
             else
             {
-                memmove(line + 1, line, strlen(line)+1);
-                *line = '\t';
+                insertCode(code, line, "\t");
                 end++;
 
                 changed = true;
@@ -1240,15 +1276,14 @@ static void commentLine(Code* code)
         if (strlen(code->src) + size >= sizeof(tic_code))
             return;
 
-        memmove(line + size, line, strlen(line)+1);
-        memcpy(line, comment, size);
+        insertCode(code, line, comment);
 
         if(code->cursor.position > line)
             code->cursor.position += size;
     }
     else
     {
-        memmove(line, line + size, strlen(line + size)+1);
+        deleteCode(code, line, line + size);
 
         if(code->cursor.position > line + size)
             code->cursor.position -= size;
