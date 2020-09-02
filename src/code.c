@@ -32,6 +32,10 @@
 #define CODE_EDITOR_HEIGHT (TIC80_HEIGHT - TOOLBAR_SIZE - STUDIO_TEXT_HEIGHT)
 #define TEXT_BUFFER_HEIGHT (CODE_EDITOR_HEIGHT / STUDIO_TEXT_HEIGHT)
 
+typedef struct CodeState CodeState;
+
+STATIC_ASSERT(CodeStateSize, sizeof(CodeState) == sizeof(u8));
+
 enum
 {
     SyntaxTypeString    = offsetof(struct SyntaxColors, string),
@@ -46,8 +50,10 @@ enum
 
 static void history(Code* code)
 {
-    if(history_add(code->history))
-        history_add(code->cursorHistory);
+    if(history_add(code->history.code))
+        history_add(code->history.cursor);
+
+    history_add(code->history.state);
 }
 
 static void drawStatus(Code* code)
@@ -60,31 +66,49 @@ static void drawStatus(Code* code)
         StatusY, getConfig()->theme.code.bg, true, 1, false);
 }
 
-static inline s32 compareBookmark(const void* a, const void* b)
+static char* getPosByLine(char* ptr, s32 line)
 {
-    return *(s32*)a - *(s32*)b;
+    s32 y = 0;
+    while(*ptr)
+    {
+        if(y == line) break;
+        if(*ptr++ == '\n') y++;
+    }
+
+    return ptr;    
 }
 
-static void toggleBookmark(Code* code, s32 line)
+static char* getNextLineByPos(Code* code, char* pos)
 {
-    enum {ItemSize = sizeof code->bookmarks.items[0]};
+    while(*pos && *pos++ != '\n');
+    return pos;
+}
 
-    for(s32 i = 0; i < code->bookmarks.size; i++)
-        if(code->bookmarks.items[i] == line)
-        {
-            s32 size = (--code->bookmarks.size) * ItemSize;
-            s32* pos = code->bookmarks.items + i;
-            memmove(pos, pos + 1, size);
-            code->bookmarks.items = realloc(code->bookmarks.items, size);
-            return;
-        }
+static inline CodeState* getState(Code* code, const char* pos)
+{
+    return code->state + (pos - code->src);
+}
 
-    code->bookmarks.items = realloc(code->bookmarks.items, (code->bookmarks.size + 1) * ItemSize);
-    if(code->bookmarks.items)
+static void toggleBookmark(Code* code, char* codePos)
+{
+    CodeState* start = getState(code, codePos);
+    const CodeState* end = getState(code, getNextLineByPos(code, codePos));
+
+    bool bookmarked = false;
+    CodeState* ptr = start;
+    while(ptr < end)
+        if(ptr++->bookmark)
+            bookmarked = true;
+
+    if(bookmarked)
     {
-        code->bookmarks.items[code->bookmarks.size++] = line;
-        qsort(code->bookmarks.items, code->bookmarks.size, ItemSize, compareBookmark);
+        CodeState* ptr = start;
+        while(ptr < end)
+            ptr++->bookmark = 0;
     }
+    else start->bookmark = 1;
+
+    history(code);
 }
 
 static void drawBookmarks(Code* code)
@@ -117,15 +141,22 @@ static void drawBookmarks(Code* code)
         drawBitIcon(rect.x, rect.y + line * STUDIO_TEXT_HEIGHT, Icon, tic_color_15);
 
         if(checkMouseClick(&rect, tic_mouse_left))
-            toggleBookmark(code, line + code->scroll.y);
+            toggleBookmark(code, getPosByLine(code->src, line + code->scroll.y));
     }
 
-    for(s32 i = 0; i < code->bookmarks.size; i++)
-    {
-        s32 pos = rect.y + (code->bookmarks.items[i] - code->scroll.y) * STUDIO_TEXT_HEIGHT;
+    const char* pointer = code->src;
+    const CodeState* syntaxPointer = code->state;
+    s32 y = -code->scroll.y;
 
-        drawBitIcon(rect.x, pos + 1, Icon, tic_color_0);
-        drawBitIcon(rect.x, pos, Icon, tic_color_4);
+    while(*pointer)
+    {
+        if(syntaxPointer++->bookmark)
+        {
+            drawBitIcon(rect.x, rect.y + y * STUDIO_TEXT_HEIGHT + 1, Icon, tic_color_0);
+            drawBitIcon(rect.x, rect.y + y * STUDIO_TEXT_HEIGHT, Icon, tic_color_4);
+        }
+
+        if(*pointer++ == '\n')y++;
     }
 }
 
@@ -173,7 +204,7 @@ static void drawCode(Code* code, bool withCursor)
 
     u8 selectColor = getConfig()->theme.code.select;
     const struct tic_code_theme* theme = &getConfig()->theme.code.syntax;
-    const u8* syntaxPointer = code->syntax;
+    const CodeState* syntaxPointer = code->state;
 
     struct { char* start; char* end; } selection = 
     {
@@ -203,7 +234,7 @@ static void drawCode(Code* code, bool withCursor)
                 if(code->shadowText)
                     drawChar(code->tic, symbol, x+1, y+1, 0, code->altFont);
 
-                drawChar(code->tic, symbol, x, y, theme->colors[*syntaxPointer], code->altFont);
+                drawChar(code->tic, symbol, x, y, theme->colors[syntaxPointer->syntax], code->altFont);
             }
         }
 
@@ -213,7 +244,7 @@ static void drawCode(Code* code, bool withCursor)
         if(code->matchedDelim == pointer)
         {
             matchedDelim.x = x, matchedDelim.y = y, matchedDelim.symbol = symbol,
-                matchedDelim.color = theme->colors[*syntaxPointer];
+                matchedDelim.color = theme->colors[syntaxPointer->syntax];
         }
 
         if(symbol == '\n')
@@ -286,8 +317,8 @@ const char* findMatchedDelim(Code* code, const char* current)
 {
     const char* start = code->src;
     // delimiters inside comments and strings don't get to be matched!
-    if(code->syntax[current - start] == SyntaxTypeComment ||
-       code->syntax[current - start] == SyntaxTypeString) return 0;
+    if(code->state[current - start].syntax == SyntaxTypeComment ||
+       code->state[current - start].syntax == SyntaxTypeString) return 0;
 
     char initial = *current;
     char seeking = 0;
@@ -307,8 +338,8 @@ const char* findMatchedDelim(Code* code, const char* current)
     {
         current += dir;
         // skip over anything inside a comment or string
-        if(code->syntax[current - start] == SyntaxTypeComment ||
-           code->syntax[current - start] == SyntaxTypeString) continue;
+        if(code->state[current - start].syntax == SyntaxTypeComment ||
+           code->state[current - start].syntax == SyntaxTypeString) continue;
         if(*current == seeking) return current;
         if(*current == initial) current = findMatchedDelim(code, current);
         if(!current) break;
@@ -347,7 +378,13 @@ static inline bool islineend(char c) {return c == '\n' || c == '\0';}
 static inline bool isalpha_(char c) {return isalpha(c) || c == '_';}
 static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
 
-static void parseCode(const tic_script_config* config, const char* start, u8* syntax)
+static void setCodeState(CodeState* state, u8 color, s32 start, s32 size)
+{
+    for(s32 i = start; i < (start + size); i++)
+        state[i].syntax = color;
+}
+
+static void parseCode(const tic_script_config* config, const char* start, CodeState* state)
 {
     const char* ptr = start;
 
@@ -367,7 +404,7 @@ static void parseCode(const tic_script_config* config, const char* start, u8* sy
             const char* end = strstr(ptr, config->blockCommentEnd);
 
             ptr = end ? end + strlen(config->blockCommentEnd) : blockCommentStart + strlen(blockCommentStart);
-            memset(syntax + (blockCommentStart - start), SyntaxTypeComment, ptr - blockCommentStart);
+            setCodeState(state, SyntaxTypeComment, blockCommentStart - start, ptr - blockCommentStart);
             blockCommentStart = NULL;
             continue;
         }
@@ -376,7 +413,7 @@ static void parseCode(const tic_script_config* config, const char* start, u8* sy
             const char* end = strstr(ptr, config->blockStringEnd);
 
             ptr = end ? end + strlen(config->blockStringEnd) : blockStringStart + strlen(blockStringStart);
-            memset(syntax + (blockStringStart - start), SyntaxTypeString, ptr - blockStringStart);
+            setCodeState(state, SyntaxTypeString, blockStringStart - start, ptr - blockStringStart);
             blockStringStart = NULL;
             continue;
         }
@@ -404,7 +441,7 @@ static void parseCode(const tic_script_config* config, const char* start, u8* sy
                 }
             }
 
-            memset(syntax + (blockStdStringStart - start), SyntaxTypeString, ptr - blockStdStringStart);
+            setCodeState(state, SyntaxTypeString, blockStdStringStart - start, ptr - blockStdStringStart);
             blockStdStringStart = NULL;
             continue;
         }
@@ -412,7 +449,7 @@ static void parseCode(const tic_script_config* config, const char* start, u8* sy
         {
             while(!islineend(*ptr))ptr++;
 
-            memset(syntax + (singleCommentStart - start), SyntaxTypeComment, ptr - singleCommentStart);
+            setCodeState(state, SyntaxTypeComment, singleCommentStart - start, ptr - singleCommentStart);
             singleCommentStart = NULL;
             continue;
         }
@@ -426,7 +463,7 @@ static void parseCode(const tic_script_config* config, const char* start, u8* sy
                 for(s32 i = 0; i < config->keywordsCount; i++)
                     if(len == strlen(config->keywords[i]) && memcmp(wordStart, config->keywords[i], len) == 0)
                     {
-                        memset(syntax + (wordStart - start), SyntaxTypeKeyword, len);
+                        setCodeState(state, SyntaxTypeKeyword, wordStart - start,len);
                         keyword = true;
                         break;
                     }
@@ -441,7 +478,7 @@ static void parseCode(const tic_script_config* config, const char* start, u8* sy
                 for(s32 i = 0; i < COUNT_OF(ApiKeywords); i++)
                     if(len == strlen(ApiKeywords[i]) && memcmp(wordStart, ApiKeywords[i], len) == 0)
                     {
-                        memset(syntax + (wordStart - start), SyntaxTypeApi, len);
+                        setCodeState(state, SyntaxTypeApi, wordStart - start, len);
                         break;
                     }
             }
@@ -471,7 +508,7 @@ static void parseCode(const tic_script_config* config, const char* start, u8* sy
                 else break;
             }
 
-            memset(syntax + (numberStart - start), SyntaxTypeNumber, ptr - numberStart);
+            setCodeState(state, SyntaxTypeNumber, numberStart - start, ptr - numberStart);
             numberStart = NULL;
             continue;
         }
@@ -513,8 +550,8 @@ static void parseCode(const tic_script_config* config, const char* start, u8* sy
                 ptr++;
                 continue;
             }
-            else if(ispunct(c)) syntax[ptr - start] = SyntaxTypeSign;
-            else if(iscntrl(c)) syntax[ptr - start] = SyntaxTypeOther;
+            else if(ispunct(c)) state[ptr - start].syntax = SyntaxTypeSign;
+            else if(iscntrl(c)) state[ptr - start].syntax = SyntaxTypeOther;
         }
 
         if(!c) break;
@@ -525,13 +562,14 @@ static void parseCode(const tic_script_config* config, const char* start, u8* sy
 
 static void parseSyntaxColor(Code* code)
 {
-    memset(code->syntax, SyntaxTypeVar, TIC_CODE_SIZE);
+    for(s32 i = 0; i < TIC_CODE_SIZE; i++)
+        code->state[i].syntax = SyntaxTypeVar;
 
     tic_mem* tic = code->tic;
 
     const tic_script_config* config = tic_core_script_config(tic);
 
-    parseCode(config, code->src, code->syntax);
+    parseCode(config, code->src, code->state);
 }
 
 static char* getLineByPos(Code* code, char* pos)
@@ -551,10 +589,9 @@ static char* getLine(Code* code)
     return getLineByPos(code, code->cursor.position);
 }
 
-static char* getPrevLine(Code* code)
+static char* getPrevLineByPos(Code* code, char* pos)
 {
     char* text = code->src;
-    char* pos = code->cursor.position;
     char* prevLine = text;
     char* line = text;
 
@@ -568,11 +605,9 @@ static char* getPrevLine(Code* code)
     return prevLine;
 }
 
-static char* getNextLineByPos(Code* code, char* pos)
+static char* getPrevLine(Code* code)
 {
-    while(*pos && *pos++ != '\n');
-
-    return pos;
+    return getPrevLineByPos(code, code->cursor.position);
 }
 
 static char* getNextLine(Code* code)
@@ -748,43 +783,28 @@ static void pageDown(Code* code)
     setCursorPosition(code, column, line < lines - TEXT_BUFFER_HEIGHT ? line + TEXT_BUFFER_HEIGHT : lines);
 }
 
-static s32 calcLines(const char* start, const char* end)
-{
-    s32 count = 0;
-    while(start < end)
-        if(*start++ == '\n')
-            count++;
-
-    return count;
-}
-
-static void updateBookmarks(Code* code, s32 start, s32 delta)
-{
-    for(s32 i = 0; i < code->bookmarks.size; i++)
-        if(code->bookmarks.items[i] > start)
-            code->bookmarks.items[i] += delta;
-}
-
 static void deleteCode(Code* code, char* start, char* end)
 {
-    s32 count = calcLines(code->src, start);
-    s32 delta = calcLines(start, end);
+    s32 size = strlen(end) + 1;
+    memmove(start, end, size);
 
-    memmove(start, end, strlen(end) + 1);
-
-    updateBookmarks(code, count, -delta);
+    // delete code state
+    memmove(getState(code, start), getState(code, end), size);
 }
 
 static void insertCode(Code* code, char* dst, const char* src)
 {
     s32 size = strlen(src);
-    memmove(dst + size, dst, strlen(dst) + 1);
+    s32 restSize = strlen(dst) + 1;
+    memmove(dst + size, dst, restSize);
     memcpy(dst, src, size);
 
-    s32 count = calcLines(code->src, dst);
-    s32 delta = calcLines(dst, dst + size);
-
-    updateBookmarks(code, count, delta);
+    // insert code state
+    {
+        CodeState* pos = getState(code, dst);
+        memmove(pos + size, pos, restSize);
+        memset(pos, 0, size);
+    }
 }
 
 static bool replaceSelection(Code* code)
@@ -972,8 +992,6 @@ static void copyFromClipboard(Code* code)
             {
                 replaceSelection(code);
 
-                char* pos = code->cursor.position;
-
                 // cut clipboard code if overall code > max code size
                 {
                     size_t codeSize = strlen(code->src);
@@ -985,7 +1003,7 @@ static void copyFromClipboard(Code* code)
                     }
                 }
 
-                insertCode(code, pos, clipboard);
+                insertCode(code, code->cursor.position, clipboard);
 
                 code->cursor.position += size;
 
@@ -1007,16 +1025,18 @@ static void update(Code* code)
 
 static void undo(Code* code)
 {
-    history_undo(code->history);
-    history_undo(code->cursorHistory);
+    history_undo(code->history.code);
+    history_undo(code->history.cursor);
+    history_undo(code->history.state);
 
     update(code);
 }
 
 static void redo(Code* code)
 {
-    history_redo(code->history);
-    history_redo(code->cursorHistory);
+    history_redo(code->history.code);
+    history_redo(code->history.cursor);
+    history_redo(code->history.state);
 
     update(code);
 }
@@ -1215,7 +1235,7 @@ static void initOutlineMode(Code* code)
                 char buffer[STUDIO_TEXT_BUFFER_WIDTH] = {0};
                 memcpy(buffer, item->pos, MIN(item->size, sizeof(buffer)));
 
-                if(code->syntax[item->pos - code->src] == SyntaxTypeComment)
+                if(code->state[item->pos - code->src].syntax == SyntaxTypeComment)
                     continue;
 
                 if(*filter && !isFilterMatch(buffer, filter))
@@ -1296,6 +1316,44 @@ static void commentLine(Code* code)
     parseSyntaxColor(code);
 }
 
+static bool goPrevBookmark(Code* code, char* ptr)
+{
+    const CodeState* state = getState(code, ptr);
+    while(ptr >= code->src)
+    {
+        if(state->bookmark)
+        {
+            updateCursorPosition(code, ptr);
+            centerScroll(code);
+            return true;
+        }
+
+        ptr--;
+        state--;
+    }
+
+    return false;
+}
+
+static bool goNextBookmark(Code* code, char* ptr)
+{
+    const CodeState* state = getState(code, ptr);
+    while(*ptr)
+    {
+        if(state->bookmark)
+        {
+            updateCursorPosition(code, ptr);
+            centerScroll(code);
+            return true;
+        }
+
+        ptr++;
+        state++;
+    }
+
+    return false;
+}
+
 static void processKeyboard(Code* code)
 {
     tic_mem* tic = code->tic;
@@ -1338,60 +1396,22 @@ static void processKeyboard(Code* code)
     {
         if(ctrl && shift)
         {
-            code->bookmarks.size = 0;
-            code->bookmarks.items = realloc(code->bookmarks.items, 0);
+            for(s32 i = 0; i < TIC_CODE_SIZE; i++)
+                code->state[i].bookmark = 0;
         }
         else if(ctrl)
         {
-            s32 col, row;
-            getCursorPosition(code, &col, &row);
-            toggleBookmark(code, row);
+            toggleBookmark(code, getLineByPos(code, code->cursor.position));
         }
         else if(shift)
         {
-            s32 col, row;
-            getCursorPosition(code, &col, &row);
-
-            bool done = false;
-            for(s32 i = code->bookmarks.size - 1; i >= 0; i--)
-            {
-                if(code->bookmarks.items[i] < row)
-                {
-                    setCursorPosition(code, col, code->bookmarks.items[i]);
-                    centerScroll(code);
-                    done = true;
-                    break;
-                }
-            }
-
-            if(!done && code->bookmarks.size)
-            {
-                setCursorPosition(code, col, code->bookmarks.items[code->bookmarks.size-1]);
-                centerScroll(code);
-            }
+            if(!goPrevBookmark(code, getPrevLineByPos(code, code->cursor.position)))
+                goPrevBookmark(code, code->src + strlen(code->src));
         }
         else
         {
-            s32 col, row;
-            getCursorPosition(code, &col, &row);
-
-            bool done = false;
-            for(s32 i = 0; i < code->bookmarks.size; i++)
-            {
-                if(code->bookmarks.items[i] > row)
-                {
-                    setCursorPosition(code, col, code->bookmarks.items[i]);
-                    centerScroll(code);
-                    done = true;
-                    break;
-                }
-            }
-
-            if(!done && code->bookmarks.size)
-            {
-                setCursorPosition(code, col, code->bookmarks.items[0]);
-                centerScroll(code);
-            }
+            if(!goNextBookmark(code, getNextLineByPos(code, code->cursor.position)))
+                goNextBookmark(code, code->src);
         }
     }
     else usedKeybinding = false;
@@ -2032,11 +2052,12 @@ static void onStudioEvent(Code* code, StudioEvent event)
 
 void initCode(Code* code, tic_mem* tic, tic_code* src)
 {
-    if(code->syntax == NULL)
-        code->syntax = malloc(TIC_CODE_SIZE);
+    if(code->state == NULL)
+        code->state = calloc(TIC_CODE_SIZE, sizeof(CodeState));
 
-    if(code->history) history_delete(code->history);
-    if(code->cursorHistory) history_delete(code->cursorHistory);
+    if(code->history.code) history_delete(code->history.code);
+    if(code->history.cursor) history_delete(code->history.cursor);
+    if(code->history.state) history_delete(code->history.state);
 
     *code = (Code)
     {
@@ -2046,10 +2067,14 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
         .escape = escape,
         .cursor = {{src->data, NULL, 0}, NULL, 0},
         .scroll = {0, 0, {0, 0}, false},
-        .syntax = code->syntax,
+        .state = code->state,
         .tickCounter = 0,
-        .history = NULL,
-        .cursorHistory = NULL,
+        .history = 
+        {
+            .code = NULL,
+            .cursor = NULL,
+            .state = NULL,
+        },
         .mode = TEXT_EDIT_MODE,
         .jump = {.line = -1},
         .popup =
@@ -2063,11 +2088,6 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
             .size = 0,
             .index = 0,
         },
-        .bookmarks =
-        {
-            .items = NULL,
-            .size = 0,
-        },
         .matchedDelim = NULL,
         .altFont = getConfig()->theme.code.altFont,
         .shadowText = getConfig()->theme.code.shadow,
@@ -2075,17 +2095,18 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
         .update = update,
     };
 
-    code->history = history_create(code->src, sizeof(tic_code));
-    code->cursorHistory = history_create(&code->cursor, sizeof code->cursor);
+    code->history.code = history_create(code->src, sizeof(tic_code));
+    code->history.cursor = history_create(&code->cursor, sizeof code->cursor);
+    code->history.state = history_create(code->state, sizeof(CodeState) * TIC_CODE_SIZE);
 
     update(code);
 }
 
 void freeCode(Code* code)
 {
-    free(code->bookmarks.items);
-    free(code->syntax);
-    history_delete(code->history);
-    history_delete(code->cursorHistory);
+    free(code->state);
+    history_delete(code->history.code);
+    history_delete(code->history.cursor);
+    history_delete(code->history.state);
     free(code);
 }

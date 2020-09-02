@@ -57,15 +57,24 @@ struct Code
 
     } scroll;
 
-    u8* syntax;
+    struct CodeState
+    {
+        u8 syntax:3;
+        u8 bookmark:1;
+        u8 temp:4;
+    }* state;
 
     char statusLine[STUDIO_TEXT_BUFFER_WIDTH];
     char statusSize[STUDIO_TEXT_BUFFER_WIDTH];
 
     u32 tickCounter;
 
-    struct History* history;
-    struct History* cursorHistory;
+    struct
+    {
+        struct History* code;
+        struct History* cursor;
+        struct History* state;
+    } history;
 
     enum
     {
@@ -96,12 +105,6 @@ struct Code
         s32 size;
         s32 index;
     } outline;
-
-    struct
-    {
-        s32* items;
-        s32 size;
-    } bookmarks;
 
     const char* matchedDelim;
     bool altFont;
