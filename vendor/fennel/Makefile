@@ -1,22 +1,11 @@
-fennel.h: fennel.lua
+fennel.h: loadfennel.lua
 	xxd -i $^ > $@
 
-# This is simpler than hacking package.searchers for one file.
-fennel.lua: fennel_original.lua fennelfriend.lua
-	sed "s/return module/package.loaded['fennel'] = module/" $< > $@
-	echo "package.preload.fennelfriend = function()" >> $@
-	cat fennelfriend.lua >> $@
-	echo "end" >> $@
+# A modified copy of Fennel that puts itself into package.loaded rather
+# than simply returning module, since it won't be loaded properly with require.
+loadfennel.lua: fennel.lua
+	sed "s/return mod/package.loaded['fennel'] = mod/" $< > $@
 
 # Assuming you have a checkout as a sibling dir to this repo.
-fennel_original.lua: ../../../fennel/fennel.lua
+fennel.lua: ../../../fennel/fennel.lua
 	cp $< $@
-
-fennelfriend.lua: ../../../fennel/fennelfriend.lua
-	cp $< $@
-
-update: fennel_original.lua fennelfriend.lua
-
-clean: ; rm fennel.lua fennel_original.lua fennelfriend.lua
-
-.PHONY: update clean
