@@ -1707,7 +1707,6 @@ const tic_script_config* getMoonScriptConfig()
 
 static const char* execute_fennel_src = FENNEL_CODE(
   local opts = {filename="game", correlate=true, allowedGlobals=false}
-  for k,v in pairs(require("fennelfriend")) do opts[k] = v end
   local ok, msg = pcall(require('fennel').eval, ..., opts)
   if(not ok) then return msg end
 );
@@ -1727,7 +1726,8 @@ static bool initFennel(tic_mem* tic, const char* code)
 
         lua_settop(fennel, 0);
 
-        if (luaL_loadbuffer(fennel, (const char *)fennel_lua, fennel_lua_len, "fennel.lua") != LUA_OK)
+        if (luaL_loadbuffer(fennel, (const char *)loadfennel_lua,
+                            loadfennel_lua_len, "fennel.lua") != LUA_OK)
         {
             machine->data->error(machine->data->data, "failed to load fennel compiler");
             return false;
@@ -1760,9 +1760,9 @@ static const char* const FennelKeywords [] =
     "lua", "hashfn","macro", "macros", "macroexpand", "macrodebug",
     "do", "values", "if", "when", "each", "for", "fn", "lambda", "partial",
     "while", "set", "global", "var", "local", "let", "tset", "doto", "match",
-    "or", "and", "true", "false", "nil", "not", "not=",
+    "or", "and", "true", "false", "nil", "not", "not=", "length", "set-forcibly!",
     "rshift", "lshift", "bor", "band", "bnot" "bxor", "pick-values", "pick-args",
-    ".", "..", "#", "...", ":", "->", "->>", "-?>", "-?>>", "$"
+    ".", "..", "#", "...", ":", "->", "->>", "-?>", "-?>>", "$", "with-open"
 };
 
 static const tic_outline_item* getFennelOutline(const char* code, s32* size)
