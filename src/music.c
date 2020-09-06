@@ -958,8 +958,11 @@ static void processTrackerKeyboard(Music* music)
     else if(keyWasPressed(tic_key_space)) 
     {
         const tic_track_pattern* pattern = getChannelPattern(music);
-        const tic_track_row* row = &pattern->rows[music->tracker.edit.y];
-        playNote(music, row);
+        if(pattern)
+        {
+            const tic_track_row* row = &pattern->rows[music->tracker.edit.y];
+            playNote(music, row);            
+        }
     }
 
     if(shift)
