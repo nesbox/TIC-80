@@ -156,3 +156,11 @@ build/windows/tic80.rc
 *.ninja
 tic80.sublime-workspace
 build/*.tic
+build/*.vcxproj
+build/*.vcxproj.filters
+build/*.vcxproj.user
+build/CMakeDoxyfile.in
+build/*.sln
+build/.local/
+build/*.dir/
+build/x64/
