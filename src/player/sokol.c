@@ -41,6 +41,8 @@ static void app_init(void)
     }
 
     sokol_gfx_init(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, 1, 1, false, false);
+
+    stm_setup();
 }
 
 static tic80_input tic_input;

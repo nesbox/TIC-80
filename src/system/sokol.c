@@ -78,12 +78,12 @@ static void freeClipboardText(const char* text)
 
 static u64 getPerformanceCounter()
 {
-    return 0;
+    return stm_now();
 }
 
 static u64 getPerformanceFrequency()
 {
-    return 1000;
+    return 1000000000;
 }
 
 static void* httpGetSync(const char* url, s32* size)
@@ -163,6 +163,8 @@ static System systemInterface =
 static void app_init(void)
 {
     sokol_gfx_init(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, 1, 1, false, true);
+
+    stm_setup();
 
     platform.audio.samples = calloc(sizeof platform.audio.samples[0], saudio_sample_rate() / TIC80_FRAMERATE * TIC_STEREO_CHANNELS);
 }
