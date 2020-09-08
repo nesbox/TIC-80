@@ -118,3 +118,23 @@ make -j4
 You can find iOS/tvOS version here 
 - 0.60.3: https://github.com/brunophilipe/TIC-80
 - 0.45.0: https://github.com/CliffsDover/TIC-80
+
+## Credits
+
+* Filippo Rivato - [Twitter @HomineLudens](https://twitter.com/HomineLudens)  
+* Fred Bednarski - [Twitter @FredBednarski](https://twitter.com/FredBednarski)  
+* Al Rado - [Twitter @alrado2](https://twitter.com/alrado2)  
+* Trevor Martin - [Twitter @trelemar](https://twitter.com/trelemar)  
+* MonstersGoBoom - [Twitter @MonstersGoBoom](https://twitter.com/MonstersGo)  
+* Matheus Lessa - [Twitter @matheuslrod](https://twitter.com/matheuslrod)  
+* CliffsDover - [Twitter @DancingBottle](https://twitter.com/DancingBottle)  
+* Frantisek Jahoda - [GitHub @jahodfra](https://github.com/jahodfra)  
+* Guilherme Medeiros - [GitHub @frenetic](https://github.com/frenetic)  
+* Andrei Rudenko - [GitHub @RudenkoArts](https://github.com/RudenkoArts)  
+* Phil Hagelberg - [@technomancy](https://technomancy.us/colophon)  
+* Rob Loach - [Twitter @RobLoach](https://twitter.com/RobLoach) [GitHub @RobLoach](https://github.com/RobLoach)
+* Wade Brainerd - [GitHub @wadetb](https://github.com/wadetb)
+* Paul Robinson - [GitHub @paul59](https://github.com/paul59)
+* Stefan Devai - [GitHub @stefandevai](https://github.com/stefandevai) [Blog stefandevai.me](https://stefandevai.me)
+* Damien de Lemeny - [GitHub @ddelemeny](https://github.com/ddelemeny)
+* Adrian Siekierka - [GitHub @asiekierka](https://github.com/asiekierka) [Website](https://asie.pl/)
