@@ -2053,7 +2053,7 @@ static void onStudioEvent(Code* code, StudioEvent event)
 void initCode(Code* code, tic_mem* tic, tic_code* src)
 {
     if(code->state == NULL)
-        code->state = calloc(TIC_CODE_SIZE, sizeof(CodeState));
+        free(code->state);
 
     if(code->history.code) history_delete(code->history.code);
     if(code->history.cursor) history_delete(code->history.cursor);
@@ -2067,7 +2067,7 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
         .escape = escape,
         .cursor = {{src->data, NULL, 0}, NULL, 0},
         .scroll = {0, 0, {0, 0}, false},
-        .state = code->state,
+        .state = calloc(TIC_CODE_SIZE, sizeof(CodeState)),
         .tickCounter = 0,
         .history = 
         {
