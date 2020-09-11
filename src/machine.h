@@ -198,6 +198,7 @@ typedef struct
     {
         tic_machine_state_data state;   
         tic_ram ram;
+        u8 input;
 
         struct
         {

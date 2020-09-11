@@ -680,6 +680,7 @@ void tic_core_pause(tic_mem* memory)
 
     memcpy(&machine->pause.state, &machine->state, sizeof(tic_machine_state_data));
     memcpy(&machine->pause.ram, &memory->ram, sizeof(tic_ram));
+    machine->pause.input = memory->input.data;
     memset(&machine->state.ovr, 0, sizeof machine->state.ovr);
 
     if (machine->data)
@@ -697,7 +698,7 @@ void tic_core_resume(tic_mem* memory)
     {
         memcpy(&machine->state, &machine->pause.state, sizeof(tic_machine_state_data));
         memcpy(&memory->ram, &machine->pause.ram, sizeof(tic_ram));
-
+        memory->input.data = machine->pause.input;
         machine->data->start = machine->pause.time.start + machine->data->counter() - machine->pause.time.paused;
     }
 }
