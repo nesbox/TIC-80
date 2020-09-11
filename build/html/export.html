@@ -18,6 +18,9 @@
 
         /* You can set custom dimensions here */
         .game { width: 100vw; height: 100vh; }
+
+        /* Uncomment to remove the frame on top of the canvas and start the game directly */
+        /* #game-frame { display: none; } */
     </style>
 </head>
 <body style="margin:0; padding:0;">
@@ -43,17 +46,26 @@
     </div>
 
     <script type="text/javascript">
-        var Module = {canvas: document.getElementById('canvas')}
+        var Module = {canvas: document.getElementById('canvas'), arguments:['cart.tic']}
 
         const gameFrame = document.getElementById('game-frame')
+        const displayStyle = window.getComputedStyle(gameFrame).display;
 
-        gameFrame.addEventListener('click', function() {
+        if (displayStyle === 'none') 
+        {
             let scriptTag = document.createElement('script'), // create a script tag
             firstScriptTag = document.getElementsByTagName('script')[0]; // find the first script tag in the document
             scriptTag.src = 'tic80.js'; // set the source of the script to your script
             firstScriptTag.parentNode.insertBefore(scriptTag, firstScriptTag); // append the script to the DOM
-            this.remove()
-        });
+        } else {
+            gameFrame.addEventListener('click', function() {
+                let scriptTag = document.createElement('script'), // create a script tag
+                firstScriptTag = document.getElementsByTagName('script')[0]; // find the first script tag in the document
+                scriptTag.src = 'tic80.js'; // set the source of the script to your script
+                firstScriptTag.parentNode.insertBefore(scriptTag, firstScriptTag); // append the script to the DOM
+                this.remove()
+            });
+        }
     </script>
 </body>
 </html>

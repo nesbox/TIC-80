@@ -67,12 +67,18 @@ matrix:
       services:
         - docker
       install:
+        - sudo apt-get install zip
         - docker run -dit --name emscripten -v $(pwd):/src emscripten/emsdk bash
       script:
         - docker exec -it emscripten emcmake cmake -DCMAKE_BUILD_TYPE=MinSizeRel .
         - docker exec -it emscripten make -j$(nproc)
       after_success:
-        - cp $HOME/build/nesbox/TIC-80/build/html/index.html $HOME/build/nesbox/TIC-80/bin/index.html
-        - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/bin tic80.js tic80.wasm index.html
-        - sha256sum tic80.tar.gz
-        - curl --retry 3 --ftp-create-dirs -T tic80.tar.gz $BUILDS_SERVER_PATH/
+        - cd $HOME/build/nesbox/TIC-80
+        - mkdir out
+        - cp build/html/index.html out/index.html
+        - cp bin/tic80.wasm out/tic80.wasm
+        - cp bin/tic80.js out/tic80.js
+        - cd out
+        - zip tic80.zip *
+        - sha256sum tic80-wasm.zip
+        - curl --retry 3 --ftp-create-dirs -T tic80-wasm.zip $BUILDS_SERVER_PATH/
