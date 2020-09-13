@@ -1776,8 +1776,17 @@ static void onConsoleExportHtmlCommand(Console* console, const char* providedNam
 {
     tic_mem* tic = console->tic;
 
+#if defined(__TIC_WINDOWS__)
+
+    static const char HtmlName[] = "html.zip";
+    const char* name = HtmlName;
+
+#else
+
     static const char HtmlName[] = TIC_CACHE "html.zip";
     const char* name = fsGetRootFilePath(console->fs, HtmlName);
+
+#endif
 
     struct zip_t *zip = zip_open(name, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
     bool errorOccured = false;
@@ -1844,7 +1853,33 @@ static void onConsoleExportHtmlCommand(Console* console, const char* providedNam
         if(!errorOccured)
         {
             s32 size = 0;
+
+#if defined(__TIC_WINDOWS__)
+            // Temporary workaround for #1169, because ZIP lib doesn't work with wide filenames,
+            // we store it the working dir and remove at the end.
+            void* data = NULL;
+            {
+                FILE* file = fopen(HtmlName, "rb");
+
+                if(file)
+                {
+                    fseek(file, 0, SEEK_END);
+                    size = ftell(file);
+                    fseek(file, 0, SEEK_SET);
+
+                    data = malloc(size);
+
+                    if(data)
+                        fread(data, size, 1, file);
+
+                    fclose(file);
+                }
+
+                remove(HtmlName);
+            }
+#else
             void* data = fsLoadRootFile(console->fs, HtmlName, &size);
+#endif
 
             if(data && providedName)
             {

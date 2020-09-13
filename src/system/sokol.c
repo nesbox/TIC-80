@@ -187,6 +187,8 @@ static void app_frame(void)
 {
     if(platform.studio->quit) exit(0);
 
+    netTick(platform.net);
+
     tic_mem* tic = platform.studio->tic;
     tic80_input* input = &tic->ram.input;
 
