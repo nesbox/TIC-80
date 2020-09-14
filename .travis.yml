@@ -55,15 +55,23 @@ matrix:
         - ./gradlew assembleRelease
 
       after_success:
-        - cp app/build/outputs/apk/universal/release/app-universal-release.apk tic80.apk
-        - sha256sum tic80.apk
-        - curl --retry 3 --ftp-create-dirs -T tic80.apk $BUILDS_SERVER_PATH/
+        - cp app/build/outputs/apk/arm7/release/app-arm7-release.apk tic80_arm7.apk
+        - cp app/build/outputs/apk/arm8/release/app-arm8-release.apk tic80_arm8.apk
+        - cp app/build/outputs/apk/x86_64/release/app-x86_64-release.apk tic80_x86_64.apk
+        - cp app/build/outputs/apk/x86/release/app-x86-release.apk tic80_x86.apk
+        - sha256sum tic80_arm7.apk
+        - sha256sum tic80_arm8.apk
+        - sha256sum tic80_x86_64.apk
+        - sha256sum tic80_x86.apk
+        - curl --retry 3 --ftp-create-dirs -T tic80_arm7.apk $BUILDS_SERVER_PATH/
+        - curl --retry 3 --ftp-create-dirs -T tic80_arm8.apk $BUILDS_SERVER_PATH/
+        - curl --retry 3 --ftp-create-dirs -T tic80_x86_64.apk $BUILDS_SERVER_PATH/
+        - curl --retry 3 --ftp-create-dirs -T tic80_x86.apk $BUILDS_SERVER_PATH/
 
     - os: linux
       dist: trusty
       env:
         - OS_FOLDER=wasm
-      sudo: required
       services:
         - docker
       install:
@@ -79,6 +87,6 @@ matrix:
         - cp bin/tic80.wasm out/tic80.wasm
         - cp bin/tic80.js out/tic80.js
         - cd out
-        - zip tic80.zip *
+        - zip tic80-wasm.zip *
         - sha256sum tic80-wasm.zip
         - curl --retry 3 --ftp-create-dirs -T tic80-wasm.zip $BUILDS_SERVER_PATH/

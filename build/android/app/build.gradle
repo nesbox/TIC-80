@@ -6,8 +6,8 @@ android {
         applicationId 'com.nesbox.tic'
         minSdkVersion 16
         targetSdkVersion 26
-        versionCode 8000
-        versionName '0.80.0'
+        versionCode 8003
+        versionName '0.80.03'
     }
 
     signingConfigs {
@@ -36,35 +36,35 @@ android {
 
     flavorDimensions 'cpuArch'
     productFlavors {
-        // arm7 {
-        //     dimension 'cpuArch'
-        //     ndk {
-        //         abiFilter 'armeabi-v7a'
-        //     }
-        // }
-        // arm8 {
-        //     dimension 'cpuArch'
-        //     ndk {
-        //         abiFilters 'arm64-v8a'
-        //     }
-        // }
-        // x86 {
-        //     dimension 'cpuArch'
-        //     ndk {
-        //         abiFilter 'x86'
-        //     }
-        // }
-        // x86_64 {
-        //     dimension 'cpuArch'
-        //     ndk {
-        //         abiFilter 'x86_64'
-        //     }
-        // }
-        universal {
+        arm7 {
             dimension 'cpuArch'
-            // include all default ABIs. with NDK-r16,  it is:
-            //   armeabi-v7a, arm64-v8a, x86, x86_64
+            ndk {
+                abiFilter 'armeabi-v7a'
+            }
         }
+        arm8 {
+            dimension 'cpuArch'
+            ndk {
+                abiFilters 'arm64-v8a'
+            }
+        }
+        x86 {
+            dimension 'cpuArch'
+            ndk {
+                abiFilter 'x86'
+            }
+        }
+        x86_64 {
+            dimension 'cpuArch'
+            ndk {
+                abiFilter 'x86_64'
+            }
+        }
+        // universal {
+        //     dimension 'cpuArch'
+        //     // include all default ABIs. with NDK-r16,  it is:
+        //     //   armeabi-v7a, arm64-v8a, x86, x86_64
+        // }
     }
 }
 

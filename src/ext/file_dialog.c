@@ -344,9 +344,19 @@ void file_dialog_save(file_dialog_save_callback callback, const char* name, cons
 
 #elif defined(__TIC_ANDROID__)
 
+#include "SDL.h"
+
 #include <stdlib.h>
 #include <jni.h>
 #include <sys/stat.h>
+#include <android/log.h>
+
+#define  LOG_TAG    "[TIC-80]"
+
+#define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
+#define  LOGW(...)  __android_log_print(ANDROID_LOG_WARN,LOG_TAG,__VA_ARGS__)
+#define  LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG,LOG_TAG,__VA_ARGS__)
+#define  LOGI(...)  __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
 
 void file_dialog_load(file_dialog_load_callback callback, void* data)
 {

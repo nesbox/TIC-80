@@ -75,11 +75,11 @@ public class FileSelector {
 		mContext = context;
 		mOnHandleFileListener = onHandleFileListener;
 
-		final File sdCard = Environment.getExternalStorageDirectory();
+		final File sdCard = context.getExternalFilesDir(null);
 		if (sdCard.canRead()) {
 			mCurrentLocation = sdCard;
 		} else {
-			mCurrentLocation = Environment.getRootDirectory();
+			mCurrentLocation = context.getFilesDir();
 		}
 
 		mDialog = new Dialog(context);
