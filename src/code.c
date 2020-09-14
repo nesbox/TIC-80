@@ -840,6 +840,8 @@ static void deleteChar(Code* code)
         history(code);
         parseSyntaxColor(code);
     }
+
+    updateEditor(code);
 }
 
 static void backspaceChar(Code* code)
@@ -851,6 +853,8 @@ static void backspaceChar(Code* code)
         history(code);
         parseSyntaxColor(code);
     }
+
+    updateEditor(code);
 }
 
 static void deleteWord(Code* code)
