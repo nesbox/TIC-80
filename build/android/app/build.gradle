@@ -60,11 +60,11 @@ android {
                 abiFilter 'x86_64'
             }
         }
-        // universal {
-        //     dimension 'cpuArch'
-        //     // include all default ABIs. with NDK-r16,  it is:
-        //     //   armeabi-v7a, arm64-v8a, x86, x86_64
-        // }
+        universal {
+            dimension 'cpuArch'
+            // include all default ABIs. with NDK-r16,  it is:
+            //   armeabi-v7a, arm64-v8a, x86, x86_64
+        }
     }
 }
 
