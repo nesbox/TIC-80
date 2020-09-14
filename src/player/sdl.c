@@ -24,6 +24,8 @@
 #include <SDL.h>
 #include <tic80.h>
 
+#define TIC80_WINDOW_SCALE 3
+
 static struct
 {
 	bool quit;
@@ -57,17 +59,17 @@ int main(int argc, char **argv)
 			SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 
 			{
-				SDL_Window* window = SDL_CreateWindow("TIC-80 SDL demo", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+				SDL_Window* window = SDL_CreateWindow("TIC-80 SDL demo", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, TIC80_FULLWIDTH * TIC80_WINDOW_SCALE, TIC80_FULLHEIGHT * TIC80_WINDOW_SCALE, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
 				SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 				SDL_Texture* texture = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_ABGR8888, SDL_TEXTUREACCESS_STREAMING, TIC80_FULLWIDTH, TIC80_FULLHEIGHT);
-				
+
 				SDL_AudioDeviceID audioDevice = 0;
 				SDL_AudioSpec audioSpec;
 				SDL_AudioCVT cvt;
 				bool audioStarted = false;
 
 				{
-					SDL_AudioSpec want = 
+					SDL_AudioSpec want =
 					{
 						.freq = TIC80_SAMPLERATE,
 						.format = AUDIO_S16,
@@ -94,7 +96,7 @@ int main(int argc, char **argv)
 				tic->callback.exit = onExit;
 
 				tic80_load(tic, cart, size);
-				
+
 				if(tic)
 				{
 					u64 nextTick = SDL_GetPerformanceCounter();
@@ -118,8 +120,8 @@ int main(int argc, char **argv)
 							input.gamepads.data = 0;
 							const uint8_t* keyboard = SDL_GetKeyboardState(NULL);
 
-							static const SDL_Scancode Keys[] = 
-							{ 
+							static const SDL_Scancode Keys[] =
+							{
 								SDL_SCANCODE_UP,
 								SDL_SCANCODE_DOWN,
 								SDL_SCANCODE_LEFT,
@@ -168,10 +170,25 @@ int main(int argc, char **argv)
 						{
 							void* pixels = NULL;
 							int pitch = 0;
+							SDL_Rect destination;
 							SDL_LockTexture(texture, NULL, &pixels, &pitch);
 							SDL_memcpy(pixels, tic->screen, pitch * TIC80_FULLHEIGHT);
 							SDL_UnlockTexture(texture);
-							SDL_RenderCopy(renderer, texture, NULL, NULL);
+
+							// Render the image in the proper aspect ratio.
+							{
+								int windowWidth, windowHeight;
+								SDL_GetWindowSize(window, &windowWidth, &windowHeight);
+								float widthRatio = (float)windowWidth / (float)TIC80_FULLWIDTH;
+								float heightRatio = (float)windowHeight / (float)TIC80_FULLHEIGHT;
+								float optimalSize = widthRatio < heightRatio ? widthRatio : heightRatio;
+								destination.w = TIC80_FULLWIDTH * optimalSize;
+								destination.h = TIC80_FULLHEIGHT * optimalSize;
+								destination.x = windowWidth / 2 - destination.w / 2;
+								destination.y = windowHeight / 2 - destination.h / 2;
+							}
+
+							SDL_RenderCopy(renderer, texture, NULL, &destination);
 						}
 
 						SDL_RenderPresent(renderer);
@@ -179,7 +196,7 @@ int main(int argc, char **argv)
 						{
 							s64 delay = nextTick - SDL_GetPerformanceCounter();
 
-							if (delay < 0) 
+							if (delay < 0)
 								nextTick -= delay;
 							else SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
 						}
