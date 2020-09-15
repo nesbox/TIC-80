@@ -955,6 +955,7 @@ static void renderKeyboard()
 {
     const s32 tileSize = platform.keyboard.touch.button.size;
 
+    if(!SDL_IsTextInputActive())
     {
         GPU_Rect src = {0, 2*TIC_SPRITESIZE, TIC_SPRITESIZE * 2, TIC_SPRITESIZE};
         const SDL_Point* pos = &platform.keyboard.touch.button.pos;

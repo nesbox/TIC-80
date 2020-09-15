@@ -1472,11 +1472,12 @@ static void processMouse(Code* code)
 
     if(checkMousePos(&rect))
     {
-        setCursor(tic_cursor_ibeam);
+        bool useDrag = (code->mode == TEXT_DRAG_CODE && checkMouseDown(&rect, tic_mouse_left)) || checkMouseDown(&rect, tic_mouse_right);
+        setCursor(code->mode == TEXT_DRAG_CODE || useDrag ? tic_cursor_hand : tic_cursor_ibeam);
 
         if(code->scroll.active)
         {
-            if(checkMouseDown(&rect, tic_mouse_right))
+            if(useDrag)
             {
                 code->scroll.x = (code->scroll.start.x - getMouseX()) / getFontWidth(code);
                 code->scroll.y = (code->scroll.start.y - getMouseY()) / STUDIO_TEXT_HEIGHT;
@@ -1487,45 +1488,59 @@ static void processMouse(Code* code)
         }
         else
         {
-            if(checkMouseDown(&rect, tic_mouse_left))
-            {
-                s32 mx = getMouseX();
-                s32 my = getMouseY();
-
-                s32 x = (mx - rect.x) / getFontWidth(code);
-                s32 y = (my - rect.y) / STUDIO_TEXT_HEIGHT;
-
-                char* position = code->cursor.position;
-                setCursorPosition(code, x + code->scroll.x, y + code->scroll.y);
-
-                if(tic_api_key(tic, tic_key_shift))
-                {
-                    code->cursor.selection = code->cursor.position;
-                    code->cursor.position = position;
-                }
-                else if(!code->cursor.mouseDownPosition)
-                {
-                    code->cursor.selection = code->cursor.position;
-                    code->cursor.mouseDownPosition = code->cursor.position;
-                }
-            }
-            else
-            {
-                if(code->cursor.mouseDownPosition == code->cursor.position)
-                    code->cursor.selection = NULL;
-
-                code->cursor.mouseDownPosition = NULL;
-            }
-
-            if(checkMouseDown(&rect, tic_mouse_right))
+            if(useDrag)
             {
                 code->scroll.active = true;
 
                 code->scroll.start.x = getMouseX() + code->scroll.x * getFontWidth(code);
                 code->scroll.start.y = getMouseY() + code->scroll.y * STUDIO_TEXT_HEIGHT;
             }
+            else 
+            {
+                if(checkMouseDown(&rect, tic_mouse_left))
+                {
+                    s32 mx = getMouseX();
+                    s32 my = getMouseY();
+
+                    s32 x = (mx - rect.x) / getFontWidth(code);
+                    s32 y = (my - rect.y) / STUDIO_TEXT_HEIGHT;
+
+                    char* position = code->cursor.position;
+                    setCursorPosition(code, x + code->scroll.x, y + code->scroll.y);
+
+                    if(tic_api_key(tic, tic_key_shift))
+                    {
+                        code->cursor.selection = code->cursor.position;
+                        code->cursor.position = position;
+                    }
+                    else if(!code->cursor.mouseDownPosition)
+                    {
+                        code->cursor.selection = code->cursor.position;
+                        code->cursor.mouseDownPosition = code->cursor.position;
+                    }
+                }
+                else
+                {
+                    if(code->cursor.mouseDownPosition == code->cursor.position)
+                        code->cursor.selection = NULL;
+
+                    code->cursor.mouseDownPosition = NULL;
+                }
+            }
         }
     }
+}
+
+static void textDragTick(Code* code)
+{
+    tic_mem* tic = code->tic;
+
+    processMouse(code);
+
+    tic_api_cls(code->tic, getConfig()->theme.code.bg);
+
+    drawCode(code, true);   
+    drawStatus(code);
 }
 
 static void textEditTick(Code* code)
@@ -1933,6 +1948,15 @@ static void drawCodeToolbar(Code* code)
         0b00000000,
 
         0b00000000,
+        0b00011000,
+        0b00011100,
+        0b01011100,
+        0b00111100,
+        0b00011000,
+        0b00000000,
+        0b00000000,
+
+        0b00000000,
         0b00111000,
         0b01000100,
         0b00111000,
@@ -1963,7 +1987,7 @@ static void drawCodeToolbar(Code* code)
     enum {Count = sizeof Icons / BITS_IN_BYTE};
     enum {Size = 7};
 
-    static const char* Tips[] = {"RUN [ctrl+r]","FIND [ctrl+f]", "GOTO [ctrl+g]", "OUTLINE [ctrl+o]"};
+    static const char* Tips[] = {"RUN [ctrl+r]", "DRAG [right mouse]", "FIND [ctrl+f]", "GOTO [ctrl+g]", "OUTLINE [ctrl+o]"};
 
     for(s32 i = 0; i < Count; i++)
     {
@@ -1980,16 +2004,18 @@ static void drawCodeToolbar(Code* code)
 
             if(checkMouseClick(&rect, tic_mouse_left))
             {
-                if (i == TEXT_RUN_CODE)
+                switch(i)
                 {
+                case TEXT_RUN_CODE:
                     runProject();
-                }
-                else
-                {
-                    s32 mode = TEXT_EDIT_MODE + i;
+                    break;
+                default:
+                    {
+                        s32 mode = TEXT_EDIT_MODE + i;
 
-                    if(code->mode == mode) code->escape(code);
-                    else setCodeMode(code, mode);
+                        if(code->mode == mode) code->escape(code);
+                        else setCodeMode(code, mode);
+                    }
                 }
             }
         }
@@ -2016,11 +2042,12 @@ static void tick(Code* code)
 
     switch(code->mode)
     {
-    case TEXT_RUN_CODE: runProject(); break;
-    case TEXT_EDIT_MODE: textEditTick(code); break;
-    case TEXT_FIND_MODE: textFindTick(code); break;
-    case TEXT_GOTO_MODE: textGoToTick(code); break;
-    case TEXT_OUTLINE_MODE: textOutlineTick(code); break;
+    case TEXT_RUN_CODE:     runProject();           break;
+    case TEXT_DRAG_CODE:    textDragTick(code);     break;
+    case TEXT_EDIT_MODE:    textEditTick(code);     break;
+    case TEXT_FIND_MODE:    textFindTick(code);     break;
+    case TEXT_GOTO_MODE:    textGoToTick(code);     break;
+    case TEXT_OUTLINE_MODE: textOutlineTick(code);  break;
     }
 
     drawCodeToolbar(code);
@@ -2030,8 +2057,14 @@ static void tick(Code* code)
 
 static void escape(Code* code)
 {
-    if(code->mode != TEXT_EDIT_MODE)
+    switch(code->mode)
     {
+    case TEXT_EDIT_MODE:
+        break;
+    case TEXT_DRAG_CODE:
+        code->mode = TEXT_EDIT_MODE;
+    break;
+    default:
         code->cursor.position = code->popup.prevPos;
         code->cursor.selection = code->popup.prevSel;
         code->popup.prevSel = code->popup.prevPos = NULL;

@@ -84,10 +84,17 @@ typedef enum
 
 #if defined(__TIC_WINDOWS__) || defined(__TIC_LINUX__) || defined(__TIC_MACOSX__)
 #define CAN_EXPORT 1
+#define CAN_EXPORT_NATIVE 1
 #define CAN_OPEN_URL 1
+#define CAN_OPEN_FOLDER 1
 #endif
 
-#if defined(CAN_EXPORT)
+#if defined(__TIC_ANDROID__)
+#define CAN_EXPORT 1
+#define CAN_OPEN_FOLDER 1
+#endif
+
+#if defined(CAN_EXPORT_NATIVE)
 
 static const char TicCartSig[] = "TIC.CART";
 #define SIG_SIZE (sizeof TicCartSig-1)
@@ -1079,11 +1086,21 @@ static void onConsoleDirCommand(Console* console, const char* param)
     commandDone(console);
 }
 
-#if defined(CAN_EXPORT)
+#if defined(CAN_OPEN_FOLDER)
 
 static void onConsoleFolderCommand(Console* console, const char* param)
 {
+#if defined(__TIC_ANDROID__)
+
+    printBack(console, "\nLook at the ");
+    printFront(console, fsGetRootFilePath(console->fs, ""));
+    printBack(console, " folder with any file manager.");
+
+#else
+
     fsOpenWorkingFolder(console->fs);
+
+#endif
 
     commandDone(console);
 }
@@ -1617,7 +1634,7 @@ static void onConsoleExportCommand(Console* console, const char* param)
 
 #else
 
-#if defined(CAN_EXPORT)
+#if defined(CAN_EXPORT_NATIVE)
 
 static void *ticMemmem(const void* haystack, size_t hlen, const void* needle, size_t nlen)
 {
@@ -1710,6 +1727,10 @@ static void onConsoleExportNativeCommand(Console* console, const char* cartName)
         onFileDownloaded(FS_FILE_NOT_DOWNLOADED, console);
     }
 }
+
+#endif
+
+#if defined(CAN_EXPORT)
 
 #include "zip.h"
 
@@ -1918,7 +1939,7 @@ static void onConsoleExportCommand(Console* console, const char* param)
 
         if(strcmp(param, "native") == 0 || strcmp(param, "") == 0)
         {
-#if defined(CAN_EXPORT)
+#if defined(CAN_EXPORT_NATIVE)
 
 #if defined(__TIC_WINDOWS__)
             const char* ext = ExeExt;
@@ -2374,7 +2395,7 @@ static const struct
     {"dir",     "ls", "show list of files",         onConsoleDirCommand},
     {"cd",      NULL, "change directory",           onConsoleChangeDirectory},
     {"mkdir",   NULL, "make directory",             onConsoleMakeDirectory},
-#if defined(CAN_EXPORT)
+#if defined(CAN_OPEN_FOLDER)
     {"folder",  NULL, "open working folder in OS",  onConsoleFolderCommand},
 #endif
     {"add",     NULL, "add file",                   onConsoleAddCommand},
@@ -3244,7 +3265,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
                     printf("parameter or file not processed: %s\n", argv[i]);
     }
 
-#if defined(CAN_EXPORT)
+#if defined(CAN_EXPORT_NATIVE)
 
     if(!console->embed.yes)
     {
