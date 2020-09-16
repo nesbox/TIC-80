@@ -1214,6 +1214,7 @@ static void onConsoleInstallDemosCommand(Console* console, const char* param)
 
 static void onConsoleGameMenuCommand(Console* console, const char* param)
 {
+    console->showGameMenu = false;
     showGameMenu();
     commandDone(console);
 }

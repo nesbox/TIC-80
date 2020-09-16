@@ -1303,9 +1303,9 @@ static void processGamepadMapping()
             tic->ram.input.gamepads.data |= 1 << i;
 }
 
-static bool isGameMenu()
+static inline bool isGameMenu()
 {
-    return (impl.mode == TIC_RUN_MODE && impl.console->showGameMenu) || impl.mode == TIC_MENU_MODE;
+    return impl.mode == TIC_RUN_MODE && impl.console->showGameMenu;
 }
 
 static void goFullscreen()
