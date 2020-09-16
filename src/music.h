@@ -33,7 +33,14 @@ struct Music
 
     u8 track:MUSIC_TRACKS_BITS;
     s32 frame;
-    s32 scroll;
+
+    struct
+    {
+        s32 pos;
+        s32 start;
+        bool active;
+
+    } scroll;
 
     bool beat34;
     bool follow;

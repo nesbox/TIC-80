@@ -290,7 +290,7 @@ static s32 getRows(Music* music)
 
 static void updateScroll(Music* music)
 {
-    music->scroll = CLAMP(music->scroll, 0, getRows(music) - TRACKER_ROWS);
+    music->scroll.pos = CLAMP(music->scroll.pos, 0, getRows(music) - TRACKER_ROWS);
 }
 
 static void updateTracker(Music* music)
@@ -298,7 +298,7 @@ static void updateTracker(Music* music)
     s32 row = music->tracker.edit.y;
 
     enum{Threshold = TRACKER_ROWS / 2};
-    music->scroll = CLAMP(music->scroll, row - (TRACKER_ROWS - Threshold), row - Threshold);
+    music->scroll.pos = CLAMP(music->scroll.pos, row - (TRACKER_ROWS - Threshold), row - Threshold);
 
     {
         s32 rows = getRows(music);
@@ -1131,7 +1131,7 @@ static void processPatternKeyboard(Music* music)
     else if(keyWasPressed(tic_key_right))   colRight(music);
     else if(keyWasPressed(tic_key_down) 
         || keyWasPressed(tic_key_return)) 
-        music->tracker.edit.y = music->scroll;
+        music->tracker.edit.y = music->scroll.pos;
     else
     {
         s32 val = sym2dec(getKeyboardText());
@@ -1161,10 +1161,10 @@ static void updatePianoEditPos(Music* music)
     case PianoSfxColumn:
     case PianoXYColumn:
         if(music->piano.edit.y < 0)
-            music->scroll += music->piano.edit.y;
+            music->scroll.pos += music->piano.edit.y;
 
         if(music->piano.edit.y > TRACKER_ROWS-1)
-            music->scroll += music->piano.edit.y - (TRACKER_ROWS - 1);
+            music->scroll.pos += music->piano.edit.y - (TRACKER_ROWS - 1);
 
         updateScroll(music);
         break;
@@ -1187,7 +1187,7 @@ static void updatePianoEditCol(Music* music)
 
 static inline s32 rowIndex(Music* music, s32 row)
 {
-    return row + music->scroll;
+    return row + music->scroll.pos;
 }
 
 static tic_track_row* getPianoRow(Music* music)
@@ -1555,7 +1555,7 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
             s32 my = getMouseY() - rect.y - Border;
 
             s32 col = music->tracker.edit.x = channel * CHANNEL_COLS + mx / TIC_FONT_WIDTH;
-            s32 row = music->tracker.edit.y = my / TIC_FONT_HEIGHT + music->scroll;
+            s32 row = music->tracker.edit.y = my / TIC_FONT_HEIGHT + music->scroll.pos;
 
             if(music->tracker.select.drag)
             {
@@ -1582,7 +1582,7 @@ static void drawTrackerChannel(Music* music, s32 x, s32 y, s32 channel)
 
     drawEditPanel(music, rect.x, rect.y, rect.w, rect.h);
 
-    s32 start = music->scroll;
+    s32 start = music->scroll.pos;
     s32 end = start + Rows;
     bool selectedChannel = music->tracker.select.rect.x / CHANNEL_COLS == channel;
 
@@ -2051,6 +2051,28 @@ static void drawPianoRowColumn(Music* music, s32 x, s32 y)
     const tic_track_pattern* pattern = getFramePattern(music, music->piano.col, music->frame);
 
     enum{Header = PIANO_PATTERN_HEADER};
+
+    tic_rect rect = {x, y, TIC_FONT_WIDTH*2 + 1, TRACKER_ROWS*TIC_FONT_HEIGHT + Header};
+
+    if(checkMousePos(&rect))
+    {
+        setCursor(tic_cursor_hand);
+
+        if(checkMouseDown(&rect, tic_mouse_left) || checkMouseDown(&rect, tic_mouse_right))
+        {
+            if(music->scroll.active)
+            {
+                music->scroll.pos = (music->scroll.start - getMouseY()) / TIC_FONT_HEIGHT;
+                updateScroll(music);
+            }
+            else
+            {
+                music->scroll.active = true;
+                music->scroll.start = getMouseY() + music->scroll.pos * TIC_FONT_HEIGHT;
+            }            
+        }
+        else music->scroll.active = false;
+    }
 
     tic_api_print(tic, "ROW", x + 1, y + 2, tic_color_14, true, 1, true);
 
@@ -2543,7 +2565,7 @@ static void drawPianoPattern(Music* music, s32 x, s32 y)
     if(checkPlayFrame(music, music->frame))
     {
         const tic_sound_state* pos = getMusicPos(music);
-        s32 index = pos->music.row - music->scroll;
+        s32 index = pos->music.row - music->scroll.pos;
 
         if(index >= 0 && index < TRACKER_ROWS)
             tic_api_rect(tic, x, y + PIANO_PATTERN_HEADER + index * TIC_FONT_HEIGHT - 1, Width, TIC_FONT_HEIGHT + 1, tic_color_13);
@@ -2706,7 +2728,7 @@ static void tick(Music* music)
                 enum{Scroll = NOTES_PER_BEAT};
                 s32 delta = input->mouse.scrolly > 0 ? -Scroll : Scroll;
 
-                music->scroll += delta;
+                music->scroll.pos += delta;
 
                 updateScroll(music);
             }
@@ -2778,7 +2800,12 @@ void initMusic(Music* music, tic_mem* tic, tic_music* src)
         .frame = 0,
         .follow = true,
         .sustain = false,
-        .scroll = 0,
+        .scroll = 
+        {
+            .pos = 0,
+            .start = 0,
+            .active = false,
+        },
         .last =
         {
             .octave = 3,

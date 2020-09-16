@@ -1501,7 +1501,11 @@ static s32 start(s32 argc, char **argv, const char* folder)
     const s32 Height = TIC80_FULLHEIGHT * platform.studio->config()->uiScale;
 
     platform.window = SDL_CreateWindow( TIC_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        Width, Height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE| SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI);
+        Width, Height, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE| SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI
+#if defined(__TIC_ANDROID__)        
+        | SDL_WINDOW_FULLSCREEN_DESKTOP
+#endif
+        );
 
     setWindowIcon();
     createMouseCursors();
