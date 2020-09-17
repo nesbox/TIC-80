@@ -395,6 +395,7 @@ static void parseCode(const tic_script_config* config, const char* start, CodeSt
     const char* wordStart = NULL;
     const char* numberStart = NULL;
 
+start:
     while(true)
     {
         char c = ptr[0];
@@ -406,7 +407,9 @@ static void parseCode(const tic_script_config* config, const char* start, CodeSt
             ptr = end ? end + strlen(config->blockCommentEnd) : blockCommentStart + strlen(blockCommentStart);
             setCodeState(state, SyntaxTypeComment, blockCommentStart - start, ptr - blockCommentStart);
             blockCommentStart = NULL;
-            continue;
+
+            // !TODO: stupid MS compiler doesn't see 'continue' here in release, so lets use 'goto' instead, investigate why
+            goto start;
         }
         else if(blockStringStart)
         {
@@ -520,7 +523,7 @@ static void parseCode(const tic_script_config* config, const char* start, CodeSt
                 ptr += strlen(config->blockCommentStart);
                 continue;
             }
-            if(config->blockStringStart && memcmp(ptr, config->blockStringStart, strlen(config->blockStringStart)) == 0)
+            else if(config->blockStringStart && memcmp(ptr, config->blockStringStart, strlen(config->blockStringStart)) == 0)
             {
                 blockStringStart = ptr;
                 ptr += strlen(config->blockStringStart);
