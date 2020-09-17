@@ -203,6 +203,18 @@ static void tick(Dialog* dlg)
 
     tic_mem* tic = dlg->tic;
     drawBGAnimation(tic, dlg->ticks);
+}
+
+static void scanline(tic_mem* tic, s32 row, void* data)
+{
+    Dialog* dlg = (Dialog*)data;
+
+    drawBGAnimationScanline(tic, row);
+}
+
+static void overline(tic_mem* tic, void* data)
+{
+    Dialog* dlg = (Dialog*)data;
 
     drawDialog(dlg);
 }
@@ -220,6 +232,8 @@ void initDialog(Dialog* dlg, tic_mem* tic, const char** text, s32 rows, DialogCa
         .init = false,
         .tic = tic,
         .tick = tick,
+        .scanline = scanline,
+        .overline = overline,        
         .escape = escape,
         .ticks = 0,
         .callback = callback,

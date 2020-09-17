@@ -45,7 +45,7 @@
 #include "wave_writer.h"
 
 #include <ctype.h>
-
+#include <math.h>
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
@@ -60,6 +60,7 @@
 #endif
 
 #define MD5_HASHSIZE 16
+#define BG_ANIMATION_COLOR tic_color_15
 
 typedef struct
 {
@@ -373,22 +374,51 @@ void sfx_stop(tic_mem* tic, s32 channel)
     tic_api_sfx(tic, -1, 0, 0, -1, channel, MAX_VOLUME, SFX_DEF_SPEED);
 }
 
+// BG animation based on DevEd code
 void drawBGAnimation(tic_mem* tic, s32 ticks)
 {
-    enum{Size = 16, Width = TIC80_WIDTH/Size+1, Height = TIC80_HEIGHT/Size+1, AnimSprite = 34};
-
-    s32 offset = ticks % Size;
-    s32 counter = 0;
-
     tic_api_cls(tic, TIC_COLOR_BG);
 
-    tiles2ram(&tic->ram, &getConfig()->cart->bank0.tiles);
+    float rx = sin(ticks / 64.0f) * 4.5f;
+    float mod = modf(ticks / 16.0f, NULL);
 
-    for(s32 j = 0; j < Height + 1; j++)
-        for(s32 i = 0; i < Width + 1; i++)
-            if(counter++ % 2)
-                tic_api_spr(tic, AnimSprite, 
-                    i*Size - offset, j*Size - offset, 2, 2, 0, 0, 1, tic_no_flip, tic_no_rotate);
+    enum{Gap = 72};
+
+    for(s32 x = 0; x <= 16; x++)
+    {
+        s32 ly = Gap - (8 / (x - mod)) * 32;
+
+        tic_api_line(tic, 0, ly + rx, TIC80_WIDTH, ly - rx, BG_ANIMATION_COLOR);
+        tic_api_line(tic, 0, (TIC80_HEIGHT - ly) - rx, TIC80_WIDTH, (TIC80_HEIGHT - ly) + rx, BG_ANIMATION_COLOR);
+    }
+
+    float yp = (Gap - (8 / (16 - mod)) * 32) - rx;
+
+    for(s32 x = -32; x <= 32; x++)
+    {
+        s32 yf = yp + rx * x / 32 + rx;
+
+        tic_api_line(tic, (TIC80_WIDTH / 2) - ((x - (rx / 8)) * 4), yf, 
+            (TIC80_WIDTH / 2) - ((x + (rx / 16)) * 24), -16, BG_ANIMATION_COLOR);
+
+        tic_api_line(tic, (TIC80_WIDTH / 2) - ((x - (rx / 8)) * 4), TIC80_HEIGHT - yf, 
+            (TIC80_WIDTH / 2) - ((x + (rx / 16)) * 24), TIC80_HEIGHT + 16, BG_ANIMATION_COLOR);
+    }
+}
+
+static void modifyColor(tic_mem* tic, s32 x, u8 r, u8 g, u8 b)
+{
+    s32 addr = offsetof(tic_ram, vram.palette) + ((x % 16) * 3);
+    tic_api_poke(tic, addr, r);
+    tic_api_poke(tic, addr + 1, g);
+    tic_api_poke(tic, addr + 2, b);
+}
+
+void drawBGAnimationScanline(tic_mem* tic, s32 row)
+{
+    s32 dir = row < TIC80_HEIGHT / 2 ? 1 : -1;
+    s32 val = dir * (TIC80_WIDTH - row * 3.5f);
+    modifyColor(tic, BG_ANIMATION_COLOR, val * 0.75f, val * 0.8f, val);
 }
 
 char getKeyboardText()
@@ -1879,6 +1909,20 @@ static void studioTick()
                 overline = impl.world->overline;
                 scanline = impl.world->scanline;
                 data = impl.world;
+            }
+            break;
+        case TIC_DIALOG_MODE:
+            {
+                overline = impl.dialog->overline;
+                scanline = impl.dialog->scanline;
+                data = impl.dialog;
+            }
+            break;
+        case TIC_MENU_MODE:
+            {
+                overline = impl.menu->overline;
+                scanline = impl.menu->scanline;
+                data = impl.menu;
             }
             break;
         case TIC_SURF_MODE:

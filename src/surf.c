@@ -800,6 +800,7 @@ static void tick(Surf* surf)
 
         if(surf->menu.items[surf->menu.pos].cover)
             drawCover(surf, surf->menu.pos, 0, 0);
+        else drawBGAnimation(surf->tic, surf->ticks);
     }
 }
 
@@ -818,6 +819,8 @@ static void scanline(tic_mem* tic, s32 row, void* data)
 
         if(item->palettes)
             memcpy(&tic->ram.vram.palette, item->palettes + row, sizeof(tic_palette));
+        else
+            drawBGAnimationScanline(tic, row);
     }
 }
 
@@ -827,9 +830,6 @@ static void overline(tic_mem* tic, void* data)
 
     if(surf->menu.count > 0)
     {
-        if(!surf->menu.items[surf->menu.pos].cover)
-            drawBGAnimation(surf->tic, surf->ticks);
-
         drawMenu(surf, AnimVar.menuX, (TIC80_HEIGHT - MENU_HEIGHT)/2);
 
         drawTopToolbar(surf, 0, AnimVar.topBarY - MENU_HEIGHT);
@@ -837,8 +837,6 @@ static void overline(tic_mem* tic, void* data)
     }
     else
     {
-        drawBGAnimation(surf->tic, surf->ticks);
-
         static const char Label[] = "You don't have any files...";
         s32 size = tic_api_print(tic, Label, 0, -TIC_FONT_HEIGHT, tic_color_12, true, 1, false);
         tic_api_print(tic, Label, (TIC80_WIDTH - size) / 2, (TIC80_HEIGHT - TIC_FONT_HEIGHT)/2, tic_color_12, true, 1, false);

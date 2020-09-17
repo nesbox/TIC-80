@@ -489,16 +489,36 @@ static void tick(Menu* menu)
         menu->init = true;
     }
 
-    drawBGAnimation(tic, menu->ticks);
-
     switch(menu->mode)
     {
     case MAIN_MENU_MODE:
         processMainMenuGamepad(menu);
-        drawMainMenu(menu);
         break;
     case GAMEPAD_MENU_MODE:
         processGamedMenuGamepad(menu);
+        break;
+    }
+
+    drawBGAnimation(tic, menu->ticks);
+}
+
+static void scanline(tic_mem* tic, s32 row, void* data)
+{
+    Menu* menu = (Menu*)data;
+
+    drawBGAnimationScanline(tic, row);
+}
+
+static void overline(tic_mem* tic, void* data)
+{
+    Menu* menu = (Menu*)data;
+
+    switch(menu->mode)
+    {
+    case MAIN_MENU_MODE:
+        drawMainMenu(menu);
+        break;
+    case GAMEPAD_MENU_MODE:
         drawGamepadMenu(menu);
         break;
     }
@@ -512,6 +532,8 @@ void initMenu(Menu* menu, tic_mem* tic, FileSystem* fs)
         .fs = fs,
         .tic = tic,
         .tick = tick,
+        .scanline = scanline,
+        .overline = overline,
         .ticks = 0,
         .pos = {0, 0},
         .main =

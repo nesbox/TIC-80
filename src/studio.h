@@ -161,6 +161,7 @@ void exitGameMenu();
 
 void runProject();
 void drawBGAnimation(tic_mem* tic, s32 ticks);
+void drawBGAnimationScanline(tic_mem* tic, s32 row);
 
 tic_tiles* getBankTiles();
 tic_palette* getBankPalette(bool ovr);

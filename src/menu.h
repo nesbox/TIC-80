@@ -60,6 +60,8 @@ struct Menu
     } mode;
     
     void(*tick)(Menu* Menu);
+    void (*scanline)(tic_mem* tic, s32 row, void* data);
+    void (*overline)(tic_mem* tic, void* data);
 };
 
 void initMenu(Menu* menu, tic_mem* tic, struct FileSystem* fs);
