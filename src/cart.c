@@ -206,7 +206,7 @@ s32 tic_cart_save(const tic_cartridge* cart, u8* buffer)
         buffer = SAVE_CHUNK(CHUNK_FLAGS,    cart->banks[i].flags,           i);
     }
 
-    if(strlen(cart->code.data) > TIC_CODE_BANK_SIZE)
+    if(strlen(cart->code.data) >= TIC_CODE_BANK_SIZE)
     {
         char* dst = malloc(TIC_CODE_BANK_SIZE);
         s32 size = tic_tool_zip(dst, TIC_CODE_BANK_SIZE, cart->code.data, strlen(cart->code.data));
