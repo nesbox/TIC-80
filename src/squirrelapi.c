@@ -1659,6 +1659,8 @@ static const tic_script_config SquirrelSyntaxConfig =
 
     .blockCommentStart  = "/*",
     .blockCommentEnd    = "*/",
+    .blockCommentStart2 = NULL,
+    .blockCommentEnd2   = NULL,
     .singleComment      = "//",
     .blockStringStart   = "@\"",
     .blockStringEnd     = "\"",

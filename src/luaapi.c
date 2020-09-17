@@ -1519,6 +1519,8 @@ static const tic_script_config LuaSyntaxConfig =
 
     .blockCommentStart  = "--[[",
     .blockCommentEnd    = "]]",
+    .blockCommentStart2 = NULL,
+    .blockCommentEnd2   = NULL,
     .singleComment      = "--",
     .blockStringStart   = "[[",
     .blockStringEnd     = "]]",
@@ -1684,6 +1686,8 @@ static const tic_script_config MoonSyntaxConfig =
 
     .blockCommentStart  = NULL,
     .blockCommentEnd    = NULL,
+    .blockCommentStart2 = NULL,
+    .blockCommentEnd2   = NULL,
     .blockStringStart   = NULL,
     .blockStringEnd     = NULL,
     .singleComment      = "--",
@@ -1858,6 +1862,8 @@ static const tic_script_config FennelSyntaxConfig =
 
     .blockCommentStart  = NULL,
     .blockCommentEnd    = NULL,
+    .blockCommentStart2 = NULL,
+    .blockCommentEnd2   = NULL,
     .blockStringStart   = NULL,
     .blockStringEnd     = NULL,
     .singleComment      = ";",

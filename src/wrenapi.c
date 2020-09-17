@@ -1535,6 +1535,8 @@ static const tic_script_config WrenSyntaxConfig =
 
     .blockCommentStart  = "/*",
     .blockCommentEnd    = "*/",
+    .blockCommentStart2 = NULL,
+    .blockCommentEnd2   = NULL,
     .blockStringStart   = NULL,
     .blockStringEnd     = NULL,
     .singleComment      = "//",

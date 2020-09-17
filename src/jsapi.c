@@ -1040,6 +1040,8 @@ static const tic_script_config JsSyntaxConfig =
 
     .blockCommentStart  = "/*",
     .blockCommentEnd    = "*/",
+    .blockCommentStart2 = "<!--",
+    .blockCommentEnd2   = "-->",
     .blockStringStart   = NULL,
     .blockStringEnd     = NULL,
     .singleComment      = "//",
