@@ -206,10 +206,13 @@ s32 tic_cart_save(const tic_cartridge* cart, u8* buffer)
         buffer = SAVE_CHUNK(CHUNK_FLAGS,    cart->banks[i].flags,           i);
     }
 
-    if(strlen(cart->code.data) >= TIC_CODE_BANK_SIZE)
+    s32 codeLen = strlen(cart->code.data);
+    if(codeLen < TIC_CODE_BANK_SIZE)
+        buffer = saveFixedChunk(buffer, CHUNK_CODE, cart->code.data, codeLen, 0);
+    else
     {
         char* dst = malloc(TIC_CODE_BANK_SIZE);
-        s32 size = tic_tool_zip(dst, TIC_CODE_BANK_SIZE, cart->code.data, strlen(cart->code.data));
+        s32 size = tic_tool_zip(dst, TIC_CODE_BANK_SIZE, cart->code.data, codeLen);
 
         if(size)
             buffer = saveFixedChunk(buffer, CHUNK_CODE_ZIP, dst, size, 0);
@@ -219,7 +222,6 @@ s32 tic_cart_save(const tic_cartridge* cart, u8* buffer)
         if(!size)
             return 0;
     }
-    else buffer = SAVE_CHUNK(CHUNK_CODE, cart->code, 0);
 
     buffer = saveFixedChunk(buffer, CHUNK_COVER, cart->cover.data, cart->cover.size, 0);
 
