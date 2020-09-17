@@ -380,7 +380,8 @@ void drawBGAnimation(tic_mem* tic, s32 ticks)
     tic_api_cls(tic, TIC_COLOR_BG);
 
     float rx = sin(ticks / 64.0f) * 4.5f;
-    float mod = modf(ticks / 16.0f, NULL);
+    double tmp;
+    float mod = modf(ticks / 16.0f, &tmp);
 
     enum{Gap = 72};
 
