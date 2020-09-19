@@ -10,7 +10,11 @@
 #include "../../ticapi.h"
 
 /**
- * system.h is used for TIC80_OFFSET_LEFT and TIC80_OFFSET_TOP
+ * system.h is used for:
+ * - TIC80_OFFSET_LEFT
+ * - TIC80_OFFSET_TOP,
+ * - TIC_NAME
+ * - TIC_VERSION_LABEL
  */
 #include "../../system.h"
 
@@ -99,10 +103,13 @@ void tic80_libretro_fallback_log(enum retro_log_level level, const char *fmt, ..
  */
 RETRO_API void retro_init(void)
 {
-	// Ensure the state is initialized.
-	if (!state) {
-		state = (struct tic80_state*) malloc(sizeof(struct tic80_state));
+	// Ensure the state is ready.
+	if (state != NULL) {
+		retro_deinit();
 	}
+
+	// Initialize the base state.
+	state = (struct tic80_state*) malloc(sizeof(struct tic80_state));
 	state->quit = false;
 	state->variablePointerApi = false;
 	state->mouseCursor = 0;
@@ -213,6 +220,8 @@ RETRO_API void retro_deinit(void)
 {
 	// Make sure the game is unloaded.
 	retro_unload_game();
+
+	// Free up the state.
 	if (state != NULL) {
 		free(state);
 		state = NULL;
@@ -349,7 +358,8 @@ RETRO_API void retro_reset(void)
  *
  * @see tic80_libretro_update()
  */
-void tic80_libretro_input_descriptors() {
+void tic80_libretro_input_descriptors()
+{
 	// TIC-80's controller has flipped A/B and X/Y buttons than RetroPad.
 	struct retro_input_descriptor desc[] = {
 
@@ -412,7 +422,8 @@ void tic80_libretro_input_descriptors() {
  *
  * @see tic80_libretro_update()
  */
-void tic80_libretro_update_gamepad(tic80_gamepad* gamepad, int player) {
+void tic80_libretro_update_gamepad(tic80_gamepad* gamepad, int player)
+{
 	// D-Pad
 	gamepad->up = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP);
 	gamepad->down = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN);
@@ -662,9 +673,8 @@ RETRO_API void retro_run(void)
 
 	// Check if the game requested to quit.
 	if (state->quit) {
-		environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
-		retro_unload_game();
 		retro_deinit();
+		environ_cb(RETRO_ENVIRONMENT_SHUTDOWN, NULL);
 		return;
 	}
 
@@ -686,13 +696,13 @@ RETRO_API void retro_run(void)
  */
 RETRO_API bool retro_load_game(const struct retro_game_info *info)
 {
+	// TODO: Warn that Audio Synchronization required to run at a proper speed.
+	// TODO: Warn that the core doesn't support Runahead.
+
 	// Initialize the core if it hasn't been yet.
 	if (state == NULL) {
 		retro_init();
 	}
-
-	// TODO: Warn that Audio Synchronization required to run at a proper speed.
-	// TODO: Warn that the core doesn't support Runahead.
 
 	// Pixel format.
 	enum retro_pixel_format fmt = RETRO_PIXEL_FORMAT_XRGB8888;
@@ -712,9 +722,6 @@ RETRO_API bool retro_load_game(const struct retro_game_info *info)
 		log_cb(RETRO_LOG_ERROR, "[TIC-80] No content data provided.\n");
 		return false;
 	}
-
-	// Ensure a game is not currently loaded before loading.
-	retro_unload_game();
 
 	// Set up the TIC-80 environment.
 	state->tic = tic80_create(TIC80_SAMPLERATE);
@@ -757,9 +764,11 @@ RETRO_API bool retro_load_game(const struct retro_game_info *info)
  */
 RETRO_API void retro_unload_game(void)
 {
-	if (state != NULL && state->tic != NULL) {
-		tic80_delete(state->tic);
-		state->tic = NULL;
+	if (state != NULL) {
+		if (state->tic != NULL) {
+			tic80_delete(state->tic);
+			state->tic = NULL;
+		}
 	}
 }
 
