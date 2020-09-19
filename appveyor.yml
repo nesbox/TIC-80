@@ -3,17 +3,22 @@ image: Visual Studio 2019
 
 environment:
   matrix:
-    - COMPILER: MSVC
-    - COMPILER: MSVC64
+    - COMPILER: win32-xp
+    - COMPILER: win64-xp
+    - COMPILER: win32
+    - COMPILER: win64
   BUILD_TYPE: MinSizeRel
+  VS_CONF: Visual Studio 16 2019
 
 install: 
   - git submodule update --init --recursive
 
 build_script:
   - mkdir out && cd out
-  - if [%COMPILER%]==[MSVC] cmake -G "Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
-  - if [%COMPILER%]==[MSVC64] cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
+  - if [%COMPILER%]==[win32-xp] cmake -G "%VS_CONF%" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
+  - if [%COMPILER%]==[win64-xp] cmake -G "%VS_CONF%" -A x64 -T v141_xp -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
+  - if [%COMPILER%]==[win32] cmake -G "%VS_CONF%" -A Win32 -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
+  - if [%COMPILER%]==[win64] cmake -G "%VS_CONF%" -A x64 -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
   - cmake --build . --parallel --config %BUILD_TYPE%
 
 after_build:

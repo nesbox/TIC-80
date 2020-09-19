@@ -21,7 +21,7 @@ BEGIN
 			VALUE "FileDescription", "TIC-80"
 			VALUE "FileVersion", "@VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_REVISION@.0"
 			VALUE "InternalName", "tic80.exe"
-			VALUE "LegalCopyright", "https://tic80.com (C) 2019"
+			VALUE "LegalCopyright", "https://tic80.com (C) 2020"
 			VALUE "OriginalFilename", "tic80.exe"
 			VALUE "ProductName", "TIC-80"
 			VALUE "ProductVersion", "@VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_REVISION@.0"

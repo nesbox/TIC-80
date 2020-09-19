@@ -36,19 +36,17 @@ message("PROJECT_VERSION: ${PROJECT_VERSION}${VERSION_STATUS}")
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/version.h")
 
 if(ANDROID OR EMSCRIPTEN OR N3DS)
-    set(BUILD_SOKOL_DEFAULT OFF)
     set(BUILD_LIBRETRO_DEFAULT OFF)
     set(BUILD_DEMO_CARTS_DEFAULT OFF)
     set(BUILD_PLAYER_DEFAULT OFF)
 else()
-    set(BUILD_SOKOL_DEFAULT ON)
     set(BUILD_LIBRETRO_DEFAULT ON)
     set(BUILD_DEMO_CARTS_DEFAULT ON)
     set(BUILD_PLAYER_DEFAULT ON)
 endif()
 
 option(BUILD_SDL "SDL Enabled" ON)
-option(BUILD_SOKOL "Sokol Enabled" ${BUILD_SOKOL_DEFAULT})
+option(BUILD_SOKOL "Sokol Enabled" OFF)
 option(BUILD_LIBRETRO "libretro Enabled" ${BUILD_LIBRETRO_DEFAULT})
 option(BUILD_DEMO_CARTS "Demo Carts Enabled" ${BUILD_DEMO_CARTS_DEFAULT})
 option(BUILD_PRO "Build PRO version" FALSE)
@@ -768,8 +766,8 @@ if(BUILD_SDL)
 
     if(WIN32)
         
-        configure_file("${PROJECT_SOURCE_DIR}/build/windows/tic80.rc.in" "${CMAKE_CURRENT_BINARY_DIR}/windows/tic80.rc")
-        set(TIC80_SRC ${TIC80_SRC} build/windows/tic80.rc)
+        configure_file("${PROJECT_SOURCE_DIR}/build/windows/tic80.rc.in" "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
+        set(TIC80_SRC ${TIC80_SRC} "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
 
         # Debug build is a console app.
         if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -841,7 +839,8 @@ if(BUILD_SOKOL)
 
     if(WIN32)
 
-        set(TIC80_SRC ${TIC80_SRC} build/windows/tic80.rc)
+        configure_file("${PROJECT_SOURCE_DIR}/build/windows/tic80.rc.in" "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
+        set(TIC80_SRC ${TIC80_SRC} "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
         
         add_executable(${TIC80_OUTPUT}-sokol WIN32 ${TIC80_SRC})        
     else()
