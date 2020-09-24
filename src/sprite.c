@@ -644,7 +644,7 @@ static s32* getSpriteIndexes(Sprite* sprite)
     static s32 indexes[TIC_SPRITESIZE*TIC_SPRITESIZE+1];
     memset(indexes, -1, sizeof indexes);
 
-    u16 sheet_cols = SHEET_COLS*sprite->nbPages;
+    u16 sheet_cols = SHEET_COLS * sprite->nbPages;
 
     {
         tic_rect r = {sprite->index % sheet_cols, sprite->index / sheet_cols
@@ -653,8 +653,7 @@ static s32* getSpriteIndexes(Sprite* sprite)
         s32 c = 0;
         for(s32 j = r.y; j < r.h + r.y; j++)
             for(s32 i = r.x; i < r.w + r.x; i++)
-                indexes[c++] = i + j * sheet_cols;
-
+                indexes[c++] = (i + j * sheet_cols) + sprite->bank * TIC_BANK_SPRITES;
     }
 
     return indexes;
@@ -667,34 +666,24 @@ static void drawFlags(Sprite* sprite, s32 x, s32 y)
     if(hasCanvasSelection(sprite)) return;
 
     enum {Size = 5};
-    u8 nbFlags = 2*sprite->bpp;
-    u8 flagMask = (1 << nbFlags) - 1;
-
-    y+= (Size+1)*(8-nbFlags)/2;
 
     u8* flags = getBankFlags()->data;
     u8 or = 0;
-    u8 and = flagMask;
+    u8 and = 0xff;
 
-    u8 indicesPerNibble = 4/sprite->bpp; 
-    s32* indexes = getSpriteIndexes(sprite);
+    const s32* indexes = getSpriteIndexes(sprite);
 
     {
-        s32* i = indexes;
+        const s32* i = indexes;
         while(*i >= 0)
         {
-            s32 ii=*i/indicesPerNibble, ir=*i%indicesPerNibble;
-            u8 iiflags = flags[ii];
-            iiflags >>= ir*nbFlags;
-            iiflags &= flagMask;
-
-            or |= iiflags;
-            and &= iiflags;
-            i++;
+            u8 mask = flags[*i++];
+            or |= mask;
+            and &= mask;
         }       
     }
 
-    for(s32 i = 0; i < nbFlags; i++)
+    for(s32 i = 0; i < BITS_IN_BYTE; i++)
     {
         const u8 mask = 1 << i;
         tic_rect rect = {x, y + (Size+1)*i, Size, Size};
@@ -709,20 +698,14 @@ static void drawFlags(Sprite* sprite, s32 x, s32 y)
 
             if(checkMouseClick(&rect, tic_mouse_left))
             {
-                s32* i = indexes;
+                const s32* i = indexes;
 
                 if(or & mask)
-                    while(*i >= 0){
-                        s32 ii=*i/indicesPerNibble, ir=*i%indicesPerNibble;
-                        flags[ii] &= ~(mask << (ir * nbFlags));
-                        i++;
-                    }
+                    while(*i >= 0)
+                        flags[*i++] &= ~mask;
                 else
-                    while(*i >= 0) {
-                        s32 ii=*i/indicesPerNibble, ir=*i%indicesPerNibble;
-                        flags[ii] |= mask << (ir * nbFlags);
-                        i++;
-                    }
+                    while(*i >= 0) 
+                        flags[*i++] |= mask;
             }
         }
 
@@ -731,14 +714,14 @@ static void drawFlags(Sprite* sprite, s32 x, s32 y)
         u8 flagColor = i + 2;
 
         if(or & mask)
-            tic_api_pix(tic, rect.x+2, rect.y+2, flagColor, false);
+            tic_api_pix(tic, rect.x + 2, rect.y + 2, flagColor, false);
         else if(over)
-            tic_api_rect(tic, rect.x+1, rect.y+1, Size-2, Size-2, flagColor);
+            tic_api_rect(tic, rect.x + 1, rect.y + 1, Size - 2, Size - 2, flagColor);
         
         if(and & mask)
         {
-            tic_api_rect(tic, rect.x+1, rect.y+1, Size-2, Size-2, flagColor);
-            tic_api_pix(tic, rect.x+3, rect.y+1, tic_color_12, false);
+            tic_api_rect(tic, rect.x + 1, rect.y + 1, Size - 2, Size - 2, flagColor);
+            tic_api_pix(tic, rect.x + 3, rect.y + 1, tic_color_12, false);
         }
 
         tic_api_print(tic, (char[]){'0' + i, '\0'}, rect.x + (Size+2), rect.y, tic_color_13, false, 1, true);
@@ -1728,7 +1711,7 @@ static void redo(Sprite* sprite)
 
 static void switchBanks(Sprite* sprite)
 {
-    sprite->bank=!sprite->bank;
+    sprite->bank = !sprite->bank;
 
     updateIndex(sprite);
     initTileSheet(sprite);
@@ -2037,7 +2020,9 @@ static void overline(tic_mem* tic, void* data)
 
     if(sprite->advanced)
     {
-        drawFlags(sprite, 24+64+7, 20+8);
+        if(sprite->bpp == 4)
+            drawFlags(sprite, 24+64+7, 20+8);
+
         drawBitMode(sprite, PaletteX, PaletteY + PaletteH + 2, PaletteW, 8);        
     }
 
