@@ -2000,6 +2000,9 @@ static void drawAdvancedButton(Sprite* sprite, s32 x, s32 y)
 
         if(checkMouseClick(&rect, tic_mouse_left))
             sprite->advanced = !sprite->advanced;
+
+        if(!sprite->advanced)
+            sprite->palette.edit = false;
     }
 
     enum {Size = 3, Gap = 1};
