@@ -4,8 +4,8 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
       package="com.nesbox.tic"
-      android:versionCode="8003"
-      android:versionName="0.80.03"
+      android:versionCode="9000"
+      android:versionName="0.90.00"
       android:installLocation="auto">
 
     <uses-sdk android:minSdkVersion="16" android:targetSdkVersion="26" />

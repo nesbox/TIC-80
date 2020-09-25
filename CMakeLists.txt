@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.3)
 
 set(VERSION_MAJOR 0)
-set(VERSION_MINOR 80)
+set(VERSION_MINOR 90)
 set(VERSION_REVISION 0)
 set(VERSION_STATUS "-dev")
 

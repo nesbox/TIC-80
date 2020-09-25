@@ -6,8 +6,8 @@ android {
         applicationId 'com.nesbox.tic'
         minSdkVersion 16
         targetSdkVersion 26
-        versionCode 8003
-        versionName '0.80.03'
+        versionCode 9000
+        versionName '0.90.00'
     }
 
     signingConfigs {

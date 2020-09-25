@@ -18,7 +18,7 @@ BEGIN
 		BLOCK "040904E4"
 		BEGIN
 			VALUE "CompanyName", "Nesbox"
-			VALUE "FileDescription", "TIC-80"
+			VALUE "FileDescription", "Fantasy computer for making, playing and sharing tiny games."
 			VALUE "FileVersion", "@VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_REVISION@.0"
 			VALUE "InternalName", "tic80.exe"
 			VALUE "LegalCopyright", "https://tic80.com (C) 2020"
