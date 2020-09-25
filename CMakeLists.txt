@@ -819,6 +819,16 @@ if(BUILD_SDL)
 
         target_include_directories(${TIC80_OUTPUT} PRIVATE ${GTK_INCLUDE_DIRS})
         target_link_libraries(${TIC80_OUTPUT} ${GTK_LIBRARIES})
+
+        install(TARGETS ${TIC80_OUTPUT} DESTINATION bin)
+ 
+        SET(TIC80_DESKTOP_DIR     "/usr/share/applications/")
+        SET(TIC80_PIXMAPS_DIR     "/usr/share/icons/")
+
+        install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop DESTINATION ${TIC80_DESKTOP_DIR})
+        install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.xml DESTINATION ${TIC80_DESKTOP_DIR})
+        install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.png DESTINATION ${TIC80_PIXMAPS_DIR})
+
     endif()
 
 endif()
@@ -914,6 +924,15 @@ if(N3DS)
     )
 endif()
 
+set(CPACK_PACKAGE_NAME "TIC-80")
+set(CPACK_PACKAGE_VENDOR "Nesbox")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Fantasy computer for making, playing and sharing tiny games.")
+set(CPACK_PACKAGE_VERSION_MAJOR "${VERSION_MAJOR}")
+set(CPACK_PACKAGE_VERSION_MINOR "${VERSION_MINOR}")
+set(CPACK_PACKAGE_VERSION_PATCH "${VERSION_REVISION}")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "TIC-80")
+
 if (APPLE)
 
     set(CPACK_GENERATOR "Bundle")
@@ -925,16 +944,17 @@ if (APPLE)
     set(CPACK_BUNDLE_ICON ${CMAKE_SOURCE_DIR}/build/macosx/tic80.icns)
     set(CPACK_BUNDLE_STARTUP_COMMAND "${CMAKE_BINARY_DIR}/bin/tic80")
 
-    set(CPACK_PACKAGE_NAME "TIC-80")
-    set(CPACK_PACKAGE_VENDOR "Nesbox")
-    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Fantasy computer for making, playing and sharing tiny games.")
-    set(CPACK_PACKAGE_VERSION_MAJOR "${VERSION_MAJOR}")
-    set(CPACK_PACKAGE_VERSION_MINOR "${VERSION_MINOR}")
-    set(CPACK_PACKAGE_VERSION_PATCH "${VERSION_REVISION}")
-    set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
-    set(CPACK_PACKAGE_INSTALL_DIRECTORY "TIC-80")
-
     install(CODE "set(CMAKE_INSTALL_LOCAL_ONLY true)")
+
+    include(CPack)
+elseif (LINUX)
+    set(CPACK_GENERATOR "DEB")
+    set(CPACK_DEBIAN_PACKAGE_NAME "tic80")
+    set(CPACK_DEBIAN_FILE_NAME "tic80.deb")
+    set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://tic80.com")
+    set(CPACK_DEBIAN_PACKAGE_VERSION ${PROJECT_VERSION})
+    set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Nesbox <grigoruk@gmail.com>")
+    set(CPACK_DEBIAN_PACKAGE_SECTION "education")
 
     include(CPack)
 endif()

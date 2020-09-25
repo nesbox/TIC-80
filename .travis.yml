@@ -34,6 +34,9 @@ matrix:
       env:
         - OS_FOLDER=linux
       after_success:
+        - cpack
+        - sha256sum tic80.deb
+        - curl --retry 3 --ftp-create-dirs -T tic80.deb $BUILDS_SERVER_PATH/
         - tar -cvzf tic80.tar.gz --directory=$HOME/build/nesbox/TIC-80/out/bin tic80
         - sha256sum tic80.tar.gz
         - curl --retry 3 --ftp-create-dirs -T tic80.tar.gz $BUILDS_SERVER_PATH/

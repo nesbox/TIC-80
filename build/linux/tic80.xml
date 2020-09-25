@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+ <mime-type type="application/x-tic80-item">
+    <sub-class-of type="text/xml"/>
+    <sub-class-of type="application/xml"/>
+    <comment>Fantasy computer for making, playing and sharing tiny games.</comment>
+    <icon>tic80</icon>
+    <glob pattern=".dmx" weight="50" />
+    <magic priority="90">
+          <match type="string" offset="2" value="!DOCTYPE DBM"/>
+    </magic>
+    <root-XML localName="tic80" />
+  </mime-type>
+ </mime-info>
