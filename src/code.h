@@ -25,85 +25,96 @@
 #include "studio.h"
 
 typedef struct Code Code;
-typedef struct OutlineItem OutlineItem;
 
 struct Code
 {
-	tic_mem* tic;
+    tic_mem* tic;
 
-	char* src;
+    char* src;
 
-	struct
-	{
-		struct
-		{
-			char* position;
-			char* selection;
-			s32 column;
-		};
+    struct
+    {
+        struct
+        {
+            char* position;
+            char* selection;
+            s32 column;
+        };
 
-		char* mouseDownPosition;
-		s32 delay;
-	} cursor;
+        char* mouseDownPosition;
+        s32 delay;
+    } cursor;
 
-	tic_rect rect;
+    struct
+    {
+        s32 x;
+        s32 y;
 
-	struct
-	{
-		s32 x;
-		s32 y;
+        tic_point start;
 
-		tic_point start;
+        bool active;
 
-		bool active;
-		bool gesture;
+    } scroll;
 
-	} scroll;
+    struct CodeState
+    {
+        u8 syntax:3;
+        u8 bookmark:1;
+        u8 temp:4;
+    }* state;
 
-	u8 colorBuffer[TIC_CODE_SIZE];
+    char statusLine[STUDIO_TEXT_BUFFER_WIDTH];
+    char statusSize[STUDIO_TEXT_BUFFER_WIDTH];
 
-	char status[STUDIO_TEXT_BUFFER_WIDTH+1];
+    u32 tickCounter;
 
-	u32 tickCounter;
+    struct
+    {
+        struct History* code;
+        struct History* cursor;
+        struct History* state;
+    } history;
 
-	struct History* history;
-	struct History* cursorHistory;
+    enum
+    {
+        TEXT_RUN_CODE,
+        TEXT_EDIT_MODE,
+        TEXT_DRAG_CODE,
+        TEXT_FIND_MODE,
+        TEXT_GOTO_MODE,
+        TEXT_OUTLINE_MODE,
+    } mode;
 
-	enum
-	{
-		TEXT_RUN_CODE,
-		TEXT_EDIT_MODE,
-		TEXT_FIND_MODE,
-		TEXT_GOTO_MODE,
-		TEXT_OUTLINE_MODE,
-	} mode;
+    struct
+    {
+        char text[STUDIO_TEXT_BUFFER_WIDTH - sizeof "FIND:"];
 
-	struct
-	{
-		char text[STUDIO_TEXT_BUFFER_WIDTH - sizeof "FIND:"];
+        char* prevPos;
+        char* prevSel;
+    } popup;
 
-		char* prevPos;
-		char* prevSel;
-	} popup;
+    struct
+    {
+        s32 line;
+    } jump;
 
-	struct
-	{
-		s32 line;
-	} jump;
+    struct
+    {
+        tic_outline_item* items;
 
-	struct
-	{
-		OutlineItem* items;
+        s32 size;
+        s32 index;
+    } outline;
 
-		s32 index;
-	} outline;
+    const char* matchedDelim;
+    bool altFont;
+    bool shadowText;
 
-	bool altFont;
-
-	void(*tick)(Code*);
-	void(*escape)(Code*);
-	void(*event)(Code*, StudioEvent);
-	void(*update)(Code*);
+    void(*tick)(Code*);
+    void(*escape)(Code*);
+    void(*event)(Code*, StudioEvent);
+    void(*update)(Code*);
 };
 
 void initCode(Code*, tic_mem*, tic_code* src);
+void freeCode(Code*);

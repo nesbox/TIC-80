@@ -28,51 +28,64 @@ typedef struct Music Music;
 
 struct Music
 {
-	tic_mem* tic;
+    tic_mem* tic;
+    tic_music* src;
 
-	tic_music* src;
+    u8 track:MUSIC_TRACKS_BITS;
+    s32 frame;
 
-	u8 track:MUSIC_TRACKS_BITS;
+    struct
+    {
+        s32 pos;
+        s32 start;
+        bool active;
 
-	struct
-	{
-		bool follow;
-		s32 patternCol;
+    } scroll;
 
-		s32 frame;
-		s32 col;
-		s32 row;
-		s32 scroll;
-		s32 note;
+    bool beat34;
+    bool follow;
+    bool sustain;
+    bool on[TIC_SOUND_CHANNELS];
 
-		struct
-		{
-			s32 octave;
-			s32 sfx;
-			s32 volume;
-		} last;
+    struct
+    {
+        s32 octave;
+        s32 sfx;
+    } last;
 
-		struct
-		{
-			tic_point start;
-			tic_rect rect;
-			bool drag;
-		} select;
+    struct
+    {
+        s32 col;
+        tic_point edit;
 
-		bool patterns[TIC_SOUND_CHANNELS];
+        struct
+        {
+            tic_point start;
+            tic_rect rect;
+            bool drag;
+        } select;
+    } tracker;
 
-	} tracker;
+    struct
+    {
+        s32 col;
+        tic_point edit;
+        s8 note[TIC_SOUND_CHANNELS];
+    } piano;
 
-	enum
-	{
-		MUSIC_TRACKER_TAB,
-		MUSIC_PIANO_TAB,
-	} tab;
+    enum
+    {
+        MUSIC_TRACKER_TAB,
+        MUSIC_PIANO_TAB,
+    } tab;
 
-	struct History* history;
-	
-	void(*tick)(Music*);
-	void(*event)(Music*, StudioEvent);
+    u32 tickCounter;
+
+    struct History* history;
+    
+    void(*tick)(Music*);
+    void(*event)(Music*, StudioEvent);
 };
 
 void initMusic(Music*, tic_mem*, tic_music* src);
+void freeMusic(Music* music);

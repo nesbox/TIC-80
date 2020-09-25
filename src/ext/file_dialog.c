@@ -22,22 +22,18 @@
 
 #include "file_dialog.h"
 
-#include <SDL.h>
+#include <tic80_config.h>
 
-#if defined(__WINDOWS__)
+#if defined(__TIC_WINDOWS__)
 
 #include <windows.h>
 #include <commdlg.h>
 #include <stdio.h>
 
-FILE* _wfopen(const wchar_t *, const wchar_t *);
-wchar_t* wcsrchr(const wchar_t *, wchar_t);
-wchar_t* wcscpy(wchar_t *, const wchar_t *);
-
 void file_dialog_load(file_dialog_load_callback callback, void* data)
 {
 	OPENFILENAMEW ofn;
-	SDL_zero(ofn);
+	memset(&ofn, 0, sizeof ofn);
 
 	wchar_t filename[MAX_PATH];
 	memset(filename, 0, sizeof(filename));
@@ -84,7 +80,7 @@ void file_dialog_load(file_dialog_load_callback callback, void* data)
 void file_dialog_save(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode)
 {
 	OPENFILENAMEW ofn;
-	SDL_zero(ofn);
+	memset(&ofn, 0, sizeof ofn);
 
 	wchar_t filename[MAX_PATH];
 	mbstowcs(filename, name, MAX_PATH);
@@ -103,7 +99,7 @@ void file_dialog_save(file_dialog_save_callback callback, const char* name, cons
 			fwrite(buffer, 1, size, file);
 			fclose(file);
 
-#if !defined(__WINDOWS__)
+#if !defined(__TIC_WINDOWS__)
 			chmod(filename, mode);
 #endif
 			callback(true, data);
@@ -126,7 +122,7 @@ void file_dialog_load(file_dialog_load_callback callback, void* data)
 		{
 			if(filename == null || rom == null)
 			{
-				Runtime.dynCall('viiiii', $0, [0, 0, 0, $1, 0]);
+				dynCall('viiiii', $0, [0, 0, 0, $1, 0]);
 			}
 			else
 			{
@@ -136,7 +132,7 @@ void file_dialog_load(file_dialog_load_callback callback, void* data)
 				var dataPtr = Module._malloc(rom.length);
 				writeArrayToMemory(rom, dataPtr);
 
-				Runtime.dynCall('viiiii', $0, [filePtr, dataPtr, rom.length, $1, 0]);
+				dynCall('viiiii', $0, [filePtr, dataPtr, rom.length, $1, 0]);
 
 				Module._free(filePtr);
 				Module._free(dataPtr);
@@ -149,7 +145,7 @@ void file_dialog_save(file_dialog_save_callback callback, const char* name, cons
 {
 	EM_ASM_
 	({
-		var name = Pointer_stringify($0);
+		var name = UTF8ToString($0);
 		var blob = new Blob([HEAPU8.subarray($1, $1 + $2)], {type: "application/octet-stream"});
 
 		Module.saveAs(blob, name);
@@ -158,7 +154,7 @@ void file_dialog_save(file_dialog_save_callback callback, const char* name, cons
 	callback(true, data);
 }
 
-#elif defined(__LINUX__)
+#elif defined(__TIC_LINUX__)
 
 #include <stdlib.h>
 #include <string.h>
@@ -268,7 +264,7 @@ void file_dialog_save(file_dialog_save_callback callback, const char* name, cons
 		callback(false, data);
 }
 
-#elif defined(__MACOSX__)
+#elif defined(__TIC_MACOSX__)
 
 #include <string.h>
 #include <stdio.h>
@@ -346,10 +342,21 @@ void file_dialog_save(file_dialog_save_callback callback, const char* name, cons
 		callback(false, data);
 }
 
-#elif defined(__ANDROID__)
+#elif defined(__TIC_ANDROID__)
 
+#include "SDL.h"
+
+#include <stdlib.h>
 #include <jni.h>
 #include <sys/stat.h>
+#include <android/log.h>
+
+#define  LOG_TAG    "[TIC-80]"
+
+#define  LOGE(...)  __android_log_print(ANDROID_LOG_ERROR,LOG_TAG,__VA_ARGS__)
+#define  LOGW(...)  __android_log_print(ANDROID_LOG_WARN,LOG_TAG,__VA_ARGS__)
+#define  LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG,LOG_TAG,__VA_ARGS__)
+#define  LOGI(...)  __android_log_print(ANDROID_LOG_INFO,LOG_TAG,__VA_ARGS__)
 
 void file_dialog_load(file_dialog_load_callback callback, void* data)
 {

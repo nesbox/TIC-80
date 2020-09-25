@@ -4,6 +4,7 @@
 *.suo
 sexit
 .vscode/
+build/vendor/
 build/uwp/tic/Debug/
 build/uwp/tic/Release/
 build/uwp/tic/x64/
@@ -18,7 +19,6 @@ build/itch.io/console.zip
 build/uwp/code8/ARM/
 build/uwp/code8/x64/
 build/uwp/code8/code8.VC.db
-embed.html
 build/uwp/code8/Release/
 build/uwp/code8/AppPackages/code8/code8_0.0.3.0_Test/
 build/uwp/code8/BundleArtifacts/
@@ -46,9 +46,6 @@ lib/windows/res.aps
 lib/windows/tic.aps
 .DS_Store
 lib/macos/.DS_Store
-build/macosx/tic80.icns
-build/macosx/tic80.app/
-build/macosx/tic80.dmg
 tools/bundler/assets/
 tools/bundler/bin/
 tools/bin2txt/*.exe
@@ -92,8 +89,6 @@ build/windows/zlib/Debug Pro/
 build/windows/zlib/Release Pro/
 build/windows/example/Release Pro/
 build/windows/example/Debug Pro/
-TIC80.sublime-project
-TIC80.sublime-workspace
 build/windows/wren/Release/
 build/windows/wren/Debug/
 build/windows/wren/x64/
@@ -124,4 +119,48 @@ build/uwp/sdl-gpu-static/x64/
 build/uwp/tic/packages/
 build/windows/studio/x64/
 build/windows/sdl-gpu/x64/
-build/windows/tic/.vs/
+build/macosx/*.plist
+demos/*.rtc
+demos/*.srm
+demos/.local
+.vs/
+CMakeFiles/
+lib/
+*.cmake
+CMakeCache.txt
+Makefile
+!build/baremetalpi/Makefile
+!build/baremetalpi/boot/Makefile
+build/android/.gradle/
+build/android/app/.externalNativeBuild/
+build/android/app/build/
+build/android/build/
+build/vendor/sdl2/SDL2.spec
+build/vendor/sdl2/include/SDL_config.h
+build/vendor/sdl2/sdl2-config
+build/vendor/sdl2/sdl2.pc
+build/bin/bin2txt
+build/bin/sdl-renderer
+build/bin/sokol-renderer
+build/bin/tic80
+build/bin/tic80-sokol
+out/
+build/bin/
+build/vendor/curl/libcurl.pc
+build/vendor/curl/curl-config
+build/vendor/curl/DartConfiguration.tcl
+build/.ninja_deps
+build/.ninja_log
+build/version.h
+build/windows/tic80.rc
+*.ninja
+tic80.sublime-workspace
+build/*.tic
+build/*.vcxproj
+build/*.vcxproj.filters
+build/*.vcxproj.user
+build/CMakeDoxyfile.in
+build/*.sln
+build/.local/
+build/*.dir/
+build/x64/

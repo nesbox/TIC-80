@@ -23,48 +23,67 @@
 #pragma once
 
 #include "studio.h"
+#include "tilesheet.h"
 
 typedef struct Sprite Sprite;
 
 struct Sprite
 {
-	tic_mem* tic;
+    tic_mem* tic;
 
-	tic_tiles* src;
+    tic_tiles* src;
+    tic_tilesheet sheet;
 
-	u32 tickCounter;
+    u32 tickCounter;
 
-	u16 index;
-	u8 color;
-	u8 color2;
-	u8 size;
-	u8 brushSize;
+    u16 index;
+    u8 color;
+    u8 color2;
+    u8 size;
+    u8 brushSize;
+    tic_bpp bpp;
+    u8 nbPages;
+    u8 page;
+    u8 bank;
+    u16 x,y;
+    bool advanced;
 
-	bool editPalette;
+    struct
+    {
+        bool edit;
+        bool ovr;
+    } palette;
 
-	struct
-	{
-		tic_rect rect;
-		tic_point start;
-		bool drag;
-		u8* back;
-		u8* front;
-	}select;
+    struct
+    {
+        tic_rect rect;
+        tic_point start;
+        bool drag;
+        u8* back;
+        u8* front;
+    }select;
 
-	enum
-	{
-		SPRITE_DRAW_MODE,
-		SPRITE_PICK_MODE,
-		SPRITE_SELECT_MODE,
-		SPRITE_FILL_MODE,
-	}mode;
+    enum
+    {
+        SPRITE_DRAW_MODE,
+        SPRITE_PICK_MODE,
+        SPRITE_SELECT_MODE,
+        SPRITE_FILL_MODE,
+    }mode;
 
-	struct History* history;
+    struct History* history;
 
-	void (*tick)(Sprite*);
-	void (*event)(Sprite*, StudioEvent);
-	void (*scanline)(tic_mem* tic, s32 row, void* data);
-	void (*overline)(tic_mem* tic, void* data);
+    void (*tick)(Sprite*);
+    void (*event)(Sprite*, StudioEvent);
+    void (*scanline)(tic_mem* tic, s32 row, void* data);
+    void (*overline)(tic_mem* tic, void* data);
 };
 
+typedef struct
+{
+    s32 cell_w, cell_h, cols, rows, length;
+} tic_palette_dimensions;
+
 void initSprite(Sprite*, tic_mem*, tic_tiles* src);
+void freeSprite(Sprite*);
+

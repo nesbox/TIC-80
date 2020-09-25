@@ -22,11 +22,21 @@
 
 #pragma once
 
+#if !defined(TIC_BUILD_WITH_LUA) && 	\
+	!defined(TIC_BUILD_WITH_MOON) && 	\
+	!defined(TIC_BUILD_WITH_FENNEL) && 	\
+	!defined(TIC_BUILD_WITH_JS) && 		\
+	!defined(TIC_BUILD_WITH_WREN) &&	\
+	!defined(TIC_BUILD_WITH_SQUIRREL)
+
 #define TIC_BUILD_WITH_LUA 		1
 #define TIC_BUILD_WITH_MOON 	1
 #define TIC_BUILD_WITH_FENNEL 	1
 #define TIC_BUILD_WITH_JS 		1
 #define TIC_BUILD_WITH_WREN 	1
+#define TIC_BUILD_WITH_SQUIRREL 1
+
+#endif
 
 #if defined(__APPLE__)
 // TODO: this disables macos config 
@@ -64,9 +74,12 @@
 #	endif
 #endif 
 
-#if (defined(linux) || defined(__linux) || defined(__linux__))
+#if defined(ANDROID) || defined(__ANDROID__)
+#	undef __TIC_ANDROID__
+#	define __TIC_ANDROID__ 1
+#elif (defined(linux) || defined(__linux) || defined(__linux__))
 #	undef __TIC_LINUX__
-#	define __TIC_LINUX__   1
+#	define __TIC_LINUX__ 1
 #endif
 
 #ifndef TIC80_API

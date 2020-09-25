@@ -35,6 +35,15 @@ extern "C" {
 #define TIC80_FULLWIDTH (1 << TIC80_FULLWIDTH_BITS)
 #define TIC80_FULLHEIGHT (TIC80_FULLWIDTH*9/16)
 #define TIC80_KEY_BUFFER 4
+#define TIC80_SAMPLERATE 44100
+#define TIC80_FRAMERATE 60
+
+typedef enum {
+    TIC80_PIXEL_COLOR_ARGB8888 = (1 << 8) | 32,
+    TIC80_PIXEL_COLOR_ABGR8888 = (2 << 8) | 32,
+    TIC80_PIXEL_COLOR_RGBA8888 = (3 << 8) | 32,
+    TIC80_PIXEL_COLOR_BGRA8888 = (4 << 8) | 32
+} tic80_pixel_color_format;
 
 typedef struct 
 {
@@ -52,6 +61,7 @@ typedef struct
 	} sound;
 
 	u32* screen;
+	tic80_pixel_color_format screen_format;
 	
 } tic80;
 
@@ -110,17 +120,10 @@ typedef struct
 
 typedef u8 tic_key;
 
-typedef struct
+typedef union
 {
-	union
-	{
-		tic_key keys[TIC80_KEY_BUFFER];
-		u32 data;		
-	};
-
-	s8 text;
-	u8 temp[3];
-
+	tic_key keys[TIC80_KEY_BUFFER];
+	u32 data;
 } tic80_keyboard;
 
 typedef struct
@@ -128,11 +131,12 @@ typedef struct
 	tic80_gamepads gamepads;
 	tic80_mouse mouse;
 	tic80_keyboard keyboard;
+
 } tic80_input;
 
 TIC80_API tic80* tic80_create(s32 samplerate);
 TIC80_API void tic80_load(tic80* tic, void* cart, s32 size);
-TIC80_API void tic80_tick(tic80* tic, tic80_input input);
+TIC80_API void tic80_tick(tic80* tic, const tic80_input* input);
 TIC80_API void tic80_delete(tic80* tic);
 
 #ifdef __cplusplus

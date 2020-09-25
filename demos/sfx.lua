@@ -1,0 +1,44 @@
+-- title:  sfx
+-- author: Nesbox
+-- desc:   how to play SFX demo
+-- script: lua
+-- input:  gamepad
+
+t=0
+id=0
+
+function TIC()
+
+	if btnp(0) then sfx(id,"E-4")
+	elseif btnp(1) then sfx(id,"E-6")
+	elseif btnp(2) then sfx(id,"E-7")
+	elseif btnp(3) then sfx(id,"E-5")
+	end
+
+	cls(15)
+	spr(1+(t%20)/10,102,24,1,4)
+	print("PRESS ANY ARROW KEY",64,64,0)
+	
+	t=t+1
+	
+end
+
+-- <TILES>
+-- 001:1111111111110111111100111111010111110111100001110000011110001111
+-- 002:1111011111110011111101011111011110000111000001111000111111111111
+-- </TILES>
+
+-- <WAVES>
+-- 000:00000000ffffffff00000000ffffffff
+-- 001:0123456789abcdeffedcba9876543210
+-- 002:0123456789abcdef0123456789abcdef
+-- </WAVES>
+
+-- <SFX>
+-- 000:50003000300020002000200030003000300030004000400050005000600060007000800090009000a000b000b000c000c000d000e000e000f000f000304000000000
+-- </SFX>
+
+-- <PALETTE>
+-- 000:140c1c44243430346d4e4a4e854c30346524d04648757161597dced27d2c8595a16daa2cd2aa996dc2cadad45edeeed6
+-- </PALETTE>
+

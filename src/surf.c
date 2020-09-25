@@ -23,6 +23,7 @@
 #include "surf.h"
 #include "fs.h"
 #include "console.h"
+#include "project.h"
 
 #include "ext/gif.h"
 
@@ -30,7 +31,6 @@
 
 #define MAIN_OFFSET 4
 #define MENU_HEIGHT 10
-#define MAX_CARTS 256
 #define ANIM 10
 #define COVER_WIDTH 140
 #define COVER_HEIGHT 116
@@ -43,33 +43,33 @@
 
 typedef struct
 {
-	s32 start;
-	s32 end;
-	s32 duration;
+    s32 start;
+    s32 end;
+    s32 duration;
 
-	s32* val;
+    s32* val;
 } Anim;
 
 typedef struct Movie Movie;
 
 struct Movie
 {
-	Anim** items;
+    Anim** items;
 
-	s32 time;
-	s32 duration;
-	s32 count;
+    s32 time;
+    s32 duration;
+    s32 count;
 
-	Movie* next;
-	void (*done)(Surf* surf);
+    Movie* next;
+    void (*done)(Surf* surf);
 };
 
 static struct
 {
-	s32 topBarY;
-	s32 bottomBarY;
-	s32 menuX;
-	s32 menuHeight;
+    s32 topBarY;
+    s32 bottomBarY;
+    s32 menuX;
+    s32 menuHeight;
 } AnimVar;
 
 static Anim topBarShowAnim = {0, MENU_HEIGHT, ANIM, &AnimVar.topBarY};
@@ -88,53 +88,53 @@ static Anim menuShowAnim = {0, MENU_HEIGHT, ANIM, &AnimVar.menuHeight};
 
 static Anim* MenuModeShowMovieItems[] = 
 {
-	&topBarShowAnim,
-	&bottomBarShowAnim,
-	&menuRightShowAnim,
-	&menuShowAnim,
+    &topBarShowAnim,
+    &bottomBarShowAnim,
+    &menuRightShowAnim,
+    &menuShowAnim,
 };
 
 static Anim* MenuModeHideMovieItems[] = 
 {
-	&topBarHideAnim,
-	&bottomBarHideAnim,
-	&menuLeftHideAnim,
-	&menuHideAnim,
+    &topBarHideAnim,
+    &bottomBarHideAnim,
+    &menuLeftHideAnim,
+    &menuHideAnim,
 };
 
 static Anim* MenuLeftHideMovieItems[] = 
 {
-	&menuLeftHideAnim,
-	&menuHideAnim,
+    &menuLeftHideAnim,
+    &menuHideAnim,
 };
 
 static Anim* MenuRightHideMovieItems[] = 
 {
-	&menuRightHideAnim,
-	&menuHideAnim,
+    &menuRightHideAnim,
+    &menuHideAnim,
 };
 
 static Anim* MenuLeftShowMovieItems[] = 
 {
-	&menuLeftShowAnim,
-	&menuShowAnim,
+    &menuLeftShowAnim,
+    &menuShowAnim,
 };
 
 static Anim* MenuRightShowMovieItems[] = 
 {
-	&menuRightShowAnim,
-	&menuShowAnim,
+    &menuRightShowAnim,
+    &menuShowAnim,
 };
 
 static Movie EmptyState;
 static Movie MenuModeState;
 
-#define DECLARE_MOVIE(NAME, NEXT) static Movie NAME ## State = \
-{ \
-	.items = NAME ## MovieItems, \
-	.count = COUNT_OF(NAME ## MovieItems), \
-	.duration = ANIM, \
-	.next = & NEXT ## State, \
+#define DECLARE_MOVIE(NAME, NEXT) static Movie NAME ## State =  \
+{                                                               \
+    .items = NAME ## MovieItems,                                \
+    .count = COUNT_OF(NAME ## MovieItems),                      \
+    .duration = ANIM,                                           \
+    .next = & NEXT ## State,                                    \
 }
 
 DECLARE_MOVIE(MenuModeShow, MenuMode);
@@ -148,725 +148,729 @@ typedef struct MenuItem MenuItem;
 
 struct MenuItem
 {
-	char* label;
-	const char* name;
-	const char* hash;
-	s32 id;
-	tic_screen* cover;
-	bool dir;
-	bool project;
+    char* label;
+    const char* name;
+    const char* hash;
+    s32 id;
+    tic_screen* cover;
+    tic_palette* palettes;
+
+    bool coverLoaded;
+    bool dir;
+    bool project;
 };
 
 typedef struct
 {
-	MenuItem* items;
-	s32 count;
-	Surf* surf;
+    MenuItem* items;
+    s32 count;
+    Surf* surf;
 } AddMenuItem;
 
 static void resetMovie(Surf* surf, Movie* movie, void (*done)(Surf* surf))
 {
-	surf->state = movie;
+    surf->state = movie;
 
-	movie->time = 0;
-	for(s32 i = 0; i < movie->count; i++)
-	{
-		Anim* anim = movie->items[i];
-		*anim->val = anim->start;
-	}
+    for(s32 i = 0; i < movie->count; i++)
+    {
+        Anim* anim = movie->items[i];
+        *anim->val = anim->start;
+    }
 
-	movie->time = 0;
-	movie->done = done;
+    movie->time = 0;
+    movie->done = done;
 }
 
 static void drawTopToolbar(Surf* surf, s32 x, s32 y)
 {
-	tic_mem* tic = surf->tic;
+    tic_mem* tic = surf->tic;
 
-	enum{Height = MENU_HEIGHT};
+    enum{Height = MENU_HEIGHT};
 
-	tic->api.rect(tic, x, y, TIC80_WIDTH, Height, tic_color_blue);
-	tic->api.rect(tic, x, y + Height, TIC80_WIDTH, 1, tic_color_black);
-	{
-		char label[FILENAME_MAX];
+    tic_api_rect(tic, x, y, TIC80_WIDTH, Height, tic_color_14);
+    tic_api_rect(tic, x, y + Height, TIC80_WIDTH, 1, tic_color_0);
 
-		sprintf(label, "%s", "TIC-80 SURF");
+    {
+        static const char Label[] = "TIC-80 SURF";
+        s32 xl = x + MAIN_OFFSET;
+        s32 yl = y + (Height - TIC_FONT_HEIGHT)/2;
+        tic_api_print(tic, Label, xl, yl+1, tic_color_0, true, 1, false);
+        tic_api_print(tic, Label, xl, yl, tic_color_12, true, 1, false);
+    }
 
-		s32 xl = x + MAIN_OFFSET;
-		s32 yl = y + (Height - TIC_FONT_HEIGHT)/2;
-		tic->api.text(tic, label, xl, yl+1, tic_color_black, false);
-		tic->api.text(tic, label, xl, yl, tic_color_white, false);
-	}
+    enum{Gap = 10, TipX = 150, SelectWidth = 54};
 
-	enum{Gap = 10, TipX = 150, SelectWidth = 54};
+    u8 colorkey = 0;
+    tiles2ram(&tic->ram, &getConfig()->cart->bank0.tiles);
+    tic_api_spr(tic, 12, TipX, y+1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
+    {
+        static const char Label[] = "SELECT";
+        tic_api_print(tic, Label, TipX + Gap, y+3, tic_color_0, true, 1, false);
+        tic_api_print(tic, Label, TipX + Gap, y+2, tic_color_12, true, 1, false);
+    }
 
-	u8 colorkey = 0;
-	tic->api.sprite_ex(tic, &getConfig()->cart->bank0.tiles, 12, TipX, y+1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
-	{
-		static const char Label[] = "SELECT";
-		tic->api.text(tic, Label, TipX + Gap, y+3, tic_color_black, false);
-		tic->api.text(tic, Label, TipX + Gap, y+2, tic_color_white, false);
-	}
-
-	tic->api.sprite_ex(tic, &getConfig()->cart->bank0.tiles, 13, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
-	{
-		static const char Label[] = "BACK";
-		tic->api.text(tic, Label, TipX + Gap + SelectWidth, y +3, tic_color_black, false);
-		tic->api.text(tic, Label, TipX + Gap + SelectWidth, y +2, tic_color_white, false);
-	}
+    tic_api_spr(tic, 13, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);//&getConfig()->cart->bank0.tiles, 
+    {
+        static const char Label[] = "BACK";
+        tic_api_print(tic, Label, TipX + Gap + SelectWidth, y +3, tic_color_0, true, 1, false);
+        tic_api_print(tic, Label, TipX + Gap + SelectWidth, y +2, tic_color_12, true, 1, false);
+    }
 }
 
 static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
 {
-	tic_mem* tic = surf->tic;
+    tic_mem* tic = surf->tic;
 
-	enum{Height = MENU_HEIGHT};
+    enum{Height = MENU_HEIGHT};
 
-	tic->api.rect(tic, x, y, TIC80_WIDTH, Height, tic_color_blue);
-	tic->api.rect(tic, x, y + Height, TIC80_WIDTH, 1, tic_color_black);
-	{
-		char label[FILENAME_MAX];
-		char dir[FILENAME_MAX];
-		fsGetDir(surf->fs, dir);
+    tic_api_rect(tic, x, y, TIC80_WIDTH, Height, tic_color_14);
+    tic_api_rect(tic, x, y + Height, TIC80_WIDTH, 1, tic_color_0);
+    {
+        char label[TICNAME_MAX + 1];
+        char dir[TICNAME_MAX];
+        fsGetDir(surf->fs, dir);
 
-		sprintf(label, "/%s", dir);
-		s32 xl = x + MAIN_OFFSET;
-		s32 yl = y + (Height - TIC_FONT_HEIGHT)/2;
-		tic->api.text(tic, label, xl, yl+1, tic_color_black, false);
-		tic->api.text(tic, label, xl, yl, tic_color_white, false);
-	}
+        sprintf(label, "/%s", dir);
+        s32 xl = x + MAIN_OFFSET;
+        s32 yl = y + (Height - TIC_FONT_HEIGHT)/2;
+        tic_api_print(tic, label, xl, yl+1, tic_color_0, true, 1, false);
+        tic_api_print(tic, label, xl, yl, tic_color_12, true, 1, false);
+    }
 
-#ifdef CAN_OPEN_URL	
+#ifdef CAN_OPEN_URL 
 
-	if(surf->menu.items[surf->menu.pos].hash)
-	{
-		enum{Gap = 10, TipX = 134, SelectWidth = 54};
+    if(surf->menu.items[surf->menu.pos].hash)
+    {
+        enum{Gap = 10, TipX = 134, SelectWidth = 54};
 
-		u8 colorkey = 0;
+        u8 colorkey = 0;
 
-		tic->api.sprite_ex(tic, &getConfig()->cart->bank0.tiles, 15, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
-		{
-			static const char Label[] = "WEBSITE";
-			tic->api.text(tic, Label, TipX + Gap + SelectWidth, y +3, tic_color_black, false);
-			tic->api.text(tic, Label, TipX + Gap + SelectWidth, y +2, tic_color_white, false);
-		}
-	}
+        tiles2ram(&tic->ram, &getConfig()->cart->bank0.tiles);
+        tic_api_spr(tic, 15, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
+        {
+            static const char Label[] = "WEBSITE";
+            tic_api_print(tic, Label, TipX + Gap + SelectWidth, y + 3, tic_color_0, true, 1, false);
+            tic_api_print(tic, Label, TipX + Gap + SelectWidth, y + 2, tic_color_12, true, 1, false);
+        }
+    }
 #endif
 
 }
 
 static void drawCover(Surf* surf, s32 pos, s32 x, s32 y)
 {
-	if(!surf->menu.items[surf->menu.pos].cover)
-		return;
+    if(!surf->menu.items[surf->menu.pos].cover)
+        return;
 
-	tic_mem* tic = surf->tic;
+    tic_mem* tic = surf->tic;
 
-	enum{Width = TIC80_WIDTH, Height = TIC80_HEIGHT};
+    enum{Width = TIC80_WIDTH, Height = TIC80_HEIGHT};
 
-	tic_screen* cover = surf->menu.items[pos].cover;
+    tic_screen* cover = surf->menu.items[pos].cover;
 
-	if(cover)
-	{
-		for(s32 yc = 0; yc < Height; yc++)
-			memcpy(tic->ram.vram.screen.data + (yc * TIC80_WIDTH)/2, cover->data + (yc * Width)/2, Width/2);
-	}
+    if(cover)
+    {
+        for(s32 yc = 0; yc < Height; yc++)
+            memcpy(tic->ram.vram.screen.data + (yc * TIC80_WIDTH)/2, cover->data + (yc * Width)/2, Width/2);
+    }
 }
 
-static void drawInverseRect(tic_mem* tic, s32 x, s32 y, s32 w, s32 h)
+static void drawMenu(Surf* surf, s32 x, s32 y)
 {
-	if(x < 0)
-	{
-		w += x;
-		x = 0;
-	}
+    tic_mem* tic = surf->tic;
 
-	if(y < 0)
-	{
-		h += y;
-		y = 0;
-	}
+    enum {Height = MENU_HEIGHT};
 
-	w += x;
-	h += y;
+    tic_api_rect(tic, 0, y + (MENU_HEIGHT - AnimVar.menuHeight)/2, TIC80_WIDTH, AnimVar.menuHeight, tic_color_2);
 
-	if(w > TIC80_WIDTH)
-		w = TIC80_WIDTH;
+    for(s32 i = 0; i < surf->menu.count; i++)
+    {
+        const char* name = surf->menu.items[i].label;
 
-	if(h > TIC80_HEIGHT)
-		h = TIC80_HEIGHT;
+        s32 ym = Height * i + y - surf->menu.pos*MENU_HEIGHT - (surf->menu.anim * surf->menu.anim_target) + (MENU_HEIGHT - TIC_FONT_HEIGHT)/2;
 
-	for(s32 j = y; j < h; j++)
-	{
-		for(s32 i = x; i < w; i++)
-		{
-			s32 index = i + j*TIC80_WIDTH;
-			u8 color = tic_tool_peek4(tic->ram.vram.screen.data, index);
-			tic_tool_poke4(tic->ram.vram.screen.data, index, color % 4);
-		}            
-	}
-}
-
-static void drawMenu(Surf* surf, s32 x, s32 y, bool bg)
-{
-	tic_mem* tic = surf->tic;
-
-	enum {Height = MENU_HEIGHT};
-
-	if(bg)
-	{
-		if(AnimVar.menuHeight)
-			drawInverseRect(tic, 0, y + (MENU_HEIGHT - AnimVar.menuHeight)/2 - 1, TIC80_WIDTH, AnimVar.menuHeight+2);    
-	}
-	else
-	{
-		tic->api.rect(tic, 0, y + (MENU_HEIGHT - AnimVar.menuHeight)/2, TIC80_WIDTH, AnimVar.menuHeight, tic_color_red);
-	}
-
-	for(s32 i = 0; i < surf->menu.count; i++)
-	{
-		const char* name = surf->menu.items[i].label;
-
-		s32 ym = Height * i + y - surf->menu.pos*MENU_HEIGHT - surf->menu.anim + (MENU_HEIGHT - TIC_FONT_HEIGHT)/2;
-
-		if(bg)
-		{
-			s32 size = tic->api.text(tic, name, 0, -TIC_FONT_HEIGHT, 0, false);
-
-			drawInverseRect(tic, x + MAIN_OFFSET - 1, ym-1, size+1, TIC_FONT_HEIGHT+2);
-		}
-		else
-		{
-			tic->api.text(tic, name, x + MAIN_OFFSET, ym + 1, tic_color_black, false);
-			tic->api.text(tic, name, x + MAIN_OFFSET, ym, tic_color_white, false);
-		}
-	}
-}
-
-static void drawBG(Surf* surf)
-{
-	tic_mem* tic = surf->tic;
-
-	enum{Size = 16, Width = TIC80_WIDTH/Size+1, Height = TIC80_HEIGHT/Size+1};
-
-	s32 offset = surf->ticks % Size;
-	s32 counter = 0;
-
-	for(s32 j = 0; j < Height + 1; j++)
-		for(s32 i = 0; i < Width + 1; i++)
-			if(counter++ % 2)
-				tic->api.sprite_ex(tic, &getConfig()->cart->bank0.tiles, 34, i*Size - offset, j*Size - offset, 2, 2, 0, 0, 1, tic_no_flip, tic_no_rotate);
+        if (ym > (-(TIC_FONT_HEIGHT + 1)) && ym <= TIC80_HEIGHT) {
+            tic_api_print(tic, name, x + MAIN_OFFSET, ym + 1, tic_color_0, false, 1, false);
+            tic_api_print(tic, name, x + MAIN_OFFSET, ym, tic_color_12, false, 1, false);
+        }
+    }
 }
 
 static void replace(char* src, const char* what, const char* with)
 {
-	while(true)
-	{
-		char* pos = strstr(src, what);
+    while(true)
+    {
+        char* pos = strstr(src, what);
 
-		if(pos)
-		{
-			strcpy(pos, pos + strlen(what) - strlen(with));
-			memcpy(pos, with, strlen(with));
-		}
-		else break;     
-	}
-}
-
-static bool hasExt(const char* name, const char* ext)
-{
-	return strcmp(name + strlen(name) - strlen(ext), ext) == 0;
+        if(pos)
+        {
+            strcpy(pos, pos + strlen(what) - strlen(with));
+            memcpy(pos, with, strlen(with));
+        }
+        else break;     
+    }
 }
 
 static void cutExt(char* name, const char* ext)
 {
-	name[strlen(name)-strlen(ext)] = '\0';
+    name[strlen(name)-strlen(ext)] = '\0';
 }
 
 static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, bool dir)
 {
-	AddMenuItem* data = (AddMenuItem*)ptr;
+    AddMenuItem* data = (AddMenuItem*)ptr;
 
-	static const char CartExt[] = CART_EXT;
+    static const char CartExt[] = CART_EXT;
 
-	if(dir 
-		|| hasExt(name, CartExt)
-#if defined(TIC80_PRO)		
-		|| hasExt(name, PROJECT_LUA_EXT)
-		|| hasExt(name, PROJECT_MOON_EXT)
-		|| hasExt(name, PROJECT_JS_EXT)
-		|| hasExt(name, PROJECT_WREN_EXT)
-#endif
-		)
-	{
-		MenuItem* item = &data->items[data->count++];
+    if(dir 
+        || tic_tool_has_ext(name, CartExt)
+        || hasProjectExt(name)
+        )
+    {
+        data->items = realloc(data->items, sizeof(MenuItem) * ++data->count);
+        MenuItem* item = &data->items[data->count-1];
 
-		item->name = strdup(name);
-		bool project = false;
-		if(dir)
-		{
-			char folder[FILENAME_MAX];
-			sprintf(folder, "[%s]", name);
-			item->label = strdup(folder);
-		}
-		else
-		{
+        item->name = strdup(name);
+        bool project = false;
+        if(dir)
+        {
+            char folder[TICNAME_MAX];
+            sprintf(folder, "[%s]", name);
+            item->label = strdup(folder);
+        }
+        else
+        {
 
-			item->label = strdup(name);
+            item->label = strdup(name);
 
-			if(hasExt(name, CartExt))
-				cutExt(item->label, CartExt);
-			else
-			{
-				project = true;
-			}
+            if(tic_tool_has_ext(name, CartExt))
+                cutExt(item->label, CartExt);
+            else
+            {
+                project = true;
+            }
 
 
-			replace(item->label, "&amp;", "&");
-			replace(item->label, "&#39;", "'");
-		}
+            replace(item->label, "&amp;", "&");
+            replace(item->label, "&#39;", "'");
+        }
 
-		item->hash = info ? strdup(info) : NULL;
-		item->id = id;
-		item->dir = dir;
-		item->cover = NULL;
-		item->project = project;
-	}
+        item->hash = info ? strdup(info) : NULL;
+        item->id = id;
+        item->dir = dir;
+        item->cover = NULL;
+        item->palettes = NULL;
+        item->coverLoaded = false;
+        item->project = project;
+    }
 
-	return data->count < MAX_CARTS;
+    return true;
 }
 
 static void resetMenu(Surf* surf)
 {
-	if(surf->menu.items)
-	{
-		for(s32 i = 0; i < surf->menu.count; i++)
-		{
-			free((void*)surf->menu.items[i].name);
+    if(surf->menu.items)
+    {
+        for(s32 i = 0; i < surf->menu.count; i++)
+        {
+            free((void*)surf->menu.items[i].name);
 
-			const char* hash = surf->menu.items[i].hash;
-			if(hash) free((void*)hash);
+            const char* hash = surf->menu.items[i].hash;
+            if(hash) free((void*)hash);
 
-			tic_screen* cover = surf->menu.items[i].cover;
-			if(cover) free(cover);
+            tic_screen* cover = surf->menu.items[i].cover;
+            if(cover) free(cover);
 
-			const char* label = surf->menu.items[i].label;
-			if(label) free((void*)label);
-		}
+            const char* label = surf->menu.items[i].label;
+            if(label) free((void*)label);
 
-		free(surf->menu.items);
+            tic_palette* palettes = surf->menu.items[i].palettes;
+            if(palettes) free(palettes);
+        }
 
-		surf->menu.items = NULL;
-		surf->menu.count = 0;
-	}
+        free(surf->menu.items);
 
-	surf->menu.pos = 0;
-	surf->menu.anim = 0;
+        surf->menu.items = NULL;
+        surf->menu.count = 0;
+    }
+
+    surf->menu.pos = 0;
+    surf->menu.anim = 0;
 }
 
 static void* requestCover(Surf* surf, const char* hash, s32* size)
 {
-	char cachePath[FILENAME_MAX] = {0};
-	sprintf(cachePath, TIC_CACHE "%s.gif", hash);
+    char cachePath[TICNAME_MAX] = {0};
+    sprintf(cachePath, TIC_CACHE "%s.gif", hash);
 
-	{
-		void* data = fsLoadRootFile(surf->fs, cachePath, size);
+    {
+        void* data = fsLoadRootFile(surf->fs, cachePath, size);
 
-		if(data)
-			return data;
-	}
+        if(data)
+            return data;
+    }
 
-	char path[FILENAME_MAX] = {0};
-	sprintf(path, "/cart/%s/cover.gif", hash);
-	void* data = getSystem()->getUrlRequest(path, size);
+    char path[TICNAME_MAX] = {0};
+    sprintf(path, "/cart/%s/cover.gif", hash);
+    void* data = getSystem()->httpGetSync(path, size);
 
-	if(data)
-	{
-		fsSaveRootFile(surf->fs, cachePath, data, *size, false);
-	}
+    if(data)
+    {
+        fsSaveRootFile(surf->fs, cachePath, data, *size, false);
+    }
 
-	return data;
+    return data;
 }
 
 static void updateMenuItemCover(Surf* surf, const u8* cover, s32 size)
 {
-	MenuItem* item = &surf->menu.items[surf->menu.pos];
+    MenuItem* item = &surf->menu.items[surf->menu.pos];
 
-	item->cover = malloc(sizeof(tic_screen));
+    if(item->cover = calloc(1, sizeof(tic_screen)))
+    {
+        if(item->palettes = calloc(TIC80_HEIGHT, sizeof(tic_palette)))
+        {
+            gif_image* image = gif_read_data(cover, size);
 
-	gif_image* image = gif_read_data(cover, size);
+            if(image)
+            {
+                if (image->width == TIC80_WIDTH && image->height == TIC80_HEIGHT)
+                {
+                    for(s32 r = 0; r < TIC80_HEIGHT; r++)
+                    {
+                        tic_palette* palette = &item->palettes[r];
+                        s32 colorIndex = 0;
 
-	if(image)
-	{
-		if (image->width == TIC80_WIDTH && image->height == TIC80_HEIGHT)
-		{
-			enum { Size = TIC80_WIDTH * TIC80_HEIGHT };
+                        // init first color with default background
+                        palette->colors[0] = *getConfig()->cart->bank0.palette.scn.colors;
 
-			for (s32 i = 0; i < Size; i++)
-			{
-				const gif_color* c = &image->palette[image->buffer[i]];
-				tic_rgb rgb = { c->r, c->g, c->b };
-				u8 color = tic_tool_find_closest_color(getConfig()->cart->bank0.palette.colors, &rgb);
-				tic_tool_poke4(item->cover->data, i, color);
-			}
-		}
+                        for(s32 c = 0; c < TIC80_WIDTH; c++)
+                        {
+                            s32 pixel = r * TIC80_WIDTH + c;
+                            const gif_color* rgb = &image->palette[image->buffer[pixel]];
 
-		gif_close(image);
-	}
+                            s32 color = -1;
+                            for(s32 i = 0; i <= colorIndex; i++)
+                            {
+                                const tic_rgb* palColor = &palette->colors[i];
+                                if(palColor->r == rgb->r
+                                    && palColor->g == rgb->g
+                                    && palColor->b == rgb->b)
+                                {
+                                    color = i;
+                                    break;
+                                }
+                            }
+
+                            if(color < 0)
+                            {
+                                if(colorIndex < TIC_PALETTE_SIZE-1)
+                                {
+                                    tic_rgb* palColor = &palette->colors[color = ++colorIndex];
+
+                                    palColor->r = rgb->r;
+                                    palColor->g = rgb->g;
+                                    palColor->b = rgb->b;
+                                }
+                                else color = tic_tool_find_closest_color(palette->colors, rgb);
+                            }
+
+                            tic_tool_poke4(item->cover->data, pixel, color);
+                        }
+                    }
+                }
+
+                gif_close(image);
+            }           
+        }
+    }
 }
 
 static void loadCover(Surf* surf)
 {
-	tic_mem* tic = surf->tic;
-	
-	MenuItem* item = &surf->menu.items[surf->menu.pos];
-	
-	if(!fsIsInPublicDir(surf->fs))
-	{
+    tic_mem* tic = surf->tic;
+    
+    MenuItem* item = &surf->menu.items[surf->menu.pos];
+    
+    if(item->coverLoaded)
+    {
+        return;
+    }
+    item->coverLoaded = true;
 
-		s32 size = 0;
-		void* data = fsLoadFile(surf->fs, item->name, &size);
+    if(!fsIsInPublicDir(surf->fs))
+    {
 
-		if(data)
-		{
-			tic_cartridge* cart = (tic_cartridge*)malloc(sizeof(tic_cartridge));
+        s32 size = 0;
+        void* data = fsLoadFile(surf->fs, item->name, &size);
 
-			if(cart)
-			{
-				if(hasExt(item->name, PROJECT_LUA_EXT))
-					surf->console->loadProject(surf->console, item->name, data, size, cart);
-				else
-					tic->api.load(cart, data, size, true);
+        if(data)
+        {
+            tic_cartridge* cart = (tic_cartridge*)malloc(sizeof(tic_cartridge));
 
-				if(cart->cover.size)
-					updateMenuItemCover(surf, cart->cover.data, cart->cover.size);
+            if(cart)
+            {
 
-				free(cart);
-			}
+                if(hasProjectExt(item->name))
+                    tic_project_load(item->name, data, size, cart);
+                else
+                    tic_cart_load(cart, data, size);
 
-			free(data);
-		}
-	}
-	else if(item->hash && !item->cover)
-	{
-		s32 size = 0;
+                if(cart->cover.size)
+                    updateMenuItemCover(surf, cart->cover.data, cart->cover.size);
 
-		u8* cover = requestCover(surf, item->hash, &size);
+                free(cart);
+            }
 
-		if(cover)
-		{
-			updateMenuItemCover(surf, cover, size);
-			free(cover);
-		}       
-	}
+            free(data);
+        }
+    }
+    else if(item->hash && !item->cover)
+    {
+        s32 size = 0;
+
+        u8* cover = requestCover(surf, item->hash, &size);
+
+        if(cover)
+        {
+            updateMenuItemCover(surf, cover, size);
+            free(cover);
+        }       
+    }
 }
 
 static void initMenu(Surf* surf)
 {
-	resetMenu(surf);
+    resetMenu(surf);
 
-	// TODO: calc files count before
-	enum{Count = MAX_CARTS, Size = sizeof(MenuItem) * Count};
+    AddMenuItem data = 
+    {
+        .items = NULL,
+        .count = 0,
+        .surf = surf,
+    };
 
-	AddMenuItem data = 
-	{
-		.items = malloc(Size),
-		.count = 0,
-		.surf = surf,
-	};
+    char dir[TICNAME_MAX];
+    fsGetDir(surf->fs, dir);
 
-	char dir[FILENAME_MAX];
-	fsGetDir(surf->fs, dir);
+    if(strcmp(dir, "") != 0)
+        addMenuItem("..", NULL, 0, &data, true);
 
-	if(strcmp(dir, "") != 0)
-		addMenuItem("..", NULL, 0, &data, true);
+    fsEnumFiles(surf->fs, addMenuItem, &data);
 
-	fsEnumFiles(surf->fs, addMenuItem, &data);
-
-	surf->menu.items = data.items;
-	surf->menu.count = data.count;
+    surf->menu.items = data.items;
+    surf->menu.count = data.count;
 }
 
 static void onGoBackDir(Surf* surf)
 {
-	char last[FILENAME_MAX];
-	fsGetDir(surf->fs, last);
+    char last[TICNAME_MAX];
+    fsGetDir(surf->fs, last);
 
-	fsDirBack(surf->fs);
-	initMenu(surf);
+    fsDirBack(surf->fs);
+    initMenu(surf);
 
-	char current[FILENAME_MAX];
-	fsGetDir(surf->fs, current);
+    char current[TICNAME_MAX];
+    fsGetDir(surf->fs, current);
 
-	for(s32 i = 0; i < surf->menu.count; i++)
-	{
-		const MenuItem* item = &surf->menu.items[i];
+    for(s32 i = 0; i < surf->menu.count; i++)
+    {
+        const MenuItem* item = &surf->menu.items[i];
 
-		if(item->dir)
-		{
-			char path[FILENAME_MAX];
+        if(item->dir)
+        {
+            char path[TICNAME_MAX];
 
-			if(strlen(current))
-				sprintf(path, "%s/%s", current, item->name);
-			else strcpy(path, item->name);
+            if(strlen(current))
+                sprintf(path, "%s/%s", current, item->name);
+            else strcpy(path, item->name);
 
-			if(strcmp(path, last) == 0)
-			{
-				surf->menu.pos = i;
-				break;
-			}
-		}
-	}
+            if(strcmp(path, last) == 0)
+            {
+                surf->menu.pos = i;
+                break;
+            }
+        }
+    }
 }
 
 static void onGoToDir(Surf* surf)
 {
-	MenuItem* item = &surf->menu.items[surf->menu.pos];
+    MenuItem* item = &surf->menu.items[surf->menu.pos];
 
-	fsChangeDir(surf->fs, item->name);
-	initMenu(surf);
+    fsChangeDir(surf->fs, item->name);
+    initMenu(surf);
 }
 
 static void changeDirectory(Surf* surf, const char* dir)
 {
-	if(strcmp(dir, "..") == 0)
-	{
-		char dir[FILENAME_MAX];
-		fsGetDir(surf->fs, dir);
+    if(strcmp(dir, "..") == 0)
+    {
+        char dir[TICNAME_MAX];
+        fsGetDir(surf->fs, dir);
 
-		if(strcmp(dir, "") != 0)
-		{
-			playSystemSfx(2);
-			resetMovie(surf, &MenuRightHideState, onGoBackDir);
-		}
-	}
-	else if(fsIsDir(surf->fs, dir))
-	{
-		playSystemSfx(2);
-		resetMovie(surf, &MenuLeftHideState, onGoToDir);
-	}
+        if(strcmp(dir, "") != 0)
+        {
+            playSystemSfx(2);
+            resetMovie(surf, &MenuRightHideState, onGoBackDir);
+        }
+    }
+    else if(fsIsDir(surf->fs, dir))
+    {
+        playSystemSfx(2);
+        resetMovie(surf, &MenuLeftHideState, onGoToDir);
+    }
 }
 
 static void onPlayCart(Surf* surf)
 {
-	MenuItem* item = &surf->menu.items[surf->menu.pos];
+    MenuItem* item = &surf->menu.items[surf->menu.pos];
 
-	if(item->project)
-	{
-		tic_cartridge* cart = malloc(sizeof(tic_cartridge));
+    surf->console->load(surf->console, item->name, item->hash);
 
-		if(cart)
-		{
-			s32 size = 0;
-			void* data = fsLoadFile(surf->fs, item->name, &size);
-
-			surf->console->loadProject(surf->console, item->name, data, size, cart);
-
-			memcpy(&surf->tic->cart, cart, sizeof(tic_cartridge));
-
-			studioRomLoaded();
-
-			free(cart);
-		}
-	}
-	else
-		surf->console->load(surf->console, item->name, item->hash);
-
-	runGameFromSurf();
+    runGameFromSurf();
 }
 
 static void loadCart(Surf* surf)
 {
-	resetMovie(surf, &MenuModeHideState, onPlayCart);
+    resetMovie(surf, &MenuModeHideState, onPlayCart);
 }
 
 static void processAnim(Surf* surf)
 {
-	enum{Frames = MENU_HEIGHT};
+    enum{Frames = MENU_HEIGHT};
 
-	{
-		if(surf->state->time > surf->state->duration)
-		{
-			if(surf->state->done)
-				surf->state->done(surf);
+    {
+        if(surf->state->time > surf->state->duration)
+        {
+            if(surf->state->done)
+                surf->state->done(surf);
 
-			if(surf->state->next)
-				resetMovie(surf, surf->state->next, NULL);
-		}
+            if(surf->state->next)
+                resetMovie(surf, surf->state->next, NULL);
+        }
 
-		for(s32 i = 0; i < surf->state->count; i++)
-		{
-			Anim* anim = surf->state->items[i];
+        for(s32 i = 0; i < surf->state->count; i++)
+        {
+            Anim* anim = surf->state->items[i];
 
-			if(surf->state->time < anim->duration)
-			{
-				*anim->val = anim->start + (anim->end - anim->start) * surf->state->time / anim->duration;
-			}
-			else
-			{
-				*anim->val = anim->end;
-			}
-		}
+            if(surf->state->time < anim->duration)
+            {
+                *anim->val = anim->start + (anim->end - anim->start) * surf->state->time / anim->duration;
+            }
+            else
+            {
+                *anim->val = anim->end;
+            }
+        }
 
-		surf->state->time++;
+        surf->state->time++;
 
-	}
+    }
 
-	if(surf->menu.anim)
-	{
-		if(surf->menu.anim < 0) surf->menu.anim--;
-		if(surf->menu.anim > 0) surf->menu.anim++;
+    if(surf->menu.anim > 0)
+    {
+        surf->menu.anim++;
 
-		if(surf->menu.anim <= -Frames)
-		{
-			surf->menu.anim = 0;
-			surf->menu.pos--;
+        if(surf->menu.anim >= Frames)
+        {
+            s32 old_pos = surf->menu.pos;
 
-			if(surf->menu.pos < 0)
-				surf->menu.pos = surf->menu.count-1;
-		}
+            surf->menu.anim = 0;
+            surf->menu.pos += surf->menu.anim_target;
 
-		if(surf->menu.anim >= Frames)
-		{
-			surf->menu.anim = 0;
-			surf->menu.pos++;
+            if(surf->menu.pos < 0)
+            {
+                if(old_pos == 0)
+                    surf->menu.pos = surf->menu.count - 1;
+                else
+                    surf->menu.pos = 0;
+            }
+            else if(surf->menu.pos >= surf->menu.count)
+            {
+                if(old_pos == surf->menu.count - 1)
+                    surf->menu.pos = 0;
+                else
+                    surf->menu.pos = surf->menu.count - 1;
 
-			if(surf->menu.pos >= surf->menu.count)
-				surf->menu.pos = 0;
-		}
-	}
+            }
+        }
+    }
 }
 
 static void processGamepad(Surf* surf)
 {
-	tic_mem* tic = surf->tic;
+    tic_mem* tic = surf->tic;
 
-	enum{Frames = MENU_HEIGHT};
+    enum{Frames = MENU_HEIGHT};
 
-	{
-		enum{Hold = 20, Period = Frames};
+    {
+        enum{Hold = KEYBOARD_HOLD, Period = Frames};
 
-		enum
-		{
-			Up, Down, Left, Right, A, B, X, Y
-		};
+        enum
+        {
+            Up, Down, Left, Right, A, B, X, Y
+        };
 
-		if(tic->api.btnp(tic, Up, Hold, Period))
-		{
-			surf->menu.anim = -1;
+        if(tic_api_btnp(tic, Up, Hold, Period))
+        {
+            surf->menu.anim = 1;
+            surf->menu.anim_target = -1;
 
-			playSystemSfx(2);
-		}
+            playSystemSfx(2);
+        }
+        else if(tic_api_btnp(tic, Down, Hold, Period))
+        {
+            surf->menu.anim = 1;
+            surf->menu.anim_target = 1;
 
-		if(tic->api.btnp(tic, Down, Hold, Period))
-		{
-			surf->menu.anim = 1;
+            playSystemSfx(2);
+        }
+        else if(
+            tic_api_btnp(tic, Left, Hold, Period)
+            || tic_api_keyp(tic, tic_key_pageup, Hold, Period))
+        {
+            surf->menu.anim = 1;
+            surf->menu.anim_target = -5;
+        }
+        else if(
+            tic_api_btnp(tic, Right, Hold, Period)
+            || tic_api_keyp(tic, tic_key_pagedown, Hold, Period))
+        {
+            surf->menu.anim = 1;
+            surf->menu.anim_target = 5;
+        }
 
-			playSystemSfx(2);
-		}
+        if(tic_api_btnp(tic, A, -1, -1))
+        {
+            MenuItem* item = &surf->menu.items[surf->menu.pos];
+            item->dir ? changeDirectory(surf, item->name) : loadCart(surf);
+        }
 
-		if(tic->api.btnp(tic, A, -1, -1))
-		{
-			MenuItem* item = &surf->menu.items[surf->menu.pos];
-			item->dir ? changeDirectory(surf, item->name) : loadCart(surf);
-		}
-
-		if(tic->api.btnp(tic, B, -1, -1))
-		{
-			changeDirectory(surf, "..");
-		}
+        if(tic_api_btnp(tic, B, -1, -1))
+        {
+            changeDirectory(surf, "..");
+        }
 
 #ifdef CAN_OPEN_URL
 
-		if(tic->api.btnp(tic, Y, -1, -1))
-		{
-			MenuItem* item = &surf->menu.items[surf->menu.pos];
+        if(tic_api_btnp(tic, Y, -1, -1))
+        {
+            MenuItem* item = &surf->menu.items[surf->menu.pos];
 
-			if(!item->dir)
-			{
-				char url[FILENAME_MAX];
-				sprintf(url, "https://" TIC_HOST "/play?cart=%i", item->id);
-				getSystem()->openSystemPath(url);
-			}
-		}
+            if(!item->dir)
+            {
+                char url[TICNAME_MAX];
+                sprintf(url, TIC_WEBSITE "/play?cart=%i", item->id);
+                getSystem()->openSystemPath(url);
+            }
+        }
 #endif
 
-	}
+    }
 
 }
 
 static void tick(Surf* surf)
 {
-	if(!surf->init)
-	{
-		initMenu(surf);
+    if(!surf->init)
+    {
+        initMenu(surf);
 
-		resetMovie(surf, &MenuModeShowState, NULL);
+        resetMovie(surf, &MenuModeShowState, NULL);
 
-		surf->init = true;
-	}
+        surf->init = true;
+    }
 
-	surf->ticks++;
+    surf->ticks++;
 
-	tic_mem* tic = surf->tic;
-	tic->api.clear(tic, TIC_COLOR_BG);
+    tic_mem* tic = surf->tic;
+    tic_api_cls(tic, TIC_COLOR_BG);
 
-	drawBG(surf);
+    if(surf->menu.count > 0)
+    {
+        processAnim(surf);
 
-	if(surf->menu.count > 0)
-	{
-		processAnim(surf);
+        if(surf->state == &MenuModeState)
+        {
+            processGamepad(surf);
+        }
 
-		if(surf->state == &MenuModeState)
-		{
-			processGamepad(surf);
-		}
+        loadCover(surf);
 
-		loadCover(surf);
-
-		drawCover(surf, surf->menu.pos, 0, 0);
-
-		if(surf->menu.items[surf->menu.pos].cover)
-			drawMenu(surf, AnimVar.menuX, (TIC80_HEIGHT - MENU_HEIGHT)/2, true);
-
-		drawMenu(surf, AnimVar.menuX, (TIC80_HEIGHT - MENU_HEIGHT)/2, false);
-
-		drawTopToolbar(surf, 0, AnimVar.topBarY - MENU_HEIGHT);
-		drawBottomToolbar(surf, 0, TIC80_HEIGHT - AnimVar.bottomBarY);
-	}
-	else
-	{
-		static const char Label[] = "You don't have any files...";
-		s32 size = tic->api.text(tic, Label, 0, -TIC_FONT_HEIGHT, tic_color_white, false);
-		tic->api.text(tic, Label, (TIC80_WIDTH - size) / 2, (TIC80_HEIGHT - TIC_FONT_HEIGHT)/2, tic_color_white, false);
-	}
+        if(surf->menu.items[surf->menu.pos].cover)
+            drawCover(surf, surf->menu.pos, 0, 0);
+        else drawBGAnimation(surf->tic, surf->ticks);
+    }
 }
 
 static void resume(Surf* surf)
 {
-	resetMovie(surf, &MenuModeShowState, NULL);
+    resetMovie(surf, &MenuModeShowState, NULL);
+}
+
+static void scanline(tic_mem* tic, s32 row, void* data)
+{
+    Surf* surf = (Surf*)data;
+
+    if(surf->menu.count > 0)
+    {
+        const MenuItem* item = &surf->menu.items[surf->menu.pos];
+
+        if(item->palettes)
+            memcpy(&tic->ram.vram.palette, item->palettes + row, sizeof(tic_palette));
+        else
+            drawBGAnimationScanline(tic, row);
+    }
+}
+
+static void overline(tic_mem* tic, void* data)
+{
+    Surf* surf = (Surf*)data;
+
+    if(surf->menu.count > 0)
+    {
+        drawMenu(surf, AnimVar.menuX, (TIC80_HEIGHT - MENU_HEIGHT)/2);
+
+        drawTopToolbar(surf, 0, AnimVar.topBarY - MENU_HEIGHT);
+        drawBottomToolbar(surf, 0, TIC80_HEIGHT - AnimVar.bottomBarY);
+    }
+    else
+    {
+        static const char Label[] = "You don't have any files...";
+        s32 size = tic_api_print(tic, Label, 0, -TIC_FONT_HEIGHT, tic_color_12, true, 1, false);
+        tic_api_print(tic, Label, (TIC80_WIDTH - size) / 2, (TIC80_HEIGHT - TIC_FONT_HEIGHT)/2, tic_color_12, true, 1, false);
+    }
 }
 
 void initSurf(Surf* surf, tic_mem* tic, struct Console* console)
 {
-	*surf = (Surf)
-	{
-		.tic = tic,
-		.console = console,
-		.fs = console->fs,
-		.tick = tick,
-		.ticks = 0,
-		.state = &EmptyState,
-		.init = false,
-		.resume = resume,
-		.menu = 
-		{
-			.pos = 0,
-			.anim = 0,
-			.items = NULL,
-			.count = 0,
-		},
-	};
+    *surf = (Surf)
+    {
+        .tic = tic,
+        .console = console,
+        .fs = console->fs,
+        .tick = tick,
+        .ticks = 0,
+        .state = &EmptyState,
+        .init = false,
+        .resume = resume,
+        .menu = 
+        {
+            .pos = 0,
+            .anim = 0,
+            .items = NULL,
+            .count = 0,
+        },
+        .overline = overline,
+        .scanline = scanline,
+    };
 
-	fsMakeDir(surf->fs, TIC_CACHE);
+    fsMakeDir(surf->fs, TIC_CACHE);
+}
+
+void freeSurf(Surf* surf)
+{
+    resetMenu(surf);
+    free(surf);
 }

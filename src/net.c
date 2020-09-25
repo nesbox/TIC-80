@@ -21,207 +21,250 @@
 // SOFTWARE.
 
 #include "net.h"
-#include "tic.h"
-#include "SDL_net.h"
 
 #include <stdlib.h>
 #include <stdio.h>
 
-struct Net
-{
-	struct
-	{
-		u8* buffer;
-		s32 size;
-		char path[FILENAME_MAX];
-	} cache;
-};
-
-
-typedef void(*NetResponse)(u8* buffer, s32 size, void* data);
-
-#if defined(__EMSCRIPTEN__)
-
-static void getRequest(Net* net, const char* path, NetResponse callback, void* data)
-{
-	callback(NULL, 0, data);
-}
-
-#else
-
-static void netClearCache(Net* net)
-{
-	if(net->cache.buffer)
-		free(net->cache.buffer);
-
-	net->cache.buffer = NULL;
-	net->cache.size = 0;
-	memset(net->cache.path, 0, sizeof net->cache.path);
-}
+#ifndef DISABLE_NETWORKING
+#include <curl/curl.h>
 
 typedef struct
 {
-	u8* data;
-	s32 size;
-}Buffer;
+    u8* buffer;
+    s32 size;
 
-static Buffer httpRequest(const char* path, s32 timeout)
+    struct Curl_easy* async;
+    HttpGetCallback callback;
+    void* calldata;
+    char url[TICNAME_MAX];
+} CurlData;
+
+struct Net
 {
-	Buffer buffer = {.data = NULL, .size = 0};
+    CURLM* multi;
+    struct Curl_easy* sync;
+};
 
-	{
-		IPaddress ip;
+static size_t writeCallbackSync(void *contents, size_t size, size_t nmemb, void *userp)
+{
+    CurlData* data = (CurlData*)userp;
 
-		if (SDLNet_ResolveHost(&ip, TIC_HOST, 80) >= 0)
-		{
-			TCPsocket sock = SDLNet_TCP_Open(&ip);
+    const size_t total = size * nmemb;
+    u8* newBuffer = realloc(data->buffer, data->size + total);
+    if (newBuffer == NULL)
+    {
+        free(data->buffer);
+        return 0;
+    }
+    data->buffer = newBuffer;
+    memcpy(data->buffer + data->size, contents, total);
+    data->size += total;
 
-			if (sock)
-			{
-				SDLNet_SocketSet set = SDLNet_AllocSocketSet(1);
-
-				if(set)
-				{
-					SDLNet_TCP_AddSocket(set, sock);
-
-					{
-						char message[FILENAME_MAX];
-						memset(message, 0, sizeof message);
-						sprintf(message, "GET %s HTTP/1.0\r\nHost: " TIC_HOST "\r\n\r\n", path);
-						SDLNet_TCP_Send(sock, message, (s32)strlen(message) + 1);
-					}
-
-					if(SDLNet_CheckSockets(set, timeout) == 1 && SDLNet_SocketReady(sock))
-					{
-						enum {Size = 4*1024+1};
-						buffer.data = malloc(Size);
-						s32 size = 0;
-
-						for(;;)
-						{
-							size = SDLNet_TCP_Recv(sock, buffer.data + buffer.size, Size-1);
-
-							if(size > 0)
-							{
-								buffer.size += size;
-								buffer.data = realloc(buffer.data, buffer.size + Size);
-							}
-							else break;
-						}
-
-						buffer.data[buffer.size] = '\0';
-					}
-					
-					SDLNet_FreeSocketSet(set);
-				}
-
-				SDLNet_TCP_Close(sock);
-			}
-		}
-	}
-
-	return buffer;
+    return total;
 }
 
-static void getRequest(Net* net, const char* path, NetResponse callback, void* data)
+static size_t writeCallback(char *ptr, size_t size, size_t nmemb, void *userdata)
 {
-	if(strcmp(net->cache.path, path) == 0)
-	{
-		callback(net->cache.buffer, net->cache.size, data);
-	}
-	else
-	{
-		netClearCache(net);
+    CurlData* data = (CurlData*)userdata;
 
-		bool done = false;
+    const size_t total = size * nmemb;
+    u8* newBuffer = realloc(data->buffer, data->size + total);
+    if (newBuffer == NULL)
+    {
+        free(data->buffer);
+        return 0;
+    }
+    data->buffer = newBuffer;
+    memcpy(data->buffer + data->size, ptr, total);
+    data->size += total;
 
-		enum {Timeout = 3000};
-		Buffer buffer = httpRequest(path, Timeout);
+    double cl;
+    curl_easy_getinfo(data->async, CURLINFO_CONTENT_LENGTH_DOWNLOAD, &cl);
 
-		if(buffer.data && buffer.size)
-		{
-			if(strstr((char*)buffer.data, "200 OK"))
-			{
-				s32 contentLength = 0;
+    if(cl > 0)
+    {
+        HttpGetData getData = 
+        {
+            .type = HttpGetProgress,
+            .progress = 
+            {
+                .size = data->size,
+                .total = cl,
+            },
+            .calldata = data->calldata,
+            .url = data->url,
+        };
 
-				{
-					static const char ContentLength[] = "Content-Length:";
+        data->callback(&getData);
+    }
 
-					char* start = strstr((char*)buffer.data, ContentLength);
-
-					if(start)
-						contentLength = atoi(start + sizeof(ContentLength));
-				}
-
-				static const char Start[] = "\r\n\r\n";
-				u8* start = (u8*)strstr((char*)buffer.data, Start);
-
-				if(start)
-				{
-					strcpy(net->cache.path, path);
-					net->cache.size = contentLength ? contentLength : buffer.size - (s32)(start - buffer.data);
-					net->cache.buffer = (u8*)malloc(net->cache.size);
-					memcpy(net->cache.buffer, start + sizeof Start - 1, net->cache.size);
-					callback(net->cache.buffer, net->cache.size, data);
-					done = true;
-				}
-			}
-
-			free(buffer.data);
-		}
-
-		if(!done)
-			callback(NULL, 0, data);
-	}
+    return total;
 }
 
 #endif
 
-typedef struct
+void netGet(Net* net, const char* path, HttpGetCallback callback, void* calldata)
 {
-	void* buffer;
-	s32* size;
-} NetGetData;
+#ifdef DISABLE_NETWORKING
+    // !TODO: call callback here
+    return;
+#else
 
-static void onGetResponse(u8* buffer, s32 size, void* data)
-{
-	NetGetData* netGetData = (NetGetData*)data;
+    struct Curl_easy* curl = curl_easy_init();
 
-	netGetData->buffer = malloc(size);
-	*netGetData->size = size;
-	memcpy(netGetData->buffer, buffer, size);
+    CurlData* data = calloc(1, sizeof(CurlData));
+    *data = (CurlData)
+    {
+        .async = curl,
+        .callback = callback,
+        .calldata = calldata,
+    };
+
+    strcpy(data->url, path);
+
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
+
+    {
+        char url[TICNAME_MAX] = TIC_WEBSITE;
+        strcat(url, path);
+
+        curl_easy_setopt(curl, CURLOPT_URL, url);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, data);
+        curl_easy_setopt(curl, CURLOPT_PRIVATE, data);
+
+        curl_multi_add_handle(net->multi, curl);
+    }
+
+#endif
 }
 
-void* netGetRequest(Net* net, const char* path, s32* size)
+void* netGetSync(Net* net, const char* path, s32* size)
 {
-	NetGetData netGetData = {NULL, size};
-	getRequest(net, path, onGetResponse, &netGetData);
+#ifdef DISABLE_NETWORKING
+    return NULL;
+#else
+    CurlData data = {NULL, 0};
 
-	return netGetData.buffer;
+    if(net->sync)
+    {
+        char url[TICNAME_MAX] = TIC_WEBSITE;
+        strcat(url, path);
+
+        curl_easy_setopt(net->sync, CURLOPT_URL, url);
+        curl_easy_setopt(net->sync, CURLOPT_WRITEDATA, &data);
+
+        if(curl_easy_perform(net->sync) == CURLE_OK)
+        {
+            long httpCode = 0;
+            curl_easy_getinfo(net->sync, CURLINFO_RESPONSE_CODE, &httpCode);
+            if(httpCode != 200) return NULL;
+        }
+        else return NULL;
+    }
+
+    *size = data.size;
+
+    return data.buffer;
+
+#endif
+}
+
+void netTick(Net *net)
+{
+#ifndef DISABLE_NETWORKING
+
+    {
+        s32 running = 0;
+        curl_multi_perform(net->multi, &running);
+    }
+
+    s32 pending = 0;
+    CURLMsg* msg = NULL;
+
+    while(msg = curl_multi_info_read(net->multi, &pending))
+    {
+        if(msg->msg == CURLMSG_DONE)
+        {
+            CurlData* data = NULL;
+            curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, (char**)&data);
+
+            long httpCode = 0;
+            curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &httpCode);
+
+            if(httpCode == 200)
+            {
+                HttpGetData getData = 
+                {
+                    .type = HttpGetDone,
+                    .done = 
+                    {
+                        .size = data->size,
+                        .data = data->buffer,
+                    },
+                    .calldata = data->calldata,
+                    .url = data->url,
+                };
+
+                data->callback(&getData);
+
+                free(data->buffer);
+            }
+            else
+            {
+                HttpGetData getData = 
+                {
+                    .type = HttpGetError,
+                    .error = 
+                    {
+                        .code = httpCode,
+                    },
+                    .calldata = data->calldata,
+                    .url = data->url,
+                };
+
+                data->callback(&getData);
+            }
+
+            free(data);
+            
+            curl_multi_remove_handle(net->multi, msg->easy_handle);
+            curl_easy_cleanup(msg->easy_handle);
+        }
+    }
+#endif
 }
 
 Net* createNet()
 {
-	SDLNet_Init();
+#ifdef DISABLE_NETWORKING
+    return NULL;
+#else
+    Net* net = (Net*)malloc(sizeof(Net));
+    if (net != NULL)
+    {
+        *net = (Net)
+        {
+            .sync = curl_easy_init(),
+            .multi = curl_multi_init(),
+        };
 
-	Net* net = (Net*)malloc(sizeof(Net));
+        curl_easy_setopt(net->sync, CURLOPT_WRITEFUNCTION, writeCallbackSync);
+    }
 
-	*net = (Net)
-	{
-		.cache = 
-		{
-			.buffer = NULL,
-			.size = 0,
-			.path = {0},
-		},
-	};
-
-	return net;
+    return net;
+#endif
 }
 
 void closeNet(Net* net)
 {
-	free(net);
-	
-	SDLNet_Quit();
+#ifndef DISABLE_NETWORKING
+
+    if(net->sync)
+        curl_easy_cleanup(net->sync);
+
+    if(net->multi)
+        curl_multi_cleanup(net->multi);
+
+    free(net);
+#endif
 }

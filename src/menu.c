@@ -28,506 +28,533 @@
 
 static const char* Rows[] = 
 {
-	"RESUME GAME",
-	"RESET GAME",
-	"GAMEPAD CONFIG",
-	"",
-	"CLOSE GAME",
-	"QUIT TIC-80",
+    "RESUME GAME",
+    "RESET GAME",
+    "GAMEPAD CONFIG",
+    "",
+    "CLOSE GAME",
+    "QUIT TIC-80",
 };
 
 static void resumeGame(Menu* menu)
 {
-	hideGameMenu();
+    hideGameMenu();
 }
 
 static void resetGame(Menu* menu)
 {
-	tic_mem* tic = menu->tic;
+    tic_mem* tic = menu->tic;
 
-	tic->api.reset(tic);
+    tic_api_reset(tic);
 
-	setStudioMode(TIC_RUN_MODE);
+    setStudioMode(TIC_RUN_MODE);
 }
 
 static void gamepadConfig(Menu* menu)
 {
-	playSystemSfx(2);
-	menu->mode = GAMEPAD_MENU_MODE;
-	menu->gamepad.tab = 0;
+    playSystemSfx(2);
+    menu->mode = GAMEPAD_MENU_MODE;
+    menu->gamepad.tab = 0;
 }
 
 static void closeGame(Menu* menu)
 {
-	exitFromGameMenu();
+    exitGameMenu();
 }
 
 static void(*const MenuHandlers[])(Menu*) = {resumeGame, resetGame, gamepadConfig, NULL, closeGame, exitStudio};
 
 static tic_rect getRect(Menu* menu)
 {
-	tic_rect rect = {(TIC80_WIDTH - DIALOG_WIDTH)/2, (TIC80_HEIGHT - DIALOG_HEIGHT)/2, DIALOG_WIDTH, DIALOG_HEIGHT};
+    tic_rect rect = {(TIC80_WIDTH - DIALOG_WIDTH)/2, (TIC80_HEIGHT - DIALOG_HEIGHT)/2, DIALOG_WIDTH, DIALOG_HEIGHT};
 
-	rect.x -= menu->pos.x;
-	rect.y -= menu->pos.y;
+    rect.x -= menu->pos.x;
+    rect.y -= menu->pos.y;
 
-	return rect;
+    return rect;
 }
 static void drawDialog(Menu* menu)
 {
-	tic_rect rect = getRect(menu);
+    tic_rect rect = getRect(menu);
 
-	tic_mem* tic = menu->tic;
+    tic_mem* tic = menu->tic;
 
-	tic_rect header = {rect.x, rect.y-(TOOLBAR_SIZE-1), rect.w, TOOLBAR_SIZE};
+    tic_rect header = {rect.x, rect.y-(TOOLBAR_SIZE-1), rect.w, TOOLBAR_SIZE};
 
-	if(checkMousePos(&header))
-	{
-		setCursor(tic_cursor_hand);
+    if(checkMousePos(&header))
+    {
+        setCursor(tic_cursor_hand);
 
-		if(checkMouseDown(&header, tic_mouse_left))
-		{
-			if(!menu->drag.active)
-			{
-				menu->drag.start.x = getMouseX() + menu->pos.x;
-				menu->drag.start.y = getMouseY() + menu->pos.y;
+        if(checkMouseDown(&header, tic_mouse_left))
+        {
+            if(!menu->drag.active)
+            {
+                menu->drag.start.x = getMouseX() + menu->pos.x;
+                menu->drag.start.y = getMouseY() + menu->pos.y;
 
-				menu->drag.active = true;
-			}
-		}
-	}
+                menu->drag.active = true;
+            }
+        }
+    }
 
-	if(menu->drag.active)
-	{
-		setCursor(tic_cursor_hand);
+    if(menu->drag.active)
+    {
+        setCursor(tic_cursor_hand);
 
-		menu->pos.x = menu->drag.start.x - getMouseX();
-		menu->pos.y = menu->drag.start.y - getMouseY();
+        menu->pos.x = menu->drag.start.x - getMouseX();
+        menu->pos.y = menu->drag.start.y - getMouseY();
 
-		tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
-		if(!checkMouseDown(&rect, tic_mouse_left))
-			menu->drag.active = false;
-	}
+        tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
+        if(!checkMouseDown(&rect, tic_mouse_left))
+            menu->drag.active = false;
+    }
 
-	rect = getRect(menu);
+    rect = getRect(menu);
 
-	tic->api.rect(tic, rect.x, rect.y, rect.w, rect.h, (tic_color_blue));
-	tic->api.rect_border(tic, rect.x, rect.y, rect.w, rect.h, (tic_color_white));
-	tic->api.line(tic, rect.x, rect.y+DIALOG_HEIGHT, rect.x+DIALOG_WIDTH-1, rect.y+DIALOG_HEIGHT, (tic_color_black));
-	tic->api.rect(tic, rect.x, rect.y-(TOOLBAR_SIZE-2), rect.w, TOOLBAR_SIZE-2, (tic_color_white));
-	tic->api.line(tic, rect.x+1, rect.y-(TOOLBAR_SIZE-1), rect.x+DIALOG_WIDTH-2, rect.y-(TOOLBAR_SIZE-1), (tic_color_white));
+    tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_15);
+    tic_api_rectb(tic, rect.x, rect.y, rect.w, rect.h, tic_color_12);
+    tic_api_line(tic, rect.x, rect.y+DIALOG_HEIGHT, rect.x+DIALOG_WIDTH-1, rect.y+DIALOG_HEIGHT, tic_color_0);
+    tic_api_rect(tic, rect.x, rect.y-(TOOLBAR_SIZE-2), rect.w, TOOLBAR_SIZE-2, tic_color_12);
+    tic_api_line(tic, rect.x+1, rect.y-(TOOLBAR_SIZE-1), rect.x+DIALOG_WIDTH-2, rect.y-(TOOLBAR_SIZE-1), tic_color_12);
 
-	{
-		static const char Label[] = "GAME MENU";
-		s32 size = tic->api.text(tic, Label, 0, -TIC_FONT_HEIGHT, 0, false);
-		tic->api.text(tic, Label, rect.x + (DIALOG_WIDTH - size)/2, rect.y-(TOOLBAR_SIZE-2), (tic_color_gray), false);
-	}
+    {
+        static const char Label[] = "GAME MENU";
+        s32 size = tic_api_print(tic, Label, 0, -TIC_FONT_HEIGHT, 0, false, 1, false);
+        tic_api_print(tic, Label, rect.x + (DIALOG_WIDTH - size)/2, rect.y-(TOOLBAR_SIZE-2), tic_color_15, false, 1, false);
+    }
 
-	{
-		u8 chromakey = 14;
-		tic->api.sprite_ex(tic, &getConfig()->cart->bank0.tiles, 0, rect.x+6, rect.y-4, 2, 2, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);
-	}	
+    {
+        u8 chromakey = 14;
+        tiles2ram(&tic->ram, &getConfig()->cart->bank0.tiles);
+        tic_api_spr(tic, 0, rect.x+6, rect.y-4, 2, 2, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);
+    }   
 }
 
 static void drawTabDisabled(Menu* menu, s32 x, s32 y, s32 id)
 {
-	enum{Width = 15, Height = 7};
-	tic_mem* tic = menu->tic;
+    enum{Width = 15, Height = 7};
+    tic_mem* tic = menu->tic;
 
-	tic_rect rect = {x, y, Width, Height};
-	bool over = false;
+    tic_rect rect = {x, y, Width, Height};
+    bool over = false;
 
-	if(menu->gamepad.tab != id && checkMousePos(&rect))
-	{
-		setCursor(tic_cursor_hand);
-		over = true;
+    if(menu->gamepad.tab != id && checkMousePos(&rect))
+    {
+        setCursor(tic_cursor_hand);
+        over = true;
 
-		if(checkMouseDown(&rect, tic_mouse_left))
-		{
-			menu->gamepad.tab = id;
-			menu->gamepad.selected = -1;
-			return;
-		}
-	}
+        if(checkMouseDown(&rect, tic_mouse_left))
+        {
+            menu->gamepad.tab = id;
+            menu->gamepad.selected = -1;
+            return;
+        }
+    }
 
-	tic->api.rect(tic, x, y-1, Width, Height+1, (tic_color_dark_gray));
-	tic->api.pixel(tic, x, y+Height-1, (tic_color_blue));
-	tic->api.pixel(tic, x+Width-1, y+Height-1, (tic_color_blue));
+    tic_api_rect(tic, x, y-1, Width, Height+1, tic_color_14);
+    tic_api_pix(tic, x, y+Height-1, tic_color_15, false);
+    tic_api_pix(tic, x+Width-1, y+Height-1, tic_color_15, false);
 
-	{
-		char buf[] = "#1";
-		sprintf(buf, "#%i", id+1);
-		tic->api.fixed_text(tic, buf, x+2, y, (over ? tic_color_light_blue : tic_color_gray), false);
-	}
+    {
+        char buf[] = "#1";
+        sprintf(buf, "#%i", id+1);
+        tic_api_print(tic, buf, x+2, y, (over ? tic_color_12 : tic_color_13), false, 1, false);
+    }
 }
 
 static void drawTab(Menu* menu, s32 x, s32 y, s32 id)
 {
-	enum{Width = 15, Height = 7};
-	tic_mem* tic = menu->tic;
+    enum{Width = 15, Height = 7};
+    tic_mem* tic = menu->tic;
 
-	tic->api.rect(tic, x, y-2, Width, Height+2, (tic_color_white));
-	tic->api.pixel(tic, x, y+Height-1, (tic_color_black));
-	tic->api.pixel(tic, x+Width-1, y+Height-1, (tic_color_black));
-	tic->api.rect(tic, x+1, y+Height, Width-2 , 1, (tic_color_black));
+    tic_api_rect(tic, x, y-2, Width, Height+2, tic_color_12);
+    tic_api_pix(tic, x, y+Height-1, tic_color_0, false);
+    tic_api_pix(tic, x+Width-1, y+Height-1, tic_color_0, false);
+    tic_api_rect(tic, x+1, y+Height, Width-2 , 1, tic_color_0);
 
-	{
-		char buf[] = "#1";
-		sprintf(buf, "#%i", id+1);
-		tic->api.fixed_text(tic, buf, x+2, y, (tic_color_gray), false);
-	}
+    {
+        char buf[] = "#1";
+        sprintf(buf, "#%i", id+1);
+        tic_api_print(tic, buf, x+2, y, tic_color_15, false, 1, false);
+    }
 }
 
 static void drawPlayerButtons(Menu* menu, s32 x, s32 y)
 {
-	tic_mem* tic = menu->tic;
+    tic_mem* tic = menu->tic;
 
-	u8 chromakey = 0;
+    u8 chromakey = 0;
 
-	tic_key* codes = getKeymap();
+    tic_key* codes = getKeymap();
 
-	enum {Width = 41, Height = TIC_SPRITESIZE, Rows = 4, Cols = 2, MaxChars = 5, Buttons = 8};
+    enum {Width = 41, Height = TIC_SPRITESIZE, Rows = 4, Cols = 2, MaxChars = 5, Buttons = 8};
 
-	for(s32 i = 0; i < Buttons; i++)
-	{
-		tic_rect rect = {x + i / Rows * (Width+2), y + (i%Rows)*(Height+1), Width, TIC_SPRITESIZE};
-		bool over = false;
+    for(s32 i = 0; i < Buttons; i++)
+    {
+        tic_rect rect = {x + i / Rows * (Width+2), y + (i%Rows)*(Height+1), Width, TIC_SPRITESIZE};
+        bool over = false;
 
-		s32 index = i+menu->gamepad.tab * Buttons;
+        s32 index = i+menu->gamepad.tab * Buttons;
 
-		if(checkMousePos(&rect))
-		{
-			setCursor(tic_cursor_hand);
+        if(checkMousePos(&rect))
+        {
+            setCursor(tic_cursor_hand);
 
-			over = true;
+            over = true;
 
-			if(checkMouseClick(&rect, tic_mouse_left))
-			{
-				menu->gamepad.selected = menu->gamepad.selected != index ? index : -1;
-			}
-		}
+            if(checkMouseClick(&rect, tic_mouse_left))
+            {
+                menu->gamepad.selected = menu->gamepad.selected != index ? index : -1;
+            }
+        }
 
-		if(menu->gamepad.selected == index && menu->ticks % TIC_FRAMERATE < TIC_FRAMERATE / 2)
-			continue;
+        if(menu->gamepad.selected == index && menu->ticks % TIC80_FRAMERATE < TIC80_FRAMERATE / 2)
+            continue;
 
-		tic->api.sprite_ex(tic, &getConfig()->cart->bank0.tiles, 8+i, rect.x, rect.y, 1, 1, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);
+        tic_api_spr(tic, 8+i, rect.x, rect.y, 1, 1, &chromakey, 1, 1, tic_no_flip, tic_no_rotate);//&getConfig()->cart->bank0.tiles
 
-		static const char* const Names[tic_keys_count] = {"...", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "minus", "equals", "leftbracket", "rightbracket", "backslash", "semicolon", "apostrophe", "grave", "comma", "period", "slash", "space", "tab", "return", "backspace", "delete", "insert", "pageup", "pagedown", "home", "end", "up", "down", "left", "right", "capslock", "ctrl", "shift", "alt", "escape", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12"};
+        static const char* const Names[tic_keys_count] = {"...", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "minus", "equals", "leftbracket", "rightbracket", "backslash", "semicolon", "apostrophe", "grave", "comma", "period", "slash", "space", "tab", "return", "backspace", "delete", "insert", "pageup", "pagedown", "home", "end", "up", "down", "left", "right", "capslock", "ctrl", "shift", "alt", "escape", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12"};
 
-		s32 code = codes[index];
-		char label[32];
-		strcpy(label, Names[code]);
+        s32 code = codes[index];
+        char label[32];
+        strcpy(label, Names[code]);
 
-		if(strlen(label) > MaxChars)
-			label[MaxChars] = '\0';
+        if(strlen(label) > MaxChars)
+            label[MaxChars] = '\0';
 
-		tic->api.text(tic, label, rect.x+10, rect.y+2, (over ? tic_color_gray : tic_color_black), false);
-	}
+        tic_api_print(tic, label, rect.x+10, rect.y+2, (over ? tic_color_14 : tic_color_15), false, 1, false);
+    }
 }
 
 static void drawGamepadSetupTabs(Menu* menu, s32 x, s32 y)
 {
-	enum{Width = 90, Height = 41, Tabs = TIC_GAMEPADS, TabWidth = 16};
-	tic_mem* tic = menu->tic;
+    enum{Width = 90, Height = 41, Tabs = TIC_GAMEPADS, TabWidth = 16};
+    tic_mem* tic = menu->tic;
 
-	tic->api.rect(tic, x, y, Width, Height, (tic_color_white));
-	tic->api.pixel(tic, x, y, (tic_color_blue));
-	tic->api.pixel(tic, x+Width-1, y, (tic_color_blue));
-	tic->api.pixel(tic, x, y+Height-1, (tic_color_black));
-	tic->api.pixel(tic, x+Width-1, y+Height-1, (tic_color_black));
-	tic->api.rect(tic, x+1, y+Height, Width-2 , 1, (tic_color_black));
+    tic_api_rect(tic, x, y, Width, Height, tic_color_12);
+    tic_api_pix(tic, x, y, tic_color_8, false);
+    tic_api_pix(tic, x+Width-1, y, tic_color_8, false);
+    tic_api_pix(tic, x, y+Height-1, tic_color_0, false);
+    tic_api_pix(tic, x+Width-1, y+Height-1, tic_color_0, false);
+    tic_api_rect(tic, x+1, y+Height, Width-2 , 1, tic_color_0);
 
-	for(s32 i = 0; i < Tabs; i++)
-		(menu->gamepad.tab == i ? drawTab : drawTabDisabled)(menu, x + 73 - i*TabWidth, y + 43, i);
+    for(s32 i = 0; i < Tabs; i++)
+        (menu->gamepad.tab == i ? drawTab : drawTabDisabled)(menu, x + 73 - i*TabWidth, y + 43, i);
 
-	drawPlayerButtons(menu, x + 3, y + 3);
+    drawPlayerButtons(menu, x + 3, y + 3);
 }
 
 static void drawGamepadMenu(Menu* menu)
 {
-	drawDialog(menu);
+    if (getStudioMode() != TIC_MENU_MODE)
+        return;
 
-	tic_mem* tic = menu->tic;
+    drawDialog(menu);
 
-	tic_rect dlgRect = getRect(menu);
+    tic_mem* tic = menu->tic;
 
-	static const char Label[] = "BACK";
+    tic_rect dlgRect = getRect(menu);
 
-	tic_rect rect = {dlgRect.x + 25, dlgRect.y + 56, (sizeof(Label)-1)*TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
+    static const char Label[] = "BACK";
 
-	bool over = false;
-	bool down = false;
+    tic_rect rect = {dlgRect.x + 25, dlgRect.y + 56, (sizeof(Label)-1)*TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
 
-	if(checkMousePos(&rect))
-	{
-		setCursor(tic_cursor_hand);
+    bool over = false;
+    bool down = false;
 
-		over = true;
+    if(checkMousePos(&rect))
+    {
+        setCursor(tic_cursor_hand);
 
-		if(checkMouseDown(&rect, tic_mouse_left))
-		{
-			down = true;
-		}
+        over = true;
 
-		if(checkMouseClick(&rect, tic_mouse_left))
-		{
-			menu->gamepad.selected = -1;
-			menu->mode = MAIN_MENU_MODE;
-			playSystemSfx(2);
-			return;
-		}
-	}
+        if(checkMouseDown(&rect, tic_mouse_left))
+        {
+            down = true;
+        }
 
-	if(down)
-	{
-		tic->api.text(tic, Label, rect.x, rect.y+1, (tic_color_light_blue), false);
-	}
-	else
-	{
-		tic->api.text(tic, Label, rect.x, rect.y+1, (tic_color_black), false);
-		tic->api.text(tic, Label, rect.x, rect.y, (over ? tic_color_light_blue : tic_color_white), false);
-	}
+        if(checkMouseClick(&rect, tic_mouse_left))
+        {
+            menu->gamepad.selected = -1;
+            menu->mode = MAIN_MENU_MODE;
+            playSystemSfx(2);
+            return;
+        }
+    }
 
-	{
-		static const u8 Icon[] =
-		{
-			0b10000000,
-			0b11000000,
-			0b11100000,
-			0b11000000,
-			0b10000000,
-			0b00000000,
-			0b00000000,
-			0b00000000,
-		};
+    if(down)
+    {
+        tic_api_print(tic, Label, rect.x, rect.y+1, tic_color_13, false, 1, false);
+    }
+    else
+    {
+        tic_api_print(tic, Label, rect.x, rect.y+1, tic_color_0, false, 1, false);
+        tic_api_print(tic, Label, rect.x, rect.y, (over ? tic_color_13 : tic_color_12), false, 1, false);
+    }
 
-		drawBitIcon(rect.x-7, rect.y+1, Icon, (tic_color_black));
-		drawBitIcon(rect.x-7, rect.y, Icon, (tic_color_white));
-	}
+    {
+        static const u8 Icon[] =
+        {
+            0b10000000,
+            0b11000000,
+            0b11100000,
+            0b11000000,
+            0b10000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
+        };
 
-	drawGamepadSetupTabs(menu, dlgRect.x+25, dlgRect.y+4);
+        drawBitIcon(rect.x-7, rect.y+1, Icon, tic_color_0);
+        drawBitIcon(rect.x-7, rect.y, Icon, tic_color_12);
+    }
+
+    drawGamepadSetupTabs(menu, dlgRect.x+25, dlgRect.y+4);
 }
 
 static void drawMainMenu(Menu* menu)
 {
-	tic_mem* tic = menu->tic;
+    if (getStudioMode() != TIC_MENU_MODE)
+        return;
 
-	drawDialog(menu);
+    tic_mem* tic = menu->tic;
 
-	tic_rect rect = getRect(menu);
+    drawDialog(menu);
 
-	{
-		for(s32 i = 0; i < COUNT_OF(Rows); i++)
-		{
-			if(!*Rows[i])continue;
+    tic_rect rect = getRect(menu);
 
-			tic_rect label = {rect.x + 22, rect.y + (TIC_FONT_HEIGHT+1)*i + 16, 86, TIC_FONT_HEIGHT+1};
-			bool over = false;
-			bool down = false;
+    {
+        for(s32 i = 0; i < COUNT_OF(Rows); i++)
+        {
+            if(!*Rows[i])continue;
 
-			if(checkMousePos(&label))
-			{
-				setCursor(tic_cursor_hand);
+            tic_rect label = {rect.x + 22, rect.y + (TIC_FONT_HEIGHT+1)*i + 16, 86, TIC_FONT_HEIGHT+1};
+            bool over = false;
+            bool down = false;
 
-				over = true;
+            if(checkMousePos(&label))
+            {
+                setCursor(tic_cursor_hand);
 
-				if(checkMouseDown(&label, tic_mouse_left))
-				{
-					down = true;
-					menu->main.focus = i;
-				}
+                over = true;
 
-				if(checkMouseClick(&label, tic_mouse_left))
-				{
-					MenuHandlers[i](menu);
-					return;
-				}
-			}
+                if(checkMouseDown(&label, tic_mouse_left))
+                {
+                    down = true;
+                    menu->main.focus = i;
+                }
 
-			if(down)
-			{
-				tic->api.text(tic, Rows[i], label.x, label.y+1, (tic_color_light_blue), false);
-			}
-			else
-			{
-				tic->api.text(tic, Rows[i], label.x, label.y+1, (tic_color_black), false);
-				tic->api.text(tic, Rows[i], label.x, label.y, (over ? tic_color_light_blue : tic_color_white), false);
-			}
+                if(checkMouseClick(&label, tic_mouse_left))
+                {
+                    MenuHandlers[i](menu);
+                    return;
+                }
+            }
 
-			if(i == menu->main.focus)
-			{
-				static const u8 Icon[] =
-				{
-					0b10000000,
-					0b11000000,
-					0b11100000,
-					0b11000000,
-					0b10000000,
-					0b00000000,
-					0b00000000,
-					0b00000000,
-				};
+            if(down)
+            {
+                tic_api_print(tic, Rows[i], label.x, label.y+1, tic_color_13, false, 1, false);
+            }
+            else
+            {
+                tic_api_print(tic, Rows[i], label.x, label.y+1, tic_color_0, false, 1, false);
+                tic_api_print(tic, Rows[i], label.x, label.y, (over ? tic_color_13 : tic_color_12), false, 1, false);
+            }
 
-				drawBitIcon(label.x-7, label.y+1, Icon, (tic_color_black));
-				drawBitIcon(label.x-7, label.y, Icon, (tic_color_white));
-			}
-		}
-	}
+            if(i == menu->main.focus)
+            {
+                static const u8 Icon[] =
+                {
+                    0b10000000,
+                    0b11000000,
+                    0b11100000,
+                    0b11000000,
+                    0b10000000,
+                    0b00000000,
+                    0b00000000,
+                    0b00000000,
+                };
+
+                drawBitIcon(label.x-7, label.y+1, Icon, tic_color_0);
+                drawBitIcon(label.x-7, label.y, Icon, tic_color_12);
+            }
+        }
+    }
 }
 
 static void processGamedMenuGamepad(Menu* menu)
 {
-	if(menu->gamepad.selected < 0)
-	{
-		enum
-		{
-			Up, Down, Left, Right, A, B, X, Y
-		};
+    if(menu->gamepad.selected < 0)
+    {
+        enum
+        {
+            Up, Down, Left, Right, A, B, X, Y
+        };
 
-		if(menu->tic->api.btnp(menu->tic, A, -1, -1))
-		{
-			menu->mode = MAIN_MENU_MODE;
-			playSystemSfx(2);
-		}
-	}
+        if(tic_api_btnp(menu->tic, A, -1, -1))
+        {
+            menu->mode = MAIN_MENU_MODE;
+            playSystemSfx(2);
+        }
+    }
 }
 
 static void processMainMenuGamepad(Menu* menu)
 {
-	enum{Count = COUNT_OF(Rows), Hold = 30, Period = 5};
+    enum{Count = COUNT_OF(Rows), Hold = 30, Period = 5};
 
-	enum
-	{
-		Up, Down, Left, Right, A, B, X, Y
-	};
+    enum
+    {
+        Up, Down, Left, Right, A, B, X, Y
+    };
 
-	if(menu->tic->api.btnp(menu->tic, Up, Hold, Period))
-	{
-		do
-		{
-			if(--menu->main.focus < 0)
-				menu->main.focus = Count - 1;
+    if(tic_api_btnp(menu->tic, Up, Hold, Period))
+    {
+        do
+        {
+            if(--menu->main.focus < 0)
+                menu->main.focus = Count - 1;
 
-			menu->main.focus = menu->main.focus % Count;
-		} while(!*Rows[menu->main.focus]);
+            menu->main.focus = menu->main.focus % Count;
+        } while(!*Rows[menu->main.focus]);
 
-		playSystemSfx(2);
-	}
+        playSystemSfx(2);
+    }
 
-	if(menu->tic->api.btnp(menu->tic, Down, Hold, Period))
-	{
-		do
-		{
-			menu->main.focus = (menu->main.focus+1) % Count;
-		} while(!*Rows[menu->main.focus]);
+    if(tic_api_btnp(menu->tic, Down, Hold, Period))
+    {
+        do
+        {
+            menu->main.focus = (menu->main.focus+1) % Count;
+        } while(!*Rows[menu->main.focus]);
 
-		playSystemSfx(2);
-	}
+        playSystemSfx(2);
+    }
 
-	if(menu->tic->api.btnp(menu->tic, A, -1, -1))
-	{
-		MenuHandlers[menu->main.focus](menu);
-	}
+    if(tic_api_btnp(menu->tic, A, -1, -1))
+    {
+        MenuHandlers[menu->main.focus](menu);
+    }
 }
 
 static void saveMapping(Menu* menu)
 {
-	fsSaveRootFile(menu->fs, KEYMAP_DAT_PATH, getKeymap(), KEYMAP_SIZE, true);
+    fsSaveRootFile(menu->fs, KEYMAP_DAT_PATH, getKeymap(), KEYMAP_SIZE, true);
 }
 
 static void processKeyboard(Menu* menu)
 {
-	tic_mem* tic = menu->tic;
+    tic_mem* tic = menu->tic;
 
-	if(tic->ram.input.keyboard.data == 0) return;
+    if(tic->ram.input.keyboard.data == 0) return;
 
-	if(menu->gamepad.selected < 0)
-		return;
+    if(menu->gamepad.selected < 0)
+        return;
 
-	if(keyWasPressed(tic_key_escape));
-	else if(anyKeyWasPressed())
-	{
-		for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
-		{
-			tic_key key = tic->ram.input.keyboard.keys[i];
+    if(keyWasPressed(tic_key_escape));
+    else if(anyKeyWasPressed())
+    {
+        for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
+        {
+            tic_key key = tic->ram.input.keyboard.keys[i];
 
-			if(tic->api.keyp(tic, key, -1, -1))
-			{
-				tic_key* codes = getKeymap();
-				codes[menu->gamepad.selected] = key;
-				saveMapping(menu);
-				break;
-			}
-		}
-	}
+            if(tic_api_keyp(tic, key, -1, -1))
+            {
+                tic_key* codes = getKeymap();
+                codes[menu->gamepad.selected] = key;
+                saveMapping(menu);
+                break;
+            }
+        }
+    }
 
-	menu->gamepad.selected = -1;
+    menu->gamepad.selected = -1;
 }
 
 static void tick(Menu* menu)
 {
-	menu->ticks++;
+    if(getStudioMode() != TIC_MENU_MODE)
+        return;
 
-	processKeyboard(menu);
+    tic_mem* tic = menu->tic;
 
-	if(getStudioMode() != TIC_MENU_MODE)
-		return;
+    menu->ticks++;
 
-	if(!menu->init)
-	{
-		playSystemSfx(0);
+    processKeyboard(menu);
 
-		menu->init = true;
-	}
+    if(!menu->init)
+    {
+        playSystemSfx(0);
 
-	memcpy(menu->tic->ram.vram.screen.data, menu->bg, sizeof menu->tic->ram.vram.screen.data);
+        menu->init = true;
+    }
 
-	switch(menu->mode)
-	{
-	case MAIN_MENU_MODE:
-		processMainMenuGamepad(menu);
-		drawMainMenu(menu);
-		break;
-	case GAMEPAD_MENU_MODE:
-		processGamedMenuGamepad(menu);
-		drawGamepadMenu(menu);
-		break;
-	}
+    switch(menu->mode)
+    {
+    case MAIN_MENU_MODE:
+        processMainMenuGamepad(menu);
+        break;
+    case GAMEPAD_MENU_MODE:
+        processGamedMenuGamepad(menu);
+        break;
+    }
+
+    drawBGAnimation(tic, menu->ticks);
+}
+
+static void scanline(tic_mem* tic, s32 row, void* data)
+{
+    Menu* menu = (Menu*)data;
+
+    drawBGAnimationScanline(tic, row);
+}
+
+static void overline(tic_mem* tic, void* data)
+{
+    Menu* menu = (Menu*)data;
+
+    switch(menu->mode)
+    {
+    case MAIN_MENU_MODE:
+        drawMainMenu(menu);
+        break;
+    case GAMEPAD_MENU_MODE:
+        drawGamepadMenu(menu);
+        break;
+    }
 }
 
 void initMenu(Menu* menu, tic_mem* tic, FileSystem* fs)
 {
-	*menu = (Menu)
-	{
-		.init = false,
-		.fs = fs,
-		.tic = tic,
-		.tick = tick,
-		.bg = menu->bg,
-		.ticks = 0,
-		.pos = {0, 0},
-		.main =
-		{
-			.focus = 0,
-		},
-		.gamepad =
-		{
-			.tab = 0,
-			.selected = -1,
-		},
-		.drag = 
-		{
-			.start = {0, 0},
-			.active = 0,
-		},
-		.mode = MAIN_MENU_MODE,
-	};
+    *menu = (Menu)
+    {
+        .init = false,
+        .fs = fs,
+        .tic = tic,
+        .tick = tick,
+        .scanline = scanline,
+        .overline = overline,
+        .ticks = 0,
+        .pos = {0, 0},
+        .main =
+        {
+            .focus = 0,
+        },
+        .gamepad =
+        {
+            .tab = 0,
+            .selected = -1,
+        },
+        .drag = 
+        {
+            .start = {0, 0},
+            .active = 0,
+        },
+        .mode = MAIN_MENU_MODE,
+    };
+}
 
-	enum{Size = sizeof tic->ram.vram.screen.data};
-
-	if(!menu->bg)
-		menu->bg = malloc(Size);
-
-	if(menu->bg)
-		memcpy(menu->bg, tic->ram.vram.screen.data, Size);
+void freeMenu(Menu* menu)
+{
+    free(menu);
 }
