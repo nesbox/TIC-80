@@ -945,7 +945,6 @@ if (APPLE)
     set(CPACK_BUNDLE_STARTUP_COMMAND "${CMAKE_BINARY_DIR}/bin/tic80")
 
     install(CODE "set(CMAKE_INSTALL_LOCAL_ONLY true)")
-
     include(CPack)
 elseif (LINUX)
     set(CPACK_GENERATOR "DEB")
@@ -956,5 +955,6 @@ elseif (LINUX)
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Nesbox <grigoruk@gmail.com>")
     set(CPACK_DEBIAN_PACKAGE_SECTION "education")
 
+    install(CODE "set(CMAKE_INSTALL_LOCAL_ONLY true)")
     include(CPack)
 endif()
