@@ -52,6 +52,7 @@
 #define CONSOLE_BUFFER_HEIGHT (STUDIO_TEXT_BUFFER_HEIGHT)
 #define CONSOLE_BUFFER_SCREENS 64
 #define CONSOLE_BUFFER_SIZE (CONSOLE_BUFFER_WIDTH * CONSOLE_BUFFER_HEIGHT * CONSOLE_BUFFER_SCREENS)
+#define HTML_EXPORT_NAME "html.zip"
 
 typedef enum
 {
@@ -1749,7 +1750,9 @@ static const char* getExportName(Console* console, const char* ext)
     return name;
 }
 
-static void onHttpGet(const HttpGetData* data)
+static struct{const void* data; s32 size;} htmlExportZip = {NULL, 0};
+
+static void onHtmlExportGet(const HttpGetData* data)
 {
     Console* console = (Console*)data->calldata;
 
@@ -1768,23 +1771,9 @@ static void onHttpGet(const HttpGetData* data)
         break;
     case HttpGetDone:
         {
-            char path[TICNAME_MAX] = TIC_LOCAL_VERSION;
-            strcat(path, md5str(data->url, strlen(data->url)));
-
-            if(fsSaveRootFile(console->fs, path, data->done.data, data->done.size, false))
-            {
-                console->cursor.x = 0;
-                printBack(console, "GET ");
-                printFront(console, data->url);
-                printBack(console, " [DONE]");
-
-                onConsoleExportHtmlCommand(console, NULL);
-            }
-            else
-            {
-                printError(console, "file saving error :(");
-                commandDone(console);
-            }
+            htmlExportZip.data = data->done.data;
+            htmlExportZip.size = data->done.size;
+            onConsoleExportHtmlCommand(console, NULL);
         }
         break;
     case HttpGetError:
@@ -1800,53 +1789,36 @@ static void onConsoleExportHtmlCommand(Console* console, const char* providedNam
 
 #if defined(__TIC_WINDOWS__)
 
-    static const char HtmlName[] = "html.zip";
-    const char* name = HtmlName;
+    static const char HtmlName[] = HTML_EXPORT_NAME;
+    const char* zipPath = HtmlName;
 
 #else
 
-    static const char HtmlName[] = TIC_CACHE "html.zip";
-    const char* name = fsGetRootFilePath(console->fs, HtmlName);
+    static const char HtmlName[] = TIC_CACHE HTML_EXPORT_NAME;
+    const char* zipPath = fsGetRootFilePath(console->fs, HtmlName);
 
 #endif
 
-    struct zip_t *zip = zip_open(name, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+    if(htmlExportZip.data)
+    {
+        if(!fsWriteFile(zipPath, htmlExportZip.data, htmlExportZip.size))
+        {
+            printError(console, "file saving error :(");
+            commandDone(console);
+            return;
+        }
+    }
+    else 
+    {
+        printLine(console);
+        return getSystem()->httpGet("/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "/" HTML_EXPORT_NAME, onHtmlExportGet, console);
+    }
+
+    struct zip_t *zip = zip_open(zipPath, ZIP_DEFAULT_COMPRESSION_LEVEL, 'a');
     bool errorOccured = false;
 
     if(zip)
     {
-        static const char* Files[] = 
-        {
-            "index.html", "tic80.js", "tic80.wasm"
-        };
-
-        for(s32 i = 0; i < COUNT_OF(Files); i++)
-        {
-            char url[TICNAME_MAX] = "/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "/";
-            strcat(url, Files[i]);
-            s32 size = 0;
-
-            char path[TICNAME_MAX] = TIC_LOCAL_VERSION;
-            strcat(path, md5str(url, strlen(url)));
-
-            void* data = fsLoadRootFile(console->fs, path, &size);
-
-            if(data)
-            {
-                zip_entry_open(zip, Files[i]);
-                zip_entry_write(zip, data, size);
-                zip_entry_close(zip);
-
-                free(data);
-            }
-            else
-            {
-                zip_close(zip);
-                printLine(console);
-                return getSystem()->httpGet(url, onHttpGet, console);
-            }
-        }
-
         printBack(console, "\nexporting html...\n");
 
         // save cart
@@ -1879,7 +1851,7 @@ static void onConsoleExportHtmlCommand(Console* console, const char* providedNam
 #if defined(__TIC_WINDOWS__)
             // Temporary workaround for #1169, because ZIP lib doesn't work with wide filenames,
             // we store it the working dir and remove at the end.
-            void* data = fsReadFile(name, &size);
+            void* data = fsReadFile(zipPath, &size);
             remove(HtmlName);
 #else
             void* data = fsLoadRootFile(console->fs, HtmlName, &size);
