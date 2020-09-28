@@ -89,7 +89,7 @@ matrix:
       after_success:
         - cd $HOME/build/nesbox/TIC-80
         - mkdir out
-        - cp build/html/index.html out/index.html
+        - cp build/html/export.html out/index.html
         - cp bin/tic80.wasm out/tic80.wasm
         - cp bin/tic80.js out/tic80.js
         - cd out
