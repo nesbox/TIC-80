@@ -30,13 +30,13 @@
 #include "world.h"
 #include "sfx.h"
 #include "music.h"
-#include "history.h"
+#include "ext/history.h"
 #include "config.h"
 #include "code.h"
 #include "dialog.h"
 #include "menu.h"
 #include "surf.h"
-#include "project.h"
+#include "studio/project.h"
 
 #include "fs.h"
 

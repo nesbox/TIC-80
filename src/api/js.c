@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "machine.h"
+#include "core/machine.h"
 
 #if defined(TIC_BUILD_WITH_JS)
 

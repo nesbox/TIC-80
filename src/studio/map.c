@@ -21,7 +21,7 @@
 // SOFTWARE.
 
 #include "map.h"
-#include "history.h"
+#include "ext/history.h"
 
 #define SHEET_COLS (TIC_SPRITESHEET_SIZE / TIC_SPRITESIZE)
 

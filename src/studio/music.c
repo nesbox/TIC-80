@@ -21,7 +21,7 @@
 // SOFTWARE.
 
 #include "music.h"
-#include "history.h"
+#include "ext/history.h"
 
 #include <ctype.h>
 

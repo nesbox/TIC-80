@@ -32,12 +32,12 @@
 #include <3ds.h>
 #endif
 
-#include "ticapi.h"
+#include "api.h"
 #include "tools.h"
 #include "tilesheet.h"
 #include "machine.h"
 #include "ext/gif.h"
-#include "cart.h"
+#include "core/cart.h"
 
 #define CLOCKRATE (255<<13)
 #define ENVELOPE_FREQ_SCALE 2

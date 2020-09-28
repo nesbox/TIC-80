@@ -25,7 +25,7 @@
 #include "config.h"
 #include "ext/gif.h"
 #include "ext/file_dialog.h"
-#include "project.h"
+#include "studio/project.h"
 
 #include <ctype.h>
 #include <string.h>

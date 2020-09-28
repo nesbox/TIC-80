@@ -24,9 +24,9 @@
 #include <string.h>
 
 #include <tic80.h>
-#include "ticapi.h"
+#include "api.h"
 #include "tools.h"
-#include "cart.h"
+#include "core/cart.h"
 
 #include "ext/gif.h"
 

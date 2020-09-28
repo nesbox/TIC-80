@@ -3,7 +3,7 @@
     [
         {
             "name": "build",
-            "shell_cmd": "cd ${project_path}/build && cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel .. && ninja",
+            "shell_cmd": "cd ${project_path}/build && cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel ${project_path} && ninja",
             "file_regex": "/([^/:]+):(\\d+):(\\d+): ",
             "variants": [                
                 {

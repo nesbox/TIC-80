@@ -4,10 +4,10 @@
 #include <stdarg.h>
 #include <string.h>
 #include <math.h>
-#include <tic.h>
+#include "core/tic.h"
 #include "libretro-common/include/libretro.h"
 #include "libretro_core_options.h"
-#include "../../ticapi.h"
+#include "api.h"
 
 /**
  * system.h is used for:

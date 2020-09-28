@@ -22,7 +22,7 @@
 
 #include "system.h"
 #include "tools.h"
-#include "net.h"
+#include "ext/net.h"
 
 #include <stdlib.h>
 #include <stdio.h>

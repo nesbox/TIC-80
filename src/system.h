@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ticapi.h"
+#include "api.h"
 #include "ext/file_dialog.h"
 #include "version.h"
 

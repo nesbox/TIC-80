@@ -21,7 +21,7 @@
 // SOFTWARE.
 
 #include "sfx.h"
-#include "history.h"
+#include "ext/history.h"
 
 #define DEFAULT_CHANNEL 0
 

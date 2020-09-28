@@ -28,8 +28,8 @@
 #include <stdlib.h>
 #include <stddef.h>
 
-#include "tic.h"
-#include "ticapi.h"
+#include "core/tic.h"
+#include "api.h"
 #include "defines.h"
 #include "tools.h"
 #include "ext/file_dialog.h"

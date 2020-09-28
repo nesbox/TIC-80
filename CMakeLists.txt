@@ -317,16 +317,16 @@ target_include_directories(duktape INTERFACE ${THIRDPARTY_DIR}/duktape/src)
 
 set(TIC80CORE_DIR ${CMAKE_SOURCE_DIR}/src)
 set(TIC80CORE_SRC
-    ${TIC80CORE_DIR}/tic80.c
-    ${TIC80CORE_DIR}/tic.c 
-    ${TIC80CORE_DIR}/tilesheet.c 
-    ${TIC80CORE_DIR}/tools.c 
-    ${TIC80CORE_DIR}/jsapi.c 
-    ${TIC80CORE_DIR}/luaapi.c 
-    ${TIC80CORE_DIR}/wrenapi.c 
-    ${TIC80CORE_DIR}/squirrelapi.c
+    ${TIC80CORE_DIR}/core/tic80.c
+    ${TIC80CORE_DIR}/core/tic.c 
+    ${TIC80CORE_DIR}/core/cart.c
+    ${TIC80CORE_DIR}/core/tilesheet.c 
+    ${TIC80CORE_DIR}/api/js.c 
+    ${TIC80CORE_DIR}/api/lua.c 
+    ${TIC80CORE_DIR}/api/wren.c 
+    ${TIC80CORE_DIR}/api/squirrel.c
     ${TIC80CORE_DIR}/ext/gif.c
-    ${TIC80CORE_DIR}/cart.c
+    ${TIC80CORE_DIR}/tools.c 
 )
 
 add_library(tic80core STATIC ${TIC80CORE_SRC})
@@ -336,7 +336,8 @@ target_include_directories(tic80core
         ${THIRDPARTY_DIR}/moonscript
         ${THIRDPARTY_DIR}/fennel
     PUBLIC
-        ${CMAKE_SOURCE_DIR}/include)
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/src)
 
 target_link_libraries(tic80core lua lpeg wren squirrel giflib blipbuf duktape zlib)
 
@@ -574,11 +575,11 @@ set(TOOLS_DIR ${CMAKE_SOURCE_DIR}/build/tools)
 
 if(BUILD_DEMO_CARTS)
 
-    add_executable(cart2prj ${TOOLS_DIR}/cart2prj.c ${CMAKE_SOURCE_DIR}/src/project.c)
+    add_executable(cart2prj ${TOOLS_DIR}/cart2prj.c ${CMAKE_SOURCE_DIR}/src/studio/project.c)
     target_include_directories(cart2prj PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include)
     target_link_libraries(cart2prj tic80core)
 
-    add_executable(prj2cart ${TOOLS_DIR}/prj2cart.c ${CMAKE_SOURCE_DIR}/src/project.c)
+    add_executable(prj2cart ${TOOLS_DIR}/prj2cart.c ${CMAKE_SOURCE_DIR}/src/studio/project.c)
     target_include_directories(prj2cart PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include)
     target_link_libraries(prj2cart tic80core)
 
@@ -624,27 +625,27 @@ target_include_directories(wave_writer INTERFACE ${THIRDPARTY_DIR}/blip-buf)
 
 set(TIC80LIB_DIR ${CMAKE_SOURCE_DIR}/src)
 set(TIC80LIB_SRC
-    ${TIC80LIB_DIR}/studio.c
-    ${TIC80LIB_DIR}/console.c
-    ${TIC80LIB_DIR}/run.c
+    ${TIC80LIB_DIR}/studio/studio.c
+    ${TIC80LIB_DIR}/studio/console.c
+    ${TIC80LIB_DIR}/studio/run.c
+    ${TIC80LIB_DIR}/studio/fs.c
+    ${TIC80LIB_DIR}/studio/start.c
+    ${TIC80LIB_DIR}/studio/sprite.c
+    ${TIC80LIB_DIR}/studio/map.c
+    ${TIC80LIB_DIR}/studio/sfx.c
+    ${TIC80LIB_DIR}/studio/music.c
+    ${TIC80LIB_DIR}/studio/world.c
+    ${TIC80LIB_DIR}/studio/config.c
+    ${TIC80LIB_DIR}/studio/code.c
+    ${TIC80LIB_DIR}/studio/dialog.c
+    ${TIC80LIB_DIR}/studio/menu.c
+    ${TIC80LIB_DIR}/studio/surf.c
+    ${TIC80LIB_DIR}/studio/project.c
     ${TIC80LIB_DIR}/ext/md5.c
     ${TIC80LIB_DIR}/ext/gif.c
-    ${TIC80LIB_DIR}/fs.c
+    ${TIC80LIB_DIR}/ext/history.c
+    ${TIC80LIB_DIR}/ext/net.c
     ${TIC80LIB_DIR}/tools.c
-    ${TIC80LIB_DIR}/start.c
-    ${TIC80LIB_DIR}/sprite.c
-    ${TIC80LIB_DIR}/map.c
-    ${TIC80LIB_DIR}/sfx.c
-    ${TIC80LIB_DIR}/music.c
-    ${TIC80LIB_DIR}/history.c
-    ${TIC80LIB_DIR}/world.c
-    ${TIC80LIB_DIR}/config.c
-    ${TIC80LIB_DIR}/code.c
-    ${TIC80LIB_DIR}/dialog.c
-    ${TIC80LIB_DIR}/menu.c
-    ${TIC80LIB_DIR}/surf.c
-    ${TIC80LIB_DIR}/net.c
-    ${TIC80LIB_DIR}/project.c
 )
 
 set(TIC80_OUTPUT tic80)

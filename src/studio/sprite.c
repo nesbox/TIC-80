@@ -21,7 +21,7 @@
 // SOFTWARE.
 
 #include "sprite.h"
-#include "history.h"
+#include "ext/history.h"
 
 #define CANVAS_SIZE (64)
 #define PALETTE_CELL_SIZE 8

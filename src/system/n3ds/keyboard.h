@@ -22,8 +22,8 @@
 
 #pragma once
 
-#include "tic.h"
-#include "ticapi.h"
+#include "core/tic.h"
+#include "api.h"
 
 #include <3ds.h>
 #include <citro3d.h>

@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "ticapi.h"
+#include "api.h"
 #include "tools.h"
 #include "blip_buf.h"
 

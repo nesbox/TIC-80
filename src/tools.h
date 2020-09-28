@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "tic.h"
+#include "core/tic.h"
 #include "ext/gif.h"
 #include <stddef.h>
 

@@ -23,7 +23,7 @@
 #pragma once
 
 #include "studio.h"
-#include "tilesheet.h"
+#include "core/tilesheet.h"
 
 typedef struct Sprite Sprite;
 

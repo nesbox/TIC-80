@@ -23,7 +23,7 @@
 #include "surf.h"
 #include "fs.h"
 #include "console.h"
-#include "project.h"
+#include "studio/project.h"
 
 #include "ext/gif.h"
 
