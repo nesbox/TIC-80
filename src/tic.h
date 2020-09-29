@@ -511,7 +511,7 @@ typedef union
         tic_flags           flags;
         tic_font            font;
 
-        u8 free[];
+        u8 free;
     };
 
     u8 data[TIC_RAM_SIZE];

@@ -25,7 +25,7 @@
 #include "tilesheet.h"
 
 #include <string.h>
-#include <math.h>
+#include <stdlib.h>
 
 #define TRANSPARENT_COLOR 255
 
