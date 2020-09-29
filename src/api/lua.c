@@ -1765,7 +1765,7 @@ static const char* const FennelKeywords [] =
     "do", "values", "if", "when", "each", "for", "fn", "lambda", "partial",
     "while", "set", "global", "var", "local", "let", "tset", "doto", "match",
     "or", "and", "true", "false", "nil", "not", "not=", "length", "set-forcibly!",
-    "rshift", "lshift", "bor", "band", "bnot" "bxor", "pick-values", "pick-args",
+    "rshift", "lshift", "bor", "band", "bnot", "bxor", "pick-values", "pick-args",
     ".", "..", "#", "...", ":", "->", "->>", "-?>", "-?>>", "$", "with-open"
 };
 

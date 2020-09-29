@@ -2699,6 +2699,8 @@ static void onHttpVesrsionGet(const HttpGetData* data)
             }
         }
         break;
+    default:
+        break;
     }
 }
 

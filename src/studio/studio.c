@@ -1933,6 +1933,8 @@ static void studioTick()
                 data = impl.surf;
             }
             break;
+        default:
+            break;
         }
 
         if(impl.mode != TIC_RUN_MODE)

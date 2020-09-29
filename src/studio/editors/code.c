@@ -38,14 +38,14 @@ STATIC_ASSERT(CodeStateSize, sizeof(CodeState) == sizeof(u8));
 
 enum
 {
-    SyntaxTypeString    = offsetof(struct SyntaxColors, string),
-    SyntaxTypeNumber    = offsetof(struct SyntaxColors, number),
-    SyntaxTypeKeyword   = offsetof(struct SyntaxColors, keyword),
-    SyntaxTypeApi       = offsetof(struct SyntaxColors, api),
-    SyntaxTypeComment   = offsetof(struct SyntaxColors, comment),
-    SyntaxTypeSign      = offsetof(struct SyntaxColors, sign),
-    SyntaxTypeVar       = offsetof(struct SyntaxColors, var),
-    SyntaxTypeOther     = offsetof(struct SyntaxColors, other),
+    SyntaxTypeString    = offsetof(struct tic_code_theme, string),
+    SyntaxTypeNumber    = offsetof(struct tic_code_theme, number),
+    SyntaxTypeKeyword   = offsetof(struct tic_code_theme, keyword),
+    SyntaxTypeApi       = offsetof(struct tic_code_theme, api),
+    SyntaxTypeComment   = offsetof(struct tic_code_theme, comment),
+    SyntaxTypeSign      = offsetof(struct tic_code_theme, sign),
+    SyntaxTypeVar       = offsetof(struct tic_code_theme, var),
+    SyntaxTypeOther     = offsetof(struct tic_code_theme, other),
 };
 
 static void history(Code* code)
@@ -204,6 +204,7 @@ static void drawCode(Code* code, bool withCursor)
 
     u8 selectColor = getConfig()->theme.code.select;
     const struct tic_code_theme* theme = &getConfig()->theme.code.syntax;
+    const u8* colors = (const u8*)theme;
     const CodeState* syntaxPointer = code->state;
 
     struct { char* start; char* end; } selection = 
@@ -234,7 +235,7 @@ static void drawCode(Code* code, bool withCursor)
                 if(code->shadowText)
                     drawChar(code->tic, symbol, x+1, y+1, 0, code->altFont);
 
-                drawChar(code->tic, symbol, x, y, theme->colors[syntaxPointer->syntax], code->altFont);
+                drawChar(code->tic, symbol, x, y, colors[syntaxPointer->syntax], code->altFont);
             }
         }
 
@@ -244,7 +245,7 @@ static void drawCode(Code* code, bool withCursor)
         if(code->matchedDelim == pointer)
         {
             matchedDelim.x = x, matchedDelim.y = y, matchedDelim.symbol = symbol,
-                matchedDelim.color = theme->colors[syntaxPointer->syntax];
+                matchedDelim.color = colors[syntaxPointer->syntax];
         }
 
         if(symbol == '\n')

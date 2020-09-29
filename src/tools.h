@@ -85,5 +85,5 @@ void    tic_tool_set_track_row_sfx(tic_track_row* row, s32 sfx);
 bool    tic_tool_is_noise(const tic_waveform* wave);
 void    tic_tool_str2buf(const char* str, s32 size, void* buf, bool flip);
 
-u32     tic_tool_zip(u8* dest, size_t destSize, const u8* source, size_t size);
-u32     tic_tool_unzip(u8* dest, size_t bufSize, const u8* source, size_t size);
+u32     tic_tool_zip(void* dest, size_t destSize, const void* source, size_t size);
+u32     tic_tool_unzip(void* dest, size_t bufSize, const void* source, size_t size);

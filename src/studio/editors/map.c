@@ -1171,6 +1171,8 @@ static void overline(tic_mem* tic, void* data)
                 if(map->paste)
                     drawPasteDataOvr(map);
                 break;
+            default:
+                break;
             }
         }
     }
