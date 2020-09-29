@@ -22,7 +22,7 @@
 
 #include "config.h"
 #include "fs.h"
-#include "core/cart.h"
+#include "cart.h"
 
 #include <lua.h>
 #include <lauxlib.h>

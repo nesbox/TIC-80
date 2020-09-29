@@ -21,8 +21,8 @@
 // SOFTWARE.
 
 #include "console.h"
-#include "fs.h"
-#include "config.h"
+#include "studio/fs.h"
+#include "studio/config.h"
 #include "ext/gif.h"
 #include "ext/file_dialog.h"
 #include "studio/project.h"

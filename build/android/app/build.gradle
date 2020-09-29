@@ -8,6 +8,12 @@ android {
         targetSdkVersion 26
         versionCode 9000
         versionName '0.90.00'
+
+        externalNativeBuild {
+            cmake {
+                arguments "-DBUILD_PRO=Off"
+            }
+        }
     }
 
     signingConfigs {

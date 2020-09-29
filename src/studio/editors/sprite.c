@@ -95,12 +95,12 @@ static void selectViewportPage(Sprite* sprite, u8 page)
 
 static u8 getSheetPixel(Sprite* sprite, s32 x, s32 y)
 {
-    return getTileSheetPixel(&sprite->sheet, x, y);
+    return tic_tilesheet_getpix(&sprite->sheet, x, y);
 }
 
 static void setSheetPixel(Sprite* sprite, s32 x, s32 y, u8 color)
 {
-    setTileSheetPixel(&sprite->sheet, x, y, color);
+    tic_tilesheet_setpix(&sprite->sheet, x, y, color);
 }
 
 static s32 getIndexPosX(Sprite* sprite)
@@ -2046,7 +2046,7 @@ void initTileSheet(Sprite* sprite)
     u8 page = sprite->page;
     u8 nbPages = sprite->nbPages;
     u8* src = (u8*)sprite->src;
-    sprite->sheet = getTileSheet((( nbPages + page) << 1) + sprite->bank, src);
+    sprite->sheet = tic_tilesheet_get((( nbPages + page) << 1) + sprite->bank, src);
 }
 
 void initSprite(Sprite* sprite, tic_mem* tic, tic_tiles* src)

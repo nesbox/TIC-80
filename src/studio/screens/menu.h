@@ -22,32 +22,47 @@
 
 #pragma once
 
-#include "studio.h"
+#include "studio/studio.h"
 
-typedef struct Sfx Sfx;
+typedef struct Menu Menu;
 
-struct Sfx
+struct Menu
 {
     tic_mem* tic;
+    struct FileSystem* fs;
 
-    tic_sfx* src;
-
-    u8 index:SFX_COUNT_BITS;
-    s32 volwave;
-    s32 hoverWave;
+    bool init;
+    s32 ticks;
 
     struct
     {
-        bool active;
-        s32 note;
-        u32 tick;
-    } play;
-    
-    struct History* history;
+        s32 focus;
+    } main;
 
-    void(*tick)(Sfx*);
-    void(*event)(Sfx*, StudioEvent);
+    struct
+    {
+        u32 tab;
+        s32 selected;
+    } gamepad;
+
+    tic_point pos;
+
+    struct
+    {
+        tic_point start;
+        bool active;
+    } drag;
+
+    enum
+    {
+        MAIN_MENU_MODE,
+        GAMEPAD_MENU_MODE,
+    } mode;
+    
+    void(*tick)(Menu* Menu);
+    void (*scanline)(tic_mem* tic, s32 row, void* data);
+    void (*overline)(tic_mem* tic, void* data);
 };
 
-void initSfx(Sfx*, tic_mem*, tic_sfx* src);
-void freeSfx(Sfx* sfx);
+void initMenu(Menu* menu, tic_mem* tic, struct FileSystem* fs);
+void freeMenu(Menu* menu);

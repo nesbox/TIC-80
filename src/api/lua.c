@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "core/machine.h"
+#include "core/core.h"
 
 #if defined(TIC_BUILD_WITH_LUA)
 
@@ -33,7 +33,7 @@
 
 #define LUA_LOC_STACK 1E8 // 100.000.000
 
-static const char TicMachine[] = "_TIC80";
+static const char TicCore[] = "_TIC80";
 
 s32 luaopen_lpeg(lua_State *lua);
 
@@ -43,24 +43,24 @@ static s32 getLuaNumber(lua_State* lua, s32 index)
     return (s32)lua_tonumber(lua, index);
 }
 
-static void registerLuaFunction(tic_machine* machine, lua_CFunction func, const char *name)
+static void registerLuaFunction(tic_core* core, lua_CFunction func, const char *name)
 {
-    lua_pushcfunction(machine->lua, func);
-    lua_setglobal(machine->lua, name);
+    lua_pushcfunction(core->lua, func);
+    lua_setglobal(core->lua, name);
 }
 
-static tic_machine* getLuaMachine(lua_State* lua)
+static tic_core* getLuaCore(lua_State* lua)
 {
-    lua_getglobal(lua, TicMachine);
-    tic_machine* machine = lua_touserdata(lua, -1);
+    lua_getglobal(lua, TicCore);
+    tic_core* core = lua_touserdata(lua, -1);
     lua_pop(lua, 1);
-    return machine;
+    return core;
 }
 
 static s32 lua_peek(lua_State* lua)
 {
     s32 top = lua_gettop(lua);
-    tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
     if(top == 1)
     {
@@ -76,7 +76,7 @@ static s32 lua_peek(lua_State* lua)
 static s32 lua_poke(lua_State* lua)
 {
     s32 top = lua_gettop(lua);
-    tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
     if(top == 2)
     {
@@ -93,7 +93,7 @@ static s32 lua_poke(lua_State* lua)
 static s32 lua_peek4(lua_State* lua)
 {
     s32 top = lua_gettop(lua);
-    tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
     if(top == 1)
     {
@@ -109,7 +109,7 @@ static s32 lua_peek4(lua_State* lua)
 static s32 lua_poke4(lua_State* lua)
 {
     s32 top = lua_gettop(lua);
-    tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
     if(top == 2)
     {
@@ -127,7 +127,7 @@ static s32 lua_cls(lua_State* lua)
 {
     s32 top = lua_gettop(lua);
 
-    tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
     tic_api_cls(tic, top == 1 ? getLuaNumber(lua, 1) : 0);
 
@@ -143,7 +143,7 @@ static s32 lua_pix(lua_State* lua)
         s32 x = getLuaNumber(lua, 1);
         s32 y = getLuaNumber(lua, 2);
         
-        tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
         if(top >= 3)
         {
@@ -174,7 +174,7 @@ static s32 lua_line(lua_State* lua)
         s32 y1 = getLuaNumber(lua, 4);
         s32 color = getLuaNumber(lua, 5);
 
-        tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
         tic_api_line(tic, x0, y0, x1, y1, color);
     }
@@ -195,7 +195,7 @@ static s32 lua_rect(lua_State* lua)
         s32 h = getLuaNumber(lua, 4);
         s32 color = getLuaNumber(lua, 5);
 
-        tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
         tic_api_rect(tic, x, y, w, h, color);
     }
@@ -216,7 +216,7 @@ static s32 lua_rectb(lua_State* lua)
         s32 h = getLuaNumber(lua, 4);
         s32 color = getLuaNumber(lua, 5);
 
-        tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
         tic_api_rectb(tic, x, y, w, h, color);
     }
@@ -238,7 +238,7 @@ static s32 lua_circ(lua_State* lua)
         s32 y = getLuaNumber(lua, 2);
         s32 color = getLuaNumber(lua, 4);
 
-        tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
         tic_api_circ(tic, x, y, radius, color);
     }
@@ -260,7 +260,7 @@ static s32 lua_circb(lua_State* lua)
         s32 y = getLuaNumber(lua, 2);
         s32 color = getLuaNumber(lua, 4);
 
-        tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
         tic_api_circb(tic, x, y, radius, color);
     }
@@ -282,7 +282,7 @@ static s32 lua_tri(lua_State* lua)
         
         s32 color = getLuaNumber(lua, 7);
 
-        tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
         tic_api_tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
     }
@@ -302,7 +302,7 @@ static s32 lua_textri(lua_State* lua)
         for (s32 i = 0; i < COUNT_OF(pt); i++)
             pt[i] = (float)lua_tonumber(lua, i + 1);
 
-        tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
         static u8 colors[TIC_PALETTE_SIZE];
         s32 count = 0;
         bool use_map = false;
@@ -358,7 +358,7 @@ static s32 lua_clip(lua_State* lua)
 
     if(top == 0)
     {
-        tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
         tic_api_clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
     }
@@ -369,9 +369,9 @@ static s32 lua_clip(lua_State* lua)
         s32 w = getLuaNumber(lua, 3);
         s32 h = getLuaNumber(lua, 4);
 
-        tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
-        tic_api_clip((tic_mem*)getLuaMachine(lua), x, y, w, h);
+        tic_api_clip((tic_mem*)getLuaCore(lua), x, y, w, h);
     }
     else luaL_error(lua, "invalid parameters, use clip(x,y,w,h) or clip()\n");
 
@@ -380,8 +380,8 @@ static s32 lua_clip(lua_State* lua)
 
 static s32 lua_btnp(lua_State* lua)
 {
-    tic_machine* machine = getLuaMachine(lua);
-    tic_mem* tic = (tic_mem*)machine;
+    tic_core* core = getLuaCore(lua);
+    tic_mem* tic = (tic_mem*)core;
 
     s32 top = lua_gettop(lua);
 
@@ -414,18 +414,18 @@ static s32 lua_btnp(lua_State* lua)
 
 static s32 lua_btn(lua_State* lua)
 {
-    tic_machine* machine = getLuaMachine(lua);
+    tic_core* core = getLuaCore(lua);
 
     s32 top = lua_gettop(lua);
 
     if (top == 0)
     {
-        lua_pushinteger(lua, machine->memory.ram.input.gamepads.data);
+        lua_pushinteger(lua, core->memory.ram.input.gamepads.data);
     }
     else if (top == 1)
     {
         u32 index = getLuaNumber(lua, 1) & 0x1f;
-        lua_pushboolean(lua, machine->memory.ram.input.gamepads.data & (1 << index));
+        lua_pushboolean(lua, core->memory.ram.input.gamepads.data & (1 << index));
     }
     else
     {
@@ -510,7 +510,7 @@ static s32 lua_spr(lua_State* lua)
         }
     }
 
-    tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
     tic_api_spr(tic, index, x, y, w, h, colors, count, scale, flip, rotate);
 
@@ -526,7 +526,7 @@ static s32 lua_mget(lua_State* lua)
         s32 x = getLuaNumber(lua, 1);
         s32 y = getLuaNumber(lua, 2);
 
-        tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
         u8 value = tic_api_mget(tic, x, y);
         lua_pushinteger(lua, value);
@@ -547,7 +547,7 @@ static s32 lua_mset(lua_State* lua)
         s32 y = getLuaNumber(lua, 2);
         u8 val = getLuaNumber(lua, 3);
 
-        tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
         tic_api_mset(tic, x, y, val);
     }
@@ -645,7 +645,7 @@ static s32 lua_map(lua_State* lua)
 
                                 RemapData data = {lua, remap};
 
-                                tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+                                tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
                                 tic_api_map(tic, x, y, w, h, sx, sy, colors, count, scale, remapCallback, &data);
 
@@ -660,9 +660,9 @@ static s32 lua_map(lua_State* lua)
         }
     }
 
-    tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
-    tic_api_map((tic_mem*)getLuaMachine(lua), x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
+    tic_api_map((tic_mem*)getLuaCore(lua), x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
 
     return 0;
 }
@@ -670,7 +670,7 @@ static s32 lua_map(lua_State* lua)
 static s32 lua_music(lua_State* lua)
 {
     s32 top = lua_gettop(lua);
-    tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
     if(top == 0) tic_api_music(tic, -1, 0, 0, false, false);
     else if(top >= 1)
@@ -711,7 +711,7 @@ static s32 lua_sfx(lua_State* lua)
 
     if(top >= 1)
     {
-        tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
         s32 note = -1;
         s32 octave = -1;
@@ -788,7 +788,7 @@ static s32 lua_sfx(lua_State* lua)
 
 static s32 lua_sync(lua_State* lua)
 {
-    tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
     bool toCart = false;
     u32 mask = 0;
@@ -819,17 +819,17 @@ static s32 lua_sync(lua_State* lua)
 
 static s32 lua_reset(lua_State* lua)
 {
-    tic_machine* machine = getLuaMachine(lua);
+    tic_core* core = getLuaCore(lua);
 
-    machine->state.initialized = false;
+    core->state.initialized = false;
 
     return 0;
 }
 
 static s32 lua_key(lua_State* lua)
 {
-    tic_machine* machine = getLuaMachine(lua);
-    tic_mem* tic = &machine->memory;
+    tic_core* core = getLuaCore(lua);
+    tic_mem* tic = &core->memory;
 
     s32 top = lua_gettop(lua);
 
@@ -860,8 +860,8 @@ static s32 lua_key(lua_State* lua)
 
 static s32 lua_keyp(lua_State* lua)
 {
-    tic_machine* machine = getLuaMachine(lua);
-    tic_mem* tic = &machine->memory;
+    tic_core* core = getLuaCore(lua);
+    tic_mem* tic = &core->memory;
 
     s32 top = lua_gettop(lua);
 
@@ -911,7 +911,7 @@ static s32 lua_memcpy(lua_State* lua)
         s32 src = getLuaNumber(lua, 2);
         s32 size = getLuaNumber(lua, 3);
 
-        tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
         tic_api_memcpy(tic, dest, src, size);
     }
     else luaL_error(lua, "invalid params, memcpy(dest,src,size)\n");
@@ -929,7 +929,7 @@ static s32 lua_memset(lua_State* lua)
         u8 value = getLuaNumber(lua, 2);
         s32 size = getLuaNumber(lua, 3);
 
-        tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
         tic_api_memset(tic, dest, value, size);
     }
     else luaL_error(lua, "invalid params, memset(dest,val,size)\n");
@@ -953,7 +953,7 @@ static const char* printString(lua_State* lua, s32 index)
 
 static s32 lua_font(lua_State* lua)
 {
-    tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
     s32 top = lua_gettop(lua);
 
     if(top >= 1)
@@ -1022,7 +1022,7 @@ static s32 lua_print(lua_State* lua)
 
     if(top >= 1) 
     {
-        tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
         s32 x = 0;
         s32 y = 0;
@@ -1078,7 +1078,7 @@ static s32 lua_print(lua_State* lua)
 static s32 lua_trace(lua_State *lua)
 {
     s32 top = lua_gettop(lua);
-    tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
     if(top >= 1)
     {
@@ -1100,8 +1100,8 @@ static s32 lua_trace(lua_State *lua)
 static s32 lua_pmem(lua_State *lua)
 {
     s32 top = lua_gettop(lua);
-    tic_machine* machine = getLuaMachine(lua);
-    tic_mem* tic = &machine->memory;
+    tic_core* core = getLuaCore(lua);
+    tic_mem* tic = &core->memory;
 
     if(top >= 1)
     {
@@ -1130,7 +1130,7 @@ static s32 lua_pmem(lua_State *lua)
 
 static s32 lua_time(lua_State *lua)
 {
-    tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
     
     lua_pushnumber(lua, tic_api_time(tic));
 
@@ -1139,7 +1139,7 @@ static s32 lua_time(lua_State *lua)
 
 static s32 lua_tstamp(lua_State *lua)
 {
-    tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
     lua_pushnumber(lua, tic_api_tstamp(tic));
 
@@ -1148,16 +1148,16 @@ static s32 lua_tstamp(lua_State *lua)
 
 static s32 lua_exit(lua_State *lua)
 {
-    tic_api_exit((tic_mem*)getLuaMachine(lua));
+    tic_api_exit((tic_mem*)getLuaCore(lua));
     
     return 0;
 }
 
 static s32 lua_mouse(lua_State *lua)
 {
-    tic_machine* machine = getLuaMachine(lua);
+    tic_core* core = getLuaCore(lua);
 
-    const tic80_mouse* mouse = &machine->memory.ram.input.mouse;
+    const tic80_mouse* mouse = &core->memory.ram.input.mouse;
 
     lua_pushinteger(lua, mouse->x);
     lua_pushinteger(lua, mouse->y);
@@ -1172,7 +1172,7 @@ static s32 lua_mouse(lua_State *lua)
 
 static s32 lua_fget(lua_State* lua)
 {
-    tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
     s32 top = lua_gettop(lua);
 
     if(top >= 1)
@@ -1194,7 +1194,7 @@ static s32 lua_fget(lua_State* lua)
 
 static s32 lua_fset(lua_State* lua)
 {
-    tic_mem* tic = (tic_mem*)getLuaMachine(lua);
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
     s32 top = lua_gettop(lua);
 
     if(top >= 1)
@@ -1256,62 +1256,62 @@ static void lua_open_builtins(lua_State *lua)
 
 static void checkForceExit(lua_State *lua, lua_Debug *luadebug)
 {
-    tic_machine* machine = getLuaMachine(lua);
+    tic_core* core = getLuaCore(lua);
 
-    tic_tick_data* tick = machine->data;
+    tic_tick_data* tick = core->data;
 
     if(tick->forceExit && tick->forceExit(tick->data))
         luaL_error(lua, "script execution was interrupted");
 }
 
-static void initAPI(tic_machine* machine)
+static void initAPI(tic_core* core)
 {
-    lua_pushlightuserdata(machine->lua, machine);
-    lua_setglobal(machine->lua, TicMachine);
+    lua_pushlightuserdata(core->lua, core);
+    lua_setglobal(core->lua, TicCore);
 
 #define API_FUNC_DEF(name, ...) {lua_ ## name, #name},
     static const struct{lua_CFunction func; const char* name;} ApiItems[] = {TIC_API_LIST(API_FUNC_DEF)};
 #undef API_FUNC_DEF
 
     for (s32 i = 0; i < COUNT_OF(ApiItems); i++)
-        registerLuaFunction(machine, ApiItems[i].func, ApiItems[i].name);
+        registerLuaFunction(core, ApiItems[i].func, ApiItems[i].name);
 
-    registerLuaFunction(machine, lua_dofile, "dofile");
-    registerLuaFunction(machine, lua_loadfile, "loadfile");
+    registerLuaFunction(core, lua_dofile, "dofile");
+    registerLuaFunction(core, lua_loadfile, "loadfile");
 
-    lua_sethook(machine->lua, &checkForceExit, LUA_MASKCOUNT, LUA_LOC_STACK);
+    lua_sethook(core->lua, &checkForceExit, LUA_MASKCOUNT, LUA_LOC_STACK);
 }
 
 static void closeLua(tic_mem* tic)
 {
-    tic_machine* machine = (tic_machine*)tic;
+    tic_core* core = (tic_core*)tic;
 
-    if(machine->lua)
+    if(core->lua)
     {
-        lua_close(machine->lua);
-        machine->lua = NULL;
+        lua_close(core->lua);
+        core->lua = NULL;
     }
 }
 
 static bool initLua(tic_mem* tic, const char* code)
 {
-    tic_machine* machine = (tic_machine*)tic;
+    tic_core* core = (tic_core*)tic;
 
     closeLua(tic);
 
-    lua_State* lua = machine->lua = luaL_newstate();
+    lua_State* lua = core->lua = luaL_newstate();
     lua_open_builtins(lua);
 
-    initAPI(machine);
+    initAPI(core);
 
     {
-        lua_State* lua = machine->lua;
+        lua_State* lua = core->lua;
 
         lua_settop(lua, 0);
 
         if(luaL_loadstring(lua, code) != LUA_OK || lua_pcall(lua, 0, LUA_MULTRET, 0) != LUA_OK)
         {
-            machine->data->error(machine->data->data, lua_tostring(lua, -1));
+            core->data->error(core->data->data, lua_tostring(lua, -1));
             return false;
         }
     }
@@ -1356,9 +1356,9 @@ static s32 docall (lua_State *lua, s32 narg, s32 nres)
 
 static void callLuaTick(tic_mem* tic)
 {
-    tic_machine* machine = (tic_machine*)tic;
+    tic_core* core = (tic_core*)tic;
 
-    lua_State* lua = machine->lua;
+    lua_State* lua = core->lua;
 
     if(lua)
     {
@@ -1366,20 +1366,20 @@ static void callLuaTick(tic_mem* tic)
         if(lua_isfunction(lua, -1)) 
         {
             if(docall(lua, 0, 0) != LUA_OK) 
-                machine->data->error(machine->data->data, lua_tostring(lua, -1));
+                core->data->error(core->data->data, lua_tostring(lua, -1));
         }
         else 
         {       
             lua_pop(lua, 1);
-            machine->data->error(machine->data->data, "'function TIC()...' isn't found :(");
+            core->data->error(core->data->data, "'function TIC()...' isn't found :(");
         }
     }
 }
 
 static void callLuaScanlineName(tic_mem* tic, s32 row, void* data, const char* name)
 {
-    tic_machine* machine = (tic_machine*)tic;
-    lua_State* lua = machine->lua;
+    tic_core* core = (tic_core*)tic;
+    lua_State* lua = core->lua;
 
     if (lua)
     {
@@ -1388,7 +1388,7 @@ static void callLuaScanlineName(tic_mem* tic, s32 row, void* data, const char* n
         {
             lua_pushinteger(lua, row);
             if(docall(lua, 1, 0) != LUA_OK)
-                machine->data->error(machine->data->data, lua_tostring(lua, -1));
+                core->data->error(core->data->data, lua_tostring(lua, -1));
         }
         else lua_pop(lua, 1);
     }
@@ -1404,8 +1404,8 @@ static void callLuaScanline(tic_mem* tic, s32 row, void* data)
 
 static void callLuaOverline(tic_mem* tic, void* data)
 {
-    tic_machine* machine = (tic_machine*)tic;
-    lua_State* lua = machine->lua;
+    tic_core* core = (tic_core*)tic;
+    lua_State* lua = core->lua;
 
     if (lua)
     {
@@ -1415,7 +1415,7 @@ static void callLuaOverline(tic_mem* tic, void* data)
         if(lua_isfunction(lua, -1)) 
         {
             if(docall(lua, 0, 0) != LUA_OK)
-                machine->data->error(machine->data->data, lua_tostring(lua, -1));
+                core->data->error(core->data->data, lua_tostring(lua, -1));
         }
         else lua_pop(lua, 1);
     }
@@ -1493,8 +1493,8 @@ static const tic_outline_item* getLuaOutline(const char* code, s32* size)
 }
 
 static void evalLua(tic_mem* tic, const char* code) {
-    tic_machine* machine = (tic_machine*)tic;
-    lua_State* lua = machine->lua;
+    tic_core* core = (tic_core*)tic;
+    lua_State* lua = core->lua;
 
     if (!lua) return;
 
@@ -1502,7 +1502,7 @@ static void evalLua(tic_mem* tic, const char* code) {
 
     if(luaL_loadstring(lua, code) != LUA_OK || lua_pcall(lua, 0, LUA_MULTRET, 0) != LUA_OK)
     {
-        machine->data->error(machine->data->data, lua_tostring(lua, -1));
+        core->data->error(core->data->data, lua_tostring(lua, -1));
     }
 }
 
@@ -1566,25 +1566,25 @@ static void setloaded(lua_State* l, char* name)
 
 static bool initMoonscript(tic_mem* tic, const char* code)
 {
-    tic_machine* machine = (tic_machine*)tic;
+    tic_core* core = (tic_core*)tic;
     closeLua(tic);
 
-    lua_State* lua = machine->lua = luaL_newstate();
+    lua_State* lua = core->lua = luaL_newstate();
     lua_open_builtins(lua);
 
     luaopen_lpeg(lua);
     setloaded(lua, "lpeg");
 
-    initAPI(machine);
+    initAPI(core);
 
     {
-        lua_State* moon = machine->lua;
+        lua_State* moon = core->lua;
 
         lua_settop(moon, 0);
 
         if (luaL_loadbuffer(moon, (const char *)moonscript_lua, moonscript_lua_len, "moonscript.lua") != LUA_OK)
         {
-            machine->data->error(machine->data->data, "failed to load moonscript.lua");
+            core->data->error(core->data->data, "failed to load moonscript.lua");
             return false;
         }
 
@@ -1592,7 +1592,7 @@ static bool initMoonscript(tic_mem* tic, const char* code)
 
         if (luaL_loadbuffer(moon, execute_moonscript_src, strlen(execute_moonscript_src), "execute_moonscript") != LUA_OK)
         {
-            machine->data->error(machine->data->data, "failed to load moonscript compiler");
+            core->data->error(core->data->data, "failed to load moonscript compiler");
             return false;
         }
 
@@ -1603,7 +1603,7 @@ static bool initMoonscript(tic_mem* tic, const char* code)
 
             if (msg)
             {
-                machine->data->error(machine->data->data, msg);
+                core->data->error(core->data->data, msg);
                 return false;
             }
         }
@@ -1717,23 +1717,23 @@ static const char* execute_fennel_src = FENNEL_CODE(
 
 static bool initFennel(tic_mem* tic, const char* code)
 {
-    tic_machine* machine = (tic_machine*)tic;
+    tic_core* core = (tic_core*)tic;
     closeLua(tic);
 
-    lua_State* lua = machine->lua = luaL_newstate();
+    lua_State* lua = core->lua = luaL_newstate();
     lua_open_builtins(lua);
 
-    initAPI(machine);
+    initAPI(core);
 
     {
-        lua_State* fennel = machine->lua;
+        lua_State* fennel = core->lua;
 
         lua_settop(fennel, 0);
 
         if (luaL_loadbuffer(fennel, (const char *)loadfennel_lua,
                             loadfennel_lua_len, "fennel.lua") != LUA_OK)
         {
-            machine->data->error(machine->data->data, "failed to load fennel compiler");
+            core->data->error(core->data->data, "failed to load fennel compiler");
             return false;
         }
 
@@ -1741,7 +1741,7 @@ static bool initFennel(tic_mem* tic, const char* code)
 
         if (luaL_loadbuffer(fennel, execute_fennel_src, strlen(execute_fennel_src), "execute_fennel") != LUA_OK)
         {
-            machine->data->error(machine->data->data, "failed to load fennel compiler");
+            core->data->error(core->data->data, "failed to load fennel compiler");
             return false;
         }
 
@@ -1751,7 +1751,7 @@ static bool initFennel(tic_mem* tic, const char* code)
 
         if (err)
         {
-            machine->data->error(machine->data->data, err);
+            core->data->error(core->data->data, err);
             return false;
         }
     }
@@ -1828,14 +1828,14 @@ static const tic_outline_item* getFennelOutline(const char* code, s32* size)
 }
 
 static void evalFennel(tic_mem* tic, const char* code) {
-    tic_machine* machine = (tic_machine*)tic;
-    lua_State* fennel = machine->lua;
+    tic_core* core = (tic_core*)tic;
+    lua_State* fennel = core->lua;
 
     lua_settop(fennel, 0);
 
     if (luaL_loadbuffer(fennel, execute_fennel_src, strlen(execute_fennel_src), "execute_fennel") != LUA_OK)
     {
-        machine->data->error(machine->data->data, "failed to load fennel compiler");
+        core->data->error(core->data->data, "failed to load fennel compiler");
     }
 
     lua_pushstring(fennel, code);
@@ -1844,7 +1844,7 @@ static void evalFennel(tic_mem* tic, const char* code) {
 
     if (err)
     {
-        machine->data->error(machine->data->data, err);
+        core->data->error(core->data->data, err);
     }
 }
 

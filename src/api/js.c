@@ -20,7 +20,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "core/machine.h"
+#include "core/core.h"
 
 #if defined(TIC_BUILD_WITH_JS)
 
@@ -30,32 +30,32 @@
 
 #include "duktape.h"
 
-static const char TicMachine[] = "_TIC80";
+static const char TicCore[] = "_TIC80";
 
 static void closeJavascript(tic_mem* tic)
 {
-    tic_machine* machine = (tic_machine*)tic;
+    tic_core* core = (tic_core*)tic;
 
-    if(machine->js)
+    if(core->js)
     {
-        duk_destroy_heap(machine->js);
-        machine->js = NULL;
+        duk_destroy_heap(core->js);
+        core->js = NULL;
     }
 }
 
-static tic_machine* getDukMachine(duk_context* duk)
+static tic_core* getDukCore(duk_context* duk)
 {
     duk_push_global_stash(duk);
-    duk_get_prop_string(duk, -1, TicMachine);
-    tic_machine* machine = duk_to_pointer(duk, -1);
+    duk_get_prop_string(duk, -1, TicCore);
+    tic_core* core = duk_to_pointer(duk, -1);
     duk_pop_2(duk);
 
-    return machine;
+    return core;
 }
 
 static duk_ret_t duk_print(duk_context* duk)
 {
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     const char* text = duk_to_string(duk, 0);
     s32 x = duk_opt_int(duk, 1, 0);
@@ -74,7 +74,7 @@ static duk_ret_t duk_print(duk_context* duk)
 
 static duk_ret_t duk_cls(duk_context* duk)
 {
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     tic_api_cls(tic, duk_opt_int(duk, 0, 0));
 
@@ -86,7 +86,7 @@ static duk_ret_t duk_pix(duk_context* duk)
     s32 x = duk_to_int(duk, 0);
     s32 y = duk_to_int(duk, 1);
 
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     if(duk_is_null_or_undefined(duk, 2))
     {
@@ -110,7 +110,7 @@ static duk_ret_t duk_line(duk_context* duk)
     s32 y1 = duk_to_int(duk, 3);
     s32 color = duk_to_int(duk, 4);
 
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     tic_api_line(tic, x0, y0, x1, y1, color);
 
@@ -125,7 +125,7 @@ static duk_ret_t duk_rect(duk_context* duk)
     s32 h = duk_to_int(duk, 3);
     s32 color = duk_to_int(duk, 4);
 
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
     tic_api_rect(tic, x, y, w, h, color);
 
     return 0;
@@ -139,7 +139,7 @@ static duk_ret_t duk_rectb(duk_context* duk)
     s32 h = duk_to_int(duk, 3);
     s32 color = duk_to_int(duk, 4);
 
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
     tic_api_rectb(tic, x, y, w, h, color);
 
     return 0;
@@ -189,7 +189,7 @@ static duk_ret_t duk_spr(duk_context* duk)
     s32 w = duk_opt_int(duk, 7, 1);
     s32 h = duk_opt_int(duk, 8, 1);
 
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
     tic_api_spr(tic, index, x, y, w, h, colors, count, scale, flip, rotate);
 
     return 0;
@@ -197,16 +197,16 @@ static duk_ret_t duk_spr(duk_context* duk)
 
 static duk_ret_t duk_btn(duk_context* duk)
 {
-    tic_machine* machine = getDukMachine(duk);
+    tic_core* core = getDukCore(duk);
 
     if (duk_is_null_or_undefined(duk, 0))
     {
-        duk_push_uint(duk, machine->memory.ram.input.gamepads.data);
+        duk_push_uint(duk, core->memory.ram.input.gamepads.data);
     }
     else
     {
         s32 index = duk_to_int(duk, 0) & 0x1f;
-        duk_push_boolean(duk, machine->memory.ram.input.gamepads.data & (1 << index));
+        duk_push_boolean(duk, core->memory.ram.input.gamepads.data & (1 << index));
     }
 
     return 1;
@@ -214,8 +214,8 @@ static duk_ret_t duk_btn(duk_context* duk)
 
 static duk_ret_t duk_btnp(duk_context* duk)
 {
-    tic_machine* machine = getDukMachine(duk);
-    tic_mem* tic = (tic_mem*)machine;
+    tic_core* core = getDukCore(duk);
+    tic_mem* tic = (tic_mem*)core;
 
     if (duk_is_null_or_undefined(duk, 0))
     {
@@ -241,8 +241,8 @@ static duk_ret_t duk_btnp(duk_context* duk)
 
 static s32 duk_key(duk_context* duk)
 {
-    tic_machine* machine = getDukMachine(duk);
-    tic_mem* tic = &machine->memory;
+    tic_core* core = getDukCore(duk);
+    tic_mem* tic = &core->memory;
 
     if (duk_is_null_or_undefined(duk, 0))
     {
@@ -262,8 +262,8 @@ static s32 duk_key(duk_context* duk)
 
 static s32 duk_keyp(duk_context* duk)
 {
-    tic_machine* machine = getDukMachine(duk);
-    tic_mem* tic = &machine->memory;
+    tic_core* core = getDukCore(duk);
+    tic_mem* tic = &core->memory;
 
     if (duk_is_null_or_undefined(duk, 0))
     {
@@ -298,7 +298,7 @@ static s32 duk_keyp(duk_context* duk)
 
 static duk_ret_t duk_sfx(duk_context* duk)
 {
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     s32 index = duk_opt_int(duk, 0, -1);
 
@@ -437,7 +437,7 @@ static duk_ret_t duk_map(duk_context* duk)
         }
     }
 
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     if (duk_is_null_or_undefined(duk, 8))
         tic_api_map(tic, x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
@@ -447,7 +447,7 @@ static duk_ret_t duk_map(duk_context* duk)
 
         RemapData data = {duk, remap};
 
-        tic_api_map((tic_mem*)getDukMachine(duk), x, y, w, h, sx, sy, colors, count, scale, remapCallback, &data);
+        tic_api_map((tic_mem*)getDukCore(duk), x, y, w, h, sx, sy, colors, count, scale, remapCallback, &data);
     }
 
     return 0;
@@ -458,7 +458,7 @@ static duk_ret_t duk_mget(duk_context* duk)
     s32 x = duk_opt_int(duk, 0, 0);
     s32 y = duk_opt_int(duk, 1, 0);
 
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     u8 value = tic_api_mget(tic, x, y);
     duk_push_uint(duk, value);
@@ -471,7 +471,7 @@ static duk_ret_t duk_mset(duk_context* duk)
     s32 y = duk_opt_int(duk, 1, 0);
     u8 value = duk_opt_int(duk, 2, 0);
 
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     tic_api_mset(tic, x, y, value);
 
@@ -482,7 +482,7 @@ static duk_ret_t duk_peek(duk_context* duk)
 {
     s32 address = duk_to_int(duk, 0);
 
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
     duk_push_uint(duk, tic_api_peek(tic, address));
     return 1;
 }
@@ -492,7 +492,7 @@ static duk_ret_t duk_poke(duk_context* duk)
     s32 address = duk_to_int(duk, 0);
     u8 value = duk_to_int(duk, 1);
 
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
     tic_api_poke(tic, address, value);
 
     return 0;
@@ -502,7 +502,7 @@ static duk_ret_t duk_peek4(duk_context* duk)
 {
     s32 address = duk_to_int(duk, 0);
 
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
     duk_push_uint(duk, tic_api_peek4(tic, address));
     return 1;
 }
@@ -512,7 +512,7 @@ static duk_ret_t duk_poke4(duk_context* duk)
     s32 address = duk_to_int(duk, 0);
     u8 value = duk_to_int(duk, 1);
 
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
     tic_api_poke4(tic, address, value);
 
     return 0;
@@ -524,7 +524,7 @@ static duk_ret_t duk_memcpy(duk_context* duk)
     s32 src = duk_to_int(duk, 1);
     s32 size = duk_to_int(duk, 2);
 
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
     tic_api_memcpy(tic, dest, src, size);
 
     return 0;
@@ -536,7 +536,7 @@ static duk_ret_t duk_memset(duk_context* duk)
     u8 value = duk_to_int(duk, 1);
     s32 size = duk_to_int(duk, 2);
 
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
     tic_api_memset(tic, dest, value, size);
 
     return 0;
@@ -544,7 +544,7 @@ static duk_ret_t duk_memset(duk_context* duk)
 
 static duk_ret_t duk_trace(duk_context* duk)
 {
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     const char* text = duk_opt_string(duk, 0, "");
     u8 color = duk_opt_int(duk, 1, tic_color_12);
@@ -556,7 +556,7 @@ static duk_ret_t duk_trace(duk_context* duk)
 
 static duk_ret_t duk_pmem(duk_context* duk)
 {
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
     u32 index = duk_to_int(duk, 0);
 
     if(index < TIC_PERSISTENT_SIZE)
@@ -579,7 +579,7 @@ static duk_ret_t duk_pmem(duk_context* duk)
 
 static duk_ret_t duk_time(duk_context* duk)
 {
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     duk_push_number(duk, tic_api_time(tic));
 
@@ -588,7 +588,7 @@ static duk_ret_t duk_time(duk_context* duk)
 
 static duk_ret_t duk_tstamp(duk_context* duk)
 {
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     duk_push_number(duk, tic_api_tstamp(tic));
 
@@ -597,14 +597,14 @@ static duk_ret_t duk_tstamp(duk_context* duk)
 
 static duk_ret_t duk_exit(duk_context* duk)
 {
-    tic_api_exit((tic_mem*)getDukMachine(duk));
+    tic_api_exit((tic_mem*)getDukCore(duk));
 
     return 0;
 }
 
 static duk_ret_t duk_font(duk_context* duk)
 {
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     const char* text = duk_to_string(duk, 0);
     s32 x = duk_to_int(duk, 1);
@@ -630,9 +630,9 @@ static duk_ret_t duk_font(duk_context* duk)
 
 static duk_ret_t duk_mouse(duk_context* duk)
 {
-    tic_machine* machine = getDukMachine(duk);
+    tic_core* core = getDukCore(duk);
 
-    const tic80_mouse* mouse = &machine->memory.ram.input.mouse;
+    const tic80_mouse* mouse = &core->memory.ram.input.mouse;
 
     duk_idx_t idx = duk_push_array(duk);
     duk_push_int(duk, mouse->x);
@@ -662,7 +662,7 @@ static duk_ret_t duk_circ(duk_context* duk)
     s32 y = duk_to_int(duk, 1);
     s32 color = duk_to_int(duk, 3);
 
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     tic_api_circ(tic, x, y, radius, color);
 
@@ -678,7 +678,7 @@ static duk_ret_t duk_circb(duk_context* duk)
     s32 y = duk_to_int(duk, 1);
     s32 color = duk_to_int(duk, 3);
 
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     tic_api_circb(tic, x, y, radius, color);
 
@@ -694,7 +694,7 @@ static duk_ret_t duk_tri(duk_context* duk)
 
     s32 color = duk_to_int(duk, 6);
 
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     tic_api_tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
 
@@ -707,7 +707,7 @@ static duk_ret_t duk_textri(duk_context* duk)
 
     for (s32 i = 0; i < COUNT_OF(pt); i++)
         pt[i] = (float)duk_to_number(duk, i);
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
     bool use_map = duk_opt_boolean(duk, 12, false);
 
     static u8 colors[TIC_PALETTE_SIZE];
@@ -761,7 +761,7 @@ static duk_ret_t duk_clip(duk_context* duk)
     s32 w = duk_opt_int(duk, 2, TIC80_WIDTH);
     s32 h = duk_opt_int(duk, 3, TIC80_HEIGHT);
 
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     tic_api_clip(tic, x, y, w, h);
 
@@ -770,7 +770,7 @@ static duk_ret_t duk_clip(duk_context* duk)
 
 static duk_ret_t duk_music(duk_context* duk)
 {
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     s32 track = duk_opt_int(duk, 0, -1);
     tic_api_music(tic, -1, 0, 0, false, false);
@@ -790,7 +790,7 @@ static duk_ret_t duk_music(duk_context* duk)
 
 static duk_ret_t duk_sync(duk_context* duk)
 {
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     u32 mask = duk_opt_int(duk, 0, 0);
     s32 bank = duk_opt_int(duk, 1, 0);
@@ -806,16 +806,16 @@ static duk_ret_t duk_sync(duk_context* duk)
 
 static duk_ret_t duk_reset(duk_context* duk)
 {
-    tic_machine* machine = getDukMachine(duk);
+    tic_core* core = getDukCore(duk);
 
-    machine->state.initialized = false;
+    core->state.initialized = false;
 
     return 0;
 }
 
 static duk_ret_t duk_fget(duk_context* duk)
 {
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     u32 index = duk_opt_int(duk, 0, 0);
     u32 flag = duk_opt_int(duk, 1, 0);
@@ -829,7 +829,7 @@ static duk_ret_t duk_fget(duk_context* duk)
 
 static duk_ret_t duk_fset(duk_context* duk)
 {
-    tic_mem* tic = (tic_mem*)getDukMachine(duk);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     u32 index = duk_opt_int(duk, 0, 0);
     u32 flag = duk_opt_int(duk, 1, 0);
@@ -844,22 +844,22 @@ static u64 ForceExitCounter = 0;
 
 s32 duk_timeout_check(void* udata)
 {
-    tic_machine* machine = (tic_machine*)udata;
-    tic_tick_data* tick = machine->data;
+    tic_core* core = (tic_core*)udata;
+    tic_tick_data* tick = core->data;
 
     return ForceExitCounter++ > 1000 ? tick->forceExit && tick->forceExit(tick->data) : false;
 }
 
-static void initDuktape(tic_machine* machine)
+static void initDuktape(tic_core* core)
 {
-    closeJavascript((tic_mem*)machine);
+    closeJavascript((tic_mem*)core);
 
-    duk_context* duk = machine->js = duk_create_heap(NULL, NULL, NULL, machine, NULL);
+    duk_context* duk = core->js = duk_create_heap(NULL, NULL, NULL, core, NULL);
 
     {
         duk_push_global_stash(duk);
-        duk_push_pointer(duk, machine);
-        duk_put_prop_string(duk, -2, TicMachine);
+        duk_push_pointer(duk, core);
+        duk_put_prop_string(duk, -2, TicCore);
         duk_pop(duk);
     }
 
@@ -869,21 +869,21 @@ static void initDuktape(tic_machine* machine)
 
     for (s32 i = 0; i < COUNT_OF(ApiItems); i++)
     {
-        duk_push_c_function(machine->js, ApiItems[i].func, ApiItems[i].params);
-        duk_put_global_string(machine->js, ApiItems[i].name);
+        duk_push_c_function(core->js, ApiItems[i].func, ApiItems[i].params);
+        duk_put_global_string(core->js, ApiItems[i].name);
     }
 }
 
 static bool initJavascript(tic_mem* tic, const char* code)
 {
-    tic_machine* machine = (tic_machine*)tic;
+    tic_core* core = (tic_core*)tic;
 
-    initDuktape(machine);
-    duk_context* duktape = machine->js;
+    initDuktape(core);
+    duk_context* duktape = core->js;
 
     if (duk_pcompile_string(duktape, 0, code) != 0 || duk_peval_string(duktape, code) != 0)
     {
-        machine->data->error(machine->data->data, duk_safe_to_stacktrace(duktape, -1));
+        core->data->error(core->data->data, duk_safe_to_stacktrace(duktape, -1));
         duk_pop(duktape);
         return false;
     }
@@ -895,9 +895,9 @@ static void callJavascriptTick(tic_mem* tic)
 {
     ForceExitCounter = 0;
 
-    tic_machine* machine = (tic_machine*)tic;
+    tic_core* core = (tic_core*)tic;
 
-    duk_context* duk = machine->js;
+    duk_context* duk = core->js;
 
     if(duk)
     {
@@ -905,10 +905,10 @@ static void callJavascriptTick(tic_mem* tic)
         {
             if(duk_pcall(duk, 0) != DUK_EXEC_SUCCESS)
             {
-                machine->data->error(machine->data->data, duk_safe_to_stacktrace(duk, -1));
+                core->data->error(core->data->data, duk_safe_to_stacktrace(duk, -1));
             }
         }
-        else machine->data->error(machine->data->data, "'function TIC()...' isn't found :(");
+        else core->data->error(core->data->data, "'function TIC()...' isn't found :(");
 
         duk_pop(duk);
     }
@@ -916,15 +916,15 @@ static void callJavascriptTick(tic_mem* tic)
 
 static void callJavascriptScanlineName(tic_mem* tic, s32 row, void* data, const char* name)
 {
-    tic_machine* machine = (tic_machine*)tic;
-    duk_context* duk = machine->js;
+    tic_core* core = (tic_core*)tic;
+    duk_context* duk = core->js;
 
     if(duk_get_global_string(duk, name))
     {
         duk_push_int(duk, row);
 
         if(duk_pcall(duk, 1) != 0)
-            machine->data->error(machine->data->data, duk_safe_to_stacktrace(duk, -1));
+            core->data->error(core->data->data, duk_safe_to_stacktrace(duk, -1));
     }
 
     duk_pop(duk);
@@ -940,13 +940,13 @@ static void callJavascriptScanline(tic_mem* tic, s32 row, void* data)
 
 static void callJavascriptOverline(tic_mem* tic, void* data)
 {
-    tic_machine* machine = (tic_machine*)tic;
-    duk_context* duk = machine->js;
+    tic_core* core = (tic_core*)tic;
+    duk_context* duk = core->js;
 
     if(duk_get_global_string(duk, OVR_FN))
     {
         if(duk_pcall(duk, 0) != 0)
-            machine->data->error(machine->data->data, duk_safe_to_stacktrace(duk, -1));
+            core->data->error(core->data->data, duk_safe_to_stacktrace(duk, -1));
     }
 
     duk_pop(duk);

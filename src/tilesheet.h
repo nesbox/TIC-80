@@ -23,7 +23,6 @@
 
 #pragma once
 
-#include <stdlib.h>
 #include "tools.h"
 
 typedef struct
@@ -52,10 +51,10 @@ typedef struct
     u8* ptr;
 } tic_tileptr;
 
-tic_tilesheet getTileSheet(u8 segment, u8* ptr);
-tic_tileptr getTile(const tic_tilesheet* sheet, s32 index, bool local);
+tic_tilesheet tic_tilesheet_get(u8 segment, u8* ptr);
+tic_tileptr tic_tilesheet_gettile(const tic_tilesheet* sheet, s32 index, bool local);
 
-inline u8 getTileSheetPixel(const tic_tilesheet* sheet, s32 x, s32 y)
+inline u8 tic_tilesheet_getpix(const tic_tilesheet* sheet, s32 x, s32 y)
 {
     // tile coord
     u16 tile_index = ((y >> 3) << 4 ) + (x / sheet->segment->tile_width);
@@ -64,7 +63,7 @@ inline u8 getTileSheetPixel(const tic_tilesheet* sheet, s32 x, s32 y)
     return sheet->segment->peek(sheet->ptr+tile_index * sheet->segment->ptr_size, pix_addr);
 }
 
-inline void setTileSheetPixel(const tic_tilesheet* sheet, s32 x, s32 y, u8 value)
+inline void tic_tilesheet_setpix(const tic_tilesheet* sheet, s32 x, s32 y, u8 value)
 {
     // tile coord
     u16 tile_index = ((y >> 3) << 4 ) + (x / sheet->segment->tile_width);
@@ -73,13 +72,13 @@ inline void setTileSheetPixel(const tic_tilesheet* sheet, s32 x, s32 y, u8 value
     sheet->segment->poke(sheet->ptr + tile_index * sheet->segment->ptr_size, pix_addr, value);
 }
 
-inline u8 getTilePixel(const tic_tileptr* tile, s32 x, s32 y)
+inline u8 tic_tilesheet_gettilepix(const tic_tileptr* tile, s32 x, s32 y)
 {
     u32 addr = tile->offset + x + (y * tile->segment->tile_width);
     return tile->segment->peek(tile->ptr, addr);
 }
 
-inline void setTilePixel(const tic_tileptr* tile, s32 x, s32 y, u8 value)
+inline void tic_tilesheet_settilepix(const tic_tileptr* tile, s32 x, s32 y, u8 value)
 {
     u32 addr = tile->offset + x + (y * tile->segment->tile_width);
     tile->segment->poke(tile->ptr, addr, value);

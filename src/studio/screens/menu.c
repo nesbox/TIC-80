@@ -21,7 +21,7 @@
 // SOFTWARE.
 
 #include "menu.h"
-#include "fs.h"
+#include "studio/fs.h"
 
 #define DIALOG_WIDTH (TIC80_WIDTH/2)
 #define DIALOG_HEIGHT (TIC80_HEIGHT/2)

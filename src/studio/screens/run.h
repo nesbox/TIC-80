@@ -22,68 +22,23 @@
 
 #pragma once
 
-#include "studio.h"
-#include "core/tilesheet.h"
+#include "studio/studio.h"
 
-typedef struct Sprite Sprite;
+typedef struct Run Run;
 
-struct Sprite
+struct Run
 {
     tic_mem* tic;
+    struct Console* console;
+    tic_tick_data tickData;
 
-    tic_tiles* src;
-    tic_tilesheet sheet;
+    bool exit;
+    
+    char saveid[TICNAME_MAX];
+    tic_persistent pmem;
 
-    u32 tickCounter;
-
-    u16 index;
-    u8 color;
-    u8 color2;
-    u8 size;
-    u8 brushSize;
-    tic_bpp bpp;
-    u8 nbPages;
-    u8 page;
-    u8 bank;
-    u16 x,y;
-    bool advanced;
-
-    struct
-    {
-        bool edit;
-        bool ovr;
-    } palette;
-
-    struct
-    {
-        tic_rect rect;
-        tic_point start;
-        bool drag;
-        u8* back;
-        u8* front;
-    }select;
-
-    enum
-    {
-        SPRITE_DRAW_MODE,
-        SPRITE_PICK_MODE,
-        SPRITE_SELECT_MODE,
-        SPRITE_FILL_MODE,
-    }mode;
-
-    struct History* history;
-
-    void (*tick)(Sprite*);
-    void (*event)(Sprite*, StudioEvent);
-    void (*scanline)(tic_mem* tic, s32 row, void* data);
-    void (*overline)(tic_mem* tic, void* data);
+    void(*tick)(Run*);
 };
 
-typedef struct
-{
-    s32 cell_w, cell_h, cols, rows, length;
-} tic_palette_dimensions;
-
-void initSprite(Sprite*, tic_mem*, tic_tiles* src);
-void freeSprite(Sprite*);
-
+void initRun(Run*, struct Console*, tic_mem*);
+void freeRun(Run* run);

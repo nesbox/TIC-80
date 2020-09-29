@@ -317,16 +317,19 @@ target_include_directories(duktape INTERFACE ${THIRDPARTY_DIR}/duktape/src)
 
 set(TIC80CORE_DIR ${CMAKE_SOURCE_DIR}/src)
 set(TIC80CORE_SRC
-    ${TIC80CORE_DIR}/core/tic80.c
-    ${TIC80CORE_DIR}/core/tic.c 
-    ${TIC80CORE_DIR}/core/cart.c
-    ${TIC80CORE_DIR}/core/tilesheet.c 
+    ${TIC80CORE_DIR}/core/core.c
+    ${TIC80CORE_DIR}/core/draw.c
+    ${TIC80CORE_DIR}/core/io.c
+    ${TIC80CORE_DIR}/core/sound.c
     ${TIC80CORE_DIR}/api/js.c 
     ${TIC80CORE_DIR}/api/lua.c 
     ${TIC80CORE_DIR}/api/wren.c 
     ${TIC80CORE_DIR}/api/squirrel.c
-    ${TIC80CORE_DIR}/ext/gif.c
+    ${TIC80CORE_DIR}/ext/gif.c     
+    ${TIC80CORE_DIR}/tic.c
+    ${TIC80CORE_DIR}/cart.c
     ${TIC80CORE_DIR}/tools.c 
+    ${TIC80CORE_DIR}/tilesheet.c 
 )
 
 add_library(tic80core STATIC ${TIC80CORE_SRC})
@@ -389,12 +392,12 @@ endif()
 ################################
 
 if(BUILD_SOKOL)
-set(SOKOL_LIB_SRC ${CMAKE_SOURCE_DIR}/src/system/sokol_gfx.c)
+set(SOKOL_LIB_SRC ${CMAKE_SOURCE_DIR}/src/system/sokol/sokol_gfx.c)
 
 if(APPLE)
-    set(SOKOL_LIB_SRC ${SOKOL_LIB_SRC} ${CMAKE_SOURCE_DIR}/src/system/sokol_impl.m)
+    set(SOKOL_LIB_SRC ${SOKOL_LIB_SRC} ${CMAKE_SOURCE_DIR}/src/system/sokol/sokol_impl.m)
 else()
-    set(SOKOL_LIB_SRC ${SOKOL_LIB_SRC} ${CMAKE_SOURCE_DIR}/src/system/sokol_impl.c)
+    set(SOKOL_LIB_SRC ${SOKOL_LIB_SRC} ${CMAKE_SOURCE_DIR}/src/system/sokol/sokol_impl.c)
 endif()
 
 add_library(sokol STATIC ${SOKOL_LIB_SRC})
@@ -625,27 +628,26 @@ target_include_directories(wave_writer INTERFACE ${THIRDPARTY_DIR}/blip-buf)
 
 set(TIC80LIB_DIR ${CMAKE_SOURCE_DIR}/src)
 set(TIC80LIB_SRC
+    ${TIC80LIB_DIR}/studio/screens/console.c
+    ${TIC80LIB_DIR}/studio/screens/run.c
+    ${TIC80LIB_DIR}/studio/screens/dialog.c
+    ${TIC80LIB_DIR}/studio/screens/menu.c
+    ${TIC80LIB_DIR}/studio/screens/surf.c
+    ${TIC80LIB_DIR}/studio/screens/start.c
+    ${TIC80LIB_DIR}/studio/editors/code.c
+    ${TIC80LIB_DIR}/studio/editors/sprite.c
+    ${TIC80LIB_DIR}/studio/editors/map.c
+    ${TIC80LIB_DIR}/studio/editors/world.c
+    ${TIC80LIB_DIR}/studio/editors/sfx.c
+    ${TIC80LIB_DIR}/studio/editors/music.c
     ${TIC80LIB_DIR}/studio/studio.c
-    ${TIC80LIB_DIR}/studio/console.c
-    ${TIC80LIB_DIR}/studio/run.c
-    ${TIC80LIB_DIR}/studio/fs.c
-    ${TIC80LIB_DIR}/studio/start.c
-    ${TIC80LIB_DIR}/studio/sprite.c
-    ${TIC80LIB_DIR}/studio/map.c
-    ${TIC80LIB_DIR}/studio/sfx.c
-    ${TIC80LIB_DIR}/studio/music.c
-    ${TIC80LIB_DIR}/studio/world.c
     ${TIC80LIB_DIR}/studio/config.c
-    ${TIC80LIB_DIR}/studio/code.c
-    ${TIC80LIB_DIR}/studio/dialog.c
-    ${TIC80LIB_DIR}/studio/menu.c
-    ${TIC80LIB_DIR}/studio/surf.c
     ${TIC80LIB_DIR}/studio/project.c
+    ${TIC80LIB_DIR}/studio/fs.c
     ${TIC80LIB_DIR}/ext/md5.c
     ${TIC80LIB_DIR}/ext/gif.c
     ${TIC80LIB_DIR}/ext/history.c
     ${TIC80LIB_DIR}/ext/net.c
-    ${TIC80LIB_DIR}/tools.c
 )
 
 set(TIC80_OUTPUT tic80)
@@ -763,7 +765,7 @@ if(BUILD_SDL)
         set(TIC80_SRC ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/src/ext/file_dialog.m)
     endif()
 
-    set(TIC80_SRC ${TIC80_SRC} src/system/sdlgpu.c)
+    set(TIC80_SRC ${TIC80_SRC} src/system/sdl/sdlgpu.c)
 
     if(WIN32)
         
@@ -846,7 +848,7 @@ if(BUILD_SOKOL)
         set(TIC80_SRC ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/src/ext/file_dialog.m)
     endif()
 
-    set(TIC80_SRC ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/src/system/sokol.c)
+    set(TIC80_SRC ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/src/system/sokol/sokol.c)
 
     if(WIN32)
 

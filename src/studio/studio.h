@@ -28,7 +28,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 
-#include "core/tic.h"
+#include "tic.h"
 #include "api.h"
 #include "defines.h"
 #include "tools.h"

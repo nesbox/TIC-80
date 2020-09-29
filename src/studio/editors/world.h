@@ -22,22 +22,22 @@
 
 #pragma once
 
-#include "studio.h"
+#include "studio/studio.h"
+#include "map.h"
 
-typedef struct Start Start;
+typedef struct World World;
 
-struct Start
+struct World
 {
     tic_mem* tic;
+    Map* map;
 
-    bool initialized;
+    void* preview;
 
-    u32 phase;
-    u32 ticks;
-    bool play;
-
-    void (*tick)(Start*);
+    void (*tick)(World* world);
+    void (*scanline)(tic_mem* tic, s32 row, void* data);
+    void (*overline)(tic_mem* tic, void* data); 
 };
 
-void initStart(Start* start, tic_mem* tic);
-void freeStart(Start* start);
+void initWorld(World* world, tic_mem* tic, Map* map);
+void freeWorld(World* world);

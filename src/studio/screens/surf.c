@@ -21,7 +21,7 @@
 // SOFTWARE.
 
 #include "surf.h"
-#include "fs.h"
+#include "studio/fs.h"
 #include "console.h"
 #include "studio/project.h"
 

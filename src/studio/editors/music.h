@@ -22,34 +22,70 @@
 
 #pragma once
 
-#include "studio.h"
+#include "studio/studio.h"
 
-typedef struct Surf Surf;
+typedef struct Music Music;
 
-struct Surf
+struct Music
 {
     tic_mem* tic;
-    struct FileSystem* fs;
-    struct Console* console;
-    struct Movie* state;
+    tic_music* src;
 
-    bool init;
-    s32 ticks;
+    u8 track:MUSIC_TRACKS_BITS;
+    s32 frame;
 
     struct
     {
         s32 pos;
-        s32 anim;
-        s32 anim_target;
-        struct MenuItem* items;
-        s32 count;
-    } menu;
+        s32 start;
+        bool active;
 
-    void(*tick)(Surf* surf);
-    void(*resume)(Surf* surf);
-    void (*scanline)(tic_mem* tic, s32 row, void* data);
-    void (*overline)(tic_mem* tic, void* data);
+    } scroll;
+
+    bool beat34;
+    bool follow;
+    bool sustain;
+    bool on[TIC_SOUND_CHANNELS];
+
+    struct
+    {
+        s32 octave;
+        s32 sfx;
+    } last;
+
+    struct
+    {
+        s32 col;
+        tic_point edit;
+
+        struct
+        {
+            tic_point start;
+            tic_rect rect;
+            bool drag;
+        } select;
+    } tracker;
+
+    struct
+    {
+        s32 col;
+        tic_point edit;
+        s8 note[TIC_SOUND_CHANNELS];
+    } piano;
+
+    enum
+    {
+        MUSIC_TRACKER_TAB,
+        MUSIC_PIANO_TAB,
+    } tab;
+
+    u32 tickCounter;
+
+    struct History* history;
+    
+    void(*tick)(Music*);
+    void(*event)(Music*, StudioEvent);
 };
 
-void initSurf(Surf* surf, tic_mem* tic, struct Console* console);
-void freeSurf(Surf* surf);
+void initMusic(Music*, tic_mem*, tic_music* src);
+void freeMusic(Music* music);

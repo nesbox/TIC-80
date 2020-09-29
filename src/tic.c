@@ -26,7 +26,7 @@
 #include <tic80.h>
 #include "api.h"
 #include "tools.h"
-#include "core/cart.h"
+#include "cart.h"
 
 #include "ext/gif.h"
 

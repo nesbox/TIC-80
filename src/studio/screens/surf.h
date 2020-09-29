@@ -22,23 +22,34 @@
 
 #pragma once
 
-#include "studio.h"
+#include "studio/studio.h"
 
-typedef struct Run Run;
+typedef struct Surf Surf;
 
-struct Run
+struct Surf
 {
     tic_mem* tic;
+    struct FileSystem* fs;
     struct Console* console;
-    tic_tick_data tickData;
+    struct Movie* state;
 
-    bool exit;
-    
-    char saveid[TICNAME_MAX];
-    tic_persistent pmem;
+    bool init;
+    s32 ticks;
 
-    void(*tick)(Run*);
+    struct
+    {
+        s32 pos;
+        s32 anim;
+        s32 anim_target;
+        struct MenuItem* items;
+        s32 count;
+    } menu;
+
+    void(*tick)(Surf* surf);
+    void(*resume)(Surf* surf);
+    void (*scanline)(tic_mem* tic, s32 row, void* data);
+    void (*overline)(tic_mem* tic, void* data);
 };
 
-void initRun(Run*, struct Console*, tic_mem*);
-void freeRun(Run* run);
+void initSurf(Surf* surf, tic_mem* tic, struct Console* console);
+void freeSurf(Surf* surf);

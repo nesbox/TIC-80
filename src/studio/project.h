@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "core/cart.h"
+#include "cart.h"
 
 #define PROJECT_LUA_EXT         ".lua"
 #define PROJECT_MOON_EXT        ".moon"

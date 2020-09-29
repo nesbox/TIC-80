@@ -22,70 +22,13 @@
 
 #pragma once
 
-#include "studio.h"
+#include "sokol_app.h"
+#include "sokol_gfx.h"
+#include "sokol_time.h"
+#include "sokol_audio.h"
 
-typedef struct Music Music;
+#include <stdint.h>
 
-struct Music
-{
-    tic_mem* tic;
-    tic_music* src;
-
-    u8 track:MUSIC_TRACKS_BITS;
-    s32 frame;
-
-    struct
-    {
-        s32 pos;
-        s32 start;
-        bool active;
-
-    } scroll;
-
-    bool beat34;
-    bool follow;
-    bool sustain;
-    bool on[TIC_SOUND_CHANNELS];
-
-    struct
-    {
-        s32 octave;
-        s32 sfx;
-    } last;
-
-    struct
-    {
-        s32 col;
-        tic_point edit;
-
-        struct
-        {
-            tic_point start;
-            tic_rect rect;
-            bool drag;
-        } select;
-    } tracker;
-
-    struct
-    {
-        s32 col;
-        tic_point edit;
-        s8 note[TIC_SOUND_CHANNELS];
-    } piano;
-
-    enum
-    {
-        MUSIC_TRACKER_TAB,
-        MUSIC_PIANO_TAB,
-    } tab;
-
-    u32 tickCounter;
-
-    struct History* history;
-    
-    void(*tick)(Music*);
-    void(*event)(Music*, StudioEvent);
-};
-
-void initMusic(Music*, tic_mem*, tic_music* src);
-void freeMusic(Music* music);
+void sokol_calc_viewport(int* x, int* y, int* w, int* h);
+void sokol_gfx_init(int w, int h, int sx, int sy, bool integer_scale, bool portrait_top_align);
+void sokol_gfx_draw(const uint32_t* ptr);

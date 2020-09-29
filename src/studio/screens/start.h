@@ -22,47 +22,22 @@
 
 #pragma once
 
-#include "studio.h"
+#include "studio/studio.h"
 
-typedef struct Menu Menu;
+typedef struct Start Start;
 
-struct Menu
+struct Start
 {
     tic_mem* tic;
-    struct FileSystem* fs;
 
-    bool init;
-    s32 ticks;
+    bool initialized;
 
-    struct
-    {
-        s32 focus;
-    } main;
+    u32 phase;
+    u32 ticks;
+    bool play;
 
-    struct
-    {
-        u32 tab;
-        s32 selected;
-    } gamepad;
-
-    tic_point pos;
-
-    struct
-    {
-        tic_point start;
-        bool active;
-    } drag;
-
-    enum
-    {
-        MAIN_MENU_MODE,
-        GAMEPAD_MENU_MODE,
-    } mode;
-    
-    void(*tick)(Menu* Menu);
-    void (*scanline)(tic_mem* tic, s32 row, void* data);
-    void (*overline)(tic_mem* tic, void* data);
+    void (*tick)(Start*);
 };
 
-void initMenu(Menu* menu, tic_mem* tic, struct FileSystem* fs);
-void freeMenu(Menu* menu);
+void initStart(Start* start, tic_mem* tic);
+void freeStart(Start* start);

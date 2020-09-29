@@ -1,4 +1,4 @@
-#include "system/sokol.h"
+#include "system/sokol/sokol.h"
 
 #include <stdio.h>
 #include <stdlib.h>

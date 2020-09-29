@@ -4,7 +4,7 @@
 #include <stdarg.h>
 #include <string.h>
 #include <math.h>
-#include "core/tic.h"
+#include "tic.h"
 #include "libretro-common/include/libretro.h"
 #include "libretro_core_options.h"
 #include "api.h"
@@ -16,7 +16,7 @@
  * - TIC_NAME
  * - TIC_VERSION_LABEL
  */
-#include "../../system.h"
+#include "studio/system.h"
 
 // The maximum amount of inputs (2, 3 or 4)
 #define TIC_MAXPLAYERS 4

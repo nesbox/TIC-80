@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "core/tic.h"
+#include "tic.h"
 #include "api.h"
 
 #include <3ds.h>

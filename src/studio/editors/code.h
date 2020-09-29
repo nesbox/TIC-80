@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "studio.h"
+#include "studio/studio.h"
 
 typedef struct Code Code;
 

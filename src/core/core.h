@@ -26,6 +26,8 @@
 #include "tools.h"
 #include "blip_buf.h"
 
+#define CLOCKRATE (255<<13)
+
 typedef struct
 {
     s32 time;       /* clock time of next delta */
@@ -156,7 +158,7 @@ typedef struct
     u32 synced;
 
     bool initialized;
-} tic_machine_state_data;
+} tic_core_state_data;
 
 typedef struct
 {
@@ -192,11 +194,11 @@ typedef struct
 
     tic_tick_data* data;
 
-    tic_machine_state_data state;
+    tic_core_state_data state;
 
     struct
     {
-        tic_machine_state_data state;   
+        tic_core_state_data state;   
         tic_ram ram;
         u8 input;
 
@@ -207,7 +209,7 @@ typedef struct
         } time;
     } pause;
 
-} tic_machine;
+} tic_core;
 
 #if defined(TIC_BUILD_WITH_SQUIRREL)
 const tic_script_config* getSquirrelScriptConfig();
@@ -233,3 +235,7 @@ const tic_script_config* getJsScriptConfig();
 #if defined(TIC_BUILD_WITH_WREN)
 const tic_script_config* getWrenScriptConfig();
 #endif
+
+void tic_core_tick_io(tic_mem* memory);
+void tick_core_sound_tick_start(tic_mem* memory);
+void tick_core_sound_tick_end(tic_mem* memory);

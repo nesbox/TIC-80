@@ -22,7 +22,7 @@
 
 #include "run.h"
 #include "console.h"
-#include "fs.h"
+#include "studio/fs.h"
 #include "ext/md5.h"
 #include <time.h>
 
