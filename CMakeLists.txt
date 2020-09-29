@@ -135,6 +135,7 @@ endif()
 if(MSVC)
 
     add_definitions("/D\"_CRT_SECURE_NO_WARNINGS\"")
+    add_definitions("/D\"_CRT_NONSTDC_NO_DEPRECATE\"")
 
     foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
         string( TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )

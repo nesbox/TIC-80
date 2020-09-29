@@ -839,7 +839,7 @@ static void confirmCommand(Console* console, const char** text, s32 rows, const 
     if (data)
     {
         data->console = console;
-        data->param = param ? _strdup(param) : NULL;
+        data->param = param ? strdup(param) : NULL;
         data->callback = callback;
 
         showDialog(text, rows, onConfirm, data);
@@ -2571,7 +2571,7 @@ static void onHistoryDown(Console* console)
 static void appendHistory(Console* console, const char* value)
 {
     HistoryItem* item = (HistoryItem*)malloc(sizeof(HistoryItem));
-    item->value = _strdup(value);
+    item->value = strdup(value);
     item->next = NULL;
     item->prev = NULL;
 

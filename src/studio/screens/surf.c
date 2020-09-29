@@ -330,18 +330,18 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
         data->items = realloc(data->items, sizeof(MenuItem) * ++data->count);
         MenuItem* item = &data->items[data->count-1];
 
-        item->name = _strdup(name);
+        item->name = strdup(name);
         bool project = false;
         if(dir)
         {
             char folder[TICNAME_MAX];
             sprintf(folder, "[%s]", name);
-            item->label = _strdup(folder);
+            item->label = strdup(folder);
         }
         else
         {
 
-            item->label = _strdup(name);
+            item->label = strdup(name);
 
             if(tic_tool_has_ext(name, CartExt))
                 cutExt(item->label, CartExt);
@@ -355,7 +355,7 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
             replace(item->label, "&#39;", "'");
         }
 
-        item->hash = info ? _strdup(info) : NULL;
+        item->hash = info ? strdup(info) : NULL;
         item->id = id;
         item->dir = dir;
         item->cover = NULL;
