@@ -292,7 +292,7 @@ static void onDirResponse(u8* buffer, s32 size, void* data)
                             lua_getfield(lua, -1, "id");
 
                             if(lua_isinteger(lua, -1))
-                                netDirData->callback(name, hash, lua_tointeger(lua, -1), netDirData->data, false);
+                                netDirData->callback(name, hash, (s32)lua_tointeger(lua, -1), netDirData->data, false);
 
                             lua_pop(lua, 1);
                         }
@@ -680,7 +680,7 @@ bool fsIsDir(FileSystem* fs, const char* name)
 
 }
 
-void fsGetFileData(GetCallback callback, const char* name, void* buffer, size_t size, u32 mode, void* data)
+void fsGetFileData(GetCallback callback, const char* name, void* buffer, s32 size, u32 mode, void* data)
 {
     GetFileData* command = (GetFileData*)malloc(sizeof(GetFileData));
     *command = (GetFileData) {callback, data, buffer};
@@ -1037,7 +1037,7 @@ u64 fsMDate(FileSystem* fs, const char* name)
 #endif
 }
 
-bool fsSaveFile(FileSystem* fs, const char* name, const void* data, size_t size, bool overwrite)
+bool fsSaveFile(FileSystem* fs, const char* name, const void* data, s32 size, bool overwrite)
 {
     if(!overwrite)
     {
@@ -1048,7 +1048,7 @@ bool fsSaveFile(FileSystem* fs, const char* name, const void* data, size_t size,
     return fsWriteFile(fsGetFilePath(fs, name), data, size);
 }
 
-bool fsSaveRootFile(FileSystem* fs, const char* name, const void* data, size_t size, bool overwrite)
+bool fsSaveRootFile(FileSystem* fs, const char* name, const void* data, s32 size, bool overwrite)
 {
     char path[TICNAME_MAX];
     strcpy(path, fs->work);

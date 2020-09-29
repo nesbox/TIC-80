@@ -93,7 +93,7 @@ static void readConfigUiScale(Config* config, lua_State* lua)
     lua_getglobal(lua, "UI_SCALE");
 
     if(lua_isinteger(lua, -1))
-        config->data.uiScale = lua_tointeger(lua, -1);
+        config->data.uiScale = (s32)lua_tointeger(lua, -1);
 
     lua_pop(lua, 1);
 }
@@ -287,7 +287,7 @@ static void readConfig(Config* config)
     }
 }
 
-static void update(Config* config, const u8* buffer, size_t size)
+static void update(Config* config, const u8* buffer, s32 size)
 {
     tic_cart_load(&config->cart, buffer, size);
 

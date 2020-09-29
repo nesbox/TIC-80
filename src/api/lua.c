@@ -31,7 +31,7 @@
 #include <lualib.h>
 #include <ctype.h>
 
-#define LUA_LOC_STACK 1E8 // 100.000.000
+#define LUA_LOC_STACK 100000000
 
 static const char TicCore[] = "_TIC80";
 
@@ -1113,7 +1113,7 @@ static s32 lua_pmem(lua_State *lua)
 
             if(top >= 2)
             {
-                tic_api_pmem(tic, index, lua_tointeger(lua, 2), true);
+                tic_api_pmem(tic, index, (u32)lua_tointeger(lua, 2), true);
             }
 
             lua_pushinteger(lua, val);
@@ -1481,7 +1481,7 @@ static const tic_outline_item* getLuaOutline(const char* code, s32* size)
                 items = realloc(items, (*size + 1) * Size);
 
                 items[*size].pos = start;
-                items[*size].size = end - start;
+                items[*size].size = (s32)(end - start);
 
                 (*size)++;
             }
@@ -1662,7 +1662,7 @@ static const tic_outline_item* getMoonOutline(const char* code, s32* size)
                 items = realloc(items, (*size + 1) * Size);
 
                 items[*size].pos = start;
-                items[*size].size = end - start + 1;
+                items[*size].size = (s32)(end - start + 1);
 
                 (*size)++;
             }
@@ -1816,7 +1816,7 @@ static const tic_outline_item* getFennelOutline(const char* code, s32* size)
                 items = realloc(items, (*size + 1) * Size);
 
                 items[*size].pos = start;
-                items[*size].size = end - start;
+                items[*size].size = (s32)(end - start);
 
                 (*size)++;
             }

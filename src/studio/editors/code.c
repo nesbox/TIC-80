@@ -62,7 +62,7 @@ static void drawStatus(Code* code)
 
     tic_api_rect(code->tic, 0, TIC80_HEIGHT - Height, TIC80_WIDTH, Height, tic_color_12);
     tic_api_print(code->tic, code->statusLine, 0, StatusY, getConfig()->theme.code.bg, true, 1, false);
-    tic_api_print(code->tic, code->statusSize, TIC80_WIDTH - strlen(code->statusSize) * TIC_FONT_WIDTH, 
+    tic_api_print(code->tic, code->statusSize, TIC80_WIDTH - (s32)strlen(code->statusSize) * TIC_FONT_WIDTH, 
         StatusY, getConfig()->theme.code.bg, true, 1, false);
 }
 
@@ -407,7 +407,7 @@ start:
             const char* end = strstr(ptr, config->blockCommentEnd);
 
             ptr = end ? end + strlen(config->blockCommentEnd) : blockCommentStart + strlen(blockCommentStart);
-            setCodeState(state, SyntaxTypeComment, blockCommentStart - start, ptr - blockCommentStart);
+            setCodeState(state, SyntaxTypeComment, (s32)(blockCommentStart - start), (s32)(ptr - blockCommentStart));
             blockCommentStart = NULL;
 
             // !TODO: stupid MS compiler doesn't see 'continue' here in release, so lets use 'goto' instead, investigate why
@@ -418,7 +418,7 @@ start:
             const char* end = strstr(ptr, config->blockCommentEnd2);
 
             ptr = end ? end + strlen(config->blockCommentEnd2) : blockCommentStart2 + strlen(blockCommentStart2);
-            setCodeState(state, SyntaxTypeComment, blockCommentStart2 - start, ptr - blockCommentStart2);
+            setCodeState(state, SyntaxTypeComment, (s32)(blockCommentStart2 - start), (s32)(ptr - blockCommentStart2));
             blockCommentStart2 = NULL;
             goto start;
         }
@@ -427,7 +427,7 @@ start:
             const char* end = strstr(ptr, config->blockStringEnd);
 
             ptr = end ? end + strlen(config->blockStringEnd) : blockStringStart + strlen(blockStringStart);
-            setCodeState(state, SyntaxTypeString, blockStringStart - start, ptr - blockStringStart);
+            setCodeState(state, SyntaxTypeString, (s32)(blockStringStart - start), (s32)(ptr - blockStringStart));
             blockStringStart = NULL;
             continue;
         }
@@ -455,7 +455,7 @@ start:
                 }
             }
 
-            setCodeState(state, SyntaxTypeString, blockStdStringStart - start, ptr - blockStdStringStart);
+            setCodeState(state, SyntaxTypeString, (s32)(blockStdStringStart - start), (s32)(ptr - blockStdStringStart));
             blockStdStringStart = NULL;
             continue;
         }
@@ -463,7 +463,7 @@ start:
         {
             while(!islineend(*ptr))ptr++;
 
-            setCodeState(state, SyntaxTypeComment, singleCommentStart - start, ptr - singleCommentStart);
+            setCodeState(state, SyntaxTypeComment, (s32)(singleCommentStart - start), (s32)(ptr - singleCommentStart));
             singleCommentStart = NULL;
             continue;
         }
@@ -471,13 +471,13 @@ start:
         {
             while(!islineend(*ptr) && isalnum_(*ptr)) ptr++;
 
-            s32 len = ptr - wordStart;
+            s32 len = (s32)(ptr - wordStart);
             bool keyword = false;
             {
                 for(s32 i = 0; i < config->keywordsCount; i++)
                     if(len == strlen(config->keywords[i]) && memcmp(wordStart, config->keywords[i], len) == 0)
                     {
-                        setCodeState(state, SyntaxTypeKeyword, wordStart - start,len);
+                        setCodeState(state, SyntaxTypeKeyword, (s32)(wordStart - start),len);
                         keyword = true;
                         break;
                     }
@@ -492,7 +492,7 @@ start:
                 for(s32 i = 0; i < COUNT_OF(ApiKeywords); i++)
                     if(len == strlen(ApiKeywords[i]) && memcmp(wordStart, ApiKeywords[i], len) == 0)
                     {
-                        setCodeState(state, SyntaxTypeApi, wordStart - start, len);
+                        setCodeState(state, SyntaxTypeApi, (s32)(wordStart - start), len);
                         break;
                     }
             }
@@ -522,7 +522,7 @@ start:
                 else break;
             }
 
-            setCodeState(state, SyntaxTypeNumber, numberStart - start, ptr - numberStart);
+            setCodeState(state, SyntaxTypeNumber, (s32)(numberStart - start), (s32)(ptr - numberStart));
             numberStart = NULL;
             continue;
         }
@@ -645,7 +645,7 @@ static s32 getLineSize(const char* line)
 
 static void updateColumn(Code* code)
 {
-    code->cursor.column = code->cursor.position - getLine(code);
+    code->cursor.column = (s32)(code->cursor.position - getLine(code));
 }
 
 static void updateCursorPosition(Code* code, char* position)
@@ -805,7 +805,7 @@ static void pageDown(Code* code)
 
 static void deleteCode(Code* code, char* start, char* end)
 {
-    s32 size = strlen(end) + 1;
+    s32 size = (s32)strlen(end) + 1;
     memmove(start, end, size);
 
     // delete code state
@@ -814,8 +814,8 @@ static void deleteCode(Code* code, char* start, char* end)
 
 static void insertCode(Code* code, char* dst, const char* src)
 {
-    s32 size = strlen(src);
-    s32 restSize = strlen(dst) + 1;
+    s32 size = (s32)strlen(src);
+    s32 restSize = (s32)strlen(dst) + 1;
     memmove(dst + size, dst, restSize);
     memcpy(dst, src, size);
 

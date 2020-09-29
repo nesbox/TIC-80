@@ -58,7 +58,7 @@ static size_t writeCallbackSync(void *contents, size_t size, size_t nmemb, void 
     }
     data->buffer = newBuffer;
     memcpy(data->buffer + data->size, contents, total);
-    data->size += total;
+    data->size += (s32)total;
 
     return total;
 }
@@ -76,12 +76,12 @@ static size_t writeCallback(char *ptr, size_t size, size_t nmemb, void *userdata
     }
     data->buffer = newBuffer;
     memcpy(data->buffer + data->size, ptr, total);
-    data->size += total;
+    data->size += (s32)total;
 
     double cl;
     curl_easy_getinfo(data->async, CURLINFO_CONTENT_LENGTH_DOWNLOAD, &cl);
 
-    if(cl > 0)
+    if(cl > 0.0)
     {
         HttpGetData getData = 
         {
@@ -89,7 +89,7 @@ static size_t writeCallback(char *ptr, size_t size, size_t nmemb, void *userdata
             .progress = 
             {
                 .size = data->size,
-                .total = cl,
+                .total = (s32)cl,
             },
             .calldata = data->calldata,
             .url = data->url,

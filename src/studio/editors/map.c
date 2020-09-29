@@ -1041,13 +1041,13 @@ static void copyFromClipboard(Map* map)
 
         if(clipboard)
         {
-            s32 size = strlen(clipboard)/2;
+            s32 size = (s32)strlen(clipboard)/2;
 
             if(size > 2)
             {
                 u8* data = malloc(size);
 
-                tic_tool_str2buf(clipboard, strlen(clipboard), data, true);
+                tic_tool_str2buf(clipboard, (s32)strlen(clipboard), data, true);
 
                 if(data[0] * data[1] == size - 2)
                 {

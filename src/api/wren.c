@@ -374,11 +374,11 @@ static void wren_mouse(WrenVM* vm)
     wrenInsertInList(vm, 0, 0, 1);
     wrenSetSlotDouble(vm, 1, mouse->y);
     wrenInsertInList(vm, 0, 1, 1);
-    wrenSetSlotBool(vm, 1, mouse->left);
+    wrenSetSlotBool(vm, 1, mouse->left ? true : false);
     wrenInsertInList(vm, 0, 2, 1);
-    wrenSetSlotBool(vm, 1, mouse->middle);
+    wrenSetSlotBool(vm, 1, mouse->middle ? true : false);
     wrenInsertInList(vm, 0, 3, 1);
-    wrenSetSlotBool(vm, 1, mouse->right);
+    wrenSetSlotBool(vm, 1, mouse->right ? true : false);
     wrenInsertInList(vm, 0, 4, 1);
     wrenSetSlotDouble(vm, 1, mouse->scrollx);
     wrenInsertInList(vm, 0, 5, 1);
@@ -1505,7 +1505,7 @@ static const tic_outline_item* getWrenOutline(const char* code, s32* size)
                 items = realloc(items, (*size + 1) * Size);
 
                 items[*size].pos = start;
-                items[*size].size = end - start;
+                items[*size].size = (s32)(end - start);
 
                 (*size)++;
             }

@@ -1239,7 +1239,7 @@ static SQInteger squirrel_tstamp(HSQUIRRELVM vm)
 {
     tic_mem* tic = (tic_mem*)getSquirrelCore(vm);
     
-    sq_pushinteger(vm, (SQFloat)(tic_api_tstamp(tic)));
+    sq_pushinteger(vm, tic_api_tstamp(tic));
 
     return 1;
 }

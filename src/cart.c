@@ -206,7 +206,7 @@ s32 tic_cart_save(const tic_cartridge* cart, u8* buffer)
         buffer = SAVE_CHUNK(CHUNK_FLAGS,    cart->banks[i].flags,           i);
     }
 
-    s32 codeLen = strlen(cart->code.data);
+    s32 codeLen = (s32)strlen(cart->code.data);
     if(codeLen < TIC_CODE_BANK_SIZE)
         buffer = saveFixedChunk(buffer, CHUNK_CODE, cart->code.data, codeLen, 0);
     else

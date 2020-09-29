@@ -446,7 +446,7 @@ void tic80_libretro_update_gamepad(tic80_gamepad* gamepad, int player)
 int tic80_libretro_mouse_pointer_convert(float coord, float full, int padding)
 {
 	float max = 0x7fff;
-	return ((coord + max) / (max * 2.0f) * full) - padding;
+	return (int)((coord + max) / (max * 2.0f) * full) - padding;
 }
 
 /**
@@ -743,7 +743,7 @@ RETRO_API bool retro_load_game(const struct retro_game_info *info)
 
 	// Load the content.
 	// TODO: Allow loading code files directly.
-	tic80_load(state->tic, (void*)(info->data), info->size);
+	tic80_load(state->tic, (void*)(info->data), (int)info->size);
 	if (state->tic == NULL) {
 		log_cb(RETRO_LOG_ERROR, "[TIC-80] Content loaded, but failed to load game.\n");
 		retro_unload_game();

@@ -49,7 +49,7 @@ u32 tic_api_btnp(tic_mem* tic, s32 index, s32 hold, s32 period)
 
     tic80_gamepads previous;
 
-    previous.data = core->state.gamepads.holds[index] >= hold
+    previous.data = core->state.gamepads.holds[index] >= (u32)hold
         ? period && core->state.gamepads.holds[index] % period ? core->state.gamepads.previous.data : 0
         : core->state.gamepads.previous.data;
 
@@ -83,7 +83,7 @@ bool tic_api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
 
     if (key > tic_key_unknown)
     {
-        bool prevDown = hold >= 0 && period >= 0 && core->state.keyboard.holds[key] >= hold
+        bool prevDown = hold >= 0 && period >= 0 && core->state.keyboard.holds[key] >= (u32)hold
             ? period && core->state.keyboard.holds[key] % period
             ? isKeyPressed(&core->state.keyboard.previous, key)
             : false

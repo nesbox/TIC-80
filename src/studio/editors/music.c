@@ -677,7 +677,7 @@ static void copyPianoFromClipboard(Music* music)
 
         if(clipboard)
         {
-            s32 size = strlen(clipboard)/2;
+            s32 size = (s32)strlen(clipboard)/2;
 
             enum{RowSize = sizeof(tic_track_pattern) / MUSIC_PATTERN_ROWS, HeaderSize = sizeof(ClipboardHeader)};
 
@@ -685,7 +685,7 @@ static void copyPianoFromClipboard(Music* music)
             {
                 u8* data = malloc(size);
 
-                tic_tool_str2buf(clipboard, strlen(clipboard), data, true);
+                tic_tool_str2buf(clipboard, (s32)strlen(clipboard), data, true);
 
                 ClipboardHeader header = {0};
 
@@ -757,7 +757,7 @@ static void copyTrackerFromClipboard(Music* music)
 
         if(clipboard)
         {
-            s32 size = strlen(clipboard)/2;
+            s32 size = (s32)strlen(clipboard)/2;
 
             enum{RowSize = sizeof(tic_track_pattern) / MUSIC_PATTERN_ROWS, HeaderSize = sizeof(ClipboardHeader)};
 
@@ -765,7 +765,7 @@ static void copyTrackerFromClipboard(Music* music)
             {
                 u8* data = malloc(size);
 
-                tic_tool_str2buf(clipboard, strlen(clipboard), data, true);
+                tic_tool_str2buf(clipboard, (s32)strlen(clipboard), data, true);
 
                 ClipboardHeader header = {0};
 

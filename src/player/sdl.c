@@ -39,7 +39,7 @@ static void onExit()
 	state.quit = true;
 }
 
-int main(int argc, char **argv)
+s32 main(s32 argc, char **argv)
 {
 	char* cart = (argc > 1) ? argv[1] : "cart.tic";
 	FILE* file = fopen(cart, "rb");
@@ -47,7 +47,7 @@ int main(int argc, char **argv)
 	if(file)
 	{
 		fseek(file, 0, SEEK_END);
-		int size = ftell(file);
+		s32 size = ftell(file);
 		fseek(file, 0, SEEK_SET);
 
 		void* cart = SDL_malloc(size);
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 								SDL_SCANCODE_S,
 							};
 
-							for (int i = 0; i < SDL_arraysize(Keys); i++)
+							for (s32 i = 0; i < SDL_arraysize(Keys); i++)
 							{
 								if (keyboard[Keys[i]])
 								{
@@ -169,7 +169,7 @@ int main(int argc, char **argv)
 
 						{
 							void* pixels = NULL;
-							int pitch = 0;
+							s32 pitch = 0;
 							SDL_Rect destination;
 							SDL_LockTexture(texture, NULL, &pixels, &pitch);
 							SDL_memcpy(pixels, tic->screen, pitch * TIC80_FULLHEIGHT);
@@ -177,13 +177,13 @@ int main(int argc, char **argv)
 
 							// Render the image in the proper aspect ratio.
 							{
-								int windowWidth, windowHeight;
+								s32 windowWidth, windowHeight;
 								SDL_GetWindowSize(window, &windowWidth, &windowHeight);
-								float widthRatio = (float)windowWidth / (float)TIC80_FULLWIDTH;
-								float heightRatio = (float)windowHeight / (float)TIC80_FULLHEIGHT;
+								float widthRatio = (float)windowWidth / TIC80_FULLWIDTH;
+								float heightRatio = (float)windowHeight / TIC80_FULLHEIGHT;
 								float optimalSize = widthRatio < heightRatio ? widthRatio : heightRatio;
-								destination.w = TIC80_FULLWIDTH * optimalSize;
-								destination.h = TIC80_FULLHEIGHT * optimalSize;
+								destination.w = (s32)(TIC80_FULLWIDTH * optimalSize);
+								destination.h = (s32)(TIC80_FULLHEIGHT * optimalSize);
 								destination.x = windowWidth / 2 - destination.w / 2;
 								destination.y = windowHeight / 2 - destination.h / 2;
 							}

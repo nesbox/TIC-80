@@ -839,7 +839,7 @@ static void confirmCommand(Console* console, const char** text, s32 rows, const 
     if (data)
     {
         data->console = console;
-        data->param = param ? strdup(param) : NULL;
+        data->param = param ? _strdup(param) : NULL;
         data->callback = callback;
 
         showDialog(text, rows, onConfirm, data);
@@ -1316,7 +1316,7 @@ static void onFileDownloaded(GetResult result, void* data)
     commandDone(console);
 }
 
-static void onImportCover(const char* name, const void* buffer, size_t size, void* data)
+static void onImportCover(const char* name, const void* buffer, s32 size, void* data)
 {
     Console* console = (Console*)data;
 
@@ -1365,7 +1365,7 @@ static void onImportCover(const char* name, const void* buffer, size_t size, voi
     commandDone(console);
 }
 
-static void onImportSprites(const char* name, const void* buffer, size_t size, void* data)
+static void onImportSprites(const char* name, const void* buffer, s32 size, void* data)
 {
     Console* console = (Console*)data;
 
@@ -1423,7 +1423,7 @@ static void injectMap(Console* console, const void* buffer, s32 size)
     memcpy(getBankMap(), buffer, MIN(size, Size));
 }
 
-static void onImportMap(const char* name, const void* buffer, size_t size, void* data)
+static void onImportMap(const char* name, const void* buffer, s32 size, void* data)
 {
     Console* console = (Console*)data;
 
@@ -1811,7 +1811,8 @@ static void onConsoleExportHtmlCommand(Console* console, const char* providedNam
     else 
     {
         printLine(console);
-        return getSystem()->httpGet("/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "/" HTML_EXPORT_NAME, onHtmlExportGet, console);
+        getSystem()->httpGet("/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "/" HTML_EXPORT_NAME, onHtmlExportGet, console);
+        return;
     }
 
     struct zip_t *zip = zip_open(zipPath, ZIP_DEFAULT_COMPRESSION_LEVEL, 'a');
@@ -1862,16 +1863,24 @@ static void onConsoleExportHtmlCommand(Console* console, const char* providedNam
                 if(fsExists(providedName))
                 {
                     printError(console, "\nfile already exists");
-                    return commandDone(console);
+                    commandDone(console);
+                    return;
                 }
-                else if(fsWriteFile(providedName, data, sizeof(data)))
-                    return onFileDownloaded(FS_FILE_DOWNLOADED, console);
+                else if (fsWriteFile(providedName, data, sizeof(data)))
+                {
+                    onFileDownloaded(FS_FILE_DOWNLOADED, console);
+                    return;
+                }
                 else
-                    return onFileDownloaded(FS_FILE_NOT_DOWNLOADED, console);
+                {
+                    onFileDownloaded(FS_FILE_NOT_DOWNLOADED, console);
+                    return;
+                }
             }
             else if(data)
             {
-                return fsGetFileData(onFileDownloaded, getExportName(console, ".zip"), data, size, DEFAULT_CHMOD, console);
+                fsGetFileData(onFileDownloaded, getExportName(console, ".zip"), data, size, DEFAULT_CHMOD, console);
+                return;
             }
             else errorOccured = true;
         }
@@ -2562,7 +2571,7 @@ static void onHistoryDown(Console* console)
 static void appendHistory(Console* console, const char* value)
 {
     HistoryItem* item = (HistoryItem*)malloc(sizeof(HistoryItem));
-    item->value = strdup(value);
+    item->value = _strdup(value);
     item->next = NULL;
     item->prev = NULL;
 
@@ -3262,7 +3271,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
                     else
                     {
                         ptr = (const u8*)header + SIG_SIZE;
-                        size = appSize - (ptr - app);
+                        size = appSize - (s32)(ptr - app);
                     }
                 }
                 else break;

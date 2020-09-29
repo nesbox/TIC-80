@@ -911,25 +911,25 @@ static void blitGpuTexture(GPU_Target* screen, GPU_Image* texture)
 
     {
         GPU_Rect srcRect = {0, 0, TIC80_FULLWIDTH, Header};
-        GPU_Rect dstRect = {0, 0, width, rect.y};
+        GPU_Rect dstRect = {0, 0, (float)width, (float)rect.y};
         GPU_BlitScale(texture, &srcRect, screen, dstRect.x, dstRect.y, dstRect.w / srcRect.w, dstRect.h / srcRect.h);
     }
 
     {
         GPU_Rect srcRect = {0, TIC80_FULLHEIGHT - Header, TIC80_FULLWIDTH, Header};
-        GPU_Rect dstRect = {0, rect.y + rect.h, width, rect.y};
+        GPU_Rect dstRect = {0, (float)rect.y + rect.h, (float)width, (float)rect.y};
         GPU_BlitScale(texture, &srcRect, screen, dstRect.x, dstRect.y, dstRect.w / srcRect.w, dstRect.h / srcRect.h);
     }
 
     {
         GPU_Rect srcRect = {0, Header, Left, TIC80_HEIGHT};
-        GPU_Rect dstRect = {0, rect.y, width, rect.h};
+        GPU_Rect dstRect = {0, (float)rect.y, (float)width, (float)rect.h};
         GPU_BlitScale(texture, &srcRect, screen, dstRect.x, dstRect.y, dstRect.w / srcRect.w, dstRect.h / srcRect.h);
     }
 
     {
         GPU_Rect srcRect = {Left, Top, TIC80_WIDTH, TIC80_HEIGHT};
-        GPU_Rect dstRect = {rect.x, rect.y, rect.w, rect.h};
+        GPU_Rect dstRect = { (float)rect.x, (float)rect.y, (float)rect.w, (float)rect.h};
         GPU_BlitScale(texture, &srcRect, screen, dstRect.x, dstRect.y, dstRect.w / srcRect.w, dstRect.h / srcRect.h);
     }
 }
@@ -1046,7 +1046,7 @@ static void blitCursor(const u8* in)
     }
 
     if(SDL_GetWindowFlags(platform.window) & SDL_WINDOW_MOUSE_FOCUS)
-        GPU_BlitScale(platform.mouse.texture, NULL, platform.gpu.screen, mx, my, (float)scale, (float)scale);
+        GPU_BlitScale(platform.mouse.texture, NULL, platform.gpu.screen, (float)mx, (float)my, (float)scale, (float)scale);
 }
 
 static void renderCursor()
@@ -1226,7 +1226,7 @@ static void* httpGetSync(const char* url, s32* size)
 
 static void httpGet(const char* url, HttpGetCallback callback, void* calldata)
 {
-    return netGet(platform.net, url, callback, calldata);
+    netGet(platform.net, url, callback, calldata);
 }
 
 static void preseed()
@@ -1235,7 +1235,7 @@ static void preseed()
     srandom(time(NULL));
     random();
 #else
-    srand(time(NULL));
+    srand((u32)time(NULL));
     rand();
 #endif
 }
@@ -1407,19 +1407,19 @@ static void gpuTick()
 
             GPU_ActivateShaderProgram(platform.gpu.shader, &platform.gpu.block);
 
-            GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "trg_x"), rect.x);
-            GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "trg_y"), rect.y);
-            GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "trg_w"), rect.w);
-            GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "trg_h"), rect.h);
+            GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "trg_x"), (float)rect.x);
+            GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "trg_y"), (float)rect.y);
+            GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "trg_w"), (float)rect.w);
+            GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "trg_h"), (float)rect.h);
 
             {
                 s32 w, h;
                 SDL_GetWindowSize(platform.window, &w, &h);
-                GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "scr_w"), w);
-                GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "scr_h"), h);
+                GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "scr_w"), (float)w);
+                GPU_SetUniformf(GPU_GetUniformLocation(platform.gpu.shader, "scr_h"), (float)h);
             }
 
-            GPU_BlitScale(platform.gpu.texture, NULL, platform.gpu.screen, rect.x, rect.y, 
+            GPU_BlitScale(platform.gpu.texture, NULL, platform.gpu.screen, (float)rect.x, (float)rect.y,
                 (float)rect.w / TIC80_FULLWIDTH, (float)rect.h / TIC80_FULLHEIGHT);
         }
         else

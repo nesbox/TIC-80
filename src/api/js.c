@@ -1012,7 +1012,7 @@ static const tic_outline_item* getJsOutline(const char* code, s32* size)
                 items = realloc(items, (*size + 1) * Size);
 
                 items[*size].pos = start;
-                items[*size].size = end - start;
+                items[*size].size = (s32)(end - start);
 
                 (*size)++;
             }

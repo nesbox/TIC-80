@@ -87,7 +87,7 @@ static void initPMemName(Run* run)
     if(strlen(tic->saveid))
     {
         data = tic->saveid;
-        dataSize = strlen(data);
+        dataSize = (s32)strlen(data);
     }
 
     const char* md5 = data2md5(data, dataSize);

@@ -157,7 +157,7 @@ s32 tic_project_save(const char* name, void* data, const tic_cartridge* cart)
 
     saveBinarySection(ptr, comment, "COVER", 1, &cart->cover, cart->cover.size + sizeof(s32), true);
 
-    return strlen(stream);
+    return (s32)strlen(stream);
 }
 
 static bool loadTextSection(const char* project, const char* comment, char* dst, s32 size)
@@ -236,7 +236,7 @@ static bool loadBinarySection(const char* project, const char* comment, const ch
             else
             {
                 ptr += sizeof("-- 999:") - 1;
-                tic_tool_str2buf(ptr, end - ptr, (u8*)dst, flip);
+                tic_tool_str2buf(ptr, (s32)(end - ptr), (u8*)dst, flip);
             }
 
             done = true;

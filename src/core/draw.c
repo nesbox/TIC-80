@@ -465,8 +465,8 @@ static void setSideTexPixel(s32 x, s32 y, float u, float v)
         if (x < SidesBuffer.Left[yy])
         {
             SidesBuffer.Left[yy] = x;
-            SidesBuffer.ULeft[yy] = u * 65536.0f;
-            SidesBuffer.VLeft[yy] = v * 65536.0f;
+            SidesBuffer.ULeft[yy] = (s32)(u * 65536.0f);
+            SidesBuffer.VLeft[yy] = (s32)(v * 65536.0f);
         }
         if (x > SidesBuffer.Right[yy])
         {
@@ -617,13 +617,13 @@ static void ticTexLine(tic_mem* memory, TexVert* v0, TexVert* v1)
         y = .0f;
     }
 
-    s32 botY = bot->y;
+    s32 botY = (s32)bot->y;
     if (botY > TIC80_HEIGHT)
         botY = TIC80_HEIGHT;
 
     for (; y < botY; ++y)
     {
-        setSideTexPixel(x, y, u, v);
+        setSideTexPixel((s32)x, (s32)y, u, v);
         x += step_x;
         u += step_u;
         v += step_v;
@@ -645,19 +645,19 @@ static void drawTexturedTriangle(tic_core* core, float x1, float y1, float x2, f
 
     //  calculate the slope of the surface 
     //  use floats here 
-    double denom = (V0.x - V2.x) * (V1.y - V2.y) - (V1.x - V2.x) * (V0.y - V2.y);
+    float denom = (V0.x - V2.x) * (V1.y - V2.y) - (V1.x - V2.x) * (V0.y - V2.y);
     if (denom == 0.0)
     {
         return;
     }
-    double id = 1.0 / denom;
+    float id = 1.0f / denom;
     float dudx, dvdx;
     //  this is the UV slope across the surface
     dudx = ((V0.u - V2.u) * (V1.y - V2.y) - (V1.u - V2.u) * (V0.y - V2.y)) * id;
     dvdx = ((V0.v - V2.v) * (V1.y - V2.y) - (V1.v - V2.v) * (V0.y - V2.y)) * id;
     //  convert to fixed
-    s32 dudxs = dudx * 65536.0f;
-    s32 dvdxs = dvdx * 65536.0f;
+    s32 dudxs = (s32)(dudx * 65536.0f);
+    s32 dvdxs = (s32)(dvdx * 65536.0f);
     //  fill the buffer 
     initSidesBuffer();
     //  parse each line and decide where in the buffer to store them ( left or right ) 

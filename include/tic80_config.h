@@ -52,26 +52,8 @@
 #endif /* defined(__APPLE__) */
 
 #if defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__)
-#	if defined(_MSC_VER) && defined(__has_include)
-#		define HAVE_WINAPIFAMILY_H __has_include(<winapifamily.h>)
-#	elif defined(_MSC_VER) && (_MSC_VER >= 1700 && !_USING_V110_SDK71_)
-#		define HAVE_WINAPIFAMILY_H 1
-#	else
-#		define HAVE_WINAPIFAMILY_H 0
-#	endif
-#	if HAVE_WINAPIFAMILY_H
-#		include <winapifamily.h>
-#		define WINAPI_FAMILY_WINRT (!WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP) && WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP))
-#	else
-#		define WINAPI_FAMILY_WINRT 0
-#	endif /* HAVE_WINAPIFAMILY_H */
-#	if WINAPI_FAMILY_WINRT
-#		undef __TIC_WINRT__
-#		define __TIC_WINRT__ 1
-#	else
-#		undef __TIC_WINDOWS__
-#		define __TIC_WINDOWS__ 1
-#	endif
+#	undef __TIC_WINDOWS__
+#	define __TIC_WINDOWS__ 1
 #endif 
 
 #if defined(ANDROID) || defined(__ANDROID__)

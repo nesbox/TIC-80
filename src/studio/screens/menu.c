@@ -62,7 +62,12 @@ static void closeGame(Menu* menu)
     exitGameMenu();
 }
 
-static void(*const MenuHandlers[])(Menu*) = {resumeGame, resetGame, gamepadConfig, NULL, closeGame, exitStudio};
+static void exitStudioLocal(Menu* menu)
+{
+    exitStudio();
+}
+
+static void(*const MenuHandlers[])(Menu*) = {resumeGame, resetGame, gamepadConfig, NULL, closeGame, exitStudioLocal};
 
 static tic_rect getRect(Menu* menu)
 {

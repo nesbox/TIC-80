@@ -379,31 +379,32 @@ void drawBGAnimation(tic_mem* tic, s32 ticks)
 {
     tic_api_cls(tic, TIC_COLOR_BG);
 
-    float rx = sin(ticks / 64.0f) * 4.5f;
+    double rx = sin(ticks / 64.0) * 4.5;
     double tmp;
-    float mod = modf(ticks / 16.0f, &tmp);
+    double mod = modf(ticks / 16.0, &tmp);
 
     enum{Gap = 72};
 
     for(s32 x = 0; x <= 16; x++)
     {
-        s32 ly = Gap - (8 / (x - mod)) * 32;
+        s32 ly = (s32)(Gap - (8 / (x - mod)) * 32);
 
-        tic_api_line(tic, 0, ly + rx, TIC80_WIDTH, ly - rx, BG_ANIMATION_COLOR);
-        tic_api_line(tic, 0, (TIC80_HEIGHT - ly) - rx, TIC80_WIDTH, (TIC80_HEIGHT - ly) + rx, BG_ANIMATION_COLOR);
+        tic_api_line(tic, 0, (s32)(ly + rx), TIC80_WIDTH, (s32)(ly - rx), BG_ANIMATION_COLOR);
+        tic_api_line(tic, 0, (s32)((TIC80_HEIGHT - ly) - rx), TIC80_WIDTH, 
+            (s32)((TIC80_HEIGHT - ly) + rx), BG_ANIMATION_COLOR);
     }
 
-    float yp = (Gap - (8 / (16 - mod)) * 32) - rx;
+    double yp = (Gap - (8 / (16 - mod)) * 32) - rx;
 
     for(s32 x = -32; x <= 32; x++)
     {
-        s32 yf = yp + rx * x / 32 + rx;
+        s32 yf = (s32)(yp + rx * x / 32 + rx);
 
-        tic_api_line(tic, (TIC80_WIDTH / 2) - ((x - (rx / 8)) * 4), yf, 
-            (TIC80_WIDTH / 2) - ((x + (rx / 16)) * 24), -16, BG_ANIMATION_COLOR);
+        tic_api_line(tic, (s32)((TIC80_WIDTH / 2) - ((x - (rx / 8)) * 4)), yf,
+            (s32)((TIC80_WIDTH / 2) - ((x + (rx / 16)) * 24)), -16, BG_ANIMATION_COLOR);
 
-        tic_api_line(tic, (TIC80_WIDTH / 2) - ((x - (rx / 8)) * 4), TIC80_HEIGHT - yf, 
-            (TIC80_WIDTH / 2) - ((x + (rx / 16)) * 24), TIC80_HEIGHT + 16, BG_ANIMATION_COLOR);
+        tic_api_line(tic, (s32)((TIC80_WIDTH / 2) - ((x - (rx / 8)) * 4)), TIC80_HEIGHT - yf,
+            (s32)((TIC80_WIDTH / 2) - ((x + (rx / 16)) * 24)), TIC80_HEIGHT + 16, BG_ANIMATION_COLOR);
     }
 }
 
@@ -418,8 +419,8 @@ static void modifyColor(tic_mem* tic, s32 x, u8 r, u8 g, u8 b)
 void drawBGAnimationScanline(tic_mem* tic, s32 row)
 {
     s32 dir = row < TIC80_HEIGHT / 2 ? 1 : -1;
-    s32 val = dir * (TIC80_WIDTH - row * 3.5f);
-    modifyColor(tic, BG_ANIMATION_COLOR, val * 0.75f, val * 0.8f, val);
+    s32 val = (s32)(dir * (TIC80_WIDTH - row * 3.5f));
+    modifyColor(tic, BG_ANIMATION_COLOR, (s32)(val * 0.75), (s32)(val * 0.8), val);
 }
 
 char getKeyboardText()
@@ -561,7 +562,7 @@ void toClipboard(const void* data, s32 size, bool flip)
 static void removeWhiteSpaces(char* str)
 {
     s32 i = 0;
-    s32 len = strlen(str);
+    s32 len = (s32)strlen(str);
 
     for (s32 j = 0; j < len; j++)
         if(!isspace(str[j]))
@@ -585,7 +586,7 @@ bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces)
                             
                 bool valid = strlen(clipboard) == size * 2;
 
-                if(valid) tic_tool_str2buf(clipboard, strlen(clipboard), data, flip);
+                if(valid) tic_tool_str2buf(clipboard, (s32)strlen(clipboard), data, flip);
 
                 getSystem()->freeClipboardText(clipboard);
 
@@ -1364,7 +1365,7 @@ static void saveProject()
         char buffer[STUDIO_TEXT_BUFFER_WIDTH];
         char str_saved[] = " SAVED :)";
 
-        s32 name_len = strlen(impl.console->romName);
+        s32 name_len = (s32)strlen(impl.console->romName);
         if (name_len + strlen(str_saved) > sizeof(buffer)){
             char subbuf[sizeof(buffer) - sizeof(str_saved) - 5];
             memset(subbuf, '\0', sizeof subbuf);
