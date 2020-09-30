@@ -1,0 +1,173 @@
+name: Build
+
+on: [push, pull_request]
+
+env:
+  BUILD_TYPE: MinSizeRel
+
+jobs:
+  windows-x86:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Build
+      run: |
+        cd build
+        cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=MinSizeRel ..
+        cmake --build . --parallel --config MinSizeRel
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-win'
+        path: build/bin/tic80.exe
+
+  windows-x64:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Build
+      run: |
+        cd build
+        cmake -G "Visual Studio 16 2019" -A x64 -T v141_xp -DCMAKE_BUILD_TYPE=MinSizeRel ..
+        cmake --build . --parallel --config MinSizeRel
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-win-64'
+        path: build/bin/tic80.exe
+
+  ubuntu-16:
+    runs-on: ubuntu-16.04
+
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Install
+      run: sudo apt-get install libgtk-3-dev libasound2-dev libglu1-mesa-dev
+
+    - name: Build
+      run: |
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
+        cmake --build . --parallel --config $BUILD_TYPE
+        cpack
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-ubuntu-16'
+        path: build/tic80.deb
+
+  ubuntu-18:
+    runs-on: ubuntu-18.04
+
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Install
+      run: sudo apt-get install libgtk-3-dev libasound2-dev libglu1-mesa-dev
+
+    - name: Build
+      run: |
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
+        cmake --build . --parallel --config $BUILD_TYPE
+        cpack
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-ubuntu-18'
+        path: build/tic80.deb
+
+  macos:
+    runs-on: macos-10.15
+
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Install
+      run: brew uninstall --ignore-dependencies libidn2
+
+    - name: Build
+      run: |
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
+        cmake --build . --parallel --config $BUILD_TYPE
+        cpack
+        cp *.dmg tic80.dmg
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-osx'
+        path: build/tic80.dmg
+
+  android:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Build
+      run: |
+        cd build/android
+        ./gradlew assembleRelease
+        cp app/build/outputs/apk/universal/release/app-universal-release.apk tic80.apk
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-android'
+        path: build/android/tic80.apk
+
+  wasm:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: mymindstorm/setup-emsdk@v6
+
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Build
+      run: |
+        cd build
+        emcmake cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
+        cmake --build . --parallel --config $BUILD_TYPE
+        cp html/export.html bin/index.html
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-wasm'
+        path: |
+          build/bin/tic80.js
+          build/bin/tic80.wasm
+          build/bin/index.html
