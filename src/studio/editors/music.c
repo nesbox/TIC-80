@@ -887,6 +887,16 @@ static void updateSelection(Music* music)
         resetSelection(music);
 }
 
+static s32 getDigit(s32 pos, s32 val)
+{
+    enum {Base = 10};
+
+    s32 div = 1;
+    while(pos--) div *= Base;
+
+    return val / div % Base;
+}
+
 static s32 setDigit(s32 pos, s32 val, s32 digit)
 {
     enum {Base = 10};
@@ -1196,6 +1206,81 @@ static tic_track_row* getPianoRow(Music* music)
     return pattern ? &pattern->rows[rowIndex(music, music->piano.edit.y)] : NULL;
 }
 
+static s32 getPianoValue(Music* music)
+{
+    s32 col = music->piano.edit.x / 2;
+    tic_track_row* row = getPianoRow(music);
+
+    switch(col)
+    {
+    case PianoChannel1Column:
+    case PianoChannel2Column:
+    case PianoChannel3Column:
+    case PianoChannel4Column:
+        return getDigit(1 - music->piano.edit.x & 1, tic_tool_get_pattern_id(getTrack(music), music->piano.edit.y, col));
+
+    case PianoSfxColumn:
+        return row && row->note >= NoteStart ? getDigit(1 - music->piano.edit.x & 1, tic_tool_get_track_row_sfx(row)) : -1;
+
+    case PianoXYColumn:
+        return row && row->command > tic_music_cmd_empty ? (music->piano.edit.x & 1 ? row->param2 : row->param1) : -1;
+    }
+}
+
+static void setPianoValue(Music* music, char sym)
+{
+    s32 col = music->piano.edit.x / 2;
+    s32 dec = sym2dec(sym);
+    s32 hex = sym2hex(sym);
+    tic_track_row* row = getPianoRow(music);
+
+    switch(col)
+    {
+    case PianoChannel1Column:
+    case PianoChannel2Column:
+    case PianoChannel3Column:
+    case PianoChannel4Column:
+        if(dec >= 0)
+        {
+            s32 pattern = setDigit(1 - music->piano.edit.x & 1, 
+                tic_tool_get_pattern_id(getTrack(music), music->piano.edit.y, col), dec);
+
+            if(pattern <= MUSIC_PATTERNS)
+            {
+                setChannelPatternValue(music, pattern, music->piano.edit.y, col);
+                updatePianoEditCol(music);
+            }
+        }
+        break;
+    case PianoSfxColumn:
+        if(row && row->note >= NoteStart && dec >= 0)
+        {
+            s32 sfx = setDigit(1 - music->piano.edit.x & 1, tic_tool_get_track_row_sfx(row), dec);
+            tic_tool_set_track_row_sfx(row, sfx);
+            history_add(music->history);
+
+            music->last.sfx = tic_tool_get_track_row_sfx(row);
+
+            updatePianoEditCol(music);
+            playNote(music, row);
+        }
+        break;
+
+    case PianoXYColumn:
+        if(row && row->command > tic_music_cmd_empty && hex >= 0)
+        {
+            if(music->piano.edit.x & 1)
+                row->param2 = hex;
+            else row->param1 = hex;
+
+            history_add(music->history);
+
+            updatePianoEditCol(music);
+        }
+        break;
+    }
+}
+
 static void processPianoKeyboard(Music* music)
 {
     tic_mem* tic = music->tic;
@@ -1246,58 +1331,7 @@ static void processPianoKeyboard(Music* music)
     }
 
     if(getKeyboardText())
-    {
-        s32 col = music->piano.edit.x / 2;
-        s32 dec = sym2dec(getKeyboardText());
-        s32 hex = sym2hex(getKeyboardText());
-        tic_track_row* row = getPianoRow(music);
-
-        switch(col)
-        {
-        case PianoChannel1Column:
-        case PianoChannel2Column:
-        case PianoChannel3Column:
-        case PianoChannel4Column:
-            if(dec >= 0)
-            {
-                s32 pattern = setDigit(1 - music->piano.edit.x & 1, 
-                    tic_tool_get_pattern_id(getTrack(music), music->piano.edit.y, col), dec);
-
-                if(pattern <= MUSIC_PATTERNS)
-                {
-                    setChannelPatternValue(music, pattern, music->piano.edit.y, col);
-                    updatePianoEditCol(music);
-                }
-            }
-            break;
-        case PianoSfxColumn:
-            if(row && row->note >= NoteStart && dec >= 0)
-            {
-                s32 sfx = setDigit(1 - music->piano.edit.x & 1, tic_tool_get_track_row_sfx(row), dec);
-                tic_tool_set_track_row_sfx(row, sfx);
-                history_add(music->history);
-
-                music->last.sfx = tic_tool_get_track_row_sfx(row);
-
-                updatePianoEditCol(music);
-                playNote(music, row);
-            }
-            break;
-
-        case PianoXYColumn:
-            if(row && row->command > tic_music_cmd_empty && hex >= 0)
-            {
-                if(music->piano.edit.x & 1)
-                    row->param2 = hex;
-                else row->param1 = hex;
-
-                history_add(music->history);
-
-                updatePianoEditCol(music);
-            }
-            break;
-        }
-    }
+        setPianoValue(music, getKeyboardText());
 }
 
 static void selectAll(Music* music)
@@ -2056,10 +2090,10 @@ static void drawPianoRowColumn(Music* music, s32 x, s32 y)
 
     if(checkMousePos(&rect))
     {
-        setCursor(tic_cursor_hand);
-
         if(checkMouseDown(&rect, tic_mouse_left) || checkMouseDown(&rect, tic_mouse_right))
         {
+            setCursor(tic_cursor_hand);
+
             if(music->scroll.active)
             {
                 music->scroll.pos = (music->scroll.start - getMouseY()) / TIC_FONT_HEIGHT;
@@ -2108,6 +2142,8 @@ static void drawPianoNoteStatus(Music* music, s32 x, s32 y, s32 xpos, s32 ypos)
         s32 note = (getMouseX() - rect.x) / NoteWidth;
 
         tic_api_print(tic, Notes[note], xpos + Offsets[note] * NoteWidth, ypos, tic_color_4, true, 1, true);
+
+        music->piano.drawNumbers = false;
     }
 }
 
@@ -2256,6 +2292,8 @@ static void drawPianoOctaveStatus(Music* music, s32 x, s32 y, s32 xpos, s32 ypos
 
             tic_api_print(tic, "12345678", xpos, ypos, tic_color_15, true, 1, true);
             tic_api_print(tic, (char[]){octave + '1', '\0'}, xpos + octave * OctaveWidth, ypos, tic_color_4, true, 1, true);
+
+            music->piano.drawNumbers = false;
         }
     }
 }
@@ -2392,6 +2430,39 @@ static void drawPianoSfxColumn(Music* music, s32 x, s32 y)
     }
 }
 
+static void drawNumbersPanel(Music* music, s32 x, s32 y)
+{
+    tic_mem* tic = music->tic;
+
+    enum {Count = 16, Size = TIC_FONT_WIDTH + 4};
+
+    s32 val = getPianoValue(music);
+
+    if(val >= 0)
+        for(s32 i = 0; i < Count; i++)
+        {
+            char buf[sizeof "0"];
+            sprintf(buf, "%X", i);
+
+            tic_rect rect = {x + i * Size, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
+
+            bool over = false;
+            if(checkMousePos(&rect))
+            {
+                setCursor(tic_cursor_hand);
+                over = true;
+
+                if(checkMouseClick(&rect, tic_mouse_left))
+                {
+                    setPianoValue(music, tolower(buf[0]));
+                    val = getPianoValue(music);
+                }
+            }
+
+            tic_api_print(tic, buf, rect.x, rect.y, i == val ? tic_color_12 : over ? tic_color_13 : tic_color_15, true, 1, false);
+        }
+}
+
 static void drawPianoCommandColumn(Music* music, s32 x, s32 y)
 {
     tic_mem* tic = music->tic;
@@ -2424,6 +2495,7 @@ static void drawPianoCommandColumn(Music* music, s32 x, s32 y)
                 #undef MUSIC_CMD_HINT
 
                 tic_api_print(tic, Hints[command], 73, 129, tic_color_4, false, 1, true);
+                music->piano.drawNumbers = false;
             }
 
             if(checkMouseClick(&rect, tic_mouse_left))
@@ -2431,7 +2503,6 @@ static void drawPianoCommandColumn(Music* music, s32 x, s32 y)
                 tic_track_row* row = &pattern->rows[rowIndex(music, overRow)];
 
                 row->command = command != row->command ? command : tic_music_cmd_empty;
-
 
                 if(row->command == tic_music_cmd_empty)
                     row->param1 = row->param2 = 0;
@@ -2500,6 +2571,7 @@ static void drawPianoXYColumn(Music* music, s32 x, s32 y)
                     char val[sizeof "XY=000"];
                     sprintf(val, "XY=%03i", (row->param1 << 4) | row->param2);
                     tic_api_print(tic, val, 213, 129, tic_color_4, false, 1, true);
+                    music->piano.drawNumbers = false;
                 }                
             }
 
@@ -2558,6 +2630,8 @@ static void drawPianoPattern(Music* music, s32 x, s32 y)
 {
     tic_mem* tic = music->tic;
 
+    music->piano.drawNumbers = true;
+
     enum{Width = 164, Height = 106};
     drawEditPanel(music, x, y, Width, Height);
 
@@ -2577,6 +2651,9 @@ static void drawPianoPattern(Music* music, s32 x, s32 y)
     drawPianoSfxColumn(music,       x + 95, y);
     drawPianoCommandColumn(music,   x + 108, y);
     drawPianoXYColumn(music,        x + 151, y);
+
+    if(music->piano.drawNumbers)
+        drawNumbersPanel(music, 78, 129);
 }
 
 static void drawBeatButton(Music* music, s32 x, s32 y)
@@ -2829,6 +2906,7 @@ void initMusic(Music* music, tic_mem* tic, tic_music* src)
             .col = 0,
             .edit = {0, 0},
             .note = {-1, -1, -1, -1},
+            .drawNumbers = false,
         },
 
         .tickCounter = 0,
