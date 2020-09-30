@@ -2713,6 +2713,39 @@ static void onHttpVesrsionGet(const HttpGetData* data)
     }
 }
 
+static void processMouse(Console* console)
+{
+    // process scroll
+    {
+        tic80_input* input = &console->tic->ram.input;
+
+        if(input->mouse.scrolly)
+        {
+            enum{Scroll = 3};
+            s32 delta = input->mouse.scrolly > 0 ? -Scroll : Scroll;
+            setScroll(console, console->scroll.pos + delta);
+        }
+    }
+
+    tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
+
+    if(checkMouseDown(&rect, tic_mouse_left))
+    {
+        setCursor(tic_cursor_hand);
+
+        if(console->scroll.active)
+        {
+            setScroll(console, (console->scroll.start - getMouseY()) / TIC_FONT_HEIGHT);
+        }
+        else
+        {
+            console->scroll.active = true;
+            console->scroll.start = getMouseY() + console->scroll.pos * TIC_FONT_HEIGHT;
+        }            
+    }
+    else console->scroll.active = false;
+}
+
 static void processKeyboard(Console* console)
 {
     tic_mem* tic = console->tic;
@@ -2781,18 +2814,7 @@ static void tick(Console* console)
 {
     tic_mem* tic = console->tic;
 
-    // process scroll
-    {
-        tic80_input* input = &console->tic->ram.input;
-
-        if(input->mouse.scrolly)
-        {
-            enum{Scroll = 3};
-            s32 delta = input->mouse.scrolly > 0 ? -Scroll : Scroll;
-            setScroll(console, console->scroll.pos + delta);
-        }
-    }
-
+    processMouse(console);
     processKeyboard(console);
 
     if(console->tickCounter == 0)
