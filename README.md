@@ -28,8 +28,8 @@ To make a retro styled game, the whole process of creation and execution takes p
 You can download compiled versions for the major operating systems directly from our [releases page](https://github.com/nesbox/TIC-80/releases).
 
 # Pro Version
-To help support TIC-80 development, we have a [PRO Version](https://nesbox.itch.io/tic).
-This version has a few additional features and binaries can only be downloaded on [our Itch.io page](https://nesbox.itch.io/tic).
+To help support TIC-80 development, we have a [PRO Version](https://nesbox.itch.io/tic80).
+This version has a few additional features and binaries can only be downloaded on [our Itch.io page](https://nesbox.itch.io/tic80).
 
 For users who can't spend the money, we made it easy to build the pro version from the source code.
 
@@ -40,16 +40,16 @@ For users who can't spend the money, we made it easy to build the pro version fr
 - Export your game without editors, and then publish it to app stores (WIP).
 
 # Community
-You can play and share games, tools and music at [tic.computer](https://tic.computer/play).
+You can play and share games, tools and music at [https://tic80.com/play](https://tic80.com/play).
 
-The community also hangs out and discusses on [Discord chat](https://discord.gg/DkD73dP).
+The community also hangs out and discusses on [Telegram](https://t.me/tic80) or [Discord](https://discord.gg/DkD73dP).
 
 # Contributing
 You are can contribute by issuing a bug or requesting a new feature on our [issues page](https://github.com/nesbox/tic.computer/issues).
 Keep in mind when engaging on a discussion to follow our [Code of Conduct](https://github.com/nesbox/TIC-80/blob/master/CODE_OF_CONDUCT.md).
 
-You can also contribute by reviewing or improving our [wiki](https://github.com/nesbox/tic.computer/wiki).
-The [wiki](https://github.com/nesbox/tic.computer/wiki) holds TIC-80 documentation, code snippets and game development tutorials.
+You can also contribute by reviewing or improving our [wiki](https://github.com/nesbox/TIC-80/wiki).
+The [wiki](https://github.com/nesbox/TIC-80/wiki) holds TIC-80 documentation, code snippets and game development tutorials.
 
 # Build instructions
 
