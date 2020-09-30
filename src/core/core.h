@@ -237,5 +237,5 @@ const tic_script_config* getWrenScriptConfig();
 #endif
 
 void tic_core_tick_io(tic_mem* memory);
-void tick_core_sound_tick_start(tic_mem* memory);
-void tick_core_sound_tick_end(tic_mem* memory);
+void tic_core_sound_tick_start(tic_mem* memory);
+void tic_core_sound_tick_end(tic_mem* memory);

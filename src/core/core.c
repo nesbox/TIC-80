@@ -599,7 +599,7 @@ void tic_core_close(tic_mem* memory)
 
 void tic_core_tick_start(tic_mem* memory)
 {
-    tick_core_sound_tick_start(memory);
+    tic_core_sound_tick_start(memory);
     tic_core_tick_io(memory);
 
     tic_core* core = (tic_core*)memory;
@@ -615,7 +615,7 @@ void tic_core_tick_end(tic_mem* memory)
     core->state.gamepads.previous.data = input->gamepads.data;
     core->state.keyboard.previous.data = input->keyboard.data;
 
-    tick_core_sound_tick_end(memory);
+    tic_core_sound_tick_end(memory);
 
     core->state.setpix = setPixelOvr;
     core->state.getpix = getPixelOvr;

@@ -500,7 +500,7 @@ static void stereo_tick_end(tic_mem* memory, tic_sound_register_data* registers,
     blip_end_frame(blip, EndTime);
 }
 
-void tick_core_sound_tick_start(tic_mem* memory)
+void tic_core_sound_tick_start(tic_mem* memory)
 {
     tic_core* core = (tic_core*)memory;
 
@@ -520,7 +520,7 @@ void tick_core_sound_tick_start(tic_mem* memory)
     }
 }
 
-void tick_core_sound_tick_end(tic_mem* memory)
+void tic_core_sound_tick_end(tic_mem* memory)
 {
     tic_core* core = (tic_core*)memory;
 
