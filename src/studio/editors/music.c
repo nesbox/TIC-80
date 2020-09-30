@@ -1225,6 +1225,8 @@ static s32 getPianoValue(Music* music)
     case PianoXYColumn:
         return row && row->command > tic_music_cmd_empty ? (music->piano.edit.x & 1 ? row->param2 : row->param1) : -1;
     }
+
+    return -1;
 }
 
 static void setPianoValue(Music* music, char sym)

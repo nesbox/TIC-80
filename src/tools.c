@@ -186,10 +186,12 @@ void tic_tool_str2buf(const char* str, s32 size, void* buf, bool flip)
 
 u32 tic_tool_zip(void* dest, s32 destSize, const void* source, s32 size)
 {
-    return compress2(dest, (unsigned long*)&destSize, source, (unsigned long)size, Z_BEST_COMPRESSION) == Z_OK ? destSize : 0;
+    unsigned long destSizeLong = destSize;
+    return compress2(dest, &destSizeLong, source, size, Z_BEST_COMPRESSION) == Z_OK ? destSize : 0;
 }
 
 u32 tic_tool_unzip(void* dest, s32 destSize, const void* source, s32 size)
 {
-    return uncompress(dest, (unsigned long*)&destSize, source, (unsigned long)size) == Z_OK ? destSize : 0;
+    unsigned long destSizeLong = destSize;
+    return uncompress(dest, &destSizeLong, source, size) == Z_OK ? destSize : 0;
 }

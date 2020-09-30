@@ -42,6 +42,7 @@
 #endif
 
 #if defined(__TIC_ANDROID__)
+#include <sys/stat.h>
 #define TOUCH_TIMEOUT (10 * TIC80_FRAMERATE)
 #define TOUCH_INPUT_SUPPORT
 #endif
@@ -277,7 +278,7 @@ static void initTouchGamepad()
 
             const u8* in = platform.studio->tic->ram.vram.screen.data;
             const u8* end = in + sizeof(platform.studio->tic->ram.vram.screen);
-            const u32* pal = tic_tool_palette_blit(&platform.studio->config()->cart->bank0.palette, platform.studio->tic->screen_format);
+            const u32* pal = tic_tool_palette_blit(&platform.studio->config()->cart->bank0.palette.scn, platform.studio->tic->screen_format);
             const u32 Delta = ((TIC80_FULLWIDTH*sizeof(u32))/sizeof *out - TIC80_WIDTH);
 
             s32 col = 0;

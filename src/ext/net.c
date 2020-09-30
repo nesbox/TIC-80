@@ -181,7 +181,7 @@ void netTick(Net *net)
     s32 pending = 0;
     CURLMsg* msg = NULL;
 
-    while(msg = curl_multi_info_read(net->multi, &pending))
+    while((msg = curl_multi_info_read(net->multi, &pending)))
     {
         if(msg->msg == CURLMSG_DONE)
         {
