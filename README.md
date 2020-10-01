@@ -4,7 +4,7 @@
 **TIC-80 TINY COMPUTER** - [https://tic80.com](https://tic80.com)
 
 # About
-TIC-80 is a **FREE** and **OPEN SOURCE** fantasy computer for making, playing and sharing tiny games.
+TIC-80 is a Complete RoadMap for  **FREE** and **OPEN SOURCE** fantasy computer for making, playing and sharing tiny and interseting *Games* not for **KIDS**
 
 With TIC-80 you get built-in tools for development: code, sprites, maps, sound editors and the command line, which is enough to create a mini retro game.
 
