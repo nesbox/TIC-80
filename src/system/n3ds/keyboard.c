@@ -22,7 +22,7 @@
 
 #include <stdlib.h>
 
-#include "system.h"
+#include "studio/system.h"
 #include "keyboard.h"
 #include "utils.h"
 
