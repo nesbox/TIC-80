@@ -1,11 +1,13 @@
 name: Build
 
-on: [push, pull_request]
+on: [push]
 
 env:
   BUILD_TYPE: MinSizeRel
 
 jobs:
+
+# === Windows x86 ===
   windows-x86:
     runs-on: windows-latest
 
@@ -16,17 +18,19 @@ jobs:
         fetch-depth: 0
 
     - name: Build
+      shell: cmd
       run: |
         cd build
-        cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=MinSizeRel ..
-        cmake --build . --parallel --config MinSizeRel
+        cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
+        cmake --build . --parallel --config %BUILD_TYPE%
 
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-win'
+        name: 'tic80-windows-x86.zip'
         path: build/bin/tic80.exe
 
+# === Windows x64 ===
   windows-x64:
     runs-on: windows-latest
 
@@ -37,17 +41,19 @@ jobs:
         fetch-depth: 0
 
     - name: Build
+      shell: cmd
       run: |
         cd build
-        cmake -G "Visual Studio 16 2019" -A x64 -T v141_xp -DCMAKE_BUILD_TYPE=MinSizeRel ..
-        cmake --build . --parallel --config MinSizeRel
+        cmake -G "Visual Studio 16 2019" -A x64 -T v141_xp -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
+        cmake --build . --parallel --config %BUILD_TYPE%
 
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-win-64'
+        name: 'tic80-windows-x64.zip'
         path: build/bin/tic80.exe
 
+# === Ubuntu 16.04 ===
   ubuntu-16:
     runs-on: ubuntu-16.04
 
@@ -70,9 +76,10 @@ jobs:
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-ubuntu-16'
+        name: 'tic80-ubuntu-16.zip'
         path: build/tic80.deb
 
+# === Ubuntu 18.04 ===
   ubuntu-18:
     runs-on: ubuntu-18.04
 
@@ -95,9 +102,10 @@ jobs:
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-ubuntu-18'
+        name: 'tic80-ubuntu-18.zip'
         path: build/tic80.deb
 
+# === MacOS 10.15 ===
   macos:
     runs-on: macos-10.15
 
@@ -121,9 +129,10 @@ jobs:
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-osx'
+        name: 'tic80-macos.zip'
         path: build/tic80.dmg
 
+# === Android arm7 arm8 x86 x86_64 ===
   android:
     runs-on: ubuntu-latest
 
@@ -137,14 +146,43 @@ jobs:
       run: |
         cd build/android
         ./gradlew assembleRelease
+        cp app/build/outputs/apk/arm7/release/app-arm7-release.apk tic80_arm7.apk
+        cp app/build/outputs/apk/arm8/release/app-arm8-release.apk tic80_arm8.apk
+        cp app/build/outputs/apk/x86_64/release/app-x86_64-release.apk tic80_x86_64.apk
+        cp app/build/outputs/apk/x86/release/app-x86-release.apk tic80_x86.apk
         cp app/build/outputs/apk/universal/release/app-universal-release.apk tic80.apk
 
-    - name: Deploy
+    - name: Deploy ARM7
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-android'
+        name: 'tic80-android-arm7.zip'
+        path: build/android/tic80_arm7.apk
+
+    - name: Deploy ARM8
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-android-arm8.zip'
+        path: build/android/tic80_arm8.apk
+
+    - name: Deploy x86_64
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-android-x86_64.zip'
+        path: build/android/tic80_x86_64.apk
+
+    - name: Deploy x86
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-android-x86.zip'
+        path: build/android/tic80_x86.apk
+
+    - name: Deploy Universal
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-android.zip'
         path: build/android/tic80.apk
 
+# === Web Assembly ===
   wasm:
     runs-on: ubuntu-latest
 
@@ -166,7 +204,7 @@ jobs:
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-wasm'
+        name: 'tic80-wasm.zip'
         path: |
           build/bin/tic80.js
           build/bin/tic80.wasm
