@@ -27,7 +27,7 @@ jobs:
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-windows-x86.zip'
+        name: 'tic80-windows-x86'
         path: build/bin/tic80.exe
 
 # === Windows x64 ===
@@ -50,7 +50,7 @@ jobs:
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-windows-x64.zip'
+        name: 'tic80-windows-x64'
         path: build/bin/tic80.exe
 
 # === Ubuntu 16.04 ===
@@ -76,7 +76,7 @@ jobs:
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-ubuntu-16.zip'
+        name: 'tic80-ubuntu-16'
         path: build/tic80.deb
 
 # === Ubuntu 18.04 ===
@@ -102,7 +102,7 @@ jobs:
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-ubuntu-18.zip'
+        name: 'tic80-ubuntu-18'
         path: build/tic80.deb
 
 # === MacOS 10.15 ===
@@ -129,7 +129,7 @@ jobs:
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-macos.zip'
+        name: 'tic80-macos'
         path: build/tic80.dmg
 
 # === Android arm7 arm8 x86 x86_64 ===
@@ -155,31 +155,31 @@ jobs:
     - name: Deploy ARM7
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-android-arm7.zip'
+        name: 'tic80-android-arm7'
         path: build/android/tic80_arm7.apk
 
     - name: Deploy ARM8
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-android-arm8.zip'
+        name: 'tic80-android-arm8'
         path: build/android/tic80_arm8.apk
 
     - name: Deploy x86_64
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-android-x86_64.zip'
+        name: 'tic80-android-x86_64'
         path: build/android/tic80_x86_64.apk
 
     - name: Deploy x86
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-android-x86.zip'
+        name: 'tic80-android-x86'
         path: build/android/tic80_x86.apk
 
     - name: Deploy Universal
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-android.zip'
+        name: 'tic80-android'
         path: build/android/tic80.apk
 
 # === Web Assembly ===
@@ -204,7 +204,7 @@ jobs:
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-wasm.zip'
+        name: 'tic80-wasm'
         path: |
           build/bin/tic80.js
           build/bin/tic80.wasm
