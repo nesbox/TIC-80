@@ -36,21 +36,28 @@ message("PROJECT_VERSION: ${PROJECT_VERSION}${VERSION_STATUS}")
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/version.h")
 
 if(ANDROID OR EMSCRIPTEN OR N3DS)
+    set(BUILD_SOKOL_DEFAULT OFF)
     set(BUILD_LIBRETRO_DEFAULT OFF)
     set(BUILD_DEMO_CARTS_DEFAULT OFF)
     set(BUILD_PLAYER_DEFAULT OFF)
+    set(BUILD_SDLGPU_DEFAULT OFF)
 else()
+    set(BUILD_SOKOL_DEFAULT ON)
     set(BUILD_LIBRETRO_DEFAULT ON)
     set(BUILD_DEMO_CARTS_DEFAULT ON)
     set(BUILD_PLAYER_DEFAULT ON)
+    set(BUILD_SDLGPU_DEFAULT ON)
 endif()
 
 option(BUILD_SDL "SDL Enabled" ON)
-option(BUILD_SOKOL "Sokol Enabled" OFF)
+option(BUILD_SDLGPU "SDL GPU Enabled" ${BUILD_SDLGPU_DEFAULT})
+option(BUILD_SOKOL "Sokol Enabled" ${BUILD_SOKOL_DEFAULT})
 option(BUILD_LIBRETRO "libretro Enabled" ${BUILD_LIBRETRO_DEFAULT})
 option(BUILD_DEMO_CARTS "Demo Carts Enabled" ${BUILD_DEMO_CARTS_DEFAULT})
 option(BUILD_PRO "Build PRO version" FALSE)
 option(BUILD_PLAYER "Build standalone players" ${BUILD_PLAYER_DEFAULT})
+
+message("BUILD_SDLGPU: ${BUILD_SDLGPU}")
 
 if (N3DS)
     set(BUILD_SDL off)
@@ -686,7 +693,7 @@ endif()
 # SDL GPU
 ################################
 
-if(BUILD_SDL)
+if(BUILD_SDLGPU)
 
 set(SDLGPU_DIR ${THIRDPARTY_DIR}/sdl-gpu/src)
 set(SDLGPU_SRC
@@ -768,7 +775,7 @@ if(BUILD_SDL)
         set(TIC80_SRC ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/src/ext/file_dialog.m)
     endif()
 
-    set(TIC80_SRC ${TIC80_SRC} src/system/sdl/sdlgpu.c)
+    set(TIC80_SRC ${TIC80_SRC} src/system/sdl/main.c)
 
     if(WIN32)
         
@@ -795,8 +802,6 @@ if(BUILD_SDL)
         add_executable(${TIC80_OUTPUT} ${TIC80_SRC})
     endif()
 
-    target_include_directories(${TIC80_OUTPUT} PRIVATE ${CMAKE_SOURCE_DIR}/src)
-
     if(MINGW)
         target_link_libraries(${TIC80_OUTPUT} mingw32)
     endif()
@@ -813,7 +818,12 @@ if(BUILD_SDL)
         target_link_libraries(${TIC80_OUTPUT} SDL2main)
     endif()
 
-    target_link_libraries(${TIC80_OUTPUT} ${TIC80_OUTPUT}lib sdlgpu)
+    if(BUILD_SDLGPU)
+        target_link_libraries(${TIC80_OUTPUT} ${TIC80_OUTPUT}lib sdlgpu)
+        target_compile_definitions(${TIC80_OUTPUT} PRIVATE CRT_SHADER_SUPPORT)
+    else()
+        target_link_libraries(${TIC80_OUTPUT} ${TIC80_OUTPUT}lib SDL2-static)
+    endif()
 
     if(LINUX)
         include(FindPkgConfig)
