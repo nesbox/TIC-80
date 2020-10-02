@@ -30,8 +30,8 @@
 #include <3ds.h>
 #include <citro3d.h>
 
-#include "system.h"
-#include "net.h"
+#include "studio/system.h"
+#include "ext/net.h"
 
 #include "keyboard.h"
 #include "utils.h"
