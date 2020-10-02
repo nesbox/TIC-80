@@ -55,6 +55,10 @@ option(BUILD_DEMO_CARTS "Demo Carts Enabled" ${BUILD_DEMO_CARTS_DEFAULT})
 option(BUILD_PRO "Build PRO version" FALSE)
 option(BUILD_PLAYER "Build standalone players" ${BUILD_PLAYER_DEFAULT})
 
+if(NOT BUILD_SDL)
+    set(BUILD_SDLGPU OFF)
+endif()
+
 message("BUILD_SDLGPU: ${BUILD_SDLGPU}")
 
 if (N3DS)
