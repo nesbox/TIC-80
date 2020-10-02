@@ -821,7 +821,7 @@ if(BUILD_SDL)
     if(BUILD_SDLGPU)
         target_link_libraries(${TIC80_OUTPUT} ${TIC80_OUTPUT}lib sdlgpu)
         target_compile_definitions(${TIC80_OUTPUT} PRIVATE CRT_SHADER_SUPPORT)
-    else()
+    elseif(NOT EMSCRIPTEN)
         target_link_libraries(${TIC80_OUTPUT} ${TIC80_OUTPUT}lib SDL2-static)
     endif()
 
