@@ -7,8 +7,8 @@ env:
 
 jobs:
 
-# === Windows x86 ===
-  windows-x86:
+# === Windows SDL2 ===
+  windows-sdl:
     runs-on: windows-latest
 
     steps:
@@ -21,17 +21,17 @@ jobs:
       shell: cmd
       run: |
         cd build
-        cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
+        cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DBUILD_SDLGPU=Off -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
         cmake --build . --parallel --config %BUILD_TYPE%
 
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-windows-x86'
+        name: 'tic80-windows-sdl'
         path: build/bin/tic80.exe
 
-# === Windows x64 ===
-  windows-x64:
+# === Windows SDLGPU ===
+  windows-sdlgpu:
     runs-on: windows-latest
 
     steps:
@@ -44,17 +44,17 @@ jobs:
       shell: cmd
       run: |
         cd build
-        cmake -G "Visual Studio 16 2019" -A x64 -T v141_xp -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
+        cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
         cmake --build . --parallel --config %BUILD_TYPE%
 
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-windows-x64'
+        name: 'tic80-windows-sdlgpu'
         path: build/bin/tic80.exe
 
-# === Windows Sokol x86 ===
-  windows-sokol-x86:
+# === Windows Sokol ===
+  windows-sokol:
     runs-on: windows-latest
 
     steps:
@@ -69,35 +69,13 @@ jobs:
         cd build
         cmake -G "Visual Studio 16 2019" -A Win32 -DBUILD_SDL=Off -DBUILD_SOKOL=On -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
         cmake --build . --parallel --config %BUILD_TYPE%
+        cp bin/tic80-sokol.exe bin/tic80.exe
 
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-windows-sokol-x86'
-        path: build/bin/tic80-sokol.exe
-
-# === Windows Sokol x64 ===
-  windows-sokol-x64:
-    runs-on: windows-latest
-
-    steps:
-    - uses: actions/checkout@v2
-      with: 
-        submodules: recursive
-        fetch-depth: 0
-
-    - name: Build
-      shell: cmd
-      run: |
-        cd build
-        cmake -G "Visual Studio 16 2019" -A x64 -DBUILD_SDL=Off -DBUILD_SOKOL=On -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
-        cmake --build . --parallel --config %BUILD_TYPE%
-
-    - name: Deploy
-      uses: actions/upload-artifact@v2
-      with:
-        name: 'tic80-windows-sokol-x64'
-        path: build/bin/tic80-sokol.exe
+        name: 'tic80-windows-sokol'
+        path: build/bin/tic80.exe
 
 # === Ubuntu 16.04 ===
   ubuntu-16:
@@ -178,7 +156,7 @@ jobs:
         name: 'tic80-macos'
         path: build/tic80.dmg
 
-# === Android arm7 arm8 x86 x86_64 ===
+# === Android arm7 arm8 x86 x64 ===
   android:
     runs-on: ubuntu-latest
 
@@ -194,7 +172,7 @@ jobs:
         ./gradlew assembleRelease
         cp app/build/outputs/apk/arm7/release/app-arm7-release.apk tic80_arm7.apk
         cp app/build/outputs/apk/arm8/release/app-arm8-release.apk tic80_arm8.apk
-        cp app/build/outputs/apk/x86_64/release/app-x86_64-release.apk tic80_x86_64.apk
+        cp app/build/outputs/apk/x86_64/release/app-x86_64-release.apk tic80_x64.apk
         cp app/build/outputs/apk/x86/release/app-x86-release.apk tic80_x86.apk
         cp app/build/outputs/apk/universal/release/app-universal-release.apk tic80.apk
 
@@ -210,11 +188,11 @@ jobs:
         name: 'tic80-android-arm8'
         path: build/android/tic80_arm8.apk
 
-    - name: Deploy x86_64
+    - name: Deploy x64
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-android-x86_64'
-        path: build/android/tic80_x86_64.apk
+        name: 'tic80-android-x64'
+        path: build/android/tic80_x64.apk
 
     - name: Deploy x86
       uses: actions/upload-artifact@v2

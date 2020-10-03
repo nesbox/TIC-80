@@ -52,8 +52,11 @@
 
 #if defined(__TIC_ANDROID__)
 #include <sys/stat.h>
-#define TOUCH_TIMEOUT (10 * TIC80_FRAMERATE)
 #define TOUCH_INPUT_SUPPORT
+#endif
+
+#if defined(TOUCH_INPUT_SUPPORT)
+#define TOUCH_TIMEOUT (10 * TIC80_FRAMERATE)
 #endif
 
 typedef enum
@@ -354,6 +357,7 @@ static void initTouchGamepad()
 #else
         platform.gamepad.touch.texture = SDL_CreateTexture(platform.gpu.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING, TEXTURE_SIZE, TEXTURE_SIZE);
         SDL_SetTextureBlendMode(platform.gamepad.touch.texture, SDL_BLENDMODE_BLEND);
+        SDL_SetTextureAlphaMod(platform.gamepad.touch.texture, platform.studio->config()->theme.gamepad.touch.alpha);
         updateTextureBytes(platform.gamepad.touch.texture, platform.gamepad.touch.pixels, TEXTURE_SIZE);
 #endif
     }
