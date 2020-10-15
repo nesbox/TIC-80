@@ -142,6 +142,15 @@ if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID AND NOT N3DS)
     set(LINUX TRUE)
 endif()
 
+if(LINUX)
+    include(FindPkgConfig)
+    if(NOT PKG_CONFIG_FOUND) 
+        message(WARNING "We need pkg-config to detect GTK libs")
+    else()
+        pkg_check_modules(GTK gtk+-3.0)
+    endif()
+endif()
+
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -643,6 +652,33 @@ add_library(wave_writer STATIC ${THIRDPARTY_DIR}/blip-buf/wave_writer.c)
 target_include_directories(wave_writer INTERFACE ${THIRDPARTY_DIR}/blip-buf)
 
 ################################
+# File dialogs
+################################
+
+add_library(file_dialogs STATIC ${CMAKE_SOURCE_DIR}/src/ext/file_dialog.c)
+target_include_directories(file_dialogs PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+if(LINUX)
+    if(${GTK_FOUND})
+        target_include_directories(file_dialogs PRIVATE ${GTK_INCLUDE_DIRS})
+        target_link_libraries(file_dialogs ${GTK_LIBRARIES})
+        set(FILE_DIALOGS_SUPPORT ON)
+    endif()
+else()
+    set(FILE_DIALOGS_SUPPORT ON)
+
+    if(APPLE)
+        target_sources(file_dialogs PRIVATE ${CMAKE_SOURCE_DIR}/src/ext/file_dialog.m)
+    elseif(ANDROID)
+        target_include_directories(file_dialogs PRIVATE ${THIRDPARTY_DIR}/sdl2/include)
+    endif()
+endif()
+
+if(FILE_DIALOGS_SUPPORT)
+    target_compile_definitions(file_dialogs PUBLIC FILE_DIALOGS_SUPPORT)
+endif()
+
+################################
 # TIC-80 lib
 ################################
 
@@ -668,38 +704,11 @@ set(TIC80LIB_SRC
     ${TIC80LIB_DIR}/ext/gif.c
     ${TIC80LIB_DIR}/ext/history.c
     ${TIC80LIB_DIR}/ext/net.c
-    ${TIC80LIB_DIR}/ext/file_dialog.c
 )
 
 set(TIC80_OUTPUT tic80)
 
-if(LINUX)
-    include(FindPkgConfig)
-    if(NOT PKG_CONFIG_FOUND) 
-        message(WARNING "We need pkg-config to detect GTK libs")
-    else()
-        pkg_check_modules(GTK gtk+-3.0)
-
-        if(${GTK_FOUND})
-            target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${GTK_INCLUDE_DIRS})
-            target_link_libraries(${TIC80_OUTPUT}lib ${GTK_LIBRARIES})
-        endif()
-    endif()
-endif()
-
-if(APPLE)
-    set(TIC80LIB_SRC ${TIC80LIB_SRC} ${TIC80LIB_DIR}/ext/file_dialog.m)
-endif()
-
 add_library(${TIC80_OUTPUT}lib STATIC ${TIC80LIB_SRC} ${DEMO_CARTS_OUT})
-
-if(LINUX)
-    if(${GTK_FOUND})
-        target_compile_definitions(${TIC80_OUTPUT}lib PUBLIC FILE_DIALOGS_SUPPORT)
-    endif()
-else()
-    target_compile_definitions(${TIC80_OUTPUT}lib PUBLIC FILE_DIALOGS_SUPPORT)
-endif()
 
 if(WIN32)
     target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${THIRDPARTY_DIR}/dirent/include)
@@ -708,6 +717,10 @@ endif()
 target_include_directories(${TIC80_OUTPUT}lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(${TIC80_OUTPUT}lib tic80core zip wave_writer)
+
+if(FILE_DIALOGS_SUPPORT)
+    target_link_libraries(${TIC80_OUTPUT}lib file_dialogs)
+endif()
 
 if(N3DS)
     target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${DEVKITPRO}/portlibs/3ds/include)
@@ -907,7 +920,6 @@ if(BUILD_SOKOL)
     target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE 
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src
-        ${THIRDPARTY_DIR}/sdl2/include
         ${THIRDPARTY_DIR}/sokol)
 
     if(MINGW)
