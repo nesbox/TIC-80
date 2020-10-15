@@ -24,6 +24,8 @@
 
 #include <tic80_config.h>
 
+#if defined(FILE_DIALOGS_SUPPORT)
+
 #if defined(__TIC_WINDOWS__)
 
 #include <windows.h>
@@ -454,9 +456,6 @@ void file_dialog_save(file_dialog_save_callback callback, const char* name, cons
 	(*env)->ReleaseStringUTFChars(env, jPath, filename);
 }
 
-#else
-
-void file_dialog_load(file_dialog_load_callback callback, void* data) {}
-void file_dialog_save(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode) {}
-
 #endif
+
+#endif // FILE_DIALOGS_SUPPORT

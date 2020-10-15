@@ -35,7 +35,7 @@ message("PROJECT_VERSION: ${PROJECT_VERSION}${VERSION_STATUS}")
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/version.h")
 
-if(ANDROID OR EMSCRIPTEN OR N3DS)
+if(ANDROID OR EMSCRIPTEN OR N3DS OR RPI)
     set(BUILD_LIBRETRO_DEFAULT OFF)
     set(BUILD_DEMO_CARTS_DEFAULT OFF)
     set(BUILD_PLAYER_DEFAULT OFF)
@@ -57,6 +57,10 @@ option(BUILD_DEMO_CARTS "Demo Carts Enabled" ${BUILD_DEMO_CARTS_DEFAULT})
 option(BUILD_PRO "Build PRO version" FALSE)
 option(BUILD_PLAYER "Build standalone players" ${BUILD_PLAYER_DEFAULT})
 option(BUILD_TOUCH_INPUT "Build with touch input support" ${BUILD_TOUCH_INPUT_DEFAULT})
+
+if(RPI)
+    set(DISABLE_NETWORKING TRUE)
+endif()
 
 if(NOT BUILD_SDL)
     set(BUILD_SDLGPU OFF)
@@ -367,7 +371,7 @@ endif()
 ################################
 # SDL2
 ################################
-if(BUILD_SDL AND NOT EMSCRIPTEN)
+if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT RPI)
 
     if(WIN32)
         set(HAVE_LIBC TRUE)
@@ -387,7 +391,7 @@ endif()
 # SDL2 standalone cart player
 ################################
 
-if(BUILD_SDL AND BUILD_PLAYER)
+if(BUILD_SDL AND BUILD_PLAYER AND NOT RPI)
 
     add_executable(player-sdl WIN32 ${CMAKE_SOURCE_DIR}/src/player/sdl.c)
 
@@ -664,11 +668,38 @@ set(TIC80LIB_SRC
     ${TIC80LIB_DIR}/ext/gif.c
     ${TIC80LIB_DIR}/ext/history.c
     ${TIC80LIB_DIR}/ext/net.c
+    ${TIC80LIB_DIR}/ext/file_dialog.c
 )
 
 set(TIC80_OUTPUT tic80)
 
+if(LINUX)
+    include(FindPkgConfig)
+    if(NOT PKG_CONFIG_FOUND) 
+        message(WARNING "We need pkg-config to detect GTK libs")
+    else()
+        pkg_check_modules(GTK gtk+-3.0)
+
+        if(${GTK_FOUND})
+            target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${GTK_INCLUDE_DIRS})
+            target_link_libraries(${TIC80_OUTPUT}lib ${GTK_LIBRARIES})
+        endif()
+    endif()
+endif()
+
+if(APPLE)
+    set(TIC80LIB_SRC ${TIC80LIB_SRC} ${TIC80LIB_DIR}/ext/file_dialog.m)
+endif()
+
 add_library(${TIC80_OUTPUT}lib STATIC ${TIC80LIB_SRC} ${DEMO_CARTS_OUT})
+
+if(LINUX)
+    if(${GTK_FOUND})
+        target_compile_definitions(${TIC80_OUTPUT}lib PUBLIC FILE_DIALOGS_SUPPORT)
+    endif()
+else()
+    target_compile_definitions(${TIC80_OUTPUT}lib PUBLIC FILE_DIALOGS_SUPPORT)
+endif()
 
 if(WIN32)
     target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${THIRDPARTY_DIR}/dirent/include)
@@ -775,13 +806,7 @@ endif()
 
 if(BUILD_SDL)
 
-    set(TIC80_SRC ${CMAKE_SOURCE_DIR}/src/ext/file_dialog.c)
-
-    if(APPLE)
-        set(TIC80_SRC ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/src/ext/file_dialog.m)
-    endif()
-
-    set(TIC80_SRC ${TIC80_SRC} src/system/sdl/main.c)
+    set(TIC80_SRC src/system/sdl/main.c)
 
     if(WIN32)
         
@@ -830,23 +855,24 @@ if(BUILD_SDL)
         target_compile_definitions(${TIC80_OUTPUT} PRIVATE TOUCH_INPUT_SUPPORT)
     endif()
 
+    if(RPI)
+        target_include_directories(${TIC80_OUTPUT} PRIVATE ${SYSROOT_PATH}/usr/local/include/SDL2)
+        target_link_directories(${TIC80_OUTPUT} PRIVATE ${SYSROOT_PATH}/usr/local/lib ${SYSROOT_PATH}/opt/vc/lib)
+    endif()
+
     if(BUILD_SDLGPU)
         target_link_libraries(${TIC80_OUTPUT} sdlgpu)
         target_compile_definitions(${TIC80_OUTPUT} PRIVATE CRT_SHADER_SUPPORT)
-    elseif(NOT EMSCRIPTEN)
-        target_link_libraries(${TIC80_OUTPUT} ${TIC80_OUTPUT}lib SDL2-static)
+    else()
+        if(EMSCRIPTEN)
+        elseif(RPI)
+            target_link_libraries(${TIC80_OUTPUT} SDL2 bcm_host)
+        else()
+            target_link_libraries(${TIC80_OUTPUT} SDL2-static)
+        endif()
     endif()
 
     if(LINUX)
-        include(FindPkgConfig)
-        if(NOT PKG_CONFIG_FOUND) 
-            message(FATAL_ERROR "We need pkg-config to compile this project")
-        endif()
-
-        pkg_check_modules(GTK REQUIRED gtk+-3.0)
-
-        target_include_directories(${TIC80_OUTPUT} PRIVATE ${GTK_INCLUDE_DIRS})
-        target_link_libraries(${TIC80_OUTPUT} ${GTK_LIBRARIES})
 
         install(TARGETS ${TIC80_OUTPUT} DESTINATION bin)
  
@@ -858,7 +884,6 @@ if(BUILD_SDL)
         install (FILES ${PROJECT_SOURCE_DIR}/build/linux/tic80.png DESTINATION ${TIC80_PIXMAPS_DIR})
 
     endif()
-
 endif()
 
 ################################
@@ -867,13 +892,7 @@ endif()
 
 if(BUILD_SOKOL)
 
-    set(TIC80_SRC ${CMAKE_SOURCE_DIR}/src/ext/file_dialog.c)
-
-    if(APPLE)
-        set(TIC80_SRC ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/src/ext/file_dialog.m)
-    endif()
-
-    set(TIC80_SRC ${TIC80_SRC} ${CMAKE_SOURCE_DIR}/src/system/sokol/sokol.c)
+    set(TIC80_SRC ${CMAKE_SOURCE_DIR}/src/system/sokol/sokol.c)
 
     if(WIN32)
 
@@ -896,18 +915,6 @@ if(BUILD_SOKOL)
     endif()
 
     target_link_libraries(${TIC80_OUTPUT}-sokol ${TIC80_OUTPUT}lib sokol)
-
-    if(LINUX)
-        include(FindPkgConfig)
-        if(NOT PKG_CONFIG_FOUND) 
-            message(FATAL_ERROR "We need pkg-config to compile this project")
-        endif()
-
-        pkg_check_modules(GTK REQUIRED gtk+-3.0)
-
-        target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE ${GTK_INCLUDE_DIRS})
-        target_link_libraries(${TIC80_OUTPUT}-sokol ${GTK_LIBRARIES})
-    endif()
 
 endif()
 
@@ -982,6 +989,9 @@ elseif (LINUX)
     set(CPACK_DEBIAN_PACKAGE_VERSION ${PROJECT_VERSION})
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Nesbox <grigoruk@gmail.com>")
     set(CPACK_DEBIAN_PACKAGE_SECTION "education")
+    if(RPI)
+        set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE armhf)
+    endif()
 
     install(CODE "set(CMAKE_INSTALL_LOCAL_ONLY true)")
     include(CPack)
