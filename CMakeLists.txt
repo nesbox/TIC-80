@@ -1001,6 +1001,11 @@ elseif (LINUX)
     set(CPACK_DEBIAN_PACKAGE_VERSION ${PROJECT_VERSION})
     set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Nesbox <grigoruk@gmail.com>")
     set(CPACK_DEBIAN_PACKAGE_SECTION "education")
+
+    if(NOT BUILD_SDL)
+        set(CPACK_DEBIAN_PACKAGE_DEPENDS "libsdl2-2.0 (>= 2.0.9)")
+    endif()
+
     if(RPI)
         set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE armhf)
     endif()
