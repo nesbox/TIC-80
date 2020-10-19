@@ -1003,6 +1003,7 @@ elseif (LINUX)
     set(CPACK_DEBIAN_PACKAGE_SECTION "education")
 
     if(NOT BUILD_SDL)
+        set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
         set(CPACK_DEBIAN_PACKAGE_DEPENDS "libsdl2-2.0 (>= 2.0.9)")
     endif()
 
