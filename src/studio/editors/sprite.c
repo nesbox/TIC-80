@@ -42,10 +42,10 @@ enum
 // !TODO: move it to helpers place
 static void drawPanelBorder(tic_mem* tic, s32 x, s32 y, s32 w, s32 h)
 {
-    tic_api_rect(tic, x, y-1, w, 1, tic_color_15);
-    tic_api_rect(tic, x-1, y, 1, h, tic_color_15);
-    tic_api_rect(tic, x, y+h, w, 1, tic_color_13);
-    tic_api_rect(tic, x+w, y, 1, h, tic_color_13);
+    tic_api_rect(tic, x, y-1, w, 1, tic_color_dark_grey);
+    tic_api_rect(tic, x-1, y, 1, h, tic_color_dark_grey);
+    tic_api_rect(tic, x, y+h, w, 1, tic_color_light_grey);
+    tic_api_rect(tic, x+w, y, 1, h, tic_color_light_grey);
 }
 
 static void clearCanvasSelection(Sprite* sprite)
@@ -118,7 +118,7 @@ static void drawSelection(Sprite* sprite, s32 x, s32 y, s32 w, s32 h)
     tic_mem* tic = sprite->tic;
 
     enum{Step = 3};
-    u8 color = tic_color_12;
+    u8 color = tic_color_white;
 
     s32 index = sprite->tickCounter / 10;
     for(s32 i = x; i < (x+w); i++)      { tic_api_pix(tic, i, y, index++ % Step ? color : 0, false);} index++;
@@ -139,8 +139,8 @@ static void drawCursorBorder(Sprite* sprite, s32 x, s32 y, s32 w, s32 h)
 {
     tic_mem* tic = sprite->tic;
 
-    tic_api_rectb(tic, x, y, w, h, tic_color_0);
-    tic_api_rectb(tic, x-1, y-1, w+2, h+2, tic_color_12);
+    tic_api_rectb(tic, x, y, w, h, tic_color_black);
+    tic_api_rectb(tic, x-1, y-1, w+2, h+2, tic_color_white);
 }
 
 static void processPickerCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
@@ -409,21 +409,21 @@ static void drawBrushSlider(Sprite* sprite, s32 x, s32 y)
         }
     }
 
-    tic_api_rect(tic, x+1, y, Size-2, Size*Count, tic_color_0);
+    tic_api_rect(tic, x+1, y, Size-2, Size*Count, tic_color_black);
 
     for(s32 i = 0; i < Count; i++)
     {
         s32 offset = y + i*(Size+1);
 
-        tic_api_rect(tic, x, offset, Size, Size, tic_color_0);
-        tic_api_rect(tic, x + 6, offset + 2, Count - i, 1, tic_color_0);
+        tic_api_rect(tic, x, offset, Size, Size, tic_color_black);
+        tic_api_rect(tic, x + 6, offset + 2, Count - i, 1, tic_color_black);
     }
 
-    tic_api_rect(tic, x+2, y+1, 1, Size*Count+1, (over ? tic_color_12 : tic_color_14));
+    tic_api_rect(tic, x+2, y+1, 1, Size*Count+1, (over ? tic_color_white : tic_color_grey));
 
     s32 offset = y + (Count - sprite->brushSize)*(Size+1);
-    tic_api_rect(tic, x, offset, Size, Size, tic_color_0);
-    tic_api_rect(tic, x+1, offset+1, Size-2, Size-2, (over ? tic_color_12 : tic_color_14));
+    tic_api_rect(tic, x, offset, Size, Size, tic_color_black);
+    tic_api_rect(tic, x+1, offset+1, Size-2, Size-2, (over ? tic_color_white : tic_color_grey));
 }
 
 static void drawCanvasOvr(Sprite* sprite, s32 x, s32 y)
@@ -442,7 +442,7 @@ static void drawCanvasOvr(Sprite* sprite, s32 x, s32 y)
     }
 
     drawPanelBorder(tic, canvasRect.x - 1, canvasRect.y - 1, canvasRect.w + 2, canvasRect.h + 2);
-    tic_api_rectb(tic, canvasRect.x - 1, canvasRect.y - 1, canvasRect.w + 2, canvasRect.h + 2, tic_color_0);
+    tic_api_rectb(tic, canvasRect.x - 1, canvasRect.y - 1, canvasRect.w + 2, canvasRect.h + 2, tic_color_black);
 
     if(!sprite->palette.edit)
     {
@@ -469,8 +469,8 @@ static void drawCanvasOvr(Sprite* sprite, s32 x, s32 y)
 
         s32 ix = x + (CANVAS_SIZE - 5*TIC_FONT_WIDTH)/2;
         s32 iy = TIC_SPRITESIZE + 2;
-        tic_api_print(tic, buf, ix, iy+1, tic_color_0, true, 1, false);
-        tic_api_print(tic, buf, ix, iy, tic_color_12, true, 1, false);
+        tic_api_print(tic, buf, ix, iy+1, tic_color_black, true, 1, false);
+        tic_api_print(tic, buf, ix, iy, tic_color_white, true, 1, false);
     }
 }
 
@@ -709,7 +709,7 @@ static void drawFlags(Sprite* sprite, s32 x, s32 y)
             }
         }
 
-        tic_api_rect(tic, rect.x, rect.y, Size, Size, tic_color_0);
+        tic_api_rect(tic, rect.x, rect.y, Size, Size, tic_color_black);
 
         u8 flagColor = i + 2;
 
@@ -721,10 +721,10 @@ static void drawFlags(Sprite* sprite, s32 x, s32 y)
         if(and & mask)
         {
             tic_api_rect(tic, rect.x + 1, rect.y + 1, Size - 2, Size - 2, flagColor);
-            tic_api_pix(tic, rect.x + 3, rect.y + 1, tic_color_12, false);
+            tic_api_pix(tic, rect.x + 3, rect.y + 1, tic_color_white, false);
         }
 
-        tic_api_print(tic, (char[]){'0' + i, '\0'}, rect.x + (Size+2), rect.y, tic_color_13, false, 1, true);
+        tic_api_print(tic, (char[]){'0' + i, '\0'}, rect.x + (Size+2), rect.y, tic_color_light_grey, false, 1, true);
     }
 }
 
@@ -742,7 +742,7 @@ static void switchBitMode(Sprite* sprite, tic_bpp bpp)
 static void drawBitMode(Sprite* sprite, s32 x, s32 y, s32 w, s32 h)
 {
     tic_mem* tic = sprite->tic;
-    s32 label_w = tic_api_print(tic, "BPP :", x+2, y, tic_color_15, false, 1, true);
+    s32 label_w = tic_api_print(tic, "BPP :", x+2, y, tic_color_dark_grey, false, 1, true);
     x += label_w+4;
     w -= label_w+4;
 
@@ -774,15 +774,15 @@ static void drawBitMode(Sprite* sprite, s32 x, s32 y, s32 w, s32 h)
             }
         }
 
-        u8 label_color = current ? tic_color_12 : tic_color_15;
+        u8 label_color = current ? tic_color_white : tic_color_dark_grey;
 
-        tic_api_rect(tic, rect.x, rect.y, SizeX, SizeY, tic_color_15);
+        tic_api_rect(tic, rect.x, rect.y, SizeX, SizeY, tic_color_dark_grey);
         if (current) {
-            tic_api_rect(tic, rect.x+1, rect.y+1, SizeX-2, SizeY-2, tic_color_4-i);
-            tic_api_pix(tic, rect.x+3, rect.y+1,tic_color_12, false);
+            tic_api_rect(tic, rect.x+1, rect.y+1, SizeX-2, SizeY-2, tic_color_yellow-i);
+            tic_api_pix(tic, rect.x+3, rect.y+1,tic_color_white, false);
         }
         else if (over)
-            tic_api_rect(tic, rect.x+1, rect.y+1, SizeX-2, SizeY-2, tic_color_13);
+            tic_api_rect(tic, rect.x+1, rect.y+1, SizeX-2, SizeY-2, tic_color_light_grey);
 
         tic_api_print(tic, (char[]){'0' + mode, '\0'}, rect.x - 4, rect.y, label_color, false, 1, true);
     }
@@ -859,9 +859,9 @@ static void drawMoveButtons(Sprite* sprite)
                     Func[i](sprite);
             }
 
-            drawBitIcon(Rects[i].x, Rects[i].y+1, Icons + i*8, down ? tic_color_12 : tic_color_0);
+            drawBitIcon(Rects[i].x, Rects[i].y+1, Icons + i*8, down ? tic_color_white : tic_color_black);
 
-            if(!down) drawBitIcon(Rects[i].x, Rects[i].y, Icons + i*8, tic_color_12);
+            if(!down) drawBitIcon(Rects[i].x, Rects[i].y, Icons + i*8, tic_color_white);
         }
     }
 }
@@ -898,19 +898,19 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
             }
         }
 
-        tic_api_rect(tic, x, y+1, Size, 1, tic_color_0);
-        tic_api_rect(tic, x, y, Size, 1, tic_color_12);
+        tic_api_rect(tic, x, y+1, Size, 1, tic_color_black);
+        tic_api_rect(tic, x, y, Size, 1, tic_color_white);
 
         {
             s32 offset = x + *value * (Size-1) / Max - 1;
-            drawBitIcon(offset, y, Icon, tic_color_0);
-            drawBitIcon(offset, y-1, Icon, tic_color_12);
+            drawBitIcon(offset, y, Icon, tic_color_black);
+            drawBitIcon(offset, y-1, Icon, tic_color_white);
         }
 
         {
             char buf[] = "FF";
             sprintf(buf, "%02X", *value);
-            tic_api_print(tic, buf, x - 18, y - 2, tic_color_13, true, 1, false);
+            tic_api_print(tic, buf, x - 18, y - 2, tic_color_light_grey, true, 1, false);
         }
     }
 
@@ -943,12 +943,12 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 
         if(down)
         {
-            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_12);
+            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_white);
         }
         else
         {
-            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_0);
-            drawBitIcon(rect.x, rect.y, Icon, tic_color_12);
+            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_black);
+            drawBitIcon(rect.x, rect.y, Icon, tic_color_white);
         }
     }
 
@@ -981,12 +981,12 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 
         if(down)
         {
-            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_12);
+            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_white);
         }
         else
         {
-            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_0);
-            drawBitIcon(rect.x, rect.y, Icon, tic_color_12);
+            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_black);
+            drawBitIcon(rect.x, rect.y, Icon, tic_color_white);
         }
     }
 }
@@ -1035,12 +1035,12 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
 
         if(down)
         {
-            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_13);
+            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_light_grey);
         }
         else
         {
-            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_0);
-            drawBitIcon(rect.x, rect.y, Icon, (over ? tic_color_13 : tic_color_12));
+            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_black);
+            drawBitIcon(rect.x, rect.y, Icon, (over ? tic_color_light_grey : tic_color_white));
         }
     }
 
@@ -1080,12 +1080,12 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
 
         if(down)
         {
-            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_13);
+            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_light_grey);
         }
         else
         {
-            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_0);
-            drawBitIcon(rect.x, rect.y, Icon, (over ? tic_color_13 : tic_color_12));
+            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_black);
+            drawBitIcon(rect.x, rect.y, Icon, (over ? tic_color_light_grey : tic_color_white));
         }
     }
 }
@@ -1154,13 +1154,13 @@ static void drawPaletteOvr(Sprite* sprite, s32 x, s32 y)
         for(s32 col = 0; col < palette.cols; col++)
         {
             tic_api_rectb(tic, x + col * palette.cell_w - Gap, y + row * palette.cell_h - Gap,
-                palette.cell_w + Gap, palette.cell_h + Gap, tic_color_0);
+                palette.cell_w + Gap, palette.cell_h + Gap, tic_color_black);
         }
 
     {
         s32 offsetX = x + (sprite->color % PALETTE_COLS) * palette.cell_w;
         s32 offsetY = y + (sprite->color / PALETTE_COLS) * palette.cell_h;
-        tic_api_rectb(tic, offsetX - 1, offsetY - 1, palette.cell_w + 1, palette.cell_h + 1, tic_color_12);
+        tic_api_rectb(tic, offsetX - 1, offsetY - 1, palette.cell_w + 1, palette.cell_h + 1, tic_color_white);
     }
 
     {
@@ -1168,13 +1168,13 @@ static void drawPaletteOvr(Sprite* sprite, s32 x, s32 y)
         s32 offsetY = y + (sprite->color2 / PALETTE_COLS) * palette.cell_h;
 
         for(u8 i=0; i<palette.cell_w+1;i+=2) {
-            tic_api_pix(tic, offsetX+i-1, offsetY-1, tic_color_12, false);
-            tic_api_pix(tic, offsetX+i-1, offsetY + palette.cell_h-1, tic_color_12, false);
+            tic_api_pix(tic, offsetX+i-1, offsetY-1, tic_color_white, false);
+            tic_api_pix(tic, offsetX+i-1, offsetY + palette.cell_h-1, tic_color_white, false);
         }
 
         for(u8 i=0; i<palette.cell_h+1;i+=2) {
-            tic_api_pix(tic, offsetX-1, offsetY+i-1, tic_color_12, false);
-            tic_api_pix(tic, offsetX+palette.cell_w-1, offsetY + i-1, tic_color_12, false);
+            tic_api_pix(tic, offsetX-1, offsetY+i-1, tic_color_white, false);
+            tic_api_pix(tic, offsetX+palette.cell_w-1, offsetY + i-1, tic_color_white, false);
         }
     }
 
@@ -1201,9 +1201,9 @@ static void drawPaletteOvr(Sprite* sprite, s32 x, s32 y)
         {
             static const char* Label = "SCN";
             if(!sprite->palette.ovr)
-                tic_api_print(tic, Label, rect.x, rect.y + 1, tic_color_0, false, 1, true);
+                tic_api_print(tic, Label, rect.x, rect.y + 1, tic_color_black, false, 1, true);
 
-            tic_api_print(tic, Label, rect.x, rect.y, sprite->palette.ovr ? tic_color_15 : tic_color_12, false, 1, true);
+            tic_api_print(tic, Label, rect.x, rect.y, sprite->palette.ovr ? tic_color_dark_grey : tic_color_white, false, 1, true);
         }
     }
 
@@ -1230,9 +1230,9 @@ static void drawPaletteOvr(Sprite* sprite, s32 x, s32 y)
         {
             static const char* Label = "OVR";
             if(sprite->palette.ovr)
-                tic_api_print(tic, Label, rect.x, rect.y + 1, tic_color_0, false, 1, true);
+                tic_api_print(tic, Label, rect.x, rect.y + 1, tic_color_black, false, 1, true);
 
-            tic_api_print(tic, Label, rect.x, rect.y, sprite->palette.ovr ? tic_color_12 : tic_color_15, false, 1, true);
+            tic_api_print(tic, Label, rect.x, rect.y, sprite->palette.ovr ? tic_color_white : tic_color_dark_grey, false, 1, true);
         }
     }
 
@@ -1270,12 +1270,12 @@ static void drawPaletteOvr(Sprite* sprite, s32 x, s32 y)
 
         if(sprite->palette.edit || down)
         {
-            drawBitIcon(rect.x, rect.y+1, Icon, (over ? tic_color_13 : tic_color_12));
+            drawBitIcon(rect.x, rect.y+1, Icon, (over ? tic_color_light_grey : tic_color_white));
         }
         else
         {
-            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_0);
-            drawBitIcon(rect.x, rect.y, Icon, (over ? tic_color_13 : tic_color_12));            
+            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_black);
+            drawBitIcon(rect.x, rect.y, Icon, (over ? tic_color_light_grey : tic_color_white));            
         }
     }
 }
@@ -1319,16 +1319,16 @@ static void drawSheetOvr(Sprite* sprite, s32 x, s32 y)
 
     tic_rect rect = {x, y, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
 
-    tic_api_rectb(tic, rect.x - 1, rect.y - 1, rect.w + 2, rect.h + 2, tic_color_12);
+    tic_api_rectb(tic, rect.x - 1, rect.y - 1, rect.w + 2, rect.h + 2, tic_color_white);
 
     for(s32 i=1; i<rect.h; i+=4) {
         if (sprite->page > 0) {
-            tic_api_pix(tic, rect.x-1, rect.y + i, tic_color_0, false);
-            tic_api_pix(tic, rect.x-1, rect.y + i + 1, tic_color_0, false);
+            tic_api_pix(tic, rect.x-1, rect.y + i, tic_color_black, false);
+            tic_api_pix(tic, rect.x-1, rect.y + i + 1, tic_color_black, false);
         }
         if (sprite->page < sprite->nbPages-1) {
-            tic_api_pix(tic, rect.x+rect.w, rect.y + i, tic_color_0, false);
-            tic_api_pix(tic, rect.x+rect.w, rect.y + i + 1, tic_color_0, false);
+            tic_api_pix(tic, rect.x+rect.w, rect.y + i, tic_color_black, false);
+            tic_api_pix(tic, rect.x+rect.w, rect.y + i + 1, tic_color_black, false);
         }
     }
 
@@ -1346,7 +1346,7 @@ static void drawSheetOvr(Sprite* sprite, s32 x, s32 y)
     s32 bx = sprite->x*TIC_SPRITESIZE + x - 1;
     s32 by = sprite->y*TIC_SPRITESIZE + y - 1;
 
-    tic_api_rectb(tic, bx, by, sprite->size + 2, sprite->size + 2, tic_color_12);
+    tic_api_rectb(tic, bx, by, sprite->size + 2, sprite->size + 2, tic_color_white);
 }
 
 static void drawSheet(Sprite* sprite, s32 x, s32 y)
@@ -1514,12 +1514,12 @@ static void drawSpriteTools(Sprite* sprite, s32 x, s32 y)
 
         if(pushed)
         {
-            drawBitIcon(rect.x, y + 1, Icons + i*BITS_IN_BYTE, (over ? tic_color_13 : tic_color_12));
+            drawBitIcon(rect.x, y + 1, Icons + i*BITS_IN_BYTE, (over ? tic_color_light_grey : tic_color_white));
         }
         else
         {
-            drawBitIcon(rect.x, y+1, Icons + i*BITS_IN_BYTE, tic_color_0);
-            drawBitIcon(rect.x, y, Icons + i*BITS_IN_BYTE, (over ? tic_color_13 : tic_color_12));
+            drawBitIcon(rect.x, y+1, Icons + i*BITS_IN_BYTE, tic_color_black);
+            drawBitIcon(rect.x, y, Icons + i*BITS_IN_BYTE, (over ? tic_color_light_grey : tic_color_white));
         }
     }
 }
@@ -1605,15 +1605,15 @@ static void drawTools(Sprite* sprite, s32 x, s32 y)
                 0b00000000,
             };
 
-            drawBitIcon(rect.x, y - 4, Icon, tic_color_0);
-            drawBitIcon(rect.x, y - 5, Icon, tic_color_12);
+            drawBitIcon(rect.x, y - 4, Icon, tic_color_black);
+            drawBitIcon(rect.x, y - 5, Icon, tic_color_white);
 
-            drawBitIcon(rect.x, y + 1, Icons + i*BITS_IN_BYTE, (over ? tic_color_13 : tic_color_12));
+            drawBitIcon(rect.x, y + 1, Icons + i*BITS_IN_BYTE, (over ? tic_color_light_grey : tic_color_white));
         }
         else
         {
-            drawBitIcon(rect.x, y+1, Icons + i*BITS_IN_BYTE, tic_color_0);
-            drawBitIcon(rect.x, y, Icons + i*BITS_IN_BYTE, (over ? tic_color_13 : tic_color_12));
+            drawBitIcon(rect.x, y+1, Icons + i*BITS_IN_BYTE, tic_color_black);
+            drawBitIcon(rect.x, y, Icons + i*BITS_IN_BYTE, (over ? tic_color_light_grey : tic_color_white));
         }
     }
 
@@ -1720,8 +1720,8 @@ static void switchBanks(Sprite* sprite)
 
 static void drawTab(tic_mem* tic, s32 x, s32 y, s32 w, s32 h, char* label, bool small_font, bool active, bool over)
 {
-    u8 tab_color = active ? tic_color_12 : over ? tic_color_13 : tic_color_15;
-    u8 label_color = active ? tic_color_0 : tic_color_14;
+    u8 tab_color = active ? tic_color_white : over ? tic_color_light_grey : tic_color_dark_grey;
+    u8 label_color = active ? tic_color_black : tic_color_grey;
 
     tic_api_rect(tic, x+1, y, w-1, h, tab_color);
     tic_api_line(tic, x, y+1, x, y+h-2, tab_color);
@@ -1846,7 +1846,7 @@ static void drawSpriteToolbar(Sprite* sprite)
 {
     tic_mem* tic = sprite->tic;
 
-    tic_api_rect(tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, tic_color_12);
+    tic_api_rect(tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, tic_color_white);
 
     // draw sprite size control
     {
@@ -1871,16 +1871,16 @@ static void drawSpriteToolbar(Sprite* sprite)
         }
 
         for(s32 i = 0; i < 4; i++)
-            tic_api_rect(tic, rect.x + i*6, 1, 5, 5, tic_color_0);
+            tic_api_rect(tic, rect.x + i*6, 1, 5, 5, tic_color_black);
 
-        tic_api_rect(tic, rect.x, 2, 23, 3, tic_color_0);
-        tic_api_rect(tic, rect.x+1, 3, 21, 1, tic_color_12);
+        tic_api_rect(tic, rect.x, 2, 23, 3, tic_color_black);
+        tic_api_rect(tic, rect.x+1, 3, 21, 1, tic_color_white);
 
         s32 size = sprite->size / TIC_SPRITESIZE, val = 0;
         while(size >>= 1) val++;
 
-        tic_api_rect(tic, rect.x + val*6, 1, 5, 5, tic_color_0);
-        tic_api_rect(tic, rect.x+1 + val*6, 2, 3, 3, tic_color_12);
+        tic_api_rect(tic, rect.x + val*6, 1, 5, 5, tic_color_black);
+        tic_api_rect(tic, rect.x+1 + val*6, 2, 3, 3, tic_color_white);
     }
 
     {
@@ -1909,8 +1909,8 @@ static void drawSpriteToolbar(Sprite* sprite)
                     }
                 }
 
-                if (active) tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_0);
-                tic_api_print(tic, (char[]){'0' + page, '\0'}, rect.x+2, rect.y+1, active ? tic_color_12 : tic_color_14, false, 1, true);
+                if (active) tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_black);
+                tic_api_print(tic, (char[]){'0' + page, '\0'}, rect.x+2, rect.y+1, active ? tic_color_white : tic_color_grey, false, 1, true);
             }
         }
     }
@@ -1990,8 +1990,8 @@ static void drawAdvancedButton(Sprite* sprite, s32 x, s32 y)
 
     enum {Size = 3, Gap = 1};
 
-    tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_0);
-    tic_api_rect(tic, rect.x + Gap + (sprite->advanced ? Size : 0), rect.y + Gap, Size, Size, over ? tic_color_13 : tic_color_14);
+    tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_black);
+    tic_api_rect(tic, rect.x + Gap + (sprite->advanced ? Size : 0), rect.y + Gap, Size, Size, over ? tic_color_light_grey : tic_color_grey);
 }
 
 static void overline(tic_mem* tic, void* data)
@@ -2013,7 +2013,7 @@ static void overline(tic_mem* tic, void* data)
     Sprite* sprite = (Sprite*)data;
 
     for(const tic_rect* r = bg; r < bg + COUNT_OF(bg); r++)
-        tic_api_rect(tic, r->x, r->y, r->w, r->h, tic_color_14);
+        tic_api_rect(tic, r->x, r->y, r->w, r->h, tic_color_grey);
 
     drawCanvasOvr(sprite, 24, 20);
     drawMoveButtons(sprite);

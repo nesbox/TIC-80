@@ -49,12 +49,12 @@ static void drawButton(Dialog* dlg, const char* label, s32 x, s32 y, u8 color, v
     
     if(down)
     {
-        tic_api_rect(tic, rect.x, rect.y+1, rect.w, rect.h, tic_color_12);
+        tic_api_rect(tic, rect.x, rect.y+1, rect.w, rect.h, tic_color_white);
     }
     else
     {
-        tic_api_rect(tic, rect.x, rect.y+1, rect.w, rect.h, tic_color_0);
-        tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_12);
+        tic_api_rect(tic, rect.x, rect.y+1, rect.w, rect.h, tic_color_black);
+        tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_white);
     }
 
     s32 size = tic_api_print(tic, label, 0, -TIC_FONT_HEIGHT, 0, false, 1, false);
@@ -74,8 +74,8 @@ static void drawButton(Dialog* dlg, const char* label, s32 x, s32 y, u8 color, v
             0b00000000,
         };
 
-        drawBitIcon(rect.x-5, rect.y+3, Icon, tic_color_0);
-        drawBitIcon(rect.x-5, rect.y+2, Icon, tic_color_12);
+        drawBitIcon(rect.x-5, rect.y+3, Icon, tic_color_black);
+        drawBitIcon(rect.x-5, rect.y+2, Icon, tic_color_white);
     }
 }
 
@@ -154,16 +154,16 @@ static void drawDialog(Dialog* dlg)
             dlg->drag.active = false;
     }
 
-    tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_15);
-    tic_api_rectb(tic, rect.x, rect.y, rect.w, rect.h, tic_color_12);
-    tic_api_line(tic, rect.x, rect.y+Height, rect.x+Width-1, rect.y+Height, tic_color_0);
-    tic_api_rect(tic, rect.x, rect.y-(TOOLBAR_SIZE-2), rect.w, TOOLBAR_SIZE-2, tic_color_12);
-    tic_api_line(tic, rect.x+1, rect.y-(TOOLBAR_SIZE-1), rect.x+Width-2, rect.y-(TOOLBAR_SIZE-1), tic_color_12);
+    tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_dark_grey);
+    tic_api_rectb(tic, rect.x, rect.y, rect.w, rect.h, tic_color_white);
+    tic_api_line(tic, rect.x, rect.y+Height, rect.x+Width-1, rect.y+Height, tic_color_black);
+    tic_api_rect(tic, rect.x, rect.y-(TOOLBAR_SIZE-2), rect.w, TOOLBAR_SIZE-2, tic_color_white);
+    tic_api_line(tic, rect.x+1, rect.y-(TOOLBAR_SIZE-1), rect.x+Width-2, rect.y-(TOOLBAR_SIZE-1), tic_color_white);
 
     {
         static const char Label[] = "WARNING!";
         s32 size = tic_api_print(tic, Label, 0, -TIC_FONT_HEIGHT, 0, false, 1, false);
-        tic_api_print(tic, Label, rect.x + (Width - size)/2, rect.y-(TOOLBAR_SIZE-2), tic_color_15, false, 1, false);
+        tic_api_print(tic, Label, rect.x + (Width - size)/2, rect.y-(TOOLBAR_SIZE-2), tic_color_dark_grey, false, 1, false);
     }
 
     {
@@ -179,13 +179,13 @@ static void drawDialog(Dialog* dlg)
 
             s32 x = rect.x + (Width - size)/2;
             s32 y = rect.y + (TIC_FONT_HEIGHT+1)*(i+1);
-            tic_api_print(tic, dlg->text[i], x, y+1, tic_color_0, false, 1, false);
-            tic_api_print(tic, dlg->text[i], x, y, tic_color_12, false, 1, false);
+            tic_api_print(tic, dlg->text[i], x, y+1, tic_color_black, false, 1, false);
+            tic_api_print(tic, dlg->text[i], x, y, tic_color_white, false, 1, false);
         }
     }
 
-    drawButton(dlg, "YES", rect.x + (Width/2 - 26), rect.y + 45, tic_color_2, onYes, 0);
-    drawButton(dlg, "NO", rect.x + (Width/2 + 6), rect.y + 45, tic_color_6, onNo, 1);
+    drawButton(dlg, "YES", rect.x + (Width/2 - 26), rect.y + 45, tic_color_red, onYes, 0);
+    drawButton(dlg, "NO", rect.x + (Width/2 + 6), rect.y + 45, tic_color_green, onNo, 1);
 }
 
 static void tick(Dialog* dlg)

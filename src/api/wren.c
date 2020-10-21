@@ -1347,7 +1347,7 @@ static void reportError(WrenVM* vm, WrenErrorType type, const char* module, int 
 static void writeFn(WrenVM* vm, const char* text) 
 {
     tic_core* core = getWrenCore(vm);
-    u8 color = tic_color_8;
+    u8 color = tic_color_dark_blue;
     core->data->trace(core->data->data, text ? text : "null", color);
 }
 

@@ -60,7 +60,7 @@
 #endif
 
 #define MD5_HASHSIZE 16
-#define BG_ANIMATION_COLOR tic_color_15
+#define BG_ANIMATION_COLOR tic_color_dark_grey
 
 typedef struct
 {
@@ -665,20 +665,20 @@ static void drawExtrabar(tic_mem* tic)
     {
         tic_rect rect = {x + i*Size, y, Size, Size};
 
-        u8 bgcolor = tic_color_12;
-        u8 color = tic_color_13;
+        u8 bgcolor = tic_color_white;
+        u8 color = tic_color_light_grey;
 
         if(checkMousePos(&rect))
         {
             setCursor(tic_cursor_hand);
 
-            color = tic_color_2 + i;
+            color = tic_color_red + i;
             showTooltip(Tips[i]);
 
             if(checkMouseDown(&rect, tic_mouse_left))
             {
                 bgcolor = color;
-                color = tic_color_12;
+                color = tic_color_white;
             }
             else if(checkMouseClick(&rect, tic_mouse_left))
             {
@@ -740,7 +740,7 @@ static void drawBankIcon(s32 x, s32 y)
 
     if(impl.bank.show)
     {
-        drawBitIcon(x, y, Icon, tic_color_2);
+        drawBitIcon(x, y, Icon, tic_color_red);
 
         enum{Size = TOOLBAR_SIZE};
 
@@ -763,9 +763,9 @@ static void drawBankIcon(s32 x, s32 y)
             }
 
             if(i == impl.bank.indexes[mode])
-                tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_2);
+                tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_red);
 
-            tic_api_print(tic, (char[]){'0' + i, '\0'}, rect.x+1, rect.y+1, i == impl.bank.indexes[mode] ? tic_color_12 : over ? tic_color_2 : tic_color_13, false, 1, false);
+            tic_api_print(tic, (char[]){'0' + i, '\0'}, rect.x+1, rect.y+1, i == impl.bank.indexes[mode] ? tic_color_white : over ? tic_color_red : tic_color_light_grey, false, 1, false);
 
         }
 
@@ -801,12 +801,12 @@ static void drawBankIcon(s32 x, s32 y)
                 }
             }
 
-            drawBitIcon(rect.x, rect.y, PinIcon, impl.bank.chained ? tic_color_2 : over ? tic_color_14 : tic_color_13);
+            drawBitIcon(rect.x, rect.y, PinIcon, impl.bank.chained ? tic_color_red : over ? tic_color_grey : tic_color_light_grey);
         }
     }
     else
     {
-        drawBitIcon(x, y, Icon, over ? tic_color_2 : tic_color_13);
+        drawBitIcon(x, y, Icon, over ? tic_color_red : tic_color_light_grey);
     }
 }
 
@@ -815,7 +815,7 @@ static void drawBankIcon(s32 x, s32 y)
 void drawToolbar(tic_mem* tic, bool bg)
 {
     if(bg)
-        tic_api_rect(tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, tic_color_12);
+        tic_api_rect(tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, tic_color_white);
 
     static const u8 TabIcon[] =
     {
@@ -905,11 +905,11 @@ void drawToolbar(tic_mem* tic, bool bg)
 
         if (mode == i)
         {
-            drawBitIcon(i * Size, 0, TabIcon, tic_color_14);
-            drawBitIcon(i * Size, 1, Icons + i * BITS_IN_BYTE, tic_color_0);
+            drawBitIcon(i * Size, 0, TabIcon, tic_color_grey);
+            drawBitIcon(i * Size, 1, Icons + i * BITS_IN_BYTE, tic_color_black);
         }
 
-        drawBitIcon(i * Size, 0, Icons + i * BITS_IN_BYTE, mode == i ? tic_color_12 : (over ? tic_color_14 : tic_color_13));
+        drawBitIcon(i * Size, 0, Icons + i * BITS_IN_BYTE, mode == i ? tic_color_white : (over ? tic_color_grey : tic_color_light_grey));
     }
 
     if(mode >= 0) drawExtrabar(tic);
@@ -935,11 +935,11 @@ void drawToolbar(tic_mem* tic, bool bg)
     {
         if(strlen(impl.tooltip.text))
         {
-            tic_api_print(tic, impl.tooltip.text, TextOffset, 1, tic_color_15, false, 1, false);
+            tic_api_print(tic, impl.tooltip.text, TextOffset, 1, tic_color_dark_grey, false, 1, false);
         }
         else
         {
-            tic_api_print(tic, Names[mode], TextOffset, 1, tic_color_14, false, 1, false);
+            tic_api_print(tic, Names[mode], TextOffset, 1, tic_color_grey, false, 1, false);
         }
     }
 }
@@ -1669,7 +1669,7 @@ static void recordFrame(u32* pixels)
             if(impl.video.frame % TIC80_FRAMERATE < TIC80_FRAMERATE / 2)
             {
                 const u32* pal = tic_tool_palette_blit(&impl.config->cart.bank0.palette.scn, TIC80_PIXEL_COLOR_RGBA8888);
-                drawRecordLabel(pixels, TIC80_WIDTH-24, 8, &pal[tic_color_2]);
+                drawRecordLabel(pixels, TIC80_WIDTH-24, 8, &pal[tic_color_red]);
             }
 
             impl.video.frame++;
@@ -1697,10 +1697,10 @@ static void drawPopup()
         else if(impl.popup.counter >= (POPUP_DUR - Dur))
             anim = (((POPUP_DUR - Dur) - impl.popup.counter) * (TIC_FONT_HEIGHT+1) / Dur);
 
-        tic_api_rect(impl.studio.tic, 0, anim, TIC80_WIDTH, TIC_FONT_HEIGHT+1, tic_color_2);
+        tic_api_rect(impl.studio.tic, 0, anim, TIC80_WIDTH, TIC_FONT_HEIGHT+1, tic_color_red);
         tic_api_print(impl.studio.tic, impl.popup.message, 
             (s32)(TIC80_WIDTH - strlen(impl.popup.message)*TIC_FONT_WIDTH)/2,
-            anim + 1, tic_color_12, true, 1, false);
+            anim + 1, tic_color_white, true, 1, false);
     }
 }
 

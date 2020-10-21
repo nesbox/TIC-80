@@ -1121,7 +1121,7 @@ static SQInteger squirrel_print(HSQUIRRELVM vm)
 
         s32 x = 0;
         s32 y = 0;
-        s32 color = TIC_PALETTE_SIZE-1;
+        s32 color = TIC_DEFAULT_COLOR;
         bool fixed = false;
                 bool alt = false;
         s32 scale = 1;
@@ -1182,7 +1182,7 @@ static SQInteger squirrel_trace(HSQUIRRELVM vm)
     if(top >= 2)
     {
         const char* text = printString(vm, 2);
-        u8 color = tic_color_12;
+        u8 color = TIC_DEFAULT_COLOR;
 
         if(top >= 3)
         {

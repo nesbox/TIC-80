@@ -60,7 +60,7 @@ static duk_ret_t duk_print(duk_context* duk)
     const char* text = duk_to_string(duk, 0);
     s32 x = duk_opt_int(duk, 1, 0);
     s32 y = duk_opt_int(duk, 2, 0);
-    s32 color = duk_opt_int(duk, 3, TIC_PALETTE_SIZE - 1);
+    s32 color = duk_opt_int(duk, 3, TIC_DEFAULT_COLOR);
     bool fixed = duk_opt_boolean(duk, 4, false);
     s32 scale = duk_opt_int(duk, 5, 1);
     bool alt = duk_opt_boolean(duk, 6, false);
@@ -547,7 +547,7 @@ static duk_ret_t duk_trace(duk_context* duk)
     tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     const char* text = duk_opt_string(duk, 0, "");
-    u8 color = duk_opt_int(duk, 1, tic_color_12);
+    u8 color = duk_opt_int(duk, 1, TIC_DEFAULT_COLOR);
 
     tic_api_trace(tic, text, color);
 

@@ -1026,7 +1026,7 @@ static s32 lua_print(lua_State* lua)
 
         s32 x = 0;
         s32 y = 0;
-        s32 color = TIC_PALETTE_SIZE-1;
+        s32 color = TIC_DEFAULT_COLOR;
         bool fixed = false;
         s32 scale = 1;
         bool alt = false;
@@ -1083,7 +1083,7 @@ static s32 lua_trace(lua_State *lua)
     if(top >= 1)
     {
         const char* text = printString(lua, 1);
-        u8 color = tic_color_12;
+        u8 color = TIC_DEFAULT_COLOR;
 
         if(top >= 2)
         {

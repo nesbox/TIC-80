@@ -187,15 +187,15 @@ static void drawTopToolbar(Surf* surf, s32 x, s32 y)
 
     enum{Height = MENU_HEIGHT};
 
-    tic_api_rect(tic, x, y, TIC80_WIDTH, Height, tic_color_14);
-    tic_api_rect(tic, x, y + Height, TIC80_WIDTH, 1, tic_color_0);
+    tic_api_rect(tic, x, y, TIC80_WIDTH, Height, tic_color_grey);
+    tic_api_rect(tic, x, y + Height, TIC80_WIDTH, 1, tic_color_black);
 
     {
         static const char Label[] = "TIC-80 SURF";
         s32 xl = x + MAIN_OFFSET;
         s32 yl = y + (Height - TIC_FONT_HEIGHT)/2;
-        tic_api_print(tic, Label, xl, yl+1, tic_color_0, true, 1, false);
-        tic_api_print(tic, Label, xl, yl, tic_color_12, true, 1, false);
+        tic_api_print(tic, Label, xl, yl+1, tic_color_black, true, 1, false);
+        tic_api_print(tic, Label, xl, yl, tic_color_white, true, 1, false);
     }
 
     enum{Gap = 10, TipX = 150, SelectWidth = 54};
@@ -205,15 +205,15 @@ static void drawTopToolbar(Surf* surf, s32 x, s32 y)
     tic_api_spr(tic, 12, TipX, y+1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
     {
         static const char Label[] = "SELECT";
-        tic_api_print(tic, Label, TipX + Gap, y+3, tic_color_0, true, 1, false);
-        tic_api_print(tic, Label, TipX + Gap, y+2, tic_color_12, true, 1, false);
+        tic_api_print(tic, Label, TipX + Gap, y+3, tic_color_black, true, 1, false);
+        tic_api_print(tic, Label, TipX + Gap, y+2, tic_color_white, true, 1, false);
     }
 
     tic_api_spr(tic, 13, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);//&getConfig()->cart->bank0.tiles, 
     {
         static const char Label[] = "BACK";
-        tic_api_print(tic, Label, TipX + Gap + SelectWidth, y +3, tic_color_0, true, 1, false);
-        tic_api_print(tic, Label, TipX + Gap + SelectWidth, y +2, tic_color_12, true, 1, false);
+        tic_api_print(tic, Label, TipX + Gap + SelectWidth, y +3, tic_color_black, true, 1, false);
+        tic_api_print(tic, Label, TipX + Gap + SelectWidth, y +2, tic_color_white, true, 1, false);
     }
 }
 
@@ -223,8 +223,8 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
 
     enum{Height = MENU_HEIGHT};
 
-    tic_api_rect(tic, x, y, TIC80_WIDTH, Height, tic_color_14);
-    tic_api_rect(tic, x, y + Height, TIC80_WIDTH, 1, tic_color_0);
+    tic_api_rect(tic, x, y, TIC80_WIDTH, Height, tic_color_grey);
+    tic_api_rect(tic, x, y + Height, TIC80_WIDTH, 1, tic_color_black);
     {
         char label[TICNAME_MAX + 1];
         char dir[TICNAME_MAX];
@@ -233,8 +233,8 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
         sprintf(label, "/%s", dir);
         s32 xl = x + MAIN_OFFSET;
         s32 yl = y + (Height - TIC_FONT_HEIGHT)/2;
-        tic_api_print(tic, label, xl, yl+1, tic_color_0, true, 1, false);
-        tic_api_print(tic, label, xl, yl, tic_color_12, true, 1, false);
+        tic_api_print(tic, label, xl, yl+1, tic_color_black, true, 1, false);
+        tic_api_print(tic, label, xl, yl, tic_color_white, true, 1, false);
     }
 
 #ifdef CAN_OPEN_URL 
@@ -249,8 +249,8 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
         tic_api_spr(tic, 15, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
         {
             static const char Label[] = "WEBSITE";
-            tic_api_print(tic, Label, TipX + Gap + SelectWidth, y + 3, tic_color_0, true, 1, false);
-            tic_api_print(tic, Label, TipX + Gap + SelectWidth, y + 2, tic_color_12, true, 1, false);
+            tic_api_print(tic, Label, TipX + Gap + SelectWidth, y + 3, tic_color_black, true, 1, false);
+            tic_api_print(tic, Label, TipX + Gap + SelectWidth, y + 2, tic_color_white, true, 1, false);
         }
     }
 #endif
@@ -281,7 +281,7 @@ static void drawMenu(Surf* surf, s32 x, s32 y)
 
     enum {Height = MENU_HEIGHT};
 
-    tic_api_rect(tic, 0, y + (MENU_HEIGHT - AnimVar.menuHeight)/2, TIC80_WIDTH, AnimVar.menuHeight, tic_color_2);
+    tic_api_rect(tic, 0, y + (MENU_HEIGHT - AnimVar.menuHeight)/2, TIC80_WIDTH, AnimVar.menuHeight, tic_color_red);
 
     for(s32 i = 0; i < surf->menu.count; i++)
     {
@@ -290,8 +290,8 @@ static void drawMenu(Surf* surf, s32 x, s32 y)
         s32 ym = Height * i + y - surf->menu.pos*MENU_HEIGHT - (surf->menu.anim * surf->menu.anim_target) + (MENU_HEIGHT - TIC_FONT_HEIGHT)/2;
 
         if (ym > (-(TIC_FONT_HEIGHT + 1)) && ym <= TIC80_HEIGHT) {
-            tic_api_print(tic, name, x + MAIN_OFFSET, ym + 1, tic_color_0, false, 1, false);
-            tic_api_print(tic, name, x + MAIN_OFFSET, ym, tic_color_12, false, 1, false);
+            tic_api_print(tic, name, x + MAIN_OFFSET, ym + 1, tic_color_black, false, 1, false);
+            tic_api_print(tic, name, x + MAIN_OFFSET, ym, tic_color_white, false, 1, false);
         }
     }
 }
@@ -838,8 +838,8 @@ static void overline(tic_mem* tic, void* data)
     else
     {
         static const char Label[] = "You don't have any files...";
-        s32 size = tic_api_print(tic, Label, 0, -TIC_FONT_HEIGHT, tic_color_12, true, 1, false);
-        tic_api_print(tic, Label, (TIC80_WIDTH - size) / 2, (TIC80_HEIGHT - TIC_FONT_HEIGHT)/2, tic_color_12, true, 1, false);
+        s32 size = tic_api_print(tic, Label, 0, -TIC_FONT_HEIGHT, tic_color_white, true, 1, false);
+        tic_api_print(tic, Label, (TIC80_WIDTH - size) / 2, (TIC80_HEIGHT - TIC_FONT_HEIGHT)/2, tic_color_white, true, 1, false);
     }
 }
 

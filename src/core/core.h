@@ -27,6 +27,7 @@
 #include "blip_buf.h"
 
 #define CLOCKRATE (255<<13)
+#define TIC_DEFAULT_COLOR tic_color_white
 
 typedef struct
 {

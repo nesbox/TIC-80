@@ -42,10 +42,10 @@
 #include <emscripten.h>
 #endif
 
-#define CONSOLE_CURSOR_COLOR tic_color_2
-#define CONSOLE_BACK_TEXT_COLOR tic_color_14
-#define CONSOLE_FRONT_TEXT_COLOR tic_color_12
-#define CONSOLE_ERROR_TEXT_COLOR tic_color_2
+#define CONSOLE_CURSOR_COLOR tic_color_red
+#define CONSOLE_BACK_TEXT_COLOR tic_color_grey
+#define CONSOLE_FRONT_TEXT_COLOR tic_color_white
+#define CONSOLE_ERROR_TEXT_COLOR tic_color_red
 #define CONSOLE_CURSOR_BLINK_PERIOD TIC80_FRAMERATE
 #define CONSOLE_CURSOR_DELAY (TIC80_FRAMERATE / 2)
 #define CONSOLE_BUFFER_WIDTH (STUDIO_TEXT_BUFFER_WIDTH)
@@ -2704,7 +2704,7 @@ static void onHttpVesrsionGet(const HttpGetData* data)
                 enum{Offset = (2 * STUDIO_TEXT_BUFFER_WIDTH)};
 
                 memcpy(console->buffer + Offset, msg, strlen(msg));
-                memset(console->colorBuffer + Offset, tic_color_2, STUDIO_TEXT_BUFFER_WIDTH);
+                memset(console->colorBuffer + Offset, tic_color_red, STUDIO_TEXT_BUFFER_WIDTH);
             }
         }
         break;

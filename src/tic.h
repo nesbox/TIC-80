@@ -110,22 +110,22 @@ enum
 
 typedef enum
 {
-    tic_color_0,
-    tic_color_1,
-    tic_color_2,
-    tic_color_3,
-    tic_color_4,
-    tic_color_5,
-    tic_color_6,
-    tic_color_7,
-    tic_color_8,
-    tic_color_9,
-    tic_color_10,
-    tic_color_11,
-    tic_color_12,
-    tic_color_13,
-    tic_color_14,
-    tic_color_15,
+    tic_color_black,
+    tic_color_purple,
+    tic_color_red,
+    tic_color_orange,
+    tic_color_yellow,
+    tic_color_light_green,
+    tic_color_green,
+    tic_color_dark_green,
+    tic_color_dark_blue,
+    tic_color_blue,
+    tic_color_light_blue,
+    tic_color_cyan,
+    tic_color_white,
+    tic_color_light_grey,
+    tic_color_grey,
+    tic_color_dark_grey,
 } tic_color;
 
 typedef enum
