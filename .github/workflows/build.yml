@@ -153,7 +153,7 @@ jobs:
     - name: Build
       run: |
         cd build
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. -DCMAKE_TOOLCHAIN_FILE=rpi/toolchain.cmake
+        sudo cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. -DCMAKE_TOOLCHAIN_FILE=rpi/toolchain.cmake -DRPI_HOME=$RPI_HOME
         sudo cmake --build . --parallel --config $BUILD_TYPE
         sudo cpack
 

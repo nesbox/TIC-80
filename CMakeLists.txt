@@ -58,10 +58,6 @@ option(BUILD_PRO "Build PRO version" FALSE)
 option(BUILD_PLAYER "Build standalone players" ${BUILD_PLAYER_DEFAULT})
 option(BUILD_TOUCH_INPUT "Build with touch input support" ${BUILD_TOUCH_INPUT_DEFAULT})
 
-if(RPI)
-    set(DISABLE_NETWORKING TRUE)
-endif()
-
 if(NOT BUILD_SDL)
     set(BUILD_SDLGPU OFF)
 endif()
@@ -539,24 +535,32 @@ endif()
 
 if (NOT DISABLE_NETWORKING)
 
-if (NOT N3DS)
+    if (NOT N3DS)
 
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
+        set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
 
-if(WIN32)
-    set(CURL_STATIC_CRT ON CACHE BOOL "")
-endif()
+        if(WIN32)
+            set(CURL_STATIC_CRT ON CACHE BOOL "")
+        endif()
 
-set(CMAKE_USE_OPENSSL OFF CACHE BOOL "" )
-set(CMAKE_USE_LIBSSH2 OFF CACHE BOOL "")
-set(HTTP_ONLY ON CACHE BOOL "")
-set(BUILD_CURL_EXE OFF CACHE BOOL "")
-set(CURL_CA_BUNDLE "none" CACHE STRING "")
-set(CURL_CA_PATH "none" CACHE STRING "")
+        set(CMAKE_USE_OPENSSL OFF CACHE BOOL "" )
+        set(CMAKE_USE_LIBSSH2 OFF CACHE BOOL "")
+        set(HTTP_ONLY ON CACHE BOOL "")
+        set(BUILD_CURL_EXE OFF CACHE BOOL "")
+        set(CURL_CA_BUNDLE "none" CACHE STRING "")
+        set(CURL_CA_PATH "none" CACHE STRING "")
 
-add_subdirectory(${THIRDPARTY_DIR}/curl)
+        if(RPI)
+            set(CURL_ZLIB OFF CACHE BOOL "" )
+        endif()
 
-endif()
+        add_subdirectory(${THIRDPARTY_DIR}/curl)
+
+        if(RPI)
+            target_compile_definitions(libcurl PRIVATE NOT_USE_FILE_OFFSET64)
+        endif()
+
+    endif()
 
 endif()
 
