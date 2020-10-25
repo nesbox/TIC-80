@@ -73,6 +73,26 @@ struct retro_core_option_definition option_defs_us[] = {
       },
       0
    },
+   {
+      "tic80_mouse_hide_delay",
+      "Mouse Cursor Hide Delay",
+      "The number of seconds to wait before the hiding the mouse.",
+      {
+         { "disabled", NULL },
+         { "1",        NULL },
+         { "2",        NULL },
+         { "3",        NULL },
+         { "4",        NULL },
+         { "5",        NULL },
+         { "6",        NULL },
+         { "7",        NULL },
+         { "8",        NULL },
+         { "9",        NULL },
+         { "10",       NULL },
+         { NULL, NULL },
+      },
+      "5"
+   },
    { NULL, NULL, NULL, {{0}}, NULL },
 };
 

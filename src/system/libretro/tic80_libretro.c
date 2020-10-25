@@ -21,10 +21,6 @@
 // The maximum amount of inputs (2, 3 or 4)
 #define TIC_MAXPLAYERS 4
 
-// How long to wait before hiding the mouse.
-// TODO: Move the timer start count to a variable.
-#define TIC_LIBRETRO_MOUSE_HIDE_TIMER_START 300
-
 static struct retro_log_callback logging;
 static retro_log_printf_t log_cb;
 static retro_video_refresh_t video_cb;
@@ -42,7 +38,8 @@ struct tic80_state
 	u8 mouseCursor;
 	u16 mousePreviousX;
 	u16 mousePreviousY;
-	u16 mouseHideTimer;
+	int mouseHideTimer;
+	int mouseHideTimerStart;
 	tic80* tic;
 };
 static struct tic80_state* state;
@@ -115,7 +112,7 @@ RETRO_API void retro_init(void)
 	state->mouseCursor = 0;
 	state->mousePreviousX = 0;
 	state->mousePreviousY = 0;
-	state->mouseHideTimer = TIC_LIBRETRO_MOUSE_HIDE_TIMER_START;
+	state->mouseHideTimer = state->mouseHideTimerStart;
 
 	// Initialize the keyboard mappings.
 	state->keymap[RETROK_UNKNOWN] = tic_key_unknown;
@@ -498,7 +495,7 @@ void tic80_libretro_update_mouse(tic80_mouse* mouse)
 
 	// Have the mouse disappear after a certain time of inactivity.
 	if (mouse->x != state->mousePreviousX || mouse->y != state->mousePreviousY) {
-		state->mouseHideTimer = TIC_LIBRETRO_MOUSE_HIDE_TIMER_START;
+		state->mouseHideTimer = state->mouseHideTimerStart;
 		state->mousePreviousX = mouse->x;
 		state->mousePreviousY = mouse->y;
 	}
@@ -526,7 +523,7 @@ void tic80_libretro_update_mouse(tic80_mouse* mouse)
 void tic80_libretro_mousecursor(tic80_local* game, tic80_mouse* mouse, int cursortype)
 {
 	// Only draw the mouse cursor if it's active.
-	if (state->mouseHideTimer <= 0) {
+	if (state->mouseHideTimer == 0) {
 		return;
 	}
 
@@ -654,6 +651,20 @@ void tic80_libretro_variables(void)
 		}
 		else if (strcmp(var.value, "arrow") == 0) {
 			state->mouseCursor = 3;
+		}
+	}
+
+	// Mouse Hide Delay
+	state->mouseHideTimerStart = -1;
+	var.key = "tic80_mouse_hide_delay";
+	var.value = NULL;
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
+		state->mouseHideTimerStart = atoi(var.value);
+		if (state->mouseHideTimerStart > 0) {
+			state->mouseHideTimerStart = state->mouseHideTimerStart * TIC80_FRAMERATE;
+		}
+		else {
+			state->mouseHideTimerStart = -1;
 		}
 	}
 }
