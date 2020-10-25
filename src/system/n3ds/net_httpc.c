@@ -111,7 +111,7 @@ static void n3ds_net_execute(net_ctx *ctx, bool ignore_lock) {
 		}
 
 		if ((status_code >= 301 && status_code <= 303) || (status_code >= 307 && status_code <= 308)) {
-			if (httpcGetResponseHeader(&ctx->httpc, "Location", ctx->url, TICNAME_MAX)) {
+			if (httpcGetResponseHeader(&ctx->httpc, "Location", ctx->url, TICNAME_MAX - 1)) {
 				status_code = -4;
 				break;
 			}
@@ -184,7 +184,7 @@ void n3ds_net_free(tic_n3ds_net *net) {
 
 static void n3ds_net_get_thread(net_ctx *ctx) {
 	n3ds_net_execute(ctx, false);
-	
+
 	if (ctx->buffer != NULL) {
 		free(ctx->buffer);
 	}
@@ -192,7 +192,7 @@ static void n3ds_net_get_thread(net_ctx *ctx) {
 }
 
 static void n3ds_net_apply_url(net_ctx *ctx, const char *url) {
-	strncpy(ctx->url, TIC_WEBSITE, TICNAME_MAX);
+	strncpy(ctx->url, TIC_WEBSITE, TICNAME_MAX - 1);
 	strncat(ctx->url, url, TICNAME_MAX - 1);
 }
 
@@ -201,7 +201,7 @@ void n3ds_net_get(tic_n3ds_net *net, const char *url, HttpGetCallback callback, 
 	net_ctx *ctx;
 
 	ctx = malloc(sizeof(net_ctx));
-	memset(&ctx, 0, sizeof(net_ctx));
+	memset(ctx, 0, sizeof(net_ctx));
 
 	n3ds_net_apply_url(ctx, url);
 	ctx->net = net;

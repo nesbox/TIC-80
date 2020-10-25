@@ -69,7 +69,6 @@ if (N3DS)
     set(BUILD_SDL off)
     # disable CURL linking - use HTTPC instead
     set(DISABLE_NETWORKING TRUE)
-    option(N3DS_BUILD_CIA "Build .cia variant - requires bannertool and makerom" FALSE)
 endif()
 
 if (BAREMETALPI)
@@ -959,14 +958,6 @@ if(N3DS)
 
     target_link_directories(${TIC80_OUTPUT}_n3ds PRIVATE ${DEVKITPRO}/libctru/lib)
     target_link_libraries(${TIC80_OUTPUT}_n3ds ${TIC80_OUTPUT}lib png citro3d)
-
-    if (N3DS_BUILD_CIA)
-        add_custom_command(TARGET tic80_n3ds
-               POST_BUILD
-                   COMMAND ${CMAKE_SOURCE_DIR}/build/n3ds/elf_to_cia.sh
-               WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/build
-        )
-    endif()
 
     add_custom_command(TARGET tic80_n3ds
            POST_BUILD
