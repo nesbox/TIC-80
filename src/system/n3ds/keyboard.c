@@ -128,7 +128,7 @@ static const touch_area_t touch_areas[] = {
 #define touch_areas_len (sizeof(touch_areas) / sizeof(touch_area_t))
 
 extern void n3ds_draw_texture(C3D_Tex* tex, int x, int y, int tx, int ty, int width, int height, int twidth, int theight,
-float cmul);
+int tgtheight, float cmul);
 
 void n3ds_keyboard_init(tic_n3ds_keyboard *kbd) {
 	memset(kbd, 0, sizeof(tic_n3ds_keyboard));
@@ -148,13 +148,13 @@ static void n3ds_keyboard_draw_pressed(tic_n3ds_keyboard *kbd, int pos) {
 	n3ds_draw_texture(&(kbd->tex), area->x, area->y,
 		area->x, 16 + (area->y - 1),
 		area->w, area->h - 1,
-		area->w, area->h - 1, 0.5f);
+		area->w, area->h - 1, 240, 0.5f);
 }
 
 void n3ds_keyboard_draw(tic_n3ds_keyboard *kbd) {
 	if (kbd->tex.data != NULL)
 	{
-		n3ds_draw_texture(&(kbd->tex), 0, 0, 0, 16, 320, 240, 320, 240, 1.0f);
+		n3ds_draw_texture(&(kbd->tex), 0, 0, 0, 16, 320, 240, 320, 240, 240, 1.0f);
 		for(int i = 0; i < kbd->kd_count; i++)
 		{
 			n3ds_keyboard_draw_pressed(kbd, kbd->kd[i]);
