@@ -252,7 +252,7 @@ static void resetPalette(tic_mem* memory)
 
 static void resetBlitSegment(tic_mem* memory)
 {
-    memory->ram.vram.blit.segment = 2;
+    memory->ram.vram.blit.segment = TIC_DEFAULT_BLIT_MODE;
 }
 
 static const char* readMetatag(const char* code, const char* tag, const char* comment)

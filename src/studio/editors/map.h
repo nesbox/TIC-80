@@ -23,6 +23,7 @@
 #pragma once
 
 #include "studio/studio.h"
+#include "tilesheet.h"
 
 typedef struct Map Map;
 
@@ -31,7 +32,7 @@ struct Map
     tic_mem* tic;
 
     tic_map* src;
-    
+
     s32 tickCounter;
 
     enum
@@ -55,6 +56,8 @@ struct Map
         tic_rect rect;
         tic_point start;
         bool drag;
+
+        tic_blit blit;
     } sheet;
 
     struct

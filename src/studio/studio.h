@@ -59,12 +59,12 @@
 #define CART_EXT ".tic"
 
 #define SHOW_TOOLTIP(FORMAT, ...)           \
-{                                           \
+do{                                         \
     static const char Format[] = FORMAT;    \
     static char buf[sizeof Format];         \
     sprintf(buf, Format, __VA_ARGS__);      \
     showTooltip(buf);                       \
-}
+}while(0)
 
 typedef enum
 {

@@ -41,12 +41,10 @@ struct Sprite
     u8 color2;
     u8 size;
     u8 brushSize;
-    tic_bpp bpp;
-    u8 nbPages;
-    u8 page;
-    u8 bank;
     u16 x,y;
     bool advanced;
+
+    tic_blit blit;
 
     struct
     {

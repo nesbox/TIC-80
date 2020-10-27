@@ -83,3 +83,28 @@ inline void tic_tilesheet_settilepix(const tic_tileptr* tile, s32 x, s32 y, u8 v
     u32 addr = tile->offset + x + (y * tile->segment->tile_width);
     tile->segment->poke(tile->ptr, addr, value);
 }
+
+typedef struct
+{
+    tic_bpp mode;
+    u8 pages;
+    u8 page;
+    u8 bank;
+} tic_blit;
+
+inline s32 tic_blit_calc_segment(const tic_blit* blit)
+{
+    return blit->pages * (2 + blit->bank) + blit->page;
+}
+
+inline void tic_blit_update_bpp(tic_blit* blit, tic_bpp bpp)
+{
+    blit->mode = bpp;
+    blit->pages = 4 / bpp;
+    blit->page %= blit->pages;
+}
+
+inline s32 tic_blit_calc_index(const tic_blit* blit)
+{
+    return blit->bank * blit->pages * TIC_BANK_SPRITES + blit->page * TIC_SPRITESHEET_COLS;
+}

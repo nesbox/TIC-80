@@ -92,3 +92,7 @@ tic_tileptr tic_tilesheet_gettile(const tic_tilesheet* sheet, s32 index, bool lo
 
     return (tic_tileptr) { segment, offset, ptr };
 }
+
+extern s32 tic_blit_calc_segment(const tic_blit* blit);
+extern void tic_blit_update_bpp(tic_blit* blit, tic_bpp bpp);
+extern s32 tic_blit_calc_index(const tic_blit* blit);
