@@ -397,7 +397,7 @@ endif()
 
 if(BUILD_SDL AND BUILD_PLAYER AND NOT RPI)
 
-    add_executable(player-sdl WIN32 ${CMAKE_SOURCE_DIR}/src/player/sdl.c)
+    add_executable(player-sdl WIN32 ${CMAKE_SOURCE_DIR}/src/system/sdl/player.c)
 
     target_include_directories(player-sdl PRIVATE 
         ${THIRDPARTY_DIR}/sdl2/include 
@@ -465,7 +465,7 @@ endif()
 
 if(BUILD_PLAYER AND BUILD_SOKOL)
 
-    add_executable(player-sokol WIN32 ${CMAKE_SOURCE_DIR}/src/player/sokol.c)
+    add_executable(player-sokol WIN32 ${CMAKE_SOURCE_DIR}/src/system/sokol/player.c)
 
     if(MINGW)
         target_link_libraries(player-sokol mingw32)
