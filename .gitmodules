@@ -42,4 +42,4 @@
 	url = https://github.com/kuba--/zip.git
 [submodule "vendor/moonscript"]
 	path = vendor/moonscript
-	url = https://github.com/leafo/moonscript.git
+	url = https://github.com/nesbox/moonscript.git
