@@ -2,7 +2,7 @@
 Version=1.0
 Name=TIC-80
 Comment=Fantasy computer for making, playing and sharing tiny games.
-Exec=/usr/bin/tic80 %U
+Exec=${CMAKE_INSTALL_PREFIX}/bin/tic80 %U
 Icon=tic80
 Terminal=false
 Type=Application

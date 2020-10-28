@@ -682,11 +682,11 @@ if(FILE_DIALOGS_SUPPORT)
 endif()
 
 ################################
-# TIC-80 lib
+# TIC-80 studio
 ################################
 
 set(TIC80LIB_DIR ${CMAKE_SOURCE_DIR}/src)
-set(TIC80LIB_SRC
+set(TIC80STUDIO_SRC
     ${TIC80LIB_DIR}/studio/screens/console.c
     ${TIC80LIB_DIR}/studio/screens/run.c
     ${TIC80LIB_DIR}/studio/screens/dialog.c
@@ -711,35 +711,35 @@ set(TIC80LIB_SRC
 
 set(TIC80_OUTPUT tic80)
 
-add_library(${TIC80_OUTPUT}lib STATIC ${TIC80LIB_SRC} ${DEMO_CARTS_OUT})
+add_library(tic80studio STATIC ${TIC80STUDIO_SRC} ${DEMO_CARTS_OUT})
 
 if(WIN32)
-    target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${THIRDPARTY_DIR}/dirent/include)
+    target_include_directories(tic80studio PRIVATE ${THIRDPARTY_DIR}/dirent/include)
 endif()
 
-target_include_directories(${TIC80_OUTPUT}lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(tic80studio PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
-target_link_libraries(${TIC80_OUTPUT}lib tic80core zip wave_writer)
+target_link_libraries(tic80studio tic80core zip wave_writer)
 
 if(FILE_DIALOGS_SUPPORT)
-    target_link_libraries(${TIC80_OUTPUT}lib file_dialogs)
+    target_link_libraries(tic80studio file_dialogs)
 endif()
 
 if(N3DS)
-    target_include_directories(${TIC80_OUTPUT}lib PRIVATE ${DEVKITPRO}/portlibs/3ds/include)
-    target_link_directories(${TIC80_OUTPUT}lib PUBLIC ${DEVKITPRO}/portlibs/3ds/lib)
+    target_include_directories(tic80studio PRIVATE ${DEVKITPRO}/portlibs/3ds/include)
+    target_link_directories(tic80studio PUBLIC ${DEVKITPRO}/portlibs/3ds/lib)
 endif()
 
 if(NOT DISABLE_NETWORKING)
 if(N3DS)
-    target_link_libraries(${TIC80_OUTPUT}lib curl mbedtls mbedx509 mbedcrypto)
+    target_link_libraries(tic80studio curl mbedtls mbedx509 mbedcrypto)
 else()
-    target_link_libraries(${TIC80_OUTPUT}lib libcurl)
+    target_link_libraries(tic80studio libcurl)
 endif()
 endif()
 
 if(BUILD_PRO)
-    target_compile_definitions(tic80lib PRIVATE TIC80_PRO)
+    target_compile_definitions(tic80studio PRIVATE TIC80_PRO)
 endif()
 
 ################################
@@ -835,26 +835,26 @@ if(BUILD_SDL)
             set(SYSTEM_TYPE WIN32)
         endif()
 
-        add_executable(${TIC80_OUTPUT} ${SYSTEM_TYPE} ${TIC80_SRC})
+        add_executable(tic80 ${SYSTEM_TYPE} ${TIC80_SRC})
 
     elseif(ANDROID)
 
         set(TIC80_SRC ${TIC80_SRC} ${ANDROID_NDK}/sources/android/cpufeatures/cpu-features.c)
 
-        add_library(${TIC80_OUTPUT} SHARED ${TIC80_SRC})
+        add_library(tic80 SHARED ${TIC80_SRC})
 
-        target_link_libraries(${TIC80_OUTPUT} hidapi)
+        target_link_libraries(tic80 hidapi)
 
     else()
-        add_executable(${TIC80_OUTPUT} ${TIC80_SRC})
+        add_executable(tic80 ${TIC80_SRC})
     endif()
 
     if(MINGW)
-        target_link_libraries(${TIC80_OUTPUT} mingw32)
+        target_link_libraries(tic80 mingw32)
     endif()
 
     if(EMSCRIPTEN)
-        set_target_properties(${TIC80_OUTPUT} PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s TOTAL_MEMORY=67108864 --pre-js ${CMAKE_SOURCE_DIR}/build/html/prejs.js -lidbfs.js")
+        set_target_properties(tic80 PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s TOTAL_MEMORY=67108864 --pre-js ${CMAKE_SOURCE_DIR}/build/html/prejs.js -lidbfs.js")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2")
 
         if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -862,36 +862,38 @@ if(BUILD_SDL)
         endif()
 
     elseif(NOT ANDROID)
-        target_link_libraries(${TIC80_OUTPUT} SDL2main)
+        target_link_libraries(tic80 SDL2main)
     endif()
 
-    target_link_libraries(${TIC80_OUTPUT} ${TIC80_OUTPUT}lib)
+    target_link_libraries(tic80 tic80studio)
 
     if(BUILD_TOUCH_INPUT)
-        target_compile_definitions(${TIC80_OUTPUT} PRIVATE TOUCH_INPUT_SUPPORT)
+        target_compile_definitions(tic80 PRIVATE TOUCH_INPUT_SUPPORT)
     endif()
 
     if(RPI)
-        target_include_directories(${TIC80_OUTPUT} PRIVATE ${SYSROOT_PATH}/usr/local/include/SDL2)
-        target_link_directories(${TIC80_OUTPUT} PRIVATE ${SYSROOT_PATH}/usr/local/lib ${SYSROOT_PATH}/opt/vc/lib)
+        target_include_directories(tic80 PRIVATE ${SYSROOT_PATH}/usr/local/include/SDL2)
+        target_link_directories(tic80 PRIVATE ${SYSROOT_PATH}/usr/local/lib ${SYSROOT_PATH}/opt/vc/lib)
     endif()
 
     if(BUILD_SDLGPU)
-        target_link_libraries(${TIC80_OUTPUT} sdlgpu)
-        target_compile_definitions(${TIC80_OUTPUT} PRIVATE CRT_SHADER_SUPPORT)
+        target_link_libraries(tic80 sdlgpu)
+        target_compile_definitions(tic80 PRIVATE CRT_SHADER_SUPPORT)
     else()
         if(EMSCRIPTEN)
         elseif(RPI)
-            target_link_libraries(${TIC80_OUTPUT} libSDL2.a bcm_host)
+            target_link_libraries(tic80 libSDL2.a bcm_host)
         else()
-            target_link_libraries(${TIC80_OUTPUT} SDL2-static)
+            target_link_libraries(tic80 SDL2-static)
         endif()
     endif()
 
     if(LINUX)
 
-        install(TARGETS ${TIC80_OUTPUT} DESTINATION bin)
- 
+        configure_file("${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop.in" "${PROJECT_SOURCE_DIR}/build/linux/tic80.desktop")
+
+        install(TARGETS tic80 DESTINATION bin)
+
         SET(TIC80_DESKTOP_DIR     "/usr/share/applications/")
         SET(TIC80_PIXMAPS_DIR     "/usr/share/icons/")
 
@@ -915,21 +917,21 @@ if(BUILD_SOKOL)
         configure_file("${PROJECT_SOURCE_DIR}/build/windows/tic80.rc.in" "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
         set(TIC80_SRC ${TIC80_SRC} "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
         
-        add_executable(${TIC80_OUTPUT}-sokol WIN32 ${TIC80_SRC})        
+        add_executable(tic80-sokol WIN32 ${TIC80_SRC})        
     else()
-        add_executable(${TIC80_OUTPUT}-sokol ${TIC80_SRC})
+        add_executable(tic80-sokol ${TIC80_SRC})
     endif()
 
-    target_include_directories(${TIC80_OUTPUT}-sokol PRIVATE 
+    target_include_directories(tic80-sokol PRIVATE 
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src
         ${THIRDPARTY_DIR}/sokol)
 
     if(MINGW)
-        target_link_libraries(${TIC80_OUTPUT}-sokol mingw32)
+        target_link_libraries(tic80-sokol mingw32)
     endif()
 
-    target_link_libraries(${TIC80_OUTPUT}-sokol ${TIC80_OUTPUT}lib sokol)
+    target_link_libraries(tic80-sokol tic80studio sokol)
 
 endif()
 
@@ -949,15 +951,15 @@ if(N3DS)
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DENABLE_HTTPC")
     endif()
 
-    add_executable(${TIC80_OUTPUT}_n3ds ${TIC80_SRC})
+    add_executable(tic80_n3ds ${TIC80_SRC})
 
-    target_include_directories(${TIC80_OUTPUT}_n3ds PRIVATE
+    target_include_directories(tic80_n3ds PRIVATE
         ${DEVKITPRO}/portlibs/3ds/include
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src)
 
-    target_link_directories(${TIC80_OUTPUT}_n3ds PRIVATE ${DEVKITPRO}/libctru/lib)
-    target_link_libraries(${TIC80_OUTPUT}_n3ds ${TIC80_OUTPUT}lib png citro3d)
+    target_link_directories(tic80_n3ds PRIVATE ${DEVKITPRO}/libctru/lib)
+    target_link_libraries(tic80_n3ds tic80studio png citro3d)
 
     add_custom_command(TARGET tic80_n3ds
            POST_BUILD
