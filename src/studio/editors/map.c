@@ -377,20 +377,20 @@ static void drawBankButtons(Map* map, s32 x, s32 y)
 
     static const u8 Icons[] =
     {
-        0b11111000,
-        0b10101000,
-        0b11111000,
-        0b10101000,
-        0b11111000,
+        0b01010100,
+        0b00000000,
+        0b01010100,
+        0b00000000,
+        0b01010100,
         0b00000000,
         0b00000000,
         0b00000000,
 
-        0b10101000,
-        0b11111000,
-        0b01110000,
-        0b01110000,
-        0b01010000,
+        0b00111000,
+        0b01010100,
+        0b01111100,
+        0b01000100,
+        0b00111000,
         0b00000000,
         0b00000000,
         0b00000000,
@@ -431,42 +431,39 @@ static void drawPagesButtons(Map* map, s32 x, s32 y)
 
     enum{Width = TIC_ALTFONT_WIDTH + 1, Height = TOOLBAR_SIZE};
 
-    if(map->sheet.blit.pages > 1)
+    for(s32 i = 0; i < map->sheet.blit.pages; i++)
     {
-        for(s32 i = 0; i < map->sheet.blit.pages; i++)
+        tic_rect rect = {x + i * Width - 1, y, Width, Height};
+
+        bool hover = false;
+        if(checkMousePos(&rect))
         {
-            tic_rect rect = {x + i * Width - 1, y, Width, Height};
+            setCursor(tic_cursor_hand);
+            hover = true;
 
-            bool hover = false;
-            if(checkMousePos(&rect))
+            SHOW_TOOLTIP("PAGE %i", i);
+
+            if(checkMouseClick(&rect, tic_mouse_left))
             {
-                setCursor(tic_cursor_hand);
-                hover = true;
-
-                SHOW_TOOLTIP("PAGE %i", i);
-
-                if(checkMouseClick(&rect, tic_mouse_left))
-                {
-                    map->sheet.blit.page = i;
-                }
+                map->sheet.blit.page = i;
             }
+        }
 
-            bool active = i == map->sheet.blit.page;
-            if(active)
-            {
-                tic_api_rect(tic, rect.x, rect.y, Width, Height, tic_color_black);
-            }
+        bool active = i == map->sheet.blit.page;
+        if(active)
+        {
+            tic_api_rect(tic, rect.x, rect.y, Width, Height, tic_color_black);
+        }
 
-            const char* label = (char[]){i + '1', '\0'};
-            tic_api_print(tic, label, rect.x + 1, rect.y + 1, 
-                active
-                    ? tic_color_white
-                    : hover 
-                        ? tic_color_grey 
-                        : tic_color_light_grey, 
-                true, 1, true);   
-        }        
-    }
+        const char* label = (char[]){i + '1', '\0'};
+        tic_api_print(tic, label, rect.x + 1, rect.y + 1, 
+            active
+                ? tic_color_white
+                : hover 
+                    ? tic_color_grey 
+                    : tic_color_light_grey, 
+            true, 1, true);   
+    }        
 }
 
 static void drawMapToolbar(Map* map, s32 x, s32 y)
@@ -481,7 +478,9 @@ static void drawMapToolbar(Map* map, s32 x, s32 y)
     {
         drawBankButtons(map, 183, 1);
         drawBppButtons(map, 199, 1);
-        drawPagesButtons(map, 213, 0);
+
+        if(map->sheet.blit.pages > 1)
+            drawPagesButtons(map, map->sheet.blit.pages == 4 ? 213 : 222, 0);
     }
     else
     {
