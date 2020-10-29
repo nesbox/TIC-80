@@ -554,13 +554,13 @@ static void touch_update(void) {
             && touch.px < (platform.screen_size.x + platform.screen_size.width)
             && touch.py < (platform.screen_size.y + platform.screen_size.height)
         ) {
-            int tic80_x = (int) ((touch.px - platform.screen_size.x) * TIC80_FULLWIDTH / platform.screen_size.width) - TIC80_OFFSET_LEFT;
-            int tic80_y = (int) ((touch.py - platform.screen_size.y) * TIC80_FULLHEIGHT / platform.screen_size.height) - TIC80_OFFSET_TOP;
+            int tic80_x = (int) ((touch.px - platform.screen_size.x) * TIC80_FULLWIDTH / platform.screen_size.width);
+            int tic80_y = (int) ((touch.py - platform.screen_size.y) * TIC80_FULLHEIGHT / platform.screen_size.height);
             if (
                 tic80_x >= 0
                 && tic80_y >= 0
-                && tic80_x < (TIC80_WIDTH)
-                && tic80_y < (TIC80_HEIGHT)
+                && tic80_x < (TIC80_FULLWIDTH)
+                && tic80_y < (TIC80_FULLHEIGHT)
             ) {
                 mouse->x = tic80_x;
                 mouse->y = tic80_y;

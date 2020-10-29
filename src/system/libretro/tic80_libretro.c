@@ -440,10 +440,10 @@ void tic80_libretro_update_gamepad(tic80_gamepad* gamepad, int player)
  * @see tic80_libretro_update_mouse()
  * @see RETRO_DEVICE_POINTER
  */
-int tic80_libretro_mouse_pointer_convert(float coord, float full, int padding)
+int tic80_libretro_mouse_pointer_convert(float coord, float full)
 {
 	float max = 0x7fff;
-	return (int)((coord + max) / (max * 2.0f) * full) - padding;
+	return (int)((coord + max) / (max * 2.0f) * full);
 }
 
 /**
@@ -466,12 +466,10 @@ void tic80_libretro_update_mouse(tic80_mouse* mouse)
 		// Get the Pointer X and Y, and convert it to screen position.
 		mouse->x = tic80_libretro_mouse_pointer_convert(
 			input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X),
-			TIC80_FULLWIDTH,
-			TIC80_OFFSET_LEFT);
+			TIC80_FULLWIDTH);
 		mouse->y = tic80_libretro_mouse_pointer_convert(
 			input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_Y),
-			TIC80_FULLHEIGHT,
-			TIC80_OFFSET_TOP);
+			TIC80_FULLHEIGHT);
 
 		// Pointer pressed is considered mouse left button.
 		mouse->left = input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_PRESSED);
@@ -480,11 +478,11 @@ void tic80_libretro_update_mouse(tic80_mouse* mouse)
 	}
 
 	// Keep the mouse on the screen.
-	if (mouse->x > TIC80_WIDTH) {
-		mouse->x = TIC80_WIDTH;
+	if (mouse->x >= TIC80_FULLWIDTH) {
+		mouse->x = TIC80_FULLWIDTH-1;
 	}
-	if (mouse->y > TIC80_HEIGHT) {
-		mouse->y = TIC80_HEIGHT;
+	if (mouse->y >= TIC80_FULLHEIGHT) {
+		mouse->y = TIC80_FULLHEIGHT-1;
 	}
 	if (mouse->x < 0) {
 		mouse->x = 0;

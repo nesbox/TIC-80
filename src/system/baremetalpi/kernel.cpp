@@ -239,8 +239,8 @@ void inputToTic()
 	if (mousebuttons & 0x01) tic_input->mouse.left = true; else tic_input->mouse.left = false;
 	if (mousebuttons & 0x02) tic_input->mouse.right = true; else tic_input->mouse.right = false;
 	if (mousebuttons & 0x04) tic_input->mouse.middle = true; else tic_input->mouse.middle = false;
-	tic_input->mouse.x = mousex;
-	tic_input->mouse.y = mousey;
+	tic_input->mouse.x = mousex + TIC80_OFFSET_LEFT;
+	tic_input->mouse.y = mousey + TIC80_OFFSET_TOP;
 
 	if( (mousex == mousexOld) && (mousey == mouseyOld) && (mousebuttons == mousebuttonsOld))
 	{
