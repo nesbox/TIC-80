@@ -1157,10 +1157,15 @@ static s32 lua_mouse(lua_State *lua)
 {
     tic_core* core = getLuaCore(lua);
 
+    {
+        tic_point pos = tic_api_mouse((tic_mem*)core);
+
+        lua_pushinteger(lua, pos.x);
+        lua_pushinteger(lua, pos.y);        
+    }
+
     const tic80_mouse* mouse = &core->memory.ram.input.mouse;
 
-    lua_pushinteger(lua, mouse->x);
-    lua_pushinteger(lua, mouse->y);
     lua_pushboolean(lua, mouse->left);
     lua_pushboolean(lua, mouse->middle);
     lua_pushboolean(lua, mouse->right);

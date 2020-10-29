@@ -2715,6 +2715,7 @@ static void onHttpVesrsionGet(const HttpGetData* data)
 
 static void processMouse(Console* console)
 {
+    tic_mem* tic = console->tic;
     // process scroll
     {
         tic80_input* input = &console->tic->ram.input;
@@ -2735,12 +2736,12 @@ static void processMouse(Console* console)
 
         if(console->scroll.active)
         {
-            setScroll(console, (console->scroll.start - getMouseY()) / TIC_FONT_HEIGHT);
+            setScroll(console, (console->scroll.start - tic_api_mouse(tic).y) / TIC_FONT_HEIGHT);
         }
         else
         {
             console->scroll.active = true;
-            console->scroll.start = getMouseY() + console->scroll.pos * TIC_FONT_HEIGHT;
+            console->scroll.start = tic_api_mouse(tic).y + console->scroll.pos * TIC_FONT_HEIGHT;
         }            
     }
     else console->scroll.active = false;

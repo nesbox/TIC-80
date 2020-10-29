@@ -138,6 +138,7 @@ static void drawCursorBorder(Sprite* sprite, s32 x, s32 y, s32 w, s32 h)
 
 static void processPickerCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
 {
+    tic_mem* tic = sprite->tic;
     tic_rect rect = {x, y, CANVAS_SIZE, CANVAS_SIZE};
     const s32 Size = CANVAS_SIZE / sprite->size;
 
@@ -145,8 +146,8 @@ static void processPickerCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 s
     {
         setCursor(tic_cursor_hand);
 
-        s32 mx = getMouseX() - x;
-        s32 my = getMouseY() - y;
+        s32 mx = tic_api_mouse(tic).x - x;
+        s32 my = tic_api_mouse(tic).y - y;
 
         mx -= mx % Size;
         my -= my % Size;
@@ -163,6 +164,7 @@ static void processPickerCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 s
 
 static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
 {
+    tic_mem* tic = sprite->tic;
     tic_rect rect = {x, y, CANVAS_SIZE, CANVAS_SIZE};
     const s32 Size = CANVAS_SIZE / sprite->size;
 
@@ -170,8 +172,8 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
     {
         setCursor(tic_cursor_hand);
 
-        s32 mx = getMouseX() - x;
-        s32 my = getMouseY() - y;
+        s32 mx = tic_api_mouse(tic).x - x;
+        s32 my = tic_api_mouse(tic).y - y;
 
         s32 brushSize = sprite->brushSize*Size;
         s32 offset = (brushSize - Size) / 2;
@@ -271,8 +273,8 @@ static void processSelectCanvasMouse(Sprite* sprite, s32 x, s32 y)
     {
         setCursor(tic_cursor_hand);
 
-        s32 mx = getMouseX() - x;
-        s32 my = getMouseY() - y;
+        s32 mx = tic_api_mouse(tic).x - x;
+        s32 my = tic_api_mouse(tic).y - y;
 
         mx -= mx % Size;
         my -= my % Size;
@@ -342,8 +344,8 @@ static void processFillCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 l, s32 t)
     {
         setCursor(tic_cursor_hand);
 
-        s32 mx = getMouseX() - x;
-        s32 my = getMouseY() - y;
+        s32 mx = tic_api_mouse(tic).x - x;
+        s32 my = tic_api_mouse(tic).y - y;
 
         mx -= mx % Size;
         my -= my % Size;
@@ -396,7 +398,7 @@ static void drawBrushSlider(Sprite* sprite, s32 x, s32 y)
 
         if(checkMouseDown(&rect, tic_mouse_left))
         {
-            s32 my = getMouseY() - y;
+            s32 my = tic_api_mouse(tic).y - y;
 
             sprite->brushSize = Count - my / (Size+1);
         }
@@ -429,8 +431,8 @@ static void drawCanvasOvr(Sprite* sprite, s32 x, s32 y)
     const tic_rect canvasRect = {x, y, CANVAS_SIZE, CANVAS_SIZE};
     if(checkMouseDown(&canvasRect, tic_mouse_middle))
     {
-        s32 mx = getMouseX() - x;
-        s32 my = getMouseY() - y;
+        s32 mx = tic_api_mouse(tic).x - x;
+        s32 my = tic_api_mouse(tic).y - y;
         sprite->color = getSheetPixel(sprite, rect.x + mx / Size, rect.y + my / Size);
     }
 
@@ -884,7 +886,7 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 
             if(checkMouseDown(&rect, tic_mouse_left))
             {
-                s32 mx = getMouseX() - x;
+                s32 mx = tic_api_mouse(tic).x - x;
                 *value = mx * Max / (Size-1);
             }
         }
@@ -1117,8 +1119,8 @@ static void drawPaletteOvr(Sprite* sprite, s32 x, s32 y)
     {
         setCursor(tic_cursor_hand);
 
-        s32 mx = getMouseX() - x;
-        s32 my = getMouseY() - y;
+        s32 mx = tic_api_mouse(tic).x - x;
+        s32 my = tic_api_mouse(tic).y - y;
 
         mx /= palette.cell_w;
         my /= palette.cell_h;
@@ -1334,7 +1336,7 @@ static void drawSheetOvr(Sprite* sprite, s32 x, s32 y)
         if(checkMouseDown(&rect, tic_mouse_left))
         {
             s32 offset = (sprite->size - TIC_SPRITESIZE) / 2;
-            selectSprite(sprite, getMouseX() - x - offset, getMouseY() - y - offset);
+            selectSprite(sprite, tic_api_mouse(tic).x - x - offset, tic_api_mouse(tic).y - y - offset);
         }
     }
 
@@ -1879,7 +1881,7 @@ static void drawSpriteToolbar(Sprite* sprite)
 
             if(checkMouseDown(&rect, tic_mouse_left))
             {
-                s32 mx = getMouseX() - rect.x;
+                s32 mx = tic_api_mouse(tic).x - rect.x;
                 mx /= 6;
 
                 s32 size = 1;

@@ -389,12 +389,8 @@ static void app_input(const sapp_event* event)
             struct {s32 x, y, w, h;}rect;
             sokol_calc_viewport(&rect.x, &rect.y, &rect.w, &rect.h);
 
-            s32 mx = -1, my = -1;
-            if(rect.w) mx = ((s32)event->mouse_x - rect.x) * TIC80_FULLWIDTH / rect.w - TIC80_OFFSET_LEFT;
-            if(rect.h) my = ((s32)event->mouse_y - rect.y) * TIC80_FULLHEIGHT / rect.h - TIC80_OFFSET_TOP;
-
-            input->mouse.x = mx >= 0 && mx < 0xff ? mx : 0xff;
-            input->mouse.y = my >= 0 && my < 0xff ? my : 0xff;
+            if(rect.w) input->mouse.x = ((s32)event->mouse_x - rect.x) * TIC80_FULLWIDTH / rect.w;
+            if(rect.h) input->mouse.y = ((s32)event->mouse_y - rect.y) * TIC80_FULLHEIGHT / rect.h;
         }
         break;
     case SAPP_EVENTTYPE_MOUSE_DOWN: 

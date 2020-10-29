@@ -521,23 +521,18 @@ static void processMouse()
         SDL_Rect rect = {0, 0, 0, 0};
         calcTextureRect(&rect);
 
-        s32 x = -1, y = -1;
-
-#if defined(CRT_SHADER_SUPPORT)        
+#if defined(CRT_SHADER_SUPPORT)
         if(crtMonitorEnabled())
         {
-            if(rect.w) x = (mx - rect.x) * TIC80_FULLWIDTH / rect.w - TIC80_OFFSET_LEFT;
-            if(rect.h) y = (my - rect.y) * TIC80_FULLHEIGHT / rect.h - TIC80_OFFSET_TOP;
+            if(rect.w) input->mouse.x = (mx - rect.x) * TIC80_FULLWIDTH / rect.w;
+            if(rect.h) input->mouse.y = (my - rect.y) * TIC80_FULLHEIGHT / rect.h;
         }
         else
 #endif            
         {
-            if(rect.w) x = (mx - rect.x) * TIC80_WIDTH / rect.w;
-            if(rect.h) y = (my - rect.y) * TIC80_HEIGHT / rect.h;
+            if(rect.w) input->mouse.x = (mx - rect.x) * TIC80_WIDTH / rect.w + TIC80_OFFSET_LEFT;
+            if(rect.h) input->mouse.y = (my - rect.y) * TIC80_HEIGHT / rect.h + TIC80_OFFSET_TOP;
         }
-
-        input->mouse.x = x >= 0 && x < 0xff ? x : 0xff;
-        input->mouse.y = y >= 0 && y < 0xff ? y : 0xff;
     }
 
     {

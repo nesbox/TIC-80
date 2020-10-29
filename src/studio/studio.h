@@ -82,20 +82,8 @@ typedef enum
     TIC_SURF_MODE,
 } EditorMode;
 
-typedef struct
-{
-    s32 x, y;
-} tic_point;
-
-typedef struct
-{
-    s32 x, y, w, h;
-} tic_rect;
-
 void setCursor(tic_cursor id);
 
-s32 getMouseX();
-s32 getMouseY();
 bool checkMousePos(const tic_rect* rect);
 bool checkMouseClick(const tic_rect* rect, tic_mouse_btn button);
 bool checkMouseDown(const tic_rect* rect, tic_mouse_btn button);

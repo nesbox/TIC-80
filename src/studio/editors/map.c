@@ -52,10 +52,11 @@ static tic_point getTileOffset(Map* map)
 
 static void getMouseMap(Map* map, s32* x, s32* y)
 {
+    tic_mem* tic = map->tic;
     tic_point offset = getTileOffset(map);
 
-    s32 mx = getMouseX() + map->scroll.x - offset.x;
-    s32 my = getMouseY() + map->scroll.y - offset.y;
+    s32 mx = tic_api_mouse(tic).x + map->scroll.x - offset.x;
+    s32 my = tic_api_mouse(tic).y + map->scroll.y - offset.y;
 
     normalizeMap(&mx, &my);
 
@@ -302,8 +303,8 @@ static void drawTileIndex(Map* map, s32 x, s32 y)
         
         if(checkMousePos(&rect))
         {
-            s32 mx = getMouseX() - rect.x;
-            s32 my = getMouseY() - rect.y;
+            s32 mx = tic_api_mouse(tic).x - rect.x;
+            s32 my = tic_api_mouse(tic).y - rect.y;
 
             mx /= TIC_SPRITESIZE;
             my /= TIC_SPRITESIZE;
@@ -556,8 +557,8 @@ static void drawSheetReg(Map* map, s32 x, s32 y)
 
         if(checkMouseDown(&rect, tic_mouse_left))
         {
-            s32 mx = getMouseX() - rect.x;
-            s32 my = getMouseY() - rect.y;
+            s32 mx = tic_api_mouse(tic).x - rect.x;
+            s32 my = tic_api_mouse(tic).y - rect.y;
 
             mx /= TIC_SPRITESIZE;
             my /= TIC_SPRITESIZE;
@@ -636,10 +637,11 @@ static void setMapSprite(Map* map, s32 x, s32 y)
 
 static tic_point getCursorPos(Map* map)
 {
+    tic_mem* tic = map->tic;
     tic_point offset = getTileOffset(map);
 
-    s32 mx = getMouseX() + map->scroll.x - offset.x;
-    s32 my = getMouseY() + map->scroll.y - offset.y;
+    s32 mx = tic_api_mouse(tic).x + map->scroll.x - offset.x;
+    s32 my = tic_api_mouse(tic).y + map->scroll.y - offset.y;
 
     mx -= mx % TIC_SPRITESIZE;
     my -= my % TIC_SPRITESIZE;
@@ -732,14 +734,15 @@ static void processMouseDrawMode(Map* map)
 
 static void processScrolling(Map* map, bool pressed)
 {
+    tic_mem* tic = map->tic;
     tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
     if(map->scroll.active)
     {
         if(pressed)
         {
-            map->scroll.x = map->scroll.start.x - getMouseX();
-            map->scroll.y = map->scroll.start.y - getMouseY();
+            map->scroll.x = map->scroll.start.x - tic_api_mouse(tic).x;
+            map->scroll.y = map->scroll.start.y - tic_api_mouse(tic).y;
 
             normalizeMap(&map->scroll.x, &map->scroll.y);
 
@@ -753,8 +756,8 @@ static void processScrolling(Map* map, bool pressed)
         {
             map->scroll.active = true;
 
-            map->scroll.start.x = getMouseX() + map->scroll.x;
-            map->scroll.start.y = getMouseY() + map->scroll.y;
+            map->scroll.start.x = tic_api_mouse(tic).x + map->scroll.x;
+            map->scroll.start.y = tic_api_mouse(tic).y + map->scroll.y;
         }
     }
 }
@@ -793,8 +796,8 @@ static void drawPasteData(Map* map)
 
     u8* data = map->paste + 2;
 
-    s32 mx = getMouseX() + map->scroll.x - (w - 1)*TIC_SPRITESIZE / 2;
-    s32 my = getMouseY() + map->scroll.y - (h - 1)*TIC_SPRITESIZE / 2;
+    s32 mx = tic_api_mouse(tic).x + map->scroll.x - (w - 1)*TIC_SPRITESIZE / 2;
+    s32 my = tic_api_mouse(tic).y + map->scroll.y - (h - 1)*TIC_SPRITESIZE / 2;
 
     tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
@@ -842,11 +845,12 @@ static void drawPasteData(Map* map)
 
 static void drawPasteDataOvr(Map* map)
 {
+    tic_mem* tic = map->tic;
     s32 w = map->paste[0];
     s32 h = map->paste[1];
 
-    s32 mx = getMouseX() + map->scroll.x - (w - 1) * TIC_SPRITESIZE / 2;
-    s32 my = getMouseY() + map->scroll.y - (h - 1) * TIC_SPRITESIZE / 2;
+    s32 mx = tic_api_mouse(tic).x + map->scroll.x - (w - 1) * TIC_SPRITESIZE / 2;
+    s32 my = tic_api_mouse(tic).y + map->scroll.y - (h - 1) * TIC_SPRITESIZE / 2;
 
     mx -= mx % TIC_SPRITESIZE;
     my -= my % TIC_SPRITESIZE;
@@ -867,6 +871,7 @@ static void normalizeMapRect(s32* x, s32* y)
 
 static void processMouseSelectMode(Map* map)
 {
+    tic_mem* tic = map->tic;
     tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
     if(checkMousePos(&rect))
@@ -877,8 +882,8 @@ static void processMouseSelectMode(Map* map)
         {
             if(checkMouseDown(&rect, tic_mouse_left))
             {
-                s32 mx = getMouseX() + map->scroll.x;
-                s32 my = getMouseY() + map->scroll.y;
+                s32 mx = tic_api_mouse(tic).x + map->scroll.x;
+                s32 my = tic_api_mouse(tic).y + map->scroll.y;
 
                 mx /= TIC_SPRITESIZE;
                 my /= TIC_SPRITESIZE;

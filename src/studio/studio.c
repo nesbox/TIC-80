@@ -1178,20 +1178,6 @@ void hideGameMenu()
     impl.mode = TIC_RUN_MODE;
 }
 
-s32 getMouseX()
-{
-    tic_mem* tic = impl.studio.tic;
-
-    return tic->ram.input.mouse.x;
-}
-
-s32 getMouseY()
-{
-    tic_mem* tic = impl.studio.tic;
-
-    return tic->ram.input.mouse.y;
-}
-
 static inline bool pointInRect(const tic_point* pt, const tic_rect* rect)
 {
     return (pt->x >= rect->x) 
@@ -1202,7 +1188,7 @@ static inline bool pointInRect(const tic_point* pt, const tic_rect* rect)
 
 bool checkMousePos(const tic_rect* rect)
 {
-    tic_point pos = {getMouseX(), getMouseY()};
+    tic_point pos = tic_api_mouse(impl.studio.tic);
     return pointInRect(&pos, rect);
 }
 
@@ -1858,14 +1844,11 @@ static void processMouseStates()
         if(!state->down && (tic->ram.input.mouse.btns & (1 << i)))
         {
             state->down = true;
-
-            state->start.x = tic->ram.input.mouse.x;
-            state->start.y = tic->ram.input.mouse.y;
+            state->start = tic_api_mouse(tic);
         }
         else if(state->down && !(tic->ram.input.mouse.btns & (1 << i)))
         {
-            state->end.x = tic->ram.input.mouse.x;
-            state->end.y = tic->ram.input.mouse.y;
+            state->end = tic_api_mouse(tic);
 
             state->click = true;
             state->down = false;

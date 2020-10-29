@@ -84,56 +84,66 @@ typedef struct
     s32 keywordsCount;
 } tic_script_config;
 
+typedef struct
+{
+    s32 x, y;
+} tic_point;
+
+typedef struct
+{
+    s32 x, y, w, h;
+} tic_rect;
+
 #define TIC_FN "TIC"
 #define SCN_FN "SCN"
 #define OVR_FN "OVR"
 
 //                  API DEFINITION TABLE
-//      .----------------------------------------------- - - - 
-//      |   NAME  | COUNT | RETURN  |     ARGUMENTS     
-//      |---------+-------+---------+------------------- - - -
-//      |         |       |         |
+//      .--------------------------------------------------- - - - 
+//      |   NAME  | COUNT | RETURN      |     ARGUMENTS     
+//      |---------+-------+-------------+------------------- - - -
+//      |         |       |             |
 #define TIC_API_LIST(macro) \
-    macro(print,        7,  s32,    tic_mem*, const char* text, s32 x, s32 y, u8 color, bool fixed, s32 scale, bool alt) \
-    macro(cls,          1,  void,   tic_mem*, u8 color) \
-    macro(pix,          3,  u8,     tic_mem*, s32 x, s32 y, u8 color, bool get) \
-    macro(line,         5,  void,   tic_mem*, s32 x1, s32 y1, s32 x2, s32 y2, u8 color) \
-    macro(rect,         5,  void,   tic_mem*, s32 x, s32 y, s32 width, s32 height, u8 color) \
-    macro(rectb,        5,  void,   tic_mem*, s32 x, s32 y, s32 width, s32 height, u8 color) \
-    macro(spr,          9,  void,   tic_mem*, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate) \
-    macro(btn,          1,  u32,    tic_mem*, s32 id) \
-    macro(btnp,         3,  u32,    tic_mem*, s32 id, s32 hold, s32 period) \
-    macro(sfx,          6,  void,   tic_mem*, s32 index, s32 note, s32 octave, s32 duration, s32 channel, s32 volume, s32 speed) \
-    macro(map,          9,  void,   tic_mem*, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* colors, s32 count, s32 scale, RemapFunc remap, void* data) \
-    macro(mget,         2,  u8,     tic_mem*, s32 x, s32 y) \
-    macro(mset,         3,  void,   tic_mem*, s32 x, s32 y, u8 value) \
-    macro(peek,         1,  u8,     tic_mem*, s32 address) \
-    macro(poke,         2,  void,   tic_mem*, s32 address, u8 value) \
-    macro(peek4,        1,  u8,     tic_mem*, s32 address) \
-    macro(poke4,        2,  void,   tic_mem*, s32 address, u8 value) \
-    macro(memcpy,       3,  void,   tic_mem*, s32 dst, s32 src, s32 size) \
-    macro(memset,       3,  void,   tic_mem*, s32 dst, u8 val, s32 size) \
-    macro(trace,        2,  void,   tic_mem*, const char* text, u8 color) \
-    macro(pmem,         2,  u32,    tic_mem*, s32 index, u32 value, bool get) \
-    macro(time,         0,  double, tic_mem*) \
-    macro(tstamp,       0,  s32,    tic_mem*) \
-    macro(exit,         0,  void,   tic_mem*) \
-    macro(font,         8,  s32,    tic_mem*, const char* text, s32 x, s32 y, u8 chromakey, s32 w, s32 h, bool fixed, s32 scale, bool alt) \
-    macro(mouse,        0,  void,   tic_mem*) \
-    macro(circ,         4,  void,   tic_mem*, s32 x, s32 y, s32 radius, u8 color) \
-    macro(circb,        4,  void,   tic_mem*, s32 x, s32 y, s32 radius, u8 color) \
-    macro(tri,          7,  void,   tic_mem*, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, u8 color) \
-    macro(textri,       14, void,   tic_mem*, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count) \
-    macro(clip,         4,  void,   tic_mem*, s32 x, s32 y, s32 width, s32 height) \
-    macro(music,        4,  void,   tic_mem*, s32 track, s32 frame, s32 row, bool loop, bool sustain) \
-    macro(sync,         3,  void,   tic_mem*, u32 mask, s32 bank, bool toCart) \
-    macro(reset,        0,  void,   tic_mem*) \
-    macro(key,          1,  bool,   tic_mem*, tic_key key) \
-    macro(keyp,         3,  bool,   tic_mem*, tic_key key, s32 hold, s32 period) \
-    macro(fget,         2,  bool,   tic_mem*, s32 index, u8 flag) \
-    macro(fset,         3,  void,   tic_mem*, s32 index, u8 flag, bool value)
-//      |         |       |         |
-//      '----------------------------------------------- - - - 
+    macro(print,        7,  s32,        tic_mem*, const char* text, s32 x, s32 y, u8 color, bool fixed, s32 scale, bool alt) \
+    macro(cls,          1,  void,       tic_mem*, u8 color) \
+    macro(pix,          3,  u8,         tic_mem*, s32 x, s32 y, u8 color, bool get) \
+    macro(line,         5,  void,       tic_mem*, s32 x1, s32 y1, s32 x2, s32 y2, u8 color) \
+    macro(rect,         5,  void,       tic_mem*, s32 x, s32 y, s32 width, s32 height, u8 color) \
+    macro(rectb,        5,  void,       tic_mem*, s32 x, s32 y, s32 width, s32 height, u8 color) \
+    macro(spr,          9,  void,       tic_mem*, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate) \
+    macro(btn,          1,  u32,        tic_mem*, s32 id) \
+    macro(btnp,         3,  u32,        tic_mem*, s32 id, s32 hold, s32 period) \
+    macro(sfx,          6,  void,       tic_mem*, s32 index, s32 note, s32 octave, s32 duration, s32 channel, s32 volume, s32 speed) \
+    macro(map,          9,  void,       tic_mem*, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* colors, s32 count, s32 scale, RemapFunc remap, void* data) \
+    macro(mget,         2,  u8,         tic_mem*, s32 x, s32 y) \
+    macro(mset,         3,  void,       tic_mem*, s32 x, s32 y, u8 value) \
+    macro(peek,         1,  u8,         tic_mem*, s32 address) \
+    macro(poke,         2,  void,       tic_mem*, s32 address, u8 value) \
+    macro(peek4,        1,  u8,         tic_mem*, s32 address) \
+    macro(poke4,        2,  void,       tic_mem*, s32 address, u8 value) \
+    macro(memcpy,       3,  void,       tic_mem*, s32 dst, s32 src, s32 size) \
+    macro(memset,       3,  void,       tic_mem*, s32 dst, u8 val, s32 size) \
+    macro(trace,        2,  void,       tic_mem*, const char* text, u8 color) \
+    macro(pmem,         2,  u32,        tic_mem*, s32 index, u32 value, bool get) \
+    macro(time,         0,  double,     tic_mem*) \
+    macro(tstamp,       0,  s32,        tic_mem*) \
+    macro(exit,         0,  void,       tic_mem*) \
+    macro(font,         8,  s32,        tic_mem*, const char* text, s32 x, s32 y, u8 chromakey, s32 w, s32 h, bool fixed, s32 scale, bool alt) \
+    macro(mouse,        0,  tic_point,  tic_mem*) \
+    macro(circ,         4,  void,       tic_mem*, s32 x, s32 y, s32 radius, u8 color) \
+    macro(circb,        4,  void,       tic_mem*, s32 x, s32 y, s32 radius, u8 color) \
+    macro(tri,          7,  void,       tic_mem*, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, u8 color) \
+    macro(textri,       14, void,       tic_mem*, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count) \
+    macro(clip,         4,  void,       tic_mem*, s32 x, s32 y, s32 width, s32 height) \
+    macro(music,        4,  void,       tic_mem*, s32 track, s32 frame, s32 row, bool loop, bool sustain) \
+    macro(sync,         3,  void,       tic_mem*, u32 mask, s32 bank, bool toCart) \
+    macro(reset,        0,  void,       tic_mem*) \
+    macro(key,          1,  bool,       tic_mem*, tic_key key) \
+    macro(keyp,         3,  bool,       tic_mem*, tic_key key, s32 hold, s32 period) \
+    macro(fget,         2,  bool,       tic_mem*, s32 index, u8 flag) \
+    macro(fset,         3,  void,       tic_mem*, s32 index, u8 flag, bool value)
+//      |         |       |             |
+//      '---------+-------+-------------+------------------- - - -
 
 #define TIC_API_DEF(name, _, ret, ...) ret tic_api_##name(__VA_ARGS__);
 TIC_API_LIST(TIC_API_DEF)

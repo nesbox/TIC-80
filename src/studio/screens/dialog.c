@@ -134,8 +134,8 @@ static void drawDialog(Dialog* dlg)
         {
             if(!dlg->drag.active)
             {
-                dlg->drag.start.x = getMouseX() + dlg->pos.x;
-                dlg->drag.start.y = getMouseY() + dlg->pos.y;
+                dlg->drag.start.x = tic_api_mouse(tic).x + dlg->pos.x;
+                dlg->drag.start.y = tic_api_mouse(tic).y + dlg->pos.y;
 
                 dlg->drag.active = true;
             }
@@ -146,8 +146,8 @@ static void drawDialog(Dialog* dlg)
     {
         setCursor(tic_cursor_hand);
 
-        dlg->pos.x = dlg->drag.start.x - getMouseX();
-        dlg->pos.y = dlg->drag.start.y - getMouseY();
+        dlg->pos.x = dlg->drag.start.x - tic_api_mouse(tic).x;
+        dlg->pos.y = dlg->drag.start.y - tic_api_mouse(tic).y;
 
         tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
         if(!checkMouseDown(&rect, tic_mouse_left))

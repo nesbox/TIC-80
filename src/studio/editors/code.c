@@ -113,6 +113,8 @@ static void toggleBookmark(Code* code, char* codePos)
 
 static void drawBookmarks(Code* code)
 {
+    tic_mem* tic = code->tic;
+
     enum {Width = BOOKMARK_WIDTH, Height = TIC80_HEIGHT - TOOLBAR_SIZE*2};
     tic_rect rect = {0, TOOLBAR_SIZE, Width, Height};
 
@@ -136,7 +138,7 @@ static void drawBookmarks(Code* code)
 
         showTooltip("BOOKMARK [ctrl+f1]");
 
-        s32 line = (getMouseY() - rect.y) / STUDIO_TEXT_HEIGHT;
+        s32 line = (tic_api_mouse(tic).y - rect.y) / STUDIO_TEXT_HEIGHT;
 
         drawBitIcon(rect.x, rect.y + line * STUDIO_TEXT_HEIGHT, Icon, tic_color_dark_grey);
 
@@ -1499,8 +1501,8 @@ static void processMouse(Code* code)
         {
             if(useDrag)
             {
-                code->scroll.x = (code->scroll.start.x - getMouseX()) / getFontWidth(code);
-                code->scroll.y = (code->scroll.start.y - getMouseY()) / STUDIO_TEXT_HEIGHT;
+                code->scroll.x = (code->scroll.start.x - tic_api_mouse(tic).y) / getFontWidth(code);
+                code->scroll.y = (code->scroll.start.y - tic_api_mouse(tic).y) / STUDIO_TEXT_HEIGHT;
 
                 normalizeScroll(code);
             }
@@ -1512,15 +1514,15 @@ static void processMouse(Code* code)
             {
                 code->scroll.active = true;
 
-                code->scroll.start.x = getMouseX() + code->scroll.x * getFontWidth(code);
-                code->scroll.start.y = getMouseY() + code->scroll.y * STUDIO_TEXT_HEIGHT;
+                code->scroll.start.x = tic_api_mouse(tic).y + code->scroll.x * getFontWidth(code);
+                code->scroll.start.y = tic_api_mouse(tic).y + code->scroll.y * STUDIO_TEXT_HEIGHT;
             }
             else 
             {
                 if(checkMouseDown(&rect, tic_mouse_left))
                 {
-                    s32 mx = getMouseX();
-                    s32 my = getMouseY();
+                    s32 mx = tic_api_mouse(tic).y;
+                    s32 my = tic_api_mouse(tic).y;
 
                     s32 x = (mx - rect.x) / getFontWidth(code);
                     s32 y = (my - rect.y) / STUDIO_TEXT_HEIGHT;
@@ -1766,11 +1768,12 @@ static void textGoToTick(Code* code)
 
 static void drawOutlineBar(Code* code, s32 x, s32 y)
 {
+    tic_mem* tic = code->tic;
     tic_rect rect = {x, y, TIC80_WIDTH - x, TIC80_HEIGHT - y};
 
     if(checkMousePos(&rect))
     {
-        s32 mx = getMouseY() - rect.y;
+        s32 mx = tic_api_mouse(tic).y - rect.y;
         mx /= STUDIO_TEXT_HEIGHT;
 
         if(mx < code->outline.size && code->outline.items[mx].pos)

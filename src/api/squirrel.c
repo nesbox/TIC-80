@@ -1258,10 +1258,16 @@ static SQInteger squirrel_mouse(HSQUIRRELVM vm)
     const tic80_mouse* mouse = &core->memory.ram.input.mouse;
 
     sq_newarray(vm, 7);
-    sq_pushinteger(vm, mouse->x);
-    sq_arrayappend(vm, -2);
-    sq_pushinteger(vm, mouse->y);
-    sq_arrayappend(vm, -2);
+
+    {
+        tic_point pos = tic_api_mouse((tic_mem*)core);
+
+        sq_pushinteger(vm, pos.x);
+        sq_arrayappend(vm, -2);
+        sq_pushinteger(vm, pos.y);
+        sq_arrayappend(vm, -2);
+    }
+
     sq_pushbool(vm, mouse->left ? SQTrue : SQFalse);
     sq_arrayappend(vm, -2);
     sq_pushbool(vm, mouse->middle ? SQTrue : SQFalse);

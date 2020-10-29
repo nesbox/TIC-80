@@ -370,10 +370,17 @@ static void wren_mouse(WrenVM* vm)
 
     wrenEnsureSlots(vm, 6);
     wrenSetSlotNewList(vm, 0);
-    wrenSetSlotDouble(vm, 1, mouse->x);
-    wrenInsertInList(vm, 0, 0, 1);
-    wrenSetSlotDouble(vm, 1, mouse->y);
-    wrenInsertInList(vm, 0, 1, 1);
+
+    {
+        tic_point pos = tic_api_mouse((tic_mem*)core);
+
+        wrenSetSlotDouble(vm, 1, pos.x);
+        wrenInsertInList(vm, 0, 0, 1);
+
+        wrenSetSlotDouble(vm, 1, pos.y);
+        wrenInsertInList(vm, 0, 1, 1);
+    }
+
     wrenSetSlotBool(vm, 1, mouse->left ? true : false);
     wrenInsertInList(vm, 0, 2, 1);
     wrenSetSlotBool(vm, 1, mouse->middle ? true : false);

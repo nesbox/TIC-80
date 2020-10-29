@@ -635,10 +635,16 @@ static duk_ret_t duk_mouse(duk_context* duk)
     const tic80_mouse* mouse = &core->memory.ram.input.mouse;
 
     duk_idx_t idx = duk_push_array(duk);
-    duk_push_int(duk, mouse->x);
-    duk_put_prop_index(duk, idx, 0);
-    duk_push_int(duk, mouse->y);
-    duk_put_prop_index(duk, idx, 1);
+
+    {
+        tic_point pos = tic_api_mouse((tic_mem*)core);
+
+        duk_push_int(duk, pos.x);
+        duk_put_prop_index(duk, idx, 0);
+        duk_push_int(duk, pos.y);
+        duk_put_prop_index(duk, idx, 1);
+    }
+
     duk_push_boolean(duk, mouse->left);
     duk_put_prop_index(duk, idx, 2);
     duk_push_boolean(duk, mouse->middle);

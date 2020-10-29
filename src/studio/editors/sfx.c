@@ -90,8 +90,8 @@ static void drawCanvasLeds(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
     {
         setCursor(tic_cursor_hand);
 
-        s32 mx = getMouseX() - x;
-        s32 my = getMouseY() - y;
+        s32 mx = tic_api_mouse(tic).x - x;
+        s32 my = tic_api_mouse(tic).y - y;
         mx /= LedWidth;
         s32 vy = my /= LedHeight;
         border = (tic_rect){x + mx * LedWidth + Gap, y + my * LedHeight + Gap, LedWidth - Gap, LedHeight - Gap};
@@ -704,8 +704,8 @@ static void drawWavePanel(Sfx* sfx, s32 x, s32 y)
             {
                 setCursor(tic_cursor_hand);
 
-                s32 cx = (getMouseX() - rect.x) / Scale;
-                s32 cy = MaxValue - (getMouseY() - rect.y) / Scale;
+                s32 cx = (tic_api_mouse(tic).x - rect.x) / Scale;
+                s32 cy = MaxValue - (tic_api_mouse(tic).y - rect.y) / Scale;
 
                 SHOW_TOOLTIP("[x=%02i y=%02i]", cx, cy);
 
@@ -866,7 +866,7 @@ static void drawSpeedPanel(Sfx* sfx, s32 x, s32 y)
     {
         setCursor(tic_cursor_hand);
 
-        s32 spd = (getMouseX() - rect.x) / ColWidthGap;
+        s32 spd = (tic_api_mouse(tic).x - rect.x) / ColWidthGap;
         hover = spd;
 
         SHOW_TOOLTIP("set speed to %i", spd);

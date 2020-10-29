@@ -27,6 +27,7 @@
 
 static void drawGrid(World* world)
 {
+    tic_mem* tic = world->tic;
     Map* map = world->map;
     u8 color = tic_color_grey;
 
@@ -44,8 +45,8 @@ static void drawGrid(World* world)
     {
         setCursor(tic_cursor_hand);
 
-        s32 mx = getMouseX();
-        s32 my = getMouseY();
+        s32 mx = tic_api_mouse(tic).x;
+        s32 my = tic_api_mouse(tic).y;
 
         if(checkMouseDown(&rect, tic_mouse_left))
         {
