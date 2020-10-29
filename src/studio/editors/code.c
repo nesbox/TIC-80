@@ -1501,7 +1501,7 @@ static void processMouse(Code* code)
         {
             if(useDrag)
             {
-                code->scroll.x = (code->scroll.start.x - tic_api_mouse(tic).y) / getFontWidth(code);
+                code->scroll.x = (code->scroll.start.x - tic_api_mouse(tic).x) / getFontWidth(code);
                 code->scroll.y = (code->scroll.start.y - tic_api_mouse(tic).y) / STUDIO_TEXT_HEIGHT;
 
                 normalizeScroll(code);
@@ -1514,14 +1514,14 @@ static void processMouse(Code* code)
             {
                 code->scroll.active = true;
 
-                code->scroll.start.x = tic_api_mouse(tic).y + code->scroll.x * getFontWidth(code);
+                code->scroll.start.x = tic_api_mouse(tic).x + code->scroll.x * getFontWidth(code);
                 code->scroll.start.y = tic_api_mouse(tic).y + code->scroll.y * STUDIO_TEXT_HEIGHT;
             }
             else 
             {
                 if(checkMouseDown(&rect, tic_mouse_left))
                 {
-                    s32 mx = tic_api_mouse(tic).y;
+                    s32 mx = tic_api_mouse(tic).x;
                     s32 my = tic_api_mouse(tic).y;
 
                     s32 x = (mx - rect.x) / getFontWidth(code);
