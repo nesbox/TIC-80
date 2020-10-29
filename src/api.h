@@ -39,8 +39,8 @@ typedef struct
     ExitCallback exit;
     CheckForceExit forceExit;
     
-    u64 (*counter)();
-    u64 (*freq)();
+    u64 (*counter)(void*);
+    u64 (*freq)(void*);
     u64 start;
 
     void* data;
@@ -188,4 +188,5 @@ typedef struct
     tic80 tic;
     tic_mem* memory;
     tic_tick_data tickData;
+    u64 tick_counter;
 } tic80_local;

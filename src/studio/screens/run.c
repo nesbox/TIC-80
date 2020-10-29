@@ -126,6 +126,16 @@ static bool forceExit(void* data)
     return tic_api_key(tic, tic_key_escape);
 }
 
+static u64 getFreq(void* data)
+{
+    return getSystem()->getPerformanceFrequency();
+}
+
+static u64 getCounter(void* data)
+{
+    return getSystem()->getPerformanceCounter();
+}
+
 void initRun(Run* run, Console* console, tic_mem* tic)
 {
     *run = (Run)
@@ -138,8 +148,8 @@ void initRun(Run* run, Console* console, tic_mem* tic)
         {
             .error = onError,
             .trace = onTrace,
-            .counter = getSystem()->getPerformanceCounter,
-            .freq = getSystem()->getPerformanceFrequency,
+            .counter = getCounter,
+            .freq = getFreq,
             .start = 0,
             .data = run,
             .exit = onExit,

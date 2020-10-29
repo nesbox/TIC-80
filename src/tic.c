@@ -54,16 +54,15 @@ static void onExit(void* data)
         tic->callback.exit();
 }
 
-static u64 getFreq()
+static u64 getFreq(void* data)
 {
     return TIC80_FRAMERATE;
 }
 
-static u64 TickCounter = 0;
-
-static u64 getCounter()
+static u64 getCounter(void* data)
 {
-    return TickCounter;
+    tic80_local* tic80 = (tic80_local*)data;
+    return tic80->tick_counter;
 }
 
 tic80* tic80_create(s32 samplerate)
@@ -101,7 +100,7 @@ TIC80_API void tic80_load(tic80* tic, void* cart, s32 size)
         tic80->tickData.start = 0;
         tic80->tickData.freq = getFreq;
         tic80->tickData.counter = getCounter;
-        TickCounter = 0;
+        tic80->tick_counter = 0;
     }
 
     {
@@ -123,7 +122,7 @@ TIC80_API void tic80_tick(tic80* tic, const tic80_input* input)
 
     tic_core_blit(tic80->memory, tic80->memory->screen_format);
 
-    TickCounter++;
+    tic80->tick_counter++;
 }
 
 TIC80_API void tic80_delete(tic80* tic)

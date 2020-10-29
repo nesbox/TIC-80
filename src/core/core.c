@@ -206,7 +206,7 @@ void tic_api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
 double tic_api_time(tic_mem* memory)
 {
     tic_core* core = (tic_core*)memory;
-    return (double)((core->data->counter() - core->data->start) * 1000) / core->data->freq();
+    return (double)((core->data->counter(core->data->data) - core->data->start) * 1000) / core->data->freq(core->data->data);
 }
 
 s32 tic_api_tstamp(tic_mem* memory)
@@ -495,7 +495,7 @@ void tic_core_tick(tic_mem* tic, tic_tick_data* data)
                 tic->input.keyboard = 1;
             else tic->input.data = -1;  // default is all enabled
 
-            data->start = data->counter();
+            data->start = data->counter(core->data->data);
 
             done = config->init(tic, code);
         }
@@ -541,7 +541,7 @@ void tic_core_pause(tic_mem* memory)
     if (core->data)
     {
         core->pause.time.start = core->data->start;
-        core->pause.time.paused = core->data->counter();
+        core->pause.time.paused = core->data->counter(core->data->data);
     }
 }
 
@@ -554,7 +554,7 @@ void tic_core_resume(tic_mem* memory)
         memcpy(&core->state, &core->pause.state, sizeof(tic_core_state_data));
         memcpy(&memory->ram, &core->pause.ram, sizeof(tic_ram));
         memory->input.data = core->pause.input;
-        core->data->start = core->pause.time.start + core->data->counter() - core->pause.time.paused;
+        core->data->start = core->pause.time.start + core->data->counter(core->data->data) - core->pause.time.paused;
     }
 }
 
