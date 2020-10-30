@@ -785,8 +785,8 @@ static duk_ret_t duk_music(duk_context* duk)
     {
         s32 frame = duk_opt_int(duk, 1, -1);
         s32 row = duk_opt_int(duk, 2, -1);
-        bool loop = duk_opt_int(duk, 3, true);
-        bool sustain = duk_opt_int(duk, 4, false);
+        bool loop = duk_opt_boolean(duk, 3, true);
+        bool sustain = duk_opt_boolean(duk, 4, false);
 
         tic_api_music(tic, track, frame, row, loop, sustain);
     }
