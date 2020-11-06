@@ -2562,9 +2562,15 @@ static void onHistoryDown(Console* console)
     if(console->history)
     {
         if(console->history->prev)
+        {
             console->history = console->history->prev;
-
-        fillInputBufferFromHistory(console);
+            fillInputBufferFromHistory(console);
+        }
+        else
+        {
+            memset(console->inputBuffer, 0, sizeof(console->inputBuffer));
+            console->inputPosition = 0;
+        }
     }
 }
 
