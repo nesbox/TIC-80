@@ -2747,6 +2747,16 @@ static void processMouse(Console* console)
     else console->scroll.active = false;
 }
 
+static void processConsolePgUp(Console* console)
+{
+    setScroll(console, console->scroll.pos - STUDIO_TEXT_BUFFER_HEIGHT/2);
+}
+
+static void processConsolePgDown(Console* console)
+{
+    setScroll(console, console->scroll.pos + STUDIO_TEXT_BUFFER_HEIGHT/2);
+}
+
 static void processKeyboard(Console* console)
 {
     tic_mem* tic = console->tic;
@@ -2767,22 +2777,14 @@ static void processKeyboard(Console* console)
             if(console->inputPosition > len)
                 console->inputPosition = len;
         }
-        else if(keyWasPressed(tic_key_return)) processConsoleCommand(console);
-        else if(keyWasPressed(tic_key_backspace)) processConsoleBackspace(console);
-        else if(keyWasPressed(tic_key_delete)) processConsoleDel(console);
-        else if(keyWasPressed(tic_key_home)) processConsoleHome(console);
-        else if(keyWasPressed(tic_key_end)) processConsoleEnd(console);
-        else if(keyWasPressed(tic_key_tab)) processConsoleTab(console);
-
-        if(keyWasPressed(tic_key_capslock) 
-            || keyWasPressed(tic_key_ctrl) 
-            || keyWasPressed(tic_key_shift) 
-            || keyWasPressed(tic_key_alt));
-        else if(anyKeyWasPressed())
-        {
-            scrollConsole(console);
-            console->cursor.delay = CONSOLE_CURSOR_DELAY;
-        }
+        else if(keyWasPressed(tic_key_return))      processConsoleCommand(console);
+        else if(keyWasPressed(tic_key_backspace))   processConsoleBackspace(console);
+        else if(keyWasPressed(tic_key_delete))      processConsoleDel(console);
+        else if(keyWasPressed(tic_key_home))        processConsoleHome(console);
+        else if(keyWasPressed(tic_key_end))         processConsoleEnd(console);
+        else if(keyWasPressed(tic_key_tab))         processConsoleTab(console);
+        else if(keyWasPressed(tic_key_pageup))      processConsolePgUp(console);
+        else if(keyWasPressed(tic_key_pagedown))    processConsolePgDown(console);
 
         if(tic_api_key(tic, tic_key_ctrl) 
             && tic_api_key(tic, tic_key_k))
@@ -2796,6 +2798,11 @@ static void processKeyboard(Console* console)
 
     if(sym)
     {
+        {
+            scrollConsole(console);
+            console->cursor.delay = CONSOLE_CURSOR_DELAY;
+        }
+
         size_t size = strlen(console->inputBuffer);
 
         if(size < sizeof(console->inputBuffer))
