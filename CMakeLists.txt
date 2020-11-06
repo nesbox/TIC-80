@@ -240,6 +240,140 @@ target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/squirrel)
 target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/sqstdlib)
 
 ################################
+# MICROPYTHON
+################################
+
+set(MICROPYTHON_DIR ${THIRDPARTY_DIR}/micropython)
+set(MICROPYTHON_SRC
+    ${MICROPYTHON_DIR}/py/argcheck.c
+    ${MICROPYTHON_DIR}/py/asmarm.c
+    ${MICROPYTHON_DIR}/py/asmbase.c
+    ${MICROPYTHON_DIR}/py/asmthumb.c
+    ${MICROPYTHON_DIR}/py/asmx64.c
+    ${MICROPYTHON_DIR}/py/asmx86.c
+    ${MICROPYTHON_DIR}/py/asmxtensa.c
+    ${MICROPYTHON_DIR}/py/bc.c
+    ${MICROPYTHON_DIR}/py/binary.c
+    ${MICROPYTHON_DIR}/py/builtinevex.c
+    ${MICROPYTHON_DIR}/py/builtinhelp.c
+    ${MICROPYTHON_DIR}/py/builtinimport.c
+    ${MICROPYTHON_DIR}/py/compile.c
+    ${MICROPYTHON_DIR}/py/emitbc.c
+    ${MICROPYTHON_DIR}/py/emitcommon.c
+    ${MICROPYTHON_DIR}/py/emitglue.c
+    ${MICROPYTHON_DIR}/py/emitinlinethumb.c
+    ${MICROPYTHON_DIR}/py/emitinlinextensa.c
+    ${MICROPYTHON_DIR}/py/emitnarm.c
+    ${MICROPYTHON_DIR}/py/emitnative.c
+    ${MICROPYTHON_DIR}/py/emitnthumb.c
+    ${MICROPYTHON_DIR}/py/emitnx64.c
+    ${MICROPYTHON_DIR}/py/emitnx86.c
+    ${MICROPYTHON_DIR}/py/emitnxtensa.c
+    ${MICROPYTHON_DIR}/py/emitnxtensawin.c
+    ${MICROPYTHON_DIR}/py/formatfloat.c
+    ${MICROPYTHON_DIR}/py/frozenmod.c
+    ${MICROPYTHON_DIR}/py/gc.c
+    ${MICROPYTHON_DIR}/py/lexer.c
+    ${MICROPYTHON_DIR}/py/malloc.c
+    ${MICROPYTHON_DIR}/py/map.c
+    ${MICROPYTHON_DIR}/py/modarray.c
+    ${MICROPYTHON_DIR}/py/modbuiltins.c
+    ${MICROPYTHON_DIR}/py/modcmath.c
+    ${MICROPYTHON_DIR}/py/modcollections.c
+    ${MICROPYTHON_DIR}/py/modgc.c
+    ${MICROPYTHON_DIR}/py/modio.c
+    ${MICROPYTHON_DIR}/py/modmath.c
+    ${MICROPYTHON_DIR}/py/modmicropython.c
+    ${MICROPYTHON_DIR}/py/modstruct.c
+    ${MICROPYTHON_DIR}/py/modsys.c
+    ${MICROPYTHON_DIR}/py/modthread.c
+    ${MICROPYTHON_DIR}/py/moduerrno.c
+    ${MICROPYTHON_DIR}/py/mpprint.c
+    ${MICROPYTHON_DIR}/py/mpstate.c
+    ${MICROPYTHON_DIR}/py/mpz.c
+    ${MICROPYTHON_DIR}/py/nativeglue.c
+    ${MICROPYTHON_DIR}/py/nlr.c
+    ${MICROPYTHON_DIR}/py/nlrpowerpc.c
+    ${MICROPYTHON_DIR}/py/nlrsetjmp.c
+    ${MICROPYTHON_DIR}/py/nlrthumb.c
+    ${MICROPYTHON_DIR}/py/nlrx64.c
+    ${MICROPYTHON_DIR}/py/nlrx86.c
+    ${MICROPYTHON_DIR}/py/nlrxtensa.c
+    ${MICROPYTHON_DIR}/py/obj.c
+    ${MICROPYTHON_DIR}/py/objarray.c
+    ${MICROPYTHON_DIR}/py/objattrtuple.c
+    ${MICROPYTHON_DIR}/py/objbool.c
+    ${MICROPYTHON_DIR}/py/objboundmeth.c
+    ${MICROPYTHON_DIR}/py/objcell.c
+    ${MICROPYTHON_DIR}/py/objclosure.c
+    ${MICROPYTHON_DIR}/py/objcomplex.c
+    ${MICROPYTHON_DIR}/py/objdeque.c
+    ${MICROPYTHON_DIR}/py/objdict.c
+    ${MICROPYTHON_DIR}/py/objenumerate.c
+    ${MICROPYTHON_DIR}/py/objexcept.c
+    ${MICROPYTHON_DIR}/py/objfilter.c
+    ${MICROPYTHON_DIR}/py/objfloat.c
+    ${MICROPYTHON_DIR}/py/objfun.c
+    ${MICROPYTHON_DIR}/py/objgenerator.c
+    ${MICROPYTHON_DIR}/py/objgetitemiter.c
+    ${MICROPYTHON_DIR}/py/objint.c
+    ${MICROPYTHON_DIR}/py/objint_longlong.c
+    ${MICROPYTHON_DIR}/py/objint_mpz.c
+    ${MICROPYTHON_DIR}/py/objlist.c
+    ${MICROPYTHON_DIR}/py/objmap.c
+    ${MICROPYTHON_DIR}/py/objmodule.c
+    ${MICROPYTHON_DIR}/py/objnamedtuple.c
+    ${MICROPYTHON_DIR}/py/objnone.c
+    ${MICROPYTHON_DIR}/py/objobject.c
+    ${MICROPYTHON_DIR}/py/objpolyiter.c
+    ${MICROPYTHON_DIR}/py/objproperty.c
+    ${MICROPYTHON_DIR}/py/objrange.c
+    ${MICROPYTHON_DIR}/py/objreversed.c
+    ${MICROPYTHON_DIR}/py/objset.c
+    ${MICROPYTHON_DIR}/py/objsingleton.c
+    ${MICROPYTHON_DIR}/py/objslice.c
+    ${MICROPYTHON_DIR}/py/objstr.c
+    ${MICROPYTHON_DIR}/py/objstringio.c
+    ${MICROPYTHON_DIR}/py/objstrunicode.c
+    ${MICROPYTHON_DIR}/py/objtuple.c
+    ${MICROPYTHON_DIR}/py/objtype.c
+    ${MICROPYTHON_DIR}/py/objzip.c
+    ${MICROPYTHON_DIR}/py/opmethods.c
+    ${MICROPYTHON_DIR}/py/pairheap.c
+    ${MICROPYTHON_DIR}/py/parse.c
+    ${MICROPYTHON_DIR}/py/parsenum.c
+    ${MICROPYTHON_DIR}/py/parsenumbase.c
+    ${MICROPYTHON_DIR}/py/persistentcode.c
+    ${MICROPYTHON_DIR}/py/profile.c
+    ${MICROPYTHON_DIR}/py/pystack.c
+    ${MICROPYTHON_DIR}/py/qstr.c
+    ${MICROPYTHON_DIR}/py/reader.c
+    ${MICROPYTHON_DIR}/py/repl.c
+    ${MICROPYTHON_DIR}/py/ringbuf.c
+    ${MICROPYTHON_DIR}/py/runtime.c
+    ${MICROPYTHON_DIR}/py/runtime_utils.c
+    ${MICROPYTHON_DIR}/py/scheduler.c
+    ${MICROPYTHON_DIR}/py/scope.c
+    ${MICROPYTHON_DIR}/py/sequence.c
+    ${MICROPYTHON_DIR}/py/showbc.c
+    ${MICROPYTHON_DIR}/py/smallint.c
+    ${MICROPYTHON_DIR}/py/stackctrl.c
+    ${MICROPYTHON_DIR}/py/stream.c
+    ${MICROPYTHON_DIR}/py/unicode.c
+    ${MICROPYTHON_DIR}/py/vm.c
+    ${MICROPYTHON_DIR}/py/vstr.c
+    ${MICROPYTHON_DIR}/py/warning.c
+)
+
+add_library(micropython STATIC ${MICROPYTHON_SRC})
+target_include_directories(micropython PRIVATE ${MICROPYTHON_DIR})
+target_include_directories(micropython PUBLIC ${MICROPYTHON_DIR})
+#target_include_directories(micropython PUBLIC ${TIC80CORE_DIR}/src/api)
+target_include_directories(micropython PUBLIC /Users/jminor/git/TIC-80/src/api)
+target_include_directories(micropython PUBLIC ${MICROPYTHON_DIR}/ports/unix/build-standard)
+target_include_directories(micropython PUBLIC ${MICROPYTHON_DIR}/ports/unix)
+
+################################
 # GIFLIB
 ################################
 
@@ -286,6 +420,7 @@ set(TIC80CORE_SRC
     ${TIC80CORE_DIR}/api/lua.c 
     ${TIC80CORE_DIR}/api/wren.c 
     ${TIC80CORE_DIR}/api/squirrel.c
+    ${TIC80CORE_DIR}/api/micropython.c
     ${TIC80CORE_DIR}/tic.c
     ${TIC80CORE_DIR}/cart.c
     ${TIC80CORE_DIR}/tools.c 
@@ -306,7 +441,7 @@ target_include_directories(tic80core
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src)
 
-target_link_libraries(tic80core lua lpeg wren squirrel blipbuf duktape zlib)
+target_link_libraries(tic80core lua lpeg wren squirrel blipbuf duktape micropython zlib)
 
 if(BUILD_DEPRECATED)
     target_compile_definitions(tic80core PRIVATE DEPRECATED_CHUNKS)
@@ -443,7 +578,7 @@ if(BUILD_LIBRETRO)
         set_target_properties(tic80_libretro PROPERTIES SUFFIX "_partial.a")
         add_custom_command(TARGET tic80_libretro
                POST_BUILD
-                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.a ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a)
+                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.a ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libmicropython.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a)
     else()
         add_library(tic80_libretro SHARED
         ${LIBRETRO_SRC}

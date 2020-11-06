@@ -183,6 +183,10 @@ typedef struct
         struct SQVM* squirrel;
 #endif
 
+#if defined(TIC_BUILD_WITH_PYTHON)
+        struct PythonVM* python;
+#endif
+
     };
 
     struct
@@ -208,6 +212,10 @@ typedef struct
     } pause;
 
 } tic_core;
+
+#if defined(TIC_BUILD_WITH_PYTHON)
+const tic_script_config* getPythonScriptConfig();
+#endif
 
 #if defined(TIC_BUILD_WITH_SQUIRREL)
 const tic_script_config* getSquirrelScriptConfig();

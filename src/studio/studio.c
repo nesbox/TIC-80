@@ -2169,5 +2169,6 @@ bool hasProjectExt(const char* name)
         || tic_tool_has_ext(name, PROJECT_JS_EXT)
         || tic_tool_has_ext(name, PROJECT_WREN_EXT)
         || tic_tool_has_ext(name, PROJECT_SQUIRREL_EXT)
+        || tic_tool_has_ext(name, PROJECT_PYTHON_EXT)
         || tic_tool_has_ext(name, PROJECT_FENNEL_EXT);
 }

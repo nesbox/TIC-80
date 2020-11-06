@@ -130,6 +130,8 @@ static const char* projectComment(const char* name)
         comment = "//";
     else if(tic_tool_has_ext(name, PROJECT_FENNEL_EXT))
         comment = ";;";
+    else if(tic_tool_has_ext(name, PROJECT_PYTHON_EXT))
+        comment = "#";
     else
         comment = "--";
 
