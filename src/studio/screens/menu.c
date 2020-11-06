@@ -23,19 +23,6 @@
 #include "menu.h"
 #include "studio/fs.h"
 
-#define DIALOG_WIDTH (TIC80_WIDTH/2)
-#define DIALOG_HEIGHT (TIC80_HEIGHT/2)
-
-static const char* Rows[] = 
-{
-    "RESUME GAME",
-    "RESET GAME",
-    "GAMEPAD CONFIG",
-    "",
-    "CLOSE GAME",
-    "QUIT TIC-80",
-};
-
 static void resumeGame(Menu* menu)
 {
     hideGameMenu();
@@ -67,11 +54,34 @@ static void exitStudioLocal(Menu* menu)
     exitStudio();
 }
 
-static void(*const MenuHandlers[])(Menu*) = {resumeGame, resetGame, gamepadConfig, NULL, closeGame, exitStudioLocal};
+#if defined(CRT_SHADER_SUPPORT)
+static void crtMonitor(Menu* menu)
+{
+    switchCrtMonitor();
+}
+#endif
+
+static const struct {const char* label; void(*const handler)(Menu*);} MenuItems[] = 
+{
+    {"RESUME GAME",     resumeGame},
+    {"RESET GAME",      resetGame},
+    {"GAMEPAD CONFIG",  gamepadConfig},
+#if defined(CRT_SHADER_SUPPORT)
+    {"CRT MONITOR",     crtMonitor},
+#endif
+    {"", NULL},
+    {"CLOSE GAME",      closeGame},
+    {"QUIT TIC-80",     exitStudioLocal},
+};
+
+#define MENU_ITEMS_COUNT (COUNT_OF(MenuItems))
+
+#define DIALOG_WIDTH (TIC80_WIDTH / 2)
+#define DIALOG_HEIGHT (TIC80_HEIGHT / 2 + (MENU_ITEMS_COUNT - 6) * TIC_FONT_HEIGHT)
 
 static tic_rect getRect(Menu* menu)
 {
-    tic_rect rect = {(TIC80_WIDTH - DIALOG_WIDTH)/2, (TIC80_HEIGHT - DIALOG_HEIGHT)/2, DIALOG_WIDTH, DIALOG_HEIGHT};
+    tic_rect rect = {(TIC80_WIDTH - DIALOG_WIDTH) / 2, (TIC80_HEIGHT - DIALOG_HEIGHT) / 2, DIALOG_WIDTH, DIALOG_HEIGHT};
 
     rect.x -= menu->pos.x;
     rect.y -= menu->pos.y;
@@ -84,7 +94,7 @@ static void drawDialog(Menu* menu)
 
     tic_mem* tic = menu->tic;
 
-    tic_rect header = {rect.x, rect.y-(TOOLBAR_SIZE-1), rect.w, TOOLBAR_SIZE};
+    tic_rect header = {rect.x, rect.y - (TOOLBAR_SIZE - 1), rect.w, TOOLBAR_SIZE};
 
     if(checkMousePos(&header))
     {
@@ -329,9 +339,9 @@ static void drawMainMenu(Menu* menu)
     tic_rect rect = getRect(menu);
 
     {
-        for(s32 i = 0; i < COUNT_OF(Rows); i++)
+        for(s32 i = 0; i < MENU_ITEMS_COUNT; i++)
         {
-            if(!*Rows[i])continue;
+            if(!*MenuItems[i].label)continue;
 
             tic_rect label = {rect.x + 22, rect.y + (TIC_FONT_HEIGHT+1)*i + 16, 86, TIC_FONT_HEIGHT+1};
             bool over = false;
@@ -351,19 +361,20 @@ static void drawMainMenu(Menu* menu)
 
                 if(checkMouseClick(&label, tic_mouse_left))
                 {
-                    MenuHandlers[i](menu);
+                    MenuItems[i].handler(menu);
                     return;
                 }
             }
 
+            const char* text = MenuItems[i].label;
             if(down)
             {
-                tic_api_print(tic, Rows[i], label.x, label.y+1, tic_color_light_grey, false, 1, false);
+                tic_api_print(tic, text, label.x, label.y+1, tic_color_light_grey, false, 1, false);
             }
             else
             {
-                tic_api_print(tic, Rows[i], label.x, label.y+1, tic_color_black, false, 1, false);
-                tic_api_print(tic, Rows[i], label.x, label.y, (over ? tic_color_light_grey : tic_color_white), false, 1, false);
+                tic_api_print(tic, text, label.x, label.y+1, tic_color_black, false, 1, false);
+                tic_api_print(tic, text, label.x, label.y, (over ? tic_color_light_grey : tic_color_white), false, 1, false);
             }
 
             if(i == menu->main.focus)
@@ -406,7 +417,7 @@ static void processGamedMenuGamepad(Menu* menu)
 
 static void processMainMenuGamepad(Menu* menu)
 {
-    enum{Count = COUNT_OF(Rows), Hold = 30, Period = 5};
+    enum{Count = MENU_ITEMS_COUNT, Hold = 30, Period = 5};
 
     enum
     {
@@ -421,7 +432,7 @@ static void processMainMenuGamepad(Menu* menu)
                 menu->main.focus = Count - 1;
 
             menu->main.focus = menu->main.focus % Count;
-        } while(!*Rows[menu->main.focus]);
+        } while(!*MenuItems[menu->main.focus].label);
 
         playSystemSfx(2);
     }
@@ -431,14 +442,14 @@ static void processMainMenuGamepad(Menu* menu)
         do
         {
             menu->main.focus = (menu->main.focus+1) % Count;
-        } while(!*Rows[menu->main.focus]);
+        } while(!*MenuItems[menu->main.focus].label);
 
         playSystemSfx(2);
     }
 
     if(tic_api_btnp(menu->tic, A, -1, -1))
     {
-        MenuHandlers[menu->main.focus](menu);
+        MenuItems[menu->main.focus].handler(menu);
     }
 }
 

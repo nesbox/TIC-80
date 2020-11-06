@@ -171,3 +171,7 @@ const char* studioExportSfx(s32 sfx);
 s32 calcWaveAnimation(tic_mem* tic, u32 index, s32 channel);
 void map2ram(tic_ram* ram, const tic_map* src);
 void tiles2ram(tic_ram* ram, const tic_tiles* src);
+
+#if defined(CRT_SHADER_SUPPORT)
+void switchCrtMonitor();
+#endif

@@ -742,6 +742,10 @@ if(BUILD_PRO)
     target_compile_definitions(tic80studio PRIVATE TIC80_PRO)
 endif()
 
+if(BUILD_SDLGPU)
+    target_compile_definitions(tic80studio PUBLIC CRT_SHADER_SUPPORT)
+endif()
+
 ################################
 # SDL GPU
 ################################
@@ -878,7 +882,6 @@ if(BUILD_SDL)
 
     if(BUILD_SDLGPU)
         target_link_libraries(tic80 sdlgpu)
-        target_compile_definitions(tic80 PRIVATE CRT_SHADER_SUPPORT)
     else()
         if(EMSCRIPTEN)
         elseif(RPI)

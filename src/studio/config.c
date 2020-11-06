@@ -78,6 +78,7 @@ static void readConfigShowSync(Config* config, lua_State* lua)
     lua_pop(lua, 1);
 }
 
+#if defined(CRT_SHADER_SUPPORT)
 static void readConfigCrtMonitor(Config* config, lua_State* lua)
 {
     lua_getglobal(lua, "CRT_MONITOR");
@@ -87,6 +88,7 @@ static void readConfigCrtMonitor(Config* config, lua_State* lua)
 
     lua_pop(lua, 1);
 }
+#endif
 
 static void readConfigUiScale(Config* config, lua_State* lua)
 {
@@ -277,7 +279,9 @@ static void readConfig(Config* config)
             readConfigCheckNewVersion(config, lua);
             readConfigNoSound(config, lua);
             readConfigShowSync(config, lua);
+#if defined(CRT_SHADER_SUPPORT)            
             readConfigCrtMonitor(config, lua);
+#endif
             readConfigUiScale(config, lua);
             readTheme(config, lua);
             readConfigCrtShader(config, lua);

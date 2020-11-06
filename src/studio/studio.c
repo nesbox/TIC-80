@@ -1486,10 +1486,12 @@ static inline bool keyWasPressedOnce(s32 key)
     return tic_api_keyp(tic, key, -1, -1);
 }
 
-static void switchCrtMonitor()
+#if defined(CRT_SHADER_SUPPORT)
+void switchCrtMonitor()
 {
     impl.config->data.crtMonitor = !impl.config->data.crtMonitor;
 }
+#endif
 
 static void processShortcuts()
 {
@@ -1501,7 +1503,9 @@ static void processShortcuts()
     bool alt = tic_api_key(tic, tic_key_alt);
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
 
+#if defined(CRT_SHADER_SUPPORT)
     if(keyWasPressedOnce(tic_key_f6)) switchCrtMonitor();
+#endif
 
     if(isGameMenu())
     {
@@ -2031,7 +2035,10 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, Sy
         setStudioMode(TIC_CONSOLE_MODE);
     }
 
+#if defined(CRT_SHADER_SUPPORT)
     impl.config->data.crtMonitor = impl.console->crtMonitor;
+#endif
+
     impl.config->data.goFullscreen = impl.console->goFullscreen;
 
     impl.studio.tick = studioTick;

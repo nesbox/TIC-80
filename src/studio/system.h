@@ -149,7 +149,11 @@ typedef struct
     bool checkNewVersion;
     bool noSound;
     bool showSync;
+
+#if defined(CRT_SHADER_SUPPORT)    
     bool crtMonitor;
+#endif
+    
     bool goFullscreen;
 
     const char* crtShader;
