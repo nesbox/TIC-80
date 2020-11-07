@@ -317,6 +317,9 @@ set(GRAVITY_SRC
 add_library(gravity STATIC ${GRAVITY_SRC})
 target_include_directories(gravity PUBLIC ${GRAVITY_DIR}/src/shared)
 target_include_directories(gravity PUBLIC ${GRAVITY_DIR}/src/runtime)
+target_include_directories(gravity PUBLIC ${GRAVITY_DIR}/src/utils)
+target_include_directories(gravity PUBLIC ${GRAVITY_DIR}/src/compiler)
+target_include_directories(gravity PUBLIC ${GRAVITY_DIR}/src/optionals)
 
 ################################
 # GIFLIB

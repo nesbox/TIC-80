@@ -45,6 +45,7 @@ static void gravityReportError(gravity_vm *vm, error_type_t error_type, const ch
     }
 
     // TODO: Replace printf with actual error report.
+    // core->data->error(core->data->data, duk_safe_to_stacktrace(duktape, -1));
     if (error_type == GRAVITY_ERROR_RUNTIME) {
       printf("RUNTIME ERROR: ");
     }
@@ -72,13 +73,13 @@ static bool initGravity(tic_mem* tic, const char* code)
     closeGravity(tic);
 
     gravity_delegate_t delegate = {
-        .error_callback = report_error,
+        .error_callback = gravityReportError,
         .xdata = tic
     };
 
     // compile source into a closure
     gravity_compiler_t *compiler = gravity_compiler_create(&delegate);
-    gravity_closure_t *closure = gravity_compiler_run(compiler, code, strlen(code), false, true);
+    gravity_closure_t *closure = gravity_compiler_run(compiler, code, strlen(code), 0, false, true);
     if (!closure) {
         gravity_compiler_free(compiler);
         return false;
@@ -128,12 +129,12 @@ static const tic_script_config GravitySyntaxConfig =
 {
     .init               = initGravity,
     .close              = closeGravity,
-    .tick               = callGravityTick,
-    .scanline           = callGravityScanline,
-    .overline           = callGravityOverline,
+    .tick               = NULL,
+    .scanline           = NULL,
+    .overline           = NULL,
 
-    .getOutline         = getGravityOutline,
-    .eval               = evalGravity,
+    .getOutline         = NULL,
+    .eval               = NULL,
 
     .blockCommentStart  = "/*",
     .blockCommentEnd    = "*/",

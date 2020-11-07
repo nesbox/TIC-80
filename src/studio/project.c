@@ -125,7 +125,7 @@ static const char* projectComment(const char* name)
 
     if(tic_tool_has_ext(name, PROJECT_JS_EXT)
         || tic_tool_has_ext(name, PROJECT_WREN_EXT)
-        || tic_tool_has_ext(name, PROJECT_SQUIRREL_EXT))
+        || tic_tool_has_ext(name, PROJECT_SQUIRREL_EXT)
         || tic_tool_has_ext(name, PROJECT_GRAVITY_EXT))
         comment = "//";
     else if(tic_tool_has_ext(name, PROJECT_FENNEL_EXT))
