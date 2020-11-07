@@ -43,3 +43,6 @@
 [submodule "vendor/moonscript"]
 	path = vendor/moonscript
 	url = https://github.com/nesbox/moonscript.git
+[submodule "vendor/gravity"]
+	path = vendor/gravity
+	url = https://github.com/marcobambini/gravity.git
