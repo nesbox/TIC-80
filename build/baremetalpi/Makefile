@@ -27,6 +27,7 @@ LIBS :=  \
 	$(TIC80LIB)/liblpeg.a \
  	$(TIC80LIB)/liblua.a \
 	$(TIC80LIB)/libwren.a \
+	$(TIC80LIB)/libgravity.a \
 	$(TIC80LIB)/libzlib.a \
 	$(NEWLIBDIR)/lib/libc.a \
         $(NEWLIBDIR)/lib/libcirclenewlib.a \

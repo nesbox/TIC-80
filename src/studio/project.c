@@ -29,7 +29,7 @@
 #include <ctype.h>
 #include <stddef.h>
 
-static const struct BinarySection{const char* tag; s32 count; s32 offset; s32 size; bool flip;} BinarySections[] = 
+static const struct BinarySection{const char* tag; s32 count; s32 offset; s32 size; bool flip;} BinarySections[] =
 {
     {"TILES",       TIC_BANK_SPRITES,   offsetof(tic_bank, tiles),          sizeof(tic_tile),           true},
     {"SPRITES",     TIC_BANK_SPRITES,   offsetof(tic_bank, sprites),        sizeof(tic_tile),           true},
@@ -87,7 +87,7 @@ static char* saveTextSection(char* ptr, const char* data)
 
 static char* saveBinaryBuffer(char* ptr, const char* comment, const void* data, s32 size, s32 row, bool flip)
 {
-    if(bufferEmpty(data, size)) 
+    if(bufferEmpty(data, size))
         return ptr;
 
     sprintf(ptr, "%s %03i:", comment, row);
@@ -104,7 +104,7 @@ static char* saveBinaryBuffer(char* ptr, const char* comment, const void* data, 
 
 static char* saveBinarySection(char* ptr, const char* comment, const char* tag, s32 count, const void* data, s32 size, bool flip)
 {
-    if(bufferEmpty(data, size * count)) 
+    if(bufferEmpty(data, size * count))
         return ptr;
 
     sprintf(ptr, "%s <%s>\n", comment, tag);
@@ -123,9 +123,10 @@ static const char* projectComment(const char* name)
 {
     char* comment;
 
-    if(tic_tool_has_ext(name, PROJECT_JS_EXT) 
+    if(tic_tool_has_ext(name, PROJECT_JS_EXT)
         || tic_tool_has_ext(name, PROJECT_WREN_EXT)
         || tic_tool_has_ext(name, PROJECT_SQUIRREL_EXT))
+        || tic_tool_has_ext(name, PROJECT_GRAVITY_EXT))
         comment = "//";
     else if(tic_tool_has_ext(name, PROJECT_FENNEL_EXT))
         comment = ";;";
@@ -150,7 +151,7 @@ s32 tic_project_save(const char* name, void* data, const tic_cartridge* cart)
         {
             makeTag(section->tag, tag, b);
 
-            ptr = saveBinarySection(ptr, comment, tag, section->count, 
+            ptr = saveBinarySection(ptr, comment, tag, section->count,
                 (u8*)&cart->banks[b] + section->offset, section->size, section->flip);
         }
     }
@@ -221,7 +222,7 @@ static bool loadBinarySection(const char* project, const char* comment, const ch
                     memcpy(lineStr, ptr + sizeof("-- ") - 1, sizeof lineStr - 1);
 
                     s32 index = atoi(lineStr);
-                    
+
                     if(index < count)
                     {
                         ptr += sizeof("-- 999:") - 1;
@@ -231,7 +232,7 @@ static bool loadBinarySection(const char* project, const char* comment, const ch
                         ptr = getLineEnd(ptr);
                     }
                     else break;
-                }               
+                }
             }
             else
             {
@@ -291,7 +292,7 @@ bool tic_project_load(const char* name, const char* data, s32 size, tic_cartridg
                 if(loadBinarySection(project, comment, "COVER", 1, &cart->cover, -1, true))
                     done = true;
             }
-            
+
             if(done)
                 memcpy(dst, cart, sizeof(tic_cartridge));
 

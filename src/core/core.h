@@ -112,7 +112,7 @@ typedef struct
         u32 holds[sizeof(tic80_gamepads) * BITS_IN_BYTE];
     } gamepads;
 
-    struct 
+    struct
     {
         tic80_keyboard previous;
 
@@ -177,10 +177,14 @@ typedef struct
 
 #if defined(TIC_BUILD_WITH_WREN)
         struct WrenVM* wren;
-#endif  
+#endif
 
 #if defined(TIC_BUILD_WITH_SQUIRREL)
         struct SQVM* squirrel;
+#endif
+
+#if defined(TIC_BUILD_WITH_GRAVITY)
+        struct gravity_vm* gravity;
 #endif
 
     };
@@ -190,7 +194,7 @@ typedef struct
         blip_buffer_t* left;
         blip_buffer_t* right;
     } blip;
-    
+
     s32 samplerate;
 
     tic_tick_data* data;
@@ -199,7 +203,7 @@ typedef struct
 
     struct
     {
-        tic_core_state_data state;   
+        tic_core_state_data state;
         tic_ram ram;
         u8 input;
 
@@ -214,6 +218,10 @@ typedef struct
 
 #if defined(TIC_BUILD_WITH_SQUIRREL)
 const tic_script_config* getSquirrelScriptConfig();
+#endif
+
+#if defined(TIC_BUILD_WITH_GRAVITY)
+const tic_script_config* getGravityScriptConfig();
 #endif
 
 #if defined(TIC_BUILD_WITH_LUA)

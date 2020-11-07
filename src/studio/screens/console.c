@@ -57,10 +57,10 @@
 typedef enum
 {
 #if defined(TIC_BUILD_WITH_LUA)
-    LuaScript,  
+    LuaScript,
 
 #   if defined(TIC_BUILD_WITH_MOON)
-    MoonScript, 
+    MoonScript,
 #   endif
 
 #   if defined(TIC_BUILD_WITH_FENNEL)
@@ -70,11 +70,11 @@ typedef enum
 #endif /* defined(TIC_BUILD_WITH_LUA) */
 
 #if defined(TIC_BUILD_WITH_JS)
-    JavaScript, 
+    JavaScript,
 #endif
 
 #if defined(TIC_BUILD_WITH_WREN)
-    WrenScript, 
+    WrenScript,
 #endif
 
 #if defined(TIC_BUILD_WITH_SQUIRREL)
@@ -136,7 +136,7 @@ static const char DefaultWrenTicPath[] = TIC_LOCAL_VERSION "default_wren.tic";
 
 #if defined(TIC_BUILD_WITH_SQUIRREL)
 static const char DefaultSquirrelTicPath[] = TIC_LOCAL_VERSION "default_squirrel.tic";
-#endif  
+#endif
 
 static const char* getName(const char* name, const char* ext)
 {
@@ -504,7 +504,7 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 
 #if defined(TIC_BUILD_WITH_SQUIRREL)
         case SquirrelScript: strcpy(path, DefaultSquirrelTicPath); break;
-#endif          
+#endif
         }
 
         void* data = fsLoadRootFile(console->fs, path, size);
@@ -713,12 +713,12 @@ static void updateProject(Console* console)
                     studioRomLoaded();
                 }
                 else printError(console, "\nproject updating error :(");
-                
+
                 free(cart);
             }
             free(data);
 
-        }       
+        }
     }
 }
 
@@ -764,6 +764,9 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
             if(!fsExistsFile(console->fs, name))
                 name = getName(param, PROJECT_SQUIRREL_EXT);
 
+            if(!fsExistsFile(console->fs, name))
+                name = getName(param, PROJECT_GRAVITY_EXT);
+
             void* data = fsLoadFile(console->fs, name, &size);
 
             if(data && tic_project_load(name, data, size, &console->tic->cart))
@@ -794,7 +797,7 @@ static void load(Console* console, const char* path, const char* hash)
             loadRom(console->tic, data, size);
             onCartLoaded(console, name);
 
-            free(data);     
+            free(data);
         }
 
         commandDone(console);
@@ -951,7 +954,7 @@ static void onConsoleNewCommandConfirmed(Console* console, const char* param)
             loadDemo(console, WrenScript);
             done = true;
         }
-#endif          
+#endif
 
 #if defined(TIC_BUILD_WITH_SQUIRREL)
         if(strcmp(param, "squirrel") == 0)
@@ -959,7 +962,7 @@ static void onConsoleNewCommandConfirmed(Console* console, const char* param)
             loadDemo(console, SquirrelScript);
             done = true;
         }
-#endif          
+#endif
 
         if(!done)
         {
@@ -1129,7 +1132,7 @@ static void installDemoCart(FileSystem* fs, const char* name, const void* cart, 
         if(dataSize)
             fsSaveFile(fs, name, data, dataSize, true);
 
-        free(data);        
+        free(data);
     }
 }
 
@@ -1294,7 +1297,7 @@ static void onConsoleConfigCommand(Console* console, const char* param)
         onConsoleLoadDemoCommand(console, DefaultSquirrelTicPath);
     }
 #endif
-    
+
     else
     {
         printError(console, "\nunknown parameter: ");
@@ -1682,7 +1685,7 @@ static void* embedCart(Console* console, s32* size)
             {
                 if(zipSize = tic_tool_zip(zipData, zipSize, cart, cartSize))
                 {
-                    EmbedHeader header = 
+                    EmbedHeader header =
                     {
                         .appSize = appSize,
                         .cartSize = zipSize,
@@ -1711,7 +1714,7 @@ static void* embedCart(Console* console, s32* size)
 
         free(app);
     }
-    
+
     return data;
 }
 
@@ -1808,7 +1811,7 @@ static void onConsoleExportHtmlCommand(Console* console, const char* providedNam
             return;
         }
     }
-    else 
+    else
     {
         printLine(console);
         getSystem()->httpGet("/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "/" HTML_EXPORT_NAME, onHtmlExportGet, console);
@@ -1835,7 +1838,7 @@ static void onConsoleExportHtmlCommand(Console* console, const char* providedNam
                 {
                     zip_entry_open(zip, "cart.tic");
                     zip_entry_write(zip, cart, cartSize);
-                    zip_entry_close(zip);                    
+                    zip_entry_close(zip);
                 }
                 else errorOccured = true;
 
@@ -1907,7 +1910,7 @@ static void onConsoleExportCommand(Console* console, const char* param)
 
 #if defined(__TIC_WINDOWS__)
             const char* ext = ExeExt;
-#else           
+#else
             const char* ext = NULL;
 #endif
 
@@ -1928,7 +1931,7 @@ static void onConsoleExportCommand(Console* console, const char* param)
 
             printBack(console, "\nhtml export isn't supported on this platform\n");
             commandDone(console);
-#endif          
+#endif
         }
         else if(strcmp(param, "sprites") == 0)
         {
@@ -2062,7 +2065,7 @@ static void onConsoleSaveCommandConfirmed(Console* console, const char* param)
 
 static void onConsoleSaveCommand(Console* console, const char* param)
 {
-    if(param && strlen(param) && 
+    if(param && strlen(param) &&
         (fsExistsFile(console->fs, param) ||
             fsExistsFile(console->fs, getCartName(param))))
     {
@@ -2440,7 +2443,7 @@ static void onConsoleHelpCommand(Console* console, const char* param)
         {
             const char* alt = AvailableConsoleCommands[i].alt;
             if(alt)
-                len += strlen(alt) + 1;         
+                len += strlen(alt) + 1;
         }
 
         if(len > maxName) maxName = len;
@@ -2666,7 +2669,7 @@ static void onHttpVesrsionGet(const HttpGetData* data)
         {
             lua_State* lua = netLuaInit(data->done.data, data->done.size);
 
-            union 
+            union
             {
                 struct
                 {
@@ -2676,7 +2679,7 @@ static void onHttpVesrsionGet(const HttpGetData* data)
                 };
 
                 s32 data[3];
-            } version = 
+            } version =
             {
                 .major = TIC_VERSION_MAJOR,
                 .minor = TIC_VERSION_MINOR,
@@ -2748,7 +2751,7 @@ static void processMouse(Console* console)
         {
             console->scroll.active = true;
             console->scroll.start = tic_api_mouse(tic).y + console->scroll.pos * TIC_FONT_HEIGHT;
-        }            
+        }
     }
     else console->scroll.active = false;
 }
@@ -2792,7 +2795,7 @@ static void processKeyboard(Console* console)
         else if(keyWasPressed(tic_key_pageup))      processConsolePgUp(console);
         else if(keyWasPressed(tic_key_pagedown))    processConsolePgDown(console);
 
-        if(tic_api_key(tic, tic_key_ctrl) 
+        if(tic_api_key(tic, tic_key_ctrl)
             && tic_api_key(tic, tic_key_k))
         {
             onConsoleClsCommand(console, NULL);
@@ -2843,7 +2846,7 @@ static void tick(Console* console)
             loadDemo(console, WrenScript);
 #elif defined(TIC_BUILD_WITH_SQUIRREL)
             loadDemo(console, SquirrelScript);
-#endif          
+#endif
 
             printBack(console, "\n hello! type ");
             printFront(console, "help");
@@ -2884,7 +2887,7 @@ static void tick(Console* console)
         }
     }
     else
-    {   
+    {
         if(console->cursor.delay)
             console->cursor.delay--;
 
@@ -2921,7 +2924,7 @@ static bool cmdLoadCart(Console* console, const char* name)
                 console->embed.yes = true;
                 console->skipStart = true;
                 done = true;
-            }            
+            }
         }
         else if(tic_tool_has_ext(name, CART_EXT))
         {
@@ -2930,13 +2933,13 @@ static bool cmdLoadCart(Console* console, const char* name)
 
             char cartName[TICNAME_MAX];
             fsFilename(name, cartName);
-        
+
             setCartName(console, cartName);
 
             console->embed.yes = true;
             done = true;
         }
-        
+
         free(data);
     }
 
@@ -3296,9 +3299,9 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
                             if(dataSize)
                             {
                                 tic_cart_load(console->embed.file, data, dataSize);
-                                console->embed.yes = true;                                
+                                console->embed.yes = true;
                             }
-                            
+
                             free(data);
                         }
 
@@ -3336,11 +3339,11 @@ void freeConsole(Console* console)
             HistoryItem* next = it->next;
 
             if(it->value) free(it->value);
-            
+
             free(it);
 
             it = next;
-        }        
+        }
     }
 
     free(console);

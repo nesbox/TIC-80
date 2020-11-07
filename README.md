@@ -18,7 +18,8 @@ To make a retro styled game, the whole process of creation and execution takes p
 - Multiple programming languages: [Lua](https://www.lua.org),
   [Moonscript](https://moonscript.org),
   [Javascript](https://developer.mozilla.org/en-US/docs/Web/JavaScript),
-  [Wren](http://wren.io/), and [Fennel](https://fennel-lang.org).
+  [Wren](http://wren.io/), [Fennel](https://fennel-lang.org),
+  and [Gravity](https://github.com/marcobambini/gravity).
 - Games can have mouse and keyboard as input
 - Games can have up to 4 controllers as input (with up to 8 buttons, each)
 - Built-in editors: for code, sprites, world maps, sound effects and music
@@ -76,7 +77,7 @@ cmake -G "MinGW Makefiles" ..
 mingw32-make -j4
 ```
 
-## Linux 
+## Linux
 ### Ubuntu 14.04
 run the following commands in the Terminal
 ```
@@ -114,7 +115,7 @@ make -j4
 ```
 
 ## iOS / tvOS
-You can find iOS/tvOS version here 
+You can find iOS/tvOS version here
 - 0.60.3: https://github.com/brunophilipe/TIC-80
 - 0.45.0: https://github.com/CliffsDover/TIC-80
 

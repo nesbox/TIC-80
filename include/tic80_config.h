@@ -27,7 +27,8 @@
 	!defined(TIC_BUILD_WITH_FENNEL) && 	\
 	!defined(TIC_BUILD_WITH_JS) && 		\
 	!defined(TIC_BUILD_WITH_WREN) &&	\
-	!defined(TIC_BUILD_WITH_SQUIRREL)
+	!defined(TIC_BUILD_WITH_SQUIRREL) && \
+	!defined(TIC_BUILD_WITH_GRAVITY)
 
 #define TIC_BUILD_WITH_LUA 		1
 #define TIC_BUILD_WITH_MOON 	1
@@ -35,11 +36,12 @@
 #define TIC_BUILD_WITH_JS 		1
 #define TIC_BUILD_WITH_WREN 	1
 #define TIC_BUILD_WITH_SQUIRREL 1
+#define TIC_BUILD_WITH_GRAVITY 1
 
 #endif
 
 #if defined(__APPLE__)
-// TODO: this disables macos config 
+// TODO: this disables macos config
 #	include "AvailabilityMacros.h"
 #	include "TargetConditionals.h"
 // #	ifndef TARGET_OS_IPHONE
@@ -54,7 +56,7 @@
 #if defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__)
 #	undef __TIC_WINDOWS__
 #	define __TIC_WINDOWS__ 1
-#endif 
+#endif
 
 #if defined(ANDROID) || defined(__ANDROID__)
 #	undef __TIC_ANDROID__

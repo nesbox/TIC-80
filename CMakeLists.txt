@@ -17,7 +17,7 @@ if(Git_FOUND)
     string(LENGTH "${RESULT_STRING}" LENGTH_RESULT_STRING)
 
     if(${LENGTH_RESULT_STRING} EQUAL 0)
-        
+
         execute_process(
             COMMAND ${GIT_EXECUTABLE} rev-list HEAD --count
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -105,10 +105,10 @@ if (BAREMETALPI)
     # removed squirrel language as it doesn't seem to compile under arm. Needs investigation.
     # Ideally should use the CFLAGS defined in circle build files, not hardwire them here too.
     # For RPI2
-    #set(CMAKE_C_FLAGS " -DTIC_BUILD_WITH_FENNEL -DTIC_BUILD_WITH_MOON -DTIC_BUILD_WITH_JS -DTIC_BUILD_WITH_WREN -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv7-a+neon-vfpv4  -D AARCH=32 -D __circle__ -D BAREMETALPI  --specs=nosys.specs -O3 -mabi=aapcs -marm  -mfloat-abi=hard -mfpu=neon-vfpv4  -D__DYNAMIC_REENT__")
+    #set(CMAKE_C_FLAGS " -DTIC_BUILD_WITH_FENNEL -DTIC_BUILD_WITH_MOON -DTIC_BUILD_WITH_JS -DTIC_BUILD_WITH_WREN -DTIC_BUILD_WITH_GRAVITY -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv7-a+neon-vfpv4  -D AARCH=32 -D __circle__ -D BAREMETALPI  --specs=nosys.specs -O3 -mabi=aapcs -marm  -mfloat-abi=hard -mfpu=neon-vfpv4  -D__DYNAMIC_REENT__")
     # For RPI3
     # investigate -funsafe-math-optimizations and -march=armv8-a+crc -mcpu=cortex-a53
-    set(CMAKE_C_FLAGS " -DTIC_BUILD_WITH_FENNEL -DTIC_BUILD_WITH_MOON -DTIC_BUILD_WITH_JS -DTIC_BUILD_WITH_WREN -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv8-a  -D AARCH=32 -mtune=cortex-a53  -D __circle__ -D BAREMETALPI  --specs=nosys.specs -O3 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__")
+    set(CMAKE_C_FLAGS " -DTIC_BUILD_WITH_FENNEL -DTIC_BUILD_WITH_MOON -DTIC_BUILD_WITH_JS -DTIC_BUILD_WITH_WREN -DTIC_BUILD_WITH_GRAVITY -DTIC_BUILD_WITH_LUA -DLUA_32BITS -std=c99 -march=armv8-a  -D AARCH=32 -mtune=cortex-a53  -D __circle__ -D BAREMETALPI  --specs=nosys.specs -O3 -marm -mfloat-abi=hard -mfpu=neon-fp-armv8 -funsafe-math-optimizations -D__DYNAMIC_REENT__")
 
     set(CMAKE_C_COMPILER ${TOOLCHAIN_PREFIX}gcc)
     set(CMAKE_ASM_COMPILER ${CMAKE_C_COMPILER})
@@ -139,7 +139,7 @@ endif()
 
 if(LINUX)
     include(FindPkgConfig)
-    if(NOT PKG_CONFIG_FOUND) 
+    if(NOT PKG_CONFIG_FOUND)
         message(WARNING "We need pkg-config to detect GTK libs")
     else()
         pkg_check_modules(GTK gtk+-3.0)
@@ -173,7 +173,7 @@ if(MSVC)
             string(REGEX REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_${OUTPUTCONFIG} "${CMAKE_CXX_FLAGS_${OUTPUTCONFIG}}")
         endif()
     endforeach()
-    
+
 else()
 
     set(CMAKE_C_STANDARD 99)
@@ -186,7 +186,7 @@ set(THIRDPARTY_DIR ${CMAKE_SOURCE_DIR}/vendor)
 ################################
 
 set(LUA_DIR ${THIRDPARTY_DIR}/lua)
-set(LUA_SRC 
+set(LUA_SRC
     ${LUA_DIR}/lapi.c
     ${LUA_DIR}/lcode.c
     ${LUA_DIR}/lctype.c
@@ -235,7 +235,7 @@ endif()
 ################################
 
 set(LPEG_DIR ${THIRDPARTY_DIR}/lpeg)
-set(LPEG_SRC 
+set(LPEG_SRC
     ${LPEG_DIR}/lpcap.c
     ${LPEG_DIR}/lpcode.c
     ${LPEG_DIR}/lpprint.c
@@ -251,7 +251,7 @@ target_include_directories(lpeg PRIVATE ${LUA_DIR})
 ################################
 
 set(WREN_DIR ${THIRDPARTY_DIR}/wren/src)
-set(WREN_SRC 
+set(WREN_SRC
     ${WREN_DIR}/optional/wren_opt_meta.c
     ${WREN_DIR}/optional/wren_opt_random.c
     ${WREN_DIR}/vm/wren_compiler.c
@@ -303,6 +303,22 @@ target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/squirrel)
 target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/sqstdlib)
 
 ################################
+# GRAVITY
+################################
+
+set(GRAVITY_DIR ${THIRDPARTY_DIR}/gravity)
+set(GRAVITY_SRC
+    ${GRAVITY_DIR}/src/runtime/gravity_core.c
+    ${GRAVITY_DIR}/src/runtime/gravity_vm.c
+#    ${GRAVITY_DIR}/src/shared/gravity_hash.c
+#    ${GRAVITY_DIR}/src/runtime/gravity_memory.c
+#    ${GRAVITY_DIR}/src/runtime/gravity_value.c
+)
+add_library(gravity STATIC ${GRAVITY_SRC})
+target_include_directories(gravity PUBLIC ${GRAVITY_DIR}/src/shared)
+target_include_directories(gravity PUBLIC ${GRAVITY_DIR}/src/runtime)
+
+################################
 # GIFLIB
 ################################
 
@@ -317,7 +333,7 @@ set(GIFLIB_SRC
     ${GIFLIB_DIR}/openbsd-reallocarray.c
 )
 add_library(giflib STATIC ${GIFLIB_SRC})
-target_include_directories(giflib 
+target_include_directories(giflib
     PRIVATE ${GIFLIB_DIR}
     INTERFACE ${THIRDPARTY_DIR}/giflib)
 
@@ -345,28 +361,29 @@ set(TIC80CORE_SRC
     ${TIC80CORE_DIR}/core/draw.c
     ${TIC80CORE_DIR}/core/io.c
     ${TIC80CORE_DIR}/core/sound.c
-    ${TIC80CORE_DIR}/api/js.c 
-    ${TIC80CORE_DIR}/api/lua.c 
-    ${TIC80CORE_DIR}/api/wren.c 
+    ${TIC80CORE_DIR}/api/gravity.c
+    ${TIC80CORE_DIR}/api/js.c
+    ${TIC80CORE_DIR}/api/lua.c
+    ${TIC80CORE_DIR}/api/wren.c
     ${TIC80CORE_DIR}/api/squirrel.c
-    ${TIC80CORE_DIR}/ext/gif.c     
+    ${TIC80CORE_DIR}/ext/gif.c
     ${TIC80CORE_DIR}/tic.c
     ${TIC80CORE_DIR}/cart.c
-    ${TIC80CORE_DIR}/tools.c 
-    ${TIC80CORE_DIR}/tilesheet.c 
+    ${TIC80CORE_DIR}/tools.c
+    ${TIC80CORE_DIR}/tilesheet.c
 )
 
 add_library(tic80core STATIC ${TIC80CORE_SRC})
 
-target_include_directories(tic80core 
-    PRIVATE 
+target_include_directories(tic80core
+    PRIVATE
         ${THIRDPARTY_DIR}/moonscript
         ${THIRDPARTY_DIR}/fennel
     PUBLIC
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src)
 
-target_link_libraries(tic80core lua lpeg wren squirrel giflib blipbuf duktape zlib)
+target_link_libraries(tic80core lua lpeg wren squirrel gravity giflib blipbuf duktape zlib)
 
 if(LINUX)
     target_link_libraries(tic80core m)
@@ -384,7 +401,7 @@ if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT RPI)
     if(ANDROID)
         include_directories(${ANDROID_NDK}/sources/android/cpufeatures)
     endif()
-    
+
     set(SDL_SHARED OFF CACHE BOOL "" FORCE)
 
     add_subdirectory(${THIRDPARTY_DIR}/sdl2)
@@ -399,9 +416,9 @@ if(BUILD_SDL AND BUILD_PLAYER AND NOT RPI)
 
     add_executable(player-sdl WIN32 ${CMAKE_SOURCE_DIR}/src/system/sdl/player.c)
 
-    target_include_directories(player-sdl PRIVATE 
-        ${THIRDPARTY_DIR}/sdl2/include 
-        ${CMAKE_SOURCE_DIR}/include 
+    target_include_directories(player-sdl PRIVATE
+        ${THIRDPARTY_DIR}/sdl2/include
+        ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src)
 
     if(MINGW)
@@ -435,11 +452,11 @@ elseif(LINUX)
 endif()
 
 if(APPLE)
-    set_property (TARGET sokol APPEND_STRING PROPERTY 
+    set_property (TARGET sokol APPEND_STRING PROPERTY
         COMPILE_FLAGS "-fobjc-arc")
 
-    target_link_libraries(sokol 
-        "-framework Cocoa" 
+    target_link_libraries(sokol
+        "-framework Cocoa"
         "-framework QuartzCore"
         "-framework Metal"
         "-framework MetalKit"
@@ -471,9 +488,9 @@ if(BUILD_PLAYER AND BUILD_SOKOL)
         target_link_libraries(player-sokol mingw32)
     endif()
 
-    target_include_directories(player-sokol PRIVATE 
-        ${CMAKE_SOURCE_DIR}/include 
-        ${THIRDPARTY_DIR}/sokol 
+    target_include_directories(player-sokol PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+        ${THIRDPARTY_DIR}/sokol
         ${CMAKE_SOURCE_DIR}/src)
 
     target_link_libraries(player-sokol tic80core sokol)
@@ -496,14 +513,14 @@ if(BUILD_LIBRETRO)
         set_target_properties(tic80_libretro PROPERTIES SUFFIX "_partial.a")
         add_custom_command(TARGET tic80_libretro
                POST_BUILD
-                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.a ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a)
+                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.a ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgravity.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a)
     else()
         add_library(tic80_libretro SHARED
         ${LIBRETRO_SRC}
         )
     endif()
 
-    target_include_directories(tic80_libretro PRIVATE 
+    target_include_directories(tic80_libretro PRIVATE
         ${CMAKE_CURRENT_BINARY_DIR}
         ${TIC80CORE_DIR})
 
@@ -570,7 +587,7 @@ endif()
 if (NOT N3DS)
 
 set(ZLIB_DIR ${THIRDPARTY_DIR}/zlib)
-set(ZLIB_SRC 
+set(ZLIB_SRC
     ${ZLIB_DIR}/adler32.c
     ${ZLIB_DIR}/compress.c
     ${ZLIB_DIR}/crc32.c
@@ -623,7 +640,7 @@ if(BUILD_DEMO_CARTS)
 
     file(GLOB DEMO_CARTS ${CMAKE_SOURCE_DIR}/demos/*.* )
 
-    list(APPEND DEMO_CARTS 
+    list(APPEND DEMO_CARTS
         ${CMAKE_SOURCE_DIR}/config.lua
     )
 
@@ -763,7 +780,7 @@ set(SDLGPU_SRC
 )
 
 if(NOT ANDROID)
-    list(APPEND SDLGPU_SRC 
+    list(APPEND SDLGPU_SRC
         ${SDLGPU_DIR}/renderer_GLES_1.c
         ${SDLGPU_DIR}/renderer_GLES_3.c
         ${SDLGPU_DIR}/renderer_OpenGL_1.c
@@ -771,7 +788,7 @@ if(NOT ANDROID)
         ${SDLGPU_DIR}/renderer_OpenGL_2.c
         ${SDLGPU_DIR}/renderer_OpenGL_3.c
         ${SDLGPU_DIR}/renderer_OpenGL_4.c
-        ${SDLGPU_DIR}/SDL_gpu_shapes.c  
+        ${SDLGPU_DIR}/SDL_gpu_shapes.c
         ${SDLGPU_DIR}/externals/glew/glew.c
     )
 endif()
@@ -829,7 +846,7 @@ if(BUILD_SDL)
     set(TIC80_SRC src/system/sdl/main.c)
 
     if(WIN32)
-        
+
         configure_file("${PROJECT_SOURCE_DIR}/build/windows/tic80.rc.in" "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
         set(TIC80_SRC ${TIC80_SRC} "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
 
@@ -919,13 +936,13 @@ if(BUILD_SOKOL)
 
         configure_file("${PROJECT_SOURCE_DIR}/build/windows/tic80.rc.in" "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
         set(TIC80_SRC ${TIC80_SRC} "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
-        
-        add_executable(tic80-sokol WIN32 ${TIC80_SRC})        
+
+        add_executable(tic80-sokol WIN32 ${TIC80_SRC})
     else()
         add_executable(tic80-sokol ${TIC80_SRC})
     endif()
 
-    target_include_directories(tic80-sokol PRIVATE 
+    target_include_directories(tic80-sokol PRIVATE
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src
         ${THIRDPARTY_DIR}/sokol)
