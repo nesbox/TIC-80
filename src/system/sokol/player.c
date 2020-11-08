@@ -7,6 +7,9 @@
 
 #include <tic80.h>
 
+#define TIC80_WINDOW_TITLE "TIC-80"
+#define TIC80_DEFAULT_CART "cart.tic"
+
 static tic80* tic = NULL;
 
 static void app_init(void)
@@ -15,7 +18,7 @@ static void app_init(void)
     desc.num_channels = 2;
     saudio_setup(&desc);
 
-    FILE* file = fopen("cart.tic", "rb");
+    FILE* file = fopen(TIC80_DEFAULT_CART, "rb");
 
     if(file)
     {
@@ -115,7 +118,7 @@ sapp_desc sokol_main(int argc, char* argv[]) {
         .cleanup_cb = app_cleanup,
         .width = 3 * TIC80_FULLWIDTH,
         .height = 3 * TIC80_FULLHEIGHT,
-        .window_title = "TIC-80 with Sokol renderer",
+        .window_title = TIC80_WINDOW_TITLE,
         .ios_keyboard_resizes_canvas = true
     };
 }
