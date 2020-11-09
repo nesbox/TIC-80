@@ -772,9 +772,12 @@ static void processJoysticks()
                         gamepad->x = SDL_JoystickGetButton(joystick, 2);
                         gamepad->y = SDL_JoystickGetButton(joystick, 3);
 
-                        for(s32 i = 5; i < numButtons; i++)
+                        if(numButtons >= 8)
                         {
-                            s32 back = SDL_JoystickGetButton(joystick, i);
+                            // !TODO: We have to find a better way to handle gamepad MENU button
+                            // atm we show game menu for only Pause Menu button on XBox one controller
+                            // issue #1220
+                            s32 back = SDL_JoystickGetButton(joystick, 7);
 
                             if(back)
                             {
