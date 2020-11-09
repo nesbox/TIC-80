@@ -385,7 +385,11 @@ void initConfig(Config* config, tic_mem* tic, FileSystem* fs)
 
 void freeConfig(Config* config)
 {
+#if defined(CRT_SHADER_SUPPORT)
+
     free((void*)config->data.shader.vertex);
     free((void*)config->data.shader.pixel);
+#endif
+
     free(config);
 }

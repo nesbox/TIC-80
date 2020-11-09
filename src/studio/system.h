@@ -151,15 +151,14 @@ typedef struct
 
 #if defined(CRT_SHADER_SUPPORT)
     bool crtMonitor;
-#endif
-    
-    bool goFullscreen;
-
     struct
     {
         const char* vertex;
         const char* pixel;
     } shader;
+#endif
+    
+    bool goFullscreen;
 
     const tic_cartridge* cart;
 
