@@ -1344,84 +1344,38 @@ static void preseed()
 }
 
 #if defined(CRT_SHADER_SUPPORT)
-static char* prepareShader(const char* code)
-{
-    GPU_Renderer* renderer = GPU_GetCurrentRenderer();
-    const char* header = "";
-
-    if(renderer->shader_language == GPU_LANGUAGE_GLSL)
-    {
-        if(renderer->max_shader_version >= 120)
-            header = "#version 120\n";
-        else
-            header = "#version 110\n";
-    }
-    else if(renderer->shader_language == GPU_LANGUAGE_GLSLES)
-        header = "#version 100\nprecision mediump int;\nprecision mediump float;\n";
-
-    char* shader = SDL_malloc(strlen(header) + strlen(code) + 2);
-
-    if(shader)
-    {
-        strcpy(shader, header);
-        strcat(shader, code);       
-    }
-
-    return shader;
-}
 
 static void loadCrtShader()
 {
-    char* vertextShader = prepareShader("\
-        attribute vec3 gpu_Vertex;\n\
-        attribute vec2 gpu_TexCoord;\n\
-        attribute vec4 gpu_Color;\n\
-        uniform mat4 gpu_ModelViewProjectionMatrix;\n\
-        varying vec4 color;\n\
-        varying vec2 texCoord;\n\
-        void main(void)\n\
-        {\n\
-            color = gpu_Color;\n\
-            texCoord = vec2(gpu_TexCoord);\n\
-            gl_Position = gpu_ModelViewProjectionMatrix * vec4(gpu_Vertex, 1.0);\n\
-        }");
+    const char* vertextShader = platform.studio->config()->shader.vertex;
+    const char* pixelShader = platform.studio->config()->shader.pixel;
 
-    u32 vertex = 0;
-    if(vertextShader)
-    {
-        vertex = GPU_CompileShader(GPU_VERTEX_SHADER, vertextShader);
-        SDL_free(vertextShader);        
-    }
+    if(!vertextShader)
+        printf("Error: vertex shader is empty.\n");
+
+    if(!pixelShader)
+        printf("Error: pixel shader is empty.\n");
+
+    u32 vertex = GPU_CompileShader(GPU_VERTEX_SHADER, vertextShader);
     
     if(!vertex)
     {
-        char msg[1024];
-        sprintf(msg, "Failed to load vertex shader: %s\n", GPU_GetShaderMessage());
-        showMessageBox("Error", msg);
+        printf("Failed to load vertex shader: %s\n", GPU_GetShaderMessage());
         return;
     }
 
-    char* fragmentShader = prepareShader(platform.studio->config()->crtShader);
-
-    u32 fragment = 0;
-    if(fragmentShader)
-    {
-        fragment = GPU_CompileShader(GPU_PIXEL_SHADER, fragmentShader);
-        SDL_free(fragmentShader);       
-    }
+    u32 pixel = GPU_CompileShader(GPU_PIXEL_SHADER, pixelShader);
     
-    if(!fragment)
+    if(!pixel)
     {
-        char msg[1024];
-        sprintf(msg, "Failed to load fragment shader: %s\n", GPU_GetShaderMessage());
-        showMessageBox("Error", msg);
+        printf("Failed to load pixel shader: %s\n", GPU_GetShaderMessage());
         return;
     }
     
     if(platform.gpu.shader)
         GPU_FreeShaderProgram(platform.gpu.shader);
 
-    platform.gpu.shader = GPU_LinkShaders(vertex, fragment);
+    platform.gpu.shader = GPU_LinkShaders(vertex, pixel);
     
     if(platform.gpu.shader)
     {
@@ -1430,9 +1384,7 @@ static void loadCrtShader()
     }
     else
     {
-        char msg[1024];
-        sprintf(msg, "Failed to link shader program: %s\n", GPU_GetShaderMessage());
-        showMessageBox("Error", msg);
+        printf("Failed to link shader program: %s\n", GPU_GetShaderMessage());
     }
 }
 #endif

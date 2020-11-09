@@ -1946,8 +1946,6 @@ static void studioTick()
 
 static void studioClose()
 {
-    free((void*)getConfig()->crtShader);
-
     {
         for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
         {
