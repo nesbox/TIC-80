@@ -159,6 +159,14 @@ void tic_api_exit(tic_mem* tic)
     core->data->exit(core->data->data);
 }
 
+static inline void sync(void* dst, void* src, s32 size, bool rev)
+{
+    if(rev)
+        SWAP(dst, src, void*);
+
+    memcpy(dst, src, size);
+}
+
 void tic_api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
 {
     tic_core* core = (tic_core*)tic;
@@ -183,21 +191,15 @@ void tic_api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
     assert(bank >= 0 && bank < TIC_BANKS);
 
     for (s32 i = 0; i < Count; i++)
-    {
-        if (mask & (1 << i))
-            toCart
-            ? memcpy((u8*)&tic->cart.banks[bank] + Sections[i].bank, (u8*)&tic->ram + Sections[i].ram, Sections[i].size)
-            : memcpy((u8*)&tic->ram + Sections[i].ram, (u8*)&tic->cart.banks[bank] + Sections[i].bank, Sections[i].size);
-    }
+        if(mask & (1 << i))
+            sync((u8*)&tic->ram + Sections[i].ram, (u8*)&tic->cart.banks[bank] + Sections[i].bank, Sections[i].size, toCart);
 
     // copy OVR palette
     {
         enum { PaletteIndex = 5 };
 
         if (mask & (1 << PaletteIndex))
-            toCart
-            ? memcpy(&tic->cart.banks[bank].palette.ovr, &core->state.ovr.palette, sizeof(tic_palette))
-            : memcpy(&core->state.ovr.palette, &tic->cart.banks[bank].palette.ovr, sizeof(tic_palette));
+            sync(&core->state.ovr.palette, &tic->cart.banks[bank].palette.ovr, sizeof(tic_palette), toCart);
     }
 
     core->state.synced |= mask;
