@@ -1520,6 +1520,10 @@ static void processShortcuts()
         }
         else if(keyWasPressedOnce(tic_key_f7)) setCoverImage();
         else if(keyWasPressedOnce(tic_key_f8)) takeScreenshot();
+        else if(keyWasPressedOnce(tic_key_r))
+        {
+            if(ctrl) runProject();
+        }
 #if !defined(__EMSCRIPTEN__)
         else if(keyWasPressedOnce(tic_key_f9)) startVideoRecord();
 #endif
