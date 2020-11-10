@@ -21,7 +21,7 @@ jobs:
       shell: cmd
       run: |
         cd build
-        cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DBUILD_SDLGPU=Off -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
+        cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
         cmake --build . --parallel --config %BUILD_TYPE%
 
     - name: Deploy
@@ -93,7 +93,7 @@ jobs:
     - name: Build
       run: |
         cd build
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SDLGPU=On ..
         cmake --build . --parallel --config $BUILD_TYPE
         cpack
 
@@ -119,7 +119,7 @@ jobs:
     - name: Build
       run: |
         cd build
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SDLGPU=On ..
         cmake --build . --parallel --config $BUILD_TYPE
         cpack
 
@@ -179,7 +179,7 @@ jobs:
     - name: Build
       run: |
         cd build
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SDLGPU=On ..
         cmake --build . --parallel --config $BUILD_TYPE
         cpack
         cp *.dmg tic80.dmg
