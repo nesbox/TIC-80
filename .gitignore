@@ -4,6 +4,7 @@
 *.suo
 sexit
 .vscode/
+compile_commands.json
 build/vendor/
 build/uwp/tic/Debug/
 build/uwp/tic/Release/
