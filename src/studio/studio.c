@@ -309,7 +309,7 @@ const char* studioExportSfx(s32 index)
 
         enum{Channel = 0};
         sfx_stop(tic, Channel);
-        tic_api_sfx(tic, index, effect->note, effect->octave, -1, Channel, MAX_VOLUME, SFX_DEF_SPEED);
+        tic_api_sfx(tic, index, effect->note, effect->octave, -1, Channel, MAX_VOLUME, MAX_VOLUME, SFX_DEF_SPEED);
 
         for(s32 ticks = 0, pos = 0; pos < SFX_TICKS; pos = tic_tool_sfx_pos(effect->speed, ++ticks))
         {
@@ -371,7 +371,7 @@ const char* studioExportMusic(s32 track)
 
 void sfx_stop(tic_mem* tic, s32 channel)
 {
-    tic_api_sfx(tic, -1, 0, 0, -1, channel, MAX_VOLUME, SFX_DEF_SPEED);
+    tic_api_sfx(tic, -1, 0, 0, -1, channel, MAX_VOLUME, MAX_VOLUME, SFX_DEF_SPEED);
 }
 
 // BG animation based on DevEd code
@@ -473,7 +473,7 @@ tic_flags* getBankFlags()
 void playSystemSfx(s32 id)
 {
     const tic_sample* effect = &impl.config->cart.bank0.sfx.samples.data[id];
-    tic_api_sfx(impl.studio.tic, id, effect->note, effect->octave, -1, 0, MAX_VOLUME, effect->speed);
+    tic_api_sfx(impl.studio.tic, id, effect->note, effect->octave, -1, 0, MAX_VOLUME, MAX_VOLUME, effect->speed);
 }
 
 static void md5(const void* voidData, s32 length, u8 digest[MD5_HASHSIZE])

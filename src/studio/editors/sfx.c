@@ -477,7 +477,7 @@ static void playSound(Sfx* sfx)
             sfx->play.note = effect->note;
 
             sfx_stop(sfx->tic, DEFAULT_CHANNEL);
-            tic_api_sfx(sfx->tic, sfx->index, effect->note, effect->octave, -1, DEFAULT_CHANNEL, MAX_VOLUME, SFX_DEF_SPEED);
+            tic_api_sfx(sfx->tic, sfx->index, effect->note, effect->octave, -1, DEFAULT_CHANNEL, MAX_VOLUME, MAX_VOLUME, SFX_DEF_SPEED);
         }
     }
     else

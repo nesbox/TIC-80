@@ -343,12 +343,25 @@ static duk_ret_t duk_sfx(duk_context* duk)
 
     s32 duration = duk_opt_int(duk, 2, -1);
     s32 channel = duk_opt_int(duk, 3, 0);
-    s32 volume = duk_opt_int(duk, 4, MAX_VOLUME);
+    s32 volumes[TIC_STEREO_CHANNELS];
+
+    if(duk_is_array(duk, 4))
+    {
+        for(s32 i = 0; i < COUNT_OF(volumes); i++)
+        {
+            duk_get_prop_index(duk, 4, i);
+            if(!duk_is_null_or_undefined(duk, -1))
+                volumes[i] = duk_to_int(duk, -1);
+            duk_pop(duk);
+        }
+    }
+    else volumes[0] = volumes[1] = duk_opt_int(duk, 4, MAX_VOLUME);
+
     speed = duk_opt_int(duk, 5, speed);
 
     if (channel >= 0 && channel < TIC_SOUND_CHANNELS)
     {
-        tic_api_sfx(tic, index, note, octave, duration, channel, volume & 0xf, speed);
+        tic_api_sfx(tic, index, note, octave, duration, channel, volumes[0] & 0xf, volumes[1] & 0xf, speed);
     }
     else return duk_error(duk, DUK_ERR_ERROR, "unknown channel\n");
 
