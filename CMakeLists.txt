@@ -307,19 +307,7 @@ target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/sqstdlib)
 ################################
 
 set(GRAVITY_DIR ${THIRDPARTY_DIR}/gravity)
-set(GRAVITY_SRC
-    ${GRAVITY_DIR}/src/runtime/gravity_core.c
-    ${GRAVITY_DIR}/src/runtime/gravity_vm.c
-#    ${GRAVITY_DIR}/src/shared/gravity_hash.c
-#    ${GRAVITY_DIR}/src/runtime/gravity_memory.c
-#    ${GRAVITY_DIR}/src/runtime/gravity_value.c
-)
-add_library(gravity STATIC ${GRAVITY_SRC})
-target_include_directories(gravity PUBLIC ${GRAVITY_DIR}/src/shared)
-target_include_directories(gravity PUBLIC ${GRAVITY_DIR}/src/runtime)
-target_include_directories(gravity PUBLIC ${GRAVITY_DIR}/src/utils)
-target_include_directories(gravity PUBLIC ${GRAVITY_DIR}/src/compiler)
-target_include_directories(gravity PUBLIC ${GRAVITY_DIR}/src/optionals)
+add_subdirectory(${GRAVITY_DIR}/src)
 
 ################################
 # GIFLIB
@@ -386,7 +374,7 @@ target_include_directories(tic80core
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src)
 
-target_link_libraries(tic80core lua lpeg wren squirrel gravity giflib blipbuf duktape zlib)
+target_link_libraries(tic80core lua lpeg wren squirrel gravityapi_s giflib blipbuf duktape zlib)
 
 if(LINUX)
     target_link_libraries(tic80core m)
@@ -516,7 +504,7 @@ if(BUILD_LIBRETRO)
         set_target_properties(tic80_libretro PROPERTIES SUFFIX "_partial.a")
         add_custom_command(TARGET tic80_libretro
                POST_BUILD
-                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.a ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgravity.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a)
+                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.a ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libgravityapi_s.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a)
     else()
         add_library(tic80_libretro SHARED
         ${LIBRETRO_SRC}

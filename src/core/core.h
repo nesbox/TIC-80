@@ -220,10 +220,6 @@ typedef struct
 const tic_script_config* getSquirrelScriptConfig();
 #endif
 
-#if defined(TIC_BUILD_WITH_GRAVITY)
-const tic_script_config* getGravityScriptConfig();
-#endif
-
 #if defined(TIC_BUILD_WITH_LUA)
 const tic_script_config* getLuaScriptConfig();
 
@@ -243,6 +239,10 @@ const tic_script_config* getJsScriptConfig();
 
 #if defined(TIC_BUILD_WITH_WREN)
 const tic_script_config* getWrenScriptConfig();
+#endif
+
+#if defined(TIC_BUILD_WITH_GRAVITY)
+const tic_script_config* getGravityScriptConfig();
 #endif
 
 void tic_core_tick_io(tic_mem* memory);

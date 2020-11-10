@@ -340,6 +340,11 @@ const tic_script_config* tic_core_script_config(tic_mem* memory)
         return getWrenScriptConfig();
 #endif
 
+#if defined(TIC_BUILD_WITH_GRAVITY)
+    if (compareMetatag(code, "script", "gravity", getGravityScriptConfig()->singleComment))
+        return getGravityScriptConfig();
+#endif
+
 #if defined(TIC_BUILD_WITH_SQUIRREL)
     if (compareMetatag(code, "script", "squirrel", getSquirrelScriptConfig()->singleComment))
         return getSquirrelScriptConfig();
@@ -588,6 +593,10 @@ void tic_core_close(tic_mem* memory)
 
 #if defined(TIC_BUILD_WITH_WREN)
     getWrenScriptConfig()->close(memory);
+#endif
+
+#if defined(TIC_BUILD_WITH_GRAVITY)
+    getGravityScriptConfig()->close(memory);
 #endif
 
     blip_delete(core->blip.left);
