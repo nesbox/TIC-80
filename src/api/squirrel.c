@@ -937,7 +937,7 @@ static SQInteger squirrel_key(HSQUIRRELVM vm)
     {
         tic_key key = getSquirrelNumber(vm, 2);
 
-        if(key < tic_key_escape)
+        if(key < tic_keys_count)
             sq_pushbool(vm, tic_api_key(tic, key) ? SQTrue : SQFalse);
         else
         {
@@ -967,7 +967,7 @@ static SQInteger squirrel_keyp(HSQUIRRELVM vm)
     {
         tic_key key = getSquirrelNumber(vm, 2);
 
-        if(key >= tic_key_escape)
+        if(key >= tic_keys_count)
         {
             return sq_throwerror(vm, "unknown keyboard code\n");
         }
