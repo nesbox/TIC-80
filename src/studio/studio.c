@@ -473,7 +473,7 @@ tic_flags* getBankFlags()
 void playSystemSfx(s32 id)
 {
     const tic_sample* effect = &impl.config->cart.bank0.sfx.samples.data[id];
-    tic_api_sfx(impl.studio.tic, id, effect->note, effect->octave, -1, 0, MAX_VOLUME, 0);
+    tic_api_sfx(impl.studio.tic, id, effect->note, effect->octave, -1, 0, MAX_VOLUME, effect->speed);
 }
 
 static void md5(const void* voidData, s32 length, u8 digest[MD5_HASHSIZE])
