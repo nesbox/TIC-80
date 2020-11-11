@@ -78,3 +78,6 @@
 	path = vendor/libpng
 	url = https://github.com/glennrp/libpng.git
 	shallow = true
+[submodule "vendor/micropython"]
+	path = vendor/micropython
+	url = https://github.com/micropython/micropython.git
