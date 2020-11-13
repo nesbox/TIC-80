@@ -71,8 +71,9 @@ endif()
 
 if (BAREMETALPI)
 
-    set(BUILD_SDL off)
+    set(BUILD_SDL OFF)
     set(BUILD_DEMO_CARTS OFF)
+    set(DISABLE_NETWORKING TRUE)
 
     set(CMAKE_SYSTEM_NAME Generic)
     set(CMAKE_SYSTEM_PROCESSOR ARM)
