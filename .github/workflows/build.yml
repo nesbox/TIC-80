@@ -77,8 +77,8 @@ jobs:
         name: 'tic80-windows-sokol'
         path: build/bin/tic80.exe
 
-# === Ubuntu 16.04 ===
-  ubuntu-16:
+# === Ubuntu SDLGPU ===
+  ubuntu-sdlgpu:
     runs-on: ubuntu-16.04
 
     steps:
@@ -100,12 +100,12 @@ jobs:
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-ubuntu-16'
+        name: 'tic80-ubuntu-sdlgpu'
         path: build/tic80.deb
 
-# === Ubuntu 18.04 ===
-  ubuntu-18:
-    runs-on: ubuntu-18.04
+# === Ubuntu SDL2 ===
+  ubuntu-sdl:
+    runs-on: ubuntu-16.04
 
     steps:
     - uses: actions/checkout@v2
@@ -119,14 +119,14 @@ jobs:
     - name: Build
       run: |
         cd build
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SDLGPU=On ..
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
         cmake --build . --parallel --config $BUILD_TYPE
         cpack
 
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-ubuntu-18'
+        name: 'tic80-ubuntu-sdl'
         path: build/tic80.deb
 
 # === Raspberry PI ===
