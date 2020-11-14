@@ -80,7 +80,7 @@ mingw32-make -j4
 ### Ubuntu 14.04
 run the following commands in the Terminal
 ```
-sudo apt-get install git cmake libgtk-3-dev libgles1-mesa-dev libglu-dev -y
+sudo apt-get install git cmake libgtk-3-dev libgles1-mesa-dev libglu-dev libasound2-dev -y
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
