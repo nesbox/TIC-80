@@ -71,6 +71,10 @@ static void closeGravity(tic_mem* tic)
     }
 }
 
+static void setupGravity(tic_mem* tic, gravity_vm *vm) {
+    // TODO: Add TIC-80 Gravity API here.
+}
+
 static bool initGravity(tic_mem* tic, const char* code)
 {
     tic_core* core = (tic_core*)tic;
@@ -108,6 +112,9 @@ static bool initGravity(tic_mem* tic, const char* code)
     // Transfer the memory to the virtual machine, and clean up the compiler.
     gravity_compiler_transfer(compiler, vm);
     gravity_compiler_free(compiler);
+
+    // Setup the TIC-80 API.
+    setupGravity(tic, vm);
 
     // Load the closure into the virtual machine context.
     gravity_vm_loadclosure(vm, closure);
