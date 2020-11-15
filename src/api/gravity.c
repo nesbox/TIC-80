@@ -25,7 +25,7 @@
 #if defined(TIC_BUILD_WITH_GRAVITY)
 
 // TODO: Remove stdio.
-#include <stdio.h>
+#include <string.h>
 #include "gravity_compiler.h"
 #include "gravity_macros.h"
 #include "gravity_core.h"
@@ -34,7 +34,11 @@
 
 // error callback
 static void gravityReportError(gravity_vm *vm, error_type_t error_type, const char *message, error_desc_t error_desc, void *xdata) {
+    printf("ERRORRRRR\n");
+    tic_core* core = (tic_core*)xdata;
+    char buffer[1024];
     const char *type = "N/A";
+
     switch (error_type) {
         case GRAVITY_ERROR_NONE: type = "NONE"; break;
         case GRAVITY_ERROR_SYNTAX: type = "SYNTAX"; break;
@@ -44,22 +48,32 @@ static void gravityReportError(gravity_vm *vm, error_type_t error_type, const ch
         case GRAVITY_ERROR_IO: type = "I/O"; break;
     }
 
-    // TODO: Replace printf with actual error report.
-    // core->data->error(core->data->data, duk_safe_to_stacktrace(duktape, -1));
-    if (error_type == GRAVITY_ERROR_RUNTIME) {
-      printf("RUNTIME ERROR: ");
+    snprintf(buffer, sizeof buffer, "%s: line %d, column %d: %s", type, error_desc.lineno, error_desc.colno, message);
+    if(core)
+    {
+        core->data->error(core->data->data, buffer);
     }
     else {
-      printf("%s ERROR on %d (%d,%d): ", type, error_desc.fileid, error_desc.lineno, error_desc.colno);
+        printf(buffer);
     }
-    printf("%s\n", message);
+}
+
+static void gravityLogCallback(gravity_vm *vm, const char *message, void *xdata) {
+    tic_core* core = (tic_core*)xdata;
+    if (core) {
+        core->data->trace(core->data->data, message, 0);
+    }
+    else
+    {
+        printf(message);
+    }
 }
 
 static void closeGravity(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
 
-    if(core->gravity)
+    if (core && core->gravity)
     {
         gravity_vm_free(core->gravity);
         gravity_core_free();
@@ -70,49 +84,112 @@ static void closeGravity(tic_mem* tic)
 static bool initGravity(tic_mem* tic, const char* code)
 {
     tic_core* core = (tic_core*)tic;
+    printf("111\n");
     closeGravity(tic);
+    printf("2222\n");
 
+    // Put together the Gravity options.
     gravity_delegate_t delegate = {
         .error_callback = gravityReportError,
+        .log_callback = gravityLogCallback,
         .xdata = tic
     };
+    printf("3333\n");
 
-    // compile source into a closure
+    // Construct the compiler and interpret the code.
     gravity_compiler_t *compiler = gravity_compiler_create(&delegate);
+    printf("333344444\n");
     gravity_closure_t *closure = gravity_compiler_run(compiler, code, strlen(code), 0, false, true);
     if (!closure) {
         gravity_compiler_free(compiler);
         return false;
     }
+    printf("44444\n");
 
-    // setup a new VM and a new fiber
+    // Set up the virtual machine.
     gravity_vm *vm = gravity_vm_new(&delegate);
     if (!vm) {
-      gravity_compiler_free(compiler);
-      return false;
+        gravity_compiler_free(compiler);
+        return false;
     }
+    printf("55555\n");
 
-    // transfer memory from compiler to VM and then free compiler
+    // Transfer the memory to the virtual machine, and clean up the compiler.
     gravity_compiler_transfer(compiler, vm);
     gravity_compiler_free(compiler);
 
-    // load closure into VM context
+    // Load the closure into the virtual machine context.
     gravity_vm_loadclosure(vm, closure);
 
-    /*duk_context* duktape = core->gravity;
-
-    if (duk_pcompile_string(duktape, 0, code) != 0 || duk_peval_string(duktape, code) != 0)
-    {
-        core->data->error(core->data->data, duk_safe_to_stacktrace(duktape, -1));
-        duk_pop(duktape);
-        return false;
-    }*/
-
+    printf("66666\n");
+    // Set up the virtual machine as the active TIC-80 Gravity context.
     core->gravity = vm;
 
     return true;
 }
 
+static void callGravityTick(tic_mem* tic)
+{
+    tic_core* core = (tic_core*)tic;
+    gravity_vm *vm = core->gravity;
+    if(!vm)
+    {
+        return;
+    }
+
+    // TODO: Move this to initGravity() to save time.
+    gravity_value_t tic_function = gravity_vm_getvalue(vm, "TIC", 3);
+    if(!VALUE_ISA_CLOSURE(tic_function))
+    {
+        core->data->error(core->data->data, "func TIC() not found");
+        return;
+    }
+
+    gravity_closure_t *tic_closure = VALUE_AS_CLOSURE(tic_function);
+    gravity_vm_runclosure(vm, tic_closure, VALUE_FROM_NULL, NULL, 0);
+}
+
+static void callGravityScanline(tic_mem* tic, s32 row, void* data)
+{
+    tic_core* core = (tic_core*)tic;
+    gravity_vm *vm = core->gravity;
+    if(!vm)
+    {
+        return;
+    }
+
+    // TODO: Move this to initGravity() to save time.
+    gravity_value_t scn_function = gravity_vm_getvalue(vm, SCN_FN, strlen(SCN_FN));
+    if(!VALUE_ISA_CLOSURE(scn_function))
+    {
+        return;
+    }
+
+    // convert function to closure
+    gravity_closure_t *scn_closure = VALUE_AS_CLOSURE(scn_function);
+    gravity_value_t params[] = {row};
+    gravity_vm_runclosure(vm, scn_closure, VALUE_FROM_NULL, params, 1);
+}
+
+static void callGravityOverline(tic_mem* tic, void* data)
+{
+    tic_core* core = (tic_core*)tic;
+    gravity_vm *vm = core->gravity;
+    if(!vm)
+    {
+        return;
+    }
+
+    // TODO: Move this to initGravity() to save time.
+    gravity_value_t ovr_function = gravity_vm_getvalue(vm, OVR_FN, strlen(OVR_FN));
+    if(!VALUE_ISA_CLOSURE(ovr_function))
+    {
+        return;
+    }
+
+    gravity_closure_t *ovr_closure = VALUE_AS_CLOSURE(ovr_function);
+    gravity_vm_runclosure(vm, ovr_closure, VALUE_FROM_NULL, NULL, 0);
+}
 
 static const char* const GravityKeywords [] =
 {
@@ -129,12 +206,12 @@ static const tic_script_config GravitySyntaxConfig =
 {
     .init               = initGravity,
     .close              = closeGravity,
-    .tick               = NULL,
-    .scanline           = NULL,
-    .overline           = NULL,
+    .tick               = callGravityTick,
+    .scanline           = callGravityScanline,
+    .overline           = callGravityOverline,
 
-    .getOutline         = NULL,
-    .eval               = NULL,
+    .getOutline         = NULL, // TODO: Implement callGravityOutline()
+    .eval               = NULL, // TODO: Implement callGravityEval()
 
     .blockCommentStart  = "/*",
     .blockCommentEnd    = "*/",
