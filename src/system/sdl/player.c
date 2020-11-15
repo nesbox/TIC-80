@@ -66,13 +66,13 @@ s32 runCart(void* cart, s32 size)
 			.userdata = NULL,
 		};
 
-		audioDevice = SDL_OpenAudioDevice(NULL, 0, &want, &audioSpec, SDL_AUDIO_ALLOW_ANY_CHANGE);
+		audioDevice = SDL_OpenAudioDevice(NULL, 0, &want, &audioSpec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE | SDL_AUDIO_ALLOW_FORMAT_CHANGE | SDL_AUDIO_ALLOW_SAMPLES_CHANGE);
 
 		SDL_BuildAudioCVT(&cvt, want.format, want.channels, audioSpec.freq, audioSpec.format, audioSpec.channels, audioSpec.freq);
 
 		if (cvt.needed)
 		{
-			cvt.len = audioSpec.freq * sizeof(s16) / TIC80_FRAMERATE;
+			cvt.len = audioSpec.freq * audioSpec.channels * sizeof(s16) / TIC80_FRAMERATE;
 			cvt.buf = SDL_malloc(cvt.len * cvt.len_mult);
 		}
 	}
