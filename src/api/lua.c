@@ -717,7 +717,7 @@ static s32 lua_sfx(lua_State* lua)
         s32 octave = -1;
         s32 duration = -1;
         s32 channel = 0;
-        s32 volume = MAX_VOLUME;
+        s32 volumes[TIC_STEREO_CHANNELS] = {MAX_VOLUME, MAX_VOLUME};
         s32 speed = SFX_DEF_SPEED;
 
         s32 index = getLuaNumber(lua, 1);
@@ -762,7 +762,15 @@ static s32 lua_sfx(lua_State* lua)
 
                         if(top >= 5)
                         {
-                            volume = getLuaNumber(lua, 5);
+                            if(lua_istable(lua, 5))
+                            {
+                                for(s32 i = 0; i < COUNT_OF(volumes); i++)
+                                {
+                                    volumes[i] = lua_rawgeti(lua, 5, i + 1);
+                                    lua_pop(lua, 1);
+                                }
+                            }
+                            else volumes[0] = volumes[1] = getLuaNumber(lua, 5);
 
                             if(top >= 6)
                             {
@@ -775,7 +783,7 @@ static s32 lua_sfx(lua_State* lua)
 
             if (channel >= 0 && channel < TIC_SOUND_CHANNELS)
             {
-                tic_api_sfx(tic, index, note, octave, duration, channel, volume & 0xf, speed);
+                tic_api_sfx(tic, index, note, octave, duration, channel, volumes[0] & 0xf, volumes[1] & 0xf, speed);
             }
             else luaL_error(lua, "unknown channel\n");
         }
@@ -841,7 +849,7 @@ static s32 lua_key(lua_State* lua)
     {
         tic_key key = getLuaNumber(lua, 1);
 
-        if(key < tic_key_escape)
+        if(key < tic_keys_count)
             lua_pushboolean(lua, tic_api_key(tic, key));
         else
         {
@@ -873,7 +881,7 @@ static s32 lua_keyp(lua_State* lua)
     {
         tic_key key = getLuaNumber(lua, 1);
 
-        if(key >= tic_key_escape)
+        if(key >= tic_keys_count)
         {
             luaL_error(lua, "unknown keyboard code\n");
         }

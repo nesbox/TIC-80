@@ -39,18 +39,16 @@ if(ANDROID OR EMSCRIPTEN OR N3DS OR RPI)
     set(BUILD_LIBRETRO_DEFAULT OFF)
     set(BUILD_DEMO_CARTS_DEFAULT OFF)
     set(BUILD_PLAYER_DEFAULT OFF)
-    set(BUILD_SDLGPU_DEFAULT OFF)
 else()
     set(BUILD_LIBRETRO_DEFAULT ON)
     set(BUILD_DEMO_CARTS_DEFAULT ON)
     set(BUILD_PLAYER_DEFAULT ON)
-    set(BUILD_SDLGPU_DEFAULT ON)
 endif()
 
 set(BUILD_TOUCH_INPUT_DEFAULT ${ANDROID})
 
 option(BUILD_SDL "SDL Enabled" ON)
-option(BUILD_SDLGPU "SDL GPU Enabled" ${BUILD_SDLGPU_DEFAULT})
+option(BUILD_SDLGPU "SDL GPU Enabled" OFF)
 option(BUILD_SOKOL "Sokol Enabled" OFF)
 option(BUILD_LIBRETRO "libretro Enabled" ${BUILD_LIBRETRO_DEFAULT})
 option(BUILD_DEMO_CARTS "Demo Carts Enabled" ${BUILD_DEMO_CARTS_DEFAULT})
@@ -73,8 +71,9 @@ endif()
 
 if (BAREMETALPI)
 
-    set(BUILD_SDL off)
+    set(BUILD_SDL OFF)
     set(BUILD_DEMO_CARTS OFF)
+    set(DISABLE_NETWORKING TRUE)
 
     set(CMAKE_SYSTEM_NAME Generic)
     set(CMAKE_SYSTEM_PROCESSOR ARM)
@@ -826,6 +825,10 @@ if(NOT EMSCRIPTEN)
     target_link_libraries(sdlgpu SDL2-static)
 endif()
 
+endif()
+
+if(MINGW)
+    set(CMAKE_EXE_LINKER_FLAGS "-static")
 endif()
 
 ################################

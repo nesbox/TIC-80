@@ -113,7 +113,7 @@ typedef struct
     macro(spr,          9,  void,       tic_mem*, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate) \
     macro(btn,          1,  u32,        tic_mem*, s32 id) \
     macro(btnp,         3,  u32,        tic_mem*, s32 id, s32 hold, s32 period) \
-    macro(sfx,          6,  void,       tic_mem*, s32 index, s32 note, s32 octave, s32 duration, s32 channel, s32 volume, s32 speed) \
+    macro(sfx,          6,  void,       tic_mem*, s32 index, s32 note, s32 octave, s32 duration, s32 channel, s32 left, s32 right, s32 speed) \
     macro(map,          9,  void,       tic_mem*, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* colors, s32 count, s32 scale, RemapFunc remap, void* data) \
     macro(mget,         2,  u8,         tic_mem*, s32 x, s32 y) \
     macro(mset,         3,  void,       tic_mem*, s32 x, s32 y, u8 value) \

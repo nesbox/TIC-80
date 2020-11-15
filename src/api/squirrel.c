@@ -810,7 +810,7 @@ static SQInteger squirrel_sfx(HSQUIRRELVM vm)
         s32 octave = -1;
         s32 duration = -1;
         s32 channel = 0;
-        s32 volume = MAX_VOLUME;
+        s32 volumes[TIC_STEREO_CHANNELS] = {MAX_VOLUME, MAX_VOLUME};
         s32 speed = SFX_DEF_SPEED;
 
         s32 index = getSquirrelNumber(vm, 2);
@@ -856,7 +856,18 @@ static SQInteger squirrel_sfx(HSQUIRRELVM vm)
 
                         if(top >= 6)
                         {
-                            volume = getSquirrelNumber(vm, 6);
+                            if(OT_ARRAY == sq_gettype(vm, 6))
+                            {
+                                for(s32 i = 0; i < COUNT_OF(volumes); i++)
+                                {
+                                    sq_pushinteger(vm, (SQInteger)i);
+                                    sq_rawget(vm, 6);
+                                    if(sq_gettype(vm, -1) & (OT_FLOAT|OT_INTEGER))
+                                        volumes[i] = getSquirrelNumber(vm, -1);
+                                    sq_poptop(vm);
+                                }
+                            }
+                            else volumes[0] = volumes[1] = getSquirrelNumber(vm, 6);
 
                             if(top >= 7)
                             {
@@ -869,7 +880,7 @@ static SQInteger squirrel_sfx(HSQUIRRELVM vm)
 
             if (channel >= 0 && channel < TIC_SOUND_CHANNELS)
             {
-                tic_api_sfx(tic, index, note, octave, duration, channel, volume & 0xf, speed);
+                tic_api_sfx(tic, index, note, octave, duration, channel, volumes[0] & 0xf, volumes[1] & 0xf, speed);
             }
             else return sq_throwerror(vm, "unknown channel\n");
         }
@@ -937,7 +948,7 @@ static SQInteger squirrel_key(HSQUIRRELVM vm)
     {
         tic_key key = getSquirrelNumber(vm, 2);
 
-        if(key < tic_key_escape)
+        if(key < tic_keys_count)
             sq_pushbool(vm, tic_api_key(tic, key) ? SQTrue : SQFalse);
         else
         {
@@ -967,7 +978,7 @@ static SQInteger squirrel_keyp(HSQUIRRELVM vm)
     {
         tic_key key = getSquirrelNumber(vm, 2);
 
-        if(key >= tic_key_escape)
+        if(key >= tic_keys_count)
         {
             return sq_throwerror(vm, "unknown keyboard code\n");
         }

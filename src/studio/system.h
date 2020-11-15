@@ -148,15 +148,18 @@ typedef struct
     
     bool checkNewVersion;
     bool noSound;
-    bool showSync;
 
-#if defined(CRT_SHADER_SUPPORT)    
+#if defined(CRT_SHADER_SUPPORT)
     bool crtMonitor;
+    struct
+    {
+        const char* vertex;
+        const char* pixel;
+    } shader;
 #endif
     
     bool goFullscreen;
 
-    const char* crtShader;
     const tic_cartridge* cart;
 
     s32 uiScale;

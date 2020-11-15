@@ -21,7 +21,7 @@ jobs:
       shell: cmd
       run: |
         cd build
-        cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DBUILD_SDLGPU=Off -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
+        cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
         cmake --build . --parallel --config %BUILD_TYPE%
 
     - name: Deploy
@@ -77,8 +77,34 @@ jobs:
         name: 'tic80-windows-sokol'
         path: build/bin/tic80.exe
 
-# === Ubuntu 16.04 ===
-  ubuntu-16:
+# === Ubuntu SDLGPU ===
+  ubuntu-sdlgpu:
+    runs-on: ubuntu-16.04
+
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Install
+      run: sudo apt-get install libgtk-3-dev libasound2-dev libglu1-mesa-dev
+
+    - name: Build
+      run: |
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SDLGPU=On ..
+        cmake --build . --parallel --config $BUILD_TYPE
+        cpack
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-ubuntu-sdlgpu'
+        path: build/tic80.deb
+
+# === Ubuntu SDL2 ===
+  ubuntu-sdl:
     runs-on: ubuntu-16.04
 
     steps:
@@ -100,33 +126,7 @@ jobs:
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-ubuntu-16'
-        path: build/tic80.deb
-
-# === Ubuntu 18.04 ===
-  ubuntu-18:
-    runs-on: ubuntu-18.04
-
-    steps:
-    - uses: actions/checkout@v2
-      with: 
-        submodules: recursive
-        fetch-depth: 0
-
-    - name: Install
-      run: sudo apt-get install libgtk-3-dev libasound2-dev libglu1-mesa-dev
-
-    - name: Build
-      run: |
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
-        cmake --build . --parallel --config $BUILD_TYPE
-        cpack
-
-    - name: Deploy
-      uses: actions/upload-artifact@v2
-      with:
-        name: 'tic80-ubuntu-18'
+        name: 'tic80-ubuntu-sdl'
         path: build/tic80.deb
 
 # === Raspberry PI ===
@@ -179,7 +179,7 @@ jobs:
     - name: Build
       run: |
         cd build
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SDLGPU=On ..
         cmake --build . --parallel --config $BUILD_TYPE
         cpack
         cp *.dmg tic80.dmg

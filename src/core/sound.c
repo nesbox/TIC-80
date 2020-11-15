@@ -474,10 +474,10 @@ void tic_api_music(tic_mem* memory, s32 index, s32 frame, s32 row, bool loop, bo
         memory->ram.sound_state.flag.music_state = tic_music_play;
 }
 
-void tic_api_sfx(tic_mem* memory, s32 index, s32 note, s32 octave, s32 duration, s32 channel, s32 volume, s32 speed)
+void tic_api_sfx(tic_mem* memory, s32 index, s32 note, s32 octave, s32 duration, s32 channel, s32 left, s32 right, s32 speed)
 {
     tic_core* core = (tic_core*)memory;
-    setSfxChannelData(memory, index, note, octave, duration, channel, volume, volume, speed);
+    setSfxChannelData(memory, index, note, octave, duration, channel, left, right, speed);
 }
 
 static void stereo_tick_end(tic_mem* memory, tic_sound_register_data* registers, blip_buffer_t* blip, u8 stereoRight)

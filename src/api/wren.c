@@ -1000,7 +1000,7 @@ static void wren_sfx(WrenVM* vm)
         s32 octave = -1;
         s32 duration = -1;
         s32 channel = 0;
-        s32 volume = MAX_VOLUME;
+        s32 volumes[TIC_STEREO_CHANNELS] = {MAX_VOLUME, MAX_VOLUME};
         s32 speed = SFX_DEF_SPEED;
 
         if (index >= 0)
@@ -1041,7 +1041,16 @@ static void wren_sfx(WrenVM* vm)
 
                     if(top > 5)
                     {
-                        volume = getWrenNumber(vm, 5);
+                        if(isList(vm, 5) && wrenGetListCount(vm, 5) == COUNT_OF(volumes))
+                        {
+                            for(s32 i = 0; i < COUNT_OF(volumes); i++)
+                            {
+                                wrenGetListElement(vm, 5, i, top);
+                                if(isNumber(vm, top))
+                                    volumes[i] = getWrenNumber(vm, top);                                
+                            }
+                        }
+                        else volumes[0] = volumes[1] = getWrenNumber(vm, 5);
 
                         if(top > 6)
                         {
@@ -1054,7 +1063,7 @@ static void wren_sfx(WrenVM* vm)
 
         if (channel >= 0 && channel < TIC_SOUND_CHANNELS)
         {
-            tic_api_sfx(tic, index, note, octave, duration, channel, volume & 0xf, speed);
+            tic_api_sfx(tic, index, note, octave, duration, channel, volumes[0] & 0xf, volumes[1] & 0xf, speed);
         }       
         else wrenError(vm, "unknown channel\n");
     }
