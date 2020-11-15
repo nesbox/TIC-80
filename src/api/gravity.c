@@ -24,7 +24,6 @@
 
 #if defined(TIC_BUILD_WITH_GRAVITY)
 
-// TODO: Remove stdio.
 #include <string.h>
 #include "gravity_compiler.h"
 #include "gravity_macros.h"
@@ -32,9 +31,7 @@
 #include "gravity_vm.h"
 #include "gravity_delegate.h"
 
-// error callback
 static void gravityReportError(gravity_vm *vm, error_type_t error_type, const char *message, error_desc_t error_desc, void *xdata) {
-    printf("ERRORRRRR\n");
     tic_core* core = (tic_core*)xdata;
     char buffer[1024];
     const char *type = "N/A";
@@ -53,19 +50,12 @@ static void gravityReportError(gravity_vm *vm, error_type_t error_type, const ch
     {
         core->data->error(core->data->data, buffer);
     }
-    else {
-        printf(buffer);
-    }
 }
 
 static void gravityLogCallback(gravity_vm *vm, const char *message, void *xdata) {
     tic_core* core = (tic_core*)xdata;
     if (core) {
         core->data->trace(core->data->data, message, 0);
-    }
-    else
-    {
-        printf(message);
     }
 }
 
@@ -84,27 +74,29 @@ static void closeGravity(tic_mem* tic)
 static bool initGravity(tic_mem* tic, const char* code)
 {
     tic_core* core = (tic_core*)tic;
-    printf("111\n");
     closeGravity(tic);
-    printf("2222\n");
 
     // Put together the Gravity options.
     gravity_delegate_t delegate = {
         .error_callback = gravityReportError,
         .log_callback = gravityLogCallback,
+        .report_null_errors = true,
         .xdata = tic
     };
-    printf("3333\n");
 
-    // Construct the compiler and interpret the code.
+    // Construct the compiler.
     gravity_compiler_t *compiler = gravity_compiler_create(&delegate);
-    printf("333344444\n");
-    gravity_closure_t *closure = gravity_compiler_run(compiler, code, strlen(code), 0, false, true);
+    if (!compiler) {
+        core->data->error(core->data->data, "Error creating compiler.");
+        return false;
+    }
+
+    // Interpret the code into the compiler.
+    gravity_closure_t *closure = gravity_compiler_run(compiler, code, strlen(code), 0, true, true);
     if (!closure) {
         gravity_compiler_free(compiler);
         return false;
     }
-    printf("44444\n");
 
     // Set up the virtual machine.
     gravity_vm *vm = gravity_vm_new(&delegate);
@@ -112,7 +104,6 @@ static bool initGravity(tic_mem* tic, const char* code)
         gravity_compiler_free(compiler);
         return false;
     }
-    printf("55555\n");
 
     // Transfer the memory to the virtual machine, and clean up the compiler.
     gravity_compiler_transfer(compiler, vm);
@@ -120,8 +111,8 @@ static bool initGravity(tic_mem* tic, const char* code)
 
     // Load the closure into the virtual machine context.
     gravity_vm_loadclosure(vm, closure);
+    gravity_closure_free(vm, closure);
 
-    printf("66666\n");
     // Set up the virtual machine as the active TIC-80 Gravity context.
     core->gravity = vm;
 
@@ -167,7 +158,8 @@ static void callGravityScanline(tic_mem* tic, s32 row, void* data)
 
     // convert function to closure
     gravity_closure_t *scn_closure = VALUE_AS_CLOSURE(scn_function);
-    gravity_value_t params[] = {row};
+    gravity_value_t p1 = VALUE_FROM_INT(row);
+    gravity_value_t params[] = {p1};
     gravity_vm_runclosure(vm, scn_closure, VALUE_FROM_NULL, params, 1);
 }
 
