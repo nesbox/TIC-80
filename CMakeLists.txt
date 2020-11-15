@@ -819,6 +819,10 @@ endif()
 
 endif()
 
+if(MINGW)
+    set(CMAKE_EXE_LINKER_FLAGS "-static")
+endif()
+
 ################################
 # TIC-80 app
 ################################
