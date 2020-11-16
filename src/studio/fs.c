@@ -851,16 +851,16 @@ bool fsExistsFile(FileSystem* fs, const char* name)
     return fsExists(fsGetFilePath(fs, name));
 }
 
-u64 fsMDate(FileSystem* fs, const char* name)
+u64 fsMDate(const char* path)
 {
 #if defined(BAREMETALPI)
-    dbg("fsMDate %s\n", name);
+    dbg("fsMDate %s\n", path);
     // TODO BAREMETALPI
     return 0;
 #else
     struct tic_stat_struct s;
 
-    const fsString* pathString = utf8ToString(fsGetFilePath(fs, name));
+    const fsString* pathString = utf8ToString(path);
     s32 ret = tic_stat(pathString, &s);
     freeString(pathString);
 

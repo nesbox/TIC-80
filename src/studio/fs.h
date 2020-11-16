@@ -43,8 +43,8 @@ const char* fsGetFilePath(FileSystem* fs, const char* name);
 const char* fsGetRootFilePath(FileSystem* fs, const char* name);
 void fsMakeDir(FileSystem* fs, const char* name);
 bool fsExistsFile(FileSystem* fs, const char* name);
-u64 fsMDate(FileSystem* fs, const char* name);
 
+u64 fsMDate(const char* name);
 void fsBasename(const char *path, char* out);
 void fsFilename(const char *path, char* out);
 bool fsExists(const char* name);

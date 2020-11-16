@@ -608,10 +608,10 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
     return data;
 }
 
-static void setCartName(Console* console, const char* name)
+static void setCartName(Console* console, const char* name, const char* path)
 {
-    if(name != console->romName)
-        strcpy(console->romName, name);
+    strcpy(console->rom.name, name);
+    strcpy(console->rom.path, path);
 }
 
 static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* param)
@@ -654,14 +654,14 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 
     const char* name = getCartName(param);
 
-    setCartName(console, name);
+    setCartName(console, name, fsGetFilePath(console->fs, name));
 
     loadRom(console->tic, data, size);
 
     studioRomLoaded();
 
     printBack(console, "\ncart ");
-    printFront(console, console->romName);
+    printFront(console, console->rom.name);
     printBack(console, " loaded!\n");
 
     free(data);
@@ -669,12 +669,12 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 
 static void onCartLoaded(Console* console, const char* name)
 {
-    setCartName(console, name);
+    setCartName(console, name, fsGetFilePath(console->fs, name));
 
     studioRomLoaded();
 
     printBack(console, "\ncart ");
-    printFront(console, console->romName);
+    printFront(console, console->rom.name);
     printBack(console, " loaded!\nuse ");
     printFront(console, "RUN");
     printBack(console, " command to run it\n");
@@ -684,11 +684,12 @@ static void onCartLoaded(Console* console, const char* name)
 static void updateProject(Console* console)
 {
     tic_mem* tic = console->tic;
+    const char* path = console->rom.path;
 
-    if(strlen(console->romName) && hasProjectExt(console->romName))
+    if(strlen(path) && hasProjectExt(path))
     {
         s32 size = 0;
-        void* data = fsLoadFile(console->fs, console->romName, &size);
+        void* data = fsReadFile(path, &size);
 
         if(data)
         {
@@ -696,7 +697,7 @@ static void updateProject(Console* console)
 
             if(cart)
             {
-                if(tic_project_load(console->romName, data, size, cart))
+                if(tic_project_load(console->rom.name, data, size, cart))
                 {
                     memcpy(&tic->cart, cart, sizeof(tic_cartridge));
 
@@ -891,7 +892,7 @@ static void loadDemo(Console* console, ScriptLang script)
         free(data);
     }
 
-    memset(console->romName, 0, sizeof console->romName);
+    memset(console->rom.name, 0, sizeof console->rom.name);
 
     studioRomLoaded();
 }
@@ -1704,7 +1705,7 @@ static const char* getExportName(Console* console, const char* ext)
 {
     static char name[TICNAME_MAX];
 
-    strcpy(name, strlen(console->romName) ? console->romName : "game");
+    strcpy(name, strlen(console->rom.name) ? console->rom.name : "game");
 
     if(ext)
         strcat(name, ext);
@@ -1985,7 +1986,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
 
                 if(size && fsSaveFile(console->fs, name, buffer, size, true))
                 {
-                    setCartName(console, name);
+                    setCartName(console, name, fsGetFilePath(console->fs, name));
                     success = true;
                     studioRomSaved();
                 }
@@ -1994,9 +1995,9 @@ static CartSaveResult saveCartName(Console* console, const char* name)
             free(buffer);
         }
     }
-    else if (strlen(console->romName))
+    else if (strlen(console->rom.name))
     {
-        return saveCartName(console, console->romName);
+        return saveCartName(console, console->rom.name);
     }
     else return CART_SAVE_MISSING_NAME;
 
@@ -2015,7 +2016,7 @@ static void onConsoleSaveCommandConfirmed(Console* console, const char* param)
     if(rom == CART_SAVE_OK)
     {
         printBack(console, "\ncart ");
-        printFront(console, console->romName);
+        printFront(console, console->rom.name);
         printBack(console, " saved!\n");
     }
     else if(rom == CART_SAVE_MISSING_NAME)
@@ -2814,38 +2815,29 @@ static void tick(Console* console)
     }
 }
 
-static bool cmdLoadCart(Console* console, const char* name)
+static bool cmdLoadCart(Console* console, const char* path)
 {
     bool done = false;
 
     s32 size = 0;
-    void* data = fsReadFile(name, &size);
+    void* data = fsReadFile(path, &size);
 
     if(data)
     {
-        if(hasProjectExt(name))
+        char cartName[TICNAME_MAX];
+        fsFilename(path, cartName);
+        setCartName(console, cartName, path);
+
+        if(hasProjectExt(cartName))
         {
-            if(tic_project_load(name, data, size, console->embed.file))
-            {
-                char cartName[TICNAME_MAX];
-                fsFilename(name, cartName);
-                setCartName(console, cartName);
-                console->embed.yes = true;
-                done = true;
-            }            
+            if(tic_project_load(cartName, data, size, console->embed.file))
+                done = console->embed.yes = true;
         }
-        else if(tic_tool_has_ext(name, CART_EXT))
+        else if(tic_tool_has_ext(cartName, CART_EXT))
         {
             tic_mem* tic = console->tic;
             tic_cart_load(console->embed.file, data, size);
-
-            char cartName[TICNAME_MAX];
-            fsFilename(name, cartName);
-        
-            setCartName(console, cartName);
-
-            console->embed.yes = true;
-            done = true;
+            done = console->embed.yes = true;
         }
         
         free(data);

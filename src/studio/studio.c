@@ -1265,15 +1265,15 @@ static void updateHash()
 
 static void updateMDate()
 {
-    impl.cart.mdate = fsMDate(impl.console->fs, impl.console->romName);
+    impl.cart.mdate = fsMDate(impl.console->rom.path);
 }
 
 static void updateTitle()
 {
     char name[TICNAME_MAX] = TIC_TITLE;
 
-    if(strlen(impl.console->romName))
-        snprintf(name, TICNAME_MAX, "%s [%s]", TIC_TITLE, impl.console->romName);
+    if(strlen(impl.console->rom.name))
+        snprintf(name, TICNAME_MAX, "%s [%s]", TIC_TITLE, impl.console->rom.name);
 
     impl.system->setWindowTitle(name);
 }
@@ -1346,19 +1346,18 @@ static void saveProject()
         char buffer[STUDIO_TEXT_BUFFER_WIDTH];
         char str_saved[] = " SAVED :)";
 
-        s32 name_len = (s32)strlen(impl.console->romName);
+        s32 name_len = (s32)strlen(impl.console->rom.name);
         if (name_len + strlen(str_saved) > sizeof(buffer)){
             char subbuf[sizeof(buffer) - sizeof(str_saved) - 5];
             memset(subbuf, '\0', sizeof subbuf);
-            strncpy(subbuf, impl.console->romName, sizeof subbuf-1);
+            strncpy(subbuf, impl.console->rom.name, sizeof subbuf-1);
 
-            snprintf(buffer, sizeof(buffer), "%s[...]%s", subbuf, str_saved);
+            snprintf(buffer, sizeof buffer, "%s[...]%s", subbuf, str_saved);
         }
         else
         {
-            snprintf(buffer, sizeof(buffer), "%s%s", impl.console->romName, str_saved);
+            snprintf(buffer, sizeof buffer, "%s%s", impl.console->rom.name, str_saved);
         }
-
 
         for(s32 i = 0; i < (s32)strlen(buffer); i++)
             buffer[i] = toupper(buffer[i]);
@@ -1585,9 +1584,9 @@ static void updateStudioProject()
     {
         Console* console = impl.console;
 
-        u64 mdate = fsMDate(console->fs, console->romName);
+        u64 date = fsMDate(console->rom.path);
 
-        if(impl.cart.mdate && mdate > impl.cart.mdate)
+        if(impl.cart.mdate && date > impl.cart.mdate)
         {
             if(studioCartChanged())
             {
@@ -1602,7 +1601,7 @@ static void updateStudioProject()
 
                 showDialog(Rows, COUNT_OF(Rows), reloadConfirm, NULL);
             }
-            else console->updateProject(console);                       
+            else console->updateProject(console);
         }
     }
 }

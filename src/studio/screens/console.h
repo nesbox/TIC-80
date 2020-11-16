@@ -77,7 +77,12 @@ struct Console
 
     struct FileSystem* fs;
 
-    char romName[TICNAME_MAX];
+    struct
+    {
+        char name[TICNAME_MAX];
+        char path[TICNAME_MAX];
+    } rom;
+
     char appPath[TICNAME_MAX];
 
     HistoryItem* history;
