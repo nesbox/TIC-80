@@ -43,6 +43,7 @@
 #include "ext/gif.h"
 #include "ext/md5.h"
 #include "wave_writer.h"
+#include "argparse.h"
 
 #include <ctype.h>
 #include <math.h>
@@ -183,10 +184,7 @@ static struct
 
     FileSystem* fs;
 
-    s32 argc;
-    char **argv;
     s32 samplerate;
-
     tic_font systemFont;
 
 } impl =
@@ -237,9 +235,6 @@ static struct
         .buffer = NULL,
         .frames = 0,
     },
-
-    .argc = 0,
-    .argv = NULL,
 };
 
 static const char WavPath[] = TIC_CACHE "temp.wav";
@@ -1416,14 +1411,6 @@ static void setCoverImage()
     }
 }
 
-static void onVideoExported(GetResult result, void* data)
-{
-    if(result == FS_FILE_NOT_DOWNLOADED)
-        showPopupMessage("GIF NOT EXPORTED :|");
-    else if (result == FS_FILE_DOWNLOADED)
-        showPopupMessage("GIF EXPORTED :)");
-}
-
 static void stopVideoRecord()
 {
     if(impl.video.buffer)
@@ -1434,7 +1421,9 @@ static void stopVideoRecord()
 
             gif_write_animation(data, &size, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, (const u8*)impl.video.buffer, impl.video.frame, TIC80_FRAMERATE, getConfig()->gifScale);
 
-            fsGetFileData(onVideoExported, "screen.gif", data, size, DEFAULT_CHMOD, NULL);
+            fsSaveRootFile(impl.fs, "screen.gif", data, size, true);
+
+            showPopupMessage("SCREEN.GIF SAVED :)");
         }
 
         free(impl.video.buffer);
@@ -1615,13 +1604,6 @@ static void updateStudioProject()
             }
             else console->updateProject(console);                       
         }
-    }
-
-    {
-        Code* code = impl.code;
-        impl.console->codeLiveReload.reload(impl.console, code->src);
-        if(impl.console->codeLiveReload.active && code->update)
-            code->update(code);
     }
 }
 
@@ -1976,24 +1958,57 @@ static void studioClose()
     free(impl.fs);
 }
 
-Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, System* system)
+static StartArgs parseArgs(s32 argc, const char **argv)
+{
+    static const char *const usage[] = 
+    {
+        "tic80 [cart] [options]",
+        NULL,
+    };
+
+    StartArgs args = 
+    {
+#if defined(__TIC_ANDROID__)
+        .surf = true,
+#endif
+        .app = argv[0],
+    };
+
+    struct argparse_option options[] = 
+    {
+        OPT_HELP(),
+        OPT_BOOLEAN('\0',   "skip",         &args.skip,          "skip startup animation"),
+        OPT_BOOLEAN('\0',   "nosound",      &args.nosound,       "disable sound output"),
+        OPT_BOOLEAN('\0',   "fullscreen",   &args.fullscreen,    "enable fullscreen mode"),
+        OPT_BOOLEAN('\0',   "surf",         &args.surf,          "run SURF mode to explore carts"),
+        OPT_STRING('\0',    "fs",           &args.fs,            "path to the file system folder"),
+        OPT_INTEGER('\0',   "scale",        &args.scale,         "main window scale"),
+#if defined(CRT_SHADER_SUPPORT)
+        OPT_BOOLEAN('\0',   "crt",          &args.crt,           "enable CRT monitor effect"),
+#endif
+        OPT_END(),
+    };
+
+    struct argparse argparse;
+    argparse_init(&argparse, options, usage, 0);
+    argparse_describe(&argparse, "\n" TIC_NAME " startup options:", NULL);
+    argc = argparse_parse(&argparse, argc, argv);
+
+    if(argc == 1)
+        args.cart = argv[0];
+
+    return args;
+}
+
+Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* folder, System* system)
 {
     setbuf(stdout, NULL);
-    impl.argc = argc;
-    impl.argv = argv;
+
+    StartArgs args = parseArgs(argc, argv);
+
     impl.samplerate = samplerate;
-
     impl.system = system;
-
-    if(argc > 1 && fsExists(argv[1]))
-    {
-        char name[TICNAME_MAX];
-        fsBasename(argv[1], name);
-
-        impl.fs = createFileSystem(name);
-    }
-    else impl.fs = createFileSystem(folder);
-
+    impl.fs = createFileSystem(args.fs ? args.fs : folder);
     impl.tic80local = (tic80_local*)tic80_create(impl.samplerate);
     impl.studio.tic = impl.tic80local->memory;
 
@@ -2021,27 +2036,23 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder, Sy
     fsMakeDir(impl.fs, TIC_LOCAL_VERSION);
     
     initConfig(impl.config, impl.studio.tic, impl.fs);
-
     initKeymap();
-
     initStart(impl.start, impl.studio.tic);
-    initConsole(impl.console, impl.studio.tic, impl.fs, impl.config, impl.argc, impl.argv);
+    initConsole(impl.console, impl.studio.tic, impl.fs, impl.config, args);
     initSurfMode();
-
     initRunMode();
-
     initModules();
 
-    if(impl.console->skipStart)
+    if(args.skip)
     {
         setStudioMode(TIC_CONSOLE_MODE);
     }
 
 #if defined(CRT_SHADER_SUPPORT)
-    impl.config->data.crtMonitor = impl.console->crtMonitor;
+    impl.config->data.crtMonitor = args.crt;
 #endif
 
-    impl.config->data.goFullscreen = impl.console->goFullscreen;
+    impl.config->data.goFullscreen = args.fullscreen;
 
     impl.studio.tick = studioTick;
     impl.studio.close = studioClose;

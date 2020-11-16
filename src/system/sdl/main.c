@@ -1410,14 +1410,6 @@ static System systemInterface =
     .httpGetSync = httpGetSync,
     .httpGet = httpGet,
 
-#if defined(FILE_DIALOGS_SUPPORT)
-    .fileDialogLoad = file_dialog_load,
-    .fileDialogSave = file_dialog_save,
-#else
-    .fileDialogLoad = NULL,
-    .fileDialogSave = NULL,
-#endif
-
     .goFullscreen = goFullscreen,
     .showMessageBox = showMessageBox,
     .setWindowTitle = setWindowTitle,
@@ -1592,7 +1584,7 @@ static void createMouseCursors()
         platform.mouse.cursors[i] = SDL_CreateSystemCursor(SystemCursors[i]);
 }
 
-static s32 start(s32 argc, char **argv, const char* folder)
+static s32 start(s32 argc, const char **argv, const char* folder)
 {
     SDL_SetHint(SDL_HINT_WINRT_HANDLE_BACK_BUTTON, "1");
     SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
@@ -1773,7 +1765,7 @@ s32 main(s32 argc, char **argv)
 
 #else
 
-    return start(argc, argv, folder);
+    return start(argc, (const char **)argv, folder);
     
 #endif
 }

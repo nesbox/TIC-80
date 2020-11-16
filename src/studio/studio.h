@@ -32,7 +32,6 @@
 #include "api.h"
 #include "defines.h"
 #include "tools.h"
-#include "ext/file_dialog.h"
 #include "system.h"
 
 #define TIC_LOCAL ".local/"
@@ -65,6 +64,21 @@ do{                                         \
     sprintf(buf, Format, __VA_ARGS__);      \
     showTooltip(buf);                       \
 }while(0)
+
+typedef struct
+{
+    bool skip;
+    bool nosound;
+    bool fullscreen;
+    bool surf;
+    s32 scale;
+    const char *fs;
+    const char *cart;
+    const char *app;
+#if defined(CRT_SHADER_SUPPORT)
+    bool crt;
+#endif
+} StartArgs;
 
 typedef enum
 {

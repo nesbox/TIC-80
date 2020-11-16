@@ -1,7 +1,6 @@
 #pragma once
 
 #include "api.h"
-#include "ext/file_dialog.h"
 #include "version.h"
 
 #if defined(TIC80_PRO)
@@ -79,9 +78,6 @@ typedef struct
 
     void* (*httpGetSync)(const char* url, s32* size);
     void (*httpGet)(const char* url, HttpGetCallback callback, void* userdata);
-
-    void (*fileDialogLoad)(file_dialog_load_callback callback, void* data);
-    void (*fileDialogSave)(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode);
 
     void (*goFullscreen)();
     void (*showMessageBox)(const char* title, const char* message);
@@ -185,7 +181,7 @@ extern "C" {
 #endif
 
 
-TIC80_API Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* appFolder, System* system);
+TIC80_API Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* appFolder, System* system);
 
 #ifdef __cplusplus
 }

@@ -147,14 +147,6 @@ static System systemInterface =
     .httpGetSync = httpGetSync,
     .httpGet = httpGet,
 
-#if defined(FILE_DIALOGS_SUPPORT)
-    .fileDialogLoad = file_dialog_load,
-    .fileDialogSave = file_dialog_save,
-#else
-    .fileDialogLoad = NULL,
-    .fileDialogSave = NULL,
-#endif
-
     .goFullscreen = goFullscreen,
     .showMessageBox = showMessageBox,
     .setWindowTitle = setWindowTitle,

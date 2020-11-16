@@ -43,3 +43,6 @@
 [submodule "vendor/moonscript"]
 	path = vendor/moonscript
 	url = https://github.com/nesbox/moonscript.git
+[submodule "vendor/argparse"]
+	path = vendor/argparse
+	url = https://github.com/cofyc/argparse.git

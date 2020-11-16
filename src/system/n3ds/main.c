@@ -218,15 +218,6 @@ static void httpGet(const char* url, HttpGetCallback callback, void* calldata)
 #endif
 }
 
-static void n3ds_file_dialog_load(file_dialog_load_callback callback, void* data)
-{
-}
-
-static void n3ds_file_dialog_save(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode)
-{
-}
-
-
 static void goFullscreen()
 {
 }
@@ -512,9 +503,6 @@ static System systemInterface =
 
     .httpGetSync = httpGetSync,
     .httpGet = httpGet,
-
-    .fileDialogLoad = n3ds_file_dialog_load,
-    .fileDialogSave = n3ds_file_dialog_save,
 
     .goFullscreen = goFullscreen,
     .showMessageBox = showMessageBox,

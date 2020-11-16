@@ -22,7 +22,6 @@
 
 #include "studio.h"
 #include "fs.h"
-#include "ext/file_dialog.h"
 
 #if defined(BAREMETALPI)
 #include "../../circle-stdlib/libs/circle/addon/fatfs/ff.h"
@@ -464,121 +463,6 @@ bool fsDeleteFile(FileSystem* fs, const char* name)
 #endif
 }
 
-typedef struct
-{
-    FileSystem* fs;
-    AddCallback callback;
-    void* data;
-} AddFileData;
-
-static void onAddFile(const char* name, const u8* buffer, s32 size, void* data, u32 mode)
-{
-#if defined(BAREMETALPI)
-    dbg("onAddFile %s", name);
-    // TODO BAREMETALPI
-#else
-    AddFileData* addFileData = (AddFileData*)data;
-    FileSystem* fs = addFileData->fs;
-
-    if(name)
-    {
-        const char* destname = fsGetFilePath(fs, name);
-
-        const fsString* destString = utf8ToString(destname);
-        FILE* file = tic_fopen(destString, _S("rb"));
-        freeString(destString);
-
-        if(file)
-        {
-            fclose(file);
-
-            addFileData->callback(name, FS_FILE_EXISTS, addFileData->data);
-        }
-        else
-        {
-            const char* path = fsGetFilePath(fs, name);
-
-            const fsString* pathString = utf8ToString(path);
-            FILE* dest = tic_fopen(pathString, _S("wb"));
-            freeString(pathString);
-
-            if (dest)
-            {
-                fwrite(buffer, 1, size, dest);
-                fclose(dest);
-
-#if !defined(__TIC_WINRT__) && !defined(__TIC_WINDOWS__) && !defined(_3DS)
-                if(mode)
-                    chmod(path, mode);
-#endif
-
-#if defined(__EMSCRIPTEN__)
-                syncfs();
-#endif
-                
-                addFileData->callback(name, FS_FILE_ADDED, addFileData->data);
-            }
-        }
-    }
-    else
-    {
-        addFileData->callback(name, FS_FILE_NOT_ADDED, addFileData->data);
-    }
-
-    free(addFileData);
-#endif
-}
-
-void fsAddFile(FileSystem* fs, AddCallback callback, void* data)
-{
-    AddFileData* addFileData = (AddFileData*)malloc(sizeof(AddFileData));
-
-    *addFileData = (AddFileData) { fs, callback, data };
-
-    getSystem()->fileDialogLoad(&onAddFile, addFileData);
-}
-
-typedef struct
-{
-    GetCallback callback;
-    void* data;
-    void* buffer;
-} GetFileData;
-
-static void onGetFile(bool result, void* data)
-{
-    GetFileData* command = (GetFileData*)data;
-
-    command->callback(result ? FS_FILE_DOWNLOADED : FS_FILE_NOT_DOWNLOADED, command->data);
-
-    free(command->buffer);
-    free(command);
-}
-
-static u32 fsGetMode(FileSystem* fs, const char* name)
-{
-#if defined(BAREMETALPI)
-    dbg("fsGetMode %s", name);
-    // TODO BAREMETALPI
-    return 0;
-#else
-
-#if defined(__TIC_WINRT__) || defined(__TIC_WINDOWS__)
-    return 0;
-#else
-    const char* path = fsGetFilePath(fs, name);
-    mode_t mode = 0;
-    struct stat s;
-    if(stat(path, &s) == 0)
-        mode = s.st_mode;
-
-    return mode;
-#endif
-
-#endif
-
-}
-
 void fsHomeDir(FileSystem* fs)
 {
     memset(fs->work, 0, sizeof fs->work);
@@ -678,54 +562,6 @@ bool fsIsDir(FileSystem* fs, const char* name)
     return ret;
 #endif
 
-}
-
-void fsGetFileData(GetCallback callback, const char* name, void* buffer, s32 size, u32 mode, void* data)
-{
-    GetFileData* command = (GetFileData*)malloc(sizeof(GetFileData));
-    *command = (GetFileData) {callback, data, buffer};
-
-    getSystem()->fileDialogSave(onGetFile, name, buffer, size, command, mode);
-}
-
-typedef struct
-{
-    OpenCallback callback;
-    void* data;
-} OpenFileData;
-
-static void onOpenFileData(const char* name, const u8* buffer, s32 size, void* data, u32 mode)
-{
-    OpenFileData* command = (OpenFileData*)data;
-
-    command->callback(name, buffer, size, command->data);
-
-    free(command);
-}
-
-void fsOpenFileData(OpenCallback callback, void* data)
-{
-    OpenFileData* command = (OpenFileData*)malloc(sizeof(OpenFileData));
-
-    *command = (OpenFileData){callback, data};
-
-    getSystem()->fileDialogLoad(onOpenFileData, command);
-}
-
-void fsGetFile(FileSystem* fs, GetCallback callback, const char* name, void* data)
-{
-    s32 size = 0;
-    void* buffer = fsLoadFile(fs, name, &size);
-
-    if(buffer)
-    {
-        GetFileData* command = (GetFileData*)malloc(sizeof(GetFileData));
-        *command = (GetFileData) {callback, data, buffer};
-
-        s32 mode = fsGetMode(fs, name);
-        getSystem()->fileDialogSave(onGetFile, name, buffer, size, command, mode);
-    }
-    else callback(FS_FILE_NOT_DOWNLOADED, data);
 }
 
 bool fsWriteFile(const char* name, const void* buffer, s32 size)
@@ -1237,6 +1073,18 @@ FileSystem* createFileSystem(const char* path)
     memset(fs, 0, sizeof(FileSystem));
 
     strcpy(fs->dir, path);
+
+    {
+        const char* last = &path[strlen(path) - 1];
+        if(*last != '/' && *last != '\\')
+            strcat(fs->dir, "/");
+    }
+
+    {
+        const fsString* str = utf8ToString(fs->dir);
+        tic_mkdir(str);
+        freeString(str);
+    }
 
     return fs;
 }

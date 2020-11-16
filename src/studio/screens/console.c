@@ -24,7 +24,6 @@
 #include "studio/fs.h"
 #include "studio/config.h"
 #include "ext/gif.h"
-#include "ext/file_dialog.h"
 #include "studio/project.h"
 
 #include <ctype.h>
@@ -86,7 +85,6 @@ typedef enum
 #if defined(__TIC_WINDOWS__) || defined(__TIC_LINUX__) || defined(__TIC_MACOSX__)
 #define CAN_EXPORT 1
 #define CAN_EXPORT_NATIVE 1
-#define CAN_OPEN_URL 1
 #define CAN_OPEN_FOLDER 1
 #endif
 
@@ -356,14 +354,6 @@ static void processConsoleBackspace(Console* console)
 }
 
 static void onConsoleHelpCommand(Console* console, const char* param);
-
-#if defined(CAN_OPEN_URL)
-static void onConsoleWikiCommand(Console* console, const char* param)
-{
-    getSystem()->openSystemPath("https://github.com/nesbox/TIC-80/wiki");
-    commandDone(console);
-}
-#endif
 
 static void onConsoleExitCommand(Console* console, const char* param)
 {
@@ -1304,18 +1294,6 @@ static void onConsoleConfigCommand(Console* console, const char* param)
     commandDone(console);
 }
 
-static void onFileDownloaded(GetResult result, void* data)
-{
-    Console* console = (Console*)data;
-
-    if(result == FS_FILE_NOT_DOWNLOADED)
-        printBack(console, "\nfile not downloaded :|");
-    else if (result == FS_FILE_DOWNLOADED)
-        printBack(console, "\nfile downloaded :)");
-
-    commandDone(console);
-}
-
 static void onImportCover(const char* name, const void* buffer, s32 size, void* data)
 {
     Console* console = (Console*)data;
@@ -1447,41 +1425,29 @@ static void onConsoleImportCommand(Console* console, const char* param)
         commandDone(console);
     }
     else if(strcmp(param, "sprites") == 0)
-        fsOpenFileData(onImportSprites, console);
+    {
+        s32 size = 0;
+        const void* data = fsLoadFile(console->fs, "sprites.gif", &size);
+        onImportSprites("sprites.gif", data, size, console);
+    }
     else if(strcmp(param, "map") == 0)
-        fsOpenFileData(onImportMap, console);
+    {
+        s32 size = 0;
+        const void* data = fsLoadFile(console->fs, "map.dat", &size);
+        onImportMap("map.dat", data, size, console);
+    }
     else if(strcmp(param, "cover") == 0)
-        fsOpenFileData(onImportCover, console);
+    {
+        s32 size = 0;
+        const void* data = fsLoadFile(console->fs, "cover.gif", &size);
+        onImportCover("cover.gif", fsLoadFile(console->fs, "cover.gif", &size), size, console);
+    }
     else
     {
         printError(console, "\nunknown parameter: ");
         printError(console, param);
         commandDone(console);
     }
-}
-
-static void onSpritesExported(GetResult result, void* data)
-{
-    Console* console = (Console*)data;
-
-    if(result == FS_FILE_NOT_DOWNLOADED)
-        printBack(console, "\nsprites not exported :|");
-    else if (result == FS_FILE_DOWNLOADED)
-        printBack(console, "\nsprites successfully exported :)");
-
-    commandDone(console);
-}
-
-static void onCoverExported(GetResult result, void* data)
-{
-    Console* console = (Console*)data;
-
-    if(result == FS_FILE_NOT_DOWNLOADED)
-        printBack(console, "\ncover image not exported :|");
-    else if (result == FS_FILE_DOWNLOADED)
-        printBack(console, "\ncover image successfully exported :)");
-
-    commandDone(console);
 }
 
 static void exportCover(Console* console)
@@ -1494,7 +1460,9 @@ static void exportCover(Console* console)
         if (data)
         {
             memcpy(data, cover->data, cover->size);
-            fsGetFileData(onCoverExported, "cover.gif", data, cover->size, DEFAULT_CHMOD, console);
+            fsSaveFile(console->fs, "cover.gif", data, cover->size, true);
+            printBack(console, "\ncover image successfully exported :)");
+            commandDone(console);
         }
         else
             printMemoryError(console);
@@ -1517,7 +1485,9 @@ static void exportSfx(Console* console, s32 sfx)
     {
         char name[TICNAME_MAX];
         sprintf(name, "sfx %i.wav", sfx);
-        fsGetFileData(onFileDownloaded, name, data, size, DEFAULT_CHMOD, console);
+        fsSaveFile(console->fs, name, data, size, true);
+        printBack(console, "\nsfx.wav exported :)");
+        commandDone(console);
     }
     else
     {
@@ -1537,7 +1507,9 @@ static void exportMusic(Console* console, s32 track)
     {
         char name[TICNAME_MAX];
         sprintf(name, "track %i.wav", track);
-        fsGetFileData(onFileDownloaded, name, data, size, DEFAULT_CHMOD, console);
+        fsSaveFile(console->fs, name, data, size, true);
+        printBack(console, "\ntrack.wav exported :)");
+        commandDone(console);
     }
     else
     {
@@ -1570,8 +1542,10 @@ static void exportSprites(Console* console)
             s32 size = 0;
             if((size = writeGifData(console->tic, buffer, data, Width, Height)))
             {
-                // buffer will be freed inside fsGetFileData
-                fsGetFileData(onSpritesExported, "sprites.gif", buffer, size, DEFAULT_CHMOD, console);
+                // buffer will be freed inside // fsGetFileData
+                fsSaveFile(console->fs, "sprites.gif", buffer, size, true);
+                printBack(console, "\nsprites.gif exported :)");
+                commandDone(console);
             }
             else
             {
@@ -1585,18 +1559,6 @@ static void exportSprites(Console* console)
     }
 }
 
-static void onMapExported(GetResult result, void* data)
-{
-    Console* console = (Console*)data;
-
-    if(result == FS_FILE_NOT_DOWNLOADED)
-        printBack(console, "\nmap not exported :|");
-    else if (result == FS_FILE_DOWNLOADED)
-        printBack(console, "\nmap successfully exported :)");
-
-    commandDone(console);
-}
-
 static void exportMap(Console* console)
 {
     enum{Size = sizeof(tic_map)};
@@ -1606,7 +1568,9 @@ static void exportMap(Console* console)
     if(buffer)
     {
         memcpy(buffer, getBankMap()->data, Size);
-        fsGetFileData(onMapExported, "world.map", buffer, Size, DEFAULT_CHMOD, console);
+        fsSaveFile(console->fs, "world.map", buffer, Size, true);
+        printBack(console, "\nworld.map exported :)");
+        commandDone(console);
     }
 }
 
@@ -1680,7 +1644,7 @@ static void* embedCart(Console* console, s32* size)
 
             if(zipData)
             {
-                if(zipSize = tic_tool_zip(zipData, zipSize, cart, cartSize))
+                if((zipSize = tic_tool_zip(zipData, zipSize, cart, cartSize)))
                 {
                     EmbedHeader header = 
                     {
@@ -1722,11 +1686,9 @@ static void onConsoleExportNativeCommand(Console* console, const char* cartName)
 
     if(data)
     {
-        fsGetFileData(onFileDownloaded, cartName, data, size, DEFAULT_CHMOD, console);
-    }
-    else
-    {
-        onFileDownloaded(FS_FILE_NOT_DOWNLOADED, console);
+        fsSaveFile(console->fs, cartName, data, size, true);
+        printBack(console, "\ngame.exe exported :)");
+        commandDone(console);
     }
 }
 
@@ -1862,24 +1824,28 @@ static void onConsoleExportHtmlCommand(Console* console, const char* providedNam
             {
                 if(fsExists(providedName))
                 {
-                    printError(console, "\nfile already exists");
+                    printError(console, "\n" HTML_EXPORT_NAME " already exists");
                     commandDone(console);
                     return;
                 }
                 else if (fsWriteFile(providedName, data, sizeof(data)))
                 {
-                    onFileDownloaded(FS_FILE_DOWNLOADED, console);
+                    printBack(console, "\n" HTML_EXPORT_NAME " exported :)");
+                    commandDone(console);
                     return;
                 }
                 else
                 {
-                    onFileDownloaded(FS_FILE_NOT_DOWNLOADED, console);
+                    printBack(console, "\n" HTML_EXPORT_NAME " not exported :(");
+                    commandDone(console);
                     return;
                 }
             }
             else if(data)
             {
-                fsGetFileData(onFileDownloaded, getExportName(console, ".zip"), data, size, DEFAULT_CHMOD, console);
+                fsSaveFile(console->fs, getExportName(console, ".zip"), data, size, true);
+                printBack(console, "\n" HTML_EXPORT_NAME " exported :)");
+                commandDone(console);                
                 return;
             }
             else errorOccured = true;
@@ -2096,13 +2062,7 @@ static void onConsoleResumeCommand(Console* console, const char* param)
 {
     commandDone(console);
 
-    const tic_script_config* script_config = tic_core_script_config(console->tic);
-    if (script_config->eval && console->codeLiveReload.active)
-    {
-        script_config->eval(console->tic, console->tic->cart.code.data);
-    }
     tic_core_resume(console->tic);
-
     resumeRunMode();
 }
 
@@ -2122,49 +2082,6 @@ static void onConsoleEvalCommand(Console* console, const char* param)
     {
         printError(console, "'eval' not implemented for the script");
     }
-
-    commandDone(console);
-}
-
-static void onAddFile(const char* name, AddResult result, void* data)
-{
-    Console* console = (Console*)data;
-
-    printLine(console);
-
-    switch(result)
-    {
-    case FS_FILE_EXISTS:
-        printBack(console, "file ");
-        printFront(console, name);
-        printBack(console, " already exists :|");
-        break;
-    case FS_FILE_ADDED:
-        printBack(console, "file ");
-        printFront(console, name);
-        printBack(console, " is successfully added :)");
-        break;
-    default:
-        printBack(console, "file not added :(");
-        break;
-    }
-
-    commandDone(console);
-}
-
-static void onConsoleAddCommand(Console* console, const char* param)
-{
-    fsAddFile(console->fs, onAddFile, console);
-}
-
-static void onConsoleGetCommand(Console* console, const char* param)
-{
-    if(param)
-    {
-        fsGetFile(console->fs, onFileDownloaded, param, console);
-        return;
-    }
-    else printBack(console, "\nfile name is missing");
 
     commandDone(console);
 }
@@ -2344,9 +2261,6 @@ static const struct
 } AvailableConsoleCommands[] =
 {
     {"help",    NULL, "show this info",             onConsoleHelpCommand},
-#if defined(CAN_OPEN_URL)
-    {"wiki",    NULL, "open github wiki page",      onConsoleWikiCommand},
-#endif
     {"ram",     NULL, "show 80K RAM layout",        onConsoleRamCommand},
     {"vram",    NULL, "show 16K VRAM layout",       onConsoleVRamCommand},
     {"exit",    "quit", "exit the application",     onConsoleExitCommand},
@@ -2362,8 +2276,6 @@ static const struct
 #if defined(CAN_OPEN_FOLDER)
     {"folder",  NULL, "open working folder in OS",  onConsoleFolderCommand},
 #endif
-    {"add",     NULL, "add file",                   onConsoleAddCommand},
-    {"get",     NULL, "download file",              onConsoleGetCommand},
     {"export",  NULL, "export native game",         onConsoleExportCommand},
     {"import",  NULL, "import sprites from .gif",   onConsoleImportCommand},
     {"del",     NULL, "delete file or dir",         onConsoleDelCommand},
@@ -2862,9 +2774,9 @@ static void tick(Console* console)
 
     if(console->embed.yes)
     {
-        if(console->tickCounter >= (u32)(console->skipStart ? 1 : TIC80_FRAMERATE))
+        if(console->tickCounter >= (u32)(console->args.skip ? 1 : TIC80_FRAMERATE))
         {
-            if(!console->skipStart)
+            if(!console->args.skip)
                 console->showGameMenu = true;
 
             memcpy(&tic->cart, console->embed.file, sizeof(tic_cartridge));
@@ -2873,7 +2785,7 @@ static void tick(Console* console)
 
             setStudioMode(TIC_RUN_MODE);
             console->embed.yes = false;
-            console->skipStart = false;
+            console->args.skip = false;
             studioRomLoaded();
 
             printLine(console);
@@ -2895,9 +2807,9 @@ static void tick(Console* console)
 
     console->tickCounter++;
 
-    if(console->startSurf)
+    if(console->args.surf)
     {
-        console->startSurf = false;
+        console->args.surf = false;
         gotoSurf();
     }
 }
@@ -2919,7 +2831,6 @@ static bool cmdLoadCart(Console* console, const char* name)
                 fsFilename(name, cartName);
                 setCartName(console, cartName);
                 console->embed.yes = true;
-                console->skipStart = true;
                 done = true;
             }            
         }
@@ -2943,188 +2854,7 @@ static bool cmdLoadCart(Console* console, const char* name)
     return done;
 }
 
-static bool loadFileIntoBuffer(Console* console, char* buffer, const char* fileName)
-{
-    s32 size = 0;
-    void* contents = fsReadFile(fileName, &size);
-
-    if(contents)
-    {
-        memset(buffer, 0, TIC_CODE_SIZE);
-
-        if(size > TIC_CODE_SIZE)
-        {
-            char messageBuffer[256];
-            sprintf(messageBuffer, "\n code is larger than %i symbols\n", TIC_CODE_SIZE);
-
-            printError(console, messageBuffer);
-        }
-
-        memcpy(buffer, contents, MIN(size, TIC_CODE_SIZE-1));
-        free(contents);
-
-        return true;
-    }
-
-    return false;
-}
-
-static void tryReloadCode(Console* console, char* codeBuffer)
-{
-    if(console->codeLiveReload.active)
-    {
-        const char* fileName = console->codeLiveReload.fileName;
-        loadFileIntoBuffer(console, codeBuffer, fileName);
-    }
-}
-
-static bool cmdInjectCode(Console* console, const char* param, const char* name)
-{
-    bool done = false;
-
-    bool watch = strcmp(param, "-code-watch") == 0;
-    if(watch || strcmp(param, "-code") == 0)
-    {
-        bool loaded = loadFileIntoBuffer(console, console->embed.file->code.data, name);
-
-        if(loaded)
-        {
-            console->embed.yes = true;
-            console->skipStart = true;
-            done = true;
-
-            if(watch)
-            {
-                console->codeLiveReload.active = true;
-                strcpy(console->codeLiveReload.fileName, name);
-            }
-        }
-    }
-
-    return done;
-}
-
-static bool cmdInjectSprites(Console* console, const char* param, const char* name)
-{
-    bool done = false;
-
-    if(strcmp(param, "-sprites") == 0)
-    {
-        s32 size = 0;
-        void* sprites = fsReadFile(name, &size);
-
-        if(sprites)
-        {
-            gif_image* image = gif_read_data(sprites, size);
-
-            if (image)
-            {
-                enum
-                {
-                    Width = TIC_SPRITESHEET_SIZE,
-                    Height = TIC_SPRITESHEET_SIZE*2,
-                };
-
-                s32 w = MIN(Width, image->width);
-                s32 h = MIN(Height, image->height);
-
-                for (s32 y = 0; y < h; y++)
-                    for (s32 x = 0; x < w; x++)
-                    {
-                        u8 src = image->buffer[x + y * image->width];
-                        const gif_color* c = &image->palette[src];
-                        u8 color = tic_tool_find_closest_color(console->embed.file->bank0.palette.scn.colors, c);
-
-                        setSpritePixel(console->embed.file->bank0.tiles.data, x, y, color);
-                    }
-
-                gif_close(image);
-            }
-
-            free(sprites);
-
-            console->embed.yes = true;
-            console->skipStart = true;
-            done = true;
-        }
-
-    }
-
-    return done;
-}
-
-static bool cmdInjectMap(Console* console, const char* param, const char* name)
-{
-    bool done = false;
-
-    if(strcmp(param, "-map") == 0)
-    {
-        s32 size = 0;
-        void* map = fsReadFile(name, &size);
-
-        if(map)
-        {
-            if(size <= sizeof(tic_map))
-            {
-                injectMap(console, map, size);
-
-                console->embed.yes = true;
-                console->skipStart = true;
-                done = true;
-            }
-
-            free(map);
-        }
-    }
-
-    return done;
-}
-
-static bool checkUIScale(Console* console, const char* param, const char* value)
-{
-    bool done = false;
-
-    if(strcmp(param, "-uiscale") == 0)
-    {
-        s32 scale = atoi(value);
-
-        if(scale > 0)
-        {
-            console->config->data.uiScale = scale;
-            done = true;
-        }
-    }
-
-    return done;
-}
-
-static bool checkCommand(Console* console, const char* argument)
-{
-    char* command = alloca(strlen(argument));
-    strcpy(command, argument);
-
-    for(char* ptr = command; *ptr; ptr++)
-        if(isspace(*ptr))
-        {
-            *ptr = '\0';
-            break;
-        }
-
-    for(s32 i = 0; i < COUNT_OF(AvailableConsoleCommands); i++)
-    {
-        if(tic_strcasecmp(command, AvailableConsoleCommands[i].command) == 0 ||
-            (AvailableConsoleCommands[i].alt &&
-             tic_strcasecmp(command, AvailableConsoleCommands[i].alt) == 0))
-        {
-            processCommand(console, argument);
-            return true;
-        }
-    }
-
-    return false;
-}
-
-void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config, s32 argc, char **argv)
+void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config, StartArgs args)
 {
     if(!console->buffer) console->buffer = malloc(CONSOLE_BUFFER_SIZE);
     if(!console->colorBuffer) console->colorBuffer = malloc(CONSOLE_BUFFER_SIZE);
@@ -3147,11 +2877,6 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
             .start = 0,
             .active = false,
         },
-        .codeLiveReload =
-        {
-            .active = false,
-            .reload = tryReloadCode,
-        },
         .embed =
         {
             .yes = false,
@@ -3166,110 +2891,28 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
         .colorBuffer = console->colorBuffer,
         .fs = fs,
         .showGameMenu = false,
-#if defined(__TIC_ANDROID__)
-        .startSurf = true,
-#else
-        .startSurf = false,
-#endif
-        .skipStart = false,
-        .goFullscreen = false,
-#if defined(CRT_SHADER_SUPPORT)
-        .crtMonitor = false,
-#endif
+        .args = args,
     };
 
     memset(console->buffer, 0, CONSOLE_BUFFER_SIZE);
     memset(console->colorBuffer, TIC_COLOR_BG, CONSOLE_BUFFER_SIZE);
 
-    memset(console->codeLiveReload.fileName, 0, TICNAME_MAX);
-
-    if(argc)
-    {
-        strcpy(console->appPath, argv[0]);
-
+    strcpy(console->appPath, args.app);
 #if defined(__TIC_WINDOWS__)
-        if(!strstr(console->appPath, ExeExt))
-            strcat(console->appPath, ExeExt);
+    if(!strstr(console->appPath, ExeExt))
+        strcat(console->appPath, ExeExt);
 #endif
-    }
 
     printFront(console, "\n " TIC_NAME_FULL "");
     printBack(console, " " TIC_VERSION_LABEL "\n");
     printBack(console, " " TIC_COPYRIGHT "\n");
 
-    if(argc > 1)
-    {
-        // TODO: should we use default DB16 palette here???
-        memcpy(console->embed.file->bank0.palette.scn.data, getConfig()->cart->bank0.palette.scn.data, sizeof(tic_palette));
+    if(args.cart)
+        if(!cmdLoadCart(console, args.cart))
+            printf("error: cart '%s' not loaded\n", args.cart);
 
-        u32 argp = 1;
-
-        // trying to load cart
-        for (s32 i = 1; i < argc; i++)
-        {
-            if(strcmp(argv[i], ".") == 0 || cmdLoadCart(console, argv[i]))
-            {
-                argp |= 1 << i;
-                break;
-            }
-        }
-
-        // process '-key val' params
-        for (s32 i = 1; i < argc-1; i++)
-        {
-            s32 mask = 0b11 << i;
-
-            if(~argp & mask)
-            {
-                const char* first = argv[i];
-                const char* second = argv[i + 1];
-
-                if(cmdInjectCode(console, first, second)
-                    || cmdInjectSprites(console, first, second)
-                    || cmdInjectMap(console, first, second)
-                    || checkUIScale(console, first, second))
-                    argp |= mask;
-            }
-        }
-
-        // proccess single params
-        for (s32 i = 1; i < argc; i++)
-        {
-            if(~argp & 1 << i)
-            {
-                const char* arg = argv[i];
-
-                if(strcmp(arg, "-nosound") == 0)
-                    config->data.noSound = true;
-
-                else if(strcmp(arg, "-surf") == 0)
-                    console->startSurf = true;
-
-                else if(strcmp(arg, "-fullscreen") == 0)
-                    console->goFullscreen = true;
-
-                else if(strcmp(arg, "-skip") == 0)
-                    console->skipStart = true;
-
-                else if(strcmp(arg, "-save") == 0)
-                    saveCart(console);
-
-#if defined(CRT_SHADER_SUPPORT)
-                else if(strcmp(arg, "-crt-monitor") == 0)
-                    console->crtMonitor = true;
-#endif
-
-                else continue;
-
-                argp |= 0b1 << i;
-            }
-        }
-
-        for (s32 i = 1; i < argc; i++)
-            if(~argp & 1 << i)
-                if(!checkCommand(console, argv[i]))
-                    printf("parameter or file not processed: %s\n", argv[i]);
-    }
+    if(args.scale)
+        console->config->data.uiScale = args.scale;
 
 #if defined(CAN_EXPORT_NATIVE)
 

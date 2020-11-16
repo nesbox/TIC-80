@@ -63,14 +63,6 @@ struct Console
 
     struct
     {
-        char fileName[TICNAME_MAX];
-        bool active;
-
-        void(*reload)(Console*, char*);
-    } codeLiveReload;
-
-    struct
-    {
         bool yes;
         tic_cartridge* file;
     } embed;
@@ -93,17 +85,9 @@ struct Console
 
     u32 tickCounter;
 
-    struct
-    {
-        bool active;
-        bool showGameMenu;
-        bool startSurf;
-        bool skipStart;
-        bool goFullscreen;
-#if defined(CRT_SHADER_SUPPORT)
-        bool crtMonitor;
-#endif
-    };
+    bool active;
+    bool showGameMenu;
+    StartArgs args;
 
     void(*load)(Console*, const char* path, const char* hash);
     void(*updateProject)(Console*);
@@ -114,5 +98,5 @@ struct Console
     CartSaveResult(*save)(Console*);
 };
 
-void initConsole(Console*, tic_mem*, struct FileSystem* fs, struct Config* config, s32 argc, char **argv);
+void initConsole(Console*, tic_mem*, struct FileSystem* fs, struct Config* config, StartArgs args);
 void freeConsole(Console* console);
