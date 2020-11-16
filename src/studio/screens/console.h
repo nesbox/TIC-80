@@ -100,7 +100,9 @@ struct Console
         bool startSurf;
         bool skipStart;
         bool goFullscreen;
+#if defined(CRT_SHADER_SUPPORT)
         bool crtMonitor;
+#endif
     };
 
     void(*load)(Console*, const char* path, const char* hash);

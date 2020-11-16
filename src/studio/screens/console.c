@@ -3173,7 +3173,9 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 #endif
         .skipStart = false,
         .goFullscreen = false,
+#if defined(CRT_SHADER_SUPPORT)
         .crtMonitor = false,
+#endif
     };
 
     memset(console->buffer, 0, CONSOLE_BUFFER_SIZE);
@@ -3252,8 +3254,10 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
                 else if(strcmp(arg, "-save") == 0)
                     saveCart(console);
 
+#if defined(CRT_SHADER_SUPPORT)
                 else if(strcmp(arg, "-crt-monitor") == 0)
                     console->crtMonitor = true;
+#endif
 
                 else continue;
 
