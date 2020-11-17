@@ -50,7 +50,6 @@ void fsFilename(const char *path, char* out);
 bool fsExists(const char* name);
 void* fsReadFile(const char* path, s32* size);
 bool fsWriteFile(const char* path, const void* data, s32 size);
-bool fsCopyFile(const char* src, const char* dst);
 void fsOpenWorkingFolder(FileSystem* fs);
 bool fsIsDir(FileSystem* fs, const char* dir);
 bool fsIsInPublicDir(FileSystem* fs);

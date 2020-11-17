@@ -1217,12 +1217,6 @@ static void onConsoleSurfCommand(Console* console, const char* param)
     commandDone(console);
 }
 
-static void onConsoleCodeCommand(Console* console, const char* param)
-{
-    gotoCode();
-    commandDone(console);
-}
-
 static void onConsoleVersionCommand(Console* console, const char* param)
 {
     printBack(console, "\n");
@@ -1420,33 +1414,53 @@ static void onImportMap(const char* name, const void* buffer, s32 size, void* da
 
 static void onConsoleImportCommand(Console* console, const char* param)
 {
-    if(param == NULL)
+    bool error = true;
+
+    char* filename = NULL;
+    if(param)
     {
-        printBack(console, "\nusage: import sprites|cover|map");
-        commandDone(console);
+        filename = strchr(param, ' ');
+
+        if(filename && strlen(filename + 1))
+            *filename++ = '\0';
     }
-    else if(strcmp(param, "sprites") == 0)
+
+    if(param && filename)
     {
         s32 size = 0;
-        const void* data = fsLoadFile(console->fs, "sprites.gif", &size);
-        onImportSprites("sprites.gif", data, size, console);
+        const void* data = fsLoadFile(console->fs, filename, &size);
+
+        if(data)
+        {
+            if(strcmp(param, "sprites") == 0)
+            {
+                onImportSprites(filename, data, size, console);
+                error = false;
+            }
+            else if(strcmp(param, "cover") == 0)
+            {
+                onImportCover(filename, data, size, console);
+                error = false;
+            }
+            else if(strcmp(param, "map") == 0)
+            {
+                onImportMap(filename, data, size, console);
+                error = false;
+            }
+        }
+        else
+        {
+            char msg[TICNAME_MAX];
+            sprintf(msg, "\nerror: `%s` file not loaded", filename);
+            printError(console, msg);
+            commandDone(console);
+            return;
+        }
     }
-    else if(strcmp(param, "map") == 0)
+
+    if(error)
     {
-        s32 size = 0;
-        const void* data = fsLoadFile(console->fs, "map.dat", &size);
-        onImportMap("map.dat", data, size, console);
-    }
-    else if(strcmp(param, "cover") == 0)
-    {
-        s32 size = 0;
-        const void* data = fsLoadFile(console->fs, "cover.gif", &size);
-        onImportCover("cover.gif", fsLoadFile(console->fs, "cover.gif", &size), size, console);
-    }
-    else
-    {
-        printError(console, "\nunknown parameter: ");
-        printError(console, param);
+        printBack(console, "\nusage: import (sprites|cover|map) file");
         commandDone(console);
     }
 }
@@ -1680,15 +1694,18 @@ static void* embedCart(Console* console, s32* size)
     return data;
 }
 
-static void onConsoleExportNativeCommand(Console* console, const char* cartName)
+static void onConsoleExportNativeCommand(Console* console, const char* name)
 {
     s32 size = 0;
     void* data = embedCart(console, &size);
 
     if(data)
     {
-        fsSaveFile(console->fs, cartName, data, size, true);
-        printBack(console, "\ngame.exe exported :)");
+        fsSaveFile(console->fs, name, data, size, true);
+
+        char msg[TICNAME_MAX];
+        sprintf(msg, "\n%s exported :)", name);
+        printBack(console, msg);
         commandDone(console);
     }
 }
@@ -2284,7 +2301,6 @@ static const struct
     {"demo",    NULL, "install demo carts",         onConsoleInstallDemosCommand},
     {"config",  NULL, "edit TIC config",            onConsoleConfigCommand},
     {"version", NULL, "show the current version",   onConsoleVersionCommand},
-    {"edit",    NULL, "open cart editor",           onConsoleCodeCommand},
     {"surf",    NULL, "open carts browser",         onConsoleSurfCommand},
     {"menu",    NULL, "show game menu",             onConsoleGameMenuCommand},
 };
@@ -2901,7 +2917,10 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 
     if(args.cart)
         if(!cmdLoadCart(console, args.cart))
-            printf("error: cart '%s' not loaded\n", args.cart);
+        {
+            printf("error: cart `%s` not loaded\n", args.cart);
+            exit(1);
+        }
 
     if(args.scale)
         console->config->data.uiScale = args.scale;

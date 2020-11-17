@@ -611,56 +611,6 @@ bool fsWriteFile(const char* name, const void* buffer, s32 size)
 #endif
 }
 
-bool fsCopyFile(const char* src, const char* dst)
-{
-#if defined(BAREMETALPI)
-    // TODO BAREMETALPI
-    return false;
-#else
-    bool done = false;
-
-    void* buffer = NULL;
-    s32 size = 0;
-
-    {
-        const fsString* pathString = utf8ToString(src);
-        FILE* file = tic_fopen(pathString, _S("rb"));
-        freeString(pathString);
-
-        if(file)
-        {
-            fseek(file, 0, SEEK_END);
-            size = ftell(file);
-            fseek(file, 0, SEEK_SET);
-
-            if((buffer = malloc(size)) && fread(buffer, size, 1, file)) {}
-
-            fclose(file);
-        }       
-    }
-
-    if(buffer)
-    {
-        const fsString* pathString = utf8ToString(dst);
-        FILE* file = tic_fopen(pathString, _S("wb"));
-        freeString(pathString);
-
-        if(file)
-        {
-            fwrite(buffer, 1, size, file);
-            fclose(file);
-
-            done = true;
-        }
-
-        free(buffer);
-    }
-
-    return done;
-#endif
-
-}
-
 void* fsReadFile(const char* path, s32* size)
 {
 #if defined(BAREMETALPI)
@@ -886,15 +836,15 @@ bool fsSaveFile(FileSystem* fs, const char* name, const void* data, s32 size, bo
 
 bool fsSaveRootFile(FileSystem* fs, const char* name, const void* data, s32 size, bool overwrite)
 {
-    char path[TICNAME_MAX];
-    strcpy(path, fs->work);
-    fsHomeDir(fs);
+    const char* path = fsGetRootFilePath(fs, name);
 
-    bool ret = fsSaveFile(fs, name, data, size, overwrite);
+    if(!overwrite)
+    {
+        if(fsExists(path))
+            return false;
+    }
 
-    strcpy(fs->work, path);
-
-    return ret;
+    return fsWriteFile(path, data, size);
 }
 
 typedef struct
@@ -1041,15 +991,7 @@ void* fsLoadFile(FileSystem* fs, const char* name, s32* size)
 
 void* fsLoadRootFile(FileSystem* fs, const char* name, s32* size)
 {
-    char path[TICNAME_MAX];
-    strcpy(path, fs->work);
-    fsHomeDir(fs);
-
-    void* ret = fsLoadFile(fs, name, size);
-
-    strcpy(fs->work, path);
-
-    return ret;
+    return fsReadFile(fsGetRootFilePath(fs, name), size);
 }
 
 void fsMakeDir(FileSystem* fs, const char* name)
