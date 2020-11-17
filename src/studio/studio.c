@@ -2007,7 +2007,19 @@ Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* fold
 
     impl.samplerate = samplerate;
     impl.system = system;
-    impl.fs = createFileSystem(args.fs ? args.fs : folder);
+
+    {
+        const char *path = args.fs ? args.fs : folder;
+
+        if(fsExists(path))
+            impl.fs = createFileSystem(path);
+        else
+        {
+            fprintf(stderr, "error: folder `%s` doesn't exist\n", path);
+            exit(1);
+        }
+    }
+
     impl.tic80local = (tic80_local*)tic80_create(impl.samplerate);
     impl.studio.tic = impl.tic80local->memory;
 
@@ -2052,6 +2064,7 @@ Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* fold
 #endif
 
     impl.config->data.goFullscreen = args.fullscreen;
+    impl.config->data.noSound = args.nosound;
 
     impl.studio.tick = studioTick;
     impl.studio.close = studioClose;

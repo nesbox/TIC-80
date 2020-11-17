@@ -1069,22 +1069,12 @@ void fsOpenWorkingFolder(FileSystem* fs)
 
 FileSystem* createFileSystem(const char* path)
 {
-    FileSystem* fs = (FileSystem*)malloc(sizeof(FileSystem));
-    memset(fs, 0, sizeof(FileSystem));
+    FileSystem* fs = (FileSystem*)calloc(1, sizeof(FileSystem));
 
     strcpy(fs->dir, path);
 
-    {
-        const char* last = &path[strlen(path) - 1];
-        if(*last != '/' && *last != '\\')
-            strcat(fs->dir, "/");
-    }
-
-    {
-        const fsString* str = utf8ToString(fs->dir);
-        tic_mkdir(str);
-        freeString(str);
-    }
+    if(path[strlen(path) - 1] != SEP[0])
+        strcat(fs->dir, SEP);
 
     return fs;
 }
