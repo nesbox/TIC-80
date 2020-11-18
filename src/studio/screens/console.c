@@ -25,6 +25,7 @@
 #include "studio/config.h"
 #include "ext/gif.h"
 #include "studio/project.h"
+#include "zip.h"
 
 #include <ctype.h>
 #include <string.h>
@@ -36,10 +37,6 @@
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
-
-#if defined(__EMSCRIPTEN__)
-#include <emscripten.h>
-#endif
 
 #define CONSOLE_CURSOR_COLOR tic_color_red
 #define CONSOLE_BACK_TEXT_COLOR tic_color_grey
@@ -83,13 +80,11 @@ typedef enum
 } ScriptLang;
 
 #if defined(__TIC_WINDOWS__) || defined(__TIC_LINUX__) || defined(__TIC_MACOSX__)
-#define CAN_EXPORT 1
 #define CAN_EXPORT_NATIVE 1
 #define CAN_OPEN_FOLDER 1
 #endif
 
 #if defined(__TIC_ANDROID__)
-#define CAN_EXPORT 1
 #define CAN_OPEN_FOLDER 1
 #endif
 
@@ -1120,7 +1115,7 @@ static void installDemoCart(FileSystem* fs, const char* name, const void* cart, 
         if(dataSize)
             fsSaveFile(fs, name, data, dataSize, true);
 
-        free(data);        
+        free(data);
     }
 }
 
@@ -1465,7 +1460,7 @@ static void onConsoleImportCommand(Console* console, const char* param)
     }
 }
 
-static void exportCover(Console* console)
+static void exportCover(Console* console, const char* filename)
 {
     tic_cover_image* cover = &console->tic->cart.cover;
 
@@ -1475,8 +1470,10 @@ static void exportCover(Console* console)
         if (data)
         {
             memcpy(data, cover->data, cover->size);
-            fsSaveFile(console->fs, "cover.gif", data, cover->size, true);
-            printBack(console, "\ncover image successfully exported :)");
+            fsSaveFile(console->fs, filename, data, cover->size, true);
+            printLine(console);
+            printBack(console, filename);
+            printBack(console, " exported :)");
             commandDone(console);
         }
         else
@@ -1489,7 +1486,7 @@ static void exportCover(Console* console)
     }
 }
 
-static void exportSfx(Console* console, s32 sfx)
+static void exportSfx(Console* console, s32 sfx, const char* filename)
 {
     const char* path = studioExportSfx(sfx);
 
@@ -1498,10 +1495,10 @@ static void exportSfx(Console* console, s32 sfx)
 
     if(data)
     {
-        char name[TICNAME_MAX];
-        sprintf(name, "sfx %i.wav", sfx);
-        fsSaveFile(console->fs, name, data, size, true);
-        printBack(console, "\nsfx.wav exported :)");
+        fsSaveFile(console->fs, filename, data, size, true);
+        printLine(console);
+        printBack(console, filename);
+        printBack(console, " exported :)");
         commandDone(console);
     }
     else
@@ -1511,7 +1508,7 @@ static void exportSfx(Console* console, s32 sfx)
     }
 }
 
-static void exportMusic(Console* console, s32 track)
+static void exportMusic(Console* console, s32 track, const char* filename)
 {
     const char* path = studioExportMusic(track);
 
@@ -1520,10 +1517,12 @@ static void exportMusic(Console* console, s32 track)
 
     if(data)
     {
-        char name[TICNAME_MAX];
-        sprintf(name, "track %i.wav", track);
-        fsSaveFile(console->fs, name, data, size, true);
-        printBack(console, "\ntrack.wav exported :)");
+        fsSaveFile(console->fs, filename, data, size, true);
+
+        printLine(console);
+        printBack(console, filename);
+        printBack(console, " exported :)");
+
         commandDone(console);
     }
     else
@@ -1533,7 +1532,7 @@ static void exportMusic(Console* console, s32 track)
     }
 }
 
-static void exportSprites(Console* console)
+static void exportSprites(Console* console, const char* filename)
 {
     enum
     {
@@ -1558,8 +1557,10 @@ static void exportSprites(Console* console)
             if((size = writeGifData(console->tic, buffer, data, Width, Height)))
             {
                 // buffer will be freed inside // fsGetFileData
-                fsSaveFile(console->fs, "sprites.gif", buffer, size, true);
-                printBack(console, "\nsprites.gif exported :)");
+                fsSaveFile(console->fs, filename, buffer, size, true);
+                printLine(console);
+                printBack(console, filename);
+                printBack(console, " exported :)");
                 commandDone(console);
             }
             else
@@ -1574,7 +1575,7 @@ static void exportSprites(Console* console)
     }
 }
 
-static void exportMap(Console* console)
+static void exportMap(Console* console, const char* filename)
 {
     enum{Size = sizeof(tic_map)};
 
@@ -1583,37 +1584,13 @@ static void exportMap(Console* console)
     if(buffer)
     {
         memcpy(buffer, getBankMap()->data, Size);
-        fsSaveFile(console->fs, "world.map", buffer, Size, true);
-        printBack(console, "\nworld.map exported :)");
+        fsSaveFile(console->fs, filename, buffer, Size, true);
+        printLine(console);
+        printBack(console, filename);
+        printBack(console, " exported :)");
         commandDone(console);
     }
 }
-
-#if defined(__EMSCRIPTEN__)
-
-static void onConsoleExportCommand(Console* console, const char* param)
-{
-    if(param == NULL || (param && strcmp(param, "native") == 0) || (param && strcmp(param, "html") == 0))
-    {
-        printBack(console, "\nweb/arm version doesn't support html or\nnative export");
-        printBack(console, "\nusage: export sprites|cover|map");
-        commandDone(console);
-    }
-    else if(param && strcmp(param, "sprites") == 0)
-        exportSprites(console);
-    else if(param && strcmp(param, "map") == 0)
-        exportMap(console);
-    else if(param && strcmp(param, "cover") == 0)
-        exportCover(console);
-    else
-    {
-        printError(console, "\nunknown parameter: ");
-        printError(console, param);
-        commandDone(console);
-    }
-}
-
-#else
 
 #if defined(CAN_EXPORT_NATIVE)
 
@@ -1712,29 +1689,16 @@ static void onConsoleExportNativeCommand(Console* console, const char* name)
 
 #endif
 
-#if defined(CAN_EXPORT)
-
-#include "zip.h"
-
-static void onConsoleExportHtmlCommand(Console* console, const char* providedName);
-
-static const char* getExportName(Console* console, const char* ext)
+typedef struct 
 {
-    static char name[TICNAME_MAX];
-
-    strcpy(name, strlen(console->rom.name) ? console->rom.name : "game");
-
-    if(ext)
-        strcat(name, ext);
-
-    return name;
-}
-
-static struct{const void* data; s32 size;} htmlExportZip = {NULL, 0};
+    Console* console;
+    char filename[TICNAME_MAX];
+} HtmlExportData;
 
 static void onHtmlExportGet(const HttpGetData* data)
 {
-    Console* console = (Console*)data->calldata;
+    HtmlExportData* htmlExportData = (HtmlExportData*)data->calldata;
+    Console* console = htmlExportData->console;
 
     switch(data->type)
     {
@@ -1751,208 +1715,129 @@ static void onHtmlExportGet(const HttpGetData* data)
         break;
     case HttpGetDone:
         {
-            htmlExportZip.data = data->done.data;
-            htmlExportZip.size = data->done.size;
-            onConsoleExportHtmlCommand(console, NULL);
+            tic_mem* tic = console->tic;
+
+            char filename[TICNAME_MAX];
+            strcpy(filename, htmlExportData->filename);
+            free(htmlExportData);
+
+            const char* zipPath = fsGetRootFilePath(console->fs, TIC_LOCAL_VERSION HTML_EXPORT_NAME);
+
+            if(!fsWriteFile(zipPath, data->done.data, data->done.size))
+            {
+                printError(console, "file saving error :(");
+                commandDone(console);
+                return;
+            }
+
+            struct zip_t *zip = zip_open(zipPath, ZIP_DEFAULT_COMPRESSION_LEVEL, 'a');
+            bool errorOccured = false;
+
+            if(zip)
+            {
+                printBack(console, "\nexporting html...\n");
+
+                // save cart
+                if(!errorOccured)
+                {
+                    void* cart = malloc(sizeof(tic_cartridge));
+
+                    if(cart)
+                    {
+                        s32 cartSize = tic_cart_save(&tic->cart, cart);
+
+                        if(cartSize)
+                        {
+                            zip_entry_open(zip, "cart.tic");
+                            zip_entry_write(zip, cart, cartSize);
+                            zip_entry_close(zip);                    
+                        }
+                        else errorOccured = true;
+
+                        free(cart);
+                    }
+                    else errorOccured = true;
+                }
+
+                zip_close(zip);
+                if(!errorOccured)
+                {
+                    s32 size = 0;
+                    void* data = fsReadFile(zipPath, &size);
+
+                    if(data)
+                    {
+                        fsSaveFile(console->fs, filename, data, size, true);
+                        printLine(console);
+                        printFront(console, filename);
+                        printBack(console, " exported :)");
+                    }
+                    else errorOccured = true;
+                }
+            }
+            else errorOccured = true;
+
+            if(errorOccured)
+                printError(console, "\ngame not exported :(\n");
+
+            commandDone(console);
         }
         break;
     case HttpGetError:
+        free(htmlExportData);
         printError(console, "file downloading error :(");
         commandDone(console);
         break;
     }
 }
 
-static void onConsoleExportHtmlCommand(Console* console, const char* providedName)
+static void onConsoleExportHtmlCommand(Console* console, const char* filename)
 {
     tic_mem* tic = console->tic;
-
-#if defined(__TIC_WINDOWS__)
-
-    static const char HtmlName[] = HTML_EXPORT_NAME;
-    const char* zipPath = HtmlName;
-
-#else
-
-    static const char HtmlName[] = TIC_CACHE HTML_EXPORT_NAME;
-    const char* zipPath = fsGetRootFilePath(console->fs, HtmlName);
-
-#endif
-
-    if(htmlExportZip.data)
-    {
-        if(!fsWriteFile(zipPath, htmlExportZip.data, htmlExportZip.size))
-        {
-            printError(console, "file saving error :(");
-            commandDone(console);
-            return;
-        }
-    }
-    else 
-    {
-        printLine(console);
-        getSystem()->httpGet("/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "/" HTML_EXPORT_NAME, onHtmlExportGet, console);
-        return;
-    }
-
-    struct zip_t *zip = zip_open(zipPath, ZIP_DEFAULT_COMPRESSION_LEVEL, 'a');
-    bool errorOccured = false;
-
-    if(zip)
-    {
-        printBack(console, "\nexporting html...\n");
-
-        // save cart
-        if(!errorOccured)
-        {
-            void* cart = malloc(sizeof(tic_cartridge));
-
-            if(cart)
-            {
-                s32 cartSize = tic_cart_save(&tic->cart, cart);
-
-                if(cartSize)
-                {
-                    zip_entry_open(zip, "cart.tic");
-                    zip_entry_write(zip, cart, cartSize);
-                    zip_entry_close(zip);                    
-                }
-                else errorOccured = true;
-
-                free(cart);
-            }
-            else errorOccured = true;
-        }
-
-        zip_close(zip);
-        if(!errorOccured)
-        {
-            s32 size = 0;
-
-#if defined(__TIC_WINDOWS__)
-            // Temporary workaround for #1169, because ZIP lib doesn't work with wide filenames,
-            // we store it the working dir and remove at the end.
-            void* data = fsReadFile(zipPath, &size);
-            remove(HtmlName);
-#else
-            void* data = fsLoadRootFile(console->fs, HtmlName, &size);
-#endif
-
-            if(data && providedName)
-            {
-                if(fsExists(providedName))
-                {
-                    printError(console, "\n" HTML_EXPORT_NAME " already exists");
-                    commandDone(console);
-                    return;
-                }
-                else if (fsWriteFile(providedName, data, sizeof(data)))
-                {
-                    printBack(console, "\n" HTML_EXPORT_NAME " exported :)");
-                    commandDone(console);
-                    return;
-                }
-                else
-                {
-                    printBack(console, "\n" HTML_EXPORT_NAME " not exported :(");
-                    commandDone(console);
-                    return;
-                }
-            }
-            else if(data)
-            {
-                fsSaveFile(console->fs, getExportName(console, ".zip"), data, size, true);
-                printBack(console, "\n" HTML_EXPORT_NAME " exported :)");
-                commandDone(console);                
-                return;
-            }
-            else errorOccured = true;
-        }
-    }
-    else errorOccured = true;
-
-    if(errorOccured)
-        printError(console, "\ngame not exported :(\n");
-
-    commandDone(console);
+    printLine(console);
+    HtmlExportData* data = calloc(1, sizeof(HtmlExportData));
+    data->console = console;
+    strcpy(data->filename, filename);
+    getSystem()->httpGet("/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "/" HTML_EXPORT_NAME, onHtmlExportGet, data);
 }
-
-#endif
 
 static void onConsoleExportCommand(Console* console, const char* param)
 {
+    bool error = true;
+
+    char* filename = NULL;
     if(param)
     {
-        bool errorOccured = false;
+        filename = strchr(param, ' ');
 
-        if(strcmp(param, "native") == 0 || strcmp(param, "") == 0)
+        if(filename && strlen(filename + 1))
+            *filename++ = '\0';
+    }
+
+    if(param && filename)
+    {
+        if(strcmp(param, "native") == 0)
         {
 #if defined(CAN_EXPORT_NATIVE)
-
-#if defined(__TIC_WINDOWS__)
-            const char* ext = ExeExt;
-#else           
-            const char* ext = NULL;
-#endif
-
-            const char* name = getExportName(console, ext);
-            onConsoleExportNativeCommand(console, name);
+            onConsoleExportNativeCommand(console, filename);
 #else
-
-            printBack(console, "\ngame export isn't supported on this platform\n");
+            printBack(console, "\nnative export isn't supported on this platform\n");
             commandDone(console);
 #endif
         }
-        else if(strncmp(param, "html", 4) == 0 && (param[4] == ' ' || param[4] == 0))
-        {
-#if defined(CAN_EXPORT)
-            const char* providedName = param[4] ? param + 5 : NULL;
-            onConsoleExportHtmlCommand(console, providedName);
-#else
-
-            printBack(console, "\nhtml export isn't supported on this platform\n");
-            commandDone(console);
-#endif          
-        }
+        else if(strcmp(param, "html") == 0)
+            onConsoleExportHtmlCommand(console, filename);
         else if(strcmp(param, "sprites") == 0)
-        {
-            exportSprites(console);
-        }
+            exportSprites(console, filename);
         else if(strcmp(param, "map") == 0)
-        {
-            exportMap(console);
-        }
+            exportMap(console, filename);
         else if(strcmp(param, "cover") == 0)
-        {
-            exportCover(console);
-        }
+            exportCover(console, filename);
         else if(strcmp(param, "sfx") == 0)
-        {
-            exportSfx(console, 0);
-        }
-        else if(memcmp(param, "sfx ", sizeof "sfx") == 0)
-        {
-            s32 sfx = atoi(param + sizeof "sfx");
-
-            if(sfx >= 0 && sfx < SFX_COUNT)
-                exportSfx(console, sfx);
-            else errorOccured = true;
-        }
+            exportSfx(console, 0, filename);
         else if(strcmp(param, "music") == 0)
-        {
-            exportMusic(console, 0);
-        }
-        else if(memcmp(param, "music ", sizeof "music") == 0)
-        {
-            s32 track = atoi(param + sizeof "music");
-
-            if(track >= 0 && track < MUSIC_TRACKS)
-                exportMusic(console, track);
-            else errorOccured = true;
-        }
-        else errorOccured = true;
-
-        if(errorOccured)
+            exportMusic(console, 0, filename);
+        else
         {
             printError(console, "\nunknown parameter: ");
             printError(console, param);
@@ -1961,12 +1846,10 @@ static void onConsoleExportCommand(Console* console, const char* param)
     }
     else
     {
-        printError(console, "\nplease, specify parameter\n");
+        printBack(console, "\nusage: export (native|html|sprites|map|cover|sfx|music) file\n");
         commandDone(console);
     }
 }
-
-#endif
 
 static CartSaveResult saveCartName(Console* console, const char* name)
 {
