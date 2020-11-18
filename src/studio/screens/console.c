@@ -48,7 +48,6 @@
 #define CONSOLE_BUFFER_HEIGHT (STUDIO_TEXT_BUFFER_HEIGHT)
 #define CONSOLE_BUFFER_SCREENS 64
 #define CONSOLE_BUFFER_SIZE (CONSOLE_BUFFER_WIDTH * CONSOLE_BUFFER_HEIGHT * CONSOLE_BUFFER_SCREENS)
-#define HTML_EXPORT_NAME "html.zip"
 
 typedef enum
 {
@@ -1721,11 +1720,13 @@ static void onHtmlExportGet(const HttpGetData* data)
             strcpy(filename, htmlExportData->filename);
             free(htmlExportData);
 
-            const char* zipPath = fsGetRootFilePath(console->fs, TIC_LOCAL_VERSION HTML_EXPORT_NAME);
+            const char* zipPath = fsGetFilePath(console->fs, filename);
 
             if(!fsWriteFile(zipPath, data->done.data, data->done.size))
             {
-                printError(console, "file saving error :(");
+                printLine(console);
+                printError(console, filename);
+                printError(console, " file not saved :(");
                 commandDone(console);
                 return;
             }
@@ -1737,42 +1738,30 @@ static void onHtmlExportGet(const HttpGetData* data)
             {
                 printBack(console, "\nexporting html...\n");
 
-                // save cart
-                if(!errorOccured)
+                void* cart = malloc(sizeof(tic_cartridge));
+
+                if(cart)
                 {
-                    void* cart = malloc(sizeof(tic_cartridge));
+                    s32 cartSize = tic_cart_save(&tic->cart, cart);
 
-                    if(cart)
+                    if(cartSize)
                     {
-                        s32 cartSize = tic_cart_save(&tic->cart, cart);
-
-                        if(cartSize)
-                        {
-                            zip_entry_open(zip, "cart.tic");
-                            zip_entry_write(zip, cart, cartSize);
-                            zip_entry_close(zip);                    
-                        }
-                        else errorOccured = true;
-
-                        free(cart);
+                        zip_entry_open(zip, "cart.tic");
+                        zip_entry_write(zip, cart, cartSize);
+                        zip_entry_close(zip);                    
                     }
                     else errorOccured = true;
+
+                    free(cart);
                 }
+                else errorOccured = true;
 
                 zip_close(zip);
                 if(!errorOccured)
                 {
-                    s32 size = 0;
-                    void* data = fsReadFile(zipPath, &size);
-
-                    if(data)
-                    {
-                        fsSaveFile(console->fs, filename, data, size, true);
-                        printLine(console);
-                        printFront(console, filename);
-                        printBack(console, " exported :)");
-                    }
-                    else errorOccured = true;
+                    printLine(console);
+                    printFront(console, filename);
+                    printBack(console, " exported :)");
                 }
             }
             else errorOccured = true;
@@ -1798,7 +1787,7 @@ static void onConsoleExportHtmlCommand(Console* console, const char* filename)
     HtmlExportData* data = calloc(1, sizeof(HtmlExportData));
     data->console = console;
     strcpy(data->filename, filename);
-    getSystem()->httpGet("/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "/" HTML_EXPORT_NAME, onHtmlExportGet, data);
+    getSystem()->httpGet("/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "/html.zip", onHtmlExportGet, data);
 }
 
 static void onConsoleExportCommand(Console* console, const char* param)
