@@ -237,8 +237,6 @@ static struct
     },
 };
 
-static const char WavPath[] = TIC_CACHE "temp.wav";
-
 void map2ram(tic_ram* ram, const tic_map* src)
 {
     memcpy(ram->map.data, src, sizeof ram->map);
@@ -282,13 +280,13 @@ static const tic_music* getMusicSrc()
     return &tic->cart.banks[impl.bank.index.music].music;
 }
 
-const char* studioExportSfx(s32 index)
+const char* studioExportSfx(s32 index, const char* filename)
 {
     tic_mem* tic = impl.studio.tic;
 
-    const char* name = fsGetRootFilePath(impl.fs, WavPath);
+    const char* path = fsGetFilePath(impl.fs, filename);
 
-    wave_open( impl.samplerate, name );
+    wave_open( impl.samplerate, path );
 
 #if TIC_STEREO_CHANNELS == 2
     wave_enable_stereo();
@@ -320,16 +318,16 @@ const char* studioExportSfx(s32 index)
 
     wave_close();
 
-    return WavPath;
+    return path;
 }
 
-const char* studioExportMusic(s32 track)
+const char* studioExportMusic(s32 track, const char* filename)
 {
     tic_mem* tic = impl.studio.tic;
 
-    const char* name = fsGetRootFilePath(impl.fs, WavPath);
+    const char* path = fsGetFilePath(impl.fs, filename);
 
-    wave_open( impl.samplerate, name );
+    wave_open( impl.samplerate, path );
 
 #if TIC_STEREO_CHANNELS == 2
     wave_enable_stereo();
@@ -361,7 +359,7 @@ const char* studioExportMusic(s32 track)
 
     wave_close();
 
-    return WavPath;
+    return path;
 }
 
 void sfx_stop(tic_mem* tic, s32 channel)

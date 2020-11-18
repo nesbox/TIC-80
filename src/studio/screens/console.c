@@ -1487,14 +1487,10 @@ static void exportCover(Console* console, const char* filename)
 
 static void exportSfx(Console* console, s32 sfx, const char* filename)
 {
-    const char* path = studioExportSfx(sfx);
+    const char* path = studioExportSfx(sfx, filename);
 
-    s32 size = 0;
-    void* data = fsLoadRootFile(console->fs, path, &size);
-
-    if(data)
+    if(path)
     {
-        fsSaveFile(console->fs, filename, data, size, true);
         printLine(console);
         printBack(console, filename);
         printBack(console, " exported :)");
@@ -1509,15 +1505,10 @@ static void exportSfx(Console* console, s32 sfx, const char* filename)
 
 static void exportMusic(Console* console, s32 track, const char* filename)
 {
-    const char* path = studioExportMusic(track);
+    const char* path = studioExportMusic(track, filename);
 
-    s32 size = 0;
-    void* data = fsLoadRootFile(console->fs, path, &size);
-
-    if(data)
+    if(path)
     {
-        fsSaveFile(console->fs, filename, data, size, true);
-
         printLine(console);
         printBack(console, filename);
         printBack(console, " exported :)");
