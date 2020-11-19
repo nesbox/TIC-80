@@ -1785,6 +1785,8 @@ static void onConsoleExportCommand(Console* console, const char* param)
 {
     bool error = true;
 
+    enum {SfxIndex = sizeof "sfx" - 1, MusicIndex = sizeof "music" - 1};
+
     char* filename = NULL;
     if(param)
     {
@@ -1813,10 +1815,10 @@ static void onConsoleExportCommand(Console* console, const char* param)
             exportMap(console, filename);
         else if(strcmp(param, "cover") == 0)
             exportCover(console, filename);
-        else if(strcmp(param, "sfx") == 0)
-            exportSfx(console, 0, filename);
-        else if(strcmp(param, "music") == 0)
-            exportMusic(console, 0, filename);
+        else if(strncmp(param, "sfx", SfxIndex) == 0)
+            exportSfx(console, atoi(param + SfxIndex) % SFX_COUNT, filename);
+        else if(strncmp(param, "music", MusicIndex) == 0)
+            exportMusic(console, atoi(param + MusicIndex) % MUSIC_TRACKS, filename);
         else
         {
             printError(console, "\nunknown parameter: ");
@@ -1826,7 +1828,9 @@ static void onConsoleExportCommand(Console* console, const char* param)
     }
     else
     {
-        printBack(console, "\nusage: export (native|html|sprites|map|cover|sfx|music) file\n");
+        printBack(console, "\nusage: export ");
+        printFront(console, "native html sprites map cover sfx<#> music<#>");
+        printBack(console, " file\n");
         commandDone(console);
     }
 }
@@ -2561,6 +2565,8 @@ static void processKeyboard(Console* console)
 
     if(tic->ram.input.keyboard.data != 0)
     {
+        console->cursor.delay = CONSOLE_CURSOR_DELAY;
+
         if(keyWasPressed(tic_key_up)) onHistoryUp(console);
         else if(keyWasPressed(tic_key_down)) onHistoryDown(console);
         else if(keyWasPressed(tic_key_left))
