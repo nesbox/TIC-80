@@ -1285,7 +1285,8 @@ static void showMessageBox(const char* title, const char* message)
 
 static void setWindowTitle(const char* title)
 {
-    SDL_SetWindowTitle(platform.window, title);
+    if(platform.window)
+        SDL_SetWindowTitle(platform.window, title);
 }
 
 #if defined(__WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)

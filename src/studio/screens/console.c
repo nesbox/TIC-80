@@ -2300,10 +2300,13 @@ static void processCommand(Console* console, const char* command)
     while(*command == ' ')
         command++;
 
-    char* end = (char*)command + strlen(command) - 1;
+    // trim empty chars
+    {
+        char* end = (char*)command + strlen(command) - 1;
 
-    while(*end == ' ' && end > command)
-        *end-- = '\0';
+        while(*end == ' ' && end > command)
+            *end-- = '\0';
+    }
 
     char* param = strchr(command, ' ');
 
@@ -2331,6 +2334,25 @@ static void processCommand(Console* console, const char* command)
         printError(console, console->inputBuffer);
         commandDone(console);
     }
+}
+
+static void processCommands(Console* console, const char* commands)
+{
+    const char* command = commands;
+    static const char Sep[] = " & ";
+    char* next = strstr(commands, Sep);
+
+    if(next)
+    {
+        *next = '\0';
+        next += sizeof Sep - 1;
+    }
+
+    printFront(console, command);
+    processCommand(console, command);
+
+    if(next)
+        processCommands(console, next);
 }
 
 static void fillInputBufferFromHistory(Console* console)
@@ -2698,6 +2720,12 @@ static void tick(Console* console)
         console->args.surf = false;
         gotoSurf();
     }
+
+    if(console->args.cmd)
+    {
+        processCommands(console, console->args.cmd);
+        console->args.cmd = NULL;
+    }
 }
 
 static bool cmdLoadCart(Console* console, const char* path)
@@ -2745,7 +2773,6 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
         .updateProject = updateProject,
         .error = error,
         .trace = trace,
-        .command = processCommand,
         .tick = tick,
         .save = saveCart,
         .cursor = {.x = 0, .y = 0, .delay = 0},
