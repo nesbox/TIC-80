@@ -242,6 +242,7 @@ static void commandDoneLine(Console* console, bool newLine)
 
 static void commandDone(Console* console)
 {
+    console->inprocess = false;
     commandDoneLine(console, true);
 }
 
@@ -1781,6 +1782,18 @@ static void onConsoleExportHtmlCommand(Console* console, const char* filename)
     getSystem()->httpGet("/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "/html.zip", onHtmlExportGet, data);
 }
 
+static const char* getFilename(const char* filename, const char* ext)
+{
+    if(strcmp(filename + strlen(filename) - strlen(ext), ext) == 0)
+        return filename;
+
+    static char Name[TICNAME_MAX];
+    strcpy(Name, filename);
+    strcat(Name, ext);
+
+    return Name;
+}
+
 static void onConsoleExportCommand(Console* console, const char* param)
 {
     bool error = true;
@@ -1800,6 +1813,10 @@ static void onConsoleExportCommand(Console* console, const char* param)
     {
         if(strcmp(param, "native") == 0)
         {
+#if defined(__TIC_WINDOWS__)
+            filename = (char*)getFilename(filename, ".exe");
+#endif
+
 #if defined(CAN_EXPORT_NATIVE)
             onConsoleExportNativeCommand(console, filename);
 #else
@@ -1808,17 +1825,17 @@ static void onConsoleExportCommand(Console* console, const char* param)
 #endif
         }
         else if(strcmp(param, "html") == 0)
-            onConsoleExportHtmlCommand(console, filename);
+            onConsoleExportHtmlCommand(console, getFilename(filename, ".zip"));
         else if(strcmp(param, "sprites") == 0)
-            exportSprites(console, filename);
+            exportSprites(console, getFilename(filename, ".gif"));
         else if(strcmp(param, "map") == 0)
-            exportMap(console, filename);
+            exportMap(console, getFilename(filename, ".map"));
         else if(strcmp(param, "cover") == 0)
-            exportCover(console, filename);
+            exportCover(console, getFilename(filename, ".gif"));
         else if(strncmp(param, "sfx", SfxIndex) == 0)
-            exportSfx(console, atoi(param + SfxIndex) % SFX_COUNT, filename);
+            exportSfx(console, atoi(param + SfxIndex) % SFX_COUNT, getFilename(filename, ".wav"));
         else if(strncmp(param, "music", MusicIndex) == 0)
-            exportMusic(console, atoi(param + MusicIndex) % MUSIC_TRACKS, filename);
+            exportMusic(console, atoi(param + MusicIndex) % MUSIC_TRACKS, getFilename(filename, ".wav"));
         else
         {
             printError(console, "\nunknown parameter: ");
@@ -2297,6 +2314,8 @@ static s32 tic_strcasecmp(const char *str1, const char *str2)
 
 static void processCommand(Console* console, const char* command)
 {
+    console->inprocess = true;
+
     while(*command == ' ')
         command++;
 
@@ -2336,11 +2355,11 @@ static void processCommand(Console* console, const char* command)
     }
 }
 
-static void processCommands(Console* console, const char* commands)
+static void processCommands(Console* console)
 {
-    const char* command = commands;
+    const char* command = console->args.cmd;
     static const char Sep[] = " & ";
-    char* next = strstr(commands, Sep);
+    char* next = strstr(command, Sep);
 
     if(next)
     {
@@ -2348,11 +2367,10 @@ static void processCommands(Console* console, const char* commands)
         next += sizeof Sep - 1;
     }
 
+    console->args.cmd = next;
+
     printFront(console, command);
     processCommand(console, command);
-
-    if(next)
-        processCommands(console, next);
 }
 
 static void fillInputBufferFromHistory(Console* console)
@@ -2721,13 +2739,10 @@ static void tick(Console* console)
         gotoSurf();
     }
 
-    if(console->args.cmd)
-    {
-        processCommands(console, console->args.cmd);
-        console->args.cmd = NULL;
-    }
+    if(console->args.cmd && !console->inprocess)
+        processCommands(console);
 
-    if(console->args.noui && console->args.cmd)
+    if(console->args.noui && !console->args.cmd)
         exit(0);
 }
 
