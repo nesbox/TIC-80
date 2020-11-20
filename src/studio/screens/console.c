@@ -1454,7 +1454,7 @@ static void onConsoleImportCommand(Console* console, const char* param)
 
     if(error)
     {
-        printBack(console, "\nusage: import (sprites|cover|map) file");
+        printBack(console, "\nusage: import (sprites cover map) file");
         commandDone(console);
     }
 }
@@ -1828,9 +1828,9 @@ static void onConsoleExportCommand(Console* console, const char* param)
     }
     else
     {
-        printBack(console, "\nusage: export ");
+        printBack(console, "\nusage: export (");
         printFront(console, "native html sprites map cover sfx<#> music<#>");
-        printBack(console, " file\n");
+        printBack(console, ") file\n");
         commandDone(console);
     }
 }
@@ -2745,6 +2745,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
         .updateProject = updateProject,
         .error = error,
         .trace = trace,
+        .command = processCommand,
         .tick = tick,
         .save = saveCart,
         .cursor = {.x = 0, .y = 0, .delay = 0},

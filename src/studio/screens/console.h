@@ -98,6 +98,7 @@ struct Console
     void(*updateProject)(Console*);
     void(*error)(Console*, const char*);
     void(*trace)(Console*, const char*, u8 color);
+    void(*command)(Console*, const char*);
     void(*tick)(Console*);
 
     CartSaveResult(*save)(Console*);

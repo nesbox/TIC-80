@@ -1983,6 +1983,7 @@ static StartArgs parseArgs(s32 argc, const char **argv)
 #if defined(CRT_SHADER_SUPPORT)
         OPT_BOOLEAN('\0',   "crt",          &args.crt,           "enable CRT monitor effect"),
 #endif
+        OPT_STRING('\0',    "cmd",          &args.cmd,           "run command in the console and exit"),
         OPT_END(),
     };
 
@@ -2069,6 +2070,12 @@ Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* fold
     impl.studio.updateProject = updateStudioProject;
     impl.studio.exit = exitStudio;
     impl.studio.config = getConfig;
+
+    if(args.cmd)
+    {
+        impl.console->command(impl.console, args.cmd);
+        exit(0);
+    }
 
     return &impl.studio;
 }

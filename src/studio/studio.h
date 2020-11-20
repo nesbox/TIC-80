@@ -78,6 +78,7 @@ typedef struct
 #if defined(CRT_SHADER_SUPPORT)
     bool crt;
 #endif
+    const char *cmd;
 } StartArgs;
 
 typedef enum
