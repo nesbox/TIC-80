@@ -2726,6 +2726,9 @@ static void tick(Console* console)
         processCommands(console, console->args.cmd);
         console->args.cmd = NULL;
     }
+
+    if(console->args.noui && console->args.cmd)
+        exit(0);
 }
 
 static bool cmdLoadCart(Console* console, const char* path)

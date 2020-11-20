@@ -166,6 +166,7 @@ typedef struct
 {
     tic_mem* tic;
     bool quit;
+    bool noui;
     char text;
 
     void (*tick)();

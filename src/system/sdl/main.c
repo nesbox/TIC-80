@@ -1427,7 +1427,8 @@ static void gpuTick()
 
     netTick(platform.net);
 
-    pollEvent();
+    if(!platform.studio->noui)
+        pollEvent();
 
     if(platform.studio->quit)
     {
@@ -1438,6 +1439,9 @@ static void gpuTick()
     }
 
     platform.studio->tick();
+
+    if (platform.studio->noui)
+        return;
 
 #if defined(CRT_SHADER_SUPPORT)
     GPU_Clear(platform.gpu.renderer);
@@ -1598,24 +1602,28 @@ static s32 start(s32 argc, const char **argv, const char* folder)
 
     platform.studio = studioInit(argc, argv, platform.audio.spec.freq, folder, &systemInterface);
 
-    const s32 Width = TIC80_FULLWIDTH * platform.studio->config()->uiScale;
-    const s32 Height = TIC80_FULLHEIGHT * platform.studio->config()->uiScale;
+    if(!platform.studio->noui)
+    {
+        const s32 Width = TIC80_FULLWIDTH * platform.studio->config()->uiScale;
+        const s32 Height = TIC80_FULLHEIGHT * platform.studio->config()->uiScale;
 
-    platform.window = SDL_CreateWindow( TIC_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        Width, Height, SDL_WINDOW_SHOWN 
-            | SDL_WINDOW_RESIZABLE
-#if defined(CRT_SHADER_SUPPORT)
-            | SDL_WINDOW_OPENGL
-#endif            
-            | SDL_WINDOW_ALLOW_HIGHDPI);
+        platform.window = SDL_CreateWindow( TIC_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+            Width, Height, SDL_WINDOW_SHOWN 
+                | SDL_WINDOW_RESIZABLE
+    #if defined(CRT_SHADER_SUPPORT)
+                | SDL_WINDOW_OPENGL
+    #endif            
+                | SDL_WINDOW_ALLOW_HIGHDPI);
 
-    setWindowIcon();
-    createMouseCursors();
+        setWindowIcon();
+        createMouseCursors();
 
-    initGPU();
+        initGPU();
 
-    if(platform.studio->config()->goFullscreen)
-        goFullscreen();
+        if(platform.studio->config()->goFullscreen)
+            goFullscreen();
+    }
+
 
 #if defined(__EMSCRIPTEN__)
     emscripten_set_main_loop(emsGpuTick, 0, 1);
@@ -1655,18 +1663,21 @@ static s32 start(s32 argc, const char **argv, const char* folder)
     if(platform.audio.cvt.buf)
         SDL_free(platform.audio.cvt.buf);
 
-    destroyGPU();
+    if (!platform.studio->noui)
+    {
+        destroyGPU();
 
 #if defined(TOUCH_INPUT_SUPPORT)
-    if(platform.gamepad.touch.pixels)
-        SDL_free(platform.gamepad.touch.pixels);
+        if(platform.gamepad.touch.pixels)
+            SDL_free(platform.gamepad.touch.pixels);
 #endif    
 
-    SDL_DestroyWindow(platform.window);
-    SDL_CloseAudioDevice(platform.audio.device);
+        SDL_DestroyWindow(platform.window);
+        SDL_CloseAudioDevice(platform.audio.device);
 
-    for(s32 i = 0; i < COUNT_OF(platform.mouse.cursors); i++)
-        SDL_FreeCursor(platform.mouse.cursors[i]);
+        for(s32 i = 0; i < COUNT_OF(platform.mouse.cursors); i++)
+            SDL_FreeCursor(platform.mouse.cursors[i]);
+    }
 
     return 0;
 }

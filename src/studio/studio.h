@@ -69,6 +69,7 @@ typedef struct
 {
     bool skip;
     bool nosound;
+    bool noui;
     bool fullscreen;
     bool surf;
     s32 scale;
