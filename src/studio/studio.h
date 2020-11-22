@@ -70,7 +70,6 @@ typedef struct
     bool skip;
     bool nosound;
     bool fullscreen;
-    bool surf;
     s32 scale;
     const char *fs;
     const char *cart;

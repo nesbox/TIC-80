@@ -1963,14 +1963,7 @@ static StartArgs parseArgs(s32 argc, const char **argv)
         NULL,
     };
 
-    StartArgs args = 
-    {
-#if defined(__TIC_ANDROID__)
-        .surf = true,
-#else
-        .surf = false,
-#endif
-    };
+    StartArgs args = {};
 
     struct argparse_option options[] = 
     {
@@ -1978,7 +1971,6 @@ static StartArgs parseArgs(s32 argc, const char **argv)
         OPT_BOOLEAN('\0',   "skip",         &args.skip,         "skip startup animation"),
         OPT_BOOLEAN('\0',   "nosound",      &args.nosound,      "disable sound output"),
         OPT_BOOLEAN('\0',   "fullscreen",   &args.fullscreen,   "enable fullscreen mode"),
-        OPT_BOOLEAN('\0',   "surf",         &args.surf,         "run SURF mode to explore carts"),
         OPT_STRING('\0',    "fs",           &args.fs,           "path to the file system folder"),
         OPT_INTEGER('\0',   "scale",        &args.scale,        "main window scale"),
 #if defined(CRT_SHADER_SUPPORT)

@@ -2737,12 +2737,6 @@ static void tick(Console* console)
 
         drawConsoleInputText(console);
 
-        if(console->args.surf)
-        {
-            console->args.surf = false;
-            gotoSurf();
-        }
-
         if(console->active && console->args.cmd)
             processCommands(console);
     }
