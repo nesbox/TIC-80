@@ -1967,8 +1967,9 @@ static StartArgs parseArgs(s32 argc, const char **argv)
     {
 #if defined(__TIC_ANDROID__)
         .surf = true,
+#else
+        .surf = false,
 #endif
-        .app = argv[0],
     };
 
     struct argparse_option options[] = 

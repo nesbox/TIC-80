@@ -74,7 +74,6 @@ typedef struct
     s32 scale;
     const char *fs;
     const char *cart;
-    const char *app;
 #if defined(CRT_SHADER_SUPPORT)
     bool crt;
 #endif

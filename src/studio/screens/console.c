@@ -38,6 +38,12 @@
 #include <lauxlib.h>
 #include <lualib.h>
 
+#if defined(__TIC_WINDOWS__)
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
 #define CONSOLE_CURSOR_COLOR tic_color_red
 #define CONSOLE_BACK_TEXT_COLOR tic_color_grey
 #define CONSOLE_FRONT_TEXT_COLOR tic_color_white
@@ -2818,7 +2824,12 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
     memset(console->buffer, 0, CONSOLE_BUFFER_SIZE);
     memset(console->colorBuffer, TIC_COLOR_BG, CONSOLE_BUFFER_SIZE);
 
-    strcpy(console->appPath, args.app);
+#if defined(__TIC_WINDOWS__)
+    GetModuleFileNameA(NULL, console->appPath, TICNAME_MAX);
+#else
+    readlink("/proc/self/exe", console->appPath, TICNAME_MAX);
+#endif
+
 #if defined(__TIC_WINDOWS__)
     if(!strstr(console->appPath, ExeExt))
         strcat(console->appPath, ExeExt);
