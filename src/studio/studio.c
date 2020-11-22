@@ -1963,7 +1963,7 @@ static StartArgs parseArgs(s32 argc, const char **argv)
         NULL,
     };
 
-    StartArgs args = {};
+    StartArgs args = {0};
 
     struct argparse_option options[] = 
     {
