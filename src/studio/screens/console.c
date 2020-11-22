@@ -242,7 +242,7 @@ static void commandDoneLine(Console* console, bool newLine)
 
 static void commandDone(Console* console)
 {
-    console->inprocess = false;
+    console->active = true;
     commandDoneLine(console, true);
 }
 
@@ -1696,6 +1696,7 @@ static void onHtmlExportGet(const HttpGetData* data)
     case HttpGetProgress:
         {
             console->cursor.x = 0;
+            printf("\r");
             printBack(console, "GET ");
             printFront(console, data->url);
 
@@ -2314,7 +2315,7 @@ static s32 tic_strcasecmp(const char *str1, const char *str2)
 
 static void processCommand(Console* console, const char* command)
 {
-    console->inprocess = true;
+    console->active = false;
 
     while(*command == ' ')
         command++;
@@ -2710,8 +2711,8 @@ static void tick(Console* console)
             tic_api_reset(tic);
 
             setStudioMode(TIC_RUN_MODE);
+
             console->embed.yes = false;
-            console->args.skip = false;
             studioRomLoaded();
 
             printLine(console);
@@ -2729,21 +2730,18 @@ static void tick(Console* console)
         if(getStudioMode() != TIC_CONSOLE_MODE) return;
 
         drawConsoleInputText(console);
+
+        if(console->args.surf)
+        {
+            console->args.surf = false;
+            gotoSurf();
+        }
+
+        if(console->active && console->args.cmd)
+            processCommands(console);
     }
 
     console->tickCounter++;
-
-    if(console->args.surf)
-    {
-        console->args.surf = false;
-        gotoSurf();
-    }
-
-    if(console->args.cmd && !console->inprocess)
-        processCommands(console);
-
-    if(console->args.noui && !console->args.cmd)
-        exit(0);
 }
 
 static bool cmdLoadCart(Console* console, const char* path)

@@ -1427,8 +1427,7 @@ static void gpuTick()
 
     netTick(platform.net);
 
-    if(!platform.studio->noui)
-        pollEvent();
+    pollEvent();
 
     if(platform.studio->quit)
     {
@@ -1439,9 +1438,6 @@ static void gpuTick()
     }
 
     platform.studio->tick();
-
-    if (platform.studio->noui)
-        return;
 
 #if defined(CRT_SHADER_SUPPORT)
     GPU_Clear(platform.gpu.renderer);
@@ -1602,7 +1598,6 @@ static s32 start(s32 argc, const char **argv, const char* folder)
 
     platform.studio = studioInit(argc, argv, platform.audio.spec.freq, folder, &systemInterface);
 
-    if(!platform.studio->noui)
     {
         const s32 Width = TIC80_FULLWIDTH * platform.studio->config()->uiScale;
         const s32 Height = TIC80_FULLHEIGHT * platform.studio->config()->uiScale;
@@ -1663,7 +1658,6 @@ static s32 start(s32 argc, const char **argv, const char* folder)
     if(platform.audio.cvt.buf)
         SDL_free(platform.audio.cvt.buf);
 
-    if (!platform.studio->noui)
     {
         destroyGPU();
 

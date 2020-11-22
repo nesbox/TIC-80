@@ -1976,7 +1976,6 @@ static StartArgs parseArgs(s32 argc, const char **argv)
         OPT_HELP(),
         OPT_BOOLEAN('\0',   "skip",         &args.skip,         "skip startup animation"),
         OPT_BOOLEAN('\0',   "nosound",      &args.nosound,      "disable sound output"),
-        OPT_BOOLEAN('\0',   "noui",         &args.noui,         "disable UI"),
         OPT_BOOLEAN('\0',   "fullscreen",   &args.fullscreen,   "enable fullscreen mode"),
         OPT_BOOLEAN('\0',   "surf",         &args.surf,         "run SURF mode to explore carts"),
         OPT_STRING('\0',    "fs",           &args.fs,           "path to the file system folder"),
@@ -2067,13 +2066,8 @@ Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* fold
     impl.studio.exit = exitStudio;
     impl.studio.config = getConfig;
 
-    if(args.noui)
-        args.skip = true;
-
     if(args.skip)
         setStudioMode(TIC_CONSOLE_MODE);
-
-    impl.studio.noui = args.noui;
 
     return &impl.studio;
 }
