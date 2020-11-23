@@ -44,6 +44,10 @@
 #include <unistd.h>
 #endif
 
+#if defined(__EMSCRIPTEN__)
+#include <emscripten.h>
+#endif
+
 #define CONSOLE_CURSOR_COLOR tic_color_red
 #define CONSOLE_BACK_TEXT_COLOR tic_color_grey
 #define CONSOLE_FRONT_TEXT_COLOR tic_color_white
@@ -91,6 +95,10 @@ typedef enum
 
 #if defined(__TIC_ANDROID__)
 #define CAN_OPEN_FOLDER 1
+#endif
+
+#if defined(__EMSCRIPTEN__)
+#define CAN_ADDGET_FILE 1
 #endif
 
 #if defined(CAN_EXPORT_NATIVE)
@@ -1628,7 +1636,7 @@ static void* embedCart(Console* console, s32* size)
         {
             s32 cartSize = tic_cart_save(&tic->cart, cart);
 
-            unsigned long zipSize = sizeof(tic_cartridge);
+            s32 zipSize = sizeof(tic_cartridge);
             u8* zipData = (u8*)malloc(zipSize);
 
             if(zipData)
@@ -1818,20 +1826,7 @@ static void onConsoleExportCommand(Console* console, const char* param)
 
     if(param && filename)
     {
-        if(strcmp(param, "native") == 0)
-        {
-#if defined(__TIC_WINDOWS__)
-            filename = (char*)getFilename(filename, ".exe");
-#endif
-
-#if defined(CAN_EXPORT_NATIVE)
-            onConsoleExportNativeCommand(console, filename);
-#else
-            printBack(console, "\nnative export isn't supported on this platform\n");
-            commandDone(console);
-#endif
-        }
-        else if(strcmp(param, "html") == 0)
+        if(strcmp(param, "html") == 0)
             onConsoleExportHtmlCommand(console, getFilename(filename, ".zip"));
         else if(strcmp(param, "sprites") == 0)
             exportSprites(console, getFilename(filename, ".gif"));
@@ -1843,6 +1838,16 @@ static void onConsoleExportCommand(Console* console, const char* param)
             exportSfx(console, atoi(param + SfxIndex) % SFX_COUNT, getFilename(filename, ".wav"));
         else if(strncmp(param, "music", MusicIndex) == 0)
             exportMusic(console, atoi(param + MusicIndex) % MUSIC_TRACKS, getFilename(filename, ".wav"));
+#if defined(CAN_EXPORT_NATIVE)
+        else if(strcmp(param, "native") == 0)
+        {
+#if defined(__TIC_WINDOWS__)
+            filename = (char*)getFilename(filename, ".exe");
+#endif
+
+            onConsoleExportNativeCommand(console, filename);
+        }
+#endif
         else
         {
             printError(console, "\nunknown parameter: ");
@@ -1853,7 +1858,11 @@ static void onConsoleExportCommand(Console* console, const char* param)
     else
     {
         printBack(console, "\nusage: export (");
-        printFront(console, "native html sprites map cover sfx<#> music<#>");
+        printFront(console, 
+#if defined(CAN_EXPORT_NATIVE)
+            "native "
+#endif
+            "html sprites map cover sfx<#> music<#>");
         printBack(console, ") file\n");
         commandDone(console);
     }
@@ -2160,6 +2169,97 @@ static void onConsoleVRamCommand(Console* console, const char* param)
     commandDone(console);
 }
 
+#if defined(CAN_ADDGET_FILE)
+
+static void onConsoleAddFile(Console* console, const char* name, const u8* buffer, s32 size)
+{
+    if(name)
+    {
+        const char* path = fsGetFilePath(console->fs, name);
+
+        if(!fsExists(path))
+        {
+            if(fsWriteFile(path, buffer, size))
+            {
+                printLine(console);
+                printFront(console, name);
+                printBack(console, " successfully added :)");
+            }
+            else printError(console, "\nerror: file not added :(");
+        }
+        else
+        {
+            printError(console, "\nerror: ");
+            printError(console, name);
+            printError(console, " already exists :(");
+        }        
+    }
+
+    commandDone(console);
+}
+
+static void onConsoleAddCommand(Console* console, const char* param)
+{
+    void* data = NULL;
+
+    EM_ASM_
+    ({
+        Module.showAddPopup(function(filename, rom)
+        {
+            if(filename == null || rom == null)
+            {
+                dynCall('viiii', $0, [$1, 0, 0, 0]);
+            }
+            else
+            {
+                var filePtr = Module._malloc(filename.length + 1);
+                stringToUTF8(filename, filePtr, filename.length + 1);
+
+                var dataPtr = Module._malloc(rom.length);
+                writeArrayToMemory(rom, dataPtr);
+
+                dynCall('viiii', $0, [$1, filePtr, dataPtr, rom.length]);
+
+                Module._free(filePtr);
+                Module._free(dataPtr);
+            }
+        });
+    }, onConsoleAddFile, console);
+}
+
+static void onConsoleGetCommand(Console* console, const char* name)
+{
+    if(name)
+    {
+        const char* path = fsGetFilePath(console->fs, name);
+
+        if(fsExists(path))
+        {
+            s32 size = 0;
+            void* buffer = fsReadFile(path, &size);
+
+            EM_ASM_
+            ({
+                var name = UTF8ToString($0);
+                var blob = new Blob([HEAPU8.subarray($1, $1 + $2)], {type: "application/octet-stream"});
+
+                Module.saveAs(blob, name);
+            }, name, buffer, size);
+        }
+        else
+        {
+            printError(console, "\nerror: ");
+            printError(console, name);
+            printError(console, " doesn't exist :(");
+        }
+    }
+    else printBack(console, "\nusage: get <file>");
+
+    commandDone(console);
+}
+
+#endif
+
 static const struct
 {
     const char* command;
@@ -2182,9 +2282,16 @@ static const struct
     {"dir",     "ls", "show list of files",         onConsoleDirCommand},
     {"cd",      NULL, "change directory",           onConsoleChangeDirectory},
     {"mkdir",   NULL, "make directory",             onConsoleMakeDirectory},
+
 #if defined(CAN_OPEN_FOLDER)
     {"folder",  NULL, "open working folder in OS",  onConsoleFolderCommand},
 #endif
+
+#if defined(CAN_ADDGET_FILE)
+    {"add",     NULL, "add file",                   onConsoleAddCommand},
+    {"get",     NULL, "download file",              onConsoleGetCommand},
+#endif
+
     {"export",  NULL, "export native game",         onConsoleExportCommand},
     {"import",  NULL, "import sprites from .gif",   onConsoleImportCommand},
     {"del",     NULL, "delete file or dir",         onConsoleDelCommand},
