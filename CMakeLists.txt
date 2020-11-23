@@ -124,10 +124,6 @@ if (BAREMETALPI)
 
 endif()
 
-if(EMSCRIPTEN)
-    set(DISABLE_NETWORKING TRUE)
-endif()
-
 if (DISABLE_NETWORKING)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DDISABLE_NETWORKING")
 endif()
@@ -524,7 +520,7 @@ endif()
 
 if (NOT DISABLE_NETWORKING)
 
-    if (NOT N3DS)
+    if (NOT N3DS AND NOT EMSCRIPTEN)
 
         set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
 
@@ -699,7 +695,7 @@ endif()
 if(NOT DISABLE_NETWORKING)
 if(N3DS)
     target_link_libraries(tic80studio curl mbedtls mbedx509 mbedcrypto)
-else()
+elseif(NOT EMSCRIPTEN)
     target_link_libraries(tic80studio libcurl)
 endif()
 endif()
@@ -828,7 +824,7 @@ if(BUILD_SDL)
     endif()
 
     if(EMSCRIPTEN)
-        set_target_properties(tic80 PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s TOTAL_MEMORY=67108864 -lidbfs.js")
+        set_target_properties(tic80 PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s TOTAL_MEMORY=67108864 -s FETCH=1 -lidbfs.js")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2")
 
         if(CMAKE_BUILD_TYPE STREQUAL "Debug")

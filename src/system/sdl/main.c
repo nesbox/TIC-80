@@ -1605,10 +1605,13 @@ static s32 start(s32 argc, const char **argv, const char* folder)
         platform.window = SDL_CreateWindow( TIC_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
             Width, Height, SDL_WINDOW_SHOWN 
                 | SDL_WINDOW_RESIZABLE
-    #if defined(CRT_SHADER_SUPPORT)
+#if defined(CRT_SHADER_SUPPORT)
                 | SDL_WINDOW_OPENGL
-    #endif            
-                | SDL_WINDOW_ALLOW_HIGHDPI);
+#endif            
+#if !defined(__EMSCRIPTEN__)
+                | SDL_WINDOW_ALLOW_HIGHDPI
+#endif
+                );
 
         setWindowIcon();
         createMouseCursors();
