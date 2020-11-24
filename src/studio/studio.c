@@ -2042,6 +2042,9 @@ Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* fold
     initRunMode();
     initModules();
 
+    if(args.scale)
+        impl.config->data.uiScale = args.scale;
+
 #if defined(CRT_SHADER_SUPPORT)
     impl.config->data.crtMonitor = args.crt;
 #endif

@@ -83,8 +83,6 @@ struct Console
         char path[TICNAME_MAX];
     } rom;
 
-    char appPath[TICNAME_MAX];
-
     HistoryItem* history;
     HistoryItem* historyHead;
 
