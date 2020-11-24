@@ -1002,6 +1002,9 @@ static void showPopupMessage(const char* text)
     impl.popup.counter = POPUP_DUR;
     memset(impl.popup.message, '\0', sizeof impl.popup.message);
     strncpy(impl.popup.message, text, sizeof(impl.popup.message) - 1);
+
+    for(char* c = impl.popup.message; c < impl.popup.message + sizeof impl.popup.message; c++)
+        if(*c) *c = toupper(*c);
 }
 
 static void exitConfirm(bool yes, void* data)
@@ -1342,7 +1345,7 @@ static void saveProject()
     if(rom == CART_SAVE_OK)
     {
         char buffer[STUDIO_TEXT_BUFFER_WIDTH];
-        char str_saved[] = " SAVED :)";
+        char str_saved[] = " saved :)";
 
         s32 name_len = (s32)strlen(impl.console->rom.name);
         if (name_len + strlen(str_saved) > sizeof(buffer)){
@@ -1357,13 +1360,10 @@ static void saveProject()
             snprintf(buffer, sizeof buffer, "%s%s", impl.console->rom.name, str_saved);
         }
 
-        for(s32 i = 0; i < (s32)strlen(buffer); i++)
-            buffer[i] = toupper(buffer[i]);
-
         showPopupMessage(buffer);
     }
-    else if(rom == CART_SAVE_MISSING_NAME) showPopupMessage("SAVE: MISSING CART NAME :|");
-    else showPopupMessage("SAVE ERROR :(");
+    else if(rom == CART_SAVE_MISSING_NAME) showPopupMessage("error: missing cart name :(");
+    else showPopupMessage("error: file not saved :(");
 }
 
 static void screen2buffer(u32* buffer, const u32* pixels, const tic_rect* rect)
@@ -1403,12 +1403,12 @@ static void setCoverImage()
 
             free(buffer);
 
-            showPopupMessage("COVER IMAGE SAVED :)");
+            showPopupMessage("cover image saved :)");
         }
     }
 }
 
-static void stopVideoRecord()
+static void stopVideoRecord(const char* name)
 {
     if(impl.video.buffer)
     {
@@ -1418,9 +1418,13 @@ static void stopVideoRecord()
 
             gif_write_animation(data, &size, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, (const u8*)impl.video.buffer, impl.video.frame, TIC80_FRAMERATE, getConfig()->gifScale);
 
-            fsSaveRootFile(impl.fs, "screen.gif", data, size, true);
+            fsSaveFile(impl.fs, name, data, size, true);
 
-            showPopupMessage("SCREEN.GIF SAVED :)");
+            char msg[TICNAME_MAX];
+            sprintf(msg, "%s saved :)", name);
+            showPopupMessage(msg);
+
+            getSystem()->openSystemPath(fsGetFilePath(impl.fs, name));
         }
 
         free(impl.video.buffer);
@@ -1430,13 +1434,11 @@ static void stopVideoRecord()
     impl.video.record = false;
 }
 
-#if !defined(__EMSCRIPTEN__)
-
 static void startVideoRecord()
 {
     if(impl.video.record)
     {
-        stopVideoRecord();
+        stopVideoRecord("video.gif");
     }
     else
     {
@@ -1450,8 +1452,6 @@ static void startVideoRecord()
         }
     }
 }
-
-#endif
 
 static void takeScreenshot()
 {
@@ -1510,9 +1510,7 @@ static void processShortcuts()
         {
             if(ctrl) runProject();
         }
-#if !defined(__EMSCRIPTEN__)
         else if(keyWasPressedOnce(tic_key_f9)) startVideoRecord();
-#endif
 
         return;
     }
@@ -1545,9 +1543,7 @@ static void processShortcuts()
         else if(keyWasPressedOnce(tic_key_f5)) setStudioMode(TIC_MUSIC_MODE);
         else if(keyWasPressedOnce(tic_key_f7)) setCoverImage();
         else if(keyWasPressedOnce(tic_key_f8)) takeScreenshot();
-#if !defined(__EMSCRIPTEN__)
         else if(keyWasPressedOnce(tic_key_f9)) startVideoRecord();
-#endif
         else if(keyWasPressedOnce(tic_key_f11)) goFullscreen();
         else if(keyWasPressedOnce(tic_key_escape))
         {
@@ -1650,7 +1646,7 @@ static void recordFrame(u32* pixels)
         }
         else
         {
-            stopVideoRecord();
+            stopVideoRecord("screen.gif");
         }
     }
 }
