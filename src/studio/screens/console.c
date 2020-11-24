@@ -1840,13 +1840,11 @@ static void onConsoleExportCommand(Console* console, const char* param)
             exportMusic(console, atoi(param + MusicIndex) % MUSIC_TRACKS, getFilename(filename, ".wav"));
 #if defined(CAN_EXPORT_NATIVE)
         else if(strcmp(param, "native") == 0)
-        {
-#if defined(__TIC_WINDOWS__)
-            filename = (char*)getFilename(filename, ".exe");
-#endif
-
+    #if defined(__TIC_WINDOWS__)
+            onConsoleExportNativeCommand(console, getFilename(filename, ".exe"));
+    #else
             onConsoleExportNativeCommand(console, filename);
-        }
+    #endif            
 #endif
         else
         {
