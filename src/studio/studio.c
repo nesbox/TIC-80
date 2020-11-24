@@ -63,6 +63,9 @@
 #define MD5_HASHSIZE 16
 #define BG_ANIMATION_COLOR tic_color_dark_grey
 
+static const char VideoGif[] = "video.gif";
+static const char ScreenGif[] = "screen.gif";
+
 typedef struct
 {
     u8 data[MD5_HASHSIZE];
@@ -1438,7 +1441,7 @@ static void startVideoRecord()
 {
     if(impl.video.record)
     {
-        stopVideoRecord("video.gif");
+        stopVideoRecord(VideoGif);
     }
     else
     {
@@ -1646,7 +1649,7 @@ static void recordFrame(u32* pixels)
         }
         else
         {
-            stopVideoRecord("screen.gif");
+            stopVideoRecord(impl.video.frame == 1 ? ScreenGif : VideoGif);
         }
     }
 }

@@ -88,10 +88,6 @@ typedef enum
 
 } ScriptLang;
 
-#if defined(__TIC_WINDOWS__) || defined(__TIC_LINUX__) || defined(__TIC_MACOSX__) || defined(__TIC_ANDROID__)
-#define CAN_OPEN_FOLDER 1
-#endif
-
 #if defined(__EMSCRIPTEN__)
 #define CAN_ADDGET_FILE 1
 #endif
@@ -1067,26 +1063,16 @@ static void onConsoleDirCommand(Console* console, const char* param)
     commandDone(console);
 }
 
-#if defined(CAN_OPEN_FOLDER)
-
 static void onConsoleFolderCommand(Console* console, const char* param)
 {
-#if defined(__TIC_ANDROID__)
 
-    printBack(console, "\nLook at the ");
+    printBack(console, "\nStorage path:\n");
     printFront(console, fsGetRootFilePath(console->fs, ""));
-    printBack(console, " folder with any file manager.");
-
-#else
 
     fsOpenWorkingFolder(console->fs);
 
-#endif
-
     commandDone(console);
 }
-
-#endif
 
 static void onConsoleClsCommand(Console* console, const char* param)
 {
@@ -2300,10 +2286,7 @@ static const struct
     {"dir",     "ls", "show list of files",         onConsoleDirCommand},
     {"cd",      NULL, "change directory",           onConsoleChangeDirectory},
     {"mkdir",   NULL, "make directory",             onConsoleMakeDirectory},
-
-#if defined(CAN_OPEN_FOLDER)
     {"folder",  NULL, "open working folder in OS",  onConsoleFolderCommand},
-#endif
 
 #if defined(CAN_ADDGET_FILE)
     {"add",     NULL, "add file",                   onConsoleAddCommand},
