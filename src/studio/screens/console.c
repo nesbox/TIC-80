@@ -1608,7 +1608,7 @@ typedef struct
     s32 cartSize;
 } EmbedHeader;
 
-static const void* embedCart(Console* console, void* data, s32* size)
+static const void* embedCart(Console* console, u8* data, s32* size)
 {
     tic_mem* tic = console->tic;
 
