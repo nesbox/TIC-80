@@ -121,21 +121,21 @@ bool fsIsInPublicDir(FileSystem* fs)
 
 #if defined(__TIC_WINDOWS__) || defined(__TIC_WINRT__)
 
-typedef wchar_t fsString;
+typedef wchar_t FsString;
 
 #define __S(x) L ## x 
 #define _S(x) __S(x)
 
-static const fsString* utf8ToString(const char* str)
+static const FsString* utf8ToString(const char* str)
 {
-    fsString* wstr = malloc(TICNAME_MAX * sizeof(fsString));
+    FsString* wstr = malloc(TICNAME_MAX * sizeof(FsString));
 
     MultiByteToWideChar(CP_UTF8, 0, str, TICNAME_MAX, wstr, TICNAME_MAX);
 
     return wstr;
 }
 
-static const char* stringToUtf8(const fsString* wstr)
+static const char* stringToUtf8(const FsString* wstr)
 {
     char* str = malloc(TICNAME_MAX * sizeof(char));
 
@@ -164,7 +164,7 @@ static const char* stringToUtf8(const fsString* wstr)
 
 #else
 
-typedef char fsString;
+typedef char FsString;
 
 #define _S(x) (x)
 
@@ -368,11 +368,11 @@ static void enumFiles(FileSystem* fs, const char* path, ListCallback callback, v
     TIC_DIR *dir = NULL;
     struct tic_dirent* ent = NULL;
 
-    const fsString* pathString = utf8ToString(path);
+    const FsString* pathString = utf8ToString(path);
 
     if ((dir = tic_opendir(pathString)) != NULL)
     {
-        fsString fullPath[TICNAME_MAX];
+        FsString fullPath[TICNAME_MAX];
         struct tic_stat_struct s;
         
         while ((ent = tic_readdir(dir)) != NULL)
@@ -426,7 +426,7 @@ bool fsDeleteDir(FileSystem* fs, const char* name)
 #if defined(__TIC_WINRT__) || defined(__TIC_WINDOWS__)
     const char* path = fsGetFilePath(fs, name);
 
-    const fsString* pathString = utf8ToString(path);
+    const FsString* pathString = utf8ToString(path);
     bool result = tic_rmdir(pathString);
     freeString(pathString);
 
@@ -451,7 +451,7 @@ bool fsDeleteFile(FileSystem* fs, const char* name)
 #else
     const char* path = fsGetFilePath(fs, name);
 
-    const fsString* pathString = utf8ToString(path);
+    const FsString* pathString = utf8ToString(path);
     bool result = tic_remove(pathString);
     freeString(pathString);
 
@@ -555,7 +555,7 @@ bool fsIsDir(FileSystem* fs, const char* name)
 
     const char* path = fsGetFilePath(fs, name);
     struct tic_stat_struct s;
-    const fsString* pathString = utf8ToString(path);
+    const FsString* pathString = utf8ToString(path);
     bool ret = tic_stat(pathString, &s) == 0 && S_ISDIR(s.st_mode);
     freeString(pathString);
 
@@ -591,7 +591,7 @@ bool fsWriteFile(const char* name, const void* buffer, s32 size)
     }
     return true;
 #else
-    const fsString* pathString = utf8ToString(name);
+    const FsString* pathString = utf8ToString(name);
     FILE* file = tic_fopen(pathString, _S("wb"));
     freeString(pathString);
 
@@ -632,7 +632,7 @@ void* fsReadFile(const char* path, s32* size)
     return buffer;
 
 #else
-    const fsString* pathString = utf8ToString(path);
+    const FsString* pathString = utf8ToString(path);
     FILE* file = tic_fopen(pathString, _S("rb"));
     freeString(pathString);
 
@@ -674,7 +674,7 @@ static void makeDir(const char* name)
     }
     free(path);
 #else
-    const fsString* pathString = utf8ToString(name);
+    const FsString* pathString = utf8ToString(name);
     tic_mkdir(pathString);
     freeString(pathString);
 
@@ -693,7 +693,7 @@ static void fsFullname(const char *path, char *fullname)
 #if defined(__TIC_WINDOWS__) || defined(__TIC_WINRT__)
     static wchar_t wpath[TICNAME_MAX];
 
-    const fsString* pathString = utf8ToString(path);
+    const FsString* pathString = utf8ToString(path);
     GetFullPathNameW(pathString, sizeof(wpath), wpath, NULL);
     freeString(pathString);
 
@@ -742,7 +742,7 @@ void fsBasename(const char *path, char* out)
 
     struct tic_stat_struct s;
 
-    const fsString* fullString = utf8ToString(full);
+    const FsString* fullString = utf8ToString(full);
     s32 ret = tic_stat(fullString, &s);
     freeString(fullString);
 
@@ -788,7 +788,7 @@ bool fsExists(const char* name)
 #else
     struct tic_stat_struct s;
 
-    const fsString* pathString = utf8ToString(name);
+    const FsString* pathString = utf8ToString(name);
     bool ret = tic_stat(pathString, &s) == 0;
     freeString(pathString);
 
@@ -810,7 +810,7 @@ u64 fsMDate(const char* path)
 #else
     struct tic_stat_struct s;
 
-    const fsString* pathString = utf8ToString(path);
+    const FsString* pathString = utf8ToString(path);
     s32 ret = tic_stat(pathString, &s);
     freeString(pathString);
 
@@ -963,7 +963,7 @@ void* fsLoadFile(FileSystem* fs, const char* name, s32* size)
     }
     else
     {
-        const fsString* pathString = utf8ToString(fsGetFilePath(fs, name));
+        const FsString* pathString = utf8ToString(fsGetFilePath(fs, name));
         FILE* file = tic_fopen(pathString, _S("rb"));
         freeString(pathString);
 
