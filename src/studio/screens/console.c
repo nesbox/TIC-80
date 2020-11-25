@@ -44,6 +44,8 @@
 #include <unistd.h>
 #endif
 
+#include <sys/stat.h>
+
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
 #endif
@@ -1689,9 +1691,11 @@ static void onNativeExportGet(const HttpGetData* data)
 
             printLine(console);
 
+            const char* path = fsGetFilePath(console->fs, filename);
             if(embedCart(console, buf, &size) 
-                && fsWriteFile(fsGetFilePath(console->fs, filename), buf, size))
+                && fsWriteFile(path, buf, size))
             {
+                chmod(path, 0777);
                 printFront(console, filename);
                 printBack(console, " exported :)");
             }
@@ -2938,8 +2942,11 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 
 #if defined(__TIC_WINDOWS__)
         GetModuleFileNameA(NULL, appPath, sizeof appPath);
-#elif defined(__TIC_LINUX__) || defined(__TIC_MACOSX__)
+#elif defined(__TIC_LINUX__)
         readlink("/proc/self/exe", appPath, sizeof appPath);
+#elif defined(__TIC_MACOSX__)
+        s32 size = sizeof appPath;
+        _NSGetExecutablePath(appPath, &size);
 #endif
 
         s32 appSize = 0;

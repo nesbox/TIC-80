@@ -1608,7 +1608,7 @@ static s32 start(s32 argc, const char **argv, const char* folder)
 #if defined(CRT_SHADER_SUPPORT)
                 | SDL_WINDOW_OPENGL
 #endif            
-#if !defined(__EMSCRIPTEN__)
+#if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
                 | SDL_WINDOW_ALLOW_HIGHDPI
 #endif
                 );
