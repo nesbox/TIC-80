@@ -225,11 +225,11 @@ static void commandDoneLine(Console* console, bool newLine)
         printBack(console, dir);
 
     printFront(console, ">");
+    console->active = true;
 }
 
 static void commandDone(Console* console)
 {
-    console->active = true;
     commandDoneLine(console, true);
 }
 
@@ -804,24 +804,15 @@ static void onConfirm(bool yes, void* data)
     free(confirmData);
 }
 
-static void printMemoryError(Console* console)
-{
-    printError(console, "Memory allocation error");
-}
-
 static void confirmCommand(Console* console, const char** text, s32 rows, const char* param, ConfirmCallback callback)
 {
     CommandConfirmData* data = malloc(sizeof(CommandConfirmData));
-    if (data)
-    {
-        data->console = console;
-        data->param = param ? strdup(param) : NULL;
-        data->callback = callback;
 
-        showDialog(text, rows, onConfirm, data);
-    }
-    else
-        printMemoryError(console);
+    data->console = console;
+    data->param = param ? strdup(param) : NULL;
+    data->callback = callback;
+
+    showDialog(text, rows, onConfirm, data);
 }
 
 static void onConsoleLoadDemoCommand(Console* console, const char* param)
@@ -1080,6 +1071,7 @@ static void onConsoleClsCommand(Console* console, const char* param)
     memset(console->colorBuffer, TIC_COLOR_BG, CONSOLE_BUFFER_SIZE);
     console->scroll.pos = 0;
     console->cursor.x = console->cursor.y = 0;
+    printf("\r");
 
     commandDoneLine(console, false);
 }
@@ -1447,23 +1439,20 @@ static void exportCover(Console* console, const char* filename)
     if(cover->size)
     {
         void* data = malloc(cover->size);
-        if (data)
+        memcpy(data, cover->data, cover->size);
+        if(fsSaveFile(console->fs, filename, data, cover->size, true))
         {
-            memcpy(data, cover->data, cover->size);
-            fsSaveFile(console->fs, filename, data, cover->size, true);
             printLine(console);
             printBack(console, filename);
             printBack(console, " exported :)");
-            commandDone(console);
         }
-        else
-            printMemoryError(console);
+        else printError(console, "\nerror: cover not exported :(");
+
+        free(data);
     }
-    else
-    {
-        printBack(console, "\ncover image is empty, run game and\npress [F7] to assign cover image");
-        commandDone(console);
-    }
+    else printBack(console, "\ncover image is empty, run game and\npress [F7] to assign cover image");
+
+    commandDone(console);
 }
 
 static void exportSfx(Console* console, s32 sfx, const char* filename)
@@ -1525,22 +1514,18 @@ static void exportSprites(Console* console, const char* filename)
                     data[x + y * Width] = getSpritePixel(getBankTiles()->data, x, y);
 
             s32 size = 0;
-            if((size = writeGifData(console->tic, buffer, data, Width, Height)))
+            if((size = writeGifData(console->tic, buffer, data, Width, Height)) 
+                && fsSaveFile(console->fs, filename, buffer, size, true))
             {
-                // buffer will be freed inside // fsGetFileData
-                fsSaveFile(console->fs, filename, buffer, size, true);
                 printLine(console);
                 printBack(console, filename);
                 printBack(console, " exported :)");
-                commandDone(console);
             }
-            else
-            {
-                printError(console, "\nsprite export error :(");
-                commandDone(console);
-                free(buffer);
-            }
+            else printError(console, "\nerror: sprite not exported :(");
 
+            commandDone(console);
+
+            free(buffer);
             free(data);
         }
     }
@@ -1555,11 +1540,17 @@ static void exportMap(Console* console, const char* filename)
     if(buffer)
     {
         memcpy(buffer, getBankMap()->data, Size);
-        fsSaveFile(console->fs, filename, buffer, Size, true);
-        printLine(console);
-        printBack(console, filename);
-        printBack(console, " exported :)");
+
+        if(fsSaveFile(console->fs, filename, buffer, Size, true))
+        {
+            printLine(console);
+            printBack(console, filename);
+            printBack(console, " exported :)");
+        }
+        else printError(console, "\nerror: map not exported :(");
+
         commandDone(console);
+        free(buffer);
     }
 }
 
@@ -1706,8 +1697,9 @@ static void onNativeExportGet(const HttpGetData* data)
             }
             else
             {
+                printError(console, "error: ");
                 printError(console, filename);
-                printError(console, " file not saved :(");
+                printError(console, " not saved :(");
             }
 
             commandDone(console);
@@ -1755,9 +1747,9 @@ static void onHtmlExportGet(const HttpGetData* data)
 
             if(!fsWriteFile(zipPath, data->done.data, data->done.size))
             {
-                printLine(console);
+                printError(console, "\nerror: ");
                 printError(console, filename);
-                printError(console, " file not saved :(");
+                printError(console, " not saved :(");
                 commandDone(console);
                 return;
             }
@@ -2749,7 +2741,7 @@ static void processKeyboard(Console* console)
         else if(keyWasPressed(tic_key_pagedown))    processConsolePgDown(console);
 
         if(tic_api_key(tic, tic_key_ctrl) 
-            && tic_api_key(tic, tic_key_k))
+            && keyWasPressed(tic_key_k))
         {
             onConsoleClsCommand(console, NULL);
             return;

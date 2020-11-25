@@ -289,39 +289,43 @@ const char* studioExportSfx(s32 index, const char* filename)
 
     const char* path = fsGetFilePath(impl.fs, filename);
 
-    wave_open( impl.samplerate, path );
+    if(wave_open( impl.samplerate, path ))
+    {
 
 #if TIC_STEREO_CHANNELS == 2
-    wave_enable_stereo();
+        wave_enable_stereo();
 #endif
 
-    const tic_sfx* sfx = getSfxSrc();
+        const tic_sfx* sfx = getSfxSrc();
 
-    sfx2ram(&tic->ram, sfx);
-    music2ram(&tic->ram, getMusicSrc());
+        sfx2ram(&tic->ram, sfx);
+        music2ram(&tic->ram, getMusicSrc());
 
-    {
-        const tic_sample* effect = &sfx->samples.data[index];
-
-        enum{Channel = 0};
-        sfx_stop(tic, Channel);
-        tic_api_sfx(tic, index, effect->note, effect->octave, -1, Channel, MAX_VOLUME, MAX_VOLUME, SFX_DEF_SPEED);
-
-        for(s32 ticks = 0, pos = 0; pos < SFX_TICKS; pos = tic_tool_sfx_pos(effect->speed, ++ticks))
         {
-            tic_core_tick_start(tic);
-            tic_core_tick_end(tic);
+            const tic_sample* effect = &sfx->samples.data[index];
 
-            wave_write(tic->samples.buffer, tic->samples.size / sizeof(s16));
+            enum{Channel = 0};
+            sfx_stop(tic, Channel);
+            tic_api_sfx(tic, index, effect->note, effect->octave, -1, Channel, MAX_VOLUME, MAX_VOLUME, SFX_DEF_SPEED);
+
+            for(s32 ticks = 0, pos = 0; pos < SFX_TICKS; pos = tic_tool_sfx_pos(effect->speed, ++ticks))
+            {
+                tic_core_tick_start(tic);
+                tic_core_tick_end(tic);
+
+                wave_write(tic->samples.buffer, tic->samples.size / sizeof(s16));
+            }
+
+            sfx_stop(tic, Channel);
+            memset(tic->ram.registers, 0, sizeof(tic_sound_register));
         }
 
-        sfx_stop(tic, Channel);
-        memset(tic->ram.registers, 0, sizeof(tic_sound_register));
+        wave_close();
+
+        return path;
     }
 
-    wave_close();
-
-    return path;
+    return NULL;
 }
 
 const char* studioExportMusic(s32 track, const char* filename)
@@ -330,39 +334,41 @@ const char* studioExportMusic(s32 track, const char* filename)
 
     const char* path = fsGetFilePath(impl.fs, filename);
 
-    wave_open( impl.samplerate, path );
-
+    if(wave_open( impl.samplerate, path ))
+    {
 #if TIC_STEREO_CHANNELS == 2
-    wave_enable_stereo();
+        wave_enable_stereo();
 #endif
 
-    const tic_sfx* sfx = getSfxSrc();
-    const tic_music* music = getMusicSrc();
+        const tic_sfx* sfx = getSfxSrc();
+        const tic_music* music = getMusicSrc();
 
-    sfx2ram(&tic->ram, sfx);
-    music2ram(&tic->ram, music);
+        sfx2ram(&tic->ram, sfx);
+        music2ram(&tic->ram, music);
 
-    const tic_sound_state* state = &tic->ram.sound_state;
-    const Music* editor = impl.banks.music[impl.bank.index.music];
+        const tic_sound_state* state = &tic->ram.sound_state;
+        const Music* editor = impl.banks.music[impl.bank.index.music];
 
-    tic_api_music(tic, track, -1, -1, false, editor->sustain);
+        tic_api_music(tic, track, -1, -1, false, editor->sustain);
 
-    while(state->flag.music_state == tic_music_play)
-    {
-        tic_core_tick_start(tic);
+        while(state->flag.music_state == tic_music_play)
+        {
+            tic_core_tick_start(tic);
 
-        for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
-            if(!editor->on[i])
-                tic->ram.registers[i].volume = 0;
+            for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
+                if(!editor->on[i])
+                    tic->ram.registers[i].volume = 0;
 
-        tic_core_tick_end(tic);
+            tic_core_tick_end(tic);
 
-        wave_write(tic->samples.buffer, tic->samples.size / sizeof(s16));
+            wave_write(tic->samples.buffer, tic->samples.size / sizeof(s16));
+        }
+
+        wave_close();        
+        return path;
     }
 
-    wave_close();
-
-    return path;
+    return NULL;
 }
 
 void sfx_stop(tic_mem* tic, s32 channel)
@@ -1421,13 +1427,15 @@ static void stopVideoRecord(const char* name)
 
             gif_write_animation(data, &size, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, (const u8*)impl.video.buffer, impl.video.frame, TIC80_FRAMERATE, getConfig()->gifScale);
 
-            fsSaveFile(impl.fs, name, data, size, true);
+            if(fsSaveFile(impl.fs, name, data, size, true))
+            {
+                char msg[TICNAME_MAX];
+                sprintf(msg, "%s saved :)", name);
+                showPopupMessage(msg);
 
-            char msg[TICNAME_MAX];
-            sprintf(msg, "%s saved :)", name);
-            showPopupMessage(msg);
-
-            getSystem()->openSystemPath(fsGetFilePath(impl.fs, name));
+                getSystem()->openSystemPath(fsGetFilePath(impl.fs, name));                
+            }
+            else showPopupMessage("error: file not saved :(");
         }
 
         free(impl.video.buffer);

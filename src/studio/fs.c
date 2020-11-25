@@ -91,7 +91,9 @@ const char* fsGetFilePath(FileSystem* fs, const char* name)
 {
     static char path[TICNAME_MAX] = {0};
 
-    if(strlen(fs->work))
+    if(*name == '/')
+        strcpy(path, name + 1);
+    else if(strlen(fs->work))
         sprintf(path, "%s/%s", fs->work, name);
     else 
         strcpy(path, name);
@@ -111,7 +113,7 @@ static bool isPublicRoot(FileSystem* fs)
 
 static bool isPublic(FileSystem* fs)
 {
-    return strcmp(fs->work, PublicDir) == 0 || memcmp(fs->work, PUBLIC_DIR_SLASH, sizeof PUBLIC_DIR_SLASH - 1) == 0;
+    return memcmp(fs->work, PublicDir, sizeof PublicDir - 1) == 0;
 }
 
 bool fsIsInPublicDir(FileSystem* fs)
