@@ -27,14 +27,36 @@
 #include <string.h>
 #include "gravity_compiler.h"
 #include "gravity_macros.h"
+#include "gravity_vmmacros.h"
 #include "gravity_core.h"
 #include "gravity_vm.h"
 #include "gravity_delegate.h"
+#include "gravity_memory.h"
+
+#define GRAVITY_VERIFY_ARGS(min_arguments, max_arguments) \
+    gravity_delegate_t* delegate = gravity_vm_delegate(vm); \
+    if (!delegate) { \
+        RETURN_ERROR("Gravity VM delegate not found."); \
+    } \
+    tic_mem* tic = (tic_mem*)delegate->xdata; \
+    if (!tic) { \
+        RETURN_ERROR("TIC instance not found."); \
+    } \
+    if (nargs < (min_arguments)) { \
+        RETURN_ERROR("Requires a minimum of " #min_arguments " arguments."); \
+    } \
+    if (nargs > (max_arguments)) { \
+        RETURN_ERROR("Requires a maximum of " #max_arguments " arguments."); \
+    }
 
 static void gravityReportError(gravity_vm *vm, error_type_t error_type, const char *message, error_desc_t error_desc, void *xdata) {
     tic_core* core = (tic_core*)xdata;
     char buffer[1024];
     const char *type = "N/A";
+
+    if (!core) {
+        return;
+    }
 
     switch (error_type) {
         case GRAVITY_ERROR_NONE: type = "NONE"; break;
@@ -46,10 +68,7 @@ static void gravityReportError(gravity_vm *vm, error_type_t error_type, const ch
     }
 
     snprintf(buffer, sizeof buffer, "%s: line %d, column %d: %s", type, error_desc.lineno, error_desc.colno, message);
-    if(core)
-    {
-        core->data->error(core->data->data, buffer);
-    }
+    core->data->error(core->data->data, buffer);
 }
 
 static void gravityLogCallback(gravity_vm *vm, const char *message, void *xdata) {
@@ -63,18 +82,76 @@ static void closeGravity(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
 
-    if (core && core->gravity)
-    {
-        gravity_vm_free(core->gravity);
-        gravity_core_free();
-        core->gravity = NULL;
+    if (core) {
+        gravity_vm* vm = core->gravity;
+        if (vm) {
+            gravity_vm_free(vm);
+            gravity_core_free();
+            core->gravity = NULL;
+        }
     }
 }
 
-static void setupGravity(tic_mem* tic, gravity_vm *vm) {
-    // TODO: Add TIC-80 Gravity API here.
+/**
+ * Functions
+ */
+static bool gravityPrint(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+    GRAVITY_VERIFY_ARGS(1, 7);
+
+    char* text = VALUE_AS_CSTRING(args[1]);
+    int x = VALUE_AS_INT(args[2]);
+    int y = VALUE_AS_INT(args[3]);
+    u8 color = 3;
+    bool fixed = true;
+    s32 scale = 1;
+    bool alt = false;
+
+    s32 returnValue = 0;
+
+    printf("gravityPrint 1 %s\n", text);
+
+    returnValue = tic_api_print(tic, text, x, y, color, fixed, scale, alt);
+    printf("gravityPrint 2\n");
+
+    gravity_value_t rt = VALUE_FROM_UNDEFINED;
+
+    rt = VALUE_FROM_INT(returnValue);
+    RETURN_VALUE(rt, rindex);
 }
 
+static bool gravityBtn(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+    GRAVITY_VERIFY_ARGS(1, 1);
+
+    int id = VALUE_AS_INT(args[1]);
+    bool output = tic_api_btn(tic, id) > 0;
+
+    gravity_value_t outputValue = VALUE_FROM_BOOL(output);
+    RETURN_VALUE(outputValue, rindex);
+}
+
+static bool gravityCls(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+    GRAVITY_VERIFY_ARGS(0, 0);
+
+    u8 color = VALUE_AS_INT(args[1]);
+    tic_api_cls(tic, color);
+    RETURN_NOVALUE();
+}
+
+static void setupGravity(tic_mem* tic, gravity_vm *vm) {
+    gravity_vm_setvalue(vm, "print", NEW_CLOSURE_VALUE(gravityPrint));
+    gravity_vm_setvalue(vm, "btn", NEW_CLOSURE_VALUE(gravityBtn));
+    gravity_vm_setvalue(vm, "cls", NEW_CLOSURE_VALUE(gravityCls));
+}
+
+static const char* gravityPrecode(void *xdata) {
+  return "extern var btn;"
+         "extern var cls;"
+         "extern var print;";
+}
+
+/**
+ * Initialization
+ */
 static bool initGravity(tic_mem* tic, const char* code)
 {
     tic_core* core = (tic_core*)tic;
@@ -85,7 +162,8 @@ static bool initGravity(tic_mem* tic, const char* code)
         .error_callback = gravityReportError,
         .log_callback = gravityLogCallback,
         .report_null_errors = true,
-        .xdata = tic
+        .xdata = tic,
+        .precode_callback = gravityPrecode
     };
 
     // Construct the compiler.
@@ -98,13 +176,16 @@ static bool initGravity(tic_mem* tic, const char* code)
     // Interpret the code into the compiler.
     gravity_closure_t *closure = gravity_compiler_run(compiler, code, strlen(code), 0, true, true);
     if (!closure) {
+        printf("gravity_compiler_run\n");
         gravity_compiler_free(compiler);
         return false;
     }
 
+
     // Set up the virtual machine.
     gravity_vm *vm = gravity_vm_new(&delegate);
     if (!vm) {
+        printf("gravity_vm_new\n");
         gravity_compiler_free(compiler);
         return false;
     }
