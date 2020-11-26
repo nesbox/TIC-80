@@ -179,7 +179,7 @@ jobs:
     - name: Build
       run: |
         cd build
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SDLGPU=On ..
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
         cmake --build . --parallel --config $BUILD_TYPE
         cpack
         cp *.dmg tic80.dmg
@@ -187,7 +187,7 @@ jobs:
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-macos'
+        name: 'tic80-macos-sdl'
         path: build/tic80.dmg
 
 # === Android arm7 arm8 x86 x64 ===
