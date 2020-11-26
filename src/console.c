@@ -83,15 +83,9 @@ typedef enum
 } ScriptLang;
 
 #if defined(__TIC_WINDOWS__) || defined(__TIC_LINUX__) || defined(__TIC_MACOSX__)
-#define CAN_EXPORT 1
-#define CAN_EXPORT_NATIVE 1
-#define CAN_OPEN_URL 1
-#define CAN_OPEN_FOLDER 1
 #endif
 
 #if defined(__TIC_ANDROID__)
-#define CAN_EXPORT 1
-#define CAN_OPEN_FOLDER 1
 #endif
 
 #if defined(CAN_EXPORT_NATIVE)
@@ -1065,6 +1059,47 @@ static void onConsoleMakeDirectory(Console* console, const char* param)
     commandDone(console);
 }
 
+static void onConsoleDirCommand(Console* console, const char* param)
+{
+    PrintFileNameData data = {0, console};
+
+    printLine(console);
+
+    fsEnumFiles(console->fs, printFilename, &data);
+
+    if(data.count == 0)
+    {
+        printBack(console, "\n\nuse ");
+        printFront(console, "ADD");
+        printBack(console, " or ");
+        printFront(console, "DEMO");
+        printBack(console, " command to add carts");
+    }
+
+    printLine(console);
+    commandDone(console);
+}
+
+#if defined(CAN_OPEN_FOLDER)
+
+static void onConsoleFolderCommand(Console* console, const char* param)
+{
+#if defined(__TIC_ANDROID__)
+
+    printBack(console, "\nLook at the ");
+    printFront(console, fsGetRootFilePath(console->fs, ""));
+    printBack(console, " folder with any file manager.");
+
+#else
+
+    fsOpenWorkingFolder(console->fs);
+
+#endif
+
+    commandDone(console);
+}
+
+#endif
 
 static void onConsoleClsCommand(Console* console, const char* param)
 {
@@ -1091,6 +1126,86 @@ static void installDemoCart(FileSystem* fs, const char* name, const void* cart, 
     }
 }
 
+static void onConsoleInstallDemosCommand(Console* console, const char* param)
+{
+    static const u8 DemoFire[] =
+    {
+        #include "../build/assets/fire.tic.dat"
+    };
+
+    static const u8 DemoP3D[] =
+    {
+        #include "../build/assets/p3d.tic.dat"
+    };
+
+    static const u8 DemoSFX[] =
+    {
+        #include "../build/assets/sfx.tic.dat"
+    };
+
+    static const u8 DemoPalette[] =
+    {
+        #include "../build/assets/palette.tic.dat"
+    };
+
+    static const u8 DemoFont[] =
+    {
+        #include "../build/assets/font.tic.dat"
+    };
+
+    static const u8 DemoMusic[] =
+    {
+        #include "../build/assets/music.tic.dat"
+    };
+
+    static const u8 GameQuest[] =
+    {
+        #include "../build/assets/quest.tic.dat"
+    };
+
+    static const u8 GameTetris[] =
+    {
+        #include "../build/assets/tetris.tic.dat"
+    };
+
+    static const u8 Benchmark[] =
+    {
+        #include "../build/assets/benchmark.tic.dat"
+    };
+
+    static const u8 Bpp[] =
+    {
+        #include "../build/assets/bpp.tic.dat"
+    };
+
+    FileSystem* fs = console->fs;
+
+    static const struct {const char* name; const u8* data; s32 size;} Demos[] =
+    {
+        {"fire.tic",        DemoFire,       sizeof DemoFire},
+        {"font.tic",        DemoFont,       sizeof DemoFont},
+        {"music.tic",       DemoMusic,      sizeof DemoMusic},
+        {"p3d.tic",         DemoP3D,        sizeof DemoP3D},
+        {"palette.tic",     DemoPalette,    sizeof DemoPalette},
+        {"quest.tic",       GameQuest,      sizeof GameQuest},
+        {"sfx.tic",         DemoSFX,        sizeof DemoSFX},
+        {"tetris.tic",      GameTetris,     sizeof GameTetris},
+        {"benchmark.tic",   Benchmark,      sizeof Benchmark},
+        {"bpp.tic",         Bpp,            sizeof Bpp},
+    };
+
+    printBack(console, "\nadded carts:\n\n");
+
+    for(s32 i = 0; i < COUNT_OF(Demos); i++)
+    {
+        installDemoCart(fs, Demos[i].name, Demos[i].data, Demos[i].size);
+        printFront(console, Demos[i].name);
+        printFront(console, "\n");
+    }
+
+    commandDone(console);
+}
+
 static void onConsoleGameMenuCommand(Console* console, const char* param)
 {
     console->showGameMenu = false;
@@ -1098,6 +1213,17 @@ static void onConsoleGameMenuCommand(Console* console, const char* param)
     commandDone(console);
 }
 
+static void onConsoleSurfCommand(Console* console, const char* param)
+{
+    gotoSurf();
+    commandDone(console);
+}
+
+static void onConsoleCodeCommand(Console* console, const char* param)
+{
+    gotoCode();
+    commandDone(console);
+}
 
 static void onConsoleVersionCommand(Console* console, const char* param)
 {
@@ -1479,6 +1605,27 @@ static void exportMap(Console* console)
 
 #if defined(__EMSCRIPTEN__)
 
+static void onConsoleExportCommand(Console* console, const char* param)
+{
+    if(param == NULL || (param && strcmp(param, "native") == 0) || (param && strcmp(param, "html") == 0))
+    {
+        printBack(console, "\nweb/arm version doesn't support html or\nnative export");
+        printBack(console, "\nusage: export sprites|cover|map");
+        commandDone(console);
+    }
+    else if(param && strcmp(param, "sprites") == 0)
+        exportSprites(console);
+    else if(param && strcmp(param, "map") == 0)
+        exportMap(console);
+    else if(param && strcmp(param, "cover") == 0)
+        exportCover(console);
+    else
+    {
+        printError(console, "\nunknown parameter: ");
+        printError(console, param);
+        commandDone(console);
+    }
+}
 
 #else
 
@@ -1769,7 +1916,32 @@ static void onConsoleExportCommand(Console* console, const char* param)
 
         if(strcmp(param, "native") == 0 || strcmp(param, "") == 0)
         {
-        errorOccured = true
+#if defined(CAN_EXPORT_NATIVE)
+
+#if defined(__TIC_WINDOWS__)
+            const char* ext = ExeExt;
+#else           
+            const char* ext = NULL;
+#endif
+
+            const char* name = getExportName(console, ext);
+            onConsoleExportNativeCommand(console, name);
+#else
+
+            printBack(console, "\ngame export isn't supported on this platform\n");
+            commandDone(console);
+#endif
+        }
+        else if(strncmp(param, "html", 4) == 0 && (param[4] == ' ' || param[4] == 0))
+        {
+#if defined(CAN_EXPORT)
+            const char* providedName = param[4] ? param + 5 : NULL;
+            onConsoleExportHtmlCommand(console, providedName);
+#else
+
+            printBack(console, "\nhtml export isn't supported on this platform\n");
+            commandDone(console);
+#endif          
         }
         else if(strcmp(param, "sprites") == 0)
         {
@@ -1967,6 +2139,82 @@ static void onConsoleEvalCommand(Console* console, const char* param)
     commandDone(console);
 }
 
+static void onAddFile(const char* name, AddResult result, void* data)
+{
+    Console* console = (Console*)data;
+
+    printLine(console);
+
+    switch(result)
+    {
+    case FS_FILE_EXISTS:
+        printBack(console, "file ");
+        printFront(console, name);
+        printBack(console, " already exists :|");
+        break;
+    case FS_FILE_ADDED:
+        printBack(console, "file ");
+        printFront(console, name);
+        printBack(console, " is successfully added :)");
+        break;
+    default:
+        printBack(console, "file not added :(");
+        break;
+    }
+
+    commandDone(console);
+}
+
+static void onConsoleAddCommand(Console* console, const char* param)
+{
+    fsAddFile(console->fs, onAddFile, console);
+}
+
+static void onConsoleGetCommand(Console* console, const char* param)
+{
+    if(param)
+    {
+        fsGetFile(console->fs, onFileDownloaded, param, console);
+        return;
+    }
+    else printBack(console, "\nfile name is missing");
+
+    commandDone(console);
+}
+
+static void onConsoleDelCommandConfirmed(Console* console, const char* param)
+{
+    if(param && strlen(param))
+    {
+        if(fsIsDir(console->fs, param))
+        {
+            printBack(console, fsDeleteDir(console->fs, param)
+                ? "\ndir not deleted"
+                : "\ndir successfully deleted");
+        }
+        else
+        {
+            printBack(console, fsDeleteFile(console->fs, param)
+                ? "\nfile not deleted"
+                : "\nfile successfully deleted");
+        }
+    }
+    else printBack(console, "\nname is missing");
+
+    commandDone(console);
+}
+
+static void onConsoleDelCommand(Console* console, const char* param)
+{
+    static const char* Rows[] =
+    {
+        "", "",
+        "DO YOU REALLY WANT",
+        "TO DELETE FILE?",
+    };
+
+    confirmCommand(console, Rows, COUNT_OF(Rows), param, onConsoleDelCommandConfirmed);
+}
 
 static void printTable(Console* console, const char* text)
 {
@@ -2018,6 +2266,62 @@ static void printTable(Console* console, const char* text)
     }
 }
 
+static void printRamInfo(Console* console, s32 addr, const char* name, s32 size)
+{
+    char buf[STUDIO_TEXT_BUFFER_WIDTH];
+    sprintf(buf, "\n| %05X | %-17s | %-5i |", addr, name, size);
+    printTable(console, buf);
+}
+
+static void onConsoleRamCommand(Console* console, const char* param)
+{
+    printLine(console);
+
+    printTable(console, "\n+-----------------------------------+" \
+                        "\n|           80K RAM LAYOUT          |" \
+                        "\n+-------+-------------------+-------+" \
+                        "\n| ADDR  | INFO              | SIZE  |" \
+                        "\n+-------+-------------------+-------+");
+
+    static const struct{s32 addr; const char* info;} Layout[] =
+    {
+        {offsetof(tic_ram, tiles),                      "TILES"},
+        {offsetof(tic_ram, sprites),                    "SPRITES"},
+    };
+
+    for(s32 i = 0; i < COUNT_OF(Layout)-1; i++)
+        printRamInfo(console, Layout[i].addr, Layout[i].info, Layout[i+1].addr-Layout[i].addr);
+
+    printTable(console, "\n+-------+-------------------+-------+");
+
+    printLine(console);
+    commandDone(console);
+}
+
+static void onConsoleVRamCommand(Console* console, const char* param)
+{
+    printLine(console);
+
+    printTable(console, "\n+-----------------------------------+" \
+                        "\n|           16K VRAM LAYOUT         |" \
+                        "\n+-------+-------------------+-------+" \
+                        "\n| ADDR  | INFO              | SIZE  |" \
+                        "\n+-------+-------------------+-------+");
+
+    static const struct{s32 addr; const char* info;} Layout[] =
+    {
+        {offsetof(tic_ram, vram.screen),            "SCREEN"},
+    };
+
+    for(s32 i = 0; i < COUNT_OF(Layout)-1; i++)
+        printRamInfo(console, Layout[i].addr, Layout[i].info, Layout[i+1].addr-Layout[i].addr);
+
+    printTable(console, "\n+-------+-------------------+-------+");
+
+    printLine(console);
+    commandDone(console);
+}
+
 static const struct
 {
     const char* command;
@@ -2032,7 +2336,6 @@ static const struct
     {"run",     NULL, "run loaded cart",            onConsoleRunCommand},
     {"resume",  NULL, "resume run cart",            onConsoleResumeCommand},
     {"cls",     "clear", "clear screen",            onConsoleClsCommand},
-    {"version", NULL, "show the current version",   onConsoleVersionCommand},
     {"menu",    NULL, "show game menu",             onConsoleGameMenuCommand},
 };
 
@@ -2793,7 +3096,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 #else
         .startSurf = false,
 #endif
-        .skipStart = false,
+        .skipStart = true,
         .goFullscreen = false,
         .crtMonitor = false,
     };
