@@ -1,46 +1,269 @@
-name: CMake
+name: Build
 
 on: [push]
 
 env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
-  BUILD_TYPE: Release
+  BUILD_TYPE: MinSizeRel
 
 jobs:
-  build:
-    # The CMake configure and build commands are platform agnostic and should work equally
-    # well on Windows or Mac.  You can convert this to a matrix build if you need
-    # cross-platform coverage.
-    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+
+# === Windows SDL2 ===
+  windows-sdl:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Build
+      shell: cmd
+      run: |
+        cd build
+        cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
+        cmake --build . --parallel --config %BUILD_TYPE%
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-windows-sdl'
+        path: build/bin/tic80.exe
+
+# === Windows SDLGPU ===
+  windows-sdlgpu:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Build
+      shell: cmd
+      run: |
+        cd build
+        cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
+        cmake --build . --parallel --config %BUILD_TYPE%
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-windows-sdlgpu'
+        path: build/bin/tic80.exe
+
+# === Windows Sokol ===
+  windows-sokol:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Build
+      shell: cmd
+      run: |
+        cd build
+        cmake -G "Visual Studio 16 2019" -A Win32 -DBUILD_SDL=Off -DBUILD_SOKOL=On -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
+        cmake --build . --parallel --config %BUILD_TYPE%
+        cp bin/tic80-sokol.exe bin/tic80.exe
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-windows-sokol'
+        path: build/bin/tic80.exe
+
+# === Ubuntu SDLGPU ===
+  ubuntu-sdlgpu:
+    runs-on: ubuntu-16.04
+
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Install
+      run: sudo apt-get install libgtk-3-dev libasound2-dev libglu1-mesa-dev
+
+    - name: Build
+      run: |
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SDLGPU=On ..
+        cmake --build . --parallel --config $BUILD_TYPE
+        cpack
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-ubuntu-sdlgpu'
+        path: build/tic80.deb
+
+# === Ubuntu SDL2 ===
+  ubuntu-sdl:
+    runs-on: ubuntu-16.04
+
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Install
+      run: sudo apt-get install libgtk-3-dev libasound2-dev libglu1-mesa-dev
+
+    - name: Build
+      run: |
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
+        cmake --build . --parallel --config $BUILD_TYPE
+        cpack
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-ubuntu-sdl'
+        path: build/tic80.deb
+
+# === Raspberry PI ===
+  rpi:
+    runs-on: ubuntu-latest
+    env:
+        RPI_HOME: ${{GITHUB.WORKSPACE}}/build/rpi
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Install
+      run: |
+        cd $RPI_HOME
+        git clone --depth 1 https://github.com/raspberrypi/tools.git tools
+        mkdir sysroot && cd sysroot
+        wget http://downloads.raspberrypi.org/raspbian/root.tar.xz
+        wget https://buildbot.libsdl.org/sdl-builds/sdl-raspberrypi/sdl-raspberrypi-224.tar.xz
+        sudo tar xf root.tar.xz
+        sudo tar xf sdl-raspberrypi-224.tar.xz
+
+    - name: Build
+      run: |
+        cd build
+        sudo cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. -DCMAKE_TOOLCHAIN_FILE=rpi/toolchain.cmake -DRPI_HOME=$RPI_HOME
+        sudo cmake --build . --parallel --config $BUILD_TYPE
+        sudo cpack
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-rpi'
+        path: build/tic80.deb
+
+# === MacOS 10.15 ===
+  macos:
+    runs-on: macos-10.15
+
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Install
+      run: brew uninstall --ignore-dependencies libidn2
+
+    - name: Build
+      run: |
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
+        cmake --build . --parallel --config $BUILD_TYPE
+        cpack
+        cp *.dmg tic80.dmg
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-macos-sdl'
+        path: build/tic80.dmg
+
+# === Android arm7 arm8 x86 x64 ===
+  android:
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
-
-    - name: Create Build Environment
-      # Some projects don't allow in-source building, so create a separate build directory
-      # We'll use this as our working directory for all subsequent commands
-      run: cmake -E make_directory ${{runner.workspace}}/build
-
-    - name: Configure CMake
-      # Use a bash shell so we can use the same syntax for environment variable
-      # access regardless of the host operating system
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      # Note the current convention is to use the -S and -B options here to specify source 
-      # and build directories, but this is only available with CMake 3.13 and higher.  
-      # The CMake binaries on the Github Actions machines are (as of this writing) 3.12
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+      with: 
+        submodules: recursive
+        fetch-depth: 0
 
     - name: Build
-      working-directory: ${{runner.workspace}}/build
-      shell: bash
-      # Execute the build.  You can specify a specific target with "--target <NAME>"
-      run: cmake --build . --config $BUILD_TYPE
+      run: |
+        cd build/android
+        ./gradlew assembleRelease
+        cp app/build/outputs/apk/arm7/release/app-arm7-release.apk tic80_arm7.apk
+        cp app/build/outputs/apk/arm8/release/app-arm8-release.apk tic80_arm8.apk
+        cp app/build/outputs/apk/x86_64/release/app-x86_64-release.apk tic80_x64.apk
+        cp app/build/outputs/apk/x86/release/app-x86-release.apk tic80_x86.apk
+        cp app/build/outputs/apk/universal/release/app-universal-release.apk tic80.apk
 
-    - name: Test
-      working-directory: ${{runner.workspace}}/build
-      shell: bash
-      # Execute tests defined by the CMake configuration.  
-      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest -C $BUILD_TYPE
+    - name: Deploy ARM7
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-android-arm7'
+        path: build/android/tic80_arm7.apk
+
+    - name: Deploy ARM8
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-android-arm8'
+        path: build/android/tic80_arm8.apk
+
+    - name: Deploy x64
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-android-x64'
+        path: build/android/tic80_x64.apk
+
+    - name: Deploy x86
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-android-x86'
+        path: build/android/tic80_x86.apk
+
+    - name: Deploy Universal
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-android'
+        path: build/android/tic80.apk
+
+# === Web Assembly ===
+  wasm:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: mymindstorm/setup-emsdk@v7
+
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Build
+      run: |
+        cd build
+        emcmake cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
+        cmake --build . --parallel --config $BUILD_TYPE
+        cp html/export.html bin/index.html
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-wasm'
+        path: |
+          build/bin/tic80.js
+          build/bin/tic80.wasm
+          build/bin/index.html
