@@ -1695,7 +1695,7 @@ static void onNativeExportGet(const HttpGetData* data)
             if(embedCart(console, buf, &size) 
                 && fsWriteFile(path, buf, size))
             {
-                chmod(path, 0777);
+                chmod(path, 0755);
                 printFront(console, filename);
                 printBack(console, " exported :)");
             }
