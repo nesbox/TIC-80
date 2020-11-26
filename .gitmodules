@@ -39,7 +39,7 @@
 	url = https://github.com/madler/zlib.git
 [submodule "vendor/zip"]
 	path = vendor/zip
-	url = https://github.com/kuba--/zip.git
+	url = https://github.com/nesbox/zip.git
 [submodule "vendor/moonscript"]
 	path = vendor/moonscript
 	url = https://github.com/nesbox/moonscript.git

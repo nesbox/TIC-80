@@ -588,13 +588,13 @@ endif ()
 set(CMAKE_DISABLE_TESTING ON CACHE BOOL "" FORCE)
 add_subdirectory(${THIRDPARTY_DIR}/zip)
 
-set(TOOLS_DIR ${CMAKE_SOURCE_DIR}/build/tools)
-
 ################################
 # bin2txt cart2prj prj2cart
 ################################
 
 if(BUILD_DEMO_CARTS)
+
+    set(TOOLS_DIR ${CMAKE_SOURCE_DIR}/build/tools)
 
     add_executable(cart2prj ${TOOLS_DIR}/cart2prj.c ${CMAKE_SOURCE_DIR}/src/studio/project.c)
     target_include_directories(cart2prj PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include)
