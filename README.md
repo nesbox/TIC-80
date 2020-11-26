@@ -1,5 +1,3 @@
-[![Build Status](https://travis-ci.org/nesbox/TIC-80.svg?branch=master)](https://travis-ci.org/nesbox/TIC-80)
-[![Build status](https://ci.appveyor.com/api/projects/status/1pflw77cjd8mqggb/branch/master?svg=true)](https://ci.appveyor.com/project/nesbox/tic-80)
 
 ![TIC-80](https://tic.computer/img/logo64.png)
 **TIC-80 TINY COMPUTER** - [https://tic80.com](https://tic80.com)
@@ -113,11 +111,6 @@ git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
 ```
-
-## iOS / tvOS
-You can find iOS/tvOS version here 
-- 0.60.3: https://github.com/brunophilipe/TIC-80
-- 0.45.0: https://github.com/CliffsDover/TIC-80
 
 ## Credits
 
