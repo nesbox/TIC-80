@@ -28,9 +28,9 @@
 #define TEXT_CURSOR_DELAY (TIC80_FRAMERATE / 2)
 #define TEXT_CURSOR_BLINK_PERIOD TIC80_FRAMERATE
 #define BOOKMARK_WIDTH 7
-#define CODE_EDITOR_WIDTH (TIC80_WIDTH - BOOKMARK_WIDTH)
-#define CODE_EDITOR_HEIGHT (TIC80_HEIGHT - TOOLBAR_SIZE - STUDIO_TEXT_HEIGHT)
-#define TEXT_BUFFER_HEIGHT (CODE_EDITOR_HEIGHT / STUDIO_TEXT_HEIGHT)
+#define CODE_EDITOR_WIDTH 1
+#define CODE_EDITOR_HEIGHT 1
+#define TEXT_BUFFER_HEIGHT 1
 
 typedef struct CodeState CodeState;
 
@@ -118,11 +118,11 @@ static void drawBookmarks(Code* code)
 
     static const u8 Icon[] =
     {
-        0b01111100,
-        0b01111100,
-        0b01111100,
-        0b01101100,
-        0b01000100,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
         0b00000000,
         0b00000000,
         0b00000000,
@@ -296,13 +296,7 @@ static void getCursorPosition(Code* code, s32* x, s32* y)
 
 static s32 getLinesCount(Code* code)
 {
-    char* text = code->src;
     s32 count = 0;
-
-    while(*text)
-        if(*text++ == '\n')
-            count++;
-
     return count;
 }
 
@@ -980,9 +974,6 @@ static void copyToClipboard(Code* code)
 
     if(clipboard)
     {
-        memcpy(clipboard, start, size);
-        clipboard[size] = '\0';
-        getSystem()->setClipboardText(clipboard);
         free(clipboard);
     }
 }
@@ -1387,8 +1378,6 @@ static void processKeyboard(Code* code)
 
     switch(getClipboardEvent())
     {
-    case TIC_CLIPBOARD_CUT: cutToClipboard(code); break;
-    case TIC_CLIPBOARD_COPY: copyToClipboard(code); break;
     case TIC_CLIPBOARD_PASTE: copyFromClipboard(code); break;
     default: usedClipboard = false; break;
     }
