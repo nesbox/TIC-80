@@ -89,11 +89,11 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
 {
     static const u8 LeftArrow[] =
     {
-        0b00100000,
-        0b01100000,
-        0b11100000,
-        0b01100000,
-        0b00100000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
         0b00000000,
         0b00000000,
         0b00000000,
@@ -101,11 +101,11 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
 
     static const u8 RightArrow[] =
     {
-        0b00100000,
-        0b00110000,
-        0b00111000,
-        0b00110000,
-        0b00100000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
         0b00000000,
         0b00000000,
         0b00000000,
@@ -193,11 +193,11 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
 {
     static const u8 LeftArrow[] =
     {
-        0b00010000,
-        0b00110000,
-        0b01110000,
-        0b00110000,
-        0b00010000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
         0b00000000,
         0b00000000,
         0b00000000,
@@ -205,11 +205,11 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
 
     static const u8 RightArrow[] =
     {
-        0b01000000,
-        0b01100000,
-        0b01110000,
-        0b01100000,
-        0b01000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
         0b00000000,
         0b00000000,
         0b00000000,
