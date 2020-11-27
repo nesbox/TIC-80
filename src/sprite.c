@@ -797,40 +797,40 @@ static void drawMoveButtons(Sprite* sprite)
 
         static const u8 Icons[] = 
         {
-            0b00010000,
-            0b00111000,
-            0b01111100,
-            0b11111110,
+            0b00000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
             0b00000000,
             0b00000000,
             0b00000000,
             0b00000000,
 
-            0b11111110,
-            0b01111100,
-            0b00111000,
-            0b00010000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
             0b00000000,
             0b00000000,
             0b00000000,
             0b00000000,
 
-            0b00010000,
-            0b00110000,
-            0b01110000,
-            0b11110000,
-            0b01110000,
-            0b00110000,
-            0b00010000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
             0b00000000,
 
-            0b10000000,
-            0b11000000,
-            0b11100000,
-            0b11110000,
-            0b11100000,
-            0b11000000,
-            0b10000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
             0b00000000,
         };
 
@@ -875,9 +875,9 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
     {
         static const u8 Icon[] =
         {
-            0b11100000,
-            0b11100000,
-            0b11100000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
             0b00000000,
             0b00000000,
             0b00000000,
@@ -917,9 +917,9 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
     {
         static const u8 Icon[] =
         {
-            0b01000000,
-            0b11000000,
-            0b01000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
             0b00000000,
             0b00000000,
             0b00000000,
@@ -955,9 +955,9 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
     {
         static const u8 Icon[] =
         {
-            0b10000000,
-            0b11000000,
-            0b10000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
             0b00000000,
             0b00000000,
             0b00000000,
@@ -1004,14 +1004,14 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
         enum{Size = 5};
         static const u8 Icon[] = 
         {
-            0b11110000,
-            0b10010000,
-            0b10111000,
-            0b11101000,
-            0b00111000,
             0b00000000,
             0b00000000,
-            0b00000000, 
+            0b00000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
         };
 
         tic_rect rect = {x, y, Size, Size};
@@ -1023,7 +1023,7 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
         {
             setCursor(tic_cursor_hand);
 
-            showTooltip("COPY PALETTE");
+            showTooltip("null");
             over = true;
 
             if(checkMouseDown(&rect, tic_mouse_left))
@@ -1048,11 +1048,11 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
         enum{Size = 5};
         static const u8 Icon[] = 
         {
-            0b01110000,
-            0b10001000,
-            0b11111000,
-            0b11011000,
-            0b11111000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
             0b00000000,
             0b00000000,
             0b00000000,
@@ -1066,7 +1066,7 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
         {
             setCursor(tic_cursor_hand);
 
-            showTooltip("PASTE PALETTE");
+            showTooltip("null");
             over = true;
 
             if(checkMouseDown(&rect, tic_mouse_left))
@@ -1189,7 +1189,7 @@ static void drawPaletteOvr(Sprite* sprite, s32 x, s32 y)
             setCursor(tic_cursor_hand);
             over = true;
 
-            showTooltip("SCANLINE PALETTE");
+            showTooltip("null");
 
             if(checkMouseDown(&rect, tic_mouse_left))
                 down = true;
@@ -1218,7 +1218,7 @@ static void drawPaletteOvr(Sprite* sprite, s32 x, s32 y)
             setCursor(tic_cursor_hand);
             over = true;
 
-            showTooltip("OVERLINE PALETTE");
+            showTooltip("null");
 
             if(checkMouseDown(&rect, tic_mouse_left))
                 down = true;
@@ -1240,14 +1240,14 @@ static void drawPaletteOvr(Sprite* sprite, s32 x, s32 y)
     {
         static const u8 Icon[] = 
         {
-            0b01000000,
-            0b11111111,
             0b00000000,
-            0b00000010,
-            0b11111111,
             0b00000000,
-            0b00010000,
-            0b11111111,
+            0b00000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
         };
 
         tic_rect rect = {x + PALETTE_WIDTH + 3, y + (PALETTE_HEIGHT-8)/2-1, 8, 8};
@@ -1259,7 +1259,7 @@ static void drawPaletteOvr(Sprite* sprite, s32 x, s32 y)
             setCursor(tic_cursor_hand);
             over = true;
 
-            showTooltip("EDIT PALETTE");
+            showTooltip("null");
 
             if(checkMouseDown(&rect, tic_mouse_left))
                 down = true;
@@ -1441,43 +1441,43 @@ static void drawSpriteTools(Sprite* sprite, s32 x, s32 y)
 {
     static const u8 Icons[] =
     {
-        0b11101110,
-        0b11010110,
-        0b11101110,
-        0b11101110,
-        0b11101110,
-        0b11010110,
-        0b11101110,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
         0b00000000,
 
-        0b11111110,
-        0b11111110,
-        0b10111010,
-        0b01000100,
-        0b10111010,
-        0b11111110,
-        0b11111110,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
         0b00000000,
 
-        0b00111000,
-        0b01000100,
-        0b10010101,
-        0b10001110,
-        0b10000100,
-        0b01000000,
-        0b00111000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
         0b00000000,
 
-        0b00111110,
-        0b01111111,
-        0b00101010,
-        0b00101010,
-        0b00101010,
-        0b00101010,
-        0b00111110,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
         0b00000000,
     };
-    static const char* Tooltips[] = {"FLIP HORZ [5]", "FLIP VERT [6]", "ROTATE [7]", "ERASE [8]"};
+    static const char* Tooltips[] = {"null", "null", "null", "null"};
 
     enum{Gap = TIC_SPRITESIZE + 3};
 
@@ -1528,40 +1528,40 @@ static void drawTools(Sprite* sprite, s32 x, s32 y)
 {
     static const u8 Icons[] = 
     {
-        0b00001000,
-        0b00011100,
-        0b00111110,
-        0b01111100,
-        0b10111000,
-        0b10010000,
-        0b11100000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
         0b00000000,
 
-        0b00111000,
-        0b00111000,
-        0b01111100,
-        0b00101000,
-        0b00101000,
-        0b00101000,
-        0b00010000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
         0b00000000,
 
-        0b10101010,
         0b00000000,
-        0b10000010,
         0b00000000,
-        0b10000010,
         0b00000000,
-        0b10101010,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
         0b00000000,
 
-        0b00001000,
-        0b00000100,
-        0b00000010,
-        0b01111111,
-        0b10111110,
-        0b10011100,
-        0b10001000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
         0b00000000,
     };
 
@@ -1577,7 +1577,7 @@ static void drawTools(Sprite* sprite, s32 x, s32 y)
             setCursor(tic_cursor_hand);
             over = true;
 
-            static const char* Tooltips[] = {"BRUSH [1]", "COLOR PICKER [2]", "SELECT [3]", "FILL [4]"};
+            static const char* Tooltips[] = {"null", "null", "null", "null"};
 
             showTooltip(Tooltips[i]);
 
@@ -1595,9 +1595,9 @@ static void drawTools(Sprite* sprite, s32 x, s32 y)
         {
             static const u8 Icon[] = 
             {
-                0b01111100,
-                0b00111000,
-                0b00010000,
+                0b00000000,
+                0b00000000,
+                0b00000000,
                 0b00000000,
                 0b00000000,
                 0b00000000,
@@ -1856,7 +1856,7 @@ static void drawSpriteToolbar(Sprite* sprite)
         {
             setCursor(tic_cursor_hand);
 
-            showTooltip("CANVAS ZOOM");
+            showTooltip("null");
 
             if(checkMouseDown(&rect, tic_mouse_left))
             {
@@ -1979,7 +1979,7 @@ static void drawAdvancedButton(Sprite* sprite, s32 x, s32 y)
     {
         setCursor(tic_cursor_hand);
         over = true;
-        showTooltip("ADVANCED MODE");
+        showTooltip("null");
 
         if(checkMouseClick(&rect, tic_mouse_left))
             sprite->advanced = !sprite->advanced;
