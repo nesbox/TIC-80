@@ -1085,42 +1085,6 @@ static void installDemoCart(FileSystem* fs, const char* name, const void* cart, 
 }
 
 static void onConsoleInstallDemosCommand(Console* console, const char* param)
-{
-    static const u8 DemoFire[] =
-    {
-        #include "../build/assets/fire.tic.dat"
-    };
-
-    static const u8 DemoP3D[] =
-    {
-        #include "../build/assets/p3d.tic.dat"
-    };
-
-    static const u8 DemoSFX[] =
-    {
-        #include "../build/assets/sfx.tic.dat"
-    };
-
-    static const u8 DemoPalette[] =
-    {
-        #include "../build/assets/palette.tic.dat"
-    };
-
-    static const u8 DemoFont[] =
-    {
-        #include "../build/assets/font.tic.dat"
-    };
-
-    static const u8 DemoMusic[] =
-    {
-        #include "../build/assets/music.tic.dat"
-    };
-
-    static const u8 GameQuest[] =
-    {
-        #include "../build/assets/quest.tic.dat"
-    };
-
     static const u8 GameTetris[] =
     {
         #include "../build/assets/tetris.tic.dat"
@@ -1131,10 +1095,6 @@ static void onConsoleInstallDemosCommand(Console* console, const char* param)
         #include "../build/assets/benchmark.tic.dat"
     };
 
-    static const u8 Bpp[] =
-    {
-        #include "../build/assets/bpp.tic.dat"
-    };
 
     FileSystem* fs = console->fs;
 
