@@ -1587,10 +1587,10 @@ typedef struct
     s32 cartSize;
 } EmbedHeader;
 
-static const void* embedCart(Console* console, u8* data, s32* size)
+static void* embedCart(Console* console, u8* app, s32* size)
 {
     tic_mem* tic = console->tic;
-
+    u8* data = NULL;
     void* cart = malloc(sizeof(tic_cartridge));
 
     if(cart)
@@ -1615,16 +1615,16 @@ static const void* embedCart(Console* console, u8* data, s32* size)
                 memcpy(header.sig, TicCartSig, SIG_SIZE);
 
                 s32 finalSize = appSize + sizeof header + header.cartSize;
-                data = realloc(data, finalSize);
+                data = malloc(finalSize);
 
-                if(data)
+                if (data)
                 {
+                    memcpy(data, app, appSize);
                     memcpy(data + appSize, &header, sizeof header);
                     memcpy(data + appSize + sizeof header, zipData, header.cartSize);
 
                     *size = finalSize;
                 }
-                else data = NULL;
             }
 
             free(zipData);
@@ -1687,12 +1687,12 @@ static void onNativeExportGet(const HttpGetData* data)
             free(exportData);
 
             s32 size = data->done.size;
-            void* buf = data->done.data;
 
             printLine(console);
 
             const char* path = fsGetFilePath(console->fs, filename);
-            if(embedCart(console, buf, &size) 
+            void* buf = NULL;
+            if((buf = embedCart(console, data->done.data, &size))
                 && fsWriteFile(path, buf, size))
             {
                 chmod(path, 0755);
@@ -1707,6 +1707,9 @@ static void onNativeExportGet(const HttpGetData* data)
             }
 
             commandDone(console);
+
+            if (buf)
+                free(buf);
         }
         break;
     default:
