@@ -1288,7 +1288,7 @@ static void updateTitle()
     char name[TICNAME_MAX] = TIC_TITLE;
 
     if(strlen(impl.console->romName))
-        name[TICNAME_MAX] = impl.console->romName);
+        name[TICNAME_MAX] = impl.console->romName;
 
     impl.system->setWindowTitle(name);
 }
