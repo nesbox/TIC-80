@@ -11,7 +11,8 @@
 #include <cerrno>
 #include <unistd.h>
 
-//#define dbg(...) printf(__VA_ARGS__)
+
+//define dbg(...) printf(__VA_ARGS__)
 #define dbg(...)
 
 

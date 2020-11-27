@@ -3,11 +3,13 @@
 #
 TIC80HOME = ../..
 TIC803RD = $(TIC80HOME)/vendor
-CIRCLESTDLIB = $(TIC803RD)/circle-stdlib/
+CIRCLESTDLIB = $(TIC803RD)/circle-stdlib
 CIRCLEHOME = $(CIRCLESTDLIB)/libs/circle
 NEWLIBDIR = $(CIRCLESTDLIB)/install/arm-none-circle
 TIC80LIB = $(TIC80HOME)/build/lib
 TIC80SRC = $(TIC80HOME)/src
+TIC80BUILD = $(TIC80HOME)/build
+TIC80STUDIOSRC = $(TIC80SRC)/studio
 BAREMETALSYSTEM = $(TIC80SRC)/system/baremetalpi
 
 OBJS	= \
@@ -17,16 +19,20 @@ OBJS	= \
 include $(CIRCLEHOME)/Rules.mk
 
 CFLAGS += -I "$(NEWLIBDIR)/include" -I $(STDDEF_INCPATH) -I $(CIRCLESTDLIB)/include -I $(TIC80HOME)/include -I $(TIC80SRC) \
-	  -D BAREMETALPI
-
+	  -I $(TIC80STUDIOSRC) -I $(TIC80BUILD) -D BAREMETALPI
 
 LIBS :=  \
-	$(TIC80LIB)/libtic80lib.a \
+	$(TIC80LIB)/libtic80studio.a \
 	$(TIC80LIB)/libtic80core.a \
 	$(TIC80LIB)/libgiflib.a \
 	$(TIC80LIB)/liblpeg.a \
  	$(TIC80LIB)/liblua.a \
+	$(TIC80LIB)/libzip.a \
+	$(TIC80LIB)/libblipbuf.a \
 	$(TIC80LIB)/libwren.a \
+	$(TIC80LIB)/libargparse.a \
+	$(TIC80LIB)/libwave_writer.a \
+	$(TIC80LIB)/libduktape.a \
 	$(TIC80LIB)/libzlib.a \
 	$(NEWLIBDIR)/lib/libc.a \
         $(NEWLIBDIR)/lib/libcirclenewlib.a \
