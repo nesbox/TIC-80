@@ -563,7 +563,7 @@ static void keyboard_update(void) {
 
     platform.studio->tic->ram.input.mouse.btns = 0;
     if (!platform.render.on_bottom) {
-        n3ds_keyboard_update(&platform.keyboard, platform.studio->tic, &platform.studio->text);
+        n3ds_keyboard_update(&platform.keyboard, platform.studio->tic);
     } else {
         touch_update();
     }

@@ -41,5 +41,5 @@ typedef struct
 void n3ds_keyboard_init(tic_n3ds_keyboard *kbd);
 void n3ds_keyboard_free(tic_n3ds_keyboard *kbd);
 void n3ds_keyboard_draw(tic_n3ds_keyboard *kbd);
-void n3ds_keyboard_update(tic_n3ds_keyboard *kbd, tic_mem *tic, char *chcode);
+void n3ds_keyboard_update(tic_n3ds_keyboard *kbd, tic_mem *tic);
 void n3ds_gamepad_update(tic_n3ds_keyboard *kbd, tic_mem *tic);
