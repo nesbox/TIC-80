@@ -1084,61 +1084,11 @@ static void installDemoCart(FileSystem* fs, const char* name, const void* cart, 
     }
 }
 
-static void onConsoleInstallDemosCommand(Console* console, const char* param)
-    static const u8 GameTetris[] =
-    {
-        #include "../build/assets/tetris.tic.dat"
-    };
-
-    static const u8 Benchmark[] =
-    {
-        #include "../build/assets/benchmark.tic.dat"
-    };
-
-
-    FileSystem* fs = console->fs;
-
-    static const struct {const char* name; const u8* data; s32 size;} Demos[] =
-    {
-        {"tetris.tic",      GameTetris,     sizeof GameTetris},
-        {"benchmark.tic",   Benchmark,      sizeof Benchmark},
-    };
-
-    printBack(console, "\nadded carts:\n\n");
-
-    for(s32 i = 0; i < COUNT_OF(Demos); i++)
-    {
-        installDemoCart(fs, Demos[i].name, Demos[i].data, Demos[i].size);
-        printFront(console, Demos[i].name);
-        printFront(console, "\n");
-    }
-
-    commandDone(console);
-}
 
 static void onConsoleGameMenuCommand(Console* console, const char* param)
 {
     console->showGameMenu = false;
     showGameMenu();
-    commandDone(console);
-}
-
-static void onConsoleSurfCommand(Console* console, const char* param)
-{
-    gotoSurf();
-    commandDone(console);
-}
-
-static void onConsoleCodeCommand(Console* console, const char* param)
-{
-    gotoCode();
-    commandDone(console);
-}
-
-static void onConsoleVersionCommand(Console* console, const char* param)
-{
-    printBack(console, "\n");
-    consolePrint(console, TIC_VERSION_LABEL, CONSOLE_BACK_TEXT_COLOR);
     commandDone(console);
 }
 
