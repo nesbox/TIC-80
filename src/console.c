@@ -83,7 +83,12 @@ typedef enum
 } ScriptLang;
 
 #if defined(__TIC_WINDOWS__) || defined(__TIC_LINUX__) || defined(__TIC_MACOSX__)
+#define CAN_EXPORT 1
 #define CAN_EXPORT_NATIVE 1
+#endif
+
+#if defined(__TIC_ANDROID__)
+#define CAN_EXPORT 1
 #endif
 
 #if defined(CAN_EXPORT_NATIVE)
@@ -347,6 +352,7 @@ static void processConsoleBackspace(Console* console)
 }
 
 static void onConsoleHelpCommand(Console* console, const char* param);
+
 
 
 static void onConsoleExitCommand(Console* console, const char* param)
@@ -665,7 +671,11 @@ static void onCartLoaded(Console* console, const char* name)
 
     studioRomLoaded();
 
-    printBack(console, "null");
+    printBack(console, "\ngame ");
+    printFront(console, console->romName);
+    printBack(console, " loaded!\nuse ");
+    printFront(console, "RUN");
+    printBack(console, " command to run it\n");
 
 }
 
@@ -743,12 +753,15 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
                 name = getName(param, PROJECT_SQUIRREL_EXT);
 
             void* data = fsLoadFile(console->fs, name, &size);
-            printBack(console, "error");
+
+            if(data && tic_project_load(name, data, size, &console->tic->cart))
+                onCartLoaded(console, name);
+            else printBack(console, "null");
 
             free(data);
         }
     }
-    else printBack(console, "error");
+    else printBack(console, "null");
 
     commandDone(console);
 }
@@ -932,8 +945,7 @@ static void onConsoleNewCommandConfirmed(Console* console, const char* param)
 
         if(!done)
         {
-            printError(console, "\nunknown parameter: ");
-            printError(console, param);
+            printError(console, "null");
             commandDone(console);
             return;
         }
@@ -948,7 +960,7 @@ static void onConsoleNewCommandConfirmed(Console* console, const char* param)
 #endif
 
     if(done) printBack(console, "null");
-    else printError(console, "error");
+    else printError(console, "null");
 
     commandDone(console);
 }
@@ -1014,9 +1026,9 @@ static void onConsoleChangeDirectory(Console* console, const char* param)
         {
             fsChangeDir(console->fs, param);
         }
-        else printBack(console, "error");
+        else printBack(console, "null");
     }
-    else printBack(console, "error");
+    else printBack(console, "null");
 
     commandDone(console);
 }
@@ -1025,11 +1037,27 @@ static void onConsoleMakeDirectory(Console* console, const char* param)
 {
     if(param && strlen(param))
         fsMakeDir(console->fs, param);
-    else printBack(console, "error");
+    else printBack(console, "null");
 
     commandDone(console);
 }
 
+static void onConsoleDirCommand(Console* console, const char* param)
+{
+    PrintFileNameData data = {0, console};
+
+    printLine(console);
+
+    fsEnumFiles(console->fs, printFilename, &data);
+
+    if(data.count == 0)
+    {
+        printBack(console, "null");
+    }
+
+    printLine(console);
+    commandDone(console);
+}
 
 static void onConsoleClsCommand(Console* console, const char* param)
 {
@@ -1056,6 +1084,78 @@ static void installDemoCart(FileSystem* fs, const char* name, const void* cart, 
     }
 }
 
+static void onConsoleInstallDemosCommand(Console* console, const char* param)
+{
+    static const u8 DemoFire[] =
+    {
+        #include "../build/assets/fire.tic.dat"
+    };
+
+    static const u8 DemoP3D[] =
+    {
+        #include "../build/assets/p3d.tic.dat"
+    };
+
+    static const u8 DemoSFX[] =
+    {
+        #include "../build/assets/sfx.tic.dat"
+    };
+
+    static const u8 DemoPalette[] =
+    {
+        #include "../build/assets/palette.tic.dat"
+    };
+
+    static const u8 DemoFont[] =
+    {
+        #include "../build/assets/font.tic.dat"
+    };
+
+    static const u8 DemoMusic[] =
+    {
+        #include "../build/assets/music.tic.dat"
+    };
+
+    static const u8 GameQuest[] =
+    {
+        #include "../build/assets/quest.tic.dat"
+    };
+
+    static const u8 GameTetris[] =
+    {
+        #include "../build/assets/tetris.tic.dat"
+    };
+
+    static const u8 Benchmark[] =
+    {
+        #include "../build/assets/benchmark.tic.dat"
+    };
+
+    static const u8 Bpp[] =
+    {
+        #include "../build/assets/bpp.tic.dat"
+    };
+
+    FileSystem* fs = console->fs;
+
+    static const struct {const char* name; const u8* data; s32 size;} Demos[] =
+    {
+        {"tetris.tic",      GameTetris,     sizeof GameTetris},
+        {"benchmark.tic",   Benchmark,      sizeof Benchmark},
+    };
+
+    printBack(console, "\nadded carts:\n\n");
+
+    for(s32 i = 0; i < COUNT_OF(Demos); i++)
+    {
+        installDemoCart(fs, Demos[i].name, Demos[i].data, Demos[i].size);
+        printFront(console, Demos[i].name);
+        printFront(console, "\n");
+    }
+
+    commandDone(console);
+}
+
 static void onConsoleGameMenuCommand(Console* console, const char* param)
 {
     console->showGameMenu = false;
@@ -1063,6 +1163,17 @@ static void onConsoleGameMenuCommand(Console* console, const char* param)
     commandDone(console);
 }
 
+static void onConsoleSurfCommand(Console* console, const char* param)
+{
+    gotoSurf();
+    commandDone(console);
+}
+
+static void onConsoleCodeCommand(Console* console, const char* param)
+{
+    gotoCode();
+    commandDone(console);
+}
 
 static void onConsoleVersionCommand(Console* console, const char* param)
 {
@@ -1081,7 +1192,7 @@ static void onConsoleConfigCommand(Console* console, const char* param)
     else if(strcmp(param, "reset") == 0)
     {
         console->config->reset(console->config);
-        printBack(console, "\nconfiguration reset :)");
+        printBack(console, "\nconfiguration reset");
     }
 
 #if defined(TIC_BUILD_WITH_LUA)
@@ -1141,7 +1252,7 @@ static void onFileDownloaded(GetResult result, void* data)
     Console* console = (Console*)data;
 
     if(result == FS_FILE_NOT_DOWNLOADED)
-        printBack(console, "error");
+        printBack(console, "null");
     else if (result == FS_FILE_DOWNLOADED)
         printBack(console, "null");
 
@@ -1179,20 +1290,19 @@ static void onImportCover(const char* name, const void* buffer, size_t size, voi
                         memcpy(console->tic->cart.cover.data, buffer, size);
 
                         printLine(console);
-                        printBack(console, name);
                         printBack(console, "null");
                     }
-                    else printError(console, "error");
+                    else printError(console, "null");
                 }
-                else printError(console, "error");
+                else printError(console, "null");
 
                 gif_close(image);
             }
-            else printError(console, "error");
+            else printError(console, "null");
         }
-        else printBack(console, "error");
+        else printBack(console, "null");
     }
-    else printBack(console, "error");
+    else printBack(console, "null");
 
     commandDone(console);
 }
@@ -1236,13 +1346,13 @@ static void onImportSprites(const char* name, const void* buffer, size_t size, v
 
                 printLine(console);
                 printBack(console, name);
-                printBack(console, "null");
+                printBack(console, " successfully imported");
             }
-            else printError(console, "error");
+            else printError(console, "\nfile importing error");
         }
-        else printBack(console, "error");
+        else printBack(console, "\nonly .gif files can be imported");
     }
-    else printBack(console, "error");
+    else printBack(console, "\nfile not imported");
 
     commandDone(console);
 }
@@ -1264,9 +1374,9 @@ static void onImportMap(const char* name, const void* buffer, size_t size, void*
         injectMap(console, buffer, size);
 
         printLine(console);
-        printBack(console, "null");
+        printBack(console, "map successfully imported");
     }
-    else printBack(console, "error");
+    else printBack(console, "\nfile not imported");
 
     commandDone(console);
 }
@@ -1282,8 +1392,6 @@ static void onConsoleImportCommand(Console* console, const char* param)
         fsOpenFileData(onImportSprites, console);
     else if(strcmp(param, "map") == 0)
         fsOpenFileData(onImportMap, console);
-    else if(strcmp(param, "cover") == 0)
-        fsOpenFileData(onImportCover, console);
     else
     {
         printError(console, "\nunknown parameter: ");
@@ -1297,9 +1405,9 @@ static void onSpritesExported(GetResult result, void* data)
     Console* console = (Console*)data;
 
     if(result == FS_FILE_NOT_DOWNLOADED)
-        printBack(console, "error");
+        printBack(console, "\nsprites not exported");
     else if (result == FS_FILE_DOWNLOADED)
-        printBack(console, "null");
+        printBack(console, "\nsprites successfully exported");
 
     commandDone(console);
 }
@@ -1309,7 +1417,7 @@ static void onCoverExported(GetResult result, void* data)
     Console* console = (Console*)data;
 
     if(result == FS_FILE_NOT_DOWNLOADED)
-        printBack(console, "error");
+        printBack(console, "null");
     else if (result == FS_FILE_DOWNLOADED)
         printBack(console, "null");
 
@@ -1326,14 +1434,14 @@ static void exportCover(Console* console)
         if (data)
         {
             memcpy(data, cover->data, cover->size);
-            fsGetFileData(onCoverExported, "cover.gif", data, cover->size, DEFAULT_CHMOD, console);
+            fsGetFileData(onCoverExported, "null", data, cover->size, DEFAULT_CHMOD, console);
         }
         else
             printMemoryError(console);
     }
     else
     {
-        printBack(console, "error");
+        printBack(console, "null");
         commandDone(console);
     }
 }
@@ -1353,7 +1461,7 @@ static void exportSfx(Console* console, s32 sfx)
     }
     else
     {
-        printError(console, "error");
+        printError(console, "\nsfx exporting error");
         commandDone(console);
     }
 }
@@ -1373,7 +1481,7 @@ static void exportMusic(Console* console, s32 track)
     }
     else
     {
-        printError(console, "error");
+        printError(console, "\nmusic exporting error");
         commandDone(console);
     }
 }
@@ -1407,7 +1515,7 @@ static void exportSprites(Console* console)
             }
             else
             {
-                printError(console, "error");
+                printError(console, "\nsprite export error");
                 commandDone(console);
                 free(buffer);
             }
@@ -1422,9 +1530,9 @@ static void onMapExported(GetResult result, void* data)
     Console* console = (Console*)data;
 
     if(result == FS_FILE_NOT_DOWNLOADED)
-        printBack(console, "error");
+        printBack(console, "\nmap not exported");
     else if (result == FS_FILE_DOWNLOADED)
-        printBack(console, "null");
+        printBack(console, "\nmap successfully exported");
 
     commandDone(console);
 }
@@ -1444,6 +1552,25 @@ static void exportMap(Console* console)
 
 #if defined(__EMSCRIPTEN__)
 
+static void onConsoleExportCommand(Console* console, const char* param)
+{
+    if(param == NULL || (param && strcmp(param, "native") == 0) || (param && strcmp(param, "html") == 0))
+    {
+        printBack(console, "\nthis version doesn't support html or\nnative export");
+        printBack(console, "\nusage: export sprites|cover|map");
+        commandDone(console);
+    }
+    else if(param && strcmp(param, "sprites") == 0)
+        exportSprites(console);
+    else if(param && strcmp(param, "map") == 0)
+        exportMap(console);
+    else
+    {
+        printError(console, "\nunknown parameter: ");
+        printError(console, param);
+        commandDone(console);
+    }
+}
 
 #else
 
@@ -1594,13 +1721,13 @@ static void onHttpGet(const HttpGetData* data)
             }
             else
             {
-                printError(console, "file saving error :(");
+                printError(console, "file saving error");
                 commandDone(console);
             }
         }
         break;
     case HttpGetError:
-        printError(console, "file downloading error :(");
+        printError(console, "file downloading error");
         commandDone(console);
         break;
     }
@@ -1623,7 +1750,7 @@ static void onConsoleExportHtmlCommand(Console* console, const char* providedNam
 #endif
 
     struct zip_t *zip = zip_open(name, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
-    bool errorOccured = true;
+    bool errorOccured = false;
 
     if(zip)
     {
@@ -1719,7 +1846,7 @@ static void onConsoleExportHtmlCommand(Console* console, const char* providedNam
     else errorOccured = true;
 
     if(errorOccured)
-        printError(console, "error");
+        printError(console, "\ngame not exported\n");
 
     commandDone(console);
 }
@@ -1734,7 +1861,32 @@ static void onConsoleExportCommand(Console* console, const char* param)
 
         if(strcmp(param, "native") == 0 || strcmp(param, "") == 0)
         {
-        errorOccured = true
+#if defined(CAN_EXPORT_NATIVE)
+
+#if defined(__TIC_WINDOWS__)
+            const char* ext = ExeExt;
+#else           
+            const char* ext = NULL;
+#endif
+
+            const char* name = getExportName(console, ext);
+            onConsoleExportNativeCommand(console, name);
+#else
+
+            printBack(console, "\ngame export isn't supported\n");
+            commandDone(console);
+#endif
+        }
+        else if(strncmp(param, "html", 4) == 0 && (param[4] == ' ' || param[4] == 0))
+        {
+#if defined(CAN_EXPORT)
+            const char* providedName = param[4] ? param + 5 : NULL;
+            onConsoleExportHtmlCommand(console, providedName);
+#else
+
+            printBack(console, "\nhtml export isn't supported\n");
+            commandDone(console);
+#endif          
         }
         else if(strcmp(param, "sprites") == 0)
         {
@@ -1743,10 +1895,6 @@ static void onConsoleExportCommand(Console* console, const char* param)
         else if(strcmp(param, "map") == 0)
         {
             exportMap(console);
-        }
-        else if(strcmp(param, "cover") == 0)
-        {
-            exportCover(console);
         }
         else if(strcmp(param, "sfx") == 0)
         {
@@ -1776,14 +1924,14 @@ static void onConsoleExportCommand(Console* console, const char* param)
 
         if(errorOccured)
         {
-            printError(console, "error");
+            printError(console, "\nunknown parameter: ");
             printError(console, param);
             commandDone(console);
         }
     }
     else
     {
-        printError(console, "error");
+        printError(console, "\nplease, specify parameter\n");
         commandDone(console);
     }
 }
@@ -1854,14 +2002,12 @@ static void onConsoleSaveCommandConfirmed(Console* console, const char* param)
 
     if(rom == CART_SAVE_OK)
     {
-        printBack(console, "error");
-        printFront(console, console->romName);
-        printBack(console, "error");
+        printBack(console, "null");
     }
     else if(rom == CART_SAVE_MISSING_NAME)
-        printBack(console, "error");
+        printBack(console, "null");
     else
-        printBack(console, "error");
+        printBack(console, "null");
 
     commandDone(console);
 }
@@ -1929,6 +2075,77 @@ static void onConsoleEvalCommand(Console* console, const char* param)
     commandDone(console);
 }
 
+static void onAddFile(const char* name, AddResult result, void* data)
+{
+    Console* console = (Console*)data;
+
+    printLine(console);
+
+    switch(result)
+    {
+    case FS_FILE_EXISTS:
+        printBack(console, "null");
+        break;
+    case FS_FILE_ADDED:
+        printBack(console, "null");
+        break;
+    default:
+        printBack(console, "null");
+        break;
+    }
+
+    commandDone(console);
+}
+
+static void onConsoleAddCommand(Console* console, const char* param)
+{
+    fsAddFile(console->fs, onAddFile, console);
+}
+
+static void onConsoleGetCommand(Console* console, const char* param)
+{
+    if(param)
+    {
+        fsGetFile(console->fs, onFileDownloaded, param, console);
+        return;
+    }
+    else printBack(console, "null");
+
+    commandDone(console);
+}
+
+static void onConsoleDelCommandConfirmed(Console* console, const char* param)
+{
+    if(param && strlen(param))
+    {
+        if(fsIsDir(console->fs, param))
+        {
+            printBack(console, fsDeleteDir(console->fs, param)
+                ? "null"
+                : "null");
+        }
+        else
+        {
+            printBack(console, fsDeleteFile(console->fs, param)
+                ? "null"
+                : "null");
+        }
+    }
+    else printBack(console, "null");
+
+    commandDone(console);
+}
+
+static void onConsoleDelCommand(Console* console, const char* param)
+{
+    static const char* Rows[] =
+    {
+        "", "",
+        "null",
+    };
+
+    confirmCommand(console, Rows, COUNT_OF(Rows), param, onConsoleDelCommandConfirmed);
+}
 
 static void printTable(Console* console, const char* text)
 {
@@ -1980,6 +2197,64 @@ static void printTable(Console* console, const char* text)
     }
 }
 
+static void printRamInfo(Console* console, s32 addr, const char* name, s32 size)
+{
+    char buf[STUDIO_TEXT_BUFFER_WIDTH];
+    sprintf(buf, "\n| %05X | %-17s | %-5i |", addr, name, size);
+    printTable(console, buf);
+}
+
+static void onConsoleRamCommand(Console* console, const char* param)
+{
+    printLine(console);
+
+    printTable(console, "\n+-----------------------------------+" \
+                        "\n|           80K RAM LAYOUT          |" \
+                        "\n+-------+-------------------+-------+");
+
+    static const struct{s32 addr; const char* info;} Layout[] =
+    {
+        {offsetof(tic_ram, input.gamepads),             "GAMEPADS"},
+        {offsetof(tic_ram, input.mouse),                "MOUSE"},
+        {offsetof(tic_ram, input.keyboard),             "KEYBOARD"},
+        {offsetof(tic_ram, free),                       "..."},
+        {TIC_RAM_SIZE,                                  ""},
+    };
+
+    for(s32 i = 0; i < COUNT_OF(Layout)-1; i++)
+        printRamInfo(console, Layout[i].addr, Layout[i].info, Layout[i+1].addr-Layout[i].addr);
+
+    printTable(console, "\n+-------+-------------------+-------+");
+
+    printLine(console);
+    commandDone(console);
+}
+
+static void onConsoleVRamCommand(Console* console, const char* param)
+{
+    printLine(console);
+
+    printTable(console, "\n+-----------------------------------+" \
+                        "\n|           16K VRAM LAYOUT         |" \
+                        "\n+-------+-------------------+-------+");
+
+    static const struct{s32 addr; const char* info;} Layout[] =
+    {
+        {offsetof(tic_ram, vram.screen),            "SCREEN"},
+        {offsetof(tic_ram, vram.palette),           "PALETTE"},
+        {offsetof(tic_ram, vram.reserved),          "..."},
+        {TIC_VRAM_SIZE,                             ""},
+    };
+
+    for(s32 i = 0; i < COUNT_OF(Layout)-1; i++)
+        printRamInfo(console, Layout[i].addr, Layout[i].info, Layout[i+1].addr-Layout[i].addr);
+
+    printTable(console, "\n+-------+-------------------+-------+");
+
+    printLine(console);
+    commandDone(console);
+}
+
 static const struct
 {
     const char* command;
@@ -1993,10 +2268,9 @@ static const struct
     {"exit",    "quit", "exit the application",     onConsoleExitCommand},
     {"run",     NULL, "run loaded cart",            onConsoleRunCommand},
     {"resume",  NULL, "resume run cart",            onConsoleResumeCommand},
-    {"cls",     "clear", "clear screen",            onConsoleClsCommand},
-    {"version", NULL, "show the current version",   onConsoleVersionCommand},
-    {"menu",    NULL, "show game menu",             onConsoleGameMenuCommand},
     {"export",  NULL, "export native game",         onConsoleExportCommand},
+    {"cls",     "clear", "clear screen",            onConsoleClsCommand},
+    {"menu",    NULL, "show game menu",             onConsoleGameMenuCommand},
 };
 
 static bool predictFilename(const char* name, const char* info, s32 id, void* data, bool dir)
@@ -2098,9 +2372,9 @@ static void onConsoleHelpCommand(Console* console, const char* param)
         printLine(console);
     }
 
-    printBack(console, "\npress ");
-    printFront(console, "ESC");
-    printBack(console, " to enter UI mode\n");
+    printBack(console, "\ntype ");
+    printFront(console, "run");
+    printBack(console, " to start the game\n");
 
     commandDone(console);
 }
@@ -2322,7 +2596,7 @@ static void onHttpVesrsionGet(const HttpGetData* data)
                 (version.major == TIC_VERSION_MAJOR && version.minor == TIC_VERSION_MINOR && version.patch > TIC_VERSION_REVISION))
             {
                 char msg[TICNAME_MAX];
-                sprintf(msg, " new version %i.%i.%i available\n", version.major, version.minor, version.patch);
+                sprintf(msg, " \n", version.major, version.minor, version.patch);
 
                 enum{Offset = (2 * STUDIO_TEXT_BUFFER_WIDTH)};
 
@@ -2424,22 +2698,15 @@ static void tick(Console* console)
             loadDemo(console, LuaScript);
 #elif defined(TIC_BUILD_WITH_JS)
             loadDemo(console, JavaScript);
-#elif defined(TIC_BUILD_WITH_WREN)
-            loadDemo(console, WrenScript);
-#elif defined(TIC_BUILD_WITH_SQUIRREL)
-            loadDemo(console, SquirrelScript);
 #endif          
 
             printBack(console, "\n hello! type ");
-            printFront(console, "help");
-            printBack(console, " for help\n");
-
-            if(getConfig()->checkNewVersion)
-                getSystem()->httpGet("/api?fn=version", onHttpVesrsionGet, console);
+            printFront(console, "run");
+            printBack(console, " to start the game\n");
 
             commandDone(console);
         }
-        else printBack(console, "\n loading cart...");
+        else printBack(console, "\n Loading...");
     }
 
     tic_api_cls(tic, TIC_COLOR_BG);
@@ -2751,12 +3018,8 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
         .colorBuffer = console->colorBuffer,
         .fs = fs,
         .showGameMenu = false,
-#if defined(__TIC_ANDROID__)
-        .startSurf = true,
-#else
         .startSurf = false,
-#endif
-        .skipStart = false,
+        .skipStart = true,
         .goFullscreen = false,
         .crtMonitor = false,
     };
