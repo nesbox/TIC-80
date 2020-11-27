@@ -114,7 +114,7 @@ static void tick(Run* run)
     }
 
     if(run->exit)
-        setStudioMode(TIC_CONSOLE_MODE);
+        setStudioMode(TIC_MENU_MODE);
 }
 
 static bool forceExit(void* data)
