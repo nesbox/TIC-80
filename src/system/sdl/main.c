@@ -133,6 +133,7 @@ static struct
     struct
     {
         bool state[tic_keys_count];
+        char text;
 
 #if defined(TOUCH_INPUT_SUPPORT)
         struct
@@ -945,7 +946,7 @@ static void pollEvent()
             break;
         case SDL_TEXTINPUT:
             if(strlen(event.text.text) == 1)
-                platform.studio->text = event.text.text[0];
+                platform.keyboard.text = event.text.text[0];
             break;
         case SDL_QUIT:
             platform.studio->exit();
@@ -963,6 +964,11 @@ static void pollEvent()
 
     processKeyboard();
     processGamepad();
+}
+
+static char getInputText()
+{
+    return platform.keyboard.text;
 }
 
 #if defined(CRT_SHADER_SUPPORT)
@@ -1419,6 +1425,8 @@ static System systemInterface =
     .preseed = preseed,
     .poll = pollEvent,
     .updateConfig = updateConfig,
+
+    .text = getInputText,
 };
 
 static void gpuTick()
@@ -1544,6 +1552,8 @@ static void gpuTick()
 #endif
 
     blitSound();
+
+    platform.keyboard.text = '\0';
 }
 
 #if defined(__EMSCRIPTEN__)

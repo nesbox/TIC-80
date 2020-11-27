@@ -87,6 +87,7 @@ typedef struct
     
     void (*preseed)();
     void (*poll)();
+    char (*text)();
 
     void (*updateConfig)();
 
@@ -166,7 +167,6 @@ typedef struct
 {
     tic_mem* tic;
     bool quit;
-    char text;
 
     void (*tick)();
     void (*exit)();

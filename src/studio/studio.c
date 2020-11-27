@@ -427,7 +427,37 @@ void drawBGAnimationScanline(tic_mem* tic, s32 row)
 
 char getKeyboardText()
 {
-    return impl.studio.text;
+    if(!getSystem()->text)
+    {
+        tic_mem* tic = impl.studio.tic;
+        tic80_input* input = &tic->ram.input;
+
+        static const char Symbols[] =   " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
+        static const char Shift[] =     " ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
+
+        enum{Count = sizeof Symbols};
+
+        for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
+        {
+            tic_key key = input->keyboard.keys[i];
+
+            if(key > 0 && key < Count && tic_api_keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD))
+            {
+                bool caps = tic_api_key(tic, tic_key_capslock);
+                bool shift = tic_api_key(tic, tic_key_shift);
+
+                return caps
+                    ? key >= tic_key_a && key <= tic_key_z 
+                        ? shift ? Symbols[key] : Shift[key]
+                        : shift ? Shift[key] : Symbols[key]
+                    : shift ? Shift[key] : Symbols[key];
+            }
+        }
+
+        return '\0';
+    }
+
+    return getSystem()->text();
 }
 
 bool keyWasPressed(tic_key key)
@@ -1850,44 +1880,10 @@ static void processMouseStates()
     }
 }
 
-static void processTextInput()
-{
-    tic_mem* tic = impl.studio.tic;
-    tic80_input* input = &tic->ram.input;
-
-    if(!impl.studio.text)
-    {
-        static const char Symbols[] =   " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
-        static const char Shift[] =     " ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
-
-        enum{Count = sizeof Symbols};
-
-        for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
-        {
-            tic_key key = input->keyboard.keys[i];
-
-            if(key > 0 && key < Count && tic_api_keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD))
-            {
-                bool caps = tic_api_key(tic, tic_key_capslock);
-                bool shift = tic_api_key(tic, tic_key_shift);
-
-                impl.studio.text = caps
-                    ? key >= tic_key_a && key <= tic_key_z 
-                        ? shift ? Symbols[key] : Shift[key]
-                        : shift ? Shift[key] : Symbols[key]
-                    : shift ? Shift[key] : Symbols[key];
-
-                break;
-            }
-        }
-    }
-}
-
 static void studioTick()
 {
     tic_mem* tic = impl.studio.tic;
 
-    processTextInput();
     processShortcuts();
     processMouseStates();
     processGamepadMapping();
@@ -1964,8 +1960,6 @@ static void studioTick()
     }
 
     drawPopup();
-
-    impl.studio.text = '\0';
 }
 
 static void studioClose()
