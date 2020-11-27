@@ -71,7 +71,6 @@ struct Music
         s32 col;
         tic_point edit;
         s8 note[TIC_SOUND_CHANNELS];
-        bool drawNumbers;
     } piano;
 
     enum
