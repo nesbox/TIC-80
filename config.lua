@@ -35,7 +35,7 @@ THEME=
 	},
 }
 
-CHECK_NEW_VERSION=true
+CHECK_NEW_VERSION=false
 NO_SOUND=false
 GIF_LENGTH=20 -- in seconds
 GIF_SCALE=2
@@ -51,7 +51,7 @@ UI_SCALE=4
 ---------------------------
 function TIC()
 	cls()
-	local label="This is system configuration cartridge"
+	local label="This is system configuration file"
 	local size=print(label,0,-6)
 	print(label,(240-size)//2,(136-6)//2)
 end
