@@ -167,7 +167,7 @@ static inline s32 getFontWidth(Code* code)
 
 static inline void drawChar(tic_mem* tic, char symbol, s32 x, s32 y, u8 color, bool alt)
 {
-    tic_api_print(tic, (char[]){"0", '\0'}, x, y, color, true, 1, alt);
+    tic_api_print(tic, (char[]){symbol, '\0'}, x, y, color, true, 1, alt);
 }
 
 static void drawCursor(Code* code, s32 x, s32 y, char symbol)
@@ -181,8 +181,6 @@ static void drawCursor(Code* code, s32 x, s32 y, char symbol)
 
         tic_api_rect(code->tic, x-1, y-1, getFontWidth(code)+1, TIC_FONT_HEIGHT+1, getConfig()->theme.code.cursor);
 
-        if(symbol)
-            drawChar(code->tic, symbol, x, y, getConfig()->theme.code.bg, code->altFont);
     }
 }
 
@@ -190,7 +188,6 @@ static void drawMatchedDelim(Code* code, s32 x, s32 y, char symbol, u8 color)
 {
     tic_api_rectb(code->tic, x-1, y-1, (getFontWidth(code))+1, TIC_FONT_HEIGHT+1,
                   getConfig()->theme.code.cursor);
-    drawChar(code->tic, symbol, x, y, color, code->altFont);
 }
 
 static void drawCode(Code* code, bool withCursor)
@@ -227,14 +224,11 @@ static void drawCode(Code* code, bool withCursor)
                     tic_api_rect(code->tic, x, y, getFontWidth(code)+1, TIC_FONT_HEIGHT+1, tic_color_0);
 
                 tic_api_rect(code->tic, x-1, y-1, getFontWidth(code)+1, TIC_FONT_HEIGHT+1, selectColor);
-                drawChar(code->tic, symbol, x, y, tic_color_15, code->altFont);
             }
             else 
             {
                 if(code->shadowText)
-                    drawChar(code->tic, symbol, x+1, y+1, 0, code->altFont);
 
-                drawChar(code->tic, symbol, x, y, theme->colors[syntaxPointer->syntax], code->altFont);
             }
         }
 
@@ -1212,10 +1206,6 @@ static void drawFilterMatch(Code *code, s32 x, s32 y, const char* orig, const ch
         bool match = tolower(*orig) == tolower(*filter);
         u8 color = match ? tic_color_3 : tic_color_12;
 
-        if(code->shadowText)
-            drawChar(code->tic, *orig, x+1, y+1, tic_color_0, code->altFont);
-
-        drawChar(code->tic, *orig, x, y, color, code->altFont);
         x += getFontWidth(code);
         if(match)
             filter++;
@@ -1889,8 +1879,6 @@ static void drawFontButton(Code* code, s32 x, s32 y)
             code->altFont = !code->altFont;
         }
     }
-
-    drawChar(tic, 'F', x, y, over ? tic_color_14 : tic_color_13, code->altFont);
 }
 
 static void drawShadowButton(Code* code, s32 x, s32 y)
@@ -1905,7 +1893,7 @@ static void drawShadowButton(Code* code, s32 x, s32 y)
     {
         setCursor(tic_cursor_hand);
 
-        showTooltip("SHOW SHADOW");
+        showTooltip("null");
 
         over = true;
 
