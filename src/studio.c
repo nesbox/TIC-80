@@ -1288,7 +1288,7 @@ static void updateTitle()
     char name[TICNAME_MAX] = TIC_TITLE;
 
     if(strlen(impl.console->romName))
-        snprintf(name, TICNAME_MAX, "%s [%s]", TIC_TITLE, impl.console->romName);
+        snprintf(impl.console->romName);
 
     impl.system->setWindowTitle(name);
 }
@@ -1515,7 +1515,7 @@ static void processShortcuts()
     
     if(keyWasPressedOnce(tic_key_escape))
        {
-           impl.mode == TIC_MENU_MODE ? hideGameMenu() : showGameMenu();
+           impl.mode == isGameMenu() ? hideGameMenu() : showGameMenu();
        }
     
     if(isGameMenu())
@@ -1565,24 +1565,7 @@ static void processShortcuts()
         else if(keyWasPressedOnce(tic_key_f9)) startVideoRecord();
 #endif
         else if(keyWasPressedOnce(tic_key_f11)) goFullscreen();
-        else if(keyWasPressedOnce(tic_key_escape))
-        {
-            Code* code = impl.code;
-
-            if(impl.mode == TIC_CODE_MODE && code->mode != TEXT_EDIT_MODE)
-            {
-                code->escape(code);
-                return;
-            }
-
-            if(impl.mode == TIC_DIALOG_MODE)
-            {
-                impl.dialog->escape(impl.dialog);
-                return;
-            }
-
-            setStudioMode(impl.mode == TIC_MENU_MODE ? impl.prevMode : TIC_MENU_MODE);
-        }
+        
     }
 }
 
