@@ -1512,14 +1512,19 @@ static void processShortcuts()
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
 
     if(keyWasPressedOnce(tic_key_f6)) switchCrtMonitor();
-
+    
+    if(keyWasPressedOnce(tic_key_escape))
+       {
+           impl.mode == TIC_MENU_MODE ? hideGameMenu() : showGameMenu();
+       }
+    
     if(isGameMenu())
     {
-        if(keyWasPressedOnce(tic_key_escape))
+ /*       if(keyWasPressedOnce(tic_key_escape))
         {
             impl.mode == TIC_MENU_MODE ? hideGameMenu() : showGameMenu();
         }
-        else if(keyWasPressedOnce(tic_key_f11)) goFullscreen();
+        else*/ if(keyWasPressedOnce(tic_key_f11)) goFullscreen();
         else if(keyWasPressedOnce(tic_key_return))
         {
             if(alt) goFullscreen();
@@ -1535,8 +1540,7 @@ static void processShortcuts()
 
     if(alt)
     {
-        if(keyWasPressedOnce(tic_key_grave)) setStudioMode(TIC_CONSOLE_MODE);
-        else if(keyWasPressedOnce(tic_key_2)) setStudioMode(TIC_SPRITE_MODE);
+        if(keyWasPressedOnce(tic_key_2)) setStudioMode(TIC_SPRITE_MODE);
         else if(keyWasPressedOnce(tic_key_3)) setStudioMode(TIC_MAP_MODE);
         else if(keyWasPressedOnce(tic_key_4)) setStudioMode(TIC_SFX_MODE);
         else if(keyWasPressedOnce(tic_key_5)) setStudioMode(TIC_MUSIC_MODE);
@@ -1544,9 +1548,7 @@ static void processShortcuts()
     }
     else if(ctrl)
     {
-        if(keyWasPressedOnce(tic_key_pageup)) changeStudioMode(-1);
-        else if(keyWasPressedOnce(tic_key_pagedown)) changeStudioMode(1);
-        else if(keyWasPressedOnce(tic_key_q)) exitStudio();
+        if(keyWasPressedOnce(tic_key_q)) exitStudio();
         else if(keyWasPressedOnce(tic_key_r)) runProject();
         else if(keyWasPressedOnce(tic_key_return)) runProject();
         else if(keyWasPressedOnce(tic_key_s)) saveProject();
@@ -1579,7 +1581,7 @@ static void processShortcuts()
                 return;
             }
 
-            setStudioMode(impl.mode == TIC_CONSOLE_MODE ? impl.prevMode : TIC_CONSOLE_MODE);
+            setStudioMode(impl.mode == TIC_MENU_MODE ? impl.prevMode : TIC_MENU_MODE);
         }
     }
 }
