@@ -27,7 +27,7 @@
 
 #define TEXT_CURSOR_DELAY (TIC80_FRAMERATE / 2)
 #define TEXT_CURSOR_BLINK_PERIOD TIC80_FRAMERATE
-#define BOOKMARK_WIDTH 200
+#define BOOKMARK_WIDTH 230
 #define CODE_EDITOR_WIDTH (TIC80_WIDTH - BOOKMARK_WIDTH)
 #define CODE_EDITOR_HEIGHT (TIC80_HEIGHT - TOOLBAR_SIZE - STUDIO_TEXT_HEIGHT)
 #define TEXT_BUFFER_HEIGHT (CODE_EDITOR_HEIGHT / STUDIO_TEXT_HEIGHT)
@@ -167,7 +167,7 @@ static inline s32 getFontWidth(Code* code)
 
 static inline void drawChar(tic_mem* tic, char symbol, s32 x, s32 y, u8 color, bool alt)
 {
-    tic_api_print(tic, (char[]){symbol, '\0'}, x, y, color, true, 1, alt);
+    tic_api_print(tic, (char[]){"0", '\0'}, x, y, color, true, 1, alt);
 }
 
 static void drawCursor(Code* code, s32 x, s32 y, char symbol)
@@ -1024,8 +1024,6 @@ static void copyFromClipboard(Code* code)
                     }
                 }
 
-                insertCode(code, code->cursor.position, clipboard);
-
                 code->cursor.position += size;
 
                 history(code);
@@ -1442,7 +1440,6 @@ static void processKeyboard(Code* code)
         if(keyWasPressed(tic_key_left))             leftWord(code);
         else if(keyWasPressed(tic_key_right))       rightWord(code);
         else if(keyWasPressed(tic_key_tab))         doTab(code, shift, ctrl);
-        else if(keyWasPressed(tic_key_a))           selectAll(code);
         else if(keyWasPressed(tic_key_z))           undo(code);
         else if(keyWasPressed(tic_key_y))           redo(code);
         else if(keyWasPressed(tic_key_f))           setCodeMode(code, TEXT_FIND_MODE);
@@ -1586,7 +1583,6 @@ static void textEditTick(Code* code)
 
         if(sym)
         {
-            inputSymbol(code, sym);
             updateEditor(code);
         }
     }
@@ -1757,7 +1753,7 @@ static void textGoToTick(Code* code)
             TIC80_WIDTH, TIC_FONT_HEIGHT+2, getConfig()->theme.code.select);
 
     drawCode(code, false);
-    drawPopupBar(code, "GOTO:");
+    drawPopupBar(code, "null");
     drawStatus(code);
 }
 
@@ -1867,7 +1863,7 @@ static void textOutlineTick(Code* code)
     tic_api_cls(code->tic, getConfig()->theme.code.bg);
 
     drawCode(code, false);
-    drawPopupBar(code, "FUNC:");
+    drawPopupBar(code, "null");
     drawStatus(code);
     drawOutlineBar(code, TIC80_WIDTH - 13 * TIC_FONT_WIDTH, 2*(TIC_FONT_HEIGHT+1));
 }
@@ -1884,7 +1880,7 @@ static void drawFontButton(Code* code, s32 x, s32 y)
     {
         setCursor(tic_cursor_hand);
 
-        showTooltip("SWITCH FONT");
+        showTooltip("null");
 
         over = true;
 
@@ -1921,11 +1917,11 @@ static void drawShadowButton(Code* code, s32 x, s32 y)
 
     static const u8 Icon[] =
     {
-        0b11110000,
-        0b10011000,
-        0b10011000,
-        0b11111000,
-        0b01111000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
         0b00000000,
         0b00000000,
         0b00000000,
@@ -1934,10 +1930,10 @@ static void drawShadowButton(Code* code, s32 x, s32 y)
     static const u8 ShadowIcon[] =
     {
         0b00000000,
-        0b00001000,
-        0b00001000,
-        0b00001000,
-        0b01111000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
         0b00000000,
         0b00000000,
         0b00000000,
@@ -1965,38 +1961,38 @@ static void drawCodeToolbar(Code* code)
         0b00000000,
 
         0b00000000,
-        0b00011000,
-        0b00011100,
-        0b01011100,
-        0b00111100,
-        0b00011000,
         0b00000000,
         0b00000000,
-
         0b00000000,
-        0b00111000,
-        0b01000100,
-        0b00111000,
-        0b00010000,
-        0b00010000,
+        0b00000000,
+        0b00000000,
         0b00000000,
         0b00000000,
 
         0b00000000,
-        0b00010000,
-        0b00011000,
-        0b01111100,
-        0b00011000,
-        0b00010000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
         0b00000000,
         0b00000000,
 
         0b00000000,
-        0b01111100,
         0b00000000,
-        0b01111100,
         0b00000000,
-        0b01111100,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
         0b00000000,
         0b00000000,
     };
