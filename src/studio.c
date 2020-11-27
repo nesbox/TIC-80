@@ -1515,7 +1515,7 @@ static void processShortcuts()
     
     if(keyWasPressedOnce(tic_key_escape))
        {
-           showGameMenu()
+           showGameMenu();
        }
     
     if(isGameMenu())
