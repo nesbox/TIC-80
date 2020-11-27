@@ -1515,7 +1515,7 @@ static void processShortcuts()
     
     if(keyWasPressedOnce(tic_key_escape))
        {
-           impl.mode == setStudioMode(TIC_MENU_MODE)
+           showGameMenu()
        }
     
     if(isGameMenu())
