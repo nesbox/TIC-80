@@ -225,11 +225,6 @@ static void drawCode(Code* code, bool withCursor)
 
                 tic_api_rect(code->tic, x-1, y-1, getFontWidth(code)+1, TIC_FONT_HEIGHT+1, selectColor);
             }
-            else 
-            {
-                if(code->shadowText)
-
-            }
         }
 
         if(code->cursor.position == pointer)
