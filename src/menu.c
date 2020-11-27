@@ -32,7 +32,7 @@ static const char* Rows[] =
     "RESET GAME",
     "GAMEPAD CONFIG",
     "",
-    "CLOSE GAME",
+    "",
     "QUIT TIC-80",
 };
 
@@ -59,7 +59,7 @@ static void gamepadConfig(Menu* menu)
 
 static void closeGame(Menu* menu)
 {
-    exitGameMenu();
+    hideGameMenu();
 }
 
 static void(*const MenuHandlers[])(Menu*) = {resumeGame, resetGame, gamepadConfig, NULL, closeGame, exitStudio};
@@ -156,8 +156,8 @@ static void drawTabDisabled(Menu* menu, s32 x, s32 y, s32 id)
     tic_api_pix(tic, x+Width-1, y+Height-1, tic_color_15, false);
 
     {
-        char buf[] = "#1";
-        sprintf(buf, "#%i", id+1);
+        char buf[] = "P1";
+        sprintf(buf, "P%i", id+1);
         tic_api_print(tic, buf, x+2, y, (over ? tic_color_12 : tic_color_13), false, 1, false);
     }
 }
@@ -173,8 +173,8 @@ static void drawTab(Menu* menu, s32 x, s32 y, s32 id)
     tic_api_rect(tic, x+1, y+Height, Width-2 , 1, tic_color_0);
 
     {
-        char buf[] = "#1";
-        sprintf(buf, "#%i", id+1);
+        char buf[] = "P1";
+        sprintf(buf, "P%i", id+1);
         tic_api_print(tic, buf, x+2, y, tic_color_15, false, 1, false);
     }
 }
