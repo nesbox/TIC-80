@@ -130,7 +130,7 @@ static bool gravityBtn(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, ui
 }
 
 static bool gravityCls(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
-    GRAVITY_VERIFY_ARGS(0, 0);
+    GRAVITY_VERIFY_ARGS(1, 1);
 
     u8 color = VALUE_AS_INT(args[1]);
     tic_api_cls(tic, color);
