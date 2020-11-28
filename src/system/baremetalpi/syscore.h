@@ -14,7 +14,7 @@
 #include <circle/serial.h>
 #include <circle/timer.h>
 #include <circle/logger.h>
-#include <circle/usb/dwhcidevice.h>
+#include <circle/usb/usbhcidevice.h>
 #include <SDCard/emmc.h>
 #include <fatfs/ff.h>
 
@@ -46,10 +46,11 @@ static        CNullDevice        mNullDevice;
 static        CExceptionHandler  mExceptionHandler;
 static        CInterruptSystem   mInterrupt;
 static	CScreenDevice      mScreen(TIC80_WIDTH, TIC80_HEIGHT);
+//static	CScreenDevice      mScreen(1280,720);
 static        CSerialDevice      mSerial(&mInterrupt);
 static        CTimer             mTimer(&mInterrupt);
 static        CLogger		mLogger(LogWarning /*mOptions.GetLogLevel ()*/, &mTimer);
-static        CDWHCIDevice	mDWHCI (&mInterrupt, &mTimer);
+static        CUSBHCIDevice	mDWHCI (&mInterrupt, &mTimer);
 static        CEMMCDevice     mEMMC(&mInterrupt, &mTimer, &mActLED);
 static        CConsole        mConsole(&mScreen);
 static	FATFS		mFileSystem;
@@ -93,7 +94,8 @@ boolean initializeCore()
         	pTarget = &mScreen;
 	}
 
-        if (!mLogger.Initialize (&mNullDevice)) //pTarget))      // if (!mLogger.Initialize(pTarget))
+        //if (!mLogger.Initialize (pTarget))
+        if (!mLogger.Initialize (&mNullDevice))
         {
         	return false;
 	}

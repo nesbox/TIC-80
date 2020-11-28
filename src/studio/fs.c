@@ -25,6 +25,8 @@
 
 #if defined(BAREMETALPI)
 #include "../../circle-stdlib/libs/circle/addon/fatfs/ff.h"
+//define dbg(...) printf(__VA_ARGS__)
+#define dbg(...)
 #else
 #include <dirent.h>
 #include <sys/stat.h>
@@ -50,8 +52,6 @@
 #define PUBLIC_DIR_SLASH PUBLIC_DIR "/"
 
 
-//define dbg(...) printf(__VA_ARGS__)
-#define dbg(...)
 
 
 static const char* PublicDir = PUBLIC_DIR;
@@ -623,7 +623,7 @@ void* fsReadFile(const char* path, s32* size)
     FIL file;
     res = f_open (&file, path, FA_READ | FA_OPEN_EXISTING);
     if(res!=FR_OK) return NULL;
-
+    *size = fi.fsize; // size is in output!
     void* buffer = malloc(*size);
     UINT read = 0;
     res = f_read(&file, buffer, fi.fsize, &read);
@@ -728,6 +728,7 @@ void fsBasename(const char *path, char* out)
 #if defined(BAREMETALPI)
     // TODO BAREMETALPI
     dbg("fsBasename %s\n", path);
+#define SEP "/"
 #else
 
     char* result = NULL;

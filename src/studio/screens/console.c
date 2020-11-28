@@ -162,8 +162,9 @@ static void scrollConsole(Console* console)
 
 static void consolePrint(Console* console, const char* text, u8 color)
 {
+#ifndef BAREMETALPI
     printf("%s", text);
-
+#endif
     const char* textPointer = text;
     const char* endText = textPointer + strlen(text);
 
