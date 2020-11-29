@@ -33,20 +33,31 @@
 #include "gravity_delegate.h"
 #include "gravity_memory.h"
 
-#define GRAVITY_VERIFY_ARGS(min_arguments, max_arguments) \
+#define GRAVITY_VERIFY_ARGS(function_name, min_arguments, max_arguments) \
     gravity_delegate_t* delegate = gravity_vm_delegate(vm); \
     if (!delegate) { \
-        RETURN_ERROR("Gravity VM delegate not found."); \
+        RETURN_NOVALUE(); \
     } \
     tic_mem* tic = (tic_mem*)delegate->xdata; \
     if (!tic) { \
-        RETURN_ERROR("TIC instance not found."); \
+        RETURN_NOVALUE(); \
     } \
-    if (nargs < (min_arguments)) { \
-        RETURN_ERROR("Requires a minimum of " #min_arguments " arguments."); \
+    tic_core* core = (tic_core*)tic; \
+    if ((nargs - 1) < (min_arguments)) { \
+        do { \
+            char buffer[1024];\
+            snprintf(buffer, sizeof buffer, "%s() requires at least %i arguments, %i passed", function_name, min_arguments, nargs - 1); \
+            core->data->error(core->data->data, buffer); \
+            RETURN_NOVALUE(); \
+        } while(0); \
     } \
-    if (nargs > (max_arguments)) { \
-        RETURN_ERROR("Requires a maximum of " #max_arguments " arguments."); \
+    if ((nargs - 1) > (max_arguments)) { \
+        do { \
+            char buffer[1024];\
+            snprintf(buffer, sizeof buffer, "%s() requires a maximum of %i arguments, %i passed", function_name, max_arguments, nargs - 1); \
+            core->data->error(core->data->data, buffer); \
+            RETURN_NOVALUE(); \
+        } while(0); \
     }
 
 static void gravityReportError(gravity_vm *vm, error_type_t error_type, const char *message, error_desc_t error_desc, void *xdata) {
@@ -73,19 +84,19 @@ static void gravityReportError(gravity_vm *vm, error_type_t error_type, const ch
 
 static void gravityLogCallback(gravity_vm *vm, const char *message, void *xdata) {
     tic_core* core = (tic_core*)xdata;
-    if (core) {
-        core->data->trace(core->data->data, message, 0);
+    if (core && message) {
+        core->data->trace(core->data->data, message, TIC_DEFAULT_COLOR);
     }
 }
 
-static void closeGravity(tic_mem* tic)
-{
+static void closeGravity(tic_mem* tic) {
     tic_core* core = (tic_core*)tic;
-
     if (core) {
         gravity_vm* vm = core->gravity;
         if (vm) {
+            printf("gravity_vm_free: Begin\n");
             gravity_vm_free(vm);
+            printf("gravity_vm_free: Finished\n");
             gravity_core_free();
             core->gravity = NULL;
         }
@@ -96,44 +107,100 @@ static void closeGravity(tic_mem* tic)
  * Functions
  */
 static bool gravityPrint(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
-    GRAVITY_VERIFY_ARGS(1, 7);
+    GRAVITY_VERIFY_ARGS("print", 1, 7);
 
     char* text = VALUE_AS_CSTRING(args[1]);
-    int x = VALUE_AS_INT(args[2]);
-    int y = VALUE_AS_INT(args[3]);
-    u8 color = 3;
-    bool fixed = true;
+    int x = 0;
+    int y = 0;
+    u8 color = TIC_DEFAULT_COLOR;
+    bool fixed = false;
     s32 scale = 1;
-    bool alt = false;
+    bool smallfont = false;
+    
+    if (nargs > 2) {
+        x = VALUE_AS_INT(args[2]);
+    }
+    if (nargs > 3) {
+        y = VALUE_AS_INT(args[3]);
+    }
+    if (nargs > 4) {
+        color = VALUE_AS_INT(args[4]);
+    }
+    if (nargs > 5) {
+        fixed = VALUE_AS_BOOL(args[5]);
+    }
+    if (nargs > 6) {
+        scale = VALUE_AS_INT(args[6]);
+    }
+    if (nargs > 7) {
+        smallfont = VALUE_AS_BOOL(args[7]);
+    }
 
-    s32 returnValue = 0;
-
-    printf("gravityPrint 1 %s\n", text);
-
-    returnValue = tic_api_print(tic, text, x, y, color, fixed, scale, alt);
-    printf("gravityPrint 2\n");
-
+    s32 output = tic_api_print(tic, text, x, y, color, fixed, scale, smallfont);
     gravity_value_t rt = VALUE_FROM_UNDEFINED;
-
-    rt = VALUE_FROM_INT(returnValue);
+    rt = VALUE_FROM_INT(output);
     RETURN_VALUE(rt, rindex);
 }
 
 static bool gravityBtn(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
-    GRAVITY_VERIFY_ARGS(1, 1);
-
+    GRAVITY_VERIFY_ARGS("btn", 1, 1);
     int id = VALUE_AS_INT(args[1]);
     bool output = tic_api_btn(tic, id) > 0;
-
     gravity_value_t outputValue = VALUE_FROM_BOOL(output);
     RETURN_VALUE(outputValue, rindex);
 }
 
 static bool gravityCls(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
-    GRAVITY_VERIFY_ARGS(1, 1);
+    GRAVITY_VERIFY_ARGS("cls", 1, 1);
+    tic_api_cls(tic, VALUE_AS_INT(args[1]));
+    RETURN_NOVALUE();
+}
 
-    u8 color = VALUE_AS_INT(args[1]);
-    tic_api_cls(tic, color);
+static bool gravitySpr(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+    GRAVITY_VERIFY_ARGS("spr", 3, 9);
+    s32 index = VALUE_AS_INT(args[1]);
+    s32 x = VALUE_AS_INT(args[2]);
+    s32 y = VALUE_AS_INT(args[3]);
+    u8 colors[TIC_PALETTE_SIZE];
+    s32 count = 0;
+    s32 scale = 1;
+    tic_flip flip = 0;
+    tic_rotate rotate = 0;
+    s32 w = 0;
+    s32 h = 0;
+    if (nargs > 4) {
+        // TODO: Allow retrieving color arrays.
+        colors[0] = VALUE_AS_INT(args[4]);
+        count = 1;
+    }
+    if (nargs > 5) {
+        scale = VALUE_AS_INT(args[5]);
+    }
+    if (nargs > 6) {
+        flip = (tic_flip)VALUE_AS_INT(args[6]);
+    }
+    if (nargs > 7) {
+        scale = (tic_rotate)VALUE_AS_INT(args[7]);
+    }
+    if (nargs > 8) {
+        w = VALUE_AS_INT(args[8]);
+    }
+    if (nargs > 9) {
+        h = VALUE_AS_INT(args[9]);
+    }
+
+    tic_api_spr(tic, index, x, y, w, h, colors, count, scale, flip, rotate);
+    RETURN_NOVALUE();
+}
+
+static bool gravityTrace(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+    GRAVITY_VERIFY_ARGS("trace", 1, 2);
+    const char* text = VALUE_AS_CSTRING(args[1]);
+    u8 color = TIC_DEFAULT_COLOR;
+    if (nargs > 2 && VALUE_ISA_INT(args[2])) {
+        color = VALUE_AS_INT(args[2]);
+    }
+    tic_api_trace(tic, text, color);
     RETURN_NOVALUE();
 }
 
@@ -141,12 +208,19 @@ static void setupGravity(tic_mem* tic, gravity_vm *vm) {
     gravity_vm_setvalue(vm, "print", NEW_CLOSURE_VALUE(gravityPrint));
     gravity_vm_setvalue(vm, "btn", NEW_CLOSURE_VALUE(gravityBtn));
     gravity_vm_setvalue(vm, "cls", NEW_CLOSURE_VALUE(gravityCls));
+    gravity_vm_setvalue(vm, "spr", NEW_CLOSURE_VALUE(gravitySpr));
+    gravity_vm_setvalue(vm, "trace", NEW_CLOSURE_VALUE(gravityTrace));
 }
 
+/**
+ * Provides some initial gravity pre-code to ease the TIC-80 integration.
+ */
 static const char* gravityPrecode(void *xdata) {
   return "extern var btn;"
          "extern var cls;"
-         "extern var print;";
+         "extern var print;"
+         "extern var spr;"
+         "extern var trace;";
 }
 
 /**
@@ -176,16 +250,13 @@ static bool initGravity(tic_mem* tic, const char* code)
     // Interpret the code into the compiler.
     gravity_closure_t *closure = gravity_compiler_run(compiler, code, strlen(code), 0, true, true);
     if (!closure) {
-        printf("gravity_compiler_run\n");
         gravity_compiler_free(compiler);
         return false;
     }
 
-
     // Set up the virtual machine.
     gravity_vm *vm = gravity_vm_new(&delegate);
     if (!vm) {
-        printf("gravity_vm_new\n");
         gravity_compiler_free(compiler);
         return false;
     }
@@ -210,11 +281,12 @@ static bool initGravity(tic_mem* tic, const char* code)
 static void callGravityTick(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
-    gravity_vm *vm = core->gravity;
-    if(!vm)
-    {
+    if (!core)
         return;
-    }
+
+    gravity_vm *vm = core->gravity;
+    if (!vm)
+        return;
 
     // TODO: Move this to initGravity() to save time.
     gravity_value_t tic_function = gravity_vm_getvalue(vm, "TIC", 3);
@@ -231,18 +303,17 @@ static void callGravityTick(tic_mem* tic)
 static void callGravityScanline(tic_mem* tic, s32 row, void* data)
 {
     tic_core* core = (tic_core*)tic;
-    gravity_vm *vm = core->gravity;
-    if(!vm)
-    {
+    if (!core)
         return;
-    }
+
+    gravity_vm *vm = core->gravity;
+    if (!vm)
+        return;
 
     // TODO: Move this to initGravity() to save time.
     gravity_value_t scn_function = gravity_vm_getvalue(vm, SCN_FN, strlen(SCN_FN));
-    if(!VALUE_ISA_CLOSURE(scn_function))
-    {
+    if (!VALUE_ISA_CLOSURE(scn_function))
         return;
-    }
 
     // convert function to closure
     gravity_closure_t *scn_closure = VALUE_AS_CLOSURE(scn_function);
@@ -254,16 +325,15 @@ static void callGravityScanline(tic_mem* tic, s32 row, void* data)
 static void callGravityOverline(tic_mem* tic, void* data)
 {
     tic_core* core = (tic_core*)tic;
-    gravity_vm *vm = core->gravity;
-    if(!vm)
-    {
+    if (!core)
         return;
-    }
+    gravity_vm *vm = core->gravity;
+    if (!vm)
+        return;
 
     // TODO: Move this to initGravity() to save time.
     gravity_value_t ovr_function = gravity_vm_getvalue(vm, OVR_FN, strlen(OVR_FN));
-    if(!VALUE_ISA_CLOSURE(ovr_function))
-    {
+    if(!VALUE_ISA_CLOSURE(ovr_function)) {
         return;
     }
 
@@ -290,7 +360,7 @@ static const tic_script_config GravitySyntaxConfig =
     .scanline           = callGravityScanline,
     .overline           = callGravityOverline,
 
-    .getOutline         = NULL, // TODO: Implement callGravityOutline()
+    .getOutline         = NULL, // TODO: Implement getGravityOutline()
     .eval               = NULL, // TODO: Implement callGravityEval()
 
     .blockCommentStart  = "/*",

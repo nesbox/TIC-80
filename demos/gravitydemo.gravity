@@ -8,7 +8,7 @@ var x = 96
 var y = 24
 
 func TIC() {
-	if (btn(0, 3)) {
+	if (btn(0)) {
 		y -= 1
 	}
 	if (btn(1)) {
@@ -22,9 +22,9 @@ func TIC() {
 	}
 
 	cls(13)
-	//spr(1 + ((t % 60) / 30 | 0) * 2, x, y, 14, 3, 0, 0, 2, 2)
-
+	spr(1 + ((t % 60) / 30 | 0) * 2, x, y, 14, 3, 0, 0, 2, 2)
 	print("HELLO WORLD!", 84, 84)
+
 	t += 1
 }
 
