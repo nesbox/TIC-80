@@ -132,6 +132,7 @@ Makefile
 !build/rpi/*
 !build/baremetalpi/Makefile
 !build/baremetalpi/boot/Makefile
+!build/baremetalpi/toolchain.cmake
 build/android/.gradle/
 build/android/app/.externalNativeBuild/
 build/android/app/build/

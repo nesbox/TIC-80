@@ -163,6 +163,63 @@ jobs:
         name: 'tic80-rpi'
         path: build/tic80.deb
 
+# === Raspberry PI Bare Metal ===
+  rpi-baremetal:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Install
+      run: |
+        wget https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/9-2020q2/gcc-arm-none-eabi-9-2020-q2-update-x86_64-linux.tar.bz2
+        tar xjf gcc-arm-none-eabi-9-2020-q2-update-x86_64-linux.tar.bz2
+
+    - name: Build
+      run: |
+        export PATH=${{GITHUB.WORKSPACE}}/gcc-arm-none-eabi-9-2020-q2-update/bin/:$PATH
+        cd vendor/circle-stdlib
+        ./configure -r 3
+        make -j$(nproc)
+        cd libs/circle/addon/vc4/sound/
+        make -j$(nproc)
+        cd ../vchiq
+        make -j$(nproc)
+        cd ../../linux
+        make -j$(nproc)
+        cd ${{GITHUB.WORKSPACE}}/build
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake ..
+        make -j$(nproc)
+        cd baremetalpi
+        make -j$(nproc)
+        cd ${{GITHUB.WORKSPACE}}/vendor/circle-stdlib/libs/circle/boot/
+        make -j$(nproc)
+        cd ${{GITHUB.WORKSPACE}}
+        cp build/baremetalpi/kernel8-32.img vendor/circle-stdlib/libs/circle/boot/kernel8-32.img
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-baremetal'
+        path: |
+          vendor/circle-stdlib/libs/circle/boot/kernel8-32.img
+          vendor/circle-stdlib/libs/circle/boot/bootcode.bin
+          vendor/circle-stdlib/libs/circle/boot/start.elf
+          vendor/circle-stdlib/libs/circle/boot/start4.elf
+          vendor/circle-stdlib/libs/circle/boot/fixup.dat
+          vendor/circle-stdlib/libs/circle/boot/fixup4.dat
+          vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-4-b.dtb
+          vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-cm4.dtb
+          vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
+          vendor/circle-stdlib/libs/circle/boot/COPYING.linux
+          vendor/circle-stdlib/libs/circle/boot/start_cd.elf
+          vendor/circle-stdlib/libs/circle/boot/start4cd.elf
+          vendor/circle-stdlib/libs/circle/boot/fixup_cd.dat
+          vendor/circle-stdlib/libs/circle/boot/fixup4cd.dat
+
 # === MacOS 10.15 ===
   macos:
     runs-on: macos-10.15
