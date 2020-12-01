@@ -2947,7 +2947,8 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
 #if defined(__TIC_WINDOWS__)
         GetModuleFileNameA(NULL, appPath, sizeof appPath);
 #elif defined(__TIC_LINUX__)
-        readlink("/proc/self/exe", appPath, sizeof appPath);
+        s32 size = readlink("/proc/self/exe", appPath, sizeof appPath);
+        appPath[size] = '\0';
 #elif defined(__TIC_MACOSX__)
         s32 size = sizeof appPath;
         _NSGetExecutablePath(appPath, &size);
