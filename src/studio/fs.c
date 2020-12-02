@@ -23,10 +23,13 @@
 #include "studio.h"
 #include "fs.h"
 
-#if defined(BAREMETALPI)
-#include "../../circle-stdlib/libs/circle/addon/fatfs/ff.h"
+#if defined(BAREMETALPI) || defined(_3DS)
 //define dbg(...) printf(__VA_ARGS__)
 #define dbg(...)
+#endif
+
+#if defined(BAREMETALPI)
+#include "../../circle-stdlib/libs/circle/addon/fatfs/ff.h"
 #else
 #include <dirent.h>
 #include <sys/stat.h>

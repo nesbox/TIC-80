@@ -220,6 +220,29 @@ jobs:
           vendor/circle-stdlib/libs/circle/boot/fixup_cd.dat
           vendor/circle-stdlib/libs/circle/boot/fixup4cd.dat
 
+# === Nintendo 3DS build ===
+  nintendo-3ds:
+    runs-on: ubuntu-latest
+    container: nesbox/devkitpro-tic80:latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Build
+      run: |
+        cd build
+        cmake -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/3ds.cmake -DN3DS=TRUE -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
+        make -j$(nproc)
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'nintendo-3ds'
+        path: build/bin/tic80.3dsx
+
 # === MacOS 10.15 ===
   macos:
     runs-on: macos-10.15
