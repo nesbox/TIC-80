@@ -52,8 +52,6 @@ cd ../vchiq
 make
 cd ../../linux
 make
-cd ../fatfs
-make
 cd ../../../../../..
 ```
 
@@ -61,7 +59,7 @@ Build `tic80studio` for arm with baremetal customizations:
 
 ```
 cd build
-cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBAREMETALPI=1 ..
+cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake ..
 make tic80studio
 ```
 
