@@ -132,30 +132,19 @@ jobs:
 # === Raspberry PI ===
   rpi:
     runs-on: ubuntu-latest
-    env:
-        RPI_HOME: ${{GITHUB.WORKSPACE}}/build/rpi
+    container: nesbox/rpi-tic80:latest
+
     steps:
     - uses: actions/checkout@v2
       with: 
         submodules: recursive
         fetch-depth: 0
 
-    - name: Install
-      run: |
-        cd $RPI_HOME
-        git clone --depth 1 https://github.com/raspberrypi/tools.git tools
-        mkdir sysroot && cd sysroot
-        wget http://downloads.raspberrypi.org/raspbian/root.tar.xz
-        wget https://buildbot.libsdl.org/sdl-builds/sdl-raspberrypi/sdl-raspberrypi-224.tar.xz
-        sudo tar xf root.tar.xz
-        sudo tar xf sdl-raspberrypi-224.tar.xz
-
     - name: Build
       run: |
         cd build
-        sudo cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE .. -DCMAKE_TOOLCHAIN_FILE=rpi/toolchain.cmake -DRPI_HOME=$RPI_HOME
-        sudo cmake --build . --parallel --config $BUILD_TYPE
-        sudo cpack
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_TOOLCHAIN_FILE=rpi/toolchain.cmake ..
+        cpack
 
     - name: Deploy
       uses: actions/upload-artifact@v2
@@ -166,6 +155,7 @@ jobs:
 # === Raspberry PI Bare Metal ===
   rpi-baremetal:
     runs-on: ubuntu-latest
+    container: nesbox/baremetalpi-tic80:latest
 
     steps:
     - uses: actions/checkout@v2
@@ -173,14 +163,9 @@ jobs:
         submodules: recursive
         fetch-depth: 0
 
-    - name: Install
-      run: |
-        wget https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu-rm/9-2020q2/gcc-arm-none-eabi-9-2020-q2-update-x86_64-linux.tar.bz2
-        tar xjf gcc-arm-none-eabi-9-2020-q2-update-x86_64-linux.tar.bz2
-
     - name: Build
       run: |
-        export PATH=${{GITHUB.WORKSPACE}}/gcc-arm-none-eabi-9-2020-q2-update/bin/:$PATH
+        WORKDIR=`pwd`
         cd vendor/circle-stdlib
         ./configure -r 3
         make -j$(nproc)
@@ -190,15 +175,14 @@ jobs:
         make -j$(nproc)
         cd ../../linux
         make -j$(nproc)
-        cd ${{GITHUB.WORKSPACE}}/build
+        cd $WORKDIR/build
         cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake ..
         make tic80studio -j$(nproc)
         cd baremetalpi
         make -j$(nproc)
-        cd ${{GITHUB.WORKSPACE}}/vendor/circle-stdlib/libs/circle/boot/
+        cd $WORKDIR/vendor/circle-stdlib/libs/circle/boot/
         make -j$(nproc)
-        cd ${{GITHUB.WORKSPACE}}
-        cp build/baremetalpi/kernel8-32.img vendor/circle-stdlib/libs/circle/boot/kernel8-32.img
+        cp $WORKDIR/build/baremetalpi/kernel8-32.img $WORKDIR/vendor/circle-stdlib/libs/circle/boot/kernel8-32.img
 
     - name: Deploy
       uses: actions/upload-artifact@v2
@@ -240,7 +224,7 @@ jobs:
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'nintendo-3ds'
+        name: 'tic80-nintendo-3ds'
         path: build/bin/tic80.3dsx
 
 # === MacOS 10.15 ===
