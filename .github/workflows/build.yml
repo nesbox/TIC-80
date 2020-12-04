@@ -144,6 +144,7 @@ jobs:
       run: |
         cd build
         cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_TOOLCHAIN_FILE=rpi/toolchain.cmake ..
+        cmake --build . --parallel --config $BUILD_TYPE
         cpack
 
     - name: Deploy
@@ -163,9 +164,8 @@ jobs:
         submodules: recursive
         fetch-depth: 0
 
-    - name: Build
+    - name: Prebuild
       run: |
-        WORKDIR=`pwd`
         cd vendor/circle-stdlib
         ./configure -r 3
         make -j$(nproc)
@@ -175,14 +175,20 @@ jobs:
         make -j$(nproc)
         cd ../../linux
         make -j$(nproc)
-        cd $WORKDIR/build
+
+    - name: Build
+      run: |
+        cd build
         cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake ..
         make tic80studio -j$(nproc)
         cd baremetalpi
         make -j$(nproc)
-        cd $WORKDIR/vendor/circle-stdlib/libs/circle/boot/
+        cd ../../vendor/circle-stdlib/libs/circle/boot/
         make -j$(nproc)
-        cp $WORKDIR/build/baremetalpi/kernel8-32.img $WORKDIR/vendor/circle-stdlib/libs/circle/boot/kernel8-32.img
+
+    - name: Pack
+      run: |
+        cp build/baremetalpi/kernel8-32.img vendor/circle-stdlib/libs/circle/boot/kernel8-32.img
 
     - name: Deploy
       uses: actions/upload-artifact@v2
