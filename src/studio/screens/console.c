@@ -1047,10 +1047,8 @@ static void onConsoleDirCommand(Console* console, const char* param)
     if(data.count == 0)
     {
         printBack(console, "\n\nuse ");
-        printFront(console, "ADD");
-        printBack(console, " or ");
         printFront(console, "DEMO");
-        printBack(console, " command to add carts");
+        printBack(console, " command to install demo carts");
     }
 
     printLine(console);
