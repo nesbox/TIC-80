@@ -293,6 +293,7 @@ set(TIC80CORE_SRC
     ${TIC80CORE_DIR}/api/lua.c 
     ${TIC80CORE_DIR}/api/wren.c 
     ${TIC80CORE_DIR}/api/squirrel.c
+    ${TIC80CORE_DIR}/api/gravity.c
     ${TIC80CORE_DIR}/ext/gif.c     
     ${TIC80CORE_DIR}/tic.c
     ${TIC80CORE_DIR}/cart.c
