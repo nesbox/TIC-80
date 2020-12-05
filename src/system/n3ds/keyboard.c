@@ -177,7 +177,7 @@ bool n3ds_key_touched(touchPosition* pos, const touch_area_t* area)
 		state[(tickey)] = true; \
 	}
 
-void n3ds_keyboard_update(tic_n3ds_keyboard *kbd, tic_mem *tic, char *chcode) {
+void n3ds_keyboard_update(tic_n3ds_keyboard *kbd, tic_mem *tic) {
 	u32 key_down, key_up, key_held;
 	touchPosition touch;
 	const touch_area_t* area;
@@ -275,38 +275,6 @@ void n3ds_keyboard_update(tic_n3ds_keyboard *kbd, tic_mem *tic, char *chcode) {
 		MAP_BUTTON_KEY(KEY_B, tic_key_x);
 		MAP_BUTTON_KEY(KEY_X, tic_key_a);
 		MAP_BUTTON_KEY(KEY_Y, tic_key_s);
-
-		// TODO: merge with sdlgpu.c
-		if (chcode != NULL)
-		{
-			*chcode = 0;
-			if (buffer_pos > 0)
-			{
-				static const char Symbols[] =   " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
-				static const char Shift[] =     " ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
-
-				enum{Count = sizeof Symbols};
-
-				for(s32 i = 0; i < buffer_pos; i++)
-				{
-					tic_key key = tic_kbd->keys[i];
-
-					if(key > 0 && key < Count && tic_api_keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD))
-					{
-						bool caps = tic_api_key(tic, tic_key_capslock);
-						bool shift = tic_api_key(tic, tic_key_shift);
-
-						*chcode = caps
-							? key >= tic_key_a && key <= tic_key_z 
-								? shift ? Symbols[key] : Shift[key]
-								: shift ? Shift[key] : Symbols[key]
-							: shift ? Shift[key] : Symbols[key];
-
-						break;
-					}
-				}
-			}
-		}
 	}
 }
 

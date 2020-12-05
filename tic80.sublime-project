@@ -8,7 +8,7 @@
             "variants": [                
                 {
                     "name": "run",
-                    "shell_cmd": "cd ${project_path}/build && ninja && ${project_path}/build/bin/tic80 -skip"
+                    "shell_cmd": "cd ${project_path}/build && ninja && ${project_path}/build/bin/tic80 --skip"
                 },
                 {
                     "name": "clean",

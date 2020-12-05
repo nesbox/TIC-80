@@ -56,6 +56,14 @@ static struct TGamePadState gamepad;
 static CSpinLock keyspinlock;
 
 extern "C" {
+
+/*
+unsigned int sleep(unsigned int seconds)
+{
+	mTimer.SimpleMsDelay (seconds*1000);
+}
+*/
+
 static struct
 {
 
@@ -168,8 +176,8 @@ static System systemInterface =
 	.httpGetSync = httpGetSync,
 	.httpGet = httpGet,
 
-	.fileDialogLoad = NULL, //file_dialog_load,
-	.fileDialogSave = NULL, //file_dialog_save,
+	//.fileDialogLoad = NULL, //file_dialog_load,
+	//.fileDialogSave = NULL, //file_dialog_save,
 
 	.goFullscreen = agoFullscreen,
 	.showMessageBox = showMessageBox,
@@ -205,7 +213,7 @@ void screenCopy(CScreenDevice* screen, u32* ts)
 
 } //extern C
 
-void mouseEventHandler (TMouseEvent Event, unsigned nButtons, unsigned nPosX, unsigned nPosY)
+void mouseEventHandler (TMouseEvent Event, unsigned nButtons, unsigned nPosX, unsigned nPosY, int nWheelMove)
 {
 	keyspinlock.Acquire();
 	mousex = nPosX/MOUSE_SENS;
@@ -384,7 +392,7 @@ TShutdownMode Run(void)
 	//teststat("no.txt");
 	//teststat("carts");
 
-	//testmkdir("/slash");
+	testmkdir("tic80");
 	//CTimer::SimpleMsDelay(5000);
 
 	// ok testmkdir("primo");
@@ -394,24 +402,31 @@ TShutdownMode Run(void)
 	// ko testmkdir("quinto/");
 	// ok testmkdir("sesto bis");
 
-
 	dbg("Calling studio init instance..\n");
 
 	if (pKeyboard)
 	{
 		dbg("With keyboard\n");
-		platform.studio = studioInit(0, NULL, 44100, "tic80/", &systemInterface);
+		malloc(77);
+		char  arg0[] = "xxkernel";
+		const char* argv[] = { &arg0[0], NULL };
+		int argc = 1;
+		malloc(88);
+		platform.studio = studioInit(argc, argv, 44100, "tic80", &systemInterface);
+		malloc(99);
+
 	}
 	else
 	{
 		//  if no keyboard, start in surf mode!
 		char  arg0[] = "xxkernel";
-		char  arg1[] = "-surf";
-		char* argv[] = { &arg0[0], &arg1[0], NULL };
+		char  arg1[] = "--cmd=ls";
+		const char* argv[] = { &arg0[0], &arg1[0], NULL };
 		int argc = 2;
 		dbg("Without keyboard\n");
-		platform.studio = studioInit(argc, argv, 44100, "tic80/", &systemInterface);
+		platform.studio = studioInit(argc, argv, 44100, "tic80", &systemInterface);
 	}
+	dbg("studioInit OK\n");
 
 	if( !platform.studio)
 	{

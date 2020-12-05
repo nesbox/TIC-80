@@ -63,14 +63,6 @@ struct Console
 
     struct
     {
-        char fileName[TICNAME_MAX];
-        bool active;
-
-        void(*reload)(Console*, char*);
-    } codeLiveReload;
-
-    struct
-    {
         bool yes;
         tic_cartridge* file;
     } embed;
@@ -85,23 +77,20 @@ struct Console
 
     struct FileSystem* fs;
 
-    char romName[TICNAME_MAX];
-    char appPath[TICNAME_MAX];
+    struct
+    {
+        char name[TICNAME_MAX];
+        char path[TICNAME_MAX];
+    } rom;
 
     HistoryItem* history;
     HistoryItem* historyHead;
 
     u32 tickCounter;
 
-    struct
-    {
-        bool active;
-        bool showGameMenu;
-        bool startSurf;
-        bool skipStart;
-        bool goFullscreen;
-        bool crtMonitor;
-    };
+    bool active;
+    bool showGameMenu;
+    StartArgs args;
 
     void(*load)(Console*, const char* path, const char* hash);
     void(*updateProject)(Console*);
@@ -112,5 +101,5 @@ struct Console
     CartSaveResult(*save)(Console*);
 };
 
-void initConsole(Console*, tic_mem*, struct FileSystem* fs, struct Config* config, s32 argc, char **argv);
+void initConsole(Console*, tic_mem*, struct FileSystem* fs, struct Config* config, StartArgs args);
 void freeConsole(Console* console);

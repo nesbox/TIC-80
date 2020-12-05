@@ -46,3 +46,9 @@
 [submodule "vendor/gravity"]
 	path = vendor/gravity
 	url = https://github.com/marcobambini/gravity.git
+[submodule "vendor/argparse"]
+	path = vendor/argparse
+	url = https://github.com/cofyc/argparse.git
+[submodule "vendor/circle-stdlib"]
+	path = vendor/circle-stdlib
+	url = https://github.com/smuehlst/circle-stdlib.git

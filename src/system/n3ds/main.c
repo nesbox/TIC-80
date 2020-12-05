@@ -218,15 +218,6 @@ static void httpGet(const char* url, HttpGetCallback callback, void* calldata)
 #endif
 }
 
-static void n3ds_file_dialog_load(file_dialog_load_callback callback, void* data)
-{
-}
-
-static void n3ds_file_dialog_save(file_dialog_save_callback callback, const char* name, const u8* buffer, size_t size, void* data, u32 mode)
-{
-}
-
-
 static void goFullscreen()
 {
 }
@@ -513,9 +504,6 @@ static System systemInterface =
     .httpGetSync = httpGetSync,
     .httpGet = httpGet,
 
-    .fileDialogLoad = n3ds_file_dialog_load,
-    .fileDialogSave = n3ds_file_dialog_save,
-
     .goFullscreen = goFullscreen,
     .showMessageBox = showMessageBox,
     .setWindowTitle = setWindowTitle,
@@ -575,7 +563,7 @@ static void keyboard_update(void) {
 
     platform.studio->tic->ram.input.mouse.btns = 0;
     if (!platform.render.on_bottom) {
-        n3ds_keyboard_update(&platform.keyboard, platform.studio->tic, &platform.studio->text);
+        n3ds_keyboard_update(&platform.keyboard, platform.studio->tic);
     } else {
         touch_update();
     }
@@ -627,7 +615,7 @@ int main(int argc, char **argv) {
 #ifndef DISABLE_NETWORKING
     platform.net = createNet();
 #endif
-    platform.studio = studioInit(argc_used, argv_used, AUDIO_FREQ, "./", &systemInterface);
+    platform.studio = studioInit(argc_used, (const char**)argv_used, AUDIO_FREQ, "./", &systemInterface);
     platform.studio->tic->screen_format = TIC80_PIXEL_COLOR_ABGR8888;
 
     n3ds_sound_init(AUDIO_FREQ);

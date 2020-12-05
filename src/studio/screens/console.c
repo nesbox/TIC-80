@@ -24,8 +24,8 @@
 #include "studio/fs.h"
 #include "studio/config.h"
 #include "ext/gif.h"
-#include "ext/file_dialog.h"
 #include "studio/project.h"
+#include "zip.h"
 
 #include <ctype.h>
 #include <string.h>
@@ -37,6 +37,14 @@
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
+
+#if defined(__TIC_WINDOWS__)
+#include <windows.h>
+#else
+#include <unistd.h>
+#endif
+
+#include <sys/stat.h>
 
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
@@ -52,15 +60,14 @@
 #define CONSOLE_BUFFER_HEIGHT (STUDIO_TEXT_BUFFER_HEIGHT)
 #define CONSOLE_BUFFER_SCREENS 64
 #define CONSOLE_BUFFER_SIZE (CONSOLE_BUFFER_WIDTH * CONSOLE_BUFFER_HEIGHT * CONSOLE_BUFFER_SCREENS)
-#define HTML_EXPORT_NAME "html.zip"
 
 typedef enum
 {
 #if defined(TIC_BUILD_WITH_LUA)
-    LuaScript,
+    LuaScript,  
 
 #   if defined(TIC_BUILD_WITH_MOON)
-    MoonScript,
+    MoonScript, 
 #   endif
 
 #   if defined(TIC_BUILD_WITH_FENNEL)
@@ -70,11 +77,11 @@ typedef enum
 #endif /* defined(TIC_BUILD_WITH_LUA) */
 
 #if defined(TIC_BUILD_WITH_JS)
-    JavaScript,
+    JavaScript, 
 #endif
 
 #if defined(TIC_BUILD_WITH_WREN)
-    WrenScript,
+    WrenScript, 
 #endif
 
 #if defined(TIC_BUILD_WITH_SQUIRREL)
@@ -83,34 +90,8 @@ typedef enum
 
 } ScriptLang;
 
-#if defined(__TIC_WINDOWS__) || defined(__TIC_LINUX__) || defined(__TIC_MACOSX__)
-#define CAN_EXPORT 1
-#define CAN_EXPORT_NATIVE 1
-#define CAN_OPEN_URL 1
-#define CAN_OPEN_FOLDER 1
-#endif
-
-#if defined(__TIC_ANDROID__)
-#define CAN_EXPORT 1
-#define CAN_OPEN_FOLDER 1
-#endif
-
-#if defined(CAN_EXPORT_NATIVE)
-
-static const char TicCartSig[] = "TIC.CART";
-#define SIG_SIZE (sizeof TicCartSig-1)
-
-typedef struct
-{
-    u8 sig[SIG_SIZE];
-    s32 appSize;
-    s32 cartSize;
-} EmbedHeader;
-
-#endif
-
-#if defined(__TIC_WINDOWS__)
-static const char* ExeExt = ".exe";
+#if defined(__EMSCRIPTEN__)
+#define CAN_ADDGET_FILE 1
 #endif
 
 #if defined(TIC_BUILD_WITH_LUA)
@@ -136,7 +117,7 @@ static const char DefaultWrenTicPath[] = TIC_LOCAL_VERSION "default_wren.tic";
 
 #if defined(TIC_BUILD_WITH_SQUIRREL)
 static const char DefaultSquirrelTicPath[] = TIC_LOCAL_VERSION "default_squirrel.tic";
-#endif
+#endif  
 
 static const char* getName(const char* name, const char* ext)
 {
@@ -181,8 +162,9 @@ static void scrollConsole(Console* console)
 
 static void consolePrint(Console* console, const char* text, u8 color)
 {
+#ifndef BAREMETALPI
     printf("%s", text);
-
+#endif
     const char* textPointer = text;
     const char* endText = textPointer + strlen(text);
 
@@ -246,6 +228,7 @@ static void commandDoneLine(Console* console, bool newLine)
         printBack(console, dir);
 
     printFront(console, ">");
+    console->active = true;
 }
 
 static void commandDone(Console* console)
@@ -260,6 +243,9 @@ static inline void drawChar(tic_mem* tic, char symbol, s32 x, s32 y, u8 color, b
 
 static void drawCursor(Console* console, s32 x, s32 y, u8 symbol)
 {
+    if(!console->active)
+        return;
+
     bool inverse = console->cursor.delay || console->tickCounter % CONSOLE_CURSOR_BLINK_PERIOD < CONSOLE_CURSOR_BLINK_PERIOD / 2;
 
     if(inverse)
@@ -356,14 +342,6 @@ static void processConsoleBackspace(Console* console)
 }
 
 static void onConsoleHelpCommand(Console* console, const char* param);
-
-#if defined(CAN_OPEN_URL)
-static void onConsoleWikiCommand(Console* console, const char* param)
-{
-    getSystem()->openSystemPath("https://github.com/nesbox/TIC-80/wiki");
-    commandDone(console);
-}
-#endif
 
 static void onConsoleExitCommand(Console* console, const char* param)
 {
@@ -504,7 +482,7 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 
 #if defined(TIC_BUILD_WITH_SQUIRREL)
         case SquirrelScript: strcpy(path, DefaultSquirrelTicPath); break;
-#endif
+#endif          
         }
 
         void* data = fsLoadRootFile(console->fs, path, size);
@@ -618,10 +596,10 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
     return data;
 }
 
-static void setCartName(Console* console, const char* name)
+static void setCartName(Console* console, const char* name, const char* path)
 {
-    if(name != console->romName)
-        strcpy(console->romName, name);
+    strcpy(console->rom.name, name);
+    strcpy(console->rom.path, path);
 }
 
 static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* param)
@@ -664,14 +642,14 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 
     const char* name = getCartName(param);
 
-    setCartName(console, name);
+    setCartName(console, name, fsGetFilePath(console->fs, name));
 
     loadRom(console->tic, data, size);
 
     studioRomLoaded();
 
     printBack(console, "\ncart ");
-    printFront(console, console->romName);
+    printFront(console, console->rom.name);
     printBack(console, " loaded!\n");
 
     free(data);
@@ -679,12 +657,12 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 
 static void onCartLoaded(Console* console, const char* name)
 {
-    setCartName(console, name);
+    setCartName(console, name, fsGetFilePath(console->fs, name));
 
     studioRomLoaded();
 
     printBack(console, "\ncart ");
-    printFront(console, console->romName);
+    printFront(console, console->rom.name);
     printBack(console, " loaded!\nuse ");
     printFront(console, "RUN");
     printBack(console, " command to run it\n");
@@ -694,11 +672,12 @@ static void onCartLoaded(Console* console, const char* name)
 static void updateProject(Console* console)
 {
     tic_mem* tic = console->tic;
+    const char* path = console->rom.path;
 
-    if(strlen(console->romName) && hasProjectExt(console->romName))
+    if(strlen(path) && hasProjectExt(path))
     {
         s32 size = 0;
-        void* data = fsLoadFile(console->fs, console->romName, &size);
+        void* data = fsReadFile(path, &size);
 
         if(data)
         {
@@ -706,19 +685,19 @@ static void updateProject(Console* console)
 
             if(cart)
             {
-                if(tic_project_load(console->romName, data, size, cart))
+                if(tic_project_load(console->rom.name, data, size, cart))
                 {
                     memcpy(&tic->cart, cart, sizeof(tic_cartridge));
 
                     studioRomLoaded();
                 }
                 else printError(console, "\nproject updating error :(");
-
+                
                 free(cart);
             }
             free(data);
 
-        }
+        }       
     }
 }
 
@@ -764,9 +743,6 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
             if(!fsExistsFile(console->fs, name))
                 name = getName(param, PROJECT_SQUIRREL_EXT);
 
-            if(!fsExistsFile(console->fs, name))
-                name = getName(param, PROJECT_GRAVITY_EXT);
-
             void* data = fsLoadFile(console->fs, name, &size);
 
             if(data && tic_project_load(name, data, size, &console->tic->cart))
@@ -797,7 +773,7 @@ static void load(Console* console, const char* path, const char* hash)
             loadRom(console->tic, data, size);
             onCartLoaded(console, name);
 
-            free(data);
+            free(data);     
         }
 
         commandDone(console);
@@ -831,24 +807,15 @@ static void onConfirm(bool yes, void* data)
     free(confirmData);
 }
 
-static void printMemoryError(Console* console)
-{
-    printError(console, "Memory allocation error");
-}
-
 static void confirmCommand(Console* console, const char** text, s32 rows, const char* param, ConfirmCallback callback)
 {
     CommandConfirmData* data = malloc(sizeof(CommandConfirmData));
-    if (data)
-    {
-        data->console = console;
-        data->param = param ? strdup(param) : NULL;
-        data->callback = callback;
 
-        showDialog(text, rows, onConfirm, data);
-    }
-    else
-        printMemoryError(console);
+    data->console = console;
+    data->param = param ? strdup(param) : NULL;
+    data->callback = callback;
+
+    showDialog(text, rows, onConfirm, data);
 }
 
 static void onConsoleLoadDemoCommand(Console* console, const char* param)
@@ -904,7 +871,7 @@ static void loadDemo(Console* console, ScriptLang script)
         free(data);
     }
 
-    memset(console->romName, 0, sizeof console->romName);
+    memset(console->rom.name, 0, sizeof console->rom.name);
 
     studioRomLoaded();
 }
@@ -954,7 +921,7 @@ static void onConsoleNewCommandConfirmed(Console* console, const char* param)
             loadDemo(console, WrenScript);
             done = true;
         }
-#endif
+#endif          
 
 #if defined(TIC_BUILD_WITH_SQUIRREL)
         if(strcmp(param, "squirrel") == 0)
@@ -962,7 +929,7 @@ static void onConsoleNewCommandConfirmed(Console* console, const char* param)
             loadDemo(console, SquirrelScript);
             done = true;
         }
-#endif
+#endif          
 
         if(!done)
         {
@@ -1080,36 +1047,24 @@ static void onConsoleDirCommand(Console* console, const char* param)
     if(data.count == 0)
     {
         printBack(console, "\n\nuse ");
-        printFront(console, "ADD");
-        printBack(console, " or ");
         printFront(console, "DEMO");
-        printBack(console, " command to add carts");
+        printBack(console, " command to install demo carts");
     }
 
     printLine(console);
     commandDone(console);
 }
 
-#if defined(CAN_OPEN_FOLDER)
-
 static void onConsoleFolderCommand(Console* console, const char* param)
 {
-#if defined(__TIC_ANDROID__)
 
-    printBack(console, "\nLook at the ");
+    printBack(console, "\nStorage path:\n");
     printFront(console, fsGetRootFilePath(console->fs, ""));
-    printBack(console, " folder with any file manager.");
-
-#else
 
     fsOpenWorkingFolder(console->fs);
 
-#endif
-
     commandDone(console);
 }
-
-#endif
 
 static void onConsoleClsCommand(Console* console, const char* param)
 {
@@ -1117,6 +1072,7 @@ static void onConsoleClsCommand(Console* console, const char* param)
     memset(console->colorBuffer, TIC_COLOR_BG, CONSOLE_BUFFER_SIZE);
     console->scroll.pos = 0;
     console->cursor.x = console->cursor.y = 0;
+    printf("\r");
 
     commandDoneLine(console, false);
 }
@@ -1229,12 +1185,6 @@ static void onConsoleSurfCommand(Console* console, const char* param)
     commandDone(console);
 }
 
-static void onConsoleCodeCommand(Console* console, const char* param)
-{
-    gotoCode();
-    commandDone(console);
-}
-
 static void onConsoleVersionCommand(Console* console, const char* param)
 {
     printBack(console, "\n");
@@ -1297,24 +1247,12 @@ static void onConsoleConfigCommand(Console* console, const char* param)
         onConsoleLoadDemoCommand(console, DefaultSquirrelTicPath);
     }
 #endif
-
+    
     else
     {
         printError(console, "\nunknown parameter: ");
         printError(console, param);
     }
-
-    commandDone(console);
-}
-
-static void onFileDownloaded(GetResult result, void* data)
-{
-    Console* console = (Console*)data;
-
-    if(result == FS_FILE_NOT_DOWNLOADED)
-        printBack(console, "\nfile not downloaded :|");
-    else if (result == FS_FILE_DOWNLOADED)
-        printBack(console, "\nfile downloaded :)");
 
     commandDone(console);
 }
@@ -1444,83 +1382,90 @@ static void onImportMap(const char* name, const void* buffer, s32 size, void* da
 
 static void onConsoleImportCommand(Console* console, const char* param)
 {
-    if(param == NULL)
+    bool error = true;
+
+    char* filename = NULL;
+    if(param)
     {
-        printBack(console, "\nusage: import sprites|cover|map");
+        filename = strchr(param, ' ');
+
+        if(filename && strlen(filename + 1))
+            *filename++ = '\0';
+    }
+
+    if(param && filename)
+    {
+        s32 size = 0;
+        const void* data = fsLoadFile(console->fs, filename, &size);
+
+        if(data)
+        {
+            if(strcmp(param, "sprites") == 0)
+            {
+                onImportSprites(filename, data, size, console);
+                error = false;
+            }
+            else if(strcmp(param, "cover") == 0)
+            {
+                onImportCover(filename, data, size, console);
+                error = false;
+            }
+            else if(strcmp(param, "map") == 0)
+            {
+                onImportMap(filename, data, size, console);
+                error = false;
+            }
+        }
+        else
+        {
+            char msg[TICNAME_MAX];
+            sprintf(msg, "\nerror: `%s` file not loaded", filename);
+            printError(console, msg);
+            commandDone(console);
+            return;
+        }
+    }
+
+    if(error)
+    {
+        printBack(console, "\nusage: import (sprites cover map) file");
         commandDone(console);
     }
-    else if(strcmp(param, "sprites") == 0)
-        fsOpenFileData(onImportSprites, console);
-    else if(strcmp(param, "map") == 0)
-        fsOpenFileData(onImportMap, console);
-    else if(strcmp(param, "cover") == 0)
-        fsOpenFileData(onImportCover, console);
-    else
-    {
-        printError(console, "\nunknown parameter: ");
-        printError(console, param);
-        commandDone(console);
-    }
 }
 
-static void onSpritesExported(GetResult result, void* data)
-{
-    Console* console = (Console*)data;
-
-    if(result == FS_FILE_NOT_DOWNLOADED)
-        printBack(console, "\nsprites not exported :|");
-    else if (result == FS_FILE_DOWNLOADED)
-        printBack(console, "\nsprites successfully exported :)");
-
-    commandDone(console);
-}
-
-static void onCoverExported(GetResult result, void* data)
-{
-    Console* console = (Console*)data;
-
-    if(result == FS_FILE_NOT_DOWNLOADED)
-        printBack(console, "\ncover image not exported :|");
-    else if (result == FS_FILE_DOWNLOADED)
-        printBack(console, "\ncover image successfully exported :)");
-
-    commandDone(console);
-}
-
-static void exportCover(Console* console)
+static void exportCover(Console* console, const char* filename)
 {
     tic_cover_image* cover = &console->tic->cart.cover;
 
     if(cover->size)
     {
         void* data = malloc(cover->size);
-        if (data)
+        memcpy(data, cover->data, cover->size);
+        if(fsSaveFile(console->fs, filename, data, cover->size, true))
         {
-            memcpy(data, cover->data, cover->size);
-            fsGetFileData(onCoverExported, "cover.gif", data, cover->size, DEFAULT_CHMOD, console);
+            printLine(console);
+            printBack(console, filename);
+            printBack(console, " exported :)");
         }
-        else
-            printMemoryError(console);
+        else printError(console, "\nerror: cover not exported :(");
+
+        free(data);
     }
-    else
-    {
-        printBack(console, "\ncover image is empty, run game and\npress [F7] to assign cover image");
-        commandDone(console);
-    }
+    else printBack(console, "\ncover image is empty, run game and\npress [F7] to assign cover image");
+
+    commandDone(console);
 }
 
-static void exportSfx(Console* console, s32 sfx)
+static void exportSfx(Console* console, s32 sfx, const char* filename)
 {
-    const char* path = studioExportSfx(sfx);
+    const char* path = studioExportSfx(sfx, filename);
 
-    s32 size = 0;
-    void* data = fsLoadRootFile(console->fs, path, &size);
-
-    if(data)
+    if(path)
     {
-        char name[TICNAME_MAX];
-        sprintf(name, "sfx %i.wav", sfx);
-        fsGetFileData(onFileDownloaded, name, data, size, DEFAULT_CHMOD, console);
+        printLine(console);
+        printBack(console, filename);
+        printBack(console, " exported :)");
+        commandDone(console);
     }
     else
     {
@@ -1529,18 +1474,17 @@ static void exportSfx(Console* console, s32 sfx)
     }
 }
 
-static void exportMusic(Console* console, s32 track)
+static void exportMusic(Console* console, s32 track, const char* filename)
 {
-    const char* path = studioExportMusic(track);
+    const char* path = studioExportMusic(track, filename);
 
-    s32 size = 0;
-    void* data = fsLoadRootFile(console->fs, path, &size);
-
-    if(data)
+    if(path)
     {
-        char name[TICNAME_MAX];
-        sprintf(name, "track %i.wav", track);
-        fsGetFileData(onFileDownloaded, name, data, size, DEFAULT_CHMOD, console);
+        printLine(console);
+        printBack(console, filename);
+        printBack(console, " exported :)");
+
+        commandDone(console);
     }
     else
     {
@@ -1549,7 +1493,7 @@ static void exportMusic(Console* console, s32 track)
     }
 }
 
-static void exportSprites(Console* console)
+static void exportSprites(Console* console, const char* filename)
 {
     enum
     {
@@ -1571,36 +1515,24 @@ static void exportSprites(Console* console)
                     data[x + y * Width] = getSpritePixel(getBankTiles()->data, x, y);
 
             s32 size = 0;
-            if((size = writeGifData(console->tic, buffer, data, Width, Height)))
+            if((size = writeGifData(console->tic, buffer, data, Width, Height)) 
+                && fsSaveFile(console->fs, filename, buffer, size, true))
             {
-                // buffer will be freed inside fsGetFileData
-                fsGetFileData(onSpritesExported, "sprites.gif", buffer, size, DEFAULT_CHMOD, console);
+                printLine(console);
+                printBack(console, filename);
+                printBack(console, " exported :)");
             }
-            else
-            {
-                printError(console, "\nsprite export error :(");
-                commandDone(console);
-                free(buffer);
-            }
+            else printError(console, "\nerror: sprite not exported :(");
 
+            commandDone(console);
+
+            free(buffer);
             free(data);
         }
     }
 }
 
-static void onMapExported(GetResult result, void* data)
-{
-    Console* console = (Console*)data;
-
-    if(result == FS_FILE_NOT_DOWNLOADED)
-        printBack(console, "\nmap not exported :|");
-    else if (result == FS_FILE_DOWNLOADED)
-        printBack(console, "\nmap successfully exported :)");
-
-    commandDone(console);
-}
-
-static void exportMap(Console* console)
+static void exportMap(Console* console, const char* filename)
 {
     enum{Size = sizeof(tic_map)};
 
@@ -1609,37 +1541,19 @@ static void exportMap(Console* console)
     if(buffer)
     {
         memcpy(buffer, getBankMap()->data, Size);
-        fsGetFileData(onMapExported, "world.map", buffer, Size, DEFAULT_CHMOD, console);
+
+        if(fsSaveFile(console->fs, filename, buffer, Size, true))
+        {
+            printLine(console);
+            printBack(console, filename);
+            printBack(console, " exported :)");
+        }
+        else printError(console, "\nerror: map not exported :(");
+
+        commandDone(console);
+        free(buffer);
     }
 }
-
-#if defined(__EMSCRIPTEN__)
-
-static void onConsoleExportCommand(Console* console, const char* param)
-{
-    if(param == NULL || (param && strcmp(param, "native") == 0) || (param && strcmp(param, "html") == 0))
-    {
-        printBack(console, "\nweb/arm version doesn't support html or\nnative export");
-        printBack(console, "\nusage: export sprites|cover|map");
-        commandDone(console);
-    }
-    else if(param && strcmp(param, "sprites") == 0)
-        exportSprites(console);
-    else if(param && strcmp(param, "map") == 0)
-        exportMap(console);
-    else if(param && strcmp(param, "cover") == 0)
-        exportCover(console);
-    else
-    {
-        printError(console, "\nunknown parameter: ");
-        printError(console, param);
-        commandDone(console);
-    }
-}
-
-#else
-
-#if defined(CAN_EXPORT_NATIVE)
 
 static void *ticMemmem(const void* haystack, size_t hlen, const void* needle, size_t nlen)
 {
@@ -1662,108 +1576,82 @@ static void *ticMemmem(const void* haystack, size_t hlen, const void* needle, si
     return NULL;
 }
 
-static void* embedCart(Console* console, s32* size)
+static const char TicCartSig[] = "TIC.CART";
+#define SIG_SIZE (sizeof TicCartSig-1)
+
+typedef struct
+{
+    u8 sig[SIG_SIZE];
+    s32 appSize;
+    s32 cartSize;
+} EmbedHeader;
+
+static void* embedCart(Console* console, u8* app, s32* size)
 {
     tic_mem* tic = console->tic;
-
     u8* data = NULL;
-    s32 appSize = 0;
-    void* app = fsReadFile(console->appPath, &appSize);
+    void* cart = malloc(sizeof(tic_cartridge));
 
-    if(app)
+    if(cart)
     {
-        void* cart = malloc(sizeof(tic_cartridge));
+        s32 cartSize = tic_cart_save(&tic->cart, cart);
 
-        if(cart)
+        s32 zipSize = sizeof(tic_cartridge);
+        u8* zipData = (u8*)malloc(zipSize);
+
+        if(zipData)
         {
-            s32 cartSize = tic_cart_save(&tic->cart, cart);
-
-            unsigned long zipSize = sizeof(tic_cartridge);
-            u8* zipData = (u8*)malloc(zipSize);
-
-            if(zipData)
+            if((zipSize = tic_tool_zip(zipData, zipSize, cart, cartSize)))
             {
-                if(zipSize = tic_tool_zip(zipData, zipSize, cart, cartSize))
+                s32 appSize = *size;
+
+                EmbedHeader header = 
                 {
-                    EmbedHeader header =
-                    {
-                        .appSize = appSize,
-                        .cartSize = zipSize,
-                    };
+                    .appSize = appSize,
+                    .cartSize = zipSize,
+                };
 
-                    memcpy(header.sig, TicCartSig, SIG_SIZE);
+                memcpy(header.sig, TicCartSig, SIG_SIZE);
 
-                    s32 finalSize = appSize + sizeof header + header.cartSize;
-                    data = malloc(finalSize);
+                s32 finalSize = appSize + sizeof header + header.cartSize;
+                data = malloc(finalSize);
 
-                    if(data)
-                    {
-                        memcpy(data, app, appSize);
-                        memcpy(data + appSize, &header, sizeof header);
-                        memcpy(data + appSize + sizeof header, zipData, header.cartSize);
+                if (data)
+                {
+                    memcpy(data, app, appSize);
+                    memcpy(data + appSize, &header, sizeof header);
+                    memcpy(data + appSize + sizeof header, zipData, header.cartSize);
 
-                        *size = finalSize;
-                    }
+                    *size = finalSize;
                 }
-
-                free(zipData);
             }
 
-            free(cart);
+            free(zipData);
         }
 
-        free(app);
+        free(cart);
     }
-
+    
     return data;
 }
 
-static void onConsoleExportNativeCommand(Console* console, const char* cartName)
+typedef struct 
 {
-    s32 size = 0;
-    void* data = embedCart(console, &size);
+    Console* console;
+    char filename[TICNAME_MAX];
+} GameExportData;
 
-    if(data)
-    {
-        fsGetFileData(onFileDownloaded, cartName, data, size, DEFAULT_CHMOD, console);
-    }
-    else
-    {
-        onFileDownloaded(FS_FILE_NOT_DOWNLOADED, console);
-    }
-}
-
-#endif
-
-#if defined(CAN_EXPORT)
-
-#include "zip.h"
-
-static void onConsoleExportHtmlCommand(Console* console, const char* providedName);
-
-static const char* getExportName(Console* console, const char* ext)
+static void onExportGet(const HttpGetData* data)
 {
-    static char name[TICNAME_MAX];
-
-    strcpy(name, strlen(console->romName) ? console->romName : "game");
-
-    if(ext)
-        strcat(name, ext);
-
-    return name;
-}
-
-static struct{const void* data; s32 size;} htmlExportZip = {NULL, 0};
-
-static void onHtmlExportGet(const HttpGetData* data)
-{
-    Console* console = (Console*)data->calldata;
+    GameExportData* exportData = (GameExportData*)data->calldata;
+    Console* console = exportData->console;
 
     switch(data->type)
     {
     case HttpGetProgress:
         {
             console->cursor.x = 0;
+            printf("\r");
             printBack(console, "GET ");
             printFront(console, data->url);
 
@@ -1772,206 +1660,201 @@ static void onHtmlExportGet(const HttpGetData* data)
             printBack(console, buf);
         }
         break;
-    case HttpGetDone:
-        {
-            htmlExportZip.data = data->done.data;
-            htmlExportZip.size = data->done.size;
-            onConsoleExportHtmlCommand(console, NULL);
-        }
-        break;
     case HttpGetError:
+        free(exportData);
         printError(console, "file downloading error :(");
         commandDone(console);
         break;
+    default:
+        break;
     }
 }
 
-static void onConsoleExportHtmlCommand(Console* console, const char* providedName)
+static void onNativeExportGet(const HttpGetData* data)
+{
+    switch(data->type)
+    {
+    case HttpGetDone:
+        {
+            GameExportData* exportData = (GameExportData*)data->calldata;
+            Console* console = exportData->console;
+
+            tic_mem* tic = console->tic;
+
+            char filename[TICNAME_MAX];
+            strcpy(filename, exportData->filename);
+            free(exportData);
+
+            s32 size = data->done.size;
+
+            printLine(console);
+
+            const char* path = fsGetFilePath(console->fs, filename);
+            void* buf = NULL;
+            if((buf = embedCart(console, data->done.data, &size))
+                && fsWriteFile(path, buf, size))
+            {
+                chmod(path, 0755);
+                printFront(console, filename);
+                printBack(console, " exported :)");
+            }
+            else
+            {
+                printError(console, "error: ");
+                printError(console, filename);
+                printError(console, " not saved :(");
+            }
+
+            commandDone(console);
+
+            if (buf)
+                free(buf);
+        }
+        break;
+    default:
+        onExportGet(data);
+    }
+}
+
+static void exportGame(Console* console, const char* name, const char* system, HttpGetCallback callback)
 {
     tic_mem* tic = console->tic;
+    printLine(console);
+    GameExportData* data = calloc(1, sizeof(GameExportData));
+    data->console = console;
+    strcpy(data->filename, name);
 
-#if defined(__TIC_WINDOWS__)
+    char url[TICNAME_MAX] = "/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "/";
+    strcat(url, system);
+    getSystem()->httpGet(url, callback, data);
+}
 
-    static const char HtmlName[] = HTML_EXPORT_NAME;
-    const char* zipPath = HtmlName;
+static inline void exportNativeGame(Console* console, const char* name, const char* system)
+{
+    exportGame(console, name, system, onNativeExportGet);
+}
 
-#else
-
-    static const char HtmlName[] = TIC_CACHE HTML_EXPORT_NAME;
-    const char* zipPath = fsGetRootFilePath(console->fs, HtmlName);
-
-#endif
-
-    if(htmlExportZip.data)
+static void onHtmlExportGet(const HttpGetData* data)
+{
+    switch(data->type)
     {
-        if(!fsWriteFile(zipPath, htmlExportZip.data, htmlExportZip.size))
+    case HttpGetDone:
         {
-            printError(console, "file saving error :(");
-            commandDone(console);
-            return;
-        }
-    }
-    else
-    {
-        printLine(console);
-        getSystem()->httpGet("/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "/" HTML_EXPORT_NAME, onHtmlExportGet, console);
-        return;
-    }
+            GameExportData* exportData = (GameExportData*)data->calldata;
+            Console* console = exportData->console;
 
-    struct zip_t *zip = zip_open(zipPath, ZIP_DEFAULT_COMPRESSION_LEVEL, 'a');
-    bool errorOccured = false;
+            tic_mem* tic = console->tic;
 
-    if(zip)
-    {
-        printBack(console, "\nexporting html...\n");
+            char filename[TICNAME_MAX];
+            strcpy(filename, exportData->filename);
+            free(exportData);
 
-        // save cart
-        if(!errorOccured)
-        {
-            void* cart = malloc(sizeof(tic_cartridge));
+            const char* zipPath = fsGetFilePath(console->fs, filename);
 
-            if(cart)
+            if(!fsWriteFile(zipPath, data->done.data, data->done.size))
             {
-                s32 cartSize = tic_cart_save(&tic->cart, cart);
+                printError(console, "\nerror: ");
+                printError(console, filename);
+                printError(console, " not saved :(");
+                commandDone(console);
+                return;
+            }
 
-                if(cartSize)
+            struct zip_t *zip = zip_open(zipPath, ZIP_DEFAULT_COMPRESSION_LEVEL, 'a');
+            bool errorOccured = false;
+
+            if(zip)
+            {
+                void* cart = malloc(sizeof(tic_cartridge));
+
+                if(cart)
                 {
-                    zip_entry_open(zip, "cart.tic");
-                    zip_entry_write(zip, cart, cartSize);
-                    zip_entry_close(zip);
+                    s32 cartSize = tic_cart_save(&tic->cart, cart);
+
+                    if(cartSize)
+                    {
+                        zip_entry_open(zip, "cart.tic");
+                        zip_entry_write(zip, cart, cartSize);
+                        zip_entry_close(zip);
+                    }
+                    else errorOccured = true;
+
+                    free(cart);
                 }
                 else errorOccured = true;
 
-                free(cart);
+                zip_close(zip);
+                if(!errorOccured)
+                {
+                    printLine(console);
+                    printFront(console, filename);
+                    printBack(console, " exported :)");
+                }
             }
             else errorOccured = true;
+
+            if(errorOccured)
+                printError(console, "\ngame not exported :(\n");
+
+            commandDone(console);
         }
-
-        zip_close(zip);
-        if(!errorOccured)
-        {
-            s32 size = 0;
-
-#if defined(__TIC_WINDOWS__)
-            // Temporary workaround for #1169, because ZIP lib doesn't work with wide filenames,
-            // we store it the working dir and remove at the end.
-            void* data = fsReadFile(zipPath, &size);
-            remove(HtmlName);
-#else
-            void* data = fsLoadRootFile(console->fs, HtmlName, &size);
-#endif
-
-            if(data && providedName)
-            {
-                if(fsExists(providedName))
-                {
-                    printError(console, "\nfile already exists");
-                    commandDone(console);
-                    return;
-                }
-                else if (fsWriteFile(providedName, data, sizeof(data)))
-                {
-                    onFileDownloaded(FS_FILE_DOWNLOADED, console);
-                    return;
-                }
-                else
-                {
-                    onFileDownloaded(FS_FILE_NOT_DOWNLOADED, console);
-                    return;
-                }
-            }
-            else if(data)
-            {
-                fsGetFileData(onFileDownloaded, getExportName(console, ".zip"), data, size, DEFAULT_CHMOD, console);
-                return;
-            }
-            else errorOccured = true;
-        }
+        break;
+    default:
+        onExportGet(data);
     }
-    else errorOccured = true;
-
-    if(errorOccured)
-        printError(console, "\ngame not exported :(\n");
-
-    commandDone(console);
 }
 
-#endif
+static const char* getFilename(const char* filename, const char* ext)
+{
+    if(strcmp(filename + strlen(filename) - strlen(ext), ext) == 0)
+        return filename;
+
+    static char Name[TICNAME_MAX];
+    strcpy(Name, filename);
+    strcat(Name, ext);
+
+    return Name;
+}
 
 static void onConsoleExportCommand(Console* console, const char* param)
 {
+    bool error = true;
+
+    enum {SfxIndex = sizeof "sfx" - 1, MusicIndex = sizeof "music" - 1};
+
+    const char* filename = NULL;
     if(param)
     {
-        bool errorOccured = false;
+        char* name = strchr(param, ' ');
 
-        if(strcmp(param, "native") == 0 || strcmp(param, "") == 0)
-        {
-#if defined(CAN_EXPORT_NATIVE)
+        if(name && strlen(name + 1))
+            *name++ = '\0';
+        filename = name;
+    }
 
-#if defined(__TIC_WINDOWS__)
-            const char* ext = ExeExt;
-#else
-            const char* ext = NULL;
-#endif
-
-            const char* name = getExportName(console, ext);
-            onConsoleExportNativeCommand(console, name);
-#else
-
-            printBack(console, "\ngame export isn't supported on this platform\n");
-            commandDone(console);
-#endif
-        }
-        else if(strncmp(param, "html", 4) == 0 && (param[4] == ' ' || param[4] == 0))
-        {
-#if defined(CAN_EXPORT)
-            const char* providedName = param[4] ? param + 5 : NULL;
-            onConsoleExportHtmlCommand(console, providedName);
-#else
-
-            printBack(console, "\nhtml export isn't supported on this platform\n");
-            commandDone(console);
-#endif
-        }
+    if(param && filename)
+    {
+        if(strcmp(param, "html") == 0)
+            exportGame(console, getFilename(filename, ".zip"), param, onHtmlExportGet);
         else if(strcmp(param, "sprites") == 0)
-        {
-            exportSprites(console);
-        }
+            exportSprites(console, getFilename(filename, ".gif"));
         else if(strcmp(param, "map") == 0)
-        {
-            exportMap(console);
-        }
+            exportMap(console, getFilename(filename, ".map"));
         else if(strcmp(param, "cover") == 0)
-        {
-            exportCover(console);
-        }
-        else if(strcmp(param, "sfx") == 0)
-        {
-            exportSfx(console, 0);
-        }
-        else if(memcmp(param, "sfx ", sizeof "sfx") == 0)
-        {
-            s32 sfx = atoi(param + sizeof "sfx");
-
-            if(sfx >= 0 && sfx < SFX_COUNT)
-                exportSfx(console, sfx);
-            else errorOccured = true;
-        }
-        else if(strcmp(param, "music") == 0)
-        {
-            exportMusic(console, 0);
-        }
-        else if(memcmp(param, "music ", sizeof "music") == 0)
-        {
-            s32 track = atoi(param + sizeof "music");
-
-            if(track >= 0 && track < MUSIC_TRACKS)
-                exportMusic(console, track);
-            else errorOccured = true;
-        }
-        else errorOccured = true;
-
-        if(errorOccured)
+            exportCover(console, getFilename(filename, ".gif"));
+        else if(strncmp(param, "sfx", SfxIndex) == 0)
+            exportSfx(console, atoi(param + SfxIndex) % SFX_COUNT, getFilename(filename, ".wav"));
+        else if(strncmp(param, "music", MusicIndex) == 0)
+            exportMusic(console, atoi(param + MusicIndex) % MUSIC_TRACKS, getFilename(filename, ".wav"));
+        else if(strcmp(param, "win") == 0)
+            exportNativeGame(console, getFilename(filename, ".exe"), param);
+        else if(strcmp(param, "linux") == 0)
+            exportNativeGame(console, filename, param);
+        else if(strcmp(param, "rpi") == 0)
+            exportNativeGame(console, filename, param);
+        else if(strcmp(param, "mac") == 0)
+            exportNativeGame(console, filename, param);
+        else
         {
             printError(console, "\nunknown parameter: ");
             printError(console, param);
@@ -1980,12 +1863,12 @@ static void onConsoleExportCommand(Console* console, const char* param)
     }
     else
     {
-        printError(console, "\nplease, specify parameter\n");
+        printBack(console, "\nusage: export (");
+        printFront(console, "win linux rpi mac html sprites map cover sfx<#> music<#>");
+        printBack(console, ") file\n");
         commandDone(console);
     }
 }
-
-#endif
 
 static CartSaveResult saveCartName(Console* console, const char* name)
 {
@@ -2022,7 +1905,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
 
                 if(size && fsSaveFile(console->fs, name, buffer, size, true))
                 {
-                    setCartName(console, name);
+                    setCartName(console, name, fsGetFilePath(console->fs, name));
                     success = true;
                     studioRomSaved();
                 }
@@ -2031,9 +1914,9 @@ static CartSaveResult saveCartName(Console* console, const char* name)
             free(buffer);
         }
     }
-    else if (strlen(console->romName))
+    else if (strlen(console->rom.name))
     {
-        return saveCartName(console, console->romName);
+        return saveCartName(console, console->rom.name);
     }
     else return CART_SAVE_MISSING_NAME;
 
@@ -2052,7 +1935,7 @@ static void onConsoleSaveCommandConfirmed(Console* console, const char* param)
     if(rom == CART_SAVE_OK)
     {
         printBack(console, "\ncart ");
-        printFront(console, console->romName);
+        printFront(console, console->rom.name);
         printBack(console, " saved!\n");
     }
     else if(rom == CART_SAVE_MISSING_NAME)
@@ -2065,7 +1948,7 @@ static void onConsoleSaveCommandConfirmed(Console* console, const char* param)
 
 static void onConsoleSaveCommand(Console* console, const char* param)
 {
-    if(param && strlen(param) &&
+    if(param && strlen(param) && 
         (fsExistsFile(console->fs, param) ||
             fsExistsFile(console->fs, getCartName(param))))
     {
@@ -2099,13 +1982,7 @@ static void onConsoleResumeCommand(Console* console, const char* param)
 {
     commandDone(console);
 
-    const tic_script_config* script_config = tic_core_script_config(console->tic);
-    if (script_config->eval && console->codeLiveReload.active)
-    {
-        script_config->eval(console->tic, console->tic->cart.code.data);
-    }
     tic_core_resume(console->tic);
-
     resumeRunMode();
 }
 
@@ -2125,49 +2002,6 @@ static void onConsoleEvalCommand(Console* console, const char* param)
     {
         printError(console, "'eval' not implemented for the script");
     }
-
-    commandDone(console);
-}
-
-static void onAddFile(const char* name, AddResult result, void* data)
-{
-    Console* console = (Console*)data;
-
-    printLine(console);
-
-    switch(result)
-    {
-    case FS_FILE_EXISTS:
-        printBack(console, "file ");
-        printFront(console, name);
-        printBack(console, " already exists :|");
-        break;
-    case FS_FILE_ADDED:
-        printBack(console, "file ");
-        printFront(console, name);
-        printBack(console, " is successfully added :)");
-        break;
-    default:
-        printBack(console, "file not added :(");
-        break;
-    }
-
-    commandDone(console);
-}
-
-static void onConsoleAddCommand(Console* console, const char* param)
-{
-    fsAddFile(console->fs, onAddFile, console);
-}
-
-static void onConsoleGetCommand(Console* console, const char* param)
-{
-    if(param)
-    {
-        fsGetFile(console->fs, onFileDownloaded, param, console);
-        return;
-    }
-    else printBack(console, "\nfile name is missing");
 
     commandDone(console);
 }
@@ -2337,6 +2171,97 @@ static void onConsoleVRamCommand(Console* console, const char* param)
     commandDone(console);
 }
 
+#if defined(CAN_ADDGET_FILE)
+
+static void onConsoleAddFile(Console* console, const char* name, const u8* buffer, s32 size)
+{
+    if(name)
+    {
+        const char* path = fsGetFilePath(console->fs, name);
+
+        if(!fsExists(path))
+        {
+            if(fsWriteFile(path, buffer, size))
+            {
+                printLine(console);
+                printFront(console, name);
+                printBack(console, " successfully added :)");
+            }
+            else printError(console, "\nerror: file not added :(");
+        }
+        else
+        {
+            printError(console, "\nerror: ");
+            printError(console, name);
+            printError(console, " already exists :(");
+        }        
+    }
+
+    commandDone(console);
+}
+
+static void onConsoleAddCommand(Console* console, const char* param)
+{
+    void* data = NULL;
+
+    EM_ASM_
+    ({
+        Module.showAddPopup(function(filename, rom)
+        {
+            if(filename == null || rom == null)
+            {
+                dynCall('viiii', $0, [$1, 0, 0, 0]);
+            }
+            else
+            {
+                var filePtr = Module._malloc(filename.length + 1);
+                stringToUTF8(filename, filePtr, filename.length + 1);
+
+                var dataPtr = Module._malloc(rom.length);
+                writeArrayToMemory(rom, dataPtr);
+
+                dynCall('viiii', $0, [$1, filePtr, dataPtr, rom.length]);
+
+                Module._free(filePtr);
+                Module._free(dataPtr);
+            }
+        });
+    }, onConsoleAddFile, console);
+}
+
+static void onConsoleGetCommand(Console* console, const char* name)
+{
+    if(name)
+    {
+        const char* path = fsGetFilePath(console->fs, name);
+
+        if(fsExists(path))
+        {
+            s32 size = 0;
+            void* buffer = fsReadFile(path, &size);
+
+            EM_ASM_
+            ({
+                var name = UTF8ToString($0);
+                var blob = new Blob([HEAPU8.subarray($1, $1 + $2)], {type: "application/octet-stream"});
+
+                Module.saveAs(blob, name);
+            }, name, buffer, size);
+        }
+        else
+        {
+            printError(console, "\nerror: ");
+            printError(console, name);
+            printError(console, " doesn't exist :(");
+        }
+    }
+    else printBack(console, "\nusage: get <file>");
+
+    commandDone(console);
+}
+
+#endif
+
 static const struct
 {
     const char* command;
@@ -2347,9 +2272,6 @@ static const struct
 } AvailableConsoleCommands[] =
 {
     {"help",    NULL, "show this info",             onConsoleHelpCommand},
-#if defined(CAN_OPEN_URL)
-    {"wiki",    NULL, "open github wiki page",      onConsoleWikiCommand},
-#endif
     {"ram",     NULL, "show 80K RAM layout",        onConsoleRamCommand},
     {"vram",    NULL, "show 16K VRAM layout",       onConsoleVRamCommand},
     {"exit",    "quit", "exit the application",     onConsoleExitCommand},
@@ -2362,11 +2284,13 @@ static const struct
     {"dir",     "ls", "show list of files",         onConsoleDirCommand},
     {"cd",      NULL, "change directory",           onConsoleChangeDirectory},
     {"mkdir",   NULL, "make directory",             onConsoleMakeDirectory},
-#if defined(CAN_OPEN_FOLDER)
     {"folder",  NULL, "open working folder in OS",  onConsoleFolderCommand},
-#endif
+
+#if defined(CAN_ADDGET_FILE)
     {"add",     NULL, "add file",                   onConsoleAddCommand},
     {"get",     NULL, "download file",              onConsoleGetCommand},
+#endif
+
     {"export",  NULL, "export native game",         onConsoleExportCommand},
     {"import",  NULL, "import sprites from .gif",   onConsoleImportCommand},
     {"del",     NULL, "delete file or dir",         onConsoleDelCommand},
@@ -2374,7 +2298,6 @@ static const struct
     {"demo",    NULL, "install demo carts",         onConsoleInstallDemosCommand},
     {"config",  NULL, "edit TIC config",            onConsoleConfigCommand},
     {"version", NULL, "show the current version",   onConsoleVersionCommand},
-    {"edit",    NULL, "open cart editor",           onConsoleCodeCommand},
     {"surf",    NULL, "open carts browser",         onConsoleSurfCommand},
     {"menu",    NULL, "show game menu",             onConsoleGameMenuCommand},
 };
@@ -2443,7 +2366,7 @@ static void onConsoleHelpCommand(Console* console, const char* param)
         {
             const char* alt = AvailableConsoleCommands[i].alt;
             if(alt)
-                len += strlen(alt) + 1;
+                len += strlen(alt) + 1;         
         }
 
         if(len > maxName) maxName = len;
@@ -2504,13 +2427,18 @@ static s32 tic_strcasecmp(const char *str1, const char *str2)
 
 static void processCommand(Console* console, const char* command)
 {
+    console->active = false;
+
     while(*command == ' ')
         command++;
 
-    char* end = (char*)command + strlen(command) - 1;
+    // trim empty chars
+    {
+        char* end = (char*)command + strlen(command) - 1;
 
-    while(*end == ' ' && end > command)
-        *end-- = '\0';
+        while(*end == ' ' && end > command)
+            *end-- = '\0';
+    }
 
     char* param = strchr(command, ' ');
 
@@ -2538,6 +2466,24 @@ static void processCommand(Console* console, const char* command)
         printError(console, console->inputBuffer);
         commandDone(console);
     }
+}
+
+static void processCommands(Console* console)
+{
+    const char* command = console->args.cmd;
+    static const char Sep[] = " & ";
+    char* next = strstr(command, Sep);
+
+    if(next)
+    {
+        *next = '\0';
+        next += sizeof Sep - 1;
+    }
+
+    console->args.cmd = next;
+
+    printFront(console, command);
+    processCommand(console, command);
 }
 
 static void fillInputBufferFromHistory(Console* console)
@@ -2669,7 +2615,7 @@ static void onHttpVesrsionGet(const HttpGetData* data)
         {
             lua_State* lua = netLuaInit(data->done.data, data->done.size);
 
-            union
+            union 
             {
                 struct
                 {
@@ -2679,7 +2625,7 @@ static void onHttpVesrsionGet(const HttpGetData* data)
                 };
 
                 s32 data[3];
-            } version =
+            } version = 
             {
                 .major = TIC_VERSION_MAJOR,
                 .minor = TIC_VERSION_MINOR,
@@ -2751,7 +2697,7 @@ static void processMouse(Console* console)
         {
             console->scroll.active = true;
             console->scroll.start = tic_api_mouse(tic).y + console->scroll.pos * TIC_FONT_HEIGHT;
-        }
+        }            
     }
     else console->scroll.active = false;
 }
@@ -2770,8 +2716,13 @@ static void processKeyboard(Console* console)
 {
     tic_mem* tic = console->tic;
 
+    if(!console->active)
+        return;
+
     if(tic->ram.input.keyboard.data != 0)
     {
+        console->cursor.delay = CONSOLE_CURSOR_DELAY;
+
         if(keyWasPressed(tic_key_up)) onHistoryUp(console);
         else if(keyWasPressed(tic_key_down)) onHistoryDown(console);
         else if(keyWasPressed(tic_key_left))
@@ -2795,8 +2746,8 @@ static void processKeyboard(Console* console)
         else if(keyWasPressed(tic_key_pageup))      processConsolePgUp(console);
         else if(keyWasPressed(tic_key_pagedown))    processConsolePgDown(console);
 
-        if(tic_api_key(tic, tic_key_ctrl)
-            && tic_api_key(tic, tic_key_k))
+        if(tic_api_key(tic, tic_key_ctrl) 
+            && keyWasPressed(tic_key_k))
         {
             onConsoleClsCommand(console, NULL);
             return;
@@ -2846,7 +2797,7 @@ static void tick(Console* console)
             loadDemo(console, WrenScript);
 #elif defined(TIC_BUILD_WITH_SQUIRREL)
             loadDemo(console, SquirrelScript);
-#endif
+#endif          
 
             printBack(console, "\n hello! type ");
             printFront(console, "help");
@@ -2865,9 +2816,9 @@ static void tick(Console* console)
 
     if(console->embed.yes)
     {
-        if(console->tickCounter >= (u32)(console->skipStart ? 1 : TIC80_FRAMERATE))
+        if(console->tickCounter >= (u32)(console->args.skip ? 1 : TIC80_FRAMERATE))
         {
-            if(!console->skipStart)
+            if(!console->args.skip)
                 console->showGameMenu = true;
 
             memcpy(&tic->cart, console->embed.file, sizeof(tic_cartridge));
@@ -2875,8 +2826,8 @@ static void tick(Console* console)
             tic_api_reset(tic);
 
             setStudioMode(TIC_RUN_MODE);
+
             console->embed.yes = false;
-            console->skipStart = false;
             studioRomLoaded();
 
             printLine(console);
@@ -2887,247 +2838,53 @@ static void tick(Console* console)
         }
     }
     else
-    {
+    {   
         if(console->cursor.delay)
             console->cursor.delay--;
 
         if(getStudioMode() != TIC_CONSOLE_MODE) return;
 
         drawConsoleInputText(console);
+
+        if(console->active && console->args.cmd)
+            processCommands(console);
     }
 
     console->tickCounter++;
-
-    if(console->startSurf)
-    {
-        console->startSurf = false;
-        gotoSurf();
-    }
 }
 
-static bool cmdLoadCart(Console* console, const char* name)
+static bool cmdLoadCart(Console* console, const char* path)
 {
     bool done = false;
 
     s32 size = 0;
-    void* data = fsReadFile(name, &size);
+    void* data = fsReadFile(path, &size);
 
     if(data)
     {
-        if(hasProjectExt(name))
+        char cartName[TICNAME_MAX];
+        fsFilename(path, cartName);
+        setCartName(console, cartName, path);
+
+        if(hasProjectExt(cartName))
         {
-            if(tic_project_load(name, data, size, console->embed.file))
-            {
-                char cartName[TICNAME_MAX];
-                fsFilename(name, cartName);
-                setCartName(console, cartName);
-                console->embed.yes = true;
-                console->skipStart = true;
-                done = true;
-            }
+            if(tic_project_load(cartName, data, size, console->embed.file))
+                done = console->embed.yes = true;
         }
-        else if(tic_tool_has_ext(name, CART_EXT))
+        else if(tic_tool_has_ext(cartName, CART_EXT))
         {
             tic_mem* tic = console->tic;
             tic_cart_load(console->embed.file, data, size);
-
-            char cartName[TICNAME_MAX];
-            fsFilename(name, cartName);
-
-            setCartName(console, cartName);
-
-            console->embed.yes = true;
-            done = true;
+            done = console->embed.yes = true;
         }
-
+        
         free(data);
     }
 
     return done;
 }
 
-static bool loadFileIntoBuffer(Console* console, char* buffer, const char* fileName)
-{
-    s32 size = 0;
-    void* contents = fsReadFile(fileName, &size);
-
-    if(contents)
-    {
-        memset(buffer, 0, TIC_CODE_SIZE);
-
-        if(size > TIC_CODE_SIZE)
-        {
-            char messageBuffer[256];
-            sprintf(messageBuffer, "\n code is larger than %i symbols\n", TIC_CODE_SIZE);
-
-            printError(console, messageBuffer);
-        }
-
-        memcpy(buffer, contents, MIN(size, TIC_CODE_SIZE-1));
-        free(contents);
-
-        return true;
-    }
-
-    return false;
-}
-
-static void tryReloadCode(Console* console, char* codeBuffer)
-{
-    if(console->codeLiveReload.active)
-    {
-        const char* fileName = console->codeLiveReload.fileName;
-        loadFileIntoBuffer(console, codeBuffer, fileName);
-    }
-}
-
-static bool cmdInjectCode(Console* console, const char* param, const char* name)
-{
-    bool done = false;
-
-    bool watch = strcmp(param, "-code-watch") == 0;
-    if(watch || strcmp(param, "-code") == 0)
-    {
-        bool loaded = loadFileIntoBuffer(console, console->embed.file->code.data, name);
-
-        if(loaded)
-        {
-            console->embed.yes = true;
-            console->skipStart = true;
-            done = true;
-
-            if(watch)
-            {
-                console->codeLiveReload.active = true;
-                strcpy(console->codeLiveReload.fileName, name);
-            }
-        }
-    }
-
-    return done;
-}
-
-static bool cmdInjectSprites(Console* console, const char* param, const char* name)
-{
-    bool done = false;
-
-    if(strcmp(param, "-sprites") == 0)
-    {
-        s32 size = 0;
-        void* sprites = fsReadFile(name, &size);
-
-        if(sprites)
-        {
-            gif_image* image = gif_read_data(sprites, size);
-
-            if (image)
-            {
-                enum
-                {
-                    Width = TIC_SPRITESHEET_SIZE,
-                    Height = TIC_SPRITESHEET_SIZE*2,
-                };
-
-                s32 w = MIN(Width, image->width);
-                s32 h = MIN(Height, image->height);
-
-                for (s32 y = 0; y < h; y++)
-                    for (s32 x = 0; x < w; x++)
-                    {
-                        u8 src = image->buffer[x + y * image->width];
-                        const gif_color* c = &image->palette[src];
-                        u8 color = tic_tool_find_closest_color(console->embed.file->bank0.palette.scn.colors, c);
-
-                        setSpritePixel(console->embed.file->bank0.tiles.data, x, y, color);
-                    }
-
-                gif_close(image);
-            }
-
-            free(sprites);
-
-            console->embed.yes = true;
-            console->skipStart = true;
-            done = true;
-        }
-
-    }
-
-    return done;
-}
-
-static bool cmdInjectMap(Console* console, const char* param, const char* name)
-{
-    bool done = false;
-
-    if(strcmp(param, "-map") == 0)
-    {
-        s32 size = 0;
-        void* map = fsReadFile(name, &size);
-
-        if(map)
-        {
-            if(size <= sizeof(tic_map))
-            {
-                injectMap(console, map, size);
-
-                console->embed.yes = true;
-                console->skipStart = true;
-                done = true;
-            }
-
-            free(map);
-        }
-    }
-
-    return done;
-}
-
-static bool checkUIScale(Console* console, const char* param, const char* value)
-{
-    bool done = false;
-
-    if(strcmp(param, "-uiscale") == 0)
-    {
-        s32 scale = atoi(value);
-
-        if(scale > 0)
-        {
-            console->config->data.uiScale = scale;
-            done = true;
-        }
-    }
-
-    return done;
-}
-
-static bool checkCommand(Console* console, const char* argument)
-{
-    char* command = alloca(strlen(argument));
-    strcpy(command, argument);
-
-    for(char* ptr = command; *ptr; ptr++)
-        if(isspace(*ptr))
-        {
-            *ptr = '\0';
-            break;
-        }
-
-    for(s32 i = 0; i < COUNT_OF(AvailableConsoleCommands); i++)
-    {
-        if(tic_strcasecmp(command, AvailableConsoleCommands[i].command) == 0 ||
-            (AvailableConsoleCommands[i].alt &&
-             tic_strcasecmp(command, AvailableConsoleCommands[i].alt) == 0))
-        {
-            processCommand(console, argument);
-            return true;
-        }
-    }
-
-    return false;
-}
-
-void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config, s32 argc, char **argv)
+void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config, StartArgs args)
 {
     if(!console->buffer) console->buffer = malloc(CONSOLE_BUFFER_SIZE);
     if(!console->colorBuffer) console->colorBuffer = malloc(CONSOLE_BUFFER_SIZE);
@@ -3150,11 +2907,6 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
             .start = 0,
             .active = false,
         },
-        .codeLiveReload =
-        {
-            .active = false,
-            .reload = tryReloadCode,
-        },
         .embed =
         {
             .yes = false,
@@ -3169,113 +2921,39 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
         .colorBuffer = console->colorBuffer,
         .fs = fs,
         .showGameMenu = false,
-#if defined(__TIC_ANDROID__)
-        .startSurf = true,
-#else
-        .startSurf = false,
-#endif
-        .skipStart = false,
-        .goFullscreen = false,
-        .crtMonitor = false,
+        .args = args,
     };
 
     memset(console->buffer, 0, CONSOLE_BUFFER_SIZE);
     memset(console->colorBuffer, TIC_COLOR_BG, CONSOLE_BUFFER_SIZE);
 
-    memset(console->codeLiveReload.fileName, 0, TICNAME_MAX);
-
-    if(argc)
-    {
-        strcpy(console->appPath, argv[0]);
-
-#if defined(__TIC_WINDOWS__)
-        if(!strstr(console->appPath, ExeExt))
-            strcat(console->appPath, ExeExt);
-#endif
-    }
-
     printFront(console, "\n " TIC_NAME_FULL "");
     printBack(console, " " TIC_VERSION_LABEL "\n");
     printBack(console, " " TIC_COPYRIGHT "\n");
 
-    if(argc > 1)
-    {
-        // TODO: should we use default DB16 palette here???
-        memcpy(console->embed.file->bank0.palette.scn.data, getConfig()->cart->bank0.palette.scn.data, sizeof(tic_palette));
-
-        u32 argp = 1;
-
-        // trying to load cart
-        for (s32 i = 1; i < argc; i++)
+    if(args.cart)
+        if(!cmdLoadCart(console, args.cart))
         {
-            if(strcmp(argv[i], ".") == 0 || cmdLoadCart(console, argv[i]))
-            {
-                argp |= 1 << i;
-                break;
-            }
+            printf("error: cart `%s` not loaded\n", args.cart);
+            exit(1);
         }
-
-        // process '-key val' params
-        for (s32 i = 1; i < argc-1; i++)
-        {
-            s32 mask = 0b11 << i;
-
-            if(~argp & mask)
-            {
-                const char* first = argv[i];
-                const char* second = argv[i + 1];
-
-                if(cmdInjectCode(console, first, second)
-                    || cmdInjectSprites(console, first, second)
-                    || cmdInjectMap(console, first, second)
-                    || checkUIScale(console, first, second))
-                    argp |= mask;
-            }
-        }
-
-        // proccess single params
-        for (s32 i = 1; i < argc; i++)
-        {
-            if(~argp & 1 << i)
-            {
-                const char* arg = argv[i];
-
-                if(strcmp(arg, "-nosound") == 0)
-                    config->data.noSound = true;
-
-                else if(strcmp(arg, "-surf") == 0)
-                    console->startSurf = true;
-
-                else if(strcmp(arg, "-fullscreen") == 0)
-                    console->goFullscreen = true;
-
-                else if(strcmp(arg, "-skip") == 0)
-                    console->skipStart = true;
-
-                else if(strcmp(arg, "-save") == 0)
-                    saveCart(console);
-
-                else if(strcmp(arg, "-crt-monitor") == 0)
-                    console->crtMonitor = true;
-
-                else continue;
-
-                argp |= 0b1 << i;
-            }
-        }
-
-        for (s32 i = 1; i < argc; i++)
-            if(~argp & 1 << i)
-                if(!checkCommand(console, argv[i]))
-                    printf("parameter or file not processed: %s\n", argv[i]);
-    }
-
-#if defined(CAN_EXPORT_NATIVE)
 
     if(!console->embed.yes)
     {
+        char appPath[TICNAME_MAX];
+
+#if defined(__TIC_WINDOWS__)
+        GetModuleFileNameA(NULL, appPath, sizeof appPath);
+#elif defined(__TIC_LINUX__)
+        s32 size = readlink("/proc/self/exe", appPath, sizeof appPath);
+        appPath[size] = '\0';
+#elif defined(__TIC_MACOSX__)
+        s32 size = sizeof appPath;
+        _NSGetExecutablePath(appPath, &size);
+#endif
+
         s32 appSize = 0;
-        u8* app = fsReadFile(console->appPath, &appSize);
+        u8* app = fsReadFile(appPath, &appSize);
 
         if(app)
         {
@@ -3301,7 +2979,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
                                 tic_cart_load(console->embed.file, data, dataSize);
                                 console->embed.yes = true;
                             }
-
+                            
                             free(data);
                         }
 
@@ -3320,8 +2998,6 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
         }
     }
 
-#endif
-
     console->active = !console->embed.yes;
 }
 
@@ -3339,11 +3015,11 @@ void freeConsole(Console* console)
             HistoryItem* next = it->next;
 
             if(it->value) free(it->value);
-
+            
             free(it);
 
             it = next;
-        }
+        }        
     }
 
     free(console);

@@ -32,7 +32,6 @@
 #include "api.h"
 #include "defines.h"
 #include "tools.h"
-#include "ext/file_dialog.h"
 #include "system.h"
 
 #define TIC_LOCAL ".local/"
@@ -65,6 +64,20 @@ do{                                         \
     sprintf(buf, Format, __VA_ARGS__);      \
     showTooltip(buf);                       \
 }while(0)
+
+typedef struct
+{
+    bool skip;
+    bool nosound;
+    bool fullscreen;
+    s32 scale;
+    const char *fs;
+    const char *cart;
+#if defined(CRT_SHADER_SUPPORT)
+    bool crt;
+#endif
+    const char *cmd;
+} StartArgs;
 
 typedef enum
 {
@@ -166,8 +179,8 @@ System* getSystem();
 const char* md5str(const void* data, s32 length);
 bool hasProjectExt(const char* name);
 void sfx_stop(tic_mem* tic, s32 channel);
-const char* studioExportMusic(s32 track);
-const char* studioExportSfx(s32 sfx);
+const char* studioExportMusic(s32 track, const char* filename);
+const char* studioExportSfx(s32 sfx, const char* filename);
 s32 calcWaveAnimation(tic_mem* tic, u32 index, s32 channel);
 void map2ram(tic_ram* ram, const tic_map* src);
 void tiles2ram(tic_ram* ram, const tic_tiles* src);

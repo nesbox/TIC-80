@@ -133,6 +133,7 @@ static struct
     struct
     {
         bool state[tic_keys_count];
+        char text;
 
 #if defined(TOUCH_INPUT_SUPPORT)
         struct
@@ -945,7 +946,7 @@ static void pollEvent()
             break;
         case SDL_TEXTINPUT:
             if(strlen(event.text.text) == 1)
-                platform.studio->text = event.text.text[0];
+                platform.keyboard.text = event.text.text[0];
             break;
         case SDL_QUIT:
             platform.studio->exit();
@@ -963,6 +964,11 @@ static void pollEvent()
 
     processKeyboard();
     processGamepad();
+}
+
+static char getInputText()
+{
+    return platform.keyboard.text;
 }
 
 #if defined(CRT_SHADER_SUPPORT)
@@ -1285,7 +1291,8 @@ static void showMessageBox(const char* title, const char* message)
 
 static void setWindowTitle(const char* title)
 {
-    SDL_SetWindowTitle(platform.window, title);
+    if(platform.window)
+        SDL_SetWindowTitle(platform.window, title);
 }
 
 #if defined(__WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
@@ -1410,14 +1417,6 @@ static System systemInterface =
     .httpGetSync = httpGetSync,
     .httpGet = httpGet,
 
-#if defined(FILE_DIALOGS_SUPPORT)
-    .fileDialogLoad = file_dialog_load,
-    .fileDialogSave = file_dialog_save,
-#else
-    .fileDialogLoad = NULL,
-    .fileDialogSave = NULL,
-#endif
-
     .goFullscreen = goFullscreen,
     .showMessageBox = showMessageBox,
     .setWindowTitle = setWindowTitle,
@@ -1426,6 +1425,8 @@ static System systemInterface =
     .preseed = preseed,
     .poll = pollEvent,
     .updateConfig = updateConfig,
+
+    .text = getInputText,
 };
 
 static void gpuTick()
@@ -1551,6 +1552,8 @@ static void gpuTick()
 #endif
 
     blitSound();
+
+    platform.keyboard.text = '\0';
 }
 
 #if defined(__EMSCRIPTEN__)
@@ -1592,7 +1595,7 @@ static void createMouseCursors()
         platform.mouse.cursors[i] = SDL_CreateSystemCursor(SystemCursors[i]);
 }
 
-static s32 start(s32 argc, char **argv, const char* folder)
+static s32 start(s32 argc, const char **argv, const char* folder)
 {
     SDL_SetHint(SDL_HINT_WINRT_HANDLE_BACK_BUTTON, "1");
     SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
@@ -1605,24 +1608,30 @@ static s32 start(s32 argc, char **argv, const char* folder)
 
     platform.studio = studioInit(argc, argv, platform.audio.spec.freq, folder, &systemInterface);
 
-    const s32 Width = TIC80_FULLWIDTH * platform.studio->config()->uiScale;
-    const s32 Height = TIC80_FULLHEIGHT * platform.studio->config()->uiScale;
+    {
+        const s32 Width = TIC80_FULLWIDTH * platform.studio->config()->uiScale;
+        const s32 Height = TIC80_FULLHEIGHT * platform.studio->config()->uiScale;
 
-    platform.window = SDL_CreateWindow( TIC_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-        Width, Height, SDL_WINDOW_SHOWN 
-            | SDL_WINDOW_RESIZABLE
+        platform.window = SDL_CreateWindow( TIC_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+            Width, Height, SDL_WINDOW_SHOWN 
+                | SDL_WINDOW_RESIZABLE
 #if defined(CRT_SHADER_SUPPORT)
-            | SDL_WINDOW_OPENGL
+                | SDL_WINDOW_OPENGL
 #endif            
-            | SDL_WINDOW_ALLOW_HIGHDPI);
+#if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
+                | SDL_WINDOW_ALLOW_HIGHDPI
+#endif
+                );
 
-    setWindowIcon();
-    createMouseCursors();
+        setWindowIcon();
+        createMouseCursors();
 
-    initGPU();
+        initGPU();
 
-    if(platform.studio->config()->goFullscreen)
-        goFullscreen();
+        if(platform.studio->config()->goFullscreen)
+            goFullscreen();
+    }
+
 
 #if defined(__EMSCRIPTEN__)
     emscripten_set_main_loop(emsGpuTick, 0, 1);
@@ -1662,18 +1671,20 @@ static s32 start(s32 argc, char **argv, const char* folder)
     if(platform.audio.cvt.buf)
         SDL_free(platform.audio.cvt.buf);
 
-    destroyGPU();
+    {
+        destroyGPU();
 
 #if defined(TOUCH_INPUT_SUPPORT)
-    if(platform.gamepad.touch.pixels)
-        SDL_free(platform.gamepad.touch.pixels);
+        if(platform.gamepad.touch.pixels)
+            SDL_free(platform.gamepad.touch.pixels);
 #endif    
 
-    SDL_DestroyWindow(platform.window);
-    SDL_CloseAudioDevice(platform.audio.device);
+        SDL_DestroyWindow(platform.window);
+        SDL_CloseAudioDevice(platform.audio.device);
 
-    for(s32 i = 0; i < COUNT_OF(platform.mouse.cursors); i++)
-        SDL_FreeCursor(platform.mouse.cursors[i]);
+        for(s32 i = 0; i < COUNT_OF(platform.mouse.cursors); i++)
+            SDL_FreeCursor(platform.mouse.cursors[i]);
+    }
 
     return 0;
 }
@@ -1773,7 +1784,7 @@ s32 main(s32 argc, char **argv)
 
 #else
 
-    return start(argc, argv, folder);
+    return start(argc, (const char **)argv, folder);
     
 #endif
 }

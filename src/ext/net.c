@@ -24,8 +24,90 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #ifndef DISABLE_NETWORKING
+    #if defined(__EMSCRIPTEN__)
+
+#include <emscripten/fetch.h>
+
+typedef struct
+{
+    HttpGetCallback callback;
+    void* calldata;
+} FetchData;
+
+struct Net
+{
+    emscripten_fetch_attr_t attr;
+};
+
+static void downloadSucceeded(emscripten_fetch_t *fetch) 
+{
+    FetchData* data = (FetchData*)fetch->userData;
+
+    HttpGetData getData = 
+    {
+        .type = HttpGetDone,
+        .done = 
+        {
+            .size = fetch->numBytes,
+            .data = (u8*)fetch->data,
+        },
+        .calldata = data->calldata,
+        .url = fetch->url,
+    };
+
+    data->callback(&getData);
+
+    free(data);
+
+    emscripten_fetch_close(fetch);
+}
+
+static void downloadFailed(emscripten_fetch_t *fetch) 
+{
+    FetchData* data = (FetchData*)fetch->userData;
+
+    HttpGetData getData = 
+    {
+        .type = HttpGetError,
+        .error = 
+        {
+            .code = fetch->status,
+        },
+        .calldata = data->calldata,
+        .url = fetch->url,
+    };
+
+    data->callback(&getData);
+
+    free(data);
+
+    emscripten_fetch_close(fetch);
+}
+
+static void downloadProgress(emscripten_fetch_t *fetch) 
+{
+    FetchData* data = (FetchData*)fetch->userData;
+
+    HttpGetData getData = 
+    {
+        .type = HttpGetProgress,
+        .progress = 
+        {
+            .size = fetch->dataOffset + fetch->numBytes,
+            .total = fetch->totalBytes,
+        },
+        .calldata = data->calldata,
+        .url = fetch->url,
+    };
+
+    data->callback(&getData);
+}
+
+    #else
+
 #include <curl/curl.h>
 
 typedef struct
@@ -101,14 +183,35 @@ static size_t writeCallback(char *ptr, size_t size, size_t nmemb, void *userdata
     return total;
 }
 
+    #endif
 #endif
 
 void netGet(Net* net, const char* path, HttpGetCallback callback, void* calldata)
 {
 #ifdef DISABLE_NETWORKING
-    // !TODO: call callback here
-    return;
+
+    HttpGetData getData = 
+    {
+        .type = HttpGetError,
+        .calldata = calldata,
+        .url = path,
+    };
+    callback(&getData);
+
 #else
+    #if defined(__EMSCRIPTEN__)
+
+    FetchData* data = calloc(1, sizeof(FetchData));
+    *data = (FetchData)
+    {
+        .callback = callback,
+        .calldata = calldata,
+    };
+
+    net->attr.userData = data;
+    emscripten_fetch(&net->attr, path);
+
+    #else
 
     struct Curl_easy* curl = curl_easy_init();
 
@@ -135,14 +238,23 @@ void netGet(Net* net, const char* path, HttpGetCallback callback, void* calldata
         curl_multi_add_handle(net->multi, curl);
     }
 
+    #endif
 #endif
 }
 
 void* netGetSync(Net* net, const char* path, s32* size)
 {
 #ifdef DISABLE_NETWORKING
+
     return NULL;
+
 #else
+    #if defined(__EMSCRIPTEN__)
+
+    return NULL;
+
+    #else
+
     CurlData data = {NULL, 0};
 
     if(net->sync)
@@ -166,12 +278,15 @@ void* netGetSync(Net* net, const char* path, s32* size)
 
     return data.buffer;
 
+    #endif
 #endif
 }
 
 void netTick(Net *net)
 {
 #ifndef DISABLE_NETWORKING
+
+    #if !defined(__EMSCRIPTEN__)
 
     {
         s32 running = 0;
@@ -231,6 +346,7 @@ void netTick(Net *net)
             curl_easy_cleanup(msg->easy_handle);
         }
     }
+    #endif
 #endif
 }
 
@@ -239,7 +355,20 @@ Net* createNet()
 #ifdef DISABLE_NETWORKING
     return NULL;
 #else
+
     Net* net = (Net*)malloc(sizeof(Net));
+
+    #if defined(__EMSCRIPTEN__)
+
+    emscripten_fetch_attr_init(&net->attr);
+    strcpy(net->attr.requestMethod, "GET");
+    net->attr.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY;
+    net->attr.onsuccess = downloadSucceeded;
+    net->attr.onerror = downloadFailed;
+    net->attr.onprogress = downloadProgress;
+
+    #else
+
     if (net != NULL)
     {
         *net = (Net)
@@ -251,6 +380,8 @@ Net* createNet()
         curl_easy_setopt(net->sync, CURLOPT_WRITEFUNCTION, writeCallbackSync);
     }
 
+    #endif
+
     return net;
 #endif
 }
@@ -259,11 +390,14 @@ void closeNet(Net* net)
 {
 #ifndef DISABLE_NETWORKING
 
+    #if !defined(__EMSCRIPTEN__)
     if(net->sync)
         curl_easy_cleanup(net->sync);
 
     if(net->multi)
         curl_multi_cleanup(net->multi);
+
+    #endif
 
     free(net);
 #endif

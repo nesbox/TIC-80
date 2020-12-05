@@ -22,6 +22,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <limits.h>
 
@@ -36,6 +37,7 @@ static struct
     struct
     {
         bool state[tic_keys_count];
+        char text;
     } keyboard;
 
     struct
@@ -134,6 +136,11 @@ static void updateConfig()
 
 }
 
+static char getInputText()
+{
+    return platform.keyboard.text;
+}
+
 static System systemInterface = 
 {
     .setClipboardText = setClipboardText,
@@ -147,14 +154,6 @@ static System systemInterface =
     .httpGetSync = httpGetSync,
     .httpGet = httpGet,
 
-#if defined(FILE_DIALOGS_SUPPORT)
-    .fileDialogLoad = file_dialog_load,
-    .fileDialogSave = file_dialog_save,
-#else
-    .fileDialogLoad = NULL,
-    .fileDialogSave = NULL,
-#endif
-
     .goFullscreen = goFullscreen,
     .showMessageBox = showMessageBox,
     .setWindowTitle = setWindowTitle,
@@ -163,6 +162,8 @@ static System systemInterface =
     .preseed = preseed,
     .poll = pollEvent,
     .updateConfig = updateConfig,
+
+    .text = getInputText,
 };
 
 static void app_init(void)
@@ -210,6 +211,7 @@ static void app_frame(void)
     saudio_push(platform.audio.samples, count / 2);
     
     input->mouse.scrollx = input->mouse.scrolly = 0;
+    platform.keyboard.text = '\0';
 }
 
 static void handleKeydown(sapp_keycode keycode, bool down)
@@ -382,7 +384,7 @@ static void app_input(const sapp_event* event)
         break;
     case SAPP_EVENTTYPE_CHAR:
         if(event->char_code < 128)
-            platform.studio->text = event->char_code;
+            platform.keyboard.text = event->char_code;
         break;
     case SAPP_EVENTTYPE_MOUSE_MOVE:
         {
