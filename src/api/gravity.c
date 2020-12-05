@@ -35,11 +35,13 @@
 
 #define GRAVITY_VERIFY_ARGS(function_name, min_arguments, max_arguments) \
     gravity_delegate_t* delegate = gravity_vm_delegate(vm); \
-    if (!delegate) { \
+    if (delegate == NULL) { \
+        printf("No delegate provided\n"); \
         RETURN_NOVALUE(); \
     } \
     tic_mem* tic = (tic_mem*)delegate->xdata; \
-    if (!tic) { \
+    if (tic == NULL) { \
+        printf("No xdata provided\n"); \
         RETURN_NOVALUE(); \
     } \
     tic_core* core = (tic_core*)tic; \
@@ -60,7 +62,7 @@
         } while(0); \
     }
 
-static void gravityReportError(gravity_vm *vm, error_type_t error_type, const char *message, error_desc_t error_desc, void *xdata) {
+static void gravity_error(gravity_vm *vm, error_type_t error_type, const char *message, error_desc_t error_desc, void *xdata) {
     tic_core* core = (tic_core*)xdata;
     char buffer[1024];
     const char *type = "N/A";
@@ -82,14 +84,14 @@ static void gravityReportError(gravity_vm *vm, error_type_t error_type, const ch
     core->data->error(core->data->data, buffer);
 }
 
-static void gravityLogCallback(gravity_vm *vm, const char *message, void *xdata) {
+static void gravity_log(gravity_vm *vm, const char *message, void *xdata) {
     tic_core* core = (tic_core*)xdata;
     if (core && message) {
         core->data->trace(core->data->data, message, TIC_DEFAULT_COLOR);
     }
 }
 
-static void closeGravity(tic_mem* tic) {
+static void gravity_close(tic_mem* tic) {
     tic_core* core = (tic_core*)tic;
     if (core) {
         gravity_vm* vm = core->gravity;
@@ -106,9 +108,8 @@ static void closeGravity(tic_mem* tic) {
 /**
  * Functions
  */
-static bool gravityPrint(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+static bool gravity_print(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
     GRAVITY_VERIFY_ARGS("print", 1, 7);
-
     char* text = VALUE_AS_CSTRING(args[1]);
     int x = 0;
     int y = 0;
@@ -137,26 +138,48 @@ static bool gravityPrint(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, 
     }
 
     s32 output = tic_api_print(tic, text, x, y, color, fixed, scale, smallfont);
-    gravity_value_t rt = VALUE_FROM_UNDEFINED;
-    rt = VALUE_FROM_INT(output);
+    gravity_value_t rt = VALUE_FROM_INT(output);
     RETURN_VALUE(rt, rindex);
 }
 
-static bool gravityBtn(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
-    GRAVITY_VERIFY_ARGS("btn", 1, 1);
-    int id = VALUE_AS_INT(args[1]);
-    bool output = tic_api_btn(tic, id) > 0;
-    gravity_value_t outputValue = VALUE_FROM_BOOL(output);
-    RETURN_VALUE(outputValue, rindex);
+static bool gravity_btn(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+    // GRAVITY_VERIFY_ARGS("btn", 1, 1);
+    // int id = VALUE_AS_INT(args[1]);
+    // printf("btn(%i): Start\n", id);
+    // bool output = tic_api_btn(tic, id) > 0;
+    // printf("btn(%i): End\n", id);
+    // gravity_value_t outputValue = VALUE_FROM_BOOL(output);
+    // RETURN_VALUE(outputValue, rindex);
+
+    printf("btn()\n");
+    GRAVITY_VERIFY_ARGS("btn", 0, 1);
+
+    if (nargs <= 1) {
+        RETURN_VALUE(VALUE_FROM_INT(core->memory.ram.input.gamepads.data), rindex);
+    }
+
+    int64_t index = VALUE_AS_INT(args[1]);
+    s32 i = index & 0x1f;
+
+    // TODO(RobLoach): Fix segment fault happening here on core->memory.ram.input.gamepads.data
+    printf("btn(%i): Start\n", i);
+    printf("btn otutput: %i\n", core->memory.ram.input.gamepads.data);
+    if (core->memory.ram.input.gamepads.data <= 0) {
+        RETURN_VALUE(VALUE_FROM_BOOL(false), rindex);
+    }
+    bool output = core->memory.ram.input.gamepads.data & (1 << i);
+    printf("btn(%i): %d End\n", i, output);
+    RETURN_VALUE(VALUE_FROM_BOOL(output), rindex);
+
 }
 
-static bool gravityCls(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+static bool gravity_cls(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
     GRAVITY_VERIFY_ARGS("cls", 1, 1);
     tic_api_cls(tic, VALUE_AS_INT(args[1]));
     RETURN_NOVALUE();
 }
 
-static bool gravitySpr(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+static bool gravity_spr(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
     GRAVITY_VERIFY_ARGS("spr", 3, 9);
     s32 index = VALUE_AS_INT(args[1]);
     s32 x = VALUE_AS_INT(args[2]);
@@ -193,7 +216,7 @@ static bool gravitySpr(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, ui
     RETURN_NOVALUE();
 }
 
-static bool gravityTrace(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+static bool gravity_trace(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
     GRAVITY_VERIFY_ARGS("trace", 1, 2);
     const char* text = VALUE_AS_CSTRING(args[1]);
     u8 color = TIC_DEFAULT_COLOR;
@@ -204,18 +227,18 @@ static bool gravityTrace(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, 
     RETURN_NOVALUE();
 }
 
-static void setupGravity(tic_mem* tic, gravity_vm *vm) {
-    gravity_vm_setvalue(vm, "print", NEW_CLOSURE_VALUE(gravityPrint));
-    gravity_vm_setvalue(vm, "btn", NEW_CLOSURE_VALUE(gravityBtn));
-    gravity_vm_setvalue(vm, "cls", NEW_CLOSURE_VALUE(gravityCls));
-    gravity_vm_setvalue(vm, "spr", NEW_CLOSURE_VALUE(gravitySpr));
-    gravity_vm_setvalue(vm, "trace", NEW_CLOSURE_VALUE(gravityTrace));
+static void gravity_setup(tic_mem* tic, gravity_vm *vm) {
+    gravity_vm_setvalue(vm, "print", NEW_CLOSURE_VALUE(gravity_print));
+    gravity_vm_setvalue(vm, "btn", NEW_CLOSURE_VALUE(gravity_btn));
+    gravity_vm_setvalue(vm, "cls", NEW_CLOSURE_VALUE(gravity_cls));
+    gravity_vm_setvalue(vm, "spr", NEW_CLOSURE_VALUE(gravity_spr));
+    gravity_vm_setvalue(vm, "trace", NEW_CLOSURE_VALUE(gravity_trace));
 }
 
 /**
  * Provides some initial gravity pre-code to ease the TIC-80 integration.
  */
-static const char* gravityPrecode(void *xdata) {
+static const char* gravity_precode(void *xdata) {
   return "extern var btn;"
          "extern var cls;"
          "extern var print;"
@@ -226,18 +249,18 @@ static const char* gravityPrecode(void *xdata) {
 /**
  * Initialization
  */
-static bool initGravity(tic_mem* tic, const char* code)
+static bool gravity_init(tic_mem* tic, const char* code)
 {
     tic_core* core = (tic_core*)tic;
-    closeGravity(tic);
+    gravity_close(tic);
 
     // Put together the Gravity options.
     gravity_delegate_t delegate = {
-        .error_callback = gravityReportError,
-        .log_callback = gravityLogCallback,
+        .error_callback = gravity_error,
+        .log_callback = gravity_log,
         .report_null_errors = true,
         .xdata = tic,
-        .precode_callback = gravityPrecode
+        .precode_callback = gravity_precode
     };
 
     // Construct the compiler.
@@ -266,7 +289,7 @@ static bool initGravity(tic_mem* tic, const char* code)
     gravity_compiler_free(compiler);
 
     // Setup the TIC-80 API.
-    setupGravity(tic, vm);
+    gravity_setup(tic, vm);
 
     // Load the closure into the virtual machine context.
     gravity_vm_loadclosure(vm, closure);
@@ -278,7 +301,7 @@ static bool initGravity(tic_mem* tic, const char* code)
     return true;
 }
 
-static void callGravityTick(tic_mem* tic)
+static void gravity_tick(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
     if (!core)
@@ -300,7 +323,7 @@ static void callGravityTick(tic_mem* tic)
     gravity_vm_runclosure(vm, tic_closure, VALUE_FROM_NULL, NULL, 0);
 }
 
-static void callGravityScanline(tic_mem* tic, s32 row, void* data)
+static void gravity_scanline(tic_mem* tic, s32 row, void* data)
 {
     tic_core* core = (tic_core*)tic;
     if (!core)
@@ -322,7 +345,7 @@ static void callGravityScanline(tic_mem* tic, s32 row, void* data)
     gravity_vm_runclosure(vm, scn_closure, VALUE_FROM_NULL, params, 1);
 }
 
-static void callGravityOverline(tic_mem* tic, void* data)
+static void gravity_overline(tic_mem* tic, void* data)
 {
     tic_core* core = (tic_core*)tic;
     if (!core)
@@ -354,11 +377,11 @@ static const char* const GravityKeywords [] =
 
 static const tic_script_config GravitySyntaxConfig =
 {
-    .init               = initGravity,
-    .close              = closeGravity,
-    .tick               = callGravityTick,
-    .scanline           = callGravityScanline,
-    .overline           = callGravityOverline,
+    .init               = gravity_init,
+    .close              = gravity_close,
+    .tick               = gravity_tick,
+    .scanline           = gravity_scanline,
+    .overline           = gravity_overline,
 
     .getOutline         = NULL, // TODO: Implement getGravityOutline()
     .eval               = NULL, // TODO: Implement callGravityEval()

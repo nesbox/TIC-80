@@ -3,7 +3,7 @@
 // desc:   short description
 // script: gravity
 
-var t = 0
+var t:Int = 0
 var x = 96
 var y = 24
 

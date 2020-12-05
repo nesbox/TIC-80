@@ -216,10 +216,6 @@ typedef struct
 
 } tic_core;
 
-#if defined(TIC_BUILD_WITH_SQUIRREL)
-const tic_script_config* getSquirrelScriptConfig();
-#endif
-
 #if defined(TIC_BUILD_WITH_LUA)
 const tic_script_config* getLuaScriptConfig();
 
@@ -239,6 +235,10 @@ const tic_script_config* getJsScriptConfig();
 
 #if defined(TIC_BUILD_WITH_WREN)
 const tic_script_config* getWrenScriptConfig();
+#endif
+
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+const tic_script_config* getSquirrelScriptConfig();
 #endif
 
 #if defined(TIC_BUILD_WITH_GRAVITY)
