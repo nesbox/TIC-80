@@ -22,12 +22,40 @@
 
 #pragma once
 
-#include "studio/system.h"
+#include "tic80_types.h"
 
-typedef struct Net Net;
+typedef struct
+{
+    enum
+    {
+        HttpGetProgress,
+        HttpGetDone,
+        HttpGetError,
+    } type;
 
-Net* createNet();
-void* netGetSync(Net* net, const char* path, s32* size);
-void netGet(Net* net, const char* url, HttpGetCallback callback, void* calldata);
-void closeNet(Net* net);
-void netTick(Net *net);
+    union
+    {
+        struct
+        {
+            s32 size;
+            s32 total;
+        } progress;
+
+        struct
+        {
+            s32 size;
+            u8* data;
+        } done;
+
+        struct
+        {
+            s32 code;
+        } error;
+    };
+
+    void* calldata;
+    const char* url;
+
+} HttpGetData;
+
+typedef void(*HttpGetCallback)(const HttpGetData*);

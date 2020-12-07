@@ -31,7 +31,6 @@
 #include <citro3d.h>
 
 #include "studio/system.h"
-#include "ext/net.h"
 
 #include "keyboard.h"
 #include "utils.h"
@@ -50,9 +49,6 @@ static struct
 {
     Studio* studio;
     char* clipboard;
-#ifndef DISABLE_NETWORKING
-    Net* net;
-#endif
 
     struct
     {
@@ -198,23 +194,25 @@ static u64 getPerformanceFrequency()
 
 static void* httpGetSync(const char* url, s32* size)
 {
-#ifndef DISABLE_NETWORKING
-    return netGetSync(platform.net, url, size);
-#else
 #ifdef ENABLE_HTTPC
     return n3ds_net_get_sync(&platform.httpc, url, size);
-#endif
+#else
+    return NULL;
 #endif
 }
 
 static void httpGet(const char* url, HttpGetCallback callback, void* calldata)
 {
-#ifndef DISABLE_NETWORKING
-    netGet(platform.net, url, callback, calldata);
-#else
 #ifdef ENABLE_HTTPC
     n3ds_net_get(&platform.httpc, url, callback, calldata);
-#endif
+#else
+    HttpGetData getData = 
+    {
+        .type = HttpGetError,
+        .calldata = calldata,
+        .url = path,
+    };
+    callback(&getData);
 #endif
 }
 
@@ -612,9 +610,6 @@ int main(int argc, char **argv) {
     n3ds_draw_init();
     n3ds_keyboard_init(&platform.keyboard);
 
-#ifndef DISABLE_NETWORKING
-    platform.net = createNet();
-#endif
     platform.studio = studioInit(argc_used, (const char**)argv_used, AUDIO_FREQ, "./", &systemInterface);
     platform.studio->tic->screen_format = TIC80_PIXEL_COLOR_ABGR8888;
 
@@ -624,9 +619,7 @@ int main(int argc, char **argv) {
         u32 start_frame = C3D_FrameCounter(0);
 
         LightLock_Lock(&platform.tick_lock);
-#ifndef DISABLE_NETWORKING
-        netTick(platform.net);
-#endif
+
         keyboard_update();
 
         platform.studio->tick();
@@ -648,9 +641,6 @@ int main(int argc, char **argv) {
     n3ds_sound_exit();
     
     platform.studio->close();
-#ifndef DISABLE_NETWORKING
-    closeNet(platform.net);
-#endif
 
     n3ds_keyboard_free(&platform.keyboard);
     n3ds_draw_exit();

@@ -22,7 +22,7 @@
 
 #include "studio/system.h"
 #include "tools.h"
-#include "ext/net.h"
+#include "net/net.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1604,7 +1604,7 @@ static s32 start(s32 argc, const char **argv, const char* folder)
 
     initSound();
 
-    platform.net = createNet();
+    platform.net = createNet(TIC_WEBSITE);
 
     platform.studio = studioInit(argc, argv, platform.audio.spec.freq, folder, &systemInterface);
 

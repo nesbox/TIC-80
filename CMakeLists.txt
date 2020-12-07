@@ -65,18 +65,11 @@ message("BUILD_TOUCH_INPUT: ${BUILD_TOUCH_INPUT}")
 
 if (N3DS)
     set(BUILD_SDL off)
-    # disable CURL linking - use HTTPC instead
-    set(DISABLE_NETWORKING TRUE)
 endif()
 
 if (BAREMETALPI)
     set(BUILD_SDL OFF)
     set(BUILD_DEMO_CARTS OFF)
-    set(DISABLE_NETWORKING TRUE)
-endif()
-
-if (DISABLE_NETWORKING)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DDISABLE_NETWORKING")
 endif()
 
 if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID AND NOT N3DS)
@@ -466,41 +459,6 @@ if(BUILD_LIBRETRO)
 endif()
 
 ################################
-# CURL
-################################
-
-if (NOT DISABLE_NETWORKING)
-
-    if (NOT N3DS AND NOT EMSCRIPTEN)
-
-        set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
-
-        if(WIN32)
-            set(CURL_STATIC_CRT ON CACHE BOOL "")
-        endif()
-
-        set(CMAKE_USE_OPENSSL OFF CACHE BOOL "" )
-        set(CMAKE_USE_LIBSSH2 OFF CACHE BOOL "")
-        set(HTTP_ONLY ON CACHE BOOL "")
-        set(BUILD_CURL_EXE OFF CACHE BOOL "")
-        set(CURL_CA_BUNDLE "none" CACHE STRING "")
-        set(CURL_CA_PATH "none" CACHE STRING "")
-
-        if(RPI)
-            set(CURL_ZLIB OFF CACHE BOOL "" )
-        endif()
-
-        add_subdirectory(${THIRDPARTY_DIR}/curl)
-
-        if(RPI)
-            target_compile_definitions(libcurl PRIVATE NOT_USE_FILE_OFFSET64)
-        endif()
-
-    endif()
-
-endif()
-
-################################
 # ZLIB
 ################################
 
@@ -623,7 +581,6 @@ set(TIC80STUDIO_SRC
     ${TIC80LIB_DIR}/ext/md5.c
     ${TIC80LIB_DIR}/ext/gif.c
     ${TIC80LIB_DIR}/ext/history.c
-    ${TIC80LIB_DIR}/ext/net.c
 )
 
 set(TIC80_OUTPUT tic80)
@@ -641,14 +598,6 @@ target_link_libraries(tic80studio tic80core zip wave_writer argparse)
 if(N3DS)
     target_include_directories(tic80studio PRIVATE ${DEVKITPRO}/portlibs/3ds/include)
     target_link_directories(tic80studio PUBLIC ${DEVKITPRO}/portlibs/3ds/lib)
-endif()
-
-if(NOT DISABLE_NETWORKING)
-if(N3DS)
-    target_link_libraries(tic80studio curl mbedtls mbedx509 mbedcrypto)
-elseif(NOT EMSCRIPTEN)
-    target_link_libraries(tic80studio libcurl)
-endif()
 endif()
 
 if(BUILD_PRO)
@@ -738,6 +687,50 @@ if(MINGW)
 endif()
 
 ################################
+# CURL
+################################
+
+if (NOT N3DS AND NOT EMSCRIPTEN AND NOT BAREMETALPI)
+
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
+
+    if(WIN32)
+        set(CURL_STATIC_CRT ON CACHE BOOL "")
+    endif()
+
+    set(CMAKE_USE_OPENSSL OFF CACHE BOOL "" )
+    set(CMAKE_USE_LIBSSH2 OFF CACHE BOOL "")
+    set(HTTP_ONLY ON CACHE BOOL "")
+    set(BUILD_CURL_EXE OFF CACHE BOOL "")
+    set(CURL_CA_BUNDLE "none" CACHE STRING "")
+    set(CURL_CA_PATH "none" CACHE STRING "")
+
+    if(RPI)
+        set(CURL_ZLIB OFF CACHE BOOL "" )
+    endif()
+
+    add_subdirectory(${THIRDPARTY_DIR}/curl)
+
+    if(RPI)
+        target_compile_definitions(libcurl PRIVATE NOT_USE_FILE_OFFSET64)
+    endif()
+
+endif()
+
+################################
+# Network library
+################################
+
+add_library(net STATIC ${CMAKE_SOURCE_DIR}/src/system/net/net.c)
+target_include_directories(net 
+    PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include
+    INTERFACE ${CMAKE_SOURCE_DIR}/src/system)
+
+if(NOT EMSCRIPTEN)
+    target_link_libraries(net libcurl)
+endif()
+
+################################
 # TIC-80 app
 ################################
 
@@ -786,7 +779,7 @@ if(BUILD_SDL)
         target_link_libraries(tic80 SDL2main)
     endif()
 
-    target_link_libraries(tic80 tic80studio)
+    target_link_libraries(tic80 tic80studio net)
 
     if(BUILD_TOUCH_INPUT)
         target_compile_definitions(tic80 PRIVATE TOUCH_INPUT_SUPPORT)
@@ -851,7 +844,7 @@ if(BUILD_SOKOL)
         target_link_libraries(tic80-sokol mingw32)
     endif()
 
-    target_link_libraries(tic80-sokol tic80studio sokol)
+    target_link_libraries(tic80-sokol tic80studio sokol net)
 
 endif()
 
@@ -867,11 +860,9 @@ if(N3DS)
         ${CMAKE_SOURCE_DIR}/src/system/n3ds/main.c
     )
 
-    if (DISABLE_NETWORKING)
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DENABLE_HTTPC")
-    endif()
-
     add_executable(tic80_n3ds ${TIC80_SRC})
+
+    target_compile_definitions(tic80_n3ds PRIVATE ENABLE_HTTPC)
 
     target_include_directories(tic80_n3ds PRIVATE
         ${DEVKITPRO}/portlibs/3ds/include
@@ -879,7 +870,7 @@ if(N3DS)
         ${CMAKE_SOURCE_DIR}/src)
 
     target_link_directories(tic80_n3ds PRIVATE ${DEVKITPRO}/libctru/lib)
-    target_link_libraries(tic80_n3ds tic80studio png citro3d)
+    target_link_libraries(tic80_n3ds tic80studio png citro3d curl mbedtls mbedx509 mbedcrypto)
 
     add_custom_command(TARGET tic80_n3ds
            POST_BUILD

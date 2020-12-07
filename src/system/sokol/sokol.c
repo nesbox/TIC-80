@@ -28,7 +28,7 @@
 
 #include "studio/system.h"
 #include "system/sokol/sokol.h"
-#include "ext/net.h"
+#include "net/net.h"
 
 static struct
 {
@@ -424,9 +424,9 @@ sapp_desc sokol_main(s32 argc, char* argv[])
     platform.audio.desc.num_channels = TIC_STEREO_CHANNELS;
     saudio_setup(&platform.audio.desc);
 
-    platform.net = createNet();
+    platform.net = createNet(TIC_WEBSITE);
 
-    platform.studio = studioInit(argc, argv, saudio_sample_rate(), "./", &systemInterface);
+    platform.studio = studioInit(argc, (const char**)argv, saudio_sample_rate(), "./", &systemInterface);
 
     const s32 Width = TIC80_FULLWIDTH * platform.studio->config()->uiScale;
     const s32 Height = TIC80_FULLHEIGHT * platform.studio->config()->uiScale;
