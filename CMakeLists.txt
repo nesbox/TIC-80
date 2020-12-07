@@ -595,11 +595,6 @@ target_include_directories(tic80studio PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(tic80studio tic80core zip wave_writer argparse)
 
-if(N3DS)
-    target_include_directories(tic80studio PRIVATE ${DEVKITPRO}/portlibs/3ds/include)
-    target_link_directories(tic80studio PUBLIC ${DEVKITPRO}/portlibs/3ds/lib)
-endif()
-
 if(BUILD_PRO)
     target_compile_definitions(tic80studio PRIVATE TIC80_PRO)
 endif()
@@ -871,7 +866,7 @@ if(N3DS)
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src)
 
-    target_link_directories(tic80_n3ds PRIVATE ${DEVKITPRO}/libctru/lib)
+    target_link_directories(tic80_n3ds PRIVATE ${DEVKITPRO}/libctru/lib ${DEVKITPRO}/portlibs/3ds/lib)
     target_link_libraries(tic80_n3ds tic80studio png citro3d curl mbedtls mbedx509 mbedcrypto)
 
     add_custom_command(TARGET tic80_n3ds
