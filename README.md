@@ -139,3 +139,4 @@ You can find iOS/tvOS version here
 * Damien de Lemeny - [GitHub @ddelemeny](https://github.com/ddelemeny)
 * Adrian Siekierka - [GitHub @asiekierka](https://github.com/asiekierka) [Website](https://asie.pl/)
 * Jay Em (Sweetie16 palette) - [Twitter @GrafxKid](https://twitter.com/GrafxKid)  
+* msx80 - [Twitter @msx80](https://twitter.com/msx80) [Github msx80](https://github.com/msx80) 

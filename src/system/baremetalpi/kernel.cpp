@@ -308,7 +308,7 @@ void inputToTic()
 	if (gamepad.buttons & 0x400) tic_input->gamepads.first.x = true;
 	if (gamepad.buttons & 0x800) tic_input->gamepads.first.y = true;
 	// map ESC to a gamepad button to exit the game
-	if (gamepad.buttons & 0x1000) tic_input->keyboard.keys[keynum++]= tic_key_escape;
+	if (gamepad.buttons & 0x10) tic_input->keyboard.keys[keynum++]= tic_key_escape;
 
 	// TODO use min and max instead of hardcoded range
 	if (gamepad.naxes > 0)
@@ -420,7 +420,7 @@ TShutdownMode Run(void)
 	{
 		//  if no keyboard, start in surf mode!
 		char  arg0[] = "xxkernel";
-		char  arg1[] = "--cmd=ls";
+		char  arg1[] = "--cmd=surf";
 		const char* argv[] = { &arg0[0], &arg1[0], NULL };
 		int argc = 2;
 		dbg("Without keyboard\n");

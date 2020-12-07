@@ -3,7 +3,6 @@
 
 #define MAXBUFLEN (1024*1024)
 
-#define dbg(...) printf(__VA_ARGS__)
 
 extern "C" {
 

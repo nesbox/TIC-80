@@ -45,8 +45,13 @@ static       CDeviceNameService mDeviceNameService;
 static        CNullDevice        mNullDevice;
 static        CExceptionHandler  mExceptionHandler;
 static        CInterruptSystem   mInterrupt;
+#ifdef EN_DEBUG
+// show a larger screen, so the actual screen is on the top left
+// and output is readable
+static	CScreenDevice      mScreen(1280,720);
+#else
 static	CScreenDevice      mScreen(TIC80_WIDTH, TIC80_HEIGHT);
-//static	CScreenDevice      mScreen(1280,720);
+#endif
 static        CSerialDevice      mSerial(&mInterrupt);
 static        CTimer             mTimer(&mInterrupt);
 static        CLogger		mLogger(LogWarning /*mOptions.GetLogLevel ()*/, &mTimer);
