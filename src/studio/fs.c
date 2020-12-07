@@ -24,8 +24,11 @@
 #include "fs.h"
 
 #if defined(BAREMETALPI) || defined(_3DS)
-//define dbg(...) printf(__VA_ARGS__)
-#define dbg(...)
+  #ifdef EN_DEBUG
+    #define dbg(...) printf(__VA_ARGS__)
+  #else
+    #define dbg(...)
+  #endif
 #endif
 
 #if defined(BAREMETALPI)

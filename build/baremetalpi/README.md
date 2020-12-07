@@ -28,17 +28,10 @@ git clone --recursive https://github.com/nesbox/TIC-80
 cd TIC-80
 ```
 
-Clone circle/circle-stdlib:
+Now build circle-stdlib (3 is your RPi model, should build with 2 and 4 too but it's untested):
 
 ```
-cd vendor
-git clone --recursive https://github.com/smuehlst/circle-stdlib.git
-```
-
-Now build circle-stdlib:
-
-```
-cd circle-stdlib
+cd vendor/circle-stdlib
 ./configure -r 3
 make
 ```
