@@ -26,8 +26,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#ifndef DISABLE_NETWORKING
-    #if defined(__EMSCRIPTEN__)
+#define URL_SIZE 2048
+
+#if defined(__EMSCRIPTEN__)
 
 #include <emscripten/fetch.h>
 
@@ -106,7 +107,7 @@ static void downloadProgress(emscripten_fetch_t *fetch)
     data->callback(&getData);
 }
 
-    #else
+#else
 
 #include <curl/curl.h>
 
@@ -118,11 +119,12 @@ typedef struct
     struct Curl_easy* async;
     HttpGetCallback callback;
     void* calldata;
-    char url[TICNAME_MAX];
+    char url[URL_SIZE];
 } CurlData;
 
 struct Net
 {
+    const char* host;
     CURLM* multi;
     struct Curl_easy* sync;
 };
@@ -183,23 +185,11 @@ static size_t writeCallback(char *ptr, size_t size, size_t nmemb, void *userdata
     return total;
 }
 
-    #endif
 #endif
 
 void netGet(Net* net, const char* path, HttpGetCallback callback, void* calldata)
 {
-#ifdef DISABLE_NETWORKING
-
-    HttpGetData getData = 
-    {
-        .type = HttpGetError,
-        .calldata = calldata,
-        .url = path,
-    };
-    callback(&getData);
-
-#else
-    #if defined(__EMSCRIPTEN__)
+#if defined(__EMSCRIPTEN__)
 
     FetchData* data = calloc(1, sizeof(FetchData));
     *data = (FetchData)
@@ -228,7 +218,8 @@ void netGet(Net* net, const char* path, HttpGetCallback callback, void* calldata
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
 
     {
-        char url[TICNAME_MAX] = TIC_WEBSITE;
+        char url[URL_SIZE];
+        strcpy(url, net->host);
         strcat(url, path);
 
         curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -238,7 +229,6 @@ void netGet(Net* net, const char* path, HttpGetCallback callback, void* calldata
         curl_multi_add_handle(net->multi, curl);
     }
 
-    #endif
 #endif
 }
 
@@ -259,7 +249,8 @@ void* netGetSync(Net* net, const char* path, s32* size)
 
     if(net->sync)
     {
-        char url[TICNAME_MAX] = TIC_WEBSITE;
+        char url[URL_SIZE];
+        strcpy(url, net->host);
         strcat(url, path);
 
         curl_easy_setopt(net->sync, CURLOPT_URL, url);
@@ -284,9 +275,7 @@ void* netGetSync(Net* net, const char* path, s32* size)
 
 void netTick(Net *net)
 {
-#ifndef DISABLE_NETWORKING
-
-    #if !defined(__EMSCRIPTEN__)
+#if !defined(__EMSCRIPTEN__)
 
     {
         s32 running = 0;
@@ -346,16 +335,11 @@ void netTick(Net *net)
             curl_easy_cleanup(msg->easy_handle);
         }
     }
-    #endif
 #endif
 }
 
-Net* createNet()
+Net* createNet(const char* host)
 {
-#ifdef DISABLE_NETWORKING
-    return NULL;
-#else
-
     Net* net = (Net*)malloc(sizeof(Net));
 
     #if defined(__EMSCRIPTEN__)
@@ -375,6 +359,7 @@ Net* createNet()
         {
             .sync = curl_easy_init(),
             .multi = curl_multi_init(),
+            .host = host,
         };
 
         curl_easy_setopt(net->sync, CURLOPT_WRITEFUNCTION, writeCallbackSync);
@@ -383,13 +368,10 @@ Net* createNet()
     #endif
 
     return net;
-#endif
 }
 
 void closeNet(Net* net)
 {
-#ifndef DISABLE_NETWORKING
-
     #if !defined(__EMSCRIPTEN__)
     if(net->sync)
         curl_easy_cleanup(net->sync);
@@ -400,5 +382,4 @@ void closeNet(Net* net)
     #endif
 
     free(net);
-#endif
 }
