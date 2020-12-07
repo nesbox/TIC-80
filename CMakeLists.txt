@@ -721,13 +721,15 @@ endif()
 # Network library
 ################################
 
-add_library(net STATIC ${CMAKE_SOURCE_DIR}/src/system/net/net.c)
-target_include_directories(net 
-    PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include
-    INTERFACE ${CMAKE_SOURCE_DIR}/src/system)
+if (NOT N3DS)
+    add_library(net STATIC ${CMAKE_SOURCE_DIR}/src/system/net/net.c)
+    target_include_directories(net 
+        PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include
+        INTERFACE ${CMAKE_SOURCE_DIR}/src/system)
 
-if(NOT EMSCRIPTEN)
-    target_link_libraries(net libcurl)
+    if(NOT EMSCRIPTEN)
+        target_link_libraries(net libcurl)
+    endif()
 endif()
 
 ################################
