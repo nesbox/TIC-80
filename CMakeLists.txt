@@ -867,7 +867,7 @@ if(N3DS)
         ${CMAKE_SOURCE_DIR}/src)
 
     target_link_directories(tic80_n3ds PRIVATE ${DEVKITPRO}/libctru/lib ${DEVKITPRO}/portlibs/3ds/lib)
-    target_link_libraries(tic80_n3ds tic80studio png citro3d curl mbedtls mbedx509 mbedcrypto)
+    target_link_libraries(tic80_n3ds tic80studio png citro3d)
 
     add_custom_command(TARGET tic80_n3ds
            POST_BUILD
