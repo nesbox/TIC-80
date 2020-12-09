@@ -29,6 +29,11 @@ extern tic_script_config SquirrelSyntaxConfig;
 extern tic_script_config WrenSyntaxConfig;
 #endif
 
+#if defined(TIC_BUILD_WITH_WASM)
+extern tic_script_config WasmSyntaxConfig;
+#endif
+
+
 tic_script_config* Languages[] = {
 
 	#if defined (TIC_BUILD_WITH_LUA)
@@ -57,6 +62,10 @@ tic_script_config* Languages[] = {
 
 	#if defined(TIC_BUILD_WITH_WREN)
 	&WrenSyntaxConfig,
+	#endif
+
+    #if defined(TIC_BUILD_WITH_WASM)
+	&WasmSyntaxConfig,
 	#endif
 
 	NULL};

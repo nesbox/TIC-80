@@ -2158,7 +2158,7 @@ static void setPopupHide(void* data)
 
 Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder)
 {
-    setbuf(stdout, NULL);
+    //setbuf(stdout, NULL);
 
     StartArgs args = parseArgs(argc, argv);
     
