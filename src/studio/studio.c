@@ -2325,7 +2325,7 @@ static StartArgs parseArgs(s32 argc, char **argv)
 
 Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder)
 {
-    setbuf(stdout, NULL);
+    //setbuf(stdout, NULL);
 
     StartArgs args = parseArgs(argc, argv);
     

@@ -80,3 +80,9 @@
 [submodule "mruby"]
 	path = vendor/mruby
 	url = https://github.com/mruby/mruby.git
+[submodule "vendor/wasm3"]
+	path = vendor/wasm3
+	url = https://github.com/msx80/wasm3.git
+[submodule "vendor/wabt"]
+	path = vendor/wabt
+	url = https://github.com/msx80/wabt.git

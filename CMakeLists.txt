@@ -99,6 +99,11 @@ if (BAREMETALPI)
     set(BUILD_DEMO_CARTS OFF)
 endif()
 
+#DEBUGGGG
+#  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DTIC_BUILD_WITH_FENNEL -DTIC_BUILD_WITH_MOON -DTIC_BUILD_WITH_JS -DTIC_BUILD_WITH_WREN -DTIC_BUILD_WITH_LUA -DTIC_BUILD_WITH_WASM ")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ")
+
+
 if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID AND NOT N3DS)
     set(LINUX TRUE)
 endif()
@@ -301,6 +306,74 @@ set_property(TARGET mruby APPEND
 add_dependencies(mruby mruby_vendor)
 
 ################################
+# WASM
+################################
+
+set(WASM_DIR ${THIRDPARTY_DIR}/wasm3/source)
+set(WASM_SRC 
+# random choices
+    ${WASM_DIR}/m3_parse.c
+    ${WASM_DIR}/m3_env.c
+    ${WASM_DIR}/m3_core.c
+    ${WASM_DIR}/m3_code.c
+    ${WASM_DIR}/m3_bind.c
+    ${WASM_DIR}/m3_compile.c
+    ${WASM_DIR}/m3_module.c
+    ${WASM_DIR}/m3_optimize.c
+    ${WASM_DIR}/m3_info.c
+    ${WASM_DIR}/m3_exec.c
+    ${WASM_DIR}/m3_emit.c
+)
+
+add_library(wasm STATIC ${WASM_SRC})
+target_include_directories(wasm PUBLIC ${THIRDPARTY_DIR}/wasm3/source)
+#target_include_directories(wasm PRIVATE ${THIRDPARTY_DIR}/wasm3/src/optional)
+#target_include_directories(wasm PRIVATE ${THIRDPARTY_DIR}/wasm3/src/vm)
+
+################################
+# WABT
+################################
+
+set(WABT_DIR ${THIRDPARTY_DIR}/wabt)
+set(WABT_SRC
+    ${WABT_DIR}/src/wat2wasm.cc
+    ${WABT_DIR}/src/stream.cc
+    ${WABT_DIR}/src/wast-lexer.cc
+    ${WABT_DIR}/src/wast-parser.cc
+    ${WABT_DIR}/src/opcode.cc
+    ${WABT_DIR}/src/leb128.cc
+    ${WABT_DIR}/src/binary-writer.cc
+    ${WABT_DIR}/src/validator.cc
+    ${WABT_DIR}/src/ir.cc
+    ${WABT_DIR}/src/color.cc
+    ${WABT_DIR}/src/error-formatter.cc
+    ${WABT_DIR}/src/opcode-code-table.c
+    ${WABT_DIR}/src/shared-validator.cc
+    ${WABT_DIR}/src/binding-hash.cc
+    ${WABT_DIR}/src/literal.cc
+    ${WABT_DIR}/src/type-checker.cc
+    ${WABT_DIR}/src/binary-reader-ir.cc
+    ${WABT_DIR}/src/string-view.cc
+    ${WABT_DIR}/src/token.cc
+    ${WABT_DIR}/src/utf8.cc
+    ${WABT_DIR}/src/common.cc
+    ${WABT_DIR}/src/binary-reader.cc
+    ${WABT_DIR}/src/resolve-names.cc
+    ${WABT_DIR}/src/lexer-source-line-finder.cc
+    ${WABT_DIR}/src/expr-visitor.cc
+    ${WABT_DIR}/src/lexer-source.cc
+    ${WABT_DIR}/src/binary.cc
+    ${WABT_DIR}/src/binary-reader-logging.cc
+)
+
+add_library(wabt STATIC ${WABT_SRC})
+set_target_properties(wabt PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories(wabt PUBLIC ${WABT_DIR})
+#target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/squirrel)
+#target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/sqstdlib)
+
+
+################################
 # SQUIRREL
 ################################
 
@@ -385,6 +458,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         ${TIC80CORE_DIR}/api/moonscript.c 
         ${TIC80CORE_DIR}/api/fennel.c 
         ${TIC80CORE_DIR}/api/wren.c 
+        ${TIC80CORE_DIR}/api/wasm.c
         ${TIC80CORE_DIR}/api/squirrel.c
         ${TIC80CORE_DIR}/api/mruby.c
         ${TIC80CORE_DIR}/tic.c
@@ -411,6 +485,8 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         lua 
         lpeg 
         wren 
+        wasm 
+        wabt
         squirrel 
         duktape 
         blipbuf 
@@ -571,7 +647,7 @@ if(BUILD_LIBRETRO)
         set_target_properties(tic80_libretro PROPERTIES SUFFIX "_partial.a")
         add_custom_command(TARGET tic80_libretro
                POST_BUILD
-                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.a ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${MRUBY_LIB})
+                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.a ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwabt.a  ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${MRUBY_LIB})
     else()
         add_library(tic80_libretro SHARED
         ${LIBRETRO_SRC}
