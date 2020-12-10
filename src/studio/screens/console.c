@@ -2943,7 +2943,11 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
         char appPath[TICNAME_MAX];
 
 #if defined(__TIC_WINDOWS__)
-        GetModuleFileNameA(NULL, appPath, sizeof appPath);
+        {
+            wchar_t wideAppPath[TICNAME_MAX];
+            GetModuleFileNameW(NULL, wideAppPath, sizeof wideAppPath);
+            WideCharToMultiByte(CP_UTF8, 0, wideAppPath, COUNT_OF(wideAppPath), appPath, COUNT_OF(appPath), 0, 0);
+        }
 #elif defined(__TIC_LINUX__)
         s32 size = readlink("/proc/self/exe", appPath, sizeof appPath);
         appPath[size] = '\0';
