@@ -1380,6 +1380,27 @@ static void onImportMap(const char* name, const void* buffer, s32 size, void* da
     commandDone(console);
 }
 
+static void onImportCode(const char* name, const void* buffer, s32 size, void* data)
+{
+    Console* console = (Console*)data;
+    tic_mem* tic = console->tic;
+
+    if(name && buffer && size <= sizeof(tic_code))
+    {
+        enum {Size = sizeof(tic_code)};
+
+        memset(tic->cart.code.data, 0, Size);
+        memcpy(tic->cart.code.data, buffer, MIN(size, Size));
+        printLine(console);
+        printBack(console, "code successfully imported");
+
+        studioRomLoaded();
+    }
+    else printBack(console, "\ncode not imported :|");
+
+    commandDone(console);
+}
+
 static void onConsoleImportCommand(Console* console, const char* param)
 {
     bool error = true;
@@ -1413,6 +1434,11 @@ static void onConsoleImportCommand(Console* console, const char* param)
             else if(strcmp(param, "map") == 0)
             {
                 onImportMap(filename, data, size, console);
+                error = false;
+            }
+            else if(strcmp(param, "code") == 0)
+            {
+                onImportCode(filename, data, size, console);
                 error = false;
             }
         }
