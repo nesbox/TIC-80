@@ -336,6 +336,7 @@ if(BUILD_SDL AND BUILD_PLAYER AND NOT RPI)
 
     if(MINGW)
         target_link_libraries(player-sdl mingw32)
+        target_link_options(player-sdl PRIVATE -static)
     endif()
 
     target_link_libraries(player-sdl tic80core SDL2-static SDL2main)
@@ -399,6 +400,7 @@ if(BUILD_PLAYER AND BUILD_SOKOL)
 
     if(MINGW)
         target_link_libraries(player-sokol mingw32)
+        target_link_options(player-sokol PRIVATE -static)
     endif()
 
     target_include_directories(player-sokol PRIVATE 
@@ -677,10 +679,6 @@ endif()
 
 endif()
 
-if(MINGW)
-    set(CMAKE_EXE_LINKER_FLAGS "-static")
-endif()
-
 ################################
 # CURL
 ################################
@@ -756,6 +754,7 @@ if(BUILD_SDL)
 
     if(MINGW)
         target_link_libraries(tic80 mingw32)
+        target_link_options(tic80 PRIVATE -static -mconsole)
     endif()
 
     if(EMSCRIPTEN)
@@ -833,6 +832,7 @@ if(BUILD_SOKOL)
 
     if(MINGW)
         target_link_libraries(tic80-sokol mingw32)
+        target_link_options(tic80-sokol PRIVATE -static -mconsole)
     endif()
 
     target_link_libraries(tic80-sokol tic80studio sokol net)

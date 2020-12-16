@@ -30,6 +30,10 @@
 #include "system/sokol/sokol.h"
 #include "net/net.h"
 
+#if defined(__TIC_WINDOWS__)
+#include <windows.h>
+#endif
+
 static struct
 {
     Studio* studio;
@@ -419,6 +423,14 @@ static void app_cleanup(void)
 
 sapp_desc sokol_main(s32 argc, char* argv[])
 {
+#if defined(__TIC_WINDOWS__)
+    {
+        CONSOLE_SCREEN_BUFFER_INFO info;
+        if (GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info) && !info.dwCursorPosition.X && !info.dwCursorPosition.Y)
+            FreeConsole();
+    }
+#endif
+
     memset(&platform, 0, sizeof platform);
 
     platform.audio.desc.num_channels = TIC_STEREO_CHANNELS;
