@@ -740,12 +740,6 @@ if(BUILD_SDL)
         configure_file("${PROJECT_SOURCE_DIR}/build/windows/tic80.rc.in" "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
         set(TIC80_SRC ${TIC80_SRC} "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
 
-        # Debug build is a console app.
-        if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        else()
-            set(SYSTEM_TYPE WIN32)
-        endif()
-
         add_executable(tic80 ${SYSTEM_TYPE} ${TIC80_SRC})
 
     elseif(ANDROID)
@@ -827,10 +821,9 @@ if(BUILD_SOKOL)
         configure_file("${PROJECT_SOURCE_DIR}/build/windows/tic80.rc.in" "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
         set(TIC80_SRC ${TIC80_SRC} "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
         
-        add_executable(tic80-sokol WIN32 ${TIC80_SRC})        
-    else()
-        add_executable(tic80-sokol ${TIC80_SRC})
     endif()
+
+    add_executable(tic80-sokol ${TIC80_SRC})
 
     target_include_directories(tic80-sokol PRIVATE 
         ${CMAKE_SOURCE_DIR}/include

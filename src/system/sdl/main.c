@@ -1760,6 +1760,11 @@ static s32 emsStart(s32 argc, char **argv, const char* folder)
 
 s32 main(s32 argc, char **argv)
 {
+#if defined(__TIC_WINDOWS__)
+    if (argc == 1)
+        FreeConsole();
+#endif
+
     const char* folder = getAppFolder();
 
 #if defined(__EMSCRIPTEN__)
