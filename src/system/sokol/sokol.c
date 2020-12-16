@@ -419,11 +419,6 @@ static void app_cleanup(void)
 
 sapp_desc sokol_main(s32 argc, char* argv[])
 {
-#if defined(__TIC_WINDOWS__)
-    if (argc == 1)
-        FreeConsole();
-#endif
-
     memset(&platform, 0, sizeof platform);
 
     platform.audio.desc.num_channels = TIC_STEREO_CHANNELS;

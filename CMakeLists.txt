@@ -821,9 +821,10 @@ if(BUILD_SOKOL)
         configure_file("${PROJECT_SOURCE_DIR}/build/windows/tic80.rc.in" "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
         set(TIC80_SRC ${TIC80_SRC} "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
         
+        add_executable(tic80-sokol WIN32 ${TIC80_SRC})        
+    else()
+        add_executable(tic80-sokol ${TIC80_SRC})
     endif()
-
-    add_executable(tic80-sokol ${TIC80_SRC})
 
     target_include_directories(tic80-sokol PRIVATE 
         ${CMAKE_SOURCE_DIR}/include
