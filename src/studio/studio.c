@@ -63,8 +63,8 @@
 #define MD5_HASHSIZE 16
 #define BG_ANIMATION_COLOR tic_color_dark_grey
 
-static const char VideoGif[] = "video.gif";
-static const char ScreenGif[] = "screen.gif";
+static const char VideoGif[] = "video%i.gif";
+static const char ScreenGif[] = "screen%i.gif";
 
 typedef struct
 {
@@ -1454,16 +1454,26 @@ static void stopVideoRecord(const char* name)
         {
             s32 size = 0;
             u8* data = malloc(FRAME_SIZE * impl.video.frame);
+            int i = 0;
+            char filename[TICNAME_MAX];
 
             gif_write_animation(data, &size, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, (const u8*)impl.video.buffer, impl.video.frame, TIC80_FRAMERATE, getConfig()->gifScale);
 
-            if(fsSaveFile(impl.fs, name, data, size, true))
+            // Find an available filename to save.
+            do
+            {
+                snprintf(filename, sizeof filename, name, ++i);
+            }
+            while(fsExistsFile(impl.fs, filename));
+
+            // Now that it has found an available filename, save it.
+            if(fsSaveFile(impl.fs, filename, data, size, true))
             {
                 char msg[TICNAME_MAX];
-                sprintf(msg, "%s saved :)", name);
+                sprintf(msg, "%s saved :)", filename);
                 showPopupMessage(msg);
 
-                getSystem()->openSystemPath(fsGetFilePath(impl.fs, name));                
+                getSystem()->openSystemPath(fsGetFilePath(impl.fs, filename));
             }
             else showPopupMessage("error: file not saved :(");
         }
