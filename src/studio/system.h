@@ -46,8 +46,7 @@
 #define TIC_HTTP "http://"
 #define TIC_HOST "tic80.com"
 #define TIC_WEBSITE TIC_HTTP TIC_HOST
-#define TIC_YEAR "2020"
-#define TIC_COPYRIGHT TIC_WEBSITE " (C) " TIC_YEAR
+#define TIC_COPYRIGHT TIC_WEBSITE " (C) " TIC_VERSION_YEAR
 
 #define TICNAME_MAX 256
 #define KEYBOARD_HOLD 20

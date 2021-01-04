@@ -4,6 +4,7 @@ set(VERSION_MAJOR 0)
 set(VERSION_MINOR 90)
 set(VERSION_REVISION 0)
 set(VERSION_STATUS "-dev")
+string(TIMESTAMP VERSION_YEAR "%Y")
 
 find_package(Git)
 if(Git_FOUND)

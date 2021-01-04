@@ -23,7 +23,7 @@
   <key>CFBundleVersion</key>
   <string>@VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_REVISION@</string>
   <key>NSHumanReadableCopyright</key>
-  <string>https://tic80.com © 2020</string>
+  <string>https://tic80.com © @VERSION_YEAR@</string>
   <key>NSHighResolutionCapable</key>
   <true/>
 </dict>
