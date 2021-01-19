@@ -102,7 +102,6 @@ static const EditorMode BankModes[] =
 static struct
 {
     Studio studio;
-    System* system;
 
     tic80_local* tic80local;
 
@@ -429,7 +428,8 @@ void drawBGAnimationScanline(tic_mem* tic, s32 row)
 
 char getKeyboardText()
 {
-    if(!getSystem()->text)
+    char text;
+    if(!tic_sys_keyboard_text(&text))
     {
         tic_mem* tic = impl.studio.tic;
         tic80_input* input = &tic->ram.input;
@@ -459,7 +459,7 @@ char getKeyboardText()
         return '\0';
     }
 
-    return getSystem()->text();
+    return text;
 }
 
 bool keyWasPressed(tic_key key)
@@ -587,7 +587,7 @@ void toClipboard(const void* data, s32 size, bool flip)
                 }
             }
 
-            getSystem()->setClipboardText(clipboard);
+            tic_sys_clipboard_set(clipboard);
             free(clipboard);
         }
     }
@@ -609,9 +609,9 @@ bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces)
 {
     if(data)
     {
-        if(getSystem()->hasClipboardText())
+        if(tic_sys_clipboard_has())
         {
-            char* clipboard = getSystem()->getClipboardText();
+            char* clipboard = tic_sys_clipboard_get();
 
             if(clipboard)
             {
@@ -622,7 +622,7 @@ bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces)
 
                 if(valid) tic_tool_str2buf(clipboard, (s32)strlen(clipboard), data, flip);
 
-                getSystem()->freeClipboardText(clipboard);
+                tic_sys_clipboard_free(clipboard);
 
                 return valid;
             }
@@ -1317,7 +1317,7 @@ static void updateTitle()
     if(strlen(impl.console->rom.name))
         snprintf(name, TICNAME_MAX, "%s [%s]", TIC_TITLE, impl.console->rom.name);
 
-    impl.system->setWindowTitle(name);
+    tic_sys_title(name);
 }
 
 void studioRomSaved()
@@ -1361,11 +1361,6 @@ static void processGamepadMapping()
 static inline bool isGameMenu()
 {
     return impl.mode == TIC_RUN_MODE && impl.console->showGameMenu;
-}
-
-static void goFullscreen()
-{
-    impl.system->goFullscreen();
 }
 
 void runProject()
@@ -1475,7 +1470,7 @@ static void stopVideoRecord(const char* name)
                 sprintf(msg, "%s saved :)", filename);
                 showPopupMessage(msg);
 
-                getSystem()->openSystemPath(fsGetFilePath(impl.fs, filename));
+                tic_sys_open_path(fsGetFilePath(impl.fs, filename));
             }
             else showPopupMessage("error: file not saved :(");
         }
@@ -1552,10 +1547,10 @@ static void processShortcuts()
         {
             impl.mode == TIC_MENU_MODE ? hideGameMenu() : showGameMenu();
         }
-        else if(keyWasPressedOnce(tic_key_f11)) goFullscreen();
+        else if(keyWasPressedOnce(tic_key_f11)) tic_sys_fullscreen();
         else if(keyWasPressedOnce(tic_key_return))
         {
-            if(alt) goFullscreen();
+            if(alt) tic_sys_fullscreen();
         }
         else if(keyWasPressedOnce(tic_key_f7)) setCoverImage();
         else if(keyWasPressedOnce(tic_key_f8)) takeScreenshot();
@@ -1576,7 +1571,7 @@ static void processShortcuts()
         else if(keyWasPressedOnce(tic_key_3)) setStudioMode(TIC_MAP_MODE);
         else if(keyWasPressedOnce(tic_key_4)) setStudioMode(TIC_SFX_MODE);
         else if(keyWasPressedOnce(tic_key_5)) setStudioMode(TIC_MUSIC_MODE);
-        else if(keyWasPressedOnce(tic_key_return)) goFullscreen();
+        else if(keyWasPressedOnce(tic_key_return)) tic_sys_fullscreen();
     }
     else if(ctrl)
     {
@@ -1597,7 +1592,7 @@ static void processShortcuts()
         else if(keyWasPressedOnce(tic_key_f7)) setCoverImage();
         else if(keyWasPressedOnce(tic_key_f8)) takeScreenshot();
         else if(keyWasPressedOnce(tic_key_f9)) startVideoRecord();
-        else if(keyWasPressedOnce(tic_key_f11)) goFullscreen();
+        else if(keyWasPressedOnce(tic_key_f11)) tic_sys_fullscreen();
         else if(keyWasPressedOnce(tic_key_escape))
         {
             Code* code = impl.code;
@@ -1844,7 +1839,7 @@ void studioConfigChanged()
 
     updateSystemFont();
 
-    getSystem()->updateConfig();
+    tic_sys_update_config();
 }
 
 static void initKeymap()
@@ -2042,14 +2037,13 @@ static StartArgs parseArgs(s32 argc, const char **argv)
     return args;
 }
 
-Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* folder, System* system)
+Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* folder)
 {
     setbuf(stdout, NULL);
 
     StartArgs args = parseArgs(argc, argv);
 
     impl.samplerate = samplerate;
-    impl.system = system;
     impl.net = netCreate(TIC_WEBSITE);
 
     {
@@ -2118,11 +2112,6 @@ Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* fold
         setStudioMode(TIC_CONSOLE_MODE);
 
     return &impl.studio;
-}
-
-System* getSystem()
-{
-    return impl.system;
 }
 
 bool hasProjectExt(const char* name)

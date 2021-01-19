@@ -672,9 +672,9 @@ static void copyPianoFromClipboard(Music* music)
 {
     tic_track_pattern* pattern = getFramePattern(music, music->piano.col, music->frame);
 
-    if(pattern && getSystem()->hasClipboardText())
+    if(pattern && tic_sys_clipboard_has())
     {
-        char* clipboard = getSystem()->getClipboardText();
+        char* clipboard = tic_sys_clipboard_get();
 
         if(clipboard)
         {
@@ -702,7 +702,7 @@ static void copyPianoFromClipboard(Music* music)
                 free(data);
             }
 
-            getSystem()->freeClipboardText(clipboard);
+            tic_sys_clipboard_free(clipboard);
         }
     }
 }
@@ -752,9 +752,9 @@ static void copyTrackerFromClipboard(Music* music)
 {
     tic_track_pattern* pattern = getChannelPattern(music);
 
-    if(pattern && getSystem()->hasClipboardText())
+    if(pattern && tic_sys_clipboard_has())
     {
-        char* clipboard = getSystem()->getClipboardText();
+        char* clipboard = tic_sys_clipboard_get();
 
         if(clipboard)
         {
@@ -784,7 +784,7 @@ static void copyTrackerFromClipboard(Music* music)
                 free(data);
             }
 
-            getSystem()->freeClipboardText(clipboard);
+            tic_sys_clipboard_free(clipboard);
         }
     }
 }

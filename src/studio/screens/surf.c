@@ -763,7 +763,7 @@ static void processGamepad(Surf* surf)
             {
                 char url[TICNAME_MAX];
                 sprintf(url, TIC_WEBSITE "/play?cart=%i", item->id);
-                getSystem()->openSystemPath(url);
+                tic_sys_open_path(url);
             }
         }
 #endif

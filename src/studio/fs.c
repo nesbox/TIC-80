@@ -1017,7 +1017,7 @@ void fsOpenWorkingFolder(FileSystem* fs)
     if(isPublic(fs))
         path = fs->dir;
 
-    getSystem()->openSystemPath(path);
+    tic_sys_open_path(path);
 }
 
 FileSystem* createFileSystem(const char* path, Net* net)

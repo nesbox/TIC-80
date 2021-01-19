@@ -58,6 +58,8 @@
 #define TOUCH_TIMEOUT (10 * TIC80_FRAMERATE)
 #endif
 
+#define TIC_PACKAGE "com.nesbox.tic"
+
 typedef enum
 {
     HandCursor,
@@ -850,7 +852,7 @@ static void handleKeydown(SDL_Keycode keycode, bool down, bool* state)
 #endif
 }
 
-static void pollEvent()
+void tic_sys_poll()
 {
     tic_mem* tic = platform.studio->tic;
     tic80_input* input = &tic->ram.input;
@@ -963,9 +965,10 @@ static void pollEvent()
     processGamepad();
 }
 
-static char getInputText()
+bool tic_sys_keyboard_text(char* text)
 {
-    return platform.keyboard.text;
+    *text = platform.keyboard.text;
+    return true;
 }
 
 #if defined(CRT_SHADER_SUPPORT)
@@ -1241,37 +1244,37 @@ static const char* getAppFolder()
     return appFolder;
 }
 
-static void setClipboardText(const char* text)
+void tic_sys_clipboard_set(const char* text)
 {
     SDL_SetClipboardText(text);
 }
 
-static bool hasClipboardText()
+bool tic_sys_clipboard_has()
 {
     return SDL_HasClipboardText();
 }
 
-static char* getClipboardText()
+char* tic_sys_clipboard_get()
 {
     return SDL_GetClipboardText();
 }
 
-static void freeClipboardText(const char* text)
+void tic_sys_clipboard_free(const char* text)
 {
     SDL_free((void*)text);
 }
 
-static u64 getPerformanceCounter()
+u64 tic_sys_counter_get()
 {
     return SDL_GetPerformanceCounter();
 }
 
-static u64 getPerformanceFrequency()
+u64 tic_sys_freq_get()
 {
     return SDL_GetPerformanceFrequency();
 }
 
-static void goFullscreen()
+void tic_sys_fullscreen()
 {
 #if defined(CRT_SHADER_SUPPORT)
     GPU_SetFullscreen(GPU_GetFullscreen() ? false : true, true);
@@ -1281,12 +1284,12 @@ static void goFullscreen()
 #endif
 }
 
-static void showMessageBox(const char* title, const char* message)
+void tic_sys_message(const char* title, const char* message)
 {
     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, title, message, NULL);
 }
 
-static void setWindowTitle(const char* title)
+void tic_sys_title(const char* title)
 {
     if(platform.window)
         SDL_SetWindowTitle(platform.window, title);
@@ -1294,7 +1297,7 @@ static void setWindowTitle(const char* title)
 
 #if defined(__WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
 
-static void openSystemPath(const char* path)
+void tic_sys_open_path(const char* path)
 {
     char command[TICNAME_MAX];
 
@@ -1322,11 +1325,11 @@ static void openSystemPath(const char* path)
 
 #else
 
-static void openSystemPath(const char* path) {}
+void tic_sys_open_path(const char* path) {}
 
 #endif
 
-static void preseed()
+void tic_sys_preseed()
 {
 #if defined(__MACOSX__)
     srandom(time(NULL));
@@ -1383,7 +1386,7 @@ static void loadCrtShader()
 }
 #endif
 
-static void updateConfig()
+void tic_sys_update_config()
 {
 #if defined(TOUCH_INPUT_SUPPORT)
     if(platform.gpu.renderer)
@@ -1391,33 +1394,11 @@ static void updateConfig()
 #endif
 }
 
-static System systemInterface = 
-{
-    .setClipboardText = setClipboardText,
-    .hasClipboardText = hasClipboardText,
-    .getClipboardText = getClipboardText,
-    .freeClipboardText = freeClipboardText,
-
-    .getPerformanceCounter = getPerformanceCounter,
-    .getPerformanceFrequency = getPerformanceFrequency,
-
-    .goFullscreen = goFullscreen,
-    .showMessageBox = showMessageBox,
-    .setWindowTitle = setWindowTitle,
-
-    .openSystemPath = openSystemPath,
-    .preseed = preseed,
-    .poll = pollEvent,
-    .updateConfig = updateConfig,
-
-    .text = getInputText,
-};
-
 static void gpuTick()
 {
     tic_mem* tic = platform.studio->tic;
 
-    pollEvent();
+    tic_sys_poll();
 
     if(platform.studio->quit)
     {
@@ -1586,7 +1567,7 @@ static s32 start(s32 argc, const char **argv, const char* folder)
 
     initSound();
 
-    platform.studio = studioInit(argc, argv, platform.audio.spec.freq, folder, &systemInterface);
+    platform.studio = studioInit(argc, argv, platform.audio.spec.freq, folder);
 
     {
         const s32 Width = TIC80_FULLWIDTH * platform.studio->config()->uiScale;
@@ -1609,7 +1590,7 @@ static s32 start(s32 argc, const char **argv, const char* folder)
         initGPU();
 
         if(platform.studio->config()->goFullscreen)
-            goFullscreen();
+            tic_sys_fullscreen();
     }
 
 

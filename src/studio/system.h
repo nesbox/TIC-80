@@ -33,10 +33,6 @@
 
 #define TIC_MAKE_VERSION(major, minor, patch) ((major) * 10000 + (minor) * 100 + (patch))
 #define TIC_VERSION TIC_MAKE_VERSION(MYPROJ_VERSION_MAJOR, MYPROJ_VERSION_MINOR, MYPROJ_VERSION_PATCH)
-
-#define DEF2STR2(x) #x
-#define DEF2STR(x) DEF2STR2(x)
-
 #define TIC_VERSION_LABEL DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "." DEF2STR(TIC_VERSION_REVISION) TIC_VERSION_STATUS TIC_VERSION_POST
 #define TIC_PACKAGE "com.nesbox.tic"
 #define TIC_NAME "TIC-80"
@@ -48,32 +44,29 @@
 #define TIC_COPYRIGHT TIC_WEBSITE " (C) " TIC_VERSION_YEAR
 
 #define TICNAME_MAX 256
-#define KEYBOARD_HOLD 20
-#define KEYBOARD_PERIOD 3
 
-typedef struct
-{
-    void    (*setClipboardText)(const char* text);
-    bool    (*hasClipboardText)();
-    char*   (*getClipboardText)();
-    void    (*freeClipboardText)(const char* text);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-    u64     (*getPerformanceCounter)();
-    u64     (*getPerformanceFrequency)();
+void    tic_sys_clipboard_set(const char* text);
+bool    tic_sys_clipboard_has();
+char*   tic_sys_clipboard_get();
+void    tic_sys_clipboard_free(const char* text);
+u64     tic_sys_counter_get();
+u64     tic_sys_freq_get();
+void    tic_sys_fullscreen();
+void    tic_sys_message(const char* title, const char* message);
+void    tic_sys_title(const char* title);
+void    tic_sys_open_path(const char* path);
+void    tic_sys_preseed();
+void    tic_sys_poll();
+bool    tic_sys_keyboard_text(char* text);
+void    tic_sys_update_config();
 
-    void    (*goFullscreen)();
-    void    (*showMessageBox)(const char* title, const char* message);
-    void    (*setWindowTitle)(const char* title);
-
-    void    (*openSystemPath)(const char* path);
-    
-    void    (*preseed)();
-    void    (*poll)();
-    char    (*text)();
-
-    void (*updateConfig)();
-
-} System;
+#ifdef __cplusplus
+}
+#endif
 
 typedef struct
 {
@@ -163,7 +156,7 @@ extern "C" {
 #endif
 
 
-TIC80_API Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* appFolder, System* system);
+TIC80_API Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* appFolder);
 
 #ifdef __cplusplus
 }

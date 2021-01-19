@@ -78,7 +78,7 @@ static struct
 
 } platform;
 
-static void setClipboardText(const char* text)
+void tic_sys_clipboard_set(const char* text)
 {
 	if(platform.clipboard)
 	{
@@ -89,49 +89,49 @@ static void setClipboardText(const char* text)
 	platform.clipboard = strdup(text);
 }
 
-static bool hasClipboardText()
+bool tic_sys_clipboard_has()
 {
 	return platform.clipboard != NULL;
 }
 
-static char* getClipboardText()
+char* tic_sys_clipboard_get()
 {
 	return platform.clipboard ? strdup(platform.clipboard) : NULL;
 }
 
-static void freeClipboardText(const char* text)
+void tic_sys_clipboard_free(const char* text)
 {
 	free((void*)text);
 }
 
-static u64 getPerformanceCounter()
+u64 tic_sys_counter_get()
 {
 	return CTimer::Get()->GetTicks();
 }
 
-static u64 getPerformanceFrequency()
+u64 tic_sys_freq_get()
 {
 	return HZ;
 }
 
-static void agoFullscreen()
+void tic_sys_fullscreen()
 {
 }
 
-static void showMessageBox(const char* title, const char* message)
+void tic_sys_message(const char* title, const char* message)
 {
 }
 
-static void setWindowTitle(const char* title)
+void tic_sys_title(const char* title)
 {
 }
 
-static void openSystemPath(const char* path)
+void tic_sys_open_path(const char* path)
 {
 
 }
 
-static void preseed()
+void tic_sys_preseed()
 {
 #if defined(__TIC_MACOSX__)
 	srandom(time(NULL));
@@ -142,36 +142,20 @@ static void preseed()
 #endif
 }
 
-static void pollEvent()
+void tic_sys_poll()
 {
 
 }
 
-static void updateConfig()
+void tic_sys_update_config()
 {
 
 }
 
-
-static System systemInterface = 
+bool tic_sys_keyboard_text(char* text)
 {
-	.setClipboardText = setClipboardText,
-	.hasClipboardText = hasClipboardText,
-	.getClipboardText = getClipboardText,
-	.freeClipboardText = freeClipboardText,
-
-	.getPerformanceCounter = getPerformanceCounter,
-	.getPerformanceFrequency = getPerformanceFrequency,
-
-	.goFullscreen = agoFullscreen,
-	.showMessageBox = showMessageBox,
-	.setWindowTitle = setWindowTitle,
-
-	.openSystemPath = openSystemPath,
-	.preseed = preseed,
-	.poll = pollEvent,
-	.updateConfig = updateConfig,
-};
+	return false;
+}
 
 void screenCopy(CScreenDevice* screen, u32* ts)
 {
@@ -396,7 +380,7 @@ TShutdownMode Run(void)
 		const char* argv[] = { &arg0[0], NULL };
 		int argc = 1;
 		malloc(88);
-		platform.studio = studioInit(argc, argv, 44100, "tic80", &systemInterface);
+		platform.studio = studioInit(argc, argv, 44100, "tic80");
 		malloc(99);
 
 	}
@@ -408,7 +392,7 @@ TShutdownMode Run(void)
 		const char* argv[] = { &arg0[0], &arg1[0], NULL };
 		int argc = 2;
 		dbg("Without keyboard\n");
-		platform.studio = studioInit(argc, argv, 44100, "tic80", &systemInterface);
+		platform.studio = studioInit(argc, argv, 44100, "tic80");
 	}
 	dbg("studioInit OK\n");
 

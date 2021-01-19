@@ -34,6 +34,9 @@
 #include "tools.h"
 #include "system.h"
 
+#define KEYBOARD_HOLD 20
+#define KEYBOARD_PERIOD 3
+
 #define TIC_LOCAL ".local/"
 #define TIC_LOCAL_VERSION TIC_LOCAL TIC_VERSION_LABEL "/"
 #define TIC_CACHE TIC_LOCAL "cache/"
@@ -174,7 +177,6 @@ bool keyWasPressed(tic_key key);
 bool anyKeyWasPressed();
 
 const StudioConfig* getConfig();
-System* getSystem();
 
 const char* md5str(const void* data, s32 length);
 bool hasProjectExt(const char* name);

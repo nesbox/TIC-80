@@ -1222,9 +1222,9 @@ static void cutToClipboard(Map* map)
 
 static void copyFromClipboard(Map* map)
 {
-    if(getSystem()->hasClipboardText())
+    if(tic_sys_clipboard_has())
     {
-        char* clipboard = getSystem()->getClipboardText();
+        char* clipboard = tic_sys_clipboard_get();
 
         if(clipboard)
         {
@@ -1244,7 +1244,7 @@ static void copyFromClipboard(Map* map)
                 else free(data);
             }
 
-            getSystem()->freeClipboardText(clipboard);
+            tic_sys_clipboard_free(clipboard);
         }
     }
 }

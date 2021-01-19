@@ -985,7 +985,7 @@ static void copyToClipboard(Code* code)
     {
         memcpy(clipboard, start, size);
         clipboard[size] = '\0';
-        getSystem()->setClipboardText(clipboard);
+        tic_sys_clipboard_set(clipboard);
         free(clipboard);
     }
 }
@@ -1005,9 +1005,9 @@ static void cutToClipboard(Code* code)
 
 static void copyFromClipboard(Code* code)
 {
-    if(getSystem()->hasClipboardText())
+    if(tic_sys_clipboard_has())
     {
-        char* clipboard = getSystem()->getClipboardText();
+        char* clipboard = tic_sys_clipboard_get();
 
         if(clipboard)
         {
@@ -1038,7 +1038,7 @@ static void copyFromClipboard(Code* code)
                 parseSyntaxColor(code);
             }
 
-            getSystem()->freeClipboardText(clipboard);
+            tic_sys_clipboard_free(clipboard);
         }
     }
 }

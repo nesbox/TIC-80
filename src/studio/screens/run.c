@@ -119,7 +119,7 @@ static void tick(Run* run)
 
 static bool forceExit(void* data)
 {
-    getSystem()->poll();
+    tic_sys_poll();
 
     tic_mem* tic = ((Run*)data)->tic;
 
@@ -128,12 +128,12 @@ static bool forceExit(void* data)
 
 static u64 getFreq(void* data)
 {
-    return getSystem()->getPerformanceFrequency();
+    return tic_sys_freq_get();
 }
 
 static u64 getCounter(void* data)
 {
-    return getSystem()->getPerformanceCounter();
+    return tic_sys_counter_get();
 }
 
 void initRun(Run* run, Console* console, tic_mem* tic)
@@ -176,7 +176,7 @@ void initRun(Run* run, Console* console, tic_mem* tic)
         memcpy(run->pmem.data, tic->ram.persistent.data, Size);
     }
 
-    getSystem()->preseed();
+    tic_sys_preseed();
 }
 
 void freeRun(Run* run)
