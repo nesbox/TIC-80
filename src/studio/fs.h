@@ -28,8 +28,9 @@
 typedef bool(*ListCallback)(const char* name, const char* info, s32 id, void* data, bool dir);
 
 typedef struct FileSystem FileSystem;
+struct Net;
 
-FileSystem* createFileSystem(const char* path);
+FileSystem* createFileSystem(const char* path, struct Net* net);
 
 void fsEnumFiles(FileSystem* fs, ListCallback callback, void* data);
 bool fsDeleteFile(FileSystem* fs, const char* name);

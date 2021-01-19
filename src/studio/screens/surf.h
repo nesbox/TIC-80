@@ -30,6 +30,7 @@ struct Surf
 {
     tic_mem* tic;
     struct FileSystem* fs;
+    struct Net* net;
     struct Console* console;
     struct Movie* state;
 

@@ -76,6 +76,7 @@ struct Console
     tic_mem* tic;
 
     struct FileSystem* fs;
+    struct Net* net;
 
     struct
     {
@@ -101,5 +102,5 @@ struct Console
     CartSaveResult(*save)(Console*);
 };
 
-void initConsole(Console*, tic_mem*, struct FileSystem* fs, struct Config* config, StartArgs args);
+void initConsole(Console*, tic_mem*, struct FileSystem* fs, struct Net* net, struct Config* config, StartArgs args);
 void freeConsole(Console* console);

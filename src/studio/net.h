@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2020 Adrian "asie" Siekierka
+// Copyright (c) 2017 Vadim Grigoruk @nesbox // grigoruk@gmail.com
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,16 +22,49 @@
 
 #pragma once
 
-#include "tic.h"
-#include "api.h"
+#include "tic80_types.h"
 
-#include <3ds.h>
+typedef struct Net Net;
 
-typedef struct {
-	LightLock *tick_lock;
-} tic_n3ds_net;
+typedef struct
+{
+    enum
+    {
+        HttpGetProgress,
+        HttpGetDone,
+        HttpGetError,
+    } type;
 
-void n3ds_net_init(tic_n3ds_net *net, LightLock *tick_lock);
-void n3ds_net_free(tic_n3ds_net *net);
-void n3ds_net_get(tic_n3ds_net *net, const char *url, HttpGetCallback callback, void *calldata);
-void* n3ds_net_get_sync(tic_n3ds_net *net, const char *url, s32 *size);
+    union
+    {
+        struct
+        {
+            s32 size;
+            s32 total;
+        } progress;
+
+        struct
+        {
+            s32 size;
+            u8* data;
+        } done;
+
+        struct
+        {
+            s32 code;
+        } error;
+    };
+
+    void* calldata;
+    const char* url;
+
+} HttpGetData;
+
+typedef void(*HttpGetCallback)(const HttpGetData*);
+
+Net* netCreate(const char* host);
+void* netGetSync(Net* net, const char* path, s32* size);
+void netGet(Net* net, const char* url, HttpGetCallback callback, void* calldata);
+void netClose(Net* net);
+void netTickStart(Net *net);
+void netTickEnd(Net *net);

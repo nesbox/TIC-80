@@ -22,6 +22,7 @@
 
 #include "surf.h"
 #include "studio/fs.h"
+#include "studio/net.h"
 #include "console.h"
 #include "studio/project.h"
 
@@ -412,7 +413,7 @@ static void* requestCover(Surf* surf, const char* hash, s32* size)
 
     char path[TICNAME_MAX] = {0};
     sprintf(path, "/cart/%s/cover.gif", hash);
-    void* data = getSystem()->httpGetSync(path, size);
+    void* data = netGetSync(surf->net, path, size);
 
     if(data)
     {
@@ -850,6 +851,7 @@ void initSurf(Surf* surf, tic_mem* tic, struct Console* console)
         .tic = tic,
         .console = console,
         .fs = console->fs,
+        .net = console->net,
         .tick = tick,
         .ticks = 0,
         .state = &EmptyState,

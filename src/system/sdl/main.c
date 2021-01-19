@@ -22,7 +22,6 @@
 
 #include "studio/system.h"
 #include "tools.h"
-#include "net/net.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -160,8 +159,6 @@ static struct
         const u8* src;
         SDL_Cursor* cursors[COUNT_OF(SystemCursors)];
     } mouse;
-
-    Net* net;
 
     struct
     {
@@ -1329,16 +1326,6 @@ static void openSystemPath(const char* path) {}
 
 #endif
 
-static void* httpGetSync(const char* url, s32* size)
-{
-    return netGetSync(platform.net, url, size);
-}
-
-static void httpGet(const char* url, HttpGetCallback callback, void* calldata)
-{
-    netGet(platform.net, url, callback, calldata);
-}
-
 static void preseed()
 {
 #if defined(__MACOSX__)
@@ -1414,9 +1401,6 @@ static System systemInterface =
     .getPerformanceCounter = getPerformanceCounter,
     .getPerformanceFrequency = getPerformanceFrequency,
 
-    .httpGetSync = httpGetSync,
-    .httpGet = httpGet,
-
     .goFullscreen = goFullscreen,
     .showMessageBox = showMessageBox,
     .setWindowTitle = setWindowTitle,
@@ -1432,8 +1416,6 @@ static System systemInterface =
 static void gpuTick()
 {
     tic_mem* tic = platform.studio->tic;
-
-    netTick(platform.net);
 
     pollEvent();
 
@@ -1604,8 +1586,6 @@ static s32 start(s32 argc, const char **argv, const char* folder)
 
     initSound();
 
-    platform.net = createNet(TIC_WEBSITE);
-
     platform.studio = studioInit(argc, argv, platform.audio.spec.freq, folder, &systemInterface);
 
     {
@@ -1665,8 +1645,6 @@ static s32 start(s32 argc, const char **argv, const char* folder)
 #endif
 
     platform.studio->close();
-
-    closeNet(platform.net);
 
     if(platform.audio.cvt.buf)
         SDL_free(platform.audio.cvt.buf);

@@ -29,3 +29,4 @@
 #define CLAMP(v,a,b) (MIN(MAX(v,a),b))
 #define SWAP(a, b, type) do { type temp = a; a = b; b = temp; } while (0)
 #define ZEROMEM(p) memset(&p, 0, sizeof p)
+#define OBJCOPY(...) memcpy(malloc(sizeof __VA_ARGS__), &__VA_ARGS__, sizeof __VA_ARGS__)

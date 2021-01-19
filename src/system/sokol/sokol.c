@@ -28,7 +28,6 @@
 
 #include "studio/system.h"
 #include "system/sokol/sokol.h"
-#include "net/net.h"
 
 #if defined(__TIC_WINDOWS__)
 #include <windows.h>
@@ -51,8 +50,6 @@ static struct
     } audio;
 
     char* clipboard;
-
-    Net* net;
 
 } platform;
 
@@ -90,16 +87,6 @@ static u64 getPerformanceCounter()
 static u64 getPerformanceFrequency()
 {
     return 1000000000;
-}
-
-static void* httpGetSync(const char* url, s32* size)
-{
-    return netGetSync(platform.net, url, size);
-}
-
-static void httpGet(const char* url, HttpGetCallback callback, void* calldata)
-{
-    return netGet(platform.net, url, callback, calldata);
 }
 
 static void goFullscreen()
@@ -155,9 +142,6 @@ static System systemInterface =
     .getPerformanceCounter = getPerformanceCounter,
     .getPerformanceFrequency = getPerformanceFrequency,
 
-    .httpGetSync = httpGetSync,
-    .httpGet = httpGet,
-
     .goFullscreen = goFullscreen,
     .showMessageBox = showMessageBox,
     .setWindowTitle = setWindowTitle,
@@ -196,8 +180,6 @@ static void handleKeyboard()
 static void app_frame(void)
 {
     if(platform.studio->quit) exit(0);
-
-    netTick(platform.net);
 
     tic_mem* tic = platform.studio->tic;
     tic80_input* input = &tic->ram.input;
@@ -417,7 +399,6 @@ static void app_input(const sapp_event* event)
 static void app_cleanup(void)
 {
     platform.studio->close();
-    closeNet(platform.net);
     free(platform.audio.samples);
 }
 
@@ -435,8 +416,6 @@ sapp_desc sokol_main(s32 argc, char* argv[])
 
     platform.audio.desc.num_channels = TIC_STEREO_CHANNELS;
     saudio_setup(&platform.audio.desc);
-
-    platform.net = createNet(TIC_WEBSITE);
 
     platform.studio = studioInit(argc, (const char**)argv, saudio_sample_rate(), "./", &systemInterface);
 

@@ -253,9 +253,10 @@ jobs:
         name: 'tic80-macos-sdl'
         path: build/tic80.dmg
 
-# === Android arm7 arm8 x86 x64 ===
+# === Android ===
   android:
     runs-on: ubuntu-latest
+    container: nesbox/android-tic80:latest
 
     steps:
     - uses: actions/checkout@v2
@@ -267,37 +268,9 @@ jobs:
       run: |
         cd build/android
         ./gradlew assembleRelease
-        cp app/build/outputs/apk/arm7/release/app-arm7-release.apk tic80_arm7.apk
-        cp app/build/outputs/apk/arm8/release/app-arm8-release.apk tic80_arm8.apk
-        cp app/build/outputs/apk/x86_64/release/app-x86_64-release.apk tic80_x64.apk
-        cp app/build/outputs/apk/x86/release/app-x86-release.apk tic80_x86.apk
         cp app/build/outputs/apk/universal/release/app-universal-release.apk tic80.apk
 
-    - name: Deploy ARM7
-      uses: actions/upload-artifact@v2
-      with:
-        name: 'tic80-android-arm7'
-        path: build/android/tic80_arm7.apk
-
-    - name: Deploy ARM8
-      uses: actions/upload-artifact@v2
-      with:
-        name: 'tic80-android-arm8'
-        path: build/android/tic80_arm8.apk
-
-    - name: Deploy x64
-      uses: actions/upload-artifact@v2
-      with:
-        name: 'tic80-android-x64'
-        path: build/android/tic80_x64.apk
-
-    - name: Deploy x86
-      uses: actions/upload-artifact@v2
-      with:
-        name: 'tic80-android-x86'
-        path: build/android/tic80_x86.apk
-
-    - name: Deploy Universal
+    - name: Deploy
       uses: actions/upload-artifact@v2
       with:
         name: 'tic80-android'

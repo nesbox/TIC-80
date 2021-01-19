@@ -34,7 +34,6 @@
 
 #include "keyboard.h"
 #include "utils.h"
-#include "net_httpc.h"
 
 // #define RENDER_CONSOLE_TOP
 #define AUDIO_FREQ 44100
@@ -84,10 +83,7 @@ static struct
     } audio;
 
     tic_n3ds_keyboard keyboard;
-#ifdef ENABLE_HTTPC
-    tic_n3ds_net httpc;
-#endif
-    LightLock tick_lock;
+
 } platform;
 
 // 256-wide
@@ -190,30 +186,6 @@ static u64 getPerformanceCounter()
 static u64 getPerformanceFrequency()
 {
     return SYSCLOCK_ARM11;
-}
-
-static void* httpGetSync(const char* url, s32* size)
-{
-#ifdef ENABLE_HTTPC
-    return n3ds_net_get_sync(&platform.httpc, url, size);
-#else
-    return NULL;
-#endif
-}
-
-static void httpGet(const char* url, HttpGetCallback callback, void* calldata)
-{
-#ifdef ENABLE_HTTPC
-    n3ds_net_get(&platform.httpc, url, callback, calldata);
-#else
-    HttpGetData getData = 
-    {
-        .type = HttpGetError,
-        .calldata = calldata,
-        .url = path,
-    };
-    callback(&getData);
-#endif
 }
 
 static void goFullscreen()
@@ -499,9 +471,6 @@ static System systemInterface =
     .getPerformanceCounter = getPerformanceCounter,
     .getPerformanceFrequency = getPerformanceFrequency,
 
-    .httpGetSync = httpGetSync,
-    .httpGet = httpGet,
-
     .goFullscreen = goFullscreen,
     .showMessageBox = showMessageBox,
     .setWindowTitle = setWindowTitle,
@@ -601,12 +570,7 @@ int main(int argc, char **argv) {
     romfsInit();
 
     memset(&platform, 0, sizeof(platform));
-    LightLock_Init(&platform.tick_lock);
-
-#ifdef ENABLE_HTTPC
-    n3ds_net_init(&platform.httpc, &platform.tick_lock);
-#endif
-    
+   
     n3ds_draw_init();
     n3ds_keyboard_init(&platform.keyboard);
 
@@ -618,16 +582,12 @@ int main(int argc, char **argv) {
     while (aptMainLoop() && !platform.studio->quit) {
         u32 start_frame = C3D_FrameCounter(0);
 
-        LightLock_Lock(&platform.tick_lock);
-
         keyboard_update();
 
         platform.studio->tick();
         audio_update();
 
         n3ds_copy_frame();
-
-        LightLock_Unlock(&platform.tick_lock);
 
         bool sync = (C3D_FrameCounter(0) == start_frame);
         C3D_FrameBegin(sync ? C3D_FRAME_SYNCDRAW : 0);
@@ -644,10 +604,6 @@ int main(int argc, char **argv) {
 
     n3ds_keyboard_free(&platform.keyboard);
     n3ds_draw_exit();
-
-#ifdef ENABLE_HTTPC
-    n3ds_net_free(&platform.httpc);
-#endif
 
     romfsExit();
     cfguExit();

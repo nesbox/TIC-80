@@ -22,6 +22,7 @@
 
 #include "console.h"
 #include "studio/fs.h"
+#include "studio/net.h"
 #include "studio/config.h"
 #include "ext/gif.h"
 #include "studio/project.h"
@@ -1752,7 +1753,7 @@ static void exportGame(Console* console, const char* name, const char* system, H
 
     char url[TICNAME_MAX] = "/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "/";
     strcat(url, system);
-    getSystem()->httpGet(url, callback, data);
+    netGet(console->net, url, callback, data);
 }
 
 static inline void exportNativeGame(Console* console, const char* name, const char* system)
@@ -2830,7 +2831,7 @@ static void tick(Console* console)
             printBack(console, " for help\n");
 
             if(getConfig()->checkNewVersion)
-                getSystem()->httpGet("/api?fn=version", onHttpVesrsionGet, console);
+                netGet(console->net, "/api?fn=version", onHttpVesrsionGet, console);
 
             commandDone(console);
         }
@@ -2910,7 +2911,7 @@ static bool cmdLoadCart(Console* console, const char* path)
     return done;
 }
 
-void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config, StartArgs args)
+void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Net* net, Config* config, StartArgs args)
 {
     if(!console->buffer) console->buffer = malloc(CONSOLE_BUFFER_SIZE);
     if(!console->colorBuffer) console->colorBuffer = malloc(CONSOLE_BUFFER_SIZE);
@@ -2946,6 +2947,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Config* config,
         .buffer = console->buffer,
         .colorBuffer = console->colorBuffer,
         .fs = fs,
+        .net = net,
         .showGameMenu = false,
         .args = args,
     };

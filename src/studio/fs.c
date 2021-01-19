@@ -22,6 +22,7 @@
 
 #include "studio.h"
 #include "fs.h"
+#include "net.h"
 
 #if defined(BAREMETALPI) || defined(_3DS)
   #ifdef EN_DEBUG
@@ -66,6 +67,7 @@ struct FileSystem
 {
     char dir[TICNAME_MAX];
     char work[TICNAME_MAX];
+    Net* net;
 };
 
 #if defined(__EMSCRIPTEN__)
@@ -316,13 +318,13 @@ static void onDirResponse(u8* buffer, s32 size, void* data)
     }
 }
 
-static void netDirRequest(const char* path, ListCallback callback, void* data)
+static void netDirRequest(Net* net, const char* path, ListCallback callback, void* data)
 {
     char request[TICNAME_MAX] = {'\0'};
     sprintf(request, "/api?fn=dir&path=%s", path);
 
     s32 size = 0;
-    void* buffer = getSystem()->httpGetSync(request, &size);
+    void* buffer = netGetSync(net, request, &size);
 
     NetDirData netDirData = {callback, data};
     onDirResponse(buffer, size, &netDirData);
@@ -414,7 +416,7 @@ void fsEnumFiles(FileSystem* fs, ListCallback callback, void* data)
 
     if(isPublic(fs))
     {
-        netDirRequest(fs->work + sizeof(TIC_HOST), callback, data);
+        netDirRequest(fs->net, fs->work + sizeof(TIC_HOST), callback, data);
         return;
     }
 
@@ -892,7 +894,7 @@ void* fsLoadFileByHash(FileSystem* fs, const char* hash, s32* size)
 
     char path[TICNAME_MAX] = {0};
     sprintf(path, "/cart/%s/cart.tic", hash);
-    void* data = getSystem()->httpGetSync(path, size);
+    void* data = netGetSync(fs->net, path, size);
 
     if(data)
         fsSaveRootFile(fs, cachePath, data, *size, false);
@@ -1018,7 +1020,7 @@ void fsOpenWorkingFolder(FileSystem* fs)
     getSystem()->openSystemPath(path);
 }
 
-FileSystem* createFileSystem(const char* path)
+FileSystem* createFileSystem(const char* path, Net* net)
 {
     FileSystem* fs = (FileSystem*)calloc(1, sizeof(FileSystem));
 
@@ -1026,6 +1028,8 @@ FileSystem* createFileSystem(const char* path)
 
     if(path[strlen(path) - 1] != SEP[0])
         strcat(fs->dir, SEP);
+
+    fs->net = net;
 
     return fs;
 }

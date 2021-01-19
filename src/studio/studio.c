@@ -39,6 +39,7 @@
 #include "project.h"
 
 #include "fs.h"
+#include "net.h"
 
 #include "ext/gif.h"
 #include "ext/md5.h"
@@ -186,6 +187,7 @@ static struct
     };
 
     FileSystem* fs;
+    Net* net;
 
     s32 samplerate;
     tic_font systemFont;
@@ -1894,6 +1896,7 @@ static void studioTick()
 {
     tic_mem* tic = impl.studio.tic;
 
+    netTickStart(impl.net);
     processShortcuts();
     processMouseStates();
     processGamepadMapping();
@@ -1970,6 +1973,8 @@ static void studioTick()
     }
 
     drawPopup();
+
+    netTickEnd(impl.net);
 }
 
 static void studioClose()
@@ -1997,6 +2002,7 @@ static void studioClose()
     if(impl.tic80local)
         tic80_delete((tic80*)impl.tic80local);
 
+    netClose(impl.net);
     free(impl.fs);
 }
 
@@ -2044,12 +2050,13 @@ Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* fold
 
     impl.samplerate = samplerate;
     impl.system = system;
+    impl.net = netCreate(TIC_WEBSITE);
 
     {
         const char *path = args.fs ? args.fs : folder;
 
         if(fsExists(path))
-            impl.fs = createFileSystem(path);
+            impl.fs = createFileSystem(path, impl.net);
         else
         {
             fprintf(stderr, "error: folder `%s` doesn't exist\n", path);
@@ -2086,7 +2093,7 @@ Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* fold
     initConfig(impl.config, impl.studio.tic, impl.fs);
     initKeymap();
     initStart(impl.start, impl.studio.tic);
-    initConsole(impl.console, impl.studio.tic, impl.fs, impl.config, args);
+    initConsole(impl.console, impl.studio.tic, impl.fs, impl.net, impl.config, args);
     initSurfMode();
     initRunMode();
     initModules();

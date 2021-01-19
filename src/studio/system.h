@@ -24,7 +24,6 @@
 
 #include "api.h"
 #include "version.h"
-#include "http.h"
 
 #if defined(TIC80_PRO)
 #define TIC_VERSION_POST " Pro"
@@ -61,9 +60,6 @@ typedef struct
 
     u64     (*getPerformanceCounter)();
     u64     (*getPerformanceFrequency)();
-
-    void*   (*httpGetSync)(const char* url, s32* size);
-    void    (*httpGet)(const char* url, HttpGetCallback callback, void* userdata);
 
     void    (*goFullscreen)();
     void    (*showMessageBox)(const char* title, const char* message);
@@ -173,3 +169,4 @@ TIC80_API Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const 
 }
 #endif
 
+void registerLambda(void* data, void(*callback)(void* data));

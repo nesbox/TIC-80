@@ -560,6 +560,41 @@ add_library(argparse STATIC ${THIRDPARTY_DIR}/argparse/argparse.c)
 target_include_directories(argparse INTERFACE ${THIRDPARTY_DIR}/argparse)
 
 ################################
+# CURL
+################################
+
+if(NOT N3DS AND NOT EMSCRIPTEN AND NOT BAREMETALPI)
+    set(USE_CURL TRUE)
+endif()
+
+if (USE_CURL)
+
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
+
+    if(WIN32)
+        set(CURL_STATIC_CRT ON CACHE BOOL "")
+    endif()
+
+    set(CMAKE_USE_OPENSSL OFF CACHE BOOL "" )
+    set(CMAKE_USE_LIBSSH2 OFF CACHE BOOL "")
+    set(HTTP_ONLY ON CACHE BOOL "")
+    set(BUILD_CURL_EXE OFF CACHE BOOL "")
+    set(CURL_CA_BUNDLE "none" CACHE STRING "")
+    set(CURL_CA_PATH "none" CACHE STRING "")
+
+    if(RPI)
+        set(CURL_ZLIB OFF CACHE BOOL "" )
+    endif()
+
+    add_subdirectory(${THIRDPARTY_DIR}/curl)
+
+    if(RPI)
+        target_compile_definitions(libcurl PRIVATE NOT_USE_FILE_OFFSET64)
+    endif()
+
+endif()
+
+################################
 # TIC-80 studio
 ################################
 
@@ -581,6 +616,7 @@ set(TIC80STUDIO_SRC
     ${TIC80LIB_DIR}/studio/config.c
     ${TIC80LIB_DIR}/studio/project.c
     ${TIC80LIB_DIR}/studio/fs.c
+    ${TIC80LIB_DIR}/studio/net.c
     ${TIC80LIB_DIR}/ext/md5.c
     ${TIC80LIB_DIR}/ext/gif.c
     ${TIC80LIB_DIR}/ext/history.c
@@ -597,6 +633,10 @@ endif()
 target_include_directories(tic80studio PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(tic80studio tic80core zip wave_writer argparse)
+
+if(USE_CURL)
+    target_link_libraries(tic80studio libcurl)
+endif()
 
 if(BUILD_PRO)
     target_compile_definitions(tic80studio PRIVATE TIC80_PRO)
@@ -681,52 +721,6 @@ endif()
 endif()
 
 ################################
-# CURL
-################################
-
-if (NOT N3DS AND NOT EMSCRIPTEN AND NOT BAREMETALPI)
-
-    set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
-
-    if(WIN32)
-        set(CURL_STATIC_CRT ON CACHE BOOL "")
-    endif()
-
-    set(CMAKE_USE_OPENSSL OFF CACHE BOOL "" )
-    set(CMAKE_USE_LIBSSH2 OFF CACHE BOOL "")
-    set(HTTP_ONLY ON CACHE BOOL "")
-    set(BUILD_CURL_EXE OFF CACHE BOOL "")
-    set(CURL_CA_BUNDLE "none" CACHE STRING "")
-    set(CURL_CA_PATH "none" CACHE STRING "")
-
-    if(RPI)
-        set(CURL_ZLIB OFF CACHE BOOL "" )
-    endif()
-
-    add_subdirectory(${THIRDPARTY_DIR}/curl)
-
-    if(RPI)
-        target_compile_definitions(libcurl PRIVATE NOT_USE_FILE_OFFSET64)
-    endif()
-
-endif()
-
-################################
-# Network library
-################################
-
-if (NOT N3DS)
-    add_library(net STATIC ${CMAKE_SOURCE_DIR}/src/system/net/net.c)
-    target_include_directories(net 
-        PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include
-        INTERFACE ${CMAKE_SOURCE_DIR}/src/system)
-
-    if(NOT EMSCRIPTEN)
-        target_link_libraries(net libcurl)
-    endif()
-endif()
-
-################################
 # TIC-80 app
 ################################
 
@@ -770,7 +764,7 @@ if(BUILD_SDL)
         target_link_libraries(tic80 SDL2main)
     endif()
 
-    target_link_libraries(tic80 tic80studio net)
+    target_link_libraries(tic80 tic80studio)
 
     if(BUILD_TOUCH_INPUT)
         target_compile_definitions(tic80 PRIVATE TOUCH_INPUT_SUPPORT)
@@ -836,7 +830,7 @@ if(BUILD_SOKOL)
         target_link_options(tic80-sokol PRIVATE -static -mconsole)
     endif()
 
-    target_link_libraries(tic80-sokol tic80studio sokol net)
+    target_link_libraries(tic80-sokol tic80studio sokol)
 
 endif()
 
@@ -848,13 +842,10 @@ if(N3DS)
     set(TIC80_SRC ${TIC80_SRC}
         ${CMAKE_SOURCE_DIR}/src/system/n3ds/utils.c
         ${CMAKE_SOURCE_DIR}/src/system/n3ds/keyboard.c
-        ${CMAKE_SOURCE_DIR}/src/system/n3ds/net_httpc.c
         ${CMAKE_SOURCE_DIR}/src/system/n3ds/main.c
     )
 
     add_executable(tic80_n3ds ${TIC80_SRC})
-
-    target_compile_definitions(tic80_n3ds PRIVATE ENABLE_HTTPC)
 
     target_include_directories(tic80_n3ds PRIVATE
         ${DEVKITPRO}/portlibs/3ds/include
