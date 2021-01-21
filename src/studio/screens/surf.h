@@ -35,6 +35,7 @@ struct Surf
     struct Movie* state;
 
     bool init;
+    bool loading;
     s32 ticks;
 
     struct

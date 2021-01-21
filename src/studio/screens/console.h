@@ -93,7 +93,8 @@ struct Console
     bool showGameMenu;
     StartArgs args;
 
-    void(*load)(Console*, const char* path, const char* hash);
+    void(*load)(Console*, const char* path);
+    void(*loadByHash)(Console*, const char* name, const char* hash);
     void(*updateProject)(Console*);
     void(*error)(Console*, const char*);
     void(*trace)(Console*, const char*, u8 color);

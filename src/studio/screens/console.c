@@ -702,53 +702,134 @@ static void updateProject(Console* console)
     }
 }
 
+typedef struct
+{
+    Console* console;
+    char* name;
+}LoadByHashData;
+
+static void loadByHashDone(const u8* buffer, s32 size, void* data)
+{
+    LoadByHashData* loadByHashData = data;
+    Console* console = loadByHashData->console;
+
+    console->showGameMenu = true;
+
+    loadRom(console->tic, buffer, size);
+    onCartLoaded(console, loadByHashData->name);
+
+    free(loadByHashData->name);
+    free(loadByHashData);
+
+    console->showGameMenu = true;
+
+    commandDone(console);
+}
+
+static void loadByHash(Console* console, const char* name, const char* hash)
+{
+    console->active = false;
+
+    LoadByHashData loadByHashData = { console, strdup(name) };
+    fsLoadFileByHashAsync(console->fs, hash, loadByHashDone, OBJCOPY(loadByHashData));
+}
+
+typedef struct
+{
+    Console* console;
+    char* name;
+    char* hash;
+} LoadPublicCartData;
+
+static bool compareFilename(const char* name, const char* info, s32 id, void* data, bool dir)
+{
+    LoadPublicCartData* loadPublicCartData = data;
+    Console* console = loadPublicCartData->console;
+
+    if (strcmp(name, loadPublicCartData->name) == 0 && info && strlen(info))
+    {
+        loadPublicCartData->hash = strdup(info);
+        return false;
+    }
+
+    return true;
+}
+
+static void fileFound(void* data)
+{
+    LoadPublicCartData* loadPublicCartData = data;
+    Console* console = loadPublicCartData->console;
+
+    if (loadPublicCartData->hash)
+    {
+        loadByHash(console, loadPublicCartData->name, loadPublicCartData->hash);
+        free(loadPublicCartData->hash);
+    }
+    else
+    {
+        char msg[TICNAME_MAX];
+        sprintf(msg, "\nerror: `%s` file not loaded", loadPublicCartData->name);
+        printError(console, msg);
+        commandDone(console);
+    }
+
+    free(loadPublicCartData->name);
+    free(loadPublicCartData);    
+}
+
 static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 {
     if(onConsoleLoadSectionCommand(console, param)) return;
 
     if(param)
     {
-        s32 size = 0;
         const char* name = getCartName(param);
 
-        void* data = strcmp(name, CONFIG_TIC_PATH) == 0
-            ? fsLoadRootFile(console->fs, name, &size)
-            : fsLoadFile(console->fs, name, &size);
-
-        if(data)
+        if (fsIsInPublicDir(console->fs))
         {
-            console->showGameMenu = fsIsInPublicDir(console->fs);
+            LoadPublicCartData loadPublicCartData = { console, strdup(name) };
+            fsEnumFilesAsync(console->fs, compareFilename, fileFound, OBJCOPY(loadPublicCartData));
 
-            loadRom(console->tic, data, size);
-
-            onCartLoaded(console, name);
-
-            free(data);
+            return;
         }
         else
         {
-            const char* name = getName(param, PROJECT_LUA_EXT);
+            console->showGameMenu = false;
+            s32 size = 0;
+            void* data = strcmp(name, CONFIG_TIC_PATH) == 0
+                ? fsLoadRootFile(console->fs, name, &size)
+                : fsLoadFile(console->fs, name, &size);
 
-            if(!fsExistsFile(console->fs, name))
-                name = getName(param, PROJECT_MOON_EXT);
-
-            if(!fsExistsFile(console->fs, name))
-                name = getName(param, PROJECT_JS_EXT);
-
-            if(!fsExistsFile(console->fs, name))
-                name = getName(param, PROJECT_WREN_EXT);
-
-            if(!fsExistsFile(console->fs, name))
-                name = getName(param, PROJECT_FENNEL_EXT);
-
-            if(!fsExistsFile(console->fs, name))
-                name = getName(param, PROJECT_SQUIRREL_EXT);
-
-            void* data = fsLoadFile(console->fs, name, &size);
-
-            if(data && tic_project_load(name, data, size, &console->tic->cart))
+            if(data)
+            {
+                loadRom(console->tic, data, size);
                 onCartLoaded(console, name);
-            else printBack(console, "\ncart loading error");
+            }
+            else
+            {
+                const char* name = getName(param, PROJECT_LUA_EXT);
+
+                if(!fsExistsFile(console->fs, name))
+                    name = getName(param, PROJECT_MOON_EXT);
+
+                if(!fsExistsFile(console->fs, name))
+                    name = getName(param, PROJECT_JS_EXT);
+
+                if(!fsExistsFile(console->fs, name))
+                    name = getName(param, PROJECT_WREN_EXT);
+
+                if(!fsExistsFile(console->fs, name))
+                    name = getName(param, PROJECT_FENNEL_EXT);
+
+                if(!fsExistsFile(console->fs, name))
+                    name = getName(param, PROJECT_SQUIRREL_EXT);
+
+                void* data = fsLoadFile(console->fs, name, &size);
+
+                if(data && tic_project_load(name, data, size, &console->tic->cart))
+                    onCartLoaded(console, name);
+                else printBack(console, "\ncart loading error");
+            }
 
             free(data);
         }
@@ -756,30 +837,6 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
     else printBack(console, "\ncart name is missing");
 
     commandDone(console);
-}
-
-static void load(Console* console, const char* path, const char* hash)
-{
-    if(hash)
-    {
-        s32 size = 0;
-        const char* name = getCartName(path);
-
-        void* data = fsLoadFileByHash(console->fs, hash, &size);
-
-        if(data)
-        {
-            console->showGameMenu = true;
-
-            loadRom(console->tic, data, size);
-            onCartLoaded(console, name);
-
-            free(data);     
-        }
-
-        commandDone(console);
-    }
-    else onConsoleLoadCommandConfirmed(console, path);
 }
 
 typedef void(*ConfirmCallback)(Console* console, const char* param);
@@ -984,7 +1041,6 @@ typedef struct
 
 static bool printFilename(const char* name, const char* info, s32 id, void* data, bool dir)
 {
-
     PrintFileNameData* printData = data;
     Console* console = printData->console;
 
@@ -992,17 +1048,56 @@ static bool printFilename(const char* name, const char* info, s32 id, void* data
 
     if(dir)
     {
-
         printBack(console, "[");
         printBack(console, name);
         printBack(console, "]");
     }
     else printFront(console, name);
 
-    if(!dir)
-        printData->count++;
+    printData->count++;
 
     return true;
+}
+
+static void onDirDone(void* data)
+{
+    PrintFileNameData* printData = data;
+    Console* console = printData->console;
+
+    if (printData->count == 0)
+    {
+        printBack(console, "\n\nuse ");
+        printFront(console, "DEMO");
+        printBack(console, " command to install demo carts");
+    }
+
+    printLine(console);
+    commandDone(console);
+
+    free(data);
+}
+
+typedef struct
+{
+    Console* console;
+    char* name;
+} ChangeDirData;
+
+static void onConsoleChangeDirectoryDone(bool dir, void* data)
+{
+    ChangeDirData* changeDirData = data;
+    Console* console = changeDirData->console;
+
+    if (dir)
+    {
+        fsChangeDir(console->fs, changeDirData->name);
+    }
+    else printBack(console, "\ndir doesn't exist");
+
+    free(changeDirData->name);
+    free(changeDirData);
+
+    commandDone(console);
 }
 
 static void onConsoleChangeDirectory(Console* console, const char* param)
@@ -1017,11 +1112,12 @@ static void onConsoleChangeDirectory(Console* console, const char* param)
         {
             fsDirBack(console->fs);
         }
-        else if(fsIsDir(console->fs, param))
+        else
         {
-            fsChangeDir(console->fs, param);
+            ChangeDirData data = { console, strdup(param) };
+            fsIsDirAsync(console->fs, param, onConsoleChangeDirectoryDone, OBJCOPY(data));
+            return;
         }
-        else printBack(console, "\ndir doesn't exist");
     }
     else printBack(console, "\ninvalid dir name");
 
@@ -1039,21 +1135,10 @@ static void onConsoleMakeDirectory(Console* console, const char* param)
 
 static void onConsoleDirCommand(Console* console, const char* param)
 {
+    printLine(console);
+
     PrintFileNameData data = {0, console};
-
-    printLine(console);
-
-    fsEnumFiles(console->fs, printFilename, &data);
-
-    if(data.count == 0)
-    {
-        printBack(console, "\n\nuse ");
-        printFront(console, "DEMO");
-        printBack(console, " command to install demo carts");
-    }
-
-    printLine(console);
-    commandDone(console);
+    fsEnumFilesAsync(console->fs, printFilename, onDirDone, OBJCOPY(data));
 }
 
 static void onConsoleFolderCommand(Console* console, const char* param)
@@ -2037,17 +2122,24 @@ static void onConsoleDelCommandConfirmed(Console* console, const char* param)
 {
     if(param && strlen(param))
     {
-        if(fsIsDir(console->fs, param))
+        if (fsIsInPublicDir(console->fs))
         {
-            printBack(console, fsDeleteDir(console->fs, param)
-                ? "\ndir not deleted"
-                : "\ndir successfully deleted");
+            printError(console, "\naccess denied");
         }
         else
         {
-            printBack(console, fsDeleteFile(console->fs, param)
-                ? "\nfile not deleted"
-                : "\nfile successfully deleted");
+            if(fsIsDir(console->fs, param))
+            {
+                printBack(console, fsDeleteDir(console->fs, param)
+                    ? "\ndir not deleted"
+                    : "\ndir successfully deleted");
+            }
+            else
+            {
+                printBack(console, fsDeleteFile(console->fs, param)
+                    ? "\nfile not deleted"
+                    : "\nfile successfully deleted");
+            }
         }
     }
     else printBack(console, "\nname is missing");
@@ -2329,17 +2421,32 @@ static const struct
     {"menu",    NULL, "show game menu",             onConsoleGameMenuCommand},
 };
 
+typedef struct
+{
+    Console* console;
+    char* name;
+} PredictFilenameData;
+
 static bool predictFilename(const char* name, const char* info, s32 id, void* data, bool dir)
 {
-    char* buffer = (char*)data;
+    PredictFilenameData* predictFilenameData = data;
 
-    if(strstr(name, buffer) == name)
+    if(strstr(name, predictFilenameData->name) == name)
     {
-        strcpy(buffer, name);
+        strcpy(predictFilenameData->name, name);
         return false;
     }
 
     return true;
+}
+
+static void predictFilenameDone(void* data)
+{
+    PredictFilenameData* predictFilenameData = data;
+    Console* console = predictFilenameData->console;
+
+    console->inputPosition = strlen(console->inputBuffer);
+    free(predictFilenameData);
 }
 
 static void processConsoleTab(Console* console)
@@ -2352,8 +2459,8 @@ static void processConsoleTab(Console* console)
 
         if(param && strlen(++param))
         {
-            fsEnumFiles(console->fs, predictFilename, param);
-            console->inputPosition = strlen(input);
+            PredictFilenameData data = { console, param };
+            fsEnumFilesAsync(console->fs, predictFilename, predictFilenameDone, OBJCOPY(data));
         }
         else
         {
@@ -2921,7 +3028,8 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Net* net, Confi
     {
         .tic = tic,
         .config = config,
-        .load = load,
+        .loadByHash = loadByHash,
+        .load = onConsoleLoadCommandConfirmed,
         .updateProject = updateProject,
         .error = error,
         .trace = trace,

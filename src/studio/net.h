@@ -63,7 +63,6 @@ typedef struct
 typedef void(*HttpGetCallback)(const HttpGetData*);
 
 Net* netCreate(const char* host);
-void* netGetSync(Net* net, const char* path, s32* size);
 void netGet(Net* net, const char* url, HttpGetCallback callback, void* calldata);
 void netClose(Net* net);
 void netTickStart(Net *net);

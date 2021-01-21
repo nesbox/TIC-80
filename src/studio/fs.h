@@ -26,19 +26,24 @@
 #include <string.h>
 
 typedef bool(*ListCallback)(const char* name, const char* info, s32 id, void* data, bool dir);
+typedef void(*DoneCallback)(void* data);
+typedef void(*IsDirCallback)(bool dir, void* data);
+typedef void(*LoadCallback)(const u8* buffer, s32 size, void* data);
 
 typedef struct FileSystem FileSystem;
 struct Net;
 
 FileSystem* createFileSystem(const char* path, struct Net* net);
 
-void fsEnumFiles(FileSystem* fs, ListCallback callback, void* data);
+void fsEnumFilesAsync(FileSystem* fs, ListCallback onItem, DoneCallback onDone, void* data);
+void fsIsDirAsync(FileSystem* fs, const char* name, IsDirCallback callback, void* data);
+void fsLoadFileByHashAsync(FileSystem* fs, const char* hash, LoadCallback callback, void* data);
+
 bool fsDeleteFile(FileSystem* fs, const char* name);
 bool fsDeleteDir(FileSystem* fs, const char* name);
 bool fsSaveFile(FileSystem* fs, const char* name, const void* data, s32 size, bool overwrite);
 bool fsSaveRootFile(FileSystem* fs, const char* name, const void* data, s32 size, bool overwrite);
 void* fsLoadFile(FileSystem* fs, const char* name, s32* size);
-void* fsLoadFileByHash(FileSystem* fs, const char* hash, s32* size);
 void* fsLoadRootFile(FileSystem* fs, const char* name, s32* size);
 const char* fsGetFilePath(FileSystem* fs, const char* name);
 const char* fsGetRootFilePath(FileSystem* fs, const char* name);
@@ -54,7 +59,7 @@ bool fsWriteFile(const char* path, const void* data, s32 size);
 void fsOpenWorkingFolder(FileSystem* fs);
 bool fsIsDir(FileSystem* fs, const char* dir);
 bool fsIsInPublicDir(FileSystem* fs);
-bool fsChangeDir(FileSystem* fs, const char* dir);
+void fsChangeDir(FileSystem* fs, const char* dir);
 void fsGetDir(FileSystem* fs, char* out);
 void fsDirBack(FileSystem* fs);
 void fsHomeDir(FileSystem* fs);

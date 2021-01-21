@@ -166,7 +166,9 @@ typedef struct
     MenuItem* items;
     s32 count;
     Surf* surf;
-} AddMenuItem;
+    DoneCallback done;
+    void* data;
+} AddMenuItemData;
 
 static void resetMovie(Surf* surf, Movie* movie, void (*done)(Surf* surf))
 {
@@ -240,7 +242,7 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
 
 #ifdef CAN_OPEN_URL 
 
-    if(surf->menu.items[surf->menu.pos].hash)
+    if(surf->menu.count > 0 && surf->menu.items[surf->menu.pos].hash)
     {
         enum{Gap = 10, TipX = 134, SelectWidth = 54};
 
@@ -319,7 +321,7 @@ static void cutExt(char* name, const char* ext)
 
 static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, bool dir)
 {
-    AddMenuItem* data = (AddMenuItem*)ptr;
+    AddMenuItemData* data = (AddMenuItemData*)ptr;
 
     static const char CartExt[] = CART_EXT;
 
@@ -368,6 +370,22 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
     return true;
 }
 
+static void addMenuItemsDone(void* data)
+{
+    AddMenuItemData* addMenuItemData = data;
+    Surf* surf = addMenuItemData->surf;
+
+    surf->menu.items = addMenuItemData->items;
+    surf->menu.count = addMenuItemData->count;
+
+    if (addMenuItemData->done)
+        addMenuItemData->done(addMenuItemData->data);
+
+    free(addMenuItemData);
+
+    surf->loading = false;
+}
+
 static void resetMenu(Surf* surf)
 {
     if(surf->menu.items)
@@ -397,30 +415,6 @@ static void resetMenu(Surf* surf)
 
     surf->menu.pos = 0;
     surf->menu.anim = 0;
-}
-
-static void* requestCover(Surf* surf, const char* hash, s32* size)
-{
-    char cachePath[TICNAME_MAX] = {0};
-    sprintf(cachePath, TIC_CACHE "%s.gif", hash);
-
-    {
-        void* data = fsLoadRootFile(surf->fs, cachePath, size);
-
-        if(data)
-            return data;
-    }
-
-    char path[TICNAME_MAX] = {0};
-    sprintf(path, "/cart/%s/cover.gif", hash);
-    void* data = netGetSync(surf->net, path, size);
-
-    if(data)
-    {
-        fsSaveRootFile(surf->fs, cachePath, data, *size, false);
-    }
-
-    return data;
 }
 
 static void updateMenuItemCover(Surf* surf, const u8* cover, s32 size)
@@ -487,6 +481,60 @@ static void updateMenuItemCover(Surf* surf, const u8* cover, s32 size)
     }
 }
 
+typedef struct
+{
+    Surf* surf;
+    char* cachePath;
+    s32 pos;
+} CoverLoadingData;
+
+static void coverLoaded(const HttpGetData* netData)
+{
+    CoverLoadingData* coverLoadingData = netData->calldata;
+    Surf* surf = coverLoadingData->surf;
+
+    if (netData->type == HttpGetDone)
+    {
+        fsSaveRootFile(surf->fs, coverLoadingData->cachePath, netData->done.data, netData->done.size, false);
+
+        if(coverLoadingData->pos == surf->menu.pos)
+            updateMenuItemCover(surf, netData->done.data, netData->done.size);
+    }
+
+    switch (netData->type)
+    {
+    case HttpGetDone:
+    case HttpGetError:
+        free(coverLoadingData->cachePath);
+        free(coverLoadingData);
+        break;
+    }
+}
+
+static void requestCover(Surf* surf, MenuItem* item)
+{
+    const char* hash = item->hash;
+    char cachePath[TICNAME_MAX] = { 0 };
+    sprintf(cachePath, TIC_CACHE "%s.gif", hash);
+
+    {
+        s32 size = 0;
+        void* data = fsLoadRootFile(surf->fs, cachePath, &size);
+
+        if (data)
+        {
+            updateMenuItemCover(surf, data, size);
+            free(data);
+        }
+    }
+
+    char path[TICNAME_MAX] = {0};
+    sprintf(path, "/cart/%s/cover.gif", hash);
+
+    CoverLoadingData coverLoadingData = {surf, strdup(cachePath), surf->menu.pos};
+    netGet(surf->net, path, coverLoaded, OBJCOPY(coverLoadingData));
+}
+
 static void loadCover(Surf* surf)
 {
     tic_mem* tic = surf->tic;
@@ -528,48 +576,42 @@ static void loadCover(Surf* surf)
     }
     else if(item->hash && !item->cover)
     {
-        s32 size = 0;
-
-        u8* cover = requestCover(surf, item->hash, &size);
-
-        if(cover)
-        {
-            updateMenuItemCover(surf, cover, size);
-            free(cover);
-        }       
+        requestCover(surf, item);    
     }
 }
 
-static void initMenu(Surf* surf)
+static void initMenuAsync(Surf* surf, DoneCallback callback, void* calldata)
 {
     resetMenu(surf);
 
-    AddMenuItem data = 
-    {
-        .items = NULL,
-        .count = 0,
-        .surf = surf,
-    };
+    surf->loading = true;
 
     char dir[TICNAME_MAX];
     fsGetDir(surf->fs, dir);
 
+    AddMenuItemData data = { NULL, 0, surf, callback, calldata};
+
     if(strcmp(dir, "") != 0)
         addMenuItem("..", NULL, 0, &data, true);
 
-    fsEnumFiles(surf->fs, addMenuItem, &data);
-
-    surf->menu.items = data.items;
-    surf->menu.count = data.count;
+    fsEnumFilesAsync(surf->fs, addMenuItem, addMenuItemsDone, OBJCOPY(data));
 }
 
-static void onGoBackDir(Surf* surf)
+typedef struct
 {
-    char last[TICNAME_MAX];
-    fsGetDir(surf->fs, last);
+    Surf* surf;
+    char* last;
+} GoBackDirDoneData;
 
-    fsDirBack(surf->fs);
-    initMenu(surf);
+static void initMenu(Surf* surf)
+{
+    initMenuAsync(surf, NULL, NULL);
+}
+
+static void onGoBackDirDone(void* data)
+{
+    GoBackDirDoneData* goBackDirDoneData = data;
+    Surf* surf = goBackDirDoneData->surf;
 
     char current[TICNAME_MAX];
     fsGetDir(surf->fs, current);
@@ -586,13 +628,27 @@ static void onGoBackDir(Surf* surf)
                 sprintf(path, "%s/%s", current, item->name);
             else strcpy(path, item->name);
 
-            if(strcmp(path, last) == 0)
+            if(strcmp(path, goBackDirDoneData->last) == 0)
             {
                 surf->menu.pos = i;
                 break;
             }
         }
     }
+
+    free(goBackDirDoneData->last);
+    free(goBackDirDoneData);
+}
+
+static void onGoBackDir(Surf* surf)
+{
+    char last[TICNAME_MAX];
+    fsGetDir(surf->fs, last);
+
+    fsDirBack(surf->fs);
+
+    GoBackDirDoneData goBackDirDoneData = {surf, strdup(last)};
+    initMenuAsync(surf, onGoBackDirDone, OBJCOPY(goBackDirDoneData));
 }
 
 static void onGoToDir(Surf* surf)
@@ -603,20 +659,25 @@ static void onGoToDir(Surf* surf)
     initMenu(surf);
 }
 
-static void changeDirectory(Surf* surf, const char* dir)
+static void goBackDir(Surf* surf)
 {
-    if(strcmp(dir, "..") == 0)
-    {
-        char dir[TICNAME_MAX];
-        fsGetDir(surf->fs, dir);
+    char dir[TICNAME_MAX];
+    fsGetDir(surf->fs, dir);
 
-        if(strcmp(dir, "") != 0)
-        {
-            playSystemSfx(2);
-            resetMovie(surf, &MenuRightHideState, onGoBackDir);
-        }
+    if(strcmp(dir, "") != 0)
+    {
+        playSystemSfx(2);
+        resetMovie(surf, &MenuRightHideState, onGoBackDir);
     }
-    else if(fsIsDir(surf->fs, dir))
+}
+
+static void changeDirectory(Surf* surf, const char* name)
+{
+    if (strcmp(name, "..") == 0)
+    {
+        goBackDir(surf);
+    }
+    else
     {
         playSystemSfx(2);
         resetMovie(surf, &MenuLeftHideState, onGoToDir);
@@ -627,7 +688,9 @@ static void onPlayCart(Surf* surf)
 {
     MenuItem* item = &surf->menu.items[surf->menu.pos];
 
-    surf->console->load(surf->console, item->name, item->hash);
+    item->hash
+        ? surf->console->loadByHash(surf->console, item->name, item->hash)
+        : surf->console->load(surf->console, item->name);
 
     runGameFromSurf();
 }
@@ -745,12 +808,14 @@ static void processGamepad(Surf* surf)
         if(tic_api_btnp(tic, A, -1, -1))
         {
             MenuItem* item = &surf->menu.items[surf->menu.pos];
-            item->dir ? changeDirectory(surf, item->name) : loadCart(surf);
+            item->dir 
+                ? changeDirectory(surf, item->name) 
+                : loadCart(surf);
         }
 
         if(tic_api_btnp(tic, B, -1, -1))
         {
-            changeDirectory(surf, "..");
+            goBackDir(surf);
         }
 
 #ifdef CAN_OPEN_URL
@@ -788,20 +853,24 @@ static void tick(Surf* surf)
     tic_mem* tic = surf->tic;
     tic_api_cls(tic, TIC_COLOR_BG);
 
-    if(surf->menu.count > 0)
+    drawBGAnimation(surf->tic, surf->ticks);
+
+    if (surf->menu.count > 0)
     {
         processAnim(surf);
 
-        if(surf->state == &MenuModeState)
+        if (surf->state == &MenuModeState)
         {
             processGamepad(surf);
         }
+    }
 
+    if (surf->menu.count > 0)
+    {
         loadCover(surf);
 
         if(surf->menu.items[surf->menu.pos].cover)
             drawCover(surf, surf->menu.pos, 0, 0);
-        else drawBGAnimation(surf->tic, surf->ticks);
     }
 }
 
@@ -814,14 +883,14 @@ static void scanline(tic_mem* tic, s32 row, void* data)
 {
     Surf* surf = (Surf*)data;
 
+    drawBGAnimationScanline(tic, row);
+
     if(surf->menu.count > 0)
     {
         const MenuItem* item = &surf->menu.items[surf->menu.pos];
 
         if(item->palettes)
             memcpy(&tic->ram.vram.palette, item->palettes + row, sizeof(tic_palette));
-        else
-            drawBGAnimationScanline(tic, row);
     }
 }
 
@@ -832,16 +901,16 @@ static void overline(tic_mem* tic, void* data)
     if(surf->menu.count > 0)
     {
         drawMenu(surf, AnimVar.menuX, (TIC80_HEIGHT - MENU_HEIGHT)/2);
-
-        drawTopToolbar(surf, 0, AnimVar.topBarY - MENU_HEIGHT);
-        drawBottomToolbar(surf, 0, TIC80_HEIGHT - AnimVar.bottomBarY);
     }
-    else
+    else if(!surf->loading)
     {
         static const char Label[] = "You don't have any files...";
         s32 size = tic_api_print(tic, Label, 0, -TIC_FONT_HEIGHT, tic_color_white, true, 1, false);
         tic_api_print(tic, Label, (TIC80_WIDTH - size) / 2, (TIC80_HEIGHT - TIC_FONT_HEIGHT)/2, tic_color_white, true, 1, false);
     }
+
+    drawTopToolbar(surf, 0, AnimVar.topBarY - MENU_HEIGHT);
+    drawBottomToolbar(surf, 0, TIC80_HEIGHT - AnimVar.bottomBarY);
 }
 
 void initSurf(Surf* surf, tic_mem* tic, struct Console* console)
@@ -856,6 +925,7 @@ void initSurf(Surf* surf, tic_mem* tic, struct Console* console)
         .ticks = 0,
         .state = &EmptyState,
         .init = false,
+        .loading = true,
         .resume = resume,
         .menu = 
         {

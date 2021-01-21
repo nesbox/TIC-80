@@ -61,6 +61,7 @@ static void downloadSucceeded(emscripten_fetch_t *fetch)
 
     data->callback(&getData);
 
+    free(fetch->data);
     free(data);
 
     emscripten_fetch_close(fetch);
@@ -118,11 +119,6 @@ void netGet(Net* net, const char* path, HttpGetCallback callback, void* calldata
 
     net->attr.userData = data;
     emscripten_fetch(&net->attr, path);
-}
-
-void* netGetSync(Net* net, const char* path, s32* size)
-{
-    return NULL;
 }
 
 void netTickStart(Net *net) {}
@@ -344,20 +340,6 @@ static void n3ds_net_get(Net *net, const char *url, HttpGetCallback callback, vo
     threadCreate((ThreadFunc) n3ds_net_get_thread, ctx, 16 * 1024, priority - 1, -1, true);
 }
 
-static void* n3ds_net_get_sync(Net *net, const char *url, s32 *size) {
-    net_ctx ctx;
-    memset(&ctx, 0, sizeof(net_ctx));
-
-    n3ds_net_apply_url(&ctx, url);
-    ctx.net = net;
-    n3ds_net_execute(&ctx, true);
-
-    if (size != NULL) {
-        *size = ctx.size;
-    }
-    return ctx.buffer;
-}
-
 Net* netCreate(const char* host)
 {
     Net* net = (Net*)malloc(sizeof(Net));
@@ -366,11 +348,6 @@ Net* netCreate(const char* host)
     net->host = host;
 
     return net;
-}
-
-void* netGetSync(Net* net, const char* path, s32* size)
-{
-    return n3ds_net_get_sync(net, path, size);
 }
 
 void netGet(Net* net, const char* url, HttpGetCallback callback, void* calldata)
@@ -397,7 +374,6 @@ void netTickEnd(Net *net)
 #elif defined(BAREMETALPI)
 
 Net* netCreate(const char* host) {return NULL;}
-void* netGetSync(Net* net, const char* path, s32* size) {}
 void netGet(Net* net, const char* url, HttpGetCallback callback, void* calldata) {}
 void netClose(Net* net) {}
 void netTickStart(Net *net) {}
@@ -422,7 +398,6 @@ struct Net
 {
     const char* host;
     CURLM* multi;
-    struct Curl_easy* sync;
 };
 
 static size_t writeCallbackSync(void *contents, size_t size, size_t nmemb, void *userp)
@@ -510,33 +485,6 @@ void netGet(Net* net, const char* path, HttpGetCallback callback, void* calldata
     }
 }
 
-void* netGetSync(Net* net, const char* path, s32* size)
-{
-    CurlData data = {NULL, 0};
-
-    if(net->sync)
-    {
-        char url[URL_SIZE];
-        strcpy(url, net->host);
-        strcat(url, path);
-
-        curl_easy_setopt(net->sync, CURLOPT_URL, url);
-        curl_easy_setopt(net->sync, CURLOPT_WRITEDATA, &data);
-
-        if(curl_easy_perform(net->sync) == CURLE_OK)
-        {
-            long httpCode = 0;
-            curl_easy_getinfo(net->sync, CURLINFO_RESPONSE_CODE, &httpCode);
-            if(httpCode != 200) return NULL;
-        }
-        else return NULL;
-    }
-
-    *size = data.size;
-
-    return data.buffer;
-}
-
 void netTickStart(Net *net)
 {
     {
@@ -609,12 +557,9 @@ Net* netCreate(const char* host)
     {
         *net = (Net)
         {
-            .sync = curl_easy_init(),
             .multi = curl_multi_init(),
             .host = host,
         };
-
-        curl_easy_setopt(net->sync, CURLOPT_WRITEFUNCTION, writeCallbackSync);
     }
 
     return net;
@@ -622,9 +567,6 @@ Net* netCreate(const char* host)
 
 void netClose(Net* net)
 {
-    if(net->sync)
-        curl_easy_cleanup(net->sync);
-
     if(net->multi)
         curl_multi_cleanup(net->multi);
 
