@@ -44,7 +44,7 @@
 #include <lauxlib.h>
 #include <lualib.h>
 
-#if defined(__TIC_WINRT__) || defined(__TIC_WINDOWS__)
+#if defined(__TIC_WINDOWS__)
 #include <direct.h>
 #include <windows.h>
 #else
@@ -129,7 +129,7 @@ bool fsIsInPublicDir(FileSystem* fs)
     return isPublic(fs);
 }
 
-#if defined(__TIC_WINDOWS__) || defined(__TIC_WINRT__)
+#if defined(__TIC_WINDOWS__)
 
 typedef wchar_t FsString;
 
@@ -433,7 +433,7 @@ bool fsDeleteDir(FileSystem* fs, const char* name)
     dbg("fsDeleteDir %s", name);
     return 0;
 #else
-#if defined(__TIC_WINRT__) || defined(__TIC_WINDOWS__)
+#if defined(__TIC_WINDOWS__)
     const char* path = fsGetFilePath(fs, name);
 
     const FsString* pathString = utf8ToString(path);
@@ -700,7 +700,7 @@ static void fsFullname(const char *path, char *fullname)
     dbg("fsFullname %s", path);
     // TODO BAREMETALPI
 #else
-#if defined(__TIC_WINDOWS__) || defined(__TIC_WINRT__)
+#if defined(__TIC_WINDOWS__)
     static wchar_t wpath[TICNAME_MAX];
 
     const FsString* pathString = utf8ToString(path);
@@ -741,7 +741,7 @@ void fsBasename(const char *path, char* out)
 
     char* result = NULL;
 
-#if defined(__TIC_WINDOWS__) || defined(__TIC_WINRT__)
+#if defined(__TIC_WINDOWS__)
 #define SEP "\\"
 #else
 #define SEP "/"

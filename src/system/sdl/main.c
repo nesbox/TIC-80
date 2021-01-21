@@ -45,7 +45,7 @@
 
 #define TEXTURE_SIZE (TIC80_FULLWIDTH)
 
-#if defined(__TIC_WINRT__) || defined(__TIC_WINDOWS__)
+#if defined(__TIC_WINDOWS__)
 #include <windows.h>
 #endif
 

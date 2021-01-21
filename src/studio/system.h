@@ -64,10 +64,6 @@ void    tic_sys_poll();
 bool    tic_sys_keyboard_text(char* text);
 void    tic_sys_update_config();
 
-#ifdef __cplusplus
-}
-#endif
-
 typedef struct
 {
     struct
@@ -151,15 +147,8 @@ typedef struct
 
 } Studio;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-
-TIC80_API Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* appFolder);
+Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* appFolder);
 
 #ifdef __cplusplus
 }
 #endif
-
-void registerLambda(void* data, void(*callback)(void* data));

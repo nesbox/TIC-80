@@ -66,7 +66,7 @@
 
 #ifndef TIC80_API
 #	if defined(TIC80_SHARED)
-#		if defined(__TIC_WINDOWS__) || defined(__TIC_WINRT__)
+#		if defined(__TIC_WINDOWS__)
 #			define TIC80_API __declspec(dllexport)
 #		elif defined(__TIC_LINUX__)
 #			define TIC80_API __attribute__ ((visibility("default")))
