@@ -514,7 +514,7 @@ static void coverLoaded(const HttpGetData* netData)
 static void requestCover(Surf* surf, MenuItem* item)
 {
     const char* hash = item->hash;
-    char cachePath[TICNAME_MAX] = { 0 };
+    char cachePath[TICNAME_MAX];
     sprintf(cachePath, TIC_CACHE "%s.gif", hash);
 
     {
@@ -528,7 +528,7 @@ static void requestCover(Surf* surf, MenuItem* item)
         }
     }
 
-    char path[TICNAME_MAX] = {0};
+    char path[TICNAME_MAX];
     sprintf(path, "/cart/%s/cover.gif", hash);
 
     CoverLoadingData coverLoadingData = {surf, strdup(cachePath), surf->menu.pos};
@@ -684,15 +684,24 @@ static void changeDirectory(Surf* surf, const char* name)
     }
 }
 
+static void onCartLoaded(void* data)
+{
+    runGameFromSurf();
+}
+
 static void onPlayCart(Surf* surf)
 {
     MenuItem* item = &surf->menu.items[surf->menu.pos];
 
-    item->hash
-        ? surf->console->loadByHash(surf->console, item->name, item->hash)
-        : surf->console->load(surf->console, item->name);
-
-    runGameFromSurf();
+    if (item->hash)
+    {
+        surf->console->loadByHash(surf->console, item->name, item->hash, onCartLoaded, NULL);
+    }
+    else
+    {
+        surf->console->load(surf->console, item->name);
+        runGameFromSurf();
+    }
 }
 
 static void loadCart(Surf* surf)

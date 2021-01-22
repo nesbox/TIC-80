@@ -394,7 +394,7 @@ static bool onConsoleLoadSectionCommand(Console* console, const char* param)
             "palette",
         };
 
-        char buf[64] = {0};
+        char buf[64];
 
         for(s32 i = 0; i < COUNT_OF(Sections); i++)
         {
@@ -455,7 +455,7 @@ static bool onConsoleLoadSectionCommand(Console* console, const char* param)
 
 static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 {
-    char path[TICNAME_MAX] = {0};
+    char path[TICNAME_MAX];
 
     {
         switch(script)
@@ -706,6 +706,8 @@ typedef struct
 {
     Console* console;
     char* name;
+    DoneCallback callback;
+    void* calldata;
 }LoadByHashData;
 
 static void loadByHashDone(const u8* buffer, s32 size, void* data)
@@ -718,6 +720,9 @@ static void loadByHashDone(const u8* buffer, s32 size, void* data)
     loadRom(console->tic, buffer, size);
     onCartLoaded(console, loadByHashData->name);
 
+    if (loadByHashData->callback)
+        loadByHashData->callback(loadByHashData->calldata);
+
     free(loadByHashData->name);
     free(loadByHashData);
 
@@ -726,11 +731,11 @@ static void loadByHashDone(const u8* buffer, s32 size, void* data)
     commandDone(console);
 }
 
-static void loadByHash(Console* console, const char* name, const char* hash)
+static void loadByHash(Console* console, const char* name, const char* hash, DoneCallback callback, void* data)
 {
     console->active = false;
 
-    LoadByHashData loadByHashData = { console, strdup(name) };
+    LoadByHashData loadByHashData = { console, strdup(name), callback, data};
     fsLoadFileByHashAsync(console->fs, hash, loadByHashDone, OBJCOPY(loadByHashData));
 }
 
@@ -762,7 +767,7 @@ static void fileFound(void* data)
 
     if (loadPublicCartData->hash)
     {
-        loadByHash(console, loadPublicCartData->name, loadPublicCartData->hash);
+        loadByHash(console, loadPublicCartData->name, loadPublicCartData->hash, NULL, NULL);
         free(loadPublicCartData->hash);
     }
     else

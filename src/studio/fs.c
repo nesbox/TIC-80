@@ -277,8 +277,8 @@ static void onDirResponse(const HttpGetData* netData)
                     {
                         lua_geti(lua, -1, i);
 
-                        char hash[TICNAME_MAX] = { 0 };
-                        char name[TICNAME_MAX] = { 0 };
+                        char hash[TICNAME_MAX];
+                        char name[TICNAME_MAX];
 
                         {
                             lua_getfield(lua, -1, "hash");

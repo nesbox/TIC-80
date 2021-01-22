@@ -24,6 +24,8 @@
 
 #include "studio/studio.h"
 
+typedef void(*DoneCallback)(void* data);
+
 typedef enum
 {
     CART_SAVE_OK,
@@ -94,7 +96,7 @@ struct Console
     StartArgs args;
 
     void(*load)(Console*, const char* path);
-    void(*loadByHash)(Console*, const char* name, const char* hash);
+    void(*loadByHash)(Console*, const char* name, const char* hash, DoneCallback callback, void* data);
     void(*updateProject)(Console*);
     void(*error)(Console*, const char*);
     void(*trace)(Console*, const char*, u8 color);

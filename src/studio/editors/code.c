@@ -1251,14 +1251,14 @@ static void initOutlineMode(Code* code)
 
         if(items)
         {
-            char filter[STUDIO_TEXT_BUFFER_WIDTH] = {0};
+            char filter[STUDIO_TEXT_BUFFER_WIDTH];
             strncpy(filter, code->popup.text, sizeof(filter));
 
             for(s32 i = 0; i < size; i++)
             {
                 const tic_outline_item* item = items + i;
 
-                char buffer[STUDIO_TEXT_BUFFER_WIDTH] = {0};
+                char buffer[STUDIO_TEXT_BUFFER_WIDTH];
                 memcpy(buffer, item->pos, MIN(item->size, sizeof(buffer)));
 
                 if(code->state[item->pos - code->src].syntax == SyntaxTypeComment)
@@ -1796,7 +1796,7 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 
     y++;
 
-    char filter[STUDIO_TEXT_BUFFER_WIDTH] = {0};
+    char filter[STUDIO_TEXT_BUFFER_WIDTH];
     strncpy(filter, code->popup.text, sizeof(filter));
 
     if(code->outline.items)
@@ -1808,7 +1808,7 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
         {
             const tic_outline_item* ptr = &code->outline.items[i];
 
-            char orig[STUDIO_TEXT_BUFFER_WIDTH] = {0};
+            char orig[STUDIO_TEXT_BUFFER_WIDTH];
             strncpy(orig, ptr->pos, MIN(ptr->size, sizeof(orig)));
 
             drawFilterMatch(code, x, y, orig, filter);
