@@ -4,7 +4,7 @@ android {
     compileSdkVersion 26
     defaultConfig {
         applicationId 'com.nesbox.tic'
-        minSdkVersion 16
+        minSdkVersion 21
         targetSdkVersion 26
         versionCode 9000
         versionName '0.90.00'

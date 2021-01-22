@@ -591,6 +591,23 @@ if (USE_CURL)
 endif()
 
 ################################
+# libuv
+################################
+
+if(USE_LIBUV)
+    add_subdirectory(${THIRDPARTY_DIR}/libuv)
+endif()
+
+################################
+# HTTP parser
+################################
+
+if(USE_LIBUV)
+    add_library(http_parser STATIC ${THIRDPARTY_DIR}/http-parser/http_parser.c)
+    target_include_directories(http_parser INTERFACE ${THIRDPARTY_DIR}/http-parser)
+endif()
+
+################################
 # TIC-80 studio
 ################################
 
@@ -632,6 +649,11 @@ target_link_libraries(tic80studio tic80core zip wave_writer argparse)
 
 if(USE_CURL)
     target_link_libraries(tic80studio libcurl)
+endif()
+
+if(USE_LIBUV)
+    target_compile_definitions(tic80studio PRIVATE USE_LIBUV)
+    target_link_libraries(tic80studio uv_a http_parser)
 endif()
 
 if(BUILD_PRO)
