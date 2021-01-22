@@ -1755,3 +1755,14 @@ s32 main(s32 argc, char **argv)
     
 #endif
 }
+
+// workaround to build app on Raspbian
+#if defined(__RPI__)
+
+#include <fcntl.h>
+int fcntl64(int fd, int cmd)
+{
+    return fcntl(fd, cmd);
+}
+
+#endif

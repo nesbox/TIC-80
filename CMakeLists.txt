@@ -588,10 +588,6 @@ if (USE_CURL)
 
     add_subdirectory(${THIRDPARTY_DIR}/curl)
 
-    if(RPI)
-        target_compile_definitions(libcurl PRIVATE NOT_USE_FILE_OFFSET64)
-    endif()
-
 endif()
 
 ################################
@@ -773,6 +769,7 @@ if(BUILD_SDL)
     if(RPI)
         target_include_directories(tic80 PRIVATE ${SYSROOT_PATH}/usr/local/include/SDL2)
         target_link_directories(tic80 PRIVATE ${SYSROOT_PATH}/usr/local/lib ${SYSROOT_PATH}/opt/vc/lib)
+        target_compile_definitions(tic80 PRIVATE __RPI__)
     endif()
 
     if(BUILD_SDLGPU)

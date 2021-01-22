@@ -3,7 +3,7 @@
 	url = https://github.com/nesbox/blip-buf.git
 [submodule "vendor/curl"]
 	path = vendor/curl
-	url = https://github.com/nesbox/curl.git
+	url = https://github.com/curl/curl.git
 [submodule "vendor/dirent"]
 	path = vendor/dirent
 	url = https://github.com/tronkko/dirent.git
