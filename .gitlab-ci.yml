@@ -9,7 +9,7 @@
   variables:
     GIT_SUBMODULE_STRATEGY: normal
     CORENAME: tic80
-    CORE_ARGS: -DBUILD_SOKOL=OFF -DBUILD_SDL=OFF
+    CORE_ARGS: -DBUILD_PLAYER=OFF -DBUILD_SOKOL=OFF -DBUILD_SDL=OFF -DBUILD_DEMO_CARTS=OFF -DBUILD_LIBRETRO=ON
     EXTRA_PATH: src
 
 # Inclusion templates, required for the build to work
