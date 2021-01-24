@@ -10,6 +10,12 @@
     GIT_SUBMODULE_STRATEGY: normal
     CORENAME: tic80
     CORE_ARGS: -DBUILD_PLAYER=OFF -DBUILD_SOKOL=OFF -DBUILD_SDL=OFF -DBUILD_DEMO_CARTS=OFF -DBUILD_LIBRETRO=ON
+    EXTRA_PATH: lib
+
+.core-defs-win:
+  extends: .core-defs
+  variables:
+    EXTRA_PATH: bin
 
 # Inclusion templates, required for the build to work
 include:
@@ -59,13 +65,13 @@ libretro-build-linux-i686:
 libretro-build-windows-x64:
   extends:
     - .libretro-windows-cmake-x86_64
-    - .core-defs
+    - .core-defs-win
 
 # Windows 32-bit
 libretro-build-windows-i686:
   extends:
     - .libretro-windows-cmake-x86
-    - .core-defs
+    - .core-defs-win
 
 ################################### CELLULAR #################################
 # Android ARMv7a
