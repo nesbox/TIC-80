@@ -715,8 +715,6 @@ static void loadByHashDone(const u8* buffer, s32 size, void* data)
     LoadByHashData* loadByHashData = data;
     Console* console = loadByHashData->console;
 
-    console->showGameMenu = true;
-
     loadRom(console->tic, buffer, size);
     onCartLoaded(console, loadByHashData->name);
 

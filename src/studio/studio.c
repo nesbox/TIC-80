@@ -1360,7 +1360,7 @@ static void processGamepadMapping()
 
 static inline bool isGameMenu()
 {
-    return impl.mode == TIC_RUN_MODE && impl.console->showGameMenu;
+    return (impl.mode == TIC_RUN_MODE || impl.mode == TIC_MENU_MODE) && impl.console->showGameMenu;
 }
 
 void runProject()
