@@ -22,6 +22,8 @@
 
 #include "cart.h"
 #include "tools.h"
+#include "version.h"
+
 #include <string.h>
 #include <stdlib.h>
 
@@ -44,6 +46,7 @@ typedef enum
     CHUNK_MUSIC,        // 14
     CHUNK_PATTERNS,     // 15
     CHUNK_CODE_ZIP,     // 16
+    CHUNK_VERSION,      // 17
 } ChunkType;
 
 typedef struct
@@ -64,6 +67,7 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
     #define LOAD_CHUNK(to) memcpy(&to, buffer, MIN(sizeof(to), chunk.size))
 
     bool paletteExists = false;
+    u32 version = 0;
 
     tic_code* code = calloc(TIC_BANKS, TIC_CODE_BANK_SIZE);
 
@@ -112,6 +116,9 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
                     }
             }
             break;
+        case CHUNK_VERSION:
+            LOAD_CHUNK(version);
+            break;
         default: break;
         }
 
@@ -142,7 +149,7 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
 
     // workaround to support ancient carts without palette
     // load DB16 palette if it not exists
-    if(!paletteExists)
+    if(version == 0 && !paletteExists)
     {
         static const u8 DB16[] = {0x14, 0x0c, 0x1c, 0x44, 0x24, 0x34, 0x30, 0x34, 0x6d, 0x4e, 0x4a, 0x4e, 0x85, 0x4c, 0x30, 0x34, 0x65, 0x24, 0xd0, 0x46, 0x48, 0x75, 0x71, 0x61, 0x59, 0x7d, 0xce, 0xd2, 0x7d, 0x2c, 0x85, 0x95, 0xa1, 0x6d, 0xaa, 0x2c, 0xd2, 0xaa, 0x99, 0x6d, 0xc2, 0xca, 0xda, 0xd4, 0x5e, 0xde, 0xee, 0xd6};
         memcpy(cart->bank0.palette.scn.data, DB16, sizeof(tic_palette));
@@ -192,6 +199,9 @@ s32 tic_cart_save(const tic_cartridge* cart, u8* buffer)
     u8* start = buffer;
 
     #define SAVE_CHUNK(ID, FROM, BANK) saveChunk(buffer, ID, &FROM, sizeof(FROM), BANK)
+
+    u32 version = TIC_VERSION_REVISION;
+    buffer = SAVE_CHUNK(CHUNK_VERSION, version, 0);
 
     for(s32 i = 0; i < TIC_BANKS; i++)
     {

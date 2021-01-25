@@ -293,6 +293,7 @@ target_include_directories(tic80core
     PRIVATE 
         ${THIRDPARTY_DIR}/moonscript
         ${THIRDPARTY_DIR}/fennel
+        ${CMAKE_CURRENT_BINARY_DIR}
     PUBLIC
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src)
