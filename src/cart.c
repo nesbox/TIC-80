@@ -57,6 +57,9 @@ typedef struct
 
 STATIC_ASSERT(tic_chunk_size, sizeof(Chunk) == 4);
 
+static const u8 Sweetie16[] = {0x1a, 0x1c, 0x2c, 0x5d, 0x27, 0x5d, 0xb1, 0x3e, 0x53, 0xef, 0x7d, 0x57, 0xff, 0xcd, 0x75, 0xa7, 0xf0, 0x70, 0x38, 0xb7, 0x64, 0x25, 0x71, 0x79, 0x29, 0x36, 0x6f, 0x3b, 0x5d, 0xc9, 0x41, 0xa6, 0xf6, 0x73, 0xef, 0xf7, 0xf4, 0xf4, 0xf4, 0x94, 0xb0, 0xc2, 0x56, 0x6c, 0x86, 0x33, 0x3c, 0x57};
+static const u8 Waveforms[] = {0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x10, 0x32, 0x54, 0x76, 0x98, 0xba, 0xdc, 0xfe, 0xef, 0xcd, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01, 0x10, 0x32, 0x54, 0x76, 0x98, 0xba, 0xdc, 0xfe, 0x10, 0x32, 0x54, 0x76, 0x98, 0xba, 0xdc, 0xfe};
+
 void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
 {
     const u8* end = buffer + size;
@@ -65,7 +68,6 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
     #define LOAD_CHUNK(to) memcpy(&to, buffer, MIN(sizeof(to), chunk.size))
 
     bool paletteExists = false;
-    bool loadDefauts = false;
 
     tic_code* code = calloc(TIC_BANKS, TIC_CODE_BANK_SIZE);
 
@@ -115,14 +117,15 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
             }
             break;
         case CHUNK_DEFAULT:
-            loadDefauts = true;
+            memcpy(&cart->banks[chunk.bank].palette, Sweetie16, sizeof Sweetie16);
+            memcpy(&cart->banks[chunk.bank].sfx.waveforms, Waveforms, sizeof Waveforms);
             break;
         default: break;
         }
 
         buffer += chunk.size;
 
-        if(chunk.bank == 0 && chunk.type == CHUNK_PALETTE)
+        if(chunk.bank == 0 && (chunk.type == CHUNK_PALETTE || chunk.type == CHUNK_DEFAULT))
             paletteExists = true;
     }
 
@@ -145,23 +148,12 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
 
     free(code);
 
-    if(loadDefauts)
+    // workaround to support ancient carts without palette
+    // load DB16 palette if it not exists
+    if(!paletteExists)
     {
-        static const u8 Sweetie16[] = {0x1a, 0x1c, 0x2c, 0x5d, 0x27, 0x5d, 0xb1, 0x3e, 0x53, 0xef, 0x7d, 0x57, 0xff, 0xcd, 0x75, 0xa7, 0xf0, 0x70, 0x38, 0xb7, 0x64, 0x25, 0x71, 0x79, 0x29, 0x36, 0x6f, 0x3b, 0x5d, 0xc9, 0x41, 0xa6, 0xf6, 0x73, 0xef, 0xf7, 0xf4, 0xf4, 0xf4, 0x94, 0xb0, 0xc2, 0x56, 0x6c, 0x86, 0x33, 0x3c, 0x57};
-        memcpy(cart->bank0.palette.scn.data, Sweetie16, sizeof(tic_palette));
-
-        static const u8 Waveforms[] = {0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0x10, 0x32, 0x54, 0x76, 0x98, 0xba, 0xdc, 0xfe, 0xef, 0xcd, 0xab, 0x89, 0x67, 0x45, 0x23, 0x01, 0x10, 0x32, 0x54, 0x76, 0x98, 0xba, 0xdc, 0xfe, 0x10, 0x32, 0x54, 0x76, 0x98, 0xba, 0xdc, 0xfe};
-        memcpy(&cart->bank0.sfx.waveforms, Waveforms, sizeof Waveforms);
-    }
-    else
-    {
-        // workaround to support ancient carts without palette
-        // load DB16 palette if it not exists
-        if(!paletteExists)
-        {
-            static const u8 DB16[] = {0x14, 0x0c, 0x1c, 0x44, 0x24, 0x34, 0x30, 0x34, 0x6d, 0x4e, 0x4a, 0x4e, 0x85, 0x4c, 0x30, 0x34, 0x65, 0x24, 0xd0, 0x46, 0x48, 0x75, 0x71, 0x61, 0x59, 0x7d, 0xce, 0xd2, 0x7d, 0x2c, 0x85, 0x95, 0xa1, 0x6d, 0xaa, 0x2c, 0xd2, 0xaa, 0x99, 0x6d, 0xc2, 0xca, 0xda, 0xd4, 0x5e, 0xde, 0xee, 0xd6};
-            memcpy(cart->bank0.palette.scn.data, DB16, sizeof(tic_palette));
-        }
+        static const u8 DB16[] = {0x14, 0x0c, 0x1c, 0x44, 0x24, 0x34, 0x30, 0x34, 0x6d, 0x4e, 0x4a, 0x4e, 0x85, 0x4c, 0x30, 0x34, 0x65, 0x24, 0xd0, 0x46, 0x48, 0x75, 0x71, 0x61, 0x59, 0x7d, 0xce, 0xd2, 0x7d, 0x2c, 0x85, 0x95, 0xa1, 0x6d, 0xaa, 0x2c, 0xd2, 0xaa, 0x99, 0x6d, 0xc2, 0xca, 0xda, 0xd4, 0x5e, 0xde, 0xee, 0xd6};
+        memcpy(cart->bank0.palette.scn.data, DB16, sizeof DB16);
     }
 }
 
@@ -189,6 +181,7 @@ static u8* saveFixedChunk(u8* buffer, ChunkType type, const void* from, s32 size
         Chunk chunk = {.type = type, .bank = bank, .size = size, .temp = 0};
         memcpy(buffer, &chunk, sizeof(Chunk));
         buffer += sizeof(Chunk);
+
         memcpy(buffer, from, size);
         buffer += size;
     }
@@ -209,16 +202,33 @@ s32 tic_cart_save(const tic_cartridge* cart, u8* buffer)
 
     #define SAVE_CHUNK(ID, FROM, BANK) saveChunk(buffer, ID, &FROM, sizeof(FROM), BANK)
 
+    tic_waveforms defaultWaveforms = {0};
+    tic_palettes defaultPalettes = {0};
+
+    memcpy(&defaultWaveforms, Waveforms, sizeof Waveforms);
+    memcpy(&defaultPalettes, Sweetie16, sizeof Sweetie16);
+
     for(s32 i = 0; i < TIC_BANKS; i++)
     {
+        if(memcmp(&cart->banks[i].sfx.waveforms, &defaultWaveforms, sizeof defaultWaveforms) == 0
+            && memcmp(&cart->banks[i].palette, &defaultPalettes, sizeof defaultPalettes) == 0)
+        {
+            Chunk chunk = {CHUNK_DEFAULT, i, 0, 0};
+            memcpy(buffer, &chunk, sizeof chunk);
+            buffer += sizeof chunk;
+        }
+        else
+        {
+            buffer = SAVE_CHUNK(CHUNK_PALETTE, cart->banks[i].palette, i);
+            buffer = SAVE_CHUNK(CHUNK_WAVEFORM, cart->banks[i].sfx.waveforms, i);
+        }
+
         buffer = SAVE_CHUNK(CHUNK_TILES,    cart->banks[i].tiles,           i);
         buffer = SAVE_CHUNK(CHUNK_SPRITES,  cart->banks[i].sprites,         i);
         buffer = SAVE_CHUNK(CHUNK_MAP,      cart->banks[i].map,             i);
         buffer = SAVE_CHUNK(CHUNK_SAMPLES,  cart->banks[i].sfx.samples,     i);
-        buffer = SAVE_CHUNK(CHUNK_WAVEFORM, cart->banks[i].sfx.waveforms,   i);
         buffer = SAVE_CHUNK(CHUNK_PATTERNS, cart->banks[i].music.patterns,  i);
         buffer = SAVE_CHUNK(CHUNK_MUSIC,    cart->banks[i].music.tracks,    i);
-        buffer = SAVE_CHUNK(CHUNK_PALETTE,  cart->banks[i].palette,         i);
         buffer = SAVE_CHUNK(CHUNK_FLAGS,    cart->banks[i].flags,           i);
     }
 

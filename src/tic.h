@@ -408,18 +408,19 @@ typedef struct
 
 typedef struct
 {
-    tic_tiles   tiles;
-    tic_tiles   sprites;
-    tic_map     map;
-    tic_sfx     sfx;
-    tic_music   music;
-    tic_flags   flags;
+    tic_palette scn;
+    tic_palette ovr;
+} tic_palettes;
 
-    struct
-    {
-        tic_palette scn;
-        tic_palette ovr;
-    } palette;
+typedef struct
+{
+    tic_tiles       tiles;
+    tic_tiles       sprites;
+    tic_map         map;
+    tic_sfx         sfx;
+    tic_music       music;
+    tic_flags       flags;
+    tic_palettes    palette;
 
 } tic_bank;
 
