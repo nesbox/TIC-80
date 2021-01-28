@@ -2224,13 +2224,14 @@ static void onConsoleRamCommand(Console* console, const char* param)
     printLine(console);
 
     printTable(console, "\n+-----------------------------------+" \
-                        "\n|           80KB RAM LAYOUT         |" \
+                        "\n|           96KB RAM LAYOUT         |" \
                         "\n+-------+-------------------+-------+" \
                         "\n| ADDR  | INFO              | BYTES |" \
                         "\n+-------+-------------------+-------+");
 
     static const struct{s32 addr; const char* info;} Layout[] =
     {
+        {0,                                             "<VRAM>"},
         {offsetof(tic_ram, tiles),                      "TILES"},
         {offsetof(tic_ram, sprites),                    "SPRITES"},
         {offsetof(tic_ram, map),                        "MAP"},
