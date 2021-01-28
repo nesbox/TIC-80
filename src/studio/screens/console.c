@@ -2248,7 +2248,7 @@ static void onConsoleRamCommand(Console* console, const char* param)
         {offsetof(tic_ram, persistent),                 "PERSISTENT MEMORY"},
         {offsetof(tic_ram, flags),                      "SPRITE FLAGS"},
         {offsetof(tic_ram, font),                       "FONT"},
-        {offsetof(tic_ram, free),                       "..."},
+        {offsetof(tic_ram, free),                       "... (free)"},
         {TIC_RAM_SIZE,                                  ""},
     };
 
@@ -2280,7 +2280,7 @@ static void onConsoleVRamCommand(Console* console, const char* param)
         {offsetof(tic_ram, vram.vars.offset),       "SCREEN OFFSET"},
         {offsetof(tic_ram, vram.vars.cursor),       "MOUSE CURSOR"},
         {offsetof(tic_ram, vram.blit),              "BLIT SEGMENT"},
-        {offsetof(tic_ram, vram.reserved),          "..."},
+        {offsetof(tic_ram, vram.reserved),          "... (reserved) "},
         {TIC_VRAM_SIZE,                             ""},
     };
 
