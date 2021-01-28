@@ -2277,7 +2277,7 @@ static void onConsoleVRamCommand(Console* console, const char* param)
         {offsetof(tic_ram, vram.screen),            "SCREEN"},
         {offsetof(tic_ram, vram.palette),           "PALETTE"},
         {offsetof(tic_ram, vram.mapping),           "PALETTE MAP"},
-        {offsetof(tic_ram, vram.vars.colors),       "BORDER"},
+        {offsetof(tic_ram, vram.vars.colors),       "BORDER COLOR"},
         {offsetof(tic_ram, vram.vars.offset),       "SCREEN OFFSET"},
         {offsetof(tic_ram, vram.vars.cursor),       "MOUSE CURSOR"},
         {offsetof(tic_ram, vram.blit),              "BLIT SEGMENT"},
