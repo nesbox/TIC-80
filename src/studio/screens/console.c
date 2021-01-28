@@ -2224,7 +2224,7 @@ static void onConsoleRamCommand(Console* console, const char* param)
     printLine(console);
 
     printTable(console, "\n+-----------------------------------+" \
-                        "\n|           80K RAM LAYOUT          |" \
+                        "\n|           80KB RAM LAYOUT         |" \
                         "\n+-------+-------------------+-------+" \
                         "\n| ADDR  | INFO              | BYTES |" \
                         "\n+-------+-------------------+-------+");
@@ -2266,7 +2266,7 @@ static void onConsoleVRamCommand(Console* console, const char* param)
     printLine(console);
 
     printTable(console, "\n+-----------------------------------+" \
-                        "\n|           16K VRAM LAYOUT         |" \
+                        "\n|          16KB VRAM LAYOUT         |" \
                         "\n+-------+-------------------+-------+" \
                         "\n| ADDR  | INFO              | BYTES |" \
                         "\n+-------+-------------------+-------+");
