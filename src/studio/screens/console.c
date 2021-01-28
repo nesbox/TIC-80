@@ -2395,8 +2395,8 @@ static const struct
 } AvailableConsoleCommands[] =
 {
     {"help",    NULL, "show this info",             onConsoleHelpCommand},
-    {"ram",     NULL, "show 80K RAM layout",        onConsoleRamCommand},
-    {"vram",    NULL, "show 16K VRAM layout",       onConsoleVRamCommand},
+    {"ram",     NULL, "show 96KB RAM layout",        onConsoleRamCommand},
+    {"vram",    NULL, "show 16KB VRAM layout",       onConsoleVRamCommand},
     {"exit",    "quit", "exit the application",     onConsoleExitCommand},
     {"new",     NULL, "create new cart",            onConsoleNewCommand},
     {"load",    NULL, "load cart",                  onConsoleLoadCommand},
