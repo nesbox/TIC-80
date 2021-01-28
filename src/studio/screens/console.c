@@ -2226,7 +2226,7 @@ static void onConsoleRamCommand(Console* console, const char* param)
     printTable(console, "\n+-----------------------------------+" \
                         "\n|           80K RAM LAYOUT          |" \
                         "\n+-------+-------------------+-------+" \
-                        "\n| ADDR  | INFO              | SIZE  |" \
+                        "\n| ADDR  | INFO              | BYTES |" \
                         "\n+-------+-------------------+-------+");
 
     static const struct{s32 addr; const char* info;} Layout[] =
@@ -2268,7 +2268,7 @@ static void onConsoleVRamCommand(Console* console, const char* param)
     printTable(console, "\n+-----------------------------------+" \
                         "\n|           16K VRAM LAYOUT         |" \
                         "\n+-------+-------------------+-------+" \
-                        "\n| ADDR  | INFO              | SIZE  |" \
+                        "\n| ADDR  | INFO              | BYTES |" \
                         "\n+-------+-------------------+-------+");
 
     static const struct{s32 addr; const char* info;} Layout[] =
