@@ -2224,13 +2224,14 @@ static void onConsoleRamCommand(Console* console, const char* param)
     printLine(console);
 
     printTable(console, "\n+-----------------------------------+" \
-                        "\n|           80K RAM LAYOUT          |" \
+                        "\n|           96KB RAM LAYOUT         |" \
                         "\n+-------+-------------------+-------+" \
-                        "\n| ADDR  | INFO              | SIZE  |" \
+                        "\n| ADDR  | INFO              | BYTES |" \
                         "\n+-------+-------------------+-------+");
 
     static const struct{s32 addr; const char* info;} Layout[] =
     {
+        {0,                                             "<VRAM>"},
         {offsetof(tic_ram, tiles),                      "TILES"},
         {offsetof(tic_ram, sprites),                    "SPRITES"},
         {offsetof(tic_ram, map),                        "MAP"},
@@ -2247,8 +2248,8 @@ static void onConsoleRamCommand(Console* console, const char* param)
         {offsetof(tic_ram, stereo),                     "STEREO VOLUME"},
         {offsetof(tic_ram, persistent),                 "PERSISTENT MEMORY"},
         {offsetof(tic_ram, flags),                      "SPRITE FLAGS"},
-        {offsetof(tic_ram, font),                       "FONT"},
-        {offsetof(tic_ram, free),                       "..."},
+        {offsetof(tic_ram, font),                       "SYSTEM FONT"},
+        {offsetof(tic_ram, free),                       "... (free)"},
         {TIC_RAM_SIZE,                                  ""},
     };
 
@@ -2266,9 +2267,9 @@ static void onConsoleVRamCommand(Console* console, const char* param)
     printLine(console);
 
     printTable(console, "\n+-----------------------------------+" \
-                        "\n|           16K VRAM LAYOUT         |" \
+                        "\n|          16KB VRAM LAYOUT         |" \
                         "\n+-------+-------------------+-------+" \
-                        "\n| ADDR  | INFO              | SIZE  |" \
+                        "\n| ADDR  | INFO              | BYTES |" \
                         "\n+-------+-------------------+-------+");
 
     static const struct{s32 addr; const char* info;} Layout[] =
@@ -2276,11 +2277,11 @@ static void onConsoleVRamCommand(Console* console, const char* param)
         {offsetof(tic_ram, vram.screen),            "SCREEN"},
         {offsetof(tic_ram, vram.palette),           "PALETTE"},
         {offsetof(tic_ram, vram.mapping),           "PALETTE MAP"},
-        {offsetof(tic_ram, vram.vars.colors),       "BORDER"},
+        {offsetof(tic_ram, vram.vars.colors),       "BORDER COLOR"},
         {offsetof(tic_ram, vram.vars.offset),       "SCREEN OFFSET"},
         {offsetof(tic_ram, vram.vars.cursor),       "MOUSE CURSOR"},
         {offsetof(tic_ram, vram.blit),              "BLIT SEGMENT"},
-        {offsetof(tic_ram, vram.reserved),          "..."},
+        {offsetof(tic_ram, vram.reserved),          "... (reserved) "},
         {TIC_VRAM_SIZE,                             ""},
     };
 
@@ -2394,8 +2395,8 @@ static const struct
 } AvailableConsoleCommands[] =
 {
     {"help",    NULL, "show this info",             onConsoleHelpCommand},
-    {"ram",     NULL, "show 80K RAM layout",        onConsoleRamCommand},
-    {"vram",    NULL, "show 16K VRAM layout",       onConsoleVRamCommand},
+    {"ram",     NULL, "show 96KB RAM layout",        onConsoleRamCommand},
+    {"vram",    NULL, "show 16KB VRAM layout",       onConsoleVRamCommand},
     {"exit",    "quit", "exit the application",     onConsoleExitCommand},
     {"new",     NULL, "create new cart",            onConsoleNewCommand},
     {"load",    NULL, "load cart",                  onConsoleLoadCommand},
