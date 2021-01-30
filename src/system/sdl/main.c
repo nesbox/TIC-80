@@ -524,14 +524,30 @@ static void processMouse()
 #if defined(CRT_SHADER_SUPPORT)
         if(crtMonitorEnabled())
         {
-            if(rect.w) input->mouse.x = (mx - rect.x) * TIC80_FULLWIDTH / rect.w;
-            if(rect.h) input->mouse.y = (my - rect.y) * TIC80_FULLHEIGHT / rect.h;
+            if(rect.w) {
+                int temp_x = (mx - rect.x) * TIC80_FULLWIDTH / rect.w;
+                if (temp_x < 0) temp_x = 0; else if (temp_x >= TIC80_FULLWIDTH) temp_x = TIC80_FULLWIDTH-1; // clip: 0 to TIC80_FULLWIDTH-1
+                input->mouse.x = temp_x;
+            }
+            if(rect.h) {
+                int temp_y = (my - rect.y) * TIC80_FULLHEIGHT / rect.h;
+                if (temp_y < 0) temp_y = 0; else if (temp_y >= TIC80_FULLHEIGHT) temp_y = TIC80_FULLHEIGHT-1; // clip: 0 to TIC80_FULLHEIGHT-1
+                input->mouse.y = temp_y;
+            }
         }
         else
-#endif            
+#endif
         {
-            if(rect.w) input->mouse.x = (mx - rect.x) * TIC80_WIDTH / rect.w + TIC80_OFFSET_LEFT;
-            if(rect.h) input->mouse.y = (my - rect.y) * TIC80_HEIGHT / rect.h + TIC80_OFFSET_TOP;
+            if (rect.w) {
+                int temp_x = (mx - rect.x) * TIC80_WIDTH / rect.w + TIC80_OFFSET_LEFT;
+                if (temp_x < 0) temp_x = 0; else if (temp_x >= TIC80_FULLWIDTH) temp_x = TIC80_FULLWIDTH-1; // clip: 0 to TIC80_FULLWIDTH-1
+                input->mouse.x = temp_x;
+            }
+            if (rect.h) {
+                int temp_y = (my - rect.y) * TIC80_HEIGHT / rect.h + TIC80_OFFSET_TOP;
+                if (temp_y < 0) temp_y = 0; else if (temp_y >= TIC80_FULLHEIGHT) temp_y = TIC80_FULLHEIGHT-1; // clip: 0 to TIC80_FULLHEIGHT-1
+                input->mouse.y = temp_y;
+            }
         }
     }
 
