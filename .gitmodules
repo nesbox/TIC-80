@@ -10,6 +10,7 @@
 [submodule "vendor/duktape"]
 	path = vendor/duktape
 	url = https://github.com/svaarala/duktape-releases.git
+	shallow = true
 [submodule "vendor/giflib"]
 	path = vendor/giflib
 	url = https://github.com/nesbox/giflib.git
