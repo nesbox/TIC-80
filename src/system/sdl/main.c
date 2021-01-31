@@ -525,12 +525,12 @@ static void processMouse()
         if(crtMonitorEnabled())
         {
             if(rect.w) {
-                int temp_x = (mx - rect.x) * TIC80_FULLWIDTH / rect.w;
+                s32 temp_x = (mx - rect.x) * TIC80_FULLWIDTH / rect.w;
                 if (temp_x < 0) temp_x = 0; else if (temp_x >= TIC80_FULLWIDTH) temp_x = TIC80_FULLWIDTH-1; // clip: 0 to TIC80_FULLWIDTH-1
                 input->mouse.x = temp_x;
             }
             if(rect.h) {
-                int temp_y = (my - rect.y) * TIC80_FULLHEIGHT / rect.h;
+                s32 temp_y = (my - rect.y) * TIC80_FULLHEIGHT / rect.h;
                 if (temp_y < 0) temp_y = 0; else if (temp_y >= TIC80_FULLHEIGHT) temp_y = TIC80_FULLHEIGHT-1; // clip: 0 to TIC80_FULLHEIGHT-1
                 input->mouse.y = temp_y;
             }
@@ -539,12 +539,12 @@ static void processMouse()
 #endif
         {
             if (rect.w) {
-                int temp_x = (mx - rect.x) * TIC80_WIDTH / rect.w + TIC80_OFFSET_LEFT;
+                s32 temp_x = (mx - rect.x) * TIC80_WIDTH / rect.w + TIC80_OFFSET_LEFT;
                 if (temp_x < 0) temp_x = 0; else if (temp_x >= TIC80_FULLWIDTH) temp_x = TIC80_FULLWIDTH-1; // clip: 0 to TIC80_FULLWIDTH-1
                 input->mouse.x = temp_x;
             }
             if (rect.h) {
-                int temp_y = (my - rect.y) * TIC80_HEIGHT / rect.h + TIC80_OFFSET_TOP;
+                s32 temp_y = (my - rect.y) * TIC80_HEIGHT / rect.h + TIC80_OFFSET_TOP;
                 if (temp_y < 0) temp_y = 0; else if (temp_y >= TIC80_FULLHEIGHT) temp_y = TIC80_FULLHEIGHT-1; // clip: 0 to TIC80_FULLHEIGHT-1
                 input->mouse.y = temp_y;
             }
@@ -1683,7 +1683,7 @@ static s32 emsStart(s32 argc, char **argv, const char* folder)
 {
     if (argc >= 2)
     {
-        int pos = strlen(argv[1]) - strlen(".tic");
+        s32 pos = strlen(argv[1]) - strlen(".tic");
         if (pos >= 0 && strcmp(&argv[1][pos], ".tic") == 0)
         {
             const char* url = argv[1];
