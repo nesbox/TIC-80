@@ -357,7 +357,7 @@ static void app_input(const sapp_event* event)
             sokol_calc_viewport(&rect.x, &rect.y, &rect.w, &rect.h);
 
             if (rect.w) {
-                s32 temp_x = ((s32)event->mouse_x - rect.x) * TIC80_FULLWIDTH / rect.w
+                s32 temp_x = ((s32)event->mouse_x - rect.x) * TIC80_FULLWIDTH / rect.w;
                 if (temp_x < 0) temp_x = 0; else if (temp_x >= TIC80_FULLWIDTH) temp_x = TIC80_FULLWIDTH-1; // clip: 0 to TIC80_FULLWIDTH-1
                 input->mouse.x = temp_x;
             }
