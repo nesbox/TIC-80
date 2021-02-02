@@ -55,13 +55,7 @@
 #include <emscripten.h>
 #endif
 
-#define PUBLIC_DIR TIC_HOST "/play"
-#define PUBLIC_DIR_SLASH PUBLIC_DIR "/"
-
-
-
-
-static const char* PublicDir = PUBLIC_DIR;
+static const char* PublicDir = TIC_HOST;
 
 struct FileSystem
 {
@@ -497,9 +491,8 @@ void fsDirBack(FileSystem* fs)
     char* start = fs->work;
     char* ptr = start + strlen(fs->work);
 
-    while(ptr > start && *ptr != '/') ptr--;
-
-    *ptr = '\0';
+    while (ptr > start && *ptr != '/') ptr--;
+    while (*ptr) *ptr++ = '\0';
 }
 
 void fsGetDir(FileSystem* fs, char* dir)

@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "net.h"
+#include "defines.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -672,13 +673,12 @@ void netGet(Net* net, const char* path, HttpGetCallback callback, void* calldata
 {
     struct Curl_easy* curl = curl_easy_init();
 
-    CurlData* data = calloc(1, sizeof(CurlData));
-    *data = (CurlData)
+    CurlData* data = OBJCOPY((CurlData)
     {
         .async = curl,
         .callback = callback,
         .calldata = calldata,
-    };
+    });    
 
     strcpy(data->url, path);
 

@@ -156,7 +156,7 @@ struct MenuItem
     tic_screen* cover;
     tic_palette* palettes;
 
-    bool coverLoaded;
+    bool coverLoading;
     bool dir;
     bool project;
 };
@@ -299,22 +299,7 @@ static void drawMenu(Surf* surf, s32 x, s32 y)
     }
 }
 
-static void replace(char* src, const char* what, const char* with)
-{
-    while(true)
-    {
-        char* pos = strstr(src, what);
-
-        if(pos)
-        {
-            strcpy(pos, pos + strlen(what) - strlen(with));
-            memcpy(pos, with, strlen(with));
-        }
-        else break;     
-    }
-}
-
-static void cutExt(char* name, const char* ext)
+static inline void cutExt(char* name, const char* ext)
 {
     name[strlen(name)-strlen(ext)] = '\0';
 }
@@ -327,14 +312,19 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 
     if(dir 
         || tic_tool_has_ext(name, CartExt)
-        || hasProjectExt(name)
-        )
+        || hasProjectExt(name))
     {
         data->items = realloc(data->items, sizeof(MenuItem) * ++data->count);
         MenuItem* item = &data->items[data->count-1];
 
-        item->name = strdup(name);
-        bool project = false;
+        *item = (MenuItem)
+        {
+            .name = strdup(name),
+            .hash = info ? strdup(info) : NULL,
+            .id = id,
+            .dir = dir,
+        };
+
         if(dir)
         {
             char folder[TICNAME_MAX];
@@ -343,28 +333,13 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
         }
         else
         {
-
             item->label = strdup(name);
 
             if(tic_tool_has_ext(name, CartExt))
                 cutExt(item->label, CartExt);
             else
-            {
-                project = true;
-            }
-
-
-            replace(item->label, "&amp;", "&");
-            replace(item->label, "&#39;", "'");
+                item->project = true;
         }
-
-        item->hash = info ? strdup(info) : NULL;
-        item->id = id;
-        item->dir = dir;
-        item->cover = NULL;
-        item->palettes = NULL;
-        item->coverLoaded = false;
-        item->project = project;
     }
 
     return true;
@@ -417,13 +392,13 @@ static void resetMenu(Surf* surf)
     surf->menu.anim = 0;
 }
 
-static void updateMenuItemCover(Surf* surf, const u8* cover, s32 size)
+static void updateMenuItemCover(Surf* surf, s32 pos, const u8* cover, s32 size)
 {
-    MenuItem* item = &surf->menu.items[surf->menu.pos];
+    MenuItem* item = &surf->menu.items[pos];
 
-    if((item->cover = calloc(1, sizeof(tic_screen))))
+    if((item->cover = malloc(sizeof(tic_screen))))
     {
-        if((item->palettes = calloc(TIC80_HEIGHT, sizeof(tic_palette))))
+        if((item->palettes = malloc(TIC80_HEIGHT * sizeof(tic_palette))))
         {
             gif_image* image = gif_read_data(cover, size);
 
@@ -484,8 +459,9 @@ static void updateMenuItemCover(Surf* surf, const u8* cover, s32 size)
 typedef struct
 {
     Surf* surf;
-    char* cachePath;
     s32 pos;
+    char cachePath[TICNAME_MAX];
+    char dir[TICNAME_MAX];
 } CoverLoadingData;
 
 static void coverLoaded(const HttpGetData* netData)
@@ -497,15 +473,17 @@ static void coverLoaded(const HttpGetData* netData)
     {
         fsSaveRootFile(surf->fs, coverLoadingData->cachePath, netData->done.data, netData->done.size, false);
 
-        if(coverLoadingData->pos == surf->menu.pos)
-            updateMenuItemCover(surf, netData->done.data, netData->done.size);
+        char dir[TICNAME_MAX];
+        fsGetDir(surf->fs, dir);
+
+        if(strcmp(dir, coverLoadingData->dir) == 0)
+            updateMenuItemCover(surf, coverLoadingData->pos, netData->done.data, netData->done.size);
     }
 
     switch (netData->type)
     {
     case HttpGetDone:
     case HttpGetError:
-        free(coverLoadingData->cachePath);
         free(coverLoadingData);
         break;
     }
@@ -513,17 +491,19 @@ static void coverLoaded(const HttpGetData* netData)
 
 static void requestCover(Surf* surf, MenuItem* item)
 {
+    CoverLoadingData coverLoadingData = {surf, surf->menu.pos};
+    fsGetDir(surf->fs, coverLoadingData.dir);
+
     const char* hash = item->hash;
-    char cachePath[TICNAME_MAX];
-    sprintf(cachePath, TIC_CACHE "%s.gif", hash);
+    sprintf(coverLoadingData.cachePath, TIC_CACHE "%s.gif", hash);
 
     {
         s32 size = 0;
-        void* data = fsLoadRootFile(surf->fs, cachePath, &size);
+        void* data = fsLoadRootFile(surf->fs, coverLoadingData.cachePath, &size);
 
         if (data)
         {
-            updateMenuItemCover(surf, data, size);
+            updateMenuItemCover(surf, surf->menu.pos, data, size);
             free(data);
         }
     }
@@ -531,7 +511,6 @@ static void requestCover(Surf* surf, MenuItem* item)
     char path[TICNAME_MAX];
     sprintf(path, "/cart/%s/cover.gif", hash);
 
-    CoverLoadingData coverLoadingData = {surf, strdup(cachePath), surf->menu.pos};
     netGet(surf->net, path, coverLoaded, OBJCOPY(coverLoadingData));
 }
 
@@ -541,11 +520,10 @@ static void loadCover(Surf* surf)
     
     MenuItem* item = &surf->menu.items[surf->menu.pos];
     
-    if(item->coverLoaded)
-    {
+    if(item->coverLoading)
         return;
-    }
-    item->coverLoaded = true;
+
+    item->coverLoading = true;
 
     if(!fsIsInPublicDir(surf->fs))
     {
@@ -566,7 +544,7 @@ static void loadCover(Surf* surf)
                     tic_cart_load(cart, data, size);
 
                 if(cart->cover.size)
-                    updateMenuItemCover(surf, cart->cover.data, cart->cover.size);
+                    updateMenuItemCover(surf, surf->menu.pos, cart->cover.data, cart->cover.size);
 
                 free(cart);
             }
