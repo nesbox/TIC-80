@@ -109,7 +109,7 @@ static void tick(Run* run)
 
     if(memcmp(run->pmem.data, tic->ram.persistent.data, Size))
     {
-        fsSaveRootFile(run->console->fs, run->saveid, &tic->ram.persistent, Size, true);
+        tic_fs_saveroot(run->console->fs, run->saveid, &tic->ram.persistent, Size, true);
         memcpy(run->pmem.data, tic->ram.persistent.data, Size);
     }
 
@@ -164,7 +164,7 @@ void initRun(Run* run, Console* console, tic_mem* tic)
         initPMemName(run);
 
         s32 size = 0;
-        void* data = fsLoadRootFile(run->console->fs, run->saveid, &size);
+        void* data = tic_fs_loadroot(run->console->fs, run->saveid, &size);
 
         if(data)
         {

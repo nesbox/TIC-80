@@ -185,8 +185,8 @@ static struct
         Surf*       surf;
     };
 
-    FileSystem* fs;
-    Net* net;
+    tic_fs* fs;
+    tic_net* net;
 
     s32 samplerate;
     tic_font systemFont;
@@ -288,7 +288,7 @@ const char* studioExportSfx(s32 index, const char* filename)
 {
     tic_mem* tic = impl.studio.tic;
 
-    const char* path = fsGetFilePath(impl.fs, filename);
+    const char* path = tic_fs_path(impl.fs, filename);
 
     if(wave_open( impl.samplerate, path ))
     {
@@ -333,7 +333,7 @@ const char* studioExportMusic(s32 track, const char* filename)
 {
     tic_mem* tic = impl.studio.tic;
 
-    const char* path = fsGetFilePath(impl.fs, filename);
+    const char* path = tic_fs_path(impl.fs, filename);
 
     if(wave_open( impl.samplerate, path ))
     {
@@ -1307,7 +1307,7 @@ static void updateHash()
 
 static void updateMDate()
 {
-    impl.cart.mdate = fsMDate(impl.console->rom.path);
+    impl.cart.mdate = fs_date(impl.console->rom.path);
 }
 
 static void updateTitle()
@@ -1461,16 +1461,16 @@ static void stopVideoRecord(const char* name)
             {
                 snprintf(filename, sizeof filename, name, ++i);
             }
-            while(fsExistsFile(impl.fs, filename));
+            while(tic_fs_exists(impl.fs, filename));
 
             // Now that it has found an available filename, save it.
-            if(fsSaveFile(impl.fs, filename, data, size, true))
+            if(tic_fs_save(impl.fs, filename, data, size, true))
             {
                 char msg[TICNAME_MAX];
                 sprintf(msg, "%s saved :)", filename);
                 showPopupMessage(msg);
 
-                tic_sys_open_path(fsGetFilePath(impl.fs, filename));
+                tic_sys_open_path(tic_fs_path(impl.fs, filename));
             }
             else showPopupMessage("error: file not saved :(");
         }
@@ -1626,7 +1626,7 @@ static void updateStudioProject()
     {
         Console* console = impl.console;
 
-        u64 date = fsMDate(console->rom.path);
+        u64 date = fs_date(console->rom.path);
 
         if(impl.cart.mdate && date > impl.cart.mdate)
         {
@@ -1844,10 +1844,10 @@ void studioConfigChanged()
 
 static void initKeymap()
 {
-    FileSystem* fs = impl.fs;
+    tic_fs* fs = impl.fs;
 
     s32 size = 0;
-    u8* data = (u8*)fsLoadFile(fs, KEYMAP_DAT_PATH, &size);
+    u8* data = (u8*)tic_fs_load(fs, KEYMAP_DAT_PATH, &size);
 
     if(data)
     {
@@ -1891,7 +1891,7 @@ static void studioTick()
 {
     tic_mem* tic = impl.studio.tic;
 
-    netTickStart(impl.net);
+    tic_net_start(impl.net);
     processShortcuts();
     processMouseStates();
     processGamepadMapping();
@@ -1969,7 +1969,7 @@ static void studioTick()
 
     drawPopup();
 
-    netTickEnd(impl.net);
+    tic_net_end(impl.net);
 }
 
 static void studioClose()
@@ -1997,7 +1997,7 @@ static void studioClose()
     if(impl.tic80local)
         tic80_delete((tic80*)impl.tic80local);
 
-    netClose(impl.net);
+    tic_net_close(impl.net);
     free(impl.fs);
 }
 
@@ -2044,13 +2044,13 @@ Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* fold
     StartArgs args = parseArgs(argc, argv);
 
     impl.samplerate = samplerate;
-    impl.net = netCreate(TIC_WEBSITE);
+    impl.net = tic_net_create(TIC_WEBSITE);
 
     {
         const char *path = args.fs ? args.fs : folder;
 
-        if(fsExists(path))
-            impl.fs = createFileSystem(path, impl.net);
+        if(fs_exists(path))
+            impl.fs = tic_fs_create(path, impl.net);
         else
         {
             fprintf(stderr, "error: folder `%s` doesn't exist\n", path);
@@ -2081,8 +2081,8 @@ Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* fold
         impl.surf       = calloc(1, sizeof(Surf));
     }
 
-    fsMakeDir(impl.fs, TIC_LOCAL);
-    fsMakeDir(impl.fs, TIC_LOCAL_VERSION);
+    tic_fs_makedir(impl.fs, TIC_LOCAL);
+    tic_fs_makedir(impl.fs, TIC_LOCAL_VERSION);
     
     initConfig(impl.config, impl.studio.tic, impl.fs);
     initKeymap();

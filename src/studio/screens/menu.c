@@ -455,7 +455,7 @@ static void processMainMenuGamepad(Menu* menu)
 
 static void saveMapping(Menu* menu)
 {
-    fsSaveRootFile(menu->fs, KEYMAP_DAT_PATH, getKeymap(), KEYMAP_SIZE, true);
+    tic_fs_saveroot(menu->fs, KEYMAP_DAT_PATH, getKeymap(), KEYMAP_SIZE, true);
 }
 
 static void processKeyboard(Menu* menu)
@@ -540,7 +540,7 @@ static void overline(tic_mem* tic, void* data)
     }
 }
 
-void initMenu(Menu* menu, tic_mem* tic, FileSystem* fs)
+void initMenu(Menu* menu, tic_mem* tic, tic_fs* fs)
 {
     *menu = (Menu)
     {

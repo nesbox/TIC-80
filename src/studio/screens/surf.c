@@ -166,7 +166,7 @@ typedef struct
     MenuItem* items;
     s32 count;
     Surf* surf;
-    DoneCallback done;
+    fs_done_callback done;
     void* data;
 } AddMenuItemData;
 
@@ -231,7 +231,7 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
     {
         char label[TICNAME_MAX + 1];
         char dir[TICNAME_MAX];
-        fsGetDir(surf->fs, dir);
+        tic_fs_dir(surf->fs, dir);
 
         sprintf(label, "/%s", dir);
         s32 xl = x + MAIN_OFFSET;
@@ -464,17 +464,17 @@ typedef struct
     char dir[TICNAME_MAX];
 } CoverLoadingData;
 
-static void coverLoaded(const HttpGetData* netData)
+static void coverLoaded(const net_get_data* netData)
 {
     CoverLoadingData* coverLoadingData = netData->calldata;
     Surf* surf = coverLoadingData->surf;
 
-    if (netData->type == HttpGetDone)
+    if (netData->type == net_get_done)
     {
-        fsSaveRootFile(surf->fs, coverLoadingData->cachePath, netData->done.data, netData->done.size, false);
+        tic_fs_saveroot(surf->fs, coverLoadingData->cachePath, netData->done.data, netData->done.size, false);
 
         char dir[TICNAME_MAX];
-        fsGetDir(surf->fs, dir);
+        tic_fs_dir(surf->fs, dir);
 
         if(strcmp(dir, coverLoadingData->dir) == 0)
             updateMenuItemCover(surf, coverLoadingData->pos, netData->done.data, netData->done.size);
@@ -482,8 +482,8 @@ static void coverLoaded(const HttpGetData* netData)
 
     switch (netData->type)
     {
-    case HttpGetDone:
-    case HttpGetError:
+    case net_get_done:
+    case net_get_error:
         free(coverLoadingData);
         break;
     }
@@ -492,14 +492,14 @@ static void coverLoaded(const HttpGetData* netData)
 static void requestCover(Surf* surf, MenuItem* item)
 {
     CoverLoadingData coverLoadingData = {surf, surf->menu.pos};
-    fsGetDir(surf->fs, coverLoadingData.dir);
+    tic_fs_dir(surf->fs, coverLoadingData.dir);
 
     const char* hash = item->hash;
     sprintf(coverLoadingData.cachePath, TIC_CACHE "%s.gif", hash);
 
     {
         s32 size = 0;
-        void* data = fsLoadRootFile(surf->fs, coverLoadingData.cachePath, &size);
+        void* data = tic_fs_loadroot(surf->fs, coverLoadingData.cachePath, &size);
 
         if (data)
         {
@@ -511,7 +511,7 @@ static void requestCover(Surf* surf, MenuItem* item)
     char path[TICNAME_MAX];
     sprintf(path, "/cart/%s/cover.gif", hash);
 
-    netGet(surf->net, path, coverLoaded, OBJCOPY(coverLoadingData));
+    tic_net_get(surf->net, path, coverLoaded, OBJCOPY(coverLoadingData));
 }
 
 static void loadCover(Surf* surf)
@@ -525,11 +525,11 @@ static void loadCover(Surf* surf)
 
     item->coverLoading = true;
 
-    if(!fsIsInPublicDir(surf->fs))
+    if(!tic_fs_ispubdir(surf->fs))
     {
 
         s32 size = 0;
-        void* data = fsLoadFile(surf->fs, item->name, &size);
+        void* data = tic_fs_load(surf->fs, item->name, &size);
 
         if(data)
         {
@@ -558,21 +558,21 @@ static void loadCover(Surf* surf)
     }
 }
 
-static void initMenuAsync(Surf* surf, DoneCallback callback, void* calldata)
+static void initMenuAsync(Surf* surf, fs_done_callback callback, void* calldata)
 {
     resetMenu(surf);
 
     surf->loading = true;
 
     char dir[TICNAME_MAX];
-    fsGetDir(surf->fs, dir);
+    tic_fs_dir(surf->fs, dir);
 
     AddMenuItemData data = { NULL, 0, surf, callback, calldata};
 
     if(strcmp(dir, "") != 0)
         addMenuItem("..", NULL, 0, &data, true);
 
-    fsEnumFilesAsync(surf->fs, addMenuItem, addMenuItemsDone, OBJCOPY(data));
+    tic_fs_enum(surf->fs, addMenuItem, addMenuItemsDone, OBJCOPY(data));
 }
 
 typedef struct
@@ -592,7 +592,7 @@ static void onGoBackDirDone(void* data)
     Surf* surf = goBackDirDoneData->surf;
 
     char current[TICNAME_MAX];
-    fsGetDir(surf->fs, current);
+    tic_fs_dir(surf->fs, current);
 
     for(s32 i = 0; i < surf->menu.count; i++)
     {
@@ -621,9 +621,9 @@ static void onGoBackDirDone(void* data)
 static void onGoBackDir(Surf* surf)
 {
     char last[TICNAME_MAX];
-    fsGetDir(surf->fs, last);
+    tic_fs_dir(surf->fs, last);
 
-    fsDirBack(surf->fs);
+    tic_fs_dirback(surf->fs);
 
     GoBackDirDoneData goBackDirDoneData = {surf, strdup(last)};
     initMenuAsync(surf, onGoBackDirDone, OBJCOPY(goBackDirDoneData));
@@ -633,14 +633,14 @@ static void onGoToDir(Surf* surf)
 {
     MenuItem* item = &surf->menu.items[surf->menu.pos];
 
-    fsChangeDir(surf->fs, item->name);
+    tic_fs_changedir(surf->fs, item->name);
     initMenu(surf);
 }
 
 static void goBackDir(Surf* surf)
 {
     char dir[TICNAME_MAX];
-    fsGetDir(surf->fs, dir);
+    tic_fs_dir(surf->fs, dir);
 
     if(strcmp(dir, "") != 0)
     {
@@ -925,7 +925,7 @@ void initSurf(Surf* surf, tic_mem* tic, struct Console* console)
         .scanline = scanline,
     };
 
-    fsMakeDir(surf->fs, TIC_CACHE);
+    tic_fs_makedir(surf->fs, TIC_CACHE);
 }
 
 void freeSurf(Surf* surf)

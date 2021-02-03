@@ -24,7 +24,7 @@
 
 #include "studio/studio.h"
 
-typedef void(*DoneCallback)(void* data);
+typedef void(*fs_done_callback)(void* data);
 
 typedef enum
 {
@@ -77,8 +77,8 @@ struct Console
 
     tic_mem* tic;
 
-    struct FileSystem* fs;
-    struct Net* net;
+    struct tic_fs* fs;
+    struct tic_net* net;
 
     struct
     {
@@ -96,7 +96,7 @@ struct Console
     StartArgs args;
 
     void(*load)(Console*, const char* path);
-    void(*loadByHash)(Console*, const char* name, const char* hash, DoneCallback callback, void* data);
+    void(*loadByHash)(Console*, const char* name, const char* hash, fs_done_callback callback, void* data);
     void(*updateProject)(Console*);
     void(*error)(Console*, const char*);
     void(*trace)(Console*, const char*, u8 color);
@@ -105,5 +105,5 @@ struct Console
     CartSaveResult(*save)(Console*);
 };
 
-void initConsole(Console*, tic_mem*, struct FileSystem* fs, struct Net* net, struct Config* config, StartArgs args);
+void initConsole(Console*, tic_mem*, struct tic_fs* fs, struct tic_net* net, struct Config* config, StartArgs args);
 void freeConsole(Console* console);

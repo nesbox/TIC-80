@@ -224,7 +224,7 @@ static void commandDoneLine(Console* console, bool newLine)
         printLine(console);
 
     char dir[TICNAME_MAX];
-    fsGetDir(console->fs, dir);
+    tic_fs_dir(console->fs, dir);
     if(strlen(dir))
         printBack(console, dir);
 
@@ -406,7 +406,7 @@ static bool onConsoleLoadSectionCommand(Console* console, const char* param)
                 pos[sizeof(CART_EXT) - 1] = 0;
                 const char* name = getCartName(param);
                 s32 size = 0;
-                void* data = fsLoadFile(console->fs, name, &size);
+                void* data = tic_fs_load(console->fs, name, &size);
 
                 if(data)
                 {
@@ -486,7 +486,7 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 #endif          
         }
 
-        void* data = fsLoadRootFile(console->fs, path, size);
+        void* data = tic_fs_loadroot(console->fs, path, size);
 
         if(data && *size)
             return data;
@@ -591,7 +591,7 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
         *size = tic_tool_unzip(data, sizeof(tic_cartridge), demo, romSize);
 
         if(*size)
-            fsSaveRootFile(console->fs, path, data, *size, false);
+            tic_fs_saveroot(console->fs, path, data, *size, false);
     }
 
     return data;
@@ -643,7 +643,7 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 
     const char* name = getCartName(param);
 
-    setCartName(console, name, fsGetFilePath(console->fs, name));
+    setCartName(console, name, tic_fs_path(console->fs, name));
 
     loadRom(console->tic, data, size);
 
@@ -658,7 +658,7 @@ static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* para
 
 static void onCartLoaded(Console* console, const char* name)
 {
-    setCartName(console, name, fsGetFilePath(console->fs, name));
+    setCartName(console, name, tic_fs_path(console->fs, name));
 
     studioRomLoaded();
 
@@ -678,7 +678,7 @@ static void updateProject(Console* console)
     if(strlen(path) && hasProjectExt(path))
     {
         s32 size = 0;
-        void* data = fsReadFile(path, &size);
+        void* data = fs_read(path, &size);
 
         if(data)
         {
@@ -706,7 +706,7 @@ typedef struct
 {
     Console* console;
     char* name;
-    DoneCallback callback;
+    fs_done_callback callback;
     void* calldata;
 }LoadByHashData;
 
@@ -729,12 +729,12 @@ static void loadByHashDone(const u8* buffer, s32 size, void* data)
     commandDone(console);
 }
 
-static void loadByHash(Console* console, const char* name, const char* hash, DoneCallback callback, void* data)
+static void loadByHash(Console* console, const char* name, const char* hash, fs_done_callback callback, void* data)
 {
     console->active = false;
 
     LoadByHashData loadByHashData = { console, strdup(name), callback, data};
-    fsLoadFileByHashAsync(console->fs, hash, loadByHashDone, OBJCOPY(loadByHashData));
+    tic_fs_hashload(console->fs, hash, loadByHashDone, OBJCOPY(loadByHashData));
 }
 
 typedef struct
@@ -788,10 +788,10 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
     {
         const char* name = getCartName(param);
 
-        if (fsIsInPublicDir(console->fs))
+        if (tic_fs_ispubdir(console->fs))
         {
             LoadPublicCartData loadPublicCartData = { console, strdup(name) };
-            fsEnumFilesAsync(console->fs, compareFilename, fileFound, OBJCOPY(loadPublicCartData));
+            tic_fs_enum(console->fs, compareFilename, fileFound, OBJCOPY(loadPublicCartData));
 
             return;
         }
@@ -800,8 +800,8 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
             console->showGameMenu = false;
             s32 size = 0;
             void* data = strcmp(name, CONFIG_TIC_PATH) == 0
-                ? fsLoadRootFile(console->fs, name, &size)
-                : fsLoadFile(console->fs, name, &size);
+                ? tic_fs_loadroot(console->fs, name, &size)
+                : tic_fs_load(console->fs, name, &size);
 
             if(data)
             {
@@ -812,22 +812,22 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
             {
                 const char* name = getName(param, PROJECT_LUA_EXT);
 
-                if(!fsExistsFile(console->fs, name))
+                if(!tic_fs_exists(console->fs, name))
                     name = getName(param, PROJECT_MOON_EXT);
 
-                if(!fsExistsFile(console->fs, name))
+                if(!tic_fs_exists(console->fs, name))
                     name = getName(param, PROJECT_JS_EXT);
 
-                if(!fsExistsFile(console->fs, name))
+                if(!tic_fs_exists(console->fs, name))
                     name = getName(param, PROJECT_WREN_EXT);
 
-                if(!fsExistsFile(console->fs, name))
+                if(!tic_fs_exists(console->fs, name))
                     name = getName(param, PROJECT_FENNEL_EXT);
 
-                if(!fsExistsFile(console->fs, name))
+                if(!tic_fs_exists(console->fs, name))
                     name = getName(param, PROJECT_SQUIRREL_EXT);
 
-                void* data = fsLoadFile(console->fs, name, &size);
+                void* data = tic_fs_load(console->fs, name, &size);
 
                 if(data && tic_project_load(name, data, size, &console->tic->cart))
                     onCartLoaded(console, name);
@@ -1093,7 +1093,7 @@ static void onConsoleChangeDirectoryDone(bool dir, void* data)
 
     if (dir)
     {
-        fsChangeDir(console->fs, changeDirData->name);
+        tic_fs_changedir(console->fs, changeDirData->name);
     }
     else printBack(console, "\ndir doesn't exist");
 
@@ -1109,16 +1109,16 @@ static void onConsoleChangeDirectory(Console* console, const char* param)
     {
         if(strcmp(param, "/") == 0)
         {
-            fsHomeDir(console->fs);
+            tic_fs_homedir(console->fs);
         }
         else if(strcmp(param, "..") == 0)
         {
-            fsDirBack(console->fs);
+            tic_fs_dirback(console->fs);
         }
         else
         {
             ChangeDirData data = { console, strdup(param) };
-            fsIsDirAsync(console->fs, param, onConsoleChangeDirectoryDone, OBJCOPY(data));
+            tic_fs_isdir_async(console->fs, param, onConsoleChangeDirectoryDone, OBJCOPY(data));
             return;
         }
     }
@@ -1130,7 +1130,7 @@ static void onConsoleChangeDirectory(Console* console, const char* param)
 static void onConsoleMakeDirectory(Console* console, const char* param)
 {
     if(param && strlen(param))
-        fsMakeDir(console->fs, param);
+        tic_fs_makedir(console->fs, param);
     else printBack(console, "\ninvalid dir name");
 
     commandDone(console);
@@ -1141,16 +1141,16 @@ static void onConsoleDirCommand(Console* console, const char* param)
     printLine(console);
 
     PrintFileNameData data = {0, console};
-    fsEnumFilesAsync(console->fs, printFilename, onDirDone, OBJCOPY(data));
+    tic_fs_enum(console->fs, printFilename, onDirDone, OBJCOPY(data));
 }
 
 static void onConsoleFolderCommand(Console* console, const char* param)
 {
 
     printBack(console, "\nStorage path:\n");
-    printFront(console, fsGetRootFilePath(console->fs, ""));
+    printFront(console, tic_fs_pathroot(console->fs, ""));
 
-    fsOpenWorkingFolder(console->fs);
+    tic_fs_openfolder(console->fs);
 
     commandDone(console);
 }
@@ -1166,7 +1166,7 @@ static void onConsoleClsCommand(Console* console, const char* param)
     commandDoneLine(console, false);
 }
 
-static void installDemoCart(FileSystem* fs, const char* name, const void* cart, s32 size)
+static void installDemoCart(tic_fs* fs, const char* name, const void* cart, s32 size)
 {
     u8* data = calloc(1, sizeof(tic_cartridge));
 
@@ -1175,7 +1175,7 @@ static void installDemoCart(FileSystem* fs, const char* name, const void* cart, 
         s32 dataSize = tic_tool_unzip(data, sizeof(tic_cartridge), cart, size);
 
         if(dataSize)
-            fsSaveFile(fs, name, data, dataSize, true);
+            tic_fs_save(fs, name, data, dataSize, true);
 
         free(data);
     }
@@ -1233,7 +1233,7 @@ static void onConsoleInstallDemosCommand(Console* console, const char* param)
         #include "../build/assets/bpp.tic.dat"
     };
 
-    FileSystem* fs = console->fs;
+    tic_fs* fs = console->fs;
 
     static const struct {const char* name; const u8* data; s32 size;} Demos[] =
     {
@@ -1506,7 +1506,7 @@ static void onConsoleImportCommand(Console* console, const char* param)
     if(param && filename)
     {
         s32 size = 0;
-        const void* data = fsLoadFile(console->fs, filename, &size);
+        const void* data = tic_fs_load(console->fs, filename, &size);
 
         if(data)
         {
@@ -1556,7 +1556,7 @@ static void exportCover(Console* console, const char* filename)
     {
         void* data = malloc(cover->size);
         memcpy(data, cover->data, cover->size);
-        if(fsSaveFile(console->fs, filename, data, cover->size, true))
+        if(tic_fs_save(console->fs, filename, data, cover->size, true))
         {
             printLine(console);
             printBack(console, filename);
@@ -1631,7 +1631,7 @@ static void exportSprites(Console* console, const char* filename)
 
             s32 size = 0;
             if((size = writeGifData(console->tic, buffer, data, Width, Height)) 
-                && fsSaveFile(console->fs, filename, buffer, size, true))
+                && tic_fs_save(console->fs, filename, buffer, size, true))
             {
                 printLine(console);
                 printBack(console, filename);
@@ -1657,7 +1657,7 @@ static void exportMap(Console* console, const char* filename)
     {
         memcpy(buffer, getBankMap()->data, Size);
 
-        if(fsSaveFile(console->fs, filename, buffer, Size, true))
+        if(tic_fs_save(console->fs, filename, buffer, Size, true))
         {
             printLine(console);
             printBack(console, filename);
@@ -1756,14 +1756,14 @@ typedef struct
     char filename[TICNAME_MAX];
 } GameExportData;
 
-static void onExportGet(const HttpGetData* data)
+static void onExportGet(const net_get_data* data)
 {
     GameExportData* exportData = (GameExportData*)data->calldata;
     Console* console = exportData->console;
 
     switch(data->type)
     {
-    case HttpGetProgress:
+    case net_get_progress:
         {
             console->cursor.x = 0;
             printf("\r");
@@ -1775,7 +1775,7 @@ static void onExportGet(const HttpGetData* data)
             printBack(console, buf);
         }
         break;
-    case HttpGetError:
+    case net_get_error:
         free(exportData);
         printError(console, "file downloading error :(");
         commandDone(console);
@@ -1785,11 +1785,11 @@ static void onExportGet(const HttpGetData* data)
     }
 }
 
-static void onNativeExportGet(const HttpGetData* data)
+static void onNativeExportGet(const net_get_data* data)
 {
     switch(data->type)
     {
-    case HttpGetDone:
+    case net_get_done:
         {
             GameExportData* exportData = (GameExportData*)data->calldata;
             Console* console = exportData->console;
@@ -1804,10 +1804,10 @@ static void onNativeExportGet(const HttpGetData* data)
 
             printLine(console);
 
-            const char* path = fsGetFilePath(console->fs, filename);
+            const char* path = tic_fs_path(console->fs, filename);
             void* buf = NULL;
             if((buf = embedCart(console, data->done.data, &size))
-                && fsWriteFile(path, buf, size))
+                && fs_write(path, buf, size))
             {
                 chmod(path, 0755);
                 printFront(console, filename);
@@ -1831,7 +1831,7 @@ static void onNativeExportGet(const HttpGetData* data)
     }
 }
 
-static void exportGame(Console* console, const char* name, const char* system, HttpGetCallback callback)
+static void exportGame(Console* console, const char* name, const char* system, net_get_callback callback)
 {
     tic_mem* tic = console->tic;
     printLine(console);
@@ -1841,7 +1841,7 @@ static void exportGame(Console* console, const char* name, const char* system, H
 
     char url[TICNAME_MAX] = "/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "/";
     strcat(url, system);
-    netGet(console->net, url, callback, data);
+    tic_net_get(console->net, url, callback, data);
 }
 
 static inline void exportNativeGame(Console* console, const char* name, const char* system)
@@ -1849,11 +1849,11 @@ static inline void exportNativeGame(Console* console, const char* name, const ch
     exportGame(console, name, system, onNativeExportGet);
 }
 
-static void onHtmlExportGet(const HttpGetData* data)
+static void onHtmlExportGet(const net_get_data* data)
 {
     switch(data->type)
     {
-    case HttpGetDone:
+    case net_get_done:
         {
             GameExportData* exportData = (GameExportData*)data->calldata;
             Console* console = exportData->console;
@@ -1864,9 +1864,9 @@ static void onHtmlExportGet(const HttpGetData* data)
             strcpy(filename, exportData->filename);
             free(exportData);
 
-            const char* zipPath = fsGetFilePath(console->fs, filename);
+            const char* zipPath = tic_fs_path(console->fs, filename);
 
-            if(!fsWriteFile(zipPath, data->done.data, data->done.size))
+            if(!fs_write(zipPath, data->done.data, data->done.size))
             {
                 printError(console, "\nerror: ");
                 printError(console, filename);
@@ -2018,9 +2018,9 @@ static CartSaveResult saveCartName(Console* console, const char* name)
                     size = tic_cart_save(&tic->cart, buffer);
                 }
 
-                if(size && fsSaveFile(console->fs, name, buffer, size, true))
+                if(size && tic_fs_save(console->fs, name, buffer, size, true))
                 {
-                    setCartName(console, name, fsGetFilePath(console->fs, name));
+                    setCartName(console, name, tic_fs_path(console->fs, name));
                     success = true;
                     studioRomSaved();
                 }
@@ -2064,8 +2064,8 @@ static void onConsoleSaveCommandConfirmed(Console* console, const char* param)
 static void onConsoleSaveCommand(Console* console, const char* param)
 {
     if(param && strlen(param) && 
-        (fsExistsFile(console->fs, param) ||
-            fsExistsFile(console->fs, getCartName(param))))
+        (tic_fs_exists(console->fs, param) ||
+            tic_fs_exists(console->fs, getCartName(param))))
     {
         static const char* Rows[] =
         {
@@ -2125,21 +2125,21 @@ static void onConsoleDelCommandConfirmed(Console* console, const char* param)
 {
     if(param && strlen(param))
     {
-        if (fsIsInPublicDir(console->fs))
+        if (tic_fs_ispubdir(console->fs))
         {
             printError(console, "\naccess denied");
         }
         else
         {
-            if(fsIsDir(console->fs, param))
+            if(tic_fs_isdir(console->fs, param))
             {
-                printBack(console, fsDeleteDir(console->fs, param)
+                printBack(console, tic_fs_deldir(console->fs, param)
                     ? "\ndir not deleted"
                     : "\ndir successfully deleted");
             }
             else
             {
-                printBack(console, fsDeleteFile(console->fs, param)
+                printBack(console, tic_fs_delfile(console->fs, param)
                     ? "\nfile not deleted"
                     : "\nfile successfully deleted");
             }
@@ -2300,11 +2300,11 @@ static void onConsoleAddFile(Console* console, const char* name, const u8* buffe
 {
     if(name)
     {
-        const char* path = fsGetFilePath(console->fs, name);
+        const char* path = tic_fs_path(console->fs, name);
 
-        if(!fsExists(path))
+        if(!fs_exists(path))
         {
-            if(fsWriteFile(path, buffer, size))
+            if(fs_write(path, buffer, size))
             {
                 printLine(console);
                 printFront(console, name);
@@ -2356,12 +2356,12 @@ static void onConsoleGetCommand(Console* console, const char* name)
 {
     if(name)
     {
-        const char* path = fsGetFilePath(console->fs, name);
+        const char* path = tic_fs_path(console->fs, name);
 
-        if(fsExists(path))
+        if(fs_exists(path))
         {
             s32 size = 0;
-            void* buffer = fsReadFile(path, &size);
+            void* buffer = fs_read(path, &size);
 
             EM_ASM_
             ({
@@ -2464,7 +2464,7 @@ static void processConsoleTab(Console* console)
         if(param && strlen(++param))
         {
             PredictFilenameData data = { console, param };
-            fsEnumFilesAsync(console->fs, predictFilename, predictFilenameDone, OBJCOPY(data));
+            tic_fs_enum(console->fs, predictFilename, predictFilenameDone, OBJCOPY(data));
         }
         else
         {
@@ -2743,13 +2743,13 @@ static lua_State* netLuaInit(u8* buffer, s32 size)
     return NULL;
 }
 
-static void onHttpVesrsionGet(const HttpGetData* data)
+static void onHttpVesrsionGet(const net_get_data* data)
 {
     Console* console = (Console*)data->calldata;
 
     switch(data->type)
     {
-    case HttpGetDone:
+    case net_get_done:
         {
             lua_State* lua = netLuaInit(data->done.data, data->done.size);
 
@@ -2942,7 +2942,7 @@ static void tick(Console* console)
             printBack(console, " for help\n");
 
             if(getConfig()->checkNewVersion)
-                netGet(console->net, "/api?fn=version", onHttpVesrsionGet, console);
+                tic_net_get(console->net, "/api?fn=version", onHttpVesrsionGet, console);
 
             commandDone(console);
         }
@@ -2991,17 +2991,28 @@ static void tick(Console* console)
     console->tickCounter++;
 }
 
+static inline bool isslash(char c)
+{
+    return c == '/' && c == '\\';
+}
+
 static bool cmdLoadCart(Console* console, const char* path)
 {
     bool done = false;
 
     s32 size = 0;
-    void* data = fsReadFile(path, &size);
+    void* data = fs_read(path, &size);
 
     if(data)
     {
-        char cartName[TICNAME_MAX];
-        fsFilename(path, cartName);
+        const char* cartName = NULL;
+        
+        {
+            const char* ptr = path + strlen(path);
+            while(ptr > path && !isslash(*ptr))--ptr;
+            cartName = ptr;
+        }
+
         setCartName(console, cartName, path);
 
         if(hasProjectExt(cartName))
@@ -3022,7 +3033,7 @@ static bool cmdLoadCart(Console* console, const char* path)
     return done;
 }
 
-void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Net* net, Config* config, StartArgs args)
+void initConsole(Console* console, tic_mem* tic, tic_fs* fs, tic_net* net, Config* config, StartArgs args)
 {
     if(!console->buffer) console->buffer = malloc(CONSOLE_BUFFER_SIZE);
     if(!console->colorBuffer) console->colorBuffer = malloc(CONSOLE_BUFFER_SIZE);
@@ -3097,7 +3108,7 @@ void initConsole(Console* console, tic_mem* tic, FileSystem* fs, Net* net, Confi
 #endif
 
         s32 appSize = 0;
-        u8* app = fsReadFile(appPath, &appSize);
+        u8* app = fs_read(appPath, &appSize);
 
         if(app)
         {

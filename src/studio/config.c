@@ -337,7 +337,7 @@ static void saveConfig(Config* config, bool overwrite)
     {
         s32 size = tic_cart_save(&config->cart, buffer);
 
-        fsSaveRootFile(config->fs, CONFIG_TIC_PATH, buffer, size, overwrite);
+        tic_fs_saveroot(config->fs, CONFIG_TIC_PATH, buffer, size, overwrite);
 
         free(buffer);
     }
@@ -358,7 +358,7 @@ static void save(Config* config)
     studioConfigChanged();
 }
 
-void initConfig(Config* config, tic_mem* tic, FileSystem* fs)
+void initConfig(Config* config, tic_mem* tic, tic_fs* fs)
 {
     {
         config->tic = tic;
@@ -370,7 +370,7 @@ void initConfig(Config* config, tic_mem* tic, FileSystem* fs)
     setDefault(config);
 
     s32 size = 0;
-    u8* data = (u8*)fsLoadRootFile(fs, CONFIG_TIC_PATH, &size);
+    u8* data = (u8*)tic_fs_loadroot(fs, CONFIG_TIC_PATH, &size);
 
     if(data)
     {

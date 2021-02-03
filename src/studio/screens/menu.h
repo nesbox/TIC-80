@@ -29,7 +29,7 @@ typedef struct Menu Menu;
 struct Menu
 {
     tic_mem* tic;
-    struct FileSystem* fs;
+    struct tic_fs* fs;
 
     bool init;
     s32 ticks;
@@ -64,5 +64,5 @@ struct Menu
     void (*overline)(tic_mem* tic, void* data);
 };
 
-void initMenu(Menu* menu, tic_mem* tic, struct FileSystem* fs);
+void initMenu(Menu* menu, tic_mem* tic, struct tic_fs* fs);
 void freeMenu(Menu* menu);
