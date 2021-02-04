@@ -33,10 +33,6 @@ include:
   - project: 'libretro-infrastructure/ci-templates'
     file: '/ctr-static-cmake.yml'
 
-  # Nintendo Switch
-  - project: 'libretro-infrastructure/ci-templates'
-    file: '/libnx-static.yml'
-
 # Stages for building
 stages:
   - build-prepare
@@ -102,10 +98,4 @@ android-x86:
 libretro-build-ctr:
   extends:
     - .libretro-ctr-static-cmake-retroarch-master
-    - .core-defs
-
-# Nintendo Switch
-libretro-build-libnx-aarch64:
-  extends:
-    - .libretro-libnx-static-retroarch-master
     - .core-defs
