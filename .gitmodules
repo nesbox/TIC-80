@@ -1,12 +1,15 @@
 [submodule "vendor/blip-buf"]
 	path = vendor/blip-buf
 	url = https://github.com/nesbox/blip-buf.git
+	shallow = true
 [submodule "vendor/curl"]
 	path = vendor/curl
 	url = https://github.com/curl/curl.git
+	shallow = true
 [submodule "vendor/dirent"]
 	path = vendor/dirent
 	url = https://github.com/tronkko/dirent.git
+	shallow = true
 [submodule "vendor/duktape"]
 	path = vendor/duktape
 	url = https://github.com/svaarala/duktape-releases.git
@@ -14,45 +17,60 @@
 [submodule "vendor/giflib"]
 	path = vendor/giflib
 	url = https://github.com/nesbox/giflib.git
+	shallow = true
 [submodule "vendor/lpeg"]
 	path = vendor/lpeg
 	url = https://github.com/nesbox/lpeg.git
+	shallow = true
 [submodule "vendor/lua"]
 	path = vendor/lua
 	url = https://github.com/lua/lua.git
+	shallow = true
 [submodule "vendor/sdl-gpu"]
 	path = vendor/sdl-gpu
 	url = https://github.com/grimfang4/sdl-gpu.git
+	shallow = true
 [submodule "vendor/sdl2"]
 	path = vendor/sdl2
 	url = https://github.com/SDL-mirror/SDL.git
+	shallow = true
 [submodule "vendor/sokol"]
 	path = vendor/sokol
 	url = https://github.com/floooh/sokol.git
+	shallow = true
 [submodule "vendor/squirrel"]
 	path = vendor/squirrel
 	url = https://github.com/albertodemichelis/squirrel.git
+	shallow = true
 [submodule "vendor/wren"]
 	path = vendor/wren
 	url = https://github.com/wren-lang/wren.git
+	shallow = true
 [submodule "vendor/zlib"]
 	path = vendor/zlib
 	url = https://github.com/madler/zlib.git
+	shallow = true
 [submodule "vendor/zip"]
 	path = vendor/zip
 	url = https://github.com/kuba--/zip.git
+	shallow = true
 [submodule "vendor/moonscript"]
 	path = vendor/moonscript
 	url = https://github.com/nesbox/moonscript.git
+	shallow = true
 [submodule "vendor/argparse"]
 	path = vendor/argparse
 	url = https://github.com/cofyc/argparse.git
+	shallow = true
 [submodule "vendor/circle-stdlib"]
 	path = vendor/circle-stdlib
 	url = https://github.com/smuehlst/circle-stdlib.git
+	shallow = true
 [submodule "vendor/libuv"]
 	path = vendor/libuv
 	url = https://github.com/libuv/libuv.git
+	shallow = true
 [submodule "vendor/http-parser"]
 	path = vendor/http-parser
 	url = https://github.com/nodejs/http-parser.git
+	shallow = true
