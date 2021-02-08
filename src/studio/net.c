@@ -325,22 +325,6 @@ static void n3ds_net_apply_url(net_ctx *ctx, const char *url) {
     strncat(ctx->url, url, URL_SIZE - 1);
 }
 
-static void n3ds_net_get(tic_net *net, const char *url, net_get_callback callback, void *calldata) {
-    s32 priority;
-    net_ctx *ctx;
-
-    ctx = malloc(sizeof(net_ctx));
-    memset(ctx, 0, sizeof(net_ctx));
-
-    n3ds_net_apply_url(ctx, url);
-    ctx->net = net;
-    ctx->callback = callback;
-    ctx->data.calldata = calldata;
-
-    svcGetThreadPriority(&priority, CUR_THREAD_HANDLE);
-    threadCreate((ThreadFunc) n3ds_net_get_thread, ctx, 16 * 1024, priority - 1, -1, true);
-}
-
 tic_net* tic_net_create(const char* host)
 {
     tic_net* net = (tic_net*)malloc(sizeof(tic_net));
@@ -353,7 +337,18 @@ tic_net* tic_net_create(const char* host)
 
 void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void* calldata)
 {
-    n3ds_net_get(net, url, callback, calldata);
+    net_ctx ctx = 
+    {
+        .net = net,
+        .callback = callback,
+        .data = {.calldata = calldata},
+    };
+
+    n3ds_net_apply_url(&ctx, url);
+
+    s32 priority;
+    svcGetThreadPriority(&priority, CUR_THREAD_HANDLE);
+    threadCreate((ThreadFunc) n3ds_net_get_thread, OBJCOPY(ctx), 16 * 1024, priority - 1, -1, true);
 }
 
 void tic_net_close(tic_net* net)
