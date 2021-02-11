@@ -32,7 +32,7 @@ You can download compiled versions for the major operating systems directly from
 To help support TIC-80 development, we have a [PRO Version](https://nesbox.itch.io/tic80).
 This version has a few additional features and binaries can only be downloaded on [our Itch.io page](https://nesbox.itch.io/tic80).
 
-For users who can't spend the money, we made it easy to build the pro version from the source code.
+For users who can't spend the money, we made it easy to build the pro version from the source code. (`cmake .. -DBUILD_PRO=On`)
 
 ### Pro features
 
