@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "console.h"
+#include "start.h"
 #include "studio/fs.h"
 #include "studio/net.h"
 #include "studio/config.h"
@@ -3078,9 +3079,16 @@ void initConsole(Console* console, tic_mem* tic, tic_fs* fs, tic_net* net, Confi
     memset(console->buffer, 0, CONSOLE_BUFFER_SIZE);
     memset(console->colorBuffer, TIC_COLOR_BG, CONSOLE_BUFFER_SIZE);
 
-    printFront(console, "\n " TIC_NAME_FULL "");
-    printBack(console, " " TIC_VERSION_LABEL "\n");
-    printBack(console, " " TIC_COPYRIGHT "\n");
+    {
+#define HEADER_LINE(label, color) {"\n " label, color},
+        static const struct { const char* label; u8 color; } Lines[] = { CONSOLE_HEADER(HEADER_LINE) };
+#undef HEADER_LINE
+
+        for (s32 i = 0; i < COUNT_OF(Lines); i++)
+            consolePrint(console, Lines[i].label, Lines[i].color);
+
+        printLine(console);
+    }
 
     if(args.cart)
         if(!cmdLoadCart(console, args.cart))

@@ -38,9 +38,12 @@ static void reset(Start* start)
 
 static void drawHeader(Start* start)
 {
-    tic_api_print(start->tic, TIC_NAME_FULL, STUDIO_TEXT_WIDTH, STUDIO_TEXT_HEIGHT, tic_color_white, true, 1, false);
-    tic_api_print(start->tic, TIC_VERSION_LABEL, (sizeof(TIC_NAME_FULL) + 1) * STUDIO_TEXT_WIDTH, STUDIO_TEXT_HEIGHT, tic_color_grey, true, 1, false);
-    tic_api_print(start->tic, TIC_COPYRIGHT, STUDIO_TEXT_WIDTH, STUDIO_TEXT_HEIGHT*2, tic_color_grey, true, 1, false);
+#define HEADER_LINE(label, color) {label, color},
+    static const struct { const char* label; u8 color; } Lines[] = {CONSOLE_HEADER(HEADER_LINE)};
+#undef HEADER_LINE
+
+    for (s32 i = 0; i < COUNT_OF(Lines); i++)
+        tic_api_print(start->tic, Lines[i].label, STUDIO_TEXT_WIDTH, STUDIO_TEXT_HEIGHT * (i+1), Lines[i].color, true, 1, false);
 }
 
 static void header(Start* start)

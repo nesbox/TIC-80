@@ -6,6 +6,10 @@ set(VERSION_REVISION 0)
 set(VERSION_STATUS "-dev")
 string(TIMESTAMP VERSION_YEAR "%Y")
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(VERSION_BUILD " (debug)" )
+endif()
+
 find_package(Git)
 if(Git_FOUND)
     execute_process(
