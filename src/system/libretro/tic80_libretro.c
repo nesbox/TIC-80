@@ -479,10 +479,10 @@ void tic80_libretro_update_mouse(tic80_mouse* mouse)
 
 	// Keep the mouse on the screen.
 	if (mouse->x >= TIC80_FULLWIDTH) {
-		mouse->x = TIC80_FULLWIDTH-1;
+		mouse->x = TIC80_FULLWIDTH - 1;
 	}
 	if (mouse->y >= TIC80_FULLHEIGHT) {
-		mouse->y = TIC80_FULLHEIGHT-1;
+		mouse->y = TIC80_FULLHEIGHT - 1;
 	}
 	if (mouse->x < 0) {
 		mouse->x = 0;
@@ -595,6 +595,7 @@ void tic80_libretro_update(tic80* game)
 	// Update the game state.
 	tic80_tick(game, &state->input);
 }
+
 /**
  * Draw the screen.
  */
@@ -851,6 +852,8 @@ RETRO_API void *retro_get_memory_data(unsigned id)
 		return NULL;
 	}
 
+	// TODO: Have the memory data refer to the RAM rather than persistent data.
+	// https://github.com/nesbox/TIC-80/wiki/RAM
 	tic80_local* tic80 = (tic80_local*)state->tic;
 	return &(tic80->memory->ram.persistent.data[id]);
 }
