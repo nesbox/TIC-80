@@ -2994,7 +2994,7 @@ static void tick(Console* console)
 
 static inline bool isslash(char c)
 {
-    return c == '/' && c == '\\';
+    return c == '/' || c == '\\';
 }
 
 static bool cmdLoadCart(Console* console, const char* path)
@@ -3011,7 +3011,7 @@ static bool cmdLoadCart(Console* console, const char* path)
         {
             const char* ptr = path + strlen(path);
             while(ptr > path && !isslash(*ptr))--ptr;
-            cartName = ptr;
+            cartName = ptr + isslash(*ptr);
         }
 
         setCartName(console, cartName, path);
