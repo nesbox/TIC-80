@@ -33,6 +33,10 @@ include:
   - project: 'libretro-infrastructure/ci-templates'
     file: '/ctr-static-cmake.yml'
 
+  # OpenDingux
+  - project: 'libretro-infrastructure/ci-templates'
+    file: '/dingux-cmake.yml'
+
 # Stages for building
 stages:
   - build-prepare
@@ -99,3 +103,12 @@ libretro-build-ctr:
   extends:
     - .libretro-ctr-static-cmake-retroarch-master
     - .core-defs
+
+# OpenDingux
+libretro-build-dingux-mips32:
+  extends:
+    - .libretro-dingux-cmake-mips32
+    - .core-defs
+  variables:
+    DINGUX_CFLAGS:   -fomit-frame-pointer -march=mips32 -mtune=mips32r2 -mhard-float
+    DINGUX_CXXFLAGS: -fomit-frame-pointer -march=mips32 -mtune=mips32r2 -mhard-float
