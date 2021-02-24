@@ -575,7 +575,7 @@ if (USE_CURL)
 
     set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
 
-    if(WIN32)
+    if(WIN32 AND NOT MINGW)
         set(CURL_STATIC_CRT ON CACHE BOOL "")
     endif()
 
