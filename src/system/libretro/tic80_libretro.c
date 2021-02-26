@@ -845,6 +845,8 @@ RETRO_API bool retro_unserialize(const void *data, size_t size)
 
 /**
  * libretro callback; Gets region of memory.
+ * 
+ * https://github.com/nesbox/TIC-80/wiki/ram
  */
 RETRO_API void *retro_get_memory_data(unsigned id)
 {
@@ -855,14 +857,14 @@ RETRO_API void *retro_get_memory_data(unsigned id)
 	tic80_local* tic80 = (tic80_local*)state->tic;
 	switch (id) {
 		case RETRO_MEMORY_SAVE_RAM:
-        	return tic80->memory->ram.persistent.data;
+			return tic80->memory->ram.persistent.data;
 		case RETRO_MEMORY_SYSTEM_RAM:
-        	return tic80->memory->ram.data;
-		case RETRO_MEMORY_VIDEO_RAM:
 			return tic80->memory->ram.data;
+		case RETRO_MEMORY_VIDEO_RAM:
+			return tic80->memory->ram.vram.data;
 		default:
 			return NULL;
-    }
+	}
 }
 
 /**
