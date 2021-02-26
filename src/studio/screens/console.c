@@ -600,8 +600,11 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
 
 static void setCartName(Console* console, const char* name, const char* path)
 {
-    strcpy(console->rom.name, name);
-    strcpy(console->rom.path, path);
+    if(console->rom.name != name)
+        strcpy(console->rom.name, name);
+
+    if(console->rom.path != path)
+        strcpy(console->rom.path, path);
 }
 
 static void onConsoleLoadDemoCommandConfirmed(Console* console, const char* param)
