@@ -1306,18 +1306,63 @@ static void setCodeMode(Code* code, s32 mode)
     }
 }
 
-static void commentLine(Code* code)
-{
-    const char* comment = tic_core_script_config(code->tic)->singleComment;
-    size_t size = strlen(comment);
+static int getNumberOfLines(Code* code){
+    char* pos = code->cursor.position;
+    char* sel = code->cursor.selection;
 
-    char* line = getLine(code);
+    char* start = MIN(pos, sel);
+    while(*start == '\n') start++;
+
+    char* end = MAX(pos, sel);
+    while(*end == '\n') end--;
+
+    char* iter = start;
+    size_t lines = 1;
+    while(iter <= end){
+        if(*iter == '\n'){
+            ++lines;
+        }
+        ++iter;
+    }
+    return lines;
+}
+
+static char** getLines(Code* code, int lines){
+    char* pos = code->cursor.position;
+    char* sel = code->cursor.selection;
+
+
+    char* start = MIN(pos, sel);
+    while(*start == '\n') ++start;
+
+    char* end = MAX(pos, sel);
+    while(*end == '\n') --end;
+
+    char* iter = start;
+    iter = start;
+
+    char** line_locations = malloc(sizeof(char*)*lines+1);
+    line_locations[0] = start;
+
+    for(int i = 1; i < lines; ++i){
+       while(iter <=end && *iter!='\n') ++iter;
+       line_locations[i] = ++iter;
+    }
+    return line_locations;
+}
+
+static inline bool isLineCommented(const char* comment, const char* line){
+    size_t size = strlen(comment);
+    return memcmp(line, comment, size) == 0;
+};
+
+static void addCommentToLine(Code* code, char* line, size_t size, const char* comment){
 
     const char* end = line + getLineSize(line);
 
     while((*line == ' ' || *line == '\t') && line < end) line++;
 
-    if(memcmp(line, comment, size))
+    if(!isLineCommented(comment, line))
     {
         if (strlen(code->src) + size >= sizeof(tic_code))
             return;
@@ -1335,13 +1380,47 @@ static void commentLine(Code* code)
             code->cursor.position -= size;
     }
 
-    code->cursor.selection = NULL;  
+    code->cursor.selection = NULL;
 
     history(code);
 
     parseSyntaxColor(code);
 }
 
+static void commentLine(Code* code)
+{
+    const char* comment = tic_core_script_config(code->tic)->singleComment;
+    size_t size = strlen(comment);
+
+    if(code->cursor.selection){
+        int selectionLines = getNumberOfLines(code);
+        char** lines = getLines(code, selectionLines);
+
+        int comment_cursor = 0;
+
+        for (int i = 0; i<selectionLines; ++i){
+
+            char* first = lines[i];
+            while(*first == ' ' || *first == '\t') ++first;
+            bool lineIsComment = isLineCommented(comment, first);
+
+            if(i < selectionLines - 1) {
+                if(*first != '\n' && lineIsComment) --comment_cursor;
+                else if (*first !='\n') ++comment_cursor;
+
+                lines[i + 1] += (size * comment_cursor);
+            }
+
+            if(*first !='\n') {
+            addCommentToLine(code, lines[i], size, comment);
+            }
+        }
+
+        free(lines);
+
+    }
+    else addCommentToLine(code, getLine(code), size, comment);
+}
 static bool goPrevBookmark(Code* code, char* ptr)
 {
     const CodeState* state = getState(code, ptr);
