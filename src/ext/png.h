@@ -1,6 +1,6 @@
 // MIT License
 
-// Copyright (c) 2017 Vadim Grigoruk @nesbox // grigoruk@gmail.com
+// Copyright (c) 2021 Vadim Grigoruk @nesbox // grigoruk@gmail.com
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -22,18 +22,23 @@
 
 #pragma once
 
-#define COUNT_OF(x) ((sizeof(x)/sizeof(0[x])) / ((size_t)(!(sizeof(x) % sizeof(0[x])))))
-#define STATIC_ASSERT(name, condition) typedef char static_assert_dummy_ ## name[(condition) ? 1 : -1]
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
-#define CLAMP(v,a,b) (MIN(MAX(v,a),b))
-#define SWAP(a, b, type) do { type temp = a; a = b; b = temp; } while (0)
-#define ZEROMEM(p) memset(&p, 0, sizeof p)
-#define OBJCOPY(...) memcpy(malloc(sizeof __VA_ARGS__), &__VA_ARGS__, sizeof __VA_ARGS__)
-#define DEF2STR2(x) #x
-#define DEF2STR(x) DEF2STR2(x)
+#include <tic80_types.h>
 
-#define BIT_SET(a,b)    ((a) |= (1ULL<<(b)))
-#define BIT_CLEAR(a,b)  ((a) &= ~(1ULL<<(b)))
-#define BIT_FLIP(a,b)   ((a) ^= (1ULL<<(b)))
-#define BIT_CHECK(a,b)  (!!((a) & (1ULL<<(b))))
+typedef struct
+{
+    u8* data;
+    u32 size;
+} png_buffer;
+
+typedef struct
+{
+    s32 width;
+    s32 height;
+    u8* data;
+} png_img;
+
+png_img png_read(png_buffer buf);
+png_buffer png_write(png_img src);
+
+png_buffer png_encode(png_buffer cover, png_buffer cart);
+png_buffer png_decode(png_buffer cover);

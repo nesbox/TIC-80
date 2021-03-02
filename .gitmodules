@@ -74,3 +74,7 @@
 	path = vendor/http-parser
 	url = https://github.com/nodejs/http-parser.git
 	shallow = true
+[submodule "vendor/libpng"]
+	path = vendor/libpng
+	url = https://github.com/glennrp/libpng.git
+	shallow = true

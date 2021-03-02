@@ -1451,7 +1451,7 @@ static void stopVideoRecord(const char* name)
         {
             s32 size = 0;
             u8* data = malloc(FRAME_SIZE * impl.video.frame);
-            int i = 0;
+            s32 i = 0;
             char filename[TICNAME_MAX];
 
             gif_write_animation(data, &size, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, (const u8*)impl.video.buffer, impl.video.frame, TIC80_FRAMERATE, getConfig()->gifScale);
@@ -1860,7 +1860,7 @@ static void initKeymap()
 
 static void processMouseStates()
 {
-    for(int i = 0; i < COUNT_OF(impl.mouse.state); i++)
+    for(s32 i = 0; i < COUNT_OF(impl.mouse.state); i++)
         impl.mouse.state[i].click = false;
 
     tic_mem* tic = impl.studio.tic;
@@ -1868,7 +1868,7 @@ static void processMouseStates()
     tic->ram.vram.vars.cursor.sprite = tic_cursor_arrow;
     tic->ram.vram.vars.cursor.system = true;
 
-    for(int i = 0; i < COUNT_OF(impl.mouse.state); i++)
+    for(s32 i = 0; i < COUNT_OF(impl.mouse.state); i++)
     {
         MouseState* state = &impl.mouse.state[i];
 
