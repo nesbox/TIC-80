@@ -42,6 +42,7 @@ static bool loaded = false;
 
 static char const* tic_wren_api = "\n\
 class TIC {\n\
+    foreign static btn()\n\
     foreign static btn(id)\n\
     foreign static btnp(id)\n\
     foreign static btnp(id, hold, period)\n\
@@ -263,7 +264,7 @@ static void wren_btn(WrenVM* vm)
 
     if (top == 1)
     {
-        wrenSetSlotBool(vm, 0, core->memory.ram.input.gamepads.data);
+        wrenSetSlotDouble(vm, 0, core->memory.ram.input.gamepads.data);
     }
     else if (top == 2)
     {
@@ -1214,6 +1215,7 @@ static void wren_fset(WrenVM* vm)
 
 static WrenForeignMethodFn foreignTicMethods(const char* signature)
 {
+    if (strcmp(signature, "static TIC.btn()"                    ) == 0) return wren_btn;
     if (strcmp(signature, "static TIC.btn(_)"                   ) == 0) return wren_btn;
     if (strcmp(signature, "static TIC.btnp(_)"                  ) == 0) return wren_btnp;
     if (strcmp(signature, "static TIC.btnp(_,_,_)"              ) == 0) return wren_btnp;
