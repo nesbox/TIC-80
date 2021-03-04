@@ -11,6 +11,9 @@
 #include "libretro_core_options_intl.h"
 #endif
 
+/* The maximum amount of inputs (2, 3 or 4) */
+#define TIC_MAXPLAYERS 4
+
 /*
  ********************************
  * VERSION: 1.3
@@ -50,15 +53,55 @@ extern "C" {
 
 struct retro_core_option_definition option_defs_us[] = {
    {
-      "tic80_mouse_pointer",
-      "Touch Interface for Mouse",
-      "When enabled, will use the Pointer/Touch API for mouse input.",
+      "tic80_pointer_device",
+      "Pointer Device",
+      "Select physical device to use for emulated mouse input.",
       {
-         { "disabled", NULL },
-         { "enabled",  NULL },
+         { "mouse",        "Mouse" },
+         { "touchscreen",  "Touchscreen (Pointer API)" },
+#if TIC_MAXPLAYERS >= 1
+         { "left_analog",  "Left Analog" },
+         { "right_analog", "Right Analog" },
+         { "dpad",         "D-Pad" },
+#endif
          { NULL, NULL },
       },
-      "disabled"
+      "mouse"
+   },
+   {
+      "tic80_pointer_speed",
+      "Pointer Speed",
+      "The movement speed of emulated mouse input. (Ignored when 'Pointer Device' is 'Touchscreen')",
+      {
+         { "50",  "50%" },
+         { "60",  "60%" },
+         { "70",  "70%" },
+         { "80",  "80%" },
+         { "90",  "90%" },
+         { "100", "100%" },
+         { "110", "110%" },
+         { "120", "120%" },
+         { "130", "130%" },
+         { "140", "140%" },
+         { "150", "150%" },
+         { "160", "160%" },
+         { "170", "170%" },
+         { "180", "180%" },
+         { "190", "190%" },
+         { "200", "200%" },
+         { "210", "210%" },
+         { "220", "220%" },
+         { "230", "230%" },
+         { "240", "240%" },
+         { "250", "250%" },
+         { "260", "260%" },
+         { "270", "270%" },
+         { "280", "280%" },
+         { "290", "290%" },
+         { "300", "300%" },
+         { NULL, NULL },
+      },
+      "100"
    },
    {
       "tic80_mouse_cursor",
@@ -71,7 +114,32 @@ struct retro_core_option_definition option_defs_us[] = {
          { "arrow",    "Arrow" },
          { NULL, NULL },
       },
-      0
+      "disabled"
+   },
+   {
+      "tic80_mouse_cursor_color",
+      "Mouse Cursor Color",
+      "Color index of the software-rendered mouse cursor. Actual on-screen color will depend upon the palette of the currently loaded content",
+      {
+         { "0",  NULL },
+         { "1",  NULL },
+         { "2",  NULL },
+         { "3",  NULL },
+         { "4",  NULL },
+         { "5",  NULL },
+         { "6",  NULL },
+         { "7",  NULL },
+         { "8",  NULL },
+         { "9",  NULL },
+         { "10", NULL },
+         { "11", NULL },
+         { "12", NULL },
+         { "13", NULL },
+         { "14", NULL },
+         { "15", NULL },
+         { NULL, NULL },
+      },
+      "15"
    },
    {
       "tic80_mouse_hide_delay",
@@ -92,6 +160,26 @@ struct retro_core_option_definition option_defs_us[] = {
          { NULL, NULL },
       },
       "5"
+   },
+   {
+      "tic80_analog_deadzone",
+      "Gamepad Analog Deadzone",
+      "Deadzone of the RetroPad analog sticks when used for emulated mouse input. Can eliminate drift/unwanted input.",
+      {
+         { "0",  "0%" },
+         { "3",  "3%" },
+         { "6",  "6%" },
+         { "9",  "9%" },
+         { "12", "12%" },
+         { "15", "15%" },
+         { "18", "18%" },
+         { "21", "21%" },
+         { "24", "24%" },
+         { "27", "37%" },
+         { "30", "30%" },
+         { NULL, NULL },
+      },
+      "15"
    },
    { NULL, NULL, NULL, {{0}}, NULL },
 };

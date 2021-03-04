@@ -6,6 +6,7 @@
 #include <math.h>
 #include "tic.h"
 #include "libretro-common/include/libretro.h"
+#include "libretro-common/include/retro_inline.h"
 #include "libretro_core_options.h"
 #include "api.h"
 
@@ -18,9 +19,6 @@
  */
 #include "studio/system.h"
 
-// The maximum amount of inputs (2, 3 or 4)
-#define TIC_MAXPLAYERS 4
-
 static struct retro_log_callback logging;
 static retro_log_printf_t log_cb;
 static retro_video_refresh_t video_cb;
@@ -29,15 +27,48 @@ static retro_audio_sample_batch_t audio_batch_cb;
 static retro_environment_t environ_cb;
 static retro_input_poll_t input_poll_cb;
 static retro_input_state_t input_state_cb;
+
+#define RETRO_ANALOG_RANGE 0x8000
+#define RETRO_BASE_POINTER_SPEED_PHYSICAL 0.4f
+#define RETRO_BASE_POINTER_SPEED_ANALOG 4.3f
+#define RETRO_BASE_POINTER_SPEED_DPAD 1.6f
+#define RETRO_SLOW_MOUSE_FACTOR_ANALOG 0.3f
+#define RETRO_SLOW_MOUSE_FACTOR_DPAD 0.4f
+
+enum pointer_device_type
+{
+	POINTER_DEVICE_MOUSE = 0,
+	POINTER_DEVICE_TOUCHSCREEN,
+	POINTER_DEVICE_LEFT_ANALOG,
+	POINTER_DEVICE_RIGHT_ANALOG,
+	POINTER_DEVICE_DPAD
+};
+
+enum mouse_cursor_type
+{
+	MOUSE_CURSOR_NONE = 0,
+	MOUSE_CURSOR_DOT,
+	MOUSE_CURSOR_CROSS,
+	MOUSE_CURSOR_ARROW
+};
+
 struct tic80_state
 {
 	bool quit;
 	tic80_input input;
 	int keymap[RETROK_LAST];
-	bool variablePointerApi;
-	u8 mouseCursor;
+	enum pointer_device_type pointerDevice;
+	float pointerSpeed;
+	bool slowGamepadMouse;
+	enum mouse_cursor_type mouseCursor;
+	u8 mouseCursorColor;
+	int analogDeadzone;
+	u16 mouseX;
+	u16 mouseY;
 	u16 mousePreviousX;
 	u16 mousePreviousY;
+	float mouseXAccumulator;
+	float mouseYAccumulator;
 	int mouseHideTimer;
 	int mouseHideTimerStart;
 	tic80* tic;
@@ -108,10 +139,18 @@ RETRO_API void retro_init(void)
 	// Initialize the base state.
 	state = (struct tic80_state*) malloc(sizeof(struct tic80_state));
 	state->quit = false;
-	state->variablePointerApi = false;
-	state->mouseCursor = 0;
+	state->pointerDevice = POINTER_DEVICE_MOUSE;
+	state->pointerSpeed = 1.0f;
+	state->slowGamepadMouse = false;
+	state->mouseCursor = MOUSE_CURSOR_NONE;
+	state->mouseCursorColor = 15;
+	state->analogDeadzone = (int)(0.15f * (float)RETRO_ANALOG_RANGE);
+	state->mouseX = 0;
+	state->mouseY = 0;
 	state->mousePreviousX = 0;
 	state->mousePreviousY = 0;
+	state->mouseXAccumulator = 0.0f;
+	state->mouseYAccumulator = 0.0f;
 	state->mouseHideTimer = state->mouseHideTimerStart;
 
 	// Initialize the keyboard mappings.
@@ -370,6 +409,9 @@ void tic80_libretro_input_descriptors()
 		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A, "B" },
 		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X, "Y" },
 		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y, "X" },
+		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L, "Slow Mouse" },
+		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2, "Mouse Right Click" },
+		{ 0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2, "Mouse Left Click" },
 #endif
 
 #if TIC_MAXPLAYERS >= 2
@@ -419,19 +461,28 @@ void tic80_libretro_input_descriptors()
  *
  * @see tic80_libretro_update()
  */
-void tic80_libretro_update_gamepad(tic80_gamepad* gamepad, int player)
+void tic80_libretro_update_gamepad(tic80_gamepad* gamepad, tic80_mouse* mouse, int player, bool dpad)
 {
 	// D-Pad
-	gamepad->up = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP);
-	gamepad->down = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN);
-	gamepad->left = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT);
-	gamepad->right = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT);
+	if (dpad) {
+		gamepad->up = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP);
+		gamepad->down = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_DOWN);
+		gamepad->left = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT);
+		gamepad->right = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT);
+	}
 
 	// A/B and X/Y are switched in TIC-80
 	gamepad->a = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_B);
 	gamepad->b = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_A);
 	gamepad->x = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_Y);
 	gamepad->y = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_X);
+
+	// Port 1 shoulder buttons mapped to mouse left/right click/slow mouse
+	if (mouse && (player == 0)) {
+		mouse->left = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_R2);
+		mouse->right = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L2);
+		state->slowGamepadMouse = input_state_cb(player, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_L);
+	}
 }
 
 /**
@@ -440,69 +491,23 @@ void tic80_libretro_update_gamepad(tic80_gamepad* gamepad, int player)
  * @see tic80_libretro_update_mouse()
  * @see RETRO_DEVICE_POINTER
  */
-int tic80_libretro_mouse_pointer_convert(float coord, float full)
+int tic80_libretro_mouse_pointer_convert(float coord, float full, float margin)
 {
-	float max = 0x7fff;
-	return (int)((coord + max) / (max * 2.0f) * full);
-}
-
-/**
- * Retrieve gamepad information from libretro.
- */
-void tic80_libretro_update_mouse(tic80_mouse* mouse)
-{
-	// Check if we are to use the Mouse API or Pointer API.
-	if (!state->variablePointerApi) {
-		// Get the Mouse X and Y, which is the relative positioning from last tick.
-		mouse->x += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_X);
-		mouse->y += input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_Y);
-
-		// Mouse buttons.
-		mouse->left = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT);
-		mouse->right = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT);
-		mouse->middle = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE);
-	}
-	else {
-		// Get the Pointer X and Y, and convert it to screen position.
-		mouse->x = tic80_libretro_mouse_pointer_convert(
-			input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X),
-			TIC80_FULLWIDTH);
-		mouse->y = tic80_libretro_mouse_pointer_convert(
-			input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_Y),
-			TIC80_FULLHEIGHT);
-
-		// Pointer pressed is considered mouse left button.
-		mouse->left = input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_PRESSED);
-		mouse->right = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT);
-		mouse->middle = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE);
-	}
+	float max         = (float)0x7fff;
+	float screenCoord = (((coord + max) / (max * 2.0f) ) * full) - margin;
 
 	// Keep the mouse on the screen.
-	if (mouse->x >= TIC80_FULLWIDTH) {
-		mouse->x = TIC80_FULLWIDTH - 1;
-	}
-	if (mouse->y >= TIC80_FULLHEIGHT) {
-		mouse->y = TIC80_FULLHEIGHT - 1;
-	}
-	if (mouse->x < 0) {
-		mouse->x = 0;
-	}
-	if (mouse->y < 0) {
-		mouse->y = 0;
+	if (margin > 0.0f) {
+		float limit = full - (margin * 2.0f) - 1.0f;
+		screenCoord = (screenCoord < 0.0f)  ? 0.0f  : screenCoord;
+		screenCoord = (screenCoord > limit) ? limit : screenCoord;
 	}
 
-	// Have the mouse disappear after a certain time of inactivity.
-	if (mouse->x != state->mousePreviousX || mouse->y != state->mousePreviousY) {
-		state->mouseHideTimer = state->mouseHideTimerStart;
-		state->mousePreviousX = mouse->x;
-		state->mousePreviousY = mouse->y;
-	}
-	if (state->mouseHideTimer > 0) {
-		state->mouseHideTimer--;
-	}
+	return (int)(screenCoord + 0.5f);
+}
 
-	// Mouse Scroll Wheels
-	mouse->scrollx = mouse->scrolly = 0;
+static void tic80_libretro_update_mouse_wheels(tic80_mouse* mouse)
+{
 	if (input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_HORIZ_WHEELUP) > 0) {
 		mouse->scrollx = 1;
 	} else if (input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_HORIZ_WHEELDOWN) > 0) {
@@ -515,10 +520,187 @@ void tic80_libretro_update_mouse(tic80_mouse* mouse)
 	}
 }
 
+static INLINE float tic80_libretro_get_mouse_delta_physical(unsigned axis)
+{
+	int delta = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, axis);
+	return (float)delta * RETRO_BASE_POINTER_SPEED_PHYSICAL * state->pointerSpeed;
+}
+
+static INLINE float tic80_libretro_get_mouse_delta_analog(unsigned index, unsigned axis)
+{
+	int delta = input_state_cb(0, RETRO_DEVICE_ANALOG, index, axis);
+	float delta_amp = 0.0f;
+
+	if ((delta < -state->analogDeadzone) || (delta > state->analogDeadzone)) {
+		delta_amp = (float)((delta > state->analogDeadzone) ?
+				(delta - state->analogDeadzone) :
+						(delta + state->analogDeadzone)) /
+								(float)(RETRO_ANALOG_RANGE - state->analogDeadzone);
+
+		delta_amp *= RETRO_BASE_POINTER_SPEED_ANALOG * state->pointerSpeed *
+				(state->slowGamepadMouse ? RETRO_SLOW_MOUSE_FACTOR_ANALOG : 1.0f);
+	}
+
+	return delta_amp;
+}
+
+static INLINE float tic80_libretro_get_mouse_delta_dpad(unsigned axisPlus, unsigned axisMinus)
+{
+	float delta_amp = 0.0f;
+
+	if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, axisPlus) > 0) {
+		delta_amp = RETRO_BASE_POINTER_SPEED_DPAD * state->pointerSpeed *
+				(state->slowGamepadMouse ? RETRO_SLOW_MOUSE_FACTOR_DPAD : 1.0f);
+	} else if (input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, axisMinus) > 0) {
+		delta_amp = -1.0 * RETRO_BASE_POINTER_SPEED_DPAD * state->pointerSpeed *
+				(state->slowGamepadMouse ? RETRO_SLOW_MOUSE_FACTOR_DPAD : 1.0f);
+	}
+
+	return delta_amp;
+}
+
+/**
+ * Retrieve mouse information from libretro.
+ */
+void tic80_libretro_update_mouse(tic80_mouse* mouse)
+{
+	mouse->scrollx = 0;
+	mouse->scrolly = 0;
+	mouse->middle  = 0;
+
+	// Check which device type to poll
+	if (state->pointerDevice == POINTER_DEVICE_TOUCHSCREEN) {
+		// Get the Pointer X and Y, and convert it to screen position
+		state->mouseX = tic80_libretro_mouse_pointer_convert(
+				input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X),
+				TIC80_FULLWIDTH, TIC80_OFFSET_LEFT);
+		state->mouseY = tic80_libretro_mouse_pointer_convert(
+				input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_Y),
+				TIC80_FULLHEIGHT, TIC80_OFFSET_TOP);
+
+		// Pointer pressed is considered mouse left button
+		mouse->left = input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_PRESSED);
+		// Touchscreens do not have right or middle buttons,
+		// but on Unix at least, the mouse registers as a
+		// touchscreen (pointer API) device - so might as
+		// well poll the additional mouse buttons
+		mouse->right = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT);
+		mouse->middle = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE);
+		tic80_libretro_update_mouse_wheels(mouse);
+	} else {
+		// All other input devices use relative positioning
+		float mouseDeltaX = 0;
+		float mouseDeltaY = 0;
+		int mouseDeltaXInt = 0;
+		int mouseDeltaYInt = 0;
+
+		switch (state->pointerDevice) {
+			case POINTER_DEVICE_MOUSE:
+				// Get Mouse X and Y offsets
+				mouseDeltaX = tic80_libretro_get_mouse_delta_physical(RETRO_DEVICE_ID_MOUSE_X);
+				mouseDeltaY = tic80_libretro_get_mouse_delta_physical(RETRO_DEVICE_ID_MOUSE_Y);
+
+				// Mouse buttons
+				mouse->left = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_LEFT);
+				mouse->right = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_RIGHT);
+				mouse->middle = input_state_cb(0, RETRO_DEVICE_MOUSE, 0, RETRO_DEVICE_ID_MOUSE_MIDDLE);
+				tic80_libretro_update_mouse_wheels(mouse);
+			break;
+#if TIC_MAXPLAYERS >= 1
+			case POINTER_DEVICE_LEFT_ANALOG:
+				// Get Mouse X and Y offsets
+				mouseDeltaX = tic80_libretro_get_mouse_delta_analog(RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
+				mouseDeltaY = tic80_libretro_get_mouse_delta_analog(RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_Y);
+			break;
+			case POINTER_DEVICE_RIGHT_ANALOG:
+				// Get Mouse X and Y offsets
+				mouseDeltaX = tic80_libretro_get_mouse_delta_analog(RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_X);
+				mouseDeltaY = tic80_libretro_get_mouse_delta_analog(RETRO_DEVICE_INDEX_ANALOG_RIGHT, RETRO_DEVICE_ID_ANALOG_Y);
+			break;
+			case POINTER_DEVICE_DPAD:
+				// Get Mouse X and Y offsets
+				mouseDeltaX = tic80_libretro_get_mouse_delta_dpad(RETRO_DEVICE_ID_JOYPAD_RIGHT, RETRO_DEVICE_ID_JOYPAD_LEFT);
+				mouseDeltaY = tic80_libretro_get_mouse_delta_dpad(RETRO_DEVICE_ID_JOYPAD_DOWN, RETRO_DEVICE_ID_JOYPAD_UP);
+			break;
+#endif
+		}
+
+		// Determine mouse x/y positions
+		if (mouseDeltaX < 0) {
+			// Reset accumulator when changing direction,
+			// otherwise apply delta
+			state->mouseXAccumulator = (state->mouseXAccumulator > 0.0f) ?
+					mouseDeltaX : state->mouseXAccumulator + mouseDeltaX;
+			// Get integer component of accumulator
+			mouseDeltaXInt = (int)state->mouseXAccumulator;
+			// Update x position
+			mouseDeltaXInt *= -1;
+			state->mouseX = (state->mouseX > mouseDeltaXInt) ?
+					(state->mouseX - mouseDeltaXInt) : 0;
+			// Update accumulator
+			state->mouseXAccumulator += (float)mouseDeltaXInt;
+		} else {
+			// Reset accumulator when changing direction,
+			// otherwise apply delta
+			state->mouseXAccumulator = (state->mouseXAccumulator < 0.0f) ?
+					mouseDeltaX : state->mouseXAccumulator + mouseDeltaX;
+			// Get integer component of accumulator
+			mouseDeltaXInt = (int)state->mouseXAccumulator;
+			// Update x position
+			state->mouseX = (state->mouseX + mouseDeltaXInt < TIC80_WIDTH) ?
+					(state->mouseX + mouseDeltaXInt) : (TIC80_WIDTH - 1);
+			// Update accumulator
+			state->mouseXAccumulator -= (float)mouseDeltaXInt;
+		}
+
+		if (mouseDeltaY < 0) {
+			// Reset accumulator when changing direction,
+			// otherwise apply delta
+			state->mouseYAccumulator = (state->mouseYAccumulator > 0.0f) ?
+					mouseDeltaY : state->mouseYAccumulator + mouseDeltaY;
+			// Get integer component of accumulator
+			mouseDeltaYInt = (int)state->mouseYAccumulator;
+			// Update y position
+			mouseDeltaYInt *= -1;
+			state->mouseY = (state->mouseY > mouseDeltaYInt) ?
+					(state->mouseY - mouseDeltaYInt) : 0;
+			// Update accumulator
+			state->mouseYAccumulator += (float)mouseDeltaYInt;
+		} else {
+			// Reset accumulator when changing direction,
+			// otherwise apply delta
+			state->mouseYAccumulator = (state->mouseYAccumulator < 0.0f) ?
+					mouseDeltaY : state->mouseYAccumulator + mouseDeltaY;
+			// Get integer component of accumulator
+			mouseDeltaYInt = (int)state->mouseYAccumulator;
+			// Update y position
+			state->mouseY = (state->mouseY + mouseDeltaYInt < TIC80_HEIGHT) ?
+					(state->mouseY + mouseDeltaYInt) : (TIC80_HEIGHT - 1);
+			// Update accumulator
+			state->mouseYAccumulator -= (float)mouseDeltaYInt;
+		}
+	}
+
+	// Have the mouse disappear after a certain time of inactivity.
+	if (state->mouseX != state->mousePreviousX || state->mouseY != state->mousePreviousY) {
+		state->mouseHideTimer = state->mouseHideTimerStart;
+		state->mousePreviousX = state->mouseX;
+		state->mousePreviousY = state->mouseY;
+	}
+	if (state->mouseHideTimer > 0) {
+		state->mouseHideTimer--;
+	}
+
+	// TIC-80 internally offsets the mouse x/y coordinates,
+	// so have to adjust libretro values...
+	mouse->x = state->mouseX + TIC80_OFFSET_LEFT;
+	mouse->y = state->mouseY + TIC80_OFFSET_TOP;
+}
+
 /**
  * Draws a software cursor on the screen where the mouse is.
  */
-void tic80_libretro_mousecursor(tic80_local* game, tic80_mouse* mouse, int cursortype)
+void tic80_libretro_mousecursor(tic80_local* game, tic80_mouse* mouse, enum mouse_cursor_type cursortype)
 {
 	// Only draw the mouse cursor if it's active.
 	if (state->mouseHideTimer == 0) {
@@ -527,18 +709,18 @@ void tic80_libretro_mousecursor(tic80_local* game, tic80_mouse* mouse, int curso
 
 	// Determine which cursor to draw.
 	switch (cursortype) {
-		case 1: // Dot
-			tic_api_pix(game->memory, mouse->x, mouse->y, 15, false);
+		case MOUSE_CURSOR_DOT:
+			tic_api_pix(game->memory, state->mouseX, state->mouseY, state->mouseCursorColor, false);
 		break;
-		case 2: // Cursor
-			tic_api_line(game->memory, mouse->x - 4, mouse->y, mouse->x - 2, mouse->y, 15);
-			tic_api_line(game->memory, mouse->x + 2, mouse->y, mouse->x + 4, mouse->y, 15);
-			tic_api_line(game->memory, mouse->x, mouse->y - 4, mouse->x, mouse->y - 2, 15);
-			tic_api_line(game->memory, mouse->x, mouse->y + 2, mouse->x, mouse->y + 4, 15);
+		case MOUSE_CURSOR_CROSS:
+			tic_api_line(game->memory, state->mouseX - 4, state->mouseY, state->mouseX - 2, state->mouseY, state->mouseCursorColor);
+			tic_api_line(game->memory, state->mouseX + 2, state->mouseY, state->mouseX + 4, state->mouseY, state->mouseCursorColor);
+			tic_api_line(game->memory, state->mouseX, state->mouseY - 4, state->mouseX, state->mouseY - 2, state->mouseCursorColor);
+			tic_api_line(game->memory, state->mouseX, state->mouseY + 2, state->mouseX, state->mouseY + 4, state->mouseCursorColor);
 		break;
-		case 3: // Arrow
-			tic_api_tri(game->memory, mouse->x, mouse->y, mouse->x + 3, mouse->y, mouse->x, mouse->y + 3, 15);
-			tic_api_line(game->memory, mouse->x + 3, mouse->y, mouse->x, mouse->y + 3, 0);
+		case MOUSE_CURSOR_ARROW:
+			tic_api_tri(game->memory, state->mouseX, state->mouseY, state->mouseX + 3, state->mouseY, state->mouseX, state->mouseY + 3, state->mouseCursorColor);
+			tic_api_line(game->memory, state->mouseX + 3, state->mouseY, state->mouseX, state->mouseY + 3, tic_color_black);
 		break;
 	}
 }
@@ -571,19 +753,20 @@ void tic80_libretro_update(tic80* game)
 
 	// Gamepads
 #if TIC_MAXPLAYERS >= 1
-	tic80_libretro_update_gamepad(&state->input.gamepads.first, 0);
+	tic80_libretro_update_gamepad(&state->input.gamepads.first,
+			&state->input.mouse, 0, state->pointerDevice != POINTER_DEVICE_DPAD);
 #endif
 
 #if TIC_MAXPLAYERS >= 2
-	tic80_libretro_update_gamepad(&state->input.gamepads.second, 1);
+	tic80_libretro_update_gamepad(&state->input.gamepads.second, NULL, 1, true);
 #endif
 
 #if TIC_MAXPLAYERS >= 3
-	tic80_libretro_update_gamepad(&state->input.gamepads.third, 2);
+	tic80_libretro_update_gamepad(&state->input.gamepads.third, NULL, 2, true);
 #endif
 
 #if TIC_MAXPLAYERS >= 4
-	tic80_libretro_update_gamepad(&state->input.gamepads.fourth, 3);
+	tic80_libretro_update_gamepad(&state->input.gamepads.fourth, NULL, 3, true);
 #endif
 
 	// Mouse
@@ -629,28 +812,57 @@ void tic80_libretro_variables(void)
 	// Check all the individual variables for the core.
 	struct retro_variable var;
 
-	// Mouse is Pointer device.
-	state->variablePointerApi = false;
-	var.key = "tic80_mouse_pointer";
+	// Pointer device
+	state->pointerDevice = POINTER_DEVICE_MOUSE;
+	var.key = "tic80_pointer_device";
 	var.value = NULL;
 	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
-		state->variablePointerApi = strcmp(var.value, "enabled") == 0;
+		if (strcmp(var.value, "touchscreen") == 0) {
+			state->pointerDevice = POINTER_DEVICE_TOUCHSCREEN;
+		}
+#if TIC_MAXPLAYERS >= 1
+		else if (strcmp(var.value, "left_analog") == 0) {
+			state->pointerDevice = POINTER_DEVICE_LEFT_ANALOG;
+		}
+		else if (strcmp(var.value, "right_analog") == 0) {
+			state->pointerDevice = POINTER_DEVICE_RIGHT_ANALOG;
+		}
+		else if (strcmp(var.value, "dpad") == 0) {
+			state->pointerDevice = POINTER_DEVICE_DPAD;
+		}
+#endif
+	}
+
+	// Pointer Speed
+	state->pointerSpeed = 1.0f;
+	var.key = "tic80_pointer_speed";
+	var.value = NULL;
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
+		state->pointerSpeed = (float)atoi(var.value) * 0.01f;
 	}
 
 	// Mouse Cursor
-	state->mouseCursor = 0;
+	state->mouseCursor = MOUSE_CURSOR_NONE;
 	var.key = "tic80_mouse_cursor";
 	var.value = NULL;
 	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
 		if (strcmp(var.value, "dot") == 0) {
-			state->mouseCursor = 1;
+			state->mouseCursor = MOUSE_CURSOR_DOT;
 		}
 		else if (strcmp(var.value, "cross") == 0) {
-			state->mouseCursor = 2;
+			state->mouseCursor = MOUSE_CURSOR_CROSS;
 		}
 		else if (strcmp(var.value, "arrow") == 0) {
-			state->mouseCursor = 3;
+			state->mouseCursor = MOUSE_CURSOR_ARROW;
 		}
+	}
+
+	// Mouse Cursor Color
+	state->mouseCursorColor = 15;
+	var.key = "tic80_mouse_cursor_color";
+	var.value = NULL;
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
+		state->mouseCursorColor = (u8)atoi(var.value);
 	}
 
 	// Mouse Hide Delay
@@ -665,6 +877,14 @@ void tic80_libretro_variables(void)
 		else {
 			state->mouseHideTimerStart = -1;
 		}
+	}
+
+	// Gamepad Analog Deadzone
+	state->analogDeadzone = (int)(0.15f * (float)RETRO_ANALOG_RANGE);
+	var.key = "tic80_analog_deadzone";
+	var.value = NULL;
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
+		state->analogDeadzone = (int)((float)atoi(var.value) * 0.01f * (float)RETRO_ANALOG_RANGE);
 	}
 }
 
