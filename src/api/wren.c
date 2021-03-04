@@ -268,7 +268,7 @@ static void wren_btn(WrenVM* vm)
     }
     else if (top == 2)
     {
-        s32 index = getWrenNumber(vm, 1) & 0xf;
+        s32 index = getWrenNumber(vm, 1) & 0x1f;
         wrenSetSlotBool(vm, 0, core->memory.ram.input.gamepads.data & (1 << index));
     }
     
