@@ -57,6 +57,7 @@ struct tic80_state
 	bool quit;
 	tic80_input input;
 	int keymap[RETROK_LAST];
+	bool cropBorder;
 	enum pointer_device_type pointerDevice;
 	float pointerSpeed;
 	bool slowGamepadMouse;
@@ -139,6 +140,7 @@ RETRO_API void retro_init(void)
 	// Initialize the base state.
 	state = (struct tic80_state*) malloc(sizeof(struct tic80_state));
 	state->quit = false;
+	state->cropBorder = false;
 	state->pointerDevice = POINTER_DEVICE_MOUSE;
 	state->pointerSpeed = 1.0f;
 	state->slowGamepadMouse = false;
@@ -310,6 +312,12 @@ RETRO_API void retro_get_system_av_info(struct retro_system_av_info *info)
 		.max_height   = TIC80_FULLHEIGHT,
 		.aspect_ratio = (float)TIC80_FULLWIDTH / (float)TIC80_FULLHEIGHT,
 	};
+
+	if (state->cropBorder) {
+		info->geometry.base_width   = TIC80_WIDTH;
+		info->geometry.base_height  = TIC80_HEIGHT;
+		info->geometry.aspect_ratio = (float)TIC80_WIDTH / (float)TIC80_HEIGHT;
+	}
 }
 
 /**
@@ -570,13 +578,24 @@ void tic80_libretro_update_mouse(tic80_mouse* mouse)
 
 	// Check which device type to poll
 	if (state->pointerDevice == POINTER_DEVICE_TOUCHSCREEN) {
+		float screenWidth    = (float)TIC80_FULLWIDTH;
+		float screenHeight   = (float)TIC80_FULLHEIGHT;
+		float screenMarginX  = (float)TIC80_OFFSET_LEFT;
+		float screenMarginY  = (float)TIC80_OFFSET_TOP;
+		if (state->cropBorder) {
+			screenWidth       = (float)TIC80_WIDTH;
+			screenHeight      = (float)TIC80_HEIGHT;
+			screenMarginX     = 0.0f;
+			screenMarginY     = 0.0f;
+		}
+
 		// Get the Pointer X and Y, and convert it to screen position
 		state->mouseX = tic80_libretro_mouse_pointer_convert(
 				input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_X),
-				TIC80_FULLWIDTH, TIC80_OFFSET_LEFT);
+				screenWidth, screenMarginX);
 		state->mouseY = tic80_libretro_mouse_pointer_convert(
 				input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_Y),
-				TIC80_FULLHEIGHT, TIC80_OFFSET_TOP);
+				screenHeight, screenMarginY);
 
 		// Pointer pressed is considered mouse left button
 		mouse->left = input_state_cb(0, RETRO_DEVICE_POINTER, 0, RETRO_DEVICE_ID_POINTER_PRESSED);
@@ -788,7 +807,12 @@ void tic80_libretro_draw(tic80* game)
 	tic80_libretro_mousecursor((tic80_local*)game, &state->input.mouse, state->mouseCursor);
 
 	// Render to the screen.
-	video_cb(game->screen, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, TIC80_FULLWIDTH << 2);
+	if (state->cropBorder) {
+		u32 *screen = (u32*)game->screen + (TIC80_FULLWIDTH * TIC80_OFFSET_TOP) + TIC80_OFFSET_LEFT;
+		video_cb(screen, TIC80_WIDTH, TIC80_HEIGHT, TIC80_FULLWIDTH << 2);
+	} else {
+		video_cb(game->screen, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, TIC80_FULLWIDTH << 2);
+	}
 }
 
 /**
@@ -807,10 +831,27 @@ void tic80_libretro_audio(tic80* game)
  *
  * @see retro_run()
  */
-void tic80_libretro_variables(void)
+void tic80_libretro_variables(bool startup)
 {
 	// Check all the individual variables for the core.
 	struct retro_variable var;
+	bool lastCropBorder = state->cropBorder;
+
+	// Crop Border
+	state->cropBorder = false;
+	var.key = "tic80_crop_border";
+	var.value = NULL;
+	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE, &var) && var.value) {
+		if (strcmp(var.value, "enabled") == 0) {
+			state->cropBorder = true;
+		}
+	}
+
+	if (!startup && (state->cropBorder != lastCropBorder)) {
+		struct retro_system_av_info av_info;
+		retro_get_system_av_info(&av_info);
+		environ_cb(RETRO_ENVIRONMENT_SET_GEOMETRY, &av_info);
+	}
 
 	// Pointer device
 	state->pointerDevice = POINTER_DEVICE_MOUSE;
@@ -917,7 +958,7 @@ RETRO_API void retro_run(void)
 	// Update core options, if needed.
 	bool updated = false;
 	if (environ_cb(RETRO_ENVIRONMENT_GET_VARIABLE_UPDATE, &updated) && updated) {
-		tic80_libretro_variables();
+		tic80_libretro_variables(false);
 	}
 }
 
@@ -984,7 +1025,7 @@ RETRO_API bool retro_load_game(const struct retro_game_info *info)
 	tic80_libretro_input_descriptors();
 
 	// Load up any core variables.
-	tic80_libretro_variables();
+	tic80_libretro_variables(true);
 
 	return true;
 }

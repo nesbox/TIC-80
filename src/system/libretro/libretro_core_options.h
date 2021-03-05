@@ -53,6 +53,17 @@ extern "C" {
 
 struct retro_core_option_definition option_defs_us[] = {
    {
+      "tic80_crop_border",
+      "Crop Border",
+      "Remove the characteristic TIC-80 screen border (typically used only for 'ambient lighting' effects).",
+      {
+         { "disabled", NULL },
+         { "enabled",  NULL },
+         { NULL, NULL },
+      },
+      "disabled"
+   },
+   {
       "tic80_pointer_device",
       "Pointer Device",
       "Select physical device to use for emulated mouse input.",
