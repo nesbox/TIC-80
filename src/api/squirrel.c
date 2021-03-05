@@ -1151,7 +1151,7 @@ static SQInteger squirrel_print(HSQUIRRELVM vm)
                 if(top >= 6)
                 {
                     SQBool b = SQFalse;
-                    sq_getbool(vm, 5, &b);
+                    sq_getbool(vm, 6, &b);
                     fixed = (b != SQFalse);
 
                     if(top >= 7)
