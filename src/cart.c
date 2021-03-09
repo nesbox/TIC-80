@@ -22,8 +22,6 @@
 
 #include "cart.h"
 #include "tools.h"
-#include "ext/gif.h"
-
 #include <string.h>
 #include <stdlib.h>
 
@@ -47,6 +45,7 @@ typedef enum
     CHUNK_PATTERNS,     // 15
     CHUNK_CODE_ZIP,     // 16
     CHUNK_DEFAULT,      // 17
+    CHUNK_SCREEN,       // 18
 } ChunkType;
 
 typedef struct
@@ -92,27 +91,10 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
         case CHUNK_PATTERNS:    LOAD_CHUNK(cart->banks[chunk.bank].music.patterns); break;
         case CHUNK_PALETTE:     LOAD_CHUNK(cart->banks[chunk.bank].palette);        break;
         case CHUNK_FLAGS:       LOAD_CHUNK(cart->banks[chunk.bank].flags);          break;
+        case CHUNK_SCREEN:      LOAD_CHUNK(cart->banks[chunk.bank].screen);         break;
         case CHUNK_CODE:        LOAD_CHUNK(code->banks[chunk.bank].data);           break;
         case CHUNK_CODE_ZIP:
             tic_tool_unzip(cart->code.data, TIC_CODE_SIZE, buffer, chunk.size);
-            break;
-        case CHUNK_COVER_DEP:
-            {
-                // workaround to load deprecated cover section
-                gif_image* image = gif_read_data(buffer, chunk.size);
-
-                if (image)
-                {
-                    tic_rgb* pal = cart->bank0.palette.scn.colors;
-                    if(image->width == TIC80_WIDTH && image->height == TIC80_HEIGHT)
-                        for (s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
-                            for (s32 c = 0; c < TIC_PALETTE_SIZE; c++)
-                                if (memcmp(&pal[c], &image->palette[image->buffer[i]], sizeof(gif_color)) == 0)
-                                    tic_tool_poke4(cart->bank0.screen.data, i, c);
-
-                    gif_close(image);
-                }
-            }
             break;
         case CHUNK_PATTERNS_DEP: 
             {
@@ -246,6 +228,7 @@ s32 tic_cart_save(const tic_cartridge* cart, u8* buffer)
         buffer = SAVE_CHUNK(CHUNK_PATTERNS, cart->banks[i].music.patterns,  i);
         buffer = SAVE_CHUNK(CHUNK_MUSIC,    cart->banks[i].music.tracks,    i);
         buffer = SAVE_CHUNK(CHUNK_FLAGS,    cart->banks[i].flags,           i);
+        buffer = SAVE_CHUNK(CHUNK_SCREEN,   cart->banks[i].screen,          i);
     }
 
     s32 codeLen = (s32)strlen(cart->code.data);

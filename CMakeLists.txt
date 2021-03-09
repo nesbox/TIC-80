@@ -284,7 +284,6 @@ set(TIC80CORE_SRC
     ${TIC80CORE_DIR}/api/lua.c 
     ${TIC80CORE_DIR}/api/wren.c 
     ${TIC80CORE_DIR}/api/squirrel.c
-    ${TIC80CORE_DIR}/ext/gif.c
     ${TIC80CORE_DIR}/tic.c
     ${TIC80CORE_DIR}/cart.c
     ${TIC80CORE_DIR}/tools.c 
@@ -301,7 +300,7 @@ target_include_directories(tic80core
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src)
 
-target_link_libraries(tic80core lua lpeg wren squirrel giflib blipbuf duktape zlib)
+target_link_libraries(tic80core lua lpeg wren squirrel blipbuf duktape zlib)
 
 if(LINUX)
     target_link_libraries(tic80core m)
@@ -670,6 +669,7 @@ set(TIC80STUDIO_SRC
     ${TIC80LIB_DIR}/ext/md5.c
     ${TIC80LIB_DIR}/ext/history.c
     ${TIC80LIB_DIR}/ext/cq.c
+    ${TIC80LIB_DIR}/ext/gif.c
     ${TIC80LIB_DIR}/ext/png.c
 )
 
@@ -683,7 +683,7 @@ endif()
 
 target_include_directories(tic80studio PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
-target_link_libraries(tic80studio tic80core zip wave_writer argparse png)
+target_link_libraries(tic80studio tic80core zip wave_writer argparse giflib png)
 
 if(USE_CURL)
     target_link_libraries(tic80studio libcurl)
