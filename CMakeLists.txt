@@ -504,7 +504,7 @@ set(CMAKE_DISABLE_TESTING ON CACHE BOOL "" FORCE)
 add_subdirectory(${THIRDPARTY_DIR}/zip)
 
 ################################
-# bin2txt cart2prj prj2cart
+# bin2txt cart2prj prj2cart expld
 ################################
 
 if(BUILD_DEMO_CARTS)
@@ -521,6 +521,17 @@ if(BUILD_DEMO_CARTS)
 
     add_executable(bin2txt ${TOOLS_DIR}/bin2txt.c)
     target_link_libraries(bin2txt zlib)
+
+    add_executable(expld 
+        ${TOOLS_DIR}/expld.c 
+        ${CMAKE_SOURCE_DIR}/src/cart.c
+        ${CMAKE_SOURCE_DIR}/src/tools.c
+        ${CMAKE_SOURCE_DIR}/src/ext/gif.c
+        ${CMAKE_SOURCE_DIR}/src/ext/png.c)
+
+    target_include_directories(expld PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include)
+    target_compile_definitions(expld PRIVATE DEPRECATED_CHUNKS)
+    target_link_libraries(expld giflib zlib png)
 
     file(GLOB DEMO_CARTS ${CMAKE_SOURCE_DIR}/demos/*.* )
 
@@ -640,7 +651,8 @@ add_library(png STATIC ${LIBPNG_SRC})
 target_compile_definitions(png PRIVATE PNG_ARM_NEON_OPT=0)
 
 target_include_directories(png 
-    PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${THIRDPARTY_DIR}/zlib
+    PUBLIC ${CMAKE_CURRENT_BINARY_DIR} 
+    PRIVATE ${THIRDPARTY_DIR}/zlib
     INTERFACE ${THIRDPARTY_DIR}/libpng)
 
 ################################
