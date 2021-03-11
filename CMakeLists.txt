@@ -504,7 +504,7 @@ set(CMAKE_DISABLE_TESTING ON CACHE BOOL "" FORCE)
 add_subdirectory(${THIRDPARTY_DIR}/zip)
 
 ################################
-# bin2txt cart2prj prj2cart expld
+# bin2txt cart2prj prj2cart xplode
 ################################
 
 if(BUILD_DEMO_CARTS)
@@ -522,16 +522,16 @@ if(BUILD_DEMO_CARTS)
     add_executable(bin2txt ${TOOLS_DIR}/bin2txt.c)
     target_link_libraries(bin2txt zlib)
 
-    add_executable(expld 
-        ${TOOLS_DIR}/expld.c 
+    add_executable(xplode 
+        ${TOOLS_DIR}/xplode.c 
         ${CMAKE_SOURCE_DIR}/src/cart.c
         ${CMAKE_SOURCE_DIR}/src/tools.c
         ${CMAKE_SOURCE_DIR}/src/ext/gif.c
         ${CMAKE_SOURCE_DIR}/src/ext/png.c)
 
-    target_include_directories(expld PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include)
-    target_compile_definitions(expld PRIVATE DEPRECATED_CHUNKS)
-    target_link_libraries(expld giflib zlib png)
+    target_include_directories(xplode PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include)
+    target_compile_definitions(xplode PRIVATE DEPRECATED_CHUNKS)
+    target_link_libraries(xplode giflib zlib png)
 
     file(GLOB DEMO_CARTS ${CMAKE_SOURCE_DIR}/demos/*.* )
 
