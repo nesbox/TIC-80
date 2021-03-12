@@ -527,11 +527,16 @@ if(BUILD_DEMO_CARTS)
         ${CMAKE_SOURCE_DIR}/src/cart.c
         ${CMAKE_SOURCE_DIR}/src/tools.c
         ${CMAKE_SOURCE_DIR}/src/ext/gif.c
-        ${CMAKE_SOURCE_DIR}/src/ext/png.c)
+        ${CMAKE_SOURCE_DIR}/src/ext/png.c
+        ${CMAKE_SOURCE_DIR}/src/studio/project.c)
 
     target_include_directories(xplode PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include)
     target_compile_definitions(xplode PRIVATE DEPRECATED_CHUNKS)
     target_link_libraries(xplode giflib zlib png)
+
+    if(LINUX)
+        target_link_libraries(xplode m)
+    endif()
 
     file(GLOB DEMO_CARTS ${CMAKE_SOURCE_DIR}/demos/*.* )
 
