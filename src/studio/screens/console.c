@@ -25,7 +25,7 @@
 #include "studio/fs.h"
 #include "studio/net.h"
 #include "studio/config.h"
-#include "ext/gif.h"
+#include "ext/png.h"
 #include "studio/project.h"
 #include "zip.h"
 
@@ -351,25 +351,6 @@ static void onConsoleExitCommand(Console* console, const char* param)
     commandDone(console);
 }
 
-static s32 writeGifData(const tic_mem* tic, u8* dst, const u8* src, s32 width, s32 height)
-{
-    s32 size = 0;
-    gif_color* palette = (gif_color*)malloc(sizeof(gif_color) * TIC_PALETTE_SIZE);
-
-    if(palette)
-    {
-        const tic_rgb* pal = getBankPalette(false)->colors;
-        for(s32 i = 0; i < TIC_PALETTE_SIZE; i++, pal++)
-            palette[i].r = pal->r, palette[i].g = pal->g, palette[i].b = pal->b;
-
-        gif_write_data(dst, &size, width, height, src, palette, TIC_PALETTE_BPP);
-
-        free(palette);
-    }
-
-    return size;
-}
-
 static bool loadRom(tic_mem* tic, const void* data, s32 size)
 {
     tic_cart_load(&tic->cart, data, size);
@@ -386,13 +367,11 @@ static bool onConsoleLoadSectionCommand(Console* console, const char* param)
     {
         static const char* Sections[] =
         {
-            "cover",
-            "sprites",
-            "map",
             "code",
-            "sfx",
-            "music",
-            "palette",
+
+#define     SECTION_DEF(NAME, ...) #NAME,
+            TIC_SYNC_LIST(SECTION_DEF)
+#undef      SECTION_DEF
         };
 
         char buf[64];
@@ -420,13 +399,13 @@ static bool onConsoleLoadSectionCommand(Console* console, const char* param)
 
                         switch(i)
                         {
-                        case 0: memcpy(&tic->cart.cover,            &cart->cover,           sizeof cart->cover); break;
-                        case 1: memcpy(&tic->cart.bank0.tiles,      &cart->bank0.tiles,     sizeof(tic_tiles)*2); break;
-                        case 2: memcpy(&tic->cart.bank0.map,        &cart->bank0.map,       sizeof(tic_map)); break;
-                        case 3: memcpy(&tic->cart.code,             &cart->code,            sizeof(tic_code)); break;
-                        case 4: memcpy(&tic->cart.bank0.sfx,        &cart->bank0.sfx,       sizeof(tic_sfx)); break;
-                        case 5: memcpy(&tic->cart.bank0.music,      &cart->bank0.music,     sizeof(tic_music)); break;
-                        case 6: memcpy(&tic->cart.bank0.palette,    &cart->bank0.palette,   sizeof(tic_palette)); break;
+                        case 0: 
+                            memcpy(&tic->cart.code, &cart->code, sizeof(tic_code)); 
+                            break;
+
+#define                 SECTION_DEF(NAME, _, INDEX) case (INDEX + 1): memcpy(&tic->cart.bank0.NAME, &cart->bank0.NAME, sizeof(tic_##NAME)); break;
+                        TIC_SYNC_LIST(SECTION_DEF)
+#undef                  SECTION_DEF
                         }
 
                         studioRomLoaded();
@@ -1134,8 +1113,14 @@ static void onConsoleChangeDirectory(Console* console, const char* param)
 static void onConsoleMakeDirectory(Console* console, const char* param)
 {
     if(param && strlen(param))
+    {
         tic_fs_makedir(console->fs, param);
-    else printBack(console, "\ninvalid dir name");
+
+        char msg[TICNAME_MAX];
+        sprintf(msg, "\ncreated [%s] folder :)", param);
+        printBack(console, msg);
+    }
+    else printError(console, "\ninvalid dir name");
 
     commandDone(console);
 }
@@ -1350,133 +1335,79 @@ static void onConsoleConfigCommand(Console* console, const char* param)
     commandDone(console);
 }
 
-static void onImportCover(const char* name, const void* buffer, s32 size, void* data)
+static void onFileImported(Console* console, const char* filename, bool result)
 {
-    Console* console = (Console*)data;
-
-    if(name)
+    if(result)
     {
-        static const char GifExt[] = ".gif";
-
-        const char* pos = strstr(name, GifExt);
-
-        if(pos && strcmp(pos, GifExt) == 0)
-        {
-            gif_image* image = gif_read_data(buffer, (s32)size);
-
-            if (image)
-            {
-                enum
-                {
-                    Width = TIC80_WIDTH,
-                    Height = TIC80_HEIGHT,
-                    Size = Width * Height,
-                };
-
-                if(image->width == Width && image->height == Height)
-                {
-                    if(size <= sizeof console->tic->cart.cover.data)
-                    {
-                        console->tic->cart.cover.size = size;
-                        memcpy(console->tic->cart.cover.data, buffer, size);
-
-                        printLine(console);
-                        printBack(console, name);
-                        printBack(console, " successfully imported");
-                    }
-                    else printError(console, "\ncover image too big :(");
-                }
-                else printError(console, "\ncover image must be 240x136 :(");
-
-                gif_close(image);
-            }
-            else printError(console, "\nfile importing error :(");
-        }
-        else printBack(console, "\nonly .gif files can be imported :|");
-    }
-    else printBack(console, "\nfile not imported :|");
-
-    commandDone(console);
-}
-
-static void onImportSprites(const char* name, const void* buffer, s32 size, void* data)
-{
-    Console* console = (Console*)data;
-
-    if(name)
-    {
-        static const char GifExt[] = ".gif";
-
-        const char* pos = strstr(name, GifExt);
-
-        if(pos && strcmp(pos, GifExt) == 0)
-        {
-            gif_image* image = gif_read_data(buffer, (s32)size);
-
-            if (image)
-            {
-                enum
-                {
-                    Width = TIC_SPRITESHEET_SIZE,
-                    Height = TIC_SPRITESHEET_SIZE*2,
-                };
-
-                s32 w = MIN(Width, image->width);
-                s32 h = MIN(Height, image->height);
-
-                for (s32 y = 0; y < h; y++)
-                    for (s32 x = 0; x < w; x++)
-                    {
-                        u8 src = image->buffer[x + y * image->width];
-                        const gif_color* c = &image->palette[src];
-                        u8 color = tic_tool_find_closest_color(getBankPalette(false)->colors, c);
-
-                        setSpritePixel(getBankTiles()->data, x, y, color);
-                    }
-
-                gif_close(image);
-
-                printLine(console);
-                printBack(console, name);
-                printBack(console, " successfully imported");
-            }
-            else printError(console, "\nfile importing error :(");
-        }
-        else printBack(console, "\nonly .gif files can be imported :|");
-    }
-    else printBack(console, "\nfile not imported :|");
-
-    commandDone(console);
-}
-
-static void injectMap(Console* console, const void* buffer, s32 size)
-{
-    enum {Size = sizeof(tic_map)};
-
-    memset(getBankMap(), 0, Size);
-    memcpy(getBankMap(), buffer, MIN(size, Size));
-}
-
-static void onImportMap(const char* name, const void* buffer, s32 size, void* data)
-{
-    Console* console = (Console*)data;
-
-    if(name && buffer && size <= sizeof(tic_map))
-    {
-        injectMap(console, buffer, size);
-
         printLine(console);
-        printBack(console, "map successfully imported");
+        printBack(console, filename);
+        printBack(console, " imported :)");
     }
-    else printBack(console, "\nfile not imported :|");
+    else
+    {
+        char buf[TICNAME_MAX];
+        sprintf(buf, "\nerror: %s not imported :(", filename);
+        printError(console, buf);
+    }
 
     commandDone(console);
 }
 
-static void onImportCode(const char* name, const void* buffer, s32 size, void* data)
+static void onImportTilesBase(Console* console, const char* name, const void* buffer, s32 size, tic_tile* base)
 {
-    Console* console = (Console*)data;
+    png_buffer png = {(u8*)buffer, size};
+    bool error = false;
+
+    png_img img = png_read(png);
+
+    if(img.data)
+    {
+        if(img.width == TIC_SPRITESHEET_SIZE && img.height == TIC_SPRITESHEET_SIZE)
+        {
+            const tic_palette* pal = getBankPalette(false);
+            tic_bank* bank = &console->tic->cart.bank0;
+            s32 i = 0;
+            for(const png_rgba *pix = img.pixels, *end = pix + (TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE); pix < end; pix++, i++)
+                setSpritePixel(base, i % TIC_SPRITESHEET_SIZE, i / TIC_SPRITESHEET_SIZE, tic_nearest_color(pal->colors, (tic_rgb*)pix));
+        }
+        else error = true;
+
+        free(img.data);
+    }
+    else error = true;
+
+    onFileImported(console, name, !error);
+}
+
+static void onImportTiles(Console* console, const char* name, const void* buffer, s32 size)
+{
+    onImportTilesBase(console, name, buffer, size, getBankTiles()->data);
+}
+
+static void onImportSprites(Console* console, const char* name, const void* buffer, s32 size)
+{
+    onImportTilesBase(console, name, buffer, size, getBankTiles()->data + TIC_BANK_SPRITES);
+}
+
+static void onImportMap(Console* console, const char* name, const void* buffer, s32 size)
+{
+    bool ok = name && buffer && size <= sizeof(tic_map);
+
+    if(ok)
+    {
+        enum {Size = sizeof(tic_map)};
+
+        memset(getBankMap(), 0, Size);
+        memcpy(getBankMap(), buffer, MIN(size, Size));
+    }
+        
+    onFileImported(console, name, ok);
+}
+
+static void onImportCode(Console* console, const char* name, const void* buffer, s32 size)
+{
     tic_mem* tic = console->tic;
+    bool error = false;
 
     if(name && buffer && size <= sizeof(tic_code))
     {
@@ -1484,14 +1415,38 @@ static void onImportCode(const char* name, const void* buffer, s32 size, void* d
 
         memset(tic->cart.code.data, 0, Size);
         memcpy(tic->cart.code.data, buffer, MIN(size, Size));
-        printLine(console);
-        printBack(console, "code successfully imported");
 
         studioRomLoaded();
     }
-    else printBack(console, "\ncode not imported :|");
+    else error = true;
 
-    commandDone(console);
+    onFileImported(console, name, !error);
+}
+
+static void onImportScreen(Console* console, const char* name, const void* buffer, s32 size)
+{
+    png_buffer png = {(u8*)buffer, size};
+    bool error = false;
+
+    png_img img = png_read(png);
+
+    if(img.data)
+    {
+        if(img.width == TIC80_WIDTH && img.height == TIC80_HEIGHT)
+        {
+            const tic_palette* pal = getBankPalette(false);
+            tic_bank* bank = &console->tic->cart.bank0;
+            s32 i = 0;
+            for(const png_rgba *pix = img.pixels, *end = pix + (TIC80_WIDTH * TIC80_HEIGHT); pix < end; pix++)
+                tic_tool_poke4(bank->screen.data, i++, tic_nearest_color(pal->colors, (tic_rgb*)pix));
+        }
+        else error = true;
+
+        free(img.data);
+    }
+    else error = true;
+
+    onFileImported(console, name, !error);
 }
 
 static void onConsoleImportCommand(Console* console, const char* param)
@@ -1514,31 +1469,28 @@ static void onConsoleImportCommand(Console* console, const char* param)
 
         if(data)
         {
-            if(strcmp(param, "sprites") == 0)
+            static const struct {const char* section; void (*handler)(Console*, const char*, const void*, s32);} Handlers[] = 
             {
-                onImportSprites(filename, data, size, console);
-                error = false;
-            }
-            else if(strcmp(param, "cover") == 0)
+                {"tiles",   onImportTiles},
+                {"sprites", onImportSprites},
+                {"map",     onImportMap},
+                {"code",    onImportCode},
+                {"screen",  onImportScreen},
+            };
+
+            for(s32 i = 0; i < COUNT_OF(Handlers); i++)
             {
-                onImportCover(filename, data, size, console);
-                error = false;
-            }
-            else if(strcmp(param, "map") == 0)
-            {
-                onImportMap(filename, data, size, console);
-                error = false;
-            }
-            else if(strcmp(param, "code") == 0)
-            {
-                onImportCode(filename, data, size, console);
-                error = false;
+                if(strcmp(param, Handlers[i].section) == 0)
+                {
+                    Handlers[i].handler(console, filename, data, size);
+                    error = false;
+                }                
             }
         }
         else
         {
             char msg[TICNAME_MAX];
-            sprintf(msg, "\nerror: `%s` file not loaded", filename);
+            sprintf(msg, "\nerror, %s file not loaded", filename);
             printError(console, msg);
             commandDone(console);
             return;
@@ -1547,30 +1499,27 @@ static void onConsoleImportCommand(Console* console, const char* param)
 
     if(error)
     {
-        printBack(console, "\nusage: import (sprites cover map) file");
+        printBack(console, "\nusage:\nimport (");
+        printFront(console, "tiles sprites map screen");
+        printBack(console, ") file");
         commandDone(console);
     }
 }
 
-static void exportCover(Console* console, const char* filename)
+static void onFileExported(Console* console, const char* filename, bool result)
 {
-    tic_cover_image* cover = &console->tic->cart.cover;
-
-    if(cover->size)
+    if(result)
     {
-        void* data = malloc(cover->size);
-        memcpy(data, cover->data, cover->size);
-        if(tic_fs_save(console->fs, filename, data, cover->size, true))
-        {
-            printLine(console);
-            printBack(console, filename);
-            printBack(console, " exported :)");
-        }
-        else printError(console, "\nerror: cover not exported :(");
-
-        free(data);
+        printLine(console);
+        printBack(console, filename);
+        printBack(console, " exported :)");
     }
-    else printBack(console, "\ncover image is empty, run game and\npress [F7] to assign cover image");
+    else
+    {
+        char buf[TICNAME_MAX];
+        sprintf(buf, "\nerror: %s not exported :(", filename);
+        printError(console, buf);
+    }
 
     commandDone(console);
 }
@@ -1579,76 +1528,33 @@ static void exportSfx(Console* console, s32 sfx, const char* filename)
 {
     const char* path = studioExportSfx(sfx, filename);
 
-    if(path)
-    {
-        printLine(console);
-        printBack(console, filename);
-        printBack(console, " exported :)");
-        commandDone(console);
-    }
-    else
-    {
-        printError(console, "\nsfx exporting error :(");
-        commandDone(console);
-    }
+    onFileExported(console, filename, path);
 }
 
 static void exportMusic(Console* console, s32 track, const char* filename)
 {
     const char* path = studioExportMusic(track, filename);
 
-    if(path)
-    {
-        printLine(console);
-        printBack(console, filename);
-        printBack(console, " exported :)");
-
-        commandDone(console);
-    }
-    else
-    {
-        printError(console, "\nmusic exporting error :(");
-        commandDone(console);
-    }
+    onFileExported(console, filename, path);
 }
 
-static void exportSprites(Console* console, const char* filename)
+static void exportSprites(Console* console, const char* filename, tic_tile* base)
 {
-    enum
-    {
-        Width = TIC_SPRITESHEET_SIZE,
-        Height = TIC_SPRITESHEET_SIZE*2,
-    };
+    tic_mem* tic = console->tic;
+    const tic_cartridge* cart = &tic->cart;
 
-    enum{ Size = Width * Height * sizeof(gif_color)};
-    u8* buffer = (u8*)malloc(Size);
+    png_img img = {TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE, malloc(TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE * sizeof(png_rgba))};
+    
+    const tic_palette* pal = getBankPalette(false);
+    for(s32 i = 0; i < TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE; i++)
+        img.values[i] = tic_rgba(&pal->colors[getSpritePixel(base, i % TIC_SPRITESHEET_SIZE, i / TIC_SPRITESHEET_SIZE)]);
 
-    if(buffer)
-    {
-        u8* data = (u8*)malloc(Width * Height);
+    png_buffer png = png_write(img);
 
-        if(data)
-        {
-            for (s32 y = 0; y < Height; y++)
-                for (s32 x = 0; x < Width; x++)
-                    data[x + y * Width] = getSpritePixel(getBankTiles()->data, x, y);
+    onFileExported(console, filename, tic_fs_save(console->fs, filename, png.data, png.size, true));
 
-            s32 size = 0;
-            if((size = writeGifData(console->tic, buffer, data, Width, Height)) 
-                && tic_fs_save(console->fs, filename, buffer, size, true))
-            {
-                printLine(console);
-                printBack(console, filename);
-                printBack(console, " exported :)");
-            }
-            else printError(console, "\nerror: sprite not exported :(");
-
-            commandDone(console);
-
-            free(buffer);
-            free(data);
-        }
-    }
+    free(png.data);
+    free(img.data);
 }
 
 static void exportMap(Console* console, const char* filename)
@@ -1661,17 +1567,29 @@ static void exportMap(Console* console, const char* filename)
     {
         memcpy(buffer, getBankMap()->data, Size);
 
-        if(tic_fs_save(console->fs, filename, buffer, Size, true))
-        {
-            printLine(console);
-            printBack(console, filename);
-            printBack(console, " exported :)");
-        }
-        else printError(console, "\nerror: map not exported :(");
+        onFileExported(console, filename, tic_fs_save(console->fs, filename, buffer, Size, true));
 
-        commandDone(console);
         free(buffer);
     }
+}
+
+static void exportScreen(Console* console, const char* filename)
+{
+    tic_mem* tic = console->tic;
+    const tic_cartridge* cart = &tic->cart;
+
+    png_img img = {TIC80_WIDTH, TIC80_HEIGHT, malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(png_rgba))};
+    const tic_palette* pal = getBankPalette(false);
+
+    for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
+        img.values[i] = tic_rgba(&pal->colors[tic_tool_peek4(cart->bank0.screen.data, i)]);
+
+    png_buffer png = png_write(img);
+
+    onFileExported(console, filename, tic_fs_save(console->fs, filename, png.data, png.size, true));
+
+    free(png.data);
+    free(img.data);
 }
 
 static void *ticMemmem(const void* haystack, size_t hlen, const void* needle, size_t nlen)
@@ -1810,21 +1728,8 @@ static void onNativeExportGet(const net_get_data* data)
 
             const char* path = tic_fs_path(console->fs, filename);
             void* buf = NULL;
-            if((buf = embedCart(console, data->done.data, &size))
-                && fs_write(path, buf, size))
-            {
-                chmod(path, 0755);
-                printFront(console, filename);
-                printBack(console, " exported :)");
-            }
-            else
-            {
-                printError(console, "error: ");
-                printError(console, filename);
-                printError(console, " not saved :(");
-            }
 
-            commandDone(console);
+            onFileExported(console, filename, (buf = embedCart(console, data->done.data, &size)) && fs_write(path, buf, size));
 
             if (buf)
                 free(buf);
@@ -1869,53 +1774,38 @@ static void onHtmlExportGet(const net_get_data* data)
             free(exportData);
 
             const char* zipPath = tic_fs_path(console->fs, filename);
+            bool errorOccured = !fs_write(zipPath, data->done.data, data->done.size);
 
-            if(!fs_write(zipPath, data->done.data, data->done.size))
+            if(!errorOccured)
             {
-                printError(console, "\nerror: ");
-                printError(console, filename);
-                printError(console, " not saved :(");
-                commandDone(console);
-                return;
-            }
+                struct zip_t *zip = zip_open(zipPath, ZIP_DEFAULT_COMPRESSION_LEVEL, 'a');
 
-            struct zip_t *zip = zip_open(zipPath, ZIP_DEFAULT_COMPRESSION_LEVEL, 'a');
-            bool errorOccured = false;
-
-            if(zip)
-            {
-                void* cart = malloc(sizeof(tic_cartridge));
-
-                if(cart)
+                if(zip)
                 {
-                    s32 cartSize = tic_cart_save(&tic->cart, cart);
+                    void* cart = malloc(sizeof(tic_cartridge));
 
-                    if(cartSize)
+                    if(cart)
                     {
-                        zip_entry_open(zip, "cart.tic");
-                        zip_entry_write(zip, cart, cartSize);
-                        zip_entry_close(zip);
+                        s32 cartSize = tic_cart_save(&tic->cart, cart);
+
+                        if(cartSize)
+                        {
+                            zip_entry_open(zip, "cart.tic");
+                            zip_entry_write(zip, cart, cartSize);
+                            zip_entry_close(zip);
+                        }
+                        else errorOccured = true;
+
+                        free(cart);
                     }
                     else errorOccured = true;
 
-                    free(cart);
+                    zip_close(zip);
                 }
-                else errorOccured = true;
-
-                zip_close(zip);
-                if(!errorOccured)
-                {
-                    printLine(console);
-                    printFront(console, filename);
-                    printBack(console, " exported :)");
-                }
+                else errorOccured = true;                
             }
-            else errorOccured = true;
 
-            if(errorOccured)
-                printError(console, "\ngame not exported :(\n");
-
-            commandDone(console);
+            onFileExported(console, filename, errorOccured);
         }
         break;
     default:
@@ -1955,12 +1845,14 @@ static void onConsoleExportCommand(Console* console, const char* param)
     {
         if(strcmp(param, "html") == 0)
             exportGame(console, getFilename(filename, ".zip"), param, onHtmlExportGet);
-        else if(strcmp(param, "sprites") == 0)
-            exportSprites(console, getFilename(filename, ".gif"));
+        else if(strcmp(param, "tiles") == 0)
+            exportSprites(console, getFilename(filename, ".png"), getBankTiles()->data);
+        else if (strcmp(param, "sprites") == 0)
+            exportSprites(console, getFilename(filename, ".png"), getBankTiles()->data + TIC_BANK_SPRITES);
+        else if (strcmp(param, "screen") == 0)
+            exportScreen(console, getFilename(filename, ".png"));
         else if(strcmp(param, "map") == 0)
             exportMap(console, getFilename(filename, ".map"));
-        else if(strcmp(param, "cover") == 0)
-            exportCover(console, getFilename(filename, ".gif"));
         else if(strncmp(param, "sfx", SfxIndex) == 0)
             exportSfx(console, atoi(param + SfxIndex) % SFX_COUNT, getFilename(filename, ".wav"));
         else if(strncmp(param, "music", MusicIndex) == 0)
@@ -1983,7 +1875,7 @@ static void onConsoleExportCommand(Console* console, const char* param)
     else
     {
         printBack(console, "\nusage: export (");
-        printFront(console, "win linux rpi mac html sprites map cover sfx<#> music<#>");
+        printFront(console, "win linux rpi mac html tiles sprites map sfx<#> music<#> screen");
         printBack(console, ") file\n");
         commandDone(console);
     }
@@ -2399,8 +2291,8 @@ static const struct
 } AvailableConsoleCommands[] =
 {
     {"help",    NULL, "show this info",             onConsoleHelpCommand},
-    {"ram",     NULL, "show 96KB RAM layout",        onConsoleRamCommand},
-    {"vram",    NULL, "show 16KB VRAM layout",       onConsoleVRamCommand},
+    {"ram",     NULL, "show 96KB RAM layout",       onConsoleRamCommand},
+    {"vram",    NULL, "show 16KB VRAM layout",      onConsoleVRamCommand},
     {"exit",    "quit", "exit the application",     onConsoleExitCommand},
     {"new",     NULL, "create new cart",            onConsoleNewCommand},
     {"load",    NULL, "load cart",                  onConsoleLoadCommand},
@@ -2418,8 +2310,8 @@ static const struct
     {"get",     NULL, "download file",              onConsoleGetCommand},
 #endif
 
-    {"export",  NULL, "export native game",         onConsoleExportCommand},
-    {"import",  NULL, "import sprites from .gif",   onConsoleImportCommand},
+    {"export",  NULL, "export cart parts or game",  onConsoleExportCommand},
+    {"import",  NULL, "import cart parts",          onConsoleImportCommand},
     {"del",     NULL, "delete file or dir",         onConsoleDelCommand},
     {"cls",     "clear", "clear screen",            onConsoleClsCommand},
     {"demo",    NULL, "install demo carts",         onConsoleInstallDemosCommand},

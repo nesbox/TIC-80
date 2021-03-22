@@ -30,11 +30,32 @@ typedef struct
     u32 size;
 } png_buffer;
 
+typedef union
+{
+	struct
+	{
+		u8 r;
+		u8 g;
+		u8 b;
+		u8 a;
+	};
+
+	u8 data[4];
+
+	u32 value;
+} png_rgba;
+
 typedef struct
 {
     s32 width;
     s32 height;
-    u8* data;
+
+    union
+    {
+    	png_rgba* pixels;
+    	u32* values;
+    	u8* data;
+    };
 } png_img;
 
 png_img png_read(png_buffer buf);

@@ -167,7 +167,7 @@ typedef struct
 	s32 pos;
 } GifBuffer;
 
-static int readBuffer(GifFileType* gif, GifByteType* data, int size)
+static s32 readBuffer(GifFileType* gif, GifByteType* data, s32 size)
 {
 	GifBuffer* buffer = (GifBuffer*)gif->UserData;
 
@@ -222,7 +222,7 @@ static bool writeGif(GifFileType* gif, s32 width, s32 height, const u8* data, co
 	return result;
 }
 
-static int writeBuffer(GifFileType* gif, const GifByteType* data, int size)
+static s32 writeBuffer(GifFileType* gif, const GifByteType* data, s32 size)
 {
 	GifBuffer* buffer = (GifBuffer*)gif->UserData;
 

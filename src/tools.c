@@ -32,8 +32,8 @@ extern void tic_tool_poke2(void* addr, u32 index, u8 value);
 extern u8 tic_tool_peek2(const void* addr, u32 index);
 extern void tic_tool_poke1(void* addr, u32 index, u8 value);
 extern u8 tic_tool_peek1(const void* addr, u32 index);
-
 extern s32 tic_tool_sfx_pos(s32 speed, s32 ticks);
+extern u32 tic_rgba(const tic_rgb* c);
 
 s32 tic_tool_get_pattern_id(const tic_track* track, s32 frame, s32 channel)
 {
@@ -66,31 +66,27 @@ bool tic_tool_parse_note(const char* noteStr, s32* note, s32* octave)
     return false;
 }
 
-u32 tic_tool_find_closest_color(const tic_rgb* palette, const gif_color* color)
+u32 tic_nearest_color(const tic_rgb* palette, const tic_rgb* color)
 {
-    u32 minDst = -1;
-    u32 closetColor = 0;
-
-    enum{Size = TIC_PALETTE_SIZE};
+    u32 min = -1;
+    s32 nearest, i = 0;
     
-    for (s32 i = 0; i < Size; i++)
+    for(const tic_rgb *rgb = palette, *end = rgb + TIC_PALETTE_SIZE; rgb < end; rgb++, i++)
     {
-        const tic_rgb* rgb = palette + i;
+        s32 d[] = {color->r - rgb->r, color->g - rgb->g, color->b - rgb->b};
 
-        s32 r = color->r - rgb->r;
-        s32 g = color->g - rgb->g;
-        s32 b = color->b - rgb->b;
+        u32 dst = 0;
+        for(const s32 *v = d, *end = v + COUNT_OF(d); v < end; v++)
+            dst += (*v) * (*v);
 
-        u32 dst = r*r + g*g + b*b;
-
-        if (dst < minDst)
+        if (dst < min)
         {
-            minDst = dst;
-            closetColor = i;
+            min = dst;
+            nearest = i;
         }
     }
 
-    return closetColor;
+    return nearest;
 }
 
 u32* tic_tool_palette_blit(const tic_palette* srcpal, tic80_pixel_color_format fmt)
@@ -153,10 +149,10 @@ void tic_tool_set_track_row_sfx(tic_track_row* row, s32 sfx)
     row->sfxlow = sfx & 0b00011111;
 }
 
-bool tic_tool_is_noise(const tic_waveform* wave)
+bool tic_tool_empty(const void* buffer, s32 size)
 {
-    for(s32 i = 0; i < WAVE_SIZE; i++)
-        if(wave->data[i])
+    for(const u8 *ptr = buffer, *end = ptr + size; ptr < end;)
+        if(*ptr++)
             return false;
 
     return true;

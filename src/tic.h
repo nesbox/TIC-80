@@ -376,12 +376,6 @@ typedef union
     } banks[TIC_BANKS];
 } tic_code;
 
-typedef struct 
-{
-    s32 size;
-    u8 data [TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32)];
-} tic_cover_image;
-
 typedef struct
 {
     u8 r;
@@ -399,7 +393,7 @@ typedef union
 typedef struct
 {
     tic_tile data[TIC_BANK_SPRITES];
-} tic_tiles;
+} tic_tiles, tic_sprites;
 
 typedef struct
 {
@@ -414,14 +408,19 @@ typedef struct
 
 typedef struct
 {
+    u8 data[TIC80_WIDTH * TIC80_HEIGHT * TIC_PALETTE_BPP / BITS_IN_BYTE];
+} tic_screen;
+
+typedef struct
+{
+    tic_screen      screen;
     tic_tiles       tiles;
-    tic_tiles       sprites;
+    tic_sprites     sprites;
     tic_map         map;
     tic_sfx         sfx;
     tic_music       music;
     tic_flags       flags;
     tic_palettes    palette;
-
 } tic_bank;
 
 typedef struct
@@ -432,19 +431,14 @@ typedef struct
         tic_bank banks[TIC_BANKS];
     };
 
-    tic_code code;
-    tic_cover_image cover;
+    tic_code code;    
+
 } tic_cartridge;
 
 typedef struct
 {
     u8 data[TIC_FONT_CHARS * BITS_IN_BYTE];
 } tic_font;
-
-typedef struct
-{
-    u8 data[TIC80_WIDTH * TIC80_HEIGHT * TIC_PALETTE_BPP / BITS_IN_BYTE];
-} tic_screen;
 
 typedef union
 {
@@ -504,7 +498,7 @@ typedef union
     {
         tic_vram            vram;
         tic_tiles           tiles;
-        tic_tiles           sprites;
+        tic_sprites         sprites;
         tic_map             map;
         tic80_input         input;
         tic_sfx_pos         sfxpos[TIC_SOUND_CHANNELS];

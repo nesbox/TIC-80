@@ -265,7 +265,7 @@ s32 calcWaveAnimation(tic_mem* tic, u32 offset, s32 channel)
 {
     const tic_sound_register* reg = &tic->ram.registers[channel];
 
-    s32 val = tic_tool_is_noise(&reg->waveform)
+    s32 val = EMPTY(reg->waveform.data)
         ? (rand() & 1) * MAX_VOLUME
         : tic_tool_peek4(reg->waveform.data, ((offset * reg->freq) >> 7) % WAVE_VALUES);
 
@@ -1420,27 +1420,8 @@ static void setCoverImage()
 
     if(impl.mode == TIC_RUN_MODE)
     {
-        enum {Pitch = TIC80_FULLWIDTH*sizeof(u32)};
-
-        tic_core_blit(tic, TIC80_PIXEL_COLOR_RGBA8888);
-
-        u32* buffer = malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32));
-
-        if(buffer)
-        {
-            enum{OffsetLeft = (TIC80_FULLWIDTH-TIC80_WIDTH)/2, OffsetTop = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2};
-
-            tic_rect rect = {OffsetLeft, OffsetTop, TIC80_WIDTH, TIC80_HEIGHT};
-
-            screen2buffer(buffer, tic->screen, &rect);
-
-            gif_write_animation(impl.studio.tic->cart.cover.data, &impl.studio.tic->cart.cover.size,
-                TIC80_WIDTH, TIC80_HEIGHT, (const u8*)buffer, 1, TIC80_FRAMERATE, 1);
-
-            free(buffer);
-
-            showPopupMessage("cover image saved :)");
-        }
+        tic_api_sync(tic, tic_sync_screen, 0, true);
+        showPopupMessage("cover image saved :)");
     }
 }
 

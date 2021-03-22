@@ -33,7 +33,11 @@
 #define DEF2STR2(x) #x
 #define DEF2STR(x) DEF2STR2(x)
 
-#define BIT_SET(a,b)    ((a) |= (1ULL<<(b)))
-#define BIT_CLEAR(a,b)  ((a) &= ~(1ULL<<(b)))
-#define BIT_FLIP(a,b)   ((a) ^= (1ULL<<(b)))
+#define BIT_SET(a,b)    ((a) | (1ULL<<(b)))
+#define BIT_CLEAR(a,b)  ((a) & ~(1ULL<<(b)))
+#define BIT_FLIP(a,b)   ((a) ^ (1ULL<<(b)))
 #define BIT_CHECK(a,b)  (!!((a) & (1ULL<<(b))))
+
+#define BIT_SET_LV(a,b)    ((a) |= (1ULL<<(b)))
+#define BIT_CLEAR_LV(a,b)  ((a) &= ~(1ULL<<(b)))
+#define BIT_FLIP_LV(a,b)   ((a) ^= (1ULL<<(b)))

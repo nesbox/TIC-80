@@ -172,8 +172,8 @@ static inline void bitcpy(u8* dst, u32 to, const u8* src, u32 from, u32 size)
 {
     for(s32 i = 0; i < size; i++, to++, from++)
         BIT_CHECK(src[from >> 3], from & 7) 
-            ? BIT_SET(dst[to >> 3], to & 7) 
-            : BIT_CLEAR(dst[to >> 3], to & 7);
+            ? BIT_SET_LV(dst[to >> 3], to & 7) 
+            : BIT_CLEAR_LV(dst[to >> 3], to & 7);
 }
 
 static inline u32 ceilBufSize(u32 size, u32 bits)

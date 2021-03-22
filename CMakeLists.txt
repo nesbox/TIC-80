@@ -50,6 +50,8 @@ else()
     set(BUILD_PLAYER_DEFAULT ON)
 endif()
 
+set(BUILD_DEPRECATED TRUE)
+
 set(BUILD_TOUCH_INPUT_DEFAULT ${ANDROID})
 
 option(BUILD_SDL "SDL Enabled" ON)
@@ -284,12 +286,15 @@ set(TIC80CORE_SRC
     ${TIC80CORE_DIR}/api/lua.c 
     ${TIC80CORE_DIR}/api/wren.c 
     ${TIC80CORE_DIR}/api/squirrel.c
-    ${TIC80CORE_DIR}/ext/gif.c
     ${TIC80CORE_DIR}/tic.c
     ${TIC80CORE_DIR}/cart.c
     ${TIC80CORE_DIR}/tools.c 
     ${TIC80CORE_DIR}/tilesheet.c 
 )
+
+if(BUILD_DEPRECATED)
+    set(TIC80CORE_SRC ${TIC80CORE_SRC} ${TIC80CORE_DIR}/ext/gif.c)
+endif()
 
 add_library(tic80core STATIC ${TIC80CORE_SRC})
 
@@ -301,7 +306,12 @@ target_include_directories(tic80core
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src)
 
-target_link_libraries(tic80core lua lpeg wren squirrel giflib blipbuf duktape zlib)
+target_link_libraries(tic80core lua lpeg wren squirrel blipbuf duktape zlib)
+
+if(BUILD_DEPRECATED)
+    target_compile_definitions(tic80core PRIVATE DEPRECATED_CHUNKS)
+    target_link_libraries(tic80core giflib)
+endif()
 
 if(LINUX)
     target_link_libraries(tic80core m)
@@ -505,7 +515,7 @@ set(CMAKE_DISABLE_TESTING ON CACHE BOOL "" FORCE)
 add_subdirectory(${THIRDPARTY_DIR}/zip)
 
 ################################
-# bin2txt cart2prj prj2cart
+# bin2txt cart2prj prj2cart xplode
 ################################
 
 if(BUILD_DEMO_CARTS)
@@ -522,6 +532,19 @@ if(BUILD_DEMO_CARTS)
 
     add_executable(bin2txt ${TOOLS_DIR}/bin2txt.c)
     target_link_libraries(bin2txt zlib)
+
+    add_executable(xplode 
+        ${TOOLS_DIR}/xplode.c 
+        ${CMAKE_SOURCE_DIR}/src/ext/gif.c
+        ${CMAKE_SOURCE_DIR}/src/ext/png.c
+        ${CMAKE_SOURCE_DIR}/src/studio/project.c)
+
+    target_include_directories(xplode PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include)
+    target_link_libraries(xplode tic80core png giflib)
+
+    if(LINUX)
+        target_link_libraries(xplode m)
+    endif()
 
     file(GLOB DEMO_CARTS ${CMAKE_SOURCE_DIR}/demos/*.* )
 
@@ -641,7 +664,8 @@ add_library(png STATIC ${LIBPNG_SRC})
 target_compile_definitions(png PRIVATE PNG_ARM_NEON_OPT=0)
 
 target_include_directories(png 
-    PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${THIRDPARTY_DIR}/zlib
+    PUBLIC ${CMAKE_CURRENT_BINARY_DIR} 
+    PRIVATE ${THIRDPARTY_DIR}/zlib
     INTERFACE ${THIRDPARTY_DIR}/libpng)
 
 ################################
@@ -669,6 +693,7 @@ set(TIC80STUDIO_SRC
     ${TIC80LIB_DIR}/studio/net.c
     ${TIC80LIB_DIR}/ext/md5.c
     ${TIC80LIB_DIR}/ext/history.c
+    ${TIC80LIB_DIR}/ext/gif.c
     ${TIC80LIB_DIR}/ext/png.c
 )
 
@@ -682,7 +707,7 @@ endif()
 
 target_include_directories(tic80studio PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
-target_link_libraries(tic80studio tic80core zip wave_writer argparse png)
+target_link_libraries(tic80studio tic80core zip wave_writer argparse giflib png)
 
 if(USE_CURL)
     target_link_libraries(tic80studio libcurl)

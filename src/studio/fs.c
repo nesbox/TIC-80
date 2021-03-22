@@ -897,7 +897,8 @@ void tic_fs_makedir(tic_fs* fs, const char* name)
     }
     free(path);
 #else
-    const FsString* pathString = utf8ToString(name);
+
+    const FsString* pathString = utf8ToString(tic_fs_path(fs, name));
     tic_mkdir(pathString);
     freeString(pathString);
 
