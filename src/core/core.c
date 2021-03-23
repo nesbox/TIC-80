@@ -173,7 +173,7 @@ void tic_api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
 
     static const struct { s32 bank; s32 ram; s32 size; u8 mask; } Sections[] = 
     { 
-#define TIC_SYNC_DEF(CART, RAM, INDEX) { offsetof(tic_bank, CART), offsetof(tic_ram, RAM), sizeof(tic_##CART), 1 << INDEX },
+#define TIC_SYNC_DEF(CART, RAM, ...) { offsetof(tic_bank, CART), offsetof(tic_ram, RAM), sizeof(tic_##CART), tic_sync_##CART },
         TIC_SYNC_LIST(TIC_SYNC_DEF) 
 #undef  TIC_SYNC_DEF
     };
@@ -191,12 +191,8 @@ void tic_api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
             sync((u8*)&tic->ram + Sections[i].ram, (u8*)&tic->cart.banks[bank] + Sections[i].bank, Sections[i].size, toCart);
 
     // copy OVR palette
-    {
-        enum { PaletteIndex = 5 };
-
-        if (mask & (1 << PaletteIndex))
-            sync(&core->state.ovr.palette, &tic->cart.banks[bank].palette.ovr, sizeof(tic_palette), toCart);
-    }
+    if (mask & tic_sync_palette)
+        sync(&core->state.ovr.palette, &tic->cart.banks[bank].palette.ovr, sizeof(tic_palette), toCart);
 
     core->state.synced |= mask;
 }
