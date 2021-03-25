@@ -92,12 +92,12 @@
 #define WAVE_MAX_VALUE ((1 << WAVE_VALUE_BITS) - 1)
 #define WAVE_SIZE (WAVE_VALUES * WAVE_VALUE_BITS / BITS_IN_BYTE)
 
-
+#define TIC_BANKSIZE_BITS 16
+#define TIC_BANK_SIZE (1 << TIC_BANKSIZE_BITS) // 64K
 #define TIC_BANK_BITS 3
 #define TIC_BANKS (1 << TIC_BANK_BITS)
 
-#define TIC_CODE_BANK_SIZE (64 * 1024) // 64K
-#define TIC_CODE_SIZE (TIC_CODE_BANK_SIZE * TIC_BANKS)
+#define TIC_CODE_SIZE (TIC_BANK_SIZE * TIC_BANKS)
 
 #define TIC_GAMEPADS (sizeof(tic80_gamepads) / sizeof(tic80_gamepad))
 
@@ -369,11 +369,6 @@ typedef struct
 typedef union
 {
     char data[TIC_CODE_SIZE];
-
-    struct
-    {
-        char data[TIC_CODE_BANK_SIZE];
-    } banks[TIC_BANKS];
 } tic_code;
 
 typedef struct
