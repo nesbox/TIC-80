@@ -37,7 +37,7 @@ typedef enum
     CHUNK_SPRITES,      // 2
     CHUNK_COVER_DEP,    // 3 - deprecated chunk
     CHUNK_MAP,          // 4
-    CHUNK_CODE_DEP,     // 5 - deprecated chunk
+    CHUNK_CODE,         // 5
     CHUNK_FLAGS,        // 6
     CHUNK_TEMP2,        // 7
     CHUNK_TEMP3,        // 8
@@ -48,7 +48,7 @@ typedef enum
     CHUNK_PATTERNS_DEP, // 13 - deprecated chunk
     CHUNK_MUSIC,        // 14
     CHUNK_PATTERNS,     // 15
-    CHUNK_CODE,         // 16
+    CHUNK_CODE_ZIP,     // 16
     CHUNK_DEFAULT,      // 17
     CHUNK_SCREEN,       // 18
 } ChunkType;
@@ -129,14 +129,13 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
             case CHUNK_FLAGS:       LOAD_CHUNK(cart->banks[chunk->bank].flags);          break;
             case CHUNK_SCREEN:      LOAD_CHUNK(cart->banks[chunk->bank].screen);         break;
             case CHUNK_CODE:
-                if(!tic_tool_unzip(cart->code.data, TIC_CODE_SIZE, ptr, chunk->size))
-                    LOAD_CHUNK(cart->code.data);
+                LOAD_CHUNK(code[chunk->bank].data);
+                break;
+            case CHUNK_CODE_ZIP:
+                tic_tool_unzip(cart->code.data, TIC_CODE_SIZE, buffer, chunk->size);
                 break;
 
 #if defined(DEPRECATED_CHUNKS)
-            case CHUNK_CODE_DEP:
-                LOAD_CHUNK(code[chunk->bank].data);
-                break;
             case CHUNK_COVER_DEP:
                 {
                     // workaround to load deprecated cover section
@@ -286,7 +285,7 @@ s32 tic_cart_save(const tic_cartridge* cart, u8* buffer)
         s32 size = tic_tool_zip(dst, TIC_BANK_SIZE, cart->code.data, codeLen);
 
         if(size)
-            buffer = saveFixedChunk(buffer, CHUNK_CODE, dst, size, 0);
+            buffer = saveFixedChunk(buffer, CHUNK_CODE_ZIP, dst, size, 0);
 
         free(dst);
 
