@@ -492,17 +492,6 @@ void tic_core_tick(tic_mem* tic, tic_tick_data* data)
         else return;
     }
 
-    {
-        if (!tic->input.keyboard)
-            ZEROMEM(tic->ram.input.keyboard);
-
-        if (!tic->input.gamepad)
-            ZEROMEM(tic->ram.input.gamepads);
-
-        if (!tic->input.mouse)
-            ZEROMEM(tic->ram.input.mouse);
-    }
-
     core->state.tick(tic);
 }
 
