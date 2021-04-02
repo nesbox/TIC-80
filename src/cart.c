@@ -132,7 +132,7 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
                 LOAD_CHUNK(code[chunk->bank].data);
                 break;
             case CHUNK_CODE_ZIP:
-                tic_tool_unzip(cart->code.data, TIC_CODE_SIZE, buffer, chunk->size);
+                tic_tool_unzip(cart->code.data, TIC_CODE_SIZE, ptr, chunk->size);
                 break;
 
 #if defined(DEPRECATED_CHUNKS)
