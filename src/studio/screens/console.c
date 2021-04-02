@@ -1523,7 +1523,7 @@ static void onConsoleImportCommand(Console* console, const char* param)
     if(error)
     {
         printBack(console, "\nusage:\nimport (");
-        printFront(console, "tiles sprites map screen");
+        printFront(console, "code map screen sprites tiles");
         printBack(console, ") file");
         commandDone(console);
     }
