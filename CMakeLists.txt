@@ -570,6 +570,10 @@ if(BUILD_DEMO_CARTS)
 
     endforeach(CART_FILE)
 
+    add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/build/assets/cart.png.dat
+        COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${CMAKE_SOURCE_DIR}/build/cart.png ${CMAKE_SOURCE_DIR}/build/assets/cart.png.dat
+        DEPENDS bin2txt ${CMAKE_SOURCE_DIR}/build/cart.png)
+
 endif()
 
 ################################
@@ -699,7 +703,10 @@ set(TIC80STUDIO_SRC
 
 set(TIC80_OUTPUT tic80)
 
-add_library(tic80studio STATIC ${TIC80STUDIO_SRC} ${DEMO_CARTS_OUT})
+add_library(tic80studio STATIC 
+    ${TIC80STUDIO_SRC} 
+    ${DEMO_CARTS_OUT} 
+    ${CMAKE_SOURCE_DIR}/build/assets/cart.png.dat)
 
 if(WIN32)
     target_include_directories(tic80studio PRIVATE ${THIRDPARTY_DIR}/dirent/include)

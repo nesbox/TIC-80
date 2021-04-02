@@ -249,55 +249,11 @@ static void resetBlitSegment(tic_mem* memory)
     memory->ram.vram.blit.segment = TIC_DEFAULT_BLIT_MODE;
 }
 
-static const char* readMetatag(const char* code, const char* tag, const char* comment)
-{
-    const char* start = NULL;
-
-    {
-        static char format[] = "%s %s:";
-
-        char* tagBuffer = malloc(strlen(format) + strlen(tag));
-
-        if (tagBuffer)
-        {
-            sprintf(tagBuffer, format, comment, tag);
-            if ((start = strstr(code, tagBuffer)))
-                start += strlen(tagBuffer);
-            free(tagBuffer);
-        }
-    }
-
-    if (start)
-    {
-        const char* end = strstr(start, "\n");
-
-        if (end)
-        {
-            while (*start <= ' ' && start < end) start++;
-            while (*(end - 1) <= ' ' && end > start) end--;
-
-            const s32 size = (s32)(end - start);
-
-            char* value = (char*)malloc(size + 1);
-
-            if (value)
-            {
-                memset(value, 0, size + 1);
-                memcpy(value, start, size);
-
-                return value;
-            }
-        }
-    }
-
-    return NULL;
-}
-
 static bool compareMetatag(const char* code, const char* tag, const char* value, const char* comment)
 {
     bool result = false;
 
-    const char* str = readMetatag(code, tag, comment);
+    const char* str = tic_tool_metatag(code, tag, comment);
 
     if (str)
     {
@@ -353,7 +309,7 @@ const tic_script_config* tic_core_script_config(tic_mem* memory)
 static void updateSaveid(tic_mem* memory)
 {
     memset(memory->saveid, 0, sizeof memory->saveid);
-    const char* saveid = readMetatag(memory->cart.code.data, "saveid", tic_core_script_config(memory)->singleComment);
+    const char* saveid = tic_tool_metatag(memory->cart.code.data, "saveid", tic_core_script_config(memory)->singleComment);
     if (saveid)
     {
         strncpy(memory->saveid, saveid, TIC_SAVEID_SIZE - 1);

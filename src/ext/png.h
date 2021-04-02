@@ -58,6 +58,8 @@ typedef struct
     };
 } png_img;
 
+png_buffer png_create(s32 size);
+
 png_img png_read(png_buffer buf);
 png_buffer png_write(png_img src);
 

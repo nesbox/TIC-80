@@ -27,6 +27,7 @@
 #include "studio/project.h"
 
 #include "ext/gif.h"
+#include "ext/png.h"
 
 #include <string.h>
 
@@ -43,6 +44,8 @@
 #if defined(__TIC_WINDOWS__) || defined(__TIC_LINUX__) || defined(__TIC_MACOSX__)
 #define CAN_OPEN_URL 1
 #endif
+
+static const char* PngExt = PNG_EXT;
 
 typedef struct
 {
@@ -304,7 +307,8 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 
     if(dir 
         || tic_tool_has_ext(name, CartExt)
-        || hasProjectExt(name))
+        || hasProjectExt(name)
+        || tic_tool_has_ext(name, PngExt))
     {
         data->items = realloc(data->items, sizeof(MenuItem) * ++data->count);
         MenuItem* item = &data->items[data->count-1];
@@ -498,6 +502,17 @@ static void loadCover(Surf* surf)
 
                 if(hasProjectExt(item->name))
                     tic_project_load(item->name, data, size, cart);
+                else if(tic_tool_has_ext(item->name, PngExt))
+                {
+                    tic_cartridge* pngcart = loadPngCart((png_buffer){data, size});
+
+                    if(pngcart)
+                    {
+                        memcpy(cart, pngcart, sizeof(tic_cartridge));
+                        free(pngcart);
+                    }
+                    else memset(cart, 0, sizeof(tic_cartridge));
+                }
                 else
                     tic_cart_load(cart, data, size);
 
@@ -645,7 +660,25 @@ static void onPlayCart(Surf* surf)
 
 static void loadCart(Surf* surf)
 {
-    resetMovie(surf, &MenuModeHideState, onPlayCart);
+    MenuItem* item = getMenuItem(surf);
+
+    if(tic_tool_has_ext(item->name, PngExt))
+    {
+        s32 size = 0;
+        void* data = tic_fs_load(surf->fs, item->name, &size);
+
+        if(data)
+        {
+            tic_cartridge* cart = loadPngCart((png_buffer){data, size});
+
+            if(cart)
+            {
+                resetMovie(surf, &MenuModeHideState, onPlayCart);
+                free(cart);
+            }
+        }
+    }
+    else resetMovie(surf, &MenuModeHideState, onPlayCart);
 }
 
 static void processAnim(Surf* surf)

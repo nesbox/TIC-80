@@ -1079,14 +1079,6 @@ void drawBitIcon(s32 x, s32 y, const u8* ptr, u8 color)
                 tic_api_pix(impl.studio.tic, x - col + (TIC_SPRITESIZE - 1), y + i, color, false);
 }
 
-void drawBitIcon16(tic_mem* tic, s32 x, s32 y, const u16* ptr, u8 color)
-{
-    for(s32 i = 0; i < TIC_SPRITESIZE*2; i++, ptr++)
-        for(s32 col = 0; col < TIC_SPRITESIZE*2; col++)
-            if(*ptr & 1 << col)
-                tic_api_pix(tic, x - col + (TIC_SPRITESIZE*2 - 1), y + i, color, false);
-}
-
 static void initWorldMap()
 {
     initWorld(impl.world, impl.studio.tic, impl.banks.map[impl.bank.index.map]);
@@ -1318,6 +1310,30 @@ static void updateTitle()
         snprintf(name, TICNAME_MAX, "%s [%s]", TIC_TITLE, impl.console->rom.name);
 
     tic_sys_title(name);
+}
+
+tic_cartridge* loadPngCart(png_buffer buffer)
+{
+    png_buffer zip = png_decode(buffer);
+
+    if (zip.size)
+    {
+        png_buffer buf = png_create(sizeof(tic_cartridge));
+
+        buf.size = tic_tool_unzip(buf.data, buf.size, zip.data, zip.size);
+        free(zip.data);
+
+        if(buf.size)
+        {
+            tic_cartridge* cart = malloc(sizeof(tic_cartridge));
+            tic_cart_load(cart, buf.data, buf.size);
+            free(buf.data);
+
+            return cart;
+        }
+    }
+
+    return NULL;
 }
 
 void studioRomSaved()

@@ -63,6 +63,8 @@
 #define CONSOLE_BUFFER_SCREENS 64
 #define CONSOLE_BUFFER_SIZE (CONSOLE_BUFFER_WIDTH * CONSOLE_BUFFER_HEIGHT * CONSOLE_BUFFER_SCREENS)
 
+static const char* PngExt = PNG_EXT;
+
 typedef enum
 {
 #if defined(TIC_BUILD_WITH_LUA)
@@ -769,6 +771,8 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 
     if(param)
     {
+        tic_mem* tic = console->tic;
+
         const char* name = getCartName(param);
 
         if (tic_fs_ispubdir(console->fs))
@@ -788,8 +792,27 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 
             if(data)
             {
-                loadRom(console->tic, data, size);
+                loadRom(tic, data, size);
                 onCartLoaded(console, name);
+                free(data);
+            }
+            else if(tic_tool_has_ext(param, PngExt) && tic_fs_exists(console->fs, param))
+            {
+                png_buffer buffer;
+                buffer.data = tic_fs_load(console->fs, param, &buffer.size);
+                tic_cartridge* cart = loadPngCart(buffer);
+
+                if(cart)
+                {
+                    memcpy(&tic->cart, cart, sizeof(tic_cartridge));
+                    tic_api_reset(tic);
+
+                    onCartLoaded(console, param);
+                    free(cart);
+                }
+                else printBack(console, "\ncart loading error");
+               
+                free(buffer.data);
             }
             else
             {
@@ -812,12 +835,12 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
 
                 void* data = tic_fs_load(console->fs, name, &size);
 
-                if(data && tic_project_load(name, data, size, &console->tic->cart))
+                if(data && tic_project_load(name, data, size, &tic->cart))
                     onCartLoaded(console, name);
                 else printBack(console, "\ncart loading error");
-            }
 
-            free(data);
+                free(data);
+            }
         }
     }
     else printBack(console, "\ncart name is missing");
@@ -1846,11 +1869,11 @@ static void onConsoleExportCommand(Console* console, const char* param)
         if(strcmp(param, "html") == 0)
             exportGame(console, getFilename(filename, ".zip"), param, onHtmlExportGet);
         else if(strcmp(param, "tiles") == 0)
-            exportSprites(console, getFilename(filename, ".png"), getBankTiles()->data);
+            exportSprites(console, getFilename(filename, PngExt), getBankTiles()->data);
         else if (strcmp(param, "sprites") == 0)
-            exportSprites(console, getFilename(filename, ".png"), getBankTiles()->data + TIC_BANK_SPRITES);
+            exportSprites(console, getFilename(filename, PngExt), getBankTiles()->data + TIC_BANK_SPRITES);
         else if (strcmp(param, "screen") == 0)
-            exportScreen(console, getFilename(filename, ".png"));
+            exportScreen(console, getFilename(filename, PngExt));
         else if(strcmp(param, "map") == 0)
             exportMap(console, getFilename(filename, ".map"));
         else if(strncmp(param, "sfx", SfxIndex) == 0)
@@ -1881,6 +1904,14 @@ static void onConsoleExportCommand(Console* console, const char* param)
     }
 }
 
+static void drawShadowText(tic_mem* tic, const char* text, s32 x, s32 y, tic_color color, s32 scale)
+{
+    tic_api_print(tic, text, x, y + scale, tic_color_black, false, scale, false);
+    tic_api_print(tic, text, x, y, color, false, scale, false);
+}
+
+const char* readMetatag(const char* code, const char* tag, const char* comment);
+
 static CartSaveResult saveCartName(Console* console, const char* name)
 {
     tic_mem* tic = console->tic;
@@ -1907,6 +1938,84 @@ static CartSaveResult saveCartName(Console* console, const char* name)
                 if(hasProjectExt(name))
                 {
                     size = tic_project_save(name, buffer, &tic->cart);
+                }
+                else if(tic_tool_has_ext(name, PngExt))
+                {
+                    png_buffer cover;
+
+                    {
+                        enum{CoverWidth = 256};
+
+                        static const u8 Cartridge[] = 
+                        {
+                            #include "../build/assets/cart.png.dat"
+                        };
+
+                        png_buffer template = {(u8*)Cartridge, sizeof Cartridge};
+                        png_img img = png_read(template);
+
+                        // draw screen
+                        {
+                            enum{PaddingLeft = 8, PaddingTop = 8};
+
+                            const tic_bank* bank = &tic->cart.bank0;
+                            const tic_rgb* pal = bank->palette.scn.colors;
+                            const u8* screen = bank->screen.data;
+                            u32* ptr = img.values + PaddingTop * CoverWidth + PaddingLeft;
+
+                            for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
+                                ptr[i / TIC80_WIDTH * CoverWidth + i % TIC80_WIDTH] = tic_rgba(pal + tic_tool_peek4(screen, i));
+                        }
+
+                        // draw title/author/desc
+                        {
+                            enum{Width = 224, Height = 40, PaddingTop = 162, PaddingLeft = 16, Scale = 2, Row = TIC_FONT_HEIGHT * 2 * Scale};
+
+                            tic_api_cls(tic, tic_color_dark_grey);
+
+                            const char* comment = tic_core_script_config(tic)->singleComment;
+
+                            const char* title = tic_tool_metatag(tic->cart.code.data, "title", comment);
+                            if(title)
+                                drawShadowText(tic, title, 0, 0, tic_color_white, Scale);
+
+                            const char* author = tic_tool_metatag(tic->cart.code.data, "author", comment);
+                            if(author)
+                            {
+                                char buf[TICNAME_MAX];
+                                snprintf(buf, sizeof buf, "by %s", author);
+                                drawShadowText(tic, buf, 0, Row, tic_color_grey, Scale);
+                            }
+
+                            u32* ptr = img.values + PaddingTop * CoverWidth + PaddingLeft;
+                            const u8* screen = tic->ram.vram.screen.data;
+                            const tic_rgb* pal = getConfig()->cart->bank0.palette.scn.colors;
+
+                            for(s32 y = 0; y < Height; y++)
+                                for(s32 x = 0; x < Width; x++)
+                                    ptr[CoverWidth * y + x] = tic_rgba(pal + tic_tool_peek4(screen, y * TIC80_WIDTH + x));
+                        }
+
+                        cover = png_write(img);
+
+                        free(img.data);
+                    }
+
+                    png_buffer zip = png_create(sizeof(tic_cartridge));
+
+                    {
+                        png_buffer cart = png_create(sizeof(tic_cartridge));
+                        cart.size = tic_cart_save(&tic->cart, cart.data);
+                        zip.size = tic_tool_zip(zip.data, zip.size, cart.data, cart.size);
+                        free(cart.data);                        
+                    }
+                    
+                    png_buffer result = png_encode(cover, zip);
+                    free(zip.data);
+                    free(cover.data);
+
+                    buffer = result.data;
+                    size = result.size;
                 }
                 else
                 {
@@ -2915,6 +3024,17 @@ static bool cmdLoadCart(Console* console, const char* path)
         {
             if(tic_project_load(cartName, data, size, console->embed.file))
                 done = console->embed.yes = true;
+        }
+        else if(tic_tool_has_ext(cartName, PngExt))
+        {
+            tic_cartridge* cart = loadPngCart((png_buffer){data, size});
+
+            if(cart)
+            {
+                memcpy(console->embed.file, cart, sizeof(tic_cartridge));
+                free(cart);
+                done = console->embed.yes = true;
+            }
         }
         else if(tic_tool_has_ext(cartName, CART_EXT))
         {

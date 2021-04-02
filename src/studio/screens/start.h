@@ -26,9 +26,9 @@
 
 typedef struct Start Start;
 
-#define CONSOLE_HEADER(macro)                                   \
-    macro(TIC_NAME_FULL, tic_color_white)                       \
-    macro("version " TIC_VERSION_LABEL, tic_color_light_grey)   \
+#define CONSOLE_HEADER(macro)                               \
+    macro(TIC_NAME_FULL, tic_color_white)                   \
+    macro("version " TIC_VERSION_LABEL, tic_color_grey)     \
     macro(TIC_COPYRIGHT, tic_color_grey)
 
 struct Start

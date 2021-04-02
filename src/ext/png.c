@@ -29,6 +29,11 @@
 
 #define RGBA_SIZE sizeof(u32)
 
+png_buffer png_create(s32 size)
+{
+    return (png_buffer){malloc(size), size};
+}
+
 typedef struct
 {
     png_buffer buffer;
@@ -176,22 +181,29 @@ static inline void bitcpy(u8* dst, u32 to, const u8* src, u32 from, u32 size)
             : BIT_CLEAR_LV(dst[to >> 3], to & 7);
 }
 
-static inline u32 ceilBufSize(u32 size, u32 bits)
+static inline s32 ceildiv(s32 a, s32 b)
 {
-    return (size * BITS_IN_BYTE + bits - 1) / bits;
+    return (a + b - 1) / b;
 }
 
 png_buffer png_encode(png_buffer cover, png_buffer cart)
 {    
     png_img png = png_read(cover);
 
-    Header header = {CLAMP(cart.size * BITS_IN_BYTE / (png.width * png.height * RGBA_SIZE - HEADER_SIZE), 1, 8), cart.size};
+    const s32 cartBits = cart.size * BITS_IN_BYTE;
+    const s32 coverSize = png.width * png.height * RGBA_SIZE - HEADER_SIZE;
+    Header header = {CLAMP(ceildiv(cartBits, coverSize), 1, BITS_IN_BYTE), cart.size};
 
     for (s32 i = 0; i < HEADER_SIZE; i++)
         bitcpy(png.data, i << 3, header.data, i * HEADER_BITS, HEADER_BITS);
 
-    for (s32 i = 0, end = ceilBufSize(cart.size, header.bits); i < end; i++)
-        bitcpy(png.data + HEADER_SIZE, i << 3, cart.data, i * header.bits, header.bits);
+    u8* dst = png.data + HEADER_SIZE;
+    s32 end = ceildiv(cartBits, header.bits);
+    for (s32 i = 0; i < end; i++)
+        bitcpy(dst, i << 3, cart.data, i * header.bits, header.bits);
+
+    for (s32 i = end; i < coverSize; i++)
+        bitcpy(dst, i << 3, (const u8[]){rand()}, 0, header.bits);
 
     png_buffer out = png_write(png);
 
@@ -204,17 +216,29 @@ png_buffer png_decode(png_buffer cover)
 {
     png_img png = png_read(cover);
 
-    Header header;
+    if (png.data)
+    {
+        Header header;
 
-    for (s32 i = 0; i < HEADER_SIZE; i++)
-        bitcpy(header.data, i * HEADER_BITS, png.data, i << 3, HEADER_BITS);
+        for (s32 i = 0; i < HEADER_SIZE; i++)
+            bitcpy(header.data, i * HEADER_BITS, png.data, i << 3, HEADER_BITS);
 
-    png_buffer out = { malloc(header.size), header.size };
+        if (header.bits > 0 
+            && header.bits <= BITS_IN_BYTE 
+            && header.size > 0 
+            && header.size <= png.width * png.height * RGBA_SIZE - HEADER_SIZE)
+        {
+            png_buffer out = { malloc(header.size), header.size };
 
-    for (s32 i = 0, end = ceilBufSize(header.size, header.bits); i < end; i++)
-        bitcpy(out.data, i * header.bits, png.data + HEADER_SIZE, i << 3, header.bits);
+            const u8* from = png.data + HEADER_SIZE;
+            for (s32 i = 0, end = ceildiv(header.size * BITS_IN_BYTE, header.bits); i < end; i++)
+                bitcpy(out.data, i * header.bits, from, i << 3, header.bits);
 
-    free(png.data);
+            free(png.data);
 
-    return out;
+            return out;
+        }
+    }
+
+    return (png_buffer) { 0 };
 }

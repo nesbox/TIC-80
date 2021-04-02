@@ -94,3 +94,5 @@ bool    tic_tool_empty(const void* buffer, s32 size);
 #define EMPTY(BUFFER) (tic_tool_empty((BUFFER), sizeof (BUFFER)))
 
 u32     tic_nearest_color(const tic_rgb* palette, const tic_rgb* color);
+
+const char* tic_tool_metatag(const char* code, const char* tag, const char* comment);
