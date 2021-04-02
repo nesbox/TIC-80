@@ -2193,6 +2193,7 @@ static void onStudioEvent(Code* code, StudioEvent event)
 
 void initCode(Code* code, tic_mem* tic, tic_code* src)
 {
+    bool firstLoad = code->state == NULL;
     if(code->state != NULL)
         free(code->state);
 
@@ -2230,7 +2231,7 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
             .index = 0,
         },
         .matchedDelim = NULL,
-        .altFont = getConfig()->theme.code.altFont,
+        .altFont = firstLoad ? getConfig()->theme.code.altFont : code->altFont,
         .shadowText = getConfig()->theme.code.shadow,
         .event = onStudioEvent,
         .update = update,
