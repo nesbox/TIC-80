@@ -2193,7 +2193,7 @@ static void onStudioEvent(Code* code, StudioEvent event)
 
 void initCode(Code* code, tic_mem* tic, tic_code* src)
 {
-    if(code->state == NULL)
+    if(code->state != NULL)
         free(code->state);
 
     if(code->history.code) history_delete(code->history.code);
