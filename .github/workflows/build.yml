@@ -22,7 +22,7 @@ jobs:
       run: |
         cd build
         cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
-        cmake --build . --parallel --config %BUILD_TYPE%
+        cmake --build . --config %BUILD_TYPE% --parallel
 
     - name: Deploy
       uses: actions/upload-artifact@v2
@@ -45,7 +45,7 @@ jobs:
       run: |
         cd build
         cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
-        cmake --build . --parallel --config %BUILD_TYPE%
+        cmake --build . --config %BUILD_TYPE% --parallel
 
     - name: Deploy
       uses: actions/upload-artifact@v2
@@ -68,7 +68,7 @@ jobs:
       run: |
         cd build
         cmake -G "Visual Studio 16 2019" -A Win32 -DBUILD_SDL=Off -DBUILD_SOKOL=On -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
-        cmake --build . --parallel --config %BUILD_TYPE%
+        cmake --build . --config %BUILD_TYPE% --parallel
         cp bin/tic80-sokol.exe bin/tic80.exe
 
     - name: Deploy
@@ -96,7 +96,7 @@ jobs:
       run: |
         cd build
         cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SDLGPU=On ..
-        cmake --build . --parallel --config $BUILD_TYPE
+        cmake --build . --config $BUILD_TYPE --parallel
         cpack
 
     - name: Deploy
@@ -124,7 +124,7 @@ jobs:
       run: |
         cd build
         cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
-        cmake --build . --parallel --config $BUILD_TYPE
+        cmake --build . --config $BUILD_TYPE --parallel
         cpack
 
     - name: Deploy
@@ -148,7 +148,7 @@ jobs:
       run: |
         cd build
         cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_TOOLCHAIN_FILE=rpi/toolchain.cmake ..
-        cmake --build . --parallel --config $BUILD_TYPE
+        cmake --build . --config $BUILD_TYPE --parallel
         cpack
 
     - name: Deploy
@@ -247,7 +247,7 @@ jobs:
       run: |
         cd build
         cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
-        cmake --build . --parallel --config $BUILD_TYPE
+        cmake --build . --config $BUILD_TYPE --parallel
         cpack
         cp *.dmg tic80.dmg
 
@@ -296,7 +296,7 @@ jobs:
       run: |
         cd build
         emcmake cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
-        cmake --build . --parallel --config $BUILD_TYPE
+        cmake --build . --config $BUILD_TYPE --parallel
         cp html/export.html bin/index.html
 
     - name: Deploy
