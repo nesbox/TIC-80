@@ -7,6 +7,29 @@ env:
 
 jobs:
 
+# === Windows XP SDL2===
+  windows-sdl:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Build
+      shell: cmd
+      run: |
+        cd build
+        cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
+        cmake --build . --config %BUILD_TYPE% --parallel
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-winxp-sdl'
+        path: build/bin/tic80.exe
+
 # === Windows SDL2 ===
   windows-sdl:
     runs-on: windows-latest
