@@ -226,9 +226,10 @@ png_buffer png_decode(png_buffer cover)
         if (header.bits > 0 
             && header.bits <= BITS_IN_BYTE 
             && header.size > 0 
-            && header.size <= png.width * png.height * RGBA_SIZE - HEADER_SIZE)
+            && header.size <= png.width * png.height * RGBA_SIZE * header.bits / BITS_IN_BYTE - HEADER_SIZE)
         {
-            png_buffer out = { malloc(header.size), header.size };
+            s32 aligned = header.size + ceildiv(header.size * BITS_IN_BYTE % header.bits, BITS_IN_BYTE);
+            png_buffer out = { malloc(aligned), header.size };
 
             const u8* from = png.data + HEADER_SIZE;
             for (s32 i = 0, end = ceildiv(header.size * BITS_IN_BYTE, header.bits); i < end; i++)
