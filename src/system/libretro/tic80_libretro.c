@@ -872,16 +872,21 @@ RETRO_API void *retro_get_memory_data(unsigned id)
  */
 RETRO_API size_t retro_get_memory_size(unsigned id)
 {
-	switch (id) {
-		case RETRO_MEMORY_SAVE_RAM:
-			return TIC_PERSISTENT_SIZE;
-		case RETRO_MEMORY_SYSTEM_RAM:
-			return TIC_RAM_SIZE;
-		case RETRO_MEMORY_VIDEO_RAM:
-			return TIC_VRAM_SIZE;
-		default:
-			return 0;
-	}
+    if (state == NULL || state->tic == NULL) {
+        return 0;
+    }
+
+    tic80_local* tic80 = (tic80_local*)state->tic;
+    switch (id) {
+        case RETRO_MEMORY_SAVE_RAM:
+            return sizeof(tic80->memory->ram.persistent.data);
+        case RETRO_MEMORY_SYSTEM_RAM:
+            return sizeof(tic80->memory->ram.data);
+        case RETRO_MEMORY_VIDEO_RAM:
+            return sizeof(tic80->memory->ram.vram.data);
+        default:
+            return 0;
+    }
 }
 
 /**
