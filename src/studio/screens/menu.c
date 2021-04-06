@@ -455,7 +455,7 @@ static void processMainMenuGamepad(Menu* menu)
 
 static void saveMapping(Menu* menu)
 {
-    fsSaveRootFile(menu->fs, KEYMAP_DAT_PATH, getKeymap(), KEYMAP_SIZE, true);
+    tic_fs_saveroot(menu->fs, KEYMAP_DAT_PATH, getKeymap(), KEYMAP_SIZE, true);
 }
 
 static void processKeyboard(Menu* menu)
@@ -515,14 +515,23 @@ static void tick(Menu* menu)
         break;
     }
 
-    drawBGAnimation(tic, menu->ticks);
+    if(menu->cover)
+        tic_api_sync(tic, tic_sync_screen, 0, false);
+    else
+        drawBGAnimation(tic, menu->ticks);
 }
 
 static void scanline(tic_mem* tic, s32 row, void* data)
 {
     Menu* menu = (Menu*)data;
 
-    drawBGAnimationScanline(tic, row);
+    if(menu->cover)
+    {
+        if(row == 0)
+            tic_api_sync(tic, tic_sync_palette, 0, false);
+    }
+    else 
+        drawBGAnimationScanline(tic, row);
 }
 
 static void overline(tic_mem* tic, void* data)
@@ -540,11 +549,12 @@ static void overline(tic_mem* tic, void* data)
     }
 }
 
-void initMenu(Menu* menu, tic_mem* tic, FileSystem* fs)
+void initMenu(Menu* menu, tic_mem* tic, tic_fs* fs)
 {
     *menu = (Menu)
     {
         .init = false,
+        .cover = !EMPTY(tic->cart.bank0.screen.data),
         .fs = fs,
         .tic = tic,
         .tick = tick,

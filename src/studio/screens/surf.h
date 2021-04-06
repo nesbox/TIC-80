@@ -29,8 +29,8 @@ typedef struct Surf Surf;
 struct Surf
 {
     tic_mem* tic;
-    struct FileSystem* fs;
-    struct Net* net;
+    struct tic_fs* fs;
+    struct tic_net* net;
     struct Console* console;
     struct Movie* state;
 

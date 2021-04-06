@@ -92,12 +92,12 @@
 #define WAVE_MAX_VALUE ((1 << WAVE_VALUE_BITS) - 1)
 #define WAVE_SIZE (WAVE_VALUES * WAVE_VALUE_BITS / BITS_IN_BYTE)
 
-
+#define TIC_BANKSIZE_BITS 16
+#define TIC_BANK_SIZE (1 << TIC_BANKSIZE_BITS) // 64K
 #define TIC_BANK_BITS 3
 #define TIC_BANKS (1 << TIC_BANK_BITS)
 
-#define TIC_CODE_BANK_SIZE (64 * 1024) // 64K
-#define TIC_CODE_SIZE (TIC_CODE_BANK_SIZE * TIC_BANKS)
+#define TIC_CODE_SIZE (TIC_BANK_SIZE * TIC_BANKS)
 
 #define TIC_GAMEPADS (sizeof(tic80_gamepads) / sizeof(tic80_gamepad))
 
@@ -369,18 +369,7 @@ typedef struct
 typedef union
 {
     char data[TIC_CODE_SIZE];
-
-    struct
-    {
-        char data[TIC_CODE_BANK_SIZE];
-    } banks[TIC_BANKS];
 } tic_code;
-
-typedef struct 
-{
-    s32 size;
-    u8 data [TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32)];
-} tic_cover_image;
 
 typedef struct
 {
@@ -399,7 +388,7 @@ typedef union
 typedef struct
 {
     tic_tile data[TIC_BANK_SPRITES];
-} tic_tiles;
+} tic_tiles, tic_sprites;
 
 typedef struct
 {
@@ -408,19 +397,25 @@ typedef struct
 
 typedef struct
 {
-    tic_tiles   tiles;
-    tic_tiles   sprites;
-    tic_map     map;
-    tic_sfx     sfx;
-    tic_music   music;
-    tic_flags   flags;
+    tic_palette scn;
+    tic_palette ovr;
+} tic_palettes;
 
-    struct
-    {
-        tic_palette scn;
-        tic_palette ovr;
-    } palette;
+typedef struct
+{
+    u8 data[TIC80_WIDTH * TIC80_HEIGHT * TIC_PALETTE_BPP / BITS_IN_BYTE];
+} tic_screen;
 
+typedef struct
+{
+    tic_screen      screen;
+    tic_tiles       tiles;
+    tic_sprites     sprites;
+    tic_map         map;
+    tic_sfx         sfx;
+    tic_music       music;
+    tic_flags       flags;
+    tic_palettes    palette;
 } tic_bank;
 
 typedef struct
@@ -431,19 +426,14 @@ typedef struct
         tic_bank banks[TIC_BANKS];
     };
 
-    tic_code code;
-    tic_cover_image cover;
+    tic_code code;    
+
 } tic_cartridge;
 
 typedef struct
 {
     u8 data[TIC_FONT_CHARS * BITS_IN_BYTE];
 } tic_font;
-
-typedef struct
-{
-    u8 data[TIC80_WIDTH * TIC80_HEIGHT * TIC_PALETTE_BPP / BITS_IN_BYTE];
-} tic_screen;
 
 typedef union
 {
@@ -503,7 +493,7 @@ typedef union
     {
         tic_vram            vram;
         tic_tiles           tiles;
-        tic_tiles           sprites;
+        tic_sprites         sprites;
         tic_map             map;
         tic80_input         input;
         tic_sfx_pos         sfxpos[TIC_SOUND_CHANNELS];

@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "net.h"
+#include "defines.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -34,11 +35,11 @@
 
 typedef struct
 {
-    HttpGetCallback callback;
+    net_get_callback callback;
     void* calldata;
 } FetchData;
 
-struct Net
+struct tic_net
 {
     emscripten_fetch_attr_t attr;
 };
@@ -47,9 +48,9 @@ static void downloadSucceeded(emscripten_fetch_t *fetch)
 {
     FetchData* data = (FetchData*)fetch->userData;
 
-    HttpGetData getData = 
+    net_get_data getData = 
     {
-        .type = HttpGetDone,
+        .type = net_get_done,
         .done = 
         {
             .size = fetch->numBytes,
@@ -71,9 +72,9 @@ static void downloadFailed(emscripten_fetch_t *fetch)
 {
     FetchData* data = (FetchData*)fetch->userData;
 
-    HttpGetData getData = 
+    net_get_data getData = 
     {
-        .type = HttpGetError,
+        .type = net_get_error,
         .error = 
         {
             .code = fetch->status,
@@ -93,9 +94,9 @@ static void downloadProgress(emscripten_fetch_t *fetch)
 {
     FetchData* data = (FetchData*)fetch->userData;
 
-    HttpGetData getData = 
+    net_get_data getData = 
     {
-        .type = HttpGetProgress,
+        .type = net_get_progress,
         .progress = 
         {
             .size = fetch->dataOffset + fetch->numBytes,
@@ -108,7 +109,7 @@ static void downloadProgress(emscripten_fetch_t *fetch)
     data->callback(&getData);
 }
 
-void netGet(Net* net, const char* path, HttpGetCallback callback, void* calldata)
+void tic_net_get(tic_net* net, const char* path, net_get_callback callback, void* calldata)
 {
     FetchData* data = calloc(1, sizeof(FetchData));
     *data = (FetchData)
@@ -121,12 +122,12 @@ void netGet(Net* net, const char* path, HttpGetCallback callback, void* calldata
     emscripten_fetch(&net->attr, path);
 }
 
-void netTickStart(Net *net) {}
-void netTickEnd(Net *net) {}
+void tic_net_start(tic_net *net) {}
+void tic_net_end(tic_net *net) {}
 
-Net* netCreate(const char* host)
+tic_net* tic_net_create(const char* host)
 {
-    Net* net = (Net*)malloc(sizeof(Net));
+    tic_net* net = (tic_net*)malloc(sizeof(tic_net));
 
     emscripten_fetch_attr_init(&net->attr);
     strcpy(net->attr.requestMethod, "GET");
@@ -138,7 +139,7 @@ Net* netCreate(const char* host)
     return net;
 }
 
-void netClose(Net* net)
+void tic_net_close(tic_net* net)
 {
     free(net);
 }
@@ -147,7 +148,7 @@ void netClose(Net* net)
 
 #include <3ds.h>
 
-struct Net
+struct tic_net
 {
     LightLock tick_lock;
     const char* host;
@@ -156,10 +157,10 @@ struct Net
 typedef struct {
     char url[URL_SIZE];
 
-    Net *net;
+    tic_net *net;
     httpcContext httpc;
-    HttpGetData data;
-    HttpGetCallback callback;
+    net_get_data data;
+    net_get_callback callback;
 
     void *buffer;
     s32 size;
@@ -201,7 +202,7 @@ static inline bool ctx_resize_buf(net_ctx *ctx, s32 new_size) {
     if (status_code != 200) { \
         printf("net_httpc: error %d\n", status_code); \
         if (ctx->callback != NULL) { \
-            ctx->data.type = HttpGetError; \
+            ctx->data.type = net_get_error; \
             ctx->data.error.code = status_code; \
             if (!ignore_lock) LightLock_Lock(&ctx->net->tick_lock); \
             ctx->callback(&ctx->data); \
@@ -266,7 +267,7 @@ static void n3ds_net_execute(net_ctx *ctx, bool ignore_lock) {
             ctx_resize_buf(ctx, old_size + read_size);
             if (ctx->callback != NULL) {
                 if (ignore_lock || !LightLock_TryLock(&ctx->net->tick_lock)) {
-                    ctx->data.type = HttpGetProgress;
+                    ctx->data.type = net_get_progress;
                     if (!httpcGetDownloadSizeState(&ctx->httpc, &ctx->data.progress.size, &ctx->data.progress.total)) {
                         if (ctx->data.progress.total < ctx->data.progress.size) {
                             ctx->data.progress.total = ctx->data.progress.size;
@@ -289,7 +290,7 @@ static void n3ds_net_execute(net_ctx *ctx, bool ignore_lock) {
     NET_EXEC_ERROR_CHECK;
 
     if (ctx->callback != NULL) {
-        ctx->data.type = HttpGetDone;
+        ctx->data.type = net_get_done;
         ctx->data.done.data = ctx->buffer;
         ctx->data.done.size = ctx->size;
         if (!ignore_lock) LightLock_Lock(&ctx->net->tick_lock);
@@ -299,14 +300,14 @@ static void n3ds_net_execute(net_ctx *ctx, bool ignore_lock) {
     httpcCloseContext(&ctx->httpc);
 }
 
-static void n3ds_net_init(Net *net) {
+static void n3ds_net_init(tic_net *net) {
     httpcInit(0);
 
-    memset(net, 0, sizeof(Net));
+    memset(net, 0, sizeof(tic_net));
     LightLock_Init(&net->tick_lock);
 }
 
-static void n3ds_net_free(Net *net) {
+static void n3ds_net_free(tic_net *net) {
     httpcExit();
 }
 
@@ -324,25 +325,9 @@ static void n3ds_net_apply_url(net_ctx *ctx, const char *url) {
     strncat(ctx->url, url, URL_SIZE - 1);
 }
 
-static void n3ds_net_get(Net *net, const char *url, HttpGetCallback callback, void *calldata) {
-    s32 priority;
-    net_ctx *ctx;
-
-    ctx = malloc(sizeof(net_ctx));
-    memset(ctx, 0, sizeof(net_ctx));
-
-    n3ds_net_apply_url(ctx, url);
-    ctx->net = net;
-    ctx->callback = callback;
-    ctx->data.calldata = calldata;
-
-    svcGetThreadPriority(&priority, CUR_THREAD_HANDLE);
-    threadCreate((ThreadFunc) n3ds_net_get_thread, ctx, 16 * 1024, priority - 1, -1, true);
-}
-
-Net* netCreate(const char* host)
+tic_net* tic_net_create(const char* host)
 {
-    Net* net = (Net*)malloc(sizeof(Net));
+    tic_net* net = (tic_net*)malloc(sizeof(tic_net));
 
     n3ds_net_init(net);
     net->host = host;
@@ -350,34 +335,45 @@ Net* netCreate(const char* host)
     return net;
 }
 
-void netGet(Net* net, const char* url, HttpGetCallback callback, void* calldata)
+void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void* calldata)
 {
-    n3ds_net_get(net, url, callback, calldata);
+    net_ctx ctx = 
+    {
+        .net = net,
+        .callback = callback,
+        .data = {.calldata = calldata},
+    };
+
+    n3ds_net_apply_url(&ctx, url);
+
+    s32 priority;
+    svcGetThreadPriority(&priority, CUR_THREAD_HANDLE);
+    threadCreate((ThreadFunc) n3ds_net_get_thread, OBJCOPY(ctx), 16 * 1024, priority - 1, -1, true);
 }
 
-void netClose(Net* net)
+void tic_net_close(tic_net* net)
 {
     n3ds_net_free(net);
     free(net);
 }
 
-void netTickStart(Net *net)
+void tic_net_start(tic_net *net)
 {
     LightLock_Lock(&net->tick_lock);
 }
 
-void netTickEnd(Net *net)
+void tic_net_end(tic_net *net)
 {
     LightLock_Unlock(&net->tick_lock);
 }
 
 #elif defined(BAREMETALPI)
 
-Net* netCreate(const char* host) {return NULL;}
-void netGet(Net* net, const char* url, HttpGetCallback callback, void* calldata) {}
-void netClose(Net* net) {}
-void netTickStart(Net *net) {}
-void netTickEnd(Net *net) {}
+tic_net* tic_net_create(const char* host) {return NULL;}
+void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void* calldata) {}
+void tic_net_close(tic_net* net) {}
+void tic_net_start(tic_net *net) {}
+void tic_net_end(tic_net *net) {}
 
 #elif defined(USE_LIBUV)
 
@@ -386,12 +382,12 @@ void netTickEnd(Net *net) {}
 #include <uv.h>
 #include <http_parser.h>
 
-struct Net
+struct tic_net
 {
     const char* host;
     char* path;
 
-    HttpGetCallback callback;
+    net_get_callback callback;
     void* calldata;
 
     uv_tcp_t tcp;
@@ -407,17 +403,17 @@ struct Net
 
 static s32 onBody(http_parser* parser, const char *at, size_t length)
 {
-    Net* net = parser->data;
+    tic_net* net = parser->data;
 
     net->content.data = realloc(net->content.data, net->content.size + length);
     memcpy(net->content.data + net->content.size, at, length);
 
     net->content.size += length;
 
-    net->callback(&(HttpGetData) 
+    net->callback(&(net_get_data) 
     {
         .calldata = net->calldata, 
-        .type = HttpGetProgress, 
+        .type = net_get_progress, 
         .progress = {net->content.size, net->content.total}, 
         .url = net->path
     });
@@ -427,14 +423,14 @@ static s32 onBody(http_parser* parser, const char *at, size_t length)
 
 static s32 onMessageComplete(http_parser* parser)
 {
-    Net* net = parser->data;
+    tic_net* net = parser->data;
 
     if (parser->status_code == HTTP_STATUS_OK)
     {
-        net->callback(&(HttpGetData)
+        net->callback(&(net_get_data)
         {
             .calldata = net->calldata,
-            .type = HttpGetDone,
+            .type = net_get_done,
             .done = { .data = net->content.data, .size = net->content.size },
             .url = net->path
         });
@@ -450,7 +446,7 @@ static s32 onMessageComplete(http_parser* parser)
 
 static s32 onHeadersComplete(http_parser* parser)
 {
-    Net* net = parser->data;
+    tic_net* net = parser->data;
 
     bool hasBody = parser->flags & F_CHUNKED || (parser->content_length > 0 && parser->content_length != ULLONG_MAX);
 
@@ -469,12 +465,12 @@ static s32 onStatus(http_parser* parser, const char* at, size_t length)
     return parser->status_code != HTTP_STATUS_OK;
 }
 
-static void onError(Net* net, s32 code)
+static void onError(tic_net* net, s32 code)
 {
-    net->callback(&(HttpGetData)
+    net->callback(&(net_get_data)
     {
         .calldata = net->calldata,
-        .type = HttpGetError,
+        .type = net_get_error,
         .error = { .code = code }
     });
 
@@ -490,7 +486,7 @@ static void allocBuffer(uv_handle_t *handle, size_t size, uv_buf_t *buf)
 
 static void onResponse(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) 
 {
-    Net* net = stream->data;
+    tic_net* net = stream->data;
 
     if(nread > 0)
     {
@@ -514,7 +510,7 @@ static void onResponse(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf)
 
 static void onHeaderSent(uv_write_t *write, s32 status)
 {
-    Net* net = write->data;
+    tic_net* net = write->data;
     http_parser_init(&net->parser, HTTP_RESPONSE);
     net->parser.data = net;
 
@@ -528,7 +524,7 @@ static void onHeaderSent(uv_write_t *write, s32 status)
 
 static void onConnect(uv_connect_t *req, s32 status)
 {
-    Net* net = req->data;
+    tic_net* net = req->data;
 
     char httpReq[2048];
     snprintf(httpReq, sizeof httpReq, "GET %s HTTP/1.1\nHost: %s\n\n", net->path, net->host);
@@ -541,7 +537,7 @@ static void onConnect(uv_connect_t *req, s32 status)
 
 static void onResolved(uv_getaddrinfo_t *resolver, s32 status, struct addrinfo *res)
 {
-    Net* net = resolver->data;
+    tic_net* net = resolver->data;
 
     if (res)
     {
@@ -553,7 +549,7 @@ static void onResolved(uv_getaddrinfo_t *resolver, s32 status, struct addrinfo *
     free(resolver);
 }
 
-void netGet(Net* net, const char* path, HttpGetCallback callback, void* calldata)
+void tic_net_get(tic_net* net, const char* path, net_get_callback callback, void* calldata)
 {
     uv_loop_t* loop = uv_default_loop();
 
@@ -565,17 +561,17 @@ void netGet(Net* net, const char* path, HttpGetCallback callback, void* calldata
     uv_getaddrinfo(loop, OBJCOPY((uv_getaddrinfo_t){.data = net}), onResolved, net->host, "80", NULL);
 }
 
-void netTickStart(Net *net)
+void tic_net_start(tic_net *net)
 {
     uv_run(uv_default_loop(), UV_RUN_NOWAIT);
 }
 
-void netTickEnd(Net *net) {}
+void tic_net_end(tic_net *net) {}
 
-Net* netCreate(const char* host)
+tic_net* tic_net_create(const char* host)
 {
-    Net* net = (Net*)malloc(sizeof(Net));
-    memset(net, 0, sizeof(Net));
+    tic_net* net = (tic_net*)malloc(sizeof(tic_net));
+    memset(net, 0, sizeof(tic_net));
 
     net->host = host;
 
@@ -586,7 +582,7 @@ Net* netCreate(const char* host)
     return net;
 }
 
-void netClose(Net* net)
+void tic_net_close(tic_net* net)
 {
     free(net);
 }
@@ -601,12 +597,12 @@ typedef struct
     s32 size;
 
     struct Curl_easy* async;
-    HttpGetCallback callback;
+    net_get_callback callback;
     void* calldata;
     char url[URL_SIZE];
 } CurlData;
 
-struct Net
+struct tic_net
 {
     const char* host;
     CURLM* multi;
@@ -650,9 +646,9 @@ static size_t writeCallback(char *ptr, size_t size, size_t nmemb, void *userdata
 
     if(cl > 0.0)
     {
-        HttpGetData getData = 
+        net_get_data getData = 
         {
-            .type = HttpGetProgress,
+            .type = net_get_progress,
             .progress = 
             {
                 .size = data->size,
@@ -668,17 +664,16 @@ static size_t writeCallback(char *ptr, size_t size, size_t nmemb, void *userdata
     return total;
 }
 
-void netGet(Net* net, const char* path, HttpGetCallback callback, void* calldata)
+void tic_net_get(tic_net* net, const char* path, net_get_callback callback, void* calldata)
 {
     struct Curl_easy* curl = curl_easy_init();
 
-    CurlData* data = calloc(1, sizeof(CurlData));
-    *data = (CurlData)
+    CurlData* data = OBJCOPY((CurlData)
     {
         .async = curl,
         .callback = callback,
         .calldata = calldata,
-    };
+    });    
 
     strcpy(data->url, path);
 
@@ -697,7 +692,7 @@ void netGet(Net* net, const char* path, HttpGetCallback callback, void* calldata
     }
 }
 
-void netTickStart(Net *net)
+void tic_net_start(tic_net *net)
 {
     {
         s32 running = 0;
@@ -719,9 +714,9 @@ void netTickStart(Net *net)
 
             if(httpCode == 200)
             {
-                HttpGetData getData = 
+                net_get_data getData = 
                 {
-                    .type = HttpGetDone,
+                    .type = net_get_done,
                     .done = 
                     {
                         .size = data->size,
@@ -737,9 +732,9 @@ void netTickStart(Net *net)
             }
             else
             {
-                HttpGetData getData = 
+                net_get_data getData = 
                 {
-                    .type = HttpGetError,
+                    .type = net_get_error,
                     .error = 
                     {
                         .code = httpCode,
@@ -759,15 +754,15 @@ void netTickStart(Net *net)
     }
 }
 
-void netTickEnd(Net *net) {}
+void tic_net_end(tic_net *net) {}
 
-Net* netCreate(const char* host)
+tic_net* tic_net_create(const char* host)
 {
-    Net* net = (Net*)malloc(sizeof(Net));
+    tic_net* net = (tic_net*)malloc(sizeof(tic_net));
 
     if (net != NULL)
     {
-        *net = (Net)
+        *net = (tic_net)
         {
             .multi = curl_multi_init(),
             .host = host,
@@ -777,7 +772,7 @@ Net* netCreate(const char* host)
     return net;
 }
 
-void netClose(Net* net)
+void tic_net_close(tic_net* net)
 {
     if(net->multi)
         curl_multi_cleanup(net->multi);

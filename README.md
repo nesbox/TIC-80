@@ -32,7 +32,7 @@ You can download compiled versions for the major operating systems directly from
 To help support TIC-80 development, we have a [PRO Version](https://nesbox.itch.io/tic80).
 This version has a few additional features and binaries can only be downloaded on [our Itch.io page](https://nesbox.itch.io/tic80).
 
-For users who can't spend the money, we made it easy to build the pro version from the source code.
+For users who can't spend the money, we made it easy to build the pro version from the source code. (`cmake .. -DBUILD_PRO=On`)
 
 ### Pro features
 
@@ -103,6 +103,38 @@ cmake ..
 make -j4
 ```
 
+### Raspberry Pi (Retropie)
+
+First, add jessie-backports repo to your `/etc/apt/sources.list`
+
+`deb http://ftp.debian.org/debian jessie-backports main`  
+
+Then run the following commands in the Terminal
+
+```
+# required public keys
+gpg --keyserver pgpkeys.mit.edu --recv-key  8B48AD6246925553      
+gpg -a --export 8B48AD6246925553 | sudo apt-key add -
+gpg --keyserver pgpkeys.mit.edu --recv-key 7638D0442B90D010
+gpg -a --export 7638D0442B90D010 | sudo apt-key add -
+
+# upgrade system
+sudo apt-get update
+sudo apt-get dist-upgrade
+
+# install software
+sudo apt-get install git build-essential libgtk-3-dev libsdl2-dev zlib1g-dev
+sudo apt-get install -t jessie-backports liblua5.3-dev
+git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
+cmake ..
+make -j4
+```
+
+_Note:_ If you are using a normal Raspberry Pi image (not Retropie) you may not
+have OpenGL drivers enabled. Run `sudo raspi-config`, then select 7
+for "Advanced Options", followed by 6 for "GL Drivers", and enable "GL
+(Fake KMS) Desktop Driver". After changing this setting, reboot.
+
 ## Mac
 install `Command Line Tools for Xcode` and `brew` package manager
 
@@ -139,4 +171,5 @@ You can find iOS/tvOS version here
 * Damien de Lemeny - [GitHub @ddelemeny](https://github.com/ddelemeny)
 * Adrian Siekierka - [GitHub @asiekierka](https://github.com/asiekierka) [Website](https://asie.pl/)
 * Jay Em (Sweetie16 palette) - [Twitter @GrafxKid](https://twitter.com/GrafxKid)  
-* msx80 - [Twitter @msx80](https://twitter.com/msx80) [Github msx80](https://github.com/msx80) 
+* msx80 - [Twitter @msx80](https://twitter.com/msx80) [Github msx80](https://github.com/msx80)
+* Josh Goebel - [Twitter @dreamer3](https://twitter.com/dreamer3) [Github joshgoebel](https://github.com/joshgoebel)

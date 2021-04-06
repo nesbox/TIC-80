@@ -28,8 +28,6 @@
 #include "tools.h"
 #include "cart.h"
 
-#include "ext/gif.h"
-
 static void onTrace(void* data, const char* text, u8 color)
 {
     tic80* tic = (tic80*)data;

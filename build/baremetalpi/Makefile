@@ -34,6 +34,7 @@ LIBS :=  \
 	$(TIC80LIB)/libwave_writer.a \
 	$(TIC80LIB)/libduktape.a \
 	$(TIC80LIB)/libzlib.a \
+	$(TIC80LIB)/libpng.a \
 	$(NEWLIBDIR)/lib/libc.a \
         $(NEWLIBDIR)/lib/libcirclenewlib.a \
 	$(CIRCLEHOME)/addon/vc4/sound/libvchiqsound.a \

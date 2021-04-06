@@ -25,41 +25,38 @@
 #include <tic80_types.h>
 #include <string.h>
 
-typedef bool(*ListCallback)(const char* name, const char* info, s32 id, void* data, bool dir);
-typedef void(*DoneCallback)(void* data);
-typedef void(*IsDirCallback)(bool dir, void* data);
-typedef void(*LoadCallback)(const u8* buffer, s32 size, void* data);
+typedef bool(*fs_list_callback)(const char* name, const char* info, s32 id, void* data, bool dir);
+typedef void(*fs_done_callback)(void* data);
+typedef void(*fs_isdir_callback)(bool dir, void* data);
+typedef void(*fs_load_callback)(const u8* buffer, s32 size, void* data);
 
-typedef struct FileSystem FileSystem;
-struct Net;
+typedef struct tic_fs tic_fs;
+struct tic_net;
 
-FileSystem* createFileSystem(const char* path, struct Net* net);
+tic_fs*     tic_fs_create   (const char* path, struct tic_net* net);
+const char* tic_fs_path     (tic_fs* fs, const char* name);
+const char* tic_fs_pathroot (tic_fs* fs, const char* name);
 
-void fsEnumFilesAsync(FileSystem* fs, ListCallback onItem, DoneCallback onDone, void* data);
-void fsIsDirAsync(FileSystem* fs, const char* name, IsDirCallback callback, void* data);
-void fsLoadFileByHashAsync(FileSystem* fs, const char* hash, LoadCallback callback, void* data);
+void    tic_fs_enum         (tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, void* data);
+void    tic_fs_isdir_async  (tic_fs* fs, const char* name, fs_isdir_callback callback, void* data);
+void    tic_fs_hashload     (tic_fs* fs, const char* hash, fs_load_callback callback, void* data);
+bool    tic_fs_delfile      (tic_fs* fs, const char* name);
+bool    tic_fs_deldir       (tic_fs* fs, const char* name);
+bool    tic_fs_save         (tic_fs* fs, const char* name, const void* data, s32 size, bool overwrite);
+bool    tic_fs_saveroot     (tic_fs* fs, const char* name, const void* data, s32 size, bool overwrite);
+void*   tic_fs_load         (tic_fs* fs, const char* name, s32* size);
+void*   tic_fs_loadroot     (tic_fs* fs, const char* name, s32* size);
+void    tic_fs_makedir      (tic_fs* fs, const char* name);
+bool    tic_fs_exists       (tic_fs* fs, const char* name);
+void    tic_fs_openfolder   (tic_fs* fs);
+bool    tic_fs_isdir        (tic_fs* fs, const char* dir);
+bool    tic_fs_ispubdir     (tic_fs* fs);
+void    tic_fs_changedir    (tic_fs* fs, const char* dir);
+void    tic_fs_dir          (tic_fs* fs, char* out);
+void    tic_fs_dirback      (tic_fs* fs);
+void    tic_fs_homedir      (tic_fs* fs);
 
-bool fsDeleteFile(FileSystem* fs, const char* name);
-bool fsDeleteDir(FileSystem* fs, const char* name);
-bool fsSaveFile(FileSystem* fs, const char* name, const void* data, s32 size, bool overwrite);
-bool fsSaveRootFile(FileSystem* fs, const char* name, const void* data, s32 size, bool overwrite);
-void* fsLoadFile(FileSystem* fs, const char* name, s32* size);
-void* fsLoadRootFile(FileSystem* fs, const char* name, s32* size);
-const char* fsGetFilePath(FileSystem* fs, const char* name);
-const char* fsGetRootFilePath(FileSystem* fs, const char* name);
-void fsMakeDir(FileSystem* fs, const char* name);
-bool fsExistsFile(FileSystem* fs, const char* name);
-
-u64 fsMDate(const char* name);
-void fsBasename(const char *path, char* out);
-void fsFilename(const char *path, char* out);
-bool fsExists(const char* name);
-void* fsReadFile(const char* path, s32* size);
-bool fsWriteFile(const char* path, const void* data, s32 size);
-void fsOpenWorkingFolder(FileSystem* fs);
-bool fsIsDir(FileSystem* fs, const char* dir);
-bool fsIsInPublicDir(FileSystem* fs);
-void fsChangeDir(FileSystem* fs, const char* dir);
-void fsGetDir(FileSystem* fs, char* out);
-void fsDirBack(FileSystem* fs);
-void fsHomeDir(FileSystem* fs);
+u64     fs_date     (const char* name);
+bool    fs_exists   (const char* name);
+void*   fs_read     (const char* path, s32* size);
+bool    fs_write    (const char* path, const void* data, s32 size);
