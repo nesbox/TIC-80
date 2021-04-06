@@ -185,8 +185,8 @@ static struct
         Surf*       surf;
     };
 
-    FileSystem* fs;
-    Net* net;
+    tic_fs* fs;
+    tic_net* net;
 
     s32 samplerate;
     tic_font systemFont;
@@ -265,7 +265,7 @@ s32 calcWaveAnimation(tic_mem* tic, u32 offset, s32 channel)
 {
     const tic_sound_register* reg = &tic->ram.registers[channel];
 
-    s32 val = tic_tool_is_noise(&reg->waveform)
+    s32 val = EMPTY(reg->waveform.data)
         ? (rand() & 1) * MAX_VOLUME
         : tic_tool_peek4(reg->waveform.data, ((offset * reg->freq) >> 7) % WAVE_VALUES);
 
@@ -288,7 +288,7 @@ const char* studioExportSfx(s32 index, const char* filename)
 {
     tic_mem* tic = impl.studio.tic;
 
-    const char* path = fsGetFilePath(impl.fs, filename);
+    const char* path = tic_fs_path(impl.fs, filename);
 
     if(wave_open( impl.samplerate, path ))
     {
@@ -333,7 +333,7 @@ const char* studioExportMusic(s32 track, const char* filename)
 {
     tic_mem* tic = impl.studio.tic;
 
-    const char* path = fsGetFilePath(impl.fs, filename);
+    const char* path = tic_fs_path(impl.fs, filename);
 
     if(wave_open( impl.samplerate, path ))
     {
@@ -1079,14 +1079,6 @@ void drawBitIcon(s32 x, s32 y, const u8* ptr, u8 color)
                 tic_api_pix(impl.studio.tic, x - col + (TIC_SPRITESIZE - 1), y + i, color, false);
 }
 
-void drawBitIcon16(tic_mem* tic, s32 x, s32 y, const u16* ptr, u8 color)
-{
-    for(s32 i = 0; i < TIC_SPRITESIZE*2; i++, ptr++)
-        for(s32 col = 0; col < TIC_SPRITESIZE*2; col++)
-            if(*ptr & 1 << col)
-                tic_api_pix(tic, x - col + (TIC_SPRITESIZE*2 - 1), y + i, color, false);
-}
-
 static void initWorldMap()
 {
     initWorld(impl.world, impl.studio.tic, impl.banks.map[impl.bank.index.map]);
@@ -1307,7 +1299,7 @@ static void updateHash()
 
 static void updateMDate()
 {
-    impl.cart.mdate = fsMDate(impl.console->rom.path);
+    impl.cart.mdate = fs_date(impl.console->rom.path);
 }
 
 static void updateTitle()
@@ -1318,6 +1310,30 @@ static void updateTitle()
         snprintf(name, TICNAME_MAX, "%s [%s]", TIC_TITLE, impl.console->rom.name);
 
     tic_sys_title(name);
+}
+
+tic_cartridge* loadPngCart(png_buffer buffer)
+{
+    png_buffer zip = png_decode(buffer);
+
+    if (zip.size)
+    {
+        png_buffer buf = png_create(sizeof(tic_cartridge));
+
+        buf.size = tic_tool_unzip(buf.data, buf.size, zip.data, zip.size);
+        free(zip.data);
+
+        if(buf.size)
+        {
+            tic_cartridge* cart = malloc(sizeof(tic_cartridge));
+            tic_cart_load(cart, buf.data, buf.size);
+            free(buf.data);
+
+            return cart;
+        }
+    }
+
+    return NULL;
 }
 
 void studioRomSaved()
@@ -1360,7 +1376,7 @@ static void processGamepadMapping()
 
 static inline bool isGameMenu()
 {
-    return impl.mode == TIC_RUN_MODE && impl.console->showGameMenu;
+    return (impl.mode == TIC_RUN_MODE || impl.mode == TIC_MENU_MODE) && impl.console->showGameMenu;
 }
 
 void runProject()
@@ -1420,27 +1436,8 @@ static void setCoverImage()
 
     if(impl.mode == TIC_RUN_MODE)
     {
-        enum {Pitch = TIC80_FULLWIDTH*sizeof(u32)};
-
-        tic_core_blit(tic, TIC80_PIXEL_COLOR_RGBA8888);
-
-        u32* buffer = malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32));
-
-        if(buffer)
-        {
-            enum{OffsetLeft = (TIC80_FULLWIDTH-TIC80_WIDTH)/2, OffsetTop = (TIC80_FULLHEIGHT-TIC80_HEIGHT)/2};
-
-            tic_rect rect = {OffsetLeft, OffsetTop, TIC80_WIDTH, TIC80_HEIGHT};
-
-            screen2buffer(buffer, tic->screen, &rect);
-
-            gif_write_animation(impl.studio.tic->cart.cover.data, &impl.studio.tic->cart.cover.size,
-                TIC80_WIDTH, TIC80_HEIGHT, (const u8*)buffer, 1, TIC80_FRAMERATE, 1);
-
-            free(buffer);
-
-            showPopupMessage("cover image saved :)");
-        }
+        tic_api_sync(tic, tic_sync_screen, 0, true);
+        showPopupMessage("cover image saved :)");
     }
 }
 
@@ -1451,7 +1448,7 @@ static void stopVideoRecord(const char* name)
         {
             s32 size = 0;
             u8* data = malloc(FRAME_SIZE * impl.video.frame);
-            int i = 0;
+            s32 i = 0;
             char filename[TICNAME_MAX];
 
             gif_write_animation(data, &size, TIC80_FULLWIDTH, TIC80_FULLHEIGHT, (const u8*)impl.video.buffer, impl.video.frame, TIC80_FRAMERATE, getConfig()->gifScale);
@@ -1461,16 +1458,16 @@ static void stopVideoRecord(const char* name)
             {
                 snprintf(filename, sizeof filename, name, ++i);
             }
-            while(fsExistsFile(impl.fs, filename));
+            while(tic_fs_exists(impl.fs, filename));
 
             // Now that it has found an available filename, save it.
-            if(fsSaveFile(impl.fs, filename, data, size, true))
+            if(tic_fs_save(impl.fs, filename, data, size, true))
             {
                 char msg[TICNAME_MAX];
                 sprintf(msg, "%s saved :)", filename);
                 showPopupMessage(msg);
 
-                tic_sys_open_path(fsGetFilePath(impl.fs, filename));
+                tic_sys_open_path(tic_fs_path(impl.fs, filename));
             }
             else showPopupMessage("error: file not saved :(");
         }
@@ -1626,7 +1623,7 @@ static void updateStudioProject()
     {
         Console* console = impl.console;
 
-        u64 date = fsMDate(console->rom.path);
+        u64 date = fs_date(console->rom.path);
 
         if(impl.cart.mdate && date > impl.cart.mdate)
         {
@@ -1844,10 +1841,10 @@ void studioConfigChanged()
 
 static void initKeymap()
 {
-    FileSystem* fs = impl.fs;
+    tic_fs* fs = impl.fs;
 
     s32 size = 0;
-    u8* data = (u8*)fsLoadFile(fs, KEYMAP_DAT_PATH, &size);
+    u8* data = (u8*)tic_fs_load(fs, KEYMAP_DAT_PATH, &size);
 
     if(data)
     {
@@ -1860,7 +1857,7 @@ static void initKeymap()
 
 static void processMouseStates()
 {
-    for(int i = 0; i < COUNT_OF(impl.mouse.state); i++)
+    for(s32 i = 0; i < COUNT_OF(impl.mouse.state); i++)
         impl.mouse.state[i].click = false;
 
     tic_mem* tic = impl.studio.tic;
@@ -1868,7 +1865,7 @@ static void processMouseStates()
     tic->ram.vram.vars.cursor.sprite = tic_cursor_arrow;
     tic->ram.vram.vars.cursor.system = true;
 
-    for(int i = 0; i < COUNT_OF(impl.mouse.state); i++)
+    for(s32 i = 0; i < COUNT_OF(impl.mouse.state); i++)
     {
         MouseState* state = &impl.mouse.state[i];
 
@@ -1891,7 +1888,7 @@ static void studioTick()
 {
     tic_mem* tic = impl.studio.tic;
 
-    netTickStart(impl.net);
+    tic_net_start(impl.net);
     processShortcuts();
     processMouseStates();
     processGamepadMapping();
@@ -1969,7 +1966,7 @@ static void studioTick()
 
     drawPopup();
 
-    netTickEnd(impl.net);
+    tic_net_end(impl.net);
 }
 
 static void studioClose()
@@ -1997,7 +1994,7 @@ static void studioClose()
     if(impl.tic80local)
         tic80_delete((tic80*)impl.tic80local);
 
-    netClose(impl.net);
+    tic_net_close(impl.net);
     free(impl.fs);
 }
 
@@ -2044,13 +2041,13 @@ Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* fold
     StartArgs args = parseArgs(argc, argv);
 
     impl.samplerate = samplerate;
-    impl.net = netCreate(TIC_WEBSITE);
+    impl.net = tic_net_create(TIC_WEBSITE);
 
     {
         const char *path = args.fs ? args.fs : folder;
 
-        if(fsExists(path))
-            impl.fs = createFileSystem(path, impl.net);
+        if(fs_exists(path))
+            impl.fs = tic_fs_create(path, impl.net);
         else
         {
             fprintf(stderr, "error: folder `%s` doesn't exist\n", path);
@@ -2081,8 +2078,8 @@ Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* fold
         impl.surf       = calloc(1, sizeof(Surf));
     }
 
-    fsMakeDir(impl.fs, TIC_LOCAL);
-    fsMakeDir(impl.fs, TIC_LOCAL_VERSION);
+    tic_fs_makedir(impl.fs, TIC_LOCAL);
+    tic_fs_makedir(impl.fs, TIC_LOCAL_VERSION);
     
     initConfig(impl.config, impl.studio.tic, impl.fs);
     initKeymap();

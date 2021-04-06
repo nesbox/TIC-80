@@ -33,6 +33,7 @@
 #include "defines.h"
 #include "tools.h"
 #include "system.h"
+#include "ext/png.h"
 
 #define KEYBOARD_HOLD 20
 #define KEYBOARD_PERIOD 3
@@ -59,6 +60,7 @@
 #define KEYMAP_DAT_PATH TIC_LOCAL_VERSION KEYMAP_DAT
 
 #define CART_EXT ".tic"
+#define PNG_EXT ".png"
 
 #define SHOW_TOOLTIP(FORMAT, ...)           \
 do{                                         \
@@ -106,8 +108,8 @@ bool checkMouseDown(const tic_rect* rect, tic_mouse_btn button);
 
 void drawToolbar(tic_mem* tic, bool bg);
 void drawBitIcon(s32 x, s32 y, const u8* ptr, u8 color);
-void drawBitIcon16(tic_mem* tic, s32 x, s32 y, const u16* ptr, u8 color);
 
+tic_cartridge* loadPngCart(png_buffer buffer);
 void studioRomLoaded();
 void studioRomSaved();
 void studioConfigChanged();

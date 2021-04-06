@@ -31,15 +31,16 @@
 
 static const struct BinarySection{const char* tag; s32 count; s32 offset; s32 size; bool flip;} BinarySections[] = 
 {
-    {"TILES",       TIC_BANK_SPRITES,   offsetof(tic_bank, tiles),          sizeof(tic_tile),           true},
-    {"SPRITES",     TIC_BANK_SPRITES,   offsetof(tic_bank, sprites),        sizeof(tic_tile),           true},
-    {"MAP",         TIC_MAP_HEIGHT,     offsetof(tic_bank, map),            TIC_MAP_WIDTH,              true},
-    {"WAVES",       WAVES_COUNT,        offsetof(tic_bank, sfx.waveforms),  sizeof(tic_waveform),       true},
-    {"SFX",         SFX_COUNT,          offsetof(tic_bank, sfx.samples),    sizeof(tic_sample),         true},
-    {"PATTERNS",    MUSIC_PATTERNS,     offsetof(tic_bank, music.patterns), sizeof(tic_track_pattern),  true},
-    {"TRACKS",      MUSIC_TRACKS,       offsetof(tic_bank, music.tracks),   sizeof(tic_track),          true},
-    {"FLAGS",       TIC_SPRITE_BANKS,   offsetof(tic_bank, flags),          TIC_BANK_SPRITES,           true},
-    {"PALETTE",     TIC_PALETTES,       offsetof(tic_bank, palette),        sizeof(tic_palette),        false},
+    {"TILES",       TIC_BANK_SPRITES,   offsetof(tic_bank, tiles),          sizeof(tic_tile),                   true},
+    {"SPRITES",     TIC_BANK_SPRITES,   offsetof(tic_bank, sprites),        sizeof(tic_tile),                   true},
+    {"MAP",         TIC_MAP_HEIGHT,     offsetof(tic_bank, map),            TIC_MAP_WIDTH,                      true},
+    {"WAVES",       WAVES_COUNT,        offsetof(tic_bank, sfx.waveforms),  sizeof(tic_waveform),               true},
+    {"SFX",         SFX_COUNT,          offsetof(tic_bank, sfx.samples),    sizeof(tic_sample),                 true},
+    {"PATTERNS",    MUSIC_PATTERNS,     offsetof(tic_bank, music.patterns), sizeof(tic_track_pattern),          true},
+    {"TRACKS",      MUSIC_TRACKS,       offsetof(tic_bank, music.tracks),   sizeof(tic_track),                  true},
+    {"FLAGS",       TIC_SPRITE_BANKS,   offsetof(tic_bank, flags),          TIC_BANK_SPRITES,                   true},
+    {"SCREEN",      TIC80_HEIGHT,       offsetof(tic_bank, screen),         sizeof(tic_screen) / TIC80_HEIGHT,  true},
+    {"PALETTE",     TIC_PALETTES,       offsetof(tic_bank, palette),        sizeof(tic_palette),                false},
 };
 
 static void makeTag(const char* tag, char* out, s32 bank)
@@ -154,8 +155,6 @@ s32 tic_project_save(const char* name, void* data, const tic_cartridge* cart)
                 (u8*)&cart->banks[b] + section->offset, section->size, section->flip);
         }
     }
-
-    saveBinarySection(ptr, comment, "COVER", 1, &cart->cover, cart->cover.size + sizeof(s32), true);
 
     return (s32)strlen(stream);
 }
@@ -287,9 +286,6 @@ bool tic_project_load(const char* name, const char* data, s32 size, tic_cartridg
                             done = true;
                     }
                 }
-
-                if(loadBinarySection(project, comment, "COVER", 1, &cart->cover, -1, true))
-                    done = true;
             }
             
             if(done)

@@ -94,6 +94,28 @@ typedef struct
     s32 x, y, w, h;
 } tic_rect;
 
+//                  SYNC DEFINITION TABLE
+//       .--------------------------------- - - - 
+//       | CART    | RAM           | INDEX
+//       |---------+---------------+------- - - - 
+//       |         |               |
+#define TIC_SYNC_LIST(macro) \
+    macro(tiles,    tiles,          0) \
+    macro(sprites,  sprites,        1) \
+    macro(map,      map,            2) \
+    macro(sfx,      sfx,            3) \
+    macro(music,    music,          4) \
+    macro(palette,  vram.palette,   5) \
+    macro(flags,    flags,          6) \
+    macro(screen,   vram.screen,    7)
+
+enum
+{
+#define TIC_SYNC_DEF(NAME, _, INDEX) tic_sync_##NAME = 1 << INDEX,
+    TIC_SYNC_LIST(TIC_SYNC_DEF)
+#undef TIC_SYNC_DEF
+};
+
 #define TIC_FN "TIC"
 #define SCN_FN "SCN"
 #define OVR_FN "OVR"

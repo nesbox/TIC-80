@@ -171,15 +171,11 @@ void tic_api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
 {
     tic_core* core = (tic_core*)tic;
 
-    static const struct { s32 bank; s32 ram; s32 size; } Sections[] =
-    {
-        {offsetof(tic_bank, tiles),         offsetof(tic_ram, tiles),           sizeof(tic_tiles)   },
-        {offsetof(tic_bank, sprites),       offsetof(tic_ram, sprites),         sizeof(tic_tiles)   },
-        {offsetof(tic_bank, map),           offsetof(tic_ram, map),             sizeof(tic_map)     },
-        {offsetof(tic_bank, sfx),           offsetof(tic_ram, sfx),             sizeof(tic_sfx)     },
-        {offsetof(tic_bank, music),         offsetof(tic_ram, music),           sizeof(tic_music)   },
-        {offsetof(tic_bank, palette.scn),   offsetof(tic_ram, vram.palette),    sizeof(tic_palette) },
-        {offsetof(tic_bank, flags),         offsetof(tic_ram, flags),           sizeof(tic_flags)   },
+    static const struct { s32 bank; s32 ram; s32 size; u8 mask; } Sections[] = 
+    { 
+#define TIC_SYNC_DEF(CART, RAM, ...) { offsetof(tic_bank, CART), offsetof(tic_ram, RAM), sizeof(tic_##CART), tic_sync_##CART },
+        TIC_SYNC_LIST(TIC_SYNC_DEF) 
+#undef  TIC_SYNC_DEF
     };
 
     enum { Count = COUNT_OF(Sections), Mask = (1 << Count) - 1 };
@@ -191,16 +187,12 @@ void tic_api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
     assert(bank >= 0 && bank < TIC_BANKS);
 
     for (s32 i = 0; i < Count; i++)
-        if(mask & (1 << i))
+        if(mask & Sections[i].mask)
             sync((u8*)&tic->ram + Sections[i].ram, (u8*)&tic->cart.banks[bank] + Sections[i].bank, Sections[i].size, toCart);
 
     // copy OVR palette
-    {
-        enum { PaletteIndex = 5 };
-
-        if (mask & (1 << PaletteIndex))
-            sync(&core->state.ovr.palette, &tic->cart.banks[bank].palette.ovr, sizeof(tic_palette), toCart);
-    }
+    if (mask & tic_sync_palette)
+        sync(&core->state.ovr.palette, &tic->cart.banks[bank].palette.ovr, sizeof(tic_palette), toCart);
 
     core->state.synced |= mask;
 }
@@ -257,55 +249,11 @@ static void resetBlitSegment(tic_mem* memory)
     memory->ram.vram.blit.segment = TIC_DEFAULT_BLIT_MODE;
 }
 
-static const char* readMetatag(const char* code, const char* tag, const char* comment)
-{
-    const char* start = NULL;
-
-    {
-        static char format[] = "%s %s:";
-
-        char* tagBuffer = malloc(strlen(format) + strlen(tag));
-
-        if (tagBuffer)
-        {
-            sprintf(tagBuffer, format, comment, tag);
-            if ((start = strstr(code, tagBuffer)))
-                start += strlen(tagBuffer);
-            free(tagBuffer);
-        }
-    }
-
-    if (start)
-    {
-        const char* end = strstr(start, "\n");
-
-        if (end)
-        {
-            while (*start <= ' ' && start < end) start++;
-            while (*(end - 1) <= ' ' && end > start) end--;
-
-            const s32 size = (s32)(end - start);
-
-            char* value = (char*)malloc(size + 1);
-
-            if (value)
-            {
-                memset(value, 0, size + 1);
-                memcpy(value, start, size);
-
-                return value;
-            }
-        }
-    }
-
-    return NULL;
-}
-
 static bool compareMetatag(const char* code, const char* tag, const char* value, const char* comment)
 {
     bool result = false;
 
-    const char* str = readMetatag(code, tag, comment);
+    const char* str = tic_tool_metatag(code, tag, comment);
 
     if (str)
     {
@@ -361,7 +309,7 @@ const tic_script_config* tic_core_script_config(tic_mem* memory)
 static void updateSaveid(tic_mem* memory)
 {
     memset(memory->saveid, 0, sizeof memory->saveid);
-    const char* saveid = readMetatag(memory->cart.code.data, "saveid", tic_core_script_config(memory)->singleComment);
+    const char* saveid = tic_tool_metatag(memory->cart.code.data, "saveid", tic_core_script_config(memory)->singleComment);
     if (saveid)
     {
         strncpy(memory->saveid, saveid, TIC_SAVEID_SIZE - 1);
@@ -428,33 +376,6 @@ void tic_api_reset(tic_mem* memory)
     updateSaveid(memory);
 }
 
-static void initCover(tic_mem* tic)
-{
-    const tic_cover_image* cover = &tic->cart.cover;
-
-    if (cover->size)
-    {
-        gif_image* image = gif_read_data(cover->data, cover->size);
-
-        if (image)
-        {
-            if (image->width == TIC80_WIDTH && image->height == TIC80_HEIGHT)
-            {
-                enum { Size = TIC80_WIDTH * TIC80_HEIGHT };
-
-                for (s32 i = 0; i < Size; i++)
-                {
-                    const gif_color* c = &image->palette[image->buffer[i]];
-                    u8 color = tic_tool_find_closest_color(tic->cart.bank0.palette.scn.colors, c);
-                    tic_tool_poke4(tic->ram.vram.screen.data, i, color);
-                }
-            }
-
-            gif_close(image);
-        }
-    }
-}
-
 static void cart2ram(tic_mem* memory)
 {
     static const u8 Font[] =
@@ -464,8 +385,18 @@ static void cart2ram(tic_mem* memory)
 
     memcpy(memory->ram.font.data, Font, sizeof Font);
 
-    tic_api_sync(memory, 0, 0, false);
-    initCover(memory);
+    enum
+    {
+#define     TIC_SYNC_DEF(NAME, _, INDEX) sync_##NAME = INDEX,
+            TIC_SYNC_LIST(TIC_SYNC_DEF)
+#undef      TIC_SYNC_DEF
+            count,
+            all = (1 << count) - 1,
+            noscreen = BIT_CLEAR(all, sync_screen)
+    };
+
+    // don't sync empty screen
+    tic_api_sync(memory, EMPTY(memory->cart.bank0.screen.data) ? noscreen : all, 0, false);
 }
 
 void tic_core_tick(tic_mem* tic, tic_tick_data* data)
@@ -515,17 +446,6 @@ void tic_core_tick(tic_mem* tic, tic_tick_data* data)
             core->state.initialized = true;
         }
         else return;
-    }
-
-    {
-        if (!tic->input.keyboard)
-            ZEROMEM(tic->ram.input.keyboard);
-
-        if (!tic->input.gamepad)
-            ZEROMEM(tic->ram.input.gamepads);
-
-        if (!tic->input.mouse)
-            ZEROMEM(tic->ram.input.mouse);
     }
 
     core->state.tick(tic);

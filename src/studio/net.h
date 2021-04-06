@@ -24,15 +24,15 @@
 
 #include "tic80_types.h"
 
-typedef struct Net Net;
+typedef struct tic_net tic_net;
 
 typedef struct
 {
     enum
     {
-        HttpGetProgress,
-        HttpGetDone,
-        HttpGetError,
+        net_get_progress,
+        net_get_done,
+        net_get_error,
     } type;
 
     union
@@ -58,12 +58,13 @@ typedef struct
     void* calldata;
     const char* url;
 
-} HttpGetData;
+} net_get_data;
 
-typedef void(*HttpGetCallback)(const HttpGetData*);
+typedef void(*net_get_callback)(const net_get_data*);
 
-Net* netCreate(const char* host);
-void netGet(Net* net, const char* url, HttpGetCallback callback, void* calldata);
-void netClose(Net* net);
-void netTickStart(Net *net);
-void netTickEnd(Net *net);
+tic_net* tic_net_create(const char* host);
+
+void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void* calldata);
+void tic_net_close(tic_net* net);
+void tic_net_start(tic_net *net);
+void tic_net_end(tic_net *net);

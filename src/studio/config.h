@@ -29,7 +29,7 @@ typedef struct Config Config;
 struct Config
 {
     tic_mem* tic;
-    struct FileSystem* fs;
+    struct tic_fs* fs;
 
     StudioConfig data;
     tic_cartridge cart;
@@ -38,5 +38,5 @@ struct Config
     void(*reset)(Config*);
 };
 
-void initConfig(Config* config, tic_mem* tic, struct FileSystem* fs);
+void initConfig(Config* config, tic_mem* tic, struct tic_fs* fs);
 void freeConfig(Config* config);

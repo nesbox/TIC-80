@@ -458,7 +458,7 @@ static void drawCanvasOvr(Sprite* sprite, s32 x, s32 y)
             sprite->select.rect.w * Size + 2, sprite->select.rect.h * Size + 2);
     else
     {
-        char buf[sizeof "9999"];
+        char buf[sizeof "#9999"];
         sprintf(buf, "#%i", sprite->index + tic_blit_calc_index(&sprite->blit));
 
         s32 ix = x + (CANVAS_SIZE - strlen(buf) * TIC_FONT_WIDTH) / 2;
