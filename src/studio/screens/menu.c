@@ -528,7 +528,7 @@ static void scanline(tic_mem* tic, s32 row, void* data)
     if(menu->cover)
     {
         if(row == 0)
-            tic_api_sync(tic, tic_sync_palette, 0, false);
+            memcpy(&tic->ram.vram.palette, tic->cart.bank0.palette.scn.data, sizeof(tic_palette));
     }
     else 
         drawBGAnimationScanline(tic, row);

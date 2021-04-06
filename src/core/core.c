@@ -578,13 +578,11 @@ void tic_core_blit_ex(tic_mem* tic, tic80_pixel_color_format fmt, tic_scanline s
     {
         tic_core* core = (tic_core*)tic;
 
-        const tic_palette* ovr = &core->state.ovr.palette;
-        bool ovrEmpty = true;
-        for (s32 i = 0; i < sizeof(tic_palette); i++)
-            if (ovr->data[i])
-                ovrEmpty = false;
+        const tic_palette* pal = EMPTY(core->state.ovr.palette.data) 
+            ? &tic->ram.vram.palette 
+            : &core->state.ovr.palette;
 
-        memcpy(core->state.ovr.raw, tic_tool_palette_blit(ovrEmpty ? &tic->ram.vram.palette : ovr, fmt), sizeof core->state.ovr.raw);
+        memcpy(core->state.ovr.raw, tic_tool_palette_blit(pal, fmt), sizeof core->state.ovr.raw);
     }
 
     if (scanline)

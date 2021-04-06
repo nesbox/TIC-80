@@ -875,8 +875,7 @@ static void scanline(tic_mem* tic, s32 row, void* data)
             if(row == 0)
             {
                 memcpy(&tic->ram.vram.palette, item->palette, sizeof(tic_palette));
-                for(u8 *i = tic->ram.vram.palette.data, *end = i + sizeof(tic_palette); i < end; i++)
-                    *i = *i * AnimVar.coverFade >> 8;
+                fadePalette(&tic->ram.vram.palette, AnimVar.coverFade);
             }
 
             return;

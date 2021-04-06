@@ -241,6 +241,12 @@ static struct
     },
 };
 
+void fadePalette(tic_palette* pal, s32 value)
+{
+    for(u8 *i = pal->data, *end = i + sizeof(tic_palette); i < end; i++)
+        *i = *i * value >> 8;
+}
+
 void map2ram(tic_ram* ram, const tic_map* src)
 {
     memcpy(ram->map.data, src, sizeof ram->map);

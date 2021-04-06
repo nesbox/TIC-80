@@ -192,3 +192,5 @@ void tiles2ram(tic_ram* ram, const tic_tiles* src);
 #if defined(CRT_SHADER_SUPPORT)
 void switchCrtMonitor();
 #endif
+
+void fadePalette(tic_palette* pal, s32 value);
