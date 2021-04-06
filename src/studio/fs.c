@@ -564,7 +564,7 @@ bool tic_fs_isdir(tic_fs* fs, const char* name)
 
 void tic_fs_isdir_async(tic_fs* fs, const char* name, fs_isdir_callback callback, void* data)
 {
-    if(isPublicRoot(fs))
+    if(isPublic(fs))
     {
         EnumPublicDirsData enumPublicDirsData = { strdup(name), false, callback, data};
         tic_fs_enum(fs, onEnumPublicDirs, onEnumPublicDirsDone, OBJCOPY(enumPublicDirsData));

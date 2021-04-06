@@ -101,6 +101,7 @@ struct Console
     void(*error)(Console*, const char*);
     void(*trace)(Console*, const char*, u8 color);
     void(*tick)(Console*);
+    void(*done)(Console*);
 
     CartSaveResult(*save)(Console*);
 };

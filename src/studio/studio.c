@@ -1158,10 +1158,10 @@ void setStudioMode(EditorMode mode)
         {
         case TIC_START_MODE:
         case TIC_CONSOLE_MODE:
-        case TIC_RUN_MODE:
         case TIC_DIALOG_MODE:
         case TIC_MENU_MODE:
             break;
+        case TIC_RUN_MODE:
         case TIC_SURF_MODE:
             impl.prevMode = TIC_CODE_MODE;
             break;
@@ -1185,7 +1185,7 @@ EditorMode getStudioMode()
     return impl.mode;
 }
 
-void changeStudioMode(s32 dir)
+static void changeStudioMode(s32 dir)
 {
     const size_t modeCount = sizeof(Modes)/sizeof(Modes[0]);
     for(size_t i = 0; i < modeCount; i++)
@@ -1611,6 +1611,9 @@ static void processShortcuts()
                 impl.dialog->escape(impl.dialog);
                 return;
             }
+
+            if (impl.mode == TIC_SURF_MODE)
+                impl.console->done(impl.console);
 
             setStudioMode(impl.mode == TIC_CONSOLE_MODE ? impl.prevMode : TIC_CONSOLE_MODE);
         }

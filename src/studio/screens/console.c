@@ -1283,7 +1283,6 @@ static void onConsoleGameMenuCommand(Console* console, const char* param)
 static void onConsoleSurfCommand(Console* console, const char* param)
 {
     gotoSurf();
-    commandDone(console);
 }
 
 static void onConsoleVersionCommand(Console* console, const char* param)
@@ -3066,6 +3065,7 @@ void initConsole(Console* console, tic_mem* tic, tic_fs* fs, tic_net* net, Confi
         .trace = trace,
         .tick = tick,
         .save = saveCart,
+        .done = commandDone,
         .cursor = {.x = 0, .y = 0, .delay = 0},
         .scroll =
         {
