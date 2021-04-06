@@ -457,7 +457,6 @@ void tic_core_pause(tic_mem* memory)
 
     memcpy(&core->pause.state, &core->state, sizeof(tic_core_state_data));
     memcpy(&core->pause.ram, &memory->ram, sizeof(tic_ram));
-    core->pause.input = memory->input.data;
     memset(&core->state.ovr, 0, sizeof core->state.ovr);
 
     if (core->data)
@@ -475,7 +474,6 @@ void tic_core_resume(tic_mem* memory)
     {
         memcpy(&core->state, &core->pause.state, sizeof(tic_core_state_data));
         memcpy(&memory->ram, &core->pause.ram, sizeof(tic_ram));
-        memory->input.data = core->pause.input;
         core->data->start = core->pause.time.start + core->data->counter(core->data->data) - core->pause.time.paused;
     }
 }

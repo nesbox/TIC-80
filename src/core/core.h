@@ -192,16 +192,13 @@ typedef struct
     } blip;
     
     s32 samplerate;
-
     tic_tick_data* data;
-
     tic_core_state_data state;
 
     struct
     {
         tic_core_state_data state;   
         tic_ram ram;
-        u8 input;
 
         struct
         {
