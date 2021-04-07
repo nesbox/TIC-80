@@ -75,7 +75,7 @@ const char* tic_fs_pathroot(tic_fs* fs, const char* name)
 {
     static char path[TICNAME_MAX];
 
-    sprintf(path, "%s%s", fs->dir, name);
+    snprintf(path, sizeof path, "%s%s", fs->dir, name);
 
 #if defined(__TIC_WINDOWS__)
     char* ptr = path;
@@ -94,11 +94,11 @@ const char* tic_fs_path(tic_fs* fs, const char* name)
     static char path[TICNAME_MAX];
 
     if(*name == '/')
-        strcpy(path, name + 1);
+        strncpy(path, name + 1, sizeof path);
     else if(strlen(fs->work))
-        sprintf(path, "%s/%s", fs->work, name);
+        snprintf(path, sizeof path, "%s/%s", fs->work, name);
     else 
-        strcpy(path, name);
+        strncpy(path, name, sizeof path);
 
     return tic_fs_pathroot(fs, path);
 }
@@ -163,8 +163,8 @@ static const char* stringToUtf8(const FsString* wstr)
 #define tic_remove _wremove
 #define tic_fopen _wfopen
 #define tic_mkdir(name) _wmkdir(name)
-#define tic_strcpy wcscpy
-#define tic_strcat wcscat
+#define tic_strncpy wcsncpy
+#define tic_strncat wcsncat
 
 #else
 
@@ -189,8 +189,8 @@ typedef char FsString;
 #define tic_remove remove
 #define tic_fopen fopen
 #define tic_mkdir(name) mkdir(name, 0700)
-#define tic_strcpy strcpy
-#define tic_strcat strcat
+#define tic_strncpy strncpy
+#define tic_strncat strncat
 
 #endif
 
@@ -277,7 +277,7 @@ static void onDirResponse(const net_get_data* netData)
                         {
                             lua_getfield(lua, -1, "hash");
                             if (lua_isstring(lua, -1))
-                                strcpy(hash, lua_tostring(lua, -1));
+                                strncpy(hash, lua_tostring(lua, -1), sizeof hash);
 
                             lua_pop(lua, 1);
                         }
@@ -286,7 +286,7 @@ static void onDirResponse(const net_get_data* netData)
                             lua_getfield(lua, -1, "name");
 
                             if (lua_isstring(lua, -1))
-                                strcpy(name, lua_tostring(lua, -1));
+                                strncpy(name, lua_tostring(lua, -1), sizeof name);
 
                             lua_pop(lua, 1);
                         }
@@ -335,7 +335,7 @@ static void enumFiles(tic_fs* fs, const char* path, fs_list_callback callback, v
     }
 
     static char path2[TICNAME_MAX];
-    strcpy(path2, path);
+    strncpy(path2, path, sizeof path2);
 
     if (path2[strlen(path2) - 1] == '/')    // one character
                 path2[strlen(path2) - 1] = 0;
@@ -380,8 +380,8 @@ static void enumFiles(tic_fs* fs, const char* path, fs_list_callback callback, v
         {
             if(*ent->d_name != _S('.'))
             {
-                tic_strcpy(fullPath, pathString);
-                tic_strcat(fullPath, ent->d_name);
+                tic_strncpy(fullPath, pathString, sizeof fullPath);
+                tic_strncat(fullPath, ent->d_name, sizeof fullPath);
 
                 if(tic_stat(fullPath, &s) == 0 && folder ? S_ISDIR(s.st_mode) : S_ISREG(s.st_mode))
                 {
@@ -412,7 +412,7 @@ void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, v
     if(isPublic(fs))
     {
         char request[TICNAME_MAX];
-        sprintf(request, "/api?fn=dir&path=%s", fs->work + sizeof(TIC_HOST));
+        snprintf(request, sizeof request, "/api?fn=dir&path=%s", fs->work + sizeof(TIC_HOST));
 
         NetDirData netDirData = { onItem, onDone, data };
         tic_net_get(fs->net, request, onDirResponse, OBJCOPY(netDirData));
@@ -497,13 +497,13 @@ void tic_fs_dirback(tic_fs* fs)
 
 void tic_fs_dir(tic_fs* fs, char* dir)
 {
-    strcpy(dir, fs->work);
+    strncpy(dir, fs->work, TICNAME_MAX);
 }
 
 void tic_fs_changedir(tic_fs* fs, const char* dir)
 {
     if(strlen(fs->work))
-        strcat(fs->work, "/");
+        strncat(fs->work, "/", TICNAME_MAX);
                 
     strcat(fs->work, dir);
 }
@@ -772,7 +772,7 @@ void tic_fs_hashload(tic_fs* fs, const char* hash, fs_load_callback callback, vo
 #else
 
     char cachePath[TICNAME_MAX];
-    sprintf(cachePath, TIC_CACHE "%s.tic", hash);
+    snprintf(cachePath, sizeof cachePath, TIC_CACHE "%s.tic", hash);
 
     {
         s32 size = 0;
@@ -785,7 +785,7 @@ void tic_fs_hashload(tic_fs* fs, const char* hash, fs_load_callback callback, vo
     }
 
     char path[TICNAME_MAX];
-    sprintf(path, "/cart/%s/cart.tic", hash);
+    snprintf(path, sizeof path, "/cart/%s/cart.tic", hash);
 
     LoadFileByHashData loadFileByHashData = { fs, callback, data, strdup(cachePath) };
     tic_net_get(fs->net, path, fileByHashLoaded, OBJCOPY(loadFileByHashData));
@@ -928,7 +928,7 @@ tic_fs* tic_fs_create(const char* path, tic_net* net)
 {
     tic_fs* fs = (tic_fs*)calloc(1, sizeof(tic_fs));
 
-    strcpy(fs->dir, path);
+    strncpy(fs->dir, path, TICNAME_MAX);
 
     if(path[strlen(path) - 1] != SEP[0])
         strcat(fs->dir, SEP);
