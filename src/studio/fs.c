@@ -380,8 +380,8 @@ static void enumFiles(tic_fs* fs, const char* path, fs_list_callback callback, v
         {
             if(*ent->d_name != _S('.'))
             {
-                tic_strncpy(fullPath, pathString, sizeof fullPath);
-                tic_strncat(fullPath, ent->d_name, sizeof fullPath);
+                tic_strncpy(fullPath, pathString, COUNT_OF(fullPath));
+                tic_strncat(fullPath, ent->d_name, COUNT_OF(fullPath));
 
                 if(tic_stat(fullPath, &s) == 0 && folder ? S_ISDIR(s.st_mode) : S_ISREG(s.st_mode))
                 {
