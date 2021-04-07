@@ -157,7 +157,7 @@ enum
     macro(tri,          7,  void,       tic_mem*, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, u8 color) \
     macro(textri,       14, void,       tic_mem*, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count) \
     macro(clip,         4,  void,       tic_mem*, s32 x, s32 y, s32 width, s32 height) \
-    macro(music,        4,  void,       tic_mem*, s32 track, s32 frame, s32 row, bool loop, bool sustain) \
+    macro(music,        5,  void,       tic_mem*, s32 track, s32 frame, s32 row, bool loop, bool sustain) \
     macro(sync,         3,  void,       tic_mem*, u32 mask, s32 bank, bool toCart) \
     macro(reset,        0,  void,       tic_mem*) \
     macro(key,          1,  bool,       tic_mem*, tic_key key) \
