@@ -886,6 +886,7 @@ void tic_sys_poll()
 #endif
 
     SDL_Event event;
+    bool focusGained = false;
 
     // Workaround for freeze on fullscreen under macOS #819
     SDL_PumpEvents();
@@ -942,7 +943,8 @@ void tic_sys_poll()
 #endif                    
                 }
                 break;
-            case SDL_WINDOWEVENT_FOCUS_GAINED: 
+            case SDL_WINDOWEVENT_FOCUS_GAINED:
+                focusGained = true;
                 platform.studio->updateProject();
                 break;
             }
@@ -970,6 +972,10 @@ void tic_sys_poll()
             break;
         }
     }
+
+    // workaround for #1332, don't process keyboard input when window just obtained focus
+    if(focusGained)
+        return;
 
     processMouse();
 
