@@ -805,7 +805,13 @@ static void drawBankIcon(s32 x, s32 y)
             if(i == impl.bank.indexes[mode])
                 tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_red);
 
-            tic_api_print(tic, (char[]){'0' + i, '\0'}, rect.x+1, rect.y+1, i == impl.bank.indexes[mode] ? tic_color_white : over ? tic_color_red : tic_color_light_grey, false, 1, false);
+            tic_api_print(tic, (char[]){'0' + i, '\0'}, rect.x+1, rect.y+1, 
+                i == impl.bank.indexes[mode] 
+                    ? tic_color_white 
+                    : over 
+                        ? tic_color_red 
+                        : tic_color_light_grey, 
+                false, 1, false);
 
         }
 
@@ -1530,6 +1536,22 @@ void switchCrtMonitor()
 }
 #endif
 
+#if defined(TIC80_PRO)
+
+static void switchBank(s32 bank)
+{
+    for(s32 i = 0; i < COUNT_OF(BankModes); i++)
+        if(BankModes[i] == impl.mode)
+        {
+            if(impl.bank.chained) 
+                memset(impl.bank.indexes, bank, sizeof impl.bank.indexes);
+            else impl.bank.indexes[i] = bank;
+            break;
+        }
+}
+
+#endif
+
 static void processShortcuts()
 {
     tic_mem* tic = impl.studio.tic;
@@ -1584,6 +1606,16 @@ static void processShortcuts()
         else if(keyWasPressedOnce(tic_key_r)) runProject();
         else if(keyWasPressedOnce(tic_key_return)) runProject();
         else if(keyWasPressedOnce(tic_key_s)) saveProject();
+
+#if defined(TIC80_PRO)
+
+        else
+            for(s32 key = tic_key_0, bank = 0; key <= tic_key_7; key++, bank++)
+                if(keyWasPressedOnce(key)) 
+                    switchBank(bank);
+
+#endif
+
     }
     else
     {
