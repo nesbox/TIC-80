@@ -1610,8 +1610,8 @@ static void processShortcuts()
 #if defined(TIC80_PRO)
 
         else
-            for(s32 key = tic_key_0, bank = 0; key <= tic_key_7; key++, bank++)
-                if(keyWasPressedOnce(key)) 
+            for(s32 bank = 0; bank < TIC_BANKS; bank++)
+                if(keyWasPressedOnce(tic_key_0 + bank))
                     switchBank(bank);
 
 #endif
