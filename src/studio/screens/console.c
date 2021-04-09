@@ -1044,36 +1044,78 @@ static void onConsoleNewCommand(Console* console, const char* param)
 
 typedef struct
 {
-    s32 count;
+    const char* name;
+    bool dir;
+} FileItem;
+
+typedef struct
+{
     Console* console;
+    FileItem* items;
+    s32 count;
 } PrintFileNameData;
 
-static bool printFilename(const char* name, const char* info, s32 id, void* data, bool dir)
+static bool printFilename(const char* name, const char* info, s32 id, void* ctx, bool dir)
 {
-    PrintFileNameData* printData = data;
-    Console* console = printData->console;
+    PrintFileNameData* data = ctx;
 
-    printLine(console);
-
-    if(dir)
-    {
-        printBack(console, "[");
-        printBack(console, name);
-        printBack(console, "]");
-    }
-    else printFront(console, name);
-
-    printData->count++;
+    data->items = realloc(data->items, (data->count + 1) * sizeof *data->items);
+    data->items[data->count++] = (FileItem){strdup(name), dir};
 
     return true;
 }
 
-static void onDirDone(void* data)
+static s32 strcasecmp(const char *str1, const char *str2)
 {
-    PrintFileNameData* printData = data;
-    Console* console = printData->console;
+    while (*str1 && *str2) 
+    {
+        if (tolower((u8) *str1) != tolower((u8) *str2))
+            break;
 
-    if (printData->count == 0)
+        ++str1;
+        ++str2;
+    }
+
+    return (s32) ((u8) tolower(*str1) - (u8) tolower(*str2));
+}
+
+static inline s32 itemcmp(const void* a, const void* b)
+{
+    const FileItem* item1 = a;
+    const FileItem* item2 = b;
+
+    if(item1->dir != item2->dir)
+        return item1->dir ? -1 : 1;
+
+    return strcasecmp(item1->name, item2->name);
+}
+
+static void onDirDone(void* ctx)
+{
+    PrintFileNameData* data = ctx;
+    Console* console = data->console;
+
+    qsort(data->items, data->count, sizeof *data->items, itemcmp);
+
+    for(const FileItem *item = data->items, *end = item + data->count; item < end; item++)
+    {
+        printLine(console);
+
+        if(item->dir)
+        {
+            printBack(console, "[");
+            printBack(console, item->name);
+            printBack(console, "]");
+        }
+        else printFront(console, item->name);
+
+        free((void*)item->name);
+    }
+
+    if(data->items)
+        free(data->items);
+
+    if (data->count == 0)
     {
         printBack(console, "\n\nuse ");
         printFront(console, "DEMO");
@@ -1083,7 +1125,7 @@ static void onDirDone(void* data)
     printLine(console);
     commandDone(console);
 
-    free(data);
+    free(ctx);
 }
 
 typedef struct
@@ -1152,7 +1194,7 @@ static void onConsoleDirCommand(Console* console, const char* param)
 {
     printLine(console);
 
-    PrintFileNameData data = {0, console};
+    PrintFileNameData data = {console};
     tic_fs_enum(console->fs, printFilename, onDirDone, OBJCOPY(data));
 }
 
@@ -2550,23 +2592,6 @@ static void onConsoleHelpCommand(Console* console, const char* param)
     commandDone(console);
 }
 
-static s32 tic_strcasecmp(const char *str1, const char *str2)
-{
-    char a = 0;
-    char b = 0;
-    while (*str1 && *str2) {
-        a = toupper((u8) *str1);
-        b = toupper((u8) *str2);
-        if (a != b)
-            break;
-        ++str1;
-        ++str2;
-    }
-    a = toupper(*str1);
-    b = toupper(*str2);
-    return (s32) ((u8) a - (u8) b);
-}
-
 static void processCommand(Console* console, const char* command)
 {
     console->active = false;
@@ -2590,8 +2615,8 @@ static void processCommand(Console* console, const char* command)
     if(param && !strlen(param)) param = NULL;
 
     for(s32 i = 0; i < COUNT_OF(AvailableConsoleCommands); i++)
-        if(tic_strcasecmp(command, AvailableConsoleCommands[i].command) == 0 ||
-            (AvailableConsoleCommands[i].alt && tic_strcasecmp(command, AvailableConsoleCommands[i].alt) == 0))
+        if(strcasecmp(command, AvailableConsoleCommands[i].command) == 0 ||
+            (AvailableConsoleCommands[i].alt && strcasecmp(command, AvailableConsoleCommands[i].alt) == 0))
         {
             if(AvailableConsoleCommands[i].handler)
             {
