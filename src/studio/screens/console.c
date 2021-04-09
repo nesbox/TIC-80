@@ -1065,7 +1065,7 @@ static bool printFilename(const char* name, const char* info, s32 id, void* ctx,
     return true;
 }
 
-static s32 strcasecmp(const char *str1, const char *str2)
+static s32 casecmp(const char *str1, const char *str2)
 {
     while (*str1 && *str2) 
     {
@@ -1087,7 +1087,7 @@ static inline s32 itemcmp(const void* a, const void* b)
     if(item1->dir != item2->dir)
         return item1->dir ? -1 : 1;
 
-    return strcasecmp(item1->name, item2->name);
+    return casecmp(item1->name, item2->name);
 }
 
 static void onDirDone(void* ctx)
@@ -1112,15 +1112,13 @@ static void onDirDone(void* ctx)
         free((void*)item->name);
     }
 
-    if(data->items)
-        free(data->items);
-
     if (data->count == 0)
     {
         printBack(console, "\n\nuse ");
         printFront(console, "DEMO");
         printBack(console, " command to install demo carts");
     }
+    else free(data->items);
 
     printLine(console);
     commandDone(console);
@@ -2615,8 +2613,8 @@ static void processCommand(Console* console, const char* command)
     if(param && !strlen(param)) param = NULL;
 
     for(s32 i = 0; i < COUNT_OF(AvailableConsoleCommands); i++)
-        if(strcasecmp(command, AvailableConsoleCommands[i].command) == 0 ||
-            (AvailableConsoleCommands[i].alt && strcasecmp(command, AvailableConsoleCommands[i].alt) == 0))
+        if(casecmp(command, AvailableConsoleCommands[i].command) == 0 ||
+            (AvailableConsoleCommands[i].alt && casecmp(command, AvailableConsoleCommands[i].alt) == 0))
         {
             if(AvailableConsoleCommands[i].handler)
             {

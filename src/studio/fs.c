@@ -321,7 +321,7 @@ static void onDirResponse(const net_get_data* netData)
     }
 }
 
-static void enumFiles(tic_fs* fs, const char* path, fs_list_callback callback, void* data, bool folder)
+static void enumFiles(tic_fs* fs, const char* path, fs_list_callback callback, void* data)
 {
 #if defined(BAREMETALPI)
     dbg("enumFiles %s", path);
@@ -350,11 +350,9 @@ static void enumFiles(tic_fs* fs, const char* path, fs_list_callback callback, v
 
     for (unsigned i = 0; Result == FR_OK && FileInfo.fname[0]; i++)
     {
-        bool check = FileInfo.fattrib & (folder ? AM_DIR : AM_ARC);
-
-        if (check &&  !(FileInfo.fattrib & (AM_HID | AM_SYS)))
+        if (!(FileInfo.fattrib & (AM_HID | AM_SYS)))
         {
-            bool result = callback(FileInfo.fname, NULL, 0, data, folder);
+            bool result = callback(FileInfo.fname, NULL, 0, data, FileInfo.fattrib & AM_DIR);
 
             if (!result)
             {
@@ -383,10 +381,10 @@ static void enumFiles(tic_fs* fs, const char* path, fs_list_callback callback, v
                 tic_strncpy(fullPath, pathString, COUNT_OF(fullPath));
                 tic_strncat(fullPath, ent->d_name, COUNT_OF(fullPath));
 
-                if(tic_stat(fullPath, &s) == 0 && folder ? S_ISDIR(s.st_mode) : S_ISREG(s.st_mode))
+                if(tic_stat(fullPath, &s) == 0)
                 {
                     const char* name = stringToUtf8(ent->d_name);
-                    bool result = callback(name, NULL, 0, data, folder);
+                    bool result = callback(name, NULL, 0, data, S_ISDIR(s.st_mode));
                     freeString(name);
 
                     if(!result) break;
@@ -422,8 +420,7 @@ void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, v
 
     const char* path = tic_fs_path(fs, "");
 
-    enumFiles(fs, path, onItem, data, true);
-    enumFiles(fs, path, onItem, data, false);
+    enumFiles(fs, path, onItem, data);
 
     onDone(data);
 }
