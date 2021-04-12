@@ -104,6 +104,7 @@ struct Code
 
         s32 size;
         s32 index;
+        s32 scroll;
     } outline;
 
     const char* matchedDelim;

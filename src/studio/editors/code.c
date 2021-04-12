@@ -1280,6 +1280,7 @@ static void initOutlineMode(Code* code)
 static void setOutlineMode(Code* code)
 {
     code->outline.index = 0;
+    code->outline.scroll = 0;
 
     initOutlineMode(code);
 
@@ -1856,8 +1857,9 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
     {
         s32 mx = tic_api_mouse(tic).y - rect.y;
         mx /= STUDIO_TEXT_HEIGHT;
+        mx += code->outline.scroll;
 
-        if(mx < code->outline.size && code->outline.items[mx].pos)
+        if(mx >= 0 && mx < code->outline.size && code->outline.items[mx].pos)
         {
             setCursor(tic_cursor_hand);
 
@@ -1865,7 +1867,6 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
             {
                 code->outline.index = mx;
                 updateOutlineCode(code);
-
             }
 
             if(checkMouseClick(&rect, tic_mouse_left))
@@ -1875,14 +1876,14 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 
     tic_api_rect(code->tic, rect.x-1, rect.y, rect.w+1, rect.h, tic_color_grey);
 
-    y++;
+    y -= code->outline.scroll * STUDIO_TEXT_HEIGHT - 1;
 
     char filter[STUDIO_TEXT_BUFFER_WIDTH];
     strncpy(filter, code->popup.text, sizeof(filter));
 
     if(code->outline.items)
     {
-        tic_api_rect(code->tic, rect.x - 1, rect.y + code->outline.index*STUDIO_TEXT_HEIGHT,
+        tic_api_rect(code->tic, rect.x - 1, rect.y + (code->outline.index - code->outline.scroll) * STUDIO_TEXT_HEIGHT,
             rect.w + 1, TIC_FONT_HEIGHT + 2, tic_color_red);
 
         for(const tic_outline_item* ptr = code->outline.items, *end = ptr + code->outline.size; 
@@ -1902,24 +1903,61 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
     }
 }
 
+static void normOutlineScroll(Code* code)
+{
+    code->outline.scroll = code->outline.size > TEXT_BUFFER_HEIGHT 
+        ? CLAMP(code->outline.scroll, 0, code->outline.size - TEXT_BUFFER_HEIGHT) : 0;
+}
+
+static void updateOutlineIndex(Code* code, s32 value)
+{
+    if(code->outline.size == 0)
+        return;
+
+    code->outline.index = CLAMP(value, 0, code->outline.size - 1);
+
+    if(code->outline.index - code->outline.scroll < 0)
+        code->outline.scroll -= TEXT_BUFFER_HEIGHT;
+    else if(code->outline.index - code->outline.scroll >= TEXT_BUFFER_HEIGHT)
+        code->outline.scroll += TEXT_BUFFER_HEIGHT;
+
+    updateOutlineCode(code);
+    normOutlineScroll(code);
+}
+
 static void textOutlineTick(Code* code)
 {
+    // process scroll
+    {
+        tic80_input* input = &code->tic->ram.input;
+
+        if(input->mouse.scrolly)
+        {
+            enum{Scroll = 3};
+            s32 delta = input->mouse.scrolly > 0 ? -Scroll : Scroll;
+            code->outline.scroll += delta;
+            normOutlineScroll(code);
+        }
+    }
+
     if(keyWasPressed(tic_key_up))
-    {
-        if(code->outline.index > 0)
-        {
-            code->outline.index--;
-            updateOutlineCode(code);
-        }
-    }
+        updateOutlineIndex(code, code->outline.index - 1);
+
     else if(keyWasPressed(tic_key_down))
-    {
-        if(code->outline.index < code->outline.size - 1 && code->outline.items[code->outline.index + 1].pos)
-        {
-            code->outline.index++;
-            updateOutlineCode(code);
-        }
-    }
+        updateOutlineIndex(code, code->outline.index + 1);
+
+    else if(keyWasPressed(tic_key_left) || keyWasPressed(tic_key_pageup))
+        updateOutlineIndex(code, code->outline.index - TEXT_BUFFER_HEIGHT);
+
+    else if(keyWasPressed(tic_key_right) || keyWasPressed(tic_key_pagedown))
+        updateOutlineIndex(code, code->outline.index + TEXT_BUFFER_HEIGHT);
+
+    else if(keyWasPressed(tic_key_home))
+        updateOutlineIndex(code, 0);
+
+    else if(keyWasPressed(tic_key_end))
+        updateOutlineIndex(code, code->outline.size - 1);
+
     else if(keyWasPressed(tic_key_return))
     {
         updateOutlineCode(code);
@@ -1949,9 +1987,9 @@ static void textOutlineTick(Code* code)
     tic_api_cls(code->tic, getConfig()->theme.code.bg);
 
     drawCode(code, false);
-    drawPopupBar(code, "FUNC:");
     drawStatus(code);
     drawOutlineBar(code, TIC80_WIDTH - 13 * TIC_FONT_WIDTH, 2*(TIC_FONT_HEIGHT+1));
+    drawPopupBar(code, "FUNC:");
 }
 
 static void drawFontButton(Code* code, s32 x, s32 y)
@@ -2224,6 +2262,7 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
             .items = NULL,
             .size = 0,
             .index = 0,
+            .scroll = 0,
         },
         .matchedDelim = NULL,
         .altFont = firstLoad ? getConfig()->theme.code.altFont : code->altFont,
