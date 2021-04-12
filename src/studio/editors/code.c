@@ -1885,17 +1885,12 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
         tic_api_rect(code->tic, rect.x - 1, rect.y + code->outline.index*STUDIO_TEXT_HEIGHT,
             rect.w + 1, TIC_FONT_HEIGHT + 2, tic_color_red);
 
-        for(s32 i = 0; i < code->outline.size; i++)
+        for(const tic_outline_item* ptr = code->outline.items, *end = ptr + code->outline.size; 
+            ptr < end; ptr++, y += STUDIO_TEXT_HEIGHT)
         {
-            const tic_outline_item* ptr = &code->outline.items[i];
-
-            char orig[STUDIO_TEXT_BUFFER_WIDTH];
+            char orig[STUDIO_TEXT_BUFFER_WIDTH] = {0};
             strncpy(orig, ptr->pos, MIN(ptr->size, sizeof(orig)));
-
             drawFilterMatch(code, x, y, orig, filter);
-
-            ptr++;
-            y += STUDIO_TEXT_HEIGHT;
         }
     }
     else
