@@ -1376,10 +1376,17 @@ static void processKeyboard(Music* music)
     }
     else
     {
-        if(keyWasPressed(tic_key_return))
+        bool stopped = getMusicPos(music)->music.track < 0;
+
+        if(keyWasPressed(tic_key_space))
         {
-            const tic_sound_state* pos = getMusicPos(music);
-            pos->music.track < 0
+            stopped 
+                ? playTrack(music)
+                : stopTrack(music);
+        }
+        else if(keyWasPressed(tic_key_return))
+        {
+            stopped
                 ? (shift && music->tab == MUSIC_TRACKER_TAB
                     ? playFrameRow(music) 
                     : playFrame(music))
@@ -1756,60 +1763,131 @@ static void drawTrackerLayout(Music* music, s32 x, s32 y)
 
 static void drawPlayButtons(Music* music)
 {
-    static const u8 Icons[] =
+    enum
     {
-        0b00000000,
-        0b00100000,
-        0b00010000,
-        0b10111000,
-        0b00010000,
-        0b00100000,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b11110000,
-        0b00001000,
-        0b10001000,
-        0b10000000,
-        0b01111000,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b01010000,
-        0b01011000,
-        0b01011100,
-        0b01011000,
-        0b01010000,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b00100000,
-        0b00110000,
-        0b00111000,
-        0b00110000,
-        0b00100000,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b01111100,
-        0b01111100,
-        0b01111100,
-        0b01111100,
-        0b01111100,
-        0b00000000,
-        0b00000000,
+        FollowButton,
+        SustainButton,
+        PlayFromNowButton,
+        PlayFrameButton,
+        PlayTrackButton,
     };
 
-    enum { Offset = TIC80_WIDTH - 54, Width = 7, Height = 7, Rows = 8, Count = sizeof Icons / Rows };
-
-    for (s32 i = 0; i < Count; i++)
+    static struct Button
     {
-        tic_rect rect = { Offset + Width * i, 0, Width, Height };
+        s32 id; 
+        const u8 icon[BITS_IN_BYTE]; 
+        const char* tip; 
+        const char* alt; 
+        void(*handler)(Music*);
+    } Buttons[] = 
+    {
+        {
+            FollowButton,
+            {
+                0b00000000,
+                0b00100000,
+                0b00010000,
+                0b10111000,
+                0b00010000,
+                0b00100000,
+                0b00000000,
+                0b00000000,
+            },
+            "FOLLOW [ctrl+f]",
+            NULL,
+            toggleFollowMode,
+        },
 
+        {
+            SustainButton,
+            {
+                0b00000000,
+                0b11110000,
+                0b00001000,
+                0b10001000,
+                0b10000000,
+                0b01111000,
+                0b00000000,
+                0b00000000,
+            },
+            "SUSTAIN NOTES",
+            NULL,
+            toggleSustainMode,
+        },
+
+        {
+            PlayFromNowButton,
+            {
+                0b00000000,
+                0b00100000,
+                0b00010000,
+                0b00001000,
+                0b00010000,
+                0b00100000,
+                0b00000000,
+                0b00000000,
+            },
+            "PLAY FROM NOW ...",
+            "... [shift+enter]",
+            playFrameRow,
+        },
+
+        {
+            PlayFrameButton,
+            {
+                0b00000000,
+                0b01010000,
+                0b01011000,
+                0b01011100,
+                0b01011000,
+                0b01010000,
+                0b00000000,
+                0b00000000,
+            },
+            "PLAY FRAME ...",
+            "... [enter]",
+            playFrame,
+        },
+
+        {
+            PlayTrackButton,
+            {
+                0b00000000,
+                0b00100000,
+                0b00110000,
+                0b00111000,
+                0b00110000,
+                0b00100000,
+                0b00000000,
+                0b00000000,
+            },
+            "PLAY TRACK ...",
+            "... [space]",
+            playTrack,
+        },
+
+        {
+            PlayTrackButton,
+            {
+                0b00000000,
+                0b01111100,
+                0b01111100,
+                0b01111100,
+                0b01111100,
+                0b01111100,
+                0b00000000,
+                0b00000000,
+            },
+            "STOP [enter]",
+            NULL,
+            stopTrack,
+        },
+    };
+
+    tic_rect rect = { TIC80_WIDTH - 54, 0, TIC_FONT_WIDTH, TOOLBAR_SIZE };
+
+    for(const struct Button* btn = Buttons, *end = btn + COUNT_OF(Buttons); btn < end; btn++, rect.x += TIC_FONT_WIDTH)
+    {
         bool over = false;
 
         if (checkMousePos(&rect))
@@ -1817,21 +1895,20 @@ static void drawPlayButtons(Music* music)
             setCursor(tic_cursor_hand);
             over = true;
 
-            static const char* Tooltips[] = { "FOLLOW [ctrl+f]", "SUSTAIN NOTES", "PLAY FRAME [enter]", "PLAY TRACK", "STOP [enter]" };
-            showTooltip(Tooltips[i]);
-
-            static void(*const Handlers[])(Music*) = { toggleFollowMode, toggleSustainMode, playFrame, playTrack, stopTrack };
+            showTooltip(btn->alt && music->tickCounter % (TIC80_FRAMERATE * 2) < TIC80_FRAMERATE ? btn->alt : btn->tip);
 
             if (checkMouseClick(&rect, tic_mouse_left))
-                Handlers[i](music);
+                btn->handler(music);
         }
 
-        if(i == 0 && music->follow)
-            drawBitIcon(rect.x, rect.y, Icons + i*Rows, tic_color_green);
-        else if(i == 1 && music->sustain)
-            drawBitIcon(rect.x, rect.y, Icons + i*Rows, tic_color_green);
+        if(btn->id == FollowButton && music->follow)
+            drawBitIcon(rect.x, rect.y, btn->icon, tic_color_green);
+
+        else if(btn->id == SustainButton && music->sustain)
+            drawBitIcon(rect.x, rect.y, btn->icon, tic_color_green);
+
         else
-            drawBitIcon(rect.x, rect.y, Icons + i*Rows, over ? tic_color_grey : tic_color_light_grey);
+            drawBitIcon(rect.x, rect.y, btn->icon, over ? tic_color_grey : tic_color_light_grey);
     }
 }
 
