@@ -719,7 +719,7 @@ static void loadByHash(Console* console, const char* name, const char* hash, fs_
     console->active = false;
 
     LoadByHashData loadByHashData = { console, strdup(name), callback, data};
-    tic_fs_hashload(console->fs, hash, loadByHashDone, OBJCOPY(loadByHashData));
+    tic_fs_hashload(console->fs, hash, loadByHashDone, OBJMOVE(loadByHashData));
 }
 
 typedef struct
@@ -778,7 +778,7 @@ static void onConsoleLoadCommandConfirmed(Console* console, const char* param)
         if (tic_fs_ispubdir(console->fs))
         {
             LoadPublicCartData loadPublicCartData = { console, strdup(name) };
-            tic_fs_enum(console->fs, compareFilename, fileFound, OBJCOPY(loadPublicCartData));
+            tic_fs_enum(console->fs, compareFilename, fileFound, OBJMOVE(loadPublicCartData));
 
             return;
         }
@@ -1164,7 +1164,7 @@ static void onConsoleChangeDirectory(Console* console, const char* param)
         else
         {
             ChangeDirData data = { console, strdup(param) };
-            tic_fs_isdir_async(console->fs, param, onConsoleChangeDirectoryDone, OBJCOPY(data));
+            tic_fs_isdir_async(console->fs, param, onConsoleChangeDirectoryDone, OBJMOVE(data));
             return;
         }
     }
@@ -1193,7 +1193,7 @@ static void onConsoleDirCommand(Console* console, const char* param)
     printLine(console);
 
     PrintFileNameData data = {console};
-    tic_fs_enum(console->fs, printFilename, onDirDone, OBJCOPY(data));
+    tic_fs_enum(console->fs, printFilename, onDirDone, OBJMOVE(data));
 }
 
 static void onConsoleFolderCommand(Console* console, const char* param)
@@ -2508,7 +2508,7 @@ static void processConsoleTab(Console* console)
         if(param && strlen(++param))
         {
             PredictFilenameData data = { console, param };
-            tic_fs_enum(console->fs, predictFilename, predictFilenameDone, OBJCOPY(data));
+            tic_fs_enum(console->fs, predictFilename, predictFilenameDone, OBJMOVE(data));
         }
         else
         {
