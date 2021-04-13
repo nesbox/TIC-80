@@ -38,14 +38,9 @@ STATIC_ASSERT(CodeStateSize, sizeof(CodeState) == sizeof(u8));
 
 enum
 {
-    SyntaxTypeString    = offsetof(struct tic_code_theme, string),
-    SyntaxTypeNumber    = offsetof(struct tic_code_theme, number),
-    SyntaxTypeKeyword   = offsetof(struct tic_code_theme, keyword),
-    SyntaxTypeApi       = offsetof(struct tic_code_theme, api),
-    SyntaxTypeComment   = offsetof(struct tic_code_theme, comment),
-    SyntaxTypeSign      = offsetof(struct tic_code_theme, sign),
-    SyntaxTypeVar       = offsetof(struct tic_code_theme, var),
-    SyntaxTypeOther     = offsetof(struct tic_code_theme, other),
+#define CODE_COLOR_DEF(VAR) SyntaxType_##VAR,
+        CODE_COLORS_LIST(CODE_COLOR_DEF)
+#undef  CODE_COLOR_DEF
 };
 
 static void history(Code* code)
@@ -61,9 +56,9 @@ static void drawStatus(Code* code)
     enum {Height = TIC_FONT_HEIGHT + 1, StatusY = TIC80_HEIGHT - TIC_FONT_HEIGHT};
 
     tic_api_rect(code->tic, 0, TIC80_HEIGHT - Height, TIC80_WIDTH, Height, tic_color_white);
-    tic_api_print(code->tic, code->statusLine, 0, StatusY, getConfig()->theme.code.bg, true, 1, false);
+    tic_api_print(code->tic, code->statusLine, 0, StatusY, getConfig()->theme.code.BG, true, 1, false);
     tic_api_print(code->tic, code->statusSize, TIC80_WIDTH - (s32)strlen(code->statusSize) * TIC_FONT_WIDTH, 
-        StatusY, getConfig()->theme.code.bg, true, 1, false);
+        StatusY, getConfig()->theme.code.BG, true, 1, false);
 }
 
 static char* getPosByLine(char* ptr, s32 line)
@@ -184,7 +179,7 @@ static void drawCursor(Code* code, s32 x, s32 y, char symbol)
         tic_api_rect(code->tic, x-1, y-1, getFontWidth(code)+1, TIC_FONT_HEIGHT+1, getConfig()->theme.code.cursor);
 
         if(symbol)
-            drawChar(code->tic, symbol, x, y, getConfig()->theme.code.bg, code->altFont);
+            drawChar(code->tic, symbol, x, y, getConfig()->theme.code.BG, code->altFont);
     }
 }
 
@@ -205,8 +200,8 @@ static void drawCode(Code* code, bool withCursor)
     const char* pointer = code->src;
 
     u8 selectColor = getConfig()->theme.code.select;
-    const struct tic_code_theme* theme = &getConfig()->theme.code.syntax;
-    const u8* colors = (const u8*)theme;
+
+    const u8* colors = (const u8*)&getConfig()->theme.code;
     const CodeState* syntaxPointer = code->state;
 
     struct { char* start; char* end; } selection = 
@@ -320,8 +315,8 @@ const char* findMatchedDelim(Code* code, const char* current)
 {
     const char* start = code->src;
     // delimiters inside comments and strings don't get to be matched!
-    if(code->state[current - start].syntax == SyntaxTypeComment ||
-       code->state[current - start].syntax == SyntaxTypeString) return 0;
+    if(code->state[current - start].syntax == SyntaxType_COMMENT ||
+       code->state[current - start].syntax == SyntaxType_STRING) return 0;
 
     char initial = *current;
     char seeking = 0;
@@ -341,8 +336,8 @@ const char* findMatchedDelim(Code* code, const char* current)
     {
         current += dir;
         // skip over anything inside a comment or string
-        if(code->state[current - start].syntax == SyntaxTypeComment ||
-           code->state[current - start].syntax == SyntaxTypeString) continue;
+        if(code->state[current - start].syntax == SyntaxType_COMMENT ||
+           code->state[current - start].syntax == SyntaxType_STRING) continue;
         if(*current == seeking) return current;
         if(*current == initial) current = findMatchedDelim(code, current);
         if(!current) break;
@@ -409,7 +404,7 @@ start:
             const char* end = strstr(ptr, config->blockCommentEnd);
 
             ptr = end ? end + strlen(config->blockCommentEnd) : blockCommentStart + strlen(blockCommentStart);
-            setCodeState(state, SyntaxTypeComment, (s32)(blockCommentStart - start), (s32)(ptr - blockCommentStart));
+            setCodeState(state, SyntaxType_COMMENT, (s32)(blockCommentStart - start), (s32)(ptr - blockCommentStart));
             blockCommentStart = NULL;
 
             // !TODO: stupid MS compiler doesn't see 'continue' here in release, so lets use 'goto' instead, investigate why
@@ -420,7 +415,7 @@ start:
             const char* end = strstr(ptr, config->blockCommentEnd2);
 
             ptr = end ? end + strlen(config->blockCommentEnd2) : blockCommentStart2 + strlen(blockCommentStart2);
-            setCodeState(state, SyntaxTypeComment, (s32)(blockCommentStart2 - start), (s32)(ptr - blockCommentStart2));
+            setCodeState(state, SyntaxType_COMMENT, (s32)(blockCommentStart2 - start), (s32)(ptr - blockCommentStart2));
             blockCommentStart2 = NULL;
             goto start;
         }
@@ -429,7 +424,7 @@ start:
             const char* end = strstr(ptr, config->blockStringEnd);
 
             ptr = end ? end + strlen(config->blockStringEnd) : blockStringStart + strlen(blockStringStart);
-            setCodeState(state, SyntaxTypeString, (s32)(blockStringStart - start), (s32)(ptr - blockStringStart));
+            setCodeState(state, SyntaxType_STRING, (s32)(blockStringStart - start), (s32)(ptr - blockStringStart));
             blockStringStart = NULL;
             continue;
         }
@@ -457,7 +452,7 @@ start:
                 }
             }
 
-            setCodeState(state, SyntaxTypeString, (s32)(blockStdStringStart - start), (s32)(ptr - blockStdStringStart));
+            setCodeState(state, SyntaxType_STRING, (s32)(blockStdStringStart - start), (s32)(ptr - blockStdStringStart));
             blockStdStringStart = NULL;
             continue;
         }
@@ -465,7 +460,7 @@ start:
         {
             while(!islineend(*ptr))ptr++;
 
-            setCodeState(state, SyntaxTypeComment, (s32)(singleCommentStart - start), (s32)(ptr - singleCommentStart));
+            setCodeState(state, SyntaxType_COMMENT, (s32)(singleCommentStart - start), (s32)(ptr - singleCommentStart));
             singleCommentStart = NULL;
             continue;
         }
@@ -479,7 +474,7 @@ start:
                 for(s32 i = 0; i < config->keywordsCount; i++)
                     if(len == strlen(config->keywords[i]) && memcmp(wordStart, config->keywords[i], len) == 0)
                     {
-                        setCodeState(state, SyntaxTypeKeyword, (s32)(wordStart - start),len);
+                        setCodeState(state, SyntaxType_KEYWORD, (s32)(wordStart - start),len);
                         keyword = true;
                         break;
                     }
@@ -494,7 +489,7 @@ start:
                 for(s32 i = 0; i < COUNT_OF(ApiKeywords); i++)
                     if(len == strlen(ApiKeywords[i]) && memcmp(wordStart, ApiKeywords[i], len) == 0)
                     {
-                        setCodeState(state, SyntaxTypeApi, (s32)(wordStart - start), len);
+                        setCodeState(state, SyntaxType_API, (s32)(wordStart - start), len);
                         break;
                     }
             }
@@ -524,7 +519,7 @@ start:
                 else break;
             }
 
-            setCodeState(state, SyntaxTypeNumber, (s32)(numberStart - start), (s32)(ptr - numberStart));
+            setCodeState(state, SyntaxType_NUMBER, (s32)(numberStart - start), (s32)(ptr - numberStart));
             numberStart = NULL;
             continue;
         }
@@ -572,8 +567,7 @@ start:
                 ptr++;
                 continue;
             }
-            else if(ispunct(c)) state[ptr - start].syntax = SyntaxTypeSign;
-            else if(iscntrl(c)) state[ptr - start].syntax = SyntaxTypeOther;
+            else if(ispunct(c)) state[ptr - start].syntax = SyntaxType_SIGN;
         }
 
         if(!c) break;
@@ -585,7 +579,7 @@ start:
 static void parseSyntaxColor(Code* code)
 {
     for(s32 i = 0; i < TIC_CODE_SIZE; i++)
-        code->state[i].syntax = SyntaxTypeVar;
+        code->state[i].syntax = SyntaxType_FG;
 
     tic_mem* tic = code->tic;
 
@@ -1263,7 +1257,7 @@ static void initOutlineMode(Code* code)
                 char buffer[STUDIO_TEXT_BUFFER_WIDTH];
                 memcpy(buffer, item->pos, MIN(item->size, sizeof(buffer)));
 
-                if(code->state[item->pos - code->src].syntax == SyntaxTypeComment)
+                if(code->state[item->pos - code->src].syntax == SyntaxType_COMMENT)
                     continue;
 
                 if(*filter && !isFilterMatch(buffer, filter))
@@ -1641,7 +1635,7 @@ static void textDragTick(Code* code)
 
     processMouse(code);
 
-    tic_api_cls(code->tic, getConfig()->theme.code.bg);
+    tic_api_cls(code->tic, getConfig()->theme.code.BG);
 
     drawCode(code, true);   
     drawStatus(code);
@@ -1680,7 +1674,7 @@ static void textEditTick(Code* code)
 
     processMouse(code);
 
-    tic_api_cls(code->tic, getConfig()->theme.code.bg);
+    tic_api_cls(code->tic, getConfig()->theme.code.BG);
 
     drawCode(code, true);   
     drawStatus(code);
@@ -1779,7 +1773,7 @@ static void textFindTick(Code* code)
         }
     }
 
-    tic_api_cls(code->tic, getConfig()->theme.code.bg);
+    tic_api_cls(code->tic, getConfig()->theme.code.BG);
 
     drawCode(code, false);
     drawPopupBar(code, "FIND:");
@@ -1837,7 +1831,7 @@ static void textGoToTick(Code* code)
         }
     }
 
-    tic_api_cls(tic, getConfig()->theme.code.bg);
+    tic_api_cls(tic, getConfig()->theme.code.BG);
 
     if(code->jump.line >= 0)
         tic_api_rect(tic, 0, (code->jump.line - code->scroll.y) * (TIC_FONT_HEIGHT+1) + TOOLBAR_SIZE,
@@ -1984,7 +1978,7 @@ static void textOutlineTick(Code* code)
         }
     }
 
-    tic_api_cls(code->tic, getConfig()->theme.code.bg);
+    tic_api_cls(code->tic, getConfig()->theme.code.BG);
 
     drawCode(code, false);
     drawStatus(code);

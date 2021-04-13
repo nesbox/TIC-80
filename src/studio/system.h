@@ -64,6 +64,16 @@ void    tic_sys_poll();
 bool    tic_sys_keyboard_text(char* text);
 void    tic_sys_update_config();
 
+#define CODE_COLORS_LIST(macro) \
+    macro(BG)       \
+    macro(FG)       \
+    macro(STRING)   \
+    macro(NUMBER)   \
+    macro(KEYWORD)  \
+    macro(API)      \
+    macro(COMMENT)  \
+    macro(SIGN)
+
 typedef struct
 {
     struct
@@ -79,19 +89,10 @@ typedef struct
 
         struct
         {
-            struct tic_code_theme
-            {
-                u8 string;
-                u8 number;
-                u8 keyword;
-                u8 api;
-                u8 comment;
-                u8 sign;
-                u8 var;
-                u8 other;
-            } syntax;
+#define     CODE_COLOR_DEF(VAR) u8 VAR;
+            CODE_COLORS_LIST(CODE_COLOR_DEF)
+#undef      CODE_COLOR_DEF
 
-            u8 bg;
             u8 select;
             u8 cursor;
             bool shadow;

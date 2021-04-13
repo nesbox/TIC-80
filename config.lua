@@ -11,14 +11,13 @@ THEME=
 	CODE =
 	{
 		BG     =15,
+		FG     =12,
 		STRING =4,
 		NUMBER =11,
 		KEYWORD=3,
 		API    =5,
 		COMMENT=14,
 		SIGN   =13,
-		VAR    =12,
-		OTHER  =0,
 		SELECT =14,
 		CURSOR =2,
 		SHADOW =true,
