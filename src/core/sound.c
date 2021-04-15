@@ -43,12 +43,12 @@ STATIC_ASSERT(tic_sound_state_size, sizeof(tic_music_state) == 4);
 static s32 tick2row(const tic_music_params* params, s32 tick)
 {
     // BPM = tempo * 6 / speed
-    return tick * params->tempo * DEFAULT_SPEED / params->speed / NOTES_PER_MUNUTE;
+    return params->speed > 0 ? tick * params->tempo * DEFAULT_SPEED / params->speed / NOTES_PER_MUNUTE : 0;
 }
 
 static s32 row2tick(const tic_music_params* params, s32 row)
 {
-    return row * params->speed * NOTES_PER_MUNUTE / params->tempo / DEFAULT_SPEED;
+    return params->tempo > 0 ? row * params->speed * NOTES_PER_MUNUTE / params->tempo / DEFAULT_SPEED : 0;
 }
 
 static inline s32 param2val(const tic_track_row* row)
