@@ -887,6 +887,14 @@ void tic_sys_poll()
 
     SDL_Event event;
 
+// workaround for issue #1332 to not process keyboard when window gained focus
+#if defined(__LINUX__)
+    static s32 lockInput = 0;
+
+    if(lockInput)
+        lockInput--;
+#endif
+
     // Workaround for freeze on fullscreen under macOS #819
     SDL_PumpEvents();
     while(SDL_PollEvent(&event))
@@ -944,6 +952,10 @@ void tic_sys_poll()
                 break;
             case SDL_WINDOWEVENT_FOCUS_GAINED: 
                 platform.studio->updateProject();
+#if defined(__LINUX__)
+                // lock input for 10 ticks
+                lockInput = 10;
+#endif                
                 break;
             }
             break;
@@ -970,6 +982,11 @@ void tic_sys_poll()
             break;
         }
     }
+
+#if defined(__LINUX__)
+    if(lockInput)
+        return;
+#endif    
 
     processMouse();
 
