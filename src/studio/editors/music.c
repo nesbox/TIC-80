@@ -68,9 +68,9 @@ static void redo(Music* music)
     history_redo(music->history);
 }
 
-static const tic_sound_state* getMusicPos(Music* music)
+static const tic_music_state* getMusicPos(Music* music)
 {
-    return &music->tic->ram.sound_state;
+    return &music->tic->ram.music_state;
 }
 
 static void drawEditPanel(Music* music, s32 x, s32 y, s32 w, s32 h)
@@ -320,7 +320,7 @@ static void upRow(Music* music)
 
 static void downRow(Music* music)
 {
-    const tic_sound_state* pos = getMusicPos(music);
+    const tic_music_state* pos = getMusicPos(music);
     // Don't move the cursor if the track is being played/recorded
     if(pos->music.track == music->track && music->follow) return;
 
@@ -411,7 +411,7 @@ static void downFrame(Music* music)
 
 static bool checkPlayFrame(Music* music, s32 frame)
 {
-    const tic_sound_state* pos = getMusicPos(music);
+    const tic_music_state* pos = getMusicPos(music);
 
     return pos->music.track == music->track &&
         pos->music.frame == frame;
@@ -419,7 +419,7 @@ static bool checkPlayFrame(Music* music, s32 frame)
 
 static bool checkPlayRow(Music* music, s32 row)
 {
-    const tic_sound_state* pos = getMusicPos(music);
+    const tic_music_state* pos = getMusicPos(music);
 
     return checkPlayFrame(music, music->frame) && pos->music.row == row;
 }
@@ -464,14 +464,14 @@ static s32 getSfx(Music* music)
     return tic_tool_get_track_row_sfx(&pattern->rows[music->tracker.edit.y]);
 }
 
-static inline tic_music_state getMusicState(Music* music)
+static inline tic_music_status getMusicState(Music* music)
 {
-    return music->tic->ram.sound_state.flag.music_state;
+    return music->tic->ram.music_state.flag.music_status;
 }
 
-static inline void setMusicState(Music* music, tic_music_state state)
+static inline void setMusicState(Music* music, tic_music_status state)
 {
-    music->tic->ram.sound_state.flag.music_state = state;
+    music->tic->ram.music_state.flag.music_status = state;
 }
 
 static void playNote(Music* music, const tic_track_row* row)
@@ -606,7 +606,7 @@ static void toggleFollowMode(Music* music)
 
 static void toggleSustainMode(Music* music)
 {
-    music->tic->ram.sound_state.flag.music_sustain = !music->sustain;
+    music->tic->ram.music_state.flag.music_sustain = !music->sustain;
     music->sustain = !music->sustain;
 }
 
@@ -1525,6 +1525,9 @@ static void setTempo(Music* music, s32 delta, void* data)
 
     track->tempo = tempo;
 
+    if(getMusicState(music) != tic_music_stop)
+        music->tic->ram.music_params.tempo = tempo + DEFAULT_TEMPO;
+
     history_add(music->history);
 }
 
@@ -1546,6 +1549,9 @@ static void setSpeed(Music* music, s32 delta, void* data)
     if (speed < Min) speed = Min;
 
     track->speed = speed;
+
+    if(getMusicState(music) != tic_music_stop)
+        music->tic->ram.music_params.speed = speed + DEFAULT_SPEED;
 
     history_add(music->history);
 }
@@ -2090,7 +2096,7 @@ static void drawPianoFrames(Music* music, s32 x, s32 y)
     tic_api_print(tic, "FRM", x + 1, y + 2, tic_color_grey, true, 1, true);
 
     {
-        const tic_sound_state* pos = getMusicPos(music);
+        const tic_music_state* pos = getMusicPos(music);
         s32 playFrame = pos->music.track == music->track ? pos->music.frame : -1;
 
         char index[] = "99";
@@ -2757,7 +2763,7 @@ static void drawPianoPattern(Music* music, s32 x, s32 y)
     // draw playing row
     if(checkPlayFrame(music, music->frame))
     {
-        const tic_sound_state* pos = getMusicPos(music);
+        const tic_music_state* pos = getMusicPos(music);
         s32 index = pos->music.row - music->scroll.pos;
 
         if(index >= 0 && index < TRACKER_ROWS)
@@ -2878,7 +2884,7 @@ static void updatePianoRollState(Music* music)
     if(getMusicState(music) != tic_music_stop)
     {
         s32 channel = music->piano.col;
-        const tic_sound_state* pos = getMusicPos(music);
+        const tic_music_state* pos = getMusicPos(music);
 
         for(s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
         {
@@ -2932,7 +2938,7 @@ static void tick(Music* music)
 
     if(music->follow)
     {
-        const tic_sound_state* pos = getMusicPos(music);
+        const tic_music_state* pos = getMusicPos(music);
 
         if(pos->music.track == music->track && 
             music->tracker.edit.y >= 0 &&

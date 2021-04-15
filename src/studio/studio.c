@@ -353,12 +353,12 @@ const char* studioExportMusic(s32 track, const char* filename)
         sfx2ram(&tic->ram, sfx);
         music2ram(&tic->ram, music);
 
-        const tic_sound_state* state = &tic->ram.sound_state;
+        const tic_music_state* state = &tic->ram.music_state;
         const Music* editor = impl.banks.music[impl.bank.index.music];
 
         tic_api_music(tic, track, -1, -1, false, editor->sustain);
 
-        while(state->flag.music_state == tic_music_play)
+        while(state->flag.music_status == tic_music_play)
         {
             tic_core_tick_start(tic);
 

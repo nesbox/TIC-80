@@ -38,20 +38,17 @@ STATIC_ASSERT(tic_sample, sizeof(tic_sample) == 66);
 STATIC_ASSERT(tic_track_pattern, sizeof(tic_track_pattern) == 3 * MUSIC_PATTERN_ROWS);
 STATIC_ASSERT(tic_track, sizeof(tic_track) == 3 * MUSIC_FRAMES + 3);
 STATIC_ASSERT(tic_music_cmd_count, tic_music_cmd_count == 1 << MUSIC_CMD_BITS);
-STATIC_ASSERT(tic_sound_state_size, sizeof(tic_sound_state) == 4);
+STATIC_ASSERT(tic_sound_state_size, sizeof(tic_music_state) == 4);
 
-static inline s32 getTempo(const tic_track* track) { return track->tempo + DEFAULT_TEMPO; }
-static inline s32 getSpeed(const tic_track* track) { return track->speed + DEFAULT_SPEED; }
-
-static s32 tick2row(const tic_track* track, s32 tick)
+static s32 tick2row(const tic_music_params* params, s32 tick)
 {
     // BPM = tempo * 6 / speed
-    return tick * getTempo(track) * DEFAULT_SPEED / getSpeed(track) / NOTES_PER_MUNUTE;
+    return tick * params->tempo * DEFAULT_SPEED / params->speed / NOTES_PER_MUNUTE;
 }
 
-static s32 row2tick(const tic_track* track, s32 row)
+static s32 row2tick(const tic_music_params* params, s32 row)
 {
-    return row * getSpeed(track) * NOTES_PER_MUNUTE / getTempo(track) / DEFAULT_SPEED;
+    return row * params->speed * NOTES_PER_MUNUTE / params->tempo / DEFAULT_SPEED;
 }
 
 static inline s32 param2val(const tic_track_row* row)
@@ -222,20 +219,20 @@ static void stopMusic(tic_mem* memory)
 static void processMusic(tic_mem* memory)
 {
     tic_core* core = (tic_core*)memory;
-    tic_sound_state* sound_state = &memory->ram.sound_state;
+    tic_music_state* music_state = &memory->ram.music_state;
 
-    if (sound_state->flag.music_state == tic_music_stop) return;
+    if (music_state->flag.music_status == tic_music_stop) return;
 
-    const tic_track* track = &memory->ram.music.tracks.data[sound_state->music.track];
-    s32 row = tick2row(track, core->state.music.ticks);
+    const tic_track* track = &memory->ram.music.tracks.data[music_state->music.track];
+    s32 row = tick2row(&memory->ram.music_params, core->state.music.ticks);
     tic_jump_command* jumpCmd = &core->state.music.jump;
 
-    if (row != sound_state->music.row
+    if (row != music_state->music.row
         && jumpCmd->active)
     {
-        sound_state->music.frame = jumpCmd->frame;
-        sound_state->music.row = jumpCmd->beat * NOTES_PER_BEAT;
-        core->state.music.ticks = row2tick(track, sound_state->music.row);
+        music_state->music.frame = jumpCmd->frame;
+        music_state->music.row = jumpCmd->beat * NOTES_PER_BEAT;
+        core->state.music.ticks = row2tick(&memory->ram.music_params, music_state->music.row);
         memset(jumpCmd, 0, sizeof(tic_jump_command));
     }
 
@@ -247,7 +244,7 @@ static void processMusic(tic_mem* memory)
 
         // If music is in sustain mode, we only reset the channels if the music stopped.
         // Otherwise, we reset it on every new frame.
-        if (sound_state->flag.music_state == tic_music_stop || !sound_state->flag.music_sustain)
+        if (music_state->flag.music_status == tic_music_stop || !music_state->flag.music_sustain)
         {
             resetMusicChannels(memory);
 
@@ -255,14 +252,14 @@ static void processMusic(tic_mem* memory)
                 setMusicChannelData(memory, -1, 0, 0, MAX_VOLUME, MAX_VOLUME, c);
         }
 
-        if (sound_state->flag.music_state == tic_music_play)
+        if (music_state->flag.music_status == tic_music_play)
         {
-            sound_state->music.frame++;
+            music_state->music.frame++;
 
-            if (sound_state->music.frame >= MUSIC_FRAMES)
+            if (music_state->music.frame >= MUSIC_FRAMES)
             {
-                if (sound_state->flag.music_loop)
-                    sound_state->music.frame = 0;
+                if (music_state->flag.music_loop)
+                    music_state->music.frame = 0;
                 else
                 {
                     stopMusic(memory);
@@ -273,13 +270,13 @@ static void processMusic(tic_mem* memory)
             {
                 s32 val = 0;
                 for (s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
-                    val += tic_tool_get_pattern_id(track, sound_state->music.frame, c);
+                    val += tic_tool_get_pattern_id(track, music_state->music.frame, c);
 
                 // empty frame detected
                 if (!val)
                 {
-                    if (sound_state->flag.music_loop)
-                        sound_state->music.frame = 0;
+                    if (music_state->flag.music_loop)
+                        music_state->music.frame = 0;
                     else
                     {
                         stopMusic(memory);
@@ -288,9 +285,9 @@ static void processMusic(tic_mem* memory)
                 }
             }
         }
-        else if (sound_state->flag.music_state == tic_music_play_frame)
+        else if (music_state->flag.music_status == tic_music_play_frame)
         {
-            if (!sound_state->flag.music_loop)
+            if (!music_state->flag.music_loop)
             {
                 stopMusic(memory);
                 return;
@@ -298,17 +295,17 @@ static void processMusic(tic_mem* memory)
         }
     }
 
-    if (row != sound_state->music.row)
+    if (row != music_state->music.row)
     {
-        sound_state->music.row = row;
+        music_state->music.row = row;
 
         for (s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
         {
-            s32 patternId = tic_tool_get_pattern_id(track, sound_state->music.frame, c);
+            s32 patternId = tic_tool_get_pattern_id(track, music_state->music.frame, c);
             if (!patternId) continue;
 
             const tic_track_pattern* pattern = &memory->ram.music.patterns.data[patternId - PATTERN_START];
-            const tic_track_row* trackRow = &pattern->rows[sound_state->music.row];
+            const tic_track_row* trackRow = &pattern->rows[music_state->music.row];
             tic_channel_data* channel = &core->state.music.channels[c];
             tic_command_data* cmdData = &core->state.music.commands[c];
 
@@ -440,12 +437,13 @@ static void setSfxChannelData(tic_mem* memory, s32 index, s32 note, s32 octave, 
 static void setMusic(tic_core* core, s32 index, s32 frame, s32 row, bool loop, bool sustain)
 {
     tic_mem* memory = (tic_mem*)core;
+    tic_ram* ram = &memory->ram;
 
-    memory->ram.sound_state.music.track = index;
+    ram->music_state.music.track = index;
 
     if (index < 0)
     {
-        memory->ram.sound_state.flag.music_state = tic_music_stop;
+        ram->music_state.flag.music_status = tic_music_stop;
         resetMusicChannels(memory);
     }
     else
@@ -453,14 +451,17 @@ static void setMusic(tic_core* core, s32 index, s32 frame, s32 row, bool loop, b
         for (s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
             setMusicChannelData(memory, -1, 0, 0, MAX_VOLUME, MAX_VOLUME, c);
 
-        memory->ram.sound_state.music.row = row;
-        memory->ram.sound_state.music.frame = frame < 0 ? 0 : frame;
-        memory->ram.sound_state.flag.music_loop = loop;
-        memory->ram.sound_state.flag.music_sustain = sustain;
-        memory->ram.sound_state.flag.music_state = tic_music_play;
+        ram->music_state.music.row = row;
+        ram->music_state.music.frame = frame < 0 ? 0 : frame;
+        ram->music_state.flag.music_loop = loop;
+        ram->music_state.flag.music_sustain = sustain;
+        ram->music_state.flag.music_status = tic_music_play;
 
-        const tic_track* track = &memory->ram.music.tracks.data[index];
-        core->state.music.ticks = row >= 0 ? row2tick(track, row) : 0;
+        const tic_track* track = &ram->music.tracks.data[index];
+        ram->music_params.tempo = track->tempo + DEFAULT_TEMPO;
+        ram->music_params.speed = track->speed + DEFAULT_SPEED;
+
+        core->state.music.ticks = row >= 0 ? row2tick(&ram->music_params, row) : 0;
     }
 }
 
@@ -471,7 +472,7 @@ void tic_api_music(tic_mem* memory, s32 index, s32 frame, s32 row, bool loop, bo
     setMusic(core, index, frame, row, loop, sustain);
 
     if (index >= 0)
-        memory->ram.sound_state.flag.music_state = tic_music_play;
+        memory->ram.music_state.flag.music_status = tic_music_play;
 }
 
 void tic_api_sfx(tic_mem* memory, s32 index, s32 note, s32 octave, s32 duration, s32 channel, s32 left, s32 right, s32 speed)

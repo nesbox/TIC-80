@@ -2288,11 +2288,12 @@ static void onConsoleRamCommand(Console* console, const char* param)
         {offsetof(tic_ram, sfx.samples),                "SFX"},
         {offsetof(tic_ram, music.patterns.data),        "MUSIC PATTERNS"},
         {offsetof(tic_ram, music.tracks.data),          "MUSIC TRACKS"},
-        {offsetof(tic_ram, sound_state),                "SOUND STATE"},
+        {offsetof(tic_ram, music_state),                "MUSIC STATE"},
         {offsetof(tic_ram, stereo),                     "STEREO VOLUME"},
         {offsetof(tic_ram, persistent),                 "PERSISTENT MEMORY"},
         {offsetof(tic_ram, flags),                      "SPRITE FLAGS"},
         {offsetof(tic_ram, font),                       "SYSTEM FONT"},
+        {offsetof(tic_ram, music_params),               "MUSIC PARAMETERS"},
         {offsetof(tic_ram, free),                       "... (free)"},
         {TIC_RAM_SIZE,                                  ""},
     };
