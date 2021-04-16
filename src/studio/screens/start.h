@@ -26,11 +26,6 @@
 
 typedef struct Start Start;
 
-#define CONSOLE_HEADER(macro)                               \
-    macro(TIC_NAME_FULL, tic_color_white)                   \
-    macro("version " TIC_VERSION_LABEL, tic_color_grey)     \
-    macro(TIC_COPYRIGHT, tic_color_grey)
-
 struct Start
 {
     tic_mem* tic;
@@ -40,6 +35,9 @@ struct Start
     u32 phase;
     u32 ticks;
     bool play;
+
+    char* text;
+    u8* color;
 
     void (*tick)(Start*);
 };

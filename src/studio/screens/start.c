@@ -38,12 +38,11 @@ static void reset(Start* start)
 
 static void drawHeader(Start* start)
 {
-#define HEADER_LINE(label, color) {label, color},
-    static const struct { const char* label; u8 color; } Lines[] = {CONSOLE_HEADER(HEADER_LINE)};
-#undef HEADER_LINE
-
-    for (s32 i = 0; i < COUNT_OF(Lines); i++)
-        tic_api_print(start->tic, Lines[i].label, STUDIO_TEXT_WIDTH, STUDIO_TEXT_HEIGHT * (i+1), Lines[i].color, true, 1, false);
+    for(s32 i = 0; i < STUDIO_TEXT_BUFFER_SIZE; i++)
+        tic_api_print(start->tic, (char[]){start->text[i], '\0'}, 
+            (i % STUDIO_TEXT_BUFFER_WIDTH) * STUDIO_TEXT_WIDTH, 
+            (i / STUDIO_TEXT_BUFFER_WIDTH) * STUDIO_TEXT_HEIGHT, 
+            start->color[i], true, 1, false);
 }
 
 static void header(Start* start)
@@ -102,9 +101,28 @@ void initStart(Start* start, tic_mem* tic)
         .tick = tick,
         .play = false,
     };
+
+    start->text = calloc(1, STUDIO_TEXT_BUFFER_SIZE);
+    start->color = calloc(1, STUDIO_TEXT_BUFFER_SIZE);
+
+    static const char* Header[] = 
+    {
+        "",
+        " " TIC_NAME_FULL,
+        " version " TIC_VERSION_LABEL,
+        " " TIC_COPYRIGHT,
+    };
+
+    for(s32 i = 0; i < COUNT_OF(Header); i++)
+        strcpy(start->text + i * STUDIO_TEXT_BUFFER_WIDTH, Header[i]);
+
+    for(s32 i = 0; i < STUDIO_TEXT_BUFFER_SIZE; i++)
+        start->color[i] = (((i % STUDIO_TEXT_BUFFER_WIDTH) + (i / STUDIO_TEXT_BUFFER_WIDTH)) / 2) % TIC_PALETTE_SIZE;
 }
 
 void freeStart(Start* start)
 {
+    free(start->text);
+    free(start->color);
     free(start);
 }

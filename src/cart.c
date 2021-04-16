@@ -146,7 +146,7 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
                         if(image->width == TIC80_WIDTH && image->height == TIC80_HEIGHT)
                             for (s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
                                 tic_tool_poke4(cart->bank0.screen.data, i, 
-                                    tic_nearest_color(cart->bank0.palette.scn.colors, (const tic_rgb*)&image->palette[image->buffer[i]]));
+                                    tic_nearest_color(cart->bank0.palette.scn.colors, (const tic_rgb*)&image->palette[image->buffer[i]], TIC_PALETTE_SIZE));
 
                         gif_close(image);
                     }

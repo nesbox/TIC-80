@@ -736,6 +736,16 @@ const StudioConfig* getConfig()
     return &impl.config->data;
 }
 
+struct Sprite* getSpriteEditor()
+{
+    return impl.banks.sprite[impl.bank.index.sprites];
+}
+
+struct Start* getStartScreen()
+{
+    return impl.start;
+}
+
 #if defined (TIC80_PRO)
 
 static void drawBankIcon(s32 x, s32 y)

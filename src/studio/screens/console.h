@@ -69,10 +69,10 @@ struct Console
         tic_cartridge* file;
     } embed;
 
-    char* buffer;
-    u8* colorBuffer;
+    char* text;
+    u8* color;
 
-    char inputBuffer[STUDIO_TEXT_BUFFER_WIDTH * STUDIO_TEXT_BUFFER_HEIGHT];
+    char inputBuffer[STUDIO_TEXT_BUFFER_SIZE];
     size_t inputPosition;
 
     tic_mem* tic;

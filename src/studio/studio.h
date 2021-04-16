@@ -47,6 +47,7 @@
 #define STUDIO_TEXT_HEIGHT (TIC_FONT_HEIGHT+1)
 #define STUDIO_TEXT_BUFFER_WIDTH (TIC80_WIDTH / STUDIO_TEXT_WIDTH)
 #define STUDIO_TEXT_BUFFER_HEIGHT (TIC80_HEIGHT / STUDIO_TEXT_HEIGHT)
+#define STUDIO_TEXT_BUFFER_SIZE (STUDIO_TEXT_BUFFER_WIDTH * STUDIO_TEXT_BUFFER_HEIGHT)
 
 #define TIC_COLOR_BG tic_color_black
 #define DEFAULT_CHMOD 0755
@@ -179,6 +180,8 @@ bool keyWasPressed(tic_key key);
 bool anyKeyWasPressed();
 
 const StudioConfig* getConfig();
+struct Start* getStartScreen();
+struct Sprite* getSpriteEditor();
 
 const char* md5str(const void* data, s32 length);
 bool hasProjectExt(const char* name);

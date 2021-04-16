@@ -84,12 +84,12 @@ bool tic_tool_parse_note(const char* noteStr, s32* note, s32* octave)
     return false;
 }
 
-u32 tic_nearest_color(const tic_rgb* palette, const tic_rgb* color)
+u32 tic_nearest_color(const tic_rgb* palette, const tic_rgb* color, s32 count)
 {
     u32 min = -1;
     s32 nearest, i = 0;
     
-    for(const tic_rgb *rgb = palette, *end = rgb + TIC_PALETTE_SIZE; rgb < end; rgb++, i++)
+    for(const tic_rgb *rgb = palette, *end = rgb + count; rgb < end; rgb++, i++)
     {
         s32 d[] = {color->r - rgb->r, color->g - rgb->g, color->b - rgb->b};
 
