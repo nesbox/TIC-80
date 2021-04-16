@@ -107,18 +107,24 @@ static bool initPython(tic_mem* tic, const char* code)
         mp_call_function_0(module_fun);
         python_vm.module_fun = module_fun;
 
-        // python_vm.TIC_fun = mp_load_name(qstr_from_str("TIC"));
-        // fprintf(stderr, "TIC = %p\n", python_vm.TIC_fun);
+        // qstr xstr = qstr_from_str("x");
+        // fprintf(stderr, "xstr = %d\n", (int)xstr);
+        // mp_obj_t xobj = mp_load_global(xstr);
+        // fprintf(stderr, "xobj = %p\n", xobj);
+        // mp_int_t x = mp_obj_get_int(xobj);
+        // fprintf(stderr, "x = %d\n", (int)x);
 
-        // python_vm.OVR_fun = mp_load_name(qstr_from_str("OVR"));
-        // fprintf(stderr, "2 OVR = %p\n", python_vm.OVR_fun);
-        // fprintf(stderr, "b\n");
+        // mp_int_t y = mp_obj_get_int(mp_load_global(qstr_from_str("y")));
+        // fprintf(stderr, "y = %d\n", (int)y);
+
+        // const char* foo = mp_obj_str_get_str(mp_load_global(qstr_from_str("foo")));
+        // fprintf(stderr, "foo = %s\n", foo);
 
         nlr_pop();
         return true;
     } else {
         // uncaught exception
-        //return (mp_obj_t)nlr.ret_val;
+        mp_obj_print_exception(&mp_plat_print, ((mp_obj_t)nlr.ret_val));
         return false;
     }
 	return true;
@@ -132,17 +138,23 @@ static void closePython(tic_mem* tic)
 
 static void callPythonTick(tic_mem* tic)
 {
-    fprintf(stderr, "callPythonTick(%p)\n", tic);
+    // fprintf(stderr, "callPythonTick(%p)\n", tic);
     nlr_buf_t nlr;
     if (nlr_push(&nlr) == 0) {
-        mp_obj_t TIC_fun = mp_load_name(qstr_from_str("TIC"));
-        fprintf(stderr, "TIC = %p\n", TIC_fun);
+        if (python_vm.TIC_fun == 0) {
+            python_vm.TIC_fun = mp_load_global(qstr_from_str("TIC"));
+            if (python_vm.TIC_fun != 0) {
+                fprintf(stderr, "Got TIC = %p\n", python_vm.TIC_fun);
+            }else{
+                return;
+            }
+        }
 
-        mp_call_function_0(TIC_fun);
-
+        mp_call_function_0(python_vm.TIC_fun);
         nlr_pop();
     }else{
-        fprintf(stderr, "nlr push failed? %p\n", nlr.ret_val);
+        // uncaught exception
+        mp_obj_print_exception(&mp_plat_print, ((mp_obj_t)nlr.ret_val));
     }
 }
 
@@ -154,6 +166,8 @@ static void callPythonScanline(tic_mem* tic, s32 row, void* data)
 static void callPythonOverline(tic_mem* tic, void* data)
 {
     // fprintf(stderr, "callPythonOverline(%p)\n", tic);
+    // python_vm.OVR_fun = mp_load_global(qstr_from_str("OVR"));
+    // fprintf(stderr, "OVR = %p\n", python_vm.OVR_fun);
 }
 
 static const tic_outline_item* getPythonOutline(const char* code, s32* size)
