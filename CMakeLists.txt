@@ -245,14 +245,18 @@ target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/sqstdlib)
 
 set(MICROPYTHON_DIR ${THIRDPARTY_DIR}/micropython)
 
+# cd vendor/micropython/mpy-cross
+# make
+add_custom_command(OUTPUT ${MICROPYTHON_DIR}/mpy-cross/mpy-cross
+                   COMMAND make
+                   WORKING_DIRECTORY ${MICROPYTHON_DIR}/mpy-cross
+)
+# cd examples/embedding
+# make
 add_custom_command(OUTPUT ${MICROPYTHON_DIR}/examples/embedding/libmicropython.a
                    COMMAND make
                    WORKING_DIRECTORY ${MICROPYTHON_DIR}/examples/embedding
                    DEPENDS ${MICROPYTHON_DIR}/mpy-cross/mpy-cross
-)
-add_custom_command(OUTPUT ${MICROPYTHON_DIR}/mpy-cross/mpy-cross
-                   COMMAND make
-                   WORKING_DIRECTORY ${MICROPYTHON_DIR}/mpy-cross
 )
 
 add_library(micropython STATIC IMPORTED)
