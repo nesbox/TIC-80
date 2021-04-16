@@ -2342,7 +2342,7 @@ static void onVRamCommand(Console* console, const char* param)
 
 #if defined(CAN_ADDGET_FILE)
 
-static void onConsoleAddFile(Console* console, const char* name, const u8* buffer, s32 size)
+static void onAddFile(Console* console, const char* name, const u8* buffer, s32 size)
 {
     if(name)
     {
