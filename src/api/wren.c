@@ -1467,8 +1467,8 @@ static void callWrenOverline(tic_mem* tic, void* data)
 
 static const char* const WrenKeywords [] =
 {
-    "break", "class", "construct", "else", "false", "for", 
-    "foreign", "if", "import", "in", "is", "null", "return", 
+    "as", "break", "class", "construct", "continue", "else", "false",
+    "for", "foreign", "if", "import", "in", "is", "null", "return",
     "static", "super", "this", "true", "var", "while"
 };
 
