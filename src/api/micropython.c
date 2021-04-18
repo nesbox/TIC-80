@@ -72,6 +72,79 @@ STATIC mp_obj_t python_cls(size_t n_args, const mp_obj_t *args) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(cls_obj, 0, 1, python_cls);
 
+STATIC mp_obj_t python_spr(size_t n_args, const mp_obj_t *args) {
+    s32 index = 0;
+    s32 x = 0;
+    s32 y = 0;
+    s32 w = 1;
+    s32 h = 1;
+    s32 scale = 1;
+    tic_flip flip = tic_no_flip;
+    tic_rotate rotate = tic_no_rotate;
+    static u8 colors[TIC_PALETTE_SIZE];
+    s32 count = 0;
+
+    if(n_args >= 1)
+    {
+        index = mp_obj_get_int(args[0]);
+
+        if(n_args >= 3)
+        {
+            x = mp_obj_get_int(args[1]);
+            y = mp_obj_get_int(args[2]);
+
+            if(n_args >= 4)
+            {
+                // spr's colorkey argument can be a list or a number
+                mp_obj_t* colorkey = args[3];
+                if(mp_obj_is_type(colorkey, &mp_type_tuple) || mp_obj_is_type(colorkey, &mp_type_list))
+                {
+                    size_t num_entries=0;
+                    mp_obj_t* entries=0;
+                    mp_obj_get_array(colorkey, &num_entries, &entries);
+                    for(s32 i = 1; i <= TIC_PALETTE_SIZE && i <= num_entries; i++)
+                    {
+                        mp_int_t entry = mp_obj_get_int(entries[i-1]);
+                        colors[i-1] = entry;
+                        count++;
+                    }
+                }
+                else
+                {
+                    colors[0] = mp_obj_get_int(colorkey);
+                    count = 1;
+                }
+
+                if(n_args >= 5)
+                {
+                    scale = mp_obj_get_int(args[4]);
+
+                    if(n_args >= 6)
+                    {
+                        flip = mp_obj_get_int(args[5]);
+
+                        if(n_args >= 7)
+                        {
+                            rotate = mp_obj_get_int(args[6]);
+
+                            if(n_args >= 9)
+                            {
+                                w = mp_obj_get_int(args[7]);
+                                h = mp_obj_get_int(args[8]);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    tic_api_spr(python_vm.mem, index, x, y, w, h, colors, count, scale, flip, rotate);
+
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(spr_obj, 1, 9, python_spr);
+
 static bool initPython(tic_mem* tic, const char* code)
 {
     mp_stack_set_limit(40000 * (BYTES_PER_WORD / 4));
@@ -129,6 +202,7 @@ static bool initPython(tic_mem* tic, const char* code)
         mp_store_global(qstr_from_str("add"), MP_OBJ_FROM_PTR(&add_obj));
         mp_store_global(qstr_from_str("btn"), MP_OBJ_FROM_PTR(&btn_obj));
         mp_store_global(qstr_from_str("cls"), MP_OBJ_FROM_PTR(&cls_obj));
+        mp_store_global(qstr_from_str("spr"), MP_OBJ_FROM_PTR(&spr_obj));
 
         // qstr xstr = qstr_from_str("x");
         // fprintf(stderr, "xstr = %d\n", (int)xstr);
