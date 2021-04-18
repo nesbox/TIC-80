@@ -14,7 +14,7 @@
 #include "py/stackctrl.h"
 
 struct PythonVM {
-    tic_mem* core;
+    tic_mem* mem;
     mp_obj_t module_fun;
     mp_obj_t TIC_fun;
     mp_obj_t SCN_fun;
@@ -57,17 +57,17 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_2(add_obj, add);
 
 STATIC mp_obj_t python_btn(size_t n_args, const mp_obj_t *args) {
     if (n_args == 0) {
-        return mp_obj_new_int(python_vm.core->ram.input.gamepads.data);
+        return mp_obj_new_int(python_vm.mem->ram.input.gamepads.data);
     }else{
         mp_int_t index = mp_obj_get_int(args[0]) & 0x1f;
-        u32 r = python_vm.core->ram.input.gamepads.data & (1 << index);
+        u32 r = python_vm.mem->ram.input.gamepads.data & (1 << index);
         return mp_obj_new_bool(r);
     }
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(btn_obj, 0, 1, python_btn);
 
 STATIC mp_obj_t python_cls(size_t n_args, const mp_obj_t *args) {
-    tic_api_cls(python_vm.core, n_args == 1 ? mp_obj_get_int(args[0]) : 0);
+    tic_api_cls(python_vm.mem, n_args == 1 ? mp_obj_get_int(args[0]) : 0);
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(cls_obj, 0, 1, python_cls);
@@ -80,8 +80,9 @@ static bool initPython(tic_mem* tic, const char* code)
 
     tic_core* core = (tic_core*)tic;
 	core->python = &python_vm;
+
 	memset(&python_vm, 0, sizeof(PythonVM));
-    python_vm.core = core;
+    python_vm.mem = tic;
 
     // Note: nlr_push/pop mechanism is like try/catch for exceptions
     // but uses setjmp (or similar). The body of this if statement will
