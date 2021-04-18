@@ -46,8 +46,6 @@ void nlr_jump_fail(void *val) {
 
 static bool initPython(tic_mem* tic, const char* code)
 {
-    // fprintf(stderr, "initPython(%p, %s)\n", tic, code);
-
     mp_stack_set_limit(40000 * (BYTES_PER_WORD / 4));
     gc_init(heap, heap + sizeof(heap));
     mp_init();
@@ -85,8 +83,8 @@ static bool initPython(tic_mem* tic, const char* code)
             nlr_pop();
         }else{
             // SCN is optional, so don't complain about it.
-            fprintf(stderr, "No SCN function found.\n");
-            mp_obj_print_exception(&mp_plat_print, ((mp_obj_t)nlr.ret_val));
+            // fprintf(stderr, "No SCN function found.\n");
+            // mp_obj_print_exception(&mp_plat_print, ((mp_obj_t)nlr.ret_val));
         }
 
         if (nlr_push(&nlr) == 0) {
@@ -94,8 +92,8 @@ static bool initPython(tic_mem* tic, const char* code)
             nlr_pop();
         }else{
             // OVR is optional, so don't complain about it.
-            fprintf(stderr, "No OVR function found.\n");
-            mp_obj_print_exception(&mp_plat_print, ((mp_obj_t)nlr.ret_val));
+            // fprintf(stderr, "No OVR function found.\n");
+            // mp_obj_print_exception(&mp_plat_print, ((mp_obj_t)nlr.ret_val));
         }
 
         // qstr xstr = qstr_from_str("x");
@@ -123,13 +121,11 @@ static bool initPython(tic_mem* tic, const char* code)
 
 static void closePython(tic_mem* tic)
 {
-    // fprintf(stderr, "closePython(%p)\n", tic);
     mp_deinit();
 }
 
 static void callPythonTick(tic_mem* tic)
 {
-    // fprintf(stderr, "callPythonTick(%p)\n", tic);
     if (python_vm.TIC_fun != 0) {
         nlr_buf_t nlr;
         if (nlr_push(&nlr) == 0) {
@@ -144,7 +140,6 @@ static void callPythonTick(tic_mem* tic)
 
 static void callPythonScanline(tic_mem* tic, s32 row, void* data)
 {
-    // fprintf(stderr, "callPythonScanline(%p, %d)\n", tic, row);
     if (python_vm.SCN_fun != 0) {
         nlr_buf_t nlr;
         if (nlr_push(&nlr) == 0) {
@@ -159,7 +154,6 @@ static void callPythonScanline(tic_mem* tic, s32 row, void* data)
 
 static void callPythonOverline(tic_mem* tic, void* data)
 {
-    // fprintf(stderr, "callPythonOverline(%p)\n", tic);
     if (python_vm.OVR_fun != 0) {
         nlr_buf_t nlr;
         if (nlr_push(&nlr) == 0) {
