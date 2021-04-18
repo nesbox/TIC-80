@@ -16,52 +16,11 @@
 struct PythonVM {
     mp_obj_t module_fun;
     mp_obj_t TIC_fun;
+    mp_obj_t SCN_fun;
     mp_obj_t OVR_fun;
 };
 
 typedef struct PythonVM PythonVM;
-
-#if 0
-
-mp_obj_t execute_from_str(const char *str) {
-    nlr_buf_t nlr;
-    if (nlr_push(&nlr) == 0) {
-        qstr src_name = 1/*MP_QSTR_*/;
-        mp_lexer_t *lex = mp_lexer_new_from_str_len(src_name, str, strlen(str), false);
-        mp_parse_tree_t pt = mp_parse(lex, MP_PARSE_FILE_INPUT);
-        mp_obj_t module_fun = mp_compile(&pt, src_name, false);
-        mp_call_function_0(module_fun);
-        nlr_pop();
-        return 0;
-    } else {
-        // uncaught exception
-        return (mp_obj_t)nlr.ret_val;
-    }
-}
-
-int py_main() {
-    // Initialized stack limit
-    mp_stack_set_limit(40000 * (BYTES_PER_WORD / 4));
-    // Initialize heap
-    gc_init(heap, heap + sizeof(heap));
-    // Initialize interpreter
-    mp_init();
-
-    const char str[] = "print('Hello world of easy embedding!')";
-    if (execute_from_str(str)) {
-        printf("Error\n");
-    }
-}
-
-uint mp_import_stat(const char *path) {
-    return MP_IMPORT_STAT_NO_EXIST;
-}
-
-void nlr_jump_fail(void *val) {
-    printf("FATAL: uncaught NLR %p\n", val);
-    exit(1);
-}
-#endif
 
 static PythonVM python_vm;
 static char heap[16384];
@@ -85,10 +44,9 @@ void nlr_jump_fail(void *val) {
     exit(1);
 }
 
-
 static bool initPython(tic_mem* tic, const char* code)
 {
-    fprintf(stderr, "initPython(%p, %s)\n", tic, code);
+    // fprintf(stderr, "initPython(%p, %s)\n", tic, code);
 
     mp_stack_set_limit(40000 * (BYTES_PER_WORD / 4));
     gc_init(heap, heap + sizeof(heap));
@@ -117,7 +75,26 @@ static bool initPython(tic_mem* tic, const char* code)
             python_vm.TIC_fun = mp_load_global(qstr_from_str("TIC"));
             nlr_pop();
         }else{
+            // TIC is required, so complain about it.
             fprintf(stderr, "No TIC function found?\n");
+            mp_obj_print_exception(&mp_plat_print, ((mp_obj_t)nlr.ret_val));
+        }
+
+        if (nlr_push(&nlr) == 0) {
+            python_vm.SCN_fun = mp_load_global(qstr_from_str("SCN"));
+            nlr_pop();
+        }else{
+            // SCN is optional, so don't complain about it.
+            fprintf(stderr, "No SCN function found.\n");
+            mp_obj_print_exception(&mp_plat_print, ((mp_obj_t)nlr.ret_val));
+        }
+
+        if (nlr_push(&nlr) == 0) {
+            python_vm.OVR_fun = mp_load_global(qstr_from_str("OVR"));
+            nlr_pop();
+        }else{
+            // OVR is optional, so don't complain about it.
+            fprintf(stderr, "No OVR function found.\n");
             mp_obj_print_exception(&mp_plat_print, ((mp_obj_t)nlr.ret_val));
         }
 
@@ -168,13 +145,31 @@ static void callPythonTick(tic_mem* tic)
 static void callPythonScanline(tic_mem* tic, s32 row, void* data)
 {
     // fprintf(stderr, "callPythonScanline(%p, %d)\n", tic, row);
+    if (python_vm.SCN_fun != 0) {
+        nlr_buf_t nlr;
+        if (nlr_push(&nlr) == 0) {
+            mp_call_function_1(python_vm.SCN_fun, MP_OBJ_NEW_SMALL_INT(row));
+            nlr_pop();
+        }else{
+            // uncaught exception
+            mp_obj_print_exception(&mp_plat_print, ((mp_obj_t)nlr.ret_val));
+        }
+    }
 }
 
 static void callPythonOverline(tic_mem* tic, void* data)
 {
     // fprintf(stderr, "callPythonOverline(%p)\n", tic);
-    // python_vm.OVR_fun = mp_load_global(qstr_from_str("OVR"));
-    // fprintf(stderr, "OVR = %p\n", python_vm.OVR_fun);
+    if (python_vm.OVR_fun != 0) {
+        nlr_buf_t nlr;
+        if (nlr_push(&nlr) == 0) {
+            mp_call_function_0(python_vm.OVR_fun);
+            nlr_pop();
+        }else{
+            // uncaught exception
+            mp_obj_print_exception(&mp_plat_print, ((mp_obj_t)nlr.ret_val));
+        }
+    }
 }
 
 static const tic_outline_item* getPythonOutline(const char* code, s32* size)
