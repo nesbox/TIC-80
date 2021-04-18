@@ -14,6 +14,7 @@
 #include "py/stackctrl.h"
 
 struct PythonVM {
+    tic_mem* core;
     mp_obj_t module_fun;
     mp_obj_t TIC_fun;
     mp_obj_t SCN_fun;
@@ -44,6 +45,27 @@ void nlr_jump_fail(void *val) {
     exit(1);
 }
 
+// A simple function that adds its 2 arguments (must be integers)
+STATIC mp_obj_t add(mp_obj_t x_in, mp_obj_t y_in) {
+    mp_int_t x = mp_obj_get_int(x_in);
+    mp_int_t y = mp_obj_get_int(y_in);
+    int r = x+y;
+    fprintf(stderr, "add(%ld,%ld) -> %d\n", x, y, r);
+    return mp_obj_new_int(r);
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_2(add_obj, add);
+
+STATIC mp_obj_t btn(size_t n_args, const mp_obj_t *args) {
+    if (n_args == 0) {
+        return mp_obj_new_int(python_vm.core->ram.input.gamepads.data);
+    }else{
+        mp_int_t index = mp_obj_get_int(args[0]) & 0x1f;
+        u32 r = python_vm.core->ram.input.gamepads.data & (1 << index);
+        return mp_obj_new_bool(r);
+    }
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(btn_obj, 0, 1, btn);
+
 static bool initPython(tic_mem* tic, const char* code)
 {
     mp_stack_set_limit(40000 * (BYTES_PER_WORD / 4));
@@ -53,6 +75,7 @@ static bool initPython(tic_mem* tic, const char* code)
     tic_core* core = (tic_core*)tic;
 	core->python = &python_vm;
 	memset(&python_vm, 0, sizeof(PythonVM));
+    python_vm.core = core;
 
     // Note: nlr_push/pop mechanism is like try/catch for exceptions
     // but uses setjmp (or similar). The body of this if statement will
@@ -95,6 +118,9 @@ static bool initPython(tic_mem* tic, const char* code)
             // fprintf(stderr, "No OVR function found.\n");
             // mp_obj_print_exception(&mp_plat_print, ((mp_obj_t)nlr.ret_val));
         }
+
+        mp_store_global(qstr_from_str("add"), MP_OBJ_FROM_PTR(&add_obj));
+        mp_store_global(qstr_from_str("btn"), MP_OBJ_FROM_PTR(&btn_obj));
 
         // qstr xstr = qstr_from_str("x");
         // fprintf(stderr, "xstr = %d\n", (int)xstr);
