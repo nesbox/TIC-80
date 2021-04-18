@@ -55,7 +55,7 @@ STATIC mp_obj_t add(mp_obj_t x_in, mp_obj_t y_in) {
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(add_obj, add);
 
-STATIC mp_obj_t btn(size_t n_args, const mp_obj_t *args) {
+STATIC mp_obj_t python_btn(size_t n_args, const mp_obj_t *args) {
     if (n_args == 0) {
         return mp_obj_new_int(python_vm.core->ram.input.gamepads.data);
     }else{
@@ -64,7 +64,13 @@ STATIC mp_obj_t btn(size_t n_args, const mp_obj_t *args) {
         return mp_obj_new_bool(r);
     }
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(btn_obj, 0, 1, btn);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(btn_obj, 0, 1, python_btn);
+
+STATIC mp_obj_t python_cls(size_t n_args, const mp_obj_t *args) {
+    tic_api_cls(python_vm.core, n_args == 1 ? mp_obj_get_int(args[0]) : 0);
+    return mp_const_none;
+}
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(cls_obj, 0, 1, python_cls);
 
 static bool initPython(tic_mem* tic, const char* code)
 {
@@ -121,6 +127,7 @@ static bool initPython(tic_mem* tic, const char* code)
 
         mp_store_global(qstr_from_str("add"), MP_OBJ_FROM_PTR(&add_obj));
         mp_store_global(qstr_from_str("btn"), MP_OBJ_FROM_PTR(&btn_obj));
+        mp_store_global(qstr_from_str("cls"), MP_OBJ_FROM_PTR(&cls_obj));
 
         // qstr xstr = qstr_from_str("x");
         // fprintf(stderr, "xstr = %d\n", (int)xstr);
