@@ -98,6 +98,11 @@ static bool initPython(tic_mem* tic, const char* code)
 	core->python = &python_vm;
 	memset(&python_vm, 0, sizeof(PythonVM));
 
+    // Note: nlr_push/pop mechanism is like try/catch for exceptions
+    // but uses setjmp (or similar). The body of this if statement will
+    // run as normal, but if a micropython exception happens, then
+    // execution will jump back to this if statement and the else clause
+    // will run - printing the exception.
 	nlr_buf_t nlr;
     if (nlr_push(&nlr) == 0) {
         qstr src_name = 1/*MP_QSTR_*/;
@@ -106,6 +111,15 @@ static bool initPython(tic_mem* tic, const char* code)
         mp_obj_t module_fun = mp_compile(&pt, src_name, false);
         mp_call_function_0(module_fun);
         python_vm.module_fun = module_fun;
+
+        // try/catch in case mp_load_global fails (e.g. TIC not found).
+        if (nlr_push(&nlr) == 0) {
+            python_vm.TIC_fun = mp_load_global(qstr_from_str("TIC"));
+            nlr_pop();
+        }else{
+            fprintf(stderr, "No TIC function found?\n");
+            mp_obj_print_exception(&mp_plat_print, ((mp_obj_t)nlr.ret_val));
+        }
 
         // qstr xstr = qstr_from_str("x");
         // fprintf(stderr, "xstr = %d\n", (int)xstr);
@@ -139,22 +153,15 @@ static void closePython(tic_mem* tic)
 static void callPythonTick(tic_mem* tic)
 {
     // fprintf(stderr, "callPythonTick(%p)\n", tic);
-    nlr_buf_t nlr;
-    if (nlr_push(&nlr) == 0) {
-        if (python_vm.TIC_fun == 0) {
-            python_vm.TIC_fun = mp_load_global(qstr_from_str("TIC"));
-            if (python_vm.TIC_fun != 0) {
-                fprintf(stderr, "Got TIC = %p\n", python_vm.TIC_fun);
-            }else{
-                return;
-            }
+    if (python_vm.TIC_fun != 0) {
+        nlr_buf_t nlr;
+        if (nlr_push(&nlr) == 0) {
+            mp_call_function_0(python_vm.TIC_fun);
+            nlr_pop();
+        }else{
+            // uncaught exception
+            mp_obj_print_exception(&mp_plat_print, ((mp_obj_t)nlr.ret_val));
         }
-
-        mp_call_function_0(python_vm.TIC_fun);
-        nlr_pop();
-    }else{
-        // uncaught exception
-        mp_obj_print_exception(&mp_plat_print, ((mp_obj_t)nlr.ret_val));
     }
 }
 
