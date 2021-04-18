@@ -8,6 +8,7 @@ x=96
 y=24
 
 def TIC():
+ global x,y,t
 
  if btn(0):
   y=y-1
