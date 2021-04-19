@@ -128,7 +128,54 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(spr_obj, 1, 9, python_spr);
 
 // print text [x=0 y=0] [color=12] [fixed=false] [scale=1] [smallfont=false] -> text width
 STATIC mp_obj_t python_print(size_t n_args, const mp_obj_t *args) {
-    return mp_const_none;
+    if(n_args >= 1) 
+    {
+        s32 x = 0;
+        s32 y = 0;
+        s32 color = TIC_DEFAULT_COLOR;
+        bool fixed = false;
+        s32 scale = 1;
+        bool alt = false;
+
+        const char* text = mp_obj_str_get_str(args[0]);
+
+        if(n_args >= 3)
+        {
+            x = mp_obj_get_int(args[1]);
+            y = mp_obj_get_int(args[2]);
+
+            if(n_args >= 4)
+            {
+                color = mp_obj_get_int(args[3]) % TIC_PALETTE_SIZE;
+
+                if(n_args >= 5)
+                {
+                    fixed = mp_obj_get_int(args[4]) != 0; // bool
+
+                    if(n_args >= 6)
+                    {
+                        scale = mp_obj_get_int(args[5]);
+
+                        if(n_args >= 7)
+                        {
+                            alt = mp_obj_get_int(args[6]) != 0; // bool
+                        }
+                    }
+                }
+            }
+        }
+
+        if(scale == 0)
+        {
+            return MP_OBJ_NEW_SMALL_INT(0);
+        }
+
+        s32 size = tic_api_print(python_vm.mem, text ? text : "nil", x, y, color, fixed, scale, alt);
+
+        return MP_OBJ_NEW_SMALL_INT(size);
+    }
+
+    return MP_OBJ_NEW_SMALL_INT(0);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(print_obj, 1, 7, python_print);
 
