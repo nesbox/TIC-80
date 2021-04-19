@@ -7,7 +7,7 @@ set(VERSION_STATUS "-dev")
 string(TIMESTAMP VERSION_YEAR "%Y")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(VERSION_BUILD " (debug)" )
+    set(VERSION_BUILD ".dbg" )
 endif()
 
 find_package(Git)
@@ -22,7 +22,17 @@ if(Git_FOUND)
     string(LENGTH "${RESULT_STRING}" LENGTH_RESULT_STRING)
 
     if(${LENGTH_RESULT_STRING} EQUAL 0)
-        
+
+        execute_process(
+            COMMAND ${GIT_EXECUTABLE} log -1 --format=%H
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+            OUTPUT_VARIABLE GIT_COMMIT_HASH
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+
+        string(SUBSTRING ${GIT_COMMIT_HASH} 0 7 GIT_COMMIT_HASH)
+        set(VERSION_HASH " (${GIT_COMMIT_HASH})" )
+
         execute_process(
             COMMAND ${GIT_EXECUTABLE} rev-list HEAD --count
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -37,6 +47,7 @@ project(TIC-80 VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_REVISION} LAN
 message("Building for target : ${CMAKE_SYSTEM_NAME}")
 
 message("PROJECT_VERSION: ${PROJECT_VERSION}${VERSION_STATUS}")
+message("VERSION_HASH: ${VERSION_HASH}")
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/version.h")
 
