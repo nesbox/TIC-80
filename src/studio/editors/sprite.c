@@ -29,6 +29,7 @@
 #define PALETTE_COLS (TIC_PALETTE_SIZE / PALETTE_ROWS)
 #define PALETTE_WIDTH (PALETTE_COLS * PALETTE_CELL_SIZE)
 #define PALETTE_HEIGHT (PALETTE_ROWS * PALETTE_CELL_SIZE)
+#define BRUSH_SIZES 4
 
 enum
 {
@@ -384,7 +385,7 @@ static void drawBrushSlider(Sprite* sprite, s32 x, s32 y)
 {
     tic_mem* tic = sprite->tic;
 
-    enum {Count = 4, Size = 5};
+    enum {Count = BRUSH_SIZES, Size = 5};
 
     tic_rect rect = {x, y, Size, (Size+1)*Count};
 
@@ -1790,6 +1791,17 @@ static void drawBankTabs(Sprite* sprite, s32 x, s32 y)
     }
 }
 
+static void updateBrushSize(Sprite* sprite, s32 val)
+{
+    sprite->brushSize = (sprite->brushSize + val + (BRUSH_SIZES - 1)) % BRUSH_SIZES + 1;
+}
+
+static void updateColorIndex(Sprite* sprite, s32 val)
+{
+    s32 colors = 1 << sprite->blit.mode;
+    sprite->color = (sprite->color + val + colors) % colors;
+}
+
 static void processKeyboard(Sprite* sprite)
 {
     tic_mem* tic = sprite->tic;
@@ -1815,7 +1827,11 @@ static void processKeyboard(Sprite* sprite)
         else if(keyWasPressed(tic_key_right))   rightViewport(sprite);
 
         else if(keyWasPressed(tic_key_tab))
-            switchBitMode(sprite, sprite->blit.mode==4 ? 2 : sprite->blit.mode==2 ? 1 : 4);
+            switchBitMode(sprite, sprite->blit.mode == tic_bpp_4 
+                ? tic_bpp_2 
+                : sprite->blit.mode == tic_bpp_2 
+                    ? tic_bpp_1 
+                    : tic_bpp_4);
     }
     else
     {
@@ -1854,8 +1870,10 @@ static void processKeyboard(Sprite* sprite)
 
                 if(sprite->mode == SPRITE_DRAW_MODE)
                 {
-                    if(keyWasPressed(tic_key_leftbracket)) {if(sprite->brushSize > 1) sprite->brushSize--;}
-                    else if(keyWasPressed(tic_key_rightbracket)) {if(sprite->brushSize < 4) sprite->brushSize++;}
+                    if(keyWasPressed(tic_key_minus))                updateBrushSize(sprite, -1);
+                    else if(keyWasPressed(tic_key_equals))          updateBrushSize(sprite, +1);
+                    else if(keyWasPressed(tic_key_leftbracket))     updateColorIndex(sprite, -1);
+                    else if(keyWasPressed(tic_key_rightbracket))    updateColorIndex(sprite, +1);
                 }               
             }
         }
