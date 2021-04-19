@@ -1434,7 +1434,7 @@ static void onConfigCommand(Console* console, const char* param)
 #if defined(TIC_BUILD_WITH_PYTHON)
     else if(strcmp(param, "default python") == 0)
     {
-        onConsoleLoadDemoCommand(console, DefaultPythonTicPath);
+        onLoadDemoCommand(console, DefaultPythonTicPath);
     }
 #endif
 
