@@ -81,3 +81,4 @@
 [submodule "vendor/micropython"]
 	path = vendor/micropython
 	url = https://github.com/micropython/micropython.git
+	shallow = true
