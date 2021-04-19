@@ -204,23 +204,28 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pix_obj, 2, 3, python_pix);
 
 // line x0 y0 x1 y1 color
 STATIC mp_obj_t python_line(size_t n_args, const mp_obj_t *args) {
-    mp_obj_t x0_in = args[0];
-    mp_obj_t y0_in = args[1];
-    mp_obj_t x1_in = args[2];
-    mp_obj_t y1_in = args[3];
-    mp_obj_t color_in = args[4];
+    s32 x0 = mp_obj_get_int(args[0]);
+    s32 y0 = mp_obj_get_int(args[1]);
+    s32 x1 = mp_obj_get_int(args[2]);
+    s32 y1 = mp_obj_get_int(args[3]);
+    s32 color = mp_obj_get_int(args[4]);
+
+    tic_api_line(python_vm.mem, x0, y0, x1, y1, color);
+
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(line_obj, 5, 5, python_line);
 
 // rect x y w h color
 STATIC mp_obj_t python_rect(size_t n_args, const mp_obj_t *args) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(rect_obj, 5, 5, python_rect);
 
 // rectb x y w h color
 STATIC mp_obj_t python_rectb(size_t n_args, const mp_obj_t *args) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(rectb_obj, 5, 5, python_rectb);
