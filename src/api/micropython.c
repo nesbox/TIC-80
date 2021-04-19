@@ -182,6 +182,22 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(print_obj, 1, 7, python_print);
 // pix x y color
 // pix x y -> color
 STATIC mp_obj_t python_pix(size_t n_args, const mp_obj_t *args) {
+    if(n_args >= 2)
+    {
+        s32 x = mp_obj_get_int(args[0]);
+        s32 y = mp_obj_get_int(args[1]);
+
+        if(n_args >= 3)
+        {
+            s32 color = mp_obj_get_int(args[2]);
+            tic_api_pix(python_vm.mem, x, y, color, false);
+        }
+        else
+        {
+            return MP_OBJ_NEW_SMALL_INT(tic_api_pix(python_vm.mem, x, y, 0, true));
+        }
+
+    }
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pix_obj, 2, 3, python_pix);
