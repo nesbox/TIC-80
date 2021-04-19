@@ -503,6 +503,12 @@ void tic_fs_changedir(tic_fs* fs, const char* dir)
         strncat(fs->work, "/", TICNAME_MAX);
                 
     strcat(fs->work, dir);
+
+#if defined(__TIC_WINDOWS__)
+    for(char *ptr = fs->work, *end = ptr + strlen(ptr); ptr < end; ptr++)
+        if(*ptr == '\\')
+            *ptr = '/';
+#endif
 }
 
 typedef struct

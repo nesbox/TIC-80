@@ -2092,7 +2092,7 @@ Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* fold
     StartArgs args = parseArgs(argc, argv);
 
     impl.samplerate = samplerate;
-    impl.net = tic_net_create(TIC_WEBSITE);
+    impl.net = tic_net_create("http://"TIC_HOST);
 
     {
         const char *path = args.fs ? args.fs : folder;
