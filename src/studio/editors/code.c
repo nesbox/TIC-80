@@ -935,6 +935,7 @@ static void newLine(Code* code)
     {
         char* ptr = getLine(code);
         size_t size = 0;
+        char firstChar = *ptr;
 
         while(*ptr == '\t' || *ptr == ' ') ptr++, size++;
 
@@ -944,7 +945,7 @@ static void newLine(Code* code)
         inputSymbol(code, '\n');
 
         for(size_t i = 0; i < size; i++)
-            inputSymbol(code, '\t');
+            inputSymbol(code, firstChar);
 
         updateEditor(code);
     }
