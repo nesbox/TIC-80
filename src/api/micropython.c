@@ -244,108 +244,126 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(btn_obj, 0, 1, python_btn);
 
 // btnp [[id, [hold], [period] ] -> pressed
 STATIC mp_obj_t python_btnp(size_t n_args, const mp_obj_t *args) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(btnp_obj, 0, 3, python_btnp);
 
 // sfx id [note] [duration=-1] [channel=0] [volume=15] [speed=0]
 STATIC mp_obj_t python_sfx(size_t n_args, const mp_obj_t *args) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(sfx_obj, 1, 6, python_sfx);
 
 // map [x=0 y=0] [w=30 h=17] [sx=0 sy=0] [colorkey=-1] [scale=1] [remap=nil]
 STATIC mp_obj_t python_map(size_t n_args, const mp_obj_t *args) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(map_obj, 0, 9, python_map);
 
 // mget x y -> tile_id
 STATIC mp_obj_t python_mget(mp_obj_t x_in, mp_obj_t y_in) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(mget_obj, python_mget);
 
 // mset x y tile_id
 STATIC mp_obj_t python_mset(mp_obj_t x_in, mp_obj_t y_in, mp_obj_t tile_id_in) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_3(mset_obj, python_mset);
 
 // peek addr
 STATIC mp_obj_t python_peek(mp_obj_t addr_in) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(peek_obj, python_peek);
 
 // poke addr val
 STATIC mp_obj_t python_poke(mp_obj_t addr_in, mp_obj_t val_in) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(poke_obj, python_poke);
 
 // peek4 addr4
 STATIC mp_obj_t python_peek4(mp_obj_t addr4_in) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_1(peek4_obj, python_peek4);
 
 // poke4 addr4 val
 STATIC mp_obj_t python_poke4(mp_obj_t addr4_in, mp_obj_t val_in) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(poke4_obj, python_poke4);
 
 // memcpy to from length
 STATIC mp_obj_t python_memcpy(mp_obj_t to_in, mp_obj_t from_in, mp_obj_t length_in) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_3(memcpy_obj, python_memcpy);
 
 // memset addr value length
 STATIC mp_obj_t python_memset(mp_obj_t addr_in, mp_obj_t value_in, mp_obj_t length_in) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_3(memset_obj, python_memset);
 
 // trace message [color]
 STATIC mp_obj_t python_trace(size_t n_args, const mp_obj_t *args) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(trace_obj, 1, 2, python_trace);
 
 // pmem index [val] -> val
 STATIC mp_obj_t python_pmem(size_t n_args, const mp_obj_t *args) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pmem_obj, 1, 2, python_pmem);
 
 // time
 STATIC mp_obj_t python_time() {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(time_obj, python_time);
 
 // tstamp
 STATIC mp_obj_t python_tstamp() {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(tstamp_obj, python_tstamp);
 
 // exit
 STATIC mp_obj_t python_exit() {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(exit_obj, python_exit);
 
 // font text, x, y, [transcolor], [char width], [char height], [fixed=false], [scale=1] -> text width
 STATIC mp_obj_t python_font(size_t n_args, const mp_obj_t *args) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(font_obj, 3, 8, python_font);
 
 // mouse
 STATIC mp_obj_t python_mouse() {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(mouse_obj, python_mouse);
@@ -356,6 +374,7 @@ STATIC mp_obj_t python_circ(size_t n_args, const mp_obj_t *args) {
     mp_obj_t y_in = args[1];
     mp_obj_t radius_in = args[2];
     mp_obj_t color_in = args[3];
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(circ_obj, 4, 4, python_circ);
@@ -366,66 +385,77 @@ STATIC mp_obj_t python_circb(size_t n_args, const mp_obj_t *args) {
     mp_obj_t y_in = args[1];
     mp_obj_t radius_in = args[2];
     mp_obj_t color_in = args[3];
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(circb_obj, 4, 4, python_circb);
 
 // tri x1 y1 x2 y2 x3 y3 color
 STATIC mp_obj_t python_tri(size_t n_args, const mp_obj_t *args) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(tri_obj, 7, 7, python_tri);
 
 // textri x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 [use_map=false] [trans=-1]
 STATIC mp_obj_t python_textri(size_t n_args, const mp_obj_t *args) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(textri_obj, 12, 14, python_textri);
 
 // clip [x y width height]
 STATIC mp_obj_t python_clip(size_t n_args, const mp_obj_t *args) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(clip_obj, 0, 4, python_clip);
 
 // music [track=-1] [frame=-1] [row=-1] [loop=true] [sustain=false]
 STATIC mp_obj_t python_music(size_t n_args, const mp_obj_t *args) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(music_obj, 0, 5, python_music);
 
 // sync [mask=0] [bank=0] [tocart=false]
 STATIC mp_obj_t python_sync(size_t n_args, const mp_obj_t *args) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(sync_obj, 0, 3, python_sync);
 
 // reset
 STATIC mp_obj_t python_reset() {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(reset_obj, python_reset);
 
 // key [code] -> pressed
 STATIC mp_obj_t python_key(size_t n_args, const mp_obj_t *args) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(key_obj, 0, 1, python_key);
 
 // keyp [code [hold period] ] -> pressed
 STATIC mp_obj_t python_keyp(size_t n_args, const mp_obj_t *args) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(keyp_obj, 0, 2, python_keyp);
 
 // fget sprite_id flag -> bool
 STATIC mp_obj_t python_fget(mp_obj_t sprite_id_in, mp_obj_t flag_in) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(fget_obj, python_fget);
 
 // fset sprite_id flag bool
 STATIC mp_obj_t python_fset(mp_obj_t sprite_id_in, mp_obj_t flag_in, mp_obj_t bool_in) {
+    fprintf(stderr, "warning: not implemented\n");
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_3(fset_obj, python_fset);
