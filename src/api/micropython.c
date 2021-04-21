@@ -45,6 +45,8 @@ void nlr_jump_fail(void *val) {
     exit(1);
 }
 
+////////// Python TIC-80 API /////////
+
 // cls [color=0]
 STATIC mp_obj_t python_cls(size_t n_args, const mp_obj_t *args) {
     tic_api_cls(python_vm.mem, n_args == 1 ? mp_obj_get_int(args[0]) : 0);
@@ -218,14 +220,28 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(line_obj, 5, 5, python_line);
 
 // rect x y w h color
 STATIC mp_obj_t python_rect(size_t n_args, const mp_obj_t *args) {
-    fprintf(stderr, "warning: not implemented\n");
+    s32 x = mp_obj_get_int(args[0]);
+    s32 y = mp_obj_get_int(args[1]);
+    s32 w = mp_obj_get_int(args[2]);
+    s32 h = mp_obj_get_int(args[3]);
+    s32 color = mp_obj_get_int(args[4]);
+
+    tic_api_rect(python_vm.mem, x, y, w, h, color);
+
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(rect_obj, 5, 5, python_rect);
 
 // rectb x y w h color
 STATIC mp_obj_t python_rectb(size_t n_args, const mp_obj_t *args) {
-    fprintf(stderr, "warning: not implemented\n");
+    s32 x = mp_obj_get_int(args[0]);
+    s32 y = mp_obj_get_int(args[1]);
+    s32 w = mp_obj_get_int(args[2]);
+    s32 h = mp_obj_get_int(args[3]);
+    s32 color = mp_obj_get_int(args[4]);
+
+    tic_api_rectb(python_vm.mem, x, y, w, h, color);
+
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(rectb_obj, 5, 5, python_rectb);
