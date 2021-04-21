@@ -260,7 +260,24 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(btn_obj, 0, 1, python_btn);
 
 // btnp [[id, [hold], [period] ] -> pressed
 STATIC mp_obj_t python_btnp(size_t n_args, const mp_obj_t *args) {
-    fprintf(stderr, "warning: not implemented\n");
+    if (n_args == 0)
+    {
+        return MP_OBJ_NEW_SMALL_INT(tic_api_btnp(python_vm.mem, -1, -1, -1));
+    }
+    else if(n_args == 1)
+    {
+        s32 index = mp_obj_get_int(args[0]) & 0x1f;
+
+        return mp_obj_new_bool(tic_api_btnp(python_vm.mem, index, -1, -1));
+    }
+    else if (n_args == 3)
+    {
+        s32 index = mp_obj_get_int(args[0]) & 0x1f;
+        u32 hold = mp_obj_get_int(args[1]);
+        u32 period = mp_obj_get_int(args[2]);
+
+        return mp_obj_new_bool(tic_api_btnp(python_vm.mem, index, hold, period));
+    }
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(btnp_obj, 0, 3, python_btnp);
