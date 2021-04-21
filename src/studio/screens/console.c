@@ -61,7 +61,9 @@
 #define CONSOLE_BUFFER_WIDTH (STUDIO_TEXT_BUFFER_WIDTH)
 #define CONSOLE_BUFFER_HEIGHT (STUDIO_TEXT_BUFFER_HEIGHT)
 #define CONSOLE_BUFFER_SCREENS 64
-#define CONSOLE_BUFFER_SIZE (CONSOLE_BUFFER_WIDTH * CONSOLE_BUFFER_HEIGHT * CONSOLE_BUFFER_SCREENS)
+#define CONSOLE_BUFFER_SCREEN (CONSOLE_BUFFER_WIDTH * CONSOLE_BUFFER_HEIGHT)
+#define CONSOLE_BUFFER_SIZE (CONSOLE_BUFFER_SCREEN * CONSOLE_BUFFER_SCREENS)
+#define CONSOLE_BUFFER_ROWS (CONSOLE_BUFFER_SIZE / CONSOLE_BUFFER_WIDTH)
 
 static const char* PngExt = PNG_EXT;
 
@@ -151,17 +153,33 @@ static void scrollBuffer(char* buffer)
 
 static void scrollConsole(Console* console)
 {
-    while(console->cursor.y >= CONSOLE_BUFFER_HEIGHT * CONSOLE_BUFFER_SCREENS)
+    while(console->cursor.pos.y >= CONSOLE_BUFFER_HEIGHT * CONSOLE_BUFFER_SCREENS)
     {
         scrollBuffer(console->text);
         scrollBuffer((char*)console->color);
 
-        console->cursor.y--;
+        console->cursor.pos.y--;
     }
 
-    s32 minScroll = console->cursor.y - CONSOLE_BUFFER_HEIGHT + 1;
+    s32 minScroll = console->cursor.pos.y - CONSOLE_BUFFER_HEIGHT + 1;
     if(console->scroll.pos < minScroll)
         console->scroll.pos = minScroll;
+}
+
+static void setSymbol(Console* console, char sym, u8 color, s32 offset)
+{
+    console->text[offset] = sym;
+    console->color[offset] = color;
+}
+
+static tic_point cursorPos(Console* console)
+{
+    s32 offset = console->cursor.pos.x + console->cursor.pos.y * CONSOLE_BUFFER_WIDTH + console->input.pos;
+    return (tic_point) 
+    {
+        offset % CONSOLE_BUFFER_WIDTH,
+        offset / CONSOLE_BUFFER_WIDTH
+    };
 }
 
 static void consolePrint(Console* console, const char* text, u8 color)
@@ -169,36 +187,39 @@ static void consolePrint(Console* console, const char* text, u8 color)
 #ifndef BAREMETALPI
     printf("%s", text);
 #endif
-    const char* textPointer = text;
-    const char* endText = textPointer + strlen(text);
 
-    while(textPointer != endText)
+    console->cursor.pos = cursorPos(console);
+
+    for(const char* ptr = text; *ptr;)
     {
-        char symbol = *textPointer++;
+        char symbol = *ptr++;
 
         scrollConsole(console);
 
         if(symbol == '\n')
         {
-            console->cursor.x = 0;
-            console->cursor.y++;
+            console->cursor.pos.x = 0;
+            console->cursor.pos.y++;
         }
         else
         {
-            s32 offset = console->cursor.x + console->cursor.y * CONSOLE_BUFFER_WIDTH;
-            *(console->text + offset) = symbol;
-            *(console->color + offset) = color;
+            s32 offset = console->cursor.pos.x + console->cursor.pos.y * CONSOLE_BUFFER_WIDTH;
+            setSymbol(console, symbol, color, offset);
+            console->input.text = console->text + offset + 1;
 
-            console->cursor.x++;
+            console->cursor.pos.x++;
 
-            if(console->cursor.x >= CONSOLE_BUFFER_WIDTH)
+            if(console->cursor.pos.x >= CONSOLE_BUFFER_WIDTH)
             {
-                console->cursor.x = 0;
-                console->cursor.y++;
+                console->cursor.pos.x = 0;
+                console->cursor.pos.y++;
             }
         }
 
     }
+    
+    
+    console->input.pos = 0;
 }
 
 static void printBack(Console* console, const char* text)
@@ -221,6 +242,11 @@ static void printLine(Console* console)
     consolePrint(console, "\n", 0);
 }
 
+static void clearSelection(Console* console)
+{
+    ZEROMEM(console->select);
+}
+
 static void commandDoneLine(Console* console, bool newLine)
 {
     if(newLine)
@@ -232,7 +258,10 @@ static void commandDoneLine(Console* console, bool newLine)
         printBack(console, dir);
 
     printFront(console, ">");
+
     console->active = true;
+
+    clearSelection(console);
 }
 
 static void commandDone(Console* console)
@@ -245,101 +274,100 @@ static inline void drawChar(tic_mem* tic, char symbol, s32 x, s32 y, u8 color, b
     tic_api_print(tic, (char[]){symbol, '\0'}, x, y, color, true, 1, alt);
 }
 
-static void drawCursor(Console* console, s32 x, s32 y, u8 symbol)
+static void drawCursor(Console* console)
 {
     if(!console->active)
         return;
 
+    tic_point pos = cursorPos(console);
+    pos.x *= STUDIO_TEXT_WIDTH;
+    pos.y -= console->scroll.pos;
+    pos.y *= STUDIO_TEXT_HEIGHT;
+
+    u8 symbol = console->input.text[console->input.pos];
+
     bool inverse = console->cursor.delay || console->tickCounter % CONSOLE_CURSOR_BLINK_PERIOD < CONSOLE_CURSOR_BLINK_PERIOD / 2;
 
     if(inverse)
-        tic_api_rect(console->tic, x-1, y-1, TIC_FONT_WIDTH+1, TIC_FONT_HEIGHT+1, CONSOLE_CURSOR_COLOR);
+        tic_api_rect(console->tic, pos.x - 1, pos.y - 1, TIC_FONT_WIDTH + 1, TIC_FONT_HEIGHT + 1, CONSOLE_CURSOR_COLOR);
 
-    drawChar(console->tic, symbol, x, y, inverse ? TIC_COLOR_BG : CONSOLE_FRONT_TEXT_COLOR, false);
+    drawChar(console->tic, symbol, pos.x, pos.y, inverse ? TIC_COLOR_BG : CONSOLE_FRONT_TEXT_COLOR, false);
 }
 
 static void drawConsoleText(Console* console)
 {
-    char* pointer = console->text + console->scroll.pos * CONSOLE_BUFFER_WIDTH;
-    u8* colorPointer = console->color + console->scroll.pos * CONSOLE_BUFFER_WIDTH;
+    tic_mem* tic = console->tic;
+    const char* ptr = console->text + console->scroll.pos * CONSOLE_BUFFER_WIDTH;
+    const u8* colorPointer = console->color + console->scroll.pos * CONSOLE_BUFFER_WIDTH;
 
-    const char* end = console->text + CONSOLE_BUFFER_SIZE;
-    s32 x = 0;
-    s32 y = 0;
+    const char* end = ptr + CONSOLE_BUFFER_SCREEN;
+    tic_point pos = {0};
 
-    while(pointer < end)
+    struct
     {
-        char symbol = *pointer++;
+        const char* start;
+        const char* end;
+    } select = 
+    {
+        console->select.start,
+        console->select.end
+    };
+
+    if(select.start > select.end)
+        SWAP(select.start, select.end, const char*);
+
+    while(ptr < end)
+    {
+        char symbol = *ptr++;
         u8 color = *colorPointer++;
+        bool hasSymbol = symbol && symbol != ' ';
+        bool drawSelection = ptr > select.start && ptr <= select.end;
+        s32 x = pos.x * STUDIO_TEXT_WIDTH;
+        s32 y = pos.y * STUDIO_TEXT_HEIGHT;
 
-        if(symbol)
-            drawChar(console->tic, symbol, x * STUDIO_TEXT_WIDTH, y * STUDIO_TEXT_HEIGHT, color, false);
+        if(drawSelection)
+            tic_api_rect(tic, x, y, STUDIO_TEXT_WIDTH, STUDIO_TEXT_HEIGHT, hasSymbol ? color : tic_color_white);
 
-        if(++x == CONSOLE_BUFFER_WIDTH)
+        if(hasSymbol)
+            drawChar(console->tic, symbol, x, y, drawSelection ? TIC_COLOR_BG : color, false);
+
+        if(++pos.x == CONSOLE_BUFFER_WIDTH)
         {
-            y++;
-            x = 0;
+            pos.y++;
+            pos.x = 0;
         }
     }
-}
-
-static void drawConsoleInputText(Console* console)
-{
-    s32 x = console->cursor.x * STUDIO_TEXT_WIDTH;
-    s32 y = (console->cursor.y - console->scroll.pos) * STUDIO_TEXT_HEIGHT;
-
-    const char* pointer = console->inputBuffer;
-    const char* end = pointer + strlen(console->inputBuffer);
-    s32 index = 0;
-
-    while(pointer != end)
-    {
-        char symbol = *pointer++;
-
-        if(console->inputPosition == index)
-            drawCursor(console, x, y, symbol);
-        else
-            drawChar(console->tic, symbol, x, y, CONSOLE_FRONT_TEXT_COLOR, false);
-
-        index++;
-
-        x += STUDIO_TEXT_WIDTH;
-        if(x == (CONSOLE_BUFFER_WIDTH * STUDIO_TEXT_WIDTH))
-        {
-            y += STUDIO_TEXT_HEIGHT;
-            x = 0;
-        }
-
-    }
-
-    if(console->inputPosition == index)
-        drawCursor(console, x, y, ' ');
-
-
 }
 
 static void processConsoleHome(Console* console)
 {
-    console->inputPosition = 0;
+    console->input.pos = 0;
 }
 
 static void processConsoleEnd(Console* console)
 {
-    console->inputPosition = strlen(console->inputBuffer);
+    console->input.pos = strlen(console->input.text);
+}
+
+static s32 getInputOffset(Console* console)
+{
+    return (console->input.text - console->text) + console->input.pos;
 }
 
 static void processConsoleDel(Console* console)
 {
-    char* pos = console->inputBuffer + console->inputPosition;
+    char* pos = console->input.text + console->input.pos;
+    u8* color = console->color + getInputOffset(console);
     size_t size = strlen(pos);
     memmove(pos, pos + 1, size);
+    memmove(color, color + 1, size);
 }
 
 static void processConsoleBackspace(Console* console)
 {
-    if(console->inputPosition > 0)
+    if(console->input.pos > 0)
     {
-        console->inputPosition--;
+        console->input.pos--;
 
         processConsoleDel(console);
     }
@@ -1213,7 +1241,7 @@ static void onClsCommand(Console* console, const char* param)
     memset(console->color, TIC_COLOR_BG, CONSOLE_BUFFER_SIZE);
 
     console->scroll.pos = 0;
-    console->cursor.x = console->cursor.y = 0;
+    console->cursor.pos.x = console->cursor.pos.y = 0;
     printf("\r");
 
     commandDoneLine(console, false);
@@ -1750,7 +1778,7 @@ static void onExportGet(const net_get_data* data)
     {
     case net_get_progress:
         {
-            console->cursor.x = 0;
+            console->cursor.pos.x = 0;
             printf("\r");
             printBack(console, "GET ");
             printFront(console, data->url);
@@ -2222,13 +2250,12 @@ static void printTable(Console* console, const char* text)
 
         if(symbol == '\n')
         {
-            console->cursor.x = 0;
-            console->cursor.y++;
+            console->cursor.pos.x = 0;
+            console->cursor.pos.y++;
         }
         else
         {
-            s32 offset = console->cursor.x + console->cursor.y * CONSOLE_BUFFER_WIDTH;
-            *(console->text + offset) = symbol;
+            s32 offset = console->cursor.pos.x + console->cursor.pos.y * CONSOLE_BUFFER_WIDTH;
 
             u8 color = 0;
 
@@ -2243,14 +2270,14 @@ static void printTable(Console* console, const char* text)
                 color = CONSOLE_FRONT_TEXT_COLOR;
             }
 
-            *(console->color + offset) = color;
+            setSymbol(console, symbol, color, offset);
 
-            console->cursor.x++;
+            console->cursor.pos.x++;
 
-            if(console->cursor.x >= CONSOLE_BUFFER_WIDTH)
+            if(console->cursor.pos.x >= CONSOLE_BUFFER_WIDTH)
             {
-                console->cursor.x = 0;
-                console->cursor.y++;
+                console->cursor.pos.x = 0;
+                console->cursor.pos.y++;
             }
         }
 
@@ -2495,13 +2522,13 @@ static void predictFilenameDone(void* data)
     PredictFilenameData* predictFilenameData = data;
     Console* console = predictFilenameData->console;
 
-    console->inputPosition = strlen(console->inputBuffer);
+    console->input.pos = strlen(console->input.text);
     free(predictFilenameData);
 }
 
 static void processConsoleTab(Console* console)
 {
-    char* input = console->inputBuffer;
+    char* input = console->input.text;
 
     if(strlen(input))
     {
@@ -2521,7 +2548,7 @@ static void processConsoleTab(Console* console)
                 if(strstr(command, input) == command)
                 {
                     strcpy(input, command);
-                    console->inputPosition = strlen(input);
+                    console->input.pos = strlen(input);
                     break;
                 }
             }
@@ -2628,9 +2655,11 @@ static void processCommand(Console* console, const char* command)
 
     if(command)
     {
+        char* cmd = strdup(console->input.text);
         printLine(console);
         printError(console, "unknown command:");
-        printError(console, console->inputBuffer);
+        printError(console, cmd);
+        free(cmd);
         commandDone(console);
     }
 }
@@ -2653,76 +2682,57 @@ static void processCommands(Console* console)
     processCommand(console, command);
 }
 
-static void fillInputBufferFromHistory(Console* console)
+static void fillHistory(Console* console)
 {
-    memset(console->inputBuffer, 0, sizeof(console->inputBuffer));
-    strcpy(console->inputBuffer, console->history->value);
-    processConsoleEnd(console);
+    if(console->history.size)
+    {
+        console->input.pos = 0;
+        memset(console->input.text, '\0', strlen(console->input.text));
+
+        const char* item = console->history.items[console->history.index];
+        strcpy(console->input.text, item);
+        memset(console->color + getInputOffset(console), tic_color_white, strlen(item));
+        processConsoleEnd(console);
+    }
 }
 
 static void onHistoryUp(Console* console)
 {
-    if(console->history)
-    {
-        if(console->history->next)
-            console->history = console->history->next;
-    }
-    else console->history = console->historyHead;
+    fillHistory(console);
 
-    if(console->history)
-        fillInputBufferFromHistory(console);
+    if(console->history.index > 0)
+        console->history.index--;
 }
 
 static void onHistoryDown(Console* console)
 {
-    if(console->history)
+    if(console->history.index < console->history.size - 1)
     {
-        if(console->history->prev)
-        {
-            console->history = console->history->prev;
-            fillInputBufferFromHistory(console);
-        }
-        else
-        {
-            memset(console->inputBuffer, 0, sizeof(console->inputBuffer));
-            console->inputPosition = 0;
-        }
+        console->history.index++;
+        fillHistory(console);
+    }
+    else
+    {
+        memset(console->input.text, '\0', strlen(console->input.text));
+        processConsoleEnd(console);
     }
 }
 
 static void appendHistory(Console* console, const char* value)
 {
-    HistoryItem* item = (HistoryItem*)malloc(sizeof(HistoryItem));
-    item->value = strdup(value);
-    item->next = NULL;
-    item->prev = NULL;
-
-    if(console->historyHead == NULL)
-    {
-        console->historyHead = item;
-        return;
-    }
-
-    console->historyHead->prev = item;
-    item->next = console->historyHead;
-    console->historyHead = item;
-    console->history = NULL;
+    console->history.index = console->history.size++;
+    console->history.items = realloc(console->history.items, sizeof(char*) * console->history.size);
+    console->history.items[console->history.index] = strdup(value);
 }
 
 static void processConsoleCommand(Console* console)
 {
-    console->inputPosition = 0;
-
-    size_t commandSize = strlen(console->inputBuffer);
+    size_t commandSize = strlen(console->input.text);
 
     if(commandSize)
     {
-        printFront(console, console->inputBuffer);
-        appendHistory(console, console->inputBuffer);
-
-        processCommand(console, console->inputBuffer);
-
-        memset(console->inputBuffer, 0, sizeof(console->inputBuffer));
+        appendHistory(console, console->input.text);
+        processCommand(console, console->input.text);
     }
     else commandDone(console);
 }
@@ -2743,10 +2753,7 @@ static void setScroll(Console* console, s32 val)
 {
     if(console->scroll.pos != val)
     {
-        console->scroll.pos = val;
-
-        if(console->scroll.pos < 0) console->scroll.pos = 0;
-        if(console->scroll.pos > console->cursor.y) console->scroll.pos = console->cursor.y;
+        console->scroll.pos = MIN(CLAMP(val, 0, console->cursor.pos.y), CONSOLE_BUFFER_ROWS - CONSOLE_BUFFER_HEIGHT);
     }
 }
 
@@ -2825,13 +2832,106 @@ static void onHttpVesrsionGet(const net_get_data* data)
 
                 enum{Offset = (2 * STUDIO_TEXT_BUFFER_WIDTH)};
 
-                memcpy(console->text + Offset, msg, strlen(msg));
-                memset(console->color + Offset, tic_color_red, STUDIO_TEXT_BUFFER_WIDTH);
+                strcpy(console->text + Offset, msg);
+                memset(console->color + Offset, tic_color_red, strlen(msg));
             }
         }
         break;
     default:
         break;
+    }
+}
+
+static char* getSelectionText(Console* console)
+{
+    const char* start = console->select.start;
+    const char* end = console->select.end;
+
+    if (start > end)
+        SWAP(start, end, const char*);
+
+    s32 size = end - start;
+    if (size)
+    {
+        size += size / CONSOLE_BUFFER_WIDTH + 1;
+        char* clipboard = malloc(size);
+        memset(clipboard, 0, size);
+        char* dst = clipboard;
+
+        s32 index = (start - console->text) % CONSOLE_BUFFER_WIDTH;
+
+        for (const char* ptr = start; ptr < end; ptr++, index++)
+        {
+            if (index && (index % CONSOLE_BUFFER_WIDTH) == 0)
+                *dst++ = '\n';
+
+            if (*ptr)
+                *dst++ = *ptr;
+        }
+
+        return clipboard;
+    }
+
+    return NULL;
+}
+
+static void insertInputText(Console* console, const char* text)
+{
+    s32 size = strlen(text);
+    s32 offset = getInputOffset(console);
+
+    if(size < CONSOLE_BUFFER_SIZE - offset)
+    {
+        char* pos = console->text + offset;
+        u8* color = console->color + offset;
+
+        {
+            s32 len = strlen(pos);
+            memmove(pos + size, pos, len);
+            memmove(color + size, color, len);
+        }
+
+        memcpy(pos, text, size);
+        memset(color, tic_color_white, size);
+
+        console->input.pos += size;
+    }
+
+    clearSelection(console);
+}
+
+static void copyToClipboard(Console* console)
+{
+    char* text = getSelectionText(console);
+
+    if (text)
+    {
+        tic_sys_clipboard_set(text);
+        free(text);
+        clearSelection(console);
+    }
+}
+
+static void copyFromClipboard(Console* console)
+{
+    if(tic_sys_clipboard_has())
+    {
+        const char* clipboard = tic_sys_clipboard_get();
+
+        if(clipboard)
+        {
+            char* text = strdup(clipboard);
+
+            char* dst = text;
+            for(const char* src = clipboard; *src; src++)
+                if(isprint(*src))
+                    *dst++ = *src;
+
+            insertInputText(console, text);
+            free(text);
+
+            tic_sys_clipboard_free(clipboard);
+        }
     }
 }
 
@@ -2852,21 +2952,60 @@ static void processMouse(Console* console)
 
     tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
 
+    if(checkMousePos(&rect))
+        setCursor(tic_cursor_ibeam);
+
+#if defined(__TIC_ANDROID__)
+
     if(checkMouseDown(&rect, tic_mouse_left))
     {
         setCursor(tic_cursor_hand);
 
         if(console->scroll.active)
         {
-            setScroll(console, (console->scroll.start - tic_api_mouse(tic).y) / TIC_FONT_HEIGHT);
+            setScroll(console, (console->scroll.start - tic_api_mouse(tic).y) / STUDIO_TEXT_HEIGHT);
         }
         else
         {
             console->scroll.active = true;
-            console->scroll.start = tic_api_mouse(tic).y + console->scroll.pos * TIC_FONT_HEIGHT;
+            console->scroll.start = tic_api_mouse(tic).y + console->scroll.pos * STUDIO_TEXT_HEIGHT;
         }            
     }
     else console->scroll.active = false;
+
+#else
+
+    if(checkMouseDown(&rect, tic_mouse_left))
+    {
+        tic_point m = tic_api_mouse(tic);
+
+        console->select.end = console->text 
+            + m.x / STUDIO_TEXT_WIDTH 
+            + (m.y / STUDIO_TEXT_HEIGHT + console->scroll.pos) * CONSOLE_BUFFER_WIDTH;
+
+        if(!console->select.active)
+        {
+            console->select.active = true;
+            console->select.start = console->select.end;
+        }
+    }
+    else console->select.active = false;
+
+#endif
+
+    if(checkMouseClick(&rect, tic_mouse_middle))
+    {
+        char* text = getSelectionText(console);
+
+        if (text)
+        {
+            insertInputText(console, text);
+            tic_sys_clipboard_set(text);
+            free(text);
+        }
+        else
+            copyFromClipboard(console);
+    }
 }
 
 static void processConsolePgUp(Console* console)
@@ -2883,26 +3022,35 @@ static void processKeyboard(Console* console)
 {
     tic_mem* tic = console->tic;
 
+
     if(!console->active)
         return;
 
+
     if(tic->ram.input.keyboard.data != 0)
     {
+        switch(getClipboardEvent())
+        {
+        case TIC_CLIPBOARD_COPY: copyToClipboard(console); break;
+        case TIC_CLIPBOARD_PASTE: copyFromClipboard(console); break;
+        default: break;
+        }
+
         console->cursor.delay = CONSOLE_CURSOR_DELAY;
 
         if(keyWasPressed(tic_key_up)) onHistoryUp(console);
         else if(keyWasPressed(tic_key_down)) onHistoryDown(console);
         else if(keyWasPressed(tic_key_left))
         {
-            if(console->inputPosition > 0)
-                console->inputPosition--;
+            if(console->input.pos > 0)
+                console->input.pos--;
         }
         else if(keyWasPressed(tic_key_right))
         {
-            console->inputPosition++;
-            size_t len = strlen(console->inputBuffer);
-            if(console->inputPosition > len)
-                console->inputPosition = len;
+            console->input.pos++;
+            size_t len = strlen(console->input.text);
+            if(console->input.pos > len)
+                console->input.pos = len;
         }
         else if(keyWasPressed(tic_key_return))      processConsoleCommand(console);
         else if(keyWasPressed(tic_key_backspace))   processConsoleBackspace(console);
@@ -2925,20 +3073,8 @@ static void processKeyboard(Console* console)
 
     if(sym)
     {
-        {
-            scrollConsole(console);
-            console->cursor.delay = CONSOLE_CURSOR_DELAY;
-        }
-
-        size_t size = strlen(console->inputBuffer);
-
-        if(size < sizeof(console->inputBuffer))
-        {
-            char* pos = console->inputBuffer + console->inputPosition;
-            memmove(pos + 1, pos, strlen(pos));
-
-            *(console->inputBuffer + console->inputPosition++) = sym;
-        }
+        insertInputText(console, (char[]){sym, '\0'});
+        scrollConsole(console);
 
         console->cursor.delay = CONSOLE_CURSOR_DELAY;
     }
@@ -3011,7 +3147,7 @@ static void tick(Console* console)
         if(console->cursor.delay)
             console->cursor.delay--;
 
-        drawConsoleInputText(console);
+        drawCursor(console);
 
         if(console->active && console->args.cmd)
             processCommands(console);
@@ -3075,9 +3211,9 @@ static bool cmdLoadCart(Console* console, const char* path)
 
 void initConsole(Console* console, tic_mem* tic, tic_fs* fs, tic_net* net, Config* config, StartArgs args)
 {
-    if(!console->text) console->text = malloc(CONSOLE_BUFFER_SIZE);
-    if(!console->color) console->color = malloc(CONSOLE_BUFFER_SIZE);
-    if(!console->embed.file) console->embed.file = malloc(sizeof(tic_cartridge));
+    if(!console->text)          console->text = malloc(CONSOLE_BUFFER_SIZE);
+    if(!console->color)         console->color = malloc(CONSOLE_BUFFER_SIZE);
+    if(!console->embed.file)    console->embed.file = malloc(sizeof(tic_cartridge));
 
     *console = (Console)
     {
@@ -3091,21 +3227,13 @@ void initConsole(Console* console, tic_mem* tic, tic_fs* fs, tic_net* net, Confi
         .tick = tick,
         .save = saveCart,
         .done = commandDone,
-        .cursor = {.x = 1, .y = 3, .delay = 0},
-        .scroll =
-        {
-            .pos = 0,
-            .start = 0,
-            .active = false,
-        },
+        .cursor = {.pos.x = 1, .pos.y = 3, .delay = 0},
         .embed =
         {
             .yes = false,
             .file = console->embed.file,
         },
-        .inputPosition = 0,
-        .history = NULL,
-        .historyHead = NULL,
+        .input = console->text,
         .tickCounter = 0,
         .active = false,
         .text = console->text,
@@ -3208,19 +3336,12 @@ void freeConsole(Console* console)
     free(console->color);
     free(console->embed.file);
 
+    if(console->history.items)
     {
-        HistoryItem* it = console->historyHead;
+        for(char **ptr = console->history.items, **end = ptr + console->history.size; ptr < end; ptr++)
+            free(*ptr);
 
-        while(it)
-        {
-            HistoryItem* next = it->next;
-
-            if(it->value) free(it->value);
-            
-            free(it);
-
-            it = next;
-        }        
+        free(console->history.items);
     }
 
     free(console);
