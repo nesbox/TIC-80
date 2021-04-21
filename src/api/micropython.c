@@ -14,6 +14,7 @@
 #include "py/stackctrl.h"
 
 struct PythonVM {
+    tic_core* core;
     tic_mem* mem;
     mp_obj_t module_fun;
     mp_obj_t TIC_fun;
@@ -453,14 +454,38 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(music_obj, 0, 5, python_music);
 
 // sync [mask=0] [bank=0] [tocart=false]
 STATIC mp_obj_t python_sync(size_t n_args, const mp_obj_t *args) {
-    fprintf(stderr, "warning: not implemented\n");
+    bool toCart = false;
+    u32 mask = 0;
+    s32 bank = 0;
+
+    if(n_args >= 1)
+    {
+        mask = mp_obj_get_int(args[0]);
+
+        if(n_args >= 2)
+        {
+            bank = mp_obj_get_int(args[1]);
+
+            if(n_args >= 3)
+            {
+                toCart = mp_obj_get_int(args[2]) != 0; // bool
+            }
+        }
+    }
+
+    if(bank >= 0 && bank < TIC_BANKS) {
+        tic_api_sync(python_vm.mem, mask, bank, toCart);
+    }else{
+        mp_raise_ValueError(MP_ERROR_TEXT("sync() error, invalid bank"));
+    }
+
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(sync_obj, 0, 3, python_sync);
 
 // reset
 STATIC mp_obj_t python_reset() {
-    fprintf(stderr, "warning: not implemented\n");
+    python_vm.core->state.initialized = false;
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(reset_obj, python_reset);
@@ -503,6 +528,7 @@ static bool initPython(tic_mem* tic, const char* code)
 	core->python = &python_vm;
 
 	memset(&python_vm, 0, sizeof(PythonVM));
+    python_vm.core = core;
     python_vm.mem = tic;
 
     // Note: nlr_push/pop mechanism is like try/catch for exceptions
