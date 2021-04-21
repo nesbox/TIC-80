@@ -492,14 +492,62 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_0(reset_obj, python_reset);
 
 // key [code] -> pressed
 STATIC mp_obj_t python_key(size_t n_args, const mp_obj_t *args) {
-    fprintf(stderr, "warning: not implemented\n");
+    if (n_args == 0)
+    {
+        return mp_obj_new_bool(tic_api_key(python_vm.mem, tic_key_unknown));
+    }
+    else if (n_args == 1)
+    {
+        tic_key key = mp_obj_get_int(args[0]);
+
+        if(key < tic_keys_count)
+            return mp_obj_new_bool(tic_api_key(python_vm.mem, key));
+        else
+        {
+            mp_raise_ValueError(MP_ERROR_TEXT("unknown keyboard code"));
+        }
+    }
+    else
+    {
+        mp_raise_ValueError(MP_ERROR_TEXT("invalid params, key [code]"));
+    } 
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(key_obj, 0, 1, python_key);
 
 // keyp [code [hold period] ] -> pressed
 STATIC mp_obj_t python_keyp(size_t n_args, const mp_obj_t *args) {
-    fprintf(stderr, "warning: not implemented\n");
+    if (n_args == 0)
+    {
+        return mp_obj_new_bool(tic_api_keyp(python_vm.mem, tic_key_unknown, -1, -1));
+    }
+    else
+    {
+        tic_key key = mp_obj_get_int(args[0]);
+
+        if(key >= tic_keys_count)
+        {
+            mp_raise_ValueError(MP_ERROR_TEXT("unknown keyboard code"));
+        }
+        else
+        {
+            if(n_args == 1)
+            {
+                return mp_obj_new_bool(tic_api_keyp(python_vm.mem, key, -1, -1));
+            }
+            else if(n_args == 3)
+            {
+                u32 hold = mp_obj_get_int(args[1]);
+                u32 period = mp_obj_get_int(args[2]);
+
+                return mp_obj_new_bool(tic_api_keyp(python_vm.mem, key, hold, period));
+            }
+            else
+            {
+                mp_raise_ValueError(MP_ERROR_TEXT("invalid params, keyp [ code [ hold period ] ]"));
+            }
+        }
+    }
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(keyp_obj, 0, 2, python_keyp);
