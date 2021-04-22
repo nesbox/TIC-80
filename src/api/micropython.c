@@ -341,14 +341,24 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_2(poke4_obj, python_poke4);
 
 // memcpy to from length
 STATIC mp_obj_t python_memcpy(mp_obj_t to_in, mp_obj_t from_in, mp_obj_t length_in) {
-    fprintf(stderr, "warning: not implemented\n");
+    s32 dest = mp_obj_get_int(to_in);
+    s32 src = mp_obj_get_int(from_in);
+    s32 size = mp_obj_get_int(length_in);
+
+    tic_api_memcpy(python_vm.mem, dest, src, size);
+
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_3(memcpy_obj, python_memcpy);
 
 // memset addr value length
 STATIC mp_obj_t python_memset(mp_obj_t addr_in, mp_obj_t value_in, mp_obj_t length_in) {
-    fprintf(stderr, "warning: not implemented\n");
+    s32 dest = mp_obj_get_int(addr_in);
+    u8 value = mp_obj_get_int(value_in);
+    s32 size = mp_obj_get_int(length_in);
+
+    tic_api_memset(python_vm.mem, dest, value, size);
+
     return mp_const_none;
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_3(memset_obj, python_memset);
