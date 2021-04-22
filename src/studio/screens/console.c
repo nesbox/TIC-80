@@ -2507,10 +2507,12 @@ typedef struct
 static bool predictFilename(const char* name, const char* info, s32 id, void* data, bool dir)
 {
     PredictFilenameData* predictFilenameData = data;
+    Console* console = predictFilenameData->console;
 
     if(strstr(name, predictFilenameData->name) == name)
     {
         strcpy(predictFilenameData->name, name);
+        memset(console->color + getInputOffset(console), tic_color_white, strlen(name));
         return false;
     }
 
@@ -2524,6 +2526,31 @@ static void predictFilenameDone(void* data)
 
     console->input.pos = strlen(console->input.text);
     free(predictFilenameData);
+}
+
+static void insertInputText(Console* console, const char* text)
+{
+    s32 size = strlen(text);
+    s32 offset = getInputOffset(console);
+
+    if(size < CONSOLE_BUFFER_SIZE - offset)
+    {
+        char* pos = console->text + offset;
+        u8* color = console->color + offset;
+
+        {
+            s32 len = strlen(pos);
+            memmove(pos + size, pos, len);
+            memmove(color + size, color, len);
+        }
+
+        memcpy(pos, text, size);
+        memset(color, tic_color_white, size);
+
+        console->input.pos += size;
+    }
+
+    clearSelection(console);
 }
 
 static void processConsoleTab(Console* console)
@@ -2547,8 +2574,7 @@ static void processConsoleTab(Console* console)
 
                 if(strstr(command, input) == command)
                 {
-                    strcpy(input, command);
-                    console->input.pos = strlen(input);
+                    insertInputText(console, command + console->input.pos);
                     break;
                 }
             }
@@ -2622,6 +2648,8 @@ static void onHelpCommand(Console* console, const char* param)
 static void processCommand(Console* console, const char* command)
 {
     console->active = false;
+
+    printf("%s", command);
 
     while(*command == ' ')
         command++;
@@ -2873,31 +2901,6 @@ static char* getSelectionText(Console* console)
     }
 
     return NULL;
-}
-
-static void insertInputText(Console* console, const char* text)
-{
-    s32 size = strlen(text);
-    s32 offset = getInputOffset(console);
-
-    if(size < CONSOLE_BUFFER_SIZE - offset)
-    {
-        char* pos = console->text + offset;
-        u8* color = console->color + offset;
-
-        {
-            s32 len = strlen(pos);
-            memmove(pos + size, pos, len);
-            memmove(color + size, color, len);
-        }
-
-        memcpy(pos, text, size);
-        memset(color, tic_color_white, size);
-
-        console->input.pos += size;
-    }
-
-    clearSelection(console);
 }
 
 static void copyToClipboard(Console* console)
