@@ -1173,6 +1173,7 @@ void setStudioMode(EditorMode mode)
             break;
         case TIC_RUN_MODE:
         case TIC_SURF_MODE:
+            impl.console->done(impl.console);
             impl.prevMode = TIC_CODE_MODE;
             break;
         default: impl.prevMode = prev; break;
@@ -1647,9 +1648,6 @@ static void processShortcuts()
                 impl.dialog->escape(impl.dialog);
                 return;
             }
-
-            if (impl.mode == TIC_SURF_MODE)
-                impl.console->done(impl.console);
 
             setStudioMode(impl.mode == TIC_CONSOLE_MODE ? impl.prevMode : TIC_CONSOLE_MODE);
         }

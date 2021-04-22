@@ -172,14 +172,25 @@ static void setSymbol(Console* console, char sym, u8 color, s32 offset)
     console->color[offset] = color;
 }
 
+static s32 cursorOffset(Console* console)
+{
+    return console->cursor.pos.x + console->cursor.pos.y * CONSOLE_BUFFER_WIDTH;
+}
+
 static tic_point cursorPos(Console* console)
 {
-    s32 offset = console->cursor.pos.x + console->cursor.pos.y * CONSOLE_BUFFER_WIDTH + console->input.pos;
+    s32 offset = cursorOffset(console) + console->input.pos;
     return (tic_point) 
     {
         offset % CONSOLE_BUFFER_WIDTH,
         offset / CONSOLE_BUFFER_WIDTH
     };
+}
+
+static void nextLine(Console* console)
+{
+    console->cursor.pos.x = 0;
+    console->cursor.pos.y++;
 }
 
 static void consolePrint(Console* console, const char* text, u8 color)
@@ -190,35 +201,38 @@ static void consolePrint(Console* console, const char* text, u8 color)
 
     console->cursor.pos = cursorPos(console);
 
-    for(const char* ptr = text; *ptr;)
+    for(const char* ptr = text, *next = ptr; *ptr; ptr++)
     {
-        char symbol = *ptr++;
+        char symbol = *ptr;
 
         scrollConsole(console);
 
         if(symbol == '\n')
-        {
-            console->cursor.pos.x = 0;
-            console->cursor.pos.y++;
-        }
+            nextLine(console);
         else
         {
-            s32 offset = console->cursor.pos.x + console->cursor.pos.y * CONSOLE_BUFFER_WIDTH;
-            setSymbol(console, symbol, color, offset);
-            console->input.text = console->text + offset + 1;
+            if(next == ptr && isalnum(symbol))
+            {
+                const char* cur = ptr;
+                s32 len = CONSOLE_BUFFER_WIDTH;
+
+                while(isalnum(*cur++)) len--;
+
+                if(len > 0 && len <= console->cursor.pos.x)
+                    nextLine(console);
+                else next = ptr + len;
+            }
+
+            setSymbol(console, symbol, color, cursorOffset(console));
 
             console->cursor.pos.x++;
 
             if(console->cursor.pos.x >= CONSOLE_BUFFER_WIDTH)
-            {
-                console->cursor.pos.x = 0;
-                console->cursor.pos.y++;
-            }
+                nextLine(console);
         }
-
     }
-    
-    
+
+    console->input.text = console->text + cursorOffset(console);
     console->input.pos = 0;
 }
 
@@ -1240,8 +1254,10 @@ static void onClsCommand(Console* console, const char* param)
     memset(console->text, 0, CONSOLE_BUFFER_SIZE);
     memset(console->color, TIC_COLOR_BG, CONSOLE_BUFFER_SIZE);
 
-    console->scroll.pos = 0;
-    console->cursor.pos.x = console->cursor.pos.y = 0;
+    ZEROMEM(console->scroll);
+    ZEROMEM(console->cursor);
+    ZEROMEM(console->input);
+
     printf("\r");
 
     commandDoneLine(console, false);
@@ -2249,14 +2265,9 @@ static void printTable(Console* console, const char* text)
         scrollConsole(console);
 
         if(symbol == '\n')
-        {
-            console->cursor.pos.x = 0;
-            console->cursor.pos.y++;
-        }
+            nextLine(console);
         else
         {
-            s32 offset = console->cursor.pos.x + console->cursor.pos.y * CONSOLE_BUFFER_WIDTH;
-
             u8 color = 0;
 
             switch(symbol)
@@ -2270,15 +2281,12 @@ static void printTable(Console* console, const char* text)
                 color = CONSOLE_FRONT_TEXT_COLOR;
             }
 
-            setSymbol(console, symbol, color, offset);
+            setSymbol(console, symbol, color, cursorOffset(console));
 
             console->cursor.pos.x++;
 
             if(console->cursor.pos.x >= CONSOLE_BUFFER_WIDTH)
-            {
-                console->cursor.pos.x = 0;
-                console->cursor.pos.y++;
-            }
+                nextLine(console);
         }
 
     }
