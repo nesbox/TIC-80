@@ -32,6 +32,7 @@
 #define OBJMOVE(...) memmove(malloc(sizeof __VA_ARGS__), &__VA_ARGS__, sizeof __VA_ARGS__)
 #define DEF2STR2(x) #x
 #define DEF2STR(x) DEF2STR2(x)
+#define STRLEN(STR) (sizeof STR - 1)
 
 #define BIT_SET(a,b)    ((a) | (1ULL<<(b)))
 #define BIT_CLEAR(a,b)  ((a) & ~(1ULL<<(b)))

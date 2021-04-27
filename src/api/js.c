@@ -882,7 +882,7 @@ static void initDuktape(tic_core* core)
         duk_pop(duk);
     }
 
-#define API_FUNC_DEF(name, paramsCount, ...) {duk_ ## name, paramsCount, #name},
+#define API_FUNC_DEF(name, _, __, paramsCount, ...) {duk_ ## name, paramsCount, #name},
     static const struct{duk_c_function func; s32 params; const char* name;} ApiItems[] = {TIC_API_LIST(API_FUNC_DEF)};
 #undef API_FUNC_DEF
 
