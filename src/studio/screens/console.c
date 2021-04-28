@@ -66,24 +66,35 @@
 #define CONSOLE_BUFFER_SIZE         (CONSOLE_BUFFER_SCREEN * CONSOLE_BUFFER_SCREENS)
 #define CONSOLE_BUFFER_ROWS         (CONSOLE_BUFFER_SIZE / CONSOLE_BUFFER_WIDTH)
 
-#define IMPORT_CMD_LIST(macro) \
-    macro(tiles)    \
-    macro(sprites)  \
-    macro(map)      \
-    macro(code)     \
+#define HELP_CMD_LIST(macro)    \
+    macro(version)              \
+    macro(welcome)              \
+    macro(spec)                 \
+    macro(ram)                  \
+    macro(vram)                 \
+    macro(commands)             \
+    macro(api)                  \
+    macro(terms)                \
+    macro(license)
+
+#define IMPORT_CMD_LIST(macro)  \
+    macro(tiles)                \
+    macro(sprites)              \
+    macro(map)                  \
+    macro(code)                 \
     macro(screen)
 
-#define EXPORT_CMD_LIST(macro) \
-    macro(win)      \
-    macro(linux)    \
-    macro(rpi)      \
-    macro(mac)      \
-    macro(html)     \
-    macro(tiles)    \
-    macro(sprites)  \
-    macro(map)      \
-    macro(sfx)      \
-    macro(music)    \
+#define EXPORT_CMD_LIST(macro)  \
+    macro(win)                  \
+    macro(linux)                \
+    macro(rpi)                  \
+    macro(mac)                  \
+    macro(html)                 \
+    macro(tiles)                \
+    macro(sprites)              \
+    macro(map)                  \
+    macro(sfx)                  \
+    macro(music)                \
     macro(screen)
 
 static const char* PngExt = PNG_EXT;
@@ -791,7 +802,7 @@ static void loadByHash(Console* console, const char* name, const char* hash, fs_
     console->active = false;
 
     LoadByHashData loadByHashData = { console, strdup(name), callback, data};
-    tic_fs_hashload(console->fs, hash, loadByHashDone, OBJMOVE(loadByHashData));
+    tic_fs_hashload(console->fs, hash, loadByHashDone, MOVE(loadByHashData));
 }
 
 typedef struct
@@ -850,7 +861,7 @@ static void onLoadCommandConfirmed(Console* console, const char* param)
         if (tic_fs_ispubdir(console->fs))
         {
             LoadPublicCartData loadPublicCartData = { console, strdup(name) };
-            tic_fs_enum(console->fs, compareFilename, fileFound, OBJMOVE(loadPublicCartData));
+            tic_fs_enum(console->fs, compareFilename, fileFound, MOVE(loadPublicCartData));
 
             return;
         }
@@ -1236,7 +1247,7 @@ static void onChangeDirectory(Console* console, const char* param)
         else
         {
             ChangeDirData data = { console, strdup(param) };
-            tic_fs_isdir_async(console->fs, param, onChangeDirectoryDone, OBJMOVE(data));
+            tic_fs_isdir_async(console->fs, param, onChangeDirectoryDone, MOVE(data));
             return;
         }
     }
@@ -1265,7 +1276,7 @@ static void onDirCommand(Console* console, const char* param)
     printLine(console);
 
     PrintFileNameData data = {console};
-    tic_fs_enum(console->fs, printFilename, onDirDone, OBJMOVE(data));
+    tic_fs_enum(console->fs, printFilename, onDirDone, MOVE(data));
 }
 
 static void onFolderCommand(Console* console, const char* param)
@@ -1398,11 +1409,6 @@ static void onGameMenuCommand(Console* console, const char* param)
 static void onSurfCommand(Console* console, const char* param)
 {
     gotoSurf();
-}
-
-static void onVersionCommand(Console* console)
-{
-    consolePrint(console, "\n"TIC_VERSION_LABEL, CONSOLE_BACK_TEXT_COLOR);
 }
 
 static void onConfigCommand(Console* console, const char* param)
@@ -2022,7 +2028,7 @@ static void onExportCommand(Console* console, const char* param)
 #undef      EXPORT_CMD_DEF
         };
 
-        for(const struct Handler* ptr = Handlers, *end = ptr + COUNT_OF(Handlers); ptr < end; ptr++)
+        FOR(const struct Handler*, ptr, Handlers)
             if(strcmp(param, ptr->param) == 0)
             {
                 ptr->handler(console, param, filename);
@@ -2300,120 +2306,6 @@ static void onDelCommand(Console* console, const char* param)
     confirmCommand(console, Rows, COUNT_OF(Rows), param, onDelCommandConfirmed);
 }
 
-static void printTable(Console* console, const char* text)
-{
-    printf("%s", text);
-
-    const char* textPointer = text;
-    const char* endText = textPointer + strlen(text);
-
-    while(textPointer != endText)
-    {
-        char symbol = *textPointer++;
-
-        scrollConsole(console);
-
-        if(symbol == '\n')
-            nextLine(console);
-        else
-        {
-            u8 color = 0;
-
-            switch(symbol)
-            {
-            case '+':
-            case '|':
-            case '-':
-                color = tic_color_dark_grey;
-                break;
-            default:
-                color = CONSOLE_FRONT_TEXT_COLOR;
-            }
-
-            setSymbol(console, symbol, color, cursorOffset(console));
-
-            console->cursor.pos.x++;
-
-            if(console->cursor.pos.x >= CONSOLE_BUFFER_WIDTH)
-                nextLine(console);
-        }
-
-    }
-}
-
-static void printRamInfo(Console* console, s32 addr, const char* name, s32 size)
-{
-    char buf[STUDIO_TEXT_BUFFER_WIDTH];
-    sprintf(buf, "\n| %05X | %-17s | %-5i |", addr, name, size);
-    printTable(console, buf);
-}
-
-static void onRamCommand(Console* console)
-{
-    printTable(console, "\n+-----------------------------------+" \
-                        "\n|           96KB RAM LAYOUT         |" \
-                        "\n+-------+-------------------+-------+" \
-                        "\n| ADDR  | INFO              | BYTES |" \
-                        "\n+-------+-------------------+-------+");
-
-    static const struct{s32 addr; const char* info;} Layout[] =
-    {
-        {0,                                             "<VRAM>"},
-        {offsetof(tic_ram, tiles),                      "TILES"},
-        {offsetof(tic_ram, sprites),                    "SPRITES"},
-        {offsetof(tic_ram, map),                        "MAP"},
-        {offsetof(tic_ram, input.gamepads),             "GAMEPADS"},
-        {offsetof(tic_ram, input.mouse),                "MOUSE"},
-        {offsetof(tic_ram, input.keyboard),             "KEYBOARD"},
-        {offsetof(tic_ram, sfxpos),                     "SFX STATE"},
-        {offsetof(tic_ram, registers),                  "SOUND REGISTERS"},
-        {offsetof(tic_ram, sfx.waveforms),              "WAVEFORMS"},
-        {offsetof(tic_ram, sfx.samples),                "SFX"},
-        {offsetof(tic_ram, music.patterns.data),        "MUSIC PATTERNS"},
-        {offsetof(tic_ram, music.tracks.data),          "MUSIC TRACKS"},
-        {offsetof(tic_ram, music_state),                "MUSIC STATE"},
-        {offsetof(tic_ram, stereo),                     "STEREO VOLUME"},
-        {offsetof(tic_ram, persistent),                 "PERSISTENT MEMORY"},
-        {offsetof(tic_ram, flags),                      "SPRITE FLAGS"},
-        {offsetof(tic_ram, font),                       "SYSTEM FONT"},
-        {offsetof(tic_ram, music_params),               "MUSIC PARAMETERS"},
-        {offsetof(tic_ram, free),                       "... (free)"},
-        {TIC_RAM_SIZE,                                  ""},
-    };
-
-    for(s32 i = 0; i < COUNT_OF(Layout)-1; i++)
-        printRamInfo(console, Layout[i].addr, Layout[i].info, Layout[i+1].addr-Layout[i].addr);
-
-    printTable(console, "\n+-------+-------------------+-------+");
-}
-
-static void onVRamCommand(Console* console)
-{
-    printTable(console, "\n+-----------------------------------+" \
-                        "\n|          16KB VRAM LAYOUT         |" \
-                        "\n+-------+-------------------+-------+" \
-                        "\n| ADDR  | INFO              | BYTES |" \
-                        "\n+-------+-------------------+-------+");
-
-    static const struct{s32 addr; const char* info;} Layout[] =
-    {
-        {offsetof(tic_ram, vram.screen),            "SCREEN"},
-        {offsetof(tic_ram, vram.palette),           "PALETTE"},
-        {offsetof(tic_ram, vram.mapping),           "PALETTE MAP"},
-        {offsetof(tic_ram, vram.vars.colors),       "BORDER COLOR"},
-        {offsetof(tic_ram, vram.vars.offset),       "SCREEN OFFSET"},
-        {offsetof(tic_ram, vram.vars.cursor),       "MOUSE CURSOR"},
-        {offsetof(tic_ram, vram.blit),              "BLIT SEGMENT"},
-        {offsetof(tic_ram, vram.reserved),          "... (reserved) "},
-        {TIC_VRAM_SIZE,                             ""},
-    };
-
-    for(s32 i = 0; i < COUNT_OF(Layout)-1; i++)
-        printRamInfo(console, Layout[i].addr, Layout[i].info, Layout[i+1].addr-Layout[i].addr);
-
-    printTable(console, "\n+-------+-------------------+-------+");
-}
-
 #if defined(CAN_ADDGET_FILE)
 
 static void onAddFile(Console* console, const char* name, const u8* buffer, s32 size)
@@ -2505,6 +2397,12 @@ static void onGetCommand(Console* console, const char* name)
 
 #endif
 
+static const char HelpUsage[] = "help [<text>"
+#define HELP_CMD_DEF(name) "|" #name
+    HELP_CMD_LIST(HELP_CMD_DEF)
+#undef  HELP_CMD_DEF
+    "]";
+
 static struct Command
 {
     const char* name;
@@ -2518,8 +2416,8 @@ static struct Command
     {
         "help",
         NULL,
-        "show available commands.", 
-        "help <command|api>",
+        "show help info about commands/api/...", 
+        HelpUsage,
         onHelpCommand
     },
     {
@@ -2649,10 +2547,10 @@ static struct Command
         "export sprites/map/... as a .png image "
         "or export sfx and music to .wav files.", 
         "\nexport ["
-#define EXPORT_CMD_DEF(name) #name " "
+#define EXPORT_CMD_DEF(name) #name "|"
         EXPORT_CMD_LIST(EXPORT_CMD_DEF)
 #undef  EXPORT_CMD_DEF
-        "] <file>",
+        "...] <file>",
         onExportCommand
     },
     {
@@ -2660,10 +2558,10 @@ static struct Command
         NULL,
         "import code/sprites/map/... from an external file.", 
         "import ["
-#define IMPORT_CMD_DEF(name) #name " "
+#define IMPORT_CMD_DEF(name) #name "|"
         IMPORT_CMD_LIST(IMPORT_CMD_DEF)
 #undef  IMPORT_CMD_DEF
-        "] <file>",
+        "...] <file>",
         onImportCommand
     },
     {
@@ -2789,7 +2687,7 @@ static void processConsoleTab(Console* console)
         if(param && strlen(++param))
         {
             PredictFilenameData data = { console, param };
-            tic_fs_enum(console->fs, predictFilename, predictFilenameDone, OBJMOVE(data));
+            tic_fs_enum(console->fs, predictFilename, predictFilenameDone, MOVE(data));
         }
         else
         {
@@ -2818,11 +2716,11 @@ static void toUpperStr(char* str)
 
 static void printUsage(Console* console, const char* command)
 {
-    for(const Command* cmd = Commands, *end = cmd + COUNT_OF(Commands); cmd < end; cmd++)
+    FOR(const Command*, cmd, Commands)
     {
         if(strcmp(command, cmd->name) == 0)
         {
-            consolePrint(console, "\n===== COMMAND =====\n", tic_color_green);
+            consolePrint(console, "\n---=== COMMAND ===---\n", tic_color_green);
             printBack(console, cmd->help);
 
             if(cmd->usage)
@@ -2837,61 +2735,257 @@ static void printUsage(Console* console, const char* command)
     }
 }
 
+static void printApi(Console* console, const char* param)
+{
+    FOR(const ApiItem*, api, Api)
+    {
+        if(strcmp(param, api->name) == 0)
+        {
+            printLine(console);
+            consolePrint(console, "---=== API ===---\n", tic_color_blue);
+            consolePrint(console, api->def, tic_color_light_blue);
+            printFront(console, "\n\n");
+            printBack(console, api->help);
+            printLine(console);
+            break;
+        }
+    }
+}
+
+static void onHelp_api(Console* console)
+{
+    consolePrint(console, "\nAPI functions:\n", tic_color_blue);
+    {
+        char buf[TICNAME_MAX] = {[0] = 0};
+
+        FOR(const ApiItem*, api, Api)
+            strcat(buf, api->name), strcat(buf, " ");
+
+        printBack(console, buf);
+    }
+}
+
+static void onHelp_commands(Console* console)
+{
+    consolePrint(console, "\nConsole commands:\n", tic_color_green);
+    {
+        char buf[TICNAME_MAX] = {[0] = 0};
+
+        FOR(const Command*, cmd, Commands)
+            strcat(buf, cmd->name), strcat(buf, " ");
+
+        printBack(console, buf);
+    }
+}
+
+static void printTable(Console* console, const char* text)
+{
+    printf("%s", text);
+
+    const char* textPointer = text;
+    const char* endText = textPointer + strlen(text);
+
+    while(textPointer != endText)
+    {
+        char symbol = *textPointer++;
+
+        scrollConsole(console);
+
+        if(symbol == '\n')
+            nextLine(console);
+        else
+        {
+            u8 color = 0;
+
+            switch(symbol)
+            {
+            case '+':
+            case '|':
+            case '-':
+                color = tic_color_dark_grey;
+                break;
+            default:
+                color = CONSOLE_FRONT_TEXT_COLOR;
+            }
+
+            setSymbol(console, symbol, color, cursorOffset(console));
+
+            console->cursor.pos.x++;
+
+            if(console->cursor.pos.x >= CONSOLE_BUFFER_WIDTH)
+                nextLine(console);
+        }
+    }
+}
+
+static void printRamInfo(Console* console, s32 addr, const char* name, s32 size)
+{
+    char buf[TICNAME_MAX];
+    sprintf(buf, "\n| %05X | %-17s | %-5i |", addr, name, size);
+    printTable(console, buf);
+}
+
+static void onHelp_ram(Console* console)
+{
+    printTable(console, "\n+-----------------------------------+" \
+                        "\n|           96KB RAM LAYOUT         |" \
+                        "\n+-------+-------------------+-------+" \
+                        "\n| ADDR  | INFO              | BYTES |" \
+                        "\n+-------+-------------------+-------+");
+
+    static const struct{s32 addr; const char* info;} Layout[] =
+    {
+        {0,                                             "<VRAM>"},
+        {offsetof(tic_ram, tiles),                      "TILES"},
+        {offsetof(tic_ram, sprites),                    "SPRITES"},
+        {offsetof(tic_ram, map),                        "MAP"},
+        {offsetof(tic_ram, input.gamepads),             "GAMEPADS"},
+        {offsetof(tic_ram, input.mouse),                "MOUSE"},
+        {offsetof(tic_ram, input.keyboard),             "KEYBOARD"},
+        {offsetof(tic_ram, sfxpos),                     "SFX STATE"},
+        {offsetof(tic_ram, registers),                  "SOUND REGISTERS"},
+        {offsetof(tic_ram, sfx.waveforms),              "WAVEFORMS"},
+        {offsetof(tic_ram, sfx.samples),                "SFX"},
+        {offsetof(tic_ram, music.patterns.data),        "MUSIC PATTERNS"},
+        {offsetof(tic_ram, music.tracks.data),          "MUSIC TRACKS"},
+        {offsetof(tic_ram, music_state),                "MUSIC STATE"},
+        {offsetof(tic_ram, stereo),                     "STEREO VOLUME"},
+        {offsetof(tic_ram, persistent),                 "PERSISTENT MEMORY"},
+        {offsetof(tic_ram, flags),                      "SPRITE FLAGS"},
+        {offsetof(tic_ram, font),                       "SYSTEM FONT"},
+        {offsetof(tic_ram, music_params),               "MUSIC PARAMETERS"},
+        {offsetof(tic_ram, free),                       "... (free)"},
+        {TIC_RAM_SIZE,                                  ""},
+    };
+
+    for(s32 i = 0; i < COUNT_OF(Layout)-1; i++)
+        printRamInfo(console, Layout[i].addr, Layout[i].info, Layout[i+1].addr-Layout[i].addr);
+
+    printTable(console, "\n+-------+-------------------+-------+");
+}
+
+static void onHelp_vram(Console* console)
+{
+    printTable(console, "\n+-----------------------------------+" \
+                        "\n|          16KB VRAM LAYOUT         |" \
+                        "\n+-------+-------------------+-------+" \
+                        "\n| ADDR  | INFO              | BYTES |" \
+                        "\n+-------+-------------------+-------+");
+
+    static const struct{s32 addr; const char* info;} Layout[] =
+    {
+        {offsetof(tic_ram, vram.screen),            "SCREEN"},
+        {offsetof(tic_ram, vram.palette),           "PALETTE"},
+        {offsetof(tic_ram, vram.mapping),           "PALETTE MAP"},
+        {offsetof(tic_ram, vram.vars.colors),       "BORDER COLOR"},
+        {offsetof(tic_ram, vram.vars.offset),       "SCREEN OFFSET"},
+        {offsetof(tic_ram, vram.vars.cursor),       "MOUSE CURSOR"},
+        {offsetof(tic_ram, vram.blit),              "BLIT SEGMENT"},
+        {offsetof(tic_ram, vram.reserved),          "... (reserved) "},
+        {TIC_VRAM_SIZE,                             ""},
+    };
+
+    for(s32 i = 0; i < COUNT_OF(Layout)-1; i++)
+        printRamInfo(console, Layout[i].addr, Layout[i].info, Layout[i+1].addr-Layout[i].addr);
+
+    printTable(console, "\n+-------+-------------------+-------+");
+}
+
+static void onHelp_version(Console* console)
+{
+    consolePrint(console, "\n"TIC_VERSION, CONSOLE_BACK_TEXT_COLOR);
+}
+
+static void onHelp_spec(Console* console)
+{
+    printBack(console, "\n"
+        "# Specification\n"
+        "DISPLAY: 240x136 pixels, 16 colors palette.\n"
+        "INPUT: 4 gamepads with 8 buttons / mouse / keyboard.\n"
+        "SPRITES: 256 8x8 tiles and 256 8x8 sprites.\n"
+        "MAP: 240x136 cells, 1920x1088 pixels.\n"
+        "SOUND: 4 channels with configareble waveforms.\n"
+        "CODE: 64KB of Lua, Moonscript, JS, Wren, Fennel or Squirrel.");
+}
+
+static void onHelp_welcome(Console* console)
+{
+    printBack(console, "\n"
+        "TIC-80 is a fantasy computer for making, playing and sharing tiny games.\n\n"
+        "There are built-in tools for development: code, sprites, maps, sound editors and the command line,"
+        "which is enough to create a mini retro game.\n"
+        "At the exit you will get a cartridge file, which can be stored and played on the website.\n\n"
+        "Also, the game can be packed into a player that works on all popular platforms and distribute as you wish.\n"
+        "To make a retro styled game the whole process of creation takes place under some technical limitations:"
+        "240x136 pixels display, 16 color palette, 256 8x8 color sprites, 4 channel sound and etc.");
+}
+
+static void onHelp_terms(Console* console)
+{
+    printBack(console, "\n"
+        "# Terms of Use\n"
+        "- All cartridges posted on the " TIC_WEBSITE " website are the property of their authors.\n"
+        "- Do not redistribute the cartridge without permission, directly from the author.\n"
+        "- By uploading cartridges to the site, you grant Nesbox the right to freely use and distribute them."
+        "All other rights by default remain with the author.\n"
+        "- Do not post material that violates copyright, obscenity or any other laws.\n"
+        "- Nesbox reserves the right to remove or filter any material without prior notice.\n\n"
+        "# Privacy Policy\n"
+        "We store only the user's email and password in encrypted form and will not transfer any personal"
+        "information to third parties without explicit permission.");
+}
+
+static void onHelp_license(Console* console)
+{
+    printBack(console, "\n"
+        "MIT License"
+        "\n\n"
+        "Copyright (c) 2017-" TIC_VERSION_YEAR " Vadim Grigoruk @nesbox // grigoruk@gmail.com"
+        "\n\n"
+        "Permission is hereby granted, free of charge, to any person obtaining a copy "
+        "of this software and associated documentation files (the 'Software'), to deal "
+        "in the Software without restriction, including without limitation the rights "
+        "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell "
+        "copies of the Software, and to permit persons to whom the Software is "
+        "furnished to do so, subject to the following conditions: "
+        "The above copyright notice and this permission notice shall be included in all "
+        "copies or substantial portions of the Software."
+        "\n\n"
+        "THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR "
+        "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, "
+        "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE "
+        "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER "
+        "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, "
+        "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE "
+        "SOFTWARE.");
+}
+
 static void onHelpCommand(Console* console, const char* param)
 {
     if(param)
     {
         printUsage(console, param);
-
-        for(const ApiItem* api = Api, *end = api + COUNT_OF(Api); api < end; api++)
-        {
-            if(strcmp(param, api->name) == 0)
-            {
-                printLine(console);
-                consolePrint(console, "===== API =====\n", tic_color_blue);
-                consolePrint(console, api->def, tic_color_light_blue);
-                printFront(console, "\n\n");
-                printBack(console, api->help);
-                printLine(console);
-                break;
-            }
-        }
+        printApi(console, param);
 
         static const struct Handler {const char* cmd; void(*handler)(Console*);} Handlers[] = 
         {
-            {"ram",     onRamCommand},
-            {"vram",    onVRamCommand},
-            {"version", onVersionCommand},
+#define     HELP_CMD_DEF(name) {#name, onHelp_##name},
+            HELP_CMD_LIST(HELP_CMD_DEF)
+#undef      HELP_CMD_DEF
         };
 
-        for(const struct Handler* ptr = Handlers, *end = ptr + COUNT_OF(Handlers); ptr < end; ptr++)
+        FOR(const struct Handler*, ptr, Handlers)
             if(strcmp(ptr->cmd, param) == 0)
                 ptr->handler(console);
     }
     else
     {
-        consolePrint(console, "\nconsole commands:\n", tic_color_green);
-        {
-            char buf[TICNAME_MAX] = {[0] = 0};
-
-            for(const Command* cmd = Commands, *end = cmd + COUNT_OF(Commands); cmd < end; cmd++)
-                strcat(buf, cmd->name), strcat(buf, " ");
-
-            printBack(console, buf);
-        }
-
-        consolePrint(console, "\n\napi functions:\n", tic_color_blue);
-        {
-            char buf[TICNAME_MAX] = {[0] = 0};
-
-            for(const ApiItem* api = Api, *end = api + COUNT_OF(Api); api < end; api++)
-                strcat(buf, api->name), strcat(buf, " ");
-
-            printBack(console, buf);
-        }
-
         printFront(console, "\n\nusage: ");
-        printBack(console, "help [<command>|<api>|ram|vram|version]");
+        printBack(console, HelpUsage);
+
+        printBack(console, "\n\ntype ");
+        printFront(console, "help commands");
+        printBack(console, " to show commands");
 
         printBack(console, "\n\npress ");
         printFront(console, "ESC");
@@ -2905,52 +2999,53 @@ static void processCommand(Console* console, const char* text)
 {
     console->active = false;
 
-    char* command = strdup(text);
+    while(*text == ' ') text++;
 
-    printf("%s", command);
-
-    while(*command == ' ')
-        command++;
-
-    // trim empty chars
+    if (*text)
     {
-        char* end = (char*)command + strlen(command) - 1;
+        char* command = strdup(text);
 
-        while(*end == ' ' && end > command)
-            *end-- = '\0';
-    }
+        printf("%s", command);
 
-    char* param = strchr(command, ' ');
-
-    if(param)
-        *param++ = '\0';
-
-    if(param && !strlen(param)) param = NULL;
-
-    bool done = false;
-    for(s32 i = 0; i < COUNT_OF(Commands); i++)
-        if(casecmp(command, Commands[i].name) == 0 ||
-            (Commands[i].alt && casecmp(command, Commands[i].alt) == 0))
+        // trim empty chars
         {
-            if(Commands[i].handler)
-            {
-                Commands[i].handler(console, param);
-                done = true;
-                break;
-            }
+            char* end = (char*)command + strlen(command) - 1;
+
+            while(*end == ' ' && end > command)
+                *end-- = '\0';
         }
 
-    if(!done)
-    {
-        char* cmd = strdup(console->input.text);
-        printLine(console);
-        printError(console, "unknown command:");
-        printError(console, cmd);
-        free(cmd);
-        commandDone(console);
-    }
+        char* param = strchr(command, ' ');
 
-    free(command);
+        if(param)
+            *param++ = '\0';
+
+        if(param && !strlen(param)) param = NULL;
+
+        bool done = false;
+        for(s32 i = 0; i < COUNT_OF(Commands); i++)
+            if(casecmp(command, Commands[i].name) == 0 ||
+                (Commands[i].alt && casecmp(command, Commands[i].alt) == 0))
+            {
+                if(Commands[i].handler)
+                {
+                    Commands[i].handler(console, param);
+                    done = true;
+                    break;
+                }
+            }
+
+        if(!done)
+        {
+            printLine(console);
+            printError(console, "unknown command:");
+            printError(console, command);
+            commandDone(console);
+        }
+
+        free(command);
+    }
+    else commandDone(console);
 }
 
 static void processCommands(Console* console)
@@ -3531,6 +3626,10 @@ void initConsole(Console* console, tic_mem* tic, tic_fs* fs, tic_net* net, Confi
         memcpy(console->color, start->color, STUDIO_TEXT_BUFFER_SIZE);
 
         printLine(console);
+        for(const char* ptr = console->text, *end = ptr + STUDIO_TEXT_BUFFER_SIZE; 
+            ptr < end; ptr += CONSOLE_BUFFER_WIDTH)
+            if(*ptr)
+                puts(ptr);
     }
 
     if(args.cart)

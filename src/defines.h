@@ -29,10 +29,11 @@
 #define CLAMP(v,a,b) (MIN(MAX(v,a),b))
 #define SWAP(a, b, type) do { type temp = a; a = b; b = temp; } while (0)
 #define ZEROMEM(p) memset(&p, 0, sizeof p)
-#define OBJMOVE(...) memmove(malloc(sizeof __VA_ARGS__), &__VA_ARGS__, sizeof __VA_ARGS__)
+#define MOVE(...) memmove(malloc(sizeof __VA_ARGS__), &__VA_ARGS__, sizeof __VA_ARGS__)
 #define DEF2STR2(x) #x
 #define DEF2STR(x) DEF2STR2(x)
-#define STRLEN(STR) (sizeof STR - 1)
+#define STRLEN(str) (sizeof str - 1)
+#define FOR(type,it,list) for(type it = list, *__end__ = it + COUNT_OF(list); it < __end__; it++)
 
 #define BIT_SET(a,b)    ((a) | (1ULL<<(b)))
 #define BIT_CLEAR(a,b)  ((a) & ~(1ULL<<(b)))

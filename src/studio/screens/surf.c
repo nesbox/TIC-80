@@ -473,7 +473,7 @@ static void requestCover(Surf* surf, MenuItem* item)
     char path[TICNAME_MAX];
     sprintf(path, "/cart/%s/cover.gif", hash);
 
-    tic_net_get(surf->net, path, coverLoaded, OBJMOVE(coverLoadingData));
+    tic_net_get(surf->net, path, coverLoaded, MOVE(coverLoadingData));
 }
 
 static void loadCover(Surf* surf)
@@ -548,7 +548,7 @@ static void initMenuAsync(Surf* surf, fs_done_callback callback, void* calldata)
     if(strcmp(dir, "") != 0)
         addMenuItem("..", NULL, 0, &data, true);
 
-    tic_fs_enum(surf->fs, addMenuItem, addMenuItemsDone, OBJMOVE(data));
+    tic_fs_enum(surf->fs, addMenuItem, addMenuItemsDone, MOVE(data));
 }
 
 typedef struct
@@ -602,7 +602,7 @@ static void onGoBackDir(Surf* surf)
     tic_fs_dirback(surf->fs);
 
     GoBackDirDoneData goBackDirDoneData = {surf, strdup(last)};
-    initMenuAsync(surf, onGoBackDirDone, OBJMOVE(goBackDirDoneData));
+    initMenuAsync(surf, onGoBackDirDone, MOVE(goBackDirDoneData));
 }
 
 static void onGoToDir(Surf* surf)

@@ -413,7 +413,7 @@ void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, v
         snprintf(request, sizeof request, "/api?fn=dir&path=%s", fs->work + sizeof(TIC_HOST));
 
         NetDirData netDirData = { onItem, onDone, data };
-        tic_net_get(fs->net, request, onDirResponse, OBJMOVE(netDirData));
+        tic_net_get(fs->net, request, onDirResponse, MOVE(netDirData));
 
         return;
     }
@@ -570,7 +570,7 @@ void tic_fs_isdir_async(tic_fs* fs, const char* name, fs_isdir_callback callback
     if(isPublic(fs))
     {
         EnumPublicDirsData enumPublicDirsData = { strdup(name), false, callback, data};
-        tic_fs_enum(fs, onEnumPublicDirs, onEnumPublicDirsDone, OBJMOVE(enumPublicDirsData));
+        tic_fs_enum(fs, onEnumPublicDirs, onEnumPublicDirsDone, MOVE(enumPublicDirsData));
         return;
     }
 
@@ -791,7 +791,7 @@ void tic_fs_hashload(tic_fs* fs, const char* hash, fs_load_callback callback, vo
     snprintf(path, sizeof path, "/cart/%s/cart.tic", hash);
 
     LoadFileByHashData loadFileByHashData = { fs, callback, data, strdup(cachePath) };
-    tic_net_get(fs->net, path, fileByHashLoaded, OBJMOVE(loadFileByHashData));
+    tic_net_get(fs->net, path, fileByHashLoaded, MOVE(loadFileByHashData));
 #endif
 }
 

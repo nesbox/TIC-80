@@ -109,7 +109,7 @@ void initStart(Start* start, tic_mem* tic)
     {
         "",
         " " TIC_NAME_FULL,
-        " version " TIC_VERSION_LABEL,
+        " version " TIC_VERSION,
         " " TIC_COPYRIGHT,
     };
 
