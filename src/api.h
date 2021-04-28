@@ -120,6 +120,13 @@ enum
 #define SCN_FN "SCN"
 #define OVR_FN "OVR"
 
+#define TIC_CALLBACK_LIST(macro)                                                                                        \
+    macro(TIC_FN, TIC_FN "()", "Main function. It's called at 60 fps (60 times every second).")                         \
+    macro(SCN_FN, SCN_FN "(row)", "Allows you to execute code between the drawing of each scanline, "                   \
+        "for example, to manipulate the palette.")                                                                      \
+    macro(OVR_FN, OVR_FN "()", "Called after each frame;"                                                               \
+        "draw calls from this function ignore palette swap and screen offset.")
+
 // API DEFINITION TABLE
 //  macro
 //  (

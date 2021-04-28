@@ -482,9 +482,16 @@ start:
 
             if(!keyword)
             {
-                #define API_KEYWORD_DEF(name, ...) #name,
-                static const char* const ApiKeywords[] = {TIC_FN, SCN_FN, OVR_FN, TIC_API_LIST(API_KEYWORD_DEF)};
-                #undef API_KEYWORD_DEF
+                static const char* const ApiKeywords[] = 
+                {
+#define             TIC_CALLBACK_DEF(name, ...) name,
+                    TIC_CALLBACK_LIST(TIC_CALLBACK_DEF)
+#undef              TIC_CALLBACK_DEF
+
+#define             API_KEYWORD_DEF(name, ...) #name,
+                    TIC_API_LIST(API_KEYWORD_DEF)
+#undef              API_KEYWORD_DEF
+                };
 
                 for(s32 i = 0; i < COUNT_OF(ApiKeywords); i++)
                     if(len == strlen(ApiKeywords[i]) && memcmp(wordStart, ApiKeywords[i], len) == 0)

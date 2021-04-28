@@ -2614,6 +2614,10 @@ typedef struct Command Command;
 
 static struct ApiItem {const char* name; const char* def; const char* help;} Api[] = 
 {
+#define TIC_CALLBACK_DEF(name, def, help) {name, def, help},
+    TIC_CALLBACK_LIST(TIC_CALLBACK_DEF)
+#undef TIC_CALLBACK_DEF
+
 #define TIC_API_DEF(name, def, help, ...) {#name, def, help},
     TIC_API_LIST(TIC_API_DEF)
 #undef TIC_API_DEF
