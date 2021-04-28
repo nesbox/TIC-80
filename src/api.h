@@ -143,12 +143,12 @@ enum
                                                                                                                         \
         "This will simply print text to the screen using the font defined in config.\n"                                 \
         "When set to true, the fixed width option ensures that each character "                                         \
-        "will be printed in a 'box' of the same size, "                                                                 \
-        "so the character 'i' will occupy the same width as the character 'w' for example.\n"                           \
+        "will be printed in a `box` of the same size, "                                                                 \
+        "so the character `i` will occupy the same width as the character `w` for example.\n"                           \
         "When fixed width is false, there will be a single space between each character.\n"                             \
         "\nTips:\n"                                                                                                     \
-        "- To use a custom rastered font, check out 'font()'.\n"                                                        \
-        "- To print to the console, check out 'trace()'.",                                                              \
+        "- To use a custom rastered font, check out `font()`.\n"                                                        \
+        "- To print to the console, check out `trace()`.",                                                              \
         7,                                                                                                              \
         s32,                                                                                                            \
         tic_mem*, const char* text, s32 x, s32 y, u8 color, bool fixed, s32 scale, bool alt)                            \
@@ -190,7 +190,7 @@ enum
         "rect(x y w h color)",                                                                                          \
                                                                                                                         \
         "This function draws a filled rectangle of the desired size and color at the specified position.\n"             \
-        "If you only need to draw the the border or outline of a rectangle (ie not filled) see 'rectb()'.",             \
+        "If you only need to draw the the border or outline of a rectangle (ie not filled) see `rectb()`.",             \
         5,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 x, s32 y, s32 width, s32 height, u8 color)                                                        \
@@ -200,7 +200,7 @@ enum
         "rectb(x y w h color)",                                                                                         \
                                                                                                                         \
         "This function draws a one pixel thick rectangle border at the position requested.\n"                           \
-        "If you need to fill the rectangle with a color, see 'rect()' instead.",                                        \
+        "If you need to fill the rectangle with a color, see `rect()` instead.",                                        \
         5,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 x, s32 y, s32 width, s32 height, u8 color)                                                        \
@@ -225,7 +225,7 @@ enum
         "- 2 = 180 rotation\n"                                                                                          \
         "- 3 = 270 rotation\n"                                                                                          \
         "You can draw a composite sprite (consisting of a rectangular region of sprites from the sprite sheet) "        \
-        "by specifying the 'w' and 'h' parameters (which default to 1).",                                               \
+        "by specifying the `w` and `h` parameters (which default to 1).",                                               \
         9,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 index, s32 x, s32 y, s32 w, s32 h,                                                                \
@@ -238,7 +238,7 @@ enum
         "This function allows you to read the status of one of the buttons attached to TIC.\n"                          \
         "The function returns true if the key with the supplied id is currently in the pressed state.\n"                \
         "It remains true for as long as the key is held down.\n"                                                        \
-        "If you want to test if a key was just pressed, use 'btnp()' instead.",                                         \
+        "If you want to test if a key was just pressed, use `btnp()` instead.",                                         \
         1,                                                                                                              \
         u32,                                                                                                            \
         tic_mem*, s32 id)                                                                                               \
@@ -253,7 +253,7 @@ enum
         "which allow you to check if a button is being held down.\n"                                                    \
         "After the time specified by hold has elapsed, "                                                                \
         "btnp will return true each time period is passed if the key is still down.\n"                                  \
-        "For example, to re-examine the state of button '0' after 2 seconds "                                           \
+        "For example, to re-examine the state of button `0` after 2 seconds "                                           \
         "and continue to check its state every 1/10th of a second, you would use btnp(0, 120, 6).\n"                    \
         "Since time is expressed in ticks and TIC runs at 60 frames per second, "                                       \
         "we use the value of 120 to wait 2 seconds and 6 ticks (ie 60/10) as the interval for re-checking.",            \
@@ -265,23 +265,23 @@ enum
     macro(sfx,                                                                                                          \
         "sfx(id note=-1 duration=-1 channel=0 volume=15 speed=0)",                                                      \
                                                                                                                         \
-        "This function will play the sound with 'id' created in the sfx editor.\n"                                      \
+        "This function will play the sound with `id` created in the sfx editor.\n"                                      \
         "Calling the function with id set to -1 will stop playing the channel.\n"                                       \
         "The note can be supplied as an integer between 0 and 95 (representing 8 octaves of 12 notes each) "            \
         "or as a string giving the note name and octave.\n"                                                             \
-        "For example, a note value of '14' will play the note 'D' in the second octave.\n"                              \
-        "The same note could be specified by the string 'D-2'.\n"                                                       \
+        "For example, a note value of `14` will play the note `D` in the second octave.\n"                              \
+        "The same note could be specified by the string `D-2`.\n"                                                       \
         "Note names consist of two characters, "                                                                        \
-        "the note itself (in upper case) followed by '-' to represent the natural note or '#' to represent a sharp.\n"  \
+        "the note itself (in upper case) followed by `-` to represent the natural note or `#` to represent a sharp.\n"  \
         "There is no option to indicate flat values.\n"                                                                 \
         "The available note names are therefore: C-, C#, D-, D#, E-, F-, F#, G-, G#, A-, A#, B-.\n"                     \
-        "The 'octave' is specified using a single digit in the range 0 to 8.\n"                                         \
-        "The 'duration' specifies how many ticks to play the sound for since TIC-80 runs at 60 frames per second, "     \
+        "The `octave` is specified using a single digit in the range 0 to 8.\n"                                         \
+        "The `duration` specifies how many ticks to play the sound for since TIC-80 runs at 60 frames per second, "     \
         "a value of 30 represents half a second.\n"                                                                     \
         "A value of -1 will play the sound continuously.\n"                                                             \
-        "The 'channel' parameter indicates which of the four channels to use. Allowed values are 0 to 3.\n"             \
-        "The 'volume' can be between 0 and 15.\n"                                                                       \
-        "The 'speed' in the range -4 to 3 can be specified and means how many 'ticks+1' to play each step, "            \
+        "The `channel` parameter indicates which of the four channels to use. Allowed values are 0 to 3.\n"             \
+        "The `volume` can be between 0 and 15.\n"                                                                       \
+        "The `speed` in the range -4 to 3 can be specified and means how many `ticks+1` to play each step, "            \
         "so speed==0 means 1 tick per step.",                                                                           \
         6,                                                                                                              \
         void,                                                                                                           \
@@ -327,8 +327,8 @@ enum
                                                                                                                         \
         "This function will change the tile at the specified map coordinates.\n"                                        \
         "By default, changes made are only kept while the current game is running.\n"                                   \
-        "To make permanent changes to the map, see 'sync()'.\n"                                                         \
-        "Related: 'map()' 'mget()' 'sync()'.",                                                                          \
+        "To make permanent changes to the map, see `sync()`.\n"                                                         \
+        "Related: `map()` `mget()` `sync()`.",                                                                          \
         3,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 x, s32 y, u8 value)                                                                               \
@@ -342,7 +342,7 @@ enum
         "cartridges data?\n"                                                                                            \
         "Never dream to sound a sprite?\n"                                                                              \
         "Address are in hexadecimal format but values are decimal.\n"                                                   \
-        "To write to a memory address, use 'poke()'.",                                                                  \
+        "To write to a memory address, use `poke()`.",                                                                  \
         1,                                                                                                              \
         u8,                                                                                                             \
         tic_mem*, s32 address)                                                                                          \
@@ -372,7 +372,7 @@ enum
         "poke4(addr value)",                                                                                            \
                                                                                                                         \
         "This function allows you to write to the virtual RAM of TIC.\n"                                                \
-        "It differs from 'poke()' in that it divides memory in groups of 4 bits.\n"                                     \
+        "It differs from `poke()` in that it divides memory in groups of 4 bits.\n"                                     \
         "Therefore, to address the high nibble of position 0x4000 you should pass 0x8000 as addr4, "                    \
         "and to access the low nibble (rightmost 4 bits) you would pass 0x8001.\n"                                      \
         "The address should be specified in hexadecimal format, and values should be given in decimal.",                \
@@ -423,7 +423,7 @@ enum
         "The data is stored as unsigned 32-bit integers (from 0 to 4294967295).\n"                                      \
         "\nTips:\n"                                                                                                     \
         "- pmem depends on the cartridge hash (md5), so don't change your lua script if you want to keep the data.\n"   \
-        "- Use 'saveid:' with a personalized string in the header metadata to override the default MD5 calculation.\n"  \
+        "- Use `saveid:` with a personalized string in the header metadata to override the default MD5 calculation.\n"  \
         "This allows the user to update a cart without losing their saved data.",                                       \
         2,                                                                                                              \
         u32,                                                                                                            \
@@ -463,8 +463,8 @@ enum
         "font(text x y chromakey char_width char_height fixed=false scale=1) -> width",                                 \
                                                                                                                         \
         "Print string with font defined in foreground sprites.\n"                                                       \
-        "To simply print to the screen, check out 'print()'.\n"                                                         \
-        "To print to the console, check out 'trace()'.",                                                                \
+        "To simply print to the screen, check out `print()`.\n"                                                         \
+        "To print to the console, check out `trace()`.",                                                                \
         8,                                                                                                              \
         s32,                                                                                                            \
         tic_mem*, const char* text, s32 x, s32 y,                                                                       \
@@ -531,7 +531,7 @@ enum
     macro(clip,                                                                                                         \
         "clip(x y width height)\nclip()",                                                                               \
                                                                                                                         \
-        "This function limits drawing to a clipping region or 'viewport' defined by x,y,w,h.\n"                         \
+        "This function limits drawing to a clipping region or `viewport` defined by x,y,w,h.\n"                         \
         "Things drawn outside of this area will not be visible.\n"                                                      \
         "Calling clip() with no parameters will reset the drawing area to the entire screen.",                          \
         4,                                                                                                              \
@@ -568,7 +568,7 @@ enum
     macro(reset,                                                                                                        \
         "reset()",                                                                                                      \
                                                                                                                         \
-        "Resets the cartridge. To return to the console, see the 'exit()'.",                                            \
+        "Resets the cartridge. To return to the console, see the `exit()`.",                                            \
         0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*)                                                                                                       \
@@ -587,7 +587,7 @@ enum
         "keyp(code=-1 hold=-1 period=-1) -> pressed",                                                                   \
                                                                                                                         \
         "This function returns true if the given key is pressed but wasn't pressed in the previous frame.\n"            \
-        "Refer to 'btnp()' for an explanation of the optional hold and period parameters.",                             \
+        "Refer to `btnp()` for an explanation of the optional hold and period parameters.",                             \
         3,                                                                                                              \
         bool,                                                                                                           \
         tic_mem*, tic_key key, s32 hold, s32 period)                                                                    \
@@ -596,7 +596,7 @@ enum
     macro(fget,                                                                                                         \
         "fget(sprite_id flag) -> bool",                                                                                 \
                                                                                                                         \
-        "Returns true if the specified flag of the sprite is set. See 'fset()' for more details.",                      \
+        "Returns true if the specified flag of the sprite is set. See `fset()` for more details.",                      \
         2,                                                                                                              \
         bool,                                                                                                           \
         tic_mem*, s32 index, u8 flag)                                                                                   \
@@ -608,7 +608,7 @@ enum
         "Each sprite has eight flags which can be used to store information or signal different conditions.\n"          \
         "For example, flag 0 might be used to indicate that the sprite is invisible, "                                  \
         "flag 6 might indicate that the flag should be draw scaled etc.\n"                                              \
-        "See algo 'fget()'.",                                                                                           \
+        "See algo `fget()`.",                                                                                           \
         3,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 index, u8 flag, bool value)

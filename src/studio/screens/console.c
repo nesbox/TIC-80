@@ -95,7 +95,59 @@
     macro(map)                  \
     macro(sfx)                  \
     macro(music)                \
-    macro(screen)
+    macro(screen)               \
+    macro(help)
+
+static const char* WelcomeText = 
+    "TIC-80 is a fantasy computer for making, playing and sharing tiny games.\n\n"
+    "There are built-in tools for development: code, sprites, maps, sound editors and the command line, "
+    "which is enough to create a mini retro game.\n"
+    "At the exit you will get a cartridge file, which can be stored and played on the website.\n\n"
+    "Also, the game can be packed into a player that works on all popular platforms and distribute as you wish.\n"
+    "To make a retro styled game the whole process of creation takes place under some technical limitations: "
+    "240x136 pixels display, 16 color palette, 256 8x8 color sprites, 4 channel sound and etc.";
+
+static const char* SpecText = 
+    "DISPLAY: 240x136 pixels, 16 colors palette.\n"
+    "INPUT: 4 gamepads with 8 buttons / mouse / keyboard.\n"
+    "SPRITES: 256 8x8 tiles and 256 8x8 sprites.\n"
+    "MAP: 240x136 cells, 1920x1088 pixels.\n"
+    "SOUND: 4 channels with configareble waveforms.\n"
+    "CODE: 64KB of Lua, Moonscript, JS, Wren, Fennel or Squirrel.";
+
+static const char* TermsText = 
+    "## Terms of Use\n"
+    "- All cartridges posted on the " TIC_WEBSITE " website are the property of their authors.\n"
+    "- Do not redistribute the cartridge without permission, directly from the author.\n"
+    "- By uploading cartridges to the site, you grant Nesbox the right to freely use and distribute them."
+    "All other rights by default remain with the author.\n"
+    "- Do not post material that violates copyright, obscenity or any other laws.\n"
+    "- Nesbox reserves the right to remove or filter any material without prior notice.\n\n"
+    "## Privacy Policy\n"
+    "We store only the user's email and password in encrypted form and will not transfer any personal"
+    "information to third parties without explicit permission.";
+
+static const char* LicenseText = 
+    "## MIT License\n"
+    "\n"
+    "Copyright (c) 2017-" TIC_VERSION_YEAR " Vadim Grigoruk @nesbox // grigoruk@gmail.com\n"
+    "\n"
+    "Permission is hereby granted, free of charge, to any person obtaining a copy "
+    "of this software and associated documentation files (the 'Software'), to deal "
+    "in the Software without restriction, including without limitation the rights "
+    "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell "
+    "copies of the Software, and to permit persons to whom the Software is "
+    "furnished to do so, subject to the following conditions: "
+    "The above copyright notice and this permission notice shall be included in all "
+    "copies or substantial portions of the Software.\n"
+    "\n"
+    "THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR "
+    "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, "
+    "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE "
+    "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER "
+    "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, "
+    "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE "
+    "SOFTWARE.";
 
 static const char* PngExt = PNG_EXT;
 
@@ -2007,6 +2059,8 @@ static void onExport_screen(Console* console, const char* param, const char* nam
     free(img.data);
 }
 
+static void onExport_help(Console* console, const char* param, const char* name);
+
 static void onExportCommand(Console* console, const char* param)
 {
     const char* filename = NULL;
@@ -2625,6 +2679,107 @@ static struct ApiItem {const char* name; const char* def; const char* help;} Api
 
 typedef struct ApiItem ApiItem;
 
+static s32 createRamTable(char* buf)
+{
+    char* ptr = buf;
+    ptr += sprintf(ptr, "\n+-----------------------------------+" \
+                        "\n|           96KB RAM LAYOUT         |" \
+                        "\n+-------+-------------------+-------+" \
+                        "\n| ADDR  | INFO              | BYTES |" \
+                        "\n+-------+-------------------+-------+");
+
+    static const struct Row {s32 addr; const char* info;} Rows[] =
+    {
+        {0,                                         "<VRAM>"},
+        {offsetof(tic_ram, tiles),                  "TILES"},
+        {offsetof(tic_ram, sprites),                "SPRITES"},
+        {offsetof(tic_ram, map),                    "MAP"},
+        {offsetof(tic_ram, input.gamepads),         "GAMEPADS"},
+        {offsetof(tic_ram, input.mouse),            "MOUSE"},
+        {offsetof(tic_ram, input.keyboard),         "KEYBOARD"},
+        {offsetof(tic_ram, sfxpos),                 "SFX STATE"},
+        {offsetof(tic_ram, registers),              "SOUND REGISTERS"},
+        {offsetof(tic_ram, sfx.waveforms),          "WAVEFORMS"},
+        {offsetof(tic_ram, sfx.samples),            "SFX"},
+        {offsetof(tic_ram, music.patterns.data),    "MUSIC PATTERNS"},
+        {offsetof(tic_ram, music.tracks.data),      "MUSIC TRACKS"},
+        {offsetof(tic_ram, music_state),            "MUSIC STATE"},
+        {offsetof(tic_ram, stereo),                 "STEREO VOLUME"},
+        {offsetof(tic_ram, persistent),             "PERSISTENT MEMORY"},
+        {offsetof(tic_ram, flags),                  "SPRITE FLAGS"},
+        {offsetof(tic_ram, font),                   "SYSTEM FONT"},
+        {offsetof(tic_ram, music_params),           "MUSIC PARAMETERS"},
+        {offsetof(tic_ram, free),                   "... (free)"},
+        {TIC_RAM_SIZE,                              ""},
+    };
+
+    for(const struct Row* row = Rows, *end = row + COUNT_OF(Rows) - 1; row < end; row++)
+        ptr += sprintf(ptr, "\n| %05X | %-17s | %-5i |", row->addr, row->info, (row + 1)->addr - row->addr);
+
+    ptr += sprintf(ptr, "\n+-------+-------------------+-------+\n");
+
+    return strlen(buf);
+}
+
+static s32 createVRamTable(char* buf)
+{
+    char* ptr = buf;
+    ptr += sprintf(ptr, "\n+-----------------------------------+" \
+                        "\n|          16KB VRAM LAYOUT         |" \
+                        "\n+-------+-------------------+-------+" \
+                        "\n| ADDR  | INFO              | BYTES |" \
+                        "\n+-------+-------------------+-------+");
+
+    static const struct Row {s32 addr; const char* info;} Rows[] =
+    {
+        {offsetof(tic_ram, vram.screen),        "SCREEN"},
+        {offsetof(tic_ram, vram.palette),       "PALETTE"},
+        {offsetof(tic_ram, vram.mapping),       "PALETTE MAP"},
+        {offsetof(tic_ram, vram.vars.colors),   "BORDER COLOR"},
+        {offsetof(tic_ram, vram.vars.offset),   "SCREEN OFFSET"},
+        {offsetof(tic_ram, vram.vars.cursor),   "MOUSE CURSOR"},
+        {offsetof(tic_ram, vram.blit),          "BLIT SEGMENT"},
+        {offsetof(tic_ram, vram.reserved),      "... (reserved) "},
+        {TIC_VRAM_SIZE,                         ""},
+    };
+
+    for(const struct Row* row = Rows, *end = row + COUNT_OF(Rows) - 1; row < end; row++)
+        ptr += sprintf(ptr, "\n| %05X | %-17s | %-5i |", row->addr, row->info, (row + 1)->addr - row->addr);
+
+    ptr += sprintf(ptr, "\n+-------+-------------------+-------+\n");
+
+    return strlen(buf);
+}
+
+static void onExport_help(Console* console, const char* param, const char* name)
+{
+    const char* filename = getFilename(name, ".md");
+
+    char* buf = malloc(TIC_BANK_SIZE), *ptr = buf;
+
+    ptr += sprintf(ptr, "# " TIC_NAME_FULL "\n" TIC_VERSION"\n" TIC_COPYRIGHT"\n");
+    ptr += sprintf(ptr, "\n## Welcome\n%s\n", WelcomeText);
+    ptr += sprintf(ptr, "\n## Specification\n%s\n```", SpecText);
+    ptr += createRamTable(ptr);
+    ptr += sprintf(ptr, "```\n```");
+    ptr += createVRamTable(ptr);
+    ptr += sprintf(ptr, "```\n\n## Console commands\n");
+
+    FOR(const Command*, cmd, Commands)
+        ptr += sprintf(ptr, "\n### %s\n%s\nusage: `%s`\n", 
+            cmd->name, cmd->help, cmd->usage ? cmd->usage : cmd->name);
+
+    ptr += sprintf(ptr, "\n## API functions\n");
+
+    FOR(const ApiItem*, api, Api)
+        ptr += sprintf(ptr, "\n### %s\n`%s`\n%s\n", api->name, api->def, api->help);
+
+    ptr += sprintf(ptr, "\n%s\n\n%s", TermsText, LicenseText);
+
+    onFileExported(console, filename, tic_fs_save(console->fs, filename, buf, strlen(buf), true));        
+    free(buf);
+}
+
 typedef struct
 {
     Console* console;
@@ -2786,10 +2941,7 @@ static void printTable(Console* console, const char* text)
 {
     printf("%s", text);
 
-    const char* textPointer = text;
-    const char* endText = textPointer + strlen(text);
-
-    while(textPointer != endText)
+    for(const char* textPointer = text, *endText = textPointer + strlen(text); textPointer != endText;)
     {
         char symbol = *textPointer++;
 
@@ -2822,77 +2974,18 @@ static void printTable(Console* console, const char* text)
     }
 }
 
-static void printRamInfo(Console* console, s32 addr, const char* name, s32 size)
-{
-    char buf[TICNAME_MAX];
-    sprintf(buf, "\n| %05X | %-17s | %-5i |", addr, name, size);
-    printTable(console, buf);
-}
-
 static void onHelp_ram(Console* console)
 {
-    printTable(console, "\n+-----------------------------------+" \
-                        "\n|           96KB RAM LAYOUT         |" \
-                        "\n+-------+-------------------+-------+" \
-                        "\n| ADDR  | INFO              | BYTES |" \
-                        "\n+-------+-------------------+-------+");
-
-    static const struct{s32 addr; const char* info;} Layout[] =
-    {
-        {0,                                             "<VRAM>"},
-        {offsetof(tic_ram, tiles),                      "TILES"},
-        {offsetof(tic_ram, sprites),                    "SPRITES"},
-        {offsetof(tic_ram, map),                        "MAP"},
-        {offsetof(tic_ram, input.gamepads),             "GAMEPADS"},
-        {offsetof(tic_ram, input.mouse),                "MOUSE"},
-        {offsetof(tic_ram, input.keyboard),             "KEYBOARD"},
-        {offsetof(tic_ram, sfxpos),                     "SFX STATE"},
-        {offsetof(tic_ram, registers),                  "SOUND REGISTERS"},
-        {offsetof(tic_ram, sfx.waveforms),              "WAVEFORMS"},
-        {offsetof(tic_ram, sfx.samples),                "SFX"},
-        {offsetof(tic_ram, music.patterns.data),        "MUSIC PATTERNS"},
-        {offsetof(tic_ram, music.tracks.data),          "MUSIC TRACKS"},
-        {offsetof(tic_ram, music_state),                "MUSIC STATE"},
-        {offsetof(tic_ram, stereo),                     "STEREO VOLUME"},
-        {offsetof(tic_ram, persistent),                 "PERSISTENT MEMORY"},
-        {offsetof(tic_ram, flags),                      "SPRITE FLAGS"},
-        {offsetof(tic_ram, font),                       "SYSTEM FONT"},
-        {offsetof(tic_ram, music_params),               "MUSIC PARAMETERS"},
-        {offsetof(tic_ram, free),                       "... (free)"},
-        {TIC_RAM_SIZE,                                  ""},
-    };
-
-    for(s32 i = 0; i < COUNT_OF(Layout)-1; i++)
-        printRamInfo(console, Layout[i].addr, Layout[i].info, Layout[i+1].addr-Layout[i].addr);
-
-    printTable(console, "\n+-------+-------------------+-------+");
+    char buf[1024];
+    createRamTable(buf);
+    printTable(console, buf);
 }
 
 static void onHelp_vram(Console* console)
 {
-    printTable(console, "\n+-----------------------------------+" \
-                        "\n|          16KB VRAM LAYOUT         |" \
-                        "\n+-------+-------------------+-------+" \
-                        "\n| ADDR  | INFO              | BYTES |" \
-                        "\n+-------+-------------------+-------+");
-
-    static const struct{s32 addr; const char* info;} Layout[] =
-    {
-        {offsetof(tic_ram, vram.screen),            "SCREEN"},
-        {offsetof(tic_ram, vram.palette),           "PALETTE"},
-        {offsetof(tic_ram, vram.mapping),           "PALETTE MAP"},
-        {offsetof(tic_ram, vram.vars.colors),       "BORDER COLOR"},
-        {offsetof(tic_ram, vram.vars.offset),       "SCREEN OFFSET"},
-        {offsetof(tic_ram, vram.vars.cursor),       "MOUSE CURSOR"},
-        {offsetof(tic_ram, vram.blit),              "BLIT SEGMENT"},
-        {offsetof(tic_ram, vram.reserved),          "... (reserved) "},
-        {TIC_VRAM_SIZE,                             ""},
-    };
-
-    for(s32 i = 0; i < COUNT_OF(Layout)-1; i++)
-        printRamInfo(console, Layout[i].addr, Layout[i].info, Layout[i+1].addr-Layout[i].addr);
-
-    printTable(console, "\n+-------+-------------------+-------+");
+    char buf[1024];
+    createVRamTable(buf);
+    printTable(console, buf);
 }
 
 static void onHelp_version(Console* console)
@@ -2902,66 +2995,26 @@ static void onHelp_version(Console* console)
 
 static void onHelp_spec(Console* console)
 {
-    printBack(console, "\n"
-        "# Specification\n"
-        "DISPLAY: 240x136 pixels, 16 colors palette.\n"
-        "INPUT: 4 gamepads with 8 buttons / mouse / keyboard.\n"
-        "SPRITES: 256 8x8 tiles and 256 8x8 sprites.\n"
-        "MAP: 240x136 cells, 1920x1088 pixels.\n"
-        "SOUND: 4 channels with configareble waveforms.\n"
-        "CODE: 64KB of Lua, Moonscript, JS, Wren, Fennel or Squirrel.");
+    printLine(console);
+    printBack(console, SpecText);
 }
 
 static void onHelp_welcome(Console* console)
 {
-    printBack(console, "\n"
-        "TIC-80 is a fantasy computer for making, playing and sharing tiny games.\n\n"
-        "There are built-in tools for development: code, sprites, maps, sound editors and the command line,"
-        "which is enough to create a mini retro game.\n"
-        "At the exit you will get a cartridge file, which can be stored and played on the website.\n\n"
-        "Also, the game can be packed into a player that works on all popular platforms and distribute as you wish.\n"
-        "To make a retro styled game the whole process of creation takes place under some technical limitations:"
-        "240x136 pixels display, 16 color palette, 256 8x8 color sprites, 4 channel sound and etc.");
+    printLine(console);
+    printBack(console, WelcomeText);
 }
 
 static void onHelp_terms(Console* console)
 {
-    printBack(console, "\n"
-        "# Terms of Use\n"
-        "- All cartridges posted on the " TIC_WEBSITE " website are the property of their authors.\n"
-        "- Do not redistribute the cartridge without permission, directly from the author.\n"
-        "- By uploading cartridges to the site, you grant Nesbox the right to freely use and distribute them."
-        "All other rights by default remain with the author.\n"
-        "- Do not post material that violates copyright, obscenity or any other laws.\n"
-        "- Nesbox reserves the right to remove or filter any material without prior notice.\n\n"
-        "# Privacy Policy\n"
-        "We store only the user's email and password in encrypted form and will not transfer any personal"
-        "information to third parties without explicit permission.");
+    printLine(console);
+    printBack(console, TermsText);
 }
 
 static void onHelp_license(Console* console)
 {
-    printBack(console, "\n"
-        "MIT License"
-        "\n\n"
-        "Copyright (c) 2017-" TIC_VERSION_YEAR " Vadim Grigoruk @nesbox // grigoruk@gmail.com"
-        "\n\n"
-        "Permission is hereby granted, free of charge, to any person obtaining a copy "
-        "of this software and associated documentation files (the 'Software'), to deal "
-        "in the Software without restriction, including without limitation the rights "
-        "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell "
-        "copies of the Software, and to permit persons to whom the Software is "
-        "furnished to do so, subject to the following conditions: "
-        "The above copyright notice and this permission notice shall be included in all "
-        "copies or substantial portions of the Software."
-        "\n\n"
-        "THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR "
-        "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, "
-        "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE "
-        "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER "
-        "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, "
-        "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE "
-        "SOFTWARE.");
+    printLine(console);
+    printBack(console, LicenseText);
 }
 
 static void onHelpCommand(Console* console, const char* param)
