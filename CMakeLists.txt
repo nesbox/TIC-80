@@ -557,7 +557,9 @@ if(BUILD_DEMO_CARTS)
         target_link_libraries(xplode m)
     endif()
 
-    file(GLOB DEMO_CARTS ${CMAKE_SOURCE_DIR}/demos/*.* )
+    file(GLOB DEMO_CARTS 
+        ${CMAKE_SOURCE_DIR}/demos/*.* 
+        ${CMAKE_SOURCE_DIR}/demos/bunny/*.*)
 
     list(APPEND DEMO_CARTS 
         ${CMAKE_SOURCE_DIR}/config.lua

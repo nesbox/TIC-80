@@ -1356,21 +1356,6 @@ static void onClsCommand(Console* console, const char* param)
     commandDoneLine(console, false);
 }
 
-static void installDemoCart(tic_fs* fs, const char* name, const void* cart, s32 size)
-{
-    u8* data = calloc(1, sizeof(tic_cartridge));
-
-    if(data)
-    {
-        s32 dataSize = tic_tool_unzip(data, sizeof(tic_cartridge), cart, size);
-
-        if(dataSize)
-            tic_fs_save(fs, name, data, dataSize, true);
-
-        free(data);
-    }
-}
-
 static void onInstallDemosCommand(Console* console, const char* param)
 {
     static const u8 DemoFire[] =
@@ -1425,7 +1410,7 @@ static void onInstallDemosCommand(Console* console, const char* param)
 
     tic_fs* fs = console->fs;
 
-    static const struct {const char* name; const u8* data; s32 size;} Demos[] =
+    static const struct Demo {const char* name; const u8* data; s32 size;} Demos[] =
     {
         {"fire.tic",        DemoFire,       sizeof DemoFire},
         {"font.tic",        DemoFont,       sizeof DemoFont},
@@ -1439,15 +1424,89 @@ static void onInstallDemosCommand(Console* console, const char* param)
         {"bpp.tic",         Bpp,            sizeof Bpp},
     };
 
+    u8* data = malloc(sizeof(tic_cartridge));
     printBack(console, "\nadded carts:\n\n");
 
-    for(s32 i = 0; i < COUNT_OF(Demos); i++)
+    FOR(const struct Demo*, demo, Demos)
     {
-        installDemoCart(fs, Demos[i].name, Demos[i].data, Demos[i].size);
-        printFront(console, Demos[i].name);
-        printFront(console, "\n");
+        tic_fs_save(fs, demo->name, data, tic_tool_unzip(data, sizeof(tic_cartridge), demo->data, demo->size), true);
+        printFront(console, demo->name);
+        printLine(console);
     }
 
+#if defined(TIC_BUILD_WITH_LUA)
+    static const u8 luamark[] =
+    {
+        #include "../build/assets/luamark.tic.dat"
+    };
+
+#   if defined(TIC_BUILD_WITH_MOON)
+    static const u8 moonmark[] =
+    {
+        #include "../build/assets/moonmark.tic.dat"
+    };
+#   endif
+
+#endif
+
+#if defined(TIC_BUILD_WITH_JS)
+    static const u8 jsmark[] =
+    {
+        #include "../build/assets/jsmark.tic.dat"
+    };
+#endif
+
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+    static const u8 squirrelmark[] =
+    {
+        #include "../build/assets/squirrelmark.tic.dat"
+    };
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
+    static const u8 wrenmark[] =
+    {
+        #include "../build/assets/wrenmark.tic.dat"
+    };
+#endif
+
+    static const struct Mark {const char* name; const u8* data; s32 size;} Marks[] =
+    {
+#if defined(TIC_BUILD_WITH_LUA)        
+        {"luamark.tic", luamark, sizeof luamark},
+#   if defined(TIC_BUILD_WITH_MOON)        
+        {"moonmark.tic", moonmark, sizeof moonmark},
+#   endif        
+#endif
+#if defined(TIC_BUILD_WITH_JS)        
+        {"jsmark.tic", jsmark, sizeof jsmark},
+#endif
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+        {"squirrelmark.tic", squirrelmark, sizeof squirrelmark},
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
+        {"wrenmark.tic", wrenmark, sizeof wrenmark},
+#endif
+    };
+
+    static const char* Bunny = "bunny";
+
+    tic_fs_makedir(fs, Bunny);
+    tic_fs_changedir(fs, Bunny);
+
+    FOR(const struct Mark*, mark, Marks)
+    {
+        tic_fs_save(fs, mark->name, data, tic_tool_unzip(data, sizeof(tic_cartridge), mark->data, mark->size), true);
+        printFront(console, Bunny);
+        printFront(console, "/");
+        printFront(console, mark->name);
+        printLine(console);
+    }
+
+    tic_fs_dirback(fs);
+
+    free(data);
     commandDone(console);
 }
 
@@ -2505,20 +2564,26 @@ static struct Command
         "save cartridge to the local filesystem, use "
 #if defined(TIC_BUILD_WITH_LUA)
         PROJECT_LUA_EXT " "
-#if defined(TIC_BUILD_WITH_MOON)
+
+#   if defined(TIC_BUILD_WITH_MOON)
         PROJECT_MOON_EXT " "
-#endif
-#if defined(TIC_BUILD_WITH_SQUIRREL)
+#   endif
+
+#   if defined(TIC_BUILD_WITH_FENNEL)
         PROJECT_FENNEL_EXT " "
+#   endif
+
 #endif
-#endif
-#if defined(TIC_BUILD_WITH_FENNEL)
+
+#if defined(TIC_BUILD_WITH_JS)
         PROJECT_JS_EXT " "
 #endif
-#if defined(TIC_BUILD_WITH_JS)
+
+#if defined(TIC_BUILD_WITH_WREN)
         PROJECT_WREN_EXT " "
 #endif
-#if defined(TIC_BUILD_WITH_WREN)
+
+#if defined(TIC_BUILD_WITH_SQUIRREL)
         PROJECT_SQUIRREL_EXT " "
 #endif
         "cart extension to save it in text format.", 
