@@ -29,6 +29,8 @@
 
 #define TRANSPARENT_COLOR 255
 
+typedef void(*PixelFunc)(tic_mem* memory, s32 x, s32 y, u8 color);
+
 static tic_tilesheet getTileSheetFromSegment(tic_mem* memory, u8 segment)
 {
     u8* src;
@@ -475,55 +477,86 @@ static void setSideTexPixel(s32 x, s32 y, float u, float v)
     }
 }
 
-void tic_api_circ(tic_mem* memory, s32 xm, s32 ym, s32 radius, u8 color)
+static void drawEllipse(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, u8 color, PixelFunc pix)
+{
+    s32 a = abs(x1-x0), b = abs(y1-y0), b1 = b&1; /* values of diameter */
+    s32 dx = 4*(1-a)*b*b, dy = 4*(b1+1)*a*a; /* error increment */
+    s32 err = dx+dy+b1*a*a, e2; /* error of 1.step */
+
+    if (x0 > x1) { x0 = x1; x1 += a; } /* if called with swapped pos32s */  
+    if (y0 > y1) y0 = y1; /* .. exchange them */
+    y0 += (b+1)/2; y1 = y0-b1;   /* starting pixel */
+    a *= 8*a; b1 = 8*b*b;
+
+    do 
+    {
+        pix(memory, x1, y0, color); /*   I. Quadrant */
+        pix(memory, x0, y0, color); /*  II. Quadrant */
+        pix(memory, x0, y1, color); /* III. Quadrant */
+        pix(memory, x1, y1, color); /*  IV. Quadrant */
+        e2 = 2*err;
+        if (e2 <= dy) { y0++; y1--; err += dy += a; }  /* y step */ 
+        if (e2 >= dx || 2*err > dy) { x0++; x1--; err += dx += b1; } /* x step */
+    } while (x0 <= x1);
+
+    while (y0-y1 < b) 
+    {  /* too early stop of flat ellipses a=1 */
+        pix(memory, x0-1, y0,    color); /* -> finish tip of ellipse */
+        pix(memory, x1+1, y0++,  color); 
+        pix(memory, x0-1, y1,    color);
+        pix(memory, x1+1, y1--,  color); 
+    }
+}
+
+static void setElliPixel(tic_mem* tic, s32 x, s32 y, u8 color)
+{
+    setPixel((tic_core*)tic, x, y, color);
+}
+
+static void setElliSide(tic_mem* tic, s32 x, s32 y, u8 color)
+{
+    setSidePixel(x, y);
+}
+
+static void drawSidesBuffer(tic_mem* memory, s32 y0, s32 y1, u8 color)
 {
     tic_core* core = (tic_core*)memory;
-
-    initSidesBuffer();
-
-    s32 r = radius;
-    s32 x = -r, y = 0, err = 2 - 2 * r;
-    do
-    {
-        setSidePixel(xm - x, ym + y);
-        setSidePixel(xm - y, ym - x);
-        setSidePixel(xm + x, ym - y);
-        setSidePixel(xm + y, ym + x);
-
-        r = err;
-        if (r <= y) err += ++y * 2 + 1;
-        if (r > x || err > y) err += ++x * 2 + 1;
-    } while (x < 0);
-
-    s32 yt = MAX(core->state.clip.t, ym - radius);
-    s32 yb = MIN(core->state.clip.b, ym + radius + 1);
+    s32 yt = MAX(core->state.clip.t, y0);
+    s32 yb = MIN(core->state.clip.b, y1 + 1);
     u8 final_color = mapColor(&core->memory, color);
-    for (s32 y = yt; y < yb; y++) {
+    for (s32 y = yt; y < yb; y++) 
+    {
         s32 xl = MAX(SidesBuffer.Left[y], core->state.clip.l);
         s32 xr = MIN(SidesBuffer.Right[y] + 1, core->state.clip.r);
         core->state.drawhline(&core->memory, xl, xr, y, final_color);
     }
 }
 
-void tic_api_circb(tic_mem* memory, s32 xm, s32 ym, s32 radius, u8 color)
+void tic_api_circ(tic_mem* memory, s32 x, s32 y, s32 r, u8 color)
 {
-    tic_core* core = (tic_core*)memory;
-    u8 final_color = mapColor(memory, color);
-    s32 r = radius;
-    s32 x = -r, y = 0, err = 2 - 2 * r;
-    do {
-        setPixel(core, xm - x, ym + y, final_color);
-        setPixel(core, xm - y, ym - x, final_color);
-        setPixel(core, xm + x, ym - y, final_color);
-        setPixel(core, xm + y, ym + x, final_color);
-        r = err;
-        if (r <= y) err += ++y * 2 + 1;
-        if (r > x || err > y) err += ++x * 2 + 1;
-    } while (x < 0);
+    initSidesBuffer();
+    drawEllipse(memory, x - r, y - r, x + r, y + r, 0, setElliSide);
+    drawSidesBuffer(memory, y - r, y + r + 1, color);
 }
 
-typedef void(*linePixelFunc)(tic_mem* memory, s32 x, s32 y, u8 color);
-static void ticLine(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, u8 color, linePixelFunc func)
+void tic_api_circb(tic_mem* memory, s32 x, s32 y, s32 r, u8 color)
+{
+    drawEllipse(memory, x - r, y - r, x + r, y + r, mapColor(memory, color), setElliPixel);
+}
+
+void tic_api_elli(tic_mem* memory, s32 x, s32 y, s32 a, s32 b, u8 color)
+{
+    initSidesBuffer();
+    drawEllipse(memory, x - a, y - b, x + a, y + b, 0, setElliSide);
+    drawSidesBuffer(memory, y - b, y + b + 1, color);
+}
+
+void tic_api_ellib(tic_mem* memory, s32 x, s32 y, s32 a, s32 b, u8 color)
+{
+    drawEllipse(memory, x - a, y - b, x + a, y + b, mapColor(memory, color), setElliPixel);
+}
+
+static void ticLine(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, u8 color, PixelFunc func)
 {
     if (y0 > y1)
     {
@@ -560,15 +593,7 @@ void tic_api_tri(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3
     ticLine(memory, x2, y2, x3, y3, color, triPixelFunc);
     ticLine(memory, x3, y3, x1, y1, color, triPixelFunc);
 
-    u8 final_color = mapColor(&core->memory, color);
-    s32 yt = MAX(core->state.clip.t, MIN(y1, MIN(y2, y3)));
-    s32 yb = MIN(core->state.clip.b, MAX(y1, MAX(y2, y3)) + 1);
-
-    for (s32 y = yt; y < yb; y++) {
-        s32 xl = MAX(SidesBuffer.Left[y], core->state.clip.l);
-        s32 xr = MIN(SidesBuffer.Right[y] + 1, core->state.clip.r);
-        core->state.drawhline(&core->memory, xl, xr, y, final_color);
-    }
+    drawSidesBuffer(memory, MIN(y1, MIN(y2, y3)), MAX(y1, MAX(y2, y3)) + 1, color);
 }
 
 
@@ -757,7 +782,7 @@ u8 tic_api_mget(tic_mem* memory, s32 x, s32 y)
     return *(src->data + y * TIC_MAP_WIDTH + x);
 }
 
-static inline void setLinePixel(tic_mem* tic, s32 x, s32 y, u8 color)
+static void setLinePixel(tic_mem* tic, s32 x, s32 y, u8 color)
 {
     setPixel((tic_core*)tic, x, y, color);
 }

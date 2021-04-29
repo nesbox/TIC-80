@@ -269,6 +269,56 @@ static s32 lua_circb(lua_State* lua)
     return 0;
 }
 
+static s32 lua_elli(lua_State* lua)
+{
+    s32 top = lua_gettop(lua);
+
+    if(top == 5)
+    {
+        s32 a = getLuaNumber(lua, 3);
+        if(a < 0) return 0;
+
+        s32 b = getLuaNumber(lua, 4);
+        if(b < 0) return 0;
+        
+        s32 x = getLuaNumber(lua, 1);
+        s32 y = getLuaNumber(lua, 2);
+        s32 color = getLuaNumber(lua, 5);
+
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
+
+        tic_api_elli(tic, x, y, a, b, color);
+    }
+    else luaL_error(lua, "invalid parameters, elli(x,y,a,b,color)\n");
+
+    return 0;
+}
+
+static s32 lua_ellib(lua_State* lua)
+{
+    s32 top = lua_gettop(lua);
+
+    if(top == 5)
+    {
+        s32 a = getLuaNumber(lua, 3);
+        if(a < 0) return 0;
+
+        s32 b = getLuaNumber(lua, 4);
+        if(b < 0) return 0;
+        
+        s32 x = getLuaNumber(lua, 1);
+        s32 y = getLuaNumber(lua, 2);
+        s32 color = getLuaNumber(lua, 5);
+
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
+
+        tic_api_ellib(tic, x, y, a, b, color);
+    }
+    else luaL_error(lua, "invalid parameters, ellib(x,y,a,b,color)\n");
+
+    return 0;
+}
+
 static s32 lua_tri(lua_State* lua)
 {
     s32 top = lua_gettop(lua);

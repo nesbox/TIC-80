@@ -501,6 +501,26 @@ enum
         tic_mem*, s32 x, s32 y, s32 radius, u8 color)                                                                   \
                                                                                                                         \
                                                                                                                         \
+    macro(elli,                                                                                                         \
+        "elli(x y a b color)",                                                                                          \
+                                                                                                                        \
+        "This function draws a filled ellipse of the desired a, b radiuses and color with its center at x, y.\n"        \
+        "It uses the Bresenham algorithm.",                                                                             \
+        5,                                                                                                              \
+        void,                                                                                                           \
+        tic_mem*, s32 x, s32 y, s32 a, s32 b, u8 color)                                                                 \
+                                                                                                                        \
+                                                                                                                        \
+    macro(ellib,                                                                                                        \
+        "ellib(x y a b color)",                                                                                         \
+                                                                                                                        \
+        "Draws an ellipse border with its center at x, y using the a, b radiuses and color.\n"                          \
+        "It uses the Bresenham algorithm.",                                                                             \
+        5,                                                                                                              \
+        void,                                                                                                           \
+        tic_mem*, s32 x, s32 y, s32 a, s32 b, u8 color)                                                                 \
+                                                                                                                        \
+                                                                                                                        \
     macro(tri,                                                                                                          \
         "tri(x1 y1 x2 y2 x3 y3 color)",                                                                                 \
                                                                                                                         \

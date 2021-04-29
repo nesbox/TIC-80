@@ -704,6 +704,44 @@ static duk_ret_t duk_circb(duk_context* duk)
     return 0;
 }
 
+static duk_ret_t duk_elli(duk_context* duk)
+{
+    s32 a = duk_to_int(duk, 2);
+    if(a < 0) return 0;
+
+    s32 b = duk_to_int(duk, 3);
+    if(b < 0) return 0;
+
+    s32 x = duk_to_int(duk, 0);
+    s32 y = duk_to_int(duk, 1);
+    s32 color = duk_to_int(duk, 4);
+
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
+
+    tic_api_elli(tic, x, y, a, b, color);
+
+    return 0;
+}
+
+static duk_ret_t duk_ellib(duk_context* duk)
+{
+    s32 a = duk_to_int(duk, 2);
+    if(a < 0) return 0;
+
+    s32 b = duk_to_int(duk, 3);
+    if(b < 0) return 0;
+
+    s32 x = duk_to_int(duk, 0);
+    s32 y = duk_to_int(duk, 1);
+    s32 color = duk_to_int(duk, 4);
+
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
+
+    tic_api_ellib(tic, x, y, a, b, color);
+
+    return 0;
+}
+
 static duk_ret_t duk_tri(duk_context* duk)
 {
     s32 pt[6];
