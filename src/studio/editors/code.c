@@ -1657,12 +1657,18 @@ static void textEditTick(Code* code)
     {
         tic80_input* input = &code->tic->ram.input;
 
-        if(input->mouse.scrolly)
+        tic_point scroll = {input->mouse.scrollx, input->mouse.scrolly};
+
+        if(tic_api_key(tic, tic_key_shift))
+            scroll.x = scroll.y;
+
+        s32* val = scroll.x ? &code->scroll.x : scroll.y ? &code->scroll.y : NULL;
+
+        if(val)
         {
             enum{Scroll = 3};
-            s32 delta = input->mouse.scrolly > 0 ? -Scroll : Scroll;
-            code->scroll.y += delta;
-
+            s32 delta = scroll.x ? scroll.x : scroll.y;
+            *val += delta > 0 ? -Scroll : Scroll;
             normalizeScroll(code);
         }
     }
