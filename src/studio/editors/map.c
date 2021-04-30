@@ -1364,7 +1364,8 @@ static void overline(tic_mem* tic, void* data)
         }
     }
 
-    drawSelectionOvr(map);
+    if(!sheetVisible(map))
+        drawSelectionOvr(map);
 
     drawMapToolbar(map, TIC80_WIDTH, 1);
     drawToolbar(map->tic, false);
