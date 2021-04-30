@@ -746,6 +746,22 @@ static duk_ret_t duk_tri(duk_context* duk)
     return 0;
 }
 
+static duk_ret_t duk_trib(duk_context* duk)
+{
+    s32 pt[6];
+
+    for(s32 i = 0; i < COUNT_OF(pt); i++)
+        pt[i] = duk_to_int(duk, i);
+
+    s32 color = duk_to_int(duk, 6);
+
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
+
+    tic_api_trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
+
+    return 0;
+}
+
 static duk_ret_t duk_textri(duk_context* duk)
 {
     float pt[12];

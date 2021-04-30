@@ -893,6 +893,22 @@ static void wren_tri(WrenVM* vm)
     tic_api_tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
 }
 
+static void wren_trib(WrenVM* vm)
+{       
+    s32 pt[6];
+
+    for(s32 i = 0; i < COUNT_OF(pt); i++)
+    {
+        pt[i] = getWrenNumber(vm, i+1);
+    }
+    
+    s32 color = getWrenNumber(vm, 7);
+
+    tic_mem* tic = (tic_mem*)getWrenCore(vm);
+
+    tic_api_trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
+}
+
 static void wren_cls(WrenVM* vm)
 {
     int top = wrenGetSlotCount(vm);

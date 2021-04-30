@@ -591,6 +591,11 @@ static void triPixelFunc(tic_mem* memory, s32 x, s32 y, u8 color)
     setSidePixel(x, y);
 }
 
+static void setLinePixel(tic_mem* tic, s32 x, s32 y, u8 color)
+{
+    setPixel((tic_core*)tic, x, y, color);
+}
+
 void tic_api_tri(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, u8 color)
 {
     tic_core* core = (tic_core*)memory;
@@ -604,12 +609,21 @@ void tic_api_tri(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3
     drawSidesBuffer(memory, MIN(y1, MIN(y2, y3)), MAX(y1, MAX(y2, y3)) + 1, color);
 }
 
+void tic_api_trib(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, u8 color)
+{
+    tic_core* core = (tic_core*)memory;
+
+    u8 finalColor = mapColor(memory, color);
+
+    ticLine(memory, x1, y1, x2, y2, finalColor, setLinePixel);
+    ticLine(memory, x2, y2, x3, y3, finalColor, setLinePixel);
+    ticLine(memory, x3, y3, x1, y1, finalColor, setLinePixel);
+}
 
 typedef struct
 {
     float x, y, u, v;
 } TexVert;
-
 
 static void ticTexLine(tic_mem* memory, TexVert* v0, TexVert* v1)
 {
@@ -788,11 +802,6 @@ u8 tic_api_mget(tic_mem* memory, s32 x, s32 y)
 
     const tic_map* src = &memory->ram.map;
     return *(src->data + y * TIC_MAP_WIDTH + x);
-}
-
-static void setLinePixel(tic_mem* tic, s32 x, s32 y, u8 color)
-{
-    setPixel((tic_core*)tic, x, y, color);
 }
 
 void tic_api_line(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, u8 color)

@@ -381,6 +381,28 @@ static SQInteger squirrel_tri(HSQUIRRELVM vm)
     return 0;
 }
 
+static SQInteger squirrel_trib(HSQUIRRELVM vm)
+{
+    SQInteger top = sq_gettop(vm);
+
+    if(top == 8)
+    {
+        s32 pt[6];
+
+        for(s32 i = 0; i < COUNT_OF(pt); i++)
+            pt[i] = getSquirrelNumber(vm, i+2);
+        
+        s32 color = getSquirrelNumber(vm, 8);
+
+        tic_mem* tic = (tic_mem*)getSquirrelCore(vm);
+
+        tic_api_trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
+    }
+    else return sq_throwerror(vm, "invalid parameters, trib(x1,y1,x2,y2,x3,y3,color)\n");
+
+    return 0;
+}
+
 static SQInteger squirrel_textri(HSQUIRRELVM vm)
 {
     SQInteger top = sq_gettop(vm);

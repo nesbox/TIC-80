@@ -329,6 +329,28 @@ static s32 lua_tri(lua_State* lua)
     return 0;
 }
 
+static s32 lua_trib(lua_State* lua)
+{
+    s32 top = lua_gettop(lua);
+
+    if(top == 7)
+    {
+        s32 pt[6];
+
+        for(s32 i = 0; i < COUNT_OF(pt); i++)
+            pt[i] = getLuaNumber(lua, i+1);
+        
+        s32 color = getLuaNumber(lua, 7);
+
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
+
+        tic_api_trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
+    }
+    else luaL_error(lua, "invalid parameters, trib(x1,y1,x2,y2,x3,y3,color)\n");
+
+    return 0;
+}
+
 static s32 lua_textri(lua_State* lua)
 {
     s32 top = lua_gettop(lua);

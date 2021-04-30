@@ -529,6 +529,14 @@ enum
         void,                                                                                                           \
         tic_mem*, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, u8 color)                                             \
                                                                                                                         \
+    macro(trib,                                                                                                         \
+        "trib(x1 y1 x2 y2 x3 y3 color)",                                                                                \
+                                                                                                                        \
+        "This function draws a triangle border with color, using the supplied vertices.",                               \
+        7,                                                                                                              \
+        void,                                                                                                           \
+        tic_mem*, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, u8 color)                                             \
+                                                                                                                        \
                                                                                                                         \
     macro(textri,                                                                                                       \
         "textri(x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 use_map=false chromakey=-1)",                                       \
