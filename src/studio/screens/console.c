@@ -2081,20 +2081,42 @@ static void onExport_map(Console* console, const char* param, const char* path)
     }
 }
 
-static void onExport_sfx(Console* console, const char* param, const char* name)
+static char* split(char* str)
 {
-    const char* filename = getFilename(name, ".wav");
-    const char* path = studioExportSfx(atoi(param + STRLEN("sfx")) % SFX_COUNT, filename);
-
-    onFileExported(console, filename, path);
+    return strtok(str, " ");
 }
 
-static void onExport_music(Console* console, const char* param, const char* name)
+static s32 getIdParam()
 {
-    const char* filename = getFilename(name, ".wav");
-    const char* path = studioExportMusic(atoi(param + STRLEN("music")) % MUSIC_TRACKS, filename);
+    static const char ID[] = "id=";
+    const char* idstr = split(NULL);
+    return idstr && memcmp(idstr, ID, STRLEN(ID)) == 0 ? atoi(idstr + STRLEN(ID)) : 0;    
+}
 
-    onFileExported(console, filename, path);
+static void onExport_sfx(Console* console, const char* param, const char* name)
+{
+    s32 id = getIdParam();
+
+    if(id >= 0 && id < SFX_COUNT)
+    {
+        const char* filename = getFilename(name, ".wav");
+        const char* path = studioExportSfx(id, filename);
+
+        onFileExported(console, filename, path);
+    }
+}
+
+static void onExport_music(Console* console, const char* type, const char* name)
+{
+    s32 id = getIdParam();
+
+    if(id >= 0 && id < MUSIC_TRACKS)
+    {
+        const char* filename = getFilename(name, ".wav");
+        const char* path = studioExportMusic(id, filename);
+
+        onFileExported(console, filename, path);
+    }
 }
 
 static void onExport_screen(Console* console, const char* param, const char* name)
@@ -2120,21 +2142,13 @@ static void onExport_screen(Console* console, const char* param, const char* nam
 
 static void onExport_help(Console* console, const char* param, const char* name);
 
-static void onExportCommand(Console* console, const char* param)
+static void onExportCommand(Console* console, const char* type)
 {
-    const char* filename = NULL;
-    if(param)
-    {
-        char* name = strchr(param, ' ');
+    const char* filename = split(NULL);
 
-        if(name && strlen(name + 1))
-            *name++ = '\0';
-        filename = name;
-    }
-
-    if(param && filename)
+    if(type && filename)
     {
-        static const struct Handler {const char* param; void(*handler)(Console*, const char*, const char*);} Handlers[] = 
+        static const struct Handler {const char* type; void(*handler)(Console*, const char*, const char*);} Handlers[] =
         {
 #define     EXPORT_CMD_DEF(name) {#name, onExport_##name}, 
             EXPORT_CMD_LIST(EXPORT_CMD_DEF)
@@ -2142,9 +2156,9 @@ static void onExportCommand(Console* console, const char* param)
         };
 
         FOR(const struct Handler*, ptr, Handlers)
-            if(strcmp(param, ptr->param) == 0)
+            if(strcmp(type, ptr->type) == 0)
             {
-                ptr->handler(console, param, filename);
+                ptr->handler(console, type, filename);
                 return;
             }
     }
@@ -2669,7 +2683,7 @@ static struct Command
 #define EXPORT_CMD_DEF(name) #name "|"
         EXPORT_CMD_LIST(EXPORT_CMD_DEF)
 #undef  EXPORT_CMD_DEF
-        "...] <file>",
+        "...] <file> [id=<#>]",
         onExportCommand
     },
     {
@@ -3129,20 +3143,9 @@ static void processCommand(Console* console, const char* text)
 
         printf("%s", command);
 
-        // trim empty chars
-        {
-            char* end = (char*)command + strlen(command) - 1;
+        split(command);
 
-            while(*end == ' ' && end > command)
-                *end-- = '\0';
-        }
-
-        char* param = strchr(command, ' ');
-
-        if(param)
-            *param++ = '\0';
-
-        if(param && !strlen(param)) param = NULL;
+        char *param = split(NULL);
 
         bool done = false;
         for(s32 i = 0; i < COUNT_OF(Commands); i++)
