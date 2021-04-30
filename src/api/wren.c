@@ -803,14 +803,9 @@ static void wren_line(WrenVM* vm)
 
 static void wren_circ(WrenVM* vm)
 {
-    s32 radius = getWrenNumber(vm, 3);
-    if(radius < 0) 
-    {
-        return;
-    }
-    
     s32 x = getWrenNumber(vm, 1);
     s32 y = getWrenNumber(vm, 2);
+    s32 radius = getWrenNumber(vm, 3);
     s32 color = getWrenNumber(vm, 4);
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
@@ -820,14 +815,9 @@ static void wren_circ(WrenVM* vm)
 
 static void wren_circb(WrenVM* vm)
 {
-    s32 radius = getWrenNumber(vm, 3);
-    if(radius < 0) 
-    {
-        return;
-    }
-    
     s32 x = getWrenNumber(vm, 1);
     s32 y = getWrenNumber(vm, 2);
+    s32 radius = getWrenNumber(vm, 3);
     s32 color = getWrenNumber(vm, 4);
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
@@ -837,14 +827,10 @@ static void wren_circb(WrenVM* vm)
 
 static void wren_elli(WrenVM* vm)
 {
-    s32 a = getWrenNumber(vm, 3);
-    if(a < 0) return;
-
-    s32 b = getWrenNumber(vm, 4);
-    if(b < 0) return;
-    
     s32 x = getWrenNumber(vm, 1);
     s32 y = getWrenNumber(vm, 2);
+    s32 a = getWrenNumber(vm, 3);
+    s32 b = getWrenNumber(vm, 4);
     s32 color = getWrenNumber(vm, 5);
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
@@ -854,14 +840,10 @@ static void wren_elli(WrenVM* vm)
 
 static void wren_ellib(WrenVM* vm)
 {
-    s32 a = getWrenNumber(vm, 3);
-    if(a < 0) return;
-
-    s32 b = getWrenNumber(vm, 4);
-    if(b < 0) return;
-    
     s32 x = getWrenNumber(vm, 1);
     s32 y = getWrenNumber(vm, 2);
+    s32 a = getWrenNumber(vm, 3);
+    s32 b = getWrenNumber(vm, 4);
     s32 color = getWrenNumber(vm, 5);
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);

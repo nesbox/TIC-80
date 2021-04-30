@@ -674,11 +674,9 @@ static duk_ret_t duk_mouse(duk_context* duk)
 
 static duk_ret_t duk_circ(duk_context* duk)
 {
-    s32 radius = duk_to_int(duk, 2);
-    if(radius < 0) return 0;
-
     s32 x = duk_to_int(duk, 0);
     s32 y = duk_to_int(duk, 1);
+    s32 radius = duk_to_int(duk, 2);
     s32 color = duk_to_int(duk, 3);
 
     tic_mem* tic = (tic_mem*)getDukCore(duk);
@@ -690,12 +688,10 @@ static duk_ret_t duk_circ(duk_context* duk)
 
 static duk_ret_t duk_circb(duk_context* duk)
 {
-    s32 radius = duk_to_int(duk, 2);
-    if(radius < 0) return 0;
-
     s32 x = duk_to_int(duk, 0);
     s32 y = duk_to_int(duk, 1);
     s32 color = duk_to_int(duk, 3);
+    s32 radius = duk_to_int(duk, 2);
 
     tic_mem* tic = (tic_mem*)getDukCore(duk);
 
@@ -706,14 +702,10 @@ static duk_ret_t duk_circb(duk_context* duk)
 
 static duk_ret_t duk_elli(duk_context* duk)
 {
-    s32 a = duk_to_int(duk, 2);
-    if(a < 0) return 0;
-
-    s32 b = duk_to_int(duk, 3);
-    if(b < 0) return 0;
-
     s32 x = duk_to_int(duk, 0);
     s32 y = duk_to_int(duk, 1);
+    s32 a = duk_to_int(duk, 2);
+    s32 b = duk_to_int(duk, 3);
     s32 color = duk_to_int(duk, 4);
 
     tic_mem* tic = (tic_mem*)getDukCore(duk);
@@ -725,14 +717,10 @@ static duk_ret_t duk_elli(duk_context* duk)
 
 static duk_ret_t duk_ellib(duk_context* duk)
 {
-    s32 a = duk_to_int(duk, 2);
-    if(a < 0) return 0;
-
-    s32 b = duk_to_int(duk, 3);
-    if(b < 0) return 0;
-
     s32 x = duk_to_int(duk, 0);
     s32 y = duk_to_int(duk, 1);
+    s32 a = duk_to_int(duk, 2);
+    s32 b = duk_to_int(duk, 3);
     s32 color = duk_to_int(duk, 4);
 
     tic_mem* tic = (tic_mem*)getDukCore(duk);

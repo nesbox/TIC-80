@@ -514,7 +514,7 @@ enum
     macro(ellib,                                                                                                        \
         "ellib(x y a b color)",                                                                                         \
                                                                                                                         \
-        "Draws an ellipse border with its center at x, y using the a, b radiuses and color.\n"                          \
+        "This function draws an ellipse border with the desired radiuses a b and color with its center at x, y.\n"      \
         "It uses the Bresenham algorithm.",                                                                             \
         5,                                                                                                              \
         void,                                                                                                           \

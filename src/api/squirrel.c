@@ -282,12 +282,10 @@ static SQInteger squirrel_circ(HSQUIRRELVM vm)
     SQInteger top = sq_gettop(vm);
 
     if(top == 5)
-    {
-        s32 radius = getSquirrelNumber(vm, 4);
-        if(radius < 0) return 0;
-        
+    {       
         s32 x = getSquirrelNumber(vm, 2);
         s32 y = getSquirrelNumber(vm, 3);
+        s32 radius = getSquirrelNumber(vm, 4);
         s32 color = getSquirrelNumber(vm, 5);
 
         tic_mem* tic = (tic_mem*)getSquirrelCore(vm);
@@ -305,11 +303,9 @@ static SQInteger squirrel_circb(HSQUIRRELVM vm)
 
     if(top == 5)
     {
-        s32 radius = getSquirrelNumber(vm, 4);
-        if(radius < 0) return 0;
-
         s32 x = getSquirrelNumber(vm, 2);
         s32 y = getSquirrelNumber(vm, 3);
+        s32 radius = getSquirrelNumber(vm, 4);
         s32 color = getSquirrelNumber(vm, 5);
 
         tic_mem* tic = (tic_mem*)getSquirrelCore(vm);
@@ -327,14 +323,10 @@ static SQInteger squirrel_elli(HSQUIRRELVM vm)
 
     if(top == 6)
     {
-        s32 a = getSquirrelNumber(vm, 4);
-        if(a < 0) return 0;
-
-        s32 b = getSquirrelNumber(vm, 5);
-        if(b < 0) return 0;
-
         s32 x = getSquirrelNumber(vm, 2);
         s32 y = getSquirrelNumber(vm, 3);
+        s32 a = getSquirrelNumber(vm, 4);
+        s32 b = getSquirrelNumber(vm, 5);
         s32 color = getSquirrelNumber(vm, 6);
 
         tic_mem* tic = (tic_mem*)getSquirrelCore(vm);
@@ -352,14 +344,10 @@ static SQInteger squirrel_ellib(HSQUIRRELVM vm)
 
     if(top == 6)
     {
-        s32 a = getSquirrelNumber(vm, 4);
-        if(a < 0) return 0;
-
-        s32 b = getSquirrelNumber(vm, 5);
-        if(b < 0) return 0;
-
         s32 x = getSquirrelNumber(vm, 2);
         s32 y = getSquirrelNumber(vm, 3);
+        s32 a = getSquirrelNumber(vm, 4);
+        s32 b = getSquirrelNumber(vm, 5);
         s32 color = getSquirrelNumber(vm, 6);
 
         tic_mem* tic = (tic_mem*)getSquirrelCore(vm);
