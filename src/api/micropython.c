@@ -379,15 +379,13 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(pmem_obj, 1, 2, python_pmem);
 
 // time
 STATIC mp_obj_t python_time() {
-    fprintf(stderr, "warning: not implemented\n");
-    return mp_const_none;
+    return mp_obj_new_float_from_d(tic_api_time(python_vm.mem));
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(time_obj, python_time);
 
 // tstamp
 STATIC mp_obj_t python_tstamp() {
-    fprintf(stderr, "warning: not implemented\n");
-    return mp_const_none;
+    return mp_obj_new_int(tic_api_tstamp(python_vm.mem));
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_0(tstamp_obj, python_tstamp);
 
