@@ -64,7 +64,7 @@ CRT_SHADER=
 			color = gpu_Color;
 			texCoord = vec2(gpu_TexCoord);
 			gl_Position = gpu_ModelViewProjectionMatrix * vec4(gpu_Vertex, 1.0);
-		};
+		}
 	]],
 	PIXEL=[[
 		#version 110
