@@ -107,7 +107,7 @@ make -j4
 
 First, add jessie-backports repo to your `/etc/apt/sources.list`
 
-`deb http://ftp.debian.org/debian jessie-backports main`  
+`deb [check-valid-until=no] http://archive.debian.org/debian jessie-backports main`  
 
 Then run the following commands in the Terminal
 
