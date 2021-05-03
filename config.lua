@@ -68,6 +68,7 @@ CRT_SHADER=
 	]],
 	PIXEL=[[
 		#version 110
+		//precision highp float;
 		varying vec2 texCoord;
 		uniform sampler2D source;
 		uniform float trg_x;
