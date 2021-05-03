@@ -1703,18 +1703,16 @@ static void onImport_screen(Console* console, const char* name, const void* buff
 
 static void printUsage(Console* console, const char* command);
 
+static char* split(char* str)
+{
+    return strtok(str, " ");
+}
+
 static void onImportCommand(Console* console, const char* param)
 {
     bool error = true;
 
-    char* filename = NULL;
-    if(param)
-    {
-        filename = strchr(param, ' ');
-
-        if(filename && strlen(filename + 1))
-            *filename++ = '\0';
-    }
+    const char* filename = split(NULL);
 
     if(param && filename)
     {
@@ -2079,11 +2077,6 @@ static void onExport_map(Console* console, const char* param, const char* path)
 
         free(buffer);
     }
-}
-
-static char* split(char* str)
-{
-    return strtok(str, " ");
 }
 
 static s32 getIdParam()
