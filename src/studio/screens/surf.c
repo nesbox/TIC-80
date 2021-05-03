@@ -341,6 +341,19 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
     return true;
 }
 
+static s32 itemcmp(const void* a, const void* b)
+{
+    const MenuItem* item1 = a;
+    const MenuItem* item2 = b;
+
+    if(item1->dir != item2->dir)
+        return item1->dir ? -1 : 1;
+    else if(item1->dir && item2->dir)
+        return strcmp(item1->name, item2->name);
+
+    return 0;
+}
+
 static void addMenuItemsDone(void* data)
 {
     AddMenuItemData* addMenuItemData = data;
@@ -348,6 +361,9 @@ static void addMenuItemsDone(void* data)
 
     surf->menu.items = addMenuItemData->items;
     surf->menu.count = addMenuItemData->count;
+
+    if(!tic_fs_ispubdir(surf->fs))
+        qsort(surf->menu.items, surf->menu.count, sizeof *surf->menu.items, itemcmp);
 
     if (addMenuItemData->done)
         addMenuItemData->done(addMenuItemData->data);

@@ -1816,7 +1816,7 @@ static void *ticMemmem(const void* haystack, size_t hlen, const void* needle, si
 }
 
 static const char TicCartSig[] = "TIC.CART";
-#define SIG_SIZE (sizeof TicCartSig-1)
+#define SIG_SIZE STRLEN(TicCartSig)
 
 typedef struct
 {
@@ -2754,10 +2754,10 @@ typedef struct ApiItem ApiItem;
 static s32 createRamTable(char* buf)
 {
     char* ptr = buf;
-    ptr += sprintf(ptr, "\n+-----------------------------------+" \
-                        "\n|           96KB RAM LAYOUT         |" \
-                        "\n+-------+-------------------+-------+" \
-                        "\n| ADDR  | INFO              | BYTES |" \
+    ptr += sprintf(ptr, "\n+-----------------------------------+"
+                        "\n|           96KB RAM LAYOUT         |"
+                        "\n+-------+-------------------+-------+"
+                        "\n| ADDR  | INFO              | BYTES |"
                         "\n+-------+-------------------+-------+");
 
     static const struct Row {s32 addr; const char* info;} Rows[] =
@@ -2796,10 +2796,10 @@ static s32 createRamTable(char* buf)
 static s32 createVRamTable(char* buf)
 {
     char* ptr = buf;
-    ptr += sprintf(ptr, "\n+-----------------------------------+" \
-                        "\n|          16KB VRAM LAYOUT         |" \
-                        "\n+-------+-------------------+-------+" \
-                        "\n| ADDR  | INFO              | BYTES |" \
+    ptr += sprintf(ptr, "\n+-----------------------------------+"
+                        "\n|          16KB VRAM LAYOUT         |"
+                        "\n+-------+-------------------+-------+"
+                        "\n| ADDR  | INFO              | BYTES |"
                         "\n+-------+-------------------+-------+");
 
     static const struct Row {s32 addr; const char* info;} Rows[] =
