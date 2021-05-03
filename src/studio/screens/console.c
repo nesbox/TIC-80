@@ -2114,7 +2114,7 @@ static void onExport_music(Console* console, const char* type, const char* name)
 
 static void onExport_screen(Console* console, const char* param, const char* name)
 {
-    const char* filename = getFilename(name, ".wav");
+    const char* filename = getFilename(name, ".png");
 
     tic_mem* tic = console->tic;
     const tic_cartridge* cart = &tic->cart;
