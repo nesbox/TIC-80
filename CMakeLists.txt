@@ -78,6 +78,10 @@ if(NOT BUILD_SDL)
     set(BUILD_SDLGPU OFF)
 endif()
 
+if (EMSCRIPTEN)
+    set(BUILD_SDLGPU ON)
+endif()
+
 message("BUILD_SDLGPU: ${BUILD_SDLGPU}")
 message("BUILD_TOUCH_INPUT: ${BUILD_TOUCH_INPUT}")
 
@@ -743,6 +747,10 @@ if(BUILD_PRO)
 endif()
 
 if(BUILD_SDLGPU)
+    target_compile_definitions(tic80studio PUBLIC CRT_SHADER_SUPPORT)
+endif()
+
+if(EMSCRIPTEN)
     target_compile_definitions(tic80studio PUBLIC CRT_SHADER_SUPPORT)
 endif()
 

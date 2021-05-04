@@ -97,6 +97,29 @@ static void readConfigCrtShader(Config* config, lua_State* lua)
         readString(lua, "PIXEL", &config->data.shader.pixel);
     }
 
+#if defined (EMSCRIPTEN)
+    // WebGL supports only version 100 shaders.
+    // Luckily, the format is nearly identical.
+    // This code detects the incompatible line(s) at
+    // the beginning of each shader and patches them
+    // in-place in memory.
+    char *s = (char *)config->data.shader.vertex;
+    if (strncmp("\t\t#version 110", s, 14) == 0) {
+        // replace the two tabs, with a "//" comment, disabling the #version tag.
+        s[0] = '/';
+        s[1] = '/';
+    }
+    s = (char *)config->data.shader.pixel;
+    if (strncmp("\t\t#version 110\n\t\t//precision highp float;", s, 41) == 0) {
+        // replace the two tabs, with a "//" comment, disabling the #version tag.
+        s[0] = '/';
+        s[1] = '/';
+        // replace the "//" comment with spaces, enabling the precision statement.
+        s[17] = ' ';
+        s[18] = ' ';
+    }
+#endif
+
     lua_pop(lua, 1);        
 }
 
