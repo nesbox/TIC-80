@@ -173,3 +173,4 @@ You can find iOS/tvOS version here
 * Jay Em (Sweetie16 palette) - [Twitter @GrafxKid](https://twitter.com/GrafxKid)  
 * msx80 - [Twitter @msx80](https://twitter.com/msx80) [Github msx80](https://github.com/msx80)
 * Josh Goebel - [Twitter @dreamer3](https://twitter.com/dreamer3) [Github joshgoebel](https://github.com/joshgoebel)
+* Joshua Minor - [GitHub @jminor](https://github.com/jminor)
