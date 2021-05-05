@@ -1525,9 +1525,6 @@ static void setTempo(Music* music, s32 delta, void* data)
 
     track->tempo = tempo;
 
-    if(getMusicState(music) != tic_music_stop)
-        music->tic->ram.music_params.tempo = tempo + DEFAULT_TEMPO;
-
     history_add(music->history);
 }
 
@@ -1549,9 +1546,6 @@ static void setSpeed(Music* music, s32 delta, void* data)
     if (speed < Min) speed = Min;
 
     track->speed = speed;
-
-    if(getMusicState(music) != tic_music_stop)
-        music->tic->ram.music_params.speed = speed + DEFAULT_SPEED;
 
     history_add(music->history);
 }

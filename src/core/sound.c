@@ -38,17 +38,20 @@ STATIC_ASSERT(tic_sample, sizeof(tic_sample) == 66);
 STATIC_ASSERT(tic_track_pattern, sizeof(tic_track_pattern) == 3 * MUSIC_PATTERN_ROWS);
 STATIC_ASSERT(tic_track, sizeof(tic_track) == 3 * MUSIC_FRAMES + 3);
 STATIC_ASSERT(tic_music_cmd_count, tic_music_cmd_count == 1 << MUSIC_CMD_BITS);
-STATIC_ASSERT(tic_sound_state_size, sizeof(tic_music_state) == 4);
+STATIC_ASSERT(tic_music_state_size, sizeof(tic_music_state) == 4);
 
-static s32 tick2row(const tic_music_params* params, s32 tick)
+static inline s32 getTempo(const tic_track* track) { return track->tempo + DEFAULT_TEMPO; }
+static inline s32 getSpeed(const tic_track* track) { return track->speed + DEFAULT_SPEED; }
+
+static s32 tick2row(const tic_track* track, s32 tick)
 {
     // BPM = tempo * 6 / speed
-    return params->speed > 0 ? tick * params->tempo * DEFAULT_SPEED / params->speed / NOTES_PER_MUNUTE : 0;
+    return tick * getTempo(track) * DEFAULT_SPEED / getSpeed(track) / NOTES_PER_MUNUTE;
 }
 
-static s32 row2tick(const tic_music_params* params, s32 row)
+static s32 row2tick(const tic_track* track, s32 row)
 {
-    return params->tempo > 0 ? row * params->speed * NOTES_PER_MUNUTE / params->tempo / DEFAULT_SPEED : 0;
+    return row * getSpeed(track) * NOTES_PER_MUNUTE / getTempo(track) / DEFAULT_SPEED;
 }
 
 static inline s32 param2val(const tic_track_row* row)
@@ -224,15 +227,15 @@ static void processMusic(tic_mem* memory)
     if (music_state->flag.music_status == tic_music_stop) return;
 
     const tic_track* track = &memory->ram.music.tracks.data[music_state->music.track];
-    s32 row = tick2row(&memory->ram.music_params, core->state.music.ticks);
+    s32 row = tick2row(track, core->state.music.ticks);
     tic_jump_command* jumpCmd = &core->state.music.jump;
 
     if (row != music_state->music.row
         && jumpCmd->active)
     {
         music_state->music.frame = jumpCmd->frame;
-        row = jumpCmd->beat * NOTES_PER_BEAT;
-        core->state.music.ticks = row2tick(&memory->ram.music_params, row);
+        music_state->music.row = jumpCmd->beat * NOTES_PER_BEAT;
+        core->state.music.ticks = row2tick(track, music_state->music.row);
         memset(jumpCmd, 0, sizeof(tic_jump_command));
     }
 
@@ -451,17 +454,14 @@ static void setMusic(tic_core* core, s32 index, s32 frame, s32 row, bool loop, b
         for (s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
             setMusicChannelData(memory, -1, 0, 0, MAX_VOLUME, MAX_VOLUME, c);
 
-        ram->music_state.music.row = -1;
+        ram->music_state.music.row = row;
         ram->music_state.music.frame = frame < 0 ? 0 : frame;
         ram->music_state.flag.music_loop = loop;
         ram->music_state.flag.music_sustain = sustain;
         ram->music_state.flag.music_status = tic_music_play;
 
         const tic_track* track = &ram->music.tracks.data[index];
-        ram->music_params.tempo = track->tempo + DEFAULT_TEMPO;
-        ram->music_params.speed = track->speed + DEFAULT_SPEED;
-
-        core->state.music.ticks = row >= 0 ? row2tick(&ram->music_params, row) : 0;
+        core->state.music.ticks = row >= 0 ? row2tick(track, row) : 0;
     }
 }
 

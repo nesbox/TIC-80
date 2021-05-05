@@ -487,12 +487,6 @@ typedef struct
     u32 data[TIC_PERSISTENT_SIZE];
 } tic_persistent;
 
-typedef struct
-{
-    u8 tempo;
-    u8 speed;
-} tic_music_params;
-
 typedef union
 {
     struct
@@ -511,7 +505,6 @@ typedef union
         tic_persistent      persistent;
         tic_flags           flags;
         tic_font            font;
-        tic_music_params    music_params;
 
         u8 free;
     };
