@@ -834,7 +834,7 @@ static duk_ret_t duk_music(duk_context* duk)
     tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     s32 track = duk_opt_int(duk, 0, -1);
-    tic_api_music(tic, -1, 0, 0, false, false);
+    tic_api_music(tic, -1, 0, 0, false, false, -1, -1);
 
     if(track >= 0)
     {
@@ -842,8 +842,10 @@ static duk_ret_t duk_music(duk_context* duk)
         s32 row = duk_opt_int(duk, 2, -1);
         bool loop = duk_opt_boolean(duk, 3, true);
         bool sustain = duk_opt_boolean(duk, 4, false);
+        s32 tempo = duk_opt_int(duk, 5, -1);
+        s32 speed = duk_opt_int(duk, 6, -1);
 
-        tic_api_music(tic, track, frame, row, loop, sustain);
+        tic_api_music(tic, track, frame, row, loop, sustain, tempo, speed);
     }
 
     return 0;

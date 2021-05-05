@@ -568,13 +568,13 @@ enum
                                                                                                                         \
                                                                                                                         \
     macro(music,                                                                                                        \
-        "music(track=-1 frame=-1 row=-1 loop=true sustain=false)",                                                      \
+        "music(track=-1 frame=-1 row=-1 loop=true sustain=false tempo=-1 speed=-1)",                                    \
                                                                                                                         \
         "This function starts playing a track created in the Music Editor.\n"                                           \
         "Call without arguments to stop the music.",                                                                    \
-        5,                                                                                                              \
+        7,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 track, s32 frame, s32 row, bool loop, bool sustain)                                               \
+        tic_mem*, s32 track, s32 frame, s32 row, bool loop, bool sustain, s32 tempo, s32 speed)                         \
                                                                                                                         \
                                                                                                                         \
     macro(sync,                                                                                                         \

@@ -575,7 +575,7 @@ static void playFrameRow(Music* music)
 {
     tic_mem* tic = music->tic;
 
-    tic_api_music(tic, music->track, music->frame, music->tracker.edit.y, true, music->sustain);
+    tic_api_music(tic, music->track, music->frame, music->tracker.edit.y, true, music->sustain, -1, -1);
     
     setMusicState(music, tic_music_play_frame);
 }
@@ -584,19 +584,19 @@ static void playFrame(Music* music)
 {
     tic_mem* tic = music->tic;
 
-    tic_api_music(tic, music->track, music->frame, -1, true, music->sustain);
+    tic_api_music(tic, music->track, music->frame, -1, true, music->sustain, -1, -1);
 
     setMusicState(music, tic_music_play_frame);
 }
 
 static void playTrack(Music* music)
 {
-    tic_api_music(music->tic, music->track, -1, -1, true, music->sustain);
+    tic_api_music(music->tic, music->track, -1, -1, true, music->sustain, -1, -1);
 }
 
 static void stopTrack(Music* music)
 {
-    tic_api_music(music->tic, -1, -1, -1, false, music->sustain);
+    tic_api_music(music->tic, -1, -1, -1, false, music->sustain, -1, -1);
 }
 
 static void toggleFollowMode(Music* music)

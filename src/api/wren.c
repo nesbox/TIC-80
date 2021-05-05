@@ -1114,6 +1114,8 @@ static void wren_music(WrenVM* vm)
     s32 row = -1;
     bool loop = true;
     bool sustain = false;
+    s32 tempo = -1;
+    s32 speed = -1;
 
     if(top > 1)
     {
@@ -1134,13 +1136,23 @@ static void wren_music(WrenVM* vm)
                     if(top > 5)
                     {
                         sustain = wrenGetSlotBool(vm, 5);
+
+                        if (top > 6)
+                        {
+                            tempo = getWrenNumber(vm, 6);
+
+                            if (top > 7)
+                            {
+                                speed = getWrenNumber(vm, 7);
+                            }
+                        }
                     }
                 }
             }
         }
     }
 
-    tic_api_music(tic, track, frame, row, loop, sustain);
+    tic_api_music(tic, track, frame, row, loop, sustain, tempo, speed);
 }
 
 static void wren_time(WrenVM* vm)

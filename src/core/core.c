@@ -344,7 +344,7 @@ static void soundClear(tic_mem* memory)
     memset(&memory->ram.registers, 0, sizeof memory->ram.registers);
     memset(memory->samples.buffer, 0, memory->samples.size);
 
-    tic_api_music(memory, -1, 0, 0, false, false);
+    tic_api_music(memory, -1, 0, 0, false, false, -1, -1);
 }
 
 static void resetDma(tic_mem* memory)

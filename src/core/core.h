@@ -139,7 +139,8 @@ typedef struct
         tic_command_data commands[TIC_SOUND_CHANNELS];
         tic_sfx_pos sfxpos[TIC_SOUND_CHANNELS];
         tic_jump_command jump;
-
+        s32 tempo;
+        s32 speed;
     } music;
 
     tic_tick tick;

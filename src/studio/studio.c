@@ -356,7 +356,7 @@ const char* studioExportMusic(s32 track, const char* filename)
         const tic_music_state* state = &tic->ram.music_state;
         const Music* editor = impl.banks.music[impl.bank.index.music];
 
-        tic_api_music(tic, track, -1, -1, false, editor->sustain);
+        tic_api_music(tic, track, -1, -1, false, editor->sustain, -1, -1);
 
         while(state->flag.music_status == tic_music_play)
         {
