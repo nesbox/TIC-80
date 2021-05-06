@@ -307,7 +307,7 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 
     if(dir 
         || tic_tool_has_ext(name, CartExt)
-        || hasProjectExt(name)
+        || tic_project_ext(name)
         || tic_tool_has_ext(name, PngExt))
     {
         data->items = realloc(data->items, sizeof(MenuItem) * ++data->count);
@@ -373,11 +373,6 @@ static void addMenuItemsDone(void* data)
     surf->loading = false;
 }
 
-static inline void safe_free(void* ptr)
-{
-    if(ptr) free(ptr);
-}
-
 static void resetMenu(Surf* surf)
 {
     if(surf->menu.items)
@@ -388,10 +383,10 @@ static void resetMenu(Surf* surf)
 
             free(item->name);
 
-            safe_free(item->hash);
-            safe_free(item->cover);
-            safe_free(item->label);
-            safe_free(item->palette);
+            FREE(item->hash);
+            FREE(item->cover);
+            FREE(item->label);
+            FREE(item->palette);
         }
 
         free(surf->menu.items);
@@ -516,7 +511,7 @@ static void loadCover(Surf* surf)
             if(cart)
             {
 
-                if(hasProjectExt(item->name))
+                if(tic_project_ext(item->name))
                     tic_project_load(item->name, data, size, cart);
                 else if(tic_tool_has_ext(item->name, PngExt))
                 {
@@ -665,7 +660,7 @@ static void onPlayCart(Surf* surf)
 
     if (item->hash)
     {
-        surf->console->loadByHash(surf->console, item->name, item->hash, onCartLoaded, NULL);
+        surf->console->loadByHash(surf->console, item->name, item->hash, NULL, onCartLoaded, NULL);
     }
     else
     {

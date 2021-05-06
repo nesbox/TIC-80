@@ -264,46 +264,28 @@ static bool compareMetatag(const char* code, const char* tag, const char* value,
     return result;
 }
 
+#define SCRIPT_DEF(name, _, __, vm) const tic_script_config* get_## name ##_script_config();
+    SCRIPT_LIST(SCRIPT_DEF)
+#undef SCRIPT_DEF
+
 const tic_script_config* tic_core_script_config(tic_mem* memory)
 {
-    const char* code = memory->cart.code.data;
+    static const struct Config
+    {
+        const char* name;
+        const tic_script_config*(*func)();
+    } Configs[] = 
+    {
+#define SCRIPT_DEF(name, ...) {#name, get_## name ##_script_config},
+        SCRIPT_LIST(SCRIPT_DEF)
+#undef  SCRIPT_DEF
+    };
 
-#if defined(TIC_BUILD_WITH_MOON)
-    if (compareMetatag(code, "script", "moon", getMoonScriptConfig()->singleComment) ||
-        compareMetatag(code, "script", "moonscript", getMoonScriptConfig()->singleComment))
-        return getMoonScriptConfig();
-#endif
+    FOR(const struct Config*, it, Configs)
+        if(compareMetatag(memory->cart.code.data, "script", it->name, it->func()->singleComment))
+            return it->func();
 
-#if defined(TIC_BUILD_WITH_FENNEL)
-    if (compareMetatag(code, "script", "fennel", getFennelConfig()->singleComment))
-        return getFennelConfig();
-#endif
-
-#if defined(TIC_BUILD_WITH_JS)
-    if (compareMetatag(code, "script", "js", getJsScriptConfig()->singleComment) ||
-        compareMetatag(code, "script", "javascript", getJsScriptConfig()->singleComment))
-        return getJsScriptConfig();
-#endif
-
-#if defined(TIC_BUILD_WITH_WREN)
-    if (compareMetatag(code, "script", "wren", getWrenScriptConfig()->singleComment))
-        return getWrenScriptConfig();
-#endif
-
-#if defined(TIC_BUILD_WITH_SQUIRREL)
-    if (compareMetatag(code, "script", "squirrel", getSquirrelScriptConfig()->singleComment))
-        return getSquirrelScriptConfig();
-#endif
-
-#if defined(TIC_BUILD_WITH_LUA)
-    return getLuaScriptConfig();
-#elif defined(TIC_BUILD_WITH_JS)
-    return getJsScriptConfig();
-#elif defined(TIC_BUILD_WITH_WREN)
-    return getWrenScriptConfig();
-#elif defined(TIC_BUILD_WITH_SQUIRREL)
-    return getSquirrelScriptConfig();
-#endif
+    return Configs->func();
 }
 
 static void updateSaveid(tic_mem* memory)
@@ -410,11 +392,10 @@ void tic_core_tick(tic_mem* tic, tic_tick_data* data)
         const char* code = tic->cart.code.data;
 
         bool done = false;
-        const tic_script_config* config = NULL;
+        const tic_script_config* config = tic_core_script_config(tic);
 
         if (strlen(code))
         {
-            config = tic_core_script_config(tic);
             cart2ram(tic);
 
             core->state.synced = 0;
@@ -484,31 +465,9 @@ void tic_core_close(tic_mem* memory)
 
     core->state.initialized = false;
 
-#if defined(TIC_BUILD_WITH_SQUIRREL)
-    getSquirrelScriptConfig()->close(memory);
-#endif
-
-#if defined(TIC_BUILD_WITH_LUA)
-    getLuaScriptConfig()->close(memory);
-
-#   if defined(TIC_BUILD_WITH_MOON)
-    getMoonScriptConfig()->close(memory);
-#   endif
-
-#   if defined(TIC_BUILD_WITH_FENNEL)
-    getFennelConfig()->close(memory);
-#   endif
-
-#endif /* defined(TIC_BUILD_WITH_LUA) */
-
-
-#if defined(TIC_BUILD_WITH_JS)
-    getJsScriptConfig()->close(memory);
-#endif
-
-#if defined(TIC_BUILD_WITH_WREN)
-    getWrenScriptConfig()->close(memory);
-#endif
+#define SCRIPT_DEF(name, ...) get_## name ##_script_config()->close(memory);
+    SCRIPT_LIST(SCRIPT_DEF)
+#undef  SCRIPT_DEF
 
     blip_delete(core->blip.left);
     blip_delete(core->blip.right);

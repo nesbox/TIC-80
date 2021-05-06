@@ -168,22 +168,9 @@ typedef struct
 
     struct
     {
-#if defined(TIC_BUILD_WITH_LUA) || defined(TIC_BUILD_WITH_MOON) || defined(TIC_BUILD_WITH_FENNEL)
-        struct lua_State* lua;
-#endif
-
-#if defined(TIC_BUILD_WITH_JS)
-        struct duk_hthread* js;
-#endif
-
-#if defined(TIC_BUILD_WITH_WREN)
-        struct WrenVM* wren;
-#endif  
-
-#if defined(TIC_BUILD_WITH_SQUIRREL)
-        struct SQVM* squirrel;
-#endif
-
+#define SCRIPT_DEF(name, _, __, vm) struct vm* name;
+    SCRIPT_LIST(SCRIPT_DEF)
+#undef SCRIPT_DEF
     };
 
     struct
@@ -209,31 +196,6 @@ typedef struct
     } pause;
 
 } tic_core;
-
-#if defined(TIC_BUILD_WITH_SQUIRREL)
-const tic_script_config* getSquirrelScriptConfig();
-#endif
-
-#if defined(TIC_BUILD_WITH_LUA)
-const tic_script_config* getLuaScriptConfig();
-
-#   if defined(TIC_BUILD_WITH_MOON)
-const tic_script_config* getMoonScriptConfig();
-#   endif
-
-#   if defined(TIC_BUILD_WITH_FENNEL)
-const tic_script_config* getFennelConfig();
-#   endif
-
-#endif /* defined(TIC_BUILD_WITH_LUA) */
-
-#if defined(TIC_BUILD_WITH_JS)
-const tic_script_config* getJsScriptConfig();
-#endif
-
-#if defined(TIC_BUILD_WITH_WREN)
-const tic_script_config* getWrenScriptConfig();
-#endif
 
 void tic_core_tick_io(tic_mem* memory);
 void tic_core_sound_tick_start(tic_mem* memory);

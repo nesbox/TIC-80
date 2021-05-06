@@ -1607,7 +1607,7 @@ static const tic_script_config WrenSyntaxConfig =
     .keywordsCount      = COUNT_OF(WrenKeywords),
 };
 
-const tic_script_config* getWrenScriptConfig()
+const tic_script_config* get_wren_script_config()
 {
     return &WrenSyntaxConfig;
 }

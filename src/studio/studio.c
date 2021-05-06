@@ -2153,13 +2153,3 @@ Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* fold
 
     return &impl.studio;
 }
-
-bool hasProjectExt(const char* name)
-{
-    return tic_tool_has_ext(name, PROJECT_LUA_EXT)
-        || tic_tool_has_ext(name, PROJECT_MOON_EXT)
-        || tic_tool_has_ext(name, PROJECT_JS_EXT)
-        || tic_tool_has_ext(name, PROJECT_WREN_EXT)
-        || tic_tool_has_ext(name, PROJECT_SQUIRREL_EXT)
-        || tic_tool_has_ext(name, PROJECT_FENNEL_EXT);
-}

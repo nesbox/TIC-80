@@ -34,6 +34,7 @@ typedef enum
 } CartSaveResult;
 
 typedef struct Console Console;
+typedef struct CommandDesc CommandDesc;
 
 struct Console
 {
@@ -99,8 +100,10 @@ struct Console
     bool showGameMenu;
     StartArgs args;
 
+    CommandDesc* desc;
+
     void(*load)(Console*, const char* path);
-    void(*loadByHash)(Console*, const char* name, const char* hash, fs_done_callback callback, void* data);
+    void(*loadByHash)(Console*, const char* name, const char* hash, const char* section, fs_done_callback callback, void* data);
     void(*updateProject)(Console*);
     void(*error)(Console*, const char*);
     void(*trace)(Console*, const char*, u8 color);

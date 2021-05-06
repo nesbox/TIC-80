@@ -1758,7 +1758,7 @@ static const tic_script_config SquirrelSyntaxConfig =
     .keywordsCount      = COUNT_OF(SquirrelKeywords),
 };
 
-const tic_script_config* getSquirrelScriptConfig()
+const tic_script_config* get_squirrel_script_config()
 {
     return &SquirrelSyntaxConfig;
 }

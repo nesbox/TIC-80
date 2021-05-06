@@ -1113,7 +1113,7 @@ static const tic_script_config JsSyntaxConfig =
     .keywordsCount      = COUNT_OF(JsKeywords),
 };
 
-const tic_script_config* getJsScriptConfig()
+const tic_script_config* get_js_script_config()
 {
     return &JsSyntaxConfig;
 }

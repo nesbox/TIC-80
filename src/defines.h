@@ -33,7 +33,8 @@
 #define DEF2STR2(x) #x
 #define DEF2STR(x) DEF2STR2(x)
 #define STRLEN(str) (sizeof str - 1)
-#define FOR(type,it,list) for(type it = list, *__end__ = it + COUNT_OF(list); it < __end__; it++)
+#define FOR(type,it,list) for(type it = list, *__end__ = it + COUNT_OF(list); it != __end__; ++it)
+#define FREE(ptr) do { if(ptr) free(ptr); } while (0)
 
 #define BIT_SET(a,b)    ((a) | (1ULL<<(b)))
 #define BIT_CLEAR(a,b)  ((a) & ~(1ULL<<(b)))

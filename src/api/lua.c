@@ -1620,7 +1620,7 @@ static const tic_script_config LuaSyntaxConfig =
     .keywordsCount      = COUNT_OF(LuaKeywords),
 };
 
-const tic_script_config* getLuaScriptConfig()
+const tic_script_config* get_lua_script_config()
 {
     return &LuaSyntaxConfig;
 }
@@ -1787,7 +1787,7 @@ static const tic_script_config MoonSyntaxConfig =
     .keywordsCount      = COUNT_OF(MoonKeywords),
 };
 
-const tic_script_config* getMoonScriptConfig()
+const tic_script_config* get_moon_script_config()
 {
     return &MoonSyntaxConfig;
 }
@@ -1963,7 +1963,7 @@ static const tic_script_config FennelSyntaxConfig =
     .keywordsCount      = COUNT_OF(FennelKeywords),
 };
 
-const tic_script_config* getFennelConfig()
+const tic_script_config* get_fennel_script_config()
 {
     return &FennelSyntaxConfig;
 }

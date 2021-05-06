@@ -184,7 +184,6 @@ struct Start* getStartScreen();
 struct Sprite* getSpriteEditor();
 
 const char* md5str(const void* data, s32 length);
-bool hasProjectExt(const char* name);
 void sfx_stop(tic_mem* tic, s32 channel);
 const char* studioExportMusic(s32 track, const char* filename);
 const char* studioExportSfx(s32 sfx, const char* filename);

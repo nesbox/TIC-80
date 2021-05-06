@@ -22,56 +22,104 @@
 
 #pragma once
 
-#if !defined(TIC_BUILD_WITH_LUA) && 	\
-	!defined(TIC_BUILD_WITH_MOON) && 	\
-	!defined(TIC_BUILD_WITH_FENNEL) && 	\
-	!defined(TIC_BUILD_WITH_JS) && 		\
-	!defined(TIC_BUILD_WITH_WREN) &&	\
-	!defined(TIC_BUILD_WITH_SQUIRREL)
+#if !defined(TIC_BUILD_WITH_LUA)    && \
+    !defined(TIC_BUILD_WITH_MOON)   && \
+    !defined(TIC_BUILD_WITH_FENNEL) && \
+    !defined(TIC_BUILD_WITH_JS)     && \
+    !defined(TIC_BUILD_WITH_WREN)   && \
+    !defined(TIC_BUILD_WITH_SQUIRREL)
 
-#define TIC_BUILD_WITH_LUA 		1
-#define TIC_BUILD_WITH_MOON 	1
-#define TIC_BUILD_WITH_FENNEL 	1
-#define TIC_BUILD_WITH_JS 		1
-#define TIC_BUILD_WITH_WREN 	1
-#define TIC_BUILD_WITH_SQUIRREL 1
+#   define TIC_BUILD_WITH_LUA      1
+#   define TIC_BUILD_WITH_MOON     1
+#   define TIC_BUILD_WITH_FENNEL   1
+#   define TIC_BUILD_WITH_JS       1
+#   define TIC_BUILD_WITH_WREN     1
+#   define TIC_BUILD_WITH_SQUIRREL 1
 
 #endif
+
+#if defined(TIC_BUILD_WITH_FENNEL) || defined(TIC_BUILD_WITH_MOON)
+#   define TIC_BUILD_WITH_LUA 1
+#endif
+
+#if defined(TIC_BUILD_WITH_LUA)
+#   define TIC_LUA_DEF(macro) macro(lua, ".lua", "--", lua_State)
+#else 
+#   define TIC_LUA_DEF(macro)
+#endif
+
+#if defined(TIC_BUILD_WITH_MOON)
+#   define TIC_MOON_DEF(macro) macro(moon, ".moon", "--", lua_State)
+#else 
+#   define TIC_MOON_DEF(macro)
+#endif
+
+#if defined(TIC_BUILD_WITH_FENNEL)
+#   define TIC_FENNEL_DEF(macro) macro(fennel, ".fnl", ";;", lua_State)
+#else 
+#   define TIC_FENNEL_DEF(macro)
+#endif
+
+#if defined(TIC_BUILD_WITH_JS)
+#   define TIC_JS_DEF(macro) macro(js, ".js", "//", duk_hthread)
+#else 
+#   define TIC_JS_DEF(macro)
+#endif
+
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+#   define TIC_SQUIRREL_DEF(macro) macro(squirrel, ".nut", "//", SQVM)
+#else 
+#   define TIC_SQUIRREL_DEF(macro)
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
+#   define TIC_WREN_DEF(macro) macro(wren, ".wren", "//", WrenVM)
+#else 
+#   define TIC_WREN_DEF(macro)
+#endif
+
+#define SCRIPT_LIST(macro)  \
+    TIC_LUA_DEF(macro)      \
+    TIC_MOON_DEF(macro)     \
+    TIC_FENNEL_DEF(macro)   \
+    TIC_JS_DEF(macro)       \
+    TIC_SQUIRREL_DEF(macro) \
+    TIC_WREN_DEF(macro)
 
 #if defined(__APPLE__)
 // TODO: this disables macos config 
-#	include "AvailabilityMacros.h"
-#	include "TargetConditionals.h"
-// #	ifndef TARGET_OS_IPHONE
-#		undef __TIC_MACOSX__
-#		define __TIC_MACOSX__ 1
-#		if MAC_OS_X_VERSION_MIN_REQUIRED < 1060
-#			error SDL for Mac OS X only supports deploying on 10.6 and above.
-#		endif /* MAC_OS_X_VERSION_MIN_REQUIRED < 1060 */
-// #	endif /* TARGET_OS_IPHONE */
+#   include "AvailabilityMacros.h"
+#   include "TargetConditionals.h"
+// #    ifndef TARGET_OS_IPHONE
+#       undef __TIC_MACOSX__
+#       define __TIC_MACOSX__ 1
+#       if MAC_OS_X_VERSION_MIN_REQUIRED < 1060
+#           error SDL for Mac OS X only supports deploying on 10.6 and above.
+#       endif /* MAC_OS_X_VERSION_MIN_REQUIRED < 1060 */
+// #    endif /* TARGET_OS_IPHONE */
 #endif /* defined(__APPLE__) */
 
 #if defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__)
-#	undef __TIC_WINDOWS__
-#	define __TIC_WINDOWS__ 1
+#   undef __TIC_WINDOWS__
+#   define __TIC_WINDOWS__ 1
 #endif 
 
 #if defined(ANDROID) || defined(__ANDROID__)
-#	undef __TIC_ANDROID__
-#	define __TIC_ANDROID__ 1
+#   undef __TIC_ANDROID__
+#   define __TIC_ANDROID__ 1
 #elif (defined(linux) || defined(__linux) || defined(__linux__))
-#	undef __TIC_LINUX__
-#	define __TIC_LINUX__ 1
+#   undef __TIC_LINUX__
+#   define __TIC_LINUX__ 1
 #endif
 
 #ifndef TIC80_API
-#	if defined(TIC80_SHARED)
-#		if defined(__TIC_WINDOWS__)
-#			define TIC80_API __declspec(dllexport)
-#		elif defined(__TIC_LINUX__)
-#			define TIC80_API __attribute__ ((visibility("default")))
-#		endif
-#	else
-#		define TIC80_API
-#	endif
+#   if defined(TIC80_SHARED)
+#       if defined(__TIC_WINDOWS__)
+#           define TIC80_API __declspec(dllexport)
+#       elif defined(__TIC_LINUX__)
+#           define TIC80_API __attribute__ ((visibility("default")))
+#       endif
+#   else
+#       define TIC80_API
+#   endif
 #endif
