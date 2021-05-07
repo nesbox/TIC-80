@@ -147,7 +147,7 @@ bool tic_project_ext(const char* name)
 
 s32 tic_project_save(const char* name, void* data, const tic_cartridge* cart)
 {
-	const char* comment = projectComment(name);
+    const char* comment = projectComment(name);
     char* stream = data;
     char* ptr = saveTextSection(stream, cart->code.data);
     char tag[16];

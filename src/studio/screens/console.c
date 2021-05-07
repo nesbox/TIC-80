@@ -691,11 +691,11 @@ static void updateProject(Console* console)
         s32 size = 0;
         void* data = fs_read(path, &size);
 
-        if(data)
+        if(data) SCOPE(free(data))
         {
             tic_cartridge* cart = newCart();
 
-            if(cart)
+            SCOPE(free(cart))
             {
                 if(tic_project_load(console->rom.name, data, size, cart))
                 {
@@ -704,12 +704,8 @@ static void updateProject(Console* console)
                     studioRomLoaded();
                 }
                 else printError(console, "\nproject updating error :(");
-                
-                free(cart);
             }
-            free(data);
-
-        }       
+        }
     }
 }
 
@@ -727,12 +723,13 @@ static void loadByHashDone(const u8* buffer, s32 size, void* data)
     LoadByHashData* loadByHashData = data;
     Console* console = loadByHashData->console;
 
+    tic_cartridge* cart = newCart();
+
+    SCOPE(free(cart))
     {
-        tic_cartridge* cart = newCart();
         tic_cart_load(cart, buffer, size);
         loadCartSection(console, cart, loadByHashData->section);
         onCartLoaded(console, loadByHashData->name);
-        free(cart);        
     }
 
     if (loadByHashData->callback)
@@ -854,32 +851,33 @@ static void onLoadCommandConfirmed(Console* console)
                 ? tic_fs_loadroot(console->fs, name, &size)
                 : tic_fs_load(console->fs, name, &size);
 
-            if(data)
+            if(data) SCOPE(free(data))
             {
                 tic_cartridge* cart = newCart();
 
-                tic_cart_load(cart, data, size);
-                loadCartSection(console, cart, section);
-                onCartLoaded(console, name);
-
-                free(cart);
-                free(data);
+                SCOPE(free(cart))
+                {
+                    tic_cart_load(cart, data, size);
+                    loadCartSection(console, cart, section);
+                    onCartLoaded(console, name);
+                }
             }
             else if(tic_tool_has_ext(param, PngExt) && tic_fs_exists(console->fs, param))
             {
                 png_buffer buffer;
                 buffer.data = tic_fs_load(console->fs, param, &buffer.size);
-                tic_cartridge* cart = loadPngCart(buffer);
 
-                if(cart)
+                SCOPE(free(buffer.data))
                 {
-                    loadCartSection(console, cart, section);
-                    onCartLoaded(console, param);
-                    free(cart);
+                    tic_cartridge* cart = loadPngCart(buffer);
+
+                    if(cart) SCOPE(free(cart))
+                    {
+                        loadCartSection(console, cart, section);
+                        onCartLoaded(console, param);
+                    }
+                    else printError(console, "\npng cart loading error");                    
                 }
-                else printError(console, "\npng cart loading error");
-               
-                free(buffer.data);
             }
             else
             {
@@ -889,17 +887,19 @@ static void onLoadCommandConfirmed(Console* console)
                 {
                     void* data = tic_fs_load(console->fs, name, &size);
 
-                    if(data)
+                    if(data) SCOPE(free(data))
                     {
                         tic_cartridge* cart = newCart();
-                        tic_project_load(name, data, size, cart);
-                        loadCartSection(console, cart, section);
-                        onCartLoaded(console, name);
-                        free(cart);
+
+                        SCOPE(free(cart))
+                        {
+                            tic_project_load(name, data, size, cart);
+                            loadCartSection(console, cart, section);
+                            onCartLoaded(console, name);                            
+                        }
                     }
                     else printError(console, "\nproject loading error");
 
-                    free(data);                    
                 }
                 else printError(console, "\nfile not found");
             }
@@ -1265,154 +1265,157 @@ static void onInstallDemosCommand(Console* console)
     tic_fs* fs = console->fs;
     u8* data = (u8*)newCart();
 
-    printBack(console, "\nadded carts:\n\n");
+    SCOPE(free(data))
+    {
+        printBack(console, "\nadded carts:\n\n");
 
 #if defined(TIC_BUILD_WITH_LUA)
-    static const u8 demofire[] =
-    {
-        #include "../build/assets/fire.tic.dat"
-    };
 
-    static const u8 demop3d[] =
-    {
-        #include "../build/assets/p3d.tic.dat"
-    };
+        static const u8 demofire[] =
+        {
+            #include "../build/assets/fire.tic.dat"
+        };
 
-    static const u8 demosfx[] =
-    {
-        #include "../build/assets/sfx.tic.dat"
-    };
+        static const u8 demop3d[] =
+        {
+            #include "../build/assets/p3d.tic.dat"
+        };
 
-    static const u8 demopalette[] =
-    {
-        #include "../build/assets/palette.tic.dat"
-    };
+        static const u8 demosfx[] =
+        {
+            #include "../build/assets/sfx.tic.dat"
+        };
 
-    static const u8 demofont[] =
-    {
-        #include "../build/assets/font.tic.dat"
-    };
+        static const u8 demopalette[] =
+        {
+            #include "../build/assets/palette.tic.dat"
+        };
 
-    static const u8 demomusic[] =
-    {
-        #include "../build/assets/music.tic.dat"
-    };
+        static const u8 demofont[] =
+        {
+            #include "../build/assets/font.tic.dat"
+        };
 
-    static const u8 demoquest[] =
-    {
-        #include "../build/assets/quest.tic.dat"
-    };
+        static const u8 demomusic[] =
+        {
+            #include "../build/assets/music.tic.dat"
+        };
 
-    static const u8 demotetris[] =
-    {
-        #include "../build/assets/tetris.tic.dat"
-    };
+        static const u8 demoquest[] =
+        {
+            #include "../build/assets/quest.tic.dat"
+        };
 
-    static const u8 demobenchmark[] =
-    {
-        #include "../build/assets/benchmark.tic.dat"
-    };
+        static const u8 demotetris[] =
+        {
+            #include "../build/assets/tetris.tic.dat"
+        };
 
-    static const u8 demobpp[] =
-    {
-        #include "../build/assets/bpp.tic.dat"
-    };
+        static const u8 demobenchmark[] =
+        {
+            #include "../build/assets/benchmark.tic.dat"
+        };
 
-#define DEMOS_LIST(macro)   \
-    macro(fire)             \
-    macro(font)             \
-    macro(music)            \
-    macro(p3d)              \
-    macro(palette)          \
-    macro(quest)            \
-    macro(sfx)              \
-    macro(tetris)           \
-    macro(benchmark)        \
-    macro(bpp)
+        static const u8 demobpp[] =
+        {
+            #include "../build/assets/bpp.tic.dat"
+        };
 
-    static const struct Demo {const char* name; const u8* data; s32 size;} Demos[] =
-    {
-#define DEMOS_DEF(name) {#name ".tic", demo ## name, sizeof demo ## name},
-        DEMOS_LIST(DEMOS_DEF)
-#undef  DEMOS_DEF
-    };
+#define DEMOS_LIST(macro)       \
+        macro(fire)             \
+        macro(font)             \
+        macro(music)            \
+        macro(p3d)              \
+        macro(palette)          \
+        macro(quest)            \
+        macro(sfx)              \
+        macro(tetris)           \
+        macro(benchmark)        \
+        macro(bpp)
 
-#undef DEMOS_LIST
+        static const struct Demo {const char* name; const u8* data; s32 size;} Demos[] =
+        {
+#define     DEMOS_DEF(name) {#name ".tic", demo ## name, sizeof demo ## name},
+            DEMOS_LIST(DEMOS_DEF)
+#undef      DEMOS_DEF
+        };
 
-    FOR(const struct Demo*, demo, Demos)
-    {
-        tic_fs_save(fs, demo->name, data, tic_tool_unzip(data, sizeof(tic_cartridge), demo->data, demo->size), true);
-        printFront(console, demo->name);
-        printLine(console);
-    }
+#undef  DEMOS_LIST
+
+        FOR(const struct Demo*, demo, Demos)
+        {
+            tic_fs_save(fs, demo->name, data, tic_tool_unzip(data, sizeof(tic_cartridge), demo->data, demo->size), true);
+            printFront(console, demo->name);
+            printLine(console);
+        }
 #endif
 
 #if defined(TIC_BUILD_WITH_LUA)
-    static const u8 luamark[] =
-    {
-        #include "../build/assets/luamark.tic.dat"
-    };
+        static const u8 luamark[] =
+        {
+            #include "../build/assets/luamark.tic.dat"
+        };
 #endif
 
 #if defined(TIC_BUILD_WITH_MOON)
-    static const u8 moonmark[] =
-    {
-        #include "../build/assets/moonmark.tic.dat"
-    };
+        static const u8 moonmark[] =
+        {
+            #include "../build/assets/moonmark.tic.dat"
+        };
 #endif
 
 #if defined(TIC_BUILD_WITH_FENNEL)
-    static const u8 fennelmark[] =
-    {
-        #include "../build/assets/luamark.tic.dat"
-    };
+        static const u8 fennelmark[] =
+        {
+            #include "../build/assets/luamark.tic.dat"
+        };
 #endif
 
 #if defined(TIC_BUILD_WITH_JS)
-    static const u8 jsmark[] =
-    {
-        #include "../build/assets/jsmark.tic.dat"
-    };
+        static const u8 jsmark[] =
+        {
+            #include "../build/assets/jsmark.tic.dat"
+        };
 #endif
 
 #if defined(TIC_BUILD_WITH_SQUIRREL)
-    static const u8 squirrelmark[] =
-    {
-        #include "../build/assets/squirrelmark.tic.dat"
-    };
+        static const u8 squirrelmark[] =
+        {
+            #include "../build/assets/squirrelmark.tic.dat"
+        };
 #endif
 
 #if defined(TIC_BUILD_WITH_WREN)
-    static const u8 wrenmark[] =
-    {
-        #include "../build/assets/wrenmark.tic.dat"
-    };
+        static const u8 wrenmark[] =
+        {
+            #include "../build/assets/wrenmark.tic.dat"
+        };
 #endif
 
-    static const struct Mark {const char* name; const u8* data; s32 size;} Marks[] =
-    {
-#define SCRIPT_DEF(name, ...) {#name "mark.tic", name ## mark, sizeof name ## mark},
-    SCRIPT_LIST(SCRIPT_DEF)
-#undef SCRIPT_DEF
-    };
+        static const struct Mark {const char* name; const u8* data; s32 size;} Marks[] =
+        {
+#define     SCRIPT_DEF(name, ...) {#name "mark.tic", name ## mark, sizeof name ## mark},
+            SCRIPT_LIST(SCRIPT_DEF)
+#undef      SCRIPT_DEF
+        };
 
-    static const char* Bunny = "bunny";
+        static const char* Bunny = "bunny";
 
-    tic_fs_makedir(fs, Bunny);
-    tic_fs_changedir(fs, Bunny);
+        tic_fs_makedir(fs, Bunny);
+        tic_fs_changedir(fs, Bunny);
 
-    FOR(const struct Mark*, mark, Marks)
-    {
-        tic_fs_save(fs, mark->name, data, tic_tool_unzip(data, sizeof(tic_cartridge), mark->data, mark->size), true);
-        printFront(console, Bunny);
-        printFront(console, "/");
-        printFront(console, mark->name);
-        printLine(console);
+        FOR(const struct Mark*, mark, Marks)
+        {
+            tic_fs_save(fs, mark->name, data, tic_tool_unzip(data, sizeof(tic_cartridge), mark->data, mark->size), true);
+            printFront(console, Bunny);
+            printFront(console, "/");
+            printFront(console, mark->name);
+            printLine(console);
+        }
+
+        tic_fs_dirback(fs);
     }
 
-    tic_fs_dirback(fs);
-
-    free(data);
     commandDone(console);
 }
 
@@ -1665,17 +1668,20 @@ static void exportSprites(Console* console, const char* filename, tic_tile* base
     const tic_cartridge* cart = &tic->cart;
 
     png_img img = {TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE, malloc(TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE * sizeof(png_rgba))};
-    
-    const tic_palette* pal = getBankPalette(false);
-    for(s32 i = 0; i < TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE; i++)
-        img.values[i] = tic_rgba(&pal->colors[getSpritePixel(base, i % TIC_SPRITESHEET_SIZE, i / TIC_SPRITESHEET_SIZE)]);
 
-    png_buffer png = png_write(img);
+    SCOPE(free(img.data))
+    {
+        const tic_palette* pal = getBankPalette(false);
+        for(s32 i = 0; i < TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE; i++)
+            img.values[i] = tic_rgba(&pal->colors[getSpritePixel(base, i % TIC_SPRITESHEET_SIZE, i / TIC_SPRITESHEET_SIZE)]);
 
-    onFileExported(console, filename, tic_fs_save(console->fs, filename, png.data, png.size, true));
+        png_buffer png = png_write(img);
 
-    free(png.data);
-    free(img.data);
+        SCOPE(free(png.data))
+        {
+            onFileExported(console, filename, tic_fs_save(console->fs, filename, png.data, png.size, true));
+        }
+    }
 }
 
 static void *ticMemmem(const void* haystack, size_t hlen, const void* needle, size_t nlen)
@@ -1715,14 +1721,14 @@ static void* embedCart(Console* console, u8* app, s32* size)
     u8* data = NULL;
     void* cart = newCart();
 
-    if(cart)
+    SCOPE(free(cart))
     {
         s32 cartSize = tic_cart_save(&tic->cart, cart);
 
         s32 zipSize = sizeof(tic_cartridge);
         u8* zipData = (u8*)malloc(zipSize);
 
-        if(zipData)
+        SCOPE(free(zipData))
         {
             if((zipSize = tic_tool_zip(zipData, zipSize, cart, cartSize)))
             {
@@ -1748,11 +1754,7 @@ static void* embedCart(Console* console, u8* app, s32* size)
                     *size = finalSize;
                 }
             }
-
-            free(zipData);
         }
-
-        free(cart);
     }
     
     return data;
@@ -1865,11 +1867,11 @@ static void onHtmlExportGet(const net_get_data* data)
             {
                 struct zip_t *zip = zip_open(zipPath, ZIP_DEFAULT_COMPRESSION_LEVEL, 'a');
 
-                if(zip)
+                if(zip) SCOPE(zip_close(zip))
                 {
                     void* cart = newCart();
 
-                    if(cart)
+                    SCOPE(free(cart))
                     {
                         s32 cartSize = tic_cart_save(&tic->cart, cart);
 
@@ -1880,12 +1882,7 @@ static void onHtmlExportGet(const net_get_data* data)
                             zip_entry_close(zip);
                         }
                         else errorOccured = true;
-
-                        free(cart);
                     }
-                    else errorOccured = true;
-
-                    zip_close(zip);
                 }
                 else errorOccured = true;                
             }
@@ -2441,7 +2438,11 @@ static struct Command
         "new",
         NULL,
         "creates a new `Hello World` cartridge.",
-        "new [lua|moon|js|wren|fennel|squirrel]",
+        "new ["
+#define SCRIPT_DEF(name, ...) #name "|"
+        SCRIPT_LIST(SCRIPT_DEF)
+#undef  SCRIPT_DEF       
+        "...]",
         onNewCommand
     },
     {
@@ -3105,6 +3106,10 @@ static void onHistoryDown(Console* console)
 
 static void appendHistory(Console* console, const char* value)
 {
+    if(console->history.size)
+        if(strcmp(console->history.items[console->history.index = console->history.size - 1], value) == 0)
+            return;
+
     console->history.index = console->history.size++;
     console->history.items = realloc(console->history.items, sizeof(char*) * console->history.size);
     console->history.items[console->history.index] = strdup(value);

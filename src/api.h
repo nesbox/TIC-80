@@ -121,7 +121,8 @@ enum
 #define OVR_FN "OVR"
 
 #define TIC_CALLBACK_LIST(macro)                                                                                        \
-    macro(TIC_FN, TIC_FN "()", "Main function. It's called at 60 fps (60 times every second).")                         \
+    macro(TIC_FN, TIC_FN "()", "Main function. It's called at " DEF2STR(TIC80_FRAMERATE)                                \
+        "fps (" DEF2STR(TIC80_FRAMERATE) " times every second).")                                                       \
     macro(SCN_FN, SCN_FN "(row)", "Allows you to execute code between the drawing of each scanline, "                   \
         "for example, to manipulate the palette.")                                                                      \
     macro(OVR_FN, OVR_FN "()", "Called after each frame;"                                                               \
@@ -159,8 +160,7 @@ enum
                                                                                                                         \
         "Clear the screen.\n"                                                                                           \
         "When called this function clear all the screen using the color passed as argument.\n"                          \
-        "If no parameter is passed first color (0) is used.\n"                                                          \
-        "\nTips: Use a color over 15 to see some special fill pattern.",                                                \
+        "If no parameter is passed first color (0) is used.",                                                           \
         1,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, u8 color)                                                                                             \

@@ -1173,7 +1173,6 @@ void setStudioMode(EditorMode mode)
             break;
         case TIC_RUN_MODE:
         case TIC_SURF_MODE:
-            impl.console->done(impl.console);
             impl.prevMode = TIC_CODE_MODE;
             break;
         default: impl.prevMode = prev; break;
@@ -1181,6 +1180,10 @@ void setStudioMode(EditorMode mode)
 
         switch(mode)
         {
+        case TIC_CONSOLE_MODE:
+            if (prev == TIC_SURF_MODE)
+                impl.console->done(impl.console);
+            break;
         case TIC_WORLD_MODE: initWorldMap(); break;
         case TIC_RUN_MODE: initRunMode(); break;
         case TIC_SURF_MODE: impl.surf->resume(impl.surf); break;

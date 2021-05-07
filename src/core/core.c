@@ -375,7 +375,7 @@ static void cart2ram(tic_mem* memory)
 #undef      TIC_SYNC_DEF
             count,
             all = (1 << count) - 1,
-            noscreen = BIT_CLEAR(all, sync_screen)
+            noscreen = BITCLEAR(all, sync_screen)
     };
 
     // don't sync empty screen

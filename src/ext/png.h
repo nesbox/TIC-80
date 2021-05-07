@@ -32,17 +32,17 @@ typedef struct
 
 typedef union
 {
-	struct
-	{
-		u8 r;
-		u8 g;
-		u8 b;
-		u8 a;
-	};
+    struct
+    {
+        u8 r;
+        u8 g;
+        u8 b;
+        u8 a;
+    };
 
-	u8 data[4];
+    u8 data[4];
 
-	u32 value;
+    u32 value;
 } png_rgba;
 
 typedef struct
@@ -52,9 +52,9 @@ typedef struct
 
     union
     {
-    	png_rgba* pixels;
-    	u32* values;
-    	u8* data;
+        png_rgba* pixels;
+        u32* values;
+        u8* data;
     };
 } png_img;
 
