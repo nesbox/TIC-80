@@ -25,6 +25,7 @@
 #include "core.h"
 
 #include <string.h>
+#include <assert.h>
 
 #define ENVELOPE_FREQ_SCALE 2
 #define SECONDS_PER_MINUTE 60
@@ -32,13 +33,13 @@
 #define PIANO_START 8
 
 static const u16 NoteFreqs[] = { 0x10, 0x11, 0x12, 0x13, 0x15, 0x16, 0x17, 0x18, 0x1a, 0x1c, 0x1d, 0x1f, 0x21, 0x23, 0x25, 0x27, 0x29, 0x2c, 0x2e, 0x31, 0x34, 0x37, 0x3a, 0x3e, 0x41, 0x45, 0x49, 0x4e, 0x52, 0x57, 0x5c, 0x62, 0x68, 0x6e, 0x75, 0x7b, 0x83, 0x8b, 0x93, 0x9c, 0xa5, 0xaf, 0xb9, 0xc4, 0xd0, 0xdc, 0xe9, 0xf7, 0x106, 0x115, 0x126, 0x137, 0x14a, 0x15d, 0x172, 0x188, 0x19f, 0x1b8, 0x1d2, 0x1ee, 0x20b, 0x22a, 0x24b, 0x26e, 0x293, 0x2ba, 0x2e4, 0x310, 0x33f, 0x370, 0x3a4, 0x3dc, 0x417, 0x455, 0x497, 0x4dd, 0x527, 0x575, 0x5c8, 0x620, 0x67d, 0x6e0, 0x749, 0x7b8, 0x82d, 0x8a9, 0x92d, 0x9b9, 0xa4d, 0xaea, 0xb90, 0xc40, 0xcfa, 0xdc0, 0xe91, 0xf6f, 0x105a, 0x1153, 0x125b, 0x1372, 0x149a, 0x15d4, 0x1720, 0x1880 };
-STATIC_ASSERT(count_of_freqs, COUNT_OF(NoteFreqs) == NOTES * OCTAVES + PIANO_START);
-STATIC_ASSERT(tic_sound_register, sizeof(tic_sound_register) == 16 + 2);
-STATIC_ASSERT(tic_sample, sizeof(tic_sample) == 66);
-STATIC_ASSERT(tic_track_pattern, sizeof(tic_track_pattern) == 3 * MUSIC_PATTERN_ROWS);
-STATIC_ASSERT(tic_track, sizeof(tic_track) == 3 * MUSIC_FRAMES + 3);
-STATIC_ASSERT(tic_music_cmd_count, tic_music_cmd_count == 1 << MUSIC_CMD_BITS);
-STATIC_ASSERT(tic_music_state_size, sizeof(tic_music_state) == 4);
+static_assert(COUNT_OF(NoteFreqs) == NOTES * OCTAVES + PIANO_START, "count_of_freqs");
+static_assert(sizeof(tic_sound_register) == 16 + 2,                 "tic_sound_register");
+static_assert(sizeof(tic_sample) == 66,                             "tic_sample");
+static_assert(sizeof(tic_track_pattern) == 3 * MUSIC_PATTERN_ROWS,  "tic_track_pattern");
+static_assert(sizeof(tic_track) == 3 * MUSIC_FRAMES + 3,            "tic_track");
+static_assert(tic_music_cmd_count == 1 << MUSIC_CMD_BITS,           "tic_music_cmd_count");
+static_assert(sizeof(tic_music_state) == 4,                         "tic_music_state_size");
 
 static s32 getTempo(tic_core* core, const tic_track* track)
 {
@@ -422,7 +423,7 @@ static void processMusic(tic_mem* memory)
             if (cmdData->vibrato.period && cmdData->vibrato.depth)
             {
                 static const s32 VibData[] = { 0x0, 0x31f1, 0x61f8, 0x8e3a, 0xb505, 0xd4db, 0xec83, 0xfb15, 0x10000, 0xfb15, 0xec83, 0xd4db, 0xb505, 0x8e3a, 0x61f8, 0x31f1, 0x0, 0xffffce0f, 0xffff9e08, 0xffff71c6, 0xffff4afb, 0xffff2b25, 0xffff137d, 0xffff04eb, 0xffff0000, 0xffff04eb, 0xffff137d, 0xffff2b25, 0xffff4afb, 0xffff71c6, 0xffff9e08, 0xffffce0f };
-                STATIC_ASSERT(VibData, COUNT_OF(VibData) == 32);
+                static_assert(COUNT_OF(VibData) == 32, "VibData");
 
                 s32 p = cmdData->vibrato.period << 1;
                 pitch += (VibData[(cmdData->vibrato.tick % p) * COUNT_OF(VibData) / p] * cmdData->vibrato.depth) >> 16;

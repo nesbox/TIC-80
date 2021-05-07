@@ -124,7 +124,7 @@ if(MSVC)
     
 else()
 
-    set(CMAKE_C_STANDARD 99)
+    set(CMAKE_C_STANDARD 11)
 endif()
 
 set(THIRDPARTY_DIR ${CMAKE_SOURCE_DIR}/vendor)

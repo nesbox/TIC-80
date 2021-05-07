@@ -23,7 +23,9 @@
 #include "api.h"
 #include "core.h"
 
-STATIC_ASSERT(tic80_input, sizeof(tic80_input) == 12);
+#include <assert.h>
+
+static_assert(sizeof(tic80_input) == 12, "tic80_input");
 
 static bool isKeyPressed(const tic80_keyboard* input, tic_key key)
 {

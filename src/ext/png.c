@@ -26,6 +26,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <png.h>
+#include <assert.h>
 
 #define RGBA_SIZE sizeof(u32)
 
@@ -167,7 +168,7 @@ typedef union
     u8 data[RGBA_SIZE];
 } Header;
 
-STATIC_ASSERT(header_size, sizeof(Header) == RGBA_SIZE);
+static_assert(sizeof(Header) == RGBA_SIZE, "header_size");
 
 #define BITS_IN_BYTE 8
 #define HEADER_BITS 4

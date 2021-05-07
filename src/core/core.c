@@ -31,15 +31,16 @@
 #include <ctype.h>
 #include <stddef.h>
 #include <time.h>
+#include <assert.h>
 
 #ifdef _3DS
 #include <3ds.h>
 #endif
 
-STATIC_ASSERT(tic_bank_bits, TIC_BANK_BITS == 3);
-STATIC_ASSERT(tic_map, sizeof(tic_map) < 1024 * 32);
-STATIC_ASSERT(tic_vram, sizeof(tic_vram) == TIC_VRAM_SIZE);
-STATIC_ASSERT(tic_ram, sizeof(tic_ram) == TIC_RAM_SIZE);
+static_assert(TIC_BANK_BITS == 3,                   "tic_bank_bits");
+static_assert(sizeof(tic_map) < 1024 * 32,          "tic_map");
+static_assert(sizeof(tic_vram) == TIC_VRAM_SIZE,    "tic_vram");
+static_assert(sizeof(tic_ram) == TIC_RAM_SIZE,      "tic_ram");
 
 static inline u32* getOvrAddr(tic_mem* tic, s32 x, s32 y)
 {

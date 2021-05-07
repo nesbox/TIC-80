@@ -24,6 +24,7 @@
 #include "ext/history.h"
 
 #include <ctype.h>
+#include <assert.h>
 
 #define TEXT_CURSOR_DELAY (TIC80_FRAMERATE / 2)
 #define TEXT_CURSOR_BLINK_PERIOD TIC80_FRAMERATE
@@ -34,7 +35,7 @@
 
 typedef struct CodeState CodeState;
 
-STATIC_ASSERT(CodeStateSize, sizeof(CodeState) == sizeof(u8));
+static_assert(sizeof(CodeState) == sizeof(u8), "CodeStateSize");
 
 enum
 {

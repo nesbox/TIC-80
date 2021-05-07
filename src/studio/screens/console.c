@@ -815,9 +815,9 @@ static void onLoadCommandConfirmed(Console* console)
             static const char* Sections[] =
             {
                 "code",
-    #define     SECTION_DEF(name, ...) #name,
+#define         SECTION_DEF(name, ...) #name,
                 TIC_SYNC_LIST(SECTION_DEF)
-    #undef      SECTION_DEF            
+#undef          SECTION_DEF
             };
 
             bool found = false;
