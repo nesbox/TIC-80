@@ -184,7 +184,9 @@ static duk_ret_t duk_spr(duk_context* duk)
     }
 
     s32 scale = duk_opt_int(duk, 4, 1);
-    tic_flip flip = duk_opt_int(duk, 5, tic_no_flip);
+    tic_flip flip = duk_is_boolean(duk, 5) 
+        ? duk_to_boolean(duk, 5) ? tic_horz_flip : tic_no_flip
+        : duk_opt_int(duk, 5, tic_no_flip);
     tic_rotate rotate = duk_opt_int(duk, 6, tic_no_rotate);
     s32 w = duk_opt_int(duk, 7, 1);
     s32 h = duk_opt_int(duk, 8, 1);
