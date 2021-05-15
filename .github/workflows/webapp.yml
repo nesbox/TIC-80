@@ -1,4 +1,4 @@
-name: Web App Release
+name: WebApp
 
 on:
   release:
