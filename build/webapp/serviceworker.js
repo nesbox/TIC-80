@@ -1,14 +1,13 @@
 const version = 'tic80-v1'
 const assets = [
-	'/',
-	'/index.html',
-	'/tic80.js',
-	'/tic80.wasm',
-	'/tic80-180.png',
-	'/tic80-192.png',
-	'/tic80-512.png',
-	'/serviceworker.js',
-	'/tic80.webmanifest'
+	'index.html',
+	'tic80.js',
+	'tic80.wasm',
+	'tic80-180.png',
+	'tic80-192.png',
+	'tic80-512.png',
+	'serviceworker.js',
+	'tic80.webmanifest'
 ]
 
 self.addEventListener('install', function(event) {
