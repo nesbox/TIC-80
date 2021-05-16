@@ -6,9 +6,9 @@
     <meta name="theme-color" content="#f4f4f4"/>
 
     <link rel="manifest" href="tic80.webmanifest">
-    <link rel="apple-touch-icon" sizes="180x180" href="/tic80-180.png">
-    <link rel="apple-touch-icon" sizes="192x192" href="/tic80-192.png">
-    <link rel="apple-touch-icon" sizes="512x512" href="/tic80-512.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="tic80-180.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="tic80-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="tic80-512.png">
 
     <title>TIC-80</title>
 
@@ -33,11 +33,11 @@
 		canvas: document.getElementById('canvas')
 	}
 
-        navigator.serviceWorker.register('/serviceworker.js');
+        navigator.serviceWorker.register('serviceworker.js');
 
         setTimeout(function() {
             const scriptTag = document.createElement('script');
-            scriptTag.src = '/tic80.js';
+            scriptTag.src = 'tic80.js';
 
             document.body.appendChild(scriptTag);
             document.getElementById('game-frame').remove()

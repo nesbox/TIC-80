@@ -15,7 +15,6 @@ self.addEventListener('install', function(event) {
   console.log('serviceworker installing')
   caches.open(version)
     .then(function(cache) {
-      console.log('service worker loading assets')
       return cache.addAll(assets);
     })
 });
@@ -25,15 +24,11 @@ self.addEventListener('fetch', function(event) {
     caches.match(event.request)
       .then(function(response) {
         if (response) {
-        console.log(`service worker cache hit ${event.request}`)
           return response;
         }
-        console.log(`service worker cache miss ${event.request}`)
         return fetch(event.request);
       }
     )
   );
 });
-
-console.log('service worker loaded')
 
