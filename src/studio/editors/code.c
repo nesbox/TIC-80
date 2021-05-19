@@ -262,7 +262,7 @@ static void drawCode(Code* code, bool withCursor)
     if(code->cursor.position == pointer)
         cursor.x = x, cursor.y = y;
 
-    if(withCursor && cursor.x >= 0 && cursor.y >= 0)
+    if(withCursor && cursor.x >= BOOKMARK_WIDTH && cursor.y >= 0)
         drawCursor(code, cursor.x, cursor.y, cursor.symbol);
 
     if(matchedDelim.symbol) {
