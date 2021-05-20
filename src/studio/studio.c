@@ -617,16 +617,17 @@ bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces)
     {
         char* clipboard = tic_sys_clipboard_get();
 
-        if (remove_white_spaces)
-            removeWhiteSpaces(clipboard);
+        SCOPE(tic_sys_clipboard_free(clipboard))
+        {
+            if (remove_white_spaces)
+                removeWhiteSpaces(clipboard);
 
-        bool valid = strlen(clipboard) <= size * 2;
+            bool valid = strlen(clipboard) <= size * 2;
 
-        if(valid) tic_tool_str2buf(clipboard, (s32)strlen(clipboard), data, flip);
+            if(valid) tic_tool_str2buf(clipboard, (s32)strlen(clipboard), data, flip);
 
-        tic_sys_clipboard_free(clipboard);
-
-        return valid;
+            return valid;
+        }
     }
 
     return false;
