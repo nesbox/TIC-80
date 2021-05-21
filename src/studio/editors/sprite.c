@@ -1110,17 +1110,22 @@ static void drawRGBSliders(Sprite* sprite, s32 x, s32 y)
             }
         }
 
-        drawPanelBorder(sprite->tic, rect.x, rect.y, rect.w, rect.h);
-        tic_api_rect(sprite->tic, rect.x, rect.y, rect.w, rect.h, tic_color_black);
+        bool hasFocus = sprite->palette.focus >= 0;
+        if(hasFocus)
+        {
+            drawPanelBorder(sprite->tic, rect.x, rect.y, rect.w, rect.h);
+            tic_api_rect(sprite->tic, rect.x, rect.y, rect.w, rect.h, tic_color_black);            
+        }
 
         for(s32 i = 0; i < Rows; i++)
         {
             char buf[sizeof "FF"];
             sprintf(buf, "%02X", data[i]);
-            tic_api_print(tic, buf, rect.x + 1, rect.y + i * TIC_FONT_HEIGHT + 1, tic_color_grey, true, 1, false);
+            tic_api_print(tic, buf, rect.x + 1, rect.y + i * TIC_FONT_HEIGHT + 1, 
+                hasFocus ? tic_color_grey : tic_color_light_grey, true, 1, false);
         }
 
-        if(sprite->palette.focus >= 0)
+        if(hasFocus)
         {
             s32 col = sprite->palette.focus % Cols;
             s32 row = sprite->palette.focus / Cols;
@@ -1871,20 +1876,30 @@ static void processKeyboard(Sprite* sprite)
     {
         if(sprite->palette.focus >= 0)
         {
-            char sym = getKeyboardText();
+            enum{Cols = BITS_IN_BYTE / TIC_PALETTE_BPP, Rows = sizeof(tic_rgb)};
+            s32 col = sprite->palette.focus % Cols;
+            s32 row = sprite->palette.focus / Cols;
 
-            if(isxdigit(sym))
+            if(keyWasPressed(tic_key_up))           --row;
+            else if(keyWasPressed(tic_key_down))    ++row;
+            else if(keyWasPressed(tic_key_left))    --col;
+            else if(keyWasPressed(tic_key_right))   ++col;
+            else
             {
-                enum{Cols = BITS_IN_BYTE / TIC_PALETTE_BPP, Rows = sizeof(tic_rgb)};
-                s32 col = sprite->palette.focus % Cols;
-                s32 row = sprite->palette.focus / Cols;
-                u8* data = &getBankPalette(sprite->palette.ovr)->data[sprite->color * Rows + row];
-                char buf[sizeof "FF"];
-                sprintf(buf, "%02X", *data);
-                buf[col] = toupper(sym);
-                *data = (u8)strtol(buf, NULL, 16);
-                sprite->palette.focus = ++sprite->palette.focus % (Cols * Rows);
+                char sym = getKeyboardText();
+
+                if(isxdigit(sym))
+                {
+                    u8* data = &getBankPalette(sprite->palette.ovr)->data[sprite->color * Rows + row];
+                    char buf[sizeof "FF"];
+                    sprintf(buf, "%02X", *data);
+                    buf[col] = toupper(sym);
+                    *data = (u8)strtol(buf, NULL, 16);
+                    ++col;
+                }                
             }
+
+            sprite->palette.focus = (col + row * Cols + Cols * Rows) % (Cols * Rows);
         }
     }
     else
