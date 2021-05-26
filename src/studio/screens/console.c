@@ -2425,7 +2425,8 @@ static void onGetCommand(Console* console)
 {
     if(console->desc->count)
     {
-        const char* path = tic_fs_path(console->fs, console->desc->params->key);
+        const char* name = console->desc->params->key;
+        const char* path = tic_fs_path(console->fs, name);
 
         if(fs_exists(path))
         {
