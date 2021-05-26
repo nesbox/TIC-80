@@ -2421,11 +2421,11 @@ static void onAddCommand(Console* console)
     }, onAddFile, console);
 }
 
-static void onGetCommand(Console* console, const char* name)
+static void onGetCommand(Console* console)
 {
-    if(name)
+    if(console->desc->count)
     {
-        const char* path = tic_fs_path(console->fs, name);
+        const char* path = tic_fs_path(console->fs, console->desc->params->key);
 
         if(fs_exists(path))
         {
@@ -3061,7 +3061,7 @@ static CommandDesc parseCommand(const char* command)
 
     char* token = desc.command = strtok(desc.src, " ");
 
-    while(token = strtok(NULL, " "))
+    while((token = strtok(NULL, " ")))
     {
         desc.params = realloc(desc.params, ++desc.count * sizeof *desc.params);
         desc.params[desc.count - 1].key = token;

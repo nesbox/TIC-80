@@ -2045,7 +2045,7 @@ static void studioClose()
     free(impl.fs);
 }
 
-static StartArgs parseArgs(s32 argc, const char **argv)
+static StartArgs parseArgs(s32 argc, char **argv)
 {
     static const char *const usage[] = 
     {
@@ -2073,7 +2073,7 @@ static StartArgs parseArgs(s32 argc, const char **argv)
     struct argparse argparse;
     argparse_init(&argparse, options, usage, 0);
     argparse_describe(&argparse, "\n" TIC_NAME " startup options:", NULL);
-    argc = argparse_parse(&argparse, argc, argv);
+    argc = argparse_parse(&argparse, argc, (const char**)argv);
 
     if(argc == 1)
         args.cart = argv[0];
@@ -2081,7 +2081,7 @@ static StartArgs parseArgs(s32 argc, const char **argv)
     return args;
 }
 
-Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* folder)
+Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder)
 {
     setbuf(stdout, NULL);
 

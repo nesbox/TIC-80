@@ -27,7 +27,7 @@
 typedef struct
 {
     u8* data;
-    u32 size;
+    s32 size;
 } png_buffer;
 
 typedef union

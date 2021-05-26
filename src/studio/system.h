@@ -145,7 +145,7 @@ typedef struct
 
 } Studio;
 
-Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* appFolder);
+Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* appFolder);
 
 #ifdef __cplusplus
 }

@@ -77,12 +77,12 @@ typedef struct
     bool nosound;
     bool fullscreen;
     s32 scale;
-    const char *fs;
-    const char *cart;
+    char *fs;
+    char *cart;
 #if defined(CRT_SHADER_SUPPORT)
     bool crt;
 #endif
-    const char *cmd;
+    char *cmd;
 } StartArgs;
 
 typedef enum

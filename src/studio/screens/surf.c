@@ -459,6 +459,7 @@ static void coverLoaded(const net_get_data* netData)
     case net_get_error:
         free(coverLoadingData);
         break;
+    default: break;
     }
 }
 
