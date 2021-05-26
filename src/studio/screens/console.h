@@ -24,6 +24,23 @@
 
 #include "studio/studio.h"
 
+#if defined(CRT_SHADER_SUPPORT)
+#   define CRT_CMD_PARAM(macro) \
+    macro(crt, BOOLEAN, "", "enable CRT monitor effect")
+#else
+#   define CRT_CMD_PARAM(macro)
+#endif
+
+#define CMD_PARAMS_LIST(macro)                                                      \
+    macro(skip,         BOOLEAN,    "",         "skip startup animation")           \
+    macro(nosound,      BOOLEAN,    "",         "disable sound output")             \
+    macro(cli,          BOOLEAN,    "",         "console only output")              \
+    macro(fullscreen,   BOOLEAN,    "",         "enable fullscreen mode")           \
+    macro(fs,           STRING,     "=<str>",   "path to the file system folder")   \
+    macro(scale,        INTEGER,    "=<int>",   "main window scale")                \
+    macro(cmd,          STRING,     "=<str>",   "run commands in the console")      \
+    CRT_CMD_PARAM(macro)
+
 typedef void(*fs_done_callback)(void* data);
 
 typedef enum

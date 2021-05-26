@@ -2058,16 +2058,9 @@ static StartArgs parseArgs(s32 argc, char **argv)
     struct argparse_option options[] = 
     {
         OPT_HELP(),
-        OPT_BOOLEAN('\0',   "skip",         &args.skip,         "skip startup animation"),
-        OPT_BOOLEAN('\0',   "nosound",      &args.nosound,      "disable sound output"),
-        OPT_BOOLEAN('\0',   "cli",          &args.cli,          "console only output"),
-        OPT_BOOLEAN('\0',   "fullscreen",   &args.fullscreen,   "enable fullscreen mode"),
-        OPT_STRING('\0',    "fs",           &args.fs,           "path to the file system folder"),
-        OPT_INTEGER('\0',   "scale",        &args.scale,        "main window scale"),
-#if defined(CRT_SHADER_SUPPORT)
-        OPT_BOOLEAN('\0',   "crt",          &args.crt,          "enable CRT monitor effect"),
-#endif
-        OPT_STRING('\0',    "cmd",          &args.cmd,          "run commands in the console"),
+#define CMD_PARAMS_DEF(name, type, post, help) OPT_##type('\0', #name, &args.name, help),
+        CMD_PARAMS_LIST(CMD_PARAMS_DEF)
+#undef  CMD_PARAMS_DEF
         OPT_END(),
     };
 

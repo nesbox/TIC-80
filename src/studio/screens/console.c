@@ -74,6 +74,7 @@
     macro(vram)                 \
     macro(commands)             \
     macro(api)                  \
+    macro(startup)              \
     macro(terms)                \
     macro(license)
 
@@ -161,6 +162,13 @@ static const char* LicenseText =
     "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, "
     "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE "
     "SOFTWARE.";
+
+static const struct StartupOption {const char* name; const char* help;} StartupOptions[] = 
+{
+#define CMD_PARAMS_DEF(name, type, post, help) {#name post, help},
+    CMD_PARAMS_LIST(CMD_PARAMS_DEF)
+#undef CMD_PARAMS_DEF
+};
 
 struct CommandDesc
 {
@@ -2776,7 +2784,11 @@ static void onExport_help(Console* console, const char* param, const char* name,
         FOR(const ApiItem*, api, Api)
             ptr += sprintf(ptr, "\n### %s\n`%s`\n%s\n", api->name, api->def, api->help);
 
-        ptr += sprintf(ptr, "\n%s\n\n%s", TermsText, LicenseText);
+        ptr += sprintf(ptr, "\n## Startup options\n```\n");
+        FOR(const struct StartupOption*, opt, StartupOptions)
+            ptr += sprintf(ptr, "--%-14s %s\n", opt->name, opt->help);
+
+        ptr += sprintf(ptr, "```\n\n%s\n\n%s", TermsText, LicenseText);
 
         onFileExported(console, filename, tic_fs_save(console->fs, filename, buf, strlen(buf), true));        
     }
@@ -3007,6 +3019,21 @@ static void onHelp_welcome(Console* console)
 {
     printLine(console);
     printBack(console, WelcomeText);
+}
+
+static void onHelp_startup(Console* console)
+{
+    printLine(console);
+    char buf[16];
+
+    FOR(const struct StartupOption*, opt, StartupOptions)
+    {
+        sprintf(buf, "--%-10s", opt->name);
+        printFront(console, buf);
+        printBack(console, " ");
+        printBack(console, opt->help);
+        printLine(console);
+    }
 }
 
 static void onHelp_terms(Console* console)
