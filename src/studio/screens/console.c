@@ -3180,7 +3180,7 @@ static void processConsoleCommand(Console* console)
 
     if(commandSize)
     {
-        printf(console->input.text);
+        printf("%s", console->input.text);
         appendHistory(console, console->input.text);
         processCommand(console, console->input.text);
     }
