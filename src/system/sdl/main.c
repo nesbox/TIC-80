@@ -166,7 +166,6 @@ static struct
     {
         SDL_AudioSpec       spec;
         SDL_AudioDeviceID   device;
-        SDL_AudioCVT        cvt;
     } audio;
 } platform
 #if defined(TOUCH_INPUT_SUPPORT)
@@ -193,15 +192,7 @@ static void initSound()
         .userdata = NULL,
     };
 
-    platform.audio.device = SDL_OpenAudioDevice(NULL, 0, &want, &platform.audio.spec, SDL_AUDIO_ALLOW_FREQUENCY_CHANGE | SDL_AUDIO_ALLOW_FORMAT_CHANGE | SDL_AUDIO_ALLOW_SAMPLES_CHANGE);
-
-    SDL_BuildAudioCVT(&platform.audio.cvt, want.format, want.channels, platform.audio.spec.freq, platform.audio.spec.format, platform.audio.spec.channels, platform.audio.spec.freq);
-
-    if(platform.audio.cvt.needed)
-    {
-        platform.audio.cvt.len = platform.audio.spec.freq * platform.audio.spec.channels * sizeof(s16) / TIC80_FRAMERATE;
-        platform.audio.cvt.buf = SDL_malloc(platform.audio.cvt.len * platform.audio.cvt.len_mult);
-    }
+    platform.audio.device = SDL_OpenAudioDevice(NULL, 0, &want, &platform.audio.spec, 0);
 }
 
 static const u8* getSpritePtr(const tic_tile* tiles, s32 x, s32 y)
@@ -1043,17 +1034,8 @@ static void blitGpuTexture(GPU_Target* screen, GPU_Image* texture)
 
 static void blitSound()
 {
-    tic_mem* tic = platform.studio->tic;
-
-    SDL_PauseAudioDevice(platform.audio.device, 0);
-    
-    if(platform.audio.cvt.needed)
-    {
-        SDL_memcpy(platform.audio.cvt.buf, tic->samples.buffer, tic->samples.size);
-        SDL_ConvertAudio(&platform.audio.cvt);
-        SDL_QueueAudio(platform.audio.device, platform.audio.cvt.buf, platform.audio.cvt.len_cvt);
-    }
-    else SDL_QueueAudio(platform.audio.device, tic->samples.buffer, tic->samples.size);
+    tic_mem* tic = platform.studio->tic;    
+    SDL_QueueAudio(platform.audio.device, tic->samples.buffer, tic->samples.size);
 }
 
 #if defined(TOUCH_INPUT_SUPPORT)
@@ -1626,6 +1608,7 @@ static s32 start(s32 argc, const char **argv, const char* folder)
             tic_sys_fullscreen();
     }
 
+    SDL_PauseAudioDevice(platform.audio.device, 0);
 
 #if defined(__EMSCRIPTEN__)
     emscripten_set_main_loop(emsGpuTick, 0, 1);
@@ -1659,9 +1642,6 @@ static s32 start(s32 argc, const char **argv, const char* folder)
 #endif
 
     platform.studio->close();
-
-    if(platform.audio.cvt.buf)
-        SDL_free(platform.audio.cvt.buf);
 
     {
         destroyGPU();
