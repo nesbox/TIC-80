@@ -121,13 +121,20 @@ static const char* WelcomeText =
     "To make a retro styled game the whole process of creation takes place under some technical limitations: "
     "240x136 pixels display, 16 color palette, 256 8x8 color sprites, 4 channel sound and etc.";
 
-static const char* SpecText = 
-    "DISPLAY: 240x136 pixels, 16 colors palette.\n"
-    "INPUT: 4 gamepads with 8 buttons / mouse / keyboard.\n"
-    "SPRITES: 256 8x8 tiles and 256 8x8 sprites.\n"
-    "MAP: 240x136 cells, 1920x1088 pixels.\n"
-    "SOUND: 4 channels with configareble waveforms.\n"
-    "CODE: 64KB of Lua, Moonscript, JS, Wren, Fennel or Squirrel.";
+static const struct SpecRow {const char* section; const char* info;} SpecText1[] = 
+{
+    {"DISPLAY", "240x136 pixels, 16 colors palette."},
+    {"INPUT",   "4 gamepads with 8 buttons / mouse / keyboard."},
+    {"SPRITES", "256 8x8 tiles and 256 8x8 sprites."},
+    {"MAP",     "240x136 cells, 1920x1088 pixels."},
+    {"SOUND",   "4 channels with configareble waveforms."},
+    {"CODE",    "64KB of"
+#define         SCRIPT_DEF(name, ...) " "#name
+                SCRIPT_LIST(SCRIPT_DEF)
+#undef          SCRIPT_DEF
+                "."
+    },
+};
 
 static const char* TermsText = 
     "## Terms of Use\n"
@@ -283,7 +290,7 @@ static bool iswrap(char sym)
     return isspace(sym);
 }
 
-static void consolePrint(Console* console, const char* text, u8 color)
+static void consolePrintOffset(Console* console, const char* text, u8 color, s32 wrapLineOffset)
 {
 #ifndef BAREMETALPI
     printf("%s", text);
@@ -309,7 +316,10 @@ static void consolePrint(Console* console, const char* text, u8 color)
                 while(*cur && !iswrap(*cur++)) len--;
 
                 if(len > 0 && len <= console->cursor.pos.x)
+                {
                     nextLine(console);
+                    console->cursor.pos.x = wrapLineOffset;
+                }
             }
 
             setSymbol(console, symbol, iswrap(symbol) ? tic_color_dark_grey : color, cursorOffset(console));
@@ -323,6 +333,11 @@ static void consolePrint(Console* console, const char* text, u8 color)
 
     console->input.text = console->text + cursorOffset(console);
     console->input.pos = 0;
+}
+
+static void consolePrint(Console* console, const char* text, u8 color)
+{
+    consolePrintOffset(console, text, color, 0);
 }
 
 static void printBack(Console* console, const char* text)
@@ -352,15 +367,18 @@ static void clearSelection(Console* console)
 
 static void commandDoneLine(Console* console, bool newLine)
 {
-    if(newLine)
-        printLine(console);
+    if(!console->args.cli)
+    {
+        if(newLine)
+            printLine(console);
 
-    char dir[TICNAME_MAX];
-    tic_fs_dir(console->fs, dir);
-    if(strlen(dir))
-        printBack(console, dir);
+        char dir[TICNAME_MAX];
+        tic_fs_dir(console->fs, dir);
+        if(strlen(dir))
+            printBack(console, dir);
 
-    printFront(console, ">");
+        printFront(console, ">");        
+    }
 
     console->active = true;
 
@@ -2769,7 +2787,12 @@ static void onExport_help(Console* console, const char* param, const char* name,
     {
         ptr += sprintf(ptr, "# " TIC_NAME_FULL "\n" TIC_VERSION"\n" TIC_COPYRIGHT"\n");
         ptr += sprintf(ptr, "\n## Welcome\n%s\n", WelcomeText);
-        ptr += sprintf(ptr, "\n## Specification\n%s\n```", SpecText);
+        ptr += sprintf(ptr, "\n## Specification\n```\n");
+
+        FOR(const struct SpecRow*, row, SpecText1)
+            ptr += sprintf(ptr, "%-10s%s\n", row->section, row->info);
+
+        ptr += sprintf(ptr, "```\n```\n");
         ptr += createRamTable(ptr);
         ptr += sprintf(ptr, "```\n```");
         ptr += createVRamTable(ptr);
@@ -3012,7 +3035,16 @@ static void onHelp_version(Console* console)
 static void onHelp_spec(Console* console)
 {
     printLine(console);
-    printBack(console, SpecText);
+
+    char buf[TICNAME_MAX];
+
+    FOR(const struct SpecRow*, row, SpecText1)
+    {
+#define OFFSET 8
+        sprintf(buf, "%-" DEF2STR(OFFSET) "s%s\n", row->section, row->info);
+        consolePrintOffset(console, buf, tic_color_grey, OFFSET);
+#undef  OFFSET
+    }
 }
 
 static void onHelp_welcome(Console* console)
@@ -3023,16 +3055,16 @@ static void onHelp_welcome(Console* console)
 
 static void onHelp_startup(Console* console)
 {
-    printLine(console);
-    char buf[16];
-
+    char buf[TICNAME_MAX];
+    printFront(console, "\nStartup options:\n");
     FOR(const struct StartupOption*, opt, StartupOptions)
     {
-        sprintf(buf, "--%-10s", opt->name);
-        printFront(console, buf);
-        printBack(console, " ");
-        printBack(console, opt->help);
-        printLine(console);
+#define OFFSET 12
+#define PREFIX "--"
+        sprintf(buf, PREFIX "%-" DEF2STR(OFFSET) "s%s\n", opt->name, opt->help);
+        consolePrintOffset(console, buf, tic_color_grey, OFFSET + STRLEN(PREFIX));
+#undef  PREFIX
+#undef  OFFSET
     }
 }
 
@@ -3150,7 +3182,9 @@ static void processCommands(Console* console)
 
     console->args.cmd = next;
 
-    printFront(console, command);
+    if(!console->args.cli)
+        printFront(console, command);
+
     processCommand(console, command);
 }
 
@@ -3546,7 +3580,7 @@ static void tick(Console* console)
         {
             loadDemo(console, 0);
 
-            if(!console->args.skip)
+            if(!console->args.cli)
             {
                 printBack(console, "\n hello! type ");
                 printFront(console, "help");
@@ -3715,6 +3749,7 @@ void initConsole(Console* console, tic_mem* tic, tic_fs* fs, tic_net* net, Confi
     memset(console->color, TIC_COLOR_BG, CONSOLE_BUFFER_SIZE);
     memset(console->desc, 0, sizeof(CommandDesc));
 
+    if(!console->args.cli)
     {
         Start* start = getStartScreen();
 
