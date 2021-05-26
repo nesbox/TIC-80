@@ -2060,6 +2060,7 @@ static StartArgs parseArgs(s32 argc, char **argv)
         OPT_HELP(),
         OPT_BOOLEAN('\0',   "skip",         &args.skip,         "skip startup animation"),
         OPT_BOOLEAN('\0',   "nosound",      &args.nosound,      "disable sound output"),
+        OPT_BOOLEAN('\0',   "cli",          &args.cli,          "console only output"),
         OPT_BOOLEAN('\0',   "fullscreen",   &args.fullscreen,   "enable fullscreen mode"),
         OPT_STRING('\0',    "fs",           &args.fs,           "path to the file system folder"),
         OPT_INTEGER('\0',   "scale",        &args.scale,        "main window scale"),
@@ -2145,12 +2146,16 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder)
 
     impl.config->data.goFullscreen = args.fullscreen;
     impl.config->data.noSound = args.nosound;
+    impl.config->data.cli = args.cli;
 
     impl.studio.tick = studioTick;
     impl.studio.close = studioClose;
     impl.studio.updateProject = updateStudioProject;
     impl.studio.exit = exitStudio;
     impl.studio.config = getConfig;
+
+    if(args.cli)
+        args.skip = true;
 
     if(args.skip)
         setStudioMode(TIC_CONSOLE_MODE);

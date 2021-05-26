@@ -75,6 +75,7 @@ typedef struct
 {
     bool skip;
     bool nosound;
+    bool cli;
     bool fullscreen;
     s32 scale;
     char *fs;

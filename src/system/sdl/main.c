@@ -1575,87 +1575,93 @@ static void createMouseCursors()
 
 static s32 start(s32 argc, char **argv, const char* folder)
 {
-    SDL_SetHint(SDL_HINT_WINRT_HANDLE_BACK_BUTTON, "1");
-    SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
-
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK);
-
-    initSound();
-
-    platform.studio = studioInit(argc, argv, platform.audio.spec.freq, folder);
-
+    DEFER(platform.studio = studioInit(argc, argv, TIC80_SAMPLERATE, folder), platform.studio->close())
     {
-        const s32 Width = TIC80_FULLWIDTH * platform.studio->config()->uiScale;
-        const s32 Height = TIC80_FULLHEIGHT * platform.studio->config()->uiScale;
-
-        platform.window = SDL_CreateWindow( TIC_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-            Width, Height, SDL_WINDOW_SHOWN 
-                | SDL_WINDOW_RESIZABLE
-#if defined(CRT_SHADER_SUPPORT)
-                | SDL_WINDOW_OPENGL
-#endif            
-#if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
-                | SDL_WINDOW_ALLOW_HIGHDPI
-#endif
-                );
-
-        setWindowIcon();
-        createMouseCursors();
-
-        initGPU();
-
-        if(platform.studio->config()->goFullscreen)
-            tic_sys_fullscreen();
-    }
-
-    SDL_PauseAudioDevice(platform.audio.device, 0);
-
-#if defined(__EMSCRIPTEN__)
-    emscripten_set_main_loop(emsGpuTick, 0, 1);
-#else
-    {
-        u64 nextTick = SDL_GetPerformanceCounter();
-        const u64 Delta = SDL_GetPerformanceFrequency() / TIC80_FRAMERATE;
-
-        while (!platform.studio->quit)
+        if (platform.studio->config()->cli)
         {
-            nextTick += Delta;
-            
-            gpuTick();
+            while (!platform.studio->quit)
+                platform.studio->tick();
+        }
+        else
+        {
+            SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
+            SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK);
+
+            initSound();
 
             {
-                s64 delay = nextTick - SDL_GetPerformanceCounter();
+                const s32 Width = TIC80_FULLWIDTH * platform.studio->config()->uiScale;
+                const s32 Height = TIC80_FULLHEIGHT * platform.studio->config()->uiScale;
 
-                if(delay < 0)
-                    nextTick -= delay;
-                else
-                    SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
+                platform.window = SDL_CreateWindow( TIC_TITLE, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                    Width, Height, SDL_WINDOW_SHOWN 
+                        | SDL_WINDOW_RESIZABLE
+#if defined(CRT_SHADER_SUPPORT)
+                        | SDL_WINDOW_OPENGL
+#endif            
+#if !defined(__EMSCRIPTEN__) && !defined(__MACOSX__)
+                        | SDL_WINDOW_ALLOW_HIGHDPI
+#endif
+                        );
+
+                setWindowIcon();
+                createMouseCursors();
+
+                initGPU();
+
+                if(platform.studio->config()->goFullscreen)
+                    tic_sys_fullscreen();
             }
-        }
-    }
+
+            SDL_PauseAudioDevice(platform.audio.device, 0);
+
+#if defined(__EMSCRIPTEN__)
+            emscripten_set_main_loop(emsGpuTick, 0, 1);
+#else
+            {
+                u64 nextTick = SDL_GetPerformanceCounter();
+                const u64 Delta = SDL_GetPerformanceFrequency() / TIC80_FRAMERATE;
+
+                while (!platform.studio->quit)
+                {
+                    nextTick += Delta;
+                
+                    gpuTick();
+
+                    {
+                        s64 delay = nextTick - SDL_GetPerformanceCounter();
+
+                        if(delay < 0)
+                            nextTick -= delay;
+                        else
+                            SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
+                    }
+                }
+            }
 
 #endif
 
 #if defined(TOUCH_INPUT_SUPPORT)
-    if(SDL_IsTextInputActive())
-        SDL_StopTextInput();
+            if(SDL_IsTextInputActive())
+                SDL_StopTextInput();
 #endif
 
-    platform.studio->close();
-
-    {
-        destroyGPU();
+            {
+                destroyGPU();
 
 #if defined(TOUCH_INPUT_SUPPORT)
-        if(platform.gamepad.touch.pixels)
-            SDL_free(platform.gamepad.touch.pixels);
+                if(platform.gamepad.touch.pixels)
+                    SDL_free(platform.gamepad.touch.pixels);
 #endif    
 
-        SDL_DestroyWindow(platform.window);
-        SDL_CloseAudioDevice(platform.audio.device);
+                SDL_DestroyWindow(platform.window);
+                SDL_CloseAudioDevice(platform.audio.device);
 
-        for(s32 i = 0; i < COUNT_OF(platform.mouse.cursors); i++)
-            SDL_FreeCursor(platform.mouse.cursors[i]);
+                for(s32 i = 0; i < COUNT_OF(platform.mouse.cursors); i++)
+                    SDL_FreeCursor(platform.mouse.cursors[i]);
+            }
+
+        }
     }
 
     return 0;

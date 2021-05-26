@@ -2012,7 +2012,7 @@ static void onExport_sfx(Console* console, const char* param, const char* name, 
     if(params.id >= 0 && params.id < SFX_COUNT)
         error = studioExportSfx(params.id, filename) == NULL;
 
-    onFileExported(console, filename, error);
+    onFileExported(console, filename, !error);
 }
 
 static void onExport_music(Console* console, const char* type, const char* name, ExportParams params)
@@ -2023,7 +2023,7 @@ static void onExport_music(Console* console, const char* type, const char* name,
     if(params.id >= 0 && params.id < MUSIC_TRACKS)
         error = studioExportMusic(params.id, filename) == NULL;
 
-    onFileExported(console, filename, error);
+    onFileExported(console, filename, !error);
 }
 
 static void onExport_screen(Console* console, const char* param, const char* name, ExportParams params)
@@ -2941,7 +2941,9 @@ static void onHelp_commands(Console* console)
 
 static void printTable(Console* console, const char* text)
 {
+#ifndef BAREMETALPI
     printf("%s", text);
+#endif
 
     for(const char* textPointer = text, *endText = textPointer + strlen(text); textPointer != endText;)
     {
@@ -3087,8 +3089,6 @@ static void processCommand(Console* console, const char* text)
     {
         const char* command = console->desc->command;
 
-        printf("%s", console->desc->command);
-
         FOR(const Command*, cmd, Commands)
             if(casecmp(console->desc->command, cmd->name) == 0 || 
                 (cmd->alt && casecmp(console->desc->command, cmd->alt) == 0))
@@ -3111,7 +3111,7 @@ static void processCommand(Console* console, const char* text)
 
 static void processCommands(Console* console)
 {
-    char* command = strdup(console->args.cmd);
+    char* command = console->args.cmd;
     static const char Sep[] = " & ";
     char* next = strstr(command, Sep);
 
@@ -3125,8 +3125,6 @@ static void processCommands(Console* console)
 
     printFront(console, command);
     processCommand(console, command);
-
-    free(command);
 }
 
 static void fillHistory(Console* console)
@@ -3182,6 +3180,7 @@ static void processConsoleCommand(Console* console)
 
     if(commandSize)
     {
+        printf(console->input.text);
         appendHistory(console, console->input.text);
         processCommand(console, console->input.text);
     }
@@ -3520,12 +3519,15 @@ static void tick(Console* console)
         {
             loadDemo(console, 0);
 
-            printBack(console, "\n hello! type ");
-            printFront(console, "help");
-            printBack(console, " for help\n");
+            if(!console->args.skip)
+            {
+                printBack(console, "\n hello! type ");
+                printFront(console, "help");
+                printBack(console, " for help\n");
 
-            if(getConfig()->checkNewVersion)
-                tic_net_get(console->net, "/api?fn=version", onHttpVesrsionGet, console);
+                if(getConfig()->checkNewVersion)
+                    tic_net_get(console->net, "/api?fn=version", onHttpVesrsionGet, console);
+            }
 
             commandDone(console);
         }
@@ -3567,8 +3569,13 @@ static void tick(Console* console)
 
         drawCursor(console);
 
-        if(console->active && console->args.cmd)
-            processCommands(console);
+        if(console->active)
+        {
+            if(console->args.cmd)
+                processCommands(console);
+            else if(getConfig()->cli)
+                exitStudio();
+        }
     }
 
     console->tickCounter++;
