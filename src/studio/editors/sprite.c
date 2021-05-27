@@ -89,16 +89,6 @@ static void selectViewportPage(Sprite* sprite, u8 page)
     initTileSheet(sprite);
 }
 
-static u8 getSheetPixel(Sprite* sprite, s32 x, s32 y)
-{
-    return tic_tilesheet_getpix(&sprite->sheet, x, y);
-}
-
-static void setSheetPixel(Sprite* sprite, s32 x, s32 y, u8 color)
-{
-    tic_tilesheet_setpix(&sprite->sheet, x, y, color);
-}
-
 static s32 getIndexPosX(Sprite* sprite)
 {
     return (sprite->x + sprite->blit.page * TIC_SPRITESHEET_COLS) * TIC_SPRITESIZE;
@@ -158,10 +148,10 @@ static void processPickerCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 s
         drawCursorBorder(sprite, x + mx, y + my, Size, Size);
 
         if(checkMouseDown(&rect, tic_mouse_left))
-            sprite->color = getSheetPixel(sprite, sx + mx / Size, sy + my / Size);
+            sprite->color = tic_tilesheet_getpix(&sprite->sheet, sx + mx / Size, sy + my / Size);
 
         if(checkMouseDown(&rect, tic_mouse_right))
-            sprite->color2 = getSheetPixel(sprite, sx + mx / Size, sy + my / Size);
+            sprite->color2 = tic_tilesheet_getpix(&sprite->sheet, sx + mx / Size, sy + my / Size);
     }
 }
 
@@ -207,7 +197,7 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
 
             for(s32 j = 0; j < pixels; j++)
                 for(s32 i = 0; i < pixels; i++)
-                    setSheetPixel(sprite, sx+i, sy+j, color);
+                    tic_tilesheet_setpix(&sprite->sheet, sx+i, sy+j, color);
 
             history_add(sprite->history);
         }
@@ -223,7 +213,7 @@ static void pasteSelection(Sprite* sprite)
 
     for(s32 sy = t, i = 0; sy < b; sy++)
         for(s32 sx = l; sx < r; sx++)
-            setSheetPixel(sprite, sx, sy, sprite->select.back[i++]);
+            tic_tilesheet_setpix(&sprite->sheet, sx, sy, sprite->select.back[i++]);
 
     tic_rect* rect = &sprite->select.rect;
 
@@ -234,7 +224,7 @@ static void pasteSelection(Sprite* sprite)
 
     for(s32 sy = t, i = 0; sy < b; sy++)
         for(s32 sx = l; sx < r; sx++)
-            setSheetPixel(sprite, sx, sy, sprite->select.front[i++]);
+            tic_tilesheet_setpix(&sprite->sheet, sx, sy, sprite->select.front[i++]);
 
     history_add(sprite->history);
 }
@@ -247,7 +237,7 @@ static void copySelection(Sprite* sprite)
 
     for(s32 sy = rect.y, i = 0; sy < b; sy++)
         for(s32 sx = rect.x; sx < r; sx++)
-            sprite->select.back[i++] = getSheetPixel(sprite, sx, sy);
+            sprite->select.back[i++] = tic_tilesheet_getpix(&sprite->sheet, sx, sy);
 
     {
         tic_rect* rect = &sprite->select.rect;
@@ -318,9 +308,9 @@ static void processSelectCanvasMouse(Sprite* sprite, s32 x, s32 y)
 
 static void floodFill(Sprite* sprite, s32 l, s32 t, s32 r, s32 b, s32 x, s32 y, u8 color, u8 fill)
 {
-    if(getSheetPixel(sprite, x, y) == color)
+    if(tic_tilesheet_getpix(&sprite->sheet, x, y) == color)
     {
-        setSheetPixel(sprite, x, y, fill);
+        tic_tilesheet_setpix(&sprite->sheet, x, y, fill);
 
         if(x > l) floodFill(sprite, l, t, r, b, x-1, y, color, fill);
         if(x < r) floodFill(sprite, l, t, r, b, x+1, y, color, fill);
@@ -333,8 +323,8 @@ static void replaceColor(Sprite* sprite, s32 l, s32 t, s32 r, s32 b, s32 x, s32 
 {
     for(s32 sy = t; sy <= b; sy++)
         for(s32 sx = l; sx <= r; sx++)
-            if(getSheetPixel(sprite, sx, sy) == color)
-                setSheetPixel(sprite, sx, sy, fill);
+            if(tic_tilesheet_getpix(&sprite->sheet, sx, sy) == color)
+                tic_tilesheet_setpix(&sprite->sheet, sx, sy, fill);
 }
 
 static void processFillCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 l, s32 t)
@@ -363,7 +353,7 @@ static void processFillCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 l, s32 t)
             s32 sx = l + mx / Size;
             s32 sy = t + my / Size;
 
-            u8 color = getSheetPixel(sprite, sx, sy);
+            u8 color = tic_tilesheet_getpix(&sprite->sheet, sx, sy);
             u8 fill = left ? sprite->color : sprite->color2;
 
             if(color != fill)
@@ -436,7 +426,7 @@ static void drawCanvasOvr(Sprite* sprite, s32 x, s32 y)
     {
         s32 mx = tic_api_mouse(tic).x - x;
         s32 my = tic_api_mouse(tic).y - y;
-        sprite->color = getSheetPixel(sprite, rect.x + mx / Size, rect.y + my / Size);
+        sprite->color = tic_tilesheet_getpix(&sprite->sheet, rect.x + mx / Size, rect.y + my / Size);
     }
 
     drawPanelBorder(tic, canvasRect.x - 1, canvasRect.y - 1, canvasRect.w + 2, canvasRect.h + 2);
@@ -483,7 +473,7 @@ static void drawCanvas(Sprite* sprite, s32 x, s32 y)
 
     for(s32 sy = rect.y, j = y; sy < b; sy++, j += Size)
         for(s32 sx = rect.x, i = x; sx < r; sx++, i += Size)
-            tic_api_rect(tic, i, j, Size, Size, getSheetPixel(sprite, sx, sy));
+            tic_api_rect(tic, i, j, Size, Size, tic_tilesheet_getpix(&sprite->sheet, sx, sy));
 }
 
 static void upCanvas(Sprite* sprite)
@@ -585,7 +575,7 @@ static void deleteCanvas(Sprite* sprite)
 
     for(s32 pixel_y = top; pixel_y < bottom; pixel_y++)
         for(s32 pixel_x = left; pixel_x < right; pixel_x++)
-            setSheetPixel(sprite, pixel_x, pixel_y, sprite->color2);
+            tic_tilesheet_setpix(&sprite->sheet, pixel_x, pixel_y, sprite->color2);
 
     clearCanvasSelection(sprite);
     
@@ -605,9 +595,9 @@ static void flipCanvasHorz(Sprite* sprite)
     for(s32 y = sprite_y + rect->y; y < bottom; y++)
         for(s32 x = sprite_x + rect->x, i = sprite_x + rect->x + rect->w - 1; x < right; x++, i--)
         {
-            u8 color = getSheetPixel(sprite, x, y);
-            setSheetPixel(sprite, x, y, getSheetPixel(sprite, i, y));
-            setSheetPixel(sprite, i, y, color);
+            u8 color = tic_tilesheet_getpix(&sprite->sheet, x, y);
+            tic_tilesheet_setpix(&sprite->sheet, x, y, tic_tilesheet_getpix(&sprite->sheet, i, y));
+            tic_tilesheet_setpix(&sprite->sheet, i, y, color);
         }
 
     history_add(sprite->history);
@@ -627,9 +617,9 @@ static void flipCanvasVert(Sprite* sprite)
     for(s32 y = sprite_y + rect->y, i = sprite_y + rect->y + rect->h - 1; y < bottom; y++, i--)
         for(s32 x = sprite_x + rect->x; x < right; x++)
         {
-            u8 color = getSheetPixel(sprite, x, y);
-            setSheetPixel(sprite, x, y, getSheetPixel(sprite, x, i));
-            setSheetPixel(sprite, x, i, color);
+            u8 color = tic_tilesheet_getpix(&sprite->sheet, x, y);
+            tic_tilesheet_setpix(&sprite->sheet, x, y, tic_tilesheet_getpix(&sprite->sheet, x, i));
+            tic_tilesheet_setpix(&sprite->sheet, x, i, color);
         }
 
     history_add(sprite->history);
@@ -1421,9 +1411,9 @@ static void flipSpriteHorz(Sprite* sprite)
     for(s32 y = rect.y; y < b; y++)
         for(s32 x = rect.x, i = rect.x + rect.w - 1; x < r; x++, i--)
         {
-            u8 color = getSheetPixel(sprite, x, y);
-            setSheetPixel(sprite, x, y, getSheetPixel(sprite, i, y));
-            setSheetPixel(sprite, i, y, color);
+            u8 color = tic_tilesheet_getpix(&sprite->sheet, x, y);
+            tic_tilesheet_setpix(&sprite->sheet, x, y, tic_tilesheet_getpix(&sprite->sheet, i, y));
+            tic_tilesheet_setpix(&sprite->sheet, i, y, color);
         }
 
     history_add(sprite->history);
@@ -1438,9 +1428,9 @@ static void flipSpriteVert(Sprite* sprite)
     for(s32 y = rect.y, i = rect.y + rect.h - 1; y < b; y++, i--)
         for(s32 x = rect.x; x < r; x++)
         {
-            u8 color = getSheetPixel(sprite, x, y);
-            setSheetPixel(sprite, x, y, getSheetPixel(sprite, x, i));
-            setSheetPixel(sprite, x, i, color);
+            u8 color = tic_tilesheet_getpix(&sprite->sheet, x, y);
+            tic_tilesheet_setpix(&sprite->sheet, x, y, tic_tilesheet_getpix(&sprite->sheet, x, i));
+            tic_tilesheet_setpix(&sprite->sheet, x, i, color);
         }
 
     history_add(sprite->history);
@@ -1460,11 +1450,11 @@ static void rotateSprite(Sprite* sprite)
 
             for(s32 y = rect.y, i = 0; y < b; y++)
                 for(s32 x = rect.x; x < r; x++)
-                    buffer[i++] = getSheetPixel(sprite, x, y);
+                    buffer[i++] = tic_tilesheet_getpix(&sprite->sheet, x, y);
 
             for(s32 y = rect.y, j = 0; y < b; y++, j++)
                 for(s32 x = rect.x, i = 0; x < r; x++, i++)
-                    setSheetPixel(sprite, x, y, buffer[j + (Size-i-1)*Size]);
+                    tic_tilesheet_setpix(&sprite->sheet, x, y, buffer[j + (Size-i-1)*Size]);
 
             history_add(sprite->history);
         }
@@ -1481,7 +1471,7 @@ static void deleteSprite(Sprite* sprite)
 
     for(s32 y = rect.y; y < b; y++)
         for(s32 x = rect.x; x < r; x++)
-            setSheetPixel(sprite, x, y, sprite->color2);
+            tic_tilesheet_setpix(&sprite->sheet, x, y, sprite->color2);
 
     clearCanvasSelection(sprite);
 
@@ -1677,9 +1667,8 @@ static void drawTools(Sprite* sprite, s32 x, s32 y)
 static void copyToClipboard(Sprite* sprite)
 {
     s32 size = sprite->size * sprite->size * TIC_PALETTE_BPP / BITS_IN_BYTE;
-    u8* buffer = malloc(size);
 
-    if(buffer)
+    DEFER(u8* buffer = malloc(size), free(buffer))
     {
         tic_rect rect = getSpriteRect(sprite);
         s32 r = rect.x + rect.w;
@@ -1687,11 +1676,9 @@ static void copyToClipboard(Sprite* sprite)
 
         for(s32 y = rect.y, i = 0; y < b; y++)
             for(s32 x = rect.x; x < r; x++)
-                tic_tool_poke4(buffer, i++, getSheetPixel(sprite, x, y) & 0xf);
+                tic_tool_poke4(buffer, i++, tic_tilesheet_getpix(&sprite->sheet, x, y) & 0xf);
 
         toClipboard(buffer, size, true);
-
-        free(buffer);
     }
 }
 
@@ -1710,9 +1697,8 @@ static void copyFromClipboard(Sprite* sprite)
     }
 
     s32 size = sprite->size * sprite->size * TIC_PALETTE_BPP / BITS_IN_BYTE;
-    u8* buffer = malloc(size);
 
-    SCOPE(free(buffer))
+    DEFER(u8* buffer = malloc(size), free(buffer))
     {
         if(fromClipboard(buffer, size, true, false))
         {
@@ -1722,7 +1708,7 @@ static void copyFromClipboard(Sprite* sprite)
 
             for(s32 y = rect.y, i = 0; y < b; y++)
                 for(s32 x = rect.x; x < r; x++)
-                    setSheetPixel(sprite, x, y, tic_tool_peek4(buffer, i++));
+                    tic_tilesheet_setpix(&sprite->sheet, x, y, tic_tool_peek4(buffer, i++));
 
             history_add(sprite->history);
         }

@@ -1575,7 +1575,9 @@ static void createMouseCursors()
 
 static s32 start(s32 argc, char **argv, const char* folder)
 {
-    DEFER(platform.studio = studioInit(argc, argv, TIC80_SAMPLERATE, folder), platform.studio->close())
+    platform.studio = studioInit(argc, argv, TIC80_SAMPLERATE, folder);
+
+    SCOPE(platform.studio->close())
     {
         if (platform.studio->config()->cli)
         {
