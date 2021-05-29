@@ -787,7 +787,7 @@ static void loadByHash(Console* console, const char* name, const char* hash, con
 {
     console->active = false;
 
-    LoadByHashData loadByHashData = { console, strdup(name), strdup(section), callback, data};
+    LoadByHashData loadByHashData = { console, strdup(name), section ? strdup(section) : NULL, callback, data};
     tic_fs_hashload(console->fs, hash, loadByHashDone, MOVE(loadByHashData));
 }
 
@@ -877,7 +877,7 @@ static void onLoadCommandConfirmed(Console* console)
 
         if (tic_fs_ispubdir(console->fs))
         {
-            LoadPublicCartData loadPublicCartData = { console, strdup(name), NULL, strdup(section) };
+            LoadPublicCartData loadPublicCartData = { console, strdup(name), NULL, section ? strdup(section) : NULL };
             tic_fs_enum(console->fs, compareFilename, fileFound, MOVE(loadPublicCartData));
 
             return;
