@@ -308,20 +308,8 @@ static void drawGamepadMenu(Menu* menu)
     }
 
     {
-        static const u8 Icon[] =
-        {
-            0b10000000,
-            0b11000000,
-            0b11100000,
-            0b11000000,
-            0b10000000,
-            0b00000000,
-            0b00000000,
-            0b00000000,
-        };
-
-        drawBitIcon(rect.x-7, rect.y+1, Icon, tic_color_black);
-        drawBitIcon(rect.x-7, rect.y, Icon, tic_color_white);
+        drawBitIcon(tic_icon_right, rect.x-7, rect.y, tic_color_black);
+        drawBitIcon(tic_icon_right, rect.x-7, rect.y-1, tic_color_white);
     }
 
     drawGamepadSetupTabs(menu, dlgRect.x+25, dlgRect.y+4);
@@ -379,20 +367,8 @@ static void drawMainMenu(Menu* menu)
 
             if(i == menu->main.focus)
             {
-                static const u8 Icon[] =
-                {
-                    0b10000000,
-                    0b11000000,
-                    0b11100000,
-                    0b11000000,
-                    0b10000000,
-                    0b00000000,
-                    0b00000000,
-                    0b00000000,
-                };
-
-                drawBitIcon(label.x-7, label.y+1, Icon, tic_color_black);
-                drawBitIcon(label.x-7, label.y, Icon, tic_color_white);
+                drawBitIcon(tic_icon_right, label.x-7, label.y, tic_color_black);
+                drawBitIcon(tic_icon_right, label.x-7, label.y-1, tic_color_white);
             }
         }
     }

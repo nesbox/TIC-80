@@ -336,30 +336,6 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
 
     tic_api_print(tic, "LOOP:", x + 2, y + 20, tic_color_dark_grey, true, 1, true);
 
-    static const u8 LeftArrow[] =
-    {
-        0b00100000,
-        0b01100000,
-        0b11100000,
-        0b01100000,
-        0b00100000,
-        0b00000000,
-        0b00000000,
-        0b00000000,
-    };
-
-    static const u8 RightArrow[] =
-    {
-        0b10000000,
-        0b11000000,
-        0b11100000,
-        0b11000000,
-        0b10000000,
-        0b00000000,
-        0b00000000,
-        0b00000000,
-    };
-
     enum
     {
         ArrowWidth = 3, ArrowHeight = 5
@@ -387,7 +363,7 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
             }
         }
 
-        drawBitIcon(rect.x, rect.y, LeftArrow, hover ? tic_color_grey : tic_color_dark_grey);
+        drawBitIcon(tic_icon_left, rect.x - 2, rect.y - 1, hover ? tic_color_grey : tic_color_dark_grey);
     }
 
     {
@@ -408,7 +384,7 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
             }
         }
 
-        drawBitIcon(rect.x, rect.y, RightArrow, hover ? tic_color_grey : tic_color_dark_grey);
+        drawBitIcon(tic_icon_right, rect.x - 2, rect.y - 1, hover ? tic_color_grey : tic_color_dark_grey);
     }
 
     {
@@ -434,7 +410,7 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
             }
         }
 
-        drawBitIcon(rect.x, rect.y, LeftArrow, hover ? tic_color_grey : tic_color_dark_grey);
+        drawBitIcon(tic_icon_left, rect.x - 2, rect.y - 1, hover ? tic_color_grey : tic_color_dark_grey);
     }
 
     {
@@ -454,7 +430,7 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
             }
         }
 
-        drawBitIcon(rect.x, rect.y, RightArrow, hover ? tic_color_grey : tic_color_dark_grey);
+        drawBitIcon(tic_icon_right, rect.x - 2, rect.y - 1, hover ? tic_color_grey : tic_color_dark_grey);
     }
 
     {
@@ -637,78 +613,33 @@ static void drawWavesBar(Sfx* sfx, s32 x, s32 y)
 {
     static struct Button 
     {
-        const u8 icon[BITS_IN_BYTE];
+        u8 icon;
         const char* tip;
         void(*handler)(Sfx*);
     } Buttons[] = 
     {
         {
-            {
-                0b00000000,
-                0b00101000,
-                0b00101000,
-                0b00010000,
-                0b01101100,
-                0b01101100,
-                0b00000000,
-                0b00000000,
-            },
+            tic_icon_cut,
             "CUT WAVE",
             cutWave,
         },
         {
-            {
-                0b00000000,
-                0b01111000,
-                0b01001000,
-                0b01011100,
-                0b01110100,
-                0b00011100,
-                0b00000000,
-                0b00000000,
-            },
+            tic_icon_copy,
             "COPY WAVE",
             copyWave,
         },
         {
-            {
-                0b00000000,
-                0b00111000,
-                0b01000100,
-                0b01111100,
-                0b01101100,
-                0b01111100,
-                0b00000000,
-                0b00000000,
-            },
+            tic_icon_paste,
             "PASTE WAVE",
             pasteWave,
         },
         {
-            {
-                0b00000000,
-                0b00011000,
-                0b00110000,
-                0b01111100,
-                0b00110000,
-                0b00011000,
-                0b00000000,
-                0b00000000,
-            },
+            tic_icon_undo,
             "UNDO WAVE",
             undoWave,
         },
         {
-            {
-                0b00000000,
-                0b00110000,
-                0b00011000,
-                0b01111100,
-                0b00011000,
-                0b00110000,
-                0b00000000,
-                0b00000000,
-            },
+            tic_icon_redo,
             "REDO WAVE",
             redoWave,
         },
@@ -737,9 +668,9 @@ static void drawWavesBar(Sfx* sfx, s32 x, s32 y)
         }
 
         if(over)
-            drawBitIcon(rect.x, rect.y + 1, it->icon, tic_color_black);
+            drawBitIcon(it->icon, rect.x, rect.y + 1, tic_color_black);
 
-        drawBitIcon(rect.x, rect.y + push, it->icon, 
+        drawBitIcon(it->icon, rect.x, rect.y + push, 
             over ? tic_color_white : tic_color_dark_grey);
 
         y += Size;

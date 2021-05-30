@@ -645,84 +645,46 @@ static void drawExtrabar(tic_mem* tic)
     s32 x = (COUNT_OF(Modes) + 1) * Size + 17 * TIC_FONT_WIDTH;
     s32 y = 0;
 
-    static const u8 Icons[] =
+    static struct Icon {u8 id; StudioEvent event; const char* tip;} Icons[] = 
     {
-        0b00000000,
-        0b00101000,
-        0b00101000,
-        0b00010000,
-        0b01101100,
-        0b01101100,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b01111000,
-        0b01001000,
-        0b01011100,
-        0b01110100,
-        0b00011100,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b00111000,
-        0b01000100,
-        0b01111100,
-        0b01101100,
-        0b01111100,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b00011000,
-        0b00110000,
-        0b01111100,
-        0b00110000,
-        0b00011000,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b00110000,
-        0b00011000,
-        0b01111100,
-        0b00011000,
-        0b00110000,
-        0b00000000,
-        0b00000000,
+        {tic_icon_cut,      TIC_TOOLBAR_CUT,    "CUT [ctrl+x]"},
+        {tic_icon_copy,     TIC_TOOLBAR_COPY,   "COPY [ctrl+c]"},
+        {tic_icon_paste,    TIC_TOOLBAR_PASTE,  "PASTE [ctrl+v]"},
+        {tic_icon_undo,     TIC_TOOLBAR_UNDO,   "UNDO [ctrl+z]"},
+        {tic_icon_redo,     TIC_TOOLBAR_REDO,   "REDO [ctrl+y]"},
     };
 
-    static const StudioEvent Events[] = {TIC_TOOLBAR_CUT, TIC_TOOLBAR_COPY, TIC_TOOLBAR_PASTE, TIC_TOOLBAR_UNDO, TIC_TOOLBAR_REDO};
-    static const char* Tips[] = {"CUT [ctrl+x]", "COPY [ctrl+c]", "PASTE [ctrl+v]", "UNDO [ctrl+z]", "REDO [ctrl+y]"};
-
-    for(s32 i = 0; i < sizeof Icons / BITS_IN_BYTE; i++)
+    u8 color = tic_color_red;
+    FOR(const struct Icon*, icon, Icons)
     {
-        tic_rect rect = {x + i*Size, y, Size, Size};
+        tic_rect rect = {x, y, Size, Size};
 
-        u8 bgcolor = tic_color_white;
-        u8 color = tic_color_light_grey;
+        u8 bg = tic_color_white;
+        u8 fg = tic_color_light_grey;
 
         if(checkMousePos(&rect))
         {
             setCursor(tic_cursor_hand);
 
-            color = tic_color_red + i;
-            showTooltip(Tips[i]);
+            fg = color;
+            showTooltip(icon->tip);
 
             if(checkMouseDown(&rect, tic_mouse_left))
             {
-                bgcolor = color;
-                color = tic_color_white;
+                bg = fg;
+                fg = tic_color_white;
             }
             else if(checkMouseClick(&rect, tic_mouse_left))
             {
-                setStudioEvent(Events[i]);
+                setStudioEvent(icon->event);
             }
         }
 
-        tic_api_rect(tic, x + i * Size, y, Size, Size, bgcolor);
-        drawBitIcon(x + i * Size, y, Icons + i*BITS_IN_BYTE, color);
+        tic_api_rect(tic, x, y, Size, Size, bg);
+        drawBitIcon(icon->id, x, y, fg);
+
+        x += Size;
+        color++;
     }
 }
 
@@ -749,18 +711,6 @@ static void drawBankIcon(s32 x, s32 y)
 
     tic_rect rect = {x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
 
-    static const u8 Icon[] =
-    {
-        0b00000000,
-        0b01111100,
-        0b01000100,
-        0b01000100,
-        0b01111100,
-        0b01111000,
-        0b00000000,
-        0b00000000,
-    };
-
     bool over = false;
     EditorMode mode = 0;
 
@@ -785,7 +735,7 @@ static void drawBankIcon(s32 x, s32 y)
 
     if(impl.bank.show)
     {
-        drawBitIcon(x, y, Icon, tic_color_red);
+        drawBitIcon(tic_icon_bank, x, y, tic_color_red);
 
         enum{Size = TOOLBAR_SIZE};
 
@@ -821,18 +771,6 @@ static void drawBankIcon(s32 x, s32 y)
         }
 
         {
-            static const u8 PinIcon[] =
-            {
-                0b00000000,
-                0b00111000,
-                0b00101000,
-                0b01111100,
-                0b00010000,
-                0b00010000,
-                0b00000000,
-                0b00000000,
-            };
-
             tic_rect rect = {x + 4 + (TIC_EDITOR_BANKS+1)*Size, 0, Size, Size};
 
             bool over = false;
@@ -852,12 +790,12 @@ static void drawBankIcon(s32 x, s32 y)
                 }
             }
 
-            drawBitIcon(rect.x, rect.y, PinIcon, impl.bank.chained ? tic_color_red : over ? tic_color_grey : tic_color_light_grey);
+            drawBitIcon(tic_icon_pin, rect.x, rect.y, impl.bank.chained ? tic_color_red : over ? tic_color_grey : tic_color_light_grey);
         }
     }
     else
     {
-        drawBitIcon(x, y, Icon, over ? tic_color_red : tic_color_light_grey);
+        drawBitIcon(tic_icon_bank, x, y, over ? tic_color_red : tic_color_light_grey);
     }
 }
 
@@ -868,68 +806,9 @@ void drawToolbar(tic_mem* tic, bool bg)
     if(bg)
         tic_api_rect(tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, tic_color_white);
 
-    static const u8 TabIcon[] =
-    {
-        0b11111110,
-        0b11111110,
-        0b11111110,
-        0b11111110,
-        0b11111110,
-        0b11111110,
-        0b11111110,
-        0b00000000,
-    };
-
-    static const u8 Icons[] =
-    {
-        0b00000000,
-        0b01101100,
-        0b01000100,
-        0b01000100,
-        0b01000100,
-        0b01101100,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b00111000,
-        0b01010100,
-        0b01111100,
-        0b01111100,
-        0b01010100,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b01101100,
-        0b01101100,
-        0b00000000,
-        0b01101100,
-        0b01101100,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b00011000,
-        0b00110100,
-        0b01110100,
-        0b00110100,
-        0b00011000,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b00111100,
-        0b00100100,
-        0b00100100,
-        0b01101100,
-        0b01101100,
-        0b00000000,
-        0b00000000,
-    };
-
     enum {Size = 7};
 
+    static const u8 Icons[] = {tic_icon_code, tic_icon_sprite, tic_icon_map, tic_icon_sfx, tic_icon_music};
     static const char* Tips[] = {"CODE EDITOR [f1]", "SPRITE EDITOR [f2]", "MAP EDITOR [f3]", "SFX EDITOR [f4]", "MUSIC EDITOR [f5]",};
 
     s32 mode = -1;
@@ -956,11 +835,11 @@ void drawToolbar(tic_mem* tic, bool bg)
 
         if (mode == i)
         {
-            drawBitIcon(i * Size, 0, TabIcon, tic_color_grey);
-            drawBitIcon(i * Size, 1, Icons + i * BITS_IN_BYTE, tic_color_black);
+            drawBitIcon(tic_icon_tab, i * Size, 0, tic_color_grey);
+            drawBitIcon(Icons[i], i * Size, 1, tic_color_black);
         }
 
-        drawBitIcon(i * Size, 0, Icons + i * BITS_IN_BYTE, mode == i ? tic_color_white : (over ? tic_color_grey : tic_color_light_grey));
+        drawBitIcon(Icons[i], i * Size, 0, mode == i ? tic_color_white : (over ? tic_color_grey : tic_color_light_grey));
     }
 
     if(mode >= 0) drawExtrabar(tic);
@@ -1088,12 +967,23 @@ void exitStudio()
     else exitConfirm(true, NULL);
 }
 
-void drawBitIcon(s32 x, s32 y, const u8* ptr, u8 color)
+void drawBitIcon(s32 id, s32 x, s32 y, u8 color)
 {
-    for(s32 i = 0; i < TIC_SPRITESIZE; i++, ptr++)
-        for(s32 col = 0; col < TIC_SPRITESIZE; col++)
-            if(*ptr & 1 << col)
-                tic_api_pix(impl.studio.tic, x - col + (TIC_SPRITESIZE - 1), y + i, color, false);
+    tic_mem* tic = impl.studio.tic;
+
+    const tic_tile* tile = &getConfig()->cart->bank0.tiles.data[id];
+
+    for(s32 i = 0, sx = x, ex = sx + TIC_SPRITESIZE; i != TIC_SPRITESIZE * TIC_SPRITESIZE; ++i, ++x)
+    {
+        if(x == ex)
+        {
+            x = sx;
+            y++;
+        }
+
+        if(tic_tool_peek4(tile, i))
+            tic_api_pix(tic, x, y, color, false);
+    }
 }
 
 static void initWorldMap()
@@ -1692,25 +1582,10 @@ static void updateStudioProject()
     }
 }
 
-static void drawRecordLabel(u32* frame, s32 sx, s32 sy, const u32* color)
+static void drawRecordLabel(u32* frame, s32 sx, s32 sy)
 {
-    static const u16 RecLabel[] =
-    {
-        0b0111001100110011,
-        0b1111101010100100,
-        0b1111101100110100,
-        0b1111101010100100,
-        0b0111001010110011,
-    };
-
-    for(s32 y = 0; y < 5; y++)
-    {
-        for(s32 x = 0; x < sizeof RecLabel[0]*BITS_IN_BYTE; x++)
-        {
-            if(RecLabel[y] & (1 << x))
-                memcpy(&frame[sx + 15 - x + ((y+sy) << TIC80_FULLWIDTH_BITS)], color, sizeof *color);
-        }
-    }
+    drawBitIcon(tic_icon_rec, sx, sy, tic_color_red);
+    drawBitIcon(tic_icon_rec2, sx + TIC_SPRITESIZE, sy, tic_color_red);
 }
 
 static bool isRecordFrame(void)
@@ -1730,7 +1605,7 @@ static void recordFrame(u32* pixels)
             if(impl.video.frame % TIC80_FRAMERATE < TIC80_FRAMERATE / 2)
             {
                 const u32* pal = tic_tool_palette_blit(&impl.config->cart.bank0.palette.scn, TIC80_PIXEL_COLOR_RGBA8888);
-                drawRecordLabel(pixels, TIC80_WIDTH-24, 8, &pal[tic_color_red]);
+                drawRecordLabel(pixels, TIC80_WIDTH-24, 8);
             }
 
             impl.video.frame++;

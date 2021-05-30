@@ -114,18 +114,6 @@ static void drawBookmarks(Code* code)
     enum {Width = BOOKMARK_WIDTH, Height = TIC80_HEIGHT - TOOLBAR_SIZE*2};
     tic_rect rect = {0, TOOLBAR_SIZE, Width, Height};
 
-    static const u8 Icon[] =
-    {
-        0b01111100,
-        0b01111100,
-        0b01111100,
-        0b01101100,
-        0b01000100,
-        0b00000000,
-        0b00000000,
-        0b00000000,
-    };
-
     tic_api_rect(code->tic, rect.x, rect.y, rect.w, rect.h, tic_color_grey);
 
     if(checkMousePos(&rect))
@@ -136,7 +124,7 @@ static void drawBookmarks(Code* code)
 
         s32 line = (tic_api_mouse(tic).y - rect.y) / STUDIO_TEXT_HEIGHT;
 
-        drawBitIcon(rect.x, rect.y + line * STUDIO_TEXT_HEIGHT, Icon, tic_color_dark_grey);
+        drawBitIcon(tic_icon_bookmark, rect.x, rect.y + line * STUDIO_TEXT_HEIGHT, tic_color_dark_grey);
 
         if(checkMouseClick(&rect, tic_mouse_left))
             toggleBookmark(code, getPosByLine(code->src, line + code->scroll.y));
@@ -150,8 +138,8 @@ static void drawBookmarks(Code* code)
     {
         if(syntaxPointer++->bookmark)
         {
-            drawBitIcon(rect.x, rect.y + y * STUDIO_TEXT_HEIGHT + 1, Icon, tic_color_black);
-            drawBitIcon(rect.x, rect.y + y * STUDIO_TEXT_HEIGHT, Icon, tic_color_yellow);
+            drawBitIcon(tic_icon_bookmark, rect.x, rect.y + y * STUDIO_TEXT_HEIGHT + 1, tic_color_black);
+            drawBitIcon(tic_icon_bookmark, rect.x, rect.y + y * STUDIO_TEXT_HEIGHT, tic_color_yellow);
         }
 
         if(*pointer++ == '\n')y++;
@@ -2048,92 +2036,21 @@ static void drawShadowButton(Code* code, s32 x, s32 y)
         }
     }
 
-    static const u8 Icon[] =
-    {
-        0b11110000,
-        0b10011000,
-        0b10011000,
-        0b11111000,
-        0b01111000,
-        0b00000000,
-        0b00000000,
-        0b00000000,
-    };
-
-    static const u8 ShadowIcon[] =
-    {
-        0b00000000,
-        0b00001000,
-        0b00001000,
-        0b00001000,
-        0b01111000,
-        0b00000000,
-        0b00000000,
-        0b00000000,
-    };
-
-    drawBitIcon(x, y, Icon, over && !code->shadowText ? tic_color_grey : tic_color_light_grey);
+    drawBitIcon(tic_icon_shadow, x, y, over && !code->shadowText ? tic_color_grey : tic_color_light_grey);
 
     if(code->shadowText)
-        drawBitIcon(x, y, ShadowIcon, tic_color_black);
+        drawBitIcon(tic_icon_shadow2, x, y, tic_color_black);
 }
 
 static void drawCodeToolbar(Code* code)
 {
     tic_api_rect(code->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, tic_color_white);
 
-    static const u8 Icons[] =
-    {
-        0b00000000,
-        0b00100000,
-        0b00110000,
-        0b00111000,
-        0b00110000,
-        0b00100000,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b00011000,
-        0b00011100,
-        0b01011100,
-        0b00111100,
-        0b00011000,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b00111000,
-        0b01000100,
-        0b00111000,
-        0b00010000,
-        0b00010000,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b00010000,
-        0b00011000,
-        0b01111100,
-        0b00011000,
-        0b00010000,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b01111100,
-        0b00000000,
-        0b01111100,
-        0b00000000,
-        0b01111100,
-        0b00000000,
-        0b00000000,
-    };
-
-    enum {Count = sizeof Icons / BITS_IN_BYTE};
-    enum {Size = 7};
-
+    static u8 Icons[] = {tic_icon_run, tic_icon_hand, tic_icon_find, tic_icon_goto, tic_icon_outline};
     static const char* Tips[] = {"RUN [ctrl+r]", "DRAG [right mouse]", "FIND [ctrl+f]", "GOTO [ctrl+g]", "OUTLINE [ctrl+o]"};
+
+    enum {Count = COUNT_OF(Icons)};
+    enum {Size = 7};
 
     for(s32 i = 0; i < Count; i++)
     {
@@ -2170,13 +2087,13 @@ static void drawCodeToolbar(Code* code)
         if (active)
         {
             tic_api_rect(code->tic, rect.x, rect.y, Size, Size, tic_color_grey);
-            drawBitIcon(rect.x, rect.y + 1, Icons + i * BITS_IN_BYTE, tic_color_black);
+            drawBitIcon(Icons[i], rect.x, rect.y + 1, tic_color_black);
         }
-        drawBitIcon(rect.x, rect.y, Icons + i*BITS_IN_BYTE, active ? tic_color_white : (over ? tic_color_grey : tic_color_light_grey));
+        drawBitIcon(Icons[i], rect.x, rect.y, active ? tic_color_white : (over ? tic_color_grey : tic_color_light_grey));
     }
 
     drawFontButton(code, TIC80_WIDTH - (Count+3) * Size, 1);
-    drawShadowButton(code, TIC80_WIDTH - (Count+2) * Size, 1);
+    drawShadowButton(code, TIC80_WIDTH - (Count+2) * Size, 0);
 
     drawToolbar(code->tic, false);
 }

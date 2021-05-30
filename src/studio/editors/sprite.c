@@ -781,44 +781,7 @@ static void drawMoveButtons(Sprite* sprite)
         enum { x = 24 };
         enum { y = 20 };
 
-        static const u8 Icons[] = 
-        {
-            0b00010000,
-            0b00111000,
-            0b01111100,
-            0b11111110,
-            0b00000000,
-            0b00000000,
-            0b00000000,
-            0b00000000,
-
-            0b11111110,
-            0b01111100,
-            0b00111000,
-            0b00010000,
-            0b00000000,
-            0b00000000,
-            0b00000000,
-            0b00000000,
-
-            0b00010000,
-            0b00110000,
-            0b01110000,
-            0b11110000,
-            0b01110000,
-            0b00110000,
-            0b00010000,
-            0b00000000,
-
-            0b10000000,
-            0b11000000,
-            0b11100000,
-            0b11110000,
-            0b11100000,
-            0b11000000,
-            0b10000000,
-            0b00000000,
-        };
+        static const u8 Icons[] = {tic_icon_bigup, tic_icon_bigdown, tic_icon_bigleft, tic_icon_bigright};
 
         static const tic_rect Rects[] = 
         {
@@ -831,7 +794,7 @@ static void drawMoveButtons(Sprite* sprite)
         static void(* const Func[])(Sprite*) = {upCanvas, downCanvas, leftCanvas, rightCanvas};
 
         bool down = false;
-        for(s32 i = 0; i < sizeof Icons / 8; i++)
+        for(s32 i = 0; i < COUNT_OF(Icons); i++)
         {
             down = false;
 
@@ -845,9 +808,9 @@ static void drawMoveButtons(Sprite* sprite)
                     Func[i](sprite);
             }
 
-            drawBitIcon(Rects[i].x, Rects[i].y+1, Icons + i*8, down ? tic_color_white : tic_color_black);
+            drawBitIcon(Icons[i], Rects[i].x, Rects[i].y+1, down ? tic_color_white : tic_color_black);
 
-            if(!down) drawBitIcon(Rects[i].x, Rects[i].y, Icons + i*8, tic_color_white);
+            if(!down) drawBitIcon(Icons[i], Rects[i].x, Rects[i].y, tic_color_white);
         }
     }
 }
@@ -859,18 +822,6 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
     enum {Size = CANVAS_SIZE, Max = 255};
 
     {
-        static const u8 Icon[] =
-        {
-            0b11100000,
-            0b11100000,
-            0b11100000,
-            0b00000000,
-            0b00000000,
-            0b00000000,
-            0b00000000,
-            0b00000000,
-        };
-
         tic_rect rect = {x, y-2, Size, 5};
 
         if(checkMousePos(&rect))
@@ -888,25 +839,13 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
         tic_api_rect(tic, x, y, Size, 1, tic_color_white);
 
         {
-            s32 offset = x + *value * (Size-1) / Max - 1;
-            drawBitIcon(offset, y, Icon, tic_color_black);
-            drawBitIcon(offset, y-1, Icon, tic_color_white);
+            s32 offset = x + *value * (Size-1) / Max - 2;
+            drawBitIcon(tic_icon_pos, offset, y-1, tic_color_black);
+            drawBitIcon(tic_icon_pos, offset, y-2, tic_color_white);
         }
     }
 
     {
-        static const u8 Icon[] =
-        {
-            0b01000000,
-            0b11000000,
-            0b01000000,
-            0b00000000,
-            0b00000000,
-            0b00000000,
-            0b00000000,
-            0b00000000,
-        };
-
         tic_rect rect = {x - 4, y - 1, 2, 3};
 
         bool down = false;
@@ -923,28 +862,16 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 
         if(down)
         {
-            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_white);
+            drawBitIcon(tic_icon_tinyleft, rect.x-1, rect.y, tic_color_white);
         }
         else
         {
-            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_black);
-            drawBitIcon(rect.x, rect.y, Icon, tic_color_white);
+            drawBitIcon(tic_icon_tinyleft, rect.x-1, rect.y, tic_color_black);
+            drawBitIcon(tic_icon_tinyleft, rect.x-1, rect.y-1, tic_color_white);
         }
     }
 
     {
-        static const u8 Icon[] =
-        {
-            0b10000000,
-            0b11000000,
-            0b10000000,
-            0b00000000,
-            0b00000000,
-            0b00000000,
-            0b00000000,
-            0b00000000,
-        };
-
         tic_rect rect = {x + Size + 2, y - 1, 2, 3};
 
         bool down = false;
@@ -961,12 +888,12 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 
         if(down)
         {
-            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_white);
+            drawBitIcon(tic_icon_tinyright, rect.x-1, rect.y, tic_color_white);
         }
         else
         {
-            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_black);
-            drawBitIcon(rect.x, rect.y, Icon, tic_color_white);
+            drawBitIcon(tic_icon_tinyright, rect.x-1, rect.y, tic_color_black);
+            drawBitIcon(tic_icon_tinyright, rect.x-1, rect.y-1, tic_color_white);
         }
     }
 }
@@ -982,22 +909,11 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
 {
     {
         enum{Size = 5};
-        static const u8 Icon[] = 
-        {
-            0b11110000,
-            0b10010000,
-            0b10111000,
-            0b11101000,
-            0b00111000,
-            0b00000000,
-            0b00000000,
-            0b00000000, 
-        };
-
+        
         tic_rect rect = {x, y, Size, Size};
 
         bool over = false;
-                bool down = false;
+        bool down = false;
 
         if(checkMousePos(&rect))
         {
@@ -1015,29 +931,18 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
 
         if(down)
         {
-            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_light_grey);
+            drawBitIcon(tic_icon_copy, rect.x-1, rect.y, tic_color_light_grey);
         }
         else
         {
-            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_black);
-            drawBitIcon(rect.x, rect.y, Icon, (over ? tic_color_light_grey : tic_color_white));
+            drawBitIcon(tic_icon_copy, rect.x-1, rect.y, tic_color_black);
+            drawBitIcon(tic_icon_copy, rect.x-1, rect.y-1, (over ? tic_color_light_grey : tic_color_white));
         }
     }
 
     {
         enum{Size = 5};
-        static const u8 Icon[] = 
-        {
-            0b01110000,
-            0b10001000,
-            0b11111000,
-            0b11011000,
-            0b11111000,
-            0b00000000,
-            0b00000000,
-            0b00000000,
-        };
-
+        
         tic_rect rect = {x, y + 8, Size, Size};
         bool over = false;
         bool down = false;
@@ -1060,12 +965,12 @@ static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
 
         if(down)
         {
-            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_light_grey);
+            drawBitIcon(tic_icon_paste, rect.x-1, rect.y, tic_color_light_grey);
         }
         else
         {
-            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_black);
-            drawBitIcon(rect.x, rect.y, Icon, (over ? tic_color_light_grey : tic_color_white));
+            drawBitIcon(tic_icon_paste, rect.x-1, rect.y, tic_color_black);
+            drawBitIcon(tic_icon_paste, rect.x-1, rect.y-1, (over ? tic_color_light_grey : tic_color_white));
         }
     }
 }
@@ -1273,18 +1178,6 @@ static void drawPaletteOvr(Sprite* sprite, s32 x, s32 y)
 
     if(sprite->advanced)
     {
-        static const u8 Icon[] = 
-        {
-            0b01000000,
-            0b11111111,
-            0b00000000,
-            0b00000010,
-            0b11111111,
-            0b00000000,
-            0b00010000,
-            0b11111111,
-        };
-
         tic_rect rect = {x + PALETTE_WIDTH + 3, y + (PALETTE_HEIGHT-8)/2-1, 8, 8};
 
         bool down = false;
@@ -1310,12 +1203,12 @@ static void drawPaletteOvr(Sprite* sprite, s32 x, s32 y)
 
         if(sprite->palette.edit || down)
         {
-            drawBitIcon(rect.x, rect.y+1, Icon, (over ? tic_color_light_grey : tic_color_white));
+            drawBitIcon(tic_icon_rgb, rect.x, rect.y+1, (over ? tic_color_light_grey : tic_color_white));
         }
         else
         {
-            drawBitIcon(rect.x, rect.y+1, Icon, tic_color_black);
-            drawBitIcon(rect.x, rect.y, Icon, (over ? tic_color_light_grey : tic_color_white));            
+            drawBitIcon(tic_icon_rgb, rect.x, rect.y+1, tic_color_black);
+            drawBitIcon(tic_icon_rgb, rect.x, rect.y, (over ? tic_color_light_grey : tic_color_white));            
         }
     }
 }
@@ -1483,49 +1376,12 @@ static void(* const CanvasToolsFunc[])(Sprite*) = {flipCanvasHorz, flipCanvasVer
 
 static void drawSpriteTools(Sprite* sprite, s32 x, s32 y)
 {
-    static const u8 Icons[] =
-    {
-        0b11101110,
-        0b11010110,
-        0b11101110,
-        0b11101110,
-        0b11101110,
-        0b11010110,
-        0b11101110,
-        0b00000000,
-
-        0b11111110,
-        0b11111110,
-        0b10111010,
-        0b01000100,
-        0b10111010,
-        0b11111110,
-        0b11111110,
-        0b00000000,
-
-        0b00111000,
-        0b01000100,
-        0b10010101,
-        0b10001110,
-        0b10000100,
-        0b01000000,
-        0b00111000,
-        0b00000000,
-
-        0b00111110,
-        0b01111111,
-        0b00101010,
-        0b00101010,
-        0b00101010,
-        0b00101010,
-        0b00111110,
-        0b00000000,
-    };
+    static const u8 Icons[] = {tic_icon_fliphorz, tic_icon_flipvert, tic_icon_rotate, tic_icon_erase};
     static const char* Tooltips[] = {"FLIP HORZ [5]", "FLIP VERT [6]", "ROTATE [7]", "ERASE [8]"};
 
     enum{Gap = TIC_SPRITESIZE + 3};
 
-    for(s32 i = 0; i < COUNT_OF(Icons)/BITS_IN_BYTE; i++)
+    for(s32 i = 0; i < COUNT_OF(Icons); i++)
     {
         bool pushed = false;
         bool over = false;
@@ -1558,60 +1414,23 @@ static void drawSpriteTools(Sprite* sprite, s32 x, s32 y)
 
         if(pushed)
         {
-            drawBitIcon(rect.x, y + 1, Icons + i*BITS_IN_BYTE, (over ? tic_color_light_grey : tic_color_white));
+            drawBitIcon(Icons[i], rect.x, y + 1, (over ? tic_color_light_grey : tic_color_white));
         }
         else
         {
-            drawBitIcon(rect.x, y+1, Icons + i*BITS_IN_BYTE, tic_color_black);
-            drawBitIcon(rect.x, y, Icons + i*BITS_IN_BYTE, (over ? tic_color_light_grey : tic_color_white));
+            drawBitIcon(Icons[i], rect.x, y+1, tic_color_black);
+            drawBitIcon(Icons[i], rect.x, y, (over ? tic_color_light_grey : tic_color_white));
         }
     }
 }
 
 static void drawTools(Sprite* sprite, s32 x, s32 y)
 {
-    static const u8 Icons[] = 
-    {
-        0b00001000,
-        0b00011100,
-        0b00111110,
-        0b01111100,
-        0b10111000,
-        0b10010000,
-        0b11100000,
-        0b00000000,
-
-        0b00111000,
-        0b00111000,
-        0b01111100,
-        0b00101000,
-        0b00101000,
-        0b00101000,
-        0b00010000,
-        0b00000000,
-
-        0b10101010,
-        0b00000000,
-        0b10000010,
-        0b00000000,
-        0b10000010,
-        0b00000000,
-        0b10101010,
-        0b00000000,
-
-        0b00001000,
-        0b00000100,
-        0b00000010,
-        0b01111111,
-        0b10111110,
-        0b10011100,
-        0b10001000,
-        0b00000000,
-    };
-
     enum{Gap = TIC_SPRITESIZE + 3};
 
-    for(s32 i = 0; i < COUNT_OF(Icons)/BITS_IN_BYTE; i++)
+    static const u8 Icons[] = {tic_icon_bigpen, tic_icon_bigpicker, tic_icon_bigselect, tic_icon_bigfill};
+
+    for(s32 i = 0; i < COUNT_OF(Icons); i++)
     {
         tic_rect rect = {x + i * Gap, y, TIC_SPRITESIZE, TIC_SPRITESIZE};
 
@@ -1637,31 +1456,19 @@ static void drawTools(Sprite* sprite, s32 x, s32 y)
 
         if(pushed)
         {
-            static const u8 Icon[] = 
-            {
-                0b01111100,
-                0b00111000,
-                0b00010000,
-                0b00000000,
-                0b00000000,
-                0b00000000,
-                0b00000000,
-                0b00000000,
-            };
+            drawBitIcon(tic_icon_down, rect.x, y - 5, tic_color_black);
+            drawBitIcon(tic_icon_down, rect.x, y - 6, tic_color_white);
 
-            drawBitIcon(rect.x, y - 4, Icon, tic_color_black);
-            drawBitIcon(rect.x, y - 5, Icon, tic_color_white);
-
-            drawBitIcon(rect.x, y + 1, Icons + i*BITS_IN_BYTE, (over ? tic_color_light_grey : tic_color_white));
+            drawBitIcon(Icons[i], rect.x, y + 1, (over ? tic_color_light_grey : tic_color_white));
         }
         else
         {
-            drawBitIcon(rect.x, y+1, Icons + i*BITS_IN_BYTE, tic_color_black);
-            drawBitIcon(rect.x, y, Icons + i*BITS_IN_BYTE, (over ? tic_color_light_grey : tic_color_white));
+            drawBitIcon(Icons[i], rect.x, y+1, tic_color_black);
+            drawBitIcon(Icons[i], rect.x, y, (over ? tic_color_light_grey : tic_color_white));
         }
     }
 
-    drawSpriteTools(sprite, x + COUNT_OF(Icons)/BITS_IN_BYTE * Gap + 1, y);
+    drawSpriteTools(sprite, x + COUNT_OF(Icons) * Gap + 1, y);
 }
 
 static void copyToClipboard(Sprite* sprite)
@@ -1757,8 +1564,7 @@ static void switchBanks(Sprite* sprite)
     initTileSheet(sprite);
 }
 
-
-static void drawTab(tic_mem* tic, s32 x, s32 y, s32 w, s32 h, const u8* icon, bool active, bool over)
+static void drawTab(tic_mem* tic, s32 x, s32 y, s32 w, s32 h, u8 icon, bool active, bool over)
 {
     tic_color tab_color = active ? tic_color_white : over ? tic_color_light_grey : tic_color_dark_grey;
     tic_color label_color = active ? tic_color_dark_grey : tic_color_grey;
@@ -1772,7 +1578,7 @@ static void drawTab(tic_mem* tic, s32 x, s32 y, s32 w, s32 h, const u8* icon, bo
         tic_api_pix(tic, x, y-1 + h, label_color, false);
     }
 
-    drawBitIcon(x, y, icon, label_color);
+    drawBitIcon(icon, x + 1, y, label_color);
 }
 
 static void drawBankTabs(Sprite* sprite, s32 x, s32 y)
@@ -1783,28 +1589,8 @@ static void drawBankTabs(Sprite* sprite, s32 x, s32 y)
 
     enum {Banks = 2, SizeY = 7, SizeX = 9};
 
+    static const u8 Icons[] = {tic_icon_tiles, tic_icon_sprites};
     static const char* tooltips[] = {"TILES [tab]", "SPRITES [tab]"};
-
-    static const u8 Icons[] =
-    {
-        0b00000000,
-        0b00101010,
-        0b00000000,
-        0b00101010,
-        0b00000000,
-        0b00101010,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b00011100,
-        0b00101010,
-        0b00111110,
-        0b00100010,
-        0b00011100,
-        0b00000000,
-        0b00000000,
-    };
 
     for(s32 i = 0; i < Banks; i++)
     {
@@ -1829,7 +1615,7 @@ static void drawBankTabs(Sprite* sprite, s32 x, s32 y)
             }
         }
 
-        drawTab(tic, rect.x, rect.y, SizeX, SizeY, Icons + i * BITS_IN_BYTE, current, over);
+        drawTab(tic, rect.x, rect.y, SizeX, SizeY, Icons[i], current, over);
     }
 }
 
