@@ -31,7 +31,7 @@ if(Git_FOUND)
         )
 
         string(SUBSTRING ${GIT_COMMIT_HASH} 0 7 GIT_COMMIT_HASH)
-        set(VERSION_HASH " (${GIT_COMMIT_HASH})" )
+        set(VERSION_HASH ${GIT_COMMIT_HASH} )
 
         execute_process(
             COMMAND ${GIT_EXECUTABLE} rev-list HEAD --count

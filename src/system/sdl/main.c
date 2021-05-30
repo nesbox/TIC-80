@@ -209,26 +209,25 @@ static u8 getSpritePixel(const tic_tile* tiles, s32 x, s32 y)
 static void setWindowIcon()
 {
     enum{ Size = 64, TileSize = 16, ColorKey = 14, Cols = TileSize / TIC_SPRITESIZE, Scale = Size/TileSize};
-    tic_api_cls(platform.studio->tic, 0);
 
-    u32* pixels = SDL_malloc(Size * Size * sizeof(u32));
+    DEFER(u32* pixels = SDL_malloc(Size * Size * sizeof(u32)), SDL_free(pixels))
+    {
+        const u32* pal = tic_tool_palette_blit(&platform.studio->config()->cart->bank0.palette.scn, platform.studio->tic->screen_format);
 
-    const u32* pal = tic_tool_palette_blit(&platform.studio->config()->cart->bank0.palette.scn, platform.studio->tic->screen_format);
+        for(s32 j = 0, index = 0; j < Size; j++)
+            for(s32 i = 0; i < Size; i++, index++)
+            {
+                u8 color = getSpritePixel(platform.studio->config()->cart->bank0.tiles.data, i/Scale, j/Scale);
+                pixels[index] = color == ColorKey ? 0 : pal[color];
+            }
 
-    for(s32 j = 0, index = 0; j < Size; j++)
-        for(s32 i = 0; i < Size; i++, index++)
+        DEFER(SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, Size, Size,
+            sizeof(s32) * BITS_IN_BYTE, Size * sizeof(s32),
+            0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000), SDL_FreeSurface(surface))
         {
-            u8 color = getSpritePixel(platform.studio->config()->cart->bank0.tiles.data, i/Scale, j/Scale);
-            pixels[index] = color == ColorKey ? 0 : pal[color];
+            SDL_SetWindowIcon(platform.window, surface);
         }
-
-    SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, Size, Size,
-        sizeof(s32) * BITS_IN_BYTE, Size * sizeof(s32),
-        0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
-
-    SDL_SetWindowIcon(platform.window, surface);
-    SDL_FreeSurface(surface);
-    SDL_free(pixels);
+    }
 }
 
 #if defined(TOUCH_INPUT_SUPPORT)
@@ -264,13 +263,6 @@ static void updateGamepadParts()
 }
 #endif
 
-static void map2ram()
-{
-    tic_mem* tic = platform.studio->tic;
-    memcpy(tic->ram.map.data, &platform.studio->config()->cart->bank0.map, sizeof tic->ram.map);
-    memcpy(tic->ram.tiles.data, &platform.studio->config()->cart->bank0.tiles, sizeof tic->ram.tiles * TIC_SPRITE_BANKS);
-}
-
 #if defined(CRT_SHADER_SUPPORT)
 
 void updateTextureBytes(GPU_Image* texture, const void* data, s32 height)
@@ -296,45 +288,27 @@ static void initTouchGamepad()
 {
     if(!platform.gamepad.touch.pixels)
     {
-        map2ram();
+        tic_mem* tic = platform.studio->tic;
+        const tic_bank* bank = &platform.studio->config()->cart->bank0;
 
-        tic_api_map(platform.studio->tic, 0, 0, TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, 0, 0, 1, NULL, NULL);
+        {
+            memcpy(tic->ram.vram.palette.data, &bank->palette.scn, sizeof(tic_palette));
+            memcpy(tic->ram.tiles.data, &bank->tiles, sizeof(tic_tiles));
+            tic_api_spr(tic, 0, 0, 0, TIC_SPRITESHEET_COLS, TIC_SPRITESHEET_COLS, NULL, 0, 1, tic_no_flip, tic_no_rotate);
+        }
 
         platform.gamepad.touch.pixels = SDL_malloc(TEXTURE_SIZE * TEXTURE_SIZE * sizeof(u32));
 
-        if(platform.gamepad.touch.pixels)
-        {
-            u32* out = platform.gamepad.touch.pixels;
+        tic_core_blit(tic, tic->screen_format);
 
-            const u8* in = platform.studio->tic->ram.vram.screen.data;
-            const u8* end = in + sizeof(platform.studio->tic->ram.vram.screen);
-            const u32* pal = tic_tool_palette_blit(&platform.studio->config()->cart->bank0.palette.scn, platform.studio->tic->screen_format);
-            const u32 Delta = ((TIC80_FULLWIDTH*sizeof(u32))/sizeof *out - TIC80_WIDTH);
+        for(u32* pix = tic->screen, *end = pix + TIC80_FULLWIDTH * TIC80_FULLHEIGHT; pix != end; ++pix)
+            if(*pix == tic_rgba(&bank->palette.scn.colors[0]))
+                *pix = 0;
 
-            s32 col = 0;
+        memcpy(platform.gamepad.touch.pixels, tic->screen, TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32));
 
-            while(in != end)
-            {
-                u8 low = *in & 0x0f;
-                u8 hi = (*in & 0xf0) >> TIC_PALETTE_BPP;
-                *out++ = low ? *(pal + low) : 0;
-                *out++ = hi ? *(pal + hi) : 0;
-                in++;
-
-                col += BITS_IN_BYTE / TIC_PALETTE_BPP;
-
-                if (col == TIC80_WIDTH)
-                {
-                    col = 0;
-                    out += Delta;
-                }
-            }
-
-            updateGamepadParts();
-        }
-
-        memset(&platform.studio->tic->ram.map, 0, sizeof(tic_map));
-        memset(&platform.studio->tic->ram.tiles, 0, sizeof(tic_tiles) * TIC_SPRITE_BANKS);
+        ZEROMEM(tic->ram.vram.palette);
+        ZEROMEM(tic->ram.tiles);
     }
 
     if(!platform.gamepad.touch.texture)
@@ -352,6 +326,8 @@ static void initTouchGamepad()
         updateTextureBytes(platform.gamepad.touch.texture, platform.gamepad.touch.pixels, TEXTURE_SIZE);
 #endif
     }
+
+    updateGamepadParts();
 }
 #endif
 
@@ -384,7 +360,7 @@ static void initGPU()
 
 #if defined(TOUCH_INPUT_SUPPORT)
     initTouchGamepad();
-#endif    
+#endif
 }
 
 
@@ -1044,17 +1020,20 @@ static void renderKeyboard()
 {
     const s32 tileSize = platform.keyboard.touch.button.size;
 
+    enum { Top = TIC80_MARGIN_TOP + 2 * TIC_SPRITESIZE};
+    enum { Left = TIC80_MARGIN_LEFT + 5 * TIC_SPRITESIZE};
+
     if(!SDL_IsTextInputActive())
     {
         const SDL_Point* pos = &platform.keyboard.touch.button.pos;
 #if defined(CRT_SHADER_SUPPORT)
-        GPU_Rect src = {0, 2*TIC_SPRITESIZE, TIC_SPRITESIZE * 2, TIC_SPRITESIZE};
+        GPU_Rect src = {Left, Top, TIC_SPRITESIZE * 2, TIC_SPRITESIZE};
         GPU_Rect dest = {(float)pos->x, (float)pos->y, (float)tileSize, (float)tileSize};
 
         GPU_BlitScale(platform.gamepad.touch.texture, &src, platform.gpu.renderer, dest.x, dest.y,
             (float)dest.w / TIC_SPRITESIZE, (float)dest.h / TIC_SPRITESIZE);
 #else
-        SDL_Rect src = {0, 2*TIC_SPRITESIZE, TIC_SPRITESIZE * 2, TIC_SPRITESIZE};
+        SDL_Rect src = {Left, Top, TIC_SPRITESIZE * 2, TIC_SPRITESIZE};
         SDL_Rect dest = {pos->x, pos->y, tileSize * 2, tileSize};
         SDL_RenderCopy(platform.gpu.renderer, platform.gamepad.touch.texture, &src, &dest);
 #endif
@@ -1083,18 +1062,20 @@ static void renderGamepad()
         {input->gamepads.first.y,      platform.gamepad.touch.button.y.x, platform.gamepad.touch.button.y.y},
     };
 
+    enum { Left = TIC80_MARGIN_LEFT + 8 * TIC_SPRITESIZE};
+
     for(s32 i = 0; i < COUNT_OF(Tiles); i++)
     {
         const Tile* tile = Tiles + i;
 
 #if defined(CRT_SHADER_SUPPORT)
-        GPU_Rect src = { (float)i * TIC_SPRITESIZE, (float)(tile->press ? TIC_SPRITESIZE : 0), (float)TIC_SPRITESIZE, (float)TIC_SPRITESIZE};
+        GPU_Rect src = { (float)i * TIC_SPRITESIZE + Left, (float)(tile->press ? TIC_SPRITESIZE : 0) + TIC80_MARGIN_TOP, (float)TIC_SPRITESIZE, (float)TIC_SPRITESIZE};
         GPU_Rect dest = { (float)tile->x, (float)tile->y, (float)tileSize, (float)tileSize};
 
         GPU_BlitScale(platform.gamepad.touch.texture, &src, platform.gpu.renderer, dest.x, dest.y,
             (float)dest.w / TIC_SPRITESIZE, (float)dest.h / TIC_SPRITESIZE);
 #else
-        SDL_Rect src = {i * TIC_SPRITESIZE, tile->press ? TIC_SPRITESIZE : 0, TIC_SPRITESIZE, TIC_SPRITESIZE};
+        SDL_Rect src = {i * TIC_SPRITESIZE + Left, (tile->press ? TIC_SPRITESIZE : 0) + TIC80_MARGIN_TOP, TIC_SPRITESIZE, TIC_SPRITESIZE};
         SDL_Rect dest = {tile->x, tile->y, tileSize, tileSize};
         SDL_RenderCopy(platform.gpu.renderer, platform.gamepad.touch.texture, &src, &dest);
 #endif

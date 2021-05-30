@@ -550,18 +550,15 @@ void tic_core_blit_ex(tic_mem* tic, tic80_pixel_color_format fmt, tic_scanline s
 
     const u32* pal = tic_tool_palette_blit(&tic->ram.vram.palette, fmt);
 
-    enum { Top = (TIC80_FULLHEIGHT - TIC80_HEIGHT) / 2, Bottom = Top };
-    enum { Left = (TIC80_FULLWIDTH - TIC80_WIDTH) / 2, Right = Left };
-
     u32* out = tic->screen;
 
-    memset4(&out[0 * TIC80_FULLWIDTH], pal[tic->ram.vram.vars.border], TIC80_FULLWIDTH * Top);
+    memset4(&out[0 * TIC80_FULLWIDTH], pal[tic->ram.vram.vars.border], TIC80_FULLWIDTH * TIC80_MARGIN_TOP);
 
-    u32* rowPtr = out + (Top * TIC80_FULLWIDTH);
+    u32* rowPtr = out + (TIC80_MARGIN_TOP * TIC80_FULLWIDTH);
     for (s32 r = 0; r < TIC80_HEIGHT; r++, rowPtr += TIC80_FULLWIDTH)
     {
-        u32* colPtr = rowPtr + Left;
-        memset4(rowPtr, pal[tic->ram.vram.vars.border], Left);
+        u32* colPtr = rowPtr + TIC80_MARGIN_LEFT;
+        memset4(rowPtr, pal[tic->ram.vram.vars.border], TIC80_MARGIN_LEFT);
 
         s32 pos = (r + tic->ram.vram.vars.offset.y + TIC80_HEIGHT) % TIC80_HEIGHT * TIC80_WIDTH >> 1;
 
@@ -573,7 +570,7 @@ void tic_core_blit_ex(tic_mem* tic, tic80_pixel_color_format fmt, tic_scanline s
             *(colPtr + (x++ % TIC80_WIDTH)) = pal[val >> 4];
         }
 
-        memset4(rowPtr + (TIC80_FULLWIDTH - Right), pal[tic->ram.vram.vars.border], Right);
+        memset4(rowPtr + (TIC80_FULLWIDTH - TIC80_MARGIN_RIGHT), pal[tic->ram.vram.vars.border], TIC80_MARGIN_RIGHT);
 
         if (scanline && (r < TIC80_HEIGHT - 1))
         {
@@ -582,7 +579,7 @@ void tic_core_blit_ex(tic_mem* tic, tic80_pixel_color_format fmt, tic_scanline s
         }
     }
 
-    memset4(&out[(TIC80_FULLHEIGHT - Bottom) * TIC80_FULLWIDTH], pal[tic->ram.vram.vars.border], TIC80_FULLWIDTH * Bottom);
+    memset4(&out[(TIC80_FULLHEIGHT - TIC80_MARGIN_BOTTOM) * TIC80_FULLWIDTH], pal[tic->ram.vram.vars.border], TIC80_FULLWIDTH * TIC80_MARGIN_BOTTOM);
 
     if (overline)
         overline(tic, data);
