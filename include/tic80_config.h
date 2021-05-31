@@ -78,13 +78,13 @@
 #   define TIC_WREN_DEF(macro)
 #endif
 
-#define SCRIPT_LIST(macro)  \
-    TIC_LUA_DEF(macro)      \
-    TIC_MOON_DEF(macro)     \
-    TIC_FENNEL_DEF(macro)   \
-    TIC_JS_DEF(macro)       \
+#define SCRIPT_LIST(macro) \
+    TIC_LUA_DEF     (macro) \
+    TIC_MOON_DEF    (macro) \
+    TIC_FENNEL_DEF  (macro) \
+    TIC_JS_DEF      (macro) \
     TIC_SQUIRREL_DEF(macro) \
-    TIC_WREN_DEF(macro)
+    TIC_WREN_DEF    (macro)
 
 #if defined(__APPLE__)
 // TODO: this disables macos config 

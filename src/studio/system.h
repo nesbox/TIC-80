@@ -31,7 +31,7 @@
 #define TIC_VERSION_POST ""
 #endif
 
-#define TIC_VERSION DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "." DEF2STR(TIC_VERSION_REVISION) TIC_VERSION_STATUS TIC_VERSION_BUILD TIC_VERSION_POST TIC_VERSION_HASH
+#define TIC_VERSION DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "." DEF2STR(TIC_VERSION_REVISION) TIC_VERSION_STATUS TIC_VERSION_BUILD TIC_VERSION_POST " (" TIC_VERSION_HASH ")"
 #define TIC_PACKAGE "com.nesbox.tic"
 #define TIC_NAME "TIC-80"
 #define TIC_NAME_FULL TIC_NAME " tiny computer"
@@ -114,6 +114,7 @@ typedef struct
     
     bool checkNewVersion;
     bool noSound;
+    bool cli;
 
 #if defined(CRT_SHADER_SUPPORT)
     bool crtMonitor;
@@ -145,7 +146,7 @@ typedef struct
 
 } Studio;
 
-Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* appFolder);
+Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* appFolder);
 
 #ifdef __cplusplus
 }

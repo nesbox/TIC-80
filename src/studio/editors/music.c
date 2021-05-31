@@ -88,32 +88,9 @@ static void drawEditPanel(Music* music, s32 x, s32 y, s32 w, s32 h)
 static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*, s32, s32 channel), s32 channel)
 {
     tic_mem* tic = music->tic;
-    static const u8 LeftArrow[] =
-    {
-        0b00100000,
-        0b01100000,
-        0b11100000,
-        0b01100000,
-        0b00100000,
-        0b00000000,
-        0b00000000,
-        0b00000000,
-    };
-
-    static const u8 RightArrow[] =
-    {
-        0b00100000,
-        0b00110000,
-        0b00111000,
-        0b00110000,
-        0b00100000,
-        0b00000000,
-        0b00000000,
-        0b00000000,
-    };
 
     {
-        tic_rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
+        tic_rect rect = { x - TIC_FONT_WIDTH, y, TIC_ALTFONT_WIDTH, TIC_FONT_HEIGHT };
 
         bool over = false;
         bool down = false;
@@ -129,13 +106,11 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
                 set(music, -1, channel);
         }
 
-        drawBitIcon(rect.x, rect.y + (down ? 2 : 1), LeftArrow, tic_color_black);
-        drawBitIcon(rect.x, rect.y + (down ? 1 : 0), LeftArrow, (over ? tic_color_light_grey : tic_color_dark_grey));
+        drawBitIcon(tic_icon_left, rect.x - 2, rect.y + (down ? 1 : 0), tic_color_black);
+        drawBitIcon(tic_icon_left, rect.x - 2, rect.y + (down ? 0 : -1), (over ? tic_color_light_grey : tic_color_dark_grey));
     }
 
     {
-        x += TIC_FONT_WIDTH;
-
         tic_rect rect = { x-1, y-1, TIC_FONT_WIDTH*2+1, TIC_FONT_HEIGHT+1 };
 
         if (checkMousePos(&rect))
@@ -167,9 +142,7 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
     }
 
     {
-        x += 2*TIC_FONT_WIDTH;
-
-        tic_rect rect = { x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT };
+        tic_rect rect = { x + TIC_FONT_WIDTH*2+1, y, TIC_ALTFONT_WIDTH, TIC_FONT_HEIGHT };
 
         bool over = false;
         bool down = false;
@@ -185,46 +158,20 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
                 set(music, +1, channel);
         }
 
-        drawBitIcon(rect.x, rect.y + (down ? 2 : 1), RightArrow, tic_color_black);
-        drawBitIcon(rect.x, rect.y + (down ? 1 : 0), RightArrow, (over ? tic_color_light_grey : tic_color_dark_grey));
+        drawBitIcon(tic_icon_right, rect.x - 1, rect.y + (down ? 1 : 0), tic_color_black);
+        drawBitIcon(tic_icon_right, rect.x - 1, rect.y + (down ? 0 : -1), (over ? tic_color_light_grey : tic_color_dark_grey));
     }
 }
 
 static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value, void(*set)(Music*, s32, void* data), void* data)
 {
-    static const u8 LeftArrow[] =
-    {
-        0b00010000,
-        0b00110000,
-        0b01110000,
-        0b00110000,
-        0b00010000,
-        0b00000000,
-        0b00000000,
-        0b00000000,
-    };
-
-    static const u8 RightArrow[] =
-    {
-        0b01000000,
-        0b01100000,
-        0b01110000,
-        0b01100000,
-        0b01000000,
-        0b00000000,
-        0b00000000,
-        0b00000000,
-    };
-
-    enum {ArrowWidth = 5};
-
     tic_api_print(music->tic, label, x, y+1, tic_color_black, true, 1, false);
     tic_api_print(music->tic, label, x, y, tic_color_white, true, 1, false);
 
-    {
-        x += (s32)strlen(label)*TIC_FONT_WIDTH;
+    x += strlen(label) * TIC_FONT_WIDTH + TIC_ALTFONT_WIDTH;
 
-        tic_rect rect = { x, y, ArrowWidth, TIC_FONT_HEIGHT };
+    {
+        tic_rect rect = { x - TIC_ALTFONT_WIDTH, y, TIC_ALTFONT_WIDTH, TIC_FONT_HEIGHT };
 
         bool over = false;
         bool down = false;
@@ -241,21 +188,19 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
                 set(music, -1, data);
         }
 
-        drawBitIcon(rect.x, rect.y + (down ? 2 : 1), LeftArrow, tic_color_black);
-        drawBitIcon(rect.x, rect.y + (down ? 1 : 0), LeftArrow, over ? tic_color_light_grey : tic_color_dark_grey);
+        drawBitIcon(tic_icon_left, rect.x - 2, rect.y + (down ? 1 : 0), tic_color_black);
+        drawBitIcon(tic_icon_left, rect.x - 2, rect.y + (down ? 0 : -1), over ? tic_color_light_grey : tic_color_dark_grey);
     }
 
     {
-        char val[] = "999";
+        char val[sizeof "999"];
         sprintf(val, "%02i", value);
-        tic_api_print(music->tic, val, x + ArrowWidth, y+1, tic_color_black, true, 1, false);
-        tic_api_print(music->tic, val, x += ArrowWidth, y, tic_color_yellow, true, 1, false);
+        tic_api_print(music->tic, val, x, y+1, tic_color_black, true, 1, false);
+        tic_api_print(music->tic, val, x, y, tic_color_yellow, true, 1, false);
     }
 
     {
-        x += (value > 99 ? 3 : 2)*TIC_FONT_WIDTH-1;
-
-        tic_rect rect = { x, y, ArrowWidth, TIC_FONT_HEIGHT };
+        tic_rect rect = { x + (value > 99 ? 3 : 2) * TIC_FONT_WIDTH, y, TIC_ALTFONT_WIDTH, TIC_FONT_HEIGHT };
 
         bool over = false;
         bool down = false;
@@ -272,8 +217,8 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
                 set(music, +1, data);
         }
 
-        drawBitIcon(rect.x, rect.y + (down ? 2 : 1), RightArrow, tic_color_black);
-        drawBitIcon(rect.x, rect.y + (down ? 1 : 0), RightArrow, over ? tic_color_light_grey : tic_color_dark_grey);
+        drawBitIcon(tic_icon_right, rect.x - 2, rect.y + (down ? 1 : 0), tic_color_black);
+        drawBitIcon(tic_icon_right, rect.x - 2, rect.y + (down ? 0 : -1), over ? tic_color_light_grey : tic_color_dark_grey);
     }
 }
 
@@ -1615,23 +1560,11 @@ static void drawTrackerFrames(Music* music, s32 x, s32 y)
     {
         if (checkPlayFrame(music, i))
         {
-            static const u8 Icon[] =
-            {
-                0b00000000,
-                0b01000000,
-                0b01100000,
-                0b01110000,
-                0b01100000,
-                0b01000000,
-                0b00000000,
-                0b00000000,
-            };
-
-            drawBitIcon(x - TIC_FONT_WIDTH-1, y + i*TIC_FONT_HEIGHT, Icon, tic_color_black);
-            drawBitIcon(x - TIC_FONT_WIDTH-1, y - 1 + i*TIC_FONT_HEIGHT, Icon, tic_color_white);
+            drawBitIcon(tic_icon_right, x - TIC_FONT_WIDTH-2, y + i*TIC_FONT_HEIGHT, tic_color_black);
+            drawBitIcon(tic_icon_right, x - TIC_FONT_WIDTH-2, y - 1 + i*TIC_FONT_HEIGHT, tic_color_white);
         }
 
-        char buf[] = "99";
+        char buf[sizeof "99"];
         sprintf(buf, "%02i", i);
 
         tic_api_print(music->tic, buf, x, y + i*TIC_FONT_HEIGHT, i == music->frame ? tic_color_white : tic_color_grey, true, 1, false);
@@ -1639,10 +1572,10 @@ static void drawTrackerFrames(Music* music, s32 x, s32 y)
 
     if(music->tracker.edit.y >= 0)
     {
-        char buf[] = "99";
+        char buf[sizeof "99"];
         sprintf(buf, "%02i", music->tracker.edit.y);
-        tic_api_print(music->tic, buf, x, y - 10, tic_color_black, true, 1, false);
-        tic_api_print(music->tic, buf, x, y - 11, tic_color_white, true, 1, false);
+        tic_api_print(music->tic, buf, x, y - 11, tic_color_black, true, 1, false);
+        tic_api_print(music->tic, buf, x, y - 12, tic_color_white, true, 1, false);
     }
 }
 
@@ -1832,7 +1765,7 @@ static void drawTrackerLayout(Music* music, s32 x, s32 y)
     for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
     {
         s32 patternId = tic_tool_get_pattern_id(getTrack(music), music->frame, i);
-        drawEditbox(music, x + ChannelWidth * i + 2*TIC_FONT_WIDTH, y - 12, patternId, setChannelPattern, i);
+        drawEditbox(music, x + ChannelWidth * i + 3*TIC_FONT_WIDTH, y - 12, patternId, setChannelPattern, i);
         drawTumbler(music, x + ChannelWidth * i + 7*TIC_FONT_WIDTH-1, y - 11, i);
     }
 
@@ -1854,7 +1787,7 @@ static void drawPlayButtons(Music* music)
     static struct Button
     {
         s32 id; 
-        const u8 icon[BITS_IN_BYTE]; 
+        u8 icon; 
         const char* tip; 
         const char* alt; 
         void(*handler)(Music*);
@@ -1862,16 +1795,7 @@ static void drawPlayButtons(Music* music)
     {
         {
             FollowButton,
-            {
-                0b00000000,
-                0b00100000,
-                0b00010000,
-                0b10111000,
-                0b00010000,
-                0b00100000,
-                0b00000000,
-                0b00000000,
-            },
+            tic_icon_follow,
             "FOLLOW [ctrl+f]",
             NULL,
             toggleFollowMode,
@@ -1879,16 +1803,7 @@ static void drawPlayButtons(Music* music)
 
         {
             SustainButton,
-            {
-                0b00000000,
-                0b01111000,
-                0b00000100,
-                0b01000100,
-                0b01000000,
-                0b00111100,
-                0b00000000,
-                0b00000000,
-            },
+            tic_icon_sustain,
             "SUSTAIN NOTES",
             NULL,
             toggleSustainMode,
@@ -1896,16 +1811,7 @@ static void drawPlayButtons(Music* music)
 
         {
             PlayFromNowButton,
-            {
-                0b00000000,
-                0b00100000,
-                0b00010000,
-                0b00001000,
-                0b00010000,
-                0b00100000,
-                0b00000000,
-                0b00000000,
-            },
+            tic_icon_playnow,
             "PLAY FROM NOW ...",
             "... [shift+enter]",
             playFrameRow,
@@ -1913,16 +1819,7 @@ static void drawPlayButtons(Music* music)
 
         {
             PlayFrameButton,
-            {
-                0b00000000,
-                0b01010000,
-                0b01011000,
-                0b01011100,
-                0b01011000,
-                0b01010000,
-                0b00000000,
-                0b00000000,
-            },
+            tic_icon_playframe,
             "PLAY FRAME ...",
             "... [enter]",
             playFrame,
@@ -1930,16 +1827,7 @@ static void drawPlayButtons(Music* music)
 
         {
             PlayTrackButton,
-            {
-                0b00000000,
-                0b00100000,
-                0b00110000,
-                0b00111000,
-                0b00110000,
-                0b00100000,
-                0b00000000,
-                0b00000000,
-            },
+            tic_icon_right,
             "PLAY TRACK ...",
             "... [space]",
             playTrack,
@@ -1947,16 +1835,7 @@ static void drawPlayButtons(Music* music)
 
         {
             PlayTrackButton,
-            {
-                0b00000000,
-                0b01111100,
-                0b01111100,
-                0b01111100,
-                0b01111100,
-                0b01111100,
-                0b00000000,
-                0b00000000,
-            },
+            tic_icon_stop,
             "STOP [enter]",
             NULL,
             stopTrack,
@@ -1981,45 +1860,25 @@ static void drawPlayButtons(Music* music)
         }
 
         if(btn->id == FollowButton && music->follow)
-            drawBitIcon(rect.x, rect.y, btn->icon, tic_color_green);
+            drawBitIcon(btn->icon, rect.x, rect.y, tic_color_green);
 
         else if(btn->id == SustainButton && music->sustain)
-            drawBitIcon(rect.x, rect.y, btn->icon, tic_color_green);
+            drawBitIcon(btn->icon, rect.x, rect.y, tic_color_green);
 
         else
-            drawBitIcon(rect.x, rect.y, btn->icon, over ? tic_color_grey : tic_color_light_grey);
+            drawBitIcon(btn->icon, rect.x, rect.y, over ? tic_color_grey : tic_color_light_grey);
     }
 }
 
 static void drawModeTabs(Music* music)
 {
-    static const u8 Icons[] =
-    {
-        0b00000000,
-        0b01111100,
-        0b00000000,
-        0b01011100,
-        0b01011100,
-        0b01011100,
-        0b00000000,
-        0b00000000,
+    static const u8 Icons[] = {tic_icon_piano, tic_icon_tracker};
 
-        0b00000000,
-        0b01111100,
-        0b00000000,
-        0b01010100,
-        0b01010100,
-        0b01010100,
-        0b00000000,
-        0b00000000,
-    };
-
-    enum { Width = 7, Height = 7, Rows = 8, Count = sizeof Icons / Rows };
+    enum { Width = 7, Height = 7, Count = COUNT_OF(Icons) };
 
     for (s32 i = 0; i < Count; i++)
     {
         tic_rect rect = { TIC80_WIDTH - Width * (Count - i), 0, Width, Height };
-
 
         static const s32 Tabs[] = { MUSIC_PIANO_TAB, MUSIC_TRACKER_TAB };
 
@@ -2040,10 +1899,10 @@ static void drawModeTabs(Music* music)
         if (music->tab == Tabs[i])
         {
             tic_api_rect(music->tic, rect.x, rect.y, rect.w, rect.h, tic_color_grey);
-            drawBitIcon(rect.x, rect.y + 1, Icons + i*Rows, tic_color_black);
+            drawBitIcon(Icons[i], rect.x, rect.y + 1, tic_color_black);
         }
 
-        drawBitIcon(rect.x, rect.y, Icons + i*Rows, music->tab == Tabs[i] ? tic_color_white : over ? tic_color_grey : tic_color_light_grey);
+        drawBitIcon(Icons[i], rect.x, rect.y, music->tab == Tabs[i] ? tic_color_white : over ? tic_color_grey : tic_color_light_grey);
     }
 }
 
@@ -2102,20 +1961,8 @@ static void drawPianoFrames(Music* music, s32 x, s32 y)
 
         if(playFrame >= 0)
         {
-            static const u8 Icon[] =
-            {
-                0b00000000,
-                0b01000000,
-                0b01100000,
-                0b01110000,
-                0b01100000,
-                0b01000000,
-                0b00000000,
-                0b00000000,
-            };
-
-            drawBitIcon(x - TIC_ALTFONT_WIDTH, y + playFrame * TIC_FONT_HEIGHT + Header, Icon, tic_color_black);
-            drawBitIcon(x - TIC_ALTFONT_WIDTH, y + playFrame * TIC_FONT_HEIGHT + (Header - 1), Icon, tic_color_white);                
+            drawBitIcon(tic_icon_right, x - TIC_ALTFONT_WIDTH - 1, y + playFrame * TIC_FONT_HEIGHT + Header, tic_color_black);
+            drawBitIcon(tic_icon_right, x - TIC_ALTFONT_WIDTH - 1, y + playFrame * TIC_FONT_HEIGHT + (Header - 1), tic_color_white);
         }
     }
 

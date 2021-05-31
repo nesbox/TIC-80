@@ -3,20 +3,21 @@
     [
         {
             "name": "build",
-            "shell_cmd": "cd ${project_path}/build && cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel ${project_path} && ninja",
+            "working_dir": "${project_path}/build",
+            "shell_cmd": "cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel .. && ninja",
             "file_regex": "/([^/:]+):(\\d+):(\\d+): ",
             "variants": [                
                 {
                     "name": "run",
-                    "shell_cmd": "cd ${project_path}/build && ninja && ${project_path}/build/bin/tic80 --skip"
+                    "shell_cmd": "ninja && ${project_path}/build/bin/tic80 --skip"
                 },
                 {
                     "name": "clean",
-                    "shell_cmd": "cd ${project_path}/build && ninja -t clean"
+                    "shell_cmd": "ninja -t clean"
                 },
                 {
                     "name": "clean rebuild",
-                    "shell_cmd": "cd ${project_path}/build && ninja -t clean && ninja"
+                    "shell_cmd": "ninja -t clean && ninja"
                 }
             ]
         }

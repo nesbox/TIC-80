@@ -62,7 +62,7 @@ static void downloadSucceeded(emscripten_fetch_t *fetch)
 
     data->callback(&getData);
 
-    free(fetch->data);
+    free((void*)fetch->data);
     free(data);
 
     emscripten_fetch_close(fetch);

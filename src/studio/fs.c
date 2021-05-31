@@ -318,6 +318,7 @@ static void onDirResponse(const net_get_data* netData)
         netDirData->done(netDirData->data);
         free(netDirData);
         break;
+    default: break;
     }
 }
 
@@ -764,6 +765,7 @@ static void fileByHashLoaded(const net_get_data* netData)
         free(loadFileByHashData->cachePath);
         free(loadFileByHashData);
         break;
+    default: break;
     }
 }
 
