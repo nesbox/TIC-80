@@ -321,6 +321,8 @@ jobs:
         emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
         cmake --build . --config $BUILD_TYPE --parallel
         cp html/export.html bin/index.html
+        cp bin/tic80.js webapp/tic80.js
+        cp bin/tic80.wasm webapp/tic80.wasm
 
     - name: Deploy
       uses: actions/upload-artifact@v2
@@ -330,3 +332,17 @@ jobs:
           build/bin/tic80.js
           build/bin/tic80.wasm
           build/bin/index.html
+
+    - name: Deploy WebApp
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-webapp'
+        path: |
+          build/webapp/index.html
+          build/webapp/serviceworker.js
+          build/webapp/tic80-180.png
+          build/webapp/tic80-192.png
+          build/webapp/tic80-512.png
+          build/webapp/tic80.webmanifest
+          build/webapp/tic80.js
+          build/webapp/tic80.wasm
