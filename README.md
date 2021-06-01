@@ -27,6 +27,8 @@ To make a retro styled game, the whole process of creation and execution takes p
 
 # Binary Downloads
 You can download compiled versions for the major operating systems directly from our [releases page](https://github.com/nesbox/TIC-80/releases).
+### Nightly builds
+Can be downloaded from [nightly builds](https://nightly.link/nesbox/TIC-80/workflows/build/master) page or from the [Github Actions](https://github.com/nesbox/TIC-80/actions?query=branch%3Amaster) page.
 
 # Pro Version
 To help support TIC-80 development, we have a [PRO Version](https://nesbox.itch.io/tic80).
