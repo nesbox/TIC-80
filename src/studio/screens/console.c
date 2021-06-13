@@ -127,7 +127,7 @@ static const struct SpecRow {const char* section; const char* info;} SpecText1[]
     {"INPUT",   "4 gamepads with 8 buttons / mouse / keyboard."},
     {"SPRITES", "256 8x8 tiles and 256 8x8 sprites."},
     {"MAP",     "240x136 cells, 1920x1088 pixels."},
-    {"SOUND",   "4 channels with configareble waveforms."},
+    {"SOUND",   "4 channels with configurable waveforms."},
     {"CODE",    "64KB of"
 #define         SCRIPT_DEF(name, ...) " "#name
                 SCRIPT_LIST(SCRIPT_DEF)
