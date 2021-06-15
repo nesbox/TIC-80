@@ -79,7 +79,7 @@ static const struct {const char* label; void(*const handler)(Menu*);} MenuItems[
 #define MENU_ITEMS_COUNT (COUNT_OF(MenuItems))
 
 #define DIALOG_WIDTH (TIC80_WIDTH / 2)
-#define DIALOG_HEIGHT (TIC80_HEIGHT / 2 + (MENU_ITEMS_COUNT - 6) * TIC_FONT_HEIGHT)
+#define DIALOG_HEIGHT (TIC80_HEIGHT / 2 + (MAX(MENU_ITEMS_COUNT, 6) - 6) * TIC_FONT_HEIGHT)
 
 static tic_rect getRect(Menu* menu)
 {

@@ -470,7 +470,6 @@ jobs:
         uses: geekyeggo/delete-artifact@v1
         with:
           name: |
-            tic80-windows-sdl
             tic80-ubuntu-sdl
             tic80-ubuntu-sdlgpu
             tic80-rpi
