@@ -51,6 +51,12 @@ message("VERSION_HASH: ${VERSION_HASH}")
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/version.h")
 
+if(ANDROID OR N3DS OR RPI)
+    set(BUILD_STUB_DEFAULT OFF)
+else()
+    set(BUILD_STUB_DEFAULT ON)
+endif()
+
 if(ANDROID OR EMSCRIPTEN OR N3DS OR RPI)
     set(BUILD_LIBRETRO_DEFAULT OFF)
     set(BUILD_DEMO_CARTS_DEFAULT OFF)
@@ -73,6 +79,7 @@ option(BUILD_DEMO_CARTS "Demo Carts Enabled" ${BUILD_DEMO_CARTS_DEFAULT})
 option(BUILD_PRO "Build PRO version" FALSE)
 option(BUILD_PLAYER "Build standalone players" ${BUILD_PLAYER_DEFAULT})
 option(BUILD_TOUCH_INPUT "Build with touch input support" ${BUILD_TOUCH_INPUT_DEFAULT})
+option(BUILD_STUB "Build stub without editors" ${BUILD_STUB_DEFAULT})
 
 if(NOT BUILD_SDL)
     set(BUILD_SDLGPU OFF)
@@ -317,7 +324,14 @@ target_include_directories(tic80core
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src)
 
-target_link_libraries(tic80core lua lpeg wren squirrel blipbuf duktape zlib)
+target_link_libraries(tic80core 
+    lua 
+    lpeg 
+    wren 
+    squirrel 
+    duktape 
+    blipbuf 
+    zlib)
 
 if(BUILD_DEPRECATED)
     target_compile_definitions(tic80core PRIVATE DEPRECATED_CHUNKS)
@@ -746,6 +760,8 @@ if(BUILD_SDLGPU)
     target_compile_definitions(tic80studio PUBLIC CRT_SHADER_SUPPORT)
 endif()
 
+target_compile_definitions(tic80studio PUBLIC BUILD_EDITORS)
+
 ################################
 # SDL GPU
 ################################
@@ -962,6 +978,79 @@ if(N3DS)
            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/build
     )
 endif()
+
+################################
+# TIC-80 stub
+################################
+
+if(BUILD_STUB AND BUILD_SDL)
+
+    set(TIC80_SRC 
+        src/system/sdl/main.c
+        src/studio/screens/run.c
+        src/studio/screens/menu.c
+        src/studio/screens/start.c
+        src/studio/config.c
+        src/studio/studio.c
+        src/studio/fs.c
+        src/ext/md5.c
+        src/ext/png.c)
+
+    if(WIN32)
+        
+        configure_file("${PROJECT_SOURCE_DIR}/build/windows/tic80.rc.in" "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
+        set(TIC80_SRC ${TIC80_SRC} "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
+
+        add_executable(tic80stub ${SYSTEM_TYPE} ${TIC80_SRC})
+
+        target_include_directories(tic80stub PRIVATE ${THIRDPARTY_DIR}/dirent/include)
+    else()
+        add_executable(tic80stub ${TIC80_SRC})
+    endif()
+
+    target_include_directories(tic80stub PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+
+    if(MINGW)
+        target_link_libraries(tic80stub mingw32)
+        target_link_options(tic80stub PRIVATE -static -mconsole)
+    endif()
+
+    if(EMSCRIPTEN)
+        set_target_properties(tic80stub PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s ALLOW_MEMORY_GROWTH=1 -s FETCH=1 -lidbfs.js")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2")
+
+        if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s ASSERTIONS=1")
+        endif()
+
+    else()
+        target_link_libraries(tic80stub SDL2main)
+    endif()
+
+    target_link_libraries(tic80stub tic80core png argparse)
+
+    if(RPI)
+        target_include_directories(tic80stub PRIVATE ${SYSROOT_PATH}/usr/local/include/SDL2)
+        target_link_directories(tic80stub PRIVATE ${SYSROOT_PATH}/usr/local/lib ${SYSROOT_PATH}/opt/vc/lib)
+        target_compile_definitions(tic80stub PRIVATE __RPI__)
+    endif()
+
+    if(BUILD_SDLGPU)
+        target_link_libraries(tic80stub sdlgpu)
+    else()
+        if(EMSCRIPTEN)
+        elseif(RPI)
+            target_link_libraries(tic80stub libSDL2.a bcm_host)
+        else()
+            target_link_libraries(tic80stub SDL2-static)
+        endif()
+    endif()
+
+endif()
+
+################################
+# Install
+################################
 
 set(CPACK_PACKAGE_NAME "TIC-80")
 set(CPACK_PACKAGE_VENDOR "Nesbox")

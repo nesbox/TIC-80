@@ -130,7 +130,11 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
             case CHUNK_FLAGS:       LOAD_CHUNK(cart->banks[chunk->bank].flags);          break;
             case CHUNK_SCREEN:      LOAD_CHUNK(cart->banks[chunk->bank].screen);         break;
             case CHUNK_CODE:
+#if defined(DEPRECATED_CHUNKS)
                 LOAD_CHUNK(code[chunk->bank].data);
+#else
+                LOAD_CHUNK(cart->code.data);
+#endif
                 break;
             case CHUNK_CODE_ZIP:
                 tic_tool_unzip(cart->code.data, TIC_CODE_SIZE, ptr, chunk->size);

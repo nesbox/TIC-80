@@ -70,7 +70,9 @@ static const struct {const char* label; void(*const handler)(Menu*);} MenuItems[
     {"CRT MONITOR",     crtMonitor},
 #endif
     {"", NULL},
+#if defined(BUILD_EDITORS)
     {"CLOSE GAME",      closeGame},
+#endif
     {"QUIT TIC-80",     exitStudioLocal},
 };
 

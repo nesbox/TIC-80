@@ -221,7 +221,7 @@ void initDialog(Dialog* dlg, tic_mem* tic, const char** text, s32 rows, DialogCa
         .tic = tic,
         .tick = tick,
         .scanline = scanline,
-        .overline = overline,        
+        .overline = overline,
         .escape = escape,
         .ticks = 0,
         .callback = callback,

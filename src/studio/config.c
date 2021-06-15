@@ -24,6 +24,7 @@
 #include "fs.h"
 #include "cart.h"
 
+#if defined (TIC_BUILD_WITH_LUA)
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
@@ -201,7 +202,7 @@ static void readConfig(Config* config)
 
     if(lua)
     {
-        if(luaL_loadstring(lua, config->cart.code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
+        if(luaL_loadstring(lua, config->cart->code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
         {
             readGlobalInteger(lua, "GIF_LENGTH", &config->data.gifLength);
             readGlobalInteger(lua, "GIF_SCALE", &config->data.gifScale);
@@ -218,10 +219,23 @@ static void readConfig(Config* config)
         lua_close(lua);
     }
 }
+#else
+
+static void readConfig(Config* config)
+{
+    config->data = (StudioConfig)
+    {
+        .uiScale = 4,
+        .cart = config->cart,
+        .theme.cursor = {-1, -1, -1, false}
+    };
+}
+
+#endif
 
 static void update(Config* config, const u8* buffer, s32 size)
 {
-    tic_cart_load(&config->cart, buffer, size);
+    tic_cart_load(config->cart, buffer, size);
 
     readConfig(config);
     studioConfigChanged();
@@ -229,26 +243,22 @@ static void update(Config* config, const u8* buffer, s32 size)
 
 static void setDefault(Config* config)
 {
+    config->cart = malloc(sizeof(tic_cartridge));
     memset(&config->data, 0, sizeof(StudioConfig));
-
-    config->data.cart = &config->cart;
+    
+    config->data.cart = config->cart;
 
     {
-        static const u8 DefaultBiosZip[] = 
+        static const u8 ConfigZip[] =
         {
             #include "../build/assets/config.tic.dat"
         };
 
-        u8* embedBios = calloc(1, sizeof(tic_cartridge));
+        u8* data = malloc(sizeof(tic_cartridge));
 
-        if(embedBios)
+        SCOPE(free(data))
         {
-            s32 size = tic_tool_unzip(embedBios, sizeof(tic_cartridge), DefaultBiosZip, sizeof DefaultBiosZip);
-
-            if(size)
-                update(config, embedBios, size);
-
-            free(embedBios);
+            update(config, data, tic_tool_unzip(data, sizeof(tic_cartridge), ConfigZip, sizeof ConfigZip));
         }
     }
 }
@@ -259,7 +269,7 @@ static void saveConfig(Config* config, bool overwrite)
 
     if(buffer)
     {
-        s32 size = tic_cart_save(&config->cart, buffer);
+        s32 size = tic_cart_save(config->data.cart, buffer);
 
         tic_fs_saveroot(config->fs, CONFIG_TIC_PATH, buffer, size, overwrite);
 
@@ -286,6 +296,7 @@ void initConfig(Config* config, tic_mem* tic, tic_fs* fs)
 {
     {
         config->tic = tic;
+        config->cart = malloc(sizeof(tic_cartridge));
         config->save = save;
         config->reset = reset;
         config->fs = fs;
@@ -309,6 +320,8 @@ void initConfig(Config* config, tic_mem* tic, tic_fs* fs)
 
 void freeConfig(Config* config)
 {
+    free(config->cart);
+
 #if defined(CRT_SHADER_SUPPORT)
 
     free((void*)config->data.shader.vertex);

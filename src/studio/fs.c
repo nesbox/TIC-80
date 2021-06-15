@@ -40,9 +40,13 @@
 #include <sys/types.h>
 #endif
 
+#if defined(TIC_BUILD_WITH_LUA)
+
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
+
+#endif
 
 #if defined(__TIC_WINDOWS__)
 #include <direct.h>
@@ -115,7 +119,7 @@ static bool isPublicRoot(tic_fs* fs)
 
 static bool isPublic(tic_fs* fs)
 {
-    return memcmp(fs->work, PublicDir, sizeof PublicDir - 1) == 0;
+    return memcmp(fs->work, PublicDir, STRLEN(PublicDir)) == 0;
 }
 
 bool tic_fs_ispubdir(tic_fs* fs)
@@ -200,6 +204,8 @@ typedef struct
     fs_done_callback done;
     void* data;
 } NetDirData;
+
+#if defined(TIC_BUILD_WITH_LUA)
 
 static lua_State* netLuaInit(u8* buffer, s32 size)
 {
@@ -322,6 +328,8 @@ static void onDirResponse(const net_get_data* netData)
     }
 }
 
+#endif
+
 static void enumFiles(tic_fs* fs, const char* path, fs_list_callback callback, void* data)
 {
 #if defined(BAREMETALPI)
@@ -408,6 +416,7 @@ void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, v
         return;
     }
 
+#if defined(TIC_BUILD_WITH_LUA) && defined(BUILD_EDITORS)
     if(isPublic(fs))
     {
         char request[TICNAME_MAX];
@@ -418,6 +427,7 @@ void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, v
 
         return;
     }
+#endif
 
     const char* path = tic_fs_path(fs, "");
 
@@ -789,11 +799,14 @@ void tic_fs_hashload(tic_fs* fs, const char* hash, fs_load_callback callback, vo
         }
     }
 
+#if defined(BUILD_EDITORS)
     char path[TICNAME_MAX];
     snprintf(path, sizeof path, "/cart/%s/cart.tic", hash);
 
     LoadFileByHashData loadFileByHashData = { fs, callback, data, strdup(cachePath) };
     tic_net_get(fs->net, path, fileByHashLoaded, MOVE(loadFileByHashData));
+#endif
+
 #endif
 }
 
