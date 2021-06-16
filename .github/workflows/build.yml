@@ -53,11 +53,43 @@ jobs:
         name: 'tic80-windows-sdl'
         path: build/bin/tic80.exe
 
-    - name: Deploy stub
+  # === Script stubs ===
+
+    - name: Deploy lua stub
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-windows-sdl-stub'
-        path: build/bin/tic80stub.exe
+        name: 'tic80-windows-sdl-lua-stub'
+        path: build/bin/tic80lua.exe
+
+    - name: Deploy moon stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-windows-sdl-moon-stub'
+        path: build/bin/tic80moon.exe
+
+    - name: Deploy fennel stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-windows-sdl-fennel-stub'
+        path: build/bin/tic80fennel.exe
+
+    - name: Deploy js stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-windows-sdl-js-stub'
+        path: build/bin/tic80js.exe
+
+    - name: Deploy wren stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-windows-sdl-wren-stub'
+        path: build/bin/tic80wren.exe
+
+    - name: Deploy squirrel stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-windows-sdl-squirrel-stub'
+        path: build/bin/tic80squirrel.exe
 
 # === Windows SDLGPU ===
   windows-sdlgpu:
@@ -81,12 +113,6 @@ jobs:
       with:
         name: 'tic80-windows-sdlgpu'
         path: build/bin/tic80.exe
-
-    - name: Deploy stub
-      uses: actions/upload-artifact@v2
-      with:
-        name: 'tic80-windows-sdlgpu-stub'
-        path: build/bin/tic80stub.exe
 
 # === Windows Sokol ===
   windows-sokol:
@@ -146,12 +172,6 @@ jobs:
         name: 'tic80-ubuntu-sdlgpu'
         path: build/bin/tic80
 
-    - name: Deploy stub
-      uses: actions/upload-artifact@v2
-      with:
-        name: 'tic80-ubuntu-sdlgpu-stub'
-        path: build/bin/tic80stub
-
 # === Ubuntu SDL2 ===
   ubuntu-sdl:
     runs-on: ubuntu-16.04
@@ -186,12 +206,43 @@ jobs:
         name: 'tic80-ubuntu-sdl'
         path: build/bin/tic80
 
-    - name: Deploy stub
+  # === Script stubs ===
+
+    - name: Deploy lua stub
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-ubuntu-sdl-stub'
-        path: build/bin/tic80stub
+        name: 'tic80-ubuntu-sdl-lua-stub'
+        path: build/bin/tic80lua
 
+    - name: Deploy moon stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-ubuntu-sdl-moon-stub'
+        path: build/bin/tic80moon
+
+    - name: Deploy fennel stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-ubuntu-sdl-fennel-stub'
+        path: build/bin/tic80fennel
+
+    - name: Deploy js stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-ubuntu-sdl-js-stub'
+        path: build/bin/tic80js
+
+    - name: Deploy wren stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-ubuntu-sdl-wren-stub'
+        path: build/bin/tic80wren
+
+    - name: Deploy squirrel stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-ubuntu-sdl-squirrel-stub'
+        path: build/bin/tic80squirrel
 
 # === Raspberry PI ===
   rpi:
@@ -223,11 +274,43 @@ jobs:
         name: 'tic80-rpi'
         path: build/bin/tic80
 
-    - name: Deploy stub
+  # === Script stubs ===
+
+    - name: Deploy lua stub
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-rpi-stub'
-        path: build/bin/tic80stub
+        name: 'tic80-rpi-lua-stub'
+        path: build/bin/tic80lua
+
+    - name: Deploy moon stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-rpi-moon-stub'
+        path: build/bin/tic80moon
+
+    - name: Deploy fennel stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-rpi-fennel-stub'
+        path: build/bin/tic80fennel
+
+    - name: Deploy js stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-rpi-js-stub'
+        path: build/bin/tic80js
+
+    - name: Deploy wren stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-rpi-wren-stub'
+        path: build/bin/tic80wren
+
+    - name: Deploy squirrel stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-rpi-squirrel-stub'
+        path: build/bin/tic80squirrel
 
 # === Raspberry PI 1-3 Bare Metal ===
   rpi-baremetal:
@@ -335,11 +418,43 @@ jobs:
         name: 'tic80-macos-sdl'
         path: build/bin/tic80
 
-    - name: Deploy stub
+  # === Script stubs ===
+
+    - name: Deploy lua stub
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-macos-sdl-stub'
-        path: build/bin/tic80stub
+        name: 'tic80-macos-sdl-lua-stub'
+        path: build/bin/tic80lua
+
+    - name: Deploy moon stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-macos-sdl-moon-stub'
+        path: build/bin/tic80moon
+
+    - name: Deploy fennel stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-macos-sdl-fennel-stub'
+        path: build/bin/tic80fennel
+
+    - name: Deploy js stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-macos-sdl-js-stub'
+        path: build/bin/tic80js
+
+    - name: Deploy wren stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-macos-sdl-wren-stub'
+        path: build/bin/tic80wren
+
+    - name: Deploy squirrel stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-macos-sdl-squirrel-stub'
+        path: build/bin/tic80squirrel
 
 # === Android ===
   android:
@@ -394,15 +509,6 @@ jobs:
           build/bin/tic80.wasm
           build/bin/index.html
 
-    - name: Deploy stub
-      uses: actions/upload-artifact@v2
-      with:
-        name: 'tic80-wasm-stub'
-        path: |
-          build/bin/tic80stub.js
-          build/bin/tic80stub.wasm
-          build/bin/index.html
-
     - name: Deploy WebApp
       uses: actions/upload-artifact@v2
       with:
@@ -416,6 +522,62 @@ jobs:
           build/webapp/tic80.webmanifest
           build/webapp/tic80.js
           build/webapp/tic80.wasm
+
+  # === Script stubs ===
+
+    - name: Deploy lua stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-wasm-lua-stub'
+        path: |
+          build/bin/tic80lua.js
+          build/bin/tic80lua.wasm
+          build/bin/index.html
+
+    - name: Deploy moon stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-wasm-moon-stub'
+        path: |
+          build/bin/tic80moon.js
+          build/bin/tic80moon.wasm
+          build/bin/index.html
+
+    - name: Deploy fennel stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-wasm-fennel-stub'
+        path: |
+          build/bin/tic80fennel.js
+          build/bin/tic80fennel.wasm
+          build/bin/index.html
+
+    - name: Deploy js stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-wasm-js-stub'
+        path: |
+          build/bin/tic80js.js
+          build/bin/tic80js.wasm
+          build/bin/index.html
+
+    - name: Deploy wren stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-wasm-wren-stub'
+        path: |
+          build/bin/tic80wren.js
+          build/bin/tic80wren.wasm
+          build/bin/index.html
+
+    - name: Deploy squirrel stub
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-wasm-squirrel-stub'
+        path: |
+          build/bin/tic80squirrel.js
+          build/bin/tic80squirrel.wasm
+          build/bin/index.html
 
 # === Export ===
   export:
@@ -485,67 +647,66 @@ jobs:
   export-stub:
     needs: [windows-sdl, ubuntu-sdl, rpi, macos, wasm]
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        script: [lua, moon, fennel, js, wren, squirrel]
 
     steps:
-      - name: Download Windows artifact
+      - name: Download Windows ${{ matrix.script }} artifact
         uses: actions/download-artifact@v2
         with:
-          name: tic80-windows-sdl-stub
+          name: tic80-windows-sdl-${{ matrix.script }}-stub
           path: windir
 
-      - name: Download Ubuntu artifact
+      - name: Download Ubuntu ${{ matrix.script }} artifact
         uses: actions/download-artifact@v2
         with:
-          name: tic80-ubuntu-sdl-stub
+          name: tic80-ubuntu-sdl-${{ matrix.script }}-stub
           path: linuxdir
 
-      - name: Download RPI artifact
+      - name: Download RPI ${{ matrix.script }} artifact
         uses: actions/download-artifact@v2
         with:
-          name: tic80-rpi-stub
+          name: tic80-rpi-${{ matrix.script }}-stub
           path: rpidir
 
-      - name: Download MacOS artifact
+      - name: Download MacOS ${{ matrix.script }} artifact
         uses: actions/download-artifact@v2
         with:
-          name: tic80-macos-sdl-stub
+          name: tic80-macos-sdl-${{ matrix.script }}-stub
           path: macdir
 
-      - name: Download WASM artifact
+      - name: Download WASM ${{ matrix.script }} artifact
         uses: actions/download-artifact@v2
         with:
-          name: tic80-wasm-stub
+          name: tic80-wasm-${{ matrix.script }}-stub
 
       - name: Rename
         run: |
-          cp windir/* win
-          cp linuxdir/* linux
-          cp rpidir/* rpi
-          cp macdir/* mac
-          cp tic80stub.js tic80.js
-          cp tic80stub.wasm tic80.wasm
-          zip html.zip index.html tic80.js tic80.wasm
-          cp html.zip html
+          cp windir/tic80${{ matrix.script }}.exe win${{ matrix.script }}
+          cp linuxdir/tic80${{ matrix.script }} linux${{ matrix.script }}
+          cp rpidir/tic80${{ matrix.script }} rpi${{ matrix.script }}
+          cp macdir/tic80${{ matrix.script }} mac${{ matrix.script }}
+          mv -f tic80${{ matrix.script }}.js tic80.js
+          zip html${{ matrix.script }}.zip index.html tic80.js tic80${{ matrix.script }}.wasm
 
       - name: Deploy
         uses: actions/upload-artifact@v2
         with:
           name: 'tic80-export-stub'
           path: |
-            win
-            linux
-            rpi
-            mac
-            html
+            win${{ matrix.script }}
+            linux${{ matrix.script }}
+            rpi${{ matrix.script }}
+            mac${{ matrix.script }}
+            html${{ matrix.script }}
 
       - name: Delete artifacts
         uses: geekyeggo/delete-artifact@v1
         with:
           name: |
-            tic80-windows-sdl-stub
-            tic80-windows-sdlgpu-stub
-            tic80-ubuntu-sdl-stub
-            tic80-ubuntu-sdlgpu-stub
-            tic80-rpi-stub
-            tic80-macos-sdl-stub
-            tic80-wasm-stub
+            tic80-windows-sdl-${{ matrix.script }}-stub
+            tic80-ubuntu-sdl-${{ matrix.script }}-stub
+            tic80-rpi-${{ matrix.script }}-stub
+            tic80-macos-sdl-${{ matrix.script }}-stub
+            tic80-wasm-${{ matrix.script }}-stub

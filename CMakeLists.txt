@@ -61,8 +61,6 @@ else()
     set(BUILD_PLAYER_DEFAULT ON)
 endif()
 
-set(BUILD_DEPRECATED TRUE)
-
 set(BUILD_TOUCH_INPUT_DEFAULT ${ANDROID})
 
 option(BUILD_SDL "SDL Enabled" ON)
@@ -289,52 +287,71 @@ target_include_directories(duktape INTERFACE ${THIRDPARTY_DIR}/duktape/src)
 # TIC-80 core
 ################################
 
-set(TIC80CORE_DIR ${CMAKE_SOURCE_DIR}/src)
-set(TIC80CORE_SRC
-    ${TIC80CORE_DIR}/core/core.c
-    ${TIC80CORE_DIR}/core/draw.c
-    ${TIC80CORE_DIR}/core/io.c
-    ${TIC80CORE_DIR}/core/sound.c
-    ${TIC80CORE_DIR}/api/js.c 
-    ${TIC80CORE_DIR}/api/lua.c 
-    ${TIC80CORE_DIR}/api/wren.c 
-    ${TIC80CORE_DIR}/api/squirrel.c
-    ${TIC80CORE_DIR}/tic.c
-    ${TIC80CORE_DIR}/cart.c
-    ${TIC80CORE_DIR}/tools.c 
-    ${TIC80CORE_DIR}/tilesheet.c 
-)
+macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
 
-if(BUILD_DEPRECATED)
-    set(TIC80CORE_SRC ${TIC80CORE_SRC} ${TIC80CORE_DIR}/ext/gif.c)
-endif()
+    set(TIC80CORE_DIR ${CMAKE_SOURCE_DIR}/src)
+    set(TIC80CORE_SRC
+        ${TIC80CORE_DIR}/core/core.c
+        ${TIC80CORE_DIR}/core/draw.c
+        ${TIC80CORE_DIR}/core/io.c
+        ${TIC80CORE_DIR}/core/sound.c
+        ${TIC80CORE_DIR}/api/js.c 
+        ${TIC80CORE_DIR}/api/lua.c 
+        ${TIC80CORE_DIR}/api/wren.c 
+        ${TIC80CORE_DIR}/api/squirrel.c
+        ${TIC80CORE_DIR}/tic.c
+        ${TIC80CORE_DIR}/cart.c
+        ${TIC80CORE_DIR}/tools.c 
+        ${TIC80CORE_DIR}/tilesheet.c 
+    )
 
-add_library(tic80core STATIC ${TIC80CORE_SRC})
+    if(${BUILD_DEPRECATED})
+        set(TIC80CORE_SRC ${TIC80CORE_SRC} ${TIC80CORE_DIR}/ext/gif.c)
+    endif()
 
-target_include_directories(tic80core 
-    PRIVATE 
-        ${THIRDPARTY_DIR}/moonscript
-        ${THIRDPARTY_DIR}/fennel
-    PUBLIC
-        ${CMAKE_SOURCE_DIR}/include
-        ${CMAKE_SOURCE_DIR}/src)
+    add_library(tic80core${SCRIPT} STATIC ${TIC80CORE_SRC})
 
-target_link_libraries(tic80core 
-    lua 
-    lpeg 
-    wren 
-    squirrel 
-    duktape 
-    blipbuf 
-    zlib)
+    target_include_directories(tic80core${SCRIPT}
+        PRIVATE 
+            ${THIRDPARTY_DIR}/moonscript
+            ${THIRDPARTY_DIR}/fennel
+        PUBLIC
+            ${CMAKE_SOURCE_DIR}/include
+            ${CMAKE_SOURCE_DIR}/src)
 
-if(BUILD_DEPRECATED)
-    target_compile_definitions(tic80core PRIVATE DEPRECATED_CHUNKS)
-    target_link_libraries(tic80core giflib)
-endif()
+    target_link_libraries(tic80core${SCRIPT}
+        lua 
+        lpeg 
+        wren 
+        squirrel 
+        duktape 
+        blipbuf 
+        zlib)
 
-if(LINUX)
-    target_link_libraries(tic80core m)
+    if(${BUILD_DEPRECATED})
+        target_compile_definitions(tic80core${SCRIPT} PRIVATE DEPRECATED_CHUNKS)
+        target_link_libraries(tic80core${SCRIPT} giflib)
+    endif()
+
+    if(LINUX)
+        target_link_libraries(tic80core${SCRIPT} m)
+    endif()
+
+    target_compile_definitions(tic80core${SCRIPT} PRIVATE ${DEFINE})
+
+endmacro()
+
+MACRO_CORE("" "" TRUE)
+
+if(BUILD_STUB)
+
+    MACRO_CORE(lua      TIC_BUILD_WITH_LUA      FALSE)
+    MACRO_CORE(moon     TIC_BUILD_WITH_MOON     FALSE)
+    MACRO_CORE(fennel   TIC_BUILD_WITH_FENNEL   FALSE)
+    MACRO_CORE(js       TIC_BUILD_WITH_JS       FALSE)
+    MACRO_CORE(wren     TIC_BUILD_WITH_WREN     FALSE)
+    MACRO_CORE(squirrel TIC_BUILD_WITH_SQUIRREL FALSE)
+
 endif()
 
 ################################
@@ -980,66 +997,76 @@ endif()
 
 if(BUILD_STUB)
 
-    set(TIC80_SRC 
-        src/system/sdl/main.c
-        src/studio/screens/run.c
-        src/studio/screens/menu.c
-        src/studio/screens/start.c
-        src/studio/config.c
-        src/studio/studio.c
-        src/studio/fs.c
-        src/ext/md5.c
-        src/ext/png.c)
+    macro(MACRO_STUB SCRIPT)
 
-    if(WIN32)
-        
-        configure_file("${PROJECT_SOURCE_DIR}/build/windows/tic80.rc.in" "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
-        set(TIC80_SRC ${TIC80_SRC} "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
+        set(TIC80_SRC 
+            src/system/sdl/main.c
+            src/studio/screens/run.c
+            src/studio/screens/menu.c
+            src/studio/screens/start.c
+            src/studio/config.c
+            src/studio/studio.c
+            src/studio/fs.c
+            src/ext/md5.c)
 
-        add_executable(tic80stub ${SYSTEM_TYPE} ${TIC80_SRC})
+        if(WIN32)
+            
+            configure_file("${PROJECT_SOURCE_DIR}/build/windows/tic80.rc.in" "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
+            set(TIC80_SRC ${TIC80_SRC} "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
 
-        target_include_directories(tic80stub PRIVATE ${THIRDPARTY_DIR}/dirent/include)
-    else()
-        add_executable(tic80stub ${TIC80_SRC})
-    endif()
+            add_executable(tic80${SCRIPT} ${SYSTEM_TYPE} ${TIC80_SRC})
 
-    target_include_directories(tic80stub PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-
-    if(MINGW)
-        target_link_libraries(tic80stub mingw32)
-        target_link_options(tic80stub PRIVATE -static -mconsole)
-    endif()
-
-    if(EMSCRIPTEN)
-        set_target_properties(tic80stub PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s ALLOW_MEMORY_GROWTH=1 -s FETCH=1 -lidbfs.js")
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2")
-
-        if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s ASSERTIONS=1")
-        endif()
-
-    else()
-        target_link_libraries(tic80stub SDL2main)
-    endif()
-
-    target_link_libraries(tic80stub tic80core png argparse)
-
-    if(RPI)
-        target_include_directories(tic80stub PRIVATE ${SYSROOT_PATH}/usr/local/include/SDL2)
-        target_link_directories(tic80stub PRIVATE ${SYSROOT_PATH}/usr/local/lib ${SYSROOT_PATH}/opt/vc/lib)
-        target_compile_definitions(tic80stub PRIVATE __RPI__)
-    endif()
-
-    if(BUILD_SDLGPU)
-        target_link_libraries(tic80stub sdlgpu)
-    else()
-        if(EMSCRIPTEN)
-        elseif(RPI)
-            target_link_libraries(tic80stub libSDL2.a bcm_host pthread dl)
+            target_include_directories(tic80${SCRIPT} PRIVATE ${THIRDPARTY_DIR}/dirent/include)
         else()
-            target_link_libraries(tic80stub SDL2-static)
+            add_executable(tic80${SCRIPT} ${TIC80_SRC})
         endif()
-    endif()
+
+        target_include_directories(tic80${SCRIPT} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+
+        if(MINGW)
+            target_link_libraries(tic80${SCRIPT} mingw32)
+            target_link_options(tic80${SCRIPT} PRIVATE -static -mconsole)
+        endif()
+
+        if(EMSCRIPTEN)
+            set_target_properties(tic80${SCRIPT} PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s ALLOW_MEMORY_GROWTH=1 -s FETCH=1 -lidbfs.js")
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2")
+
+            if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+                set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s ASSERTIONS=1")
+            endif()
+
+        else()
+            target_link_libraries(tic80${SCRIPT} SDL2main)
+        endif()
+
+        target_link_libraries(tic80${SCRIPT} tic80core${SCRIPT} argparse)
+
+        if(RPI)
+            target_include_directories(tic80${SCRIPT} PRIVATE ${SYSROOT_PATH}/usr/local/include/SDL2)
+            target_link_directories(tic80${SCRIPT} PRIVATE ${SYSROOT_PATH}/usr/local/lib ${SYSROOT_PATH}/opt/vc/lib)
+            target_compile_definitions(tic80${SCRIPT} PRIVATE __RPI__)
+        endif()
+
+        if(BUILD_SDLGPU)
+            target_link_libraries(tic80${SCRIPT} sdlgpu)
+        else()
+            if(EMSCRIPTEN)
+            elseif(RPI)
+                target_link_libraries(tic80${SCRIPT} libSDL2.a bcm_host pthread dl)
+            else()
+                target_link_libraries(tic80${SCRIPT} SDL2-static)
+            endif()
+        endif()
+
+    endmacro()
+
+    MACRO_STUB(lua)
+    MACRO_STUB(moon)
+    MACRO_STUB(fennel)
+    MACRO_STUB(js)
+    MACRO_STUB(wren)
+    MACRO_STUB(squirrel)
 
 endif()
 
