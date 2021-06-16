@@ -51,12 +51,6 @@ message("VERSION_HASH: ${VERSION_HASH}")
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/version.h")
 
-if(ANDROID OR N3DS OR RPI)
-    set(BUILD_STUB_DEFAULT OFF)
-else()
-    set(BUILD_STUB_DEFAULT ON)
-endif()
-
 if(ANDROID OR EMSCRIPTEN OR N3DS OR RPI)
     set(BUILD_LIBRETRO_DEFAULT OFF)
     set(BUILD_DEMO_CARTS_DEFAULT OFF)
@@ -79,7 +73,7 @@ option(BUILD_DEMO_CARTS "Demo Carts Enabled" ${BUILD_DEMO_CARTS_DEFAULT})
 option(BUILD_PRO "Build PRO version" FALSE)
 option(BUILD_PLAYER "Build standalone players" ${BUILD_PLAYER_DEFAULT})
 option(BUILD_TOUCH_INPUT "Build with touch input support" ${BUILD_TOUCH_INPUT_DEFAULT})
-option(BUILD_STUB "Build stub without editors" ${BUILD_STUB_DEFAULT})
+option(BUILD_STUB "Build stub without editors" OFF)
 
 if(NOT BUILD_SDL)
     set(BUILD_SDLGPU OFF)
@@ -87,6 +81,7 @@ endif()
 
 message("BUILD_SDLGPU: ${BUILD_SDLGPU}")
 message("BUILD_TOUCH_INPUT: ${BUILD_TOUCH_INPUT}")
+message("BUILD_STUB: ${BUILD_STUB}")
 
 if (N3DS)
     set(BUILD_SDL off)
@@ -983,7 +978,7 @@ endif()
 # TIC-80 stub
 ################################
 
-if(BUILD_STUB AND BUILD_SDL)
+if(BUILD_STUB)
 
     set(TIC80_SRC 
         src/system/sdl/main.c
@@ -1040,7 +1035,7 @@ if(BUILD_STUB AND BUILD_SDL)
     else()
         if(EMSCRIPTEN)
         elseif(RPI)
-            target_link_libraries(tic80stub libSDL2.a bcm_host)
+            target_link_libraries(tic80stub libSDL2.a bcm_host pthread dl)
         else()
             target_link_libraries(tic80stub SDL2-static)
         endif()
