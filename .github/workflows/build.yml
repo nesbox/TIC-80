@@ -166,12 +166,6 @@ jobs:
         name: 'tic80-ubuntu-sdlgpu-deb'
         path: build/tic80.deb
 
-    - name: Deploy
-      uses: actions/upload-artifact@v2
-      with:
-        name: 'tic80-ubuntu-sdlgpu'
-        path: build/bin/tic80
-
 # === Ubuntu SDL2 ===
   ubuntu-sdl:
     runs-on: ubuntu-16.04
@@ -621,7 +615,7 @@ jobs:
           cp macdir/* mac
           cp rpidir/* rpi
           zip html.zip index.html tic80.js tic80.wasm
-          cp html.zip html
+          mv -f html.zip html
 
       - name: Deploy
         uses: actions/upload-artifact@v2
@@ -639,13 +633,12 @@ jobs:
         with:
           name: |
             tic80-ubuntu-sdl
-            tic80-ubuntu-sdlgpu
             tic80-rpi
             tic80-macos-sdl
 
 # === Export stub ===
   export-stub:
-    needs: [windows-sdl, ubuntu-sdl, rpi, macos, wasm]
+    needs: [export]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -689,11 +682,12 @@ jobs:
           cp macdir/tic80${{ matrix.script }} mac${{ matrix.script }}
           mv -f tic80${{ matrix.script }}.js tic80.js
           zip html${{ matrix.script }}.zip index.html tic80.js tic80${{ matrix.script }}.wasm
+          mv -f html${{ matrix.script }}.zip html${{ matrix.script }}
 
       - name: Deploy
         uses: actions/upload-artifact@v2
         with:
-          name: 'tic80-export-stub'
+          name: 'tic80-export'
           path: |
             win${{ matrix.script }}
             linux${{ matrix.script }}
