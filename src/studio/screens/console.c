@@ -103,10 +103,17 @@
     macro(screen)               \
     macro(help)
 
+#if defined(TIC80_PRO)
+#   define ALONE_KEY(macro) macro(alone)
+#else
+#   define ALONE_KEY(macro)
+#endif
+
 #define EXPORT_KEYS_LIST(macro) \
     macro(bank)                 \
     macro(ovr)                  \
-    macro(id)
+    macro(id)                   \
+    ALONE_KEY(macro)
 
 static const char* WelcomeText = 
     "TIC-80 is a fantasy computer for making, playing and sharing tiny games.\n\n"
@@ -1865,7 +1872,7 @@ static void onNativeExportGet(const net_get_data* data)
     }
 }
 
-static void exportGame(Console* console, const char* name, const char* system, net_get_callback callback)
+static void exportGame(Console* console, const char* name, const char* system, net_get_callback callback, ExportParams params)
 {
     tic_mem* tic = console->tic;
     printLine(console);
@@ -1874,12 +1881,18 @@ static void exportGame(Console* console, const char* name, const char* system, n
 
     char url[TICNAME_MAX] = "/export/" DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) TIC_VERSION_STATUS "/";
     strcat(url, system);
+
+#if defined(TIC80_PRO)
+    if (params.alone)
+        strcat(url, tic_core_script_config(console->tic)->name);
+#endif
+
     tic_net_get(console->net, url, callback, MOVE(data));
 }
 
-static inline void exportNativeGame(Console* console, const char* name, const char* system)
+static inline void exportNativeGame(Console* console, const char* name, const char* system, ExportParams params)
 {
-    exportGame(console, name, system, onNativeExportGet);
+    exportGame(console, name, system, onNativeExportGet, params);
 }
 
 static void onHtmlExportGet(const net_get_data* data)
@@ -1946,27 +1959,27 @@ static const char* getFilename(const char* filename, const char* ext)
 
 static void onExport_win(Console* console, const char* param, const char* filename, ExportParams params)
 {
-    exportNativeGame(console, getFilename(filename, ".exe"), param);
+    exportNativeGame(console, getFilename(filename, ".exe"), param, params);
 }
 
 static void onExport_linux(Console* console, const char* param, const char* filename, ExportParams params)
 {
-    exportNativeGame(console, filename, param);
+    exportNativeGame(console, filename, param, params);
 }
 
 static void onExport_rpi(Console* console, const char* param, const char* filename, ExportParams params)
 {
-    exportNativeGame(console, filename, param);
+    exportNativeGame(console, filename, param, params);
 }
 
 static void onExport_mac(Console* console, const char* param, const char* filename, ExportParams params)
 {
-    exportNativeGame(console, filename, param);
+    exportNativeGame(console, filename, param, params);
 }
 
 static void onExport_html(Console* console, const char* param, const char* filename, ExportParams params)
 {
-    exportGame(console, getFilename(filename, ".zip"), param, onHtmlExportGet);
+    exportGame(console, getFilename(filename, ".zip"), param, onHtmlExportGet, params);
 }
 
 static void onExport_tiles(Console* console, const char* param, const char* filename, ExportParams params)
@@ -2053,7 +2066,7 @@ static void onExportCommand(Console* console)
 
         for(const struct Param* it = console->desc->params, *end = it + console->desc->count; it < end; ++it)
         {
-#define     EXPORT_KEYS_DEF(name) if(it->val && strcmp(it->key, #name) == 0) params.name = atoi(it->val);
+#define     EXPORT_KEYS_DEF(name) if(strcmp(it->key, #name) == 0) params.name = it->val ? atoi(it->val) : 1;
             EXPORT_KEYS_LIST(EXPORT_KEYS_DEF)
 #undef      EXPORT_KEYS_DEF
         }

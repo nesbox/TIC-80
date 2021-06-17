@@ -1737,6 +1737,7 @@ void evalSquirrel(tic_mem* tic, const char* code) {
 
 static const tic_script_config SquirrelSyntaxConfig = 
 {
+    .name               = "squirrel",
     .init               = initSquirrel,
     .close              = closeSquirrel,
     .tick               = callSquirrelTick,

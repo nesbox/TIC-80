@@ -1599,6 +1599,7 @@ static void evalLua(tic_mem* tic, const char* code) {
 
 static const tic_script_config LuaSyntaxConfig = 
 {
+    .name               = "lua",
     .init               = initLua,
     .close              = closeLua,
     .tick               = callLuaTick,
@@ -1766,6 +1767,7 @@ static const tic_outline_item* getMoonOutline(const char* code, s32* size)
 
 static const tic_script_config MoonSyntaxConfig = 
 {
+    .name               = "moon",
     .init               = initMoonscript,
     .close              = closeLua,
     .tick               = callLuaTick,
@@ -1942,6 +1944,7 @@ static void evalFennel(tic_mem* tic, const char* code) {
 
 static const tic_script_config FennelSyntaxConfig =
 {
+    .name               = "fennel",
     .init               = initFennel,
     .close              = closeLua,
     .tick               = callLuaTick,

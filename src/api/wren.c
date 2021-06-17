@@ -1586,6 +1586,7 @@ static void evalWren(tic_mem* tic, const char* code)
 
 static const tic_script_config WrenSyntaxConfig = 
 {
+    .name               = "wren",
     .init               = initWren,
     .close              = closeWren,
     .tick               = callWrenTick,

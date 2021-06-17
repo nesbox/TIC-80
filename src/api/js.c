@@ -1094,6 +1094,7 @@ void evalJs(tic_mem* tic, const char* code) {
 
 static const tic_script_config JsSyntaxConfig =
 {
+    .name               = "js",
     .init               = initJavascript,
     .close              = closeJavascript,
     .tick               = callJavascriptTick,

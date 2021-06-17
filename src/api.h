@@ -59,6 +59,7 @@ typedef struct
 
 typedef struct
 {
+    const char* name;
     struct
     {
         bool(*init)(tic_mem* memory, const char* code);
