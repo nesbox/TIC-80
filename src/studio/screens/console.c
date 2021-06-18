@@ -61,6 +61,7 @@
 #define CONSOLE_BUFFER_SCREEN       (CONSOLE_BUFFER_WIDTH * CONSOLE_BUFFER_HEIGHT)
 #define CONSOLE_BUFFER_SIZE         (CONSOLE_BUFFER_SCREEN * CONSOLE_BUFFER_SCREENS)
 #define CONSOLE_BUFFER_ROWS         (CONSOLE_BUFFER_SIZE / CONSOLE_BUFFER_WIDTH)
+#define DEFAULT_CHMOD               0755
 
 #define HELP_CMD_LIST(macro)    \
     macro(version)              \
@@ -1862,6 +1863,7 @@ static void onNativeExportGet(const net_get_data* data)
             void* buf = NULL;
 
             onFileExported(console, filename, (buf = embedCart(console, data->done.data, &size)) && fs_write(path, buf, size));
+            chmod(path, DEFAULT_CHMOD);
 
             if (buf)
                 free(buf);
