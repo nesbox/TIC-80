@@ -2066,7 +2066,7 @@ static void onExportCommand(Console* console)
 
         for(const struct Param* it = console->desc->params, *end = it + console->desc->count; it < end; ++it)
         {
-#define     EXPORT_KEYS_DEF(name) if(strcmp(it->key, #name) == 0) params.name = it->val ? atoi(it->val) : 1;
+#define     EXPORT_KEYS_DEF(name) if(it->val && strcmp(it->key, #name) == 0) params.name = atoi(it->val);
             EXPORT_KEYS_LIST(EXPORT_KEYS_DEF)
 #undef      EXPORT_KEYS_DEF
         }
