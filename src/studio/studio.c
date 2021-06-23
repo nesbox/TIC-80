@@ -37,7 +37,6 @@
 #include "net.h"
 #include "wave_writer.h"
 #include "ext/gif.h"
-#include "project.h"
 
 #endif
 

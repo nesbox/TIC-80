@@ -24,10 +24,14 @@
 #include "studio/fs.h"
 #include "studio/net.h"
 #include "console.h"
-#include "studio/project.h"
-
 #include "ext/gif.h"
 #include "ext/png.h"
+
+#if defined(TIC80_PRO)
+#include "studio/project.h"
+#else
+#include "cart.h"
+#endif
 
 #include <string.h>
 
@@ -307,8 +311,11 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 
     if(dir 
         || tic_tool_has_ext(name, CartExt)
+        || tic_tool_has_ext(name, PngExt)
+#if defined(TIC80_PRO)
         || tic_project_ext(name)
-        || tic_tool_has_ext(name, PngExt))
+#endif
+        )
     {
         data->items = realloc(data->items, sizeof(MenuItem) * ++data->count);
         MenuItem* item = &data->items[data->count-1];
@@ -512,9 +519,7 @@ static void loadCover(Surf* surf)
             if(cart)
             {
 
-                if(tic_project_ext(item->name))
-                    tic_project_load(item->name, data, size, cart);
-                else if(tic_tool_has_ext(item->name, PngExt))
+                if(tic_tool_has_ext(item->name, PngExt))
                 {
                     tic_cartridge* pngcart = loadPngCart((png_buffer){data, size});
 
@@ -525,6 +530,10 @@ static void loadCover(Surf* surf)
                     }
                     else memset(cart, 0, sizeof(tic_cartridge));
                 }
+#if defined(TIC80_PRO)
+                else if(tic_project_ext(item->name))
+                    tic_project_load(item->name, data, size, cart);
+#endif
                 else
                     tic_cart_load(cart, data, size);
 

@@ -731,7 +731,6 @@ set(TIC80STUDIO_SRC
     ${TIC80LIB_DIR}/studio/editors/music.c
     ${TIC80LIB_DIR}/studio/studio.c
     ${TIC80LIB_DIR}/studio/config.c
-    ${TIC80LIB_DIR}/studio/project.c
     ${TIC80LIB_DIR}/studio/fs.c
     ${TIC80LIB_DIR}/studio/net.c
     ${TIC80LIB_DIR}/ext/md5.c
@@ -739,6 +738,10 @@ set(TIC80STUDIO_SRC
     ${TIC80LIB_DIR}/ext/gif.c
     ${TIC80LIB_DIR}/ext/png.c
 )
+
+if(${BUILD_PRO})
+    set(TIC80STUDIO_SRC ${TIC80STUDIO_SRC} ${TIC80LIB_DIR}/studio/project.c)
+endif()
 
 set(TIC80_OUTPUT tic80)
 

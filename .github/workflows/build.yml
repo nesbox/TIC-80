@@ -59,6 +59,23 @@ jobs:
         name: 'tic80-windows-sdl-stub'
         path: build/bin/tic80*.exe
 
+# === Windows SDL2 PRO ===
+  windows-sdl-pro:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Build
+      shell: cmd
+      run: |
+        cd build
+        cmake -G "Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_PRO=On ..
+        cmake --build . --config %BUILD_TYPE% --parallel
+
 # === Windows SDLGPU ===
   windows-sdlgpu:
     runs-on: windows-latest

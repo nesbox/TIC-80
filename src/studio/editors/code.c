@@ -33,6 +33,12 @@
 #define CODE_EDITOR_HEIGHT (TIC80_HEIGHT - TOOLBAR_SIZE - STUDIO_TEXT_HEIGHT)
 #define TEXT_BUFFER_HEIGHT (CODE_EDITOR_HEIGHT / STUDIO_TEXT_HEIGHT)
 
+#if defined(TIC80_PRO)
+#   define MAX_CODE sizeof(tic_code)
+#else
+#   define MAX_CODE TIC_BANK_SIZE
+#endif
+
 typedef struct CodeState CodeState;
 
 static_assert(sizeof(CodeState) == sizeof(u8), "CodeStateSize");
@@ -56,9 +62,9 @@ static void drawStatus(Code* code)
 {
     enum {Height = TIC_FONT_HEIGHT + 1, StatusY = TIC80_HEIGHT - TIC_FONT_HEIGHT};
 
-    tic_api_rect(code->tic, 0, TIC80_HEIGHT - Height, TIC80_WIDTH, Height, tic_color_white);
-    tic_api_print(code->tic, code->statusLine, 0, StatusY, getConfig()->theme.code.BG, true, 1, false);
-    tic_api_print(code->tic, code->statusSize, TIC80_WIDTH - (s32)strlen(code->statusSize) * TIC_FONT_WIDTH, 
+    tic_api_rect(code->tic, 0, TIC80_HEIGHT - Height, TIC80_WIDTH, Height, code->status.color);
+    tic_api_print(code->tic, code->status.line, 0, StatusY, getConfig()->theme.code.BG, true, 1, false);
+    tic_api_print(code->tic, code->status.size, TIC80_WIDTH - (s32)strlen(code->status.size) * TIC_FONT_WIDTH, 
         StatusY, getConfig()->theme.code.BG, true, 1, false);
 }
 
@@ -355,9 +361,11 @@ static void updateEditor(Code* code)
 
     code->cursor.delay = TEXT_CURSOR_DELAY;
 
+    sprintf(code->status.line, "line %i/%i col %i", line + 1, getLinesCount(code) + 1, column + 1);
     {
-        sprintf(code->statusLine, "line %i/%i col %i", line + 1, getLinesCount(code) + 1, column + 1);
-        sprintf(code->statusSize, "size %i", (u32)strlen(code->src));
+        s32 codeLen = strlen(code->src);
+        sprintf(code->status.size, "size %i/%i", codeLen, MAX_CODE);
+        code->status.color = codeLen > MAX_CODE ? tic_color_red : tic_color_white;
     }
 }
 
@@ -906,7 +914,7 @@ static void backspaceWord(Code* code)
 
 static void inputSymbolBase(Code* code, char sym)
 {
-    if (strlen(code->src) >= sizeof(tic_code))
+    if (strlen(code->src) >= MAX_CODE)
         return;
 
     insertCode(code, code->cursor.position++, (const char[]){sym, '\0'});
@@ -1015,9 +1023,9 @@ static void copyFromClipboard(Code* code)
                 {
                     size_t codeSize = strlen(code->src);
 
-                    if (codeSize + size > sizeof(tic_code))
+                    if (codeSize + size > MAX_CODE)
                     {
-                        size = sizeof(tic_code) - codeSize;
+                        size = MAX_CODE - codeSize;
                         clipboard[size] = '\0';
                     }
                 }
@@ -1358,7 +1366,7 @@ static void addCommentToLine(Code* code, char* line, size_t size, const char* co
 
     if(!isLineCommented(comment, line))
     {
-        if (strlen(code->src) + size >= sizeof(tic_code))
+        if (strlen(code->src) + size >= MAX_CODE)
             return;
 
         insertCode(code, line, comment);

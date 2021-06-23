@@ -25,9 +25,14 @@
 #include "studio/fs.h"
 #include "studio/net.h"
 #include "studio/config.h"
-#include "studio/project.h"
 #include "ext/png.h"
 #include "zip.h"
+
+#if defined(TIC80_PRO)
+#include "studio/project.h"
+#else
+#include "cart.h"
+#endif
 
 #include <ctype.h>
 #include <string.h>
@@ -726,6 +731,7 @@ static inline tic_cartridge* newCart()
 
 static void updateProject(Console* console)
 {
+#if defined(TIC80_PRO)
     tic_mem* tic = console->tic;
     const char* path = console->rom.path;
 
@@ -750,6 +756,7 @@ static void updateProject(Console* console)
             }
         }
     }
+#endif
 }
 
 typedef struct
@@ -926,6 +933,7 @@ static void onLoadCommandConfirmed(Console* console)
             {
                 const char* name = param;
 
+#if defined(TIC80_PRO)
                 if(tic_project_ext(name))
                 {
                     void* data = tic_fs_load(console->fs, name, &size);
@@ -945,6 +953,9 @@ static void onLoadCommandConfirmed(Console* console)
 
                 }
                 else printError(console, "\nfile not found");
+#else
+                printError(console, "\ncart loading error");
+#endif
             }
         }
     }
@@ -2134,11 +2145,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
             {
                 s32 size = 0;
 
-                if(tic_project_ext(name))
-                {
-                    size = tic_project_save(name, buffer, &tic->cart);
-                }
-                else if(tic_tool_has_ext(name, PngExt))
+                if(tic_tool_has_ext(name, PngExt))
                 {
                     png_buffer cover;
 
@@ -2216,6 +2223,12 @@ static CartSaveResult saveCartName(Console* console, const char* name)
                     buffer = result.data;
                     size = result.size;
                 }
+#if defined(TIC80_PRO)
+                else if(tic_project_ext(name))
+                {
+                    size = tic_project_save(name, buffer, &tic->cart);
+                }
+#endif
                 else
                 {
                     name = getCartName(name);
@@ -2520,7 +2533,7 @@ static struct Command
 #define SCRIPT_DEF(_, ext, ...) ext " "
         SCRIPT_LIST(SCRIPT_DEF)
 #undef  SCRIPT_DEF
-        "cart extension to save it in text format.", 
+        "cart extension to save it in text format (PRO feature).", 
         "save <cart>",
         onSaveCommand
     },
@@ -3654,12 +3667,7 @@ static bool cmdLoadCart(Console* console, const char* path)
         setCartName(console, cartName, path);
         tic_mem* tic = console->tic;
 
-        if(tic_project_ext(cartName))
-        {
-            if(tic_project_load(cartName, data, size, &tic->cart))
-                done = start->embed = true;
-        }
-        else if(tic_tool_has_ext(cartName, PngExt))
+        if(tic_tool_has_ext(cartName, PngExt))
         {
             tic_cartridge* cart = loadPngCart((png_buffer){data, size});
 
@@ -3675,6 +3683,13 @@ static bool cmdLoadCart(Console* console, const char* path)
             tic_cart_load(&tic->cart, data, size);
             done = start->embed = true;
         }
+#if defined(TIC80_PRO)
+        else if(tic_project_ext(cartName))
+        {
+            if(tic_project_load(cartName, data, size, &tic->cart))
+                done = start->embed = true;
+        }
+#endif
         
         free(data);
     }

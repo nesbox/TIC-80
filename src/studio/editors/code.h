@@ -63,8 +63,12 @@ struct Code
         u8 temp:4;
     }* state;
 
-    char statusLine[STUDIO_TEXT_BUFFER_WIDTH];
-    char statusSize[STUDIO_TEXT_BUFFER_WIDTH];
+    struct
+    {
+        char line[STUDIO_TEXT_BUFFER_WIDTH];
+        char size[STUDIO_TEXT_BUFFER_WIDTH];
+        tic_color color;
+    }status;
 
     u32 tickCounter;
 

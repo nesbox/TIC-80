@@ -22,7 +22,7 @@
 
 #include "start.h"
 #include "studio/fs.h"
-#include "studio/project.h"
+#include "cart.h"
 
 #if defined(__TIC_WINDOWS__)
 #include <windows.h>
