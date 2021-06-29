@@ -285,7 +285,7 @@ static void reset(Config* config)
 
 static void save(Config* config)
 {
-    memcpy(&config->cart, &config->tic->cart, sizeof(tic_cartridge));
+    memcpy(config->cart, &config->tic->cart, sizeof(tic_cartridge));
     readConfig(config);
     saveConfig(config, true);
 
