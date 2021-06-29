@@ -86,7 +86,7 @@ run the following commands in the Terminal
 sudo apt-get install git cmake libgtk-3-dev libgles1-mesa-dev libglu-dev -y
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
-sudo make install -j4
+make -j4
 ```
 
 to install the latest CMake:
@@ -94,7 +94,7 @@ to install the latest CMake:
 wget "https://cmake.org/files/v3.12/cmake-3.12.0-Linux-x86_64.sh"
 sudo sh cmake-3.12.0-Linux-x86_64.sh --skip-license --prefix=/usr
 ```
-TIC-80 can now be run with `tic80`
+Install with [Install instructions](#install-instructions)
 
 ### Ubuntu 18.04
 
@@ -103,10 +103,9 @@ run the following commands in the Terminal
 sudo apt-get install g++ git cmake libgtk-3-dev libglvnd-dev libglu1-mesa-dev freeglut3-dev libasound2-dev -y
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
-sudo make install -j4
+make -j4
 ```
-
-TIC-80 can now be run with `tic80`
+Install with [Install instructions](#install-instructions)
 
 ### Raspberry Pi (Retropie)
 
@@ -132,10 +131,9 @@ sudo apt-get install git build-essential libgtk-3-dev libsdl2-dev zlib1g-dev
 sudo apt-get install -t jessie-backports liblua5.3-dev
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
-sudo make install -j4
+make -j4
 ```
-
-TIC-80 can now be run with `tic80`
+Install with [Install instructions](#install-instructions)
 
 _Note:_ If you are using a normal Raspberry Pi image (not Retropie) you may not
 have OpenGL drivers enabled. Run `sudo raspi-config`, then select 7
@@ -152,6 +150,13 @@ git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
 ```
+
+# Install instructions
+
+## Linux 
+To install run 'sudo make install -j4'
+
+TIC-80 can now be run with `tic80`
 
 ## iOS / tvOS
 You can find iOS/tvOS version here 
