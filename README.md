@@ -83,7 +83,7 @@ mingw32-make -j4
 ### Ubuntu 14.04
 run the following commands in the Terminal
 ```
-sudo apt-get install git cmake libgtk-3-dev libgles1-mesa-dev libglu-dev -y
+sudo apt-get install git cmake libgles1-mesa-dev libglu-dev -y
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
@@ -100,7 +100,7 @@ Install with [Install instructions](#install-instructions)
 
 run the following commands in the Terminal
 ```
-sudo apt-get install g++ git cmake libgtk-3-dev libglvnd-dev libglu1-mesa-dev freeglut3-dev libasound2-dev -y
+sudo apt-get install g++ git cmake libglvnd-dev libglu1-mesa-dev freeglut3-dev libasound2-dev -y
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
@@ -127,7 +127,7 @@ sudo apt-get update
 sudo apt-get dist-upgrade
 
 # install software
-sudo apt-get install git build-essential libgtk-3-dev libsdl2-dev zlib1g-dev
+sudo apt-get install git build-essential libsdl2-dev zlib1g-dev
 sudo apt-get install -t jessie-backports liblua5.3-dev
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
@@ -154,7 +154,7 @@ make -j4
 # Install instructions
 
 ## Linux 
-To install run 'sudo make install -j4'
+To install run `sudo make install -j4`
 
 TIC-80 can now be run with `tic80`
 

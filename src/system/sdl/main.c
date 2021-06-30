@@ -316,11 +316,10 @@ static void initTouchKeyboardState(Texture** texture, void** pixels, bool down)
     *texture = GPU_CreateImage(TIC80_FULLWIDTH, TIC80_FULLHEIGHT, STUDIO_PIXEL_FORMAT);
     GPU_SetAnchor(*texture, 0, 0);
     GPU_SetImageFilter(*texture, GPU_FILTER_NEAREST);
-    GPU_UpdateImageBytes(*texture, NULL, *pixels, TIC80_FULLWIDTH * sizeof(u32));
 #else
     *texture = SDL_CreateTexture(platform.gpu.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING, TIC80_FULLWIDTH, TIC80_FULLHEIGHT);
-    updateTextureBytes(*texture, *pixels, TIC80_FULLWIDTH, TIC80_FULLHEIGHT);
 #endif
+    updateTextureBytes(*texture, *pixels, TIC80_FULLWIDTH, TIC80_FULLHEIGHT);
 }
 
 static void initTouchKeyboard()
