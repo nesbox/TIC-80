@@ -94,6 +94,7 @@ to install the latest CMake:
 wget "https://cmake.org/files/v3.12/cmake-3.12.0-Linux-x86_64.sh"
 sudo sh cmake-3.12.0-Linux-x86_64.sh --skip-license --prefix=/usr
 ```
+Install with [Install instructions](#install-instructions)
 
 ### Ubuntu 18.04
 
@@ -104,6 +105,7 @@ git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
 ```
+Install with [Install instructions](#install-instructions)
 
 ### Raspberry Pi (Retropie)
 
@@ -131,6 +133,7 @@ git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
 ```
+Install with [Install instructions](#install-instructions)
 
 _Note:_ If you are using a normal Raspberry Pi image (not Retropie) you may not
 have OpenGL drivers enabled. Run `sudo raspi-config`, then select 7
@@ -147,6 +150,13 @@ git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
 ```
+
+# Install instructions
+
+## Linux 
+To install run 'sudo make install -j4'
+
+TIC-80 can now be run with `tic80`
 
 ## iOS / tvOS
 You can find iOS/tvOS version here 
