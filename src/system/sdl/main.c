@@ -1069,8 +1069,9 @@ void tic_sys_poll()
             platform.keyboard.touch.useText = false;
             handleKeydown(event.key.keysym.sym, true, platform.keyboard.touch.state);
 
-            if(!SDL_IsTextInputActive())
-                SDL_StartTextInput();
+            if(event.key.keysym.sym != SDLK_AC_BACK)
+                if(!SDL_IsTextInputActive())
+                    SDL_StartTextInput();
 #endif
 
             handleKeydown(event.key.keysym.sym, true, platform.keyboard.state);
