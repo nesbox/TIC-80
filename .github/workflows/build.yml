@@ -354,7 +354,7 @@ jobs:
       run: |
         cd build/android
         ./gradlew assembleRelease
-        cp app/build/outputs/apk/universal/release/app-release.apk tic80.apk
+        cp app/build/outputs/apk/release/app-release.apk tic80.apk
 
     - name: Deploy
       uses: actions/upload-artifact@v2
