@@ -651,6 +651,7 @@ if (USE_CURL)
     set(BUILD_CURL_EXE OFF CACHE BOOL "")
     set(CURL_CA_BUNDLE "none" CACHE STRING "")
     set(CURL_CA_PATH "none" CACHE STRING "")
+    set(CURL_DISABLE_TESTS ON CACHE BOOL "")
 
     if(RPI)
         set(CURL_ZLIB OFF CACHE BOOL "" )
