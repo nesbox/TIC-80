@@ -1658,7 +1658,6 @@ static s32 start(s32 argc, char **argv, const char* folder)
         }
         else
         {
-            SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
             SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK);
 
             initSound();
