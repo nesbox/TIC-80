@@ -124,7 +124,7 @@ jobs:
         path: build/bin/tic80.exe
 
 # === Ubuntu SDLGPU ===
-  ubuntu-sdlgpu:
+  linux-sdlgpu:
     runs-on: ubuntu-16.04
 
     steps:
@@ -148,11 +148,17 @@ jobs:
     - name: Deploy DEB
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-ubuntu-sdlgpu-deb'
+        name: 'tic80-linux-sdlgpu-deb'
         path: build/tic80.deb
 
+    - name: Deploy ZIP
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-linux-sdlgpu'
+        path: build/bin/tic80
+
 # === Ubuntu SDL2 ===
-  ubuntu-sdl:
+  linux-sdl:
     runs-on: ubuntu-16.04
 
     steps:
@@ -176,19 +182,19 @@ jobs:
     - name: Deploy DEB
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-ubuntu-sdl-deb'
+        name: 'tic80-linux-sdl-deb'
         path: build/tic80.deb
 
-    - name: Deploy
+    - name: Deploy ZIP
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-ubuntu-sdl'
+        name: 'tic80-linux-sdl'
         path: build/bin/tic80
 
     - name: Deploy stubs
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-ubuntu-sdl-stub'
+        name: 'tic80-linux-sdl-stub'
         path: build/bin/tic80*
 
 # === Raspberry PI ===
@@ -417,7 +423,7 @@ jobs:
 
 # === Export ===
   export:
-    needs: [windows-sdl, ubuntu-sdl, rpi, macos, wasm]
+    needs: [windows-sdl, linux-sdl, rpi, macos, wasm]
     runs-on: ubuntu-latest
 
     steps:
@@ -430,7 +436,7 @@ jobs:
       - name: Download Ubuntu artifact
         uses: actions/download-artifact@v2
         with:
-          name: tic80-ubuntu-sdl
+          name: tic80-linux-sdl
           path: linuxdir
 
       - name: Download RPI artifact
@@ -488,7 +494,7 @@ jobs:
       - name: Download Ubuntu artifact
         uses: actions/download-artifact@v2
         with:
-          name: tic80-ubuntu-sdl-stub
+          name: tic80-linux-sdl-stub
           path: linuxdir
 
       - name: Download RPI artifact
@@ -539,11 +545,10 @@ jobs:
         uses: geekyeggo/delete-artifact@v1
         with:
           name: |
-            tic80-ubuntu-sdl
             tic80-rpi
             tic80-macos-sdl
             tic80-windows-sdl-stub
-            tic80-ubuntu-sdl-stub
+            tic80-linux-sdl-stub
             tic80-rpi-stub
             tic80-macos-sdl-stub
             tic80-wasm-stub
