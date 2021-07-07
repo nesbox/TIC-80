@@ -1446,16 +1446,22 @@ static void processKeyboard(Music* music)
     }
 }
 
+static s32 getStep(Music* music)
+{
+    enum{DefaultStep = 1, ExtraStep = 5};
+
+    return tic_api_key(music->tic, tic_key_shift) ? ExtraStep : DefaultStep;
+}
+
 static void setIndex(Music* music, s32 delta, void* data)
 {
-    music->track += delta;
+    music->track += delta * getStep(music);
 }
 
 static void setTempo(Music* music, s32 delta, void* data)
 {
     enum
     {
-        Step = 10,
         Min = 40-DEFAULT_TEMPO,
         Max = 250-DEFAULT_TEMPO,
     };
@@ -1463,7 +1469,7 @@ static void setTempo(Music* music, s32 delta, void* data)
     tic_track* track = getTrack(music);
 
     s32 tempo = track->tempo;
-    tempo += delta * Step;
+    tempo += delta * getStep(music);
 
     if (tempo > Max) tempo = Max;
     if (tempo < Min) tempo = Min;
@@ -1477,7 +1483,6 @@ static void setSpeed(Music* music, s32 delta, void* data)
 {
     enum
     {
-        Step = 1,
         Min = 1-DEFAULT_SPEED,
         Max = 31-DEFAULT_SPEED,
     };
@@ -1485,7 +1490,7 @@ static void setSpeed(Music* music, s32 delta, void* data)
     tic_track* track = getTrack(music);
 
     s32 speed = track->speed;
-    speed += delta * Step;
+    speed += delta * getStep(music);
 
     if (speed > Max) speed = Max;
     if (speed < Min) speed = Min;
@@ -1499,14 +1504,13 @@ static void setRows(Music* music, s32 delta, void* data)
 {
     enum
     {
-        Step = 1,
         Min = 0,
         Max = MUSIC_PATTERN_ROWS - TRACKER_ROWS,
     };
 
     tic_track* track = getTrack(music);
     s32 rows = track->rows;
-    rows -= delta * Step;
+    rows -= delta * getStep(music);
 
     if (rows < Min) rows = Min;
     if (rows > Max) rows = Max;
