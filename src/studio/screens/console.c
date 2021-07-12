@@ -1476,7 +1476,43 @@ static void onGameMenuCommand(Console* console)
 
 static void onSurfCommand(Console* console)
 {
-    gotoSurf();
+    if(console->desc->count == 0)
+    {
+        gotoSurf();
+    }
+    else if(console->desc->count == 1)
+    {
+        const char*   = console->desc->params->key;
+
+        bool is_hash = strlen(hash) == 32;
+        if (is_hash)
+        {
+            const char* name = strdup(hash);
+            loadByHash(console, name, hash, NULL, NULL, NULL);
+            commandDone(console);
+        }
+        else
+        {
+            s32 id = (s32)strtol(hash, NULL, 10);
+            if (id > 0)
+            {
+                // TODO
+                printError(console, "\nerror: TODO load cart by numeric id");
+                commandDone(console);
+            }
+            else
+            {
+                printError(console, "\nerror: invalid cart id.");
+                commandDone(console);
+            }
+        }
+    }
+    else
+    {
+        printError(console, "\nerror: too many parameters.");
+        printUsage(console, console->desc->command);
+        commandDone(console);
+    }
 }
 
 static void loadExt(Console* console, const char* path)
