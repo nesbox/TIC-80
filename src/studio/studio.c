@@ -1624,30 +1624,36 @@ static void reloadConfirm(bool yes, void* data)
         impl.console->updateProject(impl.console);
 }
 
-static void updateStudioProject()
+static void checkChanges()
 {
-    if(impl.mode != TIC_START_MODE)
+    switch(impl.mode)
     {
-        Console* console = impl.console;
-
-        u64 date = fs_date(console->rom.path);
-
-        if(impl.cart.mdate && date > impl.cart.mdate)
+    case TIC_START_MODE:
+    case TIC_DIALOG_MODE:
+        break;
+    default:
         {
-            if(studioCartChanged())
-            {
-                static const char* Rows[] =
-                {
-                    "",
-                    "CART HAS CHANGED!",
-                    "",
-                    "DO YOU WANT",
-                    "TO RELOAD IT?"
-                };
+            Console* console = impl.console;
 
-                showDialog(Rows, COUNT_OF(Rows), reloadConfirm, NULL);
+            u64 date = fs_date(console->rom.path);
+
+            if(impl.cart.mdate && date > impl.cart.mdate)
+            {
+                if(studioCartChanged())
+                {
+                    static const char* Rows[] =
+                    {
+                        "",
+                        "CART HAS CHANGED!",
+                        "",
+                        "DO YOU WANT",
+                        "TO RELOAD IT?"
+                    };
+
+                    showDialog(Rows, COUNT_OF(Rows), reloadConfirm, NULL);
+                }
+                else console->updateProject(console);
             }
-            else console->updateProject(console);
         }
     }
 }
@@ -1709,8 +1715,6 @@ static void drawPopup()
             anim + 1, tic_color_white, true, 1, false);
     }
 }
-#else
-static void updateStudioProject() {}
 #endif
 
 static void renderStudio()
@@ -1893,6 +1897,7 @@ static void studioTick()
     tic_mem* tic = impl.studio.tic;
 
 #if defined(BUILD_EDITORS)
+    checkChanges();
     tic_net_start(impl.net);
 #endif
 
@@ -2132,7 +2137,6 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder)
 
     impl.studio.tick = studioTick;
     impl.studio.close = studioClose;
-    impl.studio.updateProject = updateStudioProject;
     impl.studio.exit = exitStudio;
     impl.studio.config = getConfig;
 

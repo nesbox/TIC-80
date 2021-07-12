@@ -731,32 +731,26 @@ static inline tic_cartridge* newCart()
 
 static void updateProject(Console* console)
 {
-#if defined(TIC80_PRO)
     tic_mem* tic = console->tic;
     const char* path = console->rom.path;
 
-    if(strlen(path) && tic_project_ext(path))
+    if(*path)
     {
         s32 size = 0;
         void* data = fs_read(path, &size);
 
         if(data) SCOPE(free(data))
         {
-            tic_cartridge* cart = newCart();
+#if defined(TIC80_PRO)
+            if(tic_project_ext(path))
+                tic_project_load(console->rom.name, data, size, &tic->cart);
+            else
+#endif
+                tic_cart_load(&tic->cart, data, size);
 
-            SCOPE(free(cart))
-            {
-                if(tic_project_load(console->rom.name, data, size, cart))
-                {
-                    memcpy(&tic->cart, cart, sizeof(tic_cartridge));
-
-                    studioRomLoaded();
-                }
-                else printError(console, "\nproject updating error :(");
-            }
+            studioRomLoaded();
         }
     }
-#endif
 }
 
 typedef struct

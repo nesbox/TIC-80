@@ -141,7 +141,6 @@ typedef struct
     void (*tick)();
     void (*exit)();
     void (*close)();
-    void (*updateProject)();
     const StudioConfig* (*config)();
 
 } Studio;

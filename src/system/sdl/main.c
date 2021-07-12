@@ -1052,13 +1052,12 @@ void tic_sys_poll()
 #endif                    
                 }
                 break;
-            case SDL_WINDOWEVENT_FOCUS_GAINED: 
-                platform.studio->updateProject();
 #if defined(__LINUX__)
+            case SDL_WINDOWEVENT_FOCUS_GAINED: 
                 // lock input for 10 ticks
                 lockInput = 10;
-#endif                
                 break;
+#endif
             }
             break;
 
