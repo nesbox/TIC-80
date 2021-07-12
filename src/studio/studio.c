@@ -432,9 +432,9 @@ void drawBGAnimation(tic_mem* tic, s32 ticks)
 static void modifyColor(tic_mem* tic, s32 x, u8 r, u8 g, u8 b)
 {
     s32 addr = offsetof(tic_ram, vram.palette) + ((x % 16) * 3);
-    tic_api_poke(tic, addr, r);
-    tic_api_poke(tic, addr + 1, g);
-    tic_api_poke(tic, addr + 2, b);
+    tic_api_poke(tic, addr, r, BITS_IN_BYTE);
+    tic_api_poke(tic, addr + 1, g, BITS_IN_BYTE);
+    tic_api_poke(tic, addr + 2, b, BITS_IN_BYTE);
 }
 
 void drawBGAnimationScanline(tic_mem* tic, s32 row)

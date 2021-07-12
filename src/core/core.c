@@ -80,18 +80,34 @@ static void drawHLineOvr(tic_mem* tic, s32 x1, s32 x2, s32 y, u8 color)
     }
 }
 
-u8 tic_api_peek(tic_mem* memory, s32 address)
+u8 tic_api_peek(tic_mem* memory, s32 address, s32 res)
 {
-    if (address >= 0 && address < sizeof(tic_ram))
-        return *((u8*)&memory->ram + address);
+    if (address < 0 || address >= sizeof(tic_ram) * res / 8)
+        return 0;
+
+    switch(res)
+    {
+    case 1: return tic_tool_peek1((u8*)&memory->ram, address);
+    case 2: return tic_tool_peek2((u8*)&memory->ram, address);
+    case 4: return tic_tool_peek4((u8*)&memory->ram, address);
+    case 8: return *((u8*)&memory->ram + address);
+    }
 
     return 0;
 }
 
-void tic_api_poke(tic_mem* memory, s32 address, u8 value)
+void tic_api_poke(tic_mem* memory, s32 address, u8 value, s32 res)
 {
-    if (address >= 0 && address < sizeof(tic_ram))
-        *((u8*)&memory->ram + address) = value;
+    if (address < 0 || address >= sizeof(tic_ram) * res / 8)
+        return;
+
+    switch(res)
+    {
+    case 1: tic_tool_poke1((u8*)&memory->ram, address, value); break;
+    case 2: tic_tool_poke2((u8*)&memory->ram, address, value); break;
+    case 4: tic_tool_poke4((u8*)&memory->ram, address, value); break;
+    case 8: *((u8*)&memory->ram + address) = value; break;
+    }
 }
 
 u8 tic_api_peek4(tic_mem* memory, s32 address)

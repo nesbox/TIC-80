@@ -944,8 +944,12 @@ static void wren_peek(WrenVM* vm)
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
 
     s32 address = getWrenNumber(vm, 1);
+    s32 res = BITS_IN_BYTE;
 
-    wrenSetSlotDouble(vm, 0, tic_api_peek(tic, address));
+    if(wrenGetSlotCount(vm) > 2)
+        res = getWrenNumber(vm, 2);
+
+    wrenSetSlotDouble(vm, 0, tic_api_peek(tic, address, res));
 }
 
 static void wren_poke(WrenVM* vm)
@@ -954,8 +958,11 @@ static void wren_poke(WrenVM* vm)
 
     s32 address = getWrenNumber(vm, 1);
     u8 value = getWrenNumber(vm, 2) & 0xff;
+    s32 res = BITS_IN_BYTE;
+    if(wrenGetSlotCount(vm) > 3)
+        res = getWrenNumber(vm, 3);
 
-    tic_api_poke(tic, address, value);
+    tic_api_poke(tic, address, value, res);
 }
 
 static void wren_peek4(WrenVM* vm)
@@ -964,7 +971,7 @@ static void wren_peek4(WrenVM* vm)
 
     s32 address = getWrenNumber(vm, 1);
 
-    wrenSetSlotDouble(vm, 0, tic_api_peek4(tic, address));  
+    wrenSetSlotDouble(vm, 0, tic_api_peek4(tic, address));
 }
 
 static void wren_poke4(WrenVM* vm)

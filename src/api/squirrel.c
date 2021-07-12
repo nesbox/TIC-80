@@ -120,27 +120,38 @@ static SQInteger squirrel_errorHandler(HSQUIRRELVM vm)
 static SQInteger squirrel_peek(HSQUIRRELVM vm)
 {
     tic_mem* tic = (tic_mem*)getSquirrelCore(vm);
+    SQInteger top = sq_gettop(vm);
 
     // check number of args
-    if (sq_gettop(vm) != 2)
+    if (top < 2)
         return sq_throwerror(vm, "invalid parameters, peek(address)");
-    s32 address = getSquirrelNumber(vm, 2);
 
-    sq_pushinteger(vm, tic_api_peek(tic, address));
+    s32 address = getSquirrelNumber(vm, 2);
+    s32 res = BITS_IN_BYTE;
+
+    if(top == 3)
+        res = getSquirrelNumber(vm, 3);
+
+    sq_pushinteger(vm, tic_api_peek(tic, address, res));
     return 1;
 }
 
 static SQInteger squirrel_poke(HSQUIRRELVM vm)
 {
     tic_mem* tic = (tic_mem*)getSquirrelCore(vm);
+    SQInteger top = sq_gettop(vm);
 
-    if (sq_gettop(vm) != 3)
+    if (top < 3)
         return sq_throwerror( vm, "invalid parameters, poke(address,value)" );
 
     s32 address = getSquirrelNumber(vm, 2);
     u8 value = getSquirrelNumber(vm, 3);
+    s32 res = BITS_IN_BYTE;
 
-    tic_api_poke(tic, address, value);
+    if(top == 4)
+        res = getSquirrelNumber(vm, 4);
+
+    tic_api_poke(tic, address, value, res);
 
     return 0;
 }
