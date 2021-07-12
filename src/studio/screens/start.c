@@ -160,6 +160,7 @@ void initStart(Start* start, tic_mem* tic, const char* cart)
         if(data) SCOPE(free(data))
         {
             tic_cart_load(&tic->cart, data, size);
+            tic_api_reset(tic);
             start->embed = true;
         }
     }
@@ -208,6 +209,7 @@ void initStart(Start* start, tic_mem* tic, const char* cart)
                             if(dataSize)
                             {
                                 tic_cart_load(&tic->cart, data, dataSize);
+                                tic_api_reset(tic);
                                 start->embed = true;
                             }
                                 
