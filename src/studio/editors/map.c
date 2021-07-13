@@ -570,6 +570,26 @@ static void drawTileCursorOvr(Map* map)
     }
 
     drawCursorPos(map, pos.x, pos.y);
+
+    if(map->mode == MAP_FILL_MODE && tic_api_key(map->tic, tic_key_ctrl)) {
+        char str[] = "replace";
+
+        s32 tx = 0, ty = 0;
+        getMouseMap(map, &tx, &ty);
+
+        s32 width = tic_api_print(map->tic, str, TIC80_WIDTH, 0, tic_color_dark_green, true, 1, false);
+
+        s32 px = pos.x + (TIC_SPRITESIZE + 3);
+        if(px + width >= TIC80_WIDTH) px = pos.x - (width + 2);
+
+        s32 py = pos.y - (TIC_FONT_HEIGHT + 2);
+        if(py <= TOOLBAR_SIZE) py = pos.y + (TIC_SPRITESIZE + 3);
+
+        py += TIC_FONT_HEIGHT + 1;
+
+        tic_api_rect(map->tic, px - 1, py - 1, width + 1, TIC_FONT_HEIGHT + 1, tic_color_white);
+        tic_api_print(map->tic, str, px, py, tic_color_dark_blue, true, 1, false);
+    }
 }
 
 static void processMouseDrawMode(Map* map)
@@ -918,6 +938,52 @@ static void fillMap(Map* map, s32 x, s32 y, u8 tile)
     }   
 }
 
+static s32 moduloWrap(s32 x, s32 m)
+{
+   int32_t y = x % m;
+   return (y < 0) ? (y + m) : y; // always between 0 and m-1 inclusive
+}
+
+// replace tile with another tile or pattern
+static void replaceTile(Map* map, s32 x, s32 y, u8 tile)
+{
+    if(tile == (map->sheet.rect.x + map->sheet.rect.y * TIC_SPRITESHEET_COLS)) return;
+
+    s32 mx = map->sheet.rect.x;
+    s32 my = map->sheet.rect.y;
+
+    struct
+    {
+        s32 l;
+        s32 t;
+        s32 r;
+        s32 b;
+    }clip = { 0, 0, TIC_MAP_WIDTH, TIC_MAP_HEIGHT };
+
+    if (map->select.rect.w > 0 && map->select.rect.h > 0)
+    {
+        clip.l = map->select.rect.x;
+        clip.t = map->select.rect.y;
+        clip.r = map->select.rect.x + map->select.rect.w;
+        clip.b = map->select.rect.y + map->select.rect.h;
+    }
+
+    // for each tile in selection/full map
+    for(s32 j = clip.t; j < clip.b; j++)
+        for(s32 i = clip.l; i < clip.r; i++)
+            if(tic_api_mget(map->tic, i, j) == tile)
+            {
+                // offset pattern based on click position
+                s32 oy = moduloWrap(j - y, map->sheet.rect.h);
+                s32 ox = moduloWrap(i - x, map->sheet.rect.w);
+
+                u8 newtile = (mx+ox) + (my+oy) * TIC_SPRITESHEET_COLS;
+                // u8 newtile = map->sheet.rect.x + map->sheet.rect.y * TIC_SPRITESHEET_COLS;
+                // u8 newtile = map->sheet.rect.y * map->sheet.blit.pages * TIC_SPRITESHEET_COLS + map->sheet.rect.x + tic_blit_calc_index(&map->sheet.blit);
+                tic_api_mset(map->tic, i, j, newtile);
+            }
+}
+
 static void processMouseFillMode(Map* map)
 {
     tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
@@ -934,7 +1000,10 @@ static void processMouseFillMode(Map* map)
         {
             tic_mem* tic = map->tic;
             map2ram(&tic->ram, map->src);
-            fillMap(map, tx, ty, tic_api_mget(map->tic, tx, ty));
+            if(tic_api_key(tic, tic_key_ctrl))
+                replaceTile(map, tx, ty, tic_api_mget(map->tic, tx, ty));
+            else
+                fillMap(map, tx, ty, tic_api_mget(map->tic, tx, ty));
             ram2map(&tic->ram, map->src);
         }
 
