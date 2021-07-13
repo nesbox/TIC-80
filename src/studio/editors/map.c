@@ -1048,22 +1048,8 @@ static void drawGrid(Map* map)
 
 static void drawMapReg(Map* map)
 {
-    tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
-
-    s32 scrollX = map->scroll.x % TIC_SPRITESIZE;
-    s32 scrollY = map->scroll.y % TIC_SPRITESIZE;
-
     tic_mem* tic = map->tic;
-
-    map2ram(&tic->ram, map->src);
-
-    initBlitMode(map);
-    tic_api_map(tic, map->scroll.x / TIC_SPRITESIZE, map->scroll.y / TIC_SPRITESIZE,
-        TIC_MAP_SCREEN_WIDTH + 1, TIC_MAP_SCREEN_HEIGHT + 1, -scrollX, -scrollY, 0, 0, 1, NULL, NULL);
-    resetBlitMode(map->tic);
-
-    if(map->canvas.grid || map->scroll.active)
-        drawGrid(map);
+    tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
     if(!sheetVisible(map) && checkMousePos(&rect))
     {
@@ -1081,6 +1067,19 @@ static void drawMapReg(Map* map)
                 processScrolling(map, checkMouseDown(&rect, tic_mouse_right));
         }
     }
+
+    s32 scrollX = map->scroll.x % TIC_SPRITESIZE;
+    s32 scrollY = map->scroll.y % TIC_SPRITESIZE;
+
+    map2ram(&tic->ram, map->src);
+
+    initBlitMode(map);
+    tic_api_map(tic, map->scroll.x / TIC_SPRITESIZE, map->scroll.y / TIC_SPRITESIZE,
+        TIC_MAP_SCREEN_WIDTH + 1, TIC_MAP_SCREEN_HEIGHT + 1, -scrollX, -scrollY, 0, 0, 1, NULL, NULL);
+    resetBlitMode(map->tic);
+
+    if(map->canvas.grid || map->scroll.active)
+        drawGrid(map);
 }
 
 static void undo(Map* map)
