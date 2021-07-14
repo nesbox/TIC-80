@@ -371,7 +371,7 @@ static void enumFiles(tic_fs* fs, const char* path, fs_list_callback callback, v
     {
         if (!(FileInfo.fattrib & (AM_HID | AM_SYS)))
         {
-            bool result = callback(FileInfo.fname, NULL, 0, data, FileInfo.fattrib & AM_DIR);
+            bool result = callback(FileInfo.fname, NULL, NULL, 0, data, FileInfo.fattrib & AM_DIR);
 
             if (!result)
             {
@@ -793,7 +793,7 @@ void tic_fs_hashload(tic_fs* fs, const char* hash, fs_load_callback callback, vo
 {
 #if defined(BAREMETALPI)
     // TODO BAREMETALPI
-    return NULL;
+    return;
 #else
 
     char cachePath[TICNAME_MAX];
