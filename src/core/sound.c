@@ -252,8 +252,8 @@ static void processMusic(tic_mem* memory)
         && jumpCmd->active)
     {
         music_state->music.frame = jumpCmd->frame;
-        music_state->music.row = jumpCmd->beat * NOTES_PER_BEAT;
-        core->state.music.ticks = row2tick(core, track, music_state->music.row);
+        row = jumpCmd->beat * NOTES_PER_BEAT;
+        core->state.music.ticks = row2tick(core, track, row);
         memset(jumpCmd, 0, sizeof(tic_jump_command));
     }
 
@@ -472,7 +472,7 @@ static void setMusic(tic_core* core, s32 index, s32 frame, s32 row, bool loop, b
         for (s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
             setMusicChannelData(memory, -1, 0, 0, MAX_VOLUME, MAX_VOLUME, c);
 
-        ram->music_state.music.row = row;
+        ram->music_state.music.row = -1;
         ram->music_state.music.frame = frame < 0 ? 0 : frame;
         ram->music_state.flag.music_loop = loop;
         ram->music_state.flag.music_sustain = sustain;
