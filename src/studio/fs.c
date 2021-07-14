@@ -254,7 +254,7 @@ static void onDirResponse(const net_get_data* netData)
                         {
                             lua_getfield(lua, -1, "name");
                             if (lua_isstring(lua, -1))
-                                netDirData->item(lua_tostring(lua, -1), NULL, 0, netDirData->data, true);
+                                netDirData->item(lua_tostring(lua, -1), NULL, NULL, 0, netDirData->data, true);
 
                             lua_pop(lua, 1);
                         }
@@ -279,6 +279,7 @@ static void onDirResponse(const net_get_data* netData)
 
                         char hash[TICNAME_MAX];
                         char name[TICNAME_MAX];
+                        char title[TICNAME_MAX];
 
                         {
                             lua_getfield(lua, -1, "hash");
@@ -289,7 +290,7 @@ static void onDirResponse(const net_get_data* netData)
                         }
 
                         {
-                            lua_getfield(lua, -1, "name");
+                            lua_getfield(lua, -1, "filename");
 
                             if (lua_isstring(lua, -1))
                                 strncpy(name, lua_tostring(lua, -1), sizeof name);
@@ -298,10 +299,19 @@ static void onDirResponse(const net_get_data* netData)
                         }
 
                         {
+                            lua_getfield(lua, -1, "name");
+
+                            if (lua_isstring(lua, -1))
+                                strncpy(title, lua_tostring(lua, -1), sizeof title);
+
+                            lua_pop(lua, 1);
+                        }
+
+                        {
                             lua_getfield(lua, -1, "id");
 
                             if (lua_isinteger(lua, -1))
-                                netDirData->item(name, hash, (s32)lua_tointeger(lua, -1), netDirData->data, false);
+                                netDirData->item(name, title, hash, (s32)lua_tointeger(lua, -1), netDirData->data, false);
 
                             lua_pop(lua, 1);
                         }
@@ -393,7 +403,7 @@ static void enumFiles(tic_fs* fs, const char* path, fs_list_callback callback, v
                 if(tic_stat(fullPath, &s) == 0)
                 {
                     const char* name = stringToUtf8(ent->d_name);
-                    bool result = callback(name, NULL, 0, data, S_ISDIR(s.st_mode));
+                    bool result = callback(name, NULL, NULL, 0, data, S_ISDIR(s.st_mode));
                     freeString(name);
 
                     if(!result) break;
@@ -410,7 +420,7 @@ static void enumFiles(tic_fs* fs, const char* path, fs_list_callback callback, v
 
 void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, void* data)
 {
-    if (isRoot(fs) && !onItem(PublicDir, NULL, 0, data, true))
+    if (isRoot(fs) && !onItem(PublicDir, NULL, NULL, 0, data, true))
     {
         onDone(data);
         return;
@@ -531,7 +541,7 @@ typedef struct
 
 } EnumPublicDirsData;
 
-static bool onEnumPublicDirs(const char* name, const char* info, s32 id, void* data, bool dir)
+static bool onEnumPublicDirs(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
 {
     EnumPublicDirsData* enumPublicDirsData = (EnumPublicDirsData*)data;
 

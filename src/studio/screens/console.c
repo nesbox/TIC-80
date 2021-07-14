@@ -804,14 +804,14 @@ typedef struct
     char* section;
 } LoadPublicCartData;
 
-static bool compareFilename(const char* name, const char* info, s32 id, void* data, bool dir)
+static bool compareFilename(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
 {
     LoadPublicCartData* loadPublicCartData = data;
     Console* console = loadPublicCartData->console;
 
-    if (strcmp(name, loadPublicCartData->name) == 0 && info && strlen(info))
+    if (strcmp(name, loadPublicCartData->name) == 0 && hash && strlen(hash))
     {
-        loadPublicCartData->hash = strdup(info);
+        loadPublicCartData->hash = strdup(hash);
         return false;
     }
 
@@ -1138,7 +1138,7 @@ typedef struct
     s32 count;
 } PrintFileNameData;
 
-static bool printFilename(const char* name, const char* info, s32 id, void* ctx, bool dir)
+static bool printFilename(const char* name, const char* title, const char* hash, s32 id, void* ctx, bool dir)
 {
     PrintFileNameData* data = ctx;
 
@@ -2810,7 +2810,7 @@ typedef struct
     char* name;
 } PredictFilenameData;
 
-static bool predictFilename(const char* name, const char* info, s32 id, void* data, bool dir)
+static bool predictFilename(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
 {
     PredictFilenameData* predictFilenameData = data;
     Console* console = predictFilenameData->console;

@@ -25,7 +25,7 @@
 #include <tic80_types.h>
 #include <string.h>
 
-typedef bool(*fs_list_callback)(const char* name, const char* info, s32 id, void* data, bool dir);
+typedef bool(*fs_list_callback)(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir);
 typedef void(*fs_done_callback)(void* data);
 typedef void(*fs_isdir_callback)(bool dir, void* data);
 typedef void(*fs_load_callback)(const u8* buffer, s32 size, void* data);

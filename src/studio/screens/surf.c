@@ -303,7 +303,7 @@ static inline void cutExt(char* name, const char* ext)
     name[strlen(name)-strlen(ext)] = '\0';
 }
 
-static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, bool dir)
+static bool addMenuItem(const char* name, const char* title, const char* hash, s32 id, void* ptr, bool dir)
 {
     AddMenuItemData* data = (AddMenuItemData*)ptr;
 
@@ -323,7 +323,7 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
         *item = (MenuItem)
         {
             .name = strdup(name),
-            .hash = info ? strdup(info) : NULL,
+            .hash = hash ? strdup(hash) : NULL,
             .id = id,
             .dir = dir,
         };
@@ -336,7 +336,7 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
         }
         else
         {
-            item->label = strdup(name);
+            item->label = title ? strdup(title) : strdup(name);
 
             if(tic_tool_has_ext(name, CartExt))
                 cutExt(item->label, CartExt);
@@ -567,7 +567,7 @@ static void initMenuAsync(Surf* surf, fs_done_callback callback, void* calldata)
     AddMenuItemData data = { NULL, 0, surf, callback, calldata};
 
     if(strcmp(dir, "") != 0)
-        addMenuItem("..", NULL, 0, &data, true);
+        addMenuItem("..", NULL, NULL, 0, &data, true);
 
     tic_fs_enum(surf->fs, addMenuItem, addMenuItemsDone, MOVE(data));
 }
