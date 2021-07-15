@@ -793,7 +793,7 @@ static void loadByHash(Console* console, const char* name, const char* hash, con
     console->active = false;
 
     LoadByHashData loadByHashData = { console, strdup(name), section ? strdup(section) : NULL, callback, data};
-    tic_fs_hashload(console->fs, hash, loadByHashDone, MOVE(loadByHashData));
+    tic_fs_hashload(console->fs, name, hash, loadByHashDone, MOVE(loadByHashData));
 }
 
 typedef struct

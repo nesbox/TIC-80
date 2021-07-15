@@ -789,7 +789,7 @@ static void fileByHashLoaded(const net_get_data* netData)
     }
 }
 
-void tic_fs_hashload(tic_fs* fs, const char* hash, fs_load_callback callback, void* data)
+void tic_fs_hashload(tic_fs* fs, const char* name, const char* hash, fs_load_callback callback, void* data)
 {
 #if defined(BAREMETALPI)
     // TODO BAREMETALPI
@@ -811,7 +811,7 @@ void tic_fs_hashload(tic_fs* fs, const char* hash, fs_load_callback callback, vo
 
 #if defined(BUILD_EDITORS)
     char path[TICNAME_MAX];
-    snprintf(path, sizeof path, "/cart/%s/cart.tic", hash);
+    snprintf(path, sizeof path, "/cart/%s/%s", hash, name);
 
     LoadFileByHashData loadFileByHashData = { fs, callback, data, strdup(cachePath) };
     tic_net_get(fs->net, path, fileByHashLoaded, MOVE(loadFileByHashData));

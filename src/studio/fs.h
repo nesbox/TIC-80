@@ -39,7 +39,7 @@ const char* tic_fs_pathroot (tic_fs* fs, const char* name);
 
 void    tic_fs_enum         (tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, void* data);
 void    tic_fs_isdir_async  (tic_fs* fs, const char* name, fs_isdir_callback callback, void* data);
-void    tic_fs_hashload     (tic_fs* fs, const char* hash, fs_load_callback callback, void* data);
+void    tic_fs_hashload     (tic_fs* fs, const char* name, const char* hash, fs_load_callback callback, void* data);
 bool    tic_fs_delfile      (tic_fs* fs, const char* name);
 bool    tic_fs_deldir       (tic_fs* fs, const char* name);
 bool    tic_fs_save         (tic_fs* fs, const char* name, const void* data, s32 size, bool overwrite);
