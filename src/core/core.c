@@ -82,7 +82,9 @@ static void drawHLineOvr(tic_mem* tic, s32 x1, s32 x2, s32 y, u8 color)
 
 u8 tic_api_peek(tic_mem* memory, s32 address, s32 res)
 {
-    if (address < 0 || address >= sizeof(tic_ram) * res / 8)
+    if (res == 0 
+        || address < 0 
+        || address >= (sizeof(tic_ram) * 8) / res)
         return 0;
 
     switch(res)
@@ -98,7 +100,9 @@ u8 tic_api_peek(tic_mem* memory, s32 address, s32 res)
 
 void tic_api_poke(tic_mem* memory, s32 address, u8 value, s32 res)
 {
-    if (address < 0 || address >= sizeof(tic_ram) * res / 8)
+    if (res == 0 
+        || address < 0 
+        || address >= (sizeof(tic_ram) * 8) / res)
         return;
 
     switch(res)

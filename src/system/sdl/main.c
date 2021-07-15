@@ -452,7 +452,6 @@ static void initGPU()
 static void destroyGPU()
 {
     destoryTexture(platform.gpu.texture);
-    destoryRenderer(platform.gpu.renderer);
 
     if(platform.mouse.texture)
         destoryTexture(platform.mouse.texture);
@@ -469,6 +468,8 @@ static void destroyGPU()
         destoryTexture(platform.keyboard.touch.texture.down);
 
 #endif
+
+    destoryRenderer(platform.gpu.renderer);
 
 #if defined(CRT_SHADER_SUPPORT)
 
@@ -547,52 +548,63 @@ static void calcTextureRect(SDL_Rect* rect)
 
 static void processMouse()
 {
-    s32 mx, my;
-    s32 mb = SDL_GetMouseState(&mx, &my);
+    tic_point pt;
+    s32 mb = SDL_GetMouseState(&pt.x, &pt.y);
 
     tic_mem* tic = platform.studio->tic;
-    tic80_input* input = &tic->ram.input;
+    tic80_mouse* mouse = &tic->ram.input.mouse;
 
+    if(SDL_GetRelativeMouseMode())
     {
-        input->mouse.x = input->mouse.y = 0;
+        SDL_GetRelativeMouseState(&pt.x, &pt.y);
 
-        SDL_Rect rect = {0, 0, 0, 0};
-        calcTextureRect(&rect);
+        mouse->rx = pt.x;
+        mouse->ry = pt.y;
+    }
+    else
+    {
+
+        {
+            mouse->x = mouse->y = 0;
+
+            SDL_Rect rect = {0, 0, 0, 0};
+            calcTextureRect(&rect);
 
 #if defined(CRT_SHADER_SUPPORT)
-        if(crtMonitorEnabled())
-        {
-            if(rect.w) {
-                s32 temp_x = (mx - rect.x) * TIC80_FULLWIDTH / rect.w;
-                if (temp_x < 0) temp_x = 0; else if (temp_x >= TIC80_FULLWIDTH) temp_x = TIC80_FULLWIDTH-1; // clip: 0 to TIC80_FULLWIDTH-1
-                input->mouse.x = temp_x;
+            if(crtMonitorEnabled())
+            {
+                if(rect.w) {
+                    s32 temp_x = (pt.x - rect.x) * TIC80_FULLWIDTH / rect.w;
+                    if (temp_x < 0) temp_x = 0; else if (temp_x >= TIC80_FULLWIDTH) temp_x = TIC80_FULLWIDTH-1; // clip: 0 to TIC80_FULLWIDTH-1
+                    mouse->x = temp_x;
+                }
+                if(rect.h) {
+                    s32 temp_y = (pt.y - rect.y) * TIC80_FULLHEIGHT / rect.h;
+                    if (temp_y < 0) temp_y = 0; else if (temp_y >= TIC80_FULLHEIGHT) temp_y = TIC80_FULLHEIGHT-1; // clip: 0 to TIC80_FULLHEIGHT-1
+                    mouse->y = temp_y;
+                }
             }
-            if(rect.h) {
-                s32 temp_y = (my - rect.y) * TIC80_FULLHEIGHT / rect.h;
-                if (temp_y < 0) temp_y = 0; else if (temp_y >= TIC80_FULLHEIGHT) temp_y = TIC80_FULLHEIGHT-1; // clip: 0 to TIC80_FULLHEIGHT-1
-                input->mouse.y = temp_y;
-            }
-        }
-        else
+            else
 #endif
-        {
-            if (rect.w) {
-                s32 temp_x = (mx - rect.x) * TIC80_WIDTH / rect.w + TIC80_OFFSET_LEFT;
-                if (temp_x < 0) temp_x = 0; else if (temp_x >= TIC80_FULLWIDTH) temp_x = TIC80_FULLWIDTH-1; // clip: 0 to TIC80_FULLWIDTH-1
-                input->mouse.x = temp_x;
-            }
-            if (rect.h) {
-                s32 temp_y = (my - rect.y) * TIC80_HEIGHT / rect.h + TIC80_OFFSET_TOP;
-                if (temp_y < 0) temp_y = 0; else if (temp_y >= TIC80_FULLHEIGHT) temp_y = TIC80_FULLHEIGHT-1; // clip: 0 to TIC80_FULLHEIGHT-1
-                input->mouse.y = temp_y;
+            {
+                if (rect.w) {
+                    s32 temp_x = (pt.x - rect.x) * TIC80_WIDTH / rect.w + TIC80_OFFSET_LEFT;
+                    if (temp_x < 0) temp_x = 0; else if (temp_x >= TIC80_FULLWIDTH) temp_x = TIC80_FULLWIDTH-1; // clip: 0 to TIC80_FULLWIDTH-1
+                    mouse->x = temp_x;
+                }
+                if (rect.h) {
+                    s32 temp_y = (pt.y - rect.y) * TIC80_HEIGHT / rect.h + TIC80_OFFSET_TOP;
+                    if (temp_y < 0) temp_y = 0; else if (temp_y >= TIC80_FULLHEIGHT) temp_y = TIC80_FULLHEIGHT-1; // clip: 0 to TIC80_FULLHEIGHT-1
+                    mouse->y = temp_y;
+                }
             }
         }
     }
 
-    {
-        input->mouse.left = mb & SDL_BUTTON_LMASK ? 1 : 0;
-        input->mouse.middle = mb & SDL_BUTTON_MMASK ? 1 : 0;
-        input->mouse.right = mb & SDL_BUTTON_RMASK ? 1 : 0;
+    {        
+        mouse->left = mb & SDL_BUTTON_LMASK ? 1 : 0;
+        mouse->middle = mb & SDL_BUTTON_MMASK ? 1 : 0;
+        mouse->right = mb & SDL_BUTTON_RMASK ? 1 : 0;
     }
 }
 
@@ -975,6 +987,9 @@ void tic_sys_poll()
     tic_mem* tic = platform.studio->tic;
     tic80_input* input = &tic->ram.input;
 
+    if((bool)input->mouse.relative != (bool)SDL_GetRelativeMouseMode())
+        SDL_SetRelativeMouseMode(input->mouse.relative ? SDL_TRUE : SDL_FALSE);
+
     SDL_memset(input, 0, sizeof(tic80_input));
 
 #if defined(TOUCH_INPUT_SUPPORT)
@@ -1284,6 +1299,9 @@ static void renderCursor()
         SDL_ShowCursor(SDL_DISABLE);
         return;
     }
+
+    if(SDL_GetRelativeMouseMode())
+        return;
 
     if(platform.studio->tic->ram.vram.vars.cursor.system)
     {

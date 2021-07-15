@@ -103,8 +103,22 @@ typedef union
 
 typedef struct
 {
-    u8 x;
-    u8 y;
+    union
+    {
+        // absolute pos
+        struct
+        {
+            u8 x;
+            u8 y;
+        };
+
+        // releative values
+        struct
+        {
+            s8 rx;
+            s8 ry;
+        };
+    };
     
     union
     {
@@ -117,7 +131,7 @@ typedef struct
             s16 scrollx:6;
             s16 scrolly:6;
 
-            u16 temp:1;
+            u16 relative:1;
         };
 
         u16 btns;
