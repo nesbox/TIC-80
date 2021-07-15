@@ -992,6 +992,9 @@ void tic_sys_poll()
 
     SDL_memset(input, 0, sizeof(tic80_input));
 
+    // keep relative mode enabled
+    input->mouse.relative = SDL_GetRelativeMouseMode() ? 1 : 0;
+
 #if defined(TOUCH_INPUT_SUPPORT)
     ZEROMEM(platform.gamepad.touch.joystick);
     ZEROMEM(platform.keyboard.touch.state);
