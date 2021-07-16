@@ -1,13 +1,36 @@
-apply plugin: 'com.android.application'
+def buildAsLibrary = project.hasProperty('BUILD_AS_LIBRARY');
+def buildAsApplication = !buildAsLibrary
+if (buildAsApplication) {
+    apply plugin: 'com.android.application'
+}
+else {
+    apply plugin: 'com.android.library'
+}
 
 android {
     compileSdkVersion 26
     defaultConfig {
-        applicationId 'com.nesbox.tic'
+        if (buildAsApplication) {
+            applicationId "com.nesbox.tic"
+        }
         minSdkVersion 16
         targetSdkVersion 26
-        versionCode 8003
-        versionName '0.80.03'
+        versionCode 9000
+        versionName "0.90.00"
+        externalNativeBuild {
+            ndkBuild {
+                arguments "APP_PLATFORM=android-16"
+                abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+            }
+            cmake {
+                arguments "-DBUILD_PRO=Off"
+            }
+            // cmake {
+            //     arguments "-DANDROID_APP_PLATFORM=android-16", "-DANDROID_STL=c++_static"
+            //     // abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
+            //     abiFilters 'arm64-v8a'
+            // }
+        }
     }
 
     signingConfigs {
@@ -23,51 +46,35 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'),
-                    'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
         }
     }
-    externalNativeBuild {
-        cmake {
-            path '../../../CMakeLists.txt'
-        }
+    if (!project.hasProperty('EXCLUDE_NATIVE_LIBS')) {
+        externalNativeBuild {
+            cmake {
+                path '../../../CMakeLists.txt'
+            }
+        }  
     }
 
-    flavorDimensions 'cpuArch'
-    productFlavors {
-        arm7 {
-            dimension 'cpuArch'
-            ndk {
-                abiFilter 'armeabi-v7a'
+    lintOptions {
+        abortOnError false
+    }
+    
+    if (buildAsLibrary) {
+        libraryVariants.all { variant ->
+            variant.outputs.each { output ->
+                def outputFile = output.outputFile
+                if (outputFile != null && outputFile.name.endsWith(".aar")) {
+                    def fileName = "org.libsdl.app.aar";
+                    output.outputFile = new File(outputFile.parent, fileName);
+                }
             }
-        }
-        arm8 {
-            dimension 'cpuArch'
-            ndk {
-                abiFilters 'arm64-v8a'
-            }
-        }
-        x86 {
-            dimension 'cpuArch'
-            ndk {
-                abiFilter 'x86'
-            }
-        }
-        x86_64 {
-            dimension 'cpuArch'
-            ndk {
-                abiFilter 'x86_64'
-            }
-        }
-        universal {
-            dimension 'cpuArch'
-            // include all default ABIs. with NDK-r16,  it is:
-            //   armeabi-v7a, arm64-v8a, x86, x86_64
         }
     }
 }
 
 dependencies {
-    compile fileTree(include: ['*.jar'], dir: 'libs')
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
 }

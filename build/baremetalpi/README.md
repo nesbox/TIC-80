@@ -28,22 +28,10 @@ git clone --recursive https://github.com/nesbox/TIC-80
 cd TIC-80
 ```
 
-Clone circle/circle-stdlib:
+Now build circle-stdlib (3 is your RPi model, should build with 2 and 4 too but it's untested):
 
 ```
-cd vendor
-git clone --recursive https://github.com/smuehlst/circle-stdlib.git
-```
-
-Now you have to edit file in circle-stdlib/libs/circle/include/circle/sysconfig.h and uncomment the following define to enable it:
-```
-#define USE_USB_SOF_INTR
-```
-
-Now build circle-stdlib:
-
-```
-cd circle-stdlib
+cd vendor/circle-stdlib
 ./configure -r 3
 make
 ```
@@ -57,17 +45,15 @@ cd ../vchiq
 make
 cd ../../linux
 make
-cd ../fatfs
-make
 cd ../../../../../..
 ```
 
-Build `tic80lib` for arm with baremetal customizations:
+Build `tic80studio` for arm with baremetal customizations:
 
 ```
 cd build
-cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBAREMETALPI=1 ..
-make tic80lib
+cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake ..
+make tic80studio
 ```
 
 Build the kernel:
@@ -77,24 +63,18 @@ cd baremetalpi
 make
 ```
 
-This generates the final `kernel8-32.img` file. Copy it into your SD card root.
+This generates the final `kernel8-32.img` file (or something similar depending on the RPI version). Copy it into your SD card root.
 
-Now you have to prepare some bootup files that need to be copied to the SD card root together with your kernel8-32.img. This only need to be done once:
+Now you have to download some bootup files that need to be copied to the SD card root together with your kernel8-32.img. This only need to be done once.
 
 ```
-cd boot
+cd ../../vendor/circle-stdlib/libs/circle/boot/
 make
 ```
 
-Now copy the following files to your SD card
+Read the README.md in this folder to see what files needs to be copied to your RPI. For RPi3 should be ok to copy all of them
 
-- `config.txt`
-- `LICENCE.broadcom`
-- `bootcode.bin`
-- `fixup.dat`
-- `start.elf`
-
-You need to create a `tic80` folder into your SD card. Your carts go in there.
+You can create a `tic80` folder into your SD card to put your carts in.
 
 # Thanks
 

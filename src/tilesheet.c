@@ -22,46 +22,47 @@
 // SOFTWARE.
 
 #include "tilesheet.h"
-#include "machine.h"
+
+#include <stdlib.h>
 
 static const tic_blit_segment segments[] = {
-//   +page +nb_pages 
-//   |  +bank +bank_size
-//   |  |  |  |     +sheet_width
-//   |  |  |  |     |   +tile_width
-    {0, 0, 1, 256,  16, 8,  TIC_SPRITESIZE,   tic_tool_peek1, tic_tool_poke1}, // system gfx
-    {0, 0, 1, 256,  16, 8,  TIC_SPRITESIZE,   tic_tool_peek1, tic_tool_poke1}, // system font
-    {0, 0, 1, 256,  16, 8,  sizeof(tic_tile), tic_tool_peek4, tic_tool_poke4}, // 4bpp p0 bg
-    {0, 1, 1, 256,  16, 8,  sizeof(tic_tile), tic_tool_peek4, tic_tool_poke4}, // 4bpp p0 fg
-              
-    {0, 0, 2, 512,  32, 16, sizeof(tic_tile), tic_tool_peek2, tic_tool_poke2}, // 2bpp p0 bg
-    {1, 0, 2, 512,  32, 16, sizeof(tic_tile), tic_tool_peek2, tic_tool_poke2}, // 2bpp p1 bg
-    {0, 1, 2, 512,  32, 16, sizeof(tic_tile), tic_tool_peek2, tic_tool_poke2}, // 2bpp p0 fg
-    {1, 1, 2, 512,  32, 16, sizeof(tic_tile), tic_tool_peek2, tic_tool_poke2}, // 2bpp p1 fg
-              
-    {0, 0, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p0 bg
-    {1, 0, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p1 bg
-    {2, 0, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p2 bg
-    {3, 0, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p3 bg
-    {0, 1, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p0 fg
-    {1, 1, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p1 fg
-    {2, 1, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p2 fg
-    {3, 1, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p3 fg
+    //   +page +nb_pages 
+    //   |  +bank +bank_size
+    //   |  |  |  |     +sheet_width
+    //   |  |  |  |     |   +tile_width
+        {0, 0, 1, 256,  16, 8,  TIC_SPRITESIZE,   tic_tool_peek1, tic_tool_poke1}, // system gfx
+        {0, 0, 1, 256,  16, 8,  TIC_SPRITESIZE,   tic_tool_peek1, tic_tool_poke1}, // system font
+        {0, 0, 1, 256,  16, 8,  sizeof(tic_tile), tic_tool_peek4, tic_tool_poke4}, // 4bpp p0 bg
+        {0, 1, 1, 256,  16, 8,  sizeof(tic_tile), tic_tool_peek4, tic_tool_poke4}, // 4bpp p0 fg
+
+        {0, 0, 2, 512,  32, 16, sizeof(tic_tile), tic_tool_peek2, tic_tool_poke2}, // 2bpp p0 bg
+        {1, 0, 2, 512,  32, 16, sizeof(tic_tile), tic_tool_peek2, tic_tool_poke2}, // 2bpp p1 bg
+        {0, 1, 2, 512,  32, 16, sizeof(tic_tile), tic_tool_peek2, tic_tool_poke2}, // 2bpp p0 fg
+        {1, 1, 2, 512,  32, 16, sizeof(tic_tile), tic_tool_peek2, tic_tool_poke2}, // 2bpp p1 fg
+
+        {0, 0, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p0 bg
+        {1, 0, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p1 bg
+        {2, 0, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p2 bg
+        {3, 0, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p3 bg
+        {0, 1, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p0 fg
+        {1, 1, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p1 fg
+        {2, 1, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p2 fg
+        {3, 1, 4, 1024, 64, 32, sizeof(tic_tile), tic_tool_peek1, tic_tool_poke1}, // 1bpp p3 fg
 };
 
-extern u8 getTileSheetPixel(const tic_tilesheet* sheet, s32 x, s32 y);
-extern void setTileSheetPixel(const tic_tilesheet* sheet, s32 x, s32 y, u8 value);
-extern u8 getTilePixel(const tic_tileptr* tile, s32 x, s32 y);
-extern void setTilePixel(const tic_tileptr* tile, s32 x, s32 y, u8 value);
+extern u8 tic_tilesheet_getpix(const tic_tilesheet* sheet, s32 x, s32 y);
+extern void tic_tilesheet_setpix(const tic_tilesheet* sheet, s32 x, s32 y, u8 value);
+extern u8 tic_tilesheet_gettilepix(const tic_tileptr* tile, s32 x, s32 y);
+extern void tic_tilesheet_settilepix(const tic_tileptr* tile, s32 x, s32 y, u8 value);
 
-tic_tilesheet getTileSheet(u8 segment, u8* ptr)
+tic_tilesheet tic_tilesheet_get(u8 segment, u8* ptr)
 {
-    return (tic_tilesheet){&segments[segment], ptr};
+    return (tic_tilesheet) { &segments[segment], ptr };
 }
 
-tic_tileptr getTile(const tic_tilesheet* sheet, s32 index, bool local)
+tic_tileptr tic_tilesheet_gettile(const tic_tilesheet* sheet, s32 index, bool local)
 {
-    enum {Cols=16, Size=8};
+    enum { Cols = 16, Size = 8 };
     const tic_blit_segment* segment = sheet->segment;
 
     s32 bank, page, iy, ix;
@@ -78,16 +79,20 @@ tic_tileptr getTile(const tic_tilesheet* sheet, s32 index, bool local)
         div_t ia = div(index, segment->bank_size);    // bank, bank_index
         div_t ib = div(ia.rem, segment->sheet_width); // yi, bank_xi
         div_t ic = div(ib.rem, Cols);                // page, xi
-        bank = (ia.quot + segment->bank_orig) % 2; 
+        bank = (ia.quot + segment->bank_orig) % 2;
         page = (ic.quot + segment->page_orig) % segment->nb_pages;
         iy = ib.quot % Cols;
         ix = ic.rem;
     }
 
     div_t xdiv = div(ix, segment->nb_pages);    // xbuffer, xoffset
-    u32 ptr_offset = ( bank * Cols + iy ) * Cols + page * Cols / segment->nb_pages + xdiv.quot;
+    u32 ptr_offset = (bank * Cols + iy) * Cols + page * Cols / segment->nb_pages + xdiv.quot;
     u8* ptr = sheet->ptr + segment->ptr_size * ptr_offset;
-    u32 offset  = (xdiv.rem * Size);
+    u32 offset = (xdiv.rem * Size);
 
-    return (tic_tileptr){segment, offset, ptr};
+    return (tic_tileptr) { segment, offset, ptr };
 }
+
+extern s32 tic_blit_calc_segment(const tic_blit* blit);
+extern void tic_blit_update_bpp(tic_blit* blit, tic_bpp bpp);
+extern s32 tic_blit_calc_index(const tic_blit* blit);

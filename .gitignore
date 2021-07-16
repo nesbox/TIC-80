@@ -129,8 +129,10 @@ lib/
 *.cmake
 CMakeCache.txt
 Makefile
+!build/rpi/*
 !build/baremetalpi/Makefile
 !build/baremetalpi/boot/Makefile
+!build/baremetalpi/toolchain.cmake
 build/android/.gradle/
 build/android/app/.externalNativeBuild/
 build/android/app/build/
@@ -152,7 +154,8 @@ build/vendor/curl/DartConfiguration.tcl
 build/.ninja_deps
 build/.ninja_log
 build/version.h
-build/windows/tic80.rc
+build/pnglibconf.h
+build/windows/*.rc
 *.ninja
 tic80.sublime-workspace
 build/*.tic
@@ -164,3 +167,6 @@ build/*.sln
 build/.local/
 build/*.dir/
 build/x64/
+build/linux/tic80.desktop
+build/compile_commands.json
+CMakeSettings.json

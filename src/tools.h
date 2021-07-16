@@ -23,7 +23,6 @@
 #pragma once
 
 #include "tic.h"
-#include "ext/gif.h"
 #include <stddef.h>
 
 inline s32 tic_tool_sfx_pos(s32 speed, s32 ticks)
@@ -74,16 +73,26 @@ inline u8 tic_tool_peek1(const void* addr, u32 index)
 #undef PEEK_N
 #undef POKE_N
 
+inline u32 tic_rgba(const tic_rgb* c)
+{
+    return (0xff << 24) | (c->b << 16) | (c->g << 8) | (c->r << 0);
+}
+
 bool    tic_tool_parse_note(const char* noteStr, s32* note, s32* octave);
 s32     tic_tool_get_pattern_id(const tic_track* track, s32 frame, s32 channel);
 void    tic_tool_set_pattern_id(tic_track* track, s32 frame, s32 channel, s32 id);
-u32     tic_tool_find_closest_color(const tic_rgb* palette, const gif_color* color);
 u32*    tic_tool_palette_blit(const tic_palette* src, tic80_pixel_color_format fmt);
 bool    tic_tool_has_ext(const char* name, const char* ext);
 s32     tic_tool_get_track_row_sfx(const tic_track_row* row);
 void    tic_tool_set_track_row_sfx(tic_track_row* row, s32 sfx);
-bool    tic_tool_is_noise(const tic_waveform* wave);
 void    tic_tool_str2buf(const char* str, s32 size, void* buf, bool flip);
 
-u32     tic_tool_zip(u8* dest, size_t destSize, const u8* source, size_t size);
-u32     tic_tool_unzip(u8* dest, size_t bufSize, const u8* source, size_t size);
+u32     tic_tool_zip(void* dest, s32 destSize, const void* source, s32 size);
+u32     tic_tool_unzip(void* dest, s32 bufSize, const void* source, s32 size);
+
+bool    tic_tool_empty(const void* buffer, s32 size);
+#define EMPTY(BUFFER) (tic_tool_empty((BUFFER), sizeof (BUFFER)))
+
+u32     tic_nearest_color(const tic_rgb* palette, const tic_rgb* color, s32 count);
+
+const char* tic_tool_metatag(const char* code, const char* tag, const char* comment);

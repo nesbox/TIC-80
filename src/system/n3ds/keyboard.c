@@ -22,7 +22,7 @@
 
 #include <stdlib.h>
 
-#include "system.h"
+#include "studio/system.h"
 #include "keyboard.h"
 #include "utils.h"
 
@@ -128,7 +128,7 @@ static const touch_area_t touch_areas[] = {
 #define touch_areas_len (sizeof(touch_areas) / sizeof(touch_area_t))
 
 extern void n3ds_draw_texture(C3D_Tex* tex, int x, int y, int tx, int ty, int width, int height, int twidth, int theight,
-float cmul);
+int tgtheight, float cmul);
 
 void n3ds_keyboard_init(tic_n3ds_keyboard *kbd) {
 	memset(kbd, 0, sizeof(tic_n3ds_keyboard));
@@ -148,13 +148,13 @@ static void n3ds_keyboard_draw_pressed(tic_n3ds_keyboard *kbd, int pos) {
 	n3ds_draw_texture(&(kbd->tex), area->x, area->y,
 		area->x, 16 + (area->y - 1),
 		area->w, area->h - 1,
-		area->w, area->h - 1, 0.5f);
+		area->w, area->h - 1, 240, 0.5f);
 }
 
 void n3ds_keyboard_draw(tic_n3ds_keyboard *kbd) {
 	if (kbd->tex.data != NULL)
 	{
-		n3ds_draw_texture(&(kbd->tex), 0, 0, 0, 16, 320, 240, 320, 240, 1.0f);
+		n3ds_draw_texture(&(kbd->tex), 0, 0, 0, 16, 320, 240, 320, 240, 240, 1.0f);
 		for(int i = 0; i < kbd->kd_count; i++)
 		{
 			n3ds_keyboard_draw_pressed(kbd, kbd->kd[i]);
@@ -177,7 +177,7 @@ bool n3ds_key_touched(touchPosition* pos, const touch_area_t* area)
 		state[(tickey)] = true; \
 	}
 
-void n3ds_keyboard_update(tic_n3ds_keyboard *kbd, tic_mem *tic, char *chcode) {
+void n3ds_keyboard_update(tic_n3ds_keyboard *kbd, tic_mem *tic) {
 	u32 key_down, key_up, key_held;
 	touchPosition touch;
 	const touch_area_t* area;
@@ -275,38 +275,6 @@ void n3ds_keyboard_update(tic_n3ds_keyboard *kbd, tic_mem *tic, char *chcode) {
 		MAP_BUTTON_KEY(KEY_B, tic_key_x);
 		MAP_BUTTON_KEY(KEY_X, tic_key_a);
 		MAP_BUTTON_KEY(KEY_Y, tic_key_s);
-
-		// TODO: merge with sdlgpu.c
-		if (chcode != NULL)
-		{
-			*chcode = 0;
-			if (buffer_pos > 0)
-			{
-				static const char Symbols[] =   " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
-				static const char Shift[] =     " ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
-
-				enum{Count = sizeof Symbols};
-
-				for(s32 i = 0; i < buffer_pos; i++)
-				{
-					tic_key key = tic_kbd->keys[i];
-
-					if(key > 0 && key < Count && tic_api_keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD))
-					{
-						bool caps = tic_api_key(tic, tic_key_capslock);
-						bool shift = tic_api_key(tic, tic_key_shift);
-
-						*chcode = caps
-							? key >= tic_key_a && key <= tic_key_z 
-								? shift ? Symbols[key] : Shift[key]
-								: shift ? Shift[key] : Symbols[key]
-							: shift ? Shift[key] : Symbols[key];
-
-						break;
-					}
-				}
-			}
-		}
 	}
 }
 

@@ -36,6 +36,10 @@
 #define TIC_SPRITESIZE 8
 
 #define TIC_DEFAULT_BIT_DEPTH 4
+#define TIC_DEFAULT_BLIT_MODE 2
+
+#define TIC80_OFFSET_LEFT ((TIC80_FULLWIDTH-TIC80_WIDTH)/2)
+#define TIC80_OFFSET_TOP ((TIC80_FULLHEIGHT-TIC80_HEIGHT)/2)
 
 #define BITS_IN_BYTE 8
 #define TIC_BANK_SPRITES (1 << BITS_IN_BYTE)
@@ -44,6 +48,7 @@
 #define TIC_SPRITES (TIC_BANK_SPRITES * TIC_SPRITE_BANKS)
 
 #define TIC_SPRITESHEET_SIZE 128
+#define TIC_SPRITESHEET_COLS (TIC_SPRITESHEET_SIZE / TIC_SPRITESIZE)
 
 #define TIC_MAP_ROWS (TIC_SPRITESIZE)
 #define TIC_MAP_COLS (TIC_SPRITESIZE)
@@ -87,12 +92,12 @@
 #define WAVE_MAX_VALUE ((1 << WAVE_VALUE_BITS) - 1)
 #define WAVE_SIZE (WAVE_VALUES * WAVE_VALUE_BITS / BITS_IN_BYTE)
 
-
+#define TIC_BANKSIZE_BITS 16
+#define TIC_BANK_SIZE (1 << TIC_BANKSIZE_BITS) // 64K
 #define TIC_BANK_BITS 3
 #define TIC_BANKS (1 << TIC_BANK_BITS)
 
-#define TIC_CODE_BANK_SIZE (64 * 1024) // 64K
-#define TIC_CODE_SIZE (TIC_CODE_BANK_SIZE * TIC_BANKS)
+#define TIC_CODE_SIZE (TIC_BANK_SIZE * TIC_BANKS)
 
 #define TIC_GAMEPADS (sizeof(tic80_gamepads) / sizeof(tic80_gamepad))
 
@@ -110,22 +115,22 @@ enum
 
 typedef enum
 {
-    tic_color_0,
-    tic_color_1,
-    tic_color_2,
-    tic_color_3,
-    tic_color_4,
-    tic_color_5,
-    tic_color_6,
-    tic_color_7,
-    tic_color_8,
-    tic_color_9,
-    tic_color_10,
-    tic_color_11,
-    tic_color_12,
-    tic_color_13,
-    tic_color_14,
-    tic_color_15,
+    tic_color_black,
+    tic_color_purple,
+    tic_color_red,
+    tic_color_orange,
+    tic_color_yellow,
+    tic_color_light_green,
+    tic_color_green,
+    tic_color_dark_green,
+    tic_color_dark_blue,
+    tic_color_blue,
+    tic_color_light_blue,
+    tic_color_cyan,
+    tic_color_white,
+    tic_color_light_grey,
+    tic_color_grey,
+    tic_color_dark_grey,
 } tic_color;
 
 typedef enum
@@ -299,7 +304,7 @@ typedef enum
     tic_music_stop,
     tic_music_play_frame,
     tic_music_play,
-} tic_music_state;
+} tic_music_status;
 
 typedef struct
 {
@@ -313,12 +318,12 @@ typedef struct
     struct
     {
         u8 music_loop:1;
-        u8 music_state:2; // enum tic_music_state
+        u8 music_status:2; // enum tic_music_status
         u8 music_sustain:1;
         u8 unknown:4;
     } flag;
 
-} tic_sound_state;
+} tic_music_state;
 
 typedef union
 {
@@ -364,18 +369,7 @@ typedef struct
 typedef union
 {
     char data[TIC_CODE_SIZE];
-
-    struct
-    {
-        char data[TIC_CODE_BANK_SIZE];
-    } banks[TIC_BANKS];
 } tic_code;
-
-typedef struct 
-{
-    s32 size;
-    u8 data [TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32)];
-} tic_cover_image;
 
 typedef struct
 {
@@ -394,7 +388,7 @@ typedef union
 typedef struct
 {
     tic_tile data[TIC_BANK_SPRITES];
-} tic_tiles;
+} tic_tiles, tic_sprites;
 
 typedef struct
 {
@@ -403,19 +397,25 @@ typedef struct
 
 typedef struct
 {
-    tic_tiles   tiles;
-    tic_tiles   sprites;
-    tic_map     map;
-    tic_sfx     sfx;
-    tic_music   music;
-    tic_flags   flags;
+    tic_palette scn;
+    tic_palette ovr;
+} tic_palettes;
 
-    struct
-    {
-        tic_palette scn;
-        tic_palette ovr;
-    } palette;
+typedef struct
+{
+    u8 data[TIC80_WIDTH * TIC80_HEIGHT * TIC_PALETTE_BPP / BITS_IN_BYTE];
+} tic_screen;
 
+typedef struct
+{
+    tic_screen      screen;
+    tic_tiles       tiles;
+    tic_sprites     sprites;
+    tic_map         map;
+    tic_sfx         sfx;
+    tic_music       music;
+    tic_flags       flags;
+    tic_palettes    palette;
 } tic_bank;
 
 typedef struct
@@ -426,19 +426,14 @@ typedef struct
         tic_bank banks[TIC_BANKS];
     };
 
-    tic_code code;
-    tic_cover_image cover;
+    tic_code code;    
+
 } tic_cartridge;
 
 typedef struct
 {
     u8 data[TIC_FONT_CHARS * BITS_IN_BYTE];
 } tic_font;
-
-typedef struct
-{
-    u8 data[TIC80_WIDTH * TIC80_HEIGHT * TIC_PALETTE_BPP / BITS_IN_BYTE];
-} tic_screen;
 
 typedef union
 {
@@ -498,20 +493,20 @@ typedef union
     {
         tic_vram            vram;
         tic_tiles           tiles;
-        tic_tiles           sprites;
+        tic_sprites         sprites;
         tic_map             map;
         tic80_input         input;
         tic_sfx_pos         sfxpos[TIC_SOUND_CHANNELS];
         tic_sound_register  registers[TIC_SOUND_CHANNELS];
         tic_sfx             sfx;
         tic_music           music;
-        tic_sound_state     sound_state;
+        tic_music_state     music_state;
         tic_stereo_volume   stereo;
         tic_persistent      persistent;
         tic_flags           flags;
         tic_font            font;
 
-        u8 free[];
+        u8 free;
     };
 
     u8 data[TIC_RAM_SIZE];

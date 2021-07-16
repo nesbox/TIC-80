@@ -1,5 +1,4 @@
-[![Build Status](https://travis-ci.org/nesbox/TIC-80.svg?branch=master)](https://travis-ci.org/nesbox/TIC-80)
-[![Build status](https://ci.appveyor.com/api/projects/status/1pflw77cjd8mqggb/branch/master?svg=true)](https://ci.appveyor.com/project/nesbox/tic-80)
+[![Build Status](https://github.com/nesbox/TIC-80/workflows/Build/badge.svg)](https://github.com/nesbox/TIC-80/actions?query=workflow%3ABuild)
 
 ![TIC-80](https://tic.computer/img/logo64.png)
 **TIC-80 TINY COMPUTER** - [https://tic80.com](https://tic80.com)
@@ -19,7 +18,8 @@ To make a retro styled game, the whole process of creation and execution takes p
 - Multiple programming languages: [Lua](https://www.lua.org),
   [Moonscript](https://moonscript.org),
   [Javascript](https://developer.mozilla.org/en-US/docs/Web/JavaScript),
-  [Wren](http://wren.io/), and [Fennel](https://fennel-lang.org).
+  [Wren](http://wren.io/), [Fennel](https://fennel-lang.org), and
+  [Squirrel](http://www.squirrel-lang.org).
 - Games can have mouse and keyboard as input
 - Games can have up to 4 controllers as input (with up to 8 buttons, each)
 - Built-in editors: for code, sprites, world maps, sound effects and music
@@ -27,12 +27,14 @@ To make a retro styled game, the whole process of creation and execution takes p
 
 # Binary Downloads
 You can download compiled versions for the major operating systems directly from our [releases page](https://github.com/nesbox/TIC-80/releases).
+### Nightly builds
+Can be downloaded from [nightly builds](https://nightly.link/nesbox/TIC-80/workflows/build/master) page or from the [Github Actions](https://github.com/nesbox/TIC-80/actions?query=branch%3Amaster) page.
 
 # Pro Version
-To help support TIC-80 development, we have a [PRO Version](https://nesbox.itch.io/tic).
-This version has a few additional features and binaries can only be downloaded on [our Itch.io page](https://nesbox.itch.io/tic).
+To help support TIC-80 development, we have a [PRO Version](https://nesbox.itch.io/tic80).
+This version has a few additional features and binaries can only be downloaded on [our Itch.io page](https://nesbox.itch.io/tic80).
 
-For users who can't spend the money, we made it easy to build the pro version from the source code.
+For users who can't spend the money, we made it easy to build the pro version from the source code. (`cmake .. -DBUILD_PRO=On`)
 
 ### Pro features
 
@@ -41,16 +43,16 @@ For users who can't spend the money, we made it easy to build the pro version fr
 - Export your game without editors, and then publish it to app stores (WIP).
 
 # Community
-You can play and share games, tools and music at [tic.computer](https://tic.computer/play).
+You can play and share games, tools and music at [https://tic80.com/play](https://tic80.com/play).
 
-The community also hangs out and discusses on [Discord chat](https://discord.gg/DkD73dP).
+The community also hangs out and discusses on [Telegram](https://t.me/tic80) or [Discord](https://discord.gg/DkD73dP).
 
 # Contributing
-You are can contribute by issuing a bug or requesting a new feature on our [issues page](https://github.com/nesbox/tic.computer/issues).
+You can contribute by issuing a bug or requesting a new feature on our [issues page](https://github.com/nesbox/tic.computer/issues).
 Keep in mind when engaging on a discussion to follow our [Code of Conduct](https://github.com/nesbox/TIC-80/blob/master/CODE_OF_CONDUCT.md).
 
-You can also contribute by reviewing or improving our [wiki](https://github.com/nesbox/tic.computer/wiki).
-The [wiki](https://github.com/nesbox/tic.computer/wiki) holds TIC-80 documentation, code snippets and game development tutorials.
+You can also contribute by reviewing or improving our [wiki](https://github.com/nesbox/TIC-80/wiki).
+The [wiki](https://github.com/nesbox/TIC-80/wiki) holds TIC-80 documentation, code snippets and game development tutorials.
 
 # Build instructions
 
@@ -81,7 +83,7 @@ mingw32-make -j4
 ### Ubuntu 14.04
 run the following commands in the Terminal
 ```
-sudo apt-get install git cmake libgtk-3-dev libgles1-mesa-dev libglu-dev -y
+sudo apt-get install git cmake libgles1-mesa-dev libglu-dev -y
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
@@ -92,16 +94,51 @@ to install the latest CMake:
 wget "https://cmake.org/files/v3.12/cmake-3.12.0-Linux-x86_64.sh"
 sudo sh cmake-3.12.0-Linux-x86_64.sh --skip-license --prefix=/usr
 ```
+Install with [Install instructions](#install-instructions)
 
 ### Ubuntu 18.04
 
 run the following commands in the Terminal
 ```
-sudo apt-get install git cmake libgtk-3-dev libglvnd-dev libglu1-mesa-dev freeglut3-dev -y
+sudo apt-get install g++ git cmake libglvnd-dev libglu1-mesa-dev freeglut3-dev libasound2-dev -y
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
 ```
+Install with [Install instructions](#install-instructions)
+
+### Raspberry Pi (Retropie)
+
+First, add jessie-backports repo to your `/etc/apt/sources.list`
+
+`deb [check-valid-until=no] http://archive.debian.org/debian jessie-backports main`  
+
+Then run the following commands in the Terminal
+
+```
+# required public keys
+gpg --keyserver pgpkeys.mit.edu --recv-key  8B48AD6246925553      
+gpg -a --export 8B48AD6246925553 | sudo apt-key add -
+gpg --keyserver pgpkeys.mit.edu --recv-key 7638D0442B90D010
+gpg -a --export 7638D0442B90D010 | sudo apt-key add -
+
+# upgrade system
+sudo apt-get update
+sudo apt-get dist-upgrade
+
+# install software
+sudo apt-get install git build-essential libsdl2-dev zlib1g-dev
+sudo apt-get install -t jessie-backports liblua5.3-dev
+git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
+cmake ..
+make -j4
+```
+Install with [Install instructions](#install-instructions)
+
+_Note:_ If you are using a normal Raspberry Pi image (not Retropie) you may not
+have OpenGL drivers enabled. Run `sudo raspi-config`, then select 7
+for "Advanced Options", followed by 6 for "GL Drivers", and enable "GL
+(Fake KMS) Desktop Driver". After changing this setting, reboot.
 
 ## Mac
 install `Command Line Tools for Xcode` and `brew` package manager
@@ -113,6 +150,13 @@ git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
 ```
+
+# Install instructions
+
+## Linux 
+To install run `sudo make install -j4`
+
+TIC-80 can now be run with `tic80`
 
 ## iOS / tvOS
 You can find iOS/tvOS version here 
@@ -139,3 +183,6 @@ You can find iOS/tvOS version here
 * Damien de Lemeny - [GitHub @ddelemeny](https://github.com/ddelemeny)
 * Adrian Siekierka - [GitHub @asiekierka](https://github.com/asiekierka) [Website](https://asie.pl/)
 * Jay Em (Sweetie16 palette) - [Twitter @GrafxKid](https://twitter.com/GrafxKid)  
+* msx80 - [Twitter @msx80](https://twitter.com/msx80) [Github msx80](https://github.com/msx80)
+* Josh Goebel - [Twitter @dreamer3](https://twitter.com/dreamer3) [Github joshgoebel](https://github.com/joshgoebel)
+* Joshua Minor - [GitHub @jminor](https://github.com/jminor)

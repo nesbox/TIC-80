@@ -11,14 +11,13 @@ THEME=
 	CODE =
 	{
 		BG     =15,
+		FG     =12,
 		STRING =4,
 		NUMBER =11,
 		KEYWORD=3,
 		API    =5,
 		COMMENT=14,
 		SIGN   =13,
-		VAR    =12,
-		OTHER  =0,
 		SELECT =14,
 		CURSOR =2,
 		SHADOW =true,
@@ -38,14 +37,8 @@ THEME=
 CHECK_NEW_VERSION=true
 NO_SOUND=false
 GIF_LENGTH=20 -- in seconds
-GIF_SCALE=2
-
--- show SYNC label 
--- when TIC drops 60Hz frames
-SHOW_SYNC=false
-
 CRT_MONITOR=false
-
+GIF_SCALE=3
 UI_SCALE=4
 
 ---------------------------
@@ -56,137 +49,157 @@ function TIC()
 	print(label,(240-size)//2,(136-6)//2)
 end
 
-CRT_SHADER=[[
-varying vec2 texCoord;
-uniform sampler2D source;
-uniform float trg_x;
-uniform float trg_y;
-uniform float trg_w;
-uniform float trg_h;
-uniform float scr_w;
-uniform float scr_h;
+CRT_SHADER=
+{
+	VERTEX=[[
+		#version 110
+		attribute vec3 gpu_Vertex;
+		attribute vec2 gpu_TexCoord;
+		attribute vec4 gpu_Color;
+		uniform mat4 gpu_ModelViewProjectionMatrix;
+		varying vec4 color;
+		varying vec2 texCoord;
+		void main(void)
+		{
+			color = gpu_Color;
+			texCoord = vec2(gpu_TexCoord);
+			gl_Position = gpu_ModelViewProjectionMatrix * vec4(gpu_Vertex, 1.0);
+		}
+	]],
+	PIXEL=[[
+		#version 110
+		//precision highp float;
+		varying vec2 texCoord;
+		uniform sampler2D source;
+		uniform float trg_x;
+		uniform float trg_y;
+		uniform float trg_w;
+		uniform float trg_h;
+		uniform float scr_w;
+		uniform float scr_h;
 
-// Emulated input resolution.
-vec2 res=vec2(256.0,144.0);
+		// Emulated input resolution.
+		vec2 res=vec2(256.0,144.0);
 
-// Hardness of scanline.
-//  -8.0 = soft
-// -16.0 = medium
-float hardScan=-8.0;
+		// Hardness of scanline.
+		//  -8.0 = soft
+		// -16.0 = medium
+		float hardScan=-8.0;
 
-// Hardness of pixels in scanline.
-// -2.0 = soft
-// -4.0 = hard
-float hardPix=-3.0;
+		// Hardness of pixels in scanline.
+		// -2.0 = soft
+		// -4.0 = hard
+		float hardPix=-3.0;
 
-// Display warp.
-// 0.0 = none
-// 1.0/8.0 = extreme
-vec2 warp=vec2(1.0/64.0,1.0/48.0); 
+		// Display warp.
+		// 0.0 = none
+		// 1.0/8.0 = extreme
+		vec2 warp=vec2(1.0/64.0,1.0/48.0); 
 
-// Amount of shadow mask.
-float maskDark=0.5;
-float maskLight=1.5;
+		// Amount of shadow mask.
+		float maskDark=0.5;
+		float maskLight=1.5;
 
-//------------------------------------------------------------------------
+		//------------------------------------------------------------------------
 
-// sRGB to Linear.
-// Assuing using sRGB typed textures this should not be needed.
-float ToLinear1(float c){return(c<=0.04045)?c/12.92:pow((c+0.055)/1.055,2.4);}
-vec3 ToLinear(vec3 c){return vec3(ToLinear1(c.r),ToLinear1(c.g),ToLinear1(c.b));}
+		// sRGB to Linear.
+		// Assuing using sRGB typed textures this should not be needed.
+		float ToLinear1(float c){return(c<=0.04045)?c/12.92:pow((c+0.055)/1.055,2.4);}
+		vec3 ToLinear(vec3 c){return vec3(ToLinear1(c.r),ToLinear1(c.g),ToLinear1(c.b));}
 
-// Linear to sRGB.
-// Assuing using sRGB typed textures this should not be needed.
-float ToSrgb1(float c){return(c<0.0031308?c*12.92:1.055*pow(c,0.41666)-0.055);}
-vec3 ToSrgb(vec3 c){return vec3(ToSrgb1(c.r),ToSrgb1(c.g),ToSrgb1(c.b));}
+		// Linear to sRGB.
+		// Assuing using sRGB typed textures this should not be needed.
+		float ToSrgb1(float c){return(c<0.0031308?c*12.92:1.055*pow(c,0.41666)-0.055);}
+		vec3 ToSrgb(vec3 c){return vec3(ToSrgb1(c.r),ToSrgb1(c.g),ToSrgb1(c.b));}
 
-// Nearest emulated sample given floating point position and texel offset.
-// Also zero's off screen.
-vec3 Fetch(vec2 pos,vec2 off){
-	pos=(floor(pos*res+off)+vec2(0.5,0.5))/res;
-	return ToLinear(1.2 * texture2D(source,pos.xy,-16.0).rgb);}
+		// Nearest emulated sample given floating point position and texel offset.
+		// Also zero's off screen.
+		vec3 Fetch(vec2 pos,vec2 off){
+			pos=(floor(pos*res+off)+vec2(0.5,0.5))/res;
+			return ToLinear(1.2 * texture2D(source,pos.xy,-16.0).rgb);}
 
-// Distance in emulated pixels to nearest texel.
-vec2 Dist(vec2 pos){pos=pos*res;return -((pos-floor(pos))-vec2(0.5));}
-		
-// 1D Gaussian.
-float Gaus(float pos,float scale){return exp2(scale*pos*pos);}
+		// Distance in emulated pixels to nearest texel.
+		vec2 Dist(vec2 pos){pos=pos*res;return -((pos-floor(pos))-vec2(0.5));}
+				
+		// 1D Gaussian.
+		float Gaus(float pos,float scale){return exp2(scale*pos*pos);}
 
-// 3-tap Gaussian filter along horz line.
-vec3 Horz3(vec2 pos,float off){
-	vec3 b=Fetch(pos,vec2(-1.0,off));
-	vec3 c=Fetch(pos,vec2( 0.0,off));
-	vec3 d=Fetch(pos,vec2( 1.0,off));
-	float dst=Dist(pos).x;
-	// Convert distance to weight.
-	float scale=hardPix;
-	float wb=Gaus(dst-1.0,scale);
-	float wc=Gaus(dst+0.0,scale);
-	float wd=Gaus(dst+1.0,scale);
-	// Return filtered sample.
-	return (b*wb+c*wc+d*wd)/(wb+wc+wd);}
+		// 3-tap Gaussian filter along horz line.
+		vec3 Horz3(vec2 pos,float off){
+			vec3 b=Fetch(pos,vec2(-1.0,off));
+			vec3 c=Fetch(pos,vec2( 0.0,off));
+			vec3 d=Fetch(pos,vec2( 1.0,off));
+			float dst=Dist(pos).x;
+			// Convert distance to weight.
+			float scale=hardPix;
+			float wb=Gaus(dst-1.0,scale);
+			float wc=Gaus(dst+0.0,scale);
+			float wd=Gaus(dst+1.0,scale);
+			// Return filtered sample.
+			return (b*wb+c*wc+d*wd)/(wb+wc+wd);}
 
-// 5-tap Gaussian filter along horz line.
-vec3 Horz5(vec2 pos,float off){
-	vec3 a=Fetch(pos,vec2(-2.0,off));
-	vec3 b=Fetch(pos,vec2(-1.0,off));
-	vec3 c=Fetch(pos,vec2( 0.0,off));
-	vec3 d=Fetch(pos,vec2( 1.0,off));
-	vec3 e=Fetch(pos,vec2( 2.0,off));
-	float dst=Dist(pos).x;
-	// Convert distance to weight.
-	float scale=hardPix;
-	float wa=Gaus(dst-2.0,scale);
-	float wb=Gaus(dst-1.0,scale);
-	float wc=Gaus(dst+0.0,scale);
-	float wd=Gaus(dst+1.0,scale);
-	float we=Gaus(dst+2.0,scale);
-	// Return filtered sample.
-	return (a*wa+b*wb+c*wc+d*wd+e*we)/(wa+wb+wc+wd+we);}
+		// 5-tap Gaussian filter along horz line.
+		vec3 Horz5(vec2 pos,float off){
+			vec3 a=Fetch(pos,vec2(-2.0,off));
+			vec3 b=Fetch(pos,vec2(-1.0,off));
+			vec3 c=Fetch(pos,vec2( 0.0,off));
+			vec3 d=Fetch(pos,vec2( 1.0,off));
+			vec3 e=Fetch(pos,vec2( 2.0,off));
+			float dst=Dist(pos).x;
+			// Convert distance to weight.
+			float scale=hardPix;
+			float wa=Gaus(dst-2.0,scale);
+			float wb=Gaus(dst-1.0,scale);
+			float wc=Gaus(dst+0.0,scale);
+			float wd=Gaus(dst+1.0,scale);
+			float we=Gaus(dst+2.0,scale);
+			// Return filtered sample.
+			return (a*wa+b*wb+c*wc+d*wd+e*we)/(wa+wb+wc+wd+we);}
 
-// Return scanline weight.
-float Scan(vec2 pos,float off){
-	float dst=Dist(pos).y;
-	return Gaus(dst+off,hardScan);}
+		// Return scanline weight.
+		float Scan(vec2 pos,float off){
+			float dst=Dist(pos).y;
+			return Gaus(dst+off,hardScan);}
 
-// Allow nearest three lines to effect pixel.
-vec3 Tri(vec2 pos){
-	vec3 a=Horz3(pos,-1.0);
-	vec3 b=Horz5(pos, 0.0);
-	vec3 c=Horz3(pos, 1.0);
-	float wa=Scan(pos,-1.0);
-	float wb=Scan(pos, 0.0);
-	float wc=Scan(pos, 1.0);
-	return a*wa+b*wb+c*wc;}
+		// Allow nearest three lines to effect pixel.
+		vec3 Tri(vec2 pos){
+			vec3 a=Horz3(pos,-1.0);
+			vec3 b=Horz5(pos, 0.0);
+			vec3 c=Horz3(pos, 1.0);
+			float wa=Scan(pos,-1.0);
+			float wb=Scan(pos, 0.0);
+			float wc=Scan(pos, 1.0);
+			return a*wa+b*wb+c*wc;}
 
-// Distortion of scanlines, and end of screen alpha.
-vec2 Warp(vec2 pos){
-	pos=pos*2.0-1.0;    
-	pos*=vec2(1.0+(pos.y*pos.y)*warp.x,1.0+(pos.x*pos.x)*warp.y);
-	return pos*0.5+0.5;}
+		// Distortion of scanlines, and end of screen alpha.
+		vec2 Warp(vec2 pos){
+			pos=pos*2.0-1.0;    
+			pos*=vec2(1.0+(pos.y*pos.y)*warp.x,1.0+(pos.x*pos.x)*warp.y);
+			return pos*0.5+0.5;}
 
-// Shadow mask.
-vec3 Mask(vec2 pos){
-	pos.x+=pos.y*3.0;
-	vec3 mask=vec3(maskDark,maskDark,maskDark);
-	pos.x=fract(pos.x/6.0);
-	if(pos.x<0.333)mask.r=maskLight;
-	else if(pos.x<0.666)mask.g=maskLight;
-	else mask.b=maskLight;
-	return mask;}    
+		// Shadow mask.
+		vec3 Mask(vec2 pos){
+			pos.x+=pos.y*3.0;
+			vec3 mask=vec3(maskDark,maskDark,maskDark);
+			pos.x=fract(pos.x/6.0);
+			if(pos.x<0.333)mask.r=maskLight;
+			else if(pos.x<0.666)mask.g=maskLight;
+			else mask.b=maskLight;
+			return mask;}    
 
-void main() {
-	hardScan=-12.0;
-	//maskDark=maskLight;
-	vec2 start=gl_FragCoord.xy-vec2(trg_x, trg_y);
-	start.y=scr_h-start.y;
+		void main() {
+			hardScan=-12.0;
+			//maskDark=maskLight;
+			vec2 start=gl_FragCoord.xy-vec2(trg_x, trg_y);
+			start.y=scr_h-start.y;
 
-	vec2 pos=Warp(start/vec2(trg_w, trg_h));
+			vec2 pos=Warp(start/vec2(trg_w, trg_h));
 
-	gl_FragColor.rgb=Tri(pos)*Mask(gl_FragCoord.xy);
-	gl_FragColor = vec4(ToSrgb(gl_FragColor.rgb), 1.0);
+			gl_FragColor.rgb=Tri(pos)*Mask(gl_FragCoord.xy);
+			gl_FragColor = vec4(ToSrgb(gl_FragColor.rgb), 1.0);
+		}
+	]]
 }
-]]
 
 -- <TILES>
 -- 000:eccccccccc888888caaaaaaaca888888cacccccccacc0ccccacc0ccccacc0ccc
@@ -224,8 +237,6 @@ void main() {
 -- 032:eccccccccc111111c2222222c2111111c2ccccccc2c2c2c2c2c222c2c2cc2ccc
 -- 033:ccccceee1111ccee22220cee11120ceeccc20cccc2c20c0c22c20c0c2cc20c0c
 -- 036:0000000076555670000000000000000000000000000000000000000000000000
--- 037:fffffffffffffffffefefefefffffffffeefefeffffffffffefefdddffffffff
--- 038:fffffff0fffffff0fefefef0fffffff0efefeef0fffffff0ddfefef0fffffff0
 -- 039:ccc33333ccc33333ccc33333ccc33333ccc33333ccccc033ccccc033ddddd033
 -- 040:33333333ccc33333ccc33333ccc33333ccc33333cccdd033ccccc033ccccc033
 -- 041:3330000033300000333fffff33300000333dd0dd333333333333333333333333
@@ -233,6 +244,132 @@ void main() {
 -- 048:c2ccccccc2222222c222ccccc2222cccc2222222c1111111cc000cccecccccec
 -- 049:ccc200cc22220ccec2220cee22220cee22220cee1111ccee000cceeecccceeee
 -- 052:000000000fffff00000000000000000000000000000000000000000000000000
+-- 080:0000000000c0c00000c0c000000c00000cc0cc000cc0cc000000000000000000
+-- 081:000000000cccc0000c00c0000c0ccc000ccc0c00000ccc000000000000000000
+-- 082:0000000000ccc0000c000c000ccccc000cc0cc000ccccc000000000000000000
+-- 083:00000000000cc00000cc00000ccccc0000cc0000000cc0000000000000000000
+-- 084:0000000000cc0000000cc0000ccccc00000cc00000cc00000000000000000000
+-- 085:000000000ccccc000c000c000c000c000ccccc000cccc0000000000000000000
+-- 086:0000000000ccc00000c0c0000ccccc00000c0000000c00000000000000000000
+-- 087:ccccccc0ccccccc0ccccccc0ccccccc0ccccccc0ccccccc0ccccccc000000000
+-- 088:000000000cc0cc000c000c000c000c000c000c000cc0cc000000000000000000
+-- 089:0000000000ccc0000c0c0c000ccccc000ccccc000c0c0c000000000000000000
+-- 090:000000000cc0cc000cc0cc00000000000cc0cc000cc0cc000000000000000000
+-- 091:00000000000cc00000cc0c000ccc0c0000cc0c00000cc0000000000000000000
+-- 092:0000000000cccc0000c00c0000c00c000cc0cc000cc0cc000000000000000000
+-- 093:0000000000ccc00c0ccccc0c0ccccc0c0ccccc0c00ccc00c0000000000000000
+-- 094:00000000c00cc00c0c0c00c0c00cc0c00c0c00c00c0cc00c0000000000000000
+-- 095:000000000ccccc000ccccc000ccccc000cc0cc000c000c000000000000000000
+-- 096:000000000cccc0000c00cc000c00cc000ccccc0000cccc000000000000000000
+-- 097:000000000000000000000c0000000c0000000c0000cccc000000000000000000
+-- 098:00000000000c0000000cc000000ccc00000cc000000c00000000000000000000
+-- 099:00000000000cc000000ccc000c0ccc0000cccc00000cc0000000000000000000
+-- 100:0000000000ccc0000c000c000c000c0000ccc000000c00000000000000000000
+-- 101:00000000000c0000000cc0000ccccc00000cc000000c00000000000000000000
+-- 102:000000000ccccc00000000000ccccc00000000000ccccc000000000000000000
+-- 103:00000000000ccc0000c000c00c00c00c00c000c0000ccc000000000000000000
+-- 104:000000000ccccc000c0c0c000ccccc000c0c0c000ccccc000000000000000000
+-- 105:00000000000000000ccccc0000ccc000000c0000000000000000000000000000
+-- 106:0000000000000000000c000000ccc0000ccccc00000000000000000000000000
+-- 107:000000000000c00000000c0000ccccc00c0ccc000c00c0000000000000000000
+-- 108:000000000c0c0c00000000000c000c00000000000c0c0c000000000000000000
+-- 109:000000000000c000000c0c0000c0c0000c0c00000cc000000000000000000000
+-- 110:000000000c0c0c00000000000c0c0c00000000000c0c0c000000000000000000
+-- 111:0000000000ccc0000c0c0c000ccccc000c000c0000ccc0000000000000000000
+-- 112:000000000000c000000cc00000ccc000000cc0000000c0000000000000000000
+-- 113:0000000000c0000000cc000000ccc00000cc000000c000000000000000000000
+-- 114:000000000ccccc00000000000c0ccc000c0ccc000c0ccc000000000000000000
+-- 115:000000000ccccc00000000000c0c0c000c0c0c000c0c0c000000000000000000
+-- 116:00000000000c00000000c0000c0ccc000000c000000c00000000000000000000
+-- 117:000000000cccc00000000c000c000c000c00000000cccc000000000000000000
+-- 118:0000000000c00000000c00000000c000000c000000c000000000000000000000
+-- 119:000000000c0c00000c0cc0000c0ccc000c0cc0000c0c00000000000000000000
+-- 120:000000000ccccc000ccccc000ccccc000ccccc000ccccc000000000000000000
+-- 121:0c000000cccccccc00000000000000c0cccccccc00000000000c0000cccccccc
+-- 122:0000000000c000000cc0000000c0000000000000000000000000000000000000
+-- 123:000000000ccc00000ccc00000ccc000000000000000000000000000000000000
+-- 124:000000000c0000000cc000000c00000000000000000000000000000000000000
+-- 125:000c000000ccc0000ccccc00ccccccc000000000000000000000000000000000
+-- 126:ccccccc00ccccc0000ccc000000c000000000000000000000000000000000000
+-- 127:000c000000cc00000ccc0000cccc00000ccc000000cc0000000c000000000000
+-- 128:c0000000cc000000ccc00000cccc0000ccc00000cc000000c000000000000000
+-- 129:ccc0ccc0cc0c0cc0ccc0ccc0ccc0ccc0ccc0ccc0cc0c0cc0ccc0ccc000000000
+-- 130:ccccccc0ccccccc0c0ccc0c00c000c00c0ccc0c0ccccccc0ccccccc000000000
+-- 131:00ccc0000c000c00c00c0c0cc000ccc0c0000c000c00000000ccc00000000000
+-- 132:0ccccc00ccccccc00c0c0c000c0c0c000c0c0c000c0c0c000ccccc0000000000
+-- 133:0000c000000ccc0000ccccc00ccccc00c0ccc000c00c0000ccc0000000000000
+-- 134:00ccc00000ccc0000ccccc0000c0c00000c0c00000c0c000000c000000000000
+-- 135:c0c0c0c000000000c00000c000000000c00000c000000000c0c0c0c000000000
+-- 136:0000c00000000c00000000c00cccccccc0ccccc0c00ccc00c000c00000000000
+-- 160:cccccccccceeeeeececccccccecececececcccccceceececceccccccceceecee
+-- 161:cccccccceeeeeeeccccccccecececececcccccceececeececcccccceeeeceece
+-- 162:cccccccccccccccccccccccccceeeeeececccccccecececececcccccceceecec
+-- 163:cccccccccccccccccccccccceeeeeeeccccccccecececececcccccceececeece
+-- 176:ceecccccceeeeeeeceeeeeeecceeeeeecccccccccccccccccccccccccccccccc
+-- 177:cccccceeeeeeeeeeeeeeeeeeeeeeeeeccccccccccccccccccccccccccccccccc
+-- 178:ceccccccceceeceeceeccccccceeeeeecccccccccccccccccccccccccccccccc
+-- 179:ccccccceeeeceececccccceeeeeeeeeccccccccccccccccccccccccccccccccc
+-- 192:cccccccccceeeeeececccccccecccccccecccccccecccccccecccccccecccccc
+-- 193:cccccccceeeeeeccccccccecccccccecccccccecccccccecccccccecccccccec
+-- 194:cccccccccceeeeeececccccccecccccccecccccccecccccececccceececcceee
+-- 195:cccccccceeeeeeccccccccecccccccecccccccececcccceceecccceceeecccec
+-- 196:cccccccccceeeeeececcccccceccccccceccccccceccceeececcceeececcccee
+-- 197:cccccccceeeeeecccccccceccccccceccccccceceeeccceceeeccceceeccccec
+-- 198:cccccccccceeeeeececccccccecccccccecccccccecccccececccceececcccee
+-- 199:cccccccceeeeeecccccccceccccccceceecccceceecccceceecccceceeccccec
+-- 200:cccccccccceeeeeececccccccecccccccecccceececccceececccceececcccee
+-- 201:cccccccceeeeeeccccccccecccccccecccccccececcccceceecccceceeccccec
+-- 202:cccccccccceeeeeececccccccecccccccecccccececccceececcceeececcccce
+-- 203:cccccccceeeeeeccccccccecccccccececcccceceecccceceeecccececccccec
+-- 204:ceecccccceeeeeeeceeeeeeecceeeeeecccccccccccccccccccccccccccccccc
+-- 205:ccccceeceeeeeeeceeeeeeeceeeeeecccccccccccccccccccccccccccccccccc
+-- 206:cccccccceeeeeeeecccccccccccccccccccccccccccccccccccccccccccccccc
+-- 207:cccccccccccccccccccccccccccccccceeeeeeeeeeeeeeeeeeeeeeeecccccccc
+-- 208:ceccccccceccccccceccccccceecccccceeeeeeeceeeeeeecceeeeeecccccccc
+-- 209:ccccccecccccccecccccccecccccceeceeeeeeeceeeeeeeceeeeeecccccccccc
+-- 210:ceccceeececcccccceccccccceecccccceeeeeeeceeeeeeecceeeeeecccccccc
+-- 211:eeecccecccccccecccccccecccccceeceeeeeeeceeeeeeeceeeeeecccccccccc
+-- 212:cecccccececcccccceccccccceecccccceeeeeeeceeeeeeecceeeeeecccccccc
+-- 213:ecccccecccccccecccccccecccccceeceeeeeeeceeeeeeeceeeeeecccccccccc
+-- 214:cecccccececcccccceccccccceecccccceeeeeeeceeeeeeecceeeeeecccccccc
+-- 215:eecccceceeccccecccccccecccccceeceeeeeeeceeeeeeeceeeeeecccccccccc
+-- 216:cecccceececccceececcccccceecccccceeeeeeeceeeeeeecceeeeeecccccccc
+-- 217:ecccccecccccccecccccccecccccceeceeeeeeeceeeeeeeceeeeeecccccccccc
+-- 218:cecccccececccccececcccccceecccccceeeeeeeceeeeeeecceeeeeecccccccc
+-- 219:ecccccececccccecccccccecccccceeceeeeeeeceeeeeeeceeeeeecccccccccc
+-- 220:cccccccccccccccccccccccccccccccceccccccceecccccceecccccccecccccc
+-- 221:cecccccccecccccccecccccccecccccccecccccccecccccccecccccccecccccc
+-- 222:ccccccecccccccecccccccecccccccecccccccecccccccecccccccecccccccec
+-- 223:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+-- 224:cccccccccccccccccccccccccceeeeeececccccccecccccccecccccccecccccc
+-- 225:cccccccccccccccccccccccceeeeeeccccccccecccccccecccccccecccccccec
+-- 226:cccccccccccccccccccccccccceeeeeececcccccceccccccceccccccceccccce
+-- 227:cccccccccccccccccccccccceeeeeeccccccccecccccccecccccccececccccec
+-- 228:cccccccccccccccccccccccccceeeeeececcccccceccccccceccccccceccceee
+-- 229:cccccccccccccccccccccccceeeeeecccccccceccccccceccccccceceeecccec
+-- 230:cccccccccccccccccccccccccceeeeeececcccccceccccccceccccccceccccce
+-- 231:cccccccccccccccccccccccceeeeeecccccccceccccccceceecccceceeccccec
+-- 232:cccccccccccccccccccccccccceeeeeececccccccecccccccecccceececcccee
+-- 233:cccccccccccccccccccccccceeeeeeccccccccecccccccecccccccececccccec
+-- 234:cccccccccccccccccccccccccceeeeeececccccccecccccccecccccececcccee
+-- 235:cccccccccccccccccccccccceeeeeeccccccccecccccccececcccceceeccccec
+-- 236:ceccccccceccccccceeccccccceeeeeecccccccccccccccccccccccccccccccc
+-- 237:ccccccecccccccecccccceeceeeeeecccccccccccccccccccccccccccccccccc
+-- 238:cccccccccccccccccccccccceeeeeeeecccccccccccccccccccccccccccccccc
+-- 239:cccccccccccccccccccccccccccccccccccccccccccccccceeeeeeeecccccccc
+-- 240:ceccccccceccccccceccccccceccccccceccccccceeccccccceeeeeecccccccc
+-- 241:ccccccecccccccecccccccecccccccecccccccecccccceeceeeeeecccccccccc
+-- 242:cecccceececcceeececcceeececcccccceccccccceeccccccceeeeeecccccccc
+-- 243:eecccceceeeccceceeecccecccccccecccccccecccccceeceeeeeecccccccccc
+-- 244:ceccceeececccceececccccececcccccceccccccceeccccccceeeeeecccccccc
+-- 245:eeeccceceeccccececccccecccccccecccccccecccccceeceeeeeecccccccccc
+-- 246:cecccceececccceececccccececcccccceccccccceeccccccceeeeeecccccccc
+-- 247:eecccceceecccceceecccceceeccccecccccccecccccceeceeeeeecccccccccc
+-- 248:cecccceececccceececccceececccceececcccccceeccccccceeeeeecccccccc
+-- 249:eecccceceeccccececccccecccccccecccccccecccccceeceeeeeecccccccccc
+-- 250:ceccceeececccccececccccececccccececcccccceeccccccceeeeeecccccccc
+-- 251:eeecccececccccececccccececccccecccccccecccccceeceeeeeecccccccccc
+-- 252:cccccccccccccccccccccccccccccccccccccccccccccccceccccccccecccccc
 -- </TILES>
 
 -- <SPRITES>
@@ -427,9 +564,23 @@ void main() {
 -- </SPRITES>
 
 -- <MAP>
--- 000:8090a0b0c0d0e0f000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 001:8191a1b1c1d1e1f100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
--- 002:526200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 000:0c1c0c1c0c1c0c1c0c1c0c1c0c1c0c1c0c1c0c1c0c1c0e1e0e1e0e1e0e1e0e1e0e1e0e1e0e1e0e1e0e1e0e1e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 001:ccdcccdcccdcccdcccdcccdcccdcccdcccdcccdcccdccedecedecedecedecedecedecedecedecedecedecede00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 002:0c1c0c1c0c1c0c1c0c1c0c1c0c1c0c1c0c1c0c1c0c1c0e1e0e1e0e1e0e1e0e1e0e1e0e1e0e1e0e1e0e1e0e1e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 003:0d1d0d1d0d1d0d1d0d1d0d1d0d1d0d1d0d1dccdcccdc0f1f0f1f0f1f0f1f0f1f0f1f0f1f0f1f0f1fcedecede00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 004:0c1c0c1c0c1c0c1c0c1c0c1c0c1c0c1c0c1c0c1c0c1c0e1e0e1e0e1e0e1e0e1e0e1e0e1e0e1e0e1e0e1e0e1e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 005:0d1d0d1d0d1d0d1d0d1d0d1d0d1d0d1d0d1d0d1d0d1d0f1f0f1f0f1f0f1f0f1f0f1f0f1f0f1f0f1f0f1f0f1f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 006:0c1c0c1c0c1c0c1c0c1c0c1c0c1c0c1c0c1c0c1c0c1c0e1e0e1e0e1e0e1e0e1e0e1e0e1e0e1e0e1e0e1e0e1e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 007:0d1d0d1d0d1d0d1d0d1d0d1d0d1d0d1d0d1d0d1d0d1d0f1f0f1f0f1f0f1f0f1f0f1f0f1f0f1f0f1f0f1f0f1f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 008:fd0c1c0c1c0c1c0c1c0c1c0c1c0c1c0c1c0c1c0cec1cfd0e1e0e1e0e1e0e1e0e1e0e1e0e1e0e1e0e1e0eee1e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 009:fd0d1d0d1d0d1d0d1d0d1d0d1d0d1d0d1d0d1d0dcdedfd0f1f0f1f0f1f0f1f0f1f0f1f0f1f0f1f0f1f0fcfed00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 010:acbc0c1c0c1c0c1c0c1c0c1c0c1c0c1c0c1c0c1cddedaebe0e1e0e1e0e1e0e1e0e1e0e1e0e1e0e1e0e1edded00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 011:adbd0d1d0d1d0d1d0d1d0d1d0d1d0d1d0d1d0d1d0d1dafbf0f1f0f1f0f1f0f1f0f1f0f1f0f1f0f1f0f1f0f1f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 012:0cec1c0cec1c0cecececececececec1cfdfdfdfdfdfd0eee1e0eee1e0eeeeeeeeeeeeeeeee1efdfdfdfdfdfd00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 013:0dfc1d0dfc1d0dfcfcfcfcfcfcfcfc1dfdfd2c3cfdfd0ffe1f0ffe1f0ffefefefefefefefe1ffdfd2e3efdfd00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 014:fdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfd2d3dfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfdfd2f3ffdfd00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 015:fd0a1afdfdfdfdfdfdfdfdfdfdfdfdfd6c7c4c5c8c9cfd2a3afdfdfdfdfdfdfdfdfdfdfdfdfd6e7e4e5e8e9e00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+-- 016:fd0b1bfdfdfdfdfdfdfdfdfdfdfdfdfd6d7d4d5d8d9dfd2b3bfdfdfdfdfdfdfdfdfdfdfdfdfd6f7f4f5f8f9f00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 -- </MAP>
 
 -- <WAVES>
