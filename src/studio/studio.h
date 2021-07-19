@@ -77,6 +77,7 @@
     macro(fs,           STRING,     "=<str>",   "path to the file system folder")   \
     macro(scale,        INTEGER,    "=<int>",   "main window scale")                \
     macro(cmd,          STRING,     "=<str>",   "run commands in the console")      \
+    macro(version,      BOOLEAN,    "",         "print program version")            \
     CRT_CMD_PARAM(macro)
 
 #define SHOW_TOOLTIP(FORMAT, ...)           \
@@ -93,6 +94,7 @@ typedef struct
     bool nosound;
     bool cli;
     bool fullscreen;
+    bool version;
     s32 scale;
     char *fs;
     char *cart;
