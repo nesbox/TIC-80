@@ -364,6 +364,7 @@ void tic_api_reset(tic_mem* memory)
     resetBlitSegment(memory);
 
     memset(&memory->ram.vram.vars, 0, sizeof memory->ram.vram.vars);
+    memory->ram.input.mouse.relative = 0;
 
     tic_api_clip(memory, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
 
