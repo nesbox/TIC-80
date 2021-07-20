@@ -1081,10 +1081,7 @@ void setStudioMode(EditorMode mode)
         EditorMode prev = impl.mode;
 
         if(prev == TIC_RUN_MODE)
-        {
             tic_core_pause(impl.studio.tic);
-            memset(&impl.studio.tic->ram.input, 0, sizeof(tic80_input));
-        }
 
         if(mode != TIC_RUN_MODE)
             tic_api_reset(impl.studio.tic);
