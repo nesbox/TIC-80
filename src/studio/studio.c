@@ -1756,6 +1756,8 @@ static void renderStudio()
         tic_core_tick_start(impl.studio.tic);
     }
 
+    processShortcuts();
+    
     switch(impl.mode)
     {
     case TIC_START_MODE:    impl.start->tick(impl.start); break;
@@ -1900,8 +1902,7 @@ static void studioTick()
     checkChanges();
     tic_net_start(impl.net);
 #endif
-
-    processShortcuts();
+    
     processMouseStates();
     processGamepadMapping();
 
