@@ -21,7 +21,7 @@ jobs:
       shell: cmd
       run: |
         cd build
-        cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
+        cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_STUB=On ..
         cmake --build . --config %BUILD_TYPE% --parallel
 
     - name: Deploy
@@ -29,6 +29,12 @@ jobs:
       with:
         name: 'tic80-winxp-sdl'
         path: build/bin/tic80.exe
+
+    - name: Deploy stubs
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-winxp-sdl-stub'
+        path: build/bin/tic80*.exe
 
 # === Windows SDL2 ===
   windows-sdl:
@@ -493,10 +499,16 @@ jobs:
 
 # === Export ===
   export:
-    needs: [windows-sdl, linux-sdl, rpi, macos-sdl, wasm]
+    needs: [winxp-sdl, windows-sdl, linux-sdl, rpi, macos-sdl, wasm]
     runs-on: ubuntu-latest
 
     steps:
+      - name: Download Windows XP artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: tic80-winxp-sdl
+          path: winxpdir
+
       - name: Download Windows artifact
         uses: actions/download-artifact@v2
         with:
@@ -528,6 +540,7 @@ jobs:
 
       - name: Rename
         run: |
+          cp winxpdir/* winxp
           cp windir/* win
           cp linuxdir/* linux
           cp macdir/* mac
@@ -540,6 +553,7 @@ jobs:
         with:
           name: 'tic80-export'
           path: |
+            winxp
             win
             linux
             mac
@@ -555,6 +569,12 @@ jobs:
         script: [lua, moon, fennel, js, wren, squirrel]
 
     steps:
+      - name: Download Windows XP artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: tic80-winxp-sdl-stub
+          path: winxpdir
+
       - name: Download Windows artifact
         uses: actions/download-artifact@v2
         with:
@@ -586,6 +606,7 @@ jobs:
 
       - name: Rename
         run: |
+          cp winxpdir/tic80${{ matrix.script }}.exe winxp${{ matrix.script }}
           cp windir/tic80${{ matrix.script }}.exe win${{ matrix.script }}
           cp linuxdir/tic80${{ matrix.script }} linux${{ matrix.script }}
           cp rpidir/tic80${{ matrix.script }} rpi${{ matrix.script }}
@@ -599,6 +620,7 @@ jobs:
         with:
           name: 'tic80-export'
           path: |
+            winxp${{ matrix.script }}
             win${{ matrix.script }}
             linux${{ matrix.script }}
             rpi${{ matrix.script }}
@@ -617,6 +639,7 @@ jobs:
           name: |
             tic80-rpi
             tic80-macos-sdl
+            tic80-winxp-sdl-stub
             tic80-windows-sdl-stub
             tic80-linux-sdl-stub
             tic80-rpi-stub
