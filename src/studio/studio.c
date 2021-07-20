@@ -2059,6 +2059,12 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder)
     setbuf(stdout, NULL);
 
     StartArgs args = parseArgs(argc, argv);
+    
+    if (args.version)
+    {
+        printf("%s\n", TIC_VERSION);
+        exit(0);
+    }
 
     impl.samplerate = samplerate;
 
