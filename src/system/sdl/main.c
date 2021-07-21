@@ -51,7 +51,6 @@
 
 #if defined(__TIC_ANDROID__)
 #include <sys/stat.h>
-#define TOUCH_INPUT_SUPPORT
 #endif
 
 #if defined(TOUCH_INPUT_SUPPORT)

@@ -243,9 +243,7 @@ static void update(Config* config, const u8* buffer, s32 size)
 
 static void setDefault(Config* config)
 {
-    config->cart = malloc(sizeof(tic_cartridge));
     memset(&config->data, 0, sizeof(StudioConfig));
-    
     config->data.cart = config->cart;
 
     {
