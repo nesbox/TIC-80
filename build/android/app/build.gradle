@@ -23,7 +23,7 @@ android {
                 abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
             }
             cmake {
-                arguments "-DBUILD_PRO=Off"
+                arguments "-DBUILD_PRO=Off", "-DCMAKE_BUILD_TYPE=MinSizeRel"
             }
             // cmake {
             //     arguments "-DANDROID_APP_PLATFORM=android-16", "-DANDROID_STL=c++_static"
