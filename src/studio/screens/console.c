@@ -709,11 +709,12 @@ static void onLoadDemoCommandConfirmed(Console* console, ScriptLang script)
     free(data);
 }
 
-static void onCartLoaded(Console* console, const char* name)
+static void onCartLoaded(Console* console, const char* name, const char* section)
 {
     tic_api_reset(console->tic);
 
-    setCartName(console, name, tic_fs_path(console->fs, name));
+    if(!section)
+        setCartName(console, name, tic_fs_path(console->fs, name));
 
     studioRomLoaded();
 
@@ -774,7 +775,7 @@ static void loadByHashDone(const u8* buffer, s32 size, void* data)
     {
         tic_cart_load(cart, buffer, size);
         loadCartSection(console, cart, loadByHashData->section);
-        onCartLoaded(console, loadByHashData->name);
+        onCartLoaded(console, loadByHashData->name, loadByHashData->section);
     }
 
     if (loadByHashData->callback)
@@ -904,7 +905,7 @@ static void onLoadCommandConfirmed(Console* console)
                 {
                     tic_cart_load(cart, data, size);
                     loadCartSection(console, cart, section);
-                    onCartLoaded(console, name);
+                    onCartLoaded(console, name, section);
                 }
             }
             else if(tic_tool_has_ext(param, PngExt) && tic_fs_exists(console->fs, param))
@@ -919,9 +920,9 @@ static void onLoadCommandConfirmed(Console* console)
                     if(cart) SCOPE(free(cart))
                     {
                         loadCartSection(console, cart, section);
-                        onCartLoaded(console, param);
+                        onCartLoaded(console, param, section);
                     }
-                    else printError(console, "\npng cart loading error");                    
+                    else printError(console, "\npng cart loading error");
                 }
             }
             else
@@ -941,7 +942,7 @@ static void onLoadCommandConfirmed(Console* console)
                         {
                             tic_project_load(name, data, size, cart);
                             loadCartSection(console, cart, section);
-                            onCartLoaded(console, name);                            
+                            onCartLoaded(console, name, section);
                         }
                     }
                     else printError(console, "\nproject loading error");
@@ -982,9 +983,22 @@ static void onConfirm(bool yes, void* data)
 }
 
 static void confirmCommand(Console* console, const char** text, s32 rows, ConfirmCallback callback)
-{
-    CommandConfirmData data = {console, callback};
-    showDialog(text, rows, onConfirm, MOVE(data));
+{    
+    if(console->args.cli)
+    {
+        for(s32 i = 0; i < rows; i++)
+        {
+            printError(console, text[i]);
+            printLine(console);
+        }
+
+        commandDone(console);
+    }
+    else
+    {
+        CommandConfirmData data = {console, callback};
+        showDialog(text, rows, onConfirm, MOVE(data));        
+    }
 }
 
 typedef void(*LoadDemoConfirmCallback)(Console* console, ScriptLang script);
