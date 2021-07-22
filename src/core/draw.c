@@ -532,12 +532,27 @@ static void drawSidesBuffer(tic_mem* memory, s32 y0, s32 y1, u8 color)
     }
 }
 
+static void drawCirc(tic_mem* memory, s32 xm, s32 ym, s32 radius, u8 color, PixelFunc pix)
+{
+    s32 r = radius;
+    s32 x = -r, y = 0, err = 2 - 2 * r;
+    do {
+        pix(memory, xm - x, ym + y, color);
+        pix(memory, xm - y, ym - x, color);
+        pix(memory, xm + x, ym - y, color);
+        pix(memory, xm + y, ym + x, color);
+        r = err;
+        if (r <= y) err += ++y * 2 + 1;
+        if (r > x || err > y) err += ++x * 2 + 1;
+    } while (x < 0);
+}
+
 void tic_api_circ(tic_mem* memory, s32 x, s32 y, s32 r, u8 color)
 {
     if(r < 0) return;
 
     initSidesBuffer();
-    drawEllipse(memory, x - r, y - r, x + r, y + r, 0, setElliSide);
+    drawCirc(memory, x, y, r, 0, setElliSide);
     drawSidesBuffer(memory, y - r, y + r + 1, color);
 }
 
@@ -545,7 +560,7 @@ void tic_api_circb(tic_mem* memory, s32 x, s32 y, s32 r, u8 color)
 {
     if(r < 0) return;
 
-    drawEllipse(memory, x - r, y - r, x + r, y + r, mapColor(memory, color), setElliPixel);
+    drawCirc(memory, x, y, r, mapColor(memory, color), setElliPixel);
 }
 
 void tic_api_elli(tic_mem* memory, s32 x, s32 y, s32 a, s32 b, u8 color)
