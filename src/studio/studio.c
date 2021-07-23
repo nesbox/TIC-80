@@ -1622,6 +1622,8 @@ static void reloadConfirm(bool yes, void* data)
 {
     if(yes)
         impl.console->updateProject(impl.console);
+    else
+        updateMDate();
 }
 
 static void checkChanges()
