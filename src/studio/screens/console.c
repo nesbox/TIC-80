@@ -997,7 +997,7 @@ static void confirmCommand(Console* console, const char** text, s32 rows, Confir
     else
     {
         CommandConfirmData data = {console, callback};
-        showDialog(text, rows, onConfirm, MOVE(data));        
+        showDialog(text, rows, onConfirm, MOVE(data));
     }
 }
 
