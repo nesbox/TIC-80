@@ -65,8 +65,8 @@ jobs:
         name: 'tic80-windows-sdl-stub'
         path: build/bin/tic80*.exe
 
-# === Windows SDLGPU ===
-  windows-sdlgpu:
+# === Windows SDL2 PRO ===
+  windows-sdl-pro:
     runs-on: windows-latest
 
     steps:
@@ -79,111 +79,14 @@ jobs:
       shell: cmd
       run: |
         cd build
-        cmake -G "Visual Studio 16 2019" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_STUB=On ..
+        cmake -G "Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_PRO=On ..
         cmake --build . --config %BUILD_TYPE% --parallel
 
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-windows-sdlgpu'
+        name: 'tic80-windows-sdl-pro'
         path: build/bin/tic80.exe
-
-# === Windows SDLGPU PRO ===
-  windows-sdlgpu-pro:
-    runs-on: windows-latest
-
-    steps:
-    - uses: actions/checkout@v2
-      with: 
-        submodules: recursive
-        fetch-depth: 0
-
-    - name: Build
-      shell: cmd
-      run: |
-        cd build
-        cmake -G "Visual Studio 16 2019" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_PRO=On ..
-        cmake --build . --config %BUILD_TYPE% --parallel
-
-# === Windows Sokol ===
-  windows-sokol:
-    runs-on: windows-latest
-
-    steps:
-    - uses: actions/checkout@v2
-      with: 
-        submodules: recursive
-        fetch-depth: 0
-
-    - name: Build
-      shell: cmd
-      run: |
-        cd build
-        cmake -G "Visual Studio 16 2019" -DBUILD_SDL=Off -DBUILD_SOKOL=On -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
-        cmake --build . --config %BUILD_TYPE% --parallel
-        cp bin/tic80-sokol.exe bin/tic80.exe
-
-    - name: Deploy
-      uses: actions/upload-artifact@v2
-      with:
-        name: 'tic80-windows-sokol'
-        path: build/bin/tic80.exe
-
-# === Ubuntu SDLGPU ===
-  linux-sdlgpu:
-    runs-on: ubuntu-16.04
-
-    steps:
-    - uses: actions/checkout@v2
-      with: 
-        submodules: recursive
-        fetch-depth: 0
-
-    - name: Install
-      run: |
-        sudo apt-get update
-        sudo apt-get install libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev -y
-
-    - name: Build
-      run: |
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SDLGPU=On -DBUILD_STUB=On ..
-        cmake --build . --config $BUILD_TYPE --parallel
-        cpack
-
-    - name: Deploy DEB
-      uses: actions/upload-artifact@v2
-      with:
-        name: 'tic80-linux-sdlgpu-deb'
-        path: build/tic80.deb
-
-    - name: Deploy ZIP
-      uses: actions/upload-artifact@v2
-      with:
-        name: 'tic80-linux-sdlgpu'
-        path: build/bin/tic80
-
-# === Ubuntu SDLGPU PRO ===
-  linux-sdlgpu-pro:
-    runs-on: ubuntu-16.04
-
-    steps:
-    - uses: actions/checkout@v2
-      with: 
-        submodules: recursive
-        fetch-depth: 0
-
-    - name: Install
-      run: |
-        sudo apt-get update
-        sudo apt-get install libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev -y
-
-    - name: Build
-      run: |
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SDLGPU=On -DBUILD_PRO=On ..
-        cmake --build . --config $BUILD_TYPE --parallel
-        cpack
 
 # === Ubuntu SDL2 ===
   linux-sdl:
@@ -224,6 +127,40 @@ jobs:
       with:
         name: 'tic80-linux-sdl-stub'
         path: build/bin/tic80*
+
+# === Ubuntu SDL2 PRO ===
+  linux-sdl-pro:
+    runs-on: ubuntu-16.04
+
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Install
+      run: |
+        sudo apt-get update
+        sudo apt-get install libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev -y
+
+    - name: Build
+      run: |
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_PRO=On ..
+        cmake --build . --config $BUILD_TYPE --parallel
+        cpack
+
+    - name: Deploy DEB
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-linux-sdl-pro-deb'
+        path: build/tic80.deb
+
+    - name: Deploy ZIP
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-linux-sdl-pro'
+        path: build/bin/tic80
 
 # === Raspberry PI ===
   rpi:
@@ -373,8 +310,8 @@ jobs:
         name: 'tic80-macos-sdl-stub'
         path: build/bin/tic80*
 
-# === MacOS 10.15 SDLGPU ===
-  macos-sdlgpu:
+# === MacOS 10.15 SDL2 PRO ===
+  macos-sdl-pro:
     runs-on: macos-10.15
 
     steps:
@@ -389,7 +326,7 @@ jobs:
     - name: Build
       run: |
         cd build
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SDLGPU=On -DBUILD_STUB=On ..
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_PRO=On ..
         cmake --build . --config $BUILD_TYPE --parallel
         cpack
         cp *.dmg tic80.dmg
@@ -397,29 +334,8 @@ jobs:
     - name: Deploy DMG
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-macos-sdlgpu-dmg'
+        name: 'tic80-macos-sdl-pro-dmg'
         path: build/tic80.dmg
-
-# === MacOS 10.15 SDLGPU PRO ===
-  macos-sdlgpu-pro:
-    runs-on: macos-10.15
-
-    steps:
-    - uses: actions/checkout@v2
-      with: 
-        submodules: recursive
-        fetch-depth: 0
-
-    - name: Install
-      run: brew uninstall --ignore-dependencies libidn2
-
-    - name: Build
-      run: |
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SDLGPU=On -DBUILD_PRO=On ..
-        cmake --build . --config $BUILD_TYPE --parallel
-        cpack
-        cp *.dmg tic80.dmg
 
 # === Android ===
   android:
