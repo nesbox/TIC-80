@@ -3348,10 +3348,11 @@ static void onHttpVesrsionGet(const net_get_data* data)
                 (version.major == TIC_VERSION_MAJOR && version.minor == TIC_VERSION_MINOR && version.patch > TIC_VERSION_REVISION))
             {
                 char msg[TICNAME_MAX];
-                sprintf(msg, " new version %i.%i.%i available\n", version.major, version.minor, version.patch);
+                sprintf(msg, " new version %i.%i.%i available", version.major, version.minor, version.patch);
 
                 enum{Offset = (2 * STUDIO_TEXT_BUFFER_WIDTH)};
 
+                memset(console->text + Offset, ' ', STUDIO_TEXT_BUFFER_WIDTH);
                 strcpy(console->text + Offset, msg);
                 memset(console->color + Offset, tic_color_red, strlen(msg));
             }
