@@ -516,13 +516,11 @@ static void setParam2(Music* music, u8 value)
     row->param2 = value;
 }
 
-static void playFrameRow(Music* music)
+static void playTrackRow(Music* music)
 {
     tic_mem* tic = music->tic;
 
     tic_api_music(tic, music->track, music->frame, music->tracker.edit.y, true, music->sustain, -1, -1);
-    
-    setMusicState(music, tic_music_play_frame);
 }
 
 static void playFrame(Music* music)
@@ -1427,7 +1425,7 @@ static void processKeyboard(Music* music)
         {
             stopped
                 ? (shift && music->tab == MUSIC_TRACKER_TAB
-                    ? playFrameRow(music) 
+                    ? playTrackRow(music) 
                     : playFrame(music))
                 : stopTrack(music);
         }
@@ -1818,7 +1816,7 @@ static void drawPlayButtons(Music* music)
             tic_icon_playnow,
             "PLAY FROM NOW ...",
             "... [shift+enter]",
-            playFrameRow,
+            playTrackRow,
         },
 
         {
