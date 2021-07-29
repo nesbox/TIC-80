@@ -688,6 +688,15 @@ static void setCursorPosition(Code* code, s32 cx, s32 cy)
     updateCursorPosition(code, pointer);
 }
 
+static void endLine(Code* code)
+{
+    while(*code->cursor.position)
+    {
+        code->cursor.position++;
+    }
+    updateColumn(code);
+}
+
 static void upLine(Code* code)
 {
     char* prevLine = getPrevLine(code);
@@ -1534,6 +1543,9 @@ static void processKeyboard(Code* code)
         else if(keyWasPressed(tic_key_f))           setCodeMode(code, TEXT_FIND_MODE);
         else if(keyWasPressed(tic_key_g))           setCodeMode(code, TEXT_GOTO_MODE);
         else if(keyWasPressed(tic_key_o))           setCodeMode(code, TEXT_OUTLINE_MODE);
+        else if(keyWasPressed(tic_key_n))           downLine(code);
+        else if(keyWasPressed(tic_key_p))           upLine(code);
+        else if(keyWasPressed(tic_key_e))           endLine(code);
         else if(keyWasPressed(tic_key_slash))       commentLine(code);
         else if(keyWasPressed(tic_key_home))        goCodeHome(code);
         else if(keyWasPressed(tic_key_end))         goCodeEnd(code);
