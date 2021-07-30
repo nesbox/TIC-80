@@ -182,7 +182,7 @@ static const char* LicenseText =
 
 static const struct StartupOption {const char* name; const char* help;} StartupOptions[] = 
 {
-#define CMD_PARAMS_DEF(name, type, post, help) {#name post, help},
+#define CMD_PARAMS_DEF(name, ctype, type, post, help) {#name post, help},
     CMD_PARAMS_LIST(CMD_PARAMS_DEF)
 #undef CMD_PARAMS_DEF
 };
@@ -2321,9 +2321,7 @@ static void onRunCommand(Console* console)
 {
     commandDone(console);
 
-    tic_api_reset(console->tic);
-
-    setStudioMode(TIC_RUN_MODE);
+    runProject();
 }
 
 static void onResumeCommand(Console* console)
@@ -3175,26 +3173,6 @@ static void processCommand(Console* console, const char* text)
     else commandDone(console);
 }
 
-static void processCommands(Console* console)
-{
-    char* command = console->args.cmd;
-    static const char Sep[] = " & ";
-    char* next = strstr(command, Sep);
-
-    if(next)
-    {
-        *next = '\0';
-        next += STRLEN(Sep);
-    }
-
-    console->args.cmd = next;
-
-    if(!console->args.cli)
-        printFront(console, command);
-
-    processCommand(console, command);
-}
-
 static void fillHistory(Console* console)
 {
     if(console->history.size)
@@ -3623,9 +3601,7 @@ static void tick(Console* console)
             if(!console->args.skip)
                 console->showGameMenu = true;
 
-            tic_api_reset(tic);
-
-            setStudioMode(TIC_RUN_MODE);
+            runProject();
 
             start->embed = false;
             studioRomLoaded();
@@ -3646,8 +3622,16 @@ static void tick(Console* console)
 
         if(console->active)
         {
-            if(console->args.cmd)
-                processCommands(console);
+            if(console->commands.current < console->commands.count)
+            {
+                const char* command = console->commands.items[console->commands.current];
+                if(!console->args.cli)
+                    printFront(console, command);
+
+                processCommand(console, command);
+
+                console->commands.current++;
+            }
             else if(getConfig()->cli)
                 exitStudio();
         }
@@ -3753,6 +3737,25 @@ void initConsole(Console* console, tic_mem* tic, tic_fs* fs, tic_net* net, Confi
         .desc = console->desc,
     };
 
+    // parse --cmd param
+    {
+        char* command = args.cmd;
+        while(command)
+        {
+            console->commands.items = realloc(console->commands.items, sizeof(char*) * (console->commands.count + 1));
+            console->commands.items[console->commands.count++] = command;
+
+            static const char Sep[] = " & ";
+            command = strstr(command, Sep);
+
+            if(command)
+            {
+                *command = '\0';
+                command += STRLEN(Sep);
+            }
+        }        
+    }
+
     qsort(Commands, COUNT_OF(Commands), sizeof Commands[0], cmdcmp);
     qsort(Api, COUNT_OF(Api), sizeof Api[0], apicmp);
 
@@ -3797,6 +3800,7 @@ void freeConsole(Console* console)
         free(console->history.items);
     }
 
+    FREE(console->commands.items);
     free(console->desc);
     free(console);
 }

@@ -93,6 +93,13 @@ struct Console
     bool active;
     bool showGameMenu;
     StartArgs args;
+    
+    struct
+    {
+        s32 count;
+        s32 current;
+        char** items;
+    } commands;
 
     CommandDesc* desc;
 

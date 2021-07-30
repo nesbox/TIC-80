@@ -64,20 +64,21 @@
 
 #if defined(CRT_SHADER_SUPPORT)
 #   define CRT_CMD_PARAM(macro) \
-    macro(crt, BOOLEAN, "", "enable CRT monitor effect")
+    macro(crt, bool, BOOLEAN, "", "enable CRT monitor effect")
 #else
 #   define CRT_CMD_PARAM(macro)
 #endif
 
-#define CMD_PARAMS_LIST(macro)                                                      \
-    macro(skip,         BOOLEAN,    "",         "skip startup animation")           \
-    macro(nosound,      BOOLEAN,    "",         "disable sound output")             \
-    macro(cli,          BOOLEAN,    "",         "console only output")              \
-    macro(fullscreen,   BOOLEAN,    "",         "enable fullscreen mode")           \
-    macro(fs,           STRING,     "=<str>",   "path to the file system folder")   \
-    macro(scale,        INTEGER,    "=<int>",   "main window scale")                \
-    macro(cmd,          STRING,     "=<str>",   "run commands in the console")      \
-    macro(version,      BOOLEAN,    "",         "print program version")            \
+#define CMD_PARAMS_LIST(macro)                                                              \
+    macro(skip,         bool,   BOOLEAN,    "",         "skip startup animation")           \
+    macro(nosound,      bool,   BOOLEAN,    "",         "disable sound output")             \
+    macro(cli,          bool,   BOOLEAN,    "",         "console only output")              \
+    macro(fullscreen,   bool,   BOOLEAN,    "",         "enable fullscreen mode")           \
+    macro(fs,           char*,  STRING,     "=<str>",   "path to the file system folder")   \
+    macro(scale,        s32,    INTEGER,    "=<int>",   "main window scale")                \
+    macro(cmd,          char*,  STRING,     "=<str>",   "run commands in the console")      \
+    macro(keepcmd,      bool,   BOOLEAN,    "",         "re-execute commands on every run") \
+    macro(version,      bool,   BOOLEAN,    "",         "print program version")            \
     CRT_CMD_PARAM(macro)
 
 #define SHOW_TOOLTIP(FORMAT, ...)           \
@@ -90,18 +91,10 @@ do{                                         \
 
 typedef struct
 {
-    bool skip;
-    bool nosound;
-    bool cli;
-    bool fullscreen;
-    bool version;
-    s32 scale;
-    char *fs;
     char *cart;
-#if defined(CRT_SHADER_SUPPORT)
-    bool crt;
-#endif
-    char *cmd;
+#define CMD_PARAMS_DEF(name, ctype, type, post, help) ctype name;
+    CMD_PARAMS_LIST(CMD_PARAMS_DEF)
+#undef  CMD_PARAMS_DEF
 } StartArgs;
 
 typedef enum

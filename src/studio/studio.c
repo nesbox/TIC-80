@@ -1346,13 +1346,23 @@ static inline bool isGameMenu()
 
 void runProject()
 {
-    tic_api_reset(impl.studio.tic);
-
-    if(impl.mode == TIC_RUN_MODE)
+    if(impl.console->args.keepcmd 
+        && impl.console->commands.count
+        && impl.console->commands.current >= impl.console->commands.count)
     {
-        initRunMode();
+        impl.console->commands.current = 0;
+        setStudioMode(TIC_CONSOLE_MODE);
     }
-    else setStudioMode(TIC_RUN_MODE);
+    else
+    {
+        tic_api_reset(impl.studio.tic);
+
+        if(impl.mode == TIC_RUN_MODE)
+        {
+            initRunMode();
+        }
+        else setStudioMode(TIC_RUN_MODE);
+    }
 }
 
 #if defined(BUILD_EDITORS)
@@ -2037,7 +2047,7 @@ static StartArgs parseArgs(s32 argc, char **argv)
     struct argparse_option options[] = 
     {
         OPT_HELP(),
-#define CMD_PARAMS_DEF(name, type, post, help) OPT_##type('\0', #name, &args.name, help),
+#define CMD_PARAMS_DEF(name, ctype, type, post, help) OPT_##type('\0', #name, &args.name, help),
         CMD_PARAMS_LIST(CMD_PARAMS_DEF)
 #undef  CMD_PARAMS_DEF
         OPT_END(),
