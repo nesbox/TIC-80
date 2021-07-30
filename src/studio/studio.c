@@ -1346,6 +1346,7 @@ static inline bool isGameMenu()
 
 void runProject()
 {
+#if defined(BUILD_EDITORS)
     if(impl.console->args.keepcmd 
         && impl.console->commands.count
         && impl.console->commands.current >= impl.console->commands.count)
@@ -1354,6 +1355,7 @@ void runProject()
         setStudioMode(TIC_CONSOLE_MODE);
     }
     else
+#endif
     {
         tic_api_reset(impl.studio.tic);
 
