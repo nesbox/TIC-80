@@ -1016,7 +1016,7 @@ void tic_sys_poll()
 
     // Workaround for freeze on fullscreen under macOS #819
     SDL_PumpEvents();
-    while(SDL_PollEvent(&event))
+    while(SDL_PeepEvents(&event, 1, SDL_GETEVENT, SDL_FIRSTEVENT, SDL_LASTEVENT) == 1)
     {
         switch(event.type)
         {
