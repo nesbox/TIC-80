@@ -302,7 +302,7 @@ jobs:
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-baremetal'
+        name: 'tic80-rpi-baremetal'
         path: |
           vendor/circle-stdlib/libs/circle/boot/config.txt
           vendor/circle-stdlib/libs/circle/boot/kernel.img
@@ -310,6 +310,59 @@ jobs:
           vendor/circle-stdlib/libs/circle/boot/start.elf
           vendor/circle-stdlib/libs/circle/boot/fixup.dat
           vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
+
+# === Raspberry PI 4 Bare Metal ===
+  rpi4-baremetal:
+    runs-on: ubuntu-latest
+    container: nesbox/baremetalpi-tic80:latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Prebuild
+      run: |
+        cd vendor/circle-stdlib
+        ./configure -r 4
+        make -j$(nproc)
+        cd libs/circle/addon/vc4/sound/
+        make -j$(nproc)
+        cd ../vchiq
+        make -j$(nproc)
+        cd ../../linux
+        make -j$(nproc)
+
+    - name: Build
+      run: |
+        cd build
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake ..
+        make tic80studio -j$(nproc)
+        cd baremetalpi
+        make -j$(nproc)
+        cd ../../vendor/circle-stdlib/libs/circle/boot/
+        make -j$(nproc)
+
+    - name: Pack
+      run: |
+        cp build/baremetalpi/kernel7l.img vendor/circle-stdlib/libs/circle/boot/kernel.img
+        cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-rpi4-baremetal'
+        path: |
+          vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-4-b.dtb
+          vendor/circle-stdlib/libs/circle/boot/bcm2711-rpi-cm4.dtb
+          vendor/circle-stdlib/libs/circle/boot/bootcode.bin
+          vendor/circle-stdlib/libs/circle/boot/config.txt
+          vendor/circle-stdlib/libs/circle/boot/COPYING.linux
+          vendor/circle-stdlib/libs/circle/boot/fixup4.dat
+          vendor/circle-stdlib/libs/circle/boot/kernel.img
+          vendor/circle-stdlib/libs/circle/boot/LICENCE.broadcom
+          vendor/circle-stdlib/libs/circle/boot/start4.elf
 
 # === Nintendo 3DS build ===
   nintendo-3ds:
