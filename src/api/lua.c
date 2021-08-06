@@ -1502,6 +1502,11 @@ static void callLuaScanline(tic_mem* tic, s32 row, void* data)
     callLuaScanlineName(tic, row, data, "scanline");
 }
 
+static void callLuaBorder(tic_mem* tic, s32 row, void* data)
+{
+    callLuaScanlineName(tic, row, data, BDR_FN);
+}
+
 static void callLuaOverline(tic_mem* tic, void* data)
 {
     tic_core* core = (tic_core*)tic;
@@ -1612,8 +1617,13 @@ static const tic_script_config LuaSyntaxConfig =
     .init               = initLua,
     .close              = closeLua,
     .tick               = callLuaTick,
-    .scanline           = callLuaScanline,
-    .overline           = callLuaOverline,
+
+    .callback           =
+    {
+        .scanline       = callLuaScanline,
+        .border         = callLuaBorder,
+        .overline       = callLuaOverline,
+    },
 
     .getOutline         = getLuaOutline,
     .eval               = evalLua,
@@ -1780,8 +1790,12 @@ static const tic_script_config MoonSyntaxConfig =
     .init               = initMoonscript,
     .close              = closeLua,
     .tick               = callLuaTick,
-    .scanline           = callLuaScanline,
-    .overline           = callLuaOverline,
+    .callback           =
+    {
+        .scanline       = callLuaScanline,
+        .border         = callLuaBorder,
+        .overline       = callLuaOverline,
+    },
 
     .getOutline         = getMoonOutline,
     .eval               = NULL,
@@ -1957,8 +1971,12 @@ static const tic_script_config FennelSyntaxConfig =
     .init               = initFennel,
     .close              = closeLua,
     .tick               = callLuaTick,
-    .scanline           = callLuaScanline,
-    .overline           = callLuaOverline,
+    .callback           =
+    {
+        .scanline       = callLuaScanline,
+        .border         = callLuaBorder,
+        .overline       = callLuaOverline,
+    },
 
     .getOutline         = getFennelOutline,
     .eval               = evalFennel,

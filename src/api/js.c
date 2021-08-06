@@ -1005,6 +1005,11 @@ static void callJavascriptScanline(tic_mem* tic, s32 row, void* data)
     callJavascriptScanlineName(tic, row, data, "scanline");
 }
 
+static void callJavascriptBorder(tic_mem* tic, s32 row, void* data)
+{
+    callJavascriptScanlineName(tic, row, data, BDR_FN);
+}
+
 static void callJavascriptOverline(tic_mem* tic, void* data)
 {
     tic_core* core = (tic_core*)tic;
@@ -1100,8 +1105,12 @@ static const tic_script_config JsSyntaxConfig =
     .init               = initJavascript,
     .close              = closeJavascript,
     .tick               = callJavascriptTick,
-    .scanline           = callJavascriptScanline,
-    .overline           = callJavascriptOverline,
+    .callback           =
+    {
+        .scanline       = callJavascriptScanline,
+        .border         = callJavascriptBorder,
+        .overline       = callJavascriptOverline,
+    },
 
     .getOutline         = getJsOutline,
     .eval               = evalJs,

@@ -144,20 +144,16 @@ typedef struct
     } music;
 
     tic_tick tick;
-    tic_scanline scanline;
-
+    tic_blit_callback callback;
+    
     struct
     {
-        tic_overline callback;
-        u32 raw[TIC_PALETTE_SIZE];
         tic_palette palette;
     } ovr;
 
-    void (*setpix)(tic_mem* memory, s32 x, s32 y, u8 color);
-    u8 (*getpix)(tic_mem* memory, s32 x, s32 y);
-    void (*drawhline)(tic_mem* memory, s32 xl, s32 xr, s32 y, u8 color);
-
     u32 synced;
+
+    u8 memmask[sizeof(tic_ram) << 1];
 
     bool initialized;
 } tic_core_state_data;

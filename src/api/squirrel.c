@@ -1614,6 +1614,11 @@ static void callSquirrelScanline(tic_mem* tic, s32 row, void* data)
     callSquirrelScanlineName(tic, row, data, "scanline");
 }
 
+static void callSquirrelBorder(tic_mem* tic, s32 row, void* data)
+{
+    callSquirrelScanlineName(tic, row, data, BDR_FN);
+}
+
 static void callSquirrelOverline(tic_mem* tic, void* data)
 {
     tic_core* core = (tic_core*)tic;
@@ -1752,8 +1757,12 @@ static const tic_script_config SquirrelSyntaxConfig =
     .init               = initSquirrel,
     .close              = closeSquirrel,
     .tick               = callSquirrelTick,
-    .scanline           = callSquirrelScanline,
-    .overline           = callSquirrelOverline,
+    .callback           =
+    {
+        .scanline       = callSquirrelScanline,
+        .border         = callSquirrelBorder,
+        .overline       = callSquirrelOverline,
+    },
 
     .getOutline         = getSquirrelOutline,
     .eval               = evalSquirrel,

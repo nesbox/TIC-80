@@ -36,6 +36,7 @@ static WrenHandle* game_class;
 static WrenHandle* new_handle;
 static WrenHandle* update_handle;
 static WrenHandle* scanline_handle;
+static WrenHandle* border_handle;
 static WrenHandle* overline_handle;
 
 static bool loaded = false;
@@ -165,6 +166,7 @@ class TIC {\n\
     }\n\
     " TIC_FN "(){}\n\
     " SCN_FN "(row){}\n\
+    " BDR_FN "(row){}\n\
     " OVR_FN "(){}\n\
 }\n";
 
@@ -206,6 +208,7 @@ static void closeWren(tic_mem* tic)
             wrenReleaseHandle(core->wren, new_handle);
             wrenReleaseHandle(core->wren, update_handle);
             wrenReleaseHandle(core->wren, scanline_handle);
+            wrenReleaseHandle(core->wren, border_handle);
             wrenReleaseHandle(core->wren, overline_handle);
             if (game_class != NULL) 
             {
@@ -1452,6 +1455,7 @@ static bool initWren(tic_mem* tic, const char* code)
     new_handle = wrenMakeCallHandle(vm, "new()");
     update_handle = wrenMakeCallHandle(vm, TIC_FN "()");
     scanline_handle = wrenMakeCallHandle(vm, SCN_FN "(_)");
+    border_handle = wrenMakeCallHandle(vm, BDR_FN "(_)");
     overline_handle = wrenMakeCallHandle(vm, OVR_FN "()");
 
     // create game class
@@ -1500,6 +1504,20 @@ static void callWrenScanline(tic_mem* tic, s32 row, void* data)
         wrenSetSlotHandle(vm, 0, game_class);
         wrenSetSlotDouble(vm, 1, row);
         wrenCall(vm, scanline_handle);
+    }
+}
+
+static void callWrenBorder(tic_mem* tic, s32 row, void* data)
+{
+    tic_core* core = (tic_core*)tic;
+    WrenVM* vm = core->wren;
+
+    if(vm && game_class)
+    {
+        wrenEnsureSlots(vm, 2);
+        wrenSetSlotHandle(vm, 0, game_class);
+        wrenSetSlotDouble(vm, 1, row);
+        wrenCall(vm, border_handle);
     }
 }
 
@@ -1597,8 +1615,12 @@ static const tic_script_config WrenSyntaxConfig =
     .init               = initWren,
     .close              = closeWren,
     .tick               = callWrenTick,
-    .scanline           = callWrenScanline,
-    .overline           = callWrenOverline,
+    .callback           =
+    {
+        .scanline           = callWrenScanline,
+        .border             = callWrenBorder,
+        .overline           = callWrenOverline,
+    },
 
     .getOutline         = getWrenOutline,
     .eval               = evalWren,

@@ -818,6 +818,29 @@ static void drawBankIcon(s32 x, s32 y)
 #endif
 
 #if defined(BUILD_EDITORS)
+
+static void drawPopup()
+{
+    if(impl.popup.counter > 0)
+    {
+        impl.popup.counter--;
+
+        s32 anim = 0;
+
+        enum{Dur = TIC80_FRAMERATE/2};
+
+        if(impl.popup.counter < Dur)
+            anim = -((Dur - impl.popup.counter) * (TIC_FONT_HEIGHT+1) / Dur);
+        else if(impl.popup.counter >= (POPUP_DUR - Dur))
+            anim = (((POPUP_DUR - Dur) - impl.popup.counter) * (TIC_FONT_HEIGHT+1) / Dur);
+
+        tic_api_rect(impl.studio.tic, 0, anim, TIC80_WIDTH, TIC_FONT_HEIGHT+1, tic_color_red);
+        tic_api_print(impl.studio.tic, impl.popup.message, 
+            (s32)(TIC80_WIDTH - strlen(impl.popup.message)*TIC_FONT_WIDTH)/2,
+            anim + 1, tic_color_white, true, 1, false);
+    }
+}
+
 void drawToolbar(tic_mem* tic, bool bg)
 {
     if(bg)
@@ -889,6 +912,9 @@ void drawToolbar(tic_mem* tic, bool bg)
             tic_api_print(tic, Names[mode], TextOffset, 1, tic_color_grey, false, 1, false);
         }
     }
+
+    // !TODO: fix popup message drawing
+    drawPopup();
 }
 
 void setStudioEvent(StudioEvent event)
@@ -1672,6 +1698,7 @@ static void checkChanges()
     }
 }
 
+// !TODO: fix REC icon drawing
 static void drawRecordLabel(u32* frame, s32 sx, s32 sy)
 {
     drawBitIcon(tic_icon_rec, sx, sy, tic_color_red);
@@ -1708,27 +1735,6 @@ static void recordFrame(u32* pixels)
     }
 }
 
-static void drawPopup()
-{
-    if(impl.popup.counter > 0)
-    {
-        impl.popup.counter--;
-
-        s32 anim = 0;
-
-        enum{Dur = TIC80_FRAMERATE/2};
-
-        if(impl.popup.counter < Dur)
-            anim = -((Dur - impl.popup.counter) * (TIC_FONT_HEIGHT+1) / Dur);
-        else if(impl.popup.counter >= (POPUP_DUR - Dur))
-            anim = (((POPUP_DUR - Dur) - impl.popup.counter) * (TIC_FONT_HEIGHT+1) / Dur);
-
-        tic_api_rect(impl.studio.tic, 0, anim, TIC80_WIDTH, TIC_FONT_HEIGHT+1, tic_color_red);
-        tic_api_print(impl.studio.tic, impl.popup.message, 
-            (s32)(TIC80_WIDTH - strlen(impl.popup.message)*TIC_FONT_WIDTH)/2,
-            anim + 1, tic_color_white, true, 1, false);
-    }
-}
 #endif
 
 static void renderStudio()
@@ -1986,7 +1992,7 @@ static void studioTick()
         }
 
         data
-            ? tic_core_blit_ex(tic, tic->screen_format, scanline, overline, data)
+            ? tic_core_blit_ex(tic, tic->screen_format, (tic_blit_callback){scanline, overline}, data)
             : tic_core_blit(tic, tic->screen_format);
 
 #if defined(BUILD_EDITORS)
@@ -1996,7 +2002,6 @@ static void studioTick()
     }
 
 #if defined(BUILD_EDITORS)
-    drawPopup();
     tic_net_end(impl.net);
 #endif
 }

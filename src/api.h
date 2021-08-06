@@ -49,6 +49,7 @@ typedef struct
 typedef struct tic_mem tic_mem;
 typedef void(*tic_tick)(tic_mem* memory);
 typedef void(*tic_scanline)(tic_mem* memory, s32 row, void* data);
+typedef void(*tic_border)(tic_mem* memory, s32 row, void* data);
 typedef void(*tic_overline)(tic_mem* memory, void* data);
 
 typedef struct
@@ -59,6 +60,13 @@ typedef struct
 
 typedef struct
 {
+    tic_scanline scanline;
+    tic_overline overline;
+    tic_border border;
+} tic_blit_callback;
+
+typedef struct
+{
     const char* name;
     struct
     {
@@ -66,8 +74,7 @@ typedef struct
         void(*close)(tic_mem* memory);
 
         tic_tick tick;
-        tic_scanline scanline;
-        tic_overline overline;
+        tic_blit_callback callback;
     };
 
     const tic_outline_item* (*getOutline)(const char* code, s32* size);
@@ -120,11 +127,14 @@ enum
 #define TIC_FN "TIC"
 #define SCN_FN "SCN"
 #define OVR_FN "OVR"
+#define BDR_FN "BDR"
 
 #define TIC_CALLBACK_LIST(macro)                                                                                        \
     macro(TIC_FN, TIC_FN "()", "Main function. It's called at " DEF2STR(TIC80_FRAMERATE)                                \
         "fps (" DEF2STR(TIC80_FRAMERATE) " times every second).")                                                       \
     macro(SCN_FN, SCN_FN "(row)", "Allows you to execute code between the drawing of each scanline, "                   \
+        "for example, to manipulate the palette.")                                                                      \
+    macro(BDR_FN, BDR_FN "(row)", "Allows you to execute code between the drawing of each fullscreen scanline, "        \
         "for example, to manipulate the palette.")                                                                      \
     macro(OVR_FN, OVR_FN "()", "Called after each frame;"                                                               \
         "draw calls from this function ignore palette swap and screen offset.")
@@ -689,7 +699,8 @@ void tic_core_tick_start(tic_mem* memory);
 void tic_core_tick(tic_mem* memory, tic_tick_data* data);
 void tic_core_tick_end(tic_mem* memory);
 void tic_core_blit(tic_mem* tic, tic80_pixel_color_format fmt);
-void tic_core_blit_ex(tic_mem* tic, tic80_pixel_color_format fmt, tic_scanline scanline, tic_overline overline, void* data);
+
+void tic_core_blit_ex(tic_mem* tic, tic80_pixel_color_format fmt, tic_blit_callback clb, void* data);
 const tic_script_config* tic_core_script_config(tic_mem* memory);
 
 typedef struct

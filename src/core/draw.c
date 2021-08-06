@@ -62,14 +62,12 @@ static void setPixel(tic_core* core, s32 x, s32 y, u8 color)
 {
     if (x < core->state.clip.l || y < core->state.clip.t || x >= core->state.clip.r || y >= core->state.clip.b) return;
 
-    core->state.setpix(&core->memory, x, y, color);
+    tic_api_poke4((tic_mem*)core, y * TIC80_WIDTH + x, color);
 }
 
 static u8 getPixel(tic_core* core, s32 x, s32 y)
 {
-    if (x < 0 || y < 0 || x >= TIC80_WIDTH || y >= TIC80_HEIGHT) return 0;
-
-    return core->state.getpix(&core->memory, x, y);
+    return tic_api_peek4((tic_mem*)core, y * TIC80_WIDTH + x);
 }
 
 #define EARLY_CLIP(x, y, width, height) \
@@ -86,8 +84,10 @@ static void drawHLine(tic_core* core, s32 x, s32 y, s32 width, u8 color)
 
     s32 xl = MAX(x, core->state.clip.l);
     s32 xr = MIN(x + width, core->state.clip.r);
+    s32 start = y * TIC80_WIDTH;
 
-    core->state.drawhline(&core->memory, xl, xr, y, color);
+    for(s32 i = start + xl, end = start + xr; i < end; ++i)
+        tic_api_poke4((tic_mem*)core, i, color);
 }
 
 static void drawVLine(tic_core* core, s32 x, s32 y, s32 height, u8 color)
@@ -123,7 +123,7 @@ static void drawRectBorder(tic_core* core, s32 x, s32 y, s32 width, s32 height, 
         for(s32 px=sx; px < ex; px++, xx++) \
         { \
             u8 color = mapping[tic_tilesheet_gettilepix(tile, (X), (Y))];\
-            if(color != TRANSPARENT_COLOR) core->state.setpix(&core->memory, xx, y, color); \
+            if(color != TRANSPARENT_COLOR) setPixel(core, xx, y, color); \
         } \
     } \
     } while(0)
@@ -359,14 +359,10 @@ void tic_api_cls(tic_mem* memory, u8 color)
     tic_core* core = (tic_core*)memory;
 
     if (memcmp(&core->state.clip, &EmptyClip, sizeof(tic_clip_data)) == 0)
-    {
-        color &= 0b00001111;
-        memset(memory->ram.vram.screen.data, color | (color << TIC_PALETTE_BPP), sizeof(memory->ram.vram.screen.data));
-    }
+        tic_api_memset(memory, 0, (color & 0xf) | (color << TIC_PALETTE_BPP), sizeof(tic_screen));
     else
-    {
-        tic_api_rect(memory, core->state.clip.l, core->state.clip.t, core->state.clip.r - core->state.clip.l, core->state.clip.b - core->state.clip.t, color);
-    }
+        tic_api_rect(memory, core->state.clip.l, core->state.clip.t, 
+            core->state.clip.r - core->state.clip.l, core->state.clip.b - core->state.clip.t, color);
 }
 
 s32 tic_api_font(tic_mem* memory, const char* text, s32 x, s32 y, u8 chromakey, s32 w, s32 h, bool fixed, s32 scale, bool alt)
@@ -540,7 +536,10 @@ static void drawSidesBuffer(tic_mem* memory, s32 y0, s32 y1, u8 color)
     {
         s32 xl = MAX(SidesBuffer.Left[y], core->state.clip.l);
         s32 xr = MIN(SidesBuffer.Right[y] + 1, core->state.clip.r);
-        core->state.drawhline(&core->memory, xl, xr, y, final_color);
+        s32 start = y * TIC80_WIDTH;
+
+        for(s32 i = start + xl, end = start + xr; i < end; ++i)
+            tic_api_poke4(memory, i, color);
     }
 }
 
