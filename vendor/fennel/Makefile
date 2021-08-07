@@ -7,5 +7,8 @@ loadfennel.lua: fennel.lua
 	sed "s/return mod/package.loaded['fennel'] = mod/" $< > $@
 
 # Assuming you have a checkout as a sibling dir to this repo.
-fennel.lua: ../../../fennel/fennel.lua
+fennel.lua: ../fennel-source/fennel.lua
 	cp $< $@
+
+../fennel-source/fennel.lua:
+	make -C ../fennel-source

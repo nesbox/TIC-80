@@ -77,3 +77,6 @@
 [submodule "vendor/sdl2"]
 	path = vendor/sdl2
 	url = https://github.com/libsdl-org/SDL.git
+[submodule "vendor/fennel-source"]
+	path = vendor/fennel-source
+	url = https://git.sr.ht/~technomancy/fennel
