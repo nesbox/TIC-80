@@ -112,6 +112,7 @@ void tic80_libretro_error(const char* info)
  */
 void tic80_libretro_trace(const char* text, u8 color)
 {
+	TIC_UNUSED(color);
 	log_cb(RETRO_LOG_DEBUG, "[TIC-80] %s\n", text);
 }
 
@@ -120,7 +121,7 @@ void tic80_libretro_trace(const char* text, u8 color)
  */
 void tic80_libretro_fallback_log(enum retro_log_level level, const char *fmt, ...)
 {
-	(void)level;
+	TIC_UNUSED(level);
 	va_list va;
 	va_start(va, fmt);
 	vfprintf(stderr, fmt, va);
@@ -626,6 +627,9 @@ void tic80_libretro_update_mouse(tic80_mouse* mouse)
 				tic80_libretro_update_mouse_wheels(mouse);
 			break;
 #if TIC_MAXPLAYERS >= 1
+			case POINTER_DEVICE_TOUCHSCREEN:
+				// Already handled above.
+			break;
 			case POINTER_DEVICE_LEFT_ANALOG:
 				// Get Mouse X and Y offsets
 				mouseDeltaX = tic80_libretro_get_mouse_delta_analog(RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
@@ -721,6 +725,7 @@ void tic80_libretro_update_mouse(tic80_mouse* mouse)
  */
 void tic80_libretro_mousecursor(tic80_local* game, tic80_mouse* mouse, enum mouse_cursor_type cursortype)
 {
+	TIC_UNUSED(mouse);
 	// Only draw the mouse cursor if it's active.
 	if (state->mouseHideTimer == 0) {
 		return;
@@ -728,6 +733,9 @@ void tic80_libretro_mousecursor(tic80_local* game, tic80_mouse* mouse, enum mous
 
 	// Determine which cursor to draw.
 	switch (cursortype) {
+		case MOUSE_CURSOR_NONE:
+			// Nothing.
+		break;
 		case MOUSE_CURSOR_DOT:
 			tic_api_pix(game->memory, state->mouseX, state->mouseY, state->mouseCursorColor, false);
 		break;
@@ -1056,6 +1064,8 @@ RETRO_API unsigned retro_get_region(void)
  */
 RETRO_API bool retro_load_game_special(unsigned type, const struct retro_game_info *info, size_t num)
 {
+	TIC_UNUSED(num);
+	TIC_UNUSED(type);
 	// Forward subsystem requests over to retro_load_game().
 	return retro_load_game(info);
 }
@@ -1073,13 +1083,14 @@ size_t retro_serialize_size(void)
  */
 RETRO_API bool retro_serialize(void *data, size_t size)
 {
+	TIC_UNUSED(size);
 	if (state == NULL || state->tic == NULL || data == NULL) {
 		return false;
 	}
 
 	tic80_local* tic80 = (tic80_local*)state->tic;
 	u32* udata = (u32*)data;
-	for (int i = 0; i < TIC_PERSISTENT_SIZE; i++) {
+	for (u32 i = 0; i < TIC_PERSISTENT_SIZE; i++) {
 		udata[i] = tic80->memory->ram.persistent.data[i];
 	}
 
@@ -1097,7 +1108,7 @@ RETRO_API bool retro_unserialize(const void *data, size_t size)
 
 	tic80_local* tic80 = (tic80_local*)state->tic;
 	u32* uData = (u32*)data;
-	for (int i = 0; i < TIC_PERSISTENT_SIZE; i++) {
+	for (u32 i = 0; i < TIC_PERSISTENT_SIZE; i++) {
 		tic80->memory->ram.persistent.data[i] = uData[i];
 	}
 
@@ -1181,12 +1192,14 @@ RETRO_API void retro_cheat_reset(void)
  */
 RETRO_API void retro_cheat_set(unsigned index, bool enabled, const char *code)
 {
+	TIC_UNUSED(index);
+	TIC_UNUSED(enabled);
 	if (!state || !state->tic) {
 		return;
 	}
 
 	u32 codes[TIC_PERSISTENT_SIZE];
-	int codeIndex = 0;
+	u32 codeIndex = 0;
 	char *str = (char*)code;
 	char *end = str;
 
@@ -1201,7 +1214,7 @@ RETRO_API void retro_cheat_set(unsigned index, bool enabled, const char *code)
 
 	// Finally, set each given code pair.
 	tic80_local* tic80 = (tic80_local*)state->tic;
-	for (int i = 0; i < codeIndex; i = i + 2) {
+	for (u32 i = 0; i < codeIndex; i = i + 2) {
 		tic80->memory->ram.persistent.data[codes[i]] = codes[i+1];
 	}
 }

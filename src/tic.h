@@ -104,6 +104,8 @@
 #define SFX_NOTES {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
 #define TIC_FONT_CHARS 256
 
+#define TIC_UNUSED(x) (void)x
+
 enum
 {
     NoteNone = 0,
