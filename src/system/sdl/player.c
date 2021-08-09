@@ -131,7 +131,7 @@ s32 runCart(void* cart, s32 size)
 					SDL_SCANCODE_S,
 				};
 
-				for (s32 i = 0; i < SDL_arraysize(Keys); i++)
+				for (u32 i = 0; i < SDL_arraysize(Keys); i++)
 				{
 					if (keyboard[Keys[i]])
 					{
