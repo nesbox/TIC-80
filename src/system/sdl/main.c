@@ -68,20 +68,6 @@ enum
     tic_touch_size,
 };
 
-typedef enum
-{
-    HandCursor,
-    IBeamCursor,
-    ArrowCursor
-} CursorType;
-
-static const SDL_SystemCursor SystemCursors[] = 
-{
-    [HandCursor] = SDL_SYSTEM_CURSOR_HAND,
-    [IBeamCursor] = SDL_SYSTEM_CURSOR_IBEAM,
-    [ArrowCursor] = SDL_SYSTEM_CURSOR_ARROW
-};
-
 #if defined(CRT_SHADER_SUPPORT)
 #   define Renderer GPU_Target
 #   define Texture GPU_Image
@@ -181,9 +167,7 @@ static struct
 
     struct
     {
-        Texture* texture;
-        const u8* src;
-        SDL_Cursor* cursors[COUNT_OF(SystemCursors)];
+        bool focus;
     } mouse;
 
     struct
@@ -200,13 +184,6 @@ static struct
 };
 #endif
 ;
-
-#if defined(CRT_SHADER_SUPPORT)
-static inline bool crtMonitorEnabled()
-{
-    return platform.studio->config()->crtMonitor && platform.gpu.shader;
-}
-#endif
 
 static void initSound()
 {
@@ -452,9 +429,6 @@ static void destroyGPU()
 {
     destoryTexture(platform.gpu.texture);
 
-    if(platform.mouse.texture)
-        destoryTexture(platform.mouse.texture);
-
 #if defined(TOUCH_INPUT_SUPPORT)
 
     if(platform.gamepad.touch.texture)
@@ -478,8 +452,6 @@ static void destroyGPU()
         platform.gpu.shader = 0;
     }
 
-    platform.mouse.src = NULL;
-
     GPU_Quit();
 
 #endif
@@ -489,59 +461,21 @@ static void calcTextureRect(SDL_Rect* rect)
 {
     SDL_GetWindowSize(platform.window, &rect->w, &rect->h);
 
-#if defined(CRT_SHADER_SUPPORT)
-    if(crtMonitorEnabled())
+    enum{Width = TIC80_FULLWIDTH, Height = TIC80_FULLHEIGHT};
+
+    if (rect->w * Height < rect->h * Width)
     {
-        enum{Width = TIC80_FULLWIDTH, Height = TIC80_FULLHEIGHT};
-
-        if (rect->w * Height < rect->h * Width)
-        {
-            rect->x = 0;
-            rect->y = 0;
-
-            rect->h = Height * rect->w / Width;
-        }
-        else
-        {
-            s32 width = Width * rect->h / Height;
-
-            rect->x = (rect->w - width) / 2;
-            rect->y = 0;
-
-            rect->w = width;
-        }
+        rect->x = rect->y = 0;
+        rect->h = Height * rect->w / Width;
     }
     else
-#endif
     {
-        enum{Width = TIC80_WIDTH, Height = TIC80_HEIGHT};
+        s32 width = Width * rect->h / Height;
 
-        if (rect->w * Height < rect->h * Width)
-        {
-            s32 discreteWidth = rect->w - rect->w % Width;
-            s32 discreteHeight = Height * discreteWidth / Width;
+        rect->x = (rect->w - width) / 2;
+        rect->y = 0;
 
-            rect->x = (rect->w - discreteWidth) / 2;
-
-            rect->y = rect->w > rect->h 
-                ? (rect->h - discreteHeight) / 2 
-                : TIC80_OFFSET_TOP*discreteWidth/Width;
-
-            rect->w = discreteWidth;
-            rect->h = discreteHeight;
-
-        }
-        else
-        {
-            s32 discreteHeight = rect->h - rect->h % Height;
-            s32 discreteWidth = Width * discreteHeight / Height;
-
-            rect->x = (rect->w - discreteWidth) / 2;
-            rect->y = (rect->h - discreteHeight) / 2;
-
-            rect->w = discreteWidth;
-            rect->h = discreteHeight;
-        }
+        rect->w = width;
     }
 }
 
@@ -562,39 +496,24 @@ static void processMouse()
     }
     else
     {
+        mouse->x = mouse->y = -1;
 
+        if(platform.mouse.focus)
         {
-            mouse->x = mouse->y = 0;
-
-            SDL_Rect rect = {0, 0, 0, 0};
+            SDL_Rect rect;
             calcTextureRect(&rect);
 
-#if defined(CRT_SHADER_SUPPORT)
-            if(crtMonitorEnabled())
+            if(rect.w && rect.h)
             {
-                if(rect.w) {
-                    s32 temp_x = (pt.x - rect.x) * TIC80_FULLWIDTH / rect.w;
-                    if (temp_x < 0) temp_x = 0; else if (temp_x >= TIC80_FULLWIDTH) temp_x = TIC80_FULLWIDTH-1; // clip: 0 to TIC80_FULLWIDTH-1
-                    mouse->x = temp_x;
-                }
-                if(rect.h) {
-                    s32 temp_y = (pt.y - rect.y) * TIC80_FULLHEIGHT / rect.h;
-                    if (temp_y < 0) temp_y = 0; else if (temp_y >= TIC80_FULLHEIGHT) temp_y = TIC80_FULLHEIGHT-1; // clip: 0 to TIC80_FULLHEIGHT-1
-                    mouse->y = temp_y;
-                }
-            }
-            else
-#endif
-            {
-                if (rect.w) {
-                    s32 temp_x = (pt.x - rect.x) * TIC80_WIDTH / rect.w + TIC80_OFFSET_LEFT;
-                    if (temp_x < 0) temp_x = 0; else if (temp_x >= TIC80_FULLWIDTH) temp_x = TIC80_FULLWIDTH-1; // clip: 0 to TIC80_FULLWIDTH-1
-                    mouse->x = temp_x;
-                }
-                if (rect.h) {
-                    s32 temp_y = (pt.y - rect.y) * TIC80_HEIGHT / rect.h + TIC80_OFFSET_TOP;
-                    if (temp_y < 0) temp_y = 0; else if (temp_y >= TIC80_FULLHEIGHT) temp_y = TIC80_FULLHEIGHT-1; // clip: 0 to TIC80_FULLHEIGHT-1
-                    mouse->y = temp_y;
+                tic_point m = {(pt.x - rect.x) * TIC80_FULLWIDTH / rect.w, (pt.y - rect.y) * TIC80_FULLHEIGHT / rect.h};
+
+                if(m.x < 0 || m.y < 0 || m.x >= TIC80_FULLWIDTH || m.y >= TIC80_FULLHEIGHT)
+                    SDL_ShowCursor(SDL_ENABLE);
+                else
+                {
+                    SDL_ShowCursor(SDL_DISABLE);
+                    mouse->x = m.x;
+                    mouse->y = m.y;
                 }
             }
         }
@@ -1054,6 +973,12 @@ void tic_sys_poll()
         case SDL_WINDOWEVENT:
             switch(event.window.event)
             {
+            case SDL_WINDOWEVENT_ENTER:
+                platform.mouse.focus = true;
+                break;
+            case SDL_WINDOWEVENT_LEAVE:
+                platform.mouse.focus = false;
+                break;
             case SDL_WINDOWEVENT_SIZE_CHANGED:
                 {
 
@@ -1232,135 +1157,6 @@ static void renderGamepad()
 }
 
 #endif
-
-static void blitCursor(const u8* in)
-{
-
-    if(!platform.mouse.texture)
-    {
-#if defined(CRT_SHADER_SUPPORT)
-        platform.mouse.texture = GPU_CreateImage(TIC_SPRITESIZE, TIC_SPRITESIZE, STUDIO_PIXEL_FORMAT);
-        GPU_SetAnchor(platform.mouse.texture, 0, 0);
-        GPU_SetImageFilter(platform.mouse.texture, GPU_FILTER_NEAREST);
-#else
-        platform.mouse.texture = SDL_CreateTexture(platform.gpu.renderer, STUDIO_PIXEL_FORMAT, SDL_TEXTUREACCESS_STREAMING, TIC_SPRITESIZE, TIC_SPRITESIZE);
-        SDL_SetTextureBlendMode(platform.mouse.texture, SDL_BLENDMODE_BLEND);
-#endif
-    }
-
-    if(platform.mouse.src != in)
-    {
-        platform.mouse.src = in;
-
-        const u8* end = in + sizeof(tic_tile);
-        const u32* pal = tic_tool_palette_blit(&platform.studio->tic->ram.vram.palette, platform.studio->tic->screen_format);
-        static u32 data[TIC_SPRITESIZE*TIC_SPRITESIZE];
-        u32* out = data;
-
-        while(in != end)
-        {
-            u8 low = *in & 0x0f;
-            u8 hi = (*in & 0xf0) >> TIC_PALETTE_BPP;
-            *out++ = low ? *(pal + low) : 0;
-            *out++ = hi ? *(pal + hi) : 0;
-
-            in++;
-        }
-
-        updateTextureBytes(platform.mouse.texture, data, TIC_SPRITESIZE, TIC_SPRITESIZE);
-    }
-
-    SDL_Rect rect = {0, 0, 0, 0};
-    calcTextureRect(&rect);
-    s32 scale = rect.w / TIC80_WIDTH;
-
-    s32 mx, my;
-    SDL_GetMouseState(&mx, &my);
-
-    if(platform.studio->config()->theme.cursor.pixelPerfect)
-    {
-        mx -= (mx - rect.x) % scale;
-        my -= (my - rect.y) % scale;
-    }
-
-    if(SDL_GetWindowFlags(platform.window) & SDL_WINDOW_MOUSE_FOCUS)
-    {
-#if defined(CRT_SHADER_SUPPORT)
-        GPU_BlitScale(platform.mouse.texture, NULL, platform.gpu.renderer, (float)mx, (float)my, (float)scale, (float)scale);
-#else
-        SDL_Rect rect = {mx, my, TIC_SPRITESIZE * scale, TIC_SPRITESIZE * scale};
-        SDL_RenderCopy(platform.gpu.renderer, platform.mouse.texture, NULL, &rect);
-#endif
-    }
-}
-
-static void renderCursor()
-{
-    if(!platform.studio->tic->input.mouse)
-    {
-        SDL_ShowCursor(SDL_DISABLE);
-        return;
-    }
-
-    if(SDL_GetRelativeMouseMode())
-        return;
-
-    if(platform.studio->tic->ram.vram.vars.cursor.system)
-    {
-        const StudioConfig* config = platform.studio->config();
-        const tic_tiles* tiles = &config->cart->bank0.tiles;
-
-        switch(platform.studio->tic->ram.vram.vars.cursor.sprite)
-        {
-        case tic_cursor_hand: 
-            {
-                if(config->theme.cursor.hand >= 0)
-                {
-                    SDL_ShowCursor(SDL_DISABLE);
-                    blitCursor(tiles->data[config->theme.cursor.hand].data);
-                }
-                else
-                {
-                    SDL_ShowCursor(SDL_ENABLE);
-                    SDL_SetCursor(platform.mouse.cursors[HandCursor]);
-                }
-            }
-            break;
-        case tic_cursor_ibeam:
-            {
-                if(config->theme.cursor.ibeam >= 0)
-                {
-                    SDL_ShowCursor(SDL_DISABLE);
-                    blitCursor(tiles->data[config->theme.cursor.ibeam].data);
-                }
-                else
-                {
-                    SDL_ShowCursor(SDL_ENABLE);
-                    SDL_SetCursor(platform.mouse.cursors[IBeamCursor]);
-                }
-            }
-            break;
-        default:
-            {
-                if(config->theme.cursor.arrow >= 0)
-                {
-                    SDL_ShowCursor(SDL_DISABLE);
-                    blitCursor(tiles->data[config->theme.cursor.arrow].data);
-                }
-                else
-                {
-                    SDL_ShowCursor(SDL_ENABLE);
-                    SDL_SetCursor(platform.mouse.cursors[ArrowCursor]);
-                }
-            }
-        }
-    }
-    else
-    {
-        SDL_ShowCursor(SDL_DISABLE);
-        blitCursor(platform.studio->tic->ram.sprites.data[platform.studio->tic->ram.vram.vars.cursor.sprite].data);
-    }
-}
 
 static const char* getAppFolder()
 {
@@ -1597,19 +1393,11 @@ static void gpuTick()
         s32 width = 0;
         SDL_GetWindowSize(platform.window, &width, NULL);
 
-        struct RectIt {Rect src; Rect dst;} Rects[] = 
-        {
-            {{0, 0, TIC80_FULLWIDTH, Header}, {0, 0, width, rect.y}},
-            {{0, TIC80_FULLHEIGHT - Header, TIC80_FULLWIDTH, Header}, {0, rect.y + rect.h, width, rect.y}},
-            {{0, Header, Left, TIC80_HEIGHT}, {0, rect.y, width, rect.h}},
-            {{Left, Top, TIC80_WIDTH, TIC80_HEIGHT}, {rect.x, rect.y, rect.w, rect.h}},
-        };
+        Rect src = {0, 0, TIC80_FULLWIDTH, TIC80_FULLHEIGHT};
+        Rect dst = {rect.x, rect.y, rect.w, rect.h};
 
-        FOR(struct RectIt*, it, Rects)
-            renderCopy(platform.gpu.renderer, platform.gpu.texture, it->src, it->dst);
+        renderCopy(platform.gpu.renderer, platform.gpu.texture, src, dst);
     }
-
-    renderCursor();
 
 #   if defined(TOUCH_INPUT_SUPPORT)
 
@@ -1658,12 +1446,6 @@ static void emsGpuTick()
 
 #endif
 
-static void createMouseCursors()
-{
-    for(s32 i = 0; i < COUNT_OF(platform.mouse.cursors); i++)
-        platform.mouse.cursors[i] = SDL_CreateSystemCursor(SystemCursors[i]);
-}
-
 static s32 start(s32 argc, char **argv, const char* folder)
 {
     platform.studio = studioInit(argc, argv, TIC80_SAMPLERATE, folder);
@@ -1697,8 +1479,6 @@ static s32 start(s32 argc, char **argv, const char* folder)
                         );
 
                 setWindowIcon();
-                createMouseCursors();
-
                 initGPU();
 
                 if(platform.studio->config()->goFullscreen)
@@ -1754,11 +1534,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
 
                 SDL_DestroyWindow(platform.window);
                 SDL_CloseAudioDevice(platform.audio.device);
-
-                for(s32 i = 0; i < COUNT_OF(platform.mouse.cursors); i++)
-                    SDL_FreeCursor(platform.mouse.cursors[i]);
             }
-
         }
     }
 

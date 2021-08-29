@@ -1773,7 +1773,7 @@ static void renderStudio()
         sfx2ram(&tic->ram, sfx);
         music2ram(&tic->ram, music);
 
-        tic_core_tick_start(impl.studio.tic);
+        tic_core_tick_start(tic);
     }
 
     processShortcuts();
@@ -1827,7 +1827,7 @@ static void renderStudio()
     if(getConfig()->noSound)
         memset(tic->ram.registers, 0, sizeof tic->ram.registers);
 
-    tic_core_tick_end(impl.studio.tic);
+    tic_core_tick_end(tic);
 
     switch(impl.mode)
     {
@@ -1914,6 +1914,48 @@ static void processMouseStates()
     }
 }
 
+static void blitCursor()
+{
+    tic_mem* tic = impl.studio.tic;
+    tic80_mouse* m = &tic->ram.input.mouse;
+
+    if(tic->input.mouse && m->x < TIC80_FULLWIDTH && m->y < TIC80_FULLHEIGHT)
+    {
+        const tic_bank* bank = &tic->cart.bank0;
+
+        struct CursorInfo
+        {
+            tic_cursor cursor;
+            tic_point hot;
+        } info = {tic->ram.vram.vars.cursor.sprite};
+
+        if(tic->ram.vram.vars.cursor.system)
+        {
+            bank = &getConfig()->cart->bank0;
+            info = (struct CursorInfo[])
+            {
+                {getConfig()->theme.cursor.arrow,   {0, 0}},
+                {getConfig()->theme.cursor.hand,    {3, 0}},
+                {getConfig()->theme.cursor.ibeam,   {2, 3}},
+            }[tic->ram.vram.vars.cursor.sprite];
+        }
+
+        const tic_palette* pal = &bank->palette.scn;
+        const tic_tile* tile = &bank->tiles.data[info.cursor];
+
+        u32 *dst = tic->screen + (m->x - info.hot.x) + (m->y - info.hot.y) * TIC80_FULLWIDTH, 
+            *end = tic->screen + TIC80_FULLWIDTH * TIC80_FULLHEIGHT;
+
+        for(s32 src = 0; src != TIC_SPRITESIZE * TIC_SPRITESIZE; dst += TIC80_FULLWIDTH - TIC_SPRITESIZE)
+            for(s32 i = 0; i != TIC_SPRITESIZE; ++i, ++dst)
+            {
+                u8 c = tic_tool_peek4(tile->data, src++);
+                if(dst < end && c)
+                    *dst = tic_rgba(&pal->colors[c]);
+            }
+    }
+}
+
 static void studioTick()
 {
     tic_mem* tic = impl.studio.tic;
@@ -1994,6 +2036,8 @@ static void studioTick()
         data
             ? tic_core_blit_ex(tic, tic->screen_format, (tic_blit_callback){scanline, overline}, data)
             : tic_core_blit(tic, tic->screen_format);
+
+        blitCursor();
 
 #if defined(BUILD_EDITORS)
         if(isRecordFrame())

@@ -80,8 +80,6 @@ typedef struct
             s32 arrow;
             s32 hand;
             s32 ibeam;
-
-            bool pixelPerfect;
         } cursor;
 
         struct

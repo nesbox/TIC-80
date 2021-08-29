@@ -135,7 +135,6 @@ static void readCursorTheme(Config* config, lua_State* lua)
         readInteger(lua, "ARROW", &config->data.theme.cursor.arrow);
         readInteger(lua, "HAND", &config->data.theme.cursor.hand);
         readInteger(lua, "IBEAM", &config->data.theme.cursor.ibeam);
-        readBool(lua, "PIXEL_PERFECT", &config->data.theme.cursor.pixelPerfect);
     }
 
     lua_pop(lua, 1);
