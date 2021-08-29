@@ -827,17 +827,28 @@ static void drawPopup()
 
         s32 anim = 0;
 
-        enum{Dur = TIC80_FRAMERATE/2};
+        enum{Dur = TIC80_FRAMERATE/2, Width = TIC80_WIDTH, Height = TIC_FONT_HEIGHT+1};
 
         if(impl.popup.counter < Dur)
-            anim = -((Dur - impl.popup.counter) * (TIC_FONT_HEIGHT+1) / Dur);
+            anim = -((Dur - impl.popup.counter) * Height / Dur);
         else if(impl.popup.counter >= (POPUP_DUR - Dur))
-            anim = (((POPUP_DUR - Dur) - impl.popup.counter) * (TIC_FONT_HEIGHT+1) / Dur);
+            anim = (((POPUP_DUR - Dur) - impl.popup.counter) * Height / Dur);
 
-        tic_api_rect(impl.studio.tic, 0, anim, TIC80_WIDTH, TIC_FONT_HEIGHT+1, tic_color_red);
+        tic_api_rect(impl.studio.tic, 0, anim, Width, Height, tic_color_red);
         tic_api_print(impl.studio.tic, impl.popup.message, 
-            (s32)(TIC80_WIDTH - strlen(impl.popup.message)*TIC_FONT_WIDTH)/2,
+            (s32)(Width - strlen(impl.popup.message) * TIC_FONT_WIDTH)/2,
             anim + 1, tic_color_white, true, 1, false);
+
+        // render popup message
+        {
+            tic_mem* tic = impl.studio.tic;
+            const tic_bank* bank = &getConfig()->cart->bank0;
+            u32* dst = tic->screen + TIC80_MARGIN_LEFT + TIC80_MARGIN_TOP * TIC80_FULLWIDTH;
+
+            for(s32 i = 0, y = 0; y < (Height + anim); y++, dst += TIC80_MARGIN_RIGHT + TIC80_MARGIN_LEFT)
+                for(s32 x = 0; x < Width; x++)
+                *dst++ = tic_rgba(&bank->palette.scn.colors[tic_tool_peek4(tic->ram.vram.screen.data, i++)]);
+        }
     }
 }
 
@@ -912,9 +923,6 @@ void drawToolbar(tic_mem* tic, bool bg)
             tic_api_print(tic, Names[mode], TextOffset, 1, tic_color_grey, false, 1, false);
         }
     }
-
-    // !TODO: fix popup message drawing
-    drawPopup();
 }
 
 void setStudioEvent(StudioEvent event)
@@ -1698,11 +1706,21 @@ static void checkChanges()
     }
 }
 
-// !TODO: fix REC icon drawing
+static void drawBitIconRaw(u32* frame, s32 sx, s32 sy, s32 id, tic_color color)
+{
+    const tic_bank* bank = &getConfig()->cart->bank0;
+
+    u32 *dst = frame + sx + sy * TIC80_FULLWIDTH;
+    for(s32 src = 0; src != TIC_SPRITESIZE * TIC_SPRITESIZE; dst += TIC80_FULLWIDTH - TIC_SPRITESIZE)
+        for(s32 i = 0; i != TIC_SPRITESIZE; ++i, ++dst)
+            if(tic_tool_peek4(&bank->tiles.data[id].data, src++))
+                *dst = tic_rgba(&bank->palette.scn.colors[color]);
+}
+
 static void drawRecordLabel(u32* frame, s32 sx, s32 sy)
 {
-    drawBitIcon(tic_icon_rec, sx, sy, tic_color_red);
-    drawBitIcon(tic_icon_rec2, sx + TIC_SPRITESIZE, sy, tic_color_red);
+    drawBitIconRaw(frame, sx, sy, tic_icon_rec, tic_color_red);
+    drawBitIconRaw(frame, sx + TIC_SPRITESIZE, sy, tic_icon_rec2, tic_color_red);
 }
 
 static bool isRecordFrame(void)
@@ -2004,6 +2022,8 @@ static void studioTick()
 #if defined(BUILD_EDITORS)
         if(isRecordFrame())
             recordFrame(tic->screen);
+
+        drawPopup();
 #endif
     }
 
