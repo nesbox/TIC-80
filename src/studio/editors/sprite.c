@@ -1915,6 +1915,8 @@ static void overline(tic_mem* tic, void* data)
 
     Sprite* sprite = (Sprite*)data;
 
+    memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.scn.data, sizeof(tic_palette));
+
     for(const tic_rect* r = bg; r < bg + COUNT_OF(bg); r++)
         tic_api_rect(tic, r->x, r->y, r->w, r->h, tic_color_grey);
 

@@ -1267,6 +1267,7 @@ static void scanline(tic_mem* tic, s32 row, void* data)
 static void overline(tic_mem* tic, void* data)
 {
     Map* map = (Map*)data;
+    memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.scn.data, sizeof(tic_palette));
 
     tic_api_clip(tic, 0, TOOLBAR_SIZE, TIC80_WIDTH - (sheetVisible(map) ? TIC_SPRITESHEET_SIZE+2 : 0), TIC80_HEIGHT - TOOLBAR_SIZE);
     {

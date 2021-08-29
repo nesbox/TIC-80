@@ -1971,61 +1971,23 @@ static void studioTick()
     renderStudio();
     
     {
-        tic_scanline scanline = NULL;
-        tic_overline overline = NULL;
-        void* data = NULL;
-
-        switch(impl.mode)
-        {
-        case TIC_MENU_MODE:
-            {
-                overline = impl.menu->overline;
-                scanline = impl.menu->scanline;
-                data = impl.menu;
-            }
-            break;
 #if defined(BUILD_EDITORS)
-        case TIC_SPRITE_MODE:
-            {
-                Sprite* sprite = impl.banks.sprite[impl.bank.index.sprites];
-                overline = sprite->overline;
-                scanline = sprite->scanline;
-                data = sprite;
-            }
-            break;
-        case TIC_MAP_MODE:
-            {
-                Map* map = impl.banks.map[impl.bank.index.map];
-                overline = map->overline;
-                scanline = map->scanline;
-                data = map;
-            }
-            break;
-        case TIC_WORLD_MODE:
-            {
-                overline = impl.world->overline;
-                scanline = impl.world->scanline;
-                data = impl.world;
-            }
-            break;
-        case TIC_DIALOG_MODE:
-            {
-                overline = impl.dialog->overline;
-                scanline = impl.dialog->scanline;
-                data = impl.dialog;
-            }
-            break;
-        case TIC_SURF_MODE:
-            {
-                overline = impl.surf->overline;
-                scanline = impl.surf->scanline;
-                data = impl.surf;
-            }
-            break;
+        Sprite* sprite = impl.banks.sprite[impl.bank.index.sprites];
+        Map* map = impl.banks.map[impl.bank.index.map];
 #endif
-        default:
-            break;
-        }
+
+        tic_blit_callback callback[TIC_MODES_COUNT] = 
+        {
+            [TIC_MENU_MODE]     = {impl.menu->scanline,     impl.menu->overline,    NULL,   impl.menu},
+
+#if defined(BUILD_EDITORS)
+            [TIC_SPRITE_MODE]   = {sprite->scanline,        sprite->overline,       NULL,   sprite},
+            [TIC_MAP_MODE]      = {map->scanline,           map->overline,          NULL,   map},
+            [TIC_WORLD_MODE]    = {impl.world->scanline,    impl.world->overline,   NULL,   impl.world},
+            [TIC_DIALOG_MODE]   = {impl.dialog->scanline,   impl.dialog->overline,  NULL,   impl.dialog},
+            [TIC_SURF_MODE]     = {impl.surf->scanline,     impl.surf->overline,    NULL,   impl.surf},
+#endif
+        };
 
         if(impl.mode != TIC_RUN_MODE)
         {
@@ -2033,8 +1995,8 @@ static void studioTick()
             memcpy(tic->ram.font.data, impl.systemFont.data, sizeof(tic_font));
         }
 
-        data
-            ? tic_core_blit_ex(tic, tic->screen_format, (tic_blit_callback){scanline, overline}, data)
+        callback[impl.mode].data
+            ? tic_core_blit_ex(tic, tic->screen_format, callback[impl.mode])
             : tic_core_blit(tic, tic->screen_format);
 
         blitCursor();

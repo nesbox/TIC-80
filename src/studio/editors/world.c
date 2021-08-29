@@ -92,6 +92,8 @@ static void scanline(tic_mem* tic, s32 row, void* data)
 
 static void overline(tic_mem* tic, void* data)
 {
+    memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.scn.data, sizeof(tic_palette));
+
     World* world = (World*)data;
 
     drawGrid(world);

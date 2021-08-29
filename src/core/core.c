@@ -472,7 +472,7 @@ static inline void memset4(void* dst, u32 val, u32 dwords)
 #endif
 }
 
-void tic_core_blit_ex(tic_mem* tic, tic80_pixel_color_format fmt, tic_blit_callback clb, void* data)
+void tic_core_blit_ex(tic_mem* tic, tic80_pixel_color_format fmt, tic_blit_callback clb)
 {
     tic_core* core = (tic_core*)tic;
 
@@ -490,12 +490,12 @@ void tic_core_blit_ex(tic_mem* tic, tic80_pixel_color_format fmt, tic_blit_callb
 #define UPDBRD()                                                        \
         if(clb.border)                                                  \
         {                                                               \
-            clb.border(tic, row, data);                                 \
+            clb.border(tic, row, clb.data);                             \
             pal = tic_tool_palette_blit(&tic->ram.vram.palette, fmt);   \
         }
 
         if (clb.scanline)
-            clb.scanline(tic, 0, data);
+            clb.scanline(tic, 0, clb.data);
 
         const u32* pal = tic_tool_palette_blit(&tic->ram.vram.palette, fmt);
 
@@ -521,7 +521,7 @@ void tic_core_blit_ex(tic_mem* tic, tic80_pixel_color_format fmt, tic_blit_callb
 
             if (clb.scanline && (row < TIC80_HEIGHT + TIC80_MARGIN_TOP - 1))
             {
-                clb.scanline(tic, row - (TIC80_MARGIN_TOP - 1), data);
+                clb.scanline(tic, row - (TIC80_MARGIN_TOP - 1), clb.data);
                 pal = tic_tool_palette_blit(&tic->ram.vram.palette, fmt);
             }
         }
@@ -544,7 +544,7 @@ void tic_core_blit_ex(tic_mem* tic, tic80_pixel_color_format fmt, tic_blit_callb
         memcpy(&tic->ram.vram.palette, &ovrpal, sizeof ovrpal);
 
         {
-            clb.overline(tic, data);
+            clb.overline(tic, clb.data);
 
             const u32* pal = tic_tool_palette_blit(&tic->ram.vram.palette, fmt);
 
@@ -587,7 +587,7 @@ static inline void overline(tic_mem* memory, void* data)
 
 void tic_core_blit(tic_mem* tic, tic80_pixel_color_format fmt)
 {
-    tic_core_blit_ex(tic, fmt, (tic_blit_callback){scanline, overline, border}, NULL);
+    tic_core_blit_ex(tic, fmt, (tic_blit_callback){scanline, overline, border, NULL});
 }
 
 tic_mem* tic_core_create(s32 samplerate)
