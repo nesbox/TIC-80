@@ -768,7 +768,7 @@ static s32 lua_music(lua_State* lua)
 
                     if (top >= 5)
                     {
-                        sustain = getLuaNumber(lua, 5);
+                        sustain = lua_toboolean(lua, 5);
 
                         if (top >= 6)
                         {
