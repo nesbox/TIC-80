@@ -231,7 +231,7 @@ static void drawTileIndex(Map* map, s32 x, s32 y)
 
     if(index >= 0)
     {
-        char buf[] = "#999";
+        char buf[sizeof "#9999"];
         sprintf(buf, "#%03i", index);
         tic_api_print(map->tic, buf, x, y, tic_color_light_grey, true, 1, false);
     }
