@@ -1070,8 +1070,8 @@ static void drawMapReg(Map* map)
             TIC_MAP_SCREEN_WIDTH + 1, TIC_MAP_SCREEN_HEIGHT + 1, -scrollX, -scrollY, 0, 0, 1, NULL, NULL);
         resetBlitMode(map->tic);
 
-        if (map->canvas.grid || map->scroll.active)
-            drawGrid(map);        
+        if (map->canvas.grid)
+            drawGrid(map);
     }
 
     if(handle && !space)
