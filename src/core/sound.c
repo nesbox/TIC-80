@@ -251,6 +251,12 @@ static void processMusic(tic_mem* memory)
     if (row != music_state->music.row
         && jumpCmd->active)
     {
+        if(!music_state->flag.music_loop)
+        {
+            stopMusic(memory);
+            return;
+        }
+
         music_state->music.frame = jumpCmd->frame;
         row = jumpCmd->beat * NOTES_PER_BEAT;
         core->state.music.ticks = row2tick(core, track, row);
