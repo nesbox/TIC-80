@@ -3607,10 +3607,8 @@ static void tick(Console* console)
 
             commandDone(console);
         }
-        else printBack(console, "\n loading cart...");
+        else printBack(console, "\n loading cart...");        
     }
-
-    if (getStudioMode() != TIC_CONSOLE_MODE) return;
 
     tic_api_cls(tic, TIC_COLOR_BG);
     drawConsoleText(console);
@@ -3631,7 +3629,7 @@ static void tick(Console* console)
 
             printLine(console);
             commandDone(console);
-            console->active = true;
+            console->active = true;            
 
             return;
         }
@@ -3640,6 +3638,10 @@ static void tick(Console* console)
     {   
         if(console->cursor.delay)
             console->cursor.delay--;
+
+        console->tickCounter++;
+
+        if(getStudioMode() != TIC_CONSOLE_MODE) return;
 
         drawCursor(console);
 

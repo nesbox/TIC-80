@@ -123,3 +123,5 @@ struct Code
 
 void initCode(Code*, tic_mem*, tic_code* src);
 void freeCode(Code*);
+void codeGetPos(Code*, s32* x, s32* y);
+void codeSetPos(Code*, s32 x, s32 y);
