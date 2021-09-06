@@ -651,7 +651,7 @@ static void ticTexLine(tic_mem* memory, TexVert* v0, TexVert* v1)
         step_v /= dy;
     }
 
-    float x = top->x;
+    float x = top->x + 0.5f;
     float y = top->y;
     float u = top->u;
     float v = top->v;
