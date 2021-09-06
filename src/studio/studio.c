@@ -1917,6 +1917,8 @@ static void processMouseStates()
     }
 }
 
+#if defined(BUILD_EDITORS)
+
 static void doCodeExport()
 {
     char pos[sizeof impl.lovebyte.last.postag];
@@ -1996,6 +1998,8 @@ static void doCodeImport()
         fclose(file);
     }
 }
+
+#endif
 
 static void studioTick()
 {
@@ -2311,11 +2315,13 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder)
     if(args.cli)
         args.skip = true;
 
+#if defined(BUILD_EDITORS)
     if(args.skip)
     {
         impl.console->tick(impl.console);
         gotoCode();
     }
+#endif
 
     return &impl.studio;
 }
