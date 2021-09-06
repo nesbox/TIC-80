@@ -126,20 +126,6 @@ static void readConfigCrtShader(Config* config, lua_State* lua)
 
 #endif
 
-static void readCursorTheme(Config* config, lua_State* lua)
-{
-    lua_getfield(lua, -1, "CURSOR");
-
-    if(lua_type(lua, -1) == LUA_TTABLE)
-    {
-        readInteger(lua, "ARROW", &config->data.theme.cursor.arrow);
-        readInteger(lua, "HAND", &config->data.theme.cursor.hand);
-        readInteger(lua, "IBEAM", &config->data.theme.cursor.ibeam);
-    }
-
-    lua_pop(lua, 1);
-}
-
 static void readCodeTheme(Config* config, lua_State* lua)
 {
     lua_getfield(lua, -1, "CODE");
@@ -187,7 +173,6 @@ static void readTheme(Config* config, lua_State* lua)
 
     if(lua_type(lua, -1) == LUA_TTABLE)
     {
-        readCursorTheme(config, lua);
         readCodeTheme(config, lua);
         readGamepadTheme(config, lua);
     }

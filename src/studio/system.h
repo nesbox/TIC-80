@@ -77,13 +77,6 @@ typedef struct
     {
         struct
         {
-            s32 arrow;
-            s32 hand;
-            s32 ibeam;
-        } cursor;
-
-        struct
-        {
 #define     CODE_COLOR_DEF(VAR) u8 VAR;
             CODE_COLORS_LIST(CODE_COLOR_DEF)
 #undef      CODE_COLOR_DEF

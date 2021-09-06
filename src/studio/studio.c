@@ -1941,27 +1941,23 @@ static void blitCursor()
     {
         const tic_bank* bank = &tic->cart.bank0;
 
-        struct CursorInfo
-        {
-            tic_cursor cursor;
-            tic_point hot;
-        } info = {tic->ram.vram.vars.cursor.sprite};
+        tic_point hot = {0};
 
         if(tic->ram.vram.vars.cursor.system)
         {
             bank = &getConfig()->cart->bank0;
-            info = (struct CursorInfo[])
+            hot = (tic_point[])
             {
-                {getConfig()->theme.cursor.arrow,   {0, 0}},
-                {getConfig()->theme.cursor.hand,    {3, 0}},
-                {getConfig()->theme.cursor.ibeam,   {2, 3}},
+                {0, 0},
+                {3, 0},
+                {2, 3},
             }[tic->ram.vram.vars.cursor.sprite];
         }
 
         const tic_palette* pal = &bank->palette.scn;
-        const tic_tile* tile = &bank->tiles.data[info.cursor];
+        const tic_tile* tile = &bank->sprites.data[tic->ram.vram.vars.cursor.sprite];
 
-        u32 *dst = tic->screen + (m->x - info.hot.x) + (m->y - info.hot.y) * TIC80_FULLWIDTH, 
+        u32 *dst = tic->screen + (m->x - hot.x) + (m->y - hot.y) * TIC80_FULLWIDTH, 
             *end = tic->screen + TIC80_FULLWIDTH * TIC80_FULLHEIGHT;
 
         for(s32 src = 0; src != TIC_SPRITESIZE * TIC_SPRITESIZE; dst += TIC80_FULLWIDTH - TIC_SPRITESIZE)
