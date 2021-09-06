@@ -1937,7 +1937,7 @@ static void blitCursor()
     tic_mem* tic = impl.studio.tic;
     tic80_mouse* m = &tic->ram.input.mouse;
 
-    if(tic->input.mouse && m->x < TIC80_FULLWIDTH && m->y < TIC80_FULLHEIGHT)
+    if(tic->input.mouse && !m->relative && m->x < TIC80_FULLWIDTH && m->y < TIC80_FULLHEIGHT)
     {
         const tic_bank* bank = &tic->cart.bank0;
 
