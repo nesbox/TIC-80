@@ -108,7 +108,8 @@ typedef struct
     bool cli;
 
 #if defined(CRT_SHADER_SUPPORT)
-    bool crtMonitor;
+    bool soft;
+    bool crt;
     struct
     {
         const char* vertex;

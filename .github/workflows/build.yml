@@ -7,8 +7,8 @@ env:
 
 jobs:
 
-# === Windows XP SDL2 ===
-  winxp-sdl:
+# === Windows XP ===
+  winxp:
     runs-on: windows-latest
 
     steps:
@@ -27,46 +27,17 @@ jobs:
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-winxp-sdl'
+        name: 'tic80-winxp'
         path: build/bin/tic80.exe
 
     - name: Deploy stubs
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-winxp-sdl-stub'
+        name: 'tic80-winxp-stub'
         path: build/bin/tic80*.exe
 
-# === Windows SDL2 ===
-  windows-sdl:
-    runs-on: windows-latest
-
-    steps:
-    - uses: actions/checkout@v2
-      with: 
-        submodules: recursive
-        fetch-depth: 0
-
-    - name: Build
-      shell: cmd
-      run: |
-        cd build
-        cmake -G "Visual Studio 16 2019" -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_STUB=On ..
-        cmake --build . --config %BUILD_TYPE% --parallel
-
-    - name: Deploy
-      uses: actions/upload-artifact@v2
-      with:
-        name: 'tic80-windows-sdl'
-        path: build/bin/tic80.exe
-
-    - name: Deploy stubs
-      uses: actions/upload-artifact@v2
-      with:
-        name: 'tic80-windows-sdl-stub'
-        path: build/bin/tic80*.exe
-
-# === Windows SDLGPU ===
-  windows-sdlgpu:
+# === Windows ===
+  windows:
     runs-on: windows-latest
 
     steps:
@@ -85,11 +56,17 @@ jobs:
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-windows-sdlgpu'
+        name: 'tic80-windows'
         path: build/bin/tic80.exe
 
-# === Windows SDLGPU PRO ===
-  windows-sdlgpu-pro:
+    - name: Deploy stubs
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-windows-stub'
+        path: build/bin/tic80*.exe
+
+# === Windows PRO ===
+  windows-pro:
     runs-on: windows-latest
 
     steps:
@@ -129,42 +106,8 @@ jobs:
         name: 'tic80-windows-sokol'
         path: build/bin/tic80.exe
 
-# === Ubuntu SDLGPU ===
-  linux-sdlgpu:
-    runs-on: ubuntu-16.04
-
-    steps:
-    - uses: actions/checkout@v2
-      with: 
-        submodules: recursive
-        fetch-depth: 0
-
-    - name: Install
-      run: |
-        sudo apt-get update
-        sudo apt-get install libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev -y
-
-    - name: Build
-      run: |
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SDLGPU=On -DBUILD_STUB=On ..
-        cmake --build . --config $BUILD_TYPE --parallel
-        cpack
-
-    - name: Deploy DEB
-      uses: actions/upload-artifact@v2
-      with:
-        name: 'tic80-linux-sdlgpu-deb'
-        path: build/tic80.deb
-
-    - name: Deploy ZIP
-      uses: actions/upload-artifact@v2
-      with:
-        name: 'tic80-linux-sdlgpu'
-        path: build/bin/tic80
-
-# === Ubuntu SDLGPU PRO ===
-  linux-sdlgpu-pro:
+# === Ubuntu PRO ===
+  linux-pro:
     runs-on: ubuntu-16.04
 
     steps:
@@ -185,8 +128,8 @@ jobs:
         cmake --build . --config $BUILD_TYPE --parallel
         cpack
 
-# === Ubuntu SDL2 ===
-  linux-sdl:
+# === Ubuntu ===
+  linux:
     runs-on: ubuntu-16.04
 
     steps:
@@ -203,26 +146,26 @@ jobs:
     - name: Build
       run: |
         cd build
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_STUB=On ..
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE DBUILD_SDLGPU=On -DBUILD_STUB=On ..
         cmake --build . --config $BUILD_TYPE --parallel
         cpack
 
     - name: Deploy DEB
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-linux-sdl-deb'
+        name: 'tic80-linux-deb'
         path: build/tic80.deb
 
     - name: Deploy ZIP
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-linux-sdl'
+        name: 'tic80-linux'
         path: build/bin/tic80
 
     - name: Deploy stubs
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-linux-sdl-stub'
+        name: 'tic80-linux-stub'
         path: build/bin/tic80*
 
 # === Raspberry PI ===
@@ -387,8 +330,8 @@ jobs:
         name: 'tic80-nintendo-3ds'
         path: build/bin/tic80.3dsx
 
-# === MacOS 10.15 SDL2 ===
-  macos-sdl:
+# === MacOS 10.15 ===
+  macos:
     runs-on: macos-10.15
 
     steps:
@@ -403,7 +346,7 @@ jobs:
     - name: Build
       run: |
         cd build
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_STUB=On ..
+        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE DBUILD_SDLGPU=On -DBUILD_STUB=On ..
         cmake --build . --config $BUILD_TYPE --parallel
         cpack
         cp *.dmg tic80.dmg
@@ -411,50 +354,23 @@ jobs:
     - name: Deploy DMG
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-macos-sdl-dmg'
+        name: 'tic80-macos-dmg'
         path: build/tic80.dmg
 
     - name: Deploy
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-macos-sdl'
+        name: 'tic80-macos'
         path: build/bin/tic80
 
     - name: Deploy stubs
       uses: actions/upload-artifact@v2
       with:
-        name: 'tic80-macos-sdl-stub'
+        name: 'tic80-macos-stub'
         path: build/bin/tic80*
 
-# === MacOS 10.15 SDLGPU ===
-  macos-sdlgpu:
-    runs-on: macos-10.15
-
-    steps:
-    - uses: actions/checkout@v2
-      with: 
-        submodules: recursive
-        fetch-depth: 0
-
-    - name: Install
-      run: brew uninstall --ignore-dependencies libidn2
-
-    - name: Build
-      run: |
-        cd build
-        cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SDLGPU=On -DBUILD_STUB=On ..
-        cmake --build . --config $BUILD_TYPE --parallel
-        cpack
-        cp *.dmg tic80.dmg
-
-    - name: Deploy DMG
-      uses: actions/upload-artifact@v2
-      with:
-        name: 'tic80-macos-sdlgpu-dmg'
-        path: build/tic80.dmg
-
-# === MacOS 10.15 SDLGPU PRO ===
-  macos-sdlgpu-pro:
+# === MacOS 10.15 PRO ===
+  macos-pro:
     runs-on: macos-10.15
 
     steps:
@@ -552,26 +468,26 @@ jobs:
 
 # === Export ===
   export:
-    needs: [winxp-sdl, windows-sdl, linux-sdl, rpi, macos-sdl, wasm]
+    needs: [winxp, windows, linux, rpi, macos, wasm]
     runs-on: ubuntu-latest
 
     steps:
       - name: Download Windows XP artifact
         uses: actions/download-artifact@v2
         with:
-          name: tic80-winxp-sdl
+          name: tic80-winxp
           path: winxpdir
 
       - name: Download Windows artifact
         uses: actions/download-artifact@v2
         with:
-          name: tic80-windows-sdl
+          name: tic80-windows
           path: windir
 
       - name: Download Ubuntu artifact
         uses: actions/download-artifact@v2
         with:
-          name: tic80-linux-sdl
+          name: tic80-linux
           path: linuxdir
 
       - name: Download RPI artifact
@@ -583,7 +499,7 @@ jobs:
       - name: Download MacOS artifact
         uses: actions/download-artifact@v2
         with:
-          name: tic80-macos-sdl
+          name: tic80-macos
           path: macdir
 
       - name: Download WASM artifact
@@ -625,19 +541,19 @@ jobs:
       - name: Download Windows XP artifact
         uses: actions/download-artifact@v2
         with:
-          name: tic80-winxp-sdl-stub
+          name: tic80-winxp-stub
           path: winxpdir
 
       - name: Download Windows artifact
         uses: actions/download-artifact@v2
         with:
-          name: tic80-windows-sdl-stub
+          name: tic80-windows-stub
           path: windir
 
       - name: Download Ubuntu artifact
         uses: actions/download-artifact@v2
         with:
-          name: tic80-linux-sdl-stub
+          name: tic80-linux-stub
           path: linuxdir
 
       - name: Download RPI artifact
@@ -649,7 +565,7 @@ jobs:
       - name: Download MacOS artifact
         uses: actions/download-artifact@v2
         with:
-          name: tic80-macos-sdl-stub
+          name: tic80-macos-stub
           path: macdir
 
       - name: Download WASM artifact
@@ -691,10 +607,10 @@ jobs:
         with:
           name: |
             tic80-rpi
-            tic80-macos-sdl
-            tic80-winxp-sdl-stub
-            tic80-windows-sdl-stub
-            tic80-linux-sdl-stub
+            tic80-macos
+            tic80-winxp-stub
+            tic80-windows-stub
+            tic80-linux-stub
             tic80-rpi-stub
-            tic80-macos-sdl-stub
+            tic80-macos-stub
             tic80-wasm-stub

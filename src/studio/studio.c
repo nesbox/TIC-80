@@ -1533,7 +1533,7 @@ static inline bool keyWasPressedOnce(s32 key)
 #if defined(CRT_SHADER_SUPPORT)
 void switchCrtMonitor()
 {
-    impl.config->data.crtMonitor = !impl.config->data.crtMonitor;
+    impl.config->data.crt = !impl.config->data.crt;
 }
 #endif
 
@@ -2176,17 +2176,18 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder)
         impl.config->data.uiScale = args.scale;
 
 #if defined(CRT_SHADER_SUPPORT)
-    impl.config->data.crtMonitor = args.crt;
+    impl.config->data.soft  |= args.soft;
+    impl.config->data.crt   |= args.crt;
 #endif
 
-    impl.config->data.goFullscreen = args.fullscreen;
-    impl.config->data.noSound = args.nosound;
-    impl.config->data.cli = args.cli;
+    impl.config->data.goFullscreen  |= args.fullscreen;
+    impl.config->data.noSound       |= args.nosound;
+    impl.config->data.cli           |= args.cli;
 
-    impl.studio.tick = studioTick;
-    impl.studio.close = studioClose;
-    impl.studio.exit = exitStudio;
-    impl.studio.config = getConfig;
+    impl.studio.tick    = studioTick;
+    impl.studio.close   = studioClose;
+    impl.studio.exit    = exitStudio;
+    impl.studio.config  = getConfig;
 
     if(args.cli)
         args.skip = true;

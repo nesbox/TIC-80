@@ -193,7 +193,8 @@ static void readConfig(Config* config)
             readGlobalBool(lua, "CHECK_NEW_VERSION", &config->data.checkNewVersion);
             readGlobalBool(lua, "NO_SOUND", &config->data.noSound);
 #if defined(CRT_SHADER_SUPPORT)
-            readGlobalBool(lua, "CRT_MONITOR", &config->data.crtMonitor);
+            readGlobalBool(lua, "SOFTWARE_RENDERING", &config->data.soft);
+            readGlobalBool(lua, "CRT_MONITOR", &config->data.crt);
             readConfigCrtShader(config, lua);
 #endif
             readGlobalInteger(lua, "UI_SCALE", &config->data.uiScale);

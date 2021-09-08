@@ -63,7 +63,8 @@
 #define PNG_EXT ".png"
 
 #if defined(CRT_SHADER_SUPPORT)
-#   define CRT_CMD_PARAM(macro) \
+#   define CRT_CMD_PARAM(macro)                                 \
+    macro(soft, bool, BOOLEAN, "", "use software rendering")    \
     macro(crt, bool, BOOLEAN, "", "enable CRT monitor effect")
 #else
 #   define CRT_CMD_PARAM(macro)
