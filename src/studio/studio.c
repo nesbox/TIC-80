@@ -1957,16 +1957,17 @@ static void blitCursor()
         const tic_palette* pal = &bank->palette.scn;
         const tic_tile* tile = &bank->sprites.data[tic->ram.vram.vars.cursor.sprite];
 
-        u32 *dst = tic->screen + (m->x - hot.x) + (m->y - hot.y) * TIC80_FULLWIDTH, 
-            *end = tic->screen + TIC80_FULLWIDTH * TIC80_FULLHEIGHT;
+        tic_point s = {m->x - hot.x, m->y - hot.y};
+        u32* dst = tic->screen + TIC80_FULLWIDTH * s.y + s.x;
 
-        for(s32 src = 0; src != TIC_SPRITESIZE * TIC_SPRITESIZE; dst += TIC80_FULLWIDTH - TIC_SPRITESIZE)
-            for(s32 i = 0; i != TIC_SPRITESIZE; ++i, ++dst)
-            {
-                u8 c = tic_tool_peek4(tile->data, src++);
-                if(dst < end && c)
-                    *dst = tic_rgba(&pal->colors[c]);
-            }
+        for(s32 y = s.y, endy = MIN(y + TIC_SPRITESIZE, TIC80_FULLHEIGHT), i = 0; y != endy; ++y, dst += TIC80_FULLWIDTH - TIC_SPRITESIZE)
+            for(s32 x = s.x, endx = x + TIC_SPRITESIZE; x != endx; ++x, ++i, ++dst)
+                if(x < TIC80_FULLWIDTH)
+                {
+                    u8 c = tic_tool_peek4(tile->data, i);
+                    if(c)
+                        *dst = tic_rgba(&pal->colors[c]);
+                }
     }
 }
 
