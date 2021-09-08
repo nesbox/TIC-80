@@ -1386,48 +1386,6 @@ static void onInstallDemosCommand(Console* console)
         }
 #endif
 
-#if defined(TIC_BUILD_WITH_LUA)
-        static const u8 luamark[] =
-        {
-            #include "../build/assets/luamark.tic.dat"
-        };
-#endif
-
-#if defined(TIC_BUILD_WITH_MOON)
-        static const u8 moonmark[] =
-        {
-            #include "../build/assets/moonmark.tic.dat"
-        };
-#endif
-
-#if defined(TIC_BUILD_WITH_FENNEL)
-        static const u8 fennelmark[] =
-        {
-            #include "../build/assets/luamark.tic.dat"
-        };
-#endif
-
-#if defined(TIC_BUILD_WITH_JS)
-        static const u8 jsmark[] =
-        {
-            #include "../build/assets/jsmark.tic.dat"
-        };
-#endif
-
-#if defined(TIC_BUILD_WITH_SQUIRREL)
-        static const u8 squirrelmark[] =
-        {
-            #include "../build/assets/squirrelmark.tic.dat"
-        };
-#endif
-
-#if defined(TIC_BUILD_WITH_WREN)
-        static const u8 wrenmark[] =
-        {
-            #include "../build/assets/wrenmark.tic.dat"
-        };
-#endif
-
         static const char* Bunny = "bunny";
 
         tic_fs_makedir(fs, Bunny);
