@@ -1751,9 +1751,25 @@ void evalSquirrel(tic_mem* tic, const char* code) {
     sq_settop(vm, 0);
 }
 
-static const tic_script_config SquirrelSyntaxConfig = 
+static const u8 SquirrelDemoRom[] =
+{
+    #include "../build/assets/squirreldemo.tic.dat"
+};
+
+static const u8 squirrelmark[] =
+{
+    #include "../build/assets/squirrelmark.tic.dat"
+};
+
+tic_script_config SquirrelSyntaxConfig = 
 {
     .name               = "squirrel",
+    .fileExtension      = ".nut",
+    .projectComment     = "//",
+    .demoRom            = SquirrelDemoRom,
+    .demoRomSize        = sizeof SquirrelDemoRom,
+    .markRom            = squirrelmark,
+    .markRomSize        = sizeof squirrelmark,
     .init               = initSquirrel,
     .close              = closeSquirrel,
     .tick               = callSquirrelTick,

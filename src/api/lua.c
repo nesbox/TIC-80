@@ -1611,9 +1611,24 @@ static void evalLua(tic_mem* tic, const char* code) {
     }
 }
 
-static const tic_script_config LuaSyntaxConfig = 
+static const u8 LuaDemoRom[] =
+{
+    #include "../build/assets/luademo.tic.dat"
+};
+static const u8 LuaMarkRom[] =
+{
+    #include "../build/assets/luamark.tic.dat"
+};
+
+tic_script_config LuaSyntaxConfig = 
 {
     .name               = "lua",
+    .fileExtension      = ".lua",
+    .projectComment     = "--",
+    .demoRom               = LuaDemoRom,
+    .demoRomSize           = sizeof LuaDemoRom,
+    .markRom               = LuaMarkRom,
+    .markRomSize           = sizeof LuaMarkRom,
     .init               = initLua,
     .close              = closeLua,
     .tick               = callLuaTick,
@@ -1784,9 +1799,26 @@ static const tic_outline_item* getMoonOutline(const char* code, s32* size)
     return items;
 }
 
-static const tic_script_config MoonSyntaxConfig = 
+static const u8 MoonDemoRom[] =
+{
+    #include "../build/assets/moondemo.tic.dat"
+};
+static const u8 MoonMarkRom[] =
+{
+    #include "../build/assets/moonmark.tic.dat"
+};
+
+
+
+tic_script_config MoonSyntaxConfig = 
 {
     .name               = "moon",
+    .fileExtension      = ".moon",
+    .projectComment     = "--",
+    .demoRom            = MoonDemoRom,
+    .demoRomSize        = sizeof MoonDemoRom,
+    .markRom            = MoonMarkRom,
+    .markRomSize        = sizeof MoonMarkRom,
     .init               = initMoonscript,
     .close              = closeLua,
     .tick               = callLuaTick,
@@ -1964,10 +1996,26 @@ static void evalFennel(tic_mem* tic, const char* code) {
     }
 }
 
+static const u8 FennelDemoRom[] =
+{
+    #include "../build/assets/fenneldemo.tic.dat"
+};
+/* does not exists
+static const u8 FennelMarkRom[] =
+{
+    #include "../build/assets/fennelmark.tic.dat"
+};
+*/
 
-static const tic_script_config FennelSyntaxConfig =
+tic_script_config FennelSyntaxConfig =
 {
     .name               = "fennel",
+    .fileExtension      = ".fnl",
+    .projectComment     = ";;",
+    .demoRom            = FennelDemoRom,
+    .demoRomSize        = sizeof FennelDemoRom,
+    .markRom            = NULL,
+    .markRomSize        = 0,
     .init               = initFennel,
     .close              = closeLua,
     .tick               = callLuaTick,

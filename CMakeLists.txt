@@ -296,6 +296,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
     set(TIC80CORE_DIR ${CMAKE_SOURCE_DIR}/src)
     set(TIC80CORE_SRC
         ${TIC80CORE_DIR}/core/core.c
+        ${TIC80CORE_DIR}/core/languages.c
         ${TIC80CORE_DIR}/core/draw.c
         ${TIC80CORE_DIR}/core/io.c
         ${TIC80CORE_DIR}/core/sound.c

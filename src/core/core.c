@@ -222,28 +222,15 @@ static bool compareMetatag(const char* code, const char* tag, const char* value,
     return result;
 }
 
-#define SCRIPT_DEF(name, _, __, vm) const tic_script_config* get_## name ##_script_config();
-    SCRIPT_LIST(SCRIPT_DEF)
-#undef SCRIPT_DEF
-
 const tic_script_config* tic_core_script_config(tic_mem* memory)
 {
-    static const struct Config
-    {
-        const char* name;
-        const tic_script_config*(*func)();
-    } Configs[] = 
-    {
-#define SCRIPT_DEF(name, ...) {#name, get_## name ##_script_config},
-        SCRIPT_LIST(SCRIPT_DEF)
-#undef  SCRIPT_DEF
-    };
-
-    FOR(const struct Config*, it, Configs)
-        if(compareMetatag(memory->cart.code.data, "script", it->name, it->func()->singleComment))
-            return it->func();
-
-    return Configs->func();
+    FOR_EACH_LANG(it)
+        if(compareMetatag(memory->cart.code.data, "script", it->name, it->singleComment))
+        {
+            return it;
+        }
+    FOR_EACH_LANG_END
+    return Languages[0];
 }
 
 static void updateSaveid(tic_mem* memory)
@@ -411,9 +398,9 @@ void tic_core_close(tic_mem* memory)
 
     core->state.initialized = false;
 
-#define SCRIPT_DEF(name, ...) get_## name ##_script_config()->close(memory);
-    SCRIPT_LIST(SCRIPT_DEF)
-#undef  SCRIPT_DEF
+    FOR_EACH_LANG(ln)
+        ln->close(memory);
+    FOR_EACH_LANG_END
 
     blip_delete(core->blip.left);
     blip_delete(core->blip.right);

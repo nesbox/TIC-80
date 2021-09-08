@@ -1099,9 +1099,25 @@ void evalJs(tic_mem* tic, const char* code) {
     printf("TODO: JS eval not yet implemented\n.");
 }
 
-static const tic_script_config JsSyntaxConfig =
+static const u8 JsDemoRom[] =
+{
+    #include "../build/assets/jsdemo.tic.dat"
+};
+
+static const u8 jsmark[] =
+{
+    #include "../build/assets/jsmark.tic.dat"
+};
+
+const tic_script_config JsSyntaxConfig =
 {
     .name               = "js",
+    .fileExtension      = ".js",
+    .projectComment     = "//",
+    .demoRom            = JsDemoRom,
+    .demoRomSize        = sizeof JsDemoRom,
+    .markRom            = jsmark,
+    .markRomSize        = sizeof jsmark,
     .init               = initJavascript,
     .close              = closeJavascript,
     .tick               = callJavascriptTick,

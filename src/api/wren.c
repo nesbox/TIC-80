@@ -1609,9 +1609,25 @@ static void evalWren(tic_mem* tic, const char* code)
     wrenInterpret(core->wren, "main", code);
 }
 
-static const tic_script_config WrenSyntaxConfig = 
+static const u8 WrenDemoRom[] =
+{
+    #include "../build/assets/wrendemo.tic.dat"
+};
+
+static const u8 wrenmark[] =
+{
+    #include "../build/assets/wrenmark.tic.dat"
+};
+
+tic_script_config WrenSyntaxConfig = 
 {
     .name               = "wren",
+    .fileExtension      = ".wren",
+    .projectComment     = "//",
+    .demoRom            = WrenDemoRom,
+    .demoRomSize        = sizeof WrenDemoRom,
+    .markRom            = wrenmark,
+    .markRomSize        = sizeof wrenmark,
     .init               = initWren,
     .close              = closeWren,
     .tick               = callWrenTick,
