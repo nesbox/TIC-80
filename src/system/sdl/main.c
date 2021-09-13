@@ -1116,19 +1116,21 @@ void tic_sys_poll()
         }
     }
 
-#if defined(__LINUX__)
-    if(lockInput)
-        return;
-#endif    
-
     processMouse();
 
 #if defined(TOUCH_INPUT_SUPPORT)
     processTouchInput();
 #endif
 
-    processKeyboard();
     processGamepad();
+
+    SCOPE(processKeyboard())
+    {
+#if defined(__LINUX__)
+        if(!lockInput)
+            return;
+#endif
+    }
 }
 
 bool tic_sys_keyboard_text(char* text)
