@@ -2011,8 +2011,8 @@ static void studioTick()
         }
 
         callback[impl.mode].data
-            ? tic_core_blit_ex(tic, tic->screen_format, callback[impl.mode])
-            : tic_core_blit(tic, tic->screen_format);
+            ? tic_core_blit_ex(tic, callback[impl.mode])
+            : tic_core_blit(tic);
 
         blitCursor();
 

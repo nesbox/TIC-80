@@ -472,11 +472,12 @@ static inline void memset4(void* dst, u32 val, u32 dwords)
 #endif
 }
 
-void tic_core_blit_ex(tic_mem* tic, tic80_pixel_color_format fmt, tic_blit_callback clb)
+void tic_core_blit_ex(tic_mem* tic, tic_blit_callback clb)
 {
     tic_core* core = (tic_core*)tic;
 
     tic_palette ovrpal;
+    tic80_pixel_color_format fmt = tic->screen_format;
 
     if(clb.overline)
     {
@@ -585,9 +586,9 @@ static inline void overline(tic_mem* memory, void* data)
         core->state.callback.overline(memory, data);
 }
 
-void tic_core_blit(tic_mem* tic, tic80_pixel_color_format fmt)
+void tic_core_blit(tic_mem* tic)
 {
-    tic_core_blit_ex(tic, fmt, (tic_blit_callback){scanline, overline, border, NULL});
+    tic_core_blit_ex(tic, (tic_blit_callback){scanline, overline, border, NULL});
 }
 
 tic_mem* tic_core_create(s32 samplerate)

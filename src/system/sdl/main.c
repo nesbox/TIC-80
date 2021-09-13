@@ -350,7 +350,7 @@ static void initTouchKeyboardState(Texture* texture, void** pixels, bool down)
 
     tic_api_map(tic, down ? Cols : 0, 0, Cols, Rows, 0, 0, 0, 0, 1, NULL, NULL);
     drawKeyboardLabels(down ? 2 : 0);
-    tic_core_blit(tic, tic->screen_format);
+    tic_core_blit(tic);
     *pixels = SDL_malloc(TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32));
     memcpy(*pixels, tic->screen, TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32));
 
@@ -432,7 +432,7 @@ static void initTouchGamepad()
 
         platform.gamepad.touch.pixels = SDL_malloc(TEXTURE_SIZE * TEXTURE_SIZE * sizeof(u32));
 
-        tic_core_blit(tic, tic->screen_format);
+        tic_core_blit(tic);
 
         for(u32* pix = tic->screen, *end = pix + TIC80_FULLWIDTH * TIC80_FULLHEIGHT; pix != end; ++pix)
             if(*pix == tic_rgba(&bank->palette.scn.colors[0]))

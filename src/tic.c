@@ -118,7 +118,7 @@ TIC80_API void tic80_tick(tic80* tic, const tic80_input* input)
     tic_core_tick(tic80->memory, &tic80->tickData);
     tic_core_tick_end(tic80->memory);
 
-    tic_core_blit(tic80->memory, tic80->memory->screen_format);
+    tic_core_blit(tic80->memory);
 
     tic80->tick_counter++;
 }

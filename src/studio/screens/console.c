@@ -2057,7 +2057,7 @@ static void onExport_mapimg(Console* console, const char* param, const char* pat
                     tic_api_map(tic, c * TIC_MAP_SCREEN_WIDTH, r * TIC_MAP_SCREEN_HEIGHT, 
                         TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, NULL, 0, 1, NULL, NULL);
 
-                    tic_core_blit(tic, tic->screen_format);
+                    tic_core_blit(tic);
 
                     for(s32 j = 0; j < TIC80_HEIGHT; j++)
                         for(s32 i = 0; i < TIC80_WIDTH; i++)
