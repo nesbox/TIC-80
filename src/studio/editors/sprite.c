@@ -1644,6 +1644,9 @@ static void processKeyboard(Sprite* sprite)
     default: break;
     }
 
+    if(tic_api_key(tic, tic_key_alt))
+        return;
+
     if(sprite->palette.edit)
     {
         if(sprite->palette.focus >= 0)

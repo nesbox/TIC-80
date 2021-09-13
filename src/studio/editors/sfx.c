@@ -527,10 +527,10 @@ static void processKeyboard(Sfx* sfx)
         tic_key_m,
     };
 
-    if(ctrl)
-    {
+    if(tic_api_key(tic, tic_key_alt))
+        return;
 
-    }
+    if(ctrl) {}
     else
     {
         for(int i = 0; i < COUNT_OF(Keycodes); i++)

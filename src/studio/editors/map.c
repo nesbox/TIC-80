@@ -1201,6 +1201,9 @@ static void processKeyboard(Map* map)
     default: break;
     }
     
+    if(tic_api_key(tic, tic_key_alt))
+        return;
+
     if(ctrl)
     {
         if(keyWasPressed(tic_key_z))        undo(map);

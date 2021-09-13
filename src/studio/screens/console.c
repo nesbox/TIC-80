@@ -3538,10 +3538,11 @@ static void processKeyboard(Console* console)
 {
     tic_mem* tic = console->tic;
 
-
     if(!console->active)
         return;
 
+    if(tic_api_key(tic, tic_key_alt))
+        return;
 
     if(tic->ram.input.keyboard.data != 0)
     {

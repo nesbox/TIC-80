@@ -1403,6 +1403,9 @@ static void processKeyboard(Music* music)
 
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
     bool shift = tic_api_key(tic, tic_key_shift);
+    
+    if(tic_api_key(tic, tic_key_alt))
+        return;
 
     if (ctrl)
     {
