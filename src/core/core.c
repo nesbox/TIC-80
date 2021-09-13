@@ -308,12 +308,28 @@ void tic_api_reset(tic_mem* memory)
 
 static void cart2ram(tic_mem* memory)
 {
-    static const u8 Font[] =
+    memory->ram.font = (tic_font)
     {
-        #include "font.inl"
-    };
+        .regular =     
+        {
+            .data = 
+            {
+                #include "font.inl"
+            },
+            .width = TIC_FONT_WIDTH, 
+            .height = TIC_FONT_HEIGHT, 
+        },
 
-    memcpy(memory->ram.font.data, Font, sizeof Font);
+        .alt = 
+        {
+            .data = 
+            {
+                #include "altfont.inl"
+            },
+            .width = TIC_ALTFONT_WIDTH, 
+            .height = TIC_FONT_HEIGHT, 
+        },
+    };
 
     enum
     {

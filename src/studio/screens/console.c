@@ -2779,7 +2779,10 @@ static s32 createRamTable(char* buf)
         {offsetof(tic_ram, stereo),                 "STEREO VOLUME"},
         {offsetof(tic_ram, persistent),             "PERSISTENT MEMORY"},
         {offsetof(tic_ram, flags),                  "SPRITE FLAGS"},
-        {offsetof(tic_ram, font),                   "SYSTEM FONT"},
+        {offsetof(tic_ram, font.regular),           "FONT"},
+        {offsetof(tic_ram, font.regular.params),    "FONT PARAMS"},
+        {offsetof(tic_ram, font.alt),               "ALT FONT"},
+        {offsetof(tic_ram, font.alt.params),        "ALT FONT PARAMS"},
         {offsetof(tic_ram, free),                   "... (free)"},
         {TIC_RAM_SIZE,                              ""},
     };
@@ -3060,7 +3063,7 @@ static void printTable(Console* console, const char* text)
 
 static void onHelp_ram(Console* console)
 {
-    char buf[1024];
+    char buf[2048];
     createRamTable(buf);
     printTable(console, buf);
 }

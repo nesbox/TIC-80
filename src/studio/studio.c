@@ -196,6 +196,7 @@ static struct
     tic_fs* fs;
 
     s32 samplerate;
+
     tic_font systemFont;
 
 } impl =
@@ -1864,15 +1865,29 @@ static void updateSystemFont()
 {
     tic_mem* tic = impl.studio.tic;
 
-    memset(impl.systemFont.data, 0, sizeof(tic_font));
+    impl.systemFont = (tic_font)
+    {
+        .regular =
+        {
+            .width       = TIC_FONT_WIDTH,
+            .height      = TIC_FONT_HEIGHT,
+        },
+        .alt = 
+        {
+            .width       = TIC_ALTFONT_WIDTH,
+            .height      = TIC_FONT_HEIGHT,            
+        }
+    };
 
-    for(s32 i = 0; i < TIC_FONT_CHARS; i++)
+    u8* dst = (u8*)&impl.systemFont;
+
+    for(s32 i = 0; i < TIC_FONT_CHARS * 2; i++)
         for(s32 y = 0; y < TIC_SPRITESIZE; y++)
             for(s32 x = 0; x < TIC_SPRITESIZE; x++)
                 if(tic_tool_peek4(&impl.config->cart->bank0.sprites.data[i], TIC_SPRITESIZE*y + x))
-                    impl.systemFont.data[i*BITS_IN_BYTE+y] |= 1 << x;
+                    dst[i*BITS_IN_BYTE+y] |= 1 << x;
 
-    memcpy(tic->ram.font.data, impl.systemFont.data, sizeof(tic_font));
+    tic->ram.font = impl.systemFont;
 }
 
 void studioConfigChanged()
@@ -2007,7 +2022,7 @@ static void studioTick()
         if(impl.mode != TIC_RUN_MODE)
         {
             memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.scn.data, sizeof(tic_palette));
-            memcpy(tic->ram.font.data, impl.systemFont.data, sizeof(tic_font));
+            tic->ram.font = impl.systemFont;
         }
 
         callback[impl.mode].data

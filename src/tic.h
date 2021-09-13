@@ -102,7 +102,7 @@
 #define TIC_GAMEPADS (sizeof(tic80_gamepads) / sizeof(tic80_gamepad))
 
 #define SFX_NOTES {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
-#define TIC_FONT_CHARS 256
+#define TIC_FONT_CHARS 128
 
 #define TIC_UNUSED(x) (void)x
 
@@ -434,7 +434,24 @@ typedef struct
 
 typedef struct
 {
-    u8 data[TIC_FONT_CHARS * BITS_IN_BYTE];
+    u8 data[(TIC_FONT_CHARS - 1) * BITS_IN_BYTE];
+
+    union
+    {
+        struct
+        {
+            u8 width;
+            u8 height;
+        };
+
+        u8 params[BITS_IN_BYTE];
+    };
+} tic_font_data;
+
+typedef struct
+{
+    tic_font_data regular;
+    tic_font_data alt;
 } tic_font;
 
 typedef union
