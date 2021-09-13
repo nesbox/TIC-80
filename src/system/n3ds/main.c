@@ -161,6 +161,8 @@ void tic_sys_clipboard_set(const char* text)
         free(platform.clipboard);
         platform.clipboard = NULL;
     }
+
+    platform.clipboard = strdup(text);
 }
 
 bool tic_sys_clipboard_has()
