@@ -105,6 +105,7 @@
     macro(tiles)                \
     macro(sprites)              \
     macro(map)                  \
+    macro(mapimg)               \
     macro(sfx)                  \
     macro(music)                \
     macro(screen)               \
@@ -2032,6 +2033,45 @@ static void onExport_map(Console* console, const char* param, const char* path, 
         memcpy(buffer, map->data, Size);
 
         onFileExported(console, filename, tic_fs_save(console->fs, filename, buffer, Size, true));
+    }
+}
+
+static void onExport_mapimg(Console* console, const char* param, const char* path, ExportParams params)
+{
+    const char* filename = getFilename(path, ".png");
+
+    enum{Width = TIC_MAP_WIDTH * TIC_SPRITESIZE, Height = TIC_MAP_HEIGHT * TIC_SPRITESIZE};
+
+    png_img img = {Width, Height, malloc(Width * Height * sizeof(png_rgba))};
+
+    SCOPE(free(img.data))
+    {
+        {
+            tic_mem* tic = console->tic;
+
+            tic_api_sync(tic, -1, params.bank, false);
+
+            for(s32 r = 0; r < TIC_MAP_ROWS; r++)
+                for(s32 c = 0; c < TIC_MAP_COLS; c++)
+                {
+                    tic_api_map(tic, c * TIC_MAP_SCREEN_WIDTH, r * TIC_MAP_SCREEN_HEIGHT, 
+                        TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, NULL, 0, 1, NULL, NULL);
+
+                    tic_core_blit(tic, tic->screen_format);
+
+                    for(s32 j = 0; j < TIC80_HEIGHT; j++)
+                        for(s32 i = 0; i < TIC80_WIDTH; i++)
+                            img.values[(i + c * TIC80_WIDTH) + (j + r * TIC80_HEIGHT) * Width] = 
+                                tic->screen[(i + TIC80_MARGIN_LEFT) + (j + TIC80_MARGIN_TOP) * TIC80_FULLWIDTH];
+                }
+        }
+
+        png_buffer png = png_write(img);
+
+        SCOPE(free(png.data))
+        {
+            onFileExported(console, filename, tic_fs_save(console->fs, filename, png.data, png.size, true));
+        }
     }
 }
 
