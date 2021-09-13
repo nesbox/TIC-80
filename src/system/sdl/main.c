@@ -1122,8 +1122,6 @@ void tic_sys_poll()
     processTouchInput();
 #endif
 
-    processGamepad();
-
     SCOPE(processKeyboard())
     {
 #if defined(__LINUX__)
@@ -1131,6 +1129,8 @@ void tic_sys_poll()
             return;
 #endif
     }
+
+    processGamepad();
 }
 
 bool tic_sys_keyboard_text(char* text)
