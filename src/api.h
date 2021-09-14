@@ -76,10 +76,6 @@ typedef struct
     const char* name;
     const char* fileExtension;
     const char* projectComment;
-    const void* demoRom;
-    const s32   demoRomSize;
-    const void* markRom;
-    const s32   markRomSize;
     struct
     {
         bool(*init)(tic_mem* memory, const char* code);
@@ -103,7 +99,6 @@ typedef struct
     const char* const * keywords;
     s32 keywordsCount;
 } tic_script_config;
-
 
 extern tic_script_config* Languages[];
 

@@ -316,6 +316,35 @@ static void cart2ram(tic_mem* memory)
     tic_api_sync(memory, EMPTY(memory->cart.bank0.screen.data) ? noscreen : all, 0, false);
 }
 
+static void tic_close_current_vm(tic_core* core)
+{
+    // close previous VM if any
+    if(core->currentVM)
+    {
+        // printf("Closing VM of %s, %d\n", core->currentScript->name, core->currentVM);
+        core->currentScript->close( (tic_mem*)core );
+        core->currentVM = NULL;
+    }
+}
+
+static bool tic_init_vm(tic_core* core, const char* code, const tic_script_config* config)
+{
+    tic_close_current_vm(core);
+    // set current script config and init
+    core->currentScript = config;
+    bool done = config->init( (tic_mem*) core , code);
+    if(!done)
+    {
+        // if it couldn't init, make sure the VM is not left dirty by the implementation
+        core->currentVM = NULL;
+    }
+    else
+    {
+        //printf("Initialized VM of %s, %d\n", core->currentScript->name, core->currentVM);
+    }
+    return done;
+}
+
 void tic_core_tick(tic_mem* tic, tic_tick_data* data)
 {
     tic_core* core = (tic_core*)tic;
@@ -346,7 +375,7 @@ void tic_core_tick(tic_mem* tic, tic_tick_data* data)
 
             data->start = data->counter(core->data->data);
 
-            done = config->init(tic, code);
+            done = tic_init_vm(core, code, config);
         }
         else
         {
@@ -398,9 +427,7 @@ void tic_core_close(tic_mem* memory)
 
     core->state.initialized = false;
 
-    FOR_EACH_LANG(ln)
-        ln->close(memory);
-    FOR_EACH_LANG_END
+    tic_close_current_vm(core);
 
     blip_delete(core->blip.left);
     blip_delete(core->blip.right);

@@ -27,6 +27,7 @@
 #include "studio/config.h"
 #include "ext/png.h"
 #include "zip.h"
+#include "studio/demos.h"
 
 #if defined(TIC80_PRO)
 #include "studio/project.h"
@@ -607,12 +608,12 @@ static void loadCartSection(Console* console, const tic_cartridge* cart, const c
 
 static const char* getDemoCartPath(char* path, tic_script_config* script)
 {
-    printf("Demo cart path of %s: ", script->name);
+    //printf("Demo cart path of %s: ", script->name);
     strcpy(path, TIC_LOCAL_VERSION "default_");
     strcat(path, script->name);
     strcat(path, ".tic");
 
-    printf("%s\n", path);
+    //printf("%s\n", path);
 
     return path;
 }
@@ -628,8 +629,10 @@ static void* getDemoCart(Console* console, tic_script_config* script, s32* size)
         if(data && *size)
             return data;
     }
-    const u8* demo = script->demoRom;
-    s32 romSize = script->demoRomSize;
+    tic_script_config_extra* ex = getConfigExtra(script);
+
+    const u8* demo = ex->demoRom;
+    s32 romSize = ex->demoRomSize;
 
     u8* data = calloc(1, sizeof(tic_cartridge));
 
@@ -1393,12 +1396,13 @@ static void onInstallDemosCommand(Console* console)
 
         FOR_EACH_LANG(ln)
         {
-            if (ln->markRom != NULL) { // having a Mark is not mandatory
+            tic_script_config_extra* ex = getConfigExtra(ln);
+            if (ex->markRom != NULL) { // having a Mark is not mandatory
                 char cartname[1024];
                 strcpy(cartname, ln->name);
                 strcat(cartname, "mark.tic");
 
-                tic_fs_save(fs, cartname, data, tic_tool_unzip(data, sizeof(tic_cartridge), ln->markRom, ln->markRomSize), true);
+                tic_fs_save(fs, cartname, data, tic_tool_unzip(data, sizeof(tic_cartridge), ex->markRom, ex->markRomSize), true);
                 printFront(console, Bunny);
                 printFront(console, "/");
                 printFront(console, cartname);

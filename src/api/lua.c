@@ -45,8 +45,8 @@ static s32 getLuaNumber(lua_State* lua, s32 index)
 
 static void registerLuaFunction(tic_core* core, lua_CFunction func, const char *name)
 {
-    lua_pushcfunction(core->lua, func);
-    lua_setglobal(core->lua, name);
+    lua_pushcfunction(core->currentVM, func);
+    lua_setglobal(core->currentVM, name);
 }
 
 static tic_core* getLuaCore(lua_State* lua)
@@ -1366,8 +1366,8 @@ static void checkForceExit(lua_State *lua, lua_Debug *luadebug)
 
 static void initAPI(tic_core* core)
 {
-    lua_pushlightuserdata(core->lua, core);
-    lua_setglobal(core->lua, TicCore);
+    lua_pushlightuserdata(core->currentVM, core);
+    lua_setglobal(core->currentVM, TicCore);
 
 #define API_FUNC_DEF(name, ...) {lua_ ## name, #name},
     static const struct{lua_CFunction func; const char* name;} ApiItems[] = {TIC_API_LIST(API_FUNC_DEF)};
@@ -1379,17 +1379,17 @@ static void initAPI(tic_core* core)
     registerLuaFunction(core, lua_dofile, "dofile");
     registerLuaFunction(core, lua_loadfile, "loadfile");
 
-    lua_sethook(core->lua, &checkForceExit, LUA_MASKCOUNT, LUA_LOC_STACK);
+    lua_sethook(core->currentVM, &checkForceExit, LUA_MASKCOUNT, LUA_LOC_STACK);
 }
 
 static void closeLua(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
 
-    if(core->lua)
+    if(core->currentVM)
     {
-        lua_close(core->lua);
-        core->lua = NULL;
+        lua_close(core->currentVM);
+        core->currentVM = NULL;
     }
 }
 
@@ -1399,13 +1399,13 @@ static bool initLua(tic_mem* tic, const char* code)
 
     closeLua(tic);
 
-    lua_State* lua = core->lua = luaL_newstate();
+    lua_State* lua = core->currentVM = luaL_newstate();
     lua_open_builtins(lua);
 
     initAPI(core);
 
     {
-        lua_State* lua = core->lua;
+        lua_State* lua = core->currentVM;
 
         lua_settop(lua, 0);
 
@@ -1458,7 +1458,7 @@ static void callLuaTick(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
 
-    lua_State* lua = core->lua;
+    lua_State* lua = core->currentVM;
 
     if(lua)
     {
@@ -1479,7 +1479,7 @@ static void callLuaTick(tic_mem* tic)
 static void callLuaScanlineName(tic_mem* tic, s32 row, void* data, const char* name)
 {
     tic_core* core = (tic_core*)tic;
-    lua_State* lua = core->lua;
+    lua_State* lua = core->currentVM;
 
     if (lua)
     {
@@ -1510,7 +1510,7 @@ static void callLuaBorder(tic_mem* tic, s32 row, void* data)
 static void callLuaOverline(tic_mem* tic, void* data)
 {
     tic_core* core = (tic_core*)tic;
-    lua_State* lua = core->lua;
+    lua_State* lua = core->currentVM;
 
     if (lua)
     {
@@ -1599,7 +1599,7 @@ static const tic_outline_item* getLuaOutline(const char* code, s32* size)
 
 static void evalLua(tic_mem* tic, const char* code) {
     tic_core* core = (tic_core*)tic;
-    lua_State* lua = core->lua;
+    lua_State* lua = core->currentVM;
 
     if (!lua) return;
 
@@ -1611,24 +1611,11 @@ static void evalLua(tic_mem* tic, const char* code) {
     }
 }
 
-static const u8 LuaDemoRom[] =
-{
-    #include "../build/assets/luademo.tic.dat"
-};
-static const u8 LuaMarkRom[] =
-{
-    #include "../build/assets/luamark.tic.dat"
-};
-
 tic_script_config LuaSyntaxConfig = 
 {
     .name               = "lua",
     .fileExtension      = ".lua",
     .projectComment     = "--",
-    .demoRom               = LuaDemoRom,
-    .demoRomSize           = sizeof LuaDemoRom,
-    .markRom               = LuaMarkRom,
-    .markRomSize           = sizeof LuaMarkRom,
     .init               = initLua,
     .close              = closeLua,
     .tick               = callLuaTick,
@@ -1695,7 +1682,7 @@ static bool initMoonscript(tic_mem* tic, const char* code)
     tic_core* core = (tic_core*)tic;
     closeLua(tic);
 
-    lua_State* lua = core->lua = luaL_newstate();
+    lua_State* lua = core->currentVM = luaL_newstate();
     lua_open_builtins(lua);
 
     luaopen_lpeg(lua);
@@ -1704,7 +1691,7 @@ static bool initMoonscript(tic_mem* tic, const char* code)
     initAPI(core);
 
     {
-        lua_State* moon = core->lua;
+        lua_State* moon = core->currentVM;
 
         lua_settop(moon, 0);
 
@@ -1799,26 +1786,11 @@ static const tic_outline_item* getMoonOutline(const char* code, s32* size)
     return items;
 }
 
-static const u8 MoonDemoRom[] =
-{
-    #include "../build/assets/moondemo.tic.dat"
-};
-static const u8 MoonMarkRom[] =
-{
-    #include "../build/assets/moonmark.tic.dat"
-};
-
-
-
 tic_script_config MoonSyntaxConfig = 
 {
     .name               = "moon",
     .fileExtension      = ".moon",
     .projectComment     = "--",
-    .demoRom            = MoonDemoRom,
-    .demoRomSize        = sizeof MoonDemoRom,
-    .markRom            = MoonMarkRom,
-    .markRomSize        = sizeof MoonMarkRom,
     .init               = initMoonscript,
     .close              = closeLua,
     .tick               = callLuaTick,
@@ -1868,13 +1840,13 @@ static bool initFennel(tic_mem* tic, const char* code)
     tic_core* core = (tic_core*)tic;
     closeLua(tic);
 
-    lua_State* lua = core->lua = luaL_newstate();
+    lua_State* lua = core->currentVM = luaL_newstate();
     lua_open_builtins(lua);
 
     initAPI(core);
 
     {
-        lua_State* fennel = core->lua;
+        lua_State* fennel = core->currentVM;
 
         lua_settop(fennel, 0);
 
@@ -1977,7 +1949,7 @@ static const tic_outline_item* getFennelOutline(const char* code, s32* size)
 
 static void evalFennel(tic_mem* tic, const char* code) {
     tic_core* core = (tic_core*)tic;
-    lua_State* fennel = core->lua;
+    lua_State* fennel = core->currentVM;
 
     lua_settop(fennel, 0);
 
@@ -1996,26 +1968,11 @@ static void evalFennel(tic_mem* tic, const char* code) {
     }
 }
 
-static const u8 FennelDemoRom[] =
-{
-    #include "../build/assets/fenneldemo.tic.dat"
-};
-/* does not exists
-static const u8 FennelMarkRom[] =
-{
-    #include "../build/assets/fennelmark.tic.dat"
-};
-*/
-
 tic_script_config FennelSyntaxConfig =
 {
     .name               = "fennel",
     .fileExtension      = ".fnl",
     .projectComment     = ";;",
-    .demoRom            = FennelDemoRom,
-    .demoRomSize        = sizeof FennelDemoRom,
-    .markRom            = NULL,
-    .markRomSize        = 0,
     .init               = initFennel,
     .close              = closeLua,
     .tick               = callLuaTick,

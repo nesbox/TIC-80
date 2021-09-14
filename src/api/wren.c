@@ -200,24 +200,24 @@ static inline bool isList(WrenVM* vm, s32 index)
 static void closeWren(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
-    if(core->wren)
+    if(core->currentVM)
     {   
         // release handles
         if (loaded)
         {
-            wrenReleaseHandle(core->wren, new_handle);
-            wrenReleaseHandle(core->wren, update_handle);
-            wrenReleaseHandle(core->wren, scanline_handle);
-            wrenReleaseHandle(core->wren, border_handle);
-            wrenReleaseHandle(core->wren, overline_handle);
+            wrenReleaseHandle(core->currentVM, new_handle);
+            wrenReleaseHandle(core->currentVM, update_handle);
+            wrenReleaseHandle(core->currentVM, scanline_handle);
+            wrenReleaseHandle(core->currentVM, border_handle);
+            wrenReleaseHandle(core->currentVM, overline_handle);
             if (game_class != NULL) 
             {
-                wrenReleaseHandle(core->wren, game_class);
+                wrenReleaseHandle(core->currentVM, game_class);
             }
         }
 
-        wrenFreeVM(core->wren);
-        core->wren = NULL;
+        wrenFreeVM(core->currentVM);
+        core->currentVM = NULL;
 
     }
     loaded = false;
@@ -1392,9 +1392,9 @@ static WrenForeignMethodFn bindForeignMethod(
 
 static void initAPI(tic_core* core)
 {
-    wrenSetUserData(core->wren, core);
+    wrenSetUserData(core->currentVM, core);
 
-    if (wrenInterpret(core->wren, "main", tic_wren_api) != WREN_RESULT_SUCCESS)
+    if (wrenInterpret(core->currentVM, "main", tic_wren_api) != WREN_RESULT_SUCCESS)
     {                   
         core->data->error(core->data->data, "can't load TIC wren api");
     }
@@ -1436,11 +1436,11 @@ static bool initWren(tic_mem* tic, const char* code)
     config.errorFn = reportError;
     config.writeFn = writeFn;
 
-    WrenVM* vm = core->wren = wrenNewVM(&config);
+    WrenVM* vm = core->currentVM = wrenNewVM(&config);
 
     initAPI(core);
     
-    if (wrenInterpret(core->wren, "main", code) != WREN_RESULT_SUCCESS)
+    if (wrenInterpret(core->currentVM, "main", code) != WREN_RESULT_SUCCESS)
     {
         return false;
     }
@@ -1464,7 +1464,7 @@ static bool initWren(tic_mem* tic, const char* code)
         wrenEnsureSlots(vm, 1);
         wrenSetSlotHandle(vm, 0, game_class);
         wrenCall(vm, new_handle);
-        wrenReleaseHandle(core->wren, game_class); // release game class handle
+        wrenReleaseHandle(core->currentVM, game_class); // release game class handle
         game_class = NULL;
         if (wrenGetSlotCount(vm) == 0) 
         {
@@ -1483,7 +1483,7 @@ static bool initWren(tic_mem* tic, const char* code)
 static void callWrenTick(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
-    WrenVM* vm = core->wren;
+    WrenVM* vm = core->currentVM;
 
     if(vm && game_class)
     {
@@ -1496,7 +1496,7 @@ static void callWrenTick(tic_mem* tic)
 static void callWrenScanline(tic_mem* tic, s32 row, void* data)
 {
     tic_core* core = (tic_core*)tic;
-    WrenVM* vm = core->wren;
+    WrenVM* vm = core->currentVM;
 
     if(vm && game_class)
     {
@@ -1510,7 +1510,7 @@ static void callWrenScanline(tic_mem* tic, s32 row, void* data)
 static void callWrenBorder(tic_mem* tic, s32 row, void* data)
 {
     tic_core* core = (tic_core*)tic;
-    WrenVM* vm = core->wren;
+    WrenVM* vm = core->currentVM;
 
     if(vm && game_class)
     {
@@ -1524,7 +1524,7 @@ static void callWrenBorder(tic_mem* tic, s32 row, void* data)
 static void callWrenOverline(tic_mem* tic, void* data)
 {
     tic_core* core = (tic_core*)tic;
-    WrenVM* vm = core->wren;
+    WrenVM* vm = core->currentVM;
 
     if (vm && game_class)
     {
@@ -1606,28 +1606,14 @@ static const tic_outline_item* getWrenOutline(const char* code, s32* size)
 static void evalWren(tic_mem* tic, const char* code)
 {
     tic_core* core = (tic_core*)tic;
-    wrenInterpret(core->wren, "main", code);
+    wrenInterpret(core->currentVM, "main", code);
 }
-
-static const u8 WrenDemoRom[] =
-{
-    #include "../build/assets/wrendemo.tic.dat"
-};
-
-static const u8 wrenmark[] =
-{
-    #include "../build/assets/wrenmark.tic.dat"
-};
 
 tic_script_config WrenSyntaxConfig = 
 {
     .name               = "wren",
     .fileExtension      = ".wren",
     .projectComment     = "//",
-    .demoRom            = WrenDemoRom,
-    .demoRomSize        = sizeof WrenDemoRom,
-    .markRom            = wrenmark,
-    .markRomSize        = sizeof wrenmark,
     .init               = initWren,
     .close              = closeWren,
     .tick               = callWrenTick,

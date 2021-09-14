@@ -42,50 +42,6 @@
 #   define TIC_BUILD_WITH_LUA 1
 #endif
 
-#if defined(TIC_BUILD_WITH_LUA)
-#   define TIC_LUA_DEF(macro) macro(lua, ".lua", "--", lua_State)
-#else 
-#   define TIC_LUA_DEF(macro)
-#endif
-
-#if defined(TIC_BUILD_WITH_MOON)
-#   define TIC_MOON_DEF(macro) macro(moon, ".moon", "--", lua_State)
-#else 
-#   define TIC_MOON_DEF(macro)
-#endif
-
-#if defined(TIC_BUILD_WITH_FENNEL)
-#   define TIC_FENNEL_DEF(macro) macro(fennel, ".fnl", ";;", lua_State)
-#else 
-#   define TIC_FENNEL_DEF(macro)
-#endif
-
-#if defined(TIC_BUILD_WITH_JS)
-#   define TIC_JS_DEF(macro) macro(js, ".js", "//", duk_hthread)
-#else 
-#   define TIC_JS_DEF(macro)
-#endif
-
-#if defined(TIC_BUILD_WITH_SQUIRREL)
-#   define TIC_SQUIRREL_DEF(macro) macro(squirrel, ".nut", "//", SQVM)
-#else 
-#   define TIC_SQUIRREL_DEF(macro)
-#endif
-
-#if defined(TIC_BUILD_WITH_WREN)
-#   define TIC_WREN_DEF(macro) macro(wren, ".wren", "//", WrenVM)
-#else 
-#   define TIC_WREN_DEF(macro)
-#endif
-
-#define SCRIPT_LIST(macro) \
-    TIC_LUA_DEF     (macro) \
-    TIC_MOON_DEF    (macro) \
-    TIC_FENNEL_DEF  (macro) \
-    TIC_JS_DEF      (macro) \
-    TIC_SQUIRREL_DEF(macro) \
-    TIC_WREN_DEF    (macro)
-
 #if defined(__APPLE__)
 // TODO: this disables macos config 
 #   include "AvailabilityMacros.h"

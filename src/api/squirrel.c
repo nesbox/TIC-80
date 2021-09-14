@@ -55,11 +55,11 @@ static s32 getSquirrelNumber(HSQUIRRELVM vm, s32 index)
 
 static void registerSquirrelFunction(tic_core* core, SQFUNCTION func, const char *name)
 {
-    sq_pushroottable(core->squirrel);
-    sq_pushstring(core->squirrel, name, -1);
-    sq_newclosure(core->squirrel, func, 0);
-    sq_newslot(core->squirrel, -3, SQTrue);
-    sq_poptop(core->squirrel); // remove root table.
+    sq_pushroottable(core->currentVM);
+    sq_pushstring(core->currentVM, name, -1);
+    sq_newclosure(core->currentVM, func, 0);
+    sq_newslot(core->currentVM, -3, SQTrue);
+    sq_poptop(core->currentVM); // remove root table.
 }
 
 static tic_core* getSquirrelCore(HSQUIRRELVM vm)
@@ -1459,13 +1459,13 @@ static void checkForceExit(HSQUIRRELVM vm, SQInteger type, const SQChar* sourceN
 
 static void initAPI(tic_core* core)
 {
-    HSQUIRRELVM vm = core->squirrel;
+    HSQUIRRELVM vm = core->currentVM;
     
     sq_setcompilererrorhandler(vm, squirrel_compilerError);
         
     sq_pushregistrytable(vm);
     sq_pushstring(vm, TicCore, -1);
-    sq_pushuserpointer(core->squirrel, core);
+    sq_pushuserpointer(core->currentVM, core);
     sq_newslot(vm, -3, SQTrue);
     sq_poptop(vm);
 
@@ -1494,10 +1494,10 @@ static void closeSquirrel(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
 
-    if(core->squirrel)
+    if(core->currentVM)
     {
-        sq_close(core->squirrel);
-        core->squirrel = NULL;
+        sq_close(core->currentVM);
+        core->currentVM = NULL;
     }
 }
 
@@ -1507,7 +1507,7 @@ static bool initSquirrel(tic_mem* tic, const char* code)
 
     closeSquirrel(tic);
 
-    HSQUIRRELVM vm = core->squirrel = sq_open(100);
+    HSQUIRRELVM vm = core->currentVM = sq_open(100);
     squirrel_open_builtins(vm);
 
     sq_newclosure(vm, squirrel_errorHandler, 0);
@@ -1516,7 +1516,7 @@ static bool initSquirrel(tic_mem* tic, const char* code)
     initAPI(core);
 
     {
-        HSQUIRRELVM vm = core->squirrel;
+        HSQUIRRELVM vm = core->currentVM;
 
         sq_settop(vm, 0);
 
@@ -1545,7 +1545,7 @@ static void callSquirrelTick(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
 
-    HSQUIRRELVM vm = core->squirrel;
+    HSQUIRRELVM vm = core->currentVM;
 
     if(vm)
     {
@@ -1579,7 +1579,7 @@ static void callSquirrelTick(tic_mem* tic)
 static void callSquirrelScanlineName(tic_mem* tic, s32 row, void* data, const char* name)
 {
     tic_core* core = (tic_core*)tic;
-    HSQUIRRELVM vm = core->squirrel;
+    HSQUIRRELVM vm = core->currentVM;
 
     if (vm)
     {
@@ -1622,7 +1622,7 @@ static void callSquirrelBorder(tic_mem* tic, s32 row, void* data)
 static void callSquirrelOverline(tic_mem* tic, void* data)
 {
     tic_core* core = (tic_core*)tic;
-    HSQUIRRELVM vm = core->squirrel;
+    HSQUIRRELVM vm = core->currentVM;
 
     if (vm)
     {
@@ -1724,14 +1724,14 @@ static const tic_outline_item* getSquirrelOutline(const char* code, s32* size)
 
 void evalSquirrel(tic_mem* tic, const char* code) {
     tic_core* core = (tic_core*)tic;
-    HSQUIRRELVM vm = core->squirrel;
+    HSQUIRRELVM vm = core->currentVM;
 
     // make sure that the Squirrel interpreter is initialized.
     if (vm == NULL)
     {
         if (!initSquirrel(tic, ""))
             return;
-        vm = core->squirrel;
+        vm = core->currentVM;
     }
     
     sq_settop(vm, 0);
@@ -1751,25 +1751,11 @@ void evalSquirrel(tic_mem* tic, const char* code) {
     sq_settop(vm, 0);
 }
 
-static const u8 SquirrelDemoRom[] =
-{
-    #include "../build/assets/squirreldemo.tic.dat"
-};
-
-static const u8 squirrelmark[] =
-{
-    #include "../build/assets/squirrelmark.tic.dat"
-};
-
 tic_script_config SquirrelSyntaxConfig = 
 {
     .name               = "squirrel",
     .fileExtension      = ".nut",
     .projectComment     = "//",
-    .demoRom            = SquirrelDemoRom,
-    .demoRomSize        = sizeof SquirrelDemoRom,
-    .markRom            = squirrelmark,
-    .markRomSize        = sizeof squirrelmark,
     .init               = initSquirrel,
     .close              = closeSquirrel,
     .tick               = callSquirrelTick,
