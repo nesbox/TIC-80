@@ -7,7 +7,6 @@ typedef struct
     const s32   demoRomSize;
     const void* markRom;
     const s32   markRomSize;
-    const tic_script_demo* demos[];
 } tic_script_config_extra;
 
 
