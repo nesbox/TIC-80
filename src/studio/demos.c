@@ -134,17 +134,14 @@ tic_script_config_extra SquirrelSyntaxConfigExtra =
 
 tic_script_config_extra* getConfigExtra(const tic_script_config* config)
 {
-    printf("getConfigExtra %s", config->name);
 
     for (tic_script_config_extra** conf = LanguagesExtra ; *conf != NULL; conf++ ) { 
         tic_script_config_extra* ln = *conf;
         if (strcmp(config->name, ln->name) == 0)
         {
-            printf("Found extra: %s", ln->name);
             return ln;
         }
     }
-    printf("NOT Found extra");
     return NULL;
 }
 
@@ -163,6 +160,9 @@ tic_script_config_extra* LanguagesExtra[] = {
 #endif
 #if defined(TIC_BUILD_WITH_SQUIRREL)
    &SquirrelSyntaxConfigExtra,
+#endif
+#if defined(TIC_BUILD_WITH_JS)
+   &JsSyntaxConfigExtra,
 #endif
    NULL
 };
