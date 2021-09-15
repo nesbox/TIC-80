@@ -123,10 +123,15 @@ static void runNoise(blip_buffer_t* blip, const tic_sound_register* reg, tic_sou
         data->phase = 1;
 
     s32 period = freq2period(reg->freq);
+    static const s32 Feedback[] = {0x12000, 0xd008, 0x6000, 0x3802, 0x1c80, 0xe08, 0x500, 0x240, 0x110, 0xb8, 0x60, 0x30, 0x14, 0xc, 0x6, 0x3};
+
+    static_assert(COUNT_OF(Feedback) == 16, "Feedback");
+
+    s32 fb = Feedback[tic_tool_peek4(reg->waveform.data, 0)];
 
     for (; data->time < end_time; data->time += period)
     {
-        data->phase = ((data->phase & 1) * (0b11 << 13)) ^ (data->phase >> 1);
+        data->phase = ((data->phase & 1) * fb) ^ (data->phase >> 1);
         update_amp(blip, data, getAmp(reg, (data->phase & 1) ? volume : 0));
     }
 }
@@ -517,7 +522,7 @@ static void stereo_tick_end(tic_mem* memory, tic_sound_register_data* registers,
         const tic_sound_register* reg = &memory->ram.registers[i];
         tic_sound_register_data* data = registers + i;
 
-        EMPTY(reg->waveform.data)
+        FLAT(&reg->waveform)
             ? runNoise(blip, reg, data, EndTime, volume)
             : runEnvelope(blip, reg, data, EndTime, volume);
 
