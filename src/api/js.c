@@ -36,10 +36,10 @@ static void closeJavascript(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
 
-    if(core->js)
+    if(core->currentVM)
     {
-        duk_destroy_heap(core->js);
-        core->js = NULL;
+        duk_destroy_heap(core->currentVM);
+        core->currentVM = NULL;
     }
 }
 
@@ -921,7 +921,7 @@ static void initDuktape(tic_core* core)
 {
     closeJavascript((tic_mem*)core);
 
-    duk_context* duk = core->js = duk_create_heap(NULL, NULL, NULL, core, NULL);
+    duk_context* duk = core->currentVM = duk_create_heap(NULL, NULL, NULL, core, NULL);
 
     {
         duk_push_global_stash(duk);
@@ -936,8 +936,8 @@ static void initDuktape(tic_core* core)
 
     for (s32 i = 0; i < COUNT_OF(ApiItems); i++)
     {
-        duk_push_c_function(core->js, ApiItems[i].func, ApiItems[i].params);
-        duk_put_global_string(core->js, ApiItems[i].name);
+        duk_push_c_function(core->currentVM, ApiItems[i].func, ApiItems[i].params);
+        duk_put_global_string(core->currentVM, ApiItems[i].name);
     }
 }
 
@@ -946,7 +946,7 @@ static bool initJavascript(tic_mem* tic, const char* code)
     tic_core* core = (tic_core*)tic;
 
     initDuktape(core);
-    duk_context* duktape = core->js;
+    duk_context* duktape = core->currentVM;
 
     if (duk_pcompile_string(duktape, 0, code) != 0 || duk_peval_string(duktape, code) != 0)
     {
@@ -964,7 +964,7 @@ static void callJavascriptTick(tic_mem* tic)
 
     tic_core* core = (tic_core*)tic;
 
-    duk_context* duk = core->js;
+    duk_context* duk = core->currentVM;
 
     if(duk)
     {
@@ -984,7 +984,7 @@ static void callJavascriptTick(tic_mem* tic)
 static void callJavascriptScanlineName(tic_mem* tic, s32 row, void* data, const char* name)
 {
     tic_core* core = (tic_core*)tic;
-    duk_context* duk = core->js;
+    duk_context* duk = core->currentVM;
 
     if(duk_get_global_string(duk, name))
     {
@@ -1013,7 +1013,7 @@ static void callJavascriptBorder(tic_mem* tic, s32 row, void* data)
 static void callJavascriptOverline(tic_mem* tic, void* data)
 {
     tic_core* core = (tic_core*)tic;
-    duk_context* duk = core->js;
+    duk_context* duk = core->currentVM;
 
     if(duk_get_global_string(duk, OVR_FN))
     {
@@ -1099,9 +1099,11 @@ void evalJs(tic_mem* tic, const char* code) {
     printf("TODO: JS eval not yet implemented\n.");
 }
 
-static const tic_script_config JsSyntaxConfig =
+const tic_script_config JsSyntaxConfig =
 {
     .name               = "js",
+    .fileExtension      = ".js",
+    .projectComment     = "//",
     .init               = initJavascript,
     .close              = closeJavascript,
     .tick               = callJavascriptTick,

@@ -22,7 +22,7 @@
 
 #include "project.h"
 #include "tools.h"
-
+#include "api.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -120,28 +120,25 @@ static char* saveBinarySection(char* ptr, const char* comment, const char* tag, 
     return ptr;
 }
 
-static const struct Ext{const char* name; const char* comment;} ExtList[] =
-{
-#define SCRIPT_DEF(_, ext, comment, ...) {ext, comment},
-    SCRIPT_LIST(SCRIPT_DEF)
-#undef SCRIPT_DEF
-};
-
 static const char* projectComment(const char* name)
 {
-    FOR(const struct Ext*, ext, ExtList)
-        if(tic_tool_has_ext(name, ext->name))
-            return ext->comment;
-
-    return ExtList->comment;
+    FOR_EACH_LANG(ln)
+    {
+        if(tic_tool_has_ext(name, ln->fileExtension))
+            return ln->projectComment;
+    }
+    FOR_EACH_LANG_END
+    return Languages[0]->projectComment;
 }
 
 bool tic_project_ext(const char* name)
 {
-    FOR(const struct Ext*, ext, ExtList)
-        if(tic_tool_has_ext(name, ext->name))
+    FOR_EACH_LANG(ln)
+    {
+        if(tic_tool_has_ext(name, ln->fileExtension))
             return true;
-
+    }
+    FOR_EACH_LANG_END
     return false;
 }
 

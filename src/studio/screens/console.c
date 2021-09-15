@@ -27,6 +27,7 @@
 #include "studio/config.h"
 #include "ext/png.h"
 #include "zip.h"
+#include "studio/demos.h"
 
 #if defined(TIC80_PRO)
 #include "studio/project.h"
@@ -139,11 +140,7 @@ static const struct SpecRow {const char* section; const char* info;} SpecText1[]
     {"SPRITES", "256 8x8 tiles and 256 8x8 sprites."},
     {"MAP",     "240x136 cells, 1920x1088 pixels."},
     {"SOUND",   "4 channels with configurable waveforms."},
-    {"CODE",    "64KB of"
-#define         SCRIPT_DEF(name, ...) " "#name
-                SCRIPT_LIST(SCRIPT_DEF)
-#undef          SCRIPT_DEF
-                "."
+    {"CODE",    "64KB of $LANG_NAMES$.",
     },
 };
 
@@ -203,25 +200,85 @@ struct CommandDesc
     char* src;
 };
 
-typedef enum
-{
-#define SCRIPT_DEF(name, ...) name##_script,
-    SCRIPT_LIST(SCRIPT_DEF)
-#undef SCRIPT_DEF
-} ScriptLang;
-
-static const struct Script{ScriptLang lang; const char* name;} Scripts[] = 
-{
-#define SCRIPT_DEF(name, ...) {name##_script, #name},
-    SCRIPT_LIST(SCRIPT_DEF)
-#undef SCRIPT_DEF
-};
-
 static const char* PngExt = PNG_EXT;
 
 #if defined(__EMSCRIPTEN__)
 #define CAN_ADDGET_FILE 1
 #endif
+
+
+// You must free the result if result is non-NULL. TODO: find a better place for this function?
+char *str_replace(char *orig, char *rep, char *with) {
+    char *result; // the return string
+    char *ins;    // the next insert point
+    char *tmp;    // varies
+    int len_rep;  // length of rep (the string to remove)
+    int len_with; // length of with (the string to replace rep with)
+    int len_front; // distance between rep and end of last rep
+    int count;    // number of replacements
+
+    // sanity checks and initialization
+    if (!orig || !rep)
+        return NULL;
+    len_rep = strlen(rep);
+    if (len_rep == 0)
+        return NULL; // empty rep causes infinite loop during count
+    if (!with)
+        with = "";
+    len_with = strlen(with);
+
+    // count the number of replacements needed
+    ins = orig;
+    for (count = 0; tmp = strstr(ins, rep); ++count) {
+        ins = tmp + len_rep;
+    }
+
+    tmp = result = malloc(strlen(orig) + (len_with - len_rep) * count + 1);
+
+    if (!result)
+        return NULL;
+
+    // first time through the loop, all the variable are set correctly
+    // from here on,
+    //    tmp points to the end of the result string
+    //    ins points to the next occurrence of rep in orig
+    //    orig points to the remainder of orig after "end of rep"
+    while (count--) {
+        ins = strstr(orig, rep);
+        len_front = ins - orig;
+        tmp = strncpy(tmp, orig, len_front) + len_front;
+        tmp = strcpy(tmp, with) + len_with;
+        orig += len_front + len_rep; // move to next "end of rep"
+    }
+    strcpy(tmp, orig);
+    return result;
+}
+
+static char* replaceHelpTokens(const char* text)
+{
+    char langnames[10240] = {0};
+    char langextensions[10240] = {0};
+    char langnamespipe[10240] = {0};
+    FOR_EACH_LANG(ln)
+        strcat(langnames, ln->name);
+        strcat(langnames, " ");
+
+        strcat(langextensions, ln->fileExtension);
+        strcat(langextensions, " ");
+
+        strcat(langnamespipe, ln->name);
+        strcat(langnamespipe, "|");
+    FOR_EACH_LANG_END
+
+
+    char* replaced1 = str_replace(text, "$LANG_NAMES$", langnames);
+    char* replaced2 = str_replace(replaced1, "$LANG_EXTENSIONS$", langextensions);
+    char* replaced3 = str_replace(replaced2, "$LANG_NAMES_PIPE$", langnamespipe);
+    free(replaced2);
+    free(replaced1);
+    return replaced3;
+}
+
 
 static const char* getName(const char* name, const char* ext)
 {
@@ -550,21 +607,22 @@ static void loadCartSection(Console* console, const tic_cartridge* cart, const c
         memcpy(&tic->cart, cart, sizeof(tic_cartridge));
 }
 
-static const char* getDemoCartPath(ScriptLang script)
+static const char* getDemoCartPath(char* path, tic_script_config* script)
 {
-    static const char* Paths[] = 
-    {
-#define SCRIPT_DEF(name, ...) [name##_script] = TIC_LOCAL_VERSION "default_" #name ".tic",
-        SCRIPT_LIST(SCRIPT_DEF)
-#undef  SCRIPT_DEF
-    };
+    //printf("Demo cart path of %s: ", script->name);
+    strcpy(path, TIC_LOCAL_VERSION "default_");
+    strcat(path, script->name);
+    strcat(path, ".tic");
 
-    return Paths[script];
+    //printf("%s\n", path);
+
+    return path;
 }
 
-static void* getDemoCart(Console* console, ScriptLang script, s32* size)
+static void* getDemoCart(Console* console, tic_script_config* script, s32* size)
 {
-    const char* path = getDemoCartPath(script);
+    char path[1024];
+    getDemoCartPath(path, script);
 
     {
         void* data = tic_fs_loadroot(console->fs, path, size);
@@ -572,96 +630,10 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
         if(data && *size)
             return data;
     }
+    tic_script_config_extra* ex = getConfigExtra(script);
 
-    const u8* demo = NULL;
-    s32 romSize = 0;
-
-    switch(script)
-    {
-#if defined(TIC_BUILD_WITH_LUA)
-    case lua_script:
-        {
-            static const u8 LuaDemoRom[] =
-            {
-                #include "../build/assets/luademo.tic.dat"
-            };
-
-            demo = LuaDemoRom;
-            romSize = sizeof LuaDemoRom;
-        }
-        break;
-#endif
-
-#if defined(TIC_BUILD_WITH_MOON)
-    case moon_script:
-        {
-            static const u8 MoonDemoRom[] =
-            {
-                #include "../build/assets/moondemo.tic.dat"
-            };
-
-            demo = MoonDemoRom;
-            romSize = sizeof MoonDemoRom;
-        }
-        break;
-#endif
-
-#if defined(TIC_BUILD_WITH_FENNEL)
-    case fennel_script:
-        {
-            static const u8 FennelDemoRom[] =
-            {
-                #include "../build/assets/fenneldemo.tic.dat"
-            };
-
-            demo = FennelDemoRom;
-            romSize = sizeof FennelDemoRom;
-        }
-        break;
-#endif
-
-#if defined(TIC_BUILD_WITH_JS)
-    case js_script:
-        {
-            static const u8 JsDemoRom[] =
-            {
-                #include "../build/assets/jsdemo.tic.dat"
-            };
-
-            demo = JsDemoRom;
-            romSize = sizeof JsDemoRom;
-        }
-        break;
-#endif
-
-#if defined(TIC_BUILD_WITH_WREN)
-    case wren_script:
-        {
-            static const u8 WrenDemoRom[] =
-            {
-                #include "../build/assets/wrendemo.tic.dat"
-            };
-
-            demo = WrenDemoRom;
-            romSize = sizeof WrenDemoRom;
-        }
-        break;
-#endif
-
-#if defined(TIC_BUILD_WITH_SQUIRREL)
-    case squirrel_script:
-        {
-            static const u8 SquirrelDemoRom[] =
-            {
-                #include "../build/assets/squirreldemo.tic.dat"
-            };
-
-            demo = SquirrelDemoRom;
-            romSize = sizeof SquirrelDemoRom;
-        }
-        break;
-#endif
-    }
+    const u8* demo = ex->demoRom;
+    s32 romSize = ex->demoRomSize;
 
     u8* data = calloc(1, sizeof(tic_cartridge));
 
@@ -685,7 +657,7 @@ static void setCartName(Console* console, const char* name, const char* path)
         strcpy(console->rom.path, path);
 }
 
-static void onLoadDemoCommandConfirmed(Console* console, ScriptLang script)
+static void onLoadDemoCommandConfirmed(Console* console, tic_script_config* script)
 {
     void* data = NULL;
     s32 size = 0;
@@ -693,7 +665,9 @@ static void onLoadDemoCommandConfirmed(Console* console, ScriptLang script)
     console->showGameMenu = false;
 
     {
-        const char* name = getCartName(getDemoCartPath(script));
+        char path[1024];
+        getDemoCartPath(path, script);
+        const char* name = getCartName(path);
         setCartName(console, name, tic_fs_path(console->fs, name));
     }
 
@@ -1002,13 +976,13 @@ static void confirmCommand(Console* console, const char** text, s32 rows, Confir
     }
 }
 
-typedef void(*LoadDemoConfirmCallback)(Console* console, ScriptLang script);
+typedef void(*LoadDemoConfirmCallback)(Console* console, tic_script_config* script);
 
 typedef struct
 {
     Console* console;
     LoadDemoConfirmCallback callback;
-    ScriptLang script;
+    tic_script_config* script;
 } LoadDemoConfirmData;
 
 static void onLoadDemoConfirm(bool yes, void* data)
@@ -1024,7 +998,7 @@ static void onLoadDemoConfirm(bool yes, void* data)
     free(demoData);
 }
 
-static void onLoadDemoCommand(Console* console, ScriptLang script)
+static void onLoadDemoCommand(Console* console, tic_script_config* script)
 {
     if(studioCartChanged())
     {
@@ -1067,8 +1041,9 @@ static void onLoadCommand(Console* console)
     }
 }
 
-static void loadDemo(Console* console, ScriptLang script)
+static void loadDemo(Console* console, tic_script_config* script)
 {
+    if (script == NULL) script = Languages[0]; // can be called with null, meaning first language (Lua)
     s32 size = 0;
     u8* data = getDemoCart(console, script, &size);
 
@@ -1093,12 +1068,13 @@ static void onNewCommandConfirmed(Console* console)
     {
         const char* param = console->desc->params->key;
 
-        FOR(const struct Script*, script, Scripts)
-            if(strcmp(param, script->name) == 0)
+        FOR_EACH_LANG(ln)
+            if(strcmp(param, ln->name) == 0)
             {
-                loadDemo(console, script->lang);
+                loadDemo(console, ln);
                 done = true;
             }
+        FOR_EACH_LANG_END
 
         if(!done)
         {
@@ -1414,68 +1390,27 @@ static void onInstallDemosCommand(Console* console)
         }
 #endif
 
-#if defined(TIC_BUILD_WITH_LUA)
-        static const u8 luamark[] =
-        {
-            #include "../build/assets/luamark.tic.dat"
-        };
-#endif
-
-#if defined(TIC_BUILD_WITH_MOON)
-        static const u8 moonmark[] =
-        {
-            #include "../build/assets/moonmark.tic.dat"
-        };
-#endif
-
-#if defined(TIC_BUILD_WITH_FENNEL)
-        static const u8 fennelmark[] =
-        {
-            #include "../build/assets/luamark.tic.dat"
-        };
-#endif
-
-#if defined(TIC_BUILD_WITH_JS)
-        static const u8 jsmark[] =
-        {
-            #include "../build/assets/jsmark.tic.dat"
-        };
-#endif
-
-#if defined(TIC_BUILD_WITH_SQUIRREL)
-        static const u8 squirrelmark[] =
-        {
-            #include "../build/assets/squirrelmark.tic.dat"
-        };
-#endif
-
-#if defined(TIC_BUILD_WITH_WREN)
-        static const u8 wrenmark[] =
-        {
-            #include "../build/assets/wrenmark.tic.dat"
-        };
-#endif
-
-        static const struct Mark {const char* name; const u8* data; s32 size;} Marks[] =
-        {
-#define     SCRIPT_DEF(name, ...) {#name "mark.tic", name ## mark, sizeof name ## mark},
-            SCRIPT_LIST(SCRIPT_DEF)
-#undef      SCRIPT_DEF
-        };
-
         static const char* Bunny = "bunny";
 
         tic_fs_makedir(fs, Bunny);
         tic_fs_changedir(fs, Bunny);
 
-        FOR(const struct Mark*, mark, Marks)
+        FOR_EACH_LANG(ln)
         {
-            tic_fs_save(fs, mark->name, data, tic_tool_unzip(data, sizeof(tic_cartridge), mark->data, mark->size), true);
-            printFront(console, Bunny);
-            printFront(console, "/");
-            printFront(console, mark->name);
-            printLine(console);
+            tic_script_config_extra* ex = getConfigExtra(ln);
+            if (ex->markRom != NULL) { // having a Mark is not mandatory
+                char cartname[1024];
+                strcpy(cartname, ln->name);
+                strcat(cartname, "mark.tic");
+
+                tic_fs_save(fs, cartname, data, tic_tool_unzip(data, sizeof(tic_cartridge), ex->markRom, ex->markRomSize), true);
+                printFront(console, Bunny);
+                printFront(console, "/");
+                printFront(console, cartname);
+                printLine(console);
+            }
         }
+	FOR_EACH_LANG_END
 
         tic_fs_dirback(fs);
     }
@@ -1523,9 +1458,10 @@ static void onConfigCommand(Console* console)
                 onLoadDemoCommand(console, 0);
             else
             {
-                FOR(const struct Script*, script, Scripts)
+                FOR_EACH_LANG(script)
                     if (strcmp(console->desc->params[1].key, script->name) == 0)
-                        onLoadDemoCommand(console, script->lang);
+                        onLoadDemoCommand(console, script);
+                FOR_EACH_LANG_END
             }
         }
         else
@@ -2560,11 +2496,7 @@ static struct Command
         "new",
         NULL,
         "creates a new `Hello World` cartridge.",
-        "new ["
-#define SCRIPT_DEF(name, ...) #name "|"
-        SCRIPT_LIST(SCRIPT_DEF)
-#undef  SCRIPT_DEF       
-        "...]",
+        "new [$LANG_NAMES_PIPE$...]",
         onNewCommand
     },
     {
@@ -2581,10 +2513,7 @@ static struct Command
     {
         "save",
         NULL,
-        "save cartridge to the local filesystem, use "
-#define SCRIPT_DEF(_, ext, ...) ext " "
-        SCRIPT_LIST(SCRIPT_DEF)
-#undef  SCRIPT_DEF
+        "save cartridge to the local filesystem, use $LANG_EXTENSIONS$"
         "cart extension to save it in text format (PRO feature).", 
         "save <cart>",
         onSaveCommand
@@ -2965,12 +2894,16 @@ static void printUsage(Console* console, const char* command)
         if(strcmp(command, cmd->name) == 0)
         {
             consolePrint(console, "\n---=== COMMAND ===---\n", tic_color_green);
-            printBack(console, cmd->help);
+            char* helpReplaced = replaceHelpTokens(cmd->help);
+            printBack(console, helpReplaced);
+            free(helpReplaced);
 
             if(cmd->usage)
             {
                 printFront(console, "\n\nusage: ");
-                printBack(console, cmd->usage);
+                char* usageReplaced = replaceHelpTokens(cmd->usage);
+                printBack(console, usageReplaced);
+                free(usageReplaced);
             }
 
             printLine(console);
@@ -3089,8 +3022,10 @@ static void onHelp_spec(Console* console)
     FOR(const struct SpecRow*, row, SpecText1)
     {
 #define OFFSET 8
-        sprintf(buf, "%-" DEF2STR(OFFSET) "s%s\n", row->section, row->info);
+        char* rowReplaced = replaceHelpTokens(row->info);
+        sprintf(buf, "%-" DEF2STR(OFFSET) "s%s\n", row->section, rowReplaced);
         consolePrintOffset(console, buf, tic_color_grey, OFFSET);
+        free(rowReplaced);
 #undef  OFFSET
     }
 }

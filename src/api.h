@@ -24,6 +24,11 @@
 
 #include "tic.h"
 
+// convenience macros to loop languages
+#define FOR_EACH_LANG(ln) for (tic_script_config** conf = Languages ; *conf != NULL; conf++ ) { tic_script_config* ln = *conf;
+#define FOR_EACH_LANG_END }
+
+
 typedef struct { u8 index; tic_flip flip; tic_rotate rotate; } RemapResult;
 typedef void(*RemapFunc)(void*, s32 x, s32 y, RemapResult* result);
 
@@ -69,6 +74,8 @@ typedef struct
 typedef struct
 {
     const char* name;
+    const char* fileExtension;
+    const char* projectComment;
     struct
     {
         bool(*init)(tic_mem* memory, const char* code);
@@ -92,6 +99,8 @@ typedef struct
     const char* const * keywords;
     s32 keywordsCount;
 } tic_script_config;
+
+extern tic_script_config* Languages[];
 
 typedef struct
 {

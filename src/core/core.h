@@ -162,12 +162,8 @@ typedef struct
 {
     tic_mem memory; // it should be first
 
-    struct
-    {
-#define SCRIPT_DEF(name, _, __, vm) struct vm* name;
-    SCRIPT_LIST(SCRIPT_DEF)
-#undef SCRIPT_DEF
-    };
+    void* currentVM;
+    tic_script_config* currentScript;
 
     struct
     {

@@ -222,28 +222,15 @@ static bool compareMetatag(const char* code, const char* tag, const char* value,
     return result;
 }
 
-#define SCRIPT_DEF(name, _, __, vm) const tic_script_config* get_## name ##_script_config();
-    SCRIPT_LIST(SCRIPT_DEF)
-#undef SCRIPT_DEF
-
 const tic_script_config* tic_core_script_config(tic_mem* memory)
 {
-    static const struct Config
-    {
-        const char* name;
-        const tic_script_config*(*func)();
-    } Configs[] = 
-    {
-#define SCRIPT_DEF(name, ...) {#name, get_## name ##_script_config},
-        SCRIPT_LIST(SCRIPT_DEF)
-#undef  SCRIPT_DEF
-    };
-
-    FOR(const struct Config*, it, Configs)
-        if(compareMetatag(memory->cart.code.data, "script", it->name, it->func()->singleComment))
-            return it->func();
-
-    return Configs->func();
+    FOR_EACH_LANG(it)
+        if(compareMetatag(memory->cart.code.data, "script", it->name, it->singleComment))
+        {
+            return it;
+        }
+    FOR_EACH_LANG_END
+    return Languages[0];
 }
 
 static void updateSaveid(tic_mem* memory)
@@ -345,6 +332,35 @@ static void cart2ram(tic_mem* memory)
     tic_api_sync(memory, EMPTY(memory->cart.bank0.screen.data) ? noscreen : all, 0, false);
 }
 
+static void tic_close_current_vm(tic_core* core)
+{
+    // close previous VM if any
+    if(core->currentVM)
+    {
+        // printf("Closing VM of %s, %d\n", core->currentScript->name, core->currentVM);
+        core->currentScript->close( (tic_mem*)core );
+        core->currentVM = NULL;
+    }
+}
+
+static bool tic_init_vm(tic_core* core, const char* code, const tic_script_config* config)
+{
+    tic_close_current_vm(core);
+    // set current script config and init
+    core->currentScript = config;
+    bool done = config->init( (tic_mem*) core , code);
+    if(!done)
+    {
+        // if it couldn't init, make sure the VM is not left dirty by the implementation
+        core->currentVM = NULL;
+    }
+    else
+    {
+        //printf("Initialized VM of %s, %d\n", core->currentScript->name, core->currentVM);
+    }
+    return done;
+}
+
 void tic_core_tick(tic_mem* tic, tic_tick_data* data)
 {
     tic_core* core = (tic_core*)tic;
@@ -375,7 +391,7 @@ void tic_core_tick(tic_mem* tic, tic_tick_data* data)
 
             data->start = data->counter(core->data->data);
 
-            done = config->init(tic, code);
+            done = tic_init_vm(core, code, config);
         }
         else
         {
@@ -427,9 +443,7 @@ void tic_core_close(tic_mem* memory)
 
     core->state.initialized = false;
 
-#define SCRIPT_DEF(name, ...) get_## name ##_script_config()->close(memory);
-    SCRIPT_LIST(SCRIPT_DEF)
-#undef  SCRIPT_DEF
+    tic_close_current_vm(core);
 
     blip_delete(core->blip.left);
     blip_delete(core->blip.right);
