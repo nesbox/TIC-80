@@ -41,7 +41,7 @@
 
 typedef struct CodeState CodeState;
 
-static_assert(sizeof(CodeState) == sizeof(u8), "CodeStateSize");
+static_assert(sizeof(CodeState) == 2, "CodeStateSize");
 
 enum
 {
@@ -50,12 +50,32 @@ enum
 #undef  CODE_COLOR_DEF
 };
 
+static void packState(Code* code)
+{
+    const char* src = code->src;
+    for(CodeState* s = code->state, *end = s + TIC_CODE_SIZE; s != end; ++s)
+    {
+        s->cursor = src == code->cursor.position;
+        s->sym = *src++;
+    }    
+}
+
+static void unpackState(Code* code)
+{
+    char* src = code->src;
+    for(CodeState* s = code->state, *end = s + TIC_CODE_SIZE; s != end; ++s)
+    {
+        if(s->cursor)
+            code->cursor.position = src;
+
+        *src++ = s->sym;
+    }
+}
+
 static void history(Code* code)
 {
-    if(history_add(code->history.code))
-        history_add(code->history.cursor);
-
-    history_add(code->history.state);
+    packState(code);
+    history_add(code->history);
 }
 
 static void drawStatus(Code* code)
@@ -818,7 +838,7 @@ static void deleteCode(Code* code, char* start, char* end)
     memmove(start, end, size);
 
     // delete code state
-    memmove(getState(code, start), getState(code, end), size);
+    memmove(getState(code, start), getState(code, end), size * sizeof(CodeState));
 }
 
 static void insertCode(Code* code, char* dst, const char* src)
@@ -831,8 +851,8 @@ static void insertCode(Code* code, char* dst, const char* src)
     // insert code state
     {
         CodeState* pos = getState(code, dst);
-        memmove(pos + size, pos, restSize);
-        memset(pos, 0, size);
+        memmove(pos + size, pos, restSize * sizeof(CodeState));
+        memset(pos, 0, size * sizeof(CodeState));
     }
 }
 
@@ -1061,18 +1081,16 @@ static void update(Code* code)
 
 static void undo(Code* code)
 {
-    history_undo(code->history.code);
-    history_undo(code->history.cursor);
-    history_undo(code->history.state);
+    history_undo(code->history);
+    unpackState(code);
 
     update(code);
 }
 
 static void redo(Code* code)
 {
-    history_redo(code->history.code);
-    history_redo(code->history.cursor);
-    history_redo(code->history.state);
+    history_redo(code->history);
+    unpackState(code);
 
     update(code);
 }
@@ -2176,9 +2194,7 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
     if(code->state != NULL)
         free(code->state);
 
-    if(code->history.code) history_delete(code->history.code);
-    if(code->history.cursor) history_delete(code->history.cursor);
-    if(code->history.state) history_delete(code->history.state);
+    if(code->history) history_delete(code->history);
 
     *code = (Code)
     {
@@ -2190,12 +2206,7 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
         .scroll = {0, 0, {0, 0}, false},
         .state = calloc(TIC_CODE_SIZE, sizeof(CodeState)),
         .tickCounter = 0,
-        .history = 
-        {
-            .code = NULL,
-            .cursor = NULL,
-            .state = NULL,
-        },
+        .history = NULL,
         .mode = TEXT_EDIT_MODE,
         .jump = {.line = -1},
         .popup =
@@ -2217,18 +2228,15 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
         .update = update,
     };
 
-    code->history.code = history_create(code->src, sizeof(tic_code));
-    code->history.cursor = history_create(&code->cursor, sizeof code->cursor);
-    code->history.state = history_create(code->state, sizeof(CodeState) * TIC_CODE_SIZE);
+    packState(code);
+    code->history = history_create(code->state, sizeof(CodeState) * TIC_CODE_SIZE);
 
     update(code);
 }
 
 void freeCode(Code* code)
 {
+    history_delete(code->history);
     free(code->state);
-    history_delete(code->history.code);
-    history_delete(code->history.cursor);
-    history_delete(code->history.state);
     free(code);
 }

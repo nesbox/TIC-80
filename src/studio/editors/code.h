@@ -58,9 +58,15 @@ struct Code
 
     struct CodeState
     {
-        u8 syntax:3;
-        u8 bookmark:1;
-        u8 temp:4;
+        struct
+        {
+            u8 syntax:3;
+            u8 bookmark:1;
+            u8 cursor:1;
+            u8 temp:3;
+        };
+
+        char sym;
     }* state;
 
     struct
@@ -72,12 +78,7 @@ struct Code
 
     u32 tickCounter;
 
-    struct
-    {
-        struct History* code;
-        struct History* cursor;
-        struct History* state;
-    } history;
+    struct History* history;
 
     enum
     {
