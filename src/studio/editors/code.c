@@ -57,7 +57,7 @@ static void packState(Code* code)
     {
         s->cursor = src == code->cursor.position;
         s->sym = *src++;
-    }    
+    }
 }
 
 static void unpackState(Code* code)
@@ -150,7 +150,7 @@ static void drawBookmarks(Code* code)
 
         s32 line = (tic_api_mouse(tic).y - rect.y) / STUDIO_TEXT_HEIGHT;
 
-        drawBitIcon(tic_icon_bookmark, rect.x, rect.y + line * STUDIO_TEXT_HEIGHT, tic_color_dark_grey);
+        drawBitIcon(tic_icon_bookmark, rect.x, rect.y + line * STUDIO_TEXT_HEIGHT - 1, tic_color_dark_grey);
 
         if(checkMouseClick(&rect, tic_mouse_left))
             toggleBookmark(code, getPosByLine(code->src, line + code->scroll.y));
@@ -164,8 +164,8 @@ static void drawBookmarks(Code* code)
     {
         if(syntaxPointer++->bookmark)
         {
-            drawBitIcon(tic_icon_bookmark, rect.x, rect.y + y * STUDIO_TEXT_HEIGHT + 1, tic_color_black);
-            drawBitIcon(tic_icon_bookmark, rect.x, rect.y + y * STUDIO_TEXT_HEIGHT, tic_color_yellow);
+            drawBitIcon(tic_icon_bookmark, rect.x, rect.y + y * STUDIO_TEXT_HEIGHT, tic_color_black);
+            drawBitIcon(tic_icon_bookmark, rect.x, rect.y + y * STUDIO_TEXT_HEIGHT - 1, tic_color_yellow);
         }
 
         if(*pointer++ == '\n')y++;
@@ -395,8 +395,8 @@ static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
 
 static void setCodeState(CodeState* state, u8 color, s32 start, s32 size)
 {
-    for(s32 i = start; i < (start + size); i++)
-        state[i].syntax = color;
+    for(CodeState* s = state + start, *end = s + size; s != end; ++s)
+        s->syntax = color;
 }
 
 static void parseCode(const tic_script_config* config, const char* start, CodeState* state)
@@ -602,8 +602,8 @@ start:
 
 static void parseSyntaxColor(Code* code)
 {
-    for(s32 i = 0; i < TIC_CODE_SIZE; i++)
-        code->state[i].syntax = SyntaxType_FG;
+    for(CodeState* s = code->state, *end = s + TIC_CODE_SIZE; s != end; ++s)
+        s->syntax = SyntaxType_FG;
 
     tic_mem* tic = code->tic;
 
@@ -1530,8 +1530,8 @@ static void processKeyboard(Code* code)
     {
         if(ctrl && shift)
         {
-            for(s32 i = 0; i < TIC_CODE_SIZE; i++)
-                code->state[i].bookmark = 0;
+            for(CodeState* s = code->state, *end = s + TIC_CODE_SIZE; s != end; ++s)
+                s->bookmark = 0;
         }
         else if(ctrl)
         {
