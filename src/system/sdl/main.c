@@ -492,7 +492,14 @@ static void initGPU()
     else
 #endif
     {
-        platform.screen.renderer.sdl = SDL_CreateRenderer(platform.window, -1, SDL_RENDERER_SOFTWARE);
+        platform.screen.renderer.sdl = SDL_CreateRenderer(platform.window, -1, 
+#if defined(CRT_SHADER_SUPPORT)
+            SDL_RENDERER_SOFTWARE
+#else
+            SDL_RENDERER_ACCELERATED
+#endif
+            );
+
         platform.screen.texture.sdl = SDL_CreateTexture(platform.screen.renderer.sdl, SDL_PIXELFORMAT_ABGR8888, 
             SDL_TEXTUREACCESS_STREAMING, TIC80_FULLWIDTH, TIC80_FULLHEIGHT);
     }
