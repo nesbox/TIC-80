@@ -1128,7 +1128,7 @@ void tic_sys_poll()
     SCOPE(processKeyboard())
     {
 #if defined(__LINUX__)
-        if(!lockInput)
+        if(lockInput)
             return;
 #endif
     }
