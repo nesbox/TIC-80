@@ -3633,7 +3633,6 @@ static bool cmdLoadCart(Console* console, const char* path)
 
     if(data)
     {
-        Start* start = getStartScreen();
         const char* cartName = NULL;
         
         {
@@ -3653,24 +3652,27 @@ static bool cmdLoadCart(Console* console, const char* path)
             {
                 memcpy(&tic->cart, cart, sizeof(tic_cartridge));
                 free(cart);
-                done = start->embed = true;
+                done = true;
             }
         }
         else if(tic_tool_has_ext(cartName, CART_EXT))
         {
             tic_cart_load(&tic->cart, data, size);
-            done = start->embed = true;
+            done = true;
         }
 #if defined(TIC80_PRO)
         else if(tic_project_ext(cartName))
         {
             if(tic_project_load(cartName, data, size, &tic->cart))
-                done = start->embed = true;
+                done = true;
         }
 #endif
         
         free(data);
     }
+
+    if(done)
+        studioRomLoaded();
 
     return done;
 }
@@ -3697,6 +3699,7 @@ void initConsole(Console* console, tic_mem* tic, tic_fs* fs, tic_net* net, Confi
         .config = config,
         .loadByHash = loadByHash,
         .load = loadExt,
+        .loadCart = cmdLoadCart,
         .updateProject = updateProject,
         .error = error,
         .trace = trace,
@@ -3762,6 +3765,8 @@ void initConsole(Console* console, tic_mem* tic, tic_fs* fs, tic_net* net, Confi
             printf("error: cart `%s` not loaded\n", args.cart);
             exit(1);
         }
+        else 
+            getStartScreen()->embed = true;
 
     console->active = !start->embed;
 }

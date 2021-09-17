@@ -133,6 +133,7 @@ typedef struct
     void (*tick)();
     void (*exit)();
     void (*close)();
+    void (*load)(const char* file);
     const StudioConfig* (*config)();
 
 } Studio;

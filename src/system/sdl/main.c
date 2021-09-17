@@ -1108,6 +1108,9 @@ void tic_sys_poll()
             if(strlen(event.text.text) == 1)
                 platform.keyboard.text = event.text.text[0];
             break;
+        case SDL_DROPFILE:
+            platform.studio->load(event.drop.file);
+            break;
         case SDL_QUIT:
             platform.studio->exit();
             break;

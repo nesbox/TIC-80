@@ -104,6 +104,7 @@ struct Console
     CommandDesc* desc;
 
     void(*load)(Console*, const char* path);
+    bool(*loadCart)(Console*, const char* path);
     void(*loadByHash)(Console*, const char* name, const char* hash, const char* section, fs_done_callback callback, void* data);
     void(*updateProject)(Console*);
     void(*error)(Console*, const char*);

@@ -2044,6 +2044,15 @@ static void studioTick()
 #endif
 }
 
+static void studioLoad(const char* file)
+{
+#if defined(BUILD_EDITORS)
+    showPopupMessage(impl.console->loadCart(impl.console, file) 
+        ? "cart successfully loaded :)"
+        : "error: cart not loaded :(");
+#endif
+}
+
 static void studioClose()
 {
     {
@@ -2201,6 +2210,7 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder)
     impl.config->data.cli           |= args.cli;
 
     impl.studio.tick    = studioTick;
+    impl.studio.load    = studioLoad;
     impl.studio.close   = studioClose;
     impl.studio.exit    = exitStudio;
     impl.studio.config  = getConfig;
