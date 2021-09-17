@@ -1239,15 +1239,15 @@ static void renderGamepad()
             GPU_Rect dest = { (float)tile->x, (float)tile->y, (float)tileSize, (float)tileSize};
 
             GPU_BlitScale(platform.gamepad.touch.texture.gpu, &src, platform.screen.renderer.gpu, dest.x, dest.y,
-                (float)dest.w / TIC_SPRITESIZE, (float)dest.h / TIC_SPRITESIZE);            
+                (float)dest.w / TIC_SPRITESIZE, (float)dest.h / TIC_SPRITESIZE);
         }
         else
+#else
         {
             SDL_Rect src = {i * TIC_SPRITESIZE + Left, (tile->press ? TIC_SPRITESIZE : 0) + TIC80_MARGIN_TOP, TIC_SPRITESIZE, TIC_SPRITESIZE};
             SDL_Rect dest = {tile->x, tile->y, tileSize, tileSize};
-            SDL_RenderCopy(platform.screen.renderer.sdl, platform.gamepad.touch.texture.sdl, &src, &dest);            
+            SDL_RenderCopy(platform.screen.renderer.sdl, platform.gamepad.touch.texture.sdl, &src, &dest);
         }
-#else
 #endif
     }
 }
