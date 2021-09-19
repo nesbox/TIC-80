@@ -522,7 +522,7 @@ static void stereo_tick_end(tic_mem* memory, tic_sound_register_data* registers,
         const tic_sound_register* reg = &memory->ram.registers[i];
         tic_sound_register_data* data = registers + i;
 
-        FLAT(&reg->waveform)
+        FLAT4(reg->waveform.data)
             ? runNoise(blip, reg, data, EndTime, volume)
             : runEnvelope(blip, reg, data, EndTime, volume);
 

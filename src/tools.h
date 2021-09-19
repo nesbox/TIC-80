@@ -93,8 +93,8 @@ u32     tic_tool_unzip(void* dest, s32 bufSize, const void* source, s32 size);
 bool    tic_tool_empty(const void* buffer, s32 size);
 #define EMPTY(BUFFER) (tic_tool_empty((BUFFER), sizeof (BUFFER)))
 
-bool    tic_tool_flat(const void* buffer, s32 size);
-#define FLAT(BUFFER) (tic_tool_flat((BUFFER), sizeof (BUFFER)))
+bool    tic_tool_flat4(const void* buffer, s32 size);
+#define FLAT4(BUFFER) (tic_tool_flat4((BUFFER), sizeof (BUFFER)))
 
 u32     tic_nearest_color(const tic_rgb* palette, const tic_rgb* color, s32 count);
 

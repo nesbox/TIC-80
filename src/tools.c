@@ -176,9 +176,10 @@ bool tic_tool_empty(const void* buffer, s32 size)
     return true;
 }
 
-bool tic_tool_flat(const void* buffer, s32 size)
+bool tic_tool_flat4(const void* buffer, s32 size)
 {
-    u8 first = *(u8*)buffer;
+    u8 first = (*(u8*)buffer) & 0xf;
+    first |= first << 4;
     for(const u8 *ptr = buffer, *end = ptr + size; ptr < end;)
         if(*ptr++ != first)
             return false;
