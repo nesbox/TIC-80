@@ -91,6 +91,8 @@ class TIC {\n\
     foreign static poke(addr, val)\n\
     foreign static peek4(addr)\n\
     foreign static poke4(addr, val)\n\
+    foreign static peek1(addr)\n\
+    foreign static poke1(addr, val)\n\
     foreign static memcpy(dst, src, size)\n\
     foreign static memset(dst, src, size)\n\
     foreign static pmem(index)\n\
@@ -985,6 +987,24 @@ static void wren_poke4(WrenVM* vm)
     u8 value = getWrenNumber(vm, 2);
 
     tic_api_poke4(tic, address, value);
+}
+static void wren_peek1(WrenVM* vm)
+{
+    tic_mem* tic = (tic_mem*)getWrenCore(vm);
+
+    s32 address = getWrenNumber(vm, 1);
+
+    wrenSetSlotDouble(vm, 0, tic_api_peek1(tic, address));
+}
+
+static void wren_poke1(WrenVM* vm)
+{
+    tic_mem* tic = (tic_mem*)getWrenCore(vm);
+
+    s32 address = getWrenNumber(vm, 1);
+    u8 value = getWrenNumber(vm, 2);
+
+    tic_api_poke1(tic, address, value);
 }
 
 static void wren_memcpy(WrenVM* vm)

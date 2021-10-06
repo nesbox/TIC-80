@@ -184,6 +184,34 @@ static SQInteger squirrel_poke4(HSQUIRRELVM vm)
     return 0;
 }
 
+static SQInteger squirrel_peek1(HSQUIRRELVM vm)
+{
+    tic_mem* tic = (tic_mem*)getSquirrelCore(vm);
+
+    // check number of args
+    if (sq_gettop(vm) != 2)
+        return sq_throwerror(vm, "invalid parameters, peek4(address)");
+    s32 address = getSquirrelNumber(vm, 2);
+
+    sq_pushinteger(vm, tic_api_peek1(tic, address));
+    return 1;
+}
+
+static SQInteger squirrel_poke1(HSQUIRRELVM vm)
+{
+    tic_mem* tic = (tic_mem*)getSquirrelCore(vm);
+
+    if (sq_gettop(vm) != 3)
+        return sq_throwerror( vm, "invalid parameters, poke4(address,value)" );
+
+    s32 address = getSquirrelNumber(vm, 2);
+    u8 value = getSquirrelNumber(vm, 3);
+
+    tic_api_poke1(tic, address, value);
+
+    return 0;
+}
+
 static SQInteger squirrel_cls(HSQUIRRELVM vm)
 {
     SQInteger top = sq_gettop(vm);

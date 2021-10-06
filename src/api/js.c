@@ -535,6 +535,26 @@ static duk_ret_t duk_poke4(duk_context* duk)
     return 0;
 }
 
+static duk_ret_t duk_peek1(duk_context* duk)
+{
+    s32 address = duk_to_int(duk, 0);
+
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
+    duk_push_uint(duk, tic_api_peek1(tic, address));
+    return 1;
+}
+
+static duk_ret_t duk_poke1(duk_context* duk)
+{
+    s32 address = duk_to_int(duk, 0);
+    u8 value = duk_to_int(duk, 1);
+
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
+    tic_api_poke1(tic, address, value);
+
+    return 0;
+}
+
 static duk_ret_t duk_memcpy(duk_context* duk)
 {
     s32 dest = duk_to_int(duk, 0);
