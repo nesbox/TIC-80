@@ -28,6 +28,7 @@
 
 #define CLOCKRATE (255<<13)
 #define TIC_DEFAULT_COLOR 15
+#define TIC_SOUND_RINGBUF_LEN 6 // in worst case, this induces ~ 6 tick delay i.e. 100 ms
 
 typedef struct
 {
@@ -126,6 +127,15 @@ typedef struct
         tic_sound_register_data left[TIC_SOUND_CHANNELS];
         tic_sound_register_data right[TIC_SOUND_CHANNELS];
     } registers;
+
+    struct
+    {
+        tic_sound_register registers[TIC_SOUND_CHANNELS];
+        tic_stereo_volume stereo;
+    } sound_ringbuf[TIC_SOUND_RINGBUF_LEN];
+
+    u32 sound_ringbuf_head;
+    u32 sound_ringbuf_tail;
 
     struct
     {
