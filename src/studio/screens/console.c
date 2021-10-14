@@ -453,6 +453,7 @@ static void commandDoneLine(Console* console, bool newLine)
     clearSelection(console);
 
     FREE(console->desc->src);
+    FREE(console->desc->command);
     FREE(console->desc->params);
 
     memset(console->desc, 0, sizeof(CommandDesc));
@@ -3100,11 +3101,12 @@ static void onHelpCommand(Console* console)
     commandDone(console);
 }
 
-static CommandDesc parseCommand(const char* command)
+static CommandDesc parseCommand(const char* input)
 {
-    CommandDesc desc = {.src = strdup(command)};
+    CommandDesc desc = {.src = strdup(input),
+                        .command = strdup(input)};
 
-    char* token = desc.command = strtok(desc.src, " ");
+    char* token = strtok(desc.command, " ");
 
     while((token = strtok(NULL, " ")))
     {
