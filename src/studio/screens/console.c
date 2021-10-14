@@ -2318,7 +2318,8 @@ static void onEvalCommand(Console* console)
     if (script_config->eval)
     {
         if(console->desc->count)
-            script_config->eval(console->tic, console->desc->params->key);
+            script_config->eval(console->tic,
+                                console->desc->src+strlen(console->desc->command));
         else printError(console, "nothing to eval");
     }
     else
