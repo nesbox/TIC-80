@@ -24,66 +24,68 @@
 #include "fs.h"
 #include "cart.h"
 
-#if defined (TIC_BUILD_WITH_LUA)
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
 
-static void readBool(lua_State* lua, const char* name, bool* val)
+static void readConfigVideoLength(Config* config, lua_State* lua)
 {
-    lua_getfield(lua, -1, name);
+    lua_getglobal(lua, "GIF_LENGTH");
 
-    if (lua_isboolean(lua, -1))
-        *val = lua_toboolean(lua, -1);
+    if(lua_isinteger(lua, -1))
+        config->data.gifLength = (s32)lua_tointeger(lua, -1);
 
     lua_pop(lua, 1);
 }
 
-static void readInteger(lua_State* lua, const char* name, s32* val)
+static void readConfigVideoScale(Config* config, lua_State* lua)
 {
-    lua_getfield(lua, -1, name);
+    lua_getglobal(lua, "GIF_SCALE");
 
-    if (lua_isinteger(lua, -1))
-        *val = lua_tointeger(lua, -1);
+    if(lua_isinteger(lua, -1))
+        config->data.gifScale = (s32)lua_tointeger(lua, -1);
 
     lua_pop(lua, 1);
 }
 
-static void readByte(lua_State* lua, const char* name, u8* val)
+static void readConfigCheckNewVersion(Config* config, lua_State* lua)
 {
-    s32 res = *val;
-    readInteger(lua, name, &res);
-    *val = res;
-}
+    lua_getglobal(lua, "CHECK_NEW_VERSION");
 
-static void readGlobalInteger(lua_State* lua, const char* name, s32* val)
-{
-    lua_getglobal(lua, name);
-
-    if (lua_isinteger(lua, -1))
-        *val = lua_tointeger(lua, -1);
+    if(lua_isboolean(lua, -1))
+        config->data.checkNewVersion = lua_toboolean(lua, -1);
 
     lua_pop(lua, 1);
 }
 
-static void readGlobalBool(lua_State* lua, const char* name, bool* val)
+static void readConfigNoSound(Config* config, lua_State* lua)
 {
-    lua_getglobal(lua, name);
+    lua_getglobal(lua, "NO_SOUND");
 
-    if (lua_isboolean(lua, -1))
-        *val = lua_toboolean(lua, -1);
+    if(lua_isboolean(lua, -1))
+        config->data.noSound = lua_toboolean(lua, -1);
 
     lua_pop(lua, 1);
 }
+
+static void readConfigUiScale(Config* config, lua_State* lua)
+{
+    lua_getglobal(lua, "UI_SCALE");
+
+    if(lua_isinteger(lua, -1))
+        config->data.uiScale = (s32)lua_tointeger(lua, -1);
+
+    lua_pop(lua, 1);
+}
+
 
 #if defined(CRT_SHADER_SUPPORT)
-
-static void readString(lua_State* lua, const char* name, const char** val)
+static void readConfigCrtMonitor(Config* config, lua_State* lua)
 {
-    lua_getfield(lua, -1, name);
+    lua_getglobal(lua, "CRT_MONITOR");
 
-    if (lua_isstring(lua, -1))
-        *val = strdup(lua_tostring(lua, -1));
+    if(lua_isboolean(lua, -1))
+        config->data.crtMonitor = lua_toboolean(lua, -1);
 
     lua_pop(lua, 1);
 }
@@ -94,32 +96,24 @@ static void readConfigCrtShader(Config* config, lua_State* lua)
 
     if(lua_type(lua, -1) == LUA_TTABLE)
     {
-        readString(lua, "VERTEX", &config->data.shader.vertex);
-        readString(lua, "PIXEL", &config->data.shader.pixel);
-    }
+        {
+            lua_getfield(lua, -1, "VERTEX");
 
-#if defined (EMSCRIPTEN)
-    // WebGL supports only version 100 shaders.
-    // Luckily, the format is nearly identical.
-    // This code detects the incompatible line(s) at
-    // the beginning of each shader and patches them
-    // in-place in memory.
-    char *s = (char *)config->data.shader.vertex;
-    if (strncmp("\t\t#version 110", s, 14) == 0) {
-        // replace the two tabs, with a "//" comment, disabling the #version tag.
-        s[0] = '/';
-        s[1] = '/';
+            if(lua_isstring(lua, -1))
+                config->data.shader.vertex = strdup(lua_tostring(lua, -1));
+
+            lua_pop(lua, 1);
+        }
+
+        {
+            lua_getfield(lua, -1, "PIXEL");
+
+            if(lua_isstring(lua, -1))
+                config->data.shader.pixel = strdup(lua_tostring(lua, -1));
+
+            lua_pop(lua, 1);
+        }
     }
-    s = (char *)config->data.shader.pixel;
-    if (strncmp("\t\t#version 110\n\t\t//precision highp float;", s, 41) == 0) {
-        // replace the two tabs, with a "//" comment, disabling the #version tag.
-        s[0] = '/';
-        s[1] = '/';
-        // replace the "//" comment with spaces, enabling the precision statement.
-        s[17] = ' ';
-        s[18] = ' ';
-    }
-#endif
 
     lua_pop(lua, 1);        
 }
@@ -132,10 +126,46 @@ static void readCursorTheme(Config* config, lua_State* lua)
 
     if(lua_type(lua, -1) == LUA_TTABLE)
     {
-        readInteger(lua, "ARROW", &config->data.theme.cursor.arrow);
-        readInteger(lua, "HAND", &config->data.theme.cursor.hand);
-        readInteger(lua, "IBEAM", &config->data.theme.cursor.ibeam);
-        readBool(lua, "PIXEL_PERFECT", &config->data.theme.cursor.pixelPerfect);
+        {
+            lua_getfield(lua, -1, "ARROW");
+
+            if(lua_isinteger(lua, -1))
+            {
+                config->data.theme.cursor.arrow = (s32)lua_tointeger(lua, -1);
+            }
+
+            lua_pop(lua, 1);
+        }
+
+        {
+            lua_getfield(lua, -1, "HAND");
+
+            if(lua_isinteger(lua, -1))
+            {
+                config->data.theme.cursor.hand = (s32)lua_tointeger(lua, -1);
+            }
+
+            lua_pop(lua, 1);
+        }
+
+        {
+            lua_getfield(lua, -1, "IBEAM");
+
+            if(lua_isinteger(lua, -1))
+            {
+                config->data.theme.cursor.ibeam = (s32)lua_tointeger(lua, -1);
+            }
+
+            lua_pop(lua, 1);
+        }
+
+        {
+            lua_getfield(lua, -1, "PIXEL_PERFECT");
+            if(lua_isboolean(lua, -1))
+                config->data.theme.cursor.pixelPerfect = lua_toboolean(lua, -1);
+
+            lua_pop(lua, 1);            
+        }
     }
 
     lua_pop(lua, 1);
@@ -148,16 +178,56 @@ static void readCodeTheme(Config* config, lua_State* lua)
     if(lua_type(lua, -1) == LUA_TTABLE)
     {
 
-#define CODE_COLOR_DEF(VAR) readByte(lua, #VAR, &config->data.theme.code.VAR);
-        CODE_COLORS_LIST(CODE_COLOR_DEF)
-#undef  CODE_COLOR_DEF
+        static const char* Syntax[] = {"STRING", "NUMBER", "KEYWORD", "API", "COMMENT", "SIGN", "VAR", "OTHER"};
 
-        readByte(lua, "SELECT", &config->data.theme.code.select);
-        readByte(lua, "CURSOR", &config->data.theme.code.cursor);
+        for(s32 i = 0; i < COUNT_OF(Syntax); i++)
+        {
+            lua_getfield(lua, -1, Syntax[i]);
 
-        readBool(lua, "SHADOW", &config->data.theme.code.shadow);
-        readBool(lua, "ALT_FONT", &config->data.theme.code.altFont);
-        readBool(lua, "MATCH_DELIMITERS", &config->data.theme.code.matchDelimiters);
+            if(lua_isinteger(lua, -1))
+                ((u8*)&config->data.theme.code.syntax)[i] = (u8)lua_tointeger(lua, -1);
+
+            lua_pop(lua, 1);
+        }
+        
+        static const char* Fields[] = {"BG", "SELECT", "CURSOR"};
+
+        for(s32 i = 0; i < COUNT_OF(Fields); i++)
+        {
+            lua_getfield(lua, -1, Fields[i]);
+
+            if(lua_isinteger(lua, -1))
+                ((u8*)&config->data.theme.code.bg)[i] = (u8)lua_tointeger(lua, -1);
+
+            lua_pop(lua, 1);
+        }
+
+        {
+            lua_getfield(lua, -1, "SHADOW");
+
+            if(lua_isboolean(lua, -1))
+                config->data.theme.code.shadow = lua_toboolean(lua, -1);
+
+            lua_pop(lua, 1);
+        }
+
+        {
+            lua_getfield(lua, -1, "ALT_FONT");
+
+            if(lua_isboolean(lua, -1))
+                config->data.theme.code.altFont = lua_toboolean(lua, -1);
+
+            lua_pop(lua, 1);
+        }
+
+        {
+            lua_getfield(lua, -1, "MATCH_DELIMITERS");
+
+            if(lua_isboolean(lua, -1))
+                config->data.theme.code.matchDelimiters = lua_toboolean(lua, -1);
+
+            lua_pop(lua, 1);
+        }
     }
 
     lua_pop(lua, 1);
@@ -173,7 +243,12 @@ static void readGamepadTheme(Config* config, lua_State* lua)
 
         if(lua_type(lua, -1) == LUA_TTABLE)
         {
-            readByte(lua, "ALPHA", &config->data.theme.gamepad.touch.alpha);
+            lua_getfield(lua, -1, "ALPHA");
+
+            if(lua_isinteger(lua, -1))
+                config->data.theme.gamepad.touch.alpha = (u8)lua_tointeger(lua, -1);
+
+            lua_pop(lua, 1);
         }
 
         lua_pop(lua, 1);
@@ -202,40 +277,27 @@ static void readConfig(Config* config)
 
     if(lua)
     {
-        if(luaL_loadstring(lua, config->cart->code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
+        if(luaL_loadstring(lua, config->cart.code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
         {
-            readGlobalInteger(lua, "GIF_LENGTH", &config->data.gifLength);
-            readGlobalInteger(lua, "GIF_SCALE", &config->data.gifScale);
-            readGlobalBool(lua, "CHECK_NEW_VERSION", &config->data.checkNewVersion);
-            readGlobalBool(lua, "NO_SOUND", &config->data.noSound);
-#if defined(CRT_SHADER_SUPPORT)
-            readGlobalBool(lua, "CRT_MONITOR", &config->data.crtMonitor);
+            readConfigVideoLength(config, lua);
+            readConfigVideoScale(config, lua);
+            readConfigCheckNewVersion(config, lua);
+            readConfigNoSound(config, lua);
+#if defined(CRT_SHADER_SUPPORT)            
+            readConfigCrtMonitor(config, lua);
             readConfigCrtShader(config, lua);
 #endif
-            readGlobalInteger(lua, "UI_SCALE", &config->data.uiScale);
+            readConfigUiScale(config, lua);
             readTheme(config, lua);
         }
 
         lua_close(lua);
     }
 }
-#else
-
-static void readConfig(Config* config)
-{
-    config->data = (StudioConfig)
-    {
-        .uiScale = 4,
-        .cart = config->cart,
-        .theme.cursor = {-1, -1, -1, false}
-    };
-}
-
-#endif
 
 static void update(Config* config, const u8* buffer, s32 size)
 {
-    tic_cart_load(config->cart, buffer, size);
+    tic_cart_load(&config->cart, buffer, size);
 
     readConfig(config);
     studioConfigChanged();
@@ -244,19 +306,25 @@ static void update(Config* config, const u8* buffer, s32 size)
 static void setDefault(Config* config)
 {
     memset(&config->data, 0, sizeof(StudioConfig));
-    config->data.cart = config->cart;
+
+    config->data.cart = &config->cart;
 
     {
-        static const u8 ConfigZip[] =
+        static const u8 DefaultBiosZip[] = 
         {
             #include "../build/assets/config.tic.dat"
         };
 
-        u8* data = malloc(sizeof(tic_cartridge));
+        u8* embedBios = calloc(1, sizeof(tic_cartridge));
 
-        SCOPE(free(data))
+        if(embedBios)
         {
-            update(config, data, tic_tool_unzip(data, sizeof(tic_cartridge), ConfigZip, sizeof ConfigZip));
+            s32 size = tic_tool_unzip(embedBios, sizeof(tic_cartridge), DefaultBiosZip, sizeof DefaultBiosZip);
+
+            if(size)
+                update(config, embedBios, size);
+
+            free(embedBios);
         }
     }
 }
@@ -267,7 +335,7 @@ static void saveConfig(Config* config, bool overwrite)
 
     if(buffer)
     {
-        s32 size = tic_cart_save(config->data.cart, buffer);
+        s32 size = tic_cart_save(&config->cart, buffer);
 
         tic_fs_saveroot(config->fs, CONFIG_TIC_PATH, buffer, size, overwrite);
 
@@ -283,7 +351,7 @@ static void reset(Config* config)
 
 static void save(Config* config)
 {
-    memcpy(config->cart, &config->tic->cart, sizeof(tic_cartridge));
+    memcpy(&config->cart, &config->tic->cart, sizeof(tic_cartridge));
     readConfig(config);
     saveConfig(config, true);
 
@@ -294,7 +362,6 @@ void initConfig(Config* config, tic_mem* tic, tic_fs* fs)
 {
     {
         config->tic = tic;
-        config->cart = malloc(sizeof(tic_cartridge));
         config->save = save;
         config->reset = reset;
         config->fs = fs;
@@ -318,8 +385,6 @@ void initConfig(Config* config, tic_mem* tic, tic_fs* fs)
 
 void freeConfig(Config* config)
 {
-    free(config->cart);
-
 #if defined(CRT_SHADER_SUPPORT)
 
     free((void*)config->data.shader.vertex);

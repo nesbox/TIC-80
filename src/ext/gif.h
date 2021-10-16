@@ -26,21 +26,21 @@
 
 typedef struct
 {
-    u8 r;
-    u8 g;
-    u8 b;
+	u8 r;
+	u8 g;
+	u8 b;
 }gif_color;
 
 typedef struct
 {
-    u8* buffer;
+	u8* buffer;
 
-    gif_color* palette;
+	gif_color* palette;
 
-    s32 width;
-    s32 height;
+	s32 width;
+	s32 height;
 
-    s32 colors;
+	s32 colors;
 } gif_image;
 
 gif_image* gif_read_data(const void* buffer, s32 size);

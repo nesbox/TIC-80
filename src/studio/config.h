@@ -32,7 +32,7 @@ struct Config
     struct tic_fs* fs;
 
     StudioConfig data;
-    tic_cartridge* cart;
+    tic_cartridge cart;
 
     void(*save)(Config*);
     void(*reset)(Config*);

@@ -50,7 +50,6 @@ struct Sprite
     {
         bool edit;
         bool ovr;
-        s32 focus;
     } palette;
 
     struct
@@ -60,7 +59,7 @@ struct Sprite
         bool drag;
         u8* back;
         u8* front;
-    } select;
+    }select;
 
     enum
     {
@@ -68,7 +67,7 @@ struct Sprite
         SPRITE_PICK_MODE,
         SPRITE_SELECT_MODE,
         SPRITE_FILL_MODE,
-    } mode;
+    }mode;
 
     struct History* history;
 

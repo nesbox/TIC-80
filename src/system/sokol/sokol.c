@@ -170,11 +170,11 @@ static void app_frame(void)
     sokol_gfx_draw(platform.studio->tic->screen);
 
     s32 count = tic->samples.size / sizeof tic->samples.buffer[0];
-        for(s32 i = 0; i < count; i++)
-            platform.audio.samples[i] = (float)tic->samples.buffer[i] / SHRT_MAX;
+    for(s32 i = 0; i < count; i++)
+        platform.audio.samples[i] = (float)tic->samples.buffer[i] / SHRT_MAX;
 
-        saudio_push(platform.audio.samples, count / 2);
-        
+    saudio_push(platform.audio.samples, count / 2);
+    
     input->mouse.scrollx = input->mouse.scrolly = 0;
     platform.keyboard.text = '\0';
 }
@@ -404,15 +404,7 @@ sapp_desc sokol_main(s32 argc, char* argv[])
     platform.audio.desc.num_channels = TIC_STEREO_CHANNELS;
     saudio_setup(&platform.audio.desc);
 
-    platform.studio = studioInit(argc, argv, saudio_sample_rate(), "./");
-
-    if(platform.studio->config()->cli)
-    {
-        while (!platform.studio->quit)
-            platform.studio->tick();
-
-        exit(0);
-    }
+    platform.studio = studioInit(argc, (const char**)argv, saudio_sample_rate(), "./");
 
     const s32 Width = TIC80_FULLWIDTH * platform.studio->config()->uiScale;
     const s32 Height = TIC80_FULLHEIGHT * platform.studio->config()->uiScale;

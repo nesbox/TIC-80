@@ -139,8 +139,7 @@ typedef struct
         tic_command_data commands[TIC_SOUND_CHANNELS];
         tic_sfx_pos sfxpos[TIC_SOUND_CHANNELS];
         tic_jump_command jump;
-        s32 tempo;
-        s32 speed;
+
     } music;
 
     tic_tick tick;
@@ -168,9 +167,22 @@ typedef struct
 
     struct
     {
-#define SCRIPT_DEF(name, _, __, vm) struct vm* name;
-    SCRIPT_LIST(SCRIPT_DEF)
-#undef SCRIPT_DEF
+#if defined(TIC_BUILD_WITH_LUA) || defined(TIC_BUILD_WITH_MOON) || defined(TIC_BUILD_WITH_FENNEL)
+        struct lua_State* lua;
+#endif
+
+#if defined(TIC_BUILD_WITH_JS)
+        struct duk_hthread* js;
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
+        struct WrenVM* wren;
+#endif  
+
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+        struct SQVM* squirrel;
+#endif
+
     };
 
     struct
@@ -180,13 +192,16 @@ typedef struct
     } blip;
     
     s32 samplerate;
+
     tic_tick_data* data;
+
     tic_core_state_data state;
 
     struct
     {
         tic_core_state_data state;   
         tic_ram ram;
+        u8 input;
 
         struct
         {
@@ -196,6 +211,31 @@ typedef struct
     } pause;
 
 } tic_core;
+
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+const tic_script_config* getSquirrelScriptConfig();
+#endif
+
+#if defined(TIC_BUILD_WITH_LUA)
+const tic_script_config* getLuaScriptConfig();
+
+#   if defined(TIC_BUILD_WITH_MOON)
+const tic_script_config* getMoonScriptConfig();
+#   endif
+
+#   if defined(TIC_BUILD_WITH_FENNEL)
+const tic_script_config* getFennelConfig();
+#   endif
+
+#endif /* defined(TIC_BUILD_WITH_LUA) */
+
+#if defined(TIC_BUILD_WITH_JS)
+const tic_script_config* getJsScriptConfig();
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
+const tic_script_config* getWrenScriptConfig();
+#endif
 
 void tic_core_tick_io(tic_mem* memory);
 void tic_core_sound_tick_start(tic_mem* memory);

@@ -15,7 +15,7 @@
  * - TIC80_OFFSET_LEFT
  * - TIC80_OFFSET_TOP,
  * - TIC_NAME
- * - TIC_VERSION
+ * - TIC_VERSION_LABEL
  */
 #include "studio/system.h"
 
@@ -289,7 +289,7 @@ RETRO_API void retro_get_system_info(struct retro_system_info *info)
 {
 	memset(info, 0, sizeof(*info));
 	info->library_name     = TIC_NAME;
-	info->library_version  = TIC_VERSION;
+	info->library_version  = TIC_VERSION_LABEL;
 	info->valid_extensions = "tic";
 	info->need_fullpath    = false;
 	info->block_extract    = false;

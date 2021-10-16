@@ -21,14 +21,6 @@
 // SOFTWARE.
 
 #include "start.h"
-#include "studio/fs.h"
-#include "cart.h"
-
-#if defined(__TIC_WINDOWS__)
-#include <windows.h>
-#else
-#include <unistd.h>
-#endif
 
 static void reset(Start* start)
 {
@@ -46,11 +38,12 @@ static void reset(Start* start)
 
 static void drawHeader(Start* start)
 {
-    for(s32 i = 0; i < STUDIO_TEXT_BUFFER_SIZE; i++)
-        tic_api_print(start->tic, (char[]){start->text[i], '\0'}, 
-            (i % STUDIO_TEXT_BUFFER_WIDTH) * STUDIO_TEXT_WIDTH, 
-            (i / STUDIO_TEXT_BUFFER_WIDTH) * STUDIO_TEXT_HEIGHT, 
-            start->color[i], true, 1, false);
+#define HEADER_LINE(label, color) {label, color},
+    static const struct { const char* label; u8 color; } Lines[] = {CONSOLE_HEADER(HEADER_LINE)};
+#undef HEADER_LINE
+
+    for (s32 i = 0; i < COUNT_OF(Lines); i++)
+        tic_api_print(start->tic, Lines[i].label, STUDIO_TEXT_WIDTH, STUDIO_TEXT_HEIGHT * (i+1), Lines[i].color, true, 1, false);
 }
 
 static void header(Start* start)
@@ -93,33 +86,12 @@ static void tick(Start* start)
 
     static void(*const steps[])(Start*) = {reset, header, end};
 
-    steps[CLAMP(start->ticks / TIC80_FRAMERATE, 0, COUNT_OF(steps) - 1)](start);
+    steps[start->ticks / TIC80_FRAMERATE](start);
 
     start->ticks++;
 }
 
-static void* _memmem(const void* haystack, size_t hlen, const void* needle, size_t nlen)
-{
-    const u8* p = haystack;
-    size_t plen = hlen;
-
-    if (!nlen) return NULL;
-
-    s32 needle_first = *(u8*)needle;
-
-    while (plen >= nlen && (p = memchr(p, needle_first, plen - nlen + 1)))
-    {
-        if (!memcmp(p, needle, nlen))
-            return (void*)p;
-
-        p++;
-        plen = hlen - (p - (const u8*)haystack);
-    }
-
-    return NULL;
-}
-
-void initStart(Start* start, tic_mem* tic, const char* cart)
+void initStart(Start* start, tic_mem* tic)
 {
     *start = (Start)
     {
@@ -129,112 +101,10 @@ void initStart(Start* start, tic_mem* tic, const char* cart)
         .ticks = 0,
         .tick = tick,
         .play = false,
-        .embed = false,
     };
-
-    start->text = calloc(1, STUDIO_TEXT_BUFFER_SIZE);
-    start->color = calloc(1, STUDIO_TEXT_BUFFER_SIZE);
-
-    static const char* Header[] = 
-    {
-        "",
-        " " TIC_NAME_FULL,
-        " version " TIC_VERSION,
-        " " TIC_COPYRIGHT,
-    };
-
-    for(s32 i = 0; i < COUNT_OF(Header); i++)
-        strcpy(start->text + i * STUDIO_TEXT_BUFFER_WIDTH, Header[i]);
-
-    for(s32 i = 0; i < STUDIO_TEXT_BUFFER_SIZE; i++)
-        start->color[i] = CLAMP(((i % STUDIO_TEXT_BUFFER_WIDTH) + (i / STUDIO_TEXT_BUFFER_WIDTH)) / 2, 
-            tic_color_black, tic_color_dark_grey);
-
-#if defined(__EMSCRIPTEN__)
-
-    if (cart)
-    {
-        s32 size = 0;
-        void* data = fs_read(cart, &size);
-
-        if(data) SCOPE(free(data))
-        {
-            tic_cart_load(&tic->cart, data, size);
-            tic_api_reset(tic);
-            start->embed = true;
-        }
-    }
-
-#else
-
-    {
-        char appPath[TICNAME_MAX];
-    
-#   if defined(__TIC_WINDOWS__)
-        {
-            wchar_t wideAppPath[TICNAME_MAX];
-            GetModuleFileNameW(NULL, wideAppPath, sizeof wideAppPath);
-            WideCharToMultiByte(CP_UTF8, 0, wideAppPath, COUNT_OF(wideAppPath), appPath, COUNT_OF(appPath), 0, 0);
-        }
-#   elif defined(__TIC_LINUX__)
-        s32 size = readlink("/proc/self/exe", appPath, sizeof appPath);
-        appPath[size] = '\0';
-#   elif defined(__TIC_MACOSX__)
-        s32 size = sizeof appPath;
-        _NSGetExecutablePath(appPath, &size);
-#   endif
-    
-        s32 appSize = 0;
-        u8* app = fs_read(appPath, &appSize);
-    
-        if(app) SCOPE(free(app))
-        {
-            s32 size = appSize;
-            const u8* ptr = app;
-    
-            while(true)
-            {
-                const EmbedHeader* header = (const EmbedHeader*)_memmem(ptr, size, CART_SIG, STRLEN(CART_SIG));
-    
-                if(header)
-                {
-                    if(appSize == header->appSize + sizeof(EmbedHeader) + header->cartSize)
-                    {
-                        u8* data = calloc(1, sizeof(tic_cartridge));
-    
-                        if(data)
-                        {
-                            s32 dataSize = tic_tool_unzip(data, sizeof(tic_cartridge), app + header->appSize + sizeof(EmbedHeader), header->cartSize);
-    
-                            if(dataSize)
-                            {
-                                tic_cart_load(&tic->cart, data, dataSize);
-                                tic_api_reset(tic);
-                                start->embed = true;
-                            }
-                                
-                            free(data);
-                        }
-    
-                        break;
-                    }
-                    else
-                    {
-                        ptr = (const u8*)header + STRLEN(CART_SIG);
-                        size = appSize - (s32)(ptr - app);
-                    }
-                }
-                else break;
-            }
-        }
-    }
-
-#endif
 }
 
 void freeStart(Start* start)
 {
-    free(start->text);
-    free(start->color);
     free(start);
 }

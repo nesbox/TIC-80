@@ -31,14 +31,17 @@
 #define TIC_VERSION_POST ""
 #endif
 
-#define TIC_VERSION DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "." DEF2STR(TIC_VERSION_REVISION) TIC_VERSION_STATUS TIC_VERSION_BUILD TIC_VERSION_POST " (" TIC_VERSION_HASH ")"
+#define TIC_MAKE_VERSION(major, minor, patch) ((major) * 10000 + (minor) * 100 + (patch))
+#define TIC_VERSION TIC_MAKE_VERSION(MYPROJ_VERSION_MAJOR, MYPROJ_VERSION_MINOR, MYPROJ_VERSION_PATCH)
+#define TIC_VERSION_LABEL DEF2STR(TIC_VERSION_MAJOR) "." DEF2STR(TIC_VERSION_MINOR) "." DEF2STR(TIC_VERSION_REVISION) TIC_VERSION_STATUS TIC_VERSION_BUILD TIC_VERSION_POST
 #define TIC_PACKAGE "com.nesbox.tic"
 #define TIC_NAME "TIC-80"
 #define TIC_NAME_FULL TIC_NAME " tiny computer"
-#define TIC_TITLE TIC_NAME_FULL " " TIC_VERSION
+#define TIC_TITLE TIC_NAME_FULL " " TIC_VERSION_LABEL
+#define TIC_HTTP "http://"
 #define TIC_HOST "tic80.com"
-#define TIC_WEBSITE "https://" TIC_HOST
-#define TIC_COPYRIGHT TIC_WEBSITE " (C) 2017-" TIC_VERSION_YEAR
+#define TIC_WEBSITE TIC_HTTP TIC_HOST
+#define TIC_COPYRIGHT TIC_WEBSITE " (C) " TIC_VERSION_YEAR
 
 #define TICNAME_MAX 256
 
@@ -61,16 +64,6 @@ void    tic_sys_poll();
 bool    tic_sys_keyboard_text(char* text);
 void    tic_sys_update_config();
 
-#define CODE_COLORS_LIST(macro) \
-    macro(BG)       \
-    macro(FG)       \
-    macro(STRING)   \
-    macro(NUMBER)   \
-    macro(KEYWORD)  \
-    macro(API)      \
-    macro(COMMENT)  \
-    macro(SIGN)
-
 typedef struct
 {
     struct
@@ -86,10 +79,19 @@ typedef struct
 
         struct
         {
-#define     CODE_COLOR_DEF(VAR) u8 VAR;
-            CODE_COLORS_LIST(CODE_COLOR_DEF)
-#undef      CODE_COLOR_DEF
+            struct tic_code_theme
+            {
+                u8 string;
+                u8 number;
+                u8 keyword;
+                u8 api;
+                u8 comment;
+                u8 sign;
+                u8 var;
+                u8 other;
+            } syntax;
 
+            u8 bg;
             u8 select;
             u8 cursor;
             bool shadow;
@@ -114,7 +116,6 @@ typedef struct
     
     bool checkNewVersion;
     bool noSound;
-    bool cli;
 
 #if defined(CRT_SHADER_SUPPORT)
     bool crtMonitor;
@@ -141,11 +142,12 @@ typedef struct
     void (*tick)();
     void (*exit)();
     void (*close)();
+    void (*updateProject)();
     const StudioConfig* (*config)();
 
 } Studio;
 
-Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* appFolder);
+Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* appFolder);
 
 #ifdef __cplusplus
 }

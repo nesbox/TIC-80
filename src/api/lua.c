@@ -62,18 +62,13 @@ static s32 lua_peek(lua_State* lua)
     s32 top = lua_gettop(lua);
     tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
-    if(top >= 1)
+    if(top == 1)
     {
         s32 address = getLuaNumber(lua, 1);
-        s32 res = BITS_IN_BYTE;
-
-        if(top == 2)
-            res = getLuaNumber(lua, 2);
-
-        lua_pushinteger(lua, tic_api_peek(tic, address, res));
+        lua_pushinteger(lua, tic_api_peek(tic, address));
         return 1;
     }
-    else luaL_error(lua, "invalid parameters, peek(addr,res)\n");
+    else luaL_error(lua, "invalid parameters, peek(addr)\n");
 
     return 0;
 }
@@ -83,18 +78,14 @@ static s32 lua_poke(lua_State* lua)
     s32 top = lua_gettop(lua);
     tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
-    if(top >= 2)
+    if(top == 2)
     {
         s32 address = getLuaNumber(lua, 1);
         u8 value = getLuaNumber(lua, 2);
-        s32 res = BITS_IN_BYTE;
 
-        if(top == 3)
-            res = getLuaNumber(lua, 3);
-
-        tic_api_poke(tic, address, value, res);
+        tic_api_poke(tic, address, value);
     }
-    else luaL_error(lua, "invalid parameters, poke(addr,val,res)\n");
+    else luaL_error(lua, "invalid parameters, poke(addr,val)\n");
 
     return 0;
 }
@@ -239,13 +230,15 @@ static s32 lua_circ(lua_State* lua)
     s32 top = lua_gettop(lua);
 
     if(top == 4)
-    {       
-        tic_mem* tic = (tic_mem*)getLuaCore(lua);
-
+    {
+        s32 radius = getLuaNumber(lua, 3);
+        if(radius < 0) return 0;
+        
         s32 x = getLuaNumber(lua, 1);
         s32 y = getLuaNumber(lua, 2);
-        s32 radius = getLuaNumber(lua, 3);
         s32 color = getLuaNumber(lua, 4);
+
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
         tic_api_circ(tic, x, y, radius, color);
     }
@@ -260,58 +253,18 @@ static s32 lua_circb(lua_State* lua)
 
     if(top == 4)
     {
-        tic_mem* tic = (tic_mem*)getLuaCore(lua);
+        s32 radius = getLuaNumber(lua, 3);
+        if(radius < 0) return 0;
 
         s32 x = getLuaNumber(lua, 1);
         s32 y = getLuaNumber(lua, 2);
-        s32 radius = getLuaNumber(lua, 3);
         s32 color = getLuaNumber(lua, 4);
+
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
         tic_api_circb(tic, x, y, radius, color);
     }
     else luaL_error(lua, "invalid parameters, circb(x,y,radius,color)\n");
-
-    return 0;
-}
-
-static s32 lua_elli(lua_State* lua)
-{
-    s32 top = lua_gettop(lua);
-
-    if(top == 5)
-    {       
-        tic_mem* tic = (tic_mem*)getLuaCore(lua);
-
-        s32 x = getLuaNumber(lua, 1);
-        s32 y = getLuaNumber(lua, 2);
-        s32 a = getLuaNumber(lua, 3);
-        s32 b = getLuaNumber(lua, 4);
-        s32 color = getLuaNumber(lua, 5);
-
-        tic_api_elli(tic, x, y, a, b, color);
-    }
-    else luaL_error(lua, "invalid parameters, elli(x,y,a,b,color)\n");
-
-    return 0;
-}
-
-static s32 lua_ellib(lua_State* lua)
-{
-    s32 top = lua_gettop(lua);
-
-    if(top == 5)
-    {
-        tic_mem* tic = (tic_mem*)getLuaCore(lua);
-       
-        s32 x = getLuaNumber(lua, 1);
-        s32 y = getLuaNumber(lua, 2);
-        s32 a = getLuaNumber(lua, 3);
-        s32 b = getLuaNumber(lua, 4);
-        s32 color = getLuaNumber(lua, 5);
-
-        tic_api_ellib(tic, x, y, a, b, color);
-    }
-    else luaL_error(lua, "invalid parameters, ellib(x,y,a,b,color)\n");
 
     return 0;
 }
@@ -334,28 +287,6 @@ static s32 lua_tri(lua_State* lua)
         tic_api_tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
     }
     else luaL_error(lua, "invalid parameters, tri(x1,y1,x2,y2,x3,y3,color)\n");
-
-    return 0;
-}
-
-static s32 lua_trib(lua_State* lua)
-{
-    s32 top = lua_gettop(lua);
-
-    if(top == 7)
-    {
-        s32 pt[6];
-
-        for(s32 i = 0; i < COUNT_OF(pt); i++)
-            pt[i] = getLuaNumber(lua, i+1);
-        
-        s32 color = getLuaNumber(lua, 7);
-
-        tic_mem* tic = (tic_mem*)getLuaCore(lua);
-
-        tic_api_trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
-    }
-    else luaL_error(lua, "invalid parameters, trib(x1,y1,x2,y2,x3,y3,color)\n");
 
     return 0;
 }
@@ -741,18 +672,16 @@ static s32 lua_music(lua_State* lua)
     s32 top = lua_gettop(lua);
     tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
-    if(top == 0) tic_api_music(tic, -1, 0, 0, false, false, -1, -1);
+    if(top == 0) tic_api_music(tic, -1, 0, 0, false, false);
     else if(top >= 1)
     {
-        tic_api_music(tic, -1, 0, 0, false, false, -1, -1);
+        tic_api_music(tic, -1, 0, 0, false, false);
 
         s32 track = getLuaNumber(lua, 1);
         s32 frame = -1;
         s32 row = -1;
         bool loop = true;
         bool sustain = false;
-        s32 tempo = -1;
-        s32 speed = -1;
 
         if(top >= 2)
         {
@@ -765,27 +694,11 @@ static s32 lua_music(lua_State* lua)
                 if(top >= 4)
                 {
                     loop = lua_toboolean(lua, 4);
-
-                    if (top >= 5)
-                    {
-                        sustain = getLuaNumber(lua, 5);
-
-                        if (top >= 6)
-                        {
-                            tempo = getLuaNumber(lua, 6);
-
-                            if (top >= 7)
-                            {
-                                speed = getLuaNumber(lua, 7);
-                            }
-                        }
-                    }
-
                 }
             }
         }
 
-        tic_api_music(tic, track, frame, row, loop, sustain, tempo, speed);
+        tic_api_music(tic, track, frame, row, loop, sustain);
     }
     else luaL_error(lua, "invalid params, use music(track)\n");
 
@@ -1256,7 +1169,7 @@ static s32 lua_mouse(lua_State *lua)
         tic_point pos = tic_api_mouse((tic_mem*)core);
 
         lua_pushinteger(lua, pos.x);
-        lua_pushinteger(lua, pos.y);
+        lua_pushinteger(lua, pos.y);        
     }
 
     const tic80_mouse* mouse = &core->memory.ram.input.mouse;
@@ -1608,7 +1521,6 @@ static void evalLua(tic_mem* tic, const char* code) {
 
 static const tic_script_config LuaSyntaxConfig = 
 {
-    .name               = "lua",
     .init               = initLua,
     .close              = closeLua,
     .tick               = callLuaTick,
@@ -1630,7 +1542,7 @@ static const tic_script_config LuaSyntaxConfig =
     .keywordsCount      = COUNT_OF(LuaKeywords),
 };
 
-const tic_script_config* get_lua_script_config()
+const tic_script_config* getLuaScriptConfig()
 {
     return &LuaSyntaxConfig;
 }
@@ -1776,7 +1688,6 @@ static const tic_outline_item* getMoonOutline(const char* code, s32* size)
 
 static const tic_script_config MoonSyntaxConfig = 
 {
-    .name               = "moon",
     .init               = initMoonscript,
     .close              = closeLua,
     .tick               = callLuaTick,
@@ -1798,7 +1709,7 @@ static const tic_script_config MoonSyntaxConfig =
     .keywordsCount      = COUNT_OF(MoonKeywords),
 };
 
-const tic_script_config* get_moon_script_config()
+const tic_script_config* getMoonScriptConfig()
 {
     return &MoonSyntaxConfig;
 }
@@ -1953,7 +1864,6 @@ static void evalFennel(tic_mem* tic, const char* code) {
 
 static const tic_script_config FennelSyntaxConfig =
 {
-    .name               = "fennel",
     .init               = initFennel,
     .close              = closeLua,
     .tick               = callLuaTick,
@@ -1975,7 +1885,7 @@ static const tic_script_config FennelSyntaxConfig =
     .keywordsCount      = COUNT_OF(FennelKeywords),
 };
 
-const tic_script_config* get_fennel_script_config()
+const tic_script_config* getFennelConfig()
 {
     return &FennelSyntaxConfig;
 }
