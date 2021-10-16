@@ -39,7 +39,7 @@
 #define KEYBOARD_PERIOD 3
 
 #define TIC_LOCAL ".local/"
-#define TIC_LOCAL_VERSION TIC_LOCAL TIC_VERSION_LABEL "/"
+#define TIC_LOCAL_VERSION TIC_LOCAL TIC_VERSION_HASH "/"
 #define TIC_CACHE TIC_LOCAL "cache/"
 
 #define TOOLBAR_SIZE 7
@@ -47,9 +47,9 @@
 #define STUDIO_TEXT_HEIGHT (TIC_FONT_HEIGHT+1)
 #define STUDIO_TEXT_BUFFER_WIDTH (TIC80_WIDTH / STUDIO_TEXT_WIDTH)
 #define STUDIO_TEXT_BUFFER_HEIGHT (TIC80_HEIGHT / STUDIO_TEXT_HEIGHT)
+#define STUDIO_TEXT_BUFFER_SIZE (STUDIO_TEXT_BUFFER_WIDTH * STUDIO_TEXT_BUFFER_HEIGHT)
 
 #define TIC_COLOR_BG tic_color_black
-#define DEFAULT_CHMOD 0755
 
 #define CONFIG_TIC "config.tic"
 #define CONFIG_TIC_PATH TIC_LOCAL_VERSION CONFIG_TIC
@@ -61,6 +61,23 @@
 
 #define CART_EXT ".tic"
 #define PNG_EXT ".png"
+
+#if defined(CRT_SHADER_SUPPORT)
+#   define CRT_CMD_PARAM(macro) \
+    macro(crt, BOOLEAN, "", "enable CRT monitor effect")
+#else
+#   define CRT_CMD_PARAM(macro)
+#endif
+
+#define CMD_PARAMS_LIST(macro)                                                      \
+    macro(skip,         BOOLEAN,    "",         "skip startup animation")           \
+    macro(nosound,      BOOLEAN,    "",         "disable sound output")             \
+    macro(cli,          BOOLEAN,    "",         "console only output")              \
+    macro(fullscreen,   BOOLEAN,    "",         "enable fullscreen mode")           \
+    macro(fs,           STRING,     "=<str>",   "path to the file system folder")   \
+    macro(scale,        INTEGER,    "=<int>",   "main window scale")                \
+    macro(cmd,          STRING,     "=<str>",   "run commands in the console")      \
+    CRT_CMD_PARAM(macro)
 
 #define SHOW_TOOLTIP(FORMAT, ...)           \
 do{                                         \
@@ -74,14 +91,15 @@ typedef struct
 {
     bool skip;
     bool nosound;
+    bool cli;
     bool fullscreen;
     s32 scale;
-    const char *fs;
-    const char *cart;
+    char *fs;
+    char *cart;
 #if defined(CRT_SHADER_SUPPORT)
     bool crt;
 #endif
-    const char *cmd;
+    char *cmd;
 } StartArgs;
 
 typedef enum
@@ -100,6 +118,67 @@ typedef enum
     TIC_SURF_MODE,
 } EditorMode;
 
+enum
+{
+    tic_icon_cut        = 80,
+    tic_icon_copy       = 81,
+    tic_icon_paste      = 82,
+    tic_icon_undo       = 83,
+    tic_icon_redo       = 84,
+    tic_icon_bank       = 85,
+    tic_icon_pin        = 86,
+    tic_icon_tab        = 87,
+    tic_icon_code       = 88,
+    tic_icon_sprite     = 89,
+    tic_icon_map        = 90,
+    tic_icon_sfx        = 91,
+    tic_icon_music      = 92,
+    tic_icon_rec        = 93,
+    tic_icon_rec2       = 94,
+    tic_icon_bookmark   = 95,
+    tic_icon_shadow     = 96,
+    tic_icon_shadow2    = 97,
+    tic_icon_run        = 98,
+    tic_icon_hand       = 99,
+    tic_icon_find       = 100,
+    tic_icon_goto       = 101,
+    tic_icon_outline    = 102,
+    tic_icon_world      = 103,
+    tic_icon_grid       = 104,
+    tic_icon_down       = 105,
+    tic_icon_up         = 106,
+    tic_icon_fill       = 107,
+    tic_icon_select     = 108,
+    tic_icon_pen        = 109,
+    tic_icon_tiles      = 110,
+    tic_icon_sprites    = 111,
+    tic_icon_left       = 112,
+    tic_icon_right      = 113,
+    tic_icon_piano      = 114,
+    tic_icon_tracker    = 115,
+    tic_icon_follow     = 116,
+    tic_icon_sustain    = 117,
+    tic_icon_playnow    = 118,
+    tic_icon_playframe  = 119,
+    tic_icon_stop       = 120,
+    tic_icon_rgb        = 121,
+    tic_icon_tinyleft   = 122,
+    tic_icon_pos        = 123,
+    tic_icon_tinyright  = 124,
+    tic_icon_bigup      = 125,
+    tic_icon_bigdown    = 126,
+    tic_icon_bigleft    = 127,
+    tic_icon_bigright   = 128,
+    tic_icon_fliphorz   = 129,
+    tic_icon_flipvert   = 130,
+    tic_icon_rotate     = 131,
+    tic_icon_erase      = 132,
+    tic_icon_bigpen     = 133,
+    tic_icon_bigpicker  = 134,
+    tic_icon_bigselect  = 135,
+    tic_icon_bigfill    = 136,
+};
+
 void setCursor(tic_cursor id);
 
 bool checkMousePos(const tic_rect* rect);
@@ -107,7 +186,7 @@ bool checkMouseClick(const tic_rect* rect, tic_mouse_btn button);
 bool checkMouseDown(const tic_rect* rect, tic_mouse_btn button);
 
 void drawToolbar(tic_mem* tic, bool bg);
-void drawBitIcon(s32 x, s32 y, const u8* ptr, u8 color);
+void drawBitIcon(s32 id, s32 x, s32 y, u8 color);
 
 tic_cartridge* loadPngCart(png_buffer buffer);
 void studioRomLoaded();
@@ -179,9 +258,10 @@ bool keyWasPressed(tic_key key);
 bool anyKeyWasPressed();
 
 const StudioConfig* getConfig();
+struct Start* getStartScreen();
+struct Sprite* getSpriteEditor();
 
 const char* md5str(const void* data, s32 length);
-bool hasProjectExt(const char* name);
 void sfx_stop(tic_mem* tic, s32 channel);
 const char* studioExportMusic(s32 track, const char* filename);
 const char* studioExportSfx(s32 sfx, const char* filename);
@@ -192,3 +272,5 @@ void tiles2ram(tic_ram* ram, const tic_tiles* src);
 #if defined(CRT_SHADER_SUPPORT)
 void switchCrtMonitor();
 #endif
+
+void fadePalette(tic_palette* pal, s32 value);

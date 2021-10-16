@@ -27,6 +27,8 @@ To make a retro styled game, the whole process of creation and execution takes p
 
 # Binary Downloads
 You can download compiled versions for the major operating systems directly from our [releases page](https://github.com/nesbox/TIC-80/releases).
+### Nightly builds
+Can be downloaded from [nightly builds](https://nightly.link/nesbox/TIC-80/workflows/build/master) page or from the [Github Actions](https://github.com/nesbox/TIC-80/actions?query=branch%3Amaster) page.
 
 # Pro Version
 To help support TIC-80 development, we have a [PRO Version](https://nesbox.itch.io/tic80).
@@ -81,7 +83,7 @@ mingw32-make -j4
 ### Ubuntu 14.04
 run the following commands in the Terminal
 ```
-sudo apt-get install git cmake libgtk-3-dev libgles1-mesa-dev libglu-dev -y
+sudo apt-get install git cmake libgles1-mesa-dev libglu-dev -y
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
@@ -92,22 +94,24 @@ to install the latest CMake:
 wget "https://cmake.org/files/v3.12/cmake-3.12.0-Linux-x86_64.sh"
 sudo sh cmake-3.12.0-Linux-x86_64.sh --skip-license --prefix=/usr
 ```
+Install with [Install instructions](#install-instructions)
 
 ### Ubuntu 18.04
 
 run the following commands in the Terminal
 ```
-sudo apt-get install g++ git cmake libgtk-3-dev libglvnd-dev libglu1-mesa-dev freeglut3-dev libasound2-dev -y
+sudo apt-get install g++ git cmake libglvnd-dev libglu1-mesa-dev freeglut3-dev libasound2-dev -y
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
 ```
+Install with [Install instructions](#install-instructions)
 
 ### Raspberry Pi (Retropie)
 
 First, add jessie-backports repo to your `/etc/apt/sources.list`
 
-`deb http://ftp.debian.org/debian jessie-backports main`  
+`deb [check-valid-until=no] http://archive.debian.org/debian jessie-backports main`  
 
 Then run the following commands in the Terminal
 
@@ -123,12 +127,13 @@ sudo apt-get update
 sudo apt-get dist-upgrade
 
 # install software
-sudo apt-get install git build-essential libgtk-3-dev libsdl2-dev zlib1g-dev
+sudo apt-get install git build-essential libsdl2-dev zlib1g-dev
 sudo apt-get install -t jessie-backports liblua5.3-dev
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
 ```
+Install with [Install instructions](#install-instructions)
 
 _Note:_ If you are using a normal Raspberry Pi image (not Retropie) you may not
 have OpenGL drivers enabled. Run `sudo raspi-config`, then select 7
@@ -145,6 +150,13 @@ git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
 ```
+
+# Install instructions
+
+## Linux 
+To install run `sudo make install -j4`
+
+TIC-80 can now be run with `tic80`
 
 ## iOS / tvOS
 You can find iOS/tvOS version here 
@@ -173,3 +185,4 @@ You can find iOS/tvOS version here
 * Jay Em (Sweetie16 palette) - [Twitter @GrafxKid](https://twitter.com/GrafxKid)  
 * msx80 - [Twitter @msx80](https://twitter.com/msx80) [Github msx80](https://github.com/msx80)
 * Josh Goebel - [Twitter @dreamer3](https://twitter.com/dreamer3) [Github joshgoebel](https://github.com/joshgoebel)
+* Joshua Minor - [GitHub @jminor](https://github.com/jminor)

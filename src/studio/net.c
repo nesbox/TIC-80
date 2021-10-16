@@ -62,7 +62,7 @@ static void downloadSucceeded(emscripten_fetch_t *fetch)
 
     data->callback(&getData);
 
-    free(fetch->data);
+    free((void*)fetch->data);
     free(data);
 
     emscripten_fetch_close(fetch);
@@ -348,7 +348,7 @@ void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void*
 
     s32 priority;
     svcGetThreadPriority(&priority, CUR_THREAD_HANDLE);
-    threadCreate((ThreadFunc) n3ds_net_get_thread, OBJCOPY(ctx), 16 * 1024, priority - 1, -1, true);
+    threadCreate((ThreadFunc) n3ds_net_get_thread, MOVE(ctx), 16 * 1024, priority - 1, -1, true);
 }
 
 void tic_net_close(tic_net* net)
@@ -530,7 +530,7 @@ static void onConnect(uv_connect_t *req, s32 status)
     snprintf(httpReq, sizeof httpReq, "GET %s HTTP/1.1\nHost: %s\n\n", net->path, net->host);
 
     uv_buf_t http = uv_buf_init(httpReq, strlen(httpReq));
-    uv_write(OBJCOPY((uv_write_t){.data = net}), req->handle, &http, 1, onHeaderSent);
+    uv_write(MOVE((uv_write_t){.data = net}), req->handle, &http, 1, onHeaderSent);
 
     free(req);
 }
@@ -541,7 +541,7 @@ static void onResolved(uv_getaddrinfo_t *resolver, s32 status, struct addrinfo *
 
     if (res)
     {
-        uv_tcp_connect(OBJCOPY((uv_connect_t){.data = net}), &net->tcp, res->ai_addr, onConnect);
+        uv_tcp_connect(MOVE((uv_connect_t){.data = net}), &net->tcp, res->ai_addr, onConnect);
         uv_freeaddrinfo(res);
     }
     else onError(net, 0);
@@ -558,7 +558,7 @@ void tic_net_get(tic_net* net, const char* path, net_get_callback callback, void
     net->path = strdup(path);
 
     uv_tcp_init(loop, &net->tcp);
-    uv_getaddrinfo(loop, OBJCOPY((uv_getaddrinfo_t){.data = net}), onResolved, net->host, "80", NULL);
+    uv_getaddrinfo(loop, MOVE((uv_getaddrinfo_t){.data = net}), onResolved, net->host, "80", NULL);
 }
 
 void tic_net_start(tic_net *net)
@@ -668,7 +668,7 @@ void tic_net_get(tic_net* net, const char* path, net_get_callback callback, void
 {
     struct Curl_easy* curl = curl_easy_init();
 
-    CurlData* data = OBJCOPY((CurlData)
+    CurlData* data = MOVE((CurlData)
     {
         .async = curl,
         .callback = callback,

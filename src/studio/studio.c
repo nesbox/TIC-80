@@ -22,38 +22,37 @@
 
 #include "studio.h"
 
+#if defined(BUILD_EDITORS)
+
 #include "editors/code.h"
 #include "editors/sprite.h"
 #include "editors/map.h"
 #include "editors/world.h"
 #include "editors/sfx.h"
 #include "editors/music.h"
-#include "screens/start.h"
 #include "screens/console.h"
-#include "screens/run.h"
-#include "screens/menu.h"
 #include "screens/surf.h"
 #include "screens/dialog.h"
 #include "ext/history.h"
+#include "net.h"
+#include "wave_writer.h"
+#include "ext/gif.h"
+
+#endif
+
+#include "ext/md5.h"
+#include "screens/start.h"
+#include "screens/run.h"
+#include "screens/menu.h"
 #include "config.h"
-#include "project.h"
+#include "cart.h"
 
 #include "fs.h"
-#include "net.h"
 
-#include "ext/gif.h"
-#include "ext/md5.h"
-#include "wave_writer.h"
 #include "argparse.h"
 
 #include <ctype.h>
 #include <math.h>
-#include <lua.h>
-#include <lauxlib.h>
-#include <lualib.h>
-
-#define FRAME_SIZE (TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32))
-#define POPUP_DUR (TIC80_FRAMERATE*2)
 
 #if defined(TIC80_PRO)
 #define TIC_EDITOR_BANKS (TIC_BANKS)
@@ -64,6 +63,11 @@
 #define MD5_HASHSIZE 16
 #define BG_ANIMATION_COLOR tic_color_dark_grey
 
+#if defined(BUILD_EDITORS)
+
+#define FRAME_SIZE (TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32))
+#define POPUP_DUR (TIC80_FRAMERATE*2)
+
 static const char VideoGif[] = "video%i.gif";
 static const char ScreenGif[] = "screen%i.gif";
 
@@ -71,16 +75,6 @@ typedef struct
 {
     u8 data[MD5_HASHSIZE];
 } CartHash;
-
-typedef struct
-{
-    bool down;
-    bool click;
-
-    tic_point start;
-    tic_point end;
-
-} MouseState;
 
 static const EditorMode Modes[] =
 {
@@ -98,6 +92,17 @@ static const EditorMode BankModes[] =
     TIC_SFX_MODE,
     TIC_MUSIC_MODE,
 };
+#endif
+
+typedef struct
+{
+    bool down;
+    bool click;
+
+    tic_point start;
+    tic_point end;
+
+} MouseState;
 
 static struct
 {
@@ -105,15 +110,8 @@ static struct
 
     tic80_local* tic80local;
 
-    struct
-    {
-        CartHash hash;
-        u64 mdate;
-    }cart;
-
     EditorMode mode;
     EditorMode prevMode;
-    EditorMode dialogMode;
 
     struct
     {
@@ -121,6 +119,15 @@ static struct
     } mouse;
 
     tic_key keycodes[KEYMAP_COUNT];
+
+#if defined(BUILD_EDITORS)
+    EditorMode dialogMode;
+
+    struct
+    {
+        CartHash hash;
+        u64 mdate;
+    }cart;
 
     struct
     {
@@ -163,30 +170,30 @@ static struct
 
     } video;
 
+    Code*       code;
+
     struct
     {
-        Code*       code;
+        Sprite* sprite[TIC_EDITOR_BANKS];
+        Map*    map[TIC_EDITOR_BANKS];
+        Sfx*    sfx[TIC_EDITOR_BANKS];
+        Music*  music[TIC_EDITOR_BANKS];
+    } banks;
 
-        struct
-        {
-            Sprite* sprite[TIC_EDITOR_BANKS];
-            Map*    map[TIC_EDITOR_BANKS];
-            Sfx*    sfx[TIC_EDITOR_BANKS];
-            Music*  music[TIC_EDITOR_BANKS];
-        } banks;
+    Console*    console;
+    World*      world;
+    Dialog*     dialog;
+    Surf*       surf;
 
-        Start*      start;
-        Console*    console;
-        Run*        run;
-        World*      world;
-        Config*     config;
-        Dialog*     dialog;
-        Menu*       menu;
-        Surf*       surf;
-    };
+    tic_net* net;
+#endif
+
+    Start*      start;
+    Run*        run;
+    Menu*       menu;
+    Config*     config;
 
     tic_fs* fs;
-    tic_net* net;
 
     s32 samplerate;
     tic_font systemFont;
@@ -194,14 +201,9 @@ static struct
 } impl =
 {
     .tic80local = NULL,
-    .cart = 
-    {
-        .mdate = 0,
-    },
 
     .mode = TIC_START_MODE,
     .prevMode = TIC_CODE_MODE,
-    .dialogMode = TIC_CONSOLE_MODE,
 
     .keycodes =
     {
@@ -215,6 +217,13 @@ static struct
         tic_key_a, // x
         tic_key_s, // y
     },
+#if defined(BUILD_EDITORS)
+    .cart = 
+    {
+        .mdate = 0,
+    },
+
+    .dialogMode = TIC_CONSOLE_MODE,
 
     .bank = 
     {
@@ -239,7 +248,14 @@ static struct
         .buffer = NULL,
         .frames = 0,
     },
+#endif
 };
+
+void fadePalette(tic_palette* pal, s32 value)
+{
+    for(u8 *i = pal->data, *end = i + sizeof(tic_palette); i < end; i++)
+        *i = *i * value >> 8;
+}
 
 void map2ram(tic_ram* ram, const tic_map* src)
 {
@@ -272,6 +288,7 @@ s32 calcWaveAnimation(tic_mem* tic, u32 offset, s32 channel)
     return val * reg->volume;
 }
 
+#if defined(BUILD_EDITORS)
 static const tic_sfx* getSfxSrc()
 {
     tic_mem* tic = impl.studio.tic;
@@ -347,12 +364,12 @@ const char* studioExportMusic(s32 track, const char* filename)
         sfx2ram(&tic->ram, sfx);
         music2ram(&tic->ram, music);
 
-        const tic_sound_state* state = &tic->ram.sound_state;
+        const tic_music_state* state = &tic->ram.music_state;
         const Music* editor = impl.banks.music[impl.bank.index.music];
 
-        tic_api_music(tic, track, -1, -1, false, editor->sustain);
+        tic_api_music(tic, track, -1, -1, false, editor->sustain, -1, -1);
 
-        while(state->flag.music_state == tic_music_play)
+        while(state->flag.music_status == tic_music_play)
         {
             tic_core_tick_start(tic);
 
@@ -371,6 +388,7 @@ const char* studioExportMusic(s32 track, const char* filename)
 
     return NULL;
 }
+#endif
 
 void sfx_stop(tic_mem* tic, s32 channel)
 {
@@ -414,9 +432,9 @@ void drawBGAnimation(tic_mem* tic, s32 ticks)
 static void modifyColor(tic_mem* tic, s32 x, u8 r, u8 g, u8 b)
 {
     s32 addr = offsetof(tic_ram, vram.palette) + ((x % 16) * 3);
-    tic_api_poke(tic, addr, r);
-    tic_api_poke(tic, addr + 1, g);
-    tic_api_poke(tic, addr + 2, b);
+    tic_api_poke(tic, addr, r, BITS_IN_BYTE);
+    tic_api_poke(tic, addr + 1, g, BITS_IN_BYTE);
+    tic_api_poke(tic, addr + 2, b, BITS_IN_BYTE);
 }
 
 void drawBGAnimationScanline(tic_mem* tic, s32 row)
@@ -483,6 +501,7 @@ bool anyKeyWasPressed()
     return false;
 }
 
+#if defined(BUILD_EDITORS)
 tic_tiles* getBankTiles()
 {
     return &impl.studio.tic->cart.banks[impl.bank.index.sprites].tiles;
@@ -503,10 +522,11 @@ tic_flags* getBankFlags()
 {
     return &impl.studio.tic->cart.banks[impl.bank.index.sprites].flags;
 }
+#endif
 
 void playSystemSfx(s32 id)
 {
-    const tic_sample* effect = &impl.config->cart.bank0.sfx.samples.data[id];
+    const tic_sample* effect = &impl.config->cart->bank0.sfx.samples.data[id];
     tic_api_sfx(impl.studio.tic, id, effect->note, effect->octave, -1, 0, MAX_VOLUME, MAX_VOLUME, effect->speed);
 }
 
@@ -563,6 +583,7 @@ u8 getSpritePixel(tic_tile* tiles, s32 x, s32 y)
     return tic_tool_peek4(getSpritePtr(tiles, x, y), (x % TIC_SPRITESIZE) + (y % TIC_SPRITESIZE) * TIC_SPRITESIZE);
 }
 
+#if defined(BUILD_EDITORS)
 void toClipboard(const void* data, s32 size, bool flip)
 {
     if(data)
@@ -607,25 +628,20 @@ static void removeWhiteSpaces(char* str)
 
 bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces)
 {
-    if(data)
+    if(tic_sys_clipboard_has())
     {
-        if(tic_sys_clipboard_has())
+        char* clipboard = tic_sys_clipboard_get();
+
+        SCOPE(tic_sys_clipboard_free(clipboard))
         {
-            char* clipboard = tic_sys_clipboard_get();
+            if (remove_white_spaces)
+                removeWhiteSpaces(clipboard);
 
-            if(clipboard)
-            {
-                if (remove_white_spaces)
-                    removeWhiteSpaces(clipboard);
-                            
-                bool valid = strlen(clipboard) == size * 2;
+            bool valid = strlen(clipboard) <= size * 2;
 
-                if(valid) tic_tool_str2buf(clipboard, (s32)strlen(clipboard), data, flip);
+            if(valid) tic_tool_str2buf(clipboard, (s32)strlen(clipboard), data, flip);
 
-                tic_sys_clipboard_free(clipboard);
-
-                return valid;
-            }
+            return valid;
         }
     }
 
@@ -644,90 +660,63 @@ static void drawExtrabar(tic_mem* tic)
     s32 x = (COUNT_OF(Modes) + 1) * Size + 17 * TIC_FONT_WIDTH;
     s32 y = 0;
 
-    static const u8 Icons[] =
+    static struct Icon {u8 id; StudioEvent event; const char* tip;} Icons[] = 
     {
-        0b00000000,
-        0b00101000,
-        0b00101000,
-        0b00010000,
-        0b01101100,
-        0b01101100,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b01111000,
-        0b01001000,
-        0b01011100,
-        0b01110100,
-        0b00011100,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b00111000,
-        0b01000100,
-        0b01111100,
-        0b01101100,
-        0b01111100,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b00011000,
-        0b00110000,
-        0b01111100,
-        0b00110000,
-        0b00011000,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b00110000,
-        0b00011000,
-        0b01111100,
-        0b00011000,
-        0b00110000,
-        0b00000000,
-        0b00000000,
+        {tic_icon_cut,      TIC_TOOLBAR_CUT,    "CUT [ctrl+x]"},
+        {tic_icon_copy,     TIC_TOOLBAR_COPY,   "COPY [ctrl+c]"},
+        {tic_icon_paste,    TIC_TOOLBAR_PASTE,  "PASTE [ctrl+v]"},
+        {tic_icon_undo,     TIC_TOOLBAR_UNDO,   "UNDO [ctrl+z]"},
+        {tic_icon_redo,     TIC_TOOLBAR_REDO,   "REDO [ctrl+y]"},
     };
 
-    static const StudioEvent Events[] = {TIC_TOOLBAR_CUT, TIC_TOOLBAR_COPY, TIC_TOOLBAR_PASTE,  TIC_TOOLBAR_UNDO, TIC_TOOLBAR_REDO};
-    static const char* Tips[] = {"CUT [ctrl+x]", "COPY [ctrl+c]", "PASTE [ctrl+v]", "UNDO [ctrl+z]", "REDO [ctrl+y]"};
-
-    for(s32 i = 0; i < sizeof Icons / BITS_IN_BYTE; i++)
+    u8 color = tic_color_red;
+    FOR(const struct Icon*, icon, Icons)
     {
-        tic_rect rect = {x + i*Size, y, Size, Size};
+        tic_rect rect = {x, y, Size, Size};
 
-        u8 bgcolor = tic_color_white;
-        u8 color = tic_color_light_grey;
+        u8 bg = tic_color_white;
+        u8 fg = tic_color_light_grey;
 
         if(checkMousePos(&rect))
         {
             setCursor(tic_cursor_hand);
 
-            color = tic_color_red + i;
-            showTooltip(Tips[i]);
+            fg = color;
+            showTooltip(icon->tip);
 
             if(checkMouseDown(&rect, tic_mouse_left))
             {
-                bgcolor = color;
-                color = tic_color_white;
+                bg = fg;
+                fg = tic_color_white;
             }
             else if(checkMouseClick(&rect, tic_mouse_left))
             {
-                setStudioEvent(Events[i]);
+                setStudioEvent(icon->event);
             }
         }
 
-        tic_api_rect(tic, x + i * Size, y, Size, Size, bgcolor);
-        drawBitIcon(x + i * Size, y, Icons + i*BITS_IN_BYTE, color);
+        tic_api_rect(tic, x, y, Size, Size, bg);
+        drawBitIcon(icon->id, x, y, fg);
+
+        x += Size;
+        color++;
     }
 }
+
+struct Sprite* getSpriteEditor()
+{
+    return impl.banks.sprite[impl.bank.index.sprites];
+}
+#endif
 
 const StudioConfig* getConfig()
 {
     return &impl.config->data;
+}
+
+struct Start* getStartScreen()
+{
+    return impl.start;
 }
 
 #if defined (TIC80_PRO)
@@ -737,18 +726,6 @@ static void drawBankIcon(s32 x, s32 y)
     tic_mem* tic = impl.studio.tic;
 
     tic_rect rect = {x, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
-
-    static const u8 Icon[] =
-    {
-        0b00000000,
-        0b01111100,
-        0b01000100,
-        0b01000100,
-        0b01111100,
-        0b01111000,
-        0b00000000,
-        0b00000000,
-    };
 
     bool over = false;
     EditorMode mode = 0;
@@ -774,7 +751,7 @@ static void drawBankIcon(s32 x, s32 y)
 
     if(impl.bank.show)
     {
-        drawBitIcon(x, y, Icon, tic_color_red);
+        drawBitIcon(tic_icon_bank, x, y, tic_color_red);
 
         enum{Size = TOOLBAR_SIZE};
 
@@ -799,23 +776,17 @@ static void drawBankIcon(s32 x, s32 y)
             if(i == impl.bank.indexes[mode])
                 tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_red);
 
-            tic_api_print(tic, (char[]){'0' + i, '\0'}, rect.x+1, rect.y+1, i == impl.bank.indexes[mode] ? tic_color_white : over ? tic_color_red : tic_color_light_grey, false, 1, false);
+            tic_api_print(tic, (char[]){'0' + i, '\0'}, rect.x+1, rect.y+1, 
+                i == impl.bank.indexes[mode] 
+                    ? tic_color_white 
+                    : over 
+                        ? tic_color_red 
+                        : tic_color_light_grey, 
+                false, 1, false);
 
         }
 
         {
-            static const u8 PinIcon[] =
-            {
-                0b00000000,
-                0b00111000,
-                0b00101000,
-                0b01111100,
-                0b00010000,
-                0b00010000,
-                0b00000000,
-                0b00000000,
-            };
-
             tic_rect rect = {x + 4 + (TIC_EDITOR_BANKS+1)*Size, 0, Size, Size};
 
             bool over = false;
@@ -835,84 +806,26 @@ static void drawBankIcon(s32 x, s32 y)
                 }
             }
 
-            drawBitIcon(rect.x, rect.y, PinIcon, impl.bank.chained ? tic_color_red : over ? tic_color_grey : tic_color_light_grey);
+            drawBitIcon(tic_icon_pin, rect.x, rect.y, impl.bank.chained ? tic_color_red : over ? tic_color_grey : tic_color_light_grey);
         }
     }
     else
     {
-        drawBitIcon(x, y, Icon, over ? tic_color_red : tic_color_light_grey);
+        drawBitIcon(tic_icon_bank, x, y, over ? tic_color_red : tic_color_light_grey);
     }
 }
 
 #endif
 
+#if defined(BUILD_EDITORS)
 void drawToolbar(tic_mem* tic, bool bg)
 {
     if(bg)
         tic_api_rect(tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, tic_color_white);
 
-    static const u8 TabIcon[] =
-    {
-        0b11111110,
-        0b11111110,
-        0b11111110,
-        0b11111110,
-        0b11111110,
-        0b11111110,
-        0b11111110,
-        0b00000000,
-    };
-
-    static const u8 Icons[] =
-    {
-        0b00000000,
-        0b01101100,
-        0b01000100,
-        0b01000100,
-        0b01000100,
-        0b01101100,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b00111000,
-        0b01010100,
-        0b01111100,
-        0b01111100,
-        0b01010100,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b01101100,
-        0b01101100,
-        0b00000000,
-        0b01101100,
-        0b01101100,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b00011000,
-        0b00110100,
-        0b01110100,
-        0b00110100,
-        0b00011000,
-        0b00000000,
-        0b00000000,
-
-        0b00000000,
-        0b00111100,
-        0b00100100,
-        0b00100100,
-        0b01101100,
-        0b01101100,
-        0b00000000,
-        0b00000000,
-    };
-
     enum {Size = 7};
 
+    static const u8 Icons[] = {tic_icon_code, tic_icon_sprite, tic_icon_map, tic_icon_sfx, tic_icon_music};
     static const char* Tips[] = {"CODE EDITOR [f1]", "SPRITE EDITOR [f2]", "MAP EDITOR [f3]", "SFX EDITOR [f4]", "MUSIC EDITOR [f5]",};
 
     s32 mode = -1;
@@ -939,11 +852,11 @@ void drawToolbar(tic_mem* tic, bool bg)
 
         if (mode == i)
         {
-            drawBitIcon(i * Size, 0, TabIcon, tic_color_grey);
-            drawBitIcon(i * Size, 1, Icons + i * BITS_IN_BYTE, tic_color_black);
+            drawBitIcon(tic_icon_tab, i * Size, 0, tic_color_grey);
+            drawBitIcon(Icons[i], i * Size, 1, tic_color_black);
         }
 
-        drawBitIcon(i * Size, 0, Icons + i * BITS_IN_BYTE, mode == i ? tic_color_white : (over ? tic_color_grey : tic_color_light_grey));
+        drawBitIcon(Icons[i], i * Size, 0, mode == i ? tic_color_white : (over ? tic_color_grey : tic_color_light_grey));
     }
 
     if(mode >= 0) drawExtrabar(tic);
@@ -1047,6 +960,7 @@ static void showPopupMessage(const char* text)
     for(char* c = impl.popup.message; c < impl.popup.message + sizeof impl.popup.message; c++)
         if(*c) *c = toupper(*c);
 }
+#endif
 
 static void exitConfirm(bool yes, void* data)
 {
@@ -1055,6 +969,7 @@ static void exitConfirm(bool yes, void* data)
 
 void exitStudio()
 {
+#if defined(BUILD_EDITORS)
     if(impl.mode != TIC_START_MODE && studioCartChanged())
     {
         static const char* Rows[] =
@@ -1068,25 +983,45 @@ void exitStudio()
 
         showDialog(Rows, COUNT_OF(Rows), exitConfirm, NULL);
     }
-    else exitConfirm(true, NULL);
+    else 
+#endif
+        exitConfirm(true, NULL);
 }
 
-void drawBitIcon(s32 x, s32 y, const u8* ptr, u8 color)
+void drawBitIcon(s32 id, s32 x, s32 y, u8 color)
 {
-    for(s32 i = 0; i < TIC_SPRITESIZE; i++, ptr++)
-        for(s32 col = 0; col < TIC_SPRITESIZE; col++)
-            if(*ptr & 1 << col)
-                tic_api_pix(impl.studio.tic, x - col + (TIC_SPRITESIZE - 1), y + i, color, false);
-}
+    tic_mem* tic = impl.studio.tic;
 
-static void initWorldMap()
-{
-    initWorld(impl.world, impl.studio.tic, impl.banks.map[impl.bank.index.map]);
+    const tic_tile* tile = &getConfig()->cart->bank0.tiles.data[id];
+
+    for(s32 i = 0, sx = x, ex = sx + TIC_SPRITESIZE; i != TIC_SPRITESIZE * TIC_SPRITESIZE; ++i, ++x)
+    {
+        if(x == ex)
+        {
+            x = sx;
+            y++;
+        }
+
+        if(tic_tool_peek4(tile, i))
+            tic_api_pix(tic, x, y, color, false);
+    }
 }
 
 static void initRunMode()
 {
-    initRun(impl.run, impl.console, impl.studio.tic);
+    initRun(impl.run, 
+#if defined(BUILD_EDITORS)
+        impl.console, 
+#else
+        NULL,
+#endif
+        impl.fs, impl.studio.tic);
+}
+
+#if defined(BUILD_EDITORS)
+static void initWorldMap()
+{
+    initWorld(impl.world, impl.studio.tic, impl.banks.map[impl.bank.index.map]);
 }
 
 static void initSurfMode()
@@ -1105,16 +1040,22 @@ void gotoCode()
     setStudioMode(TIC_CODE_MODE);
 }
 
-static void initMenuMode()
-{
-    initMenu(impl.menu, impl.studio.tic, impl.fs);
-}
-
 void runGameFromSurf()
 {
     tic_api_reset(impl.studio.tic);
     setStudioMode(TIC_RUN_MODE);
     impl.prevMode = TIC_SURF_MODE;
+}
+
+void resumeRunMode()
+{
+    impl.mode = TIC_RUN_MODE;
+}
+#endif
+
+static void initMenuMode()
+{
+    initMenu(impl.menu, impl.studio.tic, impl.fs);
 }
 
 void exitGameMenu()
@@ -1128,12 +1069,9 @@ void exitGameMenu()
         setStudioMode(TIC_CONSOLE_MODE);
     }
 
+#if defined(BUILD_EDITORS)
     impl.console->showGameMenu = false;
-}
-
-void resumeRunMode()
-{
-    impl.mode = TIC_RUN_MODE;
+#endif
 }
 
 void setStudioMode(EditorMode mode)
@@ -1152,25 +1090,41 @@ void setStudioMode(EditorMode mode)
         {
         case TIC_START_MODE:
         case TIC_CONSOLE_MODE:
-        case TIC_RUN_MODE:
         case TIC_DIALOG_MODE:
         case TIC_MENU_MODE:
             break;
+        case TIC_RUN_MODE:
         case TIC_SURF_MODE:
             impl.prevMode = TIC_CODE_MODE;
             break;
         default: impl.prevMode = prev; break;
         }
 
+#if defined(BUILD_EDITORS)
         switch(mode)
         {
-        case TIC_WORLD_MODE: initWorldMap(); break;
         case TIC_RUN_MODE: initRunMode(); break;
+        case TIC_CONSOLE_MODE:
+            if (prev == TIC_SURF_MODE)
+                impl.console->done(impl.console);
+            break;
+        case TIC_WORLD_MODE: initWorldMap(); break;
         case TIC_SURF_MODE: impl.surf->resume(impl.surf); break;
         default: break;
         }
 
         impl.mode = mode;
+#else
+        switch (mode)
+        {
+        case TIC_START_MODE:
+        case TIC_MENU_MODE:
+            impl.mode = mode;
+            break;
+        default:
+            impl.mode = TIC_RUN_MODE;
+        }
+#endif
     }
 }
 
@@ -1179,18 +1133,19 @@ EditorMode getStudioMode()
     return impl.mode;
 }
 
-void changeStudioMode(s32 dir)
+#if defined(BUILD_EDITORS)
+static void changeStudioMode(s32 dir)
 {
-    const size_t modeCount = sizeof(Modes)/sizeof(Modes[0]);
-    for(size_t i = 0; i < modeCount; i++)
+    for(size_t i = 0; i < COUNT_OF(Modes); i++)
     {
         if(impl.mode == Modes[i])
         {
-            setStudioMode(Modes[(i+dir+modeCount) % modeCount]);
+            setStudioMode(Modes[(i+dir+ COUNT_OF(Modes)) % COUNT_OF(Modes)]);
             return;
         }
     }
 }
+#endif
 
 void showGameMenu()
 {
@@ -1248,6 +1203,7 @@ void setCursor(tic_cursor id)
     tic->ram.vram.vars.cursor.sprite = id;
 }
 
+#if defined(BUILD_EDITORS)
 void hideDialog()
 {
     if(impl.dialogMode == TIC_RUN_MODE)
@@ -1301,17 +1257,21 @@ static void updateMDate()
 {
     impl.cart.mdate = fs_date(impl.console->rom.path);
 }
+#endif
 
 static void updateTitle()
 {
     char name[TICNAME_MAX] = TIC_TITLE;
 
+#if defined(BUILD_EDITORS)
     if(strlen(impl.console->rom.name))
         snprintf(name, TICNAME_MAX, "%s [%s]", TIC_TITLE, impl.console->rom.name);
+#endif
 
     tic_sys_title(name);
 }
 
+#if defined(BUILD_EDITORS)
 tic_cartridge* loadPngCart(png_buffer buffer)
 {
     png_buffer zip = png_decode(buffer);
@@ -1359,6 +1319,7 @@ bool studioCartChanged()
 
     return memcmp(hash.data, impl.cart.hash.data, sizeof(CartHash)) != 0;
 }
+#endif
 
 tic_key* getKeymap()
 {
@@ -1376,7 +1337,11 @@ static void processGamepadMapping()
 
 static inline bool isGameMenu()
 {
-    return (impl.mode == TIC_RUN_MODE || impl.mode == TIC_MENU_MODE) && impl.console->showGameMenu;
+    return (impl.mode == TIC_RUN_MODE || impl.mode == TIC_MENU_MODE) 
+#if defined(BUILD_EDITORS)
+        && impl.console->showGameMenu
+#endif
+        ;
 }
 
 void runProject()
@@ -1390,6 +1355,7 @@ void runProject()
     else setStudioMode(TIC_RUN_MODE);
 }
 
+#if defined(BUILD_EDITORS)
 static void saveProject()
 {
     CartSaveResult rom = impl.console->save(impl.console);
@@ -1509,6 +1475,7 @@ static void takeScreenshot()
         impl.video.frame = 0;
     }
 }
+#endif
 
 static inline bool keyWasPressedOnce(s32 key)
 {
@@ -1524,12 +1491,31 @@ void switchCrtMonitor()
 }
 #endif
 
+#if defined(TIC80_PRO)
+
+static void switchBank(s32 bank)
+{
+    for(s32 i = 0; i < COUNT_OF(BankModes); i++)
+        if(BankModes[i] == impl.mode)
+        {
+            if(impl.bank.chained) 
+                memset(impl.bank.indexes, bank, sizeof impl.bank.indexes);
+            else impl.bank.indexes[i] = bank;
+            break;
+        }
+}
+
+#endif
+
 static void processShortcuts()
 {
     tic_mem* tic = impl.studio.tic;
 
     if(impl.mode == TIC_START_MODE) return;
+
+#if defined(BUILD_EDITORS)
     if(impl.mode == TIC_CONSOLE_MODE && !impl.console->active) return;
+#endif
 
     bool alt = tic_api_key(tic, tic_key_alt);
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
@@ -1549,39 +1535,57 @@ static void processShortcuts()
         {
             if(alt) tic_sys_fullscreen();
         }
+#if defined(BUILD_EDITORS)
         else if(keyWasPressedOnce(tic_key_f7)) setCoverImage();
         else if(keyWasPressedOnce(tic_key_f8)) takeScreenshot();
+        else if(keyWasPressedOnce(tic_key_f9)) startVideoRecord();
+#endif
         else if(keyWasPressedOnce(tic_key_r))
         {
             if(ctrl) runProject();
         }
-        else if(keyWasPressedOnce(tic_key_f9)) startVideoRecord();
 
         return;
     }
 
     if(alt)
     {
-        if(keyWasPressedOnce(tic_key_grave)) setStudioMode(TIC_CONSOLE_MODE);
+        if (keyWasPressedOnce(tic_key_return)) tic_sys_fullscreen();
+#if defined(BUILD_EDITORS)
+        else if(keyWasPressedOnce(tic_key_grave)) setStudioMode(TIC_CONSOLE_MODE);
         else if(keyWasPressedOnce(tic_key_1)) setStudioMode(TIC_CODE_MODE);
         else if(keyWasPressedOnce(tic_key_2)) setStudioMode(TIC_SPRITE_MODE);
         else if(keyWasPressedOnce(tic_key_3)) setStudioMode(TIC_MAP_MODE);
         else if(keyWasPressedOnce(tic_key_4)) setStudioMode(TIC_SFX_MODE);
         else if(keyWasPressedOnce(tic_key_5)) setStudioMode(TIC_MUSIC_MODE);
-        else if(keyWasPressedOnce(tic_key_return)) tic_sys_fullscreen();
+#endif
     }
     else if(ctrl)
     {
-        if(keyWasPressedOnce(tic_key_pageup)) changeStudioMode(-1);
+        if(keyWasPressedOnce(tic_key_q)) exitStudio();
+#if defined(BUILD_EDITORS)
+        else if(keyWasPressedOnce(tic_key_pageup)) changeStudioMode(-1);
         else if(keyWasPressedOnce(tic_key_pagedown)) changeStudioMode(1);
-        else if(keyWasPressedOnce(tic_key_q)) exitStudio();
-        else if(keyWasPressedOnce(tic_key_r)) runProject();
         else if(keyWasPressedOnce(tic_key_return)) runProject();
+        else if(keyWasPressedOnce(tic_key_r)) runProject();
         else if(keyWasPressedOnce(tic_key_s)) saveProject();
+#endif
+
+#if defined(TIC80_PRO)
+
+        else
+            for(s32 bank = 0; bank < TIC_BANKS; bank++)
+                if(keyWasPressedOnce(tic_key_0 + bank))
+                    switchBank(bank);
+
+#endif
+
     }
     else
     {
-        if(keyWasPressedOnce(tic_key_f1)) setStudioMode(TIC_CODE_MODE);
+        if (keyWasPressedOnce(tic_key_f11)) tic_sys_fullscreen();
+#if defined(BUILD_EDITORS)
+        else if(keyWasPressedOnce(tic_key_f1)) setStudioMode(TIC_CODE_MODE);
         else if(keyWasPressedOnce(tic_key_f2)) setStudioMode(TIC_SPRITE_MODE);
         else if(keyWasPressedOnce(tic_key_f3)) setStudioMode(TIC_MAP_MODE);
         else if(keyWasPressedOnce(tic_key_f4)) setStudioMode(TIC_SFX_MODE);
@@ -1589,9 +1593,10 @@ static void processShortcuts()
         else if(keyWasPressedOnce(tic_key_f7)) setCoverImage();
         else if(keyWasPressedOnce(tic_key_f8)) takeScreenshot();
         else if(keyWasPressedOnce(tic_key_f9)) startVideoRecord();
-        else if(keyWasPressedOnce(tic_key_f11)) tic_sys_fullscreen();
+#endif
         else if(keyWasPressedOnce(tic_key_escape))
         {
+#if defined(BUILD_EDITORS)
             Code* code = impl.code;
 
             if(impl.mode == TIC_CODE_MODE && code->mode != TEXT_EDIT_MODE)
@@ -1605,65 +1610,60 @@ static void processShortcuts()
                 impl.dialog->escape(impl.dialog);
                 return;
             }
+#endif
 
             setStudioMode(impl.mode == TIC_CONSOLE_MODE ? impl.prevMode : TIC_CONSOLE_MODE);
         }
     }
 }
 
+#if defined(BUILD_EDITORS)
 static void reloadConfirm(bool yes, void* data)
 {
     if(yes)
         impl.console->updateProject(impl.console);
+    else
+        updateMDate();
 }
 
-static void updateStudioProject()
+static void checkChanges()
 {
-    if(impl.mode != TIC_START_MODE)
+    switch(impl.mode)
     {
-        Console* console = impl.console;
-
-        u64 date = fs_date(console->rom.path);
-
-        if(impl.cart.mdate && date > impl.cart.mdate)
+    case TIC_START_MODE:
+    case TIC_DIALOG_MODE:
+        break;
+    default:
         {
-            if(studioCartChanged())
+            Console* console = impl.console;
+
+            u64 date = fs_date(console->rom.path);
+
+            if(impl.cart.mdate && date > impl.cart.mdate)
             {
-                static const char* Rows[] =
+                if(studioCartChanged())
                 {
-                    "",
-                    "CART HAS CHANGED!",
-                    "",
-                    "DO YOU WANT",
-                    "TO RELOAD IT?"
-                };
+                    static const char* Rows[] =
+                    {
+                        "",
+                        "CART HAS CHANGED!",
+                        "",
+                        "DO YOU WANT",
+                        "TO RELOAD IT?"
+                    };
 
-                showDialog(Rows, COUNT_OF(Rows), reloadConfirm, NULL);
+                    showDialog(Rows, COUNT_OF(Rows), reloadConfirm, NULL);
+                }
+                else console->updateProject(console);
             }
-            else console->updateProject(console);
         }
     }
 }
 
-static void drawRecordLabel(u32* frame, s32 sx, s32 sy, const u32* color)
+static void drawRecordLabel(u32* frame, s32 sx, s32 sy)
 {
-    static const u16 RecLabel[] =
-    {
-        0b0111001100110011,
-        0b1111101010100100,
-        0b1111101100110100,
-        0b1111101010100100,
-        0b0111001010110011,
-    };
-
-    for(s32 y = 0; y < 5; y++)
-    {
-        for(s32 x = 0; x < sizeof RecLabel[0]*BITS_IN_BYTE; x++)
-        {
-            if(RecLabel[y] & (1 << x))
-                memcpy(&frame[sx + 15 - x + ((y+sy) << TIC80_FULLWIDTH_BITS)], color, sizeof *color);
-        }
-    }
+    drawBitIcon(tic_icon_rec, sx, sy, tic_color_red);
+    drawBitIcon(tic_icon_rec2, sx + TIC_SPRITESIZE, sy, tic_color_red);
 }
 
 static bool isRecordFrame(void)
@@ -1682,8 +1682,8 @@ static void recordFrame(u32* pixels)
 
             if(impl.video.frame % TIC80_FRAMERATE < TIC80_FRAMERATE / 2)
             {
-                const u32* pal = tic_tool_palette_blit(&impl.config->cart.bank0.palette.scn, TIC80_PIXEL_COLOR_RGBA8888);
-                drawRecordLabel(pixels, TIC80_WIDTH-24, 8, &pal[tic_color_red]);
+                const u32* pal = tic_tool_palette_blit(&impl.config->cart->bank0.palette.scn, TIC80_PIXEL_COLOR_RGBA8888);
+                drawRecordLabel(pixels, TIC80_WIDTH-24, 8);
             }
 
             impl.video.frame++;
@@ -1717,12 +1717,15 @@ static void drawPopup()
             anim + 1, tic_color_white, true, 1, false);
     }
 }
+#endif
 
 static void renderStudio()
 {
     tic_mem* tic = impl.studio.tic;
 
+#if defined(BUILD_EDITORS)
     showTooltip("");
+#endif
 
     {
         const tic_sfx* sfx = NULL;
@@ -1738,12 +1741,15 @@ static void renderStudio()
         case TIC_DIALOG_MODE:
         case TIC_MENU_MODE:
         case TIC_SURF_MODE:
-            sfx = &impl.config->cart.bank0.sfx;
-            music = &impl.config->cart.bank0.music;
+            sfx = &impl.config->cart->bank0.sfx;
+            music = &impl.config->cart->bank0.music;
             break;
         default:
+#if defined(BUILD_EDITORS)
             sfx = getSfxSrc();
             music = getMusicSrc();
+#endif
+            break;
         }
 
         sfx2ram(&tic->ram, sfx);
@@ -1752,11 +1758,16 @@ static void renderStudio()
         tic_core_tick_start(impl.studio.tic);
     }
 
+    processShortcuts();
+    
     switch(impl.mode)
     {
     case TIC_START_MODE:    impl.start->tick(impl.start); break;
-    case TIC_CONSOLE_MODE:  impl.console->tick(impl.console); break;
     case TIC_RUN_MODE:      impl.run->tick(impl.run); break;
+    case TIC_MENU_MODE:     impl.menu->tick(impl.menu); break;
+
+#if defined(BUILD_EDITORS)
+    case TIC_CONSOLE_MODE:  impl.console->tick(impl.console); break;
     case TIC_CODE_MODE:     
         {
             Code* code = impl.code;
@@ -1790,8 +1801,8 @@ static void renderStudio()
 
     case TIC_WORLD_MODE:    impl.world->tick(impl.world); break;
     case TIC_DIALOG_MODE:   impl.dialog->tick(impl.dialog); break;
-    case TIC_MENU_MODE:     impl.menu->tick(impl.menu); break;
     case TIC_SURF_MODE:     impl.surf->tick(impl.surf); break;
+#endif
     default: break;
     }
 
@@ -1822,7 +1833,7 @@ static void updateSystemFont()
     for(s32 i = 0; i < TIC_FONT_CHARS; i++)
         for(s32 y = 0; y < TIC_SPRITESIZE; y++)
             for(s32 x = 0; x < TIC_SPRITESIZE; x++)
-                if(tic_tool_peek4(&impl.config->cart.bank0.sprites.data[i], TIC_SPRITESIZE*y + x))
+                if(tic_tool_peek4(&impl.config->cart->bank0.sprites.data[i], TIC_SPRITESIZE*y + x))
                     impl.systemFont.data[i*BITS_IN_BYTE+y] |= 1 << x;
 
     memcpy(tic->ram.font.data, impl.systemFont.data, sizeof(tic_font));
@@ -1830,12 +1841,13 @@ static void updateSystemFont()
 
 void studioConfigChanged()
 {
+#if defined(BUILD_EDITORS)
     Code* code = impl.code;
     if(code->update)
         code->update(code);
+#endif
 
     updateSystemFont();
-
     tic_sys_update_config();
 }
 
@@ -1888,8 +1900,11 @@ static void studioTick()
 {
     tic_mem* tic = impl.studio.tic;
 
+#if defined(BUILD_EDITORS)
+    checkChanges();
     tic_net_start(impl.net);
-    processShortcuts();
+#endif
+    
     processMouseStates();
     processGamepadMapping();
 
@@ -1902,6 +1917,14 @@ static void studioTick()
 
         switch(impl.mode)
         {
+        case TIC_MENU_MODE:
+            {
+                overline = impl.menu->overline;
+                scanline = impl.menu->scanline;
+                data = impl.menu;
+            }
+            break;
+#if defined(BUILD_EDITORS)
         case TIC_SPRITE_MODE:
             {
                 Sprite* sprite = impl.banks.sprite[impl.bank.index.sprites];
@@ -1932,13 +1955,6 @@ static void studioTick()
                 data = impl.dialog;
             }
             break;
-        case TIC_MENU_MODE:
-            {
-                overline = impl.menu->overline;
-                scanline = impl.menu->scanline;
-                data = impl.menu;
-            }
-            break;
         case TIC_SURF_MODE:
             {
                 overline = impl.surf->overline;
@@ -1946,6 +1962,7 @@ static void studioTick()
                 data = impl.surf;
             }
             break;
+#endif
         default:
             break;
         }
@@ -1960,18 +1977,22 @@ static void studioTick()
             ? tic_core_blit_ex(tic, tic->screen_format, scanline, overline, data)
             : tic_core_blit(tic, tic->screen_format);
 
+#if defined(BUILD_EDITORS)
         if(isRecordFrame())
             recordFrame(tic->screen);
+#endif
     }
 
+#if defined(BUILD_EDITORS)
     drawPopup();
-
     tic_net_end(impl.net);
+#endif
 }
 
 static void studioClose()
 {
     {
+#if defined(BUILD_EDITORS)
         for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
         {
             freeSprite  (impl.banks.sprite[i]);
@@ -1981,24 +2002,29 @@ static void studioClose()
         }
 
         freeCode    (impl.code);
-        freeStart   (impl.start);
         freeConsole (impl.console);
-        freeRun     (impl.run);
         freeWorld   (impl.world);
-        freeConfig  (impl.config);
         freeDialog  (impl.dialog);
-        freeMenu    (impl.menu);
         freeSurf    (impl.surf);
+#endif
+
+        freeStart   (impl.start);
+        freeRun     (impl.run);
+        freeConfig  (impl.config);
+        freeMenu    (impl.menu);
     }
 
     if(impl.tic80local)
         tic80_delete((tic80*)impl.tic80local);
 
+#if defined(BUILD_EDITORS)
     tic_net_close(impl.net);
+#endif
+
     free(impl.fs);
 }
 
-static StartArgs parseArgs(s32 argc, const char **argv)
+static StartArgs parseArgs(s32 argc, char **argv)
 {
     static const char *const usage[] = 
     {
@@ -2011,22 +2037,16 @@ static StartArgs parseArgs(s32 argc, const char **argv)
     struct argparse_option options[] = 
     {
         OPT_HELP(),
-        OPT_BOOLEAN('\0',   "skip",         &args.skip,         "skip startup animation"),
-        OPT_BOOLEAN('\0',   "nosound",      &args.nosound,      "disable sound output"),
-        OPT_BOOLEAN('\0',   "fullscreen",   &args.fullscreen,   "enable fullscreen mode"),
-        OPT_STRING('\0',    "fs",           &args.fs,           "path to the file system folder"),
-        OPT_INTEGER('\0',   "scale",        &args.scale,        "main window scale"),
-#if defined(CRT_SHADER_SUPPORT)
-        OPT_BOOLEAN('\0',   "crt",          &args.crt,          "enable CRT monitor effect"),
-#endif
-        OPT_STRING('\0',    "cmd",          &args.cmd,          "run commands in the console"),
+#define CMD_PARAMS_DEF(name, type, post, help) OPT_##type('\0', #name, &args.name, help),
+        CMD_PARAMS_LIST(CMD_PARAMS_DEF)
+#undef  CMD_PARAMS_DEF
         OPT_END(),
     };
 
     struct argparse argparse;
     argparse_init(&argparse, options, usage, 0);
     argparse_describe(&argparse, "\n" TIC_NAME " startup options:", NULL);
-    argc = argparse_parse(&argparse, argc, argv);
+    argc = argparse_parse(&argparse, argc, (const char**)argv);
 
     if(argc == 1)
         args.cart = argv[0];
@@ -2034,20 +2054,31 @@ static StartArgs parseArgs(s32 argc, const char **argv)
     return args;
 }
 
-Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* folder)
+Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder)
 {
     setbuf(stdout, NULL);
 
     StartArgs args = parseArgs(argc, argv);
 
     impl.samplerate = samplerate;
-    impl.net = tic_net_create(TIC_WEBSITE);
+
+#if defined(BUILD_EDITORS)
+    impl.net = tic_net_create("http://"TIC_HOST);
+#endif
 
     {
         const char *path = args.fs ? args.fs : folder;
 
-        if(fs_exists(path))
-            impl.fs = tic_fs_create(path, impl.net);
+        if (fs_exists(path))
+        {
+            impl.fs = tic_fs_create(path, 
+#if defined(BUILD_EDITORS)
+                impl.net
+#else
+                NULL
+#endif
+            );
+        }
         else
         {
             fprintf(stderr, "error: folder `%s` doesn't exist\n", path);
@@ -2059,6 +2090,8 @@ Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* fold
     impl.studio.tic = impl.tic80local->memory;
 
     {
+
+#if defined(BUILD_EDITORS)
         for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
         {
             impl.banks.sprite[i]   = calloc(1, sizeof(Sprite));
@@ -2068,14 +2101,16 @@ Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* fold
         }
 
         impl.code       = calloc(1, sizeof(Code));
-        impl.start      = calloc(1, sizeof(Start));
         impl.console    = calloc(1, sizeof(Console));
-        impl.run        = calloc(1, sizeof(Run));
         impl.world      = calloc(1, sizeof(World));
-        impl.config     = calloc(1, sizeof(Config));
         impl.dialog     = calloc(1, sizeof(Dialog));
-        impl.menu       = calloc(1, sizeof(Menu));
         impl.surf       = calloc(1, sizeof(Surf));
+#endif
+
+        impl.start      = calloc(1, sizeof(Start));
+        impl.run        = calloc(1, sizeof(Run));
+        impl.menu       = calloc(1, sizeof(Menu));
+        impl.config     = calloc(1, sizeof(Config));
     }
 
     tic_fs_makedir(impl.fs, TIC_LOCAL);
@@ -2083,11 +2118,14 @@ Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* fold
     
     initConfig(impl.config, impl.studio.tic, impl.fs);
     initKeymap();
-    initStart(impl.start, impl.studio.tic);
+    initStart(impl.start, impl.studio.tic, args.cart);
+    initRunMode();
+
+#if defined(BUILD_EDITORS)
     initConsole(impl.console, impl.studio.tic, impl.fs, impl.net, impl.config, args);
     initSurfMode();
-    initRunMode();
     initModules();
+#endif
 
     if(args.scale)
         impl.config->data.uiScale = args.scale;
@@ -2098,25 +2136,18 @@ Studio* studioInit(s32 argc, const char **argv, s32 samplerate, const char* fold
 
     impl.config->data.goFullscreen = args.fullscreen;
     impl.config->data.noSound = args.nosound;
+    impl.config->data.cli = args.cli;
 
     impl.studio.tick = studioTick;
     impl.studio.close = studioClose;
-    impl.studio.updateProject = updateStudioProject;
     impl.studio.exit = exitStudio;
     impl.studio.config = getConfig;
+
+    if(args.cli)
+        args.skip = true;
 
     if(args.skip)
         setStudioMode(TIC_CONSOLE_MODE);
 
     return &impl.studio;
-}
-
-bool hasProjectExt(const char* name)
-{
-    return tic_tool_has_ext(name, PROJECT_LUA_EXT)
-        || tic_tool_has_ext(name, PROJECT_MOON_EXT)
-        || tic_tool_has_ext(name, PROJECT_JS_EXT)
-        || tic_tool_has_ext(name, PROJECT_WREN_EXT)
-        || tic_tool_has_ext(name, PROJECT_SQUIRREL_EXT)
-        || tic_tool_has_ext(name, PROJECT_FENNEL_EXT);
 }

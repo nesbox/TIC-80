@@ -803,14 +803,9 @@ static void wren_line(WrenVM* vm)
 
 static void wren_circ(WrenVM* vm)
 {
-    s32 radius = getWrenNumber(vm, 3);
-    if(radius < 0) 
-    {
-        return;
-    }
-    
     s32 x = getWrenNumber(vm, 1);
     s32 y = getWrenNumber(vm, 2);
+    s32 radius = getWrenNumber(vm, 3);
     s32 color = getWrenNumber(vm, 4);
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
@@ -820,19 +815,40 @@ static void wren_circ(WrenVM* vm)
 
 static void wren_circb(WrenVM* vm)
 {
-    s32 radius = getWrenNumber(vm, 3);
-    if(radius < 0) 
-    {
-        return;
-    }
-    
     s32 x = getWrenNumber(vm, 1);
     s32 y = getWrenNumber(vm, 2);
+    s32 radius = getWrenNumber(vm, 3);
     s32 color = getWrenNumber(vm, 4);
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
 
     tic_api_circb(tic, x, y, radius, color);
+}
+
+static void wren_elli(WrenVM* vm)
+{
+    s32 x = getWrenNumber(vm, 1);
+    s32 y = getWrenNumber(vm, 2);
+    s32 a = getWrenNumber(vm, 3);
+    s32 b = getWrenNumber(vm, 4);
+    s32 color = getWrenNumber(vm, 5);
+
+    tic_mem* tic = (tic_mem*)getWrenCore(vm);
+
+    tic_api_elli(tic, x, y, a, b, color);
+}
+
+static void wren_ellib(WrenVM* vm)
+{
+    s32 x = getWrenNumber(vm, 1);
+    s32 y = getWrenNumber(vm, 2);
+    s32 a = getWrenNumber(vm, 3);
+    s32 b = getWrenNumber(vm, 4);
+    s32 color = getWrenNumber(vm, 5);
+
+    tic_mem* tic = (tic_mem*)getWrenCore(vm);
+
+    tic_api_ellib(tic, x, y, a, b, color);
 }
 
 static void wren_rect(WrenVM* vm)
@@ -877,6 +893,22 @@ static void wren_tri(WrenVM* vm)
     tic_api_tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
 }
 
+static void wren_trib(WrenVM* vm)
+{       
+    s32 pt[6];
+
+    for(s32 i = 0; i < COUNT_OF(pt); i++)
+    {
+        pt[i] = getWrenNumber(vm, i+1);
+    }
+    
+    s32 color = getWrenNumber(vm, 7);
+
+    tic_mem* tic = (tic_mem*)getWrenCore(vm);
+
+    tic_api_trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
+}
+
 static void wren_cls(WrenVM* vm)
 {
     int top = wrenGetSlotCount(vm);
@@ -912,8 +944,12 @@ static void wren_peek(WrenVM* vm)
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
 
     s32 address = getWrenNumber(vm, 1);
+    s32 res = BITS_IN_BYTE;
 
-    wrenSetSlotDouble(vm, 0, tic_api_peek(tic, address));
+    if(wrenGetSlotCount(vm) > 2)
+        res = getWrenNumber(vm, 2);
+
+    wrenSetSlotDouble(vm, 0, tic_api_peek(tic, address, res));
 }
 
 static void wren_poke(WrenVM* vm)
@@ -922,8 +958,11 @@ static void wren_poke(WrenVM* vm)
 
     s32 address = getWrenNumber(vm, 1);
     u8 value = getWrenNumber(vm, 2) & 0xff;
+    s32 res = BITS_IN_BYTE;
+    if(wrenGetSlotCount(vm) > 3)
+        res = getWrenNumber(vm, 3);
 
-    tic_api_poke(tic, address, value);
+    tic_api_poke(tic, address, value, res);
 }
 
 static void wren_peek4(WrenVM* vm)
@@ -932,7 +971,7 @@ static void wren_peek4(WrenVM* vm)
 
     s32 address = getWrenNumber(vm, 1);
 
-    wrenSetSlotDouble(vm, 0, tic_api_peek4(tic, address));  
+    wrenSetSlotDouble(vm, 0, tic_api_peek4(tic, address));
 }
 
 static void wren_poke4(WrenVM* vm)
@@ -1082,6 +1121,8 @@ static void wren_music(WrenVM* vm)
     s32 row = -1;
     bool loop = true;
     bool sustain = false;
+    s32 tempo = -1;
+    s32 speed = -1;
 
     if(top > 1)
     {
@@ -1102,13 +1143,23 @@ static void wren_music(WrenVM* vm)
                     if(top > 5)
                     {
                         sustain = wrenGetSlotBool(vm, 5);
+
+                        if (top > 6)
+                        {
+                            tempo = getWrenNumber(vm, 6);
+
+                            if (top > 7)
+                            {
+                                speed = getWrenNumber(vm, 7);
+                            }
+                        }
                     }
                 }
             }
         }
     }
 
-    tic_api_music(tic, track, frame, row, loop, sustain);
+    tic_api_music(tic, track, frame, row, loop, sustain, tempo, speed);
 }
 
 static void wren_time(WrenVM* vm)
@@ -1467,8 +1518,8 @@ static void callWrenOverline(tic_mem* tic, void* data)
 
 static const char* const WrenKeywords [] =
 {
-    "break", "class", "construct", "else", "false", "for", 
-    "foreign", "if", "import", "in", "is", "null", "return", 
+    "as", "break", "class", "construct", "continue", "else", "false",
+    "for", "foreign", "if", "import", "in", "is", "null", "return",
     "static", "super", "this", "true", "var", "while"
 };
 
@@ -1542,6 +1593,7 @@ static void evalWren(tic_mem* tic, const char* code)
 
 static const tic_script_config WrenSyntaxConfig = 
 {
+    .name               = "wren",
     .init               = initWren,
     .close              = closeWren,
     .tick               = callWrenTick,
@@ -1563,7 +1615,7 @@ static const tic_script_config WrenSyntaxConfig =
     .keywordsCount      = COUNT_OF(WrenKeywords),
 };
 
-const tic_script_config* getWrenScriptConfig()
+const tic_script_config* get_wren_script_config()
 {
     return &WrenSyntaxConfig;
 }
