@@ -109,7 +109,7 @@ static void tick(Run* run)
 
     if(memcmp(run->pmem.data, tic->ram.persistent.data, Size))
     {
-        tic_fs_saveroot(run->console->fs, run->saveid, &tic->ram.persistent, Size, true);
+        tic_fs_saveroot(run->fs, run->saveid, &tic->ram.persistent, Size, true);
         memcpy(run->pmem.data, tic->ram.persistent.data, Size);
     }
 
@@ -136,18 +136,22 @@ static u64 getCounter(void* data)
     return tic_sys_counter_get();
 }
 
-void initRun(Run* run, Console* console, tic_mem* tic)
+static void onEmptyTrace(void* data, const char* text, u8 color) {}
+static void onEmptyError(void* data, const char* info) {}
+
+void initRun(Run* run, Console* console, tic_fs* fs, tic_mem* tic)
 {
     *run = (Run)
     {
         .tic = tic,
         .console = console,
+        .fs = fs,
         .tick = tick,
         .exit = false,
         .tickData = 
         {
-            .error = onError,
-            .trace = onTrace,
+            .error = console ? onError : onEmptyError,
+            .trace = console ? onTrace : onEmptyTrace,
             .counter = getCounter,
             .freq = getFreq,
             .start = 0,
@@ -164,13 +168,12 @@ void initRun(Run* run, Console* console, tic_mem* tic)
         initPMemName(run);
 
         s32 size = 0;
-        void* data = tic_fs_loadroot(run->console->fs, run->saveid, &size);
+        void* data = tic_fs_loadroot(run->fs, run->saveid, &size);
 
-        if(data)
+        if(data) SCOPE(free(data))
         {
             memset(&tic->ram.persistent, 0, Size);
             memcpy(&tic->ram.persistent, data, MIN(size, Size));
-            free(data);
         }
 
         memcpy(run->pmem.data, tic->ram.persistent.data, Size);

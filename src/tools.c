@@ -36,13 +36,30 @@ extern u8 tic_tool_peek1(const void* addr, u32 index);
 extern s32 tic_tool_sfx_pos(s32 speed, s32 ticks);
 extern u32 tic_rgba(const tic_rgb* c);
 
-s32 tic_tool_get_pattern_id(const tic_track* track, s32 frame, s32 channel)
+static u32 getPatternData(const tic_track* track, s32 frame)
 {
     u32 patternData = 0;
     for(s32 b = 0; b < TRACK_PATTERNS_SIZE; b++)
         patternData |= track->data[frame * TRACK_PATTERNS_SIZE + b] << (BITS_IN_BYTE * b);
 
-    return (patternData >> (channel * TRACK_PATTERN_BITS)) & TRACK_PATTERN_MASK;
+    return patternData;
+}
+
+s32 tic_tool_get_pattern_id(const tic_track* track, s32 frame, s32 channel)
+{
+    return (getPatternData(track, frame) >> (channel * TRACK_PATTERN_BITS)) & TRACK_PATTERN_MASK;
+}
+
+void tic_tool_set_pattern_id(tic_track* track, s32 frame, s32 channel, s32 pattern)
+{
+    u32 patternData = getPatternData(track, frame);
+    s32 shift = channel * TRACK_PATTERN_BITS;
+
+    patternData &= ~(TRACK_PATTERN_MASK << shift);
+    patternData |= pattern << shift;
+
+    for(s32 b = 0; b < TRACK_PATTERNS_SIZE; b++)
+        track->data[frame * TRACK_PATTERNS_SIZE + b] = (patternData >> (b * BITS_IN_BYTE)) & 0xff;
 }
 
 bool tic_tool_parse_note(const char* noteStr, s32* note, s32* octave)
@@ -67,12 +84,12 @@ bool tic_tool_parse_note(const char* noteStr, s32* note, s32* octave)
     return false;
 }
 
-u32 tic_nearest_color(const tic_rgb* palette, const tic_rgb* color)
+u32 tic_nearest_color(const tic_rgb* palette, const tic_rgb* color, s32 count)
 {
     u32 min = -1;
     s32 nearest, i = 0;
     
-    for(const tic_rgb *rgb = palette, *end = rgb + TIC_PALETTE_SIZE; rgb < end; rgb++, i++)
+    for(const tic_rgb *rgb = palette, *end = rgb + count; rgb < end; rgb++, i++)
     {
         s32 d[] = {color->r - rgb->r, color->g - rgb->g, color->b - rgb->b};
 

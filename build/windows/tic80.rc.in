@@ -21,7 +21,7 @@ BEGIN
 			VALUE "FileDescription", "TIC-80 tiny computer"
 			VALUE "FileVersion", "@VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_REVISION@.0"
 			VALUE "InternalName", "tic80.exe"
-			VALUE "LegalCopyright", "https://tic80.com (C) @VERSION_YEAR@"
+			VALUE "LegalCopyright", "https://tic80.com (C) 2017-@VERSION_YEAR@"
 			VALUE "OriginalFilename", "tic80.exe"
 			VALUE "ProductName", "TIC-80"
 			VALUE "ProductVersion", "@VERSION_MAJOR@.@VERSION_MINOR@.@VERSION_REVISION@.0"

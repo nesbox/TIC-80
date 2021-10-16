@@ -26,6 +26,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <png.h>
+#include <assert.h>
 
 #define RGBA_SIZE sizeof(u32)
 
@@ -167,7 +168,7 @@ typedef union
     u8 data[RGBA_SIZE];
 } Header;
 
-STATIC_ASSERT(header_size, sizeof(Header) == RGBA_SIZE);
+static_assert(sizeof(Header) == RGBA_SIZE, "header_size");
 
 #define BITS_IN_BYTE 8
 #define HEADER_BITS 4
@@ -176,9 +177,9 @@ STATIC_ASSERT(header_size, sizeof(Header) == RGBA_SIZE);
 static inline void bitcpy(u8* dst, u32 to, const u8* src, u32 from, u32 size)
 {
     for(s32 i = 0; i < size; i++, to++, from++)
-        BIT_CHECK(src[from >> 3], from & 7) 
-            ? BIT_SET_LV(dst[to >> 3], to & 7) 
-            : BIT_CLEAR_LV(dst[to >> 3], to & 7);
+        BITCHECK(src[from >> 3], from & 7) 
+            ? _BITSET(dst[to >> 3], to & 7) 
+            : _BITCLEAR(dst[to >> 3], to & 7);
 }
 
 static inline s32 ceildiv(s32 a, s32 b)

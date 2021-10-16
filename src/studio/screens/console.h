@@ -33,16 +33,8 @@ typedef enum
     CART_SAVE_MISSING_NAME,
 } CartSaveResult;
 
-typedef struct HistoryItem HistoryItem;
-
-struct HistoryItem
-{
-    char* value;
-    HistoryItem* prev;
-    HistoryItem* next;
-};
-
 typedef struct Console Console;
+typedef struct CommandDesc CommandDesc;
 
 struct Console
 {
@@ -50,8 +42,7 @@ struct Console
 
     struct
     {
-        s32 x;
-        s32 y;
+        tic_point pos;
         s32 delay;
     } cursor;
 
@@ -65,15 +56,19 @@ struct Console
 
     struct
     {
-        bool yes;
-        tic_cartridge* file;
-    } embed;
+        const char* start;
+        const char* end;
+        bool active;
+    } select;
 
-    char* buffer;
-    u8* colorBuffer;
+    char* text;
+    u8* color;
 
-    char inputBuffer[STUDIO_TEXT_BUFFER_WIDTH * STUDIO_TEXT_BUFFER_HEIGHT];
-    size_t inputPosition;
+    struct
+    {
+        char* text;
+        size_t pos;
+    } input;
 
     tic_mem* tic;
 
@@ -86,8 +81,12 @@ struct Console
         char path[TICNAME_MAX];
     } rom;
 
-    HistoryItem* history;
-    HistoryItem* historyHead;
+    struct
+    {
+        s32 index;
+        s32 size;
+        char** items;
+    } history;
 
     u32 tickCounter;
 
@@ -95,12 +94,15 @@ struct Console
     bool showGameMenu;
     StartArgs args;
 
+    CommandDesc* desc;
+
     void(*load)(Console*, const char* path);
-    void(*loadByHash)(Console*, const char* name, const char* hash, fs_done_callback callback, void* data);
+    void(*loadByHash)(Console*, const char* name, const char* hash, const char* section, fs_done_callback callback, void* data);
     void(*updateProject)(Console*);
     void(*error)(Console*, const char*);
     void(*trace)(Console*, const char*, u8 color);
     void(*tick)(Console*);
+    void(*done)(Console*);
 
     CartSaveResult(*save)(Console*);
 };

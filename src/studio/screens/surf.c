@@ -24,10 +24,14 @@
 #include "studio/fs.h"
 #include "studio/net.h"
 #include "console.h"
-#include "studio/project.h"
-
 #include "ext/gif.h"
 #include "ext/png.h"
+
+#if defined(TIC80_PRO)
+#include "studio/project.h"
+#else
+#include "cart.h"
+#endif
 
 #include <string.h>
 
@@ -299,7 +303,7 @@ static inline void cutExt(char* name, const char* ext)
     name[strlen(name)-strlen(ext)] = '\0';
 }
 
-static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, bool dir)
+static bool addMenuItem(const char* name, const char* title, const char* hash, s32 id, void* ptr, bool dir)
 {
     AddMenuItemData* data = (AddMenuItemData*)ptr;
 
@@ -307,8 +311,11 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
 
     if(dir 
         || tic_tool_has_ext(name, CartExt)
-        || hasProjectExt(name)
-        || tic_tool_has_ext(name, PngExt))
+        || tic_tool_has_ext(name, PngExt)
+#if defined(TIC80_PRO)
+        || tic_project_ext(name)
+#endif
+        )
     {
         data->items = realloc(data->items, sizeof(MenuItem) * ++data->count);
         MenuItem* item = &data->items[data->count-1];
@@ -316,7 +323,7 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
         *item = (MenuItem)
         {
             .name = strdup(name),
-            .hash = info ? strdup(info) : NULL,
+            .hash = hash ? strdup(hash) : NULL,
             .id = id,
             .dir = dir,
         };
@@ -329,7 +336,7 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
         }
         else
         {
-            item->label = strdup(name);
+            item->label = title ? strdup(title) : strdup(name);
 
             if(tic_tool_has_ext(name, CartExt))
                 cutExt(item->label, CartExt);
@@ -341,6 +348,19 @@ static bool addMenuItem(const char* name, const char* info, s32 id, void* ptr, b
     return true;
 }
 
+static s32 itemcmp(const void* a, const void* b)
+{
+    const MenuItem* item1 = a;
+    const MenuItem* item2 = b;
+
+    if(item1->dir != item2->dir)
+        return item1->dir ? -1 : 1;
+    else if(item1->dir && item2->dir)
+        return strcmp(item1->name, item2->name);
+
+    return 0;
+}
+
 static void addMenuItemsDone(void* data)
 {
     AddMenuItemData* addMenuItemData = data;
@@ -349,17 +369,15 @@ static void addMenuItemsDone(void* data)
     surf->menu.items = addMenuItemData->items;
     surf->menu.count = addMenuItemData->count;
 
+    if(!tic_fs_ispubdir(surf->fs))
+        qsort(surf->menu.items, surf->menu.count, sizeof *surf->menu.items, itemcmp);
+
     if (addMenuItemData->done)
         addMenuItemData->done(addMenuItemData->data);
 
     free(addMenuItemData);
 
     surf->loading = false;
-}
-
-static inline void safe_free(void* ptr)
-{
-    if(ptr) free(ptr);
 }
 
 static void resetMenu(Surf* surf)
@@ -372,10 +390,10 @@ static void resetMenu(Surf* surf)
 
             free(item->name);
 
-            safe_free(item->hash);
-            safe_free(item->cover);
-            safe_free(item->label);
-            safe_free(item->palette);
+            FREE(item->hash);
+            FREE(item->cover);
+            FREE(item->label);
+            FREE(item->palette);
         }
 
         free(surf->menu.items);
@@ -448,6 +466,7 @@ static void coverLoaded(const net_get_data* netData)
     case net_get_error:
         free(coverLoadingData);
         break;
+    default: break;
     }
 }
 
@@ -473,7 +492,7 @@ static void requestCover(Surf* surf, MenuItem* item)
     char path[TICNAME_MAX];
     sprintf(path, "/cart/%s/cover.gif", hash);
 
-    tic_net_get(surf->net, path, coverLoaded, OBJCOPY(coverLoadingData));
+    tic_net_get(surf->net, path, coverLoaded, MOVE(coverLoadingData));
 }
 
 static void loadCover(Surf* surf)
@@ -500,9 +519,7 @@ static void loadCover(Surf* surf)
             if(cart)
             {
 
-                if(hasProjectExt(item->name))
-                    tic_project_load(item->name, data, size, cart);
-                else if(tic_tool_has_ext(item->name, PngExt))
+                if(tic_tool_has_ext(item->name, PngExt))
                 {
                     tic_cartridge* pngcart = loadPngCart((png_buffer){data, size});
 
@@ -513,6 +530,10 @@ static void loadCover(Surf* surf)
                     }
                     else memset(cart, 0, sizeof(tic_cartridge));
                 }
+#if defined(TIC80_PRO)
+                else if(tic_project_ext(item->name))
+                    tic_project_load(item->name, data, size, cart);
+#endif
                 else
                     tic_cart_load(cart, data, size);
 
@@ -546,9 +567,9 @@ static void initMenuAsync(Surf* surf, fs_done_callback callback, void* calldata)
     AddMenuItemData data = { NULL, 0, surf, callback, calldata};
 
     if(strcmp(dir, "") != 0)
-        addMenuItem("..", NULL, 0, &data, true);
+        addMenuItem("..", NULL, NULL, 0, &data, true);
 
-    tic_fs_enum(surf->fs, addMenuItem, addMenuItemsDone, OBJCOPY(data));
+    tic_fs_enum(surf->fs, addMenuItem, addMenuItemsDone, MOVE(data));
 }
 
 typedef struct
@@ -602,7 +623,7 @@ static void onGoBackDir(Surf* surf)
     tic_fs_dirback(surf->fs);
 
     GoBackDirDoneData goBackDirDoneData = {surf, strdup(last)};
-    initMenuAsync(surf, onGoBackDirDone, OBJCOPY(goBackDirDoneData));
+    initMenuAsync(surf, onGoBackDirDone, MOVE(goBackDirDoneData));
 }
 
 static void onGoToDir(Surf* surf)
@@ -649,7 +670,7 @@ static void onPlayCart(Surf* surf)
 
     if (item->hash)
     {
-        surf->console->loadByHash(surf->console, item->name, item->hash, onCartLoaded, NULL);
+        surf->console->loadByHash(surf->console, item->name, item->hash, NULL, onCartLoaded, NULL);
     }
     else
     {
@@ -875,8 +896,7 @@ static void scanline(tic_mem* tic, s32 row, void* data)
             if(row == 0)
             {
                 memcpy(&tic->ram.vram.palette, item->palette, sizeof(tic_palette));
-                for(u8 *i = tic->ram.vram.palette.data, *end = i + sizeof(tic_palette); i < end; i++)
-                    *i = *i * AnimVar.coverFade >> 8;
+                fadePalette(&tic->ram.vram.palette, AnimVar.coverFade);
             }
 
             return;
