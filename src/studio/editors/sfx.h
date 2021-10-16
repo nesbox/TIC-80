@@ -44,7 +44,6 @@ struct Sfx
     } play;
     
     struct History* history;
-    struct History* waveHistory;
 
     void(*tick)(Sfx*);
     void(*event)(Sfx*, StudioEvent);

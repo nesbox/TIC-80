@@ -53,12 +53,7 @@ class HIDDeviceUSB implements HIDDevice {
     public String getSerialNumber() {
         String result = null;
         if (Build.VERSION.SDK_INT >= 21) {
-            try {
-                result = mDevice.getSerialNumber();
-            }
-            catch (SecurityException exception) {
-                //Log.w(TAG, "App permissions mean we cannot get serial number for device " + getDeviceName() + " message: " + exception.getMessage());
-            }
+            result = mDevice.getSerialNumber();
         }
         if (result == null) {
             result = "";

@@ -377,7 +377,7 @@ TShutdownMode Run(void)
 		dbg("With keyboard\n");
 		malloc(77);
 		char  arg0[] = "xxkernel";
-		char* argv[] = { &arg0[0], NULL };
+		const char* argv[] = { &arg0[0], NULL };
 		int argc = 1;
 		malloc(88);
 		platform.studio = studioInit(argc, argv, 44100, "tic80");
@@ -389,7 +389,7 @@ TShutdownMode Run(void)
 		//  if no keyboard, start in surf mode!
 		char  arg0[] = "xxkernel";
 		char  arg1[] = "--cmd=surf";
-		char* argv[] = { &arg0[0], &arg1[0], NULL };
+		const char* argv[] = { &arg0[0], &arg1[0], NULL };
 		int argc = 2;
 		dbg("Without keyboard\n");
 		platform.studio = studioInit(argc, argv, 44100, "tic80");

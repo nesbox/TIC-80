@@ -30,7 +30,6 @@ struct Run
 {
     tic_mem* tic;
     struct Console* console;
-    struct tic_fs* fs;
     tic_tick_data tickData;
 
     bool exit;
@@ -41,5 +40,5 @@ struct Run
     void(*tick)(Run*);
 };
 
-void initRun(Run*, struct Console*, struct tic_fs* , tic_mem*);
+void initRun(Run*, struct Console*, tic_mem*);
 void freeRun(Run* run);

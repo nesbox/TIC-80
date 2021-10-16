@@ -40,13 +40,9 @@
 #include <sys/types.h>
 #endif
 
-#if defined(TIC_BUILD_WITH_LUA)
-
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
-
-#endif
 
 #if defined(__TIC_WINDOWS__)
 #include <direct.h>
@@ -79,7 +75,7 @@ const char* tic_fs_pathroot(tic_fs* fs, const char* name)
 {
     static char path[TICNAME_MAX];
 
-    snprintf(path, sizeof path, "%s%s", fs->dir, name);
+    sprintf(path, "%s%s", fs->dir, name);
 
 #if defined(__TIC_WINDOWS__)
     char* ptr = path;
@@ -98,11 +94,11 @@ const char* tic_fs_path(tic_fs* fs, const char* name)
     static char path[TICNAME_MAX];
 
     if(*name == '/')
-        strncpy(path, name + 1, sizeof path);
+        strcpy(path, name + 1);
     else if(strlen(fs->work))
-        snprintf(path, sizeof path, "%s/%s", fs->work, name);
+        sprintf(path, "%s/%s", fs->work, name);
     else 
-        strncpy(path, name, sizeof path);
+        strcpy(path, name);
 
     return tic_fs_pathroot(fs, path);
 }
@@ -119,7 +115,7 @@ static bool isPublicRoot(tic_fs* fs)
 
 static bool isPublic(tic_fs* fs)
 {
-    return memcmp(fs->work, PublicDir, STRLEN(PublicDir)) == 0;
+    return memcmp(fs->work, PublicDir, sizeof PublicDir - 1) == 0;
 }
 
 bool tic_fs_ispubdir(tic_fs* fs)
@@ -167,8 +163,8 @@ static const char* stringToUtf8(const FsString* wstr)
 #define tic_remove _wremove
 #define tic_fopen _wfopen
 #define tic_mkdir(name) _wmkdir(name)
-#define tic_strncpy wcsncpy
-#define tic_strncat wcsncat
+#define tic_strcpy wcscpy
+#define tic_strcat wcscat
 
 #else
 
@@ -193,8 +189,8 @@ typedef char FsString;
 #define tic_remove remove
 #define tic_fopen fopen
 #define tic_mkdir(name) mkdir(name, 0700)
-#define tic_strncpy strncpy
-#define tic_strncat strncat
+#define tic_strcpy strcpy
+#define tic_strcat strcat
 
 #endif
 
@@ -204,8 +200,6 @@ typedef struct
     fs_done_callback done;
     void* data;
 } NetDirData;
-
-#if defined(TIC_BUILD_WITH_LUA)
 
 static lua_State* netLuaInit(u8* buffer, s32 size)
 {
@@ -254,7 +248,7 @@ static void onDirResponse(const net_get_data* netData)
                         {
                             lua_getfield(lua, -1, "name");
                             if (lua_isstring(lua, -1))
-                                netDirData->item(lua_tostring(lua, -1), NULL, NULL, 0, netDirData->data, true);
+                                netDirData->item(lua_tostring(lua, -1), NULL, 0, netDirData->data, true);
 
                             lua_pop(lua, 1);
                         }
@@ -279,21 +273,11 @@ static void onDirResponse(const net_get_data* netData)
 
                         char hash[TICNAME_MAX];
                         char name[TICNAME_MAX];
-                        char title[TICNAME_MAX];
 
                         {
                             lua_getfield(lua, -1, "hash");
                             if (lua_isstring(lua, -1))
-                                strncpy(hash, lua_tostring(lua, -1), sizeof hash);
-
-                            lua_pop(lua, 1);
-                        }
-
-                        {
-                            lua_getfield(lua, -1, "filename");
-
-                            if (lua_isstring(lua, -1))
-                                strncpy(name, lua_tostring(lua, -1), sizeof name);
+                                strcpy(hash, lua_tostring(lua, -1));
 
                             lua_pop(lua, 1);
                         }
@@ -302,7 +286,7 @@ static void onDirResponse(const net_get_data* netData)
                             lua_getfield(lua, -1, "name");
 
                             if (lua_isstring(lua, -1))
-                                strncpy(title, lua_tostring(lua, -1), sizeof title);
+                                strcpy(name, lua_tostring(lua, -1));
 
                             lua_pop(lua, 1);
                         }
@@ -311,7 +295,7 @@ static void onDirResponse(const net_get_data* netData)
                             lua_getfield(lua, -1, "id");
 
                             if (lua_isinteger(lua, -1))
-                                netDirData->item(name, title, hash, (s32)lua_tointeger(lua, -1), netDirData->data, false);
+                                netDirData->item(name, hash, (s32)lua_tointeger(lua, -1), netDirData->data, false);
 
                             lua_pop(lua, 1);
                         }
@@ -334,13 +318,10 @@ static void onDirResponse(const net_get_data* netData)
         netDirData->done(netDirData->data);
         free(netDirData);
         break;
-    default: break;
     }
 }
 
-#endif
-
-static void enumFiles(tic_fs* fs, const char* path, fs_list_callback callback, void* data)
+static void enumFiles(tic_fs* fs, const char* path, fs_list_callback callback, void* data, bool folder)
 {
 #if defined(BAREMETALPI)
     dbg("enumFiles %s", path);
@@ -354,7 +335,7 @@ static void enumFiles(tic_fs* fs, const char* path, fs_list_callback callback, v
     }
 
     static char path2[TICNAME_MAX];
-    strncpy(path2, path, sizeof path2);
+    strcpy(path2, path);
 
     if (path2[strlen(path2) - 1] == '/')    // one character
                 path2[strlen(path2) - 1] = 0;
@@ -369,9 +350,11 @@ static void enumFiles(tic_fs* fs, const char* path, fs_list_callback callback, v
 
     for (unsigned i = 0; Result == FR_OK && FileInfo.fname[0]; i++)
     {
-        if (!(FileInfo.fattrib & (AM_HID | AM_SYS)))
+        bool check = FileInfo.fattrib & (folder ? AM_DIR : AM_ARC);
+
+        if (check &&  !(FileInfo.fattrib & (AM_HID | AM_SYS)))
         {
-            bool result = callback(FileInfo.fname, NULL, NULL, 0, data, FileInfo.fattrib & AM_DIR);
+            bool result = callback(FileInfo.fname, NULL, 0, data, folder);
 
             if (!result)
             {
@@ -397,13 +380,13 @@ static void enumFiles(tic_fs* fs, const char* path, fs_list_callback callback, v
         {
             if(*ent->d_name != _S('.'))
             {
-                tic_strncpy(fullPath, pathString, COUNT_OF(fullPath));
-                tic_strncat(fullPath, ent->d_name, COUNT_OF(fullPath));
+                tic_strcpy(fullPath, pathString);
+                tic_strcat(fullPath, ent->d_name);
 
-                if(tic_stat(fullPath, &s) == 0)
+                if(tic_stat(fullPath, &s) == 0 && folder ? S_ISDIR(s.st_mode) : S_ISREG(s.st_mode))
                 {
                     const char* name = stringToUtf8(ent->d_name);
-                    bool result = callback(name, NULL, NULL, 0, data, S_ISDIR(s.st_mode));
+                    bool result = callback(name, NULL, 0, data, folder);
                     freeString(name);
 
                     if(!result) break;
@@ -420,28 +403,27 @@ static void enumFiles(tic_fs* fs, const char* path, fs_list_callback callback, v
 
 void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, void* data)
 {
-    if (isRoot(fs) && !onItem(PublicDir, NULL, NULL, 0, data, true))
+    if (isRoot(fs) && !onItem(PublicDir, NULL, 0, data, true))
     {
         onDone(data);
         return;
     }
 
-#if defined(TIC_BUILD_WITH_LUA) && defined(BUILD_EDITORS)
     if(isPublic(fs))
     {
         char request[TICNAME_MAX];
-        snprintf(request, sizeof request, "/api?fn=dir&path=%s", fs->work + sizeof(TIC_HOST));
+        sprintf(request, "/api?fn=dir&path=%s", fs->work + sizeof(TIC_HOST));
 
         NetDirData netDirData = { onItem, onDone, data };
-        tic_net_get(fs->net, request, onDirResponse, MOVE(netDirData));
+        tic_net_get(fs->net, request, onDirResponse, OBJCOPY(netDirData));
 
         return;
     }
-#endif
 
     const char* path = tic_fs_path(fs, "");
 
-    enumFiles(fs, path, onItem, data);
+    enumFiles(fs, path, onItem, data, true);
+    enumFiles(fs, path, onItem, data, false);
 
     onDone(data);
 }
@@ -515,21 +497,15 @@ void tic_fs_dirback(tic_fs* fs)
 
 void tic_fs_dir(tic_fs* fs, char* dir)
 {
-    strncpy(dir, fs->work, TICNAME_MAX);
+    strcpy(dir, fs->work);
 }
 
 void tic_fs_changedir(tic_fs* fs, const char* dir)
 {
     if(strlen(fs->work))
-        strncat(fs->work, "/", TICNAME_MAX);
+        strcat(fs->work, "/");
                 
     strcat(fs->work, dir);
-
-#if defined(__TIC_WINDOWS__)
-    for(char *ptr = fs->work, *end = ptr + strlen(ptr); ptr < end; ptr++)
-        if(*ptr == '\\')
-            *ptr = '/';
-#endif
 }
 
 typedef struct
@@ -541,7 +517,7 @@ typedef struct
 
 } EnumPublicDirsData;
 
-static bool onEnumPublicDirs(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
+static bool onEnumPublicDirs(const char* name, const char* info, s32 id, void* data, bool dir)
 {
     EnumPublicDirsData* enumPublicDirsData = (EnumPublicDirsData*)data;
 
@@ -588,10 +564,10 @@ bool tic_fs_isdir(tic_fs* fs, const char* name)
 
 void tic_fs_isdir_async(tic_fs* fs, const char* name, fs_isdir_callback callback, void* data)
 {
-    if(isPublic(fs))
+    if(isPublicRoot(fs))
     {
         EnumPublicDirsData enumPublicDirsData = { strdup(name), false, callback, data};
-        tic_fs_enum(fs, onEnumPublicDirs, onEnumPublicDirsDone, MOVE(enumPublicDirsData));
+        tic_fs_enum(fs, onEnumPublicDirs, onEnumPublicDirsDone, OBJCOPY(enumPublicDirsData));
         return;
     }
 
@@ -785,19 +761,18 @@ static void fileByHashLoaded(const net_get_data* netData)
         free(loadFileByHashData->cachePath);
         free(loadFileByHashData);
         break;
-    default: break;
     }
 }
 
-void tic_fs_hashload(tic_fs* fs, const char* name, const char* hash, fs_load_callback callback, void* data)
+void tic_fs_hashload(tic_fs* fs, const char* hash, fs_load_callback callback, void* data)
 {
 #if defined(BAREMETALPI)
     // TODO BAREMETALPI
-    return;
+    return NULL;
 #else
 
     char cachePath[TICNAME_MAX];
-    snprintf(cachePath, sizeof cachePath, TIC_CACHE "%s.tic", hash);
+    sprintf(cachePath, TIC_CACHE "%s.tic", hash);
 
     {
         s32 size = 0;
@@ -809,14 +784,11 @@ void tic_fs_hashload(tic_fs* fs, const char* name, const char* hash, fs_load_cal
         }
     }
 
-#if defined(BUILD_EDITORS)
     char path[TICNAME_MAX];
-    snprintf(path, sizeof path, "/cart/%s/%s", hash, name);
+    sprintf(path, "/cart/%s/cart.tic", hash);
 
     LoadFileByHashData loadFileByHashData = { fs, callback, data, strdup(cachePath) };
-    tic_net_get(fs->net, path, fileByHashLoaded, MOVE(loadFileByHashData));
-#endif
-
+    tic_net_get(fs->net, path, fileByHashLoaded, OBJCOPY(loadFileByHashData));
 #endif
 }
 
@@ -956,7 +928,7 @@ tic_fs* tic_fs_create(const char* path, tic_net* net)
 {
     tic_fs* fs = (tic_fs*)calloc(1, sizeof(tic_fs));
 
-    strncpy(fs->dir, path, TICNAME_MAX);
+    strcpy(fs->dir, path);
 
     if(path[strlen(path) - 1] != SEP[0])
         strcat(fs->dir, SEP);

@@ -31,16 +31,15 @@
 #include <ctype.h>
 #include <stddef.h>
 #include <time.h>
-#include <assert.h>
 
 #ifdef _3DS
 #include <3ds.h>
 #endif
 
-static_assert(TIC_BANK_BITS == 3,                   "tic_bank_bits");
-static_assert(sizeof(tic_map) < 1024 * 32,          "tic_map");
-static_assert(sizeof(tic_vram) == TIC_VRAM_SIZE,    "tic_vram");
-static_assert(sizeof(tic_ram) == TIC_RAM_SIZE,      "tic_ram");
+STATIC_ASSERT(tic_bank_bits, TIC_BANK_BITS == 3);
+STATIC_ASSERT(tic_map, sizeof(tic_map) < 1024 * 32);
+STATIC_ASSERT(tic_vram, sizeof(tic_vram) == TIC_VRAM_SIZE);
+STATIC_ASSERT(tic_ram, sizeof(tic_ram) == TIC_RAM_SIZE);
 
 static inline u32* getOvrAddr(tic_mem* tic, s32 x, s32 y)
 {
@@ -80,38 +79,18 @@ static void drawHLineOvr(tic_mem* tic, s32 x1, s32 x2, s32 y, u8 color)
     }
 }
 
-u8 tic_api_peek(tic_mem* memory, s32 address, s32 res)
+u8 tic_api_peek(tic_mem* memory, s32 address)
 {
-    if (res == 0 
-        || address < 0 
-        || address >= (sizeof(tic_ram) * 8) / res)
-        return 0;
-
-    switch(res)
-    {
-    case 1: return tic_tool_peek1((u8*)&memory->ram, address);
-    case 2: return tic_tool_peek2((u8*)&memory->ram, address);
-    case 4: return tic_tool_peek4((u8*)&memory->ram, address);
-    case 8: return *((u8*)&memory->ram + address);
-    }
+    if (address >= 0 && address < sizeof(tic_ram))
+        return *((u8*)&memory->ram + address);
 
     return 0;
 }
 
-void tic_api_poke(tic_mem* memory, s32 address, u8 value, s32 res)
+void tic_api_poke(tic_mem* memory, s32 address, u8 value)
 {
-    if (res == 0 
-        || address < 0 
-        || address >= (sizeof(tic_ram) * 8) / res)
-        return;
-
-    switch(res)
-    {
-    case 1: tic_tool_poke1((u8*)&memory->ram, address, value); break;
-    case 2: tic_tool_poke2((u8*)&memory->ram, address, value); break;
-    case 4: tic_tool_poke4((u8*)&memory->ram, address, value); break;
-    case 8: *((u8*)&memory->ram + address) = value; break;
-    }
+    if (address >= 0 && address < sizeof(tic_ram))
+        *((u8*)&memory->ram + address) = value;
 }
 
 u8 tic_api_peek4(tic_mem* memory, s32 address)
@@ -285,28 +264,46 @@ static bool compareMetatag(const char* code, const char* tag, const char* value,
     return result;
 }
 
-#define SCRIPT_DEF(name, _, __, vm) const tic_script_config* get_## name ##_script_config();
-    SCRIPT_LIST(SCRIPT_DEF)
-#undef SCRIPT_DEF
-
 const tic_script_config* tic_core_script_config(tic_mem* memory)
 {
-    static const struct Config
-    {
-        const char* name;
-        const tic_script_config*(*func)();
-    } Configs[] = 
-    {
-#define SCRIPT_DEF(name, ...) {#name, get_## name ##_script_config},
-        SCRIPT_LIST(SCRIPT_DEF)
-#undef  SCRIPT_DEF
-    };
+    const char* code = memory->cart.code.data;
 
-    FOR(const struct Config*, it, Configs)
-        if(compareMetatag(memory->cart.code.data, "script", it->name, it->func()->singleComment))
-            return it->func();
+#if defined(TIC_BUILD_WITH_MOON)
+    if (compareMetatag(code, "script", "moon", getMoonScriptConfig()->singleComment) ||
+        compareMetatag(code, "script", "moonscript", getMoonScriptConfig()->singleComment))
+        return getMoonScriptConfig();
+#endif
 
-    return Configs->func();
+#if defined(TIC_BUILD_WITH_FENNEL)
+    if (compareMetatag(code, "script", "fennel", getFennelConfig()->singleComment))
+        return getFennelConfig();
+#endif
+
+#if defined(TIC_BUILD_WITH_JS)
+    if (compareMetatag(code, "script", "js", getJsScriptConfig()->singleComment) ||
+        compareMetatag(code, "script", "javascript", getJsScriptConfig()->singleComment))
+        return getJsScriptConfig();
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
+    if (compareMetatag(code, "script", "wren", getWrenScriptConfig()->singleComment))
+        return getWrenScriptConfig();
+#endif
+
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+    if (compareMetatag(code, "script", "squirrel", getSquirrelScriptConfig()->singleComment))
+        return getSquirrelScriptConfig();
+#endif
+
+#if defined(TIC_BUILD_WITH_LUA)
+    return getLuaScriptConfig();
+#elif defined(TIC_BUILD_WITH_JS)
+    return getJsScriptConfig();
+#elif defined(TIC_BUILD_WITH_WREN)
+    return getWrenScriptConfig();
+#elif defined(TIC_BUILD_WITH_SQUIRREL)
+    return getSquirrelScriptConfig();
+#endif
 }
 
 static void updateSaveid(tic_mem* memory)
@@ -347,7 +344,7 @@ static void soundClear(tic_mem* memory)
     memset(&memory->ram.registers, 0, sizeof memory->ram.registers);
     memset(memory->samples.buffer, 0, memory->samples.size);
 
-    tic_api_music(memory, -1, 0, 0, false, false, -1, -1);
+    tic_api_music(memory, -1, 0, 0, false, false);
 }
 
 static void resetDma(tic_mem* memory)
@@ -364,7 +361,6 @@ void tic_api_reset(tic_mem* memory)
     resetBlitSegment(memory);
 
     memset(&memory->ram.vram.vars, 0, sizeof memory->ram.vram.vars);
-    memory->ram.input.mouse.relative = 0;
 
     tic_api_clip(memory, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
 
@@ -396,7 +392,7 @@ static void cart2ram(tic_mem* memory)
 #undef      TIC_SYNC_DEF
             count,
             all = (1 << count) - 1,
-            noscreen = BITCLEAR(all, sync_screen)
+            noscreen = BIT_CLEAR(all, sync_screen)
     };
 
     // don't sync empty screen
@@ -414,10 +410,11 @@ void tic_core_tick(tic_mem* tic, tic_tick_data* data)
         const char* code = tic->cart.code.data;
 
         bool done = false;
-        const tic_script_config* config = tic_core_script_config(tic);
+        const tic_script_config* config = NULL;
 
         if (strlen(code))
         {
+            config = tic_core_script_config(tic);
             cart2ram(tic);
 
             core->state.synced = 0;
@@ -460,6 +457,7 @@ void tic_core_pause(tic_mem* memory)
 
     memcpy(&core->pause.state, &core->state, sizeof(tic_core_state_data));
     memcpy(&core->pause.ram, &memory->ram, sizeof(tic_ram));
+    core->pause.input = memory->input.data;
     memset(&core->state.ovr, 0, sizeof core->state.ovr);
 
     if (core->data)
@@ -477,6 +475,7 @@ void tic_core_resume(tic_mem* memory)
     {
         memcpy(&core->state, &core->pause.state, sizeof(tic_core_state_data));
         memcpy(&memory->ram, &core->pause.ram, sizeof(tic_ram));
+        memory->input.data = core->pause.input;
         core->data->start = core->pause.time.start + core->data->counter(core->data->data) - core->pause.time.paused;
     }
 }
@@ -487,9 +486,31 @@ void tic_core_close(tic_mem* memory)
 
     core->state.initialized = false;
 
-#define SCRIPT_DEF(name, ...) get_## name ##_script_config()->close(memory);
-    SCRIPT_LIST(SCRIPT_DEF)
-#undef  SCRIPT_DEF
+#if defined(TIC_BUILD_WITH_SQUIRREL)
+    getSquirrelScriptConfig()->close(memory);
+#endif
+
+#if defined(TIC_BUILD_WITH_LUA)
+    getLuaScriptConfig()->close(memory);
+
+#   if defined(TIC_BUILD_WITH_MOON)
+    getMoonScriptConfig()->close(memory);
+#   endif
+
+#   if defined(TIC_BUILD_WITH_FENNEL)
+    getFennelConfig()->close(memory);
+#   endif
+
+#endif /* defined(TIC_BUILD_WITH_LUA) */
+
+
+#if defined(TIC_BUILD_WITH_JS)
+    getJsScriptConfig()->close(memory);
+#endif
+
+#if defined(TIC_BUILD_WITH_WREN)
+    getWrenScriptConfig()->close(memory);
+#endif
 
     blip_delete(core->blip.left);
     blip_delete(core->blip.right);
@@ -559,11 +580,13 @@ void tic_core_blit_ex(tic_mem* tic, tic80_pixel_color_format fmt, tic_scanline s
     {
         tic_core* core = (tic_core*)tic;
 
-        const tic_palette* pal = EMPTY(core->state.ovr.palette.data) 
-            ? &tic->ram.vram.palette 
-            : &core->state.ovr.palette;
+        const tic_palette* ovr = &core->state.ovr.palette;
+        bool ovrEmpty = true;
+        for (s32 i = 0; i < sizeof(tic_palette); i++)
+            if (ovr->data[i])
+                ovrEmpty = false;
 
-        memcpy(core->state.ovr.raw, tic_tool_palette_blit(pal, fmt), sizeof core->state.ovr.raw);
+        memcpy(core->state.ovr.raw, tic_tool_palette_blit(ovrEmpty ? &tic->ram.vram.palette : ovr, fmt), sizeof core->state.ovr.raw);
     }
 
     if (scanline)
@@ -571,15 +594,18 @@ void tic_core_blit_ex(tic_mem* tic, tic80_pixel_color_format fmt, tic_scanline s
 
     const u32* pal = tic_tool_palette_blit(&tic->ram.vram.palette, fmt);
 
+    enum { Top = (TIC80_FULLHEIGHT - TIC80_HEIGHT) / 2, Bottom = Top };
+    enum { Left = (TIC80_FULLWIDTH - TIC80_WIDTH) / 2, Right = Left };
+
     u32* out = tic->screen;
 
-    memset4(&out[0 * TIC80_FULLWIDTH], pal[tic->ram.vram.vars.border], TIC80_FULLWIDTH * TIC80_MARGIN_TOP);
+    memset4(&out[0 * TIC80_FULLWIDTH], pal[tic->ram.vram.vars.border], TIC80_FULLWIDTH * Top);
 
-    u32* rowPtr = out + (TIC80_MARGIN_TOP * TIC80_FULLWIDTH);
+    u32* rowPtr = out + (Top * TIC80_FULLWIDTH);
     for (s32 r = 0; r < TIC80_HEIGHT; r++, rowPtr += TIC80_FULLWIDTH)
     {
-        u32* colPtr = rowPtr + TIC80_MARGIN_LEFT;
-        memset4(rowPtr, pal[tic->ram.vram.vars.border], TIC80_MARGIN_LEFT);
+        u32* colPtr = rowPtr + Left;
+        memset4(rowPtr, pal[tic->ram.vram.vars.border], Left);
 
         s32 pos = (r + tic->ram.vram.vars.offset.y + TIC80_HEIGHT) % TIC80_HEIGHT * TIC80_WIDTH >> 1;
 
@@ -591,7 +617,7 @@ void tic_core_blit_ex(tic_mem* tic, tic80_pixel_color_format fmt, tic_scanline s
             *(colPtr + (x++ % TIC80_WIDTH)) = pal[val >> 4];
         }
 
-        memset4(rowPtr + (TIC80_FULLWIDTH - TIC80_MARGIN_RIGHT), pal[tic->ram.vram.vars.border], TIC80_MARGIN_RIGHT);
+        memset4(rowPtr + (TIC80_FULLWIDTH - Right), pal[tic->ram.vram.vars.border], Right);
 
         if (scanline && (r < TIC80_HEIGHT - 1))
         {
@@ -600,7 +626,7 @@ void tic_core_blit_ex(tic_mem* tic, tic80_pixel_color_format fmt, tic_scanline s
         }
     }
 
-    memset4(&out[(TIC80_FULLHEIGHT - TIC80_MARGIN_BOTTOM) * TIC80_FULLWIDTH], pal[tic->ram.vram.vars.border], TIC80_FULLWIDTH * TIC80_MARGIN_BOTTOM);
+    memset4(&out[(TIC80_FULLHEIGHT - Bottom) * TIC80_FULLWIDTH], pal[tic->ram.vram.vars.border], TIC80_FULLWIDTH * Bottom);
 
     if (overline)
         overline(tic, data);

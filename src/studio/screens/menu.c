@@ -70,16 +70,14 @@ static const struct {const char* label; void(*const handler)(Menu*);} MenuItems[
     {"CRT MONITOR",     crtMonitor},
 #endif
     {"", NULL},
-#if defined(BUILD_EDITORS)
     {"CLOSE GAME",      closeGame},
-#endif
     {"QUIT TIC-80",     exitStudioLocal},
 };
 
 #define MENU_ITEMS_COUNT (COUNT_OF(MenuItems))
 
 #define DIALOG_WIDTH (TIC80_WIDTH / 2)
-#define DIALOG_HEIGHT (TIC80_HEIGHT / 2 + (MAX(MENU_ITEMS_COUNT, 6) - 6) * TIC_FONT_HEIGHT)
+#define DIALOG_HEIGHT (TIC80_HEIGHT / 2 + (MENU_ITEMS_COUNT - 6) * TIC_FONT_HEIGHT)
 
 static tic_rect getRect(Menu* menu)
 {
@@ -310,8 +308,20 @@ static void drawGamepadMenu(Menu* menu)
     }
 
     {
-        drawBitIcon(tic_icon_right, rect.x-7, rect.y, tic_color_black);
-        drawBitIcon(tic_icon_right, rect.x-7, rect.y-1, tic_color_white);
+        static const u8 Icon[] =
+        {
+            0b10000000,
+            0b11000000,
+            0b11100000,
+            0b11000000,
+            0b10000000,
+            0b00000000,
+            0b00000000,
+            0b00000000,
+        };
+
+        drawBitIcon(rect.x-7, rect.y+1, Icon, tic_color_black);
+        drawBitIcon(rect.x-7, rect.y, Icon, tic_color_white);
     }
 
     drawGamepadSetupTabs(menu, dlgRect.x+25, dlgRect.y+4);
@@ -369,8 +379,20 @@ static void drawMainMenu(Menu* menu)
 
             if(i == menu->main.focus)
             {
-                drawBitIcon(tic_icon_right, label.x-7, label.y, tic_color_black);
-                drawBitIcon(tic_icon_right, label.x-7, label.y-1, tic_color_white);
+                static const u8 Icon[] =
+                {
+                    0b10000000,
+                    0b11000000,
+                    0b11100000,
+                    0b11000000,
+                    0b10000000,
+                    0b00000000,
+                    0b00000000,
+                    0b00000000,
+                };
+
+                drawBitIcon(label.x-7, label.y+1, Icon, tic_color_black);
+                drawBitIcon(label.x-7, label.y, Icon, tic_color_white);
             }
         }
     }
@@ -506,7 +528,7 @@ static void scanline(tic_mem* tic, s32 row, void* data)
     if(menu->cover)
     {
         if(row == 0)
-            memcpy(&tic->ram.vram.palette, tic->cart.bank0.palette.scn.data, sizeof(tic_palette));
+            tic_api_sync(tic, tic_sync_palette, 0, false);
     }
     else 
         drawBGAnimationScanline(tic, row);

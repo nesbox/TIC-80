@@ -120,38 +120,27 @@ static SQInteger squirrel_errorHandler(HSQUIRRELVM vm)
 static SQInteger squirrel_peek(HSQUIRRELVM vm)
 {
     tic_mem* tic = (tic_mem*)getSquirrelCore(vm);
-    SQInteger top = sq_gettop(vm);
 
     // check number of args
-    if (top < 2)
+    if (sq_gettop(vm) != 2)
         return sq_throwerror(vm, "invalid parameters, peek(address)");
-
     s32 address = getSquirrelNumber(vm, 2);
-    s32 res = BITS_IN_BYTE;
 
-    if(top == 3)
-        res = getSquirrelNumber(vm, 3);
-
-    sq_pushinteger(vm, tic_api_peek(tic, address, res));
+    sq_pushinteger(vm, tic_api_peek(tic, address));
     return 1;
 }
 
 static SQInteger squirrel_poke(HSQUIRRELVM vm)
 {
     tic_mem* tic = (tic_mem*)getSquirrelCore(vm);
-    SQInteger top = sq_gettop(vm);
 
-    if (top < 3)
+    if (sq_gettop(vm) != 3)
         return sq_throwerror( vm, "invalid parameters, poke(address,value)" );
 
     s32 address = getSquirrelNumber(vm, 2);
     u8 value = getSquirrelNumber(vm, 3);
-    s32 res = BITS_IN_BYTE;
 
-    if(top == 4)
-        res = getSquirrelNumber(vm, 4);
-
-    tic_api_poke(tic, address, value, res);
+    tic_api_poke(tic, address, value);
 
     return 0;
 }
@@ -293,10 +282,12 @@ static SQInteger squirrel_circ(HSQUIRRELVM vm)
     SQInteger top = sq_gettop(vm);
 
     if(top == 5)
-    {       
+    {
+        s32 radius = getSquirrelNumber(vm, 4);
+        if(radius < 0) return 0;
+        
         s32 x = getSquirrelNumber(vm, 2);
         s32 y = getSquirrelNumber(vm, 3);
-        s32 radius = getSquirrelNumber(vm, 4);
         s32 color = getSquirrelNumber(vm, 5);
 
         tic_mem* tic = (tic_mem*)getSquirrelCore(vm);
@@ -314,9 +305,11 @@ static SQInteger squirrel_circb(HSQUIRRELVM vm)
 
     if(top == 5)
     {
+        s32 radius = getSquirrelNumber(vm, 4);
+        if(radius < 0) return 0;
+
         s32 x = getSquirrelNumber(vm, 2);
         s32 y = getSquirrelNumber(vm, 3);
-        s32 radius = getSquirrelNumber(vm, 4);
         s32 color = getSquirrelNumber(vm, 5);
 
         tic_mem* tic = (tic_mem*)getSquirrelCore(vm);
@@ -324,48 +317,6 @@ static SQInteger squirrel_circb(HSQUIRRELVM vm)
         tic_api_circb(tic, x, y, radius, color);
     }
     else return sq_throwerror(vm, "invalid parameters, circb(x,y,radius,color)\n");
-
-    return 0;
-}
-
-static SQInteger squirrel_elli(HSQUIRRELVM vm)
-{
-    SQInteger top = sq_gettop(vm);
-
-    if(top == 6)
-    {
-        s32 x = getSquirrelNumber(vm, 2);
-        s32 y = getSquirrelNumber(vm, 3);
-        s32 a = getSquirrelNumber(vm, 4);
-        s32 b = getSquirrelNumber(vm, 5);
-        s32 color = getSquirrelNumber(vm, 6);
-
-        tic_mem* tic = (tic_mem*)getSquirrelCore(vm);
-
-        tic_api_elli(tic, x, y, a, b, color);
-    }
-    else return sq_throwerror(vm, "invalid parameters, elli(x,y,a,b,color)\n");
-
-    return 0;
-}
-
-static SQInteger squirrel_ellib(HSQUIRRELVM vm)
-{
-    SQInteger top = sq_gettop(vm);
-
-    if(top == 6)
-    {
-        s32 x = getSquirrelNumber(vm, 2);
-        s32 y = getSquirrelNumber(vm, 3);
-        s32 a = getSquirrelNumber(vm, 4);
-        s32 b = getSquirrelNumber(vm, 5);
-        s32 color = getSquirrelNumber(vm, 6);
-
-        tic_mem* tic = (tic_mem*)getSquirrelCore(vm);
-
-        tic_api_ellib(tic, x, y, a, b, color);
-    }
-    else return sq_throwerror(vm, "invalid parameters, ellib(x,y,a,b,color)\n");
 
     return 0;
 }
@@ -388,28 +339,6 @@ static SQInteger squirrel_tri(HSQUIRRELVM vm)
         tic_api_tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
     }
     else return sq_throwerror(vm, "invalid parameters, tri(x1,y1,x2,y2,x3,y3,color)\n");
-
-    return 0;
-}
-
-static SQInteger squirrel_trib(HSQUIRRELVM vm)
-{
-    SQInteger top = sq_gettop(vm);
-
-    if(top == 8)
-    {
-        s32 pt[6];
-
-        for(s32 i = 0; i < COUNT_OF(pt); i++)
-            pt[i] = getSquirrelNumber(vm, i+2);
-        
-        s32 color = getSquirrelNumber(vm, 8);
-
-        tic_mem* tic = (tic_mem*)getSquirrelCore(vm);
-
-        tic_api_trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
-    }
-    else return sq_throwerror(vm, "invalid parameters, trib(x1,y1,x2,y2,x3,y3,color)\n");
 
     return 0;
 }
@@ -828,18 +757,16 @@ static SQInteger squirrel_music(HSQUIRRELVM vm)
     SQInteger top = sq_gettop(vm);
     tic_mem* tic = (tic_mem*)getSquirrelCore(vm);
 
-    if(top == 1) tic_api_music(tic, -1, 0, 0, false, false, -1, -1);
+    if(top == 1) tic_api_music(tic, -1, 0, 0, false, false);
     else if(top >= 2)
     {
-        tic_api_music(tic, -1, 0, 0, false, false, -1, -1);
+        tic_api_music(tic, -1, 0, 0, false, false);
 
         s32 track = getSquirrelNumber(vm, 2);
         s32 frame = -1;
         s32 row = -1;
         bool loop = true;
         bool sustain = false;
-        s32 tempo = -1;
-        s32 speed = -1;
 
         if(top >= 3)
         {
@@ -859,22 +786,12 @@ static SQInteger squirrel_music(HSQUIRRELVM vm)
                         SQBool b = SQFalse;
                         sq_getbool(vm, 6, &b);
                         sustain = (b != SQFalse);
-
-                        if (top >= 7)
-                        {
-                            tempo = getSquirrelNumber(vm, 7);
-
-                            if (top >= 8)
-                            {
-                                speed = getSquirrelNumber(vm, 8);
-                            }
-                        }
                     }
                 }
             }
         }
 
-        tic_api_music(tic, track, frame, row, loop, sustain, tempo, speed);
+        tic_api_music(tic, track, frame, row, loop, sustain);
     }
     else return sq_throwerror(vm, "invalid params, use music(track)\n");
 
@@ -1748,7 +1665,6 @@ void evalSquirrel(tic_mem* tic, const char* code) {
 
 static const tic_script_config SquirrelSyntaxConfig = 
 {
-    .name               = "squirrel",
     .init               = initSquirrel,
     .close              = closeSquirrel,
     .tick               = callSquirrelTick,
@@ -1770,7 +1686,7 @@ static const tic_script_config SquirrelSyntaxConfig =
     .keywordsCount      = COUNT_OF(SquirrelKeywords),
 };
 
-const tic_script_config* get_squirrel_script_config()
+const tic_script_config* getSquirrelScriptConfig()
 {
     return &SquirrelSyntaxConfig;
 }

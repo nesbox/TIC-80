@@ -184,9 +184,7 @@ static duk_ret_t duk_spr(duk_context* duk)
     }
 
     s32 scale = duk_opt_int(duk, 4, 1);
-    tic_flip flip = duk_is_boolean(duk, 5) 
-        ? duk_to_boolean(duk, 5) ? tic_horz_flip : tic_no_flip
-        : duk_opt_int(duk, 5, tic_no_flip);
+    tic_flip flip = duk_opt_int(duk, 5, tic_no_flip);
     tic_rotate rotate = duk_opt_int(duk, 6, tic_no_rotate);
     s32 w = duk_opt_int(duk, 7, 1);
     s32 h = duk_opt_int(duk, 8, 1);
@@ -496,10 +494,9 @@ static duk_ret_t duk_mset(duk_context* duk)
 static duk_ret_t duk_peek(duk_context* duk)
 {
     s32 address = duk_to_int(duk, 0);
-    s32 res = duk_opt_int(duk, 1, BITS_IN_BYTE);
 
     tic_mem* tic = (tic_mem*)getDukCore(duk);
-    duk_push_uint(duk, tic_api_peek(tic, address, res));
+    duk_push_uint(duk, tic_api_peek(tic, address));
     return 1;
 }
 
@@ -507,10 +504,9 @@ static duk_ret_t duk_poke(duk_context* duk)
 {
     s32 address = duk_to_int(duk, 0);
     u8 value = duk_to_int(duk, 1);
-    s32 res = duk_opt_int(duk, 2, BITS_IN_BYTE);
 
     tic_mem* tic = (tic_mem*)getDukCore(duk);
-    tic_api_poke(tic, address, value, res);
+    tic_api_poke(tic, address, value);
 
     return 0;
 }
@@ -678,9 +674,11 @@ static duk_ret_t duk_mouse(duk_context* duk)
 
 static duk_ret_t duk_circ(duk_context* duk)
 {
+    s32 radius = duk_to_int(duk, 2);
+    if(radius < 0) return 0;
+
     s32 x = duk_to_int(duk, 0);
     s32 y = duk_to_int(duk, 1);
-    s32 radius = duk_to_int(duk, 2);
     s32 color = duk_to_int(duk, 3);
 
     tic_mem* tic = (tic_mem*)getDukCore(duk);
@@ -692,44 +690,16 @@ static duk_ret_t duk_circ(duk_context* duk)
 
 static duk_ret_t duk_circb(duk_context* duk)
 {
+    s32 radius = duk_to_int(duk, 2);
+    if(radius < 0) return 0;
+
     s32 x = duk_to_int(duk, 0);
     s32 y = duk_to_int(duk, 1);
     s32 color = duk_to_int(duk, 3);
-    s32 radius = duk_to_int(duk, 2);
 
     tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     tic_api_circb(tic, x, y, radius, color);
-
-    return 0;
-}
-
-static duk_ret_t duk_elli(duk_context* duk)
-{
-    s32 x = duk_to_int(duk, 0);
-    s32 y = duk_to_int(duk, 1);
-    s32 a = duk_to_int(duk, 2);
-    s32 b = duk_to_int(duk, 3);
-    s32 color = duk_to_int(duk, 4);
-
-    tic_mem* tic = (tic_mem*)getDukCore(duk);
-
-    tic_api_elli(tic, x, y, a, b, color);
-
-    return 0;
-}
-
-static duk_ret_t duk_ellib(duk_context* duk)
-{
-    s32 x = duk_to_int(duk, 0);
-    s32 y = duk_to_int(duk, 1);
-    s32 a = duk_to_int(duk, 2);
-    s32 b = duk_to_int(duk, 3);
-    s32 color = duk_to_int(duk, 4);
-
-    tic_mem* tic = (tic_mem*)getDukCore(duk);
-
-    tic_api_ellib(tic, x, y, a, b, color);
 
     return 0;
 }
@@ -746,22 +716,6 @@ static duk_ret_t duk_tri(duk_context* duk)
     tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     tic_api_tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
-
-    return 0;
-}
-
-static duk_ret_t duk_trib(duk_context* duk)
-{
-    s32 pt[6];
-
-    for(s32 i = 0; i < COUNT_OF(pt); i++)
-        pt[i] = duk_to_int(duk, i);
-
-    s32 color = duk_to_int(duk, 6);
-
-    tic_mem* tic = (tic_mem*)getDukCore(duk);
-
-    tic_api_trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
 
     return 0;
 }
@@ -838,7 +792,7 @@ static duk_ret_t duk_music(duk_context* duk)
     tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     s32 track = duk_opt_int(duk, 0, -1);
-    tic_api_music(tic, -1, 0, 0, false, false, -1, -1);
+    tic_api_music(tic, -1, 0, 0, false, false);
 
     if(track >= 0)
     {
@@ -846,10 +800,8 @@ static duk_ret_t duk_music(duk_context* duk)
         s32 row = duk_opt_int(duk, 2, -1);
         bool loop = duk_opt_boolean(duk, 3, true);
         bool sustain = duk_opt_boolean(duk, 4, false);
-        s32 tempo = duk_opt_int(duk, 5, -1);
-        s32 speed = duk_opt_int(duk, 6, -1);
 
-        tic_api_music(tic, track, frame, row, loop, sustain, tempo, speed);
+        tic_api_music(tic, track, frame, row, loop, sustain);
     }
 
     return 0;
@@ -930,7 +882,7 @@ static void initDuktape(tic_core* core)
         duk_pop(duk);
     }
 
-#define API_FUNC_DEF(name, _, __, paramsCount, ...) {duk_ ## name, paramsCount, #name},
+#define API_FUNC_DEF(name, paramsCount, ...) {duk_ ## name, paramsCount, #name},
     static const struct{duk_c_function func; s32 params; const char* name;} ApiItems[] = {TIC_API_LIST(API_FUNC_DEF)};
 #undef API_FUNC_DEF
 
@@ -1096,7 +1048,6 @@ void evalJs(tic_mem* tic, const char* code) {
 
 static const tic_script_config JsSyntaxConfig =
 {
-    .name               = "js",
     .init               = initJavascript,
     .close              = closeJavascript,
     .tick               = callJavascriptTick,
@@ -1118,7 +1069,7 @@ static const tic_script_config JsSyntaxConfig =
     .keywordsCount      = COUNT_OF(JsKeywords),
 };
 
-const tic_script_config* get_js_script_config()
+const tic_script_config* getJsScriptConfig()
 {
     return &JsSyntaxConfig;
 }

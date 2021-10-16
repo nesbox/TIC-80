@@ -3,11 +3,11 @@ cmake_minimum_required(VERSION 3.3)
 set(VERSION_MAJOR 0)
 set(VERSION_MINOR 90)
 set(VERSION_REVISION 0)
-set(VERSION_STATUS "")
+set(VERSION_STATUS "-dev")
 string(TIMESTAMP VERSION_YEAR "%Y")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(VERSION_BUILD ".dbg" )
+    set(VERSION_BUILD " (debug)" )
 endif()
 
 find_package(Git)
@@ -22,17 +22,7 @@ if(Git_FOUND)
     string(LENGTH "${RESULT_STRING}" LENGTH_RESULT_STRING)
 
     if(${LENGTH_RESULT_STRING} EQUAL 0)
-
-        execute_process(
-            COMMAND ${GIT_EXECUTABLE} log -1 --format=%H
-            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-            OUTPUT_VARIABLE GIT_COMMIT_HASH
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-        )
-
-        string(SUBSTRING ${GIT_COMMIT_HASH} 0 7 GIT_COMMIT_HASH)
-        set(VERSION_HASH ${GIT_COMMIT_HASH} )
-
+        
         execute_process(
             COMMAND ${GIT_EXECUTABLE} rev-list HEAD --count
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -47,7 +37,6 @@ project(TIC-80 VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_REVISION} LAN
 message("Building for target : ${CMAKE_SYSTEM_NAME}")
 
 message("PROJECT_VERSION: ${PROJECT_VERSION}${VERSION_STATUS}")
-message("VERSION_HASH: ${VERSION_HASH}")
 
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/version.h")
 
@@ -61,6 +50,8 @@ else()
     set(BUILD_PLAYER_DEFAULT ON)
 endif()
 
+set(BUILD_DEPRECATED TRUE)
+
 set(BUILD_TOUCH_INPUT_DEFAULT ${ANDROID})
 
 option(BUILD_SDL "SDL Enabled" ON)
@@ -71,7 +62,6 @@ option(BUILD_DEMO_CARTS "Demo Carts Enabled" ${BUILD_DEMO_CARTS_DEFAULT})
 option(BUILD_PRO "Build PRO version" FALSE)
 option(BUILD_PLAYER "Build standalone players" ${BUILD_PLAYER_DEFAULT})
 option(BUILD_TOUCH_INPUT "Build with touch input support" ${BUILD_TOUCH_INPUT_DEFAULT})
-option(BUILD_STUB "Build stub without editors" OFF)
 
 if(NOT BUILD_SDL)
     set(BUILD_SDLGPU OFF)
@@ -79,7 +69,6 @@ endif()
 
 message("BUILD_SDLGPU: ${BUILD_SDLGPU}")
 message("BUILD_TOUCH_INPUT: ${BUILD_TOUCH_INPUT}")
-message("BUILD_STUB: ${BUILD_STUB}")
 
 if (N3DS)
     set(BUILD_SDL off)
@@ -124,7 +113,7 @@ if(MSVC)
     
 else()
 
-    set(CMAKE_C_STANDARD 11)
+    set(CMAKE_C_STANDARD 99)
 endif()
 
 set(THIRDPARTY_DIR ${CMAKE_SOURCE_DIR}/vendor)
@@ -287,71 +276,45 @@ target_include_directories(duktape INTERFACE ${THIRDPARTY_DIR}/duktape/src)
 # TIC-80 core
 ################################
 
-macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
+set(TIC80CORE_DIR ${CMAKE_SOURCE_DIR}/src)
+set(TIC80CORE_SRC
+    ${TIC80CORE_DIR}/core/core.c
+    ${TIC80CORE_DIR}/core/draw.c
+    ${TIC80CORE_DIR}/core/io.c
+    ${TIC80CORE_DIR}/core/sound.c
+    ${TIC80CORE_DIR}/api/js.c 
+    ${TIC80CORE_DIR}/api/lua.c 
+    ${TIC80CORE_DIR}/api/wren.c 
+    ${TIC80CORE_DIR}/api/squirrel.c
+    ${TIC80CORE_DIR}/tic.c
+    ${TIC80CORE_DIR}/cart.c
+    ${TIC80CORE_DIR}/tools.c 
+    ${TIC80CORE_DIR}/tilesheet.c 
+)
 
-    set(TIC80CORE_DIR ${CMAKE_SOURCE_DIR}/src)
-    set(TIC80CORE_SRC
-        ${TIC80CORE_DIR}/core/core.c
-        ${TIC80CORE_DIR}/core/draw.c
-        ${TIC80CORE_DIR}/core/io.c
-        ${TIC80CORE_DIR}/core/sound.c
-        ${TIC80CORE_DIR}/api/js.c 
-        ${TIC80CORE_DIR}/api/lua.c 
-        ${TIC80CORE_DIR}/api/wren.c 
-        ${TIC80CORE_DIR}/api/squirrel.c
-        ${TIC80CORE_DIR}/tic.c
-        ${TIC80CORE_DIR}/cart.c
-        ${TIC80CORE_DIR}/tools.c 
-        ${TIC80CORE_DIR}/tilesheet.c 
-    )
+if(BUILD_DEPRECATED)
+    set(TIC80CORE_SRC ${TIC80CORE_SRC} ${TIC80CORE_DIR}/ext/gif.c)
+endif()
 
-    if(${BUILD_DEPRECATED})
-        set(TIC80CORE_SRC ${TIC80CORE_SRC} ${TIC80CORE_DIR}/ext/gif.c)
-    endif()
+add_library(tic80core STATIC ${TIC80CORE_SRC})
 
-    add_library(tic80core${SCRIPT} STATIC ${TIC80CORE_SRC})
+target_include_directories(tic80core 
+    PRIVATE 
+        ${THIRDPARTY_DIR}/moonscript
+        ${THIRDPARTY_DIR}/fennel
+    PUBLIC
+        ${CMAKE_SOURCE_DIR}/include
+        ${CMAKE_SOURCE_DIR}/src)
 
-    target_include_directories(tic80core${SCRIPT}
-        PRIVATE 
-            ${THIRDPARTY_DIR}/moonscript
-            ${THIRDPARTY_DIR}/fennel
-        PUBLIC
-            ${CMAKE_SOURCE_DIR}/include
-            ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(tic80core lua lpeg wren squirrel blipbuf duktape zlib)
 
-    target_link_libraries(tic80core${SCRIPT}
-        lua 
-        lpeg 
-        wren 
-        squirrel 
-        duktape 
-        blipbuf 
-        zlib)
+if(BUILD_DEPRECATED)
+    target_compile_definitions(tic80core PRIVATE DEPRECATED_CHUNKS)
+    target_link_libraries(tic80core giflib)
+endif()
 
-    if(${BUILD_DEPRECATED})
-        target_compile_definitions(tic80core${SCRIPT} PRIVATE DEPRECATED_CHUNKS)
-        target_link_libraries(tic80core${SCRIPT} giflib)
-    endif()
-
-    if(LINUX)
-        target_link_libraries(tic80core${SCRIPT} m)
-    endif()
-
-    target_compile_definitions(tic80core${SCRIPT} PRIVATE ${DEFINE})
-
-endmacro()
-
-MACRO_CORE("" "" TRUE)
-
-if(BUILD_STUB)
-
-    MACRO_CORE(lua      TIC_BUILD_WITH_LUA      FALSE)
-    MACRO_CORE(moon     TIC_BUILD_WITH_MOON     FALSE)
-    MACRO_CORE(fennel   TIC_BUILD_WITH_FENNEL   FALSE)
-    MACRO_CORE(js       TIC_BUILD_WITH_JS       FALSE)
-    MACRO_CORE(wren     TIC_BUILD_WITH_WREN     FALSE)
-    MACRO_CORE(squirrel TIC_BUILD_WITH_SQUIRREL FALSE)
-
+if(LINUX)
+    target_link_libraries(tic80core m)
 endif()
 
 ################################
@@ -583,9 +546,7 @@ if(BUILD_DEMO_CARTS)
         target_link_libraries(xplode m)
     endif()
 
-    file(GLOB DEMO_CARTS 
-        ${CMAKE_SOURCE_DIR}/demos/*.* 
-        ${CMAKE_SOURCE_DIR}/demos/bunny/*.*)
+    file(GLOB DEMO_CARTS ${CMAKE_SOURCE_DIR}/demos/*.* )
 
     list(APPEND DEMO_CARTS 
         ${CMAKE_SOURCE_DIR}/config.lua
@@ -651,7 +612,6 @@ if (USE_CURL)
     set(BUILD_CURL_EXE OFF CACHE BOOL "")
     set(CURL_CA_BUNDLE "none" CACHE STRING "")
     set(CURL_CA_PATH "none" CACHE STRING "")
-    set(CURL_DISABLE_TESTS ON CACHE BOOL "")
 
     if(RPI)
         set(CURL_ZLIB OFF CACHE BOOL "" )
@@ -732,6 +692,7 @@ set(TIC80STUDIO_SRC
     ${TIC80LIB_DIR}/studio/editors/music.c
     ${TIC80LIB_DIR}/studio/studio.c
     ${TIC80LIB_DIR}/studio/config.c
+    ${TIC80LIB_DIR}/studio/project.c
     ${TIC80LIB_DIR}/studio/fs.c
     ${TIC80LIB_DIR}/studio/net.c
     ${TIC80LIB_DIR}/ext/md5.c
@@ -739,10 +700,6 @@ set(TIC80STUDIO_SRC
     ${TIC80LIB_DIR}/ext/gif.c
     ${TIC80LIB_DIR}/ext/png.c
 )
-
-if(${BUILD_PRO})
-    set(TIC80STUDIO_SRC ${TIC80STUDIO_SRC} ${TIC80LIB_DIR}/studio/project.c)
-endif()
 
 set(TIC80_OUTPUT tic80)
 
@@ -775,8 +732,6 @@ endif()
 if(BUILD_SDLGPU)
     target_compile_definitions(tic80studio PUBLIC CRT_SHADER_SUPPORT)
 endif()
-
-target_compile_definitions(tic80studio PUBLIC BUILD_EDITORS)
 
 ################################
 # SDL GPU
@@ -885,7 +840,7 @@ if(BUILD_SDL)
     endif()
 
     if(EMSCRIPTEN)
-        set_target_properties(tic80 PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s ALLOW_MEMORY_GROWTH=1 -s FETCH=1 --pre-js ${CMAKE_SOURCE_DIR}/build/html/prejs.js -lidbfs.js")
+        set_target_properties(tic80 PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s TOTAL_MEMORY=67108864 -s FETCH=1 --pre-js ${CMAKE_SOURCE_DIR}/build/html/prejs.js -lidbfs.js")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2")
 
         if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -994,89 +949,6 @@ if(N3DS)
            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/build
     )
 endif()
-
-################################
-# TIC-80 stub
-################################
-
-if(BUILD_STUB)
-
-    macro(MACRO_STUB SCRIPT)
-
-        set(TIC80_SRC 
-            src/system/sdl/main.c
-            src/studio/screens/run.c
-            src/studio/screens/menu.c
-            src/studio/screens/start.c
-            src/studio/config.c
-            src/studio/studio.c
-            src/studio/fs.c
-            src/ext/md5.c)
-
-        if(WIN32)
-            
-            configure_file("${PROJECT_SOURCE_DIR}/build/windows/tic80.rc.in" "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
-            set(TIC80_SRC ${TIC80_SRC} "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
-
-            add_executable(tic80${SCRIPT} ${SYSTEM_TYPE} ${TIC80_SRC})
-
-            target_include_directories(tic80${SCRIPT} PRIVATE ${THIRDPARTY_DIR}/dirent/include)
-        else()
-            add_executable(tic80${SCRIPT} ${TIC80_SRC})
-        endif()
-
-        target_include_directories(tic80${SCRIPT} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
-
-        if(MINGW)
-            target_link_libraries(tic80${SCRIPT} mingw32)
-            target_link_options(tic80${SCRIPT} PRIVATE -static -mconsole)
-        endif()
-
-        if(EMSCRIPTEN)
-            set_target_properties(tic80${SCRIPT} PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s ALLOW_MEMORY_GROWTH=1 -s FETCH=1 -lidbfs.js")
-            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2")
-
-            if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-                set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s ASSERTIONS=1")
-            endif()
-
-        else()
-            target_link_libraries(tic80${SCRIPT} SDL2main)
-        endif()
-
-        target_link_libraries(tic80${SCRIPT} tic80core${SCRIPT} argparse)
-
-        if(RPI)
-            target_include_directories(tic80${SCRIPT} PRIVATE ${SYSROOT_PATH}/usr/local/include/SDL2)
-            target_link_directories(tic80${SCRIPT} PRIVATE ${SYSROOT_PATH}/usr/local/lib ${SYSROOT_PATH}/opt/vc/lib)
-            target_compile_definitions(tic80${SCRIPT} PRIVATE __RPI__)
-        endif()
-
-        if(BUILD_SDLGPU)
-            target_link_libraries(tic80${SCRIPT} sdlgpu)
-        else()
-            if(EMSCRIPTEN)
-            elseif(RPI)
-                target_link_libraries(tic80${SCRIPT} libSDL2.a bcm_host pthread dl)
-            else()
-                target_link_libraries(tic80${SCRIPT} SDL2-static)
-            endif()
-        endif()
-
-    endmacro()
-
-    MACRO_STUB(lua)
-    MACRO_STUB(moon)
-    MACRO_STUB(fennel)
-    MACRO_STUB(js)
-    MACRO_STUB(wren)
-    MACRO_STUB(squirrel)
-
-endif()
-
-################################
-# Install
-################################
 
 set(CPACK_PACKAGE_NAME "TIC-80")
 set(CPACK_PACKAGE_VENDOR "Nesbox")

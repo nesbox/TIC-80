@@ -120,39 +120,33 @@ static char* saveBinarySection(char* ptr, const char* comment, const char* tag, 
     return ptr;
 }
 
-static const struct Ext{const char* name; const char* comment;} ExtList[] =
-{
-#define SCRIPT_DEF(_, ext, comment, ...) {ext, comment},
-    SCRIPT_LIST(SCRIPT_DEF)
-#undef SCRIPT_DEF
-};
-
 static const char* projectComment(const char* name)
 {
-    FOR(const struct Ext*, ext, ExtList)
-        if(tic_tool_has_ext(name, ext->name))
-            return ext->comment;
+    char* comment;
 
-    return ExtList->comment;
-}
+    if(tic_tool_has_ext(name, PROJECT_JS_EXT) 
+        || tic_tool_has_ext(name, PROJECT_WREN_EXT)
+        || tic_tool_has_ext(name, PROJECT_SQUIRREL_EXT))
+        comment = "//";
+    else if(tic_tool_has_ext(name, PROJECT_FENNEL_EXT))
+        comment = ";;";
+    else
+        comment = "--";
 
-bool tic_project_ext(const char* name)
-{
-    FOR(const struct Ext*, ext, ExtList)
-        if(tic_tool_has_ext(name, ext->name))
-            return true;
-
-    return false;
+    return comment;
 }
 
 s32 tic_project_save(const char* name, void* data, const tic_cartridge* cart)
 {
-    const char* comment = projectComment(name);
+	const char* comment = projectComment(name);
     char* stream = data;
     char* ptr = saveTextSection(stream, cart->code.data);
     char tag[16];
 
-    FOR(const struct BinarySection*, section, BinarySections)
+    for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
+    {
+        const struct BinarySection* section = &BinarySections[i];
+
         for(s32 b = 0; b < TIC_BANKS; b++)
         {
             makeTag(section->tag, tag, b);
@@ -160,6 +154,7 @@ s32 tic_project_save(const char* name, void* data, const tic_cartridge* cart)
             ptr = saveBinarySection(ptr, comment, tag, section->count, 
                 (u8*)&cart->banks[b] + section->offset, section->size, section->flip);
         }
+    }
 
     return (s32)strlen(stream);
 }
@@ -279,7 +274,10 @@ bool tic_project_load(const char* name, const char* data, s32 size, tic_cartridg
 
             if(done)
             {
-                FOR(const struct BinarySection*, section, BinarySections)
+                for(s32 i = 0; i < COUNT_OF(BinarySections); i++)
+                {
+                    const struct BinarySection* section = &BinarySections[i];
+
                     for(s32 b = 0; b < TIC_BANKS; b++)
                     {
                         makeTag(section->tag, tag, b);
@@ -287,6 +285,7 @@ bool tic_project_load(const char* name, const char* data, s32 size, tic_cartridg
                         if(loadBinarySection(project, comment, tag, section->count, (u8*)&cart->banks[b] + section->offset, section->size, section->flip))
                             done = true;
                     }
+                }
             }
             
             if(done)
