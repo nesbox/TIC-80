@@ -45,11 +45,18 @@ static s32 getLuaNumber(lua_State* lua, s32 index)
 
 static void registerLuaFunction(tic_core* core, lua_CFunction func, const char *name)
 {
-    lua_pushcfunction(core->currentVM, func);
+    lua_pushlightuserdata(core->currentVM, core);
+    lua_pushcclosure(core->currentVM, func, 1);
     lua_setglobal(core->currentVM, name);
 }
 
 static tic_core* getLuaCore(lua_State* lua)
+{
+    tic_core* core = lua_touserdata(lua, lua_upvalueindex(1));
+    return core;
+}
+
+static tic_core* getLuaCoreGlobal(lua_State* lua)
 {
     lua_getglobal(lua, TicCore);
     tic_core* core = lua_touserdata(lua, -1);
@@ -1356,7 +1363,7 @@ static void lua_open_builtins(lua_State *lua)
 
 static void checkForceExit(lua_State *lua, lua_Debug *luadebug)
 {
-    tic_core* core = getLuaCore(lua);
+    tic_core* core = getLuaCoreGlobal(lua);
 
     tic_tick_data* tick = core->data;
 
