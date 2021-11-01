@@ -533,7 +533,7 @@ static void stereo_synthesize(tic_core* core, tic_sound_register_data* registers
     blip_end_frame(blip, EndTime);
 }
 
-void tic_core_synthesize_sound(tic_mem* memory)
+void tic_core_synth_sound(tic_mem* memory)
 {
     tic_core* core = (tic_core*)memory;
 

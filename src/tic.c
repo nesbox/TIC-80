@@ -123,6 +123,12 @@ TIC80_API void tic80_tick(tic80* tic, const tic80_input* input)
     tic80->tick_counter++;
 }
 
+TIC80_API void tic80_sound(tic80* tic)
+{
+    tic80_local* tic80 = (tic80_local*)tic;
+    tic_core_synth_sound(tic80->memory);
+}
+
 TIC80_API void tic80_delete(tic80* tic)
 {
     tic80_local* tic80 = (tic80_local*)tic;

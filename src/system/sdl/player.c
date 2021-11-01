@@ -143,6 +143,7 @@ s32 runCart(void* cart, s32 size)
 			nextTick += Delta;
 
 			tic80_tick(tic, &input);
+			tic80_sound(tic);
 
 			if (!audioStarted && audioDevice)
 				audioStarted = true;

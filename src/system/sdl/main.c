@@ -247,16 +247,19 @@ static void renderCopy(Renderer render, Texture tex, SDL_Rect src, SDL_Rect dst)
     }
 }
 
-static void audioCallback(void* userdata,Uint8* stream,int len) {
+static void audioCallback(void* userdata,Uint8* stream,int len)
+{
     tic_mem* tic = platform.studio->tic;
-    for (; len > 0; len--) {
-        if (platform.audio.bufferRemaining <= 0) {
-            tic_core_synthesize_sound(tic);
+
+    while(len--)
+    {
+        if (platform.audio.bufferRemaining <= 0)
+        {
+            platform.studio->sound();
             platform.audio.bufferRemaining = tic->samples.size;
         }
-        *stream = ((Uint8*)tic->samples.buffer)[tic->samples.size - platform.audio.bufferRemaining];
-        stream++;
-        platform.audio.bufferRemaining--;
+
+        *stream++ = ((u8*)tic->samples.buffer)[tic->samples.size - platform.audio.bufferRemaining--];
     }
 }
 
@@ -269,7 +272,7 @@ static void initSound()
         .channels = TIC_STEREO_CHANNELS,
         .userdata = NULL,
         .callback = audioCallback,
-        .samples = 1024
+        .samples = 1024,
     };
 
     platform.audio.device = SDL_OpenAudioDevice(NULL, 0, &want, &platform.audio.spec, 0);
@@ -1623,9 +1626,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
                     {
                         s64 delay = nextTick - SDL_GetPerformanceCounter();
 
-                        if(delay < 0)
-                            nextTick -= delay;
-                        else
+                        if(delay >= 0)
                             SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
                     }
                 }

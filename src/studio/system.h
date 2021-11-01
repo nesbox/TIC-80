@@ -131,6 +131,7 @@ typedef struct
     bool quit;
 
     void (*tick)();
+    void (*sound)();
     void (*exit)();
     void (*close)();
     void (*load)(const char* file);

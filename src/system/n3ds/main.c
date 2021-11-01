@@ -469,6 +469,8 @@ void n3ds_sound_exit(void)
 }
 
 static void audio_update(void) {
+    platform.studio->sound();
+
     ndspWaveBuf *wave_buf = &platform.audio.ndspBuf[platform.audio.curr_block];
 
     if (wave_buf->status == NDSP_WBUF_DONE) {

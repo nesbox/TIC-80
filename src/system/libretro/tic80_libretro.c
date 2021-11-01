@@ -804,6 +804,7 @@ void tic80_libretro_update(tic80* game)
 
 	// Update the game state.
 	tic80_tick(game, &state->input);
+	tic80_sound(game);
 }
 
 /**

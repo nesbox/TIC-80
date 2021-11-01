@@ -169,11 +169,12 @@ static void app_frame(void)
 
     sokol_gfx_draw(platform.studio->tic->screen);
 
+    platform.studio->sound();
     s32 count = tic->samples.size / sizeof tic->samples.buffer[0];
         for(s32 i = 0; i < count; i++)
             platform.audio.samples[i] = (float)tic->samples.buffer[i] / SHRT_MAX;
 
-        saudio_push(platform.audio.samples, count / 2);
+    saudio_push(platform.audio.samples, count / 2);
         
     input->mouse.scrollx = input->mouse.scrolly = 0;
     platform.keyboard.text = '\0';

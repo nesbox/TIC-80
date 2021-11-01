@@ -53,7 +53,10 @@ static tic80_input tic_input;
 static void app_frame(void)
 {
     if(tic)
+    {
         tic80_tick(tic, &tic_input);
+        tic80_sound(tic);        
+    }
 
     sokol_gfx_draw(tic->screen);
 

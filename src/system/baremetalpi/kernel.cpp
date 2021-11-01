@@ -437,6 +437,7 @@ TShutdownMode Run(void)
 		keyspinlock.Release();
 
 		platform.studio->tick();
+		platform.studio->sound();
 
 		mSound->Write(tic->samples.buffer, tic->samples.size);
 
