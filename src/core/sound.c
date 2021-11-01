@@ -512,14 +512,15 @@ void tic_api_sfx(tic_mem* memory, s32 index, s32 note, s32 octave, s32 duration,
     setSfxChannelData(memory, index, note, octave, duration, channel, left, right, speed);
 }
 
-static void stereo_tick_end(tic_mem* memory, tic_sound_register_data* registers, blip_buffer_t* blip, u8 stereoRight)
+static void stereo_synthesize(tic_core* core, tic_sound_register_data* registers, blip_buffer_t* blip, u8 stereoRight)
 {
     enum { EndTime = CLOCKRATE / TIC80_FRAMERATE };
+    s32 bufpos = (core->state.sound_ringbuf_tail + TIC_SOUND_RINGBUF_LEN - 1) % TIC_SOUND_RINGBUF_LEN;
     for (s32 i = 0; i < TIC_SOUND_CHANNELS; ++i)
     {
-        u8 volume = tic_tool_peek4(&memory->ram.stereo.data, stereoRight + i * 2);
+        u8 volume = tic_tool_peek4(&core->state.sound_ringbuf[bufpos].stereo, stereoRight + i * 2);
 
-        const tic_sound_register* reg = &memory->ram.registers[i];
+        const tic_sound_register* reg = &core->state.sound_ringbuf[bufpos].registers[i];
         tic_sound_register_data* data = registers + i;
 
         FLAT4(reg->waveform.data)
@@ -530,6 +531,26 @@ static void stereo_tick_end(tic_mem* memory, tic_sound_register_data* registers,
     }
 
     blip_end_frame(blip, EndTime);
+}
+
+void tic_core_synthesize_sound(tic_mem* memory)
+{
+    tic_core* core = (tic_core*)memory;
+
+    // synthesize sound using the register values found from the tail of the ring buffer
+    stereo_synthesize(core, core->state.registers.left, core->blip.left, 0);
+    stereo_synthesize(core, core->state.registers.right, core->blip.right, 1);
+
+    blip_read_samples(core->blip.left, core->memory.samples.buffer, core->samplerate / TIC80_FRAMERATE, TIC_STEREO_CHANNELS);
+    blip_read_samples(core->blip.right, core->memory.samples.buffer + 1, core->samplerate / TIC80_FRAMERATE, TIC_STEREO_CHANNELS);
+
+    // if the head has advanced, we can advance the tail too. Otherwise, we just
+    // keep synthesizing audio using the last known register values, so at least we don't get crackles
+    if (core->state.sound_ringbuf_tail != core->state.sound_ringbuf_head) {
+        // note: we assume storing a 32 bit integer is atomic, that should hold on pretty much any modern processor
+        // assuming it is aligned in memory (which it should be)
+        core->state.sound_ringbuf_tail = (core->state.sound_ringbuf_tail + 1) % TIC_SOUND_RINGBUF_LEN;
+    }
 }
 
 void tic_core_sound_tick_start(tic_mem* memory)
@@ -556,9 +577,13 @@ void tic_core_sound_tick_end(tic_mem* memory)
 {
     tic_core* core = (tic_core*)memory;
 
-    stereo_tick_end(memory, core->state.registers.left, core->blip.left, 0);
-    stereo_tick_end(memory, core->state.registers.right, core->blip.right, 1);
+    // instead of synthesizing the sound right away, push the sound registers to the head of a ring buffer
+    core->state.sound_ringbuf[core->state.sound_ringbuf_head].stereo = memory->ram.stereo;
+    memcpy(&core->state.sound_ringbuf[core->state.sound_ringbuf_head], &memory->ram.registers, sizeof(tic_sound_register[4]));
 
-    blip_read_samples(core->blip.left, core->memory.samples.buffer, core->samplerate / TIC80_FRAMERATE, TIC_STEREO_CHANNELS);
-    blip_read_samples(core->blip.right, core->memory.samples.buffer + 1, core->samplerate / TIC80_FRAMERATE, TIC_STEREO_CHANNELS);
+    if (core->state.sound_ringbuf_head != (core->state.sound_ringbuf_tail + TIC_SOUND_RINGBUF_LEN - 2) % TIC_SOUND_RINGBUF_LEN) {
+        // note: we assume storing a 32 bit integer is atomic, that should hold on pretty much any modern processor
+        // assuming it is aligned in memory (which it should be)
+        core->state.sound_ringbuf_head = (core->state.sound_ringbuf_head + 1) % TIC_SOUND_RINGBUF_LEN;
+    }
 }

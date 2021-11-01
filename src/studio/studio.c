@@ -331,6 +331,7 @@ const char* studioExportSfx(s32 index, const char* filename)
             {
                 tic_core_tick_start(tic);
                 tic_core_tick_end(tic);
+                tic_core_synthesize_sound(tic);
 
                 wave_write(tic->samples.buffer, tic->samples.size / sizeof(s16));
             }
@@ -379,6 +380,7 @@ const char* studioExportMusic(s32 track, const char* filename)
                     tic->ram.registers[i].volume = 0;
 
             tic_core_tick_end(tic);
+            tic_core_synthesize_sound(tic);
 
             wave_write(tic->samples.buffer, tic->samples.size / sizeof(s16));
         }

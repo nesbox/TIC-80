@@ -707,6 +707,7 @@ void tic_core_tick_start(tic_mem* memory);
 void tic_core_tick(tic_mem* memory, tic_tick_data* data);
 void tic_core_tick_end(tic_mem* memory);
 void tic_core_blit(tic_mem* tic);
+void tic_core_synthesize_sound(tic_mem* tic);
 
 void tic_core_blit_ex(tic_mem* tic, tic_blit_callback clb);
 const tic_script_config* tic_core_script_config(tic_mem* memory);

@@ -164,6 +164,7 @@ static struct
     {
         SDL_AudioSpec       spec;
         SDL_AudioDeviceID   device;
+        s32                 bufferRemaining;
     } audio;
 } platform
 #if defined(TOUCH_INPUT_SUPPORT)
@@ -246,6 +247,19 @@ static void renderCopy(Renderer render, Texture tex, SDL_Rect src, SDL_Rect dst)
     }
 }
 
+static void audioCallback(void* userdata,Uint8* stream,int len) {
+    tic_mem* tic = platform.studio->tic;
+    for (; len > 0; len--) {
+        if (platform.audio.bufferRemaining <= 0) {
+            tic_core_synthesize_sound(tic);
+            platform.audio.bufferRemaining = tic->samples.size;
+        }
+        *stream = ((Uint8*)tic->samples.buffer)[tic->samples.size - platform.audio.bufferRemaining];
+        stream++;
+        platform.audio.bufferRemaining--;
+    }
+}
+
 static void initSound()
 {
     SDL_AudioSpec want =
@@ -254,6 +268,8 @@ static void initSound()
         .format = AUDIO_S16,
         .channels = TIC_STEREO_CHANNELS,
         .userdata = NULL,
+        .callback = audioCallback,
+        .samples = 1024
     };
 
     platform.audio.device = SDL_OpenAudioDevice(NULL, 0, &want, &platform.audio.spec, 0);
@@ -1154,12 +1170,6 @@ bool tic_sys_keyboard_text(char* text)
     return true;
 }
 
-static void blitSound()
-{
-    tic_mem* tic = platform.studio->tic;    
-    SDL_QueueAudio(platform.audio.device, tic->samples.buffer, tic->samples.size);
-}
-
 #if defined(TOUCH_INPUT_SUPPORT)
 
 static void renderKeyboard()
@@ -1516,7 +1526,6 @@ static void gpuTick()
 #endif
 
     renderPresent(platform.screen.renderer);
-    blitSound();
 
     platform.keyboard.text = '\0';
 }
