@@ -25,7 +25,6 @@
 #if defined(TIC_BUILD_WITH_SQUIRREL)
 
 //#define USE_FOREIGN_POINTER
-//#define CHECK_FORCE_EXIT
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1448,15 +1447,6 @@ static void squirrel_open_builtins(HSQUIRRELVM vm)
     sq_poptop(vm);
 }
 
-static void checkForceExit(HSQUIRRELVM vm, SQInteger type, const SQChar* sourceName, SQInteger line, const SQChar* functionName)
-{
-    tic_core* core = getSquirrelCore(vm);
-    tic_tick_data* tick = core->data;
-
-    if(tick && tick->forceExit && tick->forceExit(tick->data))
-        sq_throwerror(vm, "script execution was interrupted");
-}
-
 static void initAPI(tic_core* core)
 {
     HSQUIRRELVM vm = core->currentVM;
@@ -1483,9 +1473,6 @@ static void initAPI(tic_core* core)
     registerSquirrelFunction(core, squirrel_dofile, "dofile");
     registerSquirrelFunction(core, squirrel_loadfile, "loadfile");
 
-#if CHECK_FORCE_EXIT
-    sq_setnativedebughook(vm, checkForceExit);
-#endif
     sq_enabledebuginfo(vm, SQTrue);
 
 }

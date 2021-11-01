@@ -117,15 +117,6 @@ static void tick(Run* run)
         setStudioMode(TIC_CONSOLE_MODE);
 }
 
-static bool forceExit(void* data)
-{
-    tic_sys_poll();
-
-    tic_mem* tic = ((Run*)data)->tic;
-
-    return tic_api_key(tic, tic_key_escape);
-}
-
 static u64 getFreq(void* data)
 {
     return tic_sys_freq_get();
@@ -157,7 +148,6 @@ void initRun(Run* run, Console* console, tic_fs* fs, tic_mem* tic)
             .start = 0,
             .data = run,
             .exit = onExit,
-            .forceExit = forceExit,
         },
     };
 

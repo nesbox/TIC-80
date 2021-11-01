@@ -35,14 +35,12 @@ typedef void(*RemapFunc)(void*, s32 x, s32 y, RemapResult* result);
 typedef void(*TraceOutput)(void*, const char*, u8 color);
 typedef void(*ErrorOutput)(void*, const char*);
 typedef void(*ExitCallback)(void*);
-typedef bool(*CheckForceExit)(void*);
 
 typedef struct
 {
     TraceOutput trace;
     ErrorOutput error;
     ExitCallback exit;
-    CheckForceExit forceExit;
     
     u64 (*counter)(void*);
     u64 (*freq)(void*);

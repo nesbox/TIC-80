@@ -31,14 +31,9 @@
 #include <lualib.h>
 #include <ctype.h>
 
-#define LUA_LOC_STACK 100000000
-
-static const char TicCore[] = "_TIC80";
-
 s32 luaopen_lpeg(lua_State *lua);
 
-// !TODO: get rid of this wrap
-static s32 getLuaNumber(lua_State* lua, s32 index)
+static inline s32 getLuaNumber(lua_State* lua, s32 index)
 {
     return (s32)lua_tonumber(lua, index);
 }
@@ -53,14 +48,6 @@ static void registerLuaFunction(tic_core* core, lua_CFunction func, const char *
 static tic_core* getLuaCore(lua_State* lua)
 {
     tic_core* core = lua_touserdata(lua, lua_upvalueindex(1));
-    return core;
-}
-
-static tic_core* getLuaCoreGlobal(lua_State* lua)
-{
-    lua_getglobal(lua, TicCore);
-    tic_core* core = lua_touserdata(lua, -1);
-    lua_pop(lua, 1);
     return core;
 }
 
@@ -1361,21 +1348,8 @@ static void lua_open_builtins(lua_State *lua)
     }
 }
 
-static void checkForceExit(lua_State *lua, lua_Debug *luadebug)
-{
-    tic_core* core = getLuaCoreGlobal(lua);
-
-    tic_tick_data* tick = core->data;
-
-    if(tick->forceExit && tick->forceExit(tick->data))
-        luaL_error(lua, "script execution was interrupted");
-}
-
 static void initAPI(tic_core* core)
 {
-    lua_pushlightuserdata(core->currentVM, core);
-    lua_setglobal(core->currentVM, TicCore);
-
 #define API_FUNC_DEF(name, ...) {lua_ ## name, #name},
     static const struct{lua_CFunction func; const char* name;} ApiItems[] = {TIC_API_LIST(API_FUNC_DEF)};
 #undef API_FUNC_DEF
@@ -1385,8 +1359,6 @@ static void initAPI(tic_core* core)
 
     registerLuaFunction(core, lua_dofile, "dofile");
     registerLuaFunction(core, lua_loadfile, "loadfile");
-
-    lua_sethook(core->currentVM, &checkForceExit, LUA_MASKCOUNT, LUA_LOC_STACK);
 }
 
 static void closeLua(tic_mem* tic)

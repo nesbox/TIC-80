@@ -907,16 +907,6 @@ static duk_ret_t duk_fset(duk_context* duk)
     return 0;
 }
 
-static u64 ForceExitCounter = 0;
-
-s32 duk_timeout_check(void* udata)
-{
-    tic_core* core = (tic_core*)udata;
-    tic_tick_data* tick = core->data;
-
-    return ForceExitCounter++ > 1000 ? tick->forceExit && tick->forceExit(tick->data) : false;
-}
-
 static void initDuktape(tic_core* core)
 {
     closeJavascript((tic_mem*)core);
@@ -960,8 +950,6 @@ static bool initJavascript(tic_mem* tic, const char* code)
 
 static void callJavascriptTick(tic_mem* tic)
 {
-    ForceExitCounter = 0;
-
     tic_core* core = (tic_core*)tic;
 
     duk_context* duk = core->currentVM;
@@ -1133,9 +1121,5 @@ const tic_script_config* get_js_script_config()
 {
     return &JsSyntaxConfig;
 }
-
-#else
-
-s32 duk_timeout_check(void* udata){return 0;}
 
 #endif /* defined(TIC_BUILD_WITH_JS) */
