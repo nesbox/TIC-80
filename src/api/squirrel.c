@@ -542,17 +542,17 @@ static SQInteger squirrel_btnp(HSQUIRRELVM vm)
 static SQInteger squirrel_btn(HSQUIRRELVM vm)
 {
     tic_core* core = getSquirrelCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     SQInteger top = sq_gettop(vm);
 
     if (top == 1)
     {
-        sq_pushinteger(vm, core->memory.ram.input.gamepads.data);
+        sq_pushinteger(vm, tic_api_btn(tic, -1));
     }
     else if (top == 2)
     {
-        u32 index = getSquirrelNumber(vm, 2) & 0x1f;
-        bool pressed = (core->memory.ram.input.gamepads.data & (1 << index)) != 0;
+        bool pressed = tic_api_btn(tic, getSquirrelNumber(vm, 2) & 0x1f);
         sq_pushbool(vm, pressed ? SQTrue : SQFalse);
     }
     else

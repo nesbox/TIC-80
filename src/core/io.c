@@ -64,11 +64,11 @@ u32 tic_api_btn(tic_mem* tic, s32 index)
 
     if (index < 0)
     {
-        return (~core->state.gamepads.previous.data) & core->memory.ram.input.gamepads.data;
+        return core->memory.ram.input.gamepads.data;
     }
     else
     {
-        return ((~core->state.gamepads.previous.data) & core->memory.ram.input.gamepads.data) & (1 << index);
+        return core->memory.ram.input.gamepads.data & (1 << index);
     }
 }
 

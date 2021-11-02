@@ -264,17 +264,18 @@ static void wren_spritesize(WrenVM* vm)
 static void wren_btn(WrenVM* vm)
 {
     tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
 
     s32 top = wrenGetSlotCount(vm);
 
     if (top == 1)
     {
-        wrenSetSlotDouble(vm, 0, core->memory.ram.input.gamepads.data);
+        wrenSetSlotDouble(vm, 0, tic_api_btn(tic, -1));
     }
     else if (top == 2)
     {
-        s32 index = getWrenNumber(vm, 1) & 0x1f;
-        wrenSetSlotBool(vm, 0, core->memory.ram.input.gamepads.data & (1 << index));
+        bool pressed = tic_api_btn(tic, getWrenNumber(vm, 1) & 0x1f);
+        wrenSetSlotBool(vm, 0, pressed);
     }
     
 }

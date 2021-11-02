@@ -200,15 +200,16 @@ static duk_ret_t duk_spr(duk_context* duk)
 static duk_ret_t duk_btn(duk_context* duk)
 {
     tic_core* core = getDukCore(duk);
+    tic_mem* tic = (tic_mem*)core;
 
     if (duk_is_null_or_undefined(duk, 0))
     {
-        duk_push_uint(duk, core->memory.ram.input.gamepads.data);
+        duk_push_uint(duk, tic_api_btn(tic, -1));
     }
     else
     {
-        s32 index = duk_to_int(duk, 0) & 0x1f;
-        duk_push_boolean(duk, core->memory.ram.input.gamepads.data & (1 << index));
+        bool pressed = tic_api_btn(tic, duk_to_int(duk, 0) & 0x1f);
+        duk_push_boolean(duk, pressed);
     }
 
     return 1;

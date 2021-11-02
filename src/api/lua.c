@@ -478,17 +478,18 @@ static s32 lua_btnp(lua_State* lua)
 static s32 lua_btn(lua_State* lua)
 {
     tic_core* core = getLuaCore(lua);
+    tic_mem* tic = (tic_mem*)core;
 
     s32 top = lua_gettop(lua);
 
     if (top == 0)
     {
-        lua_pushinteger(lua, core->memory.ram.input.gamepads.data);
+        lua_pushinteger(lua, tic_api_btn(tic, -1));
     }
     else if (top == 1)
     {
-        u32 index = getLuaNumber(lua, 1) & 0x1f;
-        lua_pushboolean(lua, core->memory.ram.input.gamepads.data & (1 << index));
+        bool pressed = tic_api_btn(tic, getLuaNumber(lua, 1) & 0x1f);
+        lua_pushboolean(lua, pressed);
     }
     else
     {
