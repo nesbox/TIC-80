@@ -247,7 +247,7 @@ static void renderCopy(Renderer render, Texture tex, SDL_Rect src, SDL_Rect dst)
     }
 }
 
-static void audioCallback(void* userdata,Uint8* stream,int len)
+static void audioCallback(void* userdata, u8* stream, s32 len)
 {
     tic_mem* tic = platform.studio->tic;
 

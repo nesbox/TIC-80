@@ -89,6 +89,8 @@ class TIC {\n\
     foreign static clip(x, y, w, h)\n\
     foreign static peek(addr)\n\
     foreign static poke(addr, val)\n\
+    foreign static peek(addr, res)\n\
+    foreign static poke(addr, val, res)\n\
     foreign static peek4(addr)\n\
     foreign static poke4(addr, val)\n\
     foreign static memcpy(dst, src, size)\n\
@@ -1323,6 +1325,8 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
 
     if (strcmp(signature, "static TIC.peek(_)"                  ) == 0) return wren_peek;
     if (strcmp(signature, "static TIC.poke(_,_)"                ) == 0) return wren_poke;
+    if (strcmp(signature, "static TIC.peek(_,_)"                ) == 0) return wren_peek;
+    if (strcmp(signature, "static TIC.poke(_,_,_)"              ) == 0) return wren_poke;
     if (strcmp(signature, "static TIC.peek4(_)"                 ) == 0) return wren_peek4;
     if (strcmp(signature, "static TIC.poke4(_,_)"               ) == 0) return wren_poke4;
     if (strcmp(signature, "static TIC.memcpy(_,_,_)"            ) == 0) return wren_memcpy;
