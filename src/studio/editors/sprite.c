@@ -1497,12 +1497,6 @@ static void cutToClipboard(Sprite* sprite)
 
 static void copyFromClipboard(Sprite* sprite)
 {
-    if(sprite->palette.edit)
-    {
-        pasteColor(sprite);
-        return;
-    }
-
     s32 size = sprite->size * sprite->size * TIC_PALETTE_BPP / BITS_IN_BYTE;
 
     DEFER(u8* buffer = malloc(size), free(buffer))
