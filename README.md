@@ -1,6 +1,6 @@
 [![Build Status](https://github.com/nesbox/TIC-80/workflows/Build/badge.svg)](https://github.com/nesbox/TIC-80/actions?query=workflow%3ABuild)
 
-![TIC-80](https://tic.computer/img/logo64.png)
+![TIC-80](https://tic80.com/img/logo64.png)
 **TIC-80 TINY COMPUTER** - [https://tic80.com](https://tic80.com)
 
 # About
@@ -48,7 +48,7 @@ You can play and share games, tools and music at [https://tic80.com/play](https:
 The community also hangs out and discusses on [Telegram](https://t.me/tic80) or [Discord](https://discord.gg/DkD73dP).
 
 # Contributing
-You can contribute by issuing a bug or requesting a new feature on our [issues page](https://github.com/nesbox/tic.computer/issues).
+You can contribute by issuing a bug or requesting a new feature on our [issues page](https://github.com/nesbox/TIC-80/issues).
 Keep in mind when engaging on a discussion to follow our [Code of Conduct](https://github.com/nesbox/TIC-80/blob/master/CODE_OF_CONDUCT.md).
 
 You can also contribute by reviewing or improving our [wiki](https://github.com/nesbox/TIC-80/wiki).
