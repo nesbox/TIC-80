@@ -89,8 +89,8 @@ class TIC {\n\
     foreign static clip(x, y, w, h)\n\
     foreign static peek(addr)\n\
     foreign static poke(addr, val)\n\
-    foreign static peek(addr, res)\n\
-    foreign static poke(addr, val, res)\n\
+    foreign static peek(addr, bits)\n\
+    foreign static poke(addr, val, bits)\n\
     foreign static peek4(addr)\n\
     foreign static poke4(addr, val)\n\
     foreign static memcpy(dst, src, size)\n\
@@ -950,12 +950,12 @@ static void wren_peek(WrenVM* vm)
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
 
     s32 address = getWrenNumber(vm, 1);
-    s32 res = BITS_IN_BYTE;
+    s32 bits = BITS_IN_BYTE;
 
     if(wrenGetSlotCount(vm) > 2)
-        res = getWrenNumber(vm, 2);
+        bits = getWrenNumber(vm, 2);
 
-    wrenSetSlotDouble(vm, 0, tic_api_peek(tic, address, res));
+    wrenSetSlotDouble(vm, 0, tic_api_peek(tic, address, bits));
 }
 
 static void wren_poke(WrenVM* vm)
@@ -964,11 +964,11 @@ static void wren_poke(WrenVM* vm)
 
     s32 address = getWrenNumber(vm, 1);
     u8 value = getWrenNumber(vm, 2) & 0xff;
-    s32 res = BITS_IN_BYTE;
+    s32 bits = BITS_IN_BYTE;
     if(wrenGetSlotCount(vm) > 3)
-        res = getWrenNumber(vm, 3);
+        bits = getWrenNumber(vm, 3);
 
-    tic_api_poke(tic, address, value, res);
+    tic_api_poke(tic, address, value, bits);
 }
 
 static void wren_peek4(WrenVM* vm)

@@ -354,7 +354,7 @@ enum
                                                                                                                         \
                                                                                                                         \
     macro(peek,                                                                                                         \
-        "peek(addr res=8) -> value",                                                                                    \
+        "peek(addr bits=8) -> value",                                                                                    \
                                                                                                                         \
         "This function allows to read the memory from TIC.\n"                                                           \
         "It's useful to access resources created with the integrated tools like sprite, maps, sounds, "                 \
@@ -362,21 +362,21 @@ enum
         "Never dream to sound a sprite?\n"                                                                              \
         "Address are in hexadecimal format but values are decimal.\n"                                                   \
         "To write to a memory address, use `poke()`.\n"                                                                 \
-        "`res` allowed to be 1,2,4,8.",                                                                                 \
+        "`bits` allowed to be 1,2,4,8.",                                                                                 \
         2,                                                                                                              \
         u8,                                                                                                             \
-        tic_mem*, s32 address, s32 res)                                                                                 \
+        tic_mem*, s32 address, s32 bits)                                                                                 \
                                                                                                                         \
                                                                                                                         \
     macro(poke,                                                                                                         \
-        "poke(addr value res=8)",                                                                                       \
+        "poke(addr value bits=8)",                                                                                       \
                                                                                                                         \
         "This function allows you to write a single byte to any address in TIC's RAM.\n"                                \
         "The address should be specified in hexadecimal format, the value in decimal.\n"                                \
-        "`res` allowed to be 1,2,4,8.",                                                                                 \
+        "`bits` allowed to be 1,2,4,8.",                                                                                 \
         3,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 address, u8 value, s32 res)                                                                       \
+        tic_mem*, s32 address, u8 value, s32 bits)                                                                       \
                                                                                                                         \
                                                                                                                         \
     macro(peek4,                                                                                                        \

@@ -497,10 +497,10 @@ static duk_ret_t duk_mset(duk_context* duk)
 static duk_ret_t duk_peek(duk_context* duk)
 {
     s32 address = duk_to_int(duk, 0);
-    s32 res = duk_opt_int(duk, 1, BITS_IN_BYTE);
+    s32 bits = duk_opt_int(duk, 1, BITS_IN_BYTE);
 
     tic_mem* tic = (tic_mem*)getDukCore(duk);
-    duk_push_uint(duk, tic_api_peek(tic, address, res));
+    duk_push_uint(duk, tic_api_peek(tic, address, bits));
     return 1;
 }
 
@@ -508,10 +508,10 @@ static duk_ret_t duk_poke(duk_context* duk)
 {
     s32 address = duk_to_int(duk, 0);
     u8 value = duk_to_int(duk, 1);
-    s32 res = duk_opt_int(duk, 2, BITS_IN_BYTE);
+    s32 bits = duk_opt_int(duk, 2, BITS_IN_BYTE);
 
     tic_mem* tic = (tic_mem*)getDukCore(duk);
-    tic_api_poke(tic, address, value, res);
+    tic_api_poke(tic, address, value, bits);
 
     return 0;
 }

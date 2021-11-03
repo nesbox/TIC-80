@@ -42,7 +42,7 @@ static_assert(sizeof(tic_map) < 1024 * 32,          "tic_map");
 static_assert(sizeof(tic_vram) == TIC_VRAM_SIZE,    "tic_vram");
 static_assert(sizeof(tic_ram) == TIC_RAM_SIZE,      "tic_ram");
 
-u8 tic_api_peek(tic_mem* memory, s32 address, s32 res)
+u8 tic_api_peek(tic_mem* memory, s32 address, s32 bits)
 {
     if (address < 0)
         return 0;
@@ -50,7 +50,7 @@ u8 tic_api_peek(tic_mem* memory, s32 address, s32 res)
     const u8* ram = (u8*)&memory->ram;
     enum{RamBits = sizeof(tic_ram) * BITS_IN_BYTE};
 
-    switch(res)
+    switch(bits)
     {
     case 1: if(address < RamBits / 1) return tic_tool_peek1(ram, address);
     case 2: if(address < RamBits / 2) return tic_tool_peek2(ram, address);
@@ -61,7 +61,7 @@ u8 tic_api_peek(tic_mem* memory, s32 address, s32 res)
     return 0;
 }
 
-void tic_api_poke(tic_mem* memory, s32 address, u8 value, s32 res)
+void tic_api_poke(tic_mem* memory, s32 address, u8 value, s32 bits)
 {
     if (address < 0)
         return;
@@ -70,7 +70,7 @@ void tic_api_poke(tic_mem* memory, s32 address, u8 value, s32 res)
     u8* ram = (u8*)&memory->ram;
     enum{RamBits = sizeof(tic_ram) * BITS_IN_BYTE};
     
-    switch(res)
+    switch(bits)
     {
     case 1: if(address < RamBits / 1) {tic_tool_poke1(ram, address, value); core->state.memmask[address >> 2] = 1;} break;
     case 2: if(address < RamBits / 2) {tic_tool_poke2(ram, address, value); core->state.memmask[address >> 1] = 1;} break;

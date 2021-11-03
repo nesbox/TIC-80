@@ -59,15 +59,15 @@ static s32 lua_peek(lua_State* lua)
     if(top >= 1)
     {
         s32 address = getLuaNumber(lua, 1);
-        s32 res = BITS_IN_BYTE;
+        s32 bits = BITS_IN_BYTE;
 
         if(top == 2)
-            res = getLuaNumber(lua, 2);
+            bits = getLuaNumber(lua, 2);
 
-        lua_pushinteger(lua, tic_api_peek(tic, address, res));
+        lua_pushinteger(lua, tic_api_peek(tic, address, bits));
         return 1;
     }
-    else luaL_error(lua, "invalid parameters, peek(addr,res)\n");
+    else luaL_error(lua, "invalid parameters, peek(addr,bits)\n");
 
     return 0;
 }
@@ -81,14 +81,14 @@ static s32 lua_poke(lua_State* lua)
     {
         s32 address = getLuaNumber(lua, 1);
         u8 value = getLuaNumber(lua, 2);
-        s32 res = BITS_IN_BYTE;
+        s32 bits = BITS_IN_BYTE;
 
         if(top == 3)
-            res = getLuaNumber(lua, 3);
+            bits = getLuaNumber(lua, 3);
 
-        tic_api_poke(tic, address, value, res);
+        tic_api_poke(tic, address, value, bits);
     }
-    else luaL_error(lua, "invalid parameters, poke(addr,val,res)\n");
+    else luaL_error(lua, "invalid parameters, poke(addr,val,bits)\n");
 
     return 0;
 }
