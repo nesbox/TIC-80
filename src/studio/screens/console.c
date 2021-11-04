@@ -1255,13 +1255,22 @@ static void onMakeDirectory(Console* console)
 {
     if(console->desc->count)
     {
+        char msg[TICNAME_MAX];
         const char* param = console->desc->params->key;
 
-        tic_fs_makedir(console->fs, param);
+        if (tic_fs_exists(console->fs, param)) {
+            sprintf(msg, "\nerror, [%s] already exists :(", param);
+            printError(console, msg);
+            commandDone(console);
+            return;
+        }
 
-        char msg[TICNAME_MAX];
         sprintf(msg, "\ncreated [%s] folder :)", param);
-        printBack(console, msg);
+
+        printBack(console, tic_fs_makedir(console->fs, param)
+            ? "\nerror, dir not created :("
+            : msg);
+
     }
     else printError(console, "\ninvalid dir name");
 
