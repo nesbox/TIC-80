@@ -935,8 +935,8 @@ bool tic_fs_makedir(tic_fs* fs, const char* name)
 #if defined(__EMSCRIPTEN__)
     syncfs();
 #endif
-#endif
     return result;
+#endif
 }
 
 void tic_fs_openfolder(tic_fs* fs)
