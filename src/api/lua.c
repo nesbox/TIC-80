@@ -126,6 +126,39 @@ static s32 lua_poke4(lua_State* lua)
     return 0;
 }
 
+static s32 lua_peek1(lua_State* lua)
+{
+    s32 top = lua_gettop(lua);
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
+
+    if(top == 1)
+    {
+        s32 address = getLuaNumber(lua, 1);
+        lua_pushinteger(lua, tic_api_peek1(tic, address));
+        return 1;
+    }
+    else luaL_error(lua, "invalid parameters, peek1(addr)\n");
+
+    return 0;
+}
+
+static s32 lua_poke1(lua_State* lua)
+{
+    s32 top = lua_gettop(lua);
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
+
+    if(top == 2)
+    {
+        s32 address = getLuaNumber(lua, 1);
+        u8 value = getLuaNumber(lua, 2);
+
+        tic_api_poke1(tic, address, value);
+    }
+    else luaL_error(lua, "invalid parameters, poke1(addr,val)\n");
+
+    return 0;
+}
+
 static s32 lua_cls(lua_State* lua)
 {
     s32 top = lua_gettop(lua);
