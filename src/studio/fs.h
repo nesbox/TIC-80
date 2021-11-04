@@ -46,7 +46,7 @@ bool    tic_fs_save         (tic_fs* fs, const char* name, const void* data, s32
 bool    tic_fs_saveroot     (tic_fs* fs, const char* name, const void* data, s32 size, bool overwrite);
 void*   tic_fs_load         (tic_fs* fs, const char* name, s32* size);
 void*   tic_fs_loadroot     (tic_fs* fs, const char* name, s32* size);
-void    tic_fs_makedir      (tic_fs* fs, const char* name);
+bool    tic_fs_makedir      (tic_fs* fs, const char* name);
 bool    tic_fs_exists       (tic_fs* fs, const char* name);
 void    tic_fs_openfolder   (tic_fs* fs);
 bool    tic_fs_isdir        (tic_fs* fs, const char* dir);
