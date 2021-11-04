@@ -516,26 +516,6 @@ static duk_ret_t duk_poke(duk_context* duk)
     return 0;
 }
 
-static duk_ret_t duk_peek4(duk_context* duk)
-{
-    s32 address = duk_to_int(duk, 0);
-
-    tic_mem* tic = (tic_mem*)getDukCore(duk);
-    duk_push_uint(duk, tic_api_peek4(tic, address));
-    return 1;
-}
-
-static duk_ret_t duk_poke4(duk_context* duk)
-{
-    s32 address = duk_to_int(duk, 0);
-    u8 value = duk_to_int(duk, 1);
-
-    tic_mem* tic = (tic_mem*)getDukCore(duk);
-    tic_api_poke4(tic, address, value);
-
-    return 0;
-}
-
 static duk_ret_t duk_peek1(duk_context* duk)
 {
     s32 address = duk_to_int(duk, 0);
@@ -552,6 +532,46 @@ static duk_ret_t duk_poke1(duk_context* duk)
 
     tic_mem* tic = (tic_mem*)getDukCore(duk);
     tic_api_poke1(tic, address, value);
+
+    return 0;
+}
+
+static duk_ret_t duk_peek2(duk_context* duk)
+{
+    s32 address = duk_to_int(duk, 0);
+
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
+    duk_push_uint(duk, tic_api_peek2(tic, address));
+    return 1;
+}
+
+static duk_ret_t duk_poke2(duk_context* duk)
+{
+    s32 address = duk_to_int(duk, 0);
+    u8 value = duk_to_int(duk, 1);
+
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
+    tic_api_poke2(tic, address, value);
+
+    return 0;
+}
+
+static duk_ret_t duk_peek4(duk_context* duk)
+{
+    s32 address = duk_to_int(duk, 0);
+
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
+    duk_push_uint(duk, tic_api_peek4(tic, address));
+    return 1;
+}
+
+static duk_ret_t duk_poke4(duk_context* duk)
+{
+    s32 address = duk_to_int(duk, 0);
+    u8 value = duk_to_int(duk, 1);
+
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
+    tic_api_poke4(tic, address, value);
 
     return 0;
 }

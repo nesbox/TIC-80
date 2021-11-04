@@ -84,11 +84,6 @@ u8 tic_api_peek4(tic_mem* memory, s32 address)
     return tic_api_peek(memory, address, 4);
 }
 
-void tic_api_poke4(tic_mem* memory, s32 address, u8 value)
-{
-    tic_api_poke(memory, address, value, 4);
-}
-
 u8 tic_api_peek1(tic_mem* memory, s32 address)
 {
     return tic_api_peek(memory, address, 1);
@@ -97,6 +92,21 @@ u8 tic_api_peek1(tic_mem* memory, s32 address)
 void tic_api_poke1(tic_mem* memory, s32 address, u8 value)
 {
     tic_api_poke(memory, address, value, 1);
+}
+
+u8 tic_api_peek2(tic_mem* memory, s32 address)
+{
+    return tic_api_peek(memory, address, 2);
+}
+
+void tic_api_poke2(tic_mem* memory, s32 address, u8 value)
+{
+    tic_api_poke(memory, address, value, 2);
+}
+
+void tic_api_poke4(tic_mem* memory, s32 address, u8 value)
+{
+    tic_api_poke(memory, address, value, 4);
 }
 
 void tic_api_memcpy(tic_mem* memory, s32 dst, s32 src, s32 size)

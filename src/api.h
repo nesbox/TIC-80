@@ -354,7 +354,7 @@ enum
                                                                                                                         \
                                                                                                                         \
     macro(peek,                                                                                                         \
-        "peek(addr bits=8) -> value",                                                                                    \
+        "peek(addr bits=8) -> value",                                                                                   \
                                                                                                                         \
         "This function allows to read the memory from TIC.\n"                                                           \
         "It's useful to access resources created with the integrated tools like sprite, maps, sounds, "                 \
@@ -362,51 +362,28 @@ enum
         "Never dream to sound a sprite?\n"                                                                              \
         "Address are in hexadecimal format but values are decimal.\n"                                                   \
         "To write to a memory address, use `poke()`.\n"                                                                 \
-        "`bits` allowed to be 1,2,4,8.",                                                                                 \
+        "`bits` allowed to be 1,2,4,8.",                                                                                \
         2,                                                                                                              \
         u8,                                                                                                             \
-        tic_mem*, s32 address, s32 bits)                                                                                 \
+        tic_mem*, s32 address, s32 bits)                                                                                \
                                                                                                                         \
                                                                                                                         \
     macro(poke,                                                                                                         \
-        "poke(addr value bits=8)",                                                                                       \
+        "poke(addr value bits=8)",                                                                                      \
                                                                                                                         \
         "This function allows you to write a single byte to any address in TIC's RAM.\n"                                \
         "The address should be specified in hexadecimal format, the value in decimal.\n"                                \
-        "`bits` allowed to be 1,2,4,8.",                                                                                 \
+        "`bits` allowed to be 1,2,4,8.",                                                                                \
         3,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 address, u8 value, s32 bits)                                                                       \
-                                                                                                                        \
-                                                                                                                        \
-    macro(peek4,                                                                                                        \
-        "peek4(addr) -> value",                                                                                         \
-                                                                                                                        \
-        "This function enables you to read 4bit values from TIC's RAM.\n"                                               \
-        "The address should be specified in hexadecimal format.",                                                       \
-        1,                                                                                                              \
-        u8,                                                                                                             \
-        tic_mem*, s32 address)                                                                                          \
-                                                                                                                        \
-                                                                                                                        \
-    macro(poke4,                                                                                                        \
-        "poke4(addr value)",                                                                                            \
-                                                                                                                        \
-        "This function allows you to write to the virtual RAM of TIC.\n"                                                \
-        "It differs from `poke()` in that it divides memory in groups of 4 bits.\n"                                     \
-        "Therefore, to address the high nibble of position 0x4000 you should pass 0x8000 as addr4, "                    \
-        "and to access the low nibble (rightmost 4 bits) you would pass 0x8001.\n"                                      \
-        "The address should be specified in hexadecimal format, and values should be given in decimal.",                \
-        2,                                                                                                              \
-        void,                                                                                                           \
-        tic_mem*, s32 address, u8 value)                                                                                \
+        tic_mem*, s32 address, u8 value, s32 bits)                                                                      \
                                                                                                                         \
                                                                                                                         \
     macro(peek1,                                                                                                        \
         "peek1(addr) -> value",                                                                                         \
                                                                                                                         \
-        "This function enables you to read single-bit values from TIC's RAM.\n"                                               \
-        "The address should be specified in hexadecimal format.",                                                       \
+        "This function enables you to read single bit values from TIC's RAM.\n"                                         \
+        "The address is often specified in hexadecimal format.",                                                        \
         1,                                                                                                              \
         u8,                                                                                                             \
         tic_mem*, s32 address)                                                                                          \
@@ -415,11 +392,52 @@ enum
     macro(poke1,                                                                                                        \
         "poke1(addr value)",                                                                                            \
                                                                                                                         \
-        "This function allows you to write to the virtual RAM of TIC.\n"                                                \
-        "It differs from `poke()` in that it accesses the individual bits of memory.\n"                                     \
-        "Therefore, to address the highest bit of position 0x4000 you should pass 0x16000 as addr1, "                    \
-        "and to access the lowest bit (rightmost bit) you would pass 0x16007.\n"                                      \
-        "The address should be specified in hexadecimal format, and values should be given in decimal.",                \
+        "This function allows you to write single bit values directly to RAM.\n"                                        \
+        "The address is often specified in hexadecimal format.",                                                        \
+        2,                                                                                                              \
+        void,                                                                                                           \
+        tic_mem*, s32 address, u8 value)                                                                                \
+                                                                                                                        \
+                                                                                                                        \
+    macro(peek2,                                                                                                        \
+        "peek2(addr) -> value",                                                                                         \
+                                                                                                                        \
+        "This function enables you to read two bits values from TIC's RAM.\n"                                           \
+        "The address is often specified in hexadecimal format.",                                                        \
+        1,                                                                                                              \
+        u8,                                                                                                             \
+        tic_mem*, s32 address)                                                                                          \
+                                                                                                                        \
+                                                                                                                        \
+    macro(poke2,                                                                                                        \
+        "poke2(addr value)",                                                                                            \
+                                                                                                                        \
+        "This function allows you to write two bits values directly to RAM.\n"                                          \
+        "The address is often specified in hexadecimal format.",                                                        \
+        2,                                                                                                              \
+        void,                                                                                                           \
+        tic_mem*, s32 address, u8 value)                                                                                \
+                                                                                                                        \
+                                                                                                                        \
+    macro(peek4,                                                                                                        \
+        "peek4(addr) -> value",                                                                                         \
+                                                                                                                        \
+        "This function enables you to read values from TIC's RAM.\n"                                                    \
+        "The address is often specified in hexadecimal format.\n"                                                       \
+        "See 'poke4()' for detailed information on how nibble addressing compares with byte addressing.",               \
+        1,                                                                                                              \
+        u8,                                                                                                             \
+        tic_mem*, s32 address)                                                                                          \
+                                                                                                                        \
+                                                                                                                        \
+    macro(poke4,                                                                                                        \
+        "poke4(addr value)",                                                                                            \
+                                                                                                                        \
+        "This function allows you to write directly to RAM.\n"                                                          \
+        "The address is often specified in hexadecimal format.\n"                                                       \
+        "For both peek4 and poke4 RAM is addressed in 4 bit segments (nibbles).\n"                                      \
+        "Therefore, to access the the RAM at byte address 0x4000\n"                                                     \
+        "you would need to access both the 0x8000 and 0x8001 nibble addresses.",                                        \
         2,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 address, u8 value)                                                                                \

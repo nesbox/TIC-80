@@ -91,10 +91,12 @@ class TIC {\n\
     foreign static poke(addr, val)\n\
     foreign static peek(addr, bits)\n\
     foreign static poke(addr, val, bits)\n\
-    foreign static peek4(addr)\n\
-    foreign static poke4(addr, val)\n\
     foreign static peek1(addr)\n\
     foreign static poke1(addr, val)\n\
+    foreign static peek2(addr)\n\
+    foreign static poke2(addr, val)\n\
+    foreign static peek4(addr)\n\
+    foreign static poke4(addr, val)\n\
     foreign static memcpy(dst, src, size)\n\
     foreign static memset(dst, src, size)\n\
     foreign static pmem(index)\n\
@@ -973,24 +975,6 @@ static void wren_poke(WrenVM* vm)
     tic_api_poke(tic, address, value, bits);
 }
 
-static void wren_peek4(WrenVM* vm)
-{
-    tic_mem* tic = (tic_mem*)getWrenCore(vm);
-
-    s32 address = getWrenNumber(vm, 1);
-
-    wrenSetSlotDouble(vm, 0, tic_api_peek4(tic, address));
-}
-
-static void wren_poke4(WrenVM* vm)
-{
-    tic_mem* tic = (tic_mem*)getWrenCore(vm);
-
-    s32 address = getWrenNumber(vm, 1);
-    u8 value = getWrenNumber(vm, 2);
-
-    tic_api_poke4(tic, address, value);
-}
 static void wren_peek1(WrenVM* vm)
 {
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
@@ -1008,6 +992,44 @@ static void wren_poke1(WrenVM* vm)
     u8 value = getWrenNumber(vm, 2);
 
     tic_api_poke1(tic, address, value);
+}
+
+static void wren_peek2(WrenVM* vm)
+{
+    tic_mem* tic = (tic_mem*)getWrenCore(vm);
+
+    s32 address = getWrenNumber(vm, 1);
+
+    wrenSetSlotDouble(vm, 0, tic_api_peek2(tic, address));
+}
+
+static void wren_poke2(WrenVM* vm)
+{
+    tic_mem* tic = (tic_mem*)getWrenCore(vm);
+
+    s32 address = getWrenNumber(vm, 1);
+    u8 value = getWrenNumber(vm, 2);
+
+    tic_api_poke2(tic, address, value);
+}
+
+static void wren_peek4(WrenVM* vm)
+{
+    tic_mem* tic = (tic_mem*)getWrenCore(vm);
+
+    s32 address = getWrenNumber(vm, 1);
+
+    wrenSetSlotDouble(vm, 0, tic_api_peek4(tic, address));
+}
+
+static void wren_poke4(WrenVM* vm)
+{
+    tic_mem* tic = (tic_mem*)getWrenCore(vm);
+
+    s32 address = getWrenNumber(vm, 1);
+    u8 value = getWrenNumber(vm, 2);
+
+    tic_api_poke4(tic, address, value);
 }
 
 static void wren_memcpy(WrenVM* vm)
@@ -1348,6 +1370,10 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     if (strcmp(signature, "static TIC.poke(_,_)"                ) == 0) return wren_poke;
     if (strcmp(signature, "static TIC.peek(_,_)"                ) == 0) return wren_peek;
     if (strcmp(signature, "static TIC.poke(_,_,_)"              ) == 0) return wren_poke;
+    if (strcmp(signature, "static TIC.peek1(_)"                 ) == 0) return wren_peek1;
+    if (strcmp(signature, "static TIC.poke1(_,_)"               ) == 0) return wren_poke1;
+    if (strcmp(signature, "static TIC.peek2(_)"                 ) == 0) return wren_peek2;
+    if (strcmp(signature, "static TIC.poke2(_,_)"               ) == 0) return wren_poke2;
     if (strcmp(signature, "static TIC.peek4(_)"                 ) == 0) return wren_peek4;
     if (strcmp(signature, "static TIC.poke4(_,_)"               ) == 0) return wren_poke4;
     if (strcmp(signature, "static TIC.memcpy(_,_,_)"            ) == 0) return wren_memcpy;
