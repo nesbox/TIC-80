@@ -187,6 +187,9 @@ static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors
 
 static void drawSprite(tic_core* core, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
+    if (index < 0)
+        return;
+
     tic_tilesheet sheet = getTileSheetFromSegment(&core->memory, core->memory.ram.vram.blit.segment);
     if (w == 1 && h == 1) {
         tic_tileptr tile = tic_tilesheet_gettile(&sheet, index, false);
