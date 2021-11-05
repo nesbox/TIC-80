@@ -7,6 +7,9 @@
 #include <lualib.h>
 #include <ctype.h>
 
+s32 luaopen_lpeg(lua_State *lua);
+
+extern void initLuaAPI(tic_core* core);
 extern void callLuaTick(tic_mem* tic);
 extern void callLuaScanlineName(tic_mem* tic, s32 row, void* data, const char* name);
 extern void callLuaScanline(tic_mem* tic, s32 row, void* data);
@@ -15,7 +18,6 @@ extern void callLuaOverline(tic_mem* tic, void* data);
 extern void closeLua(tic_mem* tic);
 extern void callLuaTick(tic_mem* tic);
 extern void lua_open_builtins(lua_State *lua);
-extern void initLuaAPI(core);
 
 #define lua_api_h
 #endif
