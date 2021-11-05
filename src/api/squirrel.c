@@ -1447,7 +1447,7 @@ static void squirrel_open_builtins(HSQUIRRELVM vm)
     sq_poptop(vm);
 }
 
-static void initLuaAPI(tic_core* core)
+static void initAPI(tic_core* core)
 {
     HSQUIRRELVM vm = core->currentVM;
     
