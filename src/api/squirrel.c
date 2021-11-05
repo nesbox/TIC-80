@@ -1556,7 +1556,7 @@ static bool initSquirrel(tic_mem* tic, const char* code)
     sq_newclosure(vm, squirrel_errorHandler, 0);
     sq_seterrorhandler(vm);
 
-    initLuaAPI(core);
+    initAPI(core);
 
     {
         HSQUIRRELVM vm = core->currentVM;
