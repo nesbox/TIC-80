@@ -303,6 +303,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         ${TIC80CORE_DIR}/api/js.c 
         ${TIC80CORE_DIR}/api/lua.c 
         ${TIC80CORE_DIR}/api/moonscript.c 
+        ${TIC80CORE_DIR}/api/fennel.c 
         ${TIC80CORE_DIR}/api/wren.c 
         ${TIC80CORE_DIR}/api/squirrel.c
         ${TIC80CORE_DIR}/tic.c

@@ -18,7 +18,6 @@ extern void callLuaOverline(tic_mem* tic, void* data);
 extern void closeLua(tic_mem* tic);
 extern void callLuaTick(tic_mem* tic);
 extern void lua_open_builtins(lua_State *lua);
-extern void initLuaAPI(core);
 
 #define lua_api_h
 #endif
