@@ -224,7 +224,7 @@ static void resetPalette(tic_mem* memory)
 
 static void resetBlitSegment(tic_mem* memory)
 {
-    memory->ram.vram.blit.segment = TIC_DEFAULT_BLIT_MODE;
+    memory->ram.vram.vars.blit = TIC_DEFAULT_BLIT_MODE;
 }
 
 static bool compareMetatag(const char* code, const char* tag, const char* value, const char* comment)
@@ -296,10 +296,11 @@ static void soundClear(tic_mem* memory)
 
 void tic_api_reset(tic_mem* memory)
 {
+    memset(&memory->ram.vram.vars, 0, sizeof memory->ram.vram.vars);
+
     resetPalette(memory);
     resetBlitSegment(memory);
 
-    memset(&memory->ram.vram.vars, 0, sizeof memory->ram.vram.vars);
     memory->ram.input.mouse.relative = 0;
 
     tic_api_clip(memory, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);

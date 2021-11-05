@@ -90,14 +90,6 @@ typedef struct
 
 typedef struct
 {
-    s32 l;
-    s32 t;
-    s32 r;
-    s32 b;
-} tic_clip_data;
-
-typedef struct
-{
     bool active;
     s32 frame;
     s32 beat;
@@ -119,8 +111,6 @@ typedef struct
 
         u32 holds[tic_keys_count];
     } keyboard;
-
-    tic_clip_data clip;
 
     struct
     {

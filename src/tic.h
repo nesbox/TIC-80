@@ -464,16 +464,8 @@ typedef union
 
         struct
         {
-            union
-            {
-                u8 colors;
-                            
-                struct
-                {
-                    u8 border:TIC_PALETTE_BPP;
-                    u8 tmp:TIC_PALETTE_BPP;
-                };
-            };
+            u8 border:TIC_PALETTE_BPP;
+            u8 blit:4;
 
             struct
             {
@@ -491,11 +483,8 @@ typedef union
 
         struct
         {
-            u8 segment:4;
-            u8 reserved:4;
-        } blit;
-
-        u8 reserved[3];
+            u8 l, t, r, b;
+        } clip;
     };
     
     u8 data[TIC_VRAM_SIZE];

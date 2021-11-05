@@ -60,7 +60,9 @@ static inline u8 mapColor(tic_mem* tic, u8 color)
 
 static void setPixel(tic_core* core, s32 x, s32 y, u8 color)
 {
-    if (x < core->state.clip.l || y < core->state.clip.t || x >= core->state.clip.r || y >= core->state.clip.b) return;
+    const tic_vram* vram = &core->memory.ram.vram;
+
+    if (x < vram->clip.l || y < vram->clip.t || x >= vram->clip.r || y >= vram->clip.b) return;
 
     tic_api_poke4((tic_mem*)core, y * TIC80_WIDTH + x, color);
 }
@@ -72,18 +74,20 @@ static u8 getPixel(tic_core* core, s32 x, s32 y)
 
 #define EARLY_CLIP(x, y, width, height) \
     ( \
-        (((y)+(height)-1) < core->state.clip.t) \
-        || (((x)+(width)-1) < core->state.clip.l) \
-        || ((y) >= core->state.clip.b) \
-        || ((x) >= core->state.clip.r) \
+        (((y)+(height)-1) < vram->clip.t) \
+        || (((x)+(width)-1) < vram->clip.l) \
+        || ((y) >= vram->clip.b) \
+        || ((x) >= vram->clip.r) \
     )
 
 static void drawHLine(tic_core* core, s32 x, s32 y, s32 width, u8 color)
 {
-    if (y < core->state.clip.t || core->state.clip.b <= y) return;
+    const tic_vram* vram = &core->memory.ram.vram;
 
-    s32 xl = MAX(x, core->state.clip.l);
-    s32 xr = MIN(x + width, core->state.clip.r);
+    if (y < vram->clip.t || vram->clip.b <= y) return;
+
+    s32 xl = MAX(x, vram->clip.l);
+    s32 xr = MIN(x + width, vram->clip.r);
     s32 start = y * TIC80_WIDTH;
 
     for(s32 i = start + xl, end = start + xr; i < end; ++i)
@@ -92,7 +96,9 @@ static void drawHLine(tic_core* core, s32 x, s32 y, s32 width, u8 color)
 
 static void drawVLine(tic_core* core, s32 x, s32 y, s32 height, u8 color)
 {
-    if (x < core->state.clip.l || core->state.clip.r <= x) return;
+    const tic_vram* vram = &core->memory.ram.vram;
+
+    if (x < vram->clip.l || vram->clip.r <= x) return;
 
     s32 yl = y < 0 ? 0 : y;
     s32 yr = y + height >= TIC80_HEIGHT ? TIC80_HEIGHT : y + height;
@@ -132,6 +138,7 @@ static void drawRectBorder(tic_core* core, s32 x, s32 y, s32 width, s32 height, 
 
 static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
+    const tic_vram* vram = &core->memory.ram.vram;
     u8* mapping = getPalette(&core->memory, colors, count);
 
     rotate &= 0b11;
@@ -145,10 +152,10 @@ static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors
     if (scale == 1) {
         // the most common path
         s32 sx, sy, ex, ey;
-        sx = core->state.clip.l - x; if (sx < 0) sx = 0;
-        sy = core->state.clip.t - y; if (sy < 0) sy = 0;
-        ex = core->state.clip.r - x; if (ex > TIC_SPRITESIZE) ex = TIC_SPRITESIZE;
-        ey = core->state.clip.b - y; if (ey > TIC_SPRITESIZE) ey = TIC_SPRITESIZE;
+        sx = vram->clip.l - x; if (sx < 0) sx = 0;
+        sy = vram->clip.t - y; if (sy < 0) sy = 0;
+        ex = vram->clip.r - x; if (ex > TIC_SPRITESIZE) ex = TIC_SPRITESIZE;
+        ey = vram->clip.b - y; if (ey > TIC_SPRITESIZE) ey = TIC_SPRITESIZE;
         y += sy;
         x += sx;
         switch (orientation) {
@@ -187,10 +194,12 @@ static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors
 
 static void drawSprite(tic_core* core, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
+    const tic_vram* vram = &core->memory.ram.vram;
+
     if (index < 0)
         return;
 
-    tic_tilesheet sheet = getTileSheetFromSegment(&core->memory, core->memory.ram.vram.blit.segment);
+    tic_tilesheet sheet = getTileSheetFromSegment(&core->memory, core->memory.ram.vram.vars.blit);
     if (w == 1 && h == 1) {
         tic_tileptr tile = tic_tilesheet_gettile(&sheet, index, false);
         drawTile(core, &tile, x, y, colors, count, scale, flip, rotate);
@@ -247,7 +256,7 @@ static void drawMap(tic_core* core, const tic_map* src, s32 x, s32 y, s32 width,
 {
     const s32 size = TIC_SPRITESIZE * scale;
 
-    tic_tilesheet sheet = getTileSheetFromSegment(&core->memory, core->memory.ram.vram.blit.segment);
+    tic_tilesheet sheet = getTileSheetFromSegment(&core->memory, core->memory.ram.vram.vars.blit);
 
     for (s32 j = y, jj = sy; j < y + height; j++, jj += size)
         for (s32 i = x, ii = sx; i < x + width; i++, ii += size)
@@ -273,6 +282,8 @@ static void drawMap(tic_core* core, const tic_map* src, s32 x, s32 y, s32 width,
 
 static s32 drawChar(tic_core* core, tic_tileptr* font_char, s32 x, s32 y, s32 scale, bool fixed, u8* mapping)
 {
+    const tic_vram* vram = &core->memory.ram.vram;
+
     enum { Size = TIC_SPRITESIZE };
 
     s32 j = 0, start = 0, end = Size;
@@ -336,16 +347,17 @@ static s32 drawText(tic_core* core, tic_tilesheet* font_face, const char* text, 
 void tic_api_clip(tic_mem* memory, s32 x, s32 y, s32 width, s32 height)
 {
     tic_core* core = (tic_core*)memory;
+    tic_vram* vram = &memory->ram.vram;
 
-    core->state.clip.l = x;
-    core->state.clip.t = y;
-    core->state.clip.r = x + width;
-    core->state.clip.b = y + height;
+    vram->clip.l = x;
+    vram->clip.t = y;
+    vram->clip.r = x + width;
+    vram->clip.b = y + height;
 
-    if (core->state.clip.l < 0) core->state.clip.l = 0;
-    if (core->state.clip.t < 0) core->state.clip.t = 0;
-    if (core->state.clip.r > TIC80_WIDTH) core->state.clip.r = TIC80_WIDTH;
-    if (core->state.clip.b > TIC80_HEIGHT) core->state.clip.b = TIC80_HEIGHT;
+    if (vram->clip.l < 0) vram->clip.l = 0;
+    if (vram->clip.t < 0) vram->clip.t = 0;
+    if (vram->clip.r > TIC80_WIDTH) vram->clip.r = TIC80_WIDTH;
+    if (vram->clip.b > TIC80_HEIGHT) vram->clip.b = TIC80_HEIGHT;
 }
 
 void tic_api_rect(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 color)
@@ -357,15 +369,17 @@ void tic_api_rect(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 color
 
 void tic_api_cls(tic_mem* memory, u8 color)
 {
-    static const tic_clip_data EmptyClip = { 0, 0, TIC80_WIDTH, TIC80_HEIGHT };
+    tic_vram* vram = &memory->ram.vram;
+
+    static const u8 EmptyClip[] = { 0, 0, TIC80_WIDTH, TIC80_HEIGHT };
 
     tic_core* core = (tic_core*)memory;
 
-    if (memcmp(&core->state.clip, &EmptyClip, sizeof(tic_clip_data)) == 0)
+    if (memcmp(&vram->clip, &EmptyClip, sizeof EmptyClip) == 0)
         tic_api_memset(memory, 0, (color & 0xf) | (color << TIC_PALETTE_BPP), sizeof(tic_screen));
     else
-        tic_api_rect(memory, core->state.clip.l, core->state.clip.t, 
-            core->state.clip.r - core->state.clip.l, core->state.clip.b - core->state.clip.t, color);
+        tic_api_rect(memory, vram->clip.l, vram->clip.t, 
+            vram->clip.r - vram->clip.l, vram->clip.b - vram->clip.t, color);
 }
 
 s32 tic_api_font(tic_mem* memory, const char* text, s32 x, s32 y, u8 chromakey, s32 w, s32 h, bool fixed, s32 scale, bool alt)
@@ -374,10 +388,10 @@ s32 tic_api_font(tic_mem* memory, const char* text, s32 x, s32 y, u8 chromakey, 
 
     // Compatibility : flip top and bottom of the spritesheet
     // to preserve tic_api_font's default target
-    u8 segment = memory->ram.vram.blit.segment >> 1;
+    u8 segment = memory->ram.vram.vars.blit >> 1;
     u8 flipmask = 1; while (segment >>= 1) flipmask <<= 1;
 
-    tic_tilesheet font_face = getTileSheetFromSegment(memory, memory->ram.vram.blit.segment ^ flipmask);
+    tic_tilesheet font_face = getTileSheetFromSegment(memory, memory->ram.vram.vars.blit ^ flipmask);
     return drawText((tic_core*)memory, &font_face, text, x, y, w, h, fixed, mapping, scale, alt);
 }
 
@@ -534,14 +548,16 @@ static void setElliSide(tic_mem* tic, s32 x, s32 y, u8 color)
 
 static void drawSidesBuffer(tic_mem* memory, s32 y0, s32 y1, u8 color)
 {
+    tic_vram* vram = &memory->ram.vram;
+
     tic_core* core = (tic_core*)memory;
-    s32 yt = MAX(core->state.clip.t, y0);
-    s32 yb = MIN(core->state.clip.b, y1 + 1);
+    s32 yt = MAX(vram->clip.t, y0);
+    s32 yb = MIN(vram->clip.b, y1 + 1);
     u8 final_color = mapColor(&core->memory, color);
     for (s32 y = yt; y < yb; y++) 
     {
-        s32 xl = MAX(SidesBuffer.Left[y], core->state.clip.l);
-        s32 xr = MIN(SidesBuffer.Right[y] + 1, core->state.clip.r);
+        s32 xl = MAX(SidesBuffer.Left[y], vram->clip.l);
+        s32 xr = MIN(SidesBuffer.Right[y] + 1, vram->clip.r);
         s32 start = y * TIC80_WIDTH;
 
         for(s32 i = start + xl, end = start + xr; i < end; ++i)
@@ -689,11 +705,13 @@ static void ticTexLine(tic_mem* memory, TexVert* v0, TexVert* v1)
 static void drawTexturedTriangle(tic_core* core, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count)
 {
     tic_mem* memory = &core->memory;
+    tic_vram* vram = &memory->ram.vram;
+
     u8* mapping = getPalette(memory, colors, count);
     TexVert V0, V1, V2;
 
     const u8* map = memory->ram.map.data;
-    tic_tilesheet sheet = getTileSheetFromSegment(memory, memory->ram.vram.blit.segment);
+    tic_tilesheet sheet = getTileSheetFromSegment(memory, memory->ram.vram.vars.blit);
 
     V0.x = x1;  V0.y = y1;  V0.u = u1;  V0.v = v1;
     V1.x = x2;  V1.y = y2;  V1.u = u2;  V1.v = v2;
@@ -726,7 +744,7 @@ static void drawTexturedTriangle(tic_core* core, float x1, float y1, float x2, f
         //  if it's backwards skip it
         s32 width = SidesBuffer.Right[y] - SidesBuffer.Left[y];
         //  if it's off top or bottom , skip this line
-        if ((y < core->state.clip.t) || (y > core->state.clip.b))
+        if ((y < vram->clip.t) || (y > vram->clip.b))
             width = 0;
         if (width > 0)
         {
@@ -735,15 +753,15 @@ static void drawTexturedTriangle(tic_core* core, float x1, float y1, float x2, f
             s32 left = SidesBuffer.Left[y];
             s32 right = SidesBuffer.Right[y];
             //  check right edge, and CLAMP it
-            if (right > core->state.clip.r)
-                right = core->state.clip.r;
+            if (right > vram->clip.r)
+                right = vram->clip.r;
             //  check left edge and offset UV's if we are off the left 
-            if (left < core->state.clip.l)
+            if (left < vram->clip.l)
             {
-                s32 dist = core->state.clip.l - SidesBuffer.Left[y];
+                s32 dist = vram->clip.l - SidesBuffer.Left[y];
                 u += dudxs * dist;
                 v += dvdxs * dist;
-                left = core->state.clip.l;
+                left = vram->clip.l;
             }
             //  are we drawing from the map . ok then at least check before the inner loop
             if (use_map == true)

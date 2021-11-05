@@ -420,12 +420,12 @@ static void initBlitMode(Map* map)
 {
     tic_mem* tic = map->tic;
     tiles2ram(&tic->ram, getBankTiles());
-    tic_tool_poke4(&tic->ram.vram.blit, 0, tic_blit_calc_segment(&map->sheet.blit));
+    tic->ram.vram.vars.blit = tic_blit_calc_segment(&map->sheet.blit);
 }
 
 static void resetBlitMode(tic_mem* tic)
 {
-    tic_tool_poke4(&tic->ram.vram.blit, 0, TIC_DEFAULT_BLIT_MODE);
+    tic->ram.vram.vars.blit = TIC_DEFAULT_BLIT_MODE;
 }
 
 static void drawSheetReg(Map* map, s32 x, s32 y)
