@@ -1395,7 +1395,7 @@ static WrenForeignMethodFn bindForeignMethod(
     return foreignTicMethods(fullName);
 }
 
-static void initAPI(tic_core* core)
+static void initLuaAPI(tic_core* core)
 {
     wrenSetUserData(core->currentVM, core);
 
@@ -1443,7 +1443,7 @@ static bool initWren(tic_mem* tic, const char* code)
 
     WrenVM* vm = core->currentVM = wrenNewVM(&config);
 
-    initAPI(core);
+    initLuaAPI(core);
     
     if (wrenInterpret(core->currentVM, "main", code) != WREN_RESULT_SUCCESS)
     {
