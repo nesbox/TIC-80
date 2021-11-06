@@ -280,6 +280,10 @@ static void leftCol(Music* music)
 {
     if (music->tracker.edit.x > 0)
     {
+        // skip sharp column
+        if(music->tracker.edit.x == 2) {
+            music->tracker.edit.x--;
+        }
         music->tracker.edit.x--;
         updateTracker(music);
     }
@@ -289,6 +293,10 @@ static void rightCol(Music* music)
 {
     if (music->tracker.edit.x < TRACKER_COLS - 1)
     {
+        // skip sharp column
+        if(music->tracker.edit.x == 0) {
+            music->tracker.edit.x++;
+        }
         music->tracker.edit.x++;
         updateTracker(music);
     }
