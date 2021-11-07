@@ -123,13 +123,13 @@ Install with [Install instructions](#install-instructions)
 
 First, add jessie-backports repo to your `/etc/apt/sources.list`
 
-`deb [check-valid-until=no] http://archive.debian.org/debian jessie-backports main`  
+`deb [check-valid-until=no] http://archive.debian.org/debian jessie-backports main`
 
 Then run the following commands in the Terminal
 
 ```
 # required public keys
-gpg --keyserver pgpkeys.mit.edu --recv-key  8B48AD6246925553      
+gpg --keyserver pgpkeys.mit.edu --recv-key  8B48AD6246925553
 gpg -a --export 8B48AD6246925553 | sudo apt-key add -
 gpg --keyserver pgpkeys.mit.edu --recv-key 7638D0442B90D010
 gpg -a --export 7638D0442B90D010 | sudo apt-key add -
@@ -165,36 +165,36 @@ make -j4
 
 # Install instructions
 
-## Linux 
+## Linux
 To install run `sudo make install -j4`
 
 TIC-80 can now be run with `tic80`
 
 ## iOS / tvOS
-You can find iOS/tvOS version here 
+You can find iOS/tvOS version here
 - 0.60.3: https://github.com/brunophilipe/TIC-80
 - 0.45.0: https://github.com/CliffsDover/TIC-80
 
 ## Credits
 
-* Filippo Rivato - [Twitter @HomineLudens](https://twitter.com/HomineLudens)  
-* Fred Bednarski - [Twitter @FredBednarski](https://twitter.com/FredBednarski)  
-* Al Rado - [Twitter @alrado2](https://twitter.com/alrado2)  
-* Trevor Martin - [Twitter @trelemar](https://twitter.com/trelemar)  
-* MonstersGoBoom - [Twitter @MonstersGoBoom](https://twitter.com/MonstersGo)  
-* Matheus Lessa - [Twitter @matheuslrod](https://twitter.com/matheuslrod)  
-* CliffsDover - [Twitter @DancingBottle](https://twitter.com/DancingBottle)  
-* Frantisek Jahoda - [GitHub @jahodfra](https://github.com/jahodfra)  
-* Guilherme Medeiros - [GitHub @frenetic](https://github.com/frenetic)  
-* Andrei Rudenko - [GitHub @RudenkoArts](https://github.com/RudenkoArts)  
-* Phil Hagelberg - [@technomancy](https://technomancy.us/colophon)  
+* Filippo Rivato - [Twitter @HomineLudens](https://twitter.com/HomineLudens)
+* Fred Bednarski - [Twitter @FredBednarski](https://twitter.com/FredBednarski)
+* Al Rado - [Twitter @alrado2](https://twitter.com/alrado2)
+* Trevor Martin - [Twitter @trelemar](https://twitter.com/trelemar)
+* MonstersGoBoom - [Twitter @MonstersGoBoom](https://twitter.com/MonstersGo)
+* Matheus Lessa - [Twitter @matheuslrod](https://twitter.com/matheuslrod)
+* CliffsDover - [Twitter @DancingBottle](https://twitter.com/DancingBottle)
+* Frantisek Jahoda - [GitHub @jahodfra](https://github.com/jahodfra)
+* Guilherme Medeiros - [GitHub @frenetic](https://github.com/frenetic)
+* Andrei Rudenko - [GitHub @RudenkoArts](https://github.com/RudenkoArts)
+* Phil Hagelberg - [@technomancy](https://technomancy.us/colophon)
 * Rob Loach - [Twitter @RobLoach](https://twitter.com/RobLoach) [GitHub @RobLoach](https://github.com/RobLoach)
 * Wade Brainerd - [GitHub @wadetb](https://github.com/wadetb)
 * Paul Robinson - [GitHub @paul59](https://github.com/paul59)
 * Stefan Devai - [GitHub @stefandevai](https://github.com/stefandevai) [Blog stefandevai.me](https://stefandevai.me)
 * Damien de Lemeny - [GitHub @ddelemeny](https://github.com/ddelemeny)
 * Adrian Siekierka - [GitHub @asiekierka](https://github.com/asiekierka) [Website](https://asie.pl/)
-* Jay Em (Sweetie16 palette) - [Twitter @GrafxKid](https://twitter.com/GrafxKid)  
+* Jay Em (Sweetie16 palette) - [Twitter @GrafxKid](https://twitter.com/GrafxKid)
 * msx80 - [Twitter @msx80](https://twitter.com/msx80) [Github msx80](https://github.com/msx80)
 * Josh Goebel - [Twitter @dreamer3](https://twitter.com/dreamer3) [Github joshgoebel](https://github.com/joshgoebel)
 * Joshua Minor - [GitHub @jminor](https://github.com/jminor)
