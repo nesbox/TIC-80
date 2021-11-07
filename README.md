@@ -105,6 +105,18 @@ git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
 ```
+
+### Fedora
+
+run the following commands in the Terminal
+```
+sudo dnf -y groupinstall "Development Tools"
+sudo dnf -y install git cmake libglvnd-devel libglvnd-gles freeglut-devel
+git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
+cmake ..
+make -j4
+```
+
 Install with [Install instructions](#install-instructions)
 
 ### Raspberry Pi (Retropie)
