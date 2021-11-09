@@ -36,6 +36,29 @@ jobs:
         name: 'tic80-winxp-stub'
         path: build/bin/tic80*.exe
 
+# === Windows XP PRO ===
+  winxp-pro:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+      with: 
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Build
+      shell: cmd
+      run: |
+        cd build
+        cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_PRO=On ..
+        cmake --build . --config %BUILD_TYPE% --parallel
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-winxp-pro'
+        path: build/bin/tic80.exe
+
 # === Windows ===
   windows:
     runs-on: windows-latest
@@ -82,6 +105,12 @@ jobs:
         cmake -G "Visual Studio 16 2019" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_PRO=On ..
         cmake --build . --config %BUILD_TYPE% --parallel
 
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-windows-pro'
+        path: build/bin/tic80.exe
+
 # === Windows Sokol ===
   windows-sokol:
     runs-on: windows-latest
@@ -127,6 +156,18 @@ jobs:
         cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SDLGPU=On -DBUILD_PRO=On ..
         cmake --build . --config $BUILD_TYPE --parallel
         cpack
+
+    - name: Deploy DEB
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-linux-deb-pro'
+        path: build/tic80.deb
+
+    - name: Deploy ZIP
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-linux-pro'
+        path: build/bin/tic80
 
 # === Ubuntu ===
   linux:
@@ -390,6 +431,18 @@ jobs:
         cpack
         cp *.dmg tic80.dmg
 
+    - name: Deploy DMG
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-macos-dmg-pro'
+        path: build/tic80.dmg
+
+    - name: Deploy
+      uses: actions/upload-artifact@v2
+      with:
+        name: 'tic80-macos-pro'
+        path: build/bin/tic80
+
 # === Android ===
   android:
     runs-on: ubuntu-latest
@@ -606,11 +659,15 @@ jobs:
         uses: geekyeggo/delete-artifact@v1
         with:
           name: |
-            tic80-rpi
-            tic80-macos
             tic80-winxp-stub
             tic80-windows-stub
             tic80-linux-stub
             tic80-rpi-stub
             tic80-macos-stub
             tic80-wasm-stub
+#           tic80-macos-pro
+#           tic80-macos-dmg-pro
+#           tic80-winxp-pro
+#           tic80-windows-pro
+#           tic80-linux-deb-pro
+#           tic80-linux-pro
