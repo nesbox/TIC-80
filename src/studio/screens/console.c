@@ -934,11 +934,11 @@ static void onLoadCommandConfirmed(Console* console)
 #else
                 if(tic_project_ext(name)) {
                     printError(console, "\nproject loading error");
-                    printFront(console, "\nThis version only supports binary cartridges (GIF, PNG, or TIC).");
+                    printFront(console, "\nThis version only supports binary .png or .tic cartridges.");
                     printLine(console);
                     printFront(console, "\nTIC-80 ");
                     consolePrint(console,"PRO",tic_color_light_blue);
-                    printFront(console, " is needed for projects.");
+                    printFront(console, " is needed for text files.");
                     printLine(console);
                     printFront(console, "\nLearn more:\n");
                     printLink(console, "https://tic80.com/pro");

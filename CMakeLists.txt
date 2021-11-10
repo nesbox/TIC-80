@@ -748,9 +748,9 @@ set(TIC80STUDIO_SRC
     ${TIC80LIB_DIR}/ext/png.c
 )
 
-#if(${BUILD_PRO})
+if(${BUILD_PRO})
     set(TIC80STUDIO_SRC ${TIC80STUDIO_SRC} ${TIC80LIB_DIR}/studio/project.c)
-#endif()
+endif()
 
 set(TIC80_OUTPUT tic80)
 

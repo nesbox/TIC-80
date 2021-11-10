@@ -131,17 +131,6 @@ static const char* projectComment(const char* name)
     return Languages[0]->projectComment;
 }
 
-bool tic_project_ext(const char* name)
-{
-    FOR_EACH_LANG(ln)
-    {
-        if(tic_tool_has_ext(name, ln->fileExtension))
-            return true;
-    }
-    FOR_EACH_LANG_END
-    return false;
-}
-
 s32 tic_project_save(const char* name, void* data, const tic_cartridge* cart)
 {
     const char* comment = projectComment(name);
