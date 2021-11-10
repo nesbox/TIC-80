@@ -22,6 +22,7 @@
 
 #include "console.h"
 #include "start.h"
+#include "tools.h"
 #include "studio/fs.h"
 #include "studio/net.h"
 #include "studio/config.h"
