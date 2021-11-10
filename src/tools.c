@@ -149,6 +149,17 @@ u32* tic_tool_palette_blit(const tic_palette* srcpal, tic80_pixel_color_format f
     return pal;
 }
 
+bool tic_project_ext(const char* name)
+{
+    FOR_EACH_LANG(ln)
+    {
+        if(tic_tool_has_ext(name, ln->fileExtension))
+            return true;
+    }
+    FOR_EACH_LANG_END
+    return false;
+}
+
 bool tic_tool_has_ext(const char* name, const char* ext)
 {
     return strcmp(name + strlen(name) - strlen(ext), ext) == 0;

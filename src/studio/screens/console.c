@@ -22,6 +22,7 @@
 
 #include "console.h"
 #include "start.h"
+#include "tools.h"
 #include "studio/fs.h"
 #include "studio/net.h"
 #include "studio/config.h"
@@ -59,6 +60,7 @@
 #define CONSOLE_BACK_TEXT_COLOR     tic_color_grey
 #define CONSOLE_FRONT_TEXT_COLOR    tic_color_light_grey
 #define CONSOLE_ERROR_TEXT_COLOR    tic_color_red
+#define CONSOLE_LINK_TEXT_COLOR     tic_color_blue
 #define CONSOLE_CURSOR_BLINK_PERIOD TIC80_FRAMERATE
 #define CONSOLE_CURSOR_DELAY        (TIC80_FRAMERATE / 2)
 #define CONSOLE_BUFFER_WIDTH        (STUDIO_TEXT_BUFFER_WIDTH)
@@ -416,6 +418,11 @@ static void printBack(Console* console, const char* text)
 static void printFront(Console* console, const char* text)
 {
     consolePrint(console, text, CONSOLE_FRONT_TEXT_COLOR);
+}
+
+static void printLink(Console* console, const char* text)
+{
+    consolePrint(console, text, CONSOLE_LINK_TEXT_COLOR);
 }
 
 static void printError(Console* console, const char* text)
@@ -926,7 +933,20 @@ static void onLoadCommandConfirmed(Console* console)
                 }
                 else printError(console, "\nfile not found");
 #else
-                printError(console, "\ncart loading error");
+                if(tic_project_ext(name)) {
+                    printError(console, "\nproject loading error");
+                    printFront(console, "\nThis version only supports binary .png or .tic cartridges.");
+                    printLine(console);
+                    printFront(console, "\nTIC-80 ");
+                    consolePrint(console,"PRO",tic_color_light_blue);
+                    printFront(console, " is needed for text files.");
+                    printLine(console);
+                    printFront(console, "\nLearn more:\n");
+                    printLink(console, "https://tic80.com/pro");
+                } else {
+                    printError(console, "\ncart loading error");
+                }
+                
 #endif
             }
         }
