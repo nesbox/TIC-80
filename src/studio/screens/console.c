@@ -29,8 +29,11 @@
 #include "zip.h"
 #include "studio/demos.h"
 
+#if defined(TIC80_PRO)
 #include "studio/project.h"
+#else
 #include "cart.h"
+#endif
 
 #include <ctype.h>
 #include <string.h>
