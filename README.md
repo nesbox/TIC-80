@@ -23,7 +23,7 @@ To make a retro styled game, the whole process of creation and execution takes p
 - Games can have mouse and keyboard as input
 - Games can have up to 4 controllers as input (with up to 8 buttons, each)
 - Built-in editors: for code, sprites, world maps, sound effects and music
-- An aditional memory bank: load different assets from your cartridge while your game is executing
+- An additional memory bank: load different assets from your cartridge while your game is executing
 - Moderated community
 
 # Binary Downloads
