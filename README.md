@@ -4,7 +4,7 @@
 **TIC-80 TINY COMPUTER** - [https://tic80.com](https://tic80.com)
 
 # About
-TIC-80 is a **FREE** and **OPEN SOURCE** fantasy computer for making, playing and sharing tiny games.
+TIC-80 is a free and open source fantasy computer for making, playing and sharing tiny games.
 
 With TIC-80 you get built-in tools for development: code, sprites, maps, sound editors and the command line, which is enough to create a mini retro game.
 
@@ -23,20 +23,22 @@ To make a retro styled game, the whole process of creation and execution takes p
 - Games can have mouse and keyboard as input
 - Games can have up to 4 controllers as input (with up to 8 buttons, each)
 - Built-in editors: for code, sprites, world maps, sound effects and music
-- An aditional memory bank: load different assets from your cartridge while your game is executing
+- An additional memory bank: load different assets from your cartridge while your game is executing
+- Moderated community
 
 # Binary Downloads
 You can download compiled versions for the major operating systems directly from our [releases page](https://github.com/nesbox/TIC-80/releases).
-### Nightly builds
+## Nightly builds
 Can be downloaded from [nightly builds](https://nightly.link/nesbox/TIC-80/workflows/build/master) page or from the [Github Actions](https://github.com/nesbox/TIC-80/actions?query=branch%3Amaster) page.
 
 # Pro Version
 To help support TIC-80 development, we have a [PRO Version](https://nesbox.itch.io/tic80).
-This version has a few additional features and binaries can only be downloaded on [our Itch.io page](https://nesbox.itch.io/tic80).
 
-For users who can't spend the money, we made it easy to build the pro version from the source code. (`cmake .. -DBUILD_PRO=On`)
+This version has a few additional features and binaries can only be downloaded on our Itch.io page.
 
-### Pro features
+For users who can't spend the money, we made it easy to build the pro version from the source code: (`cmake .. -DBUILD_PRO=On`)
+
+## Pro features
 
 - Save/load cartridges in text format, and create your game in any editor you want, also useful for version control systems.
 - Even more memory banks: instead of having only 1 memory bank you have 8.
@@ -48,11 +50,11 @@ You can play and share games, tools and music at [https://tic80.com/play](https:
 The community also hangs out and discusses on [Telegram](https://t.me/tic80) or [Discord](https://discord.gg/DkD73dP).
 
 # Contributing
-You can contribute by issuing a bug or requesting a new feature on our [issues page](https://github.com/nesbox/TIC-80/issues).
+You can contribute by reporting a bug or requesting a new feature on our [issues page](https://github.com/nesbox/TIC-80/issues).
 Keep in mind when engaging on a discussion to follow our [Code of Conduct](https://github.com/nesbox/TIC-80/blob/master/CODE_OF_CONDUCT.md).
 
 You can also contribute by reviewing or improving our [wiki](https://github.com/nesbox/TIC-80/wiki).
-The [wiki](https://github.com/nesbox/TIC-80/wiki) holds TIC-80 documentation, code snippets and game development tutorials.
+The wiki holds TIC-80 documentation, code snippets and game development tutorials.
 
 # Build instructions
 
