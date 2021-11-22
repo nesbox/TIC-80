@@ -1,3 +1,5 @@
+## TIC-80 Community Guidelines
+
 We welcome everyone on the TIC-80 community, regardless of age and programming level, unless they are not following these guidelines. Help us keep your, our, and other's properties safe by following these Community Guidelines:
 ### Be respectful.
 We are all different. Try not to distrupt other people's rights.
