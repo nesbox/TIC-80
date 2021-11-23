@@ -210,14 +210,14 @@ static const char* PngExt = PNG_EXT;
 
 
 // You must free the result if result is non-NULL. TODO: find a better place for this function?
-char *str_replace(char *orig, char *rep, char *with) {
+char *str_replace(const char *orig, char *rep, char *with) {
     char *result; // the return string
-    char *ins;    // the next insert point
+    const char *ins;    // the next insert point
     char *tmp;    // varies
-    int len_rep;  // length of rep (the string to remove)
-    int len_with; // length of with (the string to replace rep with)
-    int len_front; // distance between rep and end of last rep
-    int count;    // number of replacements
+    s32 len_rep;  // length of rep (the string to remove)
+    s32 len_with; // length of with (the string to replace rep with)
+    s32 len_front; // distance between rep and end of last rep
+    s32 count;    // number of replacements
 
     // sanity checks and initialization
     if (!orig || !rep)
