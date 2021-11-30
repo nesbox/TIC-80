@@ -114,6 +114,8 @@ class TIC {\n\
     foreign static music(track, frame, loop, sustain)\n\
     foreign static time()\n\
     foreign static tstamp()\n\
+    foreign static vbank()\n\
+    foreign static vbank(bank)\n\
     foreign static sync()\n\
     foreign static sync(mask)\n\
     foreign static sync(mask, bank)\n\
@@ -1224,6 +1226,19 @@ static void wren_tstamp(WrenVM* vm)
     wrenSetSlotDouble(vm, 0, tic_api_tstamp(tic));
 }
 
+static void wren_vbank(WrenVM* vm)
+{
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
+
+    s32 prev = core->state.vbank.id;
+
+    if(wrenGetSlotCount(vm) == 2)
+        tic_api_vbank(tic, getWrenNumber(vm, 1));
+
+    wrenSetSlotDouble(vm, 0, prev);
+}
+
 static void wren_sync(WrenVM* vm)
 {
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
@@ -1395,6 +1410,8 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
 
     if (strcmp(signature, "static TIC.time()"                   ) == 0) return wren_time;
     if (strcmp(signature, "static TIC.tstamp()"                 ) == 0) return wren_tstamp;
+    if (strcmp(signature, "static TIC.vbank()"                  ) == 0) return wren_vbank;
+    if (strcmp(signature, "static TIC.vbank(_)"                 ) == 0) return wren_vbank;
     if (strcmp(signature, "static TIC.sync()"                   ) == 0) return wren_sync;
     if (strcmp(signature, "static TIC.sync(_)"                  ) == 0) return wren_sync;
     if (strcmp(signature, "static TIC.sync(_,_)"                ) == 0) return wren_sync;

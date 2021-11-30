@@ -876,6 +876,25 @@ static void tick(Surf* surf)
         if(cover)
             memcpy(tic->ram.vram.screen.data, cover->data, sizeof(tic_screen));
     }
+
+    OVR(tic)
+    {
+        memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.scn.data, sizeof(tic_palette));
+
+        if(surf->menu.count > 0)
+        {
+            drawMenu(surf, AnimVar.menuX, (TIC80_HEIGHT - MENU_HEIGHT)/2);
+        }
+        else if(!surf->loading)
+        {
+            static const char Label[] = "You don't have any files...";
+            s32 size = tic_api_print(tic, Label, 0, -TIC_FONT_HEIGHT, tic_color_white, true, 1, false);
+            tic_api_print(tic, Label, (TIC80_WIDTH - size) / 2, (TIC80_HEIGHT - TIC_FONT_HEIGHT)/2, tic_color_white, true, 1, false);
+        }
+
+        drawTopToolbar(surf, 0, AnimVar.topBarY - MENU_HEIGHT);
+        drawBottomToolbar(surf, 0, TIC80_HEIGHT - AnimVar.bottomBarY);
+    }
 }
 
 static void resume(Surf* surf)
@@ -906,27 +925,6 @@ static void scanline(tic_mem* tic, s32 row, void* data)
     drawBGAnimationScanline(tic, row);
 }
 
-static void overline(tic_mem* tic, void* data)
-{
-    memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.scn.data, sizeof(tic_palette));
-
-    Surf* surf = (Surf*)data;
-
-    if(surf->menu.count > 0)
-    {
-        drawMenu(surf, AnimVar.menuX, (TIC80_HEIGHT - MENU_HEIGHT)/2);
-    }
-    else if(!surf->loading)
-    {
-        static const char Label[] = "You don't have any files...";
-        s32 size = tic_api_print(tic, Label, 0, -TIC_FONT_HEIGHT, tic_color_white, true, 1, false);
-        tic_api_print(tic, Label, (TIC80_WIDTH - size) / 2, (TIC80_HEIGHT - TIC_FONT_HEIGHT)/2, tic_color_white, true, 1, false);
-    }
-
-    drawTopToolbar(surf, 0, AnimVar.topBarY - MENU_HEIGHT);
-    drawBottomToolbar(surf, 0, TIC80_HEIGHT - AnimVar.bottomBarY);
-}
-
 void initSurf(Surf* surf, tic_mem* tic, struct Console* console)
 {
     *surf = (Surf)
@@ -948,7 +946,6 @@ void initSurf(Surf* surf, tic_mem* tic, struct Console* console)
             .items = NULL,
             .count = 0,
         },
-        .overline = overline,
         .scanline = scanline,
     };
 

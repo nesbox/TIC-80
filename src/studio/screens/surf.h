@@ -50,7 +50,6 @@ struct Surf
     void(*tick)(Surf* surf);
     void(*resume)(Surf* surf);
     void (*scanline)(tic_mem* tic, s32 row, void* data);
-    void (*overline)(tic_mem* tic, void* data);
 };
 
 void initSurf(Surf* surf, tic_mem* tic, struct Console* console);

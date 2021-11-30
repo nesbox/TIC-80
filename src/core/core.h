@@ -146,14 +146,18 @@ typedef struct
     tic_tick tick;
     tic_blit_callback callback;
     
-    struct
-    {
-        tic_palette palette;
-    } ovr;
-
     u32 synced;
 
-    u8 memmask[sizeof(tic_ram) << 1];
+    struct
+    {
+        s32 id;
+        tic_vram mem;
+        u8 memmask[sizeof(tic_screen) << 1];
+        struct
+        {
+            u8 l, t, r, b;
+        } clip;
+    } vbank;
 
     bool initialized;
 } tic_core_state_data;

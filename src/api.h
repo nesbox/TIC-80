@@ -116,14 +116,14 @@ typedef struct
 //       |---------+---------------+------- - - - 
 //       |         |               |
 #define TIC_SYNC_LIST(macro) \
-    macro(tiles,    tiles,          0) \
-    macro(sprites,  sprites,        1) \
-    macro(map,      map,            2) \
-    macro(sfx,      sfx,            3) \
-    macro(music,    music,          4) \
-    macro(palette,  vram.palette,   5) \
-    macro(flags,    flags,          6) \
-    macro(screen,   vram.screen,    7)
+    macro(tiles,    tiles,        0) \
+    macro(sprites,  sprites,      1) \
+    macro(map,      map,          2) \
+    macro(sfx,      sfx,          3) \
+    macro(music,    music,        4) \
+    macro(palette,  vram.palette, 5) \
+    macro(flags,    flags,        6) \
+    macro(screen,   vram.screen,  7)
 
 enum
 {
@@ -655,6 +655,15 @@ enum
         tic_mem*, u32 mask, s32 bank, bool toCart)                                                                      \
                                                                                                                         \
                                                                                                                         \
+    macro(vbank,                                                                                                        \
+        "vbank(bank) -> prev\nvbank() -> prev",                                                                         \
+                                                                                                                        \
+        "VRAM contains 2x16K memory chips, use vbank(0) or vbank(1) to switch between them.",                           \
+        1,                                                                                                              \
+        s32,                                                                                                            \
+        tic_mem*, s32 ovr)                                                                                              \
+                                                                                                                        \
+                                                                                                                        \
     macro(reset,                                                                                                        \
         "reset()",                                                                                                      \
                                                                                                                         \
@@ -749,7 +758,6 @@ void tic_core_tick(tic_mem* memory, tic_tick_data* data);
 void tic_core_tick_end(tic_mem* memory);
 void tic_core_blit(tic_mem* tic);
 void tic_core_synth_sound(tic_mem* tic);
-
 void tic_core_blit_ex(tic_mem* tic, tic_blit_callback clb);
 const tic_script_config* tic_core_script_config(tic_mem* memory);
 
@@ -760,3 +768,9 @@ typedef struct
     tic_tick_data tickData;
     u64 tick_counter;
 } tic80_local;
+
+#define VBANK(tic, ovr)                                 \
+    bool MACROVAR(_ovr_) = tic_api_vbank(tic, ovr);    \
+    SCOPE(tic_api_vbank(tic, MACROVAR(_ovr_)))
+
+#define OVR(tic) VBANK(tic, 1)

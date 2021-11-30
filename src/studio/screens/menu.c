@@ -497,6 +497,21 @@ static void tick(Menu* menu)
         tic_api_sync(tic, tic_sync_screen, 0, false);
     else
         drawBGAnimation(tic, menu->ticks);
+
+    OVR(tic)
+    {
+        memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.scn.data, sizeof(tic_palette));
+
+        switch(menu->mode)
+        {
+        case MAIN_MENU_MODE:
+            drawMainMenu(menu);
+            break;
+        case GAMEPAD_MENU_MODE:
+            drawGamepadMenu(menu);
+            break;
+        }
+    }
 }
 
 static void scanline(tic_mem* tic, s32 row, void* data)
@@ -512,23 +527,6 @@ static void scanline(tic_mem* tic, s32 row, void* data)
         drawBGAnimationScanline(tic, row);
 }
 
-static void overline(tic_mem* tic, void* data)
-{
-    memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.scn.data, sizeof(tic_palette));
-
-    Menu* menu = (Menu*)data;
-
-    switch(menu->mode)
-    {
-    case MAIN_MENU_MODE:
-        drawMainMenu(menu);
-        break;
-    case GAMEPAD_MENU_MODE:
-        drawGamepadMenu(menu);
-        break;
-    }
-}
-
 void initMenu(Menu* menu, tic_mem* tic, tic_fs* fs)
 {
     *menu = (Menu)
@@ -539,7 +537,6 @@ void initMenu(Menu* menu, tic_mem* tic, tic_fs* fs)
         .tic = tic,
         .tick = tick,
         .scanline = scanline,
-        .overline = overline,
         .ticks = 0,
         .pos = {0, 0},
         .main =

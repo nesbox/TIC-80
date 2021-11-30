@@ -86,7 +86,6 @@ struct Map
     void (*tick)(Map*);
     void (*event)(Map*, StudioEvent);
     void (*scanline)(tic_mem* tic, s32 row, void* data);
-    void (*overline)(tic_mem* tic, void* data);
 };
 
 void initMap(Map*, tic_mem*, tic_map* src);

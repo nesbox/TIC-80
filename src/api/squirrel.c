@@ -1029,6 +1029,20 @@ static SQInteger squirrel_sfx(HSQUIRRELVM vm)
     return 0;
 }
 
+static SQInteger squirrel_vbank(HSQUIRRELVM vm)
+{
+    tic_core* core = getSquirrelCore(vm);
+    tic_mem* tic = (tic_mem*)core;
+
+    s32 prev = core->state.vbank.id;
+
+    if(sq_gettop(vm) == 2)
+        tic_api_vbank(tic, getSquirrelNumber(vm, 2));
+
+    sq_pushinteger(vm, prev);
+    return 1;
+}
+
 static SQInteger squirrel_sync(HSQUIRRELVM vm)
 {
     tic_mem* tic = (tic_mem*)getSquirrelCore(vm);
@@ -1676,6 +1690,7 @@ static void callSquirrelOverline(tic_mem* tic, void* data)
         
         if(SQ_SUCCEEDED(sq_get(vm, -2))) 
         {
+            tic_api_cls(tic, 0);
             sq_pushroottable(vm);
             if(SQ_FAILED(sq_call(vm, 1, SQFalse, SQTrue)))
             {

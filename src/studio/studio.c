@@ -1237,7 +1237,10 @@ void setCursor(tic_cursor id)
 {
     tic_mem* tic = impl.studio.tic;
 
-    tic->ram.vram.vars.cursor.sprite = id;
+    VBANK(tic, 0)
+    {
+        tic->ram.vram.vars.cursor.sprite = id;
+    }
 }
 
 #if defined(BUILD_EDITORS)
@@ -1742,7 +1745,6 @@ static void recordFrame(u32* pixels)
 
             if(impl.video.frame % TIC80_FRAMERATE < TIC80_FRAMERATE / 2)
             {
-                const u32* pal = tic_tool_palette_blit(&impl.config->cart->bank0.palette.scn, TIC80_PIXEL_COLOR_RGBA8888);
                 drawRecordLabel(pixels, TIC80_WIDTH-24, 8);
             }
 
@@ -1798,6 +1800,15 @@ static void renderStudio()
     }
 
     processShortcuts();
+
+    // clear screen for all the modes except the Run mode
+    if(impl.mode != TIC_RUN_MODE)
+    {
+        OVR(tic)
+        {
+            tic_api_cls(tic, 0);
+        }        
+    }
     
     switch(impl.mode)
     {
@@ -2010,14 +2021,14 @@ static void studioTick()
 
         tic_blit_callback callback[TIC_MODES_COUNT] = 
         {
-            [TIC_MENU_MODE]     = {impl.menu->scanline,     impl.menu->overline,    NULL,   impl.menu},
+            [TIC_MENU_MODE]     = {impl.menu->scanline,     NULL,   NULL,   impl.menu},
 
 #if defined(BUILD_EDITORS)
-            [TIC_SPRITE_MODE]   = {sprite->scanline,        sprite->overline,       NULL,   sprite},
-            [TIC_MAP_MODE]      = {map->scanline,           map->overline,          NULL,   map},
-            [TIC_WORLD_MODE]    = {impl.world->scanline,    impl.world->overline,   NULL,   impl.world},
-            [TIC_DIALOG_MODE]   = {impl.dialog->scanline,   impl.dialog->overline,  NULL,   impl.dialog},
-            [TIC_SURF_MODE]     = {impl.surf->scanline,     impl.surf->overline,    NULL,   impl.surf},
+            [TIC_SPRITE_MODE]   = {sprite->scanline,        NULL,   NULL,   sprite},
+            [TIC_MAP_MODE]      = {map->scanline,           NULL,   NULL,   map},
+            [TIC_WORLD_MODE]    = {impl.world->scanline,    NULL,   NULL,   impl.world},
+            [TIC_DIALOG_MODE]   = {impl.dialog->scanline,   NULL,   NULL,   impl.dialog},
+            [TIC_SURF_MODE]     = {impl.surf->scanline,     NULL,   NULL,   impl.surf},
 #endif
         };
 

@@ -191,6 +191,12 @@ static void tick(Dialog* dlg)
 
     tic_mem* tic = dlg->tic;
     drawBGAnimation(tic, dlg->ticks);
+
+    OVR(tic)
+    {
+        memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.scn.data, sizeof(tic_palette));
+        drawDialog(dlg);
+    }
 }
 
 static void scanline(tic_mem* tic, s32 row, void* data)
@@ -198,15 +204,6 @@ static void scanline(tic_mem* tic, s32 row, void* data)
     Dialog* dlg = (Dialog*)data;
 
     drawBGAnimationScanline(tic, row);
-}
-
-static void overline(tic_mem* tic, void* data)
-{
-    memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.scn.data, sizeof(tic_palette));
-
-    Dialog* dlg = (Dialog*)data;
-
-    drawDialog(dlg);
 }
 
 static void escape(Dialog* dlg)
@@ -223,7 +220,6 @@ void initDialog(Dialog* dlg, tic_mem* tic, const char** text, s32 rows, DialogCa
         .tic = tic,
         .tick = tick,
         .scanline = scanline,
-        .overline = overline,
         .escape = escape,
         .ticks = 0,
         .callback = callback,

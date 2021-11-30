@@ -49,7 +49,6 @@ struct Dialog
     
     void(*tick)(Dialog* Dialog);
     void (*scanline)(tic_mem* tic, s32 row, void* data);
-    void (*overline)(tic_mem* tic, void* data);    
     void(*escape)(Dialog* Dialog);
 };
 

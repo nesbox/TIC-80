@@ -107,13 +107,13 @@ u32 tic_nearest_color(const tic_rgb* palette, const tic_rgb* color, s32 count)
     return nearest;
 }
 
-u32* tic_tool_palette_blit(const tic_palette* srcpal, tic80_pixel_color_format fmt)
+tic_blitpal tic_tool_palette_blit(const tic_palette* srcpal, tic80_pixel_color_format fmt)
 {
-    static u32 pal[TIC_PALETTE_SIZE];
+    tic_blitpal pal;
 
     const tic_rgb* src = srcpal->colors;
     const tic_rgb* end = src + TIC_PALETTE_SIZE;
-    u8* dst = (u8*)pal;
+    u8* dst = (u8*)pal.data;
 
     while(src != end)
     {

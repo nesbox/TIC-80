@@ -942,6 +942,20 @@ static s32 lua_sfx(lua_State* lua)
     return 0;
 }
 
+static s32 lua_vbank(lua_State* lua)
+{
+    tic_core* core = getLuaCore(lua);
+    tic_mem* tic = (tic_mem*)core;
+
+    s32 prev = core->state.vbank.id;
+
+    if(lua_gettop(lua) == 1)
+        tic_api_vbank(tic, getLuaNumber(lua, 1));
+
+    lua_pushinteger(lua, prev);
+    return 1;
+}
+
 static s32 lua_sync(lua_State* lua)
 {
     tic_mem* tic = (tic_mem*)getLuaCore(lua);
@@ -1565,8 +1579,9 @@ void callLuaOverline(tic_mem* tic, void* data)
         lua_getglobal(lua, OvrFunc);
         if(lua_isfunction(lua, -1)) 
         {
+            tic_api_cls(tic, 0);
             if(docall(lua, 0, 0) != LUA_OK)
-                core->data->error(core->data->data, lua_tostring(lua, -1));
+                core->data->error(core->data->data, lua_tostring(lua, -1));            
         }
         else lua_pop(lua, 1);
     }

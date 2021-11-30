@@ -896,6 +896,21 @@ static duk_ret_t duk_music(duk_context* duk)
     return 0;
 }
 
+static duk_ret_t duk_vbank(duk_context* duk)
+{
+    tic_core* core = getDukCore(duk);
+    tic_mem* tic = (tic_mem*)core;
+
+    s32 prev = core->state.vbank.id;
+
+    if(!duk_is_null_or_undefined(duk, 0))
+        tic_api_vbank(tic, duk_opt_int(duk, 0, 0));
+
+    duk_push_uint(duk, prev);
+
+    return 1;
+}
+
 static duk_ret_t duk_sync(duk_context* duk)
 {
     tic_mem* tic = (tic_mem*)getDukCore(duk);
@@ -1046,6 +1061,7 @@ static void callJavascriptOverline(tic_mem* tic, void* data)
 
     if(duk_get_global_string(duk, OVR_FN))
     {
+        tic_api_cls(tic, 0);
         if(duk_pcall(duk, 0) != 0)
             core->data->error(core->data->data, duk_safe_to_stacktrace(duk, -1));
     }

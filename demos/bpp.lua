@@ -13,8 +13,8 @@ offset =
 omap = {0,1,3,2}
 
 function rFrame(x,y,w,h,segment,style)
-  local keep = peek4(2*0x03FF8+1)
-  poke4(2*0x03FF8+1, segment)
+  local keep = peek4(2*0x03FFC)
+  poke4(2*0x03FFC, segment)
   function bdr(xy,rot)
     local hrz=(rot%2)==0, iend, c
     if hrz then c=x iend=w-3
@@ -46,7 +46,7 @@ function rFrame(x,y,w,h,segment,style)
   bdr(x2,1)
   
   rect(x+8,y+8,w*8-16,h*8-16,1)
-  poke4(2*0x03FF8+1, keep)
+  poke4(2*0x03FFC, keep)
 end
 
 function rFontSheet(x, y, segment, alt)
@@ -54,10 +54,10 @@ function rFontSheet(x, y, segment, alt)
 end
 
 function rText(text,x,y,segment,alt)
-  local keep = peek4(2*0x03FF8+1)
-  poke4(2*0x03FF8+1, segment)
+  local keep = peek4(2*0x03FFC)
+  poke4(2*0x03FFC, segment)
   font(text,x,y,0,5,8,false,1,alt)
-  poke4(2*0x03FF8+1, keep)
+  poke4(2*0x03FFC, keep)
 end
 
 -- segments for 1bpp BG page are:

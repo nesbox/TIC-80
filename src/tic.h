@@ -389,6 +389,11 @@ typedef union
 
 typedef struct
 {
+    u32 data[TIC_PALETTE_SIZE];
+} tic_blitpal;
+
+typedef struct
+{
     tic_tile data[TIC_BANK_SPRITES];
 } tic_tiles, tic_sprites;
 
@@ -397,10 +402,15 @@ typedef struct
     u8 data[TIC_FLAGS];
 } tic_flags;
 
-typedef struct
+typedef union
 {
-    tic_palette scn;
-    tic_palette ovr;
+    struct
+    {
+        tic_palette scn;
+        tic_palette ovr;
+    };
+
+    tic_palette data[2];
 } tic_palettes;
 
 typedef struct
@@ -465,7 +475,7 @@ typedef union
         struct
         {
             u8 border:TIC_PALETTE_BPP;
-            u8 blit:4;
+            u8 tmp:4;
 
             struct
             {
@@ -478,13 +488,15 @@ typedef union
                 u8 sprite:7;
                 bool system:1;
             } cursor;
-
         } vars;
 
         struct
         {
-            u8 l, t, r, b;
-        } clip;
+            u8 segment:4;
+            u8 reserved:4;
+        } blit;
+
+        u8 reserved[3];
     };
     
     u8 data[TIC_VRAM_SIZE];

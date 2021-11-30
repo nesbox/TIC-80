@@ -293,20 +293,23 @@ static void setWindowIcon()
 {
     enum{ Size = 64, TileSize = 16, ColorKey = 14, Cols = TileSize / TIC_SPRITESIZE, Scale = Size/TileSize};
 
-    DEFER(u32* pixels = SDL_malloc(Size * Size * sizeof(u32)), SDL_free(pixels))
+    u32* pixels = SDL_malloc(Size * Size * sizeof(u32));
+    SCOPE(SDL_free(pixels))
     {
-        const u32* pal = tic_tool_palette_blit(&platform.studio->config()->cart->bank0.palette.scn, platform.studio->tic->screen_format);
+        tic_blitpal pal = tic_tool_palette_blit(&platform.studio->config()->cart->bank0.palette.scn, platform.studio->tic->screen_format);
 
         for(s32 j = 0, index = 0; j < Size; j++)
             for(s32 i = 0; i < Size; i++, index++)
             {
                 u8 color = getSpritePixel(platform.studio->config()->cart->bank0.tiles.data, i/Scale, j/Scale);
-                pixels[index] = color == ColorKey ? 0 : pal[color];
+                pixels[index] = color == ColorKey ? 0 : pal.data[color];
             }
 
-        DEFER(SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, Size, Size,
+        SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, Size, Size,
             sizeof(s32) * BITS_IN_BYTE, Size * sizeof(s32),
-            0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000), SDL_FreeSurface(surface))
+            0x000000ff, 0x0000ff00, 0x00ff0000, 0xff000000);
+        
+        SCOPE(SDL_FreeSurface(surface))
         {
             SDL_SetWindowIcon(platform.window, surface);
         }
@@ -1261,7 +1264,6 @@ static void renderGamepad()
             GPU_BlitScale(platform.gamepad.touch.texture.gpu, &src, platform.screen.renderer.gpu, dest.x, dest.y,
                 (float)dest.w / TIC_SPRITESIZE, (float)dest.h / TIC_SPRITESIZE);
         }
-        else
 #else
         {
             SDL_Rect src = {i * TIC_SPRITESIZE + Left, (tile->press ? TIC_SPRITESIZE : 0) + TIC80_MARGIN_TOP, TIC_SPRITESIZE, TIC_SPRITESIZE};

@@ -79,10 +79,11 @@ inline u32 tic_rgba(const tic_rgb* c)
     return (0xff << 24) | (c->b << 16) | (c->g << 8) | (c->r << 0);
 }
 
+tic_blitpal tic_tool_palette_blit(const tic_palette* src, tic80_pixel_color_format fmt);
+
 bool    tic_tool_parse_note(const char* noteStr, s32* note, s32* octave);
 s32     tic_tool_get_pattern_id(const tic_track* track, s32 frame, s32 channel);
 void    tic_tool_set_pattern_id(tic_track* track, s32 frame, s32 channel, s32 id);
-u32*    tic_tool_palette_blit(const tic_palette* src, tic80_pixel_color_format fmt);
 bool    tic_project_ext(const char* name);
 bool    tic_tool_has_ext(const char* name, const char* ext);
 s32     tic_tool_get_track_row_sfx(const tic_track_row* row);
