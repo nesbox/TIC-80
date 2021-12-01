@@ -188,16 +188,17 @@ static void readConfig(Config* config)
     {
         if(luaL_loadstring(lua, config->cart->code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
         {
-            readGlobalInteger(lua, "GIF_LENGTH", &config->data.gifLength);
-            readGlobalInteger(lua, "GIF_SCALE", &config->data.gifScale);
-            readGlobalBool(lua, "CHECK_NEW_VERSION", &config->data.checkNewVersion);
-            readGlobalBool(lua, "NO_SOUND", &config->data.noSound);
+            readGlobalInteger(lua,  "GIF_LENGTH",           &config->data.gifLength);
+            readGlobalInteger(lua,  "GIF_SCALE",            &config->data.gifScale);
+            readGlobalBool(lua,     "CHECK_NEW_VERSION",    &config->data.checkNewVersion);
+            readGlobalBool(lua,     "NO_SOUND",             &config->data.noSound);
+            readGlobalInteger(lua,  "UI_SCALE",             &config->data.uiScale);
+            readGlobalBool(lua,     "VSYNC",                &config->data.vsync);
+            readGlobalBool(lua,     "SOFTWARE_RENDERING",   &config->data.soft);
 #if defined(CRT_SHADER_SUPPORT)
-            readGlobalBool(lua, "SOFTWARE_RENDERING", &config->data.soft);
-            readGlobalBool(lua, "CRT_MONITOR", &config->data.crt);
+            readGlobalBool(lua,     "CRT_MONITOR",          &config->data.crt);
             readConfigCrtShader(config, lua);
 #endif
-            readGlobalInteger(lua, "UI_SCALE", &config->data.uiScale);
             readTheme(config, lua);
         }
 

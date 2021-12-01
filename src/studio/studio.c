@@ -2220,11 +2220,12 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder)
         impl.config->data.uiScale = args.scale;
 
 #if defined(CRT_SHADER_SUPPORT)
-    impl.config->data.soft  |= args.soft;
-    impl.config->data.crt   |= args.crt;
+    impl.config->data.crt           |= args.crt;
 #endif
 
     impl.config->data.goFullscreen  |= args.fullscreen;
+    impl.config->data.soft          |= args.soft;
+    impl.config->data.vsync         |= args.vsync;
     impl.config->data.noSound       |= args.nosound;
     impl.config->data.cli           |= args.cli;
 

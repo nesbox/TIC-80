@@ -106,9 +106,9 @@ typedef struct
     bool checkNewVersion;
     bool noSound;
     bool cli;
+    bool soft;
 
 #if defined(CRT_SHADER_SUPPORT)
-    bool soft;
     bool crt;
     struct
     {
@@ -118,6 +118,7 @@ typedef struct
 #endif
     
     bool goFullscreen;
+    bool vsync;
 
     const tic_cartridge* cart;
 

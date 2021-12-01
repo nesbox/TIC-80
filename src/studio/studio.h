@@ -64,7 +64,6 @@
 
 #if defined(CRT_SHADER_SUPPORT)
 #   define CRT_CMD_PARAM(macro)                                 \
-    macro(soft, bool, BOOLEAN, "", "use software rendering")    \
     macro(crt, bool, BOOLEAN, "", "enable CRT monitor effect")
 #else
 #   define CRT_CMD_PARAM(macro)
@@ -75,6 +74,8 @@
     macro(nosound,      bool,   BOOLEAN,    "",         "disable sound output")             \
     macro(cli,          bool,   BOOLEAN,    "",         "console only output")              \
     macro(fullscreen,   bool,   BOOLEAN,    "",         "enable fullscreen mode")           \
+    macro(vsync,        bool,   BOOLEAN,    "",         "enable VSYNC")                     \
+    macro(soft,         bool,   BOOLEAN,    "",         "use software rendering")           \
     macro(fs,           char*,  STRING,     "=<str>",   "path to the file system folder")   \
     macro(scale,        s32,    INTEGER,    "=<int>",   "main window scale")                \
     macro(cmd,          char*,  STRING,     "=<str>",   "run commands in the console")      \

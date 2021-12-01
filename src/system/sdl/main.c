@@ -494,15 +494,18 @@ static void initTouchGamepad()
 
 static void initGPU()
 {
+    bool vsync = platform.studio->config()->vsync;
+    bool soft = platform.studio->config()->soft;
+
 #if defined(CRT_SHADER_SUPPORT)
-    if(!platform.studio->config()->soft)
+    if(!soft)
     {
         s32 w, h;
         SDL_GetWindowSize(platform.window, &w, &h);
 
         GPU_SetInitWindow(SDL_GetWindowID(platform.window));
 
-        platform.screen.renderer.gpu = GPU_Init(w, h, GPU_INIT_DISABLE_VSYNC);
+        platform.screen.renderer.gpu = GPU_Init(w, h, vsync ? GPU_INIT_ENABLE_VSYNC : GPU_INIT_DISABLE_VSYNC);
 
         GPU_SetWindowResolution(w, h);
         GPU_SetVirtualResolution(platform.screen.renderer.gpu, w, h);
@@ -518,9 +521,10 @@ static void initGPU()
 #if defined(CRT_SHADER_SUPPORT)
             SDL_RENDERER_SOFTWARE
 #else
-            SDL_RENDERER_ACCELERATED
+            (soft ? SDL_RENDERER_SOFTWARE : SDL_RENDERER_ACCELERATED)
 #endif
-            );
+            | (!soft && vsync ? SDL_RENDERER_PRESENTVSYNC : 0)
+        );
 
         platform.screen.texture.sdl = SDL_CreateTexture(platform.screen.renderer.sdl, SDL_PIXELFORMAT_ABGR8888, 
             SDL_TEXTUREACCESS_STREAMING, TIC80_FULLWIDTH, TIC80_FULLHEIGHT);
@@ -1539,12 +1543,6 @@ static void gpuTick()
 
 static void emsGpuTick()
 {
-    static double nextTick = -1.0;
-
-    if(nextTick < 0.0)
-        nextTick = emscripten_get_now();
-
-    nextTick += 1000.0/TIC80_FRAMERATE;
     gpuTick();
 
     EM_ASM(
@@ -1555,15 +1553,6 @@ static void emsGpuTick()
             FS.syncfs(false,function(){});
         }
     });
-
-    double delay = nextTick - emscripten_get_now();
-
-    if(delay < 0.0)
-    {
-        nextTick -= delay;
-    }
-    else
-        emscripten_set_main_loop_timing(EM_TIMING_SETTIMEOUT, delay);
 }
 
 #endif
@@ -1613,27 +1602,29 @@ static s32 start(s32 argc, char **argv, const char* folder)
             SDL_PauseAudioDevice(platform.audio.device, 0);
 
 #if defined(__EMSCRIPTEN__)
-            emscripten_set_main_loop(emsGpuTick, 0, 1);
+            emscripten_set_main_loop(emsGpuTick, platform.studio->config()->vsync ? 0 : TIC80_FRAMERATE, 1);
 #else
             {
-                u64 nextTick = SDL_GetPerformanceCounter();
+                u64 nextTick = 0;
                 const u64 Delta = SDL_GetPerformanceFrequency() / TIC80_FRAMERATE;
 
                 while (!platform.studio->quit)
                 {
-                    nextTick += Delta;
-                
                     gpuTick();
 
+                    if(nextTick == 0)
+                        nextTick = SDL_GetPerformanceCounter();
+                    else
                     {
                         s64 delay = nextTick - SDL_GetPerformanceCounter();
 
-                        if(delay >= 0)
+                        if(delay > 0)
                             SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
                     }
+
+                    nextTick += Delta;
                 }
             }
-
 #endif
 
 #if defined(TOUCH_INPUT_SUPPORT)
