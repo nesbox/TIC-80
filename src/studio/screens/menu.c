@@ -498,9 +498,9 @@ static void tick(Menu* menu)
     else
         drawBGAnimation(tic, menu->ticks);
 
-    OVR(tic)
+    VBANK(tic, 1)
     {
-        memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.scn.data, sizeof(tic_palette));
+        memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
 
         switch(menu->mode)
         {
@@ -521,7 +521,7 @@ static void scanline(tic_mem* tic, s32 row, void* data)
     if(menu->cover)
     {
         if(row == 0)
-            memcpy(&tic->ram.vram.palette, tic->cart.bank0.palette.scn.data, sizeof(tic_palette));
+            memcpy(&tic->ram.vram.palette, tic->cart.bank0.palette.vbank0.data, sizeof(tic_palette));
     }
     else 
         drawBGAnimationScanline(tic, row);

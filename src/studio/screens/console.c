@@ -96,7 +96,7 @@
     macro(y)                    \
     macro(w)                    \
     macro(h)                    \
-    macro(ovr)
+    macro(vbank)
 
 #define EXPORT_CMD_LIST(macro)  \
     macro(win)                  \
@@ -122,7 +122,7 @@
 
 #define EXPORT_KEYS_LIST(macro) \
     macro(bank)                 \
-    macro(ovr)                  \
+    macro(vbank)                \
     macro(id)                   \
     ALONE_KEY(macro)
 
@@ -1539,11 +1539,11 @@ static inline tic_bank* getBank(Console* console, s32 bank)
     return &console->tic->cart.banks[bank];
 }
 
-static inline const tic_palette* getPalette(Console* console, s32 bank, s32 ovr)
+static inline const tic_palette* getPalette(Console* console, s32 bank, s32 vbank)
 {
-    return ovr 
-        ? &getBank(console, bank)->palette.ovr
-        : &getBank(console, bank)->palette.scn;
+    return vbank 
+        ? &getBank(console, bank)->palette.vbank1
+        : &getBank(console, bank)->palette.vbank0;
 }
 
 static void onImportTilesBase(Console* console, const char* name, const void* buffer, s32 size, tic_tile* base, ImportParams params)
@@ -1555,7 +1555,7 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
 
     if(img.data) SCOPE(free(img.data))
     {
-        const tic_palette* pal = getPalette(console, params.bank, params.ovr);
+        const tic_palette* pal = getPalette(console, params.bank, params.vbank);
         
         for(s32 j = 0, y = params.y, h = y + (params.h ? params.h : img.height); y < h; ++y, ++j)
             for(s32 i = 0, x = params.x, w = x + (params.w ? params.w : img.width); x < w; ++x, ++i)
@@ -1626,7 +1626,7 @@ static void onImport_screen(Console* console, const char* name, const void* buff
         if(img.width == TIC80_WIDTH && img.height == TIC80_HEIGHT)
         {
             tic_bank* bank = getBank(console, params.bank);
-            const tic_palette* pal = getPalette(console, params.bank, params.ovr);
+            const tic_palette* pal = getPalette(console, params.bank, params.vbank);
 
             s32 i = 0;
             for(const png_rgba *pix = img.pixels, *end = pix + (TIC80_WIDTH * TIC80_HEIGHT); pix < end; pix++)
@@ -1733,7 +1733,7 @@ static void exportSprites(Console* console, const char* filename, tic_tile* base
 
     SCOPE(free(img.data))
     {
-        const tic_palette* pal = getPalette(console, params.bank, params.ovr);
+        const tic_palette* pal = getPalette(console, params.bank, params.vbank);
 
         for(s32 i = 0; i < TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE; i++)
             img.values[i] = tic_rgba(&pal->colors[getSpritePixel(base, i % TIC_SPRITESHEET_SIZE, i / TIC_SPRITESHEET_SIZE)]);
@@ -2074,7 +2074,7 @@ static void onExport_screen(Console* console, const char* param, const char* nam
 
     SCOPE(free(img.data))
     {
-        const tic_palette* pal = getPalette(console, params.bank, params.ovr);
+        const tic_palette* pal = getPalette(console, params.bank, params.vbank);
 
         tic_bank* bank = getBank(console, params.bank);
         for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
@@ -2185,7 +2185,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
                             enum{PaddingLeft = 8, PaddingTop = 8};
 
                             const tic_bank* bank = &tic->cart.bank0;
-                            const tic_rgb* pal = bank->palette.scn.colors;
+                            const tic_rgb* pal = bank->palette.vbank0.colors;
                             const u8* screen = bank->screen.data;
                             u32* ptr = img.values + PaddingTop * CoverWidth + PaddingLeft;
 
@@ -2215,7 +2215,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
 
                             u32* ptr = img.values + PaddingTop * CoverWidth + PaddingLeft;
                             const u8* screen = tic->ram.vram.screen.data;
-                            const tic_rgb* pal = getConfig()->cart->bank0.palette.scn.colors;
+                            const tic_rgb* pal = getConfig()->cart->bank0.palette.vbank0.colors;
 
                             for(s32 y = 0; y < Height; y++)
                                 for(s32 x = 0; x < Width; x++)

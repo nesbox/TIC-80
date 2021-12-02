@@ -296,7 +296,7 @@ static void setWindowIcon()
     u32* pixels = SDL_malloc(Size * Size * sizeof(u32));
     SCOPE(SDL_free(pixels))
     {
-        tic_blitpal pal = tic_tool_palette_blit(&platform.studio->config()->cart->bank0.palette.scn, platform.studio->tic->screen_format);
+        tic_blitpal pal = tic_tool_palette_blit(&platform.studio->config()->cart->bank0.palette.vbank0, platform.studio->tic->screen_format);
 
         for(s32 j = 0, index = 0; j < Size; j++)
             for(s32 i = 0; i < Size; i++, index++)
@@ -396,7 +396,7 @@ static void initTouchKeyboard()
 {
     tic_mem* tic = platform.studio->tic;
 
-    memcpy(tic->ram.vram.palette.data, platform.studio->config()->cart->bank0.palette.scn.data, sizeof(tic_palette));
+    memcpy(tic->ram.vram.palette.data, platform.studio->config()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
     tic_api_cls(tic, 0);
     map2ram();
 
@@ -447,7 +447,7 @@ static void initTouchGamepad()
         const tic_bank* bank = &platform.studio->config()->cart->bank0;
 
         {
-            memcpy(tic->ram.vram.palette.data, &bank->palette.scn, sizeof(tic_palette));
+            memcpy(tic->ram.vram.palette.data, &bank->palette.vbank0, sizeof(tic_palette));
             memcpy(tic->ram.tiles.data, &bank->tiles, sizeof(tic_tiles));
             tic_api_spr(tic, 0, 0, 0, TIC_SPRITESHEET_COLS, TIC_SPRITESHEET_COLS, NULL, 0, 1, tic_no_flip, tic_no_rotate);
         }
@@ -457,7 +457,7 @@ static void initTouchGamepad()
         tic_core_blit(tic);
 
         for(u32* pix = tic->screen, *end = pix + TIC80_FULLWIDTH * TIC80_FULLHEIGHT; pix != end; ++pix)
-            if(*pix == tic_rgba(&bank->palette.scn.colors[0]))
+            if(*pix == tic_rgba(&bank->palette.vbank0.colors[0]))
                 *pix = 0;
 
         memcpy(platform.gamepad.touch.pixels, tic->screen, TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32));

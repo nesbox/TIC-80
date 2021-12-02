@@ -53,7 +53,6 @@ typedef struct tic_mem tic_mem;
 typedef void(*tic_tick)(tic_mem* memory);
 typedef void(*tic_scanline)(tic_mem* memory, s32 row, void* data);
 typedef void(*tic_border)(tic_mem* memory, s32 row, void* data);
-typedef void(*tic_overline)(tic_mem* memory, void* data);
 
 typedef struct
 {
@@ -64,7 +63,6 @@ typedef struct
 typedef struct
 {
     tic_scanline scanline;
-    tic_overline overline;
     tic_border border;
     void* data;
 } tic_blit_callback;
@@ -143,9 +141,7 @@ enum
     macro(SCN_FN, SCN_FN "(row)", "Allows you to execute code between the drawing of each scanline, "                   \
         "for example, to manipulate the palette.")                                                                      \
     macro(BDR_FN, BDR_FN "(row)", "Allows you to execute code between the drawing of each fullscreen scanline, "        \
-        "for example, to manipulate the palette.")                                                                      \
-    macro(OVR_FN, OVR_FN "()", "Called after each frame;"                                                               \
-        "draw calls from this function ignore palette swap and screen offset.")
+        "for example, to manipulate the palette.")
 
 // API DEFINITION TABLE
 //  macro
@@ -661,7 +657,7 @@ enum
         "VRAM contains 2x16K memory chips, use vbank(0) or vbank(1) to switch between them.",                           \
         1,                                                                                                              \
         s32,                                                                                                            \
-        tic_mem*, s32 ovr)                                                                                              \
+        tic_mem*, s32 bank)                                                                                             \
                                                                                                                         \
                                                                                                                         \
     macro(reset,                                                                                                        \
@@ -769,8 +765,6 @@ typedef struct
     u64 tick_counter;
 } tic80_local;
 
-#define VBANK(tic, ovr)                                 \
-    bool MACROVAR(_ovr_) = tic_api_vbank(tic, ovr);    \
-    SCOPE(tic_api_vbank(tic, MACROVAR(_ovr_)))
-
-#define OVR(tic) VBANK(tic, 1)
+#define VBANK(tic, bank)                                \
+    bool MACROVAR(_bank_) = tic_api_vbank(tic, bank);   \
+    SCOPE(tic_api_vbank(tic, MACROVAR(_bank_)))

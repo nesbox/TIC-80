@@ -32,12 +32,12 @@
 #include "tools.h"
 #include "wren.h"
 
-static WrenHandle* game_class;
-static WrenHandle* new_handle;
-static WrenHandle* update_handle;
-static WrenHandle* scanline_handle;
-static WrenHandle* border_handle;
-static WrenHandle* overline_handle;
+static WrenHandle* game_class       = NULL;
+static WrenHandle* new_handle       = NULL;
+static WrenHandle* update_handle    = NULL;
+static WrenHandle* scanline_handle  = NULL;
+static WrenHandle* border_handle    = NULL;
+static WrenHandle* overline_handle  = NULL;
 
 static bool loaded = false;
 
@@ -1586,19 +1586,17 @@ static void callWrenBorder(tic_mem* tic, s32 row, void* data)
         wrenSetSlotHandle(vm, 0, game_class);
         wrenSetSlotDouble(vm, 1, row);
         wrenCall(vm, border_handle);
-    }
-}
 
-static void callWrenOverline(tic_mem* tic, void* data)
-{
-    tic_core* core = (tic_core*)tic;
-    WrenVM* vm = core->currentVM;
-
-    if (vm && game_class)
-    {
-        wrenEnsureSlots(vm, 1);
-        wrenSetSlotHandle(vm, 0, game_class);
-        wrenCall(vm, overline_handle);
+        // call OVR() callback for backward compatibility
+        if(overline_handle)
+        {
+            OVR(tic)
+            {
+                wrenEnsureSlots(vm, 1);
+                wrenSetSlotHandle(vm, 0, game_class);
+                wrenCall(vm, overline_handle);                
+            }
+        }
     }
 }
 
@@ -1689,7 +1687,6 @@ tic_script_config WrenSyntaxConfig =
     {
         .scanline           = callWrenScanline,
         .border             = callWrenBorder,
-        .overline           = callWrenOverline,
     },
 
     .getOutline         = getWrenOutline,
@@ -1706,10 +1703,5 @@ tic_script_config WrenSyntaxConfig =
     .keywords           = WrenKeywords,
     .keywordsCount      = COUNT_OF(WrenKeywords),
 };
-
-const tic_script_config* get_wren_script_config()
-{
-    return &WrenSyntaxConfig;
-}
 
 #endif /* defined(TIC_BUILD_WITH_WREN) */

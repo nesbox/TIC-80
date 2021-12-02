@@ -85,9 +85,9 @@ static void tick(World* world)
 
     memcpy(&tic->ram.vram, world->preview, PREVIEW_SIZE);
 
-    OVR(tic)
+    VBANK(tic, 1)
     {
-        memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.scn.data, sizeof(tic_palette));
+        memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
         drawGrid(world);
     }
 }

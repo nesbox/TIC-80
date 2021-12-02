@@ -537,9 +537,9 @@ static void loadCover(Surf* surf)
                 else
                     tic_cart_load(cart, data, size);
 
-                if(!EMPTY(cart->bank0.screen.data) && !EMPTY(cart->bank0.palette.scn.data))
+                if(!EMPTY(cart->bank0.screen.data) && !EMPTY(cart->bank0.palette.vbank0.data))
                 {
-                    memcpy((item->palette = malloc(sizeof(tic_palette))), &cart->bank0.palette.scn, sizeof(tic_palette));
+                    memcpy((item->palette = malloc(sizeof(tic_palette))), &cart->bank0.palette.vbank0, sizeof(tic_palette));
                     memcpy((item->cover = malloc(sizeof(tic_screen))), &cart->bank0.screen, sizeof(tic_screen));
                 }
 
@@ -877,9 +877,9 @@ static void tick(Surf* surf)
             memcpy(tic->ram.vram.screen.data, cover->data, sizeof(tic_screen));
     }
 
-    OVR(tic)
+    VBANK(tic, 1)
     {
-        memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.scn.data, sizeof(tic_palette));
+        memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
 
         if(surf->menu.count > 0)
         {

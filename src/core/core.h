@@ -196,3 +196,15 @@ typedef struct
 void tic_core_tick_io(tic_mem* memory);
 void tic_core_sound_tick_start(tic_mem* memory);
 void tic_core_sound_tick_end(tic_mem* memory);
+
+// border color and mouse cursor is the same in both modes
+// for backward compatibility
+#define OVR_COMPAT(TIC, BANK)                                                   \
+    tic_api_vbank(TIC, BANK),                                                   \
+    TIC->ram.vram.vars.border = ((tic_core*)TIC)->state.vbank.mem.vars.border,  \
+    TIC->ram.vram.vars.cursor = ((tic_core*)TIC)->state.vbank.mem.vars.cursor
+
+#define OVR(TIC)                \
+    OVR_COMPAT(TIC, 1);         \
+    tic_api_cls(TIC, 0);        \
+    SCOPE(OVR_COMPAT(TIC, 0))

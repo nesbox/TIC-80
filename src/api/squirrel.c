@@ -1598,6 +1598,22 @@ static bool initSquirrel(tic_mem* tic, const char* code)
     return true;
 }
 
+static void errorReport(tic_mem* tic)
+{
+    tic_core* core = (tic_core*)tic;
+
+    HSQUIRRELVM vm = core->currentVM;
+
+    sq_getlasterror(vm);
+    sq_tostring(vm, -1);
+    const SQChar* errorString = "unknown error";
+    sq_getstring(vm, -1, &errorString);
+
+    if (core->data)
+        core->data->error(core->data->data, errorString);
+    sq_pop(vm, 3); // remove string, error and root table.    
+}
+
 static void callSquirrelTick(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
@@ -1614,14 +1630,28 @@ static void callSquirrelTick(tic_mem* tic)
             sq_pushroottable(vm);
             if(SQ_FAILED(sq_call(vm, 1, SQFalse, SQTrue)))
             {
-                sq_getlasterror(vm);
-                sq_tostring(vm, -1);
-                const SQChar* errorString = "unknown error";
-                sq_getstring(vm, -1, &errorString);
+                errorReport(tic);
+                return;
+            }
 
-                if (core->data)
-                    core->data->error(core->data->data, errorString);
-                sq_pop(vm, 3); // remove string, error and root table.
+            // call OVR() callback for backward compatibility
+            {
+                sq_pushroottable(vm);
+                sq_pushstring(vm, OVR_FN, -1);
+                
+                if(SQ_SUCCEEDED(sq_get(vm, -2))) 
+                {
+                    OVR(tic)
+                    {
+                        sq_pushroottable(vm);
+
+                        if(SQ_FAILED(sq_call(vm, 1, SQFalse, SQTrue)))
+                        {
+                            errorReport(tic);
+                        }                        
+                    }
+                }
+                else sq_poptop(vm);                
             }
         }
         else 
@@ -1674,38 +1704,6 @@ static void callSquirrelScanline(tic_mem* tic, s32 row, void* data)
 static void callSquirrelBorder(tic_mem* tic, s32 row, void* data)
 {
     callSquirrelScanlineName(tic, row, data, BDR_FN);
-}
-
-static void callSquirrelOverline(tic_mem* tic, void* data)
-{
-    tic_core* core = (tic_core*)tic;
-    HSQUIRRELVM vm = core->currentVM;
-
-    if (vm)
-    {
-        const char* OvrFunc = OVR_FN;
-
-        sq_pushroottable(vm);
-        sq_pushstring(vm, OvrFunc, -1);
-        
-        if(SQ_SUCCEEDED(sq_get(vm, -2))) 
-        {
-            tic_api_cls(tic, 0);
-            sq_pushroottable(vm);
-            if(SQ_FAILED(sq_call(vm, 1, SQFalse, SQTrue)))
-            {
-                sq_getlasterror(vm);
-                sq_tostring(vm, -1);
-                const SQChar* errorString = "unknown error";
-                sq_getstring(vm, -1, &errorString);
-                if (core->data)
-                    core->data->error(core->data->data, errorString);
-                sq_pop(vm, 3);
-            }
-        }
-        else sq_poptop(vm);
-    }
-
 }
 
 static const char* const SquirrelKeywords [] =
@@ -1821,7 +1819,6 @@ tic_script_config SquirrelSyntaxConfig =
     {
         .scanline       = callSquirrelScanline,
         .border         = callSquirrelBorder,
-        .overline       = callSquirrelOverline,
     },
 
     .getOutline         = getSquirrelOutline,
@@ -1838,10 +1835,5 @@ tic_script_config SquirrelSyntaxConfig =
     .keywords           = SquirrelKeywords,
     .keywordsCount      = COUNT_OF(SquirrelKeywords),
 };
-
-const tic_script_config* get_squirrel_script_config()
-{
-    return &SquirrelSyntaxConfig;
-}
 
 #endif /* defined(TIC_BUILD_WITH_SQUIRREL) */

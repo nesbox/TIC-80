@@ -248,7 +248,7 @@ void drawBGAnimation(tic_mem* tic, s32 ticks);
 void drawBGAnimationScanline(tic_mem* tic, s32 row);
 
 tic_tiles* getBankTiles();
-tic_palette* getBankPalette(bool ovr);
+tic_palette* getBankPalette(bool bank);
 tic_flags* getBankFlags();
 tic_map* getBankMap();
 

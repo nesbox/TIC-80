@@ -381,7 +381,7 @@ void tic_api_cls(tic_mem* memory, u8 color)
     {
         memset(&vram->screen, (color & 0xf) | (color << TIC_PALETTE_BPP), sizeof(tic_screen));
 
-        // clear OVR memmask
+        // clear BANK1 memmask
         if(core->state.vbank.id)
             ZEROMEM(core->state.vbank.memmask);
     }
@@ -391,7 +391,7 @@ void tic_api_cls(tic_mem* memory, u8 color)
 
         tic_api_rect(memory, rect.x, rect.y, rect.w, rect.h, color);
 
-        // clear OVR memmask
+        // clear BANK1 memmask
         if(core->state.vbank.id)
         {
             for(u8 *ptr = core->state.vbank.memmask + rect.x + rect.y * TIC80_WIDTH, 

@@ -402,15 +402,10 @@ typedef struct
     u8 data[TIC_FLAGS];
 } tic_flags;
 
-typedef union
+typedef struct
 {
-    struct
-    {
-        tic_palette scn;
-        tic_palette ovr;
-    };
-
-    tic_palette data[2];
+    tic_palette vbank0;
+    tic_palette vbank1;
 } tic_palettes;
 
 typedef struct

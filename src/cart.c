@@ -105,10 +105,10 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
 #if defined(DEPRECATED_CHUNKS)
         // workaround to support ancient carts without palette
         // load DB16 palette if it not exists
-        if (EMPTY(cart->bank0.palette.scn.data))
+        if (EMPTY(cart->bank0.palette.vbank0.data))
         {
             static const u8 DB16[] = { 0x14, 0x0c, 0x1c, 0x44, 0x24, 0x34, 0x30, 0x34, 0x6d, 0x4e, 0x4a, 0x4e, 0x85, 0x4c, 0x30, 0x34, 0x65, 0x24, 0xd0, 0x46, 0x48, 0x75, 0x71, 0x61, 0x59, 0x7d, 0xce, 0xd2, 0x7d, 0x2c, 0x85, 0x95, 0xa1, 0x6d, 0xaa, 0x2c, 0xd2, 0xaa, 0x99, 0x6d, 0xc2, 0xca, 0xda, 0xd4, 0x5e, 0xde, 0xee, 0xd6 };
-            memcpy(cart->bank0.palette.scn.data, DB16, sizeof DB16);
+            memcpy(cart->bank0.palette.vbank0.data, DB16, sizeof DB16);
         }
 #endif
     }
@@ -150,7 +150,7 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
                         if(image->width == TIC80_WIDTH && image->height == TIC80_HEIGHT)
                             for (s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
                                 tic_tool_poke4(cart->bank0.screen.data, i, 
-                                    tic_nearest_color(cart->bank0.palette.scn.colors, (const tic_rgb*)&image->palette[image->buffer[i]], TIC_PALETTE_SIZE));
+                                    tic_nearest_color(cart->bank0.palette.vbank0.colors, (const tic_rgb*)&image->palette[image->buffer[i]], TIC_PALETTE_SIZE));
 
                         gif_close(image);
                     }

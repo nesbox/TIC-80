@@ -380,7 +380,7 @@ static void drawMapToolbar(Map* map, s32 x, s32 y)
     }
 }
 
-static void drawSheetOvr(Map* map, s32 x, s32 y)
+static void drawSheetVBank1(Map* map, s32 x, s32 y)
 {
     if(!sheetVisible(map))return;
 
@@ -562,7 +562,7 @@ static void drawTileCursor(Map* map)
     }
 }
 
-static void drawTileCursorOvr(Map* map)
+static void drawTileCursorVBank1(Map* map)
 {
     if(map->scroll.active)
         return;
@@ -734,7 +734,7 @@ static void drawPasteData(Map* map)
     }
 }
 
-static void drawPasteDataOvr(Map* map)
+static void drawPasteDataVBank1(Map* map)
 {
     tic_mem* tic = map->tic;
     s32 w = map->paste[0];
@@ -995,7 +995,7 @@ static void processMouseFillMode(Map* map)
     }
 }
 
-static void drawSelectionOvr(Map* map)
+static void drawSelectionVBank1(Map* map)
 {
     tic_rect* sel = &map->select.rect;
 
@@ -1247,9 +1247,9 @@ static void tick(Map* map)
     drawMapReg(map);
     drawSheetReg(map, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, TOOLBAR_SIZE);
 
-    OVR(tic)
+    VBANK(tic, 1)
     {
-        memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.scn.data, sizeof(tic_palette));
+        memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
 
         tic_api_clip(tic, 0, TOOLBAR_SIZE, TIC80_WIDTH - (sheetVisible(map) ? TIC_SPRITESHEET_SIZE+2 : 0), TIC80_HEIGHT - TOOLBAR_SIZE);
         {
@@ -1261,7 +1261,7 @@ static void tick(Map* map)
         }
         tic_api_clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
 
-        drawSheetOvr(map, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, TOOLBAR_SIZE);
+        drawSheetVBank1(map, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, TOOLBAR_SIZE);
 
         {
             tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
@@ -1271,11 +1271,11 @@ static void tick(Map* map)
                 {
                 case MAP_DRAW_MODE:
                 case MAP_FILL_MODE:
-                    drawTileCursorOvr(map);
+                    drawTileCursorVBank1(map);
                     break;
                 case MAP_SELECT_MODE:
                     if(map->paste)
-                        drawPasteDataOvr(map);
+                        drawPasteDataVBank1(map);
                     break;
                 default:
                     break;
@@ -1284,7 +1284,7 @@ static void tick(Map* map)
         }
 
         if(!sheetVisible(map))
-            drawSelectionOvr(map);
+            drawSelectionVBank1(map);
 
         drawMapToolbar(map, TIC80_WIDTH, 1);
         drawToolbar(map->tic, false);    

@@ -1526,7 +1526,24 @@ void callLuaTick(tic_mem* tic)
         if(lua_isfunction(lua, -1)) 
         {
             if(docall(lua, 0, 0) != LUA_OK) 
+            {                
                 core->data->error(core->data->data, lua_tostring(lua, -1));
+                return;
+            }
+
+            // call OVR() callback for backward compatibility
+            {
+                lua_getglobal(lua, OVR_FN);
+                if(lua_isfunction(lua, -1))
+                {
+                    OVR(tic)
+                    {
+                        if(docall(lua, 0, 0) != LUA_OK)
+                            core->data->error(core->data->data, lua_tostring(lua, -1));
+                    }
+                }
+                else lua_pop(lua, 1);
+            }
         }
         else 
         {       
@@ -1565,27 +1582,6 @@ void callLuaScanline(tic_mem* tic, s32 row, void* data)
 void callLuaBorder(tic_mem* tic, s32 row, void* data)
 {
     callLuaScanlineName(tic, row, data, BDR_FN);
-}
-
-void callLuaOverline(tic_mem* tic, void* data)
-{
-    tic_core* core = (tic_core*)tic;
-    lua_State* lua = core->currentVM;
-
-    if (lua)
-    {
-        const char* OvrFunc = OVR_FN;
-
-        lua_getglobal(lua, OvrFunc);
-        if(lua_isfunction(lua, -1)) 
-        {
-            tic_api_cls(tic, 0);
-            if(docall(lua, 0, 0) != LUA_OK)
-                core->data->error(core->data->data, lua_tostring(lua, -1));            
-        }
-        else lua_pop(lua, 1);
-    }
-
 }
 
 static const char* const LuaKeywords [] =
@@ -1685,7 +1681,6 @@ tic_script_config LuaSyntaxConfig =
     {
         .scanline       = callLuaScanline,
         .border         = callLuaBorder,
-        .overline       = callLuaOverline,
     },
 
     .getOutline         = getLuaOutline,
@@ -1702,12 +1697,5 @@ tic_script_config LuaSyntaxConfig =
     .keywords           = LuaKeywords,
     .keywordsCount      = COUNT_OF(LuaKeywords),
 };
-
-const tic_script_config* get_lua_script_config()
-{
-    return &LuaSyntaxConfig;
-}
-
-
 
 #endif /* defined(TIC_BUILD_WITH_LUA) */

@@ -1017,6 +1017,21 @@ static void callJavascriptTick(tic_mem* tic)
             if(duk_pcall(duk, 0) != DUK_EXEC_SUCCESS)
             {
                 core->data->error(core->data->data, duk_safe_to_stacktrace(duk, -1));
+                return;
+            }
+
+            // call OVR() callback for backward compatibility
+            {
+                if(duk_get_global_string(duk, OVR_FN))
+                {
+                    OVR(tic)
+                    {
+                        if(duk_pcall(duk, 0) != 0)
+                            core->data->error(core->data->data, duk_safe_to_stacktrace(duk, -1));
+                    }
+                }
+
+                duk_pop(duk);
             }
         }
         else core->data->error(core->data->data, "'function TIC()...' isn't found :(");
@@ -1052,21 +1067,6 @@ static void callJavascriptScanline(tic_mem* tic, s32 row, void* data)
 static void callJavascriptBorder(tic_mem* tic, s32 row, void* data)
 {
     callJavascriptScanlineName(tic, row, data, BDR_FN);
-}
-
-static void callJavascriptOverline(tic_mem* tic, void* data)
-{
-    tic_core* core = (tic_core*)tic;
-    duk_context* duk = core->currentVM;
-
-    if(duk_get_global_string(duk, OVR_FN))
-    {
-        tic_api_cls(tic, 0);
-        if(duk_pcall(duk, 0) != 0)
-            core->data->error(core->data->data, duk_safe_to_stacktrace(duk, -1));
-    }
-
-    duk_pop(duk);
 }
 
 static const char* const JsKeywords [] =
@@ -1156,7 +1156,6 @@ const tic_script_config JsSyntaxConfig =
     {
         .scanline       = callJavascriptScanline,
         .border         = callJavascriptBorder,
-        .overline       = callJavascriptOverline,
     },
 
     .getOutline         = getJsOutline,
@@ -1173,10 +1172,5 @@ const tic_script_config JsSyntaxConfig =
     .keywords           = JsKeywords,
     .keywordsCount      = COUNT_OF(JsKeywords),
 };
-
-const tic_script_config* get_js_script_config()
-{
-    return &JsSyntaxConfig;
-}
 
 #endif /* defined(TIC_BUILD_WITH_JS) */

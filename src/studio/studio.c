@@ -515,10 +515,10 @@ tic_map* getBankMap()
     return &impl.studio.tic->cart.banks[impl.bank.index.map].map;
 }
 
-tic_palette* getBankPalette(bool ovr)
+tic_palette* getBankPalette(bool vbank)
 {
     tic_bank* bank = &impl.studio.tic->cart.banks[impl.bank.index.sprites];
-    return ovr ? &bank->palette.ovr : &bank->palette.scn;
+    return vbank ? &bank->palette.vbank1 : &bank->palette.vbank0;
 }
 
 tic_flags* getBankFlags()
@@ -850,7 +850,7 @@ static void drawPopup()
 
             for(s32 i = 0, y = 0; y < (Height + anim); y++, dst += TIC80_MARGIN_RIGHT + TIC80_MARGIN_LEFT)
                 for(s32 x = 0; x < Width; x++)
-                *dst++ = tic_rgba(&bank->palette.scn.colors[tic_tool_peek4(tic->ram.vram.screen.data, i++)]);
+                *dst++ = tic_rgba(&bank->palette.vbank0.colors[tic_tool_peek4(tic->ram.vram.screen.data, i++)]);
         }
     }
 }
@@ -1720,7 +1720,7 @@ static void drawBitIconRaw(u32* frame, s32 sx, s32 sy, s32 id, tic_color color)
     for(s32 src = 0; src != TIC_SPRITESIZE * TIC_SPRITESIZE; dst += TIC80_FULLWIDTH - TIC_SPRITESIZE)
         for(s32 i = 0; i != TIC_SPRITESIZE; ++i, ++dst)
             if(tic_tool_peek4(&bank->tiles.data[id].data, src++))
-                *dst = tic_rgba(&bank->palette.scn.colors[color]);
+                *dst = tic_rgba(&bank->palette.vbank0.colors[color]);
 }
 
 static void drawRecordLabel(u32* frame, s32 sx, s32 sy)
@@ -1804,7 +1804,7 @@ static void renderStudio()
     // clear screen for all the modes except the Run mode
     if(impl.mode != TIC_RUN_MODE)
     {
-        OVR(tic)
+        VBANK(tic, 1)
         {
             tic_api_cls(tic, 0);
         }        
@@ -1982,7 +1982,7 @@ static void blitCursor()
             }[tic->ram.vram.vars.cursor.sprite];
         }
 
-        const tic_palette* pal = &bank->palette.scn;
+        const tic_palette* pal = &bank->palette.vbank0;
         const tic_tile* tile = &bank->sprites.data[tic->ram.vram.vars.cursor.sprite];
 
         tic_point s = {m->x - hot.x, m->y - hot.y};
@@ -2021,20 +2021,20 @@ static void studioTick()
 
         tic_blit_callback callback[TIC_MODES_COUNT] = 
         {
-            [TIC_MENU_MODE]     = {impl.menu->scanline,     NULL,   NULL,   impl.menu},
+            [TIC_MENU_MODE]     = {impl.menu->scanline,     NULL,   impl.menu},
 
 #if defined(BUILD_EDITORS)
-            [TIC_SPRITE_MODE]   = {sprite->scanline,        NULL,   NULL,   sprite},
-            [TIC_MAP_MODE]      = {map->scanline,           NULL,   NULL,   map},
-            [TIC_WORLD_MODE]    = {impl.world->scanline,    NULL,   NULL,   impl.world},
-            [TIC_DIALOG_MODE]   = {impl.dialog->scanline,   NULL,   NULL,   impl.dialog},
-            [TIC_SURF_MODE]     = {impl.surf->scanline,     NULL,   NULL,   impl.surf},
+            [TIC_SPRITE_MODE]   = {sprite->scanline,        NULL,   sprite},
+            [TIC_MAP_MODE]      = {map->scanline,           NULL,   map},
+            [TIC_WORLD_MODE]    = {impl.world->scanline,    NULL,   impl.world},
+            [TIC_DIALOG_MODE]   = {impl.dialog->scanline,   NULL,   impl.dialog},
+            [TIC_SURF_MODE]     = {impl.surf->scanline,     NULL,   impl.surf},
 #endif
         };
 
         if(impl.mode != TIC_RUN_MODE)
         {
-            memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.scn.data, sizeof(tic_palette));
+            memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
             tic->ram.font = impl.systemFont;
         }
 

@@ -49,7 +49,7 @@ struct Sprite
     struct
     {
         bool edit;
-        bool ovr;
+        bool vbank1;
         s32 focus;
     } palette;
 

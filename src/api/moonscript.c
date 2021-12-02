@@ -158,7 +158,6 @@ tic_script_config MoonSyntaxConfig =
     {
         .scanline       = callLuaScanline,
         .border         = callLuaBorder,
-        .overline       = callLuaOverline,
     },
 
     .getOutline         = getMoonOutline,
@@ -175,11 +174,6 @@ tic_script_config MoonSyntaxConfig =
     .keywords           = MoonKeywords,
     .keywordsCount      = COUNT_OF(MoonKeywords),
 };
-
-const tic_script_config* get_moon_script_config()
-{
-    return &MoonSyntaxConfig;
-}
 
 #endif /* defined(TIC_BUILD_WITH_MOON) */
 

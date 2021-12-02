@@ -166,7 +166,6 @@ tic_script_config FennelSyntaxConfig =
     {
         .scanline       = callLuaScanline,
         .border         = callLuaBorder,
-        .overline       = callLuaOverline,
     },
 
     .getOutline         = getFennelOutline,
@@ -183,11 +182,6 @@ tic_script_config FennelSyntaxConfig =
     .keywords           = FennelKeywords,
     .keywordsCount      = COUNT_OF(FennelKeywords),
 };
-
-const tic_script_config* get_fennel_script_config()
-{
-    return &FennelSyntaxConfig;
-}
 
 #endif /* defined(TIC_BUILD_WITH_FENNEL) */
 
