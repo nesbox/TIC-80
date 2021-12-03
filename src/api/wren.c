@@ -1558,6 +1558,17 @@ static void callWrenTick(tic_mem* tic)
         wrenEnsureSlots(vm, 1);
         wrenSetSlotHandle(vm, 0, game_class);
         wrenCall(vm, update_handle);
+
+        // call OVR() callback for backward compatibility
+        if(overline_handle)
+        {
+            OVR(tic)
+            {
+                wrenEnsureSlots(vm, 1);
+                wrenSetSlotHandle(vm, 0, game_class);
+                wrenCall(vm, overline_handle);                
+            }
+        }
     }
 }
 
@@ -1586,17 +1597,6 @@ static void callWrenBorder(tic_mem* tic, s32 row, void* data)
         wrenSetSlotHandle(vm, 0, game_class);
         wrenSetSlotDouble(vm, 1, row);
         wrenCall(vm, border_handle);
-
-        // call OVR() callback for backward compatibility
-        if(overline_handle)
-        {
-            OVR(tic)
-            {
-                wrenEnsureSlots(vm, 1);
-                wrenSetSlotHandle(vm, 0, game_class);
-                wrenCall(vm, overline_handle);                
-            }
-        }
     }
 }
 
