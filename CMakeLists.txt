@@ -1036,7 +1036,7 @@ if(BUILD_STUB)
         target_include_directories(tic80${SCRIPT} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
         if(BUILD_SDLGPU)
-            target_compile_definitions(tic80studio PUBLIC CRT_SHADER_SUPPORT)
+            target_compile_definitions(tic80${SCRIPT} PRIVATE CRT_SHADER_SUPPORT)
         endif()
 
         if(MINGW)
