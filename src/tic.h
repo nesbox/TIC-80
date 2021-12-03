@@ -469,8 +469,13 @@ typedef union
 
         struct
         {
-            u8 border:TIC_PALETTE_BPP;
-            u8 tmp:4;
+            union
+            {
+                u8 border:TIC_PALETTE_BPP;
+
+                // clear color for the BANK1
+                u8 clear:TIC_PALETTE_BPP;
+            };
 
             struct
             {

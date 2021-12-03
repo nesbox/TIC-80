@@ -62,7 +62,7 @@ static void setPixel(tic_core* core, s32 x, s32 y, u8 color)
 {
     const tic_vram* vram = &core->memory.ram.vram;
 
-    if (x < core->state.vbank.clip.l || y < core->state.vbank.clip.t || x >= core->state.vbank.clip.r || y >= core->state.vbank.clip.b) return;
+    if (x < core->state.clip.l || y < core->state.clip.t || x >= core->state.clip.r || y >= core->state.clip.b) return;
 
     tic_api_poke4((tic_mem*)core, y * TIC80_WIDTH + x, color);
 }
@@ -74,20 +74,20 @@ static u8 getPixel(tic_core* core, s32 x, s32 y)
 
 #define EARLY_CLIP(x, y, width, height) \
     ( \
-        (((y)+(height)-1) < core->state.vbank.clip.t) \
-        || (((x)+(width)-1) < core->state.vbank.clip.l) \
-        || ((y) >= core->state.vbank.clip.b) \
-        || ((x) >= core->state.vbank.clip.r) \
+        (((y)+(height)-1) < core->state.clip.t) \
+        || (((x)+(width)-1) < core->state.clip.l) \
+        || ((y) >= core->state.clip.b) \
+        || ((x) >= core->state.clip.r) \
     )
 
 static void drawHLine(tic_core* core, s32 x, s32 y, s32 width, u8 color)
 {
     const tic_vram* vram = &core->memory.ram.vram;
 
-    if (y < core->state.vbank.clip.t || core->state.vbank.clip.b <= y) return;
+    if (y < core->state.clip.t || core->state.clip.b <= y) return;
 
-    s32 xl = MAX(x, core->state.vbank.clip.l);
-    s32 xr = MIN(x + width, core->state.vbank.clip.r);
+    s32 xl = MAX(x, core->state.clip.l);
+    s32 xr = MIN(x + width, core->state.clip.r);
     s32 start = y * TIC80_WIDTH;
 
     for(s32 i = start + xl, end = start + xr; i < end; ++i)
@@ -98,7 +98,7 @@ static void drawVLine(tic_core* core, s32 x, s32 y, s32 height, u8 color)
 {
     const tic_vram* vram = &core->memory.ram.vram;
 
-    if (x < core->state.vbank.clip.l || core->state.vbank.clip.r <= x) return;
+    if (x < core->state.clip.l || core->state.clip.r <= x) return;
 
     s32 yl = y < 0 ? 0 : y;
     s32 yr = y + height >= TIC80_HEIGHT ? TIC80_HEIGHT : y + height;
@@ -152,10 +152,10 @@ static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors
     if (scale == 1) {
         // the most common path
         s32 sx, sy, ex, ey;
-        sx = core->state.vbank.clip.l - x; if (sx < 0) sx = 0;
-        sy = core->state.vbank.clip.t - y; if (sy < 0) sy = 0;
-        ex = core->state.vbank.clip.r - x; if (ex > TIC_SPRITESIZE) ex = TIC_SPRITESIZE;
-        ey = core->state.vbank.clip.b - y; if (ey > TIC_SPRITESIZE) ey = TIC_SPRITESIZE;
+        sx = core->state.clip.l - x; if (sx < 0) sx = 0;
+        sy = core->state.clip.t - y; if (sy < 0) sy = 0;
+        ex = core->state.clip.r - x; if (ex > TIC_SPRITESIZE) ex = TIC_SPRITESIZE;
+        ey = core->state.clip.b - y; if (ey > TIC_SPRITESIZE) ey = TIC_SPRITESIZE;
         y += sy;
         x += sx;
         switch (orientation) {
@@ -352,15 +352,15 @@ void tic_api_clip(tic_mem* memory, s32 x, s32 y, s32 width, s32 height)
     tic_core* core = (tic_core*)memory;
     tic_vram* vram = &memory->ram.vram;
 
-    core->state.vbank.clip.l = x;
-    core->state.vbank.clip.t = y;
-    core->state.vbank.clip.r = x + width;
-    core->state.vbank.clip.b = y + height;
+    core->state.clip.l = x;
+    core->state.clip.t = y;
+    core->state.clip.r = x + width;
+    core->state.clip.b = y + height;
 
-    if (core->state.vbank.clip.l < 0) core->state.vbank.clip.l = 0;
-    if (core->state.vbank.clip.t < 0) core->state.vbank.clip.t = 0;
-    if (core->state.vbank.clip.r > TIC80_WIDTH) core->state.vbank.clip.r = TIC80_WIDTH;
-    if (core->state.vbank.clip.b > TIC80_HEIGHT) core->state.vbank.clip.b = TIC80_HEIGHT;
+    if (core->state.clip.l < 0) core->state.clip.l = 0;
+    if (core->state.clip.t < 0) core->state.clip.t = 0;
+    if (core->state.clip.r > TIC80_WIDTH) core->state.clip.r = TIC80_WIDTH;
+    if (core->state.clip.b > TIC80_HEIGHT) core->state.clip.b = TIC80_HEIGHT;
 }
 
 void tic_api_rect(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 color)
@@ -377,28 +377,11 @@ void tic_api_cls(tic_mem* memory, u8 color)
 
     static const u8 EmptyClip[] = { 0, 0, TIC80_WIDTH, TIC80_HEIGHT };
 
-    if (memcmp(&core->state.vbank.clip, &EmptyClip, sizeof EmptyClip) == 0)
-    {
+    if (memcmp(&core->state.clip, &EmptyClip, sizeof EmptyClip) == 0)
         memset(&vram->screen, (color & 0xf) | (color << TIC_PALETTE_BPP), sizeof(tic_screen));
-
-        // clear BANK1 memmask
-        if(core->state.vbank.id)
-            ZEROMEM(core->state.vbank.memmask);
-    }
     else
-    {
-        tic_rect rect = {core->state.vbank.clip.l, core->state.vbank.clip.t, core->state.vbank.clip.r - core->state.vbank.clip.l, core->state.vbank.clip.b - core->state.vbank.clip.t};
-
-        tic_api_rect(memory, rect.x, rect.y, rect.w, rect.h, color);
-
-        // clear BANK1 memmask
-        if(core->state.vbank.id)
-        {
-            for(u8 *ptr = core->state.vbank.memmask + rect.x + rect.y * TIC80_WIDTH, 
-                *end = ptr + (rect.w - 1) + (rect.h - 1) * TIC80_WIDTH; ptr < end; ptr += TIC80_WIDTH)
-                memset(ptr, 0, rect.w);
-        }        
-    }
+        tic_api_rect(memory, core->state.clip.l, core->state.clip.t, 
+            core->state.clip.r - core->state.clip.l, core->state.clip.b - core->state.clip.t, color);
 }
 
 s32 tic_api_font(tic_mem* memory, const char* text, s32 x, s32 y, u8 chromakey, s32 w, s32 h, bool fixed, s32 scale, bool alt)
@@ -570,13 +553,13 @@ static void drawSidesBuffer(tic_mem* memory, s32 y0, s32 y1, u8 color)
     tic_vram* vram = &memory->ram.vram;
 
     tic_core* core = (tic_core*)memory;
-    s32 yt = MAX(core->state.vbank.clip.t, y0);
-    s32 yb = MIN(core->state.vbank.clip.b, y1 + 1);
+    s32 yt = MAX(core->state.clip.t, y0);
+    s32 yb = MIN(core->state.clip.b, y1 + 1);
     u8 final_color = mapColor(&core->memory, color);
     for (s32 y = yt; y < yb; y++) 
     {
-        s32 xl = MAX(SidesBuffer.Left[y], core->state.vbank.clip.l);
-        s32 xr = MIN(SidesBuffer.Right[y] + 1, core->state.vbank.clip.r);
+        s32 xl = MAX(SidesBuffer.Left[y], core->state.clip.l);
+        s32 xr = MIN(SidesBuffer.Right[y] + 1, core->state.clip.r);
         s32 start = y * TIC80_WIDTH;
 
         for(s32 i = start + xl, end = start + xr; i < end; ++i)
@@ -763,7 +746,7 @@ static void drawTexturedTriangle(tic_core* core, float x1, float y1, float x2, f
         //  if it's backwards skip it
         s32 width = SidesBuffer.Right[y] - SidesBuffer.Left[y];
         //  if it's off top or bottom , skip this line
-        if ((y < core->state.vbank.clip.t) || (y > core->state.vbank.clip.b))
+        if ((y < core->state.clip.t) || (y > core->state.clip.b))
             width = 0;
         if (width > 0)
         {
@@ -772,15 +755,15 @@ static void drawTexturedTriangle(tic_core* core, float x1, float y1, float x2, f
             s32 left = SidesBuffer.Left[y];
             s32 right = SidesBuffer.Right[y];
             //  check right edge, and CLAMP it
-            if (right > core->state.vbank.clip.r)
-                right = core->state.vbank.clip.r;
+            if (right > core->state.clip.r)
+                right = core->state.clip.r;
             //  check left edge and offset UV's if we are off the left 
-            if (left < core->state.vbank.clip.l)
+            if (left < core->state.clip.l)
             {
-                s32 dist = core->state.vbank.clip.l - SidesBuffer.Left[y];
+                s32 dist = core->state.clip.l - SidesBuffer.Left[y];
                 u += dudxs * dist;
                 v += dvdxs * dist;
-                left = core->state.vbank.clip.l;
+                left = core->state.clip.l;
             }
             //  are we drawing from the map . ok then at least check before the inner loop
             if (use_map == true)

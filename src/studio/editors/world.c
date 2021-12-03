@@ -87,6 +87,7 @@ static void tick(World* world)
 
     VBANK(tic, 1)
     {
+        tic_api_cls(tic, tic->ram.vram.vars.clear = tic_color_black);
         memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
         drawGrid(world);
     }

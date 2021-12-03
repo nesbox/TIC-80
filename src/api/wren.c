@@ -1562,7 +1562,7 @@ static void callWrenTick(tic_mem* tic)
         // call OVR() callback for backward compatibility
         if(overline_handle)
         {
-            OVR(tic)
+            OVR(core)
             {
                 wrenEnsureSlots(vm, 1);
                 wrenSetSlotHandle(vm, 0, game_class);

@@ -152,12 +152,12 @@ typedef struct
     {
         s32 id;
         tic_vram mem;
-        u8 memmask[sizeof(tic_screen) << 1];
-        struct
-        {
-            u8 l, t, r, b;
-        } clip;
     } vbank;
+
+    struct
+    {
+        u8 l, t, r, b;
+    } clip;
 
     bool initialized;
 } tic_core_state_data;
@@ -197,14 +197,13 @@ void tic_core_tick_io(tic_mem* memory);
 void tic_core_sound_tick_start(tic_mem* memory);
 void tic_core_sound_tick_end(tic_mem* memory);
 
-// border color and mouse cursor is the same in both modes
+// mouse cursor is the same in both modes
 // for backward compatibility
-#define OVR_COMPAT(TIC, BANK)                                                   \
-    tic_api_vbank(TIC, BANK),                                                   \
-    TIC->ram.vram.vars.border = ((tic_core*)TIC)->state.vbank.mem.vars.border,  \
-    TIC->ram.vram.vars.cursor = ((tic_core*)TIC)->state.vbank.mem.vars.cursor
+#define OVR_COMPAT(CORE, BANK)                                              \
+    tic_api_vbank(&CORE->memory, BANK),                                     \
+    CORE->memory.ram.vram.vars.cursor = CORE->state.vbank.mem.vars.cursor
 
-#define OVR(TIC)                \
-    OVR_COMPAT(TIC, 1);         \
-    tic_api_cls(TIC, 0);        \
-    SCOPE(OVR_COMPAT(TIC, 0))
+#define OVR(CORE)                   \
+    OVR_COMPAT(CORE, 1);            \
+    tic_api_cls(&CORE->memory, 0);  \
+    SCOPE(OVR_COMPAT(CORE, 0))

@@ -1883,6 +1883,8 @@ static void tick(Sprite* sprite)
 
     VBANK(tic, 1)
     {
+        tic_api_cls(tic, tic->ram.vram.vars.clear = tic_color_dark_blue);
+
         static const tic_rect bg[] = 
         {
             {0, ToolbarH, SheetX, CanvasY-ToolbarH},

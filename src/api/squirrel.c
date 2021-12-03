@@ -1641,7 +1641,7 @@ static void callSquirrelTick(tic_mem* tic)
                 
                 if(SQ_SUCCEEDED(sq_get(vm, -2))) 
                 {
-                    OVR(tic)
+                    OVR(core)
                     {
                         sq_pushroottable(vm);
 

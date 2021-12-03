@@ -1536,7 +1536,7 @@ void callLuaTick(tic_mem* tic)
                 lua_getglobal(lua, OVR_FN);
                 if(lua_isfunction(lua, -1))
                 {
-                    OVR(tic)
+                    OVR(core)
                     {
                         if(docall(lua, 0, 0) != LUA_OK)
                             core->data->error(core->data->data, lua_tostring(lua, -1));
