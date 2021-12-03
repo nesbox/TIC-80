@@ -203,7 +203,8 @@ void tic_core_sound_tick_end(tic_mem* memory);
     tic_api_vbank(&CORE->memory, BANK),                                     \
     CORE->memory.ram.vram.vars.cursor = CORE->state.vbank.mem.vars.cursor
 
-#define OVR(CORE)                   \
-    OVR_COMPAT(CORE, 1);            \
-    tic_api_cls(&CORE->memory, 0);  \
-    SCOPE(OVR_COMPAT(CORE, 0))
+#define OVR(CORE)                                   \
+    s32 MACROVAR(_bank_) = CORE->state.vbank.id;    \
+    OVR_COMPAT(CORE, 1);                            \
+    tic_api_cls(&CORE->memory, 0);                  \
+    SCOPE(OVR_COMPAT(CORE, MACROVAR(_bank_)))
