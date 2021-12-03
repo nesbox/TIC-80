@@ -112,6 +112,7 @@ static struct
 
     EditorMode mode;
     EditorMode prevMode;
+    EditorMode toolbarMode;
 
     struct
     {
@@ -882,7 +883,7 @@ void drawToolbar(tic_mem* tic, bool bg)
             showTooltip(Tips[i]);
 
             if(checkMouseClick(&rect, tic_mouse_left))
-                setStudioMode(Modes[i]);
+                impl.toolbarMode = Modes[i];
         }
 
         if(getStudioMode() == Modes[i]) mode = i;
@@ -2007,7 +2008,13 @@ static void studioTick()
     checkChanges();
     tic_net_start(impl.net);
 #endif
-    
+ 
+    if(impl.toolbarMode)
+    {
+        setStudioMode(impl.toolbarMode);
+        impl.toolbarMode = 0;
+    }
+
     processMouseStates();
     processGamepadMapping();
 

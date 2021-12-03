@@ -32,7 +32,6 @@ struct Menu
     struct tic_fs* fs;
 
     bool init;
-    bool cover;
     s32 ticks;
 
     struct
