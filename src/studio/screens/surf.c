@@ -867,6 +867,8 @@ static void tick(Surf* surf)
         }
     }
 
+    if (getStudioMode() != TIC_SURF_MODE) return;
+
     if (surf->menu.count > 0)
     {
         loadCover(surf);
