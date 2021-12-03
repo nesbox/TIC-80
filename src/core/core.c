@@ -121,8 +121,8 @@ void tic_api_memcpy(tic_mem* memory, s32 dst, s32 src, s32 size)
         && dst <= bound
         && src <= bound)
     {
-        for(s32 end = dst + size; dst != end;)
-            tic_api_poke(memory, dst++, tic_api_peek(memory, src++, 8), 8);
+        u8* base = (u8*)&memory->ram;
+        memcpy(base + dst, base + src, size);
     }
 }
 
@@ -136,8 +136,8 @@ void tic_api_memset(tic_mem* memory, s32 dst, u8 val, s32 size)
         && dst >= 0
         && dst <= bound)
     {
-        for(s32 end = dst + size; dst != end;)
-            tic_api_poke(memory, dst++, val, 8);
+        u8* base = (u8*)&memory->ram;
+        memset(base + dst, val, size);
     }
 }
 
