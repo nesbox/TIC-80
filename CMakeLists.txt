@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.18)
 
 set(VERSION_MAJOR 1)
 set(VERSION_MINOR 0)
@@ -133,6 +133,8 @@ endif()
 
 set(THIRDPARTY_DIR ${CMAKE_SOURCE_DIR}/vendor)
 
+include(ExternalProject)
+
 ################################
 # LUA
 ################################
@@ -219,6 +221,31 @@ add_library(wren STATIC ${WREN_SRC})
 target_include_directories(wren PUBLIC ${THIRDPARTY_DIR}/wren/src/include)
 target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/optional)
 target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/vm)
+
+################################
+# MRUBY
+################################
+
+find_program(RAKE_EXE rake REQUIRED)
+
+set(MRUBY_DIR ${THIRDPARTY_DIR}/mruby)
+set(MRUBY_LIB ${MRUBY_DIR}/build/host/lib/libmruby.a)
+ExternalProject_Add(mruby_vendor
+    SOURCE_DIR         ${MRUBY_DIR}
+    CONFIGURE_COMMAND  ""
+    BUILD_IN_SOURCE    TRUE
+    BUILD_COMMAND      ${RAKE_EXE}
+    INSTALL_COMMAND    ""
+    BUILD_BYPRODUCTS   ${MRUBY_LIB}
+)
+add_library(mruby STATIC IMPORTED GLOBAL)
+set_property(TARGET mruby APPEND
+    PROPERTY IMPORTED_LOCATION              ${MRUBY_LIB}
+)
+set_property(TARGET mruby APPEND
+    PROPERTY INTERFACE_INCLUDE_DIRECTORIES  ${MRUBY_DIR}/include
+)
+add_dependencies(mruby mruby_vendor)
 
 ################################
 # SQUIRREL
@@ -333,7 +360,9 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         squirrel 
         duktape 
         blipbuf 
-        zlib)
+        zlib
+        mruby
+    )
 
     if(${BUILD_DEPRECATED})
         target_compile_definitions(tic80core${SCRIPT} PRIVATE DEPRECATED_CHUNKS)
@@ -487,7 +516,7 @@ if(BUILD_LIBRETRO)
         set_target_properties(tic80_libretro PROPERTIES SUFFIX "_partial.a")
         add_custom_command(TARGET tic80_libretro
                POST_BUILD
-                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.a ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a)
+                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.a ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a mruby)
     else()
         add_library(tic80_libretro SHARED
         ${LIBRETRO_SRC}
