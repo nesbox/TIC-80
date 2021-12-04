@@ -77,3 +77,6 @@
 [submodule "vendor/sdl2"]
 	path = vendor/sdl2
 	url = https://github.com/libsdl-org/SDL.git
+[submodule "mruby"]
+	path = vendor/mruby
+	url = https://github.com/mruby/mruby.git
