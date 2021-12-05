@@ -227,20 +227,24 @@ target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/vm)
 ################################
 
 find_program(RAKE_EXE rake REQUIRED)
+find_program(YACC_EXE yacc REQUIRED)
 
 set(MRUBY_DIR ${THIRDPARTY_DIR}/mruby)
-set(MRUBY_LIB ${MRUBY_DIR}/build/host/lib/libmruby.a)
+set(MRUBY_LIBRARIES ${MRUBY_DIR}/build/host/lib/libmruby.a)
+set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/tic_mruby_build_config.rb)
+
 ExternalProject_Add(mruby_vendor
     SOURCE_DIR         ${MRUBY_DIR}
     CONFIGURE_COMMAND  ""
     BUILD_IN_SOURCE    TRUE
-    BUILD_COMMAND      ${RAKE_EXE}
+    BUILD_COMMAND      ${RAKE_EXE} MRUBY_CONFIG=${MRUBY_CONFIG}
     INSTALL_COMMAND    ""
-    BUILD_BYPRODUCTS   ${MRUBY_LIB}
+    BUILD_BYPRODUCTS   ${MRUBY_LIBRARIES}
 )
+
 add_library(mruby STATIC IMPORTED GLOBAL)
 set_property(TARGET mruby APPEND
-    PROPERTY IMPORTED_LOCATION              ${MRUBY_LIB}
+    PROPERTY IMPORTED_LOCATION              ${MRUBY_LIBRARIES}
 )
 set_property(TARGET mruby APPEND
     PROPERTY INTERFACE_INCLUDE_DIRECTORIES  ${MRUBY_DIR}/include
@@ -327,12 +331,13 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         ${TIC80CORE_DIR}/core/draw.c
         ${TIC80CORE_DIR}/core/io.c
         ${TIC80CORE_DIR}/core/sound.c
-        ${TIC80CORE_DIR}/api/js.c 
+        ${TIC80CORE_DIR}/api/js.c
         ${TIC80CORE_DIR}/api/lua.c 
         ${TIC80CORE_DIR}/api/moonscript.c 
         ${TIC80CORE_DIR}/api/fennel.c 
         ${TIC80CORE_DIR}/api/wren.c 
         ${TIC80CORE_DIR}/api/squirrel.c
+        ${TIC80CORE_DIR}/api/mrb.c
         ${TIC80CORE_DIR}/tic.c
         ${TIC80CORE_DIR}/cart.c
         ${TIC80CORE_DIR}/tools.c 
@@ -387,6 +392,7 @@ if(BUILD_STUB)
     MACRO_CORE(js       TIC_BUILD_WITH_JS       FALSE)
     MACRO_CORE(wren     TIC_BUILD_WITH_WREN     FALSE)
     MACRO_CORE(squirrel TIC_BUILD_WITH_SQUIRREL FALSE)
+    MACRO_CORE(mruby    TIC_BUILD_WITH_MRUBY    FALSE)
 
 endif()
 
@@ -516,7 +522,7 @@ if(BUILD_LIBRETRO)
         set_target_properties(tic80_libretro PROPERTIES SUFFIX "_partial.a")
         add_custom_command(TARGET tic80_libretro
                POST_BUILD
-                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.a ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a mruby)
+                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.a ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${MRUBY_LIBRARIES})
     else()
         add_library(tic80_libretro SHARED
         ${LIBRETRO_SRC}
@@ -1108,6 +1114,7 @@ if(BUILD_STUB)
     MACRO_STUB(js)
     MACRO_STUB(wren)
     MACRO_STUB(squirrel)
+    MACRO_STUB(mruby)
 
 endif()
 

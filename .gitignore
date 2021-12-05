@@ -170,3 +170,4 @@ build/x64/
 build/linux/tic80.desktop
 build/compile_commands.json
 CMakeSettings.json
+tic_mruby_build_config.rb.lock
