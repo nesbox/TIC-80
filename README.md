@@ -18,6 +18,7 @@ To make a retro styled game, the whole process of creation and execution takes p
 - Multiple programming languages: [Lua](https://www.lua.org),
   [Moonscript](https://moonscript.org),
   [Javascript](https://developer.mozilla.org/en-US/docs/Web/JavaScript),
+  [Ruby](https://www.ruby-lang.org/en/),
   [Wren](http://wren.io/), [Fennel](https://fennel-lang.org), and
   [Squirrel](http://www.squirrel-lang.org).
 - Games can have mouse and keyboard as input
@@ -214,3 +215,4 @@ You can find iOS/tvOS version here
 * msx80 - [Twitter @msx80](https://twitter.com/msx80) [Github msx80](https://github.com/msx80)
 * Josh Goebel - [Twitter @dreamer3](https://twitter.com/dreamer3) [Github joshgoebel](https://github.com/joshgoebel)
 * Joshua Minor - [GitHub @jminor](https://github.com/jminor)
+* Jeremiasz Nelz - [Github @remi6397](https://github.com/remi6397) [WWW](https://nelz.pl)
