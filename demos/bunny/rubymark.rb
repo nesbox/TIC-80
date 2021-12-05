@@ -5,20 +5,20 @@
 # script: ruby
 # version: 0.1.0
 
-ScreenWidth = 240
-ScreenHeight = 136
+ScreenWidth = 240.0
+ScreenHeight = 136.0
 ToolbarHeight = 6
 $t = 0
 
 class Bunny
-	@@width = 26
-	@@height = 32
+	@@width = 26.0
+	@@height = 32.0
 
 	def initialize
-		@x = rand(ScreenWidth - @@width)
-		@y = rand(ScreenHeight - @@height)
-		@speed_x = (rand(200) - 100) / 60
-		@speed_y = (rand(200) - 100) / 60
+		@x = Float(rand(ScreenWidth - @@width))
+		@y = Float(rand(ScreenHeight - @@height))
+		@speed_x = Float(rand(200) - 100) / 60.0
+		@speed_y = Float(rand(200) - 100) / 60.0
 		@sprite = 1
 	end
 
@@ -32,19 +32,19 @@ class Bunny
 
 		if @x + @@width > ScreenWidth
 			@x = ScreenWidth - @@width
-			@speed_x *= -1
+			@speed_x *= -1.0
 		end
-		if @x < 0
-			@x = 0
-			@speed_x *= -1
+		if @x < 0.0
+			@x = 0.0
+			@speed_x *= -1.0
 		end
 		if @y + @@height > ScreenHeight
 			@y = ScreenHeight - @@height
-			@speed_y *= -1
+			@speed_y *= -1.0
 		end
 		if @y < ToolbarHeight
-			@x = ToolbarHeight
-			@y *= -1
+			@y = ToolbarHeight
+			@speed_y *= -1.0
 		end
 	end
 end
@@ -57,7 +57,8 @@ class FPS
 	end
 
 	def get
-		if time - @lastTime <= 1000
+		d = time - @last_time
+		if d <= 1000
 			@frames += 1
 		else
 			@value = @frames
@@ -118,3 +119,4 @@ end
 # <PALETTE>
 # 000:1a1c2c5d275db13e53ef7d57ffcd75a7f07038b76425717929366f3b5dc941a6f673eff7f4f4f494b0c2566c86333c57
 # </PALETTE>
+
