@@ -19,6 +19,8 @@ MRuby::Build.new do |conf|
   # C compiler settings
   conf.cc do |cc|
     cc.flags << '-fPIC' unless ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
+    cc.flags.delete '/MD' if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
+    cc.flags << '/MT' if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
   #   cc.command = ENV['CC'] || 'gcc'
   #   cc.flags = [ENV['CFLAGS'] || %w()]
   #   cc.include_paths = ["#{root}/include"]

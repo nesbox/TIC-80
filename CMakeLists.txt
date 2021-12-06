@@ -261,6 +261,9 @@ set_property(TARGET mruby APPEND
 set_property(TARGET mruby APPEND
     PROPERTY INTERFACE_INCLUDE_DIRECTORIES  ${MRUBY_DIR}/include
 )
+if(WIN32)
+    target_link_libraries(mruby INTERFACE ws2_32.lib wsock32.lib)
+endif()
 add_dependencies(mruby mruby_vendor)
 
 ################################
