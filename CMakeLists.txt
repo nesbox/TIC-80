@@ -230,8 +230,14 @@ find_program(RAKE_EXE rake REQUIRED)
 find_program(YACC_EXE yacc REQUIRED)
 
 set(MRUBY_DIR ${THIRDPARTY_DIR}/mruby)
-set(MRUBY_LIBRARIES ${MRUBY_DIR}/build/host/lib/libmruby.a)
-set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/tic_mruby_build_config.rb)
+if(EMSCRIPTEN)
+    set(MRUBY_TARGET wasm)
+    set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/tic_mruby_wasm_build_config.rb)
+else()
+    set(MRUBY_TARGET host)
+    set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/tic_mruby_build_config.rb)
+endif()
+set(MRUBY_LIBRARIES ${MRUBY_DIR}/build/${MRUBY_TARGET}/lib/libmruby.a)
 
 ExternalProject_Add(mruby_vendor
     SOURCE_DIR         ${MRUBY_DIR}

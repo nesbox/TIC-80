@@ -171,3 +171,4 @@ build/linux/tic80.desktop
 build/compile_commands.json
 CMakeSettings.json
 tic_mruby_build_config.rb.lock
+tic_mruby_wasm_build_config.rb.lock
