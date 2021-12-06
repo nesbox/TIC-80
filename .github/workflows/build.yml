@@ -17,6 +17,10 @@ jobs:
         submodules: recursive
         fetch-depth: 0
 
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
+
     - name: Build
       shell: cmd
       run: |
@@ -46,6 +50,10 @@ jobs:
         submodules: recursive
         fetch-depth: 0
 
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
+
     - name: Build
       shell: cmd
       run: |
@@ -68,6 +76,10 @@ jobs:
       with: 
         submodules: recursive
         fetch-depth: 0
+
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
 
     - name: Build
       shell: cmd
@@ -98,6 +110,10 @@ jobs:
         submodules: recursive
         fetch-depth: 0
 
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
+
     - name: Build
       shell: cmd
       run: |
@@ -120,6 +136,10 @@ jobs:
       with: 
         submodules: recursive
         fetch-depth: 0
+
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
 
     - name: Build
       shell: cmd
@@ -144,6 +164,10 @@ jobs:
       with: 
         submodules: recursive
         fetch-depth: 0
+
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
 
     - name: Install
       run: |
@@ -178,6 +202,10 @@ jobs:
       with: 
         submodules: recursive
         fetch-depth: 0
+
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
 
     - name: Install
       run: |
@@ -220,6 +248,10 @@ jobs:
         submodules: recursive
         fetch-depth: 0
 
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
+
     - name: Build
       run: |
         cd build
@@ -255,6 +287,10 @@ jobs:
       with: 
         submodules: recursive
         fetch-depth: 0
+
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
 
     - name: Prebuild
       run: |
@@ -305,6 +341,10 @@ jobs:
       with: 
         submodules: recursive
         fetch-depth: 0
+
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
 
     - name: Prebuild
       run: |
@@ -358,6 +398,10 @@ jobs:
       with: 
         submodules: recursive
         fetch-depth: 0
+
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
 
     - name: Build
       run: |
@@ -454,6 +498,10 @@ jobs:
         submodules: recursive
         fetch-depth: 0
 
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
+
     - name: Build
       run: |
         cd build/android
@@ -477,6 +525,10 @@ jobs:
       with: 
         submodules: recursive
         fetch-depth: 0
+
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
 
     - name: Build
       run: |
