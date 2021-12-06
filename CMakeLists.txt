@@ -243,7 +243,7 @@ else()
     set(MRUBY_TARGET host)
     set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/tic_mruby_build_config.rb)
 endif()
-set(MRUBY_LIBRARIES ${MRUBY_DIR}/build/${MRUBY_TARGET}/lib/libmruby.a)
+set(MRUBY_LIBRARIES ${MRUBY_DIR}/build/${MRUBY_TARGET}/lib/libmruby${CMAKE_STATIC_LIBRARY_SUFFIX})
 
 ExternalProject_Add(mruby_vendor
     SOURCE_DIR         ${MRUBY_DIR}
