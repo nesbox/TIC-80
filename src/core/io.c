@@ -23,7 +23,9 @@
 #include "api.h"
 #include "core.h"
 
-STATIC_ASSERT(tic80_input, sizeof(tic80_input) == 12);
+#include <assert.h>
+
+static_assert(sizeof(tic80_input) == 12, "tic80_input");
 
 static bool isKeyPressed(const tic80_keyboard* input, tic_key key)
 {
@@ -121,7 +123,9 @@ bool tic_api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
 
 tic_point tic_api_mouse(tic_mem* memory)
 {
-    return (tic_point){memory->ram.input.mouse.x - TIC80_OFFSET_LEFT, memory->ram.input.mouse.y - TIC80_OFFSET_TOP};
+    return memory->ram.input.mouse.relative 
+        ? (tic_point){memory->ram.input.mouse.rx, memory->ram.input.mouse.ry}
+        : (tic_point){memory->ram.input.mouse.x - TIC80_OFFSET_LEFT, memory->ram.input.mouse.y - TIC80_OFFSET_TOP};
 }
 
 void tic_core_tick_io(tic_mem* memory)

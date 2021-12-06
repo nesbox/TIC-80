@@ -336,30 +336,6 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
 
     tic_api_print(tic, "LOOP:", x + 2, y + 20, tic_color_dark_grey, true, 1, true);
 
-    static const u8 LeftArrow[] =
-    {
-        0b00100000,
-        0b01100000,
-        0b11100000,
-        0b01100000,
-        0b00100000,
-        0b00000000,
-        0b00000000,
-        0b00000000,
-    };
-
-    static const u8 RightArrow[] =
-    {
-        0b10000000,
-        0b11000000,
-        0b11100000,
-        0b11000000,
-        0b10000000,
-        0b00000000,
-        0b00000000,
-        0b00000000,
-    };
-
     enum
     {
         ArrowWidth = 3, ArrowHeight = 5
@@ -387,7 +363,7 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
             }
         }
 
-        drawBitIcon(rect.x, rect.y, LeftArrow, hover ? tic_color_grey : tic_color_dark_grey);
+        drawBitIcon(tic_icon_left, rect.x - 2, rect.y - 1, hover ? tic_color_grey : tic_color_dark_grey);
     }
 
     {
@@ -408,7 +384,7 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
             }
         }
 
-        drawBitIcon(rect.x, rect.y, RightArrow, hover ? tic_color_grey : tic_color_dark_grey);
+        drawBitIcon(tic_icon_right, rect.x - 2, rect.y - 1, hover ? tic_color_grey : tic_color_dark_grey);
     }
 
     {
@@ -434,7 +410,7 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
             }
         }
 
-        drawBitIcon(rect.x, rect.y, LeftArrow, hover ? tic_color_grey : tic_color_dark_grey);
+        drawBitIcon(tic_icon_left, rect.x - 2, rect.y - 1, hover ? tic_color_grey : tic_color_dark_grey);
     }
 
     {
@@ -454,7 +430,7 @@ static void drawCanvas(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
             }
         }
 
-        drawBitIcon(rect.x, rect.y, RightArrow, hover ? tic_color_grey : tic_color_dark_grey);
+        drawBitIcon(tic_icon_right, rect.x - 2, rect.y - 1, hover ? tic_color_grey : tic_color_dark_grey);
     }
 
     {
@@ -598,6 +574,109 @@ static void processEnvelopesKeyboard(Sfx* sfx)
     else if(keyWasPressed(tic_key_delete))  resetSfx(sfx);
 }
 
+static tic_waveform* getWave(Sfx* sfx)
+{
+    tic_sample* effect = getEffect(sfx);
+    return getWaveformById(sfx, effect->data[0].wave);
+}
+
+static void copyWave(Sfx* sfx)
+{
+    toClipboard(getWave(sfx), sizeof(tic_waveform), true);
+}
+
+static void cutWave(Sfx* sfx)
+{
+    copyWave(sfx);
+
+    memset(getWave(sfx), 0, sizeof(tic_waveform));
+    history_add(sfx->waveHistory);
+}
+
+static void pasteWave(Sfx* sfx)
+{
+    if(fromClipboard(getWave(sfx), sizeof(tic_waveform), true, false))
+        history_add(sfx->waveHistory);
+}
+
+static void undoWave(Sfx* sfx)
+{
+    history_undo(sfx->waveHistory);
+}
+
+static void redoWave(Sfx* sfx)
+{
+    history_redo(sfx->waveHistory);
+}
+
+static void drawWavesBar(Sfx* sfx, s32 x, s32 y)
+{
+    static struct Button 
+    {
+        u8 icon;
+        const char* tip;
+        void(*handler)(Sfx*);
+    } Buttons[] = 
+    {
+        {
+            tic_icon_cut,
+            "CUT WAVE",
+            cutWave,
+        },
+        {
+            tic_icon_copy,
+            "COPY WAVE",
+            copyWave,
+        },
+        {
+            tic_icon_paste,
+            "PASTE WAVE",
+            pasteWave,
+        },
+        {
+            tic_icon_undo,
+            "UNDO WAVE",
+            undoWave,
+        },
+        {
+            tic_icon_redo,
+            "REDO WAVE",
+            redoWave,
+        },
+    };
+
+    enum {Size = 7};
+
+    FOR(const struct Button*, it, Buttons)
+    {
+        tic_rect rect = {x, y, Size, Size};
+
+        bool over = false;
+        s32 push = 0;
+        if(checkMousePos(&rect))
+        {
+            over = true;
+            setCursor(tic_cursor_hand);
+
+            showTooltip(it->tip);
+
+            if(checkMouseDown(&rect, tic_mouse_left))
+                push = 1;
+
+            if(checkMouseClick(&rect, tic_mouse_left))
+                it->handler(sfx);
+        }
+
+        if(over)
+            drawBitIcon(it->icon, rect.x, rect.y + 1, tic_color_black);
+
+        drawBitIcon(it->icon, rect.x, rect.y + push, 
+            over ? tic_color_white : tic_color_dark_grey);
+
+        y += Size;
+    }
+}
+
 static void drawWaves(Sfx* sfx, s32 x, s32 y)
 {
     tic_mem* tic = sfx->tic;
@@ -644,7 +723,8 @@ static void drawWaves(Sfx* sfx, s32 x, s32 y)
             for(s32 i = 0; i < WAVE_VALUES/Scale; i++)
             {
                 s32 value = tic_tool_peek4(wave->data, i*Scale)/Scale;
-                tic_api_pix(tic, rect.x + i+1, rect.y + Height - value - 2, active ? tic_color_red : sel ? tic_color_dark_green : hover ? tic_color_light_grey : tic_color_white, false);
+                tic_api_pix(tic, rect.x + i+1, rect.y + Height - value - 2, 
+                    active ? tic_color_red : sel ? tic_color_dark_green : hover ? tic_color_light_grey : tic_color_white, false);
             }
 
             // draw flare
@@ -654,7 +734,6 @@ static void drawWaves(Sfx* sfx, s32 x, s32 y)
                 tic_api_pix(tic, rect.x + rect.w - 1, rect.y + 1, tic_color_white, false);
             }
         }
-
     }
 }
 
@@ -677,7 +756,7 @@ static void drawWavePanel(Sfx* sfx, s32 x, s32 y)
         {0, Round, Round, 0, tic_color_white},
     };
 
-    for(const Edge* edge = Edges; edge < Edges + COUNT_OF(Edges); edge++)
+    FOR(const Edge*, edge, Edges)
         tic_api_line(tic, x + edge->x, y + edge->y, x + edge->x1, y + edge->y1, edge->color);
 
     // draw current wave shape
@@ -718,7 +797,7 @@ static void drawWavePanel(Sfx* sfx, s32 x, s32 y)
                     if(tic_tool_peek4(wave->data, cx) != cy)
                     {
                         tic_tool_poke4(wave->data, cx, cy);
-                        history_add(sfx->history);
+                        history_add(sfx->waveHistory);
                     }
                 }
             }       
@@ -737,7 +816,8 @@ static void drawWavePanel(Sfx* sfx, s32 x, s32 y)
         }
     }
 
-    drawWaves(sfx, x + 8, y + 43);
+    drawWaves(sfx, x + 5, y + 43);
+    drawWavesBar(sfx, x + 65, y + 43);
 }
 
 static void drawPianoOctave(Sfx* sfx, s32 x, s32 y, s32 octave)
@@ -997,6 +1077,7 @@ static void onStudioEvent(Sfx* sfx, StudioEvent event)
 void initSfx(Sfx* sfx, tic_mem* tic, tic_sfx* src)
 {
     if(sfx->history) history_delete(sfx->history);
+    if(sfx->waveHistory) history_delete(sfx->waveHistory);
     
     *sfx = (Sfx)
     {
@@ -1013,7 +1094,8 @@ void initSfx(Sfx* sfx, tic_mem* tic, tic_sfx* src)
             .tick = 0,
         },
 
-        .history = history_create(src, sizeof(tic_sfx)),
+        .history = history_create(&src->samples, sizeof(tic_samples)),
+        .waveHistory = history_create(&src->waveforms, sizeof(tic_waveforms)),
         .event = onStudioEvent,
     };
 }
@@ -1021,5 +1103,6 @@ void initSfx(Sfx* sfx, tic_mem* tic, tic_sfx* src)
 void freeSfx(Sfx* sfx)
 {
     history_delete(sfx->history);
+    history_delete(sfx->waveHistory);
     free(sfx);
 }

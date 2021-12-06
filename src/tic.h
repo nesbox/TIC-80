@@ -304,7 +304,7 @@ typedef enum
     tic_music_stop,
     tic_music_play_frame,
     tic_music_play,
-} tic_music_state;
+} tic_music_status;
 
 typedef struct
 {
@@ -318,12 +318,12 @@ typedef struct
     struct
     {
         u8 music_loop:1;
-        u8 music_state:2; // enum tic_music_state
+        u8 music_status:2; // enum tic_music_status
         u8 music_sustain:1;
         u8 unknown:4;
     } flag;
 
-} tic_sound_state;
+} tic_music_state;
 
 typedef union
 {
@@ -500,7 +500,7 @@ typedef union
         tic_sound_register  registers[TIC_SOUND_CHANNELS];
         tic_sfx             sfx;
         tic_music           music;
-        tic_sound_state     sound_state;
+        tic_music_state     music_state;
         tic_stereo_volume   stereo;
         tic_persistent      persistent;
         tic_flags           flags;

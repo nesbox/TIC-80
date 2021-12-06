@@ -1,0 +1,29 @@
+{
+  "background_color": "#1a1c2c",
+  "theme_color": "#f4f4f4",
+  "description": "TIC-80 is a fantasy computer for making, playing and sharing tiny games.",
+  "display": "fullscreen",
+  "icons": [
+    {
+      "src": "tic80-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "tic80-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "tic80-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "name": "TIC-80 Tiny Computer",
+  "short_name": "TIC-80",
+  "start_url": "index.html"
+}

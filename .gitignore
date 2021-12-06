@@ -155,7 +155,7 @@ build/.ninja_deps
 build/.ninja_log
 build/version.h
 build/pnglibconf.h
-build/windows/tic80.rc
+build/windows/*.rc
 *.ninja
 tic80.sublime-workspace
 build/*.tic

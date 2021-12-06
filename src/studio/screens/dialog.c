@@ -62,20 +62,8 @@ static void drawButton(Dialog* dlg, const char* label, s32 x, s32 y, u8 color, v
 
     if(dlg->focus == id)
     {
-        static const u8 Icon[] =
-        {
-            0b10000000,
-            0b11000000,
-            0b11100000,
-            0b11000000,
-            0b10000000,
-            0b00000000,
-            0b00000000,
-            0b00000000,
-        };
-
-        drawBitIcon(rect.x-5, rect.y+3, Icon, tic_color_black);
-        drawBitIcon(rect.x-5, rect.y+2, Icon, tic_color_white);
+        drawBitIcon(tic_icon_right, rect.x-7, rect.y+2, tic_color_black);
+        drawBitIcon(tic_icon_right, rect.x-7, rect.y+1, tic_color_white);
     }
 }
 
@@ -233,7 +221,7 @@ void initDialog(Dialog* dlg, tic_mem* tic, const char** text, s32 rows, DialogCa
         .tic = tic,
         .tick = tick,
         .scanline = scanline,
-        .overline = overline,        
+        .overline = overline,
         .escape = escape,
         .ticks = 0,
         .callback = callback,

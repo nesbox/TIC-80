@@ -30,10 +30,6 @@
 	path = vendor/sdl-gpu
 	url = https://github.com/grimfang4/sdl-gpu.git
 	shallow = true
-[submodule "vendor/sdl2"]
-	path = vendor/sdl2
-	url = https://github.com/SDL-mirror/SDL.git
-	shallow = true
 [submodule "vendor/sokol"]
 	path = vendor/sokol
 	url = https://github.com/floooh/sokol.git
@@ -78,3 +74,6 @@
 	path = vendor/libpng
 	url = https://github.com/glennrp/libpng.git
 	shallow = true
+[submodule "vendor/sdl2"]
+	path = vendor/sdl2
+	url = https://github.com/libsdl-org/SDL.git
