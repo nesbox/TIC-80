@@ -128,12 +128,12 @@
 
 static const char* WelcomeText = 
     "TIC-80 is a fantasy computer for making, playing and sharing tiny games.\n\n"
-    "There are built-in tools for development: code, sprites, maps, sound editors and the command line, "
+    "It has built-in tools for development: code, sprites, maps, sound editors and the command line, "
     "which is enough to create a mini retro game.\n"
-    "At the exit you will get a cartridge file, which can be stored and played on the website.\n\n"
-    "Also, the game can be packed into a player that works on all popular platforms and distribute as you wish.\n"
-    "To make a retro styled game the whole process of creation takes place under some technical limitations: "
-    "240x136 pixels display, 16 color palette, 256 8x8 color sprites, 4 channel sound and etc.";
+    "In the end, you will get a cartridge file, which can be stored and played on the website.\n\n"
+    "Also, the game can be packed into a player that works on all popular platforms and distributed as you wish.\n"
+    "To make a retro-style game, the whole creation process takes place under some technical limitations: "
+    "240x136 pixels display, 16 color palette, 256 8x8 color sprites, 4 channel sound, etc.";
 
 static const struct SpecRow {const char* section; const char* info;} SpecText1[] = 
 {
@@ -150,12 +150,12 @@ static const char* TermsText =
     "## Terms of Use\n"
     "- All cartridges posted on the " TIC_WEBSITE " website are the property of their authors.\n"
     "- Do not redistribute the cartridge without permission, directly from the author.\n"
-    "- By uploading cartridges to the site, you grant Nesbox the right to freely use and distribute them."
+    "- By uploading cartridges to the site, you grant Nesbox the right to freely use and distribute them. "
     "All other rights by default remain with the author.\n"
     "- Do not post material that violates copyright, obscenity or any other laws.\n"
     "- Nesbox reserves the right to remove or filter any material without prior notice.\n\n"
     "## Privacy Policy\n"
-    "We store only the user's email and password in encrypted form and will not transfer any personal"
+    "We store only the user's email and password in encrypted form and will not transfer any personal "
     "information to third parties without explicit permission.";
 
 static const char* LicenseText = 
@@ -1111,7 +1111,7 @@ static void onNewCommandConfirmed(Console* console)
         done = true;
     }
 
-    if(done) printBack(console, "\nnew cart is created");
+    if(done) printBack(console, "\nnew cart has been created");
     else printError(console, "\ncart not created");
 
     commandDone(console);
@@ -3175,7 +3175,7 @@ static void processCommand(Console* console, const char* text)
         if(command)
         {
             printLine(console);
-            printError(console, "unknown command:");
+            printError(console, "unknown command: ");
             printError(console, command);
             commandDone(console);
         }
