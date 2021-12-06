@@ -290,6 +290,7 @@ void tic_api_reset(tic_mem* memory)
 {
     tic_core* core = (tic_core*)memory;
 
+    ZEROMEM(core->state);
     tic_api_clip(memory, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
 
     resetVbank(memory);
@@ -297,8 +298,6 @@ void tic_api_reset(tic_mem* memory)
     VBANK(memory, 1)
     {
         resetVbank(memory);
-
-        ZEROMEM(memory->ram.vram.screen);
 
         // init VBANK1 palette with VBANK0 palette if it's empty
         // for backward compatibility
@@ -309,10 +308,6 @@ void tic_api_reset(tic_mem* memory)
     memory->ram.input.mouse.relative = 0;
 
     soundClear(memory);
-
-    core->state.initialized = false;
-    ZEROMEM(core->state.callback);
-
     updateSaveid(memory);
 }
 
@@ -546,12 +541,12 @@ static inline void memset4(void* dst, u32 val, u32 dwords)
 
 static inline tic_vram* vbank0(tic_core* core)
 {
-    return core->state.vbank.id ? &core->state.vbank.mem : &core->memory.ram.vram;
+    return &core->memory.ram.vram;
 }
 
 static inline tic_vram* vbank1(tic_core* core)
 {
-    return core->state.vbank.id ? &core->memory.ram.vram : &core->state.vbank.mem;
+    return &core->state.vbank.mem;
 }
 
 static inline void updpal(tic_mem* tic, tic_blitpal* pal0, tic_blitpal* pal1)
@@ -580,6 +575,16 @@ static inline void updbdr(tic_mem* tic, s32 row, u32* ptr, tic_blit_callback clb
     memset4(ptr, pal0->data[vbank0(core)->vars.border], TIC80_FULLWIDTH);
 }
 
+static inline u32 blitpix(tic_mem* tic, s32 offset0, s32 offset1, const tic_blitpal* pal0, const tic_blitpal* pal1)
+{
+    tic_core* core = (tic_core*)tic;
+    u32 pix = tic_tool_peek4(vbank1(core)->screen.data, offset1);
+
+    return pix != vbank1(core)->vars.clear
+        ? pal1->data[pix]
+        : pal0->data[tic_tool_peek4(vbank0(core)->screen.data, offset0)];
+}
+
 void tic_core_blit_ex(tic_mem* tic, tic_blit_callback clb)
 {
     tic_core* core = (tic_core*)tic;
@@ -600,19 +605,22 @@ void tic_core_blit_ex(tic_mem* tic, tic_blit_callback clb)
         UPDBDR();
         rowPtr += TIC80_MARGIN_LEFT;
 
-        enum{OffsetY = TIC80_HEIGHT - TIC80_MARGIN_TOP};
-        s32 start0 = (row - vbank0(core)->vars.offset.y + OffsetY) % TIC80_HEIGHT * TIC80_WIDTH;
-        s32 start1 = (row - vbank1(core)->vars.offset.y + OffsetY) % TIC80_HEIGHT * TIC80_WIDTH;
+        if(*(u16*)&vbank0(core)->vars.offset == 0 && *(u16*)&vbank1(core)->vars.offset == 0)
+        {
+            // render line without XY offsets
+            for(s32 x = (row - TIC80_MARGIN_TOP) * TIC80_WIDTH, end = x + TIC80_WIDTH; x != end; ++x)
+                *rowPtr++ = blitpix(tic, x, x, &pal0, &pal1);
+        }
+        else
+        {
+            // render line with XY offsets
+            enum{OffsetY = TIC80_HEIGHT - TIC80_MARGIN_TOP};
+            s32 start0 = (row - vbank0(core)->vars.offset.y + OffsetY) % TIC80_HEIGHT * TIC80_WIDTH;
+            s32 start1 = (row - vbank1(core)->vars.offset.y + OffsetY) % TIC80_HEIGHT * TIC80_WIDTH;
 
-        for(s32 x = TIC80_WIDTH; x != 2 * TIC80_WIDTH; ++x)
-        {   
-            u8 pix = tic_tool_peek4(vbank1(core)->screen.data, 
-                (x - vbank1(core)->vars.offset.x) % TIC80_WIDTH + start1);
-
-            *rowPtr++ = pix != vbank1(core)->vars.clear
-                ? pal1.data[pix]
-                : pal0.data[tic_tool_peek4(vbank0(core)->screen.data, 
-                    (x - vbank0(core)->vars.offset.x) % TIC80_WIDTH + start0)];
+            for(s32 x = TIC80_WIDTH; x != 2 * TIC80_WIDTH; ++x)
+                *rowPtr++ = blitpix(tic, (x - vbank0(core)->vars.offset.x) % TIC80_WIDTH + start0, 
+                    (x - vbank1(core)->vars.offset.x) % TIC80_WIDTH + start1, &pal0, &pal1);
         }
 
         rowPtr += TIC80_MARGIN_RIGHT;
