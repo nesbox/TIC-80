@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.18)
+cmake_minimum_required(VERSION 3.3)
 
 set(VERSION_MAJOR 1)
 set(VERSION_MINOR 0)
@@ -226,8 +226,14 @@ target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/vm)
 # MRUBY
 ################################
 
-find_program(RAKE_EXE rake REQUIRED)
-find_program(YACC_EXE yacc REQUIRED)
+find_program(RAKE rake)
+find_program(YACC yacc)
+if(NOT RAKE)
+    message(FATAL_ERROR "Program `rake' not found! Ruby and `rake' are required to build mruby support.")
+endif()
+if(NOT YACC)
+    message(FATAL_ERROR "Program `yacc' not found! Either `yacc' or GNU Bison is required to build mruby support.")
+endif()
 
 set(MRUBY_DIR ${THIRDPARTY_DIR}/mruby)
 if(EMSCRIPTEN)
@@ -243,7 +249,7 @@ ExternalProject_Add(mruby_vendor
     SOURCE_DIR         ${MRUBY_DIR}
     CONFIGURE_COMMAND  ""
     BUILD_IN_SOURCE    TRUE
-    BUILD_COMMAND      ${RAKE_EXE} MRUBY_CONFIG=${MRUBY_CONFIG}
+    BUILD_COMMAND      ${RAKE} MRUBY_CONFIG=${MRUBY_CONFIG}
     INSTALL_COMMAND    ""
     BUILD_BYPRODUCTS   ${MRUBY_LIBRARIES}
 )
