@@ -1173,8 +1173,8 @@ static const tic_outline_item* getMRubyOutline(const char* code, s32* size)
             {
                 char c = *ptr;
 
-                if(isalnum_(c) || c == ' ');
-                else if(c == '(' || c == '\n')
+                if(isalnum_(c));
+                else if(c == '(' || c == ' ' || c == '\n')
                 {
                     end = ptr;
                     break;
@@ -1186,10 +1186,10 @@ static const tic_outline_item* getMRubyOutline(const char* code, s32* size)
 
             if(end > start)
             {
-                items = items ? realloc(items, (*size + 1) * Size) : malloc(Size);
+                items = realloc(items, (*size + 1) * Size);
 
-                items[*size].pos = start - code;
-                items[*size].size = end - start;
+                items[*size].pos = start;
+                items[*size].size = (s32)(end - start);
 
                 (*size)++;
             }
