@@ -1168,6 +1168,7 @@ const tic_script_config JsSyntaxConfig =
     .blockStringStart   = NULL,
     .blockStringEnd     = NULL,
     .singleComment      = "//",
+    .blockEnd           = "}",
 
     .keywords           = JsKeywords,
     .keywordsCount      = COUNT_OF(JsKeywords),

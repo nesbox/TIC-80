@@ -1215,6 +1215,7 @@ const tic_script_config MRubySyntaxConfig =
     .singleComment      = "#",
     .blockStringStart   = NULL,
     .blockStringEnd     = NULL,
+    .blockEnd           = "end",
 
     .keywords           = MRubyKeywords,
     .keywordsCount      = COUNT_OF(MRubyKeywords),

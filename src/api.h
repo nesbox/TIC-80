@@ -91,6 +91,7 @@ typedef struct
     const char* blockStringStart;
     const char* blockStringEnd;
     const char* singleComment;
+    const char* blockEnd;
 
     const char* const * keywords;
     s32 keywordsCount;

@@ -1699,6 +1699,7 @@ tic_script_config WrenSyntaxConfig =
     .blockStringStart   = NULL,
     .blockStringEnd     = NULL,
     .singleComment      = "//",
+    .blockEnd           = "}",
 
     .keywords           = WrenKeywords,
     .keywordsCount      = COUNT_OF(WrenKeywords),
