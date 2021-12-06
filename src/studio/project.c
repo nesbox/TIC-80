@@ -208,13 +208,13 @@ static bool loadBinarySection(const char* project, const char* comment, const ch
                 while(ptr < end)
                 {
                     static char lineStr[] = "999";
-                    memcpy(lineStr, ptr + sizeof("-- ") - 1, sizeof lineStr - 1);
+                    memcpy(lineStr, ptr + strlen(comment) + 1, sizeof lineStr - 1);
 
                     s32 index = atoi(lineStr);
                     
                     if(index < count)
                     {
-                        ptr += sizeof("-- 999:") - 1;
+                        ptr += strlen(comment) + sizeof(" 999:") - 1;
                         tic_tool_str2buf(ptr, size*2, (u8*)dst + size*index, flip);
                         ptr += size*2 + 1;
 
@@ -225,7 +225,7 @@ static bool loadBinarySection(const char* project, const char* comment, const ch
             }
             else
             {
-                ptr += sizeof("-- 999:") - 1;
+                ptr += strlen(comment) + sizeof(" 999:") - 1;
                 tic_tool_str2buf(ptr, (s32)(end - ptr), (u8*)dst, flip);
             }
 
