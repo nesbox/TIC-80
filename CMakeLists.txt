@@ -9,6 +9,9 @@ string(TIMESTAMP VERSION_YEAR "%Y")
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(VERSION_BUILD ".dbg" )
 endif()
+if(CMAKE_BUILD_TYPE)
+    string(TOUPPER ${CMAKE_BUILD_TYPE} BUILD_TYPE_UC)
+endif()
 
 find_package(Git)
 if(Git_FOUND)
@@ -236,27 +239,31 @@ if(NOT YACC)
 endif()
 
 set(MRUBY_DIR ${THIRDPARTY_DIR}/mruby)
-if(EMSCRIPTEN)
-    set(MRUBY_TARGET wasm)
-    set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/tic_mruby_wasm_build_config.rb)
-else()
-    set(MRUBY_TARGET host)
-    set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/tic_mruby_build_config.rb)
-endif()
-set(MRUBY_LIBRARIES ${MRUBY_DIR}/build/${MRUBY_TARGET}/lib/libmruby.a)
+set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/mruby/tic_default.rb)
+set(MRUBY_LIB ${MRUBY_DIR}/build/target/lib/libmruby.a)
 
 ExternalProject_Add(mruby_vendor
     SOURCE_DIR         ${MRUBY_DIR}
     CONFIGURE_COMMAND  ""
     BUILD_IN_SOURCE    TRUE
-    BUILD_COMMAND      ${RAKE} MRUBY_CONFIG=${MRUBY_CONFIG}
+    BUILD_COMMAND
+        ${CMAKE_COMMAND} -E env
+        "TARGET_CC=${CMAKE_C_COMPILER}"
+        "TARGET_CXX=${CMAKE_CXX_COMPILER}"
+        "TARGET_LD=${CMAKE_C_LINK_EXECUTABLE}"
+        "TARGET_AR=${CMAKE_AR}"
+        "TARGET_CFLAGS=${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_${BUILD_TYPE_UC}}"
+        "TARGET_CXXFLAGS=${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${BUILD_TYPE_UC}}"
+        "TARGET_LDFLAGS=${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_LINKER_FLAGS_${BUILD_TYPE_UC}}"
+        "BUILD_TYPE=${BUILD_TYPE_UC}"
+        ${RAKE} "MRUBY_CONFIG=${MRUBY_CONFIG}"
     INSTALL_COMMAND    ""
-    BUILD_BYPRODUCTS   ${MRUBY_LIBRARIES}
+    BUILD_BYPRODUCTS   ${MRUBY_LIB}
 )
 
 add_library(mruby STATIC IMPORTED GLOBAL)
 set_property(TARGET mruby APPEND
-    PROPERTY IMPORTED_LOCATION              ${MRUBY_LIBRARIES}
+    PROPERTY IMPORTED_LOCATION              ${MRUBY_LIB}
 )
 set_property(TARGET mruby APPEND
     PROPERTY INTERFACE_INCLUDE_DIRECTORIES  ${MRUBY_DIR}/include
@@ -537,7 +544,7 @@ if(BUILD_LIBRETRO)
         set_target_properties(tic80_libretro PROPERTIES SUFFIX "_partial.a")
         add_custom_command(TARGET tic80_libretro
                POST_BUILD
-                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.a ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${MRUBY_LIBRARIES})
+                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.a ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${MRUBY_LIB})
     else()
         add_library(tic80_libretro SHARED
         ${LIBRETRO_SRC}
