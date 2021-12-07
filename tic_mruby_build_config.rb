@@ -72,6 +72,7 @@ MRuby::Build.new do |conf|
   #   exts.executable = '' # '.exe' if Windows
   #   exts.library = '.a'
   # end
+  conf.exts.library = '.a'
 
   # file separator
   # conf.file_separator = '/'
