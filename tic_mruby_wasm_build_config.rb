@@ -12,6 +12,10 @@ MRuby::CrossBuild.new('wasm') do |conf|
 
   # include the GEM box
   conf.gembox File.expand_path('tic', File.dirname(__FILE__))
+
+  conf.cc do |cc|
+    cc.flags = [ENV['CFLAGS'] || %w()]
+  end
   
   conf.enable_bintest
   conf.enable_test
