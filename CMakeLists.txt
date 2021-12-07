@@ -241,6 +241,9 @@ endif()
 set(MRUBY_DIR ${THIRDPARTY_DIR}/mruby)
 set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/mruby/tic_default.rb)
 set(MRUBY_LIB ${MRUBY_DIR}/build/target/lib/libmruby.a)
+if(EMSCRIPTEN)
+    set(MRUBY_TOOLCHAIN emscripten)
+endif()
 
 ExternalProject_Add(mruby_vendor
     SOURCE_DIR         ${MRUBY_DIR}
@@ -256,6 +259,7 @@ ExternalProject_Add(mruby_vendor
         "TARGET_CXXFLAGS=${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${BUILD_TYPE_UC}}"
         "TARGET_LDFLAGS=${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_LINKER_FLAGS_${BUILD_TYPE_UC}}"
         "BUILD_TYPE=${BUILD_TYPE_UC}"
+        "MRUBY_TOOLCHAIN=${MRUBY_TOOLCHAIN}"
         ${RAKE} "MRUBY_CONFIG=${MRUBY_CONFIG}"
     INSTALL_COMMAND    ""
     BUILD_BYPRODUCTS   ${MRUBY_LIB}

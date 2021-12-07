@@ -9,18 +9,24 @@ MRuby::Build.new do |conf|
   conf.enable_test
 end
 
-MRuby::Toolchain.new('target') do |conf|
+MRuby::Toolchain.new('emscripten') do |conf|
   toolchain :clang
-  
-  conf.cc.command = ENV['TARGET_CC'] || 'cc'
-  conf.cxx.command = ENV['TARGET_CXX'] || 'cxx'
-  conf.linker.command = ENV['TARGET_LD'] || 'ld'
-  conf.archiver.command = ENV['TARGET_AR'] || 'ar'
+
+  conf.cc.command = ENV['TARGET_CC'] || 'emcc'
+  conf.cxx.command = ENV['TARGET_CXX'] || 'emcc'
+  conf.linker.command = ENV['TARGET_LD'] || 'emcc'
+  conf.archiver.command = ENV['TARGET_AR'] || 'emar'
 end
 
-MRuby::CrossBuild.new('target') do |conf|
+BuildClazz = (ENV['MRUBY_TOOLCHAIN'] || '').empty? ? MRuby::Build : MRuby::CrossBuild
+
+BuildClazz.new('target') do |conf|
   # load specific toolchain settings
-  toolchain :target
+  if (ENV['MRUBY_TOOLCHAIN'] || '').empty?
+    conf.toolchain
+  else
+    toolchain ENV['MRUBY_TOOLCHAIN']
+  end
 
   # include the GEM box
   conf.gembox File.expand_path('tic', File.dirname(__FILE__))
