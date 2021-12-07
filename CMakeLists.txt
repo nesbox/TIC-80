@@ -9,8 +9,15 @@ string(TIMESTAMP VERSION_YEAR "%Y")
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(VERSION_BUILD ".dbg" )
 endif()
+
 if(CMAKE_BUILD_TYPE)
     string(TOUPPER ${CMAKE_BUILD_TYPE} BUILD_TYPE_UC)
+endif()
+
+if(WIN32)
+    set(CMAKE_EXE "cmake")
+else()
+    set(CMAKE_EXE "${CMAKE_COMMAND}")
 endif()
 
 find_package(Git)
@@ -250,7 +257,7 @@ ExternalProject_Add(mruby_vendor
     CONFIGURE_COMMAND  ""
     BUILD_IN_SOURCE    TRUE
     BUILD_COMMAND
-        ${CMAKE_COMMAND} -E env
+        ${CMAKE_EXE} -E env
         "TARGET_CC=${CMAKE_C_COMPILER}"
         "TARGET_CXX=${CMAKE_CXX_COMPILER}"
         "TARGET_LD=${CMAKE_C_LINK_EXECUTABLE}"
