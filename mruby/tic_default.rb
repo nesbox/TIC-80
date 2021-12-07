@@ -18,7 +18,7 @@ MRuby::Toolchain.new('emscripten') do |conf|
   conf.archiver.command = ENV['TARGET_AR'] || 'emar'
 end
 
-BuildClazz = (ENV['MRUBY_TOOLCHAIN'] || '').empty? ? MRuby::Build : MRuby::CrossBuild
+BuildClazz = (ENV['MRUBY_CROSS_TOOLCHAIN'] || '').empty? ? MRuby::Build : MRuby::CrossBuild
 
 BuildClazz.new('target') do |conf|
   # load specific toolchain settings
