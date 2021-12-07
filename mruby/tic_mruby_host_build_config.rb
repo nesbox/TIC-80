@@ -2,30 +2,25 @@ MRuby::Build.new do |conf|
   # load specific toolchain settings
   conf.toolchain
 
-  # Use mrbgems
-  # conf.gem 'examples/mrbgems/ruby_extension_example'
-  # conf.gem 'examples/mrbgems/c_extension_example' do |g|
-  #   g.cc.flags << '-g' # append cflags in this gem
-  # end
-  # conf.gem 'examples/mrbgems/c_and_ruby_extension_example'
-  # conf.gem :core => 'mruby-eval'
-  # conf.gem :mgem => 'mruby-onig-regexp'
-  # conf.gem :github => 'mattn/mruby-onig-regexp'
-  # conf.gem :git => 'git@github.com:mattn/mruby-onig-regexp.git', :branch => 'master', :options => '-v'
-
   # include the GEM box
   conf.gembox File.expand_path('tic', File.dirname(__FILE__))
 
   # C compiler settings
   conf.cc do |cc|
-  #   cc.command = ENV['CC'] || 'gcc'
-    cc.flags = [ENV['CFLAGS'] || %w()]
     cc.flags << '-fPIC' unless ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
-  #   cc.include_paths = ["#{root}/include"]
-  #   cc.defines = %w()
-  #   cc.option_include_path = %q[-I"%s"]
-  #   cc.option_define = '-D%s'
-  #   cc.compile_options = %Q[%{flags} -MMD -o "%{outfile}" -c "%{infile}"]
+
+    case ENV['BUILD_CONFIG'].upcase
+    when /DEBUG/
+      unless ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
+        cc.flags << '-g'
+      end
+    else
+      if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
+        cc.flags << '/O1'
+      else
+        cc.flags << '-Os'
+      end
+    end
   end
 
   # mrbc settings
@@ -65,18 +60,17 @@ MRuby::Build.new do |conf|
   # end
 
   # file extensions
-  # conf.exts do |exts|
-  #   exts.object = '.o'
-  #   exts.executable = '' # '.exe' if Windows
-  #   exts.library = '.a'
-  # end
-  conf.exts.library = '.a'
+  conf.exts do |exts|
+    exts.object = '.o'
+    exts.library = '.a'
+    # exts.executable = '' # '.exe' if Windows
+  end
 
   # file separator
   # conf.file_separator = '/'
 
   # Turn on `enable_debug` for better debugging
-  # conf.enable_debug
+  conf.enable_debug if /DEBUG/ =~ ENV['BUILD_CONFIG'].upcase
   conf.enable_bintest
   conf.enable_test
 end

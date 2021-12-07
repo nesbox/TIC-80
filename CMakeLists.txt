@@ -238,18 +238,19 @@ endif()
 set(MRUBY_DIR ${THIRDPARTY_DIR}/mruby)
 if(EMSCRIPTEN)
     set(MRUBY_TARGET wasm)
-    set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/tic_mruby_wasm_build_config.rb)
 else()
     set(MRUBY_TARGET host)
-    set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/tic_mruby_build_config.rb)
 endif()
+set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/mruby/tic_mruby_${MRUBY_TARGET}_build_config.rb)
 set(MRUBY_LIBRARIES ${MRUBY_DIR}/build/${MRUBY_TARGET}/lib/libmruby.a)
 
 ExternalProject_Add(mruby_vendor
     SOURCE_DIR         ${MRUBY_DIR}
     CONFIGURE_COMMAND  ""
     BUILD_IN_SOURCE    TRUE
-    BUILD_COMMAND      ${RAKE} MRUBY_CONFIG=${MRUBY_CONFIG}
+    BUILD_COMMAND      ${CMAKE_COMMAND} -E env
+        "BUILD_TYPE=${CMAKE_BUILD_TYPE}"
+        ${RAKE} MRUBY_CONFIG=${MRUBY_CONFIG}
     INSTALL_COMMAND    ""
     BUILD_BYPRODUCTS   ${MRUBY_LIBRARIES}
 )
