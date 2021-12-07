@@ -25,6 +25,10 @@
 
 #include <assert.h>
 
+#if defined(DINGUX) && !defined(static_assert)
+#define static_assert _Static_assert
+#endif
+
 static_assert(sizeof(tic80_input) == 12, "tic80_input");
 
 static bool isKeyPressed(const tic80_keyboard* input, tic_key key)
