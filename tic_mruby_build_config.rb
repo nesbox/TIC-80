@@ -14,7 +14,7 @@ MRuby::Build.new do |conf|
   # conf.gem :git => 'git@github.com:mattn/mruby-onig-regexp.git', :branch => 'master', :options => '-v'
 
   # include the GEM box
-  conf.gembox 'default'
+  conf.gembox File.expand_path('tic', File.dirname(__FILE__))
 
   # C compiler settings
   conf.cc do |cc|
