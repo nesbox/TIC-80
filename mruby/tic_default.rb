@@ -23,7 +23,7 @@ MRuby::CrossBuild.new('target') do |conf|
   end
 
   conf.linker do |linker|
-    linker.command = ENV['TARGET_LD'] || 'ld'
+    linker.command = ENV['TARGET_CC'] || 'cc'
     linker.flags = [ENV['TARGET_LDFLAGS'] || %w()]
   end
 

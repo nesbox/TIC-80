@@ -262,9 +262,8 @@ ExternalProject_Add(mruby_vendor
     BUILD_IN_SOURCE    TRUE
     BUILD_COMMAND
         ${RAKE} "MRUBY_CONFIG=${MRUBY_CONFIG}"
-            "TARGET_CC=${CMAKE_C_COMPILER}"
-            "TARGET_LD=${CMAKE_C_LINK_EXECUTABLE}"
-            "TARGET_AR=${CMAKE_AR}"
+            "TARGET_CC=\"${CMAKE_C_COMPILER}\""
+            "TARGET_AR=\"${CMAKE_AR}\""
             "TARGET_CFLAGS=${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_${BUILD_TYPE_UC}}"
             "TARGET_LDFLAGS=${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_LINKER_FLAGS_${BUILD_TYPE_UC}}"
             "BUILD_TYPE=${BUILD_TYPE_UC}"
