@@ -100,7 +100,7 @@ static const u8 rubymark[] =
     #include "../build/assets/rubymark.tic.dat"
 };
 
-tic_script_config_extra RubySyntaxConfigExtra =
+tic_script_config_extra MRubySyntaxConfigExtra =
 {
     .name               = "ruby",
     .demoRom            = RubyDemoRom,
@@ -188,7 +188,7 @@ tic_script_config_extra* LanguagesExtra[] = {
    &JsSyntaxConfigExtra,
 #endif
 #if defined(TIC_BUILD_WITH_MRUBY)
-   &RubySyntaxConfigExtra,
+   &MRubySyntaxConfigExtra,
 #endif
    NULL
 };
