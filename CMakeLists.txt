@@ -242,12 +242,19 @@ endif()
 set(MRUBY_DIR ${THIRDPARTY_DIR}/mruby)
 set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/mruby/tic_default.rb)
 set(MRUBY_LIB ${MRUBY_DIR}/build/target/lib/libmruby.a)
-if(EMSCRIPTEN)
-    set(MRUBY_TOOLCHAIN emscripten)
-    set(MRUBY_CROSS_TOOLCHAIN emscripten)
-elseif(MSVC)
+if(MSVC)
     set(MRUBY_TOOLCHAIN visualcpp)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    set(MRUBY_TOOLCHAIN clang)
+else()
+    set(MRUBY_TOOLCHAIN gcc)
 endif()
+message(NOTICE "\
+Caveat:\n\
+* mruby target (\"target\") will attempt to use the same toolchain as \
+CMake, namely \"${MRUBY_TOOLCHAIN}\".\n\
+* mruby bootstrap (\"host\") will automatically detect a usable toolchain, \
+which may be different than the one used by CMake.")
 
 ExternalProject_Add(mruby_vendor
     SOURCE_DIR         ${MRUBY_DIR}
@@ -256,17 +263,22 @@ ExternalProject_Add(mruby_vendor
     BUILD_COMMAND
         ${RAKE} "MRUBY_CONFIG=${MRUBY_CONFIG}"
             "TARGET_CC=${CMAKE_C_COMPILER}"
-            "TARGET_CXX=${CMAKE_CXX_COMPILER}"
             "TARGET_LD=${CMAKE_C_LINK_EXECUTABLE}"
             "TARGET_AR=${CMAKE_AR}"
             "TARGET_CFLAGS=${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_${BUILD_TYPE_UC}}"
-            "TARGET_CXXFLAGS=${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${BUILD_TYPE_UC}}"
             "TARGET_LDFLAGS=${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_LINKER_FLAGS_${BUILD_TYPE_UC}}"
             "BUILD_TYPE=${BUILD_TYPE_UC}"
             "MRUBY_TOOLCHAIN=${MRUBY_TOOLCHAIN}"
-            "MRUBY_CROSS_TOOLCHAIN=${MRUBY_CROSS_TOOLCHAIN}"
     INSTALL_COMMAND    ""
     BUILD_BYPRODUCTS   ${MRUBY_LIB}
+)
+set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES
+    "${MRUBY_DIR}/build"
+    "${MRUBY_DIR}/bin"
+)
+set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES
+    "${MRUBY_DIR}/build"
+    "${MRUBY_DIR}/bin"
 )
 
 add_library(mruby STATIC IMPORTED GLOBAL)
