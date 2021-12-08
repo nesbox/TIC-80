@@ -33,6 +33,10 @@
 #include <time.h>
 #include <assert.h>
 
+#if defined(DINGUX) && !defined(static_assert)
+#define static_assert _Static_assert
+#endif
+
 #ifdef _3DS
 #include <3ds.h>
 #endif
