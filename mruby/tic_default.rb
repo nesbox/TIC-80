@@ -19,9 +19,7 @@ MRuby::CrossBuild.new('target') do |conf|
   conf.cc do |cc|
     cc.command = ENV["TARGET_CC"] || 'cc'
     cc.flags = [ENV["TARGET_CFLAGS"] || %w()]
-    unless ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
-      cc.flags << '-fPIC' 
-    end
+    cc.flags << '-fPIC' unless ENV['MRUBY_TOOLCHAIN'] == 'visualcpp'
   end
 
   conf.linker do |linker|
