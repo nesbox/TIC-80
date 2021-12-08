@@ -1,5 +1,9 @@
 MRuby::Build.new do |conf|
-  conf.toolchain
+  if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
+    toolchain :visualcpp
+  else
+    conf.toolchain
+  end
 
   conf.gembox 'default'
 
