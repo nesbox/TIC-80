@@ -20,7 +20,6 @@ MRuby::CrossBuild.new('target') do |conf|
     cc.flags = [ENV["TARGET_CFLAGS"] || %w()]
     cc.flags << '-fPIC' unless ENV['MRUBY_TOOLCHAIN'] == 'visualcpp'
     cc.flags << "-isysroot #{ENV['MRUBY_SYSROOT']}" unless ENV['MRUBY_SYSROOT'].empty?
-    cc.flags << '-U_FORTIFY_SOURCE' if ENV['MRUBY_TOOLCHAIN'] == 'android'
   end
 
   conf.linker do |linker|
