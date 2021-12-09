@@ -1,4 +1,5 @@
 FROM mingc/android-build-box
+ENV ImageOS=ubuntu20
 RUN apt-get update
 RUN apt-get remove git -y
 RUN apt-get install software-properties-common -y

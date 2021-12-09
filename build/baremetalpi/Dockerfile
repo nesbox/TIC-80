@@ -1,4 +1,5 @@
 FROM ubuntu:18.04
+ENV ImageOS=ubuntu20
 RUN apt-get update
 RUN apt-get install software-properties-common -y
 RUN add-apt-repository ppa:git-core/ppa -y
