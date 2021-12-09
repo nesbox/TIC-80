@@ -5,10 +5,9 @@ MRuby::Build.new do |conf|
     conf.toolchain
   end
 
-  conf.gembox 'default'
-
-  conf.enable_bintest
-  conf.enable_test
+  conf.build_mrbc_exec
+  conf.disable_libmruby
+  conf.disable_presym
 end
 
 MRuby::CrossBuild.new('target') do |conf|
