@@ -248,9 +248,13 @@ jobs:
         submodules: recursive
         fetch-depth: 0
 
-    - uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: 2.6
+    # - uses: ruby/setup-ruby@v1
+    #   with:
+    #     ruby-version: 2.6
+
+    - name: Install Host toolchain
+      run: |
+        apt-get install --assume-yes build-essential ruby-full
 
     - name: Build
       run: |
@@ -288,9 +292,13 @@ jobs:
         submodules: recursive
         fetch-depth: 0
 
-    - uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: 2.6
+    # - uses: ruby/setup-ruby@v1
+    #   with:
+    #     ruby-version: 2.6
+
+    - name: Install Host toolchain
+      run: |
+        apt-get install --assume-yes build-essential ruby-full
 
     - name: Prebuild
       run: |
@@ -342,9 +350,13 @@ jobs:
         submodules: recursive
         fetch-depth: 0
 
-    - uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: 2.6
+    # - uses: ruby/setup-ruby@v1
+    #   with:
+    #     ruby-version: 2.6
+
+    - name: Install Host toolchain
+      run: |
+        apt-get install --assume-yes build-essential ruby-full
 
     - name: Prebuild
       run: |
@@ -399,9 +411,13 @@ jobs:
         submodules: recursive
         fetch-depth: 0
 
-    - uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: 2.6
+    # - uses: ruby/setup-ruby@v1
+    #   with:
+    #     ruby-version: 2.6
+
+    - name: Install Host toolchain
+      run: |
+        apt-get install --assume-yes build-essential ruby-full
 
     - name: Build
       run: |
@@ -498,9 +514,13 @@ jobs:
         submodules: recursive
         fetch-depth: 0
 
-    - uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: 2.6
+    # - uses: ruby/setup-ruby@v1
+    #   with:
+    #     ruby-version: 2.6
+
+    - name: Install Host toolchain
+      run: |
+        apt-get install --assume-yes build-essential ruby-full
 
     - name: Build
       run: |
