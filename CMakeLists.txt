@@ -231,12 +231,8 @@ target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/vm)
 ################################
 
 find_program(RAKE rake)
-find_program(YACC yacc)
 if(NOT RAKE)
-    message(FATAL_ERROR "Program `rake' not found! Ruby and `rake' are required to build mruby support.")
-endif()
-if(NOT YACC)
-    message(FATAL_ERROR "Program `yacc' not found! Either `yacc' or GNU Bison is required to build mruby support.")
+    message(FATAL_ERROR "Program `rake' not found! Ruby \"rake\" is required to build mruby support.")
 endif()
 
 set(MRUBY_DIR ${THIRDPARTY_DIR}/mruby)
