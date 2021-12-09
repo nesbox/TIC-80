@@ -12,7 +12,12 @@ MRuby::Build.new do |conf|
 end
 
 MRuby::CrossBuild.new('target') do |conf|
-  toolchain ENV['MRUBY_TOOLCHAIN']
+  params = {}
+  if ENV['MRUBY_TOOLCHAIN'] == 'android'
+    params[:toolchain] = :clang
+    params[:platform] = 'android-21'
+  end
+  toolchain ENV['MRUBY_TOOLCHAIN'], params
 
   conf.gembox File.expand_path('tic', File.dirname(__FILE__))
 
