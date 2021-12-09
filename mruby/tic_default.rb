@@ -20,6 +20,7 @@ MRuby::CrossBuild.new('target') do |conf|
     cc.command = ENV["TARGET_CC"] || 'cc'
     cc.flags = [ENV["TARGET_CFLAGS"] || %w()]
     cc.flags << '-fPIC' unless ENV['MRUBY_TOOLCHAIN'] == 'visualcpp'
+    cc.flags << "-isysroot #{ENV['MRUBY_SYSROOT']}" unless ENV['MRUBY_SYSROOT'].empty?
   end
 
   conf.linker do |linker|

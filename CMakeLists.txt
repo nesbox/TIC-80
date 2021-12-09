@@ -249,6 +249,9 @@ elseif(APPLE OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 else()
     set(MRUBY_TOOLCHAIN gcc)
 endif()
+if(APPLE)
+    exec_program(xcrun ARGS --sdk macosx --show-sdk-path OUTPUT_VARIABLE MRUBY_SYSROOT)
+endif()
 message(NOTICE "\
 Caveat:\n\
 * mruby target (\"target\") will attempt to use the same toolchain as \
@@ -267,6 +270,7 @@ ExternalProject_Add(mruby_vendor
             "TARGET_CFLAGS=${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_${BUILD_TYPE_UC}}"
             "TARGET_LDFLAGS=${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_LINKER_FLAGS_${BUILD_TYPE_UC}}"
             "BUILD_TYPE=${BUILD_TYPE_UC}"
+            "MRUBY_SYSROOT=${MRUBY_SYSROOT}"
             "MRUBY_TOOLCHAIN=${MRUBY_TOOLCHAIN}"
     INSTALL_COMMAND    ""
     BUILD_BYPRODUCTS   ${MRUBY_LIB}
