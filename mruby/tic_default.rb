@@ -11,12 +11,7 @@ MRuby::Build.new do |conf|
 end
 
 MRuby::CrossBuild.new('target') do |conf|
-  params = {}
-  if ENV['MRUBY_TOOLCHAIN'] == 'android'
-    params[:toolchain] = :clang
-    params[:platform] = 'android-21'
-  end
-  toolchain ENV['MRUBY_TOOLCHAIN'], params
+  toolchain ENV['MRUBY_TOOLCHAIN']
 
   conf.gembox File.expand_path('tic', File.dirname(__FILE__))
 
@@ -25,6 +20,7 @@ MRuby::CrossBuild.new('target') do |conf|
     cc.flags = [ENV["TARGET_CFLAGS"] || %w()]
     cc.flags << '-fPIC' unless ENV['MRUBY_TOOLCHAIN'] == 'visualcpp'
     cc.flags << "-isysroot #{ENV['MRUBY_SYSROOT']}" unless ENV['MRUBY_SYSROOT'].empty?
+    cc.flags << '-U_FORTIFY_SOURCE' if ENV['MRUBY_TOOLCHAIN'] == 'android'
   end
 
   conf.linker do |linker|
