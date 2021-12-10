@@ -51,10 +51,6 @@ if(APPLE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum OS X deployment version" FORCE)
 endif()
 
-if(ANDROID)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -U_FORTIFY_SOURCE")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -U_FORTIFY_SOURCE")
-endif()
 
 project(TIC-80 VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_REVISION} LANGUAGES C CXX)
 message("Building for target : ${CMAKE_SYSTEM_NAME}")
@@ -241,26 +237,24 @@ if(NOT RAKE)
 endif()
 
 set(MRUBY_DIR ${THIRDPARTY_DIR}/mruby)
-set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/mruby/tic_default.rb)
+if(ANDROID)
+    set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/mruby/tic_android.rb)
+else()
+    set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/mruby/tic_default.rb)
+endif()
 set(MRUBY_LIB ${MRUBY_DIR}/build/target/lib/libmruby.a)
+
 if(MSVC)
     set(MRUBY_TOOLCHAIN visualcpp)
 elseif(APPLE OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     set(MRUBY_TOOLCHAIN clang)
-elseif(ANDROID)
-    set(MRUBY_TOOLCHAIN android)
 else()
     set(MRUBY_TOOLCHAIN gcc)
 endif()
+
 if(APPLE)
     exec_program(xcrun ARGS --sdk macosx --show-sdk-path OUTPUT_VARIABLE MRUBY_SYSROOT)
 endif()
-message(NOTICE "\
-Caveat:\n\
-* mruby target (\"target\") will attempt to use the same toolchain as \
-CMake, namely \"${MRUBY_TOOLCHAIN}\".\n\
-* mruby bootstrap (\"host\") will automatically detect a usable toolchain, \
-which may be different than the one used by CMake.")
 
 ExternalProject_Add(mruby_vendor
     SOURCE_DIR         ${MRUBY_DIR}
@@ -275,6 +269,9 @@ ExternalProject_Add(mruby_vendor
             "BUILD_TYPE=${BUILD_TYPE_UC}"
             "MRUBY_SYSROOT=${MRUBY_SYSROOT}"
             "MRUBY_TOOLCHAIN=${MRUBY_TOOLCHAIN}"
+            "ANDROID_ARCH=${CMAKE_ANDROID_ARCH_ABI}"
+            "ANDROID_PLATFORM=android-${ANDROID_API}"
+            "ANDROID_NDK_HOME=${CMAKE_ANDROID_NDK}"
     INSTALL_COMMAND    ""
     BUILD_BYPRODUCTS   ${MRUBY_LIB}
 )
