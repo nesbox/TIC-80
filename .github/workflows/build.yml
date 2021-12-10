@@ -254,6 +254,7 @@ jobs:
 
     - name: Install Host toolchain
       run: |
+        apt-get update
         apt-get install --assume-yes build-essential ruby-full
 
     - name: Build
@@ -298,6 +299,7 @@ jobs:
 
     - name: Install Host toolchain
       run: |
+        apt-get update
         apt-get install --assume-yes build-essential ruby-full
 
     - name: Prebuild
@@ -356,6 +358,7 @@ jobs:
 
     - name: Install Host toolchain
       run: |
+        apt-get update
         apt-get install --assume-yes build-essential ruby-full
 
     - name: Prebuild
@@ -417,6 +420,7 @@ jobs:
 
     - name: Install Host toolchain
       run: |
+        apt-get update
         apt-get install --assume-yes build-essential ruby-full
 
     - name: Build
@@ -520,6 +524,7 @@ jobs:
 
     - name: Install Host toolchain
       run: |
+        apt-get update
         apt-get install --assume-yes build-essential ruby-full
 
     - name: Build
