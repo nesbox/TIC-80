@@ -21,12 +21,6 @@ jobs:
       with:
         ruby-version: 2.6
 
-    - name: Provision Git
-      shell: cmd
-      run: |
-        git config --global user.name "Bob"
-        git config --global user.email "bob@invalid"
-
     - name: Build
       shell: cmd
       run: |
@@ -60,12 +54,6 @@ jobs:
       with:
         ruby-version: 2.6
 
-    - name: Provision Git
-      shell: cmd
-      run: |
-        git config --global user.name "Bob"
-        git config --global user.email "bob@invalid"
-
     - name: Build
       shell: cmd
       run: |
@@ -92,12 +80,6 @@ jobs:
     - uses: ruby/setup-ruby@v1
       with:
         ruby-version: 2.6
-
-    - name: Provision Git
-      shell: cmd
-      run: |
-        git config --global user.name "Bob"
-        git config --global user.email "bob@invalid"
 
     - name: Build
       shell: cmd
@@ -132,12 +114,6 @@ jobs:
       with:
         ruby-version: 2.6
 
-    - name: Provision Git
-      shell: cmd
-      run: |
-        git config --global user.name "Bob"
-        git config --global user.email "bob@invalid"
-
     - name: Build
       shell: cmd
       run: |
@@ -164,12 +140,6 @@ jobs:
     - uses: ruby/setup-ruby@v1
       with:
         ruby-version: 2.6
-
-    - name: Provision Git
-      shell: cmd
-      run: |
-        git config --global user.name "Bob"
-        git config --global user.email "bob@invalid"
 
     - name: Build
       shell: cmd
@@ -203,12 +173,6 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev -y
-
-    - name: Provision Git
-      shell: cmd
-      run: |
-        git config --global user.name "Bob"
-        git config --global user.email "bob@invalid"
 
     - name: Build
       run: |
@@ -247,12 +211,6 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev -y
-
-    - name: Provision Git
-      shell: cmd
-      run: |
-        git config --global user.name "Bob"
-        git config --global user.email "bob@invalid"
 
     - name: Build
       run: |
@@ -298,12 +256,6 @@ jobs:
       run: |
         apt-get update
         apt-get install --assume-yes build-essential ruby-full
-
-    - name: Provision Git
-      shell: cmd
-      run: |
-        git config --global user.name "Bob"
-        git config --global user.email "bob@invalid"
 
     - name: Build
       run: |
@@ -361,12 +313,6 @@ jobs:
         make -j$(nproc)
         cd ../../linux
         make -j$(nproc)
-
-    - name: Provision Git
-      shell: cmd
-      run: |
-        git config --global user.name "Bob"
-        git config --global user.email "bob@invalid"
 
     - name: Build
       run: |
@@ -427,12 +373,6 @@ jobs:
         cd ../../linux
         make -j$(nproc)
 
-    - name: Provision Git
-      shell: cmd
-      run: |
-        git config --global user.name "Bob"
-        git config --global user.email "bob@invalid"
-
     - name: Build
       run: |
         cd build
@@ -483,12 +423,6 @@ jobs:
         apt-get update
         apt-get install --assume-yes build-essential ruby-full
 
-    - name: Provision Git
-      shell: cmd
-      run: |
-        git config --global user.name "Bob"
-        git config --global user.email "bob@invalid"
-
     - name: Build
       run: |
         cd build
@@ -513,12 +447,6 @@ jobs:
 
     - name: Install
       run: brew uninstall --ignore-dependencies libidn2
-
-    - name: Provision Git
-      shell: cmd
-      run: |
-        git config --global user.name "Bob"
-        git config --global user.email "bob@invalid"
 
     - name: Build
       run: |
@@ -558,12 +486,6 @@ jobs:
 
     - name: Install
       run: brew uninstall --ignore-dependencies libidn2
-
-    - name: Provision Git
-      shell: cmd
-      run: |
-        git config --global user.name "Bob"
-        git config --global user.email "bob@invalid"
 
     - name: Build
       run: |
@@ -605,12 +527,6 @@ jobs:
         apt-get update
         apt-get install --assume-yes build-essential ruby-full python3
 
-    - name: Provision Git
-      shell: cmd
-      run: |
-        git config --global user.name "Bob"
-        git config --global user.email "bob@invalid"
-
     - name: Build
       run: |
         cd build/android
@@ -638,12 +554,6 @@ jobs:
     - uses: ruby/setup-ruby@v1
       with:
         ruby-version: 2.6
-
-    - name: Provision Git
-      shell: cmd
-      run: |
-        git config --global user.name "Bob"
-        git config --global user.email "bob@invalid"
 
     - name: Build
       run: |
