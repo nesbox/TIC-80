@@ -1081,7 +1081,7 @@ static void callMRubyTick(tic_mem* tic)
 
             if (mrb_respond_to(mrb, mrb_top_self(mrb), mrb_intern_cstr(mrb, OvrFunc)))
             {
-                OVR(tic)
+                OVR(machine)
                 {
                     mrb_funcall(mrb, mrb_top_self(mrb), OvrFunc, 0);
                     catcherr(machine);
