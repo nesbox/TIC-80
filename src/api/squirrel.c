@@ -1420,7 +1420,7 @@ static SQInteger squirrel_mouse(HSQUIRRELVM vm)
 
     const tic80_mouse* mouse = &core->memory.ram.input.mouse;
 
-    sq_newarray(vm, 7);
+    sq_newarray(vm, 0);
 
     {
         tic_point pos = tic_api_mouse((tic_mem*)core);
@@ -1641,7 +1641,7 @@ static void callSquirrelTick(tic_mem* tic)
                 
                 if(SQ_SUCCEEDED(sq_get(vm, -2))) 
                 {
-                    OVR(tic)
+                    OVR(core)
                     {
                         sq_pushroottable(vm);
 

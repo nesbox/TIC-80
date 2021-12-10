@@ -1024,7 +1024,7 @@ static void callJavascriptTick(tic_mem* tic)
             {
                 if(duk_get_global_string(duk, OVR_FN))
                 {
-                    OVR(tic)
+                    OVR(core)
                     {
                         if(duk_pcall(duk, 0) != 0)
                             core->data->error(core->data->data, duk_safe_to_stacktrace(duk, -1));

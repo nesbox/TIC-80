@@ -1119,6 +1119,10 @@ if(BUILD_STUB)
 
         target_include_directories(tic80${SCRIPT} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 
+        if(BUILD_SDLGPU)
+            target_compile_definitions(tic80${SCRIPT} PRIVATE CRT_SHADER_SUPPORT)
+        endif()
+
         if(MINGW)
             target_link_libraries(tic80${SCRIPT} mingw32)
             target_link_options(tic80${SCRIPT} PRIVATE -static -mconsole)

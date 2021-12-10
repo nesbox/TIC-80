@@ -1249,6 +1249,8 @@ static void tick(Map* map)
 
     VBANK(tic, 1)
     {
+        tic_api_cls(tic, tic->ram.vram.vars.clear = tic_color_dark_blue);
+
         memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
 
         tic_api_clip(tic, 0, TOOLBAR_SIZE, TIC80_WIDTH - (sheetVisible(map) ? TIC_SPRITESHEET_SIZE+2 : 0), TIC80_HEIGHT - TOOLBAR_SIZE);
@@ -1287,7 +1289,7 @@ static void tick(Map* map)
             drawSelectionVBank1(map);
 
         drawMapToolbar(map, TIC80_WIDTH, 1);
-        drawToolbar(map->tic, false);    
+        drawToolbar(map->tic, false);
     }
 }
 

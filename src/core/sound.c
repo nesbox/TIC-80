@@ -27,6 +27,10 @@
 #include <string.h>
 #include <assert.h>
 
+#if defined(DINGUX) && !defined(static_assert)
+#define static_assert _Static_assert
+#endif
+
 #define ENVELOPE_FREQ_SCALE 2
 #define SECONDS_PER_MINUTE 60
 #define NOTES_PER_MUNUTE (TIC80_FRAMERATE / NOTES_PER_BEAT * SECONDS_PER_MINUTE)
