@@ -274,7 +274,7 @@ ExternalProject_Add(mruby_vendor
             "MRUBY_SYSROOT=${MRUBY_SYSROOT}"
             "MRUBY_TOOLCHAIN=${MRUBY_TOOLCHAIN}"
             "ANDROID_ARCH=${CMAKE_ANDROID_ARCH_ABI}"
-            "ANDROID_PLATFORM=android-${CMAKE_ANDROID_API}"
+            "ANDROID_PLATFORM=android-${CMAKE_SYSTEM_VERSION}"
             "ANDROID_NDK_HOME=${CMAKE_ANDROID_NDK}"
     INSTALL_COMMAND    ""
     BUILD_BYPRODUCTS   ${MRUBY_LIB}
