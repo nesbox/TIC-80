@@ -1,0 +1,36 @@
+From a0bc2fb3753694813e611c47bfdf90cd599b1f7d Mon Sep 17 00:00:00 2001
+From: Jeremiasz Nelz <jeremiasz@nelz.pl>
+Date: Fri, 10 Dec 2021 19:43:17 +0100
+Subject: [PATCH] Point to the actual sysroot on Android; NDK locs
+
+---
+ tasks/toolchains/android.rake | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/tasks/toolchains/android.rake b/tasks/toolchains/android.rake
+index 2368b93b5..8f008a360 100644
+--- a/tasks/toolchains/android.rake
++++ b/tasks/toolchains/android.rake
+@@ -7,6 +7,9 @@ class MRuby::Toolchain::Android
+   DEFAULT_NDK_HOMES = %w{
+     /usr/local/opt/android-sdk/ndk-bundle
+     /usr/local/opt/android-ndk
++    /opt/android-sdk/ndk-bundle
++    /opt/android-ndk
++    /opt/android-sdk/ndk/current
+     ~/Android/Sdk/ndk-bundle
+     %LOCALAPPDATA%/Android/android-sdk/ndk-bundle
+     %LOCALAPPDATA%/Android/android-ndk
+@@ -188,7 +191,8 @@ Higher NDK version will be use.
+         when /x86/        then 'arch-x86'
+         when /mips64/     then 'arch-mips64'
+         when /mips/       then 'arch-mips'
+-        end
++        end,
++        'sysroot'
+       ).to_s
+     if Dir.exist?(File.join(sysroot_path, "usr", "include"))
+       return @sysroot = sysroot_path
+-- 
+2.32.0
+

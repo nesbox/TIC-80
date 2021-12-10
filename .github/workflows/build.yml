@@ -527,18 +527,6 @@ jobs:
         apt-get update
         apt-get install --assume-yes build-essential ruby-full python3
 
-    - name: Make standalone toolchains (NDK)
-      run: |
-        for ARCH in arm arm64 x86 x86_64; do \
-          API=29; \
-          SYSROOT=$ANDROID_NDK_HOME/platforms/android-$API/arch-$ARCH; \
-          test -d "$SYSROOT" \
-          || python3 "$ANDROID_NDK_HOME/build/tools/make_standalone_toolchain.py" \
-              --api "$API" --arch "$ARCH" \
-              --install-dir "$SYSROOT" -f \
-          && ln -Ffs "$SYSROOT"/{sysroot/,}usr; \
-        done
-
     - name: Build
       run: |
         cd build/android

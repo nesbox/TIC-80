@@ -262,7 +262,8 @@ endif()
 
 ExternalProject_Add(mruby_vendor
     SOURCE_DIR         ${MRUBY_DIR}
-    CONFIGURE_COMMAND  ""
+    CONFIGURE_COMMAND
+        ${GIT_EXECUTABLE} am <"${CMAKE_SOURCE_DIR}/build/mruby/0001-Point-to-the-actual-sysroot-on-Android-NDK-locs.patch"
     BUILD_IN_SOURCE    TRUE
     BUILD_COMMAND
         ${RAKE} "MRUBY_CONFIG=${MRUBY_CONFIG}"
@@ -276,6 +277,7 @@ ExternalProject_Add(mruby_vendor
             "ANDROID_ARCH=${CMAKE_ANDROID_ARCH_ABI}"
             "ANDROID_PLATFORM=android-${ANDROID_API}"
             "ANDROID_NDK_HOME=${CMAKE_ANDROID_NDK}"
+            "ANDROID_STANDALONE_TOOLCHAIN=${CMAKE_ANDROID_STANDALONE_TOOLCHAIN}"
     INSTALL_COMMAND    ""
     BUILD_BYPRODUCTS   ${MRUBY_LIB}
 )
