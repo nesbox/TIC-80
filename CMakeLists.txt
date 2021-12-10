@@ -235,16 +235,18 @@ target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/vm)
 # MRUBY
 ################################
 
+find_program(RUBY ruby)
 find_program(RAKE rake)
 if(NOT RAKE)
     message(FATAL_ERROR "Program `rake' not found! Ruby \"rake\" is required to build mruby support.")
 endif()
 
+set(MRUBY_BUILDDIR ${CMAKE_SOURCE_DIR}/build/mruby)
 set(MRUBY_DIR ${THIRDPARTY_DIR}/mruby)
 if(ANDROID)
-    set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/build/mruby/tic_android.rb)
+    set(MRUBY_CONFIG ${MRUBY_BUILDDIR}/tic_android.rb)
 else()
-    set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/build/mruby/tic_default.rb)
+    set(MRUBY_CONFIG ${MRUBY_BUILDDIR}/tic_default.rb)
 endif()
 set(MRUBY_LIB ${MRUBY_DIR}/build/target/lib/libmruby.a)
 
@@ -262,8 +264,7 @@ endif()
 
 ExternalProject_Add(mruby_vendor
     SOURCE_DIR         ${MRUBY_DIR}
-    CONFIGURE_COMMAND
-        ${GIT_EXECUTABLE} am <"${CMAKE_SOURCE_DIR}/build/mruby/0001-Point-to-the-actual-sysroot-on-Android-NDK-locs.patch"
+    CONFIGURE_COMMAND  ${RUBY} "${MRUBY_BUILDDIR}/patch_all.rb"
     BUILD_IN_SOURCE    TRUE
     BUILD_COMMAND
         ${RAKE} "MRUBY_CONFIG=${MRUBY_CONFIG}"
