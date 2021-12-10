@@ -525,7 +525,16 @@ jobs:
     - name: Install Host toolchain
       run: |
         apt-get update
-        apt-get install --assume-yes build-essential ruby-full
+        apt-get install --assume-yes build-essential ruby-full python3
+
+    - name: Make standalone toolchains (NDK)
+      run: |
+        for ARCH in arm arm64 x86 x86_64; do \
+          API=29; \
+          python3 "$ANDROID_NDK_HOME/build/tools/make_standalone_toolchain.py" \
+              --api "$API" --arch "$ARCH" \
+              --install-dir "$ANDROID_NDK_HOME/platforms/android-$API/arch-$ARCH"; \
+        done
 
     - name: Build
       run: |
