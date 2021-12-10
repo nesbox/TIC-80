@@ -51,10 +51,6 @@ if(APPLE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum OS X deployment version" FORCE)
 endif()
 
-if(RPI)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
-endif()
-
 
 project(TIC-80 VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_REVISION} LANGUAGES C CXX)
 message("Building for target : ${CMAKE_SYSTEM_NAME}")
@@ -138,6 +134,10 @@ if(MSVC)
 else()
 
     set(CMAKE_C_STANDARD 11)
+endif()
+
+if(RPI)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
 endif()
 
 set(THIRDPARTY_DIR ${CMAKE_SOURCE_DIR}/vendor)
