@@ -242,9 +242,9 @@ endif()
 
 set(MRUBY_DIR ${THIRDPARTY_DIR}/mruby)
 if(ANDROID)
-    set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/mruby/tic_android.rb)
+    set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/build/mruby/tic_android.rb)
 else()
-    set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/mruby/tic_default.rb)
+    set(MRUBY_CONFIG ${CMAKE_SOURCE_DIR}/build/mruby/tic_default.rb)
 endif()
 set(MRUBY_LIB ${MRUBY_DIR}/build/target/lib/libmruby.a)
 
