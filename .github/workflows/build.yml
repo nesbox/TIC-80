@@ -531,9 +531,12 @@ jobs:
       run: |
         for ARCH in arm arm64 x86 x86_64; do \
           API=29; \
-          python3 "$ANDROID_NDK_HOME/build/tools/make_standalone_toolchain.py" \
+          SYSROOT=$ANDROID_NDK_HOME/platforms/android-$API/arch-$ARCH; \
+          test -d "$SYSROOT" \
+          || python3 "$ANDROID_NDK_HOME/build/tools/make_standalone_toolchain.py" \
               --api "$API" --arch "$ARCH" \
-              --install-dir "$ANDROID_NDK_HOME/platforms/android-$API/arch-$ARCH"; \
+              --install-dir "$SYSROOT" -f \
+          && ln -Ffs "$SYSROOT"/{sysroot/,}usr; \
         done
 
     - name: Build
