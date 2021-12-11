@@ -1068,7 +1068,6 @@ static void callMRubyTick(tic_mem* tic)
 {
     tic_core* machine = (tic_core*)tic;
     const char* TicFunc = TIC_FN;
-    const char* OvrFunc = OVR_FN;
 
     mrb_state* mrb = ((mrbVm*)machine->currentVM)->mrb;
 
@@ -1078,15 +1077,6 @@ static void callMRubyTick(tic_mem* tic)
         {
             mrb_funcall(mrb, mrb_top_self(mrb), TicFunc, 0);
             catcherr(machine);
-
-            if (mrb_respond_to(mrb, mrb_top_self(mrb), mrb_intern_cstr(mrb, OvrFunc)))
-            {
-                OVR(machine)
-                {
-                    mrb_funcall(mrb, mrb_top_self(mrb), OvrFunc, 0);
-                    catcherr(machine);
-                }
-            }
         }
         else
         {
