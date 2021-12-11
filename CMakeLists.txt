@@ -140,6 +140,10 @@ if(RPI)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99")
 endif()
 
+if(ANDROID)
+    set(CMAKE_SYSTEM_VERSION 24)
+endif()
+
 set(THIRDPARTY_DIR ${CMAKE_SOURCE_DIR}/vendor)
 
 include(ExternalProject)
@@ -262,12 +266,16 @@ if(APPLE)
     exec_program(xcrun ARGS --sdk macosx --show-sdk-path OUTPUT_VARIABLE MRUBY_SYSROOT)
 endif()
 
+if(ANDROID_NDK_HOME)
+    set(MRUBY_RAKE_EXTRA_OPTS "${MRUBY_RAKE_EXTRA_OPTS} ANDROID_NDK_HOME=${ANDROID_NDK_HOME}")
+endif()
+
 ExternalProject_Add(mruby_vendor
     SOURCE_DIR         ${MRUBY_DIR}
-    CONFIGURE_COMMAND  ${RUBY} "${MRUBY_BUILDDIR}/patch_all.rb"
+    CONFIGURE_COMMAND  ""
     BUILD_IN_SOURCE    TRUE
     BUILD_COMMAND
-        ${RAKE} "MRUBY_CONFIG=${MRUBY_CONFIG}"
+        ${RAKE} clean all "MRUBY_CONFIG=${MRUBY_CONFIG}"
             "TARGET_CC=\"${CMAKE_C_COMPILER}\""
             "TARGET_AR=\"${CMAKE_AR}\""
             "TARGET_CFLAGS=${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_${BUILD_TYPE_UC}}"
@@ -276,19 +284,10 @@ ExternalProject_Add(mruby_vendor
             "MRUBY_SYSROOT=${MRUBY_SYSROOT}"
             "MRUBY_TOOLCHAIN=${MRUBY_TOOLCHAIN}"
             "ANDROID_ARCH=${CMAKE_ANDROID_ARCH_ABI}"
-            "ANDROID_PLATFORM=android-${ANDROID_API}"
-            "ANDROID_NDK_HOME=${CMAKE_ANDROID_NDK}"
-            "ANDROID_STANDALONE_TOOLCHAIN=${CMAKE_ANDROID_STANDALONE_TOOLCHAIN}"
+            "ANDROID_PLATFORM=android-${CMAKE_SYSTEM_VERSION}"
+            ${MRUBY_RAKE_EXTRA_OPTS}
     INSTALL_COMMAND    ""
     BUILD_BYPRODUCTS   ${MRUBY_LIB}
-)
-set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_MAKE_CLEAN_FILES
-    "${MRUBY_DIR}/build"
-    "${MRUBY_DIR}/bin"
-)
-set_property(DIRECTORY APPEND PROPERTY ADDITIONAL_CLEAN_FILES
-    "${MRUBY_DIR}/build"
-    "${MRUBY_DIR}/bin"
 )
 
 add_library(mruby STATIC IMPORTED GLOBAL)

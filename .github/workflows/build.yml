@@ -530,13 +530,15 @@ jobs:
     - name: Recreate standalone NDK toolchains
       run: |
         for ARCH in arm arm64 x86 x86_64; do \
-          API=29; \
+          API=24; \
           SYSROOT=$ANDROID_NDK_HOME/platforms/android-$API/arch-$ARCH; \
           python3 "$ANDROID_NDK_HOME/build/tools/make_standalone_toolchain.py" \
               --api "$API" --arch "$ARCH" \
               --install-dir "$SYSROOT" --force ; \
           ln -Ffs "$SYSROOT/sysroot/usr" "$SYSROOT/usr" ; \
         done
+        mkdir -p /usr/local/opt
+        ln -Ffs "$ANDROID_NDK_HOME" /usr/local/opt/android-ndk
 
     - name: Build
       run: |
