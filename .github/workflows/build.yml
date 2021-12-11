@@ -17,6 +17,10 @@ jobs:
         submodules: recursive
         fetch-depth: 0
 
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
+
     - name: Build
       shell: cmd
       run: |
@@ -46,6 +50,10 @@ jobs:
         submodules: recursive
         fetch-depth: 0
 
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
+
     - name: Build
       shell: cmd
       run: |
@@ -68,6 +76,10 @@ jobs:
       with: 
         submodules: recursive
         fetch-depth: 0
+
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
 
     - name: Build
       shell: cmd
@@ -98,6 +110,10 @@ jobs:
         submodules: recursive
         fetch-depth: 0
 
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
+
     - name: Build
       shell: cmd
       run: |
@@ -120,6 +136,10 @@ jobs:
       with: 
         submodules: recursive
         fetch-depth: 0
+
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
 
     - name: Build
       shell: cmd
@@ -144,6 +164,10 @@ jobs:
       with: 
         submodules: recursive
         fetch-depth: 0
+
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
 
     - name: Install
       run: |
@@ -178,6 +202,10 @@ jobs:
       with: 
         submodules: recursive
         fetch-depth: 0
+
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
 
     - name: Install
       run: |
@@ -220,6 +248,15 @@ jobs:
         submodules: recursive
         fetch-depth: 0
 
+    # - uses: ruby/setup-ruby@v1
+    #   with:
+    #     ruby-version: 2.6
+
+    - name: Install Host toolchain
+      run: |
+        apt-get update
+        apt-get install --assume-yes build-essential ruby-full
+
     - name: Build
       run: |
         cd build
@@ -255,6 +292,15 @@ jobs:
       with: 
         submodules: recursive
         fetch-depth: 0
+
+    # - uses: ruby/setup-ruby@v1
+    #   with:
+    #     ruby-version: 2.6
+
+    - name: Install Host toolchain
+      run: |
+        apt-get update
+        apt-get install --assume-yes build-essential ruby-full
 
     - name: Prebuild
       run: |
@@ -305,6 +351,15 @@ jobs:
       with: 
         submodules: recursive
         fetch-depth: 0
+
+    # - uses: ruby/setup-ruby@v1
+    #   with:
+    #     ruby-version: 2.6
+
+    - name: Install Host toolchain
+      run: |
+        apt-get update
+        apt-get install --assume-yes build-essential ruby-full
 
     - name: Prebuild
       run: |
@@ -358,6 +413,15 @@ jobs:
       with: 
         submodules: recursive
         fetch-depth: 0
+
+    # - uses: ruby/setup-ruby@v1
+    #   with:
+    #     ruby-version: 2.6
+
+    - name: Install Host toolchain
+      run: |
+        apt-get update
+        apt-get install --assume-yes build-essential ruby-full
 
     - name: Build
       run: |
@@ -454,6 +518,28 @@ jobs:
         submodules: recursive
         fetch-depth: 0
 
+    # - uses: ruby/setup-ruby@v1
+    #   with:
+    #     ruby-version: 2.6
+
+    - name: Install Host toolchain
+      run: |
+        apt-get update
+        apt-get install --assume-yes build-essential ruby-full python3
+
+    - name: Recreate standalone NDK toolchains
+      run: |
+        for ARCH in arm arm64 x86 x86_64; do \
+          API=24; \
+          SYSROOT=$ANDROID_NDK_HOME/platforms/android-$API/arch-$ARCH; \
+          python3 "$ANDROID_NDK_HOME/build/tools/make_standalone_toolchain.py" \
+              --api "$API" --arch "$ARCH" \
+              --install-dir "$SYSROOT" --force ; \
+          ln -Ffs "$SYSROOT/sysroot/usr" "$SYSROOT/usr" ; \
+        done
+        mkdir -p /usr/local/opt
+        ln -Ffs "$ANDROID_NDK_HOME" /usr/local/opt/android-ndk
+
     - name: Build
       run: |
         cd build/android
@@ -477,6 +563,10 @@ jobs:
       with: 
         submodules: recursive
         fetch-depth: 0
+
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 2.6
 
     - name: Build
       run: |
@@ -588,7 +678,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        script: [lua, moon, fennel, js, wren, squirrel]
+        script: [lua, moon, fennel, mruby, js, wren, squirrel]
 
     steps:
       - name: Download Windows XP artifact

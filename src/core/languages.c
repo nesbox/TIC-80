@@ -1,6 +1,10 @@
 #include <stddef.h>
 #include "api.h"
 
+#if defined(TIC_BUILD_WITH_MRUBY)
+extern tic_script_config MRubySyntaxConfig;
+#endif
+
 #if defined(TIC_BUILD_WITH_JS)
 extern tic_script_config JsSyntaxConfig;
 #endif
@@ -30,6 +34,10 @@ tic_script_config* Languages[] = {
 	#if defined (TIC_BUILD_WITH_LUA)
 	&LuaSyntaxConfig,
 	#endif
+
+    #if defined(TIC_BUILD_WITH_MRUBY)
+    &MRubySyntaxConfig,
+    #endif
 
 	#if defined(TIC_BUILD_WITH_JS)
 	&JsSyntaxConfig,

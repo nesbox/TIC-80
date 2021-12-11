@@ -3,6 +3,7 @@
 #
 TIC80HOME = ../..
 TIC803RD = $(TIC80HOME)/vendor
+MRUBYDIR = $(TIC803RD)/mruby
 CIRCLESTDLIB = $(TIC803RD)/circle-stdlib
 CIRCLEHOME = $(CIRCLESTDLIB)/libs/circle
 NEWLIBDIR = $(CIRCLESTDLIB)/install/arm-none-circle
@@ -36,6 +37,7 @@ LIBS :=  \
 	$(TIC80LIB)/libduktape.a \
 	$(TIC80LIB)/libzlib.a \
 	$(TIC80LIB)/libpng.a \
+    $(MRUBYDIR)/build/target/lib/libmruby.a \
 	$(NEWLIBDIR)/lib/libc.a \
         $(NEWLIBDIR)/lib/libcirclenewlib.a \
 	$(CIRCLEHOME)/addon/vc4/sound/libvchiqsound.a \

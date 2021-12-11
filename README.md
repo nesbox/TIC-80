@@ -18,6 +18,7 @@ To make a retro styled game, the whole process of creation and execution takes p
 - Multiple programming languages: [Lua](https://www.lua.org),
   [Moonscript](https://moonscript.org),
   [Javascript](https://developer.mozilla.org/en-US/docs/Web/JavaScript),
+  [Ruby](https://www.ruby-lang.org/en/),
   [Wren](http://wren.io/), [Fennel](https://fennel-lang.org), and
   [Squirrel](http://www.squirrel-lang.org).
 - Games can have mouse and keyboard as input
@@ -62,6 +63,7 @@ The wiki holds TIC-80 documentation, code snippets and game development tutorial
 ### with Visual Studio 2017
 - install `Visual Studio 2017`
 - install `git`
+- install `Ruby` (you can use [RubyInstaller](https://rubyinstaller.org/))
 - run following commands in `cmd`
 ```
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
@@ -74,6 +76,7 @@ cmake -G "Visual Studio 15 2017 Win64" ..
 - install `mingw-w64` (http://mingw-w64.org) and add `.../mingw/bin` path to the *System Variables Path*
 - install `git`
 - install `cmake` (https://cmake.org)
+- install `Ruby` (you can use [RubyInstaller](https://rubyinstaller.org/))
 - run following commands in `terminal`
 ```
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
@@ -85,7 +88,7 @@ mingw32-make -j4
 ### Ubuntu 14.04
 run the following commands in the Terminal
 ```
-sudo apt-get install git cmake libgles1-mesa-dev libglu-dev -y
+sudo apt-get install git cmake ruby-full libgles1-mesa-dev libglu-dev -y
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
@@ -102,7 +105,7 @@ Install with [Install instructions](#install-instructions)
 
 run the following commands in the Terminal
 ```
-sudo apt-get install g++ git cmake libglvnd-dev libglu1-mesa-dev freeglut3-dev libasound2-dev -y
+sudo apt-get install g++ git cmake ruby-full libglvnd-dev libglu1-mesa-dev freeglut3-dev libasound2-dev -y
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
@@ -113,7 +116,7 @@ make -j4
 run the following commands in the Terminal
 ```
 sudo dnf -y groupinstall "Development Tools"
-sudo dnf -y install git cmake libglvnd-devel libglvnd-gles freeglut-devel
+sudo dnf -y install ruby rubygem-{tk{,-doc},rake,test-unit} cmake libglvnd-devel libglvnd-gles freeglut-devel
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
@@ -141,7 +144,7 @@ sudo apt-get update
 sudo apt-get dist-upgrade
 
 # install software
-sudo apt-get install git build-essential libsdl2-dev zlib1g-dev
+sudo apt-get install git build-essential ruby-full libsdl2-dev zlib1g-dev
 sudo apt-get install -t jessie-backports liblua5.3-dev
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
@@ -214,3 +217,4 @@ You can find iOS/tvOS version here
 * msx80 - [Twitter @msx80](https://twitter.com/msx80) [Github msx80](https://github.com/msx80)
 * Josh Goebel - [Twitter @dreamer3](https://twitter.com/dreamer3) [Github joshgoebel](https://github.com/joshgoebel)
 * Joshua Minor - [GitHub @jminor](https://github.com/jminor)
+* Jeremiasz Nelz - [Github @remi6397](https://github.com/remi6397) [WWW](https://nelz.pl)
