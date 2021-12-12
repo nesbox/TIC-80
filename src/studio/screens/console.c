@@ -2967,7 +2967,10 @@ static void onHelp_api(Console* console)
         char buf[TICNAME_MAX] = {[0] = 0};
 
         FOR(const ApiItem*, api, Api)
-            strcat(buf, api->name), strcat(buf, " ");
+            snprintf(buf, sizeof(buf), "%s %s", buf, api->name);
+
+        if (strlen(buf) == sizeof(buf) - 1)
+            memset(buf + sizeof(buf) - 4, '.', 3);
 
         printBack(console, buf);
     }
@@ -2980,7 +2983,10 @@ static void onHelp_commands(Console* console)
         char buf[TICNAME_MAX] = {[0] = 0};
 
         FOR(const Command*, cmd, Commands)
-            strcat(buf, cmd->name), strcat(buf, " ");
+            snprintf(buf, sizeof(buf), "%s %s", buf, cmd->name);
+
+        if (strlen(buf) == sizeof(buf) - 1)
+            memset(buf + sizeof(buf) - 4, '.', 3);
 
         printBack(console, buf);
     }
