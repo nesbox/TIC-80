@@ -172,3 +172,4 @@ build/compile_commands.json
 CMakeSettings.json
 tic_mruby_build_config.rb.lock
 tic_mruby_wasm_build_config.rb.lock
+build/mruby_vendor-prefix/

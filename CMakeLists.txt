@@ -440,7 +440,7 @@ if(BUILD_STUB)
     MACRO_CORE(js       TIC_BUILD_WITH_JS       FALSE)
     MACRO_CORE(wren     TIC_BUILD_WITH_WREN     FALSE)
     MACRO_CORE(squirrel TIC_BUILD_WITH_SQUIRREL FALSE)
-    MACRO_CORE(mruby    TIC_BUILD_WITH_MRUBY    FALSE)
+    MACRO_CORE(ruby     TIC_BUILD_WITH_MRUBY    FALSE)
 
 endif()
 
@@ -1166,7 +1166,7 @@ if(BUILD_STUB)
     MACRO_STUB(js)
     MACRO_STUB(wren)
     MACRO_STUB(squirrel)
-    MACRO_STUB(mruby)
+    MACRO_STUB(ruby)
 
 endif()
 
