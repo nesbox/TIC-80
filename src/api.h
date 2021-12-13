@@ -132,15 +132,15 @@ enum
 
 #define TIC_FN "TIC"
 #define SCN_FN "SCN"
-#define OVR_FN "OVR"
+#define OVR_FN "OVR" // deprecated since v1.0
 #define BDR_FN "BDR"
 
-#define TIC_CALLBACK_LIST(macro)                                                                                        \
-    macro(TIC_FN, TIC_FN "()", "Main function. It's called at " DEF2STR(TIC80_FRAMERATE)                                \
-        "fps (" DEF2STR(TIC80_FRAMERATE) " times every second).")                                                       \
-    macro(SCN_FN, SCN_FN "(row)", "Allows you to execute code between the drawing of each scanline, "                   \
-        "for example, to manipulate the palette.")                                                                      \
-    macro(BDR_FN, BDR_FN "(row)", "Allows you to execute code between the drawing of each fullscreen scanline, "        \
+#define TIC_CALLBACK_LIST(macro)                                                                                    \
+    macro(TIC, TIC_FN "()", "Main function. It's called at " DEF2STR(TIC80_FRAMERATE)                               \
+        "fps (" DEF2STR(TIC80_FRAMERATE) " times every second).")                                                   \
+    macro(SCN, SCN_FN "(row)", "Allows you to execute code between the drawing of each scanline, "                  \
+        "for example, to manipulate the palette.")                                                                  \
+    macro(BDR, BDR_FN "(row)", "Allows you to execute code between the drawing of each fullscreen scanline, "       \
         "for example, to manipulate the palette.")
 
 // API DEFINITION TABLE
@@ -683,7 +683,7 @@ enum
         "with U and V addressing its pixels directly, rather than by sprite ID.\n"                                      \
         "So for example the top left corner of sprite #2 would be located at u=16, v=0.",                               \
         14,                                                                                                             \
-        12,                                                                                                              \
+        12,                                                                                                             \
         0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, float x1, float y1, float x2, float y2, float x3, float y3,                                           \

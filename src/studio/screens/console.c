@@ -2499,6 +2499,164 @@ static const char HelpUsage[] = "help [<text>"
 #undef  HELP_CMD_DEF
     "]";
 
+#define SECTION_DEF(NAME, ...)  "|" #NAME
+#define EXPORT_CMD_DEF(name)    #name "|"
+#define EXPORT_KEYS_DEF(name)   #name "=0 "
+#define IMPORT_CMD_DEF(name)    #name "|"
+#define IMPORT_KEYS_DEF(key)    #key"=0 "
+
+#if defined(CAN_ADDGET_FILE)
+#define ADDGET_FILE(macro)                                                              \
+    macro("add",                                                                        \
+        NULL,                                                                           \
+        "upload file to the browser local storage.",                                    \
+        NULL,                                                                           \
+        onAddCommand)                                                                   \
+                                                                                        \
+    macro("get",                                                                        \
+        NULL,                                                                           \
+        "download file from the browser local storage.",                                \
+        "get <file>",                                                                   \
+        onGetCommand)                                                                   \
+
+#else
+#define ADDGET_FILE(macro)
+#endif
+
+// macro(name, alt, help, usage, handler)
+#define COMMANDS_LIST(macro)                                                            \
+    macro("help",                                                                       \
+        NULL,                                                                           \
+        "show help info about commands/api/...",                                        \
+        HelpUsage,                                                                      \
+        onHelpCommand)                                                                  \
+                                                                                        \
+    macro("exit",                                                                       \
+        "quit",                                                                         \
+        "exit the application.",                                                        \
+        NULL,                                                                           \
+        onExitCommand)                                                                  \
+                                                                                        \
+    macro("new",                                                                        \
+        NULL,                                                                           \
+        "creates a new `Hello World` cartridge.",                                       \
+        "new [$LANG_NAMES_PIPE$...]",                                                   \
+        onNewCommand)                                                                   \
+                                                                                        \
+    macro("load",                                                                       \
+        NULL,                                                                           \
+        "load cartridge from the local filesystem"                                      \
+        "(there's no need to type the .tic extension).\n"                               \
+        "you can also load just the section (sprites, map etc) from another cart.",     \
+        "load <cart> [code" TIC_SYNC_LIST(SECTION_DEF) "]",                             \
+        onLoadCommand)                                                                  \
+                                                                                        \
+    macro("save",                                                                       \
+        NULL,                                                                           \
+        "save cartridge to the local filesystem, use $LANG_EXTENSIONS$"                 \
+        "cart extension to save it in text format (PRO feature).",                      \
+        "save <cart>",                                                                  \
+        onSaveCommand)                                                                  \
+                                                                                        \
+    macro("run",                                                                        \
+        NULL,                                                                           \
+        "run current cart / project.",                                                  \
+        NULL,                                                                           \
+        onRunCommand)                                                                   \
+                                                                                        \
+    macro("resume",                                                                     \
+        NULL,                                                                           \
+        "resume last run cart / project.",                                              \
+        NULL,                                                                           \
+        onResumeCommand)                                                                \
+                                                                                        \
+    macro("eval",                                                                       \
+        "=",                                                                            \
+        "run code provided code.",                                                      \
+        NULL,                                                                           \
+        onEvalCommand)                                                                  \
+                                                                                        \
+    macro("dir",                                                                        \
+        "ls",                                                                           \
+        "show list of local files.",                                                    \
+        NULL,                                                                           \
+        onDirCommand)                                                                   \
+                                                                                        \
+    macro("cd",                                                                         \
+        NULL,                                                                           \
+        "change directory.",                                                            \
+        "\ncd <path>\ncd /\ncd ..",                                                     \
+        onChangeDirectory)                                                              \
+                                                                                        \
+    macro("mkdir",                                                                      \
+        NULL,                                                                           \
+        "make a directory.",                                                            \
+        "mkdir <name>",                                                                 \
+        onMakeDirectory)                                                                \
+                                                                                        \
+    macro("folder",                                                                     \
+        NULL,                                                                           \
+        "open working directory in OS.",                                                \
+        NULL,                                                                           \
+        onFolderCommand)                                                                \
+                                                                                        \
+    macro("export",                                                                     \
+        NULL,                                                                           \
+        "export cart to HTML,\n"                                                        \
+        "native build (win linux rpi mac),\n"                                           \
+        "export sprites/map/... as a .png image "                                       \
+        "or export sfx and music to .wav files.",                                       \
+        "\nexport [" EXPORT_CMD_LIST(EXPORT_CMD_DEF) "...]"                             \
+        "<file> [" EXPORT_KEYS_LIST(EXPORT_KEYS_DEF) "...]" ,                           \
+        onExportCommand)                                                                \
+                                                                                        \
+    macro("import",                                                                     \
+        NULL,                                                                           \
+        "import code/sprites/map/... from an external file.",                           \
+        "\nimport [" IMPORT_CMD_LIST(IMPORT_CMD_DEF) "...]"                             \
+        "<file> [" IMPORT_KEYS_LIST(IMPORT_KEYS_DEF) "...]",                            \
+        onImportCommand)                                                                \
+                                                                                        \
+    macro("del",                                                                        \
+        NULL,                                                                           \
+        "delete from the filesystem.",                                                  \
+        "del <file|folder>",                                                            \
+        onDelCommand)                                                                   \
+                                                                                        \
+    macro("cls",                                                                        \
+        "clear",                                                                        \
+        "clear console screen.",                                                        \
+        NULL,                                                                           \
+        onClsCommand)                                                                   \
+                                                                                        \
+    macro("demo",                                                                       \
+        NULL,                                                                           \
+        "install demo carts to the current directory.",                                 \
+        NULL,                                                                           \
+        onInstallDemosCommand)                                                          \
+                                                                                        \
+    macro("config",                                                                     \
+        NULL,                                                                           \
+        "edit system configuration cartridge,\n"                                        \
+        "use `reset` param to reset current configuration,\n"                           \
+        "use `default` to edit default cart template.",                                 \
+        "config [reset|default]",                                                       \
+        onConfigCommand)                                                                \
+                                                                                        \
+    macro("surf",                                                                       \
+        NULL,                                                                           \
+        "open carts browser.",                                                          \
+        NULL,                                                                           \
+        onSurfCommand)                                                                  \
+                                                                                        \
+    macro("menu",                                                                       \
+        NULL,                                                                           \
+        "show game menu where you can setup keyboard/gamepad buttons mapping.",         \
+        NULL,                                                                           \
+        onGameMenuCommand)                                                              \
+                                                                                        \
+    ADDGET_FILE(macro)
+
 static struct Command
 {
     const char* name;
@@ -2509,203 +2667,27 @@ static struct Command
 
 } Commands[] =
 {
-    {
-        "help",
-        NULL,
-        "show help info about commands/api/...", 
-        HelpUsage,
-        onHelpCommand
-    },
-    {
-        "exit",
-        "quit",
-        "exit the application.", 
-        NULL,
-        onExitCommand
-    },
-    {
-        "new",
-        NULL,
-        "creates a new `Hello World` cartridge.",
-        "new [$LANG_NAMES_PIPE$...]",
-        onNewCommand
-    },
-    {
-        "load",
-        NULL,
-        "load cartridge from the local filesystem (there's no need to type the .tic extension).\n"
-        "you can also load just the section (sprites, map etc) from another cart.",
-        "load <cart> [code"
-#define SECTION_DEF(NAME, ...) "|" #NAME
-        TIC_SYNC_LIST(SECTION_DEF)
-#undef  SECTION_DEF
-        "]",
-        onLoadCommand},
-    {
-        "save",
-        NULL,
-        "save cartridge to the local filesystem, use $LANG_EXTENSIONS$"
-        "cart extension to save it in text format (PRO feature).", 
-        "save <cart>",
-        onSaveCommand
-    },
-
-    {
-        "run",
-        NULL,
-        "run current cart / project.", 
-        NULL,
-        onRunCommand
-    },
-    {
-        "resume",
-        NULL,
-        "resume last run cart / project.", 
-        NULL,
-        onResumeCommand
-    },
-    {
-        "eval",
-        "=",
-        "run code provided code.", 
-        NULL,
-        onEvalCommand
-    },
-    {
-        "dir",
-        "ls",
-        "show list of local files.", 
-        NULL,
-        onDirCommand
-    },
-    {
-        "cd",
-        NULL,
-        "change directory.", 
-        "\ncd <path>\ncd /\ncd ..",
-        onChangeDirectory
-    },
-    {
-        "mkdir",
-        NULL,
-        "make a directory.", 
-        "mkdir <name>",
-        onMakeDirectory
-    },
-    {
-        "folder",
-        NULL,
-        "open working directory in OS.", 
-        NULL,
-        onFolderCommand
-    },
-
-#if defined(CAN_ADDGET_FILE)
-    {
-        "add",
-        NULL,
-        "upload file to the browser local storage.", 
-        NULL,
-        onAddCommand
-    },
-    {
-        "get",
-        NULL,
-        "download file from the browser local storage.", 
-        "get <file>",
-        onGetCommand
-    },
-#endif
-
-    {
-        "export",
-        NULL,
-        "export cart to HTML,\n"
-        "native build (win linux rpi mac),\n"
-        "export sprites/map/... as a .png image "
-        "or export sfx and music to .wav files.", 
-        "\nexport ["
-#define EXPORT_CMD_DEF(name) #name "|"
-        EXPORT_CMD_LIST(EXPORT_CMD_DEF)
-#undef  EXPORT_CMD_DEF
-        "...] <file> ["
-#define EXPORT_KEYS_DEF(name) #name "=0 "
-        EXPORT_KEYS_LIST(EXPORT_KEYS_DEF)
-#undef  EXPORT_KEYS_DEF
-        "...]",
-        onExportCommand
-    },
-    {
-        "import",
-        NULL,
-        "import code/sprites/map/... from an external file.", 
-        "import ["
-#define IMPORT_CMD_DEF(name) #name "|"
-        IMPORT_CMD_LIST(IMPORT_CMD_DEF)
-#undef  IMPORT_CMD_DEF
-        "...] <file> ["
-#define IMPORT_KEYS_DEF(key) #key"=0 "
-        IMPORT_KEYS_LIST(IMPORT_KEYS_DEF)
-#undef  IMPORT_KEYS_DEF
-        "...]",
-        onImportCommand
-    },
-    {
-        "del",
-        NULL,
-        "delete from the filesystem.", 
-        "del <file|folder>",
-        onDelCommand
-    },
-    {
-        "cls",
-        "clear",
-        "clear console screen.", 
-        NULL,
-        onClsCommand
-    },
-    {
-        "demo",
-        NULL,
-        "install demo carts to the current directory.", 
-        NULL,
-        onInstallDemosCommand
-    },
-    {
-        "config",
-        NULL,
-        "edit system configuration cartridge,\n"
-        "use `reset` param to reset current configuration,\n"
-        "use `default` to edit default cart template.", 
-        "config [reset|default]",
-        onConfigCommand
-    },
-    {
-        "surf",
-        NULL,
-        "open carts browser.", 
-        NULL,
-        onSurfCommand
-    },
-    {
-        "menu",
-        NULL,
-        "show game menu where you can setup keyboard/gamepad buttons mapping.", 
-        NULL,
-        onGameMenuCommand
-    },
+#define COMMANDS_DEF(name, alt, help, usage, handler) {name, alt, help, usage, handler},
+    COMMANDS_LIST(COMMANDS_DEF)
+#undef COMMANDS_DEF
 };
+
+#undef SECTION_DEF
+#undef EXPORT_CMD_DEF
+#undef EXPORT_KEYS_DEF
+#undef IMPORT_CMD_DEF
+#undef IMPORT_KEYS_DEF
 
 typedef struct Command Command;
 
+#define API_LIST(macro)         \
+    TIC_CALLBACK_LIST(macro)    \
+    TIC_API_LIST(macro)
+
 static struct ApiItem {const char* name; const char* def; const char* help;} Api[] = 
 {
-#define TIC_CALLBACK_DEF(name, def, help) {name, def, help},
-    TIC_CALLBACK_LIST(TIC_CALLBACK_DEF)
-#undef TIC_CALLBACK_DEF
-
 #define TIC_API_DEF(name, def, help, ...) {#name, def, help},
-    TIC_API_LIST(TIC_API_DEF)
+    API_LIST(TIC_API_DEF)
 #undef TIC_API_DEF
 };
 
@@ -2964,10 +2946,21 @@ static void onHelp_api(Console* console)
 {
     consolePrint(console, "\nAPI functions:\n", tic_color_blue);
     {
-        char buf[TICNAME_MAX] = {[0] = 0};
+        const char Sep[] = " ";
+
+        // calc buf size on compile time
+        enum
+        {
+            Size = 1
+#define     API_DEF(name, ...) + STRLEN(#name) + STRLEN(Sep)
+            API_LIST(API_DEF)
+#undef      API_DEF
+        };
+
+        char buf[Size] = {[0] = 0};
 
         FOR(const ApiItem*, api, Api)
-            strcat(buf, api->name), strcat(buf, " ");
+            strcat(buf, api->name), strcat(buf, Sep);
 
         printBack(console, buf);
     }
@@ -2977,10 +2970,21 @@ static void onHelp_commands(Console* console)
 {
     consolePrint(console, "\nConsole commands:\n", tic_color_green);
     {
-        char buf[TICNAME_MAX] = {[0] = 0};
+        const char Sep[] = " ";
+
+        // calc buf size on compile time
+        enum
+        {
+            Size = 1
+#define     COMMANDS_DEF(name, ...) + STRLEN(#name) + STRLEN(Sep)
+            COMMANDS_LIST(COMMANDS_DEF)
+#undef      COMMANDS_DEF
+        };
+
+        char buf[Size] = {[0] = 0};
 
         FOR(const Command*, cmd, Commands)
-            strcat(buf, cmd->name), strcat(buf, " ");
+            strcat(buf, cmd->name), strcat(buf, Sep);
 
         printBack(console, buf);
     }

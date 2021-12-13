@@ -501,7 +501,7 @@ start:
             {
                 static const char* const ApiKeywords[] = 
                 {
-#define             TIC_CALLBACK_DEF(name, ...) name,
+#define             TIC_CALLBACK_DEF(name, ...) #name,
                     TIC_CALLBACK_LIST(TIC_CALLBACK_DEF)
 #undef              TIC_CALLBACK_DEF
 
