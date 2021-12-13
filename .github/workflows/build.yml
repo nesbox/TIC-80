@@ -738,7 +738,7 @@ jobs:
 
 # === Delete stub ===
   delete-stub:
-    needs: [export-stub winxp-pro windows-pro linux-pro macos-pro rpi-pro]
+    needs: [export-stub, winxp-pro, windows-pro, linux-pro, macos-pro, rpi-pro]
     runs-on: ubuntu-latest
 
     steps:
