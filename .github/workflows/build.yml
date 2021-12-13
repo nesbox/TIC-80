@@ -736,9 +736,9 @@ jobs:
             mac${{ matrix.script }}
             html${{ matrix.script }}
 
-# === Delete stub ===
+# === Delete stub artifacts ===
   delete-stub:
-    needs: [export-stub, winxp-pro, windows-pro, linux-pro, macos-pro, rpi-pro]
+    needs: [export-stub]
     runs-on: ubuntu-latest
 
     steps:
@@ -752,6 +752,17 @@ jobs:
             tic80-rpi-stub
             tic80-macos-stub
             tic80-wasm-stub
+
+# === Delete PRO artifacts ===
+  delete-stub:
+    needs: [winxp-pro, windows-pro, linux-pro, macos-pro, rpi-pro]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Delete artifacts
+        uses: geekyeggo/delete-artifact@v1
+        with:
+          name: |
             tic80-macos-pro
             tic80-macos-dmg-pro
             tic80-winxp-pro
