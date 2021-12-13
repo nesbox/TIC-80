@@ -754,7 +754,7 @@ jobs:
             tic80-wasm-stub
 
 # === Delete PRO artifacts ===
-  delete-stub:
+  delete-pro:
     needs: [winxp-pro, windows-pro, linux-pro, macos-pro, rpi-pro]
     runs-on: ubuntu-latest
 
