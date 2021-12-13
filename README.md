@@ -48,7 +48,7 @@ For users who can't spend the money, we made it easy to build the pro version fr
 # Community
 You can play and share games, tools and music at [https://tic80.com/play](https://tic80.com/play).
 
-The community also hangs out and discusses on [Telegram](https://t.me/tic80) or [Discord](https://discord.gg/DkD73dP).
+The community also hangs out and discusses on [Telegram](https://t.me/tic80) or [Discord](https://discord.gg/HwZDw7n4dN).
 
 # Contributing
 You can contribute by reporting a bug or requesting a new feature on our [issues page](https://github.com/nesbox/TIC-80/issues).
