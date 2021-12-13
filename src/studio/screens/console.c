@@ -2942,6 +2942,8 @@ static void printApi(Console* console, const char* param)
     }
 }
 
+#define STRBUF_SIZE(name, ...) + STRLEN(#name) + STRLEN(Sep)
+
 static void onHelp_api(Console* console)
 {
     consolePrint(console, "\nAPI functions:\n", tic_color_blue);
@@ -2949,15 +2951,7 @@ static void onHelp_api(Console* console)
         const char Sep[] = " ";
 
         // calc buf size on compile time
-        enum
-        {
-            Size = 1
-#define     API_DEF(name, ...) + STRLEN(#name) + STRLEN(Sep)
-            API_LIST(API_DEF)
-#undef      API_DEF
-        };
-
-        char buf[Size] = {[0] = 0};
+        char buf[API_LIST(STRBUF_SIZE) + 1] = {[0] = 0};
 
         FOR(const ApiItem*, api, Api)
             strcat(buf, api->name), strcat(buf, Sep);
@@ -2973,15 +2967,7 @@ static void onHelp_commands(Console* console)
         const char Sep[] = " ";
 
         // calc buf size on compile time
-        enum
-        {
-            Size = 1
-#define     COMMANDS_DEF(name, ...) + STRLEN(#name) + STRLEN(Sep)
-            COMMANDS_LIST(COMMANDS_DEF)
-#undef      COMMANDS_DEF
-        };
-
-        char buf[Size] = {[0] = 0};
+        char buf[COMMANDS_LIST(STRBUF_SIZE) + 1] = {[0] = 0};
 
         FOR(const Command*, cmd, Commands)
             strcat(buf, cmd->name), strcat(buf, Sep);
@@ -2989,6 +2975,8 @@ static void onHelp_commands(Console* console)
         printBack(console, buf);
     }
 }
+
+#undef STRBUF_SIZE
 
 static void printTable(Console* console, const char* text)
 {
