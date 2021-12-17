@@ -1693,6 +1693,7 @@ tic_script_config LuaSyntaxConfig =
     .singleComment      = "--",
     .blockStringStart   = "[[",
     .blockStringEnd     = "]]",
+    .blockEnd           = "end",
 
     .keywords           = LuaKeywords,
     .keywordsCount      = COUNT_OF(LuaKeywords),

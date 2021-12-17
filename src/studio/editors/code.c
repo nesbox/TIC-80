@@ -1157,6 +1157,24 @@ static void doTab(Code* code, bool shift, bool crtl)
     else inputSymbolBase(code, '\t');
 }
 
+// Add a block-ending keyword or symbol, and put the cursor in the line between.
+static void newLineAutoClose(Code* code)
+{
+    newLine(code);
+
+    const char* blockEnd = tic_core_script_config(code->tic)->blockEnd;
+    if (blockEnd != NULL)
+    {
+        newLine(code);
+        for(size_t i = 0; i < strlen(blockEnd); i++)
+            inputSymbol(code, blockEnd[i]);
+        upLine(code);
+        goEnd(code);
+    }
+
+    doTab(code, false, true);
+}
+
 static void setFindMode(Code* code)
 {
     if(code->cursor.selection)
@@ -1570,6 +1588,11 @@ static void processKeyboard(Code* code)
         else if(keyWasPressed(tic_key_delete))      deleteWord(code);
         else if(keyWasPressed(tic_key_backspace))   backspaceWord(code);
         else                                        usedKeybinding = false;
+    }
+    else if(shift)
+    {
+        if(keyWasPressed(tic_key_return))   newLineAutoClose(code);
+        else                                usedKeybinding = false;
     }
     else if(alt)
     {

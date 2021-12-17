@@ -192,6 +192,7 @@ tic_script_config MoonSyntaxConfig =
     .blockStringStart   = NULL,
     .blockStringEnd     = NULL,
     .singleComment      = "--",
+    .blockEnd           = NULL,
 
     .keywords           = MoonKeywords,
     .keywordsCount      = COUNT_OF(MoonKeywords),

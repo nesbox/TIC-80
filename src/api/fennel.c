@@ -200,6 +200,7 @@ tic_script_config FennelSyntaxConfig =
     .blockStringStart   = NULL,
     .blockStringEnd     = NULL,
     .singleComment      = ";",
+    .blockEnd           = NULL,
 
     .keywords           = FennelKeywords,
     .keywordsCount      = COUNT_OF(FennelKeywords),

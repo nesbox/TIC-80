@@ -1831,6 +1831,7 @@ tic_script_config SquirrelSyntaxConfig =
     .singleComment      = "//",
     .blockStringStart   = "@\"",
     .blockStringEnd     = "\"",
+    .blockEnd           = "}",
 
     .keywords           = SquirrelKeywords,
     .keywordsCount      = COUNT_OF(SquirrelKeywords),
