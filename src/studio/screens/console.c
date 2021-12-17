@@ -261,15 +261,23 @@ static char* replaceHelpTokens(const char* text)
     char langnames[10240] = {0};
     char langextensions[10240] = {0};
     char langnamespipe[10240] = {0};
+
     FOR_EACH_LANG(ln)
+        bool isLast = *(conf+1) == NULL;
+        bool isSecondToLast = *(conf+2) == NULL;
+
         strcat(langnames, ln->name);
-        strcat(langnames, " ");
+        if (!isLast)
+            strcat(langnames, ", ");
+        if (isSecondToLast)
+            strcat(langnames, "or ");
 
         strcat(langextensions, ln->fileExtension);
         strcat(langextensions, " ");
 
         strcat(langnamespipe, ln->name);
-        strcat(langnamespipe, "|");
+        if (!isLast)
+            strcat(langnamespipe, "|");
     FOR_EACH_LANG_END
 
 
@@ -2540,7 +2548,7 @@ static const char HelpUsage[] = "help [<text>"
     macro("new",                                                                        \
         NULL,                                                                           \
         "creates a new `Hello World` cartridge.",                                       \
-        "new [$LANG_NAMES_PIPE$...]",                                                   \
+        "new [$LANG_NAMES_PIPE$]",                                                      \
         onNewCommand)                                                                   \
                                                                                         \
     macro("load",                                                                       \
