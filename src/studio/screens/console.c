@@ -3540,8 +3540,14 @@ static void processKeyboard(Console* console)
         else if(keyWasPressed(tic_key_pageup))      processConsolePgUp(console);
         else if(keyWasPressed(tic_key_pagedown))    processConsolePgDown(console);
 
-        if(tic_api_key(tic, tic_key_ctrl) 
-            && keyWasPressed(tic_key_k))
+#       if defined(__TIC_LINUX__)
+            tic_keycode clearKey = tic_key_l;
+#       else
+            tic_keycode clearKey = tic_key_k;
+#       endif
+
+        if(tic_api_key(tic, tic_key_ctrl)
+            && keyWasPressed(clearKey))
         {
             onClsCommand(console);
             return;
