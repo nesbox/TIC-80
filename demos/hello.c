@@ -8,6 +8,7 @@ function(TIC);
  using namespace std;
  ​
   int main() {
+    // Tells TIC-80 to display the message "Hello World!"
     cout << "Hello World!";
     return 0;
   }
