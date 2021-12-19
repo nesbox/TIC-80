@@ -300,9 +300,9 @@ set_property(TARGET mruby APPEND
 )
 add_dependencies(mruby mruby_vendor)
 
-##################
-# VS
-##################
+################################
+# MS-VS
+################################
 find_package(C)
 if (C_FOUND)
 	find_program(VS_EXECUTABLE "vs")
