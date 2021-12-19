@@ -313,7 +313,7 @@ if (C_FOUND)
 		message(FATAL_ERROR "Visual Studio: Could not find vs executable.")
 	endif()
 endif()
-option(BUILD_VS) C scripting support (via VS) Enabled" ${VS_EXECUTABLE_FOUND})
+option(BUILD_VS) "C scripting support (via VS) Enabled" ${VS_EXECUTABLE_FOUND})
 
 ################################
 # SQUIRREL
