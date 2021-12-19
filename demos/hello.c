@@ -1,7 +1,7 @@
--- title: Hello World
--- author: Nesbox
--- desc: Your first TIC-80 game
--- script: c
+// title: Hello World
+// author: Nesbox
+// desc: Your first TIC-80 game
+// script: c
 
 function(TIC);
  #include <iostream>
