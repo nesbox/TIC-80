@@ -13,4 +13,4 @@ function(TIC);
     return 0;
   }
 ​
-endScripts(all)
+ticAction(action=End)
