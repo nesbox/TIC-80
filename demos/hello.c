@@ -12,5 +12,5 @@ function(TIC);
     cout << "Hello World!";
     return 0;
   }
-  endThis
+  // End
 ​
