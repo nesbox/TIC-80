@@ -2922,6 +2922,16 @@ static void onExport_help(Console* console, const char* param, const char* name,
         FOR(const ApiItem*, api, Api)
             ptr += sprintf(ptr, "\n### %s\n`%s`\n%s\n", api->name, api->def, api->help);
 
+        ptr += sprintf(ptr, "\n## Button IDs\n");
+        ptr += sprintf(ptr, "```");
+        ptr += createButtonsTable(ptr);
+        ptr += sprintf(ptr, "```\n");
+
+        ptr += sprintf(ptr, "\n## Key IDs\n");
+        ptr += sprintf(ptr, "```");
+        ptr += createKeysTable(ptr);
+        ptr += sprintf(ptr, "```\n");
+
         ptr += sprintf(ptr, "\n## Startup options\n```\n");
         FOR(const struct StartupOption*, opt, StartupOptions)
             ptr += sprintf(ptr, "--%-14s %s\n", opt->name, opt->help);
