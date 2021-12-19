@@ -13,3 +13,4 @@ function(TIC);
     return 0;
   }
 ​
+endScripts(all)
