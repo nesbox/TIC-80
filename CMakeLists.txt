@@ -301,7 +301,7 @@ set_property(TARGET mruby APPEND
 add_dependencies(mruby mruby_vendor)
 
 ##################
-# VS Code
+# VS
 ##################
 find_package(C)
 if (C_FOUND)
@@ -310,10 +310,10 @@ if (C_FOUND)
 		set(VS_EXECUTABLE_FOUND ON)
 	else()
 		set(VS_EXECUTABLE_FOUND OFF)
-		message(FATAL_ERROR "Visual Studio Code: Could not find visual studio code executable.")
+		message(FATAL_ERROR "Visual Studio: Could not find vs executable.")
 	endif()
 endif()
-option(BUILD_VSCODE) C scripting support (via VS Code) Enabled" ${VS_EXECUTABLE_FOUND})
+option(BUILD_VS) C scripting support (via VS) Enabled" ${VS_EXECUTABLE_FOUND})
 
 ################################
 # SQUIRREL
