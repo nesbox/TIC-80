@@ -3,7 +3,7 @@
 // desc: Your first TIC-80 game
 // script: c++
 
-function(TIC);
+function TIC()
  #include <iostream>
  using namespace std;
  ​
