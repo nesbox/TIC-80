@@ -1016,7 +1016,7 @@ static void handleKeydown(SDL_Keycode keycode, bool down, bool* state)
 #endif
 }
 
-void tic_sys_poll()
+static void pollEvents()
 {
     tic_mem* tic = platform.studio->tic;
     tic80_input* input = &tic->ram.input;
@@ -1337,18 +1337,33 @@ u64 tic_sys_freq_get()
     return SDL_GetPerformanceFrequency();
 }
 
-void tic_sys_fullscreen()
+bool tic_sys_fullscreen_get()
 {
 #if defined(CRT_SHADER_SUPPORT)
     if(!platform.studio->config()->soft)
     {
-        GPU_SetFullscreen(GPU_GetFullscreen() ? false : true, true);
+        return GPU_GetFullscreen() ? true : false;
+    }
+    else
+#endif
+    {
+        return SDL_GetWindowFlags(platform.window) & SDL_WINDOW_FULLSCREEN_DESKTOP 
+            ? true : false;
+    }
+}
+
+void tic_sys_fullscreen_set(bool value)
+{
+#if defined(CRT_SHADER_SUPPORT)
+    if(!platform.studio->config()->soft)
+    {
+        GPU_SetFullscreen(value, true);
     }
     else
 #endif
     {
         SDL_SetWindowFullscreen(platform.window, 
-            SDL_GetWindowFlags(platform.window) & SDL_WINDOW_FULLSCREEN_DESKTOP ? 0 : SDL_WINDOW_FULLSCREEN_DESKTOP);        
+            value ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
     }
 }
 
@@ -1466,7 +1481,7 @@ static void gpuTick()
 {
     tic_mem* tic = platform.studio->tic;
 
-    tic_sys_poll();
+    pollEvents();
 
     if(platform.studio->quit)
     {
@@ -1597,7 +1612,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
                 initGPU();
 
                 if(platform.studio->config()->goFullscreen)
-                    tic_sys_fullscreen();
+                    tic_sys_fullscreen_set(!tic_sys_fullscreen_get());
             }
 
             SDL_PauseAudioDevice(platform.audio.device, 0);
@@ -1606,24 +1621,17 @@ static s32 start(s32 argc, char **argv, const char* folder)
             emscripten_set_main_loop(emsGpuTick, platform.studio->config()->vsync ? 0 : TIC80_FRAMERATE, 1);
 #else
             {
-                u64 nextTick = 0;
                 const u64 Delta = SDL_GetPerformanceFrequency() / TIC80_FRAMERATE;
+                u64 nextTick = SDL_GetPerformanceCounter();
 
                 while (!platform.studio->quit)
                 {
                     gpuTick();
 
-                    if(nextTick == 0)
-                        nextTick = SDL_GetPerformanceCounter();
-                    else
-                    {
-                        s64 delay = nextTick - SDL_GetPerformanceCounter();
+                    s64 delay = (nextTick += Delta) - SDL_GetPerformanceCounter();
 
-                        if(delay > 0)
-                            SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
-                    }
-
-                    nextTick += Delta;
+                    if(delay > 0)
+                        SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
                 }
             }
 #endif

@@ -190,7 +190,11 @@ u64 tic_sys_freq_get()
     return SYSCLOCK_ARM11;
 }
 
-void tic_sys_fullscreen()
+void tic_sys_fullscreen_set(bool value)
+{
+}
+
+bool tic_sys_fullscreen_get()
 {
 }
 
@@ -210,11 +214,6 @@ void tic_sys_preseed()
 {
     srand(osGetTime());
     rand();
-}
-
-void tic_sys_poll()
-{
-
 }
 
 void tic_sys_update_config()

@@ -52,12 +52,12 @@ char*   tic_sys_clipboard_get();
 void    tic_sys_clipboard_free(const char* text);
 u64     tic_sys_counter_get();
 u64     tic_sys_freq_get();
-void    tic_sys_fullscreen();
+bool    tic_sys_fullscreen_get();
+void    tic_sys_fullscreen_set(bool value);
 void    tic_sys_message(const char* title, const char* message);
 void    tic_sys_title(const char* title);
 void    tic_sys_open_path(const char* path);
 void    tic_sys_preseed();
-void    tic_sys_poll();
 bool    tic_sys_keyboard_text(char* text);
 void    tic_sys_update_config();
 

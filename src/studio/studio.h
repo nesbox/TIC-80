@@ -110,7 +110,6 @@ typedef enum
     TIC_WORLD_MODE,
     TIC_SFX_MODE,
     TIC_MUSIC_MODE,
-    TIC_DIALOG_MODE,
     TIC_MENU_MODE,
     TIC_SURF_MODE,
 
@@ -227,10 +226,8 @@ tic_key* getKeymap();
 void setSpritePixel(tic_tile* tiles, s32 x, s32 y, u8 color);
 u8 getSpritePixel(tic_tile* tiles, s32 x, s32 y);
 
-typedef void(*DialogCallback)(bool yes, void* data);
-void showDialog(const char** text, s32 rows, DialogCallback callback, void* data);
-void hideDialog();
-
+typedef void(*ConfirmCallback)(bool yes, void* data);
+void confirmDialog(const char** text, s32 rows, ConfirmCallback callback, void* data);
 
 bool studioCartChanged();
 void playSystemSfx(s32 id);
@@ -240,12 +237,7 @@ void gotoCode();
 void gotoSurf();
 
 void showGameMenu();
-void hideGameMenu();
-void exitGameMenu();
-
 void runProject();
-void drawBGAnimation(tic_mem* tic, s32 ticks);
-void drawBGAnimationScanline(tic_mem* tic, s32 row);
 
 tic_tiles* getBankTiles();
 tic_palette* getBankPalette(bool bank);
@@ -267,9 +259,4 @@ const char* studioExportSfx(s32 sfx, const char* filename);
 s32 calcWaveAnimation(tic_mem* tic, u32 index, s32 channel);
 void map2ram(tic_ram* ram, const tic_map* src);
 void tiles2ram(tic_ram* ram, const tic_tiles* src);
-
-#if defined(CRT_SHADER_SUPPORT)
-void switchCrtMonitor();
-#endif
-
 void fadePalette(tic_palette* pal, s32 value);

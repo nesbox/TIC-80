@@ -32,7 +32,6 @@
 #include "editors/music.h"
 #include "screens/console.h"
 #include "screens/surf.h"
-#include "screens/dialog.h"
 #include "ext/history.h"
 #include "net.h"
 #include "wave_writer.h"
@@ -61,7 +60,10 @@
 #endif
 
 #define MD5_HASHSIZE 16
-#define BG_ANIMATION_COLOR tic_color_dark_grey
+
+#define OPTION_VALUES(...)                          \
+    .values = (const char*[])__VA_ARGS__,           \
+    .count = COUNT_OF(((const char*[])__VA_ARGS__))
 
 #if defined(BUILD_EDITORS)
 
@@ -122,7 +124,7 @@ static struct
     tic_key keycodes[KEYMAP_COUNT];
 
 #if defined(BUILD_EDITORS)
-    EditorMode dialogMode;
+    EditorMode menuMode;
 
     struct
     {
@@ -183,7 +185,6 @@ static struct
 
     Console*    console;
     World*      world;
-    Dialog*     dialog;
     Surf*       surf;
 
     tic_net* net;
@@ -225,7 +226,7 @@ static struct
         .mdate = 0,
     },
 
-    .dialogMode = TIC_CONSOLE_MODE,
+    .menuMode = TIC_CONSOLE_MODE,
 
     .bank = 
     {
@@ -397,55 +398,6 @@ const char* studioExportMusic(s32 track, const char* filename)
 void sfx_stop(tic_mem* tic, s32 channel)
 {
     tic_api_sfx(tic, -1, 0, 0, -1, channel, MAX_VOLUME, MAX_VOLUME, SFX_DEF_SPEED);
-}
-
-// BG animation based on DevEd code
-void drawBGAnimation(tic_mem* tic, s32 ticks)
-{
-    tic_api_cls(tic, TIC_COLOR_BG);
-
-    double rx = sin(ticks / 64.0) * 4.5;
-    double tmp;
-    double mod = modf(ticks / 16.0, &tmp);
-
-    enum{Gap = 72};
-
-    for(s32 x = 0; x <= 16; x++)
-    {
-        s32 ly = (s32)(Gap - (8 / (x - mod)) * 32);
-
-        tic_api_line(tic, 0, (s32)(ly + rx), TIC80_WIDTH, (s32)(ly - rx), BG_ANIMATION_COLOR);
-        tic_api_line(tic, 0, (s32)((TIC80_HEIGHT - ly) - rx), TIC80_WIDTH, 
-            (s32)((TIC80_HEIGHT - ly) + rx), BG_ANIMATION_COLOR);
-    }
-
-    double yp = (Gap - (8 / (16 - mod)) * 32) - rx;
-
-    for(s32 x = -32; x <= 32; x++)
-    {
-        s32 yf = (s32)(yp + rx * x / 32 + rx);
-
-        tic_api_line(tic, (s32)((TIC80_WIDTH / 2) - ((x - (rx / 8)) * 4)), yf,
-            (s32)((TIC80_WIDTH / 2) - ((x + (rx / 16)) * 24)), -16, BG_ANIMATION_COLOR);
-
-        tic_api_line(tic, (s32)((TIC80_WIDTH / 2) - ((x - (rx / 8)) * 4)), TIC80_HEIGHT - yf,
-            (s32)((TIC80_WIDTH / 2) - ((x + (rx / 16)) * 24)), TIC80_HEIGHT + 16, BG_ANIMATION_COLOR);
-    }
-}
-
-static void modifyColor(tic_mem* tic, s32 x, u8 r, u8 g, u8 b)
-{
-    s32 addr = offsetof(tic_ram, vram.palette) + ((x % 16) * 3);
-    tic_api_poke(tic, addr, r, BITS_IN_BYTE);
-    tic_api_poke(tic, addr + 1, g, BITS_IN_BYTE);
-    tic_api_poke(tic, addr + 2, b, BITS_IN_BYTE);
-}
-
-void drawBGAnimationScanline(tic_mem* tic, s32 row)
-{
-    s32 dir = row < TIC80_HEIGHT / 2 ? 1 : -1;
-    s32 val = (s32)(dir * (TIC80_WIDTH - row * 3.5f));
-    modifyColor(tic, BG_ANIMATION_COLOR, (s32)(val * 0.75), (s32)(val * 0.8), val);
 }
 
 char getKeyboardText()
@@ -1012,14 +964,12 @@ void exitStudio()
     {
         static const char* Rows[] =
         {
-            "YOU HAVE",
-            "UNSAVED CHANGES",
-            "",
-            "DO YOU REALLY WANT",
-            "TO EXIT?",
+            "WARNING!",
+            "You have unsaved changes",
+            "Do you really want to exit?",
         };
 
-        showDialog(Rows, COUNT_OF(Rows), exitConfirm, NULL);
+        confirmDialog(Rows, COUNT_OF(Rows), exitConfirm, NULL);
     }
     else 
 #endif
@@ -1091,12 +1041,7 @@ void resumeRunMode()
 }
 #endif
 
-static void initMenuMode()
-{
-    initMenu(impl.menu, impl.studio.tic, impl.fs);
-}
-
-void exitGameMenu()
+static void exitGameMenu()
 {
     if(impl.prevMode == TIC_SURF_MODE)
     {
@@ -1128,7 +1073,6 @@ void setStudioMode(EditorMode mode)
         {
         case TIC_START_MODE:
         case TIC_CONSOLE_MODE:
-        case TIC_DIALOG_MODE:
         case TIC_MENU_MODE:
             break;
         case TIC_RUN_MODE:
@@ -1185,19 +1129,207 @@ static void changeStudioMode(s32 dir)
 }
 #endif
 
+static void resetGame()
+{
+    tic_api_reset(impl.studio.tic);
+    setStudioMode(TIC_RUN_MODE);
+}
+
+static void hideGameMenu()
+{
+    tic_core_resume(impl.studio.tic);
+    impl.mode = TIC_RUN_MODE;
+}
+
+static void showOptionMenu();
+
+static const MenuItem GamepadMenu[] =
+{
+    {"UP        <...>", NULL},
+    {"DOWN      <...>", NULL},
+    {"LEFT      <...>", NULL},
+    {"RIGHT     <...>", NULL},
+    {"A         <...>", NULL},
+    {"B         <...>", NULL},
+    {"X         <...>", NULL},
+    {"Y         <...>", NULL},
+
+    {"",        NULL},
+    {"BACK",    showOptionMenu},
+};
+
+static void setupGamepadMenu()
+{
+    studio_menu_init(impl.menu, GamepadMenu, COUNT_OF(GamepadMenu), 0, NULL);
+}
+
+static s32 optionFullscreenGet()
+{
+    return tic_sys_fullscreen_get() ? 1 : 0;
+}
+
+static void optionFullscreenSet(s32 pos)
+{
+    tic_sys_fullscreen_set(pos == 1);
+}
+
+static const char OffValue[] =  "<OFF>   ";
+static const char OnValue[] =   "<ON>    ";
+
+static MenuOption FullscreenOption = 
+{
+    OPTION_VALUES({OffValue, OnValue}),
+    optionFullscreenGet,
+    optionFullscreenSet,
+};
+
+#if defined(CRT_SHADER_SUPPORT)
+static s32 optionCrtMonitorGet()
+{
+    return impl.config->data.crt ? 1 : 0;
+}
+
+static void optionCrtMonitorSet(s32 pos)
+{
+    impl.config->data.crt = pos == 1;
+}
+
+static MenuOption CrtMonitorOption = 
+{
+    OPTION_VALUES({OffValue, OnValue}),
+    optionCrtMonitorGet,
+    optionCrtMonitorSet,
+};
+
+#endif
+
+static s32 optionVSyncGet()
+{
+    // !TODO: not impelemnted
+    return 0;
+}
+
+static void optionVSyncSet(s32 pos)
+{
+    // !TODO: not impelemnted
+}
+
+static MenuOption VSyncOption = 
+{
+    OPTION_VALUES({OffValue, OnValue}),
+    optionVSyncGet,
+    optionVSyncSet,
+};
+
+// !TODO: temp var
+static s32 VolumePos = 15;
+
+static s32 optionVolumeGet()
+{
+    // !TODO: not impelemnted
+    return VolumePos;
+}
+
+static void optionVolumeSet(s32 pos)
+{
+    // !TODO: not impelemnted
+    VolumePos = pos;
+}
+
+static MenuOption VolumeOption = 
+{
+    OPTION_VALUES(
+    {
+        "<00>    ", 
+        "<01>    ", 
+        "<02>    ", 
+        "<03>    ", 
+        "<04>    ", 
+        "<05>    ", 
+        "<06>    ", 
+        "<07>    ", 
+        "<08>    ", 
+        "<09>    ", 
+        "<10>    ", 
+        "<11>    ", 
+        "<12>    ", 
+        "<13>    ", 
+        "<14>    ", 
+        "<15>    ", 
+    }),
+    optionVolumeGet,
+    optionVolumeSet,
+};
+
+// !TODO: temp var
+static s32 KeyboardPos = 0;
+
+static s32 optionKeyboardGet()
+{
+    // !TODO: not impelemnted
+    return KeyboardPos;
+}
+
+static void optionKeyboardSet(s32 pos)
+{
+    // !TODO: not impelemnted
+    KeyboardPos = pos;
+}
+
+static MenuOption KeyboardOption = 
+{
+    OPTION_VALUES(
+    {
+        "<QWERTY>", 
+        "<AZERTY>", 
+        "<QWERTZ>", 
+        "<QZERTY>", 
+    }),
+    optionKeyboardGet,
+    optionKeyboardSet,
+};
+
+static const MenuItem OptionMenu[] =
+{
+#if defined(CRT_SHADER_SUPPORT)
+    {"CRT MONITOR ",    NULL,   &CrtMonitorOption},
+#endif
+    {"VSYNC       ",    NULL,   &VSyncOption},
+    {"FULLSCREEN  ",    NULL,   &FullscreenOption},
+    {"VOLUME      ",    NULL,   &VolumeOption},
+    {"KEYBOARD    ",    NULL,   &KeyboardOption},
+    {"SETUP GAMEPAD",   setupGamepadMenu},
+    {"",                NULL},
+    {"BACK",            showGameMenu},
+};
+
+static void showOptionMenu()
+{
+    enum{Count = COUNT_OF(OptionMenu)};
+    studio_menu_init(impl.menu, OptionMenu, Count, Count - 5, NULL);
+}
+
+static const MenuItem GameMenu[] =
+{
+#if defined(BUILD_EDITORS)
+    {"CLOSE GAME",  exitGameMenu},
+#endif
+    {"RESET GAME",  resetGame},
+    {"RESUME GAME", hideGameMenu},
+    {"OPTIONS",     showOptionMenu},
+    {"",            NULL},
+    {"QUIT TIC-80", exitStudio},
+};
+
 void showGameMenu()
 {
     tic_core_pause(impl.studio.tic);
     tic_api_reset(impl.studio.tic);
 
-    initMenuMode();
-    impl.mode = TIC_MENU_MODE;
-}
+    enum{Count = COUNT_OF(GameMenu)};
+    studio_menu_init(impl.menu, GameMenu, Count, Count - 4, NULL);
 
-void hideGameMenu()
-{
-    tic_core_resume(impl.studio.tic);
-    impl.mode = TIC_RUN_MODE;
+    impl.mode = TIC_MENU_MODE;
 }
 
 static inline bool pointInRect(const tic_point* pt, const tic_rect* rect)
@@ -1245,23 +1377,65 @@ void setCursor(tic_cursor id)
 }
 
 #if defined(BUILD_EDITORS)
-void hideDialog()
+
+typedef struct
 {
-    if(impl.dialogMode == TIC_RUN_MODE)
+    ConfirmCallback callback;
+    void* data;
+} ConfirmData;
+
+static void confirmHandler(bool yes, void* data)
+{
+    if(impl.menuMode == TIC_RUN_MODE)
     {
         tic_core_resume(impl.studio.tic);
         impl.mode = TIC_RUN_MODE;
     }
-    else setStudioMode(impl.dialogMode);
+    else setStudioMode(impl.menuMode);
+
+    ConfirmData* confirmData = data;
+    SCOPE(free(confirmData))
+    {
+        confirmData->callback(yes, confirmData->data);
+    }
 }
 
-void showDialog(const char** text, s32 rows, DialogCallback callback, void* data)
+static void confirmNo(void* data)
 {
-    if(impl.mode != TIC_DIALOG_MODE)
+    confirmHandler(false, data);
+}
+
+static void confirmYes(void* data)
+{
+    confirmHandler(true, data);
+}
+
+void confirmDialog(const char** text, s32 rows, ConfirmCallback callback, void* data)
+{
+    if(impl.mode != TIC_MENU_MODE)
     {
-        initDialog(impl.dialog, impl.studio.tic, text, rows, callback, data);
-        impl.dialogMode = impl.mode;
-        setStudioMode(TIC_DIALOG_MODE);
+        impl.menuMode = impl.mode;
+        impl.mode = TIC_MENU_MODE;
+    }
+
+    static const MenuItem Answers[] = 
+    {
+        {"",    NULL},
+        {"NO",  confirmNo},
+        {"YES", confirmYes},
+    };
+
+    s32 count = rows + COUNT_OF(Answers);
+    MenuItem* items = malloc(sizeof items[0] * count);
+    SCOPE(free(items))
+    {
+        for(s32 i = 0; i != rows; ++i)
+            items[i] = (MenuItem){text[i], NULL};
+
+        memcpy(items + rows, Answers, sizeof Answers);
+
+        studio_menu_init(impl.menu, items, count, count - 2, 
+            MOVE((ConfirmData){callback, data}));
     }
 }
 
@@ -1538,7 +1712,7 @@ static inline bool keyWasPressedOnce(s32 key)
 }
 
 #if defined(CRT_SHADER_SUPPORT)
-void switchCrtMonitor()
+static void switchCrtMonitor()
 {
     impl.config->data.crt = !impl.config->data.crt;
 }
@@ -1583,10 +1757,10 @@ static void processShortcuts()
         {
             impl.mode == TIC_MENU_MODE ? hideGameMenu() : showGameMenu();
         }
-        else if(keyWasPressedOnce(tic_key_f11)) tic_sys_fullscreen();
+        else if(keyWasPressedOnce(tic_key_f11)) tic_sys_fullscreen_set(!tic_sys_fullscreen_get());
         else if(keyWasPressedOnce(tic_key_return))
         {
-            if(alt) tic_sys_fullscreen();
+            if(alt) tic_sys_fullscreen_set(!tic_sys_fullscreen_get());
         }
 #if defined(BUILD_EDITORS)
         else if(keyWasPressedOnce(tic_key_f7)) setCoverImage();
@@ -1603,7 +1777,7 @@ static void processShortcuts()
 
     if(alt)
     {
-        if (keyWasPressedOnce(tic_key_return)) tic_sys_fullscreen();
+        if (keyWasPressedOnce(tic_key_return)) tic_sys_fullscreen_set(!tic_sys_fullscreen_get());
 #if defined(BUILD_EDITORS)
         else if(keyWasPressedOnce(tic_key_grave)) setStudioMode(TIC_CONSOLE_MODE);
         else if(keyWasPressedOnce(tic_key_1)) setStudioMode(TIC_CODE_MODE);
@@ -1636,7 +1810,7 @@ static void processShortcuts()
     }
     else
     {
-        if (keyWasPressedOnce(tic_key_f11)) tic_sys_fullscreen();
+        if (keyWasPressedOnce(tic_key_f11)) tic_sys_fullscreen_set(!tic_sys_fullscreen_get());
 #if defined(BUILD_EDITORS)
         else if(keyWasPressedOnce(tic_key_f1)) setStudioMode(TIC_CODE_MODE);
         else if(keyWasPressedOnce(tic_key_f2)) setStudioMode(TIC_SPRITE_MODE);
@@ -1655,12 +1829,6 @@ static void processShortcuts()
             if(impl.mode == TIC_CODE_MODE && code->mode != TEXT_EDIT_MODE)
             {
                 code->escape(code);
-                return;
-            }
-
-            if(impl.mode == TIC_DIALOG_MODE)
-            {
-                impl.dialog->escape(impl.dialog);
                 return;
             }
 #endif
@@ -1684,7 +1852,6 @@ static void checkChanges()
     switch(impl.mode)
     {
     case TIC_START_MODE:
-    case TIC_DIALOG_MODE:
         break;
     default:
         {
@@ -1698,14 +1865,12 @@ static void checkChanges()
                 {
                     static const char* Rows[] =
                     {
-                        "",
-                        "CART HAS CHANGED!",
-                        "",
-                        "DO YOU WANT",
-                        "TO RELOAD IT?"
+                        "WARNING!",
+                        "The cart has changed!",
+                        "Do you want to reload it?"
                     };
 
-                    showDialog(Rows, COUNT_OF(Rows), reloadConfirm, NULL);
+                    confirmDialog(Rows, COUNT_OF(Rows), reloadConfirm, NULL);
                 }
                 else console->updateProject(console);
             }
@@ -1780,7 +1945,6 @@ static void renderStudio()
             music = &impl.studio.tic->ram.music;
             break;
         case TIC_START_MODE:
-        case TIC_DIALOG_MODE:
         case TIC_MENU_MODE:
         case TIC_SURF_MODE:
             sfx = &impl.config->cart->bank0.sfx;
@@ -1815,7 +1979,7 @@ static void renderStudio()
     {
     case TIC_START_MODE:    impl.start->tick(impl.start); break;
     case TIC_RUN_MODE:      impl.run->tick(impl.run); break;
-    case TIC_MENU_MODE:     impl.menu->tick(impl.menu); break;
+    case TIC_MENU_MODE:     studio_menu_tick(impl.menu); break;
 
 #if defined(BUILD_EDITORS)
     case TIC_CONSOLE_MODE:  impl.console->tick(impl.console); break;
@@ -1851,7 +2015,6 @@ static void renderStudio()
         break;
 
     case TIC_WORLD_MODE:    impl.world->tick(impl.world); break;
-    case TIC_DIALOG_MODE:   impl.dialog->tick(impl.dialog); break;
     case TIC_SURF_MODE:     impl.surf->tick(impl.surf); break;
 #endif
     default: break;
@@ -2028,13 +2191,12 @@ static void studioTick()
 
         tic_blit_callback callback[TIC_MODES_COUNT] = 
         {
-            [TIC_MENU_MODE]     = {impl.menu->scanline,     NULL,   impl.menu},
+            [TIC_MENU_MODE]     = {studio_menu_anim_scanline, NULL, impl.menu},
 
 #if defined(BUILD_EDITORS)
             [TIC_SPRITE_MODE]   = {sprite->scanline,        NULL,   sprite},
             [TIC_MAP_MODE]      = {map->scanline,           NULL,   map},
             [TIC_WORLD_MODE]    = {impl.world->scanline,    NULL,   impl.world},
-            [TIC_DIALOG_MODE]   = {impl.dialog->scanline,   NULL,   impl.dialog},
             [TIC_SURF_MODE]     = {impl.surf->scanline,     NULL,   impl.surf},
 #endif
         };
@@ -2094,14 +2256,14 @@ static void studioClose()
         freeCode    (impl.code);
         freeConsole (impl.console);
         freeWorld   (impl.world);
-        freeDialog  (impl.dialog);
         freeSurf    (impl.surf);
 #endif
 
         freeStart   (impl.start);
         freeRun     (impl.run);
         freeConfig  (impl.config);
-        freeMenu    (impl.menu);
+
+        studio_menu_free(impl.menu);
     }
 
     if(impl.tic80local)
@@ -2199,13 +2361,12 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder)
         impl.code       = calloc(1, sizeof(Code));
         impl.console    = calloc(1, sizeof(Console));
         impl.world      = calloc(1, sizeof(World));
-        impl.dialog     = calloc(1, sizeof(Dialog));
         impl.surf       = calloc(1, sizeof(Surf));
 #endif
 
         impl.start      = calloc(1, sizeof(Start));
         impl.run        = calloc(1, sizeof(Run));
-        impl.menu       = calloc(1, sizeof(Menu));
+        impl.menu       = studio_menu_create(impl.studio.tic);
         impl.config     = calloc(1, sizeof(Config));
     }
 

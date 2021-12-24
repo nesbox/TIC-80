@@ -24,6 +24,7 @@
 #include "studio/fs.h"
 #include "studio/net.h"
 #include "console.h"
+#include "menu.h"
 #include "ext/gif.h"
 #include "ext/png.h"
 
@@ -156,9 +157,9 @@ DECLARE_MOVIE(MenuRightShow,    MenuMode);
 DECLARE_MOVIE(MenuLeftHide,     MenuLeftShow);
 DECLARE_MOVIE(MenuRightHide,    MenuRightShow);
 
-typedef struct MenuItem MenuItem;
+typedef struct SurfItem SurfItem;
 
-struct MenuItem
+struct SurfItem
 {
     char* label;
     char* name;
@@ -175,7 +176,7 @@ struct MenuItem
 
 typedef struct
 {
-    MenuItem* items;
+    SurfItem* items;
     s32 count;
     Surf* surf;
     fs_done_callback done;
@@ -232,7 +233,7 @@ static void drawTopToolbar(Surf* surf, s32 x, s32 y)
     }
 }
 
-static MenuItem* getMenuItem(Surf* surf)
+static SurfItem* getMenuItem(Surf* surf)
 {
     return &surf->menu.items[surf->menu.pos];
 }
@@ -317,10 +318,10 @@ static bool addMenuItem(const char* name, const char* title, const char* hash, s
 #endif
         )
     {
-        data->items = realloc(data->items, sizeof(MenuItem) * ++data->count);
-        MenuItem* item = &data->items[data->count-1];
+        data->items = realloc(data->items, sizeof(SurfItem) * ++data->count);
+        SurfItem* item = &data->items[data->count-1];
 
-        *item = (MenuItem)
+        *item = (SurfItem)
         {
             .name = strdup(name),
             .hash = hash ? strdup(hash) : NULL,
@@ -350,8 +351,8 @@ static bool addMenuItem(const char* name, const char* title, const char* hash, s
 
 static s32 itemcmp(const void* a, const void* b)
 {
-    const MenuItem* item1 = a;
-    const MenuItem* item2 = b;
+    const SurfItem* item1 = a;
+    const SurfItem* item2 = b;
 
     if(item1->dir != item2->dir)
         return item1->dir ? -1 : 1;
@@ -386,7 +387,7 @@ static void resetMenu(Surf* surf)
     {
         for(s32 i = 0; i < surf->menu.count; i++)
         {
-            MenuItem* item = &surf->menu.items[i];
+            SurfItem* item = &surf->menu.items[i];
 
             free(item->name);
 
@@ -408,7 +409,7 @@ static void resetMenu(Surf* surf)
 
 static void updateMenuItemCover(Surf* surf, s32 pos, const u8* cover, s32 size)
 {
-    MenuItem* item = &surf->menu.items[pos];
+    SurfItem* item = &surf->menu.items[pos];
 
     gif_image* image = gif_read_data(cover, size);
 
@@ -470,7 +471,7 @@ static void coverLoaded(const net_get_data* netData)
     }
 }
 
-static void requestCover(Surf* surf, MenuItem* item)
+static void requestCover(Surf* surf, SurfItem* item)
 {
     CoverLoadingData coverLoadingData = {surf, surf->menu.pos};
     tic_fs_dir(surf->fs, coverLoadingData.dir);
@@ -499,7 +500,7 @@ static void loadCover(Surf* surf)
 {
     tic_mem* tic = surf->tic;
     
-    MenuItem* item = getMenuItem(surf);
+    SurfItem* item = getMenuItem(surf);
     
     if(item->coverLoading)
         return;
@@ -555,7 +556,7 @@ static void loadCover(Surf* surf)
     }
 }
 
-static void initMenuAsync(Surf* surf, fs_done_callback callback, void* calldata)
+static void initItemsAsync(Surf* surf, fs_done_callback callback, void* calldata)
 {
     resetMenu(surf);
 
@@ -578,9 +579,9 @@ typedef struct
     char* last;
 } GoBackDirDoneData;
 
-static void initMenu(Surf* surf)
+static void initItems(Surf* surf)
 {
-    initMenuAsync(surf, NULL, NULL);
+    initItemsAsync(surf, NULL, NULL);
 }
 
 static void onGoBackDirDone(void* data)
@@ -593,7 +594,7 @@ static void onGoBackDirDone(void* data)
 
     for(s32 i = 0; i < surf->menu.count; i++)
     {
-        const MenuItem* item = &surf->menu.items[i];
+        const SurfItem* item = &surf->menu.items[i];
 
         if(item->dir)
         {
@@ -623,15 +624,15 @@ static void onGoBackDir(Surf* surf)
     tic_fs_dirback(surf->fs);
 
     GoBackDirDoneData goBackDirDoneData = {surf, strdup(last)};
-    initMenuAsync(surf, onGoBackDirDone, MOVE(goBackDirDoneData));
+    initItemsAsync(surf, onGoBackDirDone, MOVE(goBackDirDoneData));
 }
 
 static void onGoToDir(Surf* surf)
 {
-    MenuItem* item = getMenuItem(surf);
+    SurfItem* item = getMenuItem(surf);
 
     tic_fs_changedir(surf->fs, item->name);
-    initMenu(surf);
+    initItems(surf);
 }
 
 static void goBackDir(Surf* surf)
@@ -666,7 +667,7 @@ static void onCartLoaded(void* data)
 
 static void onPlayCart(Surf* surf)
 {
-    MenuItem* item = getMenuItem(surf);
+    SurfItem* item = getMenuItem(surf);
 
     if (item->hash)
     {
@@ -681,7 +682,7 @@ static void onPlayCart(Surf* surf)
 
 static void loadCart(Surf* surf)
 {
-    MenuItem* item = getMenuItem(surf);
+    SurfItem* item = getMenuItem(surf);
 
     if(tic_tool_has_ext(item->name, PngExt))
     {
@@ -809,7 +810,7 @@ static void processGamepad(Surf* surf)
 
         if(tic_api_btnp(tic, A, -1, -1))
         {
-            MenuItem* item = getMenuItem(surf);
+            SurfItem* item = getMenuItem(surf);
             item->dir 
                 ? changeDirectory(surf, item->name) 
                 : loadCart(surf);
@@ -824,7 +825,7 @@ static void processGamepad(Surf* surf)
 
         if(tic_api_btnp(tic, Y, -1, -1))
         {
-            MenuItem* item = getMenuItem(surf);
+            SurfItem* item = getMenuItem(surf);
 
             if(!item->dir)
             {
@@ -843,7 +844,7 @@ static void tick(Surf* surf)
 {
     if(!surf->init)
     {
-        initMenu(surf);
+        initItems(surf);
 
         resetMovie(surf, &MenuModeShowState, NULL);
 
@@ -855,7 +856,7 @@ static void tick(Surf* surf)
     tic_mem* tic = surf->tic;
     tic_api_cls(tic, TIC_COLOR_BG);
 
-    drawBGAnimation(surf->tic, surf->ticks);
+    studio_menu_anim(surf->tic, surf->ticks);
 
     if (surf->menu.count > 0)
     {
@@ -911,7 +912,7 @@ static void scanline(tic_mem* tic, s32 row, void* data)
 
     if(surf->menu.count > 0)
     {
-        const MenuItem* item = getMenuItem(surf);
+        const SurfItem* item = getMenuItem(surf);
 
         if(item->palette)
         {
@@ -925,7 +926,7 @@ static void scanline(tic_mem* tic, s32 row, void* data)
         }
     }
 
-    drawBGAnimationScanline(tic, row);
+    studio_menu_anim_scanline(tic, row, NULL);
 }
 
 void initSurf(Surf* surf, tic_mem* tic, struct Console* console)

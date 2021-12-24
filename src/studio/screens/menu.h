@@ -22,46 +22,33 @@
 
 #pragma once
 
-#include "studio/studio.h"
+#include "tic80_types.h"
 
 typedef struct Menu Menu;
+struct tic_mem;
 
-struct Menu
+Menu* studio_menu_create(struct tic_mem* tic);
+void studio_menu_tick(Menu* menu);
+
+typedef struct
 {
-    tic_mem* tic;
-    struct tic_fs* fs;
+	const char** values;
+	s32 count;
+    s32(*get)();
+    void(*set)(s32);
+	s32 pos;
+} MenuOption;
 
-    bool init;
-    s32 ticks;
+typedef struct
+{
+    const char* label;
+    void(*handler)(void*);
 
-    struct
-    {
-        s32 focus;
-    } main;
+    MenuOption* option;
+} MenuItem;
 
-    struct
-    {
-        u32 tab;
-        s32 selected;
-    } gamepad;
+void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, void* data);
+void studio_menu_free(Menu* menu);
 
-    tic_point pos;
-
-    struct
-    {
-        tic_point start;
-        bool active;
-    } drag;
-
-    enum
-    {
-        MAIN_MENU_MODE,
-        GAMEPAD_MENU_MODE,
-    } mode;
-    
-    void(*tick)(Menu* Menu);
-    void (*scanline)(tic_mem* tic, s32 row, void* data);
-};
-
-void initMenu(Menu* menu, tic_mem* tic, struct tic_fs* fs);
-void freeMenu(Menu* menu);
+void studio_menu_anim(struct tic_mem* tic, s32 ticks);
+void studio_menu_anim_scanline(struct tic_mem* tic, s32 row, void* data);

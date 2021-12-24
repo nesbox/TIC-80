@@ -114,7 +114,11 @@ u64 tic_sys_freq_get()
 	return HZ;
 }
 
-void tic_sys_fullscreen()
+void tic_sys_fullscreen_set(bool value)
+{
+}
+
+bool tic_sys_fullscreen_get()
 {
 }
 
@@ -140,11 +144,6 @@ void tic_sys_preseed()
 	srand(time(NULL));
 	rand();
 #endif
-}
-
-void tic_sys_poll()
-{
-
 }
 
 void tic_sys_update_config()

@@ -811,7 +811,6 @@ set(TIC80LIB_DIR ${CMAKE_SOURCE_DIR}/src)
 set(TIC80STUDIO_SRC
     ${TIC80LIB_DIR}/studio/screens/console.c
     ${TIC80LIB_DIR}/studio/screens/run.c
-    ${TIC80LIB_DIR}/studio/screens/dialog.c
     ${TIC80LIB_DIR}/studio/screens/menu.c
     ${TIC80LIB_DIR}/studio/screens/surf.c
     ${TIC80LIB_DIR}/studio/screens/start.c

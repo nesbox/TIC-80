@@ -965,12 +965,12 @@ static void onLoadCommandConfirmed(Console* console)
     commandDone(console);
 }
 
-typedef void(*ConfirmCallback)(Console* console);
+typedef void(*ConsoleConfirmCallback)(Console* console);
 
 typedef struct
 {
     Console* console;
-    ConfirmCallback callback;
+    ConsoleConfirmCallback callback;
 } CommandConfirmData;
 
 static void onConfirm(bool yes, void* data)
@@ -986,7 +986,7 @@ static void onConfirm(bool yes, void* data)
     free(confirmData);
 }
 
-static void confirmCommand(Console* console, const char** text, s32 rows, ConfirmCallback callback)
+static void confirmCommand(Console* console, const char** text, s32 rows, ConsoleConfirmCallback callback)
 {    
     if(console->args.cli)
     {
@@ -1001,7 +1001,7 @@ static void confirmCommand(Console* console, const char** text, s32 rows, Confir
     else
     {
         CommandConfirmData data = {console, callback};
-        showDialog(text, rows, onConfirm, MOVE(data));
+        confirmDialog(text, rows, onConfirm, MOVE(data));
     }
 }
 
@@ -1033,15 +1033,13 @@ static void onLoadDemoCommand(Console* console, tic_script_config* script)
     {
         static const char* Rows[] =
         {
-            "YOU HAVE",
-            "UNSAVED CHANGES",
-            "",
-            "DO YOU REALLY WANT",
-            "TO LOAD CART?",
+            "WARNING!",
+            "You have unsaved changes",
+            "Do you really want to load cart?",
         };
 
         LoadDemoConfirmData data = {console, onLoadDemoCommandConfirmed, script};
-        showDialog(Rows, COUNT_OF(Rows), onLoadDemoConfirm, MOVE(data));
+        confirmDialog(Rows, COUNT_OF(Rows), onLoadDemoConfirm, MOVE(data));
     }
     else
     {
