@@ -34,6 +34,7 @@ VSYNC=true
 CRT_MONITOR=false
 GIF_SCALE=3
 UI_SCALE=4
+VOLUME=12
 
 ---------------------------
 function TIC()

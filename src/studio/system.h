@@ -123,6 +123,7 @@ typedef struct
     const tic_cartridge* cart;
 
     s32 uiScale;
+    s32 volume;
 
 } StudioConfig;
 

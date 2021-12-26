@@ -193,6 +193,7 @@ static void readConfig(Config* config)
             readGlobalBool(lua,     "CHECK_NEW_VERSION",    &config->data.checkNewVersion);
             readGlobalBool(lua,     "NO_SOUND",             &config->data.noSound);
             readGlobalInteger(lua,  "UI_SCALE",             &config->data.uiScale);
+            readGlobalInteger(lua,  "VOLUME",               &config->data.volume);
             readGlobalBool(lua,     "VSYNC",                &config->data.vsync);
             readGlobalBool(lua,     "SOFTWARE_RENDERING",   &config->data.soft);
 #if defined(CRT_SHADER_SUPPORT)
@@ -213,7 +214,8 @@ static void readConfig(Config* config)
     {
         .uiScale = 4,
         .cart = config->cart,
-        .theme.cursor = {-1, -1, -1, false}
+        .theme.cursor = {-1, -1, -1, false},
+        .volume = MAX_VOLUME,
     };
 }
 

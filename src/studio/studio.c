@@ -1221,19 +1221,14 @@ static MenuOption VSyncOption =
     optionVSyncSet,
 };
 
-// !TODO: temp var
-static s32 VolumePos = 15;
-
 static s32 optionVolumeGet()
 {
-    // !TODO: not impelemnted
-    return VolumePos;
+    return impl.config->data.volume;
 }
 
 static void optionVolumeSet(s32 pos)
 {
-    // !TODO: not impelemnted
-    VolumePos = pos;
+    impl.config->data.volume = pos;
 }
 
 static MenuOption VolumeOption = 
@@ -1926,6 +1921,22 @@ static void recordFrame(u32* pixels)
 
 #endif
 
+static void applyVolume()
+{
+    tic_mem* tic = impl.studio.tic;
+
+    if(getConfig()->noSound)
+        ZEROMEM(tic->ram.registers);
+    else
+    {
+        s32 volume = getConfig()->volume;
+        void* addr = &tic->ram.stereo;
+
+        for(s32 i = 0; i != TIC_SOUND_CHANNELS * TIC_STEREO_CHANNELS; ++i)
+            tic_tool_poke4(addr, i, tic_tool_peek4(addr, i) * volume / MAX_VOLUME);
+    }
+}
+
 static void renderStudio()
 {
     tic_mem* tic = impl.studio.tic;
@@ -2020,8 +2031,7 @@ static void renderStudio()
     default: break;
     }
 
-    if(getConfig()->noSound)
-        memset(tic->ram.registers, 0, sizeof tic->ram.registers);
+    applyVolume();
 
     tic_core_tick_end(tic);
 
