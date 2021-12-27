@@ -808,7 +808,8 @@ static void processGamepad(Surf* surf)
             surf->menu.anim_target = 5;
         }
 
-        if(tic_api_btnp(tic, A, -1, -1))
+        if(tic_api_btnp(tic, A, -1, -1) 
+             || tic_api_keyp(tic, tic_key_return, -1, -1))
         {
             SurfItem* item = getMenuItem(surf);
             item->dir 

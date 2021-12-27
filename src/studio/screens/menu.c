@@ -53,7 +53,8 @@ typedef struct
     macro(start)            \
     macro(up)               \
     macro(down)             \
-    macro(close)
+    macro(close)            \
+    macro(back)
 
 #define ANIM_MOVIE(name)    Movie name;
 #define ANIM_FREE(name)     FREE(menu->anim.name.items);
@@ -67,8 +68,10 @@ struct Menu
     MenuItem* items;
     s32 count;
     s32 pos;
+    s32 backPos;
 
     void* data;
+    void(*back)(void*);
 
     struct
     {
@@ -163,6 +166,14 @@ static void closeDone(Menu *menu)
     menu->items[menu->pos].handler(menu->data);
 }
 
+static void backDone(Menu *menu)
+{
+    resetMovie(menu, &menu->anim.idle);
+    s32 pos = menu->backPos;
+    menu->back(menu->data);
+    menu->pos = pos;
+}
+
 static void printShadow(tic_mem* tic, const char* text, s32 x, s32 y, tic_color color)
 {
     tic_api_print(tic, text, x, y + 1, tic_color_black, true, 1, false);
@@ -244,7 +255,7 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
             }            
         }
 
-        if(tic_api_btnp(menu->tic, A, -1, -1))
+        if(tic_api_btnp(menu->tic, A, -1, -1) || tic_api_keyp(tic, tic_key_return, -1, -1))
         {
             if(option)
             {
@@ -256,7 +267,13 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
                 playSystemSfx(2);
                 resetMovie(menu, &menu->anim.close);
             }
-        }        
+        }
+
+        if(tic_api_btnp(menu->tic, B, -1, -1) && menu->back)
+        {
+            playSystemSfx(2);
+            resetMovie(menu, &menu->anim.back);
+        }
     }
 
     s32 i = 0;
@@ -350,6 +367,14 @@ Menu* studio_menu_create(struct tic_mem* tic)
                 {10, 0, 10, &menu->anim.cursor, linear},
                 {0, TIC80_WIDTH, 10, &menu->anim.offset, linear},
             }),
+
+            .back = MOVIE_DEF(10, backDone,
+            {
+                {0, -10, 10, &menu->anim.top, linear},
+                {0, 10, 10, &menu->anim.bottom, linear},
+                {10, 0, 10, &menu->anim.cursor, linear},
+                {0, TIC80_WIDTH, 10, &menu->anim.offset, linear},
+            }),
         },
     };
 
@@ -386,7 +411,7 @@ void studio_menu_tick(Menu* menu)
     menu->ticks++;
 }
 
-void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, void* data)
+void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, s32 backPos, void(*back)(void*), void* data)
 {
     const s32 size = sizeof menu->items[0] * rows;
 
@@ -398,6 +423,8 @@ void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, void
         .data = data,
         .count = rows,
         .pos = pos,
+        .backPos = backPos,
+        .back = back,
     };
 
     memcpy(menu->items, items, size);
@@ -406,6 +433,17 @@ void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, void
             it->option->pos = it->option->get();
 
     resetMovie(menu, &menu->anim.start);
+}
+
+bool studio_menu_back(Menu* menu)
+{
+    if(menu->back)
+    {
+        playSystemSfx(2);
+        resetMovie(menu, &menu->anim.back);        
+    }
+
+    return menu->back != NULL;
 }
 
 void studio_menu_free(Menu* menu)

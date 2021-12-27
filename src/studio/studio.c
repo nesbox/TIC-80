@@ -1141,28 +1141,6 @@ static void hideGameMenu()
     impl.mode = TIC_RUN_MODE;
 }
 
-static void showOptionMenu();
-
-static const MenuItem GamepadMenu[] =
-{
-    {"UP        <...>", NULL},
-    {"DOWN      <...>", NULL},
-    {"LEFT      <...>", NULL},
-    {"RIGHT     <...>", NULL},
-    {"A         <...>", NULL},
-    {"B         <...>", NULL},
-    {"X         <...>", NULL},
-    {"Y         <...>", NULL},
-
-    {"",        NULL},
-    {"BACK",    showOptionMenu},
-};
-
-static void setupGamepadMenu()
-{
-    studio_menu_init(impl.menu, GamepadMenu, COUNT_OF(GamepadMenu), 0, NULL);
-}
-
 static s32 optionFullscreenGet()
 {
     return tic_sys_fullscreen_get() ? 1 : 0;
@@ -1284,6 +1262,8 @@ static MenuOption KeyboardOption =
     optionKeyboardSet,
 };
 
+static void showGamepadMenu();
+
 static const MenuItem OptionMenu[] =
 {
 #if defined(CRT_SHADER_SUPPORT)
@@ -1293,16 +1273,12 @@ static const MenuItem OptionMenu[] =
     {"FULLSCREEN  ",    NULL,   &FullscreenOption},
     {"VOLUME      ",    NULL,   &VolumeOption},
     {"KEYBOARD    ",    NULL,   &KeyboardOption},
-    {"SETUP GAMEPAD",   setupGamepadMenu},
+    {"SETUP GAMEPAD",   showGamepadMenu},
     {"",                NULL},
     {"BACK",            showGameMenu},
 };
 
-static void showOptionMenu()
-{
-    enum{Count = COUNT_OF(OptionMenu)};
-    studio_menu_init(impl.menu, OptionMenu, Count, Count - 5, NULL);
-}
+static void showOptionsMenu();
 
 static const MenuItem GameMenu[] =
 {
@@ -1311,20 +1287,50 @@ static const MenuItem GameMenu[] =
 #endif
     {"RESET GAME",  resetGame},
     {"RESUME GAME", hideGameMenu},
-    {"OPTIONS",     showOptionMenu},
+    {"OPTIONS",     showOptionsMenu},
     {"",            NULL},
     {"QUIT TIC-80", exitStudio},
 };
 
 void showGameMenu()
 {
-    tic_core_pause(impl.studio.tic);
-    tic_api_reset(impl.studio.tic);
+    if(impl.mode != TIC_MENU_MODE)
+    {
+        tic_core_pause(impl.studio.tic);
+        tic_api_reset(impl.studio.tic);
+        impl.mode = TIC_MENU_MODE;
+    }
 
     enum{Count = COUNT_OF(GameMenu)};
-    studio_menu_init(impl.menu, GameMenu, Count, Count - 4, NULL);
+    studio_menu_init(impl.menu, GameMenu, Count, Count - 4, 0, NULL, NULL);
+}
 
-    impl.mode = TIC_MENU_MODE;
+static void showOptionsMenu()
+{
+    enum{Count = COUNT_OF(OptionMenu)};
+    studio_menu_init(impl.menu, OptionMenu, 
+        Count, Count - 5, COUNT_OF(GameMenu) - 3, showGameMenu, NULL);
+}
+
+static void showGamepadMenu()
+{
+    static const MenuItem GamepadMenu[] =
+    {
+        {"UP        <...>", NULL},
+        {"DOWN      <...>", NULL},
+        {"LEFT      <...>", NULL},
+        {"RIGHT     <...>", NULL},
+        {"A         <...>", NULL},
+        {"B         <...>", NULL},
+        {"X         <...>", NULL},
+        {"Y         <...>", NULL},
+
+        {"",        NULL},
+        {"BACK",    showOptionsMenu},
+    };
+
+    studio_menu_init(impl.menu, GamepadMenu, COUNT_OF(GamepadMenu), 
+        0, COUNT_OF(OptionMenu) - 3, showOptionsMenu, NULL);
 }
 
 static inline bool pointInRect(const tic_point* pt, const tic_rect* rect)
@@ -1429,8 +1435,8 @@ void confirmDialog(const char** text, s32 rows, ConfirmCallback callback, void* 
 
         memcpy(items + rows, Answers, sizeof Answers);
 
-        studio_menu_init(impl.menu, items, count, count - 2, 
-            MOVE((ConfirmData){callback, data}));
+        studio_menu_init(impl.menu, items, count, count - 2, 0,
+            NULL, MOVE((ConfirmData){callback, data}));
     }
 }
 
@@ -1750,7 +1756,12 @@ static void processShortcuts()
     {
         if(keyWasPressedOnce(tic_key_escape))
         {
-            impl.mode == TIC_MENU_MODE ? hideGameMenu() : showGameMenu();
+            if(impl.mode == TIC_MENU_MODE)
+            {
+                if(!studio_menu_back(impl.menu))
+                    hideGameMenu();
+            }
+            else showGameMenu();
         }
         else if(keyWasPressedOnce(tic_key_f11)) tic_sys_fullscreen_set(!tic_sys_fullscreen_get());
         else if(keyWasPressedOnce(tic_key_return))
@@ -1827,6 +1838,9 @@ static void processShortcuts()
                 return;
             }
 #endif
+
+            if(impl.mode == TIC_MENU_MODE && studio_menu_back(impl.menu))
+                return;
 
             setStudioMode(impl.mode == TIC_CONSOLE_MODE ? impl.prevMode : TIC_CONSOLE_MODE);
         }

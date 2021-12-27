@@ -47,7 +47,8 @@ typedef struct
     MenuOption* option;
 } MenuItem;
 
-void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, void* data);
+void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, s32 backPos, void(*back)(void*), void* data);
+bool studio_menu_back(Menu* menu);
 void studio_menu_free(Menu* menu);
 
 void studio_menu_anim(struct tic_mem* tic, s32 ticks);
