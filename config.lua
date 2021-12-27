@@ -27,7 +27,6 @@ THEME=
 }
 
 CHECK_NEW_VERSION=true
-NO_SOUND=false
 GIF_LENGTH=20 -- in seconds
 SOFTWARE_RENDERING=false
 VSYNC=true

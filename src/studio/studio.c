@@ -1921,22 +1921,6 @@ static void recordFrame(u32* pixels)
 
 #endif
 
-static void applyVolume()
-{
-    tic_mem* tic = impl.studio.tic;
-
-    if(getConfig()->noSound)
-        ZEROMEM(tic->ram.registers);
-    else
-    {
-        s32 volume = getConfig()->volume;
-        void* addr = &tic->ram.stereo;
-
-        for(s32 i = 0; i != TIC_SOUND_CHANNELS * TIC_STEREO_CHANNELS; ++i)
-            tic_tool_poke4(addr, i, tic_tool_peek4(addr, i) * volume / MAX_VOLUME);
-    }
-}
-
 static void renderStudio()
 {
     tic_mem* tic = impl.studio.tic;
@@ -2030,8 +2014,6 @@ static void renderStudio()
 #endif
     default: break;
     }
-
-    applyVolume();
 
     tic_core_tick_end(tic);
 
@@ -2240,6 +2222,15 @@ static void studioSound()
 {
     tic_mem* tic = impl.studio.tic;
     tic_core_synth_sound(tic);
+
+    s32 volume = getConfig()->volume;
+
+    if(volume != MAX_VOLUME)
+    {
+        s32 size = tic->samples.size / sizeof tic->samples.buffer[0];
+        for(s16* it = tic->samples.buffer, *end = it + size; it != end; ++it)
+            *it = *it * volume / MAX_VOLUME;        
+    }
 }
 
 static void studioLoad(const char* file)
@@ -2294,7 +2285,7 @@ static StartArgs parseArgs(s32 argc, char **argv)
         NULL,
     };
 
-    StartArgs args = {0};
+    StartArgs args = {.volume = -1};
 
     struct argparse_option options[] = 
     {
@@ -2397,6 +2388,9 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder)
     if(args.scale)
         impl.config->data.uiScale = args.scale;
 
+    if(args.volume >= 0)
+        impl.config->data.volume = args.volume & 0x0f;
+
 #if defined(CRT_SHADER_SUPPORT)
     impl.config->data.crt           |= args.crt;
 #endif
@@ -2404,7 +2398,6 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder)
     impl.config->data.goFullscreen  |= args.fullscreen;
     impl.config->data.soft          |= args.soft;
     impl.config->data.vsync         |= args.vsync;
-    impl.config->data.noSound       |= args.nosound;
     impl.config->data.cli           |= args.cli;
 
     impl.studio.tick    = studioTick;

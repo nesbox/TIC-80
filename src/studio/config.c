@@ -191,7 +191,6 @@ static void readConfig(Config* config)
             readGlobalInteger(lua,  "GIF_LENGTH",           &config->data.gifLength);
             readGlobalInteger(lua,  "GIF_SCALE",            &config->data.gifScale);
             readGlobalBool(lua,     "CHECK_NEW_VERSION",    &config->data.checkNewVersion);
-            readGlobalBool(lua,     "NO_SOUND",             &config->data.noSound);
             readGlobalInteger(lua,  "UI_SCALE",             &config->data.uiScale);
             readGlobalInteger(lua,  "VOLUME",               &config->data.volume);
             readGlobalBool(lua,     "VSYNC",                &config->data.vsync);

@@ -71,7 +71,7 @@
 
 #define CMD_PARAMS_LIST(macro)                                                              \
     macro(skip,         bool,   BOOLEAN,    "",         "skip startup animation")           \
-    macro(nosound,      bool,   BOOLEAN,    "",         "disable sound output")             \
+    macro(volume,       s32,    INTEGER,    "=<int>",   "global volume value [0-15]")       \
     macro(cli,          bool,   BOOLEAN,    "",         "console only output")              \
     macro(fullscreen,   bool,   BOOLEAN,    "",         "enable fullscreen mode")           \
     macro(vsync,        bool,   BOOLEAN,    "",         "enable VSYNC")                     \
