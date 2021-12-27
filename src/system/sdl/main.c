@@ -495,7 +495,7 @@ static void initTouchGamepad()
 
 static void initGPU()
 {
-    bool vsync = platform.studio->config()->vsync;
+    bool vsync = platform.studio->config()->menu.vsync;
     bool soft = platform.studio->config()->soft;
 
 #if defined(CRT_SHADER_SUPPORT)
@@ -506,7 +506,8 @@ static void initGPU()
 
         GPU_SetInitWindow(SDL_GetWindowID(platform.window));
 
-        platform.screen.renderer.gpu = GPU_Init(w, h, vsync ? GPU_INIT_ENABLE_VSYNC : GPU_INIT_DISABLE_VSYNC);
+        GPU_SetPreInitFlags(vsync ? GPU_INIT_ENABLE_VSYNC : GPU_INIT_DISABLE_VSYNC);
+        platform.screen.renderer.gpu = GPU_Init(w, h, GPU_DEFAULT_INIT_FLAGS);
 
         GPU_SetWindowResolution(w, h);
         GPU_SetVirtualResolution(platform.screen.renderer.gpu, w, h);
@@ -1357,7 +1358,7 @@ void tic_sys_fullscreen_set(bool value)
 #if defined(CRT_SHADER_SUPPORT)
     if(!platform.studio->config()->soft)
     {
-        GPU_SetFullscreen(value, true);
+        GPU_SetFullscreen(value ? GPU_TRUE : GPU_FALSE, true);
     }
     else
 #endif
@@ -1497,7 +1498,7 @@ static void gpuTick()
 
 #if defined(CRT_SHADER_SUPPORT)
 
-    if(!platform.studio->config()->soft && platform.studio->config()->crt)
+    if(!platform.studio->config()->soft && platform.studio->config()->menu.crt)
     {
         if(platform.screen.shader == 0)
             loadCrtShader();
@@ -1611,8 +1612,8 @@ static s32 start(s32 argc, char **argv, const char* folder)
                 setWindowIcon();
                 initGPU();
 
-                if(platform.studio->config()->goFullscreen)
-                    tic_sys_fullscreen_set(!tic_sys_fullscreen_get());
+                if(platform.studio->config()->menu.fullscreen)
+                    tic_sys_fullscreen_set(true);
             }
 
             SDL_PauseAudioDevice(platform.audio.device, 0);

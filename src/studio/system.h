@@ -108,21 +108,27 @@ typedef struct
     bool soft;
 
 #if defined(CRT_SHADER_SUPPORT)
-    bool crt;
     struct
     {
         const char* vertex;
         const char* pixel;
     } shader;
 #endif
-    
-    bool goFullscreen;
-    bool vsync;
+
+    struct
+    {
+    #if defined(CRT_SHADER_SUPPORT)
+        bool crt;
+    #endif
+        
+        bool fullscreen;
+        bool vsync;
+        s32 volume;        
+    } menu;
 
     const tic_cartridge* cart;
 
     s32 uiScale;
-    s32 volume;
 
 } StudioConfig;
 

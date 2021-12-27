@@ -27,13 +27,10 @@ THEME=
 }
 
 CHECK_NEW_VERSION=true
-GIF_LENGTH=20 -- in seconds
 SOFTWARE_RENDERING=false
-VSYNC=true
-CRT_MONITOR=false
-GIF_SCALE=3
 UI_SCALE=4
-VOLUME=12
+GIF_LENGTH=20 -- in seconds
+GIF_SCALE=3
 
 ---------------------------
 function TIC()

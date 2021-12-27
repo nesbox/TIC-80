@@ -45,6 +45,7 @@ typedef struct
     void(*handler)(void*);
 
     MenuOption* option;
+    const char* help;
 } MenuItem;
 
 void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, s32 backPos, void(*back)(void*), void* data);

@@ -192,11 +192,9 @@ static void readConfig(Config* config)
             readGlobalInteger(lua,  "GIF_SCALE",            &config->data.gifScale);
             readGlobalBool(lua,     "CHECK_NEW_VERSION",    &config->data.checkNewVersion);
             readGlobalInteger(lua,  "UI_SCALE",             &config->data.uiScale);
-            readGlobalInteger(lua,  "VOLUME",               &config->data.volume);
-            readGlobalBool(lua,     "VSYNC",                &config->data.vsync);
             readGlobalBool(lua,     "SOFTWARE_RENDERING",   &config->data.soft);
+
 #if defined(CRT_SHADER_SUPPORT)
-            readGlobalBool(lua,     "CRT_MONITOR",          &config->data.crt);
             readConfigCrtShader(config, lua);
 #endif
             readTheme(config, lua);
@@ -214,7 +212,6 @@ static void readConfig(Config* config)
         .uiScale = 4,
         .cart = config->cart,
         .theme.cursor = {-1, -1, -1, false},
-        .volume = MAX_VOLUME,
     };
 }
 
@@ -230,8 +227,19 @@ static void update(Config* config, const u8* buffer, s32 size)
 
 static void setDefault(Config* config)
 {
-    memset(&config->data, 0, sizeof(StudioConfig));
-    config->data.cart = config->cart;
+    config->data = (StudioConfig)
+    {
+        .cart = config->cart,
+        .menu = 
+        {
+            .volume     = MAX_VOLUME,
+            .vsync      = true,
+            .fullscreen = false,
+#if defined(CRT_SHADER_SUPPORT)
+            .crt        = false,
+#endif
+        },
+    };
 
     {
         static const u8 ConfigZip[] =
@@ -277,6 +285,8 @@ static void save(Config* config)
     studioConfigChanged();
 }
 
+static const char MenuDatPath[] = TIC_LOCAL_VERSION "menu.dat";
+
 void initConfig(Config* config, tic_mem* tic, tic_fs* fs)
 {
     {
@@ -289,22 +299,46 @@ void initConfig(Config* config, tic_mem* tic, tic_fs* fs)
 
     setDefault(config);
 
-    s32 size = 0;
-    u8* data = (u8*)tic_fs_loadroot(fs, CONFIG_TIC_PATH, &size);
-
-    if(data)
+    // read config.tic
     {
-        update(config, data, size);
+        s32 size = 0;
+        u8* data = (u8*)tic_fs_loadroot(fs, CONFIG_TIC_PATH, &size);
 
-        free(data);
+        if(data)
+        {
+            update(config, data, size);
+
+            free(data);
+        }
+        else saveConfig(config, false);        
     }
-    else saveConfig(config, false);
+
+    // read menu.dat
+    {
+        s32 size = 0;
+        u8* data = (u8*)tic_fs_loadroot(fs, MenuDatPath, &size);
+
+        if(data)
+        {
+            enum{Size = sizeof config->data.menu};
+            if(size == Size)
+                memcpy(&config->data.menu, data, Size);
+
+            free(data);
+        }
+    }
 
     tic_api_reset(tic);
 }
 
 void freeConfig(Config* config)
 {
+    // save menu.dat
+    {
+        enum{Size = sizeof config->data.menu};
+        tic_fs_saveroot(config->fs, MenuDatPath, &config->data.menu, Size, true);
+    }
+
     free(config->cart);
 
 #if defined(CRT_SHADER_SUPPORT)

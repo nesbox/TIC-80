@@ -1148,7 +1148,7 @@ static s32 optionFullscreenGet()
 
 static void optionFullscreenSet(s32 pos)
 {
-    tic_sys_fullscreen_set(pos == 1);
+    tic_sys_fullscreen_set(impl.config->data.menu.fullscreen = (pos == 1));
 }
 
 static const char OffValue[] =  "<OFF>   ";
@@ -1164,12 +1164,12 @@ static MenuOption FullscreenOption =
 #if defined(CRT_SHADER_SUPPORT)
 static s32 optionCrtMonitorGet()
 {
-    return impl.config->data.crt ? 1 : 0;
+    return impl.config->data.menu.crt ? 1 : 0;
 }
 
 static void optionCrtMonitorSet(s32 pos)
 {
-    impl.config->data.crt = pos == 1;
+    impl.config->data.menu.crt = pos == 1;
 }
 
 static MenuOption CrtMonitorOption = 
@@ -1183,13 +1183,12 @@ static MenuOption CrtMonitorOption =
 
 static s32 optionVSyncGet()
 {
-    // !TODO: not impelemnted
-    return 0;
+    return getConfig()->menu.vsync ? 1 : 0;
 }
 
 static void optionVSyncSet(s32 pos)
 {
-    // !TODO: not impelemnted
+    impl.config->data.menu.vsync = pos == 1;
 }
 
 static MenuOption VSyncOption = 
@@ -1201,12 +1200,12 @@ static MenuOption VSyncOption =
 
 static s32 optionVolumeGet()
 {
-    return impl.config->data.volume;
+    return impl.config->data.menu.volume;
 }
 
 static void optionVolumeSet(s32 pos)
 {
-    impl.config->data.volume = pos;
+    impl.config->data.menu.volume = pos;
 }
 
 static MenuOption VolumeOption = 
@@ -1269,7 +1268,7 @@ static const MenuItem OptionMenu[] =
 #if defined(CRT_SHADER_SUPPORT)
     {"CRT MONITOR ",    NULL,   &CrtMonitorOption},
 #endif
-    {"VSYNC       ",    NULL,   &VSyncOption},
+    {"VSYNC       ",    NULL,   &VSyncOption, "VSYNC needs restart!"},
     {"FULLSCREEN  ",    NULL,   &FullscreenOption},
     {"VOLUME      ",    NULL,   &VolumeOption},
     {"KEYBOARD    ",    NULL,   &KeyboardOption},
@@ -1715,7 +1714,7 @@ static inline bool keyWasPressedOnce(s32 key)
 #if defined(CRT_SHADER_SUPPORT)
 static void switchCrtMonitor()
 {
-    impl.config->data.crt = !impl.config->data.crt;
+    impl.config->data.menu.crt = !impl.config->data.menu.crt;
 }
 #endif
 
@@ -2237,7 +2236,7 @@ static void studioSound()
     tic_mem* tic = impl.studio.tic;
     tic_core_synth_sound(tic);
 
-    s32 volume = getConfig()->volume;
+    s32 volume = getConfig()->menu.volume;
 
     if(volume != MAX_VOLUME)
     {
@@ -2403,16 +2402,16 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder)
         impl.config->data.uiScale = args.scale;
 
     if(args.volume >= 0)
-        impl.config->data.volume = args.volume & 0x0f;
+        impl.config->data.menu.volume = args.volume & 0x0f;
 
 #if defined(CRT_SHADER_SUPPORT)
-    impl.config->data.crt           |= args.crt;
+    impl.config->data.menu.crt          |= args.crt;
 #endif
 
-    impl.config->data.goFullscreen  |= args.fullscreen;
-    impl.config->data.soft          |= args.soft;
-    impl.config->data.vsync         |= args.vsync;
-    impl.config->data.cli           |= args.cli;
+    impl.config->data.menu.fullscreen   |= args.fullscreen;
+    impl.config->data.menu.vsync        |= args.vsync;
+    impl.config->data.soft              |= args.soft;
+    impl.config->data.cli               |= args.cli;
 
     impl.studio.tick    = studioTick;
     impl.studio.sound   = studioSound;

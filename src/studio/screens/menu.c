@@ -207,8 +207,18 @@ static void drawBottomBar(Menu* menu, s32 x, s32 y)
     tic_api_rect(tic, x, y, TIC80_WIDTH, ItemHeight, tic_color_grey);
     tic_api_rect(tic, x, y - 1, TIC80_WIDTH, 1, tic_color_black);
 
-    static const char Text[] = TIC_COPYRIGHT;
-    printShadow(tic, Text, (TIC80_WIDTH - STRLEN(Text) * TIC_FONT_WIDTH) / 2, y + TextMargin, tic_color_white);
+    const char* help = menu->items[menu->pos].help;
+    if(help)
+    {
+        if(menu->ticks % TIC80_FRAMERATE < TIC80_FRAMERATE / 2)
+            printShadow(tic, help, x + (TIC80_WIDTH - strlen(help) * TIC_FONT_WIDTH) / 2 + menu->anim.offset,
+                y + TextMargin, tic_color_white);
+    }
+    else
+    {
+        static const char Text[] = TIC_COPYRIGHT;
+        printShadow(tic, Text, (TIC80_WIDTH - STRLEN(Text) * TIC_FONT_WIDTH) / 2, y + TextMargin, tic_color_white);
+    }
 }
 
 static void updateOption(MenuOption* option, s32 val)
