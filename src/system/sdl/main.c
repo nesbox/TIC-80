@@ -1619,7 +1619,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
             SDL_PauseAudioDevice(platform.audio.device, 0);
 
 #if defined(__EMSCRIPTEN__)
-            emscripten_set_main_loop(emsGpuTick, platform.studio->config()->vsync ? 0 : TIC80_FRAMERATE, 1);
+            emscripten_set_main_loop(emsGpuTick, platform.studio->config()->menu.vsync ? 0 : TIC80_FRAMERATE, 1);
 #else
             {
                 const u64 Delta = SDL_GetPerformanceFrequency() / TIC80_FRAMERATE;
