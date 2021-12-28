@@ -230,14 +230,26 @@ static void setDefault(Config* config)
     config->data = (StudioConfig)
     {
         .cart = config->cart,
-        .menu = 
+        .options = 
         {
-            .volume     = MAX_VOLUME,
-            .vsync      = true,
-            .fullscreen = false,
 #if defined(CRT_SHADER_SUPPORT)
             .crt        = false,
 #endif
+            .volume     = MAX_VOLUME,
+            .vsync      = true,
+            .fullscreen = false,
+            .mapping    = (tic_mapping)
+            {
+                tic_key_up,
+                tic_key_down,
+                tic_key_left,
+                tic_key_right,
+
+                tic_key_z, // a
+                tic_key_x, // b
+                tic_key_a, // x
+                tic_key_s, // y
+            },
         },
     };
 
@@ -278,24 +290,35 @@ static void reset(Config* config)
 
 static void save(Config* config)
 {
-    memcpy(config->cart, &config->tic->cart, sizeof(tic_cartridge));
+    *config->cart = config->tic->cart;
     readConfig(config);
     saveConfig(config, true);
 
     studioConfigChanged();
 }
 
-static const char MenuDatPath[] = TIC_LOCAL_VERSION "menu.dat";
+static const char OptionsDatPath[] = TIC_LOCAL_VERSION "options.dat";
+
+static void loadConfigData(tic_fs* fs, const char* path, void* dst, s32 size)
+{
+    s32 dataSize = 0;
+    u8* data = (u8*)tic_fs_loadroot(fs, path, &dataSize);
+
+    if(data) SCOPE(free(data))
+        if(dataSize == size)
+            memcpy(dst, data, size);
+}
 
 void initConfig(Config* config, tic_mem* tic, tic_fs* fs)
 {
+    *config = (Config)
     {
-        config->tic = tic;
-        config->cart = malloc(sizeof(tic_cartridge));
-        config->save = save;
-        config->reset = reset;
-        config->fs = fs;
-    }
+        .tic = tic,
+        .cart = realloc(config->cart, sizeof(tic_cartridge)),
+        .save = save,
+        .reset = reset,
+        .fs = fs,
+    };
 
     setDefault(config);
 
@@ -313,31 +336,14 @@ void initConfig(Config* config, tic_mem* tic, tic_fs* fs)
         else saveConfig(config, false);        
     }
 
-    // read menu.dat
-    {
-        s32 size = 0;
-        u8* data = (u8*)tic_fs_loadroot(fs, MenuDatPath, &size);
-
-        if(data)
-        {
-            enum{Size = sizeof config->data.menu};
-            if(size == Size)
-                memcpy(&config->data.menu, data, Size);
-
-            free(data);
-        }
-    }
+    loadConfigData(fs, OptionsDatPath, &config->data.options, sizeof config->data.options);
 
     tic_api_reset(tic);
 }
 
 void freeConfig(Config* config)
 {
-    // save menu.dat
-    {
-        enum{Size = sizeof config->data.menu};
-        tic_fs_saveroot(config->fs, MenuDatPath, &config->data.menu, Size, true);
-    }
+    tic_fs_saveroot(config->fs, OptionsDatPath, &config->data.options, sizeof config->data.options, true);
 
     free(config->cart);
 

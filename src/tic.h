@@ -507,6 +507,11 @@ typedef struct
     u32 data[TIC_PERSISTENT_SIZE];
 } tic_persistent;
 
+typedef struct
+{
+    u8 data[sizeof(tic80_gamepads) * BITS_IN_BYTE];
+} tic_mapping;
+
 typedef union
 {
     struct
@@ -525,6 +530,7 @@ typedef union
         tic_persistent      persistent;
         tic_flags           flags;
         tic_font            font;
+        tic_mapping         mapping;
 
         u8 free;
     };

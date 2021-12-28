@@ -121,8 +121,6 @@ static struct
         MouseState state[3];
     } mouse;
 
-    tic_key keycodes[KEYMAP_COUNT];
-
 #if defined(BUILD_EDITORS)
     EditorMode menuMode;
 
@@ -208,18 +206,6 @@ static struct
     .mode = TIC_START_MODE,
     .prevMode = TIC_CODE_MODE,
 
-    .keycodes =
-    {
-        tic_key_up,
-        tic_key_down,
-        tic_key_left,
-        tic_key_right,
-
-        tic_key_z, // a
-        tic_key_x, // b
-        tic_key_a, // x
-        tic_key_s, // y
-    },
 #if defined(BUILD_EDITORS)
     .cart = 
     {
@@ -1148,7 +1134,7 @@ static s32 optionFullscreenGet()
 
 static void optionFullscreenSet(s32 pos)
 {
-    tic_sys_fullscreen_set(impl.config->data.menu.fullscreen = (pos == 1));
+    tic_sys_fullscreen_set(impl.config->data.options.fullscreen = (pos == 1));
 }
 
 static const char OffValue[] =  "<OFF>   ";
@@ -1164,12 +1150,12 @@ static MenuOption FullscreenOption =
 #if defined(CRT_SHADER_SUPPORT)
 static s32 optionCrtMonitorGet()
 {
-    return impl.config->data.menu.crt ? 1 : 0;
+    return impl.config->data.options.crt ? 1 : 0;
 }
 
 static void optionCrtMonitorSet(s32 pos)
 {
-    impl.config->data.menu.crt = pos == 1;
+    impl.config->data.options.crt = pos == 1;
 }
 
 static MenuOption CrtMonitorOption = 
@@ -1183,12 +1169,12 @@ static MenuOption CrtMonitorOption =
 
 static s32 optionVSyncGet()
 {
-    return getConfig()->menu.vsync ? 1 : 0;
+    return getConfig()->options.vsync ? 1 : 0;
 }
 
 static void optionVSyncSet(s32 pos)
 {
-    impl.config->data.menu.vsync = pos == 1;
+    impl.config->data.options.vsync = pos == 1;
 }
 
 static MenuOption VSyncOption = 
@@ -1200,34 +1186,22 @@ static MenuOption VSyncOption =
 
 static s32 optionVolumeGet()
 {
-    return impl.config->data.menu.volume;
+    return impl.config->data.options.volume;
 }
 
 static void optionVolumeSet(s32 pos)
 {
-    impl.config->data.menu.volume = pos;
+    impl.config->data.options.volume = pos;
 }
 
 static MenuOption VolumeOption = 
 {
     OPTION_VALUES(
     {
-        "<00>    ", 
-        "<01>    ", 
-        "<02>    ", 
-        "<03>    ", 
-        "<04>    ", 
-        "<05>    ", 
-        "<06>    ", 
-        "<07>    ", 
-        "<08>    ", 
-        "<09>    ", 
-        "<10>    ", 
-        "<11>    ", 
-        "<12>    ", 
-        "<13>    ", 
-        "<14>    ", 
-        "<15>    ", 
+        "<00>    ", "<01>    ", "<02>    ", "<03>    ", 
+        "<04>    ", "<05>    ", "<06>    ", "<07>    ", 
+        "<08>    ", "<09>    ", "<10>    ", "<11>    ", 
+        "<12>    ", "<13>    ", "<14>    ", "<15>    ", 
     }),
     optionVolumeGet,
     optionVolumeSet,
@@ -1311,25 +1285,80 @@ static void showOptionsMenu()
         Count, Count - 5, COUNT_OF(GameMenu) - 3, showGameMenu, NULL);
 }
 
+static const char* KeysList[] =
+{
+    "<A>    ", "<B>    ", "<C>    ", "<D>    ", "<E>    ", "<F>    ", "<G>    ", "<H>    ", 
+    "<I>    ", "<J>    ", "<K>    ", "<L>    ", "<M>    ", "<N>    ", "<O>    ", "<P>    ", 
+    "<Q>    ", "<R>    ", "<S>    ", "<T>    ", "<U>    ", "<V>    ", "<W>    ", "<X>    ", 
+    "<Y>    ", "<Z>    ", "<0>    ", "<1>    ", "<2>    ", "<3>    ", "<4>    ", "<5>    ", 
+    "<6>    ", "<7>    ", "<8>    ", "<9>    ", "<->    ", "<=>    ", "<[>    ", "<]>    ", 
+    "<\\>    ","<;>    ", "<'>    ", "<`>    ", "<,>    ", "<.>    ", "</>    ", "< >    ", 
+    "<TAB>  ", "<RET>  ", "<BACKS>", "<DEL>  ", "<INS>  ", "<PGUP> ", "<PGDN> ", "<HOME> ", 
+    "<END>  ", "<UP>   ", "<DOWN> ", "<LEFT> ", "<RIGHT>", "<CAPS> ", "<CTRL> ", "<SHIFT>", 
+    "<ALT>  ", "<ESC>  ", "<F1>   ", "<F2>   ", "<F3>   ", "<F4>   ", "<F5>   ", "<F6>   ", 
+    "<F7>   ", "<F8>   ", "<F9>   ", "<F10>  ", "<F11>  ", "<F12>  ",
+};
+
+static tic_mapping GamepadMapping;
+
+#define OPTION_KEY(KEY)                                 \
+                                                        \
+enum{KEY ## KeyIndex = __COUNTER__};                    \
+                                                        \
+static s32 option ## KEY ## KeyGet()                    \
+{                                                       \
+    return GamepadMapping.data[KEY ## KeyIndex] - 1;    \
+}                                                       \
+                                                        \
+static void option ## KEY ## KeySet(s32 pos)            \
+{                                                       \
+    GamepadMapping.data[KEY ## KeyIndex] = pos + 1;     \
+}                                                       \
+                                                        \
+static MenuOption KEY ## KeyOption =                    \
+{                                                       \
+    .values = KeysList,                                 \
+    .count = COUNT_OF(KeysList),                        \
+    option ## KEY ## KeyGet,                            \
+    option ## KEY ## KeySet,                            \
+};
+
+OPTION_KEY(Up)
+OPTION_KEY(Down)
+OPTION_KEY(Left)
+OPTION_KEY(Right)
+OPTION_KEY(A)
+OPTION_KEY(B)
+OPTION_KEY(X)
+OPTION_KEY(Y)
+
+static void backGamepadMenu()
+{
+    impl.config->data.options.mapping = GamepadMapping;
+    showOptionsMenu();
+}
+
 static void showGamepadMenu()
 {
     static const MenuItem GamepadMenu[] =
     {
-        {"UP        <...>", NULL},
-        {"DOWN      <...>", NULL},
-        {"LEFT      <...>", NULL},
-        {"RIGHT     <...>", NULL},
-        {"A         <...>", NULL},
-        {"B         <...>", NULL},
-        {"X         <...>", NULL},
-        {"Y         <...>", NULL},
+        {"UP     ", NULL, &UpKeyOption},
+        {"DOWN   ", NULL, &DownKeyOption},
+        {"LEFT   ", NULL, &LeftKeyOption},
+        {"RIGHT  ", NULL, &RightKeyOption},
+        {"A      ", NULL, &AKeyOption},
+        {"B      ", NULL, &BKeyOption},
+        {"X      ", NULL, &XKeyOption},
+        {"Y      ", NULL, &YKeyOption},
 
         {"",        NULL},
-        {"BACK",    showOptionsMenu},
+        {"BACK",    backGamepadMenu},
     };
 
+    GamepadMapping = impl.studio.tic->ram.mapping;
+
     studio_menu_init(impl.menu, GamepadMenu, COUNT_OF(GamepadMenu), 
-        0, COUNT_OF(OptionMenu) - 3, showOptionsMenu, NULL);
+        0, COUNT_OF(OptionMenu) - 3, backGamepadMenu, NULL);
 }
 
 static inline bool pointInRect(const tic_point* pt, const tic_rect* rect)
@@ -1536,20 +1565,6 @@ bool studioCartChanged()
 }
 #endif
 
-tic_key* getKeymap()
-{
-    return impl.keycodes;
-}
-
-static void processGamepadMapping()
-{
-    tic_mem* tic = impl.studio.tic;
-
-    for(s32 i = 0; i < KEYMAP_COUNT; i++)
-        if(impl.keycodes[i] && tic_api_key(tic, impl.keycodes[i]))
-            tic->ram.input.gamepads.data |= 1 << i;
-}
-
 static inline bool isGameMenu()
 {
     return (impl.mode == TIC_RUN_MODE || impl.mode == TIC_MENU_MODE) 
@@ -1714,7 +1729,7 @@ static inline bool keyWasPressedOnce(s32 key)
 #if defined(CRT_SHADER_SUPPORT)
 static void switchCrtMonitor()
 {
-    impl.config->data.menu.crt = !impl.config->data.menu.crt;
+    impl.config->data.options.crt = !impl.config->data.options.crt;
 }
 #endif
 
@@ -1969,6 +1984,10 @@ static void renderStudio()
         sfx2ram(&tic->ram, sfx);
         music2ram(&tic->ram, music);
 
+        // restore mapping in all the modes except Run mode
+        if(impl.mode != TIC_RUN_MODE)
+            impl.studio.tic->ram.mapping = getConfig()->options.mapping;
+
         tic_core_tick_start(tic);
     }
 
@@ -1980,7 +1999,7 @@ static void renderStudio()
         VBANK(tic, 1)
         {
             tic_api_cls(tic, 0);
-        }        
+        }
     }
     
     switch(impl.mode)
@@ -2084,22 +2103,6 @@ void studioConfigChanged()
     tic_sys_update_config();
 }
 
-static void initKeymap()
-{
-    tic_fs* fs = impl.fs;
-
-    s32 size = 0;
-    u8* data = (u8*)tic_fs_load(fs, KEYMAP_DAT_PATH, &size);
-
-    if(data)
-    {
-        if(size == KEYMAP_SIZE)
-            memcpy(getKeymap(), data, KEYMAP_SIZE);
-
-        free(data);
-    }
-}
-
 static void processMouseStates()
 {
     for(s32 i = 0; i < COUNT_OF(impl.mouse.state); i++)
@@ -2184,8 +2187,6 @@ static void studioTick()
     }
 
     processMouseStates();
-    processGamepadMapping();
-
     renderStudio();
     
     {
@@ -2236,7 +2237,7 @@ static void studioSound()
     tic_mem* tic = impl.studio.tic;
     tic_core_synth_sound(tic);
 
-    s32 volume = getConfig()->menu.volume;
+    s32 volume = getConfig()->options.volume;
 
     if(volume != MAX_VOLUME)
     {
@@ -2388,7 +2389,6 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder)
     tic_fs_makedir(impl.fs, TIC_LOCAL_VERSION);
     
     initConfig(impl.config, impl.studio.tic, impl.fs);
-    initKeymap();
     initStart(impl.start, impl.studio.tic, args.cart);
     initRunMode();
 
@@ -2402,14 +2402,14 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder)
         impl.config->data.uiScale = args.scale;
 
     if(args.volume >= 0)
-        impl.config->data.menu.volume = args.volume & 0x0f;
+        impl.config->data.options.volume = args.volume & 0x0f;
 
 #if defined(CRT_SHADER_SUPPORT)
-    impl.config->data.menu.crt          |= args.crt;
+    impl.config->data.options.crt          |= args.crt;
 #endif
 
-    impl.config->data.menu.fullscreen   |= args.fullscreen;
-    impl.config->data.menu.vsync        |= args.vsync;
+    impl.config->data.options.fullscreen   |= args.fullscreen;
+    impl.config->data.options.vsync        |= args.vsync;
     impl.config->data.soft              |= args.soft;
     impl.config->data.cli               |= args.cli;
 

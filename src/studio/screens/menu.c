@@ -237,13 +237,15 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
 
     if(animIdle(menu))
     {
-        if(tic_api_btnp(menu->tic, Up, Hold, Period))
+        if(tic_api_btnp(menu->tic, Up, Hold, Period)
+            || tic_api_keyp(tic, tic_key_up, Hold, Period))
         {
             playSystemSfx(2);
             resetMovie(menu, &menu->anim.up);
         }
 
-        if(tic_api_btnp(menu->tic, Down, Hold, Period))
+        if(tic_api_btnp(menu->tic, Down, Hold, Period)
+            || tic_api_keyp(tic, tic_key_down, Hold, Period))
         {
             playSystemSfx(2);
             resetMovie(menu, &menu->anim.down);
@@ -252,20 +254,23 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
         MenuOption* option = menu->items[menu->pos].option;
         if(option)
         {
-            if(tic_api_btnp(menu->tic, Left, Hold, Period))
+            if(tic_api_btnp(menu->tic, Left, Hold, Period)
+                || tic_api_keyp(tic, tic_key_left, Hold, Period))
             {
                 playSystemSfx(2);
                 updateOption(option, -1);
             }
 
-            if(tic_api_btnp(menu->tic, Right, Hold, Period))
+            if(tic_api_btnp(menu->tic, Right, Hold, Period)
+                || tic_api_keyp(tic, tic_key_right, Hold, Period))
             {
                 playSystemSfx(2);
                 updateOption(option, +1);
             }            
         }
 
-        if(tic_api_btnp(menu->tic, A, -1, -1) || tic_api_keyp(tic, tic_key_return, -1, -1))
+        if(tic_api_btnp(menu->tic, A, -1, -1) 
+            || tic_api_keyp(tic, tic_key_return, Hold, Period))
         {
             if(option)
             {
@@ -279,7 +284,9 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
             }
         }
 
-        if(tic_api_btnp(menu->tic, B, -1, -1) && menu->back)
+        if((tic_api_btnp(menu->tic, B, -1, -1) 
+            || tic_api_keyp(tic, tic_key_backspace, Hold, Period)) 
+                && menu->back)
         {
             playSystemSfx(2);
             resetMovie(menu, &menu->anim.back);

@@ -495,7 +495,7 @@ static void initTouchGamepad()
 
 static void initGPU()
 {
-    bool vsync = platform.studio->config()->menu.vsync;
+    bool vsync = platform.studio->config()->options.vsync;
     bool soft = platform.studio->config()->soft;
 
 #if defined(CRT_SHADER_SUPPORT)
@@ -1498,7 +1498,7 @@ static void gpuTick()
 
 #if defined(CRT_SHADER_SUPPORT)
 
-    if(!platform.studio->config()->soft && platform.studio->config()->menu.crt)
+    if(!platform.studio->config()->soft && platform.studio->config()->options.crt)
     {
         if(platform.screen.shader == 0)
             loadCrtShader();
@@ -1612,14 +1612,14 @@ static s32 start(s32 argc, char **argv, const char* folder)
                 setWindowIcon();
                 initGPU();
 
-                if(platform.studio->config()->menu.fullscreen)
+                if(platform.studio->config()->options.fullscreen)
                     tic_sys_fullscreen_set(true);
             }
 
             SDL_PauseAudioDevice(platform.audio.device, 0);
 
 #if defined(__EMSCRIPTEN__)
-            emscripten_set_main_loop(emsGpuTick, platform.studio->config()->menu.vsync ? 0 : TIC80_FRAMERATE, 1);
+            emscripten_set_main_loop(emsGpuTick, platform.studio->config()->options.vsync ? 0 : TIC80_FRAMERATE, 1);
 #else
             {
                 const u64 Delta = SDL_GetPerformanceFrequency() / TIC80_FRAMERATE;

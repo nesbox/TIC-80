@@ -123,8 +123,9 @@ typedef struct
         
         bool fullscreen;
         bool vsync;
-        s32 volume;        
-    } menu;
+        s32 volume;
+        tic_mapping mapping;
+    } options;
 
     const tic_cartridge* cart;
 

@@ -779,29 +779,31 @@ static void processGamepad(Surf* surf)
             Up, Down, Left, Right, A, B, X, Y
         };
 
-        if(tic_api_btnp(tic, Up, Hold, Period))
+        if(tic_api_btnp(tic, Up, Hold, Period)
+            || tic_api_keyp(tic, tic_key_up, Hold, Period))
         {
             surf->menu.anim = 1;
             surf->menu.anim_target = -1;
 
             playSystemSfx(2);
         }
-        else if(tic_api_btnp(tic, Down, Hold, Period))
+        else if(tic_api_btnp(tic, Down, Hold, Period)
+            || tic_api_keyp(tic, tic_key_down, Hold, Period))
         {
             surf->menu.anim = 1;
             surf->menu.anim_target = 1;
 
             playSystemSfx(2);
         }
-        else if(
-            tic_api_btnp(tic, Left, Hold, Period)
+        else if(tic_api_btnp(tic, Left, Hold, Period)
+            || tic_api_keyp(tic, tic_key_left, Hold, Period)
             || tic_api_keyp(tic, tic_key_pageup, Hold, Period))
         {
             surf->menu.anim = 1;
             surf->menu.anim_target = -5;
         }
-        else if(
-            tic_api_btnp(tic, Right, Hold, Period)
+        else if(tic_api_btnp(tic, Right, Hold, Period)
+            || tic_api_keyp(tic, tic_key_right, Hold, Period)
             || tic_api_keyp(tic, tic_key_pagedown, Hold, Period))
         {
             surf->menu.anim = 1;
@@ -817,7 +819,8 @@ static void processGamepad(Surf* surf)
                 : loadCart(surf);
         }
 
-        if(tic_api_btnp(tic, B, -1, -1))
+        if(tic_api_btnp(tic, B, -1, -1)
+            || tic_api_keyp(tic, tic_key_backspace, -1, -1))
         {
             goBackDir(surf);
         }

@@ -54,11 +54,6 @@
 #define CONFIG_TIC "config.tic"
 #define CONFIG_TIC_PATH TIC_LOCAL_VERSION CONFIG_TIC
 
-#define KEYMAP_COUNT (sizeof(tic80_gamepads) * BITS_IN_BYTE)
-#define KEYMAP_SIZE (KEYMAP_COUNT)
-#define KEYMAP_DAT "keymap.dat"
-#define KEYMAP_DAT_PATH TIC_LOCAL_VERSION KEYMAP_DAT
-
 #define CART_EXT ".tic"
 #define PNG_EXT ".png"
 
@@ -220,8 +215,6 @@ typedef enum
 
 void setStudioEvent(StudioEvent event);
 void showTooltip(const char* text);
-
-tic_key* getKeymap();
 
 void setSpritePixel(tic_tile* tiles, s32 x, s32 y, u8 color);
 u8 getSpritePixel(tic_tile* tiles, s32 x, s32 y);
