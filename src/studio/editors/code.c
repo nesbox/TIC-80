@@ -1160,19 +1160,18 @@ static void doTab(Code* code, bool shift, bool crtl)
 // Add a block-ending keyword or symbol, and put the cursor in the line between.
 static void newLineAutoClose(Code* code)
 {
-    newLine(code);
-
     const char* blockEnd = tic_core_script_config(code->tic)->blockEnd;
     if (blockEnd != NULL)
     {
         newLine(code);
-        for(size_t i = 0; i < strlen(blockEnd); i++)
-            inputSymbol(code, blockEnd[i]);
+
+        while(*blockEnd)
+            inputSymbol(code, *blockEnd++);
+
         upLine(code);
         goEnd(code);
+        doTab(code, false, true);
     }
-
-    doTab(code, false, true);
 }
 
 static void setFindMode(Code* code)
@@ -1589,11 +1588,6 @@ static void processKeyboard(Code* code)
         else if(keyWasPressed(tic_key_backspace))   backspaceWord(code);
         else                                        usedKeybinding = false;
     }
-    else if(shift)
-    {
-        if(keyWasPressed(tic_key_return))   newLineAutoClose(code);
-        else                                usedKeybinding = false;
-    }
     else if(alt)
     {
         if(keyWasPressed(tic_key_left))         leftWord(code);
@@ -1615,6 +1609,15 @@ static void processKeyboard(Code* code)
         else if(keyWasPressed(tic_key_return))      newLine(code);
         else if(keyWasPressed(tic_key_tab))         doTab(code, shift, ctrl);
         else                                        usedKeybinding = false;
+    }
+
+    if(!usedKeybinding)
+    {
+        if(shift && keyWasPressed(tic_key_return))
+        {
+            newLineAutoClose(code);
+            usedKeybinding = true;
+        }
     }
 
     if(usedClipboard || changedSelection || usedKeybinding) updateEditor(code);
