@@ -1077,15 +1077,16 @@ static duk_ret_t duk_fset(duk_context* duk)
 
 
 
-static u64 ForceExitCounter = 0;
+// TODO: restore functionality
+// static u64 ForceExitCounter = 0;
 
-s32 wasm_timeout_check(void* udata)
-{
-    tic_core* core = (tic_core*)udata;
-    tic_tick_data* tick = core->data;
+// s32 wasm_timeout_check(void* udata)
+// {
+//     tic_core* core = (tic_core*)udata;
+//     tic_tick_data* tick = core->data;
 
-    return ForceExitCounter++ > 1000 ? tick->forceExit && tick->forceExit(tick->data) : false;
-}
+//     return ForceExitCounter++ > 1000 ? tick->forceExit && tick->forceExit(tick->data) : false;
+// }
 
 
 static bool initWasm(tic_mem* tic, const char* code)
@@ -1147,7 +1148,7 @@ static bool initWasm(tic_mem* tic, const char* code)
 
 static void callWasmTick(tic_mem* tic)
 {
-    ForceExitCounter = 0;
+    // ForceExitCounter = 0;
 
     tic_core* core = (tic_core*)tic;
 
@@ -1175,7 +1176,7 @@ static void callWasmTick(tic_mem* tic)
 
 static void callWasmScanline(tic_mem* tic, s32 row, void* data)
 {
-    ForceExitCounter = 0;
+    // ForceExitCounter = 0;
 
     tic_core* core = (tic_core*)tic;
 
@@ -1209,7 +1210,7 @@ static void callWasmScanline(tic_mem* tic, s32 row, void* data)
 
 static void callWasmBorder(tic_mem* tic, s32 row, void* data)
 {
-    ForceExitCounter = 0;
+    // ForceExitCounter = 0;
 
     tic_core* core = (tic_core*)tic;
 
@@ -1234,38 +1235,6 @@ static void callWasmBorder(tic_mem* tic, s32 row, void* data)
         static const char buf[100];
         //itoa(row, buf, 10);
         res = m3_CallWithArgs (func, 1, &buf);
-	if(res)
-	{
-        	core->data->error(core->data->data, res);
-	}
-    }
-}
-
-static void callWasmOverline(tic_mem* tic, void* data)
-{
-    ForceExitCounter = 0;
-
-    tic_core* core = (tic_core*)tic;
-
-    IM3Runtime ctx = core->currentVM;
-
-    if(ctx)
-    {
-	M3Result res;
-
-        IM3Function func;
-        res = m3_FindFunction (&func, ctx, OVR_FN);
-        if (res == m3Err_functionLookupFailed)
-        {
-            return;
-        }
-        if (res)
-        {
-            core->data->error(core->data->data, res);
-            return;
-        }
-
-        res = m3_CallWithArgs (func, 0, NULL);
 	if(res)
 	{
         	core->data->error(core->data->data, res);
@@ -1357,7 +1326,6 @@ static const tic_script_config WasmSyntaxConfig =
     {
         .scanline           = callWasmScanline,
         .border             = callWasmBorder,
-        .overline           = callWasmOverline,
     },
 
     .getOutline         = getWasmOutline,

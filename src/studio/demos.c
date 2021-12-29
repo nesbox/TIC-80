@@ -212,6 +212,7 @@ tic_script_config_extra* LanguagesExtra[] = {
 #endif
 #if defined(TIC_BUILD_WITH_MRUBY)
    &MRubySyntaxConfigExtra,
+#endif
 #if defined(TIC_BUILD_WITH_WASM)
    &WasmSyntaxConfigExtra,
 #endif
