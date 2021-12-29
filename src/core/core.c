@@ -444,6 +444,13 @@ void tic_core_tick(tic_mem* tic, tic_tick_data* data)
 
             data->start = data->counter(core->data->data);
 
+            // TODO: does where to fetch code from need to be a config option so this isn't hard
+            // coded for just a single langage? perhaps change it later when we have a second script
+            // engine that uses BINARY?
+            if (strcmp(config->name,"wasm")==0) {
+                code = tic->cart.binary.data;
+            }
+
             done = tic_init_vm(core, code, config);
         }
         else

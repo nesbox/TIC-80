@@ -98,6 +98,7 @@
 #define TIC_BANKS (1 << TIC_BANK_BITS)
 
 #define TIC_CODE_SIZE (TIC_BANK_SIZE * TIC_BANKS)
+#define TIC_BINARY_SIZE (64 * 1024)
 
 #define TIC_GAMEPADS (sizeof(tic80_gamepads) / sizeof(tic80_gamepad))
 
@@ -375,6 +376,12 @@ typedef union
 
 typedef struct
 {
+    char data[TIC_BINARY_SIZE];
+    uint16_t size;
+} tic_binary;
+
+typedef struct
+{
     u8 r;
     u8 g;
     u8 b;
@@ -434,6 +441,7 @@ typedef struct
     };
 
     tic_code code;    
+    tic_binary binary;
 
 } tic_cartridge;
 
