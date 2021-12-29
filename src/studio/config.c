@@ -211,7 +211,6 @@ static void readConfig(Config* config)
     {
         .uiScale = 4,
         .cart = config->cart,
-        .theme.cursor = {-1, -1, -1, false},
     };
 }
 

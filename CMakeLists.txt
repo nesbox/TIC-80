@@ -427,7 +427,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         target_link_libraries(tic80core${SCRIPT} m)
     endif()
 
-    target_compile_definitions(tic80core${SCRIPT} PRIVATE ${DEFINE})
+    target_compile_definitions(tic80core${SCRIPT} PUBLIC ${DEFINE})
 
 endmacro()
 
