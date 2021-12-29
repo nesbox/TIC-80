@@ -157,7 +157,7 @@ jobs:
 
 # === Ubuntu PRO ===
   linux-pro:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
 
     steps:
     - uses: actions/checkout@v2
@@ -195,7 +195,7 @@ jobs:
 
 # === Ubuntu ===
   linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
 
     steps:
     - uses: actions/checkout@v2
