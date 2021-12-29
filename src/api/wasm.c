@@ -1108,7 +1108,7 @@ static bool initWasm(tic_mem* tic, const char* code)
         return false;
     }
 
-    ( (tic_core*)tic)->wasm = ctx;
+    core->currentVM = ctx;
 
     long unsigned int srcSize = strlen(code);
     long unsigned int fsize;
@@ -1205,7 +1205,40 @@ static void callWasmScanline(tic_mem* tic, s32 row, void* data)
         	core->data->error(core->data->data, res);
 	}
     }
+}
 
+static void callWasmBorder(tic_mem* tic, s32 row, void* data)
+{
+    ForceExitCounter = 0;
+
+    tic_core* core = (tic_core*)tic;
+
+    IM3Runtime ctx = core->currentVM;
+
+    if(ctx)
+    {
+	M3Result res;
+
+        IM3Function func;
+        res = m3_FindFunction (&func, ctx, BDR_FN);
+        if (res == m3Err_functionLookupFailed)
+        {
+            return;
+        }
+        if (res)
+        {
+            core->data->error(core->data->data, res);
+            return;
+        }
+
+        static const char buf[100];
+        //itoa(row, buf, 10);
+        res = m3_CallWithArgs (func, 1, &buf);
+	if(res)
+	{
+        	core->data->error(core->data->data, res);
+	}
+    }
 }
 
 static void callWasmOverline(tic_mem* tic, void* data)
@@ -1320,8 +1353,12 @@ static const tic_script_config WasmSyntaxConfig =
     .init               = initWasm,
     .close              = closeWasm,
     .tick               = callWasmTick,
-    .scanline           = callWasmScanline,
-    .overline           = callWasmOverline,
+    .callback           =
+    {
+        .scanline           = callWasmScanline,
+        .border             = callWasmBorder,
+        .overline           = callWasmOverline,
+    },
 
     .getOutline         = getWasmOutline,
     .eval               = evalWasm,
