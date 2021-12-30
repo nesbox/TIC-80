@@ -79,6 +79,8 @@
     macro(vram)                 \
     macro(commands)             \
     macro(api)                  \
+    macro(keys)                 \
+    macro(buttons)                 \
     macro(startup)              \
     macro(terms)                \
     macro(license)
@@ -2774,6 +2776,129 @@ static s32 createVRamTable(char* buf)
     return strlen(buf);
 }
 
+static s32 createKeysTable(char* buf)
+{
+    char* ptr = buf;
+    ptr += sprintf(ptr, "\n+------+-----+  +------+--------------+"
+                        "\n| CODE | KEY |  | CODE | KEY          |"
+                        "\n+------+-----+  +------+--------------+");
+
+    static const struct Row {s32 code; const char* key;} Rows[] =
+    {
+        {1,  "A"},
+        {2,  "B"},
+        {3,  "C"},
+        {4,  "D"},
+        {5,  "E"},
+        {6,  "F"},
+        {7,  "G"},
+        {8,  "H"},
+        {9,  "I"},
+        {10, "J"},
+        {11, "K"},
+        {12, "L"},
+        {13, "M"},
+        {14, "N"},
+        {15, "O"},
+        {16, "P"},
+        {17, "Q"},
+        {18, "R"},
+        {19, "S"},
+        {20, "T"},
+        {21, "U"},
+        {22, "V"},
+        {23, "W"},
+        {24, "X"},
+        {25, "Y"},
+        {26, "Z"},
+        {27, "0"},
+        {28, "1"},
+        {29, "2"},
+        {30, "3"},
+        {31, "4"},
+        {32, "5"},
+        {33, "6"},
+        {34, "7"},
+        {35, "8"},
+        {36, "9"},
+        {37, "MINUS"},
+        {38, "EQUALS"},
+        {39, "LEFTBRACKET"},
+        {40, "RIGHTBRACKET"},
+        {41, "BACKSLASH"},
+        {42, "SEMICOLON"},
+        {43, "APOSTROPHE"},
+        {44, "GRAVE"},
+        {45, "COMMA"},
+        {46, "PERIOD"},
+        {47, "SLASH"},
+        {48, "SPACE"},
+        {49, "TAB"},
+        {50, "RETURN"},
+        {51, "BACKSPACE"},
+        {52, "DELETE"},
+        {53, "INSERT"},
+        {54, "PAGEUP"},
+        {55, "PAGEDOWN"},
+        {56, "HOME"},
+        {57, "END"},
+        {58, "UP"},
+        {59, "DOWN"},
+        {60, "LEFT"},
+        {61, "RIGHT"},
+        {62, "CAPSLOCK"},
+        {63, "CTRL"},
+        {64, "SHIFT"},
+        {65, "ALT"},
+    };
+
+    int lastAlphaNumeric = 36;
+    for(const struct Row* row = Rows, *end = row + lastAlphaNumeric; row < end; row++)
+    {
+        const struct Row* otherRow = row + lastAlphaNumeric;
+        ptr += sprintf(ptr, "\n| ");
+        ptr += sprintf(ptr, "%4d | %-3s |", row->code, row->key);
+        if (otherRow < Rows + COUNT_OF(Rows))
+            ptr += sprintf(ptr, "  | %4d | %-12s |", otherRow->code, otherRow->key);
+        else
+            ptr += sprintf(ptr, "  | %4s | %12s |", "", "");
+    }
+
+    ptr += sprintf(ptr, "\n+------+-----+  +------+--------------+\n");
+
+    return strlen(buf);
+}
+
+static s32 createButtonsTable(char* buf)
+{
+    char* ptr = buf;
+    ptr += sprintf(ptr, "\n+--------+----+----+----+----+"
+                        "\n| ACTION | P1 | P2 | P3 | P4 |"
+                        "\n+--------+----+----+----+----+");
+
+    static const struct Row {const char* action;} Rows[] =
+    {
+        {"UP"},
+        {"DOWN"},
+        {"LEFT"},
+        {"RIGHT"},
+        {"A"},
+        {"B"},
+        {"X"},
+        {"Y"},
+    };
+
+    int id = 0;
+    for(const struct Row* row = Rows, *end = row + COUNT_OF(Rows); row < end; row++) {
+        ptr += sprintf(ptr, "\n| %6s | %2d | %2d | %2d | %2d |", row->action, id, id + 8, id + 16, id + 24);
+        id++;
+    }
+
+    ptr += sprintf(ptr, "\n+--------+----+----+----+----+");
+
+    return strlen(buf);
+}
+
 static void onExport_help(Console* console, const char* param, const char* name, ExportParams params)
 {
     const char* filename = getFilename(name, ".md");
@@ -2803,6 +2928,16 @@ static void onExport_help(Console* console, const char* param, const char* name,
 
         FOR(const ApiItem*, api, Api)
             ptr += sprintf(ptr, "\n### %s\n`%s`\n%s\n", api->name, api->def, api->help);
+
+        ptr += sprintf(ptr, "\n## Button IDs\n");
+        ptr += sprintf(ptr, "```");
+        ptr += createButtonsTable(ptr);
+        ptr += sprintf(ptr, "```\n");
+
+        ptr += sprintf(ptr, "\n## Key IDs\n");
+        ptr += sprintf(ptr, "```");
+        ptr += createKeysTable(ptr);
+        ptr += sprintf(ptr, "```\n");
 
         ptr += sprintf(ptr, "\n## Startup options\n```\n");
         FOR(const struct StartupOption*, opt, StartupOptions)
@@ -3035,6 +3170,20 @@ static void onHelp_vram(Console* console)
 {
     char buf[1024];
     createVRamTable(buf);
+    printTable(console, buf);
+}
+
+static void onHelp_keys(Console* console)
+{
+    char buf[4096];
+    createKeysTable(buf);
+    printTable(console, buf);
+}
+
+static void onHelp_buttons(Console* console)
+{
+    char buf[1024];
+    createButtonsTable(buf);
     printTable(console, buf);
 }
 
