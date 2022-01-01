@@ -139,8 +139,7 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
             case CHUNK_FLAGS:       LOAD_CHUNK(cart->banks[chunk->bank].flags);             break;
             case CHUNK_SCREEN:      LOAD_CHUNK(cart->banks[chunk->bank].screen);            break;
             case CHUNK_BINARY:      
-                // make sure we are zero padded so that when passing the binary chunk to
-                // `tic_init_vm` later we don't have to worry about also passing the size
+                // TODO: is this necessary, probably not?  But a good idea none the less?
                 memset(cart->binary.data, 0, TIC_BINARY_SIZE);
                 LOAD_CHUNK(cart->binary.data);                          
                 cart->binary.size = chunk->size;

@@ -1591,14 +1591,11 @@ static void onImport_binary(Console* console, const char* name, const void* buff
 
     if(ok)
     {
-        // enum {Size = size};
-        const int Size = size;
-
-        // tic_map* map = &getBank(console, params.bank)->map;
         tic_binary* binary = &console->tic->cart.binary;
-        binary->size = Size;
+        binary->size = size;
+        // TODO: necessary?
         memset(binary->data, 0, TIC_BINARY_SIZE);
-        memcpy(binary->data, buffer, Size);
+        memcpy(binary->data, buffer, size);
     }
         
     onFileImported(console, name, ok);
@@ -2016,11 +2013,11 @@ static void onExport_binary(Console* console, const char* param, const char* pat
     const char* filename = getFilename(path, ".binary");
 
     tic_binary *binary = &console->tic->cart.binary;
+    // TODO: do we need this buffer at all, could we just handle `binary.data` directly to `tic_fs_save`?
     void* buffer = malloc(binary->size);
 
     SCOPE(free(buffer))
     {
-
         memcpy(buffer, binary->data, binary->size);
 
         onFileExported(console, filename, tic_fs_save(console->fs, filename, buffer, binary->size, true));
