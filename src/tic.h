@@ -380,7 +380,7 @@ typedef union
 typedef struct
 {
     char data[TIC_BINARY_SIZE];
-    uint16_t size;
+    uint32_t size;
 } tic_binary;
 
 typedef struct

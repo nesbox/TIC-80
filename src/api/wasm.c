@@ -127,7 +127,7 @@ M3Result wasm_dump(IM3Runtime runtime)
 }
 static tic_core* getWasmCore(IM3Runtime ctx)
 {
-    return (tic_core*)ctx -> userPointer;
+    return (tic_core*)ctx->userPointer;
 }
 
 void deinitWasmRuntime( IM3Runtime runtime )
@@ -947,9 +947,8 @@ static void closeWasm(tic_mem* tic)
 
     if(core->currentVM)
     {
-        // FIX duk_destroy_heap(core->js);
         deinitWasmRuntime(core->currentVM);
-	core->currentVM = NULL;
+        core->currentVM = NULL;
     }
 }
 
@@ -1002,8 +1001,8 @@ static bool initWasm(tic_mem* tic, const char* code)
     // void* wasmcode = wat2wasm(code ,srcSize, &fsize, &error);
     // if (!wasmcode){
     //     core->data->error(core->data->data, error);
-	// free(error);
-	//  return false;
+    // free(error);
+    //  return false;
     // }
 
     void* wasmcode = tic->cart.binary.data;
@@ -1017,13 +1016,13 @@ static bool initWasm(tic_mem* tic, const char* code)
     // free(wasmcode);
     if (result){
         core->data->error(core->data->data, result);
-	    return false;
+        return false;
     }
 
     result = m3_LoadModule (runtime, module);
     if (result){
         core->data->error(core->data->data, result);
-	    return false;
+        return false;
     }
 
     result = linkTic80(runtime->modules);
@@ -1074,7 +1073,7 @@ static void callWasmScanline(tic_mem* tic, s32 row, void* data)
 
     if(runtime)
     {
-	M3Result res;
+    M3Result res;
 
         IM3Function func;
         res = m3_FindFunction (&func, runtime, SCN_FN);
@@ -1091,10 +1090,10 @@ static void callWasmScanline(tic_mem* tic, s32 row, void* data)
         static const char buf[100];
         //itoa(row, buf, 10);
         res = m3_CallWithArgs (func, 1, &buf);
-	if(res)
-	{
-        	core->data->error(core->data->data, res);
-	}
+    if(res)
+    {
+            core->data->error(core->data->data, res);
+    }
     }
 }
 
@@ -1108,7 +1107,7 @@ static void callWasmBorder(tic_mem* tic, s32 row, void* data)
 
     if(runtime)
     {
-	M3Result res;
+    M3Result res;
 
         IM3Function func;
         res = m3_FindFunction (&func, runtime, BDR_FN);
@@ -1125,10 +1124,10 @@ static void callWasmBorder(tic_mem* tic, s32 row, void* data)
         static const char buf[100];
         //itoa(row, buf, 10);
         res = m3_CallWithArgs (func, 1, &buf);
-	if(res)
-	{
-        	core->data->error(core->data->data, res);
-	}
+    if(res)
+    {
+            core->data->error(core->data->data, res);
+    }
     }
 }
 
