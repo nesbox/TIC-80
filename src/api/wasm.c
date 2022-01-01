@@ -34,7 +34,7 @@
 
 #include "src/wat2wasm.h"
 #include "wasm3.h"
-#include "m3_api_defs.h"
+#include "m3_exec_defs.h"
 #include "m3_exception.h"
 #include "m3_env.h"
 
@@ -127,7 +127,7 @@ M3Result wasm_dump(IM3Runtime runtime)
 }
 static tic_core* getWasmCore(IM3Runtime ctx)
 {
-    return (tic_core*)ctx->userPointer;
+    return (tic_core*)ctx->userdata;
 }
 
 void deinitWasmRuntime( IM3Runtime runtime )
@@ -1055,7 +1055,7 @@ static void callWasmTick(tic_mem* tic)
             return;
         }
 
-        res = m3_CallWithArgs (func, 0, NULL);
+        res = m3_CallV(func);
         if(res)
         {
                 core->data->error(core->data->data, res);
@@ -1087,9 +1087,7 @@ static void callWasmScanline(tic_mem* tic, s32 row, void* data)
             return;
         }
 
-        static const char buf[100];
-        //itoa(row, buf, 10);
-        res = m3_CallWithArgs (func, 1, &buf);
+        res = m3_CallV(func, row);
     if(res)
     {
             core->data->error(core->data->data, res);
@@ -1121,9 +1119,7 @@ static void callWasmBorder(tic_mem* tic, s32 row, void* data)
             return;
         }
 
-        static const char buf[100];
-        //itoa(row, buf, 10);
-        res = m3_CallWithArgs (func, 1, &buf);
+        res = m3_CallV(func, row);
     if(res)
     {
             core->data->error(core->data->data, res);

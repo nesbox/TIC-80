@@ -312,18 +312,16 @@ add_dependencies(mruby mruby_vendor)
 
 set(WASM_DIR ${THIRDPARTY_DIR}/wasm3/source)
 set(WASM_SRC 
-# random choices
+    ${WASM_DIR}/m3_bind.c
+    ${WASM_DIR}/m3_code.c
+    ${WASM_DIR}/m3_compile.c
+    ${WASM_DIR}/m3_core.c
     ${WASM_DIR}/m3_parse.c
     ${WASM_DIR}/m3_env.c
-    ${WASM_DIR}/m3_core.c
-    ${WASM_DIR}/m3_code.c
-    ${WASM_DIR}/m3_bind.c
-    ${WASM_DIR}/m3_compile.c
-    ${WASM_DIR}/m3_module.c
-    ${WASM_DIR}/m3_optimize.c
-    ${WASM_DIR}/m3_info.c
     ${WASM_DIR}/m3_exec.c
-    ${WASM_DIR}/m3_emit.c
+    ${WASM_DIR}/m3_function.c
+    ${WASM_DIR}/m3_info.c
+    ${WASM_DIR}/m3_module.c
 )
 
 add_library(wasm STATIC ${WASM_SRC})
