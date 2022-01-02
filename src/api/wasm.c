@@ -40,6 +40,10 @@
 
 static const char TicCore[] = "_TIC80";
 
+IM3Function BDR_function;
+IM3Function SCN_function;
+IM3Function TIC_function;
+
 #define FATAL(msg, ...) { printf("Error: [Fatal] " msg "\n", ##__VA_ARGS__); goto _onfatal; }
 #define WASM_STACK_SIZE 64*1024
 
@@ -274,6 +278,35 @@ m3ApiRawFunction(wasmtic_tri)
     m3ApiSuccess();
 }
 
+// textri x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 [use_map=false] [trans=-1]
+m3ApiRawFunction(wasmtic_textri)
+{
+    m3ApiGetArg      (int32_t, x1)
+    m3ApiGetArg      (int32_t, y1)
+    m3ApiGetArg      (int32_t, x2)
+    m3ApiGetArg      (int32_t, y2)
+    m3ApiGetArg      (int32_t, x3)
+    m3ApiGetArg      (int32_t, y3)
+    m3ApiGetArg      (int32_t, u1)
+    m3ApiGetArg      (int32_t, v1)
+    m3ApiGetArg      (int32_t, u2)
+    m3ApiGetArg      (int32_t, v2)
+    m3ApiGetArg      (int32_t, u3)
+    m3ApiGetArg      (int32_t, v3)
+    m3ApiGetArg      (bool, use_map)
+    // TODO: array of index
+    m3ApiGetArg      (int32_t, trans_colors)
+    const int colorCount = 1;
+
+    tic_mem* tic = (tic_mem*)getWasmCore(runtime);
+    
+    tic_api_textri(tic, x1, y1, x2, y2, x3, y3, 
+        u1, v1, u2, v2, u3, v3, use_map, &trans_colors, colorCount);
+
+    m3ApiSuccess();
+}
+
+
 m3ApiRawFunction(wasmtic_trib)
 {
     m3ApiGetArg      (int32_t, x1)
@@ -377,7 +410,7 @@ m3ApiRawFunction(wasmtic_keyp)
 
 m3ApiRawFunction(wasmtic_fget)
 {
-    m3ApiReturnType  (int32_t)
+    m3ApiReturnType  (bool)
 
     m3ApiGetArg      (int32_t, sprite_index);
     m3ApiGetArg      (int8_t, flag);
@@ -394,7 +427,7 @@ m3ApiRawFunction(wasmtic_fset)
 {
     m3ApiGetArg      (int32_t, sprite_index);
     m3ApiGetArg      (int8_t, flag);
-    m3ApiGetArg      (int8_t, value);
+    m3ApiGetArg      (bool, value);
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
@@ -821,6 +854,10 @@ m3ApiRawFunction(wasmtic_trace)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
+    if (color == -1) {
+        color = 15;
+    }
+
     tic_api_trace(tic, text, color);
 
     m3ApiSuccess();
@@ -926,7 +963,7 @@ _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "tstamp",  "i()",
 _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "trace",   "v(*i)",         &wasmtic_trace)));
 _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "tri",     "v(iiiiiii)",    &wasmtic_tri)));
 _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "trib",    "v(iiiiiii)",    &wasmtic_trib)));
-// textri
+_   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "textri",  "v(iiiiiiiiiiiiii)",    &wasmtic_textri)));
 _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "vbank",   "i(i)",          &wasmtic_vbank)));
 
 
@@ -1032,6 +1069,16 @@ static bool initWasm(tic_mem* tic, const char* code)
         return false;
     }
 
+    m3_FindFunction (&BDR_function, runtime, BDR_FN);
+    m3_FindFunction (&SCN_function, runtime, SCN_FN);
+    result = m3_FindFunction (&TIC_function, runtime, TIC_FN);
+
+    if (result)
+    {
+        core->data->error(core->data->data, "Error: WASM must export a TIC function.");
+        return false;
+    }
+
     return true;
 }
 
@@ -1043,23 +1090,12 @@ static void callWasmTick(tic_mem* tic)
 
     IM3Runtime runtime = core->currentVM;
 
-    if(runtime)
+    if(!runtime) { return; }
+
+    M3Result res = m3_CallV(TIC_function);
+    if(res)
     {
-        M3Result res;
-
-        IM3Function func;
-        res = m3_FindFunction (&func, runtime, TIC_FN);
-        if (res)
-        {
             core->data->error(core->data->data, res);
-            return;
-        }
-
-        res = m3_CallV(func);
-        if(res)
-        {
-                core->data->error(core->data->data, res);
-        }
     }
 }
 
@@ -1071,27 +1107,14 @@ static void callWasmScanline(tic_mem* tic, s32 row, void* data)
 
     IM3Runtime runtime = core->currentVM;
 
-    if(runtime)
-    {
-    M3Result res;
+    if(!runtime) { return; }
 
-        IM3Function func;
-        res = m3_FindFunction (&func, runtime, SCN_FN);
-        if (res == m3Err_functionLookupFailed)
+    if (SCN_function != NULL) {
+        M3Result res = m3_CallV(SCN_function, row);
+        if(res)
         {
-            return;
+                core->data->error(core->data->data, res);
         }
-        if (res)
-        {
-            core->data->error(core->data->data, res);
-            return;
-        }
-
-        res = m3_CallV(func, row);
-    if(res)
-    {
-            core->data->error(core->data->data, res);
-    }
     }
 }
 
@@ -1103,27 +1126,14 @@ static void callWasmBorder(tic_mem* tic, s32 row, void* data)
 
     IM3Runtime runtime = core->currentVM;
 
-    if(runtime)
-    {
-    M3Result res;
+    if(!runtime) { return; }
 
-        IM3Function func;
-        res = m3_FindFunction (&func, runtime, BDR_FN);
-        if (res == m3Err_functionLookupFailed)
+    if (BDR_function != NULL) {
+        M3Result res = m3_CallV(BDR_function, row);
+        if(res)
         {
-            return;
+                core->data->error(core->data->data, res);
         }
-        if (res)
-        {
-            core->data->error(core->data->data, res);
-            return;
-        }
-
-        res = m3_CallV(func, row);
-    if(res)
-    {
-            core->data->error(core->data->data, res);
-    }
     }
 }
 
