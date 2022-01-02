@@ -129,6 +129,7 @@ M3Result wasm_dump(IM3Runtime runtime)
     }
     return m3Err_none;
 }
+
 static tic_core* getWasmCore(IM3Runtime ctx)
 {
     return (tic_core*)ctx->userdata;
@@ -136,18 +137,16 @@ static tic_core* getWasmCore(IM3Runtime ctx)
 
 void deinitWasmRuntime( IM3Runtime runtime )
 {
-  dbg("Denitializing wasm runtime\n");
-  if (runtime == NULL)
- {
-   printf("WARNING deinitWasm of null");
- }
- else
- {
-  IM3Environment env = runtime -> environment;
-  printf("deiniting env %d\n", env);
-  m3_FreeRuntime (runtime);
-  m3_FreeEnvironment (env);
- }
+    dbg("Denitializing wasm runtime\n");
+    if (runtime == NULL)
+    {
+        printf("WARNING deinitWasm of null");
+        return;
+    }
+    IM3Environment env = runtime -> environment;
+    printf("deiniting env %d\n", env);
+    m3_FreeRuntime (runtime);
+    m3_FreeEnvironment (env);
 }
 
 m3ApiRawFunction(wasmtic_line)
@@ -160,7 +159,7 @@ m3ApiRawFunction(wasmtic_line)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    tic_api_line(tic, x0,y0,x1, y1, color);
+    tic_api_line(tic, x0, y0, x1, y1, color);
 
     m3ApiSuccess();
 }
@@ -294,9 +293,11 @@ m3ApiRawFunction(wasmtic_textri)
     m3ApiGetArg      (int32_t, u3)
     m3ApiGetArg      (int32_t, v3)
     m3ApiGetArg      (bool, use_map)
-    // TODO: array of index
-    m3ApiGetArg      (int32_t, trans_colors)
-    const int colorCount = 1;
+    m3ApiGetArgMem   (u8*, trans_colors)
+    m3ApiGetArg      (int8_t, colorCount)
+    if (trans_colors == NULL) {
+        colorCount = 0;
+    }
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
     
@@ -339,6 +340,8 @@ m3ApiRawFunction(wasmtic_cls)
 
 m3ApiRawFunction(wasmtic_btn)
 {
+    // TODO: should this be boolean, how to deal with
+    // this being multi-typed
     m3ApiReturnType  (int32_t)
 
     m3ApiGetArg      (int32_t, index)
@@ -355,9 +358,9 @@ m3ApiRawFunction(wasmtic_btn)
 
 m3ApiRawFunction(wasmtic_btnp)
 {
-    m3ApiReturnType  (int32_t)
+    m3ApiReturnType  (bool)
 
-    m3ApiGetArg      (int32_t, id)
+    m3ApiGetArg      (int32_t, index)
     m3ApiGetArg      (int32_t, hold)
     m3ApiGetArg      (int32_t, period)
 
@@ -415,7 +418,6 @@ m3ApiRawFunction(wasmtic_fget)
     m3ApiGetArg      (int32_t, sprite_index);
     m3ApiGetArg      (int8_t, flag);
     
-
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
     m3ApiReturn(tic_api_fget(tic, sprite_index, flag));
@@ -587,7 +589,6 @@ m3ApiRawFunction(wasmtic_pmem)
     // read value
     if (value == -1) { 
         writeToStorage = false;
-        value = 0; // TODO: necessary?
     };
 
     // TODO: this should move into tic_api_pmem, should it not?
@@ -621,21 +622,28 @@ m3ApiRawFunction(wasmtic_spr)
     m3ApiGetArg      (int32_t, index)
     m3ApiGetArg      (int32_t, x)
     m3ApiGetArg      (int32_t, y)
-    // TODO: support multiple colors
-    m3ApiGetArg      (int8_t, colorKey) // note: only support single color
+    m3ApiGetArgMem   (u8*, trans_colors)
+    m3ApiGetArg      (int8_t, colorCount)
+    if (trans_colors == NULL) {
+        colorCount = 0;
+    }
     m3ApiGetArg      (int32_t, scale)
     m3ApiGetArg      (int32_t, flip)
     m3ApiGetArg      (int32_t, rotate)
     m3ApiGetArg      (int32_t, w)
     m3ApiGetArg      (int32_t, h)
-//    printf("Called SPR %d %d", colorKey, scale);
+
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    s32 colorCount = 1;
 
-    // TODO: defaults
+    // defaults
+    if (scale == -1) { scale = 1; }
+    if (flip == -1) { flip = 0; }
+    if (rotate == -1) { rotate = 0; }
+    if (w == -1) { w = 1; }
+    if (h == -1) { h = 1; }
 
-    tic_api_spr(tic, index, x, y, w, h, &colorKey, colorCount, scale, flip, rotate) ;
+    tic_api_spr(tic, index, x, y, w, h, &trans_colors, colorCount, scale, flip, rotate) ;
 
     m3ApiSuccess();
 }
@@ -649,7 +657,11 @@ m3ApiRawFunction(wasmtic_clip)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    // TODO: defaults
+    // defaults
+    if (x == -1) { x = 0; }
+    if (y == -1) { y = 0; }
+    if (w == -1) { w = TIC80_WIDTH; }
+    if (h == -1) { h = TIC80_HEIGHT; }
 
     tic_api_clip(tic, x, y, w, h);
 
@@ -658,7 +670,10 @@ m3ApiRawFunction(wasmtic_clip)
 
 m3ApiRawFunction(wasmtic_noclip)
 {
+    // no arguments
+
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
+
     tic_api_clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
 
     m3ApiSuccess();
@@ -672,14 +687,26 @@ m3ApiRawFunction(wasmtic_map)
     m3ApiGetArg      (int32_t, h)
     m3ApiGetArg      (int32_t, sx)
     m3ApiGetArg      (int32_t, sy)
-    // TODO: how to support multiple colors
-    m3ApiGetArg      (int8_t, colorKey) // note: only support single color
-    m3ApiGetArg      (int8_t, scale)
+    m3ApiGetArgMem   (u8*, trans_colors)
+    m3ApiGetArg      (int8_t, colorCount)
+    if (trans_colors == NULL) {
+        colorCount = 0;
+    }    m3ApiGetArg      (int8_t, scale)
     // TODO: actually test that this works
     m3ApiGetArg      (int32_t, remap)
 
+    // defaults
+    if (x == -1) { x = 0; }    
+    if (y == -1) { y = 0; }
+    if (w == -1) { w = 30; }
+    if (h == -1) { h = 17; }
+    if (sx == -1) { sx = 0; }
+    if (sy == -1) { sy = 0; }
+    if (scale == -1) { scale = 1; }
+
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
-    tic_api_map(tic, x, y, w, h, sx, sy, &colorKey, 1, scale, NULL, NULL);
+
+    tic_api_map(tic, x, y, w, h, sx, sy, &trans_colors, colorCount, scale, NULL, NULL);
 
     m3ApiSuccess();
 }
@@ -700,6 +727,8 @@ m3ApiRawFunction(wasmtic_print)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
+    // TODO: how to deal with defaults when we can't pass -1 as a bool?
+
     int32_t text_width;
     if (scale==0) {
         text_width = 0;
@@ -718,19 +747,21 @@ m3ApiRawFunction(wasmtic_font)
     m3ApiGetArgMem   (const char *, text)
     m3ApiGetArg      (int32_t, x)
     m3ApiGetArg      (int32_t, y)
+    // purposely a single color here, not an *[]colors
     m3ApiGetArg      (int8_t, transparent_color)
-    // TODO:
-    // optional arguments, but we'll force people to pass them all
-    // let the pre-language APIs deal with simplifying
 
     // TODO: reasonable defaults? allow passing -1 ?
     m3ApiGetArg      (int8_t, char_width)
     m3ApiGetArg      (int8_t, char_height)
-    m3ApiGetArg      (int8_t, fixed)
+    m3ApiGetArg      (bool, fixed)
     m3ApiGetArg      (int8_t, scale)
-    m3ApiGetArg      (int8_t, alt)
+    m3ApiGetArg      (bool, alt)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
+
+    if (scale == -1) { scale = 1; }
+    if (char_width == -1 ) { char_width = TIC_SPRITESIZE; }
+    if (char_height == -1 ) { char_height = TIC_SPRITESIZE; }
 
     int32_t text_width;
     if (scale==0) {
@@ -745,6 +776,36 @@ m3ApiRawFunction(wasmtic_font)
 
 // audio 
 
+// id [note] [duration=-1] [channel=0] [volume=15] [speed=0]
+m3ApiRawFunction(wasmtic_sfx)
+{
+    m3ApiGetArg      (int32_t, id);
+    m3ApiGetArg      (int32_t, note);
+    m3ApiGetArg      (int32_t, duration);
+    m3ApiGetArg      (int32_t, channel);
+    m3ApiGetArg      (int32_t, volume);
+    m3ApiGetArg      (int32_t, speed);
+
+    tic_mem* tic = (tic_mem*)getWasmCore(runtime);
+
+    // TODO: defaults...???
+
+    // allow passing separate volume somehow?
+    u8 volumes[2] = { volume, volume };
+
+    // TODO: allow passing string notes somehow?
+    note = id % NOTES;
+    u32 octave = id / NOTES;
+
+    if (channel >= 0 && channel < TIC_SOUND_CHANNELS)
+    {
+        tic_api_sfx(tic, id, note, octave, duration, channel, volumes[0] & 0xf, volumes[1] & 0xf, speed);
+    }    
+
+    m3ApiSuccess();
+}
+
+
 m3ApiRawFunction(wasmtic_music)
 {
     m3ApiGetArg      (int32_t, track);
@@ -756,6 +817,8 @@ m3ApiRawFunction(wasmtic_music)
     m3ApiGetArg      (int32_t, speed);
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
+
+    // TODO: defaults... how with bool vs int
 
     tic_api_music(tic, track, frame, row, loop, sustain, tempo, speed);
 
@@ -913,70 +976,60 @@ m3ApiRawFunction(wasmtic_mouse)
 
 
 
-M3Result linkTic80(IM3Module module)
+M3Result linkTicAPI(IM3Module module)
 {
-  M3Result result = m3Err_none;
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "btn",     "i(i)",           &wasmtic_btn)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "btnp",    "i(iii)",         &wasmtic_btnp)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "noclip",  "v()",            &wasmtic_noclip)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "clip",    "v(iiii)",        &wasmtic_clip)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "cls",     "v(i)",          &wasmtic_cls)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "circ",    "v(iiii)",       &wasmtic_circ)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "circb",   "v(iiii)",       &wasmtic_circb)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "elli",    "v(iiiii)",       &wasmtic_elli)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "ellib",   "v(iiiii)",       &wasmtic_ellib)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "exit",    "v()",           &wasmtic_exit)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "fget",    "i(ii)",         &wasmtic_fget)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "fset",    "v(iii)",        &wasmtic_fset)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "font",   "i(*iiiiiii)",    &wasmtic_font)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "key",     "i(i)",           &wasmtic_key)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "keyp",    "i(iii)",         &wasmtic_keyp)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "line",    "v(iiiii)",      &wasmtic_line)));
-  // TODO: needs a lot of help for all the optional arguments
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "map",     "v(iiiiiiiii)",  &wasmtic_map)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "memcpy",    "v(iii)",      &wasmtic_memcpy)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "memset",    "v(iii)",      &wasmtic_memset)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "mget",    "v(ii)",         &wasmtic_mget)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "mset",    "v(iii)",        &wasmtic_mset)));
-    // TODO are we sure how to pass the data back to the caller?
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "mouse",   "v(*)",           &wasmtic_mouse)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "music",   "v(iiiiiii)",     &wasmtic_music)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "pix",     "v(iii)",        &wasmtic_pix)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "peek",    "i(ii)",          &wasmtic_peek)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "peek4",   "i(i)",          &wasmtic_peek4)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "peek2",   "i(i)",          &wasmtic_peek2)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "peek1",   "i(i)",          &wasmtic_peek1)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "pmem",    "i(ii)",          &wasmtic_pmem)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "poke",    "v(iii)",         &wasmtic_poke)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "poke4",   "v(ii)",         &wasmtic_poke4)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "poke2",   "v(ii)",         &wasmtic_poke2)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "poke1",   "v(ii)",         &wasmtic_poke1)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "print",   "i(*iiiiii)",    &wasmtic_print)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "rect",    "v(iiiii)",      &wasmtic_rect)));
-  _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "rectb",   "v(iiiii)",      &wasmtic_rectb)));
-// sfx
-// TODO: needs some more work
-_   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "spr",     "v(iiiiiiiii)",  &wasmtic_spr)));
-_   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "sync",    "v(iii)",        &wasmtic_sync)));
-_   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "time",    "f()",           &wasmtic_time)));
-_   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "tstamp",  "i()",           &wasmtic_tstamp)));
-_   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "trace",   "v(*i)",         &wasmtic_trace)));
-_   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "tri",     "v(iiiiiii)",    &wasmtic_tri)));
-_   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "trib",    "v(iiiiiii)",    &wasmtic_trib)));
-_   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "textri",  "v(iiiiiiiiiiiiii)",    &wasmtic_textri)));
-_   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "vbank",   "i(i)",          &wasmtic_vbank)));
+    M3Result result = m3Err_none;
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "btn",     "i(i)",          &wasmtic_btn)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "btnp",    "i(iii)",        &wasmtic_btnp)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "noclip",  "v()",           &wasmtic_noclip)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "clip",    "v(iiii)",       &wasmtic_clip)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "cls",     "v(i)",          &wasmtic_cls)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "circ",    "v(iiii)",       &wasmtic_circ)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "circb",   "v(iiii)",       &wasmtic_circb)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "elli",    "v(iiiii)",      &wasmtic_elli)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "ellib",   "v(iiiii)",      &wasmtic_ellib)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "exit",    "v()",           &wasmtic_exit)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "fget",    "i(ii)",         &wasmtic_fget)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "fset",    "v(iii)",        &wasmtic_fset)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "font",    "i(*iiiiiii)",   &wasmtic_font)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "key",     "i(i)",          &wasmtic_key)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "keyp",    "i(iii)",        &wasmtic_keyp)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "line",    "v(iiiii)",      &wasmtic_line)));
+    // TODO: needs a lot of help for all the optional arguments
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "map",     "v(iiiiiiiii)",  &wasmtic_map)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "memcpy",  "v(iii)",        &wasmtic_memcpy)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "memset",  "v(iii)",        &wasmtic_memset)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "mget",    "v(ii)",         &wasmtic_mget)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "mset",    "v(iii)",        &wasmtic_mset)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "mouse",   "v(*)",          &wasmtic_mouse)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "music",   "v(iiiiiii)",    &wasmtic_music)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "pix",     "v(iii)",        &wasmtic_pix)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "peek",    "i(ii)",         &wasmtic_peek)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "peek4",   "i(i)",          &wasmtic_peek4)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "peek2",   "i(i)",          &wasmtic_peek2)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "peek1",   "i(i)",          &wasmtic_peek1)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "pmem",    "i(ii)",         &wasmtic_pmem)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "poke",    "v(iii)",        &wasmtic_poke)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "poke4",   "v(ii)",         &wasmtic_poke4)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "poke2",   "v(ii)",         &wasmtic_poke2)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "poke1",   "v(ii)",         &wasmtic_poke1)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "print",   "i(*iiiiii)",    &wasmtic_print)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "rect",    "v(iiiii)",      &wasmtic_rect)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "rectb",   "v(iiiii)",      &wasmtic_rectb)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "sfx",     "v(iiiiii)",     &wasmtic_sfx)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "spr",     "v(iiiiiiiii)",  &wasmtic_spr)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "sync",    "v(iii)",        &wasmtic_sync)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "time",    "f()",           &wasmtic_time)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "tstamp",  "i()",           &wasmtic_tstamp)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "trace",   "v(*i)",         &wasmtic_trace)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "tri",     "v(iiiiiii)",    &wasmtic_tri)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "trib",    "v(iiiiiii)",    &wasmtic_trib)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "textri",  "v(iiiiiiiiiiiiii)",    &wasmtic_textri)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "vbank",   "i(i)",          &wasmtic_vbank)));
 
-
-
-  
-
-
-  
-  
 _catch:
   return result;
 }
-
 
 static void closeWasm(tic_mem* tic)
 {
@@ -1007,18 +1060,18 @@ static bool initWasm(tic_mem* tic, const char* code)
  // TODO for errors: core->data->error(core->data->data, lua_tostring(lua, -1));
     closeWasm(tic);
     tic_core* core = (tic_core*)tic;
-    dbg("Initializing wasm runtime %d\n", core);
+    dbg("Initializing WASM3 runtime %d\n", core);
 
     IM3Environment env = m3_NewEnvironment ();
     if(!env)
     {
-        core->data->error(core->data->data, "Unable to init env");
+        core->data->error(core->data->data, "Unable to init WASM env");
         return false;
     }
     IM3Runtime runtime = m3_NewRuntime (env, WASM_STACK_SIZE, core);
     if(!runtime)
     {
-        core->data->error(core->data->data, "Unable to init runtime");
+        core->data->error(core->data->data, "Unable to init WASM runtime");
         return false;
     }
 
@@ -1050,7 +1103,7 @@ static bool initWasm(tic_mem* tic, const char* code)
 
     IM3Module module;
     M3Result result = m3_ParseModule (runtime->environment, &module, wasmcode, fsize);
-    // free(wasmcode);
+
     if (result){
         core->data->error(core->data->data, result);
         return false;
@@ -1062,7 +1115,7 @@ static bool initWasm(tic_mem* tic, const char* code)
         return false;
     }
 
-    result = linkTic80(runtime->modules);
+    result = linkTicAPI(runtime->modules);
     if (result)
     {
         core->data->error(core->data->data, result);
@@ -1108,13 +1161,12 @@ static void callWasmScanline(tic_mem* tic, s32 row, void* data)
     IM3Runtime runtime = core->currentVM;
 
     if(!runtime) { return; }
+    if (SCN_function == NULL) { return; }
 
-    if (SCN_function != NULL) {
-        M3Result res = m3_CallV(SCN_function, row);
-        if(res)
-        {
-                core->data->error(core->data->data, res);
-        }
+    M3Result res = m3_CallV(SCN_function, row);
+    if(res)
+    {
+            core->data->error(core->data->data, res);
     }
 }
 
@@ -1127,13 +1179,12 @@ static void callWasmBorder(tic_mem* tic, s32 row, void* data)
     IM3Runtime runtime = core->currentVM;
 
     if(!runtime) { return; }
+    if (BDR_function == NULL) { return; }
 
-    if (BDR_function != NULL) {
-        M3Result res = m3_CallV(BDR_function, row);
-        if(res)
-        {
-                core->data->error(core->data->data, res);
-        }
+    M3Result res = m3_CallV(BDR_function, row);
+    if(res)
+    {
+            core->data->error(core->data->data, res);
     }
 }
 
