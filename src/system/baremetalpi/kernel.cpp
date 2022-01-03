@@ -224,7 +224,7 @@ void inputToTic()
 {
     tic_mem* tic = platform.studio->tic;
 
-    tic80_input* tic_input = &tic->ram.input;
+    tic80_input* tic_input = &tic->ram->input;
 
     // mouse
     if (mousebuttons & 0x01) tic_input->mouse.left = true; else tic_input->mouse.left = false;
@@ -431,7 +431,7 @@ TShutdownMode Run(void)
     }
 
     tic_mem* tic = platform.studio->tic;
-    tic80_input* tic_input = &tic->ram.input;
+    tic80_input* tic_input = &tic->ram->input;
     tic_input->keyboard.data = 0;
 
 

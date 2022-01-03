@@ -1092,7 +1092,7 @@ RETRO_API bool retro_serialize(void *data, size_t size)
 	tic80_local* tic80 = (tic80_local*)state->tic;
 	u32* udata = (u32*)data;
 	for (u32 i = 0; i < TIC_PERSISTENT_SIZE; i++) {
-		udata[i] = tic80->memory->ram.persistent.data[i];
+		udata[i] = tic80->memory->ram->persistent.data[i];
 	}
 
 	return true;
@@ -1110,7 +1110,7 @@ RETRO_API bool retro_unserialize(const void *data, size_t size)
 	tic80_local* tic80 = (tic80_local*)state->tic;
 	u32* uData = (u32*)data;
 	for (u32 i = 0; i < TIC_PERSISTENT_SIZE; i++) {
-		tic80->memory->ram.persistent.data[i] = uData[i];
+		tic80->memory->ram->persistent.data[i] = uData[i];
 	}
 
 	return true;
@@ -1130,11 +1130,11 @@ RETRO_API void *retro_get_memory_data(unsigned id)
 	tic80_local* tic80 = (tic80_local*)state->tic;
 	switch (id) {
 		case RETRO_MEMORY_SAVE_RAM:
-			return tic80->memory->ram.persistent.data;
+			return tic80->memory->ram->persistent.data;
 		case RETRO_MEMORY_SYSTEM_RAM:
-			return tic80->memory->ram.data;
+			return tic80->memory->ram->data;
 		case RETRO_MEMORY_VIDEO_RAM:
-			return tic80->memory->ram.vram.data;
+			return tic80->memory->ram->vram.data;
 		default:
 			return NULL;
 	}
@@ -1152,11 +1152,11 @@ RETRO_API size_t retro_get_memory_size(unsigned id)
     tic80_local* tic80 = (tic80_local*)state->tic;
     switch (id) {
         case RETRO_MEMORY_SAVE_RAM:
-            return sizeof(tic80->memory->ram.persistent.data);
+            return sizeof(tic80->memory->ram->persistent.data);
         case RETRO_MEMORY_SYSTEM_RAM:
-            return sizeof(tic80->memory->ram.data);
+            return sizeof(tic80->memory->ram->data);
         case RETRO_MEMORY_VIDEO_RAM:
-            return sizeof(tic80->memory->ram.vram.data);
+            return sizeof(tic80->memory->ram->vram.data);
         default:
             return 0;
     }
@@ -1216,6 +1216,6 @@ RETRO_API void retro_cheat_set(unsigned index, bool enabled, const char *code)
 	// Finally, set each given code pair.
 	tic80_local* tic80 = (tic80_local*)state->tic;
 	for (u32 i = 0; i < codeIndex; i = i + 2) {
-		tic80->memory->ram.persistent.data[codes[i]] = codes[i+1];
+		tic80->memory->ram->persistent.data[codes[i]] = codes[i+1];
 	}
 }

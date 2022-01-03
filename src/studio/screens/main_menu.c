@@ -64,7 +64,7 @@ bool studio_mainmenu_keyboard(StudioMainMenu* main)
 {
     if(main && main->gamepads.key >= 0)
     {
-        tic_key key = *main->tic->ram.input.keyboard.keys;
+        tic_key key = *main->tic->ram->input.keyboard.keys;
         if(key > tic_key_unknown)
         {
             main->gamepads.mapping.data[main->gamepads.index * TIC_BUTTONS + main->gamepads.key] = key;

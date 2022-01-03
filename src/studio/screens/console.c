@@ -2221,7 +2221,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
                             }
 
                             u32* ptr = img.values + PaddingTop * CoverWidth + PaddingLeft;
-                            const u8* screen = tic->ram.vram.screen.data;
+                            const u8* screen = tic->ram->vram.screen.data;
                             const tic_rgb* pal = getConfig()->cart->bank0.palette.vbank0.colors;
 
                             for(s32 y = 0; y < Height; y++)
@@ -3571,7 +3571,7 @@ static void processMouse(Console* console)
     tic_mem* tic = console->tic;
     // process scroll
     {
-        tic80_input* input = &console->tic->ram.input;
+        tic80_input* input = &console->tic->ram->input;
 
         if(input->mouse.scrolly)
         {
@@ -3659,7 +3659,7 @@ static void processKeyboard(Console* console)
     if(tic_api_key(tic, tic_key_alt))
         return;
 
-    if(tic->ram.input.keyboard.data != 0)
+    if(tic->ram->input.keyboard.data != 0)
     {
         switch(getClipboardEvent())
         {

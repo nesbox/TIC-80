@@ -502,7 +502,7 @@ static void touch_update(void) {
 	u32 key_down = hidKeysDown();
 	u32 key_held = hidKeysHeld();
     touchPosition touch;
-    tic80_mouse *mouse = &platform.studio->tic->ram.input.mouse;
+    tic80_mouse *mouse = &platform.studio->tic->ram->input.mouse;
 
     if (key_held & KEY_TOUCH)
     {
@@ -532,7 +532,7 @@ static void touch_update(void) {
 static void keyboard_update(void) {
     hidScanInput();
 
-    platform.studio->tic->ram.input.mouse.btns = 0;
+    platform.studio->tic->ram->input.mouse.btns = 0;
     if (!platform.render.on_bottom) {
         n3ds_keyboard_update(&platform.keyboard, platform.studio->tic);
     } else {

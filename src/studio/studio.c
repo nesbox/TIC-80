@@ -145,7 +145,7 @@ static inline void music2ram(tic_ram* ram, const tic_music* src)
 
 s32 calcWaveAnimation(tic_mem* tic, u32 offset, s32 channel)
 {
-    const tic_sound_register* reg = &tic->ram.registers[channel];
+    const tic_sound_register* reg = &tic->ram->registers[channel];
 
     s32 val = FLAT4(reg->waveform.data)
         ? (rand() & 1) * MAX_VOLUME
@@ -182,8 +182,8 @@ const char* studioExportSfx(s32 index, const char* filename)
 
         const tic_sfx* sfx = getSfxSrc();
 
-        sfx2ram(&tic->ram, sfx);
-        music2ram(&tic->ram, getMusicSrc());
+        sfx2ram(tic->ram, sfx);
+        music2ram(tic->ram, getMusicSrc());
 
         {
             const tic_sample* effect = &sfx->samples.data[index];
@@ -202,7 +202,7 @@ const char* studioExportSfx(s32 index, const char* filename)
             }
 
             sfx_stop(tic, Channel);
-            memset(tic->ram.registers, 0, sizeof(tic_sound_register));
+            memset(tic->ram->registers, 0, sizeof(tic_sound_register));
         }
 
         wave_close();
@@ -228,10 +228,10 @@ const char* studioExportMusic(s32 track, const char* filename)
         const tic_sfx* sfx = getSfxSrc();
         const tic_music* music = getMusicSrc();
 
-        sfx2ram(&tic->ram, sfx);
-        music2ram(&tic->ram, music);
+        sfx2ram(tic->ram, sfx);
+        music2ram(tic->ram, music);
 
-        const tic_music_state* state = &tic->ram.music_state;
+        const tic_music_state* state = &tic->ram->music_state;
         const Music* editor = impl.banks.music[impl.bank.index.music];
 
         tic_api_music(tic, track, -1, -1, false, editor->sustain, -1, -1);
@@ -245,7 +245,7 @@ const char* studioExportMusic(s32 track, const char* filename)
 
             for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
                 if(!editor->on[i])
-                    tic->ram.registers[i].volume = 0;
+                    tic->ram->registers[i].volume = 0;
 
             tic_core_tick_end(tic);
             tic_core_synth_sound(tic);
@@ -280,7 +280,7 @@ char getKeyboardText()
     if(!tic_sys_keyboard_text(&text))
     {
         tic_mem* tic = impl.studio.tic;
-        tic80_input* input = &tic->ram.input;
+        tic80_input* input = &tic->ram->input;
 
         static const char Symbols[] =   " abcdefghijklmnopqrstuvwxyz0123456789-=[]\\;'`,./ ";
         static const char Shift[] =     " ABCDEFGHIJKLMNOPQRSTUVWXYZ)!@#$%^&*(_+{}|:\"~<>? ";
@@ -322,7 +322,7 @@ bool anyKeyWasPressed()
 
     for(s32 i = 0; i < TIC80_KEY_BUFFER; i++)
     {
-        tic_key key = tic->ram.input.keyboard.keys[i];
+        tic_key key = tic->ram->input.keyboard.keys[i];
 
         if(tic_api_keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD))
             return true;
@@ -841,8 +841,8 @@ static void drawPopup()
 
             for(s32 i = 0, y = 0; y < (Height + impl.anim.pos.popup); y++, dst += TIC80_MARGIN_RIGHT + TIC80_MARGIN_LEFT)
                 for(s32 x = 0; x < Width; x++)
-                *dst++ = tic_rgba(&bank->palette.vbank0.colors[tic_tool_peek4(tic->ram.vram.screen.data, i++)]);
-        }        
+                *dst++ = tic_rgba(&bank->palette.vbank0.colors[tic_tool_peek4(tic->ram->vram.screen.data, i++)]);
+        }
     }
 }
 
@@ -1183,7 +1183,7 @@ void setCursor(tic_cursor id)
 
     VBANK(tic, 0)
     {
-        tic->ram.vram.vars.cursor.sprite = id;
+        tic->ram->vram.vars.cursor.sprite = id;
     }
 }
 
@@ -1756,8 +1756,8 @@ static void renderStudio()
         switch(impl.mode)
         {
         case TIC_RUN_MODE:
-            sfx = &impl.studio.tic->ram.sfx;
-            music = &impl.studio.tic->ram.music;
+            sfx = &impl.studio.tic->ram->sfx;
+            music = &impl.studio.tic->ram->music;
             break;
         case TIC_START_MODE:
         case TIC_MENU_MODE:
@@ -1773,12 +1773,12 @@ static void renderStudio()
             break;
         }
 
-        sfx2ram(&tic->ram, sfx);
-        music2ram(&tic->ram, music);
+        sfx2ram(tic->ram, sfx);
+        music2ram(tic->ram, music);
 
         // restore mapping in all the modes except Run mode
         if(impl.mode != TIC_RUN_MODE)
-            impl.studio.tic->ram.mapping = getConfig()->options.mapping;
+            impl.studio.tic->ram->mapping = getConfig()->options.mapping;
 
         tic_core_tick_start(tic);
     }
@@ -1883,7 +1883,7 @@ static void updateSystemFont()
                 if(tic_tool_peek4(&impl.config->cart->bank0.sprites.data[i], TIC_SPRITESIZE*y + x))
                     dst[i*BITS_IN_BYTE+y] |= 1 << x;
 
-    tic->ram.font = impl.systemFont;
+    tic->ram->font = impl.systemFont;
 }
 
 void studioConfigChanged()
@@ -1905,19 +1905,19 @@ static void processMouseStates()
 
     tic_mem* tic = impl.studio.tic;
 
-    tic->ram.vram.vars.cursor.sprite = tic_cursor_arrow;
-    tic->ram.vram.vars.cursor.system = true;
+    tic->ram->vram.vars.cursor.sprite = tic_cursor_arrow;
+    tic->ram->vram.vars.cursor.system = true;
 
     for(s32 i = 0; i < COUNT_OF(impl.mouse.state); i++)
     {
         MouseState* state = &impl.mouse.state[i];
 
-        if(!state->down && (tic->ram.input.mouse.btns & (1 << i)))
+        if(!state->down && (tic->ram->input.mouse.btns & (1 << i)))
         {
             state->down = true;
             state->start = tic_api_mouse(tic);
         }
-        else if(state->down && !(tic->ram.input.mouse.btns & (1 << i)))
+        else if(state->down && !(tic->ram->input.mouse.btns & (1 << i)))
         {
             state->end = tic_api_mouse(tic);
 
@@ -1930,7 +1930,7 @@ static void processMouseStates()
 static void blitCursor()
 {
     tic_mem* tic = impl.studio.tic;
-    tic80_mouse* m = &tic->ram.input.mouse;
+    tic80_mouse* m = &tic->ram->input.mouse;
 
     if(tic->input.mouse && !m->relative && m->x < TIC80_FULLWIDTH && m->y < TIC80_FULLHEIGHT)
     {
@@ -1938,7 +1938,7 @@ static void blitCursor()
 
         tic_point hot = {0};
 
-        if(tic->ram.vram.vars.cursor.system)
+        if(tic->ram->vram.vars.cursor.system)
         {
             bank = &getConfig()->cart->bank0;
             hot = (tic_point[])
@@ -1946,11 +1946,11 @@ static void blitCursor()
                 {0, 0},
                 {3, 0},
                 {2, 3},
-            }[tic->ram.vram.vars.cursor.sprite];
+            }[tic->ram->vram.vars.cursor.sprite];
         }
 
         const tic_palette* pal = &bank->palette.vbank0;
-        const tic_tile* tile = &bank->sprites.data[tic->ram.vram.vars.cursor.sprite];
+        const tic_tile* tile = &bank->sprites.data[tic->ram->vram.vars.cursor.sprite];
 
         tic_point s = {m->x - hot.x, m->y - hot.y};
         u32* dst = tic->screen + TIC80_FULLWIDTH * s.y + s.x;
@@ -2005,8 +2005,8 @@ static void studioTick()
 
         if(impl.mode != TIC_RUN_MODE)
         {
-            memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
-            tic->ram.font = impl.systemFont;
+            memcpy(tic->ram->vram.palette.data, getConfig()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
+            tic->ram->font = impl.systemFont;
         }
 
         callback[impl.mode].data

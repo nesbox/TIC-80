@@ -874,7 +874,7 @@ static s32 lua_sfx(lua_State* lua)
         {
             if (index >= 0)
             {
-                tic_sample* effect = tic->ram.sfx.samples.data + index;
+                tic_sample* effect = tic->ram->sfx.samples.data + index;
 
                 note = effect->note;
                 octave = effect->octave;
@@ -1334,7 +1334,7 @@ static s32 lua_mouse(lua_State *lua)
         lua_pushinteger(lua, pos.y);
     }
 
-    const tic80_mouse* mouse = &core->memory.ram.input.mouse;
+    const tic80_mouse* mouse = &core->memory.ram->input.mouse;
 
     lua_pushboolean(lua, mouse->left);
     lua_pushboolean(lua, mouse->middle);

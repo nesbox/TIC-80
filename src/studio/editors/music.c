@@ -70,7 +70,7 @@ static void redo(Music* music)
 
 static const tic_music_state* getMusicPos(Music* music)
 {
-    return &music->tic->ram.music_state;
+    return &music->tic->ram->music_state;
 }
 
 static void drawEditPanel(Music* music, s32 x, s32 y, s32 w, s32 h)
@@ -419,12 +419,12 @@ static s32 getSfx(Music* music)
 
 static inline tic_music_status getMusicState(Music* music)
 {
-    return music->tic->ram.music_state.flag.music_status;
+    return music->tic->ram->music_state.flag.music_status;
 }
 
 static inline void setMusicState(Music* music, tic_music_status state)
 {
-    music->tic->ram.music_state.flag.music_status = state;
+    music->tic->ram->music_state.flag.music_status = state;
 }
 
 static void playNote(Music* music, const tic_track_row* row)
@@ -557,7 +557,7 @@ static void toggleFollowMode(Music* music)
 
 static void toggleSustainMode(Music* music)
 {
-    music->tic->ram.music_state.flag.music_sustain = !music->sustain;
+    music->tic->ram->music_state.flag.music_sustain = !music->sustain;
     music->sustain = !music->sustain;
 }
 
@@ -1763,7 +1763,7 @@ static void drawTumbler(Music* music, s32 x, s32 y, s32 index)
     drawEditPanel(music, x, y, Width, Height);
 
     u8 color = tic_color_black;
-    tiles2ram(&tic->ram, &getConfig()->cart->bank0.tiles);
+    tiles2ram(tic->ram, &getConfig()->cart->bank0.tiles);
     tic_api_spr(tic, music->on[index] ? On : Off, x, y, 1, 1, &color, 1, 1, tic_no_flip, tic_no_rotate);
 }
 
@@ -2089,7 +2089,7 @@ static void drawPianoRoll(Music* music, s32 x, s32 y)
         {10, 41, 42, 36, tic_no_flip},
     };
 
-    tiles2ram(&tic->ram, &getConfig()->cart->bank0.tiles);
+    tiles2ram(tic->ram, &getConfig()->cart->bank0.tiles);
 
     for(s32 i = 0; i < COUNT_OF(Buttons); i++)
     {
@@ -2707,7 +2707,7 @@ static void drawWaveform(Music* music, s32 x, s32 y)
     // detect playing channels
     s32 channels = 0;
     for(s32 c = 0; c < TIC_SOUND_CHANNELS; c++)
-        if(music->on[c] && tic->ram.registers[c].volume)
+        if(music->on[c] && tic->ram->registers[c].volume)
             channels++;
 
     if(channels)
@@ -2720,8 +2720,8 @@ static void drawWaveform(Music* music, s32 x, s32 y)
             {
                 s32 amp = calcWaveAnimation(tic, i + music->tickCounter, c) / channels;
 
-                lamp += amp * tic_tool_peek4(&tic->ram.stereo.data, c*2);
-                ramp += amp * tic_tool_peek4(&tic->ram.stereo.data, c*2 + 1);
+                lamp += amp * tic_tool_peek4(&tic->ram->stereo.data, c*2);
+                ramp += amp * tic_tool_peek4(&tic->ram->stereo.data, c*2 + 1);
             }
 
             lamp /= WAVE_MAX_VALUE * WAVE_MAX_VALUE;
@@ -2768,7 +2768,7 @@ static void tick(Music* music)
 
     // process scroll
     {
-        tic80_input* input = &tic->ram.input;
+        tic80_input* input = &tic->ram->input;
 
         if(input->mouse.scrolly)
         {
@@ -2806,7 +2806,7 @@ static void tick(Music* music)
 
     for (s32 i = 0; i < TIC_SOUND_CHANNELS; i++)
         if(!music->on[i])
-            tic->ram.registers[i].volume = 0;
+            tic->ram->registers[i].volume = 0;
 
     updatePianoRollState(music);
 

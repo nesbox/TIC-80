@@ -402,11 +402,11 @@ static mrb_value mrb_btn(mrb_state* mrb, mrb_value self)
 
     if (argc == 0)
     {
-        return mrb_fixnum_value(machine->memory.ram.input.gamepads.data);
+        return mrb_fixnum_value(machine->memory.ram->input.gamepads.data);
     }
     else if (argc == 1)
     {
-        return mrb_bool_value(machine->memory.ram.input.gamepads.data & (1 << index));
+        return mrb_bool_value(machine->memory.ram->input.gamepads.data & (1 << index));
     }
     else
     {
@@ -675,7 +675,7 @@ static mrb_value mrb_sfx(mrb_state* mrb, mrb_value self)
     {
         if (index >= 0)
         {
-            tic_sample* effect = memory->ram.sfx.samples.data + index;
+            tic_sample* effect = memory->ram->sfx.samples.data + index;
 
             note = effect->note;
             octave = effect->octave;
@@ -961,7 +961,7 @@ static mrb_value mrb_mouse(mrb_state *mrb, mrb_value self)
 
     tic_core* machine = getMRubyMachine(mrb);
 
-    const tic80_mouse* mouse = &machine->memory.ram.input.mouse;
+    const tic80_mouse* mouse = &machine->memory.ram->input.mouse;
 
     mrb_value hash = mrb_hash_new(mrb);
 
