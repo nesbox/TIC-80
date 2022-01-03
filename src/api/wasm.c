@@ -32,7 +32,6 @@
 
 #include <ctype.h>
 
-#include "src/wat2wasm.h"
 #include "wasm3.h"
 #include "m3_exec_defs.h"
 #include "m3_exception.h"
@@ -1190,8 +1189,6 @@ static void callWasmBorder(tic_mem* tic, s32 row, void* data)
 
 static const char* const WasmKeywords [] =
 {
-    "module", "func", "param", "result", "export", "import", "memory", "data", "table", "elem",
-    "global", "call", "end", "type"
 };
 
 static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
@@ -1281,9 +1278,9 @@ const tic_script_config WasmSyntaxConfig =
     .blockCommentEnd    = ";)",
     .blockCommentStart2 = NULL,
     .blockCommentEnd2   = NULL,
-    .blockStringStart   = NULL,
-    .blockStringEnd     = NULL,
-    .singleComment      = ";;",
+    .blockStringStart   = "**",
+    .blockStringEnd     = "**",
+    .singleComment      = "--",
 
     .keywords           = WasmKeywords,
     .keywordsCount      = COUNT_OF(WasmKeywords),
