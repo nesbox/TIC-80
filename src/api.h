@@ -809,7 +809,7 @@ TIC_API_LIST(TIC_API_DEF)
 
 struct tic_mem
 {
-    tic_ram             ram;
+    tic_ram*             ram;
     tic_cartridge       cart;
 
     char saveid[TIC_SAVEID_SIZE];

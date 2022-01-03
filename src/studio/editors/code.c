@@ -1509,7 +1509,7 @@ static void processKeyboard(Code* code)
 {
     tic_mem* tic = code->tic;
 
-    if(tic->ram.input.keyboard.data == 0) return;
+    if(tic->ram->input.keyboard.data == 0) return;
 
     bool usedClipboard = true;
 
@@ -1708,7 +1708,7 @@ static void textEditTick(Code* code)
 
     // process scroll
     {
-        tic80_input* input = &code->tic->ram.input;
+        tic80_input* input = &code->tic->ram->input;
 
         tic_point scroll = {input->mouse.scrollx, input->mouse.scrolly};
 
@@ -1990,7 +1990,7 @@ static void textOutlineTick(Code* code)
 {
     // process scroll
     {
-        tic80_input* input = &code->tic->ram.input;
+        tic80_input* input = &code->tic->ram->input;
 
         if(input->mouse.scrolly)
         {

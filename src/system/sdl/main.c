@@ -369,8 +369,8 @@ static void drawKeyboardLabels(s32 shift)
 static void map2ram()
 {
     tic_mem* tic = platform.studio->tic;
-    memcpy(tic->ram.map.data, &platform.studio->config()->cart->bank0.map, sizeof tic->ram.map);
-    memcpy(tic->ram.tiles.data, &platform.studio->config()->cart->bank0.tiles, sizeof tic->ram.tiles * TIC_SPRITE_BANKS);
+    memcpy(tic->ram->map.data, &platform.studio->config()->cart->bank0.map, sizeof tic->ram->map);
+    memcpy(tic->ram->tiles.data, &platform.studio->config()->cart->bank0.tiles, sizeof tic->ram->tiles * TIC_SPRITE_BANKS);
 }
 
 static void initTouchKeyboardState(Texture* texture, void** pixels, bool down)
@@ -405,14 +405,14 @@ static void initTouchKeyboard()
 {
     tic_mem* tic = platform.studio->tic;
 
-    memcpy(tic->ram.vram.palette.data, platform.studio->config()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
+    memcpy(tic->ram->vram.palette.data, platform.studio->config()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
     tic_api_cls(tic, 0);
     map2ram();
 
     initTouchKeyboardState(&platform.keyboard.touch.texture.up, &platform.keyboard.touch.texture.upPixels, false);
     initTouchKeyboardState(&platform.keyboard.touch.texture.down, &platform.keyboard.touch.texture.downPixels, true);
 
-    memset(tic->ram.map.data, 0, sizeof tic->ram.map);
+    memset(tic->ram->map.data, 0, sizeof tic->ram->map);
 }
 
 static void updateGamepadParts()
@@ -456,8 +456,8 @@ static void initTouchGamepad()
         const tic_bank* bank = &platform.studio->config()->cart->bank0;
 
         {
-            memcpy(tic->ram.vram.palette.data, &bank->palette.vbank0, sizeof(tic_palette));
-            memcpy(tic->ram.tiles.data, &bank->tiles, sizeof(tic_tiles));
+            memcpy(tic->ram->vram.palette.data, &bank->palette.vbank0, sizeof(tic_palette));
+            memcpy(tic->ram->tiles.data, &bank->tiles, sizeof(tic_tiles));
             tic_api_spr(tic, 0, 0, 0, TIC_SPRITESHEET_COLS, TIC_SPRITESHEET_COLS, NULL, 0, 1, tic_no_flip, tic_no_rotate);
         }
 
@@ -471,8 +471,8 @@ static void initTouchGamepad()
 
         memcpy(platform.gamepad.touch.pixels, tic->screen, TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32));
 
-        ZEROMEM(tic->ram.vram.palette);
-        ZEROMEM(tic->ram.tiles);
+        ZEROMEM(tic->ram->vram.palette);
+        ZEROMEM(tic->ram->tiles);
     }
 
     if(!platform.gamepad.touch.texture.sdl)
@@ -610,7 +610,7 @@ static void processMouse()
     s32 mb = SDL_GetMouseState(&pt.x, &pt.y);
 
     tic_mem* tic = platform.studio->tic;
-    tic80_mouse* mouse = &tic->ram.input.mouse;
+    tic80_mouse* mouse = &tic->ram->input.mouse;
 
     if(SDL_GetRelativeMouseMode())
     {
@@ -654,7 +654,7 @@ static void processMouse()
 static void processKeyboard()
 {
     tic_mem* tic = platform.studio->tic;
-    tic80_input* input = &tic->ram.input;
+    tic80_input* input = &tic->ram->input;
 
     {
         SDL_Keymod mod = SDL_GetModState();
@@ -954,7 +954,7 @@ static void processJoysticks()
 
                             if(back)
                             {
-                                tic80_input* input = &tic->ram.input;
+                                tic80_input* input = &tic->ram->input;
                                 input->keyboard.keys[0] = tic_key_escape;
                             }
                         }
@@ -973,7 +973,7 @@ static void processGamepad()
     
     {
         tic_mem* tic = platform.studio->tic;
-        tic80_input* input = &tic->ram.input;
+        tic80_input* input = &tic->ram->input;
 
         input->gamepads.data = 0;
 
@@ -1028,7 +1028,7 @@ static void handleKeydown(SDL_Keycode keycode, bool down, bool* state)
 static void pollEvents()
 {
     tic_mem* tic = platform.studio->tic;
-    tic80_input* input = &tic->ram.input;
+    tic80_input* input = &tic->ram->input;
 
     if((bool)input->mouse.relative != (bool)SDL_GetRelativeMouseMode())
         SDL_SetRelativeMouseMode(input->mouse.relative ? SDL_TRUE : SDL_FALSE);
@@ -1204,7 +1204,7 @@ static void renderKeyboard()
 
     renderCopy(platform.screen.renderer, platform.keyboard.touch.texture.up, src, dst);
 
-    const tic80_input* input = &platform.studio->tic->ram.input;
+    const tic80_input* input = &platform.studio->tic->ram->input;
 
     enum{Cols=KBD_COLS, Rows=KBD_ROWS};
 
@@ -1249,7 +1249,7 @@ static void renderGamepad()
     const s32 tileSize = platform.gamepad.touch.button.size;
     const SDL_Point axis = platform.gamepad.touch.button.axis;
     typedef struct { bool press; s32 x; s32 y;} Tile;
-    const tic80_input* input = &platform.studio->tic->ram.input;
+    const tic80_input* input = &platform.studio->tic->ram->input;
     const Tile Tiles[] =
     {
         {input->gamepads.first.up,     axis.x + 1*tileSize, axis.y + 0*tileSize},

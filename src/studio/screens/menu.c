@@ -405,7 +405,7 @@ void studio_menu_anim_scanline(tic_mem* tic, s32 row, void* data)
 {
     s32 dir = row < TIC80_HEIGHT / 2 ? 1 : -1;
     s32 val = dir * (TIC80_WIDTH - row * 7 / 2);
-    tic_rgb* dst = tic->ram.vram.palette.colors + BG_ANIM_COLOR;
+    tic_rgb* dst = tic->ram->vram.palette.colors + BG_ANIM_COLOR;
 
     memcpy(dst, &(tic_rgb){val * 3 / 4, val * 4 / 5, val}, sizeof(tic_rgb));
 }
@@ -481,7 +481,7 @@ void studio_menu_tick(Menu* menu)
     // process scroll
     if(animIdle(menu))
     {
-        tic80_input* input = &tic->ram.input;
+        tic80_input* input = &tic->ram->input;
 
         if(input->mouse.scrolly)
         {
@@ -506,8 +506,8 @@ void studio_menu_tick(Menu* menu)
 
     VBANK(tic, 1)
     {
-        tic_api_cls(tic, tic->ram.vram.vars.clear = tic_color_blue);
-        memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
+        tic_api_cls(tic, tic->ram->vram.vars.clear = tic_color_blue);
+        memcpy(tic->ram->vram.palette.data, getConfig()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
 
         drawCursor(menu, 0, (TIC80_HEIGHT - ItemHeight) / 2);
         drawMenu(menu, 0, (TIC80_HEIGHT - ItemHeight) / 2);

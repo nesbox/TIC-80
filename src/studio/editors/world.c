@@ -83,12 +83,12 @@ static void tick(World* world)
 
     if(keyWasPressed(tic_key_tab)) setStudioMode(TIC_MAP_MODE);
 
-    memcpy(&tic->ram.vram, world->preview, PREVIEW_SIZE);
+    memcpy(&tic->ram->vram, world->preview, PREVIEW_SIZE);
 
     VBANK(tic, 1)
     {
-        tic_api_cls(tic, tic->ram.vram.vars.clear = tic_color_black);
-        memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
+        tic_api_cls(tic, tic->ram->vram.vars.clear = tic_color_black);
+        memcpy(tic->ram->vram.palette.data, getConfig()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
         drawGrid(world);
     }
 }
@@ -96,7 +96,7 @@ static void tick(World* world)
 static void scanline(tic_mem* tic, s32 row, void* data)
 {
     if(row == 0)
-        memcpy(&tic->ram.vram.palette, getBankPalette(false), sizeof(tic_palette));
+        memcpy(&tic->ram->vram.palette, getBankPalette(false), sizeof(tic_palette));
 }
 
 void initWorld(World* world, tic_mem* tic, Map* map)

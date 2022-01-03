@@ -185,7 +185,7 @@ void n3ds_keyboard_update(tic_n3ds_keyboard *kbd, tic_mem *tic) {
 	bool state[tic_keys_count];
 	int i, j;
 
-	tic80_keyboard *tic_kbd = &tic->ram.input.keyboard;
+	tic80_keyboard *tic_kbd = &tic->ram->input.keyboard;
 
 	memset(&state, 0, sizeof(state));
 	key_down = hidKeysDown();
@@ -279,8 +279,8 @@ void n3ds_keyboard_update(tic_n3ds_keyboard *kbd, tic_mem *tic) {
 }
 
 void n3ds_gamepad_update(tic_n3ds_keyboard *kbd, tic_mem *tic) {
-	tic80_gamepads *tic_pad = &tic->ram.input.gamepads;
-	tic80_mouse *tic_mouse = &tic->ram.input.mouse;
+	tic80_gamepads *tic_pad = &tic->ram->input.gamepads;
+	tic80_mouse *tic_mouse = &tic->ram->input.mouse;
 	u32 key_held = hidKeysHeld();
 	u64 curr_clock = svcGetSystemTick();
 	circlePosition cstick;

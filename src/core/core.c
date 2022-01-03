@@ -51,7 +51,7 @@ u8 tic_api_peek(tic_mem* memory, s32 address, s32 bits)
     if (address < 0)
         return 0;
 
-    const u8* ram = (u8*)&memory->ram;
+    const u8* ram = (u8*)memory->ram;
     enum{RamBits = sizeof(tic_ram) * BITS_IN_BYTE};
 
     switch(bits)
@@ -71,7 +71,7 @@ void tic_api_poke(tic_mem* memory, s32 address, u8 value, s32 bits)
         return;
 
     tic_core* core = (tic_core*)memory;
-    u8* ram = (u8*)&memory->ram;
+    u8* ram = (u8*)memory->ram;
     enum{RamBits = sizeof(tic_ram) * BITS_IN_BYTE};
     
     switch(bits)
@@ -125,7 +125,7 @@ void tic_api_memcpy(tic_mem* memory, s32 dst, s32 src, s32 size)
         && dst <= bound
         && src <= bound)
     {
-        u8* base = (u8*)&memory->ram;
+        u8* base = (u8*)memory->ram;
         memcpy(base + dst, base + src, size);
     }
 }
@@ -140,7 +140,7 @@ void tic_api_memset(tic_mem* memory, s32 dst, u8 val, s32 size)
         && dst >= 0
         && dst <= bound)
     {
-        u8* base = (u8*)&memory->ram;
+        u8* base = (u8*)memory->ram;
         memset(base + dst, val, size);
     }
 }
@@ -153,10 +153,10 @@ void tic_api_trace(tic_mem* memory, const char* text, u8 color)
 
 u32 tic_api_pmem(tic_mem* tic, s32 index, u32 value, bool set)
 {
-    u32 old = tic->ram.persistent.data[index];
+    u32 old = tic->ram->persistent.data[index];
 
     if (set)
-        tic->ram.persistent.data[index] = value;
+        tic->ram->persistent.data[index] = value;
 
     return old;
 }
@@ -196,7 +196,7 @@ void tic_api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
 
     for (s32 i = 0; i < Count; i++)
         if(mask & Sections[i].mask)
-            sync((u8*)&tic->ram + Sections[i].ram, (u8*)&tic->cart.banks[bank] + Sections[i].bank, Sections[i].size, toCart);
+            sync((u8*)tic->ram + Sections[i].ram, (u8*)&tic->cart.banks[bank] + Sections[i].bank, Sections[i].size, toCart);
 
     core->state.synced |= mask;
 }
@@ -270,11 +270,11 @@ static void soundClear(tic_mem* memory)
         memcpy(&core->state.music.channels[i], &EmptyChannel, sizeof EmptyChannel);
         memcpy(&core->state.sfx.channels[i], &EmptyChannel, sizeof EmptyChannel);
 
-        memset(core->state.sfx.channels[i].pos = &memory->ram.sfxpos[i], -1, sizeof(tic_sfx_pos));
+        memset(core->state.sfx.channels[i].pos = &memory->ram->sfxpos[i], -1, sizeof(tic_sfx_pos));
         memset(core->state.music.channels[i].pos = &core->state.music.sfxpos[i], -1, sizeof(tic_sfx_pos));
     }
 
-    memset(&memory->ram.registers, 0, sizeof memory->ram.registers);
+    memset(&memory->ram->registers, 0, sizeof memory->ram->registers);
     memset(memory->samples.buffer, 0, memory->samples.size);
 
     tic_api_music(memory, -1, 0, 0, false, false, -1, -1);
@@ -282,12 +282,12 @@ static void soundClear(tic_mem* memory)
 
 static void resetVbank(tic_mem* memory)
 {
-    ZEROMEM(memory->ram.vram.vars);
+    ZEROMEM(memory->ram->vram.vars);
 
     static const u8 DefaultMapping[] = { 0x10, 0x32, 0x54, 0x76, 0x98, 0xba, 0xdc, 0xfe };
-    memcpy(memory->ram.vram.mapping, DefaultMapping, sizeof DefaultMapping);
-    memory->ram.vram.palette = memory->cart.bank0.palette.vbank0;
-    memory->ram.vram.blit.segment = TIC_DEFAULT_BLIT_MODE;
+    memcpy(memory->ram->vram.mapping, DefaultMapping, sizeof DefaultMapping);
+    memory->ram->vram.palette = memory->cart.bank0.palette.vbank0;
+    memory->ram->vram.blit.segment = TIC_DEFAULT_BLIT_MODE;
 }
 
 void tic_api_reset(tic_mem* memory)
@@ -317,10 +317,10 @@ void tic_api_reset(tic_mem* memory)
         // init VBANK1 palette with VBANK0 palette if it's empty
         // for backward compatibility
         if(!EMPTY(memory->cart.bank0.palette.vbank1.data))
-            memcpy(&memory->ram.vram.palette, &memory->cart.bank0.palette.vbank1, sizeof(tic_palette));
+            memcpy(&memory->ram->vram.palette, &memory->cart.bank0.palette.vbank1, sizeof(tic_palette));
     }
 
-    memory->ram.input.mouse.relative = 0;
+    memory->ram->input.mouse.relative = 0;
 
     soundClear(memory);
     updateSaveid(memory);
@@ -328,7 +328,7 @@ void tic_api_reset(tic_mem* memory)
 
 static void cart2ram(tic_mem* memory)
 {
-    memory->ram.font = (tic_font)
+    memory->ram->font = (tic_font)
     {
         .regular =     
         {
@@ -406,7 +406,7 @@ s32 tic_api_vbank(tic_mem* tic, s32 bank)
     case 1:
         if(core->state.vbank.id != bank)
         {
-            SWAP(tic->ram.vram, core->state.vbank.mem, tic_vram);
+            SWAP(tic->ram->vram, core->state.vbank.mem, tic_vram);
             core->state.vbank.id = bank;
         }
     }
@@ -468,7 +468,7 @@ void tic_core_pause(tic_mem* memory)
     tic_core* core = (tic_core*)memory;
 
     memcpy(&core->pause.state, &core->state, sizeof(tic_core_state_data));
-    memcpy(&core->pause.ram, &memory->ram, sizeof(tic_ram));
+    memcpy(&core->pause.ram, memory->ram, sizeof(tic_ram));
 
     if (core->data)
     {
@@ -484,7 +484,7 @@ void tic_core_resume(tic_mem* memory)
     if (core->data)
     {
         memcpy(&core->state, &core->pause.state, sizeof(tic_core_state_data));
-        memcpy(&memory->ram, &core->pause.ram, sizeof(tic_ram));
+        memcpy(memory->ram, &core->pause.ram, sizeof(tic_ram));
         core->data->start = core->pause.time.start + core->data->counter(core->data->data) - core->pause.time.paused;
     }
 }
@@ -501,6 +501,7 @@ void tic_core_close(tic_mem* memory)
     blip_delete(core->blip.right);
 
     free(memory->samples.buffer);
+    free(core->memory.ram);
     free(core);
 }
 
@@ -516,8 +517,8 @@ void tic_core_tick_start(tic_mem* memory)
     // nefarious ways.
     //
     // Related: https://github.com/nesbox/TIC-80/issues/1785
-    core->state.keyboard.now.data = core->memory.ram.input.keyboard.data;
-    core->state.gamepads.now.data = core->memory.ram.input.gamepads.data;
+    core->state.keyboard.now.data = core->memory.ram->input.keyboard.data;
+    core->state.gamepads.now.data = core->memory.ram->input.gamepads.data;
 
     core->state.synced = 0;
 }
@@ -525,7 +526,7 @@ void tic_core_tick_start(tic_mem* memory)
 void tic_core_tick_end(tic_mem* memory)
 {
     tic_core* core = (tic_core*)memory;
-    tic80_input* input = &core->memory.ram.input;
+    tic80_input* input = &core->memory.ram->input;
 
     core->state.gamepads.previous.data = input->gamepads.data;
     // SECURITY: we do not use `memory.ram.input` here because it is
@@ -569,12 +570,12 @@ static inline void memset4(void* dst, u32 val, u32 dwords)
 
 static inline tic_vram* vbank0(tic_core* core)
 {
-    return core->state.vbank.id ? &core->state.vbank.mem : &core->memory.ram.vram;
+    return core->state.vbank.id ? &core->state.vbank.mem : &core->memory.ram->vram;
 }
 
 static inline tic_vram* vbank1(tic_core* core)
 {
-    return core->state.vbank.id ? &core->memory.ram.vram : &core->state.vbank.mem;
+    return core->state.vbank.id ? &core->memory.ram->vram : &core->state.vbank.mem;
 }
 
 static inline void updpal(tic_mem* tic, tic_blitpal* pal0, tic_blitpal* pal1)
@@ -693,6 +694,9 @@ tic_mem* tic_core_create(s32 samplerate)
         free(core);
         return NULL;
     }
+
+    core->memory.ram = (tic_ram*)malloc(TIC_RAM_SIZE);
+    memset(core->memory.ram, 0, sizeof(tic_ram));
 
     core->memory.screen_format = TIC80_PIXEL_COLOR_RGBA8888;
     core->samplerate = samplerate;

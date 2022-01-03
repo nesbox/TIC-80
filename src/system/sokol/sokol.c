@@ -161,7 +161,7 @@ static void handleKeyboard()
 {
     tic_mem* tic = platform.studio->tic;
 
-    tic80_input* input = &tic->ram.input;
+    tic80_input* input = &tic->ram->input;
     input->keyboard.data = 0;
 
     enum{BufSize = COUNT_OF(input->keyboard.keys)};
@@ -176,7 +176,7 @@ static void app_frame(void)
     if(platform.studio->quit) exit(0);
 
     tic_mem* tic = platform.studio->tic;
-    tic80_input* input = &tic->ram.input;
+    tic80_input* input = &tic->ram->input;
 
     input->gamepads.data = 0;
     handleKeyboard();
@@ -338,7 +338,7 @@ static void handleKeydown(sapp_keycode keycode, bool down)
 static void processMouse(sapp_mousebutton btn, s32 down)
 {
     tic_mem* tic = platform.studio->tic;
-    tic80_input* input = &tic->ram.input;
+    tic80_input* input = &tic->ram->input;
 
 
     switch(btn)
@@ -353,7 +353,7 @@ static void processMouse(sapp_mousebutton btn, s32 down)
 static void app_input(const sapp_event* event)
 {
     tic_mem* tic = platform.studio->tic;
-    tic80_input* input = &tic->ram.input;
+    tic80_input* input = &tic->ram->input;
 
     switch(event->type)
     {

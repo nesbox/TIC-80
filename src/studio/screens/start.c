@@ -32,7 +32,7 @@
 
 static void reset(Start* start)
 {
-    u8* tile = (u8*)start->tic->ram.tiles.data;
+    u8* tile = (u8*)start->tic->ram->tiles.data;
 
     tic_api_cls(start->tic, tic_color_black);
 

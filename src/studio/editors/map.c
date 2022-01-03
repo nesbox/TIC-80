@@ -224,7 +224,7 @@ static void drawTileIndex(Map* map, s32 x, s32 y)
         {
             s32 tx = 0, ty = 0;
             getMouseMap(map, &tx, &ty);
-            map2ram(&tic->ram, map->src);
+            map2ram(tic->ram, map->src);
             index = tic_api_mget(map->tic, tx, ty);
         }
     }
@@ -419,13 +419,13 @@ static void drawSheetVBank1(Map* map, s32 x, s32 y)
 static void initBlitMode(Map* map)
 {
     tic_mem* tic = map->tic;
-    tiles2ram(&tic->ram, getBankTiles());
-    tic->ram.vram.blit.segment = tic_blit_calc_segment(&map->sheet.blit);
+    tiles2ram(tic->ram, getBankTiles());
+    tic->ram->vram.blit.segment = tic_blit_calc_segment(&map->sheet.blit);
 }
 
 static void resetBlitMode(tic_mem* tic)
 {
-    tic->ram.vram.blit.segment = TIC_DEFAULT_BLIT_MODE;
+    tic->ram->vram.blit.segment = TIC_DEFAULT_BLIT_MODE;
 }
 
 static void drawSheetReg(Map* map, s32 x, s32 y)
@@ -521,7 +521,7 @@ static void setMapSprite(Map* map, s32 x, s32 y)
         for(s32 i = 0; i < map->sheet.rect.w; i++)
             tic_api_mset(map->tic, (x+i)%TIC_MAP_WIDTH, (y+j)%TIC_MAP_HEIGHT, (mx+i) + (my+j) * TIC_SPRITESHEET_COLS);
 
-    ram2map(&map->tic->ram, map->src);
+    ram2map(map->tic->ram, map->src);
 
     history_add(map->history);
 }
@@ -616,7 +616,7 @@ static void processMouseDrawMode(Map* map)
         getMouseMap(map, &tx, &ty);
 
         tic_mem* tic = map->tic;
-        map2ram(&tic->ram, map->src);
+        map2ram(tic->ram, map->src);
         s32 index = tic_api_mget(map->tic, tx, ty);
 
         map->sheet.rect = (tic_rect){index % TIC_SPRITESHEET_COLS, index / TIC_SPRITESHEET_COLS, 1, 1};
@@ -703,7 +703,7 @@ static void drawPasteData(Map* map)
             for(s32 i = 0; i < w; i++)
                 tic_api_mset(tic, (mx+i)%TIC_MAP_WIDTH, (my+j)%TIC_MAP_HEIGHT, data[i + j * w]);
 
-        ram2map(&tic->ram, map->src);
+        ram2map(tic->ram, map->src);
 
         history_add(map->history);
 
@@ -983,12 +983,12 @@ static void processMouseFillMode(Map* map)
 
         {
             tic_mem* tic = map->tic;
-            map2ram(&tic->ram, map->src);
+            map2ram(tic->ram, map->src);
             if(tic_api_key(tic, tic_key_ctrl))
                 replaceTile(map, tx, ty, tic_api_mget(map->tic, tx, ty));
             else
                 fillMap(map, tx, ty, tic_api_mget(map->tic, tx, ty));
-            ram2map(&tic->ram, map->src);
+            ram2map(tic->ram, map->src);
         }
 
         history_add(map->history);
@@ -1063,7 +1063,7 @@ static void drawMapReg(Map* map)
         s32 scrollX = map->scroll.x % TIC_SPRITESIZE;
         s32 scrollY = map->scroll.y % TIC_SPRITESIZE;
 
-        map2ram(&tic->ram, map->src);
+        map2ram(tic->ram, map->src);
 
         initBlitMode(map);
         tic_api_map(tic, map->scroll.x / TIC_SPRITESIZE, map->scroll.y / TIC_SPRITESIZE,
@@ -1189,7 +1189,7 @@ static void processKeyboard(Map* map)
 {
     tic_mem* tic = map->tic;
 
-    if(tic->ram.input.keyboard.data == 0) return;
+    if(tic->ram->input.keyboard.data == 0) return;
     
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
 
@@ -1249,9 +1249,9 @@ static void tick(Map* map)
 
     VBANK(tic, 1)
     {
-        tic_api_cls(tic, tic->ram.vram.vars.clear = tic_color_dark_blue);
+        tic_api_cls(tic, tic->ram->vram.vars.clear = tic_color_dark_blue);
 
-        memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
+        memcpy(tic->ram->vram.palette.data, getConfig()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
 
         tic_api_clip(tic, 0, TOOLBAR_SIZE, TIC80_WIDTH - (sheetVisible(map) ? TIC_SPRITESHEET_SIZE+2 : 0), TIC80_HEIGHT - TOOLBAR_SIZE);
         {
@@ -1309,7 +1309,7 @@ static void onStudioEvent(Map* map, StudioEvent event)
 static void scanline(tic_mem* tic, s32 row, void* data)
 {
     if(row == 0)
-        memcpy(&tic->ram.vram.palette, getBankPalette(false), sizeof(tic_palette));
+        memcpy(&tic->ram->vram.palette, getBankPalette(false), sizeof(tic_palette));
 }
 
 void initMap(Map* map, tic_mem* tic, tic_map* src)

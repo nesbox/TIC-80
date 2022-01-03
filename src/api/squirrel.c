@@ -957,7 +957,7 @@ static SQInteger squirrel_sfx(HSQUIRRELVM vm)
         {
             if (index >= 0)
             {
-                tic_sample* effect = tic->ram.sfx.samples.data + index;
+                tic_sample* effect = tic->ram->sfx.samples.data + index;
 
                 note = effect->note;
                 octave = effect->octave;
@@ -1418,7 +1418,7 @@ static SQInteger squirrel_mouse(HSQUIRRELVM vm)
 {
     tic_core* core = getSquirrelCore(vm);
 
-    const tic80_mouse* mouse = &core->memory.ram.input.mouse;
+    const tic80_mouse* mouse = &core->memory.ram->input.mouse;
 
     sq_newarray(vm, 0);
 

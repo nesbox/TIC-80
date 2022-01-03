@@ -297,7 +297,7 @@ static void processSelectCanvasMouse(Sprite* sprite, s32 x, s32 y)
         }
         else endDrag = sprite->select.drag;
     }
-    else endDrag = !tic->ram.input.mouse.left && sprite->select.drag;
+    else endDrag = !tic->ram->input.mouse.left && sprite->select.drag;
 
     if(endDrag)
     {
@@ -1289,10 +1289,10 @@ static void drawSheetVBank1(Sprite* sprite, s32 x, s32 y)
 static void drawSheet(Sprite* sprite, s32 x, s32 y)
 {
     tic_mem* tic = sprite->tic;
-    tiles2ram(&tic->ram, sprite->src);
-    tic->ram.vram.blit.segment = tic_blit_calc_segment(&sprite->blit);
+    tiles2ram(tic->ram, sprite->src);
+    tic->ram->vram.blit.segment = tic_blit_calc_segment(&sprite->blit);
     tic_api_spr(tic, 0, x, y, TIC_SPRITESHEET_COLS, TIC_SPRITESHEET_COLS, NULL, 0, 1, tic_no_flip, tic_no_rotate);
-    tic->ram.vram.blit.segment = TIC_DEFAULT_BLIT_MODE;
+    tic->ram->vram.blit.segment = TIC_DEFAULT_BLIT_MODE;
 }
 
 static void flipSpriteHorz(Sprite* sprite)
@@ -1630,7 +1630,7 @@ static void processKeyboard(Sprite* sprite)
 {
     tic_mem* tic = sprite->tic;
 
-    if(tic->ram.input.keyboard.data == 0) return;
+    if(tic->ram->input.keyboard.data == 0) return;
 
     switch(getClipboardEvent())
     {
@@ -1820,7 +1820,7 @@ static void scanline(tic_mem* tic, s32 row, void* data)
     Sprite* sprite = (Sprite*)data;
     
     if(row == 0)
-        memcpy(&tic->ram.vram.palette, getBankPalette(sprite->palette.vbank1), sizeof(tic_palette));
+        memcpy(&tic->ram->vram.palette, getBankPalette(sprite->palette.vbank1), sizeof(tic_palette));
 }
 
 static void drawAdvancedButton(Sprite* sprite, s32 x, s32 y)
@@ -1858,7 +1858,7 @@ static void tick(Sprite* sprite)
 
     // process scroll
     {
-        tic80_input* input = &tic->ram.input;
+        tic80_input* input = &tic->ram->input;
 
         if(input->mouse.scrolly)
         {
@@ -1883,7 +1883,7 @@ static void tick(Sprite* sprite)
 
     VBANK(tic, 1)
     {
-        tic_api_cls(tic, tic->ram.vram.vars.clear = tic_color_dark_blue);
+        tic_api_cls(tic, tic->ram->vram.vars.clear = tic_color_dark_blue);
 
         static const tic_rect bg[] = 
         {
@@ -1899,7 +1899,7 @@ static void tick(Sprite* sprite)
             {0, PaletteY + PaletteH, SheetX, TIC80_HEIGHT - PaletteY - PaletteH},
         };
 
-        memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
+        memcpy(tic->ram->vram.palette.data, getConfig()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
 
         for(const tic_rect* r = bg; r < bg + COUNT_OF(bg); r++)
             tic_api_rect(tic, r->x, r->y, r->w, r->h, tic_color_grey);
