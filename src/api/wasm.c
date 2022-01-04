@@ -287,7 +287,7 @@ m3ApiRawFunction(wasmtic_textri)
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
     
     tic_api_textri(tic, x1, y1, x2, y2, x3, y3, 
-        u1, v1, u2, v2, u3, v3, use_map, &trans_colors, colorCount);
+        u1, v1, u2, v2, u3, v3, use_map, trans_colors, colorCount);
 
     m3ApiSuccess();
 }
@@ -628,7 +628,7 @@ m3ApiRawFunction(wasmtic_spr)
     if (w == -1) { w = 1; }
     if (h == -1) { h = 1; }
 
-    tic_api_spr(tic, index, x, y, w, h, &trans_colors, colorCount, scale, flip, rotate) ;
+    tic_api_spr(tic, index, x, y, w, h, trans_colors, colorCount, scale, flip, rotate) ;
 
     m3ApiSuccess();
 }
@@ -691,7 +691,7 @@ m3ApiRawFunction(wasmtic_map)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    tic_api_map(tic, x, y, w, h, sx, sy, &trans_colors, colorCount, scale, NULL, NULL);
+    tic_api_map(tic, x, y, w, h, sx, sy, trans_colors, colorCount, scale, NULL, NULL);
 
     m3ApiSuccess();
 }
@@ -981,7 +981,7 @@ M3Result linkTicAPI(IM3Module module)
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "keyp",    "i(iii)",        &wasmtic_keyp)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "line",    "v(iiiii)",      &wasmtic_line)));
     // TODO: needs a lot of help for all the optional arguments
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "map",     "v(iiiiiiiii)",  &wasmtic_map)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "map",     "v(iiiiiiiiii)",  &wasmtic_map)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "memcpy",  "v(iii)",        &wasmtic_memcpy)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "memset",  "v(iii)",        &wasmtic_memset)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "mget",    "v(ii)",         &wasmtic_mget)));
@@ -1002,14 +1002,14 @@ M3Result linkTicAPI(IM3Module module)
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "rect",    "v(iiiii)",      &wasmtic_rect)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "rectb",   "v(iiiii)",      &wasmtic_rectb)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "sfx",     "v(iiiiii)",     &wasmtic_sfx)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "spr",     "v(iiiiiiiii)",  &wasmtic_spr)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "spr",     "v(iiiiiiiiii)",  &wasmtic_spr)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "sync",    "v(iii)",        &wasmtic_sync)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "time",    "f()",           &wasmtic_time)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "tstamp",  "i()",           &wasmtic_tstamp)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "trace",   "v(*i)",         &wasmtic_trace)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "tri",     "v(iiiiiii)",    &wasmtic_tri)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "trib",    "v(iiiiiii)",    &wasmtic_trib)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "textri",  "v(iiiiiiiiiiiiii)",    &wasmtic_textri)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "textri",  "v(iiiiiiiiiiiiiii)",    &wasmtic_textri)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "vbank",   "i(i)",          &wasmtic_vbank)));
 
 _catch:
@@ -1193,9 +1193,9 @@ static void callWasmBorder(tic_mem* tic, s32 row, void* data)
     }
 }
 
-static const char* const WasmKeywords [] =
-{
-};
+// static const char* const WasmKeywords [] =
+// {
+// };
 
 static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
 
@@ -1288,8 +1288,8 @@ const tic_script_config WasmSyntaxConfig =
     .blockStringEnd     = "**",
     .singleComment      = "--",
 
-    .keywords           = WasmKeywords,
-    .keywordsCount      = COUNT_OF(WasmKeywords),
+    .keywords           = NULL,
+    .keywordsCount      = 0,
 };
 
 const tic_script_config* get_wasm_script_config()
