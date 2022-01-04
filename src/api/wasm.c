@@ -134,20 +134,6 @@ static tic_core* getWasmCore(IM3Runtime ctx)
     return (tic_core*)ctx->userdata;
 }
 
-void deinitWasmRuntime( IM3Runtime runtime )
-{
-    dbg("Denitializing wasm runtime\n");
-    if (runtime == NULL)
-    {
-        printf("WARNING deinitWasm of null");
-        return;
-    }
-    IM3Environment env = runtime -> environment;
-    printf("deiniting env %d\n", env);
-    m3_FreeRuntime (runtime);
-    m3_FreeEnvironment (env);
-}
-
 m3ApiRawFunction(wasmtic_line)
 {
     m3ApiGetArg      (int32_t, x0)
@@ -1030,6 +1016,22 @@ _catch:
   return result;
 }
 
+void deinitWasmRuntime( IM3Runtime runtime )
+{
+    dbg("Denitializing wasm runtime\n");
+    if (runtime == NULL)
+    {
+        printf("WARNING deinitWasm of null");
+        return;
+    }
+    IM3Environment env = runtime -> environment;
+    printf("deiniting env %d\n", env);
+
+    tic_core* tic = getWasmCore(runtime);
+    m3_FreeRuntime (runtime);
+    m3_FreeEnvironment (env);
+}
+
 static void closeWasm(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
@@ -1038,9 +1040,9 @@ static void closeWasm(tic_mem* tic)
     {
         deinitWasmRuntime(core->currentVM);
         core->currentVM = NULL;
+        core->memory.ram = NULL;
     }
 }
-
 
 // TODO: restore functionality
 // static u64 ForceExitCounter = 0;
@@ -1056,8 +1058,7 @@ static void closeWasm(tic_mem* tic)
 
 static bool initWasm(tic_mem* tic, const char* code)
 {
- // TODO for errors: core->data->error(core->data->data, lua_tostring(lua, -1));
-    closeWasm(tic);
+    // closeWasm(tic);
     tic_core* core = (tic_core*)tic;
     dbg("Initializing WASM3 runtime %d\n", core);
 
@@ -1078,6 +1079,11 @@ static bool initWasm(tic_mem* tic, const char* code)
     // works in 64kb chunks
     runtime->memory.maxPages = 2;
     ResizeMemory(runtime, 2);
+
+    u8* low_ram =  (u8*)core->memory.ram;
+    u8* wasm_ram = m3_GetMemory(runtime, NULL, 0);
+    memcpy(wasm_ram, low_ram, TIC_RAM_SIZE);
+    core->memory.ram = wasm_ram;
 
     core->currentVM = runtime;
 
