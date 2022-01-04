@@ -1137,8 +1137,8 @@ static void optionFullscreenSet(s32 pos)
     tic_sys_fullscreen_set(impl.config->data.options.fullscreen = (pos == 1));
 }
 
-static const char OffValue[] =  "<OFF>   ";
-static const char OnValue[] =   "<ON>    ";
+static const char OffValue[] =  "<OFF>";
+static const char OnValue[] =   "<ON> ";
 
 static MenuOption FullscreenOption = 
 {
@@ -1198,41 +1198,13 @@ static MenuOption VolumeOption =
 {
     OPTION_VALUES(
     {
-        "<00>    ", "<01>    ", "<02>    ", "<03>    ", 
-        "<04>    ", "<05>    ", "<06>    ", "<07>    ", 
-        "<08>    ", "<09>    ", "<10>    ", "<11>    ", 
-        "<12>    ", "<13>    ", "<14>    ", "<15>    ", 
+        "<00> ", "<01> ", "<02> ", "<03> ", 
+        "<04> ", "<05> ", "<06> ", "<07> ", 
+        "<08> ", "<09> ", "<10> ", "<11> ", 
+        "<12> ", "<13> ", "<14> ", "<15> ", 
     }),
     optionVolumeGet,
     optionVolumeSet,
-};
-
-// !TODO: temp var
-static s32 KeyboardPos = 0;
-
-static s32 optionKeyboardGet()
-{
-    // !TODO: not impelemnted
-    return KeyboardPos;
-}
-
-static void optionKeyboardSet(s32 pos)
-{
-    // !TODO: not impelemnted
-    KeyboardPos = pos;
-}
-
-static MenuOption KeyboardOption = 
-{
-    OPTION_VALUES(
-    {
-        "<QWERTY>", 
-        "<AZERTY>", 
-        "<QWERTZ>", 
-        "<QZERTY>", 
-    }),
-    optionKeyboardGet,
-    optionKeyboardSet,
 };
 
 static void showGamepadMenu();
@@ -1245,7 +1217,6 @@ static const MenuItem OptionMenu[] =
     {"VSYNC       ",    NULL,   &VSyncOption, "VSYNC needs restart!"},
     {"FULLSCREEN  ",    NULL,   &FullscreenOption},
     {"VOLUME      ",    NULL,   &VolumeOption},
-    {"KEYBOARD    ",    NULL,   &KeyboardOption},
     {"SETUP GAMEPAD",   showGamepadMenu},
     {"",                NULL},
     {"BACK",            showGameMenu},
@@ -1287,12 +1258,13 @@ static void showOptionsMenu()
 
 static const char* KeysList[] =
 {
+    "<...>  ",
     "<A>    ", "<B>    ", "<C>    ", "<D>    ", "<E>    ", "<F>    ", "<G>    ", "<H>    ", 
     "<I>    ", "<J>    ", "<K>    ", "<L>    ", "<M>    ", "<N>    ", "<O>    ", "<P>    ", 
     "<Q>    ", "<R>    ", "<S>    ", "<T>    ", "<U>    ", "<V>    ", "<W>    ", "<X>    ", 
     "<Y>    ", "<Z>    ", "<0>    ", "<1>    ", "<2>    ", "<3>    ", "<4>    ", "<5>    ", 
     "<6>    ", "<7>    ", "<8>    ", "<9>    ", "<->    ", "<=>    ", "<[>    ", "<]>    ", 
-    "<\\>    ","<;>    ", "<'>    ", "<`>    ", "<,>    ", "<.>    ", "</>    ", "< >    ", 
+    "<\\>    ","<;>    ", "<'>    ", "<`>    ", "<,>    ", "<.>    ", "</>    ", "<SPACE>", 
     "<TAB>  ", "<RET>  ", "<BACKS>", "<DEL>  ", "<INS>  ", "<PGUP> ", "<PGDN> ", "<HOME> ", 
     "<END>  ", "<UP>   ", "<DOWN> ", "<LEFT> ", "<RIGHT>", "<CAPS> ", "<CTRL> ", "<SHIFT>", 
     "<ALT>  ", "<ESC>  ", "<F1>   ", "<F2>   ", "<F3>   ", "<F4>   ", "<F5>   ", "<F6>   ", 
@@ -1301,26 +1273,26 @@ static const char* KeysList[] =
 
 static tic_mapping GamepadMapping;
 
-#define OPTION_KEY(KEY)                                 \
-                                                        \
-enum{KEY ## KeyIndex = __COUNTER__};                    \
-                                                        \
-static s32 option ## KEY ## KeyGet()                    \
-{                                                       \
-    return GamepadMapping.data[KEY ## KeyIndex] - 1;    \
-}                                                       \
-                                                        \
-static void option ## KEY ## KeySet(s32 pos)            \
-{                                                       \
-    GamepadMapping.data[KEY ## KeyIndex] = pos + 1;     \
-}                                                       \
-                                                        \
-static MenuOption KEY ## KeyOption =                    \
-{                                                       \
-    .values = KeysList,                                 \
-    .count = COUNT_OF(KeysList),                        \
-    option ## KEY ## KeyGet,                            \
-    option ## KEY ## KeySet,                            \
+#define OPTION_KEY(KEY)                             \
+                                                    \
+enum{KEY ## KeyIndex = __COUNTER__};                \
+                                                    \
+static s32 option ## KEY ## KeyGet()                \
+{                                                   \
+    return GamepadMapping.data[KEY ## KeyIndex];    \
+}                                                   \
+                                                    \
+static void option ## KEY ## KeySet(s32 pos)        \
+{                                                   \
+    GamepadMapping.data[KEY ## KeyIndex] = pos;     \
+}                                                   \
+                                                    \
+static MenuOption KEY ## KeyOption =                \
+{                                                   \
+    .values = KeysList,                             \
+    .count = COUNT_OF(KeysList),                    \
+    option ## KEY ## KeyGet,                        \
+    option ## KEY ## KeySet,                        \
 };
 
 OPTION_KEY(Up)
@@ -1332,13 +1304,15 @@ OPTION_KEY(B)
 OPTION_KEY(X)
 OPTION_KEY(Y)
 
-static void backGamepadMenu()
+static void saveGamepadMenu()
 {
     impl.config->data.options.mapping = GamepadMapping;
     showOptionsMenu();
 }
 
-static void showGamepadMenu()
+static void resetGamepadMenu();
+
+static void initGamepadMenu()
 {
     static const MenuItem GamepadMenu[] =
     {
@@ -1351,14 +1325,28 @@ static void showGamepadMenu()
         {"X      ", NULL, &XKeyOption},
         {"Y      ", NULL, &YKeyOption},
 
-        {"",        NULL},
-        {"BACK",    backGamepadMenu},
+        {"",                    NULL},
+        {"SAVE MAPPING",        saveGamepadMenu},
+        {"RESET TO DEFAULTS",   resetGamepadMenu},
+        {"BACK",                showOptionsMenu},
     };
 
-    GamepadMapping = impl.studio.tic->ram.mapping;
+    GamepadMapping = getConfig()->options.mapping;
 
     studio_menu_init(impl.menu, GamepadMenu, COUNT_OF(GamepadMenu), 
-        0, COUNT_OF(OptionMenu) - 3, backGamepadMenu, NULL);
+        0, COUNT_OF(OptionMenu) - 3, showOptionsMenu, NULL);
+}
+
+static void resetGamepadMenu()
+{
+    tic_sys_default_mapping(&GamepadMapping);
+    initGamepadMenu();
+}
+
+static void showGamepadMenu()
+{
+    GamepadMapping = getConfig()->options.mapping;
+    initGamepadMenu();
 }
 
 static inline bool pointInRect(const tic_point* pt, const tic_rect* rect)

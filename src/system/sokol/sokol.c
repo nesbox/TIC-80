@@ -126,6 +126,22 @@ void tic_sys_update_config()
 
 }
 
+void tic_sys_default_mapping(tic_mapping* mapping)
+{
+    *mapping = (tic_mapping)
+    {
+        tic_key_up,
+        tic_key_down,
+        tic_key_left,
+        tic_key_right,
+
+        tic_key_z, // a
+        tic_key_x, // b
+        tic_key_a, // x
+        tic_key_s, // y
+    };
+}
+
 bool tic_sys_keyboard_text(char* text)
 {
     *text = platform.keyboard.text;

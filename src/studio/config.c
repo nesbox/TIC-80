@@ -237,20 +237,10 @@ static void setDefault(Config* config)
             .volume     = MAX_VOLUME,
             .vsync      = true,
             .fullscreen = false,
-            .mapping    = (tic_mapping)
-            {
-                tic_key_up,
-                tic_key_down,
-                tic_key_left,
-                tic_key_right,
-
-                tic_key_z, // a
-                tic_key_x, // b
-                tic_key_a, // x
-                tic_key_s, // y
-            },
         },
     };
+
+    tic_sys_default_mapping(&config->data.options.mapping);
 
     {
         static const u8 ConfigZip[] =

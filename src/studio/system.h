@@ -60,6 +60,7 @@ void    tic_sys_open_path(const char* path);
 void    tic_sys_preseed();
 bool    tic_sys_keyboard_text(char* text);
 void    tic_sys_update_config();
+void    tic_sys_default_mapping(tic_mapping* mapping);
 
 #define CODE_COLORS_LIST(macro) \
     macro(BG)       \

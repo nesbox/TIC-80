@@ -995,13 +995,13 @@ static void processTouchInput()
 }
 #endif
 
+static const u32 KeyboardCodes[tic_keys_count] = 
+{
+    #include "keycodes.inl"
+};
+
 static void handleKeydown(SDL_Keycode keycode, bool down, bool* state)
 {
-    static const u32 KeyboardCodes[tic_keys_count] = 
-    {
-        #include "keycodes.inl"
-    };
-
     for(tic_key i = 0; i < COUNT_OF(KeyboardCodes); i++)
     {
         if(KeyboardCodes[i] == keycode)
@@ -1478,6 +1478,35 @@ void tic_sys_update_config()
 #endif
 }
 
+void tic_sys_default_mapping(tic_mapping* mapping)
+{
+    static const SDL_Scancode Scancodes[] = 
+    {
+        SDL_SCANCODE_UP,
+        SDL_SCANCODE_DOWN,
+        SDL_SCANCODE_LEFT,
+        SDL_SCANCODE_RIGHT,
+        SDL_SCANCODE_Z,
+        SDL_SCANCODE_X,
+        SDL_SCANCODE_A,
+        SDL_SCANCODE_S,
+    };
+
+    for(s32 s = 0; s < COUNT_OF(Scancodes); ++s)
+    {
+        SDL_Keycode keycode = SDL_GetKeyFromScancode(Scancodes[s]);
+
+        for(tic_key i = 0; i < COUNT_OF(KeyboardCodes); i++)
+        {
+            if(KeyboardCodes[i] == keycode)
+            {
+                mapping->data[s] = i;
+                break;
+            }
+        }
+    }
+}
+
 static void gpuTick()
 {
     tic_mem* tic = platform.studio->tic;
@@ -1576,6 +1605,7 @@ static void emsGpuTick()
 
 static s32 start(s32 argc, char **argv, const char* folder)
 {
+    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK);
     platform.studio = studioInit(argc, argv, TIC80_SAMPLERATE, folder);
 
     SCOPE(platform.studio->close())
@@ -1587,8 +1617,6 @@ static s32 start(s32 argc, char **argv, const char* folder)
         }
         else
         {
-            SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK);
-
             initSound();
 
             {
