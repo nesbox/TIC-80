@@ -374,6 +374,9 @@ static void tic_close_current_vm(tic_core* core)
         core->currentScript->close( (tic_mem*)core );
         core->currentVM = NULL;
     }
+    if (core->memory.ram == NULL) {
+        core->memory.ram = core->memory.base_ram;
+    }
 }
 
 static bool tic_init_vm(tic_core* core, const char* code, const tic_script_config* config)
@@ -704,6 +707,7 @@ tic_mem* tic_core_create(s32 samplerate)
 
     core->memory.ram = (tic_ram*)malloc(TIC_RAM_SIZE);
     memset(core->memory.ram, 0, sizeof(tic_ram));
+    core->memory.base_ram = core->memory.ram;
 
     core->memory.screen_format = TIC80_PIXEL_COLOR_RGBA8888;
     core->samplerate = samplerate;
