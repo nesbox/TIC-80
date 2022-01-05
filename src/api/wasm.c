@@ -764,27 +764,20 @@ m3ApiRawFunction(wasmtic_font)
 // id [note] [duration=-1] [channel=0] [volume=15] [speed=0]
 m3ApiRawFunction(wasmtic_sfx)
 {
-    m3ApiGetArg      (int32_t, id);
+    m3ApiGetArg      (int32_t, sfx_id);
     m3ApiGetArg      (int32_t, note);
+    m3ApiGetArg      (int32_t, octave);
     m3ApiGetArg      (int32_t, duration);
     m3ApiGetArg      (int32_t, channel);
-    m3ApiGetArg      (int32_t, volume);
+    m3ApiGetArg      (int32_t, volumeLeft);
+    m3ApiGetArg      (int32_t, volumeRight);
     m3ApiGetArg      (int32_t, speed);
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    // TODO: defaults...???
-
-    // allow passing separate volume somehow?
-    u8 volumes[2] = { volume, volume };
-
-    // TODO: allow passing string notes somehow?
-    note = id % NOTES;
-    u32 octave = id / NOTES;
-
     if (channel >= 0 && channel < TIC_SOUND_CHANNELS)
     {
-        tic_api_sfx(tic, id, note, octave, duration, channel, volumes[0] & 0xf, volumes[1] & 0xf, speed);
+        tic_api_sfx(tic, sfx_id, note, octave, duration, channel, volumeLeft & 0xf, volumeRight & 0xf, speed);
     }    
 
     m3ApiSuccess();
@@ -1001,8 +994,8 @@ M3Result linkTicAPI(IM3Module module)
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "print",   "i(*iiiiii)",    &wasmtic_print)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "rect",    "v(iiiii)",      &wasmtic_rect)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "rectb",   "v(iiiii)",      &wasmtic_rectb)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "sfx",     "v(iiiiii)",     &wasmtic_sfx)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "spr",     "v(iiiiiiiiii)",  &wasmtic_spr)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "sfx",     "v(iiiiiiii)",   &wasmtic_sfx)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "spr",     "v(iiiiiiiiii)", &wasmtic_spr)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "sync",    "v(iii)",        &wasmtic_sync)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "time",    "f()",           &wasmtic_time)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "tstamp",  "i()",           &wasmtic_tstamp)));
@@ -1077,8 +1070,8 @@ static bool initWasm(tic_mem* tic, const char* code)
 
     // our WASM runtime gets 128kb of RAM, the 96kb of TIC_80 plus an extra 32 because WASM only
     // works in 64kb chunks
-    runtime->memory.maxPages = 2;
-    ResizeMemory(runtime, 2);
+    runtime->memory.maxPages = 4;
+    ResizeMemory(runtime, 4);
 
     u8* low_ram =  (u8*)core->memory.ram;
     u8* wasm_ram = m3_GetMemory(runtime, NULL, 0);
