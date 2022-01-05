@@ -728,6 +728,29 @@ if(BUILD_DEMO_CARTS)
         add_custom_command(OUTPUT ${OUTNAME}
             COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/prj2cart ${CART_FILE} ${OUTPRJ} && ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${OUTPRJ} ${OUTNAME} -z
             DEPENDS bin2txt prj2cart ${CART_FILE}
+    )
+
+    endforeach(CART_FILE)
+
+    # we need to build these separatly combining both the project
+    # and the external WASM binary chunk since projects do not
+    # include BINARY chunks 
+    
+    file(GLOB WASM_DEMOS
+        ${CMAKE_SOURCE_DIR}/demos/wasm/*.wasmp
+    )
+
+    foreach(CART_FILE ${WASM_DEMOS})
+
+        get_filename_component(CART_NAME ${CART_FILE} NAME_WE)
+
+        set(OUTNAME ${CMAKE_SOURCE_DIR}/build/assets/${CART_NAME}.tic.dat)
+        set(WASM_BINARY ${CMAKE_SOURCE_DIR}/demos/wasm/${CART_NAME}.wasm)
+        set(OUTPRJ ${CMAKE_SOURCE_DIR}/build/${CART_NAME}.tic)
+        list(APPEND DEMO_CARTS_OUT ${OUTNAME})
+        add_custom_command(OUTPUT ${OUTNAME}
+            COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/prj2cart ${CART_FILE} ${OUTPRJ} --binary ${WASM_BINARY} && ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${OUTPRJ} ${OUTNAME} -z
+            DEPENDS ${CART_FILE} ${WASM_BINARY}
         )
 
     endforeach(CART_FILE)
@@ -873,6 +896,13 @@ add_library(tic80studio STATIC
     ${TIC80STUDIO_SRC} 
     ${DEMO_CARTS_OUT} 
     ${CMAKE_SOURCE_DIR}/build/assets/cart.png.dat)
+
+# add_custom_target(tic80demos
+#   DEPENDS ${DEMO_CARTS_OUT}
+# )
+# add_dependencies(tic80demos
+# add_library(tic80demos STATIC
+    # ${DEMO_CARTS_OUT})
 
 if(WIN32)
     target_include_directories(tic80studio PRIVATE ${THIRDPARTY_DIR}/dirent/include)

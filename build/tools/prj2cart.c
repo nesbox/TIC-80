@@ -22,62 +22,105 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "studio/project.h"
+
+struct Args {
+	char* project;
+	char* cartridge;
+	char* binarychunk;
+} args;
+
+int res = -1;
+
+void processArgs(int argc, char** argv) {
+	args.project = argv[1];
+	args.cartridge = argv[2];
+
+	if (argv[3] && strncmp(argv[3],"--binary", 8) == 0) {
+		if (!argv[4]) {
+			printf("--binary specified, but no filename given");
+			res = -1;
+		}
+		args.binarychunk = argv[4];
+	}
+}
+
+char * readFile(char* name, unsigned int* size) {
+	FILE* file = fopen(name, "rb");
+
+	if(!file) {
+		printf("cannot open file file\n");
+		return NULL;
+	}
+
+	fseek(file, 0, SEEK_END);
+	*size = ftell(file);
+	fseek(file, 0, SEEK_SET);
+
+	unsigned char* buffer = (unsigned char*)malloc(*size);
+
+	fread(buffer, size, 1, file);
+	fclose(file);
+
+	return buffer;
+}
 
 int main(int argc, char** argv)
 {
-	int res = -1;
+	processArgs(argc, argv);
 
-	if(argc == 3)
-	{
-		FILE* project = fopen(argv[1], "rb");
-
-		if(project)
-		{
-			fseek(project, 0, SEEK_END);
-			int size = ftell(project);
-			fseek(project, 0, SEEK_SET);
-
-			unsigned char* buffer = (unsigned char*)malloc(size);
-
-			if(buffer)
-			{
-				fread(buffer, size, 1, project);
-				fclose(project);
-
-				tic_cartridge* cart = calloc(1, sizeof(tic_cartridge));
-
-				tic_project_load(argv[1], buffer, size, cart);
-
-				FILE* cartFile = fopen(argv[2], "wb");
-
-				if(cartFile)
-				{
-					unsigned char* out = (unsigned char*)malloc(sizeof(tic_cartridge));
-
-					if(out)
-					{
-						int outSize = tic_cart_save(cart, out);
-
-						fwrite(out, outSize, 1, cartFile);
-
-						free(out);
-					}
-
-					fclose(cartFile);
-
-					res = 0;
-				}
-				else printf("cannot open cartridge file\n");
-
-				free(buffer);
-				free(cart);
-			}
-
-		}
-		else printf("cannot open project file\n");
+	if (!args.project || !args.cartridge) {
+		printf("usage: prj2cart <project> <cartridge> [--binary file.wasm]\n");
+		return res;
 	}
-	else printf("usage: prj2cart <project> <cartridge>\n");
+
+	int size;
+	char* project_contents = readFile(args.project, &size);
+	if (!project_contents) return res;
+
+	tic_cartridge* cart = calloc(1, sizeof(tic_cartridge));
+
+	tic_project_load(args.project, project_contents, size, cart);
+
+	FILE* cartFile = fopen(args.cartridge, "wb");
+
+	if(!cartFile) {
+		printf("cannot open cartridge file\n");
+		free(project_contents);
+		free(cart);
+		return res;
+	}
+
+	if (args.binarychunk) {
+		int wasm_size;
+		char* wasm_contents = readFile(args.binarychunk, &wasm_size);
+		if (!wasm_contents) {
+			printf("could not load WASM file\n");
+			return res;
+		}
+		memcpy(cart->binary.data, wasm_contents, wasm_size);
+		cart->binary.size = wasm_size;
+		free(wasm_contents);
+	}
+
+	unsigned char* out = (unsigned char*)malloc(sizeof(tic_cartridge));
+
+	if(out)
+	{
+		int outSize = tic_cart_save(cart, out);
+
+		fwrite(out, outSize, 1, cartFile);
+
+		free(out);
+	}
+
+	fclose(cartFile);
+
+	res = 0;
+
+	free(project_contents);
+	free(cart);
 
 	return res;
 }
