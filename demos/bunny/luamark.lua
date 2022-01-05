@@ -36,7 +36,7 @@ end
 
 function Bunny:update()
 	self.x = self.x + self.speedX
-	self.y = self.x + self.speedY
+	self.y = self.y + self.speedY
 
 	if (self.x + self.width > screenWidth) then
 		self.x = screenWidth - self.width
