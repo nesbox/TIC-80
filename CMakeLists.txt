@@ -738,14 +738,16 @@ if(BUILD_DEMO_CARTS)
     
     file(GLOB WASM_DEMOS
         ${CMAKE_SOURCE_DIR}/demos/wasm/*.wasmp
+        ${CMAKE_SOURCE_DIR}/demos/bunny/wasmmark/*.wasmp
     )
 
     foreach(CART_FILE ${WASM_DEMOS})
 
         get_filename_component(CART_NAME ${CART_FILE} NAME_WE)
+        get_filename_component(DIR ${CART_FILE} DIRECTORY)
 
         set(OUTNAME ${CMAKE_SOURCE_DIR}/build/assets/${CART_NAME}.tic.dat)
-        set(WASM_BINARY ${CMAKE_SOURCE_DIR}/demos/wasm/${CART_NAME}.wasm)
+        set(WASM_BINARY ${DIR}/${CART_NAME}.wasm)
         set(OUTPRJ ${CMAKE_SOURCE_DIR}/build/${CART_NAME}.tic)
         list(APPEND DEMO_CARTS_OUT ${OUTNAME})
         add_custom_command(OUTPUT ${OUTNAME}
