@@ -1679,6 +1679,12 @@ static void onImportCommand(Console* console)
         s32 size = 0;
         const void* data = tic_fs_load(console->fs, filename, &size);
 
+        char msg[TICNAME_MAX];
+        sprintf(msg, "filename %s", filename);
+        printError(console, msg);
+        sprintf(msg, "console->fs %s", console->fs);
+        printError(console, msg);
+
         if(data) SCOPE(free((void*)data))
         {
             static const struct Handler
