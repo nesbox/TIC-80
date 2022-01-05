@@ -98,7 +98,9 @@
 #define TIC_BANKS (1 << TIC_BANK_BITS)
 
 #define TIC_CODE_SIZE (TIC_BANK_SIZE * TIC_BANKS)
-#define TIC_BINARY_SIZE (64 * 1024)
+#define TIC_BINARY_BANKS 4           // 4 * 64k = 
+#define TIC_BINARY_SIZE (256 * 1024) // 256K
+
 
 #define TIC_BUTTONS 8
 #define TIC_GAMEPADS (sizeof(tic80_gamepads) / sizeof(tic80_gamepad))
