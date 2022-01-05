@@ -57,6 +57,8 @@
 #define KBD_COLS 22
 #define KBD_ROWS 17
 
+#define LOCK_MUTEX(MUTEX) SDL_LockMutex(MUTEX); SCOPE(SDL_UnlockMutex(MUTEX))
+
 enum 
 {
     tic_key_board = tic_keys_count + 1,
@@ -163,6 +165,7 @@ static struct
 
     struct
     {
+        SDL_mutex           *mutex;
         SDL_AudioSpec       spec;
         SDL_AudioDeviceID   device;
         s32                 bufferRemaining;
@@ -250,22 +253,27 @@ static void renderCopy(Renderer render, Texture tex, SDL_Rect src, SDL_Rect dst)
 
 static void audioCallback(void* userdata, u8* stream, s32 len)
 {
-    tic_mem* tic = platform.studio->tic;
-
-    while(len--)
+    LOCK_MUTEX(platform.audio.mutex)
     {
-        if (platform.audio.bufferRemaining <= 0)
-        {
-            platform.studio->sound();
-            platform.audio.bufferRemaining = tic->samples.size;
-        }
+        tic_mem* tic = platform.studio->tic;
 
-        *stream++ = ((u8*)tic->samples.buffer)[tic->samples.size - platform.audio.bufferRemaining--];
+        while(len--)
+        {
+            if (platform.audio.bufferRemaining <= 0)
+            {
+                platform.studio->sound();
+                platform.audio.bufferRemaining = tic->samples.size;
+            }
+
+            *stream++ = ((u8*)tic->samples.buffer)[tic->samples.size - platform.audio.bufferRemaining--];
+        }        
     }
 }
 
 static void initSound()
 {
+    platform.audio.mutex = SDL_CreateMutex();
+
     SDL_AudioSpec want =
     {
         .freq = TIC80_SAMPLERATE,
@@ -1521,7 +1529,11 @@ static void gpuTick()
         return;
     }
 
-    platform.studio->tick();
+    LOCK_MUTEX(platform.audio.mutex)
+    {
+        platform.studio->tick();
+    }
+
     renderClear(platform.screen.renderer);
     updateTextureBytes(platform.screen.texture, tic->screen, TIC80_FULLWIDTH, TIC80_FULLHEIGHT);
 
@@ -1687,6 +1699,8 @@ static s32 start(s32 argc, char **argv, const char* folder)
                 SDL_DestroyWindow(platform.window);
                 SDL_CloseAudioDevice(platform.audio.device);
             }
+
+            SDL_DestroyMutex(platform.audio.mutex);
         }
     }
 

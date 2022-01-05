@@ -359,7 +359,10 @@ const char* studioExportMusic(s32 track, const char* filename)
 
         tic_api_music(tic, track, -1, -1, false, editor->sustain, -1, -1);
 
-        while(state->flag.music_status == tic_music_play)
+        s32 frame = state->music.frame;
+        s32 frames = MUSIC_FRAMES * 16;
+
+        while(frames && state->flag.music_status == tic_music_play)
         {
             tic_core_tick_start(tic);
 
@@ -371,9 +374,17 @@ const char* studioExportMusic(s32 track, const char* filename)
             tic_core_synth_sound(tic);
 
             wave_write(tic->samples.buffer, tic->samples.size / sizeof(s16));
+
+            if(frame != state->music.frame)
+            {
+                --frames;
+                frame = state->music.frame;
+            }
         }
 
-        wave_close();        
+        tic_api_music(tic, -1, -1, -1, false, false, -1, -1);
+
+        wave_close();
         return path;
     }
 
