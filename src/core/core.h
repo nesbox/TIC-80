@@ -108,6 +108,7 @@ typedef struct
     struct 
     {
         tic80_keyboard previous;
+        tic80_keyboard now;
 
         u32 holds[tic_keys_count];
     } keyboard;

@@ -294,7 +294,18 @@ void tic_api_reset(tic_mem* memory)
 {
     tic_core* core = (tic_core*)memory;
 
+    // keyboard state is critical and must be preserved across API resets.
+    // Often `tic_api_reset` is called to effect transitions between modes
+    // yet we still need to know when the key WAS pressed after the
+    // transition - to prevent it from counting as a second keypress.
+    //
+    // So why presev `now` not `previous`?  this is most often called in
+    // the middle of a tick... so we preserve now, which during `tick_end`
+    // is copied to previous. This duplicates the prior behavior of
+    // `ram.input.keyboard` (which existing outside `state`).
+    u32 kb_now = core->state.keyboard.now.data;
     ZEROMEM(core->state);
+    core->state.keyboard.now.data = kb_now;
     tic_api_clip(memory, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
 
     resetVbank(memory);
@@ -495,10 +506,17 @@ void tic_core_close(tic_mem* memory)
 
 void tic_core_tick_start(tic_mem* memory)
 {
+    tic_core* core = (tic_core*)memory;
     tic_core_sound_tick_start(memory);
     tic_core_tick_io(memory);
 
-    tic_core* core = (tic_core*)memory;
+    // SECURITY: preserve the system keyboard input state (and restore it
+    // post-tick, see below) to prevent user cartridges from being able to
+    // corrupt and take control of the keyboard in nefarious ways.
+    //
+    // Related: https://github.com/nesbox/TIC-80/issues/1785
+    core->state.keyboard.now.data = core->memory.ram.input.keyboard.data;
+
     core->state.synced = 0;
 }
 
@@ -508,7 +526,10 @@ void tic_core_tick_end(tic_mem* memory)
     tic80_input* input = &core->memory.ram.input;
 
     core->state.gamepads.previous.data = input->gamepads.data;
-    core->state.keyboard.previous.data = input->keyboard.data;
+    // SECURITY: we do not use `memory.ram.input` here because it is
+    // untrustworthy since the cartridge could have modified it to 
+    // inject artificial keyboard events.
+    core->state.keyboard.previous.data = core->state.keyboard.now.data;
 
     tic_core_sound_tick_end(memory);
 }
