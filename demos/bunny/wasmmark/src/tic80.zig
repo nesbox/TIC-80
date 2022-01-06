@@ -88,6 +88,7 @@ pub const OVR_TRANSPARENCY: *u8 = @intToPtr(*u8, 0x3FF8);
 
 pub const raw = struct {
     extern fn btn(id: i32) i32;
+    extern fn btnp(id: i32, hold: i32, period: i32 ) bool;
     extern fn clip(x: i32, y: i32, w: i32, h: i32) void;
     extern fn cls(color: i32) void; 
     extern fn circ(x: i32, y: i32, radius: i32, color: i32) void;
@@ -98,6 +99,7 @@ pub const raw = struct {
     extern fn fget(id: i32, flag: u8) bool;
     extern fn font(text: [*:0]u8, x: u32, y: i32, trans_color: i32, char_width: i32, char_height: i32, fixed: bool, scale: i32) i32;
     extern fn fset(id: i32, flag: u8, value: bool) bool;
+    extern fn key(keycode: i32) bool;
     extern fn line(x0: i32, y0: i32, x1: i32, y1: i32, color: i32) void;
     extern fn map(x: i32, y: i32, w: i32, h: i32, sx: i32, sy: i32, trans_colors: ?[*]const u8, colorCount: i32, scale: i32, remap: i32) void;
     extern fn memcpy(to: u32, from: u32, length: u32) void;
@@ -145,13 +147,25 @@ const MouseData = extern struct {
   right: bool,
 };
 
-pub extern fn btnp(id: i32, hold: i32, period: i32 ) bool;
-pub extern fn key(keycode: i32) bool;
+
 pub extern fn keyp(keycode: i32, hold: i32, period: i32 ) bool;
+// extern fn btnp(id: i32, hold: i32, period: i32 ) bool;
+
+pub const key = raw.key;
+pub const held = raw.btnp;
+
+pub fn pressed(id: i32) bool {
+    return raw.btnp(id, -1, -1);
+}
 
 pub fn btn(id: i32) bool {
     return raw.btn(id) != 0;
 }
+
+pub fn anybtn() bool {
+    return raw.btn(-1) != 0;
+}
+
 
 // -----------------
 // DRAW / DRAW UTILS
