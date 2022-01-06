@@ -309,7 +309,7 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
             y + TextMargin + ItemHeight * (i - menu->pos) - menu->anim.pos, width, TIC_FONT_HEIGHT};
 
         bool down = false;
-        if(animIdle(menu) && checkMousePos(&rect))
+        if(animIdle(menu) && checkMousePos(&rect) && (it->handler || it->option))
         {
             setCursor(tic_cursor_hand);
 
