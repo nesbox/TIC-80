@@ -1229,8 +1229,8 @@ static const MenuItem OptionMenu[] =
     {"FULLSCREEN  ",    NULL,   &FullscreenOption},
     {"VOLUME      ",    NULL,   &VolumeOption},
     {"SETUP GAMEPAD",   showGamepadMenu},
-    {"",                NULL},
-    {"BACK",            showGameMenu},
+    {""},
+    {"BACK",            showGameMenu, .back = true},
 };
 
 static void showOptionsMenu();
@@ -1243,7 +1243,7 @@ static const MenuItem GameMenu[] =
     {"RESET GAME",  resetGame},
     {"RESUME GAME", hideGameMenu},
     {"OPTIONS",     showOptionsMenu},
-    {"",            NULL},
+    {""},
     {"QUIT TIC-80", exitStudio},
 };
 
@@ -1264,7 +1264,7 @@ static void showOptionsMenu()
 {
     enum{Count = COUNT_OF(OptionMenu)};
     studio_menu_init(impl.menu, OptionMenu, 
-        Count, Count - 5, COUNT_OF(GameMenu) - 3, showGameMenu, NULL);
+        Count, Count - 4, COUNT_OF(GameMenu) - 3, showGameMenu, NULL);
 }
 
 static const char* KeysList[] =
@@ -1336,10 +1336,10 @@ static void initGamepadMenu()
         {"X      ", NULL, &XKeyOption},
         {"Y      ", NULL, &YKeyOption},
 
-        {"",                    NULL},
+        {""},
         {"SAVE MAPPING",        saveGamepadMenu},
         {"RESET TO DEFAULTS",   resetGamepadMenu},
-        {"BACK",                showOptionsMenu},
+        {"BACK",                showOptionsMenu, .back = true},
     };
 
     GamepadMapping = getConfig()->options.mapping;
