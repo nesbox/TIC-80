@@ -1271,8 +1271,9 @@ static void onChangeDirectory(Console* console)
             tic_fs_isdir_async(console->fs, param, onChangeDirectoryDone, MOVE(data));
             return;
         }
+    } else {
+        tic_fs_homedir(console->fs);
     }
-    else printBack(console, "\ninvalid dir name");
 
     commandDone(console);
 }
