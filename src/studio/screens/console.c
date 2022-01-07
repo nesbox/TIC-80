@@ -3553,11 +3553,15 @@ static void processKeyboard(Console* console)
             tic_keycode clearKey = tic_key_k;
 #       endif
 
-        if(tic_api_key(tic, tic_key_ctrl)
-            && keyWasPressed(clearKey))
-        {
-            onClsCommand(console);
-            return;
+        bool modifier_CTRL = tic_api_key(tic, tic_key_ctrl);
+
+        if (modifier_CTRL) {
+            if (keyWasPressed(tic_key_a)) processConsoleHome(console);
+            else if (keyWasPressed(tic_key_e)) processConsoleEnd(console);
+            else if (keyWasPressed(clearKey)) {
+                onClsCommand(console);
+                return;
+            }
         }
     }
 
