@@ -108,9 +108,14 @@ void tic_api_poke2(tic_mem* memory, s32 address, u8 value)
     tic_api_poke(memory, address, value, 2);
 }
 
-void tic_api_poke4(tic_mem* memory, s32 address, u8 value)
+// This is a hot path and used by almost all our internal drawing code so
+// it gains a real 10-15% performance boost from not going thru the same
+// `tic_api_poke` abstraction as the other poke* API calls do.
+void tic_api_poke4(tic_mem* memory, u32 address, u8 value)
 {
-    tic_api_poke(memory, address, value, 4);
+    const u8* ram = (u8*)&memory->ram;
+    enum{RamBits = sizeof(tic_ram) * BITS_IN_BYTE};
+    if(address < RamBits / 4) return tic_tool_poke4(ram, address, value);
 }
 
 void tic_api_memcpy(tic_mem* memory, s32 dst, s32 src, s32 size)

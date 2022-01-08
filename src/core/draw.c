@@ -159,11 +159,11 @@ static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors
         y += sy;
         x += sx;
         switch (orientation) {
+        case 0b000: DRAW_TILE_BODY(px, py); break;
         case 0b100: DRAW_TILE_BODY(py, px); break;
         case 0b110: DRAW_TILE_BODY(REVERT(py), px); break;
         case 0b101: DRAW_TILE_BODY(py, REVERT(px)); break;
         case 0b111: DRAW_TILE_BODY(REVERT(py), REVERT(px)); break;
-        case 0b000: DRAW_TILE_BODY(px, py); break;
         case 0b010: DRAW_TILE_BODY(px, REVERT(py)); break;
         case 0b001: DRAW_TILE_BODY(REVERT(px), py); break;
         case 0b011: DRAW_TILE_BODY(REVERT(px), REVERT(py)); break;

@@ -481,7 +481,7 @@ enum
         2,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 address, u8 value)                                                                                \
+        tic_mem*, u32 address, u8 value)                                                                                \
                                                                                                                         \
                                                                                                                         \
     macro(memcpy,                                                                                                       \
