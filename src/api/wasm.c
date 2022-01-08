@@ -1083,10 +1083,8 @@ static bool initWasm(tic_mem* tic, const char* code)
         return false;
     }
 
-    // our WASM runtime gets 128kb of RAM, the 96kb of TIC_80 plus an extra 32 because WASM only
-    // works in 64kb chunks
-    runtime->memory.maxPages = 4;
-    ResizeMemory(runtime, 4);
+    runtime->memory.maxPages = TIC_WASM_PAGE_COUNT;
+    ResizeMemory(runtime, TIC_WASM_PAGE_COUNT);
 
     u8* low_ram =  (u8*)core->memory.ram;
     u8* wasm_ram = m3_GetMemory(runtime, NULL, 0);
