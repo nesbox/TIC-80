@@ -1115,8 +1115,8 @@ static void onNewCommandConfirmed(Console* console)
     }
     else
     {
-        loadDemo(console, 0);
-        done = true;
+        printError(console, "\nerror: choose a language for the new cart.");
+        printUsage(console, console->desc->command);
     }
 
     if(done) printBack(console, "\nnew cart has been created");
@@ -2549,7 +2549,7 @@ static const char HelpUsage[] = "help [<text>"
     macro("new",                                                                        \
         NULL,                                                                           \
         "creates a new `Hello World` cartridge.",                                       \
-        "new [$LANG_NAMES_PIPE$]",                                                      \
+        "new <$LANG_NAMES_PIPE$>",                                                      \
         onNewCommand)                                                                   \
                                                                                         \
     macro("load",                                                                       \
