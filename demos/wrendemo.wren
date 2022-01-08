@@ -6,7 +6,6 @@
 // version: 0.1
 // script:  wren
 
-
 class Game is TIC{
 
 	construct new(){
