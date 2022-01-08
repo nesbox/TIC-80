@@ -1,8 +1,11 @@
-;; title:  game title
-;; author: game developer
-;; desc:   short description
-;; script: fennel
-;; strict: true
+;; title:   game title
+;; author:  game developer, email, etc.
+;; desc:    short description
+;; site:    website link
+;; license: MIT License (change this to your license of choice)
+;; version: 0.1
+;; script:  fennel
+;; strict:  true
 
 (var t 0)
 (var x 96)
