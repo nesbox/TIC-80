@@ -1031,10 +1031,18 @@ static void closeWasm(tic_mem* tic)
 
     if(core->currentVM)
     {
-        // this is necessary because of how TIC-80 processes keyboard
-        // input so it doesn't get confused about which keys are held
-        // because it compares tic->state with tic->ram for some
-        // of that so we can't just swap out the mem without copying
+        // this is necessary because when TIC-80 calls tic_reset_api, we
+        // may not even have a VM.  Because the [non WASM] VM isn't
+        // initialized yet when loading a new cartridge the "init" steps
+        // are being applied to the WASM RAM, not the base RAM, so as we're
+        // on our way out we need to copy the our lower 96kb back into base
+        // RAM to close this loophole
+
+        // TODO: This could also be fixed by correcting the sequencing such
+        // that prior VMs were released before starting the init process
+        // for an entirely different VM.  This sequencing matters a lot
+        // less if one assumes (like before) that all the VMs share a
+        // common memory area.
         u8* low_ram =  (u8*)core->memory.base_ram;
         u8* wasm_ram = m3_GetMemory(core->currentVM, NULL, 0);
         memcpy(low_ram, wasm_ram, TIC_RAM_SIZE);
