@@ -6,7 +6,6 @@
 # version: 0.1
 # script:  ruby
 
-
 $t=0
 $x=96
 $y=24
