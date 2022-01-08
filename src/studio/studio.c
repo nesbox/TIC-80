@@ -1148,8 +1148,8 @@ static void optionFullscreenSet(s32 pos)
     tic_sys_fullscreen_set(impl.config->data.options.fullscreen = (pos == 1));
 }
 
-static const char OffValue[] =  "<OFF>";
-static const char OnValue[] =   "<ON> ";
+static const char OffValue[] =  "OFF";
+static const char OnValue[] =   "ON";
 
 static MenuOption FullscreenOption = 
 {
@@ -1209,10 +1209,10 @@ static MenuOption VolumeOption =
 {
     OPTION_VALUES(
     {
-        "<00> ", "<01> ", "<02> ", "<03> ", 
-        "<04> ", "<05> ", "<06> ", "<07> ", 
-        "<08> ", "<09> ", "<10> ", "<11> ", 
-        "<12> ", "<13> ", "<14> ", "<15> ", 
+        "00", "01", "02", "03", 
+        "04", "05", "06", "07", 
+        "08", "09", "10", "11", 
+        "12", "13", "14", "15", 
     }),
     optionVolumeGet,
     optionVolumeSet,
@@ -1223,11 +1223,11 @@ static void showGamepadMenu();
 static const MenuItem OptionMenu[] =
 {
 #if defined(CRT_SHADER_SUPPORT)
-    {"CRT MONITOR ",    NULL,   &CrtMonitorOption},
+    {"CRT MONITOR",     NULL,   &CrtMonitorOption},
 #endif
-    {"VSYNC       ",    NULL,   &VSyncOption, "VSYNC needs restart!"},
-    {"FULLSCREEN  ",    NULL,   &FullscreenOption},
-    {"VOLUME      ",    NULL,   &VolumeOption},
+    {"VSYNC",           NULL,   &VSyncOption, "VSYNC needs restart!"},
+    {"FULLSCREEN",      NULL,   &FullscreenOption},
+    {"VOLUME",          NULL,   &VolumeOption},
     {"SETUP GAMEPAD",   showGamepadMenu},
     {""},
     {"BACK",            showGameMenu, .back = true},
@@ -1269,17 +1269,17 @@ static void showOptionsMenu()
 
 static const char* KeysList[] =
 {
-    "<...>  ",
-    "<A>    ", "<B>    ", "<C>    ", "<D>    ", "<E>    ", "<F>    ", "<G>    ", "<H>    ", 
-    "<I>    ", "<J>    ", "<K>    ", "<L>    ", "<M>    ", "<N>    ", "<O>    ", "<P>    ", 
-    "<Q>    ", "<R>    ", "<S>    ", "<T>    ", "<U>    ", "<V>    ", "<W>    ", "<X>    ", 
-    "<Y>    ", "<Z>    ", "<0>    ", "<1>    ", "<2>    ", "<3>    ", "<4>    ", "<5>    ", 
-    "<6>    ", "<7>    ", "<8>    ", "<9>    ", "<->    ", "<=>    ", "<[>    ", "<]>    ", 
-    "<\\>    ","<;>    ", "<'>    ", "<`>    ", "<,>    ", "<.>    ", "</>    ", "<SPACE>", 
-    "<TAB>  ", "<RET>  ", "<BACKS>", "<DEL>  ", "<INS>  ", "<PGUP> ", "<PGDN> ", "<HOME> ", 
-    "<END>  ", "<UP>   ", "<DOWN> ", "<LEFT> ", "<RIGHT>", "<CAPS> ", "<CTRL> ", "<SHIFT>", 
-    "<ALT>  ", "<ESC>  ", "<F1>   ", "<F2>   ", "<F3>   ", "<F4>   ", "<F5>   ", "<F6>   ", 
-    "<F7>   ", "<F8>   ", "<F9>   ", "<F10>  ", "<F11>  ", "<F12>  ",
+    "...",
+    "A",    "B",    "C",    "D",    "E",    "F",    "G",    "H", 
+    "I",    "J",    "K",    "L",    "M",    "N",    "O",    "P", 
+    "Q",    "R",    "S",    "T",    "U",    "V",    "W",    "X", 
+    "Y",    "Z",    "0",    "1",    "2",    "3",    "4",    "5", 
+    "6",    "7",    "8",    "9",    "-",    "=",    "[",    "]", 
+    "\\",   ";",    "'",    "`",    ",",    ".",    "/",    "SPACE", 
+    "TAB",  "RET",  "BACKS","DEL",  "INS",  "PGUP", "PGDN", "HOME", 
+    "END",  "UP",   "DOWN", "LEFT", "RIGHT","CAPS", "CTRL", "SHIFT", 
+    "ALT",  "ESC",  "F1",   "F2",   "F3",   "F4",   "F5",   "F6", 
+    "F7",   "F8",   "F9",   "F10",  "F11",  "F12",
 };
 
 static tic_mapping GamepadMapping;
@@ -1327,14 +1327,14 @@ static void initGamepadMenu()
 {
     static const MenuItem GamepadMenu[] =
     {
-        {"UP     ", NULL, &UpKeyOption},
-        {"DOWN   ", NULL, &DownKeyOption},
-        {"LEFT   ", NULL, &LeftKeyOption},
-        {"RIGHT  ", NULL, &RightKeyOption},
-        {"A      ", NULL, &AKeyOption},
-        {"B      ", NULL, &BKeyOption},
-        {"X      ", NULL, &XKeyOption},
-        {"Y      ", NULL, &YKeyOption},
+        {"UP",      NULL, &UpKeyOption},
+        {"DOWN",    NULL, &DownKeyOption},
+        {"LEFT",    NULL, &LeftKeyOption},
+        {"RIGHT",   NULL, &RightKeyOption},
+        {"A",       NULL, &AKeyOption},
+        {"B",       NULL, &BKeyOption},
+        {"X",       NULL, &XKeyOption},
+        {"Y",       NULL, &YKeyOption},
 
         {""},
         {"SAVE MAPPING",        saveGamepadMenu},

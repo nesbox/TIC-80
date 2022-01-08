@@ -32,11 +32,11 @@ void studio_menu_tick(Menu* menu);
 
 typedef struct
 {
-	const char** values;
-	s32 count;
+    const char** values;
+    s32 count;
     s32(*get)();
     void(*set)(s32);
-	s32 pos;
+    s32 pos;
 } MenuOption;
 
 typedef struct
@@ -47,6 +47,7 @@ typedef struct
     MenuOption* option;
     const char* help;
     bool back;
+    s32 width;
 } MenuItem;
 
 void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, s32 backPos, void(*back)(void*), void* data);

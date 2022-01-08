@@ -86,6 +86,12 @@ struct Menu
         ANIM_STATES(ANIM_MOVIE)
 
     } anim;
+
+    struct
+    {
+        s32 item;
+        s32 option;
+    } maxwidth;
 };
 
 #define BG_ANIM_COLOR tic_color_dark_grey
@@ -234,6 +240,35 @@ static void onMenuItem(Menu* menu, const MenuItem* item)
     resetMovie(menu, item->back ? &menu->anim.back : &menu->anim.close);
 }
 
+static void drawOptionArrow(Menu* menu, MenuOption* option, s32 x, s32 y, s32 icon, s32 delta)
+{
+    tic_rect left = {x - 1, y, TIC_FONT_WIDTH, TIC_FONT_HEIGHT};
+    bool down = false;
+    bool over = false;
+    if(checkMousePos(&left))
+    {
+        over = true;
+        setCursor(tic_cursor_hand);
+        down = checkMouseDown(&left, tic_mouse_left);
+
+        if(checkMouseClick(&left, tic_mouse_left))
+        {
+            playSystemSfx(2);
+            updateOption(option, delta);
+        }
+    }
+
+    if(down)
+    {
+        drawBitIcon(icon, left.x, left.y, tic_color_white);
+    }
+    else
+    {
+        drawBitIcon(icon, left.x, left.y, tic_color_black);
+        drawBitIcon(icon, left.x, left.y - 1, over ? tic_color_white : tic_color_light_grey);
+    }
+}
+
 static void drawMenu(Menu* menu, s32 x, s32 y)
 {
     if (getStudioMode() != TIC_MENU_MODE)
@@ -298,33 +333,24 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
     }
 
     s32 i = 0;
-    char buf[TICNAME_MAX];
     for(const MenuItem *it = menu->items, *end = it + menu->count; it != end; ++it, ++i)
     {
-        s32 width = (it->option
-            ? sprintf(buf, "%s%s", it->label, it->option->values[it->option->pos])
-            : sprintf(buf, "%s", it->label)) * TIC_FONT_WIDTH;
+        s32 width = it->option ? menu->maxwidth.item + menu->maxwidth.option + 3 * TIC_FONT_WIDTH : it->width;
 
         tic_rect rect = {x + (TIC80_WIDTH - width) / 2 + menu->anim.offset, 
-            y + TextMargin + ItemHeight * (i - menu->pos) - menu->anim.pos, width, TIC_FONT_HEIGHT};
+            y + TextMargin + ItemHeight * (i - menu->pos) - menu->anim.pos, it->width, TIC_FONT_HEIGHT};
 
         bool down = false;
-        if(animIdle(menu) && checkMousePos(&rect) && (it->handler || it->option))
+        if(animIdle(menu) && checkMousePos(&rect) && it->handler)
         {
             setCursor(tic_cursor_hand);
 
-            if(checkMouseDown(&rect, tic_mouse_left) || checkMouseDown(&rect, tic_mouse_right))
+            if(checkMouseDown(&rect, tic_mouse_left))
                 down = true;
 
-            bool left = checkMouseClick(&rect, tic_mouse_left);
-            if(left || checkMouseClick(&rect, tic_mouse_right))
+            if(checkMouseClick(&rect, tic_mouse_left))
             {
-                if(it->option)
-                {
-                    playSystemSfx(2);
-                    updateOption(it->option, left ? +1 : -1);
-                }
-                else if(it->handler)
+                if(it->handler)
                 {
                     menu->pos = i;
                     onMenuItem(menu, it);
@@ -333,9 +359,19 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
         }
 
         if(down)
-            tic_api_print(tic, buf, rect.x, rect.y + 1, tic_color_white, true, 1, false);
+            tic_api_print(tic, it->label, rect.x, rect.y + 1, tic_color_white, true, 1, false);
         else
-            printShadow(tic, buf, rect.x, rect.y, tic_color_white);
+            printShadow(tic, it->label, rect.x, rect.y, tic_color_white);
+
+        if(it->option)
+        {
+            drawOptionArrow(menu, it->option, rect.x + menu->maxwidth.item + TIC_FONT_WIDTH, rect.y, tic_icon_left, -1);
+            drawOptionArrow(menu, it->option, 
+                rect.x + menu->maxwidth.item + menu->maxwidth.option + 2 * TIC_FONT_WIDTH, rect.y, tic_icon_right, +1);
+
+            printShadow(tic, it->option->values[it->option->pos], 
+                rect.x + menu->maxwidth.item + 2 * TIC_FONT_WIDTH, rect.y, tic_color_yellow);
+        }
     }
 }
 
@@ -470,7 +506,7 @@ void studio_menu_tick(Menu* menu)
 
     VBANK(tic, 1)
     {
-        tic_api_cls(tic, tic->ram.vram.vars.clear = tic_color_yellow);
+        tic_api_cls(tic, tic->ram.vram.vars.clear = tic_color_blue);
         memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
 
         drawCursor(menu, 0, (TIC80_HEIGHT - ItemHeight) / 2);
@@ -500,8 +536,24 @@ void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, s32 
 
     memcpy(menu->items, items, size);
     for(MenuItem *it = menu->items, *end = it + menu->count; it != end; ++it)
+    {
+        it->width = strlen(it->label) * TIC_FONT_WIDTH;
+
         if(it->option)
+        {
+            if(menu->maxwidth.item < it->width)
+                menu->maxwidth.item = it->width;
+
+            for(const char **opt = it->option->values, **end = opt + it->option->count; opt != end; ++opt)
+            {
+                s32 len = strlen(*opt) * TIC_FONT_WIDTH;
+                if(menu->maxwidth.option < len)
+                    menu->maxwidth.option = len;
+            }
+
             it->option->pos = it->option->get();
+        }
+    }
 
     resetMovie(menu, &menu->anim.start);
 }
