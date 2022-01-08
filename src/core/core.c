@@ -510,12 +510,14 @@ void tic_core_tick_start(tic_mem* memory)
     tic_core_sound_tick_start(memory);
     tic_core_tick_io(memory);
 
-    // SECURITY: preserve the system keyboard input state (and restore it
-    // post-tick, see below) to prevent user cartridges from being able to
-    // corrupt and take control of the keyboard in nefarious ways.
+    // SECURITY: preserve the system keyboard/game controller input state
+    // (and restore it post-tick, see below) to prevent user cartridges
+    // from being able to corrupt and take control of the inputs in
+    // nefarious ways.
     //
     // Related: https://github.com/nesbox/TIC-80/issues/1785
     core->state.keyboard.now.data = core->memory.ram.input.keyboard.data;
+    core->state.gamepads.now.data = core->memory.ram.input.gamepads.data;
 
     core->state.synced = 0;
 }
@@ -528,8 +530,9 @@ void tic_core_tick_end(tic_mem* memory)
     core->state.gamepads.previous.data = input->gamepads.data;
     // SECURITY: we do not use `memory.ram.input` here because it is
     // untrustworthy since the cartridge could have modified it to 
-    // inject artificial keyboard events.
+    // inject artificial keyboard/gamepad events.
     core->state.keyboard.previous.data = core->state.keyboard.now.data;
+    core->state.gamepads.previous.data = core->state.gamepads.now.data;
 
     tic_core_sound_tick_end(memory);
 }
