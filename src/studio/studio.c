@@ -1990,6 +1990,9 @@ static void renderStudio()
         tic_core_tick_start(tic);
     }
 
+    // SECURITY: It's important that this comes before `tick` and not after
+    // to prevent misbehaving cartridges from having an opportunity to
+    // tamper with the keyboard input.
     processShortcuts();
 
     // clear screen for all the modes except the Run mode

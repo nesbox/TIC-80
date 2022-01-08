@@ -101,6 +101,7 @@ typedef struct
     struct
     {
         tic80_gamepads previous;
+        tic80_gamepads now;
 
         u32 holds[sizeof(tic80_gamepads) * BITS_IN_BYTE];
     } gamepads;
@@ -108,6 +109,7 @@ typedef struct
     struct 
     {
         tic80_keyboard previous;
+        tic80_keyboard now;
 
         u32 holds[tic_keys_count];
     } keyboard;
