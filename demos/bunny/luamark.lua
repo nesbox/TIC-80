@@ -1,6 +1,7 @@
 -- title: Bunnymark in Lua
 -- author: Rabia Alhaffar
 -- desc: Benchmarking tool to see how many bunnies can fly around the screen, using Lua.
+-- license: MIT License 
 -- input: gamepad
 -- script: lua
 -- version: 1.1.0
