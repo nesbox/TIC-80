@@ -59,6 +59,23 @@ static void setloaded(lua_State* l, char* name)
     lua_settop(l, top);
 }
 
+static void evalMoonscript(tic_mem* tic, const char* code) {
+    tic_core* core = (tic_core*)tic;
+    lua_State* lua = core->currentVM;
+
+    lua_getglobal(lua, "_ms_loadstring");
+
+    lua_pushstring(lua, code);
+    if (lua_pcall(lua, 1, 1, 0) != LUA_OK)
+    {
+        const char* msg = lua_tostring(lua, -1);
+        if (msg)
+        {
+            core->data->error(core->data->data, msg);
+        }
+    }
+}
+
 static bool initMoonscript(tic_mem* tic, const char* code)
 {
     tic_core* core = (tic_core*)tic;
@@ -73,7 +90,7 @@ static bool initMoonscript(tic_mem* tic, const char* code)
     initLuaAPI(core);
 
     {
-        lua_State* moon = core->currentVM;
+        lua_State* moon = lua;
 
         lua_settop(moon, 0);
 
@@ -90,6 +107,9 @@ static bool initMoonscript(tic_mem* tic, const char* code)
             core->data->error(core->data->data, "failed to load moonscript compiler");
             return false;
         }
+
+        lua_setglobal(lua, "_ms_loadstring");
+        lua_getglobal(lua, "_ms_loadstring");
 
         lua_pushstring(moon, code);
         if (lua_pcall(moon, 1, 1, 0) != LUA_OK)
@@ -183,7 +203,7 @@ tic_script_config MoonSyntaxConfig =
     },
 
     .getOutline         = getMoonOutline,
-    .eval               = NULL,
+    .eval               = evalMoonscript,
 
     .blockCommentStart  = NULL,
     .blockCommentEnd    = NULL,
