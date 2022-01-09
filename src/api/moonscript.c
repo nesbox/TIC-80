@@ -29,6 +29,8 @@
 
 #if defined(TIC_BUILD_WITH_MOON)
 
+static const char _ms_loadstring[] = "_ms_loadstring";
+
 static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
 
 #include "moonscript.h"
@@ -63,7 +65,7 @@ static void evalMoonscript(tic_mem* tic, const char* code) {
     tic_core* core = (tic_core*)tic;
     lua_State* lua = core->currentVM;
 
-    lua_getglobal(lua, "_ms_loadstring");
+    lua_getglobal(lua, _ms_loadstring);
 
     lua_pushstring(lua, code);
     if (lua_pcall(lua, 1, 1, 0) != LUA_OK)
@@ -108,8 +110,8 @@ static bool initMoonscript(tic_mem* tic, const char* code)
             return false;
         }
 
-        lua_setglobal(lua, "_ms_loadstring");
-        lua_getglobal(lua, "_ms_loadstring");
+        lua_setglobal(lua, _ms_loadstring);
+        lua_getglobal(lua, _ms_loadstring);
 
         lua_pushstring(moon, code);
         if (lua_pcall(moon, 1, 1, 0) != LUA_OK)
