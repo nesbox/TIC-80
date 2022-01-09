@@ -107,7 +107,6 @@ pub extern fn mouse(data: *MouseData) void;
 // DRAW / DRAW UTILS
 
 pub extern fn clip(x: i32, y: i32, w: i32, h: i32) void;
-pub extern fn noclip() void;
 pub extern fn cls(color: i32) void; // from WASM
 pub extern fn circ(x: i32, y: i32, radius: i32, color: i32) void;
 pub extern fn circb(x: i32, y: i32, radius: i32, color: i32) void;
