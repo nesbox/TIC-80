@@ -155,8 +155,6 @@ const MouseData = extern struct {
   right: bool,
 };
 
-pub 
-
 pub const key = raw.key;
 // TODO: nicer API?
 pub const keyp = raw.keyp;
