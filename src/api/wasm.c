@@ -589,6 +589,7 @@ m3ApiRawFunction(wasmtic_pmem)
 
 m3ApiRawFunction(wasmtic_pix)
 {
+    m3ApiReturnType  (u8)
 
     m3ApiGetArg      (int32_t, x)
     m3ApiGetArg      (int32_t, y)
@@ -597,7 +598,8 @@ m3ApiRawFunction(wasmtic_pix)
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
     bool getPixel = color < 0;
-    tic_api_pix(tic, x, y, color, getPixel);
+    u8 pix = tic_api_pix(tic, x, y, color, getPixel);
+    m3ApiReturn(pix);
 
     m3ApiSuccess();
 }
@@ -969,7 +971,7 @@ M3Result linkTicAPI(IM3Module module)
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "mset",    "v(iii)",        &wasmtic_mset)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "mouse",   "v(*)",          &wasmtic_mouse)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "music",   "v(iiiiiii)",    &wasmtic_music)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "pix",     "v(iii)",        &wasmtic_pix)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "pix",     "i(iii)",        &wasmtic_pix)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "peek",    "i(ii)",         &wasmtic_peek)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "peek4",   "i(i)",          &wasmtic_peek4)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "peek2",   "i(i)",          &wasmtic_peek2)));
