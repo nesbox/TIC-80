@@ -1,12 +1,19 @@
-const std = @import("std");
-// comptime std.testing.refAllDecls;
-// comptime { std.testing.refAllDecls(@This()); } 
+// ****************************************************************************
+// ****************************************************************************
+//
+//        DO NOT MODIFY THIS FILE.  THIS IS A COPY, NO THE ORIGINAL.
+//
+// ****************************************************************************
+// ****************************************************************************
+//
+// It is merely a copy of `./templates/zig/src/tic80.zig`
+//
+// Modify that file then run `./tools/zig_sync` to update all libraries
+//
+// (yes even the original has this exact comment, be careful)
 
-// comptime {
-//   inline for(std.meta.declarations(@This())) |decl| {
-//     _ = decl;
-//   }
-// }
+const std = @import("std");
+comptime { std.testing.refAllDecls(@This()); } 
 
 // types
 
@@ -100,6 +107,7 @@ pub const raw = struct {
     extern fn font(text: [*:0]u8, x: u32, y: i32, trans_color: i32, char_width: i32, char_height: i32, fixed: bool, scale: i32) i32;
     extern fn fset(id: i32, flag: u8, value: bool) bool;
     extern fn key(keycode: i32) bool;
+    extern fn keyp(keycode: i32, hold: i32, period: i32 ) bool;
     extern fn line(x0: i32, y0: i32, x1: i32, y1: i32, color: i32) void;
     extern fn map(x: i32, y: i32, w: i32, h: i32, sx: i32, sy: i32, trans_colors: ?[*]const u8, colorCount: i32, scale: i32, remap: i32) void;
     extern fn memcpy(to: u32, from: u32, length: u32) void;
@@ -147,11 +155,11 @@ const MouseData = extern struct {
   right: bool,
 };
 
-
-pub extern fn keyp(keycode: i32, hold: i32, period: i32 ) bool;
-// extern fn btnp(id: i32, hold: i32, period: i32 ) bool;
+pub 
 
 pub const key = raw.key;
+// TODO: nicer API?
+pub const keyp = raw.keyp;
 pub const held = raw.btnp;
 
 pub fn pressed(id: i32) bool {
@@ -428,9 +436,10 @@ pub const vbank = raw.vbank;
 pub const exit = raw.exit;
 pub const reset = raw.reset;
 pub fn trace(text: []const u8) void {
-    raw.trace(text);
+    var buff : [MAX_STRING_SIZE:0]u8 = undefined;
+    sliceToZString(text, &buff, MAX_STRING_SIZE);
+    raw.trace(&buff);
 }
-
 
 const SectionFlags = packed struct {
     // tiles   = 1<<0 -- 1
