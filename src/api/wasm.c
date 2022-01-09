@@ -653,17 +653,6 @@ m3ApiRawFunction(wasmtic_clip)
     m3ApiSuccess();
 }
 
-m3ApiRawFunction(wasmtic_noclip)
-{
-    // no arguments
-
-    tic_mem* tic = (tic_mem*)getWasmCore(runtime);
-
-    tic_api_clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
-
-    m3ApiSuccess();
-}
-
 m3ApiRawFunction(wasmtic_map)
 {
     m3ApiGetArg      (int32_t, x)
@@ -959,7 +948,6 @@ M3Result linkTicAPI(IM3Module module)
     M3Result result = m3Err_none;
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "btn",     "i(i)",          &wasmtic_btn)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "btnp",    "i(iii)",        &wasmtic_btnp)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "noclip",  "v()",           &wasmtic_noclip)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "clip",    "v(iiii)",       &wasmtic_clip)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "cls",     "v(i)",          &wasmtic_cls)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "circ",    "v(iiii)",       &wasmtic_circ)));
