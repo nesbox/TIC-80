@@ -67,6 +67,15 @@ static void setPixel(tic_core* core, s32 x, s32 y, u8 color)
     tic_api_poke4((tic_mem*)core, y * TIC80_WIDTH + x, color);
 }
 
+static void setPixelFast(tic_core* core, s32 x, s32 y, u8 color)
+{
+    const tic_vram* vram = &core->memory.ram.vram;
+
+    // does not do any CLIP checking, the caller needs to do that first
+
+    tic_api_poke4((tic_mem*)core, y * TIC80_WIDTH + x, color);
+}
+
 static u8 getPixel(tic_core* core, s32 x, s32 y)
 {
     return tic_api_peek4((tic_mem*)core, y * TIC80_WIDTH + x);
@@ -129,7 +138,7 @@ static void drawRectBorder(tic_core* core, s32 x, s32 y, s32 width, s32 height, 
         for(s32 px=sx; px < ex; px++, xx++) \
         { \
             u8 color = mapping[tic_tilesheet_gettilepix(tile, (X), (Y))];\
-            if(color != TRANSPARENT_COLOR) setPixel(core, xx, y, color); \
+            if(color != TRANSPARENT_COLOR) setPixelFast(core, xx, y, color); \
         } \
     } \
     } while(0)
