@@ -460,8 +460,6 @@ m3ApiRawFunction(wasmtic_peek)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    // defaults to 8 bits (peek byte)
-    bits = bits < 0 ? 8 : bits;
     m3ApiReturn(tic_api_peek(tic, address, bits));
 
     m3ApiSuccess();
@@ -511,9 +509,6 @@ m3ApiRawFunction(wasmtic_poke)
     m3ApiGetArg      (int32_t, address)
     m3ApiGetArg      (int8_t, value)
     m3ApiGetArg      (int8_t, bits)
-
-    // defaults to 8 bits (peek byte)
-    bits = bits < 0 ? 8 : bits;
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
