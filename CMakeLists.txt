@@ -917,13 +917,6 @@ add_library(tic80studio STATIC
     ${DEMO_CARTS_OUT}
     ${CMAKE_SOURCE_DIR}/build/assets/cart.png.dat)
 
-# add_custom_target(tic80demos
-#   DEPENDS ${DEMO_CARTS_OUT}
-# )
-# add_dependencies(tic80demos
-# add_library(tic80demos STATIC
-    # ${DEMO_CARTS_OUT})
-
 if(WIN32)
     target_include_directories(tic80studio PRIVATE ${THIRDPARTY_DIR}/dirent/include)
 endif()
