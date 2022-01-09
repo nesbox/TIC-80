@@ -738,7 +738,7 @@ m3ApiRawFunction(wasmtic_font)
     if (scale==0) {
         text_width = 0;
     } else {
-        text_width = tic_api_font(tic, text, x, y, transparent_color, char_width, char_height, fixed, scale, alt);
+        text_width = tic_api_font(tic, text, x, y, &transparent_color, 1, char_width, char_height, fixed, scale, alt);
     }
     m3ApiReturn(text_width);
 

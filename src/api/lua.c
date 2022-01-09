@@ -1176,7 +1176,7 @@ static s32 lua_font(lua_State* lua)
             return 1;
         }
 
-        s32 size = tic_api_font(tic, text, x, y, chromakey, width, height, fixed, scale, alt);
+        s32 size = tic_api_font(tic, text, x, y, &chromakey, 1, width, height, fixed, scale, alt);
 
         lua_pushinteger(lua, size);
 

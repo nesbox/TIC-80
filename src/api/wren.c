@@ -498,7 +498,7 @@ static void wren_font(WrenVM* vm)
             return;
         }
 
-        s32 size = tic_api_font(tic, text ? text : "null", x, y, chromakey, width, height, fixed, scale, alt);
+        s32 size = tic_api_font(tic, text ? text : "null", x, y, &chromakey, 1, width, height, fixed, scale, alt);
         wrenSetSlotDouble(vm, 0, size);
     }
 }

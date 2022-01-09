@@ -1261,7 +1261,7 @@ static SQInteger squirrel_font(HSQUIRRELVM vm)
             return 1;
         }
 
-        s32 size = tic_api_font(tic, text, x, y, chromakey, width, height, fixed, scale, alt);
+        s32 size = tic_api_font(tic, text, x, y, &chromakey, 1, width, height, fixed, scale, alt);
 
         sq_pushinteger(vm, size);
         return 1;

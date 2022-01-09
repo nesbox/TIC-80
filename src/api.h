@@ -265,7 +265,7 @@ enum
         0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 index, s32 x, s32 y, s32 w, s32 h,                                                                \
-        u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)                                             \
+        u8* trans_colors, u8 trans_count, s32 scale, tic_flip flip, tic_rotate rotate)                                             \
                                                                                                                         \
                                                                                                                         \
     macro(btn,                                                                                                          \
@@ -354,7 +354,7 @@ enum
         1,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy,                                                  \
-        u8* colors, s32 count, s32 scale, RemapFunc remap, void* data)                                                  \
+        u8* trans_colors, u8 trans_count, s32 scale, RemapFunc remap, void* data)                                                  \
                                                                                                                         \
                                                                                                                         \
     macro(mget,                                                                                                         \
@@ -591,7 +591,7 @@ enum
         0,                                                                                                              \
         s32,                                                                                                            \
         tic_mem*, const char* text, s32 x, s32 y,                                                                       \
-        u8 chromakey, s32 w, s32 h, bool fixed, s32 scale, bool alt)                                                    \
+        u8* trans_colors, u8 trans_count, s32 w, s32 h, bool fixed, s32 scale, bool alt)                                                    \
                                                                                                                         \
                                                                                                                         \
     macro(mouse,                                                                                                        \
@@ -692,7 +692,7 @@ enum
         0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, float x1, float y1, float x2, float y2, float x3, float y3,                                           \
-        float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count)                \
+        float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* trans_colors, u8 trans_count)                \
                                                                                                                         \
                                                                                                                         \
     macro(clip,                                                                                                         \
