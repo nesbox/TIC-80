@@ -1593,8 +1593,6 @@ static void onImport_binary(Console* console, const char* name, const void* buff
     {
         tic_binary* binary = &console->tic->cart.binary;
         binary->size = size;
-        // TODO: necessary?
-        memset(binary->data, 0, TIC_BINARY_SIZE);
         memcpy(binary->data, buffer, size);
     }
         
@@ -1684,12 +1682,6 @@ static void onImportCommand(Console* console)
         const char* filename = console->desc->params[1].key;
         s32 size = 0;
         const void* data = tic_fs_load(console->fs, filename, &size);
-
-        char msg[TICNAME_MAX];
-        sprintf(msg, "filename %s", filename);
-        printError(console, msg);
-        sprintf(msg, "console->fs %s", console->fs);
-        printError(console, msg);
 
         if(data) SCOPE(free((void*)data))
         {
