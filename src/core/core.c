@@ -228,10 +228,10 @@ static bool compareMetatag(const char* code, const char* tag, const char* value,
     return result;
 }
 
-const tic_script_config* tic_core_script_config(tic_mem* memory)
+const tic_script_config* tic_core_script_config(tic_core* core)
 {
     FOR_EACH_LANG(it)
-        if(compareMetatag(memory->cart.code.data, "script", it->name, it->singleComment))
+        if(compareMetatag(core->memory.cart.code.data, "script", it->name, it->singleComment))
         {
             return it;
         }
@@ -403,15 +403,16 @@ s32 tic_api_vbank(tic_mem* tic, s32 bank)
     return prev;
 }
 
-void tic_core_tick(tic_mem* tic, tic_tick_data* data)
+void tic_core_tick(tic_core* tic, tic_tick_data* data)
 {
     tic_core* core = (tic_core*)tic;
+    tic_mem* mem = (tic_mem*)tic;
 
     core->data = data;
 
     if (!core->state.initialized)
     {
-        const char* code = tic->cart.code.data;
+        const char* code = mem->cart.code.data;
 
         bool done = false;
         const tic_script_config* config = tic_core_script_config(tic);
@@ -421,15 +422,15 @@ void tic_core_tick(tic_mem* tic, tic_tick_data* data)
             cart2ram(tic);
 
             core->state.synced = 0;
-            tic->input.data = 0;
+            mem->input.data = 0;
 
             if (compareMetatag(code, "input", "mouse", config->singleComment))
-                tic->input.mouse = 1;
+                mem->input.mouse = 1;
             else if (compareMetatag(code, "input", "gamepad", config->singleComment))
-                tic->input.gamepad = 1;
+                mem->input.gamepad = 1;
             else if (compareMetatag(code, "input", "keyboard", config->singleComment))
-                tic->input.keyboard = 1;
-            else tic->input.data = -1;  // default is all enabled
+                mem->input.keyboard = 1;
+            else mem->input.data = -1;  // default is all enabled
 
             data->start = data->counter(core->data->data);
 
@@ -452,12 +453,12 @@ void tic_core_tick(tic_mem* tic, tic_tick_data* data)
     core->state.tick(tic);
 }
 
-void tic_core_pause(tic_mem* memory)
+void tic_core_pause(tic_core* core)
 {
-    tic_core* core = (tic_core*)memory;
+    tic_mem* mem = (tic_mem*)core;
 
     memcpy(&core->pause.state, &core->state, sizeof(tic_core_state_data));
-    memcpy(&core->pause.ram, &memory->ram, sizeof(tic_ram));
+    memcpy(&core->pause.ram, &mem->ram, sizeof(tic_ram));
 
     if (core->data)
     {
@@ -466,21 +467,21 @@ void tic_core_pause(tic_mem* memory)
     }
 }
 
-void tic_core_resume(tic_mem* memory)
+void tic_core_resume(tic_core* core)
 {
-    tic_core* core = (tic_core*)memory;
+    tic_mem* mem = (tic_mem*)core;
 
     if (core->data)
     {
         memcpy(&core->state, &core->pause.state, sizeof(tic_core_state_data));
-        memcpy(&memory->ram, &core->pause.ram, sizeof(tic_ram));
+        memcpy(&mem->ram, &core->pause.ram, sizeof(tic_ram));
         core->data->start = core->pause.time.start + core->data->counter(core->data->data) - core->pause.time.paused;
     }
 }
 
-void tic_core_close(tic_mem* memory)
+void tic_core_close(tic_core* core)
 {
-    tic_core* core = (tic_core*)memory;
+    tic_mem* mem = (tic_mem*)core;
 
     core->state.initialized = false;
 
@@ -489,11 +490,11 @@ void tic_core_close(tic_mem* memory)
     blip_delete(core->blip.left);
     blip_delete(core->blip.right);
 
-    free(memory->samples.buffer);
+    free(mem->samples.buffer);
     free(core);
 }
 
-void tic_core_tick_start(tic_mem* memory)
+void tic_core_tick_start(tic_core* memory)
 {
     tic_core_sound_tick_start(memory);
     tic_core_tick_io(memory);
@@ -502,7 +503,7 @@ void tic_core_tick_start(tic_mem* memory)
     core->state.synced = 0;
 }
 
-void tic_core_tick_end(tic_mem* memory)
+void tic_core_tick_end(tic_core* memory)
 {
     tic_core* core = (tic_core*)memory;
     tic80_input* input = &core->memory.ram.input;
@@ -553,11 +554,11 @@ static inline tic_vram* vbank1(tic_core* core)
     return core->state.vbank.id ? &core->memory.ram.vram : &core->state.vbank.mem;
 }
 
-static inline void updpal(tic_mem* tic, tic_blitpal* pal0, tic_blitpal* pal1)
+static inline void updpal(tic_core* core, tic_blitpal* pal0, tic_blitpal* pal1)
 {
-    tic_core* core = (tic_core*)tic;
-    *pal0 = tic_tool_palette_blit(&vbank0(core)->palette, tic->screen_format);
-    *pal1 = tic_tool_palette_blit(&vbank1(core)->palette, tic->screen_format);
+    tic_mem* mem = (tic_mem*)core;
+    *pal0 = tic_tool_palette_blit(&vbank0(core)->palette, mem->screen_format);
+    *pal1 = tic_tool_palette_blit(&vbank1(core)->palette, mem->screen_format);
 }
 
 static inline void updbdr(tic_mem* tic, s32 row, u32* ptr, tic_blit_callback clb, tic_blitpal* pal0, tic_blitpal* pal1)
@@ -579,7 +580,7 @@ static inline void updbdr(tic_mem* tic, s32 row, u32* ptr, tic_blit_callback clb
     memset4(ptr, pal0->data[vbank0(core)->vars.border], TIC80_FULLWIDTH);
 }
 
-static inline u32 blitpix(tic_mem* tic, s32 offset0, s32 offset1, const tic_blitpal* pal0, const tic_blitpal* pal1)
+static inline u32 blitpix(tic_core* tic, s32 offset0, s32 offset1, const tic_blitpal* pal0, const tic_blitpal* pal1)
 {
     tic_core* core = (tic_core*)tic;
     u32 pix = tic_tool_peek4(vbank1(core)->screen.data, offset1);
@@ -589,17 +590,17 @@ static inline u32 blitpix(tic_mem* tic, s32 offset0, s32 offset1, const tic_blit
         : pal0->data[tic_tool_peek4(vbank0(core)->screen.data, offset0)];
 }
 
-void tic_core_blit_ex(tic_mem* tic, tic_blit_callback clb)
+void tic_core_blit_ex(tic_core* core, tic_blit_callback clb)
 {
-    tic_core* core = (tic_core*)tic;
+    tic_mem* mem = (tic_mem*)core;
 
     tic_blitpal pal0, pal1;
-    updpal(tic, &pal0, &pal1);
+    updpal(core, &pal0, &pal1);
 
     s32 row = 0;
-    u32* rowPtr = tic->screen;
+    u32* rowPtr = mem->screen;
 
-#define UPDBDR() updbdr(tic, row, rowPtr, clb, &pal0, &pal1)
+#define UPDBDR() updbdr(mem, row, rowPtr, clb, &pal0, &pal1)
 
     for(; row != TIC80_MARGIN_TOP; ++row, rowPtr += TIC80_FULLWIDTH)
         UPDBDR();
@@ -613,7 +614,7 @@ void tic_core_blit_ex(tic_mem* tic, tic_blit_callback clb)
         {
             // render line without XY offsets
             for(s32 x = (row - TIC80_MARGIN_TOP) * TIC80_WIDTH, end = x + TIC80_WIDTH; x != end; ++x)
-                *rowPtr++ = blitpix(tic, x, x, &pal0, &pal1);
+                *rowPtr++ = blitpix(mem, x, x, &pal0, &pal1);
         }
         else
         {
@@ -625,7 +626,7 @@ void tic_core_blit_ex(tic_mem* tic, tic_blit_callback clb)
             s32 offsetX1 = vbank1(core)->vars.offset.x;
 
             for(s32 x = TIC80_WIDTH; x != 2 * TIC80_WIDTH; ++x)
-                *rowPtr++ = blitpix(tic, (x - offsetX0) % TIC80_WIDTH + start0, 
+                *rowPtr++ = blitpix(mem, (x - offsetX0) % TIC80_WIDTH + start0, 
                     (x - offsetX1) % TIC80_WIDTH + start1, &pal0, &pal1);
         }
 
@@ -654,9 +655,9 @@ static inline void border(tic_mem* memory, s32 row, void* data)
         core->state.callback.border(memory, row, data);
 }
 
-void tic_core_blit(tic_mem* tic)
+void tic_core_blit(tic_core* core)
 {
-    tic_core_blit_ex(tic, (tic_blit_callback){scanline, border, NULL});
+    tic_core_blit_ex(core, (tic_blit_callback){scanline, border, NULL});
 }
 
 tic_core* tic_core_create(s32 samplerate)

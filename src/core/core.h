@@ -211,13 +211,13 @@ void tic_core_sound_tick_end(tic_mem* memory);
 
 
 tic_core* tic_core_create(s32 samplerate);
-void tic_core_close(tic_mem* memory);
-void tic_core_pause(tic_mem* memory);
-void tic_core_resume(tic_mem* memory);
-void tic_core_tick_start(tic_mem* memory);
-void tic_core_tick(tic_mem* memory, tic_tick_data* data);
-void tic_core_tick_end(tic_mem* memory);
-void tic_core_synth_sound(tic_mem* tic);
-void tic_core_blit(tic_mem* tic);
-void tic_core_blit_ex(tic_mem* tic, tic_blit_callback clb);
-const tic_script_config* tic_core_script_config(tic_mem* memory);
+void tic_core_close(tic_core* memory);
+void tic_core_pause(tic_core* memory);
+void tic_core_resume(tic_core* memory);
+void tic_core_tick_start(tic_core* memory);
+void tic_core_tick(tic_core* memory, tic_tick_data* data);
+void tic_core_tick_end(tic_core* memory);
+void tic_core_synth_sound(tic_core* tic);
+void tic_core_blit(tic_core* tic);
+void tic_core_blit_ex(tic_core* tic, tic_blit_callback clb);
+const tic_script_config* tic_core_script_config(tic_core* memory);
