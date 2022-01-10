@@ -659,7 +659,7 @@ void tic_core_blit(tic_mem* tic)
     tic_core_blit_ex(tic, (tic_blit_callback){scanline, border, NULL});
 }
 
-tic_mem* tic_core_create(s32 samplerate)
+tic_core* tic_core_create(s32 samplerate)
 {
     tic_core* core = (tic_core*)malloc(sizeof(tic_core));
     memset(core, 0, sizeof(tic_core));
@@ -689,5 +689,5 @@ tic_mem* tic_core_create(s32 samplerate)
 
     tic_api_reset(&core->memory);
 
-    return &core->memory;
+    return core;
 }

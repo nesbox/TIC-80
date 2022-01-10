@@ -305,7 +305,7 @@ static void setWindowIcon()
     u32* pixels = SDL_malloc(Size * Size * sizeof(u32));
     SCOPE(SDL_free(pixels))
     {
-        tic_blitpal pal = tic_tool_palette_blit(&platform.studio->config()->cart->bank0.palette.vbank0, platform.studio->tic->screen_format);
+        tic_blitpal pal = tic_tool_palette_blit(&platform.studio->config()->cart->bank0.palette.vbank0, platform.studio->tic->memory.screen_format);
 
         for(s32 j = 0, index = 0; j < Size; j++)
             for(s32 i = 0; i < Size; i++, index++)

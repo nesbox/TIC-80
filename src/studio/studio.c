@@ -457,23 +457,23 @@ bool anyKeyWasPressed()
 #if defined(BUILD_EDITORS)
 tic_tiles* getBankTiles()
 {
-    return &impl.studio.tic->cart.banks[impl.bank.index.sprites].tiles;
+    return &impl.studio.tic->memory.cart.banks[impl.bank.index.sprites].tiles;
 }
 
 tic_map* getBankMap()
 {
-    return &impl.studio.tic->cart.banks[impl.bank.index.map].map;
+    return &impl.studio.tic->memory.cart.banks[impl.bank.index.map].map;
 }
 
 tic_palette* getBankPalette(bool vbank)
 {
-    tic_bank* bank = &impl.studio.tic->cart.banks[impl.bank.index.sprites];
+    tic_bank* bank = &impl.studio.tic->memory.cart.banks[impl.bank.index.sprites];
     return vbank ? &bank->palette.vbank1 : &bank->palette.vbank0;
 }
 
 tic_flags* getBankFlags()
 {
-    return &impl.studio.tic->cart.banks[impl.bank.index.sprites].flags;
+    return &impl.studio.tic->memory.cart.banks[impl.bank.index.sprites].flags;
 }
 #endif
 
@@ -1493,7 +1493,7 @@ static void initModules()
 
 static void updateHash()
 {
-    md5(&impl.studio.tic->cart, sizeof(tic_cartridge), impl.cart.hash.data);
+    md5(&impl.studio.tic->memory.cart, sizeof(tic_cartridge), impl.cart.hash.data);
 }
 
 static void updateMDate()
@@ -1558,7 +1558,7 @@ void studioRomLoaded()
 bool studioCartChanged()
 {
     CartHash hash;
-    md5(&impl.studio.tic->cart, sizeof(tic_cartridge), hash.data);
+    md5(&impl.studio.tic->memory.cart, sizeof(tic_cartridge), hash.data);
 
     return memcmp(hash.data, impl.cart.hash.data, sizeof(CartHash)) != 0;
 }
@@ -1963,8 +1963,8 @@ static void renderStudio()
         switch(impl.mode)
         {
         case TIC_RUN_MODE:
-            sfx = &impl.studio.tic->ram.sfx;
-            music = &impl.studio.tic->ram.music;
+            sfx = &tic->ram.sfx;
+            music = &tic->ram.music;
             break;
         case TIC_START_MODE:
         case TIC_MENU_MODE:
@@ -1985,7 +1985,7 @@ static void renderStudio()
 
         // restore mapping in all the modes except Run mode
         if(impl.mode != TIC_RUN_MODE)
-            impl.studio.tic->ram.mapping = getConfig()->options.mapping;
+            tic->ram.mapping = getConfig()->options.mapping;
 
         tic_core_tick_start(tic);
     }

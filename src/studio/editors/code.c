@@ -21,6 +21,7 @@
 // SOFTWARE.
 
 #include "code.h"
+#include "core/core.h"
 #include "ext/history.h"
 
 #include <ctype.h>

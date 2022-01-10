@@ -23,6 +23,7 @@
 #pragma once
 
 #include "api.h"
+#include "core/core.h"
 #include "version.h"
 
 #if defined(TIC80_PRO)
@@ -136,7 +137,7 @@ typedef struct
 
 typedef struct
 {
-    tic_mem* tic;
+    tic_core* tic;
     bool quit;
 
     void (*tick)();

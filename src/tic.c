@@ -24,6 +24,7 @@
 #include <string.h>
 
 #include <tic80.h>
+#include "core/core.h"
 #include "api.h"
 #include "tools.h"
 #include "cart.h"
@@ -71,7 +72,7 @@ tic80* tic80_create(s32 samplerate)
     {
         memset(tic80, 0, sizeof(tic80_local));
 
-        tic80->memory = tic_core_create(samplerate);
+        tic80->memory = (tic_core*)tic_core_create(samplerate);
         tic80->tic.screen_format = tic80->memory->screen_format;
 
         return &tic80->tic;

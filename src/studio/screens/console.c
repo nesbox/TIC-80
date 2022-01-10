@@ -29,6 +29,7 @@
 #include "ext/png.h"
 #include "zip.h"
 #include "studio/demos.h"
+#include "core/core.h"
 
 #if defined(TIC80_PRO)
 #include "studio/project.h"
