@@ -30,7 +30,7 @@ To make a retro styled game, the whole process of creation and execution takes p
 # Binary Downloads
 You can download compiled versions for the major operating systems directly from our [releases page](https://github.com/nesbox/TIC-80/releases).
 ## Nightly builds
-Can be downloaded from [nightly builds](https://nightly.link/nesbox/TIC-80/workflows/build/master) page or from the [Github Actions](https://github.com/nesbox/TIC-80/actions?query=branch%3Amaster) page.
+Can be downloaded from [nightly builds](https://nightly.link/nesbox/TIC-80/workflows/build/main) page or from the [Github Actions](https://github.com/nesbox/TIC-80/actions?query=branch%3Amain) page.
 
 # Pro Version
 To help support TIC-80 development, we have a [PRO Version](https://nesbox.itch.io/tic80).
@@ -52,7 +52,7 @@ The community also hangs out and discusses on [Telegram](https://t.me/tic80) or 
 
 # Contributing
 You can contribute by reporting a bug or requesting a new feature on our [issues page](https://github.com/nesbox/TIC-80/issues).
-Keep in mind when engaging on a discussion to follow our [Code of Conduct](https://github.com/nesbox/TIC-80/blob/master/CODE_OF_CONDUCT.md).
+Keep in mind when engaging on a discussion to follow our [Code of Conduct](https://github.com/nesbox/TIC-80/blob/main/CODE_OF_CONDUCT.md).
 
 You can also contribute by reviewing or improving our [wiki](https://github.com/nesbox/TIC-80/wiki).
 The wiki holds TIC-80 documentation, code snippets and game development tutorials.
