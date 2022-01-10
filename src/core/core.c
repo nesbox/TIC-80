@@ -403,10 +403,9 @@ s32 tic_api_vbank(tic_mem* tic, s32 bank)
     return prev;
 }
 
-void tic_core_tick(tic_core* tic, tic_tick_data* data)
+void tic_core_tick(tic_core* core, tic_tick_data* data)
 {
-    tic_core* core = (tic_core*)tic;
-    tic_mem* mem = (tic_mem*)tic;
+    tic_mem* mem = (tic_mem*)core;
 
     core->data = data;
 
@@ -415,11 +414,11 @@ void tic_core_tick(tic_core* tic, tic_tick_data* data)
         const char* code = mem->cart.code.data;
 
         bool done = false;
-        const tic_script_config* config = tic_core_script_config(tic);
+        const tic_script_config* config = tic_core_script_config(core);
 
         if (strlen(code))
         {
-            cart2ram(tic);
+            cart2ram(core);
 
             core->state.synced = 0;
             mem->input.data = 0;
@@ -450,7 +449,7 @@ void tic_core_tick(tic_core* tic, tic_tick_data* data)
         else return;
     }
 
-    core->state.tick(tic);
+    core->state.tick(core);
 }
 
 void tic_core_pause(tic_core* core)
@@ -494,24 +493,22 @@ void tic_core_close(tic_core* core)
     free(core);
 }
 
-void tic_core_tick_start(tic_core* memory)
+void tic_core_tick_start(tic_core* core)
 {
-    tic_core_sound_tick_start(memory);
-    tic_core_tick_io(memory);
+    tic_core_sound_tick_start(core);
+    tic_core_tick_io(core);
 
-    tic_core* core = (tic_core*)memory;
     core->state.synced = 0;
 }
 
-void tic_core_tick_end(tic_core* memory)
+void tic_core_tick_end(tic_core* core)
 {
-    tic_core* core = (tic_core*)memory;
     tic80_input* input = &core->memory.ram.input;
 
     core->state.gamepads.previous.data = input->gamepads.data;
     core->state.keyboard.previous.data = input->keyboard.data;
 
-    tic_core_sound_tick_end(memory);
+    tic_core_sound_tick_end(core);
 }
 
 // copied from SDL2
