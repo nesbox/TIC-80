@@ -636,20 +636,16 @@ void tic_core_blit_ex(tic_core* core, tic_blit_callback clb)
 #undef  UPDBDR
 }
 
-static inline void scanline(tic_mem* memory, s32 row, void* data)
+static inline void scanline(tic_core* core, s32 row, void* data)
 {
-    tic_core* core = (tic_core*)memory;
-
     if (core->state.initialized)
-        core->state.callback.scanline(memory, row, data);
+        core->state.callback.scanline(&core->memory, row, data);
 }
 
-static inline void border(tic_mem* memory, s32 row, void* data)
+static inline void border(tic_core* core, s32 row, void* data)
 {
-    tic_core* core = (tic_core*)memory;
-
     if (core->state.initialized)
-        core->state.callback.border(memory, row, data);
+        core->state.callback.border(&core->memory, row, data);
 }
 
 void tic_core_blit(tic_core* core)
