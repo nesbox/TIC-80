@@ -132,22 +132,20 @@ tic_point tic_api_mouse(tic_mem* memory)
         : (tic_point){memory->ram.input.mouse.x - TIC80_OFFSET_LEFT, memory->ram.input.mouse.y - TIC80_OFFSET_TOP};
 }
 
-void tic_core_tick_io(tic_mem* tic)
+void tic_core_tick_io(tic_core* core)
 {
-    tic_core* core = (tic_core*)tic;
-
     // process gamepads mapping
-    u8* keycodes = tic->ram.mapping.data;
+    u8* keycodes = core->memory.ram.mapping.data;
     for(s32 i = 0; i < sizeof(tic_mapping); ++i)
-        if(keycodes[i] && tic_api_key(tic, keycodes[i]))
-            tic->ram.input.gamepads.data |= 1 << i;
+        if(keycodes[i] && tic_api_key(&core->memory, keycodes[i]))
+            core->memory.ram.input.gamepads.data |= 1 << i;
 
     // process gamepad
     for (s32 i = 0; i < COUNT_OF(core->state.gamepads.holds); i++)
     {
         u32 mask = 1 << i;
         u32 prevDown = core->state.gamepads.previous.data & mask;
-        u32 down = tic->ram.input.gamepads.data & mask;
+        u32 down = core->memory.ram.input.gamepads.data & mask;
 
         u32* hold = &core->state.gamepads.holds[i];
         if (prevDown && prevDown == down) (*hold)++;
@@ -158,7 +156,7 @@ void tic_core_tick_io(tic_mem* tic)
     for (s32 i = 0; i < tic_keys_count; i++)
     {
         bool prevDown = isKeyPressed(&core->state.keyboard.previous, i);
-        bool down = isKeyPressed(&tic->ram.input.keyboard, i);
+        bool down = isKeyPressed(&core->memory.ram.input.keyboard, i);
 
         u32* hold = &core->state.keyboard.holds[i];
 

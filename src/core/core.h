@@ -193,7 +193,7 @@ typedef struct
 
 } tic_core;
 
-void tic_core_tick_io(tic_mem* memory);
+void tic_core_tick_io(tic_core* memory);
 void tic_core_sound_tick_start(tic_mem* memory);
 void tic_core_sound_tick_end(tic_mem* memory);
 

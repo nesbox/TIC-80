@@ -553,9 +553,8 @@ static inline tic_vram* vbank1(tic_core* core)
 
 static inline void updpal(tic_core* core, tic_blitpal* pal0, tic_blitpal* pal1)
 {
-    tic_mem* mem = (tic_mem*)core;
-    *pal0 = tic_tool_palette_blit(&vbank0(core)->palette, mem->screen_format);
-    *pal1 = tic_tool_palette_blit(&vbank1(core)->palette, mem->screen_format);
+    *pal0 = tic_tool_palette_blit(&vbank0(core)->palette, core->memory.screen_format);
+    *pal1 = tic_tool_palette_blit(&vbank1(core)->palette, core->memory.screen_format);
 }
 
 static inline void updbdr(tic_mem* tic, s32 row, u32* ptr, tic_blit_callback clb, tic_blitpal* pal0, tic_blitpal* pal1)
