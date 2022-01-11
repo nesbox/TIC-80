@@ -31,35 +31,33 @@ extern tic_script_config WrenSyntaxConfig;
 
 tic_script_config* Languages[] = {
 
-    #if defined(TIC_BUILD_WITH_FENNEL)
-    &FennelSyntaxConfig,
-    #endif
+	#if defined (TIC_BUILD_WITH_LUA)
+	&LuaSyntaxConfig,
+	#endif
 
-    #if defined(TIC_BUILD_WITH_JS)
-    &JsSyntaxConfig,
-    #endif
-
-    #if defined (TIC_BUILD_WITH_LUA)
-    &LuaSyntaxConfig,
-    #endif
-
-    #if defined(TIC_BUILD_WITH_MOON)
-    &MoonSyntaxConfig,
-    #endif
-
-    // R for Ruby (is the name we display)
     #if defined(TIC_BUILD_WITH_MRUBY)
     &MRubySyntaxConfig,
     #endif
 
+	#if defined(TIC_BUILD_WITH_JS)
+	&JsSyntaxConfig,
+	#endif
 
-    #if defined(TIC_BUILD_WITH_SQUIRREL)
-    &SquirrelSyntaxConfig,
-    #endif
+	#if defined(TIC_BUILD_WITH_MOON)
+	&MoonSyntaxConfig,
+	#endif
 
-    #if defined(TIC_BUILD_WITH_WREN)
-    &WrenSyntaxConfig,
-    #endif
+	#if defined(TIC_BUILD_WITH_FENNEL)
+	&FennelSyntaxConfig,
+	#endif
 
-    NULL};
+	#if defined(TIC_BUILD_WITH_SQUIRREL)
+	&SquirrelSyntaxConfig,
+	#endif
+
+	#if defined(TIC_BUILD_WITH_WREN)
+	&WrenSyntaxConfig,
+	#endif
+
+	NULL};
 
