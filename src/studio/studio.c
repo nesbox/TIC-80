@@ -1351,7 +1351,7 @@ static s32 optionGamepadGet()
     return impl.gamepads.index;
 }
 
-static void optionmappinget(s32 pos)
+static void optionGamepadSet(s32 pos)
 {
     impl.gamepads.index = pos;
     initGamepadButtons();
@@ -1361,7 +1361,7 @@ static MenuOption GamepadOption =
 {
     OPTION_VALUES({"1", "2", "3", "4"}),
     optionGamepadGet,
-    optionmappinget,
+    optionGamepadSet,
 };
 
 static void initGamepadMenu()
