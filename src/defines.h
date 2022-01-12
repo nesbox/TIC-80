@@ -48,19 +48,19 @@
 #define _BITCLEAR(a,b)      ((a) &= ~(1ULL<<(b)))
 #define _BITFLIP(a,b)       ((a) ^= (1ULL<<(b)))
 
-#define REP0(X)
-#define REP1(X) X
-#define REP2(X) REP1(X) X
-#define REP3(X) REP2(X) X
-#define REP4(X) REP3(X) X
-#define REP5(X) REP4(X) X
-#define REP6(X) REP5(X) X
-#define REP7(X) REP6(X) X
-#define REP8(X) REP7(X) X
-#define REP9(X) REP8(X) X
-#define REP10(X) REP9(X) X
+#define REP0(...)
+#define REP1(...) __VA_ARGS__
+#define REP2(...) REP1(__VA_ARGS__) __VA_ARGS__
+#define REP3(...) REP2(__VA_ARGS__) __VA_ARGS__
+#define REP4(...) REP3(__VA_ARGS__) __VA_ARGS__
+#define REP5(...) REP4(__VA_ARGS__) __VA_ARGS__
+#define REP6(...) REP5(__VA_ARGS__) __VA_ARGS__
+#define REP7(...) REP6(__VA_ARGS__) __VA_ARGS__
+#define REP8(...) REP7(__VA_ARGS__) __VA_ARGS__
+#define REP9(...) REP8(__VA_ARGS__) __VA_ARGS__
+#define REP10(...) REP9(__VA_ARGS__) __VA_ARGS__
 
-#define REP(HUNDREDS,TENS,ONES,X)   \
-    REP##HUNDREDS(REP10(REP10(X)))  \
-    REP##TENS(REP10(X))             \
-    REP##ONES(X)
+#define REP(HUNDREDS,TENS,ONES,...)   \
+    REP##HUNDREDS(REP10(REP10(__VA_ARGS__)))  \
+    REP##TENS(REP10(__VA_ARGS__))             \
+    REP##ONES(__VA_ARGS__)

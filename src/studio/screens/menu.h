@@ -36,6 +36,7 @@ typedef struct
     s32 count;
     s32(*get)();
     void(*set)(s32);
+    s32 width;
     s32 pos;
 } MenuOption;
 

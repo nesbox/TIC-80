@@ -99,6 +99,7 @@
 
 #define TIC_CODE_SIZE (TIC_BANK_SIZE * TIC_BANKS)
 
+#define TIC_BUTTONS 8
 #define TIC_GAMEPADS (sizeof(tic80_gamepads) / sizeof(tic80_gamepad))
 
 #define SFX_NOTES {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
@@ -509,7 +510,7 @@ typedef struct
 
 typedef struct
 {
-    u8 data[sizeof(tic80_gamepads) * BITS_IN_BYTE];
+    u8 data[TIC_GAMEPADS * TIC_BUTTONS];
 } tic_mapping;
 
 typedef union

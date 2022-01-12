@@ -169,7 +169,7 @@ static void startDone(Menu *menu)
 static void closeDone(Menu *menu)
 {
     resetMovie(menu, &menu->anim.idle);
-    menu->items[menu->pos].handler(menu->data);
+    menu->items[menu->pos].handler(menu->data ? menu->data : &menu->pos);
 }
 
 static void backDone(Menu *menu)
@@ -367,7 +367,7 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
         {
             drawOptionArrow(menu, it->option, rect.x + menu->maxwidth.item + TIC_FONT_WIDTH, rect.y, tic_icon_left, -1);
             drawOptionArrow(menu, it->option, 
-                rect.x + menu->maxwidth.item + menu->maxwidth.option + 2 * TIC_FONT_WIDTH, rect.y, tic_icon_right, +1);
+                rect.x + menu->maxwidth.item + it->option->width + 2 * TIC_FONT_WIDTH, rect.y, tic_icon_right, +1);
 
             printShadow(tic, it->option->values[it->option->pos], 
                 rect.x + menu->maxwidth.item + 2 * TIC_FONT_WIDTH, rect.y, tic_color_yellow);
@@ -473,9 +473,6 @@ void studio_menu_tick(Menu* menu)
 {
     tic_mem* tic = menu->tic;
 
-    if(menu->ticks == 0)
-        playSystemSfx(0);
-
     processAnim(menu);
 
     // process scroll
@@ -547,6 +544,10 @@ void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, s32 
             for(const char **opt = it->option->values, **end = opt + it->option->count; opt != end; ++opt)
             {
                 s32 len = strlen(*opt) * TIC_FONT_WIDTH;
+
+                if(it->option->width < len)
+                    it->option->width = len;
+
                 if(menu->maxwidth.option < len)
                     menu->maxwidth.option = len;
             }

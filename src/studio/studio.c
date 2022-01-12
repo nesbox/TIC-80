@@ -188,6 +188,13 @@ static struct
     tic_net* net;
 #endif
 
+    struct
+    {
+        tic_mapping mapping;
+        s32 index;
+        s32 key;
+    } gamepads;
+
     Start*      start;
     Run*        run;
     Menu*       menu;
@@ -229,6 +236,11 @@ static struct
     .tooltip =
     {
         .text = "\0",
+    },
+
+    .gamepads =
+    {
+        .key = -1,
     },
 
     .video =
@@ -1260,81 +1272,113 @@ void showGameMenu()
     studio_menu_init(impl.menu, GameMenu, Count, Count - 4, 0, NULL, NULL);
 }
 
-static void showOptionsMenu()
+static void showOptionsMenuPos(s32 pos)
 {
-    enum{Count = COUNT_OF(OptionMenu)};
     studio_menu_init(impl.menu, OptionMenu, 
-        Count, Count - 4, COUNT_OF(GameMenu) - 3, showGameMenu, NULL);
+        COUNT_OF(OptionMenu), pos, COUNT_OF(GameMenu) - 3, showGameMenu, NULL);
 }
 
-static const char* KeysList[] =
+static void showOptionsMenu()
 {
-    "...",
-    "A",    "B",    "C",    "D",    "E",    "F",    "G",    "H", 
-    "I",    "J",    "K",    "L",    "M",    "N",    "O",    "P", 
-    "Q",    "R",    "S",    "T",    "U",    "V",    "W",    "X", 
-    "Y",    "Z",    "0",    "1",    "2",    "3",    "4",    "5", 
-    "6",    "7",    "8",    "9",    "-",    "=",    "[",    "]", 
-    "\\",   ";",    "'",    "`",    ",",    ".",    "/",    "SPACE", 
-    "TAB",  "RET",  "BACKS","DEL",  "INS",  "PGUP", "PGDN", "HOME", 
-    "END",  "UP",   "DOWN", "LEFT", "RIGHT","CAPS", "CTRL", "SHIFT", 
-    "ALT",  "ESC",  "F1",   "F2",   "F3",   "F4",   "F5",   "F6", 
-    "F7",   "F8",   "F9",   "F10",  "F11",  "F12",
-};
-
-static tic_mapping GamepadMapping;
-
-#define OPTION_KEY(KEY)                             \
-                                                    \
-enum{KEY ## KeyIndex = __COUNTER__};                \
-                                                    \
-static s32 option ## KEY ## KeyGet()                \
-{                                                   \
-    return GamepadMapping.data[KEY ## KeyIndex];    \
-}                                                   \
-                                                    \
-static void option ## KEY ## KeySet(s32 pos)        \
-{                                                   \
-    GamepadMapping.data[KEY ## KeyIndex] = pos;     \
-}                                                   \
-                                                    \
-static MenuOption KEY ## KeyOption =                \
-{                                                   \
-    .values = KeysList,                             \
-    .count = COUNT_OF(KeysList),                    \
-    option ## KEY ## KeyGet,                        \
-    option ## KEY ## KeySet,                        \
-};
-
-OPTION_KEY(Up)
-OPTION_KEY(Down)
-OPTION_KEY(Left)
-OPTION_KEY(Right)
-OPTION_KEY(A)
-OPTION_KEY(B)
-OPTION_KEY(X)
-OPTION_KEY(Y)
+    showOptionsMenuPos(COUNT_OF(OptionMenu) - 4);
+}
 
 static void saveGamepadMenu()
 {
-    impl.config->data.options.mapping = GamepadMapping;
-    showOptionsMenu();
+    impl.config->data.options.mapping = impl.gamepads.mapping;
+    showOptionsMenuPos(COUNT_OF(OptionMenu) - 3);
 }
 
 static void resetGamepadMenu();
+
+static char MappingItems[TIC_BUTTONS][sizeof "RIGHT - RIGHT"];
+
+static const char* const ButtonLabels[] = 
+{
+    "UP",
+    "DOWN",
+    "LEFT",
+    "RIGHT",
+    "A",
+    "B",
+    "X",
+    "Y",
+};
+
+enum{KeyMappingStart = 2};
+
+static void assignMapping(void* data)
+{
+    impl.gamepads.key = *(s32*)data - KeyMappingStart;
+
+    static const char Fmt[] = "to assign to (%s) button...";
+    static char str[sizeof Fmt + STRLEN("RIGHT")];
+
+    static const MenuItem AssignKeyMenu[] =
+    {
+        {"Please, press a key you want"},
+        {str},
+    };
+
+    sprintf(str, Fmt, ButtonLabels[impl.gamepads.key]);
+
+    studio_menu_init(impl.menu, AssignKeyMenu, COUNT_OF(AssignKeyMenu), 1, 0, NULL, NULL);
+}
+
+static void initGamepadButtons()
+{
+    static const char* const KeysList[] =
+    {
+        "...",
+        "A",    "B",    "C",    "D",    "E",    "F",    "G",    "H", 
+        "I",    "J",    "K",    "L",    "M",    "N",    "O",    "P", 
+        "Q",    "R",    "S",    "T",    "U",    "V",    "W",    "X", 
+        "Y",    "Z",    "0",    "1",    "2",    "3",    "4",    "5", 
+        "6",    "7",    "8",    "9",    "-",    "=",    "[",    "]", 
+        "\\",   ";",    "'",    "`",    ",",    ".",    "/",    "SPCE", 
+        "TAB",  "RET",  "BACKS","DEL",  "INS",  "PGUP", "PGDN", "HOME", 
+        "END",  "UP",   "DOWN", "LEFT", "RIGHT","CAPS", "CTRL", "SHIFT", 
+        "ALT",  "ESC",  "F1",   "F2",   "F3",   "F4",   "F5",   "F6", 
+        "F7",   "F8",   "F9",   "F10",  "F11",  "F12",
+    };
+
+    for(s32 i = 0, index = impl.gamepads.index * TIC_BUTTONS; i != TIC_BUTTONS; ++i)
+        sprintf(MappingItems[i], "%-5s - %-5s", ButtonLabels[i], KeysList[impl.gamepads.mapping.data[index++]]);
+}
+
+static s32 optionGamepadGet()
+{
+    return impl.gamepads.index;
+}
+
+static void optionmappinget(s32 pos)
+{
+    impl.gamepads.index = pos;
+    initGamepadButtons();
+}
+
+static MenuOption GamepadOption = 
+{
+    OPTION_VALUES({"1", "2", "3", "4"}),
+    optionGamepadGet,
+    optionmappinget,
+};
 
 static void initGamepadMenu()
 {
     static const MenuItem GamepadMenu[] =
     {
-        {"UP",      NULL, &UpKeyOption},
-        {"DOWN",    NULL, &DownKeyOption},
-        {"LEFT",    NULL, &LeftKeyOption},
-        {"RIGHT",   NULL, &RightKeyOption},
-        {"A",       NULL, &AKeyOption},
-        {"B",       NULL, &BKeyOption},
-        {"X",       NULL, &XKeyOption},
-        {"Y",       NULL, &YKeyOption},
+        {"GAMEPAD", NULL, &GamepadOption},
+        {""},
+
+        {MappingItems[0], assignMapping},
+        {MappingItems[1], assignMapping},
+        {MappingItems[2], assignMapping},
+        {MappingItems[3], assignMapping},
+        {MappingItems[4], assignMapping},
+        {MappingItems[5], assignMapping},
+        {MappingItems[6], assignMapping},
+        {MappingItems[7], assignMapping},
 
         {""},
         {"SAVE MAPPING",        saveGamepadMenu},
@@ -1342,21 +1386,28 @@ static void initGamepadMenu()
         {"BACK",                showOptionsMenu, .back = true},
     };
 
-    GamepadMapping = getConfig()->options.mapping;
+    initGamepadButtons();
 
     studio_menu_init(impl.menu, GamepadMenu, COUNT_OF(GamepadMenu), 
-        0, COUNT_OF(OptionMenu) - 3, showOptionsMenu, NULL);
+        impl.gamepads.key < 0 ? KeyMappingStart : impl.gamepads.key + KeyMappingStart, 
+        COUNT_OF(OptionMenu) - 3, showOptionsMenu, NULL);
+
+    impl.gamepads.key = -1;
 }
 
 static void resetGamepadMenu()
 {
-    tic_sys_default_mapping(&GamepadMapping);
+    impl.gamepads.index = 0;
+    ZEROMEM(impl.gamepads.mapping);
+    tic_sys_default_mapping(&impl.gamepads.mapping);
     initGamepadMenu();
 }
 
 static void showGamepadMenu()
 {
-    GamepadMapping = getConfig()->options.mapping;
+    impl.gamepads.index = 0;
+    impl.gamepads.mapping = getConfig()->options.mapping;
+
     initGamepadMenu();
 }
 
@@ -1464,6 +1515,8 @@ void confirmDialog(const char** text, s32 rows, ConfirmCallback callback, void* 
 
         studio_menu_init(impl.menu, items, count, count - 2, 0,
             NULL, MOVE((ConfirmData){callback, data}));
+
+        playSystemSfx(0);
     }
 }
 
@@ -1748,7 +1801,7 @@ static void switchBank(s32 bank)
 
 #endif
 
-static void processShortcuts()
+static void processStudioShortcuts()
 {
     tic_mem* tic = impl.studio.tic;
 
@@ -1856,6 +1909,23 @@ static void processShortcuts()
                 return;
 
             setStudioMode(impl.mode == TIC_CONSOLE_MODE ? impl.prevMode : TIC_CONSOLE_MODE);
+        }
+    }
+}
+
+static void processShortcuts()
+{
+    tic_mem* tic = impl.studio.tic;
+
+    if(impl.gamepads.key < 0)
+        processStudioShortcuts();
+    else
+    {
+        tic_key key = *tic->ram.input.keyboard.keys;
+        if(key > tic_key_unknown)
+        {
+            impl.gamepads.mapping.data[impl.gamepads.index * TIC_BUTTONS + impl.gamepads.key] = key;
+            initGamepadMenu();
         }
     }
 }
