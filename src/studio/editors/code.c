@@ -2134,7 +2134,7 @@ static void drawCodeToolbar(Code* code)
                 switch(i)
                 {
                 case TEXT_RUN_CODE:
-                    runProject();
+                    runGame();
                     break;
                 default:
                     {
@@ -2169,7 +2169,7 @@ static void tick(Code* code)
 
     switch(code->mode)
     {
-    case TEXT_RUN_CODE:     runProject();           break;
+    case TEXT_RUN_CODE:     runGame();              break;
     case TEXT_DRAG_CODE:    textDragTick(code);     break;
     case TEXT_EDIT_MODE:    textEditTick(code);     break;
     case TEXT_FIND_MODE:    textFindTick(code);     break;

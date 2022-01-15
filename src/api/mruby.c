@@ -1085,28 +1085,33 @@ static void callMRubyTick(tic_mem* tic)
     }
 }
 
-static void callMRubyScanlineName(tic_mem* memory, s32 row, void* data, const char* name)
+static void callMRubyIntCallback(tic_mem* memory, s32 value, void* data, const char* name)
 {
     tic_core* machine = (tic_core*)memory;
     mrb_state* mrb = ((mrbVm*)machine->currentVM)->mrb;
 
     if (mrb && mrb_respond_to(mrb, mrb_top_self(mrb), mrb_intern_cstr(mrb, name)))
     {
-        mrb_funcall(mrb, mrb_top_self(mrb), name, 1, mrb_fixnum_value(row));
+        mrb_funcall(mrb, mrb_top_self(mrb), name, 1, mrb_fixnum_value(value));
         catcherr(machine);
     }
 }
 
 static void callMRubyScanline(tic_mem* memory, s32 row, void* data)
 {
-    callMRubyScanlineName(memory, row, data, SCN_FN);
+    callMRubyIntCallback(memory, row, data, SCN_FN);
 
-    callMRubyScanlineName(memory, row, data, "scanline");
+    callMRubyIntCallback(memory, row, data, "scanline");
 }
 
 static void callMRubyBorder(tic_mem* memory, s32 row, void* data)
 {
-    callMRubyScanlineName(memory, row, data, BDR_FN);
+    callMRubyIntCallback(memory, row, data, BDR_FN);
+}
+
+static void callMRubyGameMenu(tic_mem* memory, s32 index, void* data)
+{
+    callMRubyIntCallback(memory, index, data, MENU_FN);
 }
 
 /**
@@ -1203,6 +1208,7 @@ const tic_script_config MRubySyntaxConfig =
     {
         .scanline       = callMRubyScanline,
         .border         = callMRubyBorder,
+        .gamemenu       = callMRubyGameMenu,
     },
 
     .getOutline         = getMRubyOutline,

@@ -680,8 +680,6 @@ static void onLoadDemoCommandConfirmed(Console* console, tic_script_config* scri
     void* data = NULL;
     s32 size = 0;
 
-    console->showGameMenu = false;
-
     {
         char path[1024];
         getDemoCartPath(path, script);
@@ -777,8 +775,6 @@ static void loadByHashDone(const u8* buffer, s32 size, void* data)
     FREE(loadByHashData->name);
     FREE(loadByHashData->section);
     FREE(loadByHashData);
-
-    console->showGameMenu = true;
 
     commandDone(console);
 }
@@ -884,7 +880,6 @@ static void onLoadCommandConfirmed(Console* console)
         }
         else
         {
-            console->showGameMenu = false;
             s32 size = 0;
             void* data = strcmp(name, CONFIG_TIC_PATH) == 0
                 ? tic_fs_loadroot(console->fs, name, &size)
@@ -1454,13 +1449,6 @@ static void onInstallDemosCommand(Console* console)
         tic_fs_dirback(fs);
     }
 
-    commandDone(console);
-}
-
-static void onGameMenuCommand(Console* console)
-{
-    console->showGameMenu = false;
-    showGameMenu();
     commandDone(console);
 }
 
@@ -2210,16 +2198,20 @@ static CartSaveResult saveCartName(Console* console, const char* name)
 
                             const char* comment = tic_core_script_config(tic)->singleComment;
 
-                            const char* title = tic_tool_metatag(tic->cart.code.data, "title", comment);
+                            char* title = tic_tool_metatag(tic->cart.code.data, "title", comment);
                             if(title)
+                            {
                                 drawShadowText(tic, title, 0, 0, tic_color_white, Scale);
+                                free(title);
+                            }
 
-                            const char* author = tic_tool_metatag(tic->cart.code.data, "author", comment);
+                            char* author = tic_tool_metatag(tic->cart.code.data, "author", comment);
                             if(author)
                             {
                                 char buf[TICNAME_MAX];
                                 snprintf(buf, sizeof buf, "by %s", author);
                                 drawShadowText(tic, buf, 0, Row, tic_color_grey, Scale);
+                                free(author);
                             }
 
                             u32* ptr = img.values + PaddingTop * CoverWidth + PaddingLeft;
@@ -2336,15 +2328,14 @@ static void onRunCommand(Console* console)
 {
     commandDone(console);
 
-    runProject();
+    runGame();
 }
 
 static void onResumeCommand(Console* console)
 {
     commandDone(console);
 
-    tic_core_resume(console->tic);
-    resumeRunMode();
+    resumeGame();
 }
 
 static void onEvalCommand(Console* console)
@@ -2657,12 +2648,6 @@ static const char HelpUsage[] = "help [<text>"
         "open carts browser.",                                                          \
         NULL,                                                                           \
         onSurfCommand)                                                                  \
-                                                                                        \
-    macro("menu",                                                                       \
-        NULL,                                                                           \
-        "show game menu where you can setup keyboard/gamepad buttons mapping.",         \
-        NULL,                                                                           \
-        onGameMenuCommand)                                                              \
                                                                                         \
     ADDGET_FILE(macro)
 
@@ -3768,10 +3753,7 @@ static void tick(Console* console)
     {
         if(console->tickCounter >= (u32)(console->args.skip ? 1 : TIC80_FRAMERATE))
         {
-            if(!console->args.skip)
-                console->showGameMenu = true;
-
-            runProject();
+            runGame();
 
             start->embed = false;
             studioRomLoaded();
@@ -3905,7 +3887,6 @@ void initConsole(Console* console, tic_mem* tic, tic_fs* fs, tic_net* net, Confi
         .color = console->color,
         .fs = fs,
         .net = net,
-        .showGameMenu = false,
         .args = args,
         .desc = console->desc,
     };

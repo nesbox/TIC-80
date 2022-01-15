@@ -1553,7 +1553,7 @@ void callLuaTick(tic_mem* tic)
     }
 }
 
-void callLuaScanlineName(tic_mem* tic, s32 row, void* data, const char* name)
+void callLuaIntCallback(tic_mem* tic, s32 value, void* data, const char* name)
 {
     tic_core* core = (tic_core*)tic;
     lua_State* lua = core->currentVM;
@@ -1563,7 +1563,7 @@ void callLuaScanlineName(tic_mem* tic, s32 row, void* data, const char* name)
         lua_getglobal(lua, name);
         if(lua_isfunction(lua, -1))
         {
-            lua_pushinteger(lua, row);
+            lua_pushinteger(lua, value);
             if(docall(lua, 1, 0) != LUA_OK)
                 core->data->error(core->data->data, lua_tostring(lua, -1));
         }
@@ -1573,15 +1573,20 @@ void callLuaScanlineName(tic_mem* tic, s32 row, void* data, const char* name)
 
 void callLuaScanline(tic_mem* tic, s32 row, void* data)
 {
-    callLuaScanlineName(tic, row, data, SCN_FN);
+    callLuaIntCallback(tic, row, data, SCN_FN);
 
     // try to call old scanline
-    callLuaScanlineName(tic, row, data, "scanline");
+    callLuaIntCallback(tic, row, data, "scanline");
 }
 
 void callLuaBorder(tic_mem* tic, s32 row, void* data)
 {
-    callLuaScanlineName(tic, row, data, BDR_FN);
+    callLuaIntCallback(tic, row, data, BDR_FN);
+}
+
+void callLuaGameMenu(tic_mem* tic, s32 index, void* data)
+{
+    callLuaIntCallback(tic, index, data, MENU_FN);
 }
 
 static const char* const LuaKeywords [] =
@@ -1681,6 +1686,7 @@ tic_script_config LuaSyntaxConfig =
     {
         .scanline       = callLuaScanline,
         .border         = callLuaBorder,
+        .gamemenu       = callLuaGameMenu,
     },
 
     .getOutline         = getLuaOutline,

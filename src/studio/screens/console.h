@@ -91,7 +91,6 @@ struct Console
     u32 tickCounter;
 
     bool active;
-    bool showGameMenu;
     StartArgs args;
     
     struct

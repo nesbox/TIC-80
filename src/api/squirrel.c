@@ -1663,7 +1663,7 @@ static void callSquirrelTick(tic_mem* tic)
     }
 }
 
-static void callSquirrelScanlineName(tic_mem* tic, s32 row, void* data, const char* name)
+static void callSquirrelIntCallback(tic_mem* tic, s32 value, void* data, const char* name)
 {
     tic_core* core = (tic_core*)tic;
     HSQUIRRELVM vm = core->currentVM;
@@ -1675,7 +1675,7 @@ static void callSquirrelScanlineName(tic_mem* tic, s32 row, void* data, const ch
         if (SQ_SUCCEEDED(sq_get(vm, -2)))
         {
             sq_pushroottable(vm);
-            sq_pushinteger(vm, row);
+            sq_pushinteger(vm, value);
 
             if(SQ_FAILED(sq_call(vm, 2, SQFalse, SQTrue)))
             {
@@ -1695,15 +1695,20 @@ static void callSquirrelScanlineName(tic_mem* tic, s32 row, void* data, const ch
 
 static void callSquirrelScanline(tic_mem* tic, s32 row, void* data)
 {
-    callSquirrelScanlineName(tic, row, data, SCN_FN);
+    callSquirrelIntCallback(tic, row, data, SCN_FN);
 
     // try to call old scanline
-    callSquirrelScanlineName(tic, row, data, "scanline");
+    callSquirrelIntCallback(tic, row, data, "scanline");
 }
 
 static void callSquirrelBorder(tic_mem* tic, s32 row, void* data)
 {
-    callSquirrelScanlineName(tic, row, data, BDR_FN);
+    callSquirrelIntCallback(tic, row, data, BDR_FN);
+}
+
+static void callSquirrelGameMenu(tic_mem* tic, s32 index, void* data)
+{
+    callSquirrelIntCallback(tic, index, data, MENU_FN);
 }
 
 static const char* const SquirrelKeywords [] =
@@ -1819,6 +1824,7 @@ tic_script_config SquirrelSyntaxConfig =
     {
         .scanline       = callSquirrelScanline,
         .border         = callSquirrelBorder,
+        .gamemenu       = callSquirrelGameMenu,
     },
 
     .getOutline         = getSquirrelOutline,

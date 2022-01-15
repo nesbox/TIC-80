@@ -22,6 +22,7 @@
 
 #include "tools.h"
 
+#include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -232,21 +233,20 @@ u32 tic_tool_unzip(void* dest, s32 destSize, const void* source, s32 size)
     return uncompress(dest, &destSizeLong, source, size) == Z_OK ? destSizeLong : 0;
 }
 
-const char* tic_tool_metatag(const char* code, const char* tag, const char* comment)
+char* tic_tool_metatag(const char* code, const char* tag, const char* comment)
 {
     const char* start = NULL;
 
     {
         static char format[] = "%s %s:";
 
-        char* tagBuffer = malloc(strlen(format) + strlen(tag));
+        char* tagBuffer = malloc(sizeof format + strlen(tag));
 
-        if (tagBuffer)
+        SCOPE(free(tagBuffer))
         {
             sprintf(tagBuffer, format, comment, tag);
             if ((start = strstr(code, tagBuffer)))
                 start += strlen(tagBuffer);
-            free(tagBuffer);
         }
     }
 
@@ -256,8 +256,8 @@ const char* tic_tool_metatag(const char* code, const char* tag, const char* comm
 
         if (end)
         {
-            while (*start <= ' ' && start < end) start++;
-            while (*(end - 1) <= ' ' && end > start) end--;
+            while (isspace(*start) && start < end) start++;
+            while (isspace(*(end - 1)) && end > start) end--;
 
             const s32 size = (s32)(end - start);
 

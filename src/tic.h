@@ -434,7 +434,7 @@ typedef struct
         tic_bank banks[TIC_BANKS];
     };
 
-    tic_code code;    
+    tic_code code;
 
 } tic_cartridge;
 

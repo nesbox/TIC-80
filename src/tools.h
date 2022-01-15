@@ -101,4 +101,4 @@ bool    tic_tool_flat4(const void* buffer, s32 size);
 
 u32     tic_nearest_color(const tic_rgb* palette, const tic_rgb* color, s32 count);
 
-const char* tic_tool_metatag(const char* code, const char* tag, const char* comment);
+char* tic_tool_metatag(const char* code, const char* tag, const char* comment);

@@ -662,7 +662,7 @@ static void changeDirectory(Surf* surf, const char* name)
 
 static void onCartLoaded(void* data)
 {
-    runGameFromSurf();
+    runGame();
 }
 
 static void onPlayCart(Surf* surf)
@@ -676,7 +676,7 @@ static void onPlayCart(Surf* surf)
     else
     {
         surf->console->load(surf->console, item->name);
-        runGameFromSurf();
+        runGame();
     }
 }
 

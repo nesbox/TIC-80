@@ -1040,14 +1040,14 @@ static void callJavascriptTick(tic_mem* tic)
     }
 }
 
-static void callJavascriptScanlineName(tic_mem* tic, s32 row, void* data, const char* name)
+static void callJavascriptIntCallback(tic_mem* tic, s32 value, void* data, const char* name)
 {
     tic_core* core = (tic_core*)tic;
     duk_context* duk = core->currentVM;
 
     if(duk_get_global_string(duk, name))
     {
-        duk_push_int(duk, row);
+        duk_push_int(duk, value);
 
         if(duk_pcall(duk, 1) != 0)
             core->data->error(core->data->data, duk_safe_to_stacktrace(duk, -1));
@@ -1058,15 +1058,20 @@ static void callJavascriptScanlineName(tic_mem* tic, s32 row, void* data, const 
 
 static void callJavascriptScanline(tic_mem* tic, s32 row, void* data)
 {
-    callJavascriptScanlineName(tic, row, data, SCN_FN);
+    callJavascriptIntCallback(tic, row, data, SCN_FN);
 
     // try to call old scanline
-    callJavascriptScanlineName(tic, row, data, "scanline");
+    callJavascriptIntCallback(tic, row, data, "scanline");
 }
 
 static void callJavascriptBorder(tic_mem* tic, s32 row, void* data)
 {
-    callJavascriptScanlineName(tic, row, data, BDR_FN);
+    callJavascriptIntCallback(tic, row, data, BDR_FN);
+}
+
+static void callJavascriptGameMenu(tic_mem* tic, s32 index, void* data)
+{
+    callJavascriptIntCallback(tic, index, data, MENU_FN);
 }
 
 static const char* const JsKeywords [] =
@@ -1156,6 +1161,7 @@ const tic_script_config JsSyntaxConfig =
     {
         .scanline       = callJavascriptScanline,
         .border         = callJavascriptBorder,
+        .gamemenu       = callJavascriptGameMenu,
     },
 
     .getOutline         = getJsOutline,

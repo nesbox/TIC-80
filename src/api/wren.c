@@ -37,6 +37,7 @@ static WrenHandle* new_handle       = NULL;
 static WrenHandle* update_handle    = NULL;
 static WrenHandle* scanline_handle  = NULL;
 static WrenHandle* border_handle    = NULL;
+static WrenHandle* gamemenu_handle  = NULL;
 static WrenHandle* overline_handle  = NULL;
 
 static bool loaded = false;
@@ -175,6 +176,7 @@ class TIC {\n\
     " TIC_FN "(){}\n\
     " SCN_FN "(row){}\n\
     " BDR_FN "(row){}\n\
+    " MENU_FN "(index){}\n\
     " OVR_FN "(){}\n\
 }\n";
 
@@ -217,6 +219,7 @@ static void closeWren(tic_mem* tic)
             wrenReleaseHandle(core->currentVM, update_handle);
             wrenReleaseHandle(core->currentVM, scanline_handle);
             wrenReleaseHandle(core->currentVM, border_handle);
+            wrenReleaseHandle(core->currentVM, gamemenu_handle);
             wrenReleaseHandle(core->currentVM, overline_handle);
             if (game_class != NULL) 
             {
@@ -1524,6 +1527,7 @@ static bool initWren(tic_mem* tic, const char* code)
     update_handle = wrenMakeCallHandle(vm, TIC_FN "()");
     scanline_handle = wrenMakeCallHandle(vm, SCN_FN "(_)");
     border_handle = wrenMakeCallHandle(vm, BDR_FN "(_)");
+    gamemenu_handle = wrenMakeCallHandle(vm, MENU_FN "(_)");
     overline_handle = wrenMakeCallHandle(vm, OVR_FN "()");
 
     // create game class
@@ -1572,7 +1576,7 @@ static void callWrenTick(tic_mem* tic)
     }
 }
 
-static void callWrenScanline(tic_mem* tic, s32 row, void* data)
+static void callWrenIntCallback(tic_mem* tic, s32 value, WrenHandle* handle, void* data)
 {
     tic_core* core = (tic_core*)tic;
     WrenVM* vm = core->currentVM;
@@ -1581,23 +1585,24 @@ static void callWrenScanline(tic_mem* tic, s32 row, void* data)
     {
         wrenEnsureSlots(vm, 2);
         wrenSetSlotHandle(vm, 0, game_class);
-        wrenSetSlotDouble(vm, 1, row);
-        wrenCall(vm, scanline_handle);
+        wrenSetSlotDouble(vm, 1, value);
+        wrenCall(vm, handle);
     }
+}
+
+static void callWrenScanline(tic_mem* tic, s32 row, void* data)
+{
+    callWrenIntCallback(tic, row, scanline_handle, data);
 }
 
 static void callWrenBorder(tic_mem* tic, s32 row, void* data)
 {
-    tic_core* core = (tic_core*)tic;
-    WrenVM* vm = core->currentVM;
+    callWrenIntCallback(tic, row, border_handle, data);
+}
 
-    if(vm && game_class)
-    {
-        wrenEnsureSlots(vm, 2);
-        wrenSetSlotHandle(vm, 0, game_class);
-        wrenSetSlotDouble(vm, 1, row);
-        wrenCall(vm, border_handle);
-    }
+static void callWrenGameMenu(tic_mem* tic, s32 index, void* data)
+{
+    callWrenIntCallback(tic, index, gamemenu_handle, data);
 }
 
 static const char* const WrenKeywords [] =
@@ -1685,8 +1690,9 @@ tic_script_config WrenSyntaxConfig =
     .tick               = callWrenTick,
     .callback           =
     {
-        .scanline           = callWrenScanline,
-        .border             = callWrenBorder,
+        .scanline       = callWrenScanline,
+        .border         = callWrenBorder,
+        .gamemenu       = callWrenGameMenu,
     },
 
     .getOutline         = getWrenOutline,

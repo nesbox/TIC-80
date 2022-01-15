@@ -187,7 +187,6 @@ void studioRomSaved();
 void studioConfigChanged();
 
 void setStudioMode(EditorMode mode);
-void resumeRunMode();
 EditorMode getStudioMode();
 void exitStudio();
 
@@ -225,12 +224,11 @@ void confirmDialog(const char** text, s32 rows, ConfirmCallback callback, void* 
 bool studioCartChanged();
 void playSystemSfx(s32 id);
 
-void runGameFromSurf();
 void gotoCode();
 void gotoSurf();
 
-void showGameMenu();
-void runProject();
+void runGame();
+void resumeGame();
 
 tic_tiles* getBankTiles();
 tic_palette* getBankPalette(bool bank);

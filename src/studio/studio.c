@@ -200,6 +200,12 @@ static struct
     Menu*       menu;
     Config*     config;
 
+    struct
+    {
+        MenuItem* items;
+        s32 count;
+    } gameMenu;
+
     tic_fs* fs;
 
     s32 samplerate;
@@ -1037,20 +1043,9 @@ void gotoCode()
     setStudioMode(TIC_CODE_MODE);
 }
 
-void runGameFromSurf()
-{
-    tic_api_reset(impl.studio.tic);
-    setStudioMode(TIC_RUN_MODE);
-    impl.prevMode = TIC_SURF_MODE;
-}
-
-void resumeRunMode()
-{
-    impl.mode = TIC_RUN_MODE;
-}
 #endif
 
-static void exitGameMenu()
+static void exitGame()
 {
     if(impl.prevMode == TIC_SURF_MODE)
     {
@@ -1060,10 +1055,6 @@ static void exitGameMenu()
     {
         setStudioMode(TIC_CONSOLE_MODE);
     }
-
-#if defined(BUILD_EDITORS)
-    impl.console->showGameMenu = false;
-#endif
 }
 
 void setStudioMode(EditorMode mode)
@@ -1083,10 +1074,6 @@ void setStudioMode(EditorMode mode)
         case TIC_START_MODE:
         case TIC_CONSOLE_MODE:
         case TIC_MENU_MODE:
-            break;
-        case TIC_RUN_MODE:
-        case TIC_SURF_MODE:
-            impl.prevMode = TIC_CODE_MODE;
             break;
         default: impl.prevMode = prev; break;
         }
@@ -1144,7 +1131,7 @@ static void resetGame()
     setStudioMode(TIC_RUN_MODE);
 }
 
-static void hideGameMenu()
+void resumeGame()
 {
     tic_core_resume(impl.studio.tic);
     impl.mode = TIC_RUN_MODE;
@@ -1231,6 +1218,7 @@ static MenuOption VolumeOption =
 };
 
 static void showGamepadMenu();
+static void showMainMenu();
 
 static const MenuItem OptionMenu[] =
 {
@@ -1242,24 +1230,86 @@ static const MenuItem OptionMenu[] =
     {"VOLUME",          NULL,   &VolumeOption},
     {"SETUP GAMEPAD",   showGamepadMenu},
     {""},
-    {"BACK",            showGameMenu, .back = true},
+    {"BACK",            showMainMenu, .back = true},
 };
 
 static void showOptionsMenu();
-
-static const MenuItem GameMenu[] =
+static void gameMenuHandler(void* data)
 {
-#if defined(BUILD_EDITORS)
-    {"CLOSE GAME",  exitGameMenu},
-#endif
+    tic_mem* tic = impl.studio.tic;
+    tic_core_script_config(tic)->callback.gamemenu(tic, *(s32*)data, NULL);
+    resumeGame();
+}
+
+static void freeGameMenu()
+{
+    if(impl.gameMenu.items)
+    {
+        for(MenuItem *it = impl.gameMenu.items, *end = it + impl.gameMenu.count; it != end; ++it)
+            free((void*)it->label);
+
+        free(impl.gameMenu.items);
+        impl.gameMenu.count = 0;
+        impl.gameMenu.items = NULL;
+    }
+}
+
+static void initGameMenu()
+{
+    tic_mem* tic = impl.studio.tic;
+
+    freeGameMenu();
+
+    char* menu = tic_tool_metatag(tic->cart.code.data, "menu", tic_core_script_config(tic)->singleComment);
+
+    if(menu) SCOPE(free(menu))
+    {
+        MenuItem *items = NULL;
+        s32 count = 0;
+
+        char* label = strtok(menu, " ");
+        while(label)
+        {
+            items = realloc(items, sizeof(MenuItem) * ++count);
+            items[count - 1] = (MenuItem){strdup(label), gameMenuHandler};
+
+            label = strtok(NULL, " ");
+        }
+
+        count += 2;
+        items = realloc(items, sizeof(MenuItem) * count);
+        items[count - 2] = (MenuItem){strdup("")};
+        items[count - 1] = (MenuItem){strdup("BACK"), showMainMenu, .back = true};
+
+        impl.gameMenu.items = items;
+        impl.gameMenu.count = count;
+    }
+}
+
+static void showGameMenu()
+{
+    studio_menu_init(impl.menu, impl.gameMenu.items, impl.gameMenu.count, 0, 0, showMainMenu, NULL);
+}
+
+static inline s32 mainMenuStart()
+{
+    return impl.gameMenu.count ? 0 : 1;
+}
+
+static const MenuItem MainMenu[] =
+{
+    {"GAME MENU",   showGameMenu},
+    {"RESUME GAME", resumeGame},
     {"RESET GAME",  resetGame},
-    {"RESUME GAME", hideGameMenu},
+#if defined(BUILD_EDITORS)
+    {"CLOSE GAME",  exitGame},
+#endif
     {"OPTIONS",     showOptionsMenu},
     {""},
     {"QUIT TIC-80", exitStudio},
 };
 
-void showGameMenu()
+static void showMainMenu()
 {
     if(impl.mode != TIC_MENU_MODE)
     {
@@ -1268,14 +1318,17 @@ void showGameMenu()
         impl.mode = TIC_MENU_MODE;
     }
 
-    enum{Count = COUNT_OF(GameMenu)};
-    studio_menu_init(impl.menu, GameMenu, Count, Count - 4, 0, NULL, NULL);
+    initGameMenu();
+
+    s32 start = mainMenuStart();
+
+    studio_menu_init(impl.menu, MainMenu + start, COUNT_OF(MainMenu) - start, 0, 0, resumeGame, NULL);
 }
 
 static void showOptionsMenuPos(s32 pos)
 {
     studio_menu_init(impl.menu, OptionMenu, 
-        COUNT_OF(OptionMenu), pos, COUNT_OF(GameMenu) - 3, showGameMenu, NULL);
+        COUNT_OF(OptionMenu), pos, COUNT_OF(MainMenu) - 3 - mainMenuStart(), showMainMenu, NULL);
 }
 
 static void showOptionsMenu()
@@ -1617,16 +1670,7 @@ bool studioCartChanged()
 }
 #endif
 
-static inline bool isGameMenu()
-{
-    return (impl.mode == TIC_RUN_MODE || impl.mode == TIC_MENU_MODE) 
-#if defined(BUILD_EDITORS)
-        && impl.console->showGameMenu
-#endif
-        ;
-}
-
-void runProject()
+void runGame()
 {
 #if defined(BUILD_EDITORS)
     if(impl.console->args.keepcmd 
@@ -1644,8 +1688,15 @@ void runProject()
         if(impl.mode == TIC_RUN_MODE)
         {
             initRunMode();
+            return;
         }
-        else setStudioMode(TIC_RUN_MODE);
+
+        setStudioMode(TIC_RUN_MODE);
+
+#if defined(BUILD_EDITORS)
+        if(impl.mode == TIC_SURF_MODE)
+            impl.prevMode = TIC_SURF_MODE;
+#endif
     }
 }
 
@@ -1818,45 +1869,19 @@ static void processStudioShortcuts()
     if(keyWasPressedOnce(tic_key_f6)) switchCrtMonitor();
 #endif
 
-    if(isGameMenu())
-    {
-        if(keyWasPressedOnce(tic_key_escape))
-        {
-            if(impl.mode == TIC_MENU_MODE)
-            {
-                if(!studio_menu_back(impl.menu))
-                    hideGameMenu();
-            }
-            else showGameMenu();
-        }
-        else if(keyWasPressedOnce(tic_key_f11)) tic_sys_fullscreen_set(!tic_sys_fullscreen_get());
-        else if(keyWasPressedOnce(tic_key_return))
-        {
-            if(alt) tic_sys_fullscreen_set(!tic_sys_fullscreen_get());
-        }
-#if defined(BUILD_EDITORS)
-        else if(keyWasPressedOnce(tic_key_f7)) setCoverImage();
-        else if(keyWasPressedOnce(tic_key_f8)) takeScreenshot();
-        else if(keyWasPressedOnce(tic_key_f9)) startVideoRecord();
-#endif
-        else if(keyWasPressedOnce(tic_key_r))
-        {
-            if(ctrl) runProject();
-        }
-
-        return;
-    }
-
     if(alt)
     {
         if (keyWasPressedOnce(tic_key_return)) tic_sys_fullscreen_set(!tic_sys_fullscreen_get());
 #if defined(BUILD_EDITORS)
-        else if(keyWasPressedOnce(tic_key_grave)) setStudioMode(TIC_CONSOLE_MODE);
-        else if(keyWasPressedOnce(tic_key_1)) setStudioMode(TIC_CODE_MODE);
-        else if(keyWasPressedOnce(tic_key_2)) setStudioMode(TIC_SPRITE_MODE);
-        else if(keyWasPressedOnce(tic_key_3)) setStudioMode(TIC_MAP_MODE);
-        else if(keyWasPressedOnce(tic_key_4)) setStudioMode(TIC_SFX_MODE);
-        else if(keyWasPressedOnce(tic_key_5)) setStudioMode(TIC_MUSIC_MODE);
+        else if(impl.mode != TIC_RUN_MODE)
+        {
+            if(keyWasPressedOnce(tic_key_grave)) setStudioMode(TIC_CONSOLE_MODE);
+            else if(keyWasPressedOnce(tic_key_1)) setStudioMode(TIC_CODE_MODE);
+            else if(keyWasPressedOnce(tic_key_2)) setStudioMode(TIC_SPRITE_MODE);
+            else if(keyWasPressedOnce(tic_key_3)) setStudioMode(TIC_MAP_MODE);
+            else if(keyWasPressedOnce(tic_key_4)) setStudioMode(TIC_SFX_MODE);
+            else if(keyWasPressedOnce(tic_key_5)) setStudioMode(TIC_MUSIC_MODE);
+        }
 #endif
     }
     else if(ctrl)
@@ -1865,8 +1890,8 @@ static void processStudioShortcuts()
 #if defined(BUILD_EDITORS)
         else if(keyWasPressedOnce(tic_key_pageup)) changeStudioMode(-1);
         else if(keyWasPressedOnce(tic_key_pagedown)) changeStudioMode(1);
-        else if(keyWasPressedOnce(tic_key_return)) runProject();
-        else if(keyWasPressedOnce(tic_key_r)) runProject();
+        else if(keyWasPressedOnce(tic_key_return)) runGame();
+        else if(keyWasPressedOnce(tic_key_r)) runGame();
         else if(keyWasPressedOnce(tic_key_s)) saveProject();
 #endif
 
@@ -1883,33 +1908,39 @@ static void processStudioShortcuts()
     else
     {
         if (keyWasPressedOnce(tic_key_f11)) tic_sys_fullscreen_set(!tic_sys_fullscreen_get());
-#if defined(BUILD_EDITORS)
-        else if(keyWasPressedOnce(tic_key_f1)) setStudioMode(TIC_CODE_MODE);
-        else if(keyWasPressedOnce(tic_key_f2)) setStudioMode(TIC_SPRITE_MODE);
-        else if(keyWasPressedOnce(tic_key_f3)) setStudioMode(TIC_MAP_MODE);
-        else if(keyWasPressedOnce(tic_key_f4)) setStudioMode(TIC_SFX_MODE);
-        else if(keyWasPressedOnce(tic_key_f5)) setStudioMode(TIC_MUSIC_MODE);
-        else if(keyWasPressedOnce(tic_key_f7)) setCoverImage();
-        else if(keyWasPressedOnce(tic_key_f8)) takeScreenshot();
-        else if(keyWasPressedOnce(tic_key_f9)) startVideoRecord();
-#endif
         else if(keyWasPressedOnce(tic_key_escape))
         {
-#if defined(BUILD_EDITORS)
-            Code* code = impl.code;
-
-            if(impl.mode == TIC_CODE_MODE && code->mode != TEXT_EDIT_MODE)
+            switch(impl.mode)
             {
-                code->escape(code);
-                return;
-            }
+            case TIC_MENU_MODE:     studio_menu_back(impl.menu); break;
+            case TIC_RUN_MODE:      showMainMenu(); break;
+#if defined(BUILD_EDITORS)
+            case TIC_CONSOLE_MODE:  setStudioMode(impl.prevMode); break;
+            case TIC_CODE_MODE:
+                if(impl.code->mode != TEXT_EDIT_MODE)
+                {
+                    impl.code->escape(impl.code);
+                    return;
+                }
+            default:
+                setStudioMode(TIC_CONSOLE_MODE);
 #endif
+            }
 
-            if(impl.mode == TIC_MENU_MODE && studio_menu_back(impl.menu))
-                return;
-
-            setStudioMode(impl.mode == TIC_CONSOLE_MODE ? impl.prevMode : TIC_CONSOLE_MODE);
         }
+#if defined(BUILD_EDITORS)
+        else if(impl.mode != TIC_RUN_MODE)
+        {
+            if(keyWasPressedOnce(tic_key_f1)) setStudioMode(TIC_CODE_MODE);
+            else if(keyWasPressedOnce(tic_key_f2)) setStudioMode(TIC_SPRITE_MODE);
+            else if(keyWasPressedOnce(tic_key_f3)) setStudioMode(TIC_MAP_MODE);
+            else if(keyWasPressedOnce(tic_key_f4)) setStudioMode(TIC_SFX_MODE);
+            else if(keyWasPressedOnce(tic_key_f5)) setStudioMode(TIC_MUSIC_MODE);
+            else if(keyWasPressedOnce(tic_key_f7)) setCoverImage();
+            else if(keyWasPressedOnce(tic_key_f8)) takeScreenshot();
+            else if(keyWasPressedOnce(tic_key_f9)) startVideoRecord();
+        }
+#endif
     }
 }
 
@@ -2269,13 +2300,13 @@ static void studioTick()
 
         tic_blit_callback callback[TIC_MODES_COUNT] = 
         {
-            [TIC_MENU_MODE]     = {studio_menu_anim_scanline, NULL, impl.menu},
+            [TIC_MENU_MODE]     = {studio_menu_anim_scanline, NULL, NULL, impl.menu},
 
 #if defined(BUILD_EDITORS)
-            [TIC_SPRITE_MODE]   = {sprite->scanline,        NULL,   sprite},
-            [TIC_MAP_MODE]      = {map->scanline,           NULL,   map},
-            [TIC_WORLD_MODE]    = {impl.world->scanline,    NULL,   impl.world},
-            [TIC_SURF_MODE]     = {impl.surf->scanline,     NULL,   impl.surf},
+            [TIC_SPRITE_MODE]   = {sprite->scanline,        NULL, NULL, sprite},
+            [TIC_MAP_MODE]      = {map->scanline,           NULL, NULL, map},
+            [TIC_WORLD_MODE]    = {impl.world->scanline,    NULL, NULL, impl.world},
+            [TIC_SURF_MODE]     = {impl.surf->scanline,     NULL, NULL, impl.surf},
 #endif
         };
 
@@ -2350,6 +2381,7 @@ static void studioClose()
         freeRun     (impl.run);
         freeConfig  (impl.config);
 
+        freeGameMenu();
         studio_menu_free(impl.menu);
     }
 

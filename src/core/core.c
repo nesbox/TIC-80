@@ -217,12 +217,12 @@ static bool compareMetatag(const char* code, const char* tag, const char* value,
 {
     bool result = false;
 
-    const char* str = tic_tool_metatag(code, tag, comment);
+    char* str = tic_tool_metatag(code, tag, comment);
 
     if (str)
     {
         result = strcmp(str, value) == 0;
-        free((void*)str);
+        free(str);
     }
 
     return result;
@@ -242,11 +242,11 @@ const tic_script_config* tic_core_script_config(tic_mem* memory)
 static void updateSaveid(tic_mem* memory)
 {
     memset(memory->saveid, 0, sizeof memory->saveid);
-    const char* saveid = tic_tool_metatag(memory->cart.code.data, "saveid", tic_core_script_config(memory)->singleComment);
+    char* saveid = tic_tool_metatag(memory->cart.code.data, "saveid", tic_core_script_config(memory)->singleComment);
     if (saveid)
     {
         strncpy(memory->saveid, saveid, TIC_SAVEID_SIZE - 1);
-        free((void*)saveid);
+        free(saveid);
     }
 }
 
