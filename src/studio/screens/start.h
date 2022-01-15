@@ -35,14 +35,20 @@ typedef struct
 
 typedef struct Start Start;
 
+typedef struct stage {
+    void(*fn)(Start*);
+    u8 ticks;
+} Stage;
+
 struct Start
 {
     tic_mem* tic;
 
     bool initialized;
+    Stage stages[5];
 
-    u32 phase;
-    u32 ticks;
+    u32 stage;
+    s32 ticks;
     bool play;
 
     char* text;
