@@ -51,8 +51,8 @@ struct Start
     s32 ticks;
     bool play;
 
-    char* text;
-    u8* color;
+    char text[STUDIO_TEXT_BUFFER_SIZE];
+    u8 color[STUDIO_TEXT_BUFFER_SIZE];
 
     bool embed;
 
