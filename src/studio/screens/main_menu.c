@@ -163,6 +163,9 @@ static void gameMenuHandler(void* data)
 
 void freeGameMenu()
 {
+    // we may never have opened the menu
+    if (!menu_impl.gameMenu) return;
+
     if(menu_impl.gameMenu->items)
     {
         for(MenuItem *it = menu_impl.gameMenu->items, *end = it + menu_impl.gameMenu->count; it != end; ++it)
