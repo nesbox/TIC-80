@@ -26,3 +26,4 @@ void showGamepadMenu();
 void showMainMenu();
 void freeGameMenu();
 void initGamepadMenu();
+void initMainMenu(Menu *menu, void *gameMenu, Config *config, tic_mem* mem);

@@ -25,14 +25,39 @@
 #include "menu.h"
 #include "game_menu.h"
 
-typedef struct _StudioImplementation StudioImplementation;
-
 // TODO: we should be able to shrink this access 
+// currently this is only used for impl.gamepad
 extern StudioImplementation impl;
+
+struct MenuImpl {
+    Menu*       menu;
+    struct 
+    {
+        MenuItem* items;
+        s32 count;
+    }* gameMenu;
+    Config*     config;
+    tic_mem* mem;
+} state;
 
 #define OPTION_VALUES(...)                          \
     .values = (const char*[])__VA_ARGS__,           \
     .count = COUNT_OF(((const char*[])__VA_ARGS__))
+
+// TODO: do we need to lock this down further?
+static StudioConfig* rwConfig() {
+    return &state.config->data;
+}
+
+
+void initMainMenu(Menu *menu, void *gameMenu, Config *config, tic_mem* mem) {
+    state = (struct MenuImpl){
+        .menu = menu,
+        .gameMenu = gameMenu,
+        .config = config,
+        .mem = mem
+    };
+}
 
 static s32 optionFullscreenGet()
 {
@@ -41,7 +66,7 @@ static s32 optionFullscreenGet()
 
 static void optionFullscreenSet(s32 pos)
 {
-    tic_sys_fullscreen_set(impl.config->data.options.fullscreen = (pos == 1));
+    tic_sys_fullscreen_set(rwConfig()->options.fullscreen = (pos == 1));
 }
 
 static const char OffValue[] =  "OFF";
@@ -57,12 +82,12 @@ static MenuOption FullscreenOption =
 #if defined(CRT_SHADER_SUPPORT)
 static s32 optionCrtMonitorGet()
 {
-    return impl.config->data.options.crt ? 1 : 0;
+    return getConfig()->options.crt ? 1 : 0;
 }
 
 static void optionCrtMonitorSet(s32 pos)
 {
-    impl.config->data.options.crt = pos == 1;
+    rwConfig()->options.crt = pos == 1;
 }
 
 static MenuOption CrtMonitorOption = 
@@ -81,7 +106,7 @@ static s32 optionVSyncGet()
 
 static void optionVSyncSet(s32 pos)
 {
-    impl.config->data.options.vsync = pos == 1;
+    rwConfig()->options.vsync = pos == 1;
 }
 
 static MenuOption VSyncOption = 
@@ -93,12 +118,12 @@ static MenuOption VSyncOption =
 
 static s32 optionVolumeGet()
 {
-    return impl.config->data.options.volume;
+    return getConfig()->options.volume;
 }
 
 static void optionVolumeSet(s32 pos)
 {
-    impl.config->data.options.volume = pos;
+    rwConfig()->options.volume = pos;
 }
 
 static MenuOption VolumeOption = 
@@ -131,27 +156,27 @@ static const MenuItem OptionMenu[] =
 static void showOptionsMenu();
 static void gameMenuHandler(void* data)
 {
-    tic_mem* tic = impl.studio.tic;
+    tic_mem* tic = state.mem;
     tic_core_script_config(tic)->callback.gamemenu(tic, *(s32*)data, NULL);
     resumeGame();
 }
 
 void freeGameMenu()
 {
-    if(impl.gameMenu.items)
+    if(state.gameMenu->items)
     {
-        for(MenuItem *it = impl.gameMenu.items, *end = it + impl.gameMenu.count; it != end; ++it)
+        for(MenuItem *it = state.gameMenu->items, *end = it + state.gameMenu->count; it != end; ++it)
             free((void*)it->label);
 
-        free(impl.gameMenu.items);
-        impl.gameMenu.count = 0;
-        impl.gameMenu.items = NULL;
+        free(state.gameMenu->items);
+        state.gameMenu->count = 0;
+        state.gameMenu->items = NULL;
     }
 }
 
 void initGameMenu()
 {
-    tic_mem* tic = impl.studio.tic;
+    tic_mem* tic = state.mem;
 
     freeGameMenu();
 
@@ -176,31 +201,19 @@ void initGameMenu()
         items[count - 2] = (MenuItem){strdup("")};
         items[count - 1] = (MenuItem){strdup("BACK"), showMainMenu, .back = true};
 
-        impl.gameMenu.items = items;
-        impl.gameMenu.count = count;
+        state.gameMenu->items = items;
+        state.gameMenu->count = count;
     }
 }
 
 void showGameMenu()
 {
-    studio_menu_init(impl.menu, impl.gameMenu.items, impl.gameMenu.count, 0, 0, showMainMenu, NULL);
+    studio_menu_init(state.menu, state.gameMenu->items, state.gameMenu->count, 0, 0, showMainMenu, NULL);
 }
 
 static inline s32 mainMenuStart()
 {
-    return impl.gameMenu.count ? 0 : 1;
-}
-
-static void exitGame()
-{
-    if(impl.prevMode == TIC_SURF_MODE)
-    {
-        setStudioMode(TIC_SURF_MODE);
-    }
-    else
-    {
-        setStudioMode(TIC_CONSOLE_MODE);
-    }
+    return state.gameMenu->count ? 0 : 1;
 }
 
 static const MenuItem MainMenu[] =
@@ -218,23 +231,16 @@ static const MenuItem MainMenu[] =
 
 void showMainMenu()
 {
-    if(impl.mode != TIC_MENU_MODE)
-    {
-        tic_core_pause(impl.studio.tic);
-        tic_api_reset(impl.studio.tic);
-        impl.mode = TIC_MENU_MODE;
-    }
-
     initGameMenu();
 
     s32 start = mainMenuStart();
 
-    studio_menu_init(impl.menu, MainMenu + start, COUNT_OF(MainMenu) - start, 0, 0, resumeGame, NULL);
+    studio_menu_init(state.menu, MainMenu + start, COUNT_OF(MainMenu) - start, 0, 0, resumeGame, NULL);
 }
 
 static void showOptionsMenuPos(s32 pos)
 {
-    studio_menu_init(impl.menu, OptionMenu, 
+    studio_menu_init(state.menu, OptionMenu, 
         COUNT_OF(OptionMenu), pos, COUNT_OF(MainMenu) - 3 - mainMenuStart(), showMainMenu, NULL);
 }
 
@@ -245,7 +251,7 @@ static void showOptionsMenu()
 
 static void saveGamepadMenu()
 {
-    impl.config->data.options.mapping = impl.gamepads.mapping;
+    rwConfig()->options.mapping = impl.gamepads.mapping;
     showOptionsMenuPos(COUNT_OF(OptionMenu) - 3);
 }
 
@@ -282,7 +288,7 @@ static void assignMapping(void* data)
 
     sprintf(str, Fmt, ButtonLabels[impl.gamepads.key]);
 
-    studio_menu_init(impl.menu, AssignKeyMenu, COUNT_OF(AssignKeyMenu), 1, 0, NULL, NULL);
+    studio_menu_init(state.menu, AssignKeyMenu, COUNT_OF(AssignKeyMenu), 1, 0, NULL, NULL);
 }
 
 static void initGamepadButtons()
@@ -348,7 +354,7 @@ void initGamepadMenu()
 
     initGamepadButtons();
 
-    studio_menu_init(impl.menu, GamepadMenu, COUNT_OF(GamepadMenu), 
+    studio_menu_init(state.menu, GamepadMenu, COUNT_OF(GamepadMenu), 
         impl.gamepads.key < 0 ? KeyMappingStart : impl.gamepads.key + KeyMappingStart, 
         COUNT_OF(OptionMenu) - 3, showOptionsMenu, NULL);
 

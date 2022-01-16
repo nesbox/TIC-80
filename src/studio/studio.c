@@ -1374,6 +1374,18 @@ static void switchBank(s32 bank)
 
 #endif
 
+static void enterMainMenu() {
+    if(impl.mode != TIC_MENU_MODE)
+    {
+        tic_core_pause(impl.studio.tic);
+        tic_api_reset(impl.studio.tic);
+        impl.mode = TIC_MENU_MODE;
+    }
+
+    initMainMenu(impl.menu, &impl.gameMenu, impl.config, impl.studio.tic);
+    showMainMenu();
+}
+
 static void processStudioShortcuts()
 {
     tic_mem* tic = impl.studio.tic;
@@ -1435,7 +1447,7 @@ static void processStudioShortcuts()
             switch(impl.mode)
             {
             case TIC_MENU_MODE:     studio_menu_back(impl.menu); break;
-            case TIC_RUN_MODE:      showMainMenu(); break;
+            case TIC_RUN_MODE:      enterMainMenu(); break;
 #if defined(BUILD_EDITORS)
             case TIC_CONSOLE_MODE:  setStudioMode(impl.prevMode); break;
             case TIC_CODE_MODE:
@@ -1879,6 +1891,18 @@ static void studioLoad(const char* file)
         ? "cart successfully loaded :)"
         : "error: cart not loaded :(");
 #endif
+}
+
+void exitGame()
+{
+    if(impl.prevMode == TIC_SURF_MODE)
+    {
+        setStudioMode(TIC_SURF_MODE);
+    }
+    else
+    {
+        setStudioMode(TIC_CONSOLE_MODE);
+    }
 }
 
 static void studioClose()
