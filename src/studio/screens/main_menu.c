@@ -23,7 +23,7 @@
 #include "../studio.h"
 #include "../studio_impl.h"
 #include "menu.h"
-#include "game_menu.h"
+#include "main_menu.h"
 
 // TODO: we should be able to shrink this access 
 // currently this is only used for impl.gamepad
@@ -38,7 +38,7 @@ struct MenuImpl {
     }* gameMenu;
     Config*     config;
     tic_mem* mem;
-} state;
+} menu_impl;
 
 #define OPTION_VALUES(...)                          \
     .values = (const char*[])__VA_ARGS__,           \
@@ -46,12 +46,12 @@ struct MenuImpl {
 
 // TODO: do we need to lock this down further?
 static StudioConfig* rwConfig() {
-    return &state.config->data;
+    return &menu_impl.config->data;
 }
 
 
 void initMainMenu(Menu *menu, void *gameMenu, Config *config, tic_mem* mem) {
-    state = (struct MenuImpl){
+    menu_impl = (struct MenuImpl){
         .menu = menu,
         .gameMenu = gameMenu,
         .config = config,
@@ -156,27 +156,27 @@ static const MenuItem OptionMenu[] =
 static void showOptionsMenu();
 static void gameMenuHandler(void* data)
 {
-    tic_mem* tic = state.mem;
+    tic_mem* tic = menu_impl.mem;
     tic_core_script_config(tic)->callback.gamemenu(tic, *(s32*)data, NULL);
     resumeGame();
 }
 
 void freeGameMenu()
 {
-    if(state.gameMenu->items)
+    if(menu_impl.gameMenu->items)
     {
-        for(MenuItem *it = state.gameMenu->items, *end = it + state.gameMenu->count; it != end; ++it)
+        for(MenuItem *it = menu_impl.gameMenu->items, *end = it + menu_impl.gameMenu->count; it != end; ++it)
             free((void*)it->label);
 
-        free(state.gameMenu->items);
-        state.gameMenu->count = 0;
-        state.gameMenu->items = NULL;
+        free(menu_impl.gameMenu->items);
+        menu_impl.gameMenu->count = 0;
+        menu_impl.gameMenu->items = NULL;
     }
 }
 
 void initGameMenu()
 {
-    tic_mem* tic = state.mem;
+    tic_mem* tic = menu_impl.mem;
 
     freeGameMenu();
 
@@ -201,19 +201,19 @@ void initGameMenu()
         items[count - 2] = (MenuItem){strdup("")};
         items[count - 1] = (MenuItem){strdup("BACK"), showMainMenu, .back = true};
 
-        state.gameMenu->items = items;
-        state.gameMenu->count = count;
+        menu_impl.gameMenu->items = items;
+        menu_impl.gameMenu->count = count;
     }
 }
 
 void showGameMenu()
 {
-    studio_menu_init(state.menu, state.gameMenu->items, state.gameMenu->count, 0, 0, showMainMenu, NULL);
+    studio_menu_init(menu_impl.menu, menu_impl.gameMenu->items, menu_impl.gameMenu->count, 0, 0, showMainMenu, NULL);
 }
 
 static inline s32 mainMenuStart()
 {
-    return state.gameMenu->count ? 0 : 1;
+    return menu_impl.gameMenu->count ? 0 : 1;
 }
 
 static const MenuItem MainMenu[] =
@@ -235,12 +235,12 @@ void showMainMenu()
 
     s32 start = mainMenuStart();
 
-    studio_menu_init(state.menu, MainMenu + start, COUNT_OF(MainMenu) - start, 0, 0, resumeGame, NULL);
+    studio_menu_init(menu_impl.menu, MainMenu + start, COUNT_OF(MainMenu) - start, 0, 0, resumeGame, NULL);
 }
 
 static void showOptionsMenuPos(s32 pos)
 {
-    studio_menu_init(state.menu, OptionMenu, 
+    studio_menu_init(menu_impl.menu, OptionMenu, 
         COUNT_OF(OptionMenu), pos, COUNT_OF(MainMenu) - 3 - mainMenuStart(), showMainMenu, NULL);
 }
 
@@ -288,7 +288,7 @@ static void assignMapping(void* data)
 
     sprintf(str, Fmt, ButtonLabels[impl.gamepads.key]);
 
-    studio_menu_init(state.menu, AssignKeyMenu, COUNT_OF(AssignKeyMenu), 1, 0, NULL, NULL);
+    studio_menu_init(menu_impl.menu, AssignKeyMenu, COUNT_OF(AssignKeyMenu), 1, 0, NULL, NULL);
 }
 
 static void initGamepadButtons()
@@ -354,7 +354,7 @@ void initGamepadMenu()
 
     initGamepadButtons();
 
-    studio_menu_init(state.menu, GamepadMenu, COUNT_OF(GamepadMenu), 
+    studio_menu_init(menu_impl.menu, GamepadMenu, COUNT_OF(GamepadMenu), 
         impl.gamepads.key < 0 ? KeyMappingStart : impl.gamepads.key + KeyMappingStart, 
         COUNT_OF(OptionMenu) - 3, showOptionsMenu, NULL);
 

@@ -44,7 +44,7 @@
 #include "screens/start.h"
 #include "screens/run.h"
 #include "screens/menu.h"
-#include "screens/game_menu.h"
+#include "screens/main_menu.h"
 #include "config.h"
 #include "cart.h"
 
