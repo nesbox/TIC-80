@@ -87,6 +87,13 @@ typedef struct
 
 } MouseState;
 
+typedef struct
+{
+    tic_mapping mapping;
+    s32 index;
+    s32 key;
+} Gamepads;
+
 typedef struct _StudioImplementation
 {
     Studio studio;
@@ -169,12 +176,7 @@ typedef struct _StudioImplementation
     tic_net* net;
 #endif
 
-    struct
-    {
-        tic_mapping mapping;
-        s32 index;
-        s32 key;
-    } gamepads;
+    Gamepads gamepads;
 
     Start*      start;
     Run*        run;

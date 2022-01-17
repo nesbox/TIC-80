@@ -25,10 +25,6 @@
 #include "menu.h"
 #include "main_menu.h"
 
-// TODO: we should be able to shrink this access 
-// currently this is only used for impl.gamepad
-extern StudioImplementation impl;
-
 struct MenuImpl {
     Menu*       menu;
     struct 
@@ -36,8 +32,9 @@ struct MenuImpl {
         MenuItem* items;
         s32 count;
     }* gameMenu;
+    Gamepads*    gamepads;
     Config*     config;
-    tic_mem* mem;
+    tic_mem*    mem;
 } menu_impl;
 
 #define OPTION_VALUES(...)                          \
@@ -50,12 +47,13 @@ static StudioConfig* rwConfig() {
 }
 
 
-void initMainMenu(Menu *menu, void *gameMenu, Config *config, tic_mem* mem) {
+void initMainMenu(Menu *menu, void *gameMenu, Config *config, tic_mem *mem, Gamepads *gamepads) {
     menu_impl = (struct MenuImpl){
         .menu = menu,
         .gameMenu = gameMenu,
         .config = config,
-        .mem = mem
+        .mem = mem,
+        .gamepads = gamepads
     };
 }
 
@@ -254,7 +252,7 @@ static void showOptionsMenu()
 
 static void saveGamepadMenu()
 {
-    rwConfig()->options.mapping = impl.gamepads.mapping;
+    rwConfig()->options.mapping = menu_impl.gamepads->mapping;
     showOptionsMenuPos(COUNT_OF(OptionMenu) - 3);
 }
 
@@ -278,7 +276,7 @@ enum{KeyMappingStart = 2};
 
 static void assignMapping(void* data)
 {
-    impl.gamepads.key = *(s32*)data - KeyMappingStart;
+    menu_impl.gamepads->key = *(s32*)data - KeyMappingStart;
 
     static const char Fmt[] = "to assign to (%s) button...";
     static char str[sizeof Fmt + STRLEN("RIGHT")];
@@ -289,7 +287,7 @@ static void assignMapping(void* data)
         {str},
     };
 
-    sprintf(str, Fmt, ButtonLabels[impl.gamepads.key]);
+    sprintf(str, Fmt, ButtonLabels[menu_impl.gamepads->key]);
 
     studio_menu_init(menu_impl.menu, AssignKeyMenu, COUNT_OF(AssignKeyMenu), 1, 0, NULL, NULL);
 }
@@ -311,18 +309,18 @@ static void initGamepadButtons()
         "F7",   "F8",   "F9",   "F10",  "F11",  "F12",
     };
 
-    for(s32 i = 0, index = impl.gamepads.index * TIC_BUTTONS; i != TIC_BUTTONS; ++i)
-        sprintf(MappingItems[i], "%-5s - %-5s", ButtonLabels[i], KeysList[impl.gamepads.mapping.data[index++]]);
+    for(s32 i = 0, index = menu_impl.gamepads->index * TIC_BUTTONS; i != TIC_BUTTONS; ++i)
+        sprintf(MappingItems[i], "%-5s - %-5s", ButtonLabels[i], KeysList[menu_impl.gamepads->mapping.data[index++]]);
 }
 
 static s32 optionGamepadGet()
 {
-    return impl.gamepads.index;
+    return menu_impl.gamepads->index;
 }
 
 static void optionGamepadSet(s32 pos)
 {
-    impl.gamepads.index = pos;
+    menu_impl.gamepads->index = pos;
     initGamepadButtons();
 }
 
@@ -358,24 +356,24 @@ void initGamepadMenu()
     initGamepadButtons();
 
     studio_menu_init(menu_impl.menu, GamepadMenu, COUNT_OF(GamepadMenu), 
-        impl.gamepads.key < 0 ? KeyMappingStart : impl.gamepads.key + KeyMappingStart, 
+        menu_impl.gamepads->key < 0 ? KeyMappingStart : menu_impl.gamepads->key + KeyMappingStart, 
         COUNT_OF(OptionMenu) - 3, showOptionsMenu, NULL);
 
-    impl.gamepads.key = -1;
+    menu_impl.gamepads->key = -1;
 }
 
 static void resetGamepadMenu()
 {
-    impl.gamepads.index = 0;
-    ZEROMEM(impl.gamepads.mapping);
-    tic_sys_default_mapping(&impl.gamepads.mapping);
+    menu_impl.gamepads->index = 0;
+    ZEROMEM(menu_impl.gamepads->mapping);
+    tic_sys_default_mapping(&menu_impl.gamepads->mapping);
     initGamepadMenu();
 }
 
 void showGamepadMenu()
 {
-    impl.gamepads.index = 0;
-    impl.gamepads.mapping = getConfig()->options.mapping;
+    menu_impl.gamepads->index = 0;
+    menu_impl.gamepads->mapping = getConfig()->options.mapping;
 
     initGamepadMenu();
 }

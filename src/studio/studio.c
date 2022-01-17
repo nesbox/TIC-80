@@ -1382,7 +1382,7 @@ static void enterMainMenu() {
         impl.mode = TIC_MENU_MODE;
     }
 
-    initMainMenu(impl.menu, &impl.gameMenu, impl.config, impl.studio.tic);
+    initMainMenu(impl.menu, &impl.gameMenu, impl.config, impl.studio.tic, &impl.gamepads);
     showMainMenu();
 }
 
