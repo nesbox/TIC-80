@@ -53,47 +53,42 @@ static void drawHeader(Start* start)
             start->color[i], true, 1, false);
 }
 
+static void chime(Start* start) 
+{
+    playSystemSfx(1);
+}
+
+static void stop_chime(Start* start) 
+{
+    sfx_stop(start->tic, 0);
+}
+
 static void header(Start* start)
 {
-    if(!start->play)
-    {
-        playSystemSfx(1);
-
-        start->play = true;
-    }
-
     drawHeader(start);
 }
 
-static void end(Start* start)
+static void start_console(Start* start)
 {
-    if(start->play)
-    {   
-        sfx_stop(start->tic, 0);
-
-        start->play = false;
-    }
-
     drawHeader(start);
-
     setStudioMode(TIC_CONSOLE_MODE);
 }
 
 static void tick(Start* start)
 {
-    if(!start->initialized)
-    {
-        start->phase = 1;
-        start->ticks = 0;
-
-        start->initialized = true;
+    // stages that have a tick count of 0 run in zero time  
+    // (typically this is only used to start/stop audio)
+    while (start->stages[start->stage].ticks == 0) {
+        start->stages[start->stage].fn(start);
+        start->stage++;
     }
 
     tic_api_cls(start->tic, TIC_COLOR_BG);
 
-    static void(*const steps[])(Start*) = {reset, header, end};
-
-    steps[CLAMP(start->ticks / TIC80_FRAMERATE, 0, COUNT_OF(steps) - 1)](start);
+    Stage *stage = &start->stages[start->stage];
+    stage->fn(start);
+    if (stage->ticks > 0) stage->ticks--;
+    if (stage->ticks == 0) start->stage++;
 
     start->ticks++;
 }
@@ -121,19 +116,28 @@ static void* _memmem(const void* haystack, size_t hlen, const void* needle, size
 
 void initStart(Start* start, tic_mem* tic, const char* cart)
 {
+    enum duration {
+        immediate = 0,
+        one_second = TIC80_FRAMERATE,
+        forever = -1
+    };
+
     *start = (Start)
     {
         .tic = tic,
-        .initialized = false,
-        .phase = 1,
-        .ticks = 0,
+        .initialized = true,
         .tick = tick,
-        .play = false,
         .embed = false,
+        .ticks = 0,
+        .stage = 0,
+        .stages = {
+            { reset, .ticks = one_second },
+            { chime, .ticks = immediate },
+            { header, .ticks = one_second },
+            { stop_chime, .ticks = immediate },
+            { start_console, .ticks = forever },
+        }
     };
-
-    start->text = calloc(1, STUDIO_TEXT_BUFFER_SIZE);
-    start->color = calloc(1, STUDIO_TEXT_BUFFER_SIZE);
 
     static const char* Header[] = 
     {
@@ -144,7 +148,7 @@ void initStart(Start* start, tic_mem* tic, const char* cart)
     };
 
     for(s32 i = 0; i < COUNT_OF(Header); i++)
-        strcpy(start->text + i * STUDIO_TEXT_BUFFER_WIDTH, Header[i]);
+        strcpy(&start->text[i * STUDIO_TEXT_BUFFER_WIDTH], Header[i]);
 
     for(s32 i = 0; i < STUDIO_TEXT_BUFFER_SIZE; i++)
         start->color[i] = CLAMP(((i % STUDIO_TEXT_BUFFER_WIDTH) + (i / STUDIO_TEXT_BUFFER_WIDTH)) / 2, 
@@ -234,7 +238,5 @@ void initStart(Start* start, tic_mem* tic, const char* cart)
 
 void freeStart(Start* start)
 {
-    free(start->text);
-    free(start->color);
     free(start);
 }

@@ -812,6 +812,7 @@ set(TIC80STUDIO_SRC
     ${TIC80LIB_DIR}/studio/screens/console.c
     ${TIC80LIB_DIR}/studio/screens/run.c
     ${TIC80LIB_DIR}/studio/screens/menu.c
+    ${TIC80LIB_DIR}/studio/screens/main_menu.c
     ${TIC80LIB_DIR}/studio/screens/surf.c
     ${TIC80LIB_DIR}/studio/screens/start.c
     ${TIC80LIB_DIR}/studio/editors/code.c
@@ -1098,6 +1099,7 @@ if(BUILD_STUB)
             src/system/sdl/main.c
             src/studio/screens/run.c
             src/studio/screens/menu.c
+            src/studio/screens/main_menu.c
             src/studio/screens/start.c
             src/studio/config.c
             src/studio/studio.c

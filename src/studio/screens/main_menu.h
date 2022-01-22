@@ -22,42 +22,8 @@
 
 #pragma once
 
-#include "studio/studio.h"
-
-#define CART_SIG "TIC.CART"
-
-typedef struct
-{
-    u8 sig[STRLEN(CART_SIG)];
-    s32 appSize;
-    s32 cartSize;
-} EmbedHeader;
-
-typedef struct Start Start;
-
-typedef struct stage {
-    void(*fn)(Start*);
-    u8 ticks;
-} Stage;
-
-struct Start
-{
-    tic_mem* tic;
-
-    bool initialized;
-    Stage stages[5];
-
-    u32 stage;
-    s32 ticks;
-    bool play;
-
-    char text[STUDIO_TEXT_BUFFER_SIZE];
-    u8 color[STUDIO_TEXT_BUFFER_SIZE];
-
-    bool embed;
-
-    void (*tick)(Start*);
-};
-
-void initStart(Start* start, tic_mem* tic, const char* cart);
-void freeStart(Start* start);
+void showGamepadMenu();
+void showMainMenu();
+void freeGameMenu();
+void initGamepadMenu();
+void initMainMenu(Menu *menu, void *gameMenu, Config *config, tic_mem* mem, Gamepads *gamepads);

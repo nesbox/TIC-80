@@ -228,6 +228,7 @@ void gotoCode();
 void gotoSurf();
 
 void runGame();
+void exitGame();
 void resumeGame();
 
 tic_tiles* getBankTiles();
