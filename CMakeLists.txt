@@ -568,10 +568,15 @@ if(BUILD_LIBRETRO)
         add_library(tic80_libretro STATIC
             ${LIBRETRO_SRC}
         )
+        if(EMSCRIPTEN)
+            set(LIBRETRO_EXTENSION "bc")
+        else()
+            set(LIBRETRO_EXTENSION "a")
+        endif()
         set_target_properties(tic80_libretro PROPERTIES SUFFIX "_partial.a")
         add_custom_command(TARGET tic80_libretro
                POST_BUILD
-                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.a ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${MRUBY_LIB})
+                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${MRUBY_LIB})
     else()
         add_library(tic80_libretro SHARED
         ${LIBRETRO_SRC}
@@ -588,10 +593,6 @@ if(BUILD_LIBRETRO)
 
     if(ANDROID)
         set_target_properties(tic80_libretro PROPERTIES SUFFIX "_android.so")
-    endif()
-
-    if(EMSCRIPTEN)
-        set_target_properties(tic80_libretro PROPERTIES SUFFIX "_emscripten.bc")
     endif()
 
     # MSYS2 builds libretro to ./bin, despite it being a DLL. This forces it to ./lib.
