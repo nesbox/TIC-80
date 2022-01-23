@@ -1463,16 +1463,19 @@ static void processStudioShortcuts()
 
         }
 #if defined(BUILD_EDITORS)
-        else if(impl.mode != TIC_RUN_MODE)
+        else if(keyWasPressedOnce(tic_key_f8)) takeScreenshot();
+        else if(keyWasPressedOnce(tic_key_f9)) startVideoRecord();
+        else if(impl.mode == TIC_RUN_MODE)
+        {
+            if(keyWasPressedOnce(tic_key_f7)) setCoverImage();
+        }
+        else
         {
             if(keyWasPressedOnce(tic_key_f1)) setStudioMode(TIC_CODE_MODE);
             else if(keyWasPressedOnce(tic_key_f2)) setStudioMode(TIC_SPRITE_MODE);
             else if(keyWasPressedOnce(tic_key_f3)) setStudioMode(TIC_MAP_MODE);
             else if(keyWasPressedOnce(tic_key_f4)) setStudioMode(TIC_SFX_MODE);
             else if(keyWasPressedOnce(tic_key_f5)) setStudioMode(TIC_MUSIC_MODE);
-            else if(keyWasPressedOnce(tic_key_f7)) setCoverImage();
-            else if(keyWasPressedOnce(tic_key_f8)) takeScreenshot();
-            else if(keyWasPressedOnce(tic_key_f9)) startVideoRecord();
         }
 #endif
     }
