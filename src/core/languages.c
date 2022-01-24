@@ -1,7 +1,7 @@
 #include <stddef.h>
 #include "api.h"
 
-#if defined(TIC_BUILD_WITH_MRUBY)
+#if defined(TIC_BUILD_WITH_MRUBY) && TIC_BUILD_WITH_MRUBY
 extern tic_script_config MRubySyntaxConfig;
 #endif
 
@@ -35,7 +35,7 @@ tic_script_config* Languages[] = {
 	&LuaSyntaxConfig,
 	#endif
 
-    #if defined(TIC_BUILD_WITH_MRUBY)
+    #if defined(TIC_BUILD_WITH_MRUBY) && TIC_BUILD_WITH_MRUBY
     &MRubySyntaxConfig,
     #endif
 

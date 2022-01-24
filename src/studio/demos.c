@@ -88,7 +88,7 @@ tic_script_config_extra JsSyntaxConfigExtra =
 
 #endif
 
-#if defined(TIC_BUILD_WITH_MRUBY)
+#if defined(TIC_BUILD_WITH_MRUBY) && TIC_BUILD_WITH_MRUBY
 
 static const u8 RubyDemoRom[] =
 {

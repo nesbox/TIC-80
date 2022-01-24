@@ -26,6 +26,7 @@ build/uwp/code8/AppPackages/
 build/uwp/code8/_pkginfo.txt
 build/uwp/tic/tic.VC.db
 build/uwp/tic/_pkginfo.txt
+build/mruby_vendor-prefix
 tests/history.exe
 build/uwp/lua/x64/
 build/uwp/lua/ARM/
