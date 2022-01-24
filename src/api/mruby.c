@@ -22,8 +22,7 @@
 // SOFTWARE.
 
 #include "core/core.h"
-
-#if defined(TIC_BUILD_WITH_MRUBY) && TIC_BUILD_WITH_MRUBY
+#if defined(TIC_BUILD_WITH_MRUBY)
 
 #include <stdlib.h>
 #include <string.h>

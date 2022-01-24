@@ -248,7 +248,7 @@ else()
     set(BUILD_WITH_MRUBY_DEFAULT TRUE)
 endif()
 option(BUILD_WITH_MRUBY "mruby Enabled" ${BUILD_WITH_MRUBY_DEFAULT})
-message("BUILD_WITH_MRUBY: " ${BUILD_WITH_MRUBY})
+message("BUILD_WITH_MRUBY: ${BUILD_WITH_MRUBY}")
 
 if(BUILD_WITH_MRUBY)
     set(MRUBY_BUILDDIR ${CMAKE_SOURCE_DIR}/build/mruby)
@@ -437,7 +437,6 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
     endif()
 
     target_compile_definitions(tic80core${SCRIPT} PUBLIC ${DEFINE})
-    target_compile_definitions(tic80core PRIVATE TIC_BUILD_WITH_MRUBY=${BUILD_WITH_MRUBY})
 
 endmacro()
 
@@ -455,6 +454,10 @@ if(BUILD_STUB)
         MACRO_CORE(ruby     TIC_BUILD_WITH_MRUBY    FALSE)
     endif()
 
+endif()
+
+if(BUILD_WITH_MRUBY)
+    target_compile_definitions(tic80core PUBLIC TIC_BUILD_WITH_MRUBY=1)
 endif()
 
 ################################

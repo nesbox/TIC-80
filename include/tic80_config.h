@@ -38,10 +38,6 @@
 
 #endif
 
-#if !defined(TIC_BUILD_WITH_MRUBY)
-#   define TIC_BUILD_WITH_MRUBY    1
-#endif
-
 #if defined(TIC_BUILD_WITH_FENNEL) || defined(TIC_BUILD_WITH_MOON)
 #   define TIC_BUILD_WITH_LUA 1
 #endif
