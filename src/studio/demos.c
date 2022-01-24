@@ -187,7 +187,7 @@ tic_script_config_extra* LanguagesExtra[] = {
 #if defined(TIC_BUILD_WITH_JS)
    &JsSyntaxConfigExtra,
 #endif
-#if defined(TIC_BUILD_WITH_MRUBY)
+#if defined(TIC_BUILD_WITH_MRUBY) && TIC_BUILD_WITH_MRUBY
    &MRubySyntaxConfigExtra,
 #endif
    NULL
