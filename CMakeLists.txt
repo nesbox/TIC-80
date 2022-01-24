@@ -437,6 +437,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
     endif()
 
     target_compile_definitions(tic80core${SCRIPT} PUBLIC ${DEFINE})
+    target_compile_definitions(tic80core PRIVATE TIC_BUILD_WITH_MRUBY=${BUILD_WITH_MRUBY})
 
 endmacro()
 
