@@ -423,7 +423,6 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
 
     target_compile_definitions(tic80core${SCRIPT} PRIVATE TIC_BUILD_WITH_MRUBY=${TIC_BUILD_WITH_MRUBY})
 
-
     if(${BUILD_DEPRECATED})
         target_compile_definitions(tic80core${SCRIPT} PRIVATE DEPRECATED_CHUNKS)
         target_link_libraries(tic80core${SCRIPT} giflib)
