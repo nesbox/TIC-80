@@ -243,11 +243,14 @@ target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/vm)
 find_program(RUBY ruby)
 find_program(RAKE rake)
 if(NOT RAKE)
-    message(WARNING "mruby: Program `rake' not found! Ruby \"rake\" is required to build mruby support.")
-    add_library(mruby INTERFACE)
-    set(TIC_BUILD_WITH_MRUBY FALSE)
+    set(BUILD_WITH_MRUBY_DEFAULT FALSE)
 else()
-    set(TIC_BUILD_WITH_MRUBY TRUE)
+    set(BUILD_WITH_MRUBY_DEFAULT TRUE)
+endif()
+option(BUILD_WITH_MRUBY "mruby Enabled" ${BUILD_WITH_MRUBY_DEFAULT})
+message("BUILD_WITH_MRUBY: " ${BUILD_WITH_MRUBY})
+
+if(BUILD_WITH_MRUBY)
     set(MRUBY_BUILDDIR ${CMAKE_SOURCE_DIR}/build/mruby)
     set(MRUBY_DIR ${THIRDPARTY_DIR}/mruby)
     if(ANDROID)
@@ -418,10 +421,11 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         duktape 
         blipbuf 
         zlib
-        mruby
     )
 
-    target_compile_definitions(tic80core${SCRIPT} PRIVATE TIC_BUILD_WITH_MRUBY=${TIC_BUILD_WITH_MRUBY})
+    if(BUILD_WITH_MRUBY)
+        target_link_libraries(tic80core${SCRIPT} mruby)
+    endif()
 
     if(${BUILD_DEPRECATED})
         target_compile_definitions(tic80core${SCRIPT} PRIVATE DEPRECATED_CHUNKS)
@@ -446,7 +450,9 @@ if(BUILD_STUB)
     MACRO_CORE(js       TIC_BUILD_WITH_JS       FALSE)
     MACRO_CORE(wren     TIC_BUILD_WITH_WREN     FALSE)
     MACRO_CORE(squirrel TIC_BUILD_WITH_SQUIRREL FALSE)
-    MACRO_CORE(ruby     TIC_BUILD_WITH_MRUBY    FALSE)
+    if(BUILD_WITH_MRUBY)
+        MACRO_CORE(ruby     TIC_BUILD_WITH_MRUBY    FALSE)
+    endif()
 
 endif()
 
