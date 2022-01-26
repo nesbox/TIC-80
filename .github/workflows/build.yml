@@ -9,7 +9,7 @@ jobs:
 
 # === Windows XP ===
   winxp:
-    runs-on: windows-latest
+    runs-on: windows-2019
 
     steps:
     - uses: actions/checkout@v2
@@ -42,7 +42,7 @@ jobs:
 
 # === Windows XP PRO ===
   winxp-pro:
-    runs-on: windows-latest
+    runs-on: windows-2019
 
     steps:
     - uses: actions/checkout@v2
@@ -69,7 +69,7 @@ jobs:
 
 # === Windows ===
   windows:
-    runs-on: windows-latest
+    runs-on: windows-2019
 
     steps:
     - uses: actions/checkout@v2
@@ -102,7 +102,7 @@ jobs:
 
 # === Windows PRO ===
   windows-pro:
-    runs-on: windows-latest
+    runs-on: windows-2019
 
     steps:
     - uses: actions/checkout@v2
@@ -129,7 +129,7 @@ jobs:
 
 # === Windows Sokol ===
   windows-sokol:
-    runs-on: windows-latest
+    runs-on: windows-2019
 
     steps:
     - uses: actions/checkout@v2
