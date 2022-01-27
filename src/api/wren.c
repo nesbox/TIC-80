@@ -84,6 +84,7 @@ class TIC {\n\
     foreign static rect(x, y, w, h, color)\n\
     foreign static rectb(x, y, w, h, color)\n\
     foreign static tri(x1, y1, x2, y2, x3, y3, color)\n\
+    foreign static trib(x1, y1, x2, y2, x3, y3, color)\n\
     foreign static cls()\n\
     foreign static cls(color)\n\
     foreign static clip()\n\
@@ -734,7 +735,7 @@ static void wren_textri(WrenVM* vm)
 
     for (s32 i = 0; i < COUNT_OF(pt); i++)
     {
-        pt[i] = (float)getWrenNumber(vm, i + 1);
+        pt[i] = (float)wrenGetSlotDouble(vm, i + 1);
     }
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
@@ -805,10 +806,10 @@ static void wren_pix(WrenVM* vm)
 
 static void wren_line(WrenVM* vm)
 {
-    s32 x0 = getWrenNumber(vm, 1);
-    s32 y0 = getWrenNumber(vm, 2);
-    s32 x1 = getWrenNumber(vm, 3);
-    s32 y1 = getWrenNumber(vm, 4);
+    float x0 = (float)wrenGetSlotDouble(vm, 1);
+    float y0 = (float)wrenGetSlotDouble(vm, 2);
+    float x1 = (float)wrenGetSlotDouble(vm, 3);
+    float y1 = (float)wrenGetSlotDouble(vm, 4);
     s32 color = getWrenNumber(vm, 5);
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
@@ -894,11 +895,11 @@ static void wren_rectb(WrenVM* vm)
 
 static void wren_tri(WrenVM* vm)
 {       
-    s32 pt[6];
+    float pt[6];
 
     for(s32 i = 0; i < COUNT_OF(pt); i++)
     {
-        pt[i] = getWrenNumber(vm, i+1);
+        pt[i] = (float)wrenGetSlotDouble(vm, i + 1);
     }
     
     s32 color = getWrenNumber(vm, 7);
@@ -910,11 +911,11 @@ static void wren_tri(WrenVM* vm)
 
 static void wren_trib(WrenVM* vm)
 {       
-    s32 pt[6];
+    float pt[6];
 
     for(s32 i = 0; i < COUNT_OF(pt); i++)
     {
-        pt[i] = getWrenNumber(vm, i+1);
+        pt[i] = (float)wrenGetSlotDouble(vm, i + 1);
     }
     
     s32 color = getWrenNumber(vm, 7);
@@ -1378,6 +1379,7 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     if (strcmp(signature, "static TIC.rect(_,_,_,_,_)"          ) == 0) return wren_rect;
     if (strcmp(signature, "static TIC.rectb(_,_,_,_,_)"         ) == 0) return wren_rectb;
     if (strcmp(signature, "static TIC.tri(_,_,_,_,_,_,_)"       ) == 0) return wren_tri;
+    if (strcmp(signature, "static TIC.trib(_,_,_,_,_,_,_)"      ) == 0) return wren_trib;
 
     if (strcmp(signature, "static TIC.cls()"                    ) == 0) return wren_cls;
     if (strcmp(signature, "static TIC.cls(_)"                   ) == 0) return wren_cls;

@@ -213,7 +213,7 @@ enum
         5,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 x1, s32 y1, s32 x2, s32 y2, u8 color)                                                             \
+        tic_mem*, float x1, float y1, float x2, float y2, u8 color)                                                     \
                                                                                                                         \
                                                                                                                         \
     macro(rect,                                                                                                         \
@@ -662,7 +662,7 @@ enum
         7,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, u8 color)                                             \
+        tic_mem*, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)                                 \
                                                                                                                         \
     macro(trib,                                                                                                         \
         "trib(x1 y1 x2 y2 x3 y3 color)",                                                                                \
@@ -672,7 +672,7 @@ enum
         7,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, u8 color)                                             \
+        tic_mem*, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)                                 \
                                                                                                                         \
                                                                                                                         \
     macro(textri,                                                                                                       \

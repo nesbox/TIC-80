@@ -37,6 +37,12 @@
 
 static const char TicCore[] = "_TIC80";
 
+static float getSquirrelFloat(HSQUIRRELVM vm, s32 index)
+{
+    SQFloat f = 0.0;
+    sq_getfloat(vm, index, &f);
+    return f;
+}
 
 // !TODO: get rid of this wrap
 static s32 getSquirrelNumber(HSQUIRRELVM vm, s32 index)
@@ -45,11 +51,7 @@ static s32 getSquirrelNumber(HSQUIRRELVM vm, s32 index)
     if (SQ_SUCCEEDED(sq_getinteger(vm, index, &i)))
         return (s32)i;
     
-    SQFloat f;
-    if (SQ_SUCCEEDED(sq_getfloat(vm, index, &f)))
-        return (s32)f;
-    
-    return 0;
+    return (s32)getSquirrelFloat(vm, index);
 }
 
 static void registerSquirrelFunction(tic_core* core, SQFUNCTION func, const char *name)
@@ -278,18 +280,16 @@ static SQInteger squirrel_pix(HSQUIRRELVM vm)
     return 0;
 }
 
-
-
 static SQInteger squirrel_line(HSQUIRRELVM vm)
 {
     SQInteger top = sq_gettop(vm);
 
     if(top == 6)
     {
-        s32 x0 = getSquirrelNumber(vm, 2);
-        s32 y0 = getSquirrelNumber(vm, 3);
-        s32 x1 = getSquirrelNumber(vm, 4);
-        s32 y1 = getSquirrelNumber(vm, 5);
+        float x0 = getSquirrelFloat(vm, 2);
+        float y0 = getSquirrelFloat(vm, 3);
+        float x1 = getSquirrelFloat(vm, 4);
+        float y1 = getSquirrelFloat(vm, 5);
         s32 color = getSquirrelNumber(vm, 6);
 
         tic_mem* tic = (tic_mem*)getSquirrelCore(vm);
@@ -431,10 +431,10 @@ static SQInteger squirrel_tri(HSQUIRRELVM vm)
 
     if(top == 8)
     {
-        s32 pt[6];
+        float pt[6];
 
         for(s32 i = 0; i < COUNT_OF(pt); i++)
-            pt[i] = getSquirrelNumber(vm, i+2);
+            pt[i] = getSquirrelFloat(vm, i + 2);
         
         s32 color = getSquirrelNumber(vm, 8);
 
@@ -453,10 +453,10 @@ static SQInteger squirrel_trib(HSQUIRRELVM vm)
 
     if(top == 8)
     {
-        s32 pt[6];
+        float pt[6];
 
         for(s32 i = 0; i < COUNT_OF(pt); i++)
-            pt[i] = getSquirrelNumber(vm, i+2);
+            pt[i] = getSquirrelFloat(vm, i + 2);
         
         s32 color = getSquirrelNumber(vm, 8);
 
@@ -478,11 +478,7 @@ static SQInteger squirrel_textri(HSQUIRRELVM vm)
         float pt[12];
 
         for (s32 i = 0; i < COUNT_OF(pt); i++)
-        {
-            SQFloat f = 0.0;
-            sq_getfloat(vm, i + 2, &f);
-            pt[i] = (float)f;
-        }
+            pt[i] = getSquirrelFloat(vm, i + 2);
 
         tic_mem* tic = (tic_mem*)getSquirrelCore(vm);
         static u8 colors[TIC_PALETTE_SIZE];

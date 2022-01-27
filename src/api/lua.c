@@ -237,10 +237,10 @@ static s32 lua_line(lua_State* lua)
 
     if(top == 5)
     {
-        s32 x0 = getLuaNumber(lua, 1);
-        s32 y0 = getLuaNumber(lua, 2);
-        s32 x1 = getLuaNumber(lua, 3);
-        s32 y1 = getLuaNumber(lua, 4);
+        float x0 = lua_tonumber(lua, 1);
+        float y0 = lua_tonumber(lua, 2);
+        float x1 = lua_tonumber(lua, 3);
+        float y1 = lua_tonumber(lua, 4);
         s32 color = getLuaNumber(lua, 5);
 
         tic_mem* tic = (tic_mem*)getLuaCore(lua);
@@ -382,10 +382,10 @@ static s32 lua_tri(lua_State* lua)
 
     if(top == 7)
     {
-        s32 pt[6];
+        float pt[6];
 
         for(s32 i = 0; i < COUNT_OF(pt); i++)
-            pt[i] = getLuaNumber(lua, i+1);
+            pt[i] = lua_tonumber(lua, i+1);
         
         s32 color = getLuaNumber(lua, 7);
 
@@ -404,10 +404,10 @@ static s32 lua_trib(lua_State* lua)
 
     if(top == 7)
     {
-        s32 pt[6];
+        float pt[6];
 
         for(s32 i = 0; i < COUNT_OF(pt); i++)
-            pt[i] = getLuaNumber(lua, i+1);
+            pt[i] = lua_tonumber(lua, i+1);
         
         s32 color = getLuaNumber(lua, 7);
 

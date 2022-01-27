@@ -156,7 +156,7 @@ typedef struct
         tic_vram mem;
     } vbank;
 
-    struct
+    struct ClipRect
     {
         u8 l, t, r, b;
     } clip;

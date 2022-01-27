@@ -180,8 +180,9 @@ static mrb_value mrb_pix(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_line(mrb_state* mrb, mrb_value self)
 {
-    mrb_int x0, y0, x1, y1, color;
-    mrb_get_args(mrb, "iiiii", &x0, &y0, &x1, &y1, &color);
+    mrb_float x0, y0, x1, y1;
+    mrb_int color;
+    mrb_get_args(mrb, "ffffi", &x0, &y0, &x1, &y1, &color);
 
     tic_mem* memory = (tic_mem*)getMRubyMachine(mrb);
 
@@ -272,8 +273,9 @@ static mrb_value mrb_ellib(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_tri(mrb_state* mrb, mrb_value self)
 {
-    mrb_int x1, y1, x2, y2, x3, y3, color;
-    mrb_get_args(mrb, "iiiiiii", &x1, &y1, &x2, &y2, &x3, &y3, &color);
+    mrb_float x1, y1, x2, y2, x3, y3;
+    mrb_int color;
+    mrb_get_args(mrb, "ffffffi", &x1, &y1, &x2, &y2, &x3, &y3, &color);
 
     tic_mem* memory = (tic_mem*)getMRubyMachine(mrb);
 
@@ -284,8 +286,9 @@ static mrb_value mrb_tri(mrb_state* mrb, mrb_value self)
 
 static mrb_value mrb_trib(mrb_state* mrb, mrb_value self)
 {
-    mrb_int x1, y1, x2, y2, x3, y3, color;
-    mrb_get_args(mrb, "iiiiiii", &x1, &y1, &x2, &y2, &x3, &y3, &color);
+    mrb_float x1, y1, x2, y2, x3, y3;
+    mrb_int color;
+    mrb_get_args(mrb, "ffffffi", &x1, &y1, &x2, &y2, &x3, &y3, &color);
 
     tic_mem* memory = (tic_mem*)getMRubyMachine(mrb);
 
@@ -298,8 +301,9 @@ static mrb_value mrb_textri(mrb_state* mrb, mrb_value self)
 {
     mrb_value chroma = mrb_fixnum_value(0xff);
     mrb_bool use_map = false;
-    mrb_int x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3;
-    mrb_int argc = mrb_get_args(mrb, "iiiiiiiiiiii|bo",
+
+    mrb_float x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3;
+    mrb_int argc = mrb_get_args(mrb, "ffffffffffff|bo",
             &x1, &y1, &x2, &y2, &x3, &y3,
             &u1, &v1, &u2, &v2, &u3, &v3,
             &use_map, &chroma);

@@ -104,10 +104,10 @@ static duk_ret_t duk_pix(duk_context* duk)
 
 static duk_ret_t duk_line(duk_context* duk)
 {
-    s32 x0 = duk_to_int(duk, 0);
-    s32 y0 = duk_to_int(duk, 1);
-    s32 x1 = duk_to_int(duk, 2);
-    s32 y1 = duk_to_int(duk, 3);
+    float x0 = duk_to_number(duk, 0);
+    float y0 = duk_to_number(duk, 1);
+    float x1 = duk_to_number(duk, 2);
+    float y1 = duk_to_number(duk, 3);
     s32 color = duk_to_int(duk, 4);
 
     tic_mem* tic = (tic_mem*)getDukCore(duk);
@@ -777,10 +777,10 @@ static duk_ret_t duk_ellib(duk_context* duk)
 
 static duk_ret_t duk_tri(duk_context* duk)
 {
-    s32 pt[6];
+    float pt[6];
 
     for(s32 i = 0; i < COUNT_OF(pt); i++)
-        pt[i] = duk_to_int(duk, i);
+        pt[i] = duk_to_number(duk, i);
 
     s32 color = duk_to_int(duk, 6);
 
@@ -793,10 +793,10 @@ static duk_ret_t duk_tri(duk_context* duk)
 
 static duk_ret_t duk_trib(duk_context* duk)
 {
-    s32 pt[6];
+    float pt[6];
 
     for(s32 i = 0; i < COUNT_OF(pt); i++)
-        pt[i] = duk_to_int(duk, i);
+        pt[i] = duk_to_number(duk, i);
 
     s32 color = duk_to_int(duk, 6);
 
