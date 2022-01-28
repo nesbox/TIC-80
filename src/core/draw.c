@@ -70,10 +70,7 @@ static void setPixel(tic_core* core, s32 x, s32 y, u8 color)
 
 static inline void setPixelFast(tic_core* core, s32 x, s32 y, u8 color)
 {
-    const tic_vram* vram = &core->memory.ram.vram;
-
     // does not do any CLIP checking, the caller needs to do that first
-
     tic_api_poke4((tic_mem*)core, y * TIC80_WIDTH + x, color);
 }
 
@@ -621,7 +618,7 @@ typedef tic_color(*PixelShader)(const ShaderAttr* a);
 
 static inline double edgeFn(const Vec2* a, const Vec2* b, const Vec2* c)
 {
-    return (b->x-a->x)*(c->y-a->y) - (b->y-a->y)*(c->x-a->x);
+    return (b->x - a->x) * (c->y - a->y) - (b->y - a->y) * (c->x - a->x);
 }
 
 static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2, PixelShader shader, void* data)
@@ -643,7 +640,7 @@ static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2
 
     double area = edgeFn(a.v[0], a.v[1], a.v[2]);
     if((s32)floor(area) == 0) return;
-    if(edgeFn(a.v[0], a.v[1], a.v[2]) < 0.0)
+    if(area < 0.0)
     {
         SWAP(a.v[1], a.v[2], const Vec2*);
         area = -area;
