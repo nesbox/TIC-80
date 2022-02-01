@@ -131,7 +131,7 @@ if(MSVC)
             string(REGEX REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_${OUTPUTCONFIG} "${CMAKE_CXX_FLAGS_${OUTPUTCONFIG}}")
         endif()
     endforeach()
-    
+
 else()
 
     set(CMAKE_C_STANDARD 11)
@@ -154,7 +154,7 @@ include(ExternalProject)
 ################################
 
 set(LUA_DIR ${THIRDPARTY_DIR}/lua)
-set(LUA_SRC 
+set(LUA_SRC
     ${LUA_DIR}/lapi.c
     ${LUA_DIR}/lcode.c
     ${LUA_DIR}/lctype.c
@@ -203,7 +203,7 @@ endif()
 ################################
 
 set(LPEG_DIR ${THIRDPARTY_DIR}/lpeg)
-set(LPEG_SRC 
+set(LPEG_SRC
     ${LPEG_DIR}/lpcap.c
     ${LPEG_DIR}/lpcode.c
     ${LPEG_DIR}/lpprint.c
@@ -219,7 +219,7 @@ target_include_directories(lpeg PRIVATE ${LUA_DIR})
 ################################
 
 set(WREN_DIR ${THIRDPARTY_DIR}/wren/src)
-set(WREN_SRC 
+set(WREN_SRC
     ${WREN_DIR}/optional/wren_opt_meta.c
     ${WREN_DIR}/optional/wren_opt_random.c
     ${WREN_DIR}/vm/wren_compiler.c
@@ -355,7 +355,7 @@ set(GIFLIB_SRC
     ${GIFLIB_DIR}/openbsd-reallocarray.c
 )
 add_library(giflib STATIC ${GIFLIB_SRC})
-target_include_directories(giflib 
+target_include_directories(giflib
     PRIVATE ${GIFLIB_DIR}
     INTERFACE ${THIRDPARTY_DIR}/giflib)
 
@@ -387,16 +387,16 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         ${TIC80CORE_DIR}/core/io.c
         ${TIC80CORE_DIR}/core/sound.c
         ${TIC80CORE_DIR}/api/js.c
-        ${TIC80CORE_DIR}/api/lua.c 
-        ${TIC80CORE_DIR}/api/moonscript.c 
-        ${TIC80CORE_DIR}/api/fennel.c 
-        ${TIC80CORE_DIR}/api/wren.c 
+        ${TIC80CORE_DIR}/api/lua.c
+        ${TIC80CORE_DIR}/api/moonscript.c
+        ${TIC80CORE_DIR}/api/fennel.c
+        ${TIC80CORE_DIR}/api/wren.c
         ${TIC80CORE_DIR}/api/squirrel.c
         ${TIC80CORE_DIR}/api/mruby.c
         ${TIC80CORE_DIR}/tic.c
         ${TIC80CORE_DIR}/cart.c
-        ${TIC80CORE_DIR}/tools.c 
-        ${TIC80CORE_DIR}/tilesheet.c 
+        ${TIC80CORE_DIR}/tools.c
+        ${TIC80CORE_DIR}/tilesheet.c
     )
 
     if(${BUILD_DEPRECATED})
@@ -406,7 +406,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
     add_library(tic80core${SCRIPT} STATIC ${TIC80CORE_SRC})
 
     target_include_directories(tic80core${SCRIPT}
-        PRIVATE 
+        PRIVATE
             ${THIRDPARTY_DIR}/moonscript
             ${THIRDPARTY_DIR}/fennel
         PUBLIC
@@ -414,12 +414,12 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
             ${CMAKE_SOURCE_DIR}/src)
 
     target_link_libraries(tic80core${SCRIPT}
-        lua 
-        lpeg 
-        wren 
-        squirrel 
-        duktape 
-        blipbuf 
+        lua
+        lpeg
+        wren
+        squirrel
+        duktape
+        blipbuf
         zlib
     )
 
@@ -471,8 +471,9 @@ if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT RPI)
 
     if(ANDROID)
         include_directories(${ANDROID_NDK}/sources/android/cpufeatures)
+        set(SDL_STATIC_PIC ON CACHE BOOL "" FORCE)
     endif()
-    
+
     set(SDL_SHARED OFF CACHE BOOL "" FORCE)
 
     add_subdirectory(${THIRDPARTY_DIR}/sdl2)
@@ -487,9 +488,9 @@ if(BUILD_SDL AND BUILD_PLAYER AND NOT RPI)
 
     add_executable(player-sdl WIN32 ${CMAKE_SOURCE_DIR}/src/system/sdl/player.c)
 
-    target_include_directories(player-sdl PRIVATE 
-        ${THIRDPARTY_DIR}/sdl2/include 
-        ${CMAKE_SOURCE_DIR}/include 
+    target_include_directories(player-sdl PRIVATE
+        ${THIRDPARTY_DIR}/sdl2/include
+        ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src)
 
     if(MINGW)
@@ -524,11 +525,11 @@ elseif(LINUX)
 endif()
 
 if(APPLE)
-    set_property (TARGET sokol APPEND_STRING PROPERTY 
+    set_property (TARGET sokol APPEND_STRING PROPERTY
         COMPILE_FLAGS "-fobjc-arc")
 
-    target_link_libraries(sokol 
-        "-framework Cocoa" 
+    target_link_libraries(sokol
+        "-framework Cocoa"
         "-framework QuartzCore"
         "-framework Metal"
         "-framework MetalKit"
@@ -561,9 +562,9 @@ if(BUILD_PLAYER AND BUILD_SOKOL)
         target_link_options(player-sokol PRIVATE -static)
     endif()
 
-    target_include_directories(player-sokol PRIVATE 
-        ${CMAKE_SOURCE_DIR}/include 
-        ${THIRDPARTY_DIR}/sokol 
+    target_include_directories(player-sokol PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+        ${THIRDPARTY_DIR}/sokol
         ${CMAKE_SOURCE_DIR}/src)
 
     target_link_libraries(player-sokol tic80core sokol)
@@ -598,7 +599,7 @@ if(BUILD_LIBRETRO)
         )
     endif()
 
-    target_include_directories(tic80_libretro PRIVATE 
+    target_include_directories(tic80_libretro PRIVATE
         ${CMAKE_CURRENT_BINARY_DIR}
         ${TIC80CORE_DIR})
 
@@ -626,7 +627,7 @@ endif()
 if (NOT N3DS)
 
 set(ZLIB_DIR ${THIRDPARTY_DIR}/zlib)
-set(ZLIB_SRC 
+set(ZLIB_SRC
     ${ZLIB_DIR}/adler32.c
     ${ZLIB_DIR}/compress.c
     ${ZLIB_DIR}/crc32.c
@@ -677,8 +678,8 @@ if(BUILD_DEMO_CARTS)
     add_executable(bin2txt ${TOOLS_DIR}/bin2txt.c)
     target_link_libraries(bin2txt zlib)
 
-    add_executable(xplode 
-        ${TOOLS_DIR}/xplode.c 
+    add_executable(xplode
+        ${TOOLS_DIR}/xplode.c
         ${CMAKE_SOURCE_DIR}/src/ext/gif.c
         ${CMAKE_SOURCE_DIR}/src/ext/png.c
         ${CMAKE_SOURCE_DIR}/src/studio/project.c)
@@ -690,11 +691,11 @@ if(BUILD_DEMO_CARTS)
         target_link_libraries(xplode m)
     endif()
 
-    file(GLOB DEMO_CARTS 
-        ${CMAKE_SOURCE_DIR}/demos/*.* 
+    file(GLOB DEMO_CARTS
+        ${CMAKE_SOURCE_DIR}/demos/*.*
         ${CMAKE_SOURCE_DIR}/demos/bunny/*.*)
 
-    list(APPEND DEMO_CARTS 
+    list(APPEND DEMO_CARTS
         ${CMAKE_SOURCE_DIR}/config.lua
     )
 
@@ -790,7 +791,7 @@ endif()
 ################################
 
 set(LIBPNG_DIR ${THIRDPARTY_DIR}/libpng)
-set(LIBPNG_SRC 
+set(LIBPNG_SRC
     ${LIBPNG_DIR}/png.c
     ${LIBPNG_DIR}/pngerror.c
     ${LIBPNG_DIR}/pngget.c
@@ -814,8 +815,8 @@ add_library(png STATIC ${LIBPNG_SRC})
 
 target_compile_definitions(png PRIVATE PNG_ARM_NEON_OPT=0)
 
-target_include_directories(png 
-    PUBLIC ${CMAKE_CURRENT_BINARY_DIR} 
+target_include_directories(png
+    PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
     PRIVATE ${THIRDPARTY_DIR}/zlib
     INTERFACE ${THIRDPARTY_DIR}/libpng)
 
@@ -854,9 +855,9 @@ endif()
 
 set(TIC80_OUTPUT tic80)
 
-add_library(tic80studio STATIC 
-    ${TIC80STUDIO_SRC} 
-    ${DEMO_CARTS_OUT} 
+add_library(tic80studio STATIC
+    ${TIC80STUDIO_SRC}
+    ${DEMO_CARTS_OUT}
     ${CMAKE_SOURCE_DIR}/build/assets/cart.png.dat)
 
 if(WIN32)
@@ -903,7 +904,7 @@ set(SDLGPU_SRC
 )
 
 if(NOT ANDROID)
-    list(APPEND SDLGPU_SRC 
+    list(APPEND SDLGPU_SRC
         ${SDLGPU_DIR}/renderer_GLES_1.c
         ${SDLGPU_DIR}/renderer_GLES_3.c
         ${SDLGPU_DIR}/renderer_OpenGL_1.c
@@ -911,7 +912,7 @@ if(NOT ANDROID)
         ${SDLGPU_DIR}/renderer_OpenGL_2.c
         ${SDLGPU_DIR}/renderer_OpenGL_3.c
         ${SDLGPU_DIR}/renderer_OpenGL_4.c
-        ${SDLGPU_DIR}/SDL_gpu_shapes.c  
+        ${SDLGPU_DIR}/SDL_gpu_shapes.c
         ${SDLGPU_DIR}/externals/glew/glew.c
     )
 endif()
@@ -969,7 +970,7 @@ if(BUILD_SDL)
     set(TIC80_SRC src/system/sdl/main.c)
 
     if(WIN32)
-        
+
         configure_file("${PROJECT_SOURCE_DIR}/build/windows/tic80.rc.in" "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
         set(TIC80_SRC ${TIC80_SRC} "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
 
@@ -981,7 +982,7 @@ if(BUILD_SDL)
 
         add_library(tic80 SHARED ${TIC80_SRC})
 
-        target_link_libraries(tic80 hidapi)
+        target_link_libraries(tic80)
 
     else()
         add_executable(tic80 ${TIC80_SRC})
@@ -1055,13 +1056,13 @@ if(BUILD_SOKOL)
 
         configure_file("${PROJECT_SOURCE_DIR}/build/windows/tic80.rc.in" "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
         set(TIC80_SRC ${TIC80_SRC} "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
-        
-        add_executable(tic80-sokol WIN32 ${TIC80_SRC})        
+
+        add_executable(tic80-sokol WIN32 ${TIC80_SRC})
     else()
         add_executable(tic80-sokol ${TIC80_SRC})
     endif()
 
-    target_include_directories(tic80-sokol PRIVATE 
+    target_include_directories(tic80-sokol PRIVATE
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src
         ${THIRDPARTY_DIR}/sokol)
@@ -1111,7 +1112,7 @@ if(BUILD_STUB)
 
     macro(MACRO_STUB SCRIPT)
 
-        set(TIC80_SRC 
+        set(TIC80_SRC
             src/system/sdl/main.c
             src/studio/screens/run.c
             src/studio/screens/menu.c
@@ -1123,7 +1124,7 @@ if(BUILD_STUB)
             src/ext/md5.c)
 
         if(WIN32)
-            
+
             configure_file("${PROJECT_SOURCE_DIR}/build/windows/tic80.rc.in" "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
             set(TIC80_SRC ${TIC80_SRC} "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
 
