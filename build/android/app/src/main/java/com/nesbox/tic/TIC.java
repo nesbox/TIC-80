@@ -6,9 +6,6 @@ public class TIC extends SDLActivity
 {
 	@Override
 	protected String[] getLibraries() {
-		return new String[] {
-			"hidapi",
-			"tic80",
-		};
+		return new String[] { "tic80" };
 	}
 }
