@@ -59,19 +59,19 @@ typedef struct
     s32 duration;
 
     s32* val;
-} Anim;
+} SurfAnim;
 
-typedef struct Movie Movie;
+typedef struct SurfMovie SurfMovie;
 
-struct Movie
+struct SurfMovie
 {
-    Anim** items;
+    SurfAnim** items;
 
     s32 time;
     s32 duration;
     s32 count;
 
-    Movie* next;
+    SurfMovie* next;
     void (*done)(Surf* surf);
 };
 
@@ -84,20 +84,20 @@ static struct
     s32 coverFade;
 } AnimVar;
 
-static Anim topBarShowAnim      = {0, MENU_HEIGHT, ANIM, &AnimVar.topBarY};
-static Anim bottomBarShowAnim   = {0, MENU_HEIGHT, ANIM, &AnimVar.bottomBarY};
-static Anim topBarHideAnim      = {MENU_HEIGHT, 0, ANIM, &AnimVar.topBarY};
-static Anim bottomBarHideAnim   = {MENU_HEIGHT, 0, ANIM, &AnimVar.bottomBarY};
-static Anim menuLeftHideAnim    = {0, -TIC80_WIDTH, ANIM, &AnimVar.menuX};
-static Anim menuRightHideAnim   = {0, TIC80_WIDTH, ANIM, &AnimVar.menuX};
-static Anim menuHideAnim        = {MENU_HEIGHT, 0, ANIM, &AnimVar.menuHeight};
-static Anim menuLeftShowAnim    = {TIC80_WIDTH, 0, ANIM, &AnimVar.menuX};
-static Anim menuRightShowAnim   = {-TIC80_WIDTH, 0, ANIM, &AnimVar.menuX};
-static Anim menuShowAnim        = {0, MENU_HEIGHT, ANIM, &AnimVar.menuHeight};
-static Anim coverFadeInAnim     = {COVER_FADEOUT, COVER_FADEIN, ANIM, &AnimVar.coverFade};
-static Anim coverFadeOutAnim    = {COVER_FADEIN, COVER_FADEOUT, ANIM, &AnimVar.coverFade};
+static SurfAnim topBarShowAnim      = {0, MENU_HEIGHT, ANIM, &AnimVar.topBarY};
+static SurfAnim bottomBarShowAnim   = {0, MENU_HEIGHT, ANIM, &AnimVar.bottomBarY};
+static SurfAnim topBarHideAnim      = {MENU_HEIGHT, 0, ANIM, &AnimVar.topBarY};
+static SurfAnim bottomBarHideAnim   = {MENU_HEIGHT, 0, ANIM, &AnimVar.bottomBarY};
+static SurfAnim menuLeftHideAnim    = {0, -TIC80_WIDTH, ANIM, &AnimVar.menuX};
+static SurfAnim menuRightHideAnim   = {0, TIC80_WIDTH, ANIM, &AnimVar.menuX};
+static SurfAnim menuHideAnim        = {MENU_HEIGHT, 0, ANIM, &AnimVar.menuHeight};
+static SurfAnim menuLeftShowAnim    = {TIC80_WIDTH, 0, ANIM, &AnimVar.menuX};
+static SurfAnim menuRightShowAnim   = {-TIC80_WIDTH, 0, ANIM, &AnimVar.menuX};
+static SurfAnim menuShowAnim        = {0, MENU_HEIGHT, ANIM, &AnimVar.menuHeight};
+static SurfAnim coverFadeInAnim     = {COVER_FADEOUT, COVER_FADEIN, ANIM, &AnimVar.coverFade};
+static SurfAnim coverFadeOutAnim    = {COVER_FADEIN, COVER_FADEOUT, ANIM, &AnimVar.coverFade};
 
-static Anim* MenuModeShowMovieItems[] = 
+static SurfAnim* MenuModeShowMovieItems[] = 
 {
     &topBarShowAnim,
     &bottomBarShowAnim,
@@ -106,7 +106,7 @@ static Anim* MenuModeShowMovieItems[] =
     &coverFadeInAnim,
 };
 
-static Anim* MenuModeHideMovieItems[] = 
+static SurfAnim* MenuModeHideMovieItems[] = 
 {
     &topBarHideAnim,
     &bottomBarHideAnim,
@@ -115,34 +115,34 @@ static Anim* MenuModeHideMovieItems[] =
     &coverFadeOutAnim,
 };
 
-static Anim* MenuLeftHideMovieItems[] = 
+static SurfAnim* MenuLeftHideMovieItems[] = 
 {
     &menuLeftHideAnim,
     &menuHideAnim,
 };
 
-static Anim* MenuRightHideMovieItems[] = 
+static SurfAnim* MenuRightHideMovieItems[] = 
 {
     &menuRightHideAnim,
     &menuHideAnim,
 };
 
-static Anim* MenuLeftShowMovieItems[] = 
+static SurfAnim* MenuLeftShowMovieItems[] = 
 {
     &menuLeftShowAnim,
     &menuShowAnim,
 };
 
-static Anim* MenuRightShowMovieItems[] = 
+static SurfAnim* MenuRightShowMovieItems[] = 
 {
     &menuRightShowAnim,
     &menuShowAnim,
 };
 
-static Movie EmptyState;
-static Movie MenuModeState;
+static SurfMovie EmptyState;
+static SurfMovie MenuModeState;
 
-#define DECLARE_MOVIE(NAME, NEXT) static Movie NAME ## State =  \
+#define DECLARE_MOVIE(NAME, NEXT) static SurfMovie NAME ## State =  \
 {                                                               \
     .items = NAME ## MovieItems,                                \
     .count = COUNT_OF(NAME ## MovieItems),                      \
@@ -183,13 +183,13 @@ typedef struct
     void* data;
 } AddMenuItemData;
 
-static void resetMovie(Surf* surf, Movie* movie, void (*done)(Surf* surf))
+static void resetSurfMovie(Surf* surf, SurfMovie* movie, void (*done)(Surf* surf))
 {
     surf->state = movie;
 
     for(s32 i = 0; i < movie->count; i++)
     {
-        Anim* anim = movie->items[i];
+        SurfAnim* anim = movie->items[i];
         *anim->val = anim->start;
     }
 
@@ -643,7 +643,7 @@ static void goBackDir(Surf* surf)
     if(strcmp(dir, "") != 0)
     {
         playSystemSfx(2);
-        resetMovie(surf, &MenuRightHideState, onGoBackDir);
+        resetSurfMovie(surf, &MenuRightHideState, onGoBackDir);
     }
 }
 
@@ -656,7 +656,7 @@ static void changeDirectory(Surf* surf, const char* name)
     else
     {
         playSystemSfx(2);
-        resetMovie(surf, &MenuLeftHideState, onGoToDir);
+        resetSurfMovie(surf, &MenuLeftHideState, onGoToDir);
     }
 }
 
@@ -695,15 +695,15 @@ static void loadCart(Surf* surf)
 
             if(cart)
             {
-                resetMovie(surf, &MenuModeHideState, onPlayCart);
+                resetSurfMovie(surf, &MenuModeHideState, onPlayCart);
                 free(cart);
             }
         }
     }
-    else resetMovie(surf, &MenuModeHideState, onPlayCart);
+    else resetSurfMovie(surf, &MenuModeHideState, onPlayCart);
 }
 
-static void processAnim(Surf* surf)
+static void processSurfAnim(Surf* surf)
 {
     enum{Frames = MENU_HEIGHT};
 
@@ -714,12 +714,12 @@ static void processAnim(Surf* surf)
                 surf->state->done(surf);
 
             if(surf->state->next)
-                resetMovie(surf, surf->state->next, NULL);
+                resetSurfMovie(surf, surf->state->next, NULL);
         }
 
         for(s32 i = 0; i < surf->state->count; i++)
         {
-            Anim* anim = surf->state->items[i];
+            SurfAnim* anim = surf->state->items[i];
 
             if(surf->state->time < anim->duration)
             {
@@ -850,7 +850,7 @@ static void tick(Surf* surf)
     {
         initItems(surf);
 
-        resetMovie(surf, &MenuModeShowState, NULL);
+        resetSurfMovie(surf, &MenuModeShowState, NULL);
 
         surf->init = true;
     }
@@ -864,7 +864,7 @@ static void tick(Surf* surf)
 
     if (surf->menu.count > 0)
     {
-        processAnim(surf);
+        processSurfAnim(surf);
 
         if (surf->state == &MenuModeState)
         {
@@ -907,7 +907,7 @@ static void tick(Surf* surf)
 
 static void resume(Surf* surf)
 {
-    resetMovie(surf, &MenuModeShowState, NULL);
+    resetSurfMovie(surf, &MenuModeShowState, NULL);
 }
 
 static void scanline(tic_mem* tic, s32 row, void* data)

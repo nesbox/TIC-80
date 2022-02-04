@@ -32,7 +32,7 @@ struct Surf
     struct tic_fs* fs;
     struct tic_net* net;
     struct Console* console;
-    struct Movie* state;
+    struct SurfMovie* state;
 
     bool init;
     bool loading;

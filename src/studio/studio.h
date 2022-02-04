@@ -252,3 +252,36 @@ s32 calcWaveAnimation(tic_mem* tic, u32 index, s32 channel);
 void map2ram(tic_ram* ram, const tic_map* src);
 void tiles2ram(tic_ram* ram, const tic_tiles* src);
 void fadePalette(tic_palette* pal, s32 value);
+
+typedef struct
+{
+    s32 start;
+    s32 end;
+    s32 time;
+
+    s32 *value;
+
+    s32(*factor)(s32 d);
+} Anim;
+
+typedef struct
+{
+    void(*done)(void *data);
+
+    s32 time;
+    s32 tick;
+
+    s32 count;
+    Anim* items;
+} Movie;
+
+#define MOVIE_DEF(TIME, DONE, ...)              \
+{                                               \
+    .time = TIME,                               \
+    .done = DONE,                               \
+    .count = COUNT_OF(((Anim[])__VA_ARGS__)),   \
+    .items = MOVE((Anim[])__VA_ARGS__),         \
+}
+
+void processAnim(Movie* movie, void* data);
+Movie* resetMovie(Movie* movie);

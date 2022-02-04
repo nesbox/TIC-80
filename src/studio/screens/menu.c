@@ -26,28 +26,6 @@
 
 #include <math.h>
 
-typedef struct
-{
-    s32 start;
-    s32 end;
-    s32 time;
-
-    s32 *value;
-
-    s32(*factor)(s32 d);
-} Anim;
-
-typedef struct
-{
-    void(*done)(Menu *menu);
-
-    s32 time;
-    s32 tick;
-
-    s32 count;
-    Anim* items;
-} Movie;
-
 #define ANIM_STATES(macro)  \
     macro(idle)             \
     macro(start)            \
@@ -104,77 +82,51 @@ enum
 enum{TextMargin = 2, ItemHeight = TIC_FONT_HEIGHT + TextMargin * 2};
 enum{Hold = KEYBOARD_HOLD, Period = ItemHeight};
 
-static inline s32 linear(s32 d)
+static s32 linear(s32 d)
 {
     return d;
 }
 
-static inline s32 easein(s32 d)
+static s32 easein(s32 d)
 {
     return d * d;
 }
 
-static inline s32 lerp(s32 a, s32 b, s32 d0, s32 d1)
-{
-    return (b - a) * d0 / d1 + a;
-}
-
-static void animTick(Menu *menu)
-{
-    Movie* movie = menu->anim.movie;
-
-    for(Anim* it = movie->items, *end = it + movie->count; it != end; ++it)
-        *it->value = lerp(it->start, it->end, it->factor(movie->tick), it->factor(it->time));
-}
-
-static void processAnim(Menu *menu)
-{
-    animTick(menu);
-
-    Movie* movie = menu->anim.movie;
-
-    if(movie->tick == movie->time)
-        movie->done(menu);
-
-    movie->tick++;
-}
-
-static void resetMovie(Menu *menu, Movie* movie)
-{
-    (menu->anim.movie = movie)->tick = 0;
-    animTick(menu);
-}
-
 static void emptyDone() {}
 
-static void menuUpDone(Menu *menu)
+static void menuUpDone(void* data)
 {
+    Menu *menu = data;
     menu->pos = (menu->pos + (menu->count - 1)) % menu->count;
     menu->anim.pos = 0;
-    resetMovie(menu, &menu->anim.idle);
+    menu->anim.movie = resetMovie(&menu->anim.idle);
 }
 
-static void menuDownDone(Menu *menu)
+static void menuDownDone(void* data)
 {
+    Menu *menu = data;
     menu->pos = (menu->pos + (menu->count + 1)) % menu->count;
     menu->anim.pos = 0;
-    resetMovie(menu, &menu->anim.idle);
+    menu->anim.movie = resetMovie(&menu->anim.idle);
 }
 
-static void startDone(Menu *menu)
+static void startDone(void* data)
 {
-    resetMovie(menu, &menu->anim.idle);
+    Menu *menu = data;
+    menu->anim.movie = resetMovie(&menu->anim.idle);
 }
 
-static void closeDone(Menu *menu)
+static void closeDone(void* data)
 {
-    resetMovie(menu, &menu->anim.idle);
+    Menu *menu = data;
+    menu->anim.movie = resetMovie(&menu->anim.idle);
     menu->items[menu->pos].handler(menu->data ? menu->data : &menu->pos);
 }
 
-static void backDone(Menu *menu)
+static void backDone(void* data)
 {
-    resetMovie(menu, &menu->anim.idle);
+    Menu *menu = data;
+    menu->anim.movie = resetMovie(&menu->anim.idle);
     s32 pos = menu->backPos;
     menu->back(menu->data);
     menu->pos = pos;
@@ -237,7 +189,7 @@ static void updateOption(MenuOption* option, s32 val)
 static void onMenuItem(Menu* menu, const MenuItem* item)
 {
     playSystemSfx(2);
-    resetMovie(menu, item->back ? &menu->anim.back : &menu->anim.close);
+    menu->anim.movie = resetMovie(item->back ? &menu->anim.back : &menu->anim.close);
 }
 
 static void drawOptionArrow(Menu* menu, MenuOption* option, s32 x, s32 y, s32 icon, s32 delta)
@@ -282,14 +234,14 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
             || tic_api_keyp(tic, tic_key_up, Hold, Period))
         {
             playSystemSfx(2);
-            resetMovie(menu, &menu->anim.up);
+            menu->anim.movie = resetMovie(&menu->anim.up);
         }
 
         if(tic_api_btnp(menu->tic, Down, Hold, Period)
             || tic_api_keyp(tic, tic_key_down, Hold, Period))
         {
             playSystemSfx(2);
-            resetMovie(menu, &menu->anim.down);
+            menu->anim.movie = resetMovie(&menu->anim.down);
         }
 
         MenuItem* item = &menu->items[menu->pos];
@@ -328,7 +280,7 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
                 && menu->back)
         {
             playSystemSfx(2);
-            resetMovie(menu, &menu->anim.back);
+            menu->anim.movie = resetMovie(&menu->anim.back);
         }
     }
 
@@ -417,14 +369,6 @@ static void drawCursor(Menu* menu, s32 x, s32 y)
     tic_api_rect(tic, x, y - (menu->anim.cursor - ItemHeight) / 2, TIC80_WIDTH, menu->anim.cursor, tic_color_red);
 }
 
-#define MOVIE_DEF(TIME, DONE, ...)              \
-{                                               \
-    .time = TIME,                               \
-    .done = DONE,                               \
-    .count = COUNT_OF(((Anim[])__VA_ARGS__)),   \
-    .items = MOVE((Anim[])__VA_ARGS__),         \
-}
-
 Menu* studio_menu_create(struct tic_mem* tic)
 {
     Menu* menu = malloc(sizeof(Menu));
@@ -473,7 +417,7 @@ void studio_menu_tick(Menu* menu)
 {
     tic_mem* tic = menu->tic;
 
-    processAnim(menu);
+    processAnim(menu->anim.movie, menu);
 
     // process scroll
     if(animIdle(menu))
@@ -556,7 +500,7 @@ void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, s32 
         }
     }
 
-    resetMovie(menu, &menu->anim.start);
+    menu->anim.movie = resetMovie(&menu->anim.start);
 }
 
 bool studio_menu_back(Menu* menu)
@@ -564,7 +508,7 @@ bool studio_menu_back(Menu* menu)
     if(menu->back)
     {
         playSystemSfx(2);
-        resetMovie(menu, &menu->anim.back);
+        menu->anim.movie = resetMovie(&menu->anim.back);
     }
 
     return menu->back != NULL;

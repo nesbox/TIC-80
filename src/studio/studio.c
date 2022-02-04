@@ -684,6 +684,35 @@ static void drawPopup()
     }
 }
 
+static inline s32 lerp(s32 a, s32 b, s32 d0, s32 d1)
+{
+    return (b - a) * d0 / d1 + a;
+}
+
+static void animTick(Movie* movie)
+{
+    for(Anim* it = movie->items, *end = it + movie->count; it != end; ++it)
+        *it->value = lerp(it->start, it->end, it->factor(movie->tick), it->factor(it->time));
+}
+
+void processAnim(Movie* movie, void* data)
+{
+    animTick(movie);
+
+    if(movie->tick == movie->time)
+        movie->done(data);
+
+    movie->tick++;
+}
+
+Movie* resetMovie(Movie* movie)
+{
+    movie->tick = 0;
+    animTick(movie);
+
+    return movie;
+}
+
 void drawToolbar(tic_mem* tic, bool bg)
 {
     if(bg)
