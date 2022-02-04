@@ -649,6 +649,35 @@ static void drawBankIcon(s32 x, s32 y)
 
 #endif
 
+static inline s32 lerp(s32 a, s32 b, s32 d0, s32 d1)
+{
+    return (b - a) * d0 / d1 + a;
+}
+
+static void animTick(Movie* movie)
+{
+    for(Anim* it = movie->items, *end = it + movie->count; it != end; ++it)
+        *it->value = lerp(it->start, it->end, it->factor(movie->tick), it->factor(it->time));
+}
+
+void processAnim(Movie* movie, void* data)
+{
+    animTick(movie);
+
+    if(movie->tick == movie->time)
+        movie->done(data);
+
+    movie->tick++;
+}
+
+Movie* resetMovie(Movie* movie)
+{
+    movie->tick = 0;
+    animTick(movie);
+
+    return movie;
+}
+
 #if defined(BUILD_EDITORS)
 
 static void drawPopup()
@@ -682,35 +711,6 @@ static void drawPopup()
                 *dst++ = tic_rgba(&bank->palette.vbank0.colors[tic_tool_peek4(tic->ram.vram.screen.data, i++)]);
         }
     }
-}
-
-static inline s32 lerp(s32 a, s32 b, s32 d0, s32 d1)
-{
-    return (b - a) * d0 / d1 + a;
-}
-
-static void animTick(Movie* movie)
-{
-    for(Anim* it = movie->items, *end = it + movie->count; it != end; ++it)
-        *it->value = lerp(it->start, it->end, it->factor(movie->tick), it->factor(it->time));
-}
-
-void processAnim(Movie* movie, void* data)
-{
-    animTick(movie);
-
-    if(movie->tick == movie->time)
-        movie->done(data);
-
-    movie->tick++;
-}
-
-Movie* resetMovie(Movie* movie)
-{
-    movie->tick = 0;
-    animTick(movie);
-
-    return movie;
 }
 
 void drawToolbar(tic_mem* tic, bool bg)
