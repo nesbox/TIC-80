@@ -43,7 +43,7 @@ For users who can't spend the money, we made it easy to build the pro version fr
 
 - Save/load cartridges in text format, and create your game in any editor you want, also useful for version control systems.
 - Even more memory banks: instead of having only 1 memory bank you have 8.
-- Export your game without editors, and then publish it to app stores (WIP).
+- Export your game without editors, and then publish it to app stores.
 
 # Community
 You can play and share games, tools and music at [https://tic80.com/play](https://tic80.com/play).
