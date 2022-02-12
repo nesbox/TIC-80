@@ -212,6 +212,44 @@ static const char* PngExt = PNG_EXT;
 #define CAN_ADDGET_FILE 1
 #endif
 
+typedef struct
+{
+    Console* console;
+    char* incompleteWord; // Original word that's being completed.
+    char options[CONSOLE_BUFFER_SIZE]; // Options to show to the user.
+    char commonPrefix[CONSOLE_BUFFER_SIZE]; // Common prefix of all options.
+} AutocompleteData;
+
+static void addAutocompleteOption(AutocompleteData* data, const char* option)
+{
+    if (strstr(option, data->incompleteWord) == option)
+    {
+        strncat(data->options, option, CONSOLE_BUFFER_SIZE);
+        strncat(data->options, " ", CONSOLE_BUFFER_SIZE);
+
+        if (strlen(data->incompleteWord) > 0)
+        {
+            if (strlen(data->commonPrefix) == 0)
+            {
+                // This is the first option to be added. Initialize the prefix.
+                strncpy(data->commonPrefix, option, CONSOLE_BUFFER_SIZE);
+            }
+            else
+            {
+                // Only leave the longest common prefix.
+                char* tmpCommonPrefix = data->commonPrefix;
+                char* tmpOption = (char*) option;
+
+                while (*tmpCommonPrefix && *tmpOption && *tmpCommonPrefix == *tmpOption) {
+                    tmpCommonPrefix++;
+                    tmpOption++;
+                }
+
+                *tmpCommonPrefix = 0;
+            }
+        }
+    }
+}
 
 // You must free the result if result is non-NULL. TODO: find a better place for this function?
 char *str_replace(const char *orig, char *rep, char *with) {
@@ -1141,6 +1179,80 @@ static void onNewCommand(Console* console)
     {
         onNewCommandConfirmed(console);
     }
+}
+
+static void autocompleteLanguages(AutocompleteData* data)
+{
+    FOR_EACH_LANG(ln)
+        addAutocompleteOption(data, ln->name);
+    FOR_EACH_LANG_END
+}
+
+static void autocompleteExport(AutocompleteData* data)
+{
+#define EXPORT_CMD_DEF(name) addAutocompleteOption(data, #name);
+    EXPORT_CMD_LIST(EXPORT_CMD_DEF)
+#undef  EXPORT_CMD_DEF
+}
+
+static void autocompleteImport(AutocompleteData* data)
+{
+#define IMPORT_CMD_DEF(name) addAutocompleteOption(data, #name);
+    IMPORT_CMD_LIST(IMPORT_CMD_DEF)
+#undef  IMPORT_CMD_DEF
+}
+
+static bool addFileAndDirToAutocomplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
+{
+    Console* console = ((AutocompleteData*)data)->console;
+    addAutocompleteOption(data, name);
+
+    return true;
+}
+
+static bool addFilenameToAutocomplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
+{
+    if (!dir)
+    {
+        Console* console = ((AutocompleteData*)data)->console;
+        addAutocompleteOption(data, name);
+    }
+
+    return true;
+}
+
+static bool addDirToAutocomplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
+{
+    if (dir)
+    {
+        Console* console = ((AutocompleteData*)data)->console;
+        addAutocompleteOption(data, name);
+    }
+
+    return true;
+}
+
+static void emptyAutoCompleteHelper(void* data) {}
+
+static void autocompleteFiles(AutocompleteData* data)
+{
+    tic_fs_enum(data->console->fs, addFilenameToAutocomplete, emptyAutoCompleteHelper, data);
+}
+
+static void autocompleteDirs(AutocompleteData* data)
+{
+    tic_fs_enum(data->console->fs, addDirToAutocomplete, emptyAutoCompleteHelper, data);
+}
+
+static void autocompleteFilesAndDirs(AutocompleteData* data)
+{
+    tic_fs_enum(data->console->fs, addFileAndDirToAutocomplete, emptyAutoCompleteHelper, data);
+}
+
+static void autocompleteConfig(AutocompleteData* data)
+{
+    addAutocompleteOption(data, "reset");
+    addAutocompleteOption(data, "default");
 }
 
 typedef struct
@@ -2531,6 +2643,8 @@ static void onGetCommand(Console* console)
 
 #endif
 
+static void autocompleteHelp(AutocompleteData* data);
+
 static const char HelpUsage[] = "help [<text>"
 #define HELP_CMD_DEF(name) "|" #name
     HELP_CMD_LIST(HELP_CMD_DEF)
@@ -2549,13 +2663,15 @@ static const char HelpUsage[] = "help [<text>"
         NULL,                                                                           \
         "upload file to the browser local storage.",                                    \
         NULL,                                                                           \
-        onAddCommand)                                                                   \
+        onAddCommand,                                                                   \
+        NULL)                                                                           \
                                                                                         \
     macro("get",                                                                        \
         NULL,                                                                           \
         "download file from the browser local storage.",                                \
         "get <file>",                                                                   \
-        onGetCommand)                                                                   \
+        onGetCommand,                                                                   \
+        autocompleteFiles)                                                              \
 
 #else
 #define ADDGET_FILE(macro)
@@ -2567,19 +2683,22 @@ static const char HelpUsage[] = "help [<text>"
         NULL,                                                                           \
         "show help info about commands/api/...",                                        \
         HelpUsage,                                                                      \
-        onHelpCommand)                                                                  \
+        onHelpCommand,                                                                  \
+        autocompleteHelp)                                                               \
                                                                                         \
     macro("exit",                                                                       \
         "quit",                                                                         \
         "exit the application.",                                                        \
         NULL,                                                                           \
-        onExitCommand)                                                                  \
+        onExitCommand,                                                                  \
+        NULL)                                                                           \
                                                                                         \
     macro("new",                                                                        \
         NULL,                                                                           \
         "creates a new `Hello World` cartridge.",                                       \
         "new <$LANG_NAMES_PIPE$>",                                                      \
-        onNewCommand)                                                                   \
+        onNewCommand,                                                                   \
+        autocompleteLanguages)                                                          \
                                                                                         \
     macro("load",                                                                       \
         NULL,                                                                           \
@@ -2587,56 +2706,65 @@ static const char HelpUsage[] = "help [<text>"
         "(there's no need to type the .tic extension).\n"                               \
         "you can also load just the section (sprites, map etc) from another cart.",     \
         "load <cart> [code" TIC_SYNC_LIST(SECTION_DEF) "]",                             \
-        onLoadCommand)                                                                  \
+        onLoadCommand,                                                                  \
+        autocompleteFiles)                                                              \
                                                                                         \
     macro("save",                                                                       \
         NULL,                                                                           \
         "save cartridge to the local filesystem, use $LANG_EXTENSIONS$"                 \
         "cart extension to save it in text format (PRO feature).",                      \
         "save <cart>",                                                                  \
-        onSaveCommand)                                                                  \
+        onSaveCommand,                                                                  \
+        autocompleteFiles)                                                              \
                                                                                         \
     macro("run",                                                                        \
         NULL,                                                                           \
         "run current cart / project.",                                                  \
         NULL,                                                                           \
-        onRunCommand)                                                                   \
+        onRunCommand,                                                                   \
+        NULL)                                                                           \
                                                                                         \
     macro("resume",                                                                     \
         NULL,                                                                           \
         "resume last run cart / project.",                                              \
         NULL,                                                                           \
-        onResumeCommand)                                                                \
+        onResumeCommand,                                                                \
+        NULL)                                                                           \
                                                                                         \
     macro("eval",                                                                       \
         "=",                                                                            \
         "run code provided code.",                                                      \
         NULL,                                                                           \
-        onEvalCommand)                                                                  \
+        onEvalCommand,                                                                  \
+        NULL)                                                                           \
                                                                                         \
     macro("dir",                                                                        \
         "ls",                                                                           \
         "show list of local files.",                                                    \
         NULL,                                                                           \
-        onDirCommand)                                                                   \
+        onDirCommand,                                                                   \
+        autocompleteDirs)                                                               \
                                                                                         \
     macro("cd",                                                                         \
         NULL,                                                                           \
         "change directory.",                                                            \
         "\ncd <path>\ncd /\ncd ..",                                                     \
-        onChangeDirectory)                                                              \
+        onChangeDirectory,                                                              \
+        autocompleteDirs)                                                               \
                                                                                         \
     macro("mkdir",                                                                      \
         NULL,                                                                           \
         "make a directory.",                                                            \
         "mkdir <name>",                                                                 \
-        onMakeDirectory)                                                                \
+        onMakeDirectory,                                                                \
+        NULL)                                                                           \
                                                                                         \
     macro("folder",                                                                     \
         NULL,                                                                           \
         "open working directory in OS.",                                                \
         NULL,                                                                           \
-        onFolderCommand)                                                                \
+        onFolderCommand,                                                                \
+        NULL)                                                                           \
                                                                                         \
     macro("export",                                                                     \
         NULL,                                                                           \
@@ -2644,34 +2772,39 @@ static const char HelpUsage[] = "help [<text>"
         "native build (win linux rpi mac),\n"                                           \
         "export sprites/map/... as a .png image "                                       \
         "or export sfx and music to .wav files.",                                       \
-        "\nexport [" EXPORT_CMD_LIST(EXPORT_CMD_DEF) "...]"                             \
+        "\nexport [" EXPORT_CMD_LIST(EXPORT_CMD_DEF) "...] "                            \
         "<file> [" EXPORT_KEYS_LIST(EXPORT_KEYS_DEF) "...]" ,                           \
-        onExportCommand)                                                                \
+        onExportCommand,                                                                \
+        autocompleteExport)                                                             \
                                                                                         \
     macro("import",                                                                     \
         NULL,                                                                           \
         "import code/sprites/map/... from an external file.",                           \
-        "\nimport [" IMPORT_CMD_LIST(IMPORT_CMD_DEF) "...]"                             \
+        "\nimport [" IMPORT_CMD_LIST(IMPORT_CMD_DEF) "...] "                            \
         "<file> [" IMPORT_KEYS_LIST(IMPORT_KEYS_DEF) "...]",                            \
-        onImportCommand)                                                                \
+        onImportCommand,                                                                \
+        autocompleteImport)                                                             \
                                                                                         \
     macro("del",                                                                        \
         NULL,                                                                           \
         "delete from the filesystem.",                                                  \
         "del <file|folder>",                                                            \
-        onDelCommand)                                                                   \
+        onDelCommand,                                                                   \
+        autocompleteFilesAndDirs)                                                       \
                                                                                         \
     macro("cls",                                                                        \
         "clear",                                                                        \
         "clear console screen.",                                                        \
         NULL,                                                                           \
-        onClsCommand)                                                                   \
+        onClsCommand,                                                                   \
+        NULL)                                                                           \
                                                                                         \
     macro("demo",                                                                       \
         NULL,                                                                           \
         "install demo carts to the current directory.",                                 \
         NULL,                                                                           \
-        onInstallDemosCommand)                                                          \
+        onInstallDemosCommand,                                                          \
+        NULL)                                                                           \
                                                                                         \
     macro("config",                                                                     \
         NULL,                                                                           \
@@ -2679,13 +2812,15 @@ static const char HelpUsage[] = "help [<text>"
         "use `reset` param to reset current configuration,\n"                           \
         "use `default` to edit default cart template.",                                 \
         "config [reset|default]",                                                       \
-        onConfigCommand)                                                                \
+        onConfigCommand,                                                                \
+        autocompleteConfig)                                                             \
                                                                                         \
     macro("surf",                                                                       \
         NULL,                                                                           \
         "open carts browser.",                                                          \
         NULL,                                                                           \
-        onSurfCommand)                                                                  \
+        onSurfCommand,                                                                  \
+        NULL)                                                                           \
                                                                                         \
     macro("menu",                                                                       \
         NULL,                                                                           \
@@ -2701,10 +2836,12 @@ static struct Command
     const char* help;
     const char* usage;
     void(*handler)(Console*);
+    void(*autocomplete)(AutocompleteData*);
 
 } Commands[] =
 {
-#define COMMANDS_DEF(name, alt, help, usage, handler) {name, alt, help, usage, handler},
+#define COMMANDS_DEF(name, alt, help, usage, handler, autocomplete) \
+    {name, alt, help, usage, handler, autocomplete},
     COMMANDS_LIST(COMMANDS_DEF)
 #undef COMMANDS_DEF
 };
@@ -2729,6 +2866,23 @@ static struct ApiItem {const char* name; const char* def; const char* help;} Api
 };
 
 typedef struct ApiItem ApiItem;
+
+static void autocompleteHelp(AutocompleteData* data)
+{
+#define HELP_CMD_DEF(name) addAutocompleteOption(data, #name);
+    HELP_CMD_LIST(HELP_CMD_DEF)
+#undef  HELP_CMD_DEF
+
+    for(s32 i = 0; i < COUNT_OF(Commands); i++)
+    {
+        addAutocompleteOption(data, Commands[i].name);
+    }
+
+#define TIC_API_DEF(name, def, help, ...) addAutocompleteOption(data, #name);
+    API_LIST(TIC_API_DEF)
+#undef TIC_API_DEF
+}
+
 
 static s32 createRamTable(char* buf)
 {
@@ -3017,60 +3171,21 @@ static void provideHint(Console* console, const char* hint)
     free(input);
 }
 
-typedef struct
-{
-    Console* console;
-    char* incompleteWord; // Original word that's being completed.
-    char options[CONSOLE_BUFFER_SIZE]; // Options to show to the user.
-    char commonPrefix[CONSOLE_BUFFER_SIZE]; // Common prefix of all options.
-} AutocompleteData;
-
-static void addAutocompleteOption(const AutocompleteData* data, const char* option)
-{
-    if (strstr(option, data->incompleteWord) == option)
-    {
-        strncat(data->options, option, CONSOLE_BUFFER_SIZE);
-        strncat(data->options, " ", CONSOLE_BUFFER_SIZE);
-
-        if (strlen(data->incompleteWord) > 0)
-        {
-            if (strlen(data->commonPrefix) == 0)
-            {
-                // This is the first option to be added. Initialize the prefix.
-                strncpy(data->commonPrefix, option, CONSOLE_BUFFER_SIZE);
-            }
-            else
-            {
-                // Only leave the longest common prefix.
-                char* tmpCommonPrefix = data->commonPrefix;
-                char* tmpOption = option;
-
-                while (*tmpCommonPrefix && *tmpOption && *tmpCommonPrefix == *tmpOption) {
-                    tmpCommonPrefix++;
-                    tmpOption++;
-                }
-
-                *tmpCommonPrefix = 0;
-            }
-        }
-    }
-}
-
 static void finishAutocomplete(const AutocompleteData* data)
 {
-    if (strlen(data->commonPrefix) == strlen(data->incompleteWord))
+    bool justOneOptionLeft = strlen(data->options) == strlen(data->commonPrefix)+1;
+
+    if (strlen(data->commonPrefix) == strlen(data->incompleteWord) && !justOneOptionLeft)
     {
         provideHint(data->console, data->options);
     }
     insertInputText(data->console, data->commonPrefix+strlen(data->incompleteWord));
-}
 
-static bool addFilenameToAutocomplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
-{
-    Console* console = ((AutocompleteData*)data)->console;
-    addAutocompleteOption(data, name);
-
-    return true;
+    // Adding one at the right because all options end with a space.
+    if (justOneOptionLeft)
+    {
+        insertInputText(data->console, " ");
+    }
 }
 
 static void processConsoleTab(Console* console)
@@ -3081,43 +3196,18 @@ static void processConsoleTab(Console* console)
     if(param)
     {
         param++;
-        AutocompleteData data = { console, incompleteWord: param };
 
-        if (strncmp(input, "help", 4) == 0)
+        for(s32 i = 0; i < COUNT_OF(Commands); i++)
         {
-            // Autocomplete help topics.
-#define HELP_CMD_DEF(name) addAutocompleteOption(&data, #name);
-            HELP_CMD_LIST(HELP_CMD_DEF)
-#undef  HELP_CMD_DEF
+            bool commandMatches = strncmp(Commands[i].name, input, param-input-1) == 0 ||
+                                  (Commands[i].alt && strncmp(Commands[i].alt, input, param-input-1) == 0);
 
-            for(s32 i = 0; i < COUNT_OF(Commands); i++)
+            if (commandMatches && Commands[i].autocomplete)
             {
-                addAutocompleteOption(&data, Commands[i].name);
+                AutocompleteData data = { console, incompleteWord: param };
+                Commands[i].autocomplete(&data);
+                finishAutocomplete(&data);
             }
-
-            FOR(const ApiItem*, api, Api)
-                addAutocompleteOption(&data, api->name);
-
-            finishAutocomplete(&data);
-        }
-        else if (strncmp(input, "new", 3) == 0)
-        {
-            // Autocomplete languages.
-            FOR_EACH_LANG(ln)
-                addAutocompleteOption(&data, ln->name);
-            FOR_EACH_LANG_END
-            finishAutocomplete(&data);
-        }
-        else if (strncmp(input, "config", 6) == 0)
-        {
-            addAutocompleteOption(&data, "reset");
-            addAutocompleteOption(&data, "default");
-            finishAutocomplete(&data);
-        }
-        else
-        {
-            // Autocomplete filenames.
-            tic_fs_enum(console->fs, addFilenameToAutocomplete, finishAutocomplete, &data);
         }
     }
     else
@@ -3127,6 +3217,8 @@ static void processConsoleTab(Console* console)
         for(s32 i = 0; i < COUNT_OF(Commands); i++)
         {
             addAutocompleteOption(&data, Commands[i].name);
+            if (Commands[i].alt)
+                addAutocompleteOption(&data, Commands[i].alt);
         }
         finishAutocomplete(&data);
     }
