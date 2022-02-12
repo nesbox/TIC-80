@@ -2664,6 +2664,7 @@ static const char HelpUsage[] = "help [<text>"
         "upload file to the browser local storage.",                                    \
         NULL,                                                                           \
         onAddCommand,                                                                   \
+        NULL,                                                                           \
         NULL)                                                                           \
                                                                                         \
     macro("get",                                                                        \
@@ -2671,26 +2672,29 @@ static const char HelpUsage[] = "help [<text>"
         "download file from the browser local storage.",                                \
         "get <file>",                                                                   \
         onGetCommand,                                                                   \
-        autocompleteFiles)                                                              \
+        autocompleteFiles,                                                              \
+        NULL)                                                                           \
 
 #else
 #define ADDGET_FILE(macro)
 #endif
 
-// macro(name, alt, help, usage, handler)
+// macro(name, alt, help, usage, handler, autocomplete for first param, for second param)
 #define COMMANDS_LIST(macro)                                                            \
     macro("help",                                                                       \
         NULL,                                                                           \
         "show help info about commands/api/...",                                        \
         HelpUsage,                                                                      \
         onHelpCommand,                                                                  \
-        autocompleteHelp)                                                               \
+        autocompleteHelp,                                                               \
+        NULL)                                                                           \
                                                                                         \
     macro("exit",                                                                       \
         "quit",                                                                         \
         "exit the application.",                                                        \
         NULL,                                                                           \
         onExitCommand,                                                                  \
+        NULL,                                                                           \
         NULL)                                                                           \
                                                                                         \
     macro("new",                                                                        \
@@ -2698,7 +2702,8 @@ static const char HelpUsage[] = "help [<text>"
         "creates a new `Hello World` cartridge.",                                       \
         "new <$LANG_NAMES_PIPE$>",                                                      \
         onNewCommand,                                                                   \
-        autocompleteLanguages)                                                          \
+        autocompleteLanguages,                                                          \
+        NULL)                                                                           \
                                                                                         \
     macro("load",                                                                       \
         NULL,                                                                           \
@@ -2707,7 +2712,8 @@ static const char HelpUsage[] = "help [<text>"
         "you can also load just the section (sprites, map etc) from another cart.",     \
         "load <cart> [code" TIC_SYNC_LIST(SECTION_DEF) "]",                             \
         onLoadCommand,                                                                  \
-        autocompleteFiles)                                                              \
+        autocompleteFiles,                                                              \
+        NULL)                                                                           \
                                                                                         \
     macro("save",                                                                       \
         NULL,                                                                           \
@@ -2715,13 +2721,15 @@ static const char HelpUsage[] = "help [<text>"
         "cart extension to save it in text format (PRO feature).",                      \
         "save <cart>",                                                                  \
         onSaveCommand,                                                                  \
-        autocompleteFiles)                                                              \
+        autocompleteFiles,                                                              \
+        NULL)                                                                           \
                                                                                         \
     macro("run",                                                                        \
         NULL,                                                                           \
         "run current cart / project.",                                                  \
         NULL,                                                                           \
         onRunCommand,                                                                   \
+        NULL,                                                                           \
         NULL)                                                                           \
                                                                                         \
     macro("resume",                                                                     \
@@ -2729,6 +2737,7 @@ static const char HelpUsage[] = "help [<text>"
         "resume last run cart / project.",                                              \
         NULL,                                                                           \
         onResumeCommand,                                                                \
+        NULL,                                                                           \
         NULL)                                                                           \
                                                                                         \
     macro("eval",                                                                       \
@@ -2736,6 +2745,7 @@ static const char HelpUsage[] = "help [<text>"
         "run code provided code.",                                                      \
         NULL,                                                                           \
         onEvalCommand,                                                                  \
+        NULL,                                                                           \
         NULL)                                                                           \
                                                                                         \
     macro("dir",                                                                        \
@@ -2743,20 +2753,23 @@ static const char HelpUsage[] = "help [<text>"
         "show list of local files.",                                                    \
         NULL,                                                                           \
         onDirCommand,                                                                   \
-        autocompleteDirs)                                                               \
+        autocompleteDirs,                                                               \
+        NULL)                                                                           \
                                                                                         \
     macro("cd",                                                                         \
         NULL,                                                                           \
         "change directory.",                                                            \
         "\ncd <path>\ncd /\ncd ..",                                                     \
         onChangeDirectory,                                                              \
-        autocompleteDirs)                                                               \
+        autocompleteDirs,                                                               \
+        NULL)                                                                           \
                                                                                         \
     macro("mkdir",                                                                      \
         NULL,                                                                           \
         "make a directory.",                                                            \
         "mkdir <name>",                                                                 \
         onMakeDirectory,                                                                \
+        NULL,                                                                           \
         NULL)                                                                           \
                                                                                         \
     macro("folder",                                                                     \
@@ -2764,6 +2777,7 @@ static const char HelpUsage[] = "help [<text>"
         "open working directory in OS.",                                                \
         NULL,                                                                           \
         onFolderCommand,                                                                \
+        NULL,                                                                           \
         NULL)                                                                           \
                                                                                         \
     macro("export",                                                                     \
@@ -2775,7 +2789,8 @@ static const char HelpUsage[] = "help [<text>"
         "\nexport [" EXPORT_CMD_LIST(EXPORT_CMD_DEF) "...] "                            \
         "<file> [" EXPORT_KEYS_LIST(EXPORT_KEYS_DEF) "...]" ,                           \
         onExportCommand,                                                                \
-        autocompleteExport)                                                             \
+        autocompleteExport,                                                             \
+        autocompleteFiles)                                                              \
                                                                                         \
     macro("import",                                                                     \
         NULL,                                                                           \
@@ -2783,20 +2798,23 @@ static const char HelpUsage[] = "help [<text>"
         "\nimport [" IMPORT_CMD_LIST(IMPORT_CMD_DEF) "...] "                            \
         "<file> [" IMPORT_KEYS_LIST(IMPORT_KEYS_DEF) "...]",                            \
         onImportCommand,                                                                \
-        autocompleteImport)                                                             \
+        autocompleteImport,                                                             \
+        autocompleteFiles)                                                              \
                                                                                         \
     macro("del",                                                                        \
         NULL,                                                                           \
         "delete from the filesystem.",                                                  \
         "del <file|folder>",                                                            \
         onDelCommand,                                                                   \
-        autocompleteFilesAndDirs)                                                       \
+        autocompleteFilesAndDirs,                                                       \
+        NULL)                                                                           \
                                                                                         \
     macro("cls",                                                                        \
         "clear",                                                                        \
         "clear console screen.",                                                        \
         NULL,                                                                           \
         onClsCommand,                                                                   \
+        NULL,                                                                           \
         NULL)                                                                           \
                                                                                         \
     macro("demo",                                                                       \
@@ -2804,6 +2822,7 @@ static const char HelpUsage[] = "help [<text>"
         "install demo carts to the current directory.",                                 \
         NULL,                                                                           \
         onInstallDemosCommand,                                                          \
+        NULL,                                                                           \
         NULL)                                                                           \
                                                                                         \
     macro("config",                                                                     \
@@ -2813,13 +2832,15 @@ static const char HelpUsage[] = "help [<text>"
         "use `default` to edit default cart template.",                                 \
         "config [reset|default]",                                                       \
         onConfigCommand,                                                                \
-        autocompleteConfig)                                                             \
+        autocompleteConfig,                                                             \
+        NULL)                                                                           \
                                                                                         \
     macro("surf",                                                                       \
         NULL,                                                                           \
         "open carts browser.",                                                          \
         NULL,                                                                           \
         onSurfCommand,                                                                  \
+        NULL,                                                                           \
         NULL)                                                                           \
                                                                                         \
     macro("menu",                                                                       \
@@ -2836,12 +2857,13 @@ static struct Command
     const char* help;
     const char* usage;
     void(*handler)(Console*);
-    void(*autocomplete)(AutocompleteData*);
+    void(*autocomplete1)(AutocompleteData*);
+    void(*autocomplete2)(AutocompleteData*);
 
 } Commands[] =
 {
-#define COMMANDS_DEF(name, alt, help, usage, handler, autocomplete) \
-    {name, alt, help, usage, handler, autocomplete},
+#define COMMANDS_DEF(name, alt, help, usage, handler, autocomplete1, autocomplete2) \
+    {name, alt, help, usage, handler, autocomplete1, autocomplete2},
     COMMANDS_LIST(COMMANDS_DEF)
 #undef COMMANDS_DEF
 };
@@ -3195,18 +3217,32 @@ static void processConsoleTab(Console* console)
 
     if(param)
     {
+        // Autocomplete command's parameters.
         param++;
+        char* secondParam = strchr(param, ' ');
+        if (secondParam)
+            secondParam++;
 
         for(s32 i = 0; i < COUNT_OF(Commands); i++)
         {
             bool commandMatches = strncmp(Commands[i].name, input, param-input-1) == 0 ||
                                   (Commands[i].alt && strncmp(Commands[i].alt, input, param-input-1) == 0);
 
-            if (commandMatches && Commands[i].autocomplete)
+            if (commandMatches)
             {
-                AutocompleteData data = { console, incompleteWord: param };
-                Commands[i].autocomplete(&data);
-                finishAutocomplete(&data);
+                if (secondParam) {
+                    if (Commands[i].autocomplete2) {
+                        AutocompleteData data = { console, incompleteWord: secondParam };
+                        Commands[i].autocomplete2(&data);
+                        finishAutocomplete(&data);
+                    }
+                } else {
+                    if (Commands[i].autocomplete1) {
+                        AutocompleteData data = { console, incompleteWord: param };
+                        Commands[i].autocomplete1(&data);
+                        finishAutocomplete(&data);
+                    }
+                }
             }
         }
     }
