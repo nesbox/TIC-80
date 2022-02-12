@@ -2978,36 +2978,6 @@ static void onExport_help(Console* console, const char* param, const char* name,
     }
 }
 
-typedef struct
-{
-    Console* console;
-    char* name;
-} PredictFilenameData;
-
-static bool predictFilename(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
-{
-    PredictFilenameData* predictFilenameData = data;
-    Console* console = predictFilenameData->console;
-
-    if(strstr(name, predictFilenameData->name) == name)
-    {
-        strcpy(predictFilenameData->name, name);
-        memset(console->color + getInputOffset(console), CONSOLE_INPUT_COLOR, strlen(name));
-        return false;
-    }
-
-    return true;
-}
-
-static void predictFilenameDone(void* data)
-{
-    PredictFilenameData* predictFilenameData = data;
-    Console* console = predictFilenameData->console;
-
-    console->input.pos = strlen(console->input.text);
-    free(predictFilenameData);
-}
-
 static void insertInputText(Console* console, const char* text)
 {
     s32 size = strlen(text);
@@ -3033,32 +3003,132 @@ static void insertInputText(Console* console, const char* text)
     clearSelection(console);
 }
 
+// Used to show autocomplete options, for example.
+static void provideHint(Console* console, const char* hint)
+{
+    char* input = malloc(CONSOLE_BUFFER_SIZE);
+    strncpy(input, console->input.text, CONSOLE_BUFFER_SIZE);
+
+    printLine(console);
+    printBack(console, hint);
+    commandDone(console);
+    insertInputText(console, input);
+
+    free(input);
+}
+
+typedef struct
+{
+    Console* console;
+    char* incompleteWord; // Original word that's being completed.
+    char options[CONSOLE_BUFFER_SIZE]; // Options to show to the user.
+    char commonPrefix[CONSOLE_BUFFER_SIZE]; // Common prefix of all options.
+} AutocompleteData;
+
+static void addAutocompleteOption(const AutocompleteData* data, const char* option)
+{
+    if (strstr(option, data->incompleteWord) == option)
+    {
+        strncat(data->options, option, CONSOLE_BUFFER_SIZE);
+        strncat(data->options, " ", CONSOLE_BUFFER_SIZE);
+
+        if (strlen(data->incompleteWord) > 0)
+        {
+            if (strlen(data->commonPrefix) == 0)
+            {
+                // This is the first option to be added. Initialize the prefix.
+                strncpy(data->commonPrefix, option, CONSOLE_BUFFER_SIZE);
+            }
+            else
+            {
+                // Only leave the longest common prefix.
+                char* tmpCommonPrefix = data->commonPrefix;
+                char* tmpOption = option;
+
+                while (*tmpCommonPrefix && *tmpOption && *tmpCommonPrefix == *tmpOption) {
+                    tmpCommonPrefix++;
+                    tmpOption++;
+                }
+
+                *tmpCommonPrefix = 0;
+            }
+        }
+    }
+}
+
+static void finishAutocomplete(const AutocompleteData* data)
+{
+    if (strlen(data->commonPrefix) == strlen(data->incompleteWord))
+    {
+        provideHint(data->console, data->options);
+    }
+    insertInputText(data->console, data->commonPrefix+strlen(data->incompleteWord));
+}
+
+static bool addFilenameToAutocomplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
+{
+    Console* console = ((AutocompleteData*)data)->console;
+    addAutocompleteOption(data, name);
+
+    return true;
+}
+
 static void processConsoleTab(Console* console)
 {
     char* input = console->input.text;
+    char* param = strchr(input, ' ');
 
-    if(strlen(input))
+    if(param)
     {
-        char* param = strchr(input, ' ');
+        param++;
+        AutocompleteData data = { console, incompleteWord: param };
 
-        if(param && strlen(++param))
+        if (strncmp(input, "help", 4) == 0)
         {
-            PredictFilenameData data = { console, param };
-            tic_fs_enum(console->fs, predictFilename, predictFilenameDone, MOVE(data));
+            // Autocomplete help topics.
+#define HELP_CMD_DEF(name) addAutocompleteOption(&data, #name);
+            HELP_CMD_LIST(HELP_CMD_DEF)
+#undef  HELP_CMD_DEF
+
+            for(s32 i = 0; i < COUNT_OF(Commands); i++)
+            {
+                addAutocompleteOption(&data, Commands[i].name);
+            }
+
+            FOR(const ApiItem*, api, Api)
+                addAutocompleteOption(&data, api->name);
+
+            finishAutocomplete(&data);
+        }
+        else if (strncmp(input, "new", 3) == 0)
+        {
+            // Autocomplete languages.
+            FOR_EACH_LANG(ln)
+                addAutocompleteOption(&data, ln->name);
+            FOR_EACH_LANG_END
+            finishAutocomplete(&data);
+        }
+        else if (strncmp(input, "config", 6) == 0)
+        {
+            addAutocompleteOption(&data, "reset");
+            addAutocompleteOption(&data, "default");
+            finishAutocomplete(&data);
         }
         else
         {
-            for(s32 i = 0; i < COUNT_OF(Commands); i++)
-            {
-                const char* command = Commands[i].name;
-
-                if(strstr(command, input) == command)
-                {
-                    insertInputText(console, command + console->input.pos);
-                    break;
-                }
-            }
+            // Autocomplete filenames.
+            tic_fs_enum(console->fs, addFilenameToAutocomplete, finishAutocomplete, &data);
         }
+    }
+    else
+    {
+        // Autocomplete commands.
+        AutocompleteData data = { console, incompleteWord: input };
+        for(s32 i = 0; i < COUNT_OF(Commands); i++)
+        {
+            addAutocompleteOption(&data, Commands[i].name);
+        }
+        finishAutocomplete(&data);
     }
 }
 
