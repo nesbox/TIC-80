@@ -212,44 +212,6 @@ static const char* PngExt = PNG_EXT;
 #define CAN_ADDGET_FILE 1
 #endif
 
-typedef struct
-{
-    Console* console;
-    char* incompleteWord; // Original word that's being completed.
-    char options[CONSOLE_BUFFER_SIZE]; // Options to show to the user.
-    char commonPrefix[CONSOLE_BUFFER_SIZE]; // Common prefix of all options.
-} AutocompleteData;
-
-static void addAutocompleteOption(AutocompleteData* data, const char* option)
-{
-    if (strstr(option, data->incompleteWord) == option)
-    {
-        strncat(data->options, option, CONSOLE_BUFFER_SIZE);
-        strncat(data->options, " ", CONSOLE_BUFFER_SIZE);
-
-        if (strlen(data->incompleteWord) > 0)
-        {
-            if (strlen(data->commonPrefix) == 0)
-            {
-                // This is the first option to be added. Initialize the prefix.
-                strncpy(data->commonPrefix, option, CONSOLE_BUFFER_SIZE);
-            }
-            else
-            {
-                // Only leave the longest common prefix.
-                char* tmpCommonPrefix = data->commonPrefix;
-                char* tmpOption = (char*) option;
-
-                while (*tmpCommonPrefix && *tmpOption && *tmpCommonPrefix == *tmpOption) {
-                    tmpCommonPrefix++;
-                    tmpOption++;
-                }
-
-                *tmpCommonPrefix = 0;
-            }
-        }
-    }
-}
 
 // You must free the result if result is non-NULL. TODO: find a better place for this function?
 char *str_replace(const char *orig, char *rep, char *with) {
@@ -1181,6 +1143,46 @@ static void onNewCommand(Console* console)
     }
 }
 
+typedef struct
+{
+    Console* console;
+    char* incompleteWord; // Original word that's being completed.
+    char options[CONSOLE_BUFFER_SIZE]; // Options to show to the user.
+    char commonPrefix[CONSOLE_BUFFER_SIZE]; // Common prefix of all options.
+} AutocompleteData;
+
+static void addAutocompleteOption(AutocompleteData* data, const char* option)
+{
+    if (strstr(option, data->incompleteWord) == option)
+    {
+        strncat(data->options, option, CONSOLE_BUFFER_SIZE);
+        strncat(data->options, " ", CONSOLE_BUFFER_SIZE);
+
+        // Possibly reduce the common prefix of all possible options.
+        if (strlen(data->incompleteWord) > 0)
+        {
+            if (strlen(data->commonPrefix) == 0)
+            {
+                // This is the first option to be added. Initialize the prefix.
+                strncpy(data->commonPrefix, option, CONSOLE_BUFFER_SIZE);
+            }
+            else
+            {
+                // Only leave the longest common prefix.
+                char* tmpCommonPrefix = data->commonPrefix;
+                char* tmpOption = (char*) option;
+
+                while (*tmpCommonPrefix && *tmpOption && *tmpCommonPrefix == *tmpOption) {
+                    tmpCommonPrefix++;
+                    tmpOption++;
+                }
+
+                *tmpCommonPrefix = 0;
+            }
+        }
+    }
+}
+
 static void autocompleteLanguages(AutocompleteData* data)
 {
     FOR_EACH_LANG(ln)
@@ -1204,7 +1206,6 @@ static void autocompleteImport(AutocompleteData* data)
 
 static bool addFileAndDirToAutocomplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
 {
-    Console* console = ((AutocompleteData*)data)->console;
     addAutocompleteOption(data, name);
 
     return true;
@@ -1213,10 +1214,7 @@ static bool addFileAndDirToAutocomplete(const char* name, const char* title, con
 static bool addFilenameToAutocomplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
 {
     if (!dir)
-    {
-        Console* console = ((AutocompleteData*)data)->console;
         addAutocompleteOption(data, name);
-    }
 
     return true;
 }
@@ -1224,10 +1222,7 @@ static bool addFilenameToAutocomplete(const char* name, const char* title, const
 static bool addDirToAutocomplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
 {
     if (dir)
-    {
-        Console* console = ((AutocompleteData*)data)->console;
         addAutocompleteOption(data, name);
-    }
 
     return true;
 }
@@ -2643,6 +2638,7 @@ static void onGetCommand(Console* console)
 
 #endif
 
+// Declare this here to resolve a cyclic dependency with COMMANDS_LIST.
 static void autocompleteHelp(AutocompleteData* data);
 
 static const char HelpUsage[] = "help [<text>"
@@ -3195,6 +3191,7 @@ static void provideHint(Console* console, const char* hint)
 
 static void finishAutocomplete(const AutocompleteData* data)
 {
+    // Adding one at the right because all options end with a space.
     bool justOneOptionLeft = strlen(data->options) == strlen(data->commonPrefix)+1;
 
     if (strlen(data->commonPrefix) == strlen(data->incompleteWord) && !justOneOptionLeft)
@@ -3203,7 +3200,6 @@ static void finishAutocomplete(const AutocompleteData* data)
     }
     insertInputText(data->console, data->commonPrefix+strlen(data->incompleteWord));
 
-    // Adding one at the right because all options end with a space.
     if (justOneOptionLeft)
     {
         insertInputText(data->console, " ");
