@@ -1147,16 +1147,16 @@ typedef struct
 {
     Console* console;
     char* incompleteWord; // Original word that's being completed.
-    char options[CONSOLE_BUFFER_SIZE]; // Options to show to the user.
-    char commonPrefix[CONSOLE_BUFFER_SIZE]; // Common prefix of all options.
+    char options[CONSOLE_BUFFER_SCREEN]; // Options to show to the user.
+    char commonPrefix[CONSOLE_BUFFER_SCREEN]; // Common prefix of all options.
 } AutocompleteData;
 
 static void addAutocompleteOption(AutocompleteData* data, const char* option)
 {
     if (strstr(option, data->incompleteWord) == option)
     {
-        strncat(data->options, option, CONSOLE_BUFFER_SIZE);
-        strncat(data->options, " ", CONSOLE_BUFFER_SIZE);
+        strncat(data->options, option, CONSOLE_BUFFER_SCREEN);
+        strncat(data->options, " ", CONSOLE_BUFFER_SCREEN);
 
         // Possibly reduce the common prefix of all possible options.
         if (strlen(data->incompleteWord) > 0)
@@ -1164,7 +1164,7 @@ static void addAutocompleteOption(AutocompleteData* data, const char* option)
             if (strlen(data->commonPrefix) == 0)
             {
                 // This is the first option to be added. Initialize the prefix.
-                strncpy(data->commonPrefix, option, CONSOLE_BUFFER_SIZE);
+                strncpy(data->commonPrefix, option, CONSOLE_BUFFER_SCREEN);
             }
             else
             {
@@ -3178,8 +3178,8 @@ static void insertInputText(Console* console, const char* text)
 // Used to show autocomplete options, for example.
 static void provideHint(Console* console, const char* hint)
 {
-    char* input = malloc(CONSOLE_BUFFER_SIZE);
-    strncpy(input, console->input.text, CONSOLE_BUFFER_SIZE);
+    char* input = malloc(CONSOLE_BUFFER_SCREEN);
+    strncpy(input, console->input.text, CONSOLE_BUFFER_SCREEN);
 
     printLine(console);
     printBack(console, hint);
