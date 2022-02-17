@@ -52,7 +52,7 @@ struct Map
 
     struct
     {
-        bool show;
+        bool keep;
         tic_rect rect;
         tic_point start;
         bool drag;
@@ -82,6 +82,25 @@ struct Map
     u8* paste;
 
     struct History* history;
+
+    struct
+    {
+        struct
+        {
+            s32 sheet;
+            s32 bank;
+            s32 page;
+        } pos;
+
+        Movie* movie;
+
+        Movie idle;
+        Movie show;
+        Movie hide;
+        Movie bank;
+        Movie page;
+
+    } anim;
 
     void (*tick)(Map*);
     void (*event)(Map*, StudioEvent);

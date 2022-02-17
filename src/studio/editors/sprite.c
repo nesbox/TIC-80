@@ -57,36 +57,46 @@ static void clearCanvasSelection(Sprite* sprite)
 
 static void initTileSheet(Sprite* sprite)
 {
+    sprite->blit.page %= sprite->blit.pages;
     sprite->sheet = tic_tilesheet_get((( sprite->blit.pages + sprite->blit.page) << 1) + sprite->blit.bank, (u8*)sprite->src);
 }
 
 static void updateIndex(Sprite* sprite)
 {
-    sprite->blit.page %= sprite->blit.pages;
     sprite->index = sprite->y * sprite->blit.pages * TIC_SPRITESHEET_COLS + sprite->x;
     // index has changed, clear selection
     clearCanvasSelection(sprite);
 }
 
-static void leftViewport(Sprite* sprite)
+static inline bool isIdle(Sprite* sprite)
 {
-    if (sprite->blit.page > 0) sprite->blit.page--;
-    updateIndex(sprite);
-    initTileSheet(sprite);
-}
-
-static void rightViewport(Sprite* sprite)
-{
-    if (sprite->blit.page < sprite->blit.pages-1) sprite->blit.page++;
-    updateIndex(sprite);
-    initTileSheet(sprite);
+    return sprite->anim.movie == &sprite->anim.idle;
 }
 
 static void selectViewportPage(Sprite* sprite, u8 page)
 {
-    sprite->blit.page = page;
-    updateIndex(sprite);
-    initTileSheet(sprite);
+    if(isIdle(sprite))
+    {
+        Anim* anim = sprite->anim.page.items;
+        anim->start = (page - sprite->blit.page) * TIC_SPRITESHEET_SIZE;
+        sprite->anim.movie = resetMovie(&sprite->anim.page);
+
+        sprite->blit.page = page;
+        updateIndex(sprite);
+        initTileSheet(sprite);
+    }
+}
+
+static void leftViewport(Sprite* sprite)
+{
+    s32 page = sprite->blit.page + sprite->blit.pages - 1;
+    selectViewportPage(sprite, page % sprite->blit.pages);
+}
+
+static void rightViewport(Sprite* sprite)
+{
+    s32 page = sprite->blit.page + sprite->blit.pages + 1;
+    selectViewportPage(sprite, page % sprite->blit.pages);
 }
 
 static s32 getIndexPosX(Sprite* sprite)
@@ -1290,9 +1300,25 @@ static void drawSheet(Sprite* sprite, s32 x, s32 y)
 {
     tic_mem* tic = sprite->tic;
     tiles2ram(&tic->ram, sprite->src);
-    tic->ram.vram.blit.segment = tic_blit_calc_segment(&sprite->blit);
-    tic_api_spr(tic, 0, x, y, TIC_SPRITESHEET_COLS, TIC_SPRITESHEET_COLS, NULL, 0, 1, tic_no_flip, tic_no_rotate);
-    tic->ram.vram.blit.segment = TIC_DEFAULT_BLIT_MODE;
+
+    tic_blit blit = sprite->blit;
+    SCOPE(tic->ram.vram.blit.segment = TIC_DEFAULT_BLIT_MODE)
+    {
+        tic_point start = 
+        {
+            x - blit.page * TIC_SPRITESHEET_SIZE + sprite->anim.pos.page,
+            y - blit.bank * TIC_SPRITESHEET_SIZE + sprite->anim.pos.bank
+        }, pos = start;
+
+        for(blit.bank = 0; blit.bank < TIC_SPRITE_BANKS; ++blit.bank, pos.y += TIC_SPRITESHEET_SIZE, pos.x = start.x)
+        {
+            for(blit.page = 0; blit.page < blit.pages; ++blit.page, pos.x += TIC_SPRITESHEET_SIZE)
+            {
+                tic->ram.vram.blit.segment = tic_blit_calc_segment(&blit);
+                tic_api_spr(tic, 0, pos.x, pos.y, TIC_SPRITESHEET_COLS, TIC_SPRITESHEET_COLS, NULL, 0, 1, tic_no_flip, tic_no_rotate);
+            }
+        }
+    }
 }
 
 static void flipSpriteHorz(Sprite* sprite)
@@ -1554,10 +1580,18 @@ static void redo(Sprite* sprite)
 
 static void switchBanks(Sprite* sprite)
 {
-    sprite->blit.bank = !sprite->blit.bank;
+    if(isIdle(sprite))
+    {
+        s32 bank = (sprite->blit.bank + 1) % TIC_SPRITE_BANKS;
+        Anim* anim = sprite->anim.bank.items;
+        anim->start = (bank - sprite->blit.bank) * TIC_SPRITESHEET_SIZE;
+        sprite->anim.movie = resetMovie(&sprite->anim.bank);
 
-    updateIndex(sprite);
-    initTileSheet(sprite);
+        sprite->blit.bank = bank;
+
+        updateIndex(sprite);
+        initTileSheet(sprite);
+    }
 }
 
 static void drawTab(tic_mem* tic, s32 x, s32 y, s32 w, s32 h, u8 icon, bool active, bool over)
@@ -1856,6 +1890,8 @@ static void tick(Sprite* sprite)
 {
     tic_mem* tic = sprite->tic;
 
+    processAnim(sprite->anim.movie, sprite);
+
     // process scroll
     {
         tic80_input* input = &tic->ram.input;
@@ -1877,9 +1913,9 @@ static void tick(Sprite* sprite)
 
     processKeyboard(sprite);
 
+    drawSheet(sprite, SheetX, SheetY);
     drawCanvas(sprite, CanvasX, CanvasY);
     drawPalette(sprite, PaletteX, PaletteY);
-    drawSheet(sprite, SheetX, SheetY);
 
     VBANK(tic, 1)
     {
@@ -1944,12 +1980,27 @@ static void onStudioEvent(Sprite* sprite, StudioEvent event)
     }
 }
 
+static void emptyDone() {}
+
+static void setIdle(void* data)
+{
+    Sprite* sprite = data;
+    sprite->anim.movie = resetMovie(&sprite->anim.idle);
+}
+
+static void freeAnim(Sprite* sprite)
+{
+    FREE(sprite->anim.bank.items);
+    FREE(sprite->anim.page.items);
+}
+
 void initSprite(Sprite* sprite, tic_mem* tic, tic_tiles* src)
 {
     if(sprite->select.back == NULL) sprite->select.back = (u8*)malloc(CANVAS_SIZE*CANVAS_SIZE);
     if(sprite->select.front == NULL) sprite->select.front = (u8*)malloc(CANVAS_SIZE*CANVAS_SIZE);
     if(sprite->history) history_delete(sprite->history);
-    
+    freeAnim(sprite);
+
     *sprite = (Sprite)
     {
         .tic = tic,
@@ -1979,14 +2030,32 @@ void initSprite(Sprite* sprite, tic_mem* tic, tic_tiles* src)
         },
         .mode = SPRITE_DRAW_MODE,
         .history = history_create(src, TIC_SPRITES * sizeof(tic_tile)),
+        .anim =
+        {
+            .idle = {.done = emptyDone,},
+
+            .bank = MOVIE_DEF(STUDIO_ANIM_TIME, setIdle,
+            {
+                {0, 0, STUDIO_ANIM_TIME, &sprite->anim.pos.bank, AnimEaseIn},
+            }),
+
+            .page = MOVIE_DEF(STUDIO_ANIM_TIME, setIdle,
+            {
+                {0, 0, STUDIO_ANIM_TIME, &sprite->anim.pos.page, AnimEaseIn},
+            }),
+        },
         .event = onStudioEvent,
-        .scanline = scanline,
+        .scanline = scanline,        
     };
+
+    sprite->anim.movie = resetMovie(&sprite->anim.idle);
+
     switchBitMode(sprite, TIC_DEFAULT_BIT_DEPTH);
 }
 
 void freeSprite(Sprite* sprite)
 {
+    freeAnim(sprite);
     free(sprite->select.back);
     free(sprite->select.front);
     history_delete(sprite->history);

@@ -48,6 +48,7 @@
 #define STUDIO_TEXT_BUFFER_WIDTH (TIC80_WIDTH / STUDIO_TEXT_WIDTH)
 #define STUDIO_TEXT_BUFFER_HEIGHT (TIC80_HEIGHT / STUDIO_TEXT_HEIGHT)
 #define STUDIO_TEXT_BUFFER_SIZE (STUDIO_TEXT_BUFFER_WIDTH * STUDIO_TEXT_BUFFER_HEIGHT)
+#define STUDIO_ANIM_TIME 8
 
 #define TIC_COLOR_BG tic_color_black
 
@@ -253,6 +254,41 @@ void map2ram(tic_ram* ram, const tic_map* src);
 void tiles2ram(tic_ram* ram, const tic_tiles* src);
 void fadePalette(tic_palette* pal, s32 value);
 
+typedef enum
+{
+    AnimLinear,
+    AnimEaseIn,
+    AnimEaseOut,
+    AnimEaseInOut,
+    AnimEaseInCubic,
+    AnimEaseOutCubic,
+    AnimEaseInOutCubic,
+    AnimEaseInQuart,
+    AnimEaseOutQuart,
+    AnimEaseInOutQuart,
+    AnimEaseInQuint,
+    AnimEaseOutQuint,
+    AnimEaseInOutQuint,
+    AnimEaseInSine,
+    AnimEaseOutSine,
+    AnimEaseInOutSine,
+    AnimEaseInExpo,
+    AnimEaseOutExpo,
+    AnimEaseInOutExpo,
+    AnimEaseInCirc,
+    AnimEaseOutCirc,
+    AnimEaseInOutCirc,
+    AnimEaseInBack,
+    AnimEaseOutBack,
+    AnimEaseInOutBack,
+    AnimEaseInElastic,
+    AnimEaseOutElastic,
+    AnimEaseInOutElastic,
+    AnimEaseInBounce,
+    AnimEaseOutBounce,
+    AnimEaseInOutBounce,
+} AnimEffect;
+
 typedef struct
 {
     s32 start;
@@ -261,7 +297,7 @@ typedef struct
 
     s32 *value;
 
-    s32(*factor)(s32 d);
+    AnimEffect effect;
 } Anim;
 
 typedef struct

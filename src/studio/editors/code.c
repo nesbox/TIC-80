@@ -32,6 +32,7 @@
 #define CODE_EDITOR_WIDTH (TIC80_WIDTH - BOOKMARK_WIDTH)
 #define CODE_EDITOR_HEIGHT (TIC80_HEIGHT - TOOLBAR_SIZE - STUDIO_TEXT_HEIGHT)
 #define TEXT_BUFFER_HEIGHT (CODE_EDITOR_HEIGHT / STUDIO_TEXT_HEIGHT)
+#define OUTLINE_WIDTH (13 * TIC_FONT_WIDTH)
 
 #if defined(TIC80_PRO)
 #   define MAX_CODE sizeof(tic_code)
@@ -1331,10 +1332,17 @@ static void setOutlineMode(Code* code)
     updateOutlineCode(code);
 }
 
+static bool isIdle(Code* code)
+{
+    return code->anim.movie == &code->anim.idle;
+}
+
 static void setCodeMode(Code* code, s32 mode)
 {
-    if(code->mode != mode)
+    if(isIdle(code) && code->mode != mode)
     {
+        code->anim.movie = resetMovie(&code->anim.show);
+
         strcpy(code->popup.text, "");
 
         code->popup.prevPos = code->cursor.position;
@@ -1749,21 +1757,26 @@ static void textEditTick(Code* code)
 
 static void drawPopupBar(Code* code, const char* title)
 {
-    enum {TextX = BOOKMARK_WIDTH, TextY = TOOLBAR_SIZE + 1};
+    s32 pos = code->anim.pos;
 
-    tic_api_rect(code->tic, 0, TOOLBAR_SIZE, TIC80_WIDTH, TIC_FONT_HEIGHT + 1, tic_color_grey);
+    enum {TextX = BOOKMARK_WIDTH};
+
+
+    tic_api_rect(code->tic, 0, TOOLBAR_SIZE + pos, TIC80_WIDTH, TIC_FONT_HEIGHT + 1, tic_color_grey);
+
+    s32 textY = (TOOLBAR_SIZE + 1) + pos;
 
     if(code->shadowText)
-        tic_api_print(code->tic, title, TextX+1, TextY+1, tic_color_black, true, 1, code->altFont);
+        tic_api_print(code->tic, title, TextX+1, textY+1, tic_color_black, true, 1, code->altFont);
 
-    tic_api_print(code->tic, title, TextX, TextY, tic_color_white, true, 1, code->altFont);
+    tic_api_print(code->tic, title, TextX, textY, tic_color_white, true, 1, code->altFont);
 
     if(code->shadowText)
-        tic_api_print(code->tic, code->popup.text, TextX + (s32)strlen(title) * getFontWidth(code) + 1, TextY+1, tic_color_black, true, 1, code->altFont);
+        tic_api_print(code->tic, code->popup.text, TextX + (s32)strlen(title) * getFontWidth(code) + 1, textY+1, tic_color_black, true, 1, code->altFont);
 
-    tic_api_print(code->tic, code->popup.text, TextX + (s32)strlen(title) * getFontWidth(code), TextY, tic_color_white, true, 1, code->altFont);
+    tic_api_print(code->tic, code->popup.text, TextX + (s32)strlen(title) * getFontWidth(code), textY, tic_color_white, true, 1, code->altFont);
 
-    drawCursor(code, TextX+(s32)(strlen(title) + strlen(code->popup.text)) * getFontWidth(code), TextY, ' ');
+    drawCursor(code, TextX+(s32)(strlen(title) + strlen(code->popup.text)) * getFontWidth(code), textY, ' ');
 }
 
 static void updateFindCode(Code* code, char* pos)
@@ -2049,7 +2062,7 @@ static void textOutlineTick(Code* code)
 
     drawCode(code, false);
     drawStatus(code);
-    drawOutlineBar(code, TIC80_WIDTH - 13 * TIC_FONT_WIDTH, 2*(TIC_FONT_HEIGHT+1));
+    drawOutlineBar(code, (TIC80_WIDTH - OUTLINE_WIDTH) + code->anim.outline, 2*(TIC_FONT_HEIGHT+1));
     drawPopupBar(code, "FUNC:");
 }
 
@@ -2106,12 +2119,33 @@ static void drawShadowButton(Code* code, s32 x, s32 y)
         drawBitIcon(tic_icon_shadow2, x, y, tic_color_black);
 }
 
+static void drawRunButton(Code* code, s32 x, s32 y)
+{
+    tic_mem* tic = code->tic;
+
+    enum {Size = TIC_FONT_WIDTH};
+    tic_rect rect = {x, y, Size, Size};
+
+    bool over = false;
+    if(checkMousePos(&rect))
+    {
+        setCursor(tic_cursor_hand);
+        showTooltip("RUN [ctrl+r]");
+        over = true;
+
+        if(checkMouseClick(&rect, tic_mouse_left))
+            runGame();
+    }
+
+    drawBitIcon(tic_icon_run, x, y, over ? tic_color_grey : tic_color_light_grey);
+}
+
 static void drawCodeToolbar(Code* code)
 {
     tic_api_rect(code->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, tic_color_white);
 
-    static u8 Icons[] = {tic_icon_run, tic_icon_hand, tic_icon_find, tic_icon_goto, tic_icon_outline};
-    static const char* Tips[] = {"RUN [ctrl+r]", "DRAG [right mouse]", "FIND [ctrl+f]", "GOTO [ctrl+g]", "OUTLINE [ctrl+o]"};
+    static u8 Icons[] = {tic_icon_hand, tic_icon_find, tic_icon_goto, tic_icon_outline};
+    static const char* Tips[] = {"DRAG [right mouse]", "FIND [ctrl+f]", "GOTO [ctrl+g]", "OUTLINE [ctrl+o]"};
 
     enum {Count = COUNT_OF(Icons)};
     enum {Size = 7};
@@ -2131,45 +2165,37 @@ static void drawCodeToolbar(Code* code)
 
             if(checkMouseClick(&rect, tic_mouse_left))
             {
-                switch(i)
-                {
-                case TEXT_RUN_CODE:
-                    runGame();
-                    break;
-                default:
-                    {
-                        s32 mode = TEXT_EDIT_MODE + i;
-
-                        if(code->mode == mode) code->escape(code);
-                        else setCodeMode(code, mode);
-                    }
-                }
+                if(code->mode == i) code->escape(code);
+                else setCodeMode(code, i);
             }
         }
 
-        bool active = i == code->mode - TEXT_EDIT_MODE && i != 0;
+        bool active = i == code->mode && isIdle(code);
         if (active)
         {
             tic_api_rect(code->tic, rect.x, rect.y, Size, Size, tic_color_grey);
             drawBitIcon(Icons[i], rect.x, rect.y + 1, tic_color_black);
-        }
+        }            
+
         drawBitIcon(Icons[i], rect.x, rect.y, active ? tic_color_white : (over ? tic_color_grey : tic_color_light_grey));
     }
 
     drawFontButton(code, TIC80_WIDTH - (Count+3) * Size, 1);
     drawShadowButton(code, TIC80_WIDTH - (Count+2) * Size, 0);
+    drawRunButton(code, TIC80_WIDTH - (Count+1) * Size, 0);
 
     drawToolbar(code->tic, false);
 }
 
 static void tick(Code* code)
 {
+    processAnim(code->anim.movie, code);
+
     if(code->cursor.delay)
         code->cursor.delay--;
 
     switch(code->mode)
     {
-    case TEXT_RUN_CODE:     runGame();              break;
     case TEXT_DRAG_CODE:    textDragTick(code);     break;
     case TEXT_EDIT_MODE:    textEditTick(code);     break;
     case TEXT_FIND_MODE:    textFindTick(code);     break;
@@ -2189,14 +2215,14 @@ static void escape(Code* code)
     case TEXT_EDIT_MODE:
         break;
     case TEXT_DRAG_CODE:
-        code->mode = TEXT_EDIT_MODE;
+        setCodeMode(code, TEXT_EDIT_MODE);
     break;
     default:
+        code->anim.movie = resetMovie(&code->anim.hide);
+
         code->cursor.position = code->popup.prevPos;
         code->cursor.selection = code->popup.prevSel;
         code->popup.prevSel = code->popup.prevPos = NULL;
-
-        code->mode = TEXT_EDIT_MODE;
 
         updateEditor(code);
     }
@@ -2214,11 +2240,32 @@ static void onStudioEvent(Code* code, StudioEvent event)
     }
 }
 
+static void emptyDone() {}
+
+static void setIdle(void* data)
+{
+    Code* code = data;
+    code->anim.movie = resetMovie(&code->anim.idle);
+}
+
+static void setEditMode(void* data)
+{
+    Code* code = data;
+    code->anim.movie = resetMovie(&code->anim.idle);
+    setCodeMode(code, TEXT_EDIT_MODE);
+}
+
+static void freeAnim(Code* code)
+{
+    FREE(code->anim.show.items);
+    FREE(code->anim.hide.items);
+}
+
 void initCode(Code* code, tic_mem* tic, tic_code* src)
 {
     bool firstLoad = code->state == NULL;
-    if(code->state != NULL)
-        free(code->state);
+    FREE(code->state);
+    freeAnim(code);
 
     if(code->history) history_delete(code->history);
 
@@ -2250,9 +2297,27 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
         .matchedDelim = NULL,
         .altFont = firstLoad ? getConfig()->theme.code.altFont : code->altFont,
         .shadowText = getConfig()->theme.code.shadow,
+        .anim =
+        {
+            .idle = {.done = emptyDone,},
+
+            .show = MOVIE_DEF(STUDIO_ANIM_TIME, setIdle,
+            {
+                {-TOOLBAR_SIZE, 0, STUDIO_ANIM_TIME, &code->anim.pos, AnimEaseIn},
+                {OUTLINE_WIDTH, 0, STUDIO_ANIM_TIME, &code->anim.outline, AnimEaseIn},
+            }),
+
+            .hide = MOVIE_DEF(STUDIO_ANIM_TIME, setEditMode,
+            {
+                {0, -TOOLBAR_SIZE, STUDIO_ANIM_TIME, &code->anim.pos, AnimEaseIn},
+                {0, OUTLINE_WIDTH, STUDIO_ANIM_TIME, &code->anim.outline, AnimEaseIn},
+            }),
+        },
         .event = onStudioEvent,
         .update = update,
     };
+
+    code->anim.movie = resetMovie(&code->anim.idle);
 
     packState(code);
     code->history = history_create(code->state, sizeof(CodeState) * TIC_CODE_SIZE);
@@ -2262,6 +2327,8 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
 
 void freeCode(Code* code)
 {
+    freeAnim(code);
+
     history_delete(code->history);
     free(code->state);
     free(code);

@@ -158,7 +158,7 @@ typedef struct
 
     struct ClipRect
     {
-        u8 l, t, r, b;
+        s32 l, t, r, b;
     } clip;
 
     bool initialized;

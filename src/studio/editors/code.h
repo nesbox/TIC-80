@@ -82,12 +82,11 @@ struct Code
 
     enum
     {
-        TEXT_RUN_CODE,
-        TEXT_EDIT_MODE,
         TEXT_DRAG_CODE,
         TEXT_FIND_MODE,
         TEXT_GOTO_MODE,
         TEXT_OUTLINE_MODE,
+        TEXT_EDIT_MODE,
     } mode;
 
     struct
@@ -115,6 +114,19 @@ struct Code
     const char* matchedDelim;
     bool altFont;
     bool shadowText;
+
+    struct
+    {
+        s32 pos;
+        s32 outline;
+
+        Movie* movie;
+
+        Movie idle;
+        Movie show;
+        Movie hide;
+
+    } anim;
 
     void(*tick)(Code*);
     void(*escape)(Code*);

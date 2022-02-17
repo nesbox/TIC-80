@@ -37,7 +37,7 @@
 #define CONCAT2(a, b)       a ## b
 #define CONCAT(a, b)        CONCAT2(a, b)
 #define MACROVAR(name)      CONCAT(name, __LINE__)
-#define SCOPE(exp)          for(int MACROVAR(_i_) = 0; !MACROVAR(_i_); ++MACROVAR(_i_), exp)
+#define SCOPE(...)          for(int MACROVAR(_i_) = 0; !MACROVAR(_i_); ++MACROVAR(_i_), __VA_ARGS__)
 #define FOR(type,it,list)   for(type it = list, *MACROVAR(_end_) = it + COUNT_OF(list); it != MACROVAR(_end_); ++it)
 #define RFOR(type,it,list)  for(type it = list + (COUNT_OF(list) - 1), *MACROVAR(_end_) = list; it >= MACROVAR(_end_); --it)
 #define FREE(ptr)           do { if(ptr) free(ptr); } while (0)

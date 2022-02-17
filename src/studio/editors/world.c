@@ -81,6 +81,13 @@ static void tick(World* world)
 {
     tic_mem* tic = world->tic;
 
+    // process scroll
+    if(tic->ram.input.mouse.scrolly < 0) 
+    {
+        setStudioMode(TIC_MAP_MODE);
+        return;
+    }
+
     if(keyWasPressed(tic_key_tab)) setStudioMode(TIC_MAP_MODE);
 
     memcpy(&tic->ram.vram, world->preview, PREVIEW_SIZE);

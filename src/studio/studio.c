@@ -53,25 +53,20 @@
 #include "argparse.h"
 
 #include <ctype.h>
+
+#define _USE_MATH_DEFINES
 #include <math.h>
-
-
-
-#define OPTION_VALUES(...)                          \
-    .values = (const char*[])__VA_ARGS__,           \
-    .count = COUNT_OF(((const char*[])__VA_ARGS__))
 
 #if defined(BUILD_EDITORS)
 
 #define FRAME_SIZE (TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof(u32))
-#define POPUP_DUR (TIC80_FRAMERATE*2)
 
 static const char VideoGif[] = "video%i.gif";
 static const char ScreenGif[] = "screen%i.gif";
 
 #endif
 
-
+static void emptyDone() {}
 
 StudioImplementation impl =
 {
@@ -94,9 +89,17 @@ StudioImplementation impl =
         .chained = true,
     },
 
+    .anim = 
+    {
+        .pos = 
+        {
+            .popup = -TOOLBAR_SIZE,
+        },
+        .idle = {.done = emptyDone,}
+    },
+
     .popup =
     {
-        .counter = 0,
         .message = "\0",
     },
 
@@ -649,15 +652,159 @@ static void drawBankIcon(s32 x, s32 y)
 
 #endif
 
-static inline s32 lerp(s32 a, s32 b, s32 d0, s32 d1)
+static inline s32 lerp(s32 a, s32 b, float d)
 {
-    return (b - a) * d0 / d1 + a;
+    return (b - a) * d + a;
+}
+
+static inline float bounceOut(float x)
+{
+    const float n1 = 7.5625;
+    const float d1 = 2.75;
+
+    if (x < 1 / d1)         return n1 * x * x;
+    else if (x < 2 / d1)    return n1 * (x -= 1.5 / d1) * x + 0.75;
+    else if (x < 2.5 / d1)  return n1 * (x -= 2.25 / d1) * x + 0.9375;
+    else                    return n1 * (x -= 2.625 / d1) * x + 0.984375;
+}
+
+static inline float animEffect(AnimEffect effect, float x)
+{
+    const float c1 = 1.70158;
+    const float c2 = c1 * 1.525;
+    const float c3 = c1 + 1;
+    const float c4 = (2 * M_PI) / 3;
+    const float c5 = (2 * M_PI) / 4.5;
+
+    switch(effect)
+    {
+    case AnimLinear:
+        return x;
+
+    case AnimEaseIn:
+        return x * x;
+
+    case AnimEaseOut:
+        return 1 - (1 - x) * (1 - x);
+
+    case AnimEaseInOut:
+        return x < 0.5 ? 2 * x * x : 1 - pow(-2 * x + 2, 2) / 2;
+
+    case AnimEaseInCubic:
+        return x * x * x;
+
+    case AnimEaseOutCubic:
+        return 1 - pow(1 - x, 3);
+
+    case AnimEaseInOutCubic:
+        return x < 0.5 ? 4 * x * x * x : 1 - pow(-2 * x + 2, 3) / 2;
+
+    case AnimEaseInQuart:
+        return x * x * x * x;
+
+    case AnimEaseOutQuart:
+        return 1 - pow(1 - x, 4);
+
+    case AnimEaseInOutQuart:
+        return x < 0.5 ? 8 * x * x * x * x : 1 - pow(-2 * x + 2, 4) / 2;
+
+    case AnimEaseInQuint:
+        return x * x * x * x * x;
+
+    case AnimEaseOutQuint:
+        return 1 - pow(1 - x, 5);
+
+    case AnimEaseInOutQuint:
+        return x < 0.5 ? 16 * x * x * x * x * x : 1 - pow(-2 * x + 2, 5) / 2;
+
+    case AnimEaseInSine:
+        return 1 - cos((x * M_PI) / 2);
+
+    case AnimEaseOutSine:
+        return sin((x * M_PI) / 2);
+
+    case AnimEaseInOutSine:
+        return -(cos(M_PI * x) - 1) / 2;
+
+    case AnimEaseInExpo:
+        return x == 0 ? 0 : pow(2, 10 * x - 10);
+
+    case AnimEaseOutExpo:
+        return x == 1 ? 1 : 1 - pow(2, -10 * x);
+
+    case AnimEaseInOutExpo:
+        return x == 0
+            ? 0
+            : x == 1
+                ? 1
+                : x < 0.5
+                    ? pow(2, 20 * x - 10) / 2
+                    : (2 - pow(2, -20 * x + 10)) / 2;
+
+    case AnimEaseInCirc:
+        return 1 - sqrt(1 - pow(x, 2));
+
+    case AnimEaseOutCirc:
+        return sqrt(1 - pow(x - 1, 2));
+
+    case AnimEaseInOutCirc:
+        return x < 0.5
+            ? (1 - sqrt(1 - pow(2 * x, 2))) / 2
+            : (sqrt(1 - pow(-2 * x + 2, 2)) + 1) / 2;
+
+    case AnimEaseInBack:
+        return c3 * x * x * x - c1 * x * x;
+
+    case AnimEaseOutBack:
+        return 1 + c3 * pow(x - 1, 3) + c1 * pow(x - 1, 2);
+
+    case AnimEaseInOutBack:
+        return x < 0.5
+            ? (pow(2 * x, 2) * ((c2 + 1) * 2 * x - c2)) / 2
+            : (pow(2 * x - 2, 2) * ((c2 + 1) * (x * 2 - 2) + c2) + 2) / 2;
+
+    case AnimEaseInElastic:
+        return x == 0
+            ? 0
+            : x == 1
+                ? 1
+                : -pow(2, 10 * x - 10) * sin((x * 10 - 10.75) * c4);
+
+    case AnimEaseOutElastic:
+        return x == 0
+            ? 0
+            : x == 1
+                ? 1
+                : pow(2, -10 * x) * sin((x * 10 - 0.75) * c4) + 1;
+
+    case AnimEaseInOutElastic:
+        return x == 0
+            ? 0
+            : x == 1
+                ? 1
+                : x < 0.5
+                    ? -(pow(2, 20 * x - 10) * sin((20 * x - 11.125) * c5)) / 2
+                    : (pow(2, -20 * x + 10) * sin((20 * x - 11.125) * c5)) / 2 + 1;
+
+    case AnimEaseInBounce:
+        return 1 - bounceOut(1 - x);
+
+    case AnimEaseOutBounce:
+        return bounceOut(x);
+
+    case AnimEaseInOutBounce:
+        return x < 0.5
+            ? (1 - bounceOut(1 - 2 * x)) / 2
+            : (1 + bounceOut(2 * x - 1)) / 2;
+    }
+
+    return x;
 }
 
 static void animTick(Movie* movie)
 {
     for(Anim* it = movie->items, *end = it + movie->count; it != end; ++it)
-        *it->value = lerp(it->start, it->end, it->factor(movie->tick), it->factor(it->time));
+        *it->value = lerp(it->start, it->end, animEffect(it->effect, (float)movie->tick / it->time));
 }
 
 void processAnim(Movie* movie, void* data)
@@ -682,23 +829,14 @@ Movie* resetMovie(Movie* movie)
 
 static void drawPopup()
 {
-    if(impl.popup.counter > 0)
+    if(impl.anim.movie != &impl.anim.idle)
     {
-        impl.popup.counter--;
+        enum{Width = TIC80_WIDTH, Height = TIC_FONT_HEIGHT + 1};
 
-        s32 anim = 0;
-
-        enum{Dur = TIC80_FRAMERATE/2, Width = TIC80_WIDTH, Height = TIC_FONT_HEIGHT+1};
-
-        if(impl.popup.counter < Dur)
-            anim = -((Dur - impl.popup.counter) * Height / Dur);
-        else if(impl.popup.counter >= (POPUP_DUR - Dur))
-            anim = (((POPUP_DUR - Dur) - impl.popup.counter) * Height / Dur);
-
-        tic_api_rect(impl.studio.tic, 0, anim, Width, Height, tic_color_red);
+        tic_api_rect(impl.studio.tic, 0, impl.anim.pos.popup, Width, Height, tic_color_red);
         tic_api_print(impl.studio.tic, impl.popup.message, 
             (s32)(Width - strlen(impl.popup.message) * TIC_FONT_WIDTH)/2,
-            anim + 1, tic_color_white, true, 1, false);
+            impl.anim.pos.popup + 1, tic_color_white, true, 1, false);
 
         // render popup message
         {
@@ -706,10 +844,10 @@ static void drawPopup()
             const tic_bank* bank = &getConfig()->cart->bank0;
             u32* dst = tic->screen + TIC80_MARGIN_LEFT + TIC80_MARGIN_TOP * TIC80_FULLWIDTH;
 
-            for(s32 i = 0, y = 0; y < (Height + anim); y++, dst += TIC80_MARGIN_RIGHT + TIC80_MARGIN_LEFT)
+            for(s32 i = 0, y = 0; y < (Height + impl.anim.pos.popup); y++, dst += TIC80_MARGIN_RIGHT + TIC80_MARGIN_LEFT)
                 for(s32 x = 0; x < Width; x++)
                 *dst++ = tic_rgba(&bank->palette.vbank0.colors[tic_tool_peek4(tic->ram.vram.screen.data, i++)]);
-        }
+        }        
     }
 }
 
@@ -848,12 +986,13 @@ ClipboardEvent getClipboardEvent()
 
 static void showPopupMessage(const char* text)
 {
-    impl.popup.counter = POPUP_DUR;
     memset(impl.popup.message, '\0', sizeof impl.popup.message);
     strncpy(impl.popup.message, text, sizeof(impl.popup.message) - 1);
 
     for(char* c = impl.popup.message; c < impl.popup.message + sizeof impl.popup.message; c++)
         if(*c) *c = toupper(*c);
+
+    impl.anim.movie = resetMovie(&impl.anim.show);
 }
 #endif
 
@@ -1845,6 +1984,7 @@ static void studioTick()
     tic_mem* tic = impl.studio.tic;
 
 #if defined(BUILD_EDITORS)
+    processAnim(impl.anim.movie, &impl);
     checkChanges();
     tic_net_start(impl.net);
 #endif
@@ -1953,6 +2093,10 @@ static void studioClose()
         freeConsole (impl.console);
         freeWorld   (impl.world);
         freeSurf    (impl.surf);
+
+        FREE(impl.anim.show.items);
+        FREE(impl.anim.hide.items);
+
 #endif
 
         freeStart   (impl.start);
@@ -2002,6 +2146,28 @@ static StartArgs parseArgs(s32 argc, char **argv)
 
     return args;
 }
+
+#if defined(BUILD_EDITORS)
+
+static void setIdle(void* data)
+{
+    StudioImplementation* studio = data;
+    studio->anim.movie = resetMovie(&studio->anim.idle);
+}
+
+static void setPopupWait(void* data)
+{
+    StudioImplementation* studio = data;
+    studio->anim.movie = resetMovie(&studio->anim.wait);
+}
+
+static void setPopupHide(void* data)
+{
+    StudioImplementation* studio = data;
+    studio->anim.movie = resetMovie(&studio->anim.hide);
+}
+
+#endif
 
 Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder)
 {
@@ -2059,6 +2225,19 @@ Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* folder)
         impl.console    = calloc(1, sizeof(Console));
         impl.world      = calloc(1, sizeof(World));
         impl.surf       = calloc(1, sizeof(Surf));
+
+        impl.anim.show = (Movie)MOVIE_DEF(STUDIO_ANIM_TIME, setPopupWait,
+        {
+            {-TOOLBAR_SIZE, 0, STUDIO_ANIM_TIME, &impl.anim.pos.popup, AnimEaseIn},
+        });
+
+        impl.anim.wait = (Movie){.time = TIC80_FRAMERATE * 2, .done = setPopupHide};
+        impl.anim.hide = (Movie)MOVIE_DEF(STUDIO_ANIM_TIME, setIdle,
+        {
+            {0, -TOOLBAR_SIZE, STUDIO_ANIM_TIME, &impl.anim.pos.popup, AnimEaseIn},
+        });
+
+        impl.anim.movie = resetMovie(&impl.anim.idle);
 #endif
 
         impl.start      = calloc(1, sizeof(Start));

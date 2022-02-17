@@ -117,10 +117,14 @@ static s32 drawGridButton(Map* map, s32 x, s32 y)
     return x;
 }
 
-static bool sheetVisible(Map* map)
+static inline bool isIdle(Map* map)
 {
-    tic_mem* tic = map->tic;
-    return tic_api_key(tic, tic_key_shift) || map->sheet.show;
+    return map->anim.movie == &map->anim.idle;
+}
+
+static inline bool sheetVisible(Map* map)
+{
+    return map->anim.pos.sheet >= 0;
 }
 
 static s32 drawSheetButton(Map* map, s32 x, s32 y)
@@ -137,13 +141,15 @@ static s32 drawSheetButton(Map* map, s32 x, s32 y)
         over = true;
         showTooltip("SHOW TILES [shift]");
 
-        if(checkMouseClick(&rect, tic_mouse_left))
+        if(isIdle(map) && checkMouseClick(&rect, tic_mouse_left))
         {
-            map->sheet.show = !map->sheet.show;
+            map->anim.movie = resetMovie(sheetVisible(map) ? &map->anim.hide : &map->anim.show);
+            map->sheet.keep = true;
         }
     }
 
-    drawBitIcon(sheetVisible(map) ? tic_icon_up : tic_icon_down, rect.x, rect.y, over ? tic_color_grey : tic_color_light_grey);
+    drawBitIcon(sheetVisible(map) ? tic_icon_up : tic_icon_down, rect.x, rect.y, 
+        over ? tic_color_grey : tic_color_light_grey);
 
     return x;
 }
@@ -296,8 +302,12 @@ static void drawBankButtons(Map* map, s32 x, s32 y)
 
             showTooltip(i ? "SPRITES" : "TILES");
 
-            if(checkMouseClick(&rect, tic_mouse_left))
+            if(isIdle(map) && checkMouseClick(&rect, tic_mouse_left))
             {
+                Anim* anim = map->anim.bank.items;
+                anim->start = (i - map->sheet.blit.bank) * TIC_SPRITESHEET_SIZE;
+                map->anim.movie = resetMovie(&map->anim.bank);
+
                 map->sheet.blit.bank = i;
             }
         }
@@ -329,8 +339,12 @@ static void drawPagesButtons(Map* map, s32 x, s32 y)
 
             SHOW_TOOLTIP("PAGE %i", i);
 
-            if(checkMouseClick(&rect, tic_mouse_left))
+            if(isIdle(map) && checkMouseClick(&rect, tic_mouse_left))
             {
+                Anim* anim = map->anim.page.items;
+                anim->start = (i - map->sheet.blit.page) * TIC_SPRITESHEET_SIZE;
+                map->anim.movie = resetMovie(&map->anim.page);
+
                 map->sheet.blit.page = i;
             }
         }
@@ -382,14 +396,12 @@ static void drawMapToolbar(Map* map, s32 x, s32 y)
 
 static void drawSheetVBank1(Map* map, s32 x, s32 y)
 {
-    if(!sheetVisible(map))return;
-
     tic_mem* tic = map->tic;
     const tic_blit* blit = &map->sheet.blit;
 
     tic_rect rect = {x, y, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
 
-    tic_api_rectb(map->tic, rect.x - 1, rect.y - 1, rect.w + 2, rect.h + 2, tic_color_white);
+    tic_api_rectb(map->tic, rect.x - 1, rect.y - 1 + map->anim.pos.sheet, rect.w + 2, rect.h + 2, tic_color_white);
 
     for(s32 i = 1; i < rect.h; i += 4)
     {
@@ -412,7 +424,7 @@ static void drawSheetVBank1(Map* map, s32 x, s32 y)
         s32 bw = map->sheet.rect.w * TIC_SPRITESIZE + 2;
         s32 bh = map->sheet.rect.h * TIC_SPRITESIZE + 2;
 
-        tic_api_rectb(map->tic, bx, by, bw, bh, tic_color_white);
+        tic_api_rectb(map->tic, bx, by + map->anim.pos.sheet, bw, bh, tic_color_white);
     }
 }
 
@@ -432,11 +444,9 @@ static void drawSheetReg(Map* map, s32 x, s32 y)
 {
     tic_mem* tic = map->tic;
 
-    if(!sheetVisible(map))return;
-
     tic_rect rect = {x, y, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
 
-    if(checkMousePos(&rect))
+    if(isIdle(map) && sheetVisible(map) && checkMousePos(&rect))
     {
         setCursor(tic_cursor_hand);
 
@@ -467,16 +477,35 @@ static void drawSheetReg(Map* map, s32 x, s32 y)
         }
         else
         {
-            if(map->sheet.drag)
-                map->sheet.show = false;
+            if(map->sheet.keep && map->sheet.drag)
+                map->anim.movie = resetMovie(&map->anim.hide);
             
             map->sheet.drag = false;
         }
     }
 
-    initBlitMode(map);
-    tic_api_spr(tic, 0, x, y, TIC_SPRITESHEET_COLS, TIC_SPRITESHEET_COLS, NULL, 0, 1, tic_no_flip, tic_no_rotate);
-    resetBlitMode(map->tic);
+    tic_api_clip(tic, x, y + map->anim.pos.sheet, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE);
+
+    tiles2ram(&tic->ram, getBankTiles());
+
+    tic_blit blit = map->sheet.blit;
+    SCOPE(resetBlitMode(map->tic), tic_api_clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT))
+    {
+        tic_point start = 
+        {
+            x - blit.page * TIC_SPRITESHEET_SIZE + map->anim.pos.page,
+            y - blit.bank * TIC_SPRITESHEET_SIZE + map->anim.pos.bank
+        }, pos = start;
+
+        for(blit.bank = 0; blit.bank < TIC_SPRITE_BANKS; ++blit.bank, pos.y += TIC_SPRITESHEET_SIZE, pos.x = start.x)
+        {
+            for(blit.page = 0; blit.page < blit.pages; ++blit.page, pos.x += TIC_SPRITESHEET_SIZE)
+            {
+                tic->ram.vram.blit.segment = tic_blit_calc_segment(&blit);
+                tic_api_spr(tic, 0, pos.x, pos.y + map->anim.pos.sheet, TIC_SPRITESHEET_COLS, TIC_SPRITESHEET_COLS, NULL, 0, 1, tic_no_flip, tic_no_rotate);
+            }
+        }
+    }
 }
 
 static void drawCursorPos(Map* map, s32 x, s32 y)
@@ -1189,6 +1218,23 @@ static void processKeyboard(Map* map)
 {
     tic_mem* tic = map->tic;
 
+    if(isIdle(map))
+    {
+        if(tic_api_key(tic, tic_key_shift))
+        {
+            if(!sheetVisible(map))
+            {
+                map->anim.movie = resetMovie(&map->anim.show);
+                map->sheet.keep = false;
+            }
+        }
+        else
+        {
+            if(!map->sheet.keep && sheetVisible(map))
+                map->anim.movie = resetMovie(&map->anim.hide);
+        }
+    }
+
     if(tic->ram.input.keyboard.data == 0) return;
     
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
@@ -1241,6 +1287,15 @@ static void tick(Map* map)
 {
     tic_mem* tic = map->tic;
     map->tickCounter++;
+
+    processAnim(map->anim.movie, map);
+
+    // process scroll
+    if(tic->ram.input.mouse.scrolly > 0) 
+    {
+        setStudioMode(TIC_WORLD_MODE);
+        return;
+    }
 
     processKeyboard(map);
 
@@ -1312,10 +1367,29 @@ static void scanline(tic_mem* tic, s32 row, void* data)
         memcpy(&tic->ram.vram.palette, getBankPalette(false), sizeof(tic_palette));
 }
 
+static void emptyDone() {}
+
+static void setIdle(void* data)
+{
+    Map* map = data;
+    map->anim.movie = resetMovie(&map->anim.idle);
+}
+
+static void freeAnim(Map* map)
+{
+    FREE(map->anim.show.items);
+    FREE(map->anim.hide.items);
+    FREE(map->anim.bank.items);
+    FREE(map->anim.page.items);
+}
+
 void initMap(Map* map, tic_mem* tic, tic_map* src)
 {
+    enum {SheetStart = -(TIC_SPRITESHEET_SIZE + TOOLBAR_SIZE)};
+
     if(map->history) history_delete(map->history);
-    
+    freeAnim(map);
+
     *map = (Map)
     {
         .tic = tic,
@@ -1330,7 +1404,6 @@ void initMap(Map* map, tic_mem* tic, tic_map* src)
         },
         .sheet = 
         {
-            .show = false,
             .rect = {0, 0, 1, 1},
             .start = {0, 0},
             .drag = false,
@@ -1353,9 +1426,37 @@ void initMap(Map* map, tic_mem* tic, tic_map* src)
             .start = {0, 0},
         },
         .history = history_create(src, sizeof(tic_map)),
+        .anim =
+        {
+            .pos.sheet = SheetStart,
+
+            .idle = {.done = emptyDone,},
+
+            .show = MOVIE_DEF(STUDIO_ANIM_TIME, setIdle,
+            {
+                {SheetStart, 0, STUDIO_ANIM_TIME, &map->anim.pos.sheet, AnimEaseIn},
+            }),
+
+            .hide = MOVIE_DEF(STUDIO_ANIM_TIME, setIdle,
+            {
+                {0, SheetStart, STUDIO_ANIM_TIME, &map->anim.pos.sheet, AnimEaseIn},
+            }),
+
+            .bank = MOVIE_DEF(STUDIO_ANIM_TIME, setIdle,
+            {
+                {0, 0, STUDIO_ANIM_TIME, &map->anim.pos.bank, AnimEaseIn},
+            }),
+
+            .page = MOVIE_DEF(STUDIO_ANIM_TIME, setIdle,
+            {
+                {0, 0, STUDIO_ANIM_TIME, &map->anim.pos.page, AnimEaseIn},
+            }),
+        },
         .event = onStudioEvent,
         .scanline = scanline,
     };
+
+    map->anim.movie = resetMovie(&map->anim.idle);
 
     normalizeMap(&map->scroll.x, &map->scroll.y);
     tic_blit_update_bpp(&map->sheet.blit, TIC_DEFAULT_BIT_DEPTH);
@@ -1363,6 +1464,7 @@ void initMap(Map* map, tic_mem* tic, tic_map* src)
 
 void freeMap(Map* map)
 {
+    freeAnim(map);
     history_delete(map->history);
     free(map);
 }

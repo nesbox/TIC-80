@@ -82,16 +82,6 @@ enum
 enum{TextMargin = 2, ItemHeight = TIC_FONT_HEIGHT + TextMargin * 2};
 enum{Hold = KEYBOARD_HOLD, Period = ItemHeight};
 
-static s32 linear(s32 d)
-{
-    return d;
-}
-
-static s32 easein(s32 d)
-{
-    return d * d;
-}
-
 static void emptyDone() {}
 
 static void menuUpDone(void* data)
@@ -381,29 +371,29 @@ Menu* studio_menu_create(struct tic_mem* tic)
 
             .start = MOVIE_DEF(10, startDone,
             {
-                {-10, 0, 10, &menu->anim.top, linear},
-                {10, 0, 10, &menu->anim.bottom, linear},
-                {0, 10, 10, &menu->anim.cursor, linear},
-                {-TIC80_WIDTH, 0, 10, &menu->anim.offset, linear},
+                {-10, 0, 10, &menu->anim.top, AnimLinear},
+                {10, 0, 10, &menu->anim.bottom, AnimLinear},
+                {0, 10, 10, &menu->anim.cursor, AnimLinear},
+                {-TIC80_WIDTH, 0, 10, &menu->anim.offset, AnimLinear},
             }),
 
-            .up = MOVIE_DEF(9, menuUpDone, {{0, -9, 9, &menu->anim.pos, easein}}),
-            .down = MOVIE_DEF(9, menuDownDone, {{0, 9, 9, &menu->anim.pos, easein}}),
+            .up = MOVIE_DEF(9, menuUpDone, {{0, -9, 9, &menu->anim.pos, AnimEaseIn}}),
+            .down = MOVIE_DEF(9, menuDownDone, {{0, 9, 9, &menu->anim.pos, AnimEaseIn}}),
 
             .close = MOVIE_DEF(10, closeDone,
             {
-                {0, -10, 10, &menu->anim.top, linear},
-                {0, 10, 10, &menu->anim.bottom, linear},
-                {10, 0, 10, &menu->anim.cursor, linear},
-                {0, TIC80_WIDTH, 10, &menu->anim.offset, linear},
+                {0, -10, 10, &menu->anim.top, AnimLinear},
+                {0, 10, 10, &menu->anim.bottom, AnimLinear},
+                {10, 0, 10, &menu->anim.cursor, AnimLinear},
+                {0, TIC80_WIDTH, 10, &menu->anim.offset, AnimLinear},
             }),
 
             .back = MOVIE_DEF(10, backDone,
             {
-                {0, -10, 10, &menu->anim.top, linear},
-                {0, 10, 10, &menu->anim.bottom, linear},
-                {10, 0, 10, &menu->anim.cursor, linear},
-                {0, TIC80_WIDTH, 10, &menu->anim.offset, linear},
+                {0, -10, 10, &menu->anim.top, AnimLinear},
+                {0, 10, 10, &menu->anim.bottom, AnimLinear},
+                {10, 0, 10, &menu->anim.cursor, AnimLinear},
+                {0, TIC80_WIDTH, 10, &menu->anim.offset, AnimLinear},
             }),
         },
     };

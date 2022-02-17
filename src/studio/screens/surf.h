@@ -32,7 +32,6 @@ struct Surf
     struct tic_fs* fs;
     struct tic_net* net;
     struct Console* console;
-    struct SurfMovie* state;
 
     bool init;
     bool loading;
@@ -41,11 +40,43 @@ struct Surf
     struct
     {
         s32 pos;
-        s32 anim;
-        s32 anim_target;
+        s32 target;
         struct SurfItem* items;
         s32 count;
     } menu;
+
+    struct
+    {
+        struct
+        {
+            s32 topBarY;
+            s32 bottomBarY;
+            s32 menuX;
+            s32 menuHeight;
+            s32 coverFade;
+            s32 pos;
+        } val;
+
+        Movie* movie;
+
+        Movie idle;
+        Movie show;
+        Movie play;
+        Movie move;
+
+        struct
+        {
+            Movie show;
+            Movie hide;
+        } gotodir;
+
+        struct
+        {
+            Movie show;
+            Movie hide;
+        } goback;
+
+    } anim;
 
     void(*tick)(Surf* surf);
     void(*resume)(Surf* surf);

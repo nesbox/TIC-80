@@ -72,6 +72,22 @@ struct Sprite
 
     struct History* history;
 
+    struct
+    {
+        struct
+        {
+            s32 bank;
+            s32 page;
+        } pos;
+
+        Movie* movie;
+
+        Movie idle;
+        Movie bank;
+        Movie page;
+
+    } anim;
+
     void (*tick)(Sprite*);
     void (*event)(Sprite*, StudioEvent);
     void (*scanline)(tic_mem* tic, s32 row, void* data);

@@ -140,7 +140,22 @@ typedef struct _StudioImplementation
 
     struct
     {
-        s32 counter;
+        struct
+        {
+            s32 popup;
+        } pos;
+
+        Movie* movie;
+
+        Movie idle;
+        Movie show;
+        Movie wait;
+        Movie hide;
+
+    } anim;
+
+    struct
+    {
         char message[STUDIO_TEXT_BUFFER_WIDTH];
     } popup;
 
