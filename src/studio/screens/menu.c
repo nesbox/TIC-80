@@ -82,7 +82,7 @@ enum
 enum{TextMargin = 2, ItemHeight = TIC_FONT_HEIGHT + TextMargin * 2};
 enum{Hold = KEYBOARD_HOLD, Period = ItemHeight};
 
-static void emptyDone() {}
+static void emptyDone(void* data) {}
 
 static void menuUpDone(void* data)
 {

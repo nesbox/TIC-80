@@ -2240,7 +2240,7 @@ static void onStudioEvent(Code* code, StudioEvent event)
     }
 }
 
-static void emptyDone() {}
+static void emptyDone(void* data) {}
 
 static void setIdle(void* data)
 {

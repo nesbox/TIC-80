@@ -1601,6 +1601,18 @@ static void gpuTick()
 
 static void emsGpuTick()
 {
+    static double nextTick = -1.0;
+
+    bool vsync = platform.studio->config()->options.vsync;
+
+    if(!vsync)
+    {
+        if(nextTick < 0.0)
+            nextTick = emscripten_get_now();
+
+        nextTick += 1000.0/TIC80_FRAMERATE;
+    }
+
     gpuTick();
 
     EM_ASM(
@@ -1611,6 +1623,14 @@ static void emsGpuTick()
             FS.syncfs(false,function(){});
         }
     });
+
+    if(!vsync)
+    {
+        double delay = nextTick - emscripten_get_now();
+
+        if(delay > 0.0)
+            emscripten_set_main_loop_timing(EM_TIMING_SETTIMEOUT, delay);
+    }
 }
 
 #endif
@@ -1659,7 +1679,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
             SDL_PauseAudioDevice(platform.audio.device, 0);
 
 #if defined(__EMSCRIPTEN__)
-            emscripten_set_main_loop(emsGpuTick, platform.studio->config()->options.vsync ? 0 : TIC80_FRAMERATE, 1);
+            emscripten_set_main_loop(emsGpuTick, 0, 1);
 #else
             {
                 const u64 Delta = SDL_GetPerformanceFrequency() / TIC80_FRAMERATE;

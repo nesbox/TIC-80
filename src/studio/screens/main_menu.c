@@ -179,12 +179,12 @@ static const MenuItem OptionMenu[] =
     {"BACK",            showMainMenu, .back = true},
 };
 
-static void showOptionsMenu();
+static void showOptionsMenu(void* data);
 static void gameMenuHandler(void* data)
 {
     tic_mem* tic = menu_impl.mem;
     tic_core_script_config(tic)->callback.gamemenu(tic, *(s32*)data, NULL);
-    resumeGame();
+    resumeGame(NULL);
 }
 
 void freeGameMenu()
@@ -235,7 +235,7 @@ void initGameMenu()
     }
 }
 
-void showGameMenu()
+void showGameMenu(void* data)
 {
     studio_menu_init(menu_impl.menu, menu_impl.gameMenu->items, menu_impl.gameMenu->count, 0, 0, showMainMenu, NULL);
 }
@@ -258,7 +258,7 @@ static const MenuItem MainMenu[] =
     {"QUIT TIC-80", exitStudio},
 };
 
-void showMainMenu()
+void showMainMenu(void* data)
 {
     initGameMenu();
 
@@ -273,18 +273,18 @@ static void showOptionsMenuPos(s32 pos)
         COUNT_OF(OptionMenu), pos, COUNT_OF(MainMenu) - 3 - mainMenuStart(), showMainMenu, NULL);
 }
 
-static void showOptionsMenu()
+static void showOptionsMenu(void* data)
 {
     showOptionsMenuPos(COUNT_OF(OptionMenu) - 4);
 }
 
-static void saveGamepadMenu()
+static void saveGamepadMenu(void* data)
 {
     rwConfig()->options.mapping = menu_impl.gamepads->mapping;
     showOptionsMenuPos(COUNT_OF(OptionMenu) - 3);
 }
 
-static void resetGamepadMenu();
+static void resetGamepadMenu(void* data);
 
 static char MappingItems[TIC_BUTTONS][sizeof "RIGHT - RIGHT"];
 
@@ -390,7 +390,7 @@ void initGamepadMenu()
     menu_impl.gamepads->key = -1;
 }
 
-static void resetGamepadMenu()
+static void resetGamepadMenu(void* data)
 {
     menu_impl.gamepads->index = 0;
     ZEROMEM(menu_impl.gamepads->mapping);
@@ -398,7 +398,7 @@ static void resetGamepadMenu()
     initGamepadMenu();
 }
 
-void showGamepadMenu()
+void showGamepadMenu(void* data)
 {
     menu_impl.gamepads->index = 0;
     menu_impl.gamepads->mapping = getConfig()->options.mapping;

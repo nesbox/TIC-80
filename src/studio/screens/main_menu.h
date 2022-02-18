@@ -22,8 +22,8 @@
 
 #pragma once
 
-void showGamepadMenu();
-void showMainMenu();
+void showGamepadMenu(void* data);
+void showMainMenu(void* data);
 void freeGameMenu();
 void initGamepadMenu();
 void initMainMenu(Menu *menu, void *gameMenu, Config *config, tic_mem* mem, Gamepads *gamepads);

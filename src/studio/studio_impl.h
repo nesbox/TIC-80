@@ -212,5 +212,5 @@ typedef struct _StudioImplementation
 
 } StudioImplementation;
 
-void resetGame();
-void resumeGame();
+void resetGame(void* data);
+void resumeGame(void* data);

@@ -40,10 +40,12 @@ typedef struct
     s32 pos;
 } MenuOption;
 
+typedef void(*MenuItemHandler)(void*);
+
 typedef struct
 {
     const char* label;
-    void(*handler)(void*);
+    MenuItemHandler handler;
 
     MenuOption* option;
     const char* help;
@@ -51,7 +53,7 @@ typedef struct
     s32 width;
 } MenuItem;
 
-void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, s32 backPos, void(*back)(void*), void* data);
+void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, s32 backPos, MenuItemHandler handler, void* data);
 bool studio_menu_back(Menu* menu);
 void studio_menu_free(Menu* menu);
 

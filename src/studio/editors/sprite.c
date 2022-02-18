@@ -1980,7 +1980,7 @@ static void onStudioEvent(Sprite* sprite, StudioEvent event)
     }
 }
 
-static void emptyDone() {}
+static void emptyDone(void* data) {}
 
 static void setIdle(void* data)
 {

@@ -66,7 +66,7 @@ static const char ScreenGif[] = "screen%i.gif";
 
 #endif
 
-static void emptyDone() {}
+static void emptyDone(void* data) {}
 
 StudioImplementation impl =
 {
@@ -108,11 +108,6 @@ StudioImplementation impl =
         .text = "\0",
     },
 
-    .gamepads =
-    {
-        .key = -1,
-    },
-
     .video =
     {
         .record = false,
@@ -120,6 +115,11 @@ StudioImplementation impl =
         .frames = 0,
     },
 #endif
+
+    .gamepads =
+    {
+        .key = -1,
+    },
 };
 
 void fadePalette(tic_palette* pal, s32 value)
@@ -1001,7 +1001,7 @@ static void exitConfirm(bool yes, void* data)
     impl.studio.quit = yes;
 }
 
-void exitStudio()
+void exitStudio(void* data)
 {
 #if defined(BUILD_EDITORS)
     if(impl.mode != TIC_START_MODE && studioCartChanged())
@@ -1142,13 +1142,13 @@ static void changeStudioMode(s32 dir)
 }
 #endif
 
-void resetGame()
+void resetGame(void* data)
 {
     tic_api_reset(impl.studio.tic);
     setStudioMode(TIC_RUN_MODE);
 }
 
-void resumeGame()
+void resumeGame(void* data)
 {
     tic_core_resume(impl.studio.tic);
     impl.mode = TIC_RUN_MODE;
@@ -1552,7 +1552,7 @@ void gotoMenu()
     }
 
     initMainMenu(impl.menu, &impl.gameMenu, impl.config, impl.studio.tic, &impl.gamepads);
-    showMainMenu();
+    showMainMenu(NULL);
 }
 
 static void processStudioShortcuts()
@@ -1589,7 +1589,7 @@ static void processStudioShortcuts()
     }
     else if(ctrl)
     {
-        if(keyWasPressedOnce(tic_key_q)) exitStudio();
+        if(keyWasPressedOnce(tic_key_q)) exitStudio(NULL);
 #if defined(BUILD_EDITORS)
         else if(keyWasPressedOnce(tic_key_pageup)) changeStudioMode(-1);
         else if(keyWasPressedOnce(tic_key_pagedown)) changeStudioMode(1);
@@ -2079,7 +2079,7 @@ static void studioLoad(const char* file)
 #endif
 }
 
-void exitGame()
+void exitGame(void* data)
 {
     if(impl.prevMode == TIC_SURF_MODE)
     {

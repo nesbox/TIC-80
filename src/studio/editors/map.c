@@ -1367,7 +1367,7 @@ static void scanline(tic_mem* tic, s32 row, void* data)
         memcpy(&tic->ram.vram.palette, getBankPalette(false), sizeof(tic_palette));
 }
 
-static void emptyDone() {}
+static void emptyDone(void* data) {}
 
 static void setIdle(void* data)
 {
