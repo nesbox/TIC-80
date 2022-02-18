@@ -1542,7 +1542,8 @@ static void switchBank(s32 bank)
 
 #endif
 
-static void enterMainMenu() {
+void gotoMenu() 
+{
     if(impl.mode != TIC_MENU_MODE)
     {
         tic_core_pause(impl.studio.tic);
@@ -1610,14 +1611,22 @@ static void processStudioShortcuts()
     else
     {
         if (keyWasPressedOnce(tic_key_f11)) tic_sys_fullscreen_set(!tic_sys_fullscreen_get());
+#if defined(BUILD_EDITORS)
         else if(keyWasPressedOnce(tic_key_escape))
         {
             switch(impl.mode)
             {
-            case TIC_MENU_MODE:     studio_menu_back(impl.menu); break;
-            case TIC_RUN_MODE:      enterMainMenu(); break;
-#if defined(BUILD_EDITORS)
-            case TIC_CONSOLE_MODE:  setStudioMode(impl.prevMode); break;
+            case TIC_MENU_MODE:     
+                getConfig()->options.devmode 
+                    ? setStudioMode(impl.prevMode) 
+                    : studio_menu_back(impl.menu);
+                break;
+            case TIC_RUN_MODE:      
+                getConfig()->options.devmode 
+                    ? setStudioMode(impl.prevMode) 
+                    : gotoMenu();
+                break;
+            case TIC_CONSOLE_MODE: setStudioMode(impl.prevMode); break;
             case TIC_CODE_MODE:
                 if(impl.code->mode != TEXT_EDIT_MODE)
                 {
@@ -1626,24 +1635,29 @@ static void processStudioShortcuts()
                 }
             default:
                 setStudioMode(TIC_CONSOLE_MODE);
-#endif
             }
-
         }
-#if defined(BUILD_EDITORS)
         else if(keyWasPressedOnce(tic_key_f8)) takeScreenshot();
         else if(keyWasPressedOnce(tic_key_f9)) startVideoRecord();
-        else if(impl.mode == TIC_RUN_MODE)
-        {
-            if(keyWasPressedOnce(tic_key_f7)) setCoverImage();
-        }
-        else
+        else if(impl.mode == TIC_RUN_MODE && keyWasPressedOnce(tic_key_f7))
+            setCoverImage();
+
+        if(getConfig()->options.devmode || impl.mode != TIC_RUN_MODE)
         {
             if(keyWasPressedOnce(tic_key_f1)) setStudioMode(TIC_CODE_MODE);
             else if(keyWasPressedOnce(tic_key_f2)) setStudioMode(TIC_SPRITE_MODE);
             else if(keyWasPressedOnce(tic_key_f3)) setStudioMode(TIC_MAP_MODE);
             else if(keyWasPressedOnce(tic_key_f4)) setStudioMode(TIC_SFX_MODE);
             else if(keyWasPressedOnce(tic_key_f5)) setStudioMode(TIC_MUSIC_MODE);
+        }
+#else
+        else if(keyWasPressedOnce(tic_key_escape))
+        {
+            switch(impl.mode)
+            {
+            case TIC_MENU_MODE: studio_menu_back(impl.menu); break;
+            case TIC_RUN_MODE: gotoMenu(); break;
+            }
         }
 #endif
     }

@@ -225,6 +225,7 @@ void confirmDialog(const char** text, s32 rows, ConfirmCallback callback, void* 
 bool studioCartChanged();
 void playSystemSfx(s32 id);
 
+void gotoMenu();
 void gotoCode();
 void gotoSurf();
 

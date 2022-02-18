@@ -118,14 +118,18 @@ typedef struct
 
     struct
     {
-    #if defined(CRT_SHADER_SUPPORT)
+#if defined(CRT_SHADER_SUPPORT)
         bool crt;
-    #endif
+#endif
         
         bool fullscreen;
         bool vsync;
         s32 volume;
         tic_mapping mapping;
+
+#if defined(BUILD_EDITORS)
+        bool devmode;
+#endif
     } options;
 
     const tic_cartridge* cart;

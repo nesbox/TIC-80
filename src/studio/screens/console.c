@@ -1452,6 +1452,12 @@ static void onInstallDemosCommand(Console* console)
     commandDone(console);
 }
 
+static void onGameMenuCommand(Console* console)
+{
+    gotoMenu();
+    commandDone(console);
+}
+
 static void onSurfCommand(Console* console)
 {
     gotoSurf();
@@ -2649,6 +2655,12 @@ static const char HelpUsage[] = "help [<text>"
         NULL,                                                                           \
         onSurfCommand)                                                                  \
                                                                                         \
+    macro("menu",                                                                       \
+        NULL,                                                                           \
+        "show game menu where you can setup video, sound and input options.",           \
+        NULL,                                                                           \
+        onGameMenuCommand)                                                              \
+
     ADDGET_FILE(macro)
 
 static struct Command

@@ -20,19 +20,22 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "../studio.h"
-#include "../studio_impl.h"
+#include "studio/studio.h"
+#include "studio/studio_impl.h"
 #include "menu.h"
 #include "main_menu.h"
 
-struct MenuImpl {
+static struct MenuImpl 
+{
     Menu*       menu;
+
     struct 
     {
         MenuItem* items;
         s32 count;
     }* gameMenu;
-    Gamepads*    gamepads;
+
+    Gamepads*   gamepads;
     Config*     config;
     tic_mem*    mem;
 } menu_impl;
@@ -42,13 +45,15 @@ struct MenuImpl {
     .count = COUNT_OF(((const char*[])__VA_ARGS__))
 
 // TODO: do we need to lock this down further?
-static StudioConfig* rwConfig() {
+static StudioConfig* rwConfig() 
+{
     return &menu_impl.config->data;
 }
 
-
-void initMainMenu(Menu *menu, void *gameMenu, Config *config, tic_mem *mem, Gamepads *gamepads) {
-    menu_impl = (struct MenuImpl){
+void initMainMenu(Menu *menu, void *gameMenu, Config *config, tic_mem *mem, Gamepads *gamepads) 
+{
+    menu_impl = (struct MenuImpl)
+    {
         .menu = menu,
         .gameMenu = gameMenu,
         .config = config,
@@ -137,11 +142,34 @@ static MenuOption VolumeOption =
     optionVolumeSet,
 };
 
+#if defined(BUILD_EDITORS)
+
+static s32 optionDevModeGet()
+{
+    return getConfig()->options.devmode ? 1 : 0;
+}
+
+static void optionDevModeSet(s32 pos)
+{
+    rwConfig()->options.devmode = pos == 1;
+}
+
+static MenuOption DevModeOption = 
+{
+    OPTION_VALUES({OffValue, OnValue}),
+    optionDevModeGet,
+    optionDevModeSet,
+};
+
+#endif
 
 static const MenuItem OptionMenu[] =
 {
 #if defined(CRT_SHADER_SUPPORT)
     {"CRT MONITOR",     NULL,   &CrtMonitorOption},
+#endif
+#if defined(BUILD_EDITORS)
+    {"DEV MODE",        NULL,   &DevModeOption, "The game menu is disabled in dev mode."},
 #endif
     {"VSYNC",           NULL,   &VSyncOption, "VSYNC needs restart!"},
     {"FULLSCREEN",      NULL,   &FullscreenOption},
