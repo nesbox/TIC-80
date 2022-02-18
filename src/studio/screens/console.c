@@ -2660,7 +2660,6 @@ static const char HelpUsage[] = "help [<text>"
         "show game menu where you can setup video, sound and input options.",           \
         NULL,                                                                           \
         onGameMenuCommand)                                                              \
-
     ADDGET_FILE(macro)
 
 static struct Command
