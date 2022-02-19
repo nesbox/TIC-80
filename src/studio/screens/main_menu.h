@@ -22,8 +22,8 @@
 
 #pragma once
 
-void showGamepadMenu(void* data);
-void showMainMenu(void* data);
-void freeGameMenu();
-void initGamepadMenu();
-void initMainMenu(Menu *menu, void *gameMenu, Config *config, tic_mem* mem, Gamepads *gamepads);
+typedef struct StudioMainMenu StudioMainMenu;
+
+StudioMainMenu* studio_mainmenu_init(Menu *menu, Config *config);
+bool studio_mainmenu_keyboard(StudioMainMenu* menu);
+void studio_mainmenu_free(StudioMainMenu* menu);

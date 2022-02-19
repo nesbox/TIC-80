@@ -40,6 +40,7 @@
 #define SCOPE(...)          for(int MACROVAR(_i_) = 0; !MACROVAR(_i_); ++MACROVAR(_i_), __VA_ARGS__)
 #define FOR(type,it,list)   for(type it = list, *MACROVAR(_end_) = it + COUNT_OF(list); it != MACROVAR(_end_); ++it)
 #define RFOR(type,it,list)  for(type it = list + (COUNT_OF(list) - 1), *MACROVAR(_end_) = list; it >= MACROVAR(_end_); --it)
+#define NEW(o)              (o*)malloc(sizeof(o))
 #define FREE(ptr)           do { if(ptr) free(ptr); } while (0)
 
 #define BITSET(a,b)         ((a) | (1ULL<<(b)))

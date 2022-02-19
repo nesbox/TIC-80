@@ -49,7 +49,7 @@ struct Menu
     s32 backPos;
 
     void* data;
-    void(*back)(void*);
+    MenuItemHandler back;
 
     struct
     {
@@ -110,7 +110,7 @@ static void closeDone(void* data)
 {
     Menu *menu = data;
     menu->anim.movie = resetMovie(&menu->anim.idle);
-    menu->items[menu->pos].handler(menu->data ? menu->data : &menu->pos);
+    menu->items[menu->pos].handler(menu->data, menu->pos);
 }
 
 static void backDone(void* data)
@@ -118,7 +118,7 @@ static void backDone(void* data)
     Menu *menu = data;
     menu->anim.movie = resetMovie(&menu->anim.idle);
     s32 pos = menu->backPos;
-    menu->back(menu->data);
+    menu->back(menu->data, 0);
     menu->pos = pos;
 }
 
@@ -169,11 +169,11 @@ static void drawBottomBar(Menu* menu, s32 x, s32 y)
     }
 }
 
-static void updateOption(MenuOption* option, s32 val)
+static void updateOption(MenuOption* option, s32 val, void* data)
 {
     option->pos = (option->pos + option->count + val) % option->count;
-    option->set(option->pos);
-    option->pos = option->get();
+    option->set(data, option->pos);
+    option->pos = option->get(data);
 }
 
 static void onMenuItem(Menu* menu, const MenuItem* item)
@@ -196,7 +196,7 @@ static void drawOptionArrow(Menu* menu, MenuOption* option, s32 x, s32 y, s32 ic
         if(checkMouseClick(&left, tic_mouse_left))
         {
             playSystemSfx(2);
-            updateOption(option, delta);
+            updateOption(option, delta, menu->data);
         }
     }
 
@@ -242,14 +242,14 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
                 || tic_api_keyp(tic, tic_key_left, Hold, Period))
             {
                 playSystemSfx(2);
-                updateOption(option, -1);
+                updateOption(option, -1, menu->data);
             }
 
             if(tic_api_btnp(menu->tic, Right, Hold, Period)
                 || tic_api_keyp(tic, tic_key_right, Hold, Period))
             {
                 playSystemSfx(2);
-                updateOption(option, +1);
+                updateOption(option, +1, menu->data);
             }            
         }
 
@@ -259,7 +259,7 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
             if(option)
             {
                 playSystemSfx(2);
-                updateOption(option, +1);
+                updateOption(option, +1, menu->data);
             }
             else if(menu->items[menu->pos].handler)
                 onMenuItem(menu, item);
@@ -420,7 +420,7 @@ void studio_menu_tick(Menu* menu)
             {
                 MenuOption* option = menu->items[menu->pos].option;
                 if(option)
-                    updateOption(option, input->mouse.scrolly < 0 ? -1 : +1);
+                    updateOption(option, input->mouse.scrolly < 0 ? -1 : +1, menu->data);
             }
             else
             {
@@ -449,7 +449,7 @@ void studio_menu_tick(Menu* menu)
     menu->ticks++;
 }
 
-void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, s32 backPos, void(*back)(void*), void* data)
+void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, s32 backPos, MenuItemHandler back, void* data)
 {
     const s32 size = sizeof menu->items[0] * rows;
 
@@ -486,7 +486,7 @@ void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, s32 
                     menu->maxwidth.option = len;
             }
 
-            it->option->pos = it->option->get();
+            it->option->pos = it->option->get(menu->data);
         }
     }
 

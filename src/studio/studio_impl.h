@@ -191,18 +191,12 @@ typedef struct _StudioImplementation
     tic_net* net;
 #endif
 
-    Gamepads gamepads;
-
     Start*      start;
     Run*        run;
     Menu*       menu;
     Config*     config;
 
-    struct
-    {
-        MenuItem* items;
-        s32 count;
-    } gameMenu;
+    struct StudioMainMenu* mainmenu;
 
     tic_fs* fs;
 
@@ -211,6 +205,3 @@ typedef struct _StudioImplementation
     tic_font systemFont;
 
 } StudioImplementation;
-
-void resetGame(void* data);
-void resumeGame(void* data);

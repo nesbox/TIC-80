@@ -30,17 +30,20 @@ struct tic_mem;
 Menu* studio_menu_create(struct tic_mem* tic);
 void studio_menu_tick(Menu* menu);
 
+typedef s32(*MenuOptionGetHandler)(void*);
+typedef void(*MenuOptionSetHandler)(void*, s32);
+
 typedef struct
 {
     const char** values;
     s32 count;
-    s32(*get)();
-    void(*set)(s32);
+    MenuOptionGetHandler get;
+    MenuOptionSetHandler set;
     s32 width;
     s32 pos;
 } MenuOption;
 
-typedef void(*MenuItemHandler)(void*);
+typedef void(*MenuItemHandler)(void*, s32);
 
 typedef struct
 {

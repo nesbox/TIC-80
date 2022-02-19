@@ -189,7 +189,7 @@ void studioConfigChanged();
 
 void setStudioMode(EditorMode mode);
 EditorMode getStudioMode();
-void exitStudio(void* data);
+void exitStudio();
 
 void toClipboard(const void* data, s32 size, bool flip);
 bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces);
@@ -230,8 +230,8 @@ void gotoCode();
 void gotoSurf();
 
 void runGame();
-void exitGame(void* data);
-void resumeGame(void* data);
+void exitGame();
+void resumeGame();
 
 tic_tiles* getBankTiles();
 tic_palette* getBankPalette(bool bank);

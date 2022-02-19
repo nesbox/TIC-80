@@ -115,11 +115,6 @@ StudioImplementation impl =
         .frames = 0,
     },
 #endif
-
-    .gamepads =
-    {
-        .key = -1,
-    },
 };
 
 void fadePalette(tic_palette* pal, s32 value)
@@ -1001,7 +996,7 @@ static void exitConfirm(bool yes, void* data)
     impl.studio.quit = yes;
 }
 
-void exitStudio(void* data)
+void exitStudio()
 {
 #if defined(BUILD_EDITORS)
     if(impl.mode != TIC_START_MODE && studioCartChanged())
@@ -1142,13 +1137,7 @@ static void changeStudioMode(s32 dir)
 }
 #endif
 
-void resetGame(void* data)
-{
-    tic_api_reset(impl.studio.tic);
-    setStudioMode(TIC_RUN_MODE);
-}
-
-void resumeGame(void* data)
+void resumeGame()
 {
     tic_core_resume(impl.studio.tic);
     impl.mode = TIC_RUN_MODE;
@@ -1222,12 +1211,12 @@ static void confirmHandler(bool yes, void* data)
     }
 }
 
-static void confirmNo(void* data)
+static void confirmNo(void* data, s32 pos)
 {
     confirmHandler(false, data);
 }
 
-static void confirmYes(void* data)
+static void confirmYes(void* data, s32 pos)
 {
     confirmHandler(true, data);
 }
@@ -1551,11 +1540,10 @@ void gotoMenu()
         impl.mode = TIC_MENU_MODE;
     }
 
-    initMainMenu(impl.menu, &impl.gameMenu, impl.config, impl.studio.tic, &impl.gamepads);
-    showMainMenu(NULL);
+    impl.mainmenu = studio_mainmenu_init(impl.menu, impl.config);
 }
 
-static void processStudioShortcuts()
+static void processShortcuts()
 {
     tic_mem* tic = impl.studio.tic;
 
@@ -1564,6 +1552,8 @@ static void processStudioShortcuts()
 #if defined(BUILD_EDITORS)
     if(impl.mode == TIC_CONSOLE_MODE && !impl.console->active) return;
 #endif
+
+    if(studio_mainmenu_keyboard(impl.mainmenu)) return;
 
     bool alt = tic_api_key(tic, tic_key_alt);
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
@@ -1660,23 +1650,6 @@ static void processStudioShortcuts()
             }
         }
 #endif
-    }
-}
-
-static void processShortcuts()
-{
-    tic_mem* tic = impl.studio.tic;
-
-    if(impl.gamepads.key < 0)
-        processStudioShortcuts();
-    else
-    {
-        tic_key key = *tic->ram.input.keyboard.keys;
-        if(key > tic_key_unknown)
-        {
-            impl.gamepads.mapping.data[impl.gamepads.index * TIC_BUTTONS + impl.gamepads.key] = key;
-            initGamepadMenu();
-        }
     }
 }
 
@@ -2079,7 +2052,7 @@ static void studioLoad(const char* file)
 #endif
 }
 
-void exitGame(void* data)
+void exitGame()
 {
     if(impl.prevMode == TIC_SURF_MODE)
     {
@@ -2117,7 +2090,7 @@ static void studioClose()
         freeRun     (impl.run);
         freeConfig  (impl.config);
 
-        freeGameMenu();
+        studio_mainmenu_free(impl.mainmenu);
         studio_menu_free(impl.menu);
     }
 

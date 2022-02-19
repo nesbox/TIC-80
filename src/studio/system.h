@@ -116,7 +116,7 @@ typedef struct
     } shader;
 #endif
 
-    struct
+    struct StudioOptions
     {
 #if defined(CRT_SHADER_SUPPORT)
         bool crt;

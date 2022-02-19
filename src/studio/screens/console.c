@@ -589,7 +589,7 @@ static void onHelpCommand(Console* console);
 
 static void onExitCommand(Console* console)
 {
-    exitStudio(NULL);
+    exitStudio();
     commandDone(console);
 }
 
@@ -2341,7 +2341,7 @@ static void onResumeCommand(Console* console)
 {
     commandDone(console);
 
-    resumeGame(NULL);
+    resumeGame();
 }
 
 static void onEvalCommand(Console* console)
@@ -3796,7 +3796,7 @@ static void tick(Console* console)
                 console->commands.current++;
             }
             else if(getConfig()->cli)
-                exitStudio(NULL);
+                exitStudio();
         }
     }
 
