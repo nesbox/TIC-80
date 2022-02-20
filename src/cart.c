@@ -56,6 +56,7 @@ typedef enum
     CHUNK_CODE_ZIP,     // 16
     CHUNK_DEFAULT,      // 17
     CHUNK_SCREEN,       // 18
+    CHUNK_BINARY,       // 19
 } ChunkType;
 
 typedef struct
@@ -137,6 +138,13 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
             case CHUNK_PATTERNS:    LOAD_CHUNK(cart->banks[chunk->bank].music.patterns);    break;
             case CHUNK_FLAGS:       LOAD_CHUNK(cart->banks[chunk->bank].flags);             break;
             case CHUNK_SCREEN:      LOAD_CHUNK(cart->banks[chunk->bank].screen);            break;
+            case CHUNK_BINARY:      
+                // make sure we are zero padded so that when passing the binary chunk to
+                // `tic_init_vm` later we don't have to worry about also passing the size
+                memset(cart->binary.data, 0, TIC_BINARY_SIZE);
+                LOAD_CHUNK(cart->binary.data);                          
+                cart->binary.size = chunk->size;
+                break;
             case CHUNK_CODE:        
                 code[chunk->bank] = (struct CodeChunk){chunkSize(chunk), ptr};
                 break;
@@ -273,6 +281,10 @@ s32 tic_cart_save(const tic_cartridge* cart, u8* buffer)
         buffer = SAVE_CHUNK(CHUNK_MUSIC,    cart->banks[i].music.tracks,    i);
         buffer = SAVE_CHUNK(CHUNK_FLAGS,    cart->banks[i].flags,           i);
         buffer = SAVE_CHUNK(CHUNK_SCREEN,   cart->banks[i].screen,          i);
+    }
+
+    if (cart->binary.size) {
+        buffer = saveFixedChunk(buffer, CHUNK_BINARY, cart->binary.data, cart->binary.size, 0);
     }
 
     const char* ptr = cart->code.data;

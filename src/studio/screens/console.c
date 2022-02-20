@@ -86,6 +86,7 @@
     macro(license)
 
 #define IMPORT_CMD_LIST(macro)  \
+    macro(binary)               \
     macro(tiles)                \
     macro(sprites)              \
     macro(map)                  \
@@ -107,6 +108,7 @@
     macro(rpi)                  \
     macro(mac)                  \
     macro(html)                 \
+    macro(binary)               \
     macro(tiles)                \
     macro(sprites)              \
     macro(map)                  \
@@ -1577,6 +1579,25 @@ static void onImport_tiles(Console* console, const char* name, const void* buffe
     onImportTilesBase(console, name, buffer, size, getBank(console, params.bank)->tiles.data, params);
 }
 
+static void onImport_binary(Console* console, const char* name, const void* buffer, s32 size, ImportParams params)
+{
+    bool ok = name && buffer && size <= TIC_BINARY_SIZE;
+
+    if(ok)
+    {
+        // enum {Size = size};
+        const int Size = size;
+
+        // tic_map* map = &getBank(console, params.bank)->map;
+        tic_binary* binary = &console->tic->cart.binary;
+        binary->size = Size;
+        memset(binary->data, 0, TIC_BINARY_SIZE);
+        memcpy(binary->data, buffer, Size);
+    }
+        
+    onFileImported(console, name, ok);
+}
+
 static void onImport_sprites(Console* console, const char* name, const void* buffer, s32 size, ImportParams params)
 {
     onImportTilesBase(console, name, buffer, size, getBank(console, params.bank)->sprites.data, params);
@@ -1982,6 +2003,22 @@ static void onExport_html(Console* console, const char* param, const char* filen
 static void onExport_tiles(Console* console, const char* param, const char* filename, ExportParams params)
 {
     exportSprites(console, getFilename(filename, PngExt), getBank(console, params.bank)->tiles.data, params);
+}
+
+static void onExport_binary(Console* console, const char* param, const char* path, ExportParams params)
+{
+    const char* filename = getFilename(path, ".binary");
+
+    tic_binary *binary = &console->tic->cart.binary;
+    void* buffer = malloc(binary->size);
+
+    SCOPE(free(buffer))
+    {
+
+        memcpy(buffer, binary->data, binary->size);
+
+        onFileExported(console, filename, tic_fs_save(console->fs, filename, buffer, binary->size, true));
+    }
 }
 
 static void onExport_sprites(Console* console, const char* param, const char* filename, ExportParams params)
