@@ -133,9 +133,9 @@ pub const raw = struct {
     extern fn sfx(id: i32, note: i32, octave: i32, duration: i32, channel: i32, volumeLeft: i32, volumeRight: i32, speed: i32) void;
     extern fn spr(id: i32, x: i32, y: i32, trans_colors: ?[*]const u8, color_count: i32, scale: i32, flip: i32, rotate: i32, w: i32, h: i32) void;
     extern fn sync(mask: i32, bank: i32, tocart: bool) void;
-    extern fn textri(x1: i32, y1: i32, x2: i32, y2: i32, x3: i32, y3: i32, u1: i32, v1: i32, u2: i32, v2: i32, u3: i32, v3: i32, use_map: bool, trans_colors: ?[*]const u8, color_count: i32) void;
-    extern fn tri(x1: i32, y1: i32, x2: i32, y2: i32, x3: i32, y3: i32, color: i32) void;
-    extern fn trib(x1: i32, y1: i32, x2: i32, y2: i32, x3: i32, y3: i32, color: i32) void;
+    extern fn textri(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, u1: f32, v1: f32, u2: f32, v2: f32, u3: f32, v3: f32, use_map: bool, trans_colors: ?[*]const u8, color_count: i32) void;
+    extern fn tri(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, color: i32) void;
+    extern fn trib(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, color: i32) void;
     extern fn time() f32;
     extern fn trace(text: [*:0]u8, color: i32) void;
     extern fn tstamp() u64;
@@ -265,7 +265,7 @@ const TextriArgs = struct {
     transparent: []const u8 = .{},
 };
 
-pub fn textri(x1: i32, y1: i32, x2: i32, y2: i32, x3: i32, y3: i32, @"u1": i32, v1: i32, @"u2": i32, v2: i32, @"u3": i32, v3: i32, args: TextriArgs) void {
+pub fn textri(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, @"u1": f32, v1: f32, @"u2": f32, v2: f32, @"u3": f32, v3: f32, args: TextriArgs) void {
     const color_count = @intCast(u8,args.transparent.len);
     const trans_colors = args.transparent.ptr;
     raw.textri(x1, y1, x2, y2, x3, y3, @"u1", v1, @"u2", v2, @"u3", v3, args.use_map, trans_colors, color_count);
