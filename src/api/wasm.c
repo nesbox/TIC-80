@@ -336,7 +336,7 @@ m3ApiRawFunction(wasmtic_btn)
     // -1 is a default placeholder here for `id`, but one that `tic_api_btn` already understands, so
     // it just gets passed straight thru
 
-    m3ApiReturn(tic_api_btn(core, index));
+    m3ApiReturn(tic_api_btn((tic_mem *)core, index));
 
     m3ApiSuccess();
 }
@@ -355,7 +355,7 @@ m3ApiRawFunction(wasmtic_btnp)
     // knows this so we don't need to do any transation, we can just pass the -1 values
     // straight thru 
 
-    m3ApiReturn(tic_api_btnp(core, index, hold, period));
+    m3ApiReturn(tic_api_btnp((tic_mem *)core, index, hold, period));
 
     m3ApiSuccess();
 }
@@ -372,7 +372,7 @@ m3ApiRawFunction(wasmtic_key)
 
     tic_core* core = getWasmCore(runtime);
 
-    m3ApiReturn(tic_api_key(core, index));
+    m3ApiReturn(tic_api_key((tic_mem *)core, index));
 
     m3ApiSuccess();
 }
@@ -391,7 +391,7 @@ m3ApiRawFunction(wasmtic_keyp)
 
     tic_core* core = getWasmCore(runtime);
 
-    m3ApiReturn(tic_api_keyp(core, index, hold, period));
+    m3ApiReturn(tic_api_keyp((tic_mem *)core, index, hold, period));
 
     m3ApiSuccess();
 }
@@ -1075,7 +1075,7 @@ static bool initWasm(tic_mem* tic, const char* code)
     u8* low_ram =  (u8*)core->memory.ram;
     u8* wasm_ram = m3_GetMemory(runtime, NULL, 0);
     memcpy(wasm_ram, low_ram, TIC_RAM_SIZE);
-    core->memory.ram = wasm_ram;
+    core->memory.ram = (tic_ram*)wasm_ram;
 
     core->currentVM = runtime;
 
