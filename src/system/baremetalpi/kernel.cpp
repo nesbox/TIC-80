@@ -68,6 +68,7 @@ static struct
 {
 
     Studio* studio;
+    tic80_input input;
 
     struct
     {
@@ -102,16 +103,6 @@ char* tic_sys_clipboard_get()
 void tic_sys_clipboard_free(const char* text)
 {
     free((void*)text);
-}
-
-u64 tic_sys_counter_get()
-{
-    return CTimer::Get()->GetTicks();
-}
-
-u64 tic_sys_freq_get()
-{
-    return HZ;
 }
 
 void tic_sys_fullscreen_set(bool value)
@@ -172,13 +163,13 @@ bool tic_sys_keyboard_text(char* text)
     return false;
 }
 
-void screenCopy(CScreenDevice* screen, u32* ts)
+void screenCopy(CScreenDevice* screen, const u32* ts)
 {
     u32 pitch = screen->GetPitch();
     u32* buf = screen->GetBuffer();
     for (int y = 0; y < TIC80_HEIGHT; y++)
     {
-        u32 *line = ts + ((y+TIC80_OFFSET_TOP)*(TIC80_FULLWIDTH) + TIC80_OFFSET_LEFT);
+        const u32 *line = ts + ((y+TIC80_OFFSET_TOP)*(TIC80_FULLWIDTH) + TIC80_OFFSET_LEFT);
         memcpy(buf + (pitch * y), line, TIC80_WIDTH * 4);
     }
 
@@ -222,9 +213,7 @@ void gamePadStatusHandler (unsigned nDeviceIndex, const TGamePadState *pState)
 
 void inputToTic()
 {
-    tic_mem* tic = platform.studio->tic;
-
-    tic80_input* tic_input = &tic->ram.input;
+    tic80_input* tic_input = &platform.input;
 
     // mouse
     if (mousebuttons & 0x01) tic_input->mouse.left = true; else tic_input->mouse.left = false;
@@ -395,7 +384,7 @@ TShutdownMode Run(void)
         char* argv[] = { &arg0[0], NULL };
         int argc = 1;
         malloc(88);
-        platform.studio = studioInit(argc, argv, 44100, "tic80");
+        platform.studio = studio_init(argc, argv, 44100, TIC80_PIXEL_COLOR_BGRA8888, "tic80");
         malloc(99);
 
     }
@@ -407,17 +396,15 @@ TShutdownMode Run(void)
         char* argv[] = { &arg0[0], &arg1[0], NULL };
         int argc = 2;
         dbg("Without keyboard\n");
-        platform.studio = studioInit(argc, argv, 44100, "tic80");
+        platform.studio = studio_init(argc, argv, 44100, TIC80_PIXEL_COLOR_BGRA8888, "tic80");
     }
-    dbg("studioInit OK\n");
+    dbg("studio_init OK\n");
 
     if( !platform.studio)
     {
         Die("Could not init studio");
     }
 
-    // gotoSurf();
-    platform.studio->tic->screen_format = TIC80_PIXEL_COLOR_BGRA8888;
     dbg("Studio init ok..\n");
 
     if (pKeyboard){
@@ -430,10 +417,9 @@ TShutdownMode Run(void)
         pMouse->RegisterEventHandler (mouseEventHandler);
     }
 
-    tic_mem* tic = platform.studio->tic;
-    tic80_input* tic_input = &tic->ram.input;
+    const tic80* product = &studio_mem(platform.studio)->product;
+    tic80_input* tic_input = &platform.input;
     tic_input->keyboard.data = 0;
-
 
     // sound system
     mSound->AllocateQueue(1000);
@@ -451,14 +437,14 @@ TShutdownMode Run(void)
         inputToTic();
         keyspinlock.Release();
 
-        platform.studio->tick();
-        platform.studio->sound();
+        studio_tick(platform.studio, platform.input);
+        studio_sound(platform.studio);
 
-        mSound->Write(tic->samples.buffer, tic->samples.size);
+        mSound->Write(product->samples.buffer, product->samples.count * TIC80_SAMPLESIZE);
 
         mScreen.vsync();
 
-        screenCopy(&mScreen, platform.studio->tic->screen);
+        screenCopy(&mScreen, product->screen);
 
         mScheduler.Yield(); // for sound
     }

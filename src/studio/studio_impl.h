@@ -94,11 +94,11 @@ typedef struct
     s32 key;
 } Gamepads;
 
-typedef struct _StudioImplementation
+struct Studio
 {
-    Studio studio;
+    tic_mem* tic;
 
-    tic80_local* tic80local;
+    bool alive;
 
     EditorMode mode;
     EditorMode prevMode;
@@ -204,4 +204,4 @@ typedef struct _StudioImplementation
 
     tic_font systemFont;
 
-} StudioImplementation;
+};

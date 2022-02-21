@@ -1094,7 +1094,7 @@ static void wren_sfx(WrenVM* vm)
         s32 octave = -1;
         s32 duration = -1;
         s32 channel = 0;
-        s32 volumes[TIC_STEREO_CHANNELS] = {MAX_VOLUME, MAX_VOLUME};
+        s32 volumes[TIC80_SAMPLE_CHANNELS] = {MAX_VOLUME, MAX_VOLUME};
         s32 speed = SFX_DEF_SPEED;
 
         if (index >= 0)

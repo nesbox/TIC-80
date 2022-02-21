@@ -2031,7 +2031,7 @@ static void onExport_mapimg(Console* console, const char* param, const char* pat
                     for(s32 j = 0; j < TIC80_HEIGHT; j++)
                         for(s32 i = 0; i < TIC80_WIDTH; i++)
                             img.values[(i + c * TIC80_WIDTH) + (j + r * TIC80_HEIGHT) * Width] = 
-                                tic->screen[(i + TIC80_MARGIN_LEFT) + (j + TIC80_MARGIN_TOP) * TIC80_FULLWIDTH];
+                                tic->product.screen[(i + TIC80_MARGIN_LEFT) + (j + TIC80_MARGIN_TOP) * TIC80_FULLWIDTH];
                 }
         }
 

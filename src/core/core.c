@@ -204,7 +204,7 @@ void tic_api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
 double tic_api_time(tic_mem* memory)
 {
     tic_core* core = (tic_core*)memory;
-    return (double)((core->data->counter(core->data->data) - core->data->start) * 1000) / core->data->freq(core->data->data);
+    return (clock() - core->data->start) * 1000.0 / CLOCKS_PER_SEC;
 }
 
 s32 tic_api_tstamp(tic_mem* memory)
@@ -275,7 +275,7 @@ static void soundClear(tic_mem* memory)
     }
 
     memset(&memory->ram.registers, 0, sizeof memory->ram.registers);
-    memset(memory->samples.buffer, 0, memory->samples.size);
+    memset(memory->product.samples.buffer, 0, memory->product.samples.count * TIC80_SAMPLESIZE);
 
     tic_api_music(memory, -1, 0, 0, false, false, -1, -1);
 }
@@ -288,6 +288,32 @@ static void resetVbank(tic_mem* memory)
     memcpy(memory->ram.vram.mapping, DefaultMapping, sizeof DefaultMapping);
     memory->ram.vram.palette = memory->cart.bank0.palette.vbank0;
     memory->ram.vram.blit.segment = TIC_DEFAULT_BLIT_MODE;
+}
+
+static void font2ram(tic_mem* memory)
+{
+    memory->ram.font = (tic_font)
+    {
+        .regular =     
+        {
+            .data = 
+            {
+                #include "font.inl"
+            },
+            .width = TIC_FONT_WIDTH, 
+            .height = TIC_FONT_HEIGHT, 
+        },
+
+        .alt = 
+        {
+            .data = 
+            {
+                #include "altfont.inl"
+            },
+            .width = TIC_ALTFONT_WIDTH, 
+            .height = TIC_FONT_HEIGHT, 
+        },
+    };
 }
 
 void tic_api_reset(tic_mem* memory)
@@ -324,32 +350,12 @@ void tic_api_reset(tic_mem* memory)
 
     soundClear(memory);
     updateSaveid(memory);
+    font2ram(memory);
 }
 
 static void cart2ram(tic_mem* memory)
 {
-    memory->ram.font = (tic_font)
-    {
-        .regular =     
-        {
-            .data = 
-            {
-                #include "font.inl"
-            },
-            .width = TIC_FONT_WIDTH, 
-            .height = TIC_FONT_HEIGHT, 
-        },
-
-        .alt = 
-        {
-            .data = 
-            {
-                #include "altfont.inl"
-            },
-            .width = TIC_ALTFONT_WIDTH, 
-            .height = TIC_FONT_HEIGHT, 
-        },
-    };
+    font2ram(memory);
 
     enum
     {
@@ -442,7 +448,7 @@ void tic_core_tick(tic_mem* tic, tic_tick_data* data)
                 tic->input.keyboard = 1;
             else tic->input.data = -1;  // default is all enabled
 
-            data->start = data->counter(core->data->data);
+            data->start = clock();
 
             done = tic_init_vm(core, code, config);
         }
@@ -473,7 +479,7 @@ void tic_core_pause(tic_mem* memory)
     if (core->data)
     {
         core->pause.time.start = core->data->start;
-        core->pause.time.paused = core->data->counter(core->data->data);
+        core->pause.time.paused = clock();
     }
 }
 
@@ -485,7 +491,7 @@ void tic_core_resume(tic_mem* memory)
     {
         memcpy(&core->state, &core->pause.state, sizeof(tic_core_state_data));
         memcpy(&memory->ram, &core->pause.ram, sizeof(tic_ram));
-        core->data->start = core->pause.time.start + core->data->counter(core->data->data) - core->pause.time.paused;
+        core->data->start = core->pause.time.start + clock() - core->pause.time.paused;
     }
 }
 
@@ -500,7 +506,8 @@ void tic_core_close(tic_mem* memory)
     blip_delete(core->blip.left);
     blip_delete(core->blip.right);
 
-    free(memory->samples.buffer);
+    free(memory->product.screen);
+    free(memory->product.samples.buffer);
     free(core);
 }
 
@@ -580,8 +587,8 @@ static inline tic_vram* vbank1(tic_core* core)
 static inline void updpal(tic_mem* tic, tic_blitpal* pal0, tic_blitpal* pal1)
 {
     tic_core* core = (tic_core*)tic;
-    *pal0 = tic_tool_palette_blit(&vbank0(core)->palette, tic->screen_format);
-    *pal1 = tic_tool_palette_blit(&vbank1(core)->palette, tic->screen_format);
+    *pal0 = tic_tool_palette_blit(&vbank0(core)->palette, core->screen_format);
+    *pal1 = tic_tool_palette_blit(&vbank1(core)->palette, core->screen_format);
 }
 
 static inline void updbdr(tic_mem* tic, s32 row, u32* ptr, tic_blit_callback clb, tic_blitpal* pal0, tic_blitpal* pal1)
@@ -621,7 +628,7 @@ void tic_core_blit_ex(tic_mem* tic, tic_blit_callback clb)
     updpal(tic, &pal0, &pal1);
 
     s32 row = 0;
-    u32* rowPtr = tic->screen;
+    u32* rowPtr = tic->product.screen;
 
 #define UPDBDR() updbdr(tic, row, rowPtr, clb, &pal0, &pal1)
 
@@ -683,27 +690,25 @@ void tic_core_blit(tic_mem* tic)
     tic_core_blit_ex(tic, (tic_blit_callback){scanline, border, NULL});
 }
 
-tic_mem* tic_core_create(s32 samplerate)
+tic_mem* tic_core_create(s32 samplerate, tic80_pixel_color_format format)
 {
     tic_core* core = (tic_core*)malloc(sizeof(tic_core));
-    memset(core, 0, sizeof(tic_core));
+    *core = (tic_core){0};
 
-    if (core != (tic_core*)&core->memory)
-    {
-        free(core);
-        return NULL;
-    }
+    tic80* product = &core->memory.product;
 
-    core->memory.screen_format = TIC80_PIXEL_COLOR_RGBA8888;
+    core->screen_format = format;
     core->samplerate = samplerate;
 #ifdef _3DS
     // To feed texture data directly to the 3DS GPU, linearly allocated memory is required, which is
     // not guaranteed by malloc.
     // Additionally, allocate TIC80_FULLHEIGHT + 1 lines to minimize glitches in linear scaling mode.
-    core->memory.screen = linearAlloc(TIC80_FULLWIDTH * (TIC80_FULLHEIGHT + 1) * sizeof(u32));
+    product->screen = linearAlloc(TIC80_FULLWIDTH * (TIC80_FULLHEIGHT + 1) * sizeof(u32));
+#else
+    product->screen = malloc(TIC80_FULLWIDTH * TIC80_FULLHEIGHT * sizeof product->screen[0]);
 #endif
-    core->memory.samples.size = samplerate * TIC_STEREO_CHANNELS / TIC80_FRAMERATE * sizeof(s16);
-    core->memory.samples.buffer = malloc(core->memory.samples.size);
+    product->samples.count = samplerate * TIC80_SAMPLE_CHANNELS / TIC80_FRAMERATE;
+    product->samples.buffer = malloc(product->samples.count * TIC80_SAMPLESIZE);
 
     core->blip.left = blip_new(samplerate / 10);
     core->blip.right = blip_new(samplerate / 10);

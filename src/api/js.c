@@ -346,7 +346,7 @@ static duk_ret_t duk_sfx(duk_context* duk)
 
     s32 duration = duk_opt_int(duk, 2, -1);
     s32 channel = duk_opt_int(duk, 3, 0);
-    s32 volumes[TIC_STEREO_CHANNELS];
+    s32 volumes[TIC80_SAMPLE_CHANNELS];
 
     if(duk_is_array(duk, 4))
     {

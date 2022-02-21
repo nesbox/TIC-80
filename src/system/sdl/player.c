@@ -80,7 +80,7 @@ s32 runCart(void* cart, s32 size)
 	tic80_input input;
 	SDL_memset(&input, 0, sizeof input);
 
-	tic80* tic = tic80_create(audioSpec.freq);
+	tic80* tic = tic80_create(audioSpec.freq, TIC80_PIXEL_COLOR_RGBA8888);
 	tic->callback.exit = onExit;
 	tic80_load(tic, cart, size);
 
@@ -142,7 +142,7 @@ s32 runCart(void* cart, s32 size)
 
 			nextTick += Delta;
 
-			tic80_tick(tic, &input);
+			tic80_tick(tic, input);
 			tic80_sound(tic);
 
 			if (!audioStarted && audioDevice)
@@ -151,15 +151,15 @@ s32 runCart(void* cart, s32 size)
 			SDL_PauseAudioDevice(audioDevice, 0);
 
 			{
-				s32 size = tic->sound.count * sizeof(tic->sound.samples[0]);
+				s32 size = tic->samples.count;
 
 				if (cvt.needed)
 				{
-					SDL_memcpy(cvt.buf, tic->sound.samples, size);
+					SDL_memcpy(cvt.buf, tic->samples.buffer, size);
 					SDL_ConvertAudio(&cvt);
 					SDL_QueueAudio(audioDevice, cvt.buf, cvt.len_cvt);
 				}
-				else SDL_QueueAudio(audioDevice, tic->sound.samples, size);
+				else SDL_QueueAudio(audioDevice, tic->samples.buffer, size);
 			}
 
 			SDL_RenderClear(renderer);

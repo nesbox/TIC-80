@@ -167,6 +167,7 @@ typedef struct
 typedef struct
 {
     tic_mem memory; // it should be first
+    tic80_pixel_color_format screen_format;
 
     void* currentVM;
     const tic_script_config* currentScript;
@@ -188,8 +189,8 @@ typedef struct
 
         struct
         {
-            u64 start;
-            u64 paused;
+            clock_t start;
+            clock_t paused;
         } time;
     } pause;
 

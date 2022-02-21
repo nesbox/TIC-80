@@ -539,8 +539,8 @@ void tic_core_synth_sound(tic_mem* memory)
     stereo_synthesize(core, core->state.registers.left, core->blip.left, 0);
     stereo_synthesize(core, core->state.registers.right, core->blip.right, 1);
 
-    blip_read_samples(core->blip.left, core->memory.samples.buffer, core->samplerate / TIC80_FRAMERATE, TIC_STEREO_CHANNELS);
-    blip_read_samples(core->blip.right, core->memory.samples.buffer + 1, core->samplerate / TIC80_FRAMERATE, TIC_STEREO_CHANNELS);
+    blip_read_samples(core->blip.left, core->memory.product.samples.buffer, core->samplerate / TIC80_FRAMERATE, TIC80_SAMPLE_CHANNELS);
+    blip_read_samples(core->blip.right, core->memory.product.samples.buffer + 1, core->samplerate / TIC80_FRAMERATE, TIC80_SAMPLE_CHANNELS);
 
     // if the head has advanced, we can advance the tail too. Otherwise, we just
     // keep synthesizing audio using the last known register values, so at least we don't get crackles

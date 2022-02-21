@@ -36,6 +36,7 @@
 static struct
 {
     Studio* studio;
+    tic80_input input;
 
     struct
     {
@@ -77,16 +78,6 @@ char* tic_sys_clipboard_get()
 void tic_sys_clipboard_free(const char* text)
 {
     free((void*)text);
-}
-
-u64 tic_sys_counter_get()
-{
-    return stm_now();
-}
-
-u64 tic_sys_freq_get()
-{
-    return 1000000000;
 }
 
 void tic_sys_fullscreen_set(bool value)
@@ -154,14 +145,12 @@ static void app_init(void)
 
     stm_setup();
 
-    platform.audio.samples = calloc(sizeof platform.audio.samples[0], saudio_sample_rate() / TIC80_FRAMERATE * TIC_STEREO_CHANNELS);
+    platform.audio.samples = calloc(sizeof platform.audio.samples[0], saudio_sample_rate() / TIC80_FRAMERATE * TIC80_SAMPLE_CHANNELS);
 }
 
 static void handleKeyboard()
 {
-    tic_mem* tic = platform.studio->tic;
-
-    tic80_input* input = &tic->ram.input;
+    tic80_input* input = &platform.input;
     input->keyboard.data = 0;
 
     enum{BufSize = COUNT_OF(input->keyboard.keys)};
@@ -173,23 +162,23 @@ static void handleKeyboard()
 
 static void app_frame(void)
 {
-    if(platform.studio->quit) exit(0);
+    if(studio_alive(platform.studio)) exit(0);
 
-    tic_mem* tic = platform.studio->tic;
-    tic80_input* input = &tic->ram.input;
+    const tic80* product = &studio_mem(platform.studio)->product;
+    tic80_input* input = &platform.input;
 
     input->gamepads.data = 0;
     handleKeyboard();
-    platform.studio->tick(input);
+    studio_tick(platform.studio, platform.input);
 
-    sokol_gfx_draw(platform.studio->tic->screen);
+    sokol_gfx_draw(product->screen);
 
-    platform.studio->sound();
-    s32 count = tic->samples.size / sizeof tic->samples.buffer[0];
+    studio_sound(platform.studio);
+    s32 count = product->samples.count;
         for(s32 i = 0; i < count; i++)
-            platform.audio.samples[i] = (float)tic->samples.buffer[i] / SHRT_MAX;
+            platform.audio.samples[i] = (float)product->samples.buffer[i] / SHRT_MAX;
 
-    saudio_push(platform.audio.samples, count / 2);
+    saudio_push(platform.audio.samples, count / TIC80_SAMPLE_CHANNELS);
         
     input->mouse.scrollx = input->mouse.scrolly = 0;
     platform.keyboard.text = '\0';
@@ -337,9 +326,7 @@ static void handleKeydown(sapp_keycode keycode, bool down)
 
 static void processMouse(sapp_mousebutton btn, s32 down)
 {
-    tic_mem* tic = platform.studio->tic;
-    tic80_input* input = &tic->ram.input;
-
+    tic80_input* input = &platform.input;
 
     switch(btn)
     {
@@ -352,8 +339,7 @@ static void processMouse(sapp_mousebutton btn, s32 down)
 
 static void app_input(const sapp_event* event)
 {
-    tic_mem* tic = platform.studio->tic;
-    tic80_input* input = &tic->ram.input;
+    tic80_input* input = &platform.input;
 
     switch(event->type)
     {
@@ -401,7 +387,7 @@ static void app_input(const sapp_event* event)
 
 static void app_cleanup(void)
 {
-    platform.studio->close();
+    studio_delete(platform.studio);
     free(platform.audio.samples);
 }
 
@@ -417,21 +403,21 @@ sapp_desc sokol_main(s32 argc, char* argv[])
 
     memset(&platform, 0, sizeof platform);
 
-    platform.audio.desc.num_channels = TIC_STEREO_CHANNELS;
+    platform.audio.desc.num_channels = TIC80_SAMPLE_CHANNELS;
     saudio_setup(&platform.audio.desc);
 
-    platform.studio = studioInit(argc, argv, saudio_sample_rate(), "./");
+    platform.studio = studio_init(argc, argv, saudio_sample_rate(), TIC80_PIXEL_COLOR_RGBA8888, "./");
 
-    if(platform.studio->config()->cli)
+    if(studio_config(platform.studio)->cli)
     {
-        while (!platform.studio->quit)
-            platform.studio->tick();
+        while (!studio_alive(platform.studio))
+            studio_tick(platform.studio, platform.input);
 
         exit(0);
     }
 
-    const s32 Width = TIC80_FULLWIDTH * platform.studio->config()->uiScale;
-    const s32 Height = TIC80_FULLHEIGHT * platform.studio->config()->uiScale;
+    const s32 Width = TIC80_FULLWIDTH * studio_config(platform.studio)->uiScale;
+    const s32 Height = TIC80_FULLHEIGHT * studio_config(platform.studio)->uiScale;
 
     return(sapp_desc)
     {

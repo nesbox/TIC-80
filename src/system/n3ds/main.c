@@ -47,6 +47,7 @@ typedef struct {
 static struct
 {
     Studio* studio;
+    tic80_input input;
     char* clipboard;
 
     struct
@@ -178,16 +179,6 @@ char* tic_sys_clipboard_get()
 void tic_sys_clipboard_free(const char* text)
 {
     free((void*) text);
-}
-
-u64 tic_sys_counter_get()
-{
-    return svcGetSystemTick();
-}
-
-u64 tic_sys_freq_get()
-{
-    return SYSCLOCK_ARM11;
 }
 
 void tic_sys_fullscreen_set(bool value)
@@ -364,7 +355,7 @@ float cmul) {
 
 static void n3ds_copy_frame(void)
 {
-    u32 *in = platform.studio->tic->screen;
+    u32 *in = studio_mem(platform.studio)->product.screen;
 
     if (platform.render.scaled >= 1) {
         // pad border 1 pixel lower to minimize glitches in "linear" scaling mode
@@ -389,7 +380,7 @@ static void n3ds_copy_frame(void)
 
 static inline void n3ds_clear_border(C3D_RenderTarget *target)
 {
-    C3D_RenderTargetClear(target, C3D_CLEAR_ALL, platform.studio->tic->screen[0] >> 8, 0);
+    C3D_RenderTargetClear(target, C3D_CLEAR_ALL, studio_mem(platform.studio)->product.screen[0] >> 8, 0);
 }
 
 static void n3ds_draw_screen(int scale_multiplier)
@@ -448,8 +439,8 @@ void n3ds_sound_init(int sample_rate)
     float mix[12];
     int buffer_size;
 
-    platform.audio.samples = platform.studio->tic->samples.size / (TIC_STEREO_CHANNELS * sizeof(u16));
-    buffer_size = platform.audio.samples * (TIC_STEREO_CHANNELS * sizeof(u16));
+    platform.audio.samples = studio_mem(platform.studio)->product.samples.count / TIC80_SAMPLE_CHANNELS;
+    buffer_size = platform.audio.samples * (TIC80_SAMPLE_CHANNELS * TIC80_SAMPLESIZE);
 
     platform.audio.buffer = linearAlloc(buffer_size * AUDIO_BLOCKS);
     platform.audio.buffer_size = buffer_size;
@@ -484,13 +475,13 @@ void n3ds_sound_exit(void)
 }
 
 static void audio_update(void) {
-    platform.studio->sound();
+    studio_sound(platform.studio);
 
     ndspWaveBuf *wave_buf = &platform.audio.ndspBuf[platform.audio.curr_block];
 
     if (wave_buf->status == NDSP_WBUF_DONE) {
         u16 *audio_ptr = wave_buf->data_pcm16;
-        memcpy(audio_ptr, platform.studio->tic->samples.buffer, platform.audio.buffer_size);
+        memcpy(audio_ptr, studio_mem(platform.studio)->product.samples.buffer, platform.audio.buffer_size);
         DSP_FlushDataCache(audio_ptr, platform.audio.buffer_size);
 
         ndspChnWaveBufAdd(0, wave_buf);
@@ -502,7 +493,9 @@ static void touch_update(void) {
 	u32 key_down = hidKeysDown();
 	u32 key_held = hidKeysHeld();
     touchPosition touch;
-    tic80_mouse *mouse = &platform.studio->tic->ram.input.mouse;
+
+    tic80_input *input = &platform.input;
+    tic80_mouse *mouse = &input->mouse;
 
     if (key_held & KEY_TOUCH)
     {
@@ -532,13 +525,13 @@ static void touch_update(void) {
 static void keyboard_update(void) {
     hidScanInput();
 
-    platform.studio->tic->ram.input.mouse.btns = 0;
+    platform.input.mouse.btns = 0;
     if (!platform.render.on_bottom) {
-        n3ds_keyboard_update(&platform.keyboard, platform.studio->tic);
+        n3ds_keyboard_update(&platform.keyboard, &platform.input);
     } else {
         touch_update();
     }
-    n3ds_gamepad_update(&platform.keyboard, platform.studio->tic);
+    n3ds_gamepad_update(&platform.keyboard, &platform.input);
 
     u32 kup = hidKeysUp();
     if (kup & KEY_SELECT) {
@@ -578,17 +571,16 @@ int main(int argc, char **argv) {
     n3ds_draw_init();
     n3ds_keyboard_init(&platform.keyboard);
 
-    platform.studio = studioInit(argc_used, (const char**)argv_used, AUDIO_FREQ, "./");
-    platform.studio->tic->screen_format = TIC80_PIXEL_COLOR_ABGR8888;
+    platform.studio = studio_init(argc_used, argv_used, AUDIO_FREQ, TIC80_PIXEL_COLOR_ABGR8888, "./");
 
     n3ds_sound_init(AUDIO_FREQ);
 
-    while (aptMainLoop() && !platform.studio->quit) {
+    while (aptMainLoop() && !studio_alive(platform.studio)) {
         u32 start_frame = C3D_FrameCounter(0);
 
         keyboard_update();
 
-        platform.studio->tick();
+        studio_tick(platform.studio, platform.input);
         audio_update();
 
         n3ds_copy_frame();
@@ -604,7 +596,7 @@ int main(int argc, char **argv) {
 
     n3ds_sound_exit();
     
-    platform.studio->close();
+    studio_delete(platform.studio);
 
     n3ds_keyboard_free(&platform.keyboard);
     n3ds_draw_exit();

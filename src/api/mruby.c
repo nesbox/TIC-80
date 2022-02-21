@@ -644,7 +644,7 @@ static mrb_value mrb_sfx(mrb_state* mrb, mrb_value self)
     mrb_int duration = -1;
     mrb_int channel = 0;
     mrb_value volume = mrb_int_value(mrb, MAX_VOLUME);
-    mrb_int volumes[TIC_STEREO_CHANNELS];
+    mrb_int volumes[TIC80_SAMPLE_CHANNELS];
     mrb_int speed = SFX_DEF_SPEED;
 
     mrb_int argc = mrb_get_args(mrb, "i|oiio!i", &index, &note_obj, &duration, &channel, &volume, &speed);
@@ -653,14 +653,14 @@ static mrb_value mrb_sfx(mrb_state* mrb, mrb_value self)
 
     if (mrb_array_p(volume))
     {
-        for (mrb_int i = 0; i < TIC_STEREO_CHANNELS; ++i)
+        for (mrb_int i = 0; i < TIC80_SAMPLE_CHANNELS; ++i)
         {
             volumes[i] = mrb_integer(mrb_ary_entry(volume, i));
         }
     }
     else if (mrb_fixnum_p(volume))
     {
-        for (size_t ch = 0; ch < TIC_STEREO_CHANNELS; ++ch)
+        for (size_t ch = 0; ch < TIC80_SAMPLE_CHANNELS; ++ch)
         {
             volumes[ch] = mrb_integer(volume);
         }

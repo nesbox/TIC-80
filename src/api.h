@@ -23,6 +23,7 @@
 #pragma once
 
 #include "tic.h"
+#include "time.h"
 
 // convenience macros to loop languages
 #define FOR_EACH_LANG(ln) for (tic_script_config** conf = Languages ; *conf != NULL; conf++ ) { tic_script_config* ln = *conf;
@@ -42,9 +43,7 @@ typedef struct
     ErrorOutput error;
     ExitCallback exit;
     
-    u64 (*counter)(void*);
-    u64 (*freq)(void*);
-    u64 start;
+    clock_t start;
 
     void* data;
 } tic_tick_data;
@@ -813,8 +812,9 @@ TIC_API_LIST(TIC_API_DEF)
 
 struct tic_mem
 {
-    tic_ram             ram;
-    tic_cartridge       cart;
+    tic80           product;
+    tic_ram         ram;
+    tic_cartridge   cart;
 
     char saveid[TIC_SAVEID_SIZE];
 
@@ -829,22 +829,9 @@ struct tic_mem
 
         u8 data;
     } input;
-
-    struct
-    {
-        s16* buffer;
-        s32 size;
-    } samples;
-
-#if defined(_3DS)
-    u32 *screen;
-#else
-    u32 screen[TIC80_FULLWIDTH * TIC80_FULLHEIGHT];
-#endif
-    tic80_pixel_color_format screen_format;
 };
 
-tic_mem* tic_core_create(s32 samplerate);
+tic_mem* tic_core_create(s32 samplerate, tic80_pixel_color_format format);
 void tic_core_close(tic_mem* memory);
 void tic_core_pause(tic_mem* memory);
 void tic_core_resume(tic_mem* memory);
@@ -855,14 +842,6 @@ void tic_core_synth_sound(tic_mem* tic);
 void tic_core_blit(tic_mem* tic);
 void tic_core_blit_ex(tic_mem* tic, tic_blit_callback clb);
 const tic_script_config* tic_core_script_config(tic_mem* memory);
-
-typedef struct
-{
-    tic80 tic;
-    tic_mem* memory;
-    tic_tick_data tickData;
-    u64 tick_counter;
-} tic80_local;
 
 #define VBANK(tic, bank)                                \
     bool MACROVAR(_bank_) = tic_api_vbank(tic, bank);   \

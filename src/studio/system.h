@@ -50,8 +50,6 @@ void    tic_sys_clipboard_set(const char* text);
 bool    tic_sys_clipboard_has();
 char*   tic_sys_clipboard_get();
 void    tic_sys_clipboard_free(const char* text);
-u64     tic_sys_counter_get();
-u64     tic_sys_freq_get();
 bool    tic_sys_fullscreen_get();
 void    tic_sys_fullscreen_set(bool value);
 void    tic_sys_message(const char* title, const char* message);
@@ -138,21 +136,18 @@ typedef struct
 
 } StudioConfig;
 
-typedef struct
-{
-    tic_mem* tic;
-    bool quit;
+typedef struct Studio Studio;
 
-    void (*tick)();
-    void (*sound)();
-    void (*exit)();
-    void (*close)();
-    void (*load)(const char* file);
-    const StudioConfig* (*config)();
+const tic_mem* studio_mem(Studio* studio);
+void studio_tick(Studio* studio, tic80_input input);
+void studio_sound(Studio* studio);
+void studio_load(Studio* studio, const char* file);
+bool studio_alive(Studio* studio);
+void studio_exit(Studio* studio);
+void studio_delete(Studio* studio);
+const StudioConfig* studio_config(Studio* studio);
 
-} Studio;
-
-Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* appFolder);
+Studio* studio_init(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* appFolder);
 
 #ifdef __cplusplus
 }

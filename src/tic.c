@@ -52,88 +52,48 @@ static void onExit(void* data)
         tic->callback.exit();
 }
 
-static u64 getFreq(void* data)
+tic80* tic80_create(s32 samplerate, tic80_pixel_color_format format)
 {
-    return TIC80_FRAMERATE;
-}
-
-static u64 getCounter(void* data)
-{
-    tic80_local* tic80 = (tic80_local*)data;
-    return tic80->tick_counter;
-}
-
-tic80* tic80_create(s32 samplerate)
-{
-    tic80_local* tic80 = malloc(sizeof(tic80_local));
-
-    if(tic80)
-    {
-        memset(tic80, 0, sizeof(tic80_local));
-
-        tic80->memory = tic_core_create(samplerate);
-        tic80->tic.screen_format = tic80->memory->screen_format;
-
-        return &tic80->tic;
-    }
-
-    return NULL;
+    return &tic_core_create(samplerate, format)->product;
 }
 
 TIC80_API void tic80_load(tic80* tic, void* cart, s32 size)
 {
-    tic80_local* tic80 = (tic80_local*)tic;
+    tic_mem* mem = (tic_mem*)tic;
 
-    tic80->tic.sound.count = tic80->memory->samples.size/sizeof(s16);
-    tic80->tic.sound.samples = tic80->memory->samples.buffer;
-
-    tic80->tic.screen = tic80->memory->screen;
-
-    {
-        tic80->tickData.error = onError;
-        tic80->tickData.trace = onTrace;
-        tic80->tickData.exit = onExit;
-        tic80->tickData.data = tic80;
-
-        tic80->tickData.start = 0;
-        tic80->tickData.freq = getFreq;
-        tic80->tickData.counter = getCounter;
-        tic80->tick_counter = 0;
-    }
-
-    {
-        tic_cart_load(&tic80->memory->cart, cart, size);
-        tic_api_reset(tic80->memory);
-    }
+    tic_cart_load(&mem->cart, cart, size);
+    tic_api_reset(mem);
 }
 
-TIC80_API void tic80_tick(tic80* tic, const tic80_input* input)
+TIC80_API void tic80_tick(tic80* tic, tic80_input input)
 {
-    tic80_local* tic80 = (tic80_local*)tic;
+    tic_mem* mem = (tic_mem*)tic;
 
-    tic80->memory->screen_format = tic80->tic.screen_format;
-    tic80->memory->ram.input = *input;
-    
-    tic_core_tick_start(tic80->memory);
-    tic_core_tick(tic80->memory, &tic80->tickData);
-    tic_core_tick_end(tic80->memory);
+    mem->ram.input = input;
 
-    tic_core_blit(tic80->memory);
+    tic_tick_data tickData = (tic_tick_data)
+    {
+        .error = onError,
+        .trace = onTrace,
+        .exit = onExit,
+        .data = tic,
+    };
 
-    tic80->tick_counter++;
+    tic_core_tick_start(mem);
+    tic_core_tick(mem, &tickData);
+    tic_core_tick_end(mem);
+
+    tic_core_blit(mem);
 }
 
 TIC80_API void tic80_sound(tic80* tic)
 {
-    tic80_local* tic80 = (tic80_local*)tic;
-    tic_core_synth_sound(tic80->memory);
+    tic_mem* mem = (tic_mem*)tic;
+    tic_core_synth_sound(mem);
 }
 
 TIC80_API void tic80_delete(tic80* tic)
 {
-    tic80_local* tic80 = (tic80_local*)tic;
-
-    tic_core_close(tic80->memory);
-
-    free(tic80);
+    tic_mem* mem = (tic_mem*)tic;
+    tic_core_close(mem);
 }

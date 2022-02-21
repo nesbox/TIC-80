@@ -96,6 +96,9 @@ static void initPMemName(Run* run)
     strcat(run->saveid, md5);
 }
 
+static void onEmptyTrace(void* data, const char* text, u8 color) {}
+static void onEmptyError(void* data, const char* info) {}
+
 static void tick(Run* run)
 {
     if (getStudioMode() != TIC_RUN_MODE)
@@ -103,7 +106,15 @@ static void tick(Run* run)
 
     tic_mem* tic = run->tic;
 
-    tic_core_tick(tic, &run->tickData);
+    tic_tick_data tickData = 
+    {
+        .error = run->console ? onError : onEmptyError,
+        .trace = run->console ? onTrace : onEmptyTrace,
+        .exit = onExit,
+        .data = run,
+    };
+
+    tic_core_tick(tic, &tickData);
 
     enum {Size = sizeof(tic_persistent)};
 
@@ -117,19 +128,6 @@ static void tick(Run* run)
         setStudioMode(TIC_CONSOLE_MODE);
 }
 
-static u64 getFreq(void* data)
-{
-    return tic_sys_freq_get();
-}
-
-static u64 getCounter(void* data)
-{
-    return tic_sys_counter_get();
-}
-
-static void onEmptyTrace(void* data, const char* text, u8 color) {}
-static void onEmptyError(void* data, const char* info) {}
-
 void initRun(Run* run, Console* console, tic_fs* fs, tic_mem* tic)
 {
     *run = (Run)
@@ -139,16 +137,6 @@ void initRun(Run* run, Console* console, tic_fs* fs, tic_mem* tic)
         .fs = fs,
         .tick = tick,
         .exit = false,
-        .tickData = 
-        {
-            .error = console ? onError : onEmptyError,
-            .trace = console ? onTrace : onEmptyTrace,
-            .counter = getCounter,
-            .freq = getFreq,
-            .start = 0,
-            .data = run,
-            .exit = onExit,
-        },
     };
 
     {
