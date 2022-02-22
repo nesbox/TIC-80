@@ -80,7 +80,7 @@
     macro(commands)             \
     macro(api)                  \
     macro(keys)                 \
-    macro(buttons)                 \
+    macro(buttons)              \
     macro(startup)              \
     macro(terms)                \
     macro(license)
@@ -589,7 +589,7 @@ static void onHelpCommand(Console* console);
 
 static void onExitCommand(Console* console)
 {
-    exitStudio();
+    exitStudio(console->studio);
     commandDone(console);
 }
 
@@ -691,7 +691,7 @@ static void onLoadDemoCommandConfirmed(Console* console, tic_script_config* scri
     tic_cart_load(&console->tic->cart, data, size);
     tic_api_reset(console->tic);
 
-    studioRomLoaded();
+    studioRomLoaded(console->studio);
 
     printBack(console, "\ncart ");
     printFront(console, console->rom.name);
@@ -707,7 +707,7 @@ static void onCartLoaded(Console* console, const char* name, const char* section
     if(!section)
         setCartName(console, name, tic_fs_path(console->fs, name));
 
-    studioRomLoaded();
+    studioRomLoaded(console->studio);
 
     printBack(console, "\ncart ");
     printFront(console, console->rom.name);
@@ -741,7 +741,7 @@ static void updateProject(Console* console)
 #endif
                 tic_cart_load(&tic->cart, data, size);
 
-            studioRomLoaded();
+            studioRomLoaded(console->studio);
         }
     }
 }
@@ -970,7 +970,7 @@ typedef struct
     ConsoleConfirmCallback callback;
 } CommandConfirmData;
 
-static void onConfirm(bool yes, void* data)
+static void onConfirm(Studio* studio, bool yes, void* data)
 {
     CommandConfirmData* confirmData = (CommandConfirmData*)data;
 
@@ -998,7 +998,7 @@ static void confirmCommand(Console* console, const char** text, s32 rows, Consol
     else
     {
         CommandConfirmData data = {console, callback};
-        confirmDialog(text, rows, onConfirm, MOVE(data));
+        confirmDialog(console->studio, text, rows, onConfirm, MOVE(data));
     }
 }
 
@@ -1011,7 +1011,7 @@ typedef struct
     tic_script_config* script;
 } LoadDemoConfirmData;
 
-static void onLoadDemoConfirm(bool yes, void* data)
+static void onLoadDemoConfirm(Studio* studio, bool yes, void* data)
 {
     LoadDemoConfirmData* demoData = (LoadDemoConfirmData*)data;
 
@@ -1026,7 +1026,7 @@ static void onLoadDemoConfirm(bool yes, void* data)
 
 static void onLoadDemoCommand(Console* console, tic_script_config* script)
 {
-    if(studioCartChanged())
+    if(studioCartChanged(console->studio))
     {
         static const char* Rows[] =
         {
@@ -1036,7 +1036,7 @@ static void onLoadDemoCommand(Console* console, tic_script_config* script)
         };
 
         LoadDemoConfirmData data = {console, onLoadDemoCommandConfirmed, script};
-        confirmDialog(Rows, COUNT_OF(Rows), onLoadDemoConfirm, MOVE(data));
+        confirmDialog(console->studio, Rows, COUNT_OF(Rows), onLoadDemoConfirm, MOVE(data));
     }
     else
     {
@@ -1046,7 +1046,7 @@ static void onLoadDemoCommand(Console* console, tic_script_config* script)
 
 static void onLoadCommand(Console* console)
 {
-    if(studioCartChanged())
+    if(studioCartChanged(console->studio))
     {
         static const char* Rows[] =
         {
@@ -1081,7 +1081,7 @@ static void loadDemo(Console* console, tic_script_config* script)
 
     memset(console->rom.name, 0, sizeof console->rom.name);
 
-    studioRomLoaded();
+    studioRomLoaded(console->studio);
 }
 
 static void onNewCommandConfirmed(Console* console)
@@ -1122,7 +1122,7 @@ static void onNewCommandConfirmed(Console* console)
 
 static void onNewCommand(Console* console)
 {
-    if(studioCartChanged())
+    if(studioCartChanged(console->studio))
     {
         static const char* Rows[] =
         {
@@ -1444,7 +1444,7 @@ static void onInstallDemosCommand(Console* console)
                 printLine(console);
             }
         }
-	FOR_EACH_LANG_END
+    FOR_EACH_LANG_END
 
         tic_fs_dirback(fs);
     }
@@ -1454,13 +1454,13 @@ static void onInstallDemosCommand(Console* console)
 
 static void onGameMenuCommand(Console* console)
 {
-    gotoMenu();
+    gotoMenu(console->studio);
     commandDone(console);
 }
 
 static void onSurfCommand(Console* console)
 {
-    gotoSurf();
+    gotoSurf(console->studio);
 }
 
 static void loadExt(Console* console, const char* path)
@@ -1610,7 +1610,7 @@ static void onImport_code(Console* console, const char* name, const void* buffer
         memset(tic->cart.code.data, 0, Size);
         memcpy(tic->cart.code.data, buffer, MIN(size, Size));
 
-        studioRomLoaded();
+        studioRomLoaded(console->studio);
     }
     else error = true;
 
@@ -2050,7 +2050,7 @@ static void onExport_sfx(Console* console, const char* param, const char* name, 
     bool error = true;
 
     if(params.id >= 0 && params.id < SFX_COUNT)
-        error = studioExportSfx(params.id, filename) == NULL;
+        error = studioExportSfx(console->studio, params.id, filename) == NULL;
 
     onFileExported(console, filename, !error);
 }
@@ -2061,7 +2061,7 @@ static void onExport_music(Console* console, const char* type, const char* name,
     bool error = true;
 
     if(params.id >= 0 && params.id < MUSIC_TRACKS)
-        error = studioExportMusic(params.id, filename) == NULL;
+        error = studioExportMusic(console->studio, params.id, filename) == NULL;
 
     onFileExported(console, filename, !error);
 }
@@ -2160,7 +2160,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
             if(strcmp(name, CONFIG_TIC_PATH) == 0)
             {
                 console->config->save(console->config);
-                studioRomSaved();
+                studioRomSaved(console->studio);
                 free(buffer);
                 return CART_SAVE_OK;
             }
@@ -2222,7 +2222,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
 
                             u32* ptr = img.values + PaddingTop * CoverWidth + PaddingLeft;
                             const u8* screen = tic->ram.vram.screen.data;
-                            const tic_rgb* pal = getConfig()->cart->bank0.palette.vbank0.colors;
+                            const tic_rgb* pal = getConfig(console->studio)->cart->bank0.palette.vbank0.colors;
 
                             for(s32 y = 0; y < Height; y++)
                                 for(s32 x = 0; x < Width; x++)
@@ -2266,7 +2266,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
                 {
                     setCartName(console, name, tic_fs_path(console->fs, name));
                     success = true;
-                    studioRomSaved();
+                    studioRomSaved(console->studio);
                 }
             }
 
@@ -2334,14 +2334,14 @@ static void onRunCommand(Console* console)
 {
     commandDone(console);
 
-    runGame();
+    runGame(console->studio);
 }
 
 static void onResumeCommand(Console* console)
 {
     commandDone(console);
 
-    resumeGame();
+    resumeGame(console->studio);
 }
 
 static void onEvalCommand(Console* console)
@@ -3583,14 +3583,14 @@ static void processMouse(Console* console)
 
     tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
 
-    if(checkMousePos(&rect))
-        setCursor(tic_cursor_ibeam);
+    if(checkMousePos(console->studio, &rect))
+        setCursor(console->studio, tic_cursor_ibeam);
 
 #if defined(__TIC_ANDROID__)
 
-    if(checkMouseDown(&rect, tic_mouse_left))
+    if(checkMouseDown(console->studio, &rect, tic_mouse_left))
     {
-        setCursor(tic_cursor_hand);
+        setCursor(console->studio, tic_cursor_hand);
 
         if(console->scroll.active)
         {
@@ -3606,7 +3606,7 @@ static void processMouse(Console* console)
 
 #else
 
-    if(checkMouseDown(&rect, tic_mouse_left))
+    if(checkMouseDown(console->studio, &rect, tic_mouse_left))
     {
         tic_point m = tic_api_mouse(tic);
 
@@ -3624,7 +3624,7 @@ static void processMouse(Console* console)
 
 #endif
 
-    if(checkMouseClick(&rect, tic_mouse_middle))
+    if(checkMouseClick(console->studio, &rect, tic_mouse_middle))
     {
         char* text = getSelectionText(console);
 
@@ -3661,7 +3661,7 @@ static void processKeyboard(Console* console)
 
     if(tic->ram.input.keyboard.data != 0)
     {
-        switch(getClipboardEvent())
+        switch(getClipboardEvent(console->studio))
         {
         case TIC_CLIPBOARD_COPY: copyToClipboard(console); break;
         case TIC_CLIPBOARD_PASTE: copyFromClipboard(console); break;
@@ -3670,28 +3670,28 @@ static void processKeyboard(Console* console)
 
         console->cursor.delay = CONSOLE_CURSOR_DELAY;
 
-        if(keyWasPressed(tic_key_up)) onHistoryUp(console);
-        else if(keyWasPressed(tic_key_down)) onHistoryDown(console);
-        else if(keyWasPressed(tic_key_left))
+        if(keyWasPressed(console->studio, tic_key_up)) onHistoryUp(console);
+        else if(keyWasPressed(console->studio, tic_key_down)) onHistoryDown(console);
+        else if(keyWasPressed(console->studio, tic_key_left))
         {
             if(console->input.pos > 0)
                 console->input.pos--;
         }
-        else if(keyWasPressed(tic_key_right))
+        else if(keyWasPressed(console->studio, tic_key_right))
         {
             console->input.pos++;
             size_t len = strlen(console->input.text);
             if(console->input.pos > len)
                 console->input.pos = len;
         }
-        else if(keyWasPressed(tic_key_return))      processConsoleCommand(console);
-        else if(keyWasPressed(tic_key_backspace))   processConsoleBackspace(console);
-        else if(keyWasPressed(tic_key_delete))      processConsoleDel(console);
-        else if(keyWasPressed(tic_key_home))        processConsoleHome(console);
-        else if(keyWasPressed(tic_key_end))         processConsoleEnd(console);
-        else if(keyWasPressed(tic_key_tab))         processConsoleTab(console);
-        else if(keyWasPressed(tic_key_pageup))      processConsolePgUp(console);
-        else if(keyWasPressed(tic_key_pagedown))    processConsolePgDown(console);
+        else if(keyWasPressed(console->studio, tic_key_return))      processConsoleCommand(console);
+        else if(keyWasPressed(console->studio, tic_key_backspace))   processConsoleBackspace(console);
+        else if(keyWasPressed(console->studio, tic_key_delete))      processConsoleDel(console);
+        else if(keyWasPressed(console->studio, tic_key_home))        processConsoleHome(console);
+        else if(keyWasPressed(console->studio, tic_key_end))         processConsoleEnd(console);
+        else if(keyWasPressed(console->studio, tic_key_tab))         processConsoleTab(console);
+        else if(keyWasPressed(console->studio, tic_key_pageup))      processConsolePgUp(console);
+        else if(keyWasPressed(console->studio, tic_key_pagedown))    processConsolePgDown(console);
 
 #       if defined(__TIC_LINUX__)
             tic_keycode clearKey = tic_key_l;
@@ -3702,16 +3702,16 @@ static void processKeyboard(Console* console)
         bool modifier_CTRL = tic_api_key(tic, tic_key_ctrl);
 
         if (modifier_CTRL) {
-            if (keyWasPressed(tic_key_a)) processConsoleHome(console);
-            else if (keyWasPressed(tic_key_e)) processConsoleEnd(console);
-            else if (keyWasPressed(clearKey)) {
+            if (keyWasPressed(console->studio, tic_key_a)) processConsoleHome(console);
+            else if (keyWasPressed(console->studio, tic_key_e)) processConsoleEnd(console);
+            else if (keyWasPressed(console->studio, clearKey)) {
                 onClsCommand(console);
                 return;
             }
         }
     }
 
-    char sym = getKeyboardText();
+    char sym = getKeyboardText(console->studio);
 
     if(sym)
     {
@@ -3730,7 +3730,7 @@ static void tick(Console* console)
     processMouse(console);
     processKeyboard(console);
 
-    Start* start = getStartScreen();
+    Start* start = getStartScreen(console->studio);
 
     if(console->tickCounter == 0)
     {
@@ -3745,7 +3745,7 @@ static void tick(Console* console)
                 printBack(console, " for help\n");
 
 #if defined (TIC_BUILD_WITH_LUA)
-                if(getConfig()->checkNewVersion)
+                if(getConfig(console->studio)->checkNewVersion)
                     tic_net_get(console->net, "/api?fn=version", onHttpVesrsionGet, console);
 #endif
             }
@@ -3755,7 +3755,7 @@ static void tick(Console* console)
         else printBack(console, "\n loading cart...");
     }
 
-    if (getStudioMode() != TIC_CONSOLE_MODE) return;
+    if (getStudioMode(console->studio) != TIC_CONSOLE_MODE) return;
 
     tic_api_cls(tic, TIC_COLOR_BG);
     drawConsoleText(console);
@@ -3764,10 +3764,10 @@ static void tick(Console* console)
     {
         if(console->tickCounter >= (u32)(console->args.skip ? 1 : TIC80_FRAMERATE))
         {
-            runGame();
+            runGame(console->studio);
 
             start->embed = false;
-            studioRomLoaded();
+            studioRomLoaded(console->studio);
 
             printLine(console);
             commandDone(console);
@@ -3795,8 +3795,8 @@ static void tick(Console* console)
 
                 console->commands.current++;
             }
-            else if(getConfig()->cli)
-                exitStudio();
+            else if(getConfig(console->studio)->cli)
+                exitStudio(console->studio);
         }
     }
 
@@ -3856,7 +3856,7 @@ static bool cmdLoadCart(Console* console, const char* path)
     }
 
     if(done)
-        studioRomLoaded();
+        studioRomLoaded(console->studio);
 
     return done;
 }
@@ -3871,7 +3871,7 @@ static s32 apicmp(const void* a, const void* b)
     return strcmp(((const ApiItem*)a)->name, ((const ApiItem*)b)->name);
 }
 
-void initConsole(Console* console, tic_mem* tic, tic_fs* fs, tic_net* net, Config* config, StartArgs args)
+void initConsole(Console* console, Studio* studio, tic_fs* fs, tic_net* net, Config* config, StartArgs args)
 {
     if(!console->text)  console->text = malloc(CONSOLE_BUFFER_SIZE);
     if(!console->color) console->color = malloc(CONSOLE_BUFFER_SIZE);
@@ -3879,7 +3879,8 @@ void initConsole(Console* console, tic_mem* tic, tic_fs* fs, tic_net* net, Confi
 
     *console = (Console)
     {
-        .tic = tic,
+        .studio = studio,
+        .tic = getMemory(studio),
         .config = config,
         .loadByHash = loadByHash,
         .load = loadExt,
@@ -3928,7 +3929,7 @@ void initConsole(Console* console, tic_mem* tic, tic_fs* fs, tic_net* net, Confi
     memset(console->color, TIC_COLOR_BG, CONSOLE_BUFFER_SIZE);
     memset(console->desc, 0, sizeof(CommandDesc));
 
-    Start* start = getStartScreen();
+    Start* start = getStartScreen(console->studio);
 
     if(!console->args.cli)
     {
@@ -3949,7 +3950,7 @@ void initConsole(Console* console, tic_mem* tic, tic_fs* fs, tic_net* net, Confi
             exit(1);
         }
         else 
-            getStartScreen()->embed = true;
+            getStartScreen(console->studio)->embed = true;
 
     console->active = !start->embed;
 }

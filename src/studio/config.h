@@ -28,6 +28,7 @@ typedef struct Config Config;
 
 struct Config
 {
+    Studio* studio;
     tic_mem* tic;
     struct tic_fs* fs;
 
@@ -38,5 +39,5 @@ struct Config
     void(*reset)(Config*);
 };
 
-void initConfig(Config* config, tic_mem* tic, struct tic_fs* fs);
+void initConfig(Config* config, Studio* studio, struct tic_fs* fs);
 void freeConfig(Config* config);

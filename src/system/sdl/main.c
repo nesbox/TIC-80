@@ -1630,7 +1630,7 @@ static void emsGpuTick()
 static s32 start(s32 argc, char **argv, const char* folder)
 {
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK);
-    platform.studio = studio_init(argc, argv, TIC80_SAMPLERATE, SCREEN_FORMAT, folder);
+    platform.studio = studio_create(argc, argv, TIC80_SAMPLERATE, SCREEN_FORMAT, folder);
 
     SCOPE(studio_delete(platform.studio))
     {

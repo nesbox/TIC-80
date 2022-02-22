@@ -693,7 +693,7 @@ void tic_core_blit(tic_mem* tic)
 tic_mem* tic_core_create(s32 samplerate, tic80_pixel_color_format format)
 {
     tic_core* core = (tic_core*)malloc(sizeof(tic_core));
-    *core = (tic_core){0};
+    memset(core, 0, sizeof(tic_core));
 
     tic80* product = &core->memory.product;
 

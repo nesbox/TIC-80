@@ -20,11 +20,21 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "studio/studio_impl.h"
-#include "main_menu.h"
+#include "studio/studio.h"
+#include "studio/config.h"
+#include "studio/screens/menu.h"
+#include "mainmenu.h"
+
+typedef struct
+{
+    tic_mapping mapping;
+    s32 index;
+    s32 key;
+} Gamepads;
 
 struct StudioMainMenu
 {
+    Studio* studio;
     tic_mem* tic;
     Menu* menu;
 
@@ -49,6 +59,7 @@ StudioMainMenu* studio_mainmenu_init(Menu *menu, Config *config)
     {
         .menu = menu,
         .options = &config->data.options,
+        .studio = config->studio,
         .tic = config->tic,
         .gamepads.key = -1,
     };
@@ -218,7 +229,7 @@ static void gameMenuHandler(void* data, s32 pos)
     StudioMainMenu* main = data;
     tic_mem* tic = main->tic;
     tic_core_script_config(tic)->callback.gamemenu(tic, pos, NULL);
-    resumeGame();
+    resumeGame(main->studio);
 }
 
 static void freeItems(StudioMainMenu* menu)
@@ -285,24 +296,27 @@ static inline s32 mainMenuStart(StudioMainMenu* menu)
 
 static void onResumeGame(void* data, s32 pos)
 {
-    resumeGame();
+    StudioMainMenu* main = data;
+    resumeGame(main->studio);
 }
 
 static void onResetGame(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
     tic_api_reset(main->tic);
-    setStudioMode(TIC_RUN_MODE);
+    setStudioMode(main->studio, TIC_RUN_MODE);
 }
 
 static void onExitStudio(void* data, s32 pos)
 {
-    exitStudio();
+    StudioMainMenu* main = data;
+    exitStudio(main->studio);
 }
 
 static void onExitGame(void* data, s32 pos)
 {
-    exitGame();
+    StudioMainMenu* main = data;
+    exitGame(main->studio);
 }
 
 static const MenuItem MainMenu[] =

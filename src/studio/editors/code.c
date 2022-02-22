@@ -84,9 +84,9 @@ static void drawStatus(Code* code)
     enum {Height = TIC_FONT_HEIGHT + 1, StatusY = TIC80_HEIGHT - TIC_FONT_HEIGHT};
 
     tic_api_rect(code->tic, 0, TIC80_HEIGHT - Height, TIC80_WIDTH, Height, code->status.color);
-    tic_api_print(code->tic, code->status.line, 0, StatusY, getConfig()->theme.code.BG, true, 1, false);
+    tic_api_print(code->tic, code->status.line, 0, StatusY, getConfig(code->studio)->theme.code.BG, true, 1, false);
     tic_api_print(code->tic, code->status.size, TIC80_WIDTH - (s32)strlen(code->status.size) * TIC_FONT_WIDTH, 
-        StatusY, getConfig()->theme.code.BG, true, 1, false);
+        StatusY, getConfig(code->studio)->theme.code.BG, true, 1, false);
 }
 
 static char* getPosByLine(char* ptr, s32 line)
@@ -143,17 +143,17 @@ static void drawBookmarks(Code* code)
 
     tic_api_rect(code->tic, rect.x, rect.y, rect.w, rect.h, tic_color_grey);
 
-    if(checkMousePos(&rect))
+    if(checkMousePos(code->studio, &rect))
     {
-        setCursor(tic_cursor_hand);
+        setCursor(code->studio, tic_cursor_hand);
 
-        showTooltip("BOOKMARK [ctrl+f1]");
+        showTooltip(code->studio, "BOOKMARK [ctrl+f1]");
 
         s32 line = (tic_api_mouse(tic).y - rect.y) / STUDIO_TEXT_HEIGHT;
 
-        drawBitIcon(tic_icon_bookmark, rect.x, rect.y + line * STUDIO_TEXT_HEIGHT - 1, tic_color_dark_grey);
+        drawBitIcon(code->studio, tic_icon_bookmark, rect.x, rect.y + line * STUDIO_TEXT_HEIGHT - 1, tic_color_dark_grey);
 
-        if(checkMouseClick(&rect, tic_mouse_left))
+        if(checkMouseClick(code->studio, &rect, tic_mouse_left))
             toggleBookmark(code, getPosByLine(code->src, line + code->scroll.y));
     }
 
@@ -165,8 +165,8 @@ static void drawBookmarks(Code* code)
     {
         if(syntaxPointer++->bookmark)
         {
-            drawBitIcon(tic_icon_bookmark, rect.x, rect.y + y * STUDIO_TEXT_HEIGHT, tic_color_black);
-            drawBitIcon(tic_icon_bookmark, rect.x, rect.y + y * STUDIO_TEXT_HEIGHT - 1, tic_color_yellow);
+            drawBitIcon(code->studio, tic_icon_bookmark, rect.x, rect.y + y * STUDIO_TEXT_HEIGHT, tic_color_black);
+            drawBitIcon(code->studio, tic_icon_bookmark, rect.x, rect.y + y * STUDIO_TEXT_HEIGHT - 1, tic_color_yellow);
         }
 
         if(*pointer++ == '\n')y++;
@@ -192,17 +192,17 @@ static void drawCursor(Code* code, s32 x, s32 y, char symbol)
         if(code->shadowText)
             tic_api_rect(code->tic, x, y, getFontWidth(code)+1, TIC_FONT_HEIGHT+1, 0);
 
-        tic_api_rect(code->tic, x-1, y-1, getFontWidth(code)+1, TIC_FONT_HEIGHT+1, getConfig()->theme.code.cursor);
+        tic_api_rect(code->tic, x-1, y-1, getFontWidth(code)+1, TIC_FONT_HEIGHT+1, getConfig(code->studio)->theme.code.cursor);
 
         if(symbol)
-            drawChar(code->tic, symbol, x, y, getConfig()->theme.code.BG, code->altFont);
+            drawChar(code->tic, symbol, x, y, getConfig(code->studio)->theme.code.BG, code->altFont);
     }
 }
 
 static void drawMatchedDelim(Code* code, s32 x, s32 y, char symbol, u8 color)
 {
     tic_api_rectb(code->tic, x-1, y-1, (getFontWidth(code))+1, TIC_FONT_HEIGHT+1,
-                  getConfig()->theme.code.cursor);
+                  getConfig(code->studio)->theme.code.cursor);
     drawChar(code->tic, symbol, x, y, color, code->altFont);
 }
 
@@ -215,9 +215,9 @@ static void drawCode(Code* code, bool withCursor)
     s32 y = rect.y - code->scroll.y * STUDIO_TEXT_HEIGHT;
     const char* pointer = code->src;
 
-    u8 selectColor = getConfig()->theme.code.select;
+    u8 selectColor = getConfig(code->studio)->theme.code.select;
 
-    const u8* colors = (const u8*)&getConfig()->theme.code;
+    const u8* colors = (const u8*)&getConfig(code->studio)->theme.code;
     const CodeState* syntaxPointer = code->state;
 
     struct { char* start; char* end; } selection = 
@@ -367,7 +367,7 @@ static void updateEditor(Code* code)
     s32 column = 0;
     s32 line = 0;
     getCursorPosition(code, &column, &line);
-    if(getConfig()->theme.code.matchDelimiters)
+    if(getConfig(code->studio)->theme.code.matchDelimiters)
         code->matchedDelim = findMatchedDelim(code, code->cursor.position);
 
     const s32 BufferWidth = CODE_EDITOR_WIDTH / getFontWidth(code);
@@ -1521,7 +1521,7 @@ static void processKeyboard(Code* code)
 
     bool usedClipboard = true;
 
-    switch(getClipboardEvent())
+    switch(getClipboardEvent(code->studio))
     {
     case TIC_CLIPBOARD_CUT: cutToClipboard(code); break;
     case TIC_CLIPBOARD_COPY: copyToClipboard(code); break;
@@ -1534,14 +1534,14 @@ static void processKeyboard(Code* code)
     bool alt = tic_api_key(tic, tic_key_alt);
 
     bool changedSelection = false;
-    if(keyWasPressed(tic_key_up)
-        || keyWasPressed(tic_key_down)
-        || keyWasPressed(tic_key_left)
-        || keyWasPressed(tic_key_right)
-        || keyWasPressed(tic_key_home)
-        || keyWasPressed(tic_key_end)
-        || keyWasPressed(tic_key_pageup)
-        || keyWasPressed(tic_key_pagedown))
+    if(keyWasPressed(code->studio, tic_key_up)
+        || keyWasPressed(code->studio, tic_key_down)
+        || keyWasPressed(code->studio, tic_key_left)
+        || keyWasPressed(code->studio, tic_key_right)
+        || keyWasPressed(code->studio, tic_key_home)
+        || keyWasPressed(code->studio, tic_key_end)
+        || keyWasPressed(code->studio, tic_key_pageup)
+        || keyWasPressed(code->studio, tic_key_pagedown))
     {
         if(!shift) code->cursor.selection = NULL;
         else if(code->cursor.selection == NULL) code->cursor.selection = code->cursor.position;
@@ -1551,7 +1551,7 @@ static void processKeyboard(Code* code)
     bool usedKeybinding = true;
 
     // handle bookmarks
-    if(keyWasPressed(tic_key_f1))
+    if(keyWasPressed(code->studio, tic_key_f1))
     {
         if(ctrl && shift)
         {
@@ -1577,51 +1577,51 @@ static void processKeyboard(Code* code)
 
     if(ctrl)
     {
-        if(keyWasPressed(tic_key_left))             leftWord(code);
-        else if(keyWasPressed(tic_key_right))       rightWord(code);
-        else if(keyWasPressed(tic_key_tab))         doTab(code, shift, ctrl);
-        else if(keyWasPressed(tic_key_a))           selectAll(code);
-        else if(keyWasPressed(tic_key_z))           undo(code);
-        else if(keyWasPressed(tic_key_y))           redo(code);
-        else if(keyWasPressed(tic_key_f))           setCodeMode(code, TEXT_FIND_MODE);
-        else if(keyWasPressed(tic_key_g))           setCodeMode(code, TEXT_GOTO_MODE);
-        else if(keyWasPressed(tic_key_o))           setCodeMode(code, TEXT_OUTLINE_MODE);
-        else if(keyWasPressed(tic_key_n))           downLine(code);
-        else if(keyWasPressed(tic_key_p))           upLine(code);
-        else if(keyWasPressed(tic_key_e))           endLine(code);
-        else if(keyWasPressed(tic_key_slash))       commentLine(code);
-        else if(keyWasPressed(tic_key_home))        goCodeHome(code);
-        else if(keyWasPressed(tic_key_end))         goCodeEnd(code);
-        else if(keyWasPressed(tic_key_delete))      deleteWord(code);
-        else if(keyWasPressed(tic_key_backspace))   backspaceWord(code);
+        if(keyWasPressed(code->studio, tic_key_left))             leftWord(code);
+        else if(keyWasPressed(code->studio, tic_key_right))       rightWord(code);
+        else if(keyWasPressed(code->studio, tic_key_tab))         doTab(code, shift, ctrl);
+        else if(keyWasPressed(code->studio, tic_key_a))           selectAll(code);
+        else if(keyWasPressed(code->studio, tic_key_z))           undo(code);
+        else if(keyWasPressed(code->studio, tic_key_y))           redo(code);
+        else if(keyWasPressed(code->studio, tic_key_f))           setCodeMode(code, TEXT_FIND_MODE);
+        else if(keyWasPressed(code->studio, tic_key_g))           setCodeMode(code, TEXT_GOTO_MODE);
+        else if(keyWasPressed(code->studio, tic_key_o))           setCodeMode(code, TEXT_OUTLINE_MODE);
+        else if(keyWasPressed(code->studio, tic_key_n))           downLine(code);
+        else if(keyWasPressed(code->studio, tic_key_p))           upLine(code);
+        else if(keyWasPressed(code->studio, tic_key_e))           endLine(code);
+        else if(keyWasPressed(code->studio, tic_key_slash))       commentLine(code);
+        else if(keyWasPressed(code->studio, tic_key_home))        goCodeHome(code);
+        else if(keyWasPressed(code->studio, tic_key_end))         goCodeEnd(code);
+        else if(keyWasPressed(code->studio, tic_key_delete))      deleteWord(code);
+        else if(keyWasPressed(code->studio, tic_key_backspace))   backspaceWord(code);
         else                                        usedKeybinding = false;
     }
     else if(alt)
     {
-        if(keyWasPressed(tic_key_left))         leftWord(code);
-        else if(keyWasPressed(tic_key_right))   rightWord(code);
+        if(keyWasPressed(code->studio, tic_key_left))         leftWord(code);
+        else if(keyWasPressed(code->studio, tic_key_right))   rightWord(code);
         else                                    usedKeybinding = false;
     }
     else
     {
-        if(keyWasPressed(tic_key_up))               upLine(code);
-        else if(keyWasPressed(tic_key_down))        downLine(code);
-        else if(keyWasPressed(tic_key_left))        leftColumn(code);
-        else if(keyWasPressed(tic_key_right))       rightColumn(code);
-        else if(keyWasPressed(tic_key_home))        goHome(code);
-        else if(keyWasPressed(tic_key_end))         goEnd(code);
-        else if(keyWasPressed(tic_key_pageup))      pageUp(code);
-        else if(keyWasPressed(tic_key_pagedown))    pageDown(code);
-        else if(keyWasPressed(tic_key_delete))      deleteChar(code);
-        else if(keyWasPressed(tic_key_backspace))   backspaceChar(code);
-        else if(keyWasPressed(tic_key_return))      newLine(code);
-        else if(keyWasPressed(tic_key_tab))         doTab(code, shift, ctrl);
+        if(keyWasPressed(code->studio, tic_key_up))               upLine(code);
+        else if(keyWasPressed(code->studio, tic_key_down))        downLine(code);
+        else if(keyWasPressed(code->studio, tic_key_left))        leftColumn(code);
+        else if(keyWasPressed(code->studio, tic_key_right))       rightColumn(code);
+        else if(keyWasPressed(code->studio, tic_key_home))        goHome(code);
+        else if(keyWasPressed(code->studio, tic_key_end))         goEnd(code);
+        else if(keyWasPressed(code->studio, tic_key_pageup))      pageUp(code);
+        else if(keyWasPressed(code->studio, tic_key_pagedown))    pageDown(code);
+        else if(keyWasPressed(code->studio, tic_key_delete))      deleteChar(code);
+        else if(keyWasPressed(code->studio, tic_key_backspace))   backspaceChar(code);
+        else if(keyWasPressed(code->studio, tic_key_return))      newLine(code);
+        else if(keyWasPressed(code->studio, tic_key_tab))         doTab(code, shift, ctrl);
         else                                        usedKeybinding = false;
     }
 
     if(!usedKeybinding)
     {
-        if(shift && keyWasPressed(tic_key_return))
+        if(shift && keyWasPressed(code->studio, tic_key_return))
         {
             newLineAutoClose(code);
             usedKeybinding = true;
@@ -1637,10 +1637,10 @@ static void processMouse(Code* code)
 
     tic_rect rect = {BOOKMARK_WIDTH, TOOLBAR_SIZE, CODE_EDITOR_WIDTH, CODE_EDITOR_HEIGHT};
 
-    if(checkMousePos(&rect))
+    if(checkMousePos(code->studio, &rect))
     {
-        bool useDrag = (code->mode == TEXT_DRAG_CODE && checkMouseDown(&rect, tic_mouse_left)) || checkMouseDown(&rect, tic_mouse_right);
-        setCursor(code->mode == TEXT_DRAG_CODE || useDrag ? tic_cursor_hand : tic_cursor_ibeam);
+        bool useDrag = (code->mode == TEXT_DRAG_CODE && checkMouseDown(code->studio, &rect, tic_mouse_left)) || checkMouseDown(code->studio, &rect, tic_mouse_right);
+        setCursor(code->studio, code->mode == TEXT_DRAG_CODE || useDrag ? tic_cursor_hand : tic_cursor_ibeam);
 
         if(code->scroll.active)
         {
@@ -1664,7 +1664,7 @@ static void processMouse(Code* code)
             }
             else 
             {
-                if(checkMouseDown(&rect, tic_mouse_left))
+                if(checkMouseDown(code->studio, &rect, tic_mouse_left))
                 {
                     s32 mx = tic_api_mouse(tic).x;
                     s32 my = tic_api_mouse(tic).y;
@@ -1704,7 +1704,7 @@ static void textDragTick(Code* code)
 
     processMouse(code);
 
-    tic_api_cls(code->tic, getConfig()->theme.code.BG);
+    tic_api_cls(code->tic, getConfig(code->studio)->theme.code.BG);
 
     drawCode(code, true);   
     drawStatus(code);
@@ -1738,7 +1738,7 @@ static void textEditTick(Code* code)
 
     if(!tic_api_key(tic, tic_key_ctrl) && !tic_api_key(tic, tic_key_alt))
     {
-        char sym = getKeyboardText();
+        char sym = getKeyboardText(code->studio);
 
         if(sym)
         {
@@ -1749,7 +1749,7 @@ static void textEditTick(Code* code)
 
     processMouse(code);
 
-    tic_api_cls(code->tic, getConfig()->theme.code.BG);
+    tic_api_cls(code->tic, getConfig(code->studio)->theme.code.BG);
 
     drawCode(code, true);   
     drawStatus(code);
@@ -1817,22 +1817,22 @@ static char* downStrStr(const char* start, const char* from, const char* substr)
 
 static void textFindTick(Code* code)
 {
-    if(keyWasPressed(tic_key_return)) setCodeMode(code, TEXT_EDIT_MODE);
-    else if(keyWasPressed(tic_key_up)
-        || keyWasPressed(tic_key_down)
-        || keyWasPressed(tic_key_left)
-        || keyWasPressed(tic_key_right))
+    if(keyWasPressed(code->studio, tic_key_return)) setCodeMode(code, TEXT_EDIT_MODE);
+    else if(keyWasPressed(code->studio, tic_key_up)
+        || keyWasPressed(code->studio, tic_key_down)
+        || keyWasPressed(code->studio, tic_key_left)
+        || keyWasPressed(code->studio, tic_key_right))
     {
         if(*code->popup.text)
         {
-            bool reverse = keyWasPressed(tic_key_up) || keyWasPressed(tic_key_left);
+            bool reverse = keyWasPressed(code->studio, tic_key_up) || keyWasPressed(code->studio, tic_key_left);
             char* (*func)(const char*, const char*, const char*) = reverse ? upStrStr : downStrStr;
             char* from = reverse ? MIN(code->cursor.position, code->cursor.selection) : MAX(code->cursor.position, code->cursor.selection);
             char* pos = func(code->src, from, code->popup.text);
             updateFindCode(code, pos);
         }
     }
-    else if(keyWasPressed(tic_key_backspace))
+    else if(keyWasPressed(code->studio, tic_key_backspace))
     {
         if(*code->popup.text)
         {
@@ -1841,7 +1841,7 @@ static void textFindTick(Code* code)
         }
     }
 
-    char sym = getKeyboardText();
+    char sym = getKeyboardText(code->studio);
 
     if(sym)
     {
@@ -1853,7 +1853,7 @@ static void textFindTick(Code* code)
         }
     }
 
-    tic_api_cls(code->tic, getConfig()->theme.code.BG);
+    tic_api_cls(code->tic, getConfig(code->studio)->theme.code.BG);
 
     drawCode(code, false);
     drawPopupBar(code, "FIND:");
@@ -1883,14 +1883,14 @@ static void textGoToTick(Code* code)
 {
     tic_mem* tic = code->tic;
 
-    if(keyWasPressed(tic_key_return))
+    if(keyWasPressed(code->studio, tic_key_return))
     {
         if(*code->popup.text)
             updateGotoCode(code);
 
         setCodeMode(code, TEXT_EDIT_MODE);
     }
-    else if(keyWasPressed(tic_key_backspace))
+    else if(keyWasPressed(code->studio, tic_key_backspace))
     {
         if(*code->popup.text)
         {
@@ -1899,7 +1899,7 @@ static void textGoToTick(Code* code)
         }
     }
 
-    char sym = getKeyboardText();
+    char sym = getKeyboardText(code->studio);
 
     if(sym)
     {
@@ -1911,11 +1911,11 @@ static void textGoToTick(Code* code)
         }
     }
 
-    tic_api_cls(tic, getConfig()->theme.code.BG);
+    tic_api_cls(tic, getConfig(code->studio)->theme.code.BG);
 
     if(code->jump.line >= 0)
         tic_api_rect(tic, 0, (code->jump.line - code->scroll.y) * (TIC_FONT_HEIGHT+1) + TOOLBAR_SIZE,
-            TIC80_WIDTH, TIC_FONT_HEIGHT+2, getConfig()->theme.code.select);
+            TIC80_WIDTH, TIC_FONT_HEIGHT+2, getConfig(code->studio)->theme.code.select);
 
     drawCode(code, false);
     drawPopupBar(code, "GOTO:");
@@ -1927,7 +1927,7 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
     tic_mem* tic = code->tic;
     tic_rect rect = {x, y, TIC80_WIDTH - x, TIC80_HEIGHT - y};
 
-    if(checkMousePos(&rect))
+    if(checkMousePos(code->studio, &rect))
     {
         s32 mx = tic_api_mouse(tic).y - rect.y;
         mx /= STUDIO_TEXT_HEIGHT;
@@ -1935,15 +1935,15 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 
         if(mx >= 0 && mx < code->outline.size && code->outline.items[mx].pos)
         {
-            setCursor(tic_cursor_hand);
+            setCursor(code->studio, tic_cursor_hand);
 
-            if(checkMouseDown(&rect, tic_mouse_left))
+            if(checkMouseDown(code->studio, &rect, tic_mouse_left))
             {
                 code->outline.index = mx;
                 updateOutlineCode(code);
             }
 
-            if(checkMouseClick(&rect, tic_mouse_left))
+            if(checkMouseClick(code->studio, &rect, tic_mouse_left))
                 setCodeMode(code, TEXT_EDIT_MODE);
         }
     }
@@ -2014,30 +2014,30 @@ static void textOutlineTick(Code* code)
         }
     }
 
-    if(keyWasPressed(tic_key_up))
+    if(keyWasPressed(code->studio, tic_key_up))
         updateOutlineIndex(code, code->outline.index - 1);
 
-    else if(keyWasPressed(tic_key_down))
+    else if(keyWasPressed(code->studio, tic_key_down))
         updateOutlineIndex(code, code->outline.index + 1);
 
-    else if(keyWasPressed(tic_key_left) || keyWasPressed(tic_key_pageup))
+    else if(keyWasPressed(code->studio, tic_key_left) || keyWasPressed(code->studio, tic_key_pageup))
         updateOutlineIndex(code, code->outline.index - TEXT_BUFFER_HEIGHT);
 
-    else if(keyWasPressed(tic_key_right) || keyWasPressed(tic_key_pagedown))
+    else if(keyWasPressed(code->studio, tic_key_right) || keyWasPressed(code->studio, tic_key_pagedown))
         updateOutlineIndex(code, code->outline.index + TEXT_BUFFER_HEIGHT);
 
-    else if(keyWasPressed(tic_key_home))
+    else if(keyWasPressed(code->studio, tic_key_home))
         updateOutlineIndex(code, 0);
 
-    else if(keyWasPressed(tic_key_end))
+    else if(keyWasPressed(code->studio, tic_key_end))
         updateOutlineIndex(code, code->outline.size - 1);
 
-    else if(keyWasPressed(tic_key_return))
+    else if(keyWasPressed(code->studio, tic_key_return))
     {
         updateOutlineCode(code);
         setCodeMode(code, TEXT_EDIT_MODE);
     }
-    else if(keyWasPressed(tic_key_backspace))
+    else if(keyWasPressed(code->studio, tic_key_backspace))
     {
         if(*code->popup.text)
         {
@@ -2046,7 +2046,7 @@ static void textOutlineTick(Code* code)
         }
     }
 
-    char sym = getKeyboardText();
+    char sym = getKeyboardText(code->studio);
 
     if(sym)
     {
@@ -2058,7 +2058,7 @@ static void textOutlineTick(Code* code)
         }
     }
 
-    tic_api_cls(code->tic, getConfig()->theme.code.BG);
+    tic_api_cls(code->tic, getConfig(code->studio)->theme.code.BG);
 
     drawCode(code, false);
     drawStatus(code);
@@ -2074,15 +2074,15 @@ static void drawFontButton(Code* code, s32 x, s32 y)
     tic_rect rect = {x, y, Size, Size};
 
     bool over = false;
-    if(checkMousePos(&rect))
+    if(checkMousePos(code->studio, &rect))
     {
-        setCursor(tic_cursor_hand);
+        setCursor(code->studio, tic_cursor_hand);
 
-        showTooltip("SWITCH FONT");
+        showTooltip(code->studio, "SWITCH FONT");
 
         over = true;
 
-        if(checkMouseClick(&rect, tic_mouse_left))
+        if(checkMouseClick(code->studio, &rect, tic_mouse_left))
         {
             code->altFont = !code->altFont;
         }
@@ -2099,24 +2099,24 @@ static void drawShadowButton(Code* code, s32 x, s32 y)
     tic_rect rect = {x, y, Size, Size};
 
     bool over = false;
-    if(checkMousePos(&rect))
+    if(checkMousePos(code->studio, &rect))
     {
-        setCursor(tic_cursor_hand);
+        setCursor(code->studio, tic_cursor_hand);
 
-        showTooltip("SHOW SHADOW");
+        showTooltip(code->studio, "SHOW SHADOW");
 
         over = true;
 
-        if(checkMouseClick(&rect, tic_mouse_left))
+        if(checkMouseClick(code->studio, &rect, tic_mouse_left))
         {
             code->shadowText = !code->shadowText;
         }
     }
 
-    drawBitIcon(tic_icon_shadow, x, y, over && !code->shadowText ? tic_color_grey : tic_color_light_grey);
+    drawBitIcon(code->studio, tic_icon_shadow, x, y, over && !code->shadowText ? tic_color_grey : tic_color_light_grey);
 
     if(code->shadowText)
-        drawBitIcon(tic_icon_shadow2, x, y, tic_color_black);
+        drawBitIcon(code->studio, tic_icon_shadow2, x, y, tic_color_black);
 }
 
 static void drawRunButton(Code* code, s32 x, s32 y)
@@ -2127,17 +2127,17 @@ static void drawRunButton(Code* code, s32 x, s32 y)
     tic_rect rect = {x, y, Size, Size};
 
     bool over = false;
-    if(checkMousePos(&rect))
+    if(checkMousePos(code->studio, &rect))
     {
-        setCursor(tic_cursor_hand);
-        showTooltip("RUN [ctrl+r]");
+        setCursor(code->studio, tic_cursor_hand);
+        showTooltip(code->studio, "RUN [ctrl+r]");
         over = true;
 
-        if(checkMouseClick(&rect, tic_mouse_left))
-            runGame();
+        if(checkMouseClick(code->studio, &rect, tic_mouse_left))
+            runGame(code->studio);
     }
 
-    drawBitIcon(tic_icon_run, x, y, over ? tic_color_grey : tic_color_light_grey);
+    drawBitIcon(code->studio, tic_icon_run, x, y, over ? tic_color_grey : tic_color_light_grey);
 }
 
 static void drawCodeToolbar(Code* code)
@@ -2155,15 +2155,15 @@ static void drawCodeToolbar(Code* code)
         tic_rect rect = {TIC80_WIDTH + (i - Count) * Size, 0, Size, Size};
 
         bool over = false;
-        if(checkMousePos(&rect))
+        if(checkMousePos(code->studio, &rect))
         {
-            setCursor(tic_cursor_hand);
+            setCursor(code->studio, tic_cursor_hand);
 
-            showTooltip(Tips[i]);
+            showTooltip(code->studio, Tips[i]);
 
             over = true;
 
-            if(checkMouseClick(&rect, tic_mouse_left))
+            if(checkMouseClick(code->studio, &rect, tic_mouse_left))
             {
                 if(code->mode == i) code->escape(code);
                 else setCodeMode(code, i);
@@ -2174,17 +2174,17 @@ static void drawCodeToolbar(Code* code)
         if (active)
         {
             tic_api_rect(code->tic, rect.x, rect.y, Size, Size, tic_color_grey);
-            drawBitIcon(Icons[i], rect.x, rect.y + 1, tic_color_black);
+            drawBitIcon(code->studio, Icons[i], rect.x, rect.y + 1, tic_color_black);
         }            
 
-        drawBitIcon(Icons[i], rect.x, rect.y, active ? tic_color_white : (over ? tic_color_grey : tic_color_light_grey));
+        drawBitIcon(code->studio, Icons[i], rect.x, rect.y, active ? tic_color_white : (over ? tic_color_grey : tic_color_light_grey));
     }
 
     drawFontButton(code, TIC80_WIDTH - (Count+3) * Size, 1);
     drawShadowButton(code, TIC80_WIDTH - (Count+2) * Size, 0);
     drawRunButton(code, TIC80_WIDTH - (Count+1) * Size, 0);
 
-    drawToolbar(code->tic, false);
+    drawToolbar(code->studio, code->tic, false);
 }
 
 static void tick(Code* code)
@@ -2261,7 +2261,7 @@ static void freeAnim(Code* code)
     FREE(code->anim.hide.items);
 }
 
-void initCode(Code* code, tic_mem* tic, tic_code* src)
+void initCode(Code* code, Studio* studio, tic_code* src)
 {
     bool firstLoad = code->state == NULL;
     FREE(code->state);
@@ -2271,7 +2271,8 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
 
     *code = (Code)
     {
-        .tic = tic,
+        .studio = studio,
+        .tic = getMemory(studio),
         .src = src->data,
         .tick = tick,
         .escape = escape,
@@ -2295,8 +2296,8 @@ void initCode(Code* code, tic_mem* tic, tic_code* src)
             .scroll = 0,
         },
         .matchedDelim = NULL,
-        .altFont = firstLoad ? getConfig()->theme.code.altFont : code->altFont,
-        .shadowText = getConfig()->theme.code.shadow,
+        .altFont = firstLoad ? getConfig(studio)->theme.code.altFont : code->altFont,
+        .shadowText = getConfig(studio)->theme.code.shadow,
         .anim =
         {
             .idle = {.done = emptyDone,},

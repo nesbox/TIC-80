@@ -28,6 +28,7 @@ typedef struct Surf Surf;
 
 struct Surf
 {
+    Studio* studio;
     tic_mem* tic;
     struct tic_fs* fs;
     struct tic_net* net;
@@ -83,5 +84,5 @@ struct Surf
     void (*scanline)(tic_mem* tic, s32 row, void* data);
 };
 
-void initSurf(Surf* surf, tic_mem* tic, struct Console* console);
+void initSurf(Surf* surf, Studio* studio, struct Console* console);
 void freeSurf(Surf* surf);

@@ -99,7 +99,7 @@ static void drawTopToolbar(Surf* surf, s32 x, s32 y)
     enum{Gap = 10, TipX = 150, SelectWidth = 54};
 
     u8 colorkey = 0;
-    tiles2ram(&tic->ram, &getConfig()->cart->bank0.tiles);
+    tiles2ram(&tic->ram, &getConfig(surf->studio)->cart->bank0.tiles);
     tic_api_spr(tic, 12, TipX, y+1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
     {
         static const char Label[] = "SELECT";
@@ -148,7 +148,7 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
 
         u8 colorkey = 0;
 
-        tiles2ram(&tic->ram, &getConfig()->cart->bank0.tiles);
+        tiles2ram(&tic->ram, &getConfig(surf->studio)->cart->bank0.tiles);
         tic_api_spr(tic, 15, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
         {
             static const char Label[] = "WEBSITE";
@@ -528,7 +528,7 @@ static void goBackDir(Surf* surf)
 
     if(strcmp(dir, "") != 0)
     {
-        playSystemSfx(2);
+        playSystemSfx(surf->studio, 2);
 
         surf->anim.movie = resetMovie(&surf->anim.goback.hide);
     }
@@ -542,14 +542,15 @@ static void changeDirectory(Surf* surf, const char* name)
     }
     else
     {
-        playSystemSfx(2);
+        playSystemSfx(surf->studio, 2);
         surf->anim.movie = resetMovie(&surf->anim.gotodir.hide);
     }
 }
 
 static void onCartLoaded(void* data)
 {
-    runGame();
+    Surf* surf = data;
+    runGame(surf->studio);
 }
 
 static void onPlayCart(void* data)
@@ -559,12 +560,12 @@ static void onPlayCart(void* data)
 
     if (item->hash)
     {
-        surf->console->loadByHash(surf->console, item->name, item->hash, NULL, onCartLoaded, NULL);
+        surf->console->loadByHash(surf->console, item->name, item->hash, NULL, onCartLoaded, surf);
     }
     else
     {
         surf->console->load(surf->console, item->name);
-        runGame();
+        runGame(surf->studio);
     }
 }
 
@@ -619,13 +620,13 @@ static void processGamepad(Surf* surf)
             || tic_api_keyp(tic, tic_key_up, Hold, Period))
         {
             move(surf, -1);
-            playSystemSfx(2);
+            playSystemSfx(surf->studio, 2);
         }
         else if(tic_api_btnp(tic, Down, Hold, Period)
             || tic_api_keyp(tic, tic_key_down, Hold, Period))
         {
             move(surf, +1);
-            playSystemSfx(2);
+            playSystemSfx(surf->studio, 2);
         }
         else if(tic_api_btnp(tic, Left, Hold, Period)
             || tic_api_keyp(tic, tic_key_left, Hold, Period)
@@ -708,7 +709,7 @@ static void tick(Surf* surf)
     if (isIdle(surf) && surf->menu.count > 0)
         processGamepad(surf);
 
-    if (getStudioMode() != TIC_SURF_MODE) return;
+    if (getStudioMode(surf->studio) != TIC_SURF_MODE) return;
 
     if (surf->menu.count > 0)
     {
@@ -723,7 +724,7 @@ static void tick(Surf* surf)
     VBANK(tic, 1)
     {
         tic_api_cls(tic, tic->ram.vram.vars.clear = tic_color_yellow);
-        memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
+        memcpy(tic->ram.vram.palette.data, getConfig(surf->studio)->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
 
         if(surf->menu.count > 0)
         {
@@ -802,13 +803,14 @@ static void moveDone(void* data)
     surf->anim.movie = resetMovie(&surf->anim.idle);
 }
 
-void initSurf(Surf* surf, tic_mem* tic, struct Console* console)
+void initSurf(Surf* surf, Studio* studio, struct Console* console)
 {
     freeAnim(surf);
 
     *surf = (Surf)
     {
-        .tic = tic,
+        .studio = studio,
+        .tic = getMemory(studio),
         .console = console,
         .fs = console->fs,
         .net = console->net,

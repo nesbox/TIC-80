@@ -28,6 +28,7 @@ typedef struct Music Music;
 
 struct Music
 {
+    Studio* studio;
     tic_mem* tic;
     tic_music* src;
 
@@ -87,5 +88,5 @@ struct Music
     void(*event)(Music*, StudioEvent);
 };
 
-void initMusic(Music*, tic_mem*, tic_music* src);
+void initMusic(Music*, Studio* studio, tic_music* src);
 void freeMusic(Music* music);

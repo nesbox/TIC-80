@@ -28,6 +28,7 @@ typedef struct Code Code;
 
 struct Code
 {
+    Studio* studio;
     tic_mem* tic;
 
     char* src;
@@ -134,5 +135,5 @@ struct Code
     void(*update)(Code*);
 };
 
-void initCode(Code*, tic_mem*, tic_code* src);
+void initCode(Code*, Studio* studio, tic_code* src);
 void freeCode(Code*);

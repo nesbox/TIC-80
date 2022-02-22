@@ -221,7 +221,7 @@ static void update(Config* config, const u8* buffer, s32 size)
     tic_cart_load(config->cart, buffer, size);
 
     readConfig(config);
-    studioConfigChanged();
+    studioConfigChanged(config->studio);
 }
 
 static void setDefault(Config* config)
@@ -286,7 +286,7 @@ static void save(Config* config)
     readConfig(config);
     saveConfig(config, true);
 
-    studioConfigChanged();
+    studioConfigChanged(config->studio);
 }
 
 static const char OptionsDatPath[] = TIC_LOCAL_VERSION "options.dat";
@@ -301,11 +301,12 @@ static void loadConfigData(tic_fs* fs, const char* path, void* dst, s32 size)
             memcpy(dst, data, size);
 }
 
-void initConfig(Config* config, tic_mem* tic, tic_fs* fs)
+void initConfig(Config* config, Studio* studio, tic_fs* fs)
 {
     *config = (Config)
     {
-        .tic = tic,
+        .studio = studio,
+        .tic = getMemory(studio),
         .cart = realloc(config->cart, sizeof(tic_cartridge)),
         .save = save,
         .reset = reset,
@@ -330,7 +331,7 @@ void initConfig(Config* config, tic_mem* tic, tic_fs* fs)
 
     loadConfigData(fs, OptionsDatPath, &config->data.options, sizeof config->data.options);
 
-    tic_api_reset(tic);
+    tic_api_reset(config->tic);
 }
 
 void freeConfig(Config* config)

@@ -29,6 +29,7 @@ typedef struct World World;
 
 struct World
 {
+    Studio* studio;
     tic_mem* tic;
     Map* map;
 
@@ -38,5 +39,5 @@ struct World
     void (*scanline)(tic_mem* tic, s32 row, void* data);
 };
 
-void initWorld(World* world, tic_mem* tic, Map* map);
+void initWorld(World* world, Studio* studio, Map* map);
 void freeWorld(World* world);

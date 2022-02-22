@@ -28,6 +28,7 @@ typedef struct Sfx Sfx;
 
 struct Sfx
 {
+    Studio* studio;
     tic_mem* tic;
 
     tic_sfx* src;
@@ -50,5 +51,5 @@ struct Sfx
     void(*event)(Sfx*, StudioEvent);
 };
 
-void initSfx(Sfx*, tic_mem*, tic_sfx* src);
+void initSfx(Sfx*, Studio* studio, tic_sfx* src);
 void freeSfx(Sfx* sfx);

@@ -29,6 +29,7 @@ typedef struct Map Map;
 
 struct Map
 {
+    Studio* studio;
     tic_mem* tic;
 
     tic_map* src;
@@ -107,5 +108,5 @@ struct Map
     void (*scanline)(tic_mem* tic, s32 row, void* data);
 };
 
-void initMap(Map*, tic_mem*, tic_map* src);
+void initMap(Map*, Studio* studio, tic_map* src);
 void freeMap(Map* map);

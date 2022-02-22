@@ -29,6 +29,7 @@ typedef struct Sprite Sprite;
 
 struct Sprite
 {
+    Studio* studio;
     tic_mem* tic;
 
     tic_tiles* src;
@@ -98,6 +99,6 @@ typedef struct
     s32 cell_w, cell_h, cols, rows, length;
 } tic_palette_dimensions;
 
-void initSprite(Sprite*, tic_mem*, tic_tiles* src);
+void initSprite(Sprite*, Studio* studio, tic_tiles* src);
 void freeSprite(Sprite*);
 

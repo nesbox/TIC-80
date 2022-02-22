@@ -55,7 +55,7 @@ static void drawHeader(Start* start)
 
 static void chime(Start* start) 
 {
-    playSystemSfx(1);
+    playSystemSfx(start->studio, 1);
 }
 
 static void stop_chime(Start* start) 
@@ -71,7 +71,7 @@ static void header(Start* start)
 static void start_console(Start* start)
 {
     drawHeader(start);
-    setStudioMode(TIC_CONSOLE_MODE);
+    setStudioMode(start->studio, TIC_CONSOLE_MODE);
 }
 
 static void tick(Start* start)
@@ -114,7 +114,7 @@ static void* _memmem(const void* haystack, size_t hlen, const void* needle, size
     return NULL;
 }
 
-void initStart(Start* start, tic_mem* tic, const char* cart)
+void initStart(Start* start, Studio* studio, const char* cart)
 {
     enum duration {
         immediate = 0,
@@ -124,13 +124,15 @@ void initStart(Start* start, tic_mem* tic, const char* cart)
 
     *start = (Start)
     {
-        .tic = tic,
+        .studio = studio,
+        .tic = getMemory(studio),
         .initialized = true,
         .tick = tick,
         .embed = false,
         .ticks = 0,
         .stage = 0,
-        .stages = {
+        .stages = 
+        {
             { reset, .ticks = one_second },
             { chime, .ticks = immediate },
             { header, .ticks = one_second },
@@ -163,8 +165,8 @@ void initStart(Start* start, tic_mem* tic, const char* cart)
 
         if(data) SCOPE(free(data))
         {
-            tic_cart_load(&tic->cart, data, size);
-            tic_api_reset(tic);
+            tic_cart_load(&start->tic->cart, data, size);
+            tic_api_reset(start->tic);
             start->embed = true;
         }
     }
@@ -212,8 +214,8 @@ void initStart(Start* start, tic_mem* tic, const char* cart)
     
                             if(dataSize)
                             {
-                                tic_cart_load(&tic->cart, data, dataSize);
-                                tic_api_reset(tic);
+                                tic_cart_load(&start->tic->cart, data, dataSize);
+                                tic_api_reset(start->tic);
                                 start->embed = true;
                             }
                                 

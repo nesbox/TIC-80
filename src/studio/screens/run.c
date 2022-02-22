@@ -37,7 +37,7 @@ static void onError(void* data, const char* info)
 {
     Run* run = (Run*)data;
 
-    setStudioMode(TIC_CONSOLE_MODE);
+    setStudioMode(run->studio, TIC_CONSOLE_MODE);
     run->console->error(run->console, info);
 }
 
@@ -101,7 +101,7 @@ static void onEmptyError(void* data, const char* info) {}
 
 static void tick(Run* run)
 {
-    if (getStudioMode() != TIC_RUN_MODE)
+    if (getStudioMode(run->studio) != TIC_RUN_MODE)
         return;
 
     tic_mem* tic = run->tic;
@@ -125,14 +125,15 @@ static void tick(Run* run)
     }
 
     if(run->exit)
-        setStudioMode(TIC_CONSOLE_MODE);
+        setStudioMode(run->studio, TIC_CONSOLE_MODE);
 }
 
-void initRun(Run* run, Console* console, tic_fs* fs, tic_mem* tic)
+void initRun(Run* run, Console* console, tic_fs* fs, Studio* studio)
 {
     *run = (Run)
     {
-        .tic = tic,
+        .studio = studio,
+        .tic = getMemory(studio),
         .console = console,
         .fs = fs,
         .tick = tick,
@@ -141,7 +142,7 @@ void initRun(Run* run, Console* console, tic_fs* fs, tic_mem* tic)
 
     {
         enum {Size = sizeof(tic_persistent)};
-        memset(&tic->ram.persistent, 0, Size);
+        memset(&run->tic->ram.persistent, 0, Size);
 
         initPMemName(run);
 
@@ -150,11 +151,11 @@ void initRun(Run* run, Console* console, tic_fs* fs, tic_mem* tic)
 
         if(data) SCOPE(free(data))
         {
-            memset(&tic->ram.persistent, 0, Size);
-            memcpy(&tic->ram.persistent, data, MIN(size, Size));
+            memset(&run->tic->ram.persistent, 0, Size);
+            memcpy(&run->tic->ram.persistent, data, MIN(size, Size));
         }
 
-        memcpy(run->pmem.data, tic->ram.persistent.data, Size);
+        memcpy(run->pmem.data, run->tic->ram.persistent.data, Size);
     }
 
     tic_sys_preseed();

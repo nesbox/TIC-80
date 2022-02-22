@@ -33,6 +33,7 @@
 #include "defines.h"
 #include "tools.h"
 #include "system.h"
+#include "anim.h"
 #include "ext/png.h"
 
 #define KEYBOARD_HOLD 20
@@ -79,12 +80,12 @@
     macro(version,      bool,   BOOLEAN,    "",         "print program version")            \
     CRT_CMD_PARAM(macro)
 
-#define SHOW_TOOLTIP(FORMAT, ...)           \
+#define SHOW_TOOLTIP(STUDIO, FORMAT, ...)   \
 do{                                         \
     static const char Format[] = FORMAT;    \
     static char buf[sizeof Format];         \
     sprintf(buf, Format, __VA_ARGS__);      \
-    showTooltip(buf);                       \
+    showTooltip(STUDIO, buf);               \
 }while(0)
 
 typedef struct
@@ -173,23 +174,23 @@ enum
     tic_icon_bigfill    = 136,
 };
 
-void setCursor(tic_cursor id);
+void setCursor(Studio* studio, tic_cursor id);
 
-bool checkMousePos(const tic_rect* rect);
-bool checkMouseClick(const tic_rect* rect, tic_mouse_btn button);
-bool checkMouseDown(const tic_rect* rect, tic_mouse_btn button);
+bool checkMousePos(Studio* studio, const tic_rect* rect);
+bool checkMouseClick(Studio* studio, const tic_rect* rect, tic_mouse_btn button);
+bool checkMouseDown(Studio* studio, const tic_rect* rect, tic_mouse_btn button);
 
-void drawToolbar(tic_mem* tic, bool bg);
-void drawBitIcon(s32 id, s32 x, s32 y, u8 color);
+void drawToolbar(Studio* studio, tic_mem* tic, bool bg);
+void drawBitIcon(Studio* studio, s32 id, s32 x, s32 y, u8 color);
 
 tic_cartridge* loadPngCart(png_buffer buffer);
-void studioRomLoaded();
-void studioRomSaved();
-void studioConfigChanged();
+void studioRomLoaded(Studio* studio);
+void studioRomSaved(Studio* studio);
+void studioConfigChanged(Studio* studio);
 
-void setStudioMode(EditorMode mode);
-EditorMode getStudioMode();
-void exitStudio();
+void setStudioMode(Studio* studio, EditorMode mode);
+EditorMode getStudioMode(Studio* studio);
+void exitStudio(Studio* studio);
 
 void toClipboard(const void* data, s32 size, bool flip);
 bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces);
@@ -202,7 +203,7 @@ typedef enum
     TIC_CLIPBOARD_PASTE,
 } ClipboardEvent;
 
-ClipboardEvent getClipboardEvent();
+ClipboardEvent getClipboardEvent(Studio* studio);
 
 typedef enum
 {
@@ -213,112 +214,47 @@ typedef enum
     TIC_TOOLBAR_REDO,
 } StudioEvent;
 
-void setStudioEvent(StudioEvent event);
-void showTooltip(const char* text);
+void setStudioEvent(Studio* studio, StudioEvent event);
+void showTooltip(Studio* studio, const char* text);
 
 void setSpritePixel(tic_tile* tiles, s32 x, s32 y, u8 color);
 u8 getSpritePixel(tic_tile* tiles, s32 x, s32 y);
 
-typedef void(*ConfirmCallback)(bool yes, void* data);
-void confirmDialog(const char** text, s32 rows, ConfirmCallback callback, void* data);
+typedef void(*ConfirmCallback)(Studio* studio, bool yes, void* data);
+void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback callback, void* data);
 
-bool studioCartChanged();
-void playSystemSfx(s32 id);
+bool studioCartChanged(Studio* studio);
+void playSystemSfx(Studio* studio, s32 id);
 
-void gotoMenu();
-void gotoCode();
-void gotoSurf();
+void gotoMenu(Studio* studio);
+void gotoCode(Studio* studio);
+void gotoSurf(Studio* studio);
 
-void runGame();
-void exitGame();
-void resumeGame();
+void runGame(Studio* studio);
+void exitGame(Studio* studio);
+void resumeGame(Studio* studio);
 
-tic_tiles* getBankTiles();
-tic_palette* getBankPalette(bool bank);
-tic_flags* getBankFlags();
-tic_map* getBankMap();
+tic_tiles* getBankTiles(Studio* studio);
+tic_palette* getBankPalette(Studio* studio, bool bank);
+tic_flags* getBankFlags(Studio* studio);
+tic_map* getBankMap(Studio* studio);
 
-char getKeyboardText();
-bool keyWasPressed(tic_key key);
-bool anyKeyWasPressed();
+char getKeyboardText(Studio* studio);
+bool keyWasPressed(Studio* studio, tic_key key);
+bool anyKeyWasPressed(Studio* studio);
 
-const StudioConfig* getConfig();
-struct Start* getStartScreen();
-struct Sprite* getSpriteEditor();
+const StudioConfig* getConfig(Studio* studio);
+struct Start* getStartScreen(Studio* studio);
+struct Sprite* getSpriteEditor(Studio* studio);
+
+const char* studioExportMusic(Studio* studio, s32 track, const char* filename);
+const char* studioExportSfx(Studio* studio, s32 sfx, const char* filename);
+
+tic_mem* getMemory(Studio* studio);
 
 const char* md5str(const void* data, s32 length);
 void sfx_stop(tic_mem* tic, s32 channel);
-const char* studioExportMusic(s32 track, const char* filename);
-const char* studioExportSfx(s32 sfx, const char* filename);
 s32 calcWaveAnimation(tic_mem* tic, u32 index, s32 channel);
 void map2ram(tic_ram* ram, const tic_map* src);
 void tiles2ram(tic_ram* ram, const tic_tiles* src);
 void fadePalette(tic_palette* pal, s32 value);
-
-typedef enum
-{
-    AnimLinear,
-    AnimEaseIn,
-    AnimEaseOut,
-    AnimEaseInOut,
-    AnimEaseInCubic,
-    AnimEaseOutCubic,
-    AnimEaseInOutCubic,
-    AnimEaseInQuart,
-    AnimEaseOutQuart,
-    AnimEaseInOutQuart,
-    AnimEaseInQuint,
-    AnimEaseOutQuint,
-    AnimEaseInOutQuint,
-    AnimEaseInSine,
-    AnimEaseOutSine,
-    AnimEaseInOutSine,
-    AnimEaseInExpo,
-    AnimEaseOutExpo,
-    AnimEaseInOutExpo,
-    AnimEaseInCirc,
-    AnimEaseOutCirc,
-    AnimEaseInOutCirc,
-    AnimEaseInBack,
-    AnimEaseOutBack,
-    AnimEaseInOutBack,
-    AnimEaseInElastic,
-    AnimEaseOutElastic,
-    AnimEaseInOutElastic,
-    AnimEaseInBounce,
-    AnimEaseOutBounce,
-    AnimEaseInOutBounce,
-} AnimEffect;
-
-typedef struct
-{
-    s32 start;
-    s32 end;
-    s32 time;
-
-    s32 *value;
-
-    AnimEffect effect;
-} Anim;
-
-typedef struct
-{
-    void(*done)(void *data);
-
-    s32 time;
-    s32 tick;
-
-    s32 count;
-    Anim* items;
-} Movie;
-
-#define MOVIE_DEF(TIME, DONE, ...)              \
-{                                               \
-    .time = TIME,                               \
-    .done = DONE,                               \
-    .count = COUNT_OF(((Anim[])__VA_ARGS__)),   \
-    .items = MOVE((Anim[])__VA_ARGS__),         \
-}
-
-void processAnim(Movie* movie, void* data);
-Movie* resetMovie(Movie* movie);

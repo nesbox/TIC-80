@@ -26,8 +26,9 @@
 
 typedef struct Menu Menu;
 struct tic_mem;
+struct Studio;
 
-Menu* studio_menu_create(struct tic_mem* tic);
+Menu* studio_menu_create(struct Studio* studio);
 void studio_menu_tick(Menu* menu);
 
 typedef s32(*MenuOptionGetHandler)(void*);

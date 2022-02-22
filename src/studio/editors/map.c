@@ -74,19 +74,19 @@ static s32 drawWorldButton(Map* map, s32 x, s32 y)
 
     bool over = false;
 
-    if(checkMousePos(&rect))
+    if(checkMousePos(map->studio, &rect))
     {
-        setCursor(tic_cursor_hand);
+        setCursor(map->studio, tic_cursor_hand);
 
         over = true;
 
-        showTooltip("WORLD MAP [tab]");
+        showTooltip(map->studio, "WORLD MAP [tab]");
 
-        if(checkMouseClick(&rect, tic_mouse_left))
-            setStudioMode(TIC_WORLD_MODE);
+        if(checkMouseClick(map->studio, &rect, tic_mouse_left))
+            setStudioMode(map->studio, TIC_WORLD_MODE);
     }
 
-    drawBitIcon(tic_icon_world, x, y, over ? tic_color_grey : tic_color_light_grey);
+    drawBitIcon(map->studio, tic_icon_world, x, y, over ? tic_color_grey : tic_color_light_grey);
 
     return x;
 
@@ -100,19 +100,19 @@ static s32 drawGridButton(Map* map, s32 x, s32 y)
 
     bool over = false;
 
-    if(checkMousePos(&rect))
+    if(checkMousePos(map->studio, &rect))
     {
-        setCursor(tic_cursor_hand);
+        setCursor(map->studio, tic_cursor_hand);
 
         over = true;
 
-        showTooltip("SHOW/HIDE GRID [`]");
+        showTooltip(map->studio, "SHOW/HIDE GRID [`]");
 
-        if(checkMouseClick(&rect, tic_mouse_left))
+        if(checkMouseClick(map->studio, &rect, tic_mouse_left))
             map->canvas.grid = !map->canvas.grid;
     }
 
-    drawBitIcon(tic_icon_grid, x, y, map->canvas.grid ? tic_color_black : over ? tic_color_grey : tic_color_light_grey);
+    drawBitIcon(map->studio, tic_icon_grid, x, y, map->canvas.grid ? tic_color_black : over ? tic_color_grey : tic_color_light_grey);
 
     return x;
 }
@@ -134,21 +134,21 @@ static s32 drawSheetButton(Map* map, s32 x, s32 y)
     tic_rect rect = {x, y, ICON_SIZE, ICON_SIZE};
 
     bool over = false;
-    if(checkMousePos(&rect))
+    if(checkMousePos(map->studio, &rect))
     {
-        setCursor(tic_cursor_hand);
+        setCursor(map->studio, tic_cursor_hand);
 
         over = true;
-        showTooltip("SHOW TILES [shift]");
+        showTooltip(map->studio, "SHOW TILES [shift]");
 
-        if(isIdle(map) && checkMouseClick(&rect, tic_mouse_left))
+        if(isIdle(map) && checkMouseClick(map->studio, &rect, tic_mouse_left))
         {
             map->anim.movie = resetMovie(sheetVisible(map) ? &map->anim.hide : &map->anim.show);
             map->sheet.keep = true;
         }
     }
 
-    drawBitIcon(sheetVisible(map) ? tic_icon_up : tic_icon_down, rect.x, rect.y, 
+    drawBitIcon(map->studio, sheetVisible(map) ? tic_icon_up : tic_icon_down, rect.x, rect.y, 
         over ? tic_color_grey : tic_color_light_grey);
 
     return x;
@@ -161,21 +161,21 @@ static s32 drawToolButton(Map* map, s32 x, s32 y, u8 icon, s32 width, const char
     tic_rect rect = {x, y, width, ICON_SIZE};
 
     bool over = false;
-    if(checkMousePos(&rect))
+    if(checkMousePos(map->studio, &rect))
     {
-        setCursor(tic_cursor_hand);
+        setCursor(map->studio, tic_cursor_hand);
 
         over = true;
 
-        showTooltip(tip);
+        showTooltip(map->studio, tip);
 
-        if(checkMouseClick(&rect, tic_mouse_left))
+        if(checkMouseClick(map->studio, &rect, tic_mouse_left))
         {
             map->mode = mode;
         }
     }
 
-    drawBitIcon(icon, rect.x, rect.y, map->mode == mode ? tic_color_black : over ? tic_color_grey : tic_color_light_grey);
+    drawBitIcon(map->studio, icon, rect.x, rect.y, map->mode == mode ? tic_color_black : over ? tic_color_grey : tic_color_light_grey);
 
     return x;
 }
@@ -211,7 +211,7 @@ static void drawTileIndex(Map* map, s32 x, s32 y)
     {
         tic_rect rect = {TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, TOOLBAR_SIZE, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
         
-        if(checkMousePos(&rect))
+        if(checkMousePos(map->studio, &rect))
         {
             s32 mx = tic_api_mouse(tic).x - rect.x;
             s32 my = tic_api_mouse(tic).y - rect.y;
@@ -226,7 +226,7 @@ static void drawTileIndex(Map* map, s32 x, s32 y)
     {
         tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
-        if(checkMousePos(&rect))
+        if(checkMousePos(map->studio, &rect))
         {
             s32 tx = 0, ty = 0;
             getMouseMap(map, &tx, &ty);
@@ -255,17 +255,17 @@ static void drawBppButtons(Map* map, s32 x, s32 y)
         tic_bpp mode = 1 << (2 - i);
 
         bool hover = false;
-        if(checkMousePos(&rect))
+        if(checkMousePos(map->studio, &rect))
         {
-            setCursor(tic_cursor_hand);
+            setCursor(map->studio, tic_cursor_hand);
             hover = true;
 
             if(mode > 1)
-                SHOW_TOOLTIP("%iBITS PER PIXEL", mode);
+                SHOW_TOOLTIP(map->studio, "%iBITS PER PIXEL", mode);
             else
-                SHOW_TOOLTIP("%iBIT PER PIXEL", mode);
+                SHOW_TOOLTIP(map->studio, "%iBIT PER PIXEL", mode);
 
-            if(checkMouseClick(&rect, tic_mouse_left))
+            if(checkMouseClick(map->studio, &rect, tic_mouse_left))
             {
                 tic_blit_update_bpp(&map->sheet.blit, mode);
             }
@@ -295,14 +295,14 @@ static void drawBankButtons(Map* map, s32 x, s32 y)
         tic_rect rect = {x + i * Size, y, Size, Size};
 
         bool hover = false;
-        if(checkMousePos(&rect))
+        if(checkMousePos(map->studio, &rect))
         {
-            setCursor(tic_cursor_hand);
+            setCursor(map->studio, tic_cursor_hand);
             hover = true;
 
-            showTooltip(i ? "SPRITES" : "TILES");
+            showTooltip(map->studio, i ? "SPRITES" : "TILES");
 
-            if(isIdle(map) && checkMouseClick(&rect, tic_mouse_left))
+            if(isIdle(map) && checkMouseClick(map->studio, &rect, tic_mouse_left))
             {
                 Anim* anim = map->anim.bank.items;
                 anim->start = (i - map->sheet.blit.bank) * TIC_SPRITESHEET_SIZE;
@@ -312,7 +312,7 @@ static void drawBankButtons(Map* map, s32 x, s32 y)
             }
         }
 
-        drawBitIcon(Icons[i], rect.x, rect.y, 
+        drawBitIcon(map->studio, Icons[i], rect.x, rect.y, 
             i == map->sheet.blit.bank 
                 ? tic_color_dark_grey 
                 : hover 
@@ -332,14 +332,14 @@ static void drawPagesButtons(Map* map, s32 x, s32 y)
         tic_rect rect = {x + i * Width - 1, y, Width, Height};
 
         bool hover = false;
-        if(checkMousePos(&rect))
+        if(checkMousePos(map->studio, &rect))
         {
-            setCursor(tic_cursor_hand);
+            setCursor(map->studio, tic_cursor_hand);
             hover = true;
 
-            SHOW_TOOLTIP("PAGE %i", i);
+            SHOW_TOOLTIP(map->studio, "PAGE %i", i);
 
-            if(isIdle(map) && checkMouseClick(&rect, tic_mouse_left))
+            if(isIdle(map) && checkMouseClick(map->studio, &rect, tic_mouse_left))
             {
                 Anim* anim = map->anim.page.items;
                 anim->start = (i - map->sheet.blit.page) * TIC_SPRITESHEET_SIZE;
@@ -431,7 +431,7 @@ static void drawSheetVBank1(Map* map, s32 x, s32 y)
 static void initBlitMode(Map* map)
 {
     tic_mem* tic = map->tic;
-    tiles2ram(&tic->ram, getBankTiles());
+    tiles2ram(&tic->ram, getBankTiles(map->studio));
     tic->ram.vram.blit.segment = tic_blit_calc_segment(&map->sheet.blit);
 }
 
@@ -446,11 +446,11 @@ static void drawSheetReg(Map* map, s32 x, s32 y)
 
     tic_rect rect = {x, y, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
 
-    if(isIdle(map) && sheetVisible(map) && checkMousePos(&rect))
+    if(isIdle(map) && sheetVisible(map) && checkMousePos(map->studio, &rect))
     {
-        setCursor(tic_cursor_hand);
+        setCursor(map->studio, tic_cursor_hand);
 
-        if(checkMouseDown(&rect, tic_mouse_left))
+        if(checkMouseDown(map->studio, &rect, tic_mouse_left))
         {
             s32 mx = tic_api_mouse(tic).x - rect.x;
             s32 my = tic_api_mouse(tic).y - rect.y;
@@ -486,7 +486,7 @@ static void drawSheetReg(Map* map, s32 x, s32 y)
 
     tic_api_clip(tic, x, y + map->anim.pos.sheet, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE);
 
-    tiles2ram(&tic->ram, getBankTiles());
+    tiles2ram(&tic->ram, getBankTiles(map->studio));
 
     tic_blit blit = map->sheet.blit;
     SCOPE(resetBlitMode(map->tic), tic_api_clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT))
@@ -611,11 +611,11 @@ static void processMouseDrawMode(Map* map)
 {
     tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
-    setCursor(tic_cursor_hand);
+    setCursor(map->studio, tic_cursor_hand);
 
     drawTileCursor(map);
 
-    if(checkMouseDown(&rect, tic_mouse_left))
+    if(checkMouseDown(map->studio, &rect, tic_mouse_left))
     {
         s32 tx = 0, ty = 0;
         getMouseMap(map, &tx, &ty);
@@ -639,7 +639,7 @@ static void processMouseDrawMode(Map* map)
         map->canvas.draw    = false;
     }
 
-    if(checkMouseDown(&rect, tic_mouse_middle))
+    if(checkMouseDown(map->studio, &rect, tic_mouse_middle))
     {
         s32 tx = 0, ty = 0;
         getMouseMap(map, &tx, &ty);
@@ -666,11 +666,11 @@ static void processScrolling(Map* map, bool pressed)
 
             normalizeMap(&map->scroll.x, &map->scroll.y);
 
-            setCursor(tic_cursor_hand);
+            setCursor(map->studio, tic_cursor_hand);
         }
         else map->scroll.active = false;
     }
-    else if(checkMousePos(&rect))
+    else if(checkMousePos(map->studio, &rect))
     {
         if(pressed)
         {
@@ -686,8 +686,8 @@ static void processMouseDragMode(Map* map)
 {
     tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
-    processScrolling(map, checkMouseDown(&rect, tic_mouse_left) || 
-        checkMouseDown(&rect, tic_mouse_right));
+    processScrolling(map, checkMouseDown(map->studio, &rect, tic_mouse_left) || 
+        checkMouseDown(map->studio, &rect, tic_mouse_right));
 }
 
 static void resetSelection(Map* map)
@@ -721,7 +721,7 @@ static void drawPasteData(Map* map)
 
     tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
-    if(checkMouseClick(&rect, tic_mouse_left))
+    if(checkMouseClick(map->studio, &rect, tic_mouse_left))
     {
         normalizeMap(&mx, &my);
 
@@ -794,13 +794,13 @@ static void processMouseSelectMode(Map* map)
     tic_mem* tic = map->tic;
     tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
-    if(checkMousePos(&rect))
+    if(checkMousePos(map->studio, &rect))
     {
         if(map->paste)
             drawPasteData(map);
         else
         {
-            if(checkMouseDown(&rect, tic_mouse_left))
+            if(checkMouseDown(map->studio, &rect, tic_mouse_left))
             {
                 s32 mx = tic_api_mouse(tic).x + map->scroll.x;
                 s32 my = tic_api_mouse(tic).y + map->scroll.y;
@@ -1001,11 +1001,11 @@ static void processMouseFillMode(Map* map)
 {
     tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
-    setCursor(tic_cursor_hand);
+    setCursor(map->studio, tic_cursor_hand);
 
     drawTileCursor(map);
 
-    if(checkMouseClick(&rect, tic_mouse_left))
+    if(checkMouseClick(map->studio, &rect, tic_mouse_left))
     {
         s32 tx = 0, ty = 0;
         getMouseMap(map, &tx, &ty);
@@ -1080,13 +1080,13 @@ static void drawMapReg(Map* map)
     tic_mem* tic = map->tic;
     tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
-    bool handle = !sheetVisible(map) && checkMousePos(&rect);
+    bool handle = !sheetVisible(map) && checkMousePos(map->studio, &rect);
     bool space = tic_api_key(tic, tic_key_space);
 
     if(handle)
         processScrolling(map, 
-            ((space || map->mode == MAP_DRAG_MODE) && checkMouseDown(&rect, tic_mouse_left)) || 
-                checkMouseDown(&rect, tic_mouse_right));
+            ((space || map->mode == MAP_DRAG_MODE) && checkMouseDown(map->studio, &rect, tic_mouse_left)) || 
+                checkMouseDown(map->studio, &rect, tic_mouse_right));
 
     {
         s32 scrollX = map->scroll.x % TIC_SPRITESIZE;
@@ -1239,7 +1239,7 @@ static void processKeyboard(Map* map)
     
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
 
-    switch(getClipboardEvent())
+    switch(getClipboardEvent(map->studio))
     {
     case TIC_CLIPBOARD_CUT: cutToClipboard(map); break;
     case TIC_CLIPBOARD_COPY: copyToClipboard(map); break;
@@ -1252,18 +1252,18 @@ static void processKeyboard(Map* map)
 
     if(ctrl)
     {
-        if(keyWasPressed(tic_key_z))        undo(map);
-        else if(keyWasPressed(tic_key_y))   redo(map);
+        if(keyWasPressed(map->studio, tic_key_z))        undo(map);
+        else if(keyWasPressed(map->studio, tic_key_y))   redo(map);
     }
     else
     {
-        if(keyWasPressed(tic_key_tab)) setStudioMode(TIC_WORLD_MODE);
-        else if(keyWasPressed(tic_key_1)) map->mode = MAP_DRAW_MODE;
-        else if(keyWasPressed(tic_key_2)) map->mode = MAP_DRAG_MODE;
-        else if(keyWasPressed(tic_key_3)) map->mode = MAP_SELECT_MODE;
-        else if(keyWasPressed(tic_key_4)) map->mode = MAP_FILL_MODE;
-        else if(keyWasPressed(tic_key_delete)) deleteSelection(map);
-        else if(keyWasPressed(tic_key_grave)) map->canvas.grid = !map->canvas.grid;
+        if(keyWasPressed(map->studio, tic_key_tab)) setStudioMode(map->studio, TIC_WORLD_MODE);
+        else if(keyWasPressed(map->studio, tic_key_1)) map->mode = MAP_DRAW_MODE;
+        else if(keyWasPressed(map->studio, tic_key_2)) map->mode = MAP_DRAG_MODE;
+        else if(keyWasPressed(map->studio, tic_key_3)) map->mode = MAP_SELECT_MODE;
+        else if(keyWasPressed(map->studio, tic_key_4)) map->mode = MAP_FILL_MODE;
+        else if(keyWasPressed(map->studio, tic_key_delete)) deleteSelection(map);
+        else if(keyWasPressed(map->studio, tic_key_grave)) map->canvas.grid = !map->canvas.grid;
     }
 
     enum{Step = 1};
@@ -1293,7 +1293,7 @@ static void tick(Map* map)
     // process scroll
     if(tic->ram.input.mouse.scrolly > 0) 
     {
-        setStudioMode(TIC_WORLD_MODE);
+        setStudioMode(map->studio, TIC_WORLD_MODE);
         return;
     }
 
@@ -1306,7 +1306,7 @@ static void tick(Map* map)
     {
         tic_api_cls(tic, tic->ram.vram.vars.clear = tic_color_dark_blue);
 
-        memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
+        memcpy(tic->ram.vram.palette.data, getConfig(map->studio)->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
 
         tic_api_clip(tic, 0, TOOLBAR_SIZE, TIC80_WIDTH - (sheetVisible(map) ? TIC_SPRITESHEET_SIZE+2 : 0), TIC80_HEIGHT - TOOLBAR_SIZE);
         {
@@ -1322,7 +1322,7 @@ static void tick(Map* map)
 
         {
             tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
-            if(!sheetVisible(map) && checkMousePos(&rect) && !tic_api_key(tic, tic_key_space))
+            if(!sheetVisible(map) && checkMousePos(map->studio, &rect) && !tic_api_key(tic, tic_key_space))
             {            
                 switch(map->mode)
                 {
@@ -1344,7 +1344,7 @@ static void tick(Map* map)
             drawSelectionVBank1(map);
 
         drawMapToolbar(map, TIC80_WIDTH, 1);
-        drawToolbar(map->tic, false);
+        drawToolbar(map->studio, map->tic, false);
     }
 }
 
@@ -1363,8 +1363,9 @@ static void onStudioEvent(Map* map, StudioEvent event)
 
 static void scanline(tic_mem* tic, s32 row, void* data)
 {
+    Map* map = data;
     if(row == 0)
-        memcpy(&tic->ram.vram.palette, getBankPalette(false), sizeof(tic_palette));
+        memcpy(&tic->ram.vram.palette, getBankPalette(map->studio, false), sizeof(tic_palette));
 }
 
 static void emptyDone(void* data) {}
@@ -1383,7 +1384,7 @@ static void freeAnim(Map* map)
     FREE(map->anim.page.items);
 }
 
-void initMap(Map* map, tic_mem* tic, tic_map* src)
+void initMap(Map* map, Studio* studio, tic_map* src)
 {
     enum {SheetStart = -(TIC_SPRITESHEET_SIZE + TOOLBAR_SIZE)};
 
@@ -1392,7 +1393,8 @@ void initMap(Map* map, tic_mem* tic, tic_map* src)
 
     *map = (Map)
     {
-        .tic = tic,
+        .studio = studio,
+        .tic = getMemory(studio),
         .tick = tick,
         .src = src,
         .mode = MAP_DRAW_MODE,

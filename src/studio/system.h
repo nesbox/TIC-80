@@ -147,7 +147,7 @@ void studio_exit(Studio* studio);
 void studio_delete(Studio* studio);
 const StudioConfig* studio_config(Studio* studio);
 
-Studio* studio_init(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* appFolder);
+Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* appFolder);
 
 #ifdef __cplusplus
 }

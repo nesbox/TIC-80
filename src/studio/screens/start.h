@@ -42,6 +42,7 @@ typedef struct stage {
 
 struct Start
 {
+    Studio* studio;
     tic_mem* tic;
 
     bool initialized;
@@ -59,5 +60,5 @@ struct Start
     void (*tick)(Start*);
 };
 
-void initStart(Start* start, tic_mem* tic, const char* cart);
+void initStart(Start* start, Studio* studio, const char* cart);
 void freeStart(Start* start);

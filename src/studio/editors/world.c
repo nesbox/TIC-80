@@ -41,14 +41,14 @@ static void drawGrid(World* world)
 
     tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
 
-    if(checkMousePos(&rect))
+    if(checkMousePos(world->studio, &rect))
     {
-        setCursor(tic_cursor_hand);
+        setCursor(world->studio, tic_cursor_hand);
 
         s32 mx = tic_api_mouse(tic).x;
         s32 my = tic_api_mouse(tic).y;
 
-        if(checkMouseDown(&rect, tic_mouse_left))
+        if(checkMouseDown(world->studio, &rect, tic_mouse_left))
         {
             map->scroll.x = (mx - TIC_MAP_SCREEN_WIDTH/2) * TIC_SPRITESIZE;
             map->scroll.y = (my - TIC_MAP_SCREEN_HEIGHT/2) * TIC_SPRITESIZE;
@@ -58,8 +58,8 @@ static void drawGrid(World* world)
                 map->scroll.y += TIC_MAP_HEIGHT * TIC_SPRITESIZE;
         }
 
-        if(checkMouseClick(&rect, tic_mouse_left))
-            setStudioMode(TIC_MAP_MODE);
+        if(checkMouseClick(world->studio, &rect, tic_mouse_left))
+            setStudioMode(world->studio, TIC_MAP_MODE);
     }
 
     s32 x = map->scroll.x / TIC_SPRITESIZE;
@@ -84,36 +84,38 @@ static void tick(World* world)
     // process scroll
     if(tic->ram.input.mouse.scrolly < 0) 
     {
-        setStudioMode(TIC_MAP_MODE);
+        setStudioMode(world->studio, TIC_MAP_MODE);
         return;
     }
 
-    if(keyWasPressed(tic_key_tab)) setStudioMode(TIC_MAP_MODE);
+    if(keyWasPressed(world->studio, tic_key_tab)) setStudioMode(world->studio, TIC_MAP_MODE);
 
     memcpy(&tic->ram.vram, world->preview, PREVIEW_SIZE);
 
     VBANK(tic, 1)
     {
         tic_api_cls(tic, tic->ram.vram.vars.clear = tic_color_black);
-        memcpy(tic->ram.vram.palette.data, getConfig()->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
+        memcpy(tic->ram.vram.palette.data, getConfig(world->studio)->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
         drawGrid(world);
     }
 }
 
 static void scanline(tic_mem* tic, s32 row, void* data)
 {
+    World* world = data;
     if(row == 0)
-        memcpy(&tic->ram.vram.palette, getBankPalette(false), sizeof(tic_palette));
+        memcpy(&tic->ram.vram.palette, getBankPalette(world->studio, false), sizeof(tic_palette));
 }
 
-void initWorld(World* world, tic_mem* tic, Map* map)
+void initWorld(World* world, Studio* studio, Map* map)
 {
     if(!world->preview)
         world->preview = malloc(PREVIEW_SIZE);
 
     *world = (World)
     {
-        .tic = tic,
+        .studio = studio,
+        .tic = getMemory(studio),
         .map = map,
         .tick = tick,
         .preview = world->preview,
@@ -125,13 +127,13 @@ void initWorld(World* world, tic_mem* tic, Map* map)
 
     for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
     {
-        u8 index = getBankMap()->data[i];
+        u8 index = getBankMap(world->studio)->data[i];
 
         if(index)
         {
             memset(colors, 0, sizeof colors);
 
-            tic_tile* tile = &getBankTiles()->data[index];
+            tic_tile* tile = &getBankTiles(world->studio)->data[index];
 
             for(s32 p = 0; p < TIC_SPRITESIZE * TIC_SPRITESIZE; p++)
             {
