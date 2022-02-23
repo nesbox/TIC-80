@@ -86,6 +86,10 @@ if(NOT BUILD_SDL)
     set(BUILD_SDLGPU OFF)
 endif()
 
+if(NOT N3DS AND NOT EMSCRIPTEN AND NOT BAREMETALPI)
+    set(USE_LIBUV TRUE)
+endif()
+
 message("BUILD_SDLGPU: ${BUILD_SDLGPU}")
 message("BUILD_TOUCH_INPUT: ${BUILD_TOUCH_INPUT}")
 message("BUILD_STUB: ${BUILD_STUB}")
@@ -738,38 +742,6 @@ add_library(argparse STATIC ${THIRDPARTY_DIR}/argparse/argparse.c)
 target_include_directories(argparse INTERFACE ${THIRDPARTY_DIR}/argparse)
 
 ################################
-# CURL
-################################
-
-if(NOT N3DS AND NOT EMSCRIPTEN AND NOT BAREMETALPI)
-    set(USE_CURL TRUE)
-endif()
-
-if (USE_CURL)
-
-    set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
-
-    if(WIN32 AND NOT MINGW)
-        set(CURL_STATIC_CRT ON CACHE BOOL "")
-    endif()
-
-    set(CMAKE_USE_OPENSSL OFF CACHE BOOL "" )
-    set(CMAKE_USE_LIBSSH2 OFF CACHE BOOL "")
-    set(HTTP_ONLY ON CACHE BOOL "")
-    set(BUILD_CURL_EXE OFF CACHE BOOL "")
-    set(CURL_CA_BUNDLE "none" CACHE STRING "")
-    set(CURL_CA_PATH "none" CACHE STRING "")
-    set(CURL_DISABLE_TESTS ON CACHE BOOL "")
-
-    if(RPI)
-        set(CURL_ZLIB OFF CACHE BOOL "" )
-    endif()
-
-    add_subdirectory(${THIRDPARTY_DIR}/curl)
-
-endif()
-
-################################
 # libuv
 ################################
 
@@ -867,10 +839,6 @@ endif()
 target_include_directories(tic80studio PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(tic80studio tic80core zip wave_writer argparse giflib png)
-
-if(USE_CURL)
-    target_link_libraries(tic80studio libcurl)
-endif()
 
 if(USE_LIBUV)
     target_compile_definitions(tic80studio PRIVATE USE_LIBUV)
