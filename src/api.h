@@ -100,6 +100,13 @@ typedef struct
 
 extern tic_script_config* Languages[];
 
+typedef enum
+{
+    tic_tiles_texture,
+    tic_map_texture,
+    tic_vbank_texture,
+} tic_texture_src;
+
 typedef struct
 {
     s32 x, y;
@@ -675,14 +682,14 @@ enum
                                                                                                                         \
                                                                                                                         \
     macro(textri,                                                                                                       \
-        "textri(x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 use_map=false chromakey=-1)",                                       \
+        "textri(x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 src=0 chromakey=-1)",                                               \
                                                                                                                         \
-        "It renders a triangle filled with texture from image ram or map ram.\n"                                        \
+        "It renders a triangle filled with texture from image ram, map ram or vbank.\n"                                 \
         "Use in 3D graphics.\n"                                                                                         \
         "This function does not perform perspective correction, so it is not generally suitable for 3D graphics "       \
         "(except in some constrained scenarios).\n"                                                                     \
         "In particular, if the vertices in the triangle have different 3D depth, you may see some distortion.\n"        \
-        "These can be thought of as the window inside image ram (sprite sheet), or map ram.\n"                          \
+        "These can be thought of as the window inside image ram (sprite sheet), map ram or another vbank.\n"            \
         "Note that the sprite sheet or map in this case is treated as a single large image, "                           \
         "with U and V addressing its pixels directly, rather than by sprite ID.\n"                                      \
         "So for example the top left corner of sprite #2 would be located at u=16, v=0.",                               \
@@ -691,7 +698,7 @@ enum
         0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, float x1, float y1, float x2, float y2, float x3, float y3,                                           \
-        float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count)                \
+        float u1, float v1, float u2, float v2, float u3, float v3, tic_texture_src src, u8* colors, s32 count)         \
                                                                                                                         \
                                                                                                                         \
     macro(clip,                                                                                                         \

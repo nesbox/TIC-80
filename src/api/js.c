@@ -814,7 +814,7 @@ static duk_ret_t duk_textri(duk_context* duk)
     for (s32 i = 0; i < COUNT_OF(pt); i++)
         pt[i] = (float)duk_to_number(duk, i);
     tic_mem* tic = (tic_mem*)getDukCore(duk);
-    bool use_map = duk_opt_boolean(duk, 12, false);
+    tic_texture_src src = duk_to_int(duk, 12);
 
     static u8 colors[TIC_PALETTE_SIZE];
     s32 count = 0;
@@ -852,9 +852,9 @@ static duk_ret_t duk_textri(duk_context* duk)
                         pt[4], pt[5],   //  xy 3
                         pt[6], pt[7],   //  uv 1
                         pt[8], pt[9],   //  uv 2
-                        pt[10], pt[11],//  uv 3
-                        use_map, // usemap
-                        colors, count);    //  chroma
+                        pt[10], pt[11], //  uv 3
+                        src,            //  texture source
+                        colors, count); //  chroma
 
     return 0;
 }

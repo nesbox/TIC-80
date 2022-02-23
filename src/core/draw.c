@@ -719,6 +719,7 @@ typedef struct
     tic_tilesheet sheet;
     u8* mapping;
     const u8* map;
+    const tic_vram* vram;
 } TexData;
 
 static inline void calcUV(const ShaderAttr* a, s32* u, s32* v)
@@ -768,20 +769,37 @@ static tic_color triTexTileShader(const ShaderAttr* a)
     return data->mapping[tic_tilesheet_getpix(&data->sheet, u & WMask, v & HMask)];
 }
 
-void tic_api_textri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count)
+static tic_color triTexVbankShader(const ShaderAttr* a)
+{
+    TexData* data = a->data;
+
+    s32 u, v;
+    calcUV(a, &u, &v);
+
+    if (u < 0 || v < 0 || u >= TIC80_WIDTH || v >= TIC80_HEIGHT) return TRANSPARENT_COLOR;
+
+    return data->mapping[tic_tool_peek4(data->vram->data, v * TIC80_WIDTH + u)];
+}
+
+void tic_api_textri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, tic_texture_src src, u8* colors, s32 count)
 {
     TexData texData = 
     {
         .sheet = getTileSheetFromSegment(tic, tic->ram.vram.blit.segment),
         .mapping = getPalette(tic, colors, count),
         .map = tic->ram.map.data,
+        .vram = &((tic_core*)tic)->state.vbank.mem,
     };
 
     drawTri(tic,
         (const Vec2*)&(TexVert){x1, y1, u1, v1},
         (const Vec2*)&(TexVert){x2, y2, u2, v2},
         (const Vec2*)&(TexVert){x3, y3, u3, v3}, 
-        use_map ? triTexMapShader : triTexTileShader, &texData);
+        src == tic_vbank_texture 
+            ? triTexVbankShader 
+            : src == tic_map_texture 
+                ? triTexMapShader 
+                : triTexTileShader, &texData);
 }
 
 void tic_api_map(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* colors, s32 count, s32 scale, RemapFunc remap, void* data)

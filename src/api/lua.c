@@ -434,11 +434,15 @@ static s32 lua_textri(lua_State* lua)
         tic_mem* tic = (tic_mem*)getLuaCore(lua);
         static u8 colors[TIC_PALETTE_SIZE];
         s32 count = 0;
-        bool use_map = false;
+        tic_texture_src src = tic_tiles_texture;
 
-        //  check for use map 
+        //  check for texture src
         if (top >= 13)
-            use_map = lua_toboolean(lua, 13);
+        {
+            src = lua_isboolean(lua, 13) 
+                ? (lua_toboolean(lua, 13) ? tic_map_texture : tic_tiles_texture) 
+                : lua_tointeger(lua, 13);
+        }
         //  check for chroma 
         if(top >= 14)
         {
@@ -468,15 +472,15 @@ static s32 lua_textri(lua_State* lua)
         }
 
         tic_api_textri(tic, pt[0], pt[1],   //  xy 1
-                                    pt[2], pt[3],   //  xy 2
-                                    pt[4], pt[5],   //  xy 3
-                                    pt[6], pt[7],   //  uv 1
-                                    pt[8], pt[9],   //  uv 2
-                                    pt[10], pt[11], //  uv 3
-                                    use_map,        // use map
-                                    colors, count);        // chroma
+                            pt[2], pt[3],   //  xy 2
+                            pt[4], pt[5],   //  xy 3
+                            pt[6], pt[7],   //  uv 1
+                            pt[8], pt[9],   //  uv 2
+                            pt[10], pt[11], //  uv 3
+                            src,            // texture source
+                            colors, count); // chroma
     }
-    else luaL_error(lua, "invalid parameters, textri(x1,y1,x2,y2,x3,y3,u1,v1,u2,v2,u3,v3,[use_map=false],[chroma=off])\n");
+    else luaL_error(lua, "invalid parameters, textri(x1,y1,x2,y2,x3,y3,u1,v1,u2,v2,u3,v3,[src=0],[chroma=off])\n");
     return 0;
 }
 
