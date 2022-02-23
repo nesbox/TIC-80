@@ -99,7 +99,7 @@ static void drawTopToolbar(Surf* surf, s32 x, s32 y)
     enum{Gap = 10, TipX = 150, SelectWidth = 54};
 
     u8 colorkey = 0;
-    tiles2ram(&tic->ram, &getConfig(surf->studio)->cart->bank0.tiles);
+    tiles2ram(tic->ram, &getConfig(surf->studio)->cart->bank0.tiles);
     tic_api_spr(tic, 12, TipX, y+1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
     {
         static const char Label[] = "SELECT";
@@ -148,7 +148,7 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
 
         u8 colorkey = 0;
 
-        tiles2ram(&tic->ram, &getConfig(surf->studio)->cart->bank0.tiles);
+        tiles2ram(tic->ram, &getConfig(surf->studio)->cart->bank0.tiles);
         tic_api_spr(tic, 15, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
         {
             static const char Label[] = "WEBSITE";
@@ -718,13 +718,13 @@ static void tick(Surf* surf)
         tic_screen* cover = getMenuItem(surf)->cover;
 
         if(cover)
-            memcpy(tic->ram.vram.screen.data, cover->data, sizeof(tic_screen));
+            memcpy(tic->ram->vram.screen.data, cover->data, sizeof(tic_screen));
     }
 
     VBANK(tic, 1)
     {
-        tic_api_cls(tic, tic->ram.vram.vars.clear = tic_color_yellow);
-        memcpy(tic->ram.vram.palette.data, getConfig(surf->studio)->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
+        tic_api_cls(tic, tic->ram->vram.vars.clear = tic_color_yellow);
+        memcpy(tic->ram->vram.palette.data, getConfig(surf->studio)->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
 
         if(surf->menu.count > 0)
         {
@@ -759,8 +759,8 @@ static void scanline(tic_mem* tic, s32 row, void* data)
         {
             if(row == 0)
             {
-                memcpy(&tic->ram.vram.palette, item->palette, sizeof(tic_palette));
-                fadePalette(&tic->ram.vram.palette, surf->anim.val.coverFade);
+                memcpy(&tic->ram->vram.palette, item->palette, sizeof(tic_palette));
+                fadePalette(&tic->ram->vram.palette, surf->anim.val.coverFade);
             }
 
             return;

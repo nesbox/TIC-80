@@ -38,9 +38,9 @@ static tic_tilesheet getTileSheetFromSegment(tic_mem* memory, u8 segment)
     switch (segment) {
     case 0:
     case 1:
-        src = (u8*)&memory->ram.font; break;
+        src = (u8*)&memory->ram->font; break;
     default:
-        src = (u8*)&memory->ram.tiles.data; break;
+        src = (u8*)&memory->ram->tiles.data; break;
     }
 
     return tic_tilesheet_get(segment, src);
@@ -49,19 +49,19 @@ static tic_tilesheet getTileSheetFromSegment(tic_mem* memory, u8 segment)
 static u8* getPalette(tic_mem* tic, u8* colors, u8 count)
 {
     static u8 mapping[TIC_PALETTE_SIZE];
-    for (s32 i = 0; i < TIC_PALETTE_SIZE; i++) mapping[i] = tic_tool_peek4(tic->ram.vram.mapping, i);
+    for (s32 i = 0; i < TIC_PALETTE_SIZE; i++) mapping[i] = tic_tool_peek4(tic->ram->vram.mapping, i);
     for (s32 i = 0; i < count; i++) mapping[colors[i]] = TRANSPARENT_COLOR;
     return mapping;
 }
 
 static inline u8 mapColor(tic_mem* tic, u8 color)
 {
-    return tic_tool_peek4(tic->ram.vram.mapping, color & 0xf);
+    return tic_tool_peek4(tic->ram->vram.mapping, color & 0xf);
 }
 
 static void setPixel(tic_core* core, s32 x, s32 y, u8 color)
 {
-    const tic_vram* vram = &core->memory.ram.vram;
+    const tic_vram* vram = &core->memory.ram->vram;
 
     if (x < core->state.clip.l || y < core->state.clip.t || x >= core->state.clip.r || y >= core->state.clip.b) return;
 
@@ -89,7 +89,7 @@ static u8 getPixel(tic_core* core, s32 x, s32 y)
 
 static void drawHLine(tic_core* core, s32 x, s32 y, s32 width, u8 color)
 {
-    const tic_vram* vram = &core->memory.ram.vram;
+    const tic_vram* vram = &core->memory.ram->vram;
 
     if (y < core->state.clip.t || core->state.clip.b <= y) return;
 
@@ -103,7 +103,7 @@ static void drawHLine(tic_core* core, s32 x, s32 y, s32 width, u8 color)
 
 static void drawVLine(tic_core* core, s32 x, s32 y, s32 height, u8 color)
 {
-    const tic_vram* vram = &core->memory.ram.vram;
+    const tic_vram* vram = &core->memory.ram->vram;
 
     if (x < core->state.clip.l || core->state.clip.r <= x) return;
 
@@ -145,7 +145,7 @@ static void drawRectBorder(tic_core* core, s32 x, s32 y, s32 width, s32 height, 
 
 static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
-    const tic_vram* vram = &core->memory.ram.vram;
+    const tic_vram* vram = &core->memory.ram->vram;
     u8* mapping = getPalette(&core->memory, colors, count);
 
     rotate &= 0b11;
@@ -201,7 +201,7 @@ static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors
 
 static void drawSprite(tic_core* core, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
-    const tic_vram* vram = &core->memory.ram.vram;
+    const tic_vram* vram = &core->memory.ram->vram;
 
     if (index < 0)
         return;
@@ -209,7 +209,7 @@ static void drawSprite(tic_core* core, s32 index, s32 x, s32 y, s32 w, s32 h, u8
     rotate &= 0b11;
     flip &= 0b11;
 
-    tic_tilesheet sheet = getTileSheetFromSegment(&core->memory, core->memory.ram.vram.blit.segment);
+    tic_tilesheet sheet = getTileSheetFromSegment(&core->memory, core->memory.ram->vram.blit.segment);
     if (w == 1 && h == 1) {
         tic_tileptr tile = tic_tilesheet_gettile(&sheet, index, false);
         drawTile(core, &tile, x, y, colors, count, scale, flip, rotate);
@@ -266,7 +266,7 @@ static void drawMap(tic_core* core, const tic_map* src, s32 x, s32 y, s32 width,
 {
     const s32 size = TIC_SPRITESIZE * scale;
 
-    tic_tilesheet sheet = getTileSheetFromSegment(&core->memory, core->memory.ram.vram.blit.segment);
+    tic_tilesheet sheet = getTileSheetFromSegment(&core->memory, core->memory.ram->vram.blit.segment);
 
     for (s32 j = y, jj = sy; j < y + height; j++, jj += size)
         for (s32 i = x, ii = sx; i < x + width; i++, ii += size)
@@ -292,7 +292,7 @@ static void drawMap(tic_core* core, const tic_map* src, s32 x, s32 y, s32 width,
 
 static s32 drawChar(tic_core* core, tic_tileptr* font_char, s32 x, s32 y, s32 scale, bool fixed, u8* mapping)
 {
-    const tic_vram* vram = &core->memory.ram.vram;
+    const tic_vram* vram = &core->memory.ram->vram;
 
     enum { Size = TIC_SPRITESIZE };
 
@@ -357,7 +357,7 @@ static s32 drawText(tic_core* core, tic_tilesheet* font_face, const char* text, 
 void tic_api_clip(tic_mem* memory, s32 x, s32 y, s32 width, s32 height)
 {
     tic_core* core = (tic_core*)memory;
-    tic_vram* vram = &memory->ram.vram;
+    tic_vram* vram = &memory->ram->vram;
 
     core->state.clip.l = x;
     core->state.clip.t = y;
@@ -380,7 +380,7 @@ void tic_api_rect(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 color
 void tic_api_cls(tic_mem* memory, u8 color)
 {
     tic_core* core = (tic_core*)memory;
-    tic_vram* vram = &memory->ram.vram;
+    tic_vram* vram = &memory->ram->vram;
 
     static const u8 EmptyClip[] = { 0, 0, TIC80_WIDTH, TIC80_HEIGHT };
 
@@ -391,16 +391,16 @@ void tic_api_cls(tic_mem* memory, u8 color)
             core->state.clip.r - core->state.clip.l, core->state.clip.b - core->state.clip.t, color);
 }
 
-s32 tic_api_font(tic_mem* memory, const char* text, s32 x, s32 y, u8 chromakey, s32 w, s32 h, bool fixed, s32 scale, bool alt)
+s32 tic_api_font(tic_mem* memory, const char* text, s32 x, s32 y, u8* trans_colors, u8 trans_count, s32 w, s32 h, bool fixed, s32 scale, bool alt)
 {
-    u8* mapping = getPalette(memory, &chromakey, 1);
+    u8* mapping = getPalette(memory, trans_colors, trans_count);
 
     // Compatibility : flip top and bottom of the spritesheet
     // to preserve tic_api_font's default target
-    u8 segment = memory->ram.vram.blit.segment >> 1;
+    u8 segment = memory->ram->vram.blit.segment >> 1;
     u8 flipmask = 1; while (segment >>= 1) flipmask <<= 1;
 
-    tic_tilesheet font_face = getTileSheetFromSegment(memory, memory->ram.vram.blit.segment ^ flipmask);
+    tic_tilesheet font_face = getTileSheetFromSegment(memory, memory->ram->vram.blit.segment ^ flipmask);
     return drawText((tic_core*)memory, &font_face, text, x, y, w, h, fixed, mapping, scale, alt);
 }
 
@@ -409,7 +409,7 @@ s32 tic_api_print(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, boo
     u8 mapping[] = { 255, color };
     tic_tilesheet font_face = getTileSheetFromSegment(memory, 1);
 
-    const tic_font_data* font = alt ? &memory->ram.font.alt : &memory->ram.font.regular;
+    const tic_font_data* font = alt ? &memory->ram->font.alt : &memory->ram->font.regular;
     s32 width = font->width;
 
     // Compatibility : print uses reduced width for non-fixed space
@@ -417,9 +417,9 @@ s32 tic_api_print(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, boo
     return drawText((tic_core*)memory, &font_face, text, x, y, width, font->height, fixed, mapping, scale, alt);
 }
 
-void tic_api_spr(tic_mem* memory, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
+void tic_api_spr(tic_mem* memory, s32 index, s32 x, s32 y, s32 w, s32 h, u8* trans_colors, u8 trans_count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
-    drawSprite((tic_core*)memory, index, x, y, w, h, colors, count, scale, flip, rotate);
+    drawSprite((tic_core*)memory, index, x, y, w, h, trans_colors, trans_count, scale, flip, rotate);
 }
 
 static inline u8* getFlag(tic_mem* memory, s32 index, u8 flag)
@@ -428,7 +428,7 @@ static inline u8* getFlag(tic_mem* memory, s32 index, u8 flag)
     if (index >= TIC_FLAGS || flag >= BITS_IN_BYTE)
         return &stub;
 
-    return memory->ram.flags.data + index;
+    return memory->ram->flags.data + index;
 }
 
 bool tic_api_fget(tic_mem* memory, s32 index, u8 flag)
@@ -537,7 +537,7 @@ static void setElliSide(tic_mem* tic, s32 x, s32 y, u8 color)
 
 static void drawSidesBuffer(tic_mem* memory, s32 y0, s32 y1, u8 color)
 {
-    tic_vram* vram = &memory->ram.vram;
+    tic_vram* vram = &memory->ram->vram;
 
     tic_core* core = (tic_core*)memory;
     s32 yt = MAX(core->state.clip.t, y0);
@@ -789,9 +789,9 @@ void tic_api_textri(tic_mem* tic, float x1, float y1, float x2, float y2, float 
 {
     TexData texData = 
     {
-        .sheet = getTileSheetFromSegment(tic, tic->ram.vram.blit.segment),
+        .sheet = getTileSheetFromSegment(tic, tic->ram->vram.blit.segment),
         .mapping = getPalette(tic, colors, count),
-        .map = tic->ram.map.data,
+        .map = tic->ram->map.data,
         .vram = &((tic_core*)tic)->state.vbank.mem,
     };
 
@@ -806,16 +806,16 @@ void tic_api_textri(tic_mem* tic, float x1, float y1, float x2, float y2, float 
                 : triTexTileShader, &texData);
 }
 
-void tic_api_map(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* colors, s32 count, s32 scale, RemapFunc remap, void* data)
+void tic_api_map(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* colors, u8 count, s32 scale, RemapFunc remap, void* data)
 {
-    drawMap((tic_core*)memory, &memory->ram.map, x, y, width, height, sx, sy, colors, count, scale, remap, data);
+    drawMap((tic_core*)memory, &memory->ram->map, x, y, width, height, sx, sy, colors, count, scale, remap, data);
 }
 
 void tic_api_mset(tic_mem* memory, s32 x, s32 y, u8 value)
 {
     if (x < 0 || x >= TIC_MAP_WIDTH || y < 0 || y >= TIC_MAP_HEIGHT) return;
 
-    tic_map* src = &memory->ram.map;
+    tic_map* src = &memory->ram->map;
     *(src->data + y * TIC_MAP_WIDTH + x) = value;
 }
 
@@ -823,7 +823,7 @@ u8 tic_api_mget(tic_mem* memory, s32 x, s32 y)
 {
     if (x < 0 || x >= TIC_MAP_WIDTH || y < 0 || y >= TIC_MAP_HEIGHT) return 0;
 
-    const tic_map* src = &memory->ram.map;
+    const tic_map* src = &memory->ram->map;
     return *(src->data + y * TIC_MAP_WIDTH + x);
 }
 

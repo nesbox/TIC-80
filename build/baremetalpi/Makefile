@@ -32,6 +32,7 @@ LIBS :=  \
 	$(TIC80LIB)/libblipbuf.a \
 	$(TIC80LIB)/libsquirrel.a \
 	$(TIC80LIB)/libwren.a \
+	$(TIC80LIB)/libwasm.a \
 	$(TIC80LIB)/libargparse.a \
 	$(TIC80LIB)/libwave_writer.a \
 	$(TIC80LIB)/libduktape.a \

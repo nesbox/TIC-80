@@ -204,7 +204,7 @@ void tic_core_sound_tick_end(tic_mem* memory);
 // for backward compatibility
 #define OVR_COMPAT(CORE, BANK)                                              \
     tic_api_vbank(&CORE->memory, BANK),                                     \
-    CORE->memory.ram.vram.vars.cursor = CORE->state.vbank.mem.vars.cursor
+    CORE->memory.ram->vram.vars.cursor = CORE->state.vbank.mem.vars.cursor
 
 #define OVR(CORE)                                   \
     s32 MACROVAR(_bank_) = CORE->state.vbank.id;    \

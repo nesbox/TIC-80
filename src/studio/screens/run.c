@@ -118,10 +118,10 @@ static void tick(Run* run)
 
     enum {Size = sizeof(tic_persistent)};
 
-    if(memcmp(run->pmem.data, tic->ram.persistent.data, Size))
+    if(memcmp(run->pmem.data, tic->ram->persistent.data, Size))
     {
-        tic_fs_saveroot(run->fs, run->saveid, &tic->ram.persistent, Size, true);
-        memcpy(run->pmem.data, tic->ram.persistent.data, Size);
+        tic_fs_saveroot(run->fs, run->saveid, &tic->ram->persistent, Size, true);
+        memcpy(run->pmem.data, tic->ram->persistent.data, Size);
     }
 
     if(run->exit)
@@ -142,7 +142,7 @@ void initRun(Run* run, Console* console, tic_fs* fs, Studio* studio)
 
     {
         enum {Size = sizeof(tic_persistent)};
-        memset(&run->tic->ram.persistent, 0, Size);
+        memset(&run->tic->ram->persistent, 0, Size);
 
         initPMemName(run);
 
@@ -151,11 +151,11 @@ void initRun(Run* run, Console* console, tic_fs* fs, Studio* studio)
 
         if(data) SCOPE(free(data))
         {
-            memset(&run->tic->ram.persistent, 0, Size);
-            memcpy(&run->tic->ram.persistent, data, MIN(size, Size));
+            memset(&run->tic->ram->persistent, 0, Size);
+            memcpy(&run->tic->ram->persistent, data, MIN(size, Size));
         }
 
-        memcpy(run->pmem.data, run->tic->ram.persistent.data, Size);
+        memcpy(run->pmem.data, run->tic->ram->persistent.data, Size);
     }
 
     tic_sys_preseed();

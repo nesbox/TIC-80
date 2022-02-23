@@ -56,6 +56,7 @@ typedef enum
     CHUNK_CODE_ZIP,     // 16
     CHUNK_DEFAULT,      // 17
     CHUNK_SCREEN,       // 18
+    CHUNK_BINARY,       // 19
 } ChunkType;
 
 typedef struct
@@ -118,6 +119,7 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
     }
 
     struct CodeChunk {s32 size; const char* data;} code[TIC_BANKS] = {0};
+    struct BinaryChunk {s32 size; const char* data;} binary[TIC_BINARY_BANKS] = {0};
 
     {
         const u8* ptr = buffer;
@@ -137,6 +139,9 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
             case CHUNK_PATTERNS:    LOAD_CHUNK(cart->banks[chunk->bank].music.patterns);    break;
             case CHUNK_FLAGS:       LOAD_CHUNK(cart->banks[chunk->bank].flags);             break;
             case CHUNK_SCREEN:      LOAD_CHUNK(cart->banks[chunk->bank].screen);            break;
+            case CHUNK_BINARY:      
+                binary[chunk->bank] = (struct BinaryChunk){chunkSize(chunk), ptr};
+                break;
             case CHUNK_CODE:        
                 code[chunk->bank] = (struct CodeChunk){chunkSize(chunk), ptr};
                 break;
@@ -185,6 +190,19 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
             ptr += chunkSize(chunk);
         }
 #undef LOAD_CHUNK
+
+        {
+            u32 total_size = 0;
+            char* ptr = cart->binary.data;
+            RFOR(const struct BinaryChunk*, chunk, binary)
+                if (chunk->size)
+                {
+                    memcpy(ptr, chunk->data, chunk->size);
+                    ptr += chunk->size;
+                    total_size += chunk->size;
+                }
+            cart->binary.size = total_size;
+        }
 
         if (!*cart->code.data)
         {
@@ -275,7 +293,19 @@ s32 tic_cart_save(const tic_cartridge* cart, u8* buffer)
         buffer = SAVE_CHUNK(CHUNK_SCREEN,   cart->banks[i].screen,          i);
     }
 
-    const char* ptr = cart->code.data;
+    const char* ptr;
+    if (cart->binary.size) 
+    {
+        ptr = cart->binary.data;
+        s32 remaining = cart->binary.size;
+        for (s32 i = cart->binary.size / TIC_BANK_SIZE; i >= 0; --i, ptr += TIC_BANK_SIZE) 
+        {
+            buffer = saveFixedChunk(buffer, CHUNK_BINARY, ptr, MIN(remaining, TIC_BANK_SIZE), i);
+            remaining -= TIC_BANK_SIZE;
+        }
+    }
+
+    ptr = cart->code.data;
     for(s32 i = strlen(ptr) / TIC_BANK_SIZE; i >= 0; --i, ptr += TIC_BANK_SIZE)
         buffer = saveFixedChunk(buffer, CHUNK_CODE, ptr, MIN(strlen(ptr), TIC_BANK_SIZE), i);
 

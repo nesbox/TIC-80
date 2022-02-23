@@ -80,12 +80,13 @@
     macro(commands)             \
     macro(api)                  \
     macro(keys)                 \
-    macro(buttons)              \
+    macro(buttons)                 \
     macro(startup)              \
     macro(terms)                \
     macro(license)
 
 #define IMPORT_CMD_LIST(macro)  \
+    macro(binary)               \
     macro(tiles)                \
     macro(sprites)              \
     macro(map)                  \
@@ -107,6 +108,7 @@
     macro(rpi)                  \
     macro(mac)                  \
     macro(html)                 \
+    macro(binary)               \
     macro(tiles)                \
     macro(sprites)              \
     macro(map)                  \
@@ -1444,7 +1446,7 @@ static void onInstallDemosCommand(Console* console)
                 printLine(console);
             }
         }
-    FOR_EACH_LANG_END
+	FOR_EACH_LANG_END
 
         tic_fs_dirback(fs);
     }
@@ -1575,6 +1577,20 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
 static void onImport_tiles(Console* console, const char* name, const void* buffer, s32 size, ImportParams params)
 {
     onImportTilesBase(console, name, buffer, size, getBank(console, params.bank)->tiles.data, params);
+}
+
+static void onImport_binary(Console* console, const char* name, const void* buffer, s32 size, ImportParams params)
+{
+    bool ok = name && buffer && size <= TIC_BINARY_SIZE;
+
+    if(ok)
+    {
+        tic_binary* binary = &console->tic->cart.binary;
+        binary->size = size;
+        memcpy(binary->data, buffer, size);
+    }
+        
+    onFileImported(console, name, ok);
 }
 
 static void onImport_sprites(Console* console, const char* name, const void* buffer, s32 size, ImportParams params)
@@ -1984,6 +2000,22 @@ static void onExport_tiles(Console* console, const char* param, const char* file
     exportSprites(console, getFilename(filename, PngExt), getBank(console, params.bank)->tiles.data, params);
 }
 
+static void onExport_binary(Console* console, const char* param, const char* path, ExportParams params)
+{
+    const char* filename = getFilename(path, ".binary");
+
+    tic_binary *binary = &console->tic->cart.binary;
+    // TODO: do we need this buffer at all, could we just handle `binary.data` directly to `tic_fs_save`?
+    void* buffer = malloc(binary->size);
+
+    SCOPE(free(buffer))
+    {
+        memcpy(buffer, binary->data, binary->size);
+
+        onFileExported(console, filename, tic_fs_save(console->fs, filename, buffer, binary->size, true));
+    }
+}
+
 static void onExport_sprites(Console* console, const char* param, const char* filename, ExportParams params)
 {
     exportSprites(console, getFilename(filename, PngExt), getBank(console, params.bank)->sprites.data, params);
@@ -2221,7 +2253,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
                             }
 
                             u32* ptr = img.values + PaddingTop * CoverWidth + PaddingLeft;
-                            const u8* screen = tic->ram.vram.screen.data;
+                            const u8* screen = tic->ram->vram.screen.data;
                             const tic_rgb* pal = getConfig(console->studio)->cart->bank0.palette.vbank0.colors;
 
                             for(s32 y = 0; y < Height; y++)
@@ -3571,7 +3603,7 @@ static void processMouse(Console* console)
     tic_mem* tic = console->tic;
     // process scroll
     {
-        tic80_input* input = &console->tic->ram.input;
+        tic80_input* input = &console->tic->ram->input;
 
         if(input->mouse.scrolly)
         {
@@ -3659,7 +3691,7 @@ static void processKeyboard(Console* console)
     if(tic_api_key(tic, tic_key_alt))
         return;
 
-    if(tic->ram.input.keyboard.data != 0)
+    if(tic->ram->input.keyboard.data != 0)
     {
         switch(getClipboardEvent(console->studio))
         {

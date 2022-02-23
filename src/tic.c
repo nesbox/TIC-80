@@ -69,7 +69,7 @@ TIC80_API void tic80_tick(tic80* tic, tic80_input input)
 {
     tic_mem* mem = (tic_mem*)tic;
 
-    mem->ram.input = input;
+    mem->ram->input = input;
 
     tic_tick_data tickData = (tic_tick_data)
     {

@@ -27,6 +27,7 @@
 
 #define TIC_VRAM_SIZE (16*1024) //16K
 #define TIC_RAM_SIZE (TIC_VRAM_SIZE+80*1024) //16K+80K
+#define TIC_WASM_PAGE_COUNT 4 // 256K
 #define TIC_FONT_WIDTH 6
 #define TIC_FONT_HEIGHT 6
 #define TIC_ALTFONT_WIDTH 4
@@ -97,6 +98,9 @@
 #define TIC_BANKS (1 << TIC_BANK_BITS)
 
 #define TIC_CODE_SIZE (TIC_BANK_SIZE * TIC_BANKS)
+#define TIC_BINARY_BANKS 4
+#define TIC_BINARY_SIZE (TIC_BINARY_BANKS * TIC_BANK_SIZE) // 4 * 64k = 256K
+
 
 #define TIC_BUTTONS 8
 #define TIC_GAMEPADS (sizeof(tic80_gamepads) / sizeof(tic80_gamepad))
@@ -375,6 +379,12 @@ typedef union
 
 typedef struct
 {
+    char data[TIC_BINARY_SIZE];
+    u32 size;
+} tic_binary;
+
+typedef struct
+{
     u8 r;
     u8 g;
     u8 b;
@@ -433,7 +443,8 @@ typedef struct
         tic_bank banks[TIC_BANKS];
     };
 
-    tic_code code;
+    tic_code code;    
+    tic_binary binary;
 
 } tic_cartridge;
 

@@ -342,6 +342,7 @@ jobs:
 
       - name: Build
         run: |
+          git apply build/baremetalpi/circle.patch
           cd build
           cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake ..
           make tic80studio -j$(nproc)
@@ -397,6 +398,7 @@ jobs:
 
       - name: Build
         run: |
+          git apply build/baremetalpi/circle.patch
           cd build
           cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_TOOLCHAIN_FILE=baremetalpi/toolchain.cmake ..
           make tic80studio -j$(nproc)

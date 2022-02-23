@@ -1,0 +1,12 @@
+#!/bin/bash
+
+FILES=`find ./demos -name tic80.zig`
+for FILE in $FILES; do
+  cp -v templates/zig/src/tic80.zig $FILE
+done
+
+FILES=`find ./demos -name build.zig`
+for FILE in $FILES; do
+  cp -v templates/zig/build.zig $FILE
+done
+

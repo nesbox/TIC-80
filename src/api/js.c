@@ -313,7 +313,7 @@ static duk_ret_t duk_sfx(duk_context* duk)
     {
         if(index >= 0)
         {
-            tic_sample* effect = tic->ram.sfx.samples.data + index;
+            tic_sample* effect = tic->ram->sfx.samples.data + index;
 
             note = effect->note;
             octave = effect->octave;
@@ -679,7 +679,7 @@ static duk_ret_t duk_font(duk_context* duk)
         return 1;
     }
 
-    s32 size = tic_api_font(tic, text, x, y, chromakey, width, height, fixed, scale, alt);
+    s32 size = tic_api_font(tic, text, x, y, &chromakey, 1, width, height, fixed, scale, alt);
 
     duk_push_int(duk, size);
 
@@ -690,7 +690,7 @@ static duk_ret_t duk_mouse(duk_context* duk)
 {
     tic_core* core = getDukCore(duk);
 
-    const tic80_mouse* mouse = &core->memory.ram.input.mouse;
+    const tic80_mouse* mouse = &core->memory.ram->input.mouse;
 
     duk_idx_t idx = duk_push_array(duk);
 

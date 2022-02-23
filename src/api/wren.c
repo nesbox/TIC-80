@@ -263,7 +263,7 @@ static void wren_mgeti(WrenVM* vm)
     }
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
-    wrenSetSlotDouble(vm, 0, *(tic->ram.map.data + index));
+    wrenSetSlotDouble(vm, 0, *(tic->ram->map.data + index));
 }
 
 static void wren_spritesize(WrenVM* vm)
@@ -383,7 +383,7 @@ static void wren_mouse(WrenVM* vm)
 {
     tic_core* core = getWrenCore(vm);
 
-    const tic80_mouse* mouse = &core->memory.ram.input.mouse;
+    const tic80_mouse* mouse = &core->memory.ram->input.mouse;
 
     wrenEnsureSlots(vm, 6);
     wrenSetSlotNewList(vm, 0);
@@ -498,7 +498,7 @@ static void wren_font(WrenVM* vm)
             return;
         }
 
-        s32 size = tic_api_font(tic, text ? text : "null", x, y, chromakey, width, height, fixed, scale, alt);
+        s32 size = tic_api_font(tic, text ? text : "null", x, y, &chromakey, 1, width, height, fixed, scale, alt);
         wrenSetSlotDouble(vm, 0, size);
     }
 }
@@ -1099,7 +1099,7 @@ static void wren_sfx(WrenVM* vm)
 
         if (index >= 0)
         {
-            tic_sample* effect = tic->ram.sfx.samples.data + index;
+            tic_sample* effect = tic->ram->sfx.samples.data + index;
 
             note = effect->note;
             octave = effect->octave;

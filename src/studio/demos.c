@@ -155,6 +155,29 @@ tic_script_config_extra SquirrelSyntaxConfigExtra =
 #endif
 
 
+#if defined(TIC_BUILD_WITH_WASM)
+
+static const u8 WasmDemoRom[] =
+{
+    #include "../build/assets/wasmdemo.tic.dat"
+};
+
+static const u8 wasmmark[] =
+{
+    #include "../build/assets/wasmmark.tic.dat"
+};
+
+tic_script_config_extra WasmSyntaxConfigExtra =
+{
+    .name               = "wasm",
+    .demoRom            = WasmDemoRom,
+    .demoRomSize        = sizeof WasmDemoRom,
+    .markRom            = wasmmark,
+    .markRomSize        = sizeof wasmmark,
+};
+
+#endif
+
 tic_script_config_extra* getConfigExtra(const tic_script_config* config)
 {
 
@@ -189,6 +212,9 @@ tic_script_config_extra* LanguagesExtra[] = {
 #endif
 #if defined(TIC_BUILD_WITH_MRUBY)
    &MRubySyntaxConfigExtra,
+#endif
+#if defined(TIC_BUILD_WITH_WASM)
+   &WasmSyntaxConfigExtra,
 #endif
    NULL
 };

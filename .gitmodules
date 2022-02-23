@@ -76,3 +76,6 @@
 [submodule "mruby"]
 	path = vendor/mruby
 	url = https://github.com/mruby/mruby.git
+[submodule "vendor/wasm3"]
+	path = vendor/wasm3
+	url = https://github.com/wasm3/wasm3.git

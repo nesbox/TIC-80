@@ -74,7 +74,7 @@ static void drawCanvasLeds(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
         tic_api_rect(tic, x + i, y, Gap, Height, tic_color_black);
 
     {
-        const tic_sfx_pos* pos = &tic->ram.sfxpos[DEFAULT_CHANNEL];
+        const tic_sfx_pos* pos = &tic->ram->sfxpos[DEFAULT_CHANNEL];
         s32 tickIndex = *(pos->data + canvasTab);
 
         if(tickIndex >= 0)
@@ -505,7 +505,7 @@ static void processKeyboard(Sfx* sfx)
 {
     tic_mem* tic = sfx->tic;
 
-    if(tic->ram.input.keyboard.data == 0) return;
+    if(tic->ram->input.keyboard.data == 0) return;
 
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
 
@@ -711,7 +711,7 @@ static void drawWaves(Sfx* sfx, s32 x, s32 y)
 
         bool sel = i == effect->data[0].wave;
 
-        const tic_sfx_pos* pos = &tic->ram.sfxpos[DEFAULT_CHANNEL];
+        const tic_sfx_pos* pos = &tic->ram->sfxpos[DEFAULT_CHANNEL];
         bool active = *pos->data < 0 ? sfx->hoverWave == i : i == effect->data[*pos->data].wave;
 
         drawPanelBorder(tic, rect.x, rect.y, rect.w, rect.h, active ? tic_color_orange : sel ? tic_color_light_green : tic_color_black);

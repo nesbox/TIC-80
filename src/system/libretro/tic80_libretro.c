@@ -1093,7 +1093,7 @@ RETRO_API bool retro_serialize(void *data, size_t size)
 	tic_mem* tic = (tic_mem*)state->tic;
 	u32* udata = (u32*)data;
 	for (u32 i = 0; i < TIC_PERSISTENT_SIZE; i++) {
-		udata[i] = tic->ram.persistent.data[i];
+		udata[i] = tic->ram->persistent.data[i];
 	}
 
 	return true;
@@ -1111,7 +1111,7 @@ RETRO_API bool retro_unserialize(const void *data, size_t size)
 	tic_mem* tic = (tic_mem*)state->tic;
 	u32* uData = (u32*)data;
 	for (u32 i = 0; i < TIC_PERSISTENT_SIZE; i++) {
-		tic->ram.persistent.data[i] = uData[i];
+		tic->ram->persistent.data[i] = uData[i];
 	}
 
 	return true;
@@ -1131,11 +1131,11 @@ RETRO_API void *retro_get_memory_data(unsigned id)
 	tic_mem* tic = (tic_mem*)state->tic;
 	switch (id) {
 		case RETRO_MEMORY_SAVE_RAM:
-			return tic->ram.persistent.data;
+			return tic->ram->persistent.data;
 		case RETRO_MEMORY_SYSTEM_RAM:
-			return tic->ram.data;
+			return tic->ram->data;
 		case RETRO_MEMORY_VIDEO_RAM:
-			return tic->ram.vram.data;
+			return tic->ram->vram.data;
 		default:
 			return NULL;
 	}
@@ -1153,11 +1153,11 @@ RETRO_API size_t retro_get_memory_size(unsigned id)
     tic_mem* tic = (tic_mem*)state->tic;
     switch (id) {
         case RETRO_MEMORY_SAVE_RAM:
-            return sizeof(tic->ram.persistent.data);
+            return sizeof(tic->ram->persistent.data);
         case RETRO_MEMORY_SYSTEM_RAM:
-            return sizeof(tic->ram.data);
+            return sizeof(tic->ram->data);
         case RETRO_MEMORY_VIDEO_RAM:
-            return sizeof(tic->ram.vram.data);
+            return sizeof(tic->ram->vram.data);
         default:
             return 0;
     }
@@ -1217,6 +1217,6 @@ RETRO_API void retro_cheat_set(unsigned index, bool enabled, const char *code)
 	// Finally, set each given code pair.
 	tic_mem* tic = (tic_mem*)state->tic;
 	for (u32 i = 0; i < codeIndex; i = i + 2) {
-		tic->ram.persistent.data[codes[i]] = codes[i+1];
+		tic->ram->persistent.data[codes[i]] = codes[i+1];
 	}
 }
