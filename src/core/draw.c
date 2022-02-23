@@ -776,12 +776,16 @@ static tic_color triTexVbankShader(const ShaderAttr* a)
     s32 u, v;
     calcUV(a, &u, &v);
 
-    if (u < 0 || v < 0 || u >= TIC80_WIDTH || v >= TIC80_HEIGHT) return TRANSPARENT_COLOR;
+    while (u < 0) u += TIC80_WIDTH;
+    while (v < 0) v += TIC80_HEIGHT;
+
+    if(u >= TIC80_WIDTH)    u %= TIC80_WIDTH;
+    if(v >= TIC80_HEIGHT)   v %= TIC80_HEIGHT;
 
     return data->mapping[tic_tool_peek4(data->vram->data, v * TIC80_WIDTH + u)];
 }
 
-void tic_api_textri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, tic_texture_src src, u8* colors, s32 count)
+void tic_api_textri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, tic_texture_src texsrc, u8* colors, s32 count)
 {
     TexData texData = 
     {
@@ -795,9 +799,9 @@ void tic_api_textri(tic_mem* tic, float x1, float y1, float x2, float y2, float 
         (const Vec2*)&(TexVert){x1, y1, u1, v1},
         (const Vec2*)&(TexVert){x2, y2, u2, v2},
         (const Vec2*)&(TexVert){x3, y3, u3, v3}, 
-        src == tic_vbank_texture 
+        texsrc == tic_vbank_texture 
             ? triTexVbankShader 
-            : src == tic_map_texture 
+            : texsrc == tic_map_texture 
                 ? triTexMapShader 
                 : triTexTileShader, &texData);
 }
