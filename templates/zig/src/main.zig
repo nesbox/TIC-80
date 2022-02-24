@@ -16,23 +16,23 @@ var mascot : TICGuy = .{};
 export fn TIC() void {
     if (!started) { start(); }
 
-    if (tic.btn(0) != 0) {
+    if (tic.btn(0)) {
         mascot.y -= 1;
     } 
-    if (tic.btn(1) != 0) {
+    if (tic.btn(1)) {
         mascot.y +=1;
     } 
-    if (tic.btn(2) != 0) {
+    if (tic.btn(2)) {
         mascot.x -= 1;
     } 
-    if (tic.btn(3) != 0) {
+    if (tic.btn(3)) {
         mascot.x += 1;
     } 
 
     tic.cls(13);
     var trans_color = [_]u8 {14};
-    tic.spr(@as(i32, 1+t%60/30*2),mascot.x,mascot.y,&trans_color,1,3,0,0,2,2);
-    _ = tic.print("HELLO WORLD!", 84, 84, 15, true, 1, false);
+    tic.raw.spr(@as(i32, 1+t%60/30*2),mascot.x,mascot.y,&trans_color,1,3,0,0,2,2);
+    _ = tic.raw.print("HELLO WORLD!", 84, 84, 15, true, 1, false);
 
     // cls(13)
     // spr()

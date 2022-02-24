@@ -29,6 +29,13 @@ const RGBColor = extern struct {
     b: u8,
 };
 
+const TextureSource = enum(i32) {
+    TILES = 0,
+    MAP,
+    VBANK1
+};
+
+
 // ------------------------
 // HARDWARE REGISTERS / RAM
 
@@ -94,52 +101,52 @@ pub const OVR_TRANSPARENCY: *u8 = @intToPtr(*u8, 0x3FF8);
 // import the RAW api
 
 pub const raw = struct {
-    extern fn btn(id: i32) i32;
-    extern fn btnp(id: i32, hold: i32, period: i32 ) bool;
-    extern fn clip(x: i32, y: i32, w: i32, h: i32) void;
-    extern fn cls(color: i32) void; 
-    extern fn circ(x: i32, y: i32, radius: i32, color: i32) void;
-    extern fn circb(x: i32, y: i32, radius: i32, color: i32) void;
-    extern fn exit() void;
-    extern fn elli(x: i32, y: i32, a: i32, b: i32, color: i32) void;
-    extern fn ellib(x: i32, y: i32, a: i32, b: i32, color: i32) void;
-    extern fn fget(id: i32, flag: u8) bool;
-    extern fn font(text: [*:0]u8, x: u32, y: i32, trans_colors: ?[*]const u8, color_count: i32, char_width: i32, char_height: i32, fixed: bool, scale: i32) i32;
-    extern fn fset(id: i32, flag: u8, value: bool) bool;
-    extern fn key(keycode: i32) bool;
-    extern fn keyp(keycode: i32, hold: i32, period: i32 ) bool;
-    extern fn line(x0: i32, y0: i32, x1: i32, y1: i32, color: i32) void;
-    extern fn map(x: i32, y: i32, w: i32, h: i32, sx: i32, sy: i32, trans_colors: ?[*]const u8, color_count: i32, scale: i32, remap: i32) void;
-    extern fn memcpy(to: u32, from: u32, length: u32) void;
-    extern fn memset(addr: u32, value: u8, length: u32) void;
-    extern fn mget(x: i32, y:i32) i32;
-    extern fn mouse(data: *MouseData) void;
-    extern fn mset(x: i32, y:i32, value: bool) void;
-    extern fn music(track: i32, frame: i32, row: i32, loop: bool, sustain: bool, tempo: i32, speed: i32) void;
-    extern fn peek(addr: u32, bits: i32) u8;
-    extern fn peek4(addr4: u32) u8;
-    extern fn peek2(addr2: u32) u8;
-    extern fn peek1(bitaddr: u32) u8;
-    extern fn pix(x: i32, y:i32, color: i32) void;
-    extern fn pmem(index: u32, value: i64) u32;
-    extern fn poke(addr: u32, value: u8, bits: i32) void;
-    extern fn poke4(addr4: u32, value: u8) void;
-    extern fn poke2(addr2: u32, value: u8) void;
-    extern fn poke1(bitaddr: u32, value: u8) void;
-    extern fn print(text: [*:0]u8, x: i32, y: i32, color: i32, fixed: bool, scale: i32, smallfont: bool) i32;
-    extern fn rect(x: i32, y: i32, w: i32, h:i32, color: i32) void;
-    extern fn rectb(x: i32, y: i32, w: i32, h:i32, color: i32) void;    
-    extern fn reset() void;
-    extern fn sfx(id: i32, note: i32, octave: i32, duration: i32, channel: i32, volumeLeft: i32, volumeRight: i32, speed: i32) void;
-    extern fn spr(id: i32, x: i32, y: i32, trans_colors: ?[*]const u8, color_count: i32, scale: i32, flip: i32, rotate: i32, w: i32, h: i32) void;
-    extern fn sync(mask: i32, bank: i32, tocart: bool) void;
-    extern fn textri(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, u1: f32, v1: f32, u2: f32, v2: f32, u3: f32, v3: f32, texsrc: i32, trans_colors: ?[*]const u8, color_count: i32) void;
-    extern fn tri(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, color: i32) void;
-    extern fn trib(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, color: i32) void;
-    extern fn time() f32;
-    extern fn trace(text: [*:0]u8, color: i32) void;
-    extern fn tstamp() u64;
-    extern fn vbank(bank: i32) u8;
+    pub extern fn btn(id: i32) i32;
+    pub extern fn btnp(id: i32, hold: i32, period: i32 ) bool;
+    pub extern fn clip(x: i32, y: i32, w: i32, h: i32) void;
+    pub extern fn cls(color: i32) void; 
+    pub extern fn circ(x: i32, y: i32, radius: i32, color: i32) void;
+    pub extern fn circb(x: i32, y: i32, radius: i32, color: i32) void;
+    pub extern fn exit() void;
+    pub extern fn elli(x: i32, y: i32, a: i32, b: i32, color: i32) void;
+    pub extern fn ellib(x: i32, y: i32, a: i32, b: i32, color: i32) void;
+    pub extern fn fget(id: i32, flag: u8) bool;
+    pub extern fn font(text: [*:0]u8, x: u32, y: i32, trans_colors: ?[*]const u8, color_count: i32, char_width: i32, char_height: i32, fixed: bool, scale: i32) i32;
+    pub extern fn fset(id: i32, flag: u8, value: bool) bool;
+    pub extern fn key(keycode: i32) bool;
+    pub extern fn keyp(keycode: i32, hold: i32, period: i32 ) bool;
+    pub extern fn line(x0: i32, y0: i32, x1: i32, y1: i32, color: i32) void;
+    pub extern fn map(x: i32, y: i32, w: i32, h: i32, sx: i32, sy: i32, trans_colors: ?[*]const u8, color_count: i32, scale: i32, remap: i32) void;
+    pub extern fn memcpy(to: u32, from: u32, length: u32) void;
+    pub extern fn memset(addr: u32, value: u8, length: u32) void;
+    pub extern fn mget(x: i32, y:i32) i32;
+    pub extern fn mouse(data: *MouseData) void;
+    pub extern fn mset(x: i32, y:i32, value: bool) void;
+    pub extern fn music(track: i32, frame: i32, row: i32, loop: bool, sustain: bool, tempo: i32, speed: i32) void;
+    pub extern fn peek(addr: u32, bits: i32) u8;
+    pub extern fn peek4(addr4: u32) u8;
+    pub extern fn peek2(addr2: u32) u8;
+    pub extern fn peek1(bitaddr: u32) u8;
+    pub extern fn pix(x: i32, y:i32, color: i32) void;
+    pub extern fn pmem(index: u32, value: i64) u32;
+    pub extern fn poke(addr: u32, value: u8, bits: i32) void;
+    pub extern fn poke4(addr4: u32, value: u8) void;
+    pub extern fn poke2(addr2: u32, value: u8) void;
+    pub extern fn poke1(bitaddr: u32, value: u8) void;
+    pub extern fn print(text: [*:0]const u8, x: i32, y: i32, color: i32, fixed: bool, scale: i32, smallfont: bool) i32;
+    pub extern fn rect(x: i32, y: i32, w: i32, h:i32, color: i32) void;
+    pub extern fn rectb(x: i32, y: i32, w: i32, h:i32, color: i32) void;    
+    pub extern fn reset() void;
+    pub extern fn sfx(id: i32, note: i32, octave: i32, duration: i32, channel: i32, volumeLeft: i32, volumeRight: i32, speed: i32) void;
+    pub extern fn spr(id: i32, x: i32, y: i32, trans_colors: ?[*]const u8, color_count: i32, scale: i32, flip: i32, rotate: i32, w: i32, h: i32) void;
+    pub extern fn sync(mask: i32, bank: i32, tocart: bool) void;
+    pub extern fn textri(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, u1: f32, v1: f32, u2: f32, v2: f32, u3: f32, v3: f32, texture_source: i32, trans_colors: ?[*]const u8, color_count: i32) void;
+    pub extern fn tri(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, color: i32) void;
+    pub extern fn trib(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, color: i32) void;
+    pub extern fn time() f32;
+    pub extern fn trace(text: [*:0]const u8, color: i32) void;
+    pub extern fn tstamp() u64;
+    pub extern fn vbank(bank: i32) u8;
 };
 
 // -----
@@ -261,14 +268,14 @@ pub const tri = raw.tri;
 pub const trib = raw.trib;
 
 const TextriArgs = struct {
-    texsrc : i32 = 0,
+    texture_source : TextureSource = TextureSource.TILES,
     transparent: []const u8 = .{},
 };
 
 pub fn textri(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, @"u1": f32, v1: f32, @"u2": f32, v2: f32, @"u3": f32, v3: f32, args: TextriArgs) void {
     const color_count = @intCast(u8,args.transparent.len);
     const trans_colors = args.transparent.ptr;
-    raw.textri(x1, y1, x2, y2, x3, y3, @"u1", v1, @"u2", v2, @"u3", v3, args.texsrc, trans_colors, color_count);
+    raw.textri(x1, y1, x2, y2, x3, y3, @"u1", v1, @"u2", v2, @"u3", v3, @enumToInt(args.texture_source), trans_colors, color_count);
 }
 
 // ----
