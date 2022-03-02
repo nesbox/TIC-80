@@ -500,7 +500,7 @@ void tic_core_resume(tic_mem* memory)
     if (core->data)
     {
         memcpy(&core->state, &core->pause.state, sizeof(tic_core_state_data));
-        memcpy(&memory->ram, &core->pause.ram, sizeof(tic_ram));
+        memcpy(memory->ram, &core->pause.ram, sizeof(tic_ram));
         core->data->start = core->pause.time.start + clock() - core->pause.time.paused;
     }
 }

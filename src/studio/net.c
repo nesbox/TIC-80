@@ -427,12 +427,17 @@ static s32 onBody(http_parser* parser, const char *at, size_t length)
     return 0;
 }
 
-static void freeRequest(NetRequest* req)
+static void onClose(uv_handle_t* handle)
 {
-    uv_close((uv_handle_t*)&req->tcp, NULL);
+    NetRequest* req = handle->data;
     FREE(req->content.data);
     free((void*)req->path);
     free(req);
+}
+
+static void freeRequest(NetRequest* req)
+{
+    uv_close((uv_handle_t*)&req->tcp, onClose);
 }
 
 static s32 onMessageComplete(http_parser* parser)
@@ -486,6 +491,7 @@ static void onError(NetRequest* req, s32 code)
     });
 
     freeRequest(req);
+    free(req);
 }
 
 static void allocBuffer(uv_handle_t *handle, size_t size, uv_buf_t *buf)
