@@ -491,7 +491,6 @@ static void onError(NetRequest* req, s32 code)
     });
 
     freeRequest(req);
-    free(req);
 }
 
 static void allocBuffer(uv_handle_t *handle, size_t size, uv_buf_t *buf)
