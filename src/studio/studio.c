@@ -1729,7 +1729,9 @@ static void processShortcuts(Studio* studio)
                     ? setStudioMode(studio, studio->prevMode) 
                     : gotoMenu(studio);
                 break;
-            case TIC_CONSOLE_MODE: setStudioMode(studio, studio->prevMode); break;
+            case TIC_CONSOLE_MODE: 
+                setStudioMode(studio, TIC_CODE_MODE);
+                break;
             case TIC_CODE_MODE:
                 if(studio->code->mode != TEXT_EDIT_MODE)
                 {
