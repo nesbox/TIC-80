@@ -1143,12 +1143,37 @@ static void onNewCommand(Console* console)
     }
 }
 
+static void insertInputText(Console* console, const char* text)
+{
+    s32 size = strlen(text);
+    s32 offset = getInputOffset(console);
+
+    if(size < CONSOLE_BUFFER_SIZE - offset)
+    {
+        char* pos = console->text + offset;
+        u8* color = console->color + offset;
+
+        {
+            s32 len = strlen(pos);
+            memmove(pos + size, pos, len);
+            memmove(color + size, color, len);
+        }
+
+        memcpy(pos, text, size);
+        memset(color, CONSOLE_INPUT_COLOR, size);
+
+        console->input.pos += size;
+    }
+
+    clearSelection(console);
+}
+
 typedef struct
 {
     Console* console;
     char* incompleteWord; // Original word that's being completed.
-    char options[CONSOLE_BUFFER_SCREEN]; // Options to show to the user.
-    char commonPrefix[CONSOLE_BUFFER_SCREEN]; // Common prefix of all options.
+    char* options; // Options to show to the user.
+    char* commonPrefix; // Common prefix of all options.
 } AutocompleteData;
 
 static void addAutocompleteOption(AutocompleteData* data, const char* option)
@@ -1183,11 +1208,46 @@ static void addAutocompleteOption(AutocompleteData* data, const char* option)
     }
 }
 
+// Used to show autocomplete options, for example.
+static void provideHint(Console* console, const char* hint)
+{
+    char* input = malloc(CONSOLE_BUFFER_SCREEN);
+    strncpy(input, console->input.text, CONSOLE_BUFFER_SCREEN);
+
+    printLine(console);
+    printBack(console, hint);
+    commandDone(console);
+    insertInputText(console, input);
+
+    free(input);
+}
+
+static void finishAutocomplete(const AutocompleteData* data)
+{
+    // Adding one at the right because all options end with a space.
+    bool justOneOptionLeft = strlen(data->options) == strlen(data->commonPrefix)+1;
+
+    if (strlen(data->commonPrefix) == strlen(data->incompleteWord) && !justOneOptionLeft)
+    {
+        provideHint(data->console, data->options);
+    }
+    insertInputText(data->console, data->commonPrefix+strlen(data->incompleteWord));
+
+    if (justOneOptionLeft)
+    {
+        insertInputText(data->console, " ");
+    }
+
+    free(data->options);
+    free(data->commonPrefix);
+}
+
 static void autocompleteLanguages(AutocompleteData* data)
 {
     FOR_EACH_LANG(ln)
         addAutocompleteOption(data, ln->name);
     FOR_EACH_LANG_END
+    finishAutocomplete(data);
 }
 
 static void autocompleteExport(AutocompleteData* data)
@@ -1195,6 +1255,7 @@ static void autocompleteExport(AutocompleteData* data)
 #define EXPORT_CMD_DEF(name) addAutocompleteOption(data, #name);
     EXPORT_CMD_LIST(EXPORT_CMD_DEF)
 #undef  EXPORT_CMD_DEF
+    finishAutocomplete(data);
 }
 
 static void autocompleteImport(AutocompleteData* data)
@@ -1202,6 +1263,7 @@ static void autocompleteImport(AutocompleteData* data)
 #define IMPORT_CMD_DEF(name) addAutocompleteOption(data, #name);
     IMPORT_CMD_LIST(IMPORT_CMD_DEF)
 #undef  IMPORT_CMD_DEF
+    finishAutocomplete(data);
 }
 
 static bool addFileAndDirToAutocomplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
@@ -1227,27 +1289,31 @@ static bool addDirToAutocomplete(const char* name, const char* title, const char
     return true;
 }
 
-static void emptyAutoCompleteHelper(void* data) {}
+static void finishAutocompleteAndFreeData(void* data) {
+    finishAutocomplete((const AutocompleteData *) data);
+    free(data);
+}
 
 static void autocompleteFiles(AutocompleteData* data)
 {
-    tic_fs_enum(data->console->fs, addFilenameToAutocomplete, emptyAutoCompleteHelper, data);
+    tic_fs_enum(data->console->fs, addFilenameToAutocomplete, finishAutocompleteAndFreeData, MOVE(data));
 }
 
 static void autocompleteDirs(AutocompleteData* data)
 {
-    tic_fs_enum(data->console->fs, addDirToAutocomplete, emptyAutoCompleteHelper, data);
+    tic_fs_enum(data->console->fs, addDirToAutocomplete, finishAutocompleteAndFreeData, MOVE(data));
 }
 
 static void autocompleteFilesAndDirs(AutocompleteData* data)
 {
-    tic_fs_enum(data->console->fs, addFileAndDirToAutocomplete, emptyAutoCompleteHelper, data);
+    tic_fs_enum(data->console->fs, addFileAndDirToAutocomplete, finishAutocompleteAndFreeData, MOVE(data));
 }
 
 static void autocompleteConfig(AutocompleteData* data)
 {
     addAutocompleteOption(data, "reset");
     addAutocompleteOption(data, "default");
+    finishAutocomplete(data);
 }
 
 typedef struct
@@ -3150,62 +3216,6 @@ static void onExport_help(Console* console, const char* param, const char* name,
     }
 }
 
-static void insertInputText(Console* console, const char* text)
-{
-    s32 size = strlen(text);
-    s32 offset = getInputOffset(console);
-
-    if(size < CONSOLE_BUFFER_SIZE - offset)
-    {
-        char* pos = console->text + offset;
-        u8* color = console->color + offset;
-
-        {
-            s32 len = strlen(pos);
-            memmove(pos + size, pos, len);
-            memmove(color + size, color, len);
-        }
-
-        memcpy(pos, text, size);
-        memset(color, CONSOLE_INPUT_COLOR, size);
-
-        console->input.pos += size;
-    }
-
-    clearSelection(console);
-}
-
-// Used to show autocomplete options, for example.
-static void provideHint(Console* console, const char* hint)
-{
-    char* input = malloc(CONSOLE_BUFFER_SCREEN);
-    strncpy(input, console->input.text, CONSOLE_BUFFER_SCREEN);
-
-    printLine(console);
-    printBack(console, hint);
-    commandDone(console);
-    insertInputText(console, input);
-
-    free(input);
-}
-
-static void finishAutocomplete(const AutocompleteData* data)
-{
-    // Adding one at the right because all options end with a space.
-    bool justOneOptionLeft = strlen(data->options) == strlen(data->commonPrefix)+1;
-
-    if (strlen(data->commonPrefix) == strlen(data->incompleteWord) && !justOneOptionLeft)
-    {
-        provideHint(data->console, data->options);
-    }
-    insertInputText(data->console, data->commonPrefix+strlen(data->incompleteWord));
-
-    if (justOneOptionLeft)
-    {
-        insertInputText(data->console, " ");
-    }
-}
-
 static void processConsoleTab(Console* console)
 {
     char* input = console->input.text;
@@ -3228,15 +3238,17 @@ static void processConsoleTab(Console* console)
             {
                 if (secondParam) {
                     if (Commands[i].autocomplete2) {
-                        AutocompleteData data = { console, incompleteWord: secondParam };
+                        AutocompleteData data = { console, .incompleteWord = secondParam };
+                        data.options = malloc(CONSOLE_BUFFER_SCREEN);
+                        data.commonPrefix = malloc(CONSOLE_BUFFER_SCREEN);
                         Commands[i].autocomplete2(&data);
-                        finishAutocomplete(&data);
                     }
                 } else {
                     if (Commands[i].autocomplete1) {
-                        AutocompleteData data = { console, incompleteWord: param };
+                        AutocompleteData data = { console, .incompleteWord = param };
+                        data.options = malloc(CONSOLE_BUFFER_SCREEN);
+                        data.commonPrefix = malloc(CONSOLE_BUFFER_SCREEN);
                         Commands[i].autocomplete1(&data);
-                        finishAutocomplete(&data);
                     }
                 }
             }
@@ -3246,6 +3258,8 @@ static void processConsoleTab(Console* console)
     {
         // Autocomplete commands.
         AutocompleteData data = { console, incompleteWord: input };
+        data.options = malloc(CONSOLE_BUFFER_SCREEN);
+        data.commonPrefix = malloc(CONSOLE_BUFFER_SCREEN);
         for(s32 i = 0; i < COUNT_OF(Commands); i++)
         {
             addAutocompleteOption(&data, Commands[i].name);
