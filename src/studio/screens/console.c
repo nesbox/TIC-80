@@ -1174,9 +1174,9 @@ typedef struct
     char* incompleteWord; // Original word that's being completed.
     char* options; // Options to show to the user.
     char* commonPrefix; // Common prefix of all options.
-} AutocompleteData;
+} TabCompleteData;
 
-static void addAutocompleteOption(AutocompleteData* data, const char* option)
+static void addTabCompleteOption(TabCompleteData* data, const char* option)
 {
     if (strstr(option, data->incompleteWord) == option)
     {
@@ -1206,7 +1206,7 @@ static void addAutocompleteOption(AutocompleteData* data, const char* option)
     }
 }
 
-// Used to show autocomplete options, for example.
+// Used to show tab-complete options, for example.
 static void provideHint(Console* console, const char* hint)
 {
     char* input = malloc(CONSOLE_BUFFER_SCREEN);
@@ -1220,7 +1220,7 @@ static void provideHint(Console* console, const char* hint)
     free(input);
 }
 
-static void finishAutocomplete(const AutocompleteData* data)
+static void finishTabComplete(const TabCompleteData* data)
 {
     bool anyOptions = strlen(data->options) > 0;
     if (anyOptions) {
@@ -1244,78 +1244,78 @@ static void finishAutocomplete(const AutocompleteData* data)
     free(data->commonPrefix);
 }
 
-static void autocompleteLanguages(AutocompleteData* data)
+static void tabCompleteLanguages(TabCompleteData* data)
 {
     FOR_EACH_LANG(ln)
-        addAutocompleteOption(data, ln->name);
+        addTabCompleteOption(data, ln->name);
     FOR_EACH_LANG_END
-    finishAutocomplete(data);
+    finishTabComplete(data);
 }
 
-static void autocompleteExport(AutocompleteData* data)
+static void tabCompleteExport(TabCompleteData* data)
 {
-#define EXPORT_CMD_DEF(name) addAutocompleteOption(data, #name);
+#define EXPORT_CMD_DEF(name) addTabCompleteOption(data, #name);
     EXPORT_CMD_LIST(EXPORT_CMD_DEF)
 #undef  EXPORT_CMD_DEF
-    finishAutocomplete(data);
+    finishTabComplete(data);
 }
 
-static void autocompleteImport(AutocompleteData* data)
+static void tabCompleteImport(TabCompleteData* data)
 {
-#define IMPORT_CMD_DEF(name) addAutocompleteOption(data, #name);
+#define IMPORT_CMD_DEF(name) addTabCompleteOption(data, #name);
     IMPORT_CMD_LIST(IMPORT_CMD_DEF)
 #undef  IMPORT_CMD_DEF
-    finishAutocomplete(data);
+    finishTabComplete(data);
 }
 
-static bool addFileAndDirToAutocomplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
+static bool addFileAndDirToTabComplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
 {
-    addAutocompleteOption(data, name);
+    addTabCompleteOption(data, name);
 
     return true;
 }
 
-static bool addFilenameToAutocomplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
+static bool addFilenameToTabComplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
 {
     if (!dir)
-        addAutocompleteOption(data, name);
+        addTabCompleteOption(data, name);
 
     return true;
 }
 
-static bool addDirToAutocomplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
+static bool addDirToTabComplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
 {
     if (dir)
-        addAutocompleteOption(data, name);
+        addTabCompleteOption(data, name);
 
     return true;
 }
 
-static void finishAutocompleteAndFreeData(void* data) {
-    finishAutocomplete((const AutocompleteData *) data);
+static void finishTabCompleteAndFreeData(void* data) {
+    finishTabComplete((const TabCompleteData *) data);
     free(data);
 }
 
-static void autocompleteFiles(AutocompleteData* data)
+static void tabCompleteFiles(TabCompleteData* data)
 {
-    tic_fs_enum(data->console->fs, addFilenameToAutocomplete, finishAutocompleteAndFreeData, MOVE(*data));
+    tic_fs_enum(data->console->fs, addFilenameToTabComplete, finishTabCompleteAndFreeData, MOVE(*data));
 }
 
-static void autocompleteDirs(AutocompleteData* data)
+static void tabCompleteDirs(TabCompleteData* data)
 {
-    tic_fs_enum(data->console->fs, addDirToAutocomplete, finishAutocompleteAndFreeData, MOVE(*data));
+    tic_fs_enum(data->console->fs, addDirToTabComplete, finishTabCompleteAndFreeData, MOVE(*data));
 }
 
-static void autocompleteFilesAndDirs(AutocompleteData* data)
+static void tabCompleteFilesAndDirs(TabCompleteData* data)
 {
-    tic_fs_enum(data->console->fs, addFileAndDirToAutocomplete, finishAutocompleteAndFreeData, MOVE(*data));
+    tic_fs_enum(data->console->fs, addFileAndDirToTabComplete, finishTabCompleteAndFreeData, MOVE(*data));
 }
 
-static void autocompleteConfig(AutocompleteData* data)
+static void tabCompleteConfig(TabCompleteData* data)
 {
-    addAutocompleteOption(data, "reset");
-    addAutocompleteOption(data, "default");
-    finishAutocomplete(data);
+    addTabCompleteOption(data, "reset");
+    addTabCompleteOption(data, "default");
+    finishTabComplete(data);
 }
 
 typedef struct
@@ -2707,7 +2707,7 @@ static void onGetCommand(Console* console)
 #endif
 
 // Declare this here to resolve a cyclic dependency with COMMANDS_LIST.
-static void autocompleteHelp(AutocompleteData* data);
+static void tabCompleteHelp(TabCompleteData* data);
 
 static const char HelpUsage[] = "help [<text>"
 #define HELP_CMD_DEF(name) "|" #name
@@ -2736,21 +2736,21 @@ static const char HelpUsage[] = "help [<text>"
         "download file from the browser local storage.",                                \
         "get <file>",                                                                   \
         onGetCommand,                                                                   \
-        autocompleteFiles,                                                              \
+        tabCompleteFiles,                                                               \
         NULL)                                                                           \
 
 #else
 #define ADDGET_FILE(macro)
 #endif
 
-// macro(name, alt, help, usage, handler, autocomplete for first param, for second param)
+// macro(name, alt, help, usage, handler, tab-complete for first param, for second param)
 #define COMMANDS_LIST(macro)                                                            \
     macro("help",                                                                       \
         NULL,                                                                           \
         "show help info about commands/api/...",                                        \
         HelpUsage,                                                                      \
         onHelpCommand,                                                                  \
-        autocompleteHelp,                                                               \
+        tabCompleteHelp,                                                                \
         NULL)                                                                           \
                                                                                         \
     macro("exit",                                                                       \
@@ -2766,7 +2766,7 @@ static const char HelpUsage[] = "help [<text>"
         "creates a new `Hello World` cartridge.",                                       \
         "new <$LANG_NAMES_PIPE$>",                                                      \
         onNewCommand,                                                                   \
-        autocompleteLanguages,                                                          \
+        tabCompleteLanguages,                                                           \
         NULL)                                                                           \
                                                                                         \
     macro("load",                                                                       \
@@ -2776,7 +2776,7 @@ static const char HelpUsage[] = "help [<text>"
         "you can also load just the section (sprites, map etc) from another cart.",     \
         "load <cart> [code" TIC_SYNC_LIST(SECTION_DEF) "]",                             \
         onLoadCommand,                                                                  \
-        autocompleteFiles,                                                              \
+        tabCompleteFiles,                                                               \
         NULL)                                                                           \
                                                                                         \
     macro("save",                                                                       \
@@ -2785,7 +2785,7 @@ static const char HelpUsage[] = "help [<text>"
         "cart extension to save it in text format (PRO feature).",                      \
         "save <cart>",                                                                  \
         onSaveCommand,                                                                  \
-        autocompleteFiles,                                                              \
+        tabCompleteFiles,                                                               \
         NULL)                                                                           \
                                                                                         \
     macro("run",                                                                        \
@@ -2825,7 +2825,7 @@ static const char HelpUsage[] = "help [<text>"
         "change directory.",                                                            \
         "\ncd <path>\ncd /\ncd ..",                                                     \
         onChangeDirectory,                                                              \
-        autocompleteDirs,                                                               \
+        tabCompleteDirs,                                                                \
         NULL)                                                                           \
                                                                                         \
     macro("mkdir",                                                                      \
@@ -2853,8 +2853,8 @@ static const char HelpUsage[] = "help [<text>"
         "\nexport [" EXPORT_CMD_LIST(EXPORT_CMD_DEF) "...] "                            \
         "<file> [" EXPORT_KEYS_LIST(EXPORT_KEYS_DEF) "...]" ,                           \
         onExportCommand,                                                                \
-        autocompleteExport,                                                             \
-        autocompleteFiles)                                                              \
+        tabCompleteExport,                                                              \
+        tabCompleteFiles)                                                               \
                                                                                         \
     macro("import",                                                                     \
         NULL,                                                                           \
@@ -2862,15 +2862,15 @@ static const char HelpUsage[] = "help [<text>"
         "\nimport [" IMPORT_CMD_LIST(IMPORT_CMD_DEF) "...] "                            \
         "<file> [" IMPORT_KEYS_LIST(IMPORT_KEYS_DEF) "...]",                            \
         onImportCommand,                                                                \
-        autocompleteImport,                                                             \
-        autocompleteFiles)                                                              \
+        tabCompleteImport,                                                              \
+        tabCompleteFiles)                                                               \
                                                                                         \
     macro("del",                                                                        \
         NULL,                                                                           \
         "delete from the filesystem.",                                                  \
         "del <file|folder>",                                                            \
         onDelCommand,                                                                   \
-        autocompleteFilesAndDirs,                                                       \
+        tabCompleteFilesAndDirs,                                                        \
         NULL)                                                                           \
                                                                                         \
     macro("cls",                                                                        \
@@ -2896,7 +2896,7 @@ static const char HelpUsage[] = "help [<text>"
         "use `default` to edit default cart template.",                                 \
         "config [reset|default]",                                                       \
         onConfigCommand,                                                                \
-        autocompleteConfig,                                                             \
+        tabCompleteConfig,                                                              \
         NULL)                                                                           \
                                                                                         \
     macro("surf",                                                                       \
@@ -2921,13 +2921,13 @@ static struct Command
     const char* help;
     const char* usage;
     void(*handler)(Console*);
-    void(*autocomplete1)(AutocompleteData*);
-    void(*autocomplete2)(AutocompleteData*);
+    void(*tabComplete1)(TabCompleteData*);
+    void(*tabComplete2)(TabCompleteData*);
 
 } Commands[] =
 {
-#define COMMANDS_DEF(name, alt, help, usage, handler, autocomplete1, autocomplete2) \
-    {name, alt, help, usage, handler, autocomplete1, autocomplete2},
+#define COMMANDS_DEF(name, alt, help, usage, handler, tabComplete1, tabComplete2) \
+    {name, alt, help, usage, handler, tabComplete1, tabComplete2},
     COMMANDS_LIST(COMMANDS_DEF)
 #undef COMMANDS_DEF
 };
@@ -2953,22 +2953,22 @@ static struct ApiItem {const char* name; const char* def; const char* help;} Api
 
 typedef struct ApiItem ApiItem;
 
-static void autocompleteHelp(AutocompleteData* data)
+static void tabCompleteHelp(TabCompleteData* data)
 {
-#define HELP_CMD_DEF(name) addAutocompleteOption(data, #name);
+#define HELP_CMD_DEF(name) addTabCompleteOption(data, #name);
     HELP_CMD_LIST(HELP_CMD_DEF)
 #undef  HELP_CMD_DEF
 
     for(s32 i = 0; i < COUNT_OF(Commands); i++)
     {
-        addAutocompleteOption(data, Commands[i].name);
+        addTabCompleteOption(data, Commands[i].name);
     }
 
-#define TIC_API_DEF(name, def, help, ...) addAutocompleteOption(data, #name);
+#define TIC_API_DEF(name, def, help, ...) addTabCompleteOption(data, #name);
     API_LIST(TIC_API_DEF)
 #undef TIC_API_DEF
 
-    finishAutocomplete(data);
+    finishTabComplete(data);
 }
 
 
@@ -3220,8 +3220,8 @@ static void onExport_help(Console* console, const char* param, const char* name,
     }
 }
 
-AutocompleteData newAutocompleteData(Console* console, char* incompleteWord) {
-    AutocompleteData data = { console, .incompleteWord = incompleteWord };
+TabCompleteData newTabCompleteData(Console* console, char* incompleteWord) {
+    TabCompleteData data = { console, .incompleteWord = incompleteWord };
     data.options = malloc(CONSOLE_BUFFER_SCREEN);
     data.commonPrefix = malloc(CONSOLE_BUFFER_SCREEN);
     data.options[0] = '\0';
@@ -3237,7 +3237,7 @@ static void processConsoleTab(Console* console)
 
     if(param)
     {
-        // Autocomplete command's parameters.
+        // Tab-complete command's parameters.
         param++;
         char* secondParam = strchr(param, ' ');
         if (secondParam)
@@ -3255,14 +3255,14 @@ static void processConsoleTab(Console* console)
             if (commandMatches)
             {
                 if (secondParam) {
-                    if (Commands[i].autocomplete2) {
-                        AutocompleteData data = newAutocompleteData(console, secondParam);
-                        Commands[i].autocomplete2(&data);
+                    if (Commands[i].tabComplete2) {
+                        TabCompleteData data = newTabCompleteData(console, secondParam);
+                        Commands[i].tabComplete2(&data);
                     }
                 } else {
-                    if (Commands[i].autocomplete1) {
-                        AutocompleteData data = newAutocompleteData(console, param);
-                        Commands[i].autocomplete1(&data);
+                    if (Commands[i].tabComplete1) {
+                        TabCompleteData data = newTabCompleteData(console, param);
+                        Commands[i].tabComplete1(&data);
                     }
                 }
             }
@@ -3270,15 +3270,15 @@ static void processConsoleTab(Console* console)
     }
     else
     {
-        // Autocomplete commands.
-        AutocompleteData data = newAutocompleteData(console, input);
+        // Tab-complete commands.
+        TabCompleteData data = newTabCompleteData(console, input);
         for(s32 i = 0; i < COUNT_OF(Commands); i++)
         {
-            addAutocompleteOption(&data, Commands[i].name);
+            addTabCompleteOption(&data, Commands[i].name);
             if (Commands[i].alt)
-                addAutocompleteOption(&data, Commands[i].alt);
+                addTabCompleteOption(&data, Commands[i].alt);
         }
-        finishAutocomplete(&data);
+        finishTabComplete(&data);
     }
 }
 
