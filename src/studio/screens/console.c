@@ -1180,6 +1180,7 @@ static void addAutocompleteOption(AutocompleteData* data, const char* option)
 {
     if (strstr(option, data->incompleteWord) == option)
     {
+        // The option matches the incomplete word, add it to the list.
         strncat(data->options, option, CONSOLE_BUFFER_SCREEN);
         strncat(data->options, " ", CONSOLE_BUFFER_SCREEN);
 
@@ -1224,18 +1225,21 @@ static void provideHint(Console* console, const char* hint)
 
 static void finishAutocomplete(const AutocompleteData* data)
 {
-    // Adding one at the right because all options end with a space.
-    bool justOneOptionLeft = strlen(data->options) == strlen(data->commonPrefix)+1;
+    bool anyOptions = strlen(data->options) > 0;
+    if (anyOptions) {
+        // Adding one at the right because all options end with a space.
+        bool justOneOptionLeft = strlen(data->options) == strlen(data->commonPrefix)+1;
 
-    if (strlen(data->commonPrefix) == strlen(data->incompleteWord) && !justOneOptionLeft)
-    {
-        provideHint(data->console, data->options);
-    }
-    insertInputText(data->console, data->commonPrefix+strlen(data->incompleteWord));
+        if (strlen(data->commonPrefix) == strlen(data->incompleteWord) && !justOneOptionLeft)
+        {
+            provideHint(data->console, data->options);
+        }
+        insertInputText(data->console, data->commonPrefix+strlen(data->incompleteWord));
 
-    if (justOneOptionLeft)
-    {
-        insertInputText(data->console, " ");
+        if (justOneOptionLeft)
+        {
+            insertInputText(data->console, " ");
+        }
     }
 
     free(data->options);
@@ -2815,7 +2819,7 @@ static const char HelpUsage[] = "help [<text>"
         "show list of local files.",                                                    \
         NULL,                                                                           \
         onDirCommand,                                                                   \
-        autocompleteDirs,                                                               \
+        NULL,                                                                           \
         NULL)                                                                           \
                                                                                         \
     macro("cd",                                                                         \
@@ -3218,6 +3222,16 @@ static void onExport_help(Console* console, const char* param, const char* name,
     }
 }
 
+AutocompleteData newAutocompleteData(Console* console, char* incompleteWord) {
+    AutocompleteData data = { console, .incompleteWord = incompleteWord };
+    data.options = malloc(CONSOLE_BUFFER_SCREEN);
+    data.commonPrefix = malloc(CONSOLE_BUFFER_SCREEN);
+    data.options[0] = '\0';
+    data.commonPrefix[0] = '\0';
+
+    return data;
+}
+
 static void processConsoleTab(Console* console)
 {
     char* input = console->input.text;
@@ -3240,20 +3254,12 @@ static void processConsoleTab(Console* console)
             {
                 if (secondParam) {
                     if (Commands[i].autocomplete2) {
-                        AutocompleteData data = { console, .incompleteWord = secondParam };
-                        data.options = malloc(CONSOLE_BUFFER_SCREEN);
-                        data.commonPrefix = malloc(CONSOLE_BUFFER_SCREEN);
-                        data.options[0] = '\0';
-                        data.commonPrefix[0] = '\0';
+                        AutocompleteData data = newAutocompleteData(console, secondParam);
                         Commands[i].autocomplete2(&data);
                     }
                 } else {
                     if (Commands[i].autocomplete1) {
-                        AutocompleteData data = { console, .incompleteWord = param };
-                        data.options = malloc(CONSOLE_BUFFER_SCREEN);
-                        data.commonPrefix = malloc(CONSOLE_BUFFER_SCREEN);
-                        data.options[0] = '\0';
-                        data.commonPrefix[0] = '\0';
+                        AutocompleteData data = newAutocompleteData(console, param);
                         Commands[i].autocomplete1(&data);
                     }
                 }
@@ -3263,11 +3269,7 @@ static void processConsoleTab(Console* console)
     else
     {
         // Autocomplete commands.
-        AutocompleteData data = { console, incompleteWord: input };
-        data.options = malloc(CONSOLE_BUFFER_SCREEN);
-        data.commonPrefix = malloc(CONSOLE_BUFFER_SCREEN);
-        data.options[0] = '\0';
-        data.commonPrefix[0] = '\0';
+        AutocompleteData data = newAutocompleteData(console, input);
         for(s32 i = 0; i < COUNT_OF(Commands); i++)
         {
             addAutocompleteOption(&data, Commands[i].name);
