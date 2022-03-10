@@ -1296,17 +1296,17 @@ static void finishAutocompleteAndFreeData(void* data) {
 
 static void autocompleteFiles(AutocompleteData* data)
 {
-    tic_fs_enum(data->console->fs, addFilenameToAutocomplete, finishAutocompleteAndFreeData, MOVE(data));
+    tic_fs_enum(data->console->fs, addFilenameToAutocomplete, finishAutocompleteAndFreeData, MOVE(*data));
 }
 
 static void autocompleteDirs(AutocompleteData* data)
 {
-    tic_fs_enum(data->console->fs, addDirToAutocomplete, finishAutocompleteAndFreeData, MOVE(data));
+    tic_fs_enum(data->console->fs, addDirToAutocomplete, finishAutocompleteAndFreeData, MOVE(*data));
 }
 
 static void autocompleteFilesAndDirs(AutocompleteData* data)
 {
-    tic_fs_enum(data->console->fs, addFileAndDirToAutocomplete, finishAutocompleteAndFreeData, MOVE(data));
+    tic_fs_enum(data->console->fs, addFileAndDirToAutocomplete, finishAutocompleteAndFreeData, MOVE(*data));
 }
 
 static void autocompleteConfig(AutocompleteData* data)
@@ -2965,6 +2965,8 @@ static void autocompleteHelp(AutocompleteData* data)
 #define TIC_API_DEF(name, def, help, ...) addAutocompleteOption(data, #name);
     API_LIST(TIC_API_DEF)
 #undef TIC_API_DEF
+
+    finishAutocomplete(data);
 }
 
 
@@ -3241,6 +3243,8 @@ static void processConsoleTab(Console* console)
                         AutocompleteData data = { console, .incompleteWord = secondParam };
                         data.options = malloc(CONSOLE_BUFFER_SCREEN);
                         data.commonPrefix = malloc(CONSOLE_BUFFER_SCREEN);
+                        data.options[0] = '\0';
+                        data.commonPrefix[0] = '\0';
                         Commands[i].autocomplete2(&data);
                     }
                 } else {
@@ -3248,6 +3252,8 @@ static void processConsoleTab(Console* console)
                         AutocompleteData data = { console, .incompleteWord = param };
                         data.options = malloc(CONSOLE_BUFFER_SCREEN);
                         data.commonPrefix = malloc(CONSOLE_BUFFER_SCREEN);
+                        data.options[0] = '\0';
+                        data.commonPrefix[0] = '\0';
                         Commands[i].autocomplete1(&data);
                     }
                 }
@@ -3260,6 +3266,8 @@ static void processConsoleTab(Console* console)
         AutocompleteData data = { console, incompleteWord: input };
         data.options = malloc(CONSOLE_BUFFER_SCREEN);
         data.commonPrefix = malloc(CONSOLE_BUFFER_SCREEN);
+        data.options[0] = '\0';
+        data.commonPrefix[0] = '\0';
         for(s32 i = 0; i < COUNT_OF(Commands); i++)
         {
             addAutocompleteOption(&data, Commands[i].name);
