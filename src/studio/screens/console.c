@@ -1234,6 +1234,7 @@ static void finishAutocomplete(const AutocompleteData* data)
         {
             provideHint(data->console, data->options);
         }
+        processConsoleEnd(data->console);
         insertInputText(data->console, data->commonPrefix+strlen(data->incompleteWord));
 
         if (justOneOptionLeft)
@@ -3247,8 +3248,12 @@ static void processConsoleTab(Console* console)
 
         for(s32 i = 0; i < COUNT_OF(Commands); i++)
         {
-            bool commandMatches = strncmp(Commands[i].name, input, param-input-1) == 0 ||
-                                  (Commands[i].alt && strncmp(Commands[i].alt, input, param-input-1) == 0);
+            s32 commandLen = param-input-1;
+            bool commandMatches = (strlen(Commands[i].name) == commandLen &&
+                                       strncmp(Commands[i].name, input, commandLen) == 0) ||
+                                  (Commands[i].alt &&
+                                      strlen(Commands[i].name) == commandLen &&
+                                      strncmp(Commands[i].alt, input, commandLen) == 0);
 
             if (commandMatches)
             {
