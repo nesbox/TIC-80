@@ -1180,32 +1180,29 @@ static void addAutocompleteOption(AutocompleteData* data, const char* option)
 {
     if (strstr(option, data->incompleteWord) == option)
     {
+        // Possibly reduce the common prefix of all possible options.
+        if (strlen(data->options) == 0)
+        {
+            // This is the first option to be added. Initialize the prefix.
+            strncpy(data->commonPrefix, option, CONSOLE_BUFFER_SCREEN);
+        }
+        else
+        {
+            // Only leave the longest common prefix.
+            char* tmpCommonPrefix = data->commonPrefix;
+            char* tmpOption = (char*) option;
+
+            while (*tmpCommonPrefix && *tmpOption && *tmpCommonPrefix == *tmpOption) {
+                tmpCommonPrefix++;
+                tmpOption++;
+            }
+
+            *tmpCommonPrefix = 0;
+        }
+
         // The option matches the incomplete word, add it to the list.
         strncat(data->options, option, CONSOLE_BUFFER_SCREEN);
         strncat(data->options, " ", CONSOLE_BUFFER_SCREEN);
-
-        // Possibly reduce the common prefix of all possible options.
-        if (strlen(data->incompleteWord) > 0)
-        {
-            if (strlen(data->commonPrefix) == 0)
-            {
-                // This is the first option to be added. Initialize the prefix.
-                strncpy(data->commonPrefix, option, CONSOLE_BUFFER_SCREEN);
-            }
-            else
-            {
-                // Only leave the longest common prefix.
-                char* tmpCommonPrefix = data->commonPrefix;
-                char* tmpOption = (char*) option;
-
-                while (*tmpCommonPrefix && *tmpOption && *tmpCommonPrefix == *tmpOption) {
-                    tmpCommonPrefix++;
-                    tmpOption++;
-                }
-
-                *tmpCommonPrefix = 0;
-            }
-        }
     }
 }
 
