@@ -883,6 +883,9 @@ static duk_ret_t duk_music(duk_context* duk)
 
     if(track >= 0)
     {
+        if(track > MUSIC_TRACKS - 1)
+            return duk_error(duk, DUK_ERR_ERROR, "invalid music track index");
+
         s32 frame = duk_opt_int(duk, 1, -1);
         s32 row = duk_opt_int(duk, 2, -1);
         bool loop = duk_opt_boolean(duk, 3, true);

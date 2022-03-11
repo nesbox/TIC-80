@@ -1182,6 +1182,12 @@ static void wren_music(WrenVM* vm)
     {
         track = getWrenNumber(vm, 1);
 
+        if(track > MUSIC_TRACKS - 1)
+        {
+            wrenError(vm, "invalid music track index");
+            return;
+        }
+
         if(top > 2)
         {
             frame = getWrenNumber(vm, 2);

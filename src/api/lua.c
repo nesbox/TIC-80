@@ -809,9 +809,16 @@ static s32 lua_music(lua_State* lua)
     if(top == 0) tic_api_music(tic, -1, 0, 0, false, false, -1, -1);
     else if(top >= 1)
     {
+        s32 track = getLuaNumber(lua, 1);
+
+        if(track > MUSIC_TRACKS - 1)
+        {
+            luaL_error(lua, "invalid music track index");
+            return 0;
+        }
+
         tic_api_music(tic, -1, 0, 0, false, false, -1, -1);
 
-        s32 track = getLuaNumber(lua, 1);
         s32 frame = -1;
         s32 row = -1;
         bool loop = true;

@@ -883,6 +883,10 @@ static SQInteger squirrel_music(HSQUIRRELVM vm)
         tic_api_music(tic, -1, 0, 0, false, false, -1, -1);
 
         s32 track = getSquirrelNumber(vm, 2);
+
+        if(track > MUSIC_TRACKS - 1)
+            return sq_throwerror(vm, "invalid music track index\n");
+
         s32 frame = -1;
         s32 row = -1;
         bool loop = true;

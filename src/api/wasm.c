@@ -785,6 +785,9 @@ m3ApiRawFunction(wasmtic_music)
 
     // TODO: defaults... how with bool vs int
 
+    if(track > MUSIC_TRACKS - 1)
+        m3ApiTrap("invalid music track index");
+
     tic_api_music(tic, track, frame, row, loop, sustain, tempo, speed);
 
     m3ApiSuccess();

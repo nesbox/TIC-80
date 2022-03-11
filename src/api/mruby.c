@@ -628,7 +628,10 @@ static mrb_value mrb_music(mrb_state* mrb, mrb_value self)
 
     if(track >= 0)
     {
-        tic_api_music(memory, track, frame, row, loop, sustain, tempo, speed);
+        if(track > MUSIC_TRACKS - 1)
+            mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid music track index");
+        else
+            tic_api_music(memory, track, frame, row, loop, sustain, tempo, speed);
     }
 
     return mrb_nil_value();
