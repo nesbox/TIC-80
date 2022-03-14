@@ -1340,28 +1340,28 @@ void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback 
     {
         studio->menuMode = studio->mode;
         studio->mode = TIC_MENU_MODE;
-    }
 
-    static const MenuItem Answers[] = 
-    {
-        {"",    NULL},
-        {"NO",  confirmNo},
-        {"YES", confirmYes},
-    };
+        static const MenuItem Answers[] = 
+        {
+            {"",    NULL},
+            {"NO",  confirmNo},
+            {"YES", confirmYes},
+        };
 
-    s32 count = rows + COUNT_OF(Answers);
-    MenuItem* items = malloc(sizeof items[0] * count);
-    SCOPE(free(items))
-    {
-        for(s32 i = 0; i != rows; ++i)
-            items[i] = (MenuItem){text[i], NULL};
+        s32 count = rows + COUNT_OF(Answers);
+        MenuItem* items = malloc(sizeof items[0] * count);
+        SCOPE(free(items))
+        {
+            for(s32 i = 0; i != rows; ++i)
+                items[i] = (MenuItem){text[i], NULL};
 
-        memcpy(items + rows, Answers, sizeof Answers);
+            memcpy(items + rows, Answers, sizeof Answers);
 
-        studio_menu_init(studio->menu, items, count, count - 2, 0,
-            NULL, MOVE((ConfirmData){studio, callback, data}));
+            studio_menu_init(studio->menu, items, count, count - 2, 0,
+                NULL, MOVE((ConfirmData){studio, callback, data}));
 
-        playSystemSfx(studio, 0);
+            playSystemSfx(studio, 0);
+        }
     }
 }
 
