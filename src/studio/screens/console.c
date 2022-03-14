@@ -464,7 +464,7 @@ static void commandDoneLine(Console* console, bool newLine)
         if(strlen(dir))
             printBack(console, dir);
 
-        printFront(console, ">");        
+        printFront(console, ">");
     }
 
     console->active = true;

@@ -82,7 +82,7 @@ bool studio_mainmenu_keyboard(StudioMainMenu* main)
             initGamepadMenu(main);
         }
 
-        return true;            
+        return true;
     }
 
     return false;

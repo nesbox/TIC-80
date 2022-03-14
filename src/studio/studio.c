@@ -1663,7 +1663,7 @@ static void processShortcuts(Studio* studio)
     if(studio->mode == TIC_START_MODE) return;
 
 #if defined(BUILD_EDITORS)
-    if(studio->mode == TIC_CONSOLE_MODE && !studio->console->active) return;
+    if(!studio->console->active) return;
 #endif
 
     if(studio_mainmenu_keyboard(studio->mainmenu)) return;
