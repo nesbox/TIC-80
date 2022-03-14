@@ -580,25 +580,39 @@ void tic_api_ellib(tic_mem* memory, s32 x, s32 y, s32 a, s32 b, u8 color)
 
 static void drawLine(tic_mem* tic, float x0, float y0, float x1, float y1, u8 color)
 {
-    bool inv = false;
+    enum{Left = 0, Top = 0, Right = TIC80_WIDTH, Bottom = TIC80_HEIGHT};
 
-    if (fabs(x0 - x1) < fabs(y0 - y1))
+    if(fabs(x0 - x1) < fabs(y0 - y1))
     {
-        SWAP(x0, y0, float);
-        SWAP(x1, y1, float);
-        inv = true;
+        if (y0 > y1)
+        {
+            SWAP(x0, x1, float);
+            SWAP(y0, y1, float);
+        }
+
+        float t = (x1 - x0) / (y1 - y0);
+
+        if(y0 < Top) x0 = x0 + (Top - y0) * t, y0 = Top;
+        if(y1 > Bottom) x1 = x1 + (Bottom - y0) * t, y1 = Bottom;
+
+        for (float y = y0; y <= y1; y++)
+            setPixel((tic_core*)tic, x0 + (y - y0) * t, y, color);
     }
-
-    if (x0 > x1)
+    else
     {
-        SWAP(x0, x1, float);
-        SWAP(y0, y1, float);
-    }
+        if (x0 > x1)
+        {
+            SWAP(x0, x1, float);
+            SWAP(y0, y1, float);
+        }
 
-    for (float x = x0, t = (y1 - y0) / (x1 - x0); x <= x1; x++)
-    {
-        float y = y0 + (x - x0) * t;
-        setPixel((tic_core*)tic, inv ? y : x, inv ? x : y, color);
+        float t = (y1 - y0) / (x1 - x0);
+
+        if(x0 < Left) y0 = y0 + (Left - x0) * t, x0 = Left;
+        if(x1 > Right) y1 = y1 + (Right - x0) * t, x1 = Right;
+
+        for (float x = x0; x <= x1; x++)
+            setPixel((tic_core*)tic, x, y0 + (x - x0) * t, color);
     }
 }
 
