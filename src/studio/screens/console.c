@@ -595,6 +595,12 @@ static void onExitCommand(Console* console)
     commandDone(console);
 }
 
+static void onEditCommand(Console* console)
+{
+    gotoCode(console->studio);
+    commandDone(console);
+}
+
 static void loadCartSection(Console* console, const tic_cartridge* cart, const char* section)
 {
     tic_mem* tic = console->tic;
@@ -2575,6 +2581,12 @@ static const char HelpUsage[] = "help [<text>"
         NULL,                                                                           \
         onExitCommand)                                                                  \
                                                                                         \
+    macro("edit",                                                                       \
+        NULL,                                                                           \
+        "open cart editors.",                                                           \
+        NULL,                                                                           \
+        onEditCommand)                                                                  \
+                                                                                        \
     macro("new",                                                                        \
         NULL,                                                                           \
         "creates a new `Hello World` cartridge.",                                       \
@@ -3302,7 +3314,7 @@ static void onHelpCommand(Console* console)
 
         printBack(console, "\n\npress ");
         printFront(console, "ESC");
-        printBack(console, " to enter UI mode\n");
+        printBack(console, " to switch editor/console\n");
     }
 
     commandDone(console);
