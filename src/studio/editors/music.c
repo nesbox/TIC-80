@@ -362,6 +362,11 @@ static void downFrame(Music* music)
         music->frame = MUSIC_FRAMES-1;
 }
 
+static bool checkPlaying(Music* music)
+{
+    return getMusicPos(music)->music.track >= 0;
+}
+
 static bool checkPlayFrame(Music* music, s32 frame)
 {
     const tic_music_state* pos = getMusicPos(music);
@@ -524,30 +529,34 @@ static void setParam2(Music* music, u8 value)
     row->param2 = value;
 }
 
-static void playTrackRow(Music* music)
+static void playTrackFromNow(Music* music)
 {
     tic_mem* tic = music->tic;
 
-    tic_api_music(tic, music->track, music->frame, music->tracker.edit.y, true, music->sustain, -1, -1);
+    tic_api_music(tic, music->track, music->frame, music->tracker.edit.y, music->loop, music->sustain, -1, -1);
+
+    setMusicState(music, tic_music_play);
 }
 
 static void playFrame(Music* music)
 {
     tic_mem* tic = music->tic;
 
-    tic_api_music(tic, music->track, music->frame, -1, true, music->sustain, -1, -1);
+    tic_api_music(tic, music->track, music->frame, -1, music->loop, music->sustain, -1, -1);
 
     setMusicState(music, tic_music_play_frame);
 }
 
 static void playTrack(Music* music)
 {
-    tic_api_music(music->tic, music->track, -1, -1, true, music->sustain, -1, -1);
+    tic_api_music(music->tic, music->track, -1, -1, music->loop, music->sustain, -1, -1);
+
+    setMusicState(music, tic_music_play);
 }
 
 static void stopTrack(Music* music)
 {
-    tic_api_music(music->tic, -1, -1, -1, false, music->sustain, -1, -1);
+    tic_api_music(music->tic, -1, -1, -1, music->loop, music->sustain, -1, -1);
 }
 
 static void toggleFollowMode(Music* music)
@@ -559,6 +568,11 @@ static void toggleSustainMode(Music* music)
 {
     music->tic->ram->music_state.flag.music_sustain = !music->sustain;
     music->sustain = !music->sustain;
+}
+
+static void toggleLoopMode(Music* music)
+{
+    music->loop = !music->loop;
 }
 
 static void resetSelection(Music* music)
@@ -1424,7 +1438,7 @@ static void processKeyboard(Music* music)
     }
 
     {
-        bool stopped = getMusicPos(music)->music.track < 0;
+        bool stopped = !checkPlaying(music);
 
         if(keyWasPressed(music->studio, tic_key_space))
         {
@@ -1436,7 +1450,7 @@ static void processKeyboard(Music* music)
         {
             stopped
                 ? (shift && music->tab == MUSIC_TRACKER_TAB
-                    ? playTrackRow(music) 
+                    ? playTrackFromNow(music) 
                     : playFrame(music))
                 : stopTrack(music);
         }
@@ -1788,76 +1802,104 @@ static void drawTrackerLayout(Music* music, s32 x, s32 y)
 
 static void drawPlayButtons(Music* music)
 {
-    enum
+    typedef struct
     {
-        FollowButton,
-        SustainButton,
-        PlayFromNowButton,
-        PlayFrameButton,
-        PlayTrackButton,
-    };
-
-    static struct Button
-    {
-        s32 id; 
         u8 icon; 
         const char* tip; 
         const char* alt; 
         void(*handler)(Music*);
-    } Buttons[] = 
+    } Button;
+
+    static const Button FollowButton = 
     {
-        {
-            FollowButton,
-            tic_icon_follow,
-            "FOLLOW [ctrl+f]",
-            NULL,
-            toggleFollowMode,
-        },
-
-        {
-            SustainButton,
-            tic_icon_sustain,
-            "SUSTAIN NOTES",
-            NULL,
-            toggleSustainMode,
-        },
-
-        {
-            PlayFromNowButton,
-            tic_icon_playnow,
-            "PLAY FROM NOW ...",
-            "... [shift+enter]",
-            playTrackRow,
-        },
-
-        {
-            PlayFrameButton,
-            tic_icon_playframe,
-            "PLAY FRAME ...",
-            "... [enter]",
-            playFrame,
-        },
-
-        {
-            PlayTrackButton,
-            tic_icon_right,
-            "PLAY TRACK ...",
-            "... [space]",
-            playTrack,
-        },
-
-        {
-            PlayTrackButton,
-            tic_icon_stop,
-            "STOP [enter]",
-            NULL,
-            stopTrack,
-        },
+        tic_icon_follow,
+        "FOLLOW [ctrl+f]",
+        NULL,
+        toggleFollowMode,
     };
+
+    static const Button LoopButton = 
+    {
+        tic_icon_loop,
+        "LOOP",
+        NULL,
+        toggleLoopMode,
+    };
+
+    static const Button SustainButton = 
+    {
+        tic_icon_sustain,
+        "SUSTAIN NOTES ...",
+        "BETWEEN FRAMES",
+        toggleSustainMode,
+    };
+
+    static const Button PlayFromNowButton = 
+    {
+        tic_icon_playnow,
+        "PLAY FROM NOW ...",
+        "... [shift+enter]",
+        playTrackFromNow,
+    };
+
+    static const Button PlayFrameButton = 
+    {
+        tic_icon_playframe,
+        "PLAY FRAME ...",
+        "... [enter]",
+        playFrame,
+    };
+
+    static const Button PlayTrackButton = 
+    {
+        tic_icon_right,
+        "PLAY TRACK ...",
+        "... [space]",
+        playTrack,
+    };
+
+    static const Button StopButton = 
+    {
+        tic_icon_stop,
+        "STOP [enter]",
+        NULL,
+        stopTrack,
+    };
+
+    const Button **start, **end;
+
+    if(checkPlaying(music))
+    {
+        static const Button* Buttons[] = 
+        {
+            &LoopButton, 
+            &FollowButton, 
+            &SustainButton,
+            &StopButton,
+        };
+
+        start = Buttons;
+        end = start + COUNT_OF(Buttons);
+    }
+    else
+    {
+        static const Button* Buttons[] = 
+        {
+            &LoopButton, 
+            &FollowButton, 
+            &SustainButton,
+            &PlayFromNowButton,
+            &PlayFrameButton,
+            &PlayTrackButton,
+        };
+
+        start = Buttons;
+        end = start + COUNT_OF(Buttons);
+    }
 
     tic_rect rect = { TIC80_WIDTH - 54, 0, TIC_FONT_WIDTH, TOOLBAR_SIZE };
 
-    for(const struct Button* btn = Buttons, *end = btn + COUNT_OF(Buttons); btn < end; btn++, rect.x += TIC_FONT_WIDTH)
+    for(const Button** btn = start; btn < end; btn++, rect.x += TIC_FONT_WIDTH)
     {
         bool over = false;
 
@@ -1866,20 +1908,19 @@ static void drawPlayButtons(Music* music)
             setCursor(music->studio, tic_cursor_hand);
             over = true;
 
-            showTooltip(music->studio, btn->alt && music->tickCounter % (TIC80_FRAMERATE * 2) < TIC80_FRAMERATE ? btn->alt : btn->tip);
+            showTooltip(music->studio, (*btn)->alt && music->tickCounter % (TIC80_FRAMERATE * 2) < TIC80_FRAMERATE ? (*btn)->alt : (*btn)->tip);
 
             if (checkMouseClick(music->studio, &rect, tic_mouse_left))
-                btn->handler(music);
+                (*btn)->handler(music);
         }
 
-        if(btn->id == FollowButton && music->follow)
-            drawBitIcon(music->studio, btn->icon, rect.x, rect.y, tic_color_green);
+        tic_color color = *btn == &FollowButton && music->follow
+            || *btn == &SustainButton && music->sustain
+            || *btn == &LoopButton && music->loop
+                ? tic_color_green
+                : over ? tic_color_grey : tic_color_light_grey;
 
-        else if(btn->id == SustainButton && music->sustain)
-            drawBitIcon(music->studio, btn->icon, rect.x, rect.y, tic_color_green);
-
-        else
-            drawBitIcon(music->studio, btn->icon, rect.x, rect.y, over ? tic_color_grey : tic_color_light_grey);
+        drawBitIcon(music->studio, (*btn)->icon, rect.x, rect.y, color);
     }
 }
 

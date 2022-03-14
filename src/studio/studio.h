@@ -172,6 +172,7 @@ enum
     tic_icon_bigpicker  = 134,
     tic_icon_bigselect  = 135,
     tic_icon_bigfill    = 136,
+    tic_icon_loop       = 137,
 };
 
 void setCursor(Studio* studio, tic_cursor id);

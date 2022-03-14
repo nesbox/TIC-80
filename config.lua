@@ -292,6 +292,7 @@ CRT_SHADER=
 -- 134:00ccc00000ccc0000ccccc0000c0c00000c0c00000c0c000000c000000000000
 -- 135:c0c0c0c000000000c00000c000000000c00000c000000000c0c0c0c000000000
 -- 136:0000c00000000c00000000c00cccccccc0ccccc0c00ccc00c000c00000000000
+-- 137:000000000ccccc000c000c000c0c0c0000000c000c0ccc000000000000000000
 -- 160:cccccccccceeeeeececccccccecececececcccccceceececceccccccceceecee
 -- 161:cccccccceeeeeeeccccccccecececececcccccceececeececcccccceeeeceece
 -- 162:cccccccccccccccccccccccccceeeeeececccccccecececececcccccceceecec

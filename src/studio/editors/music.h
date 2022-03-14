@@ -46,6 +46,7 @@ struct Music
     bool beat34;
     bool follow;
     bool sustain;
+    bool loop;
     bool on[TIC_SOUND_CHANNELS];
 
     struct
