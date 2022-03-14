@@ -1529,6 +1529,12 @@ static void processKeyboard(Code* code)
     default: usedClipboard = false; break;
     }
 
+    if(usedClipboard)
+    {
+        updateEditor(code);
+        return;
+    }
+
     bool shift = tic_api_key(tic, tic_key_shift);
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
     bool alt = tic_api_key(tic, tic_key_alt);
@@ -1594,13 +1600,13 @@ static void processKeyboard(Code* code)
         else if(keyWasPressed(code->studio, tic_key_end))         goCodeEnd(code);
         else if(keyWasPressed(code->studio, tic_key_delete))      deleteWord(code);
         else if(keyWasPressed(code->studio, tic_key_backspace))   backspaceWord(code);
-        else                                        usedKeybinding = false;
+        else usedKeybinding = false;
     }
     else if(alt)
     {
         if(keyWasPressed(code->studio, tic_key_left))         leftWord(code);
         else if(keyWasPressed(code->studio, tic_key_right))   rightWord(code);
-        else                                    usedKeybinding = false;
+        else usedKeybinding = false;
     }
     else
     {
@@ -1616,7 +1622,7 @@ static void processKeyboard(Code* code)
         else if(keyWasPressed(code->studio, tic_key_backspace))   backspaceChar(code);
         else if(keyWasPressed(code->studio, tic_key_return))      newLine(code);
         else if(keyWasPressed(code->studio, tic_key_tab))         doTab(code, shift, ctrl);
-        else                                        usedKeybinding = false;
+        else usedKeybinding = false;
     }
 
     if(!usedKeybinding)
@@ -1628,7 +1634,7 @@ static void processKeyboard(Code* code)
         }
     }
 
-    if(usedClipboard || changedSelection || usedKeybinding) updateEditor(code);
+    if(changedSelection || usedKeybinding) updateEditor(code);
 }
 
 static void processMouse(Code* code)
