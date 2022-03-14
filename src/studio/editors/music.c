@@ -533,9 +533,7 @@ static void playTrackFromNow(Music* music)
 {
     tic_mem* tic = music->tic;
 
-    tic_api_music(tic, music->track, music->frame, music->tracker.edit.y, music->loop, music->sustain, -1, -1);
-
-    setMusicState(music, tic_music_play);
+    tic_api_music(tic, music->track, music->frame, music->tab == MUSIC_TRACKER_TAB ? music->tracker.edit.y : -1, music->loop, music->sustain, -1, -1);
 }
 
 static void playFrame(Music* music)
@@ -550,8 +548,6 @@ static void playFrame(Music* music)
 static void playTrack(Music* music)
 {
     tic_api_music(music->tic, music->track, -1, -1, music->loop, music->sustain, -1, -1);
-
-    setMusicState(music, tic_music_play);
 }
 
 static void stopTrack(Music* music)
@@ -1449,7 +1445,7 @@ static void processKeyboard(Music* music)
         else if(keyWasPressed(music->studio, tic_key_return))
         {
             stopped
-                ? (shift && music->tab == MUSIC_TRACKER_TAB
+                ? (shift
                     ? playTrackFromNow(music) 
                     : playFrame(music))
                 : stopTrack(music);
