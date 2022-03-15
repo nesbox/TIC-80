@@ -2049,6 +2049,7 @@ static void blitCursor(Studio* studio)
 
     if(tic->input.mouse && !m->relative && m->x < TIC80_FULLWIDTH && m->y < TIC80_FULLHEIGHT)
     {
+        s32 sprite = tic->ram->vram.vars.cursor.sprite;
         const tic_bank* bank = &tic->cart.bank0;
 
         tic_point hot = {0};
@@ -2061,11 +2062,12 @@ static void blitCursor(Studio* studio)
                 {0, 0},
                 {3, 0},
                 {2, 3},
-            }[tic->ram->vram.vars.cursor.sprite];
+            }[sprite];
         }
+        else if(sprite == 0) return;
 
         const tic_palette* pal = &bank->palette.vbank0;
-        const tic_tile* tile = &bank->sprites.data[tic->ram->vram.vars.cursor.sprite];
+        const tic_tile* tile = &bank->sprites.data[sprite];
 
         tic_point s = {m->x - hot.x, m->y - hot.y};
         u32* dst = tic->product.screen + TIC80_FULLWIDTH * s.y + s.x;
