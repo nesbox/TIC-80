@@ -1032,19 +1032,19 @@ static void onLoadDemoConfirm(Studio* studio, bool yes, void* data)
     free(demoData);
 }
 
+static const char* LoadWarningRows[] =
+{
+    "WARNING!",
+    "You have unsaved changes",
+    "Do you really want to load cart?",
+};
+
 static void onLoadDemoCommand(Console* console, tic_script_config* script)
 {
     if(studioCartChanged(console->studio))
     {
-        static const char* Rows[] =
-        {
-            "WARNING!",
-            "You have unsaved changes",
-            "Do you really want to load cart?",
-        };
-
         LoadDemoConfirmData data = {console, onLoadDemoCommandConfirmed, script};
-        confirmDialog(console->studio, Rows, COUNT_OF(Rows), onLoadDemoConfirm, MOVE(data));
+        confirmDialog(console->studio, LoadWarningRows, COUNT_OF(LoadWarningRows), onLoadDemoConfirm, MOVE(data));
     }
     else
     {
@@ -1056,16 +1056,7 @@ static void onLoadCommand(Console* console)
 {
     if(studioCartChanged(console->studio))
     {
-        static const char* Rows[] =
-        {
-            "YOU HAVE",
-            "UNSAVED CHANGES",
-            "",
-            "DO YOU REALLY WANT",
-            "TO LOAD CART?",
-        };
-
-        confirmCommand(console, Rows, COUNT_OF(Rows), onLoadCommandConfirmed);
+        confirmCommand(console, LoadWarningRows, COUNT_OF(LoadWarningRows), onLoadCommandConfirmed);
     }
     else
     {
