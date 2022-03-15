@@ -32,7 +32,7 @@
 #define CODE_EDITOR_WIDTH (TIC80_WIDTH - BOOKMARK_WIDTH)
 #define CODE_EDITOR_HEIGHT (TIC80_HEIGHT - TOOLBAR_SIZE - STUDIO_TEXT_HEIGHT)
 #define TEXT_BUFFER_HEIGHT (CODE_EDITOR_HEIGHT / STUDIO_TEXT_HEIGHT)
-#define OUTLINE_WIDTH (13 * TIC_FONT_WIDTH)
+#define SIDEBAR_WIDTH (12 * TIC_FONT_WIDTH)
 
 #if defined(TIC80_PRO)
 #   define MAX_CODE sizeof(tic_code)
@@ -1225,13 +1225,13 @@ static void centerScroll(Code* code)
     normalizeScroll(code);
 }
 
-static void updateOutlineCode(Code* code)
+static void updateSidebarCode(Code* code)
 {
     tic_mem* tic = code->tic;
 
-    const tic_outline_item* item = code->outline.items + code->outline.index;
+    const tic_outline_item* item = code->sidebar.items + code->sidebar.index;
 
-    if(item && item->pos)
+    if(code->sidebar.size && item && item->pos)
     {
         code->cursor.position = (char*)item->pos;
         code->cursor.selection = (char*)item->pos + item->size;
@@ -1277,16 +1277,11 @@ static void drawFilterMatch(Code *code, s32 x, s32 y, const char* orig, const ch
     }
 }
 
-static void initOutlineMode(Code* code)
+static void initSidebarMode(Code* code)
 {
     tic_mem* tic = code->tic;
 
-    if(code->outline.items)
-    {
-        free(code->outline.items);
-        code->outline.items = NULL;
-        code->outline.size = 0;
-    }
+    code->sidebar.size = 0;
 
     const tic_script_config* config = tic_core_script_config(tic);
 
@@ -1313,23 +1308,51 @@ static void initOutlineMode(Code* code)
                 if(*filter && !isFilterMatch(buffer, filter))
                     continue;
 
-                s32 last = code->outline.size++;
-                code->outline.items = realloc(code->outline.items, code->outline.size * sizeof(tic_outline_item));
-                code->outline.items[last] = *item;
+                s32 last = code->sidebar.size++;
+                code->sidebar.items = realloc(code->sidebar.items, code->sidebar.size * sizeof(tic_outline_item));
+                code->sidebar.items[last] = *item;
             }
         }
     }
 }
 
+static void setBookmarkMode(Code* code)
+{
+    code->sidebar.index = 0;
+    code->sidebar.scroll = 0;
+    code->sidebar.size = 0;
+
+    const char* ptr = code->src;
+    const CodeState* state = code->state;
+
+    while(*ptr)
+    {
+        if(state->bookmark)
+        {
+            s32 last = code->sidebar.size++;
+            code->sidebar.items = realloc(code->sidebar.items, code->sidebar.size * sizeof(tic_outline_item));
+            tic_outline_item* item = &code->sidebar.items[last];
+
+            item->pos = ptr;
+            item->size = MIN(SIDEBAR_WIDTH / TIC_ALTFONT_WIDTH, getLineSize(ptr));
+        }
+        
+        ptr++;
+        state++;
+    }
+
+    updateSidebarCode(code);
+}
+
 static void setOutlineMode(Code* code)
 {
-    code->outline.index = 0;
-    code->outline.scroll = 0;
+    code->sidebar.index = 0;
+    code->sidebar.scroll = 0;
 
-    initOutlineMode(code);
+    initSidebarMode(code);
 
-    qsort(code->outline.items, code->outline.size, sizeof(tic_outline_item), funcCompare);
-    updateOutlineCode(code);
+    qsort(code->sidebar.items, code->sidebar.size, sizeof(tic_outline_item), funcCompare);
+    updateSidebarCode(code);
 }
 
 static bool isIdle(Code* code)
@@ -1352,6 +1375,7 @@ static void setCodeMode(Code* code, s32 mode)
         {
         case TEXT_FIND_MODE: setFindMode(code); break;
         case TEXT_GOTO_MODE: setGotoMode(code); break;
+        case TEXT_BOOKMARK_MODE: setBookmarkMode(code); break;
         case TEXT_OUTLINE_MODE: setOutlineMode(code); break;
         default: break;
         }
@@ -1591,6 +1615,7 @@ static void processKeyboard(Code* code)
         else if(keyWasPressed(code->studio, tic_key_y))           redo(code);
         else if(keyWasPressed(code->studio, tic_key_f))           setCodeMode(code, TEXT_FIND_MODE);
         else if(keyWasPressed(code->studio, tic_key_g))           setCodeMode(code, TEXT_GOTO_MODE);
+        else if(keyWasPressed(code->studio, tic_key_b))           setCodeMode(code, TEXT_BOOKMARK_MODE);
         else if(keyWasPressed(code->studio, tic_key_o))           setCodeMode(code, TEXT_OUTLINE_MODE);
         else if(keyWasPressed(code->studio, tic_key_n))           downLine(code);
         else if(keyWasPressed(code->studio, tic_key_p))           upLine(code);
@@ -1928,7 +1953,7 @@ static void textGoToTick(Code* code)
     drawStatus(code);
 }
 
-static void drawOutlineBar(Code* code, s32 x, s32 y)
+static void drawSidebarBar(Code* code, s32 x, s32 y)
 {
     tic_mem* tic = code->tic;
     tic_rect rect = {x, y, TIC80_WIDTH - x, TIC80_HEIGHT - y};
@@ -1937,16 +1962,16 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
     {
         s32 mx = tic_api_mouse(tic).y - rect.y;
         mx /= STUDIO_TEXT_HEIGHT;
-        mx += code->outline.scroll;
+        mx += code->sidebar.scroll;
 
-        if(mx >= 0 && mx < code->outline.size && code->outline.items[mx].pos)
+        if(mx >= 0 && mx < code->sidebar.size && code->sidebar.items[mx].pos)
         {
             setCursor(code->studio, tic_cursor_hand);
 
             if(checkMouseDown(code->studio, &rect, tic_mouse_left))
             {
-                code->outline.index = mx;
-                updateOutlineCode(code);
+                code->sidebar.index = mx;
+                updateSidebarCode(code);
             }
 
             if(checkMouseClick(code->studio, &rect, tic_mouse_left))
@@ -1956,17 +1981,17 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
 
     tic_api_rect(code->tic, rect.x-1, rect.y, rect.w+1, rect.h, tic_color_grey);
 
-    y -= code->outline.scroll * STUDIO_TEXT_HEIGHT - 1;
+    y -= code->sidebar.scroll * STUDIO_TEXT_HEIGHT - 1;
 
     char filter[STUDIO_TEXT_BUFFER_WIDTH];
     strncpy(filter, code->popup.text, sizeof(filter));
 
-    if(code->outline.items)
+    if(code->sidebar.size)
     {
-        tic_api_rect(code->tic, rect.x - 1, rect.y + (code->outline.index - code->outline.scroll) * STUDIO_TEXT_HEIGHT,
+        tic_api_rect(code->tic, rect.x - 1, rect.y + (code->sidebar.index - code->sidebar.scroll) * STUDIO_TEXT_HEIGHT,
             rect.w + 1, TIC_FONT_HEIGHT + 2, tic_color_red);
 
-        for(const tic_outline_item* ptr = code->outline.items, *end = ptr + code->outline.size; 
+        for(const tic_outline_item* ptr = code->sidebar.items, *end = ptr + code->sidebar.size; 
             ptr < end; ptr++, y += STUDIO_TEXT_HEIGHT)
         {
             char orig[STUDIO_TEXT_BUFFER_WIDTH] = {0};
@@ -1983,29 +2008,29 @@ static void drawOutlineBar(Code* code, s32 x, s32 y)
     }
 }
 
-static void normOutlineScroll(Code* code)
+static void normSidebarScroll(Code* code)
 {
-    code->outline.scroll = code->outline.size > TEXT_BUFFER_HEIGHT 
-        ? CLAMP(code->outline.scroll, 0, code->outline.size - TEXT_BUFFER_HEIGHT) : 0;
+    code->sidebar.scroll = code->sidebar.size > TEXT_BUFFER_HEIGHT 
+        ? CLAMP(code->sidebar.scroll, 0, code->sidebar.size - TEXT_BUFFER_HEIGHT) : 0;
 }
 
-static void updateOutlineIndex(Code* code, s32 value)
+static void updateSidebarIndex(Code* code, s32 value)
 {
-    if(code->outline.size == 0)
+    if(code->sidebar.size == 0)
         return;
 
-    code->outline.index = CLAMP(value, 0, code->outline.size - 1);
+    code->sidebar.index = CLAMP(value, 0, code->sidebar.size - 1);
 
-    if(code->outline.index - code->outline.scroll < 0)
-        code->outline.scroll -= TEXT_BUFFER_HEIGHT;
-    else if(code->outline.index - code->outline.scroll >= TEXT_BUFFER_HEIGHT)
-        code->outline.scroll += TEXT_BUFFER_HEIGHT;
+    if(code->sidebar.index - code->sidebar.scroll < 0)
+        code->sidebar.scroll -= TEXT_BUFFER_HEIGHT;
+    else if(code->sidebar.index - code->sidebar.scroll >= TEXT_BUFFER_HEIGHT)
+        code->sidebar.scroll += TEXT_BUFFER_HEIGHT;
 
-    updateOutlineCode(code);
-    normOutlineScroll(code);
+    updateSidebarCode(code);
+    normSidebarScroll(code);
 }
 
-static void textOutlineTick(Code* code)
+static void processSidebar(Code* code)
 {
     // process scroll
     {
@@ -2015,35 +2040,52 @@ static void textOutlineTick(Code* code)
         {
             enum{Scroll = 3};
             s32 delta = input->mouse.scrolly > 0 ? -Scroll : Scroll;
-            code->outline.scroll += delta;
-            normOutlineScroll(code);
+            code->sidebar.scroll += delta;
+            normSidebarScroll(code);
         }
     }
 
     if(keyWasPressed(code->studio, tic_key_up))
-        updateOutlineIndex(code, code->outline.index - 1);
+        updateSidebarIndex(code, code->sidebar.index - 1);
 
     else if(keyWasPressed(code->studio, tic_key_down))
-        updateOutlineIndex(code, code->outline.index + 1);
+        updateSidebarIndex(code, code->sidebar.index + 1);
 
     else if(keyWasPressed(code->studio, tic_key_left) || keyWasPressed(code->studio, tic_key_pageup))
-        updateOutlineIndex(code, code->outline.index - TEXT_BUFFER_HEIGHT);
+        updateSidebarIndex(code, code->sidebar.index - TEXT_BUFFER_HEIGHT);
 
     else if(keyWasPressed(code->studio, tic_key_right) || keyWasPressed(code->studio, tic_key_pagedown))
-        updateOutlineIndex(code, code->outline.index + TEXT_BUFFER_HEIGHT);
+        updateSidebarIndex(code, code->sidebar.index + TEXT_BUFFER_HEIGHT);
 
     else if(keyWasPressed(code->studio, tic_key_home))
-        updateOutlineIndex(code, 0);
+        updateSidebarIndex(code, 0);
 
     else if(keyWasPressed(code->studio, tic_key_end))
-        updateOutlineIndex(code, code->outline.size - 1);
+        updateSidebarIndex(code, code->sidebar.size - 1);
 
     else if(keyWasPressed(code->studio, tic_key_return))
     {
-        updateOutlineCode(code);
+        updateSidebarCode(code);        
         setCodeMode(code, TEXT_EDIT_MODE);
     }
-    else if(keyWasPressed(code->studio, tic_key_backspace))
+}
+
+static void textBookmarkTick(Code* code)
+{
+    processSidebar(code);
+
+    tic_api_cls(code->tic, getConfig(code->studio)->theme.code.BG);
+
+    drawCode(code, false);
+    drawStatus(code);
+    drawSidebarBar(code, (TIC80_WIDTH - SIDEBAR_WIDTH) + code->anim.sidebar, TIC_FONT_HEIGHT+1);
+}
+
+static void textOutlineTick(Code* code)
+{
+    processSidebar(code);
+
+    if(keyWasPressed(code->studio, tic_key_backspace))
     {
         if(*code->popup.text)
         {
@@ -2068,7 +2110,7 @@ static void textOutlineTick(Code* code)
 
     drawCode(code, false);
     drawStatus(code);
-    drawOutlineBar(code, (TIC80_WIDTH - OUTLINE_WIDTH) + code->anim.outline, 2*(TIC_FONT_HEIGHT+1));
+    drawSidebarBar(code, (TIC80_WIDTH - SIDEBAR_WIDTH) + code->anim.sidebar, 2*(TIC_FONT_HEIGHT+1));
     drawPopupBar(code, "FUNC:");
 }
 
@@ -2150,14 +2192,20 @@ static void drawCodeToolbar(Code* code)
 {
     tic_api_rect(code->tic, 0, 0, TIC80_WIDTH, TOOLBAR_SIZE, tic_color_white);
 
-    static u8 Icons[] = {tic_icon_hand, tic_icon_find, tic_icon_goto, tic_icon_outline};
-    static const char* Tips[] = {"DRAG [right mouse]", "FIND [ctrl+f]", "GOTO [ctrl+g]", "OUTLINE [ctrl+o]"};
+    static const struct Button {u8 icon; const char* tip;} Buttons[] = 
+    {
+        {tic_icon_hand, "DRAG [right mouse]"},
+        {tic_icon_find, "FIND [ctrl+f]"},
+        {tic_icon_goto, "GOTO [ctrl+g]"},
+        {tic_icon_bookmark, "BOOKMARKS [ctrl+b]"},
+        {tic_icon_outline, "OUTLINE [ctrl+o]"},
+    };
 
-    enum {Count = COUNT_OF(Icons)};
-    enum {Size = 7};
+    enum {Count = COUNT_OF(Buttons), Size = 7};
 
     for(s32 i = 0; i < Count; i++)
     {
+        const struct Button* btn = &Buttons[i];
         tic_rect rect = {TIC80_WIDTH + (i - Count) * Size, 0, Size, Size};
 
         bool over = false;
@@ -2165,7 +2213,7 @@ static void drawCodeToolbar(Code* code)
         {
             setCursor(code->studio, tic_cursor_hand);
 
-            showTooltip(code->studio, Tips[i]);
+            showTooltip(code->studio, btn->tip);
 
             over = true;
 
@@ -2180,10 +2228,10 @@ static void drawCodeToolbar(Code* code)
         if (active)
         {
             tic_api_rect(code->tic, rect.x, rect.y, Size, Size, tic_color_grey);
-            drawBitIcon(code->studio, Icons[i], rect.x, rect.y + 1, tic_color_black);
+            drawBitIcon(code->studio, btn->icon, rect.x, rect.y + 1, tic_color_black);
         }            
 
-        drawBitIcon(code->studio, Icons[i], rect.x, rect.y, active ? tic_color_white : (over ? tic_color_grey : tic_color_light_grey));
+        drawBitIcon(code->studio, btn->icon, rect.x, rect.y, active ? tic_color_white : (over ? tic_color_grey : tic_color_light_grey));
     }
 
     drawFontButton(code, TIC80_WIDTH - (Count+3) * Size, 1);
@@ -2206,6 +2254,7 @@ static void tick(Code* code)
     case TEXT_EDIT_MODE:    textEditTick(code);     break;
     case TEXT_FIND_MODE:    textFindTick(code);     break;
     case TEXT_GOTO_MODE:    textGoToTick(code);     break;
+    case TEXT_BOOKMARK_MODE:textBookmarkTick(code); break;
     case TEXT_OUTLINE_MODE: textOutlineTick(code);  break;
     }
 
@@ -2294,7 +2343,7 @@ void initCode(Code* code, Studio* studio, tic_code* src)
             .prevPos = NULL,
             .prevSel = NULL,
         },
-        .outline =
+        .sidebar =
         {
             .items = NULL,
             .size = 0,
@@ -2311,13 +2360,13 @@ void initCode(Code* code, Studio* studio, tic_code* src)
             .show = MOVIE_DEF(STUDIO_ANIM_TIME, setIdle,
             {
                 {-TOOLBAR_SIZE, 0, STUDIO_ANIM_TIME, &code->anim.pos, AnimEaseIn},
-                {OUTLINE_WIDTH, 0, STUDIO_ANIM_TIME, &code->anim.outline, AnimEaseIn},
+                {SIDEBAR_WIDTH, 0, STUDIO_ANIM_TIME, &code->anim.sidebar, AnimEaseIn},
             }),
 
             .hide = MOVIE_DEF(STUDIO_ANIM_TIME, setEditMode,
             {
                 {0, -TOOLBAR_SIZE, STUDIO_ANIM_TIME, &code->anim.pos, AnimEaseIn},
-                {0, OUTLINE_WIDTH, STUDIO_ANIM_TIME, &code->anim.outline, AnimEaseIn},
+                {0, SIDEBAR_WIDTH, STUDIO_ANIM_TIME, &code->anim.sidebar, AnimEaseIn},
             }),
         },
         .event = onStudioEvent,

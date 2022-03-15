@@ -86,6 +86,7 @@ struct Code
         TEXT_DRAG_CODE,
         TEXT_FIND_MODE,
         TEXT_GOTO_MODE,
+        TEXT_BOOKMARK_MODE,
         TEXT_OUTLINE_MODE,
         TEXT_EDIT_MODE,
     } mode;
@@ -110,7 +111,7 @@ struct Code
         s32 size;
         s32 index;
         s32 scroll;
-    } outline;
+    } sidebar;
 
     const char* matchedDelim;
     bool altFont;
@@ -119,7 +120,7 @@ struct Code
     struct
     {
         s32 pos;
-        s32 outline;
+        s32 sidebar;
 
         Movie* movie;
 
