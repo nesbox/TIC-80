@@ -1376,7 +1376,7 @@ static void initModules(Studio* studio)
 
     resetBanks(studio);
 
-    initCode(studio->code, studio, &tic->cart.code);
+    initCode(studio->code, studio);
 
     for(s32 i = 0; i < TIC_EDITOR_BANKS; i++)
     {

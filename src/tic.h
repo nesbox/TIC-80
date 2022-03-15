@@ -372,7 +372,7 @@ typedef struct
     u8 data[TIC_SPRITESIZE * TIC_SPRITESIZE * TIC_PALETTE_BPP / BITS_IN_BYTE];
 } tic_tile;
 
-typedef union
+typedef struct
 {
     char data[TIC_CODE_SIZE];
 } tic_code;
@@ -443,7 +443,7 @@ typedef struct
         tic_bank banks[TIC_BANKS];
     };
 
-    tic_code code;    
+    tic_code code;
     tic_binary binary;
 
 } tic_cartridge;

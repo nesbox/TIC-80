@@ -1334,7 +1334,7 @@ static void setBookmarkMode(Code* code)
             tic_outline_item* item = &code->sidebar.items[last];
 
             item->pos = ptr;
-            item->size = MIN(SIDEBAR_WIDTH / TIC_ALTFONT_WIDTH, getLineSize(ptr));
+            item->size = getLineSize(ptr);
         }
         
         ptr++;
@@ -2316,13 +2316,15 @@ static void freeAnim(Code* code)
     FREE(code->anim.hide.items);
 }
 
-void initCode(Code* code, Studio* studio, tic_code* src)
+void initCode(Code* code, Studio* studio)
 {
     bool firstLoad = code->state == NULL;
     FREE(code->state);
     freeAnim(code);
 
     if(code->history) history_delete(code->history);
+
+    tic_code* src = &getMemory(studio)->cart.code;
 
     *code = (Code)
     {

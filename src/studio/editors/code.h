@@ -136,5 +136,5 @@ struct Code
     void(*update)(Code*);
 };
 
-void initCode(Code*, Studio* studio, tic_code* src);
+void initCode(Code*, Studio* studio);
 void freeCode(Code*);
