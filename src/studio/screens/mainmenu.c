@@ -109,6 +109,25 @@ static MenuOption FullscreenOption =
     optionFullscreenSet,
 };
 
+static s32 optionIntegerScalingGet(void* data)
+{
+    StudioMainMenu* main = data;
+    return main->options->integerScaling ? 1 : 0;
+}
+
+static void optionIntegerScalingSet(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+    main->options->integerScaling = (pos == 1);
+}
+
+static MenuOption IntegerScalingOption = 
+{
+    OPTION_VALUES({OffValue, OnValue}),
+    optionIntegerScalingGet,
+    optionIntegerScalingSet,
+};
+
 #if defined(CRT_SHADER_SUPPORT)
 static s32 optionCrtMonitorGet(void* data)
 {
@@ -217,6 +236,7 @@ static const MenuItem OptionMenu[] =
 #endif
     {"VSYNC",           NULL,   &VSyncOption, "VSYNC needs restart!"},
     {"FULLSCREEN",      NULL,   &FullscreenOption},
+    {"INTEGER SCALING", NULL,   &IntegerScalingOption},
     {"VOLUME",          NULL,   &VolumeOption},
     {"SETUP GAMEPAD",   showGamepadMenu},
     {""},

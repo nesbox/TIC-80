@@ -122,6 +122,7 @@ typedef struct
         
         bool fullscreen;
         bool vsync;
+        bool integerScaling;
         s32 volume;
         tic_mapping mapping;
 

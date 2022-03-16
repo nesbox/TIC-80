@@ -586,26 +586,26 @@ static void destroyGPU()
 #endif
 }
 
-static void calcTextureRect(SDL_Rect* rect)
+static void calcTextureRect(SDL_Rect* rect, bool integer_scale)
 {
     SDL_GetWindowSize(platform.window, &rect->w, &rect->h);
 
     enum{Width = TIC80_FULLWIDTH, Height = TIC80_FULLHEIGHT};
 
+    s32 w, h;
+
     if (rect->w * Height < rect->h * Width)
     {
-        rect->x = rect->y = 0;
-        rect->h = Height * rect->w / Width;
+        w = rect->w - (integer_scale ? rect->w % Width : 0);
+        h = Height * w / Width;
     }
     else
     {
-        s32 width = Width * rect->h / Height;
-
-        rect->x = (rect->w - width) / 2;
-        rect->y = 0;
-
-        rect->w = width;
+        h = rect->h - (integer_scale ? rect->h % Height : 0);
+        w = Width * h / Height;
     }
+
+    *rect = (SDL_Rect){(rect->w - w) / 2, 0, w, h};
 }
 
 static void processMouse()
@@ -629,7 +629,7 @@ static void processMouse()
         if(platform.mouse.focus)
         {
             SDL_Rect rect;
-            calcTextureRect(&rect);
+            calcTextureRect(&rect, studio_config(platform.studio)->options.integerScaling);
 
             if(rect.w && rect.h)
             {
@@ -1343,7 +1343,7 @@ bool tic_sys_fullscreen_get()
 #if defined(CRT_SHADER_SUPPORT)
     if(!studio_config(platform.studio)->soft)
     {
-        return GPU_GetFullscreen() ? true : false;
+        return GPU_GetFullscreen() == GPU_TRUE ? true : false;
     }
     else
 #endif
@@ -1358,7 +1358,7 @@ void tic_sys_fullscreen_set(bool value)
 #if defined(CRT_SHADER_SUPPORT)
     if(!studio_config(platform.studio)->soft)
     {
-        GPU_SetFullscreen(value ? GPU_TRUE : GPU_FALSE, true);
+        GPU_SetFullscreen(value ? GPU_TRUE : GPU_FALSE, GPU_TRUE);
     }
     else
 #endif
@@ -1529,15 +1529,15 @@ static void gpuTick()
     renderClear(platform.screen.renderer);
     updateTextureBytes(platform.screen.texture, tic->product.screen, TIC80_FULLWIDTH, TIC80_FULLHEIGHT);
 
+    SDL_Rect rect;
+    calcTextureRect(&rect, studio_config(platform.studio)->options.integerScaling);
+
 #if defined(CRT_SHADER_SUPPORT)
 
     if(!studio_config(platform.studio)->soft && studio_config(platform.studio)->options.crt)
     {
         if(platform.screen.shader == 0)
             loadCrtShader();
-
-        SDL_Rect rect = {0, 0, 0, 0};
-        calcTextureRect(&rect);
 
         GPU_ActivateShaderProgram(platform.screen.shader, &platform.screen.block);
 
@@ -1562,9 +1562,6 @@ static void gpuTick()
 #endif
 
     {
-        SDL_Rect rect = {0, 0, 0, 0};
-        calcTextureRect(&rect);
-
         enum {Header = TIC80_OFFSET_TOP, Top = TIC80_OFFSET_TOP, Left = TIC80_OFFSET_LEFT};
 
         s32 width = 0;
