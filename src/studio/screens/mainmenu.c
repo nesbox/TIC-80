@@ -109,23 +109,23 @@ static MenuOption FullscreenOption =
     optionFullscreenSet,
 };
 
-static s32 optionIntegerScalingGet(void* data)
+static s32 optionIntegerScaleGet(void* data)
 {
     StudioMainMenu* main = data;
-    return main->options->integerScaling ? 1 : 0;
+    return main->options->integerScale ? 1 : 0;
 }
 
-static void optionIntegerScalingSet(void* data, s32 pos)
+static void optionIntegerScaleSet(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
-    main->options->integerScaling = (pos == 1);
+    main->options->integerScale = (pos == 1);
 }
 
-static MenuOption IntegerScalingOption = 
+static MenuOption IntegerScaleOption = 
 {
     OPTION_VALUES({OffValue, OnValue}),
-    optionIntegerScalingGet,
-    optionIntegerScalingSet,
+    optionIntegerScaleGet,
+    optionIntegerScaleSet,
 };
 
 #if defined(CRT_SHADER_SUPPORT)
@@ -236,7 +236,7 @@ static const MenuItem OptionMenu[] =
 #endif
     {"VSYNC",           NULL,   &VSyncOption, "VSYNC needs restart!"},
     {"FULLSCREEN",      NULL,   &FullscreenOption},
-    {"INTEGER SCALING", NULL,   &IntegerScalingOption},
+    {"INTEGER SCALE",   NULL,   &IntegerScaleOption},
     {"VOLUME",          NULL,   &VolumeOption},
     {"SETUP GAMEPAD",   showGamepadMenu},
     {""},

@@ -232,14 +232,14 @@ static void setDefault(Config* config)
         .options = 
         {
 #if defined(CRT_SHADER_SUPPORT)
-            .crt        = false,
+            .crt            = false,
 #endif
-            .volume     = MAX_VOLUME,
-            .vsync      = true,
-            .fullscreen = false,
-            .integerScaling = true,
+            .volume         = MAX_VOLUME,
+            .vsync          = true,
+            .fullscreen     = false,
+            .integerScale   = true,
 #if defined(BUILD_EDITORS)
-            .devmode    = false,
+            .devmode        = false,
 #endif
         },
     };

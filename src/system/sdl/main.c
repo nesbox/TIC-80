@@ -586,8 +586,10 @@ static void destroyGPU()
 #endif
 }
 
-static void calcTextureRect(SDL_Rect* rect, bool integer_scale)
+static void calcTextureRect(SDL_Rect* rect)
 {
+    bool integerScale = studio_config(platform.studio)->options.integerScale;
+
     SDL_GetWindowSize(platform.window, &rect->w, &rect->h);
 
     enum{Width = TIC80_FULLWIDTH, Height = TIC80_FULLHEIGHT};
@@ -596,12 +598,12 @@ static void calcTextureRect(SDL_Rect* rect, bool integer_scale)
 
     if (rect->w * Height < rect->h * Width)
     {
-        w = rect->w - (integer_scale ? rect->w % Width : 0);
+        w = rect->w - (integerScale ? rect->w % Width : 0);
         h = Height * w / Width;
     }
     else
     {
-        h = rect->h - (integer_scale ? rect->h % Height : 0);
+        h = rect->h - (integerScale ? rect->h % Height : 0);
         w = Width * h / Height;
     }
 
@@ -629,7 +631,7 @@ static void processMouse()
         if(platform.mouse.focus)
         {
             SDL_Rect rect;
-            calcTextureRect(&rect, studio_config(platform.studio)->options.integerScaling);
+            calcTextureRect(&rect);
 
             if(rect.w && rect.h)
             {
@@ -741,9 +743,7 @@ static bool isKbdVisible()
     SDL_Rect rect;
     calcTextureRect(&rect);
 
-    float scale = (float)w / (KBD_COLS*TIC_SPRITESIZE);
-
-    return h - KBD_ROWS*TIC_SPRITESIZE*scale - (rect.h + rect.y*2) >= 0 && !SDL_IsTextInputActive();
+    return h - rect.h - KBD_ROWS * w / KBD_COLS >= 0 && !SDL_IsTextInputActive();
 }
 
 static const tic_key KbdLayout[] = 
@@ -1530,7 +1530,7 @@ static void gpuTick()
     updateTextureBytes(platform.screen.texture, tic->product.screen, TIC80_FULLWIDTH, TIC80_FULLHEIGHT);
 
     SDL_Rect rect;
-    calcTextureRect(&rect, studio_config(platform.studio)->options.integerScaling);
+    calcTextureRect(&rect);
 
 #if defined(CRT_SHADER_SUPPORT)
 

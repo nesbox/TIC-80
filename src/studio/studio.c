@@ -1621,6 +1621,11 @@ static inline bool keyWasPressedOnce(Studio* studio, s32 key)
     return tic_api_keyp(tic, key, -1, -1);
 }
 
+static void gotoFullscreen(Studio* studio)
+{
+    tic_sys_fullscreen_set(studio->config->data.options.fullscreen = !tic_sys_fullscreen_get());
+}
+
 #if defined(CRT_SHADER_SUPPORT)
 static void switchCrtMonitor(Studio* studio)
 {
@@ -1677,7 +1682,7 @@ static void processShortcuts(Studio* studio)
 
     if(alt)
     {
-        if (keyWasPressedOnce(studio, tic_key_return)) tic_sys_fullscreen_set(!tic_sys_fullscreen_get());
+        if (keyWasPressedOnce(studio, tic_key_return)) gotoFullscreen(studio);
 #if defined(BUILD_EDITORS)
         else if(studio->mode != TIC_RUN_MODE)
         {
@@ -1713,7 +1718,7 @@ static void processShortcuts(Studio* studio)
     }
     else
     {
-        if (keyWasPressedOnce(studio, tic_key_f11)) tic_sys_fullscreen_set(!tic_sys_fullscreen_get());
+        if (keyWasPressedOnce(studio, tic_key_f11)) gotoFullscreen(studio);
 #if defined(BUILD_EDITORS)
         else if(keyWasPressedOnce(studio, tic_key_escape))
         {
