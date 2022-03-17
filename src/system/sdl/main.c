@@ -607,7 +607,7 @@ static void calcTextureRect(SDL_Rect* rect)
         w = Width * h / Height;
     }
 
-    *rect = (SDL_Rect){(rect->w - w) / 2, 0, w, h};
+    *rect = (SDL_Rect){(rect->w - w) / 2, (rect->h - h) / 2, w, h};
 }
 
 static void processMouse()
@@ -1541,19 +1541,12 @@ static void gpuTick()
 
         GPU_ActivateShaderProgram(platform.screen.shader, &platform.screen.block);
 
-        GPU_SetUniformf(GPU_GetUniformLocation(platform.screen.shader, "trg_x"), (float)rect.x);
-        GPU_SetUniformf(GPU_GetUniformLocation(platform.screen.shader, "trg_y"), (float)rect.y);
-        GPU_SetUniformf(GPU_GetUniformLocation(platform.screen.shader, "trg_w"), (float)rect.w);
-        GPU_SetUniformf(GPU_GetUniformLocation(platform.screen.shader, "trg_h"), (float)rect.h);
+        static const char* Uniforms[] = {"trg_x", "trg_y", "trg_w", "trg_h"};
 
-        {
-            s32 w, h;
-            SDL_GetWindowSize(platform.window, &w, &h);
-            GPU_SetUniformf(GPU_GetUniformLocation(platform.screen.shader, "scr_w"), (float)w);
-            GPU_SetUniformf(GPU_GetUniformLocation(platform.screen.shader, "scr_h"), (float)h);
-        }
+        for(s32 i = 0; i < COUNT_OF(Uniforms); ++i)
+            GPU_SetUniformf(GPU_GetUniformLocation(platform.screen.shader, Uniforms[i]), (&rect.x)[i]);
 
-        GPU_BlitScale(platform.screen.texture.gpu, NULL, platform.screen.renderer.gpu, (float)rect.x, (float)rect.y,
+        GPU_BlitScale(platform.screen.texture.gpu, NULL, platform.screen.renderer.gpu, rect.x, rect.y,
             (float)rect.w / TIC80_FULLWIDTH, (float)rect.h / TIC80_FULLHEIGHT);
         GPU_DeactivateShaderProgram();
     }

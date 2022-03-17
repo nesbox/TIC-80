@@ -66,8 +66,6 @@ CRT_SHADER=
 		uniform float trg_y;
 		uniform float trg_w;
 		uniform float trg_h;
-		uniform float scr_w;
-		uniform float scr_h;
 
 		// Emulated input resolution.
 		vec2 res=vec2(256.0,144.0);
@@ -182,7 +180,7 @@ CRT_SHADER=
 			hardScan=-12.0;
 			//maskDark=maskLight;
 			vec2 start=gl_FragCoord.xy-vec2(trg_x, trg_y);
-			start.y=scr_h-start.y;
+			start.y=trg_h-start.y;
 
 			vec2 pos=Warp(start/vec2(trg_w, trg_h));
 
