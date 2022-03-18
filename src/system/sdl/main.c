@@ -590,24 +590,33 @@ static void calcTextureRect(SDL_Rect* rect)
 {
     bool integerScale = studio_config(platform.studio)->options.integerScale;
 
-    SDL_GetWindowSize(platform.window, &rect->w, &rect->h);
+    s32 sw, sh, w, h;
+    SDL_GetWindowSize(platform.window, &sw, &sh);
 
     enum{Width = TIC80_FULLWIDTH, Height = TIC80_FULLHEIGHT};
 
-    s32 w, h;
-
-    if (rect->w * Height < rect->h * Width)
+    if (sw * Height < sh * Width)
     {
-        w = rect->w - (integerScale ? rect->w % Width : 0);
+        w = sw - (integerScale ? sw % Width : 0);
         h = Height * w / Width;
     }
     else
     {
-        h = rect->h - (integerScale ? rect->h % Height : 0);
+        h = sh - (integerScale ? sh % Height : 0);
         w = Width * h / Height;
     }
 
-    *rect = (SDL_Rect){(rect->w - w) / 2, (rect->h - h) / 2, w, h};
+    *rect = (SDL_Rect)
+    {
+        (sw - w) / 2, 
+#if defined (TOUCH_INPUT_SUPPORT)
+        // snap the screen up to get a place for the software keyboard
+        sw > sh ? (sh - h) / 2 : 0,
+#else
+        (sh - h) / 2, 
+#endif
+        w, h
+    };
 }
 
 static void processMouse()
@@ -1555,15 +1564,29 @@ static void gpuTick()
 #endif
 
     {
-        enum {Header = TIC80_OFFSET_TOP, Top = TIC80_OFFSET_TOP, Left = TIC80_OFFSET_LEFT};
+        s32 w, h;
+        SDL_GetWindowSize(platform.window, &w, &h);
 
-        s32 width = 0;
-        SDL_GetWindowSize(platform.window, &width, NULL);
+        static const SDL_Rect Src[] = 
+        {
+            {0, 0, TIC80_FULLWIDTH, TIC80_OFFSET_TOP},
+            {0, TIC80_FULLHEIGHT-TIC80_OFFSET_TOP, TIC80_FULLWIDTH, TIC80_OFFSET_TOP},
+            {0, 0, TIC80_OFFSET_LEFT, TIC80_FULLHEIGHT},
+            {TIC80_FULLWIDTH-TIC80_OFFSET_LEFT, 0, TIC80_OFFSET_LEFT, TIC80_FULLHEIGHT},
+            {0, 0, TIC80_FULLWIDTH, TIC80_FULLHEIGHT},
+        };
 
-        SDL_Rect src = {0, 0, TIC80_FULLWIDTH, TIC80_FULLHEIGHT};
-        SDL_Rect dst = {rect.x, rect.y, rect.w, rect.h};
+        const SDL_Rect Dst[] = 
+        {
+            {0, 0, w, rect.y},
+            {0, rect.y + rect.h, w, h - (rect.y + rect.h)},
+            {0, rect.y, rect.x, rect.h},
+            {rect.x + rect.w, rect.y, w - (rect.x + rect.w), rect.h},
+            {rect.x, rect.y, rect.w, rect.h}
+        };
 
-        renderCopy(platform.screen.renderer, platform.screen.texture, src, dst);
+        for(s32 i = 0; i < COUNT_OF(Src); ++i)
+            renderCopy(platform.screen.renderer, platform.screen.texture, Src[i], Dst[i]);
     }
 
 #if defined(TOUCH_INPUT_SUPPORT)
