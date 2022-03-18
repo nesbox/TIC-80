@@ -588,7 +588,8 @@ static void destroyGPU()
 
 static void calcTextureRect(SDL_Rect* rect)
 {
-    bool integerScale = studio_config(platform.studio)->options.integerScale;
+    // Integer Scaling works in non CRT mode only
+    bool integerScale = !studio_config(platform.studio)->options.crt;
 
     s32 sw, sh, w, h;
     SDL_GetWindowSize(platform.window, &sw, &sh);
@@ -1567,22 +1568,25 @@ static void gpuTick()
         s32 w, h;
         SDL_GetWindowSize(platform.window, &w, &h);
 
-        static const SDL_Rect Src[] = 
+        s32 offset = tic->ram->input.mouse.x < TIC80_FULLHEIGHT / 2 
+            ? TIC80_FULLWIDTH-TIC80_OFFSET_LEFT : 0;
+
+        const SDL_Rect Src[] = 
         {
-            {0, 0, TIC80_FULLWIDTH, TIC80_OFFSET_TOP},
-            {0, TIC80_FULLHEIGHT-TIC80_OFFSET_TOP, TIC80_FULLWIDTH, TIC80_OFFSET_TOP},
-            {0, 0, TIC80_OFFSET_LEFT, TIC80_FULLHEIGHT},
-            {TIC80_FULLWIDTH-TIC80_OFFSET_LEFT, 0, TIC80_OFFSET_LEFT, TIC80_FULLHEIGHT},
-            {0, 0, TIC80_FULLWIDTH, TIC80_FULLHEIGHT},
+            {offset, 0, TIC80_OFFSET_LEFT, TIC80_OFFSET_TOP},                                   // top border
+            {offset, TIC80_FULLHEIGHT-TIC80_OFFSET_TOP, TIC80_OFFSET_LEFT, TIC80_OFFSET_TOP},   // bottom border
+            {offset, 0, TIC80_OFFSET_LEFT, TIC80_FULLHEIGHT},                                   // left border
+            {offset, 0, TIC80_OFFSET_LEFT, TIC80_FULLHEIGHT},                                   // right border
+            {0, 0, TIC80_FULLWIDTH, TIC80_FULLHEIGHT},                                          // center
         };
 
         const SDL_Rect Dst[] = 
         {
-            {0, 0, w, rect.y},
-            {0, rect.y + rect.h, w, h - (rect.y + rect.h)},
-            {0, rect.y, rect.x, rect.h},
-            {rect.x + rect.w, rect.y, w - (rect.x + rect.w), rect.h},
-            {rect.x, rect.y, rect.w, rect.h}
+            {0, 0, w, rect.y},                                          // top border
+            {0, rect.y + rect.h, w, h - (rect.y + rect.h)},             // bottom border
+            {0, rect.y, rect.x, rect.h},                                // left border
+            {rect.x + rect.w, rect.y, w - (rect.x + rect.w), rect.h},   // right border
+            {rect.x, rect.y, rect.w, rect.h},                           // screen
         };
 
         for(s32 i = 0; i < COUNT_OF(Src); ++i)

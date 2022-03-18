@@ -237,7 +237,6 @@ static void setDefault(Config* config)
             .volume         = MAX_VOLUME,
             .vsync          = true,
             .fullscreen     = false,
-            .integerScale   = true,
 #if defined(BUILD_EDITORS)
             .devmode        = false,
 #endif
