@@ -588,8 +588,12 @@ static void destroyGPU()
 
 static void calcTextureRect(SDL_Rect* rect)
 {
+#if defined (CRT_SHADER_SUPPORT)
     // Integer Scaling works in non CRT mode only
     bool integerScale = !studio_config(platform.studio)->options.crt;
+#else
+    bool integerScale = true;
+#endif
 
     s32 sw, sh, w, h;
     SDL_GetWindowSize(platform.window, &sw, &sh);
