@@ -76,7 +76,6 @@ class TIC {\n\
     foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3)\n\
     foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, src)\n\
     foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, src, alpha_color)\n\
-    foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, src, alpha_color, pixelcenter)\n\
     foreign static pix(x, y)\n\
     foreign static pix(x, y, color)\n\
     foreign static line(x0, y0, x1, y1, color)\n\
@@ -775,8 +774,6 @@ static void wren_textri(WrenVM* vm)
         count = 1;
     }
 
-    bool pixelcenter = top > 15 ? wrenGetSlotBool(vm, 15) : 0;
-
     tic_api_textri(tic, pt[0], pt[1],   //  xy 1
                         pt[2], pt[3],   //  xy 2
                         pt[4], pt[5],   //  xy 3
@@ -784,8 +781,7 @@ static void wren_textri(WrenVM* vm)
                         pt[8], pt[9],   //  uv 2
                         pt[10], pt[11], //  uv 3
                         src,            // texture source
-                        colors, count,  // chroma
-                        pixelcenter);   // pixelcenter
+                        colors, count); // chroma
 }
 
 static void wren_pix(WrenVM* vm)
@@ -1380,7 +1376,6 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     if (strcmp(signature, "static TIC.textri(_,_,_,_,_,_,_,_,_,_,_,_)"       ) == 0) return wren_textri;
     if (strcmp(signature, "static TIC.textri(_,_,_,_,_,_,_,_,_,_,_,_,_)"     ) == 0) return wren_textri;
     if (strcmp(signature, "static TIC.textri(_,_,_,_,_,_,_,_,_,_,_,_,_,_)"   ) == 0) return wren_textri;
-    if (strcmp(signature, "static TIC.textri(_,_,_,_,_,_,_,_,_,_,_,_,_,_,_)" ) == 0) return wren_textri;
 
     if (strcmp(signature, "static TIC.pix(_,_)"                 ) == 0) return wren_pix;
     if (strcmp(signature, "static TIC.pix(_,_,_)"               ) == 0) return wren_pix;

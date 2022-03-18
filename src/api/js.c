@@ -847,8 +847,6 @@ static duk_ret_t duk_textri(duk_context* duk)
         }
     }
 
-    bool pixelcenter = duk_is_null_or_undefined(duk, 14) ? false : duk_to_boolean(duk, 14);
-
     tic_api_textri(tic, pt[0], pt[1],   //  xy 1
                         pt[2], pt[3],   //  xy 2
                         pt[4], pt[5],   //  xy 3
@@ -856,8 +854,7 @@ static duk_ret_t duk_textri(duk_context* duk)
                         pt[8], pt[9],   //  uv 2
                         pt[10], pt[11], //  uv 3
                         src,            //  texture source
-                        colors, count,  //  chroma
-                        pixelcenter);   // pixelcenter
+                        colors, count); //  chroma
 
     return 0;
 }
