@@ -635,7 +635,7 @@ static inline double edgeFn(const Vec2* a, const Vec2* b, const Vec2* c)
     return (b->x - a->x) * (c->y - a->y) - (b->y - a->y) * (c->x - a->x);
 }
 
-static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2, PixelShader shader, void* data)
+static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2, PixelShader shader, void* data, bool pixelcenter)
 {
     ShaderAttr a = {data, v0, v1, v2};
 
@@ -666,7 +666,7 @@ static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2
     for(s32 i = 0; i != 3; ++i)
     {
         // pixel center
-        const double Center = 0.5 - 1e-07;
+        const double Center = pixelcenter ? 0.5 - 1e-07 : 0.0;
         Vec2 p = {min.x + Center, min.y + Center};
 
         s32 c = (i + 1) % 3, n = (i + 2) % 3;
@@ -708,7 +708,8 @@ void tic_api_tri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3,
         &(Vec2){x1, y1},
         &(Vec2){x2, y2},
         &(Vec2){x3, y3}, 
-        triColorShader, &color);
+        triColorShader, &color, 
+        true);
 }
 
 void tic_api_trib(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)
@@ -799,7 +800,7 @@ static tic_color triTexVbankShader(const ShaderAttr* a)
     return data->mapping[tic_tool_peek4(data->vram->data, v * TIC80_WIDTH + u)];
 }
 
-void tic_api_textri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, tic_texture_src texsrc, u8* colors, s32 count)
+void tic_api_textri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, tic_texture_src texsrc, u8* colors, s32 count, bool pixelcenter)
 {
     TexData texData = 
     {
@@ -817,7 +818,8 @@ void tic_api_textri(tic_mem* tic, float x1, float y1, float x2, float y2, float 
             ? triTexVbankShader 
             : texsrc == tic_map_texture 
                 ? triTexMapShader 
-                : triTexTileShader, &texData);
+                : triTexTileShader, &texData,
+        pixelcenter);
 }
 
 void tic_api_map(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* colors, u8 count, s32 scale, RemapFunc remap, void* data)

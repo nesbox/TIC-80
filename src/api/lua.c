@@ -435,6 +435,7 @@ static s32 lua_textri(lua_State* lua)
         static u8 colors[TIC_PALETTE_SIZE];
         s32 count = 0;
         tic_texture_src src = tic_tiles_texture;
+        bool pixelcenter = false;
 
         //  check for texture src
         if (top >= 13)
@@ -471,6 +472,9 @@ static s32 lua_textri(lua_State* lua)
             }
         }
 
+        if(top >= 15)
+            pixelcenter = lua_toboolean(lua, 15);
+
         tic_api_textri(tic, pt[0], pt[1],   //  xy 1
                             pt[2], pt[3],   //  xy 2
                             pt[4], pt[5],   //  xy 3
@@ -478,9 +482,10 @@ static s32 lua_textri(lua_State* lua)
                             pt[8], pt[9],   //  uv 2
                             pt[10], pt[11], //  uv 3
                             src,            // texture source
-                            colors, count); // chroma
+                            colors, count,  // chroma
+                            pixelcenter);   // pixelcenter
     }
-    else luaL_error(lua, "invalid parameters, textri(x1,y1,x2,y2,x3,y3,u1,v1,u2,v2,u3,v3,[src=0],[chroma=off])\n");
+    else luaL_error(lua, "invalid parameters, textri(x1,y1,x2,y2,x3,y3,u1,v1,u2,v2,u3,v3,[src=0],[chroma=off],[pixelcenter=false])\n");
     return 0;
 }
 
