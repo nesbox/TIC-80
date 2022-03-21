@@ -14,6 +14,6 @@ pub fn build(b: *std.build.Builder) void {
     // so our own usage must start above the 96kb mark
     lib.global_base = 96 * 1024;
     lib.stack_size = 8192;
-    lib.export_symbol_names = &[_][]const u8{ "TIC", "OVR", "BDR", "SCR", "INIT" };
+    lib.export_symbol_names = &[_][]const u8{ "TIC", "OVR", "BDR", "SCR", "BOOT" };
     lib.install();
 }
