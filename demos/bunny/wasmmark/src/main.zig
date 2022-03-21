@@ -96,7 +96,6 @@ const MAX_BUNNIES = 1200;
 var fps : FPS = undefined;
 var bunnyCount : usize = 0;
 var bunnies : [MAX_BUNNIES]Bunny = undefined;
-var started = false;
 
 fn addBunny() void {
     if (bunnyCount >= MAX_BUNNIES) return;
@@ -111,16 +110,6 @@ fn removeBunny() void {
     bunnyCount -= 1;
 }
 
-fn start() void {
-    rnd = RndGen.init(0).random();
-    fps.initFPS();
-    addBunny();
-    started = true;
-
-    // tic.ZERO = tic.FIRST + 1;
-}
-
-
 export fn testscreen() void {
     var i : usize = 0;
 
@@ -134,9 +123,13 @@ export fn testscreen() void {
     }
 }
 
-export fn TIC() void {
-    if (!started) { start(); }
+export fn BOOT() void {
+    rnd = RndGen.init(0).random();
+    fps.initFPS();
+    addBunny();
+}
 
+export fn TIC() void {
     if (t==0) {
         tic.music(0, .{});
     }

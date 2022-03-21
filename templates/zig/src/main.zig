@@ -1,10 +1,5 @@
 const tic = @import("tic80.zig");
 
-var started = false;
-
-fn start() void {
-}
-
 const TICGuy = struct {
     x : i32 = 96,
     y : i32 = 24,
@@ -13,9 +8,10 @@ const TICGuy = struct {
 var t : u16 = 0;
 var mascot : TICGuy = .{};
 
-export fn TIC() void {
-    if (!started) { start(); }
+export fn BOOT() void {
+}
 
+export fn TIC() void {
     if (tic.btn(0) != 0) {
         mascot.y -= 1;
     } 
