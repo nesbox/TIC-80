@@ -184,10 +184,13 @@ tic_script_config FennelSyntaxConfig =
     .init               = initFennel,
     .close              = closeLua,
     .tick               = callLuaTick,
+    .boot               = callLuaBoot,
+
     .callback           =
     {
         .scanline       = callLuaScanline,
         .border         = callLuaBorder,
+        .menu           = callLuaMenu,
     },
 
     .getOutline         = getFennelOutline,

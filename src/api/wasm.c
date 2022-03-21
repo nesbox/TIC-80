@@ -42,10 +42,11 @@ static const char TicCore[] = "_TIC80";
 IM3Function BDR_function;
 IM3Function SCN_function;
 IM3Function TIC_function;
+IM3Function BOOT_function;
+IM3Function MENU_function;
 
 #define FATAL(msg, ...) { printf("Error: [Fatal] " msg "\n", ##__VA_ARGS__); goto _onfatal; }
 #define WASM_STACK_SIZE 64*1024
-
 
 static
 M3Result SuppressLookupFailure (M3Result i_result)
@@ -1124,6 +1125,8 @@ static bool initWasm(tic_mem* tic, const char* code)
 
     m3_FindFunction (&BDR_function, runtime, BDR_FN);
     m3_FindFunction (&SCN_function, runtime, SCN_FN);
+    m3_FindFunction (&BOOT_function, runtime, BOOT_FN);
+    m3_FindFunction (&MENU_function, runtime, MENU_FN);
     result = m3_FindFunction (&TIC_function, runtime, TIC_FN);
 
     if (result)
@@ -1148,49 +1151,56 @@ static void callWasmTick(tic_mem* tic)
     M3Result res = m3_CallV(TIC_function);
     if(res)
     {
-            core->data->error(core->data->data, res);
+        core->data->error(core->data->data, res);
+    }
+}
+
+static void callWasmBoot(tic_mem* tic)
+{
+    tic_core* core = (tic_core*)tic;
+
+    IM3Runtime runtime = core->currentVM;
+
+    if(!runtime) { return; }
+    if (BOOT_function == NULL) { return; }
+
+    M3Result res = m3_CallV(BOOT_function);
+    if(res)
+    {
+        core->data->error(core->data->data, res);
+    }
+}
+
+static void callWasmIntFunc(tic_mem* tic, IM3Function func, s32 value, void* data)
+{
+    tic_core* core = (tic_core*)tic;
+
+    IM3Runtime runtime = core->currentVM;
+
+    if(!runtime) { return; }
+    if (func == NULL) { return; }
+
+    M3Result res = m3_CallV(func, value);
+    if(res)
+    {
+        core->data->error(core->data->data, res);
     }
 }
 
 static void callWasmScanline(tic_mem* tic, s32 row, void* data)
 {
-    // ForceExitCounter = 0;
-
-    tic_core* core = (tic_core*)tic;
-
-    IM3Runtime runtime = core->currentVM;
-
-    if(!runtime) { return; }
-    if (SCN_function == NULL) { return; }
-
-    M3Result res = m3_CallV(SCN_function, row);
-    if(res)
-    {
-            core->data->error(core->data->data, res);
-    }
+    callWasmIntFunc(tic, SCN_function, row, data);
 }
 
 static void callWasmBorder(tic_mem* tic, s32 row, void* data)
 {
-    // ForceExitCounter = 0;
-
-    tic_core* core = (tic_core*)tic;
-
-    IM3Runtime runtime = core->currentVM;
-
-    if(!runtime) { return; }
-    if (BDR_function == NULL) { return; }
-
-    M3Result res = m3_CallV(BDR_function, row);
-    if(res)
-    {
-            core->data->error(core->data->data, res);
-    }
+    callWasmIntFunc(tic, BDR_function, row, data);
 }
 
-// static const char* const WasmKeywords [] =
-// {
-// };
+static void callWasmMenu(tic_mem* tic, s32 index, void* data)
+{
+    callWasmIntFunc(tic, MENU_function, index, data);
+}
 
 static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
 
@@ -1266,10 +1276,13 @@ const tic_script_config WasmSyntaxConfig =
     .init               = initWasm,
     .close              = closeWasm,
     .tick               = callWasmTick,
+    .boot               = callWasmBoot,
+
     .callback           =
     {
-        .scanline           = callWasmScanline,
-        .border             = callWasmBorder,
+        .scanline       = callWasmScanline,
+        .border         = callWasmBorder,
+        .menu           = callWasmMenu,
     },
 
     .getOutline         = getWasmOutline,

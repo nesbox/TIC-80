@@ -1661,6 +1661,29 @@ static void callSquirrelTick(tic_mem* tic)
     }
 }
 
+static void callSquirrelBoot(tic_mem* tic)
+{
+    tic_core* core = (tic_core*)tic;
+
+    HSQUIRRELVM vm = core->currentVM;
+
+    if(vm)
+    {
+        sq_pushroottable(vm);
+        sq_pushstring(vm, BOOT_FN, -1);
+
+        if (SQ_SUCCEEDED(sq_get(vm, -2)))
+        {
+            sq_pushroottable(vm);
+            if(SQ_FAILED(sq_call(vm, 1, SQFalse, SQTrue)))
+            {
+                errorReport(tic);
+                return;
+            }
+        }
+    }
+}
+
 static void callSquirrelIntCallback(tic_mem* tic, s32 value, void* data, const char* name)
 {
     tic_core* core = (tic_core*)tic;
@@ -1704,7 +1727,7 @@ static void callSquirrelBorder(tic_mem* tic, s32 row, void* data)
     callSquirrelIntCallback(tic, row, data, BDR_FN);
 }
 
-static void callSquirrelGameMenu(tic_mem* tic, s32 index, void* data)
+static void callSquirrelMenu(tic_mem* tic, s32 index, void* data)
 {
     callSquirrelIntCallback(tic, index, data, MENU_FN);
 }
@@ -1818,11 +1841,13 @@ tic_script_config SquirrelSyntaxConfig =
     .init               = initSquirrel,
     .close              = closeSquirrel,
     .tick               = callSquirrelTick,
+    .boot               = callSquirrelBoot,
+
     .callback           =
     {
         .scanline       = callSquirrelScanline,
         .border         = callSquirrelBorder,
-        .gamemenu       = callSquirrelGameMenu,
+        .menu           = callSquirrelMenu,
     },
 
     .getOutline         = getSquirrelOutline,

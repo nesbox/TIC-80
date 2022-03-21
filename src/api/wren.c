@@ -35,9 +35,10 @@
 static WrenHandle* game_class       = NULL;
 static WrenHandle* new_handle       = NULL;
 static WrenHandle* update_handle    = NULL;
+static WrenHandle* boot_handle    = NULL;
 static WrenHandle* scanline_handle  = NULL;
 static WrenHandle* border_handle    = NULL;
-static WrenHandle* gamemenu_handle  = NULL;
+static WrenHandle* menu_handle  = NULL;
 static WrenHandle* overline_handle  = NULL;
 
 static bool loaded = false;
@@ -175,6 +176,7 @@ class TIC {\n\
         }\n\
     }\n\
     " TIC_FN "(){}\n\
+    " BOOT_FN "(){}\n\
     " SCN_FN "(row){}\n\
     " BDR_FN "(row){}\n\
     " MENU_FN "(index){}\n\
@@ -218,9 +220,10 @@ static void closeWren(tic_mem* tic)
         {
             wrenReleaseHandle(core->currentVM, new_handle);
             wrenReleaseHandle(core->currentVM, update_handle);
+            wrenReleaseHandle(core->currentVM, boot_handle);
             wrenReleaseHandle(core->currentVM, scanline_handle);
             wrenReleaseHandle(core->currentVM, border_handle);
-            wrenReleaseHandle(core->currentVM, gamemenu_handle);
+            wrenReleaseHandle(core->currentVM, menu_handle);
             wrenReleaseHandle(core->currentVM, overline_handle);
             if (game_class != NULL) 
             {
@@ -1533,9 +1536,10 @@ static bool initWren(tic_mem* tic, const char* code)
 
     new_handle = wrenMakeCallHandle(vm, "new()");
     update_handle = wrenMakeCallHandle(vm, TIC_FN "()");
+    boot_handle = wrenMakeCallHandle(vm, BOOT_FN "()");
     scanline_handle = wrenMakeCallHandle(vm, SCN_FN "(_)");
     border_handle = wrenMakeCallHandle(vm, BDR_FN "(_)");
-    gamemenu_handle = wrenMakeCallHandle(vm, MENU_FN "(_)");
+    menu_handle = wrenMakeCallHandle(vm, MENU_FN "(_)");
     overline_handle = wrenMakeCallHandle(vm, OVR_FN "()");
 
     // create game class
@@ -1578,9 +1582,22 @@ static void callWrenTick(tic_mem* tic)
             {
                 wrenEnsureSlots(vm, 1);
                 wrenSetSlotHandle(vm, 0, game_class);
-                wrenCall(vm, overline_handle);                
+                wrenCall(vm, overline_handle);
             }
         }
+    }
+}
+
+static void callWrenBoot(tic_mem* tic)
+{
+    tic_core* core = (tic_core*)tic;
+    WrenVM* vm = core->currentVM;
+
+    if(vm && game_class)
+    {
+        wrenEnsureSlots(vm, 1);
+        wrenSetSlotHandle(vm, 0, game_class);
+        wrenCall(vm, boot_handle);
     }
 }
 
@@ -1608,9 +1625,9 @@ static void callWrenBorder(tic_mem* tic, s32 row, void* data)
     callWrenIntCallback(tic, row, border_handle, data);
 }
 
-static void callWrenGameMenu(tic_mem* tic, s32 index, void* data)
+static void callWrenMenu(tic_mem* tic, s32 index, void* data)
 {
-    callWrenIntCallback(tic, index, gamemenu_handle, data);
+    callWrenIntCallback(tic, index, menu_handle, data);
 }
 
 static const char* const WrenKeywords [] =
@@ -1696,11 +1713,13 @@ tic_script_config WrenSyntaxConfig =
     .init               = initWren,
     .close              = closeWren,
     .tick               = callWrenTick,
+    .boot               = callWrenBoot,
+
     .callback           =
     {
         .scanline       = callWrenScanline,
         .border         = callWrenBorder,
-        .gamemenu       = callWrenGameMenu,
+        .menu           = callWrenMenu,
     },
 
     .getOutline         = getWrenOutline,

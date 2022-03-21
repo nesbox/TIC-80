@@ -1595,9 +1595,26 @@ void callLuaBorder(tic_mem* tic, s32 row, void* data)
     callLuaIntCallback(tic, row, data, BDR_FN);
 }
 
-void callLuaGameMenu(tic_mem* tic, s32 index, void* data)
+void callLuaMenu(tic_mem* tic, s32 index, void* data)
 {
     callLuaIntCallback(tic, index, data, MENU_FN);
+}
+
+void callLuaBoot(tic_mem* tic)
+{
+    tic_core* core = (tic_core*)tic;
+    lua_State* lua = core->currentVM;
+
+    if (lua)
+    {
+        lua_getglobal(lua, BOOT_FN);
+        if(lua_isfunction(lua, -1))
+        {
+            if(docall(lua, 0, 0) != LUA_OK)
+                core->data->error(core->data->data, lua_tostring(lua, -1));
+        }
+        else lua_pop(lua, 1);
+    }
 }
 
 static const char* const LuaKeywords [] =
@@ -1692,12 +1709,13 @@ tic_script_config LuaSyntaxConfig =
     .init               = initLua,
     .close              = closeLua,
     .tick               = callLuaTick,
+    .boot               = callLuaBoot,
 
     .callback           =
     {
         .scanline       = callLuaScanline,
         .border         = callLuaBorder,
-        .gamemenu       = callLuaGameMenu,
+        .menu           = callLuaMenu,
     },
 
     .getOutline         = getLuaOutline,

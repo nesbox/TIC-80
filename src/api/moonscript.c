@@ -198,10 +198,13 @@ tic_script_config MoonSyntaxConfig =
     .init               = initMoonscript,
     .close              = closeLua,
     .tick               = callLuaTick,
+    .boot               = callLuaBoot,
+
     .callback           =
     {
         .scanline       = callLuaScanline,
         .border         = callLuaBorder,
+        .menu           = callLuaMenu,
     },
 
     .getOutline         = getMoonOutline,

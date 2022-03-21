@@ -1072,9 +1072,23 @@ static void callJavascriptBorder(tic_mem* tic, s32 row, void* data)
     callJavascriptIntCallback(tic, row, data, BDR_FN);
 }
 
-static void callJavascriptGameMenu(tic_mem* tic, s32 index, void* data)
+static void callJavascriptMenu(tic_mem* tic, s32 index, void* data)
 {
     callJavascriptIntCallback(tic, index, data, MENU_FN);
+}
+
+static void callJavascriptBoot(tic_mem* tic)
+{
+    tic_core* core = (tic_core*)tic;
+    duk_context* duk = core->currentVM;
+
+    if(duk_get_global_string(duk, BOOT_FN))
+    {
+        if(duk_pcall(duk, 0) != 0)
+            core->data->error(core->data->data, duk_safe_to_stacktrace(duk, -1));
+    }
+
+    duk_pop(duk);
 }
 
 static const char* const JsKeywords [] =
@@ -1160,11 +1174,12 @@ const tic_script_config JsSyntaxConfig =
     .init               = initJavascript,
     .close              = closeJavascript,
     .tick               = callJavascriptTick,
+    .boot               = callJavascriptBoot,
     .callback           =
     {
         .scanline       = callJavascriptScanline,
         .border         = callJavascriptBorder,
-        .gamemenu       = callJavascriptGameMenu,
+        .menu           = callJavascriptMenu,
     },
 
     .getOutline         = getJsOutline,

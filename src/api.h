@@ -50,6 +50,7 @@ typedef struct
 
 typedef struct tic_mem tic_mem;
 typedef void(*tic_tick)(tic_mem* memory);
+typedef void(*tic_boot)(tic_mem* memory);
 typedef void(*tic_scanline)(tic_mem* memory, s32 row, void* data);
 typedef void(*tic_border)(tic_mem* memory, s32 row, void* data);
 typedef void(*tic_gamemenu)(tic_mem* memory, s32 index, void* data);
@@ -64,7 +65,7 @@ typedef struct
 {
     tic_scanline    scanline;
     tic_border      border;
-    tic_gamemenu    gamemenu;
+    tic_gamemenu    menu;
     void* data;
 } tic_blit_callback;
 
@@ -79,6 +80,7 @@ typedef struct
         void(*close)(tic_mem* memory);
 
         tic_tick tick;
+        tic_boot boot;
         tic_blit_callback callback;
     };
 
@@ -139,15 +141,17 @@ enum
 #undef TIC_SYNC_DEF
 };
 
-#define TIC_FN "TIC"
-#define SCN_FN "SCN"
-#define OVR_FN "OVR" // deprecated since v1.0
-#define BDR_FN "BDR"
+#define TIC_FN  "TIC"
+#define BOOT_FN "BOOT"
+#define SCN_FN  "SCN"
+#define OVR_FN  "OVR" // deprecated since v1.0
+#define BDR_FN  "BDR"
 #define MENU_FN "MENU"
 
 #define TIC_CALLBACK_LIST(macro)                                                                                    \
     macro(TIC, TIC_FN "()", "Main function. It's called at " DEF2STR(TIC80_FRAMERATE)                               \
         "fps (" DEF2STR(TIC80_FRAMERATE) " times every second).")                                                   \
+    macro(BOOT, BOOT_FN, "Startup function.")                                                                       \
     macro(MENU, MENU_FN "(index)", "Game Menu handler.")                                                            \
     macro(SCN, SCN_FN "(row)", "Allows you to execute code between the drawing of each scanline, "                  \
         "for example, to manipulate the palette.")                                                                  \

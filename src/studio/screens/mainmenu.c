@@ -228,7 +228,7 @@ static void gameMenuHandler(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
     tic_mem* tic = main->tic;
-    tic_core_script_config(tic)->callback.gamemenu(tic, pos, NULL);
+    tic_core_script_config(tic)->callback.menu(tic, pos, NULL);
     resumeGame(main->studio);
 }
 
