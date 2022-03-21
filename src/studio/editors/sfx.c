@@ -53,6 +53,27 @@ static void drawPanelBorder(tic_mem* tic, s32 x, s32 y, s32 w, s32 h, tic_color 
     tic_api_rect(tic, x+w, y, 1, h, tic_color_light_grey);
 }
 
+static s32 hold(Sfx* sfx, s32 value)
+{
+    tic_mem* tic = sfx->tic;
+
+    if(tic_api_key(tic, tic_key_ctrl) || 
+        tic_api_key(tic, tic_key_shift))
+    {
+        if(sfx->holdValue < 0)
+            sfx->holdValue = value;
+
+        return sfx->holdValue;
+    }
+
+    return value;
+}
+
+static inline void unhold(Sfx* sfx)
+{
+    sfx->holdValue = -1;
+}
+
 static void drawCanvasLeds(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
 {
     tic_mem* tic = sfx->tic;
@@ -109,6 +130,8 @@ static void drawCanvasLeds(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
 
         if(checkMouseDown(sfx->studio, &rect, tic_mouse_left))
         {
+            my = hold(sfx, my);
+
             switch(canvasTab)
             {
             case SFX_WAVE_PANEL:   effect->data[mx].wave = my; break;
@@ -120,6 +143,7 @@ static void drawCanvasLeds(Sfx* sfx, s32 x, s32 y, s32 canvasTab)
 
             history_add(sfx->history);
         }
+        else unhold(sfx);
     }
 
     for(s32 i = 0; i < Cols; i++)
@@ -794,12 +818,15 @@ static void drawWavePanel(Sfx* sfx, s32 x, s32 y)
 
                 if(checkMouseDown(sfx->studio, &rect, tic_mouse_left))
                 {
+                    cy = hold(sfx, cy);
+
                     if(tic_tool_peek4(wave->data, cx) != cy)
                     {
                         tic_tool_poke4(wave->data, cx, cy);
                         history_add(sfx->waveHistory);
                     }
                 }
+                else unhold(sfx);
             }       
 
             for(s32 i = 0; i < WAVE_VALUES; i++)
@@ -1088,6 +1115,7 @@ void initSfx(Sfx* sfx, Studio* studio, tic_sfx* src)
         .index = 0,
         .volwave = SFX_VOLUME_PANEL,
         .hoverWave = -1,
+        .holdValue = -1,
         .play = 
         {
             .note = -1,
