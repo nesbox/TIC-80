@@ -1292,25 +1292,25 @@ static void initSidebarMode(Code* code)
 
         if(items)
         {
-            char filter[STUDIO_TEXT_BUFFER_WIDTH];
-            strncpy(filter, code->popup.text, sizeof(filter));
-
-            for(s32 i = 0; i < size; i++)
+            char buffer[STUDIO_TEXT_BUFFER_WIDTH];
+            for(const tic_outline_item *it = items, *end = items + size; it != end ; ++it)
             {
-                const tic_outline_item* item = items + i;
-
-                char buffer[STUDIO_TEXT_BUFFER_WIDTH];
-                memcpy(buffer, item->pos, MIN(item->size, sizeof(buffer)));
-
-                if(code->state[item->pos - code->src].syntax == SyntaxType_COMMENT)
+                if(code->state[it->pos - code->src].syntax == SyntaxType_COMMENT)
                     continue;
 
+                {
+                    s32 len = MIN(it->size, sizeof(buffer) - 1);
+                    memcpy(buffer, it->pos, len);
+                    buffer[len] = '\0';
+                }
+
+                const char* filter = code->popup.text;
                 if(*filter && !isFilterMatch(buffer, filter))
                     continue;
 
                 s32 last = code->sidebar.size++;
                 code->sidebar.items = realloc(code->sidebar.items, code->sidebar.size * sizeof(tic_outline_item));
-                code->sidebar.items[last] = *item;
+                code->sidebar.items[last] = *it;
             }
         }
     }
@@ -1991,11 +1991,13 @@ static void drawSidebarBar(Code* code, s32 x, s32 y)
         tic_api_rect(code->tic, rect.x - 1, rect.y + (code->sidebar.index - code->sidebar.scroll) * STUDIO_TEXT_HEIGHT,
             rect.w + 1, TIC_FONT_HEIGHT + 2, tic_color_red);
 
+        char orig[STUDIO_TEXT_BUFFER_WIDTH];
         for(const tic_outline_item* ptr = code->sidebar.items, *end = ptr + code->sidebar.size; 
             ptr < end; ptr++, y += STUDIO_TEXT_HEIGHT)
         {
-            char orig[STUDIO_TEXT_BUFFER_WIDTH] = {0};
-            strncpy(orig, ptr->pos, MIN(ptr->size, sizeof(orig)));
+            s32 len = MIN(ptr->size, sizeof(orig) - 1);
+            memcpy(orig, ptr->pos, len);
+            orig[len] = '\0';
             drawFilterMatch(code, x, y, orig, filter);
         }
     }
