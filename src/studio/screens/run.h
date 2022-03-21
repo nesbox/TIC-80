@@ -33,6 +33,7 @@ struct Run
     tic_mem* tic;
     struct Console* console;
     struct tic_fs* fs;
+    tic_tick_data tickData;
 
     bool exit;
     

@@ -106,7 +106,7 @@ static void tick(Run* run)
 
     tic_mem* tic = run->tic;
 
-    tic_tick_data tickData = 
+    run->tickData = (tic_tick_data)
     {
         .error = run->console ? onError : onEmptyError,
         .trace = run->console ? onTrace : onEmptyTrace,
@@ -114,7 +114,7 @@ static void tick(Run* run)
         .data = run,
     };
 
-    tic_core_tick(tic, &tickData);
+    tic_core_tick(tic, &run->tickData);
 
     enum {Size = sizeof(tic_persistent)};
 
