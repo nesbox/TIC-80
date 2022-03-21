@@ -3292,7 +3292,14 @@ static void onHelpCommand(Console* console)
 
         FOR(const struct Handler*, ptr, Handlers)
             if(strcmp(ptr->cmd, param) == 0)
+            {
                 ptr->handler(console);
+                commandDone(console);
+                return;
+            }
+
+        printError(console, "\nunknown topic: ");
+        printError(console, param);
     }
     else
     {
