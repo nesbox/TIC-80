@@ -553,19 +553,45 @@ static void onCartLoaded(void* data)
     runGame(surf->studio);
 }
 
+static void onLoadCommandConfirmed(Studio* studio, bool yes, void* data)
+{
+    if(yes)
+    {
+        Surf* surf = data;
+        SurfItem* item = getMenuItem(surf);
+
+        if (item->hash)
+        {
+            surf->console->loadByHash(surf->console, item->name, item->hash, NULL, onCartLoaded, surf);
+        }
+        else
+        {
+            surf->console->load(surf->console, item->name);
+            runGame(surf->studio);
+        }
+    }
+}
+
 static void onPlayCart(void* data)
 {
     Surf* surf = data;
     SurfItem* item = getMenuItem(surf);
 
-    if (item->hash)
+    if(studioCartChanged(surf->studio))
     {
-        surf->console->loadByHash(surf->console, item->name, item->hash, NULL, onCartLoaded, surf);
+        // !TODO: move confirmation messages to the one place
+        static const char* Warning[] =
+        {
+            "WARNING!",
+            "You have unsaved changes",
+            "Do you really want to load cart?",
+        };
+
+        confirmDialog(surf->studio, Warning, COUNT_OF(Warning), onLoadCommandConfirmed, surf);
     }
     else
     {
-        surf->console->load(surf->console, item->name);
-        runGame(surf->studio);
+        onLoadCommandConfirmed(surf->studio, true, surf);
     }
 }
 

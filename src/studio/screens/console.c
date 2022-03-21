@@ -1462,17 +1462,18 @@ static void onSurfCommand(Console* console)
     gotoSurf(console->studio);
 }
 
-static void loadExt(Console* console, const char* path)
+static void loadExternal(Console* console, const char* path)
 {
-    CommandDesc desc = {0};
-    desc.params = malloc(sizeof *desc.params);
-    desc.params->key = strdup(path);
-    desc.params->val = NULL;
-    desc.count = 1;
+    CommandDesc desc = 
+    {
+        .params = malloc(sizeof *desc.params),
+        .count = 1,
+    };
 
+    *desc.params = (struct Param){.key = strdup(path)};
     *console->desc = desc;
 
-    onLoadCommand(console);
+    onLoadCommandConfirmed(console);
 }
 
 static void onConfigCommand(Console* console)
@@ -1504,7 +1505,17 @@ static void onConfigCommand(Console* console)
     }
     else
     {
-        loadExt(console, CONFIG_TIC_PATH);
+        CommandDesc desc = 
+        {
+            .params = malloc(sizeof *desc.params),
+            .count = 1,
+        };
+
+        *desc.params = (struct Param){.key = strdup(CONFIG_TIC_PATH)};
+        *console->desc = desc;
+
+        onLoadCommand(console);
+
         return;
     }
    
@@ -3925,7 +3936,7 @@ void initConsole(Console* console, Studio* studio, tic_fs* fs, tic_net* net, Con
         .tic = getMemory(studio),
         .config = config,
         .loadByHash = loadByHash,
-        .load = loadExt,
+        .load = loadExternal,
         .loadCart = cmdLoadCart,
         .updateProject = updateProject,
         .error = error,
