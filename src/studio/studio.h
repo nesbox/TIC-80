@@ -194,7 +194,7 @@ EditorMode getStudioMode(Studio* studio);
 void exitStudio(Studio* studio);
 
 void toClipboard(const void* data, s32 size, bool flip);
-bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces);
+bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces, bool sameSize);
 
 typedef enum
 {

@@ -497,7 +497,7 @@ static void copyFromClipboard(Sfx* sfx)
 {
     tic_sample* effect = getEffect(sfx);
 
-    if(fromClipboard(effect, sizeof(tic_sample), true, false))
+    if(fromClipboard(effect, sizeof(tic_sample), true, false, true))
         history_add(sfx->history);
 }
 
@@ -595,7 +595,7 @@ static void cutWave(Sfx* sfx)
 
 static void pasteWave(Sfx* sfx)
 {
-    if(fromClipboard(getWave(sfx), sizeof(tic_waveform), true, false))
+    if(fromClipboard(getWave(sfx), sizeof(tic_waveform), true, false, true))
         history_add(sfx->waveHistory);
 }
 

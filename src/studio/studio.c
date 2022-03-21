@@ -556,7 +556,7 @@ static void removeWhiteSpaces(char* str)
     str[i] = '\0';
 }
 
-bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces)
+bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces, bool sameSize)
 {
     if(tic_sys_clipboard_has())
     {
@@ -567,7 +567,9 @@ bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces)
             if (remove_white_spaces)
                 removeWhiteSpaces(clipboard);
 
-            bool valid = strlen(clipboard) <= size * 2;
+            bool valid = sameSize 
+                ? strlen(clipboard) == size * 2 
+                : strlen(clipboard) <= size * 2;
 
             if(valid) tic_tool_str2buf(clipboard, (s32)strlen(clipboard), data, flip);
 

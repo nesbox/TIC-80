@@ -911,8 +911,8 @@ static void drawRGBSlider(Sprite* sprite, s32 x, s32 y, u8* value)
 static void pasteColor(Sprite* sprite)
 {
     bool ovr = sprite->palette.vbank1;
-    if(!fromClipboard(&getBankPalette(sprite->studio, ovr)->colors[sprite->color], sizeof(tic_rgb), false, true))
-        fromClipboard(getBankPalette(sprite->studio, ovr)->data, sizeof(tic_palette), false, true);
+    if(!fromClipboard(&getBankPalette(sprite->studio, ovr)->colors[sprite->color], sizeof(tic_rgb), false, true, false))
+        fromClipboard(getBankPalette(sprite->studio, ovr)->data, sizeof(tic_palette), false, true, false);
 }
 
 static void drawRGBTools(Sprite* sprite, s32 x, s32 y)
@@ -1529,7 +1529,7 @@ static void copyFromClipboard(Sprite* sprite)
     u8* buffer = malloc(size);
     SCOPE(free(buffer))
     {
-        if(fromClipboard(buffer, size, true, false))
+        if(fromClipboard(buffer, size, true, false, true))
         {
             tic_rect rect = getSpriteRect(sprite);
             s32 r = rect.x + rect.w;
