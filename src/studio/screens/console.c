@@ -568,13 +568,19 @@ static s32 getInputOffset(Console* console)
     return (console->input.text - console->text) + console->input.pos;
 }
 
+static void deleteText(Console* console, s32 start, s32 end)
+{
+    s32 offset = console->input.text - console->text;
+    s32 size = CONSOLE_BUFFER_SIZE - offset - end;
+    memmove(console->input.text + start, console->input.text + end, size);
+
+    u8* color = console->color + offset;
+    memmove(color + start, color + end, size);
+}
+
 static void processConsoleDel(Console* console)
 {
-    char* pos = console->input.text + console->input.pos;
-    u8* color = console->color + getInputOffset(console);
-    size_t size = strlen(pos);
-    memmove(pos, pos + 1, size);
-    memmove(color, color + 1, size);
+    deleteText(console, console->input.pos, console->input.pos + 1);
 }
 
 static void processConsoleBackspace(Console* console)
@@ -3702,14 +3708,66 @@ static void processConsolePgDown(Console* console)
     setScroll(console, console->scroll.pos + STUDIO_TEXT_BUFFER_HEIGHT/2);
 }
 
+static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+
+static s32 leftWordPos(Console* console)
+{
+    const char* start = console->input.text;
+    const char* pos = console->input.text + console->input.pos - 1;
+
+    if(pos > start)
+    {
+        if(isalnum_(*pos)) while(pos > start && isalnum_(*(pos-1))) pos--;
+        else while(pos > start && !isalnum_(*(pos-1))) pos--;
+        return pos - console->input.text;
+    }
+
+    return console->input.pos;
+}
+
+static s32 rightWordPos(Console* console)
+{
+    const char* end = console->input.text + strlen(console->input.text);
+    const char* pos = console->input.text + console->input.pos;
+
+    if(pos < end)
+    {
+        if(isalnum_(*pos)) while(pos < end && isalnum_(*pos)) pos++;
+        else while(pos < end && !isalnum_(*pos)) pos++;
+        return pos - console->input.text;
+    }
+
+    return console->input.pos;
+}
+
+static void leftWord(Console* console)
+{
+    console->input.pos = leftWordPos(console);
+}
+
+static void rightWord(Console* console)
+{
+    console->input.pos = rightWordPos(console);
+}
+
+static void deleteWord(Console* console)
+{
+    s32 pos = rightWordPos(console);
+    deleteText(console, console->input.pos, pos);
+}
+
+static void backspaceWord(Console* console)
+{
+    s32 pos = leftWordPos(console);
+    deleteText(console, pos, console->input.pos);
+    console->input.pos = pos;
+}
+
 static void processKeyboard(Console* console)
 {
     tic_mem* tic = console->tic;
 
     if(!console->active)
-        return;
-
-    if(tic_api_key(tic, tic_key_alt))
         return;
 
     if(tic->ram->input.keyboard.data != 0)
@@ -3723,44 +3781,57 @@ static void processKeyboard(Console* console)
 
         console->cursor.delay = CONSOLE_CURSOR_DELAY;
 
-        if(keyWasPressed(console->studio, tic_key_up)) onHistoryUp(console);
-        else if(keyWasPressed(console->studio, tic_key_down)) onHistoryDown(console);
-        else if(keyWasPressed(console->studio, tic_key_left))
+        bool ctrl = tic_api_key(tic, tic_key_ctrl);
+        bool alt = tic_api_key(tic, tic_key_alt);
+
+        if (ctrl || alt) 
         {
-            if(console->input.pos > 0)
-                console->input.pos--;
-        }
-        else if(keyWasPressed(console->studio, tic_key_right))
-        {
-            console->input.pos++;
-            size_t len = strlen(console->input.text);
-            if(console->input.pos > len)
-                console->input.pos = len;
-        }
-        else if(keyWasPressed(console->studio, tic_key_return))      processConsoleCommand(console);
-        else if(keyWasPressed(console->studio, tic_key_backspace))   processConsoleBackspace(console);
-        else if(keyWasPressed(console->studio, tic_key_delete))      processConsoleDel(console);
-        else if(keyWasPressed(console->studio, tic_key_home))        processConsoleHome(console);
-        else if(keyWasPressed(console->studio, tic_key_end))         processConsoleEnd(console);
-        else if(keyWasPressed(console->studio, tic_key_tab))         processConsoleTab(console);
-        else if(keyWasPressed(console->studio, tic_key_pageup))      processConsolePgUp(console);
-        else if(keyWasPressed(console->studio, tic_key_pagedown))    processConsolePgDown(console);
+            if (ctrl) 
+            {
+#if defined(__TIC_LINUX__)
+                tic_keycode clearKey = tic_key_l;
+#else
+                tic_keycode clearKey = tic_key_k;
+#endif
 
-#       if defined(__TIC_LINUX__)
-            tic_keycode clearKey = tic_key_l;
-#       else
-            tic_keycode clearKey = tic_key_k;
-#       endif
-
-        bool modifier_CTRL = tic_api_key(tic, tic_key_ctrl);
-
-        if (modifier_CTRL) {
-            if (keyWasPressed(console->studio, tic_key_a)) processConsoleHome(console);
-            else if (keyWasPressed(console->studio, tic_key_e)) processConsoleEnd(console);
-            else if (keyWasPressed(console->studio, clearKey)) {
-                onClsCommand(console);
-                return;
+                if (keyWasPressed(console->studio, tic_key_a))      processConsoleHome(console);
+                else if (keyWasPressed(console->studio, tic_key_e)) processConsoleEnd(console);
+                else if (keyWasPressed(console->studio, clearKey)) 
+                {
+                    onClsCommand(console);
+                    return;
+                }
             }
+
+            if (keyWasPressed(console->studio, tic_key_left))           leftWord(console);
+            else if(keyWasPressed(console->studio, tic_key_right))      rightWord(console);
+            else if(keyWasPressed(console->studio, tic_key_delete))     deleteWord(console);
+            else if(keyWasPressed(console->studio, tic_key_backspace))  backspaceWord(console);
+        }
+        else
+        {
+            if(keyWasPressed(console->studio, tic_key_up)) onHistoryUp(console);
+            else if(keyWasPressed(console->studio, tic_key_down)) onHistoryDown(console);
+            else if(keyWasPressed(console->studio, tic_key_left))
+            {
+                if(console->input.pos > 0)
+                    console->input.pos--;
+            }
+            else if(keyWasPressed(console->studio, tic_key_right))
+            {
+                console->input.pos++;
+                size_t len = strlen(console->input.text);
+                if(console->input.pos > len)
+                    console->input.pos = len;
+            }
+            else if(keyWasPressed(console->studio, tic_key_return))      processConsoleCommand(console);
+            else if(keyWasPressed(console->studio, tic_key_backspace))   processConsoleBackspace(console);
+            else if(keyWasPressed(console->studio, tic_key_delete))      processConsoleDel(console);
+            else if(keyWasPressed(console->studio, tic_key_home))        processConsoleHome(console);
+            else if(keyWasPressed(console->studio, tic_key_end))         processConsoleEnd(console);
+            else if(keyWasPressed(console->studio, tic_key_tab))         processConsoleTab(console);
+            else if(keyWasPressed(console->studio, tic_key_pageup))      processConsolePgUp(console);
+            else if(keyWasPressed(console->studio, tic_key_pagedown))    processConsolePgDown(console);
         }
     }
 

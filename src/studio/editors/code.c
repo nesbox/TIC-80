@@ -1595,48 +1595,48 @@ static void processKeyboard(Code* code)
     }
     else usedKeybinding = false;
 
-    if(ctrl)
+
+    if(ctrl || alt)
     {
-        if(keyWasPressed(code->studio, tic_key_left))             leftWord(code);
-        else if(keyWasPressed(code->studio, tic_key_right))       rightWord(code);
-        else if(keyWasPressed(code->studio, tic_key_tab))         doTab(code, shift, ctrl);
-        else if(keyWasPressed(code->studio, tic_key_a))           selectAll(code);
-        else if(keyWasPressed(code->studio, tic_key_z))           undo(code);
-        else if(keyWasPressed(code->studio, tic_key_y))           redo(code);
-        else if(keyWasPressed(code->studio, tic_key_f))           setCodeMode(code, TEXT_FIND_MODE);
-        else if(keyWasPressed(code->studio, tic_key_g))           setCodeMode(code, TEXT_GOTO_MODE);
-        else if(keyWasPressed(code->studio, tic_key_b))           setCodeMode(code, TEXT_BOOKMARK_MODE);
-        else if(keyWasPressed(code->studio, tic_key_o))           setCodeMode(code, TEXT_OUTLINE_MODE);
-        else if(keyWasPressed(code->studio, tic_key_n))           downLine(code);
-        else if(keyWasPressed(code->studio, tic_key_p))           upLine(code);
-        else if(keyWasPressed(code->studio, tic_key_e))           endLine(code);
-        else if(keyWasPressed(code->studio, tic_key_slash))       commentLine(code);
-        else if(keyWasPressed(code->studio, tic_key_home))        goCodeHome(code);
-        else if(keyWasPressed(code->studio, tic_key_end))         goCodeEnd(code);
-        else if(keyWasPressed(code->studio, tic_key_delete))      deleteWord(code);
-        else if(keyWasPressed(code->studio, tic_key_backspace))   backspaceWord(code);
-        else usedKeybinding = false;
-    }
-    else if(alt)
-    {
-        if(keyWasPressed(code->studio, tic_key_left))         leftWord(code);
-        else if(keyWasPressed(code->studio, tic_key_right))   rightWord(code);
+        if(ctrl)
+        {
+            if(keyWasPressed(code->studio, tic_key_tab))        doTab(code, shift, ctrl);
+            else if(keyWasPressed(code->studio, tic_key_a))     selectAll(code);
+            else if(keyWasPressed(code->studio, tic_key_z))     undo(code);
+            else if(keyWasPressed(code->studio, tic_key_y))     redo(code);
+            else if(keyWasPressed(code->studio, tic_key_f))     setCodeMode(code, TEXT_FIND_MODE);
+            else if(keyWasPressed(code->studio, tic_key_g))     setCodeMode(code, TEXT_GOTO_MODE);
+            else if(keyWasPressed(code->studio, tic_key_b))     setCodeMode(code, TEXT_BOOKMARK_MODE);
+            else if(keyWasPressed(code->studio, tic_key_o))     setCodeMode(code, TEXT_OUTLINE_MODE);
+            else if(keyWasPressed(code->studio, tic_key_n))     downLine(code);
+            else if(keyWasPressed(code->studio, tic_key_p))     upLine(code);
+            else if(keyWasPressed(code->studio, tic_key_e))     endLine(code);
+            else if(keyWasPressed(code->studio, tic_key_slash)) commentLine(code);
+            else if(keyWasPressed(code->studio, tic_key_home))  goCodeHome(code);
+            else if(keyWasPressed(code->studio, tic_key_end))   goCodeEnd(code);
+            else usedKeybinding = false;
+        }
+
+        if(keyWasPressed(code->studio, tic_key_left))           leftWord(code);
+        else if(keyWasPressed(code->studio, tic_key_right))     rightWord(code);
+        else if(keyWasPressed(code->studio, tic_key_delete))    deleteWord(code);
+        else if(keyWasPressed(code->studio, tic_key_backspace)) backspaceWord(code);
         else usedKeybinding = false;
     }
     else
     {
-        if(keyWasPressed(code->studio, tic_key_up))               upLine(code);
-        else if(keyWasPressed(code->studio, tic_key_down))        downLine(code);
-        else if(keyWasPressed(code->studio, tic_key_left))        leftColumn(code);
-        else if(keyWasPressed(code->studio, tic_key_right))       rightColumn(code);
-        else if(keyWasPressed(code->studio, tic_key_home))        goHome(code);
-        else if(keyWasPressed(code->studio, tic_key_end))         goEnd(code);
-        else if(keyWasPressed(code->studio, tic_key_pageup))      pageUp(code);
-        else if(keyWasPressed(code->studio, tic_key_pagedown))    pageDown(code);
-        else if(keyWasPressed(code->studio, tic_key_delete))      deleteChar(code);
-        else if(keyWasPressed(code->studio, tic_key_backspace))   backspaceChar(code);
-        else if(keyWasPressed(code->studio, tic_key_return))      newLine(code);
-        else if(keyWasPressed(code->studio, tic_key_tab))         doTab(code, shift, ctrl);
+        if(keyWasPressed(code->studio, tic_key_up))             upLine(code);
+        else if(keyWasPressed(code->studio, tic_key_down))      downLine(code);
+        else if(keyWasPressed(code->studio, tic_key_left))      leftColumn(code);
+        else if(keyWasPressed(code->studio, tic_key_right))     rightColumn(code);
+        else if(keyWasPressed(code->studio, tic_key_home))      goHome(code);
+        else if(keyWasPressed(code->studio, tic_key_end))       goEnd(code);
+        else if(keyWasPressed(code->studio, tic_key_pageup))    pageUp(code);
+        else if(keyWasPressed(code->studio, tic_key_pagedown))  pageDown(code);
+        else if(keyWasPressed(code->studio, tic_key_delete))    deleteChar(code);
+        else if(keyWasPressed(code->studio, tic_key_backspace)) backspaceChar(code);
+        else if(keyWasPressed(code->studio, tic_key_return))    newLine(code);
+        else if(keyWasPressed(code->studio, tic_key_tab))       doTab(code, shift, ctrl);
         else usedKeybinding = false;
     }
 
