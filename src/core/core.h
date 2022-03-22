@@ -186,6 +186,7 @@ typedef struct
     {
         tic_core_state_data state;   
         tic_ram ram;
+        u8 input;
 
         struct
         {
