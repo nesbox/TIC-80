@@ -28,17 +28,19 @@
 
 static void onTrace(void* data, const char* text, u8 color)
 {
+#if defined(BUILD_EDITORS)
     Run* run = (Run*)data;
-
     run->console->trace(run->console, text, color);
+#endif
 }
 
 static void onError(void* data, const char* info)
 {
+#if defined(BUILD_EDITORS)
     Run* run = (Run*)data;
-
     setStudioMode(run->studio, TIC_CONSOLE_MODE);
     run->console->error(run->console, info);
+#endif
 }
 
 static void onExit(void* data)
@@ -96,23 +98,12 @@ static void initPMemName(Run* run)
     strcat(run->saveid, md5);
 }
 
-static void onEmptyTrace(void* data, const char* text, u8 color) {}
-static void onEmptyError(void* data, const char* info) {}
-
 static void tick(Run* run)
 {
     if (getStudioMode(run->studio) != TIC_RUN_MODE)
         return;
 
     tic_mem* tic = run->tic;
-
-    run->tickData = (tic_tick_data)
-    {
-        .error = run->console ? onError : onEmptyError,
-        .trace = run->console ? onTrace : onEmptyTrace,
-        .exit = onExit,
-        .data = run,
-    };
 
     tic_core_tick(tic, &run->tickData);
 
@@ -125,7 +116,11 @@ static void tick(Run* run)
     }
 
     if(run->exit)
+#if defined(BUILD_EDITORS)
         setStudioMode(run->studio, TIC_CONSOLE_MODE);
+#else
+        studio_exit(run->studio);
+#endif
 }
 
 void initRun(Run* run, Console* console, tic_fs* fs, Studio* studio)
@@ -138,6 +133,13 @@ void initRun(Run* run, Console* console, tic_fs* fs, Studio* studio)
         .fs = fs,
         .tick = tick,
         .exit = false,
+        .tickData = (tic_tick_data)
+        {
+            .error = onError,
+            .trace = onTrace,
+            .exit = onExit,
+            .data = run,
+        },
     };
 
     {
