@@ -1270,6 +1270,7 @@ void evalWasm(tic_mem* tic, const char* code) {
 
 const tic_script_config WasmSyntaxConfig =
 {
+    .id                 = 17,
     .name               = "wasm",
     .fileExtension      = ".wasmp",
     .projectComment     = "--",

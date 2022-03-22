@@ -192,6 +192,7 @@ static const tic_outline_item* getMoonOutline(const char* code, s32* size)
 
 tic_script_config MoonSyntaxConfig = 
 {
+    .id                 = 13,
     .name               = "moon",
     .fileExtension      = ".moon",
     .projectComment     = "--",

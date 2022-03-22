@@ -1168,6 +1168,7 @@ void evalJs(tic_mem* tic, const char* code) {
 
 const tic_script_config JsSyntaxConfig =
 {
+    .id                 = 12,
     .name               = "js",
     .fileExtension      = ".js",
     .projectComment     = "//",

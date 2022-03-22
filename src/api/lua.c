@@ -1703,6 +1703,7 @@ static void evalLua(tic_mem* tic, const char* code) {
 
 tic_script_config LuaSyntaxConfig = 
 {
+    .id                 = 10,
     .name               = "lua",
     .fileExtension      = ".lua",
     .projectComment     = "--",

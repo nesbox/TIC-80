@@ -1835,6 +1835,7 @@ void evalSquirrel(tic_mem* tic, const char* code) {
 
 tic_script_config SquirrelSyntaxConfig = 
 {
+    .id                 = 15,
     .name               = "squirrel",
     .fileExtension      = ".nut",
     .projectComment     = "//",

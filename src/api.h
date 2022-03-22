@@ -71,6 +71,7 @@ typedef struct
 
 typedef struct
 {
+    u8 id;
     const char* name;
     const char* fileExtension;
     const char* projectComment;

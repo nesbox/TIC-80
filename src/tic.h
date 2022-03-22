@@ -445,6 +445,7 @@ typedef struct
 
     tic_code code;
     tic_binary binary;
+    u8 lang;
 
 } tic_cartridge;
 

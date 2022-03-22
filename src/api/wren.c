@@ -1707,6 +1707,7 @@ static void evalWren(tic_mem* tic, const char* code)
 
 tic_script_config WrenSyntaxConfig = 
 {
+    .id                 = 16,
     .name               = "wren",
     .fileExtension      = ".wren",
     .projectComment     = "//",

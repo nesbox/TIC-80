@@ -57,6 +57,7 @@ typedef enum
     CHUNK_DEFAULT,      // 17
     CHUNK_SCREEN,       // 18
     CHUNK_BINARY,       // 19
+    CHUNK_LANG,         // 20
 } ChunkType;
 
 typedef struct
@@ -139,6 +140,7 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
             case CHUNK_PATTERNS:    LOAD_CHUNK(cart->banks[chunk->bank].music.patterns);    break;
             case CHUNK_FLAGS:       LOAD_CHUNK(cart->banks[chunk->bank].flags);             break;
             case CHUNK_SCREEN:      LOAD_CHUNK(cart->banks[chunk->bank].screen);            break;
+            case CHUNK_LANG:        LOAD_CHUNK(cart->lang);                                 break;
             case CHUNK_BINARY:      
                 binary[chunk->bank] = (struct BinaryChunk){chunkSize(chunk), ptr};
                 break;
@@ -308,6 +310,9 @@ s32 tic_cart_save(const tic_cartridge* cart, u8* buffer)
     ptr = cart->code.data;
     for(s32 i = strlen(ptr) / TIC_BANK_SIZE; i >= 0; --i, ptr += TIC_BANK_SIZE)
         buffer = saveFixedChunk(buffer, CHUNK_CODE, ptr, MIN(strlen(ptr), TIC_BANK_SIZE), i);
+
+    if(cart->lang)
+        SAVE_CHUNK(CHUNK_LANG, cart->lang, 0);
 
 #undef SAVE_CHUNK
 

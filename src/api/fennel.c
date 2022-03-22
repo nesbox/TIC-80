@@ -178,6 +178,7 @@ static void evalFennel(tic_mem* tic, const char* code) {
 
 tic_script_config FennelSyntaxConfig =
 {
+    .id                 = 14,
     .name               = "fennel",
     .fileExtension      = ".fnl",
     .projectComment     = ";;",

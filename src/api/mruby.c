@@ -1221,6 +1221,7 @@ static const tic_outline_item* getMRubyOutline(const char* code, s32* size)
 
 const tic_script_config MRubySyntaxConfig =
 {
+    .id                 = 11,
     .name               = "ruby",
     .fileExtension      = ".rb",
     .projectComment     = "#",
