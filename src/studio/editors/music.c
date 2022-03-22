@@ -1432,7 +1432,7 @@ static void processKeyboard(Music* music)
         else if(keyWasPressed(music->studio, tic_key_y))       redo(music);
         else if(keyWasPressed(music->studio, tic_key_f))       toggleFollowMode(music);
     }
-
+    else
     {
         bool stopped = !checkPlaying(music);
 

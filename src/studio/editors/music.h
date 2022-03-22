@@ -79,6 +79,7 @@ struct Music
     {
         MUSIC_TRACKER_TAB,
         MUSIC_PIANO_TAB,
+        MUSIC_TAB_COUNT,
     } tab;
 
     u32 tickCounter;
