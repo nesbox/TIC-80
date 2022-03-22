@@ -1664,8 +1664,6 @@ static void processKeyboard(Sprite* sprite)
 {
     tic_mem* tic = sprite->tic;
 
-    if(tic->ram->input.keyboard.data == 0) return;
-
     switch(getClipboardEvent(sprite->studio))
     {
     case TIC_CLIPBOARD_CUT: cutToClipboard(sprite); break;
@@ -1701,7 +1699,7 @@ static void processKeyboard(Sprite* sprite)
                     buf[col] = toupper(sym);
                     *data = (u8)strtol(buf, NULL, 16);
                     ++col;
-                }                
+                }
             }
 
             sprite->palette.focus = (col + row * Cols + Cols * Rows) % (Cols * Rows);
