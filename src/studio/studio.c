@@ -1228,11 +1228,14 @@ void setStudioMode(Studio* studio, EditorMode mode)
         }
 #endif
     }
+
+#if defined(BUILD_EDITORS)
     else if(mode == TIC_MUSIC_MODE)
     {
         Music* music = studio->banks.music[studio->bank.index.music];
         music->tab = (music->tab + 1) % MUSIC_TAB_COUNT;
     }
+#endif
 }
 
 EditorMode getStudioMode(Studio* studio)
