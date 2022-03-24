@@ -2186,12 +2186,38 @@ void studio_sound(Studio* studio)
     }
 }
 
+#if defined(BUILD_EDITORS)
+static void onStudioLoadConfirmed(Studio* studio, bool yes, void* data)
+{
+    if(yes)
+    {
+        const char* file = data;
+        showPopupMessage(studio, studio->console->loadCart(studio->console, file) 
+            ? "cart successfully loaded :)"
+            : "error: cart not loaded :(");        
+    }
+}
+
+void confirmLoadCart(Studio* studio, ConfirmCallback callback, void* data)
+{
+    static const char* Warning[] =
+    {
+        "WARNING!",
+        "You have unsaved changes",
+        "Do you really want to load cart?",
+    };
+
+    confirmDialog(studio, Warning, COUNT_OF(Warning), callback, data);
+}
+
+#endif
+
 void studio_load(Studio* studio, const char* file)
 {
 #if defined(BUILD_EDITORS)
-    showPopupMessage(studio, studio->console->loadCart(studio->console, file) 
-        ? "cart successfully loaded :)"
-        : "error: cart not loaded :(");
+    studioCartChanged(studio)
+        ? confirmLoadCart(studio, onStudioLoadConfirmed, (void*)file)
+        : onStudioLoadConfirmed(studio, true, (void*)file);
 #endif
 }
 

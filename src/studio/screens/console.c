@@ -1131,11 +1131,9 @@ static void onNewCommand(Console* console)
     {
         static const char* Rows[] =
         {
-            "YOU HAVE",
-            "UNSAVED CHANGES",
-            "",
-            "DO YOU REALLY WANT",
-            "TO CREATE NEW CART?",
+            "WARNING!",
+            "You have unsaved changes",
+            "Do you really want to create new cart?",
         };
 
         confirmCommand(console, Rows, COUNT_OF(Rows), onNewCommandConfirmed);
@@ -2361,11 +2359,9 @@ static void onSaveCommand(Console* console)
     {
         static const char* Rows[] =
         {
-            "THE CART",
-            "ALREADY EXISTS",
-            "",
-            "DO YOU WANT TO",
-            "OVERWRITE IT?",
+            "WARNING!",
+            "The cart already exists",
+            "Do you want to overwrite it?",
         };
 
         confirmCommand(console, Rows, COUNT_OF(Rows), onSaveCommandConfirmed);
@@ -2445,9 +2441,8 @@ static void onDelCommand(Console* console)
 {
     static const char* Rows[] =
     {
-        "", "",
-        "DO YOU REALLY WANT",
-        "TO DELETE FILE?",
+        "WARNING!",
+        "Do you really want to delete file?",
     };
 
     confirmCommand(console, Rows, COUNT_OF(Rows), onDelCommandConfirmed);

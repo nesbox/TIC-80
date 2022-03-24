@@ -223,6 +223,7 @@ u8 getSpritePixel(tic_tile* tiles, s32 x, s32 y);
 
 typedef void(*ConfirmCallback)(Studio* studio, bool yes, void* data);
 void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback callback, void* data);
+void confirmLoadCart(Studio* studio, ConfirmCallback callback, void* data);
 
 bool studioCartChanged(Studio* studio);
 void playSystemSfx(Studio* studio, s32 id);

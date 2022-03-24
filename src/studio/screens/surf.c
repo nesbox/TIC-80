@@ -577,22 +577,9 @@ static void onPlayCart(void* data)
     Surf* surf = data;
     SurfItem* item = getMenuItem(surf);
 
-    if(studioCartChanged(surf->studio))
-    {
-        // !TODO: move confirmation messages to the one place
-        static const char* Warning[] =
-        {
-            "WARNING!",
-            "You have unsaved changes",
-            "Do you really want to load cart?",
-        };
-
-        confirmDialog(surf->studio, Warning, COUNT_OF(Warning), onLoadCommandConfirmed, surf);
-    }
-    else
-    {
-        onLoadCommandConfirmed(surf->studio, true, surf);
-    }
+    studioCartChanged(surf->studio)
+        ? confirmLoadCart(surf->studio, onLoadCommandConfirmed, surf)
+        : onLoadCommandConfirmed(surf->studio, true, surf);
 }
 
 static void loadCart(Surf* surf)
