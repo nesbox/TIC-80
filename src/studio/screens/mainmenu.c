@@ -442,6 +442,13 @@ static MenuOption GamepadOption =
     optionGamepadSet,
 };
 
+static void clearGamepadMenu(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+    ZEROMEM(main->gamepads.mapping);
+    initGamepadMenu(main);
+}
+
 static void initGamepadMenu(StudioMainMenu* main)
 {
     static const MenuItem GamepadMenu[] =
@@ -460,6 +467,7 @@ static void initGamepadMenu(StudioMainMenu* main)
 
         {""},
         {"SAVE MAPPING",        saveGamepadMenu},
+        {"CLEAR MAPPING",       clearGamepadMenu},
         {"RESET TO DEFAULTS",   resetGamepadMenu},
         {"BACK",                showOptionsMenu, .back = true},
     };
