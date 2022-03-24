@@ -1382,6 +1382,11 @@ static void rotateSprite(Sprite* sprite)
     }
 }
 
+static inline bool is4bpp(Sprite* sprite)
+{
+    return sprite->blit.mode == 4;
+}
+
 static void deleteSprite(Sprite* sprite)
 {
     tic_rect rect = getSpriteRect(sprite);
@@ -1391,6 +1396,13 @@ static void deleteSprite(Sprite* sprite)
     for(s32 y = rect.y; y < b; y++)
         for(s32 x = rect.x; x < r; x++)
             tic_tilesheet_setpix(&sprite->sheet, x, y, sprite->color2);
+
+    if(is4bpp(sprite))
+    {
+        u8* flags = getBankFlags(sprite->studio)->data;
+        for(const s32* it = getSpriteIndexes(sprite); *it >= 0; ++it)
+            flags[*it] = 0;
+    }
 
     clearCanvasSelection(sprite);
 
@@ -1497,9 +1509,24 @@ static void drawTools(Sprite* sprite, s32 x, s32 y)
     drawSpriteTools(sprite, x + COUNT_OF(Icons) * Gap + 1, y);
 }
 
+static inline s32 getClipboardSpritesSize(Sprite* sprite)
+{
+    return sprite->size * sprite->size * TIC_PALETTE_BPP / BITS_IN_BYTE;
+}
+
+static inline s32 getClipboardFlagsSize(Sprite* sprite)
+{
+    return is4bpp(sprite) ? sprite->size * sprite->size / (TIC_SPRITESIZE * TIC_SPRITESIZE) : 0;
+}
+
+static inline s32 getClipboardSize(Sprite* sprite)
+{
+    return getClipboardSpritesSize(sprite) + getClipboardFlagsSize(sprite);
+}
+
 static void copyToClipboard(Sprite* sprite)
 {
-    s32 size = sprite->size * sprite->size * TIC_PALETTE_BPP / BITS_IN_BYTE;
+    s32 size = getClipboardSize(sprite);
 
     u8* buffer = malloc(size);
     SCOPE(free(buffer))
@@ -1511,6 +1538,15 @@ static void copyToClipboard(Sprite* sprite)
         for(s32 y = rect.y, i = 0; y < b; y++)
             for(s32 x = rect.x; x < r; x++)
                 tic_tool_poke4(buffer, i++, tic_tilesheet_getpix(&sprite->sheet, x, y) & 0xf);
+
+        if(is4bpp(sprite))
+        {
+            u8* ptr = buffer + getClipboardSpritesSize(sprite);
+
+            const u8* flags = getBankFlags(sprite->studio)->data;
+            for(const s32* it = getSpriteIndexes(sprite); *it >= 0; ++it)
+                *ptr++ = flags[*it];
+        }
 
         toClipboard(buffer, size, true);
     }
@@ -1524,7 +1560,7 @@ static void cutToClipboard(Sprite* sprite)
 
 static void copyFromClipboard(Sprite* sprite)
 {
-    s32 size = sprite->size * sprite->size * TIC_PALETTE_BPP / BITS_IN_BYTE;
+    s32 size = getClipboardSize(sprite);
 
     u8* buffer = malloc(size);
     SCOPE(free(buffer))
@@ -1538,6 +1574,15 @@ static void copyFromClipboard(Sprite* sprite)
             for(s32 y = rect.y, i = 0; y < b; y++)
                 for(s32 x = rect.x; x < r; x++)
                     tic_tilesheet_setpix(&sprite->sheet, x, y, tic_tool_peek4(buffer, i++));
+
+            if(is4bpp(sprite))
+            {
+                const u8* ptr = buffer + getClipboardSpritesSize(sprite);
+                u8* flags = getBankFlags(sprite->studio)->data;
+
+                for(const s32* it = getSpriteIndexes(sprite); *it >= 0; ++it)
+                    flags[*it] = *ptr++;
+            }
 
             history_add(sprite->history);
         }
@@ -1943,7 +1988,7 @@ static void tick(Sprite* sprite)
 
         if(sprite->advanced)
         {
-            if(sprite->blit.mode == 4)
+            if(is4bpp(sprite))
                 drawFlags(sprite, 24+64+7, 20+8);
 
             drawBitMode(sprite, PaletteX, PaletteY + PaletteH + 2, PaletteW, 8);        
