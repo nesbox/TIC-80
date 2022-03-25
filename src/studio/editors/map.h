@@ -103,6 +103,8 @@ struct Map
 
     } anim;
 
+    tic_screen* fog;
+
     void (*tick)(Map*);
     void (*event)(Map*, StudioEvent);
     void (*scanline)(tic_mem* tic, s32 row, void* data);

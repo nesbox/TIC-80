@@ -1292,13 +1292,10 @@ static void tick(Map* map)
         memcpy(tic->ram->vram.palette.data, getConfig(map->studio)->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
 
         tic->ram->vram.vars.clear = tic_color_dark_blue;
-        tic_api_cls(tic, tic_color_black);
 
         // draw fog
         {
-            for(s32 i = 0; i < TIC80_WIDTH + TIC80_HEIGHT; i+=4)
-                tic_api_line(tic, i, 0, 0, i, tic_color_dark_grey);
-
+            memcpy(&tic->ram->vram.screen, map->fog, sizeof(tic_screen));
             tic_api_rect(tic, -map->scroll.x, -map->scroll.y, MAX_SCROLL_X, MAX_SCROLL_Y, tic->ram->vram.vars.clear);
         }
 
@@ -1388,10 +1385,12 @@ void initMap(Map* map, Studio* studio, tic_map* src)
     if(map->history) history_delete(map->history);
     freeAnim(map);
 
+    tic_mem* tic = getMemory(studio);
+
     *map = (Map)
     {
         .studio = studio,
-        .tic = getMemory(studio),
+        .tic = tic,
         .tick = tick,
         .src = src,
         .mode = MAP_DRAW_MODE,
@@ -1451,6 +1450,7 @@ void initMap(Map* map, Studio* studio, tic_map* src)
                 {0, 0, STUDIO_ANIM_TIME, &map->anim.pos.page, AnimEaseIn},
             }),
         },
+        .fog = map->fog,
         .event = onStudioEvent,
         .scanline = scanline,
     };
@@ -1458,10 +1458,20 @@ void initMap(Map* map, Studio* studio, tic_map* src)
     map->anim.movie = resetMovie(&map->anim.idle);
 
     tic_blit_update_bpp(&map->sheet.blit, TIC_DEFAULT_BIT_DEPTH);
+
+    if(!map->fog)
+    {
+        tic_api_cls(tic, tic_color_black);
+        for(s32 i = 0; i < TIC80_WIDTH + TIC80_HEIGHT; i += 4)
+            tic_api_line(tic, i, 0, 0, i, tic_color_dark_grey);
+
+        map->fog = MOVE(tic->ram->vram.screen);
+    }
 }
 
 void freeMap(Map* map)
 {
+    free(map->fog);
     freeAnim(map);
     history_delete(map->history);
     free(map);
