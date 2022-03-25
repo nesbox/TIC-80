@@ -271,13 +271,8 @@ static void drawMap(tic_core* core, const tic_map* src, s32 x, s32 y, s32 width,
     for (s32 j = y, jj = sy; j < y + height; j++, jj += size)
         for (s32 i = x, ii = sx; i < x + width; i++, ii += size)
         {
-            s32 mi = i;
-            s32 mj = j;
-
-            while (mi < 0) mi += TIC_MAP_WIDTH;
-            while (mj < 0) mj += TIC_MAP_HEIGHT;
-            while (mi >= TIC_MAP_WIDTH) mi -= TIC_MAP_WIDTH;
-            while (mj >= TIC_MAP_HEIGHT) mj -= TIC_MAP_HEIGHT;
+            s32 mi = tic_modulo(i, TIC_MAP_WIDTH);
+            s32 mj = tic_modulo(j, TIC_MAP_HEIGHT);
 
             s32 index = mi + mj * TIC_MAP_WIDTH;
             RemapResult retile = { *(src->data + index), tic_no_flip, tic_no_rotate };
@@ -759,11 +754,8 @@ static tic_color triTexMapShader(const ShaderAttr* a)
     enum { MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE, MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE,
         WMask = TIC_SPRITESIZE - 1, HMask = TIC_SPRITESIZE - 1 };
 
-    while (u < 0) u += MapWidth;
-    while (v < 0) v += MapHeight;
-
-    if(u >= MapWidth)   u %= MapWidth;
-    if(v >= MapHeight)  v %= MapHeight;
+    u = tic_modulo(u, MapWidth);
+    v = tic_modulo(u, MapHeight);
 
     u8 idx = data->map[(v >> 3) * TIC_MAP_WIDTH + (u >> 3)];
     tic_tileptr tile = tic_tilesheet_gettile(&data->sheet, idx, true);
@@ -790,11 +782,8 @@ static tic_color triTexVbankShader(const ShaderAttr* a)
     s32 u, v;
     calcUV(a, &u, &v);
 
-    while (u < 0) u += TIC80_WIDTH;
-    while (v < 0) v += TIC80_HEIGHT;
-
-    if(u >= TIC80_WIDTH)    u %= TIC80_WIDTH;
-    if(v >= TIC80_HEIGHT)   v %= TIC80_HEIGHT;
+    u = tic_modulo(u, TIC80_WIDTH);
+    v = tic_modulo(u, TIC80_HEIGHT);
 
     return data->mapping[tic_tool_peek4(data->vram->data, v * TIC80_WIDTH + u)];
 }

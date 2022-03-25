@@ -36,6 +36,7 @@ extern void tic_tool_poke1(void* addr, u32 index, u8 value);
 extern u8 tic_tool_peek1(const void* addr, u32 index);
 extern s32 tic_tool_sfx_pos(s32 speed, s32 ticks);
 extern u32 tic_rgba(const tic_rgb* c);
+extern s32 tic_modulo(s32 x, s32 m);
 
 static u32 getPatternData(const tic_track* track, s32 frame)
 {

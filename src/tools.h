@@ -79,6 +79,14 @@ inline u32 tic_rgba(const tic_rgb* c)
     return (0xff << 24) | (c->b << 16) | (c->g << 8) | (c->r << 0);
 }
 
+inline s32 tic_modulo(s32 x, s32 m)
+{
+    if(x >= m) return x % m;
+    if(x < 0) return x % m + m;
+
+    return x;
+}
+
 tic_blitpal tic_tool_palette_blit(const tic_palette* src, tic80_pixel_color_format fmt);
 
 bool    tic_tool_parse_note(const char* noteStr, s32* note, s32* octave);
