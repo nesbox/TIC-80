@@ -133,7 +133,7 @@ pub const raw = struct {
     extern fn sfx(id: i32, note: i32, octave: i32, duration: i32, channel: i32, volumeLeft: i32, volumeRight: i32, speed: i32) void;
     extern fn spr(id: i32, x: i32, y: i32, trans_colors: ?[*]const u8, color_count: i32, scale: i32, flip: i32, rotate: i32, w: i32, h: i32) void;
     extern fn sync(mask: i32, bank: i32, tocart: bool) void;
-    extern fn textri(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, u1: f32, v1: f32, u2: f32, v2: f32, u3: f32, v3: f32, texsrc: i32, trans_colors: ?[*]const u8, color_count: i32) void;
+    extern fn textri(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, u1: f32, v1: f32, u2: f32, v2: f32, u3: f32, v3: f32, texsrc: i32, trans_colors: ?[*]const u8, color_count: i32, z1: f32, z2: f32, z3: f32, persp: bool) void;
     extern fn tri(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, color: i32) void;
     extern fn trib(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, color: i32) void;
     extern fn time() f32;
@@ -263,12 +263,16 @@ pub const trib = raw.trib;
 const TextriArgs = struct {
     texsrc : i32 = 0,
     transparent: []const u8 = .{},
+    z1 : f32 = 0,
+    z2 : f32 = 0,
+    z3 : f32 = 0,
+    persp : bool = false,
 };
 
 pub fn textri(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, @"u1": f32, v1: f32, @"u2": f32, v2: f32, @"u3": f32, v3: f32, args: TextriArgs) void {
     const color_count = @intCast(u8,args.transparent.len);
     const trans_colors = args.transparent.ptr;
-    raw.textri(x1, y1, x2, y2, x3, y3, @"u1", v1, @"u2", v2, @"u3", v3, args.texsrc, trans_colors, color_count);
+    raw.textri(x1, y1, x2, y2, x3, y3, @"u1", v1, @"u2", v2, @"u3", v3, args.texsrc, trans_colors, color_count, args.z1, args.z2, args.z3, args.persp);
 }
 
 // ----

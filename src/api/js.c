@@ -847,14 +847,24 @@ static duk_ret_t duk_textri(duk_context* duk)
         }
     }
 
-    tic_api_textri(tic, pt[0], pt[1],   //  xy 1
-                        pt[2], pt[3],   //  xy 2
-                        pt[4], pt[5],   //  xy 3
-                        pt[6], pt[7],   //  uv 1
-                        pt[8], pt[9],   //  uv 2
-                        pt[10], pt[11], //  uv 3
-                        src,            //  texture source
-                        colors, count); //  chroma
+    float z[3];
+    bool persp = true;
+
+    for (s32 i = 0, index = 14; i < COUNT_OF(z); i++, index++)
+    {
+        if(duk_is_null_or_undefined(duk, index)) persp = false;
+        else z[i] = (float)duk_to_number(duk, index);
+    }
+
+    tic_api_textri(tic, pt[0], pt[1],               //  xy 1
+                        pt[2], pt[3],               //  xy 2
+                        pt[4], pt[5],               //  xy 3
+                        pt[6], pt[7],               //  uv 1
+                        pt[8], pt[9],               //  uv 2
+                        pt[10], pt[11],             //  uv 3
+                        src,                        //  texture source
+                        colors, count,              //  chroma
+                        z[0], z[1], z[2], persp);   // depth 
 
     return 0;
 }

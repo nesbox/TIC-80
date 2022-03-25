@@ -720,7 +720,7 @@ void tic_api_trib(tic_mem* tic, float x1, float y1, float x2, float y2, float x3
 typedef struct
 {
     Vec2 _;
-    double u, v;
+    double u, v, z;
 }TexVert;
 
 typedef struct
@@ -729,9 +729,10 @@ typedef struct
     u8* mapping;
     const u8* map;
     const tic_vram* vram;
+    bool persp;
 } TexData;
 
-static inline void calcUV(const ShaderAttr* a, s32* u, s32* v)
+static inline void calcUV(const ShaderAttr* a, s32* u, s32* v, bool persp)
 {
     Vec2 p = {0};
     for(s32 i = 0; i != 3; ++i)
@@ -739,6 +740,21 @@ static inline void calcUV(const ShaderAttr* a, s32* u, s32* v)
         const TexVert* t = (TexVert*)a->v[i];
         p.x += a->w[i] * t->u;
         p.y += a->w[i] * t->v;
+    }
+
+    if(persp)
+    {
+        double z = 0;
+
+        for(s32 i = 0; i != 3; ++i)
+        {
+            const TexVert* t = (TexVert*)a->v[i];
+            z += a->w[i] * t->z;
+        }
+
+        z = 1 / z;
+
+        p.x *= z, p.y *= z;
     }
 
     *u = p.x, *v = p.y;
@@ -749,8 +765,8 @@ static tic_color triTexMapShader(const ShaderAttr* a)
     TexData* data = a->data;
 
     s32 u, v;
-    calcUV(a, &u, &v);
-
+    calcUV(a, &u, &v, data->persp);
+        
     enum { MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE, MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE,
         WMask = TIC_SPRITESIZE - 1, HMask = TIC_SPRITESIZE - 1 };
 
@@ -768,7 +784,7 @@ static tic_color triTexTileShader(const ShaderAttr* a)
     TexData* data = a->data;
 
     s32 u, v;
-    calcUV(a, &u, &v);
+    calcUV(a, &u, &v, data->persp);
 
     enum { WMask = TIC_SPRITESHEET_SIZE - 1, HMask = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS - 1 };
 
@@ -780,7 +796,7 @@ static tic_color triTexVbankShader(const ShaderAttr* a)
     TexData* data = a->data;
 
     s32 u, v;
-    calcUV(a, &u, &v);
+    calcUV(a, &u, &v, data->persp);
 
     u = tic_modulo(u, TIC80_WIDTH);
     v = tic_modulo(u, TIC80_HEIGHT);
@@ -788,7 +804,15 @@ static tic_color triTexVbankShader(const ShaderAttr* a)
     return data->mapping[tic_tool_peek4(data->vram->data, v * TIC80_WIDTH + u)];
 }
 
-void tic_api_textri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, tic_texture_src texsrc, u8* colors, s32 count)
+void tic_api_textri(tic_mem* tic, 
+    float x1, float y1, 
+    float x2, float y2, 
+    float x3, float y3, 
+    float u1, float v1, 
+    float u2, float v2, 
+    float u3, float v3, 
+    tic_texture_src texsrc, u8* colors, s32 count, 
+    float z1, float z2, float z3, bool persp)
 {
     TexData texData = 
     {
@@ -796,12 +820,20 @@ void tic_api_textri(tic_mem* tic, float x1, float y1, float x2, float y2, float 
         .mapping = getPalette(tic, colors, count),
         .map = tic->ram->map.data,
         .vram = &((tic_core*)tic)->state.vbank.mem,
+        .persp = persp,
     };
 
+    if(persp)
+    {
+        u1 /= z1, v1 /= z1, z1 = 1.0 / z1;
+        u2 /= z2, v2 /= z2, z2 = 1.0 / z2;
+        u3 /= z3, v3 /= z3, z3 = 1.0 / z3;
+    }
+
     drawTri(tic,
-        (const Vec2*)&(TexVert){x1, y1, u1, v1},
-        (const Vec2*)&(TexVert){x2, y2, u2, v2},
-        (const Vec2*)&(TexVert){x3, y3, u3, v3}, 
+        (const Vec2*)&(TexVert){x1, y1, u1, v1, z1},
+        (const Vec2*)&(TexVert){x2, y2, u2, v2, z2},
+        (const Vec2*)&(TexVert){x3, y3, u3, v3, z3}, 
         texsrc == tic_vbank_texture 
             ? triTexVbankShader 
             : texsrc == tic_map_texture 

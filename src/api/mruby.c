@@ -302,11 +302,11 @@ static mrb_value mrb_textri(mrb_state* mrb, mrb_value self)
     mrb_value chroma = mrb_fixnum_value(0xff);
     mrb_int src = tic_tiles_texture;
 
-    mrb_float x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3;
-    mrb_int argc = mrb_get_args(mrb, "ffffffffffff|io",
+    mrb_float x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, z1, z2, z3;
+    mrb_int argc = mrb_get_args(mrb, "ffffffffffff|iofff",
             &x1, &y1, &x2, &y2, &x3, &y3,
             &u1, &v1, &u2, &v2, &u3, &v3,
-            &src, &chroma);
+            &src, &chroma, &z1, &z2, &z3);
 
     mrb_int count;
     u8 *chromas;
@@ -332,7 +332,7 @@ static mrb_value mrb_textri(mrb_state* mrb, mrb_value self)
     tic_api_textri(memory,
                         x1, y1, x2, y2, x3, y3,
                         u1, v1, u2, v2, u3, v3,
-                        src, chromas, count);
+                        src, chromas, count, z1, z2, z3, argc == 17);
 
     free(chromas);
 
