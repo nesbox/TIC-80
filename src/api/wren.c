@@ -74,10 +74,10 @@ class TIC {\n\
     foreign static mset(cell_x, cell_y)\n\
     foreign static mset(cell_x, cell_y, index)\n\
     foreign static mget(cell_x, cell_y)\n\
-    foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3)\n\
-    foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, src)\n\
-    foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, src, alpha_color)\n\
-    foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, src, alpha_color, z1, z2, z3)\n\
+    foreign static ttri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3)\n\
+    foreign static ttri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, src)\n\
+    foreign static ttri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, src, alpha_color)\n\
+    foreign static ttri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, src, alpha_color, z1, z2, z3)\n\
     foreign static pix(x, y)\n\
     foreign static pix(x, y, color)\n\
     foreign static line(x0, y0, x1, y1, color)\n\
@@ -731,7 +731,7 @@ static void wren_mget(WrenVM* vm)
     wrenSetSlotDouble(vm, 0, value);
 }
 
-static void wren_textri(WrenVM* vm)
+static void wren_ttri(WrenVM* vm)
 {
     int top = wrenGetSlotCount(vm);
 
@@ -789,7 +789,7 @@ static void wren_textri(WrenVM* vm)
         persp = true;    
     }
 
-    tic_api_textri(tic, pt[0], pt[1],   //  xy 1
+    tic_api_ttri(tic, pt[0], pt[1],   //  xy 1
                         pt[2], pt[3],   //  xy 2
                         pt[4], pt[5],   //  xy 3
                         pt[6], pt[7],   //  uv 1
@@ -1389,10 +1389,10 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     if (strcmp(signature, "static TIC.mset(_,_,_)"              ) == 0) return wren_mset;
     if (strcmp(signature, "static TIC.mget(_,_)"                ) == 0) return wren_mget;
 
-    if (strcmp(signature, "static TIC.textri(_,_,_,_,_,_,_,_,_,_,_,_)"              ) == 0) return wren_textri;
-    if (strcmp(signature, "static TIC.textri(_,_,_,_,_,_,_,_,_,_,_,_,_)"            ) == 0) return wren_textri;
-    if (strcmp(signature, "static TIC.textri(_,_,_,_,_,_,_,_,_,_,_,_,_,_)"          ) == 0) return wren_textri;
-    if (strcmp(signature, "static TIC.textri(_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_)"    ) == 0) return wren_textri;
+    if (strcmp(signature, "static TIC.ttri(_,_,_,_,_,_,_,_,_,_,_,_)"              ) == 0) return wren_ttri;
+    if (strcmp(signature, "static TIC.ttri(_,_,_,_,_,_,_,_,_,_,_,_,_)"            ) == 0) return wren_ttri;
+    if (strcmp(signature, "static TIC.ttri(_,_,_,_,_,_,_,_,_,_,_,_,_,_)"          ) == 0) return wren_ttri;
+    if (strcmp(signature, "static TIC.ttri(_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_)"    ) == 0) return wren_ttri;
 
     if (strcmp(signature, "static TIC.pix(_,_)"                 ) == 0) return wren_pix;
     if (strcmp(signature, "static TIC.pix(_,_,_)"               ) == 0) return wren_pix;

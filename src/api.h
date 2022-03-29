@@ -686,8 +686,8 @@ enum
         tic_mem*, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)                                 \
                                                                                                                         \
                                                                                                                         \
-    macro(textri,                                                                                                       \
-        "textri(x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 texsrc=0 chromakey=-1 z1=0 z2=0 z3=0)",                             \
+    macro(ttri,                                                                                                       \
+        "ttri(x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 texsrc=0 chromakey=-1 z1=0 z2=0 z3=0)",                             \
                                                                                                                         \
         "It renders a triangle filled with texture from image ram, map ram or vbank.\n"                                 \
         "Use in 3D graphics.\n"                                                                                         \

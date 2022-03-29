@@ -22,7 +22,7 @@
 
 #include "cart.h"
 
-#if defined(DEPRECATED_CHUNKS)
+#if defined(BUILD_DEPRECATED)
 #include "tools.h"
 #include "ext/gif.h"
 #endif
@@ -108,7 +108,7 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
             ptr += chunkSize(chunk);
         }
 
-#if defined(DEPRECATED_CHUNKS)
+#if defined(BUILD_DEPRECATED)
         // workaround to support ancient carts without palette
         // load DB16 palette if it not exists
         if (EMPTY(cart->bank0.palette.vbank0.data))
@@ -147,7 +147,7 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
             case CHUNK_CODE:        
                 code[chunk->bank] = (struct CodeChunk){chunkSize(chunk), ptr};
                 break;
-#if defined(DEPRECATED_CHUNKS)
+#if defined(BUILD_DEPRECATED)
             case CHUNK_CODE_ZIP:
                 tic_tool_unzip(cart->code.data, TIC_CODE_SIZE, ptr, chunk->size);
                 break;

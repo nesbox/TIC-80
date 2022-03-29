@@ -804,7 +804,7 @@ static tic_color triTexVbankShader(const ShaderAttr* a)
     return data->mapping[tic_tool_peek4(data->vram->data, v * TIC80_WIDTH + u)];
 }
 
-void tic_api_textri(tic_mem* tic, 
+void tic_api_ttri(tic_mem* tic, 
     float x1, float y1, 
     float x2, float y2, 
     float x3, float y3, 
@@ -866,3 +866,7 @@ void tic_api_line(tic_mem* memory, float x0, float y0, float x1, float y1, u8 co
 {
     drawLine(memory, x0, y0, x1, y1, mapColor(memory, color));
 }
+
+#if defined(BUILD_DEPRECATED)
+#include "draw_dep.c"
+#endif

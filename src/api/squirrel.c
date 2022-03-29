@@ -469,7 +469,7 @@ static SQInteger squirrel_trib(HSQUIRRELVM vm)
     return 0;
 }
 
-static SQInteger squirrel_textri(HSQUIRRELVM vm)
+static SQInteger squirrel_ttri(HSQUIRRELVM vm)
 {
     SQInteger top = sq_gettop(vm);
 
@@ -527,7 +527,7 @@ static SQInteger squirrel_textri(HSQUIRRELVM vm)
             persp = true;
         }
 
-        tic_api_textri(tic, pt[0], pt[1],   //  xy 1
+        tic_api_ttri(tic, pt[0], pt[1],   //  xy 1
                             pt[2], pt[3],   //  xy 2
                             pt[4], pt[5],   //  xy 3
                             pt[6], pt[7],   //  uv 1
@@ -537,7 +537,7 @@ static SQInteger squirrel_textri(HSQUIRRELVM vm)
                             colors, count,  // chroma
                             z[0], z[1], z[2], persp); // depth
     }
-    else return sq_throwerror(vm, "invalid parameters, textri(x1,y1,x2,y2,x3,y3,u1,v1,u2,v2,u3,v3,[texsrc=0],[chroma=off],[z1=0],[z2=0],[z3=0])\n");
+    else return sq_throwerror(vm, "invalid parameters, ttri(x1,y1,x2,y2,x3,y3,u1,v1,u2,v2,u3,v3,[texsrc=0],[chroma=off],[z1=0],[z2=0],[z3=0])\n");
     return 0;
 }
 

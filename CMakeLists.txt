@@ -460,7 +460,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
     endif()
 
     if(${BUILD_DEPRECATED})
-        target_compile_definitions(tic80core${SCRIPT} PRIVATE DEPRECATED_CHUNKS)
+        target_compile_definitions(tic80core${SCRIPT} PRIVATE BUILD_DEPRECATED)
         target_link_libraries(tic80core${SCRIPT} giflib)
     endif()
 

@@ -807,7 +807,66 @@ static duk_ret_t duk_trib(duk_context* duk)
     return 0;
 }
 
+#if defined(BUILD_DEPRECATED)
+
+void drawTexturedTriangleDep(tic_core* core, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count);
+
 static duk_ret_t duk_textri(duk_context* duk)
+{
+    float pt[12];
+
+    for (s32 i = 0; i < COUNT_OF(pt); i++)
+        pt[i] = (float)duk_to_number(duk, i);
+    tic_mem* tic = (tic_mem*)getDukCore(duk);
+    bool use_map = duk_to_boolean(duk, 12);
+
+    static u8 colors[TIC_PALETTE_SIZE];
+    s32 count = 0;
+    {
+        if(!duk_is_null_or_undefined(duk, 13))
+        {
+            if(duk_is_array(duk, 13))
+            {
+                for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+                {
+                    duk_get_prop_index(duk, 13, i);
+                    if(duk_is_null_or_undefined(duk, -1))
+                    {
+                        duk_pop(duk);
+                        break;
+                    }
+                    else
+                    {
+                        colors[i] = duk_to_int(duk, -1);
+                        count++;
+                        duk_pop(duk);
+                    }
+                }
+            }
+            else
+            {
+                colors[0] = duk_to_int(duk, 13);
+                count = 1;
+            }
+        }
+    }
+
+    drawTexturedTriangleDep(getDukCore(duk), 
+        pt[0], pt[1],   //  xy 1
+        pt[2], pt[3],   //  xy 2
+        pt[4], pt[5],   //  xy 3
+        pt[6], pt[7],   //  uv 1
+        pt[8], pt[9],   //  uv 2
+        pt[10], pt[11], //  uv 3
+        use_map,        //  use_map
+        colors, count); //  chroma
+
+    return 0;
+}
+
+#endif
+
+static duk_ret_t duk_ttri(duk_context* duk)
 {
     float pt[12];
 
@@ -856,7 +915,7 @@ static duk_ret_t duk_textri(duk_context* duk)
         else z[i] = (float)duk_to_number(duk, index);
     }
 
-    tic_api_textri(tic, pt[0], pt[1],               //  xy 1
+    tic_api_ttri(tic, pt[0], pt[1],               //  xy 1
                         pt[2], pt[3],               //  xy 2
                         pt[4], pt[5],               //  xy 3
                         pt[6], pt[7],               //  uv 1
@@ -989,9 +1048,16 @@ static void initDuktape(tic_core* core)
         duk_pop(duk);
     }
 
+    static const struct{duk_c_function func; s32 params; const char* name;} ApiItems[] = 
+    {
 #define API_FUNC_DEF(name, _, __, paramsCount, ...) {duk_ ## name, paramsCount, #name},
-    static const struct{duk_c_function func; s32 params; const char* name;} ApiItems[] = {TIC_API_LIST(API_FUNC_DEF)};
-#undef API_FUNC_DEF
+        TIC_API_LIST(API_FUNC_DEF)
+#undef  API_FUNC_DEF
+
+#if defined(BUILD_DEPRECATED)    
+        {duk_textri, 14, "textri"},
+#endif
+    };
 
     for (s32 i = 0; i < COUNT_OF(ApiItems); i++)
     {

@@ -420,7 +420,75 @@ static s32 lua_trib(lua_State* lua)
     return 0;
 }
 
+#if defined(BUILD_DEPRECATED)
+
+void drawTexturedTriangleDep(tic_core* core, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count);
+
 static s32 lua_textri(lua_State* lua)
+{
+    s32 top = lua_gettop(lua);
+
+    if (top >= 12)
+    {
+        float pt[12];
+
+        for (s32 i = 0; i < COUNT_OF(pt); i++)
+            pt[i] = (float)lua_tonumber(lua, i + 1);
+
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
+        static u8 colors[TIC_PALETTE_SIZE];
+        s32 count = 0;
+        bool use_map = false;
+
+        //  check for use map 
+        if (top >= 13)
+            use_map = lua_toboolean(lua, 13);
+
+        //  check for chroma 
+        if(top >= 14)
+        {
+            if(lua_istable(lua, 14))
+            {
+                for(s32 i = 1; i <= TIC_PALETTE_SIZE; i++)
+                {
+                    lua_rawgeti(lua, 14, i);
+                    if(lua_isnumber(lua, -1))
+                    {
+                        colors[i-1] = getLuaNumber(lua, -1);
+                        count++;
+                        lua_pop(lua, 1);
+                    }
+                    else
+                    {
+                        lua_pop(lua, 1);
+                        break;
+                    }
+                }
+            }
+            else 
+            {
+                colors[0] = getLuaNumber(lua, 14);
+                count = 1;
+            }
+        }
+
+        drawTexturedTriangleDep(getLuaCore(lua), 
+            pt[0], pt[1],   //  xy 1
+            pt[2], pt[3],   //  xy 2
+            pt[4], pt[5],   //  xy 3
+            pt[6], pt[7],   //  uv 1
+            pt[8], pt[9],   //  uv 2
+            pt[10], pt[11], //  uv 3
+            use_map,        // use map
+            colors, count); // chroma
+    }
+
+    return 0;
+}
+
+#endif
+
+static s32 lua_ttri(lua_State* lua)
 {
     s32 top = lua_gettop(lua);
 
@@ -482,7 +550,7 @@ static s32 lua_textri(lua_State* lua)
             persp = true;
         }
 
-        tic_api_textri(tic, pt[0], pt[1],   //  xy 1
+        tic_api_ttri(tic, pt[0], pt[1],   //  xy 1
                             pt[2], pt[3],   //  xy 2
                             pt[4], pt[5],   //  xy 3
                             pt[6], pt[7],   //  uv 1
@@ -492,7 +560,7 @@ static s32 lua_textri(lua_State* lua)
                             colors, count,  // chroma
                             z[0], z[1], z[2], persp); // depth
     }
-    else luaL_error(lua, "invalid parameters, textri(x1,y1,x2,y2,x3,y3,u1,v1,u2,v2,u3,v3,[src=0],[chroma=off],[z1=0],[z2=0],[z3=0])\n");
+    else luaL_error(lua, "invalid parameters, ttri(x1,y1,x2,y2,x3,y3,u1,v1,u2,v2,u3,v3,[src=0],[chroma=off],[z1=0],[z2=0],[z3=0])\n");
     return 0;
 }
 
@@ -1454,9 +1522,16 @@ void lua_open_builtins(lua_State *lua)
 
 void initLuaAPI(tic_core* core)
 {
+    static const struct{lua_CFunction func; const char* name;} ApiItems[] = 
+    {
 #define API_FUNC_DEF(name, ...) {lua_ ## name, #name},
-    static const struct{lua_CFunction func; const char* name;} ApiItems[] = {TIC_API_LIST(API_FUNC_DEF)};
-#undef API_FUNC_DEF
+        TIC_API_LIST(API_FUNC_DEF)
+#undef  API_FUNC_DEF
+
+#if defined(BUILD_DEPRECATED)    
+        {lua_textri, "textri"},
+#endif
+    };
 
     for (s32 i = 0; i < COUNT_OF(ApiItems); i++)
         registerLuaFunction(core, ApiItems[i].func, ApiItems[i].name);

@@ -263,8 +263,8 @@ m3ApiRawFunction(wasmtic_tri)
     m3ApiSuccess();
 }
 
-// textri x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 [texsrc=0] [trans=-1] [z1 z2 z3 persp]
-m3ApiRawFunction(wasmtic_textri)
+// ttri x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 [texsrc=0] [trans=-1] [z1 z2 z3 persp]
+m3ApiRawFunction(wasmtic_ttri)
 {
     m3ApiGetArg      (float, x1)
     m3ApiGetArg      (float, y1)
@@ -291,7 +291,7 @@ m3ApiRawFunction(wasmtic_textri)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
     
-    tic_api_textri(tic, x1, y1, x2, y2, x3, y3, 
+    tic_api_ttri(tic, x1, y1, x2, y2, x3, y3, 
         u1, v1, u2, v2, u3, v3, texsrc, trans_colors, colorCount, z1, z2, z3, persp);
 
     m3ApiSuccess();
@@ -996,7 +996,7 @@ M3Result linkTicAPI(IM3Module module)
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "trace",   "v(*i)",         &wasmtic_trace)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "tri",     "v(iiiiiii)",    &wasmtic_tri)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "trib",    "v(iiiiiii)",    &wasmtic_trib)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "textri",  "v(iiiiiiiiiiiiiiiiiii)",    &wasmtic_textri)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "ttri",  "v(iiiiiiiiiiiiiiiiiii)",    &wasmtic_ttri)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "vbank",   "i(i)",          &wasmtic_vbank)));
 
 _catch:
