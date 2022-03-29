@@ -996,7 +996,7 @@ M3Result linkTicAPI(IM3Module module)
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "trace",   "v(*i)",         &wasmtic_trace)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "tri",     "v(iiiiiii)",    &wasmtic_tri)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "trib",    "v(iiiiiii)",    &wasmtic_trib)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "textri",  "v(iiiiiiiiiiiiiiiiii)",    &wasmtic_textri)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "textri",  "v(iiiiiiiiiiiiiiiiiii)",    &wasmtic_textri)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "vbank",   "i(i)",          &wasmtic_vbank)));
 
 _catch:
