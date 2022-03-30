@@ -550,8 +550,8 @@ jobs:
           name: "tic80-android"
           path: build/android/tic80.apk
 
-  # === Web Assembly ===
-  wasm:
+  # === HTML ===
+  html:
     runs-on: ubuntu-latest
 
     steps:
@@ -578,7 +578,7 @@ jobs:
       - name: Deploy
         uses: actions/upload-artifact@v2
         with:
-          name: "tic80-wasm"
+          name: "tic80-html"
           path: |
             build/bin/tic80.js
             build/bin/tic80.wasm
@@ -601,7 +601,7 @@ jobs:
       - name: Deploy stubs
         uses: actions/upload-artifact@v2
         with:
-          name: "tic80-wasm-stub"
+          name: "tic80-html-stub"
           path: |
             build/bin/tic80*.js
             build/bin/tic80*.wasm
@@ -609,7 +609,7 @@ jobs:
 
   # === Export ===
   export:
-    needs: [winxp, windows, linux, rpi, macos, wasm]
+    needs: [winxp, windows, linux, rpi, macos, html]
     runs-on: ubuntu-latest
 
     steps:
@@ -643,10 +643,10 @@ jobs:
           name: tic80-macos
           path: macdir
 
-      - name: Download WASM artifact
+      - name: Download HTML artifact
         uses: actions/download-artifact@v2
         with:
-          name: tic80-wasm
+          name: tic80-html
 
       - name: Rename
         run: |
@@ -676,7 +676,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        script: [lua, moon, fennel, ruby, js, wren, squirrel]
+        script: [lua, moon, fennel, ruby, js, wren, squirrel, wasm]
 
     steps:
       - name: Download Windows XP artifact
@@ -709,10 +709,10 @@ jobs:
           name: tic80-macos-stub
           path: macdir
 
-      - name: Download WASM artifact
+      - name: Download HTML artifact
         uses: actions/download-artifact@v2
         with:
-          name: tic80-wasm-stub
+          name: tic80-html-stub
 
       - name: Rename
         run: |
@@ -752,7 +752,7 @@ jobs:
             tic80-linux-stub
             tic80-rpi-stub
             tic80-macos-stub
-            tic80-wasm-stub
+            tic80-html-stub
 
   # === Delete PRO artifacts ===
   delete-pro:
