@@ -597,6 +597,8 @@ static void drawLine(tic_mem* tic, float x0, float y0, float x1, float y1, u8 co
     else
         for (float t = initLine(&y0, &y1, &x0, &x1); x0 < x1; x0++, y0 += t)
             setPixel((tic_core*)tic, x0, y0, color);
+
+    setPixel((tic_core*)tic, x1, y1, color);
 }
 
 typedef struct
