@@ -59,7 +59,7 @@ static inline u8 mapColor(tic_mem* tic, u8 color)
     return tic_tool_peek4(tic->ram->vram.mapping, color & 0xf);
 }
 
-static void setPixel(tic_core* core, s32 x, s32 y, u8 color)
+static inline void setPixel(tic_core* core, s32 x, s32 y, u8 color)
 {
     const tic_vram* vram = &core->memory.ram->vram;
 
@@ -573,42 +573,30 @@ void tic_api_ellib(tic_mem* memory, s32 x, s32 y, s32 a, s32 b, u8 color)
     drawEllipse(memory, x, y, a, b, mapColor(memory, color), setElliPixel);
 }
 
+static inline float initLine(float *x0, float *x1, float *y0, float *y1)
+{
+    if (*y0 > *y1)
+    {
+        SWAP(*x0, *x1, float);
+        SWAP(*y0, *y1, float);
+    }
+
+    float t = (*x1 - *x0) / (*y1 - *y0);
+
+    if(*y0 < 0) *x0 -= *y0 * t, *y0 = 0;
+    if(*y1 > TIC80_WIDTH) *x1 += (TIC80_WIDTH - *y0) * t, *y1 = TIC80_WIDTH;
+
+    return t;
+}
+
 static void drawLine(tic_mem* tic, float x0, float y0, float x1, float y1, u8 color)
 {
-    enum{Left = 0, Top = 0, Right = TIC80_WIDTH, Bottom = TIC80_HEIGHT};
-
     if(fabs(x0 - x1) < fabs(y0 - y1))
-    {
-        if (y0 > y1)
-        {
-            SWAP(x0, x1, float);
-            SWAP(y0, y1, float);
-        }
-
-        float t = (x1 - x0) / (y1 - y0);
-
-        if(y0 < Top) x0 = x0 + (Top - y0) * t, y0 = Top;
-        if(y1 > Bottom) x1 = x1 + (Bottom - y0) * t, y1 = Bottom;
-
-        for (float y = y0; y <= y1; y++)
-            setPixel((tic_core*)tic, x0 + (y - y0) * t, y, color);
-    }
+        for (float t = initLine(&x0, &x1, &y0, &y1); y0 < y1; y0++, x0 += t)
+            setPixel((tic_core*)tic, x0, y0, color);
     else
-    {
-        if (x0 > x1)
-        {
-            SWAP(x0, x1, float);
-            SWAP(y0, y1, float);
-        }
-
-        float t = (y1 - y0) / (x1 - x0);
-
-        if(x0 < Left) y0 = y0 + (Left - x0) * t, x0 = Left;
-        if(x1 > Right) y1 = y1 + (Right - x0) * t, x1 = Right;
-
-        for (float x = x0; x <= x1; x++)
-            setPixel((tic_core*)tic, x, y0 + (x - x0) * t, color);
-    }
+        for (float t = initLine(&y0, &y1, &x0, &x1); x0 < x1; x0++, y0 += t)
+            setPixel((tic_core*)tic, x0, y0, color);
 }
 
 typedef struct
