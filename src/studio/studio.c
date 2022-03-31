@@ -1906,9 +1906,8 @@ static void renderStudio(Studio* studio)
         sfx2ram(tic->ram, sfx);
         music2ram(tic->ram, music);
 
-        // restore mapping in all the modes except Run mode
-        if(studio->mode != TIC_RUN_MODE)
-            studio->tic->ram->mapping = getConfig(studio)->options.mapping;
+        // restore mapping
+        studio->tic->ram->mapping = getConfig(studio)->options.mapping;
 
         tic_core_tick_start(tic);
     }

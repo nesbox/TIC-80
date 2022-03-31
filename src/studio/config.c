@@ -205,14 +205,7 @@ static void readConfig(Config* config)
 }
 #else
 
-static void readConfig(Config* config)
-{
-    config->data = (StudioConfig)
-    {
-        .uiScale = 4,
-        .cart = config->cart,
-    };
-}
+static void readConfig(Config* config) {}
 
 #endif
 
@@ -229,6 +222,7 @@ static void setDefault(Config* config)
     config->data = (StudioConfig)
     {
         .cart = config->cart,
+        .uiScale = 4,
         .options = 
         {
 #if defined(CRT_SHADER_SUPPORT)

@@ -1512,7 +1512,7 @@ void tic_sys_default_mapping(tic_mapping* mapping)
 
         for(tic_key i = 0; i < COUNT_OF(KeyboardCodes); i++)
         {
-            if(KeyboardCodes[i] == keycode)
+            if(i != tic_key_unknown && KeyboardCodes[i] == keycode)
             {
                 mapping->data[s] = i;
                 break;
