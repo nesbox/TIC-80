@@ -127,11 +127,7 @@ static void runNoise(blip_buffer_t* blip, const tic_sound_register* reg, tic_sou
         data->phase = 1;
 
     s32 period = freq2period(reg->freq);
-    static const s32 Feedback[] = {0x12000, 0xd008, 0x6000, 0x3802, 0x1c80, 0xe08, 0x500, 0x240, 0x110, 0xb8, 0x60, 0x30, 0x14, 0xc, 0x6, 0x3};
-
-    static_assert(COUNT_OF(Feedback) == 16, "Feedback");
-
-    s32 fb = Feedback[tic_tool_peek4(reg->waveform.data, 0)];
+    s32 fb = *reg->waveform.data ? 0x14 : 0x12000;
 
     for (; data->time < end_time; data->time += period)
     {
@@ -521,7 +517,7 @@ static void stereo_synthesize(tic_core* core, tic_sound_register_data* registers
         const tic_sound_register* reg = &core->state.sound_ringbuf[bufpos].registers[i];
         tic_sound_register_data* data = registers + i;
 
-        FLAT4(reg->waveform.data)
+        tic_tool_noise(&reg->waveform)
             ? runNoise(blip, reg, data, EndTime, volume)
             : runEnvelope(blip, reg, data, EndTime, volume);
 

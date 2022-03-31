@@ -200,6 +200,11 @@ bool tic_tool_flat4(const void* buffer, s32 size)
     return true;
 }
 
+bool tic_tool_noise(const tic_waveform* wave)
+{
+    return FLAT4(wave->data) && *wave->data % 0xff == 0;
+}
+
 void tic_tool_str2buf(const char* str, s32 size, void* buf, bool flip)
 {
     char val[] = "0x00";

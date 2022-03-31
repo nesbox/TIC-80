@@ -107,6 +107,6 @@ bool    tic_tool_empty(const void* buffer, s32 size);
 bool    tic_tool_flat4(const void* buffer, s32 size);
 #define FLAT4(BUFFER) (tic_tool_flat4((BUFFER), sizeof (BUFFER)))
 
+bool    tic_tool_noise(const tic_waveform* wave);
 u32     tic_nearest_color(const tic_rgb* palette, const tic_rgb* color, s32 count);
-
-char* tic_tool_metatag(const char* code, const char* tag, const char* comment);
+char*   tic_tool_metatag(const char* code, const char* tag, const char* comment);
