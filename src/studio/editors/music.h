@@ -32,7 +32,7 @@ struct Music
     tic_mem* tic;
     tic_music* src;
 
-    u8 track:MUSIC_TRACKS_BITS;
+    u8 track;
     s32 frame;
 
     struct
@@ -81,6 +81,13 @@ struct Music
         MUSIC_PIANO_TAB,
         MUSIC_TAB_COUNT,
     } tab;
+
+    struct
+    {
+        const char* label;
+        s32 x;
+        s32 start;
+    } drag;
 
     u32 tickCounter;
 

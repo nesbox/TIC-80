@@ -125,7 +125,7 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
                 music->tracker.edit.x = channel * CHANNEL_COLS;
 
                 s32 mx = tic_api_mouse(tic).x - rect.x;
-                music->tracker.col = mx / TIC_FONT_WIDTH;
+                music->tracker.col = mx / TIC_FONT_WIDTH ? 1 : 0;
             }
         }
 
@@ -163,10 +163,24 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
     }
 }
 
-static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value, void(*set)(Music*, s32, void* data), void* data)
+static inline s32 switchWidth(s32 value)
 {
-    tic_api_print(music->tic, label, x, y+1, tic_color_black, true, 1, false);
-    tic_api_print(music->tic, label, x, y, tic_color_white, true, 1, false);
+    return value > 99 ? 3 * TIC_FONT_WIDTH : 2 * TIC_FONT_WIDTH;
+}
+
+static s32 getStep(Music* music)
+{
+    enum{DefaultStep = 1, ExtraStep = 5};
+
+    return tic_api_key(music->tic, tic_key_shift) ? ExtraStep : DefaultStep;
+}
+
+static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value, void(*set)(Music*, s32))
+{
+    tic_mem* tic = music->tic;
+
+    tic_api_print(tic, label, x, y+1, tic_color_black, true, 1, false);
+    tic_api_print(tic, label, x, y, tic_color_white, true, 1, false);
 
     x += strlen(label) * TIC_FONT_WIDTH + TIC_ALTFONT_WIDTH;
 
@@ -185,7 +199,7 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
                 down = true;
 
             if (checkMouseClick(music->studio, &rect, tic_mouse_left))
-                set(music, -1, data);
+                set(music, value - getStep(music));
         }
 
         drawBitIcon(music->studio, tic_icon_left, rect.x - 2, rect.y + (down ? 1 : 0), tic_color_black);
@@ -193,14 +207,41 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
     }
 
     {
+        tic_rect rect = { x, y, switchWidth(value), TIC_FONT_HEIGHT };
+
+        if((tic->ram->input.mouse.btns & 1) == 0)
+            music->drag.label = NULL;
+
+        if(music->drag.label == label)
+        {
+            tic_point m = tic_api_mouse(tic);
+            enum{Speed = 2};
+            set(music, music->drag.start + (m.x - music->drag.x) / Speed);
+        }
+
+        if (checkMousePos(music->studio, &rect))
+        {
+            setCursor(music->studio, tic_cursor_hand);
+
+            if (checkMouseDown(music->studio, &rect, tic_mouse_left))
+            {
+                if(!music->drag.label)
+                {
+                    music->drag.label = label;
+                    music->drag.x = tic_api_mouse(tic).x;
+                    music->drag.start = value;
+                }
+            }
+        }
+
         char val[sizeof "999"];
         sprintf(val, "%02i", value);
-        tic_api_print(music->tic, val, x, y+1, tic_color_black, true, 1, false);
-        tic_api_print(music->tic, val, x, y, tic_color_yellow, true, 1, false);
+        tic_api_print(tic, val, x, y+1, tic_color_black, true, 1, false);
+        tic_api_print(tic, val, x, y, tic_color_yellow, true, 1, false);
     }
 
     {
-        tic_rect rect = { x + (value > 99 ? 3 : 2) * TIC_FONT_WIDTH, y, TIC_ALTFONT_WIDTH, TIC_FONT_HEIGHT };
+        tic_rect rect = { x + switchWidth(value), y, TIC_ALTFONT_WIDTH, TIC_FONT_HEIGHT };
 
         bool over = false;
         bool down = false;
@@ -214,7 +255,7 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
                 down = true;
 
             if (checkMouseClick(music->studio, &rect, tic_mouse_left))
-                set(music, +1, data);
+                set(music, value + getStep(music));
         }
 
         drawBitIcon(music->studio, tic_icon_right, rect.x - 2, rect.y + (down ? 1 : 0), tic_color_black);
@@ -1465,19 +1506,12 @@ static void processKeyboard(Music* music)
     }
 }
 
-static s32 getStep(Music* music)
+static void setIndex(Music* music, s32 value)
 {
-    enum{DefaultStep = 1, ExtraStep = 5};
-
-    return tic_api_key(music->tic, tic_key_shift) ? ExtraStep : DefaultStep;
+    music->track = CLAMP(value, 0, MUSIC_TRACKS-1);
 }
 
-static void setIndex(Music* music, s32 delta, void* data)
-{
-    music->track += delta * getStep(music);
-}
-
-static void setTempo(Music* music, s32 delta, void* data)
+static void setTempo(Music* music, s32 value)
 {
     enum
     {
@@ -1485,20 +1519,14 @@ static void setTempo(Music* music, s32 delta, void* data)
         Max = 250-DEFAULT_TEMPO,
     };
 
+    value -= DEFAULT_TEMPO;
     tic_track* track = getTrack(music);
-
-    s32 tempo = track->tempo;
-    tempo += delta * getStep(music);
-
-    if (tempo > Max) tempo = Max;
-    if (tempo < Min) tempo = Min;
-
-    track->tempo = tempo;
+    track->tempo = CLAMP(value, Min, Max);
 
     history_add(music->history);
 }
 
-static void setSpeed(Music* music, s32 delta, void* data)
+static void setSpeed(Music* music, s32 value)
 {
     enum
     {
@@ -1506,20 +1534,14 @@ static void setSpeed(Music* music, s32 delta, void* data)
         Max = 31-DEFAULT_SPEED,
     };
 
+    value -= DEFAULT_SPEED;
     tic_track* track = getTrack(music);
-
-    s32 speed = track->speed;
-    speed += delta * getStep(music);
-
-    if (speed > Max) speed = Max;
-    if (speed < Min) speed = Min;
-
-    track->speed = speed;
+    track->speed = CLAMP(value, Min, Max);
 
     history_add(music->history);
 }
 
-static void setRows(Music* music, s32 delta, void* data)
+static void setRows(Music* music, s32 value)
 {
     enum
     {
@@ -1527,15 +1549,9 @@ static void setRows(Music* music, s32 delta, void* data)
         Max = MUSIC_PATTERN_ROWS - TRACKER_ROWS,
     };
 
+    value = MUSIC_PATTERN_ROWS - value;
     tic_track* track = getTrack(music);
-    s32 rows = track->rows;
-    rows -= delta * getStep(music);
-
-    if (rows < Min) rows = Min;
-    if (rows > Max) rows = Max;
-
-    track->rows = rows;
-
+    track->rows = CLAMP(value, Min, Max);
     updateTracker(music);
 
     history_add(music->history);
@@ -1545,10 +1561,10 @@ static void drawTopPanel(Music* music, s32 x, s32 y)
 {
     tic_track* track = getTrack(music);
 
-    drawSwitch(music, x, y, "TRACK", music->track, setIndex, NULL);
-    drawSwitch(music, x += TIC_FONT_WIDTH * 9, y, "TEMPO", track->tempo + DEFAULT_TEMPO, setTempo, NULL);
-    drawSwitch(music, x += TIC_FONT_WIDTH * 10, y, "SPD", track->speed + DEFAULT_SPEED, setSpeed, NULL);
-    drawSwitch(music, x += TIC_FONT_WIDTH * 7, y, "ROWS", MUSIC_PATTERN_ROWS - track->rows, setRows, NULL);
+    drawSwitch(music, x, y, "TRACK", music->track, setIndex);
+    drawSwitch(music, x += TIC_FONT_WIDTH * 9, y, "TEMPO", track->tempo + DEFAULT_TEMPO, setTempo);
+    drawSwitch(music, x += TIC_FONT_WIDTH * 10, y, "SPD", track->speed + DEFAULT_SPEED, setSpeed);
+    drawSwitch(music, x += TIC_FONT_WIDTH * 7, y, "ROWS", MUSIC_PATTERN_ROWS - track->rows, setRows);
 }
 
 static void drawTrackerFrames(Music* music, s32 x, s32 y)
