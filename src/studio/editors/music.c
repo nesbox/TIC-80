@@ -85,6 +85,15 @@ static void drawEditPanel(Music* music, s32 x, s32 y, s32 w, s32 h)
     tic_api_rect(tic, x, y, w, h, tic_color_black);
 }
 
+static void setChannelPattern(Music* music, s32 delta, s32 channel);
+
+static s32 getStep(Music* music)
+{
+    enum{DefaultStep = 1, ExtraStep = 10};
+
+    return tic_api_key(music->tic, tic_key_shift) ? ExtraStep : DefaultStep;
+}
+
 static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*, s32, s32 channel), s32 channel)
 {
     tic_mem* tic = music->tic;
@@ -119,13 +128,22 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
 
             showTooltip(music->studio, "select pattern ID");
 
-            if (checkMouseClick(music->studio, &rect, tic_mouse_left))
+            bool left = checkMouseClick(music->studio, &rect, tic_mouse_left);
+            if(left || checkMouseClick(music->studio, &rect, tic_mouse_right))
             {
-                music->tracker.edit.y = -1;
-                music->tracker.edit.x = channel * CHANNEL_COLS;
+                tic_point pos = {channel * CHANNEL_COLS, -1};
 
-                s32 mx = tic_api_mouse(tic).x - rect.x;
-                music->tracker.col = mx / TIC_FONT_WIDTH ? 1 : 0;
+                if(MEMCMP(music->tracker.edit, pos))
+                {
+                    s32 step = getStep(music);
+                    setChannelPattern(music, left ? +step : -step, channel);
+                }
+                else
+                {
+                    music->tracker.edit = pos;
+                    s32 mx = tic_api_mouse(tic).x - rect.x;
+                    music->tracker.col = mx / TIC_FONT_WIDTH ? 1 : 0;
+                }
             }
         }
 
@@ -166,13 +184,6 @@ static void drawEditbox(Music* music, s32 x, s32 y, s32 value, void(*set)(Music*
 static inline s32 switchWidth(s32 value)
 {
     return value > 99 ? 3 * TIC_FONT_WIDTH : 2 * TIC_FONT_WIDTH;
-}
-
-static s32 getStep(Music* music)
-{
-    enum{DefaultStep = 1, ExtraStep = 5};
-
-    return tic_api_key(music->tic, tic_key_shift) ? ExtraStep : DefaultStep;
 }
 
 static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value, void(*set)(Music*, s32))
@@ -231,6 +242,13 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
                     music->drag.x = tic_api_mouse(tic).x;
                     music->drag.start = value;
                 }
+            }
+
+            bool left = checkMouseClick(music->studio, &rect, tic_mouse_left);
+            if(left || checkMouseClick(music->studio, &rect, tic_mouse_right))
+            {
+                s32 step = getStep(music);
+                set(music, value + (left ? +step : -step));
             }
         }
 
@@ -1259,6 +1277,12 @@ static void processPatternKeyboard(Music* music)
             }
         }
     }
+
+    switch (getKeyboardText(music->studio))
+    {
+    case '+': setChannelPattern(music, +1, music->tracker.edit.x / CHANNEL_COLS); break;
+    case '-': setChannelPattern(music, -1, music->tracker.edit.x / CHANNEL_COLS); break;
+    }
 }
 
 static void updatePianoEditPos(Music* music)
@@ -1333,6 +1357,8 @@ static void setPianoValue(Music* music, char sym)
     s32 col = music->piano.edit.x / 2;
     s32 dec = sym2dec(sym);
     s32 hex = sym2hex(sym);
+    s32 delta = sym == '+' ? +1 : -1;
+
     tic_track_row* row = getPianoRow(music);
 
     switch(col)
@@ -1341,6 +1367,14 @@ static void setPianoValue(Music* music, char sym)
     case PianoChannel2Column:
     case PianoChannel3Column:
     case PianoChannel4Column:
+        switch (sym)
+        {
+        case '+': 
+        case '-': 
+            setChannelPattern(music, delta, music->piano.edit.x / 2); 
+            break;
+        }
+
         if(dec >= 0)
         {
             s32 pattern = setDigit(1 - music->piano.edit.x & 1, 
@@ -1354,29 +1388,51 @@ static void setPianoValue(Music* music, char sym)
         }
         break;
     case PianoSfxColumn:
-        if(row && row->note >= NoteStart && dec >= 0)
+        if(row && row->note >= NoteStart)
         {
-            s32 sfx = setDigit(1 - music->piano.edit.x & 1, tic_tool_get_track_row_sfx(row), dec);
-            tic_tool_set_track_row_sfx(row, sfx);
+            switch (sym)
+            {
+            case '+': 
+            case '-': 
+                tic_tool_set_track_row_sfx(row, tic_modulo(tic_tool_get_track_row_sfx(row) + delta, SFX_COUNT)); 
+                break;
+            default:
+                if(dec >= 0)
+                {
+                    s32 sfx = setDigit(1 - music->piano.edit.x & 1, tic_tool_get_track_row_sfx(row), dec);
+                    tic_tool_set_track_row_sfx(row, sfx);
+                    updatePianoEditCol(music);
+                }
+            }
+
             history_add(music->history);
-
             music->last.sfx = tic_tool_get_track_row_sfx(row);
-
-            updatePianoEditCol(music);
             playNote(music, row);
         }
         break;
 
     case PianoXYColumn:
-        if(row && row->command > tic_music_cmd_empty && hex >= 0)
+        if(row && row->command > tic_music_cmd_empty)
         {
-            if(music->piano.edit.x & 1)
-                row->param2 = hex;
-            else row->param1 = hex;
+            switch (sym)
+            {
+            case '+':
+            case '-':
+                if(music->piano.edit.x & 1)
+                    row->param2 += delta;
+                else row->param1 += delta;
+                break;
+            default:
+                if(hex >= 0)
+                {
+                    if(music->piano.edit.x & 1)
+                        row->param2 = hex;
+                    else row->param1 = hex;
+                    updatePianoEditCol(music);
+                }
+            }
 
             history_add(music->history);
-
-            updatePianoEditCol(music);
         }
         break;
     }
@@ -2041,7 +2097,8 @@ static void drawPianoFrames(Music* music, s32 x, s32 y)
         {
             setCursor(music->studio, tic_cursor_hand);
 
-            if(checkMouseClick(music->studio, &rect, tic_mouse_left))
+            bool left = checkMouseClick(music->studio, &rect, tic_mouse_left);
+            if(left || checkMouseClick(music->studio, &rect, tic_mouse_right))
             {
                 s32 col = (tic_api_mouse(tic).x - rect.x) * TIC_SOUND_CHANNELS / rect.w;
                 s32 row = (tic_api_mouse(tic).y - rect.y) * MUSIC_FRAMES / rect.h;
@@ -2049,8 +2106,13 @@ static void drawPianoFrames(Music* music, s32 x, s32 y)
                 // move edit cursor if pattern already selected only 
                 if(col == music->piano.col && row == music->frame)
                 {
-                    music->piano.edit.x = (tic_api_mouse(tic).x - rect.x) * TIC_SOUND_CHANNELS * 2 / rect.w;
-                    music->piano.edit.y = row;
+                    tic_point pos = {(tic_api_mouse(tic).x - rect.x) * TIC_SOUND_CHANNELS * 2 / rect.w, row};
+                    if(MEMCMP(music->piano.edit, pos))
+                    {
+                        s32 step = getStep(music);
+                        setChannelPattern(music, left ? +step : -step, pos.x / 2);
+                    }
+                    else music->piano.edit = pos;
                 }
 
                 music->piano.col = col;
@@ -2450,10 +2512,26 @@ static void drawPianoSfxColumn(Music* music, s32 x, s32 y)
 
             showTooltip(music->studio, "set sfx");
 
-            if(checkMouseClick(music->studio, &rect, tic_mouse_left))
+            bool left = checkMouseClick(music->studio, &rect, tic_mouse_left);
+            if(left || checkMouseClick(music->studio, &rect, tic_mouse_right))
             {
-                music->piano.edit.x = PianoSfxColumn * 2 + (tic_api_mouse(tic).x - rect.x) / TIC_FONT_WIDTH;
-                music->piano.edit.y = (tic_api_mouse(tic).y - rect.y) / TIC_FONT_HEIGHT;
+                tic_point pos = {PianoSfxColumn * 2 + (tic_api_mouse(tic).x - rect.x) / TIC_FONT_WIDTH, (tic_api_mouse(tic).y - rect.y) / TIC_FONT_HEIGHT};
+
+                if(MEMCMP(pos, music->piano.edit))
+                {
+                    tic_track_row* row = getPianoRow(music);
+
+                    if(row && row->note >= NoteStart)
+                    {
+                        s32 step = getStep(music);
+                        s32 sfx = tic_tool_get_track_row_sfx(row) + (left ? +step : -step);
+                        tic_tool_set_track_row_sfx(row, tic_modulo(sfx, SFX_COUNT));
+                        music->last.sfx = tic_tool_get_track_row_sfx(row);
+                        history_add(music->history);
+                        playNote(music, row);
+                    }
+                }
+                else music->piano.edit = pos;
             }
         }
     }
@@ -2609,10 +2687,26 @@ static void drawPianoXYColumn(Music* music, s32 x, s32 y)
                 }                
             }
 
-            if(checkMouseClick(music->studio, &rect, tic_mouse_left))
+            bool left = checkMouseClick(music->studio, &rect, tic_mouse_left);
+            if(left || checkMouseClick(music->studio, &rect, tic_mouse_right))
             {
-                music->piano.edit.x = PianoXYColumn * 2 + (tic_api_mouse(tic).x - rect.x) / TIC_FONT_WIDTH;
-                music->piano.edit.y = (tic_api_mouse(tic).y - rect.y) / TIC_FONT_HEIGHT;
+                tic_point pos = {PianoXYColumn * 2 + (tic_api_mouse(tic).x - rect.x) / TIC_FONT_WIDTH, (tic_api_mouse(tic).y - rect.y) / TIC_FONT_HEIGHT};
+
+                if(MEMCMP(music->piano.edit, pos))
+                {
+                    tic_track_row* row = getPianoRow(music);
+                    if(row && row->command > tic_music_cmd_empty)
+                    {
+                        s32 step = getStep(music);
+                        s32 delta = left ? +step : -step;
+                        if(music->piano.edit.x & 1)
+                            row->param2 += delta;
+                        else row->param1 += delta;
+
+                        history_add(music->history);
+                    }
+                }
+                else music->piano.edit = pos;
             }
         }
     }

@@ -29,6 +29,7 @@
 #define MAX3(a,b,c)         MAX(MAX(a, b), c)
 #define CLAMP(v,a,b)        (MIN(MAX(v,a),b))
 #define SWAP(a, b, type)    do { type temp = a; a = b; b = temp; } while (0)
+#define MEMCMP(a, b)        (sizeof a == sizeof b && memcmp(&a, &b, sizeof a) == 0)
 #define ZEROMEM(p)          memset(&p, 0, sizeof p)
 #define MOVE(...)           memmove(malloc(sizeof __VA_ARGS__), &__VA_ARGS__, sizeof __VA_ARGS__)
 #define DEF2STR2(x)         #x
