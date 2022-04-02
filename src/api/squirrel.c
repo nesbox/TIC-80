@@ -517,14 +517,14 @@ static SQInteger squirrel_ttri(HSQUIRRELVM vm)
         }
 
         float z[3];
-        bool persp = false;
+        bool depth = false;
 
         if (top == 18)
         {
             for (s32 i = 0; i < COUNT_OF(pt); i++)
                 pt[i] = getSquirrelFloat(vm, i + 16);
 
-            persp = true;
+            depth = true;
         }
 
         tic_api_ttri(tic, pt[0], pt[1],   //  xy 1
@@ -535,7 +535,7 @@ static SQInteger squirrel_ttri(HSQUIRRELVM vm)
                             pt[10], pt[11], //  uv 3
                             src,            // texture source
                             colors, count,  // chroma
-                            z[0], z[1], z[2], persp); // depth
+                            z[0], z[1], z[2], depth); // depth
     }
     else return sq_throwerror(vm, "invalid parameters, ttri(x1,y1,x2,y2,x3,y3,u1,v1,u2,v2,u3,v3,[texsrc=0],[chroma=off],[z1=0],[z2=0],[z3=0])\n");
     return 0;

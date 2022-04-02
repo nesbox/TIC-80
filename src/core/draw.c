@@ -27,6 +27,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <math.h>
+#include <float.h>
 
 #define TRANSPARENT_COLOR 255
 
@@ -372,10 +373,15 @@ void tic_api_rect(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 color
     drawRect(core, x, y, width, height, mapColor(memory, color));
 }
 
+static double ZBuffer[TIC80_WIDTH * TIC80_HEIGHT];
+
 void tic_api_cls(tic_mem* memory, u8 color)
 {
     tic_core* core = (tic_core*)memory;
     tic_vram* vram = &memory->ram->vram;
+
+    // !TODO: clear ZBuffer with the clip rect
+    ZEROMEM(ZBuffer);
 
     static const u8 EmptyClip[] = { 0, 0, TIC80_WIDTH, TIC80_HEIGHT };
 
@@ -601,7 +607,7 @@ typedef struct
     double w[3];
 } ShaderAttr;
 
-typedef tic_color(*PixelShader)(const ShaderAttr* a);
+typedef tic_color(*PixelShader)(const ShaderAttr* a, s32 x, s32 y);
 
 static inline double edgeFn(const Vec2* a, const Vec2* b, const Vec2* c)
 {
@@ -656,9 +662,9 @@ static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2
 
         for(s32 x = min.x; x < max.x; ++x)
         {
-            if(a.w[0] >= 0.0 && a.w[1] >= 0.0 && a.w[2] >= 0.0)
+            if(a.w[0] > -DBL_EPSILON && a.w[1] > -DBL_EPSILON && a.w[2] > -DBL_EPSILON)
             {
-                u8 color = shader(&a);
+                u8 color = shader(&a, x, y);
                 if(color != TRANSPARENT_COLOR)
                     setPixelFast(core, x, y, color);
             }
@@ -672,7 +678,7 @@ static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2
     }
 }
 
-static tic_color triColorShader(const ShaderAttr* a) { return *(u8*)a->data; }
+static tic_color triColorShader(const ShaderAttr* a, s32 x, s32 y){return *(u8*)a->data;}
 
 void tic_api_tri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)
 {
@@ -707,10 +713,10 @@ typedef struct
     u8* mapping;
     const u8* map;
     const tic_vram* vram;
-    bool persp;
+    bool depth;
 } TexData;
 
-static inline void calcUV(const ShaderAttr* a, s32* u, s32* v, bool persp)
+static inline bool calcUV(const ShaderAttr* a, s32* u, s32* v, bool depth, s32 x, s32 y)
 {
     Vec2 p = {0};
     for(s32 i = 0; i != 3; ++i)
@@ -720,7 +726,7 @@ static inline void calcUV(const ShaderAttr* a, s32* u, s32* v, bool persp)
         p.y += a->w[i] * t->v;
     }
 
-    if(persp)
+    if(depth)
     {
         double z = 0;
 
@@ -730,56 +736,71 @@ static inline void calcUV(const ShaderAttr* a, s32* u, s32* v, bool persp)
             z += a->w[i] * t->z;
         }
 
-        z = 1 / z;
+        double* ptr = ZBuffer + x + y * TIC80_WIDTH;
 
-        p.x *= z, p.y *= z;
+        if(*ptr < z)
+        {
+            // !TODO: don't set depth for the transparent texture color
+            *ptr = z;
+
+            // !TODO: optimize these divisions
+            p.x /= z, p.y /= z;
+        }
+        else return false;
     }
 
     *u = p.x, *v = p.y;
+
+    return true;
 }
 
-static tic_color triTexMapShader(const ShaderAttr* a)
+static tic_color triTexMapShader(const ShaderAttr* a, s32 x, s32 y)
 {
     TexData* data = a->data;
 
     s32 u, v;
-    calcUV(a, &u, &v, data->persp);
-        
-    enum { MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE, MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE,
-        WMask = TIC_SPRITESIZE - 1, HMask = TIC_SPRITESIZE - 1 };
+    if(calcUV(a, &u, &v, data->depth, x, y))
+    {
+        enum { MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE, MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE,
+            WMask = TIC_SPRITESIZE - 1, HMask = TIC_SPRITESIZE - 1 };
 
-    u = tic_modulo(u, MapWidth);
-    v = tic_modulo(u, MapHeight);
+        u = tic_modulo(u, MapWidth);
+        v = tic_modulo(u, MapHeight);
 
-    u8 idx = data->map[(v >> 3) * TIC_MAP_WIDTH + (u >> 3)];
-    tic_tileptr tile = tic_tilesheet_gettile(&data->sheet, idx, true);
+        u8 idx = data->map[(v >> 3) * TIC_MAP_WIDTH + (u >> 3)];
+        tic_tileptr tile = tic_tilesheet_gettile(&data->sheet, idx, true);
 
-    return data->mapping[tic_tilesheet_gettilepix(&tile, u & WMask, v & HMask)];
+        return data->mapping[tic_tilesheet_gettilepix(&tile, u & WMask, v & HMask)];
+    }
+
+    return TRANSPARENT_COLOR;
 }
 
-static tic_color triTexTileShader(const ShaderAttr* a)
+static tic_color triTexTileShader(const ShaderAttr* a, s32 x, s32 y)
 {
-    TexData* data = a->data;
-
-    s32 u, v;
-    calcUV(a, &u, &v, data->persp);
-
     enum { WMask = TIC_SPRITESHEET_SIZE - 1, HMask = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS - 1 };
+    TexData* data = a->data;
 
-    return data->mapping[tic_tilesheet_getpix(&data->sheet, u & WMask, v & HMask)];
+    s32 u, v;
+    return calcUV(a, &u, &v, data->depth, x, y)
+        ? data->mapping[tic_tilesheet_getpix(&data->sheet, u & WMask, v & HMask)]
+        : TRANSPARENT_COLOR;
 }
 
-static tic_color triTexVbankShader(const ShaderAttr* a)
+static tic_color triTexVbankShader(const ShaderAttr* a, s32 x, s32 y)
 {
     TexData* data = a->data;
 
     s32 u, v;
-    calcUV(a, &u, &v, data->persp);
+    if(calcUV(a, &u, &v, data->depth, x, y))
+    {
+        u = tic_modulo(u, TIC80_WIDTH);
+        v = tic_modulo(u, TIC80_HEIGHT);
 
-    u = tic_modulo(u, TIC80_WIDTH);
-    v = tic_modulo(u, TIC80_HEIGHT);
+        return data->mapping[tic_tool_peek4(data->vram->data, v * TIC80_WIDTH + u)];
+    }
 
-    return data->mapping[tic_tool_peek4(data->vram->data, v * TIC80_WIDTH + u)];
+    return TRANSPARENT_COLOR;
 }
 
 void tic_api_ttri(tic_mem* tic, 
@@ -790,7 +811,7 @@ void tic_api_ttri(tic_mem* tic,
     float u2, float v2, 
     float u3, float v3, 
     tic_texture_src texsrc, u8* colors, s32 count, 
-    float z1, float z2, float z3, bool persp)
+    float z1, float z2, float z3, bool depth)
 {
     TexData texData = 
     {
@@ -798,10 +819,10 @@ void tic_api_ttri(tic_mem* tic,
         .mapping = getPalette(tic, colors, count),
         .map = tic->ram->map.data,
         .vram = &((tic_core*)tic)->state.vbank.mem,
-        .persp = persp,
+        .depth = depth,
     };
 
-    if(persp)
+    if(depth)
     {
         u1 /= z1, v1 /= z1, z1 = 1.0 / z1;
         u2 /= z2, v2 /= z2, z2 = 1.0 / z2;

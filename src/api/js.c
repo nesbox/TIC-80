@@ -907,11 +907,11 @@ static duk_ret_t duk_ttri(duk_context* duk)
     }
 
     float z[3];
-    bool persp = true;
+    bool depth = true;
 
     for (s32 i = 0, index = 14; i < COUNT_OF(z); i++, index++)
     {
-        if(duk_is_null_or_undefined(duk, index)) persp = false;
+        if(duk_is_null_or_undefined(duk, index)) depth = false;
         else z[i] = (float)duk_to_number(duk, index);
     }
 
@@ -923,7 +923,7 @@ static duk_ret_t duk_ttri(duk_context* duk)
                         pt[10], pt[11],             //  uv 3
                         src,                        //  texture source
                         colors, count,              //  chroma
-                        z[0], z[1], z[2], persp);   // depth 
+                        z[0], z[1], z[2], depth);   // depth 
 
     return 0;
 }

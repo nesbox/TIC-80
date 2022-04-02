@@ -263,7 +263,7 @@ m3ApiRawFunction(wasmtic_tri)
     m3ApiSuccess();
 }
 
-// ttri x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 [texsrc=0] [trans=-1] [z1 z2 z3 persp]
+// ttri x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 [texsrc=0] [trans=-1] [z1 z2 z3 depth]
 m3ApiRawFunction(wasmtic_ttri)
 {
     m3ApiGetArg      (float, x1)
@@ -284,7 +284,7 @@ m3ApiRawFunction(wasmtic_ttri)
     m3ApiGetArg      (float, z1)
     m3ApiGetArg      (float, z2)
     m3ApiGetArg      (float, z3)
-    m3ApiGetArg      (bool, persp)    
+    m3ApiGetArg      (bool, depth)    
     if (trans_colors == NULL) {
         colorCount = 0;
     }
@@ -292,7 +292,7 @@ m3ApiRawFunction(wasmtic_ttri)
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
     
     tic_api_ttri(tic, x1, y1, x2, y2, x3, y3, 
-        u1, v1, u2, v2, u3, v3, texsrc, trans_colors, colorCount, z1, z2, z3, persp);
+        u1, v1, u2, v2, u3, v3, texsrc, trans_colors, colorCount, z1, z2, z3, depth);
 
     m3ApiSuccess();
 }

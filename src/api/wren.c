@@ -779,14 +779,14 @@ static void wren_ttri(WrenVM* vm)
     }
 
     float z[3];
-    bool persp = false;
+    bool depth = false;
 
     if (top > 17)
     {
         for (s32 i = 0; i < COUNT_OF(z); i++)
             z[i] = (float)wrenGetSlotDouble(vm, i + 15);
 
-        persp = true;    
+        depth = true;    
     }
 
     tic_api_ttri(tic, pt[0], pt[1],   //  xy 1
@@ -797,7 +797,7 @@ static void wren_ttri(WrenVM* vm)
                         pt[10], pt[11], //  uv 3
                         src,            // texture source
                         colors, count,  // chroma
-                        z[0], z[1], z[2], persp); // depth
+                        z[0], z[1], z[2], depth); // depth
 }
 
 static void wren_pix(WrenVM* vm)

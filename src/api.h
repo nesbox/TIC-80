@@ -702,7 +702,7 @@ enum
         void,                                                                                                           \
         tic_mem*, float x1, float y1, float x2, float y2, float x3, float y3,                                           \
         float u1, float v1, float u2, float v2, float u3, float v3, tic_texture_src texsrc, u8* colors, s32 count,      \
-        float z1, float z2, float z3, bool persp)                                                                       \
+        float z1, float z2, float z3, bool depth)                                                                       \
                                                                                                                         \
                                                                                                                         \
     macro(clip,                                                                                                         \
