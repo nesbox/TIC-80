@@ -601,16 +601,31 @@ static void drawLine(tic_mem* tic, float x0, float y0, float x1, float y1, u8 co
     setPixel((tic_core*)tic, x1, y1, color);
 }
 
-typedef struct
+typedef union
 {
-    double x, y;
+    struct
+    {
+        double x, y;
+    };
+
+    double d[2];
 } Vec2;
+
+typedef union
+{
+    struct
+    {
+        double x, y, z;
+    };
+
+    double d[3];
+} Vec3;
 
 typedef struct 
 {
     void* data;
     const Vec2* v[3];
-    double w[3];
+    Vec3 w;
 } ShaderAttr;
 
 typedef tic_color(*PixelShader)(const ShaderAttr* a, s32 pixel);
@@ -646,42 +661,41 @@ static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2
     }
 
     Vec2 d[3];
-    double s[3];
+    Vec3 s;
 
-    for(s32 i = 0; i != COUNT_OF(s); ++i)
+    for(s32 i = 0; i != COUNT_OF(s.d); ++i)
     {
         // pixel center
-        const double Center = 0.5 - 1e-07;
+        const double Center = 0.5 - FLT_EPSILON;
         Vec2 p = {min.x + Center, min.y + Center};
 
         s32 c = (i + 1) % 3, n = (i + 2) % 3;
         
         d[i].x = (a.v[c]->y - a.v[n]->y) / area;
         d[i].y = (a.v[n]->x - a.v[c]->x) / area;
-        s[i] = edgeFn(a.v[c], a.v[n], &p) / area;
+        s.d[i] = edgeFn(a.v[c], a.v[n], &p) / area;
     }
 
-    for(s32 y = min.y; y < max.y; ++y)
+    for(s32 y = min.y, start = min.y * TIC80_WIDTH + min.x; y < max.y; ++y, start += TIC80_WIDTH)
     {
-        for(s32 i = 0; i != COUNT_OF(a.w); ++i)
-            a.w[i] = s[i];
+        for(s32 i = 0; i != COUNT_OF(a.w.d); ++i)
+            a.w.d[i] = s.d[i];
 
-        for(s32 x = min.x; x < max.x; ++x)
+        for(s32 x = min.x, pixel = start; x < max.x; ++x, ++pixel)
         {
-            if(a.w[0] > -DBL_EPSILON && a.w[1] > -DBL_EPSILON && a.w[2] > -DBL_EPSILON)
+            if(a.w.x > -DBL_EPSILON && a.w.y > -DBL_EPSILON && a.w.z > -DBL_EPSILON)
             {
-                s32 pixel = x + y * TIC80_WIDTH;
                 u8 color = shader(&a, pixel);
                 if(color != TRANSPARENT_COLOR)
                     tic_api_poke4(tic, pixel, color);
             }
 
-            for(s32 i = 0; i != COUNT_OF(a.w); ++i)
-                a.w[i] += d[i].x;
+            for(s32 i = 0; i != COUNT_OF(a.w.d); ++i)
+                a.w.d[i] += d[i].x;
         }
 
-        for(s32 i = 0; i != COUNT_OF(s); ++i)
-            s[i] += d[i].y;
+        for(s32 i = 0; i != COUNT_OF(s.d); ++i)
+            s.d[i] += d[i].y;
     }
 }
 
@@ -711,7 +725,7 @@ void tic_api_trib(tic_mem* tic, float x1, float y1, float x2, float y2, float x3
 typedef struct
 {
     Vec2 _;
-    double u, v, z;
+    Vec3 d;
 }TexVert;
 
 typedef struct
@@ -723,12 +737,7 @@ typedef struct
     bool depth;
 } TexData;
 
-typedef struct
-{
-    double u, v, z;
-} ShaderVars;
-
-static inline bool shaderStart(const ShaderAttr* a, ShaderVars* vars, s32 pixel)
+static inline bool shaderStart(const ShaderAttr* a, Vec3* vars, s32 pixel)
 {
     TexData* data = a->data;
 
@@ -738,27 +747,29 @@ static inline bool shaderStart(const ShaderAttr* a, ShaderVars* vars, s32 pixel)
         for(s32 i = 0; i != COUNT_OF(a->v); ++i)
         {
             const TexVert* t = (TexVert*)a->v[i];
-            vars->z += a->w[i] * t->z;
+            vars->z += a->w.d[i] * t->d.z;
         }
 
         if(ZBuffer[pixel] < vars->z);
         else return false;
     }
 
-    vars->u = vars->v = 0;
+    vars->x = vars->y = 0;
     for(s32 i = 0; i != COUNT_OF(a->v); ++i)
     {
         const TexVert* t = (TexVert*)a->v[i];
-        vars->u += a->w[i] * t->u;
-        vars->v += a->w[i] * t->v;
+        vars->x += a->w.d[i] * t->d.x;
+        vars->y += a->w.d[i] * t->d.y;
     }
 
-    if(data->depth) vars->u /= vars->z, vars->v /= vars->z;
+    if(data->depth) 
+        vars->x /= vars->z, 
+        vars->y /= vars->z;
 
     return true;
 }
 
-static inline tic_color shaderEnd(const ShaderAttr* a, const ShaderVars* vars, s32 pixel, tic_color color)
+static inline tic_color shaderEnd(const ShaderAttr* a, const Vec3* vars, s32 pixel, tic_color color)
 {
     TexData* data = a->data;
 
@@ -772,15 +783,15 @@ static tic_color triTexMapShader(const ShaderAttr* a, s32 pixel)
 {
     TexData* data = a->data;
 
-    ShaderVars vars;
+    Vec3 vars;
     if(!shaderStart(a, &vars, pixel))
         return TRANSPARENT_COLOR;
 
     enum { MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE, MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE,
         WMask = TIC_SPRITESIZE - 1, HMask = TIC_SPRITESIZE - 1 };
 
-    s32 iu = tic_modulo(vars.u, MapWidth);
-    s32 iv = tic_modulo(vars.v, MapHeight);
+    s32 iu = tic_modulo(vars.x, MapWidth);
+    s32 iv = tic_modulo(vars.y, MapHeight);
 
     u8 idx = data->map[(iv >> 3) * TIC_MAP_WIDTH + (iu >> 3)];
     tic_tileptr tile = tic_tilesheet_gettile(&data->sheet, idx, true);
@@ -792,25 +803,25 @@ static tic_color triTexTileShader(const ShaderAttr* a, s32 pixel)
 {
     TexData* data = a->data;
 
-    ShaderVars vars;
+    Vec3 vars;
     if(!shaderStart(a, &vars, pixel))
         return TRANSPARENT_COLOR;
 
     enum { WMask = TIC_SPRITESHEET_SIZE - 1, HMask = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS - 1 };
 
-    return shaderEnd(a, &vars, pixel, data->mapping[tic_tilesheet_getpix(&data->sheet, (s32)vars.u & WMask, (s32)vars.v & HMask)]);
+    return shaderEnd(a, &vars, pixel, data->mapping[tic_tilesheet_getpix(&data->sheet, (s32)vars.x & WMask, (s32)vars.y & HMask)]);
 }
 
 static tic_color triTexVbankShader(const ShaderAttr* a, s32 pixel)
 {
     TexData* data = a->data;
 
-    ShaderVars vars;
+    Vec3 vars;
     if(!shaderStart(a, &vars, pixel))
         return TRANSPARENT_COLOR;
 
-    s32 iu = tic_modulo(vars.u, TIC80_WIDTH);
-    s32 iv = tic_modulo(vars.v, TIC80_HEIGHT);
+    s32 iu = tic_modulo(vars.x, TIC80_WIDTH);
+    s32 iv = tic_modulo(vars.y, TIC80_HEIGHT);
 
     return shaderEnd(a, &vars, pixel, data->mapping[tic_tool_peek4(data->vram->data, iv * TIC80_WIDTH + iu)]);
 }
@@ -834,12 +845,18 @@ void tic_api_ttri(tic_mem* tic,
         .depth = depth,
     };
 
-    if(depth)
+    TexVert t[] = 
     {
-        u1 /= z1, v1 /= z1, z1 = 1.0 / z1;
-        u2 /= z2, v2 /= z2, z2 = 1.0 / z2;
-        u3 /= z3, v3 /= z3, z3 = 1.0 / z3;
-    }
+        {x1, y1, u1, v1, z1},
+        {x2, y2, u2, v2, z2},
+        {x3, y3, u3, v3, z3},
+    };
+
+    if(depth)
+        for(s32 i = 0; i != COUNT_OF(t); ++i)
+            t[i].d.x /= t[i].d.z, 
+            t[i].d.y /= t[i].d.z, 
+            t[i].d.z = 1.0 / t[i].d.z;
 
     static const PixelShader Shaders[] = 
     {
@@ -850,9 +867,9 @@ void tic_api_ttri(tic_mem* tic,
     
     if(texsrc >= 0 && texsrc < COUNT_OF(Shaders))
         drawTri(tic,
-            (const Vec2*)&(TexVert){x1, y1, u1, v1, z1},
-            (const Vec2*)&(TexVert){x2, y2, u2, v2, z2},
-            (const Vec2*)&(TexVert){x3, y3, u3, v3, z3}, 
+            (const Vec2*)&t[0],
+            (const Vec2*)&t[1],
+            (const Vec2*)&t[2], 
             Shaders[texsrc], &texData);
 }
 
