@@ -1421,7 +1421,14 @@ void tic_sys_open_path(const char* path)
 
 void tic_sys_open_url(const char* url)
 {
+#if defined(__EMSCRIPTEN__)
+    EM_ASM_(
+    {
+        window.open(UTF8ToString($0))
+    }, url);
+#else
     SDL_OpenURL(url);
+#endif
 }
 
 void tic_sys_preseed()
