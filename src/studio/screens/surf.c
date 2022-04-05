@@ -46,10 +46,7 @@
 #define COVER_X (TIC80_WIDTH - COVER_WIDTH - COVER_Y)
 #define COVER_FADEIN 96
 #define COVER_FADEOUT 256
-
-#if defined(__TIC_WINDOWS__) || defined(__TIC_LINUX__) || defined(__TIC_MACOSX__)
-#define CAN_OPEN_URL 1
-#endif
+#define CAN_OPEN_URL (__TIC_WINDOWS__ || __TIC_LINUX__ || __TIC_MACOSX__ || __TIC_ANDROID__)
 
 static const char* PngExt = PNG_EXT;
 
@@ -689,7 +686,7 @@ static void processGamepad(Surf* surf)
             {
                 char url[TICNAME_MAX];
                 sprintf(url, TIC_WEBSITE "/play?cart=%i", item->id);
-                tic_sys_open_path(url);
+                tic_sys_open_url(url);
             }
         }
 #endif

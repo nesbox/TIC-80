@@ -121,10 +121,8 @@ void tic_sys_title(const char* title)
 {
 }
 
-void tic_sys_open_path(const char* path)
-{
-
-}
+void tic_sys_open_path(const char* path) {}
+void tic_sys_open_url(const char* url) {}
 
 void tic_sys_preseed()
 {

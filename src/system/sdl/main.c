@@ -1393,8 +1393,6 @@ void tic_sys_title(const char* title)
         SDL_SetWindowTitle(platform.window, title);
 }
 
-#if defined(__WINDOWS__) || defined(__LINUX__) || defined(__MACOSX__)
-
 void tic_sys_open_path(const char* path)
 {
     char command[TICNAME_MAX];
@@ -1421,11 +1419,10 @@ void tic_sys_open_path(const char* path)
 #endif
 }
 
-#else
-
-void tic_sys_open_path(const char* path) {}
-
-#endif
+void tic_sys_open_url(const char* url)
+{
+    SDL_OpenURL(url);
+}
 
 void tic_sys_preseed()
 {
