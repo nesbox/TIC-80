@@ -1398,6 +1398,11 @@ static void onInstallDemosCommand(Console* console)
             #include "../build/assets/bpp.tic.dat"
         };
 
+        static const u8 democar[] =
+        {
+            #include "../build/assets/car.tic.dat"
+        };
+
 #define DEMOS_LIST(macro)       \
         macro(fire)             \
         macro(font)             \
@@ -1408,7 +1413,8 @@ static void onInstallDemosCommand(Console* console)
         macro(sfx)              \
         macro(tetris)           \
         macro(benchmark)        \
-        macro(bpp)
+        macro(bpp)              \
+        macro(car)
 
         static const struct Demo {const char* name; const u8* data; s32 size;} Demos[] =
         {
