@@ -844,7 +844,7 @@ static void fileFound(void* data)
     FREE(loadPublicCartData);
 }
 
-static void printUsage(Console* console, const char* command);
+static bool printUsage(Console* console, const char* command);
 
 static void onLoadCommandConfirmed(Console* console)
 {
@@ -3092,7 +3092,7 @@ static void toUpperStr(char* str)
     }
 }
 
-static void printUsage(Console* console, const char* command)
+static bool printUsage(Console* console, const char* command)
 {
     FOR(const Command*, cmd, Commands)
     {
@@ -3112,12 +3112,14 @@ static void printUsage(Console* console, const char* command)
             }
 
             printLine(console);
-            break;
+            return true;
         }
     }
+
+    return false;
 }
 
-static void printApi(Console* console, const char* param)
+static bool printApi(Console* console, const char* param)
 {
     FOR(const ApiItem*, api, Api)
     {
@@ -3129,9 +3131,11 @@ static void printApi(Console* console, const char* param)
             printFront(console, "\n\n");
             printBack(console, api->help);
             printLine(console);
-            break;
+            return true;
         }
     }
+
+    return false;
 }
 
 #define STRBUF_SIZE(name, ...) + STRLEN(#name) + STRLEN(Sep)
@@ -3298,23 +3302,25 @@ static void onHelpCommand(Console* console)
     {
         const char* param = console->desc->params->key;
 
-        printUsage(console, param);
-        printApi(console, param);
-
-        static const struct Handler {const char* cmd; void(*handler)(Console*);} Handlers[] = 
+        if(printUsage(console, param)) return commandDone(console);
+        else if(printApi(console, param)) return commandDone(console);
+        else
         {
-#define     HELP_CMD_DEF(name) {#name, onHelp_##name},
-            HELP_CMD_LIST(HELP_CMD_DEF)
-#undef      HELP_CMD_DEF
-        };
-
-        FOR(const struct Handler*, ptr, Handlers)
-            if(strcmp(ptr->cmd, param) == 0)
+            
+            static const struct Handler {const char* cmd; void(*handler)(Console*);} Handlers[] = 
             {
-                ptr->handler(console);
-                commandDone(console);
-                return;
-            }
+#define         HELP_CMD_DEF(name) {#name, onHelp_##name},
+                HELP_CMD_LIST(HELP_CMD_DEF)
+#undef          HELP_CMD_DEF
+            };
+
+            FOR(const struct Handler*, ptr, Handlers)
+                if(strcmp(ptr->cmd, param) == 0)
+                {
+                    ptr->handler(console);
+                    return commandDone(console);
+                }
+        }
 
         printError(console, "\nunknown topic: ");
         printError(console, param);
