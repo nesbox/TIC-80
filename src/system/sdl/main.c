@@ -757,7 +757,11 @@ static bool isKbdVisible()
     SDL_Rect rect;
     calcTextureRect(&rect);
 
-    return h - rect.h - KBD_ROWS * w / KBD_COLS >= 0 && !SDL_IsTextInputActive();
+    return h - rect.h - KBD_ROWS * w / KBD_COLS >= 0
+#if defined(__TIC_ANDROID__)
+        && !SDL_IsTextInputActive()
+#endif
+        ;
 }
 
 static const tic_key KbdLayout[] = 
