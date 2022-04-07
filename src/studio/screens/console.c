@@ -2780,7 +2780,9 @@ static const char HelpUsage[] = "help [<text>"
         NULL,                                                                           \
         "open cart editors.",                                                           \
         NULL,                                                                           \
-        onEditCommand)                                                                  \
+        onEditCommand,                                                                  \
+        NULL,                                                                           \
+        NULL)                                                                           \
                                                                                         \
     macro("new",                                                                        \
         NULL,                                                                           \
