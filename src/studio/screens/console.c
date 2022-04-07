@@ -272,9 +272,7 @@ static char* replaceHelpTokens(const char* text)
 
         strcat(langnames, ln->name);
         if (!isLast)
-            strcat(langnames, ", ");
-        if (isSecondToLast)
-            strcat(langnames, "or ");
+            strcat(langnames, isSecondToLast ? " or " : ", ");
 
         strcat(langextensions, ln->fileExtension);
         strcat(langextensions, " ");
@@ -283,7 +281,6 @@ static char* replaceHelpTokens(const char* text)
         if (!isLast)
             strcat(langnamespipe, "|");
     FOR_EACH_LANG_END
-
 
     char* replaced1 = str_replace(text, "$LANG_NAMES$", langnames);
     char* replaced2 = str_replace(replaced1, "$LANG_EXTENSIONS$", langextensions);
@@ -3241,7 +3238,12 @@ static void onExport_help(Console* console, const char* param, const char* name,
 
         ptr += sprintf(ptr, "```\n\n%s\n\n%s", TermsText, LicenseText);
 
-        onFileExported(console, filename, tic_fs_save(console->fs, filename, buf, strlen(buf), true));        
+        char* helpReplaced = replaceHelpTokens(buf);
+
+        SCOPE(free(helpReplaced))
+        {
+            onFileExported(console, filename, tic_fs_save(console->fs, filename, helpReplaced, strlen(helpReplaced), true));        
+        }
     }
 }
 
