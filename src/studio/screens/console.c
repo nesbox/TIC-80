@@ -1144,6 +1144,181 @@ static void onNewCommand(Console* console)
     }
 }
 
+static void insertInputText(Console* console, const char* text)
+{
+    s32 size = strlen(text);
+    s32 offset = getInputOffset(console);
+
+    if(size < CONSOLE_BUFFER_SIZE - offset)
+    {
+        char* pos = console->text + offset;
+        u8* color = console->color + offset;
+
+        {
+            s32 len = strlen(pos);
+            memmove(pos + size, pos, len);
+            memmove(color + size, color, len);
+        }
+
+        memcpy(pos, text, size);
+        memset(color, CONSOLE_INPUT_COLOR, size);
+
+        console->input.pos += size;
+    }
+
+    clearSelection(console);
+}
+
+typedef struct
+{
+    Console* console;
+    char* incompleteWord; // Original word that's being completed.
+    char* options; // Options to show to the user.
+    char* commonPrefix; // Common prefix of all options.
+} TabCompleteData;
+
+static void addTabCompleteOption(TabCompleteData* data, const char* option)
+{
+    if (strstr(option, data->incompleteWord) == option)
+    {
+        // Possibly reduce the common prefix of all possible options.
+        if (strlen(data->options) == 0)
+        {
+            // This is the first option to be added. Initialize the prefix.
+            strncpy(data->commonPrefix, option, CONSOLE_BUFFER_SCREEN);
+        }
+        else
+        {
+            // Only leave the longest common prefix.
+            char* tmpCommonPrefix = data->commonPrefix;
+            char* tmpOption = (char*) option;
+
+            while (*tmpCommonPrefix && *tmpOption && *tmpCommonPrefix == *tmpOption) {
+                tmpCommonPrefix++;
+                tmpOption++;
+            }
+
+            *tmpCommonPrefix = 0;
+        }
+
+        // The option matches the incomplete word, add it to the list.
+        strncat(data->options, option, CONSOLE_BUFFER_SCREEN);
+        strncat(data->options, " ", CONSOLE_BUFFER_SCREEN);
+    }
+}
+
+// Used to show tab-complete options, for example.
+static void provideHint(Console* console, const char* hint)
+{
+    char* input = malloc(CONSOLE_BUFFER_SCREEN);
+    strncpy(input, console->input.text, CONSOLE_BUFFER_SCREEN);
+
+    printLine(console);
+    printBack(console, hint);
+    commandDone(console);
+    insertInputText(console, input);
+
+    free(input);
+}
+
+static void finishTabComplete(const TabCompleteData* data)
+{
+    bool anyOptions = strlen(data->options) > 0;
+    if (anyOptions) {
+        // Adding one at the right because all options end with a space.
+        bool justOneOptionLeft = strlen(data->options) == strlen(data->commonPrefix)+1;
+
+        if (strlen(data->commonPrefix) == strlen(data->incompleteWord) && !justOneOptionLeft)
+        {
+            provideHint(data->console, data->options);
+        }
+        processConsoleEnd(data->console);
+        insertInputText(data->console, data->commonPrefix+strlen(data->incompleteWord));
+
+        if (justOneOptionLeft)
+        {
+            insertInputText(data->console, " ");
+        }
+    }
+
+    free(data->options);
+    free(data->commonPrefix);
+}
+
+static void tabCompleteLanguages(TabCompleteData* data)
+{
+    FOR_EACH_LANG(ln)
+        addTabCompleteOption(data, ln->name);
+    FOR_EACH_LANG_END
+    finishTabComplete(data);
+}
+
+static void tabCompleteExport(TabCompleteData* data)
+{
+#define EXPORT_CMD_DEF(name) addTabCompleteOption(data, #name);
+    EXPORT_CMD_LIST(EXPORT_CMD_DEF)
+#undef  EXPORT_CMD_DEF
+    finishTabComplete(data);
+}
+
+static void tabCompleteImport(TabCompleteData* data)
+{
+#define IMPORT_CMD_DEF(name) addTabCompleteOption(data, #name);
+    IMPORT_CMD_LIST(IMPORT_CMD_DEF)
+#undef  IMPORT_CMD_DEF
+    finishTabComplete(data);
+}
+
+static bool addFileAndDirToTabComplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
+{
+    addTabCompleteOption(data, name);
+
+    return true;
+}
+
+static bool addFilenameToTabComplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
+{
+    if (!dir)
+        addTabCompleteOption(data, name);
+
+    return true;
+}
+
+static bool addDirToTabComplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
+{
+    if (dir)
+        addTabCompleteOption(data, name);
+
+    return true;
+}
+
+static void finishTabCompleteAndFreeData(void* data) {
+    finishTabComplete((const TabCompleteData *) data);
+    free(data);
+}
+
+static void tabCompleteFiles(TabCompleteData* data)
+{
+    tic_fs_enum(data->console->fs, addFilenameToTabComplete, finishTabCompleteAndFreeData, MOVE(*data));
+}
+
+static void tabCompleteDirs(TabCompleteData* data)
+{
+    tic_fs_enum(data->console->fs, addDirToTabComplete, finishTabCompleteAndFreeData, MOVE(*data));
+}
+
+static void tabCompleteFilesAndDirs(TabCompleteData* data)
+{
+    tic_fs_enum(data->console->fs, addFileAndDirToTabComplete, finishTabCompleteAndFreeData, MOVE(*data));
+}
+
+static void tabCompleteConfig(TabCompleteData* data)
+{
+    addTabCompleteOption(data, "reset");
+    addTabCompleteOption(data, "default");
+    finishTabComplete(data);
+}
+
 typedef struct
 {
     const char* name;
@@ -2546,6 +2721,9 @@ static void onGetCommand(Console* console)
 
 #endif
 
+// Declare this here to resolve a cyclic dependency with COMMANDS_LIST.
+static void tabCompleteHelp(TabCompleteData* data);
+
 static const char HelpUsage[] = "help [<text>"
 #define HELP_CMD_DEF(name) "|" #name
     HELP_CMD_LIST(HELP_CMD_DEF)
@@ -2564,31 +2742,39 @@ static const char HelpUsage[] = "help [<text>"
         NULL,                                                                           \
         "upload file to the browser local storage.",                                    \
         NULL,                                                                           \
-        onAddCommand)                                                                   \
+        onAddCommand,                                                                   \
+        NULL,                                                                           \
+        NULL)                                                                           \
                                                                                         \
     macro("get",                                                                        \
         NULL,                                                                           \
         "download file from the browser local storage.",                                \
         "get <file>",                                                                   \
-        onGetCommand)                                                                   \
+        onGetCommand,                                                                   \
+        tabCompleteFiles,                                                               \
+        NULL)                                                                           \
 
 #else
 #define ADDGET_FILE(macro)
 #endif
 
-// macro(name, alt, help, usage, handler)
+// macro(name, alt, help, usage, handler, tab-complete for first param, for second param)
 #define COMMANDS_LIST(macro)                                                            \
     macro("help",                                                                       \
         NULL,                                                                           \
         "show help info about commands/api/...",                                        \
         HelpUsage,                                                                      \
-        onHelpCommand)                                                                  \
+        onHelpCommand,                                                                  \
+        tabCompleteHelp,                                                                \
+        NULL)                                                                           \
                                                                                         \
     macro("exit",                                                                       \
         "quit",                                                                         \
         "exit the application.",                                                        \
         NULL,                                                                           \
-        onExitCommand)                                                                  \
+        onExitCommand,                                                                  \
+        NULL,                                                                           \
+        NULL)                                                                           \
                                                                                         \
     macro("edit",                                                                       \
         NULL,                                                                           \
@@ -2600,7 +2786,9 @@ static const char HelpUsage[] = "help [<text>"
         NULL,                                                                           \
         "creates a new `Hello World` cartridge.",                                       \
         "new <$LANG_NAMES_PIPE$>",                                                      \
-        onNewCommand)                                                                   \
+        onNewCommand,                                                                   \
+        tabCompleteLanguages,                                                           \
+        NULL)                                                                           \
                                                                                         \
     macro("load",                                                                       \
         NULL,                                                                           \
@@ -2608,56 +2796,74 @@ static const char HelpUsage[] = "help [<text>"
         "(there's no need to type the .tic extension).\n"                               \
         "you can also load just the section (sprites, map etc) from another cart.",     \
         "load <cart> [code" TIC_SYNC_LIST(SECTION_DEF) "]",                             \
-        onLoadCommand)                                                                  \
+        onLoadCommand,                                                                  \
+        tabCompleteFiles,                                                               \
+        NULL)                                                                           \
                                                                                         \
     macro("save",                                                                       \
         NULL,                                                                           \
         "save cartridge to the local filesystem, use $LANG_EXTENSIONS$"                 \
         "cart extension to save it in text format (PRO feature).",                      \
         "save <cart>",                                                                  \
-        onSaveCommand)                                                                  \
+        onSaveCommand,                                                                  \
+        tabCompleteFiles,                                                               \
+        NULL)                                                                           \
                                                                                         \
     macro("run",                                                                        \
         NULL,                                                                           \
         "run current cart / project.",                                                  \
         NULL,                                                                           \
-        onRunCommand)                                                                   \
+        onRunCommand,                                                                   \
+        NULL,                                                                           \
+        NULL)                                                                           \
                                                                                         \
     macro("resume",                                                                     \
         NULL,                                                                           \
         "resume last run cart / project.",                                              \
         NULL,                                                                           \
-        onResumeCommand)                                                                \
+        onResumeCommand,                                                                \
+        NULL,                                                                           \
+        NULL)                                                                           \
                                                                                         \
     macro("eval",                                                                       \
         "=",                                                                            \
         "run code provided code.",                                                      \
         NULL,                                                                           \
-        onEvalCommand)                                                                  \
+        onEvalCommand,                                                                  \
+        NULL,                                                                           \
+        NULL)                                                                           \
                                                                                         \
     macro("dir",                                                                        \
         "ls",                                                                           \
         "show list of local files.",                                                    \
         NULL,                                                                           \
-        onDirCommand)                                                                   \
+        onDirCommand,                                                                   \
+        NULL,                                                                           \
+        NULL)                                                                           \
                                                                                         \
     macro("cd",                                                                         \
         NULL,                                                                           \
         "change directory.",                                                            \
         "\ncd <path>\ncd /\ncd ..",                                                     \
-        onChangeDirectory)                                                              \
+        onChangeDirectory,                                                              \
+        tabCompleteDirs,                                                                \
+        NULL)                                                                           \
                                                                                         \
     macro("mkdir",                                                                      \
         NULL,                                                                           \
         "make a directory.",                                                            \
         "mkdir <name>",                                                                 \
-        onMakeDirectory)                                                                \
+        onMakeDirectory,                                                                \
+        NULL,                                                                           \
+        NULL)                                                                           \
                                                                                         \
     macro("folder",                                                                     \
         NULL,                                                                           \
         "open working directory in OS.",                                                \
         NULL,                                                                           \
-        onFolderCommand)                                                                \
+        onFolderCommand,                                                                \
+        NULL,                                                                           \
+        NULL)                                                                           \
                                                                                         \
     macro("export",                                                                     \
         NULL,                                                                           \
@@ -2665,34 +2871,44 @@ static const char HelpUsage[] = "help [<text>"
         "native build (win linux rpi mac),\n"                                           \
         "export sprites/map/... as a .png image "                                       \
         "or export sfx and music to .wav files.",                                       \
-        "\nexport [" EXPORT_CMD_LIST(EXPORT_CMD_DEF) "...]"                             \
+        "\nexport [" EXPORT_CMD_LIST(EXPORT_CMD_DEF) "...] "                            \
         "<file> [" EXPORT_KEYS_LIST(EXPORT_KEYS_DEF) "...]" ,                           \
-        onExportCommand)                                                                \
+        onExportCommand,                                                                \
+        tabCompleteExport,                                                              \
+        tabCompleteFiles)                                                               \
                                                                                         \
     macro("import",                                                                     \
         NULL,                                                                           \
         "import code/sprites/map/... from an external file.",                           \
-        "\nimport [" IMPORT_CMD_LIST(IMPORT_CMD_DEF) "...]"                             \
+        "\nimport [" IMPORT_CMD_LIST(IMPORT_CMD_DEF) "...] "                            \
         "<file> [" IMPORT_KEYS_LIST(IMPORT_KEYS_DEF) "...]",                            \
-        onImportCommand)                                                                \
+        onImportCommand,                                                                \
+        tabCompleteImport,                                                              \
+        tabCompleteFiles)                                                               \
                                                                                         \
     macro("del",                                                                        \
         NULL,                                                                           \
         "delete from the filesystem.",                                                  \
         "del <file|folder>",                                                            \
-        onDelCommand)                                                                   \
+        onDelCommand,                                                                   \
+        tabCompleteFilesAndDirs,                                                        \
+        NULL)                                                                           \
                                                                                         \
     macro("cls",                                                                        \
         "clear",                                                                        \
         "clear console screen.",                                                        \
         NULL,                                                                           \
-        onClsCommand)                                                                   \
+        onClsCommand,                                                                   \
+        NULL,                                                                           \
+        NULL)                                                                           \
                                                                                         \
     macro("demo",                                                                       \
         NULL,                                                                           \
         "install demo carts to the current directory.",                                 \
         NULL,                                                                           \
-        onInstallDemosCommand)                                                          \
+        onInstallDemosCommand,                                                          \
+        NULL,                                                                           \
+        NULL)                                                                           \
                                                                                         \
     macro("config",                                                                     \
         NULL,                                                                           \
@@ -2700,19 +2916,25 @@ static const char HelpUsage[] = "help [<text>"
         "use `reset` param to reset current configuration,\n"                           \
         "use `default` to edit default cart template.",                                 \
         "config [reset|default]",                                                       \
-        onConfigCommand)                                                                \
+        onConfigCommand,                                                                \
+        tabCompleteConfig,                                                              \
+        NULL)                                                                           \
                                                                                         \
     macro("surf",                                                                       \
         NULL,                                                                           \
         "open carts browser.",                                                          \
         NULL,                                                                           \
-        onSurfCommand)                                                                  \
+        onSurfCommand,                                                                  \
+        NULL,                                                                           \
+        NULL)                                                                           \
                                                                                         \
     macro("menu",                                                                       \
         NULL,                                                                           \
         "show game menu where you can setup video, sound and input options.",           \
         NULL,                                                                           \
-        onGameMenuCommand)                                                              \
+        onGameMenuCommand,                                                              \
+        NULL,                                                                           \
+        NULL)                                                                           \
     ADDGET_FILE(macro)
 
 static struct Command
@@ -2722,10 +2944,13 @@ static struct Command
     const char* help;
     const char* usage;
     void(*handler)(Console*);
+    void(*tabComplete1)(TabCompleteData*);
+    void(*tabComplete2)(TabCompleteData*);
 
 } Commands[] =
 {
-#define COMMANDS_DEF(name, alt, help, usage, handler) {name, alt, help, usage, handler},
+#define COMMANDS_DEF(name, alt, help, usage, handler, tabComplete1, tabComplete2) \
+    {name, alt, help, usage, handler, tabComplete1, tabComplete2},
     COMMANDS_LIST(COMMANDS_DEF)
 #undef COMMANDS_DEF
 };
@@ -2750,6 +2975,25 @@ static struct ApiItem {const char* name; const char* def; const char* help;} Api
 };
 
 typedef struct ApiItem ApiItem;
+
+static void tabCompleteHelp(TabCompleteData* data)
+{
+#define HELP_CMD_DEF(name) addTabCompleteOption(data, #name);
+    HELP_CMD_LIST(HELP_CMD_DEF)
+#undef  HELP_CMD_DEF
+
+    for(s32 i = 0; i < COUNT_OF(Commands); i++)
+    {
+        addTabCompleteOption(data, Commands[i].name);
+    }
+
+#define TIC_API_DEF(name, def, help, ...) addTabCompleteOption(data, #name);
+    API_LIST(TIC_API_DEF)
+#undef TIC_API_DEF
+
+    finishTabComplete(data);
+}
+
 
 static s32 createRamTable(char* buf)
 {
@@ -2999,87 +3243,65 @@ static void onExport_help(Console* console, const char* param, const char* name,
     }
 }
 
-typedef struct
-{
-    Console* console;
-    char* name;
-} PredictFilenameData;
+TabCompleteData newTabCompleteData(Console* console, char* incompleteWord) {
+    TabCompleteData data = { console, .incompleteWord = incompleteWord };
+    data.options = malloc(CONSOLE_BUFFER_SCREEN);
+    data.commonPrefix = malloc(CONSOLE_BUFFER_SCREEN);
+    data.options[0] = '\0';
+    data.commonPrefix[0] = '\0';
 
-static bool predictFilename(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
-{
-    PredictFilenameData* predictFilenameData = data;
-    Console* console = predictFilenameData->console;
-
-    if(strstr(name, predictFilenameData->name) == name)
-    {
-        strcpy(predictFilenameData->name, name);
-        memset(console->color + getInputOffset(console), CONSOLE_INPUT_COLOR, strlen(name));
-        return false;
-    }
-
-    return true;
-}
-
-static void predictFilenameDone(void* data)
-{
-    PredictFilenameData* predictFilenameData = data;
-    Console* console = predictFilenameData->console;
-
-    console->input.pos = strlen(console->input.text);
-    free(predictFilenameData);
-}
-
-static void insertInputText(Console* console, const char* text)
-{
-    s32 size = strlen(text);
-    s32 offset = getInputOffset(console);
-
-    if(size < CONSOLE_BUFFER_SIZE - offset)
-    {
-        char* pos = console->text + offset;
-        u8* color = console->color + offset;
-
-        {
-            s32 len = strlen(pos);
-            memmove(pos + size, pos, len);
-            memmove(color + size, color, len);
-        }
-
-        memcpy(pos, text, size);
-        memset(color, CONSOLE_INPUT_COLOR, size);
-
-        console->input.pos += size;
-    }
-
-    clearSelection(console);
+    return data;
 }
 
 static void processConsoleTab(Console* console)
 {
     char* input = console->input.text;
+    char* param = strchr(input, ' ');
 
-    if(strlen(input))
+    if(param)
     {
-        char* param = strchr(input, ' ');
+        // Tab-complete command's parameters.
+        param++;
+        char* secondParam = strchr(param, ' ');
+        if (secondParam)
+            secondParam++;
 
-        if(param && strlen(++param))
+        for(s32 i = 0; i < COUNT_OF(Commands); i++)
         {
-            PredictFilenameData data = { console, param };
-            tic_fs_enum(console->fs, predictFilename, predictFilenameDone, MOVE(data));
-        }
-        else
-        {
-            for(s32 i = 0; i < COUNT_OF(Commands); i++)
+            s32 commandLen = param-input-1;
+            bool commandMatches = (strlen(Commands[i].name) == commandLen &&
+                                       strncmp(Commands[i].name, input, commandLen) == 0) ||
+                                  (Commands[i].alt &&
+                                      strlen(Commands[i].name) == commandLen &&
+                                      strncmp(Commands[i].alt, input, commandLen) == 0);
+
+            if (commandMatches)
             {
-                const char* command = Commands[i].name;
-
-                if(strstr(command, input) == command)
-                {
-                    insertInputText(console, command + console->input.pos);
-                    break;
+                if (secondParam) {
+                    if (Commands[i].tabComplete2) {
+                        TabCompleteData data = newTabCompleteData(console, secondParam);
+                        Commands[i].tabComplete2(&data);
+                    }
+                } else {
+                    if (Commands[i].tabComplete1) {
+                        TabCompleteData data = newTabCompleteData(console, param);
+                        Commands[i].tabComplete1(&data);
+                    }
                 }
             }
         }
+    }
+    else
+    {
+        // Tab-complete commands.
+        TabCompleteData data = newTabCompleteData(console, input);
+        for(s32 i = 0; i < COUNT_OF(Commands); i++)
+        {
+            addTabCompleteOption(&data, Commands[i].name);
+            if (Commands[i].alt)
+                addTabCompleteOption(&data, Commands[i].alt);
+        }
+        finishTabComplete(&data);
     }
 }
 
