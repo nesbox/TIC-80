@@ -179,6 +179,7 @@ void setCursor(Studio* studio, tic_cursor id);
 
 bool checkMousePos(Studio* studio, const tic_rect* rect);
 bool checkMouseClick(Studio* studio, const tic_rect* rect, tic_mouse_btn button);
+bool checkMouseDblClick(Studio* studio, const tic_rect* rect, tic_mouse_btn button);
 bool checkMouseDown(Studio* studio, const tic_rect* rect, tic_mouse_btn button);
 
 void drawToolbar(Studio* studio, tic_mem* tic, bool bg);

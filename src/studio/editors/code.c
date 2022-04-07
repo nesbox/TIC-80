@@ -756,23 +756,28 @@ static void rightColumn(Code* code)
     }
 }
 
-static void leftWord(Code* code)
+static char* leftWordPos(Code* code)
 {
     const char* start = code->src;
-    char* pos = code->cursor.position-1;
+    char* pos = code->cursor.position - 1;
 
     if(pos > start)
     {
         if(isalnum_(*pos)) while(pos > start && isalnum_(*(pos-1))) pos--;
         else while(pos > start && !isalnum_(*(pos-1))) pos--;
-
-        code->cursor.position = pos;
-
-        updateColumn(code);
+        return pos;
     }
+
+    return code->cursor.position;
 }
 
-static void rightWord(Code* code)
+static void leftWord(Code* code)
+{
+    code->cursor.position = leftWordPos(code);
+    updateColumn(code);
+}
+
+static char* rightWordPos(Code* code)
 {
     const char* end = code->src + strlen(code->src);
     char* pos = code->cursor.position;
@@ -782,9 +787,15 @@ static void rightWord(Code* code)
         if(isalnum_(*pos)) while(pos < end && isalnum_(*pos)) pos++;
         else while(pos < end && !isalnum_(*pos)) pos++;
 
-        code->cursor.position = pos;
-        updateColumn(code);
     }
+
+    return pos;
+}
+
+static void rightWord(Code* code)
+{
+    code->cursor.position = rightWordPos(code);
+    updateColumn(code);
 }
 
 static void goHome(Code* code)
@@ -842,9 +853,8 @@ static void deleteCode(Code* code, char* start, char* end)
     memmove(getState(code, start), getState(code, end), size * sizeof(CodeState));
 }
 
-static void insertCode(Code* code, char* dst, const char* src)
+static void insertCodeSize(Code* code, char* dst, const char* src, s32 size)
 {
-    s32 size = (s32)strlen(src);
     s32 restSize = (s32)strlen(dst) + 1;
     memmove(dst + size, dst, restSize);
     memcpy(dst, src, size);
@@ -855,6 +865,11 @@ static void insertCode(Code* code, char* dst, const char* src)
         memmove(pos + size, pos, restSize * sizeof(CodeState));
         memset(pos, 0, size * sizeof(CodeState));
     }
+}
+
+static void insertCode(Code* code, char* dst, const char* src)
+{
+    insertCodeSize(code, dst, src, strlen(src));
 }
 
 static bool replaceSelection(Code* code)
@@ -1489,6 +1504,24 @@ static void commentLine(Code* code)
     }
     else addCommentToLine(code, getLine(code), size, comment);
 }
+
+static void dupLine(Code* code)
+{
+    char *start = getLine(code);
+    if(*start)
+    {
+        s32 size = getLineSize(start) + 1;
+
+        insertCodeSize(code, start, start, size);
+
+        code->cursor.position += size;
+
+        history(code);
+        parseSyntaxColor(code);
+        updateEditor(code);
+    }
+}
+
 static bool goPrevBookmark(Code* code, char* ptr)
 {
     const CodeState* state = getState(code, ptr);
@@ -1611,6 +1644,7 @@ static void processKeyboard(Code* code)
             else if(keyWasPressed(code->studio, tic_key_n))     downLine(code);
             else if(keyWasPressed(code->studio, tic_key_p))     upLine(code);
             else if(keyWasPressed(code->studio, tic_key_e))     endLine(code);
+            else if(keyWasPressed(code->studio, tic_key_d))     dupLine(code);
             else if(keyWasPressed(code->studio, tic_key_slash)) commentLine(code);
             else if(keyWasPressed(code->studio, tic_key_home))  goCodeHome(code);
             else if(keyWasPressed(code->studio, tic_key_end))   goCodeEnd(code);
@@ -1660,7 +1694,8 @@ static void processMouse(Code* code)
 
     if(checkMousePos(code->studio, &rect))
     {
-        bool useDrag = (code->mode == TEXT_DRAG_CODE && checkMouseDown(code->studio, &rect, tic_mouse_left)) || checkMouseDown(code->studio, &rect, tic_mouse_right);
+        bool useDrag = (code->mode == TEXT_DRAG_CODE && checkMouseDown(code->studio, &rect, tic_mouse_left)) 
+            || checkMouseDown(code->studio, &rect, tic_mouse_right);
         setCursor(code->studio, code->mode == TEXT_DRAG_CODE || useDrag ? tic_cursor_hand : tic_cursor_ibeam);
 
         if(code->scroll.active)
@@ -1685,7 +1720,12 @@ static void processMouse(Code* code)
             }
             else 
             {
-                if(checkMouseDown(code->studio, &rect, tic_mouse_left))
+                if(checkMouseDblClick(code->studio, &rect, tic_mouse_left))
+                {
+                    code->cursor.selection = leftWordPos(code);
+                    code->cursor.position = rightWordPos(code);
+                }
+                else if(checkMouseDown(code->studio, &rect, tic_mouse_left))
                 {
                     s32 mx = tic_api_mouse(tic).x;
                     s32 my = tic_api_mouse(tic).y;

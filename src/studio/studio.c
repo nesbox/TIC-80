@@ -94,8 +94,16 @@ typedef struct
     bool down;
     bool click;
 
+    struct
+    {
+        s32 start;
+        s32 ticks;
+        bool click;
+    } dbl;
+
     tic_point start;
     tic_point end;
+
 
 } MouseState;
 
@@ -1290,6 +1298,19 @@ bool checkMouseClick(Studio* studio, const tic_rect* rect, tic_mouse_btn button)
     return value;
 }
 
+bool checkMouseDblClick(Studio* studio, const tic_rect* rect, tic_mouse_btn button)
+{
+    MouseState* state = &studio->mouse.state[button];
+
+    bool value = state->dbl.click
+        && pointInRect(&state->start, rect)
+        && pointInRect(&state->end, rect);
+
+    if(value) state->dbl.click = false;
+
+    return value;
+}
+
 bool checkMouseDown(Studio* studio, const tic_rect* rect, tic_mouse_btn button)
 {
     MouseState* state = &studio->mouse.state[button];
@@ -2030,7 +2051,7 @@ void studioConfigChanged(Studio* studio)
 static void processMouseStates(Studio* studio)
 {
     for(s32 i = 0; i < COUNT_OF(studio->mouse.state); i++)
-        studio->mouse.state[i].click = false;
+        studio->mouse.state[i].dbl.click = studio->mouse.state[i].click = false;
 
     tic_mem* tic = studio->tic;
 
@@ -2041,18 +2062,25 @@ static void processMouseStates(Studio* studio)
     {
         MouseState* state = &studio->mouse.state[i];
 
-        if(!state->down && (tic->ram->input.mouse.btns & (1 << i)))
+        s32 down = tic->ram->input.mouse.btns & (1 << i);
+
+        if(!state->down && down)
         {
             state->down = true;
             state->start = tic_api_mouse(tic);
         }
-        else if(state->down && !(tic->ram->input.mouse.btns & (1 << i)))
+        else if(state->down && !down)
         {
             state->end = tic_api_mouse(tic);
 
             state->click = true;
             state->down = false;
+
+            state->dbl.click = state->dbl.ticks - state->dbl.start < 1000 / TIC80_FRAMERATE;
+            state->dbl.start = state->dbl.ticks;
         }
+
+        state->dbl.ticks++;
     }
 }
 
