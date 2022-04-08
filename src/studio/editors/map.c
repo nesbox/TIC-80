@@ -37,6 +37,14 @@
 #define MAX_SCALE 4
 #define FILL_STACK_SIZE (TIC_MAP_WIDTH*TIC_MAP_HEIGHT)
 
+static void normalizeMap(s32* x, s32* y)
+{
+    while(*x < 0) *x += MAX_SCROLL_X;
+    while(*y < 0) *y += MAX_SCROLL_Y;
+    while(*x >= MAX_SCROLL_X) *x -= MAX_SCROLL_X;
+    while(*y >= MAX_SCROLL_Y) *y -= MAX_SCROLL_Y;
+}
+
 static tic_point getTileOffset(Map* map)
 {
     return (tic_point){(map->sheet.rect.w - 1)*TIC_SPRITESIZE / 2, (map->sheet.rect.h - 1)*TIC_SPRITESIZE / 2};
@@ -49,6 +57,8 @@ static void getMouseMap(Map* map, s32* x, s32* y)
 
     s32 mx = tic_api_mouse(tic).x + map->scroll.x - offset.x;
     s32 my = tic_api_mouse(tic).y + map->scroll.y - offset.y;
+
+    normalizeMap(&mx, &my);
 
     *x = mx / TIC_SPRITESIZE;
     *y = my / TIC_SPRITESIZE;
@@ -391,8 +401,7 @@ static void drawSheetVBank1(Map* map, s32 x, s32 y)
 
     tic_rect rect = {x, y, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
 
-    tic_api_rect(tic, rect.x, rect.y + map->anim.pos.sheet, rect.w, rect.h, tic->ram->vram.vars.clear);
-    tic_api_rectb(tic, rect.x - 1, rect.y - 1 + map->anim.pos.sheet, rect.w + 2, rect.h + 2, tic_color_white);
+    tic_api_rectb(map->tic, rect.x - 1, rect.y - 1 + map->anim.pos.sheet, rect.w + 2, rect.h + 2, tic_color_white);
 
     for(s32 i = 1; i < rect.h; i += 4)
     {
@@ -501,8 +510,6 @@ static void drawSheetReg(Map* map, s32 x, s32 y)
 
 static void drawCursorPos(Map* map, s32 x, s32 y)
 {
-    tic_mem* tic = map->tic;
-
     char pos[sizeof "999:999"];
 
     s32 tx = 0, ty = 0;
@@ -518,13 +525,13 @@ static void drawCursorPos(Map* map, s32 x, s32 y)
     s32 py = y - (TIC_FONT_HEIGHT + 2);
     if(py <= TOOLBAR_SIZE) py = y + (TIC_SPRITESIZE + 3);
 
-    tic_api_rect(tic, px - 1, py - 1, width + 1, TIC_FONT_HEIGHT + 1, tic_color_white);
-    tic_api_print(tic, pos, px, py, tic_color_light_grey, true, 1, false);
+    tic_api_rect(map->tic, px - 1, py - 1, width + 1, TIC_FONT_HEIGHT + 1, tic_color_white);
+    tic_api_print(map->tic, pos, px, py, tic_color_light_grey, true, 1, false);
 
     if(map->mode == MAP_FILL_MODE && tic_api_key(map->tic, tic_key_ctrl))
     {
-        tic_api_rect(tic, px - 1, py - 1 + TIC_FONT_HEIGHT, width + 1, TIC_FONT_HEIGHT + 1, tic_color_white);
-        tic_api_print(tic, "replace", px, py + TIC_FONT_HEIGHT, tic->ram->vram.vars.clear, true, 1, false);
+        tic_api_rect(map->tic, px - 1, py - 1 + TIC_FONT_HEIGHT, width + 1, TIC_FONT_HEIGHT + 1, tic_color_white);
+        tic_api_print(map->tic, "replace", px, py + TIC_FONT_HEIGHT, tic_color_dark_blue, true, 1, false);
     }
 }
 
@@ -538,9 +545,10 @@ static void setMapSprite(Map* map, s32 x, s32 y)
     s32 mx = map->sheet.rect.x;
     s32 my = map->sheet.rect.y;
 
+
     for(s32 j = 0; j < map->sheet.rect.h; j++)
         for(s32 i = 0; i < map->sheet.rect.w; i++)
-            tic_api_mset(map->tic, x+i, y+j, (mx+i) + (my+j) * TIC_SPRITESHEET_COLS);
+            tic_api_mset(map->tic, (x+i)%TIC_MAP_WIDTH, (y+j)%TIC_MAP_HEIGHT, (mx+i) + (my+j) * TIC_SPRITESHEET_COLS);
 
     ram2map(map->tic->ram, map->src);
 
@@ -564,16 +572,6 @@ static tic_point getCursorPos(Map* map)
     return (tic_point){mx, my};
 }
 
-static bool cursorVisible(Map* map)
-{
-    tic_mem* tic = map->tic;
-
-    s32 mx = tic_api_mouse(tic).x + map->scroll.x;
-    s32 my = tic_api_mouse(tic).y + map->scroll.y;
-
-    return mx >= 0 && my >= 0 && mx < MAX_SCROLL_X && my < MAX_SCROLL_Y;
-}
-
 static void drawTileCursor(Map* map)
 {
     tic_mem* tic = map->tic;
@@ -588,18 +586,13 @@ static void drawTileCursor(Map* map)
         s32 sy = map->sheet.rect.y;
 
         initBlitMode(map);
-        tic_api_spr(tic, sx + map->sheet.blit.pages * sy * TIC_SPRITESHEET_COLS, 
-            pos.x, pos.y, map->sheet.rect.w, map->sheet.rect.h, 
-            NULL, 0, 1, tic_no_flip, tic_no_rotate);
+        tic_api_spr(tic, sx + map->sheet.blit.pages * sy * TIC_SPRITESHEET_COLS, pos.x, pos.y, map->sheet.rect.w, map->sheet.rect.h, NULL, 0, 1, tic_no_flip, tic_no_rotate);
         resetBlitMode(map->tic);
     }
 }
 
 static void drawTileCursorVBank1(Map* map)
 {
-    if(!cursorVisible(map))
-        return;
-
     if(map->scroll.active)
         return;
 
@@ -616,9 +609,6 @@ static void drawTileCursorVBank1(Map* map)
 
 static void processMouseDrawMode(Map* map)
 {
-    if(!cursorVisible(map))
-        return;
-
     tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
     setCursor(map->studio, tic_cursor_hand);
@@ -674,8 +664,7 @@ static void processScrolling(Map* map, bool pressed)
             map->scroll.x = map->scroll.start.x - tic_api_mouse(tic).x;
             map->scroll.y = map->scroll.start.y - tic_api_mouse(tic).y;
 
-            map->scroll.x = CLAMP(map->scroll.x, -TIC80_WIDTH / 2, MAX_SCROLL_X - TIC80_WIDTH / 2);
-            map->scroll.y = CLAMP(map->scroll.y, -TIC80_HEIGHT / 2, MAX_SCROLL_Y -TIC80_HEIGHT / 2);
+            normalizeMap(&map->scroll.x, &map->scroll.y);
 
             setCursor(map->studio, tic_cursor_hand);
         }
@@ -708,14 +697,14 @@ static void resetSelection(Map* map)
 
 static void drawSelectionRect(Map* map, s32 x, s32 y, s32 w, s32 h)
 {
-    tic_mem* tic = map->tic;
-    enum{Step = 3, color = tic_color_white, alt = tic_color_black};
+    enum{Step = 3};
+    u8 color = tic_color_white;
 
     s32 index = map->tickCounter / 10;
-    for(s32 i = x; i < (x+w); i++)      {tic_api_pix(tic, i, y, index++ % Step ? color : alt, false);} index++;
-    for(s32 i = y; i < (y+h); i++)      {tic_api_pix(tic, x + w-1, i, index++ % Step ? color : alt, false);} index++;
-    for(s32 i = (x+w-1); i >= x; i--)   {tic_api_pix(tic, i, y + h-1, index++ % Step ? color : alt, false);} index++;
-    for(s32 i = (y+h-1); i >= y; i--)   {tic_api_pix(tic, x, i, index++ % Step ? color : alt, false);}
+    for(s32 i = x; i < (x+w); i++)      {tic_api_pix(map->tic, i, y, index++ % Step ? color : 0, false);} index++;
+    for(s32 i = y; i < (y+h); i++)      {tic_api_pix(map->tic, x + w-1, i, index++ % Step ? color : 0, false);} index++;
+    for(s32 i = (x+w-1); i >= x; i--)   {tic_api_pix(map->tic, i, y + h-1, index++ % Step ? color : 0, false);} index++;
+    for(s32 i = (y+h-1); i >= y; i--)   {tic_api_pix(map->tic, x, i, index++ % Step ? color : 0, false);}
 }
 
 static void drawPasteData(Map* map)
@@ -734,12 +723,14 @@ static void drawPasteData(Map* map)
 
     if(checkMouseClick(map->studio, &rect, tic_mouse_left))
     {
+        normalizeMap(&mx, &my);
+
         mx /= TIC_SPRITESIZE;
         my /= TIC_SPRITESIZE;
 
         for(s32 j = 0; j < h; j++)
             for(s32 i = 0; i < w; i++)
-                tic_api_mset(tic, mx+i, my+j, data[i + j * w]);
+                tic_api_mset(tic, (mx+i)%TIC_MAP_WIDTH, (my+j)%TIC_MAP_HEIGHT, data[i + j * w]);
 
         ram2map(tic->ram, map->src);
 
@@ -788,6 +779,14 @@ static void drawPasteDataVBank1(Map* map)
     my += -map->scroll.y;
 
     drawSelectionRect(map, mx - 1, my - 1, w * TIC_SPRITESIZE + 2, h * TIC_SPRITESIZE + 2);
+}
+
+static void normalizeMapRect(s32* x, s32* y)
+{
+    while(*x < 0) *x += TIC_MAP_WIDTH;
+    while(*y < 0) *y += TIC_MAP_HEIGHT;
+    while(*x >= TIC_MAP_WIDTH) *x -= TIC_MAP_WIDTH;
+    while(*y >= TIC_MAP_HEIGHT) *y -= TIC_MAP_HEIGHT;
 }
 
 static void processMouseSelectMode(Map* map)
@@ -954,6 +953,12 @@ static void fillMap(Map* map, s32 x, s32 y, u8 tile)
     }   
 }
 
+static s32 moduloWrap(s32 x, s32 m)
+{
+   s32 y = x % m;
+   return (y < 0) ? (y + m) : y; // always between 0 and m-1 inclusive
+}
+
 // replace tile with another tile or pattern
 static void replaceTile(Map* map, s32 x, s32 y, u8 tile)
 {
@@ -984,8 +989,8 @@ static void replaceTile(Map* map, s32 x, s32 y, u8 tile)
             if(tic_api_mget(map->tic, i, j) == tile)
             {
                 // offset pattern based on click position
-                s32 oy = tic_modulo(j - y, map->sheet.rect.h);
-                s32 ox = tic_modulo(i - x, map->sheet.rect.w);
+                s32 oy = moduloWrap(j - y, map->sheet.rect.h);
+                s32 ox = moduloWrap(i - x, map->sheet.rect.w);
 
                 u8 newtile = (mx + ox) + (my + oy) * TIC_SPRITESHEET_COLS;
                 tic_api_mset(map->tic, i, j, newtile);
@@ -994,9 +999,6 @@ static void replaceTile(Map* map, s32 x, s32 y, u8 tile)
 
 static void processMouseFillMode(Map* map)
 {
-    if(!cursorVisible(map))
-        return;
-
     tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
     setCursor(map->studio, tic_cursor_hand);
@@ -1032,6 +1034,11 @@ static void drawSelectionVBank1(Map* map)
         s32 y = sel->y * TIC_SPRITESIZE - map->scroll.y;
         s32 w = sel->w * TIC_SPRITESIZE;
         s32 h = sel->h * TIC_SPRITESIZE;
+
+        while(x+w<0)x+=MAX_SCROLL_X;
+        while(y+h<0)y+=MAX_SCROLL_Y;
+        while(x+w>=MAX_SCROLL_X)x-=MAX_SCROLL_X;
+        while(y+h>=MAX_SCROLL_Y)y-=MAX_SCROLL_Y;
 
         drawSelectionRect(map, x-1, y-1, w+2, h+2);
     }
@@ -1071,7 +1078,6 @@ static void drawGrid(Map* map)
 static void drawMapReg(Map* map)
 {
     tic_mem* tic = map->tic;
-
     tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
     bool handle = !sheetVisible(map) && checkMousePos(map->studio, &rect);
@@ -1083,17 +1089,14 @@ static void drawMapReg(Map* map)
                 checkMouseDown(map->studio, &rect, tic_mouse_right));
 
     {
+        s32 scrollX = map->scroll.x % TIC_SPRITESIZE;
+        s32 scrollY = map->scroll.y % TIC_SPRITESIZE;
+
         map2ram(tic->ram, map->src);
 
         initBlitMode(map);
-
-        s32 sx = tic_modulo(map->scroll.x, MAX_SCROLL_X);
-        s32 sy = tic_modulo(map->scroll.y, MAX_SCROLL_Y);
-
-        tic_api_map(tic, sx / TIC_SPRITESIZE, sy / TIC_SPRITESIZE,
-            TIC_MAP_SCREEN_WIDTH + 1, TIC_MAP_SCREEN_HEIGHT + 1, 
-            -sx % TIC_SPRITESIZE, -sy % TIC_SPRITESIZE, 0, 0, 1, NULL, NULL);
-
+        tic_api_map(tic, map->scroll.x / TIC_SPRITESIZE, map->scroll.y / TIC_SPRITESIZE,
+            TIC_MAP_SCREEN_WIDTH + 1, TIC_MAP_SCREEN_HEIGHT + 1, -scrollX, -scrollY, 0, 0, 1, NULL, NULL);
         resetBlitMode(map->tic);
 
         if (map->canvas.grid)
@@ -1137,6 +1140,7 @@ static void copySelectionToClipboard(Map* map)
                 for(s32 i = sel->x; i < sel->x+sel->w; i++)
                 {
                     s32 x = i, y = j;
+                    normalizeMapRect(&x, &y);
 
                     s32 index = x + y * TIC_MAP_WIDTH;
                     *ptr++ = map->src->data[index];
@@ -1164,6 +1168,8 @@ static void deleteSelection(Map* map)
             for(s32 i = sel->x; i < sel->x+sel->w; i++)
             {
                 s32 x = i, y = j;
+                normalizeMapRect(&x, &y);
+
                 s32 index = x + y * TIC_MAP_WIDTH;
                 map->src->data[index] = 0;
             }
@@ -1266,6 +1272,15 @@ static void processKeyboard(Map* map)
     if(tic_api_key(tic, tic_key_down)) map->scroll.y += Step;
     if(tic_api_key(tic, tic_key_left)) map->scroll.x -= Step;
     if(tic_api_key(tic, tic_key_right)) map->scroll.x += Step;
+
+    static const tic_key Keycodes[] = {tic_key_up, tic_key_down, tic_key_left, tic_key_right};
+
+    for(s32 i = 0; i < COUNT_OF(Keycodes); i++)
+        if(tic_api_key(tic, Keycodes[i]))
+        {
+            normalizeMap(&map->scroll.x, &map->scroll.y);
+            break;
+        }
 }
 
 static void tick(Map* map)
@@ -1289,28 +1304,19 @@ static void tick(Map* map)
 
     VBANK(tic, 1)
     {
+        tic_api_cls(tic, tic->ram->vram.vars.clear = tic_color_dark_blue);
+
         memcpy(tic->ram->vram.palette.data, getConfig(map->studio)->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
 
-        tic->ram->vram.vars.clear = tic_color_dark_blue;
-
-        // draw fog
+        tic_api_clip(tic, 0, TOOLBAR_SIZE, TIC80_WIDTH - (sheetVisible(map) ? TIC_SPRITESHEET_SIZE+2 : 0), TIC80_HEIGHT - TOOLBAR_SIZE);
         {
-            memcpy(&tic->ram->vram.screen, map->fog, sizeof(tic_screen));
-            tic_api_rect(tic, -map->scroll.x, -map->scroll.y, MAX_SCROLL_X, MAX_SCROLL_Y, tic->ram->vram.vars.clear);
+            s32 screenScrollX = map->scroll.x % TIC80_WIDTH;
+            s32 screenScrollY = map->scroll.y % TIC80_HEIGHT;
+
+            tic_api_line(tic, 0, TIC80_HEIGHT - screenScrollY, TIC80_WIDTH, TIC80_HEIGHT - screenScrollY, tic_color_grey);
+            tic_api_line(tic, TIC80_WIDTH - screenScrollX, 0, TIC80_WIDTH - screenScrollX, TIC80_HEIGHT, tic_color_grey);
         }
-
-        // draw screen grid
-        SCOPE(tic_api_clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT))
-        {
-            tic_api_clip(tic, 0, TOOLBAR_SIZE, TIC80_WIDTH - (sheetVisible(map) ? TIC_SPRITESHEET_SIZE+2 : 0), 
-                TIC80_HEIGHT - TOOLBAR_SIZE);
-
-            s32 sx = tic_modulo(-map->scroll.x, TIC80_WIDTH);
-            s32 sy = tic_modulo(-map->scroll.y, TIC80_HEIGHT);
-
-            tic_api_line(tic, 0, sy, TIC80_WIDTH, sy, tic_color_grey);
-            tic_api_line(tic, sx, 0, sx, TIC80_HEIGHT, tic_color_grey);
-        }
+        tic_api_clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
 
         drawSheetVBank1(map, TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, TOOLBAR_SIZE);
 
@@ -1385,12 +1391,10 @@ void initMap(Map* map, Studio* studio, tic_map* src)
     if(map->history) history_delete(map->history);
     freeAnim(map);
 
-    tic_mem* tic = getMemory(studio);
-
     *map = (Map)
     {
         .studio = studio,
-        .tic = tic,
+        .tic = getMemory(studio),
         .tick = tick,
         .src = src,
         .mode = MAP_DRAW_MODE,
@@ -1450,28 +1454,18 @@ void initMap(Map* map, Studio* studio, tic_map* src)
                 {0, 0, STUDIO_ANIM_TIME, &map->anim.pos.page, AnimEaseIn},
             }),
         },
-        .fog = map->fog,
         .event = onStudioEvent,
         .scanline = scanline,
     };
 
     map->anim.movie = resetMovie(&map->anim.idle);
 
+    normalizeMap(&map->scroll.x, &map->scroll.y);
     tic_blit_update_bpp(&map->sheet.blit, TIC_DEFAULT_BIT_DEPTH);
-
-    if(!map->fog)
-    {
-        tic_api_cls(tic, tic_color_black);
-        for(s32 i = 0; i < TIC80_WIDTH + TIC80_HEIGHT; i += 4)
-            tic_api_line(tic, i, 0, 0, i, tic_color_dark_grey);
-
-        map->fog = MOVE(tic->ram->vram.screen);
-    }
 }
 
 void freeMap(Map* map)
 {
-    free(map->fog);
     freeAnim(map);
     history_delete(map->history);
     free(map);
