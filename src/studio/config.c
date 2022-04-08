@@ -24,6 +24,12 @@
 #include "fs.h"
 #include "cart.h"
 
+#if defined(__EMSCRIPTEN__)
+#define DEFAULT_VSYNC 0
+#else
+#define DEFAULT_VSYNC 1
+#endif
+
 #if defined (TIC_BUILD_WITH_LUA)
 #include <lua.h>
 #include <lauxlib.h>
@@ -229,7 +235,7 @@ static void setDefault(Config* config)
             .crt            = false,
 #endif
             .volume         = MAX_VOLUME,
-            .vsync          = true,
+            .vsync          = DEFAULT_VSYNC,
             .fullscreen     = false,
 #if defined(BUILD_EDITORS)
             .devmode        = false,
