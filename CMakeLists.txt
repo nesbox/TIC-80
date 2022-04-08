@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.3)
 set(VERSION_MAJOR 1)
 set(VERSION_MINOR 0)
 set(VERSION_REVISION 0)
-set(VERSION_STATUS "-dev")
+set(VERSION_STATUS "-rc")
 string(TIMESTAMP VERSION_YEAR "%Y")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
