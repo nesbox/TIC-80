@@ -77,7 +77,8 @@ class TIC {\n\
     foreign static ttri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3)\n\
     foreign static ttri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, src)\n\
     foreign static ttri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, src, alpha_color)\n\
-    foreign static ttri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, src, alpha_color, z1, z2, z3)\n\
+    foreign static ttri_depth()\n\
+    foreign static ttri_depth(z1, z2, z3)\n\
     foreign static pix(x, y)\n\
     foreign static pix(x, y, color)\n\
     foreign static line(x0, y0, x1, y1, color)\n\
@@ -546,7 +547,7 @@ static void wren_spr(WrenVM* vm)
                 if(isList(vm, 4))
                 {
                     wrenEnsureSlots(vm, top+1);
-                    int list_count = wrenGetListCount(vm, 4);
+                    s32 list_count = wrenGetListCount(vm, 4);
                     for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
                     {
                         wrenGetListElement(vm, 4, i, top);
@@ -610,7 +611,7 @@ static void wren_spr_internal(WrenVM* vm)
     if(isList(vm, 4))
     {
         wrenEnsureSlots(vm, top+1);
-        int list_count = wrenGetListCount(vm, 4);
+        s32 list_count = wrenGetListCount(vm, 4);
         for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
         {
             wrenGetListElement(vm, 4, i, top);
@@ -674,7 +675,7 @@ static void wren_map(WrenVM* vm)
                     if(isList(vm, 7))
                     {
                         wrenEnsureSlots(vm, top+1);
-                        int list_count = wrenGetListCount(vm, 7);
+                        s32 list_count = wrenGetListCount(vm, 7);
                         for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
                         {
                             wrenGetListElement(vm, 7, i, top);
@@ -731,9 +732,30 @@ static void wren_mget(WrenVM* vm)
     wrenSetSlotDouble(vm, 0, value);
 }
 
+static struct 
+{
+    float z[3];
+    bool on;
+} depth = {0};
+
+static void wren_ttri_depth(WrenVM* vm)
+{
+    s32 top = wrenGetSlotCount(vm);
+
+    depth.on = false;
+
+    if (top == 4)
+    {
+        for (s32 i = 0; i < COUNT_OF(depth.z); i++)
+            depth.z[i] = (float)wrenGetSlotDouble(vm, i + 1);
+
+        depth.on = true;
+    }
+}
+
 static void wren_ttri(WrenVM* vm)
 {
-    int top = wrenGetSlotCount(vm);
+    s32 top = wrenGetSlotCount(vm);
 
     float pt[12];
 
@@ -757,7 +779,7 @@ static void wren_ttri(WrenVM* vm)
     if(isList(vm, 14))
     {
         wrenEnsureSlots(vm, top+1);
-        int list_count = wrenGetListCount(vm, 14);
+        s32 list_count = wrenGetListCount(vm, 14);
         for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
         {
             wrenGetListElement(vm, 14, i, top);
@@ -778,31 +800,20 @@ static void wren_ttri(WrenVM* vm)
         count = 1;
     }
 
-    float z[3];
-    bool depth = false;
-
-    if (top > 17)
-    {
-        for (s32 i = 0; i < COUNT_OF(z); i++)
-            z[i] = (float)wrenGetSlotDouble(vm, i + 15);
-
-        depth = true;    
-    }
-
-    tic_api_ttri(tic, pt[0], pt[1],   //  xy 1
-                        pt[2], pt[3],   //  xy 2
-                        pt[4], pt[5],   //  xy 3
-                        pt[6], pt[7],   //  uv 1
-                        pt[8], pt[9],   //  uv 2
-                        pt[10], pt[11], //  uv 3
-                        src,            // texture source
-                        colors, count,  // chroma
-                        z[0], z[1], z[2], depth); // depth
+    tic_api_ttri(tic, 
+        pt[0], pt[1],   //  xy 1
+        pt[2], pt[3],   //  xy 2
+        pt[4], pt[5],   //  xy 3
+        pt[6], pt[7],   //  uv 1
+        pt[8], pt[9],   //  uv 2
+        pt[10], pt[11], //  uv 3
+        src,            // texture source
+        colors, count,  // chroma
+        depth.z[0], depth.z[1], depth.z[2], depth.on); // depth
 }
-
 static void wren_pix(WrenVM* vm)
 {
-    int top = wrenGetSlotCount(vm);
+    s32 top = wrenGetSlotCount(vm);
 
     s32 x = getWrenNumber(vm, 1);
     s32 y = getWrenNumber(vm, 2);
@@ -943,7 +954,7 @@ static void wren_trib(WrenVM* vm)
 
 static void wren_cls(WrenVM* vm)
 {
-    int top = wrenGetSlotCount(vm);
+    s32 top = wrenGetSlotCount(vm);
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
 
@@ -1392,7 +1403,8 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     if (strcmp(signature, "static TIC.ttri(_,_,_,_,_,_,_,_,_,_,_,_)"              ) == 0) return wren_ttri;
     if (strcmp(signature, "static TIC.ttri(_,_,_,_,_,_,_,_,_,_,_,_,_)"            ) == 0) return wren_ttri;
     if (strcmp(signature, "static TIC.ttri(_,_,_,_,_,_,_,_,_,_,_,_,_,_)"          ) == 0) return wren_ttri;
-    if (strcmp(signature, "static TIC.ttri(_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_)"    ) == 0) return wren_ttri;
+    if (strcmp(signature, "static TIC.ttri_depth()"             ) == 0) return wren_ttri_depth;
+    if (strcmp(signature, "static TIC.ttri_depth(_,_,_)"        ) == 0) return wren_ttri_depth;
 
     if (strcmp(signature, "static TIC.pix(_,_)"                 ) == 0) return wren_pix;
     if (strcmp(signature, "static TIC.pix(_,_,_)"               ) == 0) return wren_pix;
@@ -1461,10 +1473,6 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     return NULL;
 }
 
-#define API_FUNC_DEF(name, ...) wren_##name,
-static const WrenForeignMethodFn ApiFuncList[] = {TIC_API_LIST(API_FUNC_DEF)};
-#undef API_FUNC_DEF
-
 static WrenForeignMethodFn bindForeignMethod(
     WrenVM* vm, const char* module, const char* className,
     bool isStatic, const char* signature)
@@ -1496,7 +1504,7 @@ static void initAPI(tic_core* core)
     }
 }
 
-static void reportError(WrenVM* vm, WrenErrorType type, const char* module, int line, const char* message)
+static void reportError(WrenVM* vm, WrenErrorType type, const char* module, s32 line, const char* message)
 {
     tic_core* core = getWrenCore(vm);
 
