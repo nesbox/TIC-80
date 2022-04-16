@@ -9,7 +9,7 @@ This is a D TIC-80 starter template.  To build the D source files:
 To import the resulting WASM file into a cartridge:
 
 ```
-tic80 --fs .
+% tic80 --fs .
 tic80 prompt> load wasmdemo.wasmp
 tic80 prompt> import binary cart.wasm
 tic80 prompt> save game.tic
