@@ -1,0 +1,57 @@
+-- desc:   WASM Introduction
+-- script: wasm
+
+"""""""""""""""""""""""""""""""""""""""
+WASM is a binary format. The demo 
+binary code is embedded in this 
+cartridge, the source code is not.
+Run the cart to see the demo.
+
+This demo exits for completeness, but
+you can't (yet) develop WASM projects
+using the built-in editor.
+
+The code used to build this project 
+can be found in the TIC-80 repo:
+
+https://github.com/nesbox/TIC-80/templates/d
+
+This demo was built with D, but many 
+languages are supported. You simply 
+build your project with your external
+compiler, then import the final WASM
+binary into your cartridge:
+ 
+  import binary out.wasm
+
+See README.md for details.
+
+To learn more visit our Wiki and
+the 'Getting Started with WASM' page.
+
+"
+-- <TILES>
+-- 001:eccccccccc888888caaaaaaaca888888cacccccccacc0ccccacc0ccccacc0ccc
+-- 002:ccccceee8888cceeaaaa0cee888a0ceeccca0ccc0cca0c0c0cca0c0c0cca0c0c
+-- 003:eccccccccc888888caaaaaaaca888888cacccccccacccccccacc0ccccacc0ccc
+-- 004:ccccceee8888cceeaaaa0cee888a0ceeccca0cccccca0c0c0cca0c0c0cca0c0c
+-- 017:cacccccccaaaaaaacaaacaaacaaaaccccaaaaaaac8888888cc000cccecccccec
+-- 018:ccca00ccaaaa0ccecaaa0ceeaaaa0ceeaaaa0cee8888ccee000cceeecccceeee
+-- 019:cacccccccaaaaaaacaaacaaacaaaaccccaaaaaaac8888888cc000cccecccccec
+-- 020:ccca00ccaaaa0ccecaaa0ceeaaaa0ceeaaaa0cee8888ccee000cceeecccceeee
+-- </TILES>
+
+-- <WAVES>
+-- 000:00000000ffffffff00000000ffffffff
+-- 001:0123456789abcdeffedcba9876543210
+-- 002:0123456789abcdef0123456789abcdef
+-- </WAVES>
+
+-- <SFX>
+-- 000:000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000304000000000
+-- </SFX>
+
+-- <PALETTE>
+-- 000:1a1c2c5d275db13e53ef7d57ffcd75a7f07038b76425717929366f3b5dc941a6f673eff7f4f4f494b0c2566c86333c57
+-- </PALETTE>
+
