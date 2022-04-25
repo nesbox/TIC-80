@@ -176,3 +176,4 @@ tic_mruby_wasm_build_config.rb.lock
 build/mruby_vendor-prefix/
 **/zig-cache
 **/zig-out
+.cache
