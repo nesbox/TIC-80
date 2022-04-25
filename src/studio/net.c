@@ -430,9 +430,11 @@ static s32 onBody(http_parser* parser, const char *at, size_t length)
 static void onClose(uv_handle_t* handle)
 {
     NetRequest* req = handle->data;
-    FREE(req->content.data);
-    free((void*)req->path);
-    free(req);
+    if (req){
+        FREE(req->content.data);
+        free((void*)req->path);
+        free(req);
+    }
 }
 
 static void freeRequest(NetRequest* req)
