@@ -27,6 +27,7 @@
 
 #define TIC_VRAM_SIZE (16*1024) //16K
 #define TIC_RAM_SIZE (TIC_VRAM_SIZE+80*1024) //16K+80K
+#define TIC_WASM_PAGE_COUNT 4 // 256K
 #define TIC_FONT_WIDTH 6
 #define TIC_FONT_HEIGHT 6
 #define TIC_ALTFONT_WIDTH 4
@@ -61,7 +62,6 @@
 #define TIC_SAVEID_SIZE 64
 
 #define TIC_SOUND_CHANNELS 4
-#define TIC_STEREO_CHANNELS 2
 #define SFX_TICKS 30
 #define SFX_COUNT_BITS 6
 #define SFX_COUNT (1 << SFX_COUNT_BITS)
@@ -78,8 +78,7 @@
 #define TRACK_PATTERN_MASK ((1 << TRACK_PATTERN_BITS) - 1)
 #define TRACK_PATTERNS_SIZE (TRACK_PATTERN_BITS * TIC_SOUND_CHANNELS / BITS_IN_BYTE)
 #define MUSIC_FRAMES 16
-#define MUSIC_TRACKS_BITS 3
-#define MUSIC_TRACKS (1 << MUSIC_TRACKS_BITS)
+#define MUSIC_TRACKS 8
 #define DEFAULT_TEMPO 150
 #define DEFAULT_SPEED 6
 #define PITCH_DELTA 128
@@ -98,11 +97,17 @@
 #define TIC_BANKS (1 << TIC_BANK_BITS)
 
 #define TIC_CODE_SIZE (TIC_BANK_SIZE * TIC_BANKS)
+#define TIC_BINARY_BANKS 4
+#define TIC_BINARY_SIZE (TIC_BINARY_BANKS * TIC_BANK_SIZE) // 4 * 64k = 256K
 
+
+#define TIC_BUTTONS 8
 #define TIC_GAMEPADS (sizeof(tic80_gamepads) / sizeof(tic80_gamepad))
 
 #define SFX_NOTES {"C-", "C#", "D-", "D#", "E-", "F-", "F#", "G-", "G#", "A-", "A#", "B-"}
-#define TIC_FONT_CHARS 256
+#define TIC_FONT_CHARS 128
+
+#define TIC_UNUSED(x) (void)x
 
 enum
 {
@@ -366,10 +371,16 @@ typedef struct
     u8 data[TIC_SPRITESIZE * TIC_SPRITESIZE * TIC_PALETTE_BPP / BITS_IN_BYTE];
 } tic_tile;
 
-typedef union
+typedef struct
 {
     char data[TIC_CODE_SIZE];
 } tic_code;
+
+typedef struct
+{
+    char data[TIC_BINARY_SIZE];
+    u32 size;
+} tic_binary;
 
 typedef struct
 {
@@ -387,6 +398,11 @@ typedef union
 
 typedef struct
 {
+    u32 data[TIC_PALETTE_SIZE];
+} tic_blitpal;
+
+typedef struct
+{
     tic_tile data[TIC_BANK_SPRITES];
 } tic_tiles, tic_sprites;
 
@@ -397,8 +413,8 @@ typedef struct
 
 typedef struct
 {
-    tic_palette scn;
-    tic_palette ovr;
+    tic_palette vbank0;
+    tic_palette vbank1;
 } tic_palettes;
 
 typedef struct
@@ -426,13 +442,32 @@ typedef struct
         tic_bank banks[TIC_BANKS];
     };
 
-    tic_code code;    
+    tic_code code;
+    tic_binary binary;
+    u8 lang;
 
 } tic_cartridge;
 
 typedef struct
 {
-    u8 data[TIC_FONT_CHARS * BITS_IN_BYTE];
+    u8 data[(TIC_FONT_CHARS - 1) * BITS_IN_BYTE];
+
+    union
+    {
+        struct
+        {
+            u8 width;
+            u8 height;
+        };
+
+        u8 params[BITS_IN_BYTE];
+    };
+} tic_font_data;
+
+typedef struct
+{
+    tic_font_data regular;
+    tic_font_data alt;
 } tic_font;
 
 typedef union
@@ -447,13 +482,10 @@ typedef union
         {
             union
             {
-                u8 colors;
-                            
-                struct
-                {
-                    u8 border:TIC_PALETTE_BPP;
-                    u8 tmp:TIC_PALETTE_BPP;
-                };
+                u8 border:TIC_PALETTE_BPP;
+
+                // clear color for the BANK1
+                u8 clear:TIC_PALETTE_BPP;
             };
 
             struct
@@ -467,7 +499,6 @@ typedef union
                 u8 sprite:7;
                 bool system:1;
             } cursor;
-
         } vars;
 
         struct
@@ -487,6 +518,11 @@ typedef struct
     u32 data[TIC_PERSISTENT_SIZE];
 } tic_persistent;
 
+typedef struct
+{
+    u8 data[TIC_GAMEPADS * TIC_BUTTONS];
+} tic_mapping;
+
 typedef union
 {
     struct
@@ -505,6 +541,7 @@ typedef union
         tic_persistent      persistent;
         tic_flags           flags;
         tic_font            font;
+        tic_mapping         mapping;
 
         u8 free;
     };

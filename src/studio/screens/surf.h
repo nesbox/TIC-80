@@ -28,11 +28,11 @@ typedef struct Surf Surf;
 
 struct Surf
 {
+    Studio* studio;
     tic_mem* tic;
     struct tic_fs* fs;
     struct tic_net* net;
     struct Console* console;
-    struct Movie* state;
 
     bool init;
     bool loading;
@@ -41,17 +41,48 @@ struct Surf
     struct
     {
         s32 pos;
-        s32 anim;
-        s32 anim_target;
-        struct MenuItem* items;
+        s32 target;
+        struct SurfItem* items;
         s32 count;
     } menu;
+
+    struct
+    {
+        struct
+        {
+            s32 topBarY;
+            s32 bottomBarY;
+            s32 menuX;
+            s32 menuHeight;
+            s32 coverFade;
+            s32 pos;
+        } val;
+
+        Movie* movie;
+
+        Movie idle;
+        Movie show;
+        Movie play;
+        Movie move;
+
+        struct
+        {
+            Movie show;
+            Movie hide;
+        } gotodir;
+
+        struct
+        {
+            Movie show;
+            Movie hide;
+        } goback;
+
+    } anim;
 
     void(*tick)(Surf* surf);
     void(*resume)(Surf* surf);
     void (*scanline)(tic_mem* tic, s32 row, void* data);
-    void (*overline)(tic_mem* tic, void* data);
 };
 
-void initSurf(Surf* surf, tic_mem* tic, struct Console* console);
+void initSurf(Surf* surf, Studio* studio, struct Console* console);
 void freeSurf(Surf* surf);

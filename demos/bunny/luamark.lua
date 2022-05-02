@@ -1,6 +1,7 @@
 -- title: Bunnymark in Lua
 -- author: Rabia Alhaffar
 -- desc: Benchmarking tool to see how many bunnies can fly around the screen, using Lua.
+-- license: MIT License 
 -- input: gamepad
 -- script: lua
 -- version: 1.1.0
@@ -36,7 +37,7 @@ end
 
 function Bunny:update()
 	self.x = self.x + self.speedX
-	self.y = self.x + self.speedY
+	self.y = self.y + self.speedY
 
 	if (self.x + self.width > screenWidth) then
 		self.x = screenWidth - self.width

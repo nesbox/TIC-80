@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "api.h"
 #include "tic.h"
 #include <stddef.h>
 
@@ -78,10 +79,20 @@ inline u32 tic_rgba(const tic_rgb* c)
     return (0xff << 24) | (c->b << 16) | (c->g << 8) | (c->r << 0);
 }
 
+inline s32 tic_modulo(s32 x, s32 m)
+{
+    if(x >= m) return x % m;
+    if(x < 0) return x % m + m;
+
+    return x;
+}
+
+tic_blitpal tic_tool_palette_blit(const tic_palette* src, tic80_pixel_color_format fmt);
+
 bool    tic_tool_parse_note(const char* noteStr, s32* note, s32* octave);
 s32     tic_tool_get_pattern_id(const tic_track* track, s32 frame, s32 channel);
 void    tic_tool_set_pattern_id(tic_track* track, s32 frame, s32 channel, s32 id);
-u32*    tic_tool_palette_blit(const tic_palette* src, tic80_pixel_color_format fmt);
+bool    tic_project_ext(const char* name);
 bool    tic_tool_has_ext(const char* name, const char* ext);
 s32     tic_tool_get_track_row_sfx(const tic_track_row* row);
 void    tic_tool_set_track_row_sfx(tic_track_row* row, s32 sfx);
@@ -93,6 +104,9 @@ u32     tic_tool_unzip(void* dest, s32 bufSize, const void* source, s32 size);
 bool    tic_tool_empty(const void* buffer, s32 size);
 #define EMPTY(BUFFER) (tic_tool_empty((BUFFER), sizeof (BUFFER)))
 
-u32     tic_nearest_color(const tic_rgb* palette, const tic_rgb* color, s32 count);
+bool    tic_tool_flat4(const void* buffer, s32 size);
+#define FLAT4(BUFFER) (tic_tool_flat4((BUFFER), sizeof (BUFFER)))
 
-const char* tic_tool_metatag(const char* code, const char* tag, const char* comment);
+bool    tic_tool_noise(const tic_waveform* wave);
+u32     tic_nearest_color(const tic_rgb* palette, const tic_rgb* color, s32 count);
+char*   tic_tool_metatag(const char* code, const char* tag, const char* comment);

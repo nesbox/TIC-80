@@ -22,36 +22,23 @@
 
 #pragma once
 
-#include "studio/studio.h"
+#include <stdlib.h>
+#include <string.h>
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
+#include <ctype.h>
 
-typedef struct Dialog Dialog;
+s32 luaopen_lpeg(lua_State *lua);
 
-struct Dialog
-{
-    tic_mem* tic;
-
-    bool init;
-    DialogCallback callback;
-    void* data;
-    const char** text;
-    s32 rows;
-    s32 ticks;
-
-    u32 focus;
-
-    tic_point pos;
-
-    struct
-    {
-        tic_point start;
-        bool active;
-    } drag;
-    
-    void(*tick)(Dialog* Dialog);
-    void (*scanline)(tic_mem* tic, s32 row, void* data);
-    void (*overline)(tic_mem* tic, void* data);    
-    void(*escape)(Dialog* Dialog);
-};
-
-void initDialog(Dialog* dialog, tic_mem* tic, const char** text, s32 rows, DialogCallback callback, void* data);
-void freeDialog(Dialog* dialog);
+extern void initLuaAPI(tic_core* core);
+extern void callLuaTick(tic_mem* tic);
+extern void callLuaBoot(tic_mem* tic);
+extern void callLuaScanlineName(tic_mem* tic, s32 row, void* data, const char* name);
+extern void callLuaScanline(tic_mem* tic, s32 row, void* data);
+extern void callLuaBorder(tic_mem* tic, s32 row, void* data);
+extern void callLuaOverline(tic_mem* tic, void* data);
+extern void callLuaMenu(tic_mem* tic, s32 index, void* data);
+extern void closeLua(tic_mem* tic);
+extern void callLuaTick(tic_mem* tic);
+extern void lua_open_builtins(lua_State *lua);

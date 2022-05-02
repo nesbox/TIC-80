@@ -42,6 +42,9 @@ extern "C" {
 
 #define TIC80_KEY_BUFFER        4
 #define TIC80_SAMPLERATE        44100
+#define TIC80_SAMPLETYPE        s16
+#define TIC80_SAMPLESIZE        sizeof(TIC80_SAMPLETYPE)
+#define TIC80_SAMPLE_CHANNELS   2
 #define TIC80_FRAMERATE         60
 
 typedef enum {
@@ -57,18 +60,16 @@ typedef struct
     {
         void (*trace)(const char* text, u8 color);
         void (*error)(const char* info);
-        void (*exit)();     
+        void (*exit)();
     } callback;
 
     struct
     {
-        s16* samples;
+        TIC80_SAMPLETYPE* buffer;
         s32 count;
-    } sound;
+    } samples;
 
-    u32* screen;
-    tic80_pixel_color_format screen_format;
-    
+    u32 *screen;
 } tic80;
 
 typedef union
@@ -154,9 +155,10 @@ typedef struct
 
 } tic80_input;
 
-TIC80_API tic80* tic80_create(s32 samplerate);
+TIC80_API tic80* tic80_create(s32 samplerate, tic80_pixel_color_format format);
 TIC80_API void tic80_load(tic80* tic, void* cart, s32 size);
-TIC80_API void tic80_tick(tic80* tic, const tic80_input* input);
+TIC80_API void tic80_tick(tic80* tic, tic80_input input);
+TIC80_API void tic80_sound(tic80* tic);
 TIC80_API void tic80_delete(tic80* tic);
 
 #ifdef __cplusplus

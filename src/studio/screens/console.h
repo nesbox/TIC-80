@@ -70,6 +70,7 @@ struct Console
         size_t pos;
     } input;
 
+    Studio* studio;
     tic_mem* tic;
 
     struct tic_fs* fs;
@@ -91,12 +92,19 @@ struct Console
     u32 tickCounter;
 
     bool active;
-    bool showGameMenu;
     StartArgs args;
+    
+    struct
+    {
+        s32 count;
+        s32 current;
+        char** items;
+    } commands;
 
     CommandDesc* desc;
 
     void(*load)(Console*, const char* path);
+    bool(*loadCart)(Console*, const char* path);
     void(*loadByHash)(Console*, const char* name, const char* hash, const char* section, fs_done_callback callback, void* data);
     void(*updateProject)(Console*);
     void(*error)(Console*, const char*);
@@ -107,5 +115,5 @@ struct Console
     CartSaveResult(*save)(Console*);
 };
 
-void initConsole(Console*, tic_mem*, struct tic_fs* fs, struct tic_net* net, struct Config* config, StartArgs args);
+void initConsole(Console*, Studio* studio, struct tic_fs* fs, struct tic_net* net, struct Config* config, StartArgs args);
 void freeConsole(Console* console);

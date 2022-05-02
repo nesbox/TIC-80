@@ -1,0 +1,7 @@
+MRuby::GemBox.new do |conf|
+  conf.gembox "stdlib"
+  conf.gembox "stdlib-ext"
+  conf.gembox "math"
+  conf.gembox "metaprog"
+end
+# vim: set ft=ruby :

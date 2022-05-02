@@ -23,6 +23,12 @@
 #pragma once
 
 #include "tic.h"
+#include "time.h"
+
+// convenience macros to loop languages
+#define FOR_EACH_LANG(ln) for (tic_script_config** conf = Languages ; *conf != NULL; conf++ ) { tic_script_config* ln = *conf;
+#define FOR_EACH_LANG_END }
+
 
 typedef struct { u8 index; tic_flip flip; tic_rotate rotate; } RemapResult;
 typedef void(*RemapFunc)(void*, s32 x, s32 y, RemapResult* result);
@@ -30,26 +36,24 @@ typedef void(*RemapFunc)(void*, s32 x, s32 y, RemapResult* result);
 typedef void(*TraceOutput)(void*, const char*, u8 color);
 typedef void(*ErrorOutput)(void*, const char*);
 typedef void(*ExitCallback)(void*);
-typedef bool(*CheckForceExit)(void*);
 
 typedef struct
 {
     TraceOutput trace;
     ErrorOutput error;
     ExitCallback exit;
-    CheckForceExit forceExit;
     
-    u64 (*counter)(void*);
-    u64 (*freq)(void*);
-    u64 start;
+    clock_t start;
 
     void* data;
 } tic_tick_data;
 
 typedef struct tic_mem tic_mem;
 typedef void(*tic_tick)(tic_mem* memory);
+typedef void(*tic_boot)(tic_mem* memory);
 typedef void(*tic_scanline)(tic_mem* memory, s32 row, void* data);
-typedef void(*tic_overline)(tic_mem* memory, void* data);
+typedef void(*tic_border)(tic_mem* memory, s32 row, void* data);
+typedef void(*tic_gamemenu)(tic_mem* memory, s32 index, void* data);
 
 typedef struct
 {
@@ -59,15 +63,26 @@ typedef struct
 
 typedef struct
 {
+    tic_scanline    scanline;
+    tic_border      border;
+    tic_gamemenu    menu;
+    void* data;
+} tic_blit_callback;
+
+typedef struct
+{
+    u8 id;
     const char* name;
+    const char* fileExtension;
+    const char* projectComment;
     struct
     {
         bool(*init)(tic_mem* memory, const char* code);
         void(*close)(tic_mem* memory);
 
         tic_tick tick;
-        tic_scanline scanline;
-        tic_overline overline;
+        tic_boot boot;
+        tic_blit_callback callback;
     };
 
     const tic_outline_item* (*getOutline)(const char* code, s32* size);
@@ -80,10 +95,20 @@ typedef struct
     const char* blockStringStart;
     const char* blockStringEnd;
     const char* singleComment;
+    const char* blockEnd;
 
     const char* const * keywords;
     s32 keywordsCount;
 } tic_script_config;
+
+extern tic_script_config* Languages[];
+
+typedef enum
+{
+    tic_tiles_texture,
+    tic_map_texture,
+    tic_vbank_texture,
+} tic_texture_src;
 
 typedef struct
 {
@@ -101,14 +126,14 @@ typedef struct
 //       |---------+---------------+------- - - - 
 //       |         |               |
 #define TIC_SYNC_LIST(macro) \
-    macro(tiles,    tiles,          0) \
-    macro(sprites,  sprites,        1) \
-    macro(map,      map,            2) \
-    macro(sfx,      sfx,            3) \
-    macro(music,    music,          4) \
-    macro(palette,  vram.palette,   5) \
-    macro(flags,    flags,          6) \
-    macro(screen,   vram.screen,    7)
+    macro(tiles,    tiles,        0) \
+    macro(sprites,  sprites,      1) \
+    macro(map,      map,          2) \
+    macro(sfx,      sfx,          3) \
+    macro(music,    music,        4) \
+    macro(palette,  vram.palette, 5) \
+    macro(flags,    flags,        6) \
+    macro(screen,   vram.screen,  7)
 
 enum
 {
@@ -117,17 +142,22 @@ enum
 #undef TIC_SYNC_DEF
 };
 
-#define TIC_FN "TIC"
-#define SCN_FN "SCN"
-#define OVR_FN "OVR"
+#define TIC_FN  "TIC"
+#define BOOT_FN "BOOT"
+#define SCN_FN  "SCN"
+#define OVR_FN  "OVR" // deprecated since v1.0
+#define BDR_FN  "BDR"
+#define MENU_FN "MENU"
 
-#define TIC_CALLBACK_LIST(macro)                                                                                        \
-    macro(TIC_FN, TIC_FN "()", "Main function. It's called at " DEF2STR(TIC80_FRAMERATE)                                \
-        "fps (" DEF2STR(TIC80_FRAMERATE) " times every second).")                                                       \
-    macro(SCN_FN, SCN_FN "(row)", "Allows you to execute code between the drawing of each scanline, "                   \
-        "for example, to manipulate the palette.")                                                                      \
-    macro(OVR_FN, OVR_FN "()", "Called after each frame;"                                                               \
-        "draw calls from this function ignore palette swap and screen offset.")
+#define TIC_CALLBACK_LIST(macro)                                                                                    \
+    macro(TIC, TIC_FN "()", "Main function. It's called at " DEF2STR(TIC80_FRAMERATE)                               \
+        "fps (" DEF2STR(TIC80_FRAMERATE) " times every second).")                                                   \
+    macro(BOOT, BOOT_FN, "Startup function.")                                                                       \
+    macro(MENU, MENU_FN "(index)", "Game Menu handler.")                                                            \
+    macro(SCN, SCN_FN "(row)", "Allows you to execute code between the drawing of each scanline, "                  \
+        "for example, to manipulate the palette.")                                                                  \
+    macro(BDR, BDR_FN "(row)", "Allows you to execute code between the drawing of each fullscreen scanline, "       \
+        "for example, to manipulate the palette.")
 
 // API DEFINITION TABLE
 //  macro
@@ -135,6 +165,8 @@ enum
 //      definition
 //      help
 //      parameters count
+//      required parameters count
+//      callback?
 //      return type
 //      function parameters
 //  )
@@ -152,6 +184,8 @@ enum
         "- To use a custom rastered font, check out `font()`.\n"                                                        \
         "- To print to the console, check out `trace()`.",                                                              \
         7,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
         s32,                                                                                                            \
         tic_mem*, const char* text, s32 x, s32 y, u8 color, bool fixed, s32 scale, bool alt)                            \
                                                                                                                         \
@@ -163,6 +197,8 @@ enum
         "When called this function clear all the screen using the color passed as argument.\n"                          \
         "If no parameter is passed first color (0) is used.",                                                           \
         1,                                                                                                              \
+        0,                                                                                                              \
+        0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, u8 color)                                                                                             \
                                                                                                                         \
@@ -174,6 +210,8 @@ enum
         "When called with a color parameter, the pixel at the specified coordinates is set to that color.\n"            \
         "Calling the function without a color parameter returns the color of the pixel at the specified position.",     \
         3,                                                                                                              \
+        2,                                                                                                              \
+        0,                                                                                                              \
         u8,                                                                                                             \
         tic_mem*, s32 x, s32 y, u8 color, bool get)                                                                     \
                                                                                                                         \
@@ -183,8 +221,10 @@ enum
                                                                                                                         \
         "Draws a straight line from point (x0,y0) to point (x1,y1) in the specified color.",                            \
         5,                                                                                                              \
+        5,                                                                                                              \
+        0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 x1, s32 y1, s32 x2, s32 y2, u8 color)                                                             \
+        tic_mem*, float x1, float y1, float x2, float y2, u8 color)                                                     \
                                                                                                                         \
                                                                                                                         \
     macro(rect,                                                                                                         \
@@ -193,6 +233,8 @@ enum
         "This function draws a filled rectangle of the desired size and color at the specified position.\n"             \
         "If you only need to draw the the border or outline of a rectangle (ie not filled) see `rectb()`.",             \
         5,                                                                                                              \
+        5,                                                                                                              \
+        0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 x, s32 y, s32 width, s32 height, u8 color)                                                        \
                                                                                                                         \
@@ -203,6 +245,8 @@ enum
         "This function draws a one pixel thick rectangle border at the position requested.\n"                           \
         "If you need to fill the rectangle with a color, see `rect()` instead.",                                        \
         5,                                                                                                              \
+        5,                                                                                                              \
+        0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 x, s32 y, s32 width, s32 height, u8 color)                                                        \
                                                                                                                         \
@@ -228,9 +272,11 @@ enum
         "You can draw a composite sprite (consisting of a rectangular region of sprites from the sprite sheet) "        \
         "by specifying the `w` and `h` parameters (which default to 1).",                                               \
         9,                                                                                                              \
+        3,                                                                                                              \
+        0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 index, s32 x, s32 y, s32 w, s32 h,                                                                \
-        u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)                                             \
+        u8* trans_colors, u8 trans_count, s32 scale, tic_flip flip, tic_rotate rotate)                                             \
                                                                                                                         \
                                                                                                                         \
     macro(btn,                                                                                                          \
@@ -241,6 +287,8 @@ enum
         "It remains true for as long as the key is held down.\n"                                                        \
         "If you want to test if a key was just pressed, use `btnp()` instead.",                                         \
         1,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
         u32,                                                                                                            \
         tic_mem*, s32 id)                                                                                               \
                                                                                                                         \
@@ -259,6 +307,8 @@ enum
         "Since time is expressed in ticks and TIC runs at 60 frames per second, "                                       \
         "we use the value of 120 to wait 2 seconds and 6 ticks (ie 60/10) as the interval for re-checking.",            \
         3,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
         u32,                                                                                                            \
         tic_mem*, s32 id, s32 hold, s32 period)                                                                         \
                                                                                                                         \
@@ -285,6 +335,8 @@ enum
         "The `speed` in the range -4 to 3 can be specified and means how many `ticks+1` to play each step, "            \
         "so speed==0 means 1 tick per step.",                                                                           \
         6,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 index, s32 note, s32 octave,                                                                      \
         s32 duration, s32 channel, s32 left, s32 right, s32 speed)                                                      \
@@ -298,7 +350,7 @@ enum
         "This function will draw the desired area of the map to a specified screen position.\n"                         \
         "For example, map(5,5,12,10,0,0) will draw a 12x10 section of the map, "                                        \
         "starting from map co-ordinates (5,5) to screen position (0,0).\n"                                              \
-        "The map function’s last parameter is a powerful callback function "                                            \
+        "The map function's last parameter is a powerful callback function "                                            \
         "for changing how map cells (sprites) are drawn when map is called.\n"                                          \
         "It can be used to rotate, flip and replace sprites while the game is running.\n"                               \
         "Unlike mset, which saves changes to the map, this special function can be used to create "                     \
@@ -309,9 +361,11 @@ enum
         "will cause tile(sprite) #1 to appear at top left when map() is called.\n"                                      \
         "To set the tile immediately below this we need to write to 0x08000 + 240, ie 0x080F0.",                        \
         9,                                                                                                              \
+        0,                                                                                                              \
+        1,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy,                                                  \
-        u8* colors, s32 count, s32 scale, RemapFunc remap, void* data)                                                  \
+        u8* trans_colors, u8 trans_count, s32 scale, RemapFunc remap, void* data)                                                  \
                                                                                                                         \
                                                                                                                         \
     macro(mget,                                                                                                         \
@@ -319,6 +373,8 @@ enum
                                                                                                                         \
         "Gets the sprite id at the given x and y map coordinate.",                                                      \
         2,                                                                                                              \
+        2,                                                                                                              \
+        0,                                                                                                              \
         u8,                                                                                                             \
         tic_mem*, s32 x, s32 y)                                                                                         \
                                                                                                                         \
@@ -331,12 +387,14 @@ enum
         "To make permanent changes to the map, see `sync()`.\n"                                                         \
         "Related: `map()` `mget()` `sync()`.",                                                                          \
         3,                                                                                                              \
+        3,                                                                                                              \
+        0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 x, s32 y, u8 value)                                                                               \
                                                                                                                         \
                                                                                                                         \
     macro(peek,                                                                                                         \
-        "peek(addr res=8) -> value",                                                                                    \
+        "peek(addr bits=8) -> value",                                                                                   \
                                                                                                                         \
         "This function allows to read the memory from TIC.\n"                                                           \
         "It's useful to access resources created with the integrated tools like sprite, maps, sounds, "                 \
@@ -344,29 +402,84 @@ enum
         "Never dream to sound a sprite?\n"                                                                              \
         "Address are in hexadecimal format but values are decimal.\n"                                                   \
         "To write to a memory address, use `poke()`.\n"                                                                 \
-        "`res` allowed to be 1,2,4,8.",                                                                                 \
+        "`bits` allowed to be 1,2,4,8.",                                                                                \
         2,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
         u8,                                                                                                             \
-        tic_mem*, s32 address, s32 res)                                                                                 \
+        tic_mem*, s32 address, s32 bits)                                                                                \
                                                                                                                         \
                                                                                                                         \
     macro(poke,                                                                                                         \
-        "poke(addr value res=8)",                                                                                       \
+        "poke(addr value bits=8)",                                                                                      \
                                                                                                                         \
         "This function allows you to write a single byte to any address in TIC's RAM.\n"                                \
         "The address should be specified in hexadecimal format, the value in decimal.\n"                                \
-        "`res` allowed to be 1,2,4,8.",                                                                                 \
+        "`bits` allowed to be 1,2,4,8.",                                                                                \
         3,                                                                                                              \
+        2,                                                                                                              \
+        0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 address, u8 value, s32 res)                                                                       \
+        tic_mem*, s32 address, u8 value, s32 bits)                                                                      \
+                                                                                                                        \
+                                                                                                                        \
+    macro(peek1,                                                                                                        \
+        "peek1(addr) -> value",                                                                                         \
+                                                                                                                        \
+        "This function enables you to read single bit values from TIC's RAM.\n"                                         \
+        "The address is often specified in hexadecimal format.",                                                        \
+        1,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
+        u8,                                                                                                             \
+        tic_mem*, s32 address)                                                                                          \
+                                                                                                                        \
+                                                                                                                        \
+    macro(poke1,                                                                                                        \
+        "poke1(addr value)",                                                                                            \
+                                                                                                                        \
+        "This function allows you to write single bit values directly to RAM.\n"                                        \
+        "The address is often specified in hexadecimal format.",                                                        \
+        2,                                                                                                              \
+        2,                                                                                                              \
+        0,                                                                                                              \
+        void,                                                                                                           \
+        tic_mem*, s32 address, u8 value)                                                                                \
+                                                                                                                        \
+                                                                                                                        \
+    macro(peek2,                                                                                                        \
+        "peek2(addr) -> value",                                                                                         \
+                                                                                                                        \
+        "This function enables you to read two bits values from TIC's RAM.\n"                                           \
+        "The address is often specified in hexadecimal format.",                                                        \
+        1,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
+        u8,                                                                                                             \
+        tic_mem*, s32 address)                                                                                          \
+                                                                                                                        \
+                                                                                                                        \
+    macro(poke2,                                                                                                        \
+        "poke2(addr value)",                                                                                            \
+                                                                                                                        \
+        "This function allows you to write two bits values directly to RAM.\n"                                          \
+        "The address is often specified in hexadecimal format.",                                                        \
+        2,                                                                                                              \
+        2,                                                                                                              \
+        0,                                                                                                              \
+        void,                                                                                                           \
+        tic_mem*, s32 address, u8 value)                                                                                \
                                                                                                                         \
                                                                                                                         \
     macro(peek4,                                                                                                        \
         "peek4(addr) -> value",                                                                                         \
                                                                                                                         \
-        "This function enables you to read 4bit values from TIC's RAM.\n"                                               \
-        "The address should be specified in hexadecimal format.",                                                       \
+        "This function enables you to read values from TIC's RAM.\n"                                                    \
+        "The address is often specified in hexadecimal format.\n"                                                       \
+        "See 'poke4()' for detailed information on how nibble addressing compares with byte addressing.",               \
         1,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
         u8,                                                                                                             \
         tic_mem*, s32 address)                                                                                          \
                                                                                                                         \
@@ -374,12 +487,14 @@ enum
     macro(poke4,                                                                                                        \
         "poke4(addr value)",                                                                                            \
                                                                                                                         \
-        "This function allows you to write to the virtual RAM of TIC.\n"                                                \
-        "It differs from `poke()` in that it divides memory in groups of 4 bits.\n"                                     \
-        "Therefore, to address the high nibble of position 0x4000 you should pass 0x8000 as addr4, "                    \
-        "and to access the low nibble (rightmost 4 bits) you would pass 0x8001.\n"                                      \
-        "The address should be specified in hexadecimal format, and values should be given in decimal.",                \
+        "This function allows you to write directly to RAM.\n"                                                          \
+        "The address is often specified in hexadecimal format.\n"                                                       \
+        "For both peek4 and poke4 RAM is addressed in 4 bit segments (nibbles).\n"                                      \
+        "Therefore, to access the the RAM at byte address 0x4000\n"                                                     \
+        "you would need to access both the 0x8000 and 0x8001 nibble addresses.",                                        \
         2,                                                                                                              \
+        2,                                                                                                              \
+        0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 address, u8 value)                                                                                \
                                                                                                                         \
@@ -390,6 +505,8 @@ enum
         "This function allows you to copy a continuous block of TIC's 96K RAM from one address to another.\n"           \
         "Addresses are specified are in hexadecimal format, values are decimal.",                                       \
         3,                                                                                                              \
+        3,                                                                                                              \
+        0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 dst, s32 src, s32 size)                                                                           \
                                                                                                                         \
@@ -400,6 +517,8 @@ enum
         "This function allows you to set a continuous block of any part of TIC's RAM to the same value.\n"              \
         "The address is specified in hexadecimal format, the value in decimal.",                                        \
         3,                                                                                                              \
+        3,                                                                                                              \
+        0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 dst, u8 val, s32 size)                                                                            \
                                                                                                                         \
@@ -413,6 +532,8 @@ enum
         "- The Lua concatenator for strings is .. (two points).\n"                                                      \
         "- Use console cls command to clear the output from trace.",                                                    \
         2,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, const char* text, u8 color)                                                                           \
                                                                                                                         \
@@ -429,6 +550,8 @@ enum
         "- Use `saveid:` with a personalized string in the header metadata to override the default MD5 calculation.\n"  \
         "This allows the user to update a cart without losing their saved data.",                                       \
         2,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
         u32,                                                                                                            \
         tic_mem*, s32 index, u32 value, bool get)                                                                       \
                                                                                                                         \
@@ -438,6 +561,8 @@ enum
                                                                                                                         \
         "This function returns the number of milliseconds elapsed since the cartridge began execution.\n"               \
         "Useful for keeping track of time, animating items and triggering events.",                                     \
+        0,                                                                                                              \
+        0,                                                                                                              \
         0,                                                                                                              \
         double,                                                                                                         \
         tic_mem*)                                                                                                       \
@@ -449,6 +574,8 @@ enum
         "This function returns the number of seconds elapsed since January 1st, 1970.\n"                                \
         "Useful for creating persistent games which evolve over time between plays.",                                   \
         0,                                                                                                              \
+        0,                                                                                                              \
+        0,                                                                                                              \
         s32,                                                                                                            \
         tic_mem*)                                                                                                       \
                                                                                                                         \
@@ -457,6 +584,8 @@ enum
         "exit()",                                                                                                       \
                                                                                                                         \
         "Interrupts program execution and returns to the console when the TIC function ends.",                          \
+        0,                                                                                                              \
+        0,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*)                                                                                                       \
@@ -469,9 +598,11 @@ enum
         "To simply print to the screen, check out `print()`.\n"                                                         \
         "To print to the console, check out `trace()`.",                                                                \
         8,                                                                                                              \
+        6,                                                                                                              \
+        0,                                                                                                              \
         s32,                                                                                                            \
         tic_mem*, const char* text, s32 x, s32 y,                                                                       \
-        u8 chromakey, s32 w, s32 h, bool fixed, s32 scale, bool alt)                                                    \
+        u8* trans_colors, u8 trans_count, s32 w, s32 h, bool fixed, s32 scale, bool alt)                                                    \
                                                                                                                         \
                                                                                                                         \
     macro(mouse,                                                                                                        \
@@ -479,6 +610,8 @@ enum
                                                                                                                         \
         "This function returns the mouse coordinates and a boolean value for the state of each mouse button,"           \
         "with true indicating that a button is pressed.",                                                               \
+        0,                                                                                                              \
+        0,                                                                                                              \
         0,                                                                                                              \
         tic_point,                                                                                                      \
         tic_mem*)                                                                                                       \
@@ -490,6 +623,8 @@ enum
         "This function draws a filled circle of the desired radius and color with its center at x, y.\n"                \
         "It uses the Bresenham algorithm.",                                                                             \
         4,                                                                                                              \
+        4,                                                                                                              \
+        0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 x, s32 y, s32 radius, u8 color)                                                                   \
                                                                                                                         \
@@ -500,6 +635,8 @@ enum
         "Draws the circumference of a circle with its center at x, y using the radius and color requested.\n"           \
         "It uses the Bresenham algorithm.",                                                                             \
         4,                                                                                                              \
+        4,                                                                                                              \
+        0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 x, s32 y, s32 radius, u8 color)                                                                   \
                                                                                                                         \
@@ -510,6 +647,8 @@ enum
         "This function draws a filled ellipse of the desired a, b radiuses and color with its center at x, y.\n"        \
         "It uses the Bresenham algorithm.",                                                                             \
         5,                                                                                                              \
+        5,                                                                                                              \
+        0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 x, s32 y, s32 a, s32 b, u8 color)                                                                 \
                                                                                                                         \
@@ -520,6 +659,8 @@ enum
         "This function draws an ellipse border with the desired radiuses a b and color with its center at x, y.\n"      \
         "It uses the Bresenham algorithm.",                                                                             \
         5,                                                                                                              \
+        5,                                                                                                              \
+        0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 x, s32 y, s32 a, s32 b, u8 color)                                                                 \
                                                                                                                         \
@@ -529,34 +670,39 @@ enum
                                                                                                                         \
         "This function draws a triangle filled with color, using the supplied vertices.",                               \
         7,                                                                                                              \
+        7,                                                                                                              \
+        0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, u8 color)                                             \
+        tic_mem*, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)                                 \
                                                                                                                         \
     macro(trib,                                                                                                         \
         "trib(x1 y1 x2 y2 x3 y3 color)",                                                                                \
                                                                                                                         \
         "This function draws a triangle border with color, using the supplied vertices.",                               \
         7,                                                                                                              \
+        7,                                                                                                              \
+        0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, u8 color)                                             \
+        tic_mem*, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)                                 \
                                                                                                                         \
                                                                                                                         \
-    macro(textri,                                                                                                       \
-        "textri(x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 use_map=false chromakey=-1)",                                       \
+    macro(ttri,                                                                                                       \
+        "ttri(x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 texsrc=0 chromakey=-1 z1=0 z2=0 z3=0)",                             \
                                                                                                                         \
-        "It renders a triangle filled with texture from image ram or map ram.\n"                                        \
+        "It renders a triangle filled with texture from image ram, map ram or vbank.\n"                                 \
         "Use in 3D graphics.\n"                                                                                         \
-        "This function does not perform perspective correction, so it is not generally suitable for 3D graphics "       \
-        "(except in some constrained scenarios).\n"                                                                     \
         "In particular, if the vertices in the triangle have different 3D depth, you may see some distortion.\n"        \
-        "These can be thought of as the window inside image ram (sprite sheet), or map ram.\n"                          \
+        "These can be thought of as the window inside image ram (sprite sheet), map ram or another vbank.\n"            \
         "Note that the sprite sheet or map in this case is treated as a single large image, "                           \
         "with U and V addressing its pixels directly, rather than by sprite ID.\n"                                      \
         "So for example the top left corner of sprite #2 would be located at u=16, v=0.",                               \
-        14,                                                                                                             \
+        17,                                                                                                             \
+        12,                                                                                                             \
+        0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, float x1, float y1, float x2, float y2, float x3, float y3,                                           \
-        float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count)                \
+        float u1, float v1, float u2, float v2, float u3, float v3, tic_texture_src texsrc, u8* colors, s32 count,      \
+        float z1, float z2, float z3, bool depth)                                                                       \
                                                                                                                         \
                                                                                                                         \
     macro(clip,                                                                                                         \
@@ -566,6 +712,8 @@ enum
         "Things drawn outside of this area will not be visible.\n"                                                      \
         "Calling clip() with no parameters will reset the drawing area to the entire screen.",                          \
         4,                                                                                                              \
+        4,                                                                                                              \
+        0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 x, s32 y, s32 width, s32 height)                                                                  \
                                                                                                                         \
@@ -576,6 +724,8 @@ enum
         "This function starts playing a track created in the Music Editor.\n"                                           \
         "Call without arguments to stop the music.",                                                                    \
         7,                                                                                                              \
+        0,                                                                                                              \
+        0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 track, s32 frame, s32 row, bool loop, bool sustain, s32 tempo, s32 speed)                         \
                                                                                                                         \
@@ -592,14 +742,29 @@ enum
         "This resets the whole runtime memory to the contents of bank 0."                                               \
         "Note that sync is not used to load code from banks; this is done automatically.",                              \
         3,                                                                                                              \
+        0,                                                                                                              \
+        0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, u32 mask, s32 bank, bool toCart)                                                                      \
+                                                                                                                        \
+                                                                                                                        \
+    macro(vbank,                                                                                                        \
+        "vbank(bank) -> prev\nvbank() -> prev",                                                                         \
+                                                                                                                        \
+        "VRAM contains 2x16K memory chips, use vbank(0) or vbank(1) to switch between them.",                           \
+        1,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
+        s32,                                                                                                            \
+        tic_mem*, s32 bank)                                                                                             \
                                                                                                                         \
                                                                                                                         \
     macro(reset,                                                                                                        \
         "reset()",                                                                                                      \
                                                                                                                         \
         "Resets the cartridge. To return to the console, see the `exit()`.",                                            \
+        0,                                                                                                              \
+        0,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*)                                                                                                       \
@@ -610,6 +775,8 @@ enum
                                                                                                                         \
         "The function returns true if the key denoted by keycode is pressed.",                                          \
         1,                                                                                                              \
+        0,                                                                                                              \
+        0,                                                                                                              \
         bool,                                                                                                           \
         tic_mem*, tic_key key)                                                                                          \
                                                                                                                         \
@@ -620,6 +787,8 @@ enum
         "This function returns true if the given key is pressed but wasn't pressed in the previous frame.\n"            \
         "Refer to `btnp()` for an explanation of the optional hold and period parameters.",                             \
         3,                                                                                                              \
+        0,                                                                                                              \
+        0,                                                                                                              \
         bool,                                                                                                           \
         tic_mem*, tic_key key, s32 hold, s32 period)                                                                    \
                                                                                                                         \
@@ -629,6 +798,8 @@ enum
                                                                                                                         \
         "Returns true if the specified flag of the sprite is set. See `fset()` for more details.",                      \
         2,                                                                                                              \
+        2,                                                                                                              \
+        0,                                                                                                              \
         bool,                                                                                                           \
         tic_mem*, s32 index, u8 flag)                                                                                   \
                                                                                                                         \
@@ -641,17 +812,22 @@ enum
         "flag 6 might indicate that the flag should be draw scaled etc.\n"                                              \
         "See algo `fget()`.",                                                                                           \
         3,                                                                                                              \
+        3,                                                                                                              \
+        0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 index, u8 flag, bool value)
 
-#define TIC_API_DEF(name, _, __, ___, ret, ...) ret tic_api_##name(__VA_ARGS__);
+#define TIC_API_DEF(name, _, __, ___, ____, _____, ret, ...) ret tic_api_##name(__VA_ARGS__);
 TIC_API_LIST(TIC_API_DEF)
 #undef TIC_API_DEF
 
 struct tic_mem
 {
-    tic_ram             ram;
+    tic80           product;
+    tic_ram*             ram;
     tic_cartridge       cart;
+
+    tic_ram*        base_ram;
 
     char saveid[TIC_SAVEID_SIZE];
 
@@ -666,36 +842,20 @@ struct tic_mem
 
         u8 data;
     } input;
-
-    struct
-    {
-        s16* buffer;
-        s32 size;
-    } samples;
-
-#if defined(_3DS)
-    u32 *screen;
-#else
-    u32 screen[TIC80_FULLWIDTH * TIC80_FULLHEIGHT];
-#endif
-    tic80_pixel_color_format screen_format;
 };
 
-tic_mem* tic_core_create(s32 samplerate);
+tic_mem* tic_core_create(s32 samplerate, tic80_pixel_color_format format);
 void tic_core_close(tic_mem* memory);
 void tic_core_pause(tic_mem* memory);
 void tic_core_resume(tic_mem* memory);
 void tic_core_tick_start(tic_mem* memory);
 void tic_core_tick(tic_mem* memory, tic_tick_data* data);
 void tic_core_tick_end(tic_mem* memory);
-void tic_core_blit(tic_mem* tic, tic80_pixel_color_format fmt);
-void tic_core_blit_ex(tic_mem* tic, tic80_pixel_color_format fmt, tic_scanline scanline, tic_overline overline, void* data);
+void tic_core_synth_sound(tic_mem* tic);
+void tic_core_blit(tic_mem* tic);
+void tic_core_blit_ex(tic_mem* tic, tic_blit_callback clb);
 const tic_script_config* tic_core_script_config(tic_mem* memory);
 
-typedef struct
-{
-    tic80 tic;
-    tic_mem* memory;
-    tic_tick_data tickData;
-    u64 tick_counter;
-} tic80_local;
+#define VBANK(tic, bank)                                \
+    bool MACROVAR(_bank_) = tic_api_vbank(tic, bank);   \
+    SCOPE(tic_api_vbank(tic, MACROVAR(_bank_)))

@@ -28,10 +28,11 @@ typedef struct Music Music;
 
 struct Music
 {
+    Studio* studio;
     tic_mem* tic;
     tic_music* src;
 
-    u8 track:MUSIC_TRACKS_BITS;
+    u8 track;
     s32 frame;
 
     struct
@@ -45,6 +46,7 @@ struct Music
     bool beat34;
     bool follow;
     bool sustain;
+    bool loop;
     bool on[TIC_SOUND_CHANNELS];
 
     struct
@@ -77,7 +79,15 @@ struct Music
     {
         MUSIC_TRACKER_TAB,
         MUSIC_PIANO_TAB,
+        MUSIC_TAB_COUNT,
     } tab;
+
+    struct
+    {
+        const char* label;
+        s32 x;
+        s32 start;
+    } drag;
 
     u32 tickCounter;
 
@@ -87,5 +97,5 @@ struct Music
     void(*event)(Music*, StudioEvent);
 };
 
-void initMusic(Music*, tic_mem*, tic_music* src);
+void initMusic(Music*, Studio* studio, tic_music* src);
 void freeMusic(Music* music);

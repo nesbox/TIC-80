@@ -27,6 +27,10 @@
 #include <string.h>
 #include <assert.h>
 
+#if defined(DINGUX) && !defined(static_assert)
+#define static_assert _Static_assert
+#endif
+
 #define ENVELOPE_FREQ_SCALE 2
 #define SECONDS_PER_MINUTE 60
 #define NOTES_PER_MUNUTE (TIC80_FRAMERATE / NOTES_PER_BEAT * SECONDS_PER_MINUTE)
@@ -123,10 +127,11 @@ static void runNoise(blip_buffer_t* blip, const tic_sound_register* reg, tic_sou
         data->phase = 1;
 
     s32 period = freq2period(reg->freq);
+    s32 fb = *reg->waveform.data ? 0x14 : 0x12000;
 
     for (; data->time < end_time; data->time += period)
     {
-        data->phase = ((data->phase & 1) * (0b11 << 13)) ^ (data->phase >> 1);
+        data->phase = ((data->phase & 1) * fb) ^ (data->phase >> 1);
         update_amp(blip, data, getAmp(reg, (data->phase & 1) ? volume : 0));
     }
 }
@@ -168,7 +173,7 @@ static void sfx(tic_mem* memory, s32 index, s32 note, s32 pitch, tic_channel_dat
         return;
     }
 
-    const tic_sample* effect = &memory->ram.sfx.samples.data[index];
+    const tic_sample* effect = &memory->ram->sfx.samples.data[index];
     s32 pos = tic_tool_sfx_pos(channel->speed, ++channel->tick);
 
     for (s32 i = 0; i < sizeof(tic_sfx_pos); i++)
@@ -187,11 +192,11 @@ static void sfx(tic_mem* memory, s32 index, s32 note, s32 pitch, tic_channel_dat
         reg->volume = volume;
 
         u8 wave = effect->data[channel->pos->wave].wave;
-        const tic_waveform* waveform = &memory->ram.sfx.waveforms.items[wave];
+        const tic_waveform* waveform = &memory->ram->sfx.waveforms.items[wave];
         memcpy(reg->waveform.data, waveform->data, sizeof(tic_waveform));
 
-        tic_tool_poke4(&memory->ram.stereo.data, channelIndex * 2, channel->volume.left * !effect->stereo_left);
-        tic_tool_poke4(&memory->ram.stereo.data, channelIndex * 2 + 1, channel->volume.right * !effect->stereo_right);
+        tic_tool_poke4(&memory->ram->stereo.data, channelIndex * 2, channel->volume.left * !effect->stereo_left);
+        tic_tool_poke4(&memory->ram->stereo.data, channelIndex * 2 + 1, channel->volume.right * !effect->stereo_right);
     }
 }
 
@@ -205,7 +210,7 @@ static void setChannelData(tic_mem* memory, s32 index, s32 note, s32 octave, s32
     if (index >= 0)
     {
         struct { s8 speed : SFX_SPEED_BITS; } temp = { speed };
-        channel->speed = speed == temp.speed ? speed : memory->ram.sfx.samples.data[index].speed;
+        channel->speed = speed == temp.speed ? speed : memory->ram->sfx.samples.data[index].speed;
     }
 
     channel->note = note + octave * NOTES;
@@ -240,11 +245,11 @@ static void stopMusic(tic_mem* memory)
 static void processMusic(tic_mem* memory)
 {
     tic_core* core = (tic_core*)memory;
-    tic_music_state* music_state = &memory->ram.music_state;
+    tic_music_state* music_state = &memory->ram->music_state;
 
     if (music_state->flag.music_status == tic_music_stop) return;
 
-    const tic_track* track = &memory->ram.music.tracks.data[music_state->music.track];
+    const tic_track* track = &memory->ram->music.tracks.data[music_state->music.track];
     s32 row = tick2row(core, track, core->state.music.ticks);
     tic_jump_command* jumpCmd = &core->state.music.jump;
 
@@ -325,7 +330,7 @@ static void processMusic(tic_mem* memory)
             s32 patternId = tic_tool_get_pattern_id(track, music_state->music.frame, c);
             if (!patternId) continue;
 
-            const tic_track_pattern* pattern = &memory->ram.music.patterns.data[patternId - PATTERN_START];
+            const tic_track_pattern* pattern = &memory->ram->music.patterns.data[patternId - PATTERN_START];
             const tic_track_row* trackRow = &pattern->rows[music_state->music.row];
             tic_channel_data* channel = &core->state.music.channels[c];
             tic_command_data* cmdData = &core->state.music.commands[c];
@@ -435,7 +440,7 @@ static void processMusic(tic_mem* memory)
 
             pitch += cmdData->finepitch.value;
 
-            sfx(memory, channel->index, note, pitch, channel, &memory->ram.registers[i], i);
+            sfx(memory, channel->index, note, pitch, channel, &memory->ram->registers[i], i);
         }
 
         ++cmdData->chord.tick;
@@ -458,7 +463,7 @@ static void setSfxChannelData(tic_mem* memory, s32 index, s32 note, s32 octave, 
 static void setMusic(tic_core* core, s32 index, s32 frame, s32 row, bool loop, bool sustain, s32 tempo, s32 speed)
 {
     tic_mem* memory = (tic_mem*)core;
-    tic_ram* ram = &memory->ram;
+    tic_ram* ram = memory->ram;
 
     ram->music_state.music.track = index;
 
@@ -492,7 +497,7 @@ void tic_api_music(tic_mem* memory, s32 index, s32 frame, s32 row, bool loop, bo
     setMusic(core, index, frame, row, loop, sustain, tempo, speed);
 
     if (index >= 0)
-        memory->ram.music_state.flag.music_status = tic_music_play;
+        memory->ram->music_state.flag.music_status = tic_music_play;
 }
 
 void tic_api_sfx(tic_mem* memory, s32 index, s32 note, s32 octave, s32 duration, s32 channel, s32 left, s32 right, s32 speed)
@@ -501,17 +506,18 @@ void tic_api_sfx(tic_mem* memory, s32 index, s32 note, s32 octave, s32 duration,
     setSfxChannelData(memory, index, note, octave, duration, channel, left, right, speed);
 }
 
-static void stereo_tick_end(tic_mem* memory, tic_sound_register_data* registers, blip_buffer_t* blip, u8 stereoRight)
+static void stereo_synthesize(tic_core* core, tic_sound_register_data* registers, blip_buffer_t* blip, u8 stereoRight)
 {
     enum { EndTime = CLOCKRATE / TIC80_FRAMERATE };
+    s32 bufpos = (core->state.sound_ringbuf_tail + TIC_SOUND_RINGBUF_LEN - 1) % TIC_SOUND_RINGBUF_LEN;
     for (s32 i = 0; i < TIC_SOUND_CHANNELS; ++i)
     {
-        u8 volume = tic_tool_peek4(&memory->ram.stereo.data, stereoRight + i * 2);
+        u8 volume = tic_tool_peek4(&core->state.sound_ringbuf[bufpos].stereo, stereoRight + i * 2);
 
-        const tic_sound_register* reg = &memory->ram.registers[i];
+        const tic_sound_register* reg = &core->state.sound_ringbuf[bufpos].registers[i];
         tic_sound_register_data* data = registers + i;
 
-        EMPTY(reg->waveform.data)
+        tic_tool_noise(&reg->waveform)
             ? runNoise(blip, reg, data, EndTime, volume)
             : runEnvelope(blip, reg, data, EndTime, volume);
 
@@ -521,14 +527,34 @@ static void stereo_tick_end(tic_mem* memory, tic_sound_register_data* registers,
     blip_end_frame(blip, EndTime);
 }
 
+void tic_core_synth_sound(tic_mem* memory)
+{
+    tic_core* core = (tic_core*)memory;
+
+    // synthesize sound using the register values found from the tail of the ring buffer
+    stereo_synthesize(core, core->state.registers.left, core->blip.left, 0);
+    stereo_synthesize(core, core->state.registers.right, core->blip.right, 1);
+
+    blip_read_samples(core->blip.left, core->memory.product.samples.buffer, core->samplerate / TIC80_FRAMERATE, TIC80_SAMPLE_CHANNELS);
+    blip_read_samples(core->blip.right, core->memory.product.samples.buffer + 1, core->samplerate / TIC80_FRAMERATE, TIC80_SAMPLE_CHANNELS);
+
+    // if the head has advanced, we can advance the tail too. Otherwise, we just
+    // keep synthesizing audio using the last known register values, so at least we don't get crackles
+    if (core->state.sound_ringbuf_tail != core->state.sound_ringbuf_head) {
+        // note: we assume storing a 32 bit integer is atomic, that should hold on pretty much any modern processor
+        // assuming it is aligned in memory (which it should be)
+        core->state.sound_ringbuf_tail = (core->state.sound_ringbuf_tail + 1) % TIC_SOUND_RINGBUF_LEN;
+    }
+}
+
 void tic_core_sound_tick_start(tic_mem* memory)
 {
     tic_core* core = (tic_core*)memory;
 
     for (s32 i = 0; i < TIC_SOUND_CHANNELS; ++i)
-        memset(&memory->ram.registers[i], 0, sizeof(tic_sound_register));
+        memset(&memory->ram->registers[i], 0, sizeof(tic_sound_register));
 
-    memory->ram.stereo.data = -1;
+    memory->ram->stereo.data = -1;
 
     processMusic(memory);
 
@@ -537,7 +563,7 @@ void tic_core_sound_tick_start(tic_mem* memory)
         tic_channel_data* c = &core->state.sfx.channels[i];
 
         if (c->index >= 0)
-            sfx(memory, c->index, c->note, 0, c, &memory->ram.registers[i], i);
+            sfx(memory, c->index, c->note, 0, c, &memory->ram->registers[i], i);
     }
 }
 
@@ -545,9 +571,13 @@ void tic_core_sound_tick_end(tic_mem* memory)
 {
     tic_core* core = (tic_core*)memory;
 
-    stereo_tick_end(memory, core->state.registers.left, core->blip.left, 0);
-    stereo_tick_end(memory, core->state.registers.right, core->blip.right, 1);
+    // instead of synthesizing the sound right away, push the sound registers to the head of a ring buffer
+    core->state.sound_ringbuf[core->state.sound_ringbuf_head].stereo = memory->ram->stereo;
+    memcpy(&core->state.sound_ringbuf[core->state.sound_ringbuf_head], &memory->ram->registers, sizeof(tic_sound_register[4]));
 
-    blip_read_samples(core->blip.left, core->memory.samples.buffer, core->samplerate / TIC80_FRAMERATE, TIC_STEREO_CHANNELS);
-    blip_read_samples(core->blip.right, core->memory.samples.buffer + 1, core->samplerate / TIC80_FRAMERATE, TIC_STEREO_CHANNELS);
+    if (core->state.sound_ringbuf_head != (core->state.sound_ringbuf_tail + TIC_SOUND_RINGBUF_LEN - 2) % TIC_SOUND_RINGBUF_LEN) {
+        // note: we assume storing a 32 bit integer is atomic, that should hold on pretty much any modern processor
+        // assuming it is aligned in memory (which it should be)
+        core->state.sound_ringbuf_head = (core->state.sound_ringbuf_head + 1) % TIC_SOUND_RINGBUF_LEN;
+    }
 }

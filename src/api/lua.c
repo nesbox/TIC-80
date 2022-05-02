@@ -31,29 +31,23 @@
 #include <lualib.h>
 #include <ctype.h>
 
-#define LUA_LOC_STACK 100000000
-
-static const char TicCore[] = "_TIC80";
-
 s32 luaopen_lpeg(lua_State *lua);
 
-// !TODO: get rid of this wrap
-static s32 getLuaNumber(lua_State* lua, s32 index)
+static inline s32 getLuaNumber(lua_State* lua, s32 index)
 {
     return (s32)lua_tonumber(lua, index);
 }
 
 static void registerLuaFunction(tic_core* core, lua_CFunction func, const char *name)
 {
-    lua_pushcfunction(core->lua, func);
-    lua_setglobal(core->lua, name);
+    lua_pushlightuserdata(core->currentVM, core);
+    lua_pushcclosure(core->currentVM, func, 1);
+    lua_setglobal(core->currentVM, name);
 }
 
 static tic_core* getLuaCore(lua_State* lua)
 {
-    lua_getglobal(lua, TicCore);
-    tic_core* core = lua_touserdata(lua, -1);
-    lua_pop(lua, 1);
+    tic_core* core = lua_touserdata(lua, lua_upvalueindex(1));
     return core;
 }
 
@@ -65,15 +59,15 @@ static s32 lua_peek(lua_State* lua)
     if(top >= 1)
     {
         s32 address = getLuaNumber(lua, 1);
-        s32 res = BITS_IN_BYTE;
+        s32 bits = BITS_IN_BYTE;
 
         if(top == 2)
-            res = getLuaNumber(lua, 2);
+            bits = getLuaNumber(lua, 2);
 
-        lua_pushinteger(lua, tic_api_peek(tic, address, res));
+        lua_pushinteger(lua, tic_api_peek(tic, address, bits));
         return 1;
     }
-    else luaL_error(lua, "invalid parameters, peek(addr,res)\n");
+    else luaL_error(lua, "invalid parameters, peek(addr,bits)\n");
 
     return 0;
 }
@@ -87,14 +81,80 @@ static s32 lua_poke(lua_State* lua)
     {
         s32 address = getLuaNumber(lua, 1);
         u8 value = getLuaNumber(lua, 2);
-        s32 res = BITS_IN_BYTE;
+        s32 bits = BITS_IN_BYTE;
 
         if(top == 3)
-            res = getLuaNumber(lua, 3);
+            bits = getLuaNumber(lua, 3);
 
-        tic_api_poke(tic, address, value, res);
+        tic_api_poke(tic, address, value, bits);
     }
-    else luaL_error(lua, "invalid parameters, poke(addr,val,res)\n");
+    else luaL_error(lua, "invalid parameters, poke(addr,val,bits)\n");
+
+    return 0;
+}
+
+static s32 lua_peek1(lua_State* lua)
+{
+    s32 top = lua_gettop(lua);
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
+
+    if(top == 1)
+    {
+        s32 address = getLuaNumber(lua, 1);
+        lua_pushinteger(lua, tic_api_peek1(tic, address));
+        return 1;
+    }
+    else luaL_error(lua, "invalid parameters, peek1(addr)\n");
+
+    return 0;
+}
+
+static s32 lua_poke1(lua_State* lua)
+{
+    s32 top = lua_gettop(lua);
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
+
+    if(top == 2)
+    {
+        s32 address = getLuaNumber(lua, 1);
+        u8 value = getLuaNumber(lua, 2);
+
+        tic_api_poke1(tic, address, value);
+    }
+    else luaL_error(lua, "invalid parameters, poke1(addr,val)\n");
+
+    return 0;
+}
+
+static s32 lua_peek2(lua_State* lua)
+{
+    s32 top = lua_gettop(lua);
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
+
+    if(top == 1)
+    {
+        s32 address = getLuaNumber(lua, 1);
+        lua_pushinteger(lua, tic_api_peek2(tic, address));
+        return 1;
+    }
+    else luaL_error(lua, "invalid parameters, peek2(addr)\n");
+
+    return 0;
+}
+
+static s32 lua_poke2(lua_State* lua)
+{
+    s32 top = lua_gettop(lua);
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
+
+    if(top == 2)
+    {
+        s32 address = getLuaNumber(lua, 1);
+        u8 value = getLuaNumber(lua, 2);
+
+        tic_api_poke2(tic, address, value);
+    }
+    else luaL_error(lua, "invalid parameters, poke2(addr,val)\n");
 
     return 0;
 }
@@ -177,10 +237,10 @@ static s32 lua_line(lua_State* lua)
 
     if(top == 5)
     {
-        s32 x0 = getLuaNumber(lua, 1);
-        s32 y0 = getLuaNumber(lua, 2);
-        s32 x1 = getLuaNumber(lua, 3);
-        s32 y1 = getLuaNumber(lua, 4);
+        float x0 = lua_tonumber(lua, 1);
+        float y0 = lua_tonumber(lua, 2);
+        float x1 = lua_tonumber(lua, 3);
+        float y1 = lua_tonumber(lua, 4);
         s32 color = getLuaNumber(lua, 5);
 
         tic_mem* tic = (tic_mem*)getLuaCore(lua);
@@ -322,10 +382,10 @@ static s32 lua_tri(lua_State* lua)
 
     if(top == 7)
     {
-        s32 pt[6];
+        float pt[6];
 
         for(s32 i = 0; i < COUNT_OF(pt); i++)
-            pt[i] = getLuaNumber(lua, i+1);
+            pt[i] = lua_tonumber(lua, i+1);
         
         s32 color = getLuaNumber(lua, 7);
 
@@ -344,10 +404,10 @@ static s32 lua_trib(lua_State* lua)
 
     if(top == 7)
     {
-        s32 pt[6];
+        float pt[6];
 
         for(s32 i = 0; i < COUNT_OF(pt); i++)
-            pt[i] = getLuaNumber(lua, i+1);
+            pt[i] = lua_tonumber(lua, i+1);
         
         s32 color = getLuaNumber(lua, 7);
 
@@ -359,6 +419,10 @@ static s32 lua_trib(lua_State* lua)
 
     return 0;
 }
+
+#if defined(BUILD_DEPRECATED)
+
+void drawTexturedTriangleDep(tic_core* core, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count);
 
 static s32 lua_textri(lua_State* lua)
 {
@@ -379,6 +443,7 @@ static s32 lua_textri(lua_State* lua)
         //  check for use map 
         if (top >= 13)
             use_map = lua_toboolean(lua, 13);
+
         //  check for chroma 
         if(top >= 14)
         {
@@ -407,16 +472,95 @@ static s32 lua_textri(lua_State* lua)
             }
         }
 
-        tic_api_textri(tic, pt[0], pt[1],   //  xy 1
-                                    pt[2], pt[3],   //  xy 2
-                                    pt[4], pt[5],   //  xy 3
-                                    pt[6], pt[7],   //  uv 1
-                                    pt[8], pt[9],   //  uv 2
-                                    pt[10], pt[11], //  uv 3
-                                    use_map,        // use map
-                                    colors, count);        // chroma
+        drawTexturedTriangleDep(getLuaCore(lua), 
+            pt[0], pt[1],   //  xy 1
+            pt[2], pt[3],   //  xy 2
+            pt[4], pt[5],   //  xy 3
+            pt[6], pt[7],   //  uv 1
+            pt[8], pt[9],   //  uv 2
+            pt[10], pt[11], //  uv 3
+            use_map,        // use map
+            colors, count); // chroma
     }
-    else luaL_error(lua, "invalid parameters, textri(x1,y1,x2,y2,x3,y3,u1,v1,u2,v2,u3,v3,[use_map=false],[chroma=off])\n");
+
+    return 0;
+}
+
+#endif
+
+static s32 lua_ttri(lua_State* lua)
+{
+    s32 top = lua_gettop(lua);
+
+    if (top >= 12)
+    {
+        float pt[12];
+
+        for (s32 i = 0; i < COUNT_OF(pt); i++)
+            pt[i] = (float)lua_tonumber(lua, i + 1);
+
+        tic_mem* tic = (tic_mem*)getLuaCore(lua);
+        static u8 colors[TIC_PALETTE_SIZE];
+        s32 count = 0;
+        tic_texture_src src = tic_tiles_texture;
+
+        //  check for texture src
+        if (top >= 13)
+        {
+            src = lua_isboolean(lua, 13) 
+                ? (lua_toboolean(lua, 13) ? tic_map_texture : tic_tiles_texture) 
+                : lua_tointeger(lua, 13);
+        }
+        //  check for chroma 
+        if(top >= 14)
+        {
+            if(lua_istable(lua, 14))
+            {
+                for(s32 i = 1; i <= TIC_PALETTE_SIZE; i++)
+                {
+                    lua_rawgeti(lua, 14, i);
+                    if(lua_isnumber(lua, -1))
+                    {
+                        colors[i-1] = getLuaNumber(lua, -1);
+                        count++;
+                        lua_pop(lua, 1);
+                    }
+                    else
+                    {
+                        lua_pop(lua, 1);
+                        break;
+                    }
+                }
+            }
+            else 
+            {
+                colors[0] = getLuaNumber(lua, 14);
+                count = 1;
+            }
+        }
+
+        float z[3];
+        bool depth = false;
+
+        if(top == 17)
+        {
+            for (s32 i = 0; i < COUNT_OF(z); i++)
+                z[i] = (float)lua_tonumber(lua, i + 15);
+
+            depth = true;
+        }
+
+        tic_api_ttri(tic, pt[0], pt[1],   //  xy 1
+                            pt[2], pt[3],   //  xy 2
+                            pt[4], pt[5],   //  xy 3
+                            pt[6], pt[7],   //  uv 1
+                            pt[8], pt[9],   //  uv 2
+                            pt[10], pt[11], //  uv 3
+                            src,            // texture source
+                            colors, count,  // chroma
+                            z[0], z[1], z[2], depth); // depth
+    }
+    else luaL_error(lua, "invalid parameters, ttri(x1,y1,x2,y2,x3,y3,u1,v1,u2,v2,u3,v3,[src=0],[chroma=off],[z1=0],[z2=0],[z3=0])\n");
     return 0;
 }
 
@@ -484,17 +628,18 @@ static s32 lua_btnp(lua_State* lua)
 static s32 lua_btn(lua_State* lua)
 {
     tic_core* core = getLuaCore(lua);
+    tic_mem* tic = (tic_mem*)core;
 
     s32 top = lua_gettop(lua);
 
     if (top == 0)
     {
-        lua_pushinteger(lua, core->memory.ram.input.gamepads.data);
+        lua_pushinteger(lua, tic_api_btn(tic, -1));
     }
     else if (top == 1)
     {
-        u32 index = getLuaNumber(lua, 1) & 0x1f;
-        lua_pushboolean(lua, core->memory.ram.input.gamepads.data & (1 << index));
+        bool pressed = tic_api_btn(tic, getLuaNumber(lua, 1) & 0x1f);
+        lua_pushboolean(lua, pressed);
     }
     else
     {
@@ -744,9 +889,16 @@ static s32 lua_music(lua_State* lua)
     if(top == 0) tic_api_music(tic, -1, 0, 0, false, false, -1, -1);
     else if(top >= 1)
     {
+        s32 track = getLuaNumber(lua, 1);
+
+        if(track > MUSIC_TRACKS - 1)
+        {
+            luaL_error(lua, "invalid music track index");
+            return 0;
+        }
+
         tic_api_music(tic, -1, 0, 0, false, false, -1, -1);
 
-        s32 track = getLuaNumber(lua, 1);
         s32 frame = -1;
         s32 row = -1;
         bool loop = true;
@@ -768,7 +920,7 @@ static s32 lua_music(lua_State* lua)
 
                     if (top >= 5)
                     {
-                        sustain = getLuaNumber(lua, 5);
+                        sustain = lua_toboolean(lua, 5);
 
                         if (top >= 6)
                         {
@@ -804,7 +956,7 @@ static s32 lua_sfx(lua_State* lua)
         s32 octave = -1;
         s32 duration = -1;
         s32 channel = 0;
-        s32 volumes[TIC_STEREO_CHANNELS] = {MAX_VOLUME, MAX_VOLUME};
+        s32 volumes[TIC80_SAMPLE_CHANNELS] = {MAX_VOLUME, MAX_VOLUME};
         s32 speed = SFX_DEF_SPEED;
 
         s32 index = getLuaNumber(lua, 1);
@@ -813,7 +965,7 @@ static s32 lua_sfx(lua_State* lua)
         {
             if (index >= 0)
             {
-                tic_sample* effect = tic->ram.sfx.samples.data + index;
+                tic_sample* effect = tic->ram->sfx.samples.data + index;
 
                 note = effect->note;
                 octave = effect->octave;
@@ -879,6 +1031,20 @@ static s32 lua_sfx(lua_State* lua)
     else luaL_error(lua, "invalid sfx params\n");
 
     return 0;
+}
+
+static s32 lua_vbank(lua_State* lua)
+{
+    tic_core* core = getLuaCore(lua);
+    tic_mem* tic = (tic_mem*)core;
+
+    s32 prev = core->state.vbank.id;
+
+    if(lua_gettop(lua) == 1)
+        tic_api_vbank(tic, getLuaNumber(lua, 1));
+
+    lua_pushinteger(lua, prev);
+    return 1;
 }
 
 static s32 lua_sync(lua_State* lua)
@@ -1101,7 +1267,7 @@ static s32 lua_font(lua_State* lua)
             return 1;
         }
 
-        s32 size = tic_api_font(tic, text, x, y, chromakey, width, height, fixed, scale, alt);
+        s32 size = tic_api_font(tic, text, x, y, &chromakey, 1, width, height, fixed, scale, alt);
 
         lua_pushinteger(lua, size);
 
@@ -1259,7 +1425,7 @@ static s32 lua_mouse(lua_State *lua)
         lua_pushinteger(lua, pos.y);
     }
 
-    const tic80_mouse* mouse = &core->memory.ram.input.mouse;
+    const tic80_mouse* mouse = &core->memory.ram->input.mouse;
 
     lua_pushboolean(lua, mouse->left);
     lua_pushboolean(lua, mouse->middle);
@@ -1333,7 +1499,7 @@ static s32 lua_loadfile(lua_State *lua)
     return 0;
 }
 
-static void lua_open_builtins(lua_State *lua)
+void lua_open_builtins(lua_State *lua)
 {
     static const luaL_Reg loadedlibs[] =
     {
@@ -1354,42 +1520,34 @@ static void lua_open_builtins(lua_State *lua)
     }
 }
 
-static void checkForceExit(lua_State *lua, lua_Debug *luadebug)
+void initLuaAPI(tic_core* core)
 {
-    tic_core* core = getLuaCore(lua);
-
-    tic_tick_data* tick = core->data;
-
-    if(tick->forceExit && tick->forceExit(tick->data))
-        luaL_error(lua, "script execution was interrupted");
-}
-
-static void initAPI(tic_core* core)
-{
-    lua_pushlightuserdata(core->lua, core);
-    lua_setglobal(core->lua, TicCore);
-
+    static const struct{lua_CFunction func; const char* name;} ApiItems[] = 
+    {
 #define API_FUNC_DEF(name, ...) {lua_ ## name, #name},
-    static const struct{lua_CFunction func; const char* name;} ApiItems[] = {TIC_API_LIST(API_FUNC_DEF)};
-#undef API_FUNC_DEF
+        TIC_API_LIST(API_FUNC_DEF)
+#undef  API_FUNC_DEF
+
+#if defined(BUILD_DEPRECATED)    
+        {lua_textri, "textri"},
+#endif
+    };
 
     for (s32 i = 0; i < COUNT_OF(ApiItems); i++)
         registerLuaFunction(core, ApiItems[i].func, ApiItems[i].name);
 
     registerLuaFunction(core, lua_dofile, "dofile");
     registerLuaFunction(core, lua_loadfile, "loadfile");
-
-    lua_sethook(core->lua, &checkForceExit, LUA_MASKCOUNT, LUA_LOC_STACK);
 }
 
-static void closeLua(tic_mem* tic)
+void closeLua(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
 
-    if(core->lua)
+    if(core->currentVM)
     {
-        lua_close(core->lua);
-        core->lua = NULL;
+        lua_close(core->currentVM);
+        core->currentVM = NULL;
     }
 }
 
@@ -1399,13 +1557,13 @@ static bool initLua(tic_mem* tic, const char* code)
 
     closeLua(tic);
 
-    lua_State* lua = core->lua = luaL_newstate();
+    lua_State* lua = core->currentVM = luaL_newstate();
     lua_open_builtins(lua);
 
-    initAPI(core);
+    initLuaAPI(core);
 
     {
-        lua_State* lua = core->lua;
+        lua_State* lua = core->currentVM;
 
         lua_settop(lua, 0);
 
@@ -1454,11 +1612,11 @@ static s32 docall (lua_State *lua, s32 narg, s32 nres)
     return status;
 }
 
-static void callLuaTick(tic_mem* tic)
+void callLuaTick(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
 
-    lua_State* lua = core->lua;
+    lua_State* lua = core->currentVM;
 
     if(lua)
     {
@@ -1466,7 +1624,24 @@ static void callLuaTick(tic_mem* tic)
         if(lua_isfunction(lua, -1)) 
         {
             if(docall(lua, 0, 0) != LUA_OK) 
+            {                
                 core->data->error(core->data->data, lua_tostring(lua, -1));
+                return;
+            }
+
+            // call OVR() callback for backward compatibility
+            {
+                lua_getglobal(lua, OVR_FN);
+                if(lua_isfunction(lua, -1))
+                {
+                    OVR(core)
+                    {
+                        if(docall(lua, 0, 0) != LUA_OK)
+                            core->data->error(core->data->data, lua_tostring(lua, -1));
+                    }
+                }
+                else lua_pop(lua, 1);
+            }
         }
         else 
         {       
@@ -1476,17 +1651,17 @@ static void callLuaTick(tic_mem* tic)
     }
 }
 
-static void callLuaScanlineName(tic_mem* tic, s32 row, void* data, const char* name)
+void callLuaIntCallback(tic_mem* tic, s32 value, void* data, const char* name)
 {
     tic_core* core = (tic_core*)tic;
-    lua_State* lua = core->lua;
+    lua_State* lua = core->currentVM;
 
     if (lua)
     {
         lua_getglobal(lua, name);
         if(lua_isfunction(lua, -1))
         {
-            lua_pushinteger(lua, row);
+            lua_pushinteger(lua, value);
             if(docall(lua, 1, 0) != LUA_OK)
                 core->data->error(core->data->data, lua_tostring(lua, -1));
         }
@@ -1494,32 +1669,39 @@ static void callLuaScanlineName(tic_mem* tic, s32 row, void* data, const char* n
     }
 }
 
-static void callLuaScanline(tic_mem* tic, s32 row, void* data)
+void callLuaScanline(tic_mem* tic, s32 row, void* data)
 {
-    callLuaScanlineName(tic, row, data, SCN_FN);
+    callLuaIntCallback(tic, row, data, SCN_FN);
 
     // try to call old scanline
-    callLuaScanlineName(tic, row, data, "scanline");
+    callLuaIntCallback(tic, row, data, "scanline");
 }
 
-static void callLuaOverline(tic_mem* tic, void* data)
+void callLuaBorder(tic_mem* tic, s32 row, void* data)
+{
+    callLuaIntCallback(tic, row, data, BDR_FN);
+}
+
+void callLuaMenu(tic_mem* tic, s32 index, void* data)
+{
+    callLuaIntCallback(tic, index, data, MENU_FN);
+}
+
+void callLuaBoot(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
-    lua_State* lua = core->lua;
+    lua_State* lua = core->currentVM;
 
     if (lua)
     {
-        const char* OvrFunc = OVR_FN;
-
-        lua_getglobal(lua, OvrFunc);
-        if(lua_isfunction(lua, -1)) 
+        lua_getglobal(lua, BOOT_FN);
+        if(lua_isfunction(lua, -1))
         {
             if(docall(lua, 0, 0) != LUA_OK)
                 core->data->error(core->data->data, lua_tostring(lua, -1));
         }
         else lua_pop(lua, 1);
     }
-
 }
 
 static const char* const LuaKeywords [] =
@@ -1594,7 +1776,7 @@ static const tic_outline_item* getLuaOutline(const char* code, s32* size)
 
 static void evalLua(tic_mem* tic, const char* code) {
     tic_core* core = (tic_core*)tic;
-    lua_State* lua = core->lua;
+    lua_State* lua = core->currentVM;
 
     if (!lua) return;
 
@@ -1606,14 +1788,23 @@ static void evalLua(tic_mem* tic, const char* code) {
     }
 }
 
-static const tic_script_config LuaSyntaxConfig = 
+tic_script_config LuaSyntaxConfig = 
 {
+    .id                 = 10,
     .name               = "lua",
+    .fileExtension      = ".lua",
+    .projectComment     = "--",
     .init               = initLua,
     .close              = closeLua,
     .tick               = callLuaTick,
-    .scanline           = callLuaScanline,
-    .overline           = callLuaOverline,
+    .boot               = callLuaBoot,
+
+    .callback           =
+    {
+        .scanline       = callLuaScanline,
+        .border         = callLuaBorder,
+        .menu           = callLuaMenu,
+    },
 
     .getOutline         = getLuaOutline,
     .eval               = evalLua,
@@ -1625,361 +1816,10 @@ static const tic_script_config LuaSyntaxConfig =
     .singleComment      = "--",
     .blockStringStart   = "[[",
     .blockStringEnd     = "]]",
+    .blockEnd           = "end",
 
     .keywords           = LuaKeywords,
     .keywordsCount      = COUNT_OF(LuaKeywords),
 };
-
-const tic_script_config* get_lua_script_config()
-{
-    return &LuaSyntaxConfig;
-}
-
-#if defined(TIC_BUILD_WITH_MOON)
-
-#include "moonscript.h"
-
-#define MOON_CODE(...) #__VA_ARGS__
-
-static const char* execute_moonscript_src = MOON_CODE(
-    local fn, err = require('moonscript.base').loadstring(...)
-
-    if not fn then
-        error(err)
-    end
-    return fn()
-);
-
-static void setloaded(lua_State* l, char* name)
-{
-    s32 top = lua_gettop(l);
-    lua_getglobal(l, "package");
-    lua_getfield(l, -1, "loaded");
-    lua_getfield(l, -1, name);
-    if (lua_isnil(l, -1)) {
-        lua_pop(l, 1);
-        lua_pushvalue(l, top);
-        lua_setfield(l, -2, name);
-    }
-
-    lua_settop(l, top);
-}
-
-static bool initMoonscript(tic_mem* tic, const char* code)
-{
-    tic_core* core = (tic_core*)tic;
-    closeLua(tic);
-
-    lua_State* lua = core->lua = luaL_newstate();
-    lua_open_builtins(lua);
-
-    luaopen_lpeg(lua);
-    setloaded(lua, "lpeg");
-
-    initAPI(core);
-
-    {
-        lua_State* moon = core->lua;
-
-        lua_settop(moon, 0);
-
-        if (luaL_loadbuffer(moon, (const char *)moonscript_lua, moonscript_lua_len, "moonscript.lua") != LUA_OK)
-        {
-            core->data->error(core->data->data, "failed to load moonscript.lua");
-            return false;
-        }
-
-        lua_call(moon, 0, 0);
-
-        if (luaL_loadbuffer(moon, execute_moonscript_src, strlen(execute_moonscript_src), "execute_moonscript") != LUA_OK)
-        {
-            core->data->error(core->data->data, "failed to load moonscript compiler");
-            return false;
-        }
-
-        lua_pushstring(moon, code);
-        if (lua_pcall(moon, 1, 1, 0) != LUA_OK)
-        {
-            const char* msg = lua_tostring(moon, -1);
-
-            if (msg)
-            {
-                core->data->error(core->data->data, msg);
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
-static const char* const MoonKeywords [] =
-{
-    "false", "true", "nil", "local", "return",
-    "break", "continue", "for", "while",
-    "if", "else", "elseif", "unless", "switch",
-    "when", "and", "or", "in", "do",
-    "not", "super", "try", "catch",
-    "with", "export", "import", "then",
-    "from", "class", "extends", "new", "using",
-};
-
-static const tic_outline_item* getMoonOutline(const char* code, s32* size)
-{
-    enum{Size = sizeof(tic_outline_item)};
-
-    *size = 0;
-
-    static tic_outline_item* items = NULL;
-
-    if(items)
-    {
-        free(items);
-        items = NULL;
-    }
-
-    const char* ptr = code;
-
-    while(true)
-    {
-        static const char FuncString[] = "=->";
-
-        ptr = strstr(ptr, FuncString);
-
-        if(ptr)
-        {
-            const char* end = ptr;
-
-            ptr += sizeof FuncString - 1;
-
-            while(end >= code && !isalnum_(*end))  end--;
-
-            const char* start = end;
-
-            for (const char* val = start-1; val >= code && (isalnum_(*val)); val--, start--);
-
-            if(end > start)
-            {
-                items = realloc(items, (*size + 1) * Size);
-
-                items[*size].pos = start;
-                items[*size].size = (s32)(end - start + 1);
-
-                (*size)++;
-            }
-        }
-        else break;
-    }
-
-    return items;
-}
-
-static const tic_script_config MoonSyntaxConfig = 
-{
-    .name               = "moon",
-    .init               = initMoonscript,
-    .close              = closeLua,
-    .tick               = callLuaTick,
-    .scanline           = callLuaScanline,
-    .overline           = callLuaOverline,
-
-    .getOutline         = getMoonOutline,
-    .eval               = NULL,
-
-    .blockCommentStart  = NULL,
-    .blockCommentEnd    = NULL,
-    .blockCommentStart2 = NULL,
-    .blockCommentEnd2   = NULL,
-    .blockStringStart   = NULL,
-    .blockStringEnd     = NULL,
-    .singleComment      = "--",
-
-    .keywords           = MoonKeywords,
-    .keywordsCount      = COUNT_OF(MoonKeywords),
-};
-
-const tic_script_config* get_moon_script_config()
-{
-    return &MoonSyntaxConfig;
-}
-
-#endif /* defined(TIC_BUILD_WITH_MOON) */
-
-#if defined(TIC_BUILD_WITH_FENNEL)
-
-#include "fennel.h"
-
-#define FENNEL_CODE(...) #__VA_ARGS__
-
-static const char* execute_fennel_src = FENNEL_CODE(
-  local opts = {filename="game", correlate=true, allowedGlobals=false}
-  local ok, msg = pcall(require('fennel').eval, ..., opts)
-  if(not ok) then return msg end
-);
-
-static bool initFennel(tic_mem* tic, const char* code)
-{
-    tic_core* core = (tic_core*)tic;
-    closeLua(tic);
-
-    lua_State* lua = core->lua = luaL_newstate();
-    lua_open_builtins(lua);
-
-    initAPI(core);
-
-    {
-        lua_State* fennel = core->lua;
-
-        lua_settop(fennel, 0);
-
-        if (luaL_loadbuffer(fennel, (const char *)loadfennel_lua,
-                            loadfennel_lua_len, "fennel.lua") != LUA_OK)
-        {
-            core->data->error(core->data->data, "failed to load fennel compiler");
-            return false;
-        }
-
-        lua_call(fennel, 0, 0);
-
-        if (luaL_loadbuffer(fennel, execute_fennel_src, strlen(execute_fennel_src), "execute_fennel") != LUA_OK)
-        {
-            core->data->error(core->data->data, "failed to load fennel compiler");
-            return false;
-        }
-
-        lua_pushstring(fennel, code);
-        lua_call(fennel, 1, 1);
-        const char* err = lua_tostring(fennel, -1);
-
-        if (err)
-        {
-            core->data->error(core->data->data, err);
-            return false;
-        }
-    }
-
-    return true;
-}
-
-static const char* const FennelKeywords [] =
-{
-    "lua", "hashfn","macro", "macros", "macroexpand", "macrodebug",
-    "do", "values", "if", "when", "each", "for", "fn", "lambda", "partial",
-    "while", "set", "global", "var", "local", "let", "tset", "doto", "match",
-    "or", "and", "true", "false", "nil", "not", "not=", "length", "set-forcibly!",
-    "rshift", "lshift", "bor", "band", "bnot", "bxor", "pick-values", "pick-args",
-    ".", "..", "#", "...", ":", "->", "->>", "-?>", "-?>>", "$", "with-open"
-};
-
-static const tic_outline_item* getFennelOutline(const char* code, s32* size)
-{
-    enum{Size = sizeof(tic_outline_item)};
-
-    *size = 0;
-
-    static tic_outline_item* items = NULL;
-
-    if(items)
-    {
-        free(items);
-        items = NULL;
-    }
-
-    const char* ptr = code;
-
-    while(true)
-    {
-        static const char FuncString[] = "(fn ";
-
-        ptr = strstr(ptr, FuncString);
-
-        if(ptr)
-        {
-            ptr += sizeof FuncString - 1;
-
-            const char* start = ptr;
-            const char* end = start;
-
-            while(*ptr)
-            {
-                char c = *ptr;
-
-                if(c == ' ' || c == '\t' || c == '\n' || c == '[')
-                {
-                    end = ptr;
-                    break;
-                }
-
-                ptr++;
-            }
-
-            if(end > start)
-            {
-                items = realloc(items, (*size + 1) * Size);
-
-                items[*size].pos = start;
-                items[*size].size = (s32)(end - start);
-
-                (*size)++;
-            }
-        }
-        else break;
-    }
-
-    return items;
-}
-
-static void evalFennel(tic_mem* tic, const char* code) {
-    tic_core* core = (tic_core*)tic;
-    lua_State* fennel = core->lua;
-
-    lua_settop(fennel, 0);
-
-    if (luaL_loadbuffer(fennel, execute_fennel_src, strlen(execute_fennel_src), "execute_fennel") != LUA_OK)
-    {
-        core->data->error(core->data->data, "failed to load fennel compiler");
-    }
-
-    lua_pushstring(fennel, code);
-    lua_call(fennel, 1, 1);
-    const char* err = lua_tostring(fennel, -1);
-
-    if (err)
-    {
-        core->data->error(core->data->data, err);
-    }
-}
-
-
-static const tic_script_config FennelSyntaxConfig =
-{
-    .name               = "fennel",
-    .init               = initFennel,
-    .close              = closeLua,
-    .tick               = callLuaTick,
-    .scanline           = callLuaScanline,
-    .overline           = callLuaOverline,
-
-    .getOutline         = getFennelOutline,
-    .eval               = evalFennel,
-
-    .blockCommentStart  = NULL,
-    .blockCommentEnd    = NULL,
-    .blockCommentStart2 = NULL,
-    .blockCommentEnd2   = NULL,
-    .blockStringStart   = NULL,
-    .blockStringEnd     = NULL,
-    .singleComment      = ";",
-
-    .keywords           = FennelKeywords,
-    .keywordsCount      = COUNT_OF(FennelKeywords),
-};
-
-const tic_script_config* get_fennel_script_config()
-{
-    return &FennelSyntaxConfig;
-}
-
-#endif /* defined(TIC_BUILD_WITH_FENNEL) */
 
 #endif /* defined(TIC_BUILD_WITH_LUA) */

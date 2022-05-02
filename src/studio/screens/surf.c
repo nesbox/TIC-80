@@ -24,6 +24,7 @@
 #include "studio/fs.h"
 #include "studio/net.h"
 #include "console.h"
+#include "menu.h"
 #include "ext/gif.h"
 #include "ext/png.h"
 
@@ -38,127 +39,20 @@
 #define MAIN_OFFSET 4
 #define MENU_HEIGHT 10
 #define ANIM 10
+#define PAGE 5
 #define COVER_WIDTH 140
 #define COVER_HEIGHT 116
 #define COVER_Y 5
 #define COVER_X (TIC80_WIDTH - COVER_WIDTH - COVER_Y)
 #define COVER_FADEIN 96
 #define COVER_FADEOUT 256
-
-#if defined(__TIC_WINDOWS__) || defined(__TIC_LINUX__) || defined(__TIC_MACOSX__)
-#define CAN_OPEN_URL 1
-#endif
+#define CAN_OPEN_URL (__TIC_WINDOWS__ || __TIC_LINUX__ || __TIC_MACOSX__ || __TIC_ANDROID__)
 
 static const char* PngExt = PNG_EXT;
 
-typedef struct
-{
-    s32 start;
-    s32 end;
-    s32 duration;
+typedef struct SurfItem SurfItem;
 
-    s32* val;
-} Anim;
-
-typedef struct Movie Movie;
-
-struct Movie
-{
-    Anim** items;
-
-    s32 time;
-    s32 duration;
-    s32 count;
-
-    Movie* next;
-    void (*done)(Surf* surf);
-};
-
-static struct
-{
-    s32 topBarY;
-    s32 bottomBarY;
-    s32 menuX;
-    s32 menuHeight;
-    s32 coverFade;
-} AnimVar;
-
-static Anim topBarShowAnim      = {0, MENU_HEIGHT, ANIM, &AnimVar.topBarY};
-static Anim bottomBarShowAnim   = {0, MENU_HEIGHT, ANIM, &AnimVar.bottomBarY};
-static Anim topBarHideAnim      = {MENU_HEIGHT, 0, ANIM, &AnimVar.topBarY};
-static Anim bottomBarHideAnim   = {MENU_HEIGHT, 0, ANIM, &AnimVar.bottomBarY};
-static Anim menuLeftHideAnim    = {0, -TIC80_WIDTH, ANIM, &AnimVar.menuX};
-static Anim menuRightHideAnim   = {0, TIC80_WIDTH, ANIM, &AnimVar.menuX};
-static Anim menuHideAnim        = {MENU_HEIGHT, 0, ANIM, &AnimVar.menuHeight};
-static Anim menuLeftShowAnim    = {TIC80_WIDTH, 0, ANIM, &AnimVar.menuX};
-static Anim menuRightShowAnim   = {-TIC80_WIDTH, 0, ANIM, &AnimVar.menuX};
-static Anim menuShowAnim        = {0, MENU_HEIGHT, ANIM, &AnimVar.menuHeight};
-static Anim coverFadeInAnim     = {COVER_FADEOUT, COVER_FADEIN, ANIM, &AnimVar.coverFade};
-static Anim coverFadeOutAnim    = {COVER_FADEIN, COVER_FADEOUT, ANIM, &AnimVar.coverFade};
-
-static Anim* MenuModeShowMovieItems[] = 
-{
-    &topBarShowAnim,
-    &bottomBarShowAnim,
-    &menuRightShowAnim,
-    &menuShowAnim,
-    &coverFadeInAnim,
-};
-
-static Anim* MenuModeHideMovieItems[] = 
-{
-    &topBarHideAnim,
-    &bottomBarHideAnim,
-    &menuLeftHideAnim,
-    &menuHideAnim,
-    &coverFadeOutAnim,
-};
-
-static Anim* MenuLeftHideMovieItems[] = 
-{
-    &menuLeftHideAnim,
-    &menuHideAnim,
-};
-
-static Anim* MenuRightHideMovieItems[] = 
-{
-    &menuRightHideAnim,
-    &menuHideAnim,
-};
-
-static Anim* MenuLeftShowMovieItems[] = 
-{
-    &menuLeftShowAnim,
-    &menuShowAnim,
-};
-
-static Anim* MenuRightShowMovieItems[] = 
-{
-    &menuRightShowAnim,
-    &menuShowAnim,
-};
-
-static Movie EmptyState;
-static Movie MenuModeState;
-
-#define DECLARE_MOVIE(NAME, NEXT) static Movie NAME ## State =  \
-{                                                               \
-    .items = NAME ## MovieItems,                                \
-    .count = COUNT_OF(NAME ## MovieItems),                      \
-    .duration = ANIM,                                           \
-    .next = & NEXT ## State,                                    \
-}
-
-DECLARE_MOVIE(MenuModeShow,     MenuMode);
-DECLARE_MOVIE(MenuModeHide,     Empty);
-DECLARE_MOVIE(MenuLeftShow,     MenuMode);
-DECLARE_MOVIE(MenuRightShow,    MenuMode);
-DECLARE_MOVIE(MenuLeftHide,     MenuLeftShow);
-DECLARE_MOVIE(MenuRightHide,    MenuRightShow);
-
-typedef struct MenuItem MenuItem;
-
-struct MenuItem
+struct SurfItem
 {
     char* label;
     char* name;
@@ -175,26 +69,12 @@ struct MenuItem
 
 typedef struct
 {
-    MenuItem* items;
+    SurfItem* items;
     s32 count;
     Surf* surf;
     fs_done_callback done;
     void* data;
 } AddMenuItemData;
-
-static void resetMovie(Surf* surf, Movie* movie, void (*done)(Surf* surf))
-{
-    surf->state = movie;
-
-    for(s32 i = 0; i < movie->count; i++)
-    {
-        Anim* anim = movie->items[i];
-        *anim->val = anim->start;
-    }
-
-    movie->time = 0;
-    movie->done = done;
-}
 
 static void drawTopToolbar(Surf* surf, s32 x, s32 y)
 {
@@ -216,7 +96,7 @@ static void drawTopToolbar(Surf* surf, s32 x, s32 y)
     enum{Gap = 10, TipX = 150, SelectWidth = 54};
 
     u8 colorkey = 0;
-    tiles2ram(&tic->ram, &getConfig()->cart->bank0.tiles);
+    tiles2ram(tic->ram, &getConfig(surf->studio)->cart->bank0.tiles);
     tic_api_spr(tic, 12, TipX, y+1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
     {
         static const char Label[] = "SELECT";
@@ -224,7 +104,7 @@ static void drawTopToolbar(Surf* surf, s32 x, s32 y)
         tic_api_print(tic, Label, TipX + Gap, y+2, tic_color_white, true, 1, false);
     }
 
-    tic_api_spr(tic, 13, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);//&getConfig()->cart->bank0.tiles, 
+    tic_api_spr(tic, 13, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
     {
         static const char Label[] = "BACK";
         tic_api_print(tic, Label, TipX + Gap + SelectWidth, y +3, tic_color_black, true, 1, false);
@@ -232,7 +112,7 @@ static void drawTopToolbar(Surf* surf, s32 x, s32 y)
     }
 }
 
-static MenuItem* getMenuItem(Surf* surf)
+static SurfItem* getMenuItem(Surf* surf)
 {
     return &surf->menu.items[surf->menu.pos];
 }
@@ -265,7 +145,7 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
 
         u8 colorkey = 0;
 
-        tiles2ram(&tic->ram, &getConfig()->cart->bank0.tiles);
+        tiles2ram(tic->ram, &getConfig(surf->studio)->cart->bank0.tiles);
         tic_api_spr(tic, 15, TipX + SelectWidth, y + 1, 1, 1, &colorkey, 1, 1, tic_no_flip, tic_no_rotate);
         {
             static const char Label[] = "WEBSITE";
@@ -283,15 +163,15 @@ static void drawMenu(Surf* surf, s32 x, s32 y)
 
     enum {Height = MENU_HEIGHT};
 
-    tic_api_rect(tic, 0, y + (MENU_HEIGHT - AnimVar.menuHeight)/2, TIC80_WIDTH, AnimVar.menuHeight, tic_color_red);
+    tic_api_rect(tic, 0, y + (MENU_HEIGHT - surf->anim.val.menuHeight) / 2, TIC80_WIDTH, surf->anim.val.menuHeight, tic_color_red);
 
-    for(s32 i = 0; i < surf->menu.count; i++)
+    s32 ym = y - surf->menu.pos * MENU_HEIGHT + (MENU_HEIGHT - TIC_FONT_HEIGHT) / 2 - surf->anim.val.pos;
+    for(s32 i = 0; i < surf->menu.count; i++, ym += Height)
     {
         const char* name = surf->menu.items[i].label;
 
-        s32 ym = Height * i + y - surf->menu.pos*MENU_HEIGHT - (surf->menu.anim * surf->menu.anim_target) + (MENU_HEIGHT - TIC_FONT_HEIGHT)/2;
-
-        if (ym > (-(TIC_FONT_HEIGHT + 1)) && ym <= TIC80_HEIGHT) {
+        if (ym > (-(TIC_FONT_HEIGHT + 1)) && ym <= TIC80_HEIGHT) 
+        {
             tic_api_print(tic, name, x + MAIN_OFFSET, ym + 1, tic_color_black, false, 1, false);
             tic_api_print(tic, name, x + MAIN_OFFSET, ym, tic_color_white, false, 1, false);
         }
@@ -317,10 +197,10 @@ static bool addMenuItem(const char* name, const char* title, const char* hash, s
 #endif
         )
     {
-        data->items = realloc(data->items, sizeof(MenuItem) * ++data->count);
-        MenuItem* item = &data->items[data->count-1];
+        data->items = realloc(data->items, sizeof(SurfItem) * ++data->count);
+        SurfItem* item = &data->items[data->count-1];
 
-        *item = (MenuItem)
+        *item = (SurfItem)
         {
             .name = strdup(name),
             .hash = hash ? strdup(hash) : NULL,
@@ -350,8 +230,8 @@ static bool addMenuItem(const char* name, const char* title, const char* hash, s
 
 static s32 itemcmp(const void* a, const void* b)
 {
-    const MenuItem* item1 = a;
-    const MenuItem* item2 = b;
+    const SurfItem* item1 = a;
+    const SurfItem* item2 = b;
 
     if(item1->dir != item2->dir)
         return item1->dir ? -1 : 1;
@@ -386,7 +266,7 @@ static void resetMenu(Surf* surf)
     {
         for(s32 i = 0; i < surf->menu.count; i++)
         {
-            MenuItem* item = &surf->menu.items[i];
+            SurfItem* item = &surf->menu.items[i];
 
             free(item->name);
 
@@ -403,12 +283,11 @@ static void resetMenu(Surf* surf)
     }
 
     surf->menu.pos = 0;
-    surf->menu.anim = 0;
 }
 
 static void updateMenuItemCover(Surf* surf, s32 pos, const u8* cover, s32 size)
 {
-    MenuItem* item = &surf->menu.items[pos];
+    SurfItem* item = &surf->menu.items[pos];
 
     gif_image* image = gif_read_data(cover, size);
 
@@ -470,7 +349,7 @@ static void coverLoaded(const net_get_data* netData)
     }
 }
 
-static void requestCover(Surf* surf, MenuItem* item)
+static void requestCover(Surf* surf, SurfItem* item)
 {
     CoverLoadingData coverLoadingData = {surf, surf->menu.pos};
     tic_fs_dir(surf->fs, coverLoadingData.dir);
@@ -499,7 +378,7 @@ static void loadCover(Surf* surf)
 {
     tic_mem* tic = surf->tic;
     
-    MenuItem* item = getMenuItem(surf);
+    SurfItem* item = getMenuItem(surf);
     
     if(item->coverLoading)
         return;
@@ -537,9 +416,9 @@ static void loadCover(Surf* surf)
                 else
                     tic_cart_load(cart, data, size);
 
-                if(!EMPTY(cart->bank0.screen.data) && !EMPTY(cart->bank0.palette.scn.data))
+                if(!EMPTY(cart->bank0.screen.data) && !EMPTY(cart->bank0.palette.vbank0.data))
                 {
-                    memcpy((item->palette = malloc(sizeof(tic_palette))), &cart->bank0.palette.scn, sizeof(tic_palette));
+                    memcpy((item->palette = malloc(sizeof(tic_palette))), &cart->bank0.palette.vbank0, sizeof(tic_palette));
                     memcpy((item->cover = malloc(sizeof(tic_screen))), &cart->bank0.screen, sizeof(tic_screen));
                 }
 
@@ -555,7 +434,7 @@ static void loadCover(Surf* surf)
     }
 }
 
-static void initMenuAsync(Surf* surf, fs_done_callback callback, void* calldata)
+static void initItemsAsync(Surf* surf, fs_done_callback callback, void* calldata)
 {
     resetMenu(surf);
 
@@ -578,11 +457,6 @@ typedef struct
     char* last;
 } GoBackDirDoneData;
 
-static void initMenu(Surf* surf)
-{
-    initMenuAsync(surf, NULL, NULL);
-}
-
 static void onGoBackDirDone(void* data)
 {
     GoBackDirDoneData* goBackDirDoneData = data;
@@ -593,7 +467,7 @@ static void onGoBackDirDone(void* data)
 
     for(s32 i = 0; i < surf->menu.count; i++)
     {
-        const MenuItem* item = &surf->menu.items[i];
+        const SurfItem* item = &surf->menu.items[i];
 
         if(item->dir)
         {
@@ -613,25 +487,35 @@ static void onGoBackDirDone(void* data)
 
     free(goBackDirDoneData->last);
     free(goBackDirDoneData);
+
+    surf->anim.movie = resetMovie(&surf->anim.goback.show);
 }
 
-static void onGoBackDir(Surf* surf)
+static void onGoBackDir(void* data)
 {
+    Surf* surf = data;
     char last[TICNAME_MAX];
     tic_fs_dir(surf->fs, last);
 
     tic_fs_dirback(surf->fs);
 
     GoBackDirDoneData goBackDirDoneData = {surf, strdup(last)};
-    initMenuAsync(surf, onGoBackDirDone, MOVE(goBackDirDoneData));
+    initItemsAsync(surf, onGoBackDirDone, MOVE(goBackDirDoneData));
 }
 
-static void onGoToDir(Surf* surf)
+static void onGoToDirDone(void* data)
 {
-    MenuItem* item = getMenuItem(surf);
+    Surf* surf = data;
+    surf->anim.movie = resetMovie(&surf->anim.gotodir.show);
+}
+
+static void onGoToDir(void* data)
+{
+    Surf* surf = data;
+    SurfItem* item = getMenuItem(surf);
 
     tic_fs_changedir(surf->fs, item->name);
-    initMenu(surf);
+    initItemsAsync(surf, onGoToDirDone, surf);
 }
 
 static void goBackDir(Surf* surf)
@@ -641,8 +525,9 @@ static void goBackDir(Surf* surf)
 
     if(strcmp(dir, "") != 0)
     {
-        playSystemSfx(2);
-        resetMovie(surf, &MenuRightHideState, onGoBackDir);
+        playSystemSfx(surf->studio, 2);
+
+        surf->anim.movie = resetMovie(&surf->anim.goback.hide);
     }
 }
 
@@ -654,34 +539,49 @@ static void changeDirectory(Surf* surf, const char* name)
     }
     else
     {
-        playSystemSfx(2);
-        resetMovie(surf, &MenuLeftHideState, onGoToDir);
+        playSystemSfx(surf->studio, 2);
+        surf->anim.movie = resetMovie(&surf->anim.gotodir.hide);
     }
 }
 
 static void onCartLoaded(void* data)
 {
-    runGameFromSurf();
+    Surf* surf = data;
+    runGame(surf->studio);
 }
 
-static void onPlayCart(Surf* surf)
+static void onLoadCommandConfirmed(Studio* studio, bool yes, void* data)
 {
-    MenuItem* item = getMenuItem(surf);
+    if(yes)
+    {
+        Surf* surf = data;
+        SurfItem* item = getMenuItem(surf);
 
-    if (item->hash)
-    {
-        surf->console->loadByHash(surf->console, item->name, item->hash, NULL, onCartLoaded, NULL);
+        if (item->hash)
+        {
+            surf->console->loadByHash(surf->console, item->name, item->hash, NULL, onCartLoaded, surf);
+        }
+        else
+        {
+            surf->console->load(surf->console, item->name);
+            runGame(surf->studio);
+        }
     }
-    else
-    {
-        surf->console->load(surf->console, item->name);
-        runGameFromSurf();
-    }
+}
+
+static void onPlayCart(void* data)
+{
+    Surf* surf = data;
+    SurfItem* item = getMenuItem(surf);
+
+    studioCartChanged(surf->studio)
+        ? confirmLoadCart(surf->studio, onLoadCommandConfirmed, surf)
+        : onLoadCommandConfirmed(surf->studio, true, surf);
 }
 
 static void loadCart(Surf* surf)
 {
-    MenuItem* item = getMenuItem(surf);
+    SurfItem* item = getMenuItem(surf);
 
     if(tic_tool_has_ext(item->name, PngExt))
     {
@@ -694,74 +594,22 @@ static void loadCart(Surf* surf)
 
             if(cart)
             {
-                resetMovie(surf, &MenuModeHideState, onPlayCart);
+                surf->anim.movie = resetMovie(&surf->anim.play);
                 free(cart);
             }
         }
     }
-    else resetMovie(surf, &MenuModeHideState, onPlayCart);
+    else surf->anim.movie = resetMovie(&surf->anim.play);
 }
 
-static void processAnim(Surf* surf)
+static void move(Surf* surf, s32 dir)
 {
-    enum{Frames = MENU_HEIGHT};
+    surf->menu.target = (surf->menu.pos + surf->menu.count + dir) % surf->menu.count;
 
-    {
-        if(surf->state->time > surf->state->duration)
-        {
-            if(surf->state->done)
-                surf->state->done(surf);
+    Anim* anim = surf->anim.move.items;
+    anim->end = (surf->menu.target - surf->menu.pos) * MENU_HEIGHT;
 
-            if(surf->state->next)
-                resetMovie(surf, surf->state->next, NULL);
-        }
-
-        for(s32 i = 0; i < surf->state->count; i++)
-        {
-            Anim* anim = surf->state->items[i];
-
-            if(surf->state->time < anim->duration)
-            {
-                *anim->val = anim->start + (anim->end - anim->start) * surf->state->time / anim->duration;
-            }
-            else
-            {
-                *anim->val = anim->end;
-            }
-        }
-
-        surf->state->time++;
-
-    }
-
-    if(surf->menu.anim > 0)
-    {
-        surf->menu.anim++;
-
-        if(surf->menu.anim >= Frames)
-        {
-            s32 old_pos = surf->menu.pos;
-
-            surf->menu.anim = 0;
-            surf->menu.pos += surf->menu.anim_target;
-
-            if(surf->menu.pos < 0)
-            {
-                if(old_pos == 0)
-                    surf->menu.pos = surf->menu.count - 1;
-                else
-                    surf->menu.pos = 0;
-            }
-            else if(surf->menu.pos >= surf->menu.count)
-            {
-                if(old_pos == surf->menu.count - 1)
-                    surf->menu.pos = 0;
-                else
-                    surf->menu.pos = surf->menu.count - 1;
-
-            }
-        }
-    }
+    surf->anim.movie = resetMovie(&surf->anim.move);
 }
 
 static void processGamepad(Surf* surf)
@@ -778,44 +626,52 @@ static void processGamepad(Surf* surf)
             Up, Down, Left, Right, A, B, X, Y
         };
 
-        if(tic_api_btnp(tic, Up, Hold, Period))
+        if(tic_api_btnp(tic, Up, Hold, Period)
+            || tic_api_keyp(tic, tic_key_up, Hold, Period))
         {
-            surf->menu.anim = 1;
-            surf->menu.anim_target = -1;
-
-            playSystemSfx(2);
+            move(surf, -1);
+            playSystemSfx(surf->studio, 2);
         }
-        else if(tic_api_btnp(tic, Down, Hold, Period))
+        else if(tic_api_btnp(tic, Down, Hold, Period)
+            || tic_api_keyp(tic, tic_key_down, Hold, Period))
         {
-            surf->menu.anim = 1;
-            surf->menu.anim_target = 1;
-
-            playSystemSfx(2);
+            move(surf, +1);
+            playSystemSfx(surf->studio, 2);
         }
-        else if(
-            tic_api_btnp(tic, Left, Hold, Period)
+        else if(tic_api_btnp(tic, Left, Hold, Period)
+            || tic_api_keyp(tic, tic_key_left, Hold, Period)
             || tic_api_keyp(tic, tic_key_pageup, Hold, Period))
         {
-            surf->menu.anim = 1;
-            surf->menu.anim_target = -5;
+            s32 dir = -PAGE;
+
+            if(surf->menu.pos == 0) dir = -1;
+            else if(surf->menu.pos <= PAGE) dir = -surf->menu.pos;
+
+            move(surf, dir);
         }
-        else if(
-            tic_api_btnp(tic, Right, Hold, Period)
+        else if(tic_api_btnp(tic, Right, Hold, Period)
+            || tic_api_keyp(tic, tic_key_right, Hold, Period)
             || tic_api_keyp(tic, tic_key_pagedown, Hold, Period))
         {
-            surf->menu.anim = 1;
-            surf->menu.anim_target = 5;
+            s32 dir = +PAGE, last = surf->menu.count - 1;
+
+            if(surf->menu.pos == last) dir = +1;
+            else if(surf->menu.pos + PAGE >= last) dir = last - surf->menu.pos;
+
+            move(surf, dir);
         }
 
-        if(tic_api_btnp(tic, A, -1, -1))
+        if(tic_api_btnp(tic, A, -1, -1) 
+             || tic_api_keyp(tic, tic_key_return, -1, -1))
         {
-            MenuItem* item = getMenuItem(surf);
+            SurfItem* item = getMenuItem(surf);
             item->dir 
                 ? changeDirectory(surf, item->name) 
                 : loadCart(surf);
         }
 
-        if(tic_api_btnp(tic, B, -1, -1))
+        if(tic_api_btnp(tic, B, -1, -1)
+            || tic_api_keyp(tic, tic_key_backspace, -1, -1))
         {
             goBackDir(surf);
         }
@@ -824,13 +680,13 @@ static void processGamepad(Surf* surf)
 
         if(tic_api_btnp(tic, Y, -1, -1))
         {
-            MenuItem* item = getMenuItem(surf);
+            SurfItem* item = getMenuItem(surf);
 
             if(!item->dir)
             {
                 char url[TICNAME_MAX];
                 sprintf(url, TIC_WEBSITE "/play?cart=%i", item->id);
-                tic_sys_open_path(url);
+                tic_sys_open_url(url);
             }
         }
 #endif
@@ -839,33 +695,35 @@ static void processGamepad(Surf* surf)
 
 }
 
+static inline bool isIdle(Surf* surf)
+{
+    return surf->anim.movie == &surf->anim.idle;
+}
+
 static void tick(Surf* surf)
 {
+    processAnim(surf->anim.movie, surf);
+
     if(!surf->init)
     {
-        initMenu(surf);
-
-        resetMovie(surf, &MenuModeShowState, NULL);
-
+        initItemsAsync(surf, NULL, NULL);
+        surf->anim.movie = resetMovie(&surf->anim.show);
         surf->init = true;
     }
-
-    surf->ticks++;
 
     tic_mem* tic = surf->tic;
     tic_api_cls(tic, TIC_COLOR_BG);
 
-    drawBGAnimation(surf->tic, surf->ticks);
+    studio_menu_anim(surf->tic, surf->ticks++);
 
-    if (surf->menu.count > 0)
+    if (isIdle(surf) && surf->menu.count > 0)
     {
-        processAnim(surf);
-
-        if (surf->state == &MenuModeState)
-        {
-            processGamepad(surf);
-        }
+        processGamepad(surf);
+        if(tic_api_keyp(tic, tic_key_escape, -1, -1))
+            setStudioMode(surf->studio, TIC_CONSOLE_MODE);
     }
+
+    if (getStudioMode(surf->studio) != TIC_SURF_MODE) return;
 
     if (surf->menu.count > 0)
     {
@@ -874,13 +732,33 @@ static void tick(Surf* surf)
         tic_screen* cover = getMenuItem(surf)->cover;
 
         if(cover)
-            memcpy(tic->ram.vram.screen.data, cover->data, sizeof(tic_screen));
+            memcpy(tic->ram->vram.screen.data, cover->data, sizeof(tic_screen));
+    }
+
+    VBANK(tic, 1)
+    {
+        tic_api_cls(tic, tic->ram->vram.vars.clear = tic_color_yellow);
+        memcpy(tic->ram->vram.palette.data, getConfig(surf->studio)->cart->bank0.palette.vbank0.data, sizeof(tic_palette));
+
+        if(surf->menu.count > 0)
+        {
+            drawMenu(surf, surf->anim.val.menuX, (TIC80_HEIGHT - MENU_HEIGHT)/2);
+        }
+        else if(!surf->loading)
+        {
+            static const char Label[] = "You don't have any files...";
+            s32 size = tic_api_print(tic, Label, 0, -TIC_FONT_HEIGHT, tic_color_white, true, 1, false);
+            tic_api_print(tic, Label, (TIC80_WIDTH - size) / 2, (TIC80_HEIGHT - TIC_FONT_HEIGHT)/2, tic_color_white, true, 1, false);
+        }
+
+        drawTopToolbar(surf, 0, surf->anim.val.topBarY - MENU_HEIGHT);
+        drawBottomToolbar(surf, 0, TIC80_HEIGHT - surf->anim.val.bottomBarY);
     }
 }
 
 static void resume(Surf* surf)
 {
-    resetMovie(surf, &MenuModeShowState, NULL);
+    surf->anim.movie = resetMovie(&surf->anim.show);
 }
 
 static void scanline(tic_mem* tic, s32 row, void* data)
@@ -889,72 +767,143 @@ static void scanline(tic_mem* tic, s32 row, void* data)
 
     if(surf->menu.count > 0)
     {
-        const MenuItem* item = getMenuItem(surf);
+        const SurfItem* item = getMenuItem(surf);
 
         if(item->palette)
         {
             if(row == 0)
             {
-                memcpy(&tic->ram.vram.palette, item->palette, sizeof(tic_palette));
-                fadePalette(&tic->ram.vram.palette, AnimVar.coverFade);
+                memcpy(&tic->ram->vram.palette, item->palette, sizeof(tic_palette));
+                fadePalette(&tic->ram->vram.palette, surf->anim.val.coverFade);
             }
 
             return;
         }
     }
 
-    drawBGAnimationScanline(tic, row);
+    studio_menu_anim_scanline(tic, row, NULL);
 }
 
-static void overline(tic_mem* tic, void* data)
+static void emptyDone(void* data) {}
+
+static void setIdle(void* data)
 {
-    Surf* surf = (Surf*)data;
-
-    if(surf->menu.count > 0)
-    {
-        drawMenu(surf, AnimVar.menuX, (TIC80_HEIGHT - MENU_HEIGHT)/2);
-    }
-    else if(!surf->loading)
-    {
-        static const char Label[] = "You don't have any files...";
-        s32 size = tic_api_print(tic, Label, 0, -TIC_FONT_HEIGHT, tic_color_white, true, 1, false);
-        tic_api_print(tic, Label, (TIC80_WIDTH - size) / 2, (TIC80_HEIGHT - TIC_FONT_HEIGHT)/2, tic_color_white, true, 1, false);
-    }
-
-    drawTopToolbar(surf, 0, AnimVar.topBarY - MENU_HEIGHT);
-    drawBottomToolbar(surf, 0, TIC80_HEIGHT - AnimVar.bottomBarY);
+    Surf* surf = data;
+    surf->anim.movie = resetMovie(&surf->anim.idle);
 }
 
-void initSurf(Surf* surf, tic_mem* tic, struct Console* console)
+static void setLeftShow(void* data)
 {
+    Surf* surf = data;
+    surf->anim.movie = resetMovie(&surf->anim.gotodir.show);
+}
+
+static void freeAnim(Surf* surf)
+{
+    FREE(surf->anim.show.items);
+    FREE(surf->anim.play.items);
+    FREE(surf->anim.move.items);
+    FREE(surf->anim.gotodir.show.items);
+    FREE(surf->anim.gotodir.hide.items);
+    FREE(surf->anim.goback.show.items);
+    FREE(surf->anim.goback.hide.items);
+}
+
+static void moveDone(void* data)
+{
+    Surf* surf = data;
+    surf->menu.pos = surf->menu.target;
+    surf->anim.val.pos = 0;
+    surf->anim.movie = resetMovie(&surf->anim.idle);
+}
+
+void initSurf(Surf* surf, Studio* studio, struct Console* console)
+{
+    freeAnim(surf);
+
     *surf = (Surf)
     {
-        .tic = tic,
+        .studio = studio,
+        .tic = getMemory(studio),
         .console = console,
         .fs = console->fs,
         .net = console->net,
         .tick = tick,
         .ticks = 0,
-        .state = &EmptyState,
         .init = false,
         .loading = true,
         .resume = resume,
         .menu = 
         {
             .pos = 0,
-            .anim = 0,
             .items = NULL,
             .count = 0,
         },
-        .overline = overline,
+        .anim =
+        {
+            .idle = {.done = emptyDone,},
+
+            .show = MOVIE_DEF(ANIM, setIdle,
+            {
+                {0, MENU_HEIGHT, ANIM, &surf->anim.val.topBarY, AnimEaseIn},
+                {0, MENU_HEIGHT, ANIM, &surf->anim.val.bottomBarY, AnimEaseIn},
+                {-TIC80_WIDTH, 0, ANIM, &surf->anim.val.menuX, AnimEaseIn},
+                {0, MENU_HEIGHT, ANIM, &surf->anim.val.menuHeight, AnimEaseIn},
+                {COVER_FADEOUT, COVER_FADEIN, ANIM, &surf->anim.val.coverFade, AnimEaseIn},
+            }),
+
+            .play = MOVIE_DEF(ANIM, onPlayCart,
+            {
+                {MENU_HEIGHT, 0, ANIM, &surf->anim.val.topBarY, AnimEaseIn},
+                {MENU_HEIGHT, 0, ANIM, &surf->anim.val.bottomBarY, AnimEaseIn},
+                {0, -TIC80_WIDTH, ANIM, &surf->anim.val.menuX, AnimEaseIn},
+                {MENU_HEIGHT, 0, ANIM, &surf->anim.val.menuHeight, AnimEaseIn},
+                {COVER_FADEIN, COVER_FADEOUT, ANIM, &surf->anim.val.coverFade, AnimEaseIn},
+            }),
+
+            .move = MOVIE_DEF(9, moveDone, {{0, 0, 9, &surf->anim.val.pos, AnimLinear}}),
+
+            .gotodir = 
+            {
+                .show = MOVIE_DEF(ANIM, setIdle,
+                {
+                    {TIC80_WIDTH, 0, ANIM, &surf->anim.val.menuX, AnimEaseIn},
+                    {0, MENU_HEIGHT, ANIM, &surf->anim.val.menuHeight, AnimEaseIn},
+                }),
+
+                .hide = MOVIE_DEF(ANIM, onGoToDir,
+                {
+                    {0, -TIC80_WIDTH, ANIM, &surf->anim.val.menuX, AnimEaseIn},
+                    {MENU_HEIGHT, 0, ANIM, &surf->anim.val.menuHeight, AnimEaseIn},
+                }),
+            },
+
+            .goback = 
+            {
+                .show = MOVIE_DEF(ANIM, setIdle,
+                {
+                    {-TIC80_WIDTH, 0, ANIM, &surf->anim.val.menuX, AnimEaseIn},
+                    {0, MENU_HEIGHT, ANIM, &surf->anim.val.menuHeight, AnimEaseIn},
+                }),
+
+                .hide = MOVIE_DEF(ANIM, onGoBackDir,
+                {
+                    {0, TIC80_WIDTH, ANIM, &surf->anim.val.menuX, AnimEaseIn},
+                    {MENU_HEIGHT, 0, ANIM, &surf->anim.val.menuHeight, AnimEaseIn},
+                }),
+            },
+        },
         .scanline = scanline,
     };
+
+    surf->anim.movie = resetMovie(&surf->anim.idle);
 
     tic_fs_makedir(surf->fs, TIC_CACHE);
 }
 
 void freeSurf(Surf* surf)
 {
+    freeAnim(surf);
     resetMenu(surf);
     free(surf);
 }

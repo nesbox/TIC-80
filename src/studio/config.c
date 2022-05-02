@@ -24,6 +24,12 @@
 #include "fs.h"
 #include "cart.h"
 
+#if defined(__EMSCRIPTEN__)
+#define DEFAULT_VSYNC 0
+#else
+#define DEFAULT_VSYNC 1
+#endif
+
 #if defined (TIC_BUILD_WITH_LUA)
 #include <lua.h>
 #include <lauxlib.h>
@@ -126,21 +132,6 @@ static void readConfigCrtShader(Config* config, lua_State* lua)
 
 #endif
 
-static void readCursorTheme(Config* config, lua_State* lua)
-{
-    lua_getfield(lua, -1, "CURSOR");
-
-    if(lua_type(lua, -1) == LUA_TTABLE)
-    {
-        readInteger(lua, "ARROW", &config->data.theme.cursor.arrow);
-        readInteger(lua, "HAND", &config->data.theme.cursor.hand);
-        readInteger(lua, "IBEAM", &config->data.theme.cursor.ibeam);
-        readBool(lua, "PIXEL_PERFECT", &config->data.theme.cursor.pixelPerfect);
-    }
-
-    lua_pop(lua, 1);
-}
-
 static void readCodeTheme(Config* config, lua_State* lua)
 {
     lua_getfield(lua, -1, "CODE");
@@ -188,7 +179,6 @@ static void readTheme(Config* config, lua_State* lua)
 
     if(lua_type(lua, -1) == LUA_TTABLE)
     {
-        readCursorTheme(config, lua);
         readCodeTheme(config, lua);
         readGamepadTheme(config, lua);
     }
@@ -204,15 +194,15 @@ static void readConfig(Config* config)
     {
         if(luaL_loadstring(lua, config->cart->code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
         {
-            readGlobalInteger(lua, "GIF_LENGTH", &config->data.gifLength);
-            readGlobalInteger(lua, "GIF_SCALE", &config->data.gifScale);
-            readGlobalBool(lua, "CHECK_NEW_VERSION", &config->data.checkNewVersion);
-            readGlobalBool(lua, "NO_SOUND", &config->data.noSound);
+            readGlobalInteger(lua,  "GIF_LENGTH",           &config->data.gifLength);
+            readGlobalInteger(lua,  "GIF_SCALE",            &config->data.gifScale);
+            readGlobalBool(lua,     "CHECK_NEW_VERSION",    &config->data.checkNewVersion);
+            readGlobalInteger(lua,  "UI_SCALE",             &config->data.uiScale);
+            readGlobalBool(lua,     "SOFTWARE_RENDERING",   &config->data.soft);
+
 #if defined(CRT_SHADER_SUPPORT)
-            readGlobalBool(lua, "CRT_MONITOR", &config->data.crtMonitor);
             readConfigCrtShader(config, lua);
 #endif
-            readGlobalInteger(lua, "UI_SCALE", &config->data.uiScale);
             readTheme(config, lua);
         }
 
@@ -221,15 +211,7 @@ static void readConfig(Config* config)
 }
 #else
 
-static void readConfig(Config* config)
-{
-    config->data = (StudioConfig)
-    {
-        .uiScale = 4,
-        .cart = config->cart,
-        .theme.cursor = {-1, -1, -1, false}
-    };
-}
+static void readConfig(Config* config) {}
 
 #endif
 
@@ -238,13 +220,30 @@ static void update(Config* config, const u8* buffer, s32 size)
     tic_cart_load(config->cart, buffer, size);
 
     readConfig(config);
-    studioConfigChanged();
+    studioConfigChanged(config->studio);
 }
 
 static void setDefault(Config* config)
 {
-    memset(&config->data, 0, sizeof(StudioConfig));
-    config->data.cart = config->cart;
+    config->data = (StudioConfig)
+    {
+        .cart = config->cart,
+        .uiScale = 4,
+        .options = 
+        {
+#if defined(CRT_SHADER_SUPPORT)
+            .crt            = false,
+#endif
+            .volume         = MAX_VOLUME,
+            .vsync          = DEFAULT_VSYNC,
+            .fullscreen     = false,
+#if defined(BUILD_EDITORS)
+            .devmode        = false,
+#endif
+        },
+    };
+
+    tic_sys_default_mapping(&config->data.options.mapping);
 
     {
         static const u8 ConfigZip[] =
@@ -283,41 +282,62 @@ static void reset(Config* config)
 
 static void save(Config* config)
 {
-    memcpy(config->cart, &config->tic->cart, sizeof(tic_cartridge));
+    *config->cart = config->tic->cart;
     readConfig(config);
     saveConfig(config, true);
 
-    studioConfigChanged();
+    studioConfigChanged(config->studio);
 }
 
-void initConfig(Config* config, tic_mem* tic, tic_fs* fs)
+static const char OptionsDatPath[] = TIC_LOCAL_VERSION "options.dat";
+
+static void loadConfigData(tic_fs* fs, const char* path, void* dst, s32 size)
 {
+    s32 dataSize = 0;
+    u8* data = (u8*)tic_fs_loadroot(fs, path, &dataSize);
+
+    if(data) SCOPE(free(data))
+        if(dataSize == size)
+            memcpy(dst, data, size);
+}
+
+void initConfig(Config* config, Studio* studio, tic_fs* fs)
+{
+    *config = (Config)
     {
-        config->tic = tic;
-        config->cart = malloc(sizeof(tic_cartridge));
-        config->save = save;
-        config->reset = reset;
-        config->fs = fs;
-    }
+        .studio = studio,
+        .tic = getMemory(studio),
+        .cart = realloc(config->cart, sizeof(tic_cartridge)),
+        .save = save,
+        .reset = reset,
+        .fs = fs,
+    };
 
     setDefault(config);
 
-    s32 size = 0;
-    u8* data = (u8*)tic_fs_loadroot(fs, CONFIG_TIC_PATH, &size);
-
-    if(data)
+    // read config.tic
     {
-        update(config, data, size);
+        s32 size = 0;
+        u8* data = (u8*)tic_fs_loadroot(fs, CONFIG_TIC_PATH, &size);
 
-        free(data);
+        if(data)
+        {
+            update(config, data, size);
+
+            free(data);
+        }
+        else saveConfig(config, false);        
     }
-    else saveConfig(config, false);
 
-    tic_api_reset(tic);
+    loadConfigData(fs, OptionsDatPath, &config->data.options, sizeof config->data.options);
+
+    tic_api_reset(config->tic);
 }
 
 void freeConfig(Config* config)
 {
+    tic_fs_saveroot(config->fs, OptionsDatPath, &config->data.options, sizeof config->data.options, true);
+
     free(config->cart);
 
 #if defined(CRT_SHADER_SUPPORT)

@@ -29,6 +29,7 @@ typedef struct Map Map;
 
 struct Map
 {
+    Studio* studio;
     tic_mem* tic;
 
     tic_map* src;
@@ -52,7 +53,7 @@ struct Map
 
     struct
     {
-        bool show;
+        bool keep;
         tic_rect rect;
         tic_point start;
         bool drag;
@@ -83,11 +84,29 @@ struct Map
 
     struct History* history;
 
+    struct
+    {
+        struct
+        {
+            s32 sheet;
+            s32 bank;
+            s32 page;
+        } pos;
+
+        Movie* movie;
+
+        Movie idle;
+        Movie show;
+        Movie hide;
+        Movie bank;
+        Movie page;
+
+    } anim;
+
     void (*tick)(Map*);
     void (*event)(Map*, StudioEvent);
     void (*scanline)(tic_mem* tic, s32 row, void* data);
-    void (*overline)(tic_mem* tic, void* data);
 };
 
-void initMap(Map*, tic_mem*, tic_map* src);
+void initMap(Map*, Studio* studio, tic_map* src);
 void freeMap(Map* map);

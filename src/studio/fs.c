@@ -570,8 +570,8 @@ bool tic_fs_isdir(tic_fs* fs, const char* name)
 #if defined(BAREMETALPI)
     dbg("fsIsDirSync %s\n", name);
     FILINFO s;
-
-    FRESULT res = f_stat(name, &s);
+    const char* path = tic_fs_path(fs, name);
+    FRESULT res = f_stat(path, &s);
     if (res != FR_OK) return false;
 
     return s.fattrib & AM_DIR;
@@ -906,13 +906,14 @@ void* tic_fs_loadroot(tic_fs* fs, const char* name, s32* size)
     return fs_read(tic_fs_pathroot(fs, name), size);
 }
 
-void tic_fs_makedir(tic_fs* fs, const char* name)
+bool tic_fs_makedir(tic_fs* fs, const char* name)
 {
 #if defined(BAREMETALPI)
     // TODO BAREMETALPI
     dbg("makeDir %s\n", name);
 
-    char* path = strdup(name);
+    const FsString* pathString = tic_fs_path(fs, name);
+    char* path = strdup(pathString);
     if (path && *path) {                      // make sure result has at least
       if (path[strlen(path) - 1] == '/')    // one character
             path[strlen(path) - 1] = 0;
@@ -924,15 +925,17 @@ void tic_fs_makedir(tic_fs* fs, const char* name)
         dbg("Could not mkdir %s\n", name);
     }
     free(path);
+    return (res != FR_OK);
 #else
 
     const FsString* pathString = utf8ToString(tic_fs_path(fs, name));
-    tic_mkdir(pathString);
+    int result = tic_mkdir(pathString);
     freeString(pathString);
 
 #if defined(__EMSCRIPTEN__)
     syncfs();
 #endif
+    return result;
 #endif
 }
 

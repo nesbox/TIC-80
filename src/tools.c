@@ -22,6 +22,7 @@
 
 #include "tools.h"
 
+#include <ctype.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -35,6 +36,7 @@ extern void tic_tool_poke1(void* addr, u32 index, u8 value);
 extern u8 tic_tool_peek1(const void* addr, u32 index);
 extern s32 tic_tool_sfx_pos(s32 speed, s32 ticks);
 extern u32 tic_rgba(const tic_rgb* c);
+extern s32 tic_modulo(s32 x, s32 m);
 
 static u32 getPatternData(const tic_track* track, s32 frame)
 {
@@ -107,13 +109,13 @@ u32 tic_nearest_color(const tic_rgb* palette, const tic_rgb* color, s32 count)
     return nearest;
 }
 
-u32* tic_tool_palette_blit(const tic_palette* srcpal, tic80_pixel_color_format fmt)
+tic_blitpal tic_tool_palette_blit(const tic_palette* srcpal, tic80_pixel_color_format fmt)
 {
-    static u32 pal[TIC_PALETTE_SIZE];
+    tic_blitpal pal;
 
     const tic_rgb* src = srcpal->colors;
     const tic_rgb* end = src + TIC_PALETTE_SIZE;
-    u8* dst = (u8*)pal;
+    u8* dst = (u8*)pal.data;
 
     while(src != end)
     {
@@ -149,6 +151,17 @@ u32* tic_tool_palette_blit(const tic_palette* srcpal, tic80_pixel_color_format f
     return pal;
 }
 
+bool tic_project_ext(const char* name)
+{
+    FOR_EACH_LANG(ln)
+    {
+        if(tic_tool_has_ext(name, ln->fileExtension))
+            return true;
+    }
+    FOR_EACH_LANG_END
+    return false;
+}
+
 bool tic_tool_has_ext(const char* name, const char* ext)
 {
     return strcmp(name + strlen(name) - strlen(ext), ext) == 0;
@@ -161,7 +174,7 @@ s32 tic_tool_get_track_row_sfx(const tic_track_row* row)
 
 void tic_tool_set_track_row_sfx(tic_track_row* row, s32 sfx)
 {
-    if(sfx >= SFX_COUNT) sfx = SFX_COUNT-1;        
+    if(sfx >= SFX_COUNT) sfx = SFX_COUNT-1;
 
     row->sfxhi = (sfx & 0b00100000) >> MUSIC_SFXID_LOW_BITS;
     row->sfxlow = sfx & 0b00011111;
@@ -174,6 +187,22 @@ bool tic_tool_empty(const void* buffer, s32 size)
             return false;
 
     return true;
+}
+
+bool tic_tool_flat4(const void* buffer, s32 size)
+{
+    u8 first = (*(u8*)buffer) & 0xf;
+    first |= first << 4;
+    for(const u8 *ptr = buffer, *end = ptr + size; ptr < end;)
+        if(*ptr++ != first)
+            return false;
+
+    return true;
+}
+
+bool tic_tool_noise(const tic_waveform* wave)
+{
+    return FLAT4(wave->data) && *wave->data % 0xff == 0;
 }
 
 void tic_tool_str2buf(const char* str, s32 size, void* buf, bool flip)
@@ -210,21 +239,20 @@ u32 tic_tool_unzip(void* dest, s32 destSize, const void* source, s32 size)
     return uncompress(dest, &destSizeLong, source, size) == Z_OK ? destSizeLong : 0;
 }
 
-const char* tic_tool_metatag(const char* code, const char* tag, const char* comment)
+char* tic_tool_metatag(const char* code, const char* tag, const char* comment)
 {
     const char* start = NULL;
 
     {
         static char format[] = "%s %s:";
 
-        char* tagBuffer = malloc(strlen(format) + strlen(tag));
+        char* tagBuffer = malloc(sizeof format + strlen(tag));
 
-        if (tagBuffer)
+        SCOPE(free(tagBuffer))
         {
             sprintf(tagBuffer, format, comment, tag);
             if ((start = strstr(code, tagBuffer)))
                 start += strlen(tagBuffer);
-            free(tagBuffer);
         }
     }
 
@@ -234,8 +262,8 @@ const char* tic_tool_metatag(const char* code, const char* tag, const char* comm
 
         if (end)
         {
-            while (*start <= ' ' && start < end) start++;
-            while (*(end - 1) <= ' ' && end > start) end--;
+            while (isspace(*start) && start < end) start++;
+            while (isspace(*(end - 1)) && end > start) end--;
 
             const s32 size = (s32)(end - start);
 

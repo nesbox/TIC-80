@@ -22,7 +22,7 @@
 
 #include "cart.h"
 
-#if defined(DEPRECATED_CHUNKS)
+#if defined(BUILD_DEPRECATED)
 #include "tools.h"
 #include "ext/gif.h"
 #endif
@@ -30,6 +30,10 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+
+#if defined(DINGUX) && !defined(static_assert)
+#define static_assert _Static_assert
+#endif
 
 typedef enum
 {
@@ -52,6 +56,8 @@ typedef enum
     CHUNK_CODE_ZIP,     // 16
     CHUNK_DEFAULT,      // 17
     CHUNK_SCREEN,       // 18
+    CHUNK_BINARY,       // 19
+    CHUNK_LANG,         // 20
 } ChunkType;
 
 typedef struct
@@ -102,18 +108,19 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
             ptr += chunkSize(chunk);
         }
 
-#if defined(DEPRECATED_CHUNKS)
+#if defined(BUILD_DEPRECATED)
         // workaround to support ancient carts without palette
         // load DB16 palette if it not exists
-        if (EMPTY(cart->bank0.palette.scn.data))
+        if (EMPTY(cart->bank0.palette.vbank0.data))
         {
             static const u8 DB16[] = { 0x14, 0x0c, 0x1c, 0x44, 0x24, 0x34, 0x30, 0x34, 0x6d, 0x4e, 0x4a, 0x4e, 0x85, 0x4c, 0x30, 0x34, 0x65, 0x24, 0xd0, 0x46, 0x48, 0x75, 0x71, 0x61, 0x59, 0x7d, 0xce, 0xd2, 0x7d, 0x2c, 0x85, 0x95, 0xa1, 0x6d, 0xaa, 0x2c, 0xd2, 0xaa, 0x99, 0x6d, 0xc2, 0xca, 0xda, 0xd4, 0x5e, 0xde, 0xee, 0xd6 };
-            memcpy(cart->bank0.palette.scn.data, DB16, sizeof DB16);
+            memcpy(cart->bank0.palette.vbank0.data, DB16, sizeof DB16);
         }
 #endif
     }
 
     struct CodeChunk {s32 size; const char* data;} code[TIC_BANKS] = {0};
+    struct BinaryChunk {s32 size; const char* data;} binary[TIC_BINARY_BANKS] = {0};
 
     {
         const u8* ptr = buffer;
@@ -133,10 +140,14 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
             case CHUNK_PATTERNS:    LOAD_CHUNK(cart->banks[chunk->bank].music.patterns);    break;
             case CHUNK_FLAGS:       LOAD_CHUNK(cart->banks[chunk->bank].flags);             break;
             case CHUNK_SCREEN:      LOAD_CHUNK(cart->banks[chunk->bank].screen);            break;
+            case CHUNK_LANG:        LOAD_CHUNK(cart->lang);                                 break;
+            case CHUNK_BINARY:      
+                binary[chunk->bank] = (struct BinaryChunk){chunkSize(chunk), ptr};
+                break;
             case CHUNK_CODE:        
                 code[chunk->bank] = (struct CodeChunk){chunkSize(chunk), ptr};
                 break;
-#if defined(DEPRECATED_CHUNKS)
+#if defined(BUILD_DEPRECATED)
             case CHUNK_CODE_ZIP:
                 tic_tool_unzip(cart->code.data, TIC_CODE_SIZE, ptr, chunk->size);
                 break;
@@ -150,7 +161,7 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
                         if(image->width == TIC80_WIDTH && image->height == TIC80_HEIGHT)
                             for (s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
                                 tic_tool_poke4(cart->bank0.screen.data, i, 
-                                    tic_nearest_color(cart->bank0.palette.scn.colors, (const tic_rgb*)&image->palette[image->buffer[i]], TIC_PALETTE_SIZE));
+                                    tic_nearest_color(cart->bank0.palette.vbank0.colors, (const tic_rgb*)&image->palette[image->buffer[i]], TIC_PALETTE_SIZE));
 
                         gif_close(image);
                     }
@@ -181,6 +192,19 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
             ptr += chunkSize(chunk);
         }
 #undef LOAD_CHUNK
+
+        {
+            u32 total_size = 0;
+            char* ptr = cart->binary.data;
+            RFOR(const struct BinaryChunk*, chunk, binary)
+                if (chunk->size)
+                {
+                    memcpy(ptr, chunk->data, chunk->size);
+                    ptr += chunk->size;
+                    total_size += chunk->size;
+                }
+            cart->binary.size = total_size;
+        }
 
         if (!*cart->code.data)
         {
@@ -271,9 +295,24 @@ s32 tic_cart_save(const tic_cartridge* cart, u8* buffer)
         buffer = SAVE_CHUNK(CHUNK_SCREEN,   cart->banks[i].screen,          i);
     }
 
-    const char* ptr = cart->code.data;
+    const char* ptr;
+    if (cart->binary.size) 
+    {
+        ptr = cart->binary.data;
+        s32 remaining = cart->binary.size;
+        for (s32 i = cart->binary.size / TIC_BANK_SIZE; i >= 0; --i, ptr += TIC_BANK_SIZE) 
+        {
+            buffer = saveFixedChunk(buffer, CHUNK_BINARY, ptr, MIN(remaining, TIC_BANK_SIZE), i);
+            remaining -= TIC_BANK_SIZE;
+        }
+    }
+
+    ptr = cart->code.data;
     for(s32 i = strlen(ptr) / TIC_BANK_SIZE; i >= 0; --i, ptr += TIC_BANK_SIZE)
         buffer = saveFixedChunk(buffer, CHUNK_CODE, ptr, MIN(strlen(ptr), TIC_BANK_SIZE), i);
+
+    if(cart->lang)
+        SAVE_CHUNK(CHUNK_LANG, cart->lang, 0);
 
 #undef SAVE_CHUNK
 

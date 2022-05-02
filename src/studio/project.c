@@ -22,7 +22,7 @@
 
 #include "project.h"
 #include "tools.h"
-
+#include "api.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -43,6 +43,8 @@ static const struct BinarySection{const char* tag; s32 count; s32 offset; s32 si
     {"PALETTE",     TIC_PALETTES,       offsetof(tic_bank, palette),        sizeof(tic_palette),                false},
 };
 
+static const struct BinarySection LangSection = {"LANG", 1, 0, sizeof (tic_cartridge){0}.lang, false};
+
 static void makeTag(const char* tag, char* out, s32 bank)
 {
     if(bank) sprintf(out, "%s%i", tag, bank);
@@ -56,13 +58,7 @@ static void buf2str(const void* data, s32 size, char* ptr, bool flip)
     for(s32 i = 0; i < size; i++, ptr+=Len)
     {
         sprintf(ptr, "%02x", ((u8*)data)[i]);
-
-        if(flip)
-        {
-            char tmp = ptr[0];
-            ptr[0] = ptr[1];
-            ptr[1] = tmp;
-        }
+        if(flip) SWAP(ptr[0], ptr[1], char);
     }
 }
 
@@ -120,29 +116,15 @@ static char* saveBinarySection(char* ptr, const char* comment, const char* tag, 
     return ptr;
 }
 
-static const struct Ext{const char* name; const char* comment;} ExtList[] =
-{
-#define SCRIPT_DEF(_, ext, comment, ...) {ext, comment},
-    SCRIPT_LIST(SCRIPT_DEF)
-#undef SCRIPT_DEF
-};
-
 static const char* projectComment(const char* name)
 {
-    FOR(const struct Ext*, ext, ExtList)
-        if(tic_tool_has_ext(name, ext->name))
-            return ext->comment;
-
-    return ExtList->comment;
-}
-
-bool tic_project_ext(const char* name)
-{
-    FOR(const struct Ext*, ext, ExtList)
-        if(tic_tool_has_ext(name, ext->name))
-            return true;
-
-    return false;
+    FOR_EACH_LANG(ln)
+    {
+        if(tic_tool_has_ext(name, ln->fileExtension))
+            return ln->projectComment;
+    }
+    FOR_EACH_LANG_END
+    return Languages[0]->projectComment;
 }
 
 s32 tic_project_save(const char* name, void* data, const tic_cartridge* cart)
@@ -160,6 +142,9 @@ s32 tic_project_save(const char* name, void* data, const tic_cartridge* cart)
             ptr = saveBinarySection(ptr, comment, tag, section->count, 
                 (u8*)&cart->banks[b] + section->offset, section->size, section->flip);
         }
+
+    if(cart->lang)
+        ptr = saveBinarySection(ptr, comment, LangSection.tag, LangSection.count, &cart->lang, LangSection.size, LangSection.flip);
 
     return (s32)strlen(stream);
 }
@@ -222,13 +207,13 @@ static bool loadBinarySection(const char* project, const char* comment, const ch
                 while(ptr < end)
                 {
                     static char lineStr[] = "999";
-                    memcpy(lineStr, ptr + sizeof("-- ") - 1, sizeof lineStr - 1);
+                    memcpy(lineStr, ptr + strlen(comment) + 1, sizeof lineStr - 1);
 
                     s32 index = atoi(lineStr);
                     
                     if(index < count)
                     {
-                        ptr += sizeof("-- 999:") - 1;
+                        ptr += strlen(comment) + sizeof(" 999:") - 1;
                         tic_tool_str2buf(ptr, size*2, (u8*)dst + size*index, flip);
                         ptr += size*2 + 1;
 
@@ -239,7 +224,7 @@ static bool loadBinarySection(const char* project, const char* comment, const ch
             }
             else
             {
-                ptr += sizeof("-- 999:") - 1;
+                ptr += strlen(comment) + sizeof(" 999:") - 1;
                 tic_tool_str2buf(ptr, (s32)(end - ptr), (u8*)dst, flip);
             }
 
@@ -283,12 +268,12 @@ bool tic_project_load(const char* name, const char* data, s32 size, tic_cartridg
                     for(s32 b = 0; b < TIC_BANKS; b++)
                     {
                         makeTag(section->tag, tag, b);
-
-                        if(loadBinarySection(project, comment, tag, section->count, (u8*)&cart->banks[b] + section->offset, section->size, section->flip))
-                            done = true;
+                        loadBinarySection(project, comment, tag, section->count, (u8*)&cart->banks[b] + section->offset, section->size, section->flip);
                     }
+
+                loadBinarySection(project, comment, LangSection.tag, LangSection.count, &cart->lang, LangSection.size, LangSection.flip);
             }
-            
+
             if(done)
                 memcpy(dst, cart, sizeof(tic_cartridge));
 

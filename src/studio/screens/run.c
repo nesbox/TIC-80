@@ -28,17 +28,19 @@
 
 static void onTrace(void* data, const char* text, u8 color)
 {
+#if defined(BUILD_EDITORS)
     Run* run = (Run*)data;
-
     run->console->trace(run->console, text, color);
+#endif
 }
 
 static void onError(void* data, const char* info)
 {
+#if defined(BUILD_EDITORS)
     Run* run = (Run*)data;
-
-    setStudioMode(TIC_CONSOLE_MODE);
+    setStudioMode(run->studio, TIC_CONSOLE_MODE);
     run->console->error(run->console, info);
+#endif
 }
 
 static void onExit(void* data)
@@ -98,7 +100,7 @@ static void initPMemName(Run* run)
 
 static void tick(Run* run)
 {
-    if (getStudioMode() != TIC_RUN_MODE)
+    if (getStudioMode(run->studio) != TIC_RUN_MODE)
         return;
 
     tic_mem* tic = run->tic;
@@ -107,63 +109,42 @@ static void tick(Run* run)
 
     enum {Size = sizeof(tic_persistent)};
 
-    if(memcmp(run->pmem.data, tic->ram.persistent.data, Size))
+    if(memcmp(run->pmem.data, tic->ram->persistent.data, Size))
     {
-        tic_fs_saveroot(run->fs, run->saveid, &tic->ram.persistent, Size, true);
-        memcpy(run->pmem.data, tic->ram.persistent.data, Size);
+        tic_fs_saveroot(run->fs, run->saveid, &tic->ram->persistent, Size, true);
+        memcpy(run->pmem.data, tic->ram->persistent.data, Size);
     }
 
     if(run->exit)
-        setStudioMode(TIC_CONSOLE_MODE);
+#if defined(BUILD_EDITORS)
+        setStudioMode(run->studio, TIC_CONSOLE_MODE);
+#else
+        studio_exit(run->studio);
+#endif
 }
 
-static bool forceExit(void* data)
-{
-    tic_sys_poll();
-
-    tic_mem* tic = ((Run*)data)->tic;
-
-    return tic_api_key(tic, tic_key_escape);
-}
-
-static u64 getFreq(void* data)
-{
-    return tic_sys_freq_get();
-}
-
-static u64 getCounter(void* data)
-{
-    return tic_sys_counter_get();
-}
-
-static void onEmptyTrace(void* data, const char* text, u8 color) {}
-static void onEmptyError(void* data, const char* info) {}
-
-void initRun(Run* run, Console* console, tic_fs* fs, tic_mem* tic)
+void initRun(Run* run, Console* console, tic_fs* fs, Studio* studio)
 {
     *run = (Run)
     {
-        .tic = tic,
+        .studio = studio,
+        .tic = getMemory(studio),
         .console = console,
         .fs = fs,
         .tick = tick,
         .exit = false,
-        .tickData = 
+        .tickData = (tic_tick_data)
         {
-            .error = console ? onError : onEmptyError,
-            .trace = console ? onTrace : onEmptyTrace,
-            .counter = getCounter,
-            .freq = getFreq,
-            .start = 0,
-            .data = run,
+            .error = onError,
+            .trace = onTrace,
             .exit = onExit,
-            .forceExit = forceExit,
+            .data = run,
         },
     };
 
     {
         enum {Size = sizeof(tic_persistent)};
-        memset(&tic->ram.persistent, 0, Size);
+        memset(&run->tic->ram->persistent, 0, Size);
 
         initPMemName(run);
 
@@ -172,11 +153,11 @@ void initRun(Run* run, Console* console, tic_fs* fs, tic_mem* tic)
 
         if(data) SCOPE(free(data))
         {
-            memset(&tic->ram.persistent, 0, Size);
-            memcpy(&tic->ram.persistent, data, MIN(size, Size));
+            memset(&run->tic->ram->persistent, 0, Size);
+            memcpy(&run->tic->ram->persistent, data, MIN(size, Size));
         }
 
-        memcpy(run->pmem.data, tic->ram.persistent.data, Size);
+        memcpy(run->pmem.data, run->tic->ram->persistent.data, Size);
     }
 
     tic_sys_preseed();

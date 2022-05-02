@@ -92,7 +92,7 @@ s32 main(s32 argc, char** argv)
                 for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
                     data[i] = tic_tool_peek4(cart->bank0.screen.data, i);
 
-                if(gif_write_data(buffer.data, &buffer.size, TIC80_WIDTH, TIC80_HEIGHT, data, (gif_color*)cart->bank0.palette.scn.colors, TIC_PALETTE_BPP))
+                if(gif_write_data(buffer.data, &buffer.size, TIC80_WIDTH, TIC80_HEIGHT, data, (gif_color*)cart->bank0.palette.vbank0.colors, TIC_PALETTE_BPP))
                 {
                     writeFile("cover.gif", buffer);
                     printf("cover.gif successfully exported\n");
@@ -108,7 +108,7 @@ s32 main(s32 argc, char** argv)
                 png_img img = {TIC80_WIDTH, TIC80_HEIGHT, malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(png_rgba))};
 
                 for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
-                    ((u32*)img.data)[i] = tic_rgba(&cart->bank0.palette.scn.colors[tic_tool_peek4(cart->bank0.screen.data, i)]);
+                    ((u32*)img.data)[i] = tic_rgba(&cart->bank0.palette.vbank0.colors[tic_tool_peek4(cart->bank0.screen.data, i)]);
 
                 png_buffer png = png_write(img);
                 writeFile("cover.png", (FileBuffer){png.size, png.data});
@@ -156,7 +156,7 @@ s32 main(s32 argc, char** argv)
                         const tic_tile* tile = &cart->bank0.tiles.data[x / TIC_SPRITESIZE + y / TIC_SPRITESIZE * (TIC_SPRITESHEET_SIZE / TIC_SPRITESIZE)];
                         u8 index = tic_tool_peek4(tile->data, (x % TIC_SPRITESIZE) + (y % TIC_SPRITESIZE) * TIC_SPRITESIZE);
 
-                        ((u32*)img.data)[x + y * TIC_SPRITESHEET_SIZE] = tic_rgba(&cart->bank0.palette.scn.colors[index]);
+                        ((u32*)img.data)[x + y * TIC_SPRITESHEET_SIZE] = tic_rgba(&cart->bank0.palette.vbank0.colors[index]);
                     }
 
                 png_buffer png = png_write(img);
@@ -177,7 +177,7 @@ s32 main(s32 argc, char** argv)
                         const tic_tile* tile = &cart->bank0.tiles.data[x / TIC_SPRITESIZE + y / TIC_SPRITESIZE * (TIC_SPRITESHEET_SIZE / TIC_SPRITESIZE)] + TIC_BANK_SPRITES;
                         u8 index = tic_tool_peek4(tile->data, (x % TIC_SPRITESIZE) + (y % TIC_SPRITESIZE) * TIC_SPRITESIZE);
 
-                        ((u32*)img.data)[x + y * TIC_SPRITESHEET_SIZE] = tic_rgba(&cart->bank0.palette.scn.colors[index]);
+                        ((u32*)img.data)[x + y * TIC_SPRITESHEET_SIZE] = tic_rgba(&cart->bank0.palette.vbank0.colors[index]);
                     }
 
                 png_buffer png = png_write(img);

@@ -22,48 +22,44 @@
 
 #pragma once
 
-#include "studio/studio.h"
+#include "tic80_types.h"
 
 typedef struct Menu Menu;
+struct tic_mem;
+struct Studio;
 
-struct Menu
+Menu* studio_menu_create(struct Studio* studio);
+void studio_menu_tick(Menu* menu);
+
+typedef s32(*MenuOptionGetHandler)(void*);
+typedef void(*MenuOptionSetHandler)(void*, s32);
+
+typedef struct
 {
-    tic_mem* tic;
-    struct tic_fs* fs;
+    const char** values;
+    s32 count;
+    MenuOptionGetHandler get;
+    MenuOptionSetHandler set;
+    s32 width;
+    s32 pos;
+} MenuOption;
 
-    bool init;
-    bool cover;
-    s32 ticks;
+typedef void(*MenuItemHandler)(void*, s32);
 
-    struct
-    {
-        s32 focus;
-    } main;
+typedef struct
+{
+    const char* label;
+    MenuItemHandler handler;
 
-    struct
-    {
-        u32 tab;
-        s32 selected;
-    } gamepad;
+    MenuOption* option;
+    const char* help;
+    bool back;
+    s32 width;
+} MenuItem;
 
-    tic_point pos;
+void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, s32 backPos, MenuItemHandler handler, void* data);
+bool studio_menu_back(Menu* menu);
+void studio_menu_free(Menu* menu);
 
-    struct
-    {
-        tic_point start;
-        bool active;
-    } drag;
-
-    enum
-    {
-        MAIN_MENU_MODE,
-        GAMEPAD_MENU_MODE,
-    } mode;
-    
-    void(*tick)(Menu* Menu);
-    void (*scanline)(tic_mem* tic, s32 row, void* data);
-    void (*overline)(tic_mem* tic, void* data);
-};
-
-void initMenu(Menu* menu, tic_mem* tic, struct tic_fs* fs);
-void freeMenu(Menu* menu);
+void studio_menu_anim(struct tic_mem* tic, s32 ticks);
+void studio_menu_anim_scanline(struct tic_mem* tic, s32 row, void* data);

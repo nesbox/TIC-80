@@ -382,10 +382,10 @@ void tic_net_end(tic_net *net) {}
 #include <uv.h>
 #include <http_parser.h>
 
-struct tic_net
+typedef struct
 {
     const char* host;
-    char* path;
+    const char* path;
 
     net_get_callback callback;
     void* calldata;
@@ -399,59 +399,77 @@ struct tic_net
         s32 size;
         s32 total;
     } content;
+
+} NetRequest;
+
+struct tic_net
+{
+    const char* host;
 };
 
 static s32 onBody(http_parser* parser, const char *at, size_t length)
 {
-    tic_net* net = parser->data;
+    NetRequest* req = parser->data;
 
-    net->content.data = realloc(net->content.data, net->content.size + length);
-    memcpy(net->content.data + net->content.size, at, length);
+    req->content.data = realloc(req->content.data, req->content.size + length);
+    memcpy(req->content.data + req->content.size, at, length);
 
-    net->content.size += length;
+    req->content.size += length;
 
-    net->callback(&(net_get_data) 
+    req->callback(&(net_get_data) 
     {
-        .calldata = net->calldata, 
+        .calldata = req->calldata, 
         .type = net_get_progress, 
-        .progress = {net->content.size, net->content.total}, 
-        .url = net->path
+        .progress = {req->content.size, req->content.total}, 
+        .url = req->path
     });
 
     return 0;
 }
 
+static void onClose(uv_handle_t* handle)
+{
+    NetRequest* req = handle->data;
+    if (req){
+        FREE(req->content.data);
+        free((void*)req->path);
+        free(req);
+    }
+}
+
+static void freeRequest(NetRequest* req)
+{
+    uv_close((uv_handle_t*)&req->tcp, onClose);
+}
+
 static s32 onMessageComplete(http_parser* parser)
 {
-    tic_net* net = parser->data;
+    NetRequest* req = parser->data;
 
     if (parser->status_code == HTTP_STATUS_OK)
     {
-        net->callback(&(net_get_data)
+        req->callback(&(net_get_data)
         {
-            .calldata = net->calldata,
+            .calldata = req->calldata,
             .type = net_get_done,
-            .done = { .data = net->content.data, .size = net->content.size },
-            .url = net->path
+            .done = { .data = req->content.data, .size = req->content.size },
+            .url = req->path
         });
-
-        free(net->content.data);
-        free(net->path);
     }
 
-    uv_close((uv_handle_t*)&net->tcp, NULL);
+    freeRequest(req);
 
     return 0;
 }
 
 static s32 onHeadersComplete(http_parser* parser)
 {
-    tic_net* net = parser->data;
+    NetRequest* req = parser->data;
 
     bool hasBody = parser->flags & F_CHUNKED || (parser->content_length > 0 && parser->content_length != ULLONG_MAX);
 
-    ZEROMEM(net->content);
-    net->content.total = parser->content_length;
+    ZEROMEM(req->content);
+    req->content.total = parser->content_length;
 
     // !TODO: handle HTTP_STATUS_MOVED_PERMANENTLY here
     if (!hasBody || parser->status_code != HTTP_STATUS_OK)
@@ -465,17 +483,16 @@ static s32 onStatus(http_parser* parser, const char* at, size_t length)
     return parser->status_code != HTTP_STATUS_OK;
 }
 
-static void onError(tic_net* net, s32 code)
+static void onError(NetRequest* req, s32 code)
 {
-    net->callback(&(net_get_data)
+    req->callback(&(net_get_data)
     {
-        .calldata = net->calldata,
+        .calldata = req->calldata,
         .type = net_get_error,
         .error = { .code = code }
     });
 
-    uv_close((uv_handle_t*)&net->tcp, NULL);
-    free(net->path);
+    freeRequest(req);
 }
 
 static void allocBuffer(uv_handle_t *handle, size_t size, uv_buf_t *buf)
@@ -486,7 +503,7 @@ static void allocBuffer(uv_handle_t *handle, size_t size, uv_buf_t *buf)
 
 static void onResponse(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) 
 {
-    tic_net* net = stream->data;
+    NetRequest* req = stream->data;
 
     if(nread > 0)
     {
@@ -498,53 +515,52 @@ static void onResponse(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf)
             .on_headers_complete = onHeadersComplete,
         };
 
-        s32 parsed = http_parser_execute(&net->parser, &ParserSettings, buf->base, nread);
+        s32 parsed = http_parser_execute(&req->parser, &ParserSettings, buf->base, nread);
 
         if(parsed != nread)
-            onError(net, net->parser.status_code);
+            onError(req, req->parser.status_code);
 
         free(buf->base);
     }
-    else onError(net, 0);
+    else onError(req, 0);
 }
 
 static void onHeaderSent(uv_write_t *write, s32 status)
 {
-    tic_net* net = write->data;
-    http_parser_init(&net->parser, HTTP_RESPONSE);
-    net->parser.data = net;
-
+    NetRequest* req = write->data;
+    http_parser_init(&req->parser, HTTP_RESPONSE);
+    req->parser.data = req;
 
     uv_stream_t* handle = write->handle;
     free(write);
 
-    handle->data = net;
+    handle->data = req;
     uv_read_start(handle, allocBuffer, onResponse);
 }
 
-static void onConnect(uv_connect_t *req, s32 status)
+static void onConnect(uv_connect_t *con, s32 status)
 {
-    tic_net* net = req->data;
+    NetRequest* req = con->data;
 
     char httpReq[2048];
-    snprintf(httpReq, sizeof httpReq, "GET %s HTTP/1.1\nHost: %s\n\n", net->path, net->host);
+    snprintf(httpReq, sizeof httpReq, "GET %s HTTP/1.1\nHost: %s\n\n", req->path, req->host);
 
     uv_buf_t http = uv_buf_init(httpReq, strlen(httpReq));
-    uv_write(MOVE((uv_write_t){.data = net}), req->handle, &http, 1, onHeaderSent);
+    uv_write(MOVE((uv_write_t){.data = req}), con->handle, &http, 1, onHeaderSent);
 
-    free(req);
+    free(con);
 }
 
 static void onResolved(uv_getaddrinfo_t *resolver, s32 status, struct addrinfo *res)
 {
-    tic_net* net = resolver->data;
+    NetRequest* req = resolver->data;
 
     if (res)
     {
-        uv_tcp_connect(MOVE((uv_connect_t){.data = net}), &net->tcp, res->ai_addr, onConnect);
+        uv_tcp_connect(MOVE((uv_connect_t){.data = req}), &req->tcp, res->ai_addr, onConnect);
         uv_freeaddrinfo(res);
     }
-    else onError(net, 0);
+    else onError(req, 0);
 
     free(resolver);
 }
@@ -553,24 +569,28 @@ void tic_net_get(tic_net* net, const char* path, net_get_callback callback, void
 {
     uv_loop_t* loop = uv_default_loop();
 
-    net->callback = callback;
-    net->calldata = calldata;
-    net->path = strdup(path);
+    NetRequest* req = MOVE((NetRequest)
+    {
+        .host = net->host,
+        .callback = callback,
+        .calldata = calldata,
+        .path = strdup(path),
+    });
 
-    uv_tcp_init(loop, &net->tcp);
-    uv_getaddrinfo(loop, MOVE((uv_getaddrinfo_t){.data = net}), onResolved, net->host, "80", NULL);
+    uv_tcp_init(loop, &req->tcp);
+    uv_getaddrinfo(loop, MOVE((uv_getaddrinfo_t){.data = req}), onResolved, net->host, "80", NULL);
 }
 
-void tic_net_start(tic_net *net)
+void tic_net_start(tic_net *net) {}
+
+void tic_net_end(tic_net *net) 
 {
     uv_run(uv_default_loop(), UV_RUN_NOWAIT);
 }
 
-void tic_net_end(tic_net *net) {}
-
 tic_net* tic_net_create(const char* host)
 {
-    tic_net* net = (tic_net*)malloc(sizeof(tic_net));
+    tic_net* net = NEW(tic_net);
     memset(net, 0, sizeof(tic_net));
 
     net->host = host;
@@ -584,199 +604,6 @@ tic_net* tic_net_create(const char* host)
 
 void tic_net_close(tic_net* net)
 {
-    free(net);
-}
-
-#else
-
-#include <curl/curl.h>
-
-typedef struct
-{
-    u8* buffer;
-    s32 size;
-
-    struct Curl_easy* async;
-    net_get_callback callback;
-    void* calldata;
-    char url[URL_SIZE];
-} CurlData;
-
-struct tic_net
-{
-    const char* host;
-    CURLM* multi;
-};
-
-static size_t writeCallbackSync(void *contents, size_t size, size_t nmemb, void *userp)
-{
-    CurlData* data = (CurlData*)userp;
-
-    const size_t total = size * nmemb;
-    u8* newBuffer = realloc(data->buffer, data->size + total);
-    if (newBuffer == NULL)
-    {
-        free(data->buffer);
-        return 0;
-    }
-    data->buffer = newBuffer;
-    memcpy(data->buffer + data->size, contents, total);
-    data->size += (s32)total;
-
-    return total;
-}
-
-static size_t writeCallback(char *ptr, size_t size, size_t nmemb, void *userdata)
-{
-    CurlData* data = (CurlData*)userdata;
-
-    const size_t total = size * nmemb;
-    u8* newBuffer = realloc(data->buffer, data->size + total);
-    if (newBuffer == NULL)
-    {
-        free(data->buffer);
-        return 0;
-    }
-    data->buffer = newBuffer;
-    memcpy(data->buffer + data->size, ptr, total);
-    data->size += (s32)total;
-
-    double cl;
-    curl_easy_getinfo(data->async, CURLINFO_CONTENT_LENGTH_DOWNLOAD, &cl);
-
-    if(cl > 0.0)
-    {
-        net_get_data getData = 
-        {
-            .type = net_get_progress,
-            .progress = 
-            {
-                .size = data->size,
-                .total = (s32)cl,
-            },
-            .calldata = data->calldata,
-            .url = data->url,
-        };
-
-        data->callback(&getData);
-    }
-
-    return total;
-}
-
-void tic_net_get(tic_net* net, const char* path, net_get_callback callback, void* calldata)
-{
-    struct Curl_easy* curl = curl_easy_init();
-
-    CurlData* data = MOVE((CurlData)
-    {
-        .async = curl,
-        .callback = callback,
-        .calldata = calldata,
-    });    
-
-    strcpy(data->url, path);
-
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
-
-    {
-        char url[URL_SIZE];
-        strcpy(url, net->host);
-        strcat(url, path);
-
-        curl_easy_setopt(curl, CURLOPT_URL, url);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, data);
-        curl_easy_setopt(curl, CURLOPT_PRIVATE, data);
-
-        curl_multi_add_handle(net->multi, curl);
-    }
-}
-
-void tic_net_start(tic_net *net)
-{
-    {
-        s32 running = 0;
-        curl_multi_perform(net->multi, &running);
-    }
-
-    s32 pending = 0;
-    CURLMsg* msg = NULL;
-
-    while((msg = curl_multi_info_read(net->multi, &pending)))
-    {
-        if(msg->msg == CURLMSG_DONE)
-        {
-            CurlData* data = NULL;
-            curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, (char**)&data);
-
-            long httpCode = 0;
-            curl_easy_getinfo(msg->easy_handle, CURLINFO_RESPONSE_CODE, &httpCode);
-
-            if(httpCode == 200)
-            {
-                net_get_data getData = 
-                {
-                    .type = net_get_done,
-                    .done = 
-                    {
-                        .size = data->size,
-                        .data = data->buffer,
-                    },
-                    .calldata = data->calldata,
-                    .url = data->url,
-                };
-
-                data->callback(&getData);
-
-                free(data->buffer);
-            }
-            else
-            {
-                net_get_data getData = 
-                {
-                    .type = net_get_error,
-                    .error = 
-                    {
-                        .code = httpCode,
-                    },
-                    .calldata = data->calldata,
-                    .url = data->url,
-                };
-
-                data->callback(&getData);
-            }
-
-            free(data);
-            
-            curl_multi_remove_handle(net->multi, msg->easy_handle);
-            curl_easy_cleanup(msg->easy_handle);
-        }
-    }
-}
-
-void tic_net_end(tic_net *net) {}
-
-tic_net* tic_net_create(const char* host)
-{
-    tic_net* net = (tic_net*)malloc(sizeof(tic_net));
-
-    if (net != NULL)
-    {
-        *net = (tic_net)
-        {
-            .multi = curl_multi_init(),
-            .host = host,
-        };
-    }
-
-    return net;
-}
-
-void tic_net_close(tic_net* net)
-{
-    if(net->multi)
-        curl_multi_cleanup(net->multi);
-
     free(net);
 }
 

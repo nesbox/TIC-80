@@ -29,6 +29,7 @@ typedef struct Sprite Sprite;
 
 struct Sprite
 {
+    Studio* studio;
     tic_mem* tic;
 
     tic_tiles* src;
@@ -49,7 +50,7 @@ struct Sprite
     struct
     {
         bool edit;
-        bool ovr;
+        bool vbank1;
         s32 focus;
     } palette;
 
@@ -72,10 +73,25 @@ struct Sprite
 
     struct History* history;
 
+    struct
+    {
+        struct
+        {
+            s32 bank;
+            s32 page;
+        } pos;
+
+        Movie* movie;
+
+        Movie idle;
+        Movie bank;
+        Movie page;
+
+    } anim;
+
     void (*tick)(Sprite*);
     void (*event)(Sprite*, StudioEvent);
     void (*scanline)(tic_mem* tic, s32 row, void* data);
-    void (*overline)(tic_mem* tic, void* data);
 };
 
 typedef struct
@@ -83,6 +99,6 @@ typedef struct
     s32 cell_w, cell_h, cols, rows, length;
 } tic_palette_dimensions;
 
-void initSprite(Sprite*, tic_mem*, tic_tiles* src);
+void initSprite(Sprite*, Studio* studio, tic_tiles* src);
 void freeSprite(Sprite*);
 

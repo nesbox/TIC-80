@@ -50,16 +50,16 @@ void    tic_sys_clipboard_set(const char* text);
 bool    tic_sys_clipboard_has();
 char*   tic_sys_clipboard_get();
 void    tic_sys_clipboard_free(const char* text);
-u64     tic_sys_counter_get();
-u64     tic_sys_freq_get();
-void    tic_sys_fullscreen();
+bool    tic_sys_fullscreen_get();
+void    tic_sys_fullscreen_set(bool value);
 void    tic_sys_message(const char* title, const char* message);
 void    tic_sys_title(const char* title);
 void    tic_sys_open_path(const char* path);
+void    tic_sys_open_url(const char* path);
 void    tic_sys_preseed();
-void    tic_sys_poll();
 bool    tic_sys_keyboard_text(char* text);
 void    tic_sys_update_config();
+void    tic_sys_default_mapping(tic_mapping* mapping);
 
 #define CODE_COLORS_LIST(macro) \
     macro(BG)       \
@@ -75,15 +75,6 @@ typedef struct
 {
     struct
     {
-        struct
-        {
-            s32 arrow;
-            s32 hand;
-            s32 ibeam;
-
-            bool pixelPerfect;
-        } cursor;
-
         struct
         {
 #define     CODE_COLOR_DEF(VAR) u8 VAR;
@@ -113,19 +104,32 @@ typedef struct
     s32 gifLength;
     
     bool checkNewVersion;
-    bool noSound;
     bool cli;
+    bool soft;
 
 #if defined(CRT_SHADER_SUPPORT)
-    bool crtMonitor;
     struct
     {
         const char* vertex;
         const char* pixel;
     } shader;
 #endif
-    
-    bool goFullscreen;
+
+    struct StudioOptions
+    {
+#if defined(CRT_SHADER_SUPPORT)
+        bool crt;
+#endif
+        
+        bool fullscreen;
+        bool vsync;
+        s32 volume;
+        tic_mapping mapping;
+
+#if defined(BUILD_EDITORS)
+        bool devmode;
+#endif
+    } options;
 
     const tic_cartridge* cart;
 
@@ -133,19 +137,18 @@ typedef struct
 
 } StudioConfig;
 
-typedef struct
-{
-    tic_mem* tic;
-    bool quit;
+typedef struct Studio Studio;
 
-    void (*tick)();
-    void (*exit)();
-    void (*close)();
-    const StudioConfig* (*config)();
+const tic_mem* studio_mem(Studio* studio);
+void studio_tick(Studio* studio, tic80_input input);
+void studio_sound(Studio* studio);
+void studio_load(Studio* studio, const char* file);
+bool studio_alive(Studio* studio);
+void studio_exit(Studio* studio);
+void studio_delete(Studio* studio);
+const StudioConfig* studio_config(Studio* studio);
 
-} Studio;
-
-Studio* studioInit(s32 argc, char **argv, s32 samplerate, const char* appFolder);
+Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* appFolder);
 
 #ifdef __cplusplus
 }

@@ -28,6 +28,7 @@ typedef struct Sfx Sfx;
 
 struct Sfx
 {
+    Studio* studio;
     tic_mem* tic;
 
     tic_sfx* src;
@@ -35,6 +36,7 @@ struct Sfx
     u8 index:SFX_COUNT_BITS;
     s32 volwave;
     s32 hoverWave;
+    s32 holdValue;
 
     struct
     {
@@ -50,5 +52,5 @@ struct Sfx
     void(*event)(Sfx*, StudioEvent);
 };
 
-void initSfx(Sfx*, tic_mem*, tic_sfx* src);
+void initSfx(Sfx*, Studio* studio, tic_sfx* src);
 void freeSfx(Sfx* sfx);

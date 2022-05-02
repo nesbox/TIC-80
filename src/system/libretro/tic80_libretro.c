@@ -112,6 +112,7 @@ void tic80_libretro_error(const char* info)
  */
 void tic80_libretro_trace(const char* text, u8 color)
 {
+	TIC_UNUSED(color);
 	log_cb(RETRO_LOG_DEBUG, "[TIC-80] %s\n", text);
 }
 
@@ -120,7 +121,7 @@ void tic80_libretro_trace(const char* text, u8 color)
  */
 void tic80_libretro_fallback_log(enum retro_log_level level, const char *fmt, ...)
 {
-	(void)level;
+	TIC_UNUSED(level);
 	va_list va;
 	va_start(va, fmt);
 	vfprintf(stderr, fmt, va);
@@ -392,8 +393,8 @@ RETRO_API void retro_set_video_refresh(retro_video_refresh_t cb)
 RETRO_API void retro_reset(void)
 {
 	if (state != NULL && state->tic != NULL) {
-		tic80_local* tic80 = (tic80_local*)state->tic;
-		tic_api_reset(tic80->memory);
+		tic_mem* tic = (tic_mem*)state->tic;
+		tic_api_reset(tic);
 	}
 }
 
@@ -626,6 +627,9 @@ void tic80_libretro_update_mouse(tic80_mouse* mouse)
 				tic80_libretro_update_mouse_wheels(mouse);
 			break;
 #if TIC_MAXPLAYERS >= 1
+			case POINTER_DEVICE_TOUCHSCREEN:
+				// Already handled above.
+			break;
 			case POINTER_DEVICE_LEFT_ANALOG:
 				// Get Mouse X and Y offsets
 				mouseDeltaX = tic80_libretro_get_mouse_delta_analog(RETRO_DEVICE_INDEX_ANALOG_LEFT, RETRO_DEVICE_ID_ANALOG_X);
@@ -719,27 +723,33 @@ void tic80_libretro_update_mouse(tic80_mouse* mouse)
 /**
  * Draws a software cursor on the screen where the mouse is.
  */
-void tic80_libretro_mousecursor(tic80_local* game, tic80_mouse* mouse, enum mouse_cursor_type cursortype)
+void tic80_libretro_mousecursor(tic80* game, tic80_mouse* mouse, enum mouse_cursor_type cursortype)
 {
+	TIC_UNUSED(mouse);
 	// Only draw the mouse cursor if it's active.
 	if (state->mouseHideTimer == 0) {
 		return;
 	}
 
+	tic_mem* tic = (tic_mem*)state->tic;
+
 	// Determine which cursor to draw.
 	switch (cursortype) {
+		case MOUSE_CURSOR_NONE:
+			// Nothing.
+		break;
 		case MOUSE_CURSOR_DOT:
-			tic_api_pix(game->memory, state->mouseX, state->mouseY, state->mouseCursorColor, false);
+			tic_api_pix(tic, state->mouseX, state->mouseY, state->mouseCursorColor, false);
 		break;
 		case MOUSE_CURSOR_CROSS:
-			tic_api_line(game->memory, state->mouseX - 4, state->mouseY, state->mouseX - 2, state->mouseY, state->mouseCursorColor);
-			tic_api_line(game->memory, state->mouseX + 2, state->mouseY, state->mouseX + 4, state->mouseY, state->mouseCursorColor);
-			tic_api_line(game->memory, state->mouseX, state->mouseY - 4, state->mouseX, state->mouseY - 2, state->mouseCursorColor);
-			tic_api_line(game->memory, state->mouseX, state->mouseY + 2, state->mouseX, state->mouseY + 4, state->mouseCursorColor);
+			tic_api_line(tic, state->mouseX - 4, state->mouseY, state->mouseX - 2, state->mouseY, state->mouseCursorColor);
+			tic_api_line(tic, state->mouseX + 2, state->mouseY, state->mouseX + 4, state->mouseY, state->mouseCursorColor);
+			tic_api_line(tic, state->mouseX, state->mouseY - 4, state->mouseX, state->mouseY - 2, state->mouseCursorColor);
+			tic_api_line(tic, state->mouseX, state->mouseY + 2, state->mouseX, state->mouseY + 4, state->mouseCursorColor);
 		break;
 		case MOUSE_CURSOR_ARROW:
-			tic_api_tri(game->memory, state->mouseX, state->mouseY, state->mouseX + 3, state->mouseY, state->mouseX, state->mouseY + 3, state->mouseCursorColor);
-			tic_api_line(game->memory, state->mouseX + 3, state->mouseY, state->mouseX, state->mouseY + 3, tic_color_black);
+			tic_api_tri(tic, state->mouseX, state->mouseY, state->mouseX + 3, state->mouseY, state->mouseX, state->mouseY + 3, state->mouseCursorColor);
+			tic_api_line(tic, state->mouseX + 3, state->mouseY, state->mouseX, state->mouseY + 3, tic_color_black);
 		break;
 	}
 }
@@ -795,7 +805,8 @@ void tic80_libretro_update(tic80* game)
 	tic80_libretro_update_keyboard(&state->input.keyboard);
 
 	// Update the game state.
-	tic80_tick(game, &state->input);
+	tic80_tick(game, state->input);
+	tic80_sound(game);
 }
 
 /**
@@ -804,7 +815,7 @@ void tic80_libretro_update(tic80* game)
 void tic80_libretro_draw(tic80* game)
 {
 	// Render the mouse cursor if needed.
-	tic80_libretro_mousecursor((tic80_local*)game, &state->input.mouse, state->mouseCursor);
+	tic80_libretro_mousecursor((tic80*)game, &state->input.mouse, state->mouseCursor);
 
 	// Render to the screen.
 	if (state->cropBorder) {
@@ -823,7 +834,7 @@ void tic80_libretro_draw(tic80* game)
 void tic80_libretro_audio(tic80* game)
 {
 	// Tell libretro about the samples.
-	audio_batch_cb(game->sound.samples, game->sound.count / TIC_STEREO_CHANNELS);
+	audio_batch_cb(game->samples.buffer, game->samples.count / TIC80_SAMPLE_CHANNELS);
 }
 
 /**
@@ -995,14 +1006,13 @@ RETRO_API bool retro_load_game(const struct retro_game_info *info)
 	}
 
 	// Set up the TIC-80 environment.
-	state->tic = tic80_create(TIC80_SAMPLERATE);
+	state->tic = tic80_create(TIC80_SAMPLERATE, TIC80_PIXEL_COLOR_BGRA8888);
 	if (state->tic == NULL) {
 		log_cb(RETRO_LOG_ERROR, "[TIC-80] Failed to initialize TIC-80 environment.\n");
 		return false;
 	}
 
 	// Set up the environment variables.
-	state->tic->screen_format = TIC80_PIXEL_COLOR_BGRA8888;
 	state->tic->callback.exit = tic80_libretro_exit;
 	state->tic->callback.error = tic80_libretro_error;
 	state->tic->callback.trace = tic80_libretro_trace;
@@ -1056,6 +1066,8 @@ RETRO_API unsigned retro_get_region(void)
  */
 RETRO_API bool retro_load_game_special(unsigned type, const struct retro_game_info *info, size_t num)
 {
+	TIC_UNUSED(num);
+	TIC_UNUSED(type);
 	// Forward subsystem requests over to retro_load_game().
 	return retro_load_game(info);
 }
@@ -1073,14 +1085,15 @@ size_t retro_serialize_size(void)
  */
 RETRO_API bool retro_serialize(void *data, size_t size)
 {
+	TIC_UNUSED(size);
 	if (state == NULL || state->tic == NULL || data == NULL) {
 		return false;
 	}
 
-	tic80_local* tic80 = (tic80_local*)state->tic;
+	tic_mem* tic = (tic_mem*)state->tic;
 	u32* udata = (u32*)data;
-	for (int i = 0; i < TIC_PERSISTENT_SIZE; i++) {
-		udata[i] = tic80->memory->ram.persistent.data[i];
+	for (u32 i = 0; i < TIC_PERSISTENT_SIZE; i++) {
+		udata[i] = tic->ram->persistent.data[i];
 	}
 
 	return true;
@@ -1095,10 +1108,10 @@ RETRO_API bool retro_unserialize(const void *data, size_t size)
 		return false;
 	}
 
-	tic80_local* tic80 = (tic80_local*)state->tic;
+	tic_mem* tic = (tic_mem*)state->tic;
 	u32* uData = (u32*)data;
-	for (int i = 0; i < TIC_PERSISTENT_SIZE; i++) {
-		tic80->memory->ram.persistent.data[i] = uData[i];
+	for (u32 i = 0; i < TIC_PERSISTENT_SIZE; i++) {
+		tic->ram->persistent.data[i] = uData[i];
 	}
 
 	return true;
@@ -1115,14 +1128,14 @@ RETRO_API void *retro_get_memory_data(unsigned id)
 		return NULL;
 	}
 
-	tic80_local* tic80 = (tic80_local*)state->tic;
+	tic_mem* tic = (tic_mem*)state->tic;
 	switch (id) {
 		case RETRO_MEMORY_SAVE_RAM:
-			return tic80->memory->ram.persistent.data;
+			return tic->ram->persistent.data;
 		case RETRO_MEMORY_SYSTEM_RAM:
-			return tic80->memory->ram.data;
+			return tic->ram->data;
 		case RETRO_MEMORY_VIDEO_RAM:
-			return tic80->memory->ram.vram.data;
+			return tic->ram->vram.data;
 		default:
 			return NULL;
 	}
@@ -1137,14 +1150,14 @@ RETRO_API size_t retro_get_memory_size(unsigned id)
         return 0;
     }
 
-    tic80_local* tic80 = (tic80_local*)state->tic;
+    tic_mem* tic = (tic_mem*)state->tic;
     switch (id) {
         case RETRO_MEMORY_SAVE_RAM:
-            return sizeof(tic80->memory->ram.persistent.data);
+            return sizeof(tic->ram->persistent.data);
         case RETRO_MEMORY_SYSTEM_RAM:
-            return sizeof(tic80->memory->ram.data);
+            return sizeof(tic->ram->data);
         case RETRO_MEMORY_VIDEO_RAM:
-            return sizeof(tic80->memory->ram.vram.data);
+            return sizeof(tic->ram->vram.data);
         default:
             return 0;
     }
@@ -1181,12 +1194,14 @@ RETRO_API void retro_cheat_reset(void)
  */
 RETRO_API void retro_cheat_set(unsigned index, bool enabled, const char *code)
 {
+	TIC_UNUSED(index);
+	TIC_UNUSED(enabled);
 	if (!state || !state->tic) {
 		return;
 	}
 
 	u32 codes[TIC_PERSISTENT_SIZE];
-	int codeIndex = 0;
+	u32 codeIndex = 0;
 	char *str = (char*)code;
 	char *end = str;
 
@@ -1200,8 +1215,8 @@ RETRO_API void retro_cheat_set(unsigned index, bool enabled, const char *code)
 	}
 
 	// Finally, set each given code pair.
-	tic80_local* tic80 = (tic80_local*)state->tic;
-	for (int i = 0; i < codeIndex; i = i + 2) {
-		tic80->memory->ram.persistent.data[codes[i]] = codes[i+1];
+	tic_mem* tic = (tic_mem*)state->tic;
+	for (u32 i = 0; i < codeIndex; i = i + 2) {
+		tic->ram->persistent.data[codes[i]] = codes[i+1];
 	}
 }

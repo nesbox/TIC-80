@@ -22,11 +22,13 @@
 
 #include "console.h"
 #include "start.h"
+#include "tools.h"
 #include "studio/fs.h"
 #include "studio/net.h"
 #include "studio/config.h"
 #include "ext/png.h"
 #include "zip.h"
+#include "studio/demos.h"
 
 #if defined(TIC80_PRO)
 #include "studio/project.h"
@@ -58,6 +60,7 @@
 #define CONSOLE_BACK_TEXT_COLOR     tic_color_grey
 #define CONSOLE_FRONT_TEXT_COLOR    tic_color_light_grey
 #define CONSOLE_ERROR_TEXT_COLOR    tic_color_red
+#define CONSOLE_LINK_TEXT_COLOR     tic_color_blue
 #define CONSOLE_CURSOR_BLINK_PERIOD TIC80_FRAMERATE
 #define CONSOLE_CURSOR_DELAY        (TIC80_FRAMERATE / 2)
 #define CONSOLE_BUFFER_WIDTH        (STUDIO_TEXT_BUFFER_WIDTH)
@@ -76,11 +79,14 @@
     macro(vram)                 \
     macro(commands)             \
     macro(api)                  \
+    macro(keys)                 \
+    macro(buttons)                 \
     macro(startup)              \
     macro(terms)                \
     macro(license)
 
 #define IMPORT_CMD_LIST(macro)  \
+    macro(binary)               \
     macro(tiles)                \
     macro(sprites)              \
     macro(map)                  \
@@ -93,7 +99,7 @@
     macro(y)                    \
     macro(w)                    \
     macro(h)                    \
-    macro(ovr)
+    macro(vbank)
 
 #define EXPORT_CMD_LIST(macro)  \
     macro(win)                  \
@@ -102,9 +108,11 @@
     macro(rpi)                  \
     macro(mac)                  \
     macro(html)                 \
+    macro(binary)               \
     macro(tiles)                \
     macro(sprites)              \
     macro(map)                  \
+    macro(mapimg)               \
     macro(sfx)                  \
     macro(music)                \
     macro(screen)               \
@@ -118,18 +126,18 @@
 
 #define EXPORT_KEYS_LIST(macro) \
     macro(bank)                 \
-    macro(ovr)                  \
+    macro(vbank)                \
     macro(id)                   \
     ALONE_KEY(macro)
 
 static const char* WelcomeText = 
     "TIC-80 is a fantasy computer for making, playing and sharing tiny games.\n\n"
-    "There are built-in tools for development: code, sprites, maps, sound editors and the command line, "
+    "It has built-in tools for development: code, sprites, maps, sound editors and the command line, "
     "which is enough to create a mini retro game.\n"
-    "At the exit you will get a cartridge file, which can be stored and played on the website.\n\n"
-    "Also, the game can be packed into a player that works on all popular platforms and distribute as you wish.\n"
-    "To make a retro styled game the whole process of creation takes place under some technical limitations: "
-    "240x136 pixels display, 16 color palette, 256 8x8 color sprites, 4 channel sound and etc.";
+    "In the end, you will get a cartridge file, which can be stored and played on the website.\n\n"
+    "Also, the game can be packed into a player that works on all popular platforms and distributed as you wish.\n"
+    "To make a retro-style game, the whole creation process takes place under some technical limitations: "
+    "240x136 pixels display, 16 color palette, 256 8x8 color sprites, 4 channel sound, etc.";
 
 static const struct SpecRow {const char* section; const char* info;} SpecText1[] = 
 {
@@ -138,11 +146,7 @@ static const struct SpecRow {const char* section; const char* info;} SpecText1[]
     {"SPRITES", "256 8x8 tiles and 256 8x8 sprites."},
     {"MAP",     "240x136 cells, 1920x1088 pixels."},
     {"SOUND",   "4 channels with configurable waveforms."},
-    {"CODE",    "64KB of"
-#define         SCRIPT_DEF(name, ...) " "#name
-                SCRIPT_LIST(SCRIPT_DEF)
-#undef          SCRIPT_DEF
-                "."
+    {"CODE",    "64KB of $LANG_NAMES$.",
     },
 };
 
@@ -150,12 +154,12 @@ static const char* TermsText =
     "## Terms of Use\n"
     "- All cartridges posted on the " TIC_WEBSITE " website are the property of their authors.\n"
     "- Do not redistribute the cartridge without permission, directly from the author.\n"
-    "- By uploading cartridges to the site, you grant Nesbox the right to freely use and distribute them."
+    "- By uploading cartridges to the site, you grant Nesbox the right to freely use and distribute them. "
     "All other rights by default remain with the author.\n"
     "- Do not post material that violates copyright, obscenity or any other laws.\n"
     "- Nesbox reserves the right to remove or filter any material without prior notice.\n\n"
     "## Privacy Policy\n"
-    "We store only the user's email and password in encrypted form and will not transfer any personal"
+    "We store only the user's email and password in encrypted form and will not transfer any personal "
     "information to third parties without explicit permission.";
 
 static const char* LicenseText = 
@@ -182,7 +186,7 @@ static const char* LicenseText =
 
 static const struct StartupOption {const char* name; const char* help;} StartupOptions[] = 
 {
-#define CMD_PARAMS_DEF(name, type, post, help) {#name post, help},
+#define CMD_PARAMS_DEF(name, ctype, type, post, help) {#name post, help},
     CMD_PARAMS_LIST(CMD_PARAMS_DEF)
 #undef CMD_PARAMS_DEF
 };
@@ -202,25 +206,90 @@ struct CommandDesc
     char* src;
 };
 
-typedef enum
-{
-#define SCRIPT_DEF(name, ...) name##_script,
-    SCRIPT_LIST(SCRIPT_DEF)
-#undef SCRIPT_DEF
-} ScriptLang;
-
-static const struct Script{ScriptLang lang; const char* name;} Scripts[] = 
-{
-#define SCRIPT_DEF(name, ...) {name##_script, #name},
-    SCRIPT_LIST(SCRIPT_DEF)
-#undef SCRIPT_DEF
-};
-
 static const char* PngExt = PNG_EXT;
 
 #if defined(__EMSCRIPTEN__)
 #define CAN_ADDGET_FILE 1
 #endif
+
+
+// You must free the result if result is non-NULL. TODO: find a better place for this function?
+char *str_replace(const char *orig, char *rep, char *with) {
+    char *result; // the return string
+    const char *ins;    // the next insert point
+    char *tmp;    // varies
+    s32 len_rep;  // length of rep (the string to remove)
+    s32 len_with; // length of with (the string to replace rep with)
+    s32 len_front; // distance between rep and end of last rep
+    s32 count;    // number of replacements
+
+    // sanity checks and initialization
+    if (!orig || !rep)
+        return NULL;
+    len_rep = strlen(rep);
+    if (len_rep == 0)
+        return NULL; // empty rep causes infinite loop during count
+    if (!with)
+        with = "";
+    len_with = strlen(with);
+
+    // count the number of replacements needed
+    ins = orig;
+    for (count = 0; tmp = strstr(ins, rep); ++count) {
+        ins = tmp + len_rep;
+    }
+
+    tmp = result = malloc(strlen(orig) + (len_with - len_rep) * count + 1);
+
+    if (!result)
+        return NULL;
+
+    // first time through the loop, all the variable are set correctly
+    // from here on,
+    //    tmp points to the end of the result string
+    //    ins points to the next occurrence of rep in orig
+    //    orig points to the remainder of orig after "end of rep"
+    while (count--) {
+        ins = strstr(orig, rep);
+        len_front = ins - orig;
+        tmp = strncpy(tmp, orig, len_front) + len_front;
+        tmp = strcpy(tmp, with) + len_with;
+        orig += len_front + len_rep; // move to next "end of rep"
+    }
+    strcpy(tmp, orig);
+    return result;
+}
+
+static char* replaceHelpTokens(const char* text)
+{
+    char langnames[10240] = {0};
+    char langextensions[10240] = {0};
+    char langnamespipe[10240] = {0};
+
+    FOR_EACH_LANG(ln)
+        bool isLast = *(conf+1) == NULL;
+        bool isSecondToLast = *(conf+2) == NULL;
+
+        strcat(langnames, ln->name);
+        if (!isLast)
+            strcat(langnames, isSecondToLast ? " or " : ", ");
+
+        strcat(langextensions, ln->fileExtension);
+        strcat(langextensions, " ");
+
+        strcat(langnamespipe, ln->name);
+        if (!isLast)
+            strcat(langnamespipe, "|");
+    FOR_EACH_LANG_END
+
+    char* replaced1 = str_replace(text, "$LANG_NAMES$", langnames);
+    char* replaced2 = str_replace(replaced1, "$LANG_EXTENSIONS$", langextensions);
+    char* replaced3 = str_replace(replaced2, "$LANG_NAMES_PIPE$", langnamespipe);
+    free(replaced2);
+    free(replaced1);
+    return replaced3;
+}
+
 
 static const char* getName(const char* name, const char* ext)
 {
@@ -360,6 +429,11 @@ static void printFront(Console* console, const char* text)
     consolePrint(console, text, CONSOLE_FRONT_TEXT_COLOR);
 }
 
+static void printLink(Console* console, const char* text)
+{
+    consolePrint(console, text, CONSOLE_LINK_TEXT_COLOR);
+}
+
 static void printError(Console* console, const char* text)
 {
     consolePrint(console, text, CONSOLE_ERROR_TEXT_COLOR);
@@ -387,7 +461,7 @@ static void commandDoneLine(Console* console, bool newLine)
         if(strlen(dir))
             printBack(console, dir);
 
-        printFront(console, ">");        
+        printFront(console, ">");
     }
 
     console->active = true;
@@ -395,6 +469,7 @@ static void commandDoneLine(Console* console, bool newLine)
     clearSelection(console);
 
     FREE(console->desc->src);
+    FREE(console->desc->command);
     FREE(console->desc->params);
 
     memset(console->desc, 0, sizeof(CommandDesc));
@@ -490,13 +565,19 @@ static s32 getInputOffset(Console* console)
     return (console->input.text - console->text) + console->input.pos;
 }
 
+static void deleteText(Console* console, s32 start, s32 end)
+{
+    s32 offset = console->input.text - console->text;
+    s32 size = CONSOLE_BUFFER_SIZE - offset - end;
+    memmove(console->input.text + start, console->input.text + end, size);
+
+    u8* color = console->color + offset;
+    memmove(color + start, color + end, size);
+}
+
 static void processConsoleDel(Console* console)
 {
-    char* pos = console->input.text + console->input.pos;
-    u8* color = console->color + getInputOffset(console);
-    size_t size = strlen(pos);
-    memmove(pos, pos + 1, size);
-    memmove(color, color + 1, size);
+    deleteText(console, console->input.pos, console->input.pos + 1);
 }
 
 static void processConsoleBackspace(Console* console)
@@ -513,7 +594,13 @@ static void onHelpCommand(Console* console);
 
 static void onExitCommand(Console* console)
 {
-    exitStudio();
+    exitStudio(console->studio);
+    commandDone(console);
+}
+
+static void onEditCommand(Console* console)
+{
+    gotoCode(console->studio);
     commandDone(console);
 }
 
@@ -549,21 +636,22 @@ static void loadCartSection(Console* console, const tic_cartridge* cart, const c
         memcpy(&tic->cart, cart, sizeof(tic_cartridge));
 }
 
-static const char* getDemoCartPath(ScriptLang script)
+static const char* getDemoCartPath(char* path, tic_script_config* script)
 {
-    static const char* Paths[] = 
-    {
-#define SCRIPT_DEF(name, ...) [name##_script] = TIC_LOCAL_VERSION "default_" #name ".tic",
-        SCRIPT_LIST(SCRIPT_DEF)
-#undef  SCRIPT_DEF
-    };
+    //printf("Demo cart path of %s: ", script->name);
+    strcpy(path, TIC_LOCAL_VERSION "default_");
+    strcat(path, script->name);
+    strcat(path, ".tic");
 
-    return Paths[script];
+    //printf("%s\n", path);
+
+    return path;
 }
 
-static void* getDemoCart(Console* console, ScriptLang script, s32* size)
+static void* getDemoCart(Console* console, tic_script_config* script, s32* size)
 {
-    const char* path = getDemoCartPath(script);
+    char path[1024];
+    getDemoCartPath(path, script);
 
     {
         void* data = tic_fs_loadroot(console->fs, path, size);
@@ -571,96 +659,10 @@ static void* getDemoCart(Console* console, ScriptLang script, s32* size)
         if(data && *size)
             return data;
     }
+    tic_script_config_extra* ex = getConfigExtra(script);
 
-    const u8* demo = NULL;
-    s32 romSize = 0;
-
-    switch(script)
-    {
-#if defined(TIC_BUILD_WITH_LUA)
-    case lua_script:
-        {
-            static const u8 LuaDemoRom[] =
-            {
-                #include "../build/assets/luademo.tic.dat"
-            };
-
-            demo = LuaDemoRom;
-            romSize = sizeof LuaDemoRom;
-        }
-        break;
-#endif
-
-#if defined(TIC_BUILD_WITH_MOON)
-    case moon_script:
-        {
-            static const u8 MoonDemoRom[] =
-            {
-                #include "../build/assets/moondemo.tic.dat"
-            };
-
-            demo = MoonDemoRom;
-            romSize = sizeof MoonDemoRom;
-        }
-        break;
-#endif
-
-#if defined(TIC_BUILD_WITH_FENNEL)
-    case fennel_script:
-        {
-            static const u8 FennelDemoRom[] =
-            {
-                #include "../build/assets/fenneldemo.tic.dat"
-            };
-
-            demo = FennelDemoRom;
-            romSize = sizeof FennelDemoRom;
-        }
-        break;
-#endif
-
-#if defined(TIC_BUILD_WITH_JS)
-    case js_script:
-        {
-            static const u8 JsDemoRom[] =
-            {
-                #include "../build/assets/jsdemo.tic.dat"
-            };
-
-            demo = JsDemoRom;
-            romSize = sizeof JsDemoRom;
-        }
-        break;
-#endif
-
-#if defined(TIC_BUILD_WITH_WREN)
-    case wren_script:
-        {
-            static const u8 WrenDemoRom[] =
-            {
-                #include "../build/assets/wrendemo.tic.dat"
-            };
-
-            demo = WrenDemoRom;
-            romSize = sizeof WrenDemoRom;
-        }
-        break;
-#endif
-
-#if defined(TIC_BUILD_WITH_SQUIRREL)
-    case squirrel_script:
-        {
-            static const u8 SquirrelDemoRom[] =
-            {
-                #include "../build/assets/squirreldemo.tic.dat"
-            };
-
-            demo = SquirrelDemoRom;
-            romSize = sizeof SquirrelDemoRom;
-        }
-        break;
-#endif
-    }
+    const u8* demo = ex->demoRom;
+    s32 romSize = ex->demoRomSize;
 
     u8* data = calloc(1, sizeof(tic_cartridge));
 
@@ -684,15 +686,15 @@ static void setCartName(Console* console, const char* name, const char* path)
         strcpy(console->rom.path, path);
 }
 
-static void onLoadDemoCommandConfirmed(Console* console, ScriptLang script)
+static void onLoadDemoCommandConfirmed(Console* console, tic_script_config* script)
 {
     void* data = NULL;
     s32 size = 0;
 
-    console->showGameMenu = false;
-
     {
-        const char* name = getCartName(getDemoCartPath(script));
+        char path[1024];
+        getDemoCartPath(path, script);
+        const char* name = getCartName(path);
         setCartName(console, name, tic_fs_path(console->fs, name));
     }
 
@@ -700,7 +702,7 @@ static void onLoadDemoCommandConfirmed(Console* console, ScriptLang script)
     tic_cart_load(&console->tic->cart, data, size);
     tic_api_reset(console->tic);
 
-    studioRomLoaded();
+    studioRomLoaded(console->studio);
 
     printBack(console, "\ncart ");
     printFront(console, console->rom.name);
@@ -716,7 +718,7 @@ static void onCartLoaded(Console* console, const char* name, const char* section
     if(!section)
         setCartName(console, name, tic_fs_path(console->fs, name));
 
-    studioRomLoaded();
+    studioRomLoaded(console->studio);
 
     printBack(console, "\ncart ");
     printFront(console, console->rom.name);
@@ -750,7 +752,7 @@ static void updateProject(Console* console)
 #endif
                 tic_cart_load(&tic->cart, data, size);
 
-            studioRomLoaded();
+            studioRomLoaded(console->studio);
         }
     }
 }
@@ -784,8 +786,6 @@ static void loadByHashDone(const u8* buffer, s32 size, void* data)
     FREE(loadByHashData->name);
     FREE(loadByHashData->section);
     FREE(loadByHashData);
-
-    console->showGameMenu = true;
 
     commandDone(console);
 }
@@ -841,7 +841,7 @@ static void fileFound(void* data)
     FREE(loadPublicCartData);
 }
 
-static void printUsage(Console* console, const char* command);
+static bool printUsage(Console* console, const char* command);
 
 static void onLoadCommandConfirmed(Console* console)
 {
@@ -891,7 +891,6 @@ static void onLoadCommandConfirmed(Console* console)
         }
         else
         {
-            console->showGameMenu = false;
             s32 size = 0;
             void* data = strcmp(name, CONFIG_TIC_PATH) == 0
                 ? tic_fs_loadroot(console->fs, name, &size)
@@ -950,7 +949,20 @@ static void onLoadCommandConfirmed(Console* console)
                 }
                 else printError(console, "\nfile not found");
 #else
-                printError(console, "\ncart loading error");
+                if(tic_project_ext(name)) {
+                    printError(console, "\nproject loading error");
+                    printFront(console, "\nThis version only supports binary .png or .tic cartridges.");
+                    printLine(console);
+                    printFront(console, "\nTIC-80 ");
+                    consolePrint(console,"PRO",tic_color_light_blue);
+                    printFront(console, " is needed for text files.");
+                    printLine(console);
+                    printFront(console, "\nLearn more:\n");
+                    printLink(console, "https://tic80.com/pro");
+                } else {
+                    printError(console, "\ncart loading error");
+                }
+                
 #endif
             }
         }
@@ -961,15 +973,15 @@ static void onLoadCommandConfirmed(Console* console)
     commandDone(console);
 }
 
-typedef void(*ConfirmCallback)(Console* console);
+typedef void(*ConsoleConfirmCallback)(Console* console);
 
 typedef struct
 {
     Console* console;
-    ConfirmCallback callback;
+    ConsoleConfirmCallback callback;
 } CommandConfirmData;
 
-static void onConfirm(bool yes, void* data)
+static void onConfirm(Studio* studio, bool yes, void* data)
 {
     CommandConfirmData* confirmData = (CommandConfirmData*)data;
 
@@ -982,7 +994,7 @@ static void onConfirm(bool yes, void* data)
     free(confirmData);
 }
 
-static void confirmCommand(Console* console, const char** text, s32 rows, ConfirmCallback callback)
+static void confirmCommand(Console* console, const char** text, s32 rows, ConsoleConfirmCallback callback)
 {    
     if(console->args.cli)
     {
@@ -997,20 +1009,20 @@ static void confirmCommand(Console* console, const char** text, s32 rows, Confir
     else
     {
         CommandConfirmData data = {console, callback};
-        showDialog(text, rows, onConfirm, MOVE(data));
+        confirmDialog(console->studio, text, rows, onConfirm, MOVE(data));
     }
 }
 
-typedef void(*LoadDemoConfirmCallback)(Console* console, ScriptLang script);
+typedef void(*LoadDemoConfirmCallback)(Console* console, tic_script_config* script);
 
 typedef struct
 {
     Console* console;
     LoadDemoConfirmCallback callback;
-    ScriptLang script;
+    tic_script_config* script;
 } LoadDemoConfirmData;
 
-static void onLoadDemoConfirm(bool yes, void* data)
+static void onLoadDemoConfirm(Studio* studio, bool yes, void* data)
 {
     LoadDemoConfirmData* demoData = (LoadDemoConfirmData*)data;
 
@@ -1023,21 +1035,19 @@ static void onLoadDemoConfirm(bool yes, void* data)
     free(demoData);
 }
 
-static void onLoadDemoCommand(Console* console, ScriptLang script)
+static const char* LoadWarningRows[] =
 {
-    if(studioCartChanged())
-    {
-        static const char* Rows[] =
-        {
-            "YOU HAVE",
-            "UNSAVED CHANGES",
-            "",
-            "DO YOU REALLY WANT",
-            "TO LOAD CART?",
-        };
+    "WARNING!",
+    "You have unsaved changes",
+    "Do you really want to load cart?",
+};
 
+static void onLoadDemoCommand(Console* console, tic_script_config* script)
+{
+    if(studioCartChanged(console->studio))
+    {
         LoadDemoConfirmData data = {console, onLoadDemoCommandConfirmed, script};
-        showDialog(Rows, COUNT_OF(Rows), onLoadDemoConfirm, MOVE(data));
+        confirmDialog(console->studio, LoadWarningRows, COUNT_OF(LoadWarningRows), onLoadDemoConfirm, MOVE(data));
     }
     else
     {
@@ -1047,18 +1057,9 @@ static void onLoadDemoCommand(Console* console, ScriptLang script)
 
 static void onLoadCommand(Console* console)
 {
-    if(studioCartChanged())
+    if(studioCartChanged(console->studio))
     {
-        static const char* Rows[] =
-        {
-            "YOU HAVE",
-            "UNSAVED CHANGES",
-            "",
-            "DO YOU REALLY WANT",
-            "TO LOAD CART?",
-        };
-
-        confirmCommand(console, Rows, COUNT_OF(Rows), onLoadCommandConfirmed);
+        confirmCommand(console, LoadWarningRows, COUNT_OF(LoadWarningRows), onLoadCommandConfirmed);
     }
     else
     {
@@ -1066,8 +1067,9 @@ static void onLoadCommand(Console* console)
     }
 }
 
-static void loadDemo(Console* console, ScriptLang script)
+static void loadDemo(Console* console, tic_script_config* script)
 {
+    if (script == NULL) script = Languages[0]; // can be called with null, meaning first language (Lua)
     s32 size = 0;
     u8* data = getDemoCart(console, script, &size);
 
@@ -1081,7 +1083,7 @@ static void loadDemo(Console* console, ScriptLang script)
 
     memset(console->rom.name, 0, sizeof console->rom.name);
 
-    studioRomLoaded();
+    studioRomLoaded(console->studio);
 }
 
 static void onNewCommandConfirmed(Console* console)
@@ -1092,12 +1094,13 @@ static void onNewCommandConfirmed(Console* console)
     {
         const char* param = console->desc->params->key;
 
-        FOR(const struct Script*, script, Scripts)
-            if(strcmp(param, script->name) == 0)
+        FOR_EACH_LANG(ln)
+            if(strcmp(param, ln->name) == 0)
             {
-                loadDemo(console, script->lang);
+                loadDemo(console, ln);
                 done = true;
             }
+        FOR_EACH_LANG_END
 
         if(!done)
         {
@@ -1109,11 +1112,11 @@ static void onNewCommandConfirmed(Console* console)
     }
     else
     {
-        loadDemo(console, 0);
-        done = true;
+        printError(console, "\nerror: choose a language for the new cart.");
+        printUsage(console, console->desc->command);
     }
 
-    if(done) printBack(console, "\nnew cart is created");
+    if(done) printBack(console, "\nnew cart has been created");
     else printError(console, "\ncart not created");
 
     commandDone(console);
@@ -1121,15 +1124,13 @@ static void onNewCommandConfirmed(Console* console)
 
 static void onNewCommand(Console* console)
 {
-    if(studioCartChanged())
+    if(studioCartChanged(console->studio))
     {
         static const char* Rows[] =
         {
-            "YOU HAVE",
-            "UNSAVED CHANGES",
-            "",
-            "DO YOU REALLY WANT",
-            "TO CREATE NEW CART?",
+            "WARNING!",
+            "You have unsaved changes",
+            "Do you really want to create new cart?",
         };
 
         confirmCommand(console, Rows, COUNT_OF(Rows), onNewCommandConfirmed);
@@ -1138,6 +1139,181 @@ static void onNewCommand(Console* console)
     {
         onNewCommandConfirmed(console);
     }
+}
+
+static void insertInputText(Console* console, const char* text)
+{
+    s32 size = strlen(text);
+    s32 offset = getInputOffset(console);
+
+    if(size < CONSOLE_BUFFER_SIZE - offset)
+    {
+        char* pos = console->text + offset;
+        u8* color = console->color + offset;
+
+        {
+            s32 len = strlen(pos);
+            memmove(pos + size, pos, len);
+            memmove(color + size, color, len);
+        }
+
+        memcpy(pos, text, size);
+        memset(color, CONSOLE_INPUT_COLOR, size);
+
+        console->input.pos += size;
+    }
+
+    clearSelection(console);
+}
+
+typedef struct
+{
+    Console* console;
+    char* incompleteWord; // Original word that's being completed.
+    char* options; // Options to show to the user.
+    char* commonPrefix; // Common prefix of all options.
+} TabCompleteData;
+
+static void addTabCompleteOption(TabCompleteData* data, const char* option)
+{
+    if (strstr(option, data->incompleteWord) == option)
+    {
+        // Possibly reduce the common prefix of all possible options.
+        if (strlen(data->options) == 0)
+        {
+            // This is the first option to be added. Initialize the prefix.
+            strncpy(data->commonPrefix, option, CONSOLE_BUFFER_SCREEN);
+        }
+        else
+        {
+            // Only leave the longest common prefix.
+            char* tmpCommonPrefix = data->commonPrefix;
+            char* tmpOption = (char*) option;
+
+            while (*tmpCommonPrefix && *tmpOption && *tmpCommonPrefix == *tmpOption) {
+                tmpCommonPrefix++;
+                tmpOption++;
+            }
+
+            *tmpCommonPrefix = 0;
+        }
+
+        // The option matches the incomplete word, add it to the list.
+        strncat(data->options, option, CONSOLE_BUFFER_SCREEN);
+        strncat(data->options, " ", CONSOLE_BUFFER_SCREEN);
+    }
+}
+
+// Used to show tab-complete options, for example.
+static void provideHint(Console* console, const char* hint)
+{
+    char* input = malloc(CONSOLE_BUFFER_SCREEN);
+    strncpy(input, console->input.text, CONSOLE_BUFFER_SCREEN);
+
+    printLine(console);
+    printBack(console, hint);
+    commandDone(console);
+    insertInputText(console, input);
+
+    free(input);
+}
+
+static void finishTabComplete(const TabCompleteData* data)
+{
+    bool anyOptions = strlen(data->options) > 0;
+    if (anyOptions) {
+        // Adding one at the right because all options end with a space.
+        bool justOneOptionLeft = strlen(data->options) == strlen(data->commonPrefix)+1;
+
+        if (strlen(data->commonPrefix) == strlen(data->incompleteWord) && !justOneOptionLeft)
+        {
+            provideHint(data->console, data->options);
+        }
+        processConsoleEnd(data->console);
+        insertInputText(data->console, data->commonPrefix+strlen(data->incompleteWord));
+
+        if (justOneOptionLeft)
+        {
+            insertInputText(data->console, " ");
+        }
+    }
+
+    free(data->options);
+    free(data->commonPrefix);
+}
+
+static void tabCompleteLanguages(TabCompleteData* data)
+{
+    FOR_EACH_LANG(ln)
+        addTabCompleteOption(data, ln->name);
+    FOR_EACH_LANG_END
+    finishTabComplete(data);
+}
+
+static void tabCompleteExport(TabCompleteData* data)
+{
+#define EXPORT_CMD_DEF(name) addTabCompleteOption(data, #name);
+    EXPORT_CMD_LIST(EXPORT_CMD_DEF)
+#undef  EXPORT_CMD_DEF
+    finishTabComplete(data);
+}
+
+static void tabCompleteImport(TabCompleteData* data)
+{
+#define IMPORT_CMD_DEF(name) addTabCompleteOption(data, #name);
+    IMPORT_CMD_LIST(IMPORT_CMD_DEF)
+#undef  IMPORT_CMD_DEF
+    finishTabComplete(data);
+}
+
+static bool addFileAndDirToTabComplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
+{
+    addTabCompleteOption(data, name);
+
+    return true;
+}
+
+static bool addFilenameToTabComplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
+{
+    if (!dir)
+        addTabCompleteOption(data, name);
+
+    return true;
+}
+
+static bool addDirToTabComplete(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
+{
+    if (dir)
+        addTabCompleteOption(data, name);
+
+    return true;
+}
+
+static void finishTabCompleteAndFreeData(void* data) {
+    finishTabComplete((const TabCompleteData *) data);
+    free(data);
+}
+
+static void tabCompleteFiles(TabCompleteData* data)
+{
+    tic_fs_enum(data->console->fs, addFilenameToTabComplete, finishTabCompleteAndFreeData, MOVE(*data));
+}
+
+static void tabCompleteDirs(TabCompleteData* data)
+{
+    tic_fs_enum(data->console->fs, addDirToTabComplete, finishTabCompleteAndFreeData, MOVE(*data));
+}
+
+static void tabCompleteFilesAndDirs(TabCompleteData* data)
+{
+    tic_fs_enum(data->console->fs, addFileAndDirToTabComplete, finishTabCompleteAndFreeData, MOVE(*data));
+}
+
+static void tabCompleteConfig(TabCompleteData* data)
+{
+    addTabCompleteOption(data, "reset");
+    addTabCompleteOption(data, "default");
+    finishTabComplete(data);
 }
 
 typedef struct
@@ -1267,8 +1443,9 @@ static void onChangeDirectory(Console* console)
             tic_fs_isdir_async(console->fs, param, onChangeDirectoryDone, MOVE(data));
             return;
         }
+    } else {
+        tic_fs_homedir(console->fs);
     }
-    else printBack(console, "\ninvalid dir name");
 
     commandDone(console);
 }
@@ -1277,13 +1454,22 @@ static void onMakeDirectory(Console* console)
 {
     if(console->desc->count)
     {
+        char msg[TICNAME_MAX];
         const char* param = console->desc->params->key;
 
-        tic_fs_makedir(console->fs, param);
+        if (tic_fs_exists(console->fs, param)) {
+            sprintf(msg, "\nerror, [%s] already exists :(", param);
+            printError(console, msg);
+            commandDone(console);
+            return;
+        }
 
-        char msg[TICNAME_MAX];
         sprintf(msg, "\ncreated [%s] folder :)", param);
-        printBack(console, msg);
+
+        printBack(console, tic_fs_makedir(console->fs, param)
+            ? "\nerror, dir not created :("
+            : msg);
+
     }
     else printError(console, "\ninvalid dir name");
 
@@ -1384,6 +1570,11 @@ static void onInstallDemosCommand(Console* console)
             #include "../build/assets/bpp.tic.dat"
         };
 
+        static const u8 democar[] =
+        {
+            #include "../build/assets/car.tic.dat"
+        };
+
 #define DEMOS_LIST(macro)       \
         macro(fire)             \
         macro(font)             \
@@ -1394,7 +1585,8 @@ static void onInstallDemosCommand(Console* console)
         macro(sfx)              \
         macro(tetris)           \
         macro(benchmark)        \
-        macro(bpp)
+        macro(bpp)              \
+        macro(car)
 
         static const struct Demo {const char* name; const u8* data; s32 size;} Demos[] =
         {
@@ -1413,68 +1605,27 @@ static void onInstallDemosCommand(Console* console)
         }
 #endif
 
-#if defined(TIC_BUILD_WITH_LUA)
-        static const u8 luamark[] =
-        {
-            #include "../build/assets/luamark.tic.dat"
-        };
-#endif
-
-#if defined(TIC_BUILD_WITH_MOON)
-        static const u8 moonmark[] =
-        {
-            #include "../build/assets/moonmark.tic.dat"
-        };
-#endif
-
-#if defined(TIC_BUILD_WITH_FENNEL)
-        static const u8 fennelmark[] =
-        {
-            #include "../build/assets/luamark.tic.dat"
-        };
-#endif
-
-#if defined(TIC_BUILD_WITH_JS)
-        static const u8 jsmark[] =
-        {
-            #include "../build/assets/jsmark.tic.dat"
-        };
-#endif
-
-#if defined(TIC_BUILD_WITH_SQUIRREL)
-        static const u8 squirrelmark[] =
-        {
-            #include "../build/assets/squirrelmark.tic.dat"
-        };
-#endif
-
-#if defined(TIC_BUILD_WITH_WREN)
-        static const u8 wrenmark[] =
-        {
-            #include "../build/assets/wrenmark.tic.dat"
-        };
-#endif
-
-        static const struct Mark {const char* name; const u8* data; s32 size;} Marks[] =
-        {
-#define     SCRIPT_DEF(name, ...) {#name "mark.tic", name ## mark, sizeof name ## mark},
-            SCRIPT_LIST(SCRIPT_DEF)
-#undef      SCRIPT_DEF
-        };
-
         static const char* Bunny = "bunny";
 
         tic_fs_makedir(fs, Bunny);
         tic_fs_changedir(fs, Bunny);
 
-        FOR(const struct Mark*, mark, Marks)
+        FOR_EACH_LANG(ln)
         {
-            tic_fs_save(fs, mark->name, data, tic_tool_unzip(data, sizeof(tic_cartridge), mark->data, mark->size), true);
-            printFront(console, Bunny);
-            printFront(console, "/");
-            printFront(console, mark->name);
-            printLine(console);
+            tic_script_config_extra* ex = getConfigExtra(ln);
+            if (ex->markRom != NULL) { // having a Mark is not mandatory
+                char cartname[1024];
+                strcpy(cartname, ln->name);
+                strcat(cartname, "mark.tic");
+
+                tic_fs_save(fs, cartname, data, tic_tool_unzip(data, sizeof(tic_cartridge), ex->markRom, ex->markRomSize), true);
+                printFront(console, Bunny);
+                printFront(console, "/");
+                printFront(console, cartname);
+                printLine(console);
+            }
         }
+	FOR_EACH_LANG_END
 
         tic_fs_dirback(fs);
     }
@@ -1484,27 +1635,27 @@ static void onInstallDemosCommand(Console* console)
 
 static void onGameMenuCommand(Console* console)
 {
-    console->showGameMenu = false;
-    showGameMenu();
+    gotoMenu(console->studio);
     commandDone(console);
 }
 
 static void onSurfCommand(Console* console)
 {
-    gotoSurf();
+    gotoSurf(console->studio);
 }
 
-static void loadExt(Console* console, const char* path)
+static void loadExternal(Console* console, const char* path)
 {
-    CommandDesc desc = {0};
-    desc.params = malloc(sizeof *desc.params);
-    desc.params->key = strdup(path);
-    desc.params->val = NULL;
-    desc.count = 1;
+    CommandDesc desc = 
+    {
+        .params = malloc(sizeof *desc.params),
+        .count = 1,
+    };
 
+    *desc.params = (struct Param){.key = strdup(path)};
     *console->desc = desc;
 
-    onLoadCommand(console);
+    onLoadCommandConfirmed(console);
 }
 
 static void onConfigCommand(Console* console)
@@ -1522,9 +1673,10 @@ static void onConfigCommand(Console* console)
                 onLoadDemoCommand(console, 0);
             else
             {
-                FOR(const struct Script*, script, Scripts)
+                FOR_EACH_LANG(script)
                     if (strcmp(console->desc->params[1].key, script->name) == 0)
-                        onLoadDemoCommand(console, script->lang);
+                        onLoadDemoCommand(console, script);
+                FOR_EACH_LANG_END
             }
         }
         else
@@ -1535,7 +1687,17 @@ static void onConfigCommand(Console* console)
     }
     else
     {
-        loadExt(console, CONFIG_TIC_PATH);
+        CommandDesc desc = 
+        {
+            .params = malloc(sizeof *desc.params),
+            .count = 1,
+        };
+
+        *desc.params = (struct Param){.key = strdup(CONFIG_TIC_PATH)};
+        *console->desc = desc;
+
+        onLoadCommand(console);
+
         return;
     }
    
@@ -1572,11 +1734,11 @@ static inline tic_bank* getBank(Console* console, s32 bank)
     return &console->tic->cart.banks[bank];
 }
 
-static inline const tic_palette* getPalette(Console* console, s32 bank, s32 ovr)
+static inline const tic_palette* getPalette(Console* console, s32 bank, s32 vbank)
 {
-    return ovr 
-        ? &getBank(console, bank)->palette.ovr
-        : &getBank(console, bank)->palette.scn;
+    return vbank 
+        ? &getBank(console, bank)->palette.vbank1
+        : &getBank(console, bank)->palette.vbank0;
 }
 
 static void onImportTilesBase(Console* console, const char* name, const void* buffer, s32 size, tic_tile* base, ImportParams params)
@@ -1588,7 +1750,7 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
 
     if(img.data) SCOPE(free(img.data))
     {
-        const tic_palette* pal = getPalette(console, params.bank, params.ovr);
+        const tic_palette* pal = getPalette(console, params.bank, params.vbank);
         
         for(s32 j = 0, y = params.y, h = y + (params.h ? params.h : img.height); y < h; ++y, ++j)
             for(s32 i = 0, x = params.x, w = x + (params.w ? params.w : img.width); x < w; ++x, ++i)
@@ -1605,6 +1767,20 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
 static void onImport_tiles(Console* console, const char* name, const void* buffer, s32 size, ImportParams params)
 {
     onImportTilesBase(console, name, buffer, size, getBank(console, params.bank)->tiles.data, params);
+}
+
+static void onImport_binary(Console* console, const char* name, const void* buffer, s32 size, ImportParams params)
+{
+    bool ok = name && buffer && size <= TIC_BINARY_SIZE;
+
+    if(ok)
+    {
+        tic_binary* binary = &console->tic->cart.binary;
+        binary->size = size;
+        memcpy(binary->data, buffer, size);
+    }
+        
+    onFileImported(console, name, ok);
 }
 
 static void onImport_sprites(Console* console, const char* name, const void* buffer, s32 size, ImportParams params)
@@ -1640,7 +1816,7 @@ static void onImport_code(Console* console, const char* name, const void* buffer
         memset(tic->cart.code.data, 0, Size);
         memcpy(tic->cart.code.data, buffer, MIN(size, Size));
 
-        studioRomLoaded();
+        studioRomLoaded(console->studio);
     }
     else error = true;
 
@@ -1659,7 +1835,7 @@ static void onImport_screen(Console* console, const char* name, const void* buff
         if(img.width == TIC80_WIDTH && img.height == TIC80_HEIGHT)
         {
             tic_bank* bank = getBank(console, params.bank);
-            const tic_palette* pal = getPalette(console, params.bank, params.ovr);
+            const tic_palette* pal = getPalette(console, params.bank, params.vbank);
 
             s32 i = 0;
             for(const png_rgba *pix = img.pixels, *end = pix + (TIC80_WIDTH * TIC80_HEIGHT); pix < end; pix++)
@@ -1766,7 +1942,7 @@ static void exportSprites(Console* console, const char* filename, tic_tile* base
 
     SCOPE(free(img.data))
     {
-        const tic_palette* pal = getPalette(console, params.bank, params.ovr);
+        const tic_palette* pal = getPalette(console, params.bank, params.vbank);
 
         for(s32 i = 0; i < TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE; i++)
             img.values[i] = tic_rgba(&pal->colors[getSpritePixel(base, i % TIC_SPRITESHEET_SIZE, i / TIC_SPRITESHEET_SIZE)]);
@@ -2014,6 +2190,22 @@ static void onExport_tiles(Console* console, const char* param, const char* file
     exportSprites(console, getFilename(filename, PngExt), getBank(console, params.bank)->tiles.data, params);
 }
 
+static void onExport_binary(Console* console, const char* param, const char* path, ExportParams params)
+{
+    const char* filename = getFilename(path, ".binary");
+
+    tic_binary *binary = &console->tic->cart.binary;
+    // TODO: do we need this buffer at all, could we just handle `binary.data` directly to `tic_fs_save`?
+    void* buffer = malloc(binary->size);
+
+    SCOPE(free(buffer))
+    {
+        memcpy(buffer, binary->data, binary->size);
+
+        onFileExported(console, filename, tic_fs_save(console->fs, filename, buffer, binary->size, true));
+    }
+}
+
 static void onExport_sprites(Console* console, const char* param, const char* filename, ExportParams params)
 {
     exportSprites(console, getFilename(filename, PngExt), getBank(console, params.bank)->sprites.data, params);
@@ -2035,13 +2227,52 @@ static void onExport_map(Console* console, const char* param, const char* path, 
     }
 }
 
+static void onExport_mapimg(Console* console, const char* param, const char* path, ExportParams params)
+{
+    const char* filename = getFilename(path, ".png");
+
+    enum{Width = TIC_MAP_WIDTH * TIC_SPRITESIZE, Height = TIC_MAP_HEIGHT * TIC_SPRITESIZE};
+
+    png_img img = {Width, Height, malloc(Width * Height * sizeof(png_rgba))};
+
+    SCOPE(free(img.data))
+    {
+        {
+            tic_mem* tic = console->tic;
+
+            tic_api_sync(tic, -1, params.bank, false);
+
+            for(s32 r = 0; r < TIC_MAP_ROWS; r++)
+                for(s32 c = 0; c < TIC_MAP_COLS; c++)
+                {
+                    tic_api_map(tic, c * TIC_MAP_SCREEN_WIDTH, r * TIC_MAP_SCREEN_HEIGHT, 
+                        TIC_MAP_SCREEN_WIDTH, TIC_MAP_SCREEN_HEIGHT, 0, 0, NULL, 0, 1, NULL, NULL);
+
+                    tic_core_blit(tic);
+
+                    for(s32 j = 0; j < TIC80_HEIGHT; j++)
+                        for(s32 i = 0; i < TIC80_WIDTH; i++)
+                            img.values[(i + c * TIC80_WIDTH) + (j + r * TIC80_HEIGHT) * Width] = 
+                                tic->product.screen[(i + TIC80_MARGIN_LEFT) + (j + TIC80_MARGIN_TOP) * TIC80_FULLWIDTH];
+                }
+        }
+
+        png_buffer png = png_write(img);
+
+        SCOPE(free(png.data))
+        {
+            onFileExported(console, filename, tic_fs_save(console->fs, filename, png.data, png.size, true));
+        }
+    }
+}
+
 static void onExport_sfx(Console* console, const char* param, const char* name, ExportParams params)
 {
     const char* filename = getFilename(name, ".wav");
     bool error = true;
 
     if(params.id >= 0 && params.id < SFX_COUNT)
-        error = studioExportSfx(params.id, filename) == NULL;
+        error = studioExportSfx(console->studio, params.id, filename) == NULL;
 
     onFileExported(console, filename, !error);
 }
@@ -2052,7 +2283,7 @@ static void onExport_music(Console* console, const char* type, const char* name,
     bool error = true;
 
     if(params.id >= 0 && params.id < MUSIC_TRACKS)
-        error = studioExportMusic(params.id, filename) == NULL;
+        error = studioExportMusic(console->studio, params.id, filename) == NULL;
 
     onFileExported(console, filename, !error);
 }
@@ -2068,7 +2299,7 @@ static void onExport_screen(Console* console, const char* param, const char* nam
 
     SCOPE(free(img.data))
     {
-        const tic_palette* pal = getPalette(console, params.bank, params.ovr);
+        const tic_palette* pal = getPalette(console, params.bank, params.vbank);
 
         tic_bank* bank = getBank(console, params.bank);
         for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
@@ -2151,7 +2382,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
             if(strcmp(name, CONFIG_TIC_PATH) == 0)
             {
                 console->config->save(console->config);
-                studioRomSaved();
+                studioRomSaved(console->studio);
                 free(buffer);
                 return CART_SAVE_OK;
             }
@@ -2179,7 +2410,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
                             enum{PaddingLeft = 8, PaddingTop = 8};
 
                             const tic_bank* bank = &tic->cart.bank0;
-                            const tic_rgb* pal = bank->palette.scn.colors;
+                            const tic_rgb* pal = bank->palette.vbank0.colors;
                             const u8* screen = bank->screen.data;
                             u32* ptr = img.values + PaddingTop * CoverWidth + PaddingLeft;
 
@@ -2195,21 +2426,25 @@ static CartSaveResult saveCartName(Console* console, const char* name)
 
                             const char* comment = tic_core_script_config(tic)->singleComment;
 
-                            const char* title = tic_tool_metatag(tic->cart.code.data, "title", comment);
+                            char* title = tic_tool_metatag(tic->cart.code.data, "title", comment);
                             if(title)
+                            {
                                 drawShadowText(tic, title, 0, 0, tic_color_white, Scale);
+                                free(title);
+                            }
 
-                            const char* author = tic_tool_metatag(tic->cart.code.data, "author", comment);
+                            char* author = tic_tool_metatag(tic->cart.code.data, "author", comment);
                             if(author)
                             {
                                 char buf[TICNAME_MAX];
                                 snprintf(buf, sizeof buf, "by %s", author);
                                 drawShadowText(tic, buf, 0, Row, tic_color_grey, Scale);
+                                free(author);
                             }
 
                             u32* ptr = img.values + PaddingTop * CoverWidth + PaddingLeft;
-                            const u8* screen = tic->ram.vram.screen.data;
-                            const tic_rgb* pal = getConfig()->cart->bank0.palette.scn.colors;
+                            const u8* screen = tic->ram->vram.screen.data;
+                            const tic_rgb* pal = getConfig(console->studio)->cart->bank0.palette.vbank0.colors;
 
                             for(s32 y = 0; y < Height; y++)
                                 for(s32 x = 0; x < Width; x++)
@@ -2253,7 +2488,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
                 {
                     setCartName(console, name, tic_fs_path(console->fs, name));
                     success = true;
-                    studioRomSaved();
+                    studioRomSaved(console->studio);
                 }
             }
 
@@ -2302,11 +2537,9 @@ static void onSaveCommand(Console* console)
     {
         static const char* Rows[] =
         {
-            "THE CART",
-            "ALREADY EXISTS",
-            "",
-            "DO YOU WANT TO",
-            "OVERWRITE IT?",
+            "WARNING!",
+            "The cart already exists",
+            "Do you want to overwrite it?",
         };
 
         confirmCommand(console, Rows, COUNT_OF(Rows), onSaveCommandConfirmed);
@@ -2321,17 +2554,14 @@ static void onRunCommand(Console* console)
 {
     commandDone(console);
 
-    tic_api_reset(console->tic);
-
-    setStudioMode(TIC_RUN_MODE);
+    runGame(console->studio);
 }
 
 static void onResumeCommand(Console* console)
 {
     commandDone(console);
 
-    tic_core_resume(console->tic);
-    resumeRunMode();
+    resumeGame(console->studio);
 }
 
 static void onEvalCommand(Console* console)
@@ -2343,7 +2573,8 @@ static void onEvalCommand(Console* console)
     if (script_config->eval)
     {
         if(console->desc->count)
-            script_config->eval(console->tic, console->desc->params->key);
+            script_config->eval(console->tic,
+                                console->desc->src+strlen(console->desc->command));
         else printError(console, "nothing to eval");
     }
     else
@@ -2388,9 +2619,8 @@ static void onDelCommand(Console* console)
 {
     static const char* Rows[] =
     {
-        "", "",
-        "DO YOU REALLY WANT",
-        "TO DELETE FILE?",
+        "WARNING!",
+        "Do you really want to delete file?",
     };
 
     confirmCommand(console, Rows, COUNT_OF(Rows), onDelCommandConfirmed);
@@ -2488,11 +2718,223 @@ static void onGetCommand(Console* console)
 
 #endif
 
+// Declare this here to resolve a cyclic dependency with COMMANDS_LIST.
+static void tabCompleteHelp(TabCompleteData* data);
+
 static const char HelpUsage[] = "help [<text>"
 #define HELP_CMD_DEF(name) "|" #name
     HELP_CMD_LIST(HELP_CMD_DEF)
 #undef  HELP_CMD_DEF
     "]";
+
+#define SECTION_DEF(NAME, ...)  "|" #NAME
+#define EXPORT_CMD_DEF(name)    #name "|"
+#define EXPORT_KEYS_DEF(name)   #name "=0 "
+#define IMPORT_CMD_DEF(name)    #name "|"
+#define IMPORT_KEYS_DEF(key)    #key"=0 "
+
+#if defined(CAN_ADDGET_FILE)
+#define ADDGET_FILE(macro)                                                              \
+    macro("add",                                                                        \
+        NULL,                                                                           \
+        "upload file to the browser local storage.",                                    \
+        NULL,                                                                           \
+        onAddCommand,                                                                   \
+        NULL,                                                                           \
+        NULL)                                                                           \
+                                                                                        \
+    macro("get",                                                                        \
+        NULL,                                                                           \
+        "download file from the browser local storage.",                                \
+        "get <file>",                                                                   \
+        onGetCommand,                                                                   \
+        tabCompleteFiles,                                                               \
+        NULL)                                                                           \
+
+#else
+#define ADDGET_FILE(macro)
+#endif
+
+// macro(name, alt, help, usage, handler, tab-complete for first param, for second param)
+#define COMMANDS_LIST(macro)                                                            \
+    macro("help",                                                                       \
+        NULL,                                                                           \
+        "show help info about commands/api/...",                                        \
+        HelpUsage,                                                                      \
+        onHelpCommand,                                                                  \
+        tabCompleteHelp,                                                                \
+        NULL)                                                                           \
+                                                                                        \
+    macro("exit",                                                                       \
+        "quit",                                                                         \
+        "exit the application.",                                                        \
+        NULL,                                                                           \
+        onExitCommand,                                                                  \
+        NULL,                                                                           \
+        NULL)                                                                           \
+                                                                                        \
+    macro("edit",                                                                       \
+        NULL,                                                                           \
+        "open cart editors.",                                                           \
+        NULL,                                                                           \
+        onEditCommand,                                                                  \
+        NULL,                                                                           \
+        NULL)                                                                           \
+                                                                                        \
+    macro("new",                                                                        \
+        NULL,                                                                           \
+        "creates a new `Hello World` cartridge.",                                       \
+        "new <$LANG_NAMES_PIPE$>",                                                      \
+        onNewCommand,                                                                   \
+        tabCompleteLanguages,                                                           \
+        NULL)                                                                           \
+                                                                                        \
+    macro("load",                                                                       \
+        NULL,                                                                           \
+        "load cartridge from the local filesystem"                                      \
+        "(there's no need to type the .tic extension).\n"                               \
+        "you can also load just the section (sprites, map etc) from another cart.",     \
+        "load <cart> [code" TIC_SYNC_LIST(SECTION_DEF) "]",                             \
+        onLoadCommand,                                                                  \
+        tabCompleteFiles,                                                               \
+        NULL)                                                                           \
+                                                                                        \
+    macro("save",                                                                       \
+        NULL,                                                                           \
+        "save cartridge to the local filesystem, use $LANG_EXTENSIONS$"                 \
+        "cart extension to save it in text format (PRO feature).",                      \
+        "save <cart>",                                                                  \
+        onSaveCommand,                                                                  \
+        tabCompleteFiles,                                                               \
+        NULL)                                                                           \
+                                                                                        \
+    macro("run",                                                                        \
+        NULL,                                                                           \
+        "run current cart / project.",                                                  \
+        NULL,                                                                           \
+        onRunCommand,                                                                   \
+        NULL,                                                                           \
+        NULL)                                                                           \
+                                                                                        \
+    macro("resume",                                                                     \
+        NULL,                                                                           \
+        "resume last run cart / project.",                                              \
+        NULL,                                                                           \
+        onResumeCommand,                                                                \
+        NULL,                                                                           \
+        NULL)                                                                           \
+                                                                                        \
+    macro("eval",                                                                       \
+        "=",                                                                            \
+        "run code provided code.",                                                      \
+        NULL,                                                                           \
+        onEvalCommand,                                                                  \
+        NULL,                                                                           \
+        NULL)                                                                           \
+                                                                                        \
+    macro("dir",                                                                        \
+        "ls",                                                                           \
+        "show list of local files.",                                                    \
+        NULL,                                                                           \
+        onDirCommand,                                                                   \
+        NULL,                                                                           \
+        NULL)                                                                           \
+                                                                                        \
+    macro("cd",                                                                         \
+        NULL,                                                                           \
+        "change directory.",                                                            \
+        "\ncd <path>\ncd /\ncd ..",                                                     \
+        onChangeDirectory,                                                              \
+        tabCompleteDirs,                                                                \
+        NULL)                                                                           \
+                                                                                        \
+    macro("mkdir",                                                                      \
+        NULL,                                                                           \
+        "make a directory.",                                                            \
+        "mkdir <name>",                                                                 \
+        onMakeDirectory,                                                                \
+        NULL,                                                                           \
+        NULL)                                                                           \
+                                                                                        \
+    macro("folder",                                                                     \
+        NULL,                                                                           \
+        "open working directory in OS.",                                                \
+        NULL,                                                                           \
+        onFolderCommand,                                                                \
+        NULL,                                                                           \
+        NULL)                                                                           \
+                                                                                        \
+    macro("export",                                                                     \
+        NULL,                                                                           \
+        "export cart to HTML,\n"                                                        \
+        "native build (win linux rpi mac),\n"                                           \
+        "export sprites/map/... as a .png image "                                       \
+        "or export sfx and music to .wav files.",                                       \
+        "\nexport [" EXPORT_CMD_LIST(EXPORT_CMD_DEF) "...] "                            \
+        "<file> [" EXPORT_KEYS_LIST(EXPORT_KEYS_DEF) "...]" ,                           \
+        onExportCommand,                                                                \
+        tabCompleteExport,                                                              \
+        tabCompleteFiles)                                                               \
+                                                                                        \
+    macro("import",                                                                     \
+        NULL,                                                                           \
+        "import code/sprites/map/... from an external file.",                           \
+        "\nimport [" IMPORT_CMD_LIST(IMPORT_CMD_DEF) "...] "                            \
+        "<file> [" IMPORT_KEYS_LIST(IMPORT_KEYS_DEF) "...]",                            \
+        onImportCommand,                                                                \
+        tabCompleteImport,                                                              \
+        tabCompleteFiles)                                                               \
+                                                                                        \
+    macro("del",                                                                        \
+        NULL,                                                                           \
+        "delete from the filesystem.",                                                  \
+        "del <file|folder>",                                                            \
+        onDelCommand,                                                                   \
+        tabCompleteFilesAndDirs,                                                        \
+        NULL)                                                                           \
+                                                                                        \
+    macro("cls",                                                                        \
+        "clear",                                                                        \
+        "clear console screen.",                                                        \
+        NULL,                                                                           \
+        onClsCommand,                                                                   \
+        NULL,                                                                           \
+        NULL)                                                                           \
+                                                                                        \
+    macro("demo",                                                                       \
+        NULL,                                                                           \
+        "install demo carts to the current directory.",                                 \
+        NULL,                                                                           \
+        onInstallDemosCommand,                                                          \
+        NULL,                                                                           \
+        NULL)                                                                           \
+                                                                                        \
+    macro("config",                                                                     \
+        NULL,                                                                           \
+        "edit system configuration cartridge,\n"                                        \
+        "use `reset` param to reset current configuration,\n"                           \
+        "use `default` to edit default cart template.",                                 \
+        "config [reset|default]",                                                       \
+        onConfigCommand,                                                                \
+        tabCompleteConfig,                                                              \
+        NULL)                                                                           \
+                                                                                        \
+    macro("surf",                                                                       \
+        NULL,                                                                           \
+        "open carts browser.",                                                          \
+        NULL,                                                                           \
+        onSurfCommand,                                                                  \
+        NULL,                                                                           \
+        NULL)                                                                           \
+                                                                                        \
+    macro("menu",                                                                       \
+        NULL,                                                                           \
+        "show game menu where you can setup video, sound and input options.",           \
+        NULL,                                                                           \
+        onGameMenuCommand,                                                              \
+        NULL,                                                                           \
+        NULL)                                                                           \
+    ADDGET_FILE(macro)
 
 static struct Command
 {
@@ -2501,217 +2943,56 @@ static struct Command
     const char* help;
     const char* usage;
     void(*handler)(Console*);
+    void(*tabComplete1)(TabCompleteData*);
+    void(*tabComplete2)(TabCompleteData*);
 
 } Commands[] =
 {
-    {
-        "help",
-        NULL,
-        "show help info about commands/api/...", 
-        HelpUsage,
-        onHelpCommand
-    },
-    {
-        "exit",
-        "quit",
-        "exit the application.", 
-        NULL,
-        onExitCommand
-    },
-    {
-        "new",
-        NULL,
-        "creates a new `Hello World` cartridge.",
-        "new ["
-#define SCRIPT_DEF(name, ...) #name "|"
-        SCRIPT_LIST(SCRIPT_DEF)
-#undef  SCRIPT_DEF       
-        "...]",
-        onNewCommand
-    },
-    {
-        "load",
-        NULL,
-        "load cartridge from the local filesystem (there's no need to type the .tic extension).\n"
-        "you can also load just the section (sprites, map etc) from another cart.",
-        "load <cart> [code"
-#define SECTION_DEF(NAME, ...) "|" #NAME
-        TIC_SYNC_LIST(SECTION_DEF)
-#undef  SECTION_DEF
-        "]",
-        onLoadCommand},
-    {
-        "save",
-        NULL,
-        "save cartridge to the local filesystem, use "
-#define SCRIPT_DEF(_, ext, ...) ext " "
-        SCRIPT_LIST(SCRIPT_DEF)
-#undef  SCRIPT_DEF
-        "cart extension to save it in text format (PRO feature).", 
-        "save <cart>",
-        onSaveCommand
-    },
-
-    {
-        "run",
-        NULL,
-        "run current cart / project.", 
-        NULL,
-        onRunCommand
-    },
-    {
-        "resume",
-        NULL,
-        "resume last run cart / project.", 
-        NULL,
-        onResumeCommand
-    },
-    {
-        "eval",
-        "=",
-        "run code provided code.", 
-        NULL,
-        onEvalCommand
-    },
-    {
-        "dir",
-        "ls",
-        "show list of local files.", 
-        NULL,
-        onDirCommand
-    },
-    {
-        "cd",
-        NULL,
-        "change directory.", 
-        "\ncd <path>\ncd /\ncd ..",
-        onChangeDirectory
-    },
-    {
-        "mkdir",
-        NULL,
-        "make a directory.", 
-        "mkdir <name>",
-        onMakeDirectory
-    },
-    {
-        "folder",
-        NULL,
-        "open working directory in OS.", 
-        NULL,
-        onFolderCommand
-    },
-
-#if defined(CAN_ADDGET_FILE)
-    {
-        "add",
-        NULL,
-        "upload file to the browser local storage.", 
-        NULL,
-        onAddCommand
-    },
-    {
-        "get",
-        NULL,
-        "download file from the browser local storage.", 
-        "get <file>",
-        onGetCommand
-    },
-#endif
-
-    {
-        "export",
-        NULL,
-        "export cart to HTML,\n"
-        "native build (win linux rpi mac),\n"
-        "export sprites/map/... as a .png image "
-        "or export sfx and music to .wav files.", 
-        "\nexport ["
-#define EXPORT_CMD_DEF(name) #name "|"
-        EXPORT_CMD_LIST(EXPORT_CMD_DEF)
-#undef  EXPORT_CMD_DEF
-        "...] <file> ["
-#define EXPORT_KEYS_DEF(name) #name "=0 "
-        EXPORT_KEYS_LIST(EXPORT_KEYS_DEF)
-#undef  EXPORT_KEYS_DEF
-        "...]",
-        onExportCommand
-    },
-    {
-        "import",
-        NULL,
-        "import code/sprites/map/... from an external file.", 
-        "import ["
-#define IMPORT_CMD_DEF(name) #name "|"
-        IMPORT_CMD_LIST(IMPORT_CMD_DEF)
-#undef  IMPORT_CMD_DEF
-        "...] <file> ["
-#define IMPORT_KEYS_DEF(key) #key"=0 "
-        IMPORT_KEYS_LIST(IMPORT_KEYS_DEF)
-#undef  IMPORT_KEYS_DEF
-        "...]",
-        onImportCommand
-    },
-    {
-        "del",
-        NULL,
-        "delete from the filesystem.", 
-        "del <file|folder>",
-        onDelCommand
-    },
-    {
-        "cls",
-        "clear",
-        "clear console screen.", 
-        NULL,
-        onClsCommand
-    },
-    {
-        "demo",
-        NULL,
-        "install demo carts to the current directory.", 
-        NULL,
-        onInstallDemosCommand
-    },
-    {
-        "config",
-        NULL,
-        "edit system configuration cartridge,\n"
-        "use `reset` param to reset current configuration,\n"
-        "use `default` to edit default cart template.", 
-        "config [reset|default]",
-        onConfigCommand
-    },
-    {
-        "surf",
-        NULL,
-        "open carts browser.", 
-        NULL,
-        onSurfCommand
-    },
-    {
-        "menu",
-        NULL,
-        "show game menu where you can setup keyboard/gamepad buttons mapping.", 
-        NULL,
-        onGameMenuCommand
-    },
+#define COMMANDS_DEF(name, alt, help, usage, handler, tabComplete1, tabComplete2) \
+    {name, alt, help, usage, handler, tabComplete1, tabComplete2},
+    COMMANDS_LIST(COMMANDS_DEF)
+#undef COMMANDS_DEF
 };
+
+#undef SECTION_DEF
+#undef EXPORT_CMD_DEF
+#undef EXPORT_KEYS_DEF
+#undef IMPORT_CMD_DEF
+#undef IMPORT_KEYS_DEF
 
 typedef struct Command Command;
 
+#define API_LIST(macro)         \
+    TIC_CALLBACK_LIST(macro)    \
+    TIC_API_LIST(macro)
+
 static struct ApiItem {const char* name; const char* def; const char* help;} Api[] = 
 {
-#define TIC_CALLBACK_DEF(name, def, help) {name, def, help},
-    TIC_CALLBACK_LIST(TIC_CALLBACK_DEF)
-#undef TIC_CALLBACK_DEF
-
 #define TIC_API_DEF(name, def, help, ...) {#name, def, help},
-    TIC_API_LIST(TIC_API_DEF)
+    API_LIST(TIC_API_DEF)
 #undef TIC_API_DEF
 };
 
 typedef struct ApiItem ApiItem;
+
+static void tabCompleteHelp(TabCompleteData* data)
+{
+#define HELP_CMD_DEF(name) addTabCompleteOption(data, #name);
+    HELP_CMD_LIST(HELP_CMD_DEF)
+#undef  HELP_CMD_DEF
+
+    for(s32 i = 0; i < COUNT_OF(Commands); i++)
+    {
+        addTabCompleteOption(data, Commands[i].name);
+    }
+
+#define TIC_API_DEF(name, def, help, ...) addTabCompleteOption(data, #name);
+    API_LIST(TIC_API_DEF)
+#undef TIC_API_DEF
+
+    finishTabComplete(data);
+}
+
 
 static s32 createRamTable(char* buf)
 {
@@ -2741,7 +3022,11 @@ static s32 createRamTable(char* buf)
         {offsetof(tic_ram, stereo),                 "STEREO VOLUME"},
         {offsetof(tic_ram, persistent),             "PERSISTENT MEMORY"},
         {offsetof(tic_ram, flags),                  "SPRITE FLAGS"},
-        {offsetof(tic_ram, font),                   "SYSTEM FONT"},
+        {offsetof(tic_ram, font.regular),           "FONT"},
+        {offsetof(tic_ram, font.regular.params),    "FONT PARAMS"},
+        {offsetof(tic_ram, font.alt),               "ALT FONT"},
+        {offsetof(tic_ram, font.alt.params),        "ALT FONT PARAMS"},
+        {offsetof(tic_ram, mapping),                "BUTTONS MAPPING"},
         {offsetof(tic_ram, free),                   "... (free)"},
         {TIC_RAM_SIZE,                              ""},
     };
@@ -2768,7 +3053,7 @@ static s32 createVRamTable(char* buf)
         {offsetof(tic_ram, vram.screen),        "SCREEN"},
         {offsetof(tic_ram, vram.palette),       "PALETTE"},
         {offsetof(tic_ram, vram.mapping),       "PALETTE MAP"},
-        {offsetof(tic_ram, vram.vars.colors),   "BORDER COLOR"},
+        {offsetof(tic_ram, vram.vars),          "BORDER COLOR"},
         {offsetof(tic_ram, vram.vars.offset),   "SCREEN OFFSET"},
         {offsetof(tic_ram, vram.vars.cursor),   "MOUSE CURSOR"},
         {offsetof(tic_ram, vram.blit),          "BLIT SEGMENT"},
@@ -2780,6 +3065,129 @@ static s32 createVRamTable(char* buf)
         ptr += sprintf(ptr, "\n| %05X | %-17s | %-5i |", row->addr, row->info, (row + 1)->addr - row->addr);
 
     ptr += sprintf(ptr, "\n+-------+-------------------+-------+\n");
+
+    return strlen(buf);
+}
+
+static s32 createKeysTable(char* buf)
+{
+    char* ptr = buf;
+    ptr += sprintf(ptr, "\n+------+-----+  +------+--------------+"
+                        "\n| CODE | KEY |  | CODE | KEY          |"
+                        "\n+------+-----+  +------+--------------+");
+
+    static const struct Row {s32 code; const char* key;} Rows[] =
+    {
+        {1,  "A"},
+        {2,  "B"},
+        {3,  "C"},
+        {4,  "D"},
+        {5,  "E"},
+        {6,  "F"},
+        {7,  "G"},
+        {8,  "H"},
+        {9,  "I"},
+        {10, "J"},
+        {11, "K"},
+        {12, "L"},
+        {13, "M"},
+        {14, "N"},
+        {15, "O"},
+        {16, "P"},
+        {17, "Q"},
+        {18, "R"},
+        {19, "S"},
+        {20, "T"},
+        {21, "U"},
+        {22, "V"},
+        {23, "W"},
+        {24, "X"},
+        {25, "Y"},
+        {26, "Z"},
+        {27, "0"},
+        {28, "1"},
+        {29, "2"},
+        {30, "3"},
+        {31, "4"},
+        {32, "5"},
+        {33, "6"},
+        {34, "7"},
+        {35, "8"},
+        {36, "9"},
+        {37, "MINUS"},
+        {38, "EQUALS"},
+        {39, "LEFTBRACKET"},
+        {40, "RIGHTBRACKET"},
+        {41, "BACKSLASH"},
+        {42, "SEMICOLON"},
+        {43, "APOSTROPHE"},
+        {44, "GRAVE"},
+        {45, "COMMA"},
+        {46, "PERIOD"},
+        {47, "SLASH"},
+        {48, "SPACE"},
+        {49, "TAB"},
+        {50, "RETURN"},
+        {51, "BACKSPACE"},
+        {52, "DELETE"},
+        {53, "INSERT"},
+        {54, "PAGEUP"},
+        {55, "PAGEDOWN"},
+        {56, "HOME"},
+        {57, "END"},
+        {58, "UP"},
+        {59, "DOWN"},
+        {60, "LEFT"},
+        {61, "RIGHT"},
+        {62, "CAPSLOCK"},
+        {63, "CTRL"},
+        {64, "SHIFT"},
+        {65, "ALT"},
+    };
+
+    int lastAlphaNumeric = 36;
+    for(const struct Row* row = Rows, *end = row + lastAlphaNumeric; row < end; row++)
+    {
+        const struct Row* otherRow = row + lastAlphaNumeric;
+        ptr += sprintf(ptr, "\n| ");
+        ptr += sprintf(ptr, "%4d | %-3s |", row->code, row->key);
+        if (otherRow < Rows + COUNT_OF(Rows))
+            ptr += sprintf(ptr, "  | %4d | %-12s |", otherRow->code, otherRow->key);
+        else
+            ptr += sprintf(ptr, "  | %4s | %12s |", "", "");
+    }
+
+    ptr += sprintf(ptr, "\n+------+-----+  +------+--------------+\n");
+
+    return strlen(buf);
+}
+
+static s32 createButtonsTable(char* buf)
+{
+    char* ptr = buf;
+    ptr += sprintf(ptr, "\n+--------+----+----+----+----+"
+                        "\n| ACTION | P1 | P2 | P3 | P4 |"
+                        "\n+--------+----+----+----+----+");
+
+    static const struct Row {const char* action;} Rows[] =
+    {
+        {"UP"},
+        {"DOWN"},
+        {"LEFT"},
+        {"RIGHT"},
+        {"A"},
+        {"B"},
+        {"X"},
+        {"Y"},
+    };
+
+    int id = 0;
+    for(const struct Row* row = Rows, *end = row + COUNT_OF(Rows); row < end; row++) {
+        ptr += sprintf(ptr, "\n| %6s | %2d | %2d | %2d | %2d |", row->action, id, id + 8, id + 16, id + 24);
+        id++;
+    }
+
+    ptr += sprintf(ptr, "\n+--------+----+----+----+----+");
 
     return strlen(buf);
 }
@@ -2814,97 +3222,90 @@ static void onExport_help(Console* console, const char* param, const char* name,
         FOR(const ApiItem*, api, Api)
             ptr += sprintf(ptr, "\n### %s\n`%s`\n%s\n", api->name, api->def, api->help);
 
+        ptr += sprintf(ptr, "\n## Button IDs\n");
+        ptr += sprintf(ptr, "```");
+        ptr += createButtonsTable(ptr);
+        ptr += sprintf(ptr, "```\n");
+
+        ptr += sprintf(ptr, "\n## Key IDs\n");
+        ptr += sprintf(ptr, "```");
+        ptr += createKeysTable(ptr);
+        ptr += sprintf(ptr, "```\n");
+
         ptr += sprintf(ptr, "\n## Startup options\n```\n");
         FOR(const struct StartupOption*, opt, StartupOptions)
             ptr += sprintf(ptr, "--%-14s %s\n", opt->name, opt->help);
 
         ptr += sprintf(ptr, "```\n\n%s\n\n%s", TermsText, LicenseText);
 
-        onFileExported(console, filename, tic_fs_save(console->fs, filename, buf, strlen(buf), true));        
-    }
-}
+        char* helpReplaced = replaceHelpTokens(buf);
 
-typedef struct
-{
-    Console* console;
-    char* name;
-} PredictFilenameData;
-
-static bool predictFilename(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
-{
-    PredictFilenameData* predictFilenameData = data;
-    Console* console = predictFilenameData->console;
-
-    if(strstr(name, predictFilenameData->name) == name)
-    {
-        strcpy(predictFilenameData->name, name);
-        memset(console->color + getInputOffset(console), CONSOLE_INPUT_COLOR, strlen(name));
-        return false;
-    }
-
-    return true;
-}
-
-static void predictFilenameDone(void* data)
-{
-    PredictFilenameData* predictFilenameData = data;
-    Console* console = predictFilenameData->console;
-
-    console->input.pos = strlen(console->input.text);
-    free(predictFilenameData);
-}
-
-static void insertInputText(Console* console, const char* text)
-{
-    s32 size = strlen(text);
-    s32 offset = getInputOffset(console);
-
-    if(size < CONSOLE_BUFFER_SIZE - offset)
-    {
-        char* pos = console->text + offset;
-        u8* color = console->color + offset;
-
+        SCOPE(free(helpReplaced))
         {
-            s32 len = strlen(pos);
-            memmove(pos + size, pos, len);
-            memmove(color + size, color, len);
+            onFileExported(console, filename, tic_fs_save(console->fs, filename, helpReplaced, strlen(helpReplaced), true));        
         }
-
-        memcpy(pos, text, size);
-        memset(color, CONSOLE_INPUT_COLOR, size);
-
-        console->input.pos += size;
     }
+}
 
-    clearSelection(console);
+TabCompleteData newTabCompleteData(Console* console, char* incompleteWord) {
+    TabCompleteData data = { console, .incompleteWord = incompleteWord };
+    data.options = malloc(CONSOLE_BUFFER_SCREEN);
+    data.commonPrefix = malloc(CONSOLE_BUFFER_SCREEN);
+    data.options[0] = '\0';
+    data.commonPrefix[0] = '\0';
+
+    return data;
 }
 
 static void processConsoleTab(Console* console)
 {
     char* input = console->input.text;
+    char* param = strchr(input, ' ');
 
-    if(strlen(input))
+    if(param)
     {
-        char* param = strchr(input, ' ');
+        // Tab-complete command's parameters.
+        param++;
+        char* secondParam = strchr(param, ' ');
+        if (secondParam)
+            secondParam++;
 
-        if(param && strlen(++param))
+        for(s32 i = 0; i < COUNT_OF(Commands); i++)
         {
-            PredictFilenameData data = { console, param };
-            tic_fs_enum(console->fs, predictFilename, predictFilenameDone, MOVE(data));
-        }
-        else
-        {
-            for(s32 i = 0; i < COUNT_OF(Commands); i++)
+            s32 commandLen = param-input-1;
+            bool commandMatches = (strlen(Commands[i].name) == commandLen &&
+                                       strncmp(Commands[i].name, input, commandLen) == 0) ||
+                                  (Commands[i].alt &&
+                                      strlen(Commands[i].name) == commandLen &&
+                                      strncmp(Commands[i].alt, input, commandLen) == 0);
+
+            if (commandMatches)
             {
-                const char* command = Commands[i].name;
-
-                if(strstr(command, input) == command)
-                {
-                    insertInputText(console, command + console->input.pos);
-                    break;
+                if (secondParam) {
+                    if (Commands[i].tabComplete2) {
+                        TabCompleteData data = newTabCompleteData(console, secondParam);
+                        Commands[i].tabComplete2(&data);
+                    }
+                } else {
+                    if (Commands[i].tabComplete1) {
+                        TabCompleteData data = newTabCompleteData(console, param);
+                        Commands[i].tabComplete1(&data);
+                    }
                 }
             }
         }
+    }
+    else
+    {
+        // Tab-complete commands.
+        TabCompleteData data = newTabCompleteData(console, input);
+        for(s32 i = 0; i < COUNT_OF(Commands); i++)
+        {
+            addTabCompleteOption(&data, Commands[i].name);
+            if (Commands[i].alt)
+                addTabCompleteOption(&data, Commands[i].alt);
+        }
+        finishTabComplete(&data);
     }
 }
 
@@ -2917,28 +3318,34 @@ static void toUpperStr(char* str)
     }
 }
 
-static void printUsage(Console* console, const char* command)
+static bool printUsage(Console* console, const char* command)
 {
     FOR(const Command*, cmd, Commands)
     {
         if(strcmp(command, cmd->name) == 0)
         {
             consolePrint(console, "\n---=== COMMAND ===---\n", tic_color_green);
-            printBack(console, cmd->help);
+            char* helpReplaced = replaceHelpTokens(cmd->help);
+            printBack(console, helpReplaced);
+            free(helpReplaced);
 
             if(cmd->usage)
             {
                 printFront(console, "\n\nusage: ");
-                printBack(console, cmd->usage);
+                char* usageReplaced = replaceHelpTokens(cmd->usage);
+                printBack(console, usageReplaced);
+                free(usageReplaced);
             }
 
             printLine(console);
-            break;
+            return true;
         }
     }
+
+    return false;
 }
 
-static void printApi(Console* console, const char* param)
+static bool printApi(Console* console, const char* param)
 {
     FOR(const ApiItem*, api, Api)
     {
@@ -2950,19 +3357,26 @@ static void printApi(Console* console, const char* param)
             printFront(console, "\n\n");
             printBack(console, api->help);
             printLine(console);
-            break;
+            return true;
         }
     }
+
+    return false;
 }
+
+#define STRBUF_SIZE(name, ...) + STRLEN(#name) + STRLEN(Sep)
 
 static void onHelp_api(Console* console)
 {
     consolePrint(console, "\nAPI functions:\n", tic_color_blue);
     {
-        char buf[TICNAME_MAX] = {[0] = 0};
+        const char Sep[] = " ";
+
+        // calc buf size on compile time
+        char buf[API_LIST(STRBUF_SIZE) + 1] = {[0] = 0};
 
         FOR(const ApiItem*, api, Api)
-            strcat(buf, api->name), strcat(buf, " ");
+            strcat(buf, api->name), strcat(buf, Sep);
 
         printBack(console, buf);
     }
@@ -2972,14 +3386,19 @@ static void onHelp_commands(Console* console)
 {
     consolePrint(console, "\nConsole commands:\n", tic_color_green);
     {
-        char buf[TICNAME_MAX] = {[0] = 0};
+        const char Sep[] = " ";
+
+        // calc buf size on compile time
+        char buf[COMMANDS_LIST(STRBUF_SIZE) + 1] = {[0] = 0};
 
         FOR(const Command*, cmd, Commands)
-            strcat(buf, cmd->name), strcat(buf, " ");
+            strcat(buf, cmd->name), strcat(buf, Sep);
 
         printBack(console, buf);
     }
 }
+
+#undef STRBUF_SIZE
 
 static void printTable(Console* console, const char* text)
 {
@@ -3022,7 +3441,7 @@ static void printTable(Console* console, const char* text)
 
 static void onHelp_ram(Console* console)
 {
-    char buf[1024];
+    char buf[2048];
     createRamTable(buf);
     printTable(console, buf);
 }
@@ -3031,6 +3450,20 @@ static void onHelp_vram(Console* console)
 {
     char buf[1024];
     createVRamTable(buf);
+    printTable(console, buf);
+}
+
+static void onHelp_keys(Console* console)
+{
+    char buf[4096];
+    createKeysTable(buf);
+    printTable(console, buf);
+}
+
+static void onHelp_buttons(Console* console)
+{
+    char buf[1024];
+    createButtonsTable(buf);
     printTable(console, buf);
 }
 
@@ -3048,8 +3481,10 @@ static void onHelp_spec(Console* console)
     FOR(const struct SpecRow*, row, SpecText1)
     {
 #define OFFSET 8
-        sprintf(buf, "%-" DEF2STR(OFFSET) "s%s\n", row->section, row->info);
+        char* rowReplaced = replaceHelpTokens(row->info);
+        sprintf(buf, "%-" DEF2STR(OFFSET) "s%s\n", row->section, rowReplaced);
         consolePrintOffset(console, buf, tic_color_grey, OFFSET);
+        free(rowReplaced);
 #undef  OFFSET
     }
 }
@@ -3093,19 +3528,28 @@ static void onHelpCommand(Console* console)
     {
         const char* param = console->desc->params->key;
 
-        printUsage(console, param);
-        printApi(console, param);
-
-        static const struct Handler {const char* cmd; void(*handler)(Console*);} Handlers[] = 
+        if(printUsage(console, param)) return commandDone(console);
+        else if(printApi(console, param)) return commandDone(console);
+        else
         {
-#define     HELP_CMD_DEF(name) {#name, onHelp_##name},
-            HELP_CMD_LIST(HELP_CMD_DEF)
-#undef      HELP_CMD_DEF
-        };
+            
+            static const struct Handler {const char* cmd; void(*handler)(Console*);} Handlers[] = 
+            {
+#define         HELP_CMD_DEF(name) {#name, onHelp_##name},
+                HELP_CMD_LIST(HELP_CMD_DEF)
+#undef          HELP_CMD_DEF
+            };
 
-        FOR(const struct Handler*, ptr, Handlers)
-            if(strcmp(ptr->cmd, param) == 0)
-                ptr->handler(console);
+            FOR(const struct Handler*, ptr, Handlers)
+                if(strcmp(ptr->cmd, param) == 0)
+                {
+                    ptr->handler(console);
+                    return commandDone(console);
+                }
+        }
+
+        printError(console, "\nunknown topic: ");
+        printError(console, param);
     }
     else
     {
@@ -3118,17 +3562,18 @@ static void onHelpCommand(Console* console)
 
         printBack(console, "\n\npress ");
         printFront(console, "ESC");
-        printBack(console, " to enter UI mode\n");
+        printBack(console, " to switch editor/console\n");
     }
 
     commandDone(console);
 }
 
-static CommandDesc parseCommand(const char* command)
+static CommandDesc parseCommand(const char* input)
 {
-    CommandDesc desc = {.src = strdup(command)};
+    CommandDesc desc = {.src = strdup(input),
+                        .command = strdup(input)};
 
-    char* token = desc.command = strtok(desc.src, " ");
+    char* token = strtok(desc.command, " ");
 
     while((token = strtok(NULL, " ")))
     {
@@ -3167,32 +3612,12 @@ static void processCommand(Console* console, const char* text)
         if(command)
         {
             printLine(console);
-            printError(console, "unknown command:");
+            printError(console, "unknown command: ");
             printError(console, command);
             commandDone(console);
         }
     }
     else commandDone(console);
-}
-
-static void processCommands(Console* console)
-{
-    char* command = console->args.cmd;
-    static const char Sep[] = " & ";
-    char* next = strstr(command, Sep);
-
-    if(next)
-    {
-        *next = '\0';
-        next += STRLEN(Sep);
-    }
-
-    console->args.cmd = next;
-
-    if(!console->args.cli)
-        printFront(console, command);
-
-    processCommand(console, command);
 }
 
 static void fillHistory(Console* console)
@@ -3348,10 +3773,11 @@ static void onHttpVesrsionGet(const net_get_data* data)
                 (version.major == TIC_VERSION_MAJOR && version.minor == TIC_VERSION_MINOR && version.patch > TIC_VERSION_REVISION))
             {
                 char msg[TICNAME_MAX];
-                sprintf(msg, " new version %i.%i.%i available\n", version.major, version.minor, version.patch);
+                sprintf(msg, " new version %i.%i.%i available", version.major, version.minor, version.patch);
 
                 enum{Offset = (2 * STUDIO_TEXT_BUFFER_WIDTH)};
 
+                memset(console->text + Offset, ' ', STUDIO_TEXT_BUFFER_WIDTH);
                 strcpy(console->text + Offset, msg);
                 memset(console->color + Offset, tic_color_red, strlen(msg));
             }
@@ -3437,7 +3863,7 @@ static void processMouse(Console* console)
     tic_mem* tic = console->tic;
     // process scroll
     {
-        tic80_input* input = &console->tic->ram.input;
+        tic80_input* input = &console->tic->ram->input;
 
         if(input->mouse.scrolly)
         {
@@ -3449,14 +3875,14 @@ static void processMouse(Console* console)
 
     tic_rect rect = {0, 0, TIC80_WIDTH, TIC80_HEIGHT};
 
-    if(checkMousePos(&rect))
-        setCursor(tic_cursor_ibeam);
+    if(checkMousePos(console->studio, &rect))
+        setCursor(console->studio, tic_cursor_ibeam);
 
 #if defined(__TIC_ANDROID__)
 
-    if(checkMouseDown(&rect, tic_mouse_left))
+    if(checkMouseDown(console->studio, &rect, tic_mouse_left))
     {
-        setCursor(tic_cursor_hand);
+        setCursor(console->studio, tic_cursor_hand);
 
         if(console->scroll.active)
         {
@@ -3472,7 +3898,7 @@ static void processMouse(Console* console)
 
 #else
 
-    if(checkMouseDown(&rect, tic_mouse_left))
+    if(checkMouseDown(console->studio, &rect, tic_mouse_left))
     {
         tic_point m = tic_api_mouse(tic);
 
@@ -3490,7 +3916,7 @@ static void processMouse(Console* console)
 
 #endif
 
-    if(checkMouseClick(&rect, tic_mouse_middle))
+    if(checkMouseClick(console->studio, &rect, tic_mouse_middle))
     {
         char* text = getSelectionText(console);
 
@@ -3515,18 +3941,71 @@ static void processConsolePgDown(Console* console)
     setScroll(console, console->scroll.pos + STUDIO_TEXT_BUFFER_HEIGHT/2);
 }
 
+static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+
+static s32 leftWordPos(Console* console)
+{
+    const char* start = console->input.text;
+    const char* pos = console->input.text + console->input.pos - 1;
+
+    if(pos > start)
+    {
+        if(isalnum_(*pos)) while(pos > start && isalnum_(*(pos-1))) pos--;
+        else while(pos > start && !isalnum_(*(pos-1))) pos--;
+        return pos - console->input.text;
+    }
+
+    return console->input.pos;
+}
+
+static s32 rightWordPos(Console* console)
+{
+    const char* end = console->input.text + strlen(console->input.text);
+    const char* pos = console->input.text + console->input.pos;
+
+    if(pos < end)
+    {
+        if(isalnum_(*pos)) while(pos < end && isalnum_(*pos)) pos++;
+        else while(pos < end && !isalnum_(*pos)) pos++;
+        return pos - console->input.text;
+    }
+
+    return console->input.pos;
+}
+
+static void leftWord(Console* console)
+{
+    console->input.pos = leftWordPos(console);
+}
+
+static void rightWord(Console* console)
+{
+    console->input.pos = rightWordPos(console);
+}
+
+static void deleteWord(Console* console)
+{
+    s32 pos = rightWordPos(console);
+    deleteText(console, console->input.pos, pos);
+}
+
+static void backspaceWord(Console* console)
+{
+    s32 pos = leftWordPos(console);
+    deleteText(console, pos, console->input.pos);
+    console->input.pos = pos;
+}
+
 static void processKeyboard(Console* console)
 {
     tic_mem* tic = console->tic;
 
-
     if(!console->active)
         return;
 
-
-    if(tic->ram.input.keyboard.data != 0)
+    if(tic->ram->input.keyboard.data != 0)
     {
-        switch(getClipboardEvent())
+        switch(getClipboardEvent(console->studio))
         {
         case TIC_CLIPBOARD_COPY: copyToClipboard(console); break;
         case TIC_CLIPBOARD_PASTE: copyFromClipboard(console); break;
@@ -3535,38 +4014,61 @@ static void processKeyboard(Console* console)
 
         console->cursor.delay = CONSOLE_CURSOR_DELAY;
 
-        if(keyWasPressed(tic_key_up)) onHistoryUp(console);
-        else if(keyWasPressed(tic_key_down)) onHistoryDown(console);
-        else if(keyWasPressed(tic_key_left))
-        {
-            if(console->input.pos > 0)
-                console->input.pos--;
-        }
-        else if(keyWasPressed(tic_key_right))
-        {
-            console->input.pos++;
-            size_t len = strlen(console->input.text);
-            if(console->input.pos > len)
-                console->input.pos = len;
-        }
-        else if(keyWasPressed(tic_key_return))      processConsoleCommand(console);
-        else if(keyWasPressed(tic_key_backspace))   processConsoleBackspace(console);
-        else if(keyWasPressed(tic_key_delete))      processConsoleDel(console);
-        else if(keyWasPressed(tic_key_home))        processConsoleHome(console);
-        else if(keyWasPressed(tic_key_end))         processConsoleEnd(console);
-        else if(keyWasPressed(tic_key_tab))         processConsoleTab(console);
-        else if(keyWasPressed(tic_key_pageup))      processConsolePgUp(console);
-        else if(keyWasPressed(tic_key_pagedown))    processConsolePgDown(console);
+        bool ctrl = tic_api_key(tic, tic_key_ctrl);
+        bool alt = tic_api_key(tic, tic_key_alt);
 
-        if(tic_api_key(tic, tic_key_ctrl) 
-            && keyWasPressed(tic_key_k))
+        if (ctrl || alt) 
         {
-            onClsCommand(console);
-            return;
+            if (ctrl) 
+            {
+#if defined(__TIC_LINUX__)
+                tic_keycode clearKey = tic_key_l;
+#else
+                tic_keycode clearKey = tic_key_k;
+#endif
+
+                if (keyWasPressed(console->studio, tic_key_a))      processConsoleHome(console);
+                else if (keyWasPressed(console->studio, tic_key_e)) processConsoleEnd(console);
+                else if (keyWasPressed(console->studio, clearKey)) 
+                {
+                    onClsCommand(console);
+                    return;
+                }
+            }
+
+            if (keyWasPressed(console->studio, tic_key_left))           leftWord(console);
+            else if(keyWasPressed(console->studio, tic_key_right))      rightWord(console);
+            else if(keyWasPressed(console->studio, tic_key_delete))     deleteWord(console);
+            else if(keyWasPressed(console->studio, tic_key_backspace))  backspaceWord(console);
+        }
+        else
+        {
+            if(keyWasPressed(console->studio, tic_key_up)) onHistoryUp(console);
+            else if(keyWasPressed(console->studio, tic_key_down)) onHistoryDown(console);
+            else if(keyWasPressed(console->studio, tic_key_left))
+            {
+                if(console->input.pos > 0)
+                    console->input.pos--;
+            }
+            else if(keyWasPressed(console->studio, tic_key_right))
+            {
+                console->input.pos++;
+                size_t len = strlen(console->input.text);
+                if(console->input.pos > len)
+                    console->input.pos = len;
+            }
+            else if(keyWasPressed(console->studio, tic_key_return))      processConsoleCommand(console);
+            else if(keyWasPressed(console->studio, tic_key_backspace))   processConsoleBackspace(console);
+            else if(keyWasPressed(console->studio, tic_key_delete))      processConsoleDel(console);
+            else if(keyWasPressed(console->studio, tic_key_home))        processConsoleHome(console);
+            else if(keyWasPressed(console->studio, tic_key_end))         processConsoleEnd(console);
+            else if(keyWasPressed(console->studio, tic_key_tab))         processConsoleTab(console);
+            else if(keyWasPressed(console->studio, tic_key_pageup))      processConsolePgUp(console);
+            else if(keyWasPressed(console->studio, tic_key_pagedown))    processConsolePgDown(console);
         }
     }
 
-    char sym = getKeyboardText();
+    char sym = getKeyboardText(console->studio);
 
     if(sym)
     {
@@ -3585,7 +4087,7 @@ static void tick(Console* console)
     processMouse(console);
     processKeyboard(console);
 
-    Start* start = getStartScreen();
+    Start* start = getStartScreen(console->studio);
 
     if(console->tickCounter == 0)
     {
@@ -3600,7 +4102,7 @@ static void tick(Console* console)
                 printBack(console, " for help\n");
 
 #if defined (TIC_BUILD_WITH_LUA)
-                if(getConfig()->checkNewVersion)
+                if(getConfig(console->studio)->checkNewVersion)
                     tic_net_get(console->net, "/api?fn=version", onHttpVesrsionGet, console);
 #endif
             }
@@ -3610,7 +4112,7 @@ static void tick(Console* console)
         else printBack(console, "\n loading cart...");
     }
 
-    if (getStudioMode() != TIC_CONSOLE_MODE) return;
+    if (getStudioMode(console->studio) != TIC_CONSOLE_MODE) return;
 
     tic_api_cls(tic, TIC_COLOR_BG);
     drawConsoleText(console);
@@ -3619,15 +4121,10 @@ static void tick(Console* console)
     {
         if(console->tickCounter >= (u32)(console->args.skip ? 1 : TIC80_FRAMERATE))
         {
-            if(!console->args.skip)
-                console->showGameMenu = true;
-
-            tic_api_reset(tic);
-
-            setStudioMode(TIC_RUN_MODE);
+            runGame(console->studio);
 
             start->embed = false;
-            studioRomLoaded();
+            studioRomLoaded(console->studio);
 
             printLine(console);
             commandDone(console);
@@ -3645,10 +4142,18 @@ static void tick(Console* console)
 
         if(console->active)
         {
-            if(console->args.cmd)
-                processCommands(console);
-            else if(getConfig()->cli)
-                exitStudio();
+            if(console->commands.current < console->commands.count)
+            {
+                const char* command = console->commands.items[console->commands.current];
+                if(!console->args.cli)
+                    printFront(console, command);
+
+                processCommand(console, command);
+
+                console->commands.current++;
+            }
+            else if(getConfig(console->studio)->cli)
+                exitStudio(console->studio);
         }
     }
 
@@ -3669,7 +4174,6 @@ static bool cmdLoadCart(Console* console, const char* path)
 
     if(data)
     {
-        Start* start = getStartScreen();
         const char* cartName = NULL;
         
         {
@@ -3689,24 +4193,27 @@ static bool cmdLoadCart(Console* console, const char* path)
             {
                 memcpy(&tic->cart, cart, sizeof(tic_cartridge));
                 free(cart);
-                done = start->embed = true;
+                done = true;
             }
         }
         else if(tic_tool_has_ext(cartName, CART_EXT))
         {
             tic_cart_load(&tic->cart, data, size);
-            done = start->embed = true;
+            done = true;
         }
 #if defined(TIC80_PRO)
         else if(tic_project_ext(cartName))
         {
             if(tic_project_load(cartName, data, size, &tic->cart))
-                done = start->embed = true;
+                done = true;
         }
 #endif
         
         free(data);
     }
+
+    if(done)
+        studioRomLoaded(console->studio);
 
     return done;
 }
@@ -3721,7 +4228,7 @@ static s32 apicmp(const void* a, const void* b)
     return strcmp(((const ApiItem*)a)->name, ((const ApiItem*)b)->name);
 }
 
-void initConsole(Console* console, tic_mem* tic, tic_fs* fs, tic_net* net, Config* config, StartArgs args)
+void initConsole(Console* console, Studio* studio, tic_fs* fs, tic_net* net, Config* config, StartArgs args)
 {
     if(!console->text)  console->text = malloc(CONSOLE_BUFFER_SIZE);
     if(!console->color) console->color = malloc(CONSOLE_BUFFER_SIZE);
@@ -3729,10 +4236,12 @@ void initConsole(Console* console, tic_mem* tic, tic_fs* fs, tic_net* net, Confi
 
     *console = (Console)
     {
-        .tic = tic,
+        .studio = studio,
+        .tic = getMemory(studio),
         .config = config,
         .loadByHash = loadByHash,
-        .load = loadExt,
+        .load = loadExternal,
+        .loadCart = cmdLoadCart,
         .updateProject = updateProject,
         .error = error,
         .trace = trace,
@@ -3747,10 +4256,28 @@ void initConsole(Console* console, tic_mem* tic, tic_fs* fs, tic_net* net, Confi
         .color = console->color,
         .fs = fs,
         .net = net,
-        .showGameMenu = false,
         .args = args,
         .desc = console->desc,
     };
+
+    // parse --cmd param
+    {
+        char* command = args.cmd;
+        while(command)
+        {
+            console->commands.items = realloc(console->commands.items, sizeof(char*) * (console->commands.count + 1));
+            console->commands.items[console->commands.count++] = command;
+
+            static const char Sep[] = " & ";
+            command = strstr(command, Sep);
+
+            if(command)
+            {
+                *command = '\0';
+                command += STRLEN(Sep);
+            }
+        }        
+    }
 
     qsort(Commands, COUNT_OF(Commands), sizeof Commands[0], cmdcmp);
     qsort(Api, COUNT_OF(Api), sizeof Api[0], apicmp);
@@ -3759,7 +4286,7 @@ void initConsole(Console* console, tic_mem* tic, tic_fs* fs, tic_net* net, Confi
     memset(console->color, TIC_COLOR_BG, CONSOLE_BUFFER_SIZE);
     memset(console->desc, 0, sizeof(CommandDesc));
 
-    Start* start = getStartScreen();
+    Start* start = getStartScreen(console->studio);
 
     if(!console->args.cli)
     {
@@ -3779,6 +4306,8 @@ void initConsole(Console* console, tic_mem* tic, tic_fs* fs, tic_net* net, Confi
             printf("error: cart `%s` not loaded\n", args.cart);
             exit(1);
         }
+        else 
+            getStartScreen(console->studio)->embed = true;
 
     console->active = !start->embed;
 }
@@ -3796,6 +4325,7 @@ void freeConsole(Console* console)
         free(console->history.items);
     }
 
+    FREE(console->commands.items);
     free(console->desc);
     free(console);
 }

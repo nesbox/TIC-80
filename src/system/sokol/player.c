@@ -33,7 +33,7 @@ static void app_init(void)
         if(cart)
         {
             printf("%s\n", "cart loaded");
-            tic = tic80_create(saudio_sample_rate());
+            tic = tic80_create(saudio_sample_rate(), TIC80_PIXEL_COLOR_RGBA8888);
 
             if(tic)
             {
@@ -53,16 +53,19 @@ static tic80_input tic_input;
 static void app_frame(void)
 {
     if(tic)
-        tic80_tick(tic, &tic_input);
+    {
+        tic80_tick(tic, tic_input);
+        tic80_sound(tic);        
+    }
 
     sokol_gfx_draw(tic->screen);
 
-    static float floatSamples[TIC80_SAMPLERATE / TIC80_FRAMERATE * 2];
+    static float floatSamples[TIC80_SAMPLERATE * TIC80_SAMPLE_CHANNELS / TIC80_FRAMERATE];
 
-    for(s32 i = 0; i < tic->sound.count; i++)
-        floatSamples[i] = (float)tic->sound.samples[i] / SHRT_MAX;
+    for(s32 i = 0; i < tic->samples.count; i++)
+        floatSamples[i] = (float)tic->samples.buffer[i] / SHRT_MAX;
 
-    saudio_push(floatSamples, tic->sound.count / 2);
+    saudio_push(floatSamples, tic->samples.count / TIC80_SAMPLE_CHANNELS);
 }
 
 static void app_input(const sapp_event* event)

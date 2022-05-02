@@ -28,6 +28,7 @@
 
 #define CLOCKRATE (255<<13)
 #define TIC_DEFAULT_COLOR 15
+#define TIC_SOUND_RINGBUF_LEN 12 // in worst case, this induces ~ 12 tick delay i.e. 200 ms
 
 typedef struct
 {
@@ -89,14 +90,6 @@ typedef struct
 
 typedef struct
 {
-    s32 l;
-    s32 t;
-    s32 r;
-    s32 b;
-} tic_clip_data;
-
-typedef struct
-{
     bool active;
     s32 frame;
     s32 beat;
@@ -108,6 +101,7 @@ typedef struct
     struct
     {
         tic80_gamepads previous;
+        tic80_gamepads now;
 
         u32 holds[sizeof(tic80_gamepads) * BITS_IN_BYTE];
     } gamepads;
@@ -115,17 +109,25 @@ typedef struct
     struct 
     {
         tic80_keyboard previous;
+        tic80_keyboard now;
 
         u32 holds[tic_keys_count];
     } keyboard;
-
-    tic_clip_data clip;
 
     struct
     {
         tic_sound_register_data left[TIC_SOUND_CHANNELS];
         tic_sound_register_data right[TIC_SOUND_CHANNELS];
     } registers;
+
+    struct
+    {
+        tic_sound_register registers[TIC_SOUND_CHANNELS];
+        tic_stereo_volume stereo;
+    } sound_ringbuf[TIC_SOUND_RINGBUF_LEN];
+
+    u32 sound_ringbuf_head;
+    u32 sound_ringbuf_tail;
 
     struct
     {
@@ -144,20 +146,20 @@ typedef struct
     } music;
 
     tic_tick tick;
-    tic_scanline scanline;
+    tic_blit_callback callback;
+    
+    u32 synced;
 
     struct
     {
-        tic_overline callback;
-        u32 raw[TIC_PALETTE_SIZE];
-        tic_palette palette;
-    } ovr;
+        s32 id;
+        tic_vram mem;
+    } vbank;
 
-    void (*setpix)(tic_mem* memory, s32 x, s32 y, u8 color);
-    u8 (*getpix)(tic_mem* memory, s32 x, s32 y);
-    void (*drawhline)(tic_mem* memory, s32 xl, s32 xr, s32 y, u8 color);
-
-    u32 synced;
+    struct ClipRect
+    {
+        s32 l, t, r, b;
+    } clip;
 
     bool initialized;
 } tic_core_state_data;
@@ -165,13 +167,10 @@ typedef struct
 typedef struct
 {
     tic_mem memory; // it should be first
+    tic80_pixel_color_format screen_format;
 
-    struct
-    {
-#define SCRIPT_DEF(name, _, __, vm) struct vm* name;
-    SCRIPT_LIST(SCRIPT_DEF)
-#undef SCRIPT_DEF
-    };
+    void* currentVM;
+    const tic_script_config* currentScript;
 
     struct
     {
@@ -187,11 +186,12 @@ typedef struct
     {
         tic_core_state_data state;   
         tic_ram ram;
+        u8 input;
 
         struct
         {
-            u64 start;
-            u64 paused;
+            clock_t start;
+            clock_t paused;
         } time;
     } pause;
 
@@ -200,3 +200,15 @@ typedef struct
 void tic_core_tick_io(tic_mem* memory);
 void tic_core_sound_tick_start(tic_mem* memory);
 void tic_core_sound_tick_end(tic_mem* memory);
+
+// mouse cursor is the same in both modes
+// for backward compatibility
+#define OVR_COMPAT(CORE, BANK)                                              \
+    tic_api_vbank(&CORE->memory, BANK),                                     \
+    CORE->memory.ram->vram.vars.cursor = CORE->state.vbank.mem.vars.cursor
+
+#define OVR(CORE)                                   \
+    s32 MACROVAR(_bank_) = CORE->state.vbank.id;    \
+    OVR_COMPAT(CORE, 1);                            \
+    tic_api_cls(&CORE->memory, 0);                  \
+    SCOPE(OVR_COMPAT(CORE, MACROVAR(_bank_)))

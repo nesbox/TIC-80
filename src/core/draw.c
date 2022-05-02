@@ -26,6 +26,8 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
+#include <float.h>
 
 #define TRANSPARENT_COLOR 255
 
@@ -37,9 +39,9 @@ static tic_tilesheet getTileSheetFromSegment(tic_mem* memory, u8 segment)
     switch (segment) {
     case 0:
     case 1:
-        src = (u8*)&memory->ram.font.data; break;
+        src = (u8*)&memory->ram->font; break;
     default:
-        src = (u8*)&memory->ram.tiles.data; break;
+        src = (u8*)&memory->ram->tiles.data; break;
     }
 
     return tic_tilesheet_get(segment, src);
@@ -48,28 +50,34 @@ static tic_tilesheet getTileSheetFromSegment(tic_mem* memory, u8 segment)
 static u8* getPalette(tic_mem* tic, u8* colors, u8 count)
 {
     static u8 mapping[TIC_PALETTE_SIZE];
-    for (s32 i = 0; i < TIC_PALETTE_SIZE; i++) mapping[i] = tic_tool_peek4(tic->ram.vram.mapping, i);
+    for (s32 i = 0; i < TIC_PALETTE_SIZE; i++) mapping[i] = tic_tool_peek4(tic->ram->vram.mapping, i);
     for (s32 i = 0; i < count; i++) mapping[colors[i]] = TRANSPARENT_COLOR;
     return mapping;
 }
 
 static inline u8 mapColor(tic_mem* tic, u8 color)
 {
-    return tic_tool_peek4(tic->ram.vram.mapping, color & 0xf);
+    return tic_tool_peek4(tic->ram->vram.mapping, color & 0xf);
 }
 
-static void setPixel(tic_core* core, s32 x, s32 y, u8 color)
+static inline void setPixel(tic_core* core, s32 x, s32 y, u8 color)
 {
+    const tic_vram* vram = &core->memory.ram->vram;
+
     if (x < core->state.clip.l || y < core->state.clip.t || x >= core->state.clip.r || y >= core->state.clip.b) return;
 
-    core->state.setpix(&core->memory, x, y, color);
+    tic_api_poke4((tic_mem*)core, y * TIC80_WIDTH + x, color);
+}
+
+static inline void setPixelFast(tic_core* core, s32 x, s32 y, u8 color)
+{
+    // does not do any CLIP checking, the caller needs to do that first
+    tic_api_poke4((tic_mem*)core, y * TIC80_WIDTH + x, color);
 }
 
 static u8 getPixel(tic_core* core, s32 x, s32 y)
 {
-    if (x < 0 || y < 0 || x >= TIC80_WIDTH || y >= TIC80_HEIGHT) return 0;
-
-    return core->state.getpix(&core->memory, x, y);
+    return tic_api_peek4((tic_mem*)core, y * TIC80_WIDTH + x);
 }
 
 #define EARLY_CLIP(x, y, width, height) \
@@ -82,16 +90,22 @@ static u8 getPixel(tic_core* core, s32 x, s32 y)
 
 static void drawHLine(tic_core* core, s32 x, s32 y, s32 width, u8 color)
 {
+    const tic_vram* vram = &core->memory.ram->vram;
+
     if (y < core->state.clip.t || core->state.clip.b <= y) return;
 
     s32 xl = MAX(x, core->state.clip.l);
     s32 xr = MIN(x + width, core->state.clip.r);
+    s32 start = y * TIC80_WIDTH;
 
-    core->state.drawhline(&core->memory, xl, xr, y, color);
+    for(s32 i = start + xl, end = start + xr; i < end; ++i)
+        tic_api_poke4((tic_mem*)core, i, color);
 }
 
 static void drawVLine(tic_core* core, s32 x, s32 y, s32 height, u8 color)
 {
+    const tic_vram* vram = &core->memory.ram->vram;
+
     if (x < core->state.clip.l || core->state.clip.r <= x) return;
 
     s32 yl = y < 0 ? 0 : y;
@@ -123,7 +137,7 @@ static void drawRectBorder(tic_core* core, s32 x, s32 y, s32 width, s32 height, 
         for(s32 px=sx; px < ex; px++, xx++) \
         { \
             u8 color = mapping[tic_tilesheet_gettilepix(tile, (X), (Y))];\
-            if(color != TRANSPARENT_COLOR) core->state.setpix(&core->memory, xx, y, color); \
+            if(color != TRANSPARENT_COLOR) setPixelFast(core, xx, y, color); \
         } \
     } \
     } while(0)
@@ -132,6 +146,7 @@ static void drawRectBorder(tic_core* core, s32 x, s32 y, s32 width, s32 height, 
 
 static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
+    const tic_vram* vram = &core->memory.ram->vram;
     u8* mapping = getPalette(&core->memory, colors, count);
 
     rotate &= 0b11;
@@ -187,7 +202,15 @@ static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors
 
 static void drawSprite(tic_core* core, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
-    tic_tilesheet sheet = getTileSheetFromSegment(&core->memory, core->memory.ram.vram.blit.segment);
+    const tic_vram* vram = &core->memory.ram->vram;
+
+    if (index < 0)
+        return;
+
+    rotate &= 0b11;
+    flip &= 0b11;
+
+    tic_tilesheet sheet = getTileSheetFromSegment(&core->memory, core->memory.ram->vram.blit.segment);
     if (w == 1 && h == 1) {
         tic_tileptr tile = tic_tilesheet_gettile(&sheet, index, false);
         drawTile(core, &tile, x, y, colors, count, scale, flip, rotate);
@@ -244,7 +267,7 @@ static void drawMap(tic_core* core, const tic_map* src, s32 x, s32 y, s32 width,
 {
     const s32 size = TIC_SPRITESIZE * scale;
 
-    tic_tilesheet sheet = getTileSheetFromSegment(&core->memory, core->memory.ram.vram.blit.segment);
+    tic_tilesheet sheet = getTileSheetFromSegment(&core->memory, core->memory.ram->vram.blit.segment);
 
     for (s32 j = y, jj = sy; j < y + height; j++, jj += size)
         for (s32 i = x, ii = sx; i < x + width; i++, ii += size)
@@ -270,6 +293,8 @@ static void drawMap(tic_core* core, const tic_map* src, s32 x, s32 y, s32 width,
 
 static s32 drawChar(tic_core* core, tic_tileptr* font_char, s32 x, s32 y, s32 scale, bool fixed, u8* mapping)
 {
+    const tic_vram* vram = &core->memory.ram->vram;
+
     enum { Size = TIC_SPRITESIZE };
 
     s32 j = 0, start = 0, end = Size;
@@ -321,7 +346,7 @@ static s32 drawText(tic_core* core, tic_tilesheet* font_face, const char* text, 
             y += height * scale;
         }
         else {
-            tic_tileptr font_char = tic_tilesheet_gettile(font_face, alt * TIC_FONT_CHARS / 2 + sym, true);
+            tic_tileptr font_char = tic_tilesheet_gettile(font_face, alt * TIC_FONT_CHARS + sym, true);
             s32 size = drawChar(core, &font_char, pos, y, scale, fixed, mapping);
             pos += ((!fixed && size) ? size + 1 : width) * scale;
         }
@@ -333,6 +358,7 @@ static s32 drawText(tic_core* core, tic_tilesheet* font_face, const char* text, 
 void tic_api_clip(tic_mem* memory, s32 x, s32 y, s32 width, s32 height)
 {
     tic_core* core = (tic_core*)memory;
+    tic_vram* vram = &memory->ram->vram;
 
     core->state.clip.l = x;
     core->state.clip.t = y;
@@ -352,33 +378,41 @@ void tic_api_rect(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, u8 color
     drawRect(core, x, y, width, height, mapColor(memory, color));
 }
 
-void tic_api_cls(tic_mem* memory, u8 color)
+static double ZBuffer[TIC80_WIDTH * TIC80_HEIGHT];
+
+void tic_api_cls(tic_mem* tic, u8 color)
 {
-    static const tic_clip_data EmptyClip = { 0, 0, TIC80_WIDTH, TIC80_HEIGHT };
+    tic_core* core = (tic_core*)tic;
+    tic_vram* vram = &tic->ram->vram;
 
-    tic_core* core = (tic_core*)memory;
+    static const struct ClipRect EmptyClip = { 0, 0, TIC80_WIDTH, TIC80_HEIGHT };
 
-    if (memcmp(&core->state.clip, &EmptyClip, sizeof(tic_clip_data)) == 0)
+    if (MEMCMP(core->state.clip, EmptyClip))
     {
-        color &= 0b00001111;
-        memset(memory->ram.vram.screen.data, color | (color << TIC_PALETTE_BPP), sizeof(memory->ram.vram.screen.data));
+        memset(&vram->screen, (color & 0xf) | (color << TIC_PALETTE_BPP), sizeof(tic_screen));
+        ZEROMEM(ZBuffer);
     }
     else
     {
-        tic_api_rect(memory, core->state.clip.l, core->state.clip.t, core->state.clip.r - core->state.clip.l, core->state.clip.b - core->state.clip.t, color);
+        for(s32 y = core->state.clip.t, start = y * TIC80_WIDTH; y < core->state.clip.b; ++y, start += TIC80_WIDTH)
+            for(s32 x = core->state.clip.l, pixel = start + x; x < core->state.clip.r; ++x, ++pixel)
+            {
+                tic_api_poke4(tic, pixel, color);
+                ZBuffer[pixel] = 0;
+            }
     }
 }
 
-s32 tic_api_font(tic_mem* memory, const char* text, s32 x, s32 y, u8 chromakey, s32 w, s32 h, bool fixed, s32 scale, bool alt)
+s32 tic_api_font(tic_mem* memory, const char* text, s32 x, s32 y, u8* trans_colors, u8 trans_count, s32 w, s32 h, bool fixed, s32 scale, bool alt)
 {
-    u8* mapping = getPalette(memory, &chromakey, 1);
+    u8* mapping = getPalette(memory, trans_colors, trans_count);
 
     // Compatibility : flip top and bottom of the spritesheet
     // to preserve tic_api_font's default target
-    u8 segment = memory->ram.vram.blit.segment >> 1;
+    u8 segment = memory->ram->vram.blit.segment >> 1;
     u8 flipmask = 1; while (segment >>= 1) flipmask <<= 1;
 
-    tic_tilesheet font_face = getTileSheetFromSegment(memory, memory->ram.vram.blit.segment ^ flipmask);
+    tic_tilesheet font_face = getTileSheetFromSegment(memory, memory->ram->vram.blit.segment ^ flipmask);
     return drawText((tic_core*)memory, &font_face, text, x, y, w, h, fixed, mapping, scale, alt);
 }
 
@@ -386,15 +420,18 @@ s32 tic_api_print(tic_mem* memory, const char* text, s32 x, s32 y, u8 color, boo
 {
     u8 mapping[] = { 255, color };
     tic_tilesheet font_face = getTileSheetFromSegment(memory, 1);
+
+    const tic_font_data* font = alt ? &memory->ram->font.alt : &memory->ram->font.regular;
+    s32 width = font->width;
+
     // Compatibility : print uses reduced width for non-fixed space
-    u8 width = alt ? TIC_ALTFONT_WIDTH : TIC_FONT_WIDTH;
     if (!fixed) width -= 2;
-    return drawText((tic_core*)memory, &font_face, text, x, y, width, TIC_FONT_HEIGHT, fixed, mapping, scale, alt);
+    return drawText((tic_core*)memory, &font_face, text, x, y, width, font->height, fixed, mapping, scale, alt);
 }
 
-void tic_api_spr(tic_mem* memory, s32 index, s32 x, s32 y, s32 w, s32 h, u8* colors, s32 count, s32 scale, tic_flip flip, tic_rotate rotate)
+void tic_api_spr(tic_mem* memory, s32 index, s32 x, s32 y, s32 w, s32 h, u8* trans_colors, u8 trans_count, s32 scale, tic_flip flip, tic_rotate rotate)
 {
-    drawSprite((tic_core*)memory, index, x, y, w, h, colors, count, scale, flip, rotate);
+    drawSprite((tic_core*)memory, index, x, y, w, h, trans_colors, trans_count, scale, flip, rotate);
 }
 
 static inline u8* getFlag(tic_mem* memory, s32 index, u8 flag)
@@ -403,7 +440,7 @@ static inline u8* getFlag(tic_mem* memory, s32 index, u8 flag)
     if (index >= TIC_FLAGS || flag >= BITS_IN_BYTE)
         return &stub;
 
-    return memory->ram.flags.data + index;
+    return memory->ram->flags.data + index;
 }
 
 bool tic_api_fget(tic_mem* memory, s32 index, u8 flag)
@@ -440,8 +477,6 @@ static struct
 {
     s16 Left[TIC80_HEIGHT];
     s16 Right[TIC80_HEIGHT];
-    s32 ULeft[TIC80_HEIGHT];
-    s32 VLeft[TIC80_HEIGHT];
 } SidesBuffer;
 
 static void initSidesBuffer()
@@ -459,64 +494,34 @@ static void setSidePixel(s32 x, s32 y)
     }
 }
 
-static void setSideTexPixel(s32 x, s32 y, float u, float v)
+static void drawEllipse(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, u8 color, PixelFunc pix)
 {
-    s32 yy = y;
-    if (yy >= 0 && yy < TIC80_HEIGHT)
+    s64 a = abs(x1 - x0), b = abs(y1 - y0), b1 = b & 1; /* values of diameter */
+    s64 dx = 4 * (1 - a) * b * b, dy = 4 * (b1 + 1) * a * a; /* error increment */
+    s64 err = dx + dy + b1 * a * a, e2; /* error of 1.step */
+
+    if (x0 > x1) { x0 = x1; x1 += a; } /* if called with swapped pos32s */  
+    if (y0 > y1) y0 = y1; /* .. exchange them */
+    y0 += (b + 1) / 2; y1 = y0 - b1;   /* starting pixel */
+    a *= 8 * a; b1 = 8 * b * b;
+
+    do 
     {
-        if (x < SidesBuffer.Left[yy])
-        {
-            SidesBuffer.Left[yy] = x;
-            SidesBuffer.ULeft[yy] = (s32)(u * 65536.0f);
-            SidesBuffer.VLeft[yy] = (s32)(v * 65536.0f);
-        }
-        if (x > SidesBuffer.Right[yy])
-        {
-            SidesBuffer.Right[yy] = x;
-        }
-    }
-}
+        pix(memory, x1, y0, color); /*   I. Quadrant */
+        pix(memory, x0, y0, color); /*  II. Quadrant */
+        pix(memory, x0, y1, color); /* III. Quadrant */
+        pix(memory, x1, y1, color); /*  IV. Quadrant */
+        e2 = 2 * err;
+        if (e2 <= dy) { y0++; y1--; err += dy += a; }  /* y step */ 
+        if (e2 >= dx || 2 * err > dy) { x0++; x1--; err += dx += b1; } /* x step */
+    } while (x0 <= x1);
 
-static void drawEllipse(tic_mem* memory, s64 x0, s64 y0, s64 a, s64 b, u8 color, PixelFunc pix)
-{
-    if(a <= 0) return;
-    if(b <= 0) return;
-
-    s64 aa2 = a*a*2, bb2 = b*b*2;
-
-    {
-        s64 x = a, y = 0;
-        s64 dx = (1-2*a)*b*b, dy = a*a;
-        s64 sx = bb2*a, sy=0;
-        s64 e = 0;
-
-        while (sx >= sy)
-        {
-            pix(memory, (s32)(x0+x), (s32)(y0+y), color); /*   I. Quadrant */
-            pix(memory, (s32)(x0+x), (s32)(y0-y), color); /*  II. Quadrant */
-            pix(memory, (s32)(x0-x), (s32)(y0+y), color); /* III. Quadrant */
-            pix(memory, (s32)(x0-x), (s32)(y0-y), color); /*  IV. Quadrant */
-            y++; sy += aa2; e += dy; dy += aa2;
-            if(2*e+dx >0) { x--; sx -= bb2; e  += dx; dx += bb2; }
-        }
-    }
-
-    {
-        s64 x = 0, y = b;
-        s64 dx = b*b, dy = (1-2*b)*a*a;
-        s64 sx = 0, sy=aa2*b;
-        s64 e = 0;
-
-        while (sy >= sx)
-        {
-            pix(memory, (s32)(x0+x), (s32)(y0+y), color); /*   I. Quadrant */
-            pix(memory, (s32)(x0+x), (s32)(y0-y), color); /*  II. Quadrant */
-            pix(memory, (s32)(x0-x), (s32)(y0+y), color); /* III. Quadrant */
-            pix(memory, (s32)(x0-x), (s32)(y0-y), color); /*  IV. Quadrant */
-
-            x++; sx += bb2; e += dx; dx += bb2;
-            if(2*e+dy >0) { y--; sy -= aa2; e  += dy; dy += aa2; }
-        }
+    while (y0-y1 < b) 
+    {  /* too early stop of flat ellipses a=1 */
+        pix(memory, x0 - 1, y0,    color); /* -> finish tip of ellipse */
+        pix(memory, x1 + 1, y0++,  color); 
+        pix(memory, x0 - 1, y1,    color);
+        pix(memory, x1 + 1, y1--,  color); 
     }
 }
 
@@ -532,6 +537,8 @@ static void setElliSide(tic_mem* tic, s32 x, s32 y, u8 color)
 
 static void drawSidesBuffer(tic_mem* memory, s32 y0, s32 y1, u8 color)
 {
+    tic_vram* vram = &memory->ram->vram;
+
     tic_core* core = (tic_core*)memory;
     s32 yt = MAX(core->state.clip.t, y0);
     s32 yb = MIN(core->state.clip.b, y1 + 1);
@@ -540,263 +547,347 @@ static void drawSidesBuffer(tic_mem* memory, s32 y0, s32 y1, u8 color)
     {
         s32 xl = MAX(SidesBuffer.Left[y], core->state.clip.l);
         s32 xr = MIN(SidesBuffer.Right[y] + 1, core->state.clip.r);
-        core->state.drawhline(&core->memory, xl, xr, y, final_color);
+        s32 start = y * TIC80_WIDTH;
+
+        for(s32 i = start + xl, end = start + xr; i < end; ++i)
+            tic_api_poke4(memory, i, color);
     }
 }
 
 void tic_api_circ(tic_mem* memory, s32 x, s32 y, s32 r, u8 color)
 {
     initSidesBuffer();
-    drawEllipse(memory, x, y, r, r, 0, setElliSide);
+    drawEllipse(memory, x - r, y - r, x + r, y + r, 0, setElliSide);
     drawSidesBuffer(memory, y - r, y + r + 1, color);
 }
 
 void tic_api_circb(tic_mem* memory, s32 x, s32 y, s32 r, u8 color)
 {
-    drawEllipse(memory, x, y, r, r, mapColor(memory, color), setElliPixel);
+    drawEllipse(memory, x - r, y - r, x + r, y + r, mapColor(memory, color), setElliPixel);
 }
 
 void tic_api_elli(tic_mem* memory, s32 x, s32 y, s32 a, s32 b, u8 color)
 {
     initSidesBuffer();
-    drawEllipse(memory, x , y, a,  b, 0, setElliSide);
+    drawEllipse(memory, x - a, y - b, x + a, y + b, 0, setElliSide);
     drawSidesBuffer(memory, y - b, y + b + 1, color);
 }
 
 void tic_api_ellib(tic_mem* memory, s32 x, s32 y, s32 a, s32 b, u8 color)
 {
-    drawEllipse(memory, x, y, a, b, mapColor(memory, color), setElliPixel);
+    drawEllipse(memory, x - a, y - b, x + a, y + b, mapColor(memory, color), setElliPixel);
 }
 
-static void ticLine(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, u8 color, PixelFunc func)
+static inline float initLine(float *x0, float *x1, float *y0, float *y1)
 {
-    if (y0 > y1)
+    if (*y0 > *y1)
     {
-        SWAP(x0, x1, s32);
-        SWAP(y0, y1, s32);
+        SWAP(*x0, *x1, float);
+        SWAP(*y0, *y1, float);
     }
 
-    s32 dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
-    s32 dy = y1 - y0;
-    s32 err = (dx > dy ? dx : -dy) / 2, e2;
+    float t = (*x1 - *x0) / (*y1 - *y0);
 
-    for (;;)
+    if(*y0 < 0) *x0 -= *y0 * t, *y0 = 0;
+    if(*y1 > TIC80_WIDTH) *x1 += (TIC80_WIDTH - *y0) * t, *y1 = TIC80_WIDTH;
+
+    return t;
+}
+
+static void drawLine(tic_mem* tic, float x0, float y0, float x1, float y1, u8 color)
+{
+    if(fabs(x0 - x1) < fabs(y0 - y1))
+        for (float t = initLine(&x0, &x1, &y0, &y1); y0 < y1; y0++, x0 += t)
+            setPixel((tic_core*)tic, x0, y0, color);
+    else
+        for (float t = initLine(&y0, &y1, &x0, &x1); x0 < x1; x0++, y0 += t)
+            setPixel((tic_core*)tic, x0, y0, color);
+
+    setPixel((tic_core*)tic, x1, y1, color);
+}
+
+typedef union
+{
+    struct
     {
-        func(memory, x0, y0, color);
-        if (x0 == x1 && y0 == y1) break;
-        e2 = err;
-        if (e2 > -dx) { err -= dy; x0 += sx; }
-        if (e2 < dy) { err += dx; y0++; }
+        double x, y;
+    };
+
+    double d[2];
+} Vec2;
+
+typedef union
+{
+    struct
+    {
+        double x, y, z;
+    };
+
+    double d[3];
+} Vec3;
+
+typedef struct 
+{
+    void* data;
+    const Vec2* v[3];
+    Vec3 w;
+} ShaderAttr;
+
+typedef tic_color(*PixelShader)(const ShaderAttr* a, s32 pixel);
+
+static inline double edgeFn(const Vec2* a, const Vec2* b, const Vec2* c)
+{
+    return (b->x - a->x) * (c->y - a->y) - (b->y - a->y) * (c->x - a->x);
+}
+
+static void drawTri(tic_mem* tic, const Vec2* v0, const Vec2* v1, const Vec2* v2, PixelShader shader, void* data)
+{
+    ShaderAttr a = {data, v0, v1, v2};
+
+    tic_core* core = (tic_core*)tic;
+    const struct ClipRect* clip = &core->state.clip;
+
+    tic_point min = {floor(MIN3(a.v[0]->x, a.v[1]->x, a.v[2]->x)), floor(MIN3(a.v[0]->y, a.v[1]->y, a.v[2]->y))};
+    tic_point max = {ceil(MAX3(a.v[0]->x, a.v[1]->x, a.v[2]->x)), ceil(MAX3(a.v[0]->y, a.v[1]->y, a.v[2]->y))};
+
+    min.x = MAX(min.x, clip->l);
+    min.y = MAX(min.y, clip->t);
+    max.x = MIN(max.x, clip->r);
+    max.y = MIN(max.y, clip->b);
+
+    if(min.x >= max.x || min.y >= max.y) return;
+
+    double area = edgeFn(a.v[0], a.v[1], a.v[2]);
+    if((s32)floor(area) == 0) return;
+    if(area < 0.0)
+    {
+        SWAP(a.v[1], a.v[2], const Vec2*);
+        area = -area;
+    }
+
+    Vec2 d[3];
+    Vec3 s;
+
+    for(s32 i = 0; i != COUNT_OF(s.d); ++i)
+    {
+        // pixel center
+        const double Center = 0.5 - FLT_EPSILON;
+        Vec2 p = {min.x + Center, min.y + Center};
+
+        s32 c = (i + 1) % 3, n = (i + 2) % 3;
+        
+        d[i].x = (a.v[c]->y - a.v[n]->y) / area;
+        d[i].y = (a.v[n]->x - a.v[c]->x) / area;
+        s.d[i] = edgeFn(a.v[c], a.v[n], &p) / area;
+    }
+
+    for(s32 y = min.y, start = min.y * TIC80_WIDTH + min.x; y < max.y; ++y, start += TIC80_WIDTH)
+    {
+        for(s32 i = 0; i != COUNT_OF(a.w.d); ++i)
+            a.w.d[i] = s.d[i];
+
+        for(s32 x = min.x, pixel = start; x < max.x; ++x, ++pixel)
+        {
+            if(a.w.x > -DBL_EPSILON && a.w.y > -DBL_EPSILON && a.w.z > -DBL_EPSILON)
+            {
+                u8 color = shader(&a, pixel);
+                if(color != TRANSPARENT_COLOR)
+                    tic_api_poke4(tic, pixel, color);
+            }
+
+            for(s32 i = 0; i != COUNT_OF(a.w.d); ++i)
+                a.w.d[i] += d[i].x;
+        }
+
+        for(s32 i = 0; i != COUNT_OF(s.d); ++i)
+            s.d[i] += d[i].y;
     }
 }
 
-static void triPixelFunc(tic_mem* memory, s32 x, s32 y, u8 color)
+static tic_color triColorShader(const ShaderAttr* a, s32 pixel){return *(u8*)a->data;}
+
+void tic_api_tri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)
 {
-    setSidePixel(x, y);
+    color = mapColor(tic, color);
+    drawTri(tic,
+        &(Vec2){x1, y1},
+        &(Vec2){x2, y2},
+        &(Vec2){x3, y3}, 
+        triColorShader, &color);
 }
 
-static void setLinePixel(tic_mem* tic, s32 x, s32 y, u8 color)
+void tic_api_trib(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)
 {
-    setPixel((tic_core*)tic, x, y, color);
-}
+    tic_core* core = (tic_core*)tic;
 
-void tic_api_tri(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, u8 color)
-{
-    tic_core* core = (tic_core*)memory;
+    u8 finalColor = mapColor(tic, color);
 
-    initSidesBuffer();
-
-    ticLine(memory, x1, y1, x2, y2, color, triPixelFunc);
-    ticLine(memory, x2, y2, x3, y3, color, triPixelFunc);
-    ticLine(memory, x3, y3, x1, y1, color, triPixelFunc);
-
-    drawSidesBuffer(memory, MIN(y1, MIN(y2, y3)), MAX(y1, MAX(y2, y3)) + 1, color);
-}
-
-void tic_api_trib(tic_mem* memory, s32 x1, s32 y1, s32 x2, s32 y2, s32 x3, s32 y3, u8 color)
-{
-    tic_core* core = (tic_core*)memory;
-
-    u8 finalColor = mapColor(memory, color);
-
-    ticLine(memory, x1, y1, x2, y2, finalColor, setLinePixel);
-    ticLine(memory, x2, y2, x3, y3, finalColor, setLinePixel);
-    ticLine(memory, x3, y3, x1, y1, finalColor, setLinePixel);
+    drawLine(tic, x1, y1, x2, y2, finalColor);
+    drawLine(tic, x2, y2, x3, y3, finalColor);
+    drawLine(tic, x3, y3, x1, y1, finalColor);
 }
 
 typedef struct
 {
-    float x, y, u, v;
-} TexVert;
+    Vec2 _;
+    Vec3 d;
+}TexVert;
 
-static void ticTexLine(tic_mem* memory, TexVert* v0, TexVert* v1)
+typedef struct
 {
-    TexVert* top = v0;
-    TexVert* bot = v1;
+    tic_tilesheet sheet;
+    u8* mapping;
+    const u8* map;
+    const tic_vram* vram;
+    bool depth;
+} TexData;
 
-    if (bot->y < top->y)
-    {
-        top = v1;
-        bot = v0;
-    }
-
-    float dy = bot->y - top->y;
-    float step_x = (bot->x - top->x);
-    float step_u = (bot->u - top->u);
-    float step_v = (bot->v - top->v);
-
-    if ((s32)dy != 0)
-    {
-        step_x /= dy;
-        step_u /= dy;
-        step_v /= dy;
-    }
-
-    float x = top->x;
-    float y = top->y;
-    float u = top->u;
-    float v = top->v;
-
-    if (y < .0f)
-    {
-        y = .0f - y;
-
-        x += step_x * y;
-        u += step_u * y;
-        v += step_v * y;
-
-        y = .0f;
-    }
-
-    s32 botY = (s32)bot->y;
-    if (botY > TIC80_HEIGHT)
-        botY = TIC80_HEIGHT;
-
-    for (; y < botY; ++y)
-    {
-        setSideTexPixel((s32)x, (s32)y, u, v);
-        x += step_x;
-        u += step_u;
-        v += step_v;
-    }
-}
-
-static void drawTexturedTriangle(tic_core* core, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count)
+static inline bool shaderStart(const ShaderAttr* a, Vec3* vars, s32 pixel)
 {
-    tic_mem* memory = &core->memory;
-    u8* mapping = getPalette(memory, colors, count);
-    TexVert V0, V1, V2;
+    TexData* data = a->data;
 
-    const u8* map = memory->ram.map.data;
-    tic_tilesheet sheet = getTileSheetFromSegment(memory, memory->ram.vram.blit.segment);
-
-    V0.x = x1;  V0.y = y1;  V0.u = u1;  V0.v = v1;
-    V1.x = x2;  V1.y = y2;  V1.u = u2;  V1.v = v2;
-    V2.x = x3;  V2.y = y3;  V2.u = u3;  V2.v = v3;
-
-    //  calculate the slope of the surface 
-    //  use floats here 
-    float denom = (V0.x - V2.x) * (V1.y - V2.y) - (V1.x - V2.x) * (V0.y - V2.y);
-    if (denom == 0.0)
+    if(data->depth)
     {
-        return;
-    }
-    float id = 1.0f / denom;
-    float dudx, dvdx;
-    //  this is the UV slope across the surface
-    dudx = ((V0.u - V2.u) * (V1.y - V2.y) - (V1.u - V2.u) * (V0.y - V2.y)) * id;
-    dvdx = ((V0.v - V2.v) * (V1.y - V2.y) - (V1.v - V2.v) * (V0.y - V2.y)) * id;
-    //  convert to fixed
-    s32 dudxs = (s32)(dudx * 65536.0f);
-    s32 dvdxs = (s32)(dvdx * 65536.0f);
-    //  fill the buffer 
-    initSidesBuffer();
-    //  parse each line and decide where in the buffer to store them ( left or right ) 
-    ticTexLine(memory, &V0, &V1);
-    ticTexLine(memory, &V1, &V2);
-    ticTexLine(memory, &V2, &V0);
-
-    for (s32 y = 0; y < TIC80_HEIGHT; y++)
-    {
-        //  if it's backwards skip it
-        s32 width = SidesBuffer.Right[y] - SidesBuffer.Left[y];
-        //  if it's off top or bottom , skip this line
-        if ((y < core->state.clip.t) || (y > core->state.clip.b))
-            width = 0;
-        if (width > 0)
+        vars->z = 0;
+        for(s32 i = 0; i != COUNT_OF(a->v); ++i)
         {
-            s32 u = SidesBuffer.ULeft[y];
-            s32 v = SidesBuffer.VLeft[y];
-            s32 left = SidesBuffer.Left[y];
-            s32 right = SidesBuffer.Right[y];
-            //  check right edge, and CLAMP it
-            if (right > core->state.clip.r)
-                right = core->state.clip.r;
-            //  check left edge and offset UV's if we are off the left 
-            if (left < core->state.clip.l)
-            {
-                s32 dist = core->state.clip.l - SidesBuffer.Left[y];
-                u += dudxs * dist;
-                v += dvdxs * dist;
-                left = core->state.clip.l;
-            }
-            //  are we drawing from the map . ok then at least check before the inner loop
-            if (use_map == true)
-            {
-                for (s32 x = left; x < right; ++x)
-                {
-                    enum { MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE, MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE };
-                    s32 iu = (u >> 16) % MapWidth;
-                    s32 iv = (v >> 16) % MapHeight;
-
-                    while (iu < 0) iu += MapWidth;
-                    while (iv < 0) iv += MapHeight;
-
-                    u8 tileindex = map[(iv >> 3) * TIC_MAP_WIDTH + (iu >> 3)];
-                    tic_tileptr tile = tic_tilesheet_gettile(&sheet, tileindex, true);
-
-                    u8 color = mapping[tic_tilesheet_gettilepix(&tile, iu & 7, iv & 7)];
-                    if (color != TRANSPARENT_COLOR)
-                        setPixel(core, x, y, color);
-                    u += dudxs;
-                    v += dvdxs;
-                }
-            }
-            else
-            {
-                //  direct from tile ram 
-                for (s32 x = left; x < right; ++x)
-                {
-                    enum { SheetWidth = TIC_SPRITESHEET_SIZE, SheetHeight = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS };
-                    s32 iu = (u >> 16) & (SheetWidth - 1);
-                    s32 iv = (v >> 16) & (SheetHeight - 1);
-
-                    u8 color = mapping[tic_tilesheet_getpix(&sheet, iu, iv)];
-                    if (color != TRANSPARENT_COLOR)
-                        setPixel(core, x, y, color);
-                    u += dudxs;
-                    v += dvdxs;
-                }
-            }
+            const TexVert* t = (TexVert*)a->v[i];
+            vars->z += a->w.d[i] * t->d.z;
         }
+
+        if(ZBuffer[pixel] < vars->z);
+        else return false;
     }
+
+    vars->x = vars->y = 0;
+    for(s32 i = 0; i != COUNT_OF(a->v); ++i)
+    {
+        const TexVert* t = (TexVert*)a->v[i];
+        vars->x += a->w.d[i] * t->d.x;
+        vars->y += a->w.d[i] * t->d.y;
+    }
+
+    if(data->depth) 
+        vars->x /= vars->z, 
+        vars->y /= vars->z;
+
+    return true;
 }
 
-void tic_api_textri(tic_mem* memory, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count)
+static inline tic_color shaderEnd(const ShaderAttr* a, const Vec3* vars, s32 pixel, tic_color color)
 {
-    drawTexturedTriangle((tic_core*)memory, x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, use_map, colors, count);
+    TexData* data = a->data;
+
+    if(data->depth && color != TRANSPARENT_COLOR)
+        ZBuffer[pixel] = vars->z;
+
+    return color;
 }
 
-void tic_api_map(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* colors, s32 count, s32 scale, RemapFunc remap, void* data)
+static tic_color triTexMapShader(const ShaderAttr* a, s32 pixel)
 {
-    drawMap((tic_core*)memory, &memory->ram.map, x, y, width, height, sx, sy, colors, count, scale, remap, data);
+    TexData* data = a->data;
+
+    Vec3 vars;
+    if(!shaderStart(a, &vars, pixel))
+        return TRANSPARENT_COLOR;
+
+    enum { MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE, MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE,
+        WMask = TIC_SPRITESIZE - 1, HMask = TIC_SPRITESIZE - 1 };
+
+    s32 iu = tic_modulo(vars.x, MapWidth);
+    s32 iv = tic_modulo(vars.y, MapHeight);
+
+    u8 idx = data->map[(iv >> 3) * TIC_MAP_WIDTH + (iu >> 3)];
+    tic_tileptr tile = tic_tilesheet_gettile(&data->sheet, idx, true);
+
+    return shaderEnd(a, &vars, pixel, data->mapping[tic_tilesheet_gettilepix(&tile, iu & WMask, iv & HMask)]);
+}
+
+static tic_color triTexTileShader(const ShaderAttr* a, s32 pixel)
+{
+    TexData* data = a->data;
+
+    Vec3 vars;
+    if(!shaderStart(a, &vars, pixel))
+        return TRANSPARENT_COLOR;
+
+    enum { WMask = TIC_SPRITESHEET_SIZE - 1, HMask = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS - 1 };
+
+    return shaderEnd(a, &vars, pixel, data->mapping[tic_tilesheet_getpix(&data->sheet, (s32)vars.x & WMask, (s32)vars.y & HMask)]);
+}
+
+static tic_color triTexVbankShader(const ShaderAttr* a, s32 pixel)
+{
+    TexData* data = a->data;
+
+    Vec3 vars;
+    if(!shaderStart(a, &vars, pixel))
+        return TRANSPARENT_COLOR;
+
+    s32 iu = tic_modulo(vars.x, TIC80_WIDTH);
+    s32 iv = tic_modulo(vars.y, TIC80_HEIGHT);
+
+    return shaderEnd(a, &vars, pixel, data->mapping[tic_tool_peek4(data->vram->data, iv * TIC80_WIDTH + iu)]);
+}
+
+void tic_api_ttri(tic_mem* tic, 
+    float x1, float y1, 
+    float x2, float y2, 
+    float x3, float y3, 
+    float u1, float v1, 
+    float u2, float v2, 
+    float u3, float v3, 
+    tic_texture_src texsrc, u8* colors, s32 count, 
+    float z1, float z2, float z3, bool depth)
+{
+    TexData texData = 
+    {
+        .sheet = getTileSheetFromSegment(tic, tic->ram->vram.blit.segment),
+        .mapping = getPalette(tic, colors, count),
+        .map = tic->ram->map.data,
+        .vram = &((tic_core*)tic)->state.vbank.mem,
+        .depth = depth,
+    };
+
+    TexVert t[] = 
+    {
+        {x1, y1, u1, v1, z1},
+        {x2, y2, u2, v2, z2},
+        {x3, y3, u3, v3, z3},
+    };
+
+    if(depth)
+        for(s32 i = 0; i != COUNT_OF(t); ++i)
+            t[i].d.x /= t[i].d.z, 
+            t[i].d.y /= t[i].d.z, 
+            t[i].d.z = 1.0 / t[i].d.z;
+
+    static const PixelShader Shaders[] = 
+    {
+        [tic_tiles_texture] = triTexTileShader,
+        [tic_map_texture]   = triTexMapShader,
+        [tic_vbank_texture] = triTexVbankShader,
+    };
+    
+    if(texsrc >= 0 && texsrc < COUNT_OF(Shaders))
+        drawTri(tic,
+            (const Vec2*)&t[0],
+            (const Vec2*)&t[1],
+            (const Vec2*)&t[2], 
+            Shaders[texsrc], &texData);
+}
+
+void tic_api_map(tic_mem* memory, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy, u8* colors, u8 count, s32 scale, RemapFunc remap, void* data)
+{
+    drawMap((tic_core*)memory, &memory->ram->map, x, y, width, height, sx, sy, colors, count, scale, remap, data);
 }
 
 void tic_api_mset(tic_mem* memory, s32 x, s32 y, u8 value)
 {
     if (x < 0 || x >= TIC_MAP_WIDTH || y < 0 || y >= TIC_MAP_HEIGHT) return;
 
-    tic_map* src = &memory->ram.map;
+    tic_map* src = &memory->ram->map;
     *(src->data + y * TIC_MAP_WIDTH + x) = value;
 }
 
@@ -804,11 +895,15 @@ u8 tic_api_mget(tic_mem* memory, s32 x, s32 y)
 {
     if (x < 0 || x >= TIC_MAP_WIDTH || y < 0 || y >= TIC_MAP_HEIGHT) return 0;
 
-    const tic_map* src = &memory->ram.map;
+    const tic_map* src = &memory->ram->map;
     return *(src->data + y * TIC_MAP_WIDTH + x);
 }
 
-void tic_api_line(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, u8 color)
+void tic_api_line(tic_mem* memory, float x0, float y0, float x1, float y1, u8 color)
 {
-    ticLine(memory, x0, y0, x1, y1, mapColor(memory, color), setLinePixel);
+    drawLine(memory, x0, y0, x1, y1, mapColor(memory, color));
 }
+
+#if defined(BUILD_DEPRECATED)
+#include "draw_dep.c"
+#endif

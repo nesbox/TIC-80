@@ -35,23 +35,30 @@ typedef struct
 
 typedef struct Start Start;
 
+typedef struct stage {
+    void(*fn)(Start*);
+    u8 ticks;
+} Stage;
+
 struct Start
 {
+    Studio* studio;
     tic_mem* tic;
 
     bool initialized;
+    Stage stages[5];
 
-    u32 phase;
-    u32 ticks;
+    u32 stage;
+    s32 ticks;
     bool play;
 
-    char* text;
-    u8* color;
+    char text[STUDIO_TEXT_BUFFER_SIZE];
+    u8 color[STUDIO_TEXT_BUFFER_SIZE];
 
     bool embed;
 
     void (*tick)(Start*);
 };
 
-void initStart(Start* start, tic_mem* tic, const char* cart);
+void initStart(Start* start, Studio* studio, const char* cart);
 void freeStart(Start* start);

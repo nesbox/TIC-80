@@ -1,13 +1,17 @@
 cmake_minimum_required(VERSION 3.3)
 
-set(VERSION_MAJOR 0)
-set(VERSION_MINOR 90)
+set(VERSION_MAJOR 1)
+set(VERSION_MINOR 0)
 set(VERSION_REVISION 0)
 set(VERSION_STATUS "")
 string(TIMESTAMP VERSION_YEAR "%Y")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(VERSION_BUILD ".dbg" )
+endif()
+
+if(CMAKE_BUILD_TYPE)
+    string(TOUPPER ${CMAKE_BUILD_TYPE} BUILD_TYPE_UC)
 endif()
 
 find_package(Git)
@@ -47,6 +51,7 @@ if(APPLE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum OS X deployment version" FORCE)
 endif()
 
+
 project(TIC-80 VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_REVISION} LANGUAGES C CXX)
 message("Building for target : ${CMAKE_SYSTEM_NAME}")
 
@@ -81,6 +86,10 @@ if(NOT BUILD_SDL)
     set(BUILD_SDLGPU OFF)
 endif()
 
+if(NOT N3DS AND NOT EMSCRIPTEN AND NOT BAREMETALPI)
+    set(USE_LIBUV TRUE)
+endif()
+
 message("BUILD_SDLGPU: ${BUILD_SDLGPU}")
 message("BUILD_TOUCH_INPUT: ${BUILD_TOUCH_INPUT}")
 message("BUILD_STUB: ${BUILD_STUB}")
@@ -93,6 +102,8 @@ if (BAREMETALPI)
     set(BUILD_SDL OFF)
     set(BUILD_DEMO_CARTS OFF)
 endif()
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Dd_m3LogOutput=0")
 
 if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID AND NOT N3DS)
     set(LINUX TRUE)
@@ -117,6 +128,7 @@ if(MSVC)
         set( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/bin )
 
         # use static runtime
+        # !TODO: use set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>") from cmake 3.15 instead
         if(CMAKE_C_FLAGS_${OUTPUTCONFIG} MATCHES "/MD")
             string(REGEX REPLACE "/MD" "/MT" CMAKE_C_FLAGS_${OUTPUTCONFIG} "${CMAKE_C_FLAGS_${OUTPUTCONFIG}}")
         endif()
@@ -125,20 +137,30 @@ if(MSVC)
             string(REGEX REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_${OUTPUTCONFIG} "${CMAKE_CXX_FLAGS_${OUTPUTCONFIG}}")
         endif()
     endforeach()
-    
+
 else()
 
     set(CMAKE_C_STANDARD 11)
 endif()
 
+if(RPI)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11")
+endif()
+
+if(ANDROID)
+    set(CMAKE_SYSTEM_VERSION 24)
+endif()
+
 set(THIRDPARTY_DIR ${CMAKE_SOURCE_DIR}/vendor)
+
+include(ExternalProject)
 
 ################################
 # LUA
 ################################
 
 set(LUA_DIR ${THIRDPARTY_DIR}/lua)
-set(LUA_SRC 
+set(LUA_SRC
     ${LUA_DIR}/lapi.c
     ${LUA_DIR}/lcode.c
     ${LUA_DIR}/lctype.c
@@ -187,7 +209,7 @@ endif()
 ################################
 
 set(LPEG_DIR ${THIRDPARTY_DIR}/lpeg)
-set(LPEG_SRC 
+set(LPEG_SRC
     ${LPEG_DIR}/lpcap.c
     ${LPEG_DIR}/lpcode.c
     ${LPEG_DIR}/lpprint.c
@@ -203,7 +225,7 @@ target_include_directories(lpeg PRIVATE ${LUA_DIR})
 ################################
 
 set(WREN_DIR ${THIRDPARTY_DIR}/wren/src)
-set(WREN_SRC 
+set(WREN_SRC
     ${WREN_DIR}/optional/wren_opt_meta.c
     ${WREN_DIR}/optional/wren_opt_random.c
     ${WREN_DIR}/vm/wren_compiler.c
@@ -219,6 +241,100 @@ add_library(wren STATIC ${WREN_SRC})
 target_include_directories(wren PUBLIC ${THIRDPARTY_DIR}/wren/src/include)
 target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/optional)
 target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/vm)
+
+################################
+# MRUBY
+################################
+
+find_program(RUBY ruby)
+find_program(RAKE rake)
+if(NOT RAKE)
+    set(BUILD_WITH_MRUBY_DEFAULT FALSE)
+else()
+    set(BUILD_WITH_MRUBY_DEFAULT TRUE)
+endif()
+option(BUILD_WITH_MRUBY "mruby Enabled" ${BUILD_WITH_MRUBY_DEFAULT})
+message("BUILD_WITH_MRUBY: ${BUILD_WITH_MRUBY}")
+
+if(BUILD_WITH_MRUBY)
+    set(MRUBY_BUILDDIR ${CMAKE_SOURCE_DIR}/build/mruby)
+    set(MRUBY_DIR ${THIRDPARTY_DIR}/mruby)
+    if(ANDROID)
+        set(MRUBY_CONFIG ${MRUBY_BUILDDIR}/tic_android.rb)
+    else()
+        set(MRUBY_CONFIG ${MRUBY_BUILDDIR}/tic_default.rb)
+    endif()
+    set(MRUBY_LIB ${MRUBY_DIR}/build/target/lib/libmruby.a)
+
+    if(MSVC)
+        set(MRUBY_TOOLCHAIN visualcpp)
+    elseif(APPLE OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+        set(MRUBY_TOOLCHAIN clang)
+    else()
+        set(MRUBY_TOOLCHAIN gcc)
+    endif()
+
+    if(APPLE)
+        exec_program(xcrun ARGS --sdk macosx --show-sdk-path OUTPUT_VARIABLE MRUBY_SYSROOT)
+    endif()
+
+    if(ANDROID_NDK_HOME)
+        set(MRUBY_RAKE_EXTRA_OPTS "${MRUBY_RAKE_EXTRA_OPTS} ANDROID_NDK_HOME=${ANDROID_NDK_HOME}")
+    endif()
+
+    ExternalProject_Add(mruby_vendor
+        SOURCE_DIR         ${MRUBY_DIR}
+        CONFIGURE_COMMAND  ""
+        BUILD_IN_SOURCE    TRUE
+        BUILD_COMMAND
+            ${RAKE} clean all "MRUBY_CONFIG=${MRUBY_CONFIG}"
+                "TARGET_CC=\"${CMAKE_C_COMPILER}\""
+                "TARGET_AR=\"${CMAKE_AR}\""
+                "TARGET_CFLAGS=${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_${BUILD_TYPE_UC}}"
+                "TARGET_LDFLAGS=${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_LINKER_FLAGS_${BUILD_TYPE_UC}}"
+                "BUILD_TYPE=${BUILD_TYPE_UC}"
+                "MRUBY_SYSROOT=${MRUBY_SYSROOT}"
+                "MRUBY_TOOLCHAIN=${MRUBY_TOOLCHAIN}"
+                "ANDROID_ARCH=${CMAKE_ANDROID_ARCH_ABI}"
+                "ANDROID_PLATFORM=android-${CMAKE_SYSTEM_VERSION}"
+                ${MRUBY_RAKE_EXTRA_OPTS}
+        INSTALL_COMMAND    ""
+        BUILD_BYPRODUCTS   ${MRUBY_LIB}
+    )
+
+    add_library(mruby STATIC IMPORTED GLOBAL)
+    set_property(TARGET mruby APPEND
+        PROPERTY IMPORTED_LOCATION              ${MRUBY_LIB}
+    )
+    set_property(TARGET mruby APPEND
+        PROPERTY INTERFACE_INCLUDE_DIRECTORIES  ${MRUBY_DIR}/include
+    )
+    add_dependencies(mruby mruby_vendor)
+endif()
+
+################################
+# WASM
+################################
+
+set(WASM_DIR ${THIRDPARTY_DIR}/wasm3/source)
+set(WASM_SRC 
+    ${WASM_DIR}/m3_bind.c
+    ${WASM_DIR}/m3_code.c
+    ${WASM_DIR}/m3_compile.c
+    ${WASM_DIR}/m3_core.c
+    ${WASM_DIR}/m3_parse.c
+    ${WASM_DIR}/m3_env.c
+    ${WASM_DIR}/m3_exec.c
+    ${WASM_DIR}/m3_function.c
+    ${WASM_DIR}/m3_info.c
+    ${WASM_DIR}/m3_module.c
+)
+
+add_library(wasm STATIC ${WASM_SRC})
+target_include_directories(wasm PUBLIC ${THIRDPARTY_DIR}/wasm3/source)
+#target_include_directories(wasm PRIVATE ${THIRDPARTY_DIR}/wasm3/src/optional)
+#target_include_directories(wasm PRIVATE ${THIRDPARTY_DIR}/wasm3/src/vm)
+
 
 ################################
 # SQUIRREL
@@ -269,7 +385,7 @@ set(GIFLIB_SRC
     ${GIFLIB_DIR}/openbsd-reallocarray.c
 )
 add_library(giflib STATIC ${GIFLIB_SRC})
-target_include_directories(giflib 
+target_include_directories(giflib
     PRIVATE ${GIFLIB_DIR}
     INTERFACE ${THIRDPARTY_DIR}/giflib)
 
@@ -296,17 +412,22 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
     set(TIC80CORE_DIR ${CMAKE_SOURCE_DIR}/src)
     set(TIC80CORE_SRC
         ${TIC80CORE_DIR}/core/core.c
+        ${TIC80CORE_DIR}/core/languages.c
         ${TIC80CORE_DIR}/core/draw.c
         ${TIC80CORE_DIR}/core/io.c
         ${TIC80CORE_DIR}/core/sound.c
-        ${TIC80CORE_DIR}/api/js.c 
+        ${TIC80CORE_DIR}/api/js.c
         ${TIC80CORE_DIR}/api/lua.c 
+        ${TIC80CORE_DIR}/api/moonscript.c 
+        ${TIC80CORE_DIR}/api/fennel.c 
         ${TIC80CORE_DIR}/api/wren.c 
+        ${TIC80CORE_DIR}/api/wasm.c
         ${TIC80CORE_DIR}/api/squirrel.c
+        ${TIC80CORE_DIR}/api/mruby.c
         ${TIC80CORE_DIR}/tic.c
         ${TIC80CORE_DIR}/cart.c
-        ${TIC80CORE_DIR}/tools.c 
-        ${TIC80CORE_DIR}/tilesheet.c 
+        ${TIC80CORE_DIR}/tools.c
+        ${TIC80CORE_DIR}/tilesheet.c
     )
 
     if(${BUILD_DEPRECATED})
@@ -316,7 +437,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
     add_library(tic80core${SCRIPT} STATIC ${TIC80CORE_SRC})
 
     target_include_directories(tic80core${SCRIPT}
-        PRIVATE 
+        PRIVATE
             ${THIRDPARTY_DIR}/moonscript
             ${THIRDPARTY_DIR}/fennel
         PUBLIC
@@ -327,13 +448,19 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         lua 
         lpeg 
         wren 
+        wasm 
         squirrel 
         duktape 
         blipbuf 
-        zlib)
+        zlib
+    )
+
+    if(BUILD_WITH_MRUBY)
+        target_link_libraries(tic80core${SCRIPT} mruby)
+    endif()
 
     if(${BUILD_DEPRECATED})
-        target_compile_definitions(tic80core${SCRIPT} PRIVATE DEPRECATED_CHUNKS)
+        target_compile_definitions(tic80core${SCRIPT} PRIVATE BUILD_DEPRECATED)
         target_link_libraries(tic80core${SCRIPT} giflib)
     endif()
 
@@ -341,7 +468,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         target_link_libraries(tic80core${SCRIPT} m)
     endif()
 
-    target_compile_definitions(tic80core${SCRIPT} PRIVATE ${DEFINE})
+    target_compile_definitions(tic80core${SCRIPT} PUBLIC ${DEFINE})
 
 endmacro()
 
@@ -355,7 +482,15 @@ if(BUILD_STUB)
     MACRO_CORE(js       TIC_BUILD_WITH_JS       FALSE)
     MACRO_CORE(wren     TIC_BUILD_WITH_WREN     FALSE)
     MACRO_CORE(squirrel TIC_BUILD_WITH_SQUIRREL FALSE)
+    if(BUILD_WITH_MRUBY)
+        MACRO_CORE(ruby TIC_BUILD_WITH_MRUBY    FALSE)
+    endif()
+    MACRO_CORE(wasm     TIC_BUILD_WITH_WASM     FALSE)
 
+endif()
+
+if(BUILD_WITH_MRUBY)
+    target_compile_definitions(tic80core PUBLIC TIC_BUILD_WITH_MRUBY=1)
 endif()
 
 ################################
@@ -369,8 +504,9 @@ if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT RPI)
 
     if(ANDROID)
         include_directories(${ANDROID_NDK}/sources/android/cpufeatures)
+        set(SDL_STATIC_PIC ON CACHE BOOL "" FORCE)
     endif()
-    
+
     set(SDL_SHARED OFF CACHE BOOL "" FORCE)
 
     add_subdirectory(${THIRDPARTY_DIR}/sdl2)
@@ -385,9 +521,9 @@ if(BUILD_SDL AND BUILD_PLAYER AND NOT RPI)
 
     add_executable(player-sdl WIN32 ${CMAKE_SOURCE_DIR}/src/system/sdl/player.c)
 
-    target_include_directories(player-sdl PRIVATE 
-        ${THIRDPARTY_DIR}/sdl2/include 
-        ${CMAKE_SOURCE_DIR}/include 
+    target_include_directories(player-sdl PRIVATE
+        ${THIRDPARTY_DIR}/sdl2/include
+        ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src)
 
     if(MINGW)
@@ -422,11 +558,11 @@ elseif(LINUX)
 endif()
 
 if(APPLE)
-    set_property (TARGET sokol APPEND_STRING PROPERTY 
+    set_property (TARGET sokol APPEND_STRING PROPERTY
         COMPILE_FLAGS "-fobjc-arc")
 
-    target_link_libraries(sokol 
-        "-framework Cocoa" 
+    target_link_libraries(sokol
+        "-framework Cocoa"
         "-framework QuartzCore"
         "-framework Metal"
         "-framework MetalKit"
@@ -459,9 +595,9 @@ if(BUILD_PLAYER AND BUILD_SOKOL)
         target_link_options(player-sokol PRIVATE -static)
     endif()
 
-    target_include_directories(player-sokol PRIVATE 
-        ${CMAKE_SOURCE_DIR}/include 
-        ${THIRDPARTY_DIR}/sokol 
+    target_include_directories(player-sokol PRIVATE
+        ${CMAKE_SOURCE_DIR}/include
+        ${THIRDPARTY_DIR}/sokol
         ${CMAKE_SOURCE_DIR}/src)
 
     target_link_libraries(player-sokol tic80core sokol)
@@ -481,17 +617,22 @@ if(BUILD_LIBRETRO)
         add_library(tic80_libretro STATIC
             ${LIBRETRO_SRC}
         )
+        if(EMSCRIPTEN)
+            set(LIBRETRO_EXTENSION "bc")
+        else()
+            set(LIBRETRO_EXTENSION "a")
+        endif()
         set_target_properties(tic80_libretro PROPERTIES SUFFIX "_partial.a")
         add_custom_command(TARGET tic80_libretro
                POST_BUILD
-                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.a ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a)
+                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${MRUBY_LIB})
     else()
         add_library(tic80_libretro SHARED
         ${LIBRETRO_SRC}
         )
     endif()
 
-    target_include_directories(tic80_libretro PRIVATE 
+    target_include_directories(tic80_libretro PRIVATE
         ${CMAKE_CURRENT_BINARY_DIR}
         ${TIC80CORE_DIR})
 
@@ -501,10 +642,6 @@ if(BUILD_LIBRETRO)
 
     if(ANDROID)
         set_target_properties(tic80_libretro PROPERTIES SUFFIX "_android.so")
-    endif()
-
-    if(EMSCRIPTEN)
-        set_target_properties(tic80_libretro PROPERTIES SUFFIX "_emscripten.bc")
     endif()
 
     # MSYS2 builds libretro to ./bin, despite it being a DLL. This forces it to ./lib.
@@ -523,7 +660,7 @@ endif()
 if (NOT N3DS)
 
 set(ZLIB_DIR ${THIRDPARTY_DIR}/zlib)
-set(ZLIB_SRC 
+set(ZLIB_SRC
     ${ZLIB_DIR}/adler32.c
     ${ZLIB_DIR}/compress.c
     ${ZLIB_DIR}/crc32.c
@@ -556,7 +693,7 @@ set(CMAKE_DISABLE_TESTING ON CACHE BOOL "" FORCE)
 add_subdirectory(${THIRDPARTY_DIR}/zip)
 
 ################################
-# bin2txt cart2prj prj2cart xplode
+# bin2txt cart2prj prj2cart xplode wasmp2cart
 ################################
 
 if(BUILD_DEMO_CARTS)
@@ -571,11 +708,15 @@ if(BUILD_DEMO_CARTS)
     target_include_directories(prj2cart PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include)
     target_link_libraries(prj2cart tic80core)
 
+    add_executable(wasmp2cart ${TOOLS_DIR}/wasmp2cart.c ${CMAKE_SOURCE_DIR}/src/studio/project.c)
+    target_include_directories(wasmp2cart PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include)
+    target_link_libraries(wasmp2cart tic80core)
+
     add_executable(bin2txt ${TOOLS_DIR}/bin2txt.c)
     target_link_libraries(bin2txt zlib)
 
-    add_executable(xplode 
-        ${TOOLS_DIR}/xplode.c 
+    add_executable(xplode
+        ${TOOLS_DIR}/xplode.c
         ${CMAKE_SOURCE_DIR}/src/ext/gif.c
         ${CMAKE_SOURCE_DIR}/src/ext/png.c
         ${CMAKE_SOURCE_DIR}/src/studio/project.c)
@@ -587,11 +728,11 @@ if(BUILD_DEMO_CARTS)
         target_link_libraries(xplode m)
     endif()
 
-    file(GLOB DEMO_CARTS 
-        ${CMAKE_SOURCE_DIR}/demos/*.* 
+    file(GLOB DEMO_CARTS
+        ${CMAKE_SOURCE_DIR}/demos/*.*
         ${CMAKE_SOURCE_DIR}/demos/bunny/*.*)
 
-    list(APPEND DEMO_CARTS 
+    list(APPEND DEMO_CARTS
         ${CMAKE_SOURCE_DIR}/config.lua
     )
 
@@ -609,6 +750,31 @@ if(BUILD_DEMO_CARTS)
         add_custom_command(OUTPUT ${OUTNAME}
             COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/prj2cart ${CART_FILE} ${OUTPRJ} && ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${OUTPRJ} ${OUTNAME} -z
             DEPENDS bin2txt prj2cart ${CART_FILE}
+    )
+
+    endforeach(CART_FILE)
+
+    # we need to build these separatly combining both the project
+    # and the external WASM binary chunk since projects do not
+    # include BINARY chunks 
+    
+    file(GLOB WASM_DEMOS
+        ${CMAKE_SOURCE_DIR}/demos/wasm/*.wasmp
+        ${CMAKE_SOURCE_DIR}/demos/bunny/wasmmark/*.wasmp
+    )
+
+    foreach(CART_FILE ${WASM_DEMOS})
+
+        get_filename_component(CART_NAME ${CART_FILE} NAME_WE)
+        get_filename_component(DIR ${CART_FILE} DIRECTORY)
+
+        set(OUTNAME ${CMAKE_SOURCE_DIR}/build/assets/${CART_NAME}.tic.dat)
+        set(WASM_BINARY ${DIR}/${CART_NAME}.wasm)
+        set(OUTPRJ ${CMAKE_SOURCE_DIR}/build/${CART_NAME}.tic)
+        list(APPEND DEMO_CARTS_OUT ${OUTNAME})
+        add_custom_command(OUTPUT ${OUTNAME}
+            COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/wasmp2cart ${CART_FILE} ${OUTPRJ} --binary ${WASM_BINARY} && ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${OUTPRJ} ${OUTNAME} -z
+            DEPENDS bin2txt wasmp2cart ${CART_FILE} ${WASM_BINARY}
         )
 
     endforeach(CART_FILE)
@@ -634,38 +800,6 @@ add_library(argparse STATIC ${THIRDPARTY_DIR}/argparse/argparse.c)
 target_include_directories(argparse INTERFACE ${THIRDPARTY_DIR}/argparse)
 
 ################################
-# CURL
-################################
-
-if(NOT N3DS AND NOT EMSCRIPTEN AND NOT BAREMETALPI)
-    set(USE_CURL TRUE)
-endif()
-
-if (USE_CURL)
-
-    set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
-
-    if(WIN32 AND NOT MINGW)
-        set(CURL_STATIC_CRT ON CACHE BOOL "")
-    endif()
-
-    set(CMAKE_USE_OPENSSL OFF CACHE BOOL "" )
-    set(CMAKE_USE_LIBSSH2 OFF CACHE BOOL "")
-    set(HTTP_ONLY ON CACHE BOOL "")
-    set(BUILD_CURL_EXE OFF CACHE BOOL "")
-    set(CURL_CA_BUNDLE "none" CACHE STRING "")
-    set(CURL_CA_PATH "none" CACHE STRING "")
-    set(CURL_DISABLE_TESTS ON CACHE BOOL "")
-
-    if(RPI)
-        set(CURL_ZLIB OFF CACHE BOOL "" )
-    endif()
-
-    add_subdirectory(${THIRDPARTY_DIR}/curl)
-
-endif()
-
-################################
 # libuv
 ################################
 
@@ -687,7 +821,7 @@ endif()
 ################################
 
 set(LIBPNG_DIR ${THIRDPARTY_DIR}/libpng)
-set(LIBPNG_SRC 
+set(LIBPNG_SRC
     ${LIBPNG_DIR}/png.c
     ${LIBPNG_DIR}/pngerror.c
     ${LIBPNG_DIR}/pngget.c
@@ -711,8 +845,8 @@ add_library(png STATIC ${LIBPNG_SRC})
 
 target_compile_definitions(png PRIVATE PNG_ARM_NEON_OPT=0)
 
-target_include_directories(png 
-    PUBLIC ${CMAKE_CURRENT_BINARY_DIR} 
+target_include_directories(png
+    PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
     PRIVATE ${THIRDPARTY_DIR}/zlib
     INTERFACE ${THIRDPARTY_DIR}/libpng)
 
@@ -724,8 +858,8 @@ set(TIC80LIB_DIR ${CMAKE_SOURCE_DIR}/src)
 set(TIC80STUDIO_SRC
     ${TIC80LIB_DIR}/studio/screens/console.c
     ${TIC80LIB_DIR}/studio/screens/run.c
-    ${TIC80LIB_DIR}/studio/screens/dialog.c
     ${TIC80LIB_DIR}/studio/screens/menu.c
+    ${TIC80LIB_DIR}/studio/screens/mainmenu.c
     ${TIC80LIB_DIR}/studio/screens/surf.c
     ${TIC80LIB_DIR}/studio/screens/start.c
     ${TIC80LIB_DIR}/studio/editors/code.c
@@ -736,6 +870,7 @@ set(TIC80STUDIO_SRC
     ${TIC80LIB_DIR}/studio/editors/music.c
     ${TIC80LIB_DIR}/studio/studio.c
     ${TIC80LIB_DIR}/studio/config.c
+    ${TIC80LIB_DIR}/studio/demos.c
     ${TIC80LIB_DIR}/studio/fs.c
     ${TIC80LIB_DIR}/studio/net.c
     ${TIC80LIB_DIR}/ext/md5.c
@@ -750,9 +885,9 @@ endif()
 
 set(TIC80_OUTPUT tic80)
 
-add_library(tic80studio STATIC 
-    ${TIC80STUDIO_SRC} 
-    ${DEMO_CARTS_OUT} 
+add_library(tic80studio STATIC
+    ${TIC80STUDIO_SRC}
+    ${DEMO_CARTS_OUT}
     ${CMAKE_SOURCE_DIR}/build/assets/cart.png.dat)
 
 if(WIN32)
@@ -762,10 +897,6 @@ endif()
 target_include_directories(tic80studio PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(tic80studio tic80core zip wave_writer argparse giflib png)
-
-if(USE_CURL)
-    target_link_libraries(tic80studio libcurl)
-endif()
 
 if(USE_LIBUV)
     target_compile_definitions(tic80studio PRIVATE USE_LIBUV)
@@ -799,7 +930,7 @@ set(SDLGPU_SRC
 )
 
 if(NOT ANDROID)
-    list(APPEND SDLGPU_SRC 
+    list(APPEND SDLGPU_SRC
         ${SDLGPU_DIR}/renderer_GLES_1.c
         ${SDLGPU_DIR}/renderer_GLES_3.c
         ${SDLGPU_DIR}/renderer_OpenGL_1.c
@@ -807,7 +938,7 @@ if(NOT ANDROID)
         ${SDLGPU_DIR}/renderer_OpenGL_2.c
         ${SDLGPU_DIR}/renderer_OpenGL_3.c
         ${SDLGPU_DIR}/renderer_OpenGL_4.c
-        ${SDLGPU_DIR}/SDL_gpu_shapes.c  
+        ${SDLGPU_DIR}/SDL_gpu_shapes.c
         ${SDLGPU_DIR}/externals/glew/glew.c
     )
 endif()
@@ -865,7 +996,7 @@ if(BUILD_SDL)
     set(TIC80_SRC src/system/sdl/main.c)
 
     if(WIN32)
-        
+
         configure_file("${PROJECT_SOURCE_DIR}/build/windows/tic80.rc.in" "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
         set(TIC80_SRC ${TIC80_SRC} "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
 
@@ -877,7 +1008,7 @@ if(BUILD_SDL)
 
         add_library(tic80 SHARED ${TIC80_SRC})
 
-        target_link_libraries(tic80 hidapi)
+        target_link_libraries(tic80)
 
     else()
         add_executable(tic80 ${TIC80_SRC})
@@ -951,13 +1082,13 @@ if(BUILD_SOKOL)
 
         configure_file("${PROJECT_SOURCE_DIR}/build/windows/tic80.rc.in" "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
         set(TIC80_SRC ${TIC80_SRC} "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
-        
-        add_executable(tic80-sokol WIN32 ${TIC80_SRC})        
+
+        add_executable(tic80-sokol WIN32 ${TIC80_SRC})
     else()
         add_executable(tic80-sokol ${TIC80_SRC})
     endif()
 
-    target_include_directories(tic80-sokol PRIVATE 
+    target_include_directories(tic80-sokol PRIVATE
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src
         ${THIRDPARTY_DIR}/sokol)
@@ -1007,10 +1138,11 @@ if(BUILD_STUB)
 
     macro(MACRO_STUB SCRIPT)
 
-        set(TIC80_SRC 
+        set(TIC80_SRC
             src/system/sdl/main.c
             src/studio/screens/run.c
             src/studio/screens/menu.c
+            src/studio/screens/mainmenu.c
             src/studio/screens/start.c
             src/studio/config.c
             src/studio/studio.c
@@ -1018,7 +1150,7 @@ if(BUILD_STUB)
             src/ext/md5.c)
 
         if(WIN32)
-            
+
             configure_file("${PROJECT_SOURCE_DIR}/build/windows/tic80.rc.in" "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
             set(TIC80_SRC ${TIC80_SRC} "${PROJECT_SOURCE_DIR}/build/windows/tic80.rc")
 
@@ -1030,6 +1162,10 @@ if(BUILD_STUB)
         endif()
 
         target_include_directories(tic80${SCRIPT} PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+
+        if(BUILD_SDLGPU)
+            target_compile_definitions(tic80${SCRIPT} PRIVATE CRT_SHADER_SUPPORT)
+        endif()
 
         if(MINGW)
             target_link_libraries(tic80${SCRIPT} mingw32)
@@ -1075,6 +1211,8 @@ if(BUILD_STUB)
     MACRO_STUB(js)
     MACRO_STUB(wren)
     MACRO_STUB(squirrel)
+    MACRO_STUB(ruby)
+    MACRO_STUB(wasm)
 
 endif()
 
