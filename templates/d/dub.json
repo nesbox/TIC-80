@@ -1,0 +1,38 @@
+{
+  "name": "cart",
+  "targetType": "executable",
+  "configurations": [
+    {
+      "name": "raw",
+      "dflags": [
+        "-betterC"
+      ],
+      "lflags": [
+        "--strip-all",
+        "--allow-undefined",
+        "--stack-first",
+        "--no-entry"
+      ]
+    },
+    {
+      "name": "wasi",
+      "dflags": [
+        "-betterC",
+        "-Xcc",
+        "$WASI_SDK_PATH/share/wasi-sysroot"
+      ],
+      "lflags": [
+        "--strip-all",
+        "--allow-undefined",
+        "--stack-first",
+        "--no-entry",
+        "$WASI_SDK_PATH/share/wasi-sysroot/lib/wasm32-wasi/libc.a"
+      ]
+    }
+  ],
+  "toolchainRequirements": {
+      "dmd": "no",
+      "gdc": "no",
+      "ldc": ">=1.11.0"
+  }
+}

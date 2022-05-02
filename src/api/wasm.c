@@ -966,7 +966,7 @@ M3Result linkTicAPI(IM3Module module)
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "font",    "i(*iiiiiii)",   &wasmtic_font)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "key",     "i(i)",          &wasmtic_key)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "keyp",    "i(iii)",        &wasmtic_keyp)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "line",    "v(iiiii)",      &wasmtic_line)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "line",    "v(ffffi)",      &wasmtic_line)));
     // TODO: needs a lot of help for all the optional arguments
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "map",     "v(iiiiiiiiii)",  &wasmtic_map)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "memcpy",  "v(iii)",        &wasmtic_memcpy)));
@@ -994,9 +994,9 @@ M3Result linkTicAPI(IM3Module module)
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "time",    "f()",           &wasmtic_time)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "tstamp",  "i()",           &wasmtic_tstamp)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "trace",   "v(*i)",         &wasmtic_trace)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "tri",     "v(iiiiiii)",    &wasmtic_tri)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "trib",    "v(iiiiiii)",    &wasmtic_trib)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "ttri",  "v(iiiiiiiiiiiiiiiiiii)",    &wasmtic_ttri)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "tri",     "v(ffffffi)",    &wasmtic_tri)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "trib",    "v(ffffffi)",    &wasmtic_trib)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "ttri",  "v(ffffffffffffiiifffi)",    &wasmtic_ttri)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "vbank",   "i(i)",          &wasmtic_vbank)));
 
 _catch:
