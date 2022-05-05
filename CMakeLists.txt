@@ -1020,7 +1020,7 @@ if(BUILD_SDL)
     endif()
 
     if(EMSCRIPTEN)
-        set_target_properties(tic80 PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s ALLOW_MEMORY_GROWTH=1 -s FETCH=1 --pre-js ${CMAKE_SOURCE_DIR}/build/html/prejs.js -lidbfs.js")
+        set_target_properties(tic80 PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s ALLOW_MEMORY_GROWTH=1 -s FETCH=1 -s EXPORT_ES6=1 -s MODULARIZE=1  -s ENVIRONMENT=web -s EXPORT_NAME=createModule -s EXTRA_EXPORTED_RUNTIME_METHODS=['ENV'] -lidbfs.js")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2")
 
         if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -1173,7 +1173,7 @@ if(BUILD_STUB)
         endif()
 
         if(EMSCRIPTEN)
-            set_target_properties(tic80${SCRIPT} PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s ALLOW_MEMORY_GROWTH=1 -s FETCH=1 -lidbfs.js")
+            set_target_properties(tic80${SCRIPT} PROPERTIES LINK_FLAGS "-s WASM=1 -s USE_SDL=2 -s ALLOW_MEMORY_GROWTH=1 -s FETCH=1 -s EXPORT_ES6=1 -s MODULARIZE=1 -s ENVIRONMENT=web -s EXPORT_NAME=createModule -s EXTRA_EXPORTED_RUNTIME_METHODS=['ENV'] -lidbfs.js")
             set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -s USE_SDL=2")
 
             if(CMAKE_BUILD_TYPE STREQUAL "Debug")
