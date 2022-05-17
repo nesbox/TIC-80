@@ -327,7 +327,8 @@ static void scrollConsole(Console* console)
         console->cursor.pos.y--;
     }
 
-    s32 minScroll = console->cursor.pos.y - CONSOLE_BUFFER_HEIGHT + 1;
+    size_t inputLines = (console->cursor.pos.x + console->input.pos) / CONSOLE_BUFFER_WIDTH;
+    s32 minScroll = console->cursor.pos.y + inputLines - CONSOLE_BUFFER_HEIGHT + 1;
     if(console->scroll.pos < minScroll)
         console->scroll.pos = minScroll;
 }
@@ -3307,6 +3308,7 @@ static void processConsoleTab(Console* console)
         }
         finishTabComplete(&data);
     }
+    scrollConsole(console);
 }
 
 static void toUpperStr(char* str)
