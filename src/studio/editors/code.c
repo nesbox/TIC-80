@@ -1626,11 +1626,9 @@ static void processKeyboard(Code* code)
                 goNextBookmark(code, code->src);
         }
     }
-    else usedKeybinding = false;
-
-
-    if(ctrl || alt)
+    else if(ctrl || alt)
     {
+        bool ctrlHandled = true;
         if(ctrl)
         {
             if(keyWasPressed(code->studio, tic_key_tab))        doTab(code, shift, ctrl);
@@ -1648,14 +1646,17 @@ static void processKeyboard(Code* code)
             else if(keyWasPressed(code->studio, tic_key_slash)) commentLine(code);
             else if(keyWasPressed(code->studio, tic_key_home))  goCodeHome(code);
             else if(keyWasPressed(code->studio, tic_key_end))   goCodeEnd(code);
-            else usedKeybinding = false;
+            else ctrlHandled = false;
         }
 
+        bool ctrlAltHandled = true;
         if(keyWasPressed(code->studio, tic_key_left))           leftWord(code);
         else if(keyWasPressed(code->studio, tic_key_right))     rightWord(code);
         else if(keyWasPressed(code->studio, tic_key_delete))    deleteWord(code);
         else if(keyWasPressed(code->studio, tic_key_backspace)) backspaceWord(code);
-        else usedKeybinding = false;
+        else ctrlAltHandled = false;
+
+        usedKeybinding = (ctrlHandled || ctrlAltHandled);
     }
     else
     {
