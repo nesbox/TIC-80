@@ -116,9 +116,9 @@ make -j4
 run the following commands in the Terminal
 ```
 sudo dnf -y groupinstall "Development Tools" "Development Libraries"
-sudo dnf -y install ruby rubygem-{tk{,-doc},rake,test-unit} cmake libglvnd-devel libglvnd-gles freeglut-devel clang libXext-devel SDL_sound
+sudo dnf -y install ruby rubygem-{tk{,-doc},rake,test-unit} cmake libglvnd-devel libglvnd-gles freeglut-devel clang libXext-devel SDL_sound pipewire-devel pipewire-jack-audio-connection-kit-devel pulseaudio-libs-devel 
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake .. -DCMAKE_CXX_COMPILER=clang++
+cmake .. -DCMAKE_CXX_COMPILER=clang++ -DSDL_ALSA=On
 make -j4
 ```
 
