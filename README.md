@@ -182,6 +182,15 @@ chmod +x ~/Applications/TIC80dev.app/MacOS/TIC80
 Make sure to update the absolute path to the tic80 binary in the script, or
 update the launch arguments.
 
+## FreeBSD
+run the following commands in the Terminal
+```
+sudo pkg install gcc git cmake ruby libglvnd libglu freeglut mesa-devel mesa-dri alsa-lib
+git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
+cmake ..
+make -j4
+```
+
 # Install instructions
 
 ## Linux
