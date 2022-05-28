@@ -436,6 +436,10 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
 
     add_library(tic80core${SCRIPT} STATIC ${TIC80CORE_SRC})
 
+    # FreeBSD
+    target_include_directories(tic80core${SCRIPT} PRIVATE ${SYSROOT_PATH}/usr/local/include)
+    target_link_directories(tic80core${SCRIPT} PRIVATE ${SYSROOT_PATH}/usr/local/lib)
+
     target_include_directories(tic80core${SCRIPT}
         PRIVATE
             ${THIRDPARTY_DIR}/moonscript
@@ -520,6 +524,10 @@ endif()
 if(BUILD_SDL AND BUILD_PLAYER AND NOT RPI)
 
     add_executable(player-sdl WIN32 ${CMAKE_SOURCE_DIR}/src/system/sdl/player.c)
+
+    # FreeBSD
+    target_include_directories(player-sdl PRIVATE ${SYSROOT_PATH}/usr/local/include)
+    target_link_directories(player-sdl PRIVATE ${SYSROOT_PATH}/usr/local/lib)
 
     target_include_directories(player-sdl PRIVATE
         ${THIRDPARTY_DIR}/sdl2/include
@@ -1036,6 +1044,10 @@ if(BUILD_SDL)
     if(BUILD_TOUCH_INPUT)
         target_compile_definitions(tic80 PRIVATE TOUCH_INPUT_SUPPORT)
     endif()
+
+    # FreeBSD
+    target_include_directories(tic80 PRIVATE ${SYSROOT_PATH}/usr/local/include)
+    target_link_directories(tic80 PRIVATE ${SYSROOT_PATH}/usr/local/lib)
 
     if(RPI)
         target_include_directories(tic80 PRIVATE ${SYSROOT_PATH}/usr/local/include/SDL2)
