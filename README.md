@@ -191,6 +191,12 @@ cmake ..
 make -j4
 ```
 
+Mesa looks for swrast_dri.so from the wrong path, so also symlink it:
+
+```
+sudo ln -s /usr/local/lib/dri/swrast_dri.so /usr/local/lib/dri-devel/
+```
+
 # Install instructions
 
 ## Linux
