@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "retro_endianness.h"
 #include "tic80_config.h"
 #include "tic80_types.h"
 
@@ -76,6 +77,16 @@ typedef union
 {
     struct
     {
+#if RETRO_IS_BIG_ENDIAN
+        u8 y:1;
+        u8 x:1;
+        u8 b:1;
+        u8 a:1;
+        u8 right:1;
+        u8 left:1;
+        u8 down:1;
+        u8 up:1;
+#else
         u8 up:1;
         u8 down:1;
         u8 left:1;
@@ -84,6 +95,7 @@ typedef union
         u8 b:1;
         u8 x:1;
         u8 y:1;
+#endif
     };
 
     u8 data;
@@ -93,10 +105,17 @@ typedef union
 {
     struct
     {
+#if RETRO_IS_BIG_ENDIAN
+        tic80_gamepad fourth;
+        tic80_gamepad third;
+        tic80_gamepad second;
+        tic80_gamepad first;
+#else
         tic80_gamepad first;
         tic80_gamepad second;
         tic80_gamepad third;
         tic80_gamepad fourth;
+#endif
     };
 
     u32 data;

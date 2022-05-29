@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "retro_endianness.h"
 #include "tic80.h"
 #include "defines.h"
 
@@ -162,8 +163,13 @@ typedef enum
 
 typedef struct
 {
+#if RETRO_IS_BIG_ENDIAN
+    u8 size:4;
+    u8 start:4;
+#else
     u8 start:4;
     u8 size:4;
+#endif
 } tic_sound_loop;
 
 typedef struct
@@ -171,14 +177,31 @@ typedef struct
     
     struct
     {
+#if RETRO_IS_BIG_ENDIAN
+        u8 wave:4;
+        u8 volume:4;
+        s8 pitch:4;
+        u8 chord:4;
+#else
         u8 volume:4;
         u8 wave:4;
         u8 chord:4;
         s8 pitch:4;
+#endif
     } data[SFX_TICKS];
 
     struct
     {
+#if RETRO_IS_BIG_ENDIAN
+        u8 reverse:1; // chord reverse
+        s8 speed:SFX_SPEED_BITS;
+        u8 pitch16x:1; // pitch factor
+        u8 octave:3;
+        u8 temp:2;
+        u8 stereo_right:1;
+        u8 stereo_left:1;
+        u8 note:4;
+#else
         u8 octave:3;
         u8 pitch16x:1; // pitch factor
         s8 speed:SFX_SPEED_BITS;
@@ -187,6 +210,7 @@ typedef struct
         u8 stereo_left:1;
         u8 stereo_right:1;
         u8 temp:2;
+#endif
     };
 
     union
@@ -251,6 +275,15 @@ typedef enum
 
 typedef struct
 {
+#if RETRO_IS_BIG_ENDIAN
+    u8 param1   :4;
+    u8 note     :4;
+    u8 sfxhi    :1;
+    u8 command  :MUSIC_CMD_BITS; // tic_music_command
+    u8 param2   :4;
+    u8 octave   :3;
+    u8 sfxlow   :MUSIC_SFXID_LOW_BITS;
+#else
     u8 note     :4;
     u8 param1   :4;
     u8 param2   :4;
@@ -258,7 +291,7 @@ typedef struct
     u8 sfxhi    :1;
     u8 sfxlow   :MUSIC_SFXID_LOW_BITS;
     u8 octave   :3;
-
+#endif
 } tic_track_row;
 
 typedef struct
@@ -322,10 +355,17 @@ typedef struct
     
     struct
     {
+#if RETRO_IS_BIG_ENDIAN
+        u8 unknown:4;
+        u8 music_sustain:1;
+        u8 music_status:2; // enum tic_music_status
+        u8 music_loop:1;
+#else
         u8 music_loop:1;
         u8 music_status:2; // enum tic_music_status
         u8 music_sustain:1;
         u8 unknown:4;
+#endif
     } flag;
 
 } tic_music_state;
@@ -334,6 +374,19 @@ typedef union
 {
     struct
     {
+#if RETRO_IS_BIG_ENDIAN
+        u8 right4:4;
+        u8 left4:4;
+
+        u8 right3:4;
+        u8 left3:4;
+
+        u8 right2:4;
+        u8 left2:4;
+
+        u8 right1:4;
+        u8 left1:4;
+#else
         u8 left1:4;
         u8 right1:4;
 
@@ -345,6 +398,7 @@ typedef union
 
         u8 left4:4;
         u8 right4:4;
+#endif
     };
 
     u32 data;
@@ -354,12 +408,30 @@ typedef struct
 {
     struct
     {
-        u16 freq:12;
-        u16 volume:4;
+	u8 freq_low;
+#if RETRO_IS_BIG_ENDIAN
+        u8 volume:4;
+        u8 freq_high:4;
+#else
+        u8 freq_high:4;
+        u8 volume:4;
+#endif
     };
 
     tic_waveform waveform;
 } tic_sound_register;
+
+
+static INLINE u16 tic_sound_register_get_freq(const tic_sound_register* reg)
+{
+    return (reg->freq_high << 8) | reg->freq_low;
+}
+
+static INLINE void tic_sound_register_set_freq(tic_sound_register* reg, u16 val)
+{
+    reg->freq_low = val;
+    reg->freq_high = val >> 8;
+}
 
 typedef struct
 {
@@ -482,10 +554,25 @@ typedef union
         {
             union
             {
-                u8 border:TIC_PALETTE_BPP;
-
+		struct {
+#if RETRO_IS_BIG_ENDIAN
+		    u8 padding_border:4;
+		    u8 border:TIC_PALETTE_BPP;
+#else
+		    u8 border:TIC_PALETTE_BPP;
+		    u8 padding_border:4;
+#endif
+		};
                 // clear color for the BANK1
-                u8 clear:TIC_PALETTE_BPP;
+		struct {
+#if RETRO_IS_BIG_ENDIAN
+		    u8 padding_clear:4;
+		    u8 clear:TIC_PALETTE_BPP;
+#else
+		    u8 clear:TIC_PALETTE_BPP;
+		    u8 padding_clear:4;
+#endif
+		};
             };
 
             struct
@@ -496,15 +583,25 @@ typedef union
 
             struct
             {
+#if RETRO_IS_BIG_ENDIAN
+                u8 system:1;
+                u8 sprite:7;
+#else
                 u8 sprite:7;
                 u8 system:1;
+#endif
             } cursor;
         } vars;
 
         struct
         {
+#if RETRO_IS_BIG_ENDIAN
+            u8 reserved:4;
+            u8 segment:4;
+#else
             u8 segment:4;
             u8 reserved:4;
+#endif
         } blit;
 
         u8 reserved[3];

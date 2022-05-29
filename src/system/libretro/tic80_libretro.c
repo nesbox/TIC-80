@@ -7,6 +7,7 @@
 #include "tic.h"
 #include "libretro-common/include/libretro.h"
 #include "retro_inline.h"
+#include "retro_endianness.h"
 #include "libretro_core_options.h"
 #include "api.h"
 
@@ -1006,7 +1007,11 @@ RETRO_API bool retro_load_game(const struct retro_game_info *info)
 	}
 
 	// Set up the TIC-80 environment.
+#if RETRO_IS_BIG_ENDIAN
+	state->tic = tic80_create(TIC80_SAMPLERATE, TIC80_PIXEL_COLOR_ARGB8888);
+#else
 	state->tic = tic80_create(TIC80_SAMPLERATE, TIC80_PIXEL_COLOR_BGRA8888);
+#endif
 	if (state->tic == NULL) {
 		log_cb(RETRO_LOG_ERROR, "[TIC-80] Failed to initialize TIC-80 environment.\n");
 		return false;
