@@ -140,9 +140,9 @@ typedef enum
 
 typedef enum
 {
-    tic_no_flip = 0b00,
-    tic_horz_flip = 0b01,
-    tic_vert_flip = 0b10,
+    tic_no_flip = 0,
+    tic_horz_flip = 1,
+    tic_vert_flip = 2,
 } tic_flip;
 
 typedef enum

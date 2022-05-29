@@ -149,13 +149,13 @@ static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors
     const tic_vram* vram = &core->memory.ram->vram;
     u8* mapping = getPalette(&core->memory, colors, count);
 
-    rotate &= 0b11;
-    u32 orientation = flip & 0b11;
+    rotate &= 3;
+    u32 orientation = flip & 3;
 
-    if (rotate == tic_90_rotate) orientation ^= 0b001;
-    else if (rotate == tic_180_rotate) orientation ^= 0b011;
-    else if (rotate == tic_270_rotate) orientation ^= 0b010;
-    if (rotate == tic_90_rotate || rotate == tic_270_rotate) orientation |= 0b100;
+    if (rotate == tic_90_rotate) orientation ^= 1;
+    else if (rotate == tic_180_rotate) orientation ^= 3;
+    else if (rotate == tic_270_rotate) orientation ^= 2;
+    if (rotate == tic_90_rotate || rotate == tic_270_rotate) orientation |= 2;
 
     if (scale == 1) {
         // the most common path
@@ -167,14 +167,14 @@ static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors
         y += sy;
         x += sx;
         switch (orientation) {
-        case 0b100: DRAW_TILE_BODY(py, px); break;
-        case 0b110: DRAW_TILE_BODY(REVERT(py), px); break;
-        case 0b101: DRAW_TILE_BODY(py, REVERT(px)); break;
-        case 0b111: DRAW_TILE_BODY(REVERT(py), REVERT(px)); break;
-        case 0b000: DRAW_TILE_BODY(px, py); break;
-        case 0b010: DRAW_TILE_BODY(px, REVERT(py)); break;
-        case 0b001: DRAW_TILE_BODY(REVERT(px), py); break;
-        case 0b011: DRAW_TILE_BODY(REVERT(px), REVERT(py)); break;
+        case 4: DRAW_TILE_BODY(py, px); break;
+        case 6: DRAW_TILE_BODY(REVERT(py), px); break;
+        case 5: DRAW_TILE_BODY(py, REVERT(px)); break;
+        case 7: DRAW_TILE_BODY(REVERT(py), REVERT(px)); break;
+        case 0: DRAW_TILE_BODY(px, py); break;
+        case 2: DRAW_TILE_BODY(px, REVERT(py)); break;
+        case 1: DRAW_TILE_BODY(REVERT(px), py); break;
+        case 3: DRAW_TILE_BODY(REVERT(px), REVERT(py)); break;
         }
         return;
     }
@@ -186,9 +186,9 @@ static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors
         s32 xx = x;
         for (s32 px = 0; px < TIC_SPRITESIZE; px++, xx += scale)
         {
-            s32 ix = orientation & 0b001 ? TIC_SPRITESIZE - px - 1 : px;
-            s32 iy = orientation & 0b010 ? TIC_SPRITESIZE - py - 1 : py;
-            if (orientation & 0b100) {
+            s32 ix = orientation & 1 ? TIC_SPRITESIZE - px - 1 : px;
+            s32 iy = orientation & 2 ? TIC_SPRITESIZE - py - 1 : py;
+            if (orientation & 4) {
                 s32 tmp = ix; ix = iy; iy = tmp;
             }
             u8 color = mapping[tic_tilesheet_gettilepix(tile, ix, iy)];
@@ -207,8 +207,8 @@ static void drawSprite(tic_core* core, s32 index, s32 x, s32 y, s32 w, s32 h, u8
     if (index < 0)
         return;
 
-    rotate &= 0b11;
-    flip &= 0b11;
+    rotate &= 3;
+    flip &= 3;
 
     tic_tilesheet sheet = getTileSheetFromSegment(&core->memory, core->memory.ram->vram.blit.segment);
     if (w == 1 && h == 1) {
