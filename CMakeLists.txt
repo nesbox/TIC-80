@@ -87,7 +87,7 @@ if(NOT BUILD_SDL)
 endif()
 
 if(NOT N3DS AND NOT EMSCRIPTEN AND NOT BAREMETALPI)
-    set(USE_LIBUV TRUE)
+    set(USE_LIBUV TRUE CACHE STRING "Enable libuv")
 endif()
 
 message("BUILD_SDLGPU: ${BUILD_SDLGPU}")
