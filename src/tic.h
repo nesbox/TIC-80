@@ -497,7 +497,7 @@ typedef union
             struct
             {
                 u8 sprite:7;
-                bool system:1;
+                u8 system:1;
             } cursor;
         } vars;
 

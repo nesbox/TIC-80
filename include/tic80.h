@@ -76,14 +76,14 @@ typedef union
 {
     struct
     {
-        bool up:1;
-        bool down:1;
-        bool left:1;
-        bool right:1;
-        bool a:1;
-        bool b:1;
-        bool x:1;
-        bool y:1;
+        u8 up:1;
+        u8 down:1;
+        u8 left:1;
+        u8 right:1;
+        u8 a:1;
+        u8 b:1;
+        u8 x:1;
+        u8 y:1;
     };
 
     u8 data;
