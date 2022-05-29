@@ -25,6 +25,10 @@
 
 #include "tic_assert.h"
 
+static_assert(sizeof(tic80_gamepad) == 1, "tic80_gamepad");
+static_assert(sizeof(tic80_gamepads) == 4, "tic80_gamepads");
+static_assert(sizeof(tic80_mouse) == 4, "tic80_mouse");
+static_assert(sizeof(tic80_keyboard) == 4, "tic80_keyboard");
 static_assert(sizeof(tic80_input) == 12, "tic80_input");
 
 static bool isKeyPressed(const tic80_keyboard* input, tic_key key)
