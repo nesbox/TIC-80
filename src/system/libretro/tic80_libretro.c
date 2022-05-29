@@ -6,7 +6,7 @@
 #include <math.h>
 #include "tic.h"
 #include "libretro-common/include/libretro.h"
-#include "libretro-common/include/retro_inline.h"
+#include "retro_inline.h"
 #include "libretro_core_options.h"
 #include "api.h"
 
