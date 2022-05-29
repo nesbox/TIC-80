@@ -26,7 +26,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <png.h>
-#include <assert.h>
+#include "tic_assert.h"
 
 #define RGBA_SIZE sizeof(u32)
 

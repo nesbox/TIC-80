@@ -24,7 +24,7 @@
 #include "ext/history.h"
 
 #include <ctype.h>
-#include <assert.h>
+#include "tic_assert.h"
 
 #define TEXT_CURSOR_DELAY (TIC80_FRAMERATE / 2)
 #define TEXT_CURSOR_BLINK_PERIOD TIC80_FRAMERATE

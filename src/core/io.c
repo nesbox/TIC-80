@@ -23,11 +23,7 @@
 #include "api.h"
 #include "core.h"
 
-#include <assert.h>
-
-#if defined(DINGUX) && !defined(static_assert)
-#define static_assert _Static_assert
-#endif
+#include "tic_assert.h"
 
 static_assert(sizeof(tic80_input) == 12, "tic80_input");
 
