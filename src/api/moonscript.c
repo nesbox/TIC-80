@@ -196,16 +196,18 @@ tic_script_config MoonSyntaxConfig =
     .name               = "moon",
     .fileExtension      = ".moon",
     .projectComment     = "--",
-    .init               = initMoonscript,
-    .close              = closeLua,
-    .tick               = callLuaTick,
-    .boot               = callLuaBoot,
-
-    .callback           =
     {
+      .init               = initMoonscript,
+      .close              = closeLua,
+      .tick               = callLuaTick,
+      .boot               = callLuaBoot,
+
+      .callback           =
+      {
         .scanline       = callLuaScanline,
         .border         = callLuaBorder,
         .menu           = callLuaMenu,
+      },
     },
 
     .getOutline         = getMoonOutline,

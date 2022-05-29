@@ -1794,16 +1794,18 @@ tic_script_config LuaSyntaxConfig =
     .name               = "lua",
     .fileExtension      = ".lua",
     .projectComment     = "--",
-    .init               = initLua,
-    .close              = closeLua,
-    .tick               = callLuaTick,
-    .boot               = callLuaBoot,
-
-    .callback           =
     {
+      .init               = initLua,
+      .close              = closeLua,
+      .tick               = callLuaTick,
+      .boot               = callLuaBoot,
+
+      .callback           =
+      {
         .scanline       = callLuaScanline,
         .border         = callLuaBorder,
         .menu           = callLuaMenu,
+      },
     },
 
     .getOutline         = getLuaOutline,

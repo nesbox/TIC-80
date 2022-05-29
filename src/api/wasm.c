@@ -1278,16 +1278,18 @@ const tic_script_config WasmSyntaxConfig =
     .name               = "wasm",
     .fileExtension      = ".wasmp",
     .projectComment     = "--",
-    .init               = initWasm,
-    .close              = closeWasm,
-    .tick               = callWasmTick,
-    .boot               = callWasmBoot,
-
-    .callback           =
     {
+      .init               = initWasm,
+      .close              = closeWasm,
+      .tick               = callWasmTick,
+      .boot               = callWasmBoot,
+
+      .callback           =
+      {
         .scanline       = callWasmScanline,
         .border         = callWasmBorder,
         .menu           = callWasmMenu,
+      },
     },
 
     .getOutline         = getWasmOutline,

@@ -290,16 +290,19 @@ static void resetVbank(tic_mem* memory)
 
 static void font2ram(tic_mem* memory)
 {
-    memory->ram->font = (tic_font)
-    {
+  memory->ram->font = (tic_font) {
         .regular =     
         {
             .data = 
             {
                 #include "font.inl"
             },
-            .width = TIC_FONT_WIDTH, 
-            .height = TIC_FONT_HEIGHT, 
+	    {
+	      {
+		.width = TIC_FONT_WIDTH, 
+		.height = TIC_FONT_HEIGHT,
+	      }
+	    } 
         },
 
         .alt = 
@@ -308,10 +311,14 @@ static void font2ram(tic_mem* memory)
             {
                 #include "altfont.inl"
             },
-            .width = TIC_ALTFONT_WIDTH, 
-            .height = TIC_FONT_HEIGHT, 
+	    {
+	      {
+		.width = TIC_ALTFONT_WIDTH, 
+		.height = TIC_FONT_HEIGHT, 
+	      }
+	    }
         },
-    };
+  };
 }
 
 void tic_api_reset(tic_mem* memory)

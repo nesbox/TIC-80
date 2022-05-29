@@ -1733,16 +1733,18 @@ tic_script_config WrenSyntaxConfig =
     .name               = "wren",
     .fileExtension      = ".wren",
     .projectComment     = "//",
-    .init               = initWren,
-    .close              = closeWren,
-    .tick               = callWrenTick,
-    .boot               = callWrenBoot,
-
-    .callback           =
     {
+      .init               = initWren,
+      .close              = closeWren,
+      .tick               = callWrenTick,
+      .boot               = callWrenBoot,
+
+      .callback           =
+      {
         .scanline       = callWrenScanline,
         .border         = callWrenBorder,
         .menu           = callWrenMenu,
+      },
     },
 
     .getOutline         = getWrenOutline,

@@ -2015,13 +2015,23 @@ static void updateSystemFont(Studio* studio)
     {
         .regular =
         {
-            .width       = TIC_FONT_WIDTH,
-            .height      = TIC_FONT_HEIGHT,
+	    { 0 },
+	    {
+		{
+		    .width       = TIC_FONT_WIDTH,
+		    .height      = TIC_FONT_HEIGHT,
+		},
+	    },
         },
         .alt = 
         {
-            .width       = TIC_ALTFONT_WIDTH,
-            .height      = TIC_FONT_HEIGHT,            
+	    { 0 },
+	    {
+		{
+		    .width       = TIC_ALTFONT_WIDTH,
+		    .height      = TIC_FONT_HEIGHT,            
+		},
+	    },
         }
     };
 

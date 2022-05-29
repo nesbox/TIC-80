@@ -1851,16 +1851,18 @@ tic_script_config SquirrelSyntaxConfig =
     .name               = "squirrel",
     .fileExtension      = ".nut",
     .projectComment     = "//",
-    .init               = initSquirrel,
-    .close              = closeSquirrel,
-    .tick               = callSquirrelTick,
-    .boot               = callSquirrelBoot,
-
-    .callback           =
     {
+      .init               = initSquirrel,
+      .close              = closeSquirrel,
+      .tick               = callSquirrelTick,
+      .boot               = callSquirrelBoot,
+
+      .callback           =
+      {
         .scanline       = callSquirrelScanline,
         .border         = callSquirrelBorder,
         .menu           = callSquirrelMenu,
+      },
     },
 
     .getOutline         = getSquirrelOutline,

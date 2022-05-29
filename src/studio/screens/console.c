@@ -3748,9 +3748,11 @@ static void onHttpVesrsionGet(const net_get_data* data)
                 s32 data[3];
             } version = 
             {
+	      {
                 .major = TIC_VERSION_MAJOR,
                 .minor = TIC_VERSION_MINOR,
                 .patch = TIC_VERSION_REVISION,
+	      },
             };
 
             if(lua)

@@ -1248,15 +1248,17 @@ const tic_script_config JsSyntaxConfig =
     .name               = "js",
     .fileExtension      = ".js",
     .projectComment     = "//",
-    .init               = initJavascript,
-    .close              = closeJavascript,
-    .tick               = callJavascriptTick,
-    .boot               = callJavascriptBoot,
-    .callback           =
     {
+      .init               = initJavascript,
+      .close              = closeJavascript,
+      .tick               = callJavascriptTick,
+      .boot               = callJavascriptBoot,
+      .callback           =
+      {
         .scanline       = callJavascriptScanline,
         .border         = callJavascriptBorder,
         .menu           = callJavascriptMenu,
+      },
     },
 
     .getOutline         = getJsOutline,
