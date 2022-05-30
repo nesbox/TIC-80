@@ -38,6 +38,12 @@
 #include <emscripten.h>
 #endif
 
+#if defined(__APPLE__)
+# if MAC_OS_X_VERSION_MIN_REQUIRED < 1060
+#    error SDL for Mac OS X only supports deploying on 10.6 and above.
+# endif /* MAC_OS_X_VERSION_MIN_REQUIRED < 1060 */
+#endif
+
 #define TEXTURE_SIZE (TIC80_FULLWIDTH)
 #define SCREEN_FORMAT TIC80_PIXEL_COLOR_RGBA8888
 

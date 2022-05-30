@@ -51,9 +51,6 @@
 // #    ifndef TARGET_OS_IPHONE
 #       undef __TIC_MACOSX__
 #       define __TIC_MACOSX__ 1
-#       if MAC_OS_X_VERSION_MIN_REQUIRED < 1060
-#           error SDL for Mac OS X only supports deploying on 10.6 and above.
-#       endif /* MAC_OS_X_VERSION_MIN_REQUIRED < 1060 */
 // #    endif /* TARGET_OS_IPHONE */
 #endif /* defined(__APPLE__) */
 
