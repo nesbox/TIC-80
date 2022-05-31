@@ -31,11 +31,8 @@
 #include <ctype.h>
 #include <stddef.h>
 #include <time.h>
-#include <assert.h>
 
-#if defined(DINGUX) && !defined(static_assert)
-#define static_assert _Static_assert
-#endif
+#include "tic_assert.h"
 
 #ifdef _3DS
 #include <3ds.h>

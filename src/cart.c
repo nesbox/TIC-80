@@ -29,11 +29,7 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <assert.h>
-
-#if defined(DINGUX) && !defined(static_assert)
-#define static_assert _Static_assert
-#endif
+#include "tic_assert.h"
 
 typedef enum
 {
