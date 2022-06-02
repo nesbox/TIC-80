@@ -107,6 +107,10 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Dd_m3LogOutput=0")
 
 if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID AND NOT N3DS)
     set(LINUX TRUE)
+
+    if(CMAKE_HOST_SYSTEM_NAME STREQUAL "FreeBSD")
+        set(FREEBSD TRUE)
+    endif()
 endif()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -436,6 +440,11 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
 
     add_library(tic80core${SCRIPT} STATIC ${TIC80CORE_SRC})
 
+    if (FREEBSD)
+        target_include_directories(tic80core${SCRIPT} PRIVATE ${SYSROOT_PATH}/usr/local/include)
+        target_link_directories(tic80core${SCRIPT} PRIVATE ${SYSROOT_PATH}/usr/local/lib)
+    endif()
+
     target_include_directories(tic80core${SCRIPT}
         PRIVATE
             ${THIRDPARTY_DIR}/moonscript
@@ -520,6 +529,11 @@ endif()
 if(BUILD_SDL AND BUILD_PLAYER AND NOT RPI)
 
     add_executable(player-sdl WIN32 ${CMAKE_SOURCE_DIR}/src/system/sdl/player.c)
+
+    if (FREEBSD)
+        target_include_directories(player-sdl PRIVATE ${SYSROOT_PATH}/usr/local/include)
+        target_link_directories(player-sdl PRIVATE ${SYSROOT_PATH}/usr/local/lib)
+    endif()
 
     target_include_directories(player-sdl PRIVATE
         ${THIRDPARTY_DIR}/sdl2/include
@@ -623,9 +637,23 @@ if(BUILD_LIBRETRO)
             set(LIBRETRO_EXTENSION "a")
         endif()
         set_target_properties(tic80_libretro PROPERTIES SUFFIX "_partial.a")
-        add_custom_command(TARGET tic80_libretro
+        include(CheckCSourceCompiles)
+        check_c_source_compiles(
+"#ifndef __MSDOS__
+#error \"Not DOS\"
+#endif"
+IS_DOS
+)
+
+        if(IS_DOS)
+          add_custom_command(TARGET tic80_libretro
+               POST_BUILD
+                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${CMAKE_BINARY_DIR}/lib/libzlib.a ${MRUBY_LIB})
+        else()
+          add_custom_command(TARGET tic80_libretro
                POST_BUILD
                    COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${MRUBY_LIB})
+        endif()
     else()
         add_library(tic80_libretro SHARED
         ${LIBRETRO_SRC}
@@ -1035,6 +1063,11 @@ if(BUILD_SDL)
 
     if(BUILD_TOUCH_INPUT)
         target_compile_definitions(tic80 PRIVATE TOUCH_INPUT_SUPPORT)
+    endif()
+
+    if (FREEBSD)
+        target_include_directories(tic80 PRIVATE ${SYSROOT_PATH}/usr/local/include)
+        target_link_directories(tic80 PRIVATE ${SYSROOT_PATH}/usr/local/lib)
     endif()
 
     if(RPI)

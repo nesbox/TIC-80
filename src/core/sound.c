@@ -25,11 +25,7 @@
 #include "core.h"
 
 #include <string.h>
-#include <assert.h>
-
-#if defined(DINGUX) && !defined(static_assert)
-#define static_assert _Static_assert
-#endif
+#include "tic_assert.h"
 
 #define ENVELOPE_FREQ_SCALE 2
 #define SECONDS_PER_MINUTE 60
