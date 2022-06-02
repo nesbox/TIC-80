@@ -327,6 +327,21 @@ static void removeInvalidChars(char* code)
     for(s = d = code; (*d = *s); d += (*s++ != '\r'));
 }
 
+const char matchingDelim(const char current)
+{
+    char match = 0;
+    switch (current)
+    {
+    case '(': match = ')'; break;
+    case ')': match = '('; break;
+    case '[': match = ']'; break;
+    case ']': match = '['; break;
+    case '{': match = '}'; break;
+    case '}': match = '{'; break;
+    }
+    return match;
+}
+
 const char* findMatchedDelim(Code* code, const char* current)
 {
     const char* start = code->src;
@@ -335,18 +350,10 @@ const char* findMatchedDelim(Code* code, const char* current)
        code->state[current - start].syntax == SyntaxType_STRING) return 0;
 
     char initial = *current;
-    char seeking = 0;
+    char seeking = matchingDelim(initial);
+    if(seeking == 0) return NULL;
+
     s8 dir = (initial == '(' || initial == '[' || initial == '{') ? 1 : -1;
-    switch (initial)
-    {
-    case '(': seeking = ')'; break;
-    case ')': seeking = '('; break;
-    case '[': seeking = ']'; break;
-    case ']': seeking = '['; break;
-    case '{': seeking = '}'; break;
-    case '}': seeking = '{'; break;
-    default: return NULL;
-    }
 
     while(*current && (start < current))
     {
@@ -957,12 +964,18 @@ static void backspaceWord(Code* code)
     }
 }
 
+
+
 static void inputSymbolBase(Code* code, char sym)
 {
     if (strlen(code->src) >= MAX_CODE)
         return;
-
-    insertCode(code, code->cursor.position++, (const char[]){sym, '\0'});
+    if(getConfig(code->studio)->theme.code.autoDelimiters && (sym == '(' || sym == '[' || sym == '{'))
+    {
+        insertCode(code, code->cursor.position++, (const char[]){sym, matchingDelim(sym), '\0'});
+    } else {
+        insertCode(code, code->cursor.position++, (const char[]){sym, '\0'});
+    }
 
     history(code);
 
