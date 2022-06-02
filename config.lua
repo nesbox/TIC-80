@@ -15,7 +15,7 @@ THEME=
 		SHADOW =true,
 		ALT_FONT=false,
 		MATCH_DELIMITERS=true,
-                AUTO_DELIMITERS=false,
+		AUTO_DELIMITERS=false,
 	},
 
 	GAMEPAD=
