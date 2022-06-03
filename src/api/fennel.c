@@ -182,16 +182,18 @@ tic_script_config FennelSyntaxConfig =
     .name               = "fennel",
     .fileExtension      = ".fnl",
     .projectComment     = ";;",
-    .init               = initFennel,
-    .close              = closeLua,
-    .tick               = callLuaTick,
-    .boot               = callLuaBoot,
-
-    .callback           =
     {
+      .init               = initFennel,
+      .close              = closeLua,
+      .tick               = callLuaTick,
+      .boot               = callLuaBoot,
+
+      .callback           =
+      {
         .scanline       = callLuaScanline,
         .border         = callLuaBorder,
         .menu           = callLuaMenu,
+      },
     },
 
     .getOutline         = getFennelOutline,

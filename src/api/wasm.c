@@ -1,4 +1,4 @@
-﻿// MIT License
+// MIT License
 
 // Copyright (c) 2017 Vadim Grigoruk @nesbox // grigoruk@gmail.com
 
@@ -31,6 +31,15 @@
 #include "tools.h"
 
 #include <ctype.h>
+
+// Avoid redefining u* ans s*
+#define d_m3ShortTypesDefined 1
+typedef int8_t i8;
+typedef int16_t i16;
+typedef int32_t i32;
+typedef int64_t i64;
+typedef double          f64;
+typedef float           f32;
 
 #include "wasm3.h"
 #include "m3_exec_defs.h"
@@ -1278,16 +1287,18 @@ const tic_script_config WasmSyntaxConfig =
     .name               = "wasm",
     .fileExtension      = ".wasmp",
     .projectComment     = "--",
-    .init               = initWasm,
-    .close              = closeWasm,
-    .tick               = callWasmTick,
-    .boot               = callWasmBoot,
-
-    .callback           =
     {
+      .init               = initWasm,
+      .close              = closeWasm,
+      .tick               = callWasmTick,
+      .boot               = callWasmBoot,
+
+      .callback           =
+      {
         .scanline       = callWasmScanline,
         .border         = callWasmBorder,
         .menu           = callWasmMenu,
+      },
     },
 
     .getOutline         = getWasmOutline,

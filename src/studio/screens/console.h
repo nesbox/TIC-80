@@ -23,8 +23,7 @@
 #pragma once
 
 #include "studio/studio.h"
-
-typedef void(*fs_done_callback)(void* data);
+#include "studio/fs.h"
 
 typedef enum
 {

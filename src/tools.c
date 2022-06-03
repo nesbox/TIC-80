@@ -176,8 +176,8 @@ void tic_tool_set_track_row_sfx(tic_track_row* row, s32 sfx)
 {
     if(sfx >= SFX_COUNT) sfx = SFX_COUNT-1;
 
-    row->sfxhi = (sfx & 0b00100000) >> MUSIC_SFXID_LOW_BITS;
-    row->sfxlow = sfx & 0b00011111;
+    row->sfxhi = (sfx & 0x20) >> MUSIC_SFXID_LOW_BITS;
+    row->sfxlow = sfx & 0x1f;
 }
 
 bool tic_tool_empty(const void* buffer, s32 size)

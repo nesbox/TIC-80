@@ -257,7 +257,7 @@ s32 calcWaveAnimation(tic_mem* tic, u32 offset, s32 channel)
 
     s32 val = tic_tool_noise(&reg->waveform)
         ? (rand() & 1) * MAX_VOLUME
-        : tic_tool_peek4(reg->waveform.data, ((offset * reg->freq) >> 7) % WAVE_VALUES);
+        : tic_tool_peek4(reg->waveform.data, ((offset * tic_sound_register_get_freq(reg)) >> 7) % WAVE_VALUES);
 
     return val * reg->volume;
 }
@@ -2015,13 +2015,23 @@ static void updateSystemFont(Studio* studio)
     {
         .regular =
         {
-            .width       = TIC_FONT_WIDTH,
-            .height      = TIC_FONT_HEIGHT,
+	    { 0 },
+	    {
+		{
+		    .width       = TIC_FONT_WIDTH,
+		    .height      = TIC_FONT_HEIGHT,
+		},
+	    },
         },
         .alt = 
         {
-            .width       = TIC_ALTFONT_WIDTH,
-            .height      = TIC_FONT_HEIGHT,            
+	    { 0 },
+	    {
+		{
+		    .width       = TIC_ALTFONT_WIDTH,
+		    .height      = TIC_FONT_HEIGHT,            
+		},
+	    },
         }
     };
 

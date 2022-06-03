@@ -5,7 +5,7 @@
 #include <string.h>
 
 #include "libretro-common/include/libretro.h"
-#include "libretro-common/include/retro_inline.h"
+#include "retro_inline.h"
 
 #ifndef HAVE_NO_LANGEXTRA
 #include "libretro_core_options_intl.h"

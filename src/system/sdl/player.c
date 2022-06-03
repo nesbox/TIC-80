@@ -25,6 +25,12 @@
 #include <SDL.h>
 #include <tic80.h>
 
+#if defined(__APPLE__)
+# if MAC_OS_X_VERSION_MIN_REQUIRED < 1060
+#    error SDL for Mac OS X only supports deploying on 10.6 and above.
+# endif /* MAC_OS_X_VERSION_MIN_REQUIRED < 1060 */
+#endif
+
 #define TIC80_WINDOW_SCALE 3
 #define TIC80_WINDOW_TITLE "TIC-80"
 #define TIC80_DEFAULT_CART "cart.tic"

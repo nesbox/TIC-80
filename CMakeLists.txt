@@ -48,7 +48,7 @@ if(Git_FOUND)
 endif()
 
 if(APPLE)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum OS X deployment version" FORCE)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum OS X deployment version")
 endif()
 
 
@@ -87,7 +87,7 @@ if(NOT BUILD_SDL)
 endif()
 
 if(NOT N3DS AND NOT EMSCRIPTEN AND NOT BAREMETALPI)
-    set(USE_LIBUV TRUE)
+    set(USE_LIBUV TRUE CACHE STRING "Enable libuv")
 endif()
 
 message("BUILD_SDLGPU: ${BUILD_SDLGPU}")
@@ -645,7 +645,8 @@ if(BUILD_LIBRETRO)
 IS_DOS
 )
 
-        if(IS_DOS)
+        # Exact way to detect NGC/Wii depends on version of cmake files
+        if("${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoWii" OR "${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoGameCube" OR GAMECUBE OR WII OR IS_DOS)
           add_custom_command(TARGET tic80_libretro
                POST_BUILD
                    COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${CMAKE_BINARY_DIR}/lib/libzlib.a ${MRUBY_LIB})

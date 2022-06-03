@@ -1,4 +1,4 @@
-﻿// MIT License
+// MIT License
 
 // Copyright (c) 2017 Vadim Grigoruk @nesbox // grigoruk@gmail.com
 // Copyright (c) 2020-2021 Jeremiasz Nelz <jeremiasz ~at~ nelz.pl>

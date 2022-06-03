@@ -22,6 +22,7 @@
 
 #pragma once
 
+#include "retro_endianness.h"
 #include "tic.h"
 #include "time.h"
 
@@ -835,9 +836,17 @@ struct tic_mem
     {
         struct
         {
+#if RETRO_IS_BIG_ENDIAN
+            u8 padded:5;
+            u8 keyboard:1;
+            u8 mouse:1;
+            u8 gamepad:1;
+#else
             u8 gamepad:1;
             u8 mouse:1;
             u8 keyboard:1;
+            u8 padded:5;
+#endif
         };
 
         u8 data;
