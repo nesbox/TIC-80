@@ -149,6 +149,7 @@ static void readCodeTheme(Config* config, lua_State* lua)
         readBool(lua, "SHADOW", &config->data.theme.code.shadow);
         readBool(lua, "ALT_FONT", &config->data.theme.code.altFont);
         readBool(lua, "MATCH_DELIMITERS", &config->data.theme.code.matchDelimiters);
+        readBool(lua, "AUTO_DELIMITERS", &config->data.theme.code.autoDelimiters);
     }
 
     lua_pop(lua, 1);

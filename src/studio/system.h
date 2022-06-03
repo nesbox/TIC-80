@@ -86,6 +86,7 @@ typedef struct
             bool shadow;
             bool altFont;
             bool matchDelimiters;
+            bool autoDelimiters;
 
         } code;
 
