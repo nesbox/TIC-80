@@ -8,16 +8,16 @@ static mut Y: i32 = 24;
 #[export_name = "TIC"]
 pub fn tic() {
     unsafe {
-        if tic80::btn(0) {
+        if tic80::btn(0) != 0 {
             Y -= 1;
         }
-        if tic80::btn(1) {
+        if tic80::btn(1) != 0 {
             Y += 1;
         }
-        if tic80::btn(2) {
+        if tic80::btn(2) != 0 {
             X -= 1;
         }
-        if tic80::btn(3) {
+        if tic80::btn(3) != 0 {
             X += 1;
         }
     }
