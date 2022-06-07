@@ -1,7 +1,7 @@
 mod alloc;
 mod tic80;
 
-use tic80::*;
+use tic80::sys::*;
 
 static mut T: i32 = 0;
 static mut X: i32 = 96;

@@ -1,9 +1,9 @@
 // Because this isn't in a separate crate, we have to allow unused code to silence the warnings.
 #![allow(dead_code)]
+pub use sys::MouseInput;
 
-pub use sys::*;
 
-mod sys {
+pub mod sys {
     #[derive(Default)]
     #[repr(C)]
     pub struct MouseInput {
