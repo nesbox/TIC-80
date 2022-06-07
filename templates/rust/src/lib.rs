@@ -27,7 +27,7 @@ pub fn tic() {
     unsafe {
         cls(13);
         spr(1 + T % 60 / 30 * 2, X, Y, [14].as_ptr(), 1, 3, 0, 0, 2, 2);
-        print(b"HELLO WORLD!\0".as_ptr(), 84, 84, 15, true, 1, false);
+        print("HELLO WORLD!\0".as_ptr(), 84, 84, 15, false, 1, false);
     }
 
     unsafe {
