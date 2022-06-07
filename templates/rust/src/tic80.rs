@@ -29,6 +29,8 @@ pub const PERSISTENT_RAM: *mut u8 = 0x14004 as *mut u8;
 pub const SPRITE_FLAGS: *mut u8 = 0x14404 as *mut u8;
 pub const SYSTEM_FONT: *mut u8 = 0x14604 as *mut u8;
 
+// The functions in the sys module follow the signatures as given in wasm.c.
+// The wrapper functions sometimes use more logical signatures.
 pub mod sys {
     #[derive(Default)]
     #[repr(C)]
@@ -168,4 +170,20 @@ pub mod sys {
         );
         pub fn vbank(bank: i8) -> i8;
     }
+}
+
+// Input
+
+type ButtonIndex = i32;
+
+pub fn btn(index: ButtonIndex) -> bool {
+    unsafe { sys::btn(index) != 0 }
+}
+
+pub fn btn_full() -> u32 {
+    unsafe { sys::btn(-1) as u32 }
+}
+
+pub fn btnp(index: ButtonIndex, hold: i32, period: i32) -> bool {
+    unsafe { sys::btnp(index, hold, period) }
 }
