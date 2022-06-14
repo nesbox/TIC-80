@@ -10,15 +10,18 @@
         <p>
            TIC-80 is a free and open source fantasy computer for making, playing
            and sharing tiny games.
-
+        </p>
+        <p>
            With TIC-80 you get built-in tools for development: code, sprites, maps,
            sound editors and the command line, which is enough to create a mini
            retro game.
-
+        </p>
+        <p>
            Games are packaged into a cartridge file, which can be easily distributed.
            TIC-80 works on all popular platforms. This means your cartridge can be
            played in any device.
-
+        </p>
+        <p>
            To make a retro styled game, the whole process of creation and execution
            takes place under some technical limitations: 240x136 pixel display,
            16 color palette, 256 8x8 color sprites, 4 channel sound, etc.
