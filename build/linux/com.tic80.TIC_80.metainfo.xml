@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop">
+    <id>com.tic80.TIC_80</id>
+    <launchable type="desktop-id">com.tic80.TIC_80.desktop</launchable>
+    <name>TIC-80</name>
+    <summary>Fantasy computer for making, playing and sharing tiny games</summary>
+    <metadata_license>CC0-1.0</metadata_license>
+    <project_license>MIT</project_license>
+    <description>
+        <p>
+           TIC-80 is a free and open source fantasy computer for making, playing
+           and sharing tiny games.
+        </p>
+        <p>
+           With TIC-80 you get built-in tools for development: code, sprites, maps,
+           sound editors and the command line, which is enough to create a mini
+           retro game.
+        </p>
+        <p>
+           Games are packaged into a cartridge file, which can be easily distributed.
+           TIC-80 works on all popular platforms. This means your cartridge can be
+           played in any device.
+        </p>
+        <p>
+           To make a retro styled game, the whole process of creation and execution
+           takes place under some technical limitations: 240x136 pixel display,
+           16 color palette, 256 8x8 color sprites, 4 channel sound, etc.
+        </p>
+    </description>
+    <url type="homepage">https://tic80.com/</url>
+    <url type="help">https://github.com/nesbox/TIC-80/wiki</url>
+    <url type="bugtracker">https://github.com/nesbox/TIC-80/issues</url>
+    <developer_name>Vadim Grigoruk (Nesbox)</developer_name>
+    <screenshots>
+        <screenshot type="default">
+            <image>https://img.itch.zone/aW1hZ2UvODQxMTUvNDI5NDk0OC5wbmc=/original/MWImMk.png</image>
+        </screenshot>
+        <screenshot>
+            <image>https://img.itch.zone/aW1hZ2UvODQxMTUvNDI5NDk0OS5wbmc=/original/4CvLUI.png</image>
+        </screenshot>
+        <screenshot>
+            <image>https://img.itch.zone/aW1hZ2UvODQxMTUvNDI5NDk1MC5wbmc=/original/BXXpTd.png</image>
+        </screenshot>
+        <screenshot>
+            <image>https://img.itch.zone/aW1hZ2UvODQxMTUvNDI5NDk1Mi5wbmc=/original/vQB%2F%2BB.png</image>
+        </screenshot>
+        <screenshot>
+            <image>https://img.itch.zone/aW1hZ2UvODQxMTUvNDI5NDk1My5wbmc=/original/%2BgfNqb.png</image>
+        </screenshot>
+        <screenshot>
+            <image>https://img.itch.zone/aW1hZ2UvODQxMTUvNDI5NDk1NC5wbmc=/original/Dde0yu.png</image>
+        </screenshot>
+        <screenshot>
+            <image>https://img.itch.zone/aW1hZ2UvODQxMTUvNDI5NDk1NS5wbmc=/original/ZsfgBO.png</image>
+        </screenshot>
+    </screenshots>
+    <content_rating type="oars-1.1"/>
+    <releases>
+        <release version="1.0.2164" date="2022-05-02">
+        </release>
+    </releases>
+</component>

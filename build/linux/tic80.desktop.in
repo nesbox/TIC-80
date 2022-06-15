@@ -6,6 +6,6 @@ Exec=tic80 %U
 Icon=tic80
 Terminal=false
 Type=Application
-Categories=education
+Categories=Education
 MimeType=application/x-tic80-item;
 GenericName=TIC-80
