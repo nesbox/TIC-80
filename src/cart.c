@@ -77,7 +77,7 @@ static const u8 Waveforms[] = {0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0
 
 static s32 chunkSize(const Chunk* chunk)
 {
-    return chunk->size == 0 && chunk->type == CHUNK_CODE ? TIC_BANK_SIZE : retro_le_to_cpu16(chunk->size);
+    return chunk->size == 0 && (chunk->type == CHUNK_CODE || chunk->type == CHUNK_BINARY) ? TIC_BANK_SIZE : retro_le_to_cpu16(chunk->size);
 }
 
 void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
