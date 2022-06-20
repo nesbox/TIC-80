@@ -1,5 +1,8 @@
 // Because this isn't in a separate crate, we have to allow unused code to silence the warnings.
 #![allow(dead_code)]
+
+use std::ffi::CString;
+
 pub use sys::MouseInput;
 
 // Constants
@@ -184,4 +187,51 @@ pub fn btn_full() -> u32 {
 
 pub fn btnp(index: ButtonIndex, hold: i32, period: i32) -> bool {
     unsafe { sys::btnp(index, hold, period) }
+}
+
+// Graphics
+
+pub fn cls(color: i8) {
+    unsafe { sys::cls(color) }
+}
+
+pub fn spr(
+    id: i32,
+    x: i32,
+    y: i32,
+    trans_colors: &[u8],
+    scale: i32,
+    flip: i32,
+    rotate: i32,
+    w: i32,
+    h: i32,
+) {
+    unsafe {
+        sys::spr(
+            id,
+            x,
+            y,
+            trans_colors.as_ptr(),
+            trans_colors.len() as i8,
+            scale,
+            flip,
+            rotate,
+            w,
+            h,
+        )
+    }
+}
+
+// This handles regular Rust strings, but requires allocation to do so.
+pub fn print(
+    text: impl AsRef<str>,
+    x: i32,
+    y: i32,
+    color: i32,
+    fixed: bool,
+    scale: i32,
+    alt: bool,
+) -> i32 {
+    let text = CString::new(text.as_ref()).unwrap();
+    unsafe { sys::print(text.as_ptr() as *const u8, x, y, color, fixed, scale, alt) }
 }

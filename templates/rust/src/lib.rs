@@ -9,26 +9,24 @@ static mut Y: i32 = 24;
 
 #[export_name = "TIC"]
 pub fn tic() {
-    unsafe {
-        if btn(0) {
-            Y -= 1;
-        }
-        if btn(1) {
-            Y += 1;
-        }
-        if btn(2) {
-            X -= 1;
-        }
-        if btn(3) {
-            X += 1;
-        }
+    if btn(0) {
+        unsafe { Y -= 1 }
+    }
+    if btn(1) {
+        unsafe { Y += 1 }
+    }
+    if btn(2) {
+        unsafe { X -= 1 }
+    }
+    if btn(3) {
+        unsafe { X += 1 }
     }
 
+    cls(13);
     unsafe {
-        sys::cls(13);
-        sys::spr(1 + T % 60 / 30 * 2, X, Y, [14].as_ptr(), 1, 3, 0, 0, 2, 2);
-        sys::print("HELLO WORLD!\0".as_ptr(), 84, 84, 15, false, 1, false);
+        spr(1 + T % 60 / 30 * 2, X, Y, &[14], 3, 0, 0, 2, 2);
     }
+    print("HELLO WORLD!", 84, 84, 15, false, 1, false);
 
     unsafe {
         T += 1;
