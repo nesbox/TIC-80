@@ -8,26 +8,24 @@ pub const HEIGHT: i32 = 136;
 
 // TIC-80 RAM
 
-// Implementing these as slices is possible, but only with nightly Rust.
-// For now, this seems to be the best option to enable semi-convenient access to memory.
-pub const FRAMEBUFFER: *mut u8 = 0x00000 as *mut u8;
-pub const TILES: *mut u8 = 0x04000 as *mut u8;
-pub const SPRITES: *mut u8 = 0x06000 as *mut u8;
-pub const MAP: *mut u8 = 0x08000 as *mut u8;
-pub const GAMEPADS: *mut u8 = 0x0FF80 as *mut u8;
-pub const MOUSE: *mut u8 = 0x0FF84 as *mut u8;
-pub const KEYBOARD: *mut u8 = 0x0FF88 as *mut u8;
-pub const SFX_STATE: *mut u8 = 0x0FF8C as *mut u8;
-pub const SOUND_REGISTERS: *mut u8 = 0x0FF9C as *mut u8;
-pub const WAVEFORMS: *mut u8 = 0x0FFE4 as *mut u8;
-pub const SFX: *mut u8 = 0x100E4 as *mut u8;
-pub const MUSIC_PATTERNS: *mut u8 = 0x11164 as *mut u8;
-pub const MUSIC_TRACKS: *mut u8 = 0x13E64 as *mut u8;
-pub const SOUND_STATE: *mut u8 = 0x13FFC as *mut u8;
-pub const STEREO_VOLUME: *mut u8 = 0x14000 as *mut u8;
-pub const PERSISTENT_RAM: *mut u8 = 0x14004 as *mut u8;
-pub const SPRITE_FLAGS: *mut u8 = 0x14404 as *mut u8;
-pub const SYSTEM_FONT: *mut u8 = 0x14604 as *mut u8;
+pub const FRAMEBUFFER: *mut [u8; 16320] = 0x00000 as *mut [u8; 16320];
+pub const TILES: *mut [u8; 8192] = 0x04000 as *mut [u8; 8192];
+pub const SPRITES: *mut [u8; 8192] = 0x06000 as *mut [u8; 8192];
+pub const MAP: *mut [u8; 32640] = 0x08000 as *mut [u8; 32640];
+pub const GAMEPADS: *mut [u8; 4] = 0x0FF80 as *mut [u8; 4];
+pub const MOUSE: *mut [u8; 4] = 0x0FF84 as *mut [u8; 4];
+pub const KEYBOARD: *mut [u8; 4] = 0x0FF88 as *mut [u8; 4];
+pub const SFX_STATE: *mut [u8; 16] = 0x0FF8C as *mut [u8; 16];
+pub const SOUND_REGISTERS: *mut [u8; 72] = 0x0FF9C as *mut [u8; 72];
+pub const WAVEFORMS: *mut [u8; 256] = 0x0FFE4 as *mut [u8; 256];
+pub const SFX: *mut [u8; 4224] = 0x100E4 as *mut [u8; 4224];
+pub const MUSIC_PATTERNS: *mut [u8; 11520] = 0x11164 as *mut [u8; 11520];
+pub const MUSIC_TRACKS: *mut [u8; 408] = 0x13E64 as *mut [u8; 408];
+pub const SOUND_STATE: *mut [u8; 4] = 0x13FFC as *mut [u8; 4];
+pub const STEREO_VOLUME: *mut [u8; 4] = 0x14000 as *mut [u8; 4];
+pub const PERSISTENT_RAM: *mut [u8; 1024] = 0x14004 as *mut [u8; 1024];
+pub const SPRITE_FLAGS: *mut [u8; 512] = 0x14404 as *mut [u8; 512];
+pub const SYSTEM_FONT: *mut [u8; 2048] = 0x14604 as *mut [u8; 2048];
 
 // The functions in the sys module follow the signatures as given in wasm.c.
 // The wrapper functions sometimes use more logical signatures.
