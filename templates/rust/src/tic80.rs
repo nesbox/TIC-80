@@ -222,6 +222,7 @@ pub fn spr(
     }
 }
 
+// Print any string, using an extra allocation to add the null terminator
 pub fn print_alloc(
     text: impl AsRef<str>,
     x: i32,
