@@ -26,8 +26,8 @@ pub fn tic() {
     unsafe {
         spr(1 + T % 60 / 30 * 2, X, Y, &[14], 3, 0, 0, 2, 2);
     }
-    print("HELLO WORLD!", 84, 84, 15, false, 1, false);
-
+    print!("HELLO WORLD!", 84, 84, 15, false, 1, false);
+    
     unsafe {
         T += 1;
     }

@@ -1,5 +1,5 @@
 // Because this isn't in a separate crate, we have to allow unused code to silence the warnings.
-#![allow(dead_code)]
+#![allow(dead_code, unused_macros)]
 
 use std::ffi::CString;
 
@@ -222,8 +222,7 @@ pub fn spr(
     }
 }
 
-// This handles regular Rust strings, but requires allocation to do so.
-pub fn print(
+pub fn print_alloc(
     text: impl AsRef<str>,
     x: i32,
     y: i32,
@@ -235,3 +234,16 @@ pub fn print(
     let text = CString::new(text.as_ref()).unwrap();
     unsafe { sys::print(text.as_ptr() as *const u8, x, y, color, fixed, scale, alt) }
 }
+
+// Print a string, avoiding allocation if a literal is passed.
+// NOTE: "use tic80::*" causes this to shadow std::print, but that isn't useful here anyway.
+#[macro_export]
+macro_rules! print {
+    ($text: literal, $($arg: expr), *) => {
+        unsafe { crate::tic80::sys::print(concat!($text, "\0").as_ptr(), $($arg), *) }
+    };
+    ($text: expr, $($arg: expr), *) => {
+        crate::tic80::print_alloc($text, $($arg), *);
+    };
+}
+
