@@ -175,7 +175,7 @@ static void paintPoint(Sprite* sprite, u8 color, s32 x, s32 y)
             tic_tilesheet_setpix(&sprite->sheet, x+i, y+j, color);
 }
 
-static void paintLine(Sprite* sprite, s32 Size, u8 color, s32 x1, s32 y1, s32 x2, s32 y2)
+static void paintLine(Sprite* sprite, u8 color, s32 x1, s32 y1, s32 x2, s32 y2)
 {
     float dx = x2 - x1;
     float dy = y2 - y1;
@@ -247,7 +247,7 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
         if(left || right)
         {
             u8 color = left ? sprite->color : sprite->color2;
-            paintLine(sprite, Size, color,
+            paintLine(sprite, color,
                 sx + pmx / Size,
                 sy + pmy / Size,
                 sx + mx / Size,
