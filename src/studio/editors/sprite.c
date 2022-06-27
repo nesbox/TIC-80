@@ -23,6 +23,7 @@
 #include "sprite.h"
 #include "ext/history.h"
 
+#include <math.h>
 #include <ctype.h>
 
 #define CANVAS_SIZE (64)
@@ -165,6 +166,61 @@ static void processPickerCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 s
     }
 }
 
+static void paintPoint(Sprite* sprite, u8 color, s32 x, s32 y)
+{
+    s32 pixels = sprite->brushSize;
+
+    for(s32 j = 0; j < pixels; j++)
+        for(s32 i = 0; i < pixels; i++)
+            tic_tilesheet_setpix(&sprite->sheet, x+i, y+j, color);
+}
+
+static void paintLine(Sprite* sprite, u8 color, s32 x1, s32 y1, s32 x2, s32 y2)
+{
+    float dx = x2 - x1;
+    float dy = y2 - y1;
+
+    // If infinite slope, draw vertical line
+    if (dx == 0)
+    {
+        s32 step = y2 > y1 ? 1 : -1;
+        for (s32 ly = y1; y2 > y1 ? ly <= y2 : ly >= y2; ly += step)
+            paintPoint(sprite, color, x1, ly);
+    }
+    else
+    {
+        float slope = dy / dx;
+        float intercept = y1 - slope * x1;
+
+        // Draw for each point along whichever axis is longer
+        if (fabs(dx) >= fabs(dy))
+        {
+            s32 step = x2 > x1 ? 1 : -1;
+            for (s32 lx = x1; x2 > x1 ? lx <= x2 : lx >= x2; lx += step)
+                paintPoint(sprite, color, lx, slope * lx + intercept);
+        }
+        else
+        {
+            s32 step = y2 > y1 ? 1 : -1;
+            for (s32 ly = y1; y2 > y1 ? ly <= y2 : ly >= y2; ly += step)
+                paintPoint(sprite, color, (ly - intercept) / slope, ly);
+        }
+    }
+}
+
+static s32 toCanvasCoord(s32 Size, s32 brushSize, s32 canvas_x, s32 x)
+{
+    s32 offset = (brushSize - Size) / 2;
+
+    x = (x - canvas_x) - offset;
+    x -= x % Size;
+
+    if (x < 0) x = 0;
+    if (x + brushSize >= CANVAS_SIZE) x = CANVAS_SIZE - brushSize;
+
+    return x;
+}
+
 static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
 {
     tic_mem* tic = sprite->tic;
@@ -175,21 +231,11 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
     {
         setCursor(sprite->studio, tic_cursor_hand);
 
-        s32 mx = tic_api_mouse(tic).x - x;
-        s32 my = tic_api_mouse(tic).y - y;
-
         s32 brushSize = sprite->brushSize*Size;
-        s32 offset = (brushSize - Size) / 2;
-
-        mx -= offset;
-        my -= offset;
-        mx -= mx % Size;
-        my -= my % Size;
-
-        if(mx < 0) mx = 0;
-        if(my < 0) my = 0;
-        if(mx+brushSize >= CANVAS_SIZE) mx = CANVAS_SIZE - brushSize;
-        if(my+brushSize >= CANVAS_SIZE) my = CANVAS_SIZE - brushSize;
+        s32 mx = toCanvasCoord(Size, brushSize, x, tic_api_mouse(tic).x);
+        s32 my = toCanvasCoord(Size, brushSize, y, tic_api_mouse(tic).y);
+        s32 pmx = toCanvasCoord(Size, brushSize, x, sprite->previousMouse.x);
+        s32 pmy = toCanvasCoord(Size, brushSize, y, sprite->previousMouse.y);
 
         SHOW_TOOLTIP(sprite->studio, "[x=%02i y=%02i]", mx / Size, my / Size);
 
@@ -200,15 +246,13 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
 
         if(left || right)
         {
-            sx += mx / Size;
-            sy += my / Size;
             u8 color = left ? sprite->color : sprite->color2;
-            s32 pixels = sprite->brushSize;
-
-            for(s32 j = 0; j < pixels; j++)
-                for(s32 i = 0; i < pixels; i++)
-                    tic_tilesheet_setpix(&sprite->sheet, sx+i, sy+j, color);
-
+            paintLine(sprite, color,
+                sx + pmx / Size,
+                sy + pmy / Size,
+                sx + mx / Size,
+                sy + my / Size
+            );
             history_add(sprite->history);
         }
     }
@@ -1933,6 +1977,7 @@ static void tick(Sprite* sprite)
 {
     tic_mem* tic = sprite->tic;
 
+    if (sprite->tickCounter == 0) sprite->previousMouse = tic_api_mouse(tic);
     processAnim(sprite->anim.movie, sprite);
 
     // process scroll
@@ -2008,6 +2053,7 @@ static void tick(Sprite* sprite)
         drawToolbar(sprite->studio, tic, false);
     }
 
+    sprite->previousMouse = tic_api_mouse(sprite->tic);
     sprite->tickCounter++;
 }
 
