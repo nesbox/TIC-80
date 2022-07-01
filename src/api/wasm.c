@@ -972,12 +972,12 @@ M3Result linkTicAPI(IM3Module module)
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "exit",    "v()",           &wasmtic_exit)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "fget",    "i(ii)",         &wasmtic_fget)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "fset",    "v(iii)",        &wasmtic_fset)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "font",    "i(*iiiiiii)",   &wasmtic_font)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "font",    "i(*iiiiiiiii)", &wasmtic_font)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "key",     "i(i)",          &wasmtic_key)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "keyp",    "i(iii)",        &wasmtic_keyp)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "line",    "v(ffffi)",      &wasmtic_line)));
     // TODO: needs a lot of help for all the optional arguments
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "map",     "v(iiiiiiiiii)",  &wasmtic_map)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "map",     "v(iiiiiiiiii)", &wasmtic_map)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "memcpy",  "v(iii)",        &wasmtic_memcpy)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "memset",  "v(iii)",        &wasmtic_memset)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "mget",    "i(ii)",         &wasmtic_mget)));
