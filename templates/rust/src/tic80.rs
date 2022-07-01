@@ -49,11 +49,11 @@ pub mod sys {
         pub fn btn(index: i32) -> i32;
         pub fn btnp(index: i32, hold: i32, period: i32) -> bool;
         pub fn clip(x: i32, y: i32, width: i32, height: i32);
-        pub fn cls(color: i8);
-        pub fn circ(x: i32, y: i32, radius: i32, color: i8);
-        pub fn circb(x: i32, y: i32, radius: i32, color: i8);
-        pub fn elli(x: i32, y: i32, a: i32, b: i32, color: i8);
-        pub fn ellib(x: i32, y: i32, a: i32, b: i32, color: i8);
+        pub fn cls(color: u8);
+        pub fn circ(x: i32, y: i32, radius: i32, color: u8);
+        pub fn circb(x: i32, y: i32, radius: i32, color: u8);
+        pub fn elli(x: i32, y: i32, a: i32, b: i32, color: u8);
+        pub fn ellib(x: i32, y: i32, a: i32, b: i32, color: u8);
         pub fn exit();
         pub fn fget(sprite_index: i32, flag: i8) -> bool;
         pub fn fset(sprite_index: i32, flag: i8, value: bool);
@@ -71,7 +71,7 @@ pub mod sys {
         ) -> i32;
         pub fn key(index: i32) -> bool;
         pub fn keyp(index: i32, hold: i32, period: i32) -> bool;
-        pub fn line(x0: f32, y0: f32, x1: f32, y1: f32, color: i8);
+        pub fn line(x0: f32, y0: f32, x1: f32, y1: f32, color: u8);
         // `remap` is not yet implemented by the TIC-80 WASM runtime, so for now its type is a raw i32.
         pub fn map(
             x: i32,
@@ -85,8 +85,9 @@ pub mod sys {
             scale: i8,
             remap: i32,
         );
-        pub fn memcpy(dest: i32, src: i32, length: i32);
-        pub fn memset(address: i32, value: i32, length: i32);
+        // These clash with rustc builtins, so they are reimplemented in the wrappers.
+        // pub fn memcpy(dest: i32, src: i32, length: i32);
+        // pub fn memset(address: i32, value: i32, length: i32);
         pub fn mget(x: i32, y: i32) -> i32;
         pub fn mset(x: i32, y: i32, value: i32);
         pub fn mouse(mouse: *mut MouseInput);
@@ -99,16 +100,16 @@ pub mod sys {
             tempo: i32,
             speed: i32,
         );
-        pub fn pix(x: i32, y: i32, color: i8) -> i32;
-        pub fn peek(address: i32, bits: i8) -> i8;
-        pub fn peek4(address: i32) -> i8;
-        pub fn peek2(address: i32) -> i8;
-        pub fn peek1(address: i32) -> i8;
+        pub fn pix(x: i32, y: i32, color: i8) -> u8;
+        pub fn peek(address: i32, bits: u8) -> u8;
+        pub fn peek4(address: i32) -> u8;
+        pub fn peek2(address: i32) -> u8;
+        pub fn peek1(address: i32) -> u8;
         pub fn pmem(address: i32, value: i64) -> i32;
-        pub fn poke(address: i32, value: i8, bits: i8);
-        pub fn poke4(address: i32, value: i8);
-        pub fn poke2(address: i32, value: i8);
-        pub fn poke1(address: i32, value: i8);
+        pub fn poke(address: i32, value: u8, bits: u8);
+        pub fn poke4(address: i32, value: u8);
+        pub fn poke2(address: i32, value: u8);
+        pub fn poke1(address: i32, value: u8);
         pub fn print(
             text: *const u8,
             x: i32,
@@ -118,8 +119,8 @@ pub mod sys {
             scale: i32,
             alt: bool,
         ) -> i32;
-        pub fn rect(x: i32, y: i32, w: i32, h: i32, color: i8);
-        pub fn rectb(x: i32, y: i32, w: i32, h: i32, color: i8);
+        pub fn rect(x: i32, y: i32, w: i32, h: i32, color: u8);
+        pub fn rectb(x: i32, y: i32, w: i32, h: i32, color: u8);
         pub fn sfx(
             sfx_id: i32,
             note: i32,
@@ -142,12 +143,12 @@ pub mod sys {
             w: i32,
             h: i32,
         );
-        pub fn sync(mask: i32, bank: i8, to_cart: i8);
+        pub fn sync(mask: i32, bank: u8, to_cart: bool);
         pub fn time() -> f32;
         pub fn tstamp() -> u32;
-        pub fn trace(text: *const u8, color: i32);
-        pub fn tri(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, color: i8);
-        pub fn trib(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, color: i8);
+        pub fn trace(text: *const u8, color: u8);
+        pub fn tri(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, color: u8);
+        pub fn trib(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, color: u8);
         pub fn ttri(
             x1: f32,
             y1: f32,
@@ -169,7 +170,7 @@ pub mod sys {
             z3: f32,
             depth: bool,
         );
-        pub fn vbank(bank: i8) -> i8;
+        pub fn vbank(bank: u8) -> u8;
     }
 }
 
@@ -197,9 +198,54 @@ pub fn keyp(index: i32, hold: i32, period: i32) -> bool {
     unsafe { sys::keyp(index, hold, period) }
 }
 
+pub fn mouse() -> MouseInput {
+    let mut input = MouseInput::default();
+    unsafe {
+        sys::mouse(&mut input as *mut _);
+    }
+    input
+}
+
+// Audio
+pub fn music(
+    track: i32,
+    frame: i32,
+    row: i32,
+    repeat: bool,
+    sustain: bool,
+    tempo: i32,
+    speed: i32,
+) {
+    unsafe { sys::music(track, frame, row, repeat, sustain, tempo, speed) }
+}
+
+pub fn sfx(
+    sfx_id: i32,
+    note: i32,
+    octave: i32,
+    duration: i32,
+    channel: i32,
+    volume_left: i32,
+    volume_right: i32,
+    speed: i32,
+) {
+    unsafe {
+        sys::sfx(
+            sfx_id,
+            note,
+            octave,
+            duration,
+            channel,
+            volume_left,
+            volume_right,
+            speed,
+        )
+    }
+}
+
 // Graphics
 
-pub fn cls(color: i8) {
+pub fn cls(color: u8) {
     unsafe { sys::cls(color) }
 }
 
@@ -207,20 +253,126 @@ pub fn clip(x: i32, y: i32, width: i32, height: i32) {
     unsafe { sys::clip(x, y, width, height) }
 }
 
-pub fn circ(x: i32, y: i32, radius: i32, color: i8) {
+pub fn circ(x: i32, y: i32, radius: i32, color: u8) {
     unsafe { sys::circ(x, y, radius, color) }
 }
 
-pub fn circb(x: i32, y: i32, radius: i32, color: i8) {
+pub fn circb(x: i32, y: i32, radius: i32, color: u8) {
     unsafe { sys::circb(x, y, radius, color) }
 }
 
-pub fn elli(x: i32, y: i32, a: i32, b: i32, color: i8) {
+pub fn elli(x: i32, y: i32, a: i32, b: i32, color: u8) {
     unsafe { sys::elli(x, y, a, b, color) }
 }
 
-pub fn ellib(x: i32, y: i32, a: i32, b: i32, color: i8) {
+pub fn ellib(x: i32, y: i32, a: i32, b: i32, color: u8) {
     unsafe { sys::ellib(x, y, a, b, color) }
+}
+
+pub fn line(x0: f32, y0: f32, x1: f32, y1: f32, color: u8) {
+    unsafe { sys::line(x0, y0, x1, y1, color) }
+}
+
+pub fn pix(x: i32, y: i32, color: u8) {
+    unsafe {
+        sys::pix(x, y, color as i8);
+    }
+}
+
+pub fn read_pix(x: i32, y: i32) -> u8 {
+    unsafe { sys::pix(x, y, -1) }
+}
+
+pub fn rect(x: i32, y: i32, w: i32, h: i32, color: u8) {
+    unsafe { sys::rect(x, y, w, h, color) }
+}
+
+pub fn rectb(x: i32, y: i32, w: i32, h: i32, color: u8) {
+    unsafe { sys::rectb(x, y, w, h, color) }
+}
+
+pub fn tri(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, color: u8) {
+    unsafe { sys::tri(x1, y1, x2, y2, x3, y3, color) }
+}
+
+pub fn trib(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, color: u8) {
+    unsafe { sys::trib(x1, y1, x2, y2, x3, y3, color) }
+}
+
+pub enum TextureSource {
+    Tiles,
+    Map,
+    VBank1
+}
+
+pub fn ttri(
+    x1: f32,
+    y1: f32,
+    x2: f32,
+    y2: f32,
+    x3: f32,
+    y3: f32,
+    u1: f32,
+    v1: f32,
+    u2: f32,
+    v2: f32,
+    u3: f32,
+    v3: f32,
+    tex_src: TextureSource,
+    trans_colors: &[u8],
+    z1: f32,
+    z2: f32,
+    z3: f32,
+    depth: bool,
+) {
+    unsafe {
+        sys::ttri(
+            x1,
+            y1,
+            x2,
+            y2,
+            x3,
+            y3,
+            u1,
+            v1,
+            u2,
+            v2,
+            u3,
+            v3,
+            tex_src as i32,
+            trans_colors.as_ptr(),
+            trans_colors.len() as i8,
+            z1,
+            z2,
+            z3,
+            depth,
+        )
+    }
+}
+
+pub fn map(x: i32, y: i32, w: i32, h: i32, sx: i32, sy: i32, trans_colors: &[u8], scale: i8) {
+    unsafe {
+        sys::map(
+            x,
+            y,
+            w,
+            h,
+            sx,
+            sy,
+            trans_colors.as_ptr(),
+            trans_colors.len() as i8,
+            scale,
+            0,
+        )
+    }
+}
+
+pub fn mget(x: i32, y: i32) -> i32 {
+    unsafe { sys::mget(x, y) }
+}
+
+pub fn mset(x: i32, y: i32, value: i32) {
+    unsafe { sys::mset(x, y, value) }
 }
 
 pub fn spr(
@@ -335,7 +487,92 @@ macro_rules! font {
     };
 }
 
+pub fn trace_alloc(text: impl AsRef<str>, color: u8) {
+    let text = CString::new(text.as_ref()).unwrap();
+    unsafe { sys::trace(text.as_ptr() as *const u8, color) }
+}
+
+#[macro_export]
+macro_rules! trace {
+    ($text: literal, $color: expr) => {
+        unsafe { crate::tic80::sys::trace(concat!($text, "\0").as_ptr(), $color) }
+    };
+    ($text: expr, $color: expr) => {
+        crate::tic80::trace_alloc($text, $color);
+    };
+}
+
+// Memory Access
+// These functions (except pmem) are unsafe, because they can be used to access
+// any of the WASM linear memory being used by the program.
+
+pub unsafe fn memcpy(dest: i32, src: i32, length: usize) {
+    core::ptr::copy(src as *const u8, dest as *mut u8, length)
+}
+
+pub unsafe fn memset(address: i32, value: u8, length: usize) {
+    core::ptr::write_bytes(address as *mut u8, value, length)
+}
+
+pub unsafe fn peek(address: i32) -> u8 {
+    sys::peek(address, 8)
+}
+
+pub unsafe fn peek4(address: i32) -> u8 {
+    sys::peek4(address)
+}
+
+pub unsafe fn peek2(address: i32) -> u8 {
+    sys::peek2(address)
+}
+
+pub unsafe fn peek1(address: i32) -> u8 {
+    sys::peek1(address)
+}
+
+pub unsafe fn poke(address: i32, value: u8) {
+    sys::poke(address, value, 8);
+}
+
+pub unsafe fn poke4(address: i32, value: u8) {
+    sys::poke4(address, value);
+}
+
+pub unsafe fn poke2(address: i32, value: u8) {
+    sys::poke2(address, value);
+}
+
+pub unsafe fn poke1(address: i32, value: u8) {
+    sys::poke1(address, value);
+}
+
+pub unsafe fn sync(mask: i32, bank: u8, to_cart: bool) {
+    sys::sync(mask, bank, to_cart);
+}
+
+pub unsafe fn vbank(bank: u8) {
+    sys::vbank(bank);
+}
+
+pub fn pmem_set(address: i32, value: i32) {
+    unsafe {
+        sys::pmem(address, value as i64);
+    }
+}
+
+pub fn pmem_get(address: i32) -> i32 {
+    unsafe { sys::pmem(address, -1) }
+}
+
 // System Functions
 pub fn exit() {
     unsafe { sys::exit() }
+}
+
+pub fn time() -> f32 {
+    unsafe { sys::time() }
+}
+
+pub fn tstamp() -> u32 {
+    unsafe { sys::tstamp() }
 }
