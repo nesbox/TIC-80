@@ -63,7 +63,7 @@ void exit();
 void elli(int x, int y, int a, int b, int color);
 void ellib(int x, int y, int a, int b, int color);
 bool fget(int id, ubyte flag);
-int font(char* text, int x, int y, ubyte transcolors, int colorcount, int width, int height, bool fixed, int scale);
+int font(char* text, int x, int y, ubyte transcolors, int colorcount, int width, int height, bool fixed, int scale, bool alt);
 bool fset(int id, ubyte flag, bool value);
 bool key(int keycode);
 bool keyp(int keycode, int hold, int period);
