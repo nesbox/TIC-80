@@ -27,11 +27,7 @@ unsafe impl GlobalAlloc for TicAlloc {
                 let heap_size = 0x40000 - (heap_ptr as usize);
 
                 let fast_param = FastAllocParam::new(fast_heap_ptr, FAST_HEAP_SIZE);
-                let buddy_param = BuddyAllocParam::new(
-                    heap_ptr,
-                    heap_size,
-                    LEAF_SIZE,
-                );
+                let buddy_param = BuddyAllocParam::new(heap_ptr, heap_size, LEAF_SIZE);
                 Some(NonThreadsafeAlloc::new(fast_param, buddy_param))
             };
         }

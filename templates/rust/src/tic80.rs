@@ -69,8 +69,8 @@ pub mod sys {
             scale: i8,
             alt: bool,
         ) -> i32;
-        pub fn key(index: i32) -> i32;
-        pub fn keyp(index: i32, hold: i32, period: i32) -> i32;
+        pub fn key(index: i32) -> bool;
+        pub fn keyp(index: i32, hold: i32, period: i32) -> bool;
         pub fn line(x0: f32, y0: f32, x1: f32, y1: f32, color: i8);
         // `remap` is not yet implemented by the TIC-80 WASM runtime, so for now its type is a raw i32.
         pub fn map(
@@ -189,10 +189,38 @@ pub fn btnp(index: ButtonIndex, hold: i32, period: i32) -> bool {
     unsafe { sys::btnp(index, hold, period) }
 }
 
+pub fn key(index: i32) -> bool {
+    unsafe { sys::key(index) }
+}
+
+pub fn keyp(index: i32, hold: i32, period: i32) -> bool {
+    unsafe { sys::keyp(index, hold, period) }
+}
+
 // Graphics
 
 pub fn cls(color: i8) {
     unsafe { sys::cls(color) }
+}
+
+pub fn clip(x: i32, y: i32, width: i32, height: i32) {
+    unsafe { sys::clip(x, y, width, height) }
+}
+
+pub fn circ(x: i32, y: i32, radius: i32, color: i8) {
+    unsafe { sys::circ(x, y, radius, color) }
+}
+
+pub fn circb(x: i32, y: i32, radius: i32, color: i8) {
+    unsafe { sys::circb(x, y, radius, color) }
+}
+
+pub fn elli(x: i32, y: i32, a: i32, b: i32, color: i8) {
+    unsafe { sys::elli(x, y, a, b, color) }
+}
+
+pub fn ellib(x: i32, y: i32, a: i32, b: i32, color: i8) {
+    unsafe { sys::ellib(x, y, a, b, color) }
 }
 
 pub fn spr(
@@ -222,7 +250,18 @@ pub fn spr(
     }
 }
 
-// Print any string, using an extra allocation to add the null terminator
+pub fn fget(sprite_index: i32, flag: i8) -> bool {
+    unsafe { sys::fget(sprite_index, flag) }
+}
+
+pub fn fset(sprite_index: i32, flag: i8, value: bool) {
+    unsafe { sys::fset(sprite_index, flag, value) }
+}
+
+// Text Output
+// The *_alloc functions can handle any AsRef<str> type, but require the overhead of allocation.
+// The macros will avoid the allocation if passed a string literal by adding the null terminator at compile time.
+
 pub fn print_alloc(
     text: impl AsRef<str>,
     x: i32,
@@ -236,15 +275,67 @@ pub fn print_alloc(
     unsafe { sys::print(text.as_ptr() as *const u8, x, y, color, fixed, scale, alt) }
 }
 
-// Print a string, avoiding allocation if a literal is passed.
-// NOTE: "use tic80::*" causes this to shadow std::print, but that isn't useful here anyway.
+// "use tic80::*" causes this to shadow std::print, but that isn't useful here anyway.
 #[macro_export]
 macro_rules! print {
-    ($text: literal, $($arg: expr), *) => {
-        unsafe { crate::tic80::sys::print(concat!($text, "\0").as_ptr(), $($arg), *) }
+    ($text: literal, $($args: expr), *) => {
+        unsafe { crate::tic80::sys::print(concat!($text, "\0").as_ptr(), $($args), *) }
     };
     ($text: expr, $($arg: expr), *) => {
         crate::tic80::print_alloc($text, $($arg), *);
     };
 }
 
+pub fn font_alloc(
+    text: impl AsRef<str>,
+    x: i32,
+    y: i32,
+    trans_colors: &[u8],
+    char_width: i8,
+    char_height: i8,
+    fixed: bool,
+    scale: i8,
+    alt: bool,
+) -> i32 {
+    let text = CString::new(text.as_ref()).unwrap();
+    unsafe {
+        sys::font(
+            text.as_ptr() as *const u8,
+            x,
+            y,
+            trans_colors.as_ptr(),
+            trans_colors.len() as i8,
+            char_width,
+            char_height,
+            fixed,
+            scale,
+            alt,
+        )
+    }
+}
+
+// Print a string, avoiding allocation if a literal is passed.
+// NOTE: "use tic80::*" causes this to shadow std::print, but that isn't useful here anyway.
+#[macro_export]
+macro_rules! font {
+    ($text: literal, $x: expr, $y: expr, $trans_colors: expr, $($args: expr), *) => {
+        unsafe {
+            crate::tic80::sys::font(
+                concat!($text, "\0").as_ptr(),
+                $x,
+                $y,
+                $trans_colors.as_ptr(),
+                ($trans_colors as &[u8]).len() as i8,
+                $($args), *
+            )
+        }
+    };
+    ($text: expr, $($arg: expr), *) => {
+        crate::tic80::font_alloc($text, $($arg), *);
+    };
+}
+
+// System Functions
+pub fn exit() {
+    unsafe { sys::exit() }
+}
