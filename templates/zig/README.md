@@ -1,6 +1,6 @@
 # ZIG Starter Project Template
 
-This is a ZIG / TIC-80 starter template.  To build it:
+This is a ZIG / TIC-80 starter template.  To build it, ensure you have a recent development release of Zig 0.10, then run:
 
 ```
 zig build
