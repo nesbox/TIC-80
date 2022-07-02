@@ -111,7 +111,7 @@ pub const raw = struct {
     pub extern fn elli(x: i32, y: i32, a: i32, b: i32, color: i32) void;
     pub extern fn ellib(x: i32, y: i32, a: i32, b: i32, color: i32) void;
     pub extern fn fget(id: i32, flag: u8) bool;
-    pub extern fn font(text: [*:0]u8, x: u32, y: i32, trans_colors: ?[*]const u8, color_count: i32, char_width: i32, char_height: i32, fixed: bool, scale: i32) i32;
+    pub extern fn font(text: [*:0]u8, x: u32, y: i32, trans_colors: ?[*]const u8, color_count: i32, char_width: i32, char_height: i32, fixed: bool, scale: i32, alt: bool) i32;
     pub extern fn fset(id: i32, flag: u8, value: bool) bool;
     pub extern fn key(keycode: i32) bool;
     pub extern fn keyp(keycode: i32, hold: i32, period: i32 ) bool;
@@ -297,7 +297,8 @@ const FontArgs = struct {
     char_width: u8, 
     char_height: u8,
     fixed: bool = false,
-    scale: u8 = 1
+    scale: u8 = 1,
+    alt: bool = false
 };
 
 fn sliceToZString(text: []const u8, buff: [*:0]u8, maxLen: u16) void {
@@ -323,7 +324,7 @@ pub fn font(text: []const u8, x: u32, y: i32, args: FontArgs) i32 {
     const colors = args.transparent.ptr;
     var buff : [MAX_STRING_SIZE:0]u8 = undefined;
     sliceToZString(text, &buff, MAX_STRING_SIZE);
-    return raw.font(&buff, x, y, colors, color_count, args.char_width, args.char_height, args.fixed, args.scale);
+    return raw.font(&buff, x, y, colors, color_count, args.char_width, args.char_height, args.fixed, args.scale, args.alt);
 }
 
 
