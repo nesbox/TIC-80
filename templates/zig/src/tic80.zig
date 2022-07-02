@@ -210,7 +210,7 @@ const MapArgs = struct {
     h: i32 = 17,
     sx: i32 = 0,
     sy: i32 = 0,
-    transparent: []const u8 = .{},
+    transparent: []const u8 = &.{},
     scale: u8 = 1,
     remap: i32 = -1, // TODO
 };
@@ -249,7 +249,7 @@ pub const Rotate = enum(u2) {
 const SpriteArgs = struct {
     w: i32 = 1,
     h: i32 = 1,
-    transparent: []const u8 = .{},
+    transparent: []const u8 = &.{},
     scale: u8 = 1,
     flip: Flip = Flip.no,
     rotate: Rotate = Rotate.no,
@@ -269,7 +269,7 @@ pub const trib = raw.trib;
 
 const TextriArgs = struct {
     texture_source : TextureSource = TextureSource.TILES,
-    transparent: []const u8 = .{},
+    transparent: []const u8 = &.{},
     z1 : f32 = 0,
     z2 : f32 = 0,
     z3 : f32 = 0,
@@ -293,7 +293,7 @@ const PrintArgs = struct {
 };
 
 const FontArgs = struct {
-    transparent: []const u8 = .{},
+    transparent: []const u8 = &.{},
     char_width: u8, 
     char_height: u8,
     fixed: bool = false,
