@@ -4,7 +4,12 @@
 This template currently produces unoptimised builds. This is required due to TIC-80's memory layout placing data at the address 0, which Rust does not understand.
 If you aren't using direct framebuffer access, you should be able to use another level by changing the  `Cargo.toml`.
 
-This is a Rust / TIC-80 starter template. To build it:
+This is a Rust / TIC-80 starter template. Before using it, make sure you have installed the `wasm32-unknown-unknown` target using rustup:
+```
+rustup target add wasm32-unknown-unknown
+```
+
+Then, to build a cart.wasm file, run:
 
 ```
 cargo build --release
