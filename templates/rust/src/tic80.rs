@@ -31,7 +31,7 @@ pub const SPRITE_FLAGS: *mut [u8; 512] = 0x14404 as *mut [u8; 512];
 pub const SYSTEM_FONT: *mut [u8; 2048] = 0x14604 as *mut [u8; 2048];
 
 // The functions in the sys module follow the signatures as given in wasm.c.
-// The wrapper functions sometimes use more logical signatures.
+// The wrapper functions are designed to be similar to the usual TIC-80 api.
 pub mod sys {
     #[derive(Default)]
     #[repr(C)]
@@ -66,7 +66,7 @@ pub mod sys {
             char_width: i8,
             char_height: i8,
             fixed: bool,
-            scale: i8,
+            scale: i32,
             alt: bool,
         ) -> i32;
         pub fn key(index: i32) -> bool;
@@ -176,17 +176,15 @@ pub mod sys {
 
 // Input
 
-type ButtonIndex = i32;
-
-pub fn btn(index: ButtonIndex) -> bool {
+pub fn btn(index: i32) -> bool {
     unsafe { sys::btn(index) != 0 }
 }
 
-pub fn btn_full() -> u32 {
+pub fn btn_bits() -> u32 {
     unsafe { sys::btn(-1) as u32 }
 }
 
-pub fn btnp(index: ButtonIndex, hold: i32, period: i32) -> bool {
+pub fn btnp(index: i32, hold: i32, period: i32) -> bool {
     unsafe { sys::btnp(index, hold, period) }
 }
 
@@ -207,38 +205,78 @@ pub fn mouse() -> MouseInput {
 }
 
 // Audio
-pub fn music(
-    track: i32,
-    frame: i32,
-    row: i32,
-    repeat: bool,
-    sustain: bool,
-    tempo: i32,
-    speed: i32,
-) {
-    unsafe { sys::music(track, frame, row, repeat, sustain, tempo, speed) }
+
+pub struct MusicOptions {
+    pub frame: i32,
+    pub row: i32,
+    pub repeat: bool,
+    pub sustain: bool,
+    pub tempo: i32,
+    pub speed: i32,
 }
 
-pub fn sfx(
-    sfx_id: i32,
-    note: i32,
-    octave: i32,
-    duration: i32,
-    channel: i32,
-    volume_left: i32,
-    volume_right: i32,
-    speed: i32,
-) {
+impl Default for MusicOptions {
+    fn default() -> Self {
+        Self {
+            frame: -1,
+            row: -1,
+            repeat: true,
+            sustain: false,
+            tempo: -1,
+            speed: -1,
+        }
+    }
+}
+
+pub fn music(track: i32, opts: MusicOptions) {
+    unsafe {
+        sys::music(
+            track,
+            opts.frame,
+            opts.row,
+            opts.repeat,
+            opts.sustain,
+            opts.tempo,
+            opts.speed,
+        )
+    }
+}
+
+pub struct SfxOptions {
+    pub note: i32,
+    pub octave: i32,
+    pub duration: i32,
+    pub channel: i32,
+    pub volume_left: i32,
+    pub volume_right: i32,
+    pub speed: i32,
+}
+
+impl Default for SfxOptions {
+    fn default() -> Self {
+        Self {
+            note: -1,
+            octave: -1,
+            duration: -1,
+            channel: 0,
+            volume_left: 15,
+            volume_right: 15,
+            speed: 0,
+        }
+    }
+}
+
+pub fn sfx(sfx_id: i32, opts: SfxOptions) {
     unsafe {
         sys::sfx(
             sfx_id,
-            note,
-            octave,
-            duration,
-            channel,
-            volume_left,
-            volume_right,
-            speed,
+            opts.note,
+            opts.octave,
+            opts.duration,
+            opts.channel,
+            opts.volume_left,
+            opts.volume_right,
+            opts.speed,
         )
     }
 }
@@ -279,7 +317,7 @@ pub fn pix(x: i32, y: i32, color: u8) {
     }
 }
 
-pub fn read_pix(x: i32, y: i32) -> u8 {
+pub fn get_pix(x: i32, y: i32) -> u8 {
     unsafe { sys::pix(x, y, -1) }
 }
 
@@ -302,7 +340,29 @@ pub fn trib(x1: f32, y1: f32, x2: f32, y2: f32, x3: f32, y3: f32, color: u8) {
 pub enum TextureSource {
     Tiles,
     Map,
-    VBank1
+    VBank1,
+}
+
+pub struct TTriOptions<'a> {
+    pub texture_src: TextureSource,
+    pub transparent: &'a [u8],
+    pub z1: f32,
+    pub z2: f32,
+    pub z3: f32,
+    pub depth: bool,
+}
+
+impl Default for TTriOptions<'_> {
+    fn default() -> Self {
+        Self {
+            texture_src: TextureSource::Tiles,
+            transparent: &[],
+            z1: 0.0,
+            z2: 0.0,
+            z3: 0.0,
+            depth: false,
+        }
+    }
 }
 
 pub fn ttri(
@@ -318,12 +378,7 @@ pub fn ttri(
     v2: f32,
     u3: f32,
     v3: f32,
-    tex_src: TextureSource,
-    trans_colors: &[u8],
-    z1: f32,
-    z2: f32,
-    z3: f32,
-    depth: bool,
+    opts: TTriOptions,
 ) {
     unsafe {
         sys::ttri(
@@ -339,29 +394,55 @@ pub fn ttri(
             v2,
             u3,
             v3,
-            tex_src as i32,
-            trans_colors.as_ptr(),
-            trans_colors.len() as i8,
-            z1,
-            z2,
-            z3,
-            depth,
+            opts.texture_src as i32,
+            opts.transparent.as_ptr(),
+            opts.transparent.len() as i8,
+            opts.z1,
+            opts.z2,
+            opts.z3,
+            opts.depth,
         )
     }
 }
 
-pub fn map(x: i32, y: i32, w: i32, h: i32, sx: i32, sy: i32, trans_colors: &[u8], scale: i8) {
+pub struct MapOptions<'a> {
+    pub x: i32,
+    pub y: i32,
+    pub w: i32,
+    pub h: i32,
+    pub sx: i32,
+    pub sy: i32,
+    pub transparent: &'a [u8],
+    pub scale: i8,
+}
+
+impl Default for MapOptions<'_> {
+    fn default() -> Self {
+        Self {
+            x: 0,
+            y: 0,
+            w: 30,
+            h: 17,
+            sx: 0,
+            sy: 0,
+            transparent: &[],
+            scale: 1,
+        }
+    }
+}
+
+pub fn map(opts: MapOptions) {
     unsafe {
         sys::map(
-            x,
-            y,
-            w,
-            h,
-            sx,
-            sy,
-            trans_colors.as_ptr(),
-            trans_colors.len() as i8,
-            scale,
+            opts.x,
+            opts.y,
+            opts.w,
+            opts.h,
+            opts.sx,
+            opts.sy,
+            opts.transparent.as_ptr(),
+            opts.transparent.len() as i8,
+            opts.scale,
             0,
         )
     }
@@ -375,29 +456,55 @@ pub fn mset(x: i32, y: i32, value: i32) {
     unsafe { sys::mset(x, y, value) }
 }
 
-pub fn spr(
-    id: i32,
-    x: i32,
-    y: i32,
-    trans_colors: &[u8],
-    scale: i32,
-    flip: i32,
-    rotate: i32,
-    w: i32,
-    h: i32,
-) {
+pub enum Flip {
+    None,
+    Horizontal,
+    Vertical,
+    Both,
+}
+
+pub enum Rotate {
+    None,
+    By90,
+    By180,
+    By270,
+}
+
+pub struct SpriteOptions<'a> {
+    pub transparent: &'a [u8],
+    pub scale: i32,
+    pub flip: Flip,
+    pub rotate: Rotate,
+    pub w: i32,
+    pub h: i32,
+}
+
+impl Default for SpriteOptions<'_> {
+    fn default() -> Self {
+        Self {
+            transparent: &[],
+            scale: 1,
+            flip: Flip::None,
+            rotate: Rotate::None,
+            w: 1,
+            h: 1,
+        }
+    }
+}
+
+pub fn spr(id: i32, x: i32, y: i32, opts: SpriteOptions) {
     unsafe {
         sys::spr(
             id,
             x,
             y,
-            trans_colors.as_ptr(),
-            trans_colors.len() as i8,
-            scale,
-            flip,
-            rotate,
-            w,
-            h,
+            opts.transparent.as_ptr(),
+            opts.transparent.len() as i8,
+            opts.scale,
+            opts.flip as i32,
+            opts.rotate as i32,
+            opts.w,
+            opts.h,
         )
     }
 }
@@ -411,57 +518,121 @@ pub fn fset(sprite_index: i32, flag: i8, value: bool) {
 }
 
 // Text Output
+// The *_raw functions require a null terminated string reference.
 // The *_alloc functions can handle any AsRef<str> type, but require the overhead of allocation.
 // The macros will avoid the allocation if passed a string literal by adding the null terminator at compile time.
 
-pub fn print_alloc(
-    text: impl AsRef<str>,
-    x: i32,
-    y: i32,
+pub struct PrintOptions {
     color: i32,
     fixed: bool,
     scale: i32,
-    alt: bool,
-) -> i32 {
+    small_font: bool,
+}
+
+impl Default for PrintOptions {
+    fn default() -> Self {
+        Self {
+            color: 15,
+            fixed: false,
+            scale: 1,
+            small_font: false,
+        }
+    }
+}
+
+pub fn print_raw(text: &str, x: i32, y: i32, opts: PrintOptions) -> i32 {
+    unsafe {
+        sys::print(
+            text.as_ptr(),
+            x,
+            y,
+            opts.color,
+            opts.fixed,
+            opts.scale,
+            opts.small_font,
+        )
+    }
+}
+
+pub fn print_alloc(text: impl AsRef<str>, x: i32, y: i32, opts: PrintOptions) -> i32 {
     let text = CString::new(text.as_ref()).unwrap();
-    unsafe { sys::print(text.as_ptr() as *const u8, x, y, color, fixed, scale, alt) }
+    unsafe {
+        sys::print(
+            text.as_ptr() as *const u8,
+            x,
+            y,
+            opts.color,
+            opts.fixed,
+            opts.scale,
+            opts.small_font,
+        )
+    }
 }
 
 // "use tic80::*" causes this to shadow std::print, but that isn't useful here anyway.
 #[macro_export]
 macro_rules! print {
     ($text: literal, $($args: expr), *) => {
-        unsafe { crate::tic80::sys::print(concat!($text, "\0").as_ptr(), $($args), *) }
+        $crate::tic80::print_raw($text, $($args), *);
     };
-    ($text: expr, $($arg: expr), *) => {
-        crate::tic80::print_alloc($text, $($arg), *);
+    ($text: expr, $($args: expr), *) => {
+        $crate::tic80::print_alloc($text, $($args), *);
     };
 }
 
-pub fn font_alloc(
-    text: impl AsRef<str>,
-    x: i32,
-    y: i32,
-    trans_colors: &[u8],
+pub struct FontOptions<'a> {
+    transparent: &'a [u8],
     char_width: i8,
     char_height: i8,
     fixed: bool,
-    scale: i8,
-    alt: bool,
-) -> i32 {
+    scale: i32,
+    alt_font: bool,
+}
+
+impl Default for FontOptions<'_> {
+    fn default() -> Self {
+        Self {
+            transparent: &[],
+            char_width: 8,
+            char_height: 8,
+            fixed: false,
+            scale: 1,
+            alt_font: false,
+        }
+    }
+}
+
+pub fn font_raw(text: &str, x: i32, y: i32, opts: FontOptions) -> i32 {
+    unsafe {
+        sys::font(
+            text.as_ptr(),
+            x,
+            y,
+            opts.transparent.as_ptr(),
+            opts.transparent.len() as i8,
+            opts.char_width,
+            opts.char_height,
+            opts.fixed,
+            opts.scale,
+            opts.alt_font,
+        )
+    }
+}
+
+pub fn font_alloc(text: impl AsRef<str>, x: i32, y: i32, opts: FontOptions) -> i32 {
     let text = CString::new(text.as_ref()).unwrap();
     unsafe {
         sys::font(
             text.as_ptr() as *const u8,
             x,
             y,
-            trans_colors.as_ptr(),
-            trans_colors.len() as i8,
-            char_width,
-            char_height,
-            fixed,
-            scale,
-            alt,
+            opts.transparent.as_ptr(),
+            opts.transparent.len() as i8,
+            opts.char_width,
+            opts.char_height,
+            opts.fixed,
+            opts.scale,
+            opts.alt_font,
         )
     }
 }
@@ -470,20 +641,11 @@ pub fn font_alloc(
 // NOTE: "use tic80::*" causes this to shadow std::print, but that isn't useful here anyway.
 #[macro_export]
 macro_rules! font {
-    ($text: literal, $x: expr, $y: expr, $trans_colors: expr, $($args: expr), *) => {
-        unsafe {
-            crate::tic80::sys::font(
-                concat!($text, "\0").as_ptr(),
-                $x,
-                $y,
-                $trans_colors.as_ptr(),
-                ($trans_colors as &[u8]).len() as i8,
-                $($args), *
-            )
-        }
+    ($text: literal, $($args: expr), *) => {
+        $crate::tic80::font_raw($text, $($args), *);
     };
-    ($text: expr, $($arg: expr), *) => {
-        crate::tic80::font_alloc($text, $($arg), *);
+    ($text: expr, $($args: expr), *) => {
+        $crate::tic80::font_alloc($text, $($args), *);
     };
 }
 

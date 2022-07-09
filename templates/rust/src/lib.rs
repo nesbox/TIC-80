@@ -24,10 +24,21 @@ pub fn tic() {
 
     cls(13);
     unsafe {
-        spr(1 + T % 60 / 30 * 2, X, Y, &[14], 3, 0, 0, 2, 2);
+        spr(
+            1 + T % 60 / 30 * 2,
+            X,
+            Y,
+            SpriteOptions {
+                w: 2,
+                h: 2,
+                transparent: &[14],
+                scale: 3,
+                ..Default::default()
+            },
+        );
     }
-    print!("HELLO WORLD!", 84, 84, 15, false, 1, false);
-    
+    print!("HELLO WORLD!", 84, 84, PrintOptions::default());
+
     unsafe {
         T += 1;
     }
