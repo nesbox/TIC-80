@@ -117,12 +117,6 @@ void line(float x0, float y0, float x1, float y1, int8_t color);
 WASM_IMPORT("map")
 void map(int32_t x, int32_t y, int32_t w, int32_t h, int32_t sx, int32_t sy, uint32_t* transcolors, int32_t colorcount, int32_t scale, int32_t remap);
 
-WASM_IMPORT("memcpy")
-void memcpy_tic(uint32_t copyto, uint32_t copyfrom, uint32_t length);
-
-WASM_IMPORT("memset")
-void memset_tic(uint32_t addr, uint8_t value, uint32_t length);
-
 WASM_IMPORT("mget")
 int32_t mget(int32_t x, int32_t y);
 
