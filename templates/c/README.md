@@ -47,3 +47,5 @@ You can then run your cartridge as follows:
 
 The script ```buildcart.sh``` does the above steps as a convenience.
 
+## Additional Notes
+The TIC functions that provide standard library features are not added here. You should use the `memcpy` and `memset` functions provided by the C standard library instead.
