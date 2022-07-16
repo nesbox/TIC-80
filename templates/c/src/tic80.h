@@ -6,6 +6,111 @@
 #define WASM_EXPORT(name) __attribute__((export_name(name)))
 #define WASM_IMPORT(name) __attribute__((import_name(name)))
 
+enum KEYCODES {
+    KEY_NULL,
+    KEY_A,
+    KEY_B,
+    KEY_C,
+    KEY_D,
+    KEY_E,
+    KEY_F,
+    KEY_G,
+    KEY_H,
+    KEY_I,
+    KEY_J,
+    KEY_K,
+    KEY_L,
+    KEY_M,
+    KEY_N,
+    KEY_O,
+    KEY_P,
+    KEY_Q,
+    KEY_R,
+    KEY_S,
+    KEY_T,
+    KEY_U,
+    KEY_V,
+    KEY_W,
+    KEY_X,
+    KEY_Y,
+    KEY_Z,
+    KEY_0,
+    KEY_1,
+    KEY_2,
+    KEY_3,
+    KEY_4,
+    KEY_5,
+    KEY_6,
+    KEY_7,
+    KEY_8,
+    KEY_9,
+    KEY_MINUS,
+	KEY_EQUALS,
+	KEY_LEFTBRACKET,
+	KEY_RIGHTBRACKET,
+	KEY_BACKSLASH,
+	KEY_SEMICOLON,
+	KEY_APOSTROPHE,
+	KEY_GRAVE,
+	KEY_COMMA,
+	KEY_PERIOD,
+	KEY_SLASH,
+	KEY_SPACE,
+	KEY_TAB,
+	KEY_RETURN,
+	KEY_BACKSPACE,
+	KEY_DELETE,
+	KEY_INSERT,
+	KEY_PAGEUP,
+	KEY_PAGEDOWN,
+	KEY_HOME,
+	KEY_END,
+	KEY_UP,
+	KEY_DOWN,
+	KEY_LEFT,
+	KEY_RIGHT,
+	KEY_CAPSLOCK,
+	KEY_CTRL,
+	KEY_SHIFT,
+	KEY_ALT
+};
+
+enum BUTTON_CODES
+{
+    BUTTON_CODE_P1_UP,
+    BUTTON_CODE_P1_DOWN,
+    BUTTON_CODE_P1_LEFT,
+    BUTTON_CODE_P1_RIGHT,
+    BUTTON_CODE_P1_A,
+    BUTTON_CODE_P1_B,
+    BUTTON_CODE_P1_X,
+    BUTTON_CODE_P1_Y,
+    BUTTON_CODE_P2_UP,
+    BUTTON_CODE_P2_DOWN,
+    BUTTON_CODE_P2_LEFT,
+    BUTTON_CODE_P2_RIGHT,
+    BUTTON_CODE_P2_A,
+    BUTTON_CODE_P2_B,
+    BUTTON_CODE_P2_X,
+    BUTTON_CODE_P2_Y,
+    BUTTON_CODE_P3_UP,
+    BUTTON_CODE_P3_DOWN,
+    BUTTON_CODE_P3_LEFT,
+    BUTTON_CODE_P3_RIGHT,
+    BUTTON_CODE_P3_A,
+    BUTTON_CODE_P3_B,
+    BUTTON_CODE_P3_X,
+    BUTTON_CODE_P3_Y,
+    BUTTON_CODE_P4_UP,
+    BUTTON_CODE_P4_DOWN,
+    BUTTON_CODE_P4_LEFT,
+    BUTTON_CODE_P4_RIGHT,
+    BUTTON_CODE_P4_A,
+    BUTTON_CODE_P4_B,
+    BUTTON_CODE_P4_X,
+    BUTTON_CODE_P4_Y
+};
+
 typedef struct {
     uint8_t SCREEN[16320];
     uint8_t PALETTE[48];
@@ -24,8 +129,9 @@ typedef struct {
     bool left; bool middle; bool right;
 } MouseData;
 
-const int32_t WIDTH = 240;
-const int32_t HEIGHT = 136;
+#define TILE_SIZE 8
+#define WIDTH 240
+#define HEIGHT 136
 
 // Constants.
 const uint32_t TILES_SIZE = 8192;
@@ -124,7 +230,7 @@ WASM_IMPORT("mouse")
 void mouse(MouseData* data);
 
 WASM_IMPORT("mset")
-void mset(int32_t x, int32_t y, bool value);
+void mset(int32_t x, int32_t y, int32_t value);
 
 WASM_IMPORT("music")
 void music(int32_t track, int32_t frame, int32_t row, bool loop, bool sustain, int32_t tempo, int32_t speed);
