@@ -404,7 +404,7 @@ sapp_desc sokol_main(s32 argc, char* argv[])
     platform.audio.desc.num_channels = TIC80_SAMPLE_CHANNELS;
     saudio_setup(&platform.audio.desc);
 
-    platform.studio = studio_create(argc, argv, saudio_sample_rate(), TIC80_PIXEL_COLOR_RGBA8888, "./");
+    platform.studio = studio_create(argc, argv, saudio_sample_rate(), TIC80_PIXEL_COLOR_RGBA8888, "./", INT32_MAX);
 
     if(studio_config(platform.studio)->cli)
     {
