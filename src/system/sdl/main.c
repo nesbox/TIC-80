@@ -1046,6 +1046,10 @@ static void handleKeydown(SDL_Keycode keycode, bool down, bool* state)
 #if defined(__TIC_ANDROID__)
     if(keycode == SDLK_AC_BACK)
         state[tic_key_escape] = down;
+#elif defined(__TIC_MACOSX__)
+    // SDLK_KP_ENTER is the equivalent of fn+enter on a Macbook keyboard
+    if(keycode == SDLK_KP_ENTER)
+        state[tic_key_insert] = down;
 #endif
 }
 
