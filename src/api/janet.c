@@ -28,8 +28,6 @@
 
 #include <janet.h>
 
-#if defined(TIC_BUILD_WITH_JANET)
-
 static inline tic_core* getJanetMachine(void);
 
 static Janet janet_print(int32_t argc, Janet* argv);
@@ -92,7 +90,8 @@ static const tic_outline_item* getJanetOutline(const char* code, s32* size);
 
 /* ***************** */
 
-static const JanetReg janet_c_functions[] = {
+static const JanetReg janet_c_functions[] =
+{
     {"print", janet_print, NULL},
     {"cls", janet_cls, NULL},
     {"pix", janet_pix, NULL},
@@ -142,6 +141,23 @@ static const JanetReg janet_c_functions[] = {
     {NULL, NULL, NULL}
 };
 
+static const char* const JanetKeywords[] =
+{
+    "break",
+    "def",
+    "do",
+    "fn",
+    "if",
+    "quasiquote",
+    "quote",
+    "set",
+    "splice",
+    "unquote",
+    "upscope",
+    "var",
+    "while",
+};
+
 static JanetTable* env = NULL;
 static tic_core* CurrentMachine = NULL;
 
@@ -176,21 +192,20 @@ static Janet janet_pix(int32_t argc, Janet* argv)
 {
     janet_arity(argc, 2, 3);
     bool get;
+    int32_t color = 0;
 
-    switch (argc) {
-    case 2:
+    int32_t x = janet_getinteger(argv, 0);
+    int32_t y = janet_getinteger(argv, 1);
+
+    if (argc == 2) {
         get = true;
-        break;
-    case 3:
+    } else {
+        color = janet_getinteger(argv, 2);
         get = false;
-        break;
-    default:
-        ; // NOTREACHED
     }
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    int32_t result = tic_api_pix(memory, x, y, color, get);
-    return janet_wrap_integer(result);
+    return janet_wrap_integer(tic_api_pix(memory, x, y, color, get));
 }
 
 static Janet janet_line(int32_t argc, Janet* argv)
@@ -208,11 +223,27 @@ static Janet janet_line(int32_t argc, Janet* argv)
 
 static Janet janet_rect(int32_t argc, Janet* argv)
 {
+    janet_fixarity(argc, 5);
+    int32_t x = janet_getinteger(argv, 0);
+    int32_t y = janet_getinteger(argv, 1);
+    int32_t width = janet_getinteger(argv, 2);
+    int32_t height = janet_getinteger(argv, 3);
+    int32_t color = janet_getinteger(argv, 4);
+    tic_mem* memory = (tic_mem*)getJanetMachine();
+    tic_api_rect(memory, x, y, width, height, color);
     return janet_wrap_nil();
 }
 
 static Janet janet_rectb(int32_t argc, Janet* argv)
 {
+    janet_fixarity(argc, 5);
+    int32_t x = janet_getinteger(argv, 0);
+    int32_t y = janet_getinteger(argv, 1);
+    int32_t width = janet_getinteger(argv, 2);
+    int32_t height = janet_getinteger(argv, 3);
+    int32_t color = janet_getinteger(argv, 4);
+    tic_mem* memory = (tic_mem*)getJanetMachine();
+    tic_api_rectb(memory, x, y, width, height, color);
     return janet_wrap_nil();
 }
 
@@ -273,11 +304,19 @@ static Janet janet_poke(int32_t argc, Janet* argv)
 
 static Janet janet_peek1(int32_t argc, Janet* argv)
 {
-    return janet_wrap_nil();
+    janet_fixarity(argc, 1);
+    int32_t address = janet_getinteger(argv, 0);
+    tic_mem* memory = (tic_mem*)getJanetMachine();
+    return janet_wrap_integer(tic_api_peek1(memory, address));
 }
 
 static Janet janet_poke1(int32_t argc, Janet* argv)
 {
+    janet_fixarity(argc, 2);
+    int32_t address = janet_getinteger(argv, 0);
+    int32_t value = janet_getinteger(argv, 1);
+    tic_mem* memory = (tic_mem*)getJanetMachine();
+    tic_api_poke1(memory, address, value);
     return janet_wrap_nil();
 }
 
@@ -496,11 +535,11 @@ static void closeJanet(tic_mem* tic)
 {
     tic_core* machine = (tic_core*)tic;
 
-    if (machine->currentVM) {
-        free(currentVM);
-        CurrentMachine = NULL;
-        machine->currentVM = NULL;
-    }
+    //if (machine->currentVM) {
+    //    free(currentVM);
+    //    CurrentMachine = NULL;
+    //    machine->currentVM = NULL;
+    //}
 
     janet_deinit();
     env = NULL;
@@ -511,9 +550,6 @@ static bool initJanet(tic_mem* tic, const char* code)
     tic_core* machine = (tic_core*)tic;
     closeJanet(tic);
     CurrentMachine = machine;
-    //machine->currentVM = malloc(sizeof(JanetTable));
-    //JanetTable* currentVM = (JanetTable*)machine->currentVM;
-
     janet_init();
     env = janet_core_env(NULL);
     janet_cfuns(env, "tic", janet_c_functions);
@@ -523,6 +559,8 @@ static bool initJanet(tic_mem* tic, const char* code)
 
 static void evalJanet(tic_mem* tic, const char* code)
 {
+    tic_core* machine = (tic_core*)tic;
+    janet_dostring(env, code, "main", NULL); // XXX handle error
 }
 
 static void callJanetTick(tic_mem* tic)
@@ -551,6 +589,12 @@ static void callJanetMenu(tic_mem* memory, s32 index, void* data)
 
 static const tic_outline_item* getJanetOutline(const char* code, s32* size)
 {
+    static tic_outline_item* items = NULL;
+    if (items) {
+        free(items);
+        items = NULL;
+    }
+    return items;
 }
 
 /* ***************** */
@@ -583,10 +627,8 @@ const tic_script_config JanetSyntaxConfig =
     .singleComment      = "#",
     .blockStringStart   = NULL,
     .blockStringEnd     = NULL,
-    .blockEnd           = "end",
+    .blockEnd           = NULL,
 
     .keywords           = JanetKeywords,
     .keywordsCount      = COUNT_OF(JanetKeywords),
-
-
-#endif /* defined(TIC_BUILD_WITH_JANET) */
+};

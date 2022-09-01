@@ -411,8 +411,10 @@ target_include_directories(duktape INTERFACE ${THIRDPARTY_DIR}/duktape/src)
 # Janet
 ################################
 
-add_library(janet STATIC ${THIRDPARTY_DIR}/janet/src/janet.c)
-target_include_directories(janet INTERFACE ${THIRDPARTY_DIR}/janet/src)
+# XXX make the janet.c amalgamation (just run 'make build/c/janet.c')
+add_library(janet STATIC ${THIRDPARTY_DIR}/janet/build/c/janet.c)
+target_include_directories(janet PUBLIC ${THIRDPARTY_DIR}/janet/src/include)
+target_include_directories(janet PUBLIC ${THIRDPARTY_DIR}/janet/src/conf)
 
 ################################
 # TIC-80 core
