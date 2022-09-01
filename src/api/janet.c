@@ -120,7 +120,22 @@ static Janet janet_cls(int32_t argc, Janet* argv)
 
 static Janet janet_pix(int32_t argc, Janet* argv)
 {
-    return janet_wrap_nil();
+    janet_arity(argc, 2, 3);
+    bool get;
+
+    switch (argc) {
+    case 2:
+        get = true;
+        break;
+    case 3:
+        get = false;
+        break;
+    default:
+        ; // NOTREACHED
+    }
+
+    int32_t result = tic_api_pix(memory, x, y, color, get);
+    return janet_wrap_integer(result);
 }
 
 static Janet janet_line(int32_t argc, Janet* argv)
@@ -234,11 +249,21 @@ static Janet janet_poke4(int32_t argc, Janet* argv)
 
 static Janet janet_memcpy(int32_t argc, Janet* argv)
 {
+    janet_fixarity(argc, 3);
+    int32_t dst = janet_getinteger(argv, 0);
+    int32_t src = janet_getinteger(argv, 1);
+    int32_t size = janet_getinteger(argv, 2);
+    tic_api_memcpy(memory, dst, src, size);
     return janet_wrap_nil();
 }
 
 static Janet janet_memset(int32_t argc, Janet* argv)
 {
+    janet_fixarity(argc, 3);
+    int32_t dst = janet_getinteger(argv, 0);
+    int32_t val = janet_getinteger(argv, 1);
+    int32_t size = janet_getinteger(argv, 2);
+    tic_api_memset(memory, dst, val, size);
     return janet_wrap_nil();
 }
 
@@ -279,31 +304,75 @@ static Janet janet_mouse(int32_t argc, Janet* argv)
 
 static Janet janet_circ(int32_t argc, Janet* argv)
 {
+    janet_fixarity(argc, 4);
+    int32_t x = janet_getinteger(argv, 0);
+    int32_t y = janet_getinteger(argv, 1);
+    int32_t radius = janet_getinteger(argv, 2);
+    int32_t color = janet_getinteger(argv, 3);
+    tic_api_circ(memory, x, y, radius, color);
     return janet_wrap_nil();
 }
 
 static Janet janet_circb(int32_t argc, Janet* argv)
 {
+    janet_fixarity(argc, 4);
+    int32_t x = janet_getinteger(argv, 0);
+    int32_t y = janet_getinteger(argv, 1);
+    int32_t radius = janet_getinteger(argv, 2);
+    int32_t color = janet_getinteger(argv, 3);
+    tic_api_circb(memory, x, y, radius, color);
     return janet_wrap_nil();
 }
 
 static Janet janet_elli(int32_t argc, Janet* argv)
 {
+    janet_fixarity(argc, 5);
+    int32_t x = janet_getinteger(argv, 0);
+    int32_t y = janet_getinteger(argv, 1);
+    int32_t a = janet_getinteger(argv, 2);
+    int32_t b = janet_getinteger(argv, 3);
+    int32_t color = janet_getinteger(argv, 4);
+    tic_api_elli(memory, x, y, a, b, color);
     return janet_wrap_nil();
 }
 
 static Janet janet_ellib(int32_t argc, Janet* argv)
 {
+    janet_fixarity(argc, 5);
+    int32_t x = janet_getinteger(argv, 0);
+    int32_t y = janet_getinteger(argv, 1);
+    int32_t a = janet_getinteger(argv, 2);
+    int32_t b = janet_getinteger(argv, 3);
+    int32_t color = janet_getinteger(argv, 4);
+    tic_api_ellib(memory, x, y, a, b, color);
     return janet_wrap_nil();
 }
 
 static Janet janet_tri(int32_t argc, Janet* argv)
 {
+    janet_fixarity(argc, 7);
+    double x1 = janet_getnumber(argv, 0);
+    double y1 = janet_getnumber(argv, 1);
+    double x2 = janet_getnumber(argv, 2);
+    double y2 = janet_getnumber(argv, 3);
+    double x3 = janet_getnumber(argv, 4);
+    double y3 = janet_getnumber(argv, 5);
+    int32_t color = janet_getnumber(argv, 6);
+    tic_api_tri(memory, x1, y1, x2, y2, x3, y3, color);
     return janet_wrap_nil();
 }
 
 static Janet janet_trib(int32_t argc, Janet* argv)
 {
+    janet_fixarity(argc, 7);
+    double x1 = janet_getnumber(argv, 0);
+    double y1 = janet_getnumber(argv, 1);
+    double x2 = janet_getnumber(argv, 2);
+    double y2 = janet_getnumber(argv, 3);
+    double x3 = janet_getnumber(argv, 4);
+    double y3 = janet_getnumber(argv, 5);
+    int32_t color = janet_getnumber(argv, 6);
+    tic_api_trib(memory, x1, y1, x2, y2, x3, y3, color);
     return janet_wrap_nil();
 }
 
@@ -334,6 +403,8 @@ static Janet janet_vbank(int32_t argc, Janet* argv)
 
 static Janet janet_reset(int32_t argc, Janet* argv)
 {
+    tic_core* machine = getJanetMachine();
+    machine->state.initialized = false;
     return janet_wrap_nil();
 }
 
