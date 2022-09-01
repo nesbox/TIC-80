@@ -408,6 +408,13 @@ add_library(duktape STATIC ${THIRDPARTY_DIR}/duktape/src/duktape.c)
 target_include_directories(duktape INTERFACE ${THIRDPARTY_DIR}/duktape/src)
 
 ################################
+# Janet
+################################
+
+add_library(janet STATIC ${THIRDPARTY_DIR}/janet/src/janet.c)
+target_include_directories(janet INTERFACE ${THIRDPARTY_DIR}/janet/src)
+
+################################
 # TIC-80 core
 ################################
 
@@ -428,6 +435,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         ${TIC80CORE_DIR}/api/wasm.c
         ${TIC80CORE_DIR}/api/squirrel.c
         ${TIC80CORE_DIR}/api/mruby.c
+        ${TIC80CORE_DIR}/api/janet.c
         ${TIC80CORE_DIR}/tic.c
         ${TIC80CORE_DIR}/cart.c
         ${TIC80CORE_DIR}/tools.c
@@ -462,6 +470,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         duktape 
         blipbuf 
         zlib
+        janet
     )
 
     if(BUILD_WITH_MRUBY)
@@ -495,6 +504,7 @@ if(BUILD_STUB)
         MACRO_CORE(ruby TIC_BUILD_WITH_MRUBY    FALSE)
     endif()
     MACRO_CORE(wasm     TIC_BUILD_WITH_WASM     FALSE)
+    MACRO_CORE(janet    TIC_BUILD_WITH_WASM     FALSE)
 
 endif()
 
