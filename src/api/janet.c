@@ -558,6 +558,7 @@ static void closeJanet(tic_mem* tic)
     if (core->currentVM) {
         janet_deinit();
         core->currentVM = NULL;
+        CurrentMachine = NULL;
     }
 }
 
@@ -566,9 +567,10 @@ static bool initJanet(tic_mem* tic, const char* code)
     tic_core* core = (tic_core*)tic;
     closeJanet(tic);
     janet_init();
+    CurrentMachine = core;
     core->currentVM = (JanetTable*)janet_core_env(NULL);
     janet_cfuns(core->currentVM, "tic", janet_c_functions);
-    janet_dostring(core->currentVM, code, "main", NULL);
+    janet_dostring(core->currentVM, code, __func__, NULL);
     return true; // XXX should return whether dostring() has issues or not
 }
 
@@ -579,44 +581,52 @@ static void evalJanet(tic_mem* tic, const char* code)
 
     if (!env) return;
 
-    janet_dostring(env, code, "main", NULL); // XXX handle error
+    Janet result;
+    janet_dostring(env, code, __func__, &result); // XXX handle error
 }
 
 /*
- * Find a function called TIC_FN and execute it
+ * Find a function called TIC_FN and execute it. If we can't find it, then
+ * it is a problem.
  */
 static void callJanetTick(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
 
     Janet pre_fn;
-    janet_dostring(core->currentVM, TIC_FN, "JanetFunction", &pre_fn);
+    if (janet_dostring(core->currentVM, TIC_FN, __func__, &pre_fn)) {
+        core->data->error(core->data->data, "(TIC) isn't found :(");
+        return;
+    }
     JanetFunction *fn = janet_unwrap_function(pre_fn);
 
     Janet result;
     JanetSignal status = janet_pcall(fn, 0, NULL, &result, NULL);
 
     if (status != JANET_SIGNAL_OK) {
-        // XXX complain
+        core->data->error(core->data->data, "XXX"); // XXX get error text
     }
 }
 
 /*
- * Find a function called BOOT_FN and execute it
+ * Find a function called BOOT_FN and execute it. If we can't find it, then
+ * it's not a problem.
  */
 static void callJanetBoot(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
 
     Janet pre_fn;
-    janet_dostring(core->currentVM, BOOT_FN, "JanetFunction", &pre_fn);
+    if (janet_dostring(core->currentVM, BOOT_FN, __func__, &pre_fn)) {
+        return;
+    }
     JanetFunction *fn = janet_unwrap_function(pre_fn);
 
     Janet result;
     JanetSignal status = janet_pcall(fn, 0, NULL, &result, NULL);
 
     if (status != JANET_SIGNAL_OK) {
-        // XXX complain
+        core->data->error(core->data->data, "XXX"); // XXX get error text
     }
 }
 
@@ -625,7 +635,7 @@ static void callJanetIntCallback(tic_mem* tic, s32 value, void* data, const char
     tic_core* core = (tic_core*)tic;
 
     Janet pre_fn;
-    janet_dostring(core->currentVM, name, "JanetFunction", &pre_fn);
+    janet_dostring(core->currentVM, name, __func__, &pre_fn);
     JanetFunction *fn = janet_unwrap_function(pre_fn);
 
     Janet result;
@@ -635,7 +645,7 @@ static void callJanetIntCallback(tic_mem* tic, s32 value, void* data, const char
     JanetSignal status = janet_pcall(fn, 1, argv, &result, NULL);
 
     if (status != JANET_SIGNAL_OK) {
-        /// XXX complain
+        core->data->error(core->data->data, "XXX"); // XXX get error text
     }
 }
 
