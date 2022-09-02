@@ -26,7 +26,7 @@
 
 #include "core/core.h"
 
-#if defined(TIC_BUILD_WITH_MRUBY)
+#if defined(TIC_BUILD_WITH_JANET)
 
 #include <janet.h>
 
@@ -147,6 +147,7 @@ static const char* const JanetKeywords[] =
 {
     "break",
     "def",
+    "defn",
     "do",
     "fn",
     "if",
@@ -160,7 +161,6 @@ static const char* const JanetKeywords[] =
     "while",
 };
 
-static JanetTable* env = NULL;
 static tic_core* CurrentMachine = NULL;
 
 static inline tic_core* getJanetMachine(void)
@@ -557,20 +557,18 @@ static void closeJanet(tic_mem* tic)
 
     if (core->currentVM) {
         janet_deinit();
-        env = NULL;
         core->currentVM = NULL;
     }
 }
 
 static bool initJanet(tic_mem* tic, const char* code)
 {
-    tic_core* machine = (tic_core*)tic;
+    tic_core* core = (tic_core*)tic;
     closeJanet(tic);
-    CurrentMachine = machine;
     janet_init();
-    env = janet_core_env(NULL);
-    janet_cfuns(env, "tic", janet_c_functions);
-    janet_dostring(env, code, "main", NULL);
+    core->currentVM = (JanetTable*)janet_core_env(NULL);
+    janet_cfuns(core->currentVM, "tic", janet_c_functions);
+    janet_dostring(core->currentVM, code, "main", NULL);
     return true; // XXX should return whether dostring() has issues or not
 }
 
@@ -589,8 +587,10 @@ static void evalJanet(tic_mem* tic, const char* code)
  */
 static void callJanetTick(tic_mem* tic)
 {
+    tic_core* core = (tic_core*)tic;
+
     Janet pre_fn;
-    janet_dostring(env, TIC_FN, "JanetFunction", &pre_fn);
+    janet_dostring(core->currentVM, TIC_FN, "JanetFunction", &pre_fn);
     JanetFunction *fn = janet_unwrap_function(pre_fn);
 
     Janet result;
@@ -606,8 +606,10 @@ static void callJanetTick(tic_mem* tic)
  */
 static void callJanetBoot(tic_mem* tic)
 {
+    tic_core* core = (tic_core*)tic;
+
     Janet pre_fn;
-    janet_dostring(env, BOOT_FN, "JanetFunction", &pre_fn);
+    janet_dostring(core->currentVM, BOOT_FN, "JanetFunction", &pre_fn);
     JanetFunction *fn = janet_unwrap_function(pre_fn);
 
     Janet result;
@@ -618,10 +620,12 @@ static void callJanetBoot(tic_mem* tic)
     }
 }
 
-static void callJanetIntCallback(tic_mem* memory, s32 value, void* data, const char* name)
+static void callJanetIntCallback(tic_mem* tic, s32 value, void* data, const char* name)
 {
+    tic_core* core = (tic_core*)tic;
+
     Janet pre_fn;
-    janet_dostring(env, name, "JanetFunction", &pre_fn);
+    janet_dostring(core->currentVM, name, "JanetFunction", &pre_fn);
     JanetFunction *fn = janet_unwrap_function(pre_fn);
 
     Janet result;
@@ -635,20 +639,20 @@ static void callJanetIntCallback(tic_mem* memory, s32 value, void* data, const c
     }
 }
 
-static void callJanetScanline(tic_mem* memory, s32 row, void* data)
+static void callJanetScanline(tic_mem* tic, s32 row, void* data)
 {
-    callJanetIntCallback(memory, row, data, SCN_FN);
-    callJanetIntCallback(memory, row, data, "scanline");
+    callJanetIntCallback(tic, row, data, SCN_FN);
+    callJanetIntCallback(tic, row, data, "scanline");
 }
 
-static void callJanetBorder(tic_mem* memory, s32 row, void* data)
+static void callJanetBorder(tic_mem* tic, s32 row, void* data)
 {
-    callJanetIntCallback(memory, row, data, BDR_FN);
+    callJanetIntCallback(tic, row, data, BDR_FN);
 }
 
-static void callJanetMenu(tic_mem* memory, s32 index, void* data)
+static void callJanetMenu(tic_mem* tic, s32 index, void* data)
 {
-    callJanetIntCallback(memory, row, data, MENU_FN);
+    callJanetIntCallback(tic, index, data, MENU_FN);
 }
 
 static const tic_outline_item* getJanetOutline(const char* code, s32* size)
