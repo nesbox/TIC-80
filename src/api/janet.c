@@ -26,6 +26,8 @@
 
 #include "core/core.h"
 
+#if defined(TIC_BUILD_WITH_MRUBY)
+
 #include <janet.h>
 
 static inline tic_core* getJanetMachine(void);
@@ -170,7 +172,25 @@ static inline tic_core* getJanetMachine(void)
 
 static Janet janet_print(int32_t argc, Janet* argv)
 {
-    return janet_wrap_nil();
+    janet_arity(argc, 1, 7);
+    int32_t x = 0;
+    int32_t y = 0;
+    int32_t color = 15;
+    bool fixed = false;
+    int32_t scale = 1;
+    bool alt = false;
+
+    const char *text = janet_getcstring(argv, 0);
+    if (argc >= 2) x = janet_getinteger(argv, 1);
+    if (argc >= 3) y = janet_getinteger(argv, 2);
+    if (argc >= 4) color = janet_getinteger(argv, 3);
+    if (argc >= 5) fixed = janet_getboolean(argv, 4);
+    if (argc >= 6) scale = janet_getinteger(argv, 5);
+    if (argc >= 7) alt = janet_getboolean(argv, 6);
+
+    tic_mem* memory = (tic_mem*)getJanetMachine();
+    int32_t width = tic_api_print(memory, text, x, y, color, fixed, scale, alt);
+    return janet_wrap_integer(width);
 }
 
 static Janet janet_cls(int32_t argc, Janet* argv)
@@ -533,16 +553,13 @@ static Janet janet_fset(int32_t argc, Janet* argv)
 
 static void closeJanet(tic_mem* tic)
 {
-    tic_core* machine = (tic_core*)tic;
+    tic_core* core = (tic_core*)tic;
 
-    //if (machine->currentVM) {
-    //    free(currentVM);
-    //    CurrentMachine = NULL;
-    //    machine->currentVM = NULL;
-    //}
-
-    janet_deinit();
-    env = NULL;
+    if (core->currentVM) {
+        janet_deinit();
+        env = NULL;
+        core->currentVM = NULL;
+    }
 }
 
 static bool initJanet(tic_mem* tic, const char* code)
@@ -559,32 +576,79 @@ static bool initJanet(tic_mem* tic, const char* code)
 
 static void evalJanet(tic_mem* tic, const char* code)
 {
-    tic_core* machine = (tic_core*)tic;
+    tic_core* core = (tic_core*)tic;
+    JanetTable* env = core->currentVM;
+
+    if (!env) return;
+
     janet_dostring(env, code, "main", NULL); // XXX handle error
 }
 
+/*
+ * Find a function called TIC_FN and execute it
+ */
 static void callJanetTick(tic_mem* tic)
 {
+    Janet pre_fn;
+    janet_dostring(env, TIC_FN, "JanetFunction", &pre_fn);
+    JanetFunction *fn = janet_unwrap_function(pre_fn);
+
+    Janet result;
+    JanetSignal status = janet_pcall(fn, 0, NULL, &result, NULL);
+
+    if (status != JANET_SIGNAL_OK) {
+        // XXX complain
+    }
 }
 
+/*
+ * Find a function called BOOT_FN and execute it
+ */
 static void callJanetBoot(tic_mem* tic)
 {
+    Janet pre_fn;
+    janet_dostring(env, BOOT_FN, "JanetFunction", &pre_fn);
+    JanetFunction *fn = janet_unwrap_function(pre_fn);
+
+    Janet result;
+    JanetSignal status = janet_pcall(fn, 0, NULL, &result, NULL);
+
+    if (status != JANET_SIGNAL_OK) {
+        // XXX complain
+    }
 }
 
 static void callJanetIntCallback(tic_mem* memory, s32 value, void* data, const char* name)
 {
+    Janet pre_fn;
+    janet_dostring(env, name, "JanetFunction", &pre_fn);
+    JanetFunction *fn = janet_unwrap_function(pre_fn);
+
+    Janet result;
+    Janet argv[] = {
+        janet_wrap_integer(value),
+    };
+    JanetSignal status = janet_pcall(fn, 1, argv, &result, NULL);
+
+    if (status != JANET_SIGNAL_OK) {
+        /// XXX complain
+    }
 }
 
 static void callJanetScanline(tic_mem* memory, s32 row, void* data)
 {
+    callJanetIntCallback(memory, row, data, SCN_FN);
+    callJanetIntCallback(memory, row, data, "scanline");
 }
 
 static void callJanetBorder(tic_mem* memory, s32 row, void* data)
 {
+    callJanetIntCallback(memory, row, data, BDR_FN);
 }
 
 static void callJanetMenu(tic_mem* memory, s32 index, void* data)
 {
+    callJanetIntCallback(memory, row, data, MENU_FN);
 }
 
 static const tic_outline_item* getJanetOutline(const char* code, s32* size)
@@ -601,7 +665,7 @@ static const tic_outline_item* getJanetOutline(const char* code, s32* size)
 
 const tic_script_config JanetSyntaxConfig = 
 {
-    .id                 = 99,
+    .id                 = 18,
     .name               = "janet",
     .fileExtension      = ".janet",
     .projectComment     = "#",
@@ -632,3 +696,5 @@ const tic_script_config JanetSyntaxConfig =
     .keywords           = JanetKeywords,
     .keywordsCount      = COUNT_OF(JanetKeywords),
 };
+
+#endif /* defined(TIC_BUILD_WITH_JANET) */

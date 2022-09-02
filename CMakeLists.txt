@@ -506,7 +506,7 @@ if(BUILD_STUB)
         MACRO_CORE(ruby TIC_BUILD_WITH_MRUBY    FALSE)
     endif()
     MACRO_CORE(wasm     TIC_BUILD_WITH_WASM     FALSE)
-    MACRO_CORE(janet    TIC_BUILD_WITH_WASM     FALSE)
+    MACRO_CORE(janet    TIC_BUILD_WITH_JANET    FALSE)
 
 endif()
 
