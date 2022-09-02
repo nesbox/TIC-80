@@ -630,12 +630,18 @@ static void callJanetBoot(tic_mem* tic)
     }
 }
 
+/*
+ * Find a function with the given name and execute it with the given value.
+ * If we can't find it, then it's not a problem.
+ */
 static void callJanetIntCallback(tic_mem* tic, s32 value, void* data, const char* name)
 {
     tic_core* core = (tic_core*)tic;
 
     Janet pre_fn;
-    janet_dostring(core->currentVM, name, __func__, &pre_fn);
+    if (janet_dostring(core->currentVM, name, __func__, &pre_fn)) {
+        return;
+    }
     JanetFunction *fn = janet_unwrap_function(pre_fn);
 
     Janet result;
