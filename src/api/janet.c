@@ -626,13 +626,15 @@ static void callJanetTick(tic_mem* tic)
     tic_core* core = (tic_core*)tic;
 
     Janet pre_fn;
-    if (janet_dostring(core->currentVM, TIC_FN, __func__, &pre_fn)) {
+    (void)janet_resolve(core->currentVM, janet_csymbol(TIC_FN), &pre_fn);
+
+    if (janet_type(pre_fn) != JANET_FUNCTION) {
         core->data->error(core->data->data, "(TIC) isn't found :(");
         return;
     }
-    JanetFunction *fn = janet_unwrap_function(pre_fn);
 
     Janet result;
+    JanetFunction *fn = janet_unwrap_function(pre_fn);
     JanetSignal status = janet_pcall(fn, 0, NULL, &result, NULL);
 
     if (status != JANET_SIGNAL_OK) {
@@ -649,12 +651,14 @@ static void callJanetBoot(tic_mem* tic)
     tic_core* core = (tic_core*)tic;
 
     Janet pre_fn;
-    if (janet_dostring(core->currentVM, BOOT_FN, __func__, &pre_fn)) {
+    (void)janet_resolve(core->currentVM, janet_csymbol(BOOT_FN), &pre_fn);
+
+    if (janet_type(pre_fn) != JANET_FUNCTION) {
         return;
     }
-    JanetFunction *fn = janet_unwrap_function(pre_fn);
 
     Janet result;
+    JanetFunction *fn = janet_unwrap_function(pre_fn);
     JanetSignal status = janet_pcall(fn, 0, NULL, &result, NULL);
 
     if (status != JANET_SIGNAL_OK) {
@@ -671,15 +675,15 @@ static void callJanetIntCallback(tic_mem* tic, s32 value, void* data, const char
     tic_core* core = (tic_core*)tic;
 
     Janet pre_fn;
-    if (janet_dostring(core->currentVM, name, __func__, &pre_fn)) {
+    (void)janet_resolve(core->currentVM, janet_csymbol(name), &pre_fn);
+
+    if (janet_type(pre_fn) != JANET_FUNCTION) {
         return;
     }
-    JanetFunction *fn = janet_unwrap_function(pre_fn);
 
     Janet result;
-    Janet argv[] = {
-        janet_wrap_integer(value),
-    };
+    Janet argv[] = { janet_wrap_integer(value), };
+    JanetFunction *fn = janet_unwrap_function(pre_fn);
     JanetSignal status = janet_pcall(fn, 1, argv, &result, NULL);
 
     if (status != JANET_SIGNAL_OK) {
