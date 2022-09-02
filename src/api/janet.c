@@ -602,8 +602,15 @@ static bool initJanet(tic_mem* tic, const char* code)
 
     core->currentVM = (JanetTable*)janet_core_env(NULL);
     janet_cfuns(core->currentVM, "tic", janet_c_functions);
-    janet_dostring(core->currentVM, code, __func__, NULL);
-    return true; // XXX should return whether dostring() has issues or not
+
+    Janet result;
+
+    if (janet_dostring(core->currentVM, code, __func__, &result)) {
+        core->data->error(core->data->data, (const char*)janet_unwrap_string(result));
+        return false;
+    }
+
+    return true;
 }
 
 static void evalJanet(tic_mem* tic, const char* code)
@@ -614,7 +621,10 @@ static void evalJanet(tic_mem* tic, const char* code)
     if (!env) return;
 
     Janet result;
-    janet_dostring(env, code, __func__, &result); // XXX handle error
+
+    if (janet_dostring(env, code, __func__, &result)) {
+        core->data->error(core->data->data, (const char*)janet_unwrap_string(result));
+    }
 }
 
 /*
