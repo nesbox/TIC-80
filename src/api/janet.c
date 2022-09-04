@@ -447,7 +447,21 @@ static Janet janet_trace(int32_t argc, Janet* argv)
 
 static Janet janet_pmem(int32_t argc, Janet* argv)
 {
-    return janet_wrap_nil();
+    janet_arity(argc, 1, 2);
+    int32_t index;
+    int32_t value;
+    bool get = true;
+
+    index = janet_getinteger(argv, 0);
+
+    if (argc >= 2) {
+        value = janet_getinteger(argv, 1);
+        get = false;
+    }
+
+    tic_mem* memory = (tic_mem*)getJanetMachine();
+    return janet_wrap_integer(tic_api_pmem(memory, index, value,
+    get));
 }
 
 static Janet janet_time(int32_t argc, Janet* argv)
@@ -472,13 +486,54 @@ static Janet janet_exit(int32_t argc, Janet* argv)
     return janet_wrap_nil();
 }
 
+/*
+ * XXX I need to better understand this
+ */
 static Janet janet_font(int32_t argc, Janet* argv)
 {
+#if 0
+    janet_arity(argc, 6, 8);
+    bool fixed = false;
+    int32_t scale = 1;
+    bool alt = false;
+
+    const char* text = janet_getcstring(argv, 0);
+    int32_t x = janet_getinteger(argv, 1);
+    int32_t y = janet_getinteger(argv, 2);
+    // XXX u8* trans_colors is an array
+    int32_t trans_count = janet_getinteger(argv, 4);
+    int32_t w = janet_getinteger(argv, 6);
+
+    if (argc >= 7) fixed = janet_getboolean(argv, 6);
+    if (argc >= 8) scale = janet_getinteger(argv, 7);
+    if (argc >= 9)
+
+    tic_mem* memory = (tic_mem*)getJanetMachine();
+    int32_t width = tic_api_font(tic, text, x, y, chromakey, 1, width,
+    heigh, fixed, scale, alt);
+    return janet_wrap_integer(width);
+#endif
     return janet_wrap_nil();
 }
 
+/*
+ * Need to understand this one too
+ */
 static Janet janet_mouse(int32_t argc, Janet* argv)
 {
+#if 0
+    janet_fixarity(argv, 0);
+
+    tic_mem* memory = (tic_mem*)getJanetMachine();
+    tic_point point = tic_api_mouse(memory);
+
+    Janet result[] = {
+        janet_wrap_integer(point.x),
+        janet_wrap_integer(point.y),
+    };
+
+    return janet_wrap_tuple(&result)
+#endif
     return janet_wrap_nil();
 }
 
@@ -581,6 +636,22 @@ static Janet janet_ttri(int32_t argc, Janet* argv)
 
 static Janet janet_clip(int32_t argc, Janet* argv)
 {
+    janet_arity(argc, 0, 4);
+
+    tic_mem* memory = (tic_mem*)getJanetMachine();
+
+    if (argc == 0) {
+        tic_api_clip(memory, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
+    } else if (argc == 4) {
+        int32_t x = janet_getinteger(argv, 0);
+        int32_t y = janet_getinteger(argv, 1);
+        int32_t w = janet_getinteger(argv, 2);
+        int32_t h = janet_getinteger(argv, 3);
+        tic_api_clip(memory, x, y, w, h);
+    } else {
+        // XXX error, it needs to be exactly 0 OR 4
+    }
+
     return janet_wrap_nil();
 }
 
@@ -612,6 +683,17 @@ static Janet janet_music(int32_t argc, Janet* argv)
 
 static Janet janet_sync(int32_t argc, Janet* argv)
 {
+    janet_arity(argc, 0, 3);
+    int32_t mask = 0;
+    int32_t bank = 0;
+    bool toCart = false;
+
+    if (argc >= 1) mask = janet_getinteger(argv, 0);
+    if (argc >= 2) bank = janet_getinteger(argv, 1);
+    if (argc >= 3) toCart = janet_getboolean(argv, 2);
+
+    tic_mem* memory = (tic_mem*)getJanetMachine();
+    tic_api_sync(memory, mask, bank, toCart);
     return janet_wrap_nil();
 }
 
@@ -635,7 +717,13 @@ static Janet janet_reset(int32_t argc, Janet* argv)
 
 static Janet janet_key(int32_t argc, Janet* argv)
 {
-    return janet_wrap_nil();
+    janet_arity(argc, 0, 1);
+    tic_key key = -1;
+
+    if (argc >= 1) key = (tic_key)janet_getinteger(argv, 0);
+
+    tic_mem* memory = (tic_mem*)getJanetMachine();
+    return janet_wrap_boolean(tic_api_key(memory, key));
 }
 
 static Janet janet_keyp(int32_t argc, Janet* argv)
