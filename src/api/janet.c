@@ -777,11 +777,25 @@ static Janet janet_keyp(int32_t argc, Janet* argv)
 
 static Janet janet_fget(int32_t argc, Janet* argv)
 {
-    return janet_wrap_nil();
+    janet_fixarity(argc, 2);
+
+    s32 index = janet_getinteger(argv, 0);
+    u8 flag = janet_getinteger(argv, 1);
+
+    tic_mem* memory = (tic_mem*)getJanetMachine();
+    return janet_wrap_boolean(tic_api_fget(memory, index, flag));
 }
 
 static Janet janet_fset(int32_t argc, Janet* argv)
 {
+    janet_fixarity(argc, 3);
+
+    s32 index = janet_getinteger(argv, 0);
+    u8 flag = janet_getinteger(argv, 1);
+    bool value = janet_getboolean(argv, 2);
+
+    tic_mem* memory = (tic_mem*)getJanetMachine();
+    tic_api_fset(memory, index, flag, value);
     return janet_wrap_nil();
 }
 
