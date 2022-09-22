@@ -558,7 +558,7 @@ void tic_api_circ(tic_mem* memory, s32 x, s32 y, s32 r, u8 color)
 {
     initSidesBuffer();
     drawEllipse(memory, x - r, y - r, x + r, y + r, 0, setElliSide);
-    drawSidesBuffer(memory, y - r, y + r + 1, color);
+    drawSidesBuffer(memory, y - r, y + r + 1, mapColor(memory, color));
 }
 
 void tic_api_circb(tic_mem* memory, s32 x, s32 y, s32 r, u8 color)
@@ -570,7 +570,7 @@ void tic_api_elli(tic_mem* memory, s32 x, s32 y, s32 a, s32 b, u8 color)
 {
     initSidesBuffer();
     drawEllipse(memory, x - a, y - b, x + a, y + b, 0, setElliSide);
-    drawSidesBuffer(memory, y - b, y + b + 1, color);
+    drawSidesBuffer(memory, y - b, y + b + 1, mapColor(memory, color));
 }
 
 void tic_api_ellib(tic_mem* memory, s32 x, s32 y, s32 a, s32 b, u8 color)
