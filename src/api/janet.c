@@ -843,21 +843,13 @@ static Janet janet_music(int32_t argc, Janet* argv)
 {
     janet_arity(argc, 0, 7);
 
-    s32 track = -1;
-    s32 frame = -1;
-    s32 row = -1;
-    bool loop = true;
-    bool sustain = false;
-    s32 tempo = -1;
-    s32 speed = -1;
-
-    if (argc >= 1) track = janet_getinteger(argv, 0);
-    if (argc >= 2) frame = janet_getinteger(argv, 1);
-    if (argc >= 3) row = janet_getinteger(argv, 2);
-    if (argc >= 4) loop = janet_getboolean(argv, 3);
-    if (argc >= 5) sustain = janet_getboolean(argv, 4);
-    if (argc >= 6) tempo = janet_getinteger(argv, 5);
-    if (argc >= 7) speed = janet_getinteger(argv, 6);
+    s32 track = janet_optinteger(argv, argc, 0, -1);
+    s32 frame = janet_optinteger(argv, argc, 1, -1);
+    s32 row = janet_optinteger(argv, argc, 2, -1);
+    bool loop = janet_optboolean(argv, argc, 3, true);
+    bool sustain = janet_optboolean(argv, argc, 4, true);
+    s32 tempo = janet_optinteger(argv, argc, 5, -1);
+    s32 speed = janet_optinteger(argv, argc, 6, -1);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
     tic_api_music(memory, track, frame, row, loop, sustain, tempo, speed);
