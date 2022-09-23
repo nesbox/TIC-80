@@ -145,20 +145,18 @@ static const JanetReg janet_c_functions[] =
 
 static const char* const JanetKeywords[] =
 {
-    "break",
-    "def",
-    "defn",
-    "do",
-    "fn",
-    "if",
-    "quasiquote",
-    "quote",
-    "set",
-    "splice",
-    "unquote",
-    "upscope",
-    "var",
-    "while",
+    "defmacro", "withsyms", "macex1", "macex",
+    "do", "values", "break"
+    "if", "when", "cond", "match",
+    "each", "for", "loop", "while",
+    "fn", "defn", "partial",
+    "def", "var", "set", "defglobal", "let", "set", "put",
+    "if-let", "when-let", "if-not",
+    "or", "and", "true", "false", "nil", "not", "not=", "length",
+    "brshift", "blshift", "bor", "band", "bnot", "bxor",
+    "#", ":", "->", "->>", "-?>", "-?>>", "$",
+    "quasiquote", "quote", "unquote", "upscope",
+    "splice", ";"
 };
 
 static tic_core* CurrentMachine = NULL;

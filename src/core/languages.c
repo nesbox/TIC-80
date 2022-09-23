@@ -44,9 +44,9 @@ tic_script_config* Languages[] = {
 	&LuaSyntaxConfig,
 	#endif
 
-    #if defined(TIC_BUILD_WITH_MRUBY)
-    &MRubySyntaxConfig,
-    #endif
+  #if defined(TIC_BUILD_WITH_MRUBY)
+  &MRubySyntaxConfig,
+  #endif
 
 	#if defined(TIC_BUILD_WITH_JS)
 	&JsSyntaxConfig,
@@ -68,13 +68,12 @@ tic_script_config* Languages[] = {
 	&WrenSyntaxConfig,
 	#endif
 
-    #if defined(TIC_BUILD_WITH_WASM)
+  #if defined(TIC_BUILD_WITH_WASM)
 	&WasmSyntaxConfig,
 	#endif
 
-    #if defined(TIC_BUILD_WITH_JANET)
-    &JanetSyntaxConfig,
-    #endif
+  #if defined(TIC_BUILD_WITH_JANET)
+  &JanetSyntaxConfig,
+  #endif
 
 	NULL};
-
