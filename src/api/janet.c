@@ -168,6 +168,69 @@ static inline tic_core* getJanetMachine(void)
     return CurrentMachine;
 }
 
+typedef struct
+{
+    u8 colors[TIC_PALETTE_SIZE];
+    int32_t count;
+} ColorKey;
+
+static ColorKey tic_optcolorkey(Janet *argv, int32_t argc, int32_t n)
+{
+    ColorKey colorkey = {0};
+    colorkey.count = 0;
+
+    if (argc >= n)
+    {
+        if (janet_checktypes(argv[n], JANET_TFLAG_INDEXED))
+        {
+            JanetView keys = janet_getindexed(argv, n);
+            s32 list_count = keys.len;
+            for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+            {
+                if (i < list_count)
+                {
+                    colorkey.colors[i] = (s32)janet_getinteger(keys.items, i);
+                    colorkey.count++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+        else
+        {
+            colorkey.colors[0] = (s32)janet_getnumber(argv, n);
+            colorkey.count = 1;
+        }
+    }
+
+    return colorkey;
+}
+
+typedef struct
+{
+    float z[3];
+    bool on;
+} TriDepth;
+
+static TriDepth tic_opttridepth(Janet* argv, int32_t argc, int32_t n)
+{
+    TriDepth depth = {0};
+    depth.on = false;
+
+    if (argc > n)
+    {
+        depth.on = true;
+
+        depth.z[0] = janet_getnumber(argv, n);
+        depth.z[1] = janet_getnumber(argv, n+1);
+        depth.z[2] = janet_getnumber(argv, n+2);
+    }
+
+    return depth;
+}
+
 /* ***************** */
 
 static Janet janet_print(int32_t argc, Janet* argv)
@@ -280,34 +343,7 @@ static Janet janet_spr(int32_t argc, Janet* argv)
     s32 x = (s32)janet_getinteger(argv, 1);
     s32 y = (s32)janet_getinteger(argv, 2);
 
-    static u8 colors[TIC_PALETTE_SIZE];
-    s32 count = 0;
-
-    if (argc > 3)
-    {
-        if (janet_checktypes(argv[3], JANET_TFLAG_INDEXED))
-        {
-            JanetView colorkeys = janet_getindexed(argv, 3);
-            s32 list_count = colorkeys.len;
-            for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
-            {
-                if (i < list_count)
-                {
-                    colors[i] = (s32)janet_getinteger(colorkeys.items, i);
-                    count++;
-                }
-                else
-                {
-                    break;
-                }
-            }
-        }
-        else
-        {
-            colors[0] = (s32)janet_getnumber(argv, 3);
-            count = 1;
-        }
-    }
+    ColorKey colorkey = tic_optcolorkey(argv, argc, 3);
 
     s32 scale = (s32)janet_optnumber(argv, argc, 4, 1);
     tic_flip flip = (s32)janet_optnumber(argv, argc, 5, tic_no_flip);
@@ -316,7 +352,9 @@ static Janet janet_spr(int32_t argc, Janet* argv)
     s32 h = (s32)janet_optnumber(argv, argc, 8, 1);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_spr(memory, index, x, y, w, h, colors, count, scale, flip, rotate);
+    tic_api_spr(memory, index, x, y, w, h,
+                colorkey.colors, colorkey.count,
+                scale, flip, rotate);
 
     return janet_wrap_nil();
 }
@@ -387,40 +425,15 @@ static Janet janet_map(int32_t argc, Janet* argv)
     s32 sx = (s32)janet_optinteger(argv, argc, 4, 0);
     s32 sy = (s32)janet_optinteger(argv, argc, 5, 0);
 
-    static u8 colors[TIC_PALETTE_SIZE];
-    s32 count = 0;
-
-    if (argc > 6)
-    {
-        if (janet_checktypes(argv[6], JANET_TFLAG_INDEXED))
-        {
-            JanetView colorkeys = janet_getindexed(argv, 6);
-            s32 list_count = colorkeys.len;
-            for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
-            {
-                if (i < list_count)
-                {
-                    colors[i] = (s32)janet_getinteger(colorkeys.items, i);
-                    count++;
-                }
-                else
-                {
-                    break;
-                }
-            }
-        }
-        else
-        {
-            colors[0] = (s32)janet_getnumber(argv, 6);
-            count = 1;
-        }
-    }
+    ColorKey colorkey = tic_optcolorkey(argv, argc, 6);
 
     s32 scale = (s32)janet_optnumber(argv, argc, 7, 1);
     // XXX: handle remap function
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_map(memory, x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
+    tic_api_map(memory, x, y, w, h, sx, sy,
+                colorkey.colors, colorkey.count,
+                scale, NULL, NULL);
 
     return janet_wrap_nil();
 }
@@ -766,6 +779,42 @@ static Janet janet_trib(int32_t argc, Janet* argv)
 
 static Janet janet_ttri(int32_t argc, Janet* argv)
 {
+    janet_arity(argc, 12, 17);
+
+    float x1 = janet_getnumber(argv, 0);
+    float y1 = janet_getnumber(argv, 1);
+    float x2 = janet_getnumber(argv, 2);
+    float y2 = janet_getnumber(argv, 3);
+    float x3 = janet_getnumber(argv, 4);
+    float y3 = janet_getnumber(argv, 5);
+
+    float u1 = janet_getnumber(argv, 6);
+    float v1 = janet_getnumber(argv, 7);
+    float u2 = janet_getnumber(argv, 8);
+    float v2 = janet_getnumber(argv, 9);
+    float u3 = janet_getnumber(argv, 10);
+    float v3 = janet_getnumber(argv, 11);
+
+    tic_texture_src src = tic_tiles_texture;
+    if (janet_optboolean(argv, argc, 12, false)) {
+        src = tic_map_texture;
+    }
+
+    ColorKey trans = tic_optcolorkey(argv, argc, 13);
+    TriDepth depth = tic_opttridepth(argv, argc, 14);
+
+    tic_mem* memory = (tic_mem*)getJanetMachine();
+    tic_api_ttri(memory,
+                 x1, y1,
+                 x2, y2,
+                 x3, y3,
+                 u1, v1,
+                 u2, v2,
+                 u3, v3,
+                 src,
+                 trans.colors, trans.count,
+                 depth.z[0], depth.z[1], depth.z[2], depth.on);
+
     return janet_wrap_nil();
 }
 
