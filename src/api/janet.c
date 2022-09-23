@@ -860,13 +860,10 @@ static Janet janet_music(int32_t argc, Janet* argv)
 static Janet janet_sync(int32_t argc, Janet* argv)
 {
     janet_arity(argc, 0, 3);
-    u32 mask = 0;
-    s32 bank = 0;
-    bool toCart = false;
 
-    if (argc >= 1) mask = janet_getinteger(argv, 0);
-    if (argc >= 2) bank = janet_getinteger(argv, 1);
-    if (argc >= 3) toCart = janet_getboolean(argv, 2);
+    u32 mask = janet_optinteger(argv, argc, 0, 0);
+    s32 bank = janet_optinteger(argv, argc, 1, 0);
+    bool toCart = janet_optboolean(argv, argc, 2, false);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
     tic_api_sync(memory, mask, bank, toCart);
