@@ -983,13 +983,16 @@ static bool initJanet(tic_mem* tic, const char* code)
 
     Janet result = janet_wrap_nil();
 
-    if (janet_dostring(core->currentVM, code, __func__, &result)) {
+    if (janet_dostring(core->currentVM, code, NULL, &result)) {
+        JanetFiber *fiber = janet_current_fiber();
+        janet_stacktrace(fiber, result);
         core->data->error(core->data->data, (const char*)janet_unwrap_string(result));
         return false;
     }
 
     return true;
 }
+
 
 static void evalJanet(tic_mem* tic, const char* code)
 {
@@ -1000,7 +1003,9 @@ static void evalJanet(tic_mem* tic, const char* code)
 
     Janet result = janet_wrap_nil();
 
-    if (janet_dostring(env, code, __func__, &result)) {
+    if (janet_dostring(env, code, NULL, &result)) {
+        JanetFiber *fiber = janet_current_fiber();
+        janet_stacktrace(fiber, result);
         core->data->error(core->data->data, (const char*)janet_unwrap_string(result));
     }
 }
@@ -1026,6 +1031,8 @@ static void callJanetTick(tic_mem* tic)
     JanetSignal status = janet_pcall(fn, 0, NULL, &result, NULL);
 
     if (status != JANET_SIGNAL_OK) {
+        JanetFiber *fiber = janet_current_fiber();
+        janet_stacktrace(fiber, result);
         core->data->error(core->data->data, (const char*)janet_unwrap_string(result));
     }
 }
