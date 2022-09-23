@@ -29,12 +29,12 @@
 
                 (when (or (> (+ (self :x) width) SCREEN_WIDTH)
                           (< (self :x) 0))
-                  (set self :x 0)
+                  (put self :x 0)
                   (*= (self :speed-x) -1))
 
                 (when (or (> (+ (self :y) height) SCREEN_HEIGHT)
                           (< (self :y) 0))
-                  (set self :y 0)
+                  (put self :y 0)
                   (*= (self :speed-y) -1)))}))
 
 (defn init-fps []
