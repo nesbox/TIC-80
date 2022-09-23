@@ -378,6 +378,50 @@ static Janet janet_sfx(int32_t argc, Janet* argv)
 
 static Janet janet_map(int32_t argc, Janet* argv)
 {
+    janet_arity(argc, 0, 8);
+
+    s32 x = (s32)janet_optinteger(argv, argc, 0, 0);
+    s32 y = (s32)janet_optinteger(argv, argc, 1, 0);
+    s32 w = (s32)janet_optinteger(argv, argc, 2, 30);
+    s32 h = (s32)janet_optinteger(argv, argc, 3, 17);
+    s32 sx = (s32)janet_optinteger(argv, argc, 4, 0);
+    s32 sy = (s32)janet_optinteger(argv, argc, 5, 0);
+
+    static u8 colors[TIC_PALETTE_SIZE];
+    s32 count = 0;
+
+    if (argc > 6)
+    {
+        if (janet_checktypes(argv[6], JANET_TFLAG_INDEXED))
+        {
+            JanetView colorkeys = janet_getindexed(argv, 6);
+            s32 list_count = colorkeys.len;
+            for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+            {
+                if (i < list_count)
+                {
+                    colors[i] = (s32)janet_getinteger(colorkeys.items, i);
+                    count++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+        else
+        {
+            colors[0] = (s32)janet_getnumber(argv, 6);
+            count = 1;
+        }
+    }
+
+    s32 scale = (s32)janet_optnumber(argv, argc, 7, 1);
+    // XXX: handle remap function
+
+    tic_mem* memory = (tic_mem*)getJanetMachine();
+    tic_api_map(memory, x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
+
     return janet_wrap_nil();
 }
 
