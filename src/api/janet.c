@@ -274,6 +274,50 @@ static Janet janet_rectb(int32_t argc, Janet* argv)
 
 static Janet janet_spr(int32_t argc, Janet* argv)
 {
+    janet_arity(argc, 3, 9);
+
+    s32 index = (s32)janet_getinteger(argv, 0);
+    s32 x = (s32)janet_getinteger(argv, 1);
+    s32 y = (s32)janet_getinteger(argv, 2);
+
+    static u8 colors[TIC_PALETTE_SIZE];
+    s32 count = 0;
+
+    if (argc > 3)
+    {
+        if (janet_checktypes(argv[3], JANET_TFLAG_INDEXED))
+        {
+            JanetView colorkeys = janet_getindexed(argv, 3);
+            s32 list_count = colorkeys.len;
+            for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+            {
+                if (i < list_count)
+                {
+                    colors[i] = (s32)janet_getinteger(colorkeys.items, i);
+                    count++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+        else
+        {
+            colors[0] = (s32)janet_getnumber(argv, 3);
+            count = 1;
+        }
+    }
+
+    s32 scale = (s32)janet_optnumber(argv, argc, 4, 1);
+    tic_flip flip = (s32)janet_optnumber(argv, argc, 5, tic_no_flip);
+    tic_rotate rotate = (s32)janet_optnumber(argv, argc, 6, tic_no_rotate);
+    s32 w = (s32)janet_optnumber(argv, argc, 7, 1);
+    s32 h = (s32)janet_optnumber(argv, argc, 8, 1);
+
+    tic_mem* memory = (tic_mem*)getJanetMachine();
+    tic_api_spr(memory, index, x, y, w, h, colors, count, scale, flip, rotate);
+
     return janet_wrap_nil();
 }
 
@@ -948,7 +992,7 @@ static const tic_outline_item* getJanetOutline(const char* code, s32* size)
 
 /* ***************** */
 
-const tic_script_config JanetSyntaxConfig = 
+const tic_script_config JanetSyntaxConfig =
 {
     .id                 = 18,
     .name               = "janet",
