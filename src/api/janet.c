@@ -855,7 +855,7 @@ static Janet janet_clip(int32_t argc, Janet* argv)
         s32 h = janet_getinteger(argv, 3);
         tic_api_clip(memory, x, y, w, h);
     } else {
-        // XXX error, it needs to be exactly 0 OR 4
+        janet_panic("Error: must provide exactly 0 or 4 args.");
     }
 
     return janet_wrap_nil();
