@@ -378,7 +378,7 @@ static Janet janet_sfx(int32_t argc, Janet* argv)
 
 static Janet janet_map(int32_t argc, Janet* argv)
 {
-    janet_arity(argc, 0, 8);
+    janet_arity(argc, 0, 9);
 
     s32 x = (s32)janet_optinteger(argv, argc, 0, 0);
     s32 y = (s32)janet_optinteger(argv, argc, 1, 0);
@@ -451,11 +451,24 @@ static Janet janet_mset(int32_t argc, Janet* argv)
 
 static Janet janet_peek(int32_t argc, Janet* argv)
 {
-    return janet_wrap_nil();
+    janet_arity(argc, 1, 2);
+    s32 address = (s32)janet_getinteger(argv, 0);
+    s32 bits = (s32)janet_optinteger(argv, argc, 1, BITS_IN_BYTE);
+
+    tic_mem* memory = (tic_mem*)getJanetMachine();
+    return janet_wrap_integer(tic_api_peek(memory, address, bits));
 }
 
 static Janet janet_poke(int32_t argc, Janet* argv)
 {
+    janet_arity(argc, 2, 3);
+    s32 address = (s32)janet_getinteger(argv, 0);
+    u8 value = (s32)janet_getinteger(argv, 1);
+    s32 bits = (s32)janet_optinteger(argv, argc, 2, BITS_IN_BYTE);
+
+    tic_mem* memory = (tic_mem*)getJanetMachine();
+    tic_api_poke(memory, address, value, bits);
+
     return janet_wrap_nil();
 }
 
