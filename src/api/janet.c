@@ -960,6 +960,19 @@ static Janet janet_fset(int32_t argc, Janet* argv)
 
 /* ***************** */
 
+// TODO: fix this... currently prints out nonsense
+static void reportError(tic_core* core, Janet result)
+{
+    JanetFiber *fiber = janet_current_fiber();
+    janet_stacktrace(fiber, result);
+
+    Janet pre_error;
+    (void)janet_resolve(core->currentVM, janet_csymbol("err"), &pre_error);
+    JanetBuffer *errorBuffer = janet_unwrap_buffer(pre_error);
+
+    core->data->error(core->data->data, (const char*)errorBuffer->data);
+}
+
 static void closeJanet(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
@@ -981,12 +994,15 @@ static bool initJanet(tic_mem* tic, const char* code)
     core->currentVM = (JanetTable*)janet_core_env(NULL);
     janet_cfuns(core->currentVM, "tic", janet_c_functions);
 
+
+    janet_var(core->currentVM, "err",
+              janet_wrap_buffer(janet_buffer(1024)),
+              "custom error buffer");
+
     Janet result = janet_wrap_nil();
 
     if (janet_dostring(core->currentVM, code, NULL, &result)) {
-        JanetFiber *fiber = janet_current_fiber();
-        janet_stacktrace(fiber, result);
-        core->data->error(core->data->data, (const char*)janet_unwrap_string(result));
+        reportError(core, result);
         return false;
     }
 
@@ -1004,9 +1020,7 @@ static void evalJanet(tic_mem* tic, const char* code)
     Janet result = janet_wrap_nil();
 
     if (janet_dostring(env, code, NULL, &result)) {
-        JanetFiber *fiber = janet_current_fiber();
-        janet_stacktrace(fiber, result);
-        core->data->error(core->data->data, (const char*)janet_unwrap_string(result));
+        reportError(core, result);
     }
 }
 
@@ -1031,9 +1045,7 @@ static void callJanetTick(tic_mem* tic)
     JanetSignal status = janet_pcall(fn, 0, NULL, &result, NULL);
 
     if (status != JANET_SIGNAL_OK) {
-        JanetFiber *fiber = janet_current_fiber();
-        janet_stacktrace(fiber, result);
-        core->data->error(core->data->data, (const char*)janet_unwrap_string(result));
+        reportError(core, result);
     }
 }
 
@@ -1057,7 +1069,7 @@ static void callJanetBoot(tic_mem* tic)
     JanetSignal status = janet_pcall(fn, 0, NULL, &result, NULL);
 
     if (status != JANET_SIGNAL_OK) {
-        core->data->error(core->data->data, (const char*)janet_unwrap_string(result));
+        reportError(core, result);
     }
 }
 
@@ -1082,7 +1094,7 @@ static void callJanetIntCallback(tic_mem* tic, s32 value, void* data, const char
     JanetSignal status = janet_pcall(fn, 1, argv, &result, NULL);
 
     if (status != JANET_SIGNAL_OK) {
-        core->data->error(core->data->data, (const char*)janet_unwrap_string(result));
+        reportError(core, result);
     }
 }
 
