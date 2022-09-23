@@ -683,25 +683,28 @@ static Janet janet_font(int32_t argc, Janet* argv)
     return janet_wrap_integer(width);
 }
 
-/*
- * Need to understand this one too
- */
 static Janet janet_mouse(int32_t argc, Janet* argv)
 {
-#if 0
-    janet_fixarity(argv, 0);
+    janet_fixarity(argc, 0);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_point point = tic_api_mouse(memory);
+    Janet result[7];
 
-    Janet result[] = {
-        janet_wrap_integer(point.x),
-        janet_wrap_integer(point.y),
-    };
+    {
+        tic_point point = tic_api_mouse(memory);
+        result[0] = janet_wrap_integer(point.x);
+        result[1] = janet_wrap_integer(point.y);
+    }
 
-    return janet_wrap_tuple(&result)
-#endif
-    return janet_wrap_nil();
+    tic_core* core = getJanetMachine();
+    const tic80_mouse* mouse = &core->memory.ram->input.mouse;
+    result[2] = janet_wrap_boolean(mouse->left);
+    result[3] = janet_wrap_boolean(mouse->middle);
+    result[4] = janet_wrap_boolean(mouse->right);
+    result[5] = janet_wrap_number(mouse->scrollx);
+    result[6] = janet_wrap_number(mouse->scrolly);
+
+    return janet_wrap_tuple(&result);
 }
 
 static Janet janet_circ(int32_t argc, Janet* argv)
