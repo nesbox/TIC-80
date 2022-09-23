@@ -661,34 +661,26 @@ static Janet janet_exit(int32_t argc, Janet* argv)
     return janet_wrap_nil();
 }
 
-/*
- * XXX I need to better understand this
- */
 static Janet janet_font(int32_t argc, Janet* argv)
 {
-#if 0
-    janet_arity(argc, 6, 8);
-    bool fixed = false;
-    int32_t scale = 1;
-    bool alt = false;
+    janet_arity(argc, 3, 9);
 
     const char* text = janet_getcstring(argv, 0);
-    int32_t x = janet_getinteger(argv, 1);
-    int32_t y = janet_getinteger(argv, 2);
-    // XXX u8* trans_colors is an array
-    int32_t trans_count = janet_getinteger(argv, 4);
-    int32_t w = janet_getinteger(argv, 6);
+    s32 x = (s32)janet_getinteger(argv, 1);
+    s32 y = (s32)janet_getinteger(argv, 2);
 
-    if (argc >= 7) fixed = janet_getboolean(argv, 6);
-    if (argc >= 8) scale = janet_getinteger(argv, 7);
-    if (argc >= 9)
+    u8 chromakey = (u8)janet_optinteger(argv, argc, 3, 0);
+    s32 w= (s32)janet_optinteger(argv, argc, 4, 0);
+    s32 h = (s32)janet_optinteger(argv, argc, 5, 0);
+    bool fixed = janet_optboolean(argv, argc, 6, false);
+    s32 scale = (s32)janet_optinteger(argv, argc, 7, 1);
+    bool alt = janet_optboolean(argv, argc, 8, false);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    int32_t width = tic_api_font(tic, text, x, y, chromakey, 1, width,
-    heigh, fixed, scale, alt);
+    int32_t width = tic_api_font(memory,
+                                 text, x, y, &chromakey, 1,
+                                 w, h, fixed, scale, alt);
     return janet_wrap_integer(width);
-#endif
-    return janet_wrap_nil();
 }
 
 /*
