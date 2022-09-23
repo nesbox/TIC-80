@@ -59,7 +59,7 @@
   (+= t 1)
 
   # Input
-  (cond (btn 0) (for i 0 5 (array/push bunnies (new-bunny)))
+  (cond (btn 0) (for i 0 5 (array/push bunnies (init-bunny)))
         (btn 1) (for i 0 5 (array/pop bunnies)))
 
   # Update
