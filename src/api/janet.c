@@ -170,6 +170,40 @@ static inline tic_core* getJanetMachine(void)
 
 typedef struct
 {
+    s32 note;
+    s32 octave;
+} SFXNote;
+
+static SFXNote tic_optsfxnote(Janet *argv, int32_t argc, int32_t n)
+{
+    SFXNote sfxNote = {-1, -1};
+
+    if (argc < n)
+    {
+        return sfxNote;
+    }
+    else if (janet_checktype(argv[n], JANET_STRING))
+    {
+        const char *noteStr = janet_getcstring(argv, n);
+
+        if (!tic_tool_parse_note(noteStr, &sfxNote.note, &sfxNote.octave))
+        {
+            janet_panicf("invalid note, should be like C#4, got %s\n", noteStr);
+        }
+
+        return sfxNote;
+    }
+    else
+    {
+        s32 id = janet_getinteger(argv, n);
+        sfxNote.note = id % NOTES;
+        sfxNote.octave = id / NOTES;
+        return sfxNote;
+    }
+}
+
+typedef struct
+{
     u8 colors[TIC_PALETTE_SIZE];
     int32_t count;
 } ColorKey;
@@ -383,34 +417,27 @@ static Janet janet_btnp(int32_t argc, Janet* argv)
     return janet_wrap_integer(tic_api_btnp(memory, id, hold, period));
 }
 
-/*
- * XXX need to deal with 'note' being a string, potentially -- with
- * tic_tool_parse_note()
- */
 static Janet janet_sfx(int32_t argc, Janet* argv)
 {
-#if 0
     janet_arity(argc, 1, 6);
-    s32 note = -1;
-    s32 duration = -1;
-    s32 channel = 0;
-    s32 volumes[TIC80_SAMPLE_CHANNELS] = {MAX_VOLUME, MAX_VOLUME};
-    s32 speed = SFX_DEF_SPEED;
 
     s32 index = (s32)janet_getinteger(argv, 0);
-    if (argc >= 2) note = (s32)janet_getinteger(argv, 1);
-    if (argc >= 3) duration = (s32)janet_getinteger(argv, 2);
-    if (argc >= 4) channel = (s32)janet_getinteger(argv, 3);
-    if (argc >= 5) {
-        volumes[0] = (s32)janet_getinteger(argv, 4);
-        volumes[1] = (s32)janet_getinteger(argv, 4);
-    }
-    if (argc >= 6) speed = (s32)janet_getinteger(argv, 5);
+    SFXNote sfxNote = tic_optsfxnote(argv, argc, 1);
+    s32 duration = (s32)janet_optinteger(argv, argc, 2, -1);
+    s32 channel = (s32)janet_optinteger(argv, argc, 3, 0);
+
+    s32 volumes[TIC80_SAMPLE_CHANNELS] = {0};
+    volumes[0] = (s32)janet_optinteger(argv, argc, 4, MAX_VOLUME);
+    volumes[1] = volumes[0];
+
+    s32 speed = (s32)janet_optinteger(argv, argc, 5, SFX_DEF_SPEED);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_sfx(memory, index, note, octave, duration, channel, volumes[0] & 0xf, volumes[1] & 0xf, speed);
-    return janet_wrap_nil();
-#endif
+    tic_api_sfx(memory, index,
+                sfxNote.note, sfxNote.octave,
+                duration, channel,
+                volumes[0] & 0xf, volumes[1] & 0xf,
+                speed);
     return janet_wrap_nil();
 }
 
