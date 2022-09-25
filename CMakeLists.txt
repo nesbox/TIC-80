@@ -255,11 +255,11 @@ find_program(RAKE rake)
 if(NOT RAKE)
     set(BUILD_WITH_MRUBY_DEFAULT FALSE)
 else()
-    set(BUILD_WITH_MRUBY_DEFAULT TRUE)
+  set(BUILD_WITH_MRUBY_DEFAULT FALSE)
 endif()
 option(BUILD_WITH_MRUBY "mruby Enabled" ${BUILD_WITH_MRUBY_DEFAULT})
 message("BUILD_WITH_MRUBY: ${BUILD_WITH_MRUBY}")
-
+set(BUILD_WITH_MRUBY FALSE)
 if(BUILD_WITH_MRUBY)
     set(MRUBY_BUILDDIR ${CMAKE_SOURCE_DIR}/build/mruby)
     set(MRUBY_DIR ${THIRDPARTY_DIR}/mruby)
@@ -321,7 +321,7 @@ endif()
 ################################
 
 set(WASM_DIR ${THIRDPARTY_DIR}/wasm3/source)
-set(WASM_SRC 
+set(WASM_SRC
     ${WASM_DIR}/m3_bind.c
     ${WASM_DIR}/m3_code.c
     ${WASM_DIR}/m3_compile.c
@@ -430,10 +430,10 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         ${TIC80CORE_DIR}/core/io.c
         ${TIC80CORE_DIR}/core/sound.c
         ${TIC80CORE_DIR}/api/js.c
-        ${TIC80CORE_DIR}/api/lua.c 
-        ${TIC80CORE_DIR}/api/moonscript.c 
-        ${TIC80CORE_DIR}/api/fennel.c 
-        ${TIC80CORE_DIR}/api/wren.c 
+        ${TIC80CORE_DIR}/api/lua.c
+        ${TIC80CORE_DIR}/api/moonscript.c
+        ${TIC80CORE_DIR}/api/fennel.c
+        ${TIC80CORE_DIR}/api/wren.c
         ${TIC80CORE_DIR}/api/wasm.c
         ${TIC80CORE_DIR}/api/squirrel.c
         ${TIC80CORE_DIR}/api/mruby.c
@@ -464,13 +464,13 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
             ${CMAKE_SOURCE_DIR}/src)
 
     target_link_libraries(tic80core${SCRIPT}
-        lua 
-        lpeg 
-        wren 
-        wasm 
-        squirrel 
-        duktape 
-        blipbuf 
+        lua
+        lpeg
+        wren
+        wasm
+        squirrel
+        duktape
+        blipbuf
         zlib
         janet
     )
@@ -661,11 +661,11 @@ IS_DOS
         if("${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoWii" OR "${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoGameCube" OR GAMECUBE OR WII OR IS_DOS)
           add_custom_command(TARGET tic80_libretro
                POST_BUILD
-                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${CMAKE_BINARY_DIR}/lib/libzlib.a ${MRUBY_LIB})
+               COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libjanet.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${CMAKE_BINARY_DIR}/lib/libzlib.a ${MRUBY_LIB})
         else()
           add_custom_command(TARGET tic80_libretro
                POST_BUILD
-                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${MRUBY_LIB})
+               COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libjanet.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${MRUBY_LIB})
         endif()
     else()
         add_library(tic80_libretro SHARED
@@ -797,8 +797,8 @@ if(BUILD_DEMO_CARTS)
 
     # we need to build these separatly combining both the project
     # and the external WASM binary chunk since projects do not
-    # include BINARY chunks 
-    
+    # include BINARY chunks
+
     file(GLOB WASM_DEMOS
         ${CMAKE_SOURCE_DIR}/demos/wasm/*.wasmp
         ${CMAKE_SOURCE_DIR}/demos/bunny/wasmmark/*.wasmp
@@ -1257,6 +1257,7 @@ if(BUILD_STUB)
     MACRO_STUB(js)
     MACRO_STUB(wren)
     MACRO_STUB(squirrel)
+    MACRO_STUB(janet)
     MACRO_STUB(ruby)
     MACRO_STUB(wasm)
 
