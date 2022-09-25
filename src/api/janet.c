@@ -998,9 +998,6 @@ static Janet janet_fset(int32_t argc, Janet* argv)
 // TODO: fix this... currently prints out nothing
 static void reportError(tic_core* core, Janet result)
 {
-    JanetFiber *fiber = janet_current_fiber();
-    janet_stacktrace(fiber, result);
-
     JanetBuffer *errBuffer = janet_unwrap_buffer(janet_dyn("err"));
     core->data->error(core->data->data, (const char*)errBuffer->data);
 }
@@ -1030,7 +1027,7 @@ static bool initJanet(tic_mem* tic, const char* code)
     janet_setdyn("err", janet_wrap_buffer(err_buffer));
 
     Janet result = janet_wrap_nil();
-    if (janet_dostring(core->currentVM, code, NULL, &result)) {
+    if (janet_dostring(core->currentVM, code, "src", &result)) {
         reportError(core, result);
         return false;
     }
