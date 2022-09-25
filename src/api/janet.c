@@ -451,9 +451,9 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
     JanetFunction* remap_fn = (JanetFunction*)data;
 
     Janet *argv = janet_tuple_begin(3);
-    argv[0] = janet_wrap_integer(x);
-    argv[1] = janet_wrap_integer(y);
-    argv[2] = janet_wrap_integer(result->index);
+    argv[0] = janet_wrap_integer(result->index);
+    argv[1] = janet_wrap_integer(x);
+    argv[2] = janet_wrap_integer(y);
     janet_tuple_end(argv);
 
     Janet jresult = janet_call(remap_fn, 3, argv);
@@ -461,14 +461,14 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
     if (janet_checktypes(jresult, JANET_TFLAG_INDEXED))
     {
         const Janet *jresult_tuple = janet_unwrap_tuple(jresult);
-        u8 jresult_length = janet_tuple_length(jresult_tuple);
-
+        u8 retc = janet_tuple_length(jresult_tuple);
         result->index = janet_getinteger(jresult_tuple, 0);
-        result->flip = janet_optinteger(jresult_tuple, jresult_length, 1,  0);
-        result->rotate = janet_optinteger(jresult_tuple, jresult_length, 2,  0);
+        result->flip = janet_optinteger(jresult_tuple, retc, 1,  0);
+        result->rotate = janet_optinteger(jresult_tuple, retc, 2,  0);
     }
     else if (janet_checkint(jresult))
     {
+        printf("rtile: %i\n", janet_unwrap_integer(jresult));
         result->index = janet_unwrap_integer(jresult);
     }
 }
