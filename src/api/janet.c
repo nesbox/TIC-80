@@ -211,17 +211,18 @@ static ColorKey tic_optcolorkey(Janet *argv, int32_t argc, int32_t n)
     ColorKey colorkey = {0};
     colorkey.count = 0;
 
-    if (argc >= n)
+    if (argc > n)
     {
         if (janet_checktypes(argv[n], JANET_TFLAG_INDEXED))
         {
             JanetView keys = janet_getindexed(argv, n);
             s32 list_count = keys.len;
+
             for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
             {
                 if (i < list_count)
                 {
-                    colorkey.colors[i] = (s32)janet_getinteger(keys.items, i);
+                    colorkey.colors[i] = (s32)janet_getinteger(keys.items, i);;
                     colorkey.count++;
                 }
                 else
@@ -230,10 +231,14 @@ static ColorKey tic_optcolorkey(Janet *argv, int32_t argc, int32_t n)
                 }
             }
         }
-        else
+        else if (janet_checkint(argv[n]))
         {
             colorkey.colors[0] = (s32)janet_getnumber(argv, n);
             colorkey.count = 1;
+        }
+        else
+        {
+            janet_panic("Error: colorkeys must be either int or list of int");
         }
     }
 
@@ -450,7 +455,8 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
     janet_tuple_end(argv);
 
     Janet jresult = janet_wrap_nil();
-    JanetSignal status = janet_pcall(remap_fn, 3, argv, &jresult, NULL);
+    JanetFiber *fiber = janet_current_fiber();
+    JanetSignal status = janet_pcall(remap_fn, 3, argv, &jresult, &fiber);
 
     if (janet_tuple_length(&jresult) >= 1) {
         result->index = janet_getinteger(&jresult, 0);
@@ -471,17 +477,20 @@ static Janet janet_map(int32_t argc, Janet* argv)
 
     s32 x = (s32)janet_optinteger(argv, argc, 0, 0);
     s32 y = (s32)janet_optinteger(argv, argc, 1, 0);
+
     s32 w = (s32)janet_optinteger(argv, argc, 2, 30);
     s32 h = (s32)janet_optinteger(argv, argc, 3, 17);
+
     s32 sx = (s32)janet_optinteger(argv, argc, 4, 0);
     s32 sy = (s32)janet_optinteger(argv, argc, 5, 0);
 
     ColorKey colorkey = tic_optcolorkey(argv, argc, 6);
 
     s32 scale = (s32)janet_optnumber(argv, argc, 7, 1);
+
     tic_mem* memory = (tic_mem*)getJanetMachine();
 
-    if (argc < 8)
+    if (argc < 9)
     {
         tic_api_map(memory, x, y, w, h, sx, sy,
                     colorkey.colors, colorkey.count,
@@ -999,6 +1008,7 @@ static Janet janet_fset(int32_t argc, Janet* argv)
 static void reportError(tic_core* core, Janet result)
 {
     JanetBuffer *errBuffer = janet_unwrap_buffer(janet_dyn("err"));
+    janet_buffer_push_cstring(errBuffer, "huh");
     core->data->error(core->data->data, (const char*)errBuffer->data);
 }
 
