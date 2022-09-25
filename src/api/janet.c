@@ -441,7 +441,7 @@ static Janet janet_sfx(int32_t argc, Janet* argv)
 
 static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
 {
-    JanetFunction* remap = (JanetFunction*)data;
+    JanetFunction* remap_fn = (JanetFunction*)data;
 
     Janet *argv = janet_tuple_begin(3);
     argv[0] = janet_wrap_integer(x);
@@ -449,7 +449,8 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
     argv[2] = janet_wrap_integer(result->index);
     janet_tuple_end(argv);
 
-    Janet jresult = janet_call(remap, 3, argv);
+    Janet jresult = janet_wrap_nil();
+    JanetSignal status = janet_pcall(remap_fn, 3, argv, &jresult, NULL);
 
     if (janet_tuple_length(&jresult) >= 1) {
         result->index = janet_getinteger(&jresult, 0);
@@ -492,7 +493,7 @@ static Janet janet_map(int32_t argc, Janet* argv)
         tic_api_map(memory, x, y, w, h, sx, sy,
                     colorkey.colors, colorkey.count,
                     scale,
-                    remapCallback, &remap);
+                    remapCallback, remap);
     }
 
     return janet_wrap_nil();
