@@ -166,6 +166,8 @@ static inline tic_core* getJanetMachine(void)
     return CurrentMachine;
 }
 
+/* ***************** */
+
 typedef struct
 {
     s32 note;
@@ -1008,7 +1010,6 @@ static Janet janet_fset(int32_t argc, Janet* argv)
 static void reportError(tic_core* core, Janet result)
 {
     JanetBuffer *errBuffer = janet_unwrap_buffer(janet_dyn("err"));
-    janet_buffer_push_cstring(errBuffer, "huh");
     core->data->error(core->data->data, (const char*)errBuffer->data);
 }
 
