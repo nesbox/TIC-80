@@ -468,7 +468,6 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
     }
     else if (janet_checkint(jresult))
     {
-        printf("rtile: %i\n", janet_unwrap_integer(jresult));
         result->index = janet_unwrap_integer(jresult);
     }
 }
@@ -1011,6 +1010,9 @@ static void reportError(tic_core* core, Janet result)
 {
     JanetBuffer *errBuffer = janet_unwrap_buffer(janet_dyn("err"));
     core->data->error(core->data->data, errBuffer->data);
+
+    // reset buffer
+    errBuffer->count = 0;
 }
 
 static void closeJanet(tic_mem* tic)
@@ -1033,9 +1035,7 @@ static bool initJanet(tic_mem* tic, const char* code)
 
     core->currentVM = (JanetTable*)janet_core_env(NULL);
     janet_cfuns(core->currentVM, "tic", janet_c_functions);
-
-    JanetBuffer *err_buffer = janet_buffer(0);
-    janet_setdyn("err", janet_wrap_buffer(err_buffer));
+    janet_setdyn("err", janet_wrap_buffer(janet_buffer(1024)));
 
     Janet result = janet_wrap_nil();
     if (janet_dostring(core->currentVM, code, "src", &result)) {
