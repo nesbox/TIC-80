@@ -995,7 +995,6 @@ static Janet janet_fset(int32_t argc, Janet* argv)
 
 /* ***************** */
 
-// TODO: fix this... currently prints out nothing
 static void reportError(tic_core* core, Janet result)
 {
     JanetBuffer *errBuffer = janet_unwrap_buffer(janet_dyn("err"));
