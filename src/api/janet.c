@@ -439,6 +439,31 @@ static Janet janet_sfx(int32_t argc, Janet* argv)
     return janet_wrap_nil();
 }
 
+static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
+{
+    JanetFunction* remap = (JanetFunction*)data;
+
+    Janet *argv = janet_tuple_begin(3);
+    argv[0] = janet_wrap_integer(x);
+    argv[1] = janet_wrap_integer(y);
+    argv[2] = janet_wrap_integer(result->index);
+    janet_tuple_end(argv);
+
+    Janet jresult = janet_call(remap, 3, argv);
+
+    if (janet_tuple_length(&jresult) >= 1) {
+        result->index = janet_getinteger(&jresult, 0);
+    }
+
+    if (janet_tuple_length(&jresult) >= 2) {
+        result->flip = janet_getinteger(&jresult, 1);
+    }
+
+    if (janet_tuple_length(&jresult) >= 3) {
+        result->rotate = janet_getinteger(&jresult, 2);
+    }
+}
+
 static Janet janet_map(int32_t argc, Janet* argv)
 {
     janet_arity(argc, 0, 9);
@@ -453,12 +478,22 @@ static Janet janet_map(int32_t argc, Janet* argv)
     ColorKey colorkey = tic_optcolorkey(argv, argc, 6);
 
     s32 scale = (s32)janet_optnumber(argv, argc, 7, 1);
-    // XXX: handle remap function
-
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_map(memory, x, y, w, h, sx, sy,
-                colorkey.colors, colorkey.count,
-                scale, NULL, NULL);
+
+    if (argc < 8)
+    {
+        tic_api_map(memory, x, y, w, h, sx, sy,
+                    colorkey.colors, colorkey.count,
+                    scale, NULL, NULL);
+    }
+    else
+    {
+        JanetFunction *remap = janet_getfunction(argv, 8);
+        tic_api_map(memory, x, y, w, h, sx, sy,
+                    colorkey.colors, colorkey.count,
+                    scale,
+                    remapCallback, &remap);
+    }
 
     return janet_wrap_nil();
 }
@@ -960,17 +995,14 @@ static Janet janet_fset(int32_t argc, Janet* argv)
 
 /* ***************** */
 
-// TODO: fix this... currently prints out nonsense
+// TODO: fix this... currently prints out nothing
 static void reportError(tic_core* core, Janet result)
 {
     JanetFiber *fiber = janet_current_fiber();
     janet_stacktrace(fiber, result);
 
-    Janet pre_error;
-    (void)janet_resolve(core->currentVM, janet_csymbol("err"), &pre_error);
-    JanetBuffer *errorBuffer = janet_unwrap_buffer(pre_error);
-
-    core->data->error(core->data->data, (const char*)errorBuffer->data);
+    JanetBuffer *errBuffer = janet_unwrap_buffer(janet_dyn("err"));
+    core->data->error(core->data->data, (const char*)errBuffer->data);
 }
 
 static void closeJanet(tic_mem* tic)
@@ -994,13 +1026,10 @@ static bool initJanet(tic_mem* tic, const char* code)
     core->currentVM = (JanetTable*)janet_core_env(NULL);
     janet_cfuns(core->currentVM, "tic", janet_c_functions);
 
-
-    janet_var(core->currentVM, "err",
-              janet_wrap_buffer(janet_buffer(1024)),
-              "custom error buffer");
+    JanetBuffer *err_buffer = janet_buffer(0);
+    janet_setdyn("err", janet_wrap_buffer(err_buffer));
 
     Janet result = janet_wrap_nil();
-
     if (janet_dostring(core->currentVM, code, NULL, &result)) {
         reportError(core, result);
         return false;
@@ -1040,9 +1069,10 @@ static void callJanetTick(tic_mem* tic)
         return;
     }
 
-    Janet result = janet_wrap_nil();
     JanetFunction *fn = janet_unwrap_function(pre_fn);
-    JanetSignal status = janet_pcall(fn, 0, NULL, &result, NULL);
+    Janet result = janet_wrap_nil();
+    JanetFiber *fiber = janet_current_fiber();
+    JanetSignal status = janet_pcall(fn, 0, NULL, &result, &fiber);
 
     if (status != JANET_SIGNAL_OK) {
         reportError(core, result);
