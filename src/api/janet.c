@@ -456,20 +456,20 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
     argv[2] = janet_wrap_integer(result->index);
     janet_tuple_end(argv);
 
-    Janet jresult = janet_wrap_nil();
-    JanetFiber *fiber = janet_current_fiber();
-    JanetSignal status = janet_pcall(remap_fn, 3, argv, &jresult, &fiber);
+    Janet jresult = janet_call(remap_fn, 3, argv);
 
-    if (janet_tuple_length(&jresult) >= 1) {
-        result->index = janet_getinteger(&jresult, 0);
+    if (janet_checktypes(jresult, JANET_TFLAG_INDEXED))
+    {
+        const Janet *jresult_tuple = janet_unwrap_tuple(jresult);
+        u8 jresult_length = janet_tuple_length(jresult_tuple);
+
+        result->index = janet_getinteger(jresult_tuple, 0);
+        result->flip = janet_optinteger(jresult_tuple, jresult_length, 1,  0);
+        result->rotate = janet_optinteger(jresult_tuple, jresult_length, 2,  0);
     }
-
-    if (janet_tuple_length(&jresult) >= 2) {
-        result->flip = janet_getinteger(&jresult, 1);
-    }
-
-    if (janet_tuple_length(&jresult) >= 3) {
-        result->rotate = janet_getinteger(&jresult, 2);
+    else if (janet_checkint(jresult))
+    {
+        result->index = janet_unwrap_integer(jresult);
     }
 }
 
@@ -1010,7 +1010,7 @@ static Janet janet_fset(int32_t argc, Janet* argv)
 static void reportError(tic_core* core, Janet result)
 {
     JanetBuffer *errBuffer = janet_unwrap_buffer(janet_dyn("err"));
-    core->data->error(core->data->data, (const char*)errBuffer->data);
+    core->data->error(core->data->data, errBuffer->data);
 }
 
 static void closeJanet(tic_mem* tic)
