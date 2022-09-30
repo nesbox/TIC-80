@@ -13,7 +13,7 @@
 
 /* These settings all affect linking, so use cautiously. */
 /* #define JANET_SINGLE_THREADED */
-#define JANET_NO_DYNAMIC_MODULES
+/* #define JANET_NO_DYNAMIC_MODULES */
 /* #define JANET_NO_NANBOX */
 /* #define JANET_API __attribute__((visibility ("default"))) */
 
@@ -22,13 +22,13 @@
  * certain Janet libraries should be expected not to work. */
 /* #define JANET_NO_DOCSTRINGS */
 /* #define JANET_NO_SOURCEMAPS */
-/* #define JANET_REDUCED_OS */
+#define JANET_REDUCED_OS
 /* #define JANET_NO_PROCESSES */
 /* #define JANET_NO_ASSEMBLER */
 /* #define JANET_NO_PEG */
 #define JANET_NO_NET
 /* #define JANET_NO_INT_TYPES */
-/* #define JANET_NO_EV */
+#define JANET_NO_EV
 /* #define JANET_NO_REALPATH */
 /* #define JANET_NO_SYMLINKS */
 /* #define JANET_NO_UMASK */
