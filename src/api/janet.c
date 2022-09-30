@@ -104,7 +104,7 @@ static const JanetReg janet_c_functions[] =
     {"btn", janet_btn, NULL},
     {"btnp", janet_btnp, NULL},
     {"sfx", janet_sfx, NULL},
-    {"map", janet_map, NULL},
+    {"tmap", janet_map, NULL},
     {"mget", janet_mget, NULL},
     {"mset", janet_mset, NULL},
     {"peek", janet_peek, NULL},
@@ -411,15 +411,14 @@ static Janet janet_btn(int32_t argc, Janet* argv)
 static Janet janet_btnp(int32_t argc, Janet* argv)
 {
     janet_arity(argc, 1, 3);
-    s32 hold = -1;
-    s32 period = -1;
 
     s32 id = (s32)janet_getinteger(argv, 0);
-    if (argc >= 2) hold = (s32)janet_getinteger(argv, 1);
-    if (argc >= 3) hold = (s32)janet_getinteger(argv, 2);
+    s32 hold = (s32)janet_optinteger(argv, argc, 1, -1);
+    s32 period = (s32)janet_optinteger(argv, argc, 2, -1);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    return janet_wrap_integer(tic_api_btnp(memory, id, hold, period));
+
+    return janet_wrap_boolean(tic_api_btnp(memory, id, hold, period));
 }
 
 static Janet janet_sfx(int32_t argc, Janet* argv)
@@ -1012,7 +1011,7 @@ static void reportError(tic_core* core, Janet result)
     core->data->error(core->data->data, errBuffer->data);
 
     // reset buffer
-    errBuffer->count = 0;
+    /* errBuffer->count = 0; */
 }
 
 static void closeJanet(tic_mem* tic)
