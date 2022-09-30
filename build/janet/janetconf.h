@@ -30,9 +30,9 @@
 /* #define JANET_NO_INT_TYPES */
 /* #define JANET_NO_EV */
 /* #define JANET_NO_REALPATH */
-#define JANET_NO_SYMLINKS
+/* #define JANET_NO_SYMLINKS */
 /* #define JANET_NO_UMASK */
-#define JANET_NO_THREADS
+/* #define JANET_NO_THREADS */
 
 /* Other settings */
 /* #define JANET_DEBUG */
