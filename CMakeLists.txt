@@ -418,7 +418,8 @@ add_custom_command(
 )
 add_library(janet ${THIRDPARTY_DIR}/janet/build/c/janet.c)
 target_include_directories(janet PUBLIC ${THIRDPARTY_DIR}/janet/src/include)
-target_include_directories(janet PUBLIC ${THIRDPARTY_DIR}/janet/src/conf)
+# target_include_directories(janet PUBLIC ${THIRDPARTY_DIR}/janet/src/conf)
+target_include_directories(janet PUBLIC ${CMAKE_SOURCE_DIR}/build/janet/)
 
 ################################
 # TIC-80 core
