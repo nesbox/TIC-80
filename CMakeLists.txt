@@ -413,7 +413,7 @@ target_include_directories(duktape INTERFACE ${THIRDPARTY_DIR}/duktape/src)
 
 add_custom_command(
   OUTPUT ${THIRDPARTY_DIR}/janet/build/c/janet.c
-  COMMAND make
+  COMMAND make build/c/janet.c
   WORKING_DIRECTORY ${THIRDPARTY_DIR}/janet/
 )
 add_library(janet ${THIRDPARTY_DIR}/janet/build/c/janet.c)
