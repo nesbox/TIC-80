@@ -23,7 +23,7 @@
 #include "api.h"
 #include "core.h"
 #include "tilesheet.h"
-#include "sokol_time_impl.c"
+#include "sokol_time_impl.h"
 
 #include <assert.h>
 #include <string.h>
