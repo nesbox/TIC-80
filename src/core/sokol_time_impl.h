@@ -20,8 +20,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#define SOKOL_IMPL
+#pragma once
 
-#include "sokol_app.h"
-#include "sokol_gfx.h"
-#include "sokol_audio.h"
+#include "sokol_time.h"

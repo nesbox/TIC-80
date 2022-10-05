@@ -420,6 +420,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         ${TIC80CORE_DIR}/core/draw.c
         ${TIC80CORE_DIR}/core/io.c
         ${TIC80CORE_DIR}/core/sound.c
+        ${TIC80CORE_DIR}/core/sokol_time_impl.c
         ${TIC80CORE_DIR}/api/js.c
         ${TIC80CORE_DIR}/api/lua.c 
         ${TIC80CORE_DIR}/api/moonscript.c 
@@ -451,6 +452,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
             ${THIRDPARTY_DIR}/fennel
         PUBLIC
             ${CMAKE_SOURCE_DIR}/include
+            ${THIRDPARTY_DIR}/sokol
             ${CMAKE_SOURCE_DIR}/src)
 
     target_link_libraries(tic80core${SCRIPT}

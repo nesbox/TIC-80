@@ -23,6 +23,7 @@
 #include "api.h"
 #include "core.h"
 #include "tilesheet.h"
+#include "sokol_time_impl.c"
 
 #include <assert.h>
 #include <string.h>
@@ -204,7 +205,7 @@ void tic_api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
 double tic_api_time(tic_mem* memory)
 {
     tic_core* core = (tic_core*)memory;
-    return (clock() - core->data->start) * 1000.0 / CLOCKS_PER_SEC;
+    return stm_ms(stm_since(core->data->start));
 }
 
 s32 tic_api_tstamp(tic_mem* memory)
@@ -459,7 +460,8 @@ void tic_core_tick(tic_mem* tic, tic_tick_data* data)
                 tic->input.keyboard = 1;
             else tic->input.data = -1;  // default is all enabled
 
-            data->start = clock();
+            stm_setup();
+            data->start = stm_now();
 
             // TODO: does where to fetch code from need to be a config option so this isn't hard
             // coded for just a single langage? perhaps change it later when we have a second script
@@ -499,7 +501,7 @@ void tic_core_pause(tic_mem* memory)
     if (core->data)
     {
         core->pause.time.start = core->data->start;
-        core->pause.time.paused = clock();
+        core->pause.time.paused = stm_now();
     }
 }
 
@@ -511,7 +513,7 @@ void tic_core_resume(tic_mem* memory)
     {
         memcpy(&core->state, &core->pause.state, sizeof(tic_core_state_data));
         memcpy(memory->ram, &core->pause.ram, sizeof(tic_ram));
-        core->data->start = core->pause.time.start + clock() - core->pause.time.paused;
+        core->data->start = core->pause.time.start + stm_now() - core->pause.time.paused;
         memory->input.data = core->pause.input;
     }
 }
