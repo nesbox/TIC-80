@@ -2,7 +2,8 @@
 
 static struct 
 {
-    sg_draw_state draw_state;
+    sg_bindings bindings;
+    sg_pipeline pipeline;
     int fb_width;
     int fb_height;
     int fb_aspect_scale_x;
@@ -106,13 +107,19 @@ void sokol_gfx_init(int w, int h, int sx, int sy, bool integer_scale, bool portr
     sokol_gfx.portrait_top_align = portrait_top_align;
 
     sg_setup(&(sg_desc){
-        .mtl_device = sapp_metal_get_device(),
-        .mtl_renderpass_descriptor_cb = sapp_metal_get_renderpass_descriptor,
-        .mtl_drawable_cb = sapp_metal_get_drawable,
-        .d3d11_device = sapp_d3d11_get_device(),
-        .d3d11_device_context = sapp_d3d11_get_device_context(),
-        .d3d11_render_target_view_cb = sapp_d3d11_get_render_target_view,
-        .d3d11_depth_stencil_view_cb = sapp_d3d11_get_depth_stencil_view
+        .context=(sg_context_desc){
+            .metal=&(sg_metal_context_desc){
+                .device = sapp_metal_get_device(),
+                .renderpass_descriptor_cb = sapp_metal_get_renderpass_descriptor,
+                .drawable_cb = sapp_metal_get_drawable
+            },
+            .d3d11=&(sg_d3d11_context_desc){
+                .device = sapp_d3d11_get_device(),
+                .device_context = sapp_d3d11_get_device_context(),
+                .render_target_view_cb = sapp_d3d11_get_render_target_view,
+                .depth_stencil_view_cb = sapp_d3d11_get_depth_stencil_view
+            }
+        }
     });
 
     /* the vertex buffer representing screen rectangle */
@@ -122,15 +129,17 @@ void sokol_gfx_init(int w, int h, int sx, int sy, bool integer_scale, bool portr
         0.0f, 1.0f, 0.0f, 0.0f,
         1.0f, 1.0f,  1.0f, 0.0f
     };
-    sokol_gfx.draw_state.vertex_buffers[0] = sg_make_buffer(&(sg_buffer_desc){
-        .size = sizeof(verts),
-        .content = verts,
+    sokol_gfx.bindings.vertex_buffers[0] = sg_make_buffer(&(sg_buffer_desc){
+        .data = (sg_range){
+            .size = sizeof(verts),
+            .ptr = &verts,
+        }
     });
 
     /* a shader to render a textured quad */
     sg_shader fsq_shd = sg_make_shader(&(sg_shader_desc){
         .fs.images = {
-            [0] = { .name="tex", .type=SG_IMAGETYPE_2D },
+            [0] = { .name="tex", .image_type=SG_IMAGETYPE_2D },
         },
         .vs.source = gfx_vs_src,
         .fs.source = gfx_fs_src,
@@ -139,16 +148,16 @@ void sokol_gfx_init(int w, int h, int sx, int sy, bool integer_scale, bool portr
     /* a pipeline-state-object for rendering */
     sg_pipeline_desc pip_desc = {
         .layout = {
-            .attrs[0] = { .name="in_pos", .sem_name="POS", .format=SG_VERTEXFORMAT_FLOAT2 },
-            .attrs[1] = { .name="in_uv", .sem_name="UV", .format=SG_VERTEXFORMAT_FLOAT2 }
+            .attrs[0] = { .format=SG_VERTEXFORMAT_FLOAT2 }, // pos
+            .attrs[1] = { .format=SG_VERTEXFORMAT_FLOAT2 } // uv
         },
         .shader = fsq_shd,
         .primitive_type = SG_PRIMITIVETYPE_TRIANGLE_STRIP
     };
-    sokol_gfx.draw_state.pipeline = sg_make_pipeline(&pip_desc);
+    sokol_gfx.pipeline = sg_make_pipeline(&pip_desc);
 
     /* a texture with the pixel data */
-    sokol_gfx.draw_state.fs_images[0] = sg_make_image(&(sg_image_desc){
+    sokol_gfx.bindings.fs_images[0] = sg_make_image(&(sg_image_desc){
         .width = sokol_gfx.fb_width,
         .height = sokol_gfx.fb_height,
         .pixel_format = SG_PIXELFORMAT_RGBA8,
@@ -160,9 +169,9 @@ void sokol_gfx_init(int w, int h, int sx, int sy, bool integer_scale, bool portr
     });
 }
 
-static const sg_pass_action gfx_draw_pass_action = {
-    .colors[0] = { .action = SG_ACTION_CLEAR, .val = { 0.05f, 0.05f, 0.05f, 1.0f } }
-};
+static const sg_pass_action gfx_draw_pass_action;// = {
+//    .colors[0] = { .action = SG_ACTION_CLEAR, .value = (sg_color){ .r=0.05f, .g=0.05f, .b=0.05f, .a=1.0f } }
+//};
 
 void sokol_calc_viewport(int* x, int* y, int* w, int* h)
 {
@@ -211,7 +220,7 @@ static void apply_viewport(void) {
 void sokol_gfx_draw(const uint32_t* ptr) {
 
     /* copy pixel data into the source texture */
-    sg_update_image(sokol_gfx.draw_state.fs_images[0], &(sg_image_content){
+    sg_update_image(sokol_gfx.bindings.fs_images[0], &(sg_image_data){
         .subimage[0][0] = { 
             .ptr = ptr,
             .size = sokol_gfx.fb_width*sokol_gfx.fb_height*sizeof ptr[0]
@@ -221,7 +230,8 @@ void sokol_gfx_draw(const uint32_t* ptr) {
     /* draw to the screen */
     sg_begin_default_pass(&gfx_draw_pass_action, sapp_width(), sapp_height());
     apply_viewport();
-    sg_apply_draw_state(&sokol_gfx.draw_state);
+    sg_apply_pipeline(sokol_gfx.pipeline);
+    sg_apply_bindings(&sokol_gfx.bindings);
     sg_draw(0, 4, 1);
     sg_end_pass();
     sg_commit();
