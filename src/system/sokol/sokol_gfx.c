@@ -172,9 +172,9 @@ void sokol_gfx_init(int w, int h, int sx, int sy, bool integer_scale, bool portr
     });
 }
 
-static const sg_pass_action gfx_draw_pass_action;// = {
-//    .colors[0] = { .action = SG_ACTION_CLEAR, .value = (sg_color){ .r=0.05f, .g=0.05f, .b=0.05f, .a=1.0f } }
-//};
+static const sg_pass_action gfx_draw_pass_action = {
+    .colors[0] = { .action = SG_ACTION_CLEAR, .value.r=0.05f, .value.g=0.05f, .value.b=0.05f, .value.a=1.0f }
+};
 
 void sokol_calc_viewport(int* x, int* y, int* w, int* h)
 {
