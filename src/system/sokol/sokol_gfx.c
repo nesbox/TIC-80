@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "sokol.h"
 
 static struct 
@@ -108,12 +109,12 @@ void sokol_gfx_init(int w, int h, int sx, int sy, bool integer_scale, bool portr
 
     sg_setup(&(sg_desc){
         .context=(sg_context_desc){
-            .metal=&(sg_metal_context_desc){
+            .metal=(sg_metal_context_desc){
                 .device = sapp_metal_get_device(),
                 .renderpass_descriptor_cb = sapp_metal_get_renderpass_descriptor,
                 .drawable_cb = sapp_metal_get_drawable
             },
-            .d3d11=&(sg_d3d11_context_desc){
+            .d3d11=(sg_d3d11_context_desc){
                 .device = sapp_d3d11_get_device(),
                 .device_context = sapp_d3d11_get_device_context(),
                 .render_target_view_cb = sapp_d3d11_get_render_target_view,
@@ -138,6 +139,8 @@ void sokol_gfx_init(int w, int h, int sx, int sy, bool integer_scale, bool portr
 
     /* a shader to render a textured quad */
     sg_shader fsq_shd = sg_make_shader(&(sg_shader_desc){
+        .attrs[0] = { .name="in_pos", .sem_name="POS", .sem_index=0 },
+        .attrs[1] = { .name="in_uv", .sem_name="UV", .sem_index=1 },
         .fs.images = {
             [0] = { .name="tex", .image_type=SG_IMAGETYPE_2D },
         },
