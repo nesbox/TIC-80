@@ -2367,7 +2367,7 @@ bool studio_alive(Studio* studio)
     return studio->alive;
 }
 
-Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* folder)
+Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* folder, s32 maxscale)
 {
     setbuf(stdout, NULL);
 
@@ -2483,6 +2483,13 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     tic_fs_makedir(studio->fs, TIC_LOCAL_VERSION);
     
     initConfig(studio->config, studio, studio->fs);
+
+    if (studio->config->data.uiScale > maxscale)
+    {
+        printf("Overriding specified uiScale of %i; the maximum your screen will accommodate is %i", studio->config->data.uiScale, maxscale);
+        studio->config->data.uiScale = maxscale;
+    }
+
     initStart(studio->start, studio, args.cart);
     initRunMode(studio);
 

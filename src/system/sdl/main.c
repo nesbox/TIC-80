@@ -1666,10 +1666,62 @@ static void emsGpuTick()
 
 #endif
 
+s32 determineMaximumScale()
+{
+    SDL_DisplayMode current;
+    int result = SDL_GetCurrentDisplayMode(0, &current);
+    s32 maxScale;
+
+    if (result != 0)
+    {
+        SDL_Log("Unable to SDL_GetCurrentDisplayMode: %s", SDL_GetError());
+        return INT32_MAX;
+    }
+
+    int maxScaleByW = current.w / TIC80_WIDTH;
+    int maxScaleByH = current.h / TIC80_HEIGHT;
+
+    if (maxScaleByW < maxScaleByW)
+    {
+        maxScale = maxScaleByW;
+    }
+    else
+    {
+        maxScale = maxScaleByH;
+    }
+
+    if (maxScale <= 1)
+    {
+        return 1;
+    }
+    else
+    {
+        return maxScale;
+    }
+}
+
 static s32 start(s32 argc, char **argv, const char* folder)
 {
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK);
-    platform.studio = studio_create(argc, argv, TIC80_SAMPLERATE, SCREEN_FORMAT, folder);
+    int result = SDL_Init(SDL_INIT_VIDEO);
+    if (result != 0)
+    {
+        SDL_Log("Unable to initialize SDL Video: %i, %s\n", result, SDL_GetError());
+        return result;
+    }
+
+    result = SDL_Init(SDL_INIT_AUDIO);
+    if (result != 0)
+    {
+        SDL_Log("Unable to initialize SDL Audio: %i, %s\n", result, SDL_GetError());
+    }
+
+    result = SDL_Init(SDL_INIT_JOYSTICK);
+    if (result != 0)
+    {
+        SDL_Log("Unable to initialize SDL Joystick: %i, %s\n", result, SDL_GetError());
+    }
+
+    platform.studio = studio_create(argc, argv, TIC80_SAMPLERATE, SCREEN_FORMAT, folder, determineMaximumScale());
 
     SCOPE(studio_delete(platform.studio))
     {
