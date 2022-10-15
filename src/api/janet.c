@@ -1033,7 +1033,15 @@ static bool initJanet(tic_mem* tic, const char* code)
     CurrentMachine = core;
 
     core->currentVM = (JanetTable*)janet_core_env(NULL);
+
+    // Both the janet core lib and tic api define a `map` function
+    // So we give the janet core lib one the new name `iter/map`.
+    janet_dostring(core->currentVM, "(var iter/map map)", "setup", NULL);
+
+    // add the tic80 api bindings
     janet_cfuns(core->currentVM, "tic", janet_c_functions);
+
+    // override the dynamic err to a buffer, so that we can get errors later
     janet_setdyn("err", janet_wrap_buffer(janet_buffer(1024)));
 
     Janet result = janet_wrap_nil();
