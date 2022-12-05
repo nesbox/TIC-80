@@ -71,7 +71,7 @@ int main(int argc, char** argv)
     processArgs(argc, argv);
 
     if (!args.project || !args.cartridge) {
-        printf("usage: prj2cart <project> <cartridge> [--binary file.wasm]\n");
+        printf("usage: wasmp2cart <project> <cartridge> [--binary file.wasm]\n");
         return res;
     }
 
