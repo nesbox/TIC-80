@@ -1747,7 +1747,7 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
     png_buffer png = {(u8*)buffer, size};
     bool error = true;
 
-    png_img img = png_read(png);
+    png_img img = png_read(png, NULL);
 
     if(img.data) SCOPE(free(img.data))
     {
@@ -1829,7 +1829,7 @@ static void onImport_screen(Console* console, const char* name, const void* buff
     png_buffer png = {(u8*)buffer, size};
     bool error = true;
 
-    png_img img = png_read(png);
+    png_img img = png_read(png, NULL);
 
     if(img.data) SCOPE(free(img.data))
     {
@@ -1948,7 +1948,7 @@ static void exportSprites(Console* console, const char* filename, tic_tile* base
         for(s32 i = 0; i < TIC_SPRITESHEET_SIZE * TIC_SPRITESHEET_SIZE; i++)
             img.values[i] = tic_rgba(&pal->colors[getSpritePixel(base, i % TIC_SPRITESHEET_SIZE, i / TIC_SPRITESHEET_SIZE)]);
 
-        png_buffer png = png_write(img);
+        png_buffer png = png_write(img, (png_buffer){NULL, 0});
 
         SCOPE(free(png.data))
         {
@@ -2258,7 +2258,7 @@ static void onExport_mapimg(Console* console, const char* param, const char* pat
                 }
         }
 
-        png_buffer png = png_write(img);
+        png_buffer png = png_write(img, (png_buffer){NULL, 0});
 
         SCOPE(free(png.data))
         {
@@ -2306,7 +2306,7 @@ static void onExport_screen(Console* console, const char* param, const char* nam
         for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
             img.values[i] = tic_rgba(&pal->colors[tic_tool_peek4(bank->screen.data, i)]);
 
-        png_buffer png = png_write(img);
+        png_buffer png = png_write(img, (png_buffer){NULL, 0});
 
         SCOPE(free(png.data))
         {
@@ -2404,7 +2404,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
                         };
 
                         png_buffer template = {(u8*)Cartridge, sizeof Cartridge};
-                        png_img img = png_read(template);
+                        png_img img = png_read(template, NULL);
 
                         // draw screen
                         {
@@ -2452,7 +2452,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
                                     ptr[CoverWidth * y + x] = tic_rgba(pal + tic_tool_peek4(screen, y * TIC80_WIDTH + x));
                         }
 
-                        cover = png_write(img);
+                        cover = png_write(img, (png_buffer){NULL, 0});
 
                         free(img.data);
                     }
