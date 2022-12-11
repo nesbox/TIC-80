@@ -80,6 +80,16 @@ void tic_sys_clipboard_free(const char* text)
     free((void*)text);
 }
 
+u64 tic_sys_counter_get()
+{
+    return stm_now();
+}
+
+u64 tic_sys_freq_get()
+{
+    return 1000000000;
+}
+
 void tic_sys_fullscreen_set(bool value)
 {
 }

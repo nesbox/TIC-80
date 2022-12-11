@@ -123,6 +123,16 @@ static void tick(Run* run)
 #endif
 }
 
+static u64 getFreq(void* data)
+{
+    return tic_sys_freq_get();
+}
+
+static u64 getCounter(void* data)
+{
+    return tic_sys_counter_get();
+}
+
 void initRun(Run* run, Console* console, tic_fs* fs, Studio* studio)
 {
     *run = (Run)
@@ -139,6 +149,8 @@ void initRun(Run* run, Console* console, tic_fs* fs, Studio* studio)
             .trace = onTrace,
             .exit = onExit,
             .data = run,
+            .counter = getCounter,
+            .freq = getFreq
         },
     };
 

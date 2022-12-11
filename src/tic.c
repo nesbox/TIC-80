@@ -77,6 +77,7 @@ TIC80_API void tic80_tick(tic80* tic, tic80_input input)
         .trace = onTrace,
         .exit = onExit,
         .data = tic,
+        .start = 0
     };
 
     tic_core_tick_start(mem);

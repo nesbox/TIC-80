@@ -44,7 +44,9 @@ typedef struct
     ErrorOutput error;
     ExitCallback exit;
     
-    clock_t start;
+    u64 (*counter)(void*);
+    u64 (*freq)(void*);
+    u64 start;
 
     void* data;
 } tic_tick_data;
