@@ -105,6 +105,16 @@ void tic_sys_clipboard_free(const char* text)
     free((void*)text);
 }
 
+u64 tic_sys_counter_get()
+{
+    return CTimer::Get()->GetTicks();
+}
+
+u64 tic_sys_freq_get()
+{
+    return HZ;
+}
+
 void tic_sys_fullscreen_set(bool value)
 {
 }

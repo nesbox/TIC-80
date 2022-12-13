@@ -50,6 +50,8 @@ void    tic_sys_clipboard_set(const char* text);
 bool    tic_sys_clipboard_has();
 char*   tic_sys_clipboard_get();
 void    tic_sys_clipboard_free(const char* text);
+u64     tic_sys_counter_get();
+u64     tic_sys_freq_get();
 bool    tic_sys_fullscreen_get();
 void    tic_sys_fullscreen_set(bool value);
 void    tic_sys_message(const char* title, const char* message);

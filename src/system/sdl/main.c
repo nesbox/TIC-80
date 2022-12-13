@@ -1366,6 +1366,16 @@ void tic_sys_clipboard_free(const char* text)
     SDL_free((void*)text);
 }
 
+u64 tic_sys_counter_get()
+{
+    return SDL_GetPerformanceCounter();
+}
+
+u64 tic_sys_freq_get()
+{
+    return SDL_GetPerformanceFrequency();
+}
+
 bool tic_sys_fullscreen_get()
 {
 #if defined(CRT_SHADER_SUPPORT)

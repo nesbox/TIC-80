@@ -190,8 +190,8 @@ typedef struct
 
         struct
         {
-            clock_t start;
-            clock_t paused;
+            u64 start;
+            u64 paused;
         } time;
     } pause;
 
