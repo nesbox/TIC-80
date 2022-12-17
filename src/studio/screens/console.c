@@ -3585,6 +3585,8 @@ static CommandDesc parseCommand(const char* input)
 
     for(struct Param* it = desc.params, *end = it + desc.count; it < end; it++)
     {
+        if (strcmp(it->key, "=") == 0) continue;
+
         it->key = strtok(it->key, "=");
         it->val = strtok(NULL, "=");
     }
