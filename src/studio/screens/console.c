@@ -3529,29 +3529,35 @@ static void onHelpCommand(Console* console)
     if(console->desc->count)
     {
         const char* param = console->desc->params->key;
+        bool foundTopic = false;
 
-        if(printUsage(console, param)) return commandDone(console);
-        else if(printApi(console, param)) return commandDone(console);
-        else
-        {
+        if(printUsage(console, param)) {
+            foundTopic = true;
+        } 
+        if(printApi(console, param)) {
+            foundTopic = true;
+        }
             
-            static const struct Handler {const char* cmd; void(*handler)(Console*);} Handlers[] = 
-            {
+        static const struct Handler {const char* cmd; void(*handler)(Console*);} Handlers[] = 
+        {
 #define         HELP_CMD_DEF(name) {#name, onHelp_##name},
                 HELP_CMD_LIST(HELP_CMD_DEF)
 #undef          HELP_CMD_DEF
-            };
+        };
 
-            FOR(const struct Handler*, ptr, Handlers)
-                if(strcmp(ptr->cmd, param) == 0)
-                {
-                    ptr->handler(console);
-                    return commandDone(console);
-                }
+        FOR(const struct Handler*, ptr, Handlers)
+            if(strcmp(ptr->cmd, param) == 0)
+            {
+                ptr->handler(console);
+                break;
+            }
+
+        if (foundTopic) {
+            commandDone(console);
+        } else {
+            printError(console, "\nunknown topic: ");
+            printError(console, param);
         }
-
-        printError(console, "\nunknown topic: ");
-        printError(console, param);
     }
     else
     {
