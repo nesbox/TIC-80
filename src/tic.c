@@ -65,7 +65,7 @@ TIC80_API void tic80_load(tic80* tic, void* cart, s32 size)
     tic_api_reset(mem);
 }
 
-TIC80_API void tic80_tick(tic80* tic, tic80_input input)
+TIC80_API void tic80_tick(tic80* tic, tic80_input input, u64 (*counter)(), u64 (*freq)())
 {
     tic_mem* mem = (tic_mem*)tic;
 
@@ -77,13 +77,14 @@ TIC80_API void tic80_tick(tic80* tic, tic80_input input)
         .trace = onTrace,
         .exit = onExit,
         .data = tic,
-        .start = 0
+        .start = 0,
+        .counter = counter,
+        .freq = freq
     };
 
     tic_core_tick_start(mem);
     tic_core_tick(mem, &tickData);
     tic_core_tick_end(mem);
-
     tic_core_blit(mem);
 }
 

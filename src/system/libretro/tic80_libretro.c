@@ -806,7 +806,7 @@ void tic80_libretro_update(tic80* game)
 	tic80_libretro_update_keyboard(&state->input.keyboard);
 
 	// Update the game state.
-	tic80_tick(game, state->input);
+	tic80_tick(game, state->input, NULL, NULL);
 	tic80_sound(game);
 }
 
