@@ -206,11 +206,11 @@ s32 runCart(void* cart, s32 size)
 
         tic80_delete(tic);
 
+        SDL_CloseAudioDevice(audioDevice);
+        SDL_DestroyMutex(state.mutex);
         SDL_DestroyTexture(texture);
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
-        SDL_CloseAudioDevice(audioDevice);
-        SDL_DestroyMutex(state.mutex);
     }
 
     SDL_free(cart);
