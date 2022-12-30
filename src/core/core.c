@@ -499,7 +499,7 @@ void tic_core_pause(tic_mem* memory)
     if (core->data)
     {
         core->pause.time.start = core->data->start;
-        core->pause.time.paused = core->data->counter(core->data->data);;
+        core->pause.time.paused = core->data->counter(core->data->data);
     }
 }
 
