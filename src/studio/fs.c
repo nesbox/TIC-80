@@ -398,7 +398,7 @@ static void enumFiles(tic_fs* fs, const char* path, fs_list_callback callback, v
             if(*ent->d_name != _S('.'))
             {
                 tic_strncpy(fullPath, pathString, COUNT_OF(fullPath));
-                tic_strncat(fullPath, ent->d_name, COUNT_OF(fullPath));
+                tic_strncat(fullPath, ent->d_name, COUNT_OF(fullPath) - 1);
 
                 if(tic_stat(fullPath, &s) == 0)
                 {
