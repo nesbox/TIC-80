@@ -3734,7 +3734,7 @@ static lua_State* netLuaInit(u8* buffer, s32 size)
     return NULL;
 }
 
-static void onHttpVesrsionGet(const net_get_data* data)
+static void onHttpVersionGet(const net_get_data* data)
 {
     Console* console = (Console*)data->calldata;
 
@@ -4115,7 +4115,7 @@ static void tick(Console* console)
 
 #if defined (TIC_BUILD_WITH_LUA)
                 if(getConfig(console->studio)->checkNewVersion)
-                    tic_net_get(console->net, "/api?fn=version", onHttpVesrsionGet, console);
+                    tic_net_get(console->net, "/api?fn=version", onHttpVersionGet, console);
 #endif
             }
 
