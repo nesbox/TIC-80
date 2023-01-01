@@ -3548,13 +3548,12 @@ static void onHelpCommand(Console* console)
         FOR(const struct Handler*, ptr, Handlers)
             if(strcmp(ptr->cmd, param) == 0)
             {
+                foundTopic = true;
                 ptr->handler(console);
                 break;
             }
 
-        if (foundTopic) {
-            commandDone(console);
-        } else {
+        if (!foundTopic) {
             printError(console, "\nunknown topic: ");
             printError(console, param);
         }
