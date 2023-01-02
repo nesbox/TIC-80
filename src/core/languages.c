@@ -33,6 +33,9 @@ extern tic_script_config WrenSyntaxConfig;
 extern tic_script_config WasmSyntaxConfig;
 #endif
 
+#if defined(TIC_BUILD_WITH_JANET)
+extern tic_script_config JanetSyntaxConfig;
+#endif
 
 tic_script_config* Languages[] = {
 
@@ -66,6 +69,10 @@ tic_script_config* Languages[] = {
 
     #if defined(TIC_BUILD_WITH_WASM)
 	&WasmSyntaxConfig,
+	#endif
+
+	#if defined(TIC_BUILD_WITH_JANET)
+	&JanetSyntaxConfig,
 	#endif
 
 	NULL};

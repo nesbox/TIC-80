@@ -134,6 +134,7 @@ tic_script_config_extra WrenSyntaxConfigExtra =
 
 #endif
 
+
 #if defined (TIC_BUILD_WITH_SQUIRREL)
 static const u8 SquirrelDemoRom[] =
 {
@@ -178,6 +179,27 @@ tic_script_config_extra WasmSyntaxConfigExtra =
 
 #endif
 
+
+#if defined(TIC_BUILD_WITH_WREN)
+static const u8 JanetDemoRom[] =
+{
+    #include "../build/assets/janetdemo.tic.dat"
+};
+static const u8 JanetMarkRom[] =
+{
+    #include "../build/assets/janetmark.tic.dat"
+};
+tic_script_config_extra JanetSyntaxConfigExtra =
+{
+    .name = "janet",
+    .demoRom            = JanetDemoRom,
+    .demoRomSize        = sizeof JanetDemoRom,
+    .markRom            = JanetMarkRom,
+    .markRomSize        = sizeof JanetMarkRom,
+};
+#endif
+
+
 tic_script_config_extra* getConfigExtra(const tic_script_config* config)
 {
 
@@ -215,6 +237,9 @@ tic_script_config_extra* LanguagesExtra[] = {
 #endif
 #if defined(TIC_BUILD_WITH_WASM)
    &WasmSyntaxConfigExtra,
+#endif
+#if defined(TIC_BUILD_WITH_JANET)
+   &JanetSyntaxConfigExtra,
 #endif
    NULL
 };
