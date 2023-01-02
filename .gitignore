@@ -178,3 +178,4 @@ build/mruby_vendor-prefix/
 **/zig-cache
 **/zig-out
 .cache
+build/install_manifest.txt
