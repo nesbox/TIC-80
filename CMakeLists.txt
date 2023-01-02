@@ -321,7 +321,7 @@ endif()
 ################################
 
 set(WASM_DIR ${THIRDPARTY_DIR}/wasm3/source)
-set(WASM_SRC 
+set(WASM_SRC
     ${WASM_DIR}/m3_bind.c
     ${WASM_DIR}/m3_code.c
     ${WASM_DIR}/m3_compile.c
@@ -407,6 +407,25 @@ target_include_directories(blipbuf INTERFACE ${THIRDPARTY_DIR}/blip-buf)
 add_library(duktape STATIC ${THIRDPARTY_DIR}/duktape/src/duktape.c)
 target_include_directories(duktape INTERFACE ${THIRDPARTY_DIR}/duktape/src)
 
+
+################################
+# Janet
+################################
+
+set(JANET_DIR ${THIRDPARTY_DIR}/janet)
+
+set(JANET_SRC
+    ${JANET_DIR}/build/c/janet.c
+)
+# bootstrap janet
+add_custom_command(
+  OUTPUT ${JANET_SRC}
+  COMMAND make -j build/c/janet.c build/janet.h
+  WORKING_DIRECTORY ${JANET_DIR}
+)
+add_library(janet STATIC ${JANET_SRC})
+target_include_directories(janet PUBLIC ${JANET_DIR}/build)
+
 ################################
 # TIC-80 core
 ################################
@@ -421,10 +440,10 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         ${TIC80CORE_DIR}/core/io.c
         ${TIC80CORE_DIR}/core/sound.c
         ${TIC80CORE_DIR}/api/js.c
-        ${TIC80CORE_DIR}/api/lua.c 
-        ${TIC80CORE_DIR}/api/moonscript.c 
-        ${TIC80CORE_DIR}/api/fennel.c 
-        ${TIC80CORE_DIR}/api/wren.c 
+        ${TIC80CORE_DIR}/api/lua.c
+        ${TIC80CORE_DIR}/api/moonscript.c
+        ${TIC80CORE_DIR}/api/fennel.c
+        ${TIC80CORE_DIR}/api/wren.c
         ${TIC80CORE_DIR}/api/wasm.c
         ${TIC80CORE_DIR}/api/squirrel.c
         ${TIC80CORE_DIR}/api/mruby.c
@@ -454,13 +473,14 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
             ${CMAKE_SOURCE_DIR}/src)
 
     target_link_libraries(tic80core${SCRIPT}
-        lua 
-        lpeg 
-        wren 
-        wasm 
-        squirrel 
-        duktape 
-        blipbuf 
+        lua
+        lpeg
+        wren
+        wasm
+        squirrel
+        duktape
+        janet
+        blipbuf
         zlib
     )
 
@@ -495,6 +515,7 @@ if(BUILD_STUB)
         MACRO_CORE(ruby TIC_BUILD_WITH_MRUBY    FALSE)
     endif()
     MACRO_CORE(wasm     TIC_BUILD_WITH_WASM     FALSE)
+    MACRO_CORE(janet    TIC_BUILD_WITH_JANET    FALSE)
 
 endif()
 
@@ -785,8 +806,8 @@ if(BUILD_DEMO_CARTS)
 
     # we need to build these separatly combining both the project
     # and the external WASM binary chunk since projects do not
-    # include BINARY chunks 
-    
+    # include BINARY chunks
+
     file(GLOB WASM_DEMOS
         ${CMAKE_SOURCE_DIR}/demos/wasm/*.wasmp
         ${CMAKE_SOURCE_DIR}/demos/bunny/wasmmark/*.wasmp

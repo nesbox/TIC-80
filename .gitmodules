@@ -79,3 +79,6 @@
 [submodule "vendor/wasm3"]
 	path = vendor/wasm3
 	url = https://github.com/wasm3/wasm3.git
+[submodule "vendor/janet"]
+	path = vendor/janet
+	url = https://github.com/janet-lang/Janet.git
