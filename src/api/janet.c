@@ -137,4 +137,4 @@ tic_script_config JanetSyntaxConfig =
     .keywordsCount = COUNT_OF(JanetKeywords),
 };
 
-#endif /* defined(TIC_BUILD_WITH_WREN) */
+#endif /* defined(TIC_BUILD_WITH_JANET) */
