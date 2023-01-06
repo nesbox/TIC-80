@@ -78,6 +78,22 @@ struct tic80_state
 static struct tic80_state* state;
 
 /**
+ * TIC-80 callback; Request counter
+ */
+static u64 tic80_libretro_counter()
+{
+    return clock();
+}
+
+/**
+ * TIC-80 callback; Request freq
+ */
+static u64 tic80_libretro_freq()
+{
+    return CLOCKS_PER_SEC;
+}
+
+/**
  * TIC-80 callback; Requests the content to exit.
  */
 void tic80_libretro_exit()
@@ -806,7 +822,7 @@ void tic80_libretro_update(tic80* game)
 	tic80_libretro_update_keyboard(&state->input.keyboard);
 
 	// Update the game state.
-	tic80_tick(game, state->input, NULL, NULL);
+	tic80_tick(game, state->input, tic80_libretro_counter, tic80_libretro_freq);
 	tic80_sound(game);
 }
 
