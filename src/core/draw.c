@@ -155,7 +155,7 @@ static void drawTile(tic_core* core, tic_tileptr* tile, s32 x, s32 y, u8* colors
     if (rotate == tic_90_rotate) orientation ^= 1;
     else if (rotate == tic_180_rotate) orientation ^= 3;
     else if (rotate == tic_270_rotate) orientation ^= 2;
-    if (rotate == tic_90_rotate || rotate == tic_270_rotate) orientation |= 2;
+    if (rotate == tic_90_rotate || rotate == tic_270_rotate) orientation |= 4;
 
     if (scale == 1) {
         // the most common path
