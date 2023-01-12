@@ -496,6 +496,9 @@ static void setSidePixel(s32 x, s32 y)
 
 static void drawEllipse(tic_mem* memory, s32 x0, s32 y0, s32 x1, s32 y1, u8 color, PixelFunc pix)
 {
+    if(x0 > x1 || y0 > y1)
+        return;
+
     s64 a = abs(x1 - x0), b = abs(y1 - y0), b1 = b & 1; /* values of diameter */
     s64 dx = 4 * (1 - a) * b * b, dy = 4 * (b1 + 1) * a * a; /* error increment */
     s64 err = dx + dy + b1 * a * a, e2; /* error of 1.step */
