@@ -4,6 +4,7 @@
 *.suo
 sexit
 .vscode/
+build/install_manifest.txt
 build/vendor/
 build/uwp/tic/Debug/
 build/uwp/tic/Release/

@@ -25,6 +25,7 @@
 #include "studio/fs.h"
 
 #include <math.h>
+#include <string.h>
 
 #define ANIM_STATES(macro)  \
     macro(idle)             \
@@ -89,6 +90,7 @@ static void menuUpDone(void* data)
 {
     Menu *menu = data;
     menu->pos = (menu->pos + (menu->count - 1)) % menu->count;
+    if (strcmp("", menu->items[menu->pos].label) == 0) return menuUpDone(data);
     menu->anim.pos = 0;
     menu->anim.movie = resetMovie(&menu->anim.idle);
 }
@@ -97,6 +99,7 @@ static void menuDownDone(void* data)
 {
     Menu *menu = data;
     menu->pos = (menu->pos + (menu->count + 1)) % menu->count;
+    if (strcmp("", menu->items[menu->pos].label) == 0) return menuDownDone(data);
     menu->anim.pos = 0;
     menu->anim.movie = resetMovie(&menu->anim.idle);
 }
