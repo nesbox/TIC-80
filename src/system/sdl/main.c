@@ -28,6 +28,10 @@
 #include <string.h>
 #include <time.h>
 
+#if defined(__TIC_LINUX__)
+#include <signal.h>
+#endif
+
 #if defined(CRT_SHADER_SUPPORT)
 #include <SDL_gpu.h>
 #else
@@ -1897,6 +1901,8 @@ s32 main(s32 argc, char **argv)
         if(GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info) && !info.dwCursorPosition.X && !info.dwCursorPosition.Y)
             FreeConsole();
     }
+#elif defined(__TIC_LINUX__)
+    signal(SIGPIPE, SIG_IGN);
 #endif
 
     const char* folder = getAppFolder();
