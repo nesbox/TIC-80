@@ -834,6 +834,11 @@ target_include_directories(argparse INTERFACE ${THIRDPARTY_DIR}/argparse)
 
 if(USE_LIBUV)
     add_subdirectory(${THIRDPARTY_DIR}/libuv)
+
+    # fix for winxp build
+    set(UV_DEFS LOAD_LIBRARY_SEARCH_SYSTEM32=0x00000800)
+    target_compile_definitions(uv PRIVATE ${UV_DEFS})
+    target_compile_definitions(uv_a PRIVATE ${UV_DEFS})
 endif()
 
 ################################
