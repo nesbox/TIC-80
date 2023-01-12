@@ -110,7 +110,7 @@ s32 main(s32 argc, char** argv)
                 for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
                     ((u32*)img.data)[i] = tic_rgba(&cart->bank0.palette.vbank0.colors[tic_tool_peek4(cart->bank0.screen.data, i)]);
 
-                png_buffer png = png_write(img);
+                png_buffer png = png_write(img, (png_buffer){NULL, 0});
                 writeFile("cover.png", (FileBuffer){png.size, png.data});
                 printf("cover.png successfully exported\n");
 
@@ -159,7 +159,7 @@ s32 main(s32 argc, char** argv)
                         ((u32*)img.data)[x + y * TIC_SPRITESHEET_SIZE] = tic_rgba(&cart->bank0.palette.vbank0.colors[index]);
                     }
 
-                png_buffer png = png_write(img);
+                png_buffer png = png_write(img, (png_buffer){NULL, 0});
                 writeFile("tiles.png", (FileBuffer){png.size, png.data});
                 printf("tiles.png successfully exported\n");
 
@@ -180,7 +180,7 @@ s32 main(s32 argc, char** argv)
                         ((u32*)img.data)[x + y * TIC_SPRITESHEET_SIZE] = tic_rgba(&cart->bank0.palette.vbank0.colors[index]);
                     }
 
-                png_buffer png = png_write(img);
+                png_buffer png = png_write(img, (png_buffer){NULL, 0});
                 writeFile("sprites.png", (FileBuffer){png.size, png.data});
                 printf("sprites.png successfully exported\n");
 

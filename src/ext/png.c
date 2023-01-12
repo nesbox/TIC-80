@@ -1,6 +1,7 @@
 // MIT License
 
 // Copyright (c) 2021 Vadim Grigoruk @nesbox // grigoruk@gmail.com
+// Copyright (c) 2022 bzt png chunk stuff
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,6 +29,7 @@
 #include <png.h>
 #include "tic_assert.h"
 
+#define EXTRA_CHUNK "caRt"
 #define RGBA_SIZE sizeof(u32)
 
 png_buffer png_create(s32 size)
@@ -48,7 +50,7 @@ static void pngReadCallback(png_structp png, png_bytep out, png_size_t size)
     stream->pos += size;
 }
 
-png_img png_read(png_buffer buf)
+png_img png_read(png_buffer buf, png_buffer *cart)
 {
     png_img res = { 0 };
 
@@ -102,6 +104,28 @@ png_img png_read(png_buffer buf)
 
         free(rows);
 
+        // Read in cartridge data from chunk if possible
+        if (cart)
+        {
+            png_unknown_chunkp unknowns = NULL;
+            int num_unknowns;
+
+            png_set_keep_unknown_chunks(png, PNG_HANDLE_CHUNK_ALWAYS, EXTRA_CHUNK, 1);
+            png_read_end(png, info);
+            num_unknowns = png_get_unknown_chunks(png, info, &unknowns);
+            for(s32 i = 0; i < num_unknowns; i++)
+                if (!memcmp(unknowns[i].name, EXTRA_CHUNK, 5))
+                {
+                    cart->size = unknowns[i].size;
+                    cart->data = (u8*)malloc(cart->size);
+                    if (cart->data)
+                        memcpy(cart->data, unknowns[i].data, cart->size);
+                    else
+                        cart->size = 0;
+                    break;
+                }
+        }
+
         png_destroy_read_struct(&png, &info, NULL);
     }
 
@@ -121,7 +145,7 @@ static void pngWriteCallback(png_structp png, png_bytep data, png_size_t size)
 
 static void pngFlushCallback(png_structp png) {}
 
-png_buffer png_write(png_img src)
+png_buffer png_write(png_img src, png_buffer cart)
 {
     png_structp png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
     png_infop info = png_create_info_struct(png);
@@ -141,6 +165,17 @@ png_buffer png_write(png_img src)
         PNG_FILTER_TYPE_DEFAULT
     );
 
+    // Save cartridge data in a chunk too. This supports bigger cartridges than steganography
+    if (cart.data && cart.size > 0 && cart.size <= 0x7fffff){
+        png_unknown_chunk unknowns = { 0 };
+        memcpy(&unknowns.name, EXTRA_CHUNK, 5);
+        unknowns.data = cart.data;
+        unknowns.size = cart.size;
+        unknowns.location = PNG_AFTER_IDAT;
+        png_set_unknown_chunks(png, info, &unknowns, 1);
+        png_set_keep_unknown_chunks(png, PNG_HANDLE_CHUNK_ALWAYS, EXTRA_CHUNK, 1);
+    }
+
     png_write_info(png, info);
 
     png_bytep* rows = malloc(sizeof(png_bytep) * src.height);
@@ -148,7 +183,7 @@ png_buffer png_write(png_img src)
         rows[i] = src.data + src.width * i * RGBA_SIZE;
 
     png_write_image(png, rows);
-    png_write_end(png, NULL);
+    png_write_end(png, info);
 
     png_destroy_write_struct(&png, &info);
 
@@ -189,7 +224,7 @@ static inline s32 ceildiv(s32 a, s32 b)
 
 png_buffer png_encode(png_buffer cover, png_buffer cart)
 {    
-    png_img png = png_read(cover);
+    png_img png = png_read(cover, NULL);
 
     const s32 cartBits = cart.size * BITS_IN_BYTE;
     const s32 coverSize = png.width * png.height * RGBA_SIZE - HEADER_SIZE;
@@ -206,7 +241,7 @@ png_buffer png_encode(png_buffer cover, png_buffer cart)
     for (s32 i = end; i < coverSize; i++)
         bitcpy(dst, i << 3, (const u8[]){rand()}, 0, header.bits);
 
-    png_buffer out = png_write(png);
+    png_buffer out = png_write(png, cart);
 
     free(png.data);
 
@@ -215,8 +250,18 @@ png_buffer png_encode(png_buffer cover, png_buffer cart)
 
 png_buffer png_decode(png_buffer cover)
 {
-    png_img png = png_read(cover);
+    png_buffer cart = { 0 };
+    png_img png = png_read(cover, &cart);
 
+    // if we have a data from a png chunk, use that
+    if (cart.data && cart.size > 0)
+    {
+        if (png.data)
+            free(png.data);
+        return cart;
+    }
+
+    // otherwise fallback to steganography
     if (png.data)
     {
         Header header;
