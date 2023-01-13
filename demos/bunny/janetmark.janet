@@ -1,6 +1,6 @@
-# title: Bunnymark in Ruby
+# title: Bunnymark in Janet
 # author: Alec Troemel; based on the original work of Rob Loach
-# desc: Benchmarking tool to see how many bunnies can fly around the screen, using Janet.
+# desc: Benchmarking tool to see how many bunnies can fly around the screen, using Janet
 # input: gamepad
 # script: janet
 # version: 0.1.0
@@ -12,47 +12,65 @@
 (def TOOLBAR_HEIGHT 6)
 
 (var t 0)
+(var RNG (math/rng (t/tstamp)))
 
-(defn get-random-value [min max]
-  (+ (* (math/random) (- max min)) min))
+(defn random-float [lower greater]
+  (+ (* (math/rng-uniform RNG)
+        (- greater lower))
+     lower))
+
+(defn draw-bunny [self]
+  (t/spr (self :sprite)
+         (math/round (self :x))
+         (math/round (self :y))
+         1 1 0 0 4 4))
+
+(defn update-bunny [self]
+  (+= (self :x) (self :speed-x))
+  (+= (self :y) (self :speed-y))
+
+  (when (> (+ (self :x) (self :width)) SCREEN_WIDTH)
+    (put self :x (- SCREEN_WIDTH (self :width)))
+    (*= (self :speed-x) -1))
+
+  (when (< (self :x) 0)
+    (put self :x 0)
+    (*= (self :speed-x) -1))
+
+  (when (> (+ (self :y) (self :height)) SCREEN_HEIGHT)
+    (put self :y (- SCREEN_HEIGHT (self :height)))
+    (*= (self :speed-y) -1))
+
+  (when (< (self :y) 0)
+    (put self :y 0)
+    (*= (self :speed-y) -1)))
 
 (defn init-bunny []
   (let [width 26 height 32]
-    @{:x (get-random-value 0 (- SCREEN_WIDTH width))
-      :y (get-random-value 0 (- SCREEN_HEIGHT height))
-      :speed-x (/ (get-random-value -100 100) 60)
-      :speed-y (/ (get-random-value -100 100) 60)
+    @{:x (random-float 0 (- SCREEN_WIDTH width))
+      :y (random-float 0 (- SCREEN_HEIGHT height))
+      :speed-x (/ (random-float -100 100) 60)
+      :speed-y (/ (random-float -100 100) 60)
+      :width 26
+      :height 32
       :sprite 1
-      :draw (fn [{:sprite s :x x :y y}]
-              (t/spr s x y 1 1 0 0 4 4))
-      :update (fn [self]
-                (+= (self :x) (self :speed-x))
-                (-= (self :x) (self :speed-x))
-
-                (when (or (> (+ (self :x) width) SCREEN_WIDTH)
-                          (< (self :x) 0))
-                  (put self :x 0)
-                  (*= (self :speed-x) -1))
-
-                (when (or (> (+ (self :y) height) SCREEN_HEIGHT)
-                          (< (self :y) 0))
-                  (put self :y 0)
-                  (*= (self :speed-y) -1)))}))
+      :draw draw-bunny
+      :update update-bunny}))
 
 (defn init-fps []
   @{:value 0
     :frames 0
     :last-time -1000
-    :get-value (fn [self]
-                 (if (<= (- (time) (self :last-time)) 1000)
+    :get-value (fn fps-get-value [self]
+                 (if (<= (- (t/time) (self :last-time)) 1000)
                    (+= (self :frames) 1)
                    (do (put self :value (self :frames))
                        (put self :frames 0)
-                       (put self :last-time (time))))
+                       (put self :last-time (t/time))))
                  (self :value))})
 
 (var fps (init-fps))
-(var bunnies [(init-bunny)])
+(var bunnies @[(init-bunny)])
 
 (defn TIC []
   # Music
@@ -68,13 +86,13 @@
   (each bunny bunnies (:update bunny))
 
   # Draw
-  (cls 15)
+  (t/cls 15)
   (each bunny bunnies (:draw bunny))
-  (rect 0 0 SCREEN_WIDTH TOOLBAR_HEIGHT 0)
+  (t/rect 0 0 SCREEN_WIDTH TOOLBAR_HEIGHT 0)
   (t/print (string/format "Bunnies: %n" (length bunnies))
          1 0 11 false 1 false)
   (t/print (string/format "FPS: %n" (:get-value fps))
-           (/ SCREEN_WIDTH 2) 0 11 false 1 false))
+         (/ SCREEN_WIDTH 2) 0 11 false 1 false))
 
 # <TILES>
 # 001:11111100111110dd111110dc111110dc111110dc111110dc111110dd111110dd
