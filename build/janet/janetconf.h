@@ -4,16 +4,16 @@
 #define JANETCONF_H
 
 #define JANET_VERSION_MAJOR 1
-#define JANET_VERSION_MINOR 25
+#define JANET_VERSION_MINOR 26
 #define JANET_VERSION_PATCH 0
-#define JANET_VERSION_EXTRA "-dev"
-#define JANET_VERSION "1.25.0-dev"
+#define JANET_VERSION_EXTRA ""
+#define JANET_VERSION "1.26.0"
 
 /* #define JANET_BUILD "local" */
 
 /* These settings all affect linking, so use cautiously. */
 /* #define JANET_SINGLE_THREADED */
-#define JANET_NO_DYNAMIC_MODULES
+/* #define JANET_NO_DYNAMIC_MODULES */
 /* #define JANET_NO_NANBOX */
 /* #define JANET_API __attribute__((visibility ("default"))) */
 
@@ -33,7 +33,7 @@
 /* #define JANET_NO_REALPATH */
 /* #define JANET_NO_SYMLINKS */
 /* #define JANET_NO_UMASK */
-/* #define JANET_NO_THREADS */
+#define JANET_NO_THREADS
 
 /* Other settings */
 /* #define JANET_DEBUG */

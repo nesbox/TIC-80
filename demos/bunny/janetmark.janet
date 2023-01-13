@@ -5,6 +5,8 @@
 # script: janet
 # version: 0.1.0
 
+(import tic80 :as t)
+
 (def SCREEN_WIDTH 240)
 (def SCREEN_HEIGHT 136)
 (def TOOLBAR_HEIGHT 6)
@@ -22,7 +24,7 @@
       :speed-y (/ (get-random-value -100 100) 60)
       :sprite 1
       :draw (fn [{:sprite s :x x :y y}]
-              (spr s x y 1 1 0 0 4 4))
+              (t/spr s x y 1 1 0 0 4 4))
       :update (fn [self]
                 (+= (self :x) (self :speed-x))
                 (-= (self :x) (self :speed-x))
@@ -54,13 +56,13 @@
 
 (defn TIC []
   # Music
-  (when (= t 0) (music 0))
-  (when (= t (* 6 64 2.375)) (music 1))
+  (when (= t 0) (t/music 0))
+  (when (= t (* 6 64 2.375)) (t/music 1))
   (+= t 1)
 
   # Input
-  (cond (btn 0) (for i 0 5 (array/push bunnies (init-bunny)))
-        (btn 1) (for i 0 5 (array/pop bunnies)))
+  (cond (t/btn 0) (for i 0 5 (array/push bunnies (init-bunny)))
+        (t/btn 1) (for i 0 5 (array/pop bunnies)))
 
   # Update
   (each bunny bunnies (:update bunny))
@@ -69,10 +71,10 @@
   (cls 15)
   (each bunny bunnies (:draw bunny))
   (rect 0 0 SCREEN_WIDTH TOOLBAR_HEIGHT 0)
-  (print (string/format "Bunnies: %n" (length bunnies))
+  (t/print (string/format "Bunnies: %n" (length bunnies))
          1 0 11 false 1 false)
-  (print (string/format "FPS: %n" (:get-value fps))
-         (/ SCREEN_WIDTH 2) 0 11 false 1 false))
+  (t/print (string/format "FPS: %n" (:get-value fps))
+           (/ SCREEN_WIDTH 2) 0 11 false 1 false))
 
 # <TILES>
 # 001:11111100111110dd111110dc111110dc111110dc111110dc111110dd111110dd
