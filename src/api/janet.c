@@ -159,7 +159,10 @@ static const char* const JanetKeywords[] =
     "splice", ";"
 };
 
+static JanetFiber* GameFiber = NULL;
+static JanetBuffer errBuffer;
 static tic_core* CurrentMachine = NULL;
+
 
 static inline tic_core* getJanetMachine(void)
 {
@@ -990,7 +993,7 @@ static Janet janet_fget(int32_t argc, Janet* argv)
     return janet_wrap_boolean(tic_api_fget(memory, index, flag));
 }
 
-static Janet janet_fset(int32_t argc, Janet* argv)
+static JANET_CFUN(janet_fset)
 {
     janet_fixarity(argc, 3);
 
@@ -1004,15 +1007,15 @@ static Janet janet_fset(int32_t argc, Janet* argv)
 }
 
 /* ***************** */
-
 static void reportError(tic_core* core, Janet result)
 {
-    JanetBuffer *errBuffer = janet_unwrap_buffer(janet_dyn("err"));
-    core->data->error(core->data->data, errBuffer->data);
-
-    // reset buffer
-    /* errBuffer->count = 0; */
+  janet_stacktrace(GameFiber, result);
+  /* printf("\n\n"); */
+  /* printf(errBuffer.data); */
+  /* printf("\n\n"); */
+  core->data->error(core->data->data, errBuffer.data);
 }
+
 
 static void closeJanet(tic_mem* tic)
 {
@@ -1022,32 +1025,39 @@ static void closeJanet(tic_mem* tic)
         janet_deinit();
         core->currentVM = NULL;
         CurrentMachine = NULL;
+        janet_buffer_deinit(&errBuffer);
+        GameFiber = NULL;
     }
 }
 
 static bool initJanet(tic_mem* tic, const char* code)
 {
-    tic_core* core = (tic_core*)tic;
     closeJanet(tic);
     janet_init();
-    CurrentMachine = core;
 
+    JanetTable *env  = janet_core_env(NULL);
+    JanetTable *sub_env = janet_table(0);
+    janet_cfuns(sub_env, "tic80", janet_c_functions);
+
+    // Provide the tic80 api as a module
+    Janet module_cache = janet_resolve_core("module/cache");
+    janet_table_put(janet_unwrap_table(module_cache), janet_cstringv("tic80"), janet_wrap_table(sub_env));
+
+    tic_core* core = (tic_core*)tic;
+    CurrentMachine = core;
     core->currentVM = (JanetTable*)janet_core_env(NULL);
 
-    // Both the janet core lib and tic api define a `map` function
-    // So we give the janet core lib one the new name `iter/map`.
-    janet_dostring(core->currentVM, "(var iter/map map)", "setup", NULL);
-
-    // add the tic80 api bindings
-    janet_cfuns(core->currentVM, "tic", janet_c_functions);
-
     // override the dynamic err to a buffer, so that we can get errors later
-    janet_setdyn("err", janet_wrap_buffer(janet_buffer(1024)));
+    janet_buffer_init(&errBuffer, 0);
+    janet_setdyn("err", janet_wrap_buffer(&errBuffer));
 
-    Janet result = janet_wrap_nil();
-    if (janet_dostring(core->currentVM, code, "src", &result)) {
-        reportError(core, result);
-        return false;
+    GameFiber = janet_current_fiber();
+    Janet result;
+
+    // Load the game source code
+    if (janet_dostring(core->currentVM, code, "main", &result)) {
+      reportError(core, result);
+      return false;
     }
 
     return true;
@@ -1056,17 +1066,14 @@ static bool initJanet(tic_mem* tic, const char* code)
 
 static void evalJanet(tic_mem* tic, const char* code)
 {
-    tic_core* core = (tic_core*)tic;
-    JanetTable* env = core->currentVM;
+  tic_core* core = (tic_core*)tic;
 
-    if (!env) return;
-
-    Janet result = janet_wrap_nil();
-
-    if (janet_dostring(env, code, NULL, &result)) {
-        reportError(core, result);
-    }
+  Janet result = janet_wrap_nil();
+  if (janet_dostring(core->currentVM, code, "main", &result)) {
+    reportError(core, result);
+  }
 }
+
 
 /*
  * Find a function called TIC_FN and execute it. If we can't find it, then
@@ -1076,18 +1083,18 @@ static void callJanetTick(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
 
+    // Load the TIC function
     Janet pre_fn;
     (void)janet_resolve(core->currentVM, janet_csymbol(TIC_FN), &pre_fn);
 
     if (janet_type(pre_fn) != JANET_FUNCTION) {
-        core->data->error(core->data->data, "(TIC) isn't found :(");
-        return;
+      core->data->error(core->data->data, "(TIC) isn't found :(");
+      return;
     }
 
-    JanetFunction *fn = janet_unwrap_function(pre_fn);
+    JanetFunction *tic_fn = janet_unwrap_function(pre_fn);
     Janet result = janet_wrap_nil();
-    JanetFiber *fiber = janet_current_fiber();
-    JanetSignal status = janet_pcall(fn, 0, NULL, &result, &fiber);
+    JanetSignal status = janet_pcall(tic_fn, 0, NULL, &result, &GameFiber);
 
     if (status != JANET_SIGNAL_OK) {
         reportError(core, result);
@@ -1110,11 +1117,11 @@ static void callJanetBoot(tic_mem* tic)
     }
 
     Janet result = janet_wrap_nil();
-    JanetFunction *fn = janet_unwrap_function(pre_fn);
-    JanetSignal status = janet_pcall(fn, 0, NULL, &result, NULL);
+    JanetFunction *boot_fn = janet_unwrap_function(pre_fn);
+    JanetSignal status = janet_pcall(boot_fn, 0, NULL, &result, &GameFiber);
 
     if (status != JANET_SIGNAL_OK) {
-        reportError(core, result);
+      reportError(core, result);
     }
 }
 
@@ -1136,10 +1143,10 @@ static void callJanetIntCallback(tic_mem* tic, s32 value, void* data, const char
     Janet result = janet_wrap_nil();
     Janet argv[] = { janet_wrap_integer(value), };
     JanetFunction *fn = janet_unwrap_function(pre_fn);
-    JanetSignal status = janet_pcall(fn, 1, argv, &result, NULL);
+    JanetSignal status = janet_pcall(fn, 1, argv, &result, &GameFiber);
 
     if (status != JANET_SIGNAL_OK) {
-        reportError(core, result);
+      reportError(core, result);
     }
 }
 

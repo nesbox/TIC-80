@@ -7,19 +7,23 @@
 # script: janet
 # strict:  true
 
+# Unlike other langauges, the tic80 API
+# is provided as a module.
+(import tic80)
+
 (var t 0)
 (var x 96)
 (var y 24)
 
 (defn TIC []
-  (when (btn 0) (-= y 1))
-  (when (btn 1) (+= y 1))
-  (when (btn 2) (-= x 1))
-  (when (btn 3) (+= x 1))
-  (cls 0)
-  (spr (if (> (% t 60) 30) 1 3)
-       x y 14 3 0 0 2 2)
-  (print "HELLO WORLD!" 84 84)
+  (when (tic80/btn 0) (-= y 1))
+  (when (tic80/btn 1) (+= y 1))
+  (when (tic80/btn 2) (-= x 1))
+  (when (tic80/btn 3) (+= x 1))
+  (tic80/cls 0)
+  (tic80/spr (if (> (% t 60) 30) 1 3)
+          x y 14 3 0 0 2 2)
+  (tic80/print "HELLO WORLD!" 84 84)
   (+= t 1))
 
 # <TILES>
