@@ -12,9 +12,9 @@
 /* #define JANET_BUILD "local" */
 
 /* These settings all affect linking, so use cautiously. */
-#define JANET_SINGLE_THREADED
+/* #define JANET_SINGLE_THREADED */
 #define JANET_NO_DYNAMIC_MODULES
-/* #define JANET_NO_NANBOX */
+#define JANET_NO_NANBOX
 /* #define JANET_API __attribute__((visibility ("default"))) */
 
 /* These settings should be specified before amalgamation is
@@ -24,7 +24,7 @@
 /* #define JANET_NO_SOURCEMAPS */
 #define JANET_REDUCED_OS
 /* #define JANET_NO_PROCESSES */
-/* #define JANET_NO_ASSEMBLER */
+#define JANET_NO_ASSEMBLER
 /* #define JANET_NO_PEG */
 #define JANET_NO_NET
 #define JANET_NO_FFI
