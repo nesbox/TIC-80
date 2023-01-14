@@ -31,6 +31,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "tic_assert.h"
+#include "tools.h"
 
 typedef enum
 {
