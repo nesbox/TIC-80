@@ -84,6 +84,34 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
 {
     memset(cart, 0, sizeof(tic_cartridge));
     const u8* end = buffer + size;
+    u8 *chunk_cart = NULL;
+
+    // check if this cartridge is in PNG format
+    if (!memcmp(buffer, "\x89PNG", 4))
+    {
+        s32 siz;
+        const u8* ptr = buffer + 8;
+        // iterate on chunks until we find a cartridge
+        while (ptr < end)
+        {
+            siz = ((ptr[0] << 24) | (ptr[1] << 16) | (ptr[2] << 8) | ptr[3]);
+            if (!memcmp(ptr + 4, "caRt", 4) && siz > 0)
+            {
+                chunk_cart = malloc(sizeof(tic_cartridge));
+                if (chunk_cart)
+                {
+                    size = tic_tool_unzip(chunk_cart, sizeof(tic_cartridge), ptr + 8, siz);
+                    buffer = chunk_cart;
+                    end = buffer + size;
+                }
+                break;
+            }
+            ptr += siz + 12;
+        }
+        // error, no TIC-80 cartridge chunk in PNG???
+        if (!chunk_cart)
+            return;
+    }
 
 #define LOAD_CHUNK(to) memcpy(&to, ptr, MIN(sizeof(to), chunk->size ? retro_le_to_cpu16(chunk->size) : TIC_BANK_SIZE))
 
@@ -219,6 +247,9 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
                 }
         }
     }
+    // if we have allocated the buffer from a PNG chunk
+    if (chunk_cart)
+        free(chunk_cart);
 }
 
 
