@@ -1010,9 +1010,6 @@ static JANET_CFUN(janet_fset)
 static void reportError(tic_core* core, Janet result)
 {
   janet_stacktrace(GameFiber, result);
-  /* printf("\n\n"); */
-  /* printf(errBuffer.data); */
-  /* printf("\n\n"); */
   core->data->error(core->data->data, errBuffer.data);
 }
 
@@ -1048,7 +1045,7 @@ static bool initJanet(tic_mem* tic, const char* code)
     core->currentVM = (JanetTable*)janet_core_env(NULL);
 
     // override the dynamic err to a buffer, so that we can get errors later
-    janet_buffer_init(&errBuffer, 0);
+    janet_buffer_init(&errBuffer, 1024);
     janet_setdyn("err", janet_wrap_buffer(&errBuffer));
 
     GameFiber = janet_current_fiber();
