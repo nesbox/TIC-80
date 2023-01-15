@@ -1009,8 +1009,9 @@ static JANET_CFUN(janet_fset)
 /* ***************** */
 static void reportError(tic_core* core, Janet result)
 {
-  janet_stacktrace(GameFiber, result);
-  core->data->error(core->data->data, errBuffer.data);
+    janet_stacktrace(GameFiber, result);
+    janet_buffer_push_u8(&errBuffer, 0);
+    core->data->error(core->data->data, errBuffer.data);
 }
 
 
@@ -1045,7 +1046,7 @@ static bool initJanet(tic_mem* tic, const char* code)
     core->currentVM = (JanetTable*)janet_core_env(NULL);
 
     // override the dynamic err to a buffer, so that we can get errors later
-    janet_buffer_init(&errBuffer, 1024);
+    janet_buffer_init(&errBuffer, 1028);
     janet_setdyn("err", janet_wrap_buffer(&errBuffer));
 
     GameFiber = janet_current_fiber();
@@ -1053,8 +1054,8 @@ static bool initJanet(tic_mem* tic, const char* code)
 
     // Load the game source code
     if (janet_dostring(core->currentVM, code, "main", &result)) {
-      reportError(core, result);
-      return false;
+        reportError(core, result);
+        return false;
     }
 
     return true;
@@ -1067,7 +1068,7 @@ static void evalJanet(tic_mem* tic, const char* code)
 
   Janet result = janet_wrap_nil();
   if (janet_dostring(core->currentVM, code, "main", &result)) {
-    reportError(core, result);
+      reportError(core, result);
   }
 }
 
@@ -1085,8 +1086,8 @@ static void callJanetTick(tic_mem* tic)
     (void)janet_resolve(core->currentVM, janet_csymbol(TIC_FN), &pre_fn);
 
     if (janet_type(pre_fn) != JANET_FUNCTION) {
-      core->data->error(core->data->data, "(TIC) isn't found :(");
-      return;
+        core->data->error(core->data->data, "(TIC) isn't found :(");
+        return;
     }
 
     JanetFunction *tic_fn = janet_unwrap_function(pre_fn);
@@ -1118,7 +1119,7 @@ static void callJanetBoot(tic_mem* tic)
     JanetSignal status = janet_pcall(boot_fn, 0, NULL, &result, &GameFiber);
 
     if (status != JANET_SIGNAL_OK) {
-      reportError(core, result);
+        reportError(core, result);
     }
 }
 
@@ -1143,7 +1144,7 @@ static void callJanetIntCallback(tic_mem* tic, s32 value, void* data, const char
     JanetSignal status = janet_pcall(fn, 1, argv, &result, &GameFiber);
 
     if (status != JANET_SIGNAL_OK) {
-      reportError(core, result);
+        reportError(core, result);
     }
 }
 
