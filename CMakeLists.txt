@@ -411,15 +411,23 @@ target_include_directories(duktape INTERFACE ${THIRDPARTY_DIR}/duktape/src)
 # Janet
 ################################
 
-add_custom_command(
-  OUTPUT ${THIRDPARTY_DIR}/janet/build/c/janet.c
-  COMMAND make build/c/janet.c
-  WORKING_DIRECTORY ${THIRDPARTY_DIR}/janet/
-)
+if(WIN32)
+    add_custom_command(
+        OUTPUT ${THIRDPARTY_DIR}/janet/build/c/janet.c
+        COMMAND build_win
+        WORKING_DIRECTORY ${THIRDPARTY_DIR}/janet/
+    )
+else()
+    add_custom_command(
+        OUTPUT ${THIRDPARTY_DIR}/janet/build/c/janet.c
+        COMMAND make build/c/janet.c
+        WORKING_DIRECTORY ${THIRDPARTY_DIR}/janet/
+    )
+endif()
 add_library(janet ${THIRDPARTY_DIR}/janet/build/c/janet.c)
 target_include_directories(janet PUBLIC ${THIRDPARTY_DIR}/janet/src/include)
-# target_include_directories(janet PUBLIC ${THIRDPARTY_DIR}/janet/src/conf)
 target_include_directories(janet PUBLIC ${CMAKE_SOURCE_DIR}/build/janet/)
+
 
 ################################
 # TIC-80 core
