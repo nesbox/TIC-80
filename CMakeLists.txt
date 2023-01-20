@@ -23,6 +23,7 @@ if(Git_FOUND)
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
 
+
     string(LENGTH "${RESULT_STRING}" LENGTH_RESULT_STRING)
 
     if(${LENGTH_RESULT_STRING} EQUAL 0)
@@ -414,7 +415,7 @@ target_include_directories(duktape INTERFACE ${THIRDPARTY_DIR}/duktape/src)
 if(WIN32)
     add_custom_command(
         OUTPUT ${THIRDPARTY_DIR}/janet/build/c/janet.c
-        COMMAND build_win
+        COMMAND build_win.bat
         WORKING_DIRECTORY ${THIRDPARTY_DIR}/janet/
     )
 else()

@@ -12,7 +12,7 @@
 /* #define JANET_BUILD "local" */
 
 /* These settings all affect linking, so use cautiously. */
-/* #define JANET_SINGLE_THREADED */
+#define JANET_SINGLE_THREADED
 #define JANET_NO_DYNAMIC_MODULES
 #define JANET_NO_NANBOX
 /* #define JANET_API __attribute__((visibility ("default"))) */
@@ -28,6 +28,7 @@
 /* #define JANET_NO_PEG */
 #define JANET_NO_NET
 #define JANET_NO_FFI
+#define JANET_NO_FFI_JIT
 /* #define JANET_NO_INT_TYPES */
 #define JANET_NO_EV
 /* #define JANET_NO_REALPATH */
