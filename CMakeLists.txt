@@ -415,7 +415,7 @@ target_include_directories(duktape INTERFACE ${THIRDPARTY_DIR}/duktape/src)
 if(WIN32)
     add_custom_command(
         OUTPUT ${THIRDPARTY_DIR}/janet/build/c/janet.c
-        COMMAND build_win.bat
+        COMMAND ./build_win.bat
         WORKING_DIRECTORY ${THIRDPARTY_DIR}/janet/
     )
 else()
