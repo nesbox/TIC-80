@@ -750,7 +750,7 @@ static Janet janet_mouse(int32_t argc, Janet* argv)
     result[5] = janet_wrap_number(mouse->scrollx);
     result[6] = janet_wrap_number(mouse->scrolly);
 
-    return janet_wrap_tuple(&result);
+    return janet_wrap_tuple(janet_tuple_n(result, 7));
 }
 
 static Janet janet_circ(int32_t argc, Janet* argv)
