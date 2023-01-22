@@ -178,10 +178,33 @@ tic_script_config_extra WasmSyntaxConfigExtra =
 
 #endif
 
+#if defined(TIC_BUILD_WITH_JANET)
+
+static const u8 JanetDemoRom[] =
+  {
+#include "../build/assets/janetdemo.tic.dat"
+  };
+
+static const u8 janetmark[] =
+  {
+#include "../build/assets/janetmark.tic.dat"
+  };
+
+tic_script_config_extra JanetSyntaxConfigExtra =
+  {
+    .name               = "janet",
+    .demoRom            = JanetDemoRom,
+    .demoRomSize        = sizeof JanetDemoRom,
+    .markRom            = janetmark,
+    .markRomSize        = sizeof janetmark,
+  };
+
+#endif
+
 tic_script_config_extra* getConfigExtra(const tic_script_config* config)
 {
 
-    for (tic_script_config_extra** conf = LanguagesExtra ; *conf != NULL; conf++ ) { 
+    for (tic_script_config_extra** conf = LanguagesExtra ; *conf != NULL; conf++ ) {
         tic_script_config_extra* ln = *conf;
         if (strcmp(config->name, ln->name) == 0)
         {
@@ -216,7 +239,8 @@ tic_script_config_extra* LanguagesExtra[] = {
 #if defined(TIC_BUILD_WITH_WASM)
    &WasmSyntaxConfigExtra,
 #endif
+#if defined(TIC_BUILD_WITH_WASM)
+   &JanetSyntaxConfigExtra,
+#endif
    NULL
 };
-
-

@@ -19,8 +19,10 @@ To make a retro styled game, the whole process of creation and execution takes p
   [Moonscript](https://moonscript.org),
   [Javascript](https://developer.mozilla.org/en-US/docs/Web/JavaScript),
   [Ruby](https://www.ruby-lang.org/en/),
-  [Wren](http://wren.io/), [Fennel](https://fennel-lang.org), and
-  [Squirrel](http://www.squirrel-lang.org).
+  [Wren](http://wren.io/),
+  [Fennel](https://fennel-lang.org),
+  [Squirrel](http://www.squirrel-lang.org), and
+  [Janet](https://janet-lang.org).
 - Games can have mouse and keyboard as input
 - Games can have up to 4 controllers as input (with up to 8 buttons, each)
 - Built-in editors: for code, sprites, world maps, sound effects and music
@@ -84,7 +86,7 @@ cmake -G "MinGW Makefiles" ..
 mingw32-make -j4
 ```
 
-## Linux 
+## Linux
 ### Ubuntu 14.04
 run the following commands in the Terminal
 ```
@@ -116,7 +118,7 @@ make -j4
 run the following commands in the Terminal
 ```
 sudo dnf -y groupinstall "Development Tools" "Development Libraries"
-sudo dnf -y install ruby rubygem-{tk{,-doc},rake,test-unit} cmake libglvnd-devel libglvnd-gles freeglut-devel clang libXext-devel SDL_sound pipewire-devel pipewire-jack-audio-connection-kit-devel pulseaudio-libs-devel 
+sudo dnf -y install ruby rubygem-{tk{,-doc},rake,test-unit} cmake libglvnd-devel libglvnd-gles freeglut-devel clang libXext-devel SDL_sound pipewire-devel pipewire-jack-audio-connection-kit-devel pulseaudio-libs-devel
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake .. -DCMAKE_CXX_COMPILER=clang++ -DSDL_ALSA=On
 make -j4
