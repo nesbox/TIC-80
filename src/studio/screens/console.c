@@ -3028,7 +3028,7 @@ static s32 createRamTable(char* buf)
         {offsetof(tic_ram, font.alt),               "ALT FONT"},
         {offsetof(tic_ram, font.alt.params),        "ALT FONT PARAMS"},
         {offsetof(tic_ram, mapping),                "BUTTONS MAPPING"},
-        {offsetof(tic_ram, free),                   "... (free)"},
+        {offsetof(tic_ram, free),                   "** RESERVED **"},
         {TIC_RAM_SIZE,                              ""},
     };
 
