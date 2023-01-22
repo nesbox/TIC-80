@@ -993,7 +993,8 @@ static Janet janet_fget(int32_t argc, Janet* argv)
     return janet_wrap_boolean(tic_api_fget(memory, index, flag));
 }
 
-static JANET_CFUN(janet_fset)
+
+static Janet janet_fset(int32_t argc, Janet* argv)
 {
     janet_fixarity(argc, 3);
 
