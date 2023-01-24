@@ -160,7 +160,7 @@ static const char* const JanetKeywords[] =
 };
 
 static JanetFiber* GameFiber = NULL;
-static JanetBuffer errBuffer;
+static JanetBuffer *errBuffer;
 static tic_core* CurrentMachine = NULL;
 
 
@@ -1011,8 +1011,8 @@ static Janet janet_fset(int32_t argc, Janet* argv)
 static void reportError(tic_core* core, Janet result)
 {
     janet_stacktrace(GameFiber, result);
-    janet_buffer_push_u8(&errBuffer, 0);
-    core->data->error(core->data->data, errBuffer.data);
+    janet_buffer_push_u8(errBuffer, 0);
+    core->data->error(core->data->data, errBuffer->data);
 }
 
 
@@ -1024,7 +1024,7 @@ static void closeJanet(tic_mem* tic)
         janet_deinit();
         core->currentVM = NULL;
         CurrentMachine = NULL;
-        janet_buffer_deinit(&errBuffer);
+        errBuffer = NULL;
         GameFiber = NULL;
     }
 }
@@ -1047,8 +1047,8 @@ static bool initJanet(tic_mem* tic, const char* code)
     core->currentVM = (JanetTable*)janet_core_env(NULL);
 
     // override the dynamic err to a buffer, so that we can get errors later
-    janet_buffer_init(&errBuffer, 1028);
-    janet_setdyn("err", janet_wrap_buffer(&errBuffer));
+    errBuffer = janet_buffer(1028);
+    janet_setdyn("err", janet_wrap_buffer(errBuffer));
 
     GameFiber = janet_current_fiber();
     Janet result;
