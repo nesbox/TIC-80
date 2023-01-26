@@ -175,11 +175,11 @@ to create application icon for development version
 mkdir -p ~/Applications/TIC80dev.app/Contents/{MacOS,Resources}
 cp -f macosx/tic80.plist ~/Applications/TIC80dev.app/Contents/Info.plist
 cp -f macosx/tic80.icns ~/Applications/TIC80dev.app/Contents/Resources
-cat > ~/Applications/TIC80dev.app/MacOS/TIC80dev <<EOF
+cat > ~/Applications/TIC80dev.app/Contents/MacOS/TIC80dev <<EOF
 #!/bin/sh
 exec /Users/nesbox/projects/TIC-80/build/bin/tic80 --skip --scale 2 >/dev/null
 EOF
-chmod +x ~/Applications/TIC80dev.app/MacOS/TIC80
+chmod +x ~/Applications/TIC80dev.app/Contents/MacOS/TIC80dev
 ```
 Make sure to update the absolute path to the tic80 binary in the script, or
 update the launch arguments.
