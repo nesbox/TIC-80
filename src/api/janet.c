@@ -104,7 +104,7 @@ static const JanetReg janet_c_functions[] =
     {"btn", janet_btn, NULL},
     {"btnp", janet_btnp, NULL},
     {"sfx", janet_sfx, NULL},
-    {"tmap", janet_map, NULL},
+    {"map", janet_map, NULL},
     {"mget", janet_mget, NULL},
     {"mset", janet_mset, NULL},
     {"peek", janet_peek, NULL},
