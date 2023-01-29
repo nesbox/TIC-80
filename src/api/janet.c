@@ -104,7 +104,7 @@ static const JanetReg janet_c_functions[] =
     {"btn", janet_btn, NULL},
     {"btnp", janet_btnp, NULL},
     {"sfx", janet_sfx, NULL},
-    {"tmap", janet_map, NULL},
+    {"map", janet_map, NULL},
     {"mget", janet_mget, NULL},
     {"mset", janet_mset, NULL},
     {"peek", janet_peek, NULL},
@@ -302,10 +302,7 @@ static Janet janet_print(int32_t argc, Janet* argv)
 static Janet janet_cls(int32_t argc, Janet* argv)
 {
     janet_arity(argc, 0, 1);
-    u8 color = 0;
-
-    if (argc > 0) color = (u8)janet_getinteger(argv, 0);
-
+    u32 color = (u32)janet_optinteger(argv, argc, 0, 0);
     tic_mem* memory = (tic_mem*)getJanetMachine();
     tic_api_cls(memory, color);
     return janet_wrap_nil();
