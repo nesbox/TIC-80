@@ -28,8 +28,7 @@
     !defined(TIC_BUILD_WITH_JS)       && \
     !defined(TIC_BUILD_WITH_WREN)     && \
     !defined(TIC_BUILD_WITH_SQUIRREL) && \
-    !defined(TIC_BUILD_WITH_WASM)     && \
-    !defined(TIC_BUILD_WITH_JANET)
+    !defined(TIC_BUILD_WITH_WASM)
 
 #   define TIC_BUILD_WITH_LUA      1
 #   define TIC_BUILD_WITH_MOON     1
@@ -38,7 +37,6 @@
 #   define TIC_BUILD_WITH_WREN     1
 #   define TIC_BUILD_WITH_SQUIRREL 1
 #   define TIC_BUILD_WITH_WASM     1
-#   define TIC_BUILD_WITH_JANET    1
 
 #endif
 

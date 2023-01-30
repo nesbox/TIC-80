@@ -239,7 +239,7 @@ tic_script_config_extra* LanguagesExtra[] = {
 #if defined(TIC_BUILD_WITH_WASM)
    &WasmSyntaxConfigExtra,
 #endif
-#if defined(TIC_BUILD_WITH_WASM)
+#if defined(TIC_BUILD_WITH_JANET)
    &JanetSyntaxConfigExtra,
 #endif
    NULL

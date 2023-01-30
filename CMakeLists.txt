@@ -412,23 +412,34 @@ target_include_directories(duktape INTERFACE ${THIRDPARTY_DIR}/duktape/src)
 # Janet
 ################################
 
-if(WIN32)
-    add_custom_command(
-        OUTPUT ${THIRDPARTY_DIR}/janet/build/c/janet.c
-        COMMAND ./build_win.bat
-        WORKING_DIRECTORY ${THIRDPARTY_DIR}/janet/
-    )
+if(MINGW)
+    set(BUILD_WITH_JANET_DEFAULT FALSE)
 else()
-    add_custom_command(
-        OUTPUT ${THIRDPARTY_DIR}/janet/build/c/janet.c
-        COMMAND make build/c/janet.c
-        WORKING_DIRECTORY ${THIRDPARTY_DIR}/janet/
-    )
+    set(BUILD_WITH_JANET_DEFAULT TRUE)
 endif()
-add_library(janet ${THIRDPARTY_DIR}/janet/build/c/janet.c)
-target_include_directories(janet PUBLIC ${THIRDPARTY_DIR}/janet/src/include)
-target_include_directories(janet PUBLIC ${CMAKE_SOURCE_DIR}/build/janet/)
 
+option(BUILD_WITH_JANET "Janet Enabled" ${BUILD_WITH_JANET_DEFAULT})
+message("BUILD_WITH_JANET: ${BUILD_WITH_JANET}")
+
+if(BUILD_WITH_JANET)
+    if(MSVC)
+        add_custom_command(
+            OUTPUT ${THIRDPARTY_DIR}/janet/build/c/janet.c
+            COMMAND ./build_win.bat
+            WORKING_DIRECTORY ${THIRDPARTY_DIR}/janet/
+        )
+    else()
+        add_custom_command(
+            OUTPUT ${THIRDPARTY_DIR}/janet/build/c/janet.c
+            COMMAND make build/c/janet.c
+            WORKING_DIRECTORY ${THIRDPARTY_DIR}/janet/
+        )
+    endif()
+
+    add_library(janet ${THIRDPARTY_DIR}/janet/build/c/janet.c)
+    target_include_directories(janet PUBLIC ${THIRDPARTY_DIR}/janet/src/include)
+    target_include_directories(janet PUBLIC ${CMAKE_SOURCE_DIR}/build/janet/)
+endif()
 
 ################################
 # TIC-80 core
@@ -486,11 +497,14 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         duktape
         blipbuf
         zlib
-        janet
     )
 
     if(BUILD_WITH_MRUBY)
         target_link_libraries(tic80core${SCRIPT} mruby)
+    endif()
+
+    if(BUILD_WITH_JANET)
+        target_link_libraries(tic80core${SCRIPT} janet)
     endif()
 
     if(${BUILD_DEPRECATED})
@@ -516,16 +530,24 @@ if(BUILD_STUB)
     MACRO_CORE(js       TIC_BUILD_WITH_JS       FALSE)
     MACRO_CORE(wren     TIC_BUILD_WITH_WREN     FALSE)
     MACRO_CORE(squirrel TIC_BUILD_WITH_SQUIRREL FALSE)
+    MACRO_CORE(wasm     TIC_BUILD_WITH_WASM     FALSE)
+
     if(BUILD_WITH_MRUBY)
         MACRO_CORE(ruby TIC_BUILD_WITH_MRUBY    FALSE)
     endif()
-    MACRO_CORE(wasm     TIC_BUILD_WITH_WASM     FALSE)
-    MACRO_CORE(janet    TIC_BUILD_WITH_JANET    FALSE)
+
+    if(BUILD_WITH_JANET)
+        MACRO_CORE(janet TIC_BUILD_WITH_JANET    FALSE)
+    endif()
 
 endif()
 
 if(BUILD_WITH_MRUBY)
     target_compile_definitions(tic80core PUBLIC TIC_BUILD_WITH_MRUBY=1)
+endif()
+
+if(BUILD_WITH_JANET)
+    target_compile_definitions(tic80core PUBLIC TIC_BUILD_WITH_JANET=1)
 endif()
 
 ################################
@@ -1276,8 +1298,15 @@ if(BUILD_STUB)
     MACRO_STUB(js)
     MACRO_STUB(wren)
     MACRO_STUB(squirrel)
-    MACRO_STUB(janet)
-    MACRO_STUB(ruby)
+
+    if(BUILD_WITH_JANET)
+        MACRO_STUB(janet)
+    endif()
+
+    if(BUILD_WITH_MRUBY)
+        MACRO_STUB(ruby)
+    endif()
+
     MACRO_STUB(wasm)
 
 endif()
