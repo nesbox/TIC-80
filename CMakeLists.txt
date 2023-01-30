@@ -805,15 +805,26 @@ if(BUILD_DEMO_CARTS)
         target_link_libraries(xplode m)
     endif()
 
+    set(DEMO_CARTS_IN ${CMAKE_SOURCE_DIR}/demos)
+    set(DEMO_CARTS_OUT)
+
     file(GLOB DEMO_CARTS
-        ${CMAKE_SOURCE_DIR}/demos/*.*
-        ${CMAKE_SOURCE_DIR}/demos/bunny/*.*)
+        ${DEMO_CARTS_IN}/*.*
+        ${DEMO_CARTS_IN}/bunny/*.*)
 
     list(APPEND DEMO_CARTS
         ${CMAKE_SOURCE_DIR}/config.lua
     )
 
-    set(DEMO_CARTS_OUT)
+    if(NOT BUILD_WITH_MRUBY)
+        list(REMOVE_ITEM DEMO_CARTS ${DEMO_CARTS_IN}/rubydemo.rb)
+        list(REMOVE_ITEM DEMO_CARTS ${DEMO_CARTS_IN}/bunny/rubymark.rb)
+    endif()
+
+    if(NOT BUILD_WITH_JANET)
+        list(REMOVE_ITEM DEMO_CARTS ${DEMO_CARTS_IN}/janetdemo.janet)
+        list(REMOVE_ITEM DEMO_CARTS ${DEMO_CARTS_IN}/bunny/janetmark.janet)
+    endif()
 
     foreach(CART_FILE ${DEMO_CARTS})
 
@@ -836,8 +847,8 @@ if(BUILD_DEMO_CARTS)
     # include BINARY chunks
 
     file(GLOB WASM_DEMOS
-        ${CMAKE_SOURCE_DIR}/demos/wasm/*.wasmp
-        ${CMAKE_SOURCE_DIR}/demos/bunny/wasmmark/*.wasmp
+        ${DEMO_CARTS_IN}/wasm/*.wasmp
+        ${DEMO_CARTS_IN}/bunny/wasmmark/*.wasmp
     )
 
     foreach(CART_FILE ${WASM_DEMOS})
