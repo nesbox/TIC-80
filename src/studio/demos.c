@@ -134,6 +134,27 @@ tic_script_config_extra WrenSyntaxConfigExtra =
 
 #endif
 
+#if defined (TIC_BUILD_WITH_SCHEME)
+static const u8 SchemeDemoRom[] =
+{
+    #include "../build/assets/schemedemo.tic.dat"
+};
+
+static const u8 schememark[] =
+{
+    #include "../build/assets/schememark.tic.dat"
+};
+tic_script_config_extra SchemeSyntaxConfigExtra =
+{
+    .name               = "scheme",
+    .demoRom            = SchemeDemoRom,
+    .demoRomSize        = sizeof SchemeDemoRom,
+    .markRom            = schememark,
+    .markRomSize        = sizeof schememark,
+};
+#endif
+
+
 #if defined (TIC_BUILD_WITH_SQUIRREL)
 static const u8 SquirrelDemoRom[] =
 {
@@ -204,6 +225,10 @@ tic_script_config_extra* LanguagesExtra[] = {
 #if defined(TIC_BUILD_WITH_WREN)
    &WrenSyntaxConfigExtra,
 #endif
+#if defined(TIC_BUILD_WITH_SCHEME)
+   &SchemeSyntaxConfigExtra,
+#endif
+
 #if defined(TIC_BUILD_WITH_SQUIRREL)
    &SquirrelSyntaxConfigExtra,
 #endif
