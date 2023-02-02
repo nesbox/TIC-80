@@ -870,6 +870,11 @@ static void callSchemeMenu(tic_mem* tic, s32 index, void* data)
 
 static const char* const SchemeKeywords [] =
 {
+    "define", "lambda", "begin", "set!", "=", "<", "<=", ">", ">=", "+", "*",
+    "/", "'", "`", "`@", "define-macro", "let", "let*", "letrec",
+    "if", "cond", "floor", "ceiling", "sin", "cos", "log", "sqrt", "abs"
+    "expt", "tan", "acos", "asin", "atan", "truncate", "round",
+    "modulo", "remainder", "gcd", "lcm", "and", "or",
     "eq?", "eqv?", "equal?", "equivalent?", "boolean?", "pair?",
     "cons", "car", "cdr", "set-car!", "set-cdr!", "cadr", "cddr",
     "cdar", "caar", "caadr", "caddr", "cadar", "caaar", "cdadr",
@@ -901,7 +906,7 @@ static const char* const SchemeKeywords [] =
     "let?", "let-ref", "openlet", "openlet?"
 };
 
-/* static inline bool isalnum_(char c) {return isalnum(c) || c == '_';} */
+static inline bool isalnum_(char c) {return isalnum(c) || c == '_' || c == '-' || c == ':' || c == '#';}
 
 static const tic_outline_item* getSchemeOutline(const char* code, s32* size)
 {
@@ -915,7 +920,48 @@ static const tic_outline_item* getSchemeOutline(const char* code, s32* size)
         free(items);
         items = NULL;
     }
-    // todo: don't know what this does...
+
+    const char* ptr = code;
+
+    while(true)
+    {
+        static const char FuncString[] = "(define (";
+
+        ptr = strstr(ptr, FuncString);
+
+        if(ptr)
+        {
+            ptr += sizeof FuncString - 1;
+
+            const char* start = ptr;
+            const char* end = start;
+
+            while(*ptr)
+            {
+                char c = *ptr;
+
+                if(isalnum_(c));
+                else
+                {
+                    end = ptr;
+                    break;
+                }
+                ptr++;
+            }
+
+            if(end > start)
+            {
+                items = realloc(items, (*size + 1) * Size);
+
+                items[*size].pos = start;
+                items[*size].size = (s32)(end - start);
+
+                (*size)++;
+            }
+        }
+        else break;
+    }
+
     return items;
 }
 
