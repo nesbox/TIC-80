@@ -1,5 +1,5 @@
 ;; title: Bunnymark in Scheme
-;; author: David St-Hilaire
+;; author: David St-Hilaire, based on the original work of Rob Loach
 ;; desc: Benchmarking tool to see how many bunnies can fly around the screen, using Scheme.
 ;; license: MIT License 
 ;; input: gamepad

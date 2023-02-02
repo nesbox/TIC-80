@@ -243,6 +243,13 @@
   #ifndef HAVE_COMPLEX_TRIG
     #define HAVE_COMPLEX_TRIG 0
   #endif
+#elif defined(__ANDROID__)
+  #ifndef HAVE_COMPLEX_NUMBERS
+    #define HAVE_COMPLEX_NUMBERS 0
+  #endif
+  #ifndef HAVE_COMPLEX_TRIG
+    #define HAVE_COMPLEX_TRIG 0
+  #endif
 #else
   #ifndef HAVE_COMPLEX_NUMBERS
     #if __TINYC__
@@ -334,7 +341,7 @@
 #endif
 
 #ifdef _MSC_VER
-  #define noreturn [[noreturn]] /* deprecated in C23 */
+  #define noreturn __declspec(noreturn)
 #else
   #define noreturn __attribute__((noreturn))
   /* this is ok in gcc/g++/clang and tcc; pure attribute is rarely applicable here, and does not seem to be helpful (maybe safe_strlen) */
@@ -364,7 +371,7 @@
   #define MS_WINDOWS 0
 #endif
 
-#if defined(__GNUC__)
+#ifndef _WIN32
   #define Jmp_Buf       sigjmp_buf
   #define SetJmp(A, B)  sigsetjmp(A, B)
   #define LongJmp(A, B) siglongjmp(A, B)
@@ -373,7 +380,7 @@
    *   In one case, the sigsetjmp version runs in 24 seconds, but the setjmp version takes 10 seconds, and
    *   yet callgrind says there is almost no difference? I removed setjmp from s7_optimize.
    */
-#elif defined(_MSC_VER) || defined(__MINGW32__)
+#else
   #define Jmp_Buf       jmp_buf
   #define SetJmp(A, B)  setjmp(A)
   #define LongJmp(A, B) longjmp(A, B)
@@ -12988,7 +12995,7 @@ double s7_round(double number) {return((number < 0.0) ? ceil(number - 0.5) : flo
   static s7_complex catanh(s7_complex z) {return(clog((1.0 + z) / (1.0 - z)) / 2.0);}
 #else
 
-#if (!defined(__FreeBSD__)) || (__FreeBSD__ < 12) || defined(__ANDROID__)
+#if (!defined(__FreeBSD__)) || (__FreeBSD__ < 12)
 static s7_complex clog(s7_complex z) {return(log(fabs(cabs(z))) + carg(z) * _Complex_I);}
 static s7_complex cpow(s7_complex x, s7_complex y)
 {
