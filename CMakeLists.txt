@@ -23,6 +23,7 @@ if(Git_FOUND)
         OUTPUT_STRIP_TRAILING_WHITESPACE
     )
 
+
     string(LENGTH "${RESULT_STRING}" LENGTH_RESULT_STRING)
 
     if(${LENGTH_RESULT_STRING} EQUAL 0)
@@ -321,7 +322,7 @@ endif()
 ################################
 
 set(WASM_DIR ${THIRDPARTY_DIR}/wasm3/source)
-set(WASM_SRC 
+set(WASM_SRC
     ${WASM_DIR}/m3_bind.c
     ${WASM_DIR}/m3_code.c
     ${WASM_DIR}/m3_compile.c
@@ -420,6 +421,35 @@ add_library(duktape STATIC ${THIRDPARTY_DIR}/duktape/src/duktape.c)
 target_include_directories(duktape INTERFACE ${THIRDPARTY_DIR}/duktape/src)
 
 ################################
+# Janet
+################################
+
+set(BUILD_WITH_JANET_DEFAULT FALSE)
+
+option(BUILD_WITH_JANET "Janet Enabled" ${BUILD_WITH_JANET_DEFAULT})
+message("BUILD_WITH_JANET: ${BUILD_WITH_JANET}")
+
+if(BUILD_WITH_JANET)
+    if(MSVC)
+        add_custom_command(
+            OUTPUT ${THIRDPARTY_DIR}/janet/build/c/janet.c
+            COMMAND ./build_win.bat
+            WORKING_DIRECTORY ${THIRDPARTY_DIR}/janet/
+        )
+    else()
+        add_custom_command(
+            OUTPUT ${THIRDPARTY_DIR}/janet/build/c/janet.c
+            COMMAND make build/c/janet.c
+            WORKING_DIRECTORY ${THIRDPARTY_DIR}/janet/
+        )
+    endif()
+
+    add_library(janet ${THIRDPARTY_DIR}/janet/build/c/janet.c)
+    target_include_directories(janet PUBLIC ${THIRDPARTY_DIR}/janet/src/include)
+    target_include_directories(janet PUBLIC ${CMAKE_SOURCE_DIR}/build/janet/)
+endif()
+
+################################
 # TIC-80 core
 ################################
 
@@ -433,14 +463,15 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         ${TIC80CORE_DIR}/core/io.c
         ${TIC80CORE_DIR}/core/sound.c
         ${TIC80CORE_DIR}/api/js.c
-        ${TIC80CORE_DIR}/api/lua.c 
-        ${TIC80CORE_DIR}/api/moonscript.c 
-        ${TIC80CORE_DIR}/api/fennel.c 
-        ${TIC80CORE_DIR}/api/wren.c 
+        ${TIC80CORE_DIR}/api/lua.c
+        ${TIC80CORE_DIR}/api/moonscript.c
+        ${TIC80CORE_DIR}/api/fennel.c
+        ${TIC80CORE_DIR}/api/wren.c
         ${TIC80CORE_DIR}/api/wasm.c
         ${TIC80CORE_DIR}/api/squirrel.c
         ${TIC80CORE_DIR}/api/scheme.c
         ${TIC80CORE_DIR}/api/mruby.c
+        ${TIC80CORE_DIR}/api/janet.c
         ${TIC80CORE_DIR}/tic.c
         ${TIC80CORE_DIR}/cart.c
         ${TIC80CORE_DIR}/tools.c
@@ -482,6 +513,10 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         target_link_libraries(tic80core${SCRIPT} mruby)
     endif()
 
+    if(BUILD_WITH_JANET)
+        target_link_libraries(tic80core${SCRIPT} janet)
+    endif()
+
     if(${BUILD_DEPRECATED})
         target_compile_definitions(tic80core${SCRIPT} PRIVATE BUILD_DEPRECATED)
         target_link_libraries(tic80core${SCRIPT} giflib)
@@ -506,15 +541,24 @@ if(BUILD_STUB)
     MACRO_CORE(wren     TIC_BUILD_WITH_WREN     FALSE)
     MACRO_CORE(squirrel TIC_BUILD_WITH_SQUIRREL FALSE)
     MACRO_CORE(scheme   TIC_BUILD_WITH_SCHEME   FALSE)
+    MACRO_CORE(wasm     TIC_BUILD_WITH_WASM     FALSE)
+
     if(BUILD_WITH_MRUBY)
         MACRO_CORE(ruby TIC_BUILD_WITH_MRUBY    FALSE)
     endif()
-    MACRO_CORE(wasm     TIC_BUILD_WITH_WASM     FALSE)
+
+    if(BUILD_WITH_JANET)
+        MACRO_CORE(janet TIC_BUILD_WITH_JANET    FALSE)
+    endif()
 
 endif()
 
 if(BUILD_WITH_MRUBY)
     target_compile_definitions(tic80core PUBLIC TIC_BUILD_WITH_MRUBY=1)
+endif()
+
+if(BUILD_WITH_JANET)
+    target_compile_definitions(tic80core PUBLIC TIC_BUILD_WITH_JANET=1)
 endif()
 
 ################################
@@ -664,11 +708,11 @@ IS_DOS
         if("${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoWii" OR "${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoGameCube" OR GAMECUBE OR WII OR IS_DOS)
           add_custom_command(TARGET tic80_libretro
                POST_BUILD
-                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libscheme.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${CMAKE_BINARY_DIR}/lib/libzlib.a ${MRUBY_LIB})
+                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libjanet.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libscheme.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${CMAKE_BINARY_DIR}/lib/libzlib.a ${MRUBY_LIB})
         else()
           add_custom_command(TARGET tic80_libretro
                POST_BUILD
-                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libscheme.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${MRUBY_LIB})
+                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libscheme.a ${CMAKE_BINARY_DIR}/lib/libjanet.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${MRUBY_LIB})
         endif()
     else()
         add_library(tic80_libretro SHARED
@@ -772,15 +816,26 @@ if(BUILD_DEMO_CARTS)
         target_link_libraries(xplode m)
     endif()
 
+    set(DEMO_CARTS_IN ${CMAKE_SOURCE_DIR}/demos)
+    set(DEMO_CARTS_OUT)
+
     file(GLOB DEMO_CARTS
-        ${CMAKE_SOURCE_DIR}/demos/*.*
-        ${CMAKE_SOURCE_DIR}/demos/bunny/*.*)
+        ${DEMO_CARTS_IN}/*.*
+        ${DEMO_CARTS_IN}/bunny/*.*)
 
     list(APPEND DEMO_CARTS
         ${CMAKE_SOURCE_DIR}/config.lua
     )
 
-    set(DEMO_CARTS_OUT)
+    if(NOT BUILD_WITH_MRUBY)
+        list(REMOVE_ITEM DEMO_CARTS ${DEMO_CARTS_IN}/rubydemo.rb)
+        list(REMOVE_ITEM DEMO_CARTS ${DEMO_CARTS_IN}/bunny/rubymark.rb)
+    endif()
+
+    if(NOT BUILD_WITH_JANET)
+        list(REMOVE_ITEM DEMO_CARTS ${DEMO_CARTS_IN}/janetdemo.janet)
+        list(REMOVE_ITEM DEMO_CARTS ${DEMO_CARTS_IN}/bunny/janetmark.janet)
+    endif()
 
     foreach(CART_FILE ${DEMO_CARTS})
 
@@ -800,11 +855,11 @@ if(BUILD_DEMO_CARTS)
 
     # we need to build these separatly combining both the project
     # and the external WASM binary chunk since projects do not
-    # include BINARY chunks 
-    
+    # include BINARY chunks
+
     file(GLOB WASM_DEMOS
-        ${CMAKE_SOURCE_DIR}/demos/wasm/*.wasmp
-        ${CMAKE_SOURCE_DIR}/demos/bunny/wasmmark/*.wasmp
+        ${DEMO_CARTS_IN}/wasm/*.wasmp
+        ${DEMO_CARTS_IN}/bunny/wasmmark/*.wasmp
     )
 
     foreach(CART_FILE ${WASM_DEMOS})
@@ -1266,7 +1321,15 @@ if(BUILD_STUB)
     MACRO_STUB(wren)
     MACRO_STUB(squirrel)
     MACRO_STUB(scheme)
-    MACRO_STUB(ruby)
+
+    if(BUILD_WITH_JANET)
+        MACRO_STUB(janet)
+    endif()
+
+    if(BUILD_WITH_MRUBY)
+        MACRO_STUB(ruby)
+    endif()
+
     MACRO_STUB(wasm)
 
 endif()
