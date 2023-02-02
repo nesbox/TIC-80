@@ -769,6 +769,15 @@ static void closeScheme(tic_mem* tic)
     }
 }
 
+s7_pointer scheme_error_handler(s7_scheme* sc, s7_pointer args)
+{
+    tic_core* tic = getSchemeCore(sc);
+    if (tic->data) {
+        tic->data->error(tic->data->data, s7_string(s7_car(args)));
+    }
+    return s7_nil(sc);
+}
+
 static const char* ticFnName = "TIC";
 
 static bool initScheme(tic_mem* tic, const char* code)
@@ -779,8 +788,16 @@ static bool initScheme(tic_mem* tic, const char* code)
     s7_scheme* sc = core->currentVM = s7_init();
     initAPI(core);
 
+    s7_define_function(sc, "__TIC_ErrorHandler", scheme_error_handler, 1, 0, 0, NULL);
+    s7_eval_c_string(sc, "(set! (hook-functions *error-hook*)                    \n\
+                            (list (lambda (hook)                                 \n\
+                                    (__TIC_ErrorHandler                          \n\
+                                      (apply format #f (hook 'data)))            \n\
+                                    (set! (hook 'result) #f))))");
+
     s7_define_variable(sc, TicCore, s7_make_c_pointer(sc, core));
     s7_load_c_string(sc, code, strlen(code));
+    
 
     const bool isTicDefined = s7_is_defined(sc, ticFnName);
     if (!isTicDefined) {
@@ -800,7 +817,6 @@ static void callSchemeTick(tic_mem* tic)
     const bool isTicDefined = s7_is_defined(sc, ticFnName);
     if (isTicDefined) {
         s7_call(sc, s7_name_to_value(sc, ticFnName), s7_nil(sc));
-        s7_flush_output_port(sc, s7_current_output_port(sc));
     }
 }
 
@@ -813,12 +829,7 @@ static void callSchemeBoot(tic_mem* tic)
     const bool isBootDefined = s7_is_defined(sc, bootFnName);
     if (isBootDefined) {
         s7_call(sc, s7_name_to_value(sc, "BOOT"), s7_nil(sc));
-        s7_flush_output_port(sc, s7_current_output_port(sc));
     }
-    /* else if (core->data) { */
-    /*         core->data->error(core->data->data, "BOOT Function Undefined, ignored"); */
-    /* } */
-    
 }
 
 static void callSchemeScanline(tic_mem* tic, s32 row, void* data)
@@ -830,7 +841,6 @@ static void callSchemeScanline(tic_mem* tic, s32 row, void* data)
     const bool isScnDefined = s7_is_defined(sc, scnFnName);
     if (isScnDefined) {
         s7_call(sc, s7_name_to_value(sc, scnFnName), s7_cons(sc, s7_make_integer(sc, row), s7_nil(sc)));
-        s7_flush_output_port(sc, s7_current_output_port(sc));
     }
 }
 
@@ -843,7 +853,6 @@ static void callSchemeBorder(tic_mem* tic, s32 row, void* data)
     bool isBdrDefined = s7_is_defined(sc, bdrFnName);
     if (isBdrDefined) {
         s7_call(sc, s7_name_to_value(sc, bdrFnName), s7_cons(sc, s7_make_integer(sc, row), s7_nil(sc)));
-        s7_flush_output_port(sc, s7_current_output_port(sc));
     }
 }
 
@@ -856,7 +865,6 @@ static void callSchemeMenu(tic_mem* tic, s32 index, void* data)
     bool isMenuDefined = s7_is_defined(sc, menuFnName);
     if (isMenuDefined) {
         s7_call(sc, s7_name_to_value(sc, menuFnName), s7_cons(sc, s7_make_integer(sc, index), s7_nil(sc)));
-        s7_flush_output_port(sc, s7_current_output_port(sc));
     }
 }
 
