@@ -412,11 +412,7 @@ target_include_directories(duktape INTERFACE ${THIRDPARTY_DIR}/duktape/src)
 # Janet
 ################################
 
-if(MINGW)
-    set(BUILD_WITH_JANET_DEFAULT FALSE)
-else()
-    set(BUILD_WITH_JANET_DEFAULT TRUE)
-endif()
+set(BUILD_WITH_JANET_DEFAULT FALSE)
 
 option(BUILD_WITH_JANET "Janet Enabled" ${BUILD_WITH_JANET_DEFAULT})
 message("BUILD_WITH_JANET: ${BUILD_WITH_JANET}")
