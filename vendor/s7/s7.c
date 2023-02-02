@@ -341,7 +341,7 @@
 #endif
 
 #ifdef _MSC_VER
-  #define noreturn __declspec(noreturn)
+  #define noreturn 
 #else
   #define noreturn __attribute__((noreturn))
   /* this is ok in gcc/g++/clang and tcc; pure attribute is rarely applicable here, and does not seem to be helpful (maybe safe_strlen) */
@@ -371,7 +371,7 @@
   #define MS_WINDOWS 0
 #endif
 
-#ifndef _WIN32
+#if defined(__GNUC__)
   #define Jmp_Buf       sigjmp_buf
   #define SetJmp(A, B)  sigsetjmp(A, B)
   #define LongJmp(A, B) siglongjmp(A, B)
