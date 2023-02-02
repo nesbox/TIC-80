@@ -42,7 +42,7 @@
   (sprite 1))
 
 (define (bunny-draw b)
-  (spr (bunny-sprite b) (floor (bunny-x b)) (floor (bunny-y b)) 1 1 0 0 4 4))
+  (t80::spr (bunny-sprite b) (floor (bunny-x b)) (floor (bunny-y b)) 1 1 0 0 4 4))
 
 (define (bunny-update b)
   (bunny-set-x! b (+ (bunny-x b) (bunny-vx b)))
@@ -61,7 +61,7 @@
 (define fps-lastTime 0)
 
 (define (fps-getValue)
-  (let ((current-time (time)))
+  (let ((current-time (t80::time)))
     (if (<= (- current-time fps-lastTime)
             1000)
         (set! fps-frames (+ fps-frames 1))
@@ -79,18 +79,18 @@
 
 (define (TIC)
   ;; music
-  (if (= t 0) (music 0))
-  (if (= t (* 6 64 2.375)) (music 1))
+  (if (= t 0) (t80::music 0))
+  (if (= t (* 6 64 2.375)) (t80::music 1))
   (set! t (+ t 1))
 
   ;; input
-  (if (btn 0)
+  (if (t80::btn 0)
       (let loop ((i 1) (new-bunnies '()))
         (if (<= i 5)
             (loop (+ i 1) (cons (make-bunny) new-bunnies))
             (set! bunnies (list->vector (append new-bunnies (vector->list bunnies)))))))
 
-  (if (btn 1)
+  (if (t80::btn 1)
       (set! bunnies (list->vector (drop (vector->list bunnies) 5))))
 
   ;; update
@@ -98,13 +98,13 @@
             bunnies)
 
   ;; draw
-  (cls 15)
+  (t80::cls 15)
   (for-each (lambda (b) (bunny-draw b))
             bunnies)
 
-  (rect 0 0 screenWidth toolbarHeight 0)
-  (print (format #t "Bunnies: ~d\n" (length bunnies)) 1 0 11 #f 1 #f)
-  (print (format #t "FPS: ~f\n" (fps-getValue)) (/ screenWidth 2) 0 11 #f 1 #f))
+  (t80::rect 0 0 screenWidth toolbarHeight 0)
+  (t80::print (format #t "Bunnies: ~d\n" (length bunnies)) 1 0 11 #f 1 #f)
+  (t80::print (format #t "FPS: ~f\n" (fps-getValue)) (/ screenWidth 2) 0 11 #f 1 #f))
 
 ;; <TILES>
 ;; 001:11111100111110dd111110dc111110dc111110dc111110dc111110dd111110dd

@@ -371,7 +371,7 @@
   #define MS_WINDOWS 0
 #endif
 
-#if defined(__GNUC__)
+#if defined(__GNUC__) && !defined(__3DS__) && !defined(RASPPI)
   #define Jmp_Buf       sigjmp_buf
   #define SetJmp(A, B)  sigsetjmp(A, B)
   #define LongJmp(A, B) siglongjmp(A, B)

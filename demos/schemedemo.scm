@@ -13,14 +13,14 @@
 (define y 24)
 
 (define (TIC)
-  (if (btn 0) (inc! y -1))
-  (if (btn 1) (inc! y 1))
-  (if (btn 2) (inc! x -1))
-  (if (btn 3) (inc! x 1))
+  (if (t80::btn 0) (inc! y -1))
+  (if (t80::btn 1) (inc! y 1))
+  (if (t80::btn 2) (inc! x -1))
+  (if (t80::btn 3) (inc! x 1))
 
-  (cls 13)
-  (spr (+ 1 (* (quotient (modulo t 60) 30) 2)) x y 14 3 0 0 2 2)
-  (print "HELLO WORLD!" 84 84)
+  (t80::cls 13)
+  (t80::spr (+ 1 (* (quotient (modulo t 60) 30) 2)) x y 14 3 0 0 2 2)
+  (t80::print "HELLO WORLD!" 84 84)
   (inc! t 1))
 
 ;; <TILES>

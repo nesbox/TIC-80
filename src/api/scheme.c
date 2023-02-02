@@ -742,9 +742,12 @@ static void initAPI(tic_core* core)
 {
     s7_scheme* sc = core->currentVM;
 
-#define API_FUNC_DEF(name, desc, helpstr, count, reqcount, ...) {scheme_ ## name, desc  "\n" helpstr, count, reqcount, #name},
+#define API_FUNC_DEF(name, desc, helpstr, count, reqcount, ...) \
+    {scheme_ ## name, desc  "\n" helpstr, count, reqcount, "t80::" #name},
+    
     static const struct{s7_function func; const char* helpstr; int count; int reqcount; const char* name;} ApiItems[] =
         {TIC_API_LIST(API_FUNC_DEF)};
+    
 #undef API_FUNC_DEF
 
     for (s32 i = 0; i < COUNT_OF(ApiItems); i++) {
