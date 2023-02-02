@@ -1164,11 +1164,59 @@ static void callJanetMenu(tic_mem* tic, s32 index, void* data)
 
 static const tic_outline_item* getJanetOutline(const char* code, s32* size)
 {
+    enum{Size = sizeof(tic_outline_item)};
+
+    *size = 0;
+
     static tic_outline_item* items = NULL;
-    if (items) {
+
+    if(items)
+    {
         free(items);
         items = NULL;
     }
+
+    const char* ptr = code;
+
+    while(true)
+    {
+        static const char FuncString[] = "(defn ";
+
+        ptr = strstr(ptr, FuncString);
+
+        if(ptr)
+        {
+            ptr += sizeof FuncString - 1;
+
+            const char* start = ptr;
+            const char* end = start;
+
+            while(*ptr)
+            {
+                char c = *ptr;
+
+                if(c == ' ' || c == '\t' || c == '\n' || c == '[')
+                {
+                    end = ptr;
+                    break;
+                }
+
+                ptr++;
+            }
+
+            if(end > start)
+            {
+                items = realloc(items, (*size + 1) * Size);
+
+                items[*size].pos = start;
+                items[*size].size = (s32)(end - start);
+
+                (*size)++;
+            }
+        }
+        else break;
+    }
+
     return items;
 }
 
