@@ -201,17 +201,18 @@
   /* this removes the name "unquote" */
 #endif
 
-#ifndef WITH_C_LOADER
-  #if WITH_GCC && (!__MINGW32__) && (!__CYGWIN__)
-    #define WITH_C_LOADER 1
-  /* (load file.so [e]) looks for (e 'init_func) and if found, calls it as the shared object init function.
-   * If WITH_SYSTEM_EXTRAS is 0, the caller needs to supply system and delete-file so that cload.scm works.
-   */
-  #else
-    #define WITH_C_LOADER 0
-    /* I think dlopen et al are available in MS C, but I have no way to test them; see load_shared_object below */
-  #endif
-#endif
+/* #ifndef WITH_C_LOADER */
+/*   #if WITH_GCC && (!__MINGW32__) && (!__CYGWIN__) */
+/*     #define WITH_C_LOADER 1 */
+/*   /\* (load file.so [e]) looks for (e 'init_func) and if found, calls it as the shared object init function. */
+/*    * If WITH_SYSTEM_EXTRAS is 0, the caller needs to supply system and delete-file so that cload.scm works. */
+/*    *\/ */
+/*   #else */
+/*     #define WITH_C_LOADER 0 */
+/*     /\* I think dlopen et al are available in MS C, but I have no way to test them; see load_shared_object below *\/ */
+/*   #endif */
+/* #endif */
+#define WITH_C_LOADER 0
 
 #ifndef WITH_HISTORY
   #define WITH_HISTORY 0
@@ -333,7 +334,7 @@
 #endif
 
 #ifdef _MSC_VER
-  #define noreturn _Noreturn /* deprecated in C23 */
+  #define noreturn [[noreturn]] /* deprecated in C23 */
 #else
   #define noreturn __attribute__((noreturn))
   /* this is ok in gcc/g++/clang and tcc; pure attribute is rarely applicable here, and does not seem to be helpful (maybe safe_strlen) */
@@ -363,11 +364,7 @@
   #define MS_WINDOWS 0
 #endif
 
-#if defined(_MSC_VER) || defined(__MINGW32__)
-  #define Jmp_Buf       jmp_buf
-  #define SetJmp(A, B)  setjmp(A)
-  #define LongJmp(A, B) longjmp(A, B)
-#else
+#if defined(__GNUC__)
   #define Jmp_Buf       sigjmp_buf
   #define SetJmp(A, B)  sigsetjmp(A, B)
   #define LongJmp(A, B) siglongjmp(A, B)
@@ -376,6 +373,10 @@
    *   In one case, the sigsetjmp version runs in 24 seconds, but the setjmp version takes 10 seconds, and
    *   yet callgrind says there is almost no difference? I removed setjmp from s7_optimize.
    */
+#elif defined(_MSC_VER) || defined(__MINGW32__)
+  #define Jmp_Buf       jmp_buf
+  #define SetJmp(A, B)  setjmp(A)
+  #define LongJmp(A, B) longjmp(A, B)
 #endif
 
 #if (!MS_WINDOWS)
@@ -12987,7 +12988,7 @@ double s7_round(double number) {return((number < 0.0) ? ceil(number - 0.5) : flo
   static s7_complex catanh(s7_complex z) {return(clog((1.0 + z) / (1.0 - z)) / 2.0);}
 #else
 
-#if (!defined(__FreeBSD__)) || (__FreeBSD__ < 12)
+#if (!defined(__FreeBSD__)) || (__FreeBSD__ < 12) || defined(__ANDROID__)
 static s7_complex clog(s7_complex z) {return(log(fabs(cabs(z))) + carg(z) * _Complex_I);}
 static s7_complex cpow(s7_complex x, s7_complex y)
 {
