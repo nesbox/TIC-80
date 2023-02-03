@@ -371,7 +371,11 @@
   #define MS_WINDOWS 0
 #endif
 
-#if defined(__GNUC__) && !defined(__3DS__) && !defined(RASPPI)
+#if defined(_MSC_VER) || defined(__MINGW32__) || defined(BAREMETALPI) || defined(_3DS)
+  #define Jmp_Buf       jmp_buf
+  #define SetJmp(A, B)  setjmp(A)
+  #define LongJmp(A, B) longjmp(A, B)
+#else
   #define Jmp_Buf       sigjmp_buf
   #define SetJmp(A, B)  sigsetjmp(A, B)
   #define LongJmp(A, B) siglongjmp(A, B)
@@ -380,10 +384,6 @@
    *   In one case, the sigsetjmp version runs in 24 seconds, but the setjmp version takes 10 seconds, and
    *   yet callgrind says there is almost no difference? I removed setjmp from s7_optimize.
    */
-#else
-  #define Jmp_Buf       jmp_buf
-  #define SetJmp(A, B)  setjmp(A)
-  #define LongJmp(A, B) longjmp(A, B)
 #endif
 
 #if (!MS_WINDOWS)
@@ -1426,14 +1426,48 @@ struct s7_scheme {
 #endif
 };
 
-#if S7_DEBUGGING
-  static void gdb_break(void) {};
-#endif
-#if S7_DEBUGGING || POINTER_32 || WITH_WARNINGS
-static s7_scheme *cur_sc = NULL; /* intended for gdb (see gdbinit), but also used if S7_DEBUGGING unfortunately */
+
+#define DISABLE_FILE_OUTPUT 1 // TIC-80 specific
+#ifndef DISABLE_FILE_OUTPUT
+   #define DISABLE_FILE_OUTPUT 0
 #endif
 
-static noreturn void error_nr(s7_scheme *sc, s7_pointer type, s7_pointer info);
+#if S7_DEBUGGING
+   static void gdb_break(void) {};
+#endif
+#if S7_DEBUGGING || POINTER_32 || WITH_WARNINGS || DISABLE_FILE_OUTPUT
+static s7_scheme *cur_sc = NULL; /* intended for gdb (see gdbinit), but
+also used if S7_DEBUGGING unfortunately */
+#endif
+
+static noreturn void error_nr(s7_scheme *sc, s7_pointer type, s7_pointer
+info);
+
+#if DISABLE_FILE_OUTPUT
+/* static FILE *old_fopen(const char *pathname, const char *mode) */
+/* {return(fopen(pathname, mode));} */
+
+#define fwrite local_fwrite
+#define fopen local_fopen
+#define fread local_fread
+/* open only used for file_probe (O_RDONLY), creat and write not used */
+
+static size_t local_fwrite(const void *ptr, size_t size, size_t nmemb,
+FILE *stream)
+{
+    error_nr(cur_sc, cur_sc->io_error_symbol, cur_sc->nil);
+}
+
+static size_t fread(void *buffer, size_t size, size_t count, FILE *stream )
+{
+    error_nr(cur_sc, cur_sc->io_error_symbol, cur_sc->nil);
+}
+
+static FILE *local_fopen(const char *pathname, const char *mode)
+{
+    error_nr(cur_sc, cur_sc->io_error_symbol, cur_sc->nil);
+}
+#endif
 
 #if POINTER_32
 static void *Malloc(size_t bytes)
@@ -95159,7 +95193,7 @@ s7_scheme *s7_init(void)
   pthread_mutex_unlock(&init_lock);
 #endif
   sc = (s7_scheme *)Calloc(1, sizeof(s7_scheme)); /* not malloc! */
-#if S7_DEBUGGING || POINTER_32 || WITH_WARNINGS
+#if S7_DEBUGGING || POINTER_32 || WITH_WARNINGS || DISABLE_FILE_OUTPUT
   cur_sc = sc;                                    /* for gdb/debugging */
 #endif
   sc->gc_off = true;                              /* sc->args and so on are not set yet, so a gc during init -> segfault */
