@@ -70,6 +70,10 @@
   #include "mus-config.h"
 #endif
 
+// TIC-80 specific config
+#define WITH_SYSTEM_EXTRAS 0
+#define DISABLE_FILE_IO 1
+
 /*
  * Your config file goes here, or just replace that #include line with the defines you need.
  * The compile-time switches involve booleans, complex numbers, and multiprecision arithmetic.
@@ -1427,15 +1431,14 @@ struct s7_scheme {
 };
 
 
-#define DISABLE_FILE_OUTPUT 1 // TIC-80 specific
-#ifndef DISABLE_FILE_OUTPUT
-   #define DISABLE_FILE_OUTPUT 0
+#ifndef DISABLE_FILE_IO
+   #define DISABLE_FILE_IO 0
 #endif
 
 #if S7_DEBUGGING
    static void gdb_break(void) {};
 #endif
-#if S7_DEBUGGING || POINTER_32 || WITH_WARNINGS || DISABLE_FILE_OUTPUT
+#if S7_DEBUGGING || POINTER_32 || WITH_WARNINGS || DISABLE_FILE_IO
 static s7_scheme *cur_sc = NULL; /* intended for gdb (see gdbinit), but
 also used if S7_DEBUGGING unfortunately */
 #endif
@@ -1446,7 +1449,7 @@ info);
 static s7_pointer set_elist_1(s7_scheme *sc, s7_pointer x1);
 static s7_pointer wrap_string(s7_scheme *sc, const char *str, s7_int len);
 
-#if DISABLE_FILE_OUTPUT
+#if DISABLE_FILE_IO
 /* static FILE *old_fopen(const char *pathname, const char *mode) */
 /* {return(fopen(pathname, mode));} */
 
@@ -36579,7 +36582,7 @@ system captures the output as a string and returns it."
 }
 
 
-#if (!MS_WINDOWS)
+#if (!MS_WINDOWS) && !defined(S7_BAREMETALPI) && !defined(S7_N3DS)
 #include <dirent.h>
 
 /* -------------------------------- directory->list -------------------------------- */
@@ -92348,6 +92351,7 @@ static s7_pointer memory_usage(s7_scheme *sc)
   s7_pointer mu_let = s7_inlet(sc, sc->nil);
   s7_int gc_loc = gc_protect_1(sc, mu_let);
 
+#if !defined(S7_BAREMETALPI) && !defined(S7_N3DS)
 #if (!_WIN32) /* (!MS_WINDOWS) */
   getrusage(RUSAGE_SELF, &info);
   ut = info.ru_utime;
@@ -92361,6 +92365,7 @@ static s7_pointer memory_usage(s7_scheme *sc)
 #endif
   add_slot_unchecked_with_id(sc, mu_let, make_symbol(sc, "IO", 2), cons(sc, make_integer(sc, info.ru_inblock), make_integer(sc, info.ru_oublock)));
 #endif
+#endif // !defined(S7_BAREMETALPI) && !defined(S7_N3DS)
 
   add_slot_unchecked_with_id(sc, mu_let, make_symbol(sc, "rootlet-size", 12), make_integer(sc, sc->rootlet_entries));
   add_slot_unchecked_with_id(sc, mu_let, make_symbol(sc, "heap-size", 9),
@@ -95197,7 +95202,7 @@ s7_scheme *s7_init(void)
   pthread_mutex_unlock(&init_lock);
 #endif
   sc = (s7_scheme *)Calloc(1, sizeof(s7_scheme)); /* not malloc! */
-#if S7_DEBUGGING || POINTER_32 || WITH_WARNINGS || DISABLE_FILE_OUTPUT
+#if S7_DEBUGGING || POINTER_32 || WITH_WARNINGS || DISABLE_FILE_IO
   cur_sc = sc;                                    /* for gdb/debugging */
 #endif
   sc->gc_off = true;                              /* sc->args and so on are not set yet, so a gc during init -> segfault */
