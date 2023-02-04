@@ -399,6 +399,8 @@ static void updateEditor(Code* code)
 
 static inline bool islineend(char c) {return c == '\n' || c == '\0';}
 static inline bool isalpha_(char c) {return isalpha(c) || c == '_';}
+static inline bool isopenparen_(Code*, char c) {return c == '(' || c == '{' || c == '[';}
+static inline bool iscloseparen_(Code*, char c) {return c == ')' || c == '}' || c == ']';}
 
 static inline bool config_isalnum_(const tic_script_config* config, char c)
 {
@@ -530,7 +532,6 @@ start:
                     TIC_API_LIST(API_KEYWORD_DEF)
 #undef              API_KEYWORD_DEF
                 };
-            keywords_bp:
                 const char* const* keywords = config->api_keywordsCount > 0 ? config->api_keywords : ApiKeywords;
                 const s32 apiCount = config->api_keywordsCount > 0 ? config->api_keywordsCount : COUNT_OF(ApiKeywords);
 
@@ -779,19 +780,24 @@ static void rightColumn(Code* code)
     }
 }
 
-static char* leftWordPos(Code* code)
+typedef bool(*tic_code_predicate)(Code* code, char c);
+
+static char* leftPos(Code* code, char* pos, tic_code_predicate pred)
 {
     const char* start = code->src;
-    char* pos = code->cursor.position - 1;
-
     if(pos > start)
     {
-        if(isalnum_(code, *pos)) while(pos > start && isalnum_(code, *(pos-1))) pos--;
-        else while(pos > start && !isalnum_(code, *(pos-1))) pos--;
+        if(pred(code, *pos)) while(pos > start && pred(code, *(pos-1))) pos--;
+        else while(pos > start && !pred(code, *(pos-1))) pos--;
         return pos;
     }
 
     return code->cursor.position;
+}
+
+static char* leftWordPos(Code* code)
+{
+    return leftPos(code, code->cursor.position-1, isalnum_);
 }
 
 static void leftWord(Code* code)
@@ -800,25 +806,74 @@ static void leftWord(Code* code)
     updateColumn(code);
 }
 
-static char* rightWordPos(Code* code)
+static char* leftSexp(Code* code, char* pos)
+{
+    char* start = code->src;
+    int nesting = 0;
+    
+    while (pos > start)
+    {
+        if (isopenparen_(code, *pos))
+        {
+            if (nesting == 0)
+                return pos;
+            else
+                --nesting;
+        }
+        else if (iscloseparen_(code, *pos))
+        {
+            ++nesting;
+        }
+        --pos;
+    }
+    return start; // fallback
+}
+
+static char* rightPos(Code* code, char* pos, tic_code_predicate pred)
 {
     const char* end = code->src + strlen(code->src);
-    char* pos = code->cursor.position;
 
     if(pos < end)
     {
-        if(isalnum_(code, *pos)) while(pos < end && isalnum_(code, *pos)) pos++;
-        else while(pos < end && !isalnum_(code, *pos)) pos++;
-
+        if(pred(code, *pos)) while(pos < end && pred(code, *pos)) pos++;
+        else while(pos < end && !pred(code, *pos)) pos++;
     }
 
     return pos;
+}
+
+static char* rightWordPos(Code* code)
+{
+    return rightPos(code, code->cursor.position, isalnum_);
 }
 
 static void rightWord(Code* code)
 {
     code->cursor.position = rightWordPos(code);
     updateColumn(code);
+}
+
+static char* rightSexp(Code* code, char* pos)
+{
+    char* end = code->src + strlen(code->src);
+    int nesting = 0;
+
+    while (pos < end)
+    {
+        if (iscloseparen_(code, *pos))
+        {
+            if (nesting == 0)
+                return pos;
+            else
+                --nesting;
+        }
+        else if (isopenparen_(code, *pos))
+        {
+            ++nesting;
+        }
+        ++pos;
+    }
+    return end; // fallback
 }
 
 static void goHome(Code* code)
@@ -1499,6 +1554,56 @@ static void addCommentToLine(Code* code, char* line, size_t size, const char* co
     parseSyntaxColor(code);
 }
 
+static void extirpSExp(Code* code)
+{
+    const char* start = code->src;
+    char* pos = code->cursor.position;
+    const char* end = code->src + strlen(code->src);
+
+    char* sexp_start = NULL;
+    char* sexp_end = NULL;
+
+    if(pos > start)
+    {
+        if (isopenparen_(code, *pos))
+        {
+            sexp_start = pos;
+            sexp_end = rightSexp(code, pos+1);
+        }
+        if (iscloseparen_(code, *pos))
+        {
+            sexp_start = leftSexp(code, pos-1);
+            sexp_end = pos;
+        }
+        if (isalnum_(code, *pos))
+        {
+            sexp_start = leftPos(code, pos, isalnum_);
+            sexp_end = rightPos(code, pos, isalnum_)-1;
+        }
+        if (sexp_start != NULL && sexp_end != NULL)
+        {
+            char* sexp_outer_start = leftSexp(code, sexp_start-1);
+            char* sexp_outer_end = rightSexp(code, sexp_end+1);
+            if (sexp_start > start && sexp_outer_start > start && sexp_end < end && sexp_outer_end < end)
+            {
+                /* size_t size = sexp_end - sexp_start; */
+                /* char* clipboard = (char*)malloc(size); */
+                /* if(clipboard) */
+                /* { */
+                /*     memcpy(clipboard, sexp_start, size); */
+                /*     free(clipboard); */
+                /* } */
+                deleteCode(code, sexp_end+1, sexp_outer_end+1);
+                deleteCode(code, sexp_outer_start, sexp_start);
+                code->cursor.position = sexp_outer_start;
+                history(code);
+                parseSyntaxColor(code);
+                updateEditor(code);
+            }
+        }
+    }
+}
+
 static void commentLine(Code* code)
 {
     const char* comment = tic_core_script_config(code->tic)->singleComment;
@@ -1675,6 +1780,7 @@ static void processKeyboard(Code* code)
             else if(keyWasPressed(code->studio, tic_key_slash)) commentLine(code);
             else if(keyWasPressed(code->studio, tic_key_home))  goCodeHome(code);
             else if(keyWasPressed(code->studio, tic_key_end))   goCodeEnd(code);
+            else if(keyWasPressed(code->studio, tic_key_up))    extirpSExp(code);
             else ctrlHandled = false;
         }
 
