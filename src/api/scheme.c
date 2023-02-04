@@ -992,41 +992,42 @@ static const char* SchemeAPIKeywords[] = {
 
 tic_script_config SchemeSyntaxConfig =
 {
-    .id                 = 16,
-    .name               = "scheme",
-    .fileExtension      = ".scm",
-    .projectComment     = ";;",
+    .id                     = 19,
+    .name                   = "scheme",
+    .fileExtension          = ".scm",
+    .projectComment         = ";;",
     {
-      .init               = initScheme,
-      .close              = closeScheme,
-      .tick               = callSchemeTick,
-      .boot               = callSchemeBoot,
+      .init                 = initScheme,
+      .close                = closeScheme,
+      .tick                 = callSchemeTick,
+      .boot                 = callSchemeBoot,
 
-      .callback           =
+      .callback             =
       {
-        .scanline       = callSchemeScanline,
-        .border         = callSchemeBorder,
-        .menu           = callSchemeMenu,
+        .scanline           = callSchemeScanline,
+        .border             = callSchemeBorder,
+        .menu               = callSchemeMenu,
       },
     },
 
-    .getOutline         = getSchemeOutline,
-    .eval               = evalScheme,
+    .getOutline             = getSchemeOutline,
+    .eval                   = evalScheme,
 
-    .blockCommentStart  = NULL,
-    .blockCommentEnd    = NULL,
-    .blockCommentStart2 = NULL,
-    .blockCommentEnd2   = NULL,
-    .singleComment      = ";;",
-    .blockStringStart   = "\"",
-    .blockStringEnd     = "\"",
-    .blockEnd           = NULL,
-    .lang_isalnum       = scheme_isalnum,
-    .api_keywords       = SchemeAPIKeywords,
-    .api_keywordsCount  = COUNT_OF(SchemeAPIKeywords),
+    .blockCommentStart      = NULL,
+    .blockCommentEnd        = NULL,
+    .blockCommentStart2     = NULL,
+    .blockCommentEnd2       = NULL,
+    .singleComment          = ";;",
+    .blockStringStart       = "\"",
+    .blockStringEnd         = "\"",
+    .blockEnd               = NULL,
+    .lang_isalnum           = scheme_isalnum,
+    .api_keywords           = SchemeAPIKeywords,
+    .api_keywordsCount      = COUNT_OF(SchemeAPIKeywords),
+    .useStructuredEdition   = true,
 
-    .keywords           = SchemeKeywords,
-    .keywordsCount      = COUNT_OF(SchemeKeywords),
+    .keywords               = SchemeKeywords,
+    .keywordsCount          = COUNT_OF(SchemeKeywords),
 };
 
 #endif /* defined(TIC_BUILD_WITH_SCHEME) */

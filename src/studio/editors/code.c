@@ -1586,13 +1586,6 @@ static void extirpSExp(Code* code)
             char* sexp_outer_end = rightSexp(code, sexp_end+1);
             if (sexp_start > start && sexp_outer_start > start && sexp_end < end && sexp_outer_end < end)
             {
-                /* size_t size = sexp_end - sexp_start; */
-                /* char* clipboard = (char*)malloc(size); */
-                /* if(clipboard) */
-                /* { */
-                /*     memcpy(clipboard, sexp_start, size); */
-                /*     free(clipboard); */
-                /* } */
                 deleteCode(code, sexp_end+1, sexp_outer_end+1);
                 deleteCode(code, sexp_outer_start, sexp_start);
                 code->cursor.position = sexp_outer_start;

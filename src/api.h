@@ -105,6 +105,7 @@ typedef struct
     s32 keywordsCount;
 
     tic_lang_isalnum lang_isalnum;
+    bool useStructuredEdition;
 
     s32 api_keywordsCount;
     const char** api_keywords;
