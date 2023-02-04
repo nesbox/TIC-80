@@ -985,7 +985,7 @@ void evalScheme(tic_mem* tic, const char* code) {
 
 tic_script_config SchemeSyntaxConfig =
 {
-    .id                 = 16,
+    .id                 = 19,
     .name               = "scheme",
     .fileExtension      = ".scm",
     .projectComment     = ";;",
