@@ -909,7 +909,7 @@ static const char* const SchemeKeywords [] =
     "let?", "let-ref", "openlet", "openlet?"
 };
 
-static inline bool isalnum_(char c) {return isalnum(c) || c == '_' || c == '-' || c == ':' || c == '#';}
+static inline bool scheme_isalnum(char c) {return isalnum(c) || c == '_' || c == '-' || c == ':' || c == '#' || c == '!';}
 
 static const tic_outline_item* getSchemeOutline(const char* code, s32* size)
 {
@@ -943,7 +943,7 @@ static const tic_outline_item* getSchemeOutline(const char* code, s32* size)
             {
                 char c = *ptr;
 
-                if(isalnum_(c));
+                if(scheme_isalnum(c));
                 else
                 {
                     end = ptr;
@@ -983,6 +983,16 @@ void evalScheme(tic_mem* tic, const char* code) {
     s7_eval_c_string(sc, code);
 }
 
+static const char* SchemeAPIKeywords[] = {
+#define TIC_CALLBACK_DEF(name, ...) #name,
+        TIC_CALLBACK_LIST(TIC_CALLBACK_DEF)
+#undef  TIC_CALLBACK_DEF
+
+#define API_KEYWORD_DEF(name, ...) "t80::" #name,
+        TIC_API_LIST(API_KEYWORD_DEF)
+#undef  API_KEYWORD_DEF
+};
+
 tic_script_config SchemeSyntaxConfig =
 {
     .id                 = 16,
@@ -1014,6 +1024,9 @@ tic_script_config SchemeSyntaxConfig =
     .blockStringStart   = "\"",
     .blockStringEnd     = "\"",
     .blockEnd           = NULL,
+    .lang_isalnum       = scheme_isalnum,
+    .api_keywords       = SchemeAPIKeywords,
+    .api_keywordsCount  = COUNT_OF(SchemeAPIKeywords),
 
     .keywords           = SchemeKeywords,
     .keywordsCount      = COUNT_OF(SchemeKeywords),

@@ -399,7 +399,21 @@ static void updateEditor(Code* code)
 
 static inline bool islineend(char c) {return c == '\n' || c == '\0';}
 static inline bool isalpha_(char c) {return isalpha(c) || c == '_';}
-static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+
+static inline bool config_isalnum_(const tic_script_config* config, char c)
+{
+    if (config->lang_isalnum)
+        return config->lang_isalnum(c);
+    else
+        return isalnum(c) || c == '_';
+}
+
+static inline bool isalnum_(Code* code, char c)
+{
+    tic_mem* tic = code->tic;
+    const tic_script_config* config = tic_core_script_config(tic);
+    return config_isalnum_(config, c);
+}
 
 static void setCodeState(CodeState* state, u8 color, s32 start, s32 size)
 {
@@ -491,7 +505,7 @@ start:
         }
         else if(wordStart)
         {
-            while(!islineend(*ptr) && isalnum_(*ptr)) ptr++;
+            while(!islineend(*ptr) && config_isalnum_(config, *ptr)) ptr++;
 
             s32 len = (s32)(ptr - wordStart);
             bool keyword = false;
@@ -507,8 +521,7 @@ start:
 
             if(!keyword)
             {
-                static const char* const ApiKeywords[] = 
-                {
+                static const char* const ApiKeywords[] = {
 #define             TIC_CALLBACK_DEF(name, ...) #name,
                     TIC_CALLBACK_LIST(TIC_CALLBACK_DEF)
 #undef              TIC_CALLBACK_DEF
@@ -517,9 +530,12 @@ start:
                     TIC_API_LIST(API_KEYWORD_DEF)
 #undef              API_KEYWORD_DEF
                 };
+            keywords_bp:
+                const char* const* keywords = config->api_keywordsCount > 0 ? config->api_keywords : ApiKeywords;
+                const s32 apiCount = config->api_keywordsCount > 0 ? config->api_keywordsCount : COUNT_OF(ApiKeywords);
 
-                for(s32 i = 0; i < COUNT_OF(ApiKeywords); i++)
-                    if(len == strlen(ApiKeywords[i]) && memcmp(wordStart, ApiKeywords[i], len) == 0)
+                for(s32 i = 0; i < apiCount; i++)
+                    if(len == strlen(keywords[i]) && memcmp(wordStart, keywords[i], len) == 0)
                     {
                         setCodeState(state, SyntaxType_API, (s32)(wordStart - start), len);
                         break;
@@ -770,8 +786,8 @@ static char* leftWordPos(Code* code)
 
     if(pos > start)
     {
-        if(isalnum_(*pos)) while(pos > start && isalnum_(*(pos-1))) pos--;
-        else while(pos > start && !isalnum_(*(pos-1))) pos--;
+        if(isalnum_(code, *pos)) while(pos > start && isalnum_(code, *(pos-1))) pos--;
+        else while(pos > start && !isalnum_(code, *(pos-1))) pos--;
         return pos;
     }
 
@@ -791,8 +807,8 @@ static char* rightWordPos(Code* code)
 
     if(pos < end)
     {
-        if(isalnum_(*pos)) while(pos < end && isalnum_(*pos)) pos++;
-        else while(pos < end && !isalnum_(*pos)) pos++;
+        if(isalnum_(code, *pos)) while(pos < end && isalnum_(code, *pos)) pos++;
+        else while(pos < end && !isalnum_(code, *pos)) pos++;
 
     }
 
@@ -936,8 +952,8 @@ static void deleteWord(Code* code)
 
     if(pos < end)
     {
-        if(isalnum_(*pos)) while(pos < end && isalnum_(*pos)) pos++;
-        else while(pos < end && !isalnum_(*pos)) pos++;
+        if(isalnum_(code, *pos)) while(pos < end && isalnum_(code, *pos)) pos++;
+        else while(pos < end && !isalnum_(code, *pos)) pos++;
 
         deleteCode(code, code->cursor.position, pos);
 
@@ -953,8 +969,8 @@ static void backspaceWord(Code* code)
 
     if(pos > start)
     {
-        if(isalnum_(*pos)) while(pos > start && isalnum_(*(pos-1))) pos--;
-        else while(pos > start && !isalnum_(*(pos-1))) pos--;
+        if(isalnum_(code, *pos)) while(pos > start && isalnum_(code, *(pos-1))) pos--;
+        else while(pos > start && !isalnum_(code, *(pos-1))) pos--;
 
         deleteCode(code, pos, code->cursor.position);
 

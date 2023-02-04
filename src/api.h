@@ -57,6 +57,7 @@ typedef void(*tic_boot)(tic_mem* memory);
 typedef void(*tic_scanline)(tic_mem* memory, s32 row, void* data);
 typedef void(*tic_border)(tic_mem* memory, s32 row, void* data);
 typedef void(*tic_gamemenu)(tic_mem* memory, s32 index, void* data);
+typedef bool(*tic_lang_isalnum)(char c);
 
 typedef struct
 {
@@ -102,6 +103,12 @@ typedef struct
 
     const char* const * keywords;
     s32 keywordsCount;
+
+    tic_lang_isalnum lang_isalnum;
+
+    s32 api_keywordsCount;
+    const char** api_keywords;
+    
 } tic_script_config;
 
 extern tic_script_config* Languages[];
