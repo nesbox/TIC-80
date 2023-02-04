@@ -95162,7 +95162,7 @@ static void init_rootlet(s7_scheme *sc)
   init_setters(sc);
 }
 
-#if (!MS_WINDOWS)
+#if (!MS_WINDOWS) && !defined(S7_BAREMETALPI) && !defined(S7_N3DS)
 static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
 #endif
 
@@ -95172,7 +95172,7 @@ s7_scheme *s7_init(void)
   s7_scheme *sc;
   static bool already_inited = false;
 
-#if (!MS_WINDOWS)
+#if (!MS_WINDOWS) && !defined(S7_BAREMETALPI) && !defined(S7_N3DS)
   setlocale(LC_NUMERIC, "C"); /* use decimal point in floats */
   pthread_mutex_lock(&init_lock);
 #endif
@@ -95198,7 +95198,7 @@ s7_scheme *s7_init(void)
       already_inited = true;
     }
 
-#if (!MS_WINDOWS)
+#if (!MS_WINDOWS) && !defined(S7_BAREMETALPI) && !defined(S7_N3DS)
   pthread_mutex_unlock(&init_lock);
 #endif
   sc = (s7_scheme *)Calloc(1, sizeof(s7_scheme)); /* not malloc! */
