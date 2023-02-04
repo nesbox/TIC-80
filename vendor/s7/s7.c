@@ -371,7 +371,7 @@
   #define MS_WINDOWS 0
 #endif
 
-#if defined(_MSC_VER) || defined(__MINGW32__) || defined(BAREMETALPI) || defined(_3DS)
+#if defined(_MSC_VER) || defined(__MINGW32__) || defined(S7_BAREMETALPI) || defined(S7_N3DS)
   #define Jmp_Buf       jmp_buf
   #define SetJmp(A, B)  setjmp(A)
   #define LongJmp(A, B) longjmp(A, B)
@@ -1443,6 +1443,9 @@ also used if S7_DEBUGGING unfortunately */
 static noreturn void error_nr(s7_scheme *sc, s7_pointer type, s7_pointer
 info);
 
+static s7_pointer set_elist_1(s7_scheme *sc, s7_pointer x1);
+static s7_pointer wrap_string(s7_scheme *sc, const char *str, s7_int len);
+
 #if DISABLE_FILE_OUTPUT
 /* static FILE *old_fopen(const char *pathname, const char *mode) */
 /* {return(fopen(pathname, mode));} */
@@ -1455,17 +1458,20 @@ info);
 static size_t local_fwrite(const void *ptr, size_t size, size_t nmemb,
 FILE *stream)
 {
-    error_nr(cur_sc, cur_sc->io_error_symbol, cur_sc->nil);
+    error_nr(cur_sc, cur_sc->io_error_symbol,
+             set_elist_1(cur_sc, wrap_string(cur_sc, "reading or writing a file is not allowed in this version of s7", 62)));
 }
 
 static size_t fread(void *buffer, size_t size, size_t count, FILE *stream )
 {
-    error_nr(cur_sc, cur_sc->io_error_symbol, cur_sc->nil);
+    error_nr(cur_sc, cur_sc->io_error_symbol,
+             set_elist_1(cur_sc, wrap_string(cur_sc, "reading or writing a file is not allowed in this version of s7", 62)));
 }
 
 static FILE *local_fopen(const char *pathname, const char *mode)
 {
-    error_nr(cur_sc, cur_sc->io_error_symbol, cur_sc->nil);
+    error_nr(cur_sc, cur_sc->io_error_symbol,
+             set_elist_1(cur_sc, wrap_string(cur_sc, "reading or writing a file is not allowed in this version of s7", 62)));
 }
 #endif
 
@@ -5958,8 +5964,6 @@ static const char *type_name(s7_scheme *sc, s7_pointer arg, article_t article)
       }}
   return("messed up object");
 }
-
-static s7_pointer wrap_string(s7_scheme *sc, const char *str, s7_int len);
 
 static s7_pointer object_type_name(s7_scheme *sc, s7_pointer x)
 {
