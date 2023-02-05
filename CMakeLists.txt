@@ -351,9 +351,9 @@ set(SCHEME_SRC
     ${SCHEME_DIR}/s7.c
 )
 
-add_library(s7scheme STATIC ${SCHEME_SRC})
-set_target_properties(s7scheme PROPERTIES LINKER_LANGUAGE CXX)
-target_include_directories(s7scheme PUBLIC ${SCHEME_DIR})
+add_library(scheme STATIC ${SCHEME_SRC})
+set_target_properties(scheme PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories(scheme PUBLIC ${SCHEME_DIR})
 
 ################################
 # SQUIRREL
@@ -505,7 +505,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         wren 
         wasm 
         squirrel 
-        s7scheme 
+        scheme 
         duktape 
         blipbuf 
         zlib
@@ -542,7 +542,7 @@ if(BUILD_STUB)
     MACRO_CORE(js           TIC_BUILD_WITH_JS       FALSE)
     MACRO_CORE(wren         TIC_BUILD_WITH_WREN     FALSE)
     MACRO_CORE(squirrel     TIC_BUILD_WITH_SQUIRREL FALSE)
-    MACRO_CORE(s7scheme    TIC_BUILD_WITH_SCHEME   FALSE)
+    MACRO_CORE(scheme    TIC_BUILD_WITH_SCHEME   FALSE)
     MACRO_CORE(wasm         TIC_BUILD_WITH_WASM     FALSE)
 
     if(BUILD_WITH_MRUBY)
@@ -710,11 +710,11 @@ IS_DOS
         if("${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoWii" OR "${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoGameCube" OR GAMECUBE OR WII OR IS_DOS)
           add_custom_command(TARGET tic80_libretro
                POST_BUILD
-                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libjanet.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libs7scheme.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${CMAKE_BINARY_DIR}/lib/libzlib.a ${MRUBY_LIB})
+                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libjanet.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libscheme.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${CMAKE_BINARY_DIR}/lib/libzlib.a ${MRUBY_LIB})
         else()
           add_custom_command(TARGET tic80_libretro
                POST_BUILD
-                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libs7scheme.a ${CMAKE_BINARY_DIR}/lib/libjanet.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${MRUBY_LIB})
+                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libscheme.a ${CMAKE_BINARY_DIR}/lib/libjanet.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${MRUBY_LIB})
         endif()
     else()
         add_library(tic80_libretro SHARED
@@ -1322,7 +1322,7 @@ if(BUILD_STUB)
     MACRO_STUB(js)
     MACRO_STUB(wren)
     MACRO_STUB(squirrel)
-    MACRO_STUB(s7scheme)
+    MACRO_STUB(scheme)
 
     if(BUILD_WITH_JANET)
         MACRO_STUB(janet)
