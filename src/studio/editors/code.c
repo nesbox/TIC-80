@@ -975,10 +975,40 @@ static bool replaceSelection(Code* code)
     return false;
 }
 
+static bool structuredDeleteOverride(Code* code, char* pos)
+{
+    const bool useStructuredEdit = tic_core_script_config(code->tic)->useStructuredEdition;
+    if (!useStructuredEdit)
+        return false;
+
+    const char* end = code->src + strlen(code->src);
+    if (pos < end-1)
+    {
+        const bool isopen = isopenparen_(code, *pos);
+        const bool isclose = iscloseparen_(code, *pos);
+        if (isopen && iscloseparen_(code, *(pos+1))
+            || isclose && isopenparen_(code, *(pos+1)))
+        {
+            deleteCode(code, pos, pos+2);
+            history(code);
+            parseSyntaxColor(code);
+            updateEditor(code);
+            return true;
+        }
+        if (isopen || isclose)
+            return true;
+    }
+
+    return false;
+}
+
 static void deleteChar(Code* code)
 {
     if(!replaceSelection(code))
     {
+        if (structuredDeleteOverride(code, code->cursor.position))
+            return;
+
         deleteCode(code, code->cursor.position, code->cursor.position + 1);
         history(code);
         parseSyntaxColor(code);
@@ -992,6 +1022,10 @@ static void backspaceChar(Code* code)
     if(!replaceSelection(code) && code->cursor.position > code->src)
     {
         char* pos = --code->cursor.position;
+
+        if (structuredDeleteOverride(code, pos))
+            return;
+
         deleteCode(code, pos, pos + 1);
         history(code);
         parseSyntaxColor(code);
@@ -1035,13 +1069,43 @@ static void backspaceWord(Code* code)
     }
 }
 
-
+static void deleteLine(Code* code)
+{
+    char* linestart = code->cursor.position;
+    char* lineend = linestart+1;
+    const char* end = code->src + strlen(code->src);
+    
+    const bool useStructuredEdit = tic_core_script_config(code->tic)->useStructuredEdition;
+    if (useStructuredEdit)
+    {
+        if (isopenparen_(code, *linestart))
+            lineend = rightSexp(code, linestart+1)+1;
+        else
+            lineend = rightSexp(code, linestart);
+    }
+    else
+    {
+        while (lineend < end)
+        {
+            if (islineend(*lineend)) break;
+            if (useStructuredEdit && iscloseparen_(code, *lineend)) break;
+            ++lineend;
+        }
+    }
+    deleteCode(code, linestart, lineend);
+    code->cursor.position = linestart;
+    history(code);
+    parseSyntaxColor(code);
+    updateEditor(code);
+}
 
 static void inputSymbolBase(Code* code, char sym)
 {
     if (strlen(code->src) >= MAX_CODE)
         return;
-    if(getConfig(code->studio)->theme.code.autoDelimiters && (sym == '(' || sym == '[' || sym == '{'))
+
+    const bool useStructuredEdit = tic_core_script_config(code->tic)->useStructuredEdition;
+    if((useStructuredEdit || getConfig(code->studio)->theme.code.autoDelimiters) && (sym == '(' || sym == '[' || sym == '{'))
     {
         insertCode(code, code->cursor.position++, (const char[]){sym, matchingDelim(sym), '\0'});
     } else {
@@ -1556,6 +1620,10 @@ static void addCommentToLine(Code* code, char* line, size_t size, const char* co
 
 static void extirpSExp(Code* code)
 {
+    const bool useStructuredEdit = tic_core_script_config(code->tic)->useStructuredEdition;
+    if (!useStructuredEdit)
+        return;
+    
     const char* start = code->src;
     char* pos = code->cursor.position;
     const char* end = code->src + strlen(code->src);
@@ -1774,6 +1842,7 @@ static void processKeyboard(Code* code)
             else if(keyWasPressed(code->studio, tic_key_home))  goCodeHome(code);
             else if(keyWasPressed(code->studio, tic_key_end))   goCodeEnd(code);
             else if(keyWasPressed(code->studio, tic_key_up))    extirpSExp(code);
+            else if(keyWasPressed(code->studio, tic_key_k))     deleteLine(code);
             else ctrlHandled = false;
         }
 
