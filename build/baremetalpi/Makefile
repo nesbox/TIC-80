@@ -31,6 +31,7 @@ LIBS :=  \
     $(TIC80LIB)/libzip.a \
     $(TIC80LIB)/libblipbuf.a \
     $(TIC80LIB)/libsquirrel.a \
+    $(TIC80LIB)/libscheme.a \
     $(TIC80LIB)/libwren.a \
     $(TIC80LIB)/libwasm.a \
     $(TIC80LIB)/libargparse.a \

@@ -97,11 +97,13 @@ message("BUILD_STUB: ${BUILD_STUB}")
 
 if (N3DS)
     set(BUILD_SDL off)
+    add_compile_definitions(S7_N3DS=1)
 endif()
 
 if (BAREMETALPI)
     set(BUILD_SDL OFF)
     set(BUILD_DEMO_CARTS OFF)
+    add_compile_definitions(S7_BAREMETALPI=1)
 endif()
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Dd_m3LogOutput=0")
@@ -340,6 +342,18 @@ target_include_directories(wasm PUBLIC ${THIRDPARTY_DIR}/wasm3/source)
 #target_include_directories(wasm PRIVATE ${THIRDPARTY_DIR}/wasm3/src/optional)
 #target_include_directories(wasm PRIVATE ${THIRDPARTY_DIR}/wasm3/src/vm)
 
+################################
+# SCHEME (S7)
+################################
+
+set(SCHEME_DIR ${THIRDPARTY_DIR}/s7)
+set(SCHEME_SRC
+    ${SCHEME_DIR}/s7.c
+)
+
+add_library(scheme STATIC ${SCHEME_SRC})
+set_target_properties(scheme PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories(scheme PUBLIC ${SCHEME_DIR})
 
 ################################
 # SQUIRREL
@@ -457,6 +471,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         ${TIC80CORE_DIR}/api/wren.c
         ${TIC80CORE_DIR}/api/wasm.c
         ${TIC80CORE_DIR}/api/squirrel.c
+        ${TIC80CORE_DIR}/api/scheme.c
         ${TIC80CORE_DIR}/api/mruby.c
         ${TIC80CORE_DIR}/api/janet.c
         ${TIC80CORE_DIR}/tic.c
@@ -485,13 +500,14 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
             ${CMAKE_SOURCE_DIR}/src)
 
     target_link_libraries(tic80core${SCRIPT}
-        lua
-        lpeg
-        wren
-        wasm
-        squirrel
-        duktape
-        blipbuf
+        lua 
+        lpeg 
+        wren 
+        wasm 
+        squirrel 
+        scheme 
+        duktape 
+        blipbuf 
         zlib
     )
 
@@ -520,13 +536,14 @@ MACRO_CORE("" "" TRUE)
 
 if(BUILD_STUB)
 
-    MACRO_CORE(lua      TIC_BUILD_WITH_LUA      FALSE)
-    MACRO_CORE(moon     TIC_BUILD_WITH_MOON     FALSE)
-    MACRO_CORE(fennel   TIC_BUILD_WITH_FENNEL   FALSE)
-    MACRO_CORE(js       TIC_BUILD_WITH_JS       FALSE)
-    MACRO_CORE(wren     TIC_BUILD_WITH_WREN     FALSE)
-    MACRO_CORE(squirrel TIC_BUILD_WITH_SQUIRREL FALSE)
-    MACRO_CORE(wasm     TIC_BUILD_WITH_WASM     FALSE)
+    MACRO_CORE(lua          TIC_BUILD_WITH_LUA      FALSE)
+    MACRO_CORE(moon         TIC_BUILD_WITH_MOON     FALSE)
+    MACRO_CORE(fennel       TIC_BUILD_WITH_FENNEL   FALSE)
+    MACRO_CORE(js           TIC_BUILD_WITH_JS       FALSE)
+    MACRO_CORE(wren         TIC_BUILD_WITH_WREN     FALSE)
+    MACRO_CORE(squirrel     TIC_BUILD_WITH_SQUIRREL FALSE)
+    MACRO_CORE(scheme    TIC_BUILD_WITH_SCHEME   FALSE)
+    MACRO_CORE(wasm         TIC_BUILD_WITH_WASM     FALSE)
 
     if(BUILD_WITH_MRUBY)
         MACRO_CORE(ruby TIC_BUILD_WITH_MRUBY    FALSE)
@@ -693,11 +710,11 @@ IS_DOS
         if("${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoWii" OR "${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoGameCube" OR GAMECUBE OR WII OR IS_DOS)
           add_custom_command(TARGET tic80_libretro
                POST_BUILD
-                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libjanet.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${CMAKE_BINARY_DIR}/lib/libzlib.a ${MRUBY_LIB})
+                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libjanet.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libscheme.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${CMAKE_BINARY_DIR}/lib/libzlib.a ${MRUBY_LIB})
         else()
           add_custom_command(TARGET tic80_libretro
                POST_BUILD
-                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libjanet.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${MRUBY_LIB})
+                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libscheme.a ${CMAKE_BINARY_DIR}/lib/libjanet.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${MRUBY_LIB})
         endif()
     else()
         add_library(tic80_libretro SHARED
@@ -1305,6 +1322,7 @@ if(BUILD_STUB)
     MACRO_STUB(js)
     MACRO_STUB(wren)
     MACRO_STUB(squirrel)
+    MACRO_STUB(scheme)
 
     if(BUILD_WITH_JANET)
         MACRO_STUB(janet)

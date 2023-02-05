@@ -25,6 +25,10 @@ extern tic_script_config FennelSyntaxConfig;
 extern tic_script_config SquirrelSyntaxConfig;
 #endif
 
+#if defined(TIC_BUILD_WITH_SCHEME)
+extern tic_script_config SchemeSyntaxConfig;
+#endif
+
 #if defined(TIC_BUILD_WITH_WREN)
 extern tic_script_config WrenSyntaxConfig;
 #endif
@@ -58,6 +62,10 @@ tic_script_config* Languages[] = {
 
 	#if defined(TIC_BUILD_WITH_FENNEL)
 	&FennelSyntaxConfig,
+	#endif
+
+    #if defined(TIC_BUILD_WITH_SCHEME)
+	&SchemeSyntaxConfig,
 	#endif
 
 	#if defined(TIC_BUILD_WITH_SQUIRREL)
