@@ -77,7 +77,9 @@ static inline void setPixelFast(tic_core* core, s32 x, s32 y, u8 color)
 
 static u8 getPixel(tic_core* core, s32 x, s32 y)
 {
-    return tic_api_peek4((tic_mem*)core, y * TIC80_WIDTH + x);
+    return x < 0 || y < 0 || x >= TIC80_WIDTH || y >= TIC80_HEIGHT
+        ? 0
+        : tic_api_peek4((tic_mem*)core, y * TIC80_WIDTH + x);
 }
 
 #define EARLY_CLIP(x, y, width, height) \

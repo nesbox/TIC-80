@@ -236,3 +236,4 @@ You can find iOS/tvOS version here
 * Joshua Minor - [GitHub @jminor](https://github.com/jminor)
 * Jeremiasz Nelz - [Github @remi6397](https://github.com/remi6397) [WWW](https://nelz.pl)
 * Thorben Krüger - [Mastodon @benthor@chaos.social](https://chaos.social/@benthor)
+* David St-Hilaire - [GitHub @sthilaid](https://github.com/sthilaid)
