@@ -924,13 +924,13 @@ static s32 getAxisMask(SDL_Joystick* joystick)
 
 static s32 getJoystickHatMask(s32 hat)
 {
-    tic80_gamepads gamepad;
+    tic80_gamepad gamepad;
     gamepad.data = 0;
 
-    gamepad.first.up = hat & SDL_HAT_UP;
-    gamepad.first.down = hat & SDL_HAT_DOWN;
-    gamepad.first.left = hat & SDL_HAT_LEFT;
-    gamepad.first.right = hat & SDL_HAT_RIGHT;
+    gamepad.up      = hat & SDL_HAT_UP ? 1 : 0;
+    gamepad.down    = hat & SDL_HAT_DOWN ? 1 : 0;
+    gamepad.left    = hat & SDL_HAT_LEFT ? 1 : 0;
+    gamepad.right   = hat & SDL_HAT_RIGHT ? 1 : 0;
 
     return gamepad.data;
 }
