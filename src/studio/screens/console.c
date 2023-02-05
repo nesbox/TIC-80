@@ -637,14 +637,11 @@ static void loadCartSection(Console* console, const tic_cartridge* cart, const c
         memcpy(&tic->cart, cart, sizeof(tic_cartridge));
 }
 
-static const char* getDemoCartPath(char* path, tic_script_config* script)
+static char* getDemoCartPath(char* path, tic_script_config* script)
 {
-    //printf("Demo cart path of %s: ", script->name);
     strcpy(path, TIC_LOCAL_VERSION "default_");
     strcat(path, script->name);
     strcat(path, ".tic");
-
-    //printf("%s\n", path);
 
     return path;
 }
@@ -1671,7 +1668,9 @@ static void onConfigCommand(Console* console)
         else if(strcmp(console->desc->params->key, "default") == 0)
         {
             if (console->desc->count == 1)
-                onLoadDemoCommand(console, 0);
+            {
+                onLoadDemoCommand(console, Languages[0]);
+            }
             else
             {
                 FOR_EACH_LANG(script)
