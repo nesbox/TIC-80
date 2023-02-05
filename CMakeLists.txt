@@ -97,11 +97,13 @@ message("BUILD_STUB: ${BUILD_STUB}")
 
 if (N3DS)
     set(BUILD_SDL off)
+    add_compile_definitions(S7_N3DS=1)
 endif()
 
 if (BAREMETALPI)
     set(BUILD_SDL OFF)
     set(BUILD_DEMO_CARTS OFF)
+    add_compile_definitions(S7_BAREMETALPI=1)
 endif()
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Dd_m3LogOutput=0")
@@ -540,7 +542,7 @@ if(BUILD_STUB)
     MACRO_CORE(js           TIC_BUILD_WITH_JS       FALSE)
     MACRO_CORE(wren         TIC_BUILD_WITH_WREN     FALSE)
     MACRO_CORE(squirrel     TIC_BUILD_WITH_SQUIRREL FALSE)
-    MACRO_CORE(scheme       TIC_BUILD_WITH_SCHEME   FALSE)
+    MACRO_CORE(scheme    TIC_BUILD_WITH_SCHEME   FALSE)
     MACRO_CORE(wasm         TIC_BUILD_WITH_WASM     FALSE)
 
     if(BUILD_WITH_MRUBY)
