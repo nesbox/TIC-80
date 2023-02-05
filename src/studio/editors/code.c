@@ -40,6 +40,8 @@
 #   define MAX_CODE TIC_BANK_SIZE
 #endif
 
+#define noop (void)0
+
 typedef struct CodeState CodeState;
 
 static_assert(sizeof(CodeState) == 2, "CodeStateSize");
@@ -733,10 +735,24 @@ static void setCursorPosition(Code* code, s32 cx, s32 cy)
     updateCursorPosition(code, pointer);
 }
 
+static void startLine(Code* code)
+{
+    char* start = code->src;
+    while(code->cursor.position > start+1)
+    {
+        if (islineend(*(code->cursor.position-1)))
+            break;
+        --code->cursor.position;
+    }
+    updateColumn(code);
+}
+
 static void endLine(Code* code)
 {
     while(*code->cursor.position)
     {
+        if (islineend(*code->cursor.position))
+            break;
         code->cursor.position++;
     }
     updateColumn(code);
@@ -1079,7 +1095,7 @@ static void deleteLine(Code* code)
     if (useStructuredEdit)
     {
         if (islineend(*linestart) || islineend(*lineend))
-            (void)0;
+            noop;
         else if (isopenparen_(code, *linestart))
             lineend = rightSexp(code, linestart+1)+1;
         else
@@ -1153,10 +1169,15 @@ static void newLine(Code* code)
 static void selectAll(Code* code)
 {
     code->cursor.selection = code->src;
-        code->cursor.position = code->cursor.selection + strlen(code->cursor.selection);
+    code->cursor.position = code->cursor.selection + strlen(code->cursor.selection);
 }
 
-static void copyToClipboard(Code* code)
+static void killSelection(Code* code)
+{
+    code->cursor.selection = NULL;
+}
+
+static void copyToClipboard(Code* code, bool killSelection)
 {
     char* pos = code->cursor.position;
     char* sel = code->cursor.selection;
@@ -1184,22 +1205,29 @@ static void copyToClipboard(Code* code)
         tic_sys_clipboard_set(clipboard);
         free(clipboard);
     }
+
+    if (killSelection)
+        code->cursor.selection = NULL;
 }
 
-static void cutToClipboard(Code* code)
+static void cutToClipboard(Code* code, bool killSelection)
 {
     if(code->cursor.selection == NULL || code->cursor.position == code->cursor.selection)
     {
         code->cursor.position = getLine(code);
         code->cursor.selection = getNextLine(code);
     }
-    
-    copyToClipboard(code);
+
+    copyToClipboard(code, false);
     replaceSelection(code);
+
+    if (killSelection)
+        code->cursor.selection = NULL;
+    
     history(code);
 }
 
-static void copyFromClipboard(Code* code)
+static void copyFromClipboard(Code* code, bool killSelection)
 {
     if(tic_sys_clipboard_has())
     {
@@ -1226,11 +1254,12 @@ static void copyFromClipboard(Code* code)
                 }
 
                 insertCode(code, code->cursor.position, clipboard);
-
                 code->cursor.position += size;
 
-                history(code);
+                if (killSelection)
+                    code->cursor.selection = NULL;
 
+                history(code);
                 parseSyntaxColor(code);
             }
 
@@ -1380,14 +1409,33 @@ static void normalizeScroll(Code* code)
     }
 }
 
-static void centerScroll(Code* code)
+static void recenterScroll(Code* code, bool emacsMode)
 {
     s32 col, line;
     getCursorPosition(code, &col, &line);
-    code->scroll.x = col - CODE_EDITOR_WIDTH / getFontWidth(code) / 2;
-    code->scroll.y = line - TEXT_BUFFER_HEIGHT / 2;
+
+    s32 desiredCol = col - CODE_EDITOR_WIDTH / getFontWidth(code) / 2;
+    s32 desiredLine = MAX(0, line - TEXT_BUFFER_HEIGHT / 2);
+
+    if (emacsMode && code->scroll.y == desiredLine)
+    {
+        desiredLine = line;
+    }
+    else if (emacsMode && code->scroll.y == line)
+    {
+        desiredLine = line - TEXT_BUFFER_HEIGHT;
+    }
+
+    code->scroll.x = desiredCol;
+    code->scroll.y = desiredLine;
 
     normalizeScroll(code);
+}
+
+static void centerScroll(Code* code)
+{
+    static const bool emacsMode = false;
+    recenterScroll(code, emacsMode);
 }
 
 static void updateSidebarCode(Code* code)
@@ -1703,6 +1751,17 @@ static void extirpSExp(Code* code)
     }
 }
 
+static void toggleMark(Code* code)
+{
+    if (code->cursor.selection)
+        code->cursor.selection = NULL;
+    else
+        code->cursor.selection = code->cursor.position;
+
+    parseSyntaxColor(code);
+    updateEditor(code);
+}
+
 static void commentLine(Code* code)
 {
     const char* comment = tic_core_script_config(code->tic)->singleComment;
@@ -1799,20 +1858,25 @@ static void processKeyboard(Code* code)
 
     if(tic->ram->input.keyboard.data == 0) return;
 
-    bool usedClipboard = true;
+    //const bool emacsMode = getConfig(code->studio)->theme.code.emacsMode;
+    const bool emacsMode = getConfig(code->studio)->options.emacsMode;
 
-    switch(getClipboardEvent(code->studio))
+    if (!emacsMode)
     {
-    case TIC_CLIPBOARD_CUT: cutToClipboard(code); break;
-    case TIC_CLIPBOARD_COPY: copyToClipboard(code); break;
-    case TIC_CLIPBOARD_PASTE: copyFromClipboard(code); break;
-    default: usedClipboard = false; break;
-    }
+        bool usedClipboard = true;
+        switch(getClipboardEvent(code->studio))
+        {
+        case TIC_CLIPBOARD_CUT: cutToClipboard(code, false); break;
+        case TIC_CLIPBOARD_COPY: copyToClipboard(code, false); break;
+        case TIC_CLIPBOARD_PASTE: copyFromClipboard(code, false); break;
+        default: usedClipboard = false; break;
+        }
 
-    if(usedClipboard)
-    {
-        updateEditor(code);
-        return;
+        if(usedClipboard)
+        {
+            updateEditor(code);
+            return;
+        }
     }
 
     bool shift = tic_api_key(tic, tic_key_shift);
@@ -1829,9 +1893,10 @@ static void processKeyboard(Code* code)
         || keyWasPressed(code->studio, tic_key_pageup)
         || keyWasPressed(code->studio, tic_key_pagedown))
     {
+        changedSelection = true;
         if(!shift) code->cursor.selection = NULL;
         else if(code->cursor.selection == NULL) code->cursor.selection = code->cursor.position;
-        changedSelection = true;
+        else changedSelection = false;
     }
 
     bool usedKeybinding = true;
@@ -1861,28 +1926,54 @@ static void processKeyboard(Code* code)
     }
     else if(ctrl || alt)
     {
-        bool ctrlHandled = true;
+        bool ctrlHandled = false;
         if(ctrl)
         {
+            ctrlHandled = true;
             if(keyWasPressed(code->studio, tic_key_tab))        doTab(code, shift, ctrl);
-            else if(keyWasPressed(code->studio, tic_key_a))     selectAll(code);
+            else if(keyWasPressed(code->studio, tic_key_a))     emacsMode ? startLine(code) : selectAll(code);
             else if(keyWasPressed(code->studio, tic_key_z))     undo(code);
-            else if(keyWasPressed(code->studio, tic_key_y))     redo(code);
-            else if(keyWasPressed(code->studio, tic_key_f))     setCodeMode(code, TEXT_FIND_MODE);
-            else if(keyWasPressed(code->studio, tic_key_g))     setCodeMode(code, TEXT_GOTO_MODE);
-            else if(keyWasPressed(code->studio, tic_key_b))     setCodeMode(code, TEXT_BOOKMARK_MODE);
+            else if(keyWasPressed(code->studio, tic_key_y))     emacsMode ? copyFromClipboard(code, true) : redo(code);
+            else if(keyWasPressed(code->studio, tic_key_w))     emacsMode ? cutToClipboard(code, true) : noop;
+            else if(keyWasPressed(code->studio, tic_key_f))     emacsMode ? rightColumn(code) : setCodeMode(code, TEXT_FIND_MODE);
+            else if(keyWasPressed(code->studio, tic_key_g))     emacsMode ? killSelection(code) : setCodeMode(code, TEXT_GOTO_MODE);
+            else if(keyWasPressed(code->studio, tic_key_b))     emacsMode ? leftColumn(code) : setCodeMode(code, TEXT_BOOKMARK_MODE);
             else if(keyWasPressed(code->studio, tic_key_o))     setCodeMode(code, TEXT_OUTLINE_MODE);
             else if(keyWasPressed(code->studio, tic_key_n))     downLine(code);
             else if(keyWasPressed(code->studio, tic_key_p))     upLine(code);
             else if(keyWasPressed(code->studio, tic_key_e))     endLine(code);
             else if(keyWasPressed(code->studio, tic_key_d))     dupLine(code);
-            else if(keyWasPressed(code->studio, tic_key_slash)) commentLine(code);
+            else if(keyWasPressed(code->studio, tic_key_j))     newLine(code);
+            else if(keyWasPressed(code->studio, tic_key_slash)) emacsMode ? undo(code) : commentLine(code);
             else if(keyWasPressed(code->studio, tic_key_home))  goCodeHome(code);
             else if(keyWasPressed(code->studio, tic_key_end))   goCodeEnd(code);
             else if(keyWasPressed(code->studio, tic_key_up))    extirpSExp(code);
             else if(keyWasPressed(code->studio, tic_key_down))  sexpify(code);
             else if(keyWasPressed(code->studio, tic_key_k))     deleteLine(code);
+            else if(keyWasPressed(code->studio, tic_key_space)) emacsMode ? toggleMark(code) : noop;
+            else if(keyWasPressed(code->studio, tic_key_l))     recenterScroll(code, emacsMode);
+            else if(keyWasPressed(code->studio, tic_key_v))     emacsMode ? pageDown(code) : noop;
             else ctrlHandled = false;
+        }
+
+        bool altHandled = false;
+        if (alt)
+        {
+            char sym = getKeyboardText(code->studio);
+            altHandled = true;
+            if(keyWasPressed(code->studio, tic_key_p))          pageUp(code);
+            else if(keyWasPressed(code->studio, tic_key_n))     pageDown(code);
+            else if(keyWasPressed(code->studio, tic_key_v))     emacsMode ? pageUp(code) : noop;
+            else if(keyWasPressed(code->studio, tic_key_b))     leftWord(code);
+            else if(keyWasPressed(code->studio, tic_key_f))     rightWord(code);
+            else if(keyWasPressed(code->studio, tic_key_r))     emacsMode ? extirpSExp(code) : noop;
+            else if(keyWasPressed(code->studio, tic_key_w))     emacsMode ? copyToClipboard(code, true) : noop;
+            else if(keyWasPressed(code->studio, tic_key_g))     emacsMode ? setCodeMode(code, TEXT_GOTO_MODE) : noop;
+            else if(keyWasPressed(code->studio, tic_key_s))     emacsMode ? setCodeMode(code, TEXT_FIND_MODE) : noop;
+            else if(shift && sym && sym == '(')                 emacsMode? sexpify(code) : noop;
+            else if(keyWasPressed(code->studio, tic_key_slash)) emacsMode ? redo(code) : noop;
+            else if(keyWasPressed(code->studio, tic_key_semicolon)) emacsMode ? commentLine(code) : noop;
+            else altHandled = false;
         }
 
         bool ctrlAltHandled = true;
@@ -1892,7 +1983,7 @@ static void processKeyboard(Code* code)
         else if(keyWasPressed(code->studio, tic_key_backspace)) backspaceWord(code);
         else ctrlAltHandled = false;
 
-        usedKeybinding = (ctrlHandled || ctrlAltHandled);
+        usedKeybinding = (ctrlHandled || altHandled || ctrlAltHandled);
     }
     else
     {
@@ -2550,9 +2641,9 @@ static void onStudioEvent(Code* code, StudioEvent event)
 {
     switch(event)
     {
-    case TIC_TOOLBAR_CUT: cutToClipboard(code); break;
-    case TIC_TOOLBAR_COPY: copyToClipboard(code); break;
-    case TIC_TOOLBAR_PASTE: copyFromClipboard(code); break;
+    case TIC_TOOLBAR_CUT: cutToClipboard(code, false); break;
+    case TIC_TOOLBAR_COPY: copyToClipboard(code, false); break;
+    case TIC_TOOLBAR_PASTE: copyFromClipboard(code, false); break;
     case TIC_TOOLBAR_UNDO: undo(code); break;
     case TIC_TOOLBAR_REDO: redo(code); break;
     }

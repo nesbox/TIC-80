@@ -238,6 +238,7 @@ static void setDefault(Config* config)
             .volume         = MAX_VOLUME,
             .vsync          = DEFAULT_VSYNC,
             .fullscreen     = false,
+            .emacsMode      = false,
 #if defined(BUILD_EDITORS)
             .devmode        = false,
 #endif

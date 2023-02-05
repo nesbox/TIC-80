@@ -175,6 +175,28 @@ static MenuOption VolumeOption =
     optionVolumeSet,
 };
 
+
+
+
+static s32 optionEmacsModeGet(void* data)
+{
+    StudioMainMenu* main = data;
+    return main->options->emacsMode ? 1 : 0;
+}
+
+static void optionEmacsModeSet(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+    main->options->emacsMode = pos == 1;
+}
+
+static MenuOption EmacsModeOption = 
+{
+    OPTION_VALUES({OffValue, OnValue}),
+    optionEmacsModeGet,
+    optionEmacsModeSet,
+};
+
 #if defined(BUILD_EDITORS)
 
 static s32 optionDevModeGet(void* data)
@@ -207,6 +229,8 @@ static void showGamepadMenu(void* data, s32 pos)
     initGamepadMenu(main);
 }
 
+static void showCodeEditorMenu(void* data, s32 pos);
+
 static const MenuItem OptionMenu[] =
 {
 #if defined(CRT_SHADER_SUPPORT)
@@ -218,7 +242,8 @@ static const MenuItem OptionMenu[] =
     {"VSYNC",           NULL,   &VSyncOption, "VSYNC needs restart!"},
     {"FULLSCREEN",      NULL,   &FullscreenOption},
     {"VOLUME",          NULL,   &VolumeOption},
-    {"SETUP GAMEPAD",   showGamepadMenu},
+    {"SETUP GAMEPAD",       showGamepadMenu},
+    {"CODE EDITOR OPTIONS", showCodeEditorMenu},
     {""},
     {"BACK",            showMainMenu, .back = true},
 };
@@ -230,6 +255,21 @@ static void gameMenuHandler(void* data, s32 pos)
     tic_mem* tic = main->tic;
     tic_core_script_config(tic)->callback.menu(tic, pos, NULL);
     resumeGame(main->studio);
+}
+
+static const MenuItem CodeEditorMenu[] =
+{
+    {"EMACS MODE",      NULL,   &EmacsModeOption, "For the cool kids only"},
+    {""},
+    {"BACK",            showOptionsMenu, .back = true},
+};
+
+static void showCodeEditorMenu(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+
+    studio_menu_init(main->menu, CodeEditorMenu, 
+                     COUNT_OF(CodeEditorMenu), 0, COUNT_OF(OptionMenu)-3, showOptionsMenu, main);
 }
 
 static void freeItems(StudioMainMenu* menu)
@@ -476,7 +516,7 @@ static void initGamepadMenu(StudioMainMenu* main)
 
     studio_menu_init(main->menu, GamepadMenu, COUNT_OF(GamepadMenu), 
         main->gamepads.key < 0 ? KeyMappingStart : main->gamepads.key + KeyMappingStart, 
-        COUNT_OF(OptionMenu) - 3, showOptionsMenu, main);
+        COUNT_OF(OptionMenu) - 4, showOptionsMenu, main);
 
     main->gamepads.key = -1;
 }
