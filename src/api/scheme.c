@@ -906,7 +906,11 @@ static const char* const SchemeKeywords [] =
     "let?", "let-ref", "openlet", "openlet?"
 };
 
-static inline bool scheme_isalnum(char c) {return isalnum(c) || c == '_' || c == '-' || c == ':' || c == '#' || c == '!';}
+static inline bool scheme_isalnum(char c)
+{
+    return isalnum(c) || c == '_' || c == '-' || c == ':' || c == '#' || c == '!'
+        || c == '+' || c == '=' || c == '&' || c == '^' || c == '%' || c == '$' || c == '@';
+}
 
 static const tic_outline_item* getSchemeOutline(const char* code, s32* size)
 {

@@ -1078,7 +1078,9 @@ static void deleteLine(Code* code)
     const bool useStructuredEdit = tic_core_script_config(code->tic)->useStructuredEdition;
     if (useStructuredEdit)
     {
-        if (isopenparen_(code, *linestart))
+        if (islineend(*linestart) || islineend(*lineend))
+            (void)0;
+        else if (isopenparen_(code, *linestart))
             lineend = rightSexp(code, linestart+1)+1;
         else
             lineend = rightSexp(code, linestart);
@@ -1618,6 +1620,42 @@ static void addCommentToLine(Code* code, char* line, size_t size, const char* co
     parseSyntaxColor(code);
 }
 
+static void sexpify(Code* code)
+{
+    const bool useStructuredEdit = tic_core_script_config(code->tic)->useStructuredEdition;
+    if (!useStructuredEdit)
+        return;
+
+    char* pos = code->cursor.position;
+    char* start = NULL;
+    char* end = NULL;
+    char* sel = code->cursor.selection;
+    if (sel)
+    {
+        start = sel<pos ? sel : pos;
+        end = sel<pos ? pos : sel;
+    }
+    else if (isopenparen_(code, *pos))
+    {
+        start = pos;
+        end = rightSexp(code, pos+1);
+    }
+    else if (isalnum_(code, *pos))
+    {
+        start = leftPos(code, pos, isalnum_);
+        end = rightPos(code, pos, isalnum_);
+    }
+
+    if (start == NULL || end == NULL)
+        return;
+
+    insertCode(code, start, (const char[]){'(', '\0'});
+    insertCode(code, end+1, (const char[]){')', '\0'});
+    history(code);
+    parseSyntaxColor(code);
+    updateEditor(code);
+}
+
 static void extirpSExp(Code* code)
 {
     const bool useStructuredEdit = tic_core_script_config(code->tic)->useStructuredEdition;
@@ -1842,6 +1880,7 @@ static void processKeyboard(Code* code)
             else if(keyWasPressed(code->studio, tic_key_home))  goCodeHome(code);
             else if(keyWasPressed(code->studio, tic_key_end))   goCodeEnd(code);
             else if(keyWasPressed(code->studio, tic_key_up))    extirpSExp(code);
+            else if(keyWasPressed(code->studio, tic_key_down))  sexpify(code);
             else if(keyWasPressed(code->studio, tic_key_k))     deleteLine(code);
             else ctrlHandled = false;
         }
