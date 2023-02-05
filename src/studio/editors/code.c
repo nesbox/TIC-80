@@ -401,8 +401,8 @@ static void updateEditor(Code* code)
 
 static inline bool islineend(char c) {return c == '\n' || c == '\0';}
 static inline bool isalpha_(char c) {return isalpha(c) || c == '_';}
-static inline bool isopenparen_(Code*, char c) {return c == '(' || c == '{' || c == '[';}
-static inline bool iscloseparen_(Code*, char c) {return c == ')' || c == '}' || c == ']';}
+static inline bool isopenparen_(Code* code, char c) {return c == '(' || c == '{' || c == '[';}
+static inline bool iscloseparen_(Code* code, char c) {return c == ')' || c == '}' || c == ']';}
 
 static inline bool config_isalnum_(const tic_script_config* config, char c)
 {
@@ -1858,7 +1858,6 @@ static void processKeyboard(Code* code)
 
     if(tic->ram->input.keyboard.data == 0) return;
 
-    //const bool emacsMode = getConfig(code->studio)->theme.code.emacsMode;
     const bool emacsMode = getConfig(code->studio)->options.emacsMode;
 
     if (!emacsMode)
