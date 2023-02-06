@@ -103,7 +103,7 @@ static void ticTexLine(tic_mem* memory, TexVertDep* v0, TexVertDep* v1)
     }
 }
 
-void drawTexturedTriangleDep(tic_core* core, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count)
+void tic_core_textri_dep(tic_core* core, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count)
 {
     tic_mem* memory = &core->memory;
     tic_vram* vram = &memory->ram->vram;

@@ -74,6 +74,17 @@ class TIC {\n\
     foreign static mset(cell_x, cell_y)\n\
     foreign static mset(cell_x, cell_y, index)\n\
     foreign static mget(cell_x, cell_y)\n\
+    "
+
+#if defined(BUILD_DEPRECATED)
+    "\
+    foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3)\n\
+    foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, src)\n\
+    foreign static textri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, src, alpha_color)\n\
+    "
+#endif
+
+    "\
     foreign static ttri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3)\n\
     foreign static ttri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, src)\n\
     foreign static ttri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, src, alpha_color)\n\
@@ -814,6 +825,70 @@ static void wren_ttri(WrenVM* vm)
         colors, count,  // chroma
         depth.z[0], depth.z[1], depth.z[2], depth.on); // depth
 }
+
+#if defined(BUILD_DEPRECATED)
+
+static void wren_textri(WrenVM* vm)
+{
+    s32 top = wrenGetSlotCount(vm);
+
+    float pt[12];
+
+    for (s32 i = 0; i < COUNT_OF(pt); i++)
+    {
+        pt[i] = (float)wrenGetSlotDouble(vm, i + 1);
+    }
+
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
+    static u8 colors[TIC_PALETTE_SIZE];
+    s32 count = 0;
+    tic_texture_src src = tic_tiles_texture;
+
+    //  check for texture source
+    if (top > 13)
+    {
+        src = getWrenNumber(vm, 13);
+    }
+
+    //  check for chroma
+    if(isList(vm, 14))
+    {
+        wrenEnsureSlots(vm, top+1);
+        s32 list_count = wrenGetListCount(vm, 14);
+        for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+        {
+            wrenGetListElement(vm, 14, i, top);
+            if(i < list_count && isNumber(vm, top))
+            {
+                colors[i] = getWrenNumber(vm, top);
+                count++;
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+    else
+    {
+        colors[0] = getWrenNumber(vm, 14);
+        count = 1;
+    }
+
+    tic_core_textri_dep(core,
+        pt[0], pt[1],   //  xy 1
+        pt[2], pt[3],   //  xy 2
+        pt[4], pt[5],   //  xy 3
+        pt[6], pt[7],   //  uv 1
+        pt[8], pt[9],   //  uv 2
+        pt[10], pt[11], //  uv 3
+        src,            // texture source
+        colors, count);
+}
+
+#endif
+
 static void wren_pix(WrenVM* vm)
 {
     s32 top = wrenGetSlotCount(vm);
@@ -1403,9 +1478,15 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     if (strcmp(signature, "static TIC.mset(_,_,_)"              ) == 0) return wren_mset;
     if (strcmp(signature, "static TIC.mget(_,_)"                ) == 0) return wren_mget;
 
-    if (strcmp(signature, "static TIC.ttri(_,_,_,_,_,_,_,_,_,_,_,_)"              ) == 0) return wren_ttri;
-    if (strcmp(signature, "static TIC.ttri(_,_,_,_,_,_,_,_,_,_,_,_,_)"            ) == 0) return wren_ttri;
-    if (strcmp(signature, "static TIC.ttri(_,_,_,_,_,_,_,_,_,_,_,_,_,_)"          ) == 0) return wren_ttri;
+#if defined(BUILD_DEPRECATED)
+    if (strcmp(signature, "static TIC.textri(_,_,_,_,_,_,_,_,_,_,_,_)"      ) == 0) return wren_textri;
+    if (strcmp(signature, "static TIC.textri(_,_,_,_,_,_,_,_,_,_,_,_,_)"    ) == 0) return wren_textri;
+    if (strcmp(signature, "static TIC.textri(_,_,_,_,_,_,_,_,_,_,_,_,_,_)"  ) == 0) return wren_textri;
+#endif
+
+    if (strcmp(signature, "static TIC.ttri(_,_,_,_,_,_,_,_,_,_,_,_)"        ) == 0) return wren_ttri;
+    if (strcmp(signature, "static TIC.ttri(_,_,_,_,_,_,_,_,_,_,_,_,_)"      ) == 0) return wren_ttri;
+    if (strcmp(signature, "static TIC.ttri(_,_,_,_,_,_,_,_,_,_,_,_,_,_)"    ) == 0) return wren_ttri;
     if (strcmp(signature, "static TIC.ttri_depth()"             ) == 0) return wren_ttri_depth;
     if (strcmp(signature, "static TIC.ttri_depth(_,_,_)"        ) == 0) return wren_ttri_depth;
 
@@ -1603,6 +1684,7 @@ static void callWrenTick(tic_mem* tic)
         wrenSetSlotHandle(vm, 0, game_class);
         wrenCall(vm, update_handle);
 
+#if defined(BUILD_DEPRECATED)
         // call OVR() callback for backward compatibility
         if(overline_handle)
         {
@@ -1613,6 +1695,7 @@ static void callWrenTick(tic_mem* tic)
                 wrenCall(vm, overline_handle);
             }
         }
+#endif
     }
 }
 

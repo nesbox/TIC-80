@@ -809,8 +809,6 @@ static duk_ret_t duk_trib(duk_context* duk)
 
 #if defined(BUILD_DEPRECATED)
 
-void drawTexturedTriangleDep(tic_core* core, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count);
-
 static duk_ret_t duk_textri(duk_context* duk)
 {
     float pt[12];
@@ -851,7 +849,7 @@ static duk_ret_t duk_textri(duk_context* duk)
         }
     }
 
-    drawTexturedTriangleDep(getDukCore(duk), 
+    tic_core_textri_dep(getDukCore(duk), 
         pt[0], pt[1],   //  xy 1
         pt[2], pt[3],   //  xy 2
         pt[4], pt[5],   //  xy 3
@@ -1099,6 +1097,7 @@ static void callJavascriptTick(tic_mem* tic)
                 return;
             }
 
+#if defined(BUILD_DEPRECATED)
             // call OVR() callback for backward compatibility
             {
                 if(duk_get_global_string(duk, OVR_FN))
@@ -1112,6 +1111,7 @@ static void callJavascriptTick(tic_mem* tic)
 
                 duk_pop(duk);
             }
+#endif
         }
         else core->data->error(core->data->data, "'function TIC()...' isn't found :(");
 
