@@ -129,8 +129,8 @@ typedef struct
         bool integerScale;
         s32 volume;
         tic_mapping mapping;
-
 #if defined(BUILD_EDITORS)
+        bool emacsMode;
         bool devmode;
 #endif
     } options;

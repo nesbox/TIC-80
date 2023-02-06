@@ -194,6 +194,32 @@ static MenuOption VolumeOption =
     optionVolumeSet,
 };
 
+
+
+
+static s32 optionEmacsModeGet(void* data)
+{
+#if defined(BUILD_EDITORS)
+    StudioMainMenu* main = data;
+    return main->options->emacsMode ? 1 : 0;
+#endif
+}
+
+static void optionEmacsModeSet(void* data, s32 pos)
+{
+#if defined(BUILD_EDITORS)
+    StudioMainMenu* main = data;
+    main->options->emacsMode = pos == 1;
+#endif
+}
+
+static MenuOption EmacsModeOption = 
+{
+    OPTION_VALUES({OffValue, OnValue}),
+    optionEmacsModeGet,
+    optionEmacsModeSet,
+};
+
 #if defined(BUILD_EDITORS)
 
 static s32 optionDevModeGet(void* data)
@@ -226,6 +252,8 @@ static void showGamepadMenu(void* data, s32 pos)
     initGamepadMenu(main);
 }
 
+static void showCodeEditorMenu(void* data, s32 pos);
+
 static const MenuItem OptionMenu[] =
 {
 #if defined(CRT_SHADER_SUPPORT)
@@ -238,7 +266,10 @@ static const MenuItem OptionMenu[] =
     {"FULLSCREEN",      NULL,   &FullscreenOption},
     {"INTEGER SCALE",   NULL,   &IntegerScaleOption},
     {"VOLUME",          NULL,   &VolumeOption},
-    {"SETUP GAMEPAD",   showGamepadMenu},
+    {"SETUP GAMEPAD",       showGamepadMenu},
+#if defined(BUILD_EDITORS)
+    {"CODE EDITOR OPTIONS", showCodeEditorMenu},
+#endif
     {""},
     {"BACK",            showMainMenu, .back = true},
 };
@@ -250,6 +281,21 @@ static void gameMenuHandler(void* data, s32 pos)
     tic_mem* tic = main->tic;
     resumeGame(main->studio);
     tic_core_script_config(tic)->callback.menu(tic, pos, NULL);
+}
+
+static const MenuItem CodeEditorMenu[] =
+{
+    {"EMACS MODE",      NULL,   &EmacsModeOption, "For the cool kids only"},
+    {""},
+    {"BACK",            showOptionsMenu, .back = true},
+};
+
+static void showCodeEditorMenu(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+
+    studio_menu_init(main->menu, CodeEditorMenu, 
+                     COUNT_OF(CodeEditorMenu), 0, COUNT_OF(OptionMenu)-3, showOptionsMenu, main);
 }
 
 static void freeItems(StudioMainMenu* menu)
@@ -494,9 +540,15 @@ static void initGamepadMenu(StudioMainMenu* main)
 
     initGamepadButtons(main);
 
+#if defined(BUILD_EDITORS)
+    s32 backPos = COUNT_OF(OptionMenu) - 4;
+#else
+    s32 backPos = COUNT_OF(OptionMenu) - 3;
+#endif    
+
     studio_menu_init(main->menu, GamepadMenu, COUNT_OF(GamepadMenu), 
         main->gamepads.key < 0 ? KeyMappingStart : main->gamepads.key + KeyMappingStart, 
-        COUNT_OF(OptionMenu) - 3, showOptionsMenu, main);
+        backPos, showOptionsMenu, main);
 
     main->gamepads.key = -1;
 }

@@ -876,15 +876,18 @@ static const char* const SchemeKeywords [] =
     "define", "lambda", "begin", "set!", "=", "<", "<=", ">", ">=", "+", "*",
     "/", "'", "`", "`@", "define-macro", "let", "let*", "letrec",
     "if", "cond", "floor", "ceiling", "sin", "cos", "log", "sqrt", "abs"
-    "expt", "tan", "acos", "asin", "atan", "truncate", "round",
-    "modulo", "remainder", "gcd", "lcm", "and", "or",
+    "exp", "expt", "tan", "acos", "asin", "atan", "truncate", "round",
+    "exact->inexact", "inexact->exact", "exact?", "inexact?",
+    "modulo", "quotient", "remainder", "gcd", "lcm", "and", "or",
     "eq?", "eqv?", "equal?", "equivalent?", "boolean?", "pair?",
     "cons", "car", "cdr", "set-car!", "set-cdr!", "cadr", "cddr",
     "cdar", "caar", "caadr", "caddr", "cadar", "caaar", "cdadr",
     "cdddr", "caddar", "cadaar", "cdaadr", "cdaddr", "cdadar",
     "cdaaar", "cddadr", "cddddr", "cdddar", "cddaar", "list?"
     "proper-list?", "length", "make-list", "list", "reverse",
-    "append", "list-ref", "assoc", "assq", "member", "memq",
+    "map", "for-each", "list->vector", "list->string", "list-ref", "null?",
+    "not", "number->string", "odd?", "even?", "zero?",
+    "append", "list-ref", "assoc", "assq", "member", "memq", "memv",
     "tree-memq", "string?", "string-length", "character?",
     "number?", "integer?", "real?", "rationnal?", "rationalize",
     "numerator", "denominator", "random", "random-state",
@@ -894,14 +897,8 @@ static const char* const SchemeKeywords [] =
     "byte-vector?", "vector-ref", "vector-set!", "make-vector",
     "vector-fill!", "vector->list", "make-hash-table",
     "hash-table-ref", "hash-table-set!", "hash-code",
-    "hook-functions", "input-port?", "output-port?",
-    "port-filename", "port-line-number", "current-input-port",
-    "current-output-port", "set-current-input-port",
-    "set-current-output-port", "current-error-port",
-    "set-current-error-port", "close-input-port",
-    "close-output-port", "open-input-file", "open-output-file",
-    "open-input-string", "open-output-string", "get-output-string",
-    "flush-output-port", "read-char", "peek-char", "read",
+    "hook-functions", "open-input-string", "open-output-string",
+    "get-output-string", "read-char", "peek-char", "read",
     "newline", "write-char", "write", "display", "format",
     "syntax?", "symbol?", "symbol->string", "string->symbol",
     "gensym", "keyword?", "string->keyword", "keyword->string",
@@ -909,7 +906,11 @@ static const char* const SchemeKeywords [] =
     "let?", "let-ref", "openlet", "openlet?"
 };
 
-static inline bool isalnum_(char c) {return isalnum(c) || c == '_' || c == '-' || c == ':' || c == '#';}
+static inline bool scheme_isalnum(char c)
+{
+    return isalnum(c) || c == '_' || c == '-' || c == ':' || c == '#' || c == '!'
+        || c == '+' || c == '=' || c == '&' || c == '^' || c == '%' || c == '$' || c == '@';
+}
 
 static const tic_outline_item* getSchemeOutline(const char* code, s32* size)
 {
@@ -943,7 +944,7 @@ static const tic_outline_item* getSchemeOutline(const char* code, s32* size)
             {
                 char c = *ptr;
 
-                if(isalnum_(c));
+                if(scheme_isalnum(c));
                 else
                 {
                     end = ptr;
@@ -983,40 +984,54 @@ void evalScheme(tic_mem* tic, const char* code) {
     s7_eval_c_string(sc, code);
 }
 
+static const char* SchemeAPIKeywords[] = {
+#define TIC_CALLBACK_DEF(name, ...) #name,
+        TIC_CALLBACK_LIST(TIC_CALLBACK_DEF)
+#undef  TIC_CALLBACK_DEF
+
+#define API_KEYWORD_DEF(name, ...) "t80::" #name,
+        TIC_API_LIST(API_KEYWORD_DEF)
+#undef  API_KEYWORD_DEF
+};
+
 tic_script_config SchemeSyntaxConfig =
 {
-    .id                 = 19,
-    .name               = "scheme",
-    .fileExtension      = ".scm",
-    .projectComment     = ";;",
+    .id                     = 19,
+    .name                   = "scheme",
+    .fileExtension          = ".scm",
+    .projectComment         = ";;",
     {
-      .init               = initScheme,
-      .close              = closeScheme,
-      .tick               = callSchemeTick,
-      .boot               = callSchemeBoot,
+      .init                 = initScheme,
+      .close                = closeScheme,
+      .tick                 = callSchemeTick,
+      .boot                 = callSchemeBoot,
 
-      .callback           =
+      .callback             =
       {
-        .scanline       = callSchemeScanline,
-        .border         = callSchemeBorder,
-        .menu           = callSchemeMenu,
+        .scanline           = callSchemeScanline,
+        .border             = callSchemeBorder,
+        .menu               = callSchemeMenu,
       },
     },
 
-    .getOutline         = getSchemeOutline,
-    .eval               = evalScheme,
+    .getOutline             = getSchemeOutline,
+    .eval                   = evalScheme,
 
-    .blockCommentStart  = NULL,
-    .blockCommentEnd    = NULL,
-    .blockCommentStart2 = NULL,
-    .blockCommentEnd2   = NULL,
-    .singleComment      = ";;",
-    .blockStringStart   = "\"",
-    .blockStringEnd     = "\"",
-    .blockEnd           = NULL,
+    .blockCommentStart      = NULL,
+    .blockCommentEnd        = NULL,
+    .blockCommentStart2     = NULL,
+    .blockCommentEnd2       = NULL,
+    .singleComment          = ";;",
+    .blockStringStart       = "\"",
+    .blockStringEnd         = "\"",
+    .blockEnd               = NULL,
+    .lang_isalnum           = scheme_isalnum,
+    .api_keywords           = SchemeAPIKeywords,
+    .api_keywordsCount      = COUNT_OF(SchemeAPIKeywords),
+    .useStructuredEdition   = true,
 
-    .keywords           = SchemeKeywords,
-    .keywordsCount      = COUNT_OF(SchemeKeywords),
+    .keywords               = SchemeKeywords,
+    .keywordsCount          = COUNT_OF(SchemeKeywords),
 };
 
 #endif /* defined(TIC_BUILD_WITH_SCHEME) */
