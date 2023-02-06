@@ -180,14 +180,18 @@ static MenuOption VolumeOption =
 
 static s32 optionEmacsModeGet(void* data)
 {
+#if defined(BUILD_EDITORS)
     StudioMainMenu* main = data;
     return main->options->emacsMode ? 1 : 0;
+#endif
 }
 
 static void optionEmacsModeSet(void* data, s32 pos)
 {
+#if defined(BUILD_EDITORS)
     StudioMainMenu* main = data;
     main->options->emacsMode = pos == 1;
+#endif
 }
 
 static MenuOption EmacsModeOption = 
