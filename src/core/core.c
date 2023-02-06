@@ -688,14 +688,14 @@ void tic_core_blit_ex(tic_mem* tic, tic_blit_callback clb)
         {
             // render line with XY offsets
             enum{OffsetY = TIC80_HEIGHT - TIC80_MARGIN_TOP};
-            s32 start0 = (row - vbank0(core)->vars.offset.y + OffsetY) % TIC80_HEIGHT * TIC80_WIDTH;
-            s32 start1 = (row - vbank1(core)->vars.offset.y + OffsetY) % TIC80_HEIGHT * TIC80_WIDTH;
+            s32 start0 = (row + vbank0(core)->vars.offset.y + OffsetY) % TIC80_HEIGHT * TIC80_WIDTH;
+            s32 start1 = (row + vbank1(core)->vars.offset.y + OffsetY) % TIC80_HEIGHT * TIC80_WIDTH;
             s32 offsetX0 = vbank0(core)->vars.offset.x;
             s32 offsetX1 = vbank1(core)->vars.offset.x;
 
             for(s32 x = TIC80_WIDTH; x != 2 * TIC80_WIDTH; ++x)
-                *rowPtr++ = blitpix(tic, (x - offsetX0) % TIC80_WIDTH + start0, 
-                    (x - offsetX1) % TIC80_WIDTH + start1, &pal0, &pal1);
+                *rowPtr++ = blitpix(tic, (x + offsetX0) % TIC80_WIDTH + start0, 
+                    (x + offsetX1) % TIC80_WIDTH + start1, &pal0, &pal1);
         }
 
         rowPtr += TIC80_MARGIN_RIGHT;
