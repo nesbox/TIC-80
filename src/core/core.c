@@ -216,7 +216,9 @@ void tic_api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
             {
                 // palette syncing is a special case where we copy both vbank0 and vbank1 palettes
                 sync(vbank0(core)->palette.data, bankPtr->palette.vbank0.data, size, toCart);
-                sync(vbank1(core)->palette.data, bankPtr->palette.vbank1.data, size, toCart);
+
+                if(!EMPTY(bankPtr->palette.vbank1.data))
+                    sync(vbank1(core)->palette.data, bankPtr->palette.vbank1.data, size, toCart);
             }
             else
             {
@@ -374,11 +376,6 @@ void tic_api_reset(tic_mem* memory)
     VBANK(memory, 1)
     {
         resetVbank(memory);
-
-        // init VBANK1 palette with VBANK0 palette if it's empty
-        // for backward compatibility
-        if(!EMPTY(memory->cart.bank0.palette.vbank1.data))
-            memcpy(&memory->ram->vram.palette, &memory->cart.bank0.palette.vbank1, sizeof(tic_palette));
     }
 
     memory->ram->input.mouse.relative = 0;
