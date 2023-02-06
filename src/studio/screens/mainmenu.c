@@ -248,8 +248,8 @@ static void gameMenuHandler(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
     tic_mem* tic = main->tic;
-    tic_core_script_config(tic)->callback.menu(tic, pos, NULL);
     resumeGame(main->studio);
+    tic_core_script_config(tic)->callback.menu(tic, pos, NULL);
 }
 
 static void freeItems(StudioMainMenu* menu)
