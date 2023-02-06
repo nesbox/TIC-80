@@ -1936,7 +1936,7 @@ static void processKeyboard(Code* code)
 
     if(tic->ram->input.keyboard.data == 0) return;
 
-    const bool emacsMode = getConfig(code->studio)->options.emacsMode;
+    const bool emacsMode = getConfig(code->studio)->options.emacsMode; 
 
     if (!emacsMode)
     {
