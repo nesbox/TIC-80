@@ -128,9 +128,8 @@ typedef struct
         bool vsync;
         s32 volume;
         tic_mapping mapping;
-        bool emacsMode;
-
 #if defined(BUILD_EDITORS)
+        bool emacsMode;
         bool devmode;
 #endif
     } options;

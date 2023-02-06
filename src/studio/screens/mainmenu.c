@@ -243,7 +243,9 @@ static const MenuItem OptionMenu[] =
     {"FULLSCREEN",      NULL,   &FullscreenOption},
     {"VOLUME",          NULL,   &VolumeOption},
     {"SETUP GAMEPAD",       showGamepadMenu},
+#if defined(BUILD_EDITORS)
     {"CODE EDITOR OPTIONS", showCodeEditorMenu},
+#endif
     {""},
     {"BACK",            showMainMenu, .back = true},
 };
@@ -514,9 +516,15 @@ static void initGamepadMenu(StudioMainMenu* main)
 
     initGamepadButtons(main);
 
+#if defined(BUILD_EDITORS)
+    s32 backPos = COUNT_OF(OptionMenu) - 4;
+#else
+    s32 backPos = COUNT_OF(OptionMenu) - 3;
+#endif    
+
     studio_menu_init(main->menu, GamepadMenu, COUNT_OF(GamepadMenu), 
         main->gamepads.key < 0 ? KeyMappingStart : main->gamepads.key + KeyMappingStart, 
-        COUNT_OF(OptionMenu) - 4, showOptionsMenu, main);
+        backPos, showOptionsMenu, main);
 
     main->gamepads.key = -1;
 }
