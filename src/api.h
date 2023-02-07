@@ -98,6 +98,7 @@ typedef struct
     const char* blockCommentEnd2;
     const char* blockStringStart;
     const char* blockStringEnd;
+    const char* stdStringStartEnd;
     const char* singleComment;
     const char* blockEnd;
 

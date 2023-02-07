@@ -1024,6 +1024,7 @@ tic_script_config SchemeSyntaxConfig =
     .singleComment          = ";;",
     .blockStringStart       = "\"",
     .blockStringEnd         = "\"",
+    .stdStringStartEnd      = "\"",
     .blockEnd               = NULL,
     .lang_isalnum           = scheme_isalnum,
     .api_keywords           = SchemeAPIKeywords,

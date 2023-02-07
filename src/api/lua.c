@@ -1818,6 +1818,7 @@ tic_script_config LuaSyntaxConfig =
     .singleComment      = "--",
     .blockStringStart   = "[[",
     .blockStringEnd     = "]]",
+    .stdStringStartEnd  = "\'\"",
     .blockEnd           = "end",
 
     .keywords           = LuaKeywords,

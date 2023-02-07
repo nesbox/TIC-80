@@ -595,7 +595,8 @@ start:
                 ptr += strlen(config->blockStringStart);
                 continue;
             }
-            else if(c == '"' || c == '\'')
+            else if ((config->stdStringStartEnd == NULL && (c == '"' || c == '\''))
+                     || (config->stdStringStartEnd != NULL && c != 0 && strchr(config->stdStringStartEnd, c)))
             {
                 blockStdStringStart = ptr;
                 ptr++;
