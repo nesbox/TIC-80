@@ -685,7 +685,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        script: [lua, moon, fennel, ruby, js, wren, squirrel, wasm, scheme]
+        script: [lua, moon, fennel, ruby, js, wren, squirrel, wasm, scheme, janet]
 
     steps:
       - name: Download Windows XP artifact

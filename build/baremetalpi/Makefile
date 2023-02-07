@@ -34,6 +34,7 @@ LIBS :=  \
     $(TIC80LIB)/libscheme.a \
     $(TIC80LIB)/libwren.a \
     $(TIC80LIB)/libwasm.a \
+    $(TIC80LIB)/libjanet.a \
     $(TIC80LIB)/libargparse.a \
     $(TIC80LIB)/libwave_writer.a \
     $(TIC80LIB)/libduktape.a \
@@ -55,6 +56,3 @@ LIBS :=  \
     $(CIRCLEHOME)/lib/sched/libsched.a \
     $(CIRCLEHOME)/lib/libcircle.a \
     $(NEWLIBDIR)/lib/libm.a
-
-# !TODO: temporary disabled janet script
-#     $(TIC80LIB)/libjanet.a \
