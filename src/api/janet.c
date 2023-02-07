@@ -1097,6 +1097,7 @@ static void callJanetTick(tic_mem* tic)
         reportError(core, result);
     }
 
+#if defined(BUILD_DEPRECATED)
     // call OVR() callback for backward compatibility
     (void)janet_resolve(core->currentVM, janet_csymbol(OVR_FN), &pre_fn);
     if (janet_type(pre_fn) == JANET_FUNCTION) {
@@ -1107,6 +1108,7 @@ static void callJanetTick(tic_mem* tic)
             reportError(core, result);
         }
     }
+#endif
 }
 
 /*
