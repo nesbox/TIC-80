@@ -1372,12 +1372,15 @@ void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback 
         studio->menuMode = studio->mode;
         studio->mode = TIC_MENU_MODE;
 
-        static const MenuItem Answers[] = 
+        static MenuItem Answers[] = 
         {
             {"",    NULL},
-            {"NO",  confirmNo},
-            {"YES", confirmYes},
+            {"(N)O",  confirmNo},
+            {"(Y)ES", confirmYes},
         };
+
+        Answers[1].hotkey = tic_key_n;
+        Answers[2].hotkey = tic_key_y;
 
         s32 count = rows + COUNT_OF(Answers);
         MenuItem* items = malloc(sizeof items[0] * count);
