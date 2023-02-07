@@ -1644,6 +1644,7 @@ static void callSquirrelTick(tic_mem* tic)
                 return;
             }
 
+#if defined(BUILD_DEPRECATED)
             // call OVR() callback for backward compatibility
             {
                 sq_pushroottable(vm);
@@ -1663,6 +1664,7 @@ static void callSquirrelTick(tic_mem* tic)
                 }
                 else sq_poptop(vm);                
             }
+#endif
         }
         else 
         {       

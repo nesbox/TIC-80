@@ -201,6 +201,7 @@ void tic_core_tick_io(tic_mem* memory);
 void tic_core_sound_tick_start(tic_mem* memory);
 void tic_core_sound_tick_end(tic_mem* memory);
 
+#if defined(BUILD_DEPRECATED)
 // mouse cursor is the same in both modes
 // for backward compatibility
 #define OVR_COMPAT(CORE, BANK)                                              \
@@ -212,3 +213,6 @@ void tic_core_sound_tick_end(tic_mem* memory);
     OVR_COMPAT(CORE, 1);                            \
     tic_api_cls(&CORE->memory, 0);                  \
     SCOPE(OVR_COMPAT(CORE, MACROVAR(_bank_)))
+
+void tic_core_textri_dep(tic_core* core, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count);
+#endif
