@@ -109,6 +109,25 @@ static MenuOption FullscreenOption =
     optionFullscreenSet,
 };
 
+static s32 optionIntegerScaleGet(void* data)
+{
+    StudioMainMenu* main = data;
+    return main->options->integerScale ? 1 : 0;
+}
+
+static void optionIntegerScaleSet(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+    main->options->integerScale = (pos == 1);
+}
+
+static MenuOption IntegerScaleOption = 
+{
+    OPTION_VALUES({OffValue, OnValue}),
+    optionIntegerScaleGet,
+    optionIntegerScaleSet,
+};
+
 #if defined(CRT_SHADER_SUPPORT)
 static s32 optionCrtMonitorGet(void* data)
 {
@@ -245,6 +264,7 @@ static const MenuItem OptionMenu[] =
 #endif
     {"VSYNC",           NULL,   &VSyncOption, "VSYNC needs restart!"},
     {"FULLSCREEN",      NULL,   &FullscreenOption},
+    {"INTEGER SCALE",   NULL,   &IntegerScaleOption},
     {"VOLUME",          NULL,   &VolumeOption},
     {"SETUP GAMEPAD",       showGamepadMenu},
 #if defined(BUILD_EDITORS)
@@ -259,8 +279,8 @@ static void gameMenuHandler(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
     tic_mem* tic = main->tic;
-    tic_core_script_config(tic)->callback.menu(tic, pos, NULL);
     resumeGame(main->studio);
+    tic_core_script_config(tic)->callback.menu(tic, pos, NULL);
 }
 
 static const MenuItem CodeEditorMenu[] =

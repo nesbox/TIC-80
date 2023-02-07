@@ -30,6 +30,12 @@
 #define DEFAULT_VSYNC 1
 #endif
 
+#if defined(__TIC_ANDROID__)            
+#define INTEGER_SCALE_DEFAULT true
+#else
+#define INTEGER_SCALE_DEFAULT false
+#endif
+
 #if defined (TIC_BUILD_WITH_LUA)
 #include <lua.h>
 #include <lauxlib.h>
@@ -238,6 +244,7 @@ static void setDefault(Config* config)
             .volume         = MAX_VOLUME,
             .vsync          = DEFAULT_VSYNC,
             .fullscreen     = false,
+            .integerScale   = INTEGER_SCALE_DEFAULT,
 #if defined(BUILD_EDITORS)
             .emacsMode      = false,
             .devmode        = false,

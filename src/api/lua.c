@@ -422,8 +422,6 @@ static s32 lua_trib(lua_State* lua)
 
 #if defined(BUILD_DEPRECATED)
 
-void drawTexturedTriangleDep(tic_core* core, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count);
-
 static s32 lua_textri(lua_State* lua)
 {
     s32 top = lua_gettop(lua);
@@ -472,7 +470,7 @@ static s32 lua_textri(lua_State* lua)
             }
         }
 
-        drawTexturedTriangleDep(getLuaCore(lua), 
+        tic_core_textri_dep(getLuaCore(lua), 
             pt[0], pt[1],   //  xy 1
             pt[2], pt[3],   //  xy 2
             pt[4], pt[5],   //  xy 3
@@ -1629,6 +1627,7 @@ void callLuaTick(tic_mem* tic)
                 return;
             }
 
+#if defined(BUILD_DEPRECATED)
             // call OVR() callback for backward compatibility
             {
                 lua_getglobal(lua, OVR_FN);
@@ -1642,6 +1641,7 @@ void callLuaTick(tic_mem* tic)
                 }
                 else lua_pop(lua, 1);
             }
+#endif
         }
         else 
         {       
