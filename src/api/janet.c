@@ -1030,6 +1030,7 @@ static bool initJanet(tic_mem* tic, const char* code)
 {
     closeJanet(tic);
     janet_init();
+    janet_sandbox(JANET_SANDBOX_ALL);
 
     JanetTable *env  = janet_core_env(NULL);
     JanetTable *sub_env = janet_table(0);
@@ -1094,6 +1095,17 @@ static void callJanetTick(tic_mem* tic)
 
     if (status != JANET_SIGNAL_OK) {
         reportError(core, result);
+    }
+
+    // call OVR() callback for backward compatibility
+    (void)janet_resolve(core->currentVM, janet_csymbol(OVR_FN), &pre_fn);
+    if (janet_type(pre_fn) == JANET_FUNCTION) {
+        JanetFunction *ovr_fn = janet_unwrap_function(pre_fn);
+        JanetSignal status = janet_pcall(ovr_fn, 0, NULL, &result, &GameFiber);
+
+        if (status != JANET_SIGNAL_OK) {
+            reportError(core, result);
+        }
     }
 }
 
