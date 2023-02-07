@@ -258,7 +258,7 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
         }
 
         if(tic_api_btnp(menu->tic, A, -1, -1) 
-            || tic_api_keyp(tic, tic_key_return, Hold, Period))
+           || tic_api_keyp(tic, tic_key_return, Hold, Period))
         {
             if(option)
             {
@@ -285,6 +285,15 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
 
         tic_rect rect = {x + (TIC80_WIDTH - width) / 2 + menu->anim.offset, 
             y + TextMargin + ItemHeight * (i - menu->pos) - menu->anim.pos, it->width, TIC_FONT_HEIGHT};
+
+        if (it->hotkey != tic_key_unknown && tic_api_keyp(tic, it->hotkey, Hold, Period))
+        {
+            // hotkeys not supported on options for simplicity
+            if(it->option == NULL && it->handler)
+                onMenuItem(menu, it);
+
+            menu->pos = it - menu->items; // set pos so that close will call this handler
+        }
 
         bool down = false;
         if(animIdle(menu) && checkMousePos(menu->studio, &rect) && it->handler)
