@@ -247,6 +247,26 @@ static void showGamepadMenu(void* data, s32 pos)
     initGamepadMenu(main);
 }
 
+enum
+{
+#if defined(CRT_SHADER_SUPPORT)
+    OptionsMenu_CrtMonitorOption,
+#endif
+#if defined(BUILD_EDITORS)
+    OptionsMenu_DevModeOption,
+#endif
+    OptionsMenu_VSyncOption,
+    OptionsMenu_FullscreenOption,
+    OptionsMenu_IntegerScaleOption,
+    OptionsMenu_VolumeOption,
+#if defined(BUILD_EDITORS)
+    OptionsMenu_CodeEditor,
+#endif
+    OptionsMenu_Gamepad,
+    OptionsMenu_Separator,
+    OptionsMenu_Back,
+};
+
 static const MenuItem OptionMenu[] =
 {
 #if defined(CRT_SHADER_SUPPORT)
@@ -277,6 +297,14 @@ static void gameMenuHandler(void* data, s32 pos)
 }
 
 #if defined(BUILD_EDITORS)
+
+enum
+{
+    CodeEditorMenu_EmacsMode,
+    CodeEditorMenu_Separator,
+    CodeEditorMenu_Back,
+};
+
 static const MenuItem CodeEditorMenu[] =
 {
     {"EMACS MODE",      NULL,   &EmacsModeOption, "For the cool kids only"},
@@ -289,7 +317,7 @@ static void showCodeEditorMenu(void* data, s32 pos)
     StudioMainMenu* main = data;
 
     studio_menu_init(main->menu, CodeEditorMenu, 
-                     COUNT_OF(CodeEditorMenu), 0, COUNT_OF(OptionMenu)-3, showOptionsMenu, main);
+        COUNT_OF(CodeEditorMenu), CodeEditorMenu_EmacsMode, OptionsMenu_CodeEditor, showOptionsMenu, main);
 }
 #endif
 
@@ -350,7 +378,7 @@ static void showGameMenu(void* data, s32 pos)
     studio_menu_init(main->menu, main->items, main->count, 0, 0, showMainMenu, main);
 }
 
-static inline s32 mainMenuStart(StudioMainMenu* menu)
+static inline s32 mainMenuOffset(StudioMainMenu* menu)
 {
     return menu->count ? 0 : 1;
 }
@@ -380,6 +408,19 @@ static void onExitGame(void* data, s32 pos)
     exitGame(main->studio);
 }
 
+enum MainMenu
+{
+    MainMenu_GameMenu,
+    MainMenu_ResumeGame,
+    MainMenu_ResetGame,
+#if defined(BUILD_EDITORS)
+    MainMenu_CloseGame,
+#endif
+    MainMenu_Options,
+    MainMenu_Separator,
+    MainMenu_Quit,
+};
+
 static const MenuItem MainMenu[] =
 {
     {"GAME MENU",   showGameMenu},
@@ -398,30 +439,22 @@ static void showMainMenu(void* data, s32 pos)
     StudioMainMenu* main = data;
     initGameMenu(main);
 
-    s32 start = mainMenuStart(main);
+    s32 offset = mainMenuOffset(main);
 
-    studio_menu_init(main->menu, MainMenu + start, COUNT_OF(MainMenu) - start, 0, 0, onResumeGame, main);
+    studio_menu_init(main->menu, MainMenu + offset, COUNT_OF(MainMenu) - offset, 0, 0, onResumeGame, main);
 }
 
 static void showOptionsMenuPos(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
 
-    studio_menu_init(main->menu, OptionMenu, 
-        COUNT_OF(OptionMenu), pos, COUNT_OF(MainMenu) - 3 - mainMenuStart(main), showMainMenu, main);
+    s32 offset = mainMenuOffset(main);
+    studio_menu_init(main->menu, OptionMenu, COUNT_OF(OptionMenu), pos, MainMenu_Options - offset, showMainMenu, main);
 }
 
 static void showOptionsMenu(void* data, s32 pos)
 {
-    showOptionsMenuPos(data, COUNT_OF(OptionMenu) - 4);
-}
-
-static void saveGamepadMenu(void* data, s32 pos)
-{
-    StudioMainMenu* main = data;
-
-    main->options->mapping = main->gamepads.mapping;
-    showOptionsMenuPos(data, COUNT_OF(OptionMenu) - 3);
+    showOptionsMenuPos(data, OptionsMenu_VolumeOption);
 }
 
 static void resetGamepadMenu(void* data, s32 pos);
@@ -440,13 +473,30 @@ static const char* const ButtonLabels[] =
     "Y",
 };
 
-enum{KeyMappingStart = 2};
+enum
+{
+    GamepadMenu_Index,
+    GamepadMenu_Separator,
+    GamepadMenu_Gamepad0,
+    GamepadMenu_Gamepad1,
+    GamepadMenu_Gamepad2,
+    GamepadMenu_Gamepad3,
+    GamepadMenu_Gamepad4,
+    GamepadMenu_Gamepad5,
+    GamepadMenu_Gamepad6,
+    GamepadMenu_Gamepad7,
+    GamepadMenu_Separator2,
+    GamepadMenu_Save,
+    GamepadMenu_Clear,
+    GamepadMenu_Reset,
+    GamepadMenu_Back,
+};
 
 static void assignMapping(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
 
-    main->gamepads.key = pos - KeyMappingStart;
+    main->gamepads.key = pos - GamepadMenu_Gamepad0;
 
     static const char Fmt[] = "to assign to (%s) button...";
     static char str[sizeof Fmt + STRLEN("RIGHT")];
@@ -510,6 +560,14 @@ static void clearGamepadMenu(void* data, s32 pos)
     initGamepadMenu(main);
 }
 
+static void saveGamepadMenu(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+
+    main->options->mapping = main->gamepads.mapping;
+    showOptionsMenuPos(data, OptionsMenu_Gamepad);
+}
+
 static void initGamepadMenu(StudioMainMenu* main)
 {
     static const MenuItem GamepadMenu[] =
@@ -535,11 +593,9 @@ static void initGamepadMenu(StudioMainMenu* main)
 
     initGamepadButtons(main);
 
-    s32 backPos = COUNT_OF(OptionMenu) - 3;
-
     studio_menu_init(main->menu, GamepadMenu, COUNT_OF(GamepadMenu), 
-        main->gamepads.key < 0 ? KeyMappingStart : main->gamepads.key + KeyMappingStart, 
-        backPos, showOptionsMenu, main);
+        main->gamepads.key < 0 ? GamepadMenu_Gamepad0 : main->gamepads.key + GamepadMenu_Gamepad0, 
+        OptionsMenu_Gamepad, showOptionsMenu, main);
 
     main->gamepads.key = -1;
 }
