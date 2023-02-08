@@ -23,6 +23,7 @@
 #pragma once
 
 #include "tic80_types.h"
+#include "tic.h"
 
 typedef struct Menu Menu;
 struct tic_mem;
@@ -55,6 +56,7 @@ typedef struct
     const char* help;
     bool back;
     s32 width;
+    tic_keycode hotkey;
 } MenuItem;
 
 void studio_menu_init(Menu* menu, const MenuItem* items, s32 rows, s32 pos, s32 backPos, MenuItemHandler handler, void* data);

@@ -97,13 +97,11 @@ message("BUILD_STUB: ${BUILD_STUB}")
 
 if (N3DS)
     set(BUILD_SDL off)
-    add_compile_definitions(S7_N3DS=1)
 endif()
 
 if (BAREMETALPI)
     set(BUILD_SDL OFF)
     set(BUILD_DEMO_CARTS OFF)
-    add_compile_definitions(S7_BAREMETALPI=1)
 endif()
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Dd_m3LogOutput=0")
@@ -355,6 +353,14 @@ add_library(scheme STATIC ${SCHEME_SRC})
 set_target_properties(scheme PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(scheme PUBLIC ${SCHEME_DIR})
 
+if (N3DS)
+    target_compile_definitions(scheme PRIVATE S7_N3DS)
+endif()
+
+if (BAREMETALPI)
+    target_compile_definitions(scheme PRIVATE S7_BAREMETALPI)
+endif()
+
 ################################
 # SQUIRREL
 ################################
@@ -426,7 +432,7 @@ target_include_directories(duktape INTERFACE ${THIRDPARTY_DIR}/duktape/src)
 # Janet
 ################################
 
-set(BUILD_WITH_JANET_DEFAULT FALSE)
+set(BUILD_WITH_JANET_DEFAULT TRUE)
 
 option(BUILD_WITH_JANET "Janet Enabled" ${BUILD_WITH_JANET_DEFAULT})
 message("BUILD_WITH_JANET: ${BUILD_WITH_JANET}")
