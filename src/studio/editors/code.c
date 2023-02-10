@@ -1185,6 +1185,17 @@ static void deleteLine(Code* code)
     {
         lineend = findLineEnd(code, linestart);
     }
+
+    const size_t linesize = lineend-linestart;
+    char* clipboard = (char*)malloc(linesize+1);
+    if(clipboard)
+    {
+        memcpy(clipboard, linestart, linesize);
+        clipboard[linesize] = '\0';
+        tic_sys_clipboard_set(clipboard);
+        free(clipboard);
+    }
+
     
     deleteCode(code, linestart, lineend);
     code->cursor.position = linestart;
