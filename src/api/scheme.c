@@ -783,6 +783,30 @@ s7_pointer scheme_error_handler(s7_scheme* sc, s7_pointer args)
 
 static const char* ticFnName = "TIC";
 
+static const char* defstructStr = "  \n\
+(define-macro (defstruct name . args) \n\
+  (define constructor-name (string->symbol (string-append \"make-\" (symbol->string name)))) \n\
+  (define (getter-name argname) (string->symbol (string-append (symbol->string name) \"-\" (symbol->string argname)))) \n\
+  (define (setter-name argname) (string->symbol (string-append (symbol->string name) \"-set-\" (symbol->string argname) \"!\"))) \n\
+  `(begin (define (,constructor-name . ctr-args) \n\
+            (define (list-ref-default l pos def) (if (< pos (length l)) (list-ref l pos) def)) \n\
+            (vector ,@(let loop ((i (- (length args) 1)) (inits '())) \n\
+                        (if (>= i 0) \n\
+                            (loop (- i 1) (cons `(list-ref-default ctr-args ,i ,(let ((a (list-ref args i))) \n\
+                                                                                  (if (list? a) (list-ref a 1) #f))) \n\
+                                                inits)) \n\
+                            inits)))) \n\
+          ,@(let loop ((i 0) (remaining-args args) (functions '())) \n\
+              (if (not (null? remaining-args)) \n\
+                  (let ((argname (if (list? (car remaining-args)) (caar remaining-args) (car remaining-args)))) \n\
+                    (loop (+ i 1) \n\
+                          (cdr remaining-args) \n\
+                          (cons `(begin (define (,(getter-name argname) obj) (vector-ref obj ,i)) \n\
+                                        (define (,(setter-name argname) obj val) (vector-set! obj ,i val))) \n\
+                                functions))) \n\
+                  (reverse functions))))) \n\
+";
+
 static bool initScheme(tic_mem* tic, const char* code)
 {
     tic_core* core = (tic_core*)tic;
@@ -797,6 +821,7 @@ static bool initScheme(tic_mem* tic, const char* code)
                                     (__TIC_ErrorHandler                          \n\
                                       (apply format #f (hook 'data)))            \n\
                                     (set! (hook 'result) #f))))");
+    s7_eval_c_string(sc, defstructStr);
 
     s7_define_variable(sc, TicCore, s7_make_c_pointer(sc, core));
     s7_load_c_string(sc, code, strlen(code));
@@ -874,8 +899,10 @@ static void callSchemeMenu(tic_mem* tic, s32 index, void* data)
 static const char* const SchemeKeywords [] =
 {
     "define", "lambda", "begin", "set!", "=", "<", "<=", ">", ">=", "+", "*",
-    "/", "'", "`", "`@", "define-macro", "let", "let*", "letrec",
+    "/", "'", "`", "`@", "define-macro", "let", "let*", "letrec", "defstruct",
     "if", "cond", "floor", "ceiling", "sin", "cos", "log", "sqrt", "abs"
+    "logand", "logior", "logxor", "lognot", "logbit?", "sinh", "cosh", "tanh",
+    "asinh", "acosh", "atanh", "nan?", "infinite?", "nan",
     "exp", "expt", "tan", "acos", "asin", "atan", "truncate", "round",
     "exact->inexact", "inexact->exact", "exact?", "inexact?",
     "modulo", "quotient", "remainder", "gcd", "lcm", "and", "or",
