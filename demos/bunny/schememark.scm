@@ -6,25 +6,6 @@
 ;; script: scheme
 ;; version: 1.1.0
 
-(define-macro (defstruct name . args)
-  (define constructor-name (string->symbol (string-append "make-" (symbol->string name))))
-  (define (getter-name argname) (string->symbol (string-append (symbol->string name) "-" (symbol->string argname))))
-  (define (setter-name argname) (string->symbol (string-append (symbol->string name) "-set-" (symbol->string argname) "!")))
-  `(begin (define (,constructor-name) (let* (,@args)
-                                        (vector ,@(let loop ((as args) (inits '()))
-                                                    (if (not (null? as))
-                                                        (loop (cdr as) (cons (caar as) inits))
-                                                        (reverse inits))))))
-          ,@(let loop ((i 0) (remaining-args args) (functions '()))
-              (if (not (null? remaining-args))
-                  (let ((argname (caar remaining-args)))
-                    (loop (+ i 1)
-                          (cdr remaining-args)
-                          (cons `(begin (define (,(getter-name argname) obj) (vector-ref obj ,i))
-                                        (define (,(setter-name argname) obj val) (vector-set! obj ,i val)))
-                                functions)))
-                  (reverse functions)))))
-
 (define screenWidth 240)
 (define screenHeight 136)
 (define toolbarHeight 6)
@@ -35,8 +16,8 @@
 (defstruct bunny 
   (w 26)
   (h 32)
-  (x (floor (random (- screenWidth w))))
-  (y (floor (random (- screenHeight h))))
+  (x (floor (random (- screenWidth 26))))
+  (y (floor (random (- screenHeight 32))))
   (vx (/ (- (random 200) 100) 60))
   (vy (/ (- (random 200) 100) 60))
   (sprite 1))
