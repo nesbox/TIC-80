@@ -163,7 +163,7 @@ s7_pointer scheme_spr(s7_scheme* sc, s7_pointer args)
     const s32 rotate    = argn > 6 ? s7_integer(s7_list_ref(sc, args, 6)) : 0;
     const s32 w         = argn > 7 ? s7_integer(s7_list_ref(sc, args, 7)) : 1;
     const s32 h         = argn > 8 ? s7_integer(s7_list_ref(sc, args, 8)) : 1;
-    tic_api_spr(tic, id, x, y, w, h, trans_colors, trans_count, scale, (tic_rotate) rotate, (tic_flip)flip);
+    tic_api_spr(tic, id, x, y, w, h, trans_colors, trans_count, scale, (tic_flip)flip, (tic_rotate) rotate);
     return s7_nil(sc);
 }
 s7_pointer scheme_btn(s7_scheme* sc, s7_pointer args)
