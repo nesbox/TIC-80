@@ -685,8 +685,6 @@ m3ApiRawFunction(wasmtic_map)
     if (y == -1) { y = 0; }
     if (w == -1) { w = 30; }
     if (h == -1) { h = 17; }
-    if (sx == -1) { sx = 0; }
-    if (sy == -1) { sy = 0; }
     if (scale == -1) { scale = 1; }
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
