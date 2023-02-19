@@ -1346,8 +1346,7 @@ static void confirmHandler(bool yes, void* data)
 
         if(studio->menuMode == TIC_RUN_MODE)
         {
-            tic_core_resume(studio->tic);
-            studio->mode = TIC_RUN_MODE;
+            resumeGame(studio);
         }
         else setStudioMode(studio, studio->menuMode);
 
@@ -1370,8 +1369,9 @@ void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback 
     if(studio->mode != TIC_MENU_MODE)
     {
         studio->menuMode = studio->mode;
-        studio->mode = TIC_MENU_MODE;
     }
+        
+    setStudioMode(studio, TIC_MENU_MODE);
 
     static MenuItem Answers[] = 
     {
@@ -1685,13 +1685,7 @@ static void switchBank(Studio* studio, s32 bank)
 
 void gotoMenu(Studio* studio) 
 {
-    if(studio->mode != TIC_MENU_MODE)
-    {
-        tic_core_pause(studio->tic);
-        tic_api_reset(studio->tic);
-        studio->mode = TIC_MENU_MODE;
-    }
-
+    setStudioMode(studio, TIC_MENU_MODE);
     studio->mainmenu = studio_mainmenu_init(studio->menu, studio->config);
 }
 
