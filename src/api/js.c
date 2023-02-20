@@ -81,6 +81,11 @@ static duk_ret_t duk_cls(duk_context* duk)
     return 0;
 }
 
+static duk_ret_t duk_pause(duk_context* duk)
+{
+    return 0;
+}
+
 static duk_ret_t duk_pix(duk_context* duk)
 {
     s32 x = duk_to_int(duk, 0);

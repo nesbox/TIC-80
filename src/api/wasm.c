@@ -337,6 +337,11 @@ m3ApiRawFunction(wasmtic_cls)
     m3ApiSuccess();
 }
 
+m3ApiRawFunction(wasmtic_pause)
+{
+    m3ApiSuccess();
+}
+
 m3ApiRawFunction(wasmtic_btn)
 {
     // TODO: should this be boolean, how to deal with

@@ -151,6 +151,12 @@ void tic_api_trace(tic_mem* memory, const char* text, u8 color)
     core->data->trace(core->data->data, text ? text : "nil", color);
 }
 
+void tic_api_pause(tic_mem* memory, const char* text)
+{
+    tic_core* core = (tic_core*)memory;
+    core->data->pause(core->data->data, text ? text : "nil");
+}
+
 u32 tic_api_pmem(tic_mem* tic, s32 index, u32 value, bool set)
 {
     u32 old = tic->ram->persistent.data[index];

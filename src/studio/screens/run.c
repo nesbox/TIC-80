@@ -34,6 +34,15 @@ static void onTrace(void* data, const char* text, u8 color)
 #endif
 }
 
+static void onPause(void* data, const char* text)
+{
+#if defined(BUILD_EDITORS)
+    Run* run = (Run*)data;
+    setStudioMode(run->studio, TIC_CONSOLE_MODE);
+    run->console->trace(run->console, text, 15);
+#endif
+}
+
 static void onError(void* data, const char* info)
 {
 #if defined(BUILD_EDITORS)
@@ -147,6 +156,7 @@ void initRun(Run* run, Console* console, tic_fs* fs, Studio* studio)
         {
             .error = onError,
             .trace = onTrace,
+            .pause = onPause,
             .exit = onExit,
             .data = run,
             .counter = getCounter,

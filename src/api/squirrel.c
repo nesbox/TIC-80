@@ -252,6 +252,11 @@ static SQInteger squirrel_cls(HSQUIRRELVM vm)
     return 0;
 }
 
+static SQInteger squirrel_pause(HSQUIRRELVM vm)
+{
+    return 0;
+}
+
 static SQInteger squirrel_pix(HSQUIRRELVM vm)
 {
     SQInteger top = sq_gettop(vm);

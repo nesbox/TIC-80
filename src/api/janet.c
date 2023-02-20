@@ -34,6 +34,7 @@ static inline tic_core* getJanetMachine(void);
 
 static Janet janet_print(int32_t argc, Janet* argv);
 static Janet janet_cls(int32_t argc, Janet* argv);
+static Janet janet_pause(int32_t argc, Janet* argv);
 static Janet janet_pix(int32_t argc, Janet* argv);
 static Janet janet_line(int32_t argc, Janet* argv);
 static Janet janet_rect(int32_t argc, Janet* argv);
@@ -305,6 +306,11 @@ static Janet janet_cls(int32_t argc, Janet* argv)
     u32 color = (u32)janet_optinteger(argv, argc, 0, 0);
     tic_mem* memory = (tic_mem*)getJanetMachine();
     tic_api_cls(memory, color);
+    return janet_wrap_nil();
+}
+
+static Janet janet_pause(int32_t argc, Janet* argv)
+{
     return janet_wrap_nil();
 }
 

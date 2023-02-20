@@ -160,6 +160,11 @@ static mrb_value mrb_cls(mrb_state* mrb, mrb_value self)
     return mrb_nil_value();
 }
 
+static mrb_value mrb_pause(mrb_state* mrb, mrb_value self)
+{
+    return mrb_nil_value();
+}
+
 static mrb_value mrb_pix(mrb_state* mrb, mrb_value self)
 {
     mrb_int x, y, color;

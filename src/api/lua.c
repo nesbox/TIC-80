@@ -203,6 +203,11 @@ static s32 lua_cls(lua_State* lua)
     return 0;
 }
 
+static s32 lua_pause(lua_State* lua)
+{
+    return 0;
+}
+
 static s32 lua_pix(lua_State* lua)
 {
     s32 top = lua_gettop(lua);

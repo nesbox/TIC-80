@@ -36,6 +36,14 @@ static void onTrace(void* data, const char* text, u8 color)
         tic->callback.trace(text, color);
 }
 
+static void onPause(void* data, const char* text)
+{
+    tic80* tic = (tic80*)data;
+
+    if(tic->callback.pause)
+        tic->callback.pause(text);
+}
+
 static void onError(void* data, const char* info)
 {
     tic80* tic = (tic80*)data;
@@ -75,6 +83,7 @@ TIC80_API void tic80_tick(tic80* tic, tic80_input input, u64 (*counter)(), u64 (
     {
         .error = onError,
         .trace = onTrace,
+        .pause = onPause,
         .exit = onExit,
         .data = tic,
         .start = 0,

@@ -64,6 +64,14 @@ s7_pointer scheme_cls(s7_scheme* sc, s7_pointer args)
     tic_api_cls(tic, color);
     return s7_nil(sc);
 }
+s7_pointer scheme_pause(s7_scheme* sc, s7_pointer args)
+{
+    // pause(msg)
+    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    const char* msg = s7_string(s7_car(args));
+    tic_api_pause(tic, msg);
+    return s7_nil(sc);
+}
 s7_pointer scheme_pix(s7_scheme* sc, s7_pointer args)
 {
     // pix(x y color)\npix(x y) -> color

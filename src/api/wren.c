@@ -1039,6 +1039,10 @@ static void wren_cls(WrenVM* vm)
     tic_api_cls(tic, top == 1 ? 0 : getWrenNumber(vm, 1));
 }
 
+static void wren_pause(WrenVM* vm)
+{
+}
+
 static void wren_clip(WrenVM* vm)
 {
     s32 top = wrenGetSlotCount(vm);
