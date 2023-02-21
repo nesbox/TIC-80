@@ -1730,9 +1730,9 @@ static s32 start(s32 argc, char **argv, const char* folder)
 
             result = SDL_GameControllerAddMappingsFromRW(SDL_RWFromConstMem(buf, size), 1);
 
-            if(result != 0)
+            if(result == -1)
             {
-                SDL_Log("Unable to initialize SDL Game Controller DB: %i %s\n", result, SDL_GetError());
+                SDL_Log("Unable to initialize SDL Game Controller DB: %s\n", SDL_GetError());
             }            
         }
     }
