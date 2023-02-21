@@ -1087,7 +1087,8 @@ static void pollEvents()
             {
                 s32 id = event.cdevice.which;
 
-                if(SDL_IsGameController(id))
+                if(SDL_IsGameController(id) && 
+                    SDL_GameControllerTypeForIndex(id) != SDL_CONTROLLER_TYPE_UNKNOWN)
                 {
                     if (id < TIC_GAMEPADS)
                     {
