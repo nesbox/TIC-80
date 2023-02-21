@@ -82,7 +82,6 @@ option(BUILD_PRO "Build PRO version" FALSE)
 option(BUILD_PLAYER "Build standalone players" ${BUILD_PLAYER_DEFAULT})
 option(BUILD_TOUCH_INPUT "Build with touch input support" ${BUILD_TOUCH_INPUT_DEFAULT})
 option(BUILD_STUB "Build stub without editors" OFF)
-option(BUILD_JOYSTICK_API "Build with old SDL2 joystick API" OFF)
 
 if(NOT BUILD_SDL)
     set(BUILD_SDLGPU OFF)
@@ -94,7 +93,6 @@ endif()
 
 message("BUILD_SDLGPU: ${BUILD_SDLGPU}")
 message("BUILD_TOUCH_INPUT: ${BUILD_TOUCH_INPUT}")
-message("BUILD_JOYSTICK_API: ${BUILD_JOYSTICK_API}")
 message("BUILD_STUB: ${BUILD_STUB}")
 
 if (N3DS)
@@ -794,6 +792,8 @@ add_subdirectory(${THIRDPARTY_DIR}/zip)
 # bin2txt cart2prj prj2cart xplode wasmp2cart
 ################################
 
+set(GAME_CONTROLLER_DB_TXT_OUT ${CMAKE_SOURCE_DIR}/build/assets/gamecontrollerdb.txt.dat)
+
 if(BUILD_DEMO_CARTS)
 
     set(TOOLS_DIR ${CMAKE_SOURCE_DIR}/build/tools)
@@ -892,6 +892,10 @@ if(BUILD_DEMO_CARTS)
         COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${CMAKE_SOURCE_DIR}/build/cart.png ${CMAKE_SOURCE_DIR}/build/assets/cart.png.dat
         DEPENDS bin2txt ${CMAKE_SOURCE_DIR}/build/cart.png)
 
+    set(GAME_CONTROLLER_DB_TXT ${CMAKE_SOURCE_DIR}/vendor/game-controller-db/gamecontrollerdb.txt)
+    add_custom_command(OUTPUT ${GAME_CONTROLLER_DB_TXT_OUT}
+        COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${GAME_CONTROLLER_DB_TXT} ${GAME_CONTROLLER_DB_TXT_OUT} -z
+        DEPENDS bin2txt ${GAME_CONTROLLER_DB_TXT})
 endif()
 
 ################################
@@ -1107,7 +1111,7 @@ endif()
 
 if(BUILD_SDL)
 
-    set(TIC80_SRC src/system/sdl/main.c)
+    set(TIC80_SRC src/system/sdl/main.c ${GAME_CONTROLLER_DB_TXT_OUT})
 
     if(WIN32)
 
@@ -1149,10 +1153,6 @@ if(BUILD_SDL)
 
     if(BUILD_TOUCH_INPUT)
         target_compile_definitions(tic80 PRIVATE TOUCH_INPUT_SUPPORT)
-    endif()
-
-    if(BUILD_JOYSTICK_API)
-        target_compile_definitions(tic80 PRIVATE JOYSTICK_API_SUPPORT)
     endif()
 
     if (FREEBSD)
@@ -1288,10 +1288,6 @@ if(BUILD_STUB)
 
         if(BUILD_SDLGPU)
             target_compile_definitions(tic80${SCRIPT} PRIVATE CRT_SHADER_SUPPORT)
-        endif()
-
-        if(BUILD_JOYSTICK_API)
-            target_compile_definitions(tic80${SCRIPT} PRIVATE JOYSTICK_API_SUPPORT)
         endif()
 
         if(MINGW)

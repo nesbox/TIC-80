@@ -255,7 +255,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_JOYSTICK_API=On -DBUILD_STUB=On -DCMAKE_TOOLCHAIN_FILE=rpi/toolchain.cmake ..
+          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_STUB=On -DCMAKE_TOOLCHAIN_FILE=rpi/toolchain.cmake ..
           cmake --build . --config $BUILD_TYPE --parallel
           cpack
 
@@ -296,7 +296,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_JOYSTICK_API=On -DBUILD_PRO=On -DCMAKE_TOOLCHAIN_FILE=rpi/toolchain.cmake ..
+          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_PRO=On -DCMAKE_TOOLCHAIN_FILE=rpi/toolchain.cmake ..
           cmake --build . --config $BUILD_TYPE --parallel
           cpack
 
