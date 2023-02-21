@@ -1717,16 +1717,23 @@ static s32 start(s32 argc, char **argv, const char* folder)
     }
     else
     {
-        static const u8 gamecontrollerdb[] =
+        static const u8 gamecontrollerdb_zip[] =
         {
             #include "../build/assets/gamecontrollerdb.txt.dat"
         };
 
-        result = SDL_GameControllerAddMappingsFromRW(SDL_RWFromConstMem(gamecontrollerdb, sizeof gamecontrollerdb), 1);
-
-        if(result != 0)
+        enum{BufSize = 512 * 1024};
+        u8* buf = malloc(BufSize);
+        SCOPE(free(buf))
         {
-            SDL_Log("Unable to initialize SDL Game Controller DB: %i %s\n", result, SDL_GetError());
+            u32 size = tic_tool_unzip(buf, BufSize, gamecontrollerdb_zip, sizeof gamecontrollerdb_zip);
+
+            result = SDL_GameControllerAddMappingsFromRW(SDL_RWFromConstMem(buf, size), 1);
+
+            if(result != 0)
+            {
+                SDL_Log("Unable to initialize SDL Game Controller DB: %i %s\n", result, SDL_GetError());
+            }            
         }
     }
 
