@@ -82,6 +82,7 @@ option(BUILD_PRO "Build PRO version" FALSE)
 option(BUILD_PLAYER "Build standalone players" ${BUILD_PLAYER_DEFAULT})
 option(BUILD_TOUCH_INPUT "Build with touch input support" ${BUILD_TOUCH_INPUT_DEFAULT})
 option(BUILD_STUB "Build stub without editors" OFF)
+option(BUILD_JOYSTICK_API "Build with old SDL2 joystick API" OFF)
 
 if(NOT BUILD_SDL)
     set(BUILD_SDLGPU OFF)
@@ -93,6 +94,7 @@ endif()
 
 message("BUILD_SDLGPU: ${BUILD_SDLGPU}")
 message("BUILD_TOUCH_INPUT: ${BUILD_TOUCH_INPUT}")
+message("BUILD_JOYSTICK_API: ${BUILD_JOYSTICK_API}")
 message("BUILD_STUB: ${BUILD_STUB}")
 
 if (N3DS)
@@ -548,7 +550,7 @@ if(BUILD_STUB)
     MACRO_CORE(js           TIC_BUILD_WITH_JS       FALSE)
     MACRO_CORE(wren         TIC_BUILD_WITH_WREN     FALSE)
     MACRO_CORE(squirrel     TIC_BUILD_WITH_SQUIRREL FALSE)
-    MACRO_CORE(scheme    TIC_BUILD_WITH_SCHEME   FALSE)
+    MACRO_CORE(scheme       TIC_BUILD_WITH_SCHEME   FALSE)
     MACRO_CORE(wasm         TIC_BUILD_WITH_WASM     FALSE)
 
     if(BUILD_WITH_MRUBY)
@@ -1149,6 +1151,10 @@ if(BUILD_SDL)
         target_compile_definitions(tic80 PRIVATE TOUCH_INPUT_SUPPORT)
     endif()
 
+    if(BUILD_JOYSTICK_API)
+        target_compile_definitions(tic80 PRIVATE JOYSTICK_API_SUPPORT)
+    endif()
+
     if (FREEBSD)
         target_include_directories(tic80 PRIVATE ${SYSROOT_PATH}/usr/local/include)
         target_link_directories(tic80 PRIVATE ${SYSROOT_PATH}/usr/local/lib)
@@ -1282,6 +1288,10 @@ if(BUILD_STUB)
 
         if(BUILD_SDLGPU)
             target_compile_definitions(tic80${SCRIPT} PRIVATE CRT_SHADER_SUPPORT)
+        endif()
+
+        if(BUILD_JOYSTICK_API)
+            target_compile_definitions(tic80${SCRIPT} PRIVATE JOYSTICK_API_SUPPORT)
         endif()
 
         if(MINGW)
