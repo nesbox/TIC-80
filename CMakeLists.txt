@@ -792,8 +792,6 @@ add_subdirectory(${THIRDPARTY_DIR}/zip)
 # bin2txt cart2prj prj2cart xplode wasmp2cart
 ################################
 
-set(GAME_CONTROLLER_DB_TXT_OUT ${CMAKE_SOURCE_DIR}/build/assets/gamecontrollerdb.txt.dat)
-
 if(BUILD_DEMO_CARTS)
 
     set(TOOLS_DIR ${CMAKE_SOURCE_DIR}/build/tools)
@@ -892,10 +890,6 @@ if(BUILD_DEMO_CARTS)
         COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${CMAKE_SOURCE_DIR}/build/cart.png ${CMAKE_SOURCE_DIR}/build/assets/cart.png.dat
         DEPENDS bin2txt ${CMAKE_SOURCE_DIR}/build/cart.png)
 
-    set(GAME_CONTROLLER_DB_TXT ${CMAKE_SOURCE_DIR}/vendor/game-controller-db/gamecontrollerdb.txt)
-    add_custom_command(OUTPUT ${GAME_CONTROLLER_DB_TXT_OUT}
-        COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${GAME_CONTROLLER_DB_TXT} ${GAME_CONTROLLER_DB_TXT_OUT} -z
-        DEPENDS bin2txt ${GAME_CONTROLLER_DB_TXT})
 endif()
 
 ################################
@@ -1111,7 +1105,7 @@ endif()
 
 if(BUILD_SDL)
 
-    set(TIC80_SRC src/system/sdl/main.c ${GAME_CONTROLLER_DB_TXT_OUT})
+    set(TIC80_SRC src/system/sdl/main.c)
 
     if(WIN32)
 

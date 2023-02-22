@@ -82,6 +82,3 @@
 [submodule "vendor/janet"]
 	path = vendor/janet
 	url = https://github.com/janet-lang/janet.git
-[submodule "vendor/game-controller-db"]
-	path = vendor/game-controller-db
-	url = https://github.com/gabomdq/SDL_GameControllerDB.git

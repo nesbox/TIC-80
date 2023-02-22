@@ -1087,8 +1087,12 @@ static void pollEvents()
             {
                 s32 id = event.cdevice.which;
 
-                if(SDL_IsGameController(id) && 
-                    SDL_GameControllerTypeForIndex(id) != SDL_CONTROLLER_TYPE_UNKNOWN)
+                const char* name = SDL_GameControllerNameForIndex(id);
+
+                if(name && SDL_strcmp(name, "Serial/Keyboard/Mouse/Joystick") == 0)
+                    break;
+
+                if(SDL_IsGameController(id))
                 {
                     if (id < TIC_GAMEPADS)
                     {
@@ -1715,27 +1719,6 @@ static s32 start(s32 argc, char **argv, const char* folder)
     if (result != 0)
     {
         SDL_Log("Unable to initialize SDL Game Controller: %i, %s\n", result, SDL_GetError());
-    }
-    else
-    {
-        static const u8 gamecontrollerdb_zip[] =
-        {
-            #include "../build/assets/gamecontrollerdb.txt.dat"
-        };
-
-        enum{BufSize = 512 * 1024};
-        u8* buf = malloc(BufSize);
-        SCOPE(free(buf))
-        {
-            u32 size = tic_tool_unzip(buf, BufSize, gamecontrollerdb_zip, sizeof gamecontrollerdb_zip);
-
-            result = SDL_GameControllerAddMappingsFromRW(SDL_RWFromConstMem(buf, size), 1);
-
-            if(result == -1)
-            {
-                SDL_Log("Unable to initialize SDL Game Controller DB: %s\n", SDL_GetError());
-            }            
-        }
     }
 
     platform.studio = studio_create(argc, argv, TIC80_SAMPLERATE, SCREEN_FORMAT, folder, determineMaximumScale());
