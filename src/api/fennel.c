@@ -89,13 +89,23 @@ static bool initFennel(tic_mem* tic, const char* code)
 
 static const char* const FennelKeywords [] =
 {
-    "lua", "hashfn","macro", "macros", "macroexpand", "macrodebug",
-    "do", "values", "if", "when", "each", "for", "fn", "lambda", "partial",
-    "while", "set", "global", "var", "local", "let", "tset", "doto", "match",
-    "or", "and", "true", "false", "nil", "not", "not=", "length", "set-forcibly!",
-    "rshift", "lshift", "bor", "band", "bnot", "bxor", "pick-values", "pick-args",
-    ".", "..", "#", "...", ":", "->", "->>", "-?>", "-?>>", "$", "with-open"
+    "#", "%", "*", "+", "-", "->", "->>", "-?>", "-?>>", ".", "..", "/",
+    "//", ":", "<", "<=", "=", ">", ">=", "?.", "^", "accumulate", "and",
+    "band", "bnot", "bor", "bxor", "case", "case-try", "collect", "comment",
+    "do", "doto", "each", "eval-compiler", "faccumulate", "fcollect", "fn",
+    "for", "global", "hashfn", "icollect", "if", "import-macros", "include",
+    "lambda", "length", "let", "local", "lshift", "lua", "macro",
+    "macrodebug", "macros", "match", "match-try", "not", "not=", "or",
+    "partial", "pick-args", "pick-values", "quote", "require-macros",
+    "rshift", "set", "tset", "values", "var", "when", "while", "with-open"
 };
+
+static inline bool fennel_isalnum(char c)
+{
+    return isalnum(c) || c == '_' || c == '-' || c == '#' || c == '!'
+        || c == '+' || c == '=' || c == '&' || c == '^' || c == '%' || c == '?'
+        || c == '$' || c == '>' || c == '<' || c == '*' || c == '/';
+}
 
 static const tic_outline_item* getFennelOutline(const char* code, s32* size)
 {
@@ -205,11 +215,15 @@ tic_script_config FennelSyntaxConfig =
     .blockCommentEnd2   = NULL,
     .blockStringStart   = NULL,
     .blockStringEnd     = NULL,
+    .stdStringStartEnd  = "\"",
     .singleComment      = ";",
+    .lang_isalnum       = fennel_isalnum,
     .blockEnd           = NULL,
 
     .keywords           = FennelKeywords,
     .keywordsCount      = COUNT_OF(FennelKeywords),
+
+    .useStructuredEdition = true,
 };
 
 #endif /* defined(TIC_BUILD_WITH_FENNEL) */
