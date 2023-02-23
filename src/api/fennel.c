@@ -38,7 +38,7 @@ static const char* execute_fennel_src = FENNEL_CODE(
   debug.traceback = fennel.traceback
   local opts = {filename="game", allowedGlobals = false}
   local src = ...
-  if(src:find("\n;; strict: true")) then opts.allowedGlobals = nil end
+  if(src:find("\n;; +strict: *true")) then opts.allowedGlobals = nil end
   local ok, msg = pcall(fennel.eval, src, opts)
   if(not ok) then return msg end
 );
