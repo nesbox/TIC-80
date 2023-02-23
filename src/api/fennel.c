@@ -34,9 +34,10 @@
 #define FENNEL_CODE(...) #__VA_ARGS__
 
 static const char* execute_fennel_src = FENNEL_CODE(
+  io = { read = true }
   local fennel = require("fennel")
   debug.traceback = fennel.traceback
-  local opts = {filename="game", allowedGlobals = false}
+  local opts = {allowedGlobals = false, ["error-pinpoint"]={">>", "<<"}}
   local src = ...
   if(src:find("\n;; +strict: *true")) then opts.allowedGlobals = nil end
   local ok, msg = pcall(fennel.eval, src, opts)
