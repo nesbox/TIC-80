@@ -214,7 +214,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE DBUILD_SDLGPU=On -DBUILD_STUB=On ..
+          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SDLGPU=On -DBUILD_STUB=On ..
           cmake --build . --config $BUILD_TYPE --parallel
           cpack
 
