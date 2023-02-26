@@ -148,6 +148,7 @@ class TIC {\n\
     foreign static trace__(msg, color)\n\
     foreign static spr__(id, x, y, alpha_color, scale, flip, rotate)\n\
     foreign static fget(index, flag)\n\
+    foreign static fget(index)\n\
     foreign static fset(index, flag, val)\n\
     foreign static mgeti__(index)\n\
     static print(v) { TIC.print__(v.toString, 0, 0, 15, false, 1, false) }\n\
@@ -1412,6 +1413,11 @@ static void wren_fget(WrenVM* vm)
             wrenSetSlotBool(vm, 0, tic_api_fget(tic, index, flag));
             return;
         }
+        else
+        {
+            wrenSetSlotDouble(vm, 0, tic_api_fget_all(tic, index));
+            return;
+        }
     }
 
     wrenError(vm, "invalid params, fget(sprite,flag)\n");
@@ -1546,6 +1552,7 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     if (strcmp(signature, "static TIC.reset()"                  ) == 0) return wren_reset;
     if (strcmp(signature, "static TIC.exit()"                   ) == 0) return wren_exit;
     if (strcmp(signature, "static TIC.fget(_,_)"                ) == 0) return wren_fget;
+    if (strcmp(signature, "static TIC.fget(_)"                  ) == 0) return wren_fget;
     if (strcmp(signature, "static TIC.fset(_,_,_)"              ) == 0) return wren_fset;
 
     // internal functions

@@ -1449,6 +1449,11 @@ static s32 lua_fget(lua_State* lua)
             lua_pushboolean(lua, tic_api_fget(tic, index, flag));
             return 1;
         }
+        else
+        {
+            lua_pushinteger(lua, tic_api_fget_all(tic, index));
+            return 1;
+        }
     }
 
     luaL_error(lua, "invalid params, fget(sprite,flag)\n");

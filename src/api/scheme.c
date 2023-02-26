@@ -724,8 +724,16 @@ s7_pointer scheme_fget(s7_scheme* sc, s7_pointer args)
     // fget(sprite_id flag) -> bool
     tic_mem* tic = (tic_mem*)getSchemeCore(sc);
     const s32 sprite_id = s7_integer(s7_car(args));
-    const u8 flag = s7_integer(s7_cadr(args));
-    return s7_make_boolean(sc, tic_api_fget(tic, sprite_id, flag));
+    const int argn = s7_list_length(sc, args);
+    if (argn > 1)
+    {
+        const u8 flag = s7_integer(s7_cadr(args));
+        return s7_make_boolean(sc, tic_api_fget(tic, sprite_id, flag));
+    }
+    else
+    {
+        return s7_make_integer(sc, tic_api_fget_all(tic, sprite_id));
+    }
 }
 s7_pointer scheme_fset(s7_scheme* sc, s7_pointer args)
 {

@@ -806,11 +806,12 @@ enum
                                                                                                                         \
                                                                                                                         \
     macro(fget,                                                                                                         \
-        "fget(sprite_id flag) -> bool",                                                                                 \
+        "fget(sprite_id flag) -> bool\nfget(sprite_id) -> flags",                                                       \
                                                                                                                         \
-        "Returns true if the specified flag of the sprite is set. See `fset()` for more details.",                      \
+        "Returns true if the specified flag of the sprite is set. If flag is not specified, returns a \n"               \
+        "bitfield of all the flags for that sprite. See `fset()` for more details.",                                    \
         2,                                                                                                              \
-        2,                                                                                                              \
+        1,                                                                                                              \
         0,                                                                                                              \
         bool,                                                                                                           \
         tic_mem*, s32 index, u8 flag)                                                                                   \
@@ -832,6 +833,8 @@ enum
 #define TIC_API_DEF(name, _, __, ___, ____, _____, ret, ...) ret tic_api_##name(__VA_ARGS__);
 TIC_API_LIST(TIC_API_DEF)
 #undef TIC_API_DEF
+
+u8 tic_api_fget_all(tic_mem*, s32 index); // alternate fset API forward declaration
 
 struct tic_mem
 {

@@ -981,13 +981,21 @@ static Janet janet_keyp(int32_t argc, Janet* argv)
 
 static Janet janet_fget(int32_t argc, Janet* argv)
 {
-    janet_fixarity(argc, 2);
+    janet_arity(argc, 1, 2);
 
     s32 index = janet_getinteger(argv, 0);
-    u8 flag = janet_getinteger(argv, 1);
 
-    tic_mem* memory = (tic_mem*)getJanetMachine();
-    return janet_wrap_boolean(tic_api_fget(memory, index, flag));
+    if (argc >= 2)
+    {
+        u8 flag = janet_getinteger(argv, 1);
+        tic_mem* memory = (tic_mem*)getJanetMachine();
+        return janet_wrap_boolean(tic_api_fget(memory, index, flag));
+    }
+    else
+    {
+        tic_mem* memory = (tic_mem*)getJanetMachine();
+        return janet_wrap_integer(tic_api_fget_all(memory, index));
+    }
 }
 
 

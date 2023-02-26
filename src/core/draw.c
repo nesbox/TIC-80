@@ -450,6 +450,12 @@ bool tic_api_fget(tic_mem* memory, s32 index, u8 flag)
     return *getFlag(memory, index, flag) & (1 << flag);
 }
 
+u8 tic_api_fget_all(tic_mem* memory, s32 index)
+{
+    static const u8 dummyFlag = 0;
+    return *getFlag(memory, index, dummyFlag);
+}
+
 void tic_api_fset(tic_mem* memory, s32 index, u8 flag, bool value)
 {
     if (value)

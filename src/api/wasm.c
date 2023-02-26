@@ -419,7 +419,14 @@ m3ApiRawFunction(wasmtic_fget)
     
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    m3ApiReturn(tic_api_fget(tic, sprite_index, flag));
+    if (flag == -1)
+    {
+        m3ApiReturn(tic_api_fget_all(tic, sprite_index));
+    }
+    else
+    {
+        m3ApiReturn(tic_api_fget(tic, sprite_index, flag));
+    }
 
     m3ApiSuccess();
 }

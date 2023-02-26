@@ -1471,6 +1471,11 @@ static SQInteger squirrel_fget(HSQUIRRELVM vm)
             sq_pushbool(vm, tic_api_fget(tic, index, flag));
             return 1;
         }
+        else
+        {
+            sq_pushinteger(vm, tic_api_fget_all(tic, index));
+            return 1;
+        }
     }
 
     sq_throwerror(vm, "invalid params, fget(index, flag) -> val\n");

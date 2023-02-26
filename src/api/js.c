@@ -1011,13 +1011,20 @@ static duk_ret_t duk_fget(duk_context* duk)
     tic_mem* tic = (tic_mem*)getDukCore(duk);
 
     u32 index = duk_opt_int(duk, 0, 0);
-    u32 flag = duk_opt_int(duk, 1, 0);
+    u32 flag = duk_opt_int(duk, 1, 0xBADD);
 
-    bool value = tic_api_fget(tic, index, flag);
-
-    duk_push_boolean(duk, value);
-
-    return 1;
+    if (flag == 0xBADD)
+    {
+        u8 value = tic_api_fget_all(tic, index);
+        duk_push_int(duk, value);
+        return 1;
+    }
+    else
+    {
+        bool value = tic_api_fget(tic, index, flag);
+        duk_push_boolean(duk, value);
+        return 1;
+    }
 }
 
 static duk_ret_t duk_fset(duk_context* duk)

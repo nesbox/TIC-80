@@ -501,11 +501,18 @@ static mrb_value mrb_vbank(mrb_state* mrb, mrb_value self)
 static mrb_value mrb_fget(mrb_state* mrb, mrb_value self)
 {
     mrb_int index, flag;
-    mrb_get_args(mrb, "ii", &index, &flag);
+    mrb_int argc = mrb_get_args(mrb, "i|i", &index, &flag);
 
     tic_mem* tic = (tic_mem*)getMRubyMachine(mrb);
 
-    return mrb_bool_value(tic_api_fget(tic, index, flag));
+    if (argc >= 2)
+    {
+        return mrb_bool_value(tic_api_fget(tic, index, flag));
+    }
+    else
+    {
+        return mrb_fixnum_value(tic_api_fget_all(tic, index));
+    }
 }
 
 static mrb_value mrb_fset(mrb_state* mrb, mrb_value self)
