@@ -819,7 +819,7 @@ static bool initScheme(tic_mem* tic, const char* code)
     s7_eval_c_string(sc, "(set! (hook-functions *error-hook*)                    \n\
                             (list (lambda (hook)                                 \n\
                                     (__TIC_ErrorHandler                          \n\
-                                      (apply format #f (hook 'data)))            \n\
+                                      (format #f \"~s: ~a\n--STACKTRACE--\n~a\" ((owlet) 'error-type) (apply format #f (hook 'data)) (stacktrace)))   \n\
                                     (set! (hook 'result) #f))))");
     s7_eval_c_string(sc, defstructStr);
 
