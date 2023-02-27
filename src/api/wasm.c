@@ -412,7 +412,7 @@ m3ApiRawFunction(wasmtic_keyp)
 
 m3ApiRawFunction(wasmtic_fget)
 {
-    m3ApiReturnType  (bool)
+    m3ApiReturnType  (int8_t)
 
     m3ApiGetArg      (int32_t, sprite_index);
     m3ApiGetArg      (int8_t, flag);
