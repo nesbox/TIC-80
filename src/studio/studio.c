@@ -914,7 +914,10 @@ static inline float animEffect(AnimEffect effect, float x)
 static void animTick(Movie* movie)
 {
     for(Anim* it = movie->items, *end = it + movie->count; it != end; ++it)
-        *it->value = lerp(it->start, it->end, animEffect(it->effect, (float)movie->tick / it->time));
+    {
+	float tick = (float)(movie->tick < it->time ? movie->tick : it->time);
+        *it->value = lerp(it->start, it->end, animEffect(it->effect, tick / it->time));
+    }
 }
 
 void processAnim(Movie* movie, void* data)
