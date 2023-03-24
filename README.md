@@ -79,7 +79,7 @@ cmake -G "Visual Studio 15 2017 Win64" ..
 - install `git`
 - install `cmake` (https://cmake.org)
 - install `Ruby` (you can use [RubyInstaller](https://rubyinstaller.org/))
-- run following commands in `terminal`
+- run following commands within a `mingw64` context, for example within a MingW64 shell
 ```
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake -G "MinGW Makefiles" ..
