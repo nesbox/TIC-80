@@ -154,6 +154,36 @@ jobs:
           name: "tic80-windows-sokol"
           path: build/bin/tic80.exe
 
+  # === Windows MinGW ===
+  windows-mingw:
+    runs-on: windows-2019
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - name: Install Mingw
+        uses: egor-tensin/setup-mingw@v2
+
+      - name: Build
+        shell: cmd
+        run: |
+          cd build
+          cmake -G "MinGW Makefiles" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_STUB=On ..
+          mingw32-make -j4
+
+      - name: Deploy
+        uses: actions/upload-artifact@v3
+        with:
+          name: "tic80-mingw"
+          path: build/bin/tic80.exe
+
   # === Ubuntu PRO ===
   linux-pro:
     runs-on: ubuntu-20.04
@@ -576,7 +606,7 @@ jobs:
           cp bin/tic80*.js bin/html-export/
           cp bin/tic80*.wasm bin/html-export/
           cp html/index.html bin/html/index.html
-          cp html/export.html bin/html/export.html          
+          cp html/export.html bin/html/export.html
           cp bin/tic80.js bin/html/tic80.js
           cp bin/tic80.wasm bin/html/tic80.wasm
           cp bin/tic80.js webapp/tic80.js
