@@ -438,17 +438,18 @@ option(BUILD_WITH_JANET "Janet Enabled" ${BUILD_WITH_JANET_DEFAULT})
 message("BUILD_WITH_JANET: ${BUILD_WITH_JANET}")
 
 if(BUILD_WITH_JANET)
-    if(MSVC)
+
+    if(MINGW)
         add_custom_command(
-            OUTPUT ${THIRDPARTY_DIR}/janet/build/c/janet.c
-            COMMAND ./build_win.bat
-            WORKING_DIRECTORY ${THIRDPARTY_DIR}/janet/
+          OUTPUT ${THIRDPARTY_DIR}/janet/build/c/janet.c
+          COMMAND mingw32-make build/c/janet.c
+          WORKING_DIRECTORY ${THIRDPARTY_DIR}/janet/
         )
-    elseif(MINGW)
+    elseif(WIN32)
         add_custom_command(
-            OUTPUT ${THIRDPARTY_DIR}/janet/build/c/janet.c
-            COMMAND mingw32-make build/c/janet.c
-            WORKING_DIRECTORY ${THIRDPARTY_DIR}/janet/
+          OUTPUT ${THIRDPARTY_DIR}/janet/build/c/janet.c
+          COMMAND ./build_win.bat
+          WORKING_DIRECTORY ${THIRDPARTY_DIR}/janet/
         )
     else()
         add_custom_command(
