@@ -168,8 +168,9 @@ jobs:
         with:
           ruby-version: 2.6
 
-      - name: Install Mingw
-        uses: egor-tensin/setup-mingw@v2
+      - uses: egor-tensin/setup-mingw@v2
+        with:
+          platform: x86
 
       - name: Build
         shell: cmd
