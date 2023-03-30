@@ -177,7 +177,7 @@ jobs:
         run: |
           cd build
           cmake -G "MinGW Makefiles" -DBUILD_SDL=Off -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_STUB=On ..
-          mingw32-make -j4
+          mingw32-make
 
       - name: Deploy
         uses: actions/upload-artifact@v3
