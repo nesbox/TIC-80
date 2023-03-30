@@ -176,7 +176,7 @@ jobs:
         shell: cmd
         run: |
           cd build
-          cmake -G "MinGW Makefiles" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_STUB=On ..
+          cmake -G "MinGW Makefiles" -DBUILD_SDL=Off -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_STUB=On ..
           mingw32-make -j4
 
       - name: Deploy
