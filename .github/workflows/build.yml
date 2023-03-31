@@ -171,13 +171,18 @@ jobs:
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-pkg-config
 
       - name: Build
         shell: msys2 {0}
         run: |
           cd build
           cmake -G "MinGW Makefiles" -DBUILD_SDL=Off -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_STUB=On ..
-          cmake --build build
+          cmake
 
       - name: Deploy
         uses: actions/upload-artifact@v3
