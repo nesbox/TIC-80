@@ -168,10 +168,15 @@ jobs:
         with:
           ruby-version: 2.6
 
-      - uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          path-type: strict
+      # - uses: msys2/setup-msys2@v2
+      #   with:
+      #     msystem: MINGW64
+      #     path-type: strict
+
+      - name: edit path?
+        shell: cmd
+        run: |
+          setx path "%path%;C:/msys64/mingw64/bin/"
 
       - name: Build
         shell: msys2 {0}
