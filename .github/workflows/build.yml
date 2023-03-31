@@ -179,7 +179,7 @@ jobs:
           setx path "%path%;C:/msys64/mingw64/bin/"
 
       - name: Build
-        shell: msys2 {0}
+        # shell: msys2 {0}
         run: |
           cd build
           cmake -G "MinGW Makefiles" -DBUILD_SDL=Off -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_STUB=On ..
