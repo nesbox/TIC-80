@@ -180,7 +180,7 @@ jobs:
 
       - name: Configure CMake
         shell: msys2 {0}
-        run: cmake -B build -G "MinGW Makefiles" -DBUILD_SDL=Off -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_STUB=On
+        run: cmake -B build -DBUILD_SDL=Off -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_STUB=On
 
       - name: build
         shell: msys2 {0}
