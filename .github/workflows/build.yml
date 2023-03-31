@@ -168,6 +168,10 @@ jobs:
         with:
           ruby-version: 2.6
 
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+
       - name: Build
         shell: msys2 {0}
         run: |
