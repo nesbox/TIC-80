@@ -169,7 +169,7 @@ jobs:
           ruby-version: 2.6
 
       - name: Build
-        shell: cmd
+        shell: msys2 {0}
         run: |
           cd build
           cmake -G "MinGW Makefiles" -DBUILD_SDL=Off -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_STUB=On ..
