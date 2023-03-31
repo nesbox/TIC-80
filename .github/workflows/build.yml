@@ -171,7 +171,7 @@ jobs:
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
-          path-type: inherit
+          path-type: strict
 
       - name: Build
         shell: msys2 {0}
