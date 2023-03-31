@@ -154,8 +154,8 @@ jobs:
   #         name: "tic80-windows-sokol"
   #         path: build/bin/tic80.exe
 
-  # === Windows MinGW ===
-  windows-mingw:
+  # === Windows MinGW 64 using msys ===
+  windows-msys-mingw:
     runs-on: windows-2019
 
     steps:
@@ -170,7 +170,6 @@ jobs:
           install: >-
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-ninja
             mingw-w64-x86_64-pkg-config
 
       - uses: actions/checkout@v3
@@ -180,7 +179,7 @@ jobs:
 
       - name: Configure CMake
         shell: msys2 {0}
-        run: cmake -B build -DBUILD_SDL=Off -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_STUB=On
+        run: cmake -B build -G "MSYS Makefiles" -DBUILD_SDL=Off -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_STUB=On
 
       - name: build
         shell: msys2 {0}
