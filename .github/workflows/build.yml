@@ -159,30 +159,32 @@ jobs:
     runs-on: windows-2019
 
     steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: 2.6
 
-      - uses: msys2/setup-msys2@v2
+      - name: Set up MSYS2
+        uses: msys2/setup-msys2@v2
         with:
-          msystem: MINGW64
+          msystem: mingw64
           install: >-
             mingw-w64-x86_64-gcc
             mingw-w64-x86_64-cmake
             mingw-w64-x86_64-ninja
             mingw-w64-x86_64-pkg-config
 
-      - name: Build
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Configure CMake
         shell: msys2 {0}
-        run: |
-          cd build
-          cmake -G "MinGW Makefiles" -DBUILD_SDL=Off -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_STUB=On ..
-          cmake
+        run: cmake -B build -G "MinGW Makefiles" -DBUILD_SDL=Off -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_STUB=On
+
+      - name: build
+        shell: msys2 {0}
+        run: cmake --build build/ --config $BUILD_TYPE --parallel
 
       - name: Deploy
         uses: actions/upload-artifact@v3
