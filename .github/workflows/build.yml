@@ -168,22 +168,16 @@ jobs:
         with:
           ruby-version: 2.6
 
-      # - uses: msys2/setup-msys2@v2
-      #   with:
-      #     msystem: MINGW64
-      #     path-type: strict
-
-      - name: edit path?
-        shell: cmd
-        run: |
-          setx path "%path%;C:/msys64/mingw64/bin/"
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
 
       - name: Build
-        # shell: msys2 {0}
+        shell: msys2 {0}
         run: |
           cd build
           cmake -G "MinGW Makefiles" -DBUILD_SDL=Off -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_STUB=On ..
-          mingw32-make
+          cmake --build build
 
       - name: Deploy
         uses: actions/upload-artifact@v3
