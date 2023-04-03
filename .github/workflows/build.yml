@@ -154,6 +154,43 @@ jobs:
           name: "tic80-windows-sokol"
           path: build/bin/tic80.exe
 
+  # === Windows MinGW 64 using msys ===
+  windows-msys-mingw:
+    runs-on: windows-2019
+
+    steps:
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - name: Set up MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: mingw64
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-pkg-config
+
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Configure CMake
+        shell: msys2 {0}
+        run: cmake -B build -G "MSYS Makefiles" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=%BUILD_TYPE%
+
+      - name: build
+        shell: msys2 {0}
+        run: cmake --build build/ --config $BUILD_TYPE --parallel
+
+      - name: Deploy
+        uses: actions/upload-artifact@v3
+        with:
+          name: "tic80-mingw"
+          path: build/bin/tic80.exe
+
   # === Ubuntu PRO ===
   linux-pro:
     runs-on: ubuntu-20.04
@@ -576,7 +613,7 @@ jobs:
           cp bin/tic80*.js bin/html-export/
           cp bin/tic80*.wasm bin/html-export/
           cp html/index.html bin/html/index.html
-          cp html/export.html bin/html/export.html          
+          cp html/export.html bin/html/export.html
           cp bin/tic80.js bin/html/tic80.js
           cp bin/tic80.wasm bin/html/tic80.wasm
           cp bin/tic80.js webapp/tic80.js
