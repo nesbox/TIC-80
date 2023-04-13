@@ -113,6 +113,17 @@ cmake ..
 make -j4
 ```
 
+
+### Arch
+
+run the following commands in the Terminal
+```
+sudo pacman -S cmake ruby mesa libglvnd glu
+git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
+cmake ..
+make -j4
+```
+
 ### Fedora 36
 
 run the following commands in the Terminal
