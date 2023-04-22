@@ -666,20 +666,25 @@ static Janet janet_trace(int32_t argc, Janet* argv)
 static Janet janet_pmem(int32_t argc, Janet* argv)
 {
     janet_arity(argc, 1, 2);
-    s32 index;
-    u32 value;
-    bool get = true;
+    s32 index = janet_getinteger(argv, 0);
 
-    index = janet_getinteger(argv, 0);
+    if(index < TIC_PERSISTENT_SIZE)
+    {
+        tic_mem* memory = (tic_mem*)getJanetMachine();
+        u32 val = tic_api_pmem(memory, index, 0, false);
 
-    if (argc >= 2) {
-        value = janet_getinteger(argv, 1);
-        get = false;
+        if (argc >= 2)
+        {
+            u32 value = janet_getinteger(argv, 1);
+            tic_api_pmem(memory, index, value, true);
+        }
+
+        return janet_wrap_integer(val);
     }
-
-    tic_mem* memory = (tic_mem*)getJanetMachine();
-    return janet_wrap_integer(tic_api_pmem(memory, index, value,
-    get));
+    else
+    {
+        janet_panic("Error: invalid persistent tic index");
+    }
 }
 
 static Janet janet_time(int32_t argc, Janet* argv)
