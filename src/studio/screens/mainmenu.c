@@ -196,23 +196,23 @@ static MenuOption VolumeOption =
 
 #if defined(BUILD_EDITORS)
 
-static s32 optionEmacsModeGet(void* data)
+static s32 optionKeybindModeGet(void* data)
 {
     StudioMainMenu* main = data;
-    return main->options->emacsMode ? 1 : 0;
+    return main->options->keybindMode;
 }
 
-static void optionEmacsModeSet(void* data, s32 pos)
+static void optionKeybindModeSet(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
-    main->options->emacsMode = pos == 1;
+    main->options->keybindMode = (enum KeybindMode) pos;
 }
 
-static MenuOption EmacsModeOption = 
+static MenuOption KeybindModeOption = 
 {
-    OPTION_VALUES({OffValue, OnValue}),
-    optionEmacsModeGet,
-    optionEmacsModeSet,
+    OPTION_VALUES({"STANDARD", "EMACS", "MODAL"}),
+    optionKeybindModeGet,
+    optionKeybindModeSet,
 };
 
 static s32 optionDevModeGet(void* data)
@@ -234,7 +234,7 @@ static MenuOption DevModeOption =
     optionDevModeSet,
 };
 
-static void showCodeEditorMenu(void* data, s32 pos);
+static void showEditorMenu(void* data, s32 pos);
 
 #endif
 
@@ -260,7 +260,7 @@ enum
     OptionsMenu_IntegerScaleOption,
     OptionsMenu_VolumeOption,
 #if defined(BUILD_EDITORS)
-    OptionsMenu_CodeEditor,
+    OptionsMenu_Editor,
 #endif
     OptionsMenu_Gamepad,
     OptionsMenu_Separator,
@@ -280,7 +280,7 @@ static const MenuItem OptionMenu[] =
     {"INTEGER SCALE",   NULL,   &IntegerScaleOption},
     {"VOLUME",          NULL,   &VolumeOption},
 #if defined(BUILD_EDITORS)
-    {"CODE EDITOR OPTIONS", showCodeEditorMenu},
+    {"EDITOR OPTIONS", showEditorMenu},
 #endif
     {"SETUP GAMEPAD",       showGamepadMenu},
     {""},
@@ -300,24 +300,24 @@ static void gameMenuHandler(void* data, s32 pos)
 
 enum
 {
-    CodeEditorMenu_EmacsMode,
-    CodeEditorMenu_Separator,
-    CodeEditorMenu_Back,
+    EditorMenu_KeybindMode,
+    EditorMenu_Separator,
+    EditorMenu_Back,
 };
 
-static const MenuItem CodeEditorMenu[] =
+static const MenuItem EditorMenu[] =
 {
-    {"EMACS MODE",      NULL,   &EmacsModeOption, "For the cool kids only"},
+    {"KEYBIND MODE",      NULL,   &KeybindModeOption, "For the cool kids only"},
     {""},
     {"BACK",            showOptionsMenu, .back = true},
 };
 
-static void showCodeEditorMenu(void* data, s32 pos)
+static void showEditorMenu(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
 
-    studio_menu_init(main->menu, CodeEditorMenu, 
-        COUNT_OF(CodeEditorMenu), CodeEditorMenu_EmacsMode, OptionsMenu_CodeEditor, showOptionsMenu, main);
+    studio_menu_init(main->menu, EditorMenu, 
+        COUNT_OF(EditorMenu), EditorMenu_KeybindMode, OptionsMenu_Editor, showOptionsMenu, main);
 }
 #endif
 

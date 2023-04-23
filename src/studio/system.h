@@ -73,6 +73,12 @@ void    tic_sys_default_mapping(tic_mapping* mapping);
     macro(COMMENT)  \
     macro(SIGN)
 
+enum KeybindMode {
+    KEYBIND_STANDARD,
+    KEYBIND_EMACS,
+    KEYBIND_MODAL
+};
+
 typedef struct
 {
     struct
@@ -130,7 +136,7 @@ typedef struct
         s32 volume;
         tic_mapping mapping;
 #if defined(BUILD_EDITORS)
-        bool emacsMode;
+        enum KeybindMode keybindMode;
         bool devmode;
 #endif
     } options;

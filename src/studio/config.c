@@ -246,7 +246,7 @@ static void setDefault(Config* config)
             .fullscreen     = false,
             .integerScale   = INTEGER_SCALE_DEFAULT,
 #if defined(BUILD_EDITORS)
-            .emacsMode      = false,
+            .keybindMode    = KEYBIND_STANDARD,
             .devmode        = false,
 #endif
         },
