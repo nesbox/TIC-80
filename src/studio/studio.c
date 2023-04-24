@@ -1275,6 +1275,7 @@ void resumeGame(Studio* studio)
     studio->mode = TIC_RUN_MODE;
 }
 
+#if defined(BUILD_EDITORS)
 void setStudioViMode(Studio* studio, ViMode mode) {
     studio->viMode = mode;
 }
@@ -1289,6 +1290,7 @@ bool checkStudioViMode(Studio* studio, ViMode mode) {
         && getStudioViMode(studio) == mode
     );
 }
+#endif
 
 static inline bool pointInRect(const tic_point* pt, const tic_rect* rect)
 {
