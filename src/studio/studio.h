@@ -117,6 +117,7 @@ typedef enum
 {
     MODAL_NORMAL,
     MODAL_INSERT,
+    MODAL_SELECT,
 } ModalMode;
 
 #if defined(TIC_BUILD_WITH_COLLAB)

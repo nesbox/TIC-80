@@ -77,14 +77,12 @@ static void unpackState(Code* code)
 
 static void history(Code* code)
 {
+    //if we are in insert mode we want want all changes we make to be reflected
+    //in the undo/redo history only when we leave it
+    if (checkStudioModalMode(code->studio, MODAL_INSERT))
+        return;
     packState(code);
     history_add(code->history);
-}
-
-static void nonModalHistory(Code* code) 
-{
-    if (getConfig(code->studio)->options.keybindMode != KEYBIND_MODAL)
-        history(code);
 }
 
 static void drawStatus(Code* code)
@@ -1077,7 +1075,7 @@ static void deleteChar(Code* code)
             return;
 
         deleteCode(code, code->cursor.position, code->cursor.position + 1);
-        nonModalHistory(code);
+        history(code);
         parseSyntaxColor(code);
     }
 
@@ -1094,7 +1092,7 @@ static void backspaceChar(Code* code)
             return;
 
         deleteCode(code, pos, pos + 1);
-        nonModalHistory(code);
+        history(code);
         parseSyntaxColor(code);
     }
 
@@ -1229,7 +1227,7 @@ static void inputSymbolBase(Code* code, char sym)
         insertCode(code, code->cursor.position++, (const char[]){sym, '\0'});
     }
 
-    nonModalHistory(code);
+    history(code);
     updateColumn(code);
     parseSyntaxColor(code);
 }
@@ -1951,7 +1949,19 @@ static bool goNextBookmark(Code* code, char* ptr)
     return false;
 }
 
+static bool processModalPosition(Code* code) {
+    bool processed = true;
+    if (keyWasPressed(code->studio, tic_key_k)) upLine(code);
+    else if (keyWasPressed(code->studio, tic_key_j)) downLine(code);
+    else if (keyWasPressed(code->studio, tic_key_h)) leftColumn(code);
+    else if (keyWasPressed(code->studio, tic_key_l)) rightColumn(code);
+    else processed = false;
+
+    return processed;
+}
+
 static void processModalKeyboard(Code* code) {
+
 
     tic_mem* tic = code->tic;
     bool shift = tic_api_key(tic, tic_key_shift);
@@ -1961,11 +1971,30 @@ static void processModalKeyboard(Code* code) {
 
     ModalMode mode = getStudioModalMode(code->studio);
 
+    //keep these the same to be consistent with the other editors
+    bool usedClipboard = true;
+    switch(getClipboardEvent(code->studio))
+    {
+    case TIC_CLIPBOARD_CUT: cutToClipboard(code, false); break;
+    case TIC_CLIPBOARD_COPY: copyToClipboard(code, false); break;
+    case TIC_CLIPBOARD_PASTE: copyFromClipboard(code, false); break;
+    default: usedClipboard = false; break;
+    }
+
+    if(usedClipboard)
+    {
+        if (mode != MODAL_INSERT)
+            setStudioModalMode(code->studio, MODAL_NORMAL);
+        updateEditor(code);
+        return;
+    }
+
+
     if (mode == MODAL_INSERT)
     {
         if (keyWasPressed(code->studio, tic_key_escape)) {
-            history(code);
             setStudioModalMode(code->studio, MODAL_NORMAL);
+            history(code); //needs to come after the mode switch or won't be honored
         }
 
         else if (keyWasPressed(code->studio, tic_key_backspace)) 
@@ -1990,13 +2019,13 @@ static void processModalKeyboard(Code* code) {
 
         code->cursor.selection = NULL;
 
-        if (clear && keyWasPressed(code->studio, tic_key_i)) 
+        if (clear && processModalPosition(code));
+
+        else if (clear && keyWasPressed(code->studio, tic_key_i)) 
             setStudioModalMode(code->studio, MODAL_INSERT);
 
-        else if (clear && keyWasPressed(code->studio, tic_key_k)) upLine(code);
-        else if (clear && keyWasPressed(code->studio, tic_key_j)) downLine(code);
-        else if (clear && keyWasPressed(code->studio, tic_key_h)) leftColumn(code);
-        else if (clear && keyWasPressed(code->studio, tic_key_l)) rightColumn(code);
+        else if (clear && keyWasPressed(code->studio, tic_key_v))
+            setStudioModalMode(code->studio, MODAL_SELECT);
 
         else if (clear && keyWasPressed(code->studio, tic_key_slash)) 
             setCodeMode(code, TEXT_FIND_MODE);
@@ -2004,6 +2033,23 @@ static void processModalKeyboard(Code* code) {
         else processed = false;
 
         if (processed) updateEditor(code);
+    }
+    else if (mode == MODAL_SELECT) {
+        bool processed = true;
+
+        if (clear && processModalPosition(code));
+
+        else if (keyWasPressed(code->studio, tic_key_escape))
+            setStudioModalMode(code->studio, MODAL_NORMAL);
+
+        else processed = false;
+
+
+        if (code->cursor.selection == NULL)
+            code->cursor.selection = code->cursor.position;
+
+        if (processed) updateEditor(code);
+
     }
 }
 
