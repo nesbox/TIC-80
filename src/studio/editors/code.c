@@ -2108,6 +2108,21 @@ static void processViKeyboard(Code* code)
         else if (clear && keyWasPressed(code->studio, tic_key_8)) processViGoto(code, 8);
         else if (clear && keyWasPressed(code->studio, tic_key_9)) processViGoto(code, 9);
 
+        else if (shift && keyWasPressed(code->studio, tic_key_slash)) setCodeMode(code, TEXT_OUTLINE_MODE);
+
+        else if (shift && keyWasPressed(code->studio, tic_key_m)) setCodeMode(code, TEXT_BOOKMARK_MODE);
+        else if (clear && keyWasPressed(code->studio, tic_key_m)) toggleBookmark(code, getLineByPos(code, code->cursor.position));
+        else if (clear && keyWasPressed(code->studio, tic_key_comma)) 
+        {
+            if(!goPrevBookmark(code, getPrevLineByPos(code, code->cursor.position)))
+                goPrevBookmark(code, code->src + strlen(code->src));
+        }
+        else if (clear && keyWasPressed(code->studio, tic_key_period))
+        {
+            if(!goNextBookmark(code, getNextLineByPos(code, code->cursor.position)))
+                goNextBookmark(code, code->src);
+        }
+
         else processed = false;
 
         if (processed) updateEditor(code);
@@ -2509,6 +2524,8 @@ static char* downStrStr(const char* start, const char* from, const char* substr)
 
 static void textFindTick(Code* code)
 {
+
+
     if(keyWasPressed(code->studio, tic_key_return)) setCodeMode(code, TEXT_EDIT_MODE);
     else if(keyWasPressed(code->studio, tic_key_up)
         || keyWasPressed(code->studio, tic_key_down)
@@ -2534,6 +2551,34 @@ static void textFindTick(Code* code)
     }
 
     char sym = getKeyboardText(code->studio);
+
+    //needs to go here so we can null out sym so it does not get added to search term
+    if (getConfig(code->studio)->options.keybindMode == KEYBIND_VI) {
+        bool alt = tic_api_key(code->tic, tic_key_alt);
+
+        if (alt && keyWasPressed(code->studio, tic_key_j)) 
+        {
+            if (*code->popup.text) 
+            {
+                char* from = MIN(code->cursor.position, code->cursor.selection);
+                char* pos = upStrStr(code->src, from, code->popup.text);
+                updateFindCode(code, pos);
+                sym = 0;
+            }
+        }
+        else if (alt && keyWasPressed(code->studio, tic_key_k)) 
+        {
+            if (*code->popup.text) 
+            {
+                char* from = MAX(code->cursor.position, code->cursor.selection);
+                char* pos = downStrStr(code->src, from, code->popup.text);
+                updateFindCode(code, pos);
+                sym = 0;
+            }
+
+        }
+
+    }
 
     if(sym)
     {
@@ -2700,6 +2745,19 @@ static void processSidebar(Code* code)
             code->sidebar.scroll += delta;
             normSidebarScroll(code);
         }
+    }
+
+    if (getConfig(code->studio)->options.keybindMode == KEYBIND_VI) {
+        bool alt = tic_api_key(code->tic, tic_key_alt);
+
+        bool processed = true;
+        if (alt && keyWasPressed(code->studio, tic_key_j))
+            updateSidebarIndex(code, code->sidebar.index - 1);
+        else if (alt && keyWasPressed(code->studio, tic_key_k))
+            updateSidebarIndex(code, code->sidebar.index + 1);
+        else processed = false;
+
+        if (processed) return;
     }
 
     if(keyWasPressed(code->studio, tic_key_up))
