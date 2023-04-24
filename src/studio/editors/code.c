@@ -81,6 +81,12 @@ static void history(Code* code)
     history_add(code->history);
 }
 
+static void nonModalHistory(Code* code) 
+{
+    if (getConfig(code->studio)->options.keybindMode != KEYBIND_MODAL)
+        history(code);
+}
+
 static void drawStatus(Code* code)
 {
     enum {Height = TIC_FONT_HEIGHT + 1, StatusY = TIC80_HEIGHT - TIC_FONT_HEIGHT};
@@ -1071,7 +1077,7 @@ static void deleteChar(Code* code)
             return;
 
         deleteCode(code, code->cursor.position, code->cursor.position + 1);
-        history(code);
+        nonModalHistory(code);
         parseSyntaxColor(code);
     }
 
@@ -1088,7 +1094,7 @@ static void backspaceChar(Code* code)
             return;
 
         deleteCode(code, pos, pos + 1);
-        history(code);
+        nonModalHistory(code);
         parseSyntaxColor(code);
     }
 
@@ -1223,7 +1229,7 @@ static void inputSymbolBase(Code* code, char sym)
         insertCode(code, code->cursor.position++, (const char[]){sym, '\0'});
     }
 
-    history(code);
+    nonModalHistory(code);
     updateColumn(code);
     parseSyntaxColor(code);
 }
@@ -1957,11 +1963,16 @@ static void processModalKeyboard(Code* code) {
 
     if (mode == MODAL_INSERT)
     {
-        if (keyWasPressed(code->studio, tic_key_escape))
+        if (keyWasPressed(code->studio, tic_key_escape)) {
+            history(code);
             setStudioModalMode(code->studio, MODAL_NORMAL);
+        }
 
         else if (keyWasPressed(code->studio, tic_key_backspace)) 
             backspaceChar(code);
+
+        else if (keyWasPressed(code->studio, tic_key_return))
+            newLine(code);
 
         else if (clear)
         {
@@ -1977,8 +1988,11 @@ static void processModalKeyboard(Code* code) {
     {
         bool processed = true;
 
+        code->cursor.selection = NULL;
+
         if (clear && keyWasPressed(code->studio, tic_key_i)) 
             setStudioModalMode(code->studio, MODAL_INSERT);
+
         else if (clear && keyWasPressed(code->studio, tic_key_k)) upLine(code);
         else if (clear && keyWasPressed(code->studio, tic_key_j)) downLine(code);
         else if (clear && keyWasPressed(code->studio, tic_key_h)) leftColumn(code);

@@ -1772,10 +1772,8 @@ static void processShortcuts(Studio* studio)
             if(
                 getConfig(studio)->options.keybindMode == KEYBIND_MODAL
                 && getStudioModalMode(studio) != MODAL_NORMAL
-            ) {
-                setStudioModalMode(studio, MODAL_NORMAL);
+            ) 
                 return;
-            }
 
             switch(studio->mode)
             {
