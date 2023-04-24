@@ -115,10 +115,10 @@ typedef enum
 
 typedef enum
 {
-    MODAL_NORMAL,
-    MODAL_INSERT,
-    MODAL_SELECT,
-} ModalMode;
+    VI_NORMAL,
+    VI_INSERT,
+    VI_SELECT,
+} ViMode;
 
 #if defined(TIC_BUILD_WITH_COLLAB)
 diff(const);
@@ -205,9 +205,9 @@ void setStudioMode(Studio* studio, EditorMode mode);
 EditorMode getStudioMode(Studio* studio);
 void exitStudio(Studio* studio);
 
-void setStudioModalMode(Studio* studio, ModalMode mode);
-ModalMode getStudioModalMode(Studio* studio);
-bool checkStudioModalMode(Studio* studio, ModalMode mode);
+void setStudioViMode(Studio* studio, ViMode mode);
+ViMode getStudioViMode(Studio* studio);
+bool checkStudioViMode(Studio* studio, ViMode mode);
 
 void toClipboard(const void* data, s32 size, bool flip);
 bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces, bool sameSize);

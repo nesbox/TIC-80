@@ -124,7 +124,7 @@ struct Studio
 
 #if defined(BUILD_EDITORS)
     EditorMode menuMode;
-    ModalMode modalMode;
+    ViMode viMode;
 
     struct
     {
@@ -1275,18 +1275,18 @@ void resumeGame(Studio* studio)
     studio->mode = TIC_RUN_MODE;
 }
 
-void setStudioModalMode(Studio* studio, ModalMode mode) {
-    studio->modalMode = mode;
+void setStudioViMode(Studio* studio, ViMode mode) {
+    studio->viMode = mode;
 }
 
-ModalMode getStudioModalMode(Studio* studio) {
-    return studio->modalMode;
+ViMode getStudioViMode(Studio* studio) {
+    return studio->viMode;
 }
 
-bool checkStudioModalMode(Studio* studio, ModalMode mode) {
+bool checkStudioViMode(Studio* studio, ViMode mode) {
     return (
-        getConfig(studio)->options.keybindMode == KEYBIND_MODAL
-        && getStudioModalMode(studio) == mode
+        getConfig(studio)->options.keybindMode == KEYBIND_VI
+        && getStudioViMode(studio) == mode
     );
 }
 
@@ -1770,8 +1770,8 @@ static void processShortcuts(Studio* studio)
         else if(keyWasPressedOnce(studio, tic_key_escape))
         {
             if(
-                getConfig(studio)->options.keybindMode == KEYBIND_MODAL
-                && getStudioModalMode(studio) != MODAL_NORMAL
+                getConfig(studio)->options.keybindMode == KEYBIND_VI
+                && getStudioViMode(studio) != VI_NORMAL
             ) 
                 return;
 

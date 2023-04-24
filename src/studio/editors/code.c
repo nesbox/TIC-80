@@ -79,7 +79,7 @@ static void history(Code* code)
 {
     //if we are in insert mode we want want all changes we make to be reflected
     //in the undo/redo history only when we leave it
-    if (checkStudioModalMode(code->studio, MODAL_INSERT))
+    if (checkStudioViMode(code->studio, VI_INSERT))
         return;
     packState(code);
     history_add(code->history);
@@ -193,7 +193,7 @@ static void drawCursor(Code* code, s32 x, s32 y, char symbol)
 {
     bool inverse = code->cursor.delay || code->tickCounter % TEXT_CURSOR_BLINK_PERIOD < TEXT_CURSOR_BLINK_PERIOD / 2;
 
-    if (checkStudioModalMode(code->studio, MODAL_NORMAL))
+    if (checkStudioViMode(code->studio, VI_NORMAL))
         inverse = true;
 
     if(inverse)
@@ -1949,7 +1949,7 @@ static bool goNextBookmark(Code* code, char* ptr)
     return false;
 }
 
-static bool processModalPosition(Code* code) {
+static bool processViPosition(Code* code) {
     bool processed = true;
     if (keyWasPressed(code->studio, tic_key_k)) upLine(code);
     else if (keyWasPressed(code->studio, tic_key_j)) downLine(code);
@@ -1960,7 +1960,7 @@ static bool processModalPosition(Code* code) {
     return processed;
 }
 
-static void processModalKeyboard(Code* code) {
+static void processViKeyboard(Code* code) {
 
 
     tic_mem* tic = code->tic;
@@ -1969,7 +1969,7 @@ static void processModalKeyboard(Code* code) {
     bool alt = tic_api_key(tic, tic_key_alt);
     bool clear = !(shift || ctrl || alt);
 
-    ModalMode mode = getStudioModalMode(code->studio);
+    ViMode mode = getStudioViMode(code->studio);
 
     //keep these the same to be consistent with the other editors
     bool usedClipboard = true;
@@ -1983,17 +1983,17 @@ static void processModalKeyboard(Code* code) {
 
     if(usedClipboard)
     {
-        if (mode != MODAL_INSERT)
-            setStudioModalMode(code->studio, MODAL_NORMAL);
+        if (mode != VI_INSERT)
+            setStudioViMode(code->studio, VI_NORMAL);
         updateEditor(code);
         return;
     }
 
 
-    if (mode == MODAL_INSERT)
+    if (mode == VI_INSERT)
     {
         if (keyWasPressed(code->studio, tic_key_escape)) {
-            setStudioModalMode(code->studio, MODAL_NORMAL);
+            setStudioViMode(code->studio, VI_NORMAL);
             history(code); //needs to come after the mode switch or won't be honored
         }
 
@@ -2013,19 +2013,19 @@ static void processModalKeyboard(Code* code) {
             }
         }
     } 
-    else if(mode == MODAL_NORMAL)
+    else if(mode == VI_NORMAL)
     {
         bool processed = true;
 
         code->cursor.selection = NULL;
 
-        if (clear && processModalPosition(code));
+        if (clear && processViPosition(code));
 
         else if (clear && keyWasPressed(code->studio, tic_key_i)) 
-            setStudioModalMode(code->studio, MODAL_INSERT);
+            setStudioViMode(code->studio, VI_INSERT);
 
         else if (clear && keyWasPressed(code->studio, tic_key_v))
-            setStudioModalMode(code->studio, MODAL_SELECT);
+            setStudioViMode(code->studio, VI_SELECT);
 
         else if (clear && keyWasPressed(code->studio, tic_key_slash)) 
             setCodeMode(code, TEXT_FIND_MODE);
@@ -2034,13 +2034,13 @@ static void processModalKeyboard(Code* code) {
 
         if (processed) updateEditor(code);
     }
-    else if (mode == MODAL_SELECT) {
+    else if (mode == VI_SELECT) {
         bool processed = true;
 
-        if (clear && processModalPosition(code));
+        if (clear && processViPosition(code));
 
         else if (keyWasPressed(code->studio, tic_key_escape))
-            setStudioModalMode(code->studio, MODAL_NORMAL);
+            setStudioViMode(code->studio, VI_NORMAL);
 
         else processed = false;
 
@@ -2061,9 +2061,9 @@ static void processKeyboard(Code* code)
 
     enum KeybindMode keymode = getConfig(code->studio)->options.keybindMode;
 
-    if (keymode == KEYBIND_MODAL) 
+    if (keymode == KEYBIND_VI) 
     {
-        processModalKeyboard(code);
+        processViKeyboard(code);
         return;
     }
 

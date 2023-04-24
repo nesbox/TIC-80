@@ -76,7 +76,7 @@ void    tic_sys_default_mapping(tic_mapping* mapping);
 enum KeybindMode {
     KEYBIND_STANDARD,
     KEYBIND_EMACS,
-    KEYBIND_MODAL
+    KEYBIND_VI
 };
 
 typedef struct

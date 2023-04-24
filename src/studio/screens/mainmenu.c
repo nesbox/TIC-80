@@ -210,7 +210,7 @@ static void optionKeybindModeSet(void* data, s32 pos)
 
 static MenuOption KeybindModeOption = 
 {
-    OPTION_VALUES({"STANDARD", "EMACS", "MODAL"}),
+    OPTION_VALUES({"STANDARD", "EMACS", "VI"}),
     optionKeybindModeGet,
     optionKeybindModeSet,
 };
