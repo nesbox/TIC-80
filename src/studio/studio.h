@@ -120,10 +120,6 @@ typedef enum
     VI_SELECT,
 } ViMode;
 
-#if defined(TIC_BUILD_WITH_COLLAB)
-diff(const);
-#endif
-
 enum
 {
     tic_icon_cut        = 80,
