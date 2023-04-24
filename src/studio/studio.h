@@ -113,6 +113,16 @@ typedef enum
     TIC_MODES_COUNT
 } EditorMode;
 
+typedef enum
+{
+    MODAL_NORMAL,
+    MODAL_INSERT,
+} ModalMode;
+
+#if defined(TIC_BUILD_WITH_COLLAB)
+diff(const);
+#endif
+
 enum
 {
     tic_icon_cut        = 80,
@@ -193,6 +203,10 @@ void studioConfigChanged(Studio* studio);
 void setStudioMode(Studio* studio, EditorMode mode);
 EditorMode getStudioMode(Studio* studio);
 void exitStudio(Studio* studio);
+
+void setStudioModalMode(Studio* studio, ModalMode mode);
+ModalMode getStudioModalMode(Studio* studio);
+bool checkStudioModalMode(Studio* studio, ModalMode mode);
 
 void toClipboard(const void* data, s32 size, bool flip);
 bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces, bool sameSize);

@@ -189,6 +189,9 @@ static void drawCursor(Code* code, s32 x, s32 y, char symbol)
 {
     bool inverse = code->cursor.delay || code->tickCounter % TEXT_CURSOR_BLINK_PERIOD < TEXT_CURSOR_BLINK_PERIOD / 2;
 
+    if (checkStudioModalMode(code->studio, MODAL_NORMAL))
+        inverse = true;
+
     if(inverse)
     {
         if(code->shadowText)
@@ -1942,13 +1945,69 @@ static bool goNextBookmark(Code* code, char* ptr)
     return false;
 }
 
+static void processModalKeyboard(Code* code) {
+
+    tic_mem* tic = code->tic;
+    bool shift = tic_api_key(tic, tic_key_shift);
+    bool ctrl = tic_api_key(tic, tic_key_ctrl);
+    bool alt = tic_api_key(tic, tic_key_alt);
+    bool clear = !(shift || ctrl || alt);
+
+    ModalMode mode = getStudioModalMode(code->studio);
+
+    if (mode == MODAL_INSERT)
+    {
+        if (keyWasPressed(code->studio, tic_key_escape))
+            setStudioModalMode(code->studio, MODAL_NORMAL);
+
+        else if (keyWasPressed(code->studio, tic_key_backspace)) 
+            backspaceChar(code);
+
+        else if (clear)
+        {
+            char sym = getKeyboardText(code->studio);
+            if(sym)
+            {
+                inputSymbol(code, sym);
+                updateEditor(code);
+            }
+        }
+    } 
+    else if(mode == MODAL_NORMAL)
+    {
+        bool processed = true;
+
+        if (clear && keyWasPressed(code->studio, tic_key_i)) 
+            setStudioModalMode(code->studio, MODAL_INSERT);
+        else if (clear && keyWasPressed(code->studio, tic_key_k)) upLine(code);
+        else if (clear && keyWasPressed(code->studio, tic_key_j)) downLine(code);
+        else if (clear && keyWasPressed(code->studio, tic_key_h)) leftColumn(code);
+        else if (clear && keyWasPressed(code->studio, tic_key_l)) rightColumn(code);
+
+        else if (clear && keyWasPressed(code->studio, tic_key_slash)) 
+            setCodeMode(code, TEXT_FIND_MODE);
+
+        else processed = false;
+
+        if (processed) updateEditor(code);
+    }
+}
+
 static void processKeyboard(Code* code)
 {
     tic_mem* tic = code->tic;
 
     if(tic->ram->input.keyboard.data == 0) return;
 
-    const bool emacsMode = getConfig(code->studio)->options.keybindMode == KEYBIND_EMACS; 
+    enum KeybindMode keymode = getConfig(code->studio)->options.keybindMode;
+
+    if (keymode == KEYBIND_MODAL) 
+    {
+        processModalKeyboard(code);
+        return;
+    }
+
+    const bool emacsMode = keymode == KEYBIND_EMACS; 
 
     if (!emacsMode)
     {
@@ -2103,6 +2162,16 @@ static void processKeyboard(Code* code)
     }
 
     if(changedSelection || usedKeybinding) updateEditor(code);
+    else
+    {
+        char sym = getKeyboardText(code->studio);
+        if(sym)
+        {
+            inputSymbol(code, sym);
+            updateEditor(code);
+        }
+    }
+
 }
 
 static void processMouse(Code* code)
@@ -2215,18 +2284,6 @@ static void textEditTick(Code* code)
     }
 
     processKeyboard(code);
-
-    if(!tic_api_key(tic, tic_key_ctrl) && !tic_api_key(tic, tic_key_alt))
-    {
-        char sym = getKeyboardText(code->studio);
-
-        if(sym)
-        {
-            inputSymbol(code, sym);
-            updateEditor(code);
-        }
-    }
-
     processMouse(code);
 
     tic_api_cls(code->tic, getConfig(code->studio)->theme.code.BG);
@@ -2716,7 +2773,7 @@ static void escape(Code* code)
         break;
     case TEXT_DRAG_CODE:
         setCodeMode(code, TEXT_EDIT_MODE);
-    break;
+        break;
     default:
         code->anim.movie = resetMovie(&code->anim.hide);
 

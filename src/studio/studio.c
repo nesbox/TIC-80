@@ -124,6 +124,7 @@ struct Studio
 
 #if defined(BUILD_EDITORS)
     EditorMode menuMode;
+    ModalMode modalMode;
 
     struct
     {
@@ -1274,6 +1275,21 @@ void resumeGame(Studio* studio)
     studio->mode = TIC_RUN_MODE;
 }
 
+void setStudioModalMode(Studio* studio, ModalMode mode) {
+    studio->modalMode = mode;
+}
+
+ModalMode getStudioModalMode(Studio* studio) {
+    return studio->modalMode;
+}
+
+bool checkStudioModalMode(Studio* studio, ModalMode mode) {
+    return (
+        getConfig(studio)->options.keybindMode == KEYBIND_MODAL
+        && getStudioModalMode(studio) == mode
+    );
+}
+
 static inline bool pointInRect(const tic_point* pt, const tic_rect* rect)
 {
     return (pt->x >= rect->x) 
@@ -1753,6 +1769,14 @@ static void processShortcuts(Studio* studio)
 #if defined(BUILD_EDITORS)
         else if(keyWasPressedOnce(studio, tic_key_escape))
         {
+            if(
+                getConfig(studio)->options.keybindMode == KEYBIND_MODAL
+                && getStudioModalMode(studio) != MODAL_NORMAL
+            ) {
+                setStudioModalMode(studio, MODAL_NORMAL);
+                return;
+            }
+
             switch(studio->mode)
             {
             case TIC_MENU_MODE:     
