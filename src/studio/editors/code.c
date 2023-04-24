@@ -1949,18 +1949,53 @@ static bool goNextBookmark(Code* code, char* ptr)
     return false;
 }
 
-static bool processViPosition(Code* code) {
+static bool processViPosition(Code* code, bool ctrl, bool alt, bool shift) {
+    bool clear = !(shift || ctrl || alt);
+
     bool processed = true;
-    if (keyWasPressed(code->studio, tic_key_k)) upLine(code);
-    else if (keyWasPressed(code->studio, tic_key_j)) downLine(code);
-    else if (keyWasPressed(code->studio, tic_key_h)) leftColumn(code);
-    else if (keyWasPressed(code->studio, tic_key_l)) rightColumn(code);
+    if (clear && keyWasPressed(code->studio, tic_key_k)) upLine(code);
+    else if (clear && keyWasPressed(code->studio, tic_key_j)) downLine(code);
+    else if (clear && keyWasPressed(code->studio, tic_key_h)) leftColumn(code);
+    else if (clear && keyWasPressed(code->studio, tic_key_l)) rightColumn(code);
+
+    //no need to be elitist, arrow keys can work too
+    else if (keyWasPressed(code->studio, tic_key_up)) upLine(code);
+    else if (keyWasPressed(code->studio, tic_key_down)) downLine(code);
+    else if (keyWasPressed(code->studio, tic_key_left)) leftColumn(code);
+    else if (keyWasPressed(code->studio, tic_key_right)) rightColumn(code);
+
+    else if (clear && keyWasPressed(code->studio, tic_key_g)) goCodeHome(code);
+    else if (shift && keyWasPressed(code->studio, tic_key_g)) goCodeEnd(code);
+
+    else if (keyWasPressed(code->studio, tic_key_home)) goHome(code);
+    else if (clear && keyWasPressed(code->studio, tic_key_0)) goHome(code);
+    else if (keyWasPressed(code->studio, tic_key_end)) goEnd(code);
+    else if (shift && keyWasPressed(code->studio, tic_key_4)) goEnd(code);
+
+    else if (keyWasPressed(code->studio, tic_key_pageup)) pageUp(code);
+    else if (ctrl && keyWasPressed(code->studio, tic_key_u)) pageUp(code);
+    else if (keyWasPressed(code->studio, tic_key_pagedown)) pageDown(code);
+    else if (ctrl && keyWasPressed(code->studio, tic_key_d)) pageDown(code);
+
+    else if (clear && keyWasPressed(code->studio, tic_key_b)) leftWord(code);
+    else if (clear && keyWasPressed(code->studio, tic_key_w)) rightWord(code);
+
     else processed = false;
 
     return processed;
 }
 
-static void processViKeyboard(Code* code) {
+static void updateGotoCode(Code* code);
+static void processViGoto(Code* code, s32 initial) 
+{
+    setCodeMode(code, TEXT_GOTO_MODE);
+    code->popup.text[0] = '0' + initial;
+    code->popup.text[1] = '\0';
+    updateGotoCode(code);
+}
+
+static void processViKeyboard(Code* code) 
+{
 
 
     tic_mem* tic = code->tic;
@@ -2000,6 +2035,9 @@ static void processViKeyboard(Code* code) {
         else if (keyWasPressed(code->studio, tic_key_backspace)) 
             backspaceChar(code);
 
+        else if (keyWasPressed(code->studio, tic_key_tab)) 
+            doTab(code, shift, ctrl);
+
         else if (keyWasPressed(code->studio, tic_key_return))
             newLine(code);
 
@@ -2019,16 +2057,56 @@ static void processViKeyboard(Code* code) {
 
         code->cursor.selection = NULL;
 
-        if (clear && processViPosition(code));
+        if (processViPosition(code, ctrl, alt, shift));
 
         else if (clear && keyWasPressed(code->studio, tic_key_i)) 
             setStudioViMode(code->studio, VI_INSERT);
 
+        else if (clear && keyWasPressed(code->studio, tic_key_a)) {
+            setStudioViMode(code->studio, VI_INSERT);
+            rightColumn(code);
+        }
+        else if (clear && keyWasPressed(code->studio, tic_key_o)) {
+            setStudioViMode(code->studio, VI_INSERT);
+            goEnd(code);
+            newLine(code);
+        }
+        else if (shift && keyWasPressed(code->studio, tic_key_o)) {
+            setStudioViMode(code->studio, VI_INSERT);
+            goHome(code);
+            newLine(code);
+            upLine(code);
+        }
         else if (clear && keyWasPressed(code->studio, tic_key_v))
             setStudioViMode(code->studio, VI_SELECT);
 
         else if (clear && keyWasPressed(code->studio, tic_key_slash)) 
             setCodeMode(code, TEXT_FIND_MODE);
+
+        else if (clear && keyWasPressed(code->studio, tic_key_u)) undo(code);
+        else if (clear && keyWasPressed(code->studio, tic_key_r)) redo(code);
+
+        else if (clear && keyWasPressed(code->studio, tic_key_p)) 
+        {
+            copyFromClipboard(code, false);
+            setStudioViMode(code->studio, VI_NORMAL);
+        }
+
+        else if (shift && keyWasPressed(code->studio, tic_key_f)) 
+            code->altFont = !code->altFont;
+
+        else if (shift && keyWasPressed(code->studio, tic_key_s)) 
+            code->shadowText = !code->shadowText;
+
+        else if (clear && keyWasPressed(code->studio, tic_key_1)) processViGoto(code, 1);
+        else if (clear && keyWasPressed(code->studio, tic_key_2)) processViGoto(code, 2);
+        else if (clear && keyWasPressed(code->studio, tic_key_3)) processViGoto(code, 3);
+        else if (clear && keyWasPressed(code->studio, tic_key_4)) processViGoto(code, 4);
+        else if (clear && keyWasPressed(code->studio, tic_key_5)) processViGoto(code, 5);
+        else if (clear && keyWasPressed(code->studio, tic_key_6)) processViGoto(code, 6);
+        else if (clear && keyWasPressed(code->studio, tic_key_7)) processViGoto(code, 7);
+        else if (clear && keyWasPressed(code->studio, tic_key_8)) processViGoto(code, 8);
+        else if (clear && keyWasPressed(code->studio, tic_key_9)) processViGoto(code, 9);
 
         else processed = false;
 
@@ -2037,10 +2115,27 @@ static void processViKeyboard(Code* code) {
     else if (mode == VI_SELECT) {
         bool processed = true;
 
-        if (clear && processViPosition(code));
+        if (processViPosition(code, ctrl, alt, shift));
 
         else if (keyWasPressed(code->studio, tic_key_escape))
             setStudioViMode(code->studio, VI_NORMAL);
+
+        else if (clear && keyWasPressed(code->studio, tic_key_y)) 
+        {
+            copyToClipboard(code, false);
+            setStudioViMode(code->studio, VI_NORMAL);
+        }
+        else if (clear && keyWasPressed(code->studio, tic_key_d)) 
+        {
+            cutToClipboard(code, false);
+            setStudioViMode(code->studio, VI_NORMAL);
+        }
+        else if (clear && keyWasPressed(code->studio, tic_key_p)) 
+        {
+            copyFromClipboard(code, false);
+            setStudioViMode(code->studio, VI_NORMAL);
+        }
+
 
         else processed = false;
 
