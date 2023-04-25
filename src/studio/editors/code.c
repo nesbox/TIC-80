@@ -2208,6 +2208,26 @@ static void processViKeyboard(Code* code)
         else if (shift && keyWasPressed(code->studio, tic_key_r))
             runGame(code->studio);
 
+        else if (clear && keyWasPressed(code->studio, tic_key_c)) 
+        {
+            setStudioViMode(code->studio, VI_INSERT); 
+            if (!isalnum_(code, *code->cursor.position)) deleteChar(code);
+            else 
+            {
+                leftWord(code);
+                deleteWord(code);
+            }
+        }
+
+        else if (shift && keyWasPressed(code->studio, tic_key_c))
+        {
+            setStudioViMode(code->studio, VI_INSERT); 
+            char* start = code->cursor.position;
+            goEnd(code);
+            deleteCode(code, start, code->cursor.position);
+            code->cursor.position = start;
+        }
+
         else processed = false;
 
         if (processed) updateEditor(code);
