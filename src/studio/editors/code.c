@@ -2123,6 +2123,9 @@ static void processViKeyboard(Code* code)
                 goNextBookmark(code, code->src);
         }
 
+        else if (clear && keyWasPressed(code->studio, tic_key_x))
+            deleteChar(code);
+
         else processed = false;
 
         if (processed) updateEditor(code);
