@@ -1319,7 +1319,7 @@ static void cutToClipboard(Code* code, bool killSelection)
     if (killSelection)
         code->cursor.selection = NULL;
     
-    history(code);
+    //no call to history because it gets called in replaceSelection
 }
 
 static void copyFromClipboard(Code* code, bool killSelection)
