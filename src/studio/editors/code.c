@@ -1949,7 +1949,35 @@ static bool goNextBookmark(Code* code, char* ptr)
     return false;
 }
 
-static bool processViPosition(Code* code, bool ctrl, bool alt, bool shift) {
+static bool clipboardHasNewline() 
+{
+    bool found = false;
+    if (tic_sys_clipboard_has()) 
+    {
+
+        //from what I can see in other usage, this should be a
+        //null terminated string with the clipboard contents
+        char* clipboard = tic_sys_clipboard_get();
+
+        char* c = clipboard;
+        while(*c != 0) 
+        {
+            if (*c == '\n') 
+            {
+                found = true;
+                break;
+            }
+
+            c++;
+        }
+
+        tic_sys_clipboard_free(clipboard);
+    }
+    return found;
+}
+
+static bool processViPosition(Code* code, bool ctrl, bool alt, bool shift) 
+{
     bool clear = !(shift || ctrl || alt);
 
     bool processed = true;
@@ -2088,10 +2116,26 @@ static void processViKeyboard(Code* code)
 
         else if (clear && keyWasPressed(code->studio, tic_key_p)) 
         {
-            copyFromClipboard(code, false);
-            setStudioViMode(code->studio, VI_NORMAL);
+            if (clipboardHasNewline()) 
+            {
+                downLine(code);
+                goHome(code);
+                char* pos = code->cursor.position;
+                copyFromClipboard(code, false);
+                code->cursor.position = pos;
+            } else copyFromClipboard(code, false);
         }
 
+        else if (shift && keyWasPressed(code->studio, tic_key_p)) 
+        {
+            if (clipboardHasNewline()) 
+            {
+                goHome(code);
+                char* pos = code->cursor.position;
+                copyFromClipboard(code, false);
+                code->cursor.position = pos;
+            } else copyFromClipboard(code, false);
+        }
         else if (shift && keyWasPressed(code->studio, tic_key_f)) 
             code->altFont = !code->altFont;
 
