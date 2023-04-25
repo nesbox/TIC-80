@@ -2041,7 +2041,7 @@ static void processViKeyboard(Code* code)
         else if (keyWasPressed(code->studio, tic_key_return))
             newLine(code);
 
-        else if (clear)
+        else if (clear || shift)
         {
             char sym = getKeyboardText(code->studio);
             if(sym)
