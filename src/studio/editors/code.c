@@ -63,15 +63,39 @@ static void packState(Code* code)
     }
 }
 
-static void unpackState(Code* code)
+//if pos_undo is true, we set the position to the first charcter
+//that is different between the current source and the state (wanted undo behavior)
+//otherwise we set the position to the stored location (wanted redo behavior)
+//in either case if no change was detected we do not change the position
+//(this occurs when there are no undo's or redo's left to apply)
+static void unpackState(Code* code, bool pos_undo)
 {
     char* src = code->src;
+
+    char* first_change = NULL;
+    char* stored_pos = NULL;
+
     for(CodeState* s = code->state, *end = s + TIC_CODE_SIZE; s != end; ++s)
     {
+
+        if (first_change == NULL && *src != s->sym)
+            first_change = src;
+
         if(s->cursor)
-            code->cursor.position = src;
+            stored_pos = src;
 
         *src++ = s->sym;
+    }
+
+    if (first_change != NULL) {
+
+        //we actually will want to go the one before the first change, as if 
+        //we were about to make the change
+        //ternary to make sure we don't go one before the beginning
+        if (pos_undo) 
+            code->cursor.position = first_change == src ? src : (first_change - 1);
+
+        else code->cursor.position = stored_pos;
     }
 }
 
@@ -1372,7 +1396,7 @@ static void update(Code* code)
 static void undo(Code* code)
 {
     history_undo(code->history);
-    unpackState(code);
+    unpackState(code, true);
 
     update(code);
 }
@@ -1380,7 +1404,7 @@ static void undo(Code* code)
 static void redo(Code* code)
 {
     history_redo(code->history);
-    unpackState(code);
+    unpackState(code, false);
 
     update(code);
 }
