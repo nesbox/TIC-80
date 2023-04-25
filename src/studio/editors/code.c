@@ -2123,8 +2123,22 @@ static void processViKeyboard(Code* code)
                 goNextBookmark(code, code->src);
         }
 
+        else if (clear && keyWasPressed(code->studio, tic_key_z))
+            recenterScroll(code, true); //use emacs mode because it is nice
+
+        else if (clear && keyWasPressed(code->studio, tic_key_semicolon))
+            commentLine(code);
+
         else if (clear && keyWasPressed(code->studio, tic_key_x))
             deleteChar(code);
+
+        else if (clear && keyWasPressed(code->studio, tic_key_d))
+            cutToClipboard(code, false); //it seems like if there is not selection it will act on the current line by default, how nice
+
+        else if (shift && keyWasPressed(code->studio, tic_key_w))
+            saveProject(code->studio);
+        else if (shift && keyWasPressed(code->studio, tic_key_r))
+            runGame(code->studio);
 
         else processed = false;
 

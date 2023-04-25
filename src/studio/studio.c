@@ -1548,7 +1548,7 @@ void runGame(Studio* studio)
 }
 
 #if defined(BUILD_EDITORS)
-static void saveProject(Studio* studio)
+void saveProject(Studio* studio)
 {
     CartSaveResult rom = studio->console->save(studio->console);
 
