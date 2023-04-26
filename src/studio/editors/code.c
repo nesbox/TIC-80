@@ -451,6 +451,7 @@ static inline bool isalnum_(Code* code, char c)
     return config_isalnum_(config, c);
 }
 
+
 static void setCodeState(CodeState* state, u8 color, s32 start, s32 size)
 {
     for(CodeState* s = state + start, *end = s + size; s != end; ++s)
@@ -2031,6 +2032,13 @@ static bool processViPosition(Code* code, bool ctrl, bool alt, bool shift)
 
     else if (clear && keyWasPressed(code->studio, tic_key_b)) leftWord(code);
     else if (clear && keyWasPressed(code->studio, tic_key_w)) rightWord(code);
+
+    else if (shift && keyWasPressed(code->studio, tic_key_6))
+    {
+        goHome(code);
+        while (*code->cursor.position == ' ' || *code->cursor.position == '\t') 
+            code->cursor.position++;
+    }
 
     else processed = false;
 
