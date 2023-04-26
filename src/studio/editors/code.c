@@ -2049,7 +2049,6 @@ static void processViGoto(Code* code, s32 initial)
 static void processViKeyboard(Code* code) 
 {
 
-
     tic_mem* tic = code->tic;
     bool shift = tic_api_key(tic, tic_key_shift);
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
@@ -2233,6 +2232,9 @@ static void processViKeyboard(Code* code)
         if (processed) updateEditor(code);
     }
     else if (mode == VI_SELECT) {
+        if (code->cursor.selection == NULL)
+            code->cursor.selection = code->cursor.position;
+
         bool processed = true;
 
         if (processViPosition(code, ctrl, alt, shift));
@@ -2254,14 +2256,17 @@ static void processViKeyboard(Code* code)
         {
             copyFromClipboard(code, false);
             setStudioViMode(code->studio, VI_NORMAL);
+
+        } else if (clear && keyWasPressed(code->studio, tic_key_c))
+        {
+            setStudioViMode(code->studio, VI_INSERT);
+            if (code->cursor.selection != NULL)
+                deleteCode(code, code->cursor.selection, code->cursor.position);
+            code->cursor.position = code->cursor.selection;
+            code->cursor.selection = NULL;
         }
 
-
         else processed = false;
-
-
-        if (code->cursor.selection == NULL)
-            code->cursor.selection = code->cursor.position;
 
         if (processed) updateEditor(code);
 

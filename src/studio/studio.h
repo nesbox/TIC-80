@@ -247,7 +247,6 @@ void gotoSurf(Studio* studio);
 void runGame(Studio* studio);
 void exitGame(Studio* studio);
 void resumeGame(Studio* studio);
-
 void saveProject(Studio* studio);
 
 tic_tiles* getBankTiles(Studio* studio);
