@@ -2031,8 +2031,7 @@ start:
 
 check:
     if (*pos == '\0') goto end;
-    else if (*pos == '\t') 
-    { pos++; goto check; }
+    else if (*pos == '\t') { pos++; goto check; }
     else if (*pos == ' ') { pos++; goto check; }
     else if (*pos == '\n') goto end;
     else goto start;
@@ -2068,6 +2067,7 @@ end:
     updateColumn(code);
     updateEditor(code);
 }
+
 static bool processViPosition(Code* code, bool ctrl, bool alt, bool shift) 
 {
     bool clear = !(shift || ctrl || alt);
@@ -2118,6 +2118,16 @@ static bool processViPosition(Code* code, bool ctrl, bool alt, bool shift)
 
     else if (shift && keyWasPressed(code->studio, tic_key_rightbracket))
         seekEmptyLineForward(code);
+
+    else if (shift && keyWasPressed(code->studio, tic_key_5))
+    {
+        const char* pos = findMatchedDelim(code, code->cursor.position);
+        if (pos != NULL) {
+            code->cursor.position = (char*) pos;
+            updateColumn(code);
+            updateEditor(code);
+        }
+    }
 
     else processed = false;
 
