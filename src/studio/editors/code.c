@@ -2178,6 +2178,92 @@ static void seekBackward(Code* code, char sought) {
 }
 
 
+static char* findStringStart(Code* code, char* pos) {
+    char sentinel = *pos; 
+
+    char* target = pos; //we will scan to the given position
+    pos = getLineByPos(code, pos); //from the beginning of the line
+    char* start = NULL;
+                         
+    //goto state machine!
+start:
+    if(pos == target) goto end;
+    else if(*pos == '\\') { pos++; goto escape; }
+    else if (*pos == sentinel) 
+    { 
+        start=start?NULL:pos; 
+        pos++; 
+        goto start;
+    }
+    else { pos++; goto start; }
+escape :
+    if (pos == target) goto end;
+    else { pos++; goto start; }
+end:
+    return start;
+}
+
+static char* findStringEnd(char* pos) {
+    char sentinel = *pos; //can handle single or double quotes
+                         //or anything else I guess 
+    if (*pos == '\0') goto end;
+    else pos++; //move past the sentinel so we don't immediately detect the end
+
+    //goto state machine!
+start:
+    if(*pos == '\0' || *pos == '\n' || *pos == sentinel) goto end;
+    else if(*pos == '\\') { pos++; goto escape; }
+    else { pos++; goto start; }
+escape :
+    if (*pos == '\0' || *pos == '\n') goto end;
+    else { pos++; goto start; }
+end:
+    return pos;
+}
+
+static void handleViChange(Code* code) {
+    //if on a delimiter change the contents of the delimiter
+    if (matchingDelim(*code->cursor.position))
+    {
+        const char* match = findMatchedDelim(code, code->cursor.position);
+        if (match == 0)
+            deleteChar(code);
+        else
+        {
+            if (code->cursor.position > match)
+            {
+                char* temp = code->cursor.position;
+                code->cursor.position = (char*) match;
+                match = temp;
+            }
+            deleteCode(code, code->cursor.position+1, (char*) match);
+            code->cursor.position++;
+        }
+    }
+    //if on a quotation seek to change within the quotation 
+    else if(*code->cursor.position == '"' || *code->cursor.position == '\'') 
+    {
+        char* start = findStringStart(code, code->cursor.position);
+        if (start == NULL) start = code->cursor.position;
+        char* end = findStringEnd(start);
+        start++; //advance one to leave the initial quote alone
+        deleteCode(code, start, end);
+        code->cursor.position = start;
+    }
+    else if(!isalnum_(code, *code->cursor.position)) 
+        deleteChar(code);
+    else  //change the word under the cursor
+    {
+        //only call left word if we are not already on the word border
+        if (
+            code->cursor.position > code->src 
+            && isalnum_(code, *(code->cursor.position-1))
+        )
+            leftWord(code);
+        deleteWord(code);
+    }
+}
+
 static void processViKeyboard(Code* code) 
 {
 
@@ -2354,17 +2440,7 @@ static void processViKeyboard(Code* code)
         else if (clear && keyWasPressed(code->studio, tic_key_c)) 
         {
             setStudioViMode(code->studio, VI_INSERT); 
-            if (!isalnum_(code, *code->cursor.position)) deleteChar(code);
-            else 
-            {
-                //only call left word if we are not already on the word border
-                if (
-                    code->cursor.position > code->src 
-                    && isalnum_(code, *(code->cursor.position-1))
-                )
-                    leftWord(code);
-                deleteWord(code);
-            }
+            handleViChange(code);
         }
 
         else if (shift && keyWasPressed(code->studio, tic_key_c))
