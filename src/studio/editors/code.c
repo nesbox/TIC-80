@@ -996,6 +996,24 @@ static void pageDown(Code* code)
     setCursorPosition(code, column, line < lines - TEXT_BUFFER_HEIGHT ? line + TEXT_BUFFER_HEIGHT : lines);
 }
 
+static void halfPageUp(Code* code)
+{
+    s32 half = TEXT_BUFFER_HEIGHT / 2;
+    s32 column = 0;
+    s32 line = 0;
+    getCursorPosition(code, &column, &line);
+    setCursorPosition(code, column, line > half ? line - half : 0);
+}
+static void halfPageDown(Code* code)
+{
+    s32 half = TEXT_BUFFER_HEIGHT / 2;
+    s32 column = 0;
+    s32 line = 0;
+    getCursorPosition(code, &column, &line);
+    s32 lines = getLinesCount(code);
+    setCursorPosition(code, column, line < lines - half ? line + half : lines);
+}
+
 static void deleteCode(Code* code, char* start, char* end)
 {
     s32 size = (s32)strlen(end) + 1;
@@ -2040,6 +2058,12 @@ static bool processViPosition(Code* code, bool ctrl, bool alt, bool shift)
             code->cursor.position++;
     }
 
+    else if (shift && keyWasPressed(code->studio, tic_key_j))
+        halfPageDown(code);
+
+    else if (shift && keyWasPressed(code->studio, tic_key_k))
+        halfPageUp(code);
+
     else processed = false;
 
     return processed;
@@ -2052,6 +2076,39 @@ static void processViGoto(Code* code, s32 initial)
     code->popup.text[0] = '0' + initial;
     code->popup.text[1] = '\0';
     updateGotoCode(code);
+}
+
+static void seekForward(Code* code, char sought) {
+    char* start = code->cursor.position;
+    code->cursor.position++;
+    while(
+        *code->cursor.position != sought 
+        && *code->cursor.position != '\n' 
+        && *code->cursor.position != 0
+    )
+        code->cursor.position++;
+    if (*code->cursor.position == '\n' || *code->cursor.position == 0)
+        code->cursor.position = start;
+
+    updateColumn(code);
+    updateEditor(code);
+
+}
+static void seekBackward(Code* code, char sought) {
+    char* start = code->cursor.position;
+    code->cursor.position--;
+    while(
+        code->cursor.position > code->src 
+        && *code->cursor.position != sought 
+        && *code->cursor.position != '\n'
+    )
+        code->cursor.position--;
+
+    if (code->cursor.position <= code->src || *code->cursor.position == '\n')
+        code->cursor.position = start;
+
+    updateColumn(code);
+    updateEditor(code);
 }
 
 static void processViKeyboard(Code* code) 
@@ -2123,6 +2180,15 @@ static void processViKeyboard(Code* code)
 
         else if (clear && keyWasPressed(code->studio, tic_key_f))
             setStudioViMode(code->studio, VI_SEEK);
+
+        else if (shift && keyWasPressed(code->studio, tic_key_f))
+            setStudioViMode(code->studio, VI_SEEK_BACK);
+
+        else if(clear && keyWasPressed(code->studio, tic_key_semicolon))
+            seekForward(code, *code->cursor.position);
+
+        else if(shift && keyWasPressed(code->studio, tic_key_semicolon))
+            seekBackward(code, *code->cursor.position);
 
         else if (clear && keyWasPressed(code->studio, tic_key_a)) {
             setStudioViMode(code->studio, VI_INSERT);
@@ -2286,7 +2352,9 @@ static void processViKeyboard(Code* code)
 
         if (processed) updateEditor(code);
 
-    } else if (mode == VI_SEEK) {
+    } 
+    else if (mode == VI_SEEK) 
+    {
 
         if (keyWasPressed(code->studio, tic_key_escape))
             setStudioViMode(code->studio, VI_NORMAL);
@@ -2295,20 +2363,31 @@ static void processViKeyboard(Code* code)
             char sym = getKeyboardText(code->studio);
             if(sym)
             {
-                char* start = code->cursor.position;
-                while(*code->cursor.position != sym && *code->cursor.position != '\n' && *code->cursor.position != 0)
-                    code->cursor.position++;
-                if (*code->cursor.position == '\n' || *code->cursor.position == 0)
-                    code->cursor.position = start;
-
+                seekForward(code, sym);
                 setStudioViMode(code->studio, VI_NORMAL);
-                updateColumn(code);
-                updateEditor(code);
             }
         }
 
 
     }
+    else if (mode == VI_SEEK_BACK) 
+    {
+
+        if (keyWasPressed(code->studio, tic_key_escape))
+            setStudioViMode(code->studio, VI_NORMAL);
+
+        else if (clear || shift) {
+            char sym = getKeyboardText(code->studio);
+            if(sym)
+            {
+                seekBackward(code, sym);
+                setStudioViMode(code->studio, VI_NORMAL);
+            }
+        }
+
+
+    }
+
 }
 
 static void processKeyboard(Code* code)
@@ -2642,6 +2721,7 @@ static void updateFindCode(Code* code, char* pos)
         code->cursor.selection = pos + strlen(code->popup.text);
 
         centerScroll(code);
+        updateColumn(code);
         updateEditor(code);
     }
 }
