@@ -2020,6 +2020,54 @@ static bool clipboardHasNewline()
     return found;
 }
 
+static void seekEmptyLineForward(Code* code) {
+    char* pos = code->cursor.position;
+
+    //goto state machine, one of the few ways to use goto well
+start:
+    if (*pos == '\0') goto end;
+    else if (*pos == '\n') { pos++; goto check; }
+    else { pos++; goto start; }
+
+check:
+    if (*pos == '\0') goto end;
+    else if (*pos == '\t') 
+    { pos++; goto check; }
+    else if (*pos == ' ') { pos++; goto check; }
+    else if (*pos == '\n') goto end;
+    else goto start;
+
+end:
+    code->cursor.position = pos;
+    updateColumn(code);
+    updateEditor(code);
+
+}
+
+static void seekEmptyLineBackward(Code* code) {
+    char* pos = code->cursor.position;
+
+    if (pos == code->src) return;
+    else pos--; //need to start one behind so we don't match the one we are on
+
+    //goto state machine, one of the few ways to use goto well
+start:
+    if (pos == code->src) goto end;
+    else if (*pos == '\n') { pos--; goto check; }
+    else { pos--; goto start; }
+
+check:
+    if (pos == code->src) goto end;
+    else if (*pos == '\t') { pos--; goto check; }
+    else if (*pos == ' ') { pos--; goto check; }
+    else if (*pos == '\n') { pos++; goto end; }
+    else goto start;
+
+end:
+    code->cursor.position = pos;
+    updateColumn(code);
+    updateEditor(code);
+}
 static bool processViPosition(Code* code, bool ctrl, bool alt, bool shift) 
 {
     bool clear = !(shift || ctrl || alt);
@@ -2065,6 +2113,12 @@ static bool processViPosition(Code* code, bool ctrl, bool alt, bool shift)
     else if (shift && keyWasPressed(code->studio, tic_key_k))
         halfPageUp(code);
 
+    else if (shift && keyWasPressed(code->studio, tic_key_leftbracket))
+        seekEmptyLineBackward(code);
+
+    else if (shift && keyWasPressed(code->studio, tic_key_rightbracket))
+        seekEmptyLineForward(code);
+
     else processed = false;
 
     return processed;
@@ -2085,10 +2139,10 @@ static void seekForward(Code* code, char sought) {
     while(
         *code->cursor.position != sought 
         && *code->cursor.position != '\n' 
-        && *code->cursor.position != 0
+        && *code->cursor.position != '\0'
     )
         code->cursor.position++;
-    if (*code->cursor.position == '\n' || *code->cursor.position == 0)
+    if (*code->cursor.position == '\n' || *code->cursor.position == '\0')
         code->cursor.position = start;
 
     updateColumn(code);
@@ -2111,6 +2165,7 @@ static void seekBackward(Code* code, char sought) {
     updateColumn(code);
     updateEditor(code);
 }
+
 
 static void processViKeyboard(Code* code) 
 {
