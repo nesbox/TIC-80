@@ -2122,7 +2122,8 @@ static bool processViPosition(Code* code, bool ctrl, bool alt, bool shift)
     else if (shift && keyWasPressed(code->studio, tic_key_5))
     {
         const char* pos = findMatchedDelim(code, code->cursor.position);
-        if (pos != NULL) {
+        if (pos != NULL) 
+        {
             code->cursor.position = (char*) pos;
             updateColumn(code);
             updateEditor(code);
@@ -2375,6 +2376,11 @@ static void processViKeyboard(Code* code)
             code->cursor.position = start;
         }
 
+        else if (shift && keyWasPressed(code->studio, tic_key_comma))
+            doTab(code, true, false);
+        else if (shift && keyWasPressed(code->studio, tic_key_period))
+            doTab(code, false, true);
+
         else processed = false;
 
         if (processed) updateEditor(code);
@@ -2419,6 +2425,12 @@ static void processViKeyboard(Code* code)
             code->cursor.position = code->cursor.selection;
             code->cursor.selection = NULL;
         }
+
+        else if (shift && keyWasPressed(code->studio, tic_key_comma))
+            doTab(code, true, false);
+        else if (shift && keyWasPressed(code->studio, tic_key_period))
+            doTab(code, false, true);
+
 
         else processed = false;
 
