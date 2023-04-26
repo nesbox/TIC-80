@@ -2121,6 +2121,9 @@ static void processViKeyboard(Code* code)
         else if (clear && keyWasPressed(code->studio, tic_key_i)) 
             setStudioViMode(code->studio, VI_INSERT);
 
+        else if (clear && keyWasPressed(code->studio, tic_key_f))
+            setStudioViMode(code->studio, VI_SEEK);
+
         else if (clear && keyWasPressed(code->studio, tic_key_a)) {
             setStudioViMode(code->studio, VI_INSERT);
             rightColumn(code);
@@ -2201,7 +2204,7 @@ static void processViKeyboard(Code* code)
         else if (clear && keyWasPressed(code->studio, tic_key_z))
             recenterScroll(code, true); //use emacs mode because it is nice
 
-        else if (clear && keyWasPressed(code->studio, tic_key_semicolon))
+        else if (shift && keyWasPressed(code->studio, tic_key_3))
             commentLine(code);
 
         else if (clear && keyWasPressed(code->studio, tic_key_x))
@@ -2221,7 +2224,12 @@ static void processViKeyboard(Code* code)
             if (!isalnum_(code, *code->cursor.position)) deleteChar(code);
             else 
             {
-                leftWord(code);
+                //only call left word if we are not already on the word border
+                if (
+                    code->cursor.position > code->src 
+                    && isalnum_(code, *(code->cursor.position-1))
+                )
+                    leftWord(code);
                 deleteWord(code);
             }
         }
@@ -2277,6 +2285,28 @@ static void processViKeyboard(Code* code)
         else processed = false;
 
         if (processed) updateEditor(code);
+
+    } else if (mode == VI_SEEK) {
+
+        if (keyWasPressed(code->studio, tic_key_escape))
+            setStudioViMode(code->studio, VI_NORMAL);
+
+        else if (clear || shift) {
+            char sym = getKeyboardText(code->studio);
+            if(sym)
+            {
+                char* start = code->cursor.position;
+                while(*code->cursor.position != sym && *code->cursor.position != '\n' && *code->cursor.position != 0)
+                    code->cursor.position++;
+                if (*code->cursor.position == '\n' || *code->cursor.position == 0)
+                    code->cursor.position = start;
+
+                setStudioViMode(code->studio, VI_NORMAL);
+                updateColumn(code);
+                updateEditor(code);
+            }
+        }
+
 
     }
 }

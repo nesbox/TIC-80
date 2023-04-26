@@ -118,6 +118,7 @@ typedef enum
     VI_NORMAL,
     VI_INSERT,
     VI_SELECT,
+    VI_SEEK
 } ViMode;
 
 enum
