@@ -93,7 +93,7 @@ static void unpackState(Code* code, bool pos_undo)
         //we were about to make the change
         //ternary to make sure we don't go one before the beginning
         if (pos_undo) 
-            code->cursor.position = first_change == src ? src : (first_change - 1);
+            code->cursor.position = first_change == code->src ? code->src : (first_change - 1);
 
         else code->cursor.position = stored_pos;
     }
@@ -1408,6 +1408,7 @@ static void copyFromClipboard(Code* code, bool killSelection)
 
 static void update(Code* code)
 {
+    updateColumn(code);
     updateEditor(code);
     parseSyntaxColor(code);
 }
@@ -1801,8 +1802,6 @@ static void addCommentToLine(Code* code, char* line, size_t size, const char* co
 
     code->cursor.selection = NULL;
 
-    history(code);
-
     parseSyntaxColor(code);
 }
 
@@ -1935,6 +1934,8 @@ static void commentLine(Code* code)
 
     }
     else addCommentToLine(code, getLine(code), size, comment);
+
+    history(code);
 }
 
 static void dupLine(Code* code)
@@ -2323,6 +2324,12 @@ static void processViKeyboard(Code* code)
 
         else if (keyWasPressed(code->studio, tic_key_escape))
             setStudioViMode(code->studio, VI_NORMAL);
+
+        else if (shift && keyWasPressed(code->studio, tic_key_3)) 
+        {
+            commentLine(code);
+            setStudioViMode(code->studio, VI_NORMAL);
+        }
 
         else if (clear && keyWasPressed(code->studio, tic_key_y)) 
         {
