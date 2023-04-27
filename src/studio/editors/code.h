@@ -85,10 +85,10 @@ struct Code
     {
         TEXT_DRAG_CODE,
         TEXT_FIND_MODE,
-        TEXT_REPLACE_MODE,
         TEXT_GOTO_MODE,
         TEXT_BOOKMARK_MODE,
         TEXT_OUTLINE_MODE,
+        TEXT_REPLACE_MODE,
         TEXT_EDIT_MODE,
     } mode;
 
