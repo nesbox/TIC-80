@@ -2345,21 +2345,42 @@ static void processViKeyboard(Code* code)
         else if(shift && keyWasPressed(code->studio, tic_key_semicolon))
             seekBackward(code, *code->cursor.position);
 
-        else if (clear && keyWasPressed(code->studio, tic_key_a)) {
+        else if (clear && keyWasPressed(code->studio, tic_key_a)) 
+        {
             setStudioViMode(code->studio, VI_INSERT);
             rightColumn(code);
         }
-        else if (clear && keyWasPressed(code->studio, tic_key_o)) {
+        else if (clear && keyWasPressed(code->studio, tic_key_o)) 
+        {
             setStudioViMode(code->studio, VI_INSERT);
             goEnd(code);
             newLine(code);
         }
-        else if (shift && keyWasPressed(code->studio, tic_key_o)) {
+
+        else if (shift && keyWasPressed(code->studio, tic_key_o)) 
+        {
             setStudioViMode(code->studio, VI_INSERT);
             goHome(code);
             newLine(code);
             upLine(code);
         }
+        else if (clear && keyWasPressed(code->studio, tic_key_space)) 
+        {
+            size_t col = code->cursor.column;
+            goEnd(code);
+            newLine(code);
+            code->cursor.column = col;
+            upLine(code);
+        }
+        else if (shift && keyWasPressed(code->studio, tic_key_space)) 
+        {
+            size_t col = code->cursor.column;
+            goHome(code);
+            newLine(code);
+            code->cursor.position += col;
+            updateColumn(code);
+        }
+
         else if (clear && keyWasPressed(code->studio, tic_key_v))
             setStudioViMode(code->studio, VI_SELECT);
 
