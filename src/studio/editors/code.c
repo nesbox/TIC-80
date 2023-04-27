@@ -1708,7 +1708,10 @@ static void setCodeMode(Code* code, s32 mode)
     {
         code->anim.movie = resetMovie(&code->anim.show);
 
-        strcpy(code->popup.text, "");
+        //so that in edit mode we can refer back to the most recently
+        //searched thing if we want
+        if (mode != TEXT_EDIT_MODE)
+            strcpy(code->popup.text, "");
 
         code->popup.offset = NULL;
         code->popup.prevPos = code->cursor.position;
@@ -2021,6 +2024,31 @@ static bool clipboardHasNewline()
     }
     return found;
 }
+
+static char* upStrStr(const char* start, const char* from, const char* substr)
+{
+    const char* ptr = from-1;
+    size_t len = strlen(substr);
+
+    if(len > 0)
+    {
+        while(ptr >= start)
+        {
+            if(memcmp(ptr, substr, len) == 0)
+                return (char*)ptr;
+
+            ptr--;
+        }
+    }
+
+    return NULL;
+}
+
+static char* downStrStr(const char* start, const char* from, const char* substr)
+{
+    return strstr(from, substr);
+}
+
 
 static void seekEmptyLineForward(Code* code) {
     char* pos = code->cursor.position;
@@ -2387,6 +2415,49 @@ static void processViKeyboard(Code* code)
         else if (clear && keyWasPressed(code->studio, tic_key_slash)) 
             setCodeMode(code, TEXT_FIND_MODE);
 
+        else if(clear && keyWasPressed(code->studio, tic_key_n))
+        {
+            if (*code->popup.text) 
+            {
+                char* pos = downStrStr(code->src, code->cursor.position, code->popup.text);
+                if (pos == code->cursor.position)
+                {
+                    pos += strlen(code->popup.text);
+                    pos = downStrStr(code->src, pos, code->popup.text);
+                }
+                if (pos == NULL)
+                    pos = downStrStr(code->src, code->src, code->popup.text);
+                if (pos != NULL)
+                {
+                    code->cursor.position = pos;
+                    centerScroll(code);
+                    updateColumn(code);
+                }
+            }
+        }
+
+        else if(shift && keyWasPressed(code->studio, tic_key_n))
+        {
+            if (*code->popup.text) 
+            {
+                char* pos = upStrStr(code->src, code->cursor.position, code->popup.text);
+                if (pos == code->cursor.position)
+                {
+                    pos -= strlen(code->popup.text);
+                    pos = downStrStr(code->src, pos, code->popup.text);
+                }
+                if (pos == NULL)
+                    pos = upStrStr(code->src, code->src+strlen(code->src), code->popup.text);
+                if (pos != NULL)
+                {
+                    code->cursor.position = pos;
+                    centerScroll(code);
+                    updateColumn(code);
+                }
+            }
+        }
+
+
         else if (clear && keyWasPressed(code->studio, tic_key_s))
             setCodeMode(code, TEXT_REPLACE_MODE);
 
@@ -2538,11 +2609,13 @@ static void processViKeyboard(Code* code)
             setStudioViMode(code->studio, VI_NORMAL);
             setCodeMode(code, TEXT_FIND_MODE);
         }
+
         else if (clear && keyWasPressed(code->studio, tic_key_s))
         {
             setStudioViMode(code->studio, VI_NORMAL);
             setCodeMode(code, TEXT_REPLACE_MODE);
         }
+
 
         else processed = false;
 
@@ -2922,30 +2995,6 @@ static void updateFindCode(Code* code, char* pos)
     }
 }
 
-static char* upStrStr(const char* start, const char* from, const char* substr)
-{
-    const char* ptr = from-1;
-    size_t len = strlen(substr);
-
-    if(len > 0)
-    {
-        while(ptr >= start)
-        {
-            if(memcmp(ptr, substr, len) == 0)
-                return (char*)ptr;
-
-            ptr--;
-        }
-    }
-
-    return NULL;
-}
-
-static char* downStrStr(const char* start, const char* from, const char* substr)
-{
-    return strstr(from, substr);
-}
-
 static void textFindTick(Code* code)
 {
 
@@ -2975,35 +3024,6 @@ static void textFindTick(Code* code)
     }
 
     char sym = getKeyboardText(code->studio);
-
-    //needs to go here so we can null out sym so it does not get added to search term
-    if (getConfig(code->studio)->options.keybindMode == KEYBIND_VI) {
-        bool alt = tic_api_key(code->tic, tic_key_alt);
-
-        if (alt && keyWasPressed(code->studio, tic_key_j)) 
-        {
-            if (*code->popup.text) 
-            {
-                char* from = MIN(code->cursor.position, code->cursor.selection);
-                char* pos = upStrStr(code->src, from, code->popup.text);
-                updateFindCode(code, pos);
-                sym = 0;
-            }
-        }
-        else if (alt && keyWasPressed(code->studio, tic_key_k)) 
-        {
-            if (*code->popup.text) 
-            {
-                char* from = MAX(code->cursor.position, code->cursor.selection);
-                char* pos = downStrStr(code->src, from, code->popup.text);
-                updateFindCode(code, pos);
-                sym = 0;
-            }
-
-        }
-
-    }
-
     if(sym)
     {
         if(strlen(code->popup.text) + 1 < sizeof code->popup.text)
@@ -3232,19 +3252,6 @@ static void processSidebar(Code* code)
             code->sidebar.scroll += delta;
             normSidebarScroll(code);
         }
-    }
-
-    if (getConfig(code->studio)->options.keybindMode == KEYBIND_VI) {
-        bool alt = tic_api_key(code->tic, tic_key_alt);
-
-        bool processed = true;
-        if (alt && keyWasPressed(code->studio, tic_key_j))
-            updateSidebarIndex(code, code->sidebar.index - 1);
-        else if (alt && keyWasPressed(code->studio, tic_key_k))
-            updateSidebarIndex(code, code->sidebar.index + 1);
-        else processed = false;
-
-        if (processed) return;
     }
 
     if(keyWasPressed(code->studio, tic_key_up))
