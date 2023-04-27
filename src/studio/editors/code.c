@@ -2533,6 +2533,16 @@ static void processViKeyboard(Code* code)
         else if (shift && keyWasPressed(code->studio, tic_key_period))
             doTab(code, false, true);
 
+        else if (clear && keyWasPressed(code->studio, tic_key_slash)) 
+        {
+            setStudioViMode(code->studio, VI_NORMAL);
+            setCodeMode(code, TEXT_FIND_MODE);
+        }
+        else if (clear && keyWasPressed(code->studio, tic_key_s))
+        {
+            setStudioViMode(code->studio, VI_NORMAL);
+            setCodeMode(code, TEXT_REPLACE_MODE);
+        }
 
         else processed = false;
 
