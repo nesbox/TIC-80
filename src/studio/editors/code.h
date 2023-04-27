@@ -85,6 +85,7 @@ struct Code
     {
         TEXT_DRAG_CODE,
         TEXT_FIND_MODE,
+        TEXT_REPLACE_MODE,
         TEXT_GOTO_MODE,
         TEXT_BOOKMARK_MODE,
         TEXT_OUTLINE_MODE,
@@ -94,6 +95,7 @@ struct Code
     struct
     {
         char text[STUDIO_TEXT_BUFFER_WIDTH - sizeof "FIND:"];
+        char* offset;
 
         char* prevPos;
         char* prevSel;

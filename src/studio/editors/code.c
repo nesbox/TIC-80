@@ -1508,7 +1508,7 @@ static void newLineAutoClose(Code* code)
     }
 }
 
-static void setFindMode(Code* code)
+static void setFindOrReplaceMode(Code* code)
 {
     if(code->cursor.selection)
     {
@@ -1710,12 +1710,14 @@ static void setCodeMode(Code* code, s32 mode)
 
         strcpy(code->popup.text, "");
 
+        code->popup.offset = NULL;
         code->popup.prevPos = code->cursor.position;
         code->popup.prevSel = code->cursor.selection;
 
         switch(mode)
         {
-        case TEXT_FIND_MODE: setFindMode(code); break;
+        case TEXT_FIND_MODE: setFindOrReplaceMode(code); break;
+        case TEXT_REPLACE_MODE: setFindOrReplaceMode(code); break;
         case TEXT_GOTO_MODE: setGotoMode(code); break;
         case TEXT_BOOKMARK_MODE: setBookmarkMode(code); break;
         case TEXT_OUTLINE_MODE: setOutlineMode(code); break;
@@ -2364,6 +2366,9 @@ static void processViKeyboard(Code* code)
         else if (clear && keyWasPressed(code->studio, tic_key_slash)) 
             setCodeMode(code, TEXT_FIND_MODE);
 
+        else if (clear && keyWasPressed(code->studio, tic_key_s))
+            setCodeMode(code, TEXT_REPLACE_MODE);
+
         else if (clear && keyWasPressed(code->studio, tic_key_u)) undo(code);
         else if (clear && keyWasPressed(code->studio, tic_key_r)) redo(code);
 
@@ -2985,6 +2990,69 @@ static void textFindTick(Code* code)
     drawStatus(code);
 }
 
+static void textReplaceTick(Code* code)
+{
+
+    if(keyWasPressed(code->studio, tic_key_return)) {
+        if (*code->popup.text && code->popup.offset == NULL) //still in "find" mode
+        {
+            code->popup.offset = code->popup.text + strlen(code->popup.text);
+            strcat(code->popup.text, " WITH:");
+        }
+        else if(*code->popup.text)
+        {
+            *code->popup.offset = 0;
+            code->popup.offset += strlen(" WITH:");
+            //execute the replace 
+            char* pos = downStrStr(code->src, code->src, code->popup.text);
+            size_t src_length = strlen(code->src);
+            while(pos != NULL)
+            {
+                deleteCode(code, pos, pos+strlen(code->popup.text));
+                insertCode(code, pos, code->popup.offset);
+                pos += strlen(code->popup.offset);
+                if (pos - code->src > src_length) pos = code->src + src_length;
+
+                pos = downStrStr(code->src, pos, code->popup.text);
+            } 
+            history(code);
+            updateEditor(code);
+            parseSyntaxColor(code);
+            setCodeMode(code, TEXT_EDIT_MODE);
+        }
+    }
+
+    else if(keyWasPressed(code->studio, tic_key_backspace))
+    {
+        if(*code->popup.text && code->popup.offset == NULL)
+        {
+            code->popup.text[strlen(code->popup.text)-1] = '\0';
+        } 
+        else if (*code->popup.text) 
+        {
+            if (strlen(code->popup.offset) - strlen(" WITH:") > 0)
+                code->popup.text[strlen(code->popup.text)-1] = '\0';
+        }
+
+    }
+
+    char sym = getKeyboardText(code->studio);
+    if(sym)
+    {
+        if(strlen(code->popup.text) + 1 < sizeof code->popup.text)
+        {
+            char str[] = {sym , 0};
+            strcat(code->popup.text, str);
+        }
+    }
+
+    tic_api_cls(code->tic, getConfig(code->studio)->theme.code.BG);
+
+    drawCode(code, false);
+    drawPopupBar(code, "REPL:");
+    drawStatus(code);
+}
+
 static void updateGotoCode(Code* code)
 {
     s32 line = atoi(code->popup.text);
@@ -3356,6 +3424,7 @@ static void tick(Code* code)
     case TEXT_DRAG_CODE:    textDragTick(code);     break;
     case TEXT_EDIT_MODE:    textEditTick(code);     break;
     case TEXT_FIND_MODE:    textFindTick(code);     break;
+    case TEXT_REPLACE_MODE: textReplaceTick(code);   break;
     case TEXT_GOTO_MODE:    textGoToTick(code);     break;
     case TEXT_BOOKMARK_MODE:textBookmarkTick(code); break;
     case TEXT_OUTLINE_MODE: textOutlineTick(code);  break;
