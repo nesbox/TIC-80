@@ -2250,7 +2250,6 @@ escape :
 end:
     return pos;
 }
-
 static void handleViChange(Code* code) {
     //if on a delimiter change the contents of the delimiter
     if (matchingDelim(*code->cursor.position))
@@ -2520,7 +2519,7 @@ static void processViKeyboard(Code* code)
         else if (clear && keyWasPressed(code->studio, tic_key_z))
             recenterScroll(code, true); //use emacs mode because it is nice
 
-        else if (shift && keyWasPressed(code->studio, tic_key_3))
+        else if (clear && keyWasPressed(code->studio, tic_key_minus))
             commentLine(code);
 
         else if (clear && keyWasPressed(code->studio, tic_key_x))
@@ -2569,7 +2568,7 @@ static void processViKeyboard(Code* code)
         else if (keyWasPressed(code->studio, tic_key_escape))
             setStudioViMode(code->studio, VI_NORMAL);
 
-        else if (shift && keyWasPressed(code->studio, tic_key_3)) 
+        else if (clear && keyWasPressed(code->studio, tic_key_minus)) 
         {
             commentLine(code);
             setStudioViMode(code->studio, VI_NORMAL);
