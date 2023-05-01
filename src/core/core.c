@@ -551,7 +551,11 @@ void tic_core_close(tic_mem* memory)
     blip_delete(core->blip.left);
     blip_delete(core->blip.right);
 
+#ifdef _3DS
+    linearFree(memory->product.screen);
+#else
     free(memory->product.screen);
+#endif
     free(memory->product.samples.buffer);
     free(core);
 }
