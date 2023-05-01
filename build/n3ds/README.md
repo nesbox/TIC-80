@@ -2,7 +2,7 @@
 
 ## Requirements
 
-* devkitARM (tested on release 54, please use latest) + the 3ds-dev meta package
+* devkitARM (tested on release 60, please use latest) + the 3ds-dev meta package
 * the following additional packages:
     * devkitpro-pkgbuild-helpers
     * 3ds-libpng
@@ -13,7 +13,7 @@
 
 ```
 cd build
-cmake .. -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/3ds.cmake -DN3DS=TRUE
+cmake .. -DCMAKE_TOOLCHAIN_FILE=$DEVKITPRO/cmake/3DS.cmake -DN3DS=TRUE
 make
 ```
 

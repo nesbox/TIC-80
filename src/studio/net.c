@@ -144,7 +144,7 @@ void tic_net_close(tic_net* net)
     free(net);
 }
 
-#elif defined(_3DS)
+#elif defined(__3DS__)
 
 #include <3ds.h>
 

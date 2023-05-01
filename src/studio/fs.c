@@ -24,7 +24,7 @@
 #include "fs.h"
 #include "net.h"
 
-#if defined(BAREMETALPI) || defined(_3DS)
+#if defined(BAREMETALPI) || defined(__3DS__)
   #ifdef EN_DEBUG
     #define dbg(...) printf(__VA_ARGS__)
   #else

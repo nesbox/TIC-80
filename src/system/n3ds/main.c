@@ -163,7 +163,10 @@ void tic_sys_clipboard_set(const char* text)
         platform.clipboard = NULL;
     }
 
-    platform.clipboard = strdup(text);
+    if(text)
+    {
+        platform.clipboard = strdup(text);
+    }
 }
 
 bool tic_sys_clipboard_has()
@@ -576,7 +579,7 @@ int main(int argc, char **argv) {
     romfsInit();
 
     memset(&platform, 0, sizeof(platform));
-   
+
     n3ds_draw_init();
     n3ds_keyboard_init(&platform.keyboard);
 
