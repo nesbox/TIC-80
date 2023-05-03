@@ -401,12 +401,12 @@ target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/sqstdlib)
 
 set(POCKETPY_DIR ${THIRDPARTY_DIR}/pocketpy)
 set(POCKETPY_SRC
-    ${POCKETPY_DIR}/pocketpy.cpp
+    ${POCKETPY_DIR}/pocketpy_c.cpp
 )
 
 add_library(pocketpy STATIC ${POCKETPY_SRC})
 set_target_properties(pocketpy PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(pocketpy PROPERTIES COMPILE_FLAGS "--std=c++17 -stdlib=libc++")
+set_target_properties(pocketpy PROPERTIES COMPILE_FLAGS "--std=c++17")
 target_include_directories(pocketpy PUBLIC ${POCKETPY_DIR})
 
 ################################

@@ -222,6 +222,30 @@ tic_script_config_extra JanetSyntaxConfigExtra =
 
 #endif
 
+#if defined(TIC_BUILD_WITH_PYTHON)
+
+static const u8 PythonDemoRom[] =
+  {
+#include "../build/assets/pythondemo.tic.dat"
+  };
+
+static const u8 pythonmark[] =
+  {
+#include "../build/assets/pythonmark.tic.dat"
+  };
+
+tic_script_config_extra PythonSyntaxConfigExtra =
+  {
+    .name               = "python",
+    .demoRom            = PythonDemoRom,
+    .demoRomSize        = sizeof PythonDemoRom,
+    .markRom            = pythonmark,
+    .markRomSize        = sizeof pythonmark,
+  };
+
+#endif
+
+
 tic_script_config_extra* getConfigExtra(const tic_script_config* config)
 {
 
@@ -266,6 +290,9 @@ tic_script_config_extra* LanguagesExtra[] = {
 #endif
 #if defined(TIC_BUILD_WITH_JANET)
    &JanetSyntaxConfigExtra,
+#endif
+#if defined(TIC_BUILD_WITH_PYTHON)
+   &PythonSyntaxConfigExtra,
 #endif
    NULL
 };
