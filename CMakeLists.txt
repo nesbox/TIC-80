@@ -406,7 +406,7 @@ set(POCKETPY_SRC
 
 add_library(pocketpy STATIC ${POCKETPY_SRC})
 set_target_properties(pocketpy PROPERTIES LINKER_LANGUAGE CXX)
-set_target_properties(pocketpy PROPERTIES COMPILE_FLAGS "--std=c++17")
+target_compile_features(pocketpy PRIVATE cxx_std_17)
 target_include_directories(pocketpy PUBLIC ${POCKETPY_DIR})
 
 ################################
