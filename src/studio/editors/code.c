@@ -2098,7 +2098,8 @@ end:
     updateEditor(code);
 }
 
-static void seekForward(Code* code, char sought) {
+static void seekForward(Code* code, char sought) 
+{
     char* start = code->cursor.position;
     code->cursor.position++;
     while(
@@ -2114,7 +2115,8 @@ static void seekForward(Code* code, char sought) {
     updateEditor(code);
 
 }
-static void seekBackward(Code* code, char sought) {
+static void seekBackward(Code* code, char sought) 
+{
     char* start = code->cursor.position;
     code->cursor.position--;
     while(
@@ -2131,7 +2133,24 @@ static void seekBackward(Code* code, char sought) {
     updateEditor(code);
 }
 
-
+static void findNextPopupText(Code* code) {
+    if (*code->popup.text) 
+    {
+        char* pos = downStrStr(code->src, code->cursor.position, code->popup.text);
+        if (pos == code->cursor.position)
+        {
+            pos += strlen(code->popup.text);
+            pos = downStrStr(code->src, pos, code->popup.text);
+        }
+        if (pos == NULL)
+            pos = downStrStr(code->src, code->src, code->popup.text);
+        if (pos != NULL)
+        {
+            code->cursor.position = pos;
+            updateColumn(code);
+        }
+    }
+}
 
 static bool processViPosition(Code* code, bool ctrl, bool alt, bool shift) 
 {
@@ -2263,7 +2282,7 @@ escape :
 end:
     return pos;
 }
-static void handleViChange(Code* code) {
+static void processViChange(Code* code) {
     //if on a delimiter change the contents of the delimiter
     if (matchingDelim(*code->cursor.position))
     {
@@ -2425,42 +2444,30 @@ static void processViKeyboard(Code* code)
             setCodeMode(code, TEXT_FIND_MODE);
 
         else if(clear && keyWasPressed(code->studio, tic_key_n))
-        {
-            if (*code->popup.text) 
-            {
-                char* pos = downStrStr(code->src, code->cursor.position, code->popup.text);
-                if (pos == code->cursor.position)
-                {
-                    pos += strlen(code->popup.text);
-                    pos = downStrStr(code->src, pos, code->popup.text);
-                }
-                if (pos == NULL)
-                    pos = downStrStr(code->src, code->src, code->popup.text);
-                if (pos != NULL)
-                {
-                    code->cursor.position = pos;
-                    centerScroll(code);
-                    updateColumn(code);
-                }
-            }
-        }
+            findNextPopupText(code);
 
+        else if(shift && keyWasPressed(code->studio, tic_key_3))
+        {
+            char* word_start = leftPos(code, code->cursor.position, isalnum_);
+            char* word_end = rightPos(code, code->cursor.position, isalnum_);
+            size_t size = word_end - word_start;
+            if (size+1 < STUDIO_TEXT_BUFFER_WIDTH)
+            {
+                memcpy(code->popup.text, word_start, size);
+                code->popup.text[size] = 0;
+            }
+            findNextPopupText(code);
+        }
         else if(shift && keyWasPressed(code->studio, tic_key_n))
         {
             if (*code->popup.text) 
             {
                 char* pos = upStrStr(code->src, code->cursor.position, code->popup.text);
-                if (pos == code->cursor.position)
-                {
-                    pos -= strlen(code->popup.text);
-                    pos = downStrStr(code->src, pos, code->popup.text);
-                }
                 if (pos == NULL)
                     pos = upStrStr(code->src, code->src+strlen(code->src), code->popup.text);
                 if (pos != NULL)
                 {
                     code->cursor.position = pos;
-                    centerScroll(code);
                     updateColumn(code);
                 }
             }
@@ -2554,7 +2561,7 @@ static void processViKeyboard(Code* code)
         else if (clear && keyWasPressed(code->studio, tic_key_c)) 
         {
             setStudioViMode(code->studio, VI_INSERT); 
-            handleViChange(code);
+            processViChange(code);
         }
 
         else if (shift && keyWasPressed(code->studio, tic_key_c))
