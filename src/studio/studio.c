@@ -1248,6 +1248,10 @@ void setStudioMode(Studio* studio, EditorMode mode)
         music->tab = (music->tab + 1) % MUSIC_TAB_COUNT;
     }
 #endif
+
+#if defined(BUILD_EDITORS)
+    studio->viMode = 0;
+#endif
 }
 
 EditorMode getStudioMode(Studio* studio)
