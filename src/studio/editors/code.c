@@ -3077,7 +3077,13 @@ static void textReplaceTick(Code* code)
             *code->popup.offset = 0;
             code->popup.offset += strlen(" WITH:");
             //execute the replace 
-            char* pos = downStrStr(code->src, code->src, code->popup.text);
+
+            //if we have a selection only replace within the selection
+            char* start = code->src;
+            if (code->cursor.selection != NULL)
+                start = code->cursor.selection;
+
+            char* pos = downStrStr(start, start, code->popup.text);
             size_t src_length = strlen(code->src);
             while(pos != NULL)
             {
@@ -3087,6 +3093,8 @@ static void textReplaceTick(Code* code)
                 if (pos - code->src > src_length) pos = code->src + src_length;
 
                 pos = downStrStr(code->src, pos, code->popup.text);
+                if (code->cursor.selection != NULL && pos > code->cursor.position)
+                    break;
             } 
             history(code);
             updateEditor(code);
