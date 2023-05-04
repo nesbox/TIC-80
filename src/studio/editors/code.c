@@ -2467,11 +2467,11 @@ static void processViKeyboard(Code* code)
         }
 
 
-        else if (clear && keyWasPressed(code->studio, tic_key_s))
+        else if (clear && keyWasPressed(code->studio, tic_key_r))
             setCodeMode(code, TEXT_REPLACE_MODE);
 
         else if (clear && keyWasPressed(code->studio, tic_key_u)) undo(code);
-        else if (clear && keyWasPressed(code->studio, tic_key_r)) redo(code);
+        else if (shift && keyWasPressed(code->studio, tic_key_u)) redo(code);
 
         else if (clear && keyWasPressed(code->studio, tic_key_p)) 
         {
@@ -2495,10 +2495,10 @@ static void processViKeyboard(Code* code)
                 code->cursor.position = pos;
             } else copyFromClipboard(code, false);
         }
-        else if (shift && keyWasPressed(code->studio, tic_key_f)) 
+        else if (alt && keyWasPressed(code->studio, tic_key_f)) 
             code->altFont = !code->altFont;
 
-        else if (shift && keyWasPressed(code->studio, tic_key_s)) 
+        else if (alt && keyWasPressed(code->studio, tic_key_s)) 
             code->shadowText = !code->shadowText;
 
         else if (clear && keyWasPressed(code->studio, tic_key_1)) processViGoto(code, 1);
@@ -2625,7 +2625,7 @@ static void processViKeyboard(Code* code)
             setCodeMode(code, TEXT_FIND_MODE);
         }
 
-        else if (clear && keyWasPressed(code->studio, tic_key_s))
+        else if (clear && keyWasPressed(code->studio, tic_key_r))
         {
             setStudioViMode(code->studio, VI_NORMAL);
             setCodeMode(code, TEXT_REPLACE_MODE);
