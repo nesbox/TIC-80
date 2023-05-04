@@ -2306,6 +2306,15 @@ static void handleViChange(Code* code) {
     }
 }
 
+static char toggleCase(char c) {
+    if (isupper(c))
+        return tolower(c);
+    else if(islower(c))
+        return toupper(c);
+    else
+        return c;
+}
+
 static void processViKeyboard(Code* code) 
 {
 
@@ -2526,6 +2535,12 @@ static void processViKeyboard(Code* code)
         else if (clear && keyWasPressed(code->studio, tic_key_x))
             deleteChar(code);
 
+        else if (shift && keyWasPressed(code->studio, tic_key_grave))
+        {
+            *code->cursor.position = toggleCase(*code->cursor.position);
+            history(code);
+        }
+
         else if (clear && keyWasPressed(code->studio, tic_key_d))
             cutToClipboard(code, false); //it seems like if there is not selection it will act on the current line by default, how nice
 
@@ -2616,6 +2631,12 @@ static void processViKeyboard(Code* code)
             setCodeMode(code, TEXT_REPLACE_MODE);
         }
 
+        else if (shift && keyWasPressed(code->studio, tic_key_grave))
+        {
+            for(char* i = code->cursor.selection ;i != code->cursor.position; i++)
+                *i = toggleCase(*i);
+            history(code);
+        }
 
         else processed = false;
 
