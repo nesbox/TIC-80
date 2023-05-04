@@ -2098,6 +2098,41 @@ end:
     updateEditor(code);
 }
 
+static void seekForward(Code* code, char sought) {
+    char* start = code->cursor.position;
+    code->cursor.position++;
+    while(
+        *code->cursor.position != sought 
+        && *code->cursor.position != '\n' 
+        && *code->cursor.position != '\0'
+    )
+        code->cursor.position++;
+    if (*code->cursor.position == '\n' || *code->cursor.position == '\0')
+        code->cursor.position = start;
+
+    updateColumn(code);
+    updateEditor(code);
+
+}
+static void seekBackward(Code* code, char sought) {
+    char* start = code->cursor.position;
+    code->cursor.position--;
+    while(
+        code->cursor.position > code->src 
+        && *code->cursor.position != sought 
+        && *code->cursor.position != '\n'
+    )
+        code->cursor.position--;
+
+    if (code->cursor.position <= code->src || *code->cursor.position == '\n')
+        code->cursor.position = start;
+
+    updateColumn(code);
+    updateEditor(code);
+}
+
+
+
 static bool processViPosition(Code* code, bool ctrl, bool alt, bool shift) 
 {
     bool clear = !(shift || ctrl || alt);
@@ -2160,6 +2195,18 @@ static bool processViPosition(Code* code, bool ctrl, bool alt, bool shift)
         }
     }
 
+    else if (clear && keyWasPressed(code->studio, tic_key_f))
+        setStudioViMode(code->studio, VI_SEEK);
+
+    else if (shift && keyWasPressed(code->studio, tic_key_f))
+        setStudioViMode(code->studio, VI_SEEK_BACK);
+
+    else if(clear && keyWasPressed(code->studio, tic_key_semicolon))
+        seekForward(code, *code->cursor.position);
+
+    else if(shift && keyWasPressed(code->studio, tic_key_semicolon))
+        seekBackward(code, *code->cursor.position);
+
     else processed = false;
 
     return processed;
@@ -2173,40 +2220,6 @@ static void processViGoto(Code* code, s32 initial)
     code->popup.text[1] = '\0';
     updateGotoCode(code);
 }
-
-static void seekForward(Code* code, char sought) {
-    char* start = code->cursor.position;
-    code->cursor.position++;
-    while(
-        *code->cursor.position != sought 
-        && *code->cursor.position != '\n' 
-        && *code->cursor.position != '\0'
-    )
-        code->cursor.position++;
-    if (*code->cursor.position == '\n' || *code->cursor.position == '\0')
-        code->cursor.position = start;
-
-    updateColumn(code);
-    updateEditor(code);
-
-}
-static void seekBackward(Code* code, char sought) {
-    char* start = code->cursor.position;
-    code->cursor.position--;
-    while(
-        code->cursor.position > code->src 
-        && *code->cursor.position != sought 
-        && *code->cursor.position != '\n'
-    )
-        code->cursor.position--;
-
-    if (code->cursor.position <= code->src || *code->cursor.position == '\n')
-        code->cursor.position = start;
-
-    updateColumn(code);
-    updateEditor(code);
-}
-
 
 static char* findStringStart(Code* code, char* pos) {
     char sentinel = *pos; 
@@ -2359,18 +2372,6 @@ static void processViKeyboard(Code* code)
 
         else if (clear && keyWasPressed(code->studio, tic_key_i)) 
             setStudioViMode(code->studio, VI_INSERT);
-
-        else if (clear && keyWasPressed(code->studio, tic_key_f))
-            setStudioViMode(code->studio, VI_SEEK);
-
-        else if (shift && keyWasPressed(code->studio, tic_key_f))
-            setStudioViMode(code->studio, VI_SEEK_BACK);
-
-        else if(clear && keyWasPressed(code->studio, tic_key_semicolon))
-            seekForward(code, *code->cursor.position);
-
-        else if(shift && keyWasPressed(code->studio, tic_key_semicolon))
-            seekBackward(code, *code->cursor.position);
 
         else if (clear && keyWasPressed(code->studio, tic_key_a)) 
         {
@@ -2632,11 +2633,12 @@ static void processViKeyboard(Code* code)
             if(sym)
             {
                 seekForward(code, sym);
-                setStudioViMode(code->studio, VI_NORMAL);
+                if (code->cursor.selection == NULL)
+                    setStudioViMode(code->studio, VI_NORMAL);
+                else
+                    setStudioViMode(code->studio, VI_SELECT);
             }
         }
-
-
     }
     else if (mode == VI_SEEK_BACK) 
     {
@@ -2649,13 +2651,13 @@ static void processViKeyboard(Code* code)
             if(sym)
             {
                 seekBackward(code, sym);
-                setStudioViMode(code->studio, VI_NORMAL);
+                if (code->cursor.selection == NULL)
+                    setStudioViMode(code->studio, VI_NORMAL);
+                else
+                    setStudioViMode(code->studio, VI_SELECT);
             }
         }
-
-
     }
-
 }
 
 static void processKeyboard(Code* code)
