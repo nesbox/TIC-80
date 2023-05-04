@@ -2543,6 +2543,8 @@ static void processViKeyboard(Code* code)
 
         else if (clear && keyWasPressed(code->studio, tic_key_d))
             cutToClipboard(code, false); //it seems like if there is not selection it will act on the current line by default, how nice
+        else if (clear && keyWasPressed(code->studio, tic_key_y))
+            copyToClipboard(code, false);
 
         else if (shift && keyWasPressed(code->studio, tic_key_w))
             saveProject(code->studio);
