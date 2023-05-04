@@ -2282,6 +2282,42 @@ escape :
 end:
     return pos;
 }
+
+
+//pass in pointer to beginnign of word and its length
+//so you can just use the word in src
+static char* findFunctionDefinition(Code* code, char* name, size_t length) {
+    char* result = NULL;
+
+    tic_mem* tic = code->tic;
+    const tic_script_config* config = tic_core_script_config(tic);
+
+    if(config->getOutline)
+    {
+        s32 osize = 0;
+        const tic_outline_item* items = config->getOutline(code->src, &osize);
+
+        if(items)
+        {
+            for(size_t i = 0; i < osize; i++)
+            {
+                const tic_outline_item* it = items + i;
+
+                if(code->state[it->pos - code->src].syntax == SyntaxType_COMMENT)
+                    continue;
+                if (strncmp(name, it->pos, length) == 0)
+                {
+                    result = (char*) it->pos;
+                    break;
+                }
+            }
+        }
+    }
+
+    return result;
+}
+
+
 static void processViChange(Code* code) {
     //if on a delimiter change the contents of the delimiter
     if (matchingDelim(*code->cursor.position))
@@ -2473,6 +2509,20 @@ static void processViKeyboard(Code* code)
             }
         }
 
+        else if (clear && keyWasPressed(code->studio, tic_key_leftbracket))
+        {
+            char* word_start = leftPos(code, code->cursor.position, isalnum_);
+            char* word_end = rightPos(code, code->cursor.position, isalnum_);
+            size_t size = word_end - word_start;
+
+            char* def = findFunctionDefinition(code, word_start, size);
+            if (def != NULL)
+            {
+                code->cursor.position = def;
+                updateColumn(code);
+            }
+
+        }
 
         else if (clear && keyWasPressed(code->studio, tic_key_r))
             setCodeMode(code, TEXT_REPLACE_MODE);
