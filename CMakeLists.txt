@@ -409,10 +409,11 @@ add_library(pocketpy STATIC ${POCKETPY_SRC})
 set_target_properties(pocketpy PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(pocketpy PUBLIC ${POCKETPY_DIR})
 if (${CMAKE_VERSION} VERSION_LESS "3.8.0") 
-    set_target_properties(pocketpy APPEND_STRING PROPERTY COMPILE_FLAGS "--std=c++17")
-else
+    set_target_properties(pocketpy APPEND_STRING PROPERTY 
+        COMPILE_FLAGS "--std=c++17")
+else()
     target_compile_features(pocketpy PRIVATE cxx_std_17)
-endif();
+endif()
 
 ################################
 # GIFLIB
