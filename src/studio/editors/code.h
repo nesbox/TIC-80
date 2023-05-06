@@ -88,12 +88,14 @@ struct Code
         TEXT_GOTO_MODE,
         TEXT_BOOKMARK_MODE,
         TEXT_OUTLINE_MODE,
+        TEXT_REPLACE_MODE,
         TEXT_EDIT_MODE,
     } mode;
 
     struct
     {
         char text[STUDIO_TEXT_BUFFER_WIDTH - sizeof "FIND:"];
+        char* offset;
 
         char* prevPos;
         char* prevSel;
