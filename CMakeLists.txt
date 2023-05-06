@@ -387,6 +387,7 @@ set(SQUIRREL_SRC
     ${SQUIRREL_DIR}/sqstdlib/sqstdstream.cpp
     ${SQUIRREL_DIR}/sqstdlib/sqstdstring.cpp
     ${SQUIRREL_DIR}/sqstdlib/sqstdsystem.cpp
+
 )
 
 add_library(squirrel STATIC ${SQUIRREL_SRC})
@@ -406,8 +407,12 @@ set(POCKETPY_SRC
 
 add_library(pocketpy STATIC ${POCKETPY_SRC})
 set_target_properties(pocketpy PROPERTIES LINKER_LANGUAGE CXX)
-target_compile_features(pocketpy PRIVATE cxx_std_17)
 target_include_directories(pocketpy PUBLIC ${POCKETPY_DIR})
+if (${CMAKE_VERSION} VERSION_LESS "3.8.0") 
+    set_target_properties(pocketpy APPEND_STRING PROPERTY COMPILE_FLAGS "--std=c++17")
+else
+    target_compile_features(pocketpy PRIVATE cxx_std_17)
+endif();
 
 ################################
 # GIFLIB
