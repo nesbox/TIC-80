@@ -287,8 +287,7 @@ jobs:
       - name: Install Host toolchain
         run: |
           apt-get update
-          apt-get install --assume-yes build-essential ruby-full gcc-8
-          update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 800 --slave /usr/bin/g++ g++ /usr/bin/g++-8
+          apt-get install --assume-yes build-essential ruby-full gcc-8-arm-linux-gnueabihf
 
       - name: Build
         run: |
@@ -329,8 +328,7 @@ jobs:
       - name: Install Host toolchain
         run: |
           apt-get update
-          apt-get install --assume-yes build-essential ruby-full gcc-8
-          update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-8 800 --slave /usr/bin/g++ g++ /usr/bin/g++-8
+          apt-get install --assume-yes build-essential ruby-full gcc-8-arm-linux-gnueabihf
 
       - name: Build
         run: |
