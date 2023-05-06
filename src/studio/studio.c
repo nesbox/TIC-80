@@ -124,6 +124,7 @@ struct Studio
 
 #if defined(BUILD_EDITORS)
     EditorMode menuMode;
+    ViMode viMode;
 
     struct
     {
@@ -1247,6 +1248,10 @@ void setStudioMode(Studio* studio, EditorMode mode)
         music->tab = (music->tab + 1) % MUSIC_TAB_COUNT;
     }
 #endif
+
+#if defined(BUILD_EDITORS)
+    studio->viMode = 0;
+#endif
 }
 
 EditorMode getStudioMode(Studio* studio)
@@ -1273,6 +1278,23 @@ void resumeGame(Studio* studio)
     tic_core_resume(studio->tic);
     studio->mode = TIC_RUN_MODE;
 }
+
+#if defined(BUILD_EDITORS)
+void setStudioViMode(Studio* studio, ViMode mode) {
+    studio->viMode = mode;
+}
+
+ViMode getStudioViMode(Studio* studio) {
+    return studio->viMode;
+}
+
+bool checkStudioViMode(Studio* studio, ViMode mode) {
+    return (
+        getConfig(studio)->options.keybindMode == KEYBIND_VI
+        && getStudioViMode(studio) == mode
+    );
+}
+#endif
 
 static inline bool pointInRect(const tic_point* pt, const tic_rect* rect)
 {
@@ -1530,7 +1552,7 @@ void runGame(Studio* studio)
 }
 
 #if defined(BUILD_EDITORS)
-static void saveProject(Studio* studio)
+void saveProject(Studio* studio)
 {
     CartSaveResult rom = studio->console->save(studio->console);
 
@@ -1753,6 +1775,12 @@ static void processShortcuts(Studio* studio)
 #if defined(BUILD_EDITORS)
         else if(keyWasPressedOnce(studio, tic_key_escape))
         {
+            if(
+                getConfig(studio)->options.keybindMode == KEYBIND_VI
+                && getStudioViMode(studio) != VI_NORMAL
+            ) 
+                return;
+
             switch(studio->mode)
             {
             case TIC_MENU_MODE:     
