@@ -54,7 +54,7 @@
 #if (defined(__ANDROID__) && __ANDROID_API__ <= 22)
 #define PK_ENABLE_OS 			0
 #else
-#define PK_ENABLE_OS 			1
+#define PK_ENABLE_OS 			0
 #endif
 
 // This is the maximum number of arguments in a function declaration
