@@ -76,10 +76,8 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_cls);
     pkpy_set_global(vm, "_cls");
 
-    //directly push this one without the _ indirection
-    //because it has no keyword arguments
     pkpy_push_function(vm, py_btn);
-    pkpy_set_global(vm, "btn");
+    pkpy_set_global(vm, "_btn");
 
     if(pkpy_check_error(vm))
         return false;
@@ -88,9 +86,12 @@ static bool setup_c_bindings(pkpy_vm* vm) {
 }
 
 static bool setup_py_bindings(pkpy_vm* vm) {
-    pkpy_vm_run(vm, "def trace(message, color=15) : _trace(message, color)\n");
+    pkpy_vm_run(vm, "def trace(message, color=15) : return _trace(message, color)\n");
 
-    pkpy_vm_run(vm, "def cls(color=0) : _cls(color)\n");
+    pkpy_vm_run(vm, "def cls(color=0) : return _cls(color)\n");
+
+    //lua api does this for btn
+    pkpy_vm_run(vm, "def btn(id=-1) : return _btn(id)");
 
     if(pkpy_check_error(vm))
         return false;
@@ -162,7 +163,8 @@ void callPythonTick(tic_mem* tic)
     if (pkpy_check_global(core->currentVM, "TIC"))
     {
         pkpy_get_global(core->currentVM, "TIC");
-        pkpy_call(core->currentVM, 0);
+        if(!pkpy_call(core->currentVM, 0))
+            report_error(core, "error while running TIC\n");
     }
 }
 void callPythonBoot(tic_mem* tic) {
@@ -173,7 +175,8 @@ void callPythonBoot(tic_mem* tic) {
     if (pkpy_check_global(core->currentVM, "BOOT"))
     {
         pkpy_get_global(core->currentVM, "BOOT");
-        pkpy_call(core->currentVM, 0);
+        if(!pkpy_call(core->currentVM, 0))
+            report_error(core, "error while running BOOT\n");
     }
 }
 void callPythonScanline(tic_mem* tic, s32 row, void* data) {}
