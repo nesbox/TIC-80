@@ -200,8 +200,25 @@ static int py_exit(pkpy_vm* vm)
         return 0;
 
     tic_api_exit(tic);
+    return 0;
 }
 
+static int py_fget(pkpy_vm* vm) 
+{
+    tic_mem* tic;
+    int sprite_id;
+    unsigned flag;
+
+    pkpy_to_int(vm, 0, &sprite_id);
+    pkpy_to_int(vm, 1, &flag);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm))
+        return 0;
+
+    bool set = tic_api_fget(tic, sprite_id, flag);
+    pkpy_push_bool(vm, set);
+    return 1;
+}
 
 static bool setup_c_bindings(pkpy_vm* vm) {
 
@@ -235,6 +252,8 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_exit);
     pkpy_set_global(vm, "_exit");
 
+    pkpy_push_function(vm, py_fget);
+    pkpy_set_global(vm, "_fget");
 
     if(pkpy_check_error(vm))
         return false;
@@ -248,8 +267,8 @@ static bool setup_py_bindings(pkpy_vm* vm) {
     pkpy_vm_run(vm, "def cls(color=0) : return _cls(color)\n");
 
     //lua api does this for btn
-    pkpy_vm_run(vm, "def btn(id=-1) : return _btn(id)");
-    pkpy_vm_run(vm, "def btnp(id=-1, hold=-1, period=-1) : return _btnp(id, hold, period)\n");
+    pkpy_vm_run(vm, "def btn(id) : return _btn(id)");
+    pkpy_vm_run(vm, "def btnp(id, hold=-1, period=-1) : return _btnp(id, hold, period)\n");
 
     //even if there are no keyword args, this also gives us argument count checks
     pkpy_vm_run(vm, "def circ(x, y, radius, color) : return _circ(x, y, radius, color)\n");
@@ -261,6 +280,7 @@ static bool setup_py_bindings(pkpy_vm* vm) {
     pkpy_vm_run(vm, "def clip(x, y, width, height) : return _clip(x, y, width, height)\n");
     pkpy_vm_run(vm, "def exit() : return _exit()\n");
 
+    pkpy_vm_run(vm, "def fget(sprite_id, flag) : return _fget(sprite_id, flag)\n");
 
     if(pkpy_check_error(vm))
         return false;
