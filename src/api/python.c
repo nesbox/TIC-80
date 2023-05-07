@@ -220,6 +220,68 @@ static int py_fget(pkpy_vm* vm)
     return 1;
 }
 
+static int py_fset(pkpy_vm* vm) 
+{
+    tic_mem* tic;
+    int sprite_id;
+    unsigned flag;
+    bool set_to;
+
+    pkpy_to_int(vm, 0, &sprite_id);
+    pkpy_to_int(vm, 1, &flag);
+    pkpy_to_bool(vm, 2, &set_to);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm))
+        return 0;
+
+    tic_api_fset(tic, sprite_id, flag, set_to);
+    return 0;
+}
+
+static int py_font(pkpy_vm* vm) 
+{
+    tic_mem* tic;
+    char* text = NULL;
+    int x;
+    int y;
+    int width;
+    int height;
+    int chromakey_raw;
+    bool fixed;
+    s32 scale;
+    bool alt;
+
+    pkpy_to_string(vm, 0, &text);
+    pkpy_to_int(vm, 1, &x);
+    pkpy_to_int(vm, 2, &y);
+    pkpy_to_int(vm, 3, &width);
+    pkpy_to_int(vm, 4, &height);
+    pkpy_to_int(vm, 5, &chromakey_raw);
+    pkpy_to_bool(vm, 6, &fixed);
+    pkpy_to_int(vm, 7, &scale);
+    pkpy_to_bool(vm, 8, &alt);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm)) {
+        if (text != NULL) free(text);
+        return 0;
+    }
+
+    if (scale == 0) 
+    {
+        pkpy_push_int(vm, 0);
+    } 
+    else 
+    {
+        u8 chromakey = (u8) chromakey_raw;
+        s32 size = tic_api_font(tic, text, x, y, &chromakey, 1, width, height, fixed, scale, alt);
+        pkpy_push_int(vm, size);
+    }
+
+    free(text);
+    return 1;
+}
+
+
 static bool setup_c_bindings(pkpy_vm* vm) {
 
     pkpy_push_function(vm, py_trace);
@@ -255,6 +317,13 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_fget);
     pkpy_set_global(vm, "_fget");
 
+    pkpy_push_function(vm, py_fget);
+    pkpy_set_global(vm, "_fset");
+
+    pkpy_push_function(vm, py_font);
+    pkpy_set_global(vm, "_font");
+
+
     if(pkpy_check_error(vm))
         return false;
 
@@ -281,6 +350,12 @@ static bool setup_py_bindings(pkpy_vm* vm) {
     pkpy_vm_run(vm, "def exit() : return _exit()\n");
 
     pkpy_vm_run(vm, "def fget(sprite_id, flag) : return _fget(sprite_id, flag)\n");
+    pkpy_vm_run(vm, "def fset(sprite_id, flag, bool) : return _fset(sprite_id, flag, bool)\n");
+
+    pkpy_vm_run(vm, 
+        "def font(text, x, y chromakey, char_width, char_height, fixed=False, scale=1, alt=False) : " 
+        "return _font(text, x, y, chromakey, char_width, char_height, fixed, scale, alt)"
+    );
 
     if(pkpy_check_error(vm))
         return false;
