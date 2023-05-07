@@ -68,6 +68,25 @@ static int py_btn(pkpy_vm* vm)
     return 1;
 }
 
+static int py_btnp(pkpy_vm* vm) 
+{
+    tic_mem* tic;
+    int button_id;
+    int hold;
+    int period;
+
+    pkpy_to_int(vm, 0, &button_id);
+    pkpy_to_int(vm, 1, &hold);
+    pkpy_to_int(vm, 2, &period);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm))
+        return 0;
+
+    bool pressed = tic_api_btnp(tic, button_id, hold, period);
+    pkpy_push_bool(vm, pressed);
+    return 1;
+}
+
 static bool setup_c_bindings(pkpy_vm* vm) {
 
     pkpy_push_function(vm, py_trace);
@@ -78,6 +97,9 @@ static bool setup_c_bindings(pkpy_vm* vm) {
 
     pkpy_push_function(vm, py_btn);
     pkpy_set_global(vm, "_btn");
+
+    pkpy_push_function(vm, py_btnp);
+    pkpy_set_global(vm, "_btnp");
 
     if(pkpy_check_error(vm))
         return false;
@@ -92,6 +114,7 @@ static bool setup_py_bindings(pkpy_vm* vm) {
 
     //lua api does this for btn
     pkpy_vm_run(vm, "def btn(id=-1) : return _btn(id)");
+    pkpy_vm_run(vm, "def btnp(id=-1, hold=-1, period=-1) : return _btnp(id, hold, period)\n");
 
     if(pkpy_check_error(vm))
         return false;
