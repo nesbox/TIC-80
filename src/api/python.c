@@ -171,6 +171,27 @@ static int py_ellib(pkpy_vm* vm)
     return 0;
 }
 
+static int py_clip(pkpy_vm* vm) 
+{
+    tic_mem* tic;
+    int x;
+    int y;
+    int w;
+    int h;
+
+    pkpy_to_int(vm, 0, &x);
+    pkpy_to_int(vm, 1, &y);
+    pkpy_to_int(vm, 2, &w);
+    pkpy_to_int(vm, 3, &h);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm))
+        return 0;
+
+    tic_api_clip(tic, x, y, w, h);
+    return 0;
+}
+
+
 static bool setup_c_bindings(pkpy_vm* vm) {
 
     pkpy_push_function(vm, py_trace);
@@ -190,6 +211,9 @@ static bool setup_c_bindings(pkpy_vm* vm) {
 
     pkpy_push_function(vm, py_circb);
     pkpy_set_global(vm, "_circb");
+
+    pkpy_push_function(vm, py_clip);
+    pkpy_set_global(vm, "_clip");
 
     pkpy_push_function(vm, py_elli);
     pkpy_set_global(vm, "_elli");
@@ -220,6 +244,7 @@ static bool setup_py_bindings(pkpy_vm* vm) {
     pkpy_vm_run(vm, "def elli(x, y, a, b, color) : return _elli(x, y, radius, color)\n");
     pkpy_vm_run(vm, "def ellib(x, y, a, b, color) : return _ellib(x, y, radius, color)\n");
 
+    pkpy_vm_run(vm, "def clip(x, y, width, height) : return _clip(x, y, width, height)\n");
 
 
     if(pkpy_check_error(vm))
