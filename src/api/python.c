@@ -191,6 +191,17 @@ static int py_clip(pkpy_vm* vm)
     return 0;
 }
 
+static int py_exit(pkpy_vm* vm) 
+{
+    tic_mem* tic;
+
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm))
+        return 0;
+
+    tic_api_exit(tic);
+}
+
 
 static bool setup_c_bindings(pkpy_vm* vm) {
 
@@ -221,6 +232,9 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_ellib);
     pkpy_set_global(vm, "_ellib");
 
+    pkpy_push_function(vm, py_exit);
+    pkpy_set_global(vm, "_exit");
+
 
     if(pkpy_check_error(vm))
         return false;
@@ -245,6 +259,7 @@ static bool setup_py_bindings(pkpy_vm* vm) {
     pkpy_vm_run(vm, "def ellib(x, y, a, b, color) : return _ellib(x, y, radius, color)\n");
 
     pkpy_vm_run(vm, "def clip(x, y, width, height) : return _clip(x, y, width, height)\n");
+    pkpy_vm_run(vm, "def exit() : return _exit()\n");
 
 
     if(pkpy_check_error(vm))
