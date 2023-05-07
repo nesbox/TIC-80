@@ -87,6 +87,45 @@ static int py_btnp(pkpy_vm* vm)
     return 1;
 }
 
+static int py_circ(pkpy_vm* vm) 
+{
+    tic_mem* tic;
+    int x;
+    int y;
+    int radius;
+    int color;
+
+    pkpy_to_int(vm, 0, &x);
+    pkpy_to_int(vm, 1, &y);
+    pkpy_to_int(vm, 2, &radius);
+    pkpy_to_int(vm, 3, &color);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm))
+        return 0;
+
+    tic_api_circ(tic, x, y, radius, color);
+    return 0;
+}
+
+static int py_circb(pkpy_vm* vm) 
+{
+    tic_mem* tic;
+    int x;
+    int y;
+    int radius;
+    int color;
+
+    pkpy_to_int(vm, 0, &x);
+    pkpy_to_int(vm, 1, &y);
+    pkpy_to_int(vm, 2, &radius);
+    pkpy_to_int(vm, 3, &color);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm))
+        return 0;
+
+    tic_api_circb(tic, x, y, radius, color);
+    return 0;
+}
 static bool setup_c_bindings(pkpy_vm* vm) {
 
     pkpy_push_function(vm, py_trace);
@@ -100,6 +139,13 @@ static bool setup_c_bindings(pkpy_vm* vm) {
 
     pkpy_push_function(vm, py_btnp);
     pkpy_set_global(vm, "_btnp");
+
+    pkpy_push_function(vm, py_circ);
+    pkpy_set_global(vm, "_circ");
+
+    pkpy_push_function(vm, py_circb);
+    pkpy_set_global(vm, "_circb");
+
 
     if(pkpy_check_error(vm))
         return false;
@@ -116,6 +162,8 @@ static bool setup_py_bindings(pkpy_vm* vm) {
     pkpy_vm_run(vm, "def btn(id=-1) : return _btn(id)");
     pkpy_vm_run(vm, "def btnp(id=-1, hold=-1, period=-1) : return _btnp(id, hold, period)\n");
 
+    pkpy_vm_run(vm, "def circ(x, y, radius, color) : return _circ(x, y, radius, color)\n");
+    pkpy_vm_run(vm, "def circb(x, y, radius, color) : return _circb(x, y, radius, color)\n");
     if(pkpy_check_error(vm))
         return false;
 
