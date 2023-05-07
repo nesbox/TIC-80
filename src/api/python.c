@@ -53,6 +53,21 @@ static int py_cls(pkpy_vm* vm)
     return 0;
 }
 
+static int py_btn(pkpy_vm* vm) 
+{
+    tic_mem* tic;
+    int button_id;
+
+    get_core(vm, (tic_core**) &tic);
+    pkpy_to_int(vm, 0, &button_id);
+    if(pkpy_check_error(vm))
+        return 0;
+
+    bool pressed = tic_api_btn(tic, button_id & 0x1f);
+    pkpy_push_bool(vm, pressed);
+    return 1;
+}
+
 static bool setup_c_bindings(pkpy_vm* vm) {
 
     pkpy_push_function(vm, py_trace);
@@ -60,6 +75,11 @@ static bool setup_c_bindings(pkpy_vm* vm) {
 
     pkpy_push_function(vm, py_cls);
     pkpy_set_global(vm, "_cls");
+
+    //directly push this one without the _ indirection
+    //because it has no keyword arguments
+    pkpy_push_function(vm, py_btn);
+    pkpy_set_global(vm, "btn");
 
     if(pkpy_check_error(vm))
         return false;
