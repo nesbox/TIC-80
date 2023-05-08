@@ -315,6 +315,28 @@ static int py_keyp(pkpy_vm* vm)
     return 1;
 }
 
+static int py_line(pkpy_vm* vm) 
+{
+    tic_mem* tic;
+    double x0;
+    double y0;
+    double x1;
+    double y1;
+    int color;
+
+    pkpy_to_float(vm, 0, &x0);
+    pkpy_to_float(vm, 1, &y0);
+    pkpy_to_float(vm, 2, &x1);
+    pkpy_to_float(vm, 3, &y1);
+    pkpy_to_int(vm, 4, &color);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm))
+        return 0;
+
+    tic_api_line(tic, x0, y0, x1, y1, color);
+    return 0;
+}
+
 static bool setup_c_bindings(pkpy_vm* vm) {
 
     pkpy_push_function(vm, py_trace);
@@ -356,12 +378,14 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_font);
     pkpy_set_global(vm, "_font");
 
-    pkpy_push_function(cm, py_key);
+    pkpy_push_function(vm, py_key);
     pkpy_set_global(vm, "_key");
 
-    pkpy_push_function(cm, py_keyp);
+    pkpy_push_function(vm, py_keyp);
     pkpy_set_global(vm, "_keyp");
 
+    pkpy_push_function(vm, py_line);
+    pkpy_set_global(vm, "_line");
 
     if(pkpy_check_error(vm))
         return false;
@@ -398,6 +422,8 @@ static bool setup_py_bindings(pkpy_vm* vm) {
 
     pkpy_vm_run(vm, "def key(code=-1) : return _key(code)");
     pkpy_vm_run(vm, "def keyp(code=-1, hold=-1, period=-17) : return _keyp(code, hold, period)");
+
+    pkpy_vm_run(vm, "def line(x0, y0, x1, y1, color) : _line(x0, y0, x1, y1, color)");
 
 
     if(pkpy_check_error(vm))
