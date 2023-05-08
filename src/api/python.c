@@ -248,7 +248,7 @@ static int py_font(pkpy_vm* vm)
     int height;
     int chromakey_raw;
     bool fixed;
-    s32 scale;
+    int scale;
     bool alt;
 
     pkpy_to_string(vm, 0, &text);
@@ -281,6 +281,39 @@ static int py_font(pkpy_vm* vm)
     return 1;
 }
 
+static int py_key(pkpy_vm* vm) 
+{
+    tic_mem* tic;
+    int key_id;
+
+    pkpy_to_int(vm, 0, &key_id);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm))
+        return 0;
+
+    bool pressed = tic_api_key(tic, key_id);
+    pkpy_push_bool(vm, pressed);
+    return 1;
+}
+
+static int py_keyp(pkpy_vm* vm) 
+{
+    tic_mem* tic;
+    int key_id;
+    int hold;
+    int period;
+
+    pkpy_to_int(vm, 0, &key_id);
+    pkpy_to_int(vm, 1, &hold);
+    pkpy_to_int(vm, 2, &period);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm))
+        return 0;
+
+    bool pressed = tic_api_keyp(tic, key_id, hold, period);
+    pkpy_push_bool(vm, pressed);
+    return 1;
+}
 
 static bool setup_c_bindings(pkpy_vm* vm) {
 
@@ -323,6 +356,12 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_font);
     pkpy_set_global(vm, "_font");
 
+    pkpy_push_function(cm, py_key);
+    pkpy_set_global(vm, "_key");
+
+    pkpy_push_function(cm, py_keyp);
+    pkpy_set_global(vm, "_keyp");
+
 
     if(pkpy_check_error(vm))
         return false;
@@ -331,31 +370,35 @@ static bool setup_c_bindings(pkpy_vm* vm) {
 }
 
 static bool setup_py_bindings(pkpy_vm* vm) {
-    pkpy_vm_run(vm, "def trace(message, color=15) : return _trace(message, color)\n");
+    pkpy_vm_run(vm, "def trace(message, color=15) : return _trace(message, color)");
 
-    pkpy_vm_run(vm, "def cls(color=0) : return _cls(color)\n");
+    pkpy_vm_run(vm, "def cls(color=0) : return _cls(color)");
 
     //lua api does this for btn
     pkpy_vm_run(vm, "def btn(id) : return _btn(id)");
-    pkpy_vm_run(vm, "def btnp(id, hold=-1, period=-1) : return _btnp(id, hold, period)\n");
+    pkpy_vm_run(vm, "def btnp(id, hold=-1, period=-1) : return _btnp(id, hold, period)");
 
     //even if there are no keyword args, this also gives us argument count checks
-    pkpy_vm_run(vm, "def circ(x, y, radius, color) : return _circ(x, y, radius, color)\n");
+    pkpy_vm_run(vm, "def circ(x, y, radius, color) : return _circ(x, y, radius, color)");
     pkpy_vm_run(vm, "def circb(x, y, radius, color) : return _circb(x, y, radius, color)\n");
 
-    pkpy_vm_run(vm, "def elli(x, y, a, b, color) : return _elli(x, y, radius, color)\n");
-    pkpy_vm_run(vm, "def ellib(x, y, a, b, color) : return _ellib(x, y, radius, color)\n");
+    pkpy_vm_run(vm, "def elli(x, y, a, b, color) : return _elli(x, y, radius, color)");
+    pkpy_vm_run(vm, "def ellib(x, y, a, b, color) : return _ellib(x, y, radius, color)");
 
-    pkpy_vm_run(vm, "def clip(x, y, width, height) : return _clip(x, y, width, height)\n");
+    pkpy_vm_run(vm, "def clip(x, y, width, height) : return _clip(x, y, width, height)");
     pkpy_vm_run(vm, "def exit() : return _exit()\n");
 
-    pkpy_vm_run(vm, "def fget(sprite_id, flag) : return _fget(sprite_id, flag)\n");
-    pkpy_vm_run(vm, "def fset(sprite_id, flag, bool) : return _fset(sprite_id, flag, bool)\n");
+    pkpy_vm_run(vm, "def fget(sprite_id, flag) : return _fget(sprite_id, flag)");
+    pkpy_vm_run(vm, "def fset(sprite_id, flag, bool) : return _fset(sprite_id, flag, bool)");
 
     pkpy_vm_run(vm, 
         "def font(text, x, y chromakey, char_width, char_height, fixed=False, scale=1, alt=False) : " 
         "return _font(text, x, y, chromakey, char_width, char_height, fixed, scale, alt)"
     );
+
+    pkpy_vm_run(vm, "def key(code=-1) : return _key(code)");
+    pkpy_vm_run(vm, "def keyp(code=-1, hold=-1, period=-17) : return _keyp(code, hold, period)");
+
 
     if(pkpy_check_error(vm))
         return false;
