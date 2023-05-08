@@ -177,11 +177,9 @@ typedef struct
     s32 octave;
 } SFXNote;
 
-static SFXNote tic_optsfxnote(Janet *argv, int32_t argc, int32_t n)
+static SFXNote tic_optsfxnote(Janet *argv, int32_t argc, int32_t n, SFXNote sfxNote)
 {
-    SFXNote sfxNote = {-1, -1};
-
-    if (argc < n)
+    if (argc <= n)
     {
         return sfxNote;
     }
@@ -424,19 +422,37 @@ static Janet janet_btnp(int32_t argc, Janet* argv)
 static Janet janet_sfx(int32_t argc, Janet* argv)
 {
     janet_arity(argc, 1, 6);
+    tic_mem* memory = (tic_mem*)getJanetMachine();
 
     s32 index = (s32)janet_getinteger(argv, 0);
-    SFXNote sfxNote = tic_optsfxnote(argv, argc, 1);
+    if (index >= SFX_COUNT) {
+        janet_panicf("unknown sfx index, got %s\n", index);
+    }
+
+    // possibly get default values from sfx
+    tic_sample* effect = memory->ram->sfx.samples.data + index;
+    SFXNote defaultSfxNote = {-1, -1};
+    s32 defaultSpeed = SFX_DEF_SPEED;
+    if (index >= 0)
+    {
+        defaultSfxNote.note = effect->note;
+        defaultSfxNote.octave = effect->octave;
+        defaultSpeed = effect->speed;
+    }
+
+    SFXNote sfxNote = tic_optsfxnote(argv, argc, 1, defaultSfxNote);
     s32 duration = (s32)janet_optinteger(argv, argc, 2, -1);
     s32 channel = (s32)janet_optinteger(argv, argc, 3, 0);
+    if (channel < 0 || channel > TIC_SOUND_CHANNELS) {
+        janet_panicf("unknown channel, got %s\n", channel);
+    }
 
-    s32 volumes[TIC80_SAMPLE_CHANNELS] = {0};
+    s32 volumes[TIC80_SAMPLE_CHANNELS] = {MAX_VOLUME, MAX_VOLUME};
     volumes[0] = (s32)janet_optinteger(argv, argc, 4, MAX_VOLUME);
     volumes[1] = volumes[0];
 
-    s32 speed = (s32)janet_optinteger(argv, argc, 5, SFX_DEF_SPEED);
+    s32 speed = (s32)janet_optinteger(argv, argc, 5, defaultSpeed);
 
-    tic_mem* memory = (tic_mem*)getJanetMachine();
     tic_api_sfx(memory, index,
                 sfxNote.note, sfxNote.octave,
                 duration, channel,
