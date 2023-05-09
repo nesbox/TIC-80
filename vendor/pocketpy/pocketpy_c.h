@@ -30,6 +30,10 @@ typedef int (*pkpy_function)(pkpy_vm*);
 
 bool pkpy_pop(pkpy_vm*, int n);
 
+//push the item at index onto the top of the stack (as well as leaving it where
+//it is on the stack)
+bool pkpy_push(pkpy_vm*, int index);
+
 bool pkpy_push_function(pkpy_vm*, pkpy_function);
 bool pkpy_push_int(pkpy_vm*, int);
 bool pkpy_push_float(pkpy_vm*, double);

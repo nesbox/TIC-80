@@ -14,8 +14,8 @@ using namespace pkpy;
         << e.what() << "\n"; \
         exit(2); \
     } catch(...) { \
-        std::cerr << "ERROR: a unknown exception was thrown " \
-        << "this probably means pocketpy itself has a bug!\n"; \
+        std::cerr << "ERROR: a unknown exception was thrown from " << __func__ \
+        << "\nthis probably means pocketpy itself has a bug!\n"; \
         exit(2); \
     }
 
@@ -39,7 +39,7 @@ class CVM : public VM {
     public :
 
     ValueStackImpl<PKPY_STACK_SIZE>* c_data;
-    CVM(bool use_stdio = true, bool enable_os=true) : VM(use_stdio, enable_os) {
+    CVM(bool enable_os=true) : VM(enable_os) {
         c_data = new ValueStackImpl<PKPY_STACK_SIZE>();
     }
 
@@ -100,10 +100,23 @@ void gc_marker_ex(CVM* vm) {
     for(PyObject* obj: *vm->c_data) if(obj!=nullptr) OBJ_MARK(obj);
 }
 
+
+static void noop_output_handler(VM* vm, const Str& str) {
+    (void) vm;
+    (void) str;
+}
+
 pkpy_vm* pkpy_vm_create(bool use_stdio, bool enable_os) {
-    CVM* vm = new CVM(use_stdio, enable_os);
+
+    CVM* vm = new CVM(enable_os);
     vm->c_data = new ValueStackImpl<PKPY_STACK_SIZE>();
     vm->_gc_marker_ex = (void (*)(VM*)) gc_marker_ex;
+
+    if (!use_stdio) {
+        vm->_stdout = noop_output_handler;
+        vm->_stderr = noop_output_handler;
+    }
+
     return (pkpy_vm*) vm;
 }
 
@@ -154,7 +167,7 @@ PyObject* c_function_wrapper(VM* vm, ArgsView args) {
     CVM* cvm = (CVM*) vm;
 
     //setup c stack
-    ValueStackImpl<PKPY_STACK_SIZE> local_stack = ValueStackImpl<PKPY_STACK_SIZE>();
+    ValueStackImpl<PKPY_STACK_SIZE> local_stack;
 
     for (int i = 0; i < args.size(); i++)
         local_stack.push(args[i]);
@@ -172,7 +185,7 @@ PyObject* c_function_wrapper(VM* vm, ArgsView args) {
     if (retc == 1) 
         ret = local_stack.top();
     else if (retc > 1) {
-        Tuple t = Tuple(retc);
+        Tuple t(retc);
 
         for (int i = 0; i < retc; i++)  {
             int stack_index = (local_stack.size() - retc) + i;
@@ -289,7 +302,7 @@ bool pkpy_get_global(pkpy_vm* vm_handle, const char* name) {
     if (o == nullptr) {
         o = vm->builtins->attr().try_get(name);
         if (o == nullptr)
-            throw Exception("AttributeError", "could not find requested global");
+            throw Exception("NameError", "could not find requested global");
     }
 
     vm->c_data->push(o);
@@ -527,5 +540,13 @@ int pkpy_stack_size(pkpy_vm* vm_handle) {
 bool pkpy_pop(pkpy_vm* vm_handle, int n) {
     CVM* vm = (CVM*) vm_handle;
     vm->c_data->shrink(n);
+    return true;
+}
+
+
+bool pkpy_push(pkpy_vm* vm_handle, int index) {
+    CVM* vm = (CVM*) vm_handle;
+    index = lua_to_cstack_index(index, vm->c_data->size());
+    vm->c_data->push(vm->c_data->begin()[index]);
     return true;
 }

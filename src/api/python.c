@@ -19,6 +19,52 @@ static bool setup_core(pkpy_vm* vm, tic_core* core)
     return true;
 }
 
+static u8 colorindex_buffer[TIC_PALETTE_SIZE];
+
+//index should be a postive index
+static int prepare_colorindex(pkpy_vm* vm, int index) 
+{
+    if (pkpy_is_int(vm, index)) 
+    {
+        int value;
+        pkpy_to_int(vm, index, &value);
+
+        if (value == -1)
+            return 0;
+        else
+        {
+            colorindex_buffer[0] = value;
+            return 1;
+        }
+    } 
+    else 
+    { //should be a list then
+        pkpy_get_global(vm, "len");
+        pkpy_push(vm, index); //get the list
+        pkpy_call(vm, 1);
+
+        int list_len;
+        pkpy_to_int(vm, -1, &list_len);
+        pkpy_pop(vm, 1);
+
+        list_len = (list_len < TIC_PALETTE_SIZE)?(list_len):(TIC_PALETTE_SIZE);
+
+        for(int i = 0; i < list_len; i++) 
+        {
+            int list_val;
+            pkpy_push(vm, index);
+            pkpy_push_int(vm, i);
+            pkpy_call_method(vm, "__getitem__", 1);
+            pkpy_to_int(vm, -1, &list_val);
+            colorindex_buffer[i] = list_val;
+            pkpy_pop(vm, 1);
+        }
+
+        return list_len;
+    }
+}
+
+
 static int py_trace(pkpy_vm* vm) 
 {
     tic_mem* tic;
@@ -337,6 +383,62 @@ static int py_line(pkpy_vm* vm)
     return 0;
 }
 
+static void remap_callback(void* data, s32 x, s32 y, RemapResult* result) {
+    pkpy_vm* vm = data;
+
+    pkpy_push(vm, -1); //get copy of remap callable
+    pkpy_push_int(vm, x);
+    pkpy_push_int(vm, y);
+    pkpy_call(vm, 2);
+
+
+    int index, flip, rotate;
+    pkpy_to_int(vm, -3, &index);
+    pkpy_to_int(vm, -2, &flip);
+    pkpy_to_int(vm, -1, &rotate);
+    pkpy_pop(vm, 3); //reset stack for next remap_callback call
+
+    result->index = (u8) index;
+    result->flip = flip;
+    result->rotate = rotate;
+}
+
+static int py_map(pkpy_vm* vm) 
+{
+    tic_mem* tic;
+    int x;
+    int y;
+    int w;
+    int h;
+    int sx;
+    int sy;
+    int color_count;
+    int scale;
+    bool used_remap;
+
+
+    pkpy_to_int(vm, 0, &x);
+    pkpy_to_int(vm, 1, &y);
+    pkpy_to_int(vm, 2, &w);
+    pkpy_to_int(vm, 3, &h);
+    pkpy_to_int(vm, 4, &sx);
+    pkpy_to_int(vm, 5, &sy);
+    color_count = prepare_colorindex(vm, 6);
+    pkpy_to_int(vm, 7, &scale);
+    used_remap = !pkpy_is_none(vm, 8);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm)) 
+        return 0;
+
+    //last element on the stack should be the function, so no need to adjust anything
+    if (used_remap) 
+        tic_api_map(tic, x, y, w, h, sx, sy, colorindex_buffer, color_count, scale, remap_callback, vm);
+    else 
+        tic_api_map(tic, x, y, w, h, sx, sy, colorindex_buffer, color_count, scale, NULL, NULL);
+
+    return 0;
+}
+
 static bool setup_c_bindings(pkpy_vm* vm) {
 
     pkpy_push_function(vm, py_trace);
@@ -387,6 +489,9 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_line);
     pkpy_set_global(vm, "_line");
 
+    pkpy_push_function(vm, py_map);
+    pkpy_set_global(vm, "_map");
+
     if(pkpy_check_error(vm))
         return false;
 
@@ -424,7 +529,10 @@ static bool setup_py_bindings(pkpy_vm* vm) {
     pkpy_vm_run(vm, "def keyp(code=-1, hold=-1, period=-17) : return _keyp(code, hold, period)");
 
     pkpy_vm_run(vm, "def line(x0, y0, x1, y1, color) : _line(x0, y0, x1, y1, color)");
-
+    pkpy_vm_run(vm, 
+        "def map(x=0, y=0, w=30, h=17, sx=0, sy=0, colorkey=-1, scale=1, remap=None) : "
+        " return _map(x,y,w,h,sx,sy,colorkey,scale,remap)"
+    );
 
     if(pkpy_check_error(vm))
         return false;
