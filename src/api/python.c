@@ -1016,6 +1016,68 @@ static int py_trib(pkpy_vm* vm)
     return 0;
 }
 
+static int py_ttri(pkpy_vm* vm) 
+{
+    tic_mem* tic;
+    double x1;
+    double y1;
+    double x2;
+    double y2;
+    double x3;
+    double y3;
+    double u1;
+    double v1;
+    double u2;
+    double v2;
+    double u3;
+    double v3;
+    int texsrc;
+    int color_count;
+    double z1;
+    double z2;
+    double z3;
+
+    static u8 colors[TIC_PALETTE_SIZE];
+
+    pkpy_to_float(vm, 0, &x1);
+    pkpy_to_float(vm, 1, &y1);
+    pkpy_to_float(vm, 2, &x2);
+    pkpy_to_float(vm, 3, &y2);
+    pkpy_to_float(vm, 4, &x3);
+    pkpy_to_float(vm, 5, &y3);
+
+    pkpy_to_float(vm, 0, &x1);
+    pkpy_to_float(vm, 1, &y1);
+    pkpy_to_float(vm, 2, &x2);
+    pkpy_to_float(vm, 3, &y2);
+    pkpy_to_float(vm, 4, &x3);
+    pkpy_to_float(vm, 5, &y3);
+
+    pkpy_to_int(vm, 5, &texsrc);
+    color_count = prepare_colorindex(vm, 3, colors);
+
+    pkpy_to_float(vm, 0, &x1);
+    pkpy_to_float(vm, 1, &y1);
+    pkpy_to_float(vm, 2, &x2);
+
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm)) 
+        return 0;
+
+    tic_api_ttri(
+        tic, 
+        x1,y1,x2,y2,x3,y3, 
+        u1,v1,u2,v2,u3,v3, 
+        texsrc, 
+        colors,color_count,  
+        z1,z2,z3,
+        z1 != 0 || z2 != 0 || z3 != 0
+    );
+
+    return 0;
+}
+
+
 static bool setup_c_bindings(pkpy_vm* vm) {
 
     pkpy_push_function(vm, py_trace);
@@ -1150,6 +1212,9 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_tstamp);
     pkpy_set_global(vm, "_tstamp");
 
+    pkpy_push_function(vm, py_ttri);
+    pkpy_set_global(vm, "_ttri");
+
     if(pkpy_check_error(vm))
         return false;
 
@@ -1253,6 +1318,10 @@ static bool setup_py_bindings(pkpy_vm* vm) {
         "return _trib(x1, y1, x2, y2, x3, y3, color)"
     );
 
+    pkpy_vm_run(vm,
+        "def ttri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, texsrc=0, chromakey=-1, z1=0, z2=0, z3=0) : "
+        "return _ttri(x1,y1,x2,y2,x3,y3,u1,v1,u2,v2,u3,v3,texsrc,chromakey,z1,z2,z3)"
+    );
 
 
     if(pkpy_check_error(vm))
