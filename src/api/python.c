@@ -830,6 +830,57 @@ static int py_rectb(pkpy_vm* vm)
     return 0;
 }
 
+static int py_sfx(pkpy_vm* vm) 
+{
+    tic_mem* tic;
+    int sfx_id;
+
+    bool parse_note = false;
+    char* string_note = NULL;
+    int int_note;
+
+    int duration;
+    int channel;
+    int volume;
+    int speed;
+
+    pkpy_to_int(vm, 0, &sfx_id);
+
+    if (pkpy_is_string(vm, 1)) {
+        parse_note = true;
+        pkpy_to_string(vm, 1, &string_note);
+    } else {
+        pkpy_to_int(vm, 1, &int_note);
+    }
+
+    pkpy_to_int(vm, 2, &duration);
+    pkpy_to_int(vm, 3, &channel);
+    pkpy_to_int(vm, 4, &volume);
+    pkpy_to_int(vm, 5, &speed);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm)) 
+        goto cleanup;
+    int note, octave;
+
+    if (parse_note) {
+        if(!tic_tool_parse_note(string_note, &note, &octave))
+            goto cleanup; //error in future;
+            
+    } else {
+        note = int_note % NOTES;
+        octave = int_note/ NOTES;
+    }
+
+    //for now we won't support two channel volumes
+    tic_api_sfx(tic, sfx_id, note, octave, duration, channel, volume & 0xf, volume & 0xf, speed);
+
+
+cleanup :
+    if (string_note != NULL) free(string_note);
+    return 0;
+}
+
+
 static int py_reset(pkpy_vm* vm) {
     tic_core* core;
     get_core(vm, &core);
