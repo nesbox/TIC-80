@@ -786,7 +786,49 @@ static int py_print(pkpy_vm* vm) {
     return 1;
 }
 
+static int py_rect(pkpy_vm* vm) 
+{
+    tic_mem* tic;
+    int x;
+    int y;
+    int w;
+    int h;
+    int color;
 
+    pkpy_to_int(vm, 0, &x);
+    pkpy_to_int(vm, 1, &y);
+    pkpy_to_int(vm, 2, &w);
+    pkpy_to_int(vm, 3, &h);
+    pkpy_to_int(vm, 4, &color);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm))
+        return 0;
+
+    tic_api_rect(tic, x, y, w, h, color);
+    return 0;
+}
+
+static int py_rectb(pkpy_vm* vm) 
+{
+    tic_mem* tic;
+    int x;
+    int y;
+    int w;
+    int h;
+    int color;
+
+    pkpy_to_int(vm, 0, &x);
+    pkpy_to_int(vm, 1, &y);
+    pkpy_to_int(vm, 2, &w);
+    pkpy_to_int(vm, 3, &h);
+    pkpy_to_int(vm, 4, &color);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm))
+        return 0;
+
+    tic_api_rectb(tic, x, y, w, h, color);
+    return 0;
+}
 
 static bool setup_c_bindings(pkpy_vm* vm) {
 
@@ -892,6 +934,12 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_print);
     pkpy_set_global(vm, "_print");
 
+    pkpy_push_function(vm, py_rect);
+    pkpy_set_global(vm, "_rect");
+
+    pkpy_push_function(vm, py_rectb);
+    pkpy_set_global(vm, "_rectb");
+
     if(pkpy_check_error(vm))
         return false;
 
@@ -966,6 +1014,8 @@ static bool setup_py_bindings(pkpy_vm* vm) {
         " return _print(text, x, y, color, fixed, scale, smallfont, alt)"
     );
 
+    pkpy_vm_run(vm, "def rect(x, y, w, h, color) : return _rect(x,y,w,h,color)");
+    pkpy_vm_run(vm, "def rectb(x, y, w, h, color) : return _rectb(x,y,w,h,color)");
 
     if(pkpy_check_error(vm))
         return false;
