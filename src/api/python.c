@@ -682,6 +682,75 @@ static int py_pmem(pkpy_vm* vm) {
     return 1;
 }
 
+static int py_poke(pkpy_vm* vm) {
+    
+    tic_mem* tic;
+    int address;
+    int value;
+    int bits;
+
+    pkpy_to_int(vm, 0, &address);
+    pkpy_to_int(vm, 1, &value);
+    pkpy_to_int(vm, 2, &bits);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm)) 
+        return 0;
+
+    tic_api_poke(tic, address, value, bits);
+
+    return 0;
+}
+
+static int py_poke1(pkpy_vm* vm) {
+    
+    tic_mem* tic;
+    int address;
+    int value;
+
+    pkpy_to_int(vm, 0, &address);
+    pkpy_to_int(vm, 1, &value);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm)) 
+        return 0;
+
+    tic_api_poke1(tic, address, value);
+
+    return 0;
+}
+
+static int py_poke2(pkpy_vm* vm) {
+    
+    tic_mem* tic;
+    int address;
+    int value;
+
+    pkpy_to_int(vm, 0, &address);
+    pkpy_to_int(vm, 1, &value);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm)) 
+        return 0;
+
+    tic_api_poke2(tic, address, value);
+
+    return 0;
+}
+
+static int py_poke4(pkpy_vm* vm) {
+    
+    tic_mem* tic;
+    int address;
+    int value;
+
+    pkpy_to_int(vm, 0, &address);
+    pkpy_to_int(vm, 1, &value);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm)) 
+        return 0;
+
+    tic_api_poke4(tic, address, value);
+
+    return 0;
+}
 
 
 static bool setup_c_bindings(pkpy_vm* vm) {
@@ -773,6 +842,19 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_pmem);
     pkpy_set_global(vm, "_pmem");
 
+    pkpy_push_function(vm, py_poke);
+    pkpy_set_global(vm, "_poke");
+
+    pkpy_push_function(vm, py_poke1);
+    pkpy_set_global(vm, "_poke1");
+
+    pkpy_push_function(vm, py_poke1);
+    pkpy_set_global(vm, "_poke2");
+
+    pkpy_push_function(vm, py_poke1);
+    pkpy_set_global(vm, "_poke4");
+
+
     if(pkpy_check_error(vm))
         return false;
 
@@ -836,6 +918,12 @@ static bool setup_py_bindings(pkpy_vm* vm) {
     pkpy_vm_run(vm, "def pix(x, y, color=None) : return _pix(x, y, color)");
 
     pkpy_vm_run(vm, "def pmem(index, value=None) : return _pmem(index, value)");
+
+    pkpy_vm_run(vm, "def poke(addr, value, bits=8) : return _poke(addr, value, bits) ");
+    pkpy_vm_run(vm, "def poke1(addr, value) : return _poke1(addr, value) ");
+    pkpy_vm_run(vm, "def poke2(addr, value) : return _poke2(addr, value) ");
+    pkpy_vm_run(vm, "def poke4(addr, value) : return _poke4(addr, value) ");
+
 
     if(pkpy_check_error(vm))
         return false;
