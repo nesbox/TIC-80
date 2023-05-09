@@ -439,6 +439,25 @@ static int py_map(pkpy_vm* vm)
     return 0;
 }
 
+static int py_memcpy(pkpy_vm* vm) {
+    
+    tic_mem* tic;
+    int dest;
+    int src;
+    int size;
+
+    pkpy_to_int(vm, 0, &dest);
+    pkpy_to_int(vm, 1, &src);
+    pkpy_to_int(vm, 2, &size);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm)) 
+        return 0;
+
+    tic_api_memcpy(tic, dest, src, size);
+
+    return 0;
+}
+
 static bool setup_c_bindings(pkpy_vm* vm) {
 
     pkpy_push_function(vm, py_trace);
@@ -492,6 +511,9 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_map);
     pkpy_set_global(vm, "_map");
 
+    pkpy_push_function(vm, py_memcpy);
+    pkpy_set_global(vm, "_memcpy");
+
     if(pkpy_check_error(vm))
         return false;
 
@@ -533,6 +555,8 @@ static bool setup_py_bindings(pkpy_vm* vm) {
         "def map(x=0, y=0, w=30, h=17, sx=0, sy=0, colorkey=-1, scale=1, remap=None) : "
         " return _map(x,y,w,h,sx,sy,colorkey,scale,remap)"
     );
+
+    pkpy_vm_run(vm, "def memcpy(dest, source, size) : _memcpy(dest, source, size)");
 
     if(pkpy_check_error(vm))
         return false;
