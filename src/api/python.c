@@ -1046,19 +1046,19 @@ static int py_ttri(pkpy_vm* vm)
     pkpy_to_float(vm, 4, &x3);
     pkpy_to_float(vm, 5, &y3);
 
-    pkpy_to_float(vm, 0, &x1);
-    pkpy_to_float(vm, 1, &y1);
-    pkpy_to_float(vm, 2, &x2);
-    pkpy_to_float(vm, 3, &y2);
-    pkpy_to_float(vm, 4, &x3);
-    pkpy_to_float(vm, 5, &y3);
+    pkpy_to_float(vm, 6, &u1);
+    pkpy_to_float(vm, 7, &v1);
+    pkpy_to_float(vm, 8, &u2);
+    pkpy_to_float(vm, 9, &v2);
+    pkpy_to_float(vm, 10, &u3);
+    pkpy_to_float(vm, 11, &v3);
 
-    pkpy_to_int(vm, 5, &texsrc);
-    color_count = prepare_colorindex(vm, 3, colors);
+    pkpy_to_int(vm, 12, &texsrc);
+    color_count = prepare_colorindex(vm, 13, colors);
 
-    pkpy_to_float(vm, 0, &x1);
-    pkpy_to_float(vm, 1, &y1);
-    pkpy_to_float(vm, 2, &x2);
+    pkpy_to_float(vm, 14, &z1);
+    pkpy_to_float(vm, 15, &z2);
+    pkpy_to_float(vm, 16, &z3);
 
     get_core(vm, (tic_core**) &tic);
     if(pkpy_check_error(vm)) 
@@ -1077,6 +1077,27 @@ static int py_ttri(pkpy_vm* vm)
     return 0;
 }
 
+static int py_vbank(pkpy_vm* vm) {
+    tic_core* core;
+
+    int bank_id = -1;
+
+    if (!pkpy_is_none(vm, 0))
+        pkpy_to_int(vm, 0, &bank_id);
+    get_core(vm, &core);
+    if(pkpy_check_error(vm)) 
+        return 0;
+
+    tic_mem* tic = (tic_mem*) core;
+
+    s32 prev = core->state.vbank.id;
+
+    if (bank_id >= 0)
+        tic_api_vbank(tic, bank_id);
+
+    pkpy_push_int(vm, prev);
+    return 1;
+}
 
 static bool setup_c_bindings(pkpy_vm* vm) {
 
@@ -1215,6 +1236,9 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_ttri);
     pkpy_set_global(vm, "_ttri");
 
+    pkpy_push_function(vm, py_vbank);
+    pkpy_set_global(vm, "_vbank");
+
     if(pkpy_check_error(vm))
         return false;
 
@@ -1323,6 +1347,7 @@ static bool setup_py_bindings(pkpy_vm* vm) {
         "return _ttri(x1,y1,x2,y2,x3,y3,u1,v1,u2,v2,u3,v3,texsrc,chromakey,z1,z2,z3)"
     );
 
+    pkpy_vm_run(vm, "def vbank(bank=None) : return _vbank(bank)");
 
     if(pkpy_check_error(vm))
         return false;
