@@ -752,6 +752,41 @@ static int py_poke4(pkpy_vm* vm) {
     return 0;
 }
 
+static int py_print(pkpy_vm* vm) {
+    
+    tic_mem* tic;
+    char* text = NULL;
+    int x;
+    int y;
+    int color;
+    bool fixed;
+    int scale;
+    bool small;
+    bool alt;
+
+    pkpy_to_string(vm, 0, &text);
+    pkpy_to_int(vm, 1, &x);
+    pkpy_to_int(vm, 2, &y);
+    pkpy_to_int(vm, 3, &color);
+    pkpy_to_bool(vm, 4, &fixed);
+    pkpy_to_int(vm, 5, &scale);
+    pkpy_to_bool(vm, 6, &small);
+    pkpy_to_bool(vm, 7, &alt);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm)) {
+        if (text != NULL) free(text);
+        return 0;
+    }
+
+    s32 size = tic_api_print(tic, text, x, y, color, fixed, scale, alt);
+    
+    pkpy_push_int(vm, size);
+
+    free(text);
+    return 1;
+}
+
+
 
 static bool setup_c_bindings(pkpy_vm* vm) {
 
@@ -854,6 +889,8 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_poke1);
     pkpy_set_global(vm, "_poke4");
 
+    pkpy_push_function(vm, py_print);
+    pkpy_set_global(vm, "_print");
 
     if(pkpy_check_error(vm))
         return false;
@@ -923,6 +960,11 @@ static bool setup_py_bindings(pkpy_vm* vm) {
     pkpy_vm_run(vm, "def poke1(addr, value) : return _poke1(addr, value) ");
     pkpy_vm_run(vm, "def poke2(addr, value) : return _poke2(addr, value) ");
     pkpy_vm_run(vm, "def poke4(addr, value) : return _poke4(addr, value) ");
+
+    pkpy_vm_run(vm, 
+        "def print(text, x=0, y=0, color=15, fixed=False, scale=1, smallfont=False, alt=False) :"
+        " return _print(text, x, y, color, fixed, scale, smallfont, alt)"
+    );
 
 
     if(pkpy_check_error(vm))
