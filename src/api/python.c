@@ -911,8 +911,6 @@ static int py_spr(pkpy_vm* vm)
     return 0;
 }
 
-
-
 static int py_reset(pkpy_vm* vm) {
     tic_core* core;
     get_core(vm, &core);
@@ -921,6 +919,24 @@ static int py_reset(pkpy_vm* vm) {
 
     core->state.initialized = false;
 
+    return 0;
+}
+
+static int py_sync(pkpy_vm* vm) 
+{
+    tic_mem* tic;
+    int mask;
+    int bank;
+    bool tocart;
+
+    pkpy_to_int(vm, 0, &mask);
+    pkpy_to_int(vm, 1, &bank);
+    pkpy_to_bool(vm, 2, &tocart);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm))
+        return 0;
+
+    tic_api_sync(tic, mask, bank, tocart);
     return 0;
 }
 
@@ -1043,6 +1059,10 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_spr);
     pkpy_set_global(vm, "_spr");
 
+    pkpy_push_function(vm, py_sync);
+    pkpy_set_global(vm, "_sync");
+
+
     if(pkpy_check_error(vm))
         return false;
 
@@ -1131,6 +1151,8 @@ static bool setup_py_bindings(pkpy_vm* vm) {
         "def spr(id, x, y, colorkey=-1, scale=1, flip=0, rotate=0, w=1, h=1) : "
         "_spr(id, x, y, colorkey, scale, flip, rotate, w, h)"
     );
+
+    pkpy_vm_run(vm, "def sync(mask=0, bank=0, tocart=False) : _sync(mask, bank, tocart)");
 
     if(pkpy_check_error(vm))
         return false;
