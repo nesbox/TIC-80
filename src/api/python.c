@@ -940,6 +940,19 @@ static int py_sync(pkpy_vm* vm)
     return 0;
 }
 
+static int py_time(pkpy_vm* vm) 
+{
+    tic_mem* tic;
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm))
+        return 0;
+
+    int time = tic_api_time(tic);
+    pkpy_push_int(vm, time);
+    return 0;
+}
+
+
 static bool setup_c_bindings(pkpy_vm* vm) {
 
     pkpy_push_function(vm, py_trace);
@@ -1062,6 +1075,8 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_sync);
     pkpy_set_global(vm, "_sync");
 
+    pkpy_push_function(vm, py_time);
+    pkpy_set_global(vm, "_time");
 
     if(pkpy_check_error(vm))
         return false;
@@ -1144,15 +1159,17 @@ static bool setup_py_bindings(pkpy_vm* vm) {
     
     pkpy_vm_run(vm, 
         "def sfx(id, note=-1, duration=-1, channel=0, volume=15, speed=0) : " 
-        "_sfx(id, note, duration, channel, volume, speed)"
+        "return _sfx(id, note, duration, channel, volume, speed)"
     );
 
     pkpy_vm_run(vm, 
         "def spr(id, x, y, colorkey=-1, scale=1, flip=0, rotate=0, w=1, h=1) : "
-        "_spr(id, x, y, colorkey, scale, flip, rotate, w, h)"
+        "return _spr(id, x, y, colorkey, scale, flip, rotate, w, h)"
     );
 
-    pkpy_vm_run(vm, "def sync(mask=0, bank=0, tocart=False) : _sync(mask, bank, tocart)");
+    pkpy_vm_run(vm, "def sync(mask=0, bank=0, tocart=False) : return _sync(mask, bank, tocart)");
+
+    pkpy_vm_run(vm, "def time() : return _time()");
 
     if(pkpy_check_error(vm))
         return false;
