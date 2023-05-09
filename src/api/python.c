@@ -19,10 +19,8 @@ static bool setup_core(pkpy_vm* vm, tic_core* core)
     return true;
 }
 
-static u8 colorindex_buffer[TIC_PALETTE_SIZE];
-
 //index should be a postive index
-static int prepare_colorindex(pkpy_vm* vm, int index) 
+static int prepare_colorindex(pkpy_vm* vm, int index, u8 * buffer) 
 {
     if (pkpy_is_int(vm, index)) 
     {
@@ -33,7 +31,7 @@ static int prepare_colorindex(pkpy_vm* vm, int index)
             return 0;
         else
         {
-            colorindex_buffer[0] = value;
+            buffer[0] = value;
             return 1;
         }
     } 
@@ -56,7 +54,7 @@ static int prepare_colorindex(pkpy_vm* vm, int index)
             pkpy_push_int(vm, i);
             pkpy_call_method(vm, "__getitem__", 1);
             pkpy_to_int(vm, -1, &list_val);
-            colorindex_buffer[i] = list_val;
+            buffer[i] = list_val;
             pkpy_pop(vm, 1);
         }
 
@@ -416,6 +414,7 @@ static int py_map(pkpy_vm* vm)
     int scale;
     bool used_remap;
 
+    static u8 colors[TIC_PALETTE_SIZE];
 
     pkpy_to_int(vm, 0, &x);
     pkpy_to_int(vm, 1, &y);
@@ -423,7 +422,7 @@ static int py_map(pkpy_vm* vm)
     pkpy_to_int(vm, 3, &h);
     pkpy_to_int(vm, 4, &sx);
     pkpy_to_int(vm, 5, &sy);
-    color_count = prepare_colorindex(vm, 6);
+    color_count = prepare_colorindex(vm, 6, colors);
     pkpy_to_int(vm, 7, &scale);
     used_remap = !pkpy_is_none(vm, 8);
     get_core(vm, (tic_core**) &tic);
@@ -432,9 +431,9 @@ static int py_map(pkpy_vm* vm)
 
     //last element on the stack should be the function, so no need to adjust anything
     if (used_remap) 
-        tic_api_map(tic, x, y, w, h, sx, sy, colorindex_buffer, color_count, scale, remap_callback, vm);
+        tic_api_map(tic, x, y, w, h, sx, sy, colors, color_count, scale, remap_callback, vm);
     else 
-        tic_api_map(tic, x, y, w, h, sx, sy, colorindex_buffer, color_count, scale, NULL, NULL);
+        tic_api_map(tic, x, y, w, h, sx, sy, colors, color_count, scale, NULL, NULL);
 
     return 0;
 }
@@ -874,11 +873,44 @@ static int py_sfx(pkpy_vm* vm)
     //for now we won't support two channel volumes
     tic_api_sfx(tic, sfx_id, note, octave, duration, channel, volume & 0xf, volume & 0xf, speed);
 
-
 cleanup :
     if (string_note != NULL) free(string_note);
     return 0;
 }
+
+static int py_spr(pkpy_vm* vm) 
+{
+    tic_mem* tic;
+    int spr_id;
+    int x;
+    int y;
+    int color_count;
+    int scale;
+    int flip;
+    int rotate;
+    int w;
+    int h;
+
+    static u8 colors[TIC_PALETTE_SIZE];
+
+    pkpy_to_int(vm, 0, &spr_id);
+    pkpy_to_int(vm, 1, &x);
+    pkpy_to_int(vm, 2, &y);
+    color_count = prepare_colorindex(vm, 3, colors);
+    pkpy_to_int(vm, 4, &scale);
+    pkpy_to_int(vm, 5, &flip);
+    pkpy_to_int(vm, 6, &rotate);
+    pkpy_to_int(vm, 7, &w);
+    pkpy_to_int(vm, 8, &h);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm)) 
+        return 0;
+
+    tic_api_spr(tic, spr_id, x, y, w, h, colors, color_count, scale, flip, rotate);
+
+    return 0;
+}
+
 
 
 static int py_reset(pkpy_vm* vm) {
@@ -1004,6 +1036,12 @@ static bool setup_c_bindings(pkpy_vm* vm) {
 
     pkpy_push_function(vm, py_reset);
     pkpy_set_global(vm, "_reset");
+    
+    pkpy_push_function(vm, py_sfx);
+    pkpy_set_global(vm, "_sfx");
+
+    pkpy_push_function(vm, py_spr);
+    pkpy_set_global(vm, "_spr");
 
     if(pkpy_check_error(vm))
         return false;
@@ -1083,6 +1121,16 @@ static bool setup_py_bindings(pkpy_vm* vm) {
     pkpy_vm_run(vm, "def rectb(x, y, w, h, color) : return _rectb(x,y,w,h,color)");
 
     pkpy_vm_run(vm, "def reset() : return _reset()");
+    
+    pkpy_vm_run(vm, 
+        "def sfx(id, note=-1, duration=-1, channel=0, volume=15, speed=0) : " 
+        "_sfx(id, note, duration, channel, volume, speed)"
+    );
+
+    pkpy_vm_run(vm, 
+        "def spr(id, x, y, colorkey=-1, scale=1, flip=0, rotate=0, w=1, h=1) : "
+        "_spr(id, x, y, colorkey, scale, flip, rotate, w, h)"
+    );
 
     if(pkpy_check_error(vm))
         return false;
