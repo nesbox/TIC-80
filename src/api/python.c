@@ -658,6 +658,29 @@ static int py_pix(pkpy_vm* vm) {
     }
 }
 
+static int py_pmem(pkpy_vm* vm) {
+    tic_mem* tic;
+    int index;
+    bool provided_value = false;
+    int value;
+
+    pkpy_to_int(vm, 0, &index);
+    if (!pkpy_is_none(vm, 1)) {
+        provided_value = true;
+        pkpy_to_int(vm, 1, &value);
+    }
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm)) 
+        return 0;
+
+    int stored = tic_api_pmem(tic, index, 0, false);
+    pkpy_push_int(vm, stored);
+
+    if(provided_value)  //set the value
+        tic_api_pmem(tic, index, value, true);
+
+    return 1;
+}
 
 
 
@@ -747,6 +770,9 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_pix);
     pkpy_set_global(vm, "_pix");
 
+    pkpy_push_function(vm, py_pmem);
+    pkpy_set_global(vm, "_pmem");
+
     if(pkpy_check_error(vm))
         return false;
 
@@ -802,12 +828,14 @@ static bool setup_py_bindings(pkpy_vm* vm) {
         "return _music(track, frame, row, loop, sustain, tempo, speed)"
     );
 
-    pkpy_vm_run(vm, "def peek(addr, bits=8) : _peek(addr, bits) ");
-    pkpy_vm_run(vm, "def peek1(addr) : _peek1(addr) ");
-    pkpy_vm_run(vm, "def peek2(addr) : _peek2(addr) ");
-    pkpy_vm_run(vm, "def peek4(addr) : _peek4(addr) ");
+    pkpy_vm_run(vm, "def peek(addr, bits=8) : return _peek(addr, bits) ");
+    pkpy_vm_run(vm, "def peek1(addr) : return _peek1(addr) ");
+    pkpy_vm_run(vm, "def peek2(addr) : return _peek2(addr) ");
+    pkpy_vm_run(vm, "def peek4(addr) : return _peek4(addr) ");
 
-    pkpy_vm_run(vm, "def pix(x, y, color=None) : _pix(x, y, color)");
+    pkpy_vm_run(vm, "def pix(x, y, color=None) : return _pix(x, y, color)");
+
+    pkpy_vm_run(vm, "def pmem(index, value=None) : return _pmem(index, value)");
 
     if(pkpy_check_error(vm))
         return false;
