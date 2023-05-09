@@ -1416,9 +1416,9 @@ void callPythonTick(tic_mem* tic)
     if (!core->currentVM) 
         return;
 
-    if (pkpy_check_global(core->currentVM, "TIC"))
+    if (pkpy_check_global(core->currentVM, TIC_FN))
     {
-        pkpy_get_global(core->currentVM, "TIC");
+        pkpy_get_global(core->currentVM, TIC_FN);
         if(!pkpy_call(core->currentVM, 0))
             report_error(core, "error while running TIC\n");
     }
@@ -1428,16 +1428,55 @@ void callPythonBoot(tic_mem* tic) {
     if (!core->currentVM) 
         return;
 
-    if (pkpy_check_global(core->currentVM, "BOOT"))
+    if (pkpy_check_global(core->currentVM, BOOT_FN))
     {
-        pkpy_get_global(core->currentVM, "BOOT");
+        pkpy_get_global(core->currentVM, BOOT_FN);
         if(!pkpy_call(core->currentVM, 0))
             report_error(core, "error while running BOOT\n");
     }
 }
-void callPythonScanline(tic_mem* tic, s32 row, void* data) {}
-void callPythonBorder(tic_mem* tic, s32 row, void* data) {}
-void callPythonMenu(tic_mem* tic, s32 row, void* data) {}
+
+void callPythonScanline(tic_mem* tic, s32 row, void* data) {
+    tic_core* core = (tic_core*)tic;
+    if (!core->currentVM) 
+        return;
+
+    if (pkpy_check_global(core->currentVM, SCN_FN))
+    {
+        pkpy_get_global(core->currentVM, SCN_FN);
+        pkpy_push_int(core->currentVM, row);
+        if(!pkpy_call(core->currentVM, 1))
+            report_error(core, "error while running SCN\n");
+    }
+}
+
+void callPythonBorder(tic_mem* tic, s32 row, void* data) {
+    tic_core* core = (tic_core*)tic;
+    if (!core->currentVM) 
+        return;
+
+    if (pkpy_check_global(core->currentVM, BDR_FN))
+    {
+        pkpy_get_global(core->currentVM, BDR_FN);
+        pkpy_push_int(core->currentVM, row);
+        if(!pkpy_call(core->currentVM, 1))
+            report_error(core, "error while running BDR\n");
+    }
+}
+
+void callPythonMenu(tic_mem* tic, s32 index, void* data) {
+    tic_core* core = (tic_core*)tic;
+    if (!core->currentVM) 
+        return;
+
+    if (pkpy_check_global(core->currentVM, MENU_FN))
+    {
+        pkpy_get_global(core->currentVM, MENU_FN);
+        pkpy_push_int(core->currentVM, index);
+        if(!pkpy_call(core->currentVM, 1))
+            report_error(core, "error while running MENU\n");
+    }
+}
 
 static const tic_outline_item* getPythonOutline(const char* code, s32* size) 
 {
