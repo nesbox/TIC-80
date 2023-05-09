@@ -495,6 +495,26 @@ static int py_mget(pkpy_vm* vm) {
     return 1;
 }
 
+static int py_mset(pkpy_vm* vm) {
+    
+    tic_mem* tic;
+    int x;
+    int y;
+    int tile_id;
+
+    pkpy_to_int(vm, 0, &x);
+    pkpy_to_int(vm, 1, &y);
+    pkpy_to_int(vm, 2, &tile_id);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm)) 
+        return 0;
+
+    tic_api_mset(tic, x, y, tile_id);
+
+    return 0;
+}
+
+
 static int py_mouse(pkpy_vm* vm) {
     
     tic_core* core;
@@ -583,6 +603,9 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_mouse);
     pkpy_set_global(vm, "_mouse");
 
+    pkpy_push_function(vm, py_mset);
+    pkpy_set_global(vm, "_mset");
+
     if(pkpy_check_error(vm))
         return false;
 
@@ -629,6 +652,7 @@ static bool setup_py_bindings(pkpy_vm* vm) {
     pkpy_vm_run(vm, "def memset(dest, value, size) : return _memset(dest, value, size)");
 
     pkpy_vm_run(vm, "def mget(x, y) : return _mget(x, y)");
+    pkpy_vm_run(vm, "def mset(x, y, tile_id) : return _mset(x, y, tile_id)");
     pkpy_vm_run(vm, "def mouse() : return _mouse()");
 
     if(pkpy_check_error(vm))
