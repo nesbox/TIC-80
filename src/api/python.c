@@ -477,6 +477,25 @@ static int py_memset(pkpy_vm* vm) {
     return 0;
 }
 
+static int py_mget(pkpy_vm* vm) {
+    
+    tic_mem* tic;
+    int x;
+    int y;
+
+    pkpy_to_int(vm, 0, &x);
+    pkpy_to_int(vm, 1, &y);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm)) 
+        return 0;
+
+    int value = tic_api_mget(tic, x, y);
+    pkpy_push_int(vm, value);
+
+    return 1;
+}
+
+
 
 static bool setup_c_bindings(pkpy_vm* vm) {
 
@@ -537,6 +556,9 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_memset);
     pkpy_set_global(vm, "_memset");
 
+    pkpy_push_function(vm, py_mget);
+    pkpy_set_global(vm, "_mget");
+
     if(pkpy_check_error(vm))
         return false;
 
@@ -566,7 +588,7 @@ static bool setup_py_bindings(pkpy_vm* vm) {
     pkpy_vm_run(vm, "def fset(sprite_id, flag, bool) : return _fset(sprite_id, flag, bool)");
 
     pkpy_vm_run(vm, 
-        "def font(text, x, y chromakey, char_width, char_height, fixed=False, scale=1, alt=False) : " 
+        "def font(text, x, y, chromakey, char_width, char_height, fixed=False, scale=1, alt=False) : " 
         "return _font(text, x, y, chromakey, char_width, char_height, fixed, scale, alt)"
     );
 
@@ -579,8 +601,10 @@ static bool setup_py_bindings(pkpy_vm* vm) {
         " return _map(x,y,w,h,sx,sy,colorkey,scale,remap)"
     );
 
-    pkpy_vm_run(vm, "def memcpy(dest, source, size) : _memcpy(dest, source, size)");
-    pkpy_vm_run(vm, "def memset(dest, value, size) : _memset(dest, value, size)");
+    pkpy_vm_run(vm, "def memcpy(dest, source, size) : return _memcpy(dest, source, size)");
+    pkpy_vm_run(vm, "def memset(dest, value, size) : return _memset(dest, value, size)");
+
+    pkpy_vm_run(vm, "def mget(x, y) : return _mget(x, y)");
 
     if(pkpy_check_error(vm))
         return false;
