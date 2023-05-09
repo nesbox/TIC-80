@@ -495,6 +495,27 @@ static int py_mget(pkpy_vm* vm) {
     return 1;
 }
 
+static int py_mouse(pkpy_vm* vm) {
+    
+    tic_core* core;
+    get_core(vm, &core);
+    if(pkpy_check_error(vm)) 
+        return 0;
+
+    tic_point pos = tic_api_mouse((tic_mem*)core);
+
+    const tic80_mouse* mouse = &core->memory.ram->input.mouse;
+
+    pkpy_push_int(vm, pos.x);
+    pkpy_push_int(vm, pos.y);
+    pkpy_push_bool(vm, mouse->left);
+    pkpy_push_bool(vm, mouse->middle);
+    pkpy_push_bool(vm, mouse->right);
+    pkpy_push_int(vm, mouse->scrollx);
+    pkpy_push_int(vm, mouse->scrolly);
+
+    return 7;
+}
 
 
 static bool setup_c_bindings(pkpy_vm* vm) {
@@ -559,6 +580,9 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_mget);
     pkpy_set_global(vm, "_mget");
 
+    pkpy_push_function(vm, py_mouse);
+    pkpy_set_global(vm, "_mouse");
+
     if(pkpy_check_error(vm))
         return false;
 
@@ -605,6 +629,7 @@ static bool setup_py_bindings(pkpy_vm* vm) {
     pkpy_vm_run(vm, "def memset(dest, value, size) : return _memset(dest, value, size)");
 
     pkpy_vm_run(vm, "def mget(x, y) : return _mget(x, y)");
+    pkpy_vm_run(vm, "def mouse() : return _mouse()");
 
     if(pkpy_check_error(vm))
         return false;
