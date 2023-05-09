@@ -537,6 +537,35 @@ static int py_mouse(pkpy_vm* vm) {
     return 7;
 }
 
+static int py_music(pkpy_vm* vm) {
+    
+    tic_mem* tic;
+    int track;
+    int frame;
+    int row;
+    bool loop;
+    bool sustain;
+    int tempo;
+    int speed;
+
+    pkpy_to_int(vm, 0, &track);
+    pkpy_to_int(vm, 1, &frame);
+    pkpy_to_int(vm, 2, &row);
+    pkpy_to_bool(vm, 3, &loop);
+    pkpy_to_bool(vm, 4, &sustain);
+    pkpy_to_int(vm, 5, &tempo);
+    pkpy_to_int(vm, 6, &speed);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm)) 
+        return 0;
+
+    //stop the music first I guess
+    tic_api_music(tic, -1, 0, 0, false, false, -1, -1);
+    if (track >= 0)
+        tic_api_music(tic, track, frame, row, loop, sustain, tempo, speed);
+
+    return 0;
+}
 
 static bool setup_c_bindings(pkpy_vm* vm) {
 
@@ -606,6 +635,9 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_mset);
     pkpy_set_global(vm, "_mset");
 
+    pkpy_push_function(vm, py_music);
+    pkpy_set_global(vm, "_music");
+
     if(pkpy_check_error(vm))
         return false;
 
@@ -653,7 +685,13 @@ static bool setup_py_bindings(pkpy_vm* vm) {
 
     pkpy_vm_run(vm, "def mget(x, y) : return _mget(x, y)");
     pkpy_vm_run(vm, "def mset(x, y, tile_id) : return _mset(x, y, tile_id)");
+
     pkpy_vm_run(vm, "def mouse() : return _mouse()");
+
+    pkpy_vm_run(vm, 
+        "def music(track=-1, frame=-1, row=-1, loop=True, sustain=False, tempo=-1, speed=-1) :"
+        "return _music(track, frame, row, loop, sustain, tempo, speed)"
+    );
 
     if(pkpy_check_error(vm))
         return false;
