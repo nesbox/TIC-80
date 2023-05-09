@@ -633,6 +633,31 @@ static int py_peek4(pkpy_vm* vm) {
     return 1;
 }
 
+static int py_pix(pkpy_vm* vm) {
+    tic_mem* tic;
+    int x;
+    int y;
+    int color = -1;
+
+
+    pkpy_to_int(vm, 0, &x);
+    pkpy_to_int(vm, 1, &y);
+    if (pkpy_is_int(vm, 2))
+        pkpy_to_int(vm, 2, &color);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm)) 
+        return 0;
+
+    if(color >= 0) { //set the pixel
+        tic_api_pix(tic, x, y, color, false);
+        return 0;
+    } else { //get the pixel
+        int value = tic_api_pix(tic, x, y, 0, true);
+        pkpy_push_int(vm, value);
+        return 1;
+    }
+}
+
 
 
 
@@ -719,6 +744,9 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_peek1);
     pkpy_set_global(vm, "_peek4");
 
+    pkpy_push_function(vm, py_pix);
+    pkpy_set_global(vm, "_pix");
+
     if(pkpy_check_error(vm))
         return false;
 
@@ -778,6 +806,8 @@ static bool setup_py_bindings(pkpy_vm* vm) {
     pkpy_vm_run(vm, "def peek1(addr) : _peek1(addr) ");
     pkpy_vm_run(vm, "def peek2(addr) : _peek2(addr) ");
     pkpy_vm_run(vm, "def peek4(addr) : _peek4(addr) ");
+
+    pkpy_vm_run(vm, "def pix(x, y, color=None) : _pix(x, y, color)");
 
     if(pkpy_check_error(vm))
         return false;
