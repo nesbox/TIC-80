@@ -952,6 +952,57 @@ static int py_time(pkpy_vm* vm)
     return 0;
 }
 
+static int py_tri(pkpy_vm* vm) 
+{
+    tic_mem* tic;
+    double x1;
+    double y1;
+    double x2;
+    double y2;
+    double x3;
+    double y3;
+    int color;
+
+    pkpy_to_float(vm, 0, &x1);
+    pkpy_to_float(vm, 1, &y1);
+    pkpy_to_float(vm, 2, &x2);
+    pkpy_to_float(vm, 3, &y2);
+    pkpy_to_float(vm, 4, &x3);
+    pkpy_to_float(vm, 5, &y3);
+    pkpy_to_int(vm, 6, &color);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm))
+        return 0;
+
+    tic_api_tri(tic, x1, y1, x2, y2, x3, y3, color);
+    return 0;
+}
+
+static int py_trib(pkpy_vm* vm) 
+{
+    tic_mem* tic;
+    double x1;
+    double y1;
+    double x2;
+    double y2;
+    double x3;
+    double y3;
+    int color;
+
+    pkpy_to_float(vm, 0, &x1);
+    pkpy_to_float(vm, 1, &y1);
+    pkpy_to_float(vm, 2, &x2);
+    pkpy_to_float(vm, 3, &y2);
+    pkpy_to_float(vm, 4, &x3);
+    pkpy_to_float(vm, 5, &y3);
+    pkpy_to_int(vm, 6, &color);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm))
+        return 0;
+
+    tic_api_trib(tic, x1, y1, x2, y2, x3, y3, color);
+    return 0;
+}
 
 static bool setup_c_bindings(pkpy_vm* vm) {
 
@@ -1078,6 +1129,12 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_time);
     pkpy_set_global(vm, "_time");
 
+    pkpy_push_function(vm, py_tri);
+    pkpy_set_global(vm, "_tri");
+
+    pkpy_push_function(vm, py_trib);
+    pkpy_set_global(vm, "_trib");
+
     if(pkpy_check_error(vm))
         return false;
 
@@ -1170,6 +1227,17 @@ static bool setup_py_bindings(pkpy_vm* vm) {
     pkpy_vm_run(vm, "def sync(mask=0, bank=0, tocart=False) : return _sync(mask, bank, tocart)");
 
     pkpy_vm_run(vm, "def time() : return _time()");
+
+    pkpy_vm_run(vm, 
+        "def tri(x1, y1, x2, y2, x3, y3, color) : "
+        "return _tri(x1, y1, x2, y2, x3, y3, color)"
+    );
+    pkpy_vm_run(vm, 
+        "def trib(x1, y1, x2, y2, x3, y3, color) : "
+        "return _trib(x1, y1, x2, y2, x3, y3, color)"
+    );
+
+
 
     if(pkpy_check_error(vm))
         return false;
