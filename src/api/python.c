@@ -567,6 +567,75 @@ static int py_music(pkpy_vm* vm) {
     return 0;
 }
 
+static int py_peek(pkpy_vm* vm) {
+    
+    tic_mem* tic;
+    int address;
+    int bits;
+
+    pkpy_to_int(vm, 0, &address);
+    pkpy_to_int(vm, 1, &bits);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm)) 
+        return 0;
+
+    int value = tic_api_peek(tic, address, bits);
+    pkpy_push_int(vm, value);
+
+    return 1;
+}
+
+static int py_peek1(pkpy_vm* vm) {
+    
+    tic_mem* tic;
+    int address;
+
+    pkpy_to_int(vm, 0, &address);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm)) 
+        return 0;
+
+    int value = tic_api_peek1(tic, address);
+    pkpy_push_int(vm, value);
+
+    return 1;
+}
+
+static int py_peek2(pkpy_vm* vm) {
+    
+    tic_mem* tic;
+    int address;
+
+    pkpy_to_int(vm, 0, &address);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm)) 
+        return 0;
+
+    int value = tic_api_peek2(tic, address);
+    pkpy_push_int(vm, value);
+
+    return 1;
+}
+
+static int py_peek4(pkpy_vm* vm) {
+    
+    tic_mem* tic;
+    int address;
+
+    pkpy_to_int(vm, 0, &address);
+    get_core(vm, (tic_core**) &tic);
+    if(pkpy_check_error(vm)) 
+        return 0;
+
+    int value = tic_api_peek4(tic, address);
+    pkpy_push_int(vm, value);
+
+    return 1;
+}
+
+
+
+
 static bool setup_c_bindings(pkpy_vm* vm) {
 
     pkpy_push_function(vm, py_trace);
@@ -638,6 +707,18 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, py_music);
     pkpy_set_global(vm, "_music");
 
+    pkpy_push_function(vm, py_peek);
+    pkpy_set_global(vm, "_peek");
+
+    pkpy_push_function(vm, py_peek1);
+    pkpy_set_global(vm, "_peek1");
+
+    pkpy_push_function(vm, py_peek1);
+    pkpy_set_global(vm, "_peek2");
+
+    pkpy_push_function(vm, py_peek1);
+    pkpy_set_global(vm, "_peek4");
+
     if(pkpy_check_error(vm))
         return false;
 
@@ -692,6 +773,11 @@ static bool setup_py_bindings(pkpy_vm* vm) {
         "def music(track=-1, frame=-1, row=-1, loop=True, sustain=False, tempo=-1, speed=-1) :"
         "return _music(track, frame, row, loop, sustain, tempo, speed)"
     );
+
+    pkpy_vm_run(vm, "def peek(addr, bits=8) : _peek(addr, bits) ");
+    pkpy_vm_run(vm, "def peek1(addr) : _peek1(addr) ");
+    pkpy_vm_run(vm, "def peek2(addr) : _peek2(addr) ");
+    pkpy_vm_run(vm, "def peek4(addr) : _peek4(addr) ");
 
     if(pkpy_check_error(vm))
         return false;
