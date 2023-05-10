@@ -550,3 +550,12 @@ bool pkpy_push(pkpy_vm* vm_handle, int index) {
     vm->c_data->push(vm->c_data->begin()[index]);
     return true;
 }
+
+
+bool pkpy_error(pkpy_vm* vm_handle, const char* message) {
+    CVM* vm = (CVM*) vm_handle;
+    ERRHANDLER_OPEN
+    throw Exception("CBindingError", message);
+    ERRHANDLER_CLOSE
+}
+

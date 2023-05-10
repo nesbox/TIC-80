@@ -22,6 +22,13 @@ typedef struct pkpy_vm_handle pkpy_vm;
 bool pkpy_clear_error(pkpy_vm*, char** message);
 //NOTE you are responsible for freeing message 
 
+//this will cause the vm to enter an error state and report the given message
+//when queried
+//note that at the moment this is more like a panic than throwing an error
+//the user will not be able to catch it with python code
+bool pkpy_error(pkpy_vm*, const char* message);
+
+
 pkpy_vm* pkpy_vm_create(bool use_stdio, bool enable_os);
 bool pkpy_vm_run(pkpy_vm*, const char* source);
 void pkpy_vm_destroy(pkpy_vm*);

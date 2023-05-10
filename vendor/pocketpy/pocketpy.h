@@ -57,11 +57,11 @@
 #if __NDK_MAJOR__ <= 22
 #define PK_ENABLE_OS 			0
 #else
-#define PK_ENABLE_OS 			1
+#define PK_ENABLE_OS 			0
 #endif
 
 #else
-#define PK_ENABLE_OS 			1
+#define PK_ENABLE_OS 			0
 #endif
 
 // This is the maximum number of arguments in a function declaration
