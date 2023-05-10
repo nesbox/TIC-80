@@ -335,6 +335,11 @@ static int py_key(pkpy_vm* vm)
     if(pkpy_check_error(vm))
         return 0;
 
+    if (key_id >= tic_keys_count) {
+        pkpy_error(vm, "unknown keyboard code\n");
+        return 0;
+    }
+
     bool pressed = tic_api_key(tic, key_id);
     pkpy_push_bool(vm, pressed);
     return 1;
@@ -353,6 +358,11 @@ static int py_keyp(pkpy_vm* vm)
     get_core(vm, (tic_core**) &tic);
     if(pkpy_check_error(vm))
         return 0;
+
+    if (key_id >= tic_keys_count) {
+        pkpy_error(vm, "unknown keyboard code\n");
+        return 0;
+    }
 
     bool pressed = tic_api_keyp(tic, key_id, hold, period);
     pkpy_push_bool(vm, pressed);
@@ -558,6 +568,9 @@ static int py_music(pkpy_vm* vm) {
     if(pkpy_check_error(vm)) 
         return 0;
 
+    if (track > MUSIC_TRACKS - 1 )
+        pkpy_error(vm, "invalid music track index\n");
+
     //stop the music first I guess
     tic_api_music(tic, -1, 0, 0, false, false, -1, -1);
     if (track >= 0)
@@ -671,6 +684,11 @@ static int py_pmem(pkpy_vm* vm) {
     get_core(vm, (tic_core**) &tic);
     if(pkpy_check_error(vm)) 
         return 0;
+
+    if (index >= TIC_PERSISTENT_SIZE) {
+        pkpy_error(vm, "invalid persistent tic index\n");
+        return 0;
+    }
 
     int stored = tic_api_pmem(tic, index, 0, false);
     pkpy_push_int(vm, stored);
@@ -862,13 +880,26 @@ static int py_sfx(pkpy_vm* vm)
     int note, octave;
 
     if (parse_note) {
-        if(!tic_tool_parse_note(string_note, &note, &octave))
+        if(!tic_tool_parse_note(string_note, &note, &octave)) {
+            pkpy_error(vm, "invalid note, should like C#4\n");
             goto cleanup; //error in future;
+        }
             
     } else {
         note = int_note % NOTES;
         octave = int_note/ NOTES;
     }
+
+    if (channel < 0 || channel >= TIC_SOUND_CHANNELS) {
+        pkpy_error(vm, "unknown channel\n");
+        goto cleanup;
+    }
+
+    if (sfx_id >= SFX_COUNT) {
+        pkpy_error(vm, "unknown sfx index\n");
+        goto cleanup;
+    }
+
 
     //for now we won't support two channel volumes
     tic_api_sfx(tic, sfx_id, note, octave, duration, channel, volume & 0xf, volume & 0xf, speed);
@@ -935,6 +966,12 @@ static int py_sync(pkpy_vm* vm)
     get_core(vm, (tic_core**) &tic);
     if(pkpy_check_error(vm))
         return 0;
+
+    if (bank < 0 || bank >= TIC_BANKS) {
+        pkpy_error(vm, "sync() error, invalid bank\n");
+        return 0;
+    }
+
 
     tic_api_sync(tic, mask, bank, tocart);
     return 0;
@@ -1268,7 +1305,7 @@ static bool setup_py_bindings(pkpy_vm* vm) {
     pkpy_vm_run(vm, "def fset(sprite_id, flag, bool) : return _fset(sprite_id, flag, bool)");
 
     pkpy_vm_run(vm, 
-        "def font(text, x, y, chromakey, char_width, char_height, fixed=False, scale=1, alt=False) : " 
+        "def font(text, x, y, chromakey, char_width=8, char_height=8, fixed=False, scale=1, alt=False) : " 
         "return _font(text, x, y, chromakey, char_width, char_height, fixed, scale, alt)"
     );
 
