@@ -1418,7 +1418,7 @@ static bool initPython(tic_mem* tic, const char* code)
     closePython(tic);
     tic_core* core = (tic_core*)tic;
 
-    pkpy_vm* vm = pkpy_vm_create(false, false);
+    pkpy_vm* vm = pkpy_vm_create(true, false);
 
     core->currentVM = vm;
 

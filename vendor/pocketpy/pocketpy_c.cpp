@@ -376,6 +376,10 @@ bool pkpy_to_int(pkpy_vm* vm_handle, int index, int* ret) {
     index = lua_to_cstack_index(index, vm->c_data->size());
 
     PyObject* o = vm->c_data->begin()[index];
+
+    if (!is_type(o, vm->tp_int))
+        throw Exception("TypeError", "pkpy_to_int on non int object");
+
     if (ret != nullptr)
         *ret = py_cast<int>(vm, o);
 
@@ -390,6 +394,10 @@ bool pkpy_to_float(pkpy_vm* vm_handle, int index, double* ret) {
     index = lua_to_cstack_index(index, vm->c_data->size());
 
     PyObject* o = vm->c_data->begin()[index];
+
+    if (!is_type(o, vm->tp_float))
+        throw Exception("TypeError", "pkpy_to_float on non float object");
+
     if (ret != nullptr)
         *ret = py_cast<double>(vm, o);
 
@@ -404,6 +412,9 @@ bool pkpy_to_bool(pkpy_vm* vm_handle, int index, bool* ret) {
     index = lua_to_cstack_index(index, vm->c_data->size());
 
     PyObject* o = vm->c_data->begin()[index];
+    if (!is_type(o, vm->tp_bool))
+        throw Exception("TypeError", "pkpy_to_bool on non bool object");
+
     if (ret != nullptr)
         *ret = py_cast<bool>(vm, o);
 
@@ -418,6 +429,9 @@ bool pkpy_to_voidp(pkpy_vm* vm_handle, int index, void** ret) {
     index = lua_to_cstack_index(index, vm->c_data->size());
 
     PyObject* o = vm->c_data->begin()[index];
+    if (!is_type(o, VoidP::_type(vm)))
+        throw Exception("TypeError", "pkpy_to_voidp on non void* object");
+
     if (ret != nullptr) 
         *ret = py_cast<void*>(vm, o);
 
@@ -432,6 +446,9 @@ bool pkpy_to_string(pkpy_vm* vm_handle, int index, char** ret) {
     index = lua_to_cstack_index(index, vm->c_data->size());
 
     PyObject* o = vm->c_data->begin()[index];
+    if (!is_type(o, vm->tp_str))
+        throw Exception("TypeError", "pkpy_to_string on non string object");
+
     if (ret != nullptr) {
         Str& s = py_cast<Str&>(vm, o);
         *ret = s.c_str_dup();
