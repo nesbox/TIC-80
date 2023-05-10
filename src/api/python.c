@@ -1283,105 +1283,105 @@ static bool setup_c_bindings(pkpy_vm* vm) {
 }
 
 static bool setup_py_bindings(pkpy_vm* vm) {
-    pkpy_vm_run(vm, "def trace(message, color=15) : return _trace(message, color)");
+    pkpy_vm_run(vm, "def trace(message, color=15) : return _trace(str(message), int(color))");
 
-    pkpy_vm_run(vm, "def cls(color=0) : return _cls(color)");
+    pkpy_vm_run(vm, "def cls(color=0) : return _cls(int(color))");
 
     //lua api does this for btn
     pkpy_vm_run(vm, "def btn(id) : return _btn(id)");
-    pkpy_vm_run(vm, "def btnp(id, hold=-1, period=-1) : return _btnp(id, hold, period)");
+    pkpy_vm_run(vm, "def btnp(id, hold=-1, period=-1) : return _btnp(int(id), int(hold), int(period))");
 
     //even if there are no keyword args, this also gives us argument count checks
-    pkpy_vm_run(vm, "def circ(x, y, radius, color) : return _circ(x, y, radius, color)");
-    pkpy_vm_run(vm, "def circb(x, y, radius, color) : return _circb(x, y, radius, color)\n");
+    pkpy_vm_run(vm, "def circ(x, y, radius, color) : return _circ(int(x), int(y), int(radius), int(color))");
+    pkpy_vm_run(vm, "def circb(x, y, radius, color) : return _circb(int(x), int(y), int(radius), int(color))\n");
 
-    pkpy_vm_run(vm, "def elli(x, y, a, b, color) : return _elli(x, y, radius, color)");
-    pkpy_vm_run(vm, "def ellib(x, y, a, b, color) : return _ellib(x, y, radius, color)");
+    pkpy_vm_run(vm, "def elli(x, y, a, b, color) : return _elli(int(x), int(y), int(radius), int(color))");
+    pkpy_vm_run(vm, "def ellib(x, y, a, b, color) : return _ellib(int(x), int(y), int(radius), int(color))");
 
-    pkpy_vm_run(vm, "def clip(x, y, width, height) : return _clip(x, y, width, height)");
+    pkpy_vm_run(vm, "def clip(x, y, width, height) : return _clip(int(x), int(y), int(width), int(height))");
     pkpy_vm_run(vm, "def exit() : return _exit()\n");
 
-    pkpy_vm_run(vm, "def fget(sprite_id, flag) : return _fget(sprite_id, flag)");
-    pkpy_vm_run(vm, "def fset(sprite_id, flag, bool) : return _fset(sprite_id, flag, bool)");
+    pkpy_vm_run(vm, "def fget(sprite_id, flag) : return _fget(int(sprite_id), int(flag))");
+    pkpy_vm_run(vm, "def fset(sprite_id, flag, b) : return _fset(int(sprite_id), int(flag), bool(b))");
 
     pkpy_vm_run(vm, 
         "def font(text, x, y, chromakey, char_width=8, char_height=8, fixed=False, scale=1, alt=False) : " 
-        "return _font(text, x, y, chromakey, char_width, char_height, fixed, scale, alt)"
+        "return _font(str(text), int(x), int(y), chromakey, int(char_width), int(char_height), bool(fixed), int(scale), bool(alt))"
     );
 
     pkpy_vm_run(vm, "def key(code=-1) : return _key(code)");
-    pkpy_vm_run(vm, "def keyp(code=-1, hold=-1, period=-17) : return _keyp(code, hold, period)");
+    pkpy_vm_run(vm, "def keyp(code=-1, hold=-1, period=-17) : return _keyp(int(code), int(hold), int(period))");
 
-    pkpy_vm_run(vm, "def line(x0, y0, x1, y1, color) : _line(x0, y0, x1, y1, color)");
+    pkpy_vm_run(vm, "def line(x0, y0, x1, y1, color) : _line(int(x0), int(y0), int(x1), int(y1), int(color))");
     pkpy_vm_run(vm, 
         "def map(x=0, y=0, w=30, h=17, sx=0, sy=0, colorkey=-1, scale=1, remap=None) : "
-        " return _map(x,y,w,h,sx,sy,colorkey,scale,remap)"
+        " return _map(int(x),int(y),int(w),int(h),int(sx),int(sy),colorkey,int(scale),remap)"
     );
 
-    pkpy_vm_run(vm, "def memcpy(dest, source, size) : return _memcpy(dest, source, size)");
-    pkpy_vm_run(vm, "def memset(dest, value, size) : return _memset(dest, value, size)");
+    pkpy_vm_run(vm, "def memcpy(dest, source, size) : return _memcpy(int(dest), int(source), int(size))");
+    pkpy_vm_run(vm, "def memset(dest, value, size) : return _memset(int(dest), int(value), int(size))");
 
-    pkpy_vm_run(vm, "def mget(x, y) : return _mget(x, y)");
-    pkpy_vm_run(vm, "def mset(x, y, tile_id) : return _mset(x, y, tile_id)");
+    pkpy_vm_run(vm, "def mget(x, y) : return _mget(int(x), int(y))");
+    pkpy_vm_run(vm, "def mset(x, y, tile_id) : return _mset(int(x), int(y), int(tile_id))");
 
     pkpy_vm_run(vm, "def mouse() : return _mouse()");
 
     pkpy_vm_run(vm, 
         "def music(track=-1, frame=-1, row=-1, loop=True, sustain=False, tempo=-1, speed=-1) :"
-        "return _music(track, frame, row, loop, sustain, tempo, speed)"
+        "return _music(int(track), int(frame), int(row), bool(loop), bool(sustain), int(tempo), int(speed))"
     );
 
-    pkpy_vm_run(vm, "def peek(addr, bits=8) : return _peek(addr, bits) ");
-    pkpy_vm_run(vm, "def peek1(addr) : return _peek1(addr) ");
-    pkpy_vm_run(vm, "def peek2(addr) : return _peek2(addr) ");
-    pkpy_vm_run(vm, "def peek4(addr) : return _peek4(addr) ");
+    pkpy_vm_run(vm, "def peek(addr, bits=8) : return _peek(int(addr), int(bits)) ");
+    pkpy_vm_run(vm, "def peek1(addr) : return _peek1(int(addr)) ");
+    pkpy_vm_run(vm, "def peek2(addr) : return _peek2(int(addr)) ");
+    pkpy_vm_run(vm, "def peek4(addr) : return _peek4(int(addr)) ");
 
-    pkpy_vm_run(vm, "def pix(x, y, color=None) : return _pix(x, y, color)");
+    pkpy_vm_run(vm, "def pix(x, y, color=None) : return _pix(int(x), int(y), color)");
 
-    pkpy_vm_run(vm, "def pmem(index, value=None) : return _pmem(index, value)");
+    pkpy_vm_run(vm, "def pmem(index, value=None) : return _pmem(int(index), value)");
 
-    pkpy_vm_run(vm, "def poke(addr, value, bits=8) : return _poke(addr, value, bits) ");
-    pkpy_vm_run(vm, "def poke1(addr, value) : return _poke1(addr, value) ");
-    pkpy_vm_run(vm, "def poke2(addr, value) : return _poke2(addr, value) ");
-    pkpy_vm_run(vm, "def poke4(addr, value) : return _poke4(addr, value) ");
+    pkpy_vm_run(vm, "def poke(addr, value, bits=8) : return _poke(int(addr), int(value), int(bits)) ");
+    pkpy_vm_run(vm, "def poke1(addr, value) : return _poke1(int(addr), int(value)) ");
+    pkpy_vm_run(vm, "def poke2(addr, value) : return _poke2(int(addr), int(value)) ");
+    pkpy_vm_run(vm, "def poke4(addr, value) : return _poke4(int(addr), int(value)) ");
 
     pkpy_vm_run(vm, 
         "def print(text, x=0, y=0, color=15, fixed=False, scale=1, smallfont=False, alt=False) :"
-        " return _print(text, x, y, color, fixed, scale, smallfont, alt)"
+        " return _print(str(text), int(x), int(y), int(color), bool(fixed), int(scale), bool(smallfont), bool(alt))"
     );
 
-    pkpy_vm_run(vm, "def rect(x, y, w, h, color) : return _rect(x,y,w,h,color)");
-    pkpy_vm_run(vm, "def rectb(x, y, w, h, color) : return _rectb(x,y,w,h,color)");
+    pkpy_vm_run(vm, "def rect(x, y, w, h, color) : return _rect(int(x),int(y),int(w),int(h),int(color))");
+    pkpy_vm_run(vm, "def rectb(x, y, w, h, color) : return _rectb(int(x),int(y),int(w),int(h),int(color))");
 
     pkpy_vm_run(vm, "def reset() : return _reset()");
     
     pkpy_vm_run(vm, 
         "def sfx(id, note=-1, duration=-1, channel=0, volume=15, speed=0) : " 
-        "return _sfx(id, note, duration, channel, volume, speed)"
+        "return _sfx(id, int(note), int(duration), int(channel), int(volume), int(speed))"
     );
 
     pkpy_vm_run(vm, 
         "def spr(id, x, y, colorkey=-1, scale=1, flip=0, rotate=0, w=1, h=1) : "
-        "return _spr(id, x, y, colorkey, scale, flip, rotate, w, h)"
+        "return _spr(int(id), int(x), int(y), colorkey, int(scale), int(flip), int(rotate), int(w), int(h))"
     );
 
-    pkpy_vm_run(vm, "def sync(mask=0, bank=0, tocart=False) : return _sync(mask, bank, tocart)");
+    pkpy_vm_run(vm, "def sync(mask=0, bank=0, tocart=False) : return _sync(int(mask), int(bank), bool(tocart))");
 
     pkpy_vm_run(vm, "def time() : return _time()");
     pkpy_vm_run(vm, "def tstamp() : return _tstamp()");
 
     pkpy_vm_run(vm, 
         "def tri(x1, y1, x2, y2, x3, y3, color) : "
-        "return _tri(x1, y1, x2, y2, x3, y3, color)"
+        "return _tri(float(x1), float(y1), float(x2), float(y2), float(x3), float(y3), int(color))"
     );
     pkpy_vm_run(vm, 
         "def trib(x1, y1, x2, y2, x3, y3, color) : "
-        "return _trib(x1, y1, x2, y2, x3, y3, color)"
+        "return _trib(float(x1), float(y1), float(x2), float(y2), float(x3), float(y3), int(color))"
     );
 
     pkpy_vm_run(vm,
         "def ttri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, texsrc=0, chromakey=-1, z1=0, z2=0, z3=0) : "
-        "return _ttri(x1,y1,x2,y2,x3,y3,u1,v1,u2,v2,u3,v3,texsrc,chromakey,z1,z2,z3)"
+        "return _ttri(float(x1),float(y1),float(x2),float(y2),float(x3),float(y3),float(u1),float(v1),float(u2),float(v2),float(u3),float(v3),int(texsrc),chromakey,float(z1),float(z2),float(z3))"
     );
 
     pkpy_vm_run(vm, "def vbank(bank=None) : return _vbank(bank)");
