@@ -986,7 +986,7 @@ static int py_time(pkpy_vm* vm)
 
     int time = tic_api_time(tic);
     pkpy_push_int(vm, time);
-    return 0;
+    return 1;
 }
 
 static int py_tstamp(pkpy_vm* vm) 
@@ -998,7 +998,7 @@ static int py_tstamp(pkpy_vm* vm)
 
     int tstamp = tic_api_tstamp(tic);
     pkpy_push_int(vm, tstamp);
-    return 0;
+    return 1;
 }
 
 static int py_tri(pkpy_vm* vm) 
