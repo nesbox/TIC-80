@@ -5,6 +5,7 @@
 
 #include "pocketpy_c.h"
 #include <stdio.h>
+#include <string.h>
 
 static bool get_core(pkpy_vm* vm, tic_core** core) 
 {
@@ -1515,9 +1516,81 @@ void callPythonMenu(tic_mem* tic, s32 index, void* data) {
     }
 }
 
+static bool is_alnum_(char c) {
+    return (
+        (c >= 'a' && c <= 'z') 
+        || (c >= 'A' && c <= 'Z') 
+        || (c >= '0' && c <= '9') 
+        || (c == '_')
+    );
+}
+
 static const tic_outline_item* getPythonOutline(const char* code, s32* size) 
 {
-    return NULL;
+
+    *size = 0;
+    static tic_outline_item* items = NULL;
+    if (items) 
+    {
+        free(items);
+        items = NULL;
+    }
+
+    const char* name_start;
+
+start:
+    if (*code == 0) goto end;
+    else if (strncmp(code, "def", 3) == 0) { code += 3; goto next_word_ws; } 
+    else if (*code == '#') { code++; goto comment; }
+    else if (strncmp(code, "\"\"\"", 3) == 0) { code += 3; goto multiline_string; }
+    else if (*code == '"') { code++; goto string; }
+    else { code++; goto start; }
+
+next_word_ws :
+    if (*code == 0) goto end;
+    else if (*code=='\t' || *code==' ' || *code=='\n') { code++; goto next_word_ws; }
+    else if (is_alnum_(*code)) { name_start = code; code++; goto next_word; }
+    else goto start;
+
+next_word :
+    if (is_alnum_(*code)) { code++; goto next_word; }
+    else //store item
+    { 
+        items = realloc(items, (*size + 1) * sizeof(tic_outline_item));
+        items[*size].pos = name_start;
+        items[*size].size = (s32)(code - name_start);
+        (*size)++;
+        goto start;
+    }
+
+comment :
+    if (*code == 0) goto end;
+    else if (*code == '\n') { code++; goto start; }
+    else { *code++; goto comment; }
+
+string :
+    if (*code == 0) goto end;
+    else if (*code == '"') { code++; goto start; }
+    else if (*code == '\\') { code++; goto string_escape; }
+    else { code++; goto string; }
+
+string_escape :
+    if (*code == 0) goto end;
+    else { code++; goto string; }
+
+multiline_string :
+    if (*code == 0) goto end;
+    else if (*code == '\\') { code++; goto multiline_string_escape; }
+    else if (strncmp(code, "\"\"\"", 3) == 0) { code += 3; goto start; }
+    else {code++; goto string; }
+
+multiline_string_escape :
+    if (*code == 0) goto end;
+    else { code++; goto multiline_string; }
+
+end:
+    return items;
+
 }
 
 void evalPython(tic_mem* tic, const char* code) 
@@ -1528,7 +1601,10 @@ void evalPython(tic_mem* tic, const char* code)
 
 static const char* const PythonKeywords[] =
 {
-    "def",
+    "is not", "not in", "yield from",
+    "class", "import", "as", "def", "lambda", "pass", "del", "from", "with", "yield",
+    "None", "in", "is", "and", "or", "not", "True", "False", "global", "try", "except", "finally",
+    "while", "for", "if", "elif", "else", "break", "continue", "return", "assert", "raise"
 };
 
 
