@@ -405,13 +405,13 @@ set(POCKETPY_SRC
     ${POCKETPY_DIR}/pocketpy_c.cpp
 )
 
-add_library(pocketpy STATIC ${POCKETPY_SRC})
-set_target_properties(pocketpy PROPERTIES LINKER_LANGUAGE CXX)
-target_include_directories(pocketpy PUBLIC ${POCKETPY_DIR})
+add_library(python STATIC ${POCKETPY_SRC})
+set_target_properties(python PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories(python PUBLIC ${POCKETPY_DIR})
 if (${CMAKE_VERSION} VERSION_LESS "3.8.0") 
-    set_target_properties(pocketpy PROPERTIES COMPILE_FLAGS "--std=c++17")
+    set_target_properties(python PROPERTIES COMPILE_FLAGS "--std=c++17")
 else()
-    target_compile_features(pocketpy PRIVATE cxx_std_17)
+    target_compile_features(python PRIVATE cxx_std_17)
 endif()
 
 ################################
@@ -538,7 +538,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         wren
         wasm
         squirrel
-        pocketpy
+        python
         scheme
         duktape
         blipbuf
@@ -576,7 +576,7 @@ if(BUILD_STUB)
     MACRO_CORE(js           TIC_BUILD_WITH_JS       FALSE)
     MACRO_CORE(wren         TIC_BUILD_WITH_WREN     FALSE)
     MACRO_CORE(squirrel     TIC_BUILD_WITH_SQUIRREL FALSE)
-    MACRO_CORE(pocketpy     TIC_BUILD_WITH_PYTHON   FALSE)
+    MACRO_CORE(python       TIC_BUILD_WITH_PYTHON   FALSE)
     MACRO_CORE(scheme       TIC_BUILD_WITH_SCHEME   FALSE)
     MACRO_CORE(wasm         TIC_BUILD_WITH_WASM     FALSE)
 
@@ -1357,7 +1357,7 @@ if(BUILD_STUB)
     MACRO_STUB(js)
     MACRO_STUB(wren)
     MACRO_STUB(squirrel)
-    MACRO_STUB(pocketpy)
+    MACRO_STUB(python)
     MACRO_STUB(scheme)
 
     if(BUILD_WITH_JANET)
