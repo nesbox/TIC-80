@@ -41,6 +41,10 @@ extern tic_script_config WasmSyntaxConfig;
 extern tic_script_config JanetSyntaxConfig;
 #endif
 
+#if defined(TIC_BUILD_WITH_PYTHON)
+extern tic_script_config PythonSyntaxConfig;
+#endif
+
 
 tic_script_config* Languages[] = {
 
@@ -82,6 +86,10 @@ tic_script_config* Languages[] = {
 
   #if defined(TIC_BUILD_WITH_JANET)
   &JanetSyntaxConfig,
+  #endif
+
+  #if defined(TIC_BUILD_WITH_PYTHON)
+  &PythonSyntaxConfig,
   #endif
 
 	NULL};

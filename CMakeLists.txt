@@ -49,7 +49,7 @@ if(Git_FOUND)
 endif()
 
 if(APPLE)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum OS X deployment version")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum OS X deployment version")
 endif()
 
 
@@ -387,6 +387,7 @@ set(SQUIRREL_SRC
     ${SQUIRREL_DIR}/sqstdlib/sqstdstream.cpp
     ${SQUIRREL_DIR}/sqstdlib/sqstdstring.cpp
     ${SQUIRREL_DIR}/sqstdlib/sqstdsystem.cpp
+
 )
 
 add_library(squirrel STATIC ${SQUIRREL_SRC})
@@ -394,6 +395,24 @@ set_target_properties(squirrel PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(squirrel PUBLIC ${SQUIRREL_DIR}/include)
 target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/squirrel)
 target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/sqstdlib)
+
+################################
+# PocketPy (Python)
+################################
+
+set(POCKETPY_DIR ${THIRDPARTY_DIR}/pocketpy)
+set(POCKETPY_SRC
+    ${POCKETPY_DIR}/pocketpy_c.cpp
+)
+
+add_library(pocketpy STATIC ${POCKETPY_SRC})
+set_target_properties(pocketpy PROPERTIES LINKER_LANGUAGE CXX)
+target_include_directories(pocketpy PUBLIC ${POCKETPY_DIR})
+if (${CMAKE_VERSION} VERSION_LESS "3.8.0") 
+    set_target_properties(pocketpy PROPERTIES COMPILE_FLAGS "--std=c++17")
+else()
+    target_compile_features(pocketpy PRIVATE cxx_std_17)
+endif()
 
 ################################
 # GIFLIB
@@ -484,6 +503,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         ${TIC80CORE_DIR}/api/wren.c
         ${TIC80CORE_DIR}/api/wasm.c
         ${TIC80CORE_DIR}/api/squirrel.c
+        ${TIC80CORE_DIR}/api/python.c
         ${TIC80CORE_DIR}/api/scheme.c
         ${TIC80CORE_DIR}/api/mruby.c
         ${TIC80CORE_DIR}/api/janet.c
@@ -518,6 +538,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         wren
         wasm
         squirrel
+        pocketpy
         scheme
         duktape
         blipbuf
@@ -555,6 +576,7 @@ if(BUILD_STUB)
     MACRO_CORE(js           TIC_BUILD_WITH_JS       FALSE)
     MACRO_CORE(wren         TIC_BUILD_WITH_WREN     FALSE)
     MACRO_CORE(squirrel     TIC_BUILD_WITH_SQUIRREL FALSE)
+    MACRO_CORE(pocketpy     TIC_BUILD_WITH_PYTHON   FALSE)
     MACRO_CORE(scheme       TIC_BUILD_WITH_SCHEME   FALSE)
     MACRO_CORE(wasm         TIC_BUILD_WITH_WASM     FALSE)
 
@@ -1335,6 +1357,7 @@ if(BUILD_STUB)
     MACRO_STUB(js)
     MACRO_STUB(wren)
     MACRO_STUB(squirrel)
+    MACRO_STUB(pocketpy)
     MACRO_STUB(scheme)
 
     if(BUILD_WITH_JANET)
