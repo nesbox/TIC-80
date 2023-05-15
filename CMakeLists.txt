@@ -401,13 +401,19 @@ target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/sqstdlib)
 ################################
 
 set(POCKETPY_DIR ${THIRDPARTY_DIR}/pocketpy)
-set(POCKETPY_SRC
-    ${POCKETPY_DIR}/pocketpy_c.cpp
+execute_process(
+    COMMAND python3 preprocess.py
+    WORKING_DIRECTORY ${POCKETPY_DIR}
 )
-
-add_library(python STATIC ${POCKETPY_SRC})
+add_library(
+    python
+    STATIC
+    ${POCKETPY_DIR}/c_bindings/pocketpy_c.cpp
+)
 set_target_properties(python PROPERTIES LINKER_LANGUAGE CXX)
-target_include_directories(python PUBLIC ${POCKETPY_DIR})
+target_compile_definitions(python PRIVATE PK_ENABLE_OS=0)
+target_include_directories(python PRIVATE ${POCKETPY_DIR}/src)
+target_include_directories(python PRIVATE ${POCKETPY_DIR}/c_bindings)
 if (${CMAKE_VERSION} VERSION_LESS "3.8.0") 
     set_target_properties(python PROPERTIES COMPILE_FLAGS "--std=c++17")
 else()

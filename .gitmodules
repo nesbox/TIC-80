@@ -82,3 +82,6 @@
 [submodule "vendor/janet"]
 	path = vendor/janet
 	url = https://github.com/janet-lang/janet.git
+[submodule "vendor/pocketpy"]
+	path = vendor/pocketpy
+	url = https://github.com/blueloveTH/pocketpy
