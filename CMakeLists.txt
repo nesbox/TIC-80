@@ -401,18 +401,19 @@ target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/sqstdlib)
 ################################
 
 set(POCKETPY_DIR ${THIRDPARTY_DIR}/pocketpy)
-find_program(CMAKE_CXX_COMPILER NAMES g++)
-if(CMAKE_CXX_COMPILER)
+execute_process(
+    COMMAND python3 preprocess.py
+    WORKING_DIRECTORY ${POCKETPY_DIR}
+    RESULT_VARIABLE EXIT_CODE
+)
+
+if(NOT ${EXIT_CODE} EQUAL 0)
     execute_process(
-        COMMAND bash prebuild.sh
-        WORKING_DIRECTORY ${POCKETPY_DIR}
-    )
-else()
-    execute_process(
-        COMMAND python3 preprocess.py
+        COMMAND g++ -o prebuild prebuild.cpp | ./prebuild
         WORKING_DIRECTORY ${POCKETPY_DIR}
     )
 endif()
+
 add_library(
     python
     STATIC
