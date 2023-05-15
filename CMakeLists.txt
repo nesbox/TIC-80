@@ -408,10 +408,7 @@ execute_process(
 )
 
 if(NOT ${EXIT_CODE} EQUAL 0)
-    execute_process(
-        COMMAND g++ -o prebuild prebuild.cpp | ./prebuild
-        WORKING_DIRECTORY ${POCKETPY_DIR}
-    )
+    message(FATAL_ERROR "python3 prebuild failed!!")
 endif()
 
 add_library(
