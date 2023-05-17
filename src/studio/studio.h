@@ -264,7 +264,7 @@ const StudioConfig* getConfig(Studio* studio);
 struct Start* getStartScreen(Studio* studio);
 struct Sprite* getSpriteEditor(Studio* studio);
 
-const char* studioExportMusic(Studio* studio, s32 track, const char* filename);
+const char* studioExportMusic(Studio* studio, s32 track, s32 bank, const char* filename);
 const char* studioExportSfx(Studio* studio, s32 sfx, const char* filename);
 
 tic_mem* getMemory(Studio* studio);
