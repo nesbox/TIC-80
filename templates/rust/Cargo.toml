@@ -10,7 +10,6 @@ crate-type = ["cdylib"]
 buddy-alloc = { version = "0.4.1", optional = true }
 
 [profile.release]
-opt-level = 0
 lto = true
 strip = true
 
