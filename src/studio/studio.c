@@ -322,7 +322,7 @@ const char* studioExportSfx(Studio* studio, s32 index, const char* filename)
     return NULL;
 }
 
-const char* studioExportMusic(Studio* studio, s32 track, const char* filename)
+const char* studioExportMusic(Studio* studio, s32 track, s32 bank, const char* filename)
 {
     tic_mem* tic = studio->tic;
 
@@ -333,7 +333,16 @@ const char* studioExportMusic(Studio* studio, s32 track, const char* filename)
 #if TIC80_SAMPLE_CHANNELS == 2
         wave_enable_stereo();
 #endif
-
+#if defined(TIC80_PRO)
+        // chained = true in CLI. Set to false if want to use unchained
+        bool chained = studio->bank.chained;
+        if(chained)
+            memset(studio->bank.indexes, bank, sizeof studio->bank.indexes);
+        else
+            for(s32 i = 0; i < COUNT_OF(BankModes); i++)
+                if(BankModes[i] == TIC_MUSIC_MODE)
+                    studio->bank.indexes[i] = bank;
+#endif
         const tic_sfx* sfx = getSfxSrc(studio);
         const tic_music* music = getMusicSrc(studio);
 
@@ -341,7 +350,7 @@ const char* studioExportMusic(Studio* studio, s32 track, const char* filename)
         music2ram(tic->ram, music);
 
         const tic_music_state* state = &tic->ram->music_state;
-        const Music* editor = studio->banks.music[studio->bank.index.music];
+        const Music* editor = studio->banks.music[bank];
 
         tic_api_music(tic, track, -1, -1, false, editor->sustain, -1, -1);
 

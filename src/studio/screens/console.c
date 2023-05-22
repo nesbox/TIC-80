@@ -2283,7 +2283,7 @@ static void onExport_music(Console* console, const char* type, const char* name,
     bool error = true;
 
     if(params.id >= 0 && params.id < MUSIC_TRACKS)
-        error = studioExportMusic(console->studio, params.id, filename) == NULL;
+        error = studioExportMusic(console->studio, params.id, params.bank, filename) == NULL;
 
     onFileExported(console, filename, !error);
 }
