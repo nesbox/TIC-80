@@ -1,7 +1,7 @@
 # Rust Starter Project Template
 
 ## Important Note
-Don't access TIC-80's I/O memory by dereferencing raw pointers. The optimiser will ruin attempts to do this, because Rust has no equivalent to C's `volatile` for direct access. Instead, use [`std::ptr::read_volatile`](https://doc.rust-lang.org/std/ptr/fn.read_volatile.html) and [`std::ptr::write_volatile`](https://doc.rust-lang.org/std/ptr/fn.write_volatile.html).
+Don't access TIC-80's I/O memory by dereferencing raw pointers. The optimiser will ruin attempts to do this, because Rust has no equivalent to C's `volatile` for direct access. Instead, use [`std::ptr::read_volatile`](https://doc.rust-lang.org/std/ptr/fn.read_volatile.html) and [`std::ptr::write_volatile`](https://doc.rust-lang.org/std/ptr/fn.write_volatile.html), or just use the standard TIC-80 `peek`/`poke`.
 
 This is a Rust / TIC-80 starter template. Before using it, make sure you have installed the `wasm32-unknown-unknown` target using rustup:
 ```
