@@ -1,8 +1,7 @@
 # Rust Starter Project Template
 
 ## Important Note
-This template currently produces unoptimised builds. This is required due to TIC-80's memory layout placing data at the address 0, which Rust does not understand.
-If you aren't using direct framebuffer access, you should be able to use another level by changing the  `Cargo.toml`.
+Don't access TIC-80's I/O memory by dereferencing raw pointers. The optimiser will ruin attempts to do this, because Rust has no equivalent to C's `volatile` for direct access. Instead, use [`std::ptr::read_volatile`](https://doc.rust-lang.org/std/ptr/fn.read_volatile.html) and [`std::ptr::write_volatile`](https://doc.rust-lang.org/std/ptr/fn.write_volatile.html), or just use the standard TIC-80 `peek`/`poke`.
 
 This is a Rust / TIC-80 starter template. Before using it, make sure you have installed the `wasm32-unknown-unknown` target using rustup:
 ```
