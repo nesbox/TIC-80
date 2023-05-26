@@ -463,7 +463,7 @@ target_include_directories(duktape INTERFACE ${THIRDPARTY_DIR}/duktape/src)
 # Janet
 ################################
 
-set(BUILD_WITH_JANET_DEFAULT TRUE)
+set(BUILD_WITH_JANET_DEFAULT FALSE)
 
 option(BUILD_WITH_JANET "Janet Enabled" ${BUILD_WITH_JANET_DEFAULT})
 message("BUILD_WITH_JANET: ${BUILD_WITH_JANET}")
