@@ -81,6 +81,10 @@
                 ]
             }
 
+            canvasElement.addEventListener('click', () => {
+                canvasElement.focus()  
+            })
+
             playElement.addEventListener('click', () => {
                 playElement.style.display = 'none'
                 canvasElement.focus()
