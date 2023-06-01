@@ -245,7 +245,7 @@ You can find iOS/tvOS version here
 * msx80 - [Twitter @msx80](https://twitter.com/msx80) [Github msx80](https://github.com/msx80)
 * Josh Goebel - [Twitter @dreamer3](https://twitter.com/dreamer3) [Github joshgoebel](https://github.com/joshgoebel)
 * Joshua Minor - [GitHub @jminor](https://github.com/jminor)
-* Jeremiasz Nelz - [Github @remi6397](https://github.com/remi6397) [WWW](https://nelz.pl)
+* Julia Nelz - [Github @remi6397](https://github.com/remi6397) [WWW](https://nelz.pl)
 * Thorben Krüger - [Mastodon @benthor@chaos.social](https://chaos.social/@benthor)
 * David St-Hilaire - [GitHub @sthilaid](https://github.com/sthilaid)
 * Alec Troemel - [Github @alectroemel](https://github.com/AlecTroemel)
