@@ -337,7 +337,7 @@ static int py_key(pkpy_vm* vm)
         return 0;
 
     if (key_id >= tic_keys_count) {
-        pkpy_error(vm, "unknown keyboard code\n");
+        pkpy_error(vm, "tic80-panic!", "unknown keyboard code\n");
         return 0;
     }
 
@@ -361,7 +361,7 @@ static int py_keyp(pkpy_vm* vm)
         return 0;
 
     if (key_id >= tic_keys_count) {
-        pkpy_error(vm, "unknown keyboard code\n");
+        pkpy_error(vm, "tic80-panic!", "unknown keyboard code\n");
         return 0;
     }
 
@@ -570,7 +570,7 @@ static int py_music(pkpy_vm* vm) {
         return 0;
 
     if (track > MUSIC_TRACKS - 1 )
-        pkpy_error(vm, "invalid music track index\n");
+        pkpy_error(vm, "tic80-panic!", "invalid music track index\n");
 
     //stop the music first I guess
     tic_api_music(tic, -1, 0, 0, false, false, -1, -1);
@@ -687,7 +687,7 @@ static int py_pmem(pkpy_vm* vm) {
         return 0;
 
     if (index >= TIC_PERSISTENT_SIZE) {
-        pkpy_error(vm, "invalid persistent tic index\n");
+        pkpy_error(vm, "tic80-panic!", "invalid persistent tic index\n");
         return 0;
     }
 
@@ -882,7 +882,7 @@ static int py_sfx(pkpy_vm* vm)
 
     if (parse_note) {
         if(!tic_tool_parse_note(string_note, &note, &octave)) {
-            pkpy_error(vm, "invalid note, should like C#4\n");
+            pkpy_error(vm, "tic80-panic!", "invalid note, should like C#4\n");
             goto cleanup; //error in future;
         }
             
@@ -892,12 +892,12 @@ static int py_sfx(pkpy_vm* vm)
     }
 
     if (channel < 0 || channel >= TIC_SOUND_CHANNELS) {
-        pkpy_error(vm, "unknown channel\n");
+        pkpy_error(vm, "tic80-panic!", "unknown channel\n");
         goto cleanup;
     }
 
     if (sfx_id >= SFX_COUNT) {
-        pkpy_error(vm, "unknown sfx index\n");
+        pkpy_error(vm, "tic80-panic!", "unknown sfx index\n");
         goto cleanup;
     }
 
@@ -969,7 +969,7 @@ static int py_sync(pkpy_vm* vm)
         return 0;
 
     if (bank < 0 || bank >= TIC_BANKS) {
-        pkpy_error(vm, "sync() error, invalid bank\n");
+        pkpy_error(vm, "tic80-panic!", "sync() error, invalid bank\n");
         return 0;
     }
 
@@ -1139,142 +1139,142 @@ static int py_vbank(pkpy_vm* vm) {
 
 static bool setup_c_bindings(pkpy_vm* vm) {
 
-    pkpy_push_function(vm, py_trace);
+    pkpy_push_function(vm, py_trace, 2);
     pkpy_set_global(vm, "_trace");
 
-    pkpy_push_function(vm, py_cls);
+    pkpy_push_function(vm, py_cls, 1);
     pkpy_set_global(vm, "_cls");
 
-    pkpy_push_function(vm, py_btn);
+    pkpy_push_function(vm, py_btn, 1);
     pkpy_set_global(vm, "_btn");
 
-    pkpy_push_function(vm, py_btnp);
+    pkpy_push_function(vm, py_btnp, 3);
     pkpy_set_global(vm, "_btnp");
 
-    pkpy_push_function(vm, py_circ);
+    pkpy_push_function(vm, py_circ, 4);
     pkpy_set_global(vm, "_circ");
 
-    pkpy_push_function(vm, py_circb);
+    pkpy_push_function(vm, py_circb, 4);
     pkpy_set_global(vm, "_circb");
 
-    pkpy_push_function(vm, py_clip);
+    pkpy_push_function(vm, py_clip, 4);
     pkpy_set_global(vm, "_clip");
 
-    pkpy_push_function(vm, py_elli);
+    pkpy_push_function(vm, py_elli, 5);
     pkpy_set_global(vm, "_elli");
 
-    pkpy_push_function(vm, py_ellib);
+    pkpy_push_function(vm, py_ellib, 5);
     pkpy_set_global(vm, "_ellib");
 
-    pkpy_push_function(vm, py_exit);
+    pkpy_push_function(vm, py_exit, 0);
     pkpy_set_global(vm, "_exit");
 
-    pkpy_push_function(vm, py_fget);
+    pkpy_push_function(vm, py_fget, 2);
     pkpy_set_global(vm, "_fget");
 
-    pkpy_push_function(vm, py_fget);
+    pkpy_push_function(vm, py_fset, 3);
     pkpy_set_global(vm, "_fset");
 
-    pkpy_push_function(vm, py_font);
+    pkpy_push_function(vm, py_font, 9);
     pkpy_set_global(vm, "_font");
 
-    pkpy_push_function(vm, py_key);
+    pkpy_push_function(vm, py_key, 1);
     pkpy_set_global(vm, "_key");
 
-    pkpy_push_function(vm, py_keyp);
+    pkpy_push_function(vm, py_keyp, 3);
     pkpy_set_global(vm, "_keyp");
 
-    pkpy_push_function(vm, py_line);
+    pkpy_push_function(vm, py_line, 5);
     pkpy_set_global(vm, "_line");
 
-    pkpy_push_function(vm, py_map);
+    pkpy_push_function(vm, py_map, 9);
     pkpy_set_global(vm, "_map");
 
-    pkpy_push_function(vm, py_memcpy);
+    pkpy_push_function(vm, py_memcpy, 3);
     pkpy_set_global(vm, "_memcpy");
 
-    pkpy_push_function(vm, py_memset);
+    pkpy_push_function(vm, py_memset, 3);
     pkpy_set_global(vm, "_memset");
 
-    pkpy_push_function(vm, py_mget);
+    pkpy_push_function(vm, py_mget, 2);
     pkpy_set_global(vm, "_mget");
 
-    pkpy_push_function(vm, py_mouse);
+    pkpy_push_function(vm, py_mouse, 0);
     pkpy_set_global(vm, "_mouse");
 
-    pkpy_push_function(vm, py_mset);
+    pkpy_push_function(vm, py_mset, 3);
     pkpy_set_global(vm, "_mset");
 
-    pkpy_push_function(vm, py_music);
+    pkpy_push_function(vm, py_music, 7);
     pkpy_set_global(vm, "_music");
 
-    pkpy_push_function(vm, py_peek);
+    pkpy_push_function(vm, py_peek, 2);
     pkpy_set_global(vm, "_peek");
 
-    pkpy_push_function(vm, py_peek1);
+    pkpy_push_function(vm, py_peek1, 1);
     pkpy_set_global(vm, "_peek1");
 
-    pkpy_push_function(vm, py_peek1);
+    pkpy_push_function(vm, py_peek2, 1);
     pkpy_set_global(vm, "_peek2");
 
-    pkpy_push_function(vm, py_peek1);
+    pkpy_push_function(vm, py_peek4, 1);
     pkpy_set_global(vm, "_peek4");
 
-    pkpy_push_function(vm, py_pix);
+    pkpy_push_function(vm, py_pix, 3);
     pkpy_set_global(vm, "_pix");
 
-    pkpy_push_function(vm, py_pmem);
+    pkpy_push_function(vm, py_pmem, 2);
     pkpy_set_global(vm, "_pmem");
 
-    pkpy_push_function(vm, py_poke);
+    pkpy_push_function(vm, py_poke, 3);
     pkpy_set_global(vm, "_poke");
 
-    pkpy_push_function(vm, py_poke1);
+    pkpy_push_function(vm, py_poke1, 2);
     pkpy_set_global(vm, "_poke1");
 
-    pkpy_push_function(vm, py_poke1);
+    pkpy_push_function(vm, py_poke2, 2);
     pkpy_set_global(vm, "_poke2");
 
-    pkpy_push_function(vm, py_poke1);
+    pkpy_push_function(vm, py_poke4, 2);
     pkpy_set_global(vm, "_poke4");
 
-    pkpy_push_function(vm, py_print);
+    pkpy_push_function(vm, py_print, 8);
     pkpy_set_global(vm, "_print");
 
-    pkpy_push_function(vm, py_rect);
+    pkpy_push_function(vm, py_rect, 5);
     pkpy_set_global(vm, "_rect");
 
-    pkpy_push_function(vm, py_rectb);
+    pkpy_push_function(vm, py_rectb, 5);
     pkpy_set_global(vm, "_rectb");
 
-    pkpy_push_function(vm, py_reset);
+    pkpy_push_function(vm, py_reset, 0);
     pkpy_set_global(vm, "_reset");
     
-    pkpy_push_function(vm, py_sfx);
+    pkpy_push_function(vm, py_sfx, 6);
     pkpy_set_global(vm, "_sfx");
 
-    pkpy_push_function(vm, py_spr);
+    pkpy_push_function(vm, py_spr, 9);
     pkpy_set_global(vm, "_spr");
 
-    pkpy_push_function(vm, py_sync);
+    pkpy_push_function(vm, py_sync, 3);
     pkpy_set_global(vm, "_sync");
 
-    pkpy_push_function(vm, py_time);
+    pkpy_push_function(vm, py_time, 0);
     pkpy_set_global(vm, "_time");
 
-    pkpy_push_function(vm, py_tri);
+    pkpy_push_function(vm, py_tri, 7);
     pkpy_set_global(vm, "_tri");
 
-    pkpy_push_function(vm, py_trib);
+    pkpy_push_function(vm, py_trib, 7);
     pkpy_set_global(vm, "_trib");
 
-    pkpy_push_function(vm, py_tstamp);
+    pkpy_push_function(vm, py_tstamp, 0);
     pkpy_set_global(vm, "_tstamp");
 
-    pkpy_push_function(vm, py_ttri);
+    pkpy_push_function(vm, py_ttri, 17);
     pkpy_set_global(vm, "_ttri");
 
-    pkpy_push_function(vm, py_vbank);
+    pkpy_push_function(vm, py_vbank, 1);
     pkpy_set_global(vm, "_vbank");
 
     if(pkpy_check_error(vm))
