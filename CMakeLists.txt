@@ -426,6 +426,16 @@ else()
     target_compile_features(python PRIVATE cxx_std_17)
 endif()
 
+# the export.h normally lives in the src subdirecty file, but needs to be seen
+# by the c bindings
+add_custom_command(
+    TARGET python PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    ${POCKETPY_DIR}/src/export.h
+    ${POCKETPY_DIR}/c_bindings/export.h
+)
+
+
 ################################
 # GIFLIB
 ################################
