@@ -249,3 +249,4 @@ You can find iOS/tvOS version here
 * Thorben Krüger - [Mastodon @benthor@chaos.social](https://chaos.social/@benthor)
 * David St-Hilaire - [GitHub @sthilaid](https://github.com/sthilaid)
 * Alec Troemel - [Github @alectroemel](https://github.com/AlecTroemel)
+* Kolten Pearson - [Github @koltenpearson](https://github.com/koltenpearson)
