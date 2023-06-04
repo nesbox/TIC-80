@@ -401,8 +401,15 @@ target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/sqstdlib)
 ################################
 
 set(POCKETPY_DIR ${THIRDPARTY_DIR}/pocketpy)
+
+if (${CMAKE_VERSION} VERSION_LESS "3.12.0") 
+    set(Python3_EXECUTABLE "python3")
+else()
+    find_package(Python3 COMPONENTS Interpreter)
+endif()
+
 execute_process(
-    COMMAND python3 preprocess.py
+    COMMAND ${Python3_EXECUTABLE} preprocess.py
     WORKING_DIRECTORY ${POCKETPY_DIR}
     RESULT_VARIABLE EXIT_CODE
 )
@@ -425,6 +432,16 @@ if (${CMAKE_VERSION} VERSION_LESS "3.8.0")
 else()
     target_compile_features(python PRIVATE cxx_std_17)
 endif()
+
+# the export.h normally lives in the src subdirecty file, but needs to be seen
+# by the c bindings
+add_custom_command(
+    TARGET python PRE_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    ${POCKETPY_DIR}/src/export.h
+    ${POCKETPY_DIR}/c_bindings/export.h
+)
+
 
 ################################
 # GIFLIB
