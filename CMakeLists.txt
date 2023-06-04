@@ -401,8 +401,15 @@ target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/sqstdlib)
 ################################
 
 set(POCKETPY_DIR ${THIRDPARTY_DIR}/pocketpy)
+
+if (${CMAKE_VERSION} VERSION_LESS "3.12.0") 
+    set(Python3_EXECUTABLE "python3")
+else()
+    find_package(Python3 COMPONENTS Interpreter)
+endif()
+
 execute_process(
-    COMMAND python3 preprocess.py
+    COMMAND ${Python3_EXECUTABLE} preprocess.py
     WORKING_DIRECTORY ${POCKETPY_DIR}
     RESULT_VARIABLE EXIT_CODE
 )
