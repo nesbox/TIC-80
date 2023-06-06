@@ -213,6 +213,22 @@ static inline void drawChar(tic_mem* tic, char symbol, s32 x, s32 y, u8 color, b
     tic_api_print(tic, (char[]){symbol, '\0'}, x, y, color, true, 1, alt);
 }
 
+static int drawTab(Code* code, s32 x, s32 y, u8 color) 
+{
+    tic_mem* tic = code->tic;
+    s32 tab_size = getConfig(code->studio)->options.tabSize;
+
+    s32 count = 0;
+    while (count < tab_size) {
+        drawChar(tic, ' ', x, y, color, code->altFont);
+        count++;
+        if (x / getFontWidth(code) % tab_size == 0) 
+            break;
+        x += getFontWidth(code);
+    }
+    return getFontWidth(code) * count;
+}
+
 static void drawCursor(Code* code, s32 x, s32 y, char symbol)
 {
     bool inverse = code->cursor.delay || code->tickCounter % TEXT_CURSOR_BLINK_PERIOD < TEXT_CURSOR_BLINK_PERIOD / 2;
@@ -265,6 +281,7 @@ static void drawCode(Code* code, bool withCursor)
     while(*pointer)
     {
         char symbol = *pointer;
+        s32 x_offset = getFontWidth(code);
 
         if(x >= -getFontWidth(code) && x < TIC80_WIDTH && y >= -TIC_FONT_HEIGHT && y < TIC80_HEIGHT )
         {
@@ -281,7 +298,10 @@ static void drawCode(Code* code, bool withCursor)
                 if(code->shadowText)
                     drawChar(code->tic, symbol, x+1, y+1, 0, code->altFont);
 
-                drawChar(code->tic, symbol, x, y, colors[syntaxPointer->syntax], code->altFont);
+                if (symbol == '\t')
+                    x_offset = drawTab(code, x, y, colors[syntaxPointer->syntax]);
+                else
+                    drawChar(code->tic, symbol, x, y, colors[syntaxPointer->syntax], code->altFont);
             }
         }
 
@@ -299,7 +319,7 @@ static void drawCode(Code* code, bool withCursor)
             x = xStart;
             y += STUDIO_TEXT_HEIGHT;
         }
-        else x += getFontWidth(code);
+        else x += x_offset;
 
         pointer++;
         syntaxPointer++;
