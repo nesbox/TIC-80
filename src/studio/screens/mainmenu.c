@@ -226,6 +226,27 @@ static MenuOption TabSizeOption =
     optionTabSizeSet,
 };
 
+static s32 optionTabModeGet(void* data)
+{
+    StudioMainMenu* main = data;
+    return main->options->tabMode;
+}
+
+static void optionTabModeSet(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+    main->options->tabMode = (enum TabMode) pos;
+}
+
+
+static MenuOption TabModeOption =
+{
+    OPTION_VALUES({"AUTO", "TABS", "SPACES"}),
+    optionTabModeGet,
+    optionTabModeSet,
+};
+
+
 static s32 optionKeybindModeGet(void* data)
 {
     StudioMainMenu* main = data;
@@ -338,6 +359,7 @@ enum
 static const MenuItem EditorMenu[] =
 {
     {"TAB SIZE",          NULL,   &TabSizeOption,     "Indentation is your friend"},
+    {"TAB MODE",          NULL,   &TabModeOption,     "Auto uses spaces for python/moonscript"},
     {"KEYBIND MODE",      NULL,   &KeybindModeOption, "For the cool kids only"},
     {""},
     {"BACK",            showOptionsMenu, .back = true},

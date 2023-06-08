@@ -79,6 +79,12 @@ enum KeybindMode {
     KEYBIND_VI
 };
 
+enum TabMode {
+    TAB_AUTO,
+    TAB_TAB,
+    TAB_SPACE
+};
+
 typedef struct
 {
     struct
@@ -137,6 +143,7 @@ typedef struct
         tic_mapping mapping;
 #if defined(BUILD_EDITORS)
         enum KeybindMode keybindMode;
+        enum TabMode tabMode;
         bool devmode;
         s32 tabSize;
 #endif
