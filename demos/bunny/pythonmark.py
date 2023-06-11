@@ -14,90 +14,90 @@ t = 0
 
 class Bunny :
 
-	def __init__(self) :
-		self.width = 26
-		self.height = 32
-		self.x = random.randint(0, screen_width - self.width)
-		self.y = random.randint(0, screen_height - self.height)
-		self.speed_x = random.uniform(-100.0, 100.0) / 60.0
-		self.speed_y = random.uniform(-100.0, 100.0) / 60.0
-		self.sprite = 1
-		
-	def draw(self) :
-		spr(self.sprite, int(self.x), int(self.y), 1, 1, 0, 0, 4, 4)
-		
-	def update(self) :
-		self.x = self.x + self.speed_x
-		self.y = self.y + self.speed_y
-		
-		if (self.x + self.width > screen_width) :
-			self.x = screen_width - self.width
-			self.speed_x = self.speed_x * -1.0
-		
-		if (self.y + self.height > screen_height) :
-			self.y = screen_height - self.height
-			self.speed_y = self.speed_y * -1.0
-			
-		if (self.x < 0) :
-			self.x = 0
-			self.speed_x = self.speed_x * -1.0
-		
-		if (self.y < toolbar_height) :
-			self.y = toolbar_height
-			self.speed_y = self.speed_y * -1.0
-					
+  def __init__(self) :
+    self.width = 26
+    self.height = 32
+    self.x = random.randint(0, screen_width - self.width)
+    self.y = random.randint(0, screen_height - self.height)
+    self.speed_x = random.uniform(-100.0, 100.0) / 60.0
+    self.speed_y = random.uniform(-100.0, 100.0) / 60.0
+    self.sprite = 1
+    
+  def draw(self) :
+    spr(self.sprite, int(self.x), int(self.y), 1, 1, 0, 0, 4, 4)
+    
+  def update(self) :
+    self.x = self.x + self.speed_x
+    self.y = self.y + self.speed_y
+    
+    if (self.x + self.width > screen_width) :
+      self.x = screen_width - self.width
+      self.speed_x = self.speed_x * -1.0
+    
+    if (self.y + self.height > screen_height) :
+      self.y = screen_height - self.height
+      self.speed_y = self.speed_y * -1.0
+      
+    if (self.x < 0) :
+      self.x = 0
+      self.speed_x = self.speed_x * -1.0
+    
+    if (self.y < toolbar_height) :
+      self.y = toolbar_height
+      self.speed_y = self.speed_y * -1.0
+          
 class FPS :
-	
-	def __init__(self) :
-		self.value = 0
-		self.frames = 0
-		self.last_time = 0
-		
-	def get_value(self) :
-		if (time() - self.last_time <= 1000) :
-			self.frames = self.frames + 1
-		else :
-			self.value = self.frames
-			self.frames = 0
-			self.last_time = time()
-			
-		return self.value
-		
+  
+  def __init__(self) :
+    self.value = 0
+    self.frames = 0
+    self.last_time = 0
+    
+  def get_value(self) :
+    if (time() - self.last_time <= 1000) :
+      self.frames = self.frames + 1
+    else :
+      self.value = self.frames
+      self.frames = 0
+      self.last_time = time()
+      
+    return self.value
+    
 fps = FPS()
 
 bunnies = [Bunny()]
 
 def TIC() :
-	global t
-	
-	if t == 0 :
-		music(0)
-	
-	if t == 6 * 64 * 2.375 :
-		music(1)
-		
-	t += 1
-	
-	if btn(0) :
-		for i in range(5) :
-			bunnies.append(Bunny())
-	
-	if btn(1) :
-		for i in range(5) :
-			if len(bunnies) > 0 :
-				bunnies.pop()
-	
-	for bunny in bunnies :
-		bunny.update()
-		
-	cls(15)
-	for bunny in bunnies :
-		bunny.draw()
-		
-	rect(0, 0, screen_width, toolbar_height, 0)
-	print("Bunnies: " + str(len(bunnies)), 1, 0, 11, False, 1, False)
-	print("FPS: " + str(fps.get_value()), screen_width//2, 0, 11, False, 1, False)
-	
+  global t
+  
+  if t == 0 :
+    music(0)
+  
+  if t == 6 * 64 * 2.375 :
+    music(1)
+    
+  t += 1
+  
+  if btn(0) :
+    for i in range(5) :
+      bunnies.append(Bunny())
+  
+  if btn(1) :
+    for i in range(5) :
+      if len(bunnies) > 0 :
+        bunnies.pop()
+  
+  for bunny in bunnies :
+    bunny.update()
+    
+  cls(15)
+  for bunny in bunnies :
+    bunny.draw()
+    
+  rect(0, 0, screen_width, toolbar_height, 0)
+  print("Bunnies: " + str(len(bunnies)), 1, 0, 11, False, 1, False)
+  print("FPS: " + str(fps.get_value()), screen_width//2, 0, 11, False, 1, False)
+  
 # <TILES>
 # 001:11111100111110dd111110dc111110dc111110dc111110dc111110dd111110dd
 # 002:00011110ddd0110dccd0110dccd0110dccd0110dccd0110dcddd00dddddddddd
