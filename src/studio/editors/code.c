@@ -220,7 +220,7 @@ static int drawTab(Code* code, s32 x, s32 y, u8 color)
 
     s32 count = 0;
     while (count < tab_size) {
-        drawChar(tic, ' ', x, y, color, code->altFont);
+        drawChar(tic, '\t', x, y, color, code->altFont);
         count++;
         if (x / getFontWidth(code) % tab_size == 0) 
             break;
@@ -1449,6 +1449,63 @@ static void redo(Code* code)
     update(code);
 }
 
+static bool useSpacesForTab(Code* code) {
+    enum TabMode tabmode = getConfig(code->studio)->options.tabMode;
+
+
+    if (tabmode == TAB_SPACE)
+        return true;
+    else if (tabmode == TAB_TAB)
+        return false;
+    else { //auto mode
+        tic_mem* tic = code->tic;
+        const tic_script_config* config = tic_core_script_config(tic);
+        if (config->id == 20 || config->id == 13)  //python or moonscript
+            return true;
+        return false;
+    }
+}
+
+
+static s32 insertTab(Code* code, char* line_start, char* pos) {
+    if (useSpacesForTab(code)) {
+        s32 tab_size = getConfig(code->studio)->options.tabSize;
+        s32 count = 0;
+
+        while(count < tab_size) {
+            insertCode(code, pos++, " ");
+            count++;
+            if ((pos - line_start) % tab_size == 0)
+                break;
+        }
+
+        return count;
+    } else {
+        insertCode(code, pos, "\t");
+        return 1;
+    }
+}
+
+//has no effect is pos is not a valid tab character
+static s32 removeTab(Code* code, char* line_start, char* pos) {
+    if (useSpacesForTab(code)) {
+        s32 tab_size = getConfig(code->studio)->options.tabSize;
+        s32 count = 0;
+
+        while(count < tab_size) {
+            if (*pos != ' ')
+                break;
+            deleteCode(code, pos, pos+1);
+            count++;
+        }
+
+        return count;
+    } else if (*pos == '\t' || *pos == ' ') {
+        deleteCode(code, pos, pos+1);
+        return 1;
+    }
+}
+
 static void doTab(Code* code, bool shift, bool crtl)
 {
     char* cursor_position = code->cursor.position;
@@ -1479,16 +1536,13 @@ static void doTab(Code* code, bool shift, bool crtl)
             {
                 if(*line == '\t' || *line == ' ')
                 {
-                    deleteCode(code, line, line + 1);
-                    end--;
+                    end -= removeTab(code, line, line);
                     changed = true;
                 }
             }
             else
             {
-                insertCode(code, line, "\t");
-                end++;
-
+                end += insertTab(code, line, line);
                 changed = true;
             }
             
@@ -1498,17 +1552,26 @@ static void doTab(Code* code, bool shift, bool crtl)
         
         if(changed) {
             
-            if(has_selection) {
+            if(has_selection) 
+            {
                 code->cursor.position = start;
                 code->cursor.selection = end;
             }
             else if (start <= end) code->cursor.position = end;
             
             history(code);
+            updateColumn(code);
             parseSyntaxColor(code);
         }
     }
-    else inputSymbolBase(code, '\t');
+    else 
+    {
+        char* line = getLineByPos(code, code->cursor.position);
+        code->cursor.position += insertTab(code, line, code->cursor.position);
+        history(code);
+        updateColumn(code);
+        parseSyntaxColor(code);
+    }
 }
 
 // Add a block-ending keyword or symbol, and put the cursor in the line between.
