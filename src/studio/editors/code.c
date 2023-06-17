@@ -290,8 +290,16 @@ static void drawCode(Code* code, bool withCursor)
                 if(code->shadowText)
                     tic_api_rect(code->tic, x, y, getFontWidth(code)+1, TIC_FONT_HEIGHT+1, tic_color_black);
 
-                tic_api_rect(code->tic, x-1, y-1, getFontWidth(code)+1, TIC_FONT_HEIGHT+1, selectColor);
-                drawChar(code->tic, symbol, x, y, tic_color_dark_grey, code->altFont);
+                if (symbol == '\t') {
+                    //NOTE: this logic assumes that the tab character is blank
+                    //is someone made a custom character for tab it won't show up
+                    //in the selection
+                    x_offset = drawTab(code, x, y, tic_color_dark_grey);
+                    tic_api_rect(code->tic, x-1, y-1, x_offset, TIC_FONT_HEIGHT+1, selectColor);
+                } else {
+                    tic_api_rect(code->tic, x-1, y-1, getFontWidth(code)+1, TIC_FONT_HEIGHT+1, selectColor);
+                    drawChar(code->tic, symbol, x, y, tic_color_dark_grey, code->altFont);
+                }
             }
             else 
             {
