@@ -1560,8 +1560,7 @@ static void doTab(Code* code, bool shift, bool crtl)
             else if (start <= end) code->cursor.position = end;
             
             history(code);
-            updateColumn(code);
-            parseSyntaxColor(code);
+            update(code);
         }
     }
     else 
@@ -1569,8 +1568,7 @@ static void doTab(Code* code, bool shift, bool crtl)
         char* line = getLineByPos(code, code->cursor.position);
         code->cursor.position += insertTab(code, line, code->cursor.position);
         history(code);
-        updateColumn(code);
-        parseSyntaxColor(code);
+        update(code);
     }
 }
 
