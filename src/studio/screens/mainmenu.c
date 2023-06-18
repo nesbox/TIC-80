@@ -195,6 +195,57 @@ static MenuOption VolumeOption =
 };
 
 #if defined(BUILD_EDITORS)
+static s32 optionTabSizeGet(void* data)
+{
+    StudioMainMenu* main = data;
+    s32 tsize = main->options->tabSize;
+
+    s32 ret = 0;
+    tsize /= 2;
+    while(tsize != 0) {
+        ret++;
+        tsize /= 2;
+    }
+
+    return ret;
+}
+
+static void optionTabSizeSet(void* data, s32 pos)
+{
+    s32 tsize = 1;
+    for (s32 i = 0; i < pos; i++)
+        tsize *= 2;
+    StudioMainMenu* main = data;
+    main->options->tabSize = tsize;
+}
+
+static MenuOption TabSizeOption =
+{
+    OPTION_VALUES({"1", "2", "4", "8"}),
+    optionTabSizeGet,
+    optionTabSizeSet,
+};
+
+static s32 optionTabModeGet(void* data)
+{
+    StudioMainMenu* main = data;
+    return main->options->tabMode;
+}
+
+static void optionTabModeSet(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+    main->options->tabMode = (enum TabMode) pos;
+}
+
+
+static MenuOption TabModeOption =
+{
+    OPTION_VALUES({"AUTO", "TABS", "SPACES"}),
+    optionTabModeGet,
+    optionTabModeSet,
+};
+
 
 static s32 optionKeybindModeGet(void* data)
 {
@@ -307,6 +358,8 @@ enum
 
 static const MenuItem EditorMenu[] =
 {
+    {"TAB SIZE",          NULL,   &TabSizeOption,     "Indentation is your friend"},
+    {"TAB MODE",          NULL,   &TabModeOption,     "Auto uses spaces for python/moonscript"},
     {"KEYBIND MODE",      NULL,   &KeybindModeOption, "For the cool kids only"},
     {""},
     {"BACK",            showOptionsMenu, .back = true},

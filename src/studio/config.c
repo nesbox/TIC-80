@@ -248,6 +248,8 @@ static void setDefault(Config* config)
 #if defined(BUILD_EDITORS)
             .keybindMode    = KEYBIND_STANDARD,
             .devmode        = false,
+            .tabMode        = TAB_AUTO,
+            .tabSize        = 1,
 #endif
         },
     };

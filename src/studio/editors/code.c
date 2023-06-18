@@ -213,6 +213,22 @@ static inline void drawChar(tic_mem* tic, char symbol, s32 x, s32 y, u8 color, b
     tic_api_print(tic, (char[]){symbol, '\0'}, x, y, color, true, 1, alt);
 }
 
+static int drawTab(Code* code, s32 x, s32 y, u8 color) 
+{
+    tic_mem* tic = code->tic;
+    s32 tab_size = getConfig(code->studio)->options.tabSize;
+
+    s32 count = 0;
+    while (count < tab_size) {
+        drawChar(tic, '\t', x, y, color, code->altFont);
+        count++;
+        if (x / getFontWidth(code) % tab_size == 0) 
+            break;
+        x += getFontWidth(code);
+    }
+    return getFontWidth(code) * count;
+}
+
 static void drawCursor(Code* code, s32 x, s32 y, char symbol)
 {
     bool inverse = code->cursor.delay || code->tickCounter % TEXT_CURSOR_BLINK_PERIOD < TEXT_CURSOR_BLINK_PERIOD / 2;
@@ -265,6 +281,7 @@ static void drawCode(Code* code, bool withCursor)
     while(*pointer)
     {
         char symbol = *pointer;
+        s32 x_offset = getFontWidth(code);
 
         if(x >= -getFontWidth(code) && x < TIC80_WIDTH && y >= -TIC_FONT_HEIGHT && y < TIC80_HEIGHT )
         {
@@ -273,15 +290,26 @@ static void drawCode(Code* code, bool withCursor)
                 if(code->shadowText)
                     tic_api_rect(code->tic, x, y, getFontWidth(code)+1, TIC_FONT_HEIGHT+1, tic_color_black);
 
-                tic_api_rect(code->tic, x-1, y-1, getFontWidth(code)+1, TIC_FONT_HEIGHT+1, selectColor);
-                drawChar(code->tic, symbol, x, y, tic_color_dark_grey, code->altFont);
+                if (symbol == '\t') {
+                    //NOTE: this logic assumes that the tab character is blank
+                    //is someone made a custom character for tab it won't show up
+                    //in the selection
+                    x_offset = drawTab(code, x, y, tic_color_dark_grey);
+                    tic_api_rect(code->tic, x-1, y-1, x_offset, TIC_FONT_HEIGHT+1, selectColor);
+                } else {
+                    tic_api_rect(code->tic, x-1, y-1, getFontWidth(code)+1, TIC_FONT_HEIGHT+1, selectColor);
+                    drawChar(code->tic, symbol, x, y, tic_color_dark_grey, code->altFont);
+                }
             }
             else 
             {
                 if(code->shadowText)
                     drawChar(code->tic, symbol, x+1, y+1, 0, code->altFont);
 
-                drawChar(code->tic, symbol, x, y, colors[syntaxPointer->syntax], code->altFont);
+                if (symbol == '\t')
+                    x_offset = drawTab(code, x, y, colors[syntaxPointer->syntax]);
+                else
+                    drawChar(code->tic, symbol, x, y, colors[syntaxPointer->syntax], code->altFont);
             }
         }
 
@@ -299,7 +327,7 @@ static void drawCode(Code* code, bool withCursor)
             x = xStart;
             y += STUDIO_TEXT_HEIGHT;
         }
-        else x += getFontWidth(code);
+        else x += x_offset;
 
         pointer++;
         syntaxPointer++;
@@ -1429,6 +1457,63 @@ static void redo(Code* code)
     update(code);
 }
 
+static bool useSpacesForTab(Code* code) {
+    enum TabMode tabmode = getConfig(code->studio)->options.tabMode;
+
+
+    if (tabmode == TAB_SPACE)
+        return true;
+    else if (tabmode == TAB_TAB)
+        return false;
+    else { //auto mode
+        tic_mem* tic = code->tic;
+        const tic_script_config* config = tic_core_script_config(tic);
+        if (config->id == 20 || config->id == 13)  //python or moonscript
+            return true;
+        return false;
+    }
+}
+
+
+static s32 insertTab(Code* code, char* line_start, char* pos) {
+    if (useSpacesForTab(code)) {
+        s32 tab_size = getConfig(code->studio)->options.tabSize;
+        s32 count = 0;
+
+        while(count < tab_size) {
+            insertCode(code, pos++, " ");
+            count++;
+            if ((pos - line_start) % tab_size == 0)
+                break;
+        }
+
+        return count;
+    } else {
+        insertCode(code, pos, "\t");
+        return 1;
+    }
+}
+
+//has no effect is pos is not a valid tab character
+static s32 removeTab(Code* code, char* line_start, char* pos) {
+    if (useSpacesForTab(code)) {
+        s32 tab_size = getConfig(code->studio)->options.tabSize;
+        s32 count = 0;
+
+        while(count < tab_size) {
+            if (*pos != ' ')
+                break;
+            deleteCode(code, pos, pos+1);
+            count++;
+        }
+
+        return count;
+    } else if (*pos == '\t' || *pos == ' ') {
+        deleteCode(code, pos, pos+1);
+        return 1;
+    }
+}
+
 static void doTab(Code* code, bool shift, bool crtl)
 {
     char* cursor_position = code->cursor.position;
@@ -1459,16 +1544,13 @@ static void doTab(Code* code, bool shift, bool crtl)
             {
                 if(*line == '\t' || *line == ' ')
                 {
-                    deleteCode(code, line, line + 1);
-                    end--;
+                    end -= removeTab(code, line, line);
                     changed = true;
                 }
             }
             else
             {
-                insertCode(code, line, "\t");
-                end++;
-
+                end += insertTab(code, line, line);
                 changed = true;
             }
             
@@ -1478,17 +1560,24 @@ static void doTab(Code* code, bool shift, bool crtl)
         
         if(changed) {
             
-            if(has_selection) {
+            if(has_selection) 
+            {
                 code->cursor.position = start;
                 code->cursor.selection = end;
             }
             else if (start <= end) code->cursor.position = end;
             
             history(code);
-            parseSyntaxColor(code);
+            update(code);
         }
     }
-    else inputSymbolBase(code, '\t');
+    else 
+    {
+        char* line = getLineByPos(code, code->cursor.position);
+        code->cursor.position += insertTab(code, line, code->cursor.position);
+        history(code);
+        update(code);
+    }
 }
 
 // Add a block-ending keyword or symbol, and put the cursor in the line between.
