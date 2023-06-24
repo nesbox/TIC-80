@@ -547,6 +547,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         ${TIC80CORE_DIR}/tic.c
         ${TIC80CORE_DIR}/cart.c
         ${TIC80CORE_DIR}/tools.c
+        ${TIC80CORE_DIR}/zip.c
         ${TIC80CORE_DIR}/tilesheet.c
     )
 
