@@ -37,6 +37,8 @@ typedef void(*RemapFunc)(void*, s32 x, s32 y, RemapResult* result);
 typedef void(*TraceOutput)(void*, const char*, u8 color);
 typedef void(*ErrorOutput)(void*, const char*);
 typedef void(*ExitCallback)(void*);
+typedef u64(*CounterCallback)(void*);
+typedef u64(*FreqCallback)(void*);
 
 typedef struct
 {
@@ -44,8 +46,8 @@ typedef struct
     ErrorOutput error;
     ExitCallback exit;
     
-    u64 (*counter)(void*);
-    u64 (*freq)(void*);
+    CounterCallback counter;
+    FreqCallback freq;
     u64 start;
 
     void* data;
