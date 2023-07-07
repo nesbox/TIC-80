@@ -10,7 +10,7 @@ int snprintf(char* s, size_t n, const char* format, ...);
 int t, x, y;
 const char* m = "HELLO WORLD FROM C!";
 int r = 0;
-MouseData md;
+Mouse md;
 uint8_t transcolors = { 14 };
 
 WASM_EXPORT("BOOT")
