@@ -408,40 +408,29 @@ else()
     find_package(Python3 COMPONENTS Interpreter)
 endif()
 
-execute_process(
+add_custom_command(
+    OUTPUT ${POCKETPY_DIR}/src/_generated.h
     COMMAND ${Python3_EXECUTABLE} preprocess.py
     WORKING_DIRECTORY ${POCKETPY_DIR}
-    RESULT_VARIABLE EXIT_CODE
+    DEPENDS ${POCKETPY_DIR}/preprocess.py
 )
 
-if(NOT ${EXIT_CODE} EQUAL 0)
-    message(FATAL_ERROR "python3 prebuild failed!!")
-endif()
-
-add_library(
-    python
-    STATIC
+add_library(python STATIC
+    ${POCKETPY_DIR}/src/_generated.h
     ${POCKETPY_DIR}/c_bindings/pocketpy_c.cpp
 )
+
 set_target_properties(python PROPERTIES LINKER_LANGUAGE CXX)
 target_compile_definitions(python PRIVATE PK_ENABLE_OS=0)
-target_include_directories(python PRIVATE ${POCKETPY_DIR}/src)
-target_include_directories(python PUBLIC ${POCKETPY_DIR}/c_bindings)
+target_include_directories(python 
+    PRIVATE ${POCKETPY_DIR}/src 
+    PUBLIC ${POCKETPY_DIR}/c_bindings)
+
 if (${CMAKE_VERSION} VERSION_LESS "3.8.0") 
     set_target_properties(python PROPERTIES COMPILE_FLAGS "--std=c++17")
 else()
     target_compile_features(python PRIVATE cxx_std_17)
 endif()
-
-# the export.h normally lives in the src subdirecty file, but needs to be seen
-# by the c bindings
-add_custom_command(
-    TARGET python PRE_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-    ${POCKETPY_DIR}/src/export.h
-    ${POCKETPY_DIR}/c_bindings/export.h
-)
-
 
 ################################
 # GIFLIB
@@ -566,6 +555,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         PRIVATE
             ${THIRDPARTY_DIR}/moonscript
             ${THIRDPARTY_DIR}/fennel
+            ${POCKETPY_DIR}/src
         PUBLIC
             ${CMAKE_SOURCE_DIR}/include
             ${CMAKE_SOURCE_DIR}/src)
