@@ -6,8 +6,8 @@
 point={x=0,y=0,z=300}
 fov=100
 mesh={} --    Table that contains all the 3D points
-polygon={} -- Table that contains all conections of 3D points to create triangle polygons, with their texture specified too
-zorder={} --  Tabe used to know the rendering order of the triangles
+polygon={} -- Table that contains all connections of 3D points to create triangle polygons, with their texture specified too
+zorder={} --  Table used to know the rendering order of the triangles
 rspeed=.1 --  Rotation speed, you can change it 
 tspeed=10 --  Translation speed, you can change it
 
@@ -147,7 +147,7 @@ function calculateMeshUV()
 	end
 end
 
--- I made this up but ot works... it gives the avarage of the depth of the three points of each triangle, it works good enough to know witch triangles to draw first (the further ones)
+-- I made this up but not works... it gives the average of the depth of the three points of each triangle, it works good enough to know witch triangles to draw first (the further ones)
 function calculateZOrder()
  m=mesh
  for i,p in pairs(polygon) do
@@ -156,7 +156,7 @@ function calculateZOrder()
 	end
 end
 
--- Once calcuated the zorder you need to update the zorder table with those values
+-- Once calculated the zorder you need to update the zorder table with those values
 -- Why do we need this values in another table? well... lua can sort this table and now we have the order in witch to draw the triangles
 function updateZOrder(polygon,zor)
  for i,z in pairs(zorder) do

@@ -363,7 +363,7 @@ enum
         "The map can be up to 240 cells wide by 136 deep.\n"                                                            \
         "This function will draw the desired area of the map to a specified screen position.\n"                         \
         "For example, map(5,5,12,10,0,0) will draw a 12x10 section of the map, "                                        \
-        "starting from map co-ordinates (5,5) to screen position (0,0).\n"                                              \
+        "starting from map coordinates (5,5) to screen position (0,0).\n"                                              \
         "The map function's last parameter is a powerful callback function "                                            \
         "for changing how map cells (sprites) are drawn when map is called.\n"                                          \
         "It can be used to rotate, flip and replace sprites while the game is running.\n"                               \

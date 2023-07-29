@@ -132,7 +132,7 @@ typedef struct
             u8 y;
         };
 
-        // releative values
+        // relative values
         struct
         {
             s8 rx;

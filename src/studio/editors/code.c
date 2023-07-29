@@ -63,7 +63,7 @@ static void packState(Code* code)
     }
 }
 
-//if pos_undo is true, we set the position to the first charcter
+//if pos_undo is true, we set the position to the first character
 //that is different between the current source and the state (wanted undo behavior)
 //otherwise we set the position to the stored location (wanted redo behavior)
 //in either case if no change was detected we do not change the position

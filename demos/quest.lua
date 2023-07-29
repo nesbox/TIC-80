@@ -912,7 +912,7 @@ end
 local p1,boss,golem1,golem2
 
 local function Init()
-	-- detect if run for the fisrt time
+	-- detect if run for the first time
 	if not firstRun then return end
 	firstRun=false
 	

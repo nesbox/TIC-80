@@ -1,6 +1,6 @@
 -- title:  palette demo
 -- author: Nesbox
--- desc:   how to switch palatte in runtime
+-- desc:   how to switch palette in runtime
 -- script: lua
 -- input:  gamepad
 
