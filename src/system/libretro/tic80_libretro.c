@@ -267,6 +267,22 @@ RETRO_API void retro_init(void)
 	state->keymap[RETROK_F11] = tic_key_f11;
 	state->keymap[RETROK_F12] = tic_key_f12;
 	state->keymap[RETROK_F12] = tic_key_f12;
+	state->keymap[RETROK_KP0] = tic_key_numpad0;
+	state->keymap[RETROK_KP1] = tic_key_numpad1;
+	state->keymap[RETROK_KP2] = tic_key_numpad2;
+	state->keymap[RETROK_KP3] = tic_key_numpad3;
+	state->keymap[RETROK_KP4] = tic_key_numpad4;
+	state->keymap[RETROK_KP5] = tic_key_numpad5;
+	state->keymap[RETROK_KP6] = tic_key_numpad6;
+	state->keymap[RETROK_KP7] = tic_key_numpad7;
+	state->keymap[RETROK_KP8] = tic_key_numpad8;
+	state->keymap[RETROK_KP9] = tic_key_numpad9;
+	state->keymap[RETROK_KP_PERIOD] = tic_key_numpadperiod;
+	state->keymap[RETROK_KP_DIVIDE] = tic_key_numpaddivide;
+	state->keymap[RETROK_KP_MULTIPLY] = tic_key_numpadmultiply;
+	state->keymap[RETROK_KP_MINUS] = tic_key_numpadminus;
+	state->keymap[RETROK_KP_PLUS] = tic_key_numpadplus;
+	state->keymap[RETROK_KP_ENTER] = tic_key_numpadenter;
 }
 
 /**

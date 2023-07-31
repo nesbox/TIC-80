@@ -737,6 +737,23 @@ typedef enum
     tic_key_f11,
     tic_key_f12,
 
+    tic_key_numpad0,
+    tic_key_numpad1,
+    tic_key_numpad2,
+    tic_key_numpad3,
+    tic_key_numpad4,
+    tic_key_numpad5,
+    tic_key_numpad6,
+    tic_key_numpad7,
+    tic_key_numpad8,
+    tic_key_numpad9,
+    tic_key_numpadplus,
+    tic_key_numpadminus,
+    tic_key_numpadmultiply,
+    tic_key_numpaddivide,
+    tic_key_numpadenter,
+    tic_key_numpadperiod,
+
     ////////////////
 
     tic_keys_count

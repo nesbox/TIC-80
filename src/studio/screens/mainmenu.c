@@ -579,7 +579,9 @@ static void initGamepadButtons(StudioMainMenu* menu)
         "TAB",  "RET",  "BACKS","DEL",  "INS",  "PGUP", "PGDN", "HOME", 
         "END",  "UP",   "DOWN", "LEFT", "RIGHT","CAPS", "CTRL", "SHIFT", 
         "ALT",  "ESC",  "F1",   "F2",   "F3",   "F4",   "F5",   "F6", 
-        "F7",   "F8",   "F9",   "F10",  "F11",  "F12",
+        "F7",   "F8",   "F9",   "F10",  "F11",  "F12",  "NP0",  "NP1",
+        "NP2",  "NP3",  "NP4",  "NP5",  "NP6",  "NP7",  "NP8",  "NP9",
+        "NP+",  "NP-",  "NP*",  "NP/",  "NPENT", "NP.",
     };
 
     for(s32 i = 0, index = menu->gamepads.index * TIC_BUTTONS; i != TIC_BUTTONS; ++i)
