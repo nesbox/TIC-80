@@ -24,7 +24,7 @@ message("Crosscompiler path is ${BINUTILS_PATH}")
 get_filename_component(ARM_TOOLCHAIN_DIR ${BINUTILS_PATH} DIRECTORY)
 
 # removed squirrel language as it doesn't seem to compile under arm. Needs investigation.
-#    More investigation: Squirrel builds correcly but the linked give these kinds of error:
+#    More investigation: Squirrel builds correctly but the linked give these kinds of error:
 #    arm-none-eabi-ld: error: kernel8-32.elf uses VFP register arguments, ../../build/lib/libsquirrel.a(sqapi.cpp.obj) does not
 #    Even more investigation: turns out i was only setting CMAKE_C_FLAGS and not CMAKE_CXX_FLAGS. So C++ stuff was building without arm/rpi proper flags, VFP-related-stuff in particular.
 #    Now squirrel works.

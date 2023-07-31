@@ -7,7 +7,7 @@
 # script: janet
 # strict:  true
 
-# Unlike other langauges, the tic80 API
+# Unlike other languages, the tic80 API
 # is provided as a module.
 (import tic80)
 

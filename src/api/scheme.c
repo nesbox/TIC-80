@@ -916,7 +916,7 @@ static const char* const SchemeKeywords [] =
     "not", "number->string", "odd?", "even?", "zero?",
     "append", "list-ref", "assoc", "assq", "member", "memq", "memv",
     "tree-memq", "string?", "string-length", "character?",
-    "number?", "integer?", "real?", "rationnal?", "rationalize",
+    "number?", "integer?", "real?", "rational?", "rationalize",
     "numerator", "denominator", "random", "random-state",
     "random-state->list", "random-state?", "complex?",
     "real-part", "imag-part", "number->string", "vector?",

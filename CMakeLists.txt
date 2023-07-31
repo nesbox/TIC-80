@@ -918,7 +918,7 @@ if(BUILD_DEMO_CARTS)
 
     endforeach(CART_FILE)
 
-    # we need to build these separatly combining both the project
+    # we need to build these separately combining both the project
     # and the external WASM binary chunk since projects do not
     # include BINARY chunks
 

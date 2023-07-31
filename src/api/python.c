@@ -20,7 +20,7 @@ static bool setup_core(pkpy_vm* vm, tic_core* core)
     return true;
 }
 
-//index should be a postive index
+//index should be a positive index
 static int prepare_colorindex(pkpy_vm* vm, int index, u8 * buffer) 
 {
     if (pkpy_is_int(vm, index)) 

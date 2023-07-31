@@ -29,7 +29,7 @@
 
 #define ENVELOPE_FREQ_SCALE 2
 #define SECONDS_PER_MINUTE 60
-#define NOTES_PER_MUNUTE (TIC80_FRAMERATE / NOTES_PER_BEAT * SECONDS_PER_MINUTE)
+#define NOTES_PER_MINUTE (TIC80_FRAMERATE / NOTES_PER_BEAT * SECONDS_PER_MINUTE)
 #define PIANO_START 8
 
 static const u16 NoteFreqs[] = { 0x10, 0x11, 0x12, 0x13, 0x15, 0x16, 0x17, 0x18, 0x1a, 0x1c, 0x1d, 0x1f, 0x21, 0x23, 0x25, 0x27, 0x29, 0x2c, 0x2e, 0x31, 0x34, 0x37, 0x3a, 0x3e, 0x41, 0x45, 0x49, 0x4e, 0x52, 0x57, 0x5c, 0x62, 0x68, 0x6e, 0x75, 0x7b, 0x83, 0x8b, 0x93, 0x9c, 0xa5, 0xaf, 0xb9, 0xc4, 0xd0, 0xdc, 0xe9, 0xf7, 0x106, 0x115, 0x126, 0x137, 0x14a, 0x15d, 0x172, 0x188, 0x19f, 0x1b8, 0x1d2, 0x1ee, 0x20b, 0x22a, 0x24b, 0x26e, 0x293, 0x2ba, 0x2e4, 0x310, 0x33f, 0x370, 0x3a4, 0x3dc, 0x417, 0x455, 0x497, 0x4dd, 0x527, 0x575, 0x5c8, 0x620, 0x67d, 0x6e0, 0x749, 0x7b8, 0x82d, 0x8a9, 0x92d, 0x9b9, 0xa4d, 0xaea, 0xb90, 0xc40, 0xcfa, 0xdc0, 0xe91, 0xf6f, 0x105a, 0x1153, 0x125b, 0x1372, 0x149a, 0x15d4, 0x1720, 0x1880 };
@@ -43,15 +43,15 @@ static_assert(sizeof(tic_music_state) == 4,                         "tic_music_s
 
 static s32 getTempo(tic_core* core, const tic_track* track)
 {
-    return core->state.music.tempo < 0 
-        ? track->tempo + DEFAULT_TEMPO 
+    return core->state.music.tempo < 0
+        ? track->tempo + DEFAULT_TEMPO
         : core->state.music.tempo;
 }
 
 static s32 getSpeed(tic_core* core, const tic_track* track)
 {
-    return core->state.music.speed < 0 
-        ? track->speed + DEFAULT_SPEED 
+    return core->state.music.speed < 0
+        ? track->speed + DEFAULT_SPEED
         : core->state.music.speed;
 }
 
@@ -59,8 +59,8 @@ static s32 tick2row(tic_core* core, const tic_track* track, s32 tick)
 {
     // BPM = tempo * 6 / speed
     s32 speed = getSpeed(core, track);
-    return speed 
-        ? tick * getTempo(core, track) * DEFAULT_SPEED / speed / NOTES_PER_MUNUTE
+    return speed
+        ? tick * getTempo(core, track) * DEFAULT_SPEED / speed / NOTES_PER_MINUTE
         : 0;
 }
 
@@ -68,7 +68,7 @@ static s32 row2tick(tic_core* core, const tic_track* track, s32 row)
 {
     s32 tempo = getTempo(core, track);
     return tempo
-        ? row * getSpeed(core, track) * NOTES_PER_MUNUTE / tempo / DEFAULT_SPEED
+        ? row * getSpeed(core, track) * NOTES_PER_MINUTE / tempo / DEFAULT_SPEED
         : 0;
 }
 
@@ -118,7 +118,7 @@ static void runEnvelope(blip_buffer_t* blip, const tic_sound_register* reg, tic_
 
 static void runNoise(blip_buffer_t* blip, const tic_sound_register* reg, tic_sound_register_data* data, s32 end_time, u8 volume)
 {
-    // phase is noise LFSR, which must never be zero 
+    // phase is noise LFSR, which must never be zero
     if (data->phase == 0)
         data->phase = 1;
 
@@ -408,7 +408,7 @@ static void processMusic(tic_mem* memory)
             s32 note = channel->note;
             s32 pitch = 0;
 
-            // process chord commmand
+            // process chord command
             {
                 s32 chord[] =
                 {
@@ -420,7 +420,7 @@ static void processMusic(tic_mem* memory)
                 note += chord[cmdData->chord.tick % (cmdData->chord.note2 == 0 ? 2 : 3)];
             }
 
-            // process vibrato commmand
+            // process vibrato command
             if (cmdData->vibrato.period && cmdData->vibrato.depth)
             {
                 static const s32 VibData[] = { 0x0, 0x31f1, 0x61f8, 0x8e3a, 0xb505, 0xd4db, 0xec83, 0xfb15, 0x10000, 0xfb15, 0xec83, 0xd4db, 0xb505, 0x8e3a, 0x61f8, 0x31f1, 0x0, 0xffffce0f, 0xffff9e08, 0xffff71c6, 0xffff4afb, 0xffff2b25, 0xffff137d, 0xffff04eb, 0xffff0000, 0xffff04eb, 0xffff137d, 0xffff2b25, 0xffff4afb, 0xffff71c6, 0xffff9e08, 0xffffce0f };

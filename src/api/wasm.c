@@ -32,7 +32,7 @@
 
 #include <ctype.h>
 
-// Avoid redefining u* ans s*
+// Avoid redefining u* and s*
 #define d_m3ShortTypesDefined 1
 typedef int8_t i8;
 typedef int16_t i16;
@@ -366,7 +366,7 @@ m3ApiRawFunction(wasmtic_btnp)
     tic_core* core = getWasmCore(runtime);
 
     // -1 is the "default" placeholder for index, hold, and period but the TIC side API
-    // knows this so we don't need to do any transation, we can just pass the -1 values
+    // knows this so we don't need to do any transaction, we can just pass the -1 values
     // straight thru 
 
     m3ApiReturn(tic_api_btnp((tic_mem *)core, index, hold, period));
