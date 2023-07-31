@@ -89,7 +89,7 @@ tic_key_down,		 // KeyDown, 0x51
 tic_key_up,		 // KeyUp, 0x52
 tic_key_unknown,	 // KeyNumLock, 0x53
 tic_key_numpaddivide,	 // KeyKP_Divide, 0x54
-tic_key_numpademultiply,	 // KeyKP_Multiply, 0x55
+tic_key_numpadmultiply,	 // KeyKP_Multiply, 0x55
 tic_key_numpadminus,	 // KeyKP_Subtract, 0x56
 tic_key_numpadplus,	 // KeyKP_Add, 0x57
 tic_key_numpadenter,	 // KeyKP_Enter, 0x58
