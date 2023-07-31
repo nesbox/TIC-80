@@ -871,7 +871,7 @@ static mrb_value mrb_font(mrb_state* mrb, mrb_value self)
 
     const char* text = mrb_value_to_cstr(mrb, text_obj);
 
-    s32 size = tic_api_font(memory, text, x, y, (u8*)&chromakey, 1, width, height, scale, fixed, alt);
+    s32 size = tic_api_font(memory, text, x, y, (u8*)&chromakey, 1, width, height, fixed, scale, alt);
     return mrb_fixnum_value(size);
 }
 
