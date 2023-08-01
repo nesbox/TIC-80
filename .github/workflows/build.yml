@@ -368,7 +368,11 @@ jobs:
 
       - name: Prebuild
         run: |
-          cd vendor/circle-stdlib
+          cd vendor
+          git clone --recursive https://github.com/smuehlst/circle-stdlib
+          cd circle-stdlib
+          git checkout fdb3c4a948421d47fddab8042a92f980cba43915
+          git submodule update --recursive
           ./configure -r 3
           make -j$(nproc)
           cd libs/circle/addon/vc4/sound/
@@ -424,7 +428,11 @@ jobs:
 
       - name: Prebuild
         run: |
-          cd vendor/circle-stdlib
+          cd vendor
+          git clone --recursive https://github.com/smuehlst/circle-stdlib
+          cd circle-stdlib
+          git checkout fdb3c4a948421d47fddab8042a92f980cba43915
+          git submodule update --recursive
           ./configure -r 4
           make -j$(nproc)
           cd libs/circle/addon/vc4/sound/
@@ -568,7 +576,6 @@ jobs:
   # === Android ===
   android:
     runs-on: ubuntu-latest
-    container: nesbox/android-tic80:latest
 
     steps:
       - uses: actions/checkout@v3
@@ -576,11 +583,29 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      - uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r21e
+          add-to-path: false
+          local-cache: true
+
+      - name: set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: gradle
+
       - name: Build
         run: |
           cd build/android
+          chmod +x gradlew
           ./gradlew assembleRelease
           cp app/build/outputs/apk/release/app-release.apk tic80.apk
+
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
 
       - name: Deploy
         uses: actions/upload-artifact@v3

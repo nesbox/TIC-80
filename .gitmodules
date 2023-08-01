@@ -54,10 +54,6 @@
 	path = vendor/argparse
 	url = https://github.com/cofyc/argparse.git
 	shallow = true
-[submodule "vendor/circle-stdlib"]
-	path = vendor/circle-stdlib
-	url = https://github.com/smuehlst/circle-stdlib.git
-	shallow = true
 [submodule "vendor/libuv"]
 	path = vendor/libuv
 	url = https://github.com/libuv/libuv.git
