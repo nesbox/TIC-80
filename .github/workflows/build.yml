@@ -23,6 +23,7 @@ jobs:
       - name: Build
         shell: cmd
         run: |
+          COPY /Y build\janet\janetconf.h vendor\janet\src\conf\janetconf.h
           cd build
           cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_STUB=On ..
           cmake --build . --config %BUILD_TYPE% --parallel
@@ -56,6 +57,7 @@ jobs:
       - name: Build
         shell: cmd
         run: |
+          COPY /Y build\janet\janetconf.h vendor\janet\src\conf\janetconf.h
           cd build
           cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_PRO=On ..
           cmake --build . --config %BUILD_TYPE% --parallel
