@@ -38,7 +38,7 @@ LIBS :=  \
     $(TIC80LIB)/libjanet.a \
     $(TIC80LIB)/libargparse.a \
     $(TIC80LIB)/libwave_writer.a \
-    $(TIC80LIB)/libduktape.a \
+    $(TIC80LIB)/libquickjs.a \
     $(TIC80LIB)/libzlib.a \
     $(TIC80LIB)/libpng.a \
     $(MRUBYDIR)/build/target/lib/libmruby.a \

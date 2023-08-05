@@ -6,10 +6,6 @@
 	path = vendor/dirent
 	url = https://github.com/tronkko/dirent.git
 	shallow = true
-[submodule "vendor/duktape"]
-	path = vendor/duktape
-	url = https://github.com/svaarala/duktape-releases.git
-	shallow = true
 [submodule "vendor/giflib"]
 	path = vendor/giflib
 	url = https://github.com/nesbox/giflib.git
@@ -69,15 +65,24 @@
 [submodule "vendor/sdl2"]
 	path = vendor/sdl2
 	url = https://github.com/libsdl-org/SDL.git
+	shallow = true
 [submodule "mruby"]
 	path = vendor/mruby
 	url = https://github.com/mruby/mruby.git
+	shallow = true
 [submodule "vendor/wasm3"]
 	path = vendor/wasm3
 	url = https://github.com/wasm3/wasm3.git
+	shallow = true
 [submodule "vendor/janet"]
 	path = vendor/janet
 	url = https://github.com/janet-lang/janet.git
+	shallow = true
 [submodule "vendor/pocketpy"]
 	path = vendor/pocketpy
 	url = https://github.com/blueloveTH/pocketpy
+	shallow = true
+[submodule "vendor/quickjs"]
+	path = vendor/quickjs
+	url = https://github.com/nesbox/quickjs.git
+	shallow = true

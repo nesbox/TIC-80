@@ -459,11 +459,34 @@ add_library(blipbuf STATIC ${THIRDPARTY_DIR}/blip-buf/blip_buf.c)
 target_include_directories(blipbuf INTERFACE ${THIRDPARTY_DIR}/blip-buf)
 
 ################################
-# Duktape
+# QuickJS
 ################################
 
-add_library(duktape STATIC ${THIRDPARTY_DIR}/duktape/src/duktape.c)
-target_include_directories(duktape INTERFACE ${THIRDPARTY_DIR}/duktape/src)
+set(QUICKJS_DIR ${THIRDPARTY_DIR}/quickjs)
+
+file(STRINGS ${QUICKJS_DIR}/VERSION CONFIG_VERSION)
+
+add_library(quickjs STATIC
+    ${QUICKJS_DIR}/quickjs.c 
+    ${QUICKJS_DIR}/libregexp.c 
+    ${QUICKJS_DIR}/libunicode.c
+    ${QUICKJS_DIR}/cutils.c)
+
+target_compile_definitions(quickjs PUBLIC CONFIG_VERSION="${CONFIG_VERSION}")
+target_include_directories(quickjs INTERFACE ${QUICKJS_DIR})
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(quickjs PRIVATE DUMP_LEAKS)
+endif()
+
+if(BAREMETALPI OR N3DS)
+    target_compile_definitions(quickjs PRIVATE POOR_CLIB) 
+endif()
+
+if(LINUX)
+    target_compile_definitions(quickjs PUBLIC _GNU_SOURCE _POSIX_C_SOURCE=200112)
+    target_link_libraries(quickjs PUBLIC m dl pthread)
+endif()
 
 ################################
 # Janet
@@ -568,7 +591,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         squirrel
         python
         scheme
-        duktape
+        quickjs
         blipbuf
         zlib
     )
@@ -773,11 +796,11 @@ IS_DOS
         if("${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoWii" OR "${CMAKE_SYSTEM_NAME}" STREQUAL "NintendoGameCube" OR GAMECUBE OR WII OR IS_DOS)
           add_custom_command(TARGET tic80_libretro
                POST_BUILD
-                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libjanet.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libscheme.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${CMAKE_BINARY_DIR}/lib/libzlib.a ${MRUBY_LIB})
+                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libquickjs.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libjanet.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libscheme.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${CMAKE_BINARY_DIR}/lib/libzlib.a ${MRUBY_LIB})
         else()
           add_custom_command(TARGET tic80_libretro
                POST_BUILD
-                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libduktape.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libscheme.a ${CMAKE_BINARY_DIR}/lib/libjanet.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${MRUBY_LIB})
+                   COMMAND ${CMAKE_SOURCE_DIR}/build/libretro/merge_static.sh $(AR) ${CMAKE_BINARY_DIR}/lib/tic80_libretro${LIBRETRO_SUFFIX}.${LIBRETRO_EXTENSION} ${CMAKE_BINARY_DIR}/lib/tic80_libretro_partial.a ${CMAKE_BINARY_DIR}/lib/libtic80core.a ${CMAKE_BINARY_DIR}/lib/liblua.a ${CMAKE_BINARY_DIR}/lib/libblipbuf.a ${CMAKE_BINARY_DIR}/lib/libquickjs.a ${CMAKE_BINARY_DIR}/lib/libwren.a ${CMAKE_BINARY_DIR}/lib/libwasm.a ${CMAKE_BINARY_DIR}/lib/libsquirrel.a ${CMAKE_BINARY_DIR}/lib/libscheme.a ${CMAKE_BINARY_DIR}/lib/libjanet.a ${CMAKE_BINARY_DIR}/lib/libgiflib.a ${CMAKE_BINARY_DIR}/lib/liblpeg.a ${MRUBY_LIB})
         endif()
     else()
         add_library(tic80_libretro SHARED

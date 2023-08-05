@@ -1924,7 +1924,7 @@ s32 main(s32 argc, char **argv)
 #if defined(__RPI__)
 
 #include <fcntl.h>
-int fcntl64(int fd, int cmd)
+int fcntl64(int fd, int cmd, ...)
 {
     return fcntl(fd, cmd);
 }
