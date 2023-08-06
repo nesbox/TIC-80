@@ -156,8 +156,8 @@ jobs:
           name: "tic80-windows-sokol"
           path: build/bin/tic80.exe
 
-  # === Windows MinGW 64 using msys ===
-  windows-msys-mingw:
+  # === Windows MinGW-64 ===
+  windows-mingw:
     runs-on: windows-2019
 
     steps:
@@ -165,27 +165,17 @@ jobs:
         with:
           ruby-version: 2.6
 
-      - name: Set up MSYS2
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: mingw64
-          install: >-
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-pkg-config
-
       - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
 
-      - name: Configure CMake
-        shell: msys2 {0}
-        run: cmake -B build -G "MSYS Makefiles" -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=%BUILD_TYPE%
-
-      - name: build
-        shell: msys2 {0}
-        run: cmake --build build/ --config $BUILD_TYPE --parallel
+      - name: Build
+        shell: bash
+        run: |
+          cd build
+          cmake -G "MinGW Makefiles" -DCMAKE_C_COMPILER=C:/msys64/mingw64/bin/gcc.exe -DCMAKE_CXX_COMPILER=C:/msys64/mingw64/bin/c++.exe -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
+          cmake --build . --config %BUILD_TYPE% --parallel
 
       - name: Deploy
         uses: actions/upload-artifact@v3
