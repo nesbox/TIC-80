@@ -50,14 +50,6 @@
 	path = vendor/argparse
 	url = https://github.com/cofyc/argparse.git
 	shallow = true
-[submodule "vendor/libuv"]
-	path = vendor/libuv
-	url = https://github.com/libuv/libuv.git
-	shallow = true
-[submodule "vendor/http-parser"]
-	path = vendor/http-parser
-	url = https://github.com/nodejs/http-parser.git
-	shallow = true
 [submodule "vendor/libpng"]
 	path = vendor/libpng
 	url = https://github.com/glennrp/libpng.git
@@ -85,4 +77,8 @@
 [submodule "vendor/quickjs"]
 	path = vendor/quickjs
 	url = https://github.com/nesbox/quickjs.git
+	shallow = true
+[submodule "vendor/naett"]
+	path = vendor/naett
+	url = https://github.com/erkkah/naett.git
 	shallow = true

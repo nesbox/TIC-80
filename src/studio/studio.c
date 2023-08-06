@@ -2450,7 +2450,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         },
 
         .samplerate = samplerate,
-        .net = tic_net_create("http://"TIC_HOST),
+        .net = tic_net_create(TIC_WEBSITE),
 #endif
         .tic = tic_core_create(samplerate, format),
     };

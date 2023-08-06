@@ -210,7 +210,7 @@ jobs:
       - name: Install
         run: |
           sudo apt-get update
-          sudo apt-get install libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev -y
+          sudo apt-get install libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev -y
 
       - name: Build
         run: |
@@ -248,7 +248,7 @@ jobs:
       - name: Install
         run: |
           sudo apt-get update
-          sudo apt-get install libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev -y
+          sudo apt-get install libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev -y
 
       - name: Build
         run: |

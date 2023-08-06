@@ -87,8 +87,8 @@ if(NOT BUILD_SDL)
     set(BUILD_SDLGPU OFF)
 endif()
 
-if(NOT N3DS AND NOT EMSCRIPTEN AND NOT BAREMETALPI)
-    set(USE_LIBUV TRUE CACHE STRING "Enable libuv")
+if(NOT RPI AND NOT N3DS AND NOT EMSCRIPTEN AND NOT BAREMETALPI)
+    set(USE_NAETT TRUE)
 endif()
 
 message("BUILD_SDLGPU: ${BUILD_SDLGPU}")
@@ -987,25 +987,20 @@ add_library(argparse STATIC ${THIRDPARTY_DIR}/argparse/argparse.c)
 target_include_directories(argparse INTERFACE ${THIRDPARTY_DIR}/argparse)
 
 ################################
-# libuv
+# naett
 ################################
 
-if(USE_LIBUV)
-    add_subdirectory(${THIRDPARTY_DIR}/libuv)
+if(USE_NAETT)
+    add_library(naett STATIC ${THIRDPARTY_DIR}/naett/naett.c)
+    target_include_directories(naett PUBLIC ${THIRDPARTY_DIR}/naett)
 
-    # fix for winxp build
-    set(UV_DEFS LOAD_LIBRARY_SEARCH_SYSTEM32=0x00000800)
-    target_compile_definitions(uv PRIVATE ${UV_DEFS})
-    target_compile_definitions(uv_a PRIVATE ${UV_DEFS})
-endif()
-
-################################
-# HTTP parser
-################################
-
-if(USE_LIBUV)
-    add_library(http_parser STATIC ${THIRDPARTY_DIR}/http-parser/http_parser.c)
-    target_include_directories(http_parser INTERFACE ${THIRDPARTY_DIR}/http-parser)
+    if(WIN32)
+        target_link_libraries(naett INTERFACE winhttp)
+    elseif(LINUX)
+        find_package(CURL REQUIRED)
+        target_include_directories(naett PRIVATE ${CURL_INCLUDE_DIRS})
+        target_link_libraries(naett ${CURL_LIBRARIES})
+    endif()
 endif()
 
 ################################
@@ -1090,9 +1085,9 @@ target_include_directories(tic80studio PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 
 target_link_libraries(tic80studio tic80core zip wave_writer argparse giflib png)
 
-if(USE_LIBUV)
-    target_compile_definitions(tic80studio PRIVATE USE_LIBUV)
-    target_link_libraries(tic80studio uv_a http_parser)
+if(USE_NAETT)
+    target_compile_definitions(tic80studio PRIVATE USE_NAETT)
+    target_link_libraries(tic80studio naett)
 endif()
 
 if(BUILD_PRO)
