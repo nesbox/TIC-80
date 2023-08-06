@@ -174,7 +174,7 @@ jobs:
         shell: bash
         run: |
           cd build
-          cmake -G "MinGW Makefiles" -DCMAKE_C_COMPILER=C:/msys64/mingw64/bin/gcc.exe -DCMAKE_CXX_COMPILER=C:/msys64/mingw64/bin/c++.exe -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
+          cmake -G "MSYS Makefiles" -DCMAKE_C_COMPILER=C:/msys64/mingw64/bin/gcc.exe -DCMAKE_CXX_COMPILER=C:/msys64/mingw64/bin/c++.exe -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
           cmake --build . --config %BUILD_TYPE% --parallel
 
       - name: Deploy
