@@ -1082,6 +1082,23 @@ static void callJavascriptTick(tic_mem* tic)
 
         if(JS_IsFunction(ctx, func))
         {
+            {
+                JSContext *ctx1;
+
+                for (;;)
+                {
+                    s32 err = JS_ExecutePendingJob(JS_GetRuntime(ctx), &ctx1);
+                    if (err <= 0)
+                    {
+                        if (err < 0)
+                        {
+                            js_std_dump_error(ctx);
+                        }
+                        break;
+                    }
+                }
+            }
+
             if(callFunc(ctx, func, global))
             {
 #if defined(BUILD_DEPRECATED)
