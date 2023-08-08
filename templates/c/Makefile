@@ -26,7 +26,7 @@ LDFLAGS = -Wl,-zstack-size=8192,--no-entry,--import-memory -mexec-model=reactor 
 ifeq ($(DEBUG), 1)
 	LDFLAGS += -Wl,--export-all,--no-gc-sections
 else
-	LDFLAGS += -Wl,--strip-all,--gc-sections,--lto-O3 -Oz
+	LDFLAGS += -Wl,--strip-debug,--gc-sections,--lto-O3 -Oz
 endif
 
 OBJECTS = $(patsubst src/%.c, build/%.o, $(wildcard src/*.c))
