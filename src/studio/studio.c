@@ -1864,7 +1864,7 @@ static void checkChanges(Studio* studio)
 
             if(studio->cart.mdate && date > studio->cart.mdate)
             {
-                if(studioCartChanged(studio))
+                if(studioCartChanged(studio) && studio->mode != TIC_MENU_MODE)
                 {
                     static const char* Rows[] =
                     {
@@ -1873,7 +1873,7 @@ static void checkChanges(Studio* studio)
                         "Do you want to reload it?"
                     };
 
-                    confirmDialog(studio, Rows, COUNT_OF(Rows), reloadConfirm, NULL);
+                    confirmDialog(studio, Rows, COUNT_OF(Rows), reloadConfirm, NULL);                        
                 }
                 else console->updateProject(console);
             }
