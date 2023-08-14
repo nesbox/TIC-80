@@ -1412,6 +1412,9 @@ static void copyFromClipboard(Code* code, bool killSelection)
                 {
                     size_t codeSize = strlen(code->src);
 
+                    if(codeSize >= MAX_CODE)
+                        return;
+
                     if (codeSize + size > MAX_CODE)
                     {
                         size = MAX_CODE - codeSize;
