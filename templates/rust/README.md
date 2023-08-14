@@ -14,18 +14,18 @@ Then, to build a cart.wasm file, run:
 cargo build --release
 ```
 
-To import the resulting WASM to a cartridge:
+To import the resulting WASM to a cartridge named `game.tic`:
 
 ```
-tic80 --fs . --cmd 'load game.tic & import binary target/wasm32-unknown-unknown/release/cart.wasm & save'
+tic80 --fs . --cmd 'new wasm & import binary target/wasm32-unknown-unknown/release/cart.wasm & save game'
 ```
 
 Or from the TIC-80 console:
 
 ```
-load game.tic
+new wasm
 import binary target/wasm32-unknown-unknown/release/cart.wasm
-save
+save game
 ```
 
 This is assuming you've run TIC-80 with `--fs .` inside your project directory.
