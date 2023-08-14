@@ -1794,12 +1794,16 @@ static void processShortcuts(Studio* studio)
             {
             case TIC_MENU_MODE:     
                 getConfig(studio)->options.devmode 
-                    ? setStudioMode(studio, studio->prevMode) 
+                    ? setStudioMode(studio, studio->prevMode == TIC_RUN_MODE 
+                        ? TIC_CONSOLE_MODE 
+                        : studio->prevMode) 
                     : studio_menu_back(studio->menu);
                 break;
             case TIC_RUN_MODE:      
                 getConfig(studio)->options.devmode 
-                    ? setStudioMode(studio, studio->prevMode) 
+                    ? setStudioMode(studio, studio->prevMode == TIC_RUN_MODE 
+                        ? TIC_CONSOLE_MODE 
+                        : studio->prevMode) 
                     : gotoMenu(studio);
                 break;
             case TIC_CONSOLE_MODE: 
