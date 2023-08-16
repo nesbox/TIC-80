@@ -538,6 +538,10 @@ void tic_core_resume(tic_mem* memory)
         core->data->start = core->pause.time.start + core->data->counter(core->data->data) - core->pause.time.paused;
         memory->input.data = core->pause.input;
     }
+    else
+    {
+        tic_api_reset(memory);
+    }
 }
 
 void tic_core_close(tic_mem* memory)
