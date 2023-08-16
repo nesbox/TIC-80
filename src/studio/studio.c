@@ -2142,7 +2142,7 @@ static void blitCursor(Studio* studio)
 
     if(tic->input.mouse && !m->relative && m->x < TIC80_FULLWIDTH && m->y < TIC80_FULLHEIGHT)
     {
-        s32 sprite = tic->ram->vram.vars.cursor.sprite;
+        s32 sprite = CLAMP(tic->ram->vram.vars.cursor.sprite, 0, TIC_BANK_SPRITES - 1);
         const tic_bank* bank = &tic->cart.bank0;
 
         tic_point hot = {0};
@@ -2155,7 +2155,7 @@ static void blitCursor(Studio* studio)
                 {0, 0},
                 {3, 0},
                 {2, 3},
-            }[sprite];
+            }[CLAMP(sprite, 0, 2)];
         }
         else if(sprite == 0) return;
 
