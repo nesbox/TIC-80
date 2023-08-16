@@ -449,7 +449,9 @@ set(GIFLIB_SRC
 add_library(giflib STATIC ${GIFLIB_SRC})
 target_include_directories(giflib
     PRIVATE ${GIFLIB_DIR}
-    INTERFACE ${THIRDPARTY_DIR}/giflib)
+    INTERFACE 
+        ${THIRDPARTY_DIR}/giflib 
+        ${THIRDPARTY_DIR}/msf_gif)
 
 ################################
 # Blipbuf
@@ -893,12 +895,11 @@ if(BUILD_DEMO_CARTS)
 
     add_executable(xplode
         ${TOOLS_DIR}/xplode.c
-        ${CMAKE_SOURCE_DIR}/src/ext/gif.c
         ${CMAKE_SOURCE_DIR}/src/ext/png.c
         ${CMAKE_SOURCE_DIR}/src/studio/project.c)
 
     target_include_directories(xplode PRIVATE ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/include)
-    target_link_libraries(xplode tic80core png giflib)
+    target_link_libraries(xplode tic80core png)
 
     if(LINUX)
         target_link_libraries(xplode m)

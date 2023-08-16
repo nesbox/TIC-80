@@ -82,3 +82,7 @@
 	path = vendor/naett
 	url = https://github.com/erkkah/naett.git
 	shallow = true
+[submodule "vendor/msf_gif"]
+	path = vendor/msf_gif
+	url = https://github.com/notnullnotvoid/msf_gif.git
+	shallow = true

@@ -201,11 +201,12 @@ static void readConfig(Config* config)
     {
         if(luaL_loadstring(lua, config->cart->code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
         {
-            readGlobalInteger(lua,  "GIF_LENGTH",           &config->data.gifLength);
-            readGlobalInteger(lua,  "GIF_SCALE",            &config->data.gifScale);
             readGlobalBool(lua,     "CHECK_NEW_VERSION",    &config->data.checkNewVersion);
             readGlobalInteger(lua,  "UI_SCALE",             &config->data.uiScale);
             readGlobalBool(lua,     "SOFTWARE_RENDERING",   &config->data.soft);
+
+            if(config->data.uiScale <= 0)
+                config->data.uiScale = 1;
 
 #if defined(CRT_SHADER_SUPPORT)
             readConfigCrtShader(config, lua);

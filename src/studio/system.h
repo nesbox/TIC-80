@@ -115,9 +115,6 @@ typedef struct
 
     } theme;
 
-    s32 gifScale;
-    s32 gifLength;
-    
     bool checkNewVersion;
     bool cli;
     bool soft;
