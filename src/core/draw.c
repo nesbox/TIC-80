@@ -389,6 +389,8 @@ void tic_api_cls(tic_mem* tic, u8 color)
 
     static const struct ClipRect EmptyClip = { 0, 0, TIC80_WIDTH, TIC80_HEIGHT };
 
+    color = mapColor(tic, color);
+
     if (MEMCMP(core->state.clip, EmptyClip))
     {
         memset(&vram->screen, (color & 0xf) | (color << TIC_PALETTE_BPP), sizeof(tic_screen));
