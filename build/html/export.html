@@ -1,100 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>TIC-80 tiny computer</title>
-        <style>
-            body {
-                margin:0; padding:0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh;
-            }
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-            .tic80-container {
-                width: 100%; padding-top: 50%; position: relative;
-            }
+    <title>TIC-80 tiny computer</title>
 
-            .tic80-canvas {
-                position: absolute; top: 0; left:0; width: 100%; height: 100%; outline-style: none;
-            }
+    <style type="text/css">
+        #game-frame > div { font-size: 44px; font-family: monospace; font-weight: bold;}
 
-            .tic80-play {
-                position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; background: #1a1c2c; color: #fff; display: flex; justify-content: center; align-items: center; image-rendering: pixelated; cursor: pointer;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="tic80-container">
-            <canvas class="tic80-canvas" id="canvas" oncontextmenu="event.preventDefault()" tabindex="1"></canvas>
-            <div class="tic80-play" id="tic80-play">
-                <img
-                    src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAF9JREFUOE+d0jsOACAIA1B6/0NjHDB+UFtcnPpC0sLd3cwMAPqvPgQQQRU6ABW6Aiz0BX4QDdwgGdihMjCgvUZlB73y0gXzViQgGxkFvNb5BJhZpwATTFtQggtQCQbQAJ4FQA3PbK2EAAAAAElFTkSuQmCC"
-                    alt="Play"
-                    width="64" height="64"
-                >
+        /* You can set custom dimensions here */
+        .game { width: 100vw; height: 100vh; }
+
+        /* Uncomment to remove the frame on top of the canvas and start the game directly */
+        /* #game-frame { display: none; } */
+    </style>
+</head>
+<body style="margin:0; padding:0;">
+
+    <div class="game" style="margin: 0; position: relative; background: #1a1c2c;">
+
+        <div id="game-frame" style="cursor: pointer; position: absolute; margin: 0 auto; opacity: 1; background: #1a1c2c; width: 100%; height: 100%;">
+            <div style="text-align: center; color: white; display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;">
+                <p style="margin: 0;">- CLICK TO PLAY -</p>
             </div>
+
         </div>
 
-        <script type="module">
-        import startTic80 from './tic80.js'
+        <canvas style="width: 100%; height: 100%; margin: 0 auto; display: block; image-rendering: pixelated;" id="canvas" oncontextmenu="event.preventDefault()" onmousedown="window.focus()"></canvas>
+    </div>
 
-        const initialize = () => {
-            const canvasSelector = '#canvas'
-            const canvasElement = document.querySelector(canvasSelector)
-            const playElement = document.getElementById('tic80-play')
+    <script type="text/javascript">
+        var Module = {canvas: document.getElementById('canvas'), arguments:['cart.tic']}
 
-            const options = {
-                canvas: canvasElement,
+        const gameFrame = document.getElementById('game-frame')
+        const displayStyle = window.getComputedStyle(gameFrame).display;
 
-                arguments: ['cart.tic'],
-
-                saveAs (blob, filename) {
-                    const url = URL.createObjectURL(blob)
-
-                    const link = document.createElement('a')
-                    link.href = url
-                    link.download = filename
-
-                    link.click()
-                },
-
-                showAddPopup (callback) {
-                    callback(null, null)
-                    var input = document.createElement('input')
-                    input.type = 'file'
-                    input.click()
-                    input.addEventListener('change', (event) => {
-                        const file = event.target.files[0]
-                        if (file) {
-                            var reader = new FileReader
-                            reader.onload = function(event) {
-                                var rom = new Uint8Array(event.target.result)
-                                callback(file.name, rom)
-                            }
-                            reader.readAsArrayBuffer(file)
-                        }
-                    })
-                },
-
-                preRun: [
-                    function (module) {
-                        module.ENV.SDL_EMSCRIPTEN_KEYBOARD_ELEMENT = canvasSelector
-                    }
-                ]
-            }
-
-            canvasElement.addEventListener('click', () => {
-                canvasElement.focus()  
-            })
-
-            playElement.addEventListener('click', () => {
-                playElement.style.display = 'none'
-                canvasElement.focus()
-                startTic80(options)
-            })
+        if (displayStyle === 'none') 
+        {
+            let scriptTag = document.createElement('script'), // create a script tag
+            firstScriptTag = document.getElementsByTagName('script')[0]; // find the first script tag in the document
+            scriptTag.src = 'tic80.js'; // set the source of the script to your script
+            firstScriptTag.parentNode.insertBefore(scriptTag, firstScriptTag); // append the script to the DOM
+        } else {
+            gameFrame.addEventListener('click', function() {
+                let scriptTag = document.createElement('script'), // create a script tag
+                firstScriptTag = document.getElementsByTagName('script')[0]; // find the first script tag in the document
+                scriptTag.src = 'tic80.js'; // set the source of the script to your script
+                firstScriptTag.parentNode.insertBefore(scriptTag, firstScriptTag); // append the script to the DOM
+                this.remove()
+            });
         }
-
-        window.addEventListener('DOMContentLoaded', initialize)
-        </script>
-    </body>
+    </script>
+</body>
 </html>

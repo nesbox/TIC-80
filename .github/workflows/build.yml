@@ -626,14 +626,7 @@ jobs:
           cd build
           emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_STUB=On ..
           cmake --build . --config $BUILD_TYPE --parallel
-          mkdir bin/html bin/html-export
-          cp html/export.html bin/html-export/index.html
-          cp bin/tic80*.js bin/html-export/
-          cp bin/tic80*.wasm bin/html-export/
-          cp html/index.html bin/html/index.html
-          cp html/export.html bin/html/export.html
-          cp bin/tic80.js bin/html/tic80.js
-          cp bin/tic80.wasm bin/html/tic80.wasm
+          cp html/export.html bin/index.html
           cp bin/tic80.js webapp/tic80.js
           cp bin/tic80.wasm webapp/tic80.wasm
 
@@ -642,10 +635,9 @@ jobs:
         with:
           name: "tic80-html"
           path: |
-            build/bin/html/tic80.js
-            build/bin/html/tic80.wasm
-            build/bin/html/index.html
-            build/bin/html/export.html
+            build/bin/tic80.js
+            build/bin/tic80.wasm
+            build/bin/index.html
 
       - name: Deploy WebApp
         uses: actions/upload-artifact@v3
@@ -666,9 +658,9 @@ jobs:
         with:
           name: "tic80-html-stub"
           path: |
-            build/bin/html-export/tic80*.js
-            build/bin/html-export/tic80*.wasm
-            build/bin/html-export/index.html
+            build/bin/tic80*.js
+            build/bin/tic80*.wasm
+            build/bin/index.html
 
   # === Export ===
   export:

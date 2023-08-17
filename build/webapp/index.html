@@ -1,86 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="theme-color" content="#f4f4f4"/>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f4f4f4"/>
 
-        <link rel="manifest" href="tic80.webmanifest">
-        <link rel="apple-touch-icon" sizes="180x180" href="tic80-180.png">
-        <link rel="apple-touch-icon" sizes="192x192" href="tic80-192.png">
-        <link rel="apple-touch-icon" sizes="512x512" href="tic80-512.png">
-        <title>TIC-80</title>
-        <style>
-        body {
-            margin:0; padding:0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh;
-        }
+    <link rel="manifest" href="tic80.webmanifest">
+    <link rel="apple-touch-icon" sizes="180x180" href="tic80-180.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="tic80-192.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="tic80-512.png">
 
-        .tic80-container {
-            width: 100%; padding-top: 56.66%; position: relative;
-        }
+    <title>TIC-80</title>
 
-        .tic80-canvas {
-            position: absolute; top: 0; left:0; width: 100%; height: 100%;
-        }
-        </style>
-    </head>
-    <body>
-        <div class="tic80-container">
-            <canvas class="tic80-canvas" id="canvas" oncontextmenu="event.preventDefault()" tabindex="1"></canvas>
+    <style type="text/css">
+        #game-frame > div { font-size: 44px; font-family: monospace; font-weight: bold;}
+        .game { width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body style="margin:0; padding:0;">
+
+    <div class="game" style="margin: 0; position: relative; background: #1a1c2c;">
+        <div id="game-frame" style="position: absolute; margin: 0 auto; opacity: 1; background: #1a1c2c; width: 100%; height: 100%;">
+            <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%;">
+                <img src="tic80-512.png"></img>
+            </div>
         </div>
+        <canvas style="width: 100%; height: 100%; margin: 0 auto; display: block; image-rendering: pixelated;" id="canvas" oncontextmenu="event.preventDefault()" onmousedown="window.focus()"></canvas>
+    </div>
 
-        <script type="module">
-        import startTic80 from './tic80.js'
+    <script type="text/javascript">
+        var Module = {
+		canvas: document.getElementById('canvas')
+	}
 
-        navigator.serviceWorker.register('serviceworker.js')
+        navigator.serviceWorker.register('serviceworker.js');
 
-        const initialize = () => {
-            const canvasSelector = '#canvas'
-            const canvasElement = document.querySelector(canvasSelector)
+        setTimeout(function() {
+            const scriptTag = document.createElement('script');
+            scriptTag.src = 'tic80.js';
 
-            const options = {
-                canvas: document.getElementById('canvas'),
-
-                saveAs (blob, filename) {
-                    const url = URL.createObjectURL(blob)
-
-                    const link = document.createElement('a')
-                    link.href = url
-                    link.download = filename
-
-                    link.click()
-                },
-
-                showAddPopup (callback) {
-                    callback(null, null)
-                    var input = document.createElement('input')
-                    input.type = 'file'
-                    input.click()
-                    input.addEventListener('change', (event) => {
-                        const file = event.target.files[0]
-                        if (file) {
-                            var reader = new FileReader
-                            reader.onload = function(event) {
-                                var rom = new Uint8Array(event.target.result)
-                                callback(file.name, rom)
-                            }
-                            reader.readAsArrayBuffer(file)
-                        }
-                    })
-                },
-
-                preRun: [
-                    function (module) {
-                        module.ENV.SDL_EMSCRIPTEN_KEYBOARD_ELEMENT = canvasSelector
-                    }
-                ]
-            }
-
-            canvasElement.focus()
-            startTic80(options)
-        }
-
-        window.addEventListener('DOMContentLoaded', initialize)
-        </script>
-    </body>
+            document.body.appendChild(scriptTag);
+            document.getElementById('game-frame').remove()
+        }, 2000);
+    </script>
+</body>
 </html>
