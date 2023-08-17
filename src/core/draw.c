@@ -848,6 +848,10 @@ void tic_api_ttri(tic_mem* tic,
     tic_texture_src texsrc, u8* colors, s32 count, 
     float z1, float z2, float z3, bool depth)
 {
+    // do not use depth if user passed z=0.0
+    if(z1 < FLT_EPSILON || z2 < FLT_EPSILON || z3 < FLT_EPSILON)
+        depth = false;
+
     TexData texData = 
     {
         .sheet = getTileSheetFromSegment(tic, tic->ram->vram.blit.segment),
