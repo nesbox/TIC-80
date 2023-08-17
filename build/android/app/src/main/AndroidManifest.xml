@@ -4,8 +4,8 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.nesbox.tic"
-    android:versionCode="10000"
-    android:versionName="1.00.00"
+    android:versionCode="10200"
+    android:versionName="1.02.00"
     android:installLocation="auto">
 
     <!-- OpenGL ES 2.0 -->

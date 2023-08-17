@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.3)
 
 set(VERSION_MAJOR 1)
-set(VERSION_MINOR 1)
+set(VERSION_MINOR 2)
 set(VERSION_REVISION 0)
 set(VERSION_STATUS "-dev")
 string(TIMESTAMP VERSION_YEAR "%Y")
