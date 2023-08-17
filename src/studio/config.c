@@ -31,9 +31,9 @@
 #endif
 
 #if defined(__TIC_ANDROID__)            
-#define INTEGER_SCALE_DEFAULT true
-#else
 #define INTEGER_SCALE_DEFAULT false
+#else
+#define INTEGER_SCALE_DEFAULT true
 #endif
 
 #if defined (TIC_BUILD_WITH_LUA)
