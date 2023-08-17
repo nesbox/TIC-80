@@ -105,6 +105,16 @@ void tic_sys_clipboard_free(const char* text)
     free((void*)text);
 }
 
+u64 tic_sys_counter_get()
+{
+    return CTimer::Get()->GetTicks();
+}
+
+u64 tic_sys_freq_get()
+{
+    return HZ;
+}
+
 void tic_sys_fullscreen_set(bool value)
 {
 }
@@ -382,7 +392,7 @@ TShutdownMode Run(void)
         char* argv[] = { &arg0[0], NULL };
         int argc = 1;
         malloc(88);
-        platform.studio = studio_create(argc, argv, 44100, TIC80_PIXEL_COLOR_BGRA8888, "tic80");
+        platform.studio = studio_create(argc, argv, 44100, TIC80_PIXEL_COLOR_BGRA8888, "tic80", INT32_MAX);
         malloc(99);
 
     }
@@ -394,7 +404,7 @@ TShutdownMode Run(void)
         char* argv[] = { &arg0[0], &arg1[0], NULL };
         int argc = 2;
         dbg("Without keyboard\n");
-        platform.studio = studio_create(argc, argv, 44100, TIC80_PIXEL_COLOR_BGRA8888, "tic80");
+        platform.studio = studio_create(argc, argv, 44100, TIC80_PIXEL_COLOR_BGRA8888, "tic80", INT32_MAX);
     }
     dbg("studio_create OK\n");
 

@@ -24,7 +24,7 @@
 #include "ext/history.h"
 
 #include <ctype.h>
-#include <assert.h>
+#include "tic_assert.h"
 
 #define TEXT_CURSOR_DELAY (TIC80_FRAMERATE / 2)
 #define TEXT_CURSOR_BLINK_PERIOD TIC80_FRAMERATE
@@ -39,6 +39,8 @@
 #else
 #   define MAX_CODE TIC_BANK_SIZE
 #endif
+
+#define noop (void)0
 
 typedef struct CodeState CodeState;
 
@@ -61,20 +63,48 @@ static void packState(Code* code)
     }
 }
 
-static void unpackState(Code* code)
+//if pos_undo is true, we set the position to the first character
+//that is different between the current source and the state (wanted undo behavior)
+//otherwise we set the position to the stored location (wanted redo behavior)
+//in either case if no change was detected we do not change the position
+//(this occurs when there are no undo's or redo's left to apply)
+static void unpackState(Code* code, bool pos_undo)
 {
     char* src = code->src;
+
+    char* first_change = NULL;
+    char* stored_pos = NULL;
+
     for(CodeState* s = code->state, *end = s + TIC_CODE_SIZE; s != end; ++s)
     {
+
+        if (first_change == NULL && *src != s->sym)
+            first_change = src;
+
         if(s->cursor)
-            code->cursor.position = src;
+            stored_pos = src;
 
         *src++ = s->sym;
+    }
+
+    if (first_change != NULL) {
+
+        //we actually will want to go the one before the first change, as if 
+        //we were about to make the change
+        //ternary to make sure we don't go one before the beginning
+        if (pos_undo) 
+            code->cursor.position = first_change == code->src ? code->src : (first_change - 1);
+
+        else code->cursor.position = stored_pos;
     }
 }
 
 static void history(Code* code)
 {
+    //if we are in insert mode we want want all changes we make to be reflected
+    //in the undo/redo history only when we leave it
+    if (checkStudioViMode(code->studio, VI_INSERT))
+        return;
     packState(code);
     history_add(code->history);
 }
@@ -183,9 +213,28 @@ static inline void drawChar(tic_mem* tic, char symbol, s32 x, s32 y, u8 color, b
     tic_api_print(tic, (char[]){symbol, '\0'}, x, y, color, true, 1, alt);
 }
 
+static int drawTab(Code* code, s32 x, s32 y, u8 color) 
+{
+    tic_mem* tic = code->tic;
+    s32 tab_size = getConfig(code->studio)->options.tabSize;
+
+    s32 count = 0;
+    while (count < tab_size) {
+        drawChar(tic, '\t', x, y, color, code->altFont);
+        count++;
+        if (x / getFontWidth(code) % tab_size == 0) 
+            break;
+        x += getFontWidth(code);
+    }
+    return getFontWidth(code) * count;
+}
+
 static void drawCursor(Code* code, s32 x, s32 y, char symbol)
 {
     bool inverse = code->cursor.delay || code->tickCounter % TEXT_CURSOR_BLINK_PERIOD < TEXT_CURSOR_BLINK_PERIOD / 2;
+
+    if (checkStudioViMode(code->studio, VI_NORMAL))
+        inverse = true;
 
     if(inverse)
     {
@@ -232,6 +281,7 @@ static void drawCode(Code* code, bool withCursor)
     while(*pointer)
     {
         char symbol = *pointer;
+        s32 x_offset = getFontWidth(code);
 
         if(x >= -getFontWidth(code) && x < TIC80_WIDTH && y >= -TIC_FONT_HEIGHT && y < TIC80_HEIGHT )
         {
@@ -240,15 +290,26 @@ static void drawCode(Code* code, bool withCursor)
                 if(code->shadowText)
                     tic_api_rect(code->tic, x, y, getFontWidth(code)+1, TIC_FONT_HEIGHT+1, tic_color_black);
 
-                tic_api_rect(code->tic, x-1, y-1, getFontWidth(code)+1, TIC_FONT_HEIGHT+1, selectColor);
-                drawChar(code->tic, symbol, x, y, tic_color_dark_grey, code->altFont);
+                if (symbol == '\t') {
+                    //NOTE: this logic assumes that the tab character is blank
+                    //is someone made a custom character for tab it won't show up
+                    //in the selection
+                    x_offset = drawTab(code, x, y, tic_color_dark_grey);
+                    tic_api_rect(code->tic, x-1, y-1, x_offset, TIC_FONT_HEIGHT+1, selectColor);
+                } else {
+                    tic_api_rect(code->tic, x-1, y-1, getFontWidth(code)+1, TIC_FONT_HEIGHT+1, selectColor);
+                    drawChar(code->tic, symbol, x, y, tic_color_dark_grey, code->altFont);
+                }
             }
             else 
             {
                 if(code->shadowText)
                     drawChar(code->tic, symbol, x+1, y+1, 0, code->altFont);
 
-                drawChar(code->tic, symbol, x, y, colors[syntaxPointer->syntax], code->altFont);
+                if (symbol == '\t')
+                    x_offset = drawTab(code, x, y, colors[syntaxPointer->syntax]);
+                else
+                    drawChar(code->tic, symbol, x, y, colors[syntaxPointer->syntax], code->altFont);
             }
         }
 
@@ -266,7 +327,7 @@ static void drawCode(Code* code, bool withCursor)
             x = xStart;
             y += STUDIO_TEXT_HEIGHT;
         }
-        else x += getFontWidth(code);
+        else x += x_offset;
 
         pointer++;
         syntaxPointer++;
@@ -327,6 +388,21 @@ static void removeInvalidChars(char* code)
     for(s = d = code; (*d = *s); d += (*s++ != '\r'));
 }
 
+const char matchingDelim(const char current)
+{
+    char match = 0;
+    switch (current)
+    {
+    case '(': match = ')'; break;
+    case ')': match = '('; break;
+    case '[': match = ']'; break;
+    case ']': match = '['; break;
+    case '{': match = '}'; break;
+    case '}': match = '{'; break;
+    }
+    return match;
+}
+
 const char* findMatchedDelim(Code* code, const char* current)
 {
     const char* start = code->src;
@@ -335,18 +411,10 @@ const char* findMatchedDelim(Code* code, const char* current)
        code->state[current - start].syntax == SyntaxType_STRING) return 0;
 
     char initial = *current;
-    char seeking = 0;
+    char seeking = matchingDelim(initial);
+    if(seeking == 0) return NULL;
+
     s8 dir = (initial == '(' || initial == '[' || initial == '{') ? 1 : -1;
-    switch (initial)
-    {
-    case '(': seeking = ')'; break;
-    case ')': seeking = '('; break;
-    case '[': seeking = ']'; break;
-    case ']': seeking = '['; break;
-    case '{': seeking = '}'; break;
-    case '}': seeking = '{'; break;
-    default: return NULL;
-    }
 
     while(*current && (start < current))
     {
@@ -392,7 +460,25 @@ static void updateEditor(Code* code)
 
 static inline bool islineend(char c) {return c == '\n' || c == '\0';}
 static inline bool isalpha_(char c) {return isalpha(c) || c == '_';}
-static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
+static inline bool isdoublequote(char c) {return c == '"'; }
+static inline bool isopenparen_(Code* code, char c) {return c == '(' || c == '{' || c == '[';}
+static inline bool iscloseparen_(Code* code, char c) {return c == ')' || c == '}' || c == ']';}
+
+static inline bool config_isalnum_(const tic_script_config* config, char c)
+{
+    if (config->lang_isalnum)
+        return config->lang_isalnum(c);
+    else
+        return isalnum(c) || c == '_';
+}
+
+static inline bool isalnum_(Code* code, char c)
+{
+    tic_mem* tic = code->tic;
+    const tic_script_config* config = tic_core_script_config(tic);
+    return config_isalnum_(config, c);
+}
+
 
 static void setCodeState(CodeState* state, u8 color, s32 start, s32 size)
 {
@@ -484,7 +570,7 @@ start:
         }
         else if(wordStart)
         {
-            while(!islineend(*ptr) && isalnum_(*ptr)) ptr++;
+            while(!islineend(*ptr) && config_isalnum_(config, *ptr)) ptr++;
 
             s32 len = (s32)(ptr - wordStart);
             bool keyword = false;
@@ -500,8 +586,7 @@ start:
 
             if(!keyword)
             {
-                static const char* const ApiKeywords[] = 
-                {
+                static const char* const ApiKeywords[] = {
 #define             TIC_CALLBACK_DEF(name, ...) #name,
                     TIC_CALLBACK_LIST(TIC_CALLBACK_DEF)
 #undef              TIC_CALLBACK_DEF
@@ -510,9 +595,11 @@ start:
                     TIC_API_LIST(API_KEYWORD_DEF)
 #undef              API_KEYWORD_DEF
                 };
+                const char* const* keywords = config->api_keywordsCount > 0 ? config->api_keywords : ApiKeywords;
+                const s32 apiCount = config->api_keywordsCount > 0 ? config->api_keywordsCount : COUNT_OF(ApiKeywords);
 
-                for(s32 i = 0; i < COUNT_OF(ApiKeywords); i++)
-                    if(len == strlen(ApiKeywords[i]) && memcmp(wordStart, ApiKeywords[i], len) == 0)
+                for(s32 i = 0; i < apiCount; i++)
+                    if(len == strlen(keywords[i]) && memcmp(wordStart, keywords[i], len) == 0)
                     {
                         setCodeState(state, SyntaxType_API, (s32)(wordStart - start), len);
                         break;
@@ -568,7 +655,8 @@ start:
                 ptr += strlen(config->blockStringStart);
                 continue;
             }
-            else if(c == '"' || c == '\'')
+            else if ((config->stdStringStartEnd == NULL && (c == '"' || c == '\''))
+                     || (config->stdStringStartEnd != NULL && c != 0 && strchr(config->stdStringStartEnd, c)))
             {
                 blockStdStringStart = ptr;
                 ptr++;
@@ -709,10 +797,24 @@ static void setCursorPosition(Code* code, s32 cx, s32 cy)
     updateCursorPosition(code, pointer);
 }
 
+static void startLine(Code* code)
+{
+    char* start = code->src;
+    while(code->cursor.position > start+1)
+    {
+        if (islineend(*(code->cursor.position-1)))
+            break;
+        --code->cursor.position;
+    }
+    updateColumn(code);
+}
+
 static void endLine(Code* code)
 {
     while(*code->cursor.position)
     {
+        if (islineend(*code->cursor.position))
+            break;
         code->cursor.position++;
     }
     updateColumn(code);
@@ -756,19 +858,24 @@ static void rightColumn(Code* code)
     }
 }
 
-static char* leftWordPos(Code* code)
+typedef bool(*tic_code_predicate)(Code* code, char c);
+
+static char* leftPos(Code* code, char* pos, tic_code_predicate pred)
 {
     const char* start = code->src;
-    char* pos = code->cursor.position - 1;
-
     if(pos > start)
     {
-        if(isalnum_(*pos)) while(pos > start && isalnum_(*(pos-1))) pos--;
-        else while(pos > start && !isalnum_(*(pos-1))) pos--;
+        if(pred(code, *pos)) while(pos > start && pred(code, *(pos-1))) pos--;
+        else while(pos > start && !pred(code, *(pos-1))) pos--;
         return pos;
     }
 
     return code->cursor.position;
+}
+
+static char* leftWordPos(Code* code)
+{
+    return leftPos(code, code->cursor.position-1, isalnum_);
 }
 
 static void leftWord(Code* code)
@@ -777,25 +884,98 @@ static void leftWord(Code* code)
     updateColumn(code);
 }
 
-static char* rightWordPos(Code* code)
+static char* leftQuote(Code* code, char* pos)
+{
+    char* start = code->src;
+    while (pos > start)
+    {
+        if (isdoublequote(*pos) && *(pos-1) != '\\')
+            return pos;
+        --pos;
+    }
+    return start;
+}
+
+static char* rightQuote(Code* code, char* pos)
+{
+    char* end = code->src + strlen(code->src);
+    while (pos < end)
+    {
+        if (isdoublequote(*pos) && *(pos-1) != '\\')
+            return pos;
+        ++pos;
+    }
+    return end;
+}
+
+static char* leftSexp(Code* code, char* pos)
+{
+    char* start = code->src;
+    int nesting = 0;
+    
+    while (pos >= start)
+    {
+        if (isopenparen_(code, *pos))
+        {
+            if (nesting == 0)
+                return pos;
+            else
+                --nesting;
+        }
+        else if (iscloseparen_(code, *pos))
+        {
+            ++nesting;
+        }
+        --pos;
+    }
+    return start; // fallback
+}
+
+static char* rightPos(Code* code, char* pos, tic_code_predicate pred)
 {
     const char* end = code->src + strlen(code->src);
-    char* pos = code->cursor.position;
 
     if(pos < end)
     {
-        if(isalnum_(*pos)) while(pos < end && isalnum_(*pos)) pos++;
-        else while(pos < end && !isalnum_(*pos)) pos++;
-
+        if(pred(code, *pos)) while(pos < end && pred(code, *pos)) pos++;
+        else while(pos < end && !pred(code, *pos)) pos++;
     }
 
     return pos;
+}
+
+static char* rightWordPos(Code* code)
+{
+    return rightPos(code, code->cursor.position, isalnum_);
 }
 
 static void rightWord(Code* code)
 {
     code->cursor.position = rightWordPos(code);
     updateColumn(code);
+}
+
+static char* rightSexp(Code* code, char* pos)
+{
+    char* end = code->src + strlen(code->src);
+    int nesting = 0;
+
+    while (pos < end)
+    {
+        if (iscloseparen_(code, *pos))
+        {
+            if (nesting == 0)
+                return pos;
+            else
+                --nesting;
+        }
+        else if (isopenparen_(code, *pos))
+        {
+            ++nesting;
+        }
+        ++pos;
+    }
+    return end; // fallback
 }
 
 static void goHome(Code* code)
@@ -842,6 +1022,24 @@ static void pageDown(Code* code)
     getCursorPosition(code, &column, &line);
     s32 lines = getLinesCount(code);
     setCursorPosition(code, column, line < lines - TEXT_BUFFER_HEIGHT ? line + TEXT_BUFFER_HEIGHT : lines);
+}
+
+static void halfPageUp(Code* code)
+{
+    s32 half = TEXT_BUFFER_HEIGHT / 2;
+    s32 column = 0;
+    s32 line = 0;
+    getCursorPosition(code, &column, &line);
+    setCursorPosition(code, column, line > half ? line - half : 0);
+}
+static void halfPageDown(Code* code)
+{
+    s32 half = TEXT_BUFFER_HEIGHT / 2;
+    s32 column = 0;
+    s32 line = 0;
+    getCursorPosition(code, &column, &line);
+    s32 lines = getLinesCount(code);
+    setCursorPosition(code, column, line < lines - half ? line + half : lines);
 }
 
 static void deleteCode(Code* code, char* start, char* end)
@@ -897,10 +1095,56 @@ static bool replaceSelection(Code* code)
     return false;
 }
 
+static bool structuredDeleteOverride(Code* code, char* pos)
+{
+    const bool useStructuredEdit = tic_core_script_config(code->tic)->useStructuredEdition;
+    if (!useStructuredEdit)
+        return false;
+
+    const char* end = code->src + strlen(code->src);
+    if (pos >= end-1)
+        return false;
+
+    const bool isopen = isopenparen_(code, *pos);
+    const bool isclose = iscloseparen_(code, *pos);
+    if (isopen || isclose)
+    {
+        if (isopen && iscloseparen_(code, *(pos+1))
+            || isclose && isopenparen_(code, *(pos+1)))
+        {
+            deleteCode(code, pos, pos+2);
+            history(code);
+            parseSyntaxColor(code);
+            updateEditor(code);
+        }
+        // if not, disallow deletion until it's empty
+        return true;
+    }
+
+    if (isdoublequote(*pos))
+    {
+       const bool canRemoveDblQuote = isdoublequote(*(pos+1));
+       if (canRemoveDblQuote)
+       {
+           deleteCode(code, pos, pos+2);
+           history(code);
+           parseSyntaxColor(code);
+           updateEditor(code);
+       }
+       // only allow deletion when string is empty
+       return true;
+    }
+    
+    return false;
+}
+
 static void deleteChar(Code* code)
 {
     if(!replaceSelection(code))
     {
+        if (structuredDeleteOverride(code, code->cursor.position))
+            return;
+
         deleteCode(code, code->cursor.position, code->cursor.position + 1);
         history(code);
         parseSyntaxColor(code);
@@ -914,6 +1158,10 @@ static void backspaceChar(Code* code)
     if(!replaceSelection(code) && code->cursor.position > code->src)
     {
         char* pos = --code->cursor.position;
+
+        if (structuredDeleteOverride(code, pos))
+            return;
+
         deleteCode(code, pos, pos + 1);
         history(code);
         parseSyntaxColor(code);
@@ -929,8 +1177,8 @@ static void deleteWord(Code* code)
 
     if(pos < end)
     {
-        if(isalnum_(*pos)) while(pos < end && isalnum_(*pos)) pos++;
-        else while(pos < end && !isalnum_(*pos)) pos++;
+        if(isalnum_(code, *pos)) while(pos < end && isalnum_(code, *pos)) pos++;
+        else while(pos < end && !isalnum_(code, *pos)) pos++;
 
         deleteCode(code, code->cursor.position, pos);
 
@@ -946,8 +1194,8 @@ static void backspaceWord(Code* code)
 
     if(pos > start)
     {
-        if(isalnum_(*pos)) while(pos > start && isalnum_(*(pos-1))) pos--;
-        else while(pos > start && !isalnum_(*(pos-1))) pos--;
+        if(isalnum_(code, *pos)) while(pos > start && isalnum_(code, *(pos-1))) pos--;
+        else while(pos > start && !isalnum_(code, *(pos-1))) pos--;
 
         deleteCode(code, pos, code->cursor.position);
 
@@ -957,17 +1205,101 @@ static void backspaceWord(Code* code)
     }
 }
 
+char* findLineEnd(Code* code, char* pos)
+{
+    const bool useStructuredEdit = tic_core_script_config(code->tic)->useStructuredEdition;
+    
+    char* lineend = pos+1;
+    const char* end = code->src + strlen(code->src);
+    
+    while (lineend < end)
+    {
+        if (islineend(*lineend)) break;
+        if (useStructuredEdit && iscloseparen_(code, *lineend)) break;
+        ++lineend;
+    }
+    return lineend;
+}
+
+static void deleteLine(Code* code)
+{
+    char* linestart = code->cursor.position;
+    char* lineend = linestart+1;
+    const char* end = code->src + strlen(code->src);
+    
+    const bool useStructuredEdit = tic_core_script_config(code->tic)->useStructuredEdition;
+    if (useStructuredEdit)
+    {
+        if (islineend(*linestart) || islineend(*lineend))
+            noop;
+        else if (isopenparen_(code, *linestart))
+            lineend = rightSexp(code, linestart+1)+1;
+        else if (isdoublequote(*linestart))
+        {
+            char* nextQuote = rightQuote(code, linestart+1);
+            lineend = findLineEnd(code, linestart);
+            if (nextQuote < lineend)
+                lineend = nextQuote+1;
+            else
+                return; // skip deletion if on last " of a string
+        }
+        else
+        {
+            const char* start = code->src;
+            const char* sexpStart = leftSexp(code, linestart);
+            const char* strStart = leftQuote(code, linestart);
+            char* sexpEnd = rightSexp(code, linestart);
+            char* strEnd = rightQuote(code, linestart);
+            const bool isInsideStr = strStart > sexpStart && strEnd < sexpEnd;
+            if (isInsideStr)
+                lineend = strEnd;
+            else if (sexpStart != start)
+                lineend = sexpEnd;
+            else
+                lineend = findLineEnd(code, linestart);
+        }
+    }
+    else
+    {
+        lineend = findLineEnd(code, linestart);
+    }
+
+    const size_t linesize = lineend-linestart;
+    char* clipboard = (char*)malloc(linesize+1);
+    if(clipboard)
+    {
+        memcpy(clipboard, linestart, linesize);
+        clipboard[linesize] = '\0';
+        tic_sys_clipboard_set(clipboard);
+        free(clipboard);
+    }
+
+    
+    deleteCode(code, linestart, lineend);
+    code->cursor.position = linestart;
+    history(code);
+    parseSyntaxColor(code);
+    updateEditor(code);
+}
+
 static void inputSymbolBase(Code* code, char sym)
 {
     if (strlen(code->src) >= MAX_CODE)
         return;
 
-    insertCode(code, code->cursor.position++, (const char[]){sym, '\0'});
+    const bool useStructuredEdit = tic_core_script_config(code->tic)->useStructuredEdition;
+    if((useStructuredEdit || getConfig(code->studio)->theme.code.autoDelimiters) && (sym == '(' || sym == '[' || sym == '{'))
+    {
+        insertCode(code, code->cursor.position++, (const char[]){sym, matchingDelim(sym), '\0'});
+    } else if (useStructuredEdit && isdoublequote(sym)) {
+        insertCode(code, code->cursor.position++, (const char[]){sym, sym, '\0'});
+    }
+    else {
+        insertCode(code, code->cursor.position++, (const char[]){sym, '\0'});
+    }
 
     history(code);
-
     updateColumn(code);
-
     parseSyntaxColor(code);
 }
 
@@ -1003,10 +1335,15 @@ static void newLine(Code* code)
 static void selectAll(Code* code)
 {
     code->cursor.selection = code->src;
-        code->cursor.position = code->cursor.selection + strlen(code->cursor.selection);
+    code->cursor.position = code->cursor.selection + strlen(code->cursor.selection);
 }
 
-static void copyToClipboard(Code* code)
+static void killSelection(Code* code)
+{
+    code->cursor.selection = NULL;
+}
+
+static void copyToClipboard(Code* code, bool killSelection)
 {
     char* pos = code->cursor.position;
     char* sel = code->cursor.selection;
@@ -1034,22 +1371,29 @@ static void copyToClipboard(Code* code)
         tic_sys_clipboard_set(clipboard);
         free(clipboard);
     }
+
+    if (killSelection)
+        code->cursor.selection = NULL;
 }
 
-static void cutToClipboard(Code* code)
+static void cutToClipboard(Code* code, bool killSelection)
 {
     if(code->cursor.selection == NULL || code->cursor.position == code->cursor.selection)
     {
         code->cursor.position = getLine(code);
         code->cursor.selection = getNextLine(code);
     }
-    
-    copyToClipboard(code);
+
+    copyToClipboard(code, false);
     replaceSelection(code);
-    history(code);
+
+    if (killSelection)
+        code->cursor.selection = NULL;
+    
+    //no call to history because it gets called in replaceSelection
 }
 
-static void copyFromClipboard(Code* code)
+static void copyFromClipboard(Code* code, bool killSelection)
 {
     if(tic_sys_clipboard_has())
     {
@@ -1068,6 +1412,9 @@ static void copyFromClipboard(Code* code)
                 {
                     size_t codeSize = strlen(code->src);
 
+                    if(codeSize >= MAX_CODE)
+                        return;
+
                     if (codeSize + size > MAX_CODE)
                     {
                         size = MAX_CODE - codeSize;
@@ -1076,11 +1423,12 @@ static void copyFromClipboard(Code* code)
                 }
 
                 insertCode(code, code->cursor.position, clipboard);
-
                 code->cursor.position += size;
 
-                history(code);
+                if (killSelection)
+                    code->cursor.selection = NULL;
 
+                history(code);
                 parseSyntaxColor(code);
             }
 
@@ -1091,6 +1439,7 @@ static void copyFromClipboard(Code* code)
 
 static void update(Code* code)
 {
+    updateColumn(code);
     updateEditor(code);
     parseSyntaxColor(code);
 }
@@ -1098,7 +1447,7 @@ static void update(Code* code)
 static void undo(Code* code)
 {
     history_undo(code->history);
-    unpackState(code);
+    unpackState(code, true);
 
     update(code);
 }
@@ -1106,9 +1455,66 @@ static void undo(Code* code)
 static void redo(Code* code)
 {
     history_redo(code->history);
-    unpackState(code);
+    unpackState(code, false);
 
     update(code);
+}
+
+static bool useSpacesForTab(Code* code) {
+    enum TabMode tabmode = getConfig(code->studio)->options.tabMode;
+
+
+    if (tabmode == TAB_SPACE)
+        return true;
+    else if (tabmode == TAB_TAB)
+        return false;
+    else { //auto mode
+        tic_mem* tic = code->tic;
+        const tic_script_config* config = tic_core_script_config(tic);
+        if (config->id == 20 || config->id == 13)  //python or moonscript
+            return true;
+        return false;
+    }
+}
+
+
+static s32 insertTab(Code* code, char* line_start, char* pos) {
+    if (useSpacesForTab(code)) {
+        s32 tab_size = getConfig(code->studio)->options.tabSize;
+        s32 count = 0;
+
+        while(count < tab_size) {
+            insertCode(code, pos++, " ");
+            count++;
+            if ((pos - line_start) % tab_size == 0)
+                break;
+        }
+
+        return count;
+    } else {
+        insertCode(code, pos, "\t");
+        return 1;
+    }
+}
+
+//has no effect is pos is not a valid tab character
+static s32 removeTab(Code* code, char* line_start, char* pos) {
+    if (useSpacesForTab(code)) {
+        s32 tab_size = getConfig(code->studio)->options.tabSize;
+        s32 count = 0;
+
+        while(count < tab_size) {
+            if (*pos != ' ')
+                break;
+            deleteCode(code, pos, pos+1);
+            count++;
+        }
+
+        return count;
+    } else if (*pos == '\t' || *pos == ' ') {
+        deleteCode(code, pos, pos+1);
+        return 1;
+    }
 }
 
 static void doTab(Code* code, bool shift, bool crtl)
@@ -1141,16 +1547,13 @@ static void doTab(Code* code, bool shift, bool crtl)
             {
                 if(*line == '\t' || *line == ' ')
                 {
-                    deleteCode(code, line, line + 1);
-                    end--;
+                    end -= removeTab(code, line, line);
                     changed = true;
                 }
             }
             else
             {
-                insertCode(code, line, "\t");
-                end++;
-
+                end += insertTab(code, line, line);
                 changed = true;
             }
             
@@ -1160,17 +1563,24 @@ static void doTab(Code* code, bool shift, bool crtl)
         
         if(changed) {
             
-            if(has_selection) {
+            if(has_selection) 
+            {
                 code->cursor.position = start;
                 code->cursor.selection = end;
             }
             else if (start <= end) code->cursor.position = end;
             
             history(code);
-            parseSyntaxColor(code);
+            update(code);
         }
     }
-    else inputSymbolBase(code, '\t');
+    else 
+    {
+        char* line = getLineByPos(code, code->cursor.position);
+        code->cursor.position += insertTab(code, line, code->cursor.position);
+        history(code);
+        update(code);
+    }
 }
 
 // Add a block-ending keyword or symbol, and put the cursor in the line between.
@@ -1190,7 +1600,7 @@ static void newLineAutoClose(Code* code)
     }
 }
 
-static void setFindMode(Code* code)
+static void setFindOrReplaceMode(Code* code)
 {
     if(code->cursor.selection)
     {
@@ -1230,14 +1640,33 @@ static void normalizeScroll(Code* code)
     }
 }
 
-static void centerScroll(Code* code)
+static void recenterScroll(Code* code, bool emacsMode)
 {
     s32 col, line;
     getCursorPosition(code, &col, &line);
-    code->scroll.x = col - CODE_EDITOR_WIDTH / getFontWidth(code) / 2;
-    code->scroll.y = line - TEXT_BUFFER_HEIGHT / 2;
+
+    s32 desiredCol = col - CODE_EDITOR_WIDTH / getFontWidth(code) / 2;
+    s32 desiredLine = MAX(0, line - TEXT_BUFFER_HEIGHT / 2);
+
+    if (emacsMode && code->scroll.y == desiredLine)
+    {
+        desiredLine = line;
+    }
+    else if (emacsMode && code->scroll.y == line)
+    {
+        desiredLine = line - TEXT_BUFFER_HEIGHT;
+    }
+
+    code->scroll.x = desiredCol;
+    code->scroll.y = desiredLine;
 
     normalizeScroll(code);
+}
+
+static void centerScroll(Code* code)
+{
+    static const bool emacsMode = false;
+    recenterScroll(code, emacsMode);
 }
 
 static void updateSidebarCode(Code* code)
@@ -1371,14 +1800,19 @@ static void setCodeMode(Code* code, s32 mode)
     {
         code->anim.movie = resetMovie(&code->anim.show);
 
-        strcpy(code->popup.text, "");
+        //so that in edit mode we can refer back to the most recently
+        //searched thing if we want
+        if (mode != TEXT_EDIT_MODE)
+            strcpy(code->popup.text, "");
 
+        code->popup.offset = NULL;
         code->popup.prevPos = code->cursor.position;
         code->popup.prevSel = code->cursor.selection;
 
         switch(mode)
         {
-        case TEXT_FIND_MODE: setFindMode(code); break;
+        case TEXT_FIND_MODE: setFindOrReplaceMode(code); break;
+        case TEXT_REPLACE_MODE: setFindOrReplaceMode(code); break;
         case TEXT_GOTO_MODE: setGotoMode(code); break;
         case TEXT_BOOKMARK_MODE: setBookmarkMode(code); break;
         case TEXT_OUTLINE_MODE: setOutlineMode(code); break;
@@ -1465,9 +1899,103 @@ static void addCommentToLine(Code* code, char* line, size_t size, const char* co
 
     code->cursor.selection = NULL;
 
+    parseSyntaxColor(code);
+}
+
+static void sexpify(Code* code)
+{
+    const bool useStructuredEdit = tic_core_script_config(code->tic)->useStructuredEdition;
+    if (!useStructuredEdit)
+        return;
+
+    char* pos = code->cursor.position;
+    char* start = NULL;
+    char* end = NULL;
+    char* sel = code->cursor.selection;
+    if (sel)
+    {
+        start = sel<pos ? sel : pos;
+        end = sel<pos ? pos : sel;
+    }
+    else if (isopenparen_(code, *pos))
+    {
+        start = pos;
+        end = rightSexp(code, pos+1);
+    }
+    else if (isalnum_(code, *pos))
+    {
+        start = leftPos(code, pos, isalnum_);
+        end = rightPos(code, pos, isalnum_);
+    }
+
+    if (start == NULL || end == NULL)
+        return;
+
+    insertCode(code, start, (const char[]){'(', '\0'});
+    insertCode(code, end+1, (const char[]){')', '\0'});
+
+    ++code->cursor.position;
     history(code);
+    parseSyntaxColor(code);
+    updateEditor(code);
+}
+
+static void extirpSExp(Code* code)
+{
+    const bool useStructuredEdit = tic_core_script_config(code->tic)->useStructuredEdition;
+    if (!useStructuredEdit)
+        return;
+    
+    const char* start = code->src;
+    char* pos = code->cursor.position;
+    const char* end = code->src + strlen(code->src);
+
+    char* sexp_start = NULL;
+    char* sexp_end = NULL;
+
+    if(pos > start)
+    {
+        if (isopenparen_(code, *pos))
+        {
+            sexp_start = pos;
+            sexp_end = rightSexp(code, pos+1);
+        }
+        if (iscloseparen_(code, *pos))
+        {
+            sexp_start = leftSexp(code, pos-1);
+            sexp_end = pos;
+        }
+        if (isalnum_(code, *pos))
+        {
+            sexp_start = leftPos(code, pos, isalnum_);
+            sexp_end = rightPos(code, pos, isalnum_)-1;
+        }
+        if (sexp_start != NULL && sexp_end != NULL)
+        {
+            char* sexp_outer_start = leftSexp(code, sexp_start-1);
+            char* sexp_outer_end = rightSexp(code, sexp_end+1);
+            if (sexp_start > start && sexp_outer_start > start && sexp_end < end && sexp_outer_end < end)
+            {
+                deleteCode(code, sexp_end+1, sexp_outer_end+1);
+                deleteCode(code, sexp_outer_start, sexp_start);
+                code->cursor.position = sexp_outer_start;
+                history(code);
+                parseSyntaxColor(code);
+                updateEditor(code);
+            }
+        }
+    }
+}
+
+static void toggleMark(Code* code)
+{
+    if (code->cursor.selection)
+        code->cursor.selection = NULL;
+    else
+        code->cursor.selection = code->cursor.position;
 
     parseSyntaxColor(code);
+    updateEditor(code);
 }
 
 static void commentLine(Code* code)
@@ -1503,6 +2031,8 @@ static void commentLine(Code* code)
 
     }
     else addCommentToLine(code, getLine(code), size, comment);
+
+    history(code);
 }
 
 static void dupLine(Code* code)
@@ -1560,26 +2090,780 @@ static bool goNextBookmark(Code* code, char* ptr)
     return false;
 }
 
+static bool clipboardHasNewline() 
+{
+    bool found = false;
+    if (tic_sys_clipboard_has()) 
+    {
+
+        //from what I can see in other usage, this should be a
+        //null terminated string with the clipboard contents
+        char* clipboard = tic_sys_clipboard_get();
+
+        char* c = clipboard;
+        while(*c != 0) 
+        {
+            if (*c == '\n') 
+            {
+                found = true;
+                break;
+            }
+
+            c++;
+        }
+
+        tic_sys_clipboard_free(clipboard);
+    }
+    return found;
+}
+
+static char* upStrStr(const char* start, const char* from, const char* substr)
+{
+    const char* ptr = from-1;
+    size_t len = strlen(substr);
+
+    if(len > 0)
+    {
+        while(ptr >= start)
+        {
+            if(memcmp(ptr, substr, len) == 0)
+                return (char*)ptr;
+
+            ptr--;
+        }
+    }
+
+    return NULL;
+}
+
+static char* downStrStr(const char* start, const char* from, const char* substr)
+{
+    return strstr(from, substr);
+}
+
+
+static void seekEmptyLineForward(Code* code) {
+    char* pos = code->cursor.position;
+
+    //goto state machine, one of the few ways to use goto well
+start:
+    if (*pos == '\0') goto end;
+    else if (*pos == '\n') { pos++; goto check; }
+    else { pos++; goto start; }
+
+check:
+    if (*pos == '\0') goto end;
+    else if (*pos == '\t') { pos++; goto check; }
+    else if (*pos == ' ') { pos++; goto check; }
+    else if (*pos == '\n') goto end;
+    else goto start;
+
+end:
+    code->cursor.position = pos;
+    updateColumn(code);
+    updateEditor(code);
+
+}
+
+static void seekEmptyLineBackward(Code* code) {
+    char* pos = code->cursor.position;
+
+    if (pos == code->src) return;
+    else pos--; //need to start one behind so we don't match the one we are on
+
+    //goto state machine, one of the few ways to use goto well
+start:
+    if (pos == code->src) goto end;
+    else if (*pos == '\n') { pos--; goto check; }
+    else { pos--; goto start; }
+
+check:
+    if (pos == code->src) goto end;
+    else if (*pos == '\t') { pos--; goto check; }
+    else if (*pos == ' ') { pos--; goto check; }
+    else if (*pos == '\n') { pos++; goto end; }
+    else goto start;
+
+end:
+    code->cursor.position = pos;
+    updateColumn(code);
+    updateEditor(code);
+}
+
+static void seekForward(Code* code, char sought) 
+{
+    char* start = code->cursor.position;
+    code->cursor.position++;
+    while(
+        *code->cursor.position != sought 
+        && *code->cursor.position != '\n' 
+        && *code->cursor.position != '\0'
+    )
+        code->cursor.position++;
+    if (*code->cursor.position == '\n' || *code->cursor.position == '\0')
+        code->cursor.position = start;
+
+    updateColumn(code);
+    updateEditor(code);
+
+}
+static void seekBackward(Code* code, char sought) 
+{
+    char* start = code->cursor.position;
+    code->cursor.position--;
+    while(
+        code->cursor.position > code->src 
+        && *code->cursor.position != sought 
+        && *code->cursor.position != '\n'
+    )
+        code->cursor.position--;
+
+    if (code->cursor.position <= code->src || *code->cursor.position == '\n')
+        code->cursor.position = start;
+
+    updateColumn(code);
+    updateEditor(code);
+}
+
+static void findNextPopupText(Code* code) {
+    if (*code->popup.text) 
+    {
+        char* pos = downStrStr(code->src, code->cursor.position, code->popup.text);
+        if (pos == code->cursor.position)
+        {
+            pos += strlen(code->popup.text);
+            pos = downStrStr(code->src, pos, code->popup.text);
+        }
+        if (pos == NULL)
+            pos = downStrStr(code->src, code->src, code->popup.text);
+        if (pos != NULL)
+        {
+            code->cursor.position = pos;
+            updateColumn(code);
+        }
+    }
+}
+
+static bool processViPosition(Code* code, bool ctrl, bool alt, bool shift) 
+{
+    bool clear = !(shift || ctrl || alt);
+
+    bool processed = true;
+    if (clear && keyWasPressed(code->studio, tic_key_k)) upLine(code);
+    else if (clear && keyWasPressed(code->studio, tic_key_j)) downLine(code);
+    else if (clear && keyWasPressed(code->studio, tic_key_h)) leftColumn(code);
+    else if (clear && keyWasPressed(code->studio, tic_key_l)) rightColumn(code);
+
+    //no need to be elitist, arrow keys can work too
+    else if (keyWasPressed(code->studio, tic_key_up)) upLine(code);
+    else if (keyWasPressed(code->studio, tic_key_down)) downLine(code);
+    else if (keyWasPressed(code->studio, tic_key_left)) leftColumn(code);
+    else if (keyWasPressed(code->studio, tic_key_right)) rightColumn(code);
+
+    else if (clear && keyWasPressed(code->studio, tic_key_g)) goCodeHome(code);
+    else if (shift && keyWasPressed(code->studio, tic_key_g)) goCodeEnd(code);
+
+    else if (keyWasPressed(code->studio, tic_key_home)) goHome(code);
+    else if (clear && keyWasPressed(code->studio, tic_key_0)) goHome(code);
+    else if (keyWasPressed(code->studio, tic_key_end)) goEnd(code);
+    else if (shift && keyWasPressed(code->studio, tic_key_4)) goEnd(code);
+
+    else if (keyWasPressed(code->studio, tic_key_pageup)) pageUp(code);
+    else if (ctrl && keyWasPressed(code->studio, tic_key_u)) pageUp(code);
+    else if (keyWasPressed(code->studio, tic_key_pagedown)) pageDown(code);
+    else if (ctrl && keyWasPressed(code->studio, tic_key_d)) pageDown(code);
+
+    else if (clear && keyWasPressed(code->studio, tic_key_b)) leftWord(code);
+    else if (clear && keyWasPressed(code->studio, tic_key_w)) rightWord(code);
+
+    else if (shift && keyWasPressed(code->studio, tic_key_6))
+    {
+        goHome(code);
+        while (*code->cursor.position == ' ' || *code->cursor.position == '\t') 
+            code->cursor.position++;
+    }
+
+    else if (shift && keyWasPressed(code->studio, tic_key_j))
+        halfPageDown(code);
+
+    else if (shift && keyWasPressed(code->studio, tic_key_k))
+        halfPageUp(code);
+
+    else if (shift && keyWasPressed(code->studio, tic_key_leftbracket))
+        seekEmptyLineBackward(code);
+
+    else if (shift && keyWasPressed(code->studio, tic_key_rightbracket))
+        seekEmptyLineForward(code);
+
+    else if (shift && keyWasPressed(code->studio, tic_key_5))
+    {
+        const char* pos = findMatchedDelim(code, code->cursor.position);
+        if (pos != NULL) 
+        {
+            code->cursor.position = (char*) pos;
+            updateColumn(code);
+            updateEditor(code);
+        }
+    }
+
+    else if (clear && keyWasPressed(code->studio, tic_key_f))
+        setStudioViMode(code->studio, VI_SEEK);
+
+    else if (shift && keyWasPressed(code->studio, tic_key_f))
+        setStudioViMode(code->studio, VI_SEEK_BACK);
+
+    else if(clear && keyWasPressed(code->studio, tic_key_semicolon))
+        seekForward(code, *code->cursor.position);
+
+    else if(shift && keyWasPressed(code->studio, tic_key_semicolon))
+        seekBackward(code, *code->cursor.position);
+
+    else processed = false;
+
+    return processed;
+}
+
+static void updateGotoCode(Code* code);
+static void processViGoto(Code* code, s32 initial) 
+{
+    setCodeMode(code, TEXT_GOTO_MODE);
+    code->popup.text[0] = '0' + initial;
+    code->popup.text[1] = '\0';
+    updateGotoCode(code);
+}
+
+static char* findStringStart(Code* code, char* pos) {
+    char sentinel = *pos; 
+
+    char* target = pos; //we will scan to the given position
+    pos = getLineByPos(code, pos); //from the beginning of the line
+    char* start = NULL;
+                         
+    //goto state machine!
+start:
+    if(pos == target) goto end;
+    else if(*pos == '\\') { pos++; goto escape; }
+    else if (*pos == sentinel) 
+    { 
+        start=start?NULL:pos; 
+        pos++; 
+        goto start;
+    }
+    else { pos++; goto start; }
+escape :
+    if (pos == target) goto end;
+    else { pos++; goto start; }
+end:
+    return start;
+}
+
+static char* findStringEnd(char* pos) {
+    char sentinel = *pos; //can handle single or double quotes
+                         //or anything else I guess 
+    if (*pos == '\0') goto end;
+    else pos++; //move past the sentinel so we don't immediately detect the end
+
+    //goto state machine!
+start:
+    if(*pos == '\0' || *pos == '\n' || *pos == sentinel) goto end;
+    else if(*pos == '\\') { pos++; goto escape; }
+    else { pos++; goto start; }
+escape :
+    if (*pos == '\0' || *pos == '\n') goto end;
+    else { pos++; goto start; }
+end:
+    return pos;
+}
+
+
+//pass in pointer to beginnign of word and its length
+//so you can just use the word in src
+static char* findFunctionDefinition(Code* code, char* name, size_t length) {
+    char* result = NULL;
+
+    tic_mem* tic = code->tic;
+    const tic_script_config* config = tic_core_script_config(tic);
+
+    if(config->getOutline)
+    {
+        s32 osize = 0;
+        const tic_outline_item* items = config->getOutline(code->src, &osize);
+
+        if(items)
+        {
+            for(size_t i = 0; i < osize; i++)
+            {
+                const tic_outline_item* it = items + i;
+
+                if(code->state[it->pos - code->src].syntax == SyntaxType_COMMENT)
+                    continue;
+                if (strncmp(name, it->pos, length) == 0)
+                {
+                    result = (char*) it->pos;
+                    break;
+                }
+            }
+        }
+    }
+
+    return result;
+}
+
+
+static void processViChange(Code* code) {
+    //if on a delimiter change the contents of the delimiter
+    if (matchingDelim(*code->cursor.position))
+    {
+        const char* match = findMatchedDelim(code, code->cursor.position);
+        if (match == 0)
+            deleteChar(code);
+        else
+        {
+            if (code->cursor.position > match)
+            {
+                char* temp = code->cursor.position;
+                code->cursor.position = (char*) match;
+                match = temp;
+            }
+            deleteCode(code, code->cursor.position+1, (char*) match);
+            code->cursor.position++;
+        }
+    }
+    //if on a quotation seek to change within the quotation 
+    else if(*code->cursor.position == '"' || *code->cursor.position == '\'') 
+    {
+        char* start = findStringStart(code, code->cursor.position);
+        if (start == NULL) start = code->cursor.position;
+        char* end = findStringEnd(start);
+        start++; //advance one to leave the initial quote alone
+        deleteCode(code, start, end);
+        code->cursor.position = start;
+    }
+    else if(!isalnum_(code, *code->cursor.position)) 
+        deleteChar(code);
+    else  //change the word under the cursor
+    {
+        //only call left word if we are not already on the word border
+        if (
+            code->cursor.position > code->src 
+            && isalnum_(code, *(code->cursor.position-1))
+        )
+            leftWord(code);
+        deleteWord(code);
+    }
+}
+
+static char toggleCase(char c) {
+    if (isupper(c))
+        return tolower(c);
+    else if(islower(c))
+        return toupper(c);
+    else
+        return c;
+}
+
+static void processViKeyboard(Code* code) 
+{
+
+    tic_mem* tic = code->tic;
+    bool shift = tic_api_key(tic, tic_key_shift);
+    bool ctrl = tic_api_key(tic, tic_key_ctrl);
+    bool alt = tic_api_key(tic, tic_key_alt);
+    bool clear = !(shift || ctrl || alt);
+
+    ViMode mode = getStudioViMode(code->studio);
+
+    //keep these the same to be consistent with the other editors
+    bool usedClipboard = true;
+    switch(getClipboardEvent(code->studio))
+    {
+    case TIC_CLIPBOARD_CUT: cutToClipboard(code, false); break;
+    case TIC_CLIPBOARD_COPY: copyToClipboard(code, false); break;
+    case TIC_CLIPBOARD_PASTE: copyFromClipboard(code, false); break;
+    default: usedClipboard = false; break;
+    }
+
+    if(usedClipboard)
+    {
+        if (mode != VI_INSERT)
+            setStudioViMode(code->studio, VI_NORMAL);
+        updateEditor(code);
+        return;
+    }
+
+
+    if (mode == VI_INSERT)
+    {
+        if (keyWasPressed(code->studio, tic_key_escape)) {
+            setStudioViMode(code->studio, VI_NORMAL);
+            history(code); //needs to come after the mode switch or won't be honored
+        }
+
+        else if (keyWasPressed(code->studio, tic_key_backspace)) 
+            backspaceChar(code);
+
+        else if (keyWasPressed(code->studio, tic_key_tab)) 
+            doTab(code, shift, ctrl);
+
+        else if (keyWasPressed(code->studio, tic_key_return))
+            newLine(code);
+
+        else if (clear || shift)
+        {
+            char sym = getKeyboardText(code->studio);
+            if(sym)
+            {
+                inputSymbol(code, sym);
+                updateEditor(code);
+            }
+        }
+    } 
+    else if(mode == VI_NORMAL)
+    {
+        bool processed = true;
+
+        code->cursor.selection = NULL;
+
+        if (processViPosition(code, ctrl, alt, shift));
+
+        else if (clear && keyWasPressed(code->studio, tic_key_i)) 
+            setStudioViMode(code->studio, VI_INSERT);
+
+        else if (clear && keyWasPressed(code->studio, tic_key_a)) 
+        {
+            setStudioViMode(code->studio, VI_INSERT);
+            rightColumn(code);
+        }
+        else if (clear && keyWasPressed(code->studio, tic_key_o)) 
+        {
+            setStudioViMode(code->studio, VI_INSERT);
+            goEnd(code);
+            newLine(code);
+        }
+
+        else if (shift && keyWasPressed(code->studio, tic_key_o)) 
+        {
+            setStudioViMode(code->studio, VI_INSERT);
+            goHome(code);
+            newLine(code);
+            upLine(code);
+        }
+        else if (clear && keyWasPressed(code->studio, tic_key_space)) 
+        {
+            size_t col = code->cursor.column;
+            goEnd(code);
+            newLine(code);
+            code->cursor.column = col;
+            upLine(code);
+        }
+        else if (shift && keyWasPressed(code->studio, tic_key_space)) 
+        {
+            size_t col = code->cursor.column;
+            goHome(code);
+            newLine(code);
+            code->cursor.position += col;
+            updateColumn(code);
+        }
+
+        else if (clear && keyWasPressed(code->studio, tic_key_v))
+            setStudioViMode(code->studio, VI_SELECT);
+
+        else if (clear && keyWasPressed(code->studio, tic_key_slash)) 
+            setCodeMode(code, TEXT_FIND_MODE);
+
+        else if(clear && keyWasPressed(code->studio, tic_key_n))
+            findNextPopupText(code);
+
+        else if(shift && keyWasPressed(code->studio, tic_key_3))
+        {
+            char* word_start = leftPos(code, code->cursor.position, isalnum_);
+            char* word_end = rightPos(code, code->cursor.position, isalnum_);
+            size_t size = word_end - word_start;
+            if (size+1 < STUDIO_TEXT_BUFFER_WIDTH)
+            {
+                memcpy(code->popup.text, word_start, size);
+                code->popup.text[size] = 0;
+            }
+            findNextPopupText(code);
+        }
+        else if(shift && keyWasPressed(code->studio, tic_key_n))
+        {
+            if (*code->popup.text) 
+            {
+                char* pos = upStrStr(code->src, code->cursor.position, code->popup.text);
+                if (pos == NULL)
+                    pos = upStrStr(code->src, code->src+strlen(code->src), code->popup.text);
+                if (pos != NULL)
+                {
+                    code->cursor.position = pos;
+                    updateColumn(code);
+                }
+            }
+        }
+
+        else if (clear && keyWasPressed(code->studio, tic_key_leftbracket))
+        {
+            char* word_start = leftPos(code, code->cursor.position, isalnum_);
+            char* word_end = rightPos(code, code->cursor.position, isalnum_);
+            size_t size = word_end - word_start;
+
+            char* def = findFunctionDefinition(code, word_start, size);
+            if (def != NULL)
+            {
+                code->cursor.position = def;
+                updateColumn(code);
+            }
+
+        }
+
+        else if (clear && keyWasPressed(code->studio, tic_key_r))
+            setCodeMode(code, TEXT_REPLACE_MODE);
+
+        else if (clear && keyWasPressed(code->studio, tic_key_u)) undo(code);
+        else if (shift && keyWasPressed(code->studio, tic_key_u)) redo(code);
+
+        else if (clear && keyWasPressed(code->studio, tic_key_p)) 
+        {
+            if (clipboardHasNewline()) 
+            {
+                downLine(code);
+                goHome(code);
+                char* pos = code->cursor.position;
+                copyFromClipboard(code, false);
+                code->cursor.position = pos;
+            } else copyFromClipboard(code, false);
+        }
+
+        else if (shift && keyWasPressed(code->studio, tic_key_p)) 
+        {
+            if (clipboardHasNewline()) 
+            {
+                goHome(code);
+                char* pos = code->cursor.position;
+                copyFromClipboard(code, false);
+                code->cursor.position = pos;
+            } else copyFromClipboard(code, false);
+        }
+        else if (alt && keyWasPressed(code->studio, tic_key_f)) 
+            code->altFont = !code->altFont;
+
+        else if (alt && keyWasPressed(code->studio, tic_key_s)) 
+            code->shadowText = !code->shadowText;
+
+        else if (clear && keyWasPressed(code->studio, tic_key_1)) processViGoto(code, 1);
+        else if (clear && keyWasPressed(code->studio, tic_key_2)) processViGoto(code, 2);
+        else if (clear && keyWasPressed(code->studio, tic_key_3)) processViGoto(code, 3);
+        else if (clear && keyWasPressed(code->studio, tic_key_4)) processViGoto(code, 4);
+        else if (clear && keyWasPressed(code->studio, tic_key_5)) processViGoto(code, 5);
+        else if (clear && keyWasPressed(code->studio, tic_key_6)) processViGoto(code, 6);
+        else if (clear && keyWasPressed(code->studio, tic_key_7)) processViGoto(code, 7);
+        else if (clear && keyWasPressed(code->studio, tic_key_8)) processViGoto(code, 8);
+        else if (clear && keyWasPressed(code->studio, tic_key_9)) processViGoto(code, 9);
+
+        else if (shift && keyWasPressed(code->studio, tic_key_slash)) setCodeMode(code, TEXT_OUTLINE_MODE);
+
+        else if (shift && keyWasPressed(code->studio, tic_key_m)) setCodeMode(code, TEXT_BOOKMARK_MODE);
+        else if (clear && keyWasPressed(code->studio, tic_key_m)) toggleBookmark(code, getLineByPos(code, code->cursor.position));
+        else if (clear && keyWasPressed(code->studio, tic_key_comma)) 
+        {
+            if(!goPrevBookmark(code, getPrevLineByPos(code, code->cursor.position)))
+                goPrevBookmark(code, code->src + strlen(code->src));
+        }
+        else if (clear && keyWasPressed(code->studio, tic_key_period))
+        {
+            if(!goNextBookmark(code, getNextLineByPos(code, code->cursor.position)))
+                goNextBookmark(code, code->src);
+        }
+
+        else if (clear && keyWasPressed(code->studio, tic_key_z))
+            recenterScroll(code, true); //use emacs mode because it is nice
+
+        else if (clear && keyWasPressed(code->studio, tic_key_minus))
+            commentLine(code);
+
+        else if (clear && keyWasPressed(code->studio, tic_key_x))
+            deleteChar(code);
+
+        else if (shift && keyWasPressed(code->studio, tic_key_grave))
+        {
+            *code->cursor.position = toggleCase(*code->cursor.position);
+            history(code);
+        }
+
+        else if (clear && keyWasPressed(code->studio, tic_key_d))
+            cutToClipboard(code, false); //it seems like if there is not selection it will act on the current line by default, how nice
+        else if (clear && keyWasPressed(code->studio, tic_key_y))
+            copyToClipboard(code, false);
+
+        else if (shift && keyWasPressed(code->studio, tic_key_w))
+            saveProject(code->studio);
+        else if (shift && keyWasPressed(code->studio, tic_key_r))
+            runGame(code->studio);
+
+        else if (clear && keyWasPressed(code->studio, tic_key_c)) 
+        {
+            setStudioViMode(code->studio, VI_INSERT); 
+            processViChange(code);
+        }
+
+        else if (shift && keyWasPressed(code->studio, tic_key_c))
+        {
+            setStudioViMode(code->studio, VI_INSERT); 
+            char* start = code->cursor.position;
+            goEnd(code);
+            deleteCode(code, start, code->cursor.position);
+            code->cursor.position = start;
+        }
+
+        else if (shift && keyWasPressed(code->studio, tic_key_comma))
+            doTab(code, true, false);
+        else if (shift && keyWasPressed(code->studio, tic_key_period))
+            doTab(code, false, true);
+
+        else processed = false;
+
+        if (processed) updateEditor(code);
+    }
+    else if (mode == VI_SELECT) {
+        if (code->cursor.selection == NULL)
+            code->cursor.selection = code->cursor.position;
+
+        bool processed = true;
+
+        if (processViPosition(code, ctrl, alt, shift));
+
+        else if (keyWasPressed(code->studio, tic_key_escape))
+            setStudioViMode(code->studio, VI_NORMAL);
+
+        else if (clear && keyWasPressed(code->studio, tic_key_minus)) 
+        {
+            commentLine(code);
+            setStudioViMode(code->studio, VI_NORMAL);
+        }
+
+        else if (clear && keyWasPressed(code->studio, tic_key_y)) 
+        {
+            copyToClipboard(code, false);
+            setStudioViMode(code->studio, VI_NORMAL);
+        }
+        else if (clear && keyWasPressed(code->studio, tic_key_d)) 
+        {
+            cutToClipboard(code, false);
+            setStudioViMode(code->studio, VI_NORMAL);
+        }
+        else if (clear && keyWasPressed(code->studio, tic_key_p)) 
+        {
+            copyFromClipboard(code, false);
+            setStudioViMode(code->studio, VI_NORMAL);
+
+        } else if (clear && keyWasPressed(code->studio, tic_key_c))
+        {
+            setStudioViMode(code->studio, VI_INSERT);
+            if (code->cursor.selection != NULL)
+                deleteCode(code, code->cursor.selection, code->cursor.position);
+            code->cursor.position = code->cursor.selection;
+            code->cursor.selection = NULL;
+        }
+
+        else if (shift && keyWasPressed(code->studio, tic_key_comma))
+            doTab(code, true, false);
+        else if (shift && keyWasPressed(code->studio, tic_key_period))
+            doTab(code, false, true);
+
+        else if (clear && keyWasPressed(code->studio, tic_key_slash)) 
+        {
+            setStudioViMode(code->studio, VI_NORMAL);
+            setCodeMode(code, TEXT_FIND_MODE);
+        }
+
+        else if (clear && keyWasPressed(code->studio, tic_key_r))
+        {
+            setStudioViMode(code->studio, VI_NORMAL);
+            setCodeMode(code, TEXT_REPLACE_MODE);
+        }
+
+        else if (shift && keyWasPressed(code->studio, tic_key_grave))
+        {
+            for(char* i = code->cursor.selection ;i != code->cursor.position; i++)
+                *i = toggleCase(*i);
+            history(code);
+        }
+
+        else processed = false;
+
+        if (processed) updateEditor(code);
+
+    } 
+    else if (mode == VI_SEEK) 
+    {
+
+        if (keyWasPressed(code->studio, tic_key_escape))
+            setStudioViMode(code->studio, VI_NORMAL);
+
+        else if (clear || shift) {
+            char sym = getKeyboardText(code->studio);
+            if(sym)
+            {
+                seekForward(code, sym);
+                if (code->cursor.selection == NULL)
+                    setStudioViMode(code->studio, VI_NORMAL);
+                else
+                    setStudioViMode(code->studio, VI_SELECT);
+            }
+        }
+    }
+    else if (mode == VI_SEEK_BACK) 
+    {
+
+        if (keyWasPressed(code->studio, tic_key_escape))
+            setStudioViMode(code->studio, VI_NORMAL);
+
+        else if (clear || shift) {
+            char sym = getKeyboardText(code->studio);
+            if(sym)
+            {
+                seekBackward(code, sym);
+                if (code->cursor.selection == NULL)
+                    setStudioViMode(code->studio, VI_NORMAL);
+                else
+                    setStudioViMode(code->studio, VI_SELECT);
+            }
+        }
+    }
+}
+
 static void processKeyboard(Code* code)
 {
     tic_mem* tic = code->tic;
 
     if(tic->ram->input.keyboard.data == 0) return;
 
-    bool usedClipboard = true;
+    enum KeybindMode keymode = getConfig(code->studio)->options.keybindMode;
 
-    switch(getClipboardEvent(code->studio))
+    if (keymode == KEYBIND_VI) 
     {
-    case TIC_CLIPBOARD_CUT: cutToClipboard(code); break;
-    case TIC_CLIPBOARD_COPY: copyToClipboard(code); break;
-    case TIC_CLIPBOARD_PASTE: copyFromClipboard(code); break;
-    default: usedClipboard = false; break;
+        processViKeyboard(code);
+        return;
     }
 
-    if(usedClipboard)
+    const bool emacsMode = keymode == KEYBIND_EMACS; 
+
+    if (!emacsMode)
     {
-        updateEditor(code);
-        return;
+        bool usedClipboard = true;
+        switch(getClipboardEvent(code->studio))
+        {
+        case TIC_CLIPBOARD_CUT: cutToClipboard(code, false); break;
+        case TIC_CLIPBOARD_COPY: copyToClipboard(code, false); break;
+        case TIC_CLIPBOARD_PASTE: copyFromClipboard(code, false); break;
+        default: usedClipboard = false; break;
+        }
+
+        if(usedClipboard)
+        {
+            updateEditor(code);
+            return;
+        }
     }
 
     bool shift = tic_api_key(tic, tic_key_shift);
@@ -1596,9 +2880,10 @@ static void processKeyboard(Code* code)
         || keyWasPressed(code->studio, tic_key_pageup)
         || keyWasPressed(code->studio, tic_key_pagedown))
     {
+        changedSelection = true;
         if(!shift) code->cursor.selection = NULL;
         else if(code->cursor.selection == NULL) code->cursor.selection = code->cursor.position;
-        changedSelection = true;
+        else changedSelection = false;
     }
 
     bool usedKeybinding = true;
@@ -1626,36 +2911,68 @@ static void processKeyboard(Code* code)
                 goNextBookmark(code, code->src);
         }
     }
-    else usedKeybinding = false;
-
-
-    if(ctrl || alt)
+    else if(ctrl || alt)
     {
+        bool ctrlHandled = false;
         if(ctrl)
         {
+            ctrlHandled = true;
             if(keyWasPressed(code->studio, tic_key_tab))        doTab(code, shift, ctrl);
-            else if(keyWasPressed(code->studio, tic_key_a))     selectAll(code);
+            else if(keyWasPressed(code->studio, tic_key_a))     emacsMode ? startLine(code) : selectAll(code);
             else if(keyWasPressed(code->studio, tic_key_z))     undo(code);
-            else if(keyWasPressed(code->studio, tic_key_y))     redo(code);
-            else if(keyWasPressed(code->studio, tic_key_f))     setCodeMode(code, TEXT_FIND_MODE);
-            else if(keyWasPressed(code->studio, tic_key_g))     setCodeMode(code, TEXT_GOTO_MODE);
-            else if(keyWasPressed(code->studio, tic_key_b))     setCodeMode(code, TEXT_BOOKMARK_MODE);
+            else if(keyWasPressed(code->studio, tic_key_y))     emacsMode ? copyFromClipboard(code, true) : redo(code);
+            else if(keyWasPressed(code->studio, tic_key_w))     emacsMode ? cutToClipboard(code, true) : noop;
+            else if(keyWasPressed(code->studio, tic_key_f))     emacsMode ? rightColumn(code) : setCodeMode(code, TEXT_FIND_MODE);
+            else if(keyWasPressed(code->studio, tic_key_g))     emacsMode ? killSelection(code) : setCodeMode(code, TEXT_GOTO_MODE);
+            else if(keyWasPressed(code->studio, tic_key_b))     emacsMode ? leftColumn(code) : setCodeMode(code, TEXT_BOOKMARK_MODE);
             else if(keyWasPressed(code->studio, tic_key_o))     setCodeMode(code, TEXT_OUTLINE_MODE);
             else if(keyWasPressed(code->studio, tic_key_n))     downLine(code);
             else if(keyWasPressed(code->studio, tic_key_p))     upLine(code);
             else if(keyWasPressed(code->studio, tic_key_e))     endLine(code);
-            else if(keyWasPressed(code->studio, tic_key_d))     dupLine(code);
-            else if(keyWasPressed(code->studio, tic_key_slash)) commentLine(code);
+            else if(keyWasPressed(code->studio, tic_key_d))     emacsMode ? deleteChar(code) : dupLine(code);
+            else if(keyWasPressed(code->studio, tic_key_j))     newLine(code);
+            else if(keyWasPressed(code->studio, tic_key_slash)) emacsMode ? undo(code) : commentLine(code);
             else if(keyWasPressed(code->studio, tic_key_home))  goCodeHome(code);
             else if(keyWasPressed(code->studio, tic_key_end))   goCodeEnd(code);
-            else usedKeybinding = false;
+            else if(keyWasPressed(code->studio, tic_key_up))    extirpSExp(code);
+            else if(keyWasPressed(code->studio, tic_key_down))  sexpify(code);
+            else if(keyWasPressed(code->studio, tic_key_k))     deleteLine(code);
+            else if(keyWasPressed(code->studio, tic_key_space)) emacsMode ? toggleMark(code) : noop;
+            else if(keyWasPressed(code->studio, tic_key_l))     recenterScroll(code, emacsMode);
+            else if(keyWasPressed(code->studio, tic_key_v))     emacsMode ? pageDown(code) : noop;
+            else ctrlHandled = false;
         }
 
+        bool altHandled = false;
+        if (alt)
+        {
+            char sym = getKeyboardText(code->studio);
+            altHandled = true;
+            if(keyWasPressed(code->studio, tic_key_p))          pageUp(code);
+            else if(keyWasPressed(code->studio, tic_key_n))     pageDown(code);
+            else if(keyWasPressed(code->studio, tic_key_v))     emacsMode ? pageUp(code) : noop;
+            else if(keyWasPressed(code->studio, tic_key_b))     leftWord(code);
+            else if(keyWasPressed(code->studio, tic_key_f))     rightWord(code);
+            else if(keyWasPressed(code->studio, tic_key_k))     emacsMode ? dupLine(code) : noop;
+            else if(keyWasPressed(code->studio, tic_key_d))     emacsMode ? deleteWord(code) : noop;
+            else if(keyWasPressed(code->studio, tic_key_r))     emacsMode ? extirpSExp(code) : noop;
+            else if(keyWasPressed(code->studio, tic_key_w))     emacsMode ? copyToClipboard(code, true) : noop;
+            else if(keyWasPressed(code->studio, tic_key_g))     emacsMode ? setCodeMode(code, TEXT_GOTO_MODE) : noop;
+            else if(keyWasPressed(code->studio, tic_key_s))     emacsMode ? setCodeMode(code, TEXT_FIND_MODE) : noop;
+            else if(shift && sym && sym == '(')                 emacsMode? sexpify(code) : noop;
+            else if(keyWasPressed(code->studio, tic_key_slash)) emacsMode ? redo(code) : noop;
+            else if(keyWasPressed(code->studio, tic_key_semicolon)) emacsMode ? commentLine(code) : noop;
+            else altHandled = false;
+        }
+
+        bool ctrlAltHandled = true;
         if(keyWasPressed(code->studio, tic_key_left))           leftWord(code);
         else if(keyWasPressed(code->studio, tic_key_right))     rightWord(code);
         else if(keyWasPressed(code->studio, tic_key_delete))    deleteWord(code);
         else if(keyWasPressed(code->studio, tic_key_backspace)) backspaceWord(code);
-        else usedKeybinding = false;
+        else ctrlAltHandled = false;
+
+        usedKeybinding = (ctrlHandled || altHandled || ctrlAltHandled);
     }
     else
     {
@@ -1684,6 +3001,16 @@ static void processKeyboard(Code* code)
     }
 
     if(changedSelection || usedKeybinding) updateEditor(code);
+    else
+    {
+        char sym = getKeyboardText(code->studio);
+        if(sym)
+        {
+            inputSymbol(code, sym);
+            updateEditor(code);
+        }
+    }
+
 }
 
 static void processMouse(Code* code)
@@ -1796,18 +3123,6 @@ static void textEditTick(Code* code)
     }
 
     processKeyboard(code);
-
-    if(!tic_api_key(tic, tic_key_ctrl) && !tic_api_key(tic, tic_key_alt))
-    {
-        char sym = getKeyboardText(code->studio);
-
-        if(sym)
-        {
-            inputSymbol(code, sym);
-            updateEditor(code);
-        }
-    }
-
     processMouse(code);
 
     tic_api_cls(code->tic, getConfig(code->studio)->theme.code.BG);
@@ -1848,36 +3163,15 @@ static void updateFindCode(Code* code, char* pos)
         code->cursor.selection = pos + strlen(code->popup.text);
 
         centerScroll(code);
+        updateColumn(code);
         updateEditor(code);
     }
 }
 
-static char* upStrStr(const char* start, const char* from, const char* substr)
-{
-    const char* ptr = from-1;
-    size_t len = strlen(substr);
-
-    if(len > 0)
-    {
-        while(ptr >= start)
-        {
-            if(memcmp(ptr, substr, len) == 0)
-                return (char*)ptr;
-
-            ptr--;
-        }
-    }
-
-    return NULL;
-}
-
-static char* downStrStr(const char* start, const char* from, const char* substr)
-{
-    return strstr(from, substr);
-}
-
 static void textFindTick(Code* code)
 {
+
+
     if(keyWasPressed(code->studio, tic_key_return)) setCodeMode(code, TEXT_EDIT_MODE);
     else if(keyWasPressed(code->studio, tic_key_up)
         || keyWasPressed(code->studio, tic_key_down)
@@ -1903,7 +3197,6 @@ static void textFindTick(Code* code)
     }
 
     char sym = getKeyboardText(code->studio);
-
     if(sym)
     {
         if(strlen(code->popup.text) + 1 < sizeof code->popup.text)
@@ -1918,6 +3211,77 @@ static void textFindTick(Code* code)
 
     drawCode(code, false);
     drawPopupBar(code, "FIND:");
+    drawStatus(code);
+}
+
+static void textReplaceTick(Code* code)
+{
+
+    if(keyWasPressed(code->studio, tic_key_return)) {
+        if (*code->popup.text && code->popup.offset == NULL) //still in "find" mode
+        {
+            code->popup.offset = code->popup.text + strlen(code->popup.text);
+            strcat(code->popup.text, " WITH:");
+        }
+        else if(*code->popup.text)
+        {
+            *code->popup.offset = 0;
+            code->popup.offset += strlen(" WITH:");
+            //execute the replace 
+
+            //if we have a selection only replace within the selection
+            char* start = code->src;
+            if (code->cursor.selection != NULL)
+                start = code->cursor.selection;
+
+            char* pos = downStrStr(start, start, code->popup.text);
+            size_t src_length = strlen(code->src);
+            while(pos != NULL)
+            {
+                deleteCode(code, pos, pos+strlen(code->popup.text));
+                insertCode(code, pos, code->popup.offset);
+                pos += strlen(code->popup.offset);
+                if (pos - code->src > src_length) pos = code->src + src_length;
+
+                pos = downStrStr(code->src, pos, code->popup.text);
+                if (code->cursor.selection != NULL && pos > code->cursor.position)
+                    break;
+            } 
+            history(code);
+            updateEditor(code);
+            parseSyntaxColor(code);
+            setCodeMode(code, TEXT_EDIT_MODE);
+        }
+    }
+
+    else if(keyWasPressed(code->studio, tic_key_backspace))
+    {
+        if(*code->popup.text && code->popup.offset == NULL)
+        {
+            code->popup.text[strlen(code->popup.text)-1] = '\0';
+        } 
+        else if (*code->popup.text) 
+        {
+            if (strlen(code->popup.offset) - strlen(" WITH:") > 0)
+                code->popup.text[strlen(code->popup.text)-1] = '\0';
+        }
+
+    }
+
+    char sym = getKeyboardText(code->studio);
+    if(sym)
+    {
+        if(strlen(code->popup.text) + 1 < sizeof code->popup.text)
+        {
+            char str[] = {sym , 0};
+            strcat(code->popup.text, str);
+        }
+    }
+
+    tic_api_cls(code->tic, getConfig(code->studio)->theme.code.BG);
+
+    drawCode(code, false);
+    drawPopupBar(code, "REPL:");
     drawStatus(code);
 }
 
@@ -2279,6 +3643,7 @@ static void tick(Code* code)
     case TEXT_DRAG_CODE:    textDragTick(code);     break;
     case TEXT_EDIT_MODE:    textEditTick(code);     break;
     case TEXT_FIND_MODE:    textFindTick(code);     break;
+    case TEXT_REPLACE_MODE: textReplaceTick(code);   break;
     case TEXT_GOTO_MODE:    textGoToTick(code);     break;
     case TEXT_BOOKMARK_MODE:textBookmarkTick(code); break;
     case TEXT_OUTLINE_MODE: textOutlineTick(code);  break;
@@ -2297,7 +3662,7 @@ static void escape(Code* code)
         break;
     case TEXT_DRAG_CODE:
         setCodeMode(code, TEXT_EDIT_MODE);
-    break;
+        break;
     default:
         code->anim.movie = resetMovie(&code->anim.hide);
 
@@ -2313,9 +3678,9 @@ static void onStudioEvent(Code* code, StudioEvent event)
 {
     switch(event)
     {
-    case TIC_TOOLBAR_CUT: cutToClipboard(code); break;
-    case TIC_TOOLBAR_COPY: copyToClipboard(code); break;
-    case TIC_TOOLBAR_PASTE: copyFromClipboard(code); break;
+    case TIC_TOOLBAR_CUT: cutToClipboard(code, false); break;
+    case TIC_TOOLBAR_COPY: copyToClipboard(code, false); break;
+    case TIC_TOOLBAR_PASTE: copyFromClipboard(code, false); break;
     case TIC_TOOLBAR_UNDO: undo(code); break;
     case TIC_TOOLBAR_REDO: redo(code); break;
     }

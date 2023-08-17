@@ -80,6 +80,16 @@ void tic_sys_clipboard_free(const char* text)
     free((void*)text);
 }
 
+u64 tic_sys_counter_get()
+{
+    return stm_now();
+}
+
+u64 tic_sys_freq_get()
+{
+    return 1000000000;
+}
+
 void tic_sys_fullscreen_set(bool value)
 {
 }
@@ -281,22 +291,22 @@ static void handleKeydown(sapp_keycode keycode, bool down)
         [SAPP_KEYCODE_F23] = tic_key_unknown,
         [SAPP_KEYCODE_F24] = tic_key_unknown,
         [SAPP_KEYCODE_F25] = tic_key_unknown,
-        [SAPP_KEYCODE_KP_0] = tic_key_0,
-        [SAPP_KEYCODE_KP_1] = tic_key_1,
-        [SAPP_KEYCODE_KP_2] = tic_key_2,
-        [SAPP_KEYCODE_KP_3] = tic_key_3,
-        [SAPP_KEYCODE_KP_4] = tic_key_4,
-        [SAPP_KEYCODE_KP_5] = tic_key_5,
-        [SAPP_KEYCODE_KP_6] = tic_key_6,
-        [SAPP_KEYCODE_KP_7] = tic_key_7,
-        [SAPP_KEYCODE_KP_8] = tic_key_8,
-        [SAPP_KEYCODE_KP_9] = tic_key_9,
-        [SAPP_KEYCODE_KP_DECIMAL] = tic_key_unknown,
-        [SAPP_KEYCODE_KP_DIVIDE] = tic_key_unknown,
-        [SAPP_KEYCODE_KP_MULTIPLY] = tic_key_unknown,
-        [SAPP_KEYCODE_KP_SUBTRACT] = tic_key_unknown,
-        [SAPP_KEYCODE_KP_ADD] = tic_key_unknown,
-        [SAPP_KEYCODE_KP_ENTER] = tic_key_return,
+        [SAPP_KEYCODE_KP_0] = tic_key_numpad0,
+        [SAPP_KEYCODE_KP_1] = tic_key_numpad1,
+        [SAPP_KEYCODE_KP_2] = tic_key_numpad2,
+        [SAPP_KEYCODE_KP_3] = tic_key_numpad3,
+        [SAPP_KEYCODE_KP_4] = tic_key_numpad4,
+        [SAPP_KEYCODE_KP_5] = tic_key_numpad5,
+        [SAPP_KEYCODE_KP_6] = tic_key_numpad6,
+        [SAPP_KEYCODE_KP_7] = tic_key_numpad7,
+        [SAPP_KEYCODE_KP_8] = tic_key_numpad8,
+        [SAPP_KEYCODE_KP_9] = tic_key_numpad9,
+        [SAPP_KEYCODE_KP_DECIMAL] = tic_key_numpadperiod,
+        [SAPP_KEYCODE_KP_DIVIDE] = tic_key_numpaddivide,
+        [SAPP_KEYCODE_KP_MULTIPLY] = tic_key_numpadmultiply,
+        [SAPP_KEYCODE_KP_SUBTRACT] = tic_key_numpadminus,
+        [SAPP_KEYCODE_KP_ADD] = tic_key_numpadplus,
+        [SAPP_KEYCODE_KP_ENTER] = tic_key_numpadenter,
         [SAPP_KEYCODE_KP_EQUAL] = tic_key_equals,
         [SAPP_KEYCODE_LEFT_SHIFT] = tic_key_shift,
         [SAPP_KEYCODE_LEFT_CONTROL] = tic_key_ctrl,
@@ -404,7 +414,7 @@ sapp_desc sokol_main(s32 argc, char* argv[])
     platform.audio.desc.num_channels = TIC80_SAMPLE_CHANNELS;
     saudio_setup(&platform.audio.desc);
 
-    platform.studio = studio_create(argc, argv, saudio_sample_rate(), TIC80_PIXEL_COLOR_RGBA8888, "./");
+    platform.studio = studio_create(argc, argv, saudio_sample_rate(), TIC80_PIXEL_COLOR_RGBA8888, "./", INT32_MAX);
 
     if(studio_config(platform.studio)->cli)
     {

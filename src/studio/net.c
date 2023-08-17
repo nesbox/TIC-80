@@ -320,8 +320,10 @@ static void n3ds_net_get_thread(net_ctx *ctx) {
     free(ctx);
 }
 
-static void n3ds_net_apply_url(net_ctx *ctx, const char *url) {
-    strncpy(ctx->url, ctx->net->host, URL_SIZE - 1);
+static void n3ds_net_apply_url(net_ctx *ctx, const char *url) 
+{
+    strncpy(ctx->url, "http://", URL_SIZE - 1);
+    strncat(ctx->url, ctx->net->host, URL_SIZE - 1);
     strncat(ctx->url, url, URL_SIZE - 1);
 }
 
@@ -331,6 +333,14 @@ tic_net* tic_net_create(const char* host)
 
     n3ds_net_init(net);
     net->host = host;
+
+    static const char Http[] = "http://";
+    if(strstr(host, Http) == host)
+        net->host += STRLEN(Http);
+
+    static const char Https[] = "https://";
+    if(strstr(host, Https) == host)
+        net->host += STRLEN(Https);
 
     return net;
 }
@@ -367,244 +377,136 @@ void tic_net_end(tic_net *net)
     LightLock_Unlock(&net->tick_lock);
 }
 
-#elif defined(BAREMETALPI)
+#elif defined(USE_NAETT)
+
+#include <naett.h>
+
+typedef struct
+{
+    naettReq* req;
+    naettRes* res;
+    char url[URL_SIZE];
+
+    net_get_callback callback;
+    void* calldata;
+} HttpGet;
+
+struct tic_net
+{
+    char host[URL_SIZE];
+
+    HttpGet** requests;
+    s32 count;
+};
+
+#if defined(__ANDROID__)
+#include <jni.h>
+JNIEnv *Android_JNI_GetEnv();
+#endif
+
+tic_net* tic_net_create(const char* host)
+{
+#if defined(__ANDROID__)
+    JNIEnv *env = Android_JNI_GetEnv();
+    JavaVM *vm = NULL;
+    (*env)->GetJavaVM(env, &vm);
+
+    naettInit(vm);
+#else
+    naettInit(NULL);
+#endif
+
+    tic_net* net = NEW(tic_net);
+    memset(net, 0, sizeof(tic_net));
+
+    strcpy(net->host, host);
+
+    return net;
+}
+
+void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void* calldata)
+{
+    HttpGet* get = NEW(HttpGet);
+    memset(get, 0, sizeof *get);
+
+    sprintf(get->url, "%s%s", net->host, url);
+
+    get->req = naettRequest(get->url, naettMethod("GET"), naettHeader("accept", "*/*"));
+    get->res = naettMake(get->req);
+    get->callback = callback;
+    get->calldata = calldata;
+
+    net->requests = realloc(net->requests, sizeof *net->requests * ++net->count);
+    net->requests[net->count - 1] = get;
+}
+
+void tic_net_close(tic_net* net) 
+{
+    for(s32 i = 0; i < net->count; i++)
+    {
+        HttpGet *it = net->requests[i];
+
+        if(it)
+        {
+            naettClose(it->res);
+            naettFree(it->req);
+            free(it);            
+        }
+    }
+
+    if(net->requests)
+        free(net->requests);
+}
+
+void tic_net_start(tic_net *net) {}
+
+void tic_net_end(tic_net *net)
+{
+    if(!net->requests)
+        return;
+
+    for(s32 i = 0; i < net->count; i++)
+    {
+        const HttpGet *it = net->requests[i];
+
+        if(it && naettComplete(it->res))
+        {
+            s32 status = naettGetStatus(it->res);
+
+            net_get_data getData = 
+            {
+                .calldata = it->calldata,
+                .url = it->url,
+            };
+
+            if(status == 200)
+            {
+                getData.type = net_get_done;
+                getData.done.data = (u8*)naettGetBody(it->res, &getData.done.size);
+            }
+            else
+            {
+                getData.type = net_get_error;
+                getData.error.code = status;
+            }
+
+            it->callback(&getData);
+
+            naettClose(it->res);
+            naettFree(it->req);
+
+            free(net->requests[i]);
+            net->requests[i] = NULL;
+        }
+    }
+}
+
+#else
 
 tic_net* tic_net_create(const char* host) {return NULL;}
 void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void* calldata) {}
 void tic_net_close(tic_net* net) {}
 void tic_net_start(tic_net *net) {}
 void tic_net_end(tic_net *net) {}
-
-#elif defined(USE_LIBUV)
-
-#include "defines.h"
-
-#include <uv.h>
-#include <http_parser.h>
-
-typedef struct
-{
-    const char* host;
-    const char* path;
-
-    net_get_callback callback;
-    void* calldata;
-
-    uv_tcp_t tcp;
-    http_parser parser;
-
-    struct
-    {
-        u8* data;
-        s32 size;
-        s32 total;
-    } content;
-
-} NetRequest;
-
-struct tic_net
-{
-    const char* host;
-};
-
-static s32 onBody(http_parser* parser, const char *at, size_t length)
-{
-    NetRequest* req = parser->data;
-
-    req->content.data = realloc(req->content.data, req->content.size + length);
-    memcpy(req->content.data + req->content.size, at, length);
-
-    req->content.size += length;
-
-    req->callback(&(net_get_data) 
-    {
-        .calldata = req->calldata, 
-        .type = net_get_progress, 
-        .progress = {req->content.size, req->content.total}, 
-        .url = req->path
-    });
-
-    return 0;
-}
-
-static void onClose(uv_handle_t* handle)
-{
-    NetRequest* req = handle->data;
-    if (req){
-        FREE(req->content.data);
-        free((void*)req->path);
-        free(req);
-    }
-}
-
-static void freeRequest(NetRequest* req)
-{
-    uv_close((uv_handle_t*)&req->tcp, onClose);
-}
-
-static s32 onMessageComplete(http_parser* parser)
-{
-    NetRequest* req = parser->data;
-
-    if (parser->status_code == HTTP_STATUS_OK)
-    {
-        req->callback(&(net_get_data)
-        {
-            .calldata = req->calldata,
-            .type = net_get_done,
-            .done = { .data = req->content.data, .size = req->content.size },
-            .url = req->path
-        });
-    }
-
-    freeRequest(req);
-
-    return 0;
-}
-
-static s32 onHeadersComplete(http_parser* parser)
-{
-    NetRequest* req = parser->data;
-
-    bool hasBody = parser->flags & F_CHUNKED || (parser->content_length > 0 && parser->content_length != ULLONG_MAX);
-
-    ZEROMEM(req->content);
-    req->content.total = parser->content_length;
-
-    // !TODO: handle HTTP_STATUS_MOVED_PERMANENTLY here
-    if (!hasBody || parser->status_code != HTTP_STATUS_OK)
-        return 1;
-
-    return 0;
-}
-
-static s32 onStatus(http_parser* parser, const char* at, size_t length)
-{
-    return parser->status_code != HTTP_STATUS_OK;
-}
-
-static void onError(NetRequest* req, s32 code)
-{
-    req->callback(&(net_get_data)
-    {
-        .calldata = req->calldata,
-        .type = net_get_error,
-        .error = { .code = code }
-    });
-
-    freeRequest(req);
-}
-
-static void allocBuffer(uv_handle_t *handle, size_t size, uv_buf_t *buf)
-{
-    buf->base = malloc(size);
-    buf->len = size;
-}
-
-static void onResponse(uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf) 
-{
-    NetRequest* req = stream->data;
-
-    if(nread > 0)
-    {
-        static const http_parser_settings ParserSettings = 
-        {
-            .on_status = onStatus,
-            .on_body = onBody,
-            .on_message_complete = onMessageComplete,
-            .on_headers_complete = onHeadersComplete,
-        };
-
-        s32 parsed = http_parser_execute(&req->parser, &ParserSettings, buf->base, nread);
-
-        if(parsed != nread)
-            onError(req, req->parser.status_code);
-
-        free(buf->base);
-    }
-    else onError(req, 0);
-}
-
-static void onHeaderSent(uv_write_t *write, s32 status)
-{
-    NetRequest* req = write->data;
-    http_parser_init(&req->parser, HTTP_RESPONSE);
-    req->parser.data = req;
-
-    uv_stream_t* handle = write->handle;
-    free(write);
-
-    handle->data = req;
-    uv_read_start(handle, allocBuffer, onResponse);
-}
-
-static void onConnect(uv_connect_t *con, s32 status)
-{
-    NetRequest* req = con->data;
-
-    char httpReq[2048];
-    snprintf(httpReq, sizeof httpReq, "GET %s HTTP/1.1\nHost: %s\n\n", req->path, req->host);
-
-    uv_buf_t http = uv_buf_init(httpReq, strlen(httpReq));
-    uv_write(MOVE((uv_write_t){.data = req}), con->handle, &http, 1, onHeaderSent);
-
-    free(con);
-}
-
-static void onResolved(uv_getaddrinfo_t *resolver, s32 status, struct addrinfo *res)
-{
-    NetRequest* req = resolver->data;
-
-    if (res)
-    {
-        uv_tcp_connect(MOVE((uv_connect_t){.data = req}), &req->tcp, res->ai_addr, onConnect);
-        uv_freeaddrinfo(res);
-    }
-    else onError(req, 0);
-
-    free(resolver);
-}
-
-void tic_net_get(tic_net* net, const char* path, net_get_callback callback, void* calldata)
-{
-    uv_loop_t* loop = uv_default_loop();
-
-    NetRequest* req = MOVE((NetRequest)
-    {
-        .host = net->host,
-        .callback = callback,
-        .calldata = calldata,
-        .path = strdup(path),
-    });
-
-    uv_tcp_init(loop, &req->tcp);
-    uv_getaddrinfo(loop, MOVE((uv_getaddrinfo_t){.data = req}), onResolved, net->host, "80", NULL);
-}
-
-void tic_net_start(tic_net *net) {}
-
-void tic_net_end(tic_net *net) 
-{
-    uv_run(uv_default_loop(), UV_RUN_NOWAIT);
-}
-
-tic_net* tic_net_create(const char* host)
-{
-    tic_net* net = NEW(tic_net);
-    memset(net, 0, sizeof(tic_net));
-
-    net->host = host;
-
-    static const char Http[] = "http://";
-    if(strstr(host, Http) == host)
-        net->host += sizeof Http - 1;
-
-    return net;
-}
-
-void tic_net_close(tic_net* net)
-{
-    free(net);
-}
 
 #endif

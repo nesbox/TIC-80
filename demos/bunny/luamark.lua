@@ -1,7 +1,7 @@
 -- title: Bunnymark in Lua
 -- author: Rabia Alhaffar
 -- desc: Benchmarking tool to see how many bunnies can fly around the screen, using Lua.
--- license: MIT License 
+-- license: MIT License
 -- input: gamepad
 -- script: lua
 -- version: 1.1.0
@@ -15,20 +15,24 @@ function randomFloat(lower, greater)
 	return (math.random() * (greater - lower)) + lower;
 end
 
-Bunny = {width=0,height=0,x=0,y=0,speedX=0,speedY=0,sprite=0}
+Bunny = {}
 
-function Bunny:new(o)
-	o = o or {}
-	setmetatable(o, self)
+function Bunny:new()
+  local width = 26
+  local height = 32
+
+  newBunny = {
+    width=width,
+    height=height,
+    x=math.random(0, screenWidth - width),
+    y=math.random(0, screenHeight - height),
+	  speedX = randomFloat(-100, 100) / 60,
+	  speedY = randomFloat(-100, 100) / 60,
+    sprite = 1
+  }
+
 	self.__index = self
-	self.width = 26
-	self.height = 32
-	self.x = math.random(0, screenWidth - self.width)
-	self.y = math.random(0, screenHeight - self.height)
-	self.speedX = randomFloat(-100, 100) / 60
-	self.speedY = randomFloat(-100, 100) / 60
-	self.sprite = 1
-	return o
+	return setmetatable(newBunny, self)
 end
 
 function Bunny:draw()

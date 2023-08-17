@@ -11,7 +11,7 @@ jobs:
     runs-on: windows-2019
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -23,18 +23,19 @@ jobs:
       - name: Build
         shell: cmd
         run: |
+          COPY /Y build\janet\janetconf.h vendor\janet\src\conf\janetconf.h
           cd build
           cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_STUB=On ..
           cmake --build . --config %BUILD_TYPE% --parallel
 
       - name: Deploy
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-winxp"
           path: build/bin/tic80.exe
 
       - name: Deploy stubs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-winxp-stub"
           path: build/bin/tic80*.exe
@@ -44,7 +45,7 @@ jobs:
     runs-on: windows-2019
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -56,12 +57,13 @@ jobs:
       - name: Build
         shell: cmd
         run: |
+          COPY /Y build\janet\janetconf.h vendor\janet\src\conf\janetconf.h
           cd build
           cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_PRO=On ..
           cmake --build . --config %BUILD_TYPE% --parallel
 
       - name: Deploy
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-winxp-pro"
           path: build/bin/tic80.exe
@@ -71,7 +73,7 @@ jobs:
     runs-on: windows-2019
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -88,13 +90,13 @@ jobs:
           cmake --build . --config %BUILD_TYPE% --parallel
 
       - name: Deploy
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-windows"
           path: build/bin/tic80.exe
 
       - name: Deploy stubs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-windows-stub"
           path: build/bin/tic80*.exe
@@ -104,7 +106,7 @@ jobs:
     runs-on: windows-2019
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -121,7 +123,7 @@ jobs:
           cmake --build . --config %BUILD_TYPE% --parallel
 
       - name: Deploy
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-windows-pro"
           path: build/bin/tic80.exe
@@ -131,7 +133,7 @@ jobs:
     runs-on: windows-2019
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -149,17 +151,44 @@ jobs:
           cp bin/tic80-sokol.exe bin/tic80.exe
 
       - name: Deploy
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-windows-sokol"
           path: build/bin/tic80.exe
 
-  # === Ubuntu PRO ===
-  linux-pro:
-    runs-on: ubuntu-18.04
+  # === Windows MinGW-64 ===
+  windows-mingw:
+    runs-on: windows-2019
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 2.6
+
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Build
+        shell: bash
+        run: |
+          cd build
+          cmake -G "MSYS Makefiles" -DCMAKE_C_COMPILER=C:/msys64/mingw64/bin/gcc.exe -DCMAKE_CXX_COMPILER=C:/msys64/mingw64/bin/c++.exe -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=%BUILD_TYPE% ..
+          cmake --build . --config %BUILD_TYPE% --parallel
+
+      - name: Deploy
+        uses: actions/upload-artifact@v3
+        with:
+          name: "tic80-mingw"
+          path: build/bin/tic80.exe
+
+  # === Ubuntu PRO ===
+  linux-pro:
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -171,7 +200,7 @@ jobs:
       - name: Install
         run: |
           sudo apt-get update
-          sudo apt-get install libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev -y
+          sudo apt-get install libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev -y
 
       - name: Build
         run: |
@@ -181,23 +210,23 @@ jobs:
           cpack
 
       - name: Deploy DEB
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-linux-deb-pro"
           path: build/tic80.deb
 
       - name: Deploy ZIP
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-linux-pro"
           path: build/bin/tic80
 
   # === Ubuntu ===
   linux:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -209,29 +238,29 @@ jobs:
       - name: Install
         run: |
           sudo apt-get update
-          sudo apt-get install libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev -y
+          sudo apt-get install libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev -y
 
       - name: Build
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE DBUILD_SDLGPU=On -DBUILD_STUB=On ..
+          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SDLGPU=On -DBUILD_STUB=On ..
           cmake --build . --config $BUILD_TYPE --parallel
           cpack
 
       - name: Deploy DEB
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-linux-deb"
           path: build/tic80.deb
 
       - name: Deploy ZIP
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-linux"
           path: build/bin/tic80
 
       - name: Deploy stubs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-linux-stub"
           path: build/bin/tic80*
@@ -242,7 +271,7 @@ jobs:
     container: nesbox/rpi-tic80:latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -250,7 +279,7 @@ jobs:
       - name: Install Host toolchain
         run: |
           apt-get update
-          apt-get install --assume-yes build-essential ruby-full
+          apt-get install --assume-yes build-essential ruby-full gcc-8-arm-linux-gnueabihf g++-8-arm-linux-gnueabihf
 
       - name: Build
         run: |
@@ -260,19 +289,19 @@ jobs:
           cpack
 
       - name: Deploy DEB
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-rpi-dep"
           path: build/tic80.deb
 
       - name: Deploy
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-rpi"
           path: build/bin/tic80
 
       - name: Deploy stubs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-rpi-stub"
           path: build/bin/tic80*
@@ -283,7 +312,7 @@ jobs:
     container: nesbox/rpi-tic80:latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -291,7 +320,8 @@ jobs:
       - name: Install Host toolchain
         run: |
           apt-get update
-          apt-get install --assume-yes build-essential ruby-full
+          apt-get install --assume-yes build-essential ruby-full gcc-8-arm-linux-gnueabihf g++-8-arm-linux-gnueabihf
+
 
       - name: Build
         run: |
@@ -301,13 +331,13 @@ jobs:
           cpack
 
       - name: Deploy DEB
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-rpi-deb-pro"
           path: build/tic80.deb
 
       - name: Deploy
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-rpi-pro"
           path: build/bin/tic80
@@ -318,7 +348,7 @@ jobs:
     container: nesbox/baremetalpi-tic80:latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -330,7 +360,11 @@ jobs:
 
       - name: Prebuild
         run: |
-          cd vendor/circle-stdlib
+          cd vendor
+          git clone --recursive https://github.com/smuehlst/circle-stdlib
+          cd circle-stdlib
+          git checkout fdb3c4a948421d47fddab8042a92f980cba43915
+          git submodule update --recursive
           ./configure -r 3
           make -j$(nproc)
           cd libs/circle/addon/vc4/sound/
@@ -357,7 +391,7 @@ jobs:
           cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
 
       - name: Deploy
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-rpi-baremetal"
           path: |
@@ -374,7 +408,7 @@ jobs:
     container: nesbox/baremetalpi-tic80:latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -386,7 +420,11 @@ jobs:
 
       - name: Prebuild
         run: |
-          cd vendor/circle-stdlib
+          cd vendor
+          git clone --recursive https://github.com/smuehlst/circle-stdlib
+          cd circle-stdlib
+          git checkout fdb3c4a948421d47fddab8042a92f980cba43915
+          git submodule update --recursive
           ./configure -r 4
           make -j$(nproc)
           cd libs/circle/addon/vc4/sound/
@@ -413,7 +451,7 @@ jobs:
           cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
 
       - name: Deploy
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-rpi4-baremetal"
           path: |
@@ -433,7 +471,7 @@ jobs:
     container: nesbox/devkitpro-tic80:latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -450,17 +488,17 @@ jobs:
           make -j$(nproc)
 
       - name: Deploy
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-nintendo-3ds"
           path: build/bin/tic80.3dsx
 
-  # === MacOS 10.15 ===
+  # === MacOS 12 ===
   macos:
-    runs-on: macos-10.15
+    runs-on: macos-12
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -477,29 +515,29 @@ jobs:
           cp *.dmg tic80.dmg
 
       - name: Deploy DMG
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-macos-dmg"
           path: build/tic80.dmg
 
       - name: Deploy
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-macos"
           path: build/bin/tic80
 
       - name: Deploy stubs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-macos-stub"
           path: build/bin/tic80*
 
-  # === MacOS 10.15 PRO ===
+  # === MacOS 12 PRO ===
   macos-pro:
-    runs-on: macos-10.15
+    runs-on: macos-12
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -516,13 +554,13 @@ jobs:
           cp *.dmg tic80.dmg
 
       - name: Deploy DMG
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-macos-dmg-pro"
           path: build/tic80.dmg
 
       - name: Deploy
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-macos-pro"
           path: build/bin/tic80
@@ -530,22 +568,39 @@ jobs:
   # === Android ===
   android:
     runs-on: ubuntu-latest
-    container: nesbox/android-tic80:latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
 
+      - uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r21e
+          add-to-path: false
+          local-cache: true
+
+      - name: set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: gradle
+
       - name: Build
         run: |
           cd build/android
+          chmod +x gradlew
           ./gradlew assembleRelease
           cp app/build/outputs/apk/release/app-release.apk tic80.apk
 
+        env:
+          ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
+
       - name: Deploy
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-android"
           path: build/android/tic80.apk
@@ -555,9 +610,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: mymindstorm/setup-emsdk@v7
+      - uses: mymindstorm/setup-emsdk@v11
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -571,21 +626,29 @@ jobs:
           cd build
           emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_STUB=On ..
           cmake --build . --config $BUILD_TYPE --parallel
-          cp html/export.html bin/index.html
+          mkdir bin/html bin/html-export
+          cp html/export.html bin/html-export/index.html
+          cp bin/tic80*.js bin/html-export/
+          cp bin/tic80*.wasm bin/html-export/
+          cp html/index.html bin/html/index.html
+          cp html/export.html bin/html/export.html
+          cp bin/tic80.js bin/html/tic80.js
+          cp bin/tic80.wasm bin/html/tic80.wasm
           cp bin/tic80.js webapp/tic80.js
           cp bin/tic80.wasm webapp/tic80.wasm
 
       - name: Deploy
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-html"
           path: |
-            build/bin/tic80.js
-            build/bin/tic80.wasm
-            build/bin/index.html
+            build/bin/html/tic80.js
+            build/bin/html/tic80.wasm
+            build/bin/html/index.html
+            build/bin/html/export.html
 
       - name: Deploy WebApp
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-webapp"
           path: |
@@ -599,13 +662,13 @@ jobs:
             build/webapp/tic80.wasm
 
       - name: Deploy stubs
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-html-stub"
           path: |
-            build/bin/tic80*.js
-            build/bin/tic80*.wasm
-            build/bin/index.html
+            build/bin/html-export/tic80*.js
+            build/bin/html-export/tic80*.wasm
+            build/bin/html-export/index.html
 
   # === Export ===
   export:
@@ -614,37 +677,37 @@ jobs:
 
     steps:
       - name: Download Windows XP artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: tic80-winxp
           path: winxpdir
 
       - name: Download Windows artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: tic80-windows
           path: windir
 
       - name: Download Ubuntu artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: tic80-linux
           path: linuxdir
 
       - name: Download RPI artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: tic80-rpi
           path: rpidir
 
       - name: Download MacOS artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: tic80-macos
           path: macdir
 
       - name: Download HTML artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: tic80-html
 
@@ -655,11 +718,12 @@ jobs:
           cp linuxdir/* linux
           cp macdir/* mac
           cp rpidir/* rpi
+          mv -f export.html index.html
           zip html.zip index.html tic80.js tic80.wasm
           mv -f html.zip html
 
       - name: Deploy
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-export"
           path: |
@@ -676,41 +740,41 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        script: [lua, moon, fennel, ruby, js, wren, squirrel, wasm]
+        script: [lua, moon, fennel, ruby, js, wren, squirrel, wasm, scheme, janet, python]
 
     steps:
       - name: Download Windows XP artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: tic80-winxp-stub
           path: winxpdir
 
       - name: Download Windows artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: tic80-windows-stub
           path: windir
 
       - name: Download Ubuntu artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: tic80-linux-stub
           path: linuxdir
 
       - name: Download RPI artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: tic80-rpi-stub
           path: rpidir
 
       - name: Download MacOS artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: tic80-macos-stub
           path: macdir
 
       - name: Download HTML artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: tic80-html-stub
 
@@ -726,7 +790,7 @@ jobs:
           mv -f html${{ matrix.script }}.zip html${{ matrix.script }}
 
       - name: Deploy
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-export"
           path: |
@@ -744,7 +808,7 @@ jobs:
 
     steps:
       - name: Delete artifacts
-        uses: geekyeggo/delete-artifact@v1
+        uses: geekyeggo/delete-artifact@v2
         with:
           name: |
             tic80-winxp-stub

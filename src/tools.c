@@ -26,7 +26,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <zlib.h>
 
 extern void tic_tool_poke4(void* addr, u32 index, u8 value);
 extern u8 tic_tool_peek4(const void* addr, u32 index);
@@ -176,8 +175,8 @@ void tic_tool_set_track_row_sfx(tic_track_row* row, s32 sfx)
 {
     if(sfx >= SFX_COUNT) sfx = SFX_COUNT-1;
 
-    row->sfxhi = (sfx & 0b00100000) >> MUSIC_SFXID_LOW_BITS;
-    row->sfxlow = sfx & 0b00011111;
+    row->sfxhi = (sfx & 0x20) >> MUSIC_SFXID_LOW_BITS;
+    row->sfxlow = sfx & 0x1f;
 }
 
 bool tic_tool_empty(const void* buffer, s32 size)
@@ -225,18 +224,6 @@ void tic_tool_str2buf(const char* str, s32 size, void* buf, bool flip)
 
         ((u8*)buf)[i] = (u8)strtol(val, NULL, 16);
     }
-}
-
-u32 tic_tool_zip(void* dest, s32 destSize, const void* source, s32 size)
-{
-    unsigned long destSizeLong = destSize;
-    return compress2(dest, &destSizeLong, source, size, Z_BEST_COMPRESSION) == Z_OK ? destSizeLong : 0;
-}
-
-u32 tic_tool_unzip(void* dest, s32 destSize, const void* source, s32 size)
-{
-    unsigned long destSizeLong = destSize;
-    return uncompress(dest, &destSizeLong, source, size) == Z_OK ? destSizeLong : 0;
 }
 
 char* tic_tool_metatag(const char* code, const char* tag, const char* comment)

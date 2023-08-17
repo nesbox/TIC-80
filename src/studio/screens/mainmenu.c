@@ -109,6 +109,25 @@ static MenuOption FullscreenOption =
     optionFullscreenSet,
 };
 
+static s32 optionIntegerScaleGet(void* data)
+{
+    StudioMainMenu* main = data;
+    return main->options->integerScale ? 1 : 0;
+}
+
+static void optionIntegerScaleSet(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+    main->options->integerScale = (pos == 1);
+}
+
+static MenuOption IntegerScaleOption = 
+{
+    OPTION_VALUES({OffValue, OnValue}),
+    optionIntegerScaleGet,
+    optionIntegerScaleSet,
+};
+
 #if defined(CRT_SHADER_SUPPORT)
 static s32 optionCrtMonitorGet(void* data)
 {
@@ -176,6 +195,76 @@ static MenuOption VolumeOption =
 };
 
 #if defined(BUILD_EDITORS)
+static s32 optionTabSizeGet(void* data)
+{
+    StudioMainMenu* main = data;
+    s32 tsize = main->options->tabSize;
+
+    s32 ret = 0;
+    tsize /= 2;
+    while(tsize != 0) {
+        ret++;
+        tsize /= 2;
+    }
+
+    return ret;
+}
+
+static void optionTabSizeSet(void* data, s32 pos)
+{
+    s32 tsize = 1;
+    for (s32 i = 0; i < pos; i++)
+        tsize *= 2;
+    StudioMainMenu* main = data;
+    main->options->tabSize = tsize;
+}
+
+static MenuOption TabSizeOption =
+{
+    OPTION_VALUES({"1", "2", "4", "8"}),
+    optionTabSizeGet,
+    optionTabSizeSet,
+};
+
+static s32 optionTabModeGet(void* data)
+{
+    StudioMainMenu* main = data;
+    return main->options->tabMode;
+}
+
+static void optionTabModeSet(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+    main->options->tabMode = (enum TabMode) pos;
+}
+
+
+static MenuOption TabModeOption =
+{
+    OPTION_VALUES({"AUTO", "TABS", "SPACES"}),
+    optionTabModeGet,
+    optionTabModeSet,
+};
+
+
+static s32 optionKeybindModeGet(void* data)
+{
+    StudioMainMenu* main = data;
+    return main->options->keybindMode;
+}
+
+static void optionKeybindModeSet(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+    main->options->keybindMode = (enum KeybindMode) pos;
+}
+
+static MenuOption KeybindModeOption = 
+{
+    OPTION_VALUES({"STANDARD", "EMACS", "VI"}),
+    optionKeybindModeGet,
+    optionKeybindModeSet,
+};
 
 static s32 optionDevModeGet(void* data)
 {
@@ -196,6 +285,8 @@ static MenuOption DevModeOption =
     optionDevModeSet,
 };
 
+static void showEditorMenu(void* data, s32 pos);
+
 #endif
 
 static void showGamepadMenu(void* data, s32 pos)
@@ -207,6 +298,26 @@ static void showGamepadMenu(void* data, s32 pos)
     initGamepadMenu(main);
 }
 
+enum
+{
+#if defined(CRT_SHADER_SUPPORT)
+    OptionsMenu_CrtMonitorOption,
+#endif
+#if defined(BUILD_EDITORS)
+    OptionsMenu_DevModeOption,
+#endif
+    OptionsMenu_VSyncOption,
+    OptionsMenu_FullscreenOption,
+    OptionsMenu_IntegerScaleOption,
+    OptionsMenu_VolumeOption,
+#if defined(BUILD_EDITORS)
+    OptionsMenu_Editor,
+#endif
+    OptionsMenu_Gamepad,
+    OptionsMenu_Separator,
+    OptionsMenu_Back,
+};
+
 static const MenuItem OptionMenu[] =
 {
 #if defined(CRT_SHADER_SUPPORT)
@@ -217,8 +328,12 @@ static const MenuItem OptionMenu[] =
 #endif
     {"VSYNC",           NULL,   &VSyncOption, "VSYNC needs restart!"},
     {"FULLSCREEN",      NULL,   &FullscreenOption},
+    {"INTEGER SCALE",   NULL,   &IntegerScaleOption},
     {"VOLUME",          NULL,   &VolumeOption},
-    {"SETUP GAMEPAD",   showGamepadMenu},
+#if defined(BUILD_EDITORS)
+    {"EDITOR OPTIONS", showEditorMenu},
+#endif
+    {"SETUP GAMEPAD",       showGamepadMenu},
     {""},
     {"BACK",            showMainMenu, .back = true},
 };
@@ -228,9 +343,36 @@ static void gameMenuHandler(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
     tic_mem* tic = main->tic;
-    tic_core_script_config(tic)->callback.menu(tic, pos, NULL);
     resumeGame(main->studio);
+    tic_core_script_config(tic)->callback.menu(tic, pos, NULL);
 }
+
+#if defined(BUILD_EDITORS)
+
+enum
+{
+    EditorMenu_KeybindMode,
+    EditorMenu_Separator,
+    EditorMenu_Back,
+};
+
+static const MenuItem EditorMenu[] =
+{
+    {"TAB SIZE",          NULL,   &TabSizeOption,     "Indentation is your friend"},
+    {"TAB MODE",          NULL,   &TabModeOption,     "Auto uses spaces for python/moonscript"},
+    {"KEYBIND MODE",      NULL,   &KeybindModeOption, "For the cool kids only"},
+    {""},
+    {"BACK",            showOptionsMenu, .back = true},
+};
+
+static void showEditorMenu(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+
+    studio_menu_init(main->menu, EditorMenu, 
+        COUNT_OF(EditorMenu), EditorMenu_KeybindMode, OptionsMenu_Editor, showOptionsMenu, main);
+}
+#endif
 
 static void freeItems(StudioMainMenu* menu)
 {
@@ -289,7 +431,7 @@ static void showGameMenu(void* data, s32 pos)
     studio_menu_init(main->menu, main->items, main->count, 0, 0, showMainMenu, main);
 }
 
-static inline s32 mainMenuStart(StudioMainMenu* menu)
+static inline s32 mainMenuOffset(StudioMainMenu* menu)
 {
     return menu->count ? 0 : 1;
 }
@@ -319,6 +461,19 @@ static void onExitGame(void* data, s32 pos)
     exitGame(main->studio);
 }
 
+enum MainMenu
+{
+    MainMenu_GameMenu,
+    MainMenu_ResumeGame,
+    MainMenu_ResetGame,
+#if defined(BUILD_EDITORS)
+    MainMenu_CloseGame,
+#endif
+    MainMenu_Options,
+    MainMenu_Separator,
+    MainMenu_Quit,
+};
+
 static const MenuItem MainMenu[] =
 {
     {"GAME MENU",   showGameMenu},
@@ -337,30 +492,22 @@ static void showMainMenu(void* data, s32 pos)
     StudioMainMenu* main = data;
     initGameMenu(main);
 
-    s32 start = mainMenuStart(main);
+    s32 offset = mainMenuOffset(main);
 
-    studio_menu_init(main->menu, MainMenu + start, COUNT_OF(MainMenu) - start, 0, 0, onResumeGame, main);
+    studio_menu_init(main->menu, MainMenu + offset, COUNT_OF(MainMenu) - offset, 0, 0, onResumeGame, main);
 }
 
 static void showOptionsMenuPos(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
 
-    studio_menu_init(main->menu, OptionMenu, 
-        COUNT_OF(OptionMenu), pos, COUNT_OF(MainMenu) - 3 - mainMenuStart(main), showMainMenu, main);
+    s32 offset = mainMenuOffset(main);
+    studio_menu_init(main->menu, OptionMenu, COUNT_OF(OptionMenu), pos, MainMenu_Options - offset, showMainMenu, main);
 }
 
 static void showOptionsMenu(void* data, s32 pos)
 {
-    showOptionsMenuPos(data, COUNT_OF(OptionMenu) - 4);
-}
-
-static void saveGamepadMenu(void* data, s32 pos)
-{
-    StudioMainMenu* main = data;
-
-    main->options->mapping = main->gamepads.mapping;
-    showOptionsMenuPos(data, COUNT_OF(OptionMenu) - 3);
+    showOptionsMenuPos(data, OptionsMenu_VolumeOption);
 }
 
 static void resetGamepadMenu(void* data, s32 pos);
@@ -379,13 +526,30 @@ static const char* const ButtonLabels[] =
     "Y",
 };
 
-enum{KeyMappingStart = 2};
+enum
+{
+    GamepadMenu_Index,
+    GamepadMenu_Separator,
+    GamepadMenu_Gamepad0,
+    GamepadMenu_Gamepad1,
+    GamepadMenu_Gamepad2,
+    GamepadMenu_Gamepad3,
+    GamepadMenu_Gamepad4,
+    GamepadMenu_Gamepad5,
+    GamepadMenu_Gamepad6,
+    GamepadMenu_Gamepad7,
+    GamepadMenu_Separator2,
+    GamepadMenu_Save,
+    GamepadMenu_Clear,
+    GamepadMenu_Reset,
+    GamepadMenu_Back,
+};
 
 static void assignMapping(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
 
-    main->gamepads.key = pos - KeyMappingStart;
+    main->gamepads.key = pos - GamepadMenu_Gamepad0;
 
     static const char Fmt[] = "to assign to (%s) button...";
     static char str[sizeof Fmt + STRLEN("RIGHT")];
@@ -415,7 +579,9 @@ static void initGamepadButtons(StudioMainMenu* menu)
         "TAB",  "RET",  "BACKS","DEL",  "INS",  "PGUP", "PGDN", "HOME", 
         "END",  "UP",   "DOWN", "LEFT", "RIGHT","CAPS", "CTRL", "SHIFT", 
         "ALT",  "ESC",  "F1",   "F2",   "F3",   "F4",   "F5",   "F6", 
-        "F7",   "F8",   "F9",   "F10",  "F11",  "F12",
+        "F7",   "F8",   "F9",   "F10",  "F11",  "F12",  "NP0",  "NP1",
+        "NP2",  "NP3",  "NP4",  "NP5",  "NP6",  "NP7",  "NP8",  "NP9",
+        "NP+",  "NP-",  "NP*",  "NP/",  "NPENT", "NP.",
     };
 
     for(s32 i = 0, index = menu->gamepads.index * TIC_BUTTONS; i != TIC_BUTTONS; ++i)
@@ -449,6 +615,14 @@ static void clearGamepadMenu(void* data, s32 pos)
     initGamepadMenu(main);
 }
 
+static void saveGamepadMenu(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+
+    main->options->mapping = main->gamepads.mapping;
+    showOptionsMenuPos(data, OptionsMenu_Gamepad);
+}
+
 static void initGamepadMenu(StudioMainMenu* main)
 {
     static const MenuItem GamepadMenu[] =
@@ -475,8 +649,8 @@ static void initGamepadMenu(StudioMainMenu* main)
     initGamepadButtons(main);
 
     studio_menu_init(main->menu, GamepadMenu, COUNT_OF(GamepadMenu), 
-        main->gamepads.key < 0 ? KeyMappingStart : main->gamepads.key + KeyMappingStart, 
-        COUNT_OF(OptionMenu) - 3, showOptionsMenu, main);
+        main->gamepads.key < 0 ? GamepadMenu_Gamepad0 : main->gamepads.key + GamepadMenu_Gamepad0, 
+        OptionsMenu_Gamepad, showOptionsMenu, main);
 
     main->gamepads.key = -1;
 }

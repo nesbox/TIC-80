@@ -134,6 +134,27 @@ tic_script_config_extra WrenSyntaxConfigExtra =
 
 #endif
 
+#if defined (TIC_BUILD_WITH_SCHEME)
+static const u8 SchemeDemoRom[] =
+{
+    #include "../build/assets/schemedemo.tic.dat"
+};
+
+static const u8 schememark[] =
+{
+    #include "../build/assets/schememark.tic.dat"
+};
+tic_script_config_extra SchemeSyntaxConfigExtra =
+{
+    .name               = "scheme",
+    .demoRom            = SchemeDemoRom,
+    .demoRomSize        = sizeof SchemeDemoRom,
+    .markRom            = schememark,
+    .markRomSize        = sizeof schememark,
+};
+#endif
+
+
 #if defined (TIC_BUILD_WITH_SQUIRREL)
 static const u8 SquirrelDemoRom[] =
 {
@@ -178,10 +199,57 @@ tic_script_config_extra WasmSyntaxConfigExtra =
 
 #endif
 
+#if defined(TIC_BUILD_WITH_JANET)
+
+static const u8 JanetDemoRom[] =
+  {
+#include "../build/assets/janetdemo.tic.dat"
+  };
+
+static const u8 janetmark[] =
+  {
+#include "../build/assets/janetmark.tic.dat"
+  };
+
+tic_script_config_extra JanetSyntaxConfigExtra =
+  {
+    .name               = "janet",
+    .demoRom            = JanetDemoRom,
+    .demoRomSize        = sizeof JanetDemoRom,
+    .markRom            = janetmark,
+    .markRomSize        = sizeof janetmark,
+  };
+
+#endif
+
+#if defined(TIC_BUILD_WITH_PYTHON)
+
+static const u8 PythonDemoRom[] =
+  {
+#include "../build/assets/pythondemo.tic.dat"
+  };
+
+static const u8 pythonmark[] =
+  {
+#include "../build/assets/pythonmark.tic.dat"
+  };
+
+tic_script_config_extra PythonSyntaxConfigExtra =
+  {
+    .name               = "python",
+    .demoRom            = PythonDemoRom,
+    .demoRomSize        = sizeof PythonDemoRom,
+    .markRom            = pythonmark,
+    .markRomSize        = sizeof pythonmark,
+  };
+
+#endif
+
+
 tic_script_config_extra* getConfigExtra(const tic_script_config* config)
 {
 
-    for (tic_script_config_extra** conf = LanguagesExtra ; *conf != NULL; conf++ ) { 
+    for (tic_script_config_extra** conf = LanguagesExtra ; *conf != NULL; conf++ ) {
         tic_script_config_extra* ln = *conf;
         if (strcmp(config->name, ln->name) == 0)
         {
@@ -204,6 +272,10 @@ tic_script_config_extra* LanguagesExtra[] = {
 #if defined(TIC_BUILD_WITH_WREN)
    &WrenSyntaxConfigExtra,
 #endif
+#if defined(TIC_BUILD_WITH_SCHEME)
+   &SchemeSyntaxConfigExtra,
+#endif
+
 #if defined(TIC_BUILD_WITH_SQUIRREL)
    &SquirrelSyntaxConfigExtra,
 #endif
@@ -216,7 +288,11 @@ tic_script_config_extra* LanguagesExtra[] = {
 #if defined(TIC_BUILD_WITH_WASM)
    &WasmSyntaxConfigExtra,
 #endif
+#if defined(TIC_BUILD_WITH_JANET)
+   &JanetSyntaxConfigExtra,
+#endif
+#if defined(TIC_BUILD_WITH_PYTHON)
+   &PythonSyntaxConfigExtra,
+#endif
    NULL
 };
-
-

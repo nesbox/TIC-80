@@ -9,7 +9,7 @@ x=120
 y=120
 
 particle = {}
-palete = {14,9,6,3,10,15}
+palette = {14,9,6,3,10,15}
 
 function addParticle(x,y)
  local p = {}
@@ -30,7 +30,7 @@ function ticParticle()
 		p.t = p.t + 1
 		s = math.log(p.t / 2.0)
 		s2 = s/2.0
-		c = palete[math.ceil(p.t/70)]
+		c = palette[math.ceil(p.t/70)]
 	 p.x = p.x + p.dx
 		p.y = p.y + p.dy
 

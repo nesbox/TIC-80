@@ -1442,6 +1442,9 @@ static void processPianoKeyboard(Music* music)
 {
     tic_mem* tic = music->tic;
 
+    if(tic_api_key(tic, tic_key_ctrl) || tic_api_key(tic, tic_key_alt))
+        return;
+
     if(keyWasPressed(music->studio, tic_key_up)) music->piano.edit.y--;
     else if(keyWasPressed(music->studio, tic_key_down)) music->piano.edit.y++;
     else if(keyWasPressed(music->studio, tic_key_left)) music->piano.edit.x--;
@@ -1547,18 +1550,18 @@ static void processKeyboard(Music* music)
                     : playFrame(music))
                 : stopTrack(music);
         }
+    }
 
-        switch (music->tab)
-        {
-        case MUSIC_TRACKER_TAB:
-            music->tracker.edit.y >= 0 
-                ? processTrackerKeyboard(music)
-                : processPatternKeyboard(music);
-            break;
-        case MUSIC_PIANO_TAB:
-            processPianoKeyboard(music);
-            break;
-        }
+    switch (music->tab)
+    {
+    case MUSIC_TRACKER_TAB:
+        music->tracker.edit.y >= 0 
+            ? processTrackerKeyboard(music)
+            : processPatternKeyboard(music);
+        break;
+    case MUSIC_PIANO_TAB:
+        processPianoKeyboard(music);
+        break;
     }
 }
 

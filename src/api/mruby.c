@@ -1,7 +1,7 @@
-﻿// MIT License
+// MIT License
 
 // Copyright (c) 2017 Vadim Grigoruk @nesbox // grigoruk@gmail.com
-// Copyright (c) 2020-2021 Jeremiasz Nelz <jeremiasz ~at~ nelz.pl>
+// Copyright (c) 2020-2021 Julia Nelz <julia ~at~ nelz.pl>
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -871,7 +871,7 @@ static mrb_value mrb_font(mrb_state* mrb, mrb_value self)
 
     const char* text = mrb_value_to_cstr(mrb, text_obj);
 
-    s32 size = tic_api_font(memory, text, x, y, (u8*)&chromakey, 1, width, height, scale, fixed, alt);
+    s32 size = tic_api_font(memory, text, x, y, (u8*)&chromakey, 1, width, height, fixed, scale, alt);
     return mrb_fixnum_value(size);
 }
 

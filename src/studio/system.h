@@ -50,6 +50,8 @@ void    tic_sys_clipboard_set(const char* text);
 bool    tic_sys_clipboard_has();
 char*   tic_sys_clipboard_get();
 void    tic_sys_clipboard_free(const char* text);
+u64     tic_sys_counter_get();
+u64     tic_sys_freq_get();
 bool    tic_sys_fullscreen_get();
 void    tic_sys_fullscreen_set(bool value);
 void    tic_sys_message(const char* title, const char* message);
@@ -71,6 +73,18 @@ void    tic_sys_default_mapping(tic_mapping* mapping);
     macro(COMMENT)  \
     macro(SIGN)
 
+enum KeybindMode {
+    KEYBIND_STANDARD,
+    KEYBIND_EMACS,
+    KEYBIND_VI
+};
+
+enum TabMode {
+    TAB_AUTO,
+    TAB_TAB,
+    TAB_SPACE
+};
+
 typedef struct
 {
     struct
@@ -86,6 +100,7 @@ typedef struct
             bool shadow;
             bool altFont;
             bool matchDelimiters;
+            bool autoDelimiters;
 
         } code;
 
@@ -100,9 +115,6 @@ typedef struct
 
     } theme;
 
-    s32 gifScale;
-    s32 gifLength;
-    
     bool checkNewVersion;
     bool cli;
     bool soft;
@@ -123,11 +135,14 @@ typedef struct
         
         bool fullscreen;
         bool vsync;
+        bool integerScale;
         s32 volume;
         tic_mapping mapping;
-
 #if defined(BUILD_EDITORS)
+        enum KeybindMode keybindMode;
+        enum TabMode tabMode;
         bool devmode;
+        s32 tabSize;
 #endif
     } options;
 
@@ -148,7 +163,7 @@ void studio_exit(Studio* studio);
 void studio_delete(Studio* studio);
 const StudioConfig* studio_config(Studio* studio);
 
-Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* appFolder);
+Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* appFolder, s32 maxscale);
 
 #ifdef __cplusplus
 }

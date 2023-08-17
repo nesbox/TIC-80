@@ -25,6 +25,12 @@
 #include <SDL.h>
 #include <tic80.h>
 
+#if defined(__APPLE__)
+# if MAC_OS_X_VERSION_MIN_REQUIRED < 1060
+#    error SDL for Mac OS X only supports deploying on 10.6 and above.
+# endif /* MAC_OS_X_VERSION_MIN_REQUIRED < 1060 */
+#endif
+
 #define TIC80_WINDOW_SCALE 3
 #define TIC80_WINDOW_TITLE "TIC-80"
 #define TIC80_DEFAULT_CART "cart.tic"
@@ -40,6 +46,16 @@ static struct
 static void onExit()
 {
     state.quit = true;
+}
+
+static u64 tic_sys_counter_get()
+{
+    return SDL_GetPerformanceCounter();
+}
+
+static u64 tic_sys_freq_get()
+{
+    return SDL_GetPerformanceFrequency();
 }
 
 static void audioCallback(void* userdata, u8* stream, s32 len)
@@ -158,7 +174,7 @@ s32 runCart(void* cart, s32 size)
 
             SDL_LockMutex(state.mutex);
             {
-                tic80_tick(tic, input);
+                tic80_tick(tic, input, tic_sys_counter_get, tic_sys_freq_get);
             }
             SDL_UnlockMutex(state.mutex);
 
@@ -200,11 +216,11 @@ s32 runCart(void* cart, s32 size)
 
         tic80_delete(tic);
 
+        SDL_CloseAudioDevice(audioDevice);
+        SDL_DestroyMutex(state.mutex);
         SDL_DestroyTexture(texture);
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
-        SDL_CloseAudioDevice(audioDevice);
-        SDL_DestroyMutex(state.mutex);
     }
 
     SDL_free(cart);

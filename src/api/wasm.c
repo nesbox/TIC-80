@@ -1,4 +1,4 @@
-﻿// MIT License
+// MIT License
 
 // Copyright (c) 2017 Vadim Grigoruk @nesbox // grigoruk@gmail.com
 
@@ -31,6 +31,15 @@
 #include "tools.h"
 
 #include <ctype.h>
+
+// Avoid redefining u* and s*
+#define d_m3ShortTypesDefined 1
+typedef int8_t i8;
+typedef int16_t i16;
+typedef int32_t i32;
+typedef int64_t i64;
+typedef double          f64;
+typedef float           f32;
 
 #include "wasm3.h"
 #include "m3_exec_defs.h"
@@ -357,7 +366,7 @@ m3ApiRawFunction(wasmtic_btnp)
     tic_core* core = getWasmCore(runtime);
 
     // -1 is the "default" placeholder for index, hold, and period but the TIC side API
-    // knows this so we don't need to do any transation, we can just pass the -1 values
+    // knows this so we don't need to do any transaction, we can just pass the -1 values
     // straight thru 
 
     m3ApiReturn(tic_api_btnp((tic_mem *)core, index, hold, period));
@@ -676,8 +685,6 @@ m3ApiRawFunction(wasmtic_map)
     if (y == -1) { y = 0; }
     if (w == -1) { w = 30; }
     if (h == -1) { h = 17; }
-    if (sx == -1) { sx = 0; }
-    if (sy == -1) { sy = 0; }
     if (scale == -1) { scale = 1; }
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
@@ -963,15 +970,15 @@ M3Result linkTicAPI(IM3Module module)
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "exit",    "v()",           &wasmtic_exit)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "fget",    "i(ii)",         &wasmtic_fget)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "fset",    "v(iii)",        &wasmtic_fset)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "font",    "i(*iiiiiii)",   &wasmtic_font)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "font",    "i(*iiiiiiiii)", &wasmtic_font)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "key",     "i(i)",          &wasmtic_key)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "keyp",    "i(iii)",        &wasmtic_keyp)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "line",    "v(ffffi)",      &wasmtic_line)));
     // TODO: needs a lot of help for all the optional arguments
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "map",     "v(iiiiiiiiii)",  &wasmtic_map)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "map",     "v(iiiiiiiiii)", &wasmtic_map)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "memcpy",  "v(iii)",        &wasmtic_memcpy)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "memset",  "v(iii)",        &wasmtic_memset)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "mget",    "v(ii)",         &wasmtic_mget)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "mget",    "i(ii)",         &wasmtic_mget)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "mset",    "v(iii)",        &wasmtic_mset)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "mouse",   "v(*)",          &wasmtic_mouse)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "music",   "v(iiiiiii)",    &wasmtic_music)));
@@ -1278,16 +1285,18 @@ const tic_script_config WasmSyntaxConfig =
     .name               = "wasm",
     .fileExtension      = ".wasmp",
     .projectComment     = "--",
-    .init               = initWasm,
-    .close              = closeWasm,
-    .tick               = callWasmTick,
-    .boot               = callWasmBoot,
-
-    .callback           =
     {
+      .init               = initWasm,
+      .close              = closeWasm,
+      .tick               = callWasmTick,
+      .boot               = callWasmBoot,
+
+      .callback           =
+      {
         .scanline       = callWasmScanline,
         .border         = callWasmBorder,
         .menu           = callWasmMenu,
+      },
     },
 
     .getOutline         = getWasmOutline,

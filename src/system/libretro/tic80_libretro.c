@@ -6,7 +6,8 @@
 #include <math.h>
 #include "tic.h"
 #include "libretro-common/include/libretro.h"
-#include "libretro-common/include/retro_inline.h"
+#include "retro_inline.h"
+#include "retro_endianness.h"
 #include "libretro_core_options.h"
 #include "api.h"
 
@@ -75,6 +76,22 @@ struct tic80_state
 	tic80* tic;
 };
 static struct tic80_state* state;
+
+/**
+ * TIC-80 callback; Request counter
+ */
+static u64 tic80_libretro_counter()
+{
+    return clock();
+}
+
+/**
+ * TIC-80 callback; Request freq
+ */
+static u64 tic80_libretro_freq()
+{
+    return CLOCKS_PER_SEC;
+}
 
 /**
  * TIC-80 callback; Requests the content to exit.
@@ -250,6 +267,22 @@ RETRO_API void retro_init(void)
 	state->keymap[RETROK_F11] = tic_key_f11;
 	state->keymap[RETROK_F12] = tic_key_f12;
 	state->keymap[RETROK_F12] = tic_key_f12;
+	state->keymap[RETROK_KP0] = tic_key_numpad0;
+	state->keymap[RETROK_KP1] = tic_key_numpad1;
+	state->keymap[RETROK_KP2] = tic_key_numpad2;
+	state->keymap[RETROK_KP3] = tic_key_numpad3;
+	state->keymap[RETROK_KP4] = tic_key_numpad4;
+	state->keymap[RETROK_KP5] = tic_key_numpad5;
+	state->keymap[RETROK_KP6] = tic_key_numpad6;
+	state->keymap[RETROK_KP7] = tic_key_numpad7;
+	state->keymap[RETROK_KP8] = tic_key_numpad8;
+	state->keymap[RETROK_KP9] = tic_key_numpad9;
+	state->keymap[RETROK_KP_PERIOD] = tic_key_numpadperiod;
+	state->keymap[RETROK_KP_DIVIDE] = tic_key_numpaddivide;
+	state->keymap[RETROK_KP_MULTIPLY] = tic_key_numpadmultiply;
+	state->keymap[RETROK_KP_MINUS] = tic_key_numpadminus;
+	state->keymap[RETROK_KP_PLUS] = tic_key_numpadplus;
+	state->keymap[RETROK_KP_ENTER] = tic_key_numpadenter;
 }
 
 /**
@@ -805,7 +838,7 @@ void tic80_libretro_update(tic80* game)
 	tic80_libretro_update_keyboard(&state->input.keyboard);
 
 	// Update the game state.
-	tic80_tick(game, state->input);
+	tic80_tick(game, state->input, tic80_libretro_counter, tic80_libretro_freq);
 	tic80_sound(game);
 }
 
@@ -1006,7 +1039,11 @@ RETRO_API bool retro_load_game(const struct retro_game_info *info)
 	}
 
 	// Set up the TIC-80 environment.
+#if RETRO_IS_BIG_ENDIAN
+	state->tic = tic80_create(TIC80_SAMPLERATE, TIC80_PIXEL_COLOR_ARGB8888);
+#else
 	state->tic = tic80_create(TIC80_SAMPLERATE, TIC80_PIXEL_COLOR_BGRA8888);
+#endif
 	if (state->tic == NULL) {
 		log_cb(RETRO_LOG_ERROR, "[TIC-80] Failed to initialize TIC-80 environment.\n");
 		return false;

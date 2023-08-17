@@ -17,19 +17,16 @@ android {
         targetSdkVersion 31
         versionCode 10000
         versionName "1.00.00"
+        ndk {
+            abiFilters 'arm64-v8a'
+        }
         externalNativeBuild {
             ndkBuild {
                 arguments "APP_PLATFORM=android-31"
-                abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
             }
             cmake {
-                arguments "-DBUILD_PRO=Off", "-DCMAKE_BUILD_TYPE=MinSizeRel"
+                arguments "-DBUILD_WITH_MRUBY=Off", "-DBUILD_PRO=Off", "-DCMAKE_BUILD_TYPE=MinSizeRel"
             }
-            // cmake {
-            //     arguments "-DANDROID_APP_PLATFORM=android-16", "-DANDROID_STL=c++_static"
-            //     // abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
-            //     abiFilters 'arm64-v8a'
-            // }
         }
     }
 

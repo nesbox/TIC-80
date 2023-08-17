@@ -6,8 +6,8 @@ set(CMAKE_LIBRARY_ARCHITECTURE arm-linux-gnueabihf)
 set(SYSROOT_PATH /opt/sysroot)
 
 # Define the cross compiler locations
-set(CMAKE_C_COMPILER   /opt/tools/arm-bcm2708/${CMAKE_LIBRARY_ARCHITECTURE}/bin/${CMAKE_LIBRARY_ARCHITECTURE}-gcc)
-set(CMAKE_CXX_COMPILER /opt/tools/arm-bcm2708/${CMAKE_LIBRARY_ARCHITECTURE}/bin/${CMAKE_LIBRARY_ARCHITECTURE}-g++)
+set(CMAKE_C_COMPILER   /usr/bin/${CMAKE_LIBRARY_ARCHITECTURE}-gcc-8)
+set(CMAKE_CXX_COMPILER /usr/bin/${CMAKE_LIBRARY_ARCHITECTURE}-g++-8)
 
 # Define the sysroot path for the RaspberryPi distribution in our tools folder 
 set(CMAKE_FIND_ROOT_PATH ${SYSROOT_PATH})

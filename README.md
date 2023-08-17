@@ -19,8 +19,10 @@ To make a retro styled game, the whole process of creation and execution takes p
   [Moonscript](https://moonscript.org),
   [Javascript](https://developer.mozilla.org/en-US/docs/Web/JavaScript),
   [Ruby](https://www.ruby-lang.org/en/),
-  [Wren](http://wren.io/), [Fennel](https://fennel-lang.org), and
-  [Squirrel](http://www.squirrel-lang.org).
+  [Wren](http://wren.io/),
+  [Fennel](https://fennel-lang.org),
+  [Squirrel](http://www.squirrel-lang.org), and
+  [Janet](https://janet-lang.org).
 - Games can have mouse and keyboard as input
 - Games can have up to 4 controllers as input (with up to 8 buttons, each)
 - Built-in editors: for code, sprites, world maps, sound effects and music
@@ -77,14 +79,14 @@ cmake -G "Visual Studio 15 2017 Win64" ..
 - install `git`
 - install `cmake` (https://cmake.org)
 - install `Ruby` (you can use [RubyInstaller](https://rubyinstaller.org/))
-- run following commands in `terminal`
+- run following commands within a `mingw64` context, for example within a MingW64 shell
 ```
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake -G "MinGW Makefiles" ..
 mingw32-make -j4
 ```
 
-## Linux 
+## Linux
 ### Ubuntu 14.04
 run the following commands in the Terminal
 ```
@@ -111,14 +113,25 @@ cmake ..
 make -j4
 ```
 
-### Fedora
+
+### Arch
 
 run the following commands in the Terminal
 ```
-sudo dnf -y groupinstall "Development Tools"
-sudo dnf -y install ruby rubygem-{tk{,-doc},rake,test-unit} cmake libglvnd-devel libglvnd-gles freeglut-devel
+sudo pacman -S cmake ruby mesa libglvnd glu
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
+make -j4
+```
+
+### Fedora 36
+
+run the following commands in the Terminal
+```
+sudo dnf -y groupinstall "Development Tools" "Development Libraries"
+sudo dnf -y install ruby rubygem-{tk{,-doc},rake,test-unit} cmake libglvnd-devel libglvnd-gles freeglut-devel clang libXext-devel SDL_sound pipewire-devel pipewire-jack-audio-connection-kit-devel pulseaudio-libs-devel
+git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
+cmake .. -DCMAKE_CXX_COMPILER=clang++ -DSDL_ALSA=On
 make -j4
 ```
 
@@ -173,14 +186,29 @@ to create application icon for development version
 mkdir -p ~/Applications/TIC80dev.app/Contents/{MacOS,Resources}
 cp -f macosx/tic80.plist ~/Applications/TIC80dev.app/Contents/Info.plist
 cp -f macosx/tic80.icns ~/Applications/TIC80dev.app/Contents/Resources
-cat > ~/Applications/TIC80dev.app/MacOS/TIC80dev <<EOF
+cat > ~/Applications/TIC80dev.app/Contents/MacOS/tic80 <<EOF
 #!/bin/sh
 exec /Users/nesbox/projects/TIC-80/build/bin/tic80 --skip --scale 2 >/dev/null
 EOF
-chmod +x ~/Applications/TIC80dev.app/MacOS/TIC80
+chmod +x ~/Applications/TIC80dev.app/Contents/MacOS/TIC80dev
 ```
 Make sure to update the absolute path to the tic80 binary in the script, or
 update the launch arguments.
+
+## FreeBSD
+run the following commands in the Terminal
+```
+sudo pkg install gcc git cmake ruby libglvnd libglu freeglut mesa-devel mesa-dri alsa-lib
+git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
+cmake ..
+make -j4
+```
+
+Mesa looks for swrast_dri.so from the wrong path, so also symlink it:
+
+```
+sudo ln -s /usr/local/lib/dri/swrast_dri.so /usr/local/lib/dri-devel/
+```
 
 # Install instructions
 
@@ -217,4 +245,8 @@ You can find iOS/tvOS version here
 * msx80 - [Twitter @msx80](https://twitter.com/msx80) [Github msx80](https://github.com/msx80)
 * Josh Goebel - [Twitter @dreamer3](https://twitter.com/dreamer3) [Github joshgoebel](https://github.com/joshgoebel)
 * Joshua Minor - [GitHub @jminor](https://github.com/jminor)
-* Jeremiasz Nelz - [Github @remi6397](https://github.com/remi6397) [WWW](https://nelz.pl)
+* Julia Nelz - [Github @remi6397](https://github.com/remi6397) [WWW](https://nelz.pl)
+* Thorben Krüger - [Mastodon @benthor@chaos.social](https://chaos.social/@benthor)
+* David St-Hilaire - [GitHub @sthilaid](https://github.com/sthilaid)
+* Alec Troemel - [Github @alectroemel](https://github.com/AlecTroemel)
+* Kolten Pearson - [Github @koltenpearson](https://github.com/koltenpearson)

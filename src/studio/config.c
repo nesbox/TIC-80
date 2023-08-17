@@ -30,6 +30,12 @@
 #define DEFAULT_VSYNC 1
 #endif
 
+#if defined(__TIC_ANDROID__)            
+#define INTEGER_SCALE_DEFAULT true
+#else
+#define INTEGER_SCALE_DEFAULT false
+#endif
+
 #if defined (TIC_BUILD_WITH_LUA)
 #include <lua.h>
 #include <lauxlib.h>
@@ -149,6 +155,7 @@ static void readCodeTheme(Config* config, lua_State* lua)
         readBool(lua, "SHADOW", &config->data.theme.code.shadow);
         readBool(lua, "ALT_FONT", &config->data.theme.code.altFont);
         readBool(lua, "MATCH_DELIMITERS", &config->data.theme.code.matchDelimiters);
+        readBool(lua, "AUTO_DELIMITERS", &config->data.theme.code.autoDelimiters);
     }
 
     lua_pop(lua, 1);
@@ -194,11 +201,12 @@ static void readConfig(Config* config)
     {
         if(luaL_loadstring(lua, config->cart->code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
         {
-            readGlobalInteger(lua,  "GIF_LENGTH",           &config->data.gifLength);
-            readGlobalInteger(lua,  "GIF_SCALE",            &config->data.gifScale);
             readGlobalBool(lua,     "CHECK_NEW_VERSION",    &config->data.checkNewVersion);
             readGlobalInteger(lua,  "UI_SCALE",             &config->data.uiScale);
             readGlobalBool(lua,     "SOFTWARE_RENDERING",   &config->data.soft);
+
+            if(config->data.uiScale <= 0)
+                config->data.uiScale = 1;
 
 #if defined(CRT_SHADER_SUPPORT)
             readConfigCrtShader(config, lua);
@@ -237,8 +245,12 @@ static void setDefault(Config* config)
             .volume         = MAX_VOLUME,
             .vsync          = DEFAULT_VSYNC,
             .fullscreen     = false,
+            .integerScale   = INTEGER_SCALE_DEFAULT,
 #if defined(BUILD_EDITORS)
+            .keybindMode    = KEYBIND_STANDARD,
             .devmode        = false,
+            .tabMode        = TAB_AUTO,
+            .tabSize        = 1,
 #endif
         },
     };

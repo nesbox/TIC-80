@@ -113,6 +113,15 @@ typedef enum
     TIC_MODES_COUNT
 } EditorMode;
 
+typedef enum
+{
+    VI_NORMAL,
+    VI_INSERT,
+    VI_SELECT,
+    VI_SEEK,
+    VI_SEEK_BACK,
+} ViMode;
+
 enum
 {
     tic_icon_cut        = 80,
@@ -194,6 +203,10 @@ void setStudioMode(Studio* studio, EditorMode mode);
 EditorMode getStudioMode(Studio* studio);
 void exitStudio(Studio* studio);
 
+void setStudioViMode(Studio* studio, ViMode mode);
+ViMode getStudioViMode(Studio* studio);
+bool checkStudioViMode(Studio* studio, ViMode mode);
+
 void toClipboard(const void* data, s32 size, bool flip);
 bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces, bool sameSize);
 
@@ -236,6 +249,7 @@ void gotoSurf(Studio* studio);
 void runGame(Studio* studio);
 void exitGame(Studio* studio);
 void resumeGame(Studio* studio);
+void saveProject(Studio* studio);
 
 tic_tiles* getBankTiles(Studio* studio);
 tic_palette* getBankPalette(Studio* studio, bool bank);
@@ -250,7 +264,7 @@ const StudioConfig* getConfig(Studio* studio);
 struct Start* getStartScreen(Studio* studio);
 struct Sprite* getSpriteEditor(Studio* studio);
 
-const char* studioExportMusic(Studio* studio, s32 track, const char* filename);
+const char* studioExportMusic(Studio* studio, s32 track, s32 bank, const char* filename);
 const char* studioExportSfx(Studio* studio, s32 sfx, const char* filename);
 
 tic_mem* getMemory(Studio* studio);

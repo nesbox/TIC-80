@@ -28,6 +28,10 @@
 #include <string.h>
 #include <time.h>
 
+#if defined(__TIC_LINUX__)
+#include <signal.h>
+#endif
+
 #if defined(CRT_SHADER_SUPPORT)
 #include <SDL_gpu.h>
 #else
@@ -38,8 +42,15 @@
 #include <emscripten.h>
 #endif
 
+#if defined(__APPLE__)
+# if MAC_OS_X_VERSION_MIN_REQUIRED < 1060
+#    error SDL for Mac OS X only supports deploying on 10.6 and above.
+# endif /* MAC_OS_X_VERSION_MIN_REQUIRED < 1060 */
+#endif
+
 #define TEXTURE_SIZE (TIC80_FULLWIDTH)
 #define SCREEN_FORMAT TIC80_PIXEL_COLOR_RGBA8888
+#define AXIS_THRESHOLD 0x4000
 
 #if defined(__TIC_WINDOWS__)
 #include <windows.h>
@@ -102,7 +113,7 @@ static struct
 
     struct
     {
-        SDL_Joystick* ports[TIC_GAMEPADS];
+        SDL_GameController* ports[TIC_GAMEPADS];
 
 #if defined(TOUCH_INPUT_SUPPORT)
         struct
@@ -181,6 +192,21 @@ static struct
 }
 #endif
 ;
+
+#if defined(__RPI__)
+
+// !TODO: update SDL to 2.0.14 on RPI docker to support these functions
+SDL_bool SDL_GameControllerHasAxis(SDL_GameController *gamecontroller, SDL_GameControllerAxis axis)
+{
+    return SDL_TRUE;
+}
+
+SDL_bool SDL_GameControllerHasButton(SDL_GameController *gamecontroller, SDL_GameControllerButton button)
+{
+    return SDL_TRUE;
+}
+
+#endif
 
 static void destoryTexture(Texture texture)
 {
@@ -588,12 +614,7 @@ static void destroyGPU()
 
 static void calcTextureRect(SDL_Rect* rect)
 {
-#if defined (CRT_SHADER_SUPPORT)
-    // Integer Scaling works in non CRT mode only
-    bool integerScale = !studio_config(platform.studio)->options.crt;
-#else
-    bool integerScale = true;
-#endif
+    bool integerScale = studio_config(platform.studio)->options.integerScale;
 
     s32 sw, sh, w, h;
     SDL_GetWindowSize(platform.window, &sw, &sh);
@@ -679,7 +700,7 @@ static void processKeyboard()
 
         platform.keyboard.state[tic_key_shift] = mod & KMOD_SHIFT;
         platform.keyboard.state[tic_key_ctrl] = mod & (KMOD_CTRL | KMOD_GUI);
-        platform.keyboard.state[tic_key_alt] = mod & KMOD_LALT;
+        platform.keyboard.state[tic_key_alt] = mod & KMOD_ALT;
         platform.keyboard.state[tic_key_capslock] = mod & KMOD_CAPS;
 
         // it's weird, but system sends CTRL when you press RALT
@@ -884,112 +905,80 @@ static void processTouchGamepad()
 
 #endif
 
-static s32 getAxisMask(SDL_Joystick* joystick)
+static u8 getAxis(SDL_GameController* controller, SDL_GameControllerAxis axis, s32 dir)
 {
-    s32 mask = 0;
-
-    s32 axesCount = SDL_JoystickNumAxes(joystick);
-
-    for (s32 a = 0; a < axesCount; a++)
-    {
-        s32 axe = SDL_JoystickGetAxis(joystick, a);
-
-        if (axe)
-        {
-            if (a == 0)
-            {
-                if (axe > 16384) mask |= SDL_HAT_RIGHT;
-                else if(axe < -16384) mask |= SDL_HAT_LEFT;
-            }
-            else if (a == 1)
-            {
-                if (axe > 16384) mask |= SDL_HAT_DOWN;
-                else if (axe < -16384) mask |= SDL_HAT_UP;
-            }
-        }
-    }
-
-    return mask;
+    return SDL_GameControllerHasAxis(controller, axis)
+        ? SDL_GameControllerGetAxis(controller, axis) * dir > AXIS_THRESHOLD ? 1 : 0
+        : 0;
 }
 
-static s32 getJoystickHatMask(s32 hat)
+static u8 getButton(SDL_GameController* controller, SDL_GameControllerButton button)
 {
-    tic80_gamepads gamepad;
-    gamepad.data = 0;
-
-    gamepad.first.up = hat & SDL_HAT_UP;
-    gamepad.first.down = hat & SDL_HAT_DOWN;
-    gamepad.first.left = hat & SDL_HAT_LEFT;
-    gamepad.first.right = hat & SDL_HAT_RIGHT;
-
-    return gamepad.data;
-}
-
-static void processJoysticks()
-{
-    platform.gamepad.joystick.data = 0;
-    s32 index = 0;
-
-    for(s32 i = 0; i < COUNT_OF(platform.gamepad.ports); i++)
-    {
-        SDL_Joystick* joystick = platform.gamepad.ports[i];
-
-        if(joystick && SDL_JoystickGetAttached(joystick))
-        {
-            tic80_gamepad* gamepad = NULL;
-
-            switch(index)
-            {
-            case 0: gamepad = &platform.gamepad.joystick.first; break;
-            case 1: gamepad = &platform.gamepad.joystick.second; break;
-            case 2: gamepad = &platform.gamepad.joystick.third; break;
-            case 3: gamepad = &platform.gamepad.joystick.fourth; break;
-            }
-
-            if(gamepad)
-            {
-                gamepad->data |= getJoystickHatMask(getAxisMask(joystick));
-
-                for (s32 h = 0; h < SDL_JoystickNumHats(joystick); h++)
-                    gamepad->data |= getJoystickHatMask(SDL_JoystickGetHat(joystick, h));
-
-                s32 numButtons = SDL_JoystickNumButtons(joystick);
-                if(numButtons >= 2)
-                {
-                    gamepad->a = SDL_JoystickGetButton(joystick, 0);
-                    gamepad->b = SDL_JoystickGetButton(joystick, 1);
-
-                    if(numButtons >= 4)
-                    {
-                        gamepad->x = SDL_JoystickGetButton(joystick, 2);
-                        gamepad->y = SDL_JoystickGetButton(joystick, 3);
-
-                        if(numButtons >= 8)
-                        {
-                            // !TODO: We have to find a better way to handle gamepad MENU button
-                            // atm we show game menu for only Pause Menu button on XBox one controller
-                            // issue #1220
-                            s32 back = SDL_JoystickGetButton(joystick, 7);
-
-                            if(back)
-                            {
-                                tic80_input* input = &platform.input;
-                                input->keyboard.keys[0] = tic_key_escape;
-                            }
-                        }
-                    }
-                }
-
-                index++;
-            }
-        }
-    }
+    return SDL_GameControllerHasButton(controller, button)
+        ? SDL_GameControllerGetButton(controller, button) 
+        : 0;
 }
 
 static void processGamepad()
 {
-    processJoysticks();
-    
+    {
+        platform.gamepad.joystick.data = 0;
+        s32 index = 0;
+
+        for(s32 i = 0; i < COUNT_OF(platform.gamepad.ports); i++)
+        {
+            SDL_GameController* controller = platform.gamepad.ports[i];
+
+            if(controller && SDL_GameControllerGetAttached(controller))
+            {
+                tic80_gamepad* gamepad = NULL;
+
+                switch(index)
+                {
+                case 0: gamepad = &platform.gamepad.joystick.first; break;
+                case 1: gamepad = &platform.gamepad.joystick.second; break;
+                case 2: gamepad = &platform.gamepad.joystick.third; break;
+                case 3: gamepad = &platform.gamepad.joystick.fourth; break;
+                }
+
+                if(gamepad)
+                {
+                    gamepad->up = getAxis(controller, SDL_CONTROLLER_AXIS_LEFTY, -1) 
+                        || getAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY, -1)
+                        || getButton(controller, SDL_CONTROLLER_BUTTON_DPAD_UP);
+
+                    gamepad->down = getAxis(controller, SDL_CONTROLLER_AXIS_LEFTY, +1) 
+                        || getAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY, +1)
+                        || getButton(controller, SDL_CONTROLLER_BUTTON_DPAD_DOWN);
+
+                    gamepad->left = getAxis(controller, SDL_CONTROLLER_AXIS_LEFTX, -1) 
+                        || getAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX, -1)
+                        || getButton(controller, SDL_CONTROLLER_BUTTON_DPAD_LEFT);
+
+                    gamepad->right = getAxis(controller, SDL_CONTROLLER_AXIS_LEFTX, +1) 
+                        || getAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX, +1)
+                        || getButton(controller, SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
+
+                    gamepad->a = getButton(controller, SDL_CONTROLLER_BUTTON_A);
+                    gamepad->b = getButton(controller, SDL_CONTROLLER_BUTTON_B);
+                    gamepad->x = getButton(controller, SDL_CONTROLLER_BUTTON_X);
+                    gamepad->y = getButton(controller, SDL_CONTROLLER_BUTTON_Y);
+
+                    // !TODO: We have to find a better way to handle gamepad MENU button
+                    // atm we show game menu for only Pause Menu button on XBox one controller
+                    // issue #1220
+                    if(getButton(controller, SDL_CONTROLLER_BUTTON_BACK))
+                    {
+                        tic80_input* input = &platform.input;
+                        input->keyboard.keys[0] = tic_key_escape;
+                    }
+
+                    index++;
+                }
+            }
+        }
+    }
+
     {
         tic80_input* input = &platform.input;
 
@@ -1040,6 +1029,10 @@ static void handleKeydown(SDL_Keycode keycode, bool down, bool* state)
 #if defined(__TIC_ANDROID__)
     if(keycode == SDLK_AC_BACK)
         state[tic_key_escape] = down;
+#elif defined(__TIC_MACOSX__)
+    // SDLK_KP_ENTER is the equivalent of fn+enter on a Macbook keyboard
+    if(keycode == SDLK_KP_ENTER)
+        state[tic_key_insert] = down;
 #endif
 }
 
@@ -1090,27 +1083,34 @@ static void pollEvents()
                 input->mouse.scrolly = event.wheel.y;
             }
             break;
-        case SDL_JOYDEVICEADDED:
+        case SDL_CONTROLLERDEVICEADDED:
             {
-                s32 id = event.jdevice.which;
+                s32 id = event.cdevice.which;
 
-                if (id < TIC_GAMEPADS)
+                const char* name = SDL_GameControllerNameForIndex(id);
+
+                if(name && SDL_strcmp(name, "Serial/Keyboard/Mouse/Joystick") == 0)
+                    break;
+
+                if(SDL_IsGameController(id))
                 {
-                    if(platform.gamepad.ports[id])
-                        SDL_JoystickClose(platform.gamepad.ports[id]);
+                    if (id < TIC_GAMEPADS)
+                    {
+                        if(platform.gamepad.ports[id])
+                            SDL_GameControllerClose(platform.gamepad.ports[id]);
 
-                    platform.gamepad.ports[id] = SDL_JoystickOpen(id);
+                        platform.gamepad.ports[id] = SDL_GameControllerOpen(id);
+                    }
                 }
             }
             break;
-
-        case SDL_JOYDEVICEREMOVED:
+        case SDL_CONTROLLERDEVICEREMOVED:
             {
-                s32 id = event.jdevice.which;
+                s32 id = event.cdevice.which;
 
                 if (id < TIC_GAMEPADS && platform.gamepad.ports[id])
                 {
-                    SDL_JoystickClose(platform.gamepad.ports[id]);
+                    SDL_GameControllerClose(platform.gamepad.ports[id]);
                     platform.gamepad.ports[id] = NULL;
                 }
             }
@@ -1354,6 +1354,16 @@ char* tic_sys_clipboard_get()
 void tic_sys_clipboard_free(const char* text)
 {
     SDL_free((void*)text);
+}
+
+u64 tic_sys_counter_get()
+{
+    return SDL_GetPerformanceCounter();
+}
+
+u64 tic_sys_freq_get()
+{
+    return SDL_GetPerformanceFrequency();
 }
 
 bool tic_sys_fullscreen_get()
@@ -1656,10 +1666,62 @@ static void emsGpuTick()
 
 #endif
 
+s32 determineMaximumScale()
+{
+    SDL_DisplayMode current;
+    int result = SDL_GetCurrentDisplayMode(0, &current);
+    s32 maxScale;
+
+    if (result != 0)
+    {
+        SDL_Log("Unable to SDL_GetCurrentDisplayMode: %s", SDL_GetError());
+        return INT32_MAX;
+    }
+
+    int maxScaleByW = current.w / TIC80_WIDTH;
+    int maxScaleByH = current.h / TIC80_HEIGHT;
+
+    if (maxScaleByW < maxScaleByW)
+    {
+        maxScale = maxScaleByW;
+    }
+    else
+    {
+        maxScale = maxScaleByH;
+    }
+
+    if (maxScale <= 1)
+    {
+        return 1;
+    }
+    else
+    {
+        return maxScale;
+    }
+}
+
 static s32 start(s32 argc, char **argv, const char* folder)
 {
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK);
-    platform.studio = studio_create(argc, argv, TIC80_SAMPLERATE, SCREEN_FORMAT, folder);
+    int result = SDL_Init(SDL_INIT_VIDEO);
+    if (result != 0)
+    {
+        SDL_Log("Unable to initialize SDL Video: %i, %s\n", result, SDL_GetError());
+        return result;
+    }
+
+    result = SDL_Init(SDL_INIT_AUDIO);
+    if (result != 0)
+    {
+        SDL_Log("Unable to initialize SDL Audio: %i, %s\n", result, SDL_GetError());
+    }
+
+    result = SDL_Init(SDL_INIT_GAMECONTROLLER);
+    if (result != 0)
+    {
+        SDL_Log("Unable to initialize SDL Game Controller: %i, %s\n", result, SDL_GetError());
+    }
+
+    platform.studio = studio_create(argc, argv, TIC80_SAMPLERATE, SCREEN_FORMAT, folder, determineMaximumScale());
 
     SCOPE(studio_delete(platform.studio))
     {
@@ -1825,6 +1887,8 @@ s32 main(s32 argc, char **argv)
         if(GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &info) && !info.dwCursorPosition.X && !info.dwCursorPosition.Y)
             FreeConsole();
     }
+#elif defined(__TIC_LINUX__)
+    signal(SIGPIPE, SIG_IGN);
 #endif
 
     const char* folder = getAppFolder();
@@ -1860,7 +1924,7 @@ s32 main(s32 argc, char **argv)
 #if defined(__RPI__)
 
 #include <fcntl.h>
-int fcntl64(int fd, int cmd)
+int fcntl64(int fd, int cmd, ...)
 {
     return fcntl(fd, cmd);
 }

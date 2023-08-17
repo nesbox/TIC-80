@@ -15,6 +15,7 @@ THEME=
 		SHADOW =true,
 		ALT_FONT=false,
 		MATCH_DELIMITERS=true,
+		AUTO_DELIMITERS=false,
 	},
 
 	GAMEPAD=
@@ -29,8 +30,6 @@ THEME=
 CHECK_NEW_VERSION=true
 SOFTWARE_RENDERING=false
 UI_SCALE=4
-GIF_LENGTH=20 -- in seconds
-GIF_SCALE=3
 
 ---------------------------
 function TIC()

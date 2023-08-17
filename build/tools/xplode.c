@@ -22,7 +22,6 @@
 
 #include "cart.h"
 #include "tools.h"
-#include "ext/gif.h"
 #include "ext/png.h"
 #include "studio/project.h"
 
@@ -84,25 +83,6 @@ s32 main(s32 argc, char** argv)
             tic_cart_load(cart, buffer.data, buffer.size);
             free(buffer.data);
 
-            // export cover.gif
-            {
-                FileBuffer buffer = {TIC80_WIDTH * TIC80_HEIGHT * sizeof(u32), malloc(buffer.size)};
-
-                u8* data = malloc(TIC80_WIDTH * TIC80_HEIGHT);
-                for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
-                    data[i] = tic_tool_peek4(cart->bank0.screen.data, i);
-
-                if(gif_write_data(buffer.data, &buffer.size, TIC80_WIDTH, TIC80_HEIGHT, data, (gif_color*)cart->bank0.palette.vbank0.colors, TIC_PALETTE_BPP))
-                {
-                    writeFile("cover.gif", buffer);
-                    printf("cover.gif successfully exported\n");
-                }
-                else printf("cannot extract gif cover\n");
-
-                free(data);
-                free(buffer.data);
-            }
-
             // export cover.png
             {
                 png_img img = {TIC80_WIDTH, TIC80_HEIGHT, malloc(TIC80_WIDTH * TIC80_HEIGHT * sizeof(png_rgba))};
@@ -110,7 +90,7 @@ s32 main(s32 argc, char** argv)
                 for(s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
                     ((u32*)img.data)[i] = tic_rgba(&cart->bank0.palette.vbank0.colors[tic_tool_peek4(cart->bank0.screen.data, i)]);
 
-                png_buffer png = png_write(img);
+                png_buffer png = png_write(img, (png_buffer){NULL, 0});
                 writeFile("cover.png", (FileBuffer){png.size, png.data});
                 printf("cover.png successfully exported\n");
 
@@ -159,7 +139,7 @@ s32 main(s32 argc, char** argv)
                         ((u32*)img.data)[x + y * TIC_SPRITESHEET_SIZE] = tic_rgba(&cart->bank0.palette.vbank0.colors[index]);
                     }
 
-                png_buffer png = png_write(img);
+                png_buffer png = png_write(img, (png_buffer){NULL, 0});
                 writeFile("tiles.png", (FileBuffer){png.size, png.data});
                 printf("tiles.png successfully exported\n");
 
@@ -180,7 +160,7 @@ s32 main(s32 argc, char** argv)
                         ((u32*)img.data)[x + y * TIC_SPRITESHEET_SIZE] = tic_rgba(&cart->bank0.palette.vbank0.colors[index]);
                     }
 
-                png_buffer png = png_write(img);
+                png_buffer png = png_write(img, (png_buffer){NULL, 0});
                 writeFile("sprites.png", (FileBuffer){png.size, png.data});
                 printf("sprites.png successfully exported\n");
 
