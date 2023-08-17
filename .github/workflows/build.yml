@@ -710,7 +710,6 @@ jobs:
           cp linuxdir/* linux
           cp macdir/* mac
           cp rpidir/* rpi
-          mv -f export.html index.html
           zip html.zip index.html tic80.js tic80.wasm
           mv -f html.zip html
 
