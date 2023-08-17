@@ -1883,18 +1883,18 @@ static void recordFrame(Studio* studio, u32* pixels)
 {
     if(studio->video.record)
     {
-        s32 scale = studio->config->data.uiScale;
-        s32 w = TIC80_FULLWIDTH * scale;
-        s32 h = TIC80_FULLHEIGHT * scale;
-
-        u32 *ptr = studio->video.buffer;
-        const u32 *src = pixels;
-        for(s32 y = 0; y < h; y++, src = pixels + (y / scale) * TIC80_FULLWIDTH)
-            for(s32 x = 0; x < w; x++)
-                *ptr++ = src[x / scale];
-
         if(studio->video.frame % 2 == 0)
         {
+            s32 scale = studio->config->data.uiScale;
+            s32 w = TIC80_FULLWIDTH * scale;
+            s32 h = TIC80_FULLHEIGHT * scale;
+
+            u32 *ptr = studio->video.buffer;
+            const u32 *src = pixels;
+            for(s32 y = 0; y < h; y++, src = pixels + (y / scale) * TIC80_FULLWIDTH)
+                for(s32 x = 0; x < w; x++)
+                    *ptr++ = src[x / scale];
+
             // with centiSecondsPerFame == 3 we have 1000/(3*10)=~33.3fps, so we have to save every second frame
             msf_gif_frame(&studio->video.gif, (u8*)studio->video.buffer, 3, 16, w * sizeof(u32));
         }
