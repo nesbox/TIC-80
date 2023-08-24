@@ -700,7 +700,7 @@ static void processKeyboard()
 
         platform.keyboard.state[tic_key_shift] = mod & KMOD_SHIFT;
         platform.keyboard.state[tic_key_ctrl] = mod & (KMOD_CTRL | KMOD_GUI);
-        platform.keyboard.state[tic_key_alt] = mod & KMOD_ALT;
+        platform.keyboard.state[tic_key_alt] = mod & KMOD_LALT;
         platform.keyboard.state[tic_key_capslock] = mod & KMOD_CAPS;
 
         // it's weird, but system sends CTRL when you press RALT
