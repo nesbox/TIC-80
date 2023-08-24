@@ -231,11 +231,11 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
     {
         setCursor(sprite->studio, tic_cursor_hand);
 
-        s32 brushSize = sprite->brushSize*Size;
-        s32 mx = toCanvasCoord(Size, brushSize, x, tic_api_mouse(tic).x);
-        s32 my = toCanvasCoord(Size, brushSize, y, tic_api_mouse(tic).y);
-        s32 pmx = toCanvasCoord(Size, brushSize, x, sprite->previousMouse.x);
-        s32 pmy = toCanvasCoord(Size, brushSize, y, sprite->previousMouse.y);
+        s32 brushSize = sprite->brushSize * Size;
+        tic_point mouse = tic_api_mouse(tic);
+
+        s32 mx = toCanvasCoord(Size, brushSize, x, mouse.x);
+        s32 my = toCanvasCoord(Size, brushSize, y, mouse.y);
 
         SHOW_TOOLTIP(sprite->studio, "[x=%02i y=%02i]", mx / Size, my / Size);
 
@@ -246,14 +246,30 @@ static void processDrawCanvasMouse(Sprite* sprite, s32 x, s32 y, s32 sx, s32 sy)
 
         if(left || right)
         {
+            if(!sprite->draw.start)
+            {
+                sprite->draw.start = true;
+                sprite->draw.last = tic_api_mouse(tic);
+            }
+
+            s32 lx = toCanvasCoord(Size, brushSize, x, sprite->draw.last.x);
+            s32 ly = toCanvasCoord(Size, brushSize, y, sprite->draw.last.y);
+
             u8 color = left ? sprite->color : sprite->color2;
             paintLine(sprite, color,
-                sx + pmx / Size,
-                sy + pmy / Size,
+                sx + lx / Size,
+                sy + ly / Size,
                 sx + mx / Size,
                 sy + my / Size
             );
+
             history_add(sprite->history);
+
+            sprite->draw.last = tic_api_mouse(tic);
+        }
+        else
+        {
+            sprite->draw.start = false;
         }
     }
 }
@@ -1977,7 +1993,6 @@ static void tick(Sprite* sprite)
 {
     tic_mem* tic = sprite->tic;
 
-    if (sprite->tickCounter == 0) sprite->previousMouse = tic_api_mouse(tic);
     processAnim(sprite->anim.movie, sprite);
 
     // process scroll
@@ -2053,7 +2068,6 @@ static void tick(Sprite* sprite)
         drawToolbar(sprite->studio, tic, false);
     }
 
-    sprite->previousMouse = tic_api_mouse(sprite->tic);
     sprite->tickCounter++;
 }
 
