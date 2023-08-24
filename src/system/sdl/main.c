@@ -1460,16 +1460,160 @@ void tic_sys_preseed()
 
 static void loadCrtShader()
 {
-    const char* vertextShader = studio_config(platform.studio)->shader.vertex;
-    const char* pixelShader = studio_config(platform.studio)->shader.pixel;
+    static const char VertextShader[] = 
+#if !defined (EMSCRIPTEN)
+        "#version 110"                                                              "\n"
+#endif
+        "attribute vec3 gpu_Vertex;"                                                "\n"
+        "attribute vec2 gpu_TexCoord;"                                              "\n"
+        "attribute vec4 gpu_Color;"                                                 "\n"
+        "uniform mat4 gpu_ModelViewProjectionMatrix;"                               "\n"
+        "varying vec4 color;"                                                       "\n"
+        "varying vec2 texCoord;"                                                    "\n"
+        "void main(void)"                                                           "\n"
+        "{"                                                                         "\n"
+        "    color = gpu_Color;"                                                    "\n"
+        "    texCoord = vec2(gpu_TexCoord);"                                        "\n"
+        "    gl_Position = gpu_ModelViewProjectionMatrix * vec4(gpu_Vertex, 1.0);"  "\n"
+        "}"                                                                         "\n"
+    ;
 
-    if(!vertextShader)
-        printf("Error: vertex shader is empty.\n");
+    static const char PixelShader[] = 
+#if !defined (EMSCRIPTEN)
+        "#version 110"                                                                      "\n"
+#else
+        "precision highp float;"                                                            "\n"
+#endif
+        "varying vec2 texCoord;"                                                            "\n"
+        "uniform sampler2D source;"                                                         "\n"
+        "uniform float trg_x;"                                                              "\n"
+        "uniform float trg_y;"                                                              "\n"
+        "uniform float trg_w;"                                                              "\n"
+        "uniform float trg_h;"                                                              "\n"
+        ""                                                                                  "\n"
+        "// Emulated input resolution."                                                     "\n"
+        "vec2 res=vec2(256.0,144.0);"                                                       "\n"
+        ""                                                                                  "\n"
+        "// Hardness of scanline."                                                          "\n"
+        "//  -8.0 = soft"                                                                   "\n"
+        "// -16.0 = medium"                                                                 "\n"
+        "float hardScan=-8.0;"                                                              "\n"
+        ""                                                                                  "\n"
+        "// Hardness of pixels in scanline."                                                "\n"
+        "// -2.0 = soft"                                                                    "\n"
+        "// -4.0 = hard"                                                                    "\n"
+        "float hardPix=-3.0;"                                                               "\n"
+        ""                                                                                  "\n"
+        "// Display warp."                                                                  "\n"
+        "// 0.0 = none"                                                                     "\n"
+        "// 1.0/8.0 = extreme"                                                              "\n"
+        "vec2 warp=vec2(1.0/64.0,1.0/48.0); "                                               "\n"
+        ""                                                                                  "\n"
+        "// Amount of shadow mask."                                                         "\n"
+        "float maskDark=0.5;"                                                               "\n"
+        "float maskLight=1.5;"                                                              "\n"
+        ""                                                                                  "\n"
+        "//------------------------------------------------------------------------"        "\n"
+        ""                                                                                  "\n"
+        "// sRGB to Linear."                                                                "\n"
+        "// Assuing using sRGB typed textures this should not be needed."                   "\n"
+        "float ToLinear1(float c){return(c<=0.04045)?c/12.92:pow((c+0.055)/1.055,2.4);}"    "\n"
+        "vec3 ToLinear(vec3 c){return vec3(ToLinear1(c.r),ToLinear1(c.g),ToLinear1(c.b));}" "\n"
+        ""                                                                                  "\n"
+        "// Linear to sRGB."                                                                "\n"
+        "// Assuing using sRGB typed textures this should not be needed."                   "\n"
+        "float ToSrgb1(float c){return(c<0.0031308?c*12.92:1.055*pow(c,0.41666)-0.055);}"   "\n"
+        "vec3 ToSrgb(vec3 c){return vec3(ToSrgb1(c.r),ToSrgb1(c.g),ToSrgb1(c.b));}"         "\n"
+        ""                                                                                  "\n"
+        "// Nearest emulated sample given floating point position and texel offset."        "\n"
+        "// Also zero's off screen."                                                        "\n"
+        "vec3 Fetch(vec2 pos,vec2 off){"                                                    "\n"
+        "    pos=(floor(pos*res+off)+vec2(0.5,0.5))/res;"                                   "\n"
+        "    return ToLinear(1.2 * texture2D(source,pos.xy,-16.0).rgb);}"                   "\n"
+        ""                                                                                  "\n"
+        "// Distance in emulated pixels to nearest texel."                                  "\n"
+        "vec2 Dist(vec2 pos){pos=pos*res;return -((pos-floor(pos))-vec2(0.5));}"            "\n"
+        "        "                                                                          "\n"
+        "// 1D Gaussian."                                                                   "\n"
+        "float Gaus(float pos,float scale){return exp2(scale*pos*pos);}"                    "\n"
+        ""                                                                                  "\n"
+        "// 3-tap Gaussian filter along horz line."                                         "\n"
+        "vec3 Horz3(vec2 pos,float off){"                                                   "\n"
+        "    vec3 b=Fetch(pos,vec2(-1.0,off));"                                             "\n"
+        "    vec3 c=Fetch(pos,vec2( 0.0,off));"                                             "\n"
+        "    vec3 d=Fetch(pos,vec2( 1.0,off));"                                             "\n"
+        "    float dst=Dist(pos).x;"                                                        "\n"
+        "    // Convert distance to weight."                                                "\n"
+        "    float scale=hardPix;"                                                          "\n"
+        "    float wb=Gaus(dst-1.0,scale);"                                                 "\n"
+        "    float wc=Gaus(dst+0.0,scale);"                                                 "\n"
+        "    float wd=Gaus(dst+1.0,scale);"                                                 "\n"
+        "    // Return filtered sample."                                                    "\n"
+        "    return (b*wb+c*wc+d*wd)/(wb+wc+wd);}"                                          "\n"
+        ""                                                                                  "\n"
+        "// 5-tap Gaussian filter along horz line."                                         "\n"
+        "vec3 Horz5(vec2 pos,float off){"                                                   "\n"
+        "    vec3 a=Fetch(pos,vec2(-2.0,off));"                                             "\n"
+        "    vec3 b=Fetch(pos,vec2(-1.0,off));"                                             "\n"
+        "    vec3 c=Fetch(pos,vec2( 0.0,off));"                                             "\n"
+        "    vec3 d=Fetch(pos,vec2( 1.0,off));"                                             "\n"
+        "    vec3 e=Fetch(pos,vec2( 2.0,off));"                                             "\n"
+        "    float dst=Dist(pos).x;"                                                        "\n"
+        "    // Convert distance to weight."                                                "\n"
+        "    float scale=hardPix;"                                                          "\n"
+        "    float wa=Gaus(dst-2.0,scale);"                                                 "\n"
+        "    float wb=Gaus(dst-1.0,scale);"                                                 "\n"
+        "    float wc=Gaus(dst+0.0,scale);"                                                 "\n"
+        "    float wd=Gaus(dst+1.0,scale);"                                                 "\n"
+        "    float we=Gaus(dst+2.0,scale);"                                                 "\n"
+        "    // Return filtered sample."                                                    "\n"
+        "    return (a*wa+b*wb+c*wc+d*wd+e*we)/(wa+wb+wc+wd+we);}"                          "\n"
+        ""                                                                                  "\n"
+        "// Return scanline weight."                                                        "\n"
+        "float Scan(vec2 pos,float off){"                                                   "\n"
+        "    float dst=Dist(pos).y;"                                                        "\n"
+        "    return Gaus(dst+off,hardScan);}"                                               "\n"
+        ""                                                                                  "\n"
+        "// Allow nearest three lines to effect pixel."                                     "\n"
+        "vec3 Tri(vec2 pos){"                                                               "\n"
+        "    vec3 a=Horz3(pos,-1.0);"                                                       "\n"
+        "    vec3 b=Horz5(pos, 0.0);"                                                       "\n"
+        "    vec3 c=Horz3(pos, 1.0);"                                                       "\n"
+        "    float wa=Scan(pos,-1.0);"                                                      "\n"
+        "    float wb=Scan(pos, 0.0);"                                                      "\n"
+        "    float wc=Scan(pos, 1.0);"                                                      "\n"
+        "    return a*wa+b*wb+c*wc;}"                                                       "\n"
+        ""                                                                                  "\n"
+        "// Distortion of scanlines, and end of screen alpha."                              "\n"
+        "vec2 Warp(vec2 pos){"                                                              "\n"
+        "    pos=pos*2.0-1.0;    "                                                          "\n"
+        "    pos*=vec2(1.0+(pos.y*pos.y)*warp.x,1.0+(pos.x*pos.x)*warp.y);"                 "\n"
+        "    return pos*0.5+0.5;}"                                                          "\n"
+        ""                                                                                  "\n"
+        "// Shadow mask."                                                                   "\n"
+        "vec3 Mask(vec2 pos){"                                                              "\n"
+        "    pos.x+=pos.y*3.0;"                                                             "\n"
+        "    vec3 mask=vec3(maskDark,maskDark,maskDark);"                                   "\n"
+        "    pos.x=fract(pos.x/6.0);"                                                       "\n"
+        "    if(pos.x<0.333)mask.r=maskLight;"                                              "\n"
+        "    else if(pos.x<0.666)mask.g=maskLight;"                                         "\n"
+        "    else mask.b=maskLight;"                                                        "\n"
+        "    return mask;}    "                                                             "\n"
+        ""                                                                                  "\n"
+        "void main() {"                                                                     "\n"
+        "    hardScan=-12.0;"                                                               "\n"
+        "    //maskDark=maskLight;"                                                         "\n"
+        "    vec2 start=gl_FragCoord.xy-vec2(trg_x, trg_y);"                                "\n"
+        "    start.y=trg_h-start.y;"                                                        "\n"
+        ""                                                                                  "\n"
+        "    vec2 pos=Warp(start/vec2(trg_w, trg_h));"                                      "\n"
+        ""                                                                                  "\n"
+        "    gl_FragColor.rgb=Tri(pos)*Mask(gl_FragCoord.xy);"                              "\n"
+        "    gl_FragColor = vec4(ToSrgb(gl_FragColor.rgb), 1.0);"                           "\n"
+        "}"                                                                                 "\n"
+    ;
 
-    if(!pixelShader)
-        printf("Error: pixel shader is empty.\n");
-
-    u32 vertex = GPU_CompileShader(GPU_VERTEX_SHADER, vertextShader);
+    u32 vertex = GPU_CompileShader(GPU_VERTEX_SHADER, VertextShader);
     
     if(!vertex)
     {
@@ -1477,7 +1621,7 @@ static void loadCrtShader()
         return;
     }
 
-    u32 pixel = GPU_CompileShader(GPU_PIXEL_SHADER, pixelShader);
+    u32 pixel = GPU_CompileShader(GPU_PIXEL_SHADER, PixelShader);
     
     if(!pixel)
     {
