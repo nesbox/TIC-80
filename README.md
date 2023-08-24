@@ -162,6 +162,14 @@ sudo apt-get install -t jessie-backports liblua5.3-dev
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
+
+# install software ubuntu 22.04.3 LTS
+sudo apt-get install git build-essential ruby-full libsdl2-dev zlib1g-dev
+sudo apt-get install liblua5.3-dev
+sudo apt-get install libcurl4-openssl-dev
+git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
+cmake ..
+make -j4
 ```
 Install with [Install instructions](#install-instructions)
 
