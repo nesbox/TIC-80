@@ -290,6 +290,11 @@ void initConfig(Config* config, Studio* studio, tic_fs* fs)
 
     loadConfigData(fs, OptionsDatPath, &config->data.options, sizeof config->data.options);
 
+#if defined(__TIC_LINUX__)
+    // do not load fullscreen option on Linux
+    config->data.options.fullscreen = false;
+#endif
+
     tic_api_reset(config->tic);
 }
 
