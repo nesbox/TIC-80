@@ -36,7 +36,12 @@ struct Sprite
     tic_tilesheet sheet;
 
     u32 tickCounter;
-    tic_point previousMouse;
+
+    struct 
+    {
+        bool start;
+        tic_point last;
+    } draw;
 
     u16 index;
     u8 color;
