@@ -192,7 +192,7 @@ typedef char FsString;
 #define tic_stat stat
 #define tic_remove remove
 #define tic_fopen fopen
-#define tic_mkdir(name) mkdir(name, 0700)
+#define tic_mkdir(name) mkdir(name, 0777)
 #define tic_strncpy strncpy
 #define tic_strncat strncat
 
