@@ -1323,7 +1323,7 @@ static const char* getAppFolder()
         strcpy(appFolder, SDL_AndroidGetExternalStoragePath());
         const char AppFolder[] = "/" TIC_NAME "/";
         strcat(appFolder, AppFolder);
-        mkdir(appFolder, 0700);
+        mkdir(appFolder, 0777);
 
 #else
 
