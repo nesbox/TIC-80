@@ -429,13 +429,13 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
 
     if(JS_IsArray(ctx, res))
     {
-        result->index = getInteger2(ctx, JS_GetPropertyUint32(ctx, res, 0), result->index);
+        result->index = JS_IsUndefined(res) ? 0 : getInteger(ctx, JS_GetPropertyUint32(ctx, res, 0));
         result->flip = getInteger2(ctx, JS_GetPropertyUint32(ctx, res, 1), result->flip);
         result->rotate = getInteger2(ctx, JS_GetPropertyUint32(ctx, res, 2), result->rotate);
     }
     else
     {
-        result->index = getInteger2(ctx, res, result->index);
+        result->index = JS_IsUndefined(res) ? 0 : getInteger(ctx, res);
     }
 }
 
