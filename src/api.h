@@ -290,7 +290,7 @@ enum
         0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 index, s32 x, s32 y, s32 w, s32 h,                                                                \
-        u8* trans_colors, u8 trans_count, s32 scale, tic_flip flip, tic_rotate rotate)                                             \
+        u8* trans_colors, u8 trans_count, s32 scale, tic_flip flip, tic_rotate rotate)                                  \
                                                                                                                         \
                                                                                                                         \
     macro(btn,                                                                                                          \
@@ -363,7 +363,7 @@ enum
         "The map can be up to 240 cells wide by 136 deep.\n"                                                            \
         "This function will draw the desired area of the map to a specified screen position.\n"                         \
         "For example, map(5,5,12,10,0,0) will draw a 12x10 section of the map, "                                        \
-        "starting from map coordinates (5,5) to screen position (0,0).\n"                                              \
+        "starting from map coordinates (5,5) to screen position (0,0).\n"                                               \
         "The map function's last parameter is a powerful callback function "                                            \
         "for changing how map cells (sprites) are drawn when map is called.\n"                                          \
         "It can be used to rotate, flip and replace sprites while the game is running.\n"                               \
@@ -379,7 +379,7 @@ enum
         1,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 x, s32 y, s32 width, s32 height, s32 sx, s32 sy,                                                  \
-        u8* trans_colors, u8 trans_count, s32 scale, RemapFunc remap, void* data)                                                  \
+        u8* trans_colors, u8 trans_count, s32 scale, RemapFunc remap, void* data)                                       \
                                                                                                                         \
                                                                                                                         \
     macro(mget,                                                                                                         \
@@ -606,17 +606,17 @@ enum
                                                                                                                         \
                                                                                                                         \
     macro(font,                                                                                                         \
-        "font(text x y chromakey char_width char_height fixed=false scale=1) -> width",                                 \
+        "font(text x y chromakey char_width char_height fixed=false scale=1 alt=false) -> width",                       \
                                                                                                                         \
         "Print string with font defined in foreground sprites.\n"                                                       \
         "To simply print to the screen, check out `print()`.\n"                                                         \
         "To print to the console, check out `trace()`.",                                                                \
-        8,                                                                                                              \
+        9,                                                                                                              \
         6,                                                                                                              \
         0,                                                                                                              \
         s32,                                                                                                            \
         tic_mem*, const char* text, s32 x, s32 y,                                                                       \
-        u8* trans_colors, u8 trans_count, s32 w, s32 h, bool fixed, s32 scale, bool alt)                                                    \
+        u8* trans_colors, u8 trans_count, s32 w, s32 h, bool fixed, s32 scale, bool alt)                                \
                                                                                                                         \
                                                                                                                         \
     macro(mouse,                                                                                                        \
@@ -700,8 +700,8 @@ enum
         tic_mem*, float x1, float y1, float x2, float y2, float x3, float y3, u8 color)                                 \
                                                                                                                         \
                                                                                                                         \
-    macro(ttri,                                                                                                       \
-        "ttri(x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 texsrc=0 chromakey=-1 z1=0 z2=0 z3=0)",                             \
+    macro(ttri,                                                                                                         \
+        "ttri(x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 texsrc=0 chromakey=-1 z1=0 z2=0 z3=0)",                               \
                                                                                                                         \
         "It renders a triangle filled with texture from image ram, map ram or vbank.\n"                                 \
         "Use in 3D graphics.\n"                                                                                         \

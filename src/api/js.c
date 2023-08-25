@@ -675,18 +675,13 @@ static JSValue js_font(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
     s32 x = getInteger(ctx, argv[1]);
     s32 y = getInteger(ctx, argv[2]);
     u8 chromakey = getInteger(ctx, argv[3]);
-    s32 width =  getInteger2(ctx, argv[4], TIC_SPRITESIZE);
-    s32 height =  getInteger2(ctx, argv[5], TIC_SPRITESIZE);
+    s32 width = getInteger2(ctx, argv[4], TIC_SPRITESIZE);
+    s32 height = getInteger2(ctx, argv[5], TIC_SPRITESIZE);
     bool fixed = JS_ToBool(ctx, argv[6]);
-    s32 scale =  getInteger2(ctx, argv[7], 1);
+    s32 scale = getInteger2(ctx, argv[7], 1);
     bool alt = JS_ToBool(ctx, argv[8]);
 
-    if(scale == 0)
-    {
-        return JS_NewInt32(ctx, 0);
-    }
-
-    s32 size = tic_api_font(tic, text, x, y, &chromakey, 1, width, height, fixed, scale, alt);
+    s32 size = scale ? tic_api_font(tic, text, x, y, &chromakey, 1, width, height, fixed, scale, alt) : 0;
 
     JS_FreeCString(ctx, text);
     return JS_NewInt32(ctx, size);
