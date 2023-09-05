@@ -2834,13 +2834,18 @@ static void processViKeyboard(Code* code)
     }
 }
 
+static inline enum KeybindMode getKeybindMode(Code* code)
+{
+    return getConfig(code->studio)->options.keybindMode; 
+}
+
 static void processKeyboard(Code* code)
 {
     tic_mem* tic = code->tic;
 
     if(tic->ram->input.keyboard.data == 0) return;
 
-    enum KeybindMode keymode = getConfig(code->studio)->options.keybindMode;
+    enum KeybindMode keymode = getKeybindMode(code);
 
     if (keymode == KEYBIND_VI) 
     {
