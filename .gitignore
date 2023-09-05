@@ -2,6 +2,7 @@
 *.ipch
 *.opendb
 *.suo
+compile_commands.json
 sexit
 .vscode/
 build/install_manifest.txt
