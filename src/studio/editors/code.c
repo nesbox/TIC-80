@@ -1095,9 +1095,16 @@ static bool replaceSelection(Code* code)
     return false;
 }
 
+static inline enum KeybindMode getKeybindMode(Code* code)
+{
+    return getConfig(code->studio)->options.keybindMode;
+}
+
+
 static inline bool shouldUseStructuredEdit(Code* code)
 {
-    return tic_core_script_config(code->tic)->useStructuredEdition;
+    const bool emacsMode = getKeybindMode(code) == KEYBIND_EMACS;
+    return tic_core_script_config(code->tic)->useStructuredEdition && emacsMode;
 }
 
 
@@ -2832,11 +2839,6 @@ static void processViKeyboard(Code* code)
             }
         }
     }
-}
-
-static inline enum KeybindMode getKeybindMode(Code* code)
-{
-    return getConfig(code->studio)->options.keybindMode; 
 }
 
 static void processKeyboard(Code* code)
