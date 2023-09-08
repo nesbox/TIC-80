@@ -1,10 +1,5 @@
 const tic = @import("tic80.zig");
 
-var initDone = false;
-
-fn INIT() void {
-}
-
 const TICGuy = struct {
     x : i32 = 96,
     y : i32 = 24,
@@ -13,9 +8,9 @@ const TICGuy = struct {
 var t : u16 = 0;
 var mascot : TICGuy = .{};
 
-export fn TIC() void {
-    if (!initDone) { INIT(); }
+export fn BOOT() void {}
 
+export fn TIC() void {
     tic.sync(.{
         .sections = .{.tiles = true},
         .bank = 1,
@@ -47,3 +42,6 @@ export fn TIC() void {
     t += 1;
 }
 
+export fn BDR() void {}
+
+export fn OVR() void {}

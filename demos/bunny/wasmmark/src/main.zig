@@ -138,48 +138,50 @@ export fn TIC() void {
     }
     t = t + 1;
 
-
-if (tic.btn(0)) {
-    var i : i32 = 0;
-    while (i<5) {
-        addBunny();
-        i+=1;
+    if (tic.btn(0)) {
+        var i : i32 = 0;
+        while (i<5) {
+            addBunny();
+            i+=1;
+        }
     }
-}
 
-if (tic.btn(1)) {
-    var i : i32 = 0;
-    while (i<5) {
-        removeBunny();
-        i+=1;
+    if (tic.btn(1)) {
+        var i : i32 = 0;
+        while (i<5) {
+            removeBunny();
+            i+=1;
+        }
     }
+
+    // 	-- Update
+    var i : u32 = 0;
+    while (i<bunnyCount) {
+        bunnies[i].update();
+        i += 1;
+    }
+
+    // 	-- Draw
+    tic.cls(15);
+    i = 0;
+    while (i<bunnyCount) {
+        bunnies[i].draw();
+        i += 1;
+    }
+
+
+    tic.rect(0, 0, screenWidth, toolbarHeight, 9);
+
+    _ = tic.printf("Bunnies: {d}", .{bunnyCount}, 1, 0, .{.color = 11});
+    _ = tic.printf("FPS: {d:.4}", .{fps.getValue()}, screenWidth / 2, 0, .{.color = 11});
+    _ = tic.print("hello people", 10, 10, .{.color = 11});
+
+    // var x : u32 = 100000000;
+    // tic.FRAMEBUFFER[x] = 56;
+
+    // testscreen();
 }
 
-// 	-- Update
-var i : u32 = 0;
-while (i<bunnyCount) {
-    bunnies[i].update();
-    i += 1;
-}
+export fn BDR() void {}
 
-// 	-- Draw
-tic.cls(15);
-i = 0;
-while (i<bunnyCount) {
-    bunnies[i].draw();
-    i += 1;
-}
-
-
-tic.rect(0, 0, screenWidth, toolbarHeight, 9);
-
-_ = tic.printf("Bunnies: {d}", .{bunnyCount}, 1, 0, .{.color = 11});
-_ = tic.printf("FPS: {d:.4}", .{fps.getValue()}, screenWidth / 2, 0, .{.color = 11});
-_ = tic.print("hello people", 10, 10, .{.color = 11});
-
-// var x : u32 = 100000000;
-// tic.FRAMEBUFFER[x] = 56;
-
-// testscreen();
-}
-
+export fn OVR() void {}
