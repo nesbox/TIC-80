@@ -3072,9 +3072,9 @@ static s32 createVRamTable(char* buf)
 static s32 createKeysTable(char* buf)
 {
     char* ptr = buf;
-    ptr += sprintf(ptr, "\n+------+-----+  +------+--------------+"
-                        "\n| CODE | KEY |  | CODE | KEY          |"
-                        "\n+------+-----+  +------+--------------+");
+    ptr += sprintf(ptr, "\n+----+------------+ +----+------------+"
+                        "\n|CODE|    KEY     | |CODE|    KEY     |"
+                        "\n+----+------------+ +----+------------+");
 
     static const struct Row {s32 code; const char* key;} Rows[] =
     {
@@ -3117,7 +3117,7 @@ static s32 createKeysTable(char* buf)
         {37, "MINUS"},
         {38, "EQUALS"},
         {39, "LEFTBRACKET"},
-        {40, "RIGHTBRACKET"},
+        {40, "RIGHTBRACKT"},
         {41, "BACKSLASH"},
         {42, "SEMICOLON"},
         {43, "APOSTROPHE"},
@@ -3174,26 +3174,12 @@ static s32 createKeysTable(char* buf)
         {94, "NUMPERIOD"},
     };
 
-    int numAlphaNumericRows = 36;
-    int numNonAlphaNumericRows = COUNT_OF(Rows) - numAlphaNumericRows;
-    int numRowPairs = MAX(numAlphaNumericRows, numNonAlphaNumericRows);
-    const struct Row* row = Rows;
-    for(int i=0; i<numRowPairs; i++,row++)
+    for(const struct Row *row = Rows, *alt = row + COUNT_OF(Rows) / 2, *end = alt; row != end; ++row, ++alt)
     {
-        ptr += sprintf(ptr, "\n| ");
-        if (i < numAlphaNumericRows)
-            ptr += sprintf(ptr, "%4d | %-3s |", row->code, row->key);
-        else
-            ptr += sprintf(ptr, "%4s | %3s |", "", "");
-
-        const struct Row* otherRow = row + numAlphaNumericRows;
-        if (i < numNonAlphaNumericRows)
-            ptr += sprintf(ptr, "  | %4d | %-12s |", otherRow->code, otherRow->key);
-        else
-            ptr += sprintf(ptr, "  | %4s | %12s |", "", "");
+        ptr += sprintf(ptr, "\n| %2d | %-11s| | %2d | %-11s|", row->code, row->key, alt->code, alt->key);
     }
 
-    ptr += sprintf(ptr, "\n+------+-----+  +------+--------------+\n");
+    ptr += sprintf(ptr, "\n+----+------------+ +----+------------+\n");
 
     return strlen(buf);
 }
