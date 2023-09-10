@@ -3143,15 +3143,51 @@ static s32 createKeysTable(char* buf)
         {63, "CTRL"},
         {64, "SHIFT"},
         {65, "ALT"},
+        {66, "ESC"},
+        {67, "F1"},
+        {68, "F2"},
+        {69, "F3"},
+        {70, "F4"},
+        {71, "F5"},
+        {72, "F6"},
+        {73, "F7"},
+        {74, "F8"},
+        {75, "F9"},
+        {76, "F10"},
+        {77, "F11"},
+        {78, "F12"},
+        {78, "NUM0"},
+        {79, "NUM1"},
+        {80, "NUM2"},
+        {81, "NUM3"},
+        {82, "NUM4"},
+        {83, "NUM5"},
+        {84, "NUM6"},
+        {85, "NUM7"},
+        {86, "NUM8"},
+        {87, "NUM9"},
+        {88, "NUMPLUS"},
+        {89, "NUMMINUS"},
+        {90, "NUMMULTIPLY"},
+        {91, "NUMDIVIDE"},
+        {92, "NUMENTER"},
+        {93, "NUMPERIOD"},
     };
 
-    int lastAlphaNumeric = 36;
-    for(const struct Row* row = Rows, *end = row + lastAlphaNumeric; row < end; row++)
+    int numAlphaNumericRows = 36;
+    int numNonAlphaNumericRows = COUNT_OF(Rows) - numAlphaNumericRows;
+    int numRowPairs = MAX(numAlphaNumericRows, numNonAlphaNumericRows);
+    const struct Row* row = Rows;
+    for(int i=0; i<numRowPairs; i++,row++)
     {
-        const struct Row* otherRow = row + lastAlphaNumeric;
         ptr += sprintf(ptr, "\n| ");
-        ptr += sprintf(ptr, "%4d | %-3s |", row->code, row->key);
-        if (otherRow < Rows + COUNT_OF(Rows))
+        if (i < numAlphaNumericRows)
+            ptr += sprintf(ptr, "%4d | %-3s |", row->code, row->key);
+        else
+            ptr += sprintf(ptr, "%4s | %3s |", "", "");
+
+        const struct Row* otherRow = row + numAlphaNumericRows;
+        if (i < numNonAlphaNumericRows)
             ptr += sprintf(ptr, "  | %4d | %-12s |", otherRow->code, otherRow->key);
         else
             ptr += sprintf(ptr, "  | %4s | %12s |", "", "");
