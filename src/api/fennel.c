@@ -98,7 +98,8 @@ static const char* const FennelKeywords [] =
     "lambda", "length", "let", "local", "lshift", "lua", "macro",
     "macrodebug", "macros", "match", "match-try", "not", "not=", "or",
     "partial", "pick-args", "pick-values", "quote", "require-macros",
-    "rshift", "set", "tset", "values", "var", "when", "while", "with-open"
+    "rshift", "set", "tset", "values", "var", "when", "while", "with-open",
+    "true", "false", "nil"
 };
 
 static inline bool fennel_isalnum(char c)
