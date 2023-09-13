@@ -1246,7 +1246,8 @@ static void processTrackerKeyboard(Music* music)
 
 static bool enterWasPressed(Music* music)
 { 
-    return keyWasPressed(music->studio, tic_key_return);
+    return keyWasPressed(music->studio, tic_key_return) ||
+           keyWasPressed(music->studio, tic_key_numpadenter);
 }
 
 static void processPatternKeyboard(Music* music)
