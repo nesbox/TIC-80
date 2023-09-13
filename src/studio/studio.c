@@ -1697,7 +1697,8 @@ void gotoMenu(Studio* studio)
 
 static bool enterWasPressedOnce(Studio* studio)
 {
-    return keyWasPressedOnce(studio, tic_key_return);
+    return keyWasPressedOnce(studio, tic_key_return) ||
+           keyWasPressedOnce(studio, tic_key_numpadenter);
 }
 
 static void processShortcuts(Studio* studio)
