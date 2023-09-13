@@ -2471,8 +2471,10 @@ static char toggleCase(char c) {
         return c;
 }
 
-static bool enterWasPressed(Code* code) {
-    return keyWasPressed(code->studio, tic_key_return);
+static bool enterWasPressed(Code* code)
+{
+    return keyWasPressed(code->studio, tic_key_return) ||
+           keyWasPressed(code->studio, tic_key_numpadenter);
 }
 
 static void processViKeyboard(Code* code) 
