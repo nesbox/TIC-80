@@ -1695,6 +1695,11 @@ void gotoMenu(Studio* studio)
     studio->mainmenu = studio_mainmenu_init(studio->menu, studio->config);
 }
 
+static bool enterWasPressedOnce(Studio* studio)
+{
+    return keyWasPressedOnce(studio, tic_key_return);
+}
+
 static void processShortcuts(Studio* studio)
 {
     tic_mem* tic = studio->tic;
@@ -1716,7 +1721,7 @@ static void processShortcuts(Studio* studio)
 
     if(alt)
     {
-        if (keyWasPressedOnce(studio, tic_key_return)) gotoFullscreen(studio);
+        if (enterWasPressedOnce(studio)) gotoFullscreen(studio);
 #if defined(BUILD_EDITORS)
         else if(studio->mode != TIC_RUN_MODE)
         {
@@ -1735,7 +1740,7 @@ static void processShortcuts(Studio* studio)
 #if defined(BUILD_EDITORS)
         else if(keyWasPressedOnce(studio, tic_key_pageup)) changeStudioMode(studio, -1);
         else if(keyWasPressedOnce(studio, tic_key_pagedown)) changeStudioMode(studio, +1);
-        else if(keyWasPressedOnce(studio, tic_key_return)) runGame(studio);
+        else if(enterWasPressedOnce(studio)) runGame(studio);
         else if(keyWasPressedOnce(studio, tic_key_r)) runGame(studio);
         else if(keyWasPressedOnce(studio, tic_key_s)) saveProject(studio);
 #endif
