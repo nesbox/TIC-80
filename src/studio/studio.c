@@ -439,8 +439,7 @@ bool keyWasPressed(Studio* studio, tic_key key)
 bool enterWasPressed(Studio* studio)
 {
     tic_mem* tic = studio->tic;
-    return tic_api_keyp(tic, tic_key_return, KEYBOARD_HOLD, KEYBOARD_PERIOD) ||
-           tic_api_keyp(tic, tic_key_numpadenter, KEYBOARD_HOLD, KEYBOARD_PERIOD);
+    return tic_core_enterp(tic, KEYBOARD_HOLD, KEYBOARD_PERIOD);
 }
 
 bool anyKeyWasPressed(Studio* studio)

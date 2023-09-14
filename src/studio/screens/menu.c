@@ -215,13 +215,6 @@ static void drawOptionArrow(Menu* menu, MenuOption* option, s32 x, s32 y, s32 ic
     }
 }
 
-static bool ticEnterWasPressed(tic_mem* tic)
-{
-
-   return tic_api_keyp(tic, tic_key_return, Hold, Period) ||
-          tic_api_keyp(tic, tic_key_numpadenter, Hold, Period);
-}
-
 static void drawMenu(Menu* menu, s32 x, s32 y)
 {
     if (getStudioMode(menu->studio) != TIC_MENU_MODE)
@@ -264,7 +257,7 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
             }            
         }
 
-        if(tic_api_btnp(menu->tic, A, -1, -1) || ticEnterWasPressed(tic))
+        if(tic_api_btnp(menu->tic, A, -1, -1) || tic_core_enterp(tic, -1, -1))
         {
             if(option)
             {

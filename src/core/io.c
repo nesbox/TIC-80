@@ -132,6 +132,12 @@ tic_point tic_api_mouse(tic_mem* memory)
         : (tic_point){memory->ram->input.mouse.x - TIC80_OFFSET_LEFT, memory->ram->input.mouse.y - TIC80_OFFSET_TOP};
 }
 
+bool tic_core_enterp(tic_mem* tic, s32 hold, s32 period)
+{
+    return tic_api_keyp(tic, tic_key_return, hold, period) ||
+           tic_api_keyp(tic, tic_key_numpadenter, hold, period);
+}
+
 void tic_core_tick_io(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
