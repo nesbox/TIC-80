@@ -612,7 +612,7 @@ static void move(Surf* surf, s32 dir)
     surf->anim.movie = resetMovie(&surf->anim.move);
 }
 
-static bool enterWasPressed(tic_mem* tic)
+static bool ticEnterWasPressed(tic_mem* tic)
 {
     return tic_api_keyp(tic, tic_key_return, -1, -1) ||
            tic_api_keyp(tic, tic_key_numpadenter, -1, -1);
@@ -668,7 +668,7 @@ static void processGamepad(Surf* surf)
         }
 
         if(tic_api_btnp(tic, A, -1, -1)
-            || enterWasPressed(tic))
+            || ticEnterWasPressed(tic))
         {
             SurfItem* item = getMenuItem(surf);
             item->dir 

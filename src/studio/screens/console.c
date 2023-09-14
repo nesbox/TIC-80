@@ -4028,12 +4028,6 @@ static void backspaceWord(Console* console)
     console->input.pos = pos;
 }
 
-static bool enterWasPressed(Console* console)
-{
-    return keyWasPressed(console->studio, tic_key_return) ||
-           keyWasPressed(console->studio, tic_key_numpadenter);
-}
-
 static void processKeyboard(Console* console)
 {
     tic_mem* tic = console->tic;
@@ -4095,7 +4089,7 @@ static void processKeyboard(Console* console)
                 if(console->input.pos > len)
                     console->input.pos = len;
             }
-            else if(enterWasPressed(console))                            processConsoleCommand(console);
+            else if(enterWasPressed(console->studio))                            processConsoleCommand(console);
             else if(keyWasPressed(console->studio, tic_key_backspace))   processConsoleBackspace(console);
             else if(keyWasPressed(console->studio, tic_key_delete))      processConsoleDel(console);
             else if(keyWasPressed(console->studio, tic_key_home))        processConsoleHome(console);

@@ -1244,12 +1244,6 @@ static void processTrackerKeyboard(Music* music)
 
 }
 
-static bool enterWasPressed(Music* music)
-{ 
-    return keyWasPressed(music->studio, tic_key_return) ||
-           keyWasPressed(music->studio, tic_key_numpadenter);
-}
-
 static void processPatternKeyboard(Music* music)
 {
     tic_mem* tic = music->tic;
@@ -1263,7 +1257,7 @@ static void processPatternKeyboard(Music* music)
     else if(keyWasPressed(music->studio, tic_key_left))    colLeft(music);
     else if(keyWasPressed(music->studio, tic_key_right))   colRight(music);
     else if(keyWasPressed(music->studio, tic_key_down) 
-            || enterWasPressed(music)) 
+            || enterWasPressed(music->studio)) 
         music->tracker.edit.y = music->scroll.pos;
     else
     {
@@ -1548,7 +1542,7 @@ static void processKeyboard(Music* music)
                 ? playTrack(music)
                 : stopTrack(music);
         }
-        else if(enterWasPressed(music))
+        else if(enterWasPressed(music->studio))
         {
             stopped
                 ? (shift

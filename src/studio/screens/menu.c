@@ -215,7 +215,7 @@ static void drawOptionArrow(Menu* menu, MenuOption* option, s32 x, s32 y, s32 ic
     }
 }
 
-static bool enterWasPressed(tic_mem* tic)
+static bool ticEnterWasPressed(tic_mem* tic)
 {
 
    return tic_api_keyp(tic, tic_key_return, Hold, Period) ||
@@ -264,7 +264,7 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
             }            
         }
 
-        if(tic_api_btnp(menu->tic, A, -1, -1) || enterWasPressed(tic))
+        if(tic_api_btnp(menu->tic, A, -1, -1) || ticEnterWasPressed(tic))
         {
             if(option)
             {
