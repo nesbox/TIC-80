@@ -662,7 +662,7 @@ static void processGamepad(Surf* surf)
         }
 
         if(tic_api_btnp(tic, A, -1, -1)
-            || tic_core_enterp(tic, -1, -1))
+            || ticEnterWasPressed(tic, -1, -1))
         {
             SurfItem* item = getMenuItem(surf);
             item->dir 
