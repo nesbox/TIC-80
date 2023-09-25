@@ -1257,7 +1257,7 @@ static void processPatternKeyboard(Music* music)
     else if(keyWasPressed(music->studio, tic_key_left))    colLeft(music);
     else if(keyWasPressed(music->studio, tic_key_right))   colRight(music);
     else if(keyWasPressed(music->studio, tic_key_down) 
-        || keyWasPressed(music->studio, tic_key_return)) 
+            || enterWasPressed(music->studio)) 
         music->tracker.edit.y = music->scroll.pos;
     else
     {
@@ -1542,7 +1542,7 @@ static void processKeyboard(Music* music)
                 ? playTrack(music)
                 : stopTrack(music);
         }
-        else if(keyWasPressed(music->studio, tic_key_return))
+        else if(enterWasPressed(music->studio))
         {
             stopped
                 ? (shift

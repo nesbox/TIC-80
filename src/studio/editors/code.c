@@ -2514,7 +2514,7 @@ static void processViKeyboard(Code* code)
         else if (keyWasPressed(code->studio, tic_key_tab)) 
             doTab(code, shift, ctrl);
 
-        else if (keyWasPressed(code->studio, tic_key_return))
+        else if (enterWasPressed(code->studio))
             newLine(code);
 
         else if (clear || shift)
@@ -2995,14 +2995,14 @@ static void processKeyboard(Code* code)
         else if(keyWasPressed(code->studio, tic_key_pagedown))  pageDown(code);
         else if(keyWasPressed(code->studio, tic_key_delete))    deleteChar(code);
         else if(keyWasPressed(code->studio, tic_key_backspace)) backspaceChar(code);
-        else if(keyWasPressed(code->studio, tic_key_return))    newLine(code);
+        else if(enterWasPressed(code->studio))                          newLine(code);
         else if(keyWasPressed(code->studio, tic_key_tab))       doTab(code, shift, ctrl);
         else usedKeybinding = false;
     }
 
     if(!usedKeybinding)
     {
-        if(shift && keyWasPressed(code->studio, tic_key_return))
+        if(shift && enterWasPressed(code->studio))
         {
             newLineAutoClose(code);
             usedKeybinding = true;
@@ -3181,7 +3181,7 @@ static void textFindTick(Code* code)
 {
 
 
-    if(keyWasPressed(code->studio, tic_key_return)) setCodeMode(code, TEXT_EDIT_MODE);
+    if(enterWasPressed(code->studio)) setCodeMode(code, TEXT_EDIT_MODE);
     else if(keyWasPressed(code->studio, tic_key_up)
         || keyWasPressed(code->studio, tic_key_down)
         || keyWasPressed(code->studio, tic_key_left)
@@ -3226,7 +3226,7 @@ static void textFindTick(Code* code)
 static void textReplaceTick(Code* code)
 {
 
-    if(keyWasPressed(code->studio, tic_key_return)) {
+    if (enterWasPressed(code->studio)) {
         if (*code->popup.text && code->popup.offset == NULL) //still in "find" mode
         {
             code->popup.offset = code->popup.text + strlen(code->popup.text);
@@ -3317,7 +3317,7 @@ static void textGoToTick(Code* code)
 {
     tic_mem* tic = code->tic;
 
-    if(keyWasPressed(code->studio, tic_key_return))
+    if(enterWasPressed(code->studio))
     {
         if(*code->popup.text)
             updateGotoCode(code);
@@ -3462,7 +3462,7 @@ static void processSidebar(Code* code)
     else if(keyWasPressed(code->studio, tic_key_end))
         updateSidebarIndex(code, code->sidebar.size - 1);
 
-    else if(keyWasPressed(code->studio, tic_key_return))
+    else if(enterWasPressed(code->studio))
     {
         updateSidebarCode(code);        
         setCodeMode(code, TEXT_EDIT_MODE);
