@@ -7,6 +7,21 @@
 #include <stdio.h>
 #include <string.h>
 
+bool to_float_wrapper(pkpy_vm* vm_handle, int index, double* ret)
+{
+    // Implicit convert of int to double
+    if( pkpy_is_int(vm_handle, index) )
+    {
+        int temp;
+        pkpy_to_int(vm_handle, index, &temp);
+        *ret = (double)temp;
+    }
+    else
+    {
+        pkpy_to_float(vm_handle, index, ret);
+    }
+}
+
 static bool get_core(pkpy_vm* vm, tic_core** core) 
 {
     pkpy_get_global(vm, "_tic_core");
@@ -379,10 +394,10 @@ static int py_line(pkpy_vm* vm)
     double y1;
     int color;
 
-    pkpy_to_float(vm, 0, &x0);
-    pkpy_to_float(vm, 1, &y0);
-    pkpy_to_float(vm, 2, &x1);
-    pkpy_to_float(vm, 3, &y1);
+    to_float_wrapper(vm, 0, &x0);
+    to_float_wrapper(vm, 1, &y0);
+    to_float_wrapper(vm, 2, &x1);
+    to_float_wrapper(vm, 3, &y1);
     pkpy_to_int(vm, 4, &color);
     get_core(vm, (tic_core**) &tic);
     if(pkpy_check_error(vm))
@@ -1013,12 +1028,12 @@ static int py_tri(pkpy_vm* vm)
     double y3;
     int color;
 
-    pkpy_to_float(vm, 0, &x1);
-    pkpy_to_float(vm, 1, &y1);
-    pkpy_to_float(vm, 2, &x2);
-    pkpy_to_float(vm, 3, &y2);
-    pkpy_to_float(vm, 4, &x3);
-    pkpy_to_float(vm, 5, &y3);
+    to_float_wrapper(vm, 0, &x1);
+    to_float_wrapper(vm, 1, &y1);
+    to_float_wrapper(vm, 2, &x2);
+    to_float_wrapper(vm, 3, &y2);
+    to_float_wrapper(vm, 4, &x3);
+    to_float_wrapper(vm, 5, &y3);
     pkpy_to_int(vm, 6, &color);
     get_core(vm, (tic_core**) &tic);
     if(pkpy_check_error(vm))
@@ -1039,12 +1054,12 @@ static int py_trib(pkpy_vm* vm)
     double y3;
     int color;
 
-    pkpy_to_float(vm, 0, &x1);
-    pkpy_to_float(vm, 1, &y1);
-    pkpy_to_float(vm, 2, &x2);
-    pkpy_to_float(vm, 3, &y2);
-    pkpy_to_float(vm, 4, &x3);
-    pkpy_to_float(vm, 5, &y3);
+    to_float_wrapper(vm, 0, &x1);
+    to_float_wrapper(vm, 1, &y1);
+    to_float_wrapper(vm, 2, &x2);
+    to_float_wrapper(vm, 3, &y2);
+    to_float_wrapper(vm, 4, &x3);
+    to_float_wrapper(vm, 5, &y3);
     pkpy_to_int(vm, 6, &color);
     get_core(vm, (tic_core**) &tic);
     if(pkpy_check_error(vm))
@@ -1077,26 +1092,26 @@ static int py_ttri(pkpy_vm* vm)
 
     static u8 colors[TIC_PALETTE_SIZE];
 
-    pkpy_to_float(vm, 0, &x1);
-    pkpy_to_float(vm, 1, &y1);
-    pkpy_to_float(vm, 2, &x2);
-    pkpy_to_float(vm, 3, &y2);
-    pkpy_to_float(vm, 4, &x3);
-    pkpy_to_float(vm, 5, &y3);
+    to_float_wrapper(vm, 0, &x1);
+    to_float_wrapper(vm, 1, &y1);
+    to_float_wrapper(vm, 2, &x2);
+    to_float_wrapper(vm, 3, &y2);
+    to_float_wrapper(vm, 4, &x3);
+    to_float_wrapper(vm, 5, &y3);
 
-    pkpy_to_float(vm, 6, &u1);
-    pkpy_to_float(vm, 7, &v1);
-    pkpy_to_float(vm, 8, &u2);
-    pkpy_to_float(vm, 9, &v2);
-    pkpy_to_float(vm, 10, &u3);
-    pkpy_to_float(vm, 11, &v3);
+    to_float_wrapper(vm, 6, &u1);
+    to_float_wrapper(vm, 7, &v1);
+    to_float_wrapper(vm, 8, &u2);
+    to_float_wrapper(vm, 9, &v2);
+    to_float_wrapper(vm, 10, &u3);
+    to_float_wrapper(vm, 11, &v3);
 
     pkpy_to_int(vm, 12, &texsrc);
     color_count = prepare_colorindex(vm, 13, colors);
 
-    pkpy_to_float(vm, 14, &z1);
-    pkpy_to_float(vm, 15, &z2);
-    pkpy_to_float(vm, 16, &z3);
+    to_float_wrapper(vm, 14, &z1);
+    to_float_wrapper(vm, 15, &z2);
+    to_float_wrapper(vm, 16, &z3);
 
     get_core(vm, (tic_core**) &tic);
     if(pkpy_check_error(vm)) 
