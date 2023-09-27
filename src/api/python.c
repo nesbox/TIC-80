@@ -826,7 +826,7 @@ static int py_print(pkpy_vm* vm) {
     int color;
     bool fixed;
     int scale;
-    bool small;
+    bool small_;
     bool alt;
 
     pkpy_to_string(vm, 0, &text);
@@ -835,7 +835,7 @@ static int py_print(pkpy_vm* vm) {
     pkpy_to_int(vm, 3, &color);
     pkpy_to_bool(vm, 4, &fixed);
     pkpy_to_int(vm, 5, &scale);
-    pkpy_to_bool(vm, 6, &small);
+    pkpy_to_bool(vm, 6, &small_);
     pkpy_to_bool(vm, 7, &alt);
     get_core(vm, (tic_core**) &tic);
     if(pkpy_check_error(vm)) {
