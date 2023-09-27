@@ -11,6 +11,11 @@ typedef struct CachedNames{
     pkpy_CName _tic_core;
     pkpy_CName len;
     pkpy_CName __getitem__;
+    pkpy_CName TIC;
+    pkpy_CName BOOT;
+    pkpy_CName SCN;
+    pkpy_CName BDR;
+    pkpy_CName MENU;
 } CachedNames;
 
 CachedNames _cached_names;
@@ -20,6 +25,11 @@ static CachedNames* N(){
         _cached_names._tic_core = pkpy_name("_tic_core");
         _cached_names.len = pkpy_name("len");
         _cached_names.__getitem__ = pkpy_name("__getitem__");
+        _cached_names.TIC = pkpy_name("TIC");
+        _cached_names.BOOT = pkpy_name("BOOT");
+        _cached_names.SCN = pkpy_name("SCN");
+        _cached_names.BDR = pkpy_name("BDR");
+        _cached_names.MENU = pkpy_name("MENU");
         _cached_names.initialized = true;
     }
     return &_cached_names;
@@ -34,6 +44,10 @@ static char* cstrdup(pkpy_CString cs){
 
 static void pkpy_setglobal_2(pkpy_vm* vm, const char* name){
     pkpy_setglobal(vm, pkpy_name(name));
+}
+
+static bool pkpy_vm_run(pkpy_vm* vm, const char* src){
+    return 0;
 }
 
 static bool get_core(pkpy_vm* vm, tic_core** core) 
@@ -806,7 +820,7 @@ static int py_poke4(pkpy_vm* vm) {
 static int py_print(pkpy_vm* vm) {
     
     tic_mem* tic;
-    char* text = NULL;
+    pkpy_CString text;
     int x;
     int y;
     int color;
@@ -825,15 +839,14 @@ static int py_print(pkpy_vm* vm) {
     pkpy_to_bool(vm, 7, &alt);
     get_core(vm, (tic_core**) &tic);
     if(pkpy_check_error(vm)) {
-        if (text != NULL) free(text);
         return 0;
     }
 
-    s32 size = tic_api_print(tic, text, x, y, color, fixed, scale, alt);
+    char* text_s = cstrdup(text);
+    s32 size = tic_api_print(tic, text_s, x, y, color, fixed, scale, alt);
+    free(text_s);
     
     pkpy_push_int(vm, size);
-
-    free(text);
     return 1;
 }
 
@@ -1179,137 +1192,138 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, "cls(color=0)", py_cls);
     pkpy_setglobal_2(vm, "cls");
 
+    //lua api does this for btn
     pkpy_push_function(vm, "btn(id: int)", py_btn);
     pkpy_setglobal_2(vm, "btn");
 
-    pkpy_push_function(vm, py_btnp, 3);
-    pkpy_set_global(vm, "_btnp");
+    pkpy_push_function(vm, "btnp(id: int, hold=-1, period=-1)", py_btnp);
+    pkpy_setglobal_2(vm, "btnp");
 
-    pkpy_push_function(vm, py_circ, 4);
-    pkpy_set_global(vm, "_circ");
+    pkpy_push_function(vm, "circ(x: int, y: int, radius: int, color: int)", py_circ);
+    pkpy_setglobal_2(vm, "circ");
 
-    pkpy_push_function(vm, py_circb, 4);
-    pkpy_set_global(vm, "_circb");
+    pkpy_push_function(vm, "circb(x: int, y: int, radius: int, color: int)", py_circb);
+    pkpy_setglobal_2(vm, "circb");
 
-    pkpy_push_function(vm, py_clip, 4);
-    pkpy_set_global(vm, "_clip");
+    pkpy_push_function(vm, "elli(x: int, y: int, a: int, b: int, color: int)", py_elli);
+    pkpy_setglobal_2(vm, "elli");
 
-    pkpy_push_function(vm, py_elli, 5);
-    pkpy_set_global(vm, "_elli");
+    pkpy_push_function(vm, "ellib(x: int, y: int, a: int, b: int, color: int)", py_ellib);
+    pkpy_setglobal_2(vm, "ellib");
 
-    pkpy_push_function(vm, py_ellib, 5);
-    pkpy_set_global(vm, "_ellib");
+    pkpy_push_function(vm, "clip(x: int, y: int, width: int, height: int)", py_clip);
+    pkpy_setglobal_2(vm, "clip");
 
-    pkpy_push_function(vm, py_exit, 0);
-    pkpy_set_global(vm, "_exit");
+    pkpy_push_function(vm, "exit()", py_exit);
+    pkpy_setglobal_2(vm, "exit");
 
-    pkpy_push_function(vm, py_fget, 2);
-    pkpy_set_global(vm, "_fget");
+    pkpy_push_function(vm, "fget(sprite_id: int, flag: int)", py_fget);
+    pkpy_setglobal_2(vm, "fget");
 
-    pkpy_push_function(vm, py_fset, 3);
-    pkpy_set_global(vm, "_fset");
+    pkpy_push_function(vm, "fset(sprite_id: int, flag: int, b: bool)", py_fset);
+    pkpy_setglobal_2(vm, "fset");
 
-    pkpy_push_function(vm, py_font, 9);
-    pkpy_set_global(vm, "_font");
+    pkpy_push_function(vm, "font(text: str, x: int, y: int, chromakey: int, char_width: int=8, char_height: int=8, fixed: bool=False, scale: int=1, alt: bool=False)", py_font);
+    pkpy_setglobal_2(vm, "font");
 
-    pkpy_push_function(vm, py_key, 1);
-    pkpy_set_global(vm, "_key");
+    pkpy_push_function(vm, "key(code=-1)", py_key);
+    pkpy_setglobal_2(vm, "key");
 
-    pkpy_push_function(vm, py_keyp, 3);
-    pkpy_set_global(vm, "_keyp");
+    pkpy_push_function(vm, "keyp(code=-1, hold=-1, period=-17)", py_keyp);
+    pkpy_setglobal_2(vm, "keyp");
 
-    pkpy_push_function(vm, py_line, 5);
-    pkpy_set_global(vm, "_line");
+    pkpy_push_function(vm, "line(x0: int, y0: int, x1: int, y1: int, color: int)", py_line);
+    pkpy_setglobal_2(vm, "line");
 
-    pkpy_push_function(vm, py_map, 9);
-    pkpy_set_global(vm, "_map");
+    pkpy_push_function(vm, "map(x: int=0, y: int=0, w: int=30, h: int=17, sx: int=0, sy: int=0, colorkey: int=-1, scale: int=1, remap: list=None)", py_map);
+    pkpy_setglobal_2(vm, "map");
 
-    pkpy_push_function(vm, py_memcpy, 3);
-    pkpy_set_global(vm, "_memcpy");
+    pkpy_push_function(vm, "memcpy(dest: int, source: int, size: int)", py_memcpy);
+    pkpy_setglobal_2(vm, "memcpy");
 
-    pkpy_push_function(vm, py_memset, 3);
-    pkpy_set_global(vm, "_memset");
+    pkpy_push_function(vm, "memset(dest: int, value: int, size: int)", py_memset);
+    pkpy_setglobal_2(vm, "memset");
 
-    pkpy_push_function(vm, py_mget, 2);
-    pkpy_set_global(vm, "_mget");
+    pkpy_push_function(vm, "mget(x: int, y: int)", py_mget);
+    pkpy_setglobal_2(vm, "mget");
 
-    pkpy_push_function(vm, py_mouse, 0);
-    pkpy_set_global(vm, "_mouse");
+    pkpy_push_function(vm, "mset(x: int, y: int, tile_id: int)", py_mset);
+    pkpy_setglobal_2(vm, "mset");
 
-    pkpy_push_function(vm, py_mset, 3);
-    pkpy_set_global(vm, "_mset");
+    pkpy_push_function(vm, "mouse()", py_mouse);
+    pkpy_setglobal_2(vm, "mouse");
 
-    pkpy_push_function(vm, py_music, 7);
-    pkpy_set_global(vm, "_music");
+    pkpy_push_function(vm, "music(track=-1, frame=-1, row=-1, loop=True, sustain=False, tempo=-1, speed=-1)", py_music);
+    pkpy_setglobal_2(vm, "music");
 
-    pkpy_push_function(vm, py_peek, 2);
-    pkpy_set_global(vm, "_peek");
+    pkpy_push_function(vm, "peek(addr: int, bits=8)", py_peek);
+    pkpy_setglobal_2(vm, "peek");
 
-    pkpy_push_function(vm, py_peek1, 1);
-    pkpy_set_global(vm, "_peek1");
+    pkpy_push_function(vm, "peek1(addr: int)", py_peek1);
+    pkpy_setglobal_2(vm, "peek1");
 
-    pkpy_push_function(vm, py_peek2, 1);
-    pkpy_set_global(vm, "_peek2");
+    pkpy_push_function(vm, "peek2(addr: int)", py_peek2);
+    pkpy_setglobal_2(vm, "peek2");
 
-    pkpy_push_function(vm, py_peek4, 1);
-    pkpy_set_global(vm, "_peek4");
+    pkpy_push_function(vm, "peek4(addr: int)", py_peek4);
+    pkpy_setglobal_2(vm, "peek4");
 
-    pkpy_push_function(vm, py_pix, 3);
-    pkpy_set_global(vm, "_pix");
+    pkpy_push_function(vm, "pix(x: int, y: int, color: int=None)", py_pix);
+    pkpy_setglobal_2(vm, "pix");
 
-    pkpy_push_function(vm, py_pmem, 2);
-    pkpy_set_global(vm, "_pmem");
+    pkpy_push_function(vm, "pmem(index: int, value: int=None)", py_pmem);
+    pkpy_setglobal_2(vm, "pmem");
 
-    pkpy_push_function(vm, py_poke, 3);
-    pkpy_set_global(vm, "_poke");
+    pkpy_push_function(vm, "poke(addr: int, value: int, bits=8)", py_poke);
+    pkpy_setglobal_2(vm, "poke");
 
-    pkpy_push_function(vm, py_poke1, 2);
-    pkpy_set_global(vm, "_poke1");
+    pkpy_push_function(vm, "poke1(addr: int, value: int)", py_poke1);
+    pkpy_setglobal_2(vm, "poke1");
 
-    pkpy_push_function(vm, py_poke2, 2);
-    pkpy_set_global(vm, "_poke2");
+    pkpy_push_function(vm, "poke2(addr: int, value: int)", py_poke2);
+    pkpy_setglobal_2(vm, "poke2");
 
-    pkpy_push_function(vm, py_poke4, 2);
-    pkpy_set_global(vm, "_poke4");
+    pkpy_push_function(vm, "poke4(addr: int, value: int)", py_poke4);
+    pkpy_setglobal_2(vm, "poke4");
 
-    pkpy_push_function(vm, py_print, 8);
-    pkpy_set_global(vm, "_print");
+    pkpy_push_function(vm, "print(text: str, x: int=0, y: int=0, color: int=15, fixed: bool=False, scale: int=1, smallfont: bool=False, alt: bool=False)", py_print);
+    pkpy_setglobal_2(vm, "print");
 
-    pkpy_push_function(vm, py_rect, 5);
-    pkpy_set_global(vm, "_rect");
+    pkpy_push_function(vm, "rect(x: int, y: int, w: int, h: int, color: int)", py_rect);
+    pkpy_setglobal_2(vm, "rect");
 
-    pkpy_push_function(vm, py_rectb, 5);
-    pkpy_set_global(vm, "_rectb");
+    pkpy_push_function(vm, "rectb(x: int, y: int, w: int, h: int, color: int)", py_rectb);
+    pkpy_setglobal_2(vm, "rectb");
 
-    pkpy_push_function(vm, py_reset, 0);
-    pkpy_set_global(vm, "_reset");
-    
-    pkpy_push_function(vm, py_sfx, 6);
-    pkpy_set_global(vm, "_sfx");
+    pkpy_push_function(vm, "reset()", py_reset);
+    pkpy_setglobal_2(vm, "reset");
 
-    pkpy_push_function(vm, py_spr, 9);
-    pkpy_set_global(vm, "_spr");
+    pkpy_push_function(vm, "sfx(id: int, note: int=-1, duration: int=-1, channel: int=0, volume: int=15, speed: int=0)", py_sfx);
+    pkpy_setglobal_2(vm, "sfx");
 
-    pkpy_push_function(vm, py_sync, 3);
-    pkpy_set_global(vm, "_sync");
+    pkpy_push_function(vm, "spr(id: int, x: int, y: int, colorkey: int=-1, scale: int=1, flip: int=0, rotate: int=0, w: int=1, h: int=1)", py_spr);
+    pkpy_setglobal_2(vm, "spr");
 
-    pkpy_push_function(vm, py_time, 0);
-    pkpy_set_global(vm, "_time");
+    pkpy_push_function(vm, "sync(mask: int=0, bank: int=0, tocart: bool=False)", py_sync);
+    pkpy_setglobal_2(vm, "sync");
 
-    pkpy_push_function(vm, py_tri, 7);
-    pkpy_set_global(vm, "_tri");
+    pkpy_push_function(vm, "time()", py_time);
+    pkpy_setglobal_2(vm, "time");
 
-    pkpy_push_function(vm, py_trib, 7);
-    pkpy_set_global(vm, "_trib");
+    pkpy_push_function(vm, "tstamp()", py_tstamp);
+    pkpy_setglobal_2(vm, "tstamp");
 
-    pkpy_push_function(vm, py_tstamp, 0);
-    pkpy_set_global(vm, "_tstamp");
+    pkpy_push_function(vm, "tri(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, color: int)", py_tri);
+    pkpy_setglobal_2(vm, "tri");
 
-    pkpy_push_function(vm, py_ttri, 17);
-    pkpy_set_global(vm, "_ttri");
+    pkpy_push_function(vm, "trib(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, color: int)", py_trib);
+    pkpy_setglobal_2(vm, "trib");
 
-    pkpy_push_function(vm, py_vbank, 1);
-    pkpy_set_global(vm, "_vbank");
+    pkpy_push_function(vm, "ttri(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, u1: float, v1: float, u2: float, v2: float, u3: float, v3: float, texsrc: int=0, chromakey: int=-1, z1: float=0, z2: float=0, z3: float=0)", py_ttri);
+    pkpy_setglobal_2(vm, "ttri");
+
+    pkpy_push_function(vm, "vbank(bank: int=None)", py_vbank);
+    pkpy_setglobal_2(vm, "vbank");
 
     if(pkpy_check_error(vm))
         return false;
@@ -1318,109 +1332,6 @@ static bool setup_c_bindings(pkpy_vm* vm) {
 }
 
 static bool setup_py_bindings(pkpy_vm* vm) {
-    pkpy_vm_run(vm, "def trace(message, color=15) : return _trace(str(message), int(color))");
-
-    pkpy_vm_run(vm, "def cls(color=0) : return _cls(int(color))");
-
-    //lua api does this for btn
-    pkpy_vm_run(vm, "def btn(id) : return _btn(id)");
-    pkpy_vm_run(vm, "def btnp(id, hold=-1, period=-1) : return _btnp(int(id), int(hold), int(period))");
-
-    //even if there are no keyword args, this also gives us argument count checks
-    pkpy_vm_run(vm, "def circ(x, y, radius, color) : return _circ(int(x), int(y), int(radius), int(color))");
-    pkpy_vm_run(vm, "def circb(x, y, radius, color) : return _circb(int(x), int(y), int(radius), int(color))\n");
-
-    pkpy_vm_run(vm, "def elli(x, y, a, b, color) : return _elli(int(x), int(y), int(radius), int(color))");
-    pkpy_vm_run(vm, "def ellib(x, y, a, b, color) : return _ellib(int(x), int(y), int(radius), int(color))");
-
-    pkpy_vm_run(vm, "def clip(x, y, width, height) : return _clip(int(x), int(y), int(width), int(height))");
-    pkpy_vm_run(vm, "def exit() : return _exit()\n");
-
-    pkpy_vm_run(vm, "def fget(sprite_id, flag) : return _fget(int(sprite_id), int(flag))");
-    pkpy_vm_run(vm, "def fset(sprite_id, flag, b) : return _fset(int(sprite_id), int(flag), bool(b))");
-
-    pkpy_vm_run(vm, 
-        "def font(text, x, y, chromakey, char_width=8, char_height=8, fixed=False, scale=1, alt=False) : " 
-        "return _font(str(text), int(x), int(y), chromakey, int(char_width), int(char_height), bool(fixed), int(scale), bool(alt))"
-    );
-
-    pkpy_vm_run(vm, "def key(code=-1) : return _key(code)");
-    pkpy_vm_run(vm, "def keyp(code=-1, hold=-1, period=-17) : return _keyp(int(code), int(hold), int(period))");
-
-    pkpy_vm_run(vm, "def line(x0, y0, x1, y1, color) : _line(int(x0), int(y0), int(x1), int(y1), int(color))");
-    pkpy_vm_run(vm, 
-        "def map(x=0, y=0, w=30, h=17, sx=0, sy=0, colorkey=-1, scale=1, remap=None) : "
-        " return _map(int(x),int(y),int(w),int(h),int(sx),int(sy),colorkey,int(scale),remap)"
-    );
-
-    pkpy_vm_run(vm, "def memcpy(dest, source, size) : return _memcpy(int(dest), int(source), int(size))");
-    pkpy_vm_run(vm, "def memset(dest, value, size) : return _memset(int(dest), int(value), int(size))");
-
-    pkpy_vm_run(vm, "def mget(x, y) : return _mget(int(x), int(y))");
-    pkpy_vm_run(vm, "def mset(x, y, tile_id) : return _mset(int(x), int(y), int(tile_id))");
-
-    pkpy_vm_run(vm, "def mouse() : return _mouse()");
-
-    pkpy_vm_run(vm, 
-        "def music(track=-1, frame=-1, row=-1, loop=True, sustain=False, tempo=-1, speed=-1) :"
-        "return _music(int(track), int(frame), int(row), bool(loop), bool(sustain), int(tempo), int(speed))"
-    );
-
-    pkpy_vm_run(vm, "def peek(addr, bits=8) : return _peek(int(addr), int(bits)) ");
-    pkpy_vm_run(vm, "def peek1(addr) : return _peek1(int(addr)) ");
-    pkpy_vm_run(vm, "def peek2(addr) : return _peek2(int(addr)) ");
-    pkpy_vm_run(vm, "def peek4(addr) : return _peek4(int(addr)) ");
-
-    pkpy_vm_run(vm, "def pix(x, y, color=None) : return _pix(int(x), int(y), color)");
-
-    pkpy_vm_run(vm, "def pmem(index, value=None) : return _pmem(int(index), value)");
-
-    pkpy_vm_run(vm, "def poke(addr, value, bits=8) : return _poke(int(addr), int(value), int(bits)) ");
-    pkpy_vm_run(vm, "def poke1(addr, value) : return _poke1(int(addr), int(value)) ");
-    pkpy_vm_run(vm, "def poke2(addr, value) : return _poke2(int(addr), int(value)) ");
-    pkpy_vm_run(vm, "def poke4(addr, value) : return _poke4(int(addr), int(value)) ");
-
-    pkpy_vm_run(vm, 
-        "def print(text, x=0, y=0, color=15, fixed=False, scale=1, smallfont=False, alt=False) :"
-        " return _print(str(text), int(x), int(y), int(color), bool(fixed), int(scale), bool(smallfont), bool(alt))"
-    );
-
-    pkpy_vm_run(vm, "def rect(x, y, w, h, color) : return _rect(int(x),int(y),int(w),int(h),int(color))");
-    pkpy_vm_run(vm, "def rectb(x, y, w, h, color) : return _rectb(int(x),int(y),int(w),int(h),int(color))");
-
-    pkpy_vm_run(vm, "def reset() : return _reset()");
-    
-    pkpy_vm_run(vm, 
-        "def sfx(id, note=-1, duration=-1, channel=0, volume=15, speed=0) : " 
-        "return _sfx(id, int(note), int(duration), int(channel), int(volume), int(speed))"
-    );
-
-    pkpy_vm_run(vm, 
-        "def spr(id, x, y, colorkey=-1, scale=1, flip=0, rotate=0, w=1, h=1) : "
-        "return _spr(int(id), int(x), int(y), colorkey, int(scale), int(flip), int(rotate), int(w), int(h))"
-    );
-
-    pkpy_vm_run(vm, "def sync(mask=0, bank=0, tocart=False) : return _sync(int(mask), int(bank), bool(tocart))");
-
-    pkpy_vm_run(vm, "def time() : return _time()");
-    pkpy_vm_run(vm, "def tstamp() : return _tstamp()");
-
-    pkpy_vm_run(vm, 
-        "def tri(x1, y1, x2, y2, x3, y3, color) : "
-        "return _tri(float(x1), float(y1), float(x2), float(y2), float(x3), float(y3), int(color))"
-    );
-    pkpy_vm_run(vm, 
-        "def trib(x1, y1, x2, y2, x3, y3, color) : "
-        "return _trib(float(x1), float(y1), float(x2), float(y2), float(x3), float(y3), int(color))"
-    );
-
-    pkpy_vm_run(vm,
-        "def ttri(x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, texsrc=0, chromakey=-1, z1=0, z2=0, z3=0) : "
-        "return _ttri(float(x1),float(y1),float(x2),float(y2),float(x3),float(y3),float(u1),float(v1),float(u2),float(v2),float(u3),float(v3),int(texsrc),chromakey,float(z1),float(z2),float(z3))"
-    );
-
-    pkpy_vm_run(vm, "def vbank(bank=None) : return _vbank(bank)");
-
     if(pkpy_check_error(vm))
         return false;
 
@@ -1433,7 +1344,7 @@ void closePython(tic_mem* tic)
 
     if (core->currentVM)
     {
-        pkpy_vm_destroy(core->currentVM);
+        pkpy_delete_vm(core->currentVM);
         core->currentVM = NULL;
     }
 }
@@ -1453,7 +1364,7 @@ static bool initPython(tic_mem* tic, const char* code)
     closePython(tic);
     tic_core* core = (tic_core*)tic;
 
-    pkpy_vm* vm = pkpy_vm_create(false, false);
+    pkpy_vm* vm = pkpy_new_vm(false);
 
     core->currentVM = vm;
 
@@ -1488,11 +1399,15 @@ void callPythonTick(tic_mem* tic)
     if (!core->currentVM) 
         return;
 
-    if (pkpy_check_global(core->currentVM, TIC_FN))
-    {
-        pkpy_get_global(core->currentVM, TIC_FN);
-        if(!pkpy_call(core->currentVM, 0))
-            report_error(core, "error while running TIC\n");
+    if(!pkpy_getglobal(core->currentVM, N()->TIC)){
+        pkpy_clear_error(core->currentVM, NULL);
+        return;
+    }
+    pkpy_push_null(core->currentVM);
+    if(!pkpy_vectorcall(core->currentVM, 0)){
+        report_error(core, "error while running TIC\n");
+    }else{
+        pkpy_pop_top(core->currentVM);
     }
 }
 void callPythonBoot(tic_mem* tic) {
@@ -1500,11 +1415,15 @@ void callPythonBoot(tic_mem* tic) {
     if (!core->currentVM) 
         return;
 
-    if (pkpy_check_global(core->currentVM, BOOT_FN))
-    {
-        pkpy_get_global(core->currentVM, BOOT_FN);
-        if(!pkpy_call(core->currentVM, 0))
-            report_error(core, "error while running BOOT\n");
+    if(!pkpy_getglobal(core->currentVM, N()->BOOT)){
+        pkpy_clear_error(core->currentVM, NULL);
+        return;
+    }
+    pkpy_push_null(core->currentVM);
+    if(!pkpy_vectorcall(core->currentVM, 0)){
+        report_error(core, "error while running BOOT\n");
+    }else{
+        pkpy_pop_top(core->currentVM);
     }
 }
 
@@ -1513,12 +1432,16 @@ void callPythonScanline(tic_mem* tic, s32 row, void* data) {
     if (!core->currentVM) 
         return;
 
-    if (pkpy_check_global(core->currentVM, SCN_FN))
-    {
-        pkpy_get_global(core->currentVM, SCN_FN);
-        pkpy_push_int(core->currentVM, row);
-        if(!pkpy_call(core->currentVM, 1))
-            report_error(core, "error while running SCN\n");
+    if(!pkpy_getglobal(core->currentVM, N()->SCN)){
+        pkpy_clear_error(core->currentVM, NULL);
+        return;
+    }
+    pkpy_push_null(core->currentVM);
+    pkpy_push_int(core->currentVM, row);
+    if(!pkpy_vectorcall(core->currentVM, 1)){
+        report_error(core, "error while running SCN\n");
+    }else{
+        pkpy_pop_top(core->currentVM);
     }
 }
 
@@ -1527,12 +1450,16 @@ void callPythonBorder(tic_mem* tic, s32 row, void* data) {
     if (!core->currentVM) 
         return;
 
-    if (pkpy_check_global(core->currentVM, BDR_FN))
-    {
-        pkpy_get_global(core->currentVM, BDR_FN);
-        pkpy_push_int(core->currentVM, row);
-        if(!pkpy_call(core->currentVM, 1))
-            report_error(core, "error while running BDR\n");
+    if(!pkpy_getglobal(core->currentVM, N()->BDR)){
+        pkpy_clear_error(core->currentVM, NULL);
+        return;
+    }
+    pkpy_push_null(core->currentVM);
+    pkpy_push_int(core->currentVM, row);
+    if(!pkpy_vectorcall(core->currentVM, 1)){
+        report_error(core, "error while running BDR\n");
+    }else{
+        pkpy_pop_top(core->currentVM);
     }
 }
 
@@ -1541,12 +1468,16 @@ void callPythonMenu(tic_mem* tic, s32 index, void* data) {
     if (!core->currentVM) 
         return;
 
-    if (pkpy_check_global(core->currentVM, MENU_FN))
-    {
-        pkpy_get_global(core->currentVM, MENU_FN);
-        pkpy_push_int(core->currentVM, index);
-        if(!pkpy_call(core->currentVM, 1))
-            report_error(core, "error while running MENU\n");
+    if(pkpy_getglobal(core->currentVM, N()->MENU)){
+        pkpy_clear_error(core->currentVM, NULL);
+        return;
+    }
+    pkpy_push_null(core->currentVM);
+    pkpy_push_int(core->currentVM, index);
+    if(!pkpy_vectorcall(core->currentVM, 1)){
+        report_error(core, "error while running MENU\n");
+    }else{
+        pkpy_pop_top(core->currentVM);
     }
 }
 
@@ -1600,7 +1531,7 @@ next_word :
 comment :
     if (*code == 0) goto end;
     else if (*code == '\n') { code++; goto start; }
-    else { *code++; goto comment; }
+    else { code++; goto comment; }
 
 string :
     if (*code == 0) goto end;
