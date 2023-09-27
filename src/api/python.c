@@ -1,4 +1,3 @@
-
 #include "core/core.h"
 
 #if defined(TIC_BUILD_WITH_PYTHON)
@@ -7,16 +6,46 @@
 #include <stdio.h>
 #include <string.h>
 
+typedef struct CachedNames{
+    bool initialized;
+    pkpy_CName _tic_core;
+    pkpy_CName len;
+    pkpy_CName __getitem__;
+} CachedNames;
+
+CachedNames _cached_names;
+
+static CachedNames* N(){
+    if(!_cached_names.initialized){
+        _cached_names._tic_core = pkpy_name("_tic_core");
+        _cached_names.len = pkpy_name("len");
+        _cached_names.__getitem__ = pkpy_name("__getitem__");
+        _cached_names.initialized = true;
+    }
+    return &_cached_names;
+}
+
+static char* cstrdup(pkpy_CString cs){
+    char* s = (char*)malloc(cs.size + 1);
+    memcpy(s, cs.data, cs.size);
+    s[cs.size] = '\0';
+    return s;
+}
+
+static void pkpy_setglobal_2(pkpy_vm* vm, const char* name){
+    pkpy_setglobal(vm, pkpy_name(name));
+}
+
 static bool get_core(pkpy_vm* vm, tic_core** core) 
 {
-    pkpy_get_global(vm, "_tic_core");
+    pkpy_getglobal(vm, N()->_tic_core);
     return pkpy_to_voidp(vm, -1, (void**) core);
 }
 
 static bool setup_core(pkpy_vm* vm, tic_core* core) 
 {
     if (!pkpy_push_voidp(vm, core)) return false;
-    if (!pkpy_set_global(vm, "_tic_core")) return false;
+    if (!pkpy_setglobal(vm, N()->_tic_core)) return false;
     return true;
 }
 
@@ -38,25 +67,27 @@ static int prepare_colorindex(pkpy_vm* vm, int index, u8 * buffer)
     } 
     else 
     { //should be a list then
-        pkpy_get_global(vm, "len");
-        pkpy_push(vm, index); //get the list
-        pkpy_call(vm, 1);
+        pkpy_getglobal(vm, N()->len);
+        pkpy_push_null(vm);
+        pkpy_dup(vm, index); //get the list
+        pkpy_vectorcall(vm, 1);
 
         int list_len;
         pkpy_to_int(vm, -1, &list_len);
-        pkpy_pop(vm, 1);
+        pkpy_pop_top(vm);
 
         list_len = (list_len < TIC_PALETTE_SIZE)?(list_len):(TIC_PALETTE_SIZE);
 
         for(int i = 0; i < list_len; i++) 
         {
             int list_val;
-            pkpy_push(vm, index);
+            pkpy_dup(vm, index); //get the list
+            pkpy_get_unbound_method(vm, N()->__getitem__);
             pkpy_push_int(vm, i);
-            pkpy_call_method(vm, "__getitem__", 1);
+            pkpy_vectorcall(vm, 1);
             pkpy_to_int(vm, -1, &list_val);
             buffer[i] = list_val;
-            pkpy_pop(vm, 1);
+            pkpy_pop_top(vm);
         }
 
         return list_len;
@@ -67,20 +98,21 @@ static int prepare_colorindex(pkpy_vm* vm, int index, u8 * buffer)
 static int py_trace(pkpy_vm* vm) 
 {
     tic_mem* tic;
-    char* message = NULL;
+    pkpy_CString message;
     int color;
 
+    pkpy_py_str(vm);
     pkpy_to_string(vm, 0, &message);
     pkpy_to_int(vm, 1, &color);
     get_core(vm, (tic_core**) &tic);
     if (pkpy_check_error(vm)) 
     {
-        if (message != NULL) free(message);
         return 0;
     }
 
-    tic_api_trace(tic, message, (u8) color);
-    free(message);
+    char* message_s = cstrdup(message);
+    tic_api_trace(tic, message_s, (u8) color);
+    free(message_s);
     return 0;
 }
 
@@ -252,7 +284,7 @@ static int py_fget(pkpy_vm* vm)
 {
     tic_mem* tic;
     int sprite_id;
-    unsigned flag;
+    int flag;
 
     pkpy_to_int(vm, 0, &sprite_id);
     pkpy_to_int(vm, 1, &flag);
@@ -260,7 +292,7 @@ static int py_fget(pkpy_vm* vm)
     if(pkpy_check_error(vm))
         return 0;
 
-    bool set = tic_api_fget(tic, sprite_id, flag);
+    bool set = tic_api_fget(tic, sprite_id, (u8)flag);
     pkpy_push_bool(vm, set);
     return 1;
 }
@@ -269,7 +301,7 @@ static int py_fset(pkpy_vm* vm)
 {
     tic_mem* tic;
     int sprite_id;
-    unsigned flag;
+    int flag;
     bool set_to;
 
     pkpy_to_int(vm, 0, &sprite_id);
@@ -279,14 +311,14 @@ static int py_fset(pkpy_vm* vm)
     if(pkpy_check_error(vm))
         return 0;
 
-    tic_api_fset(tic, sprite_id, flag, set_to);
+    tic_api_fset(tic, sprite_id, (u8)flag, set_to);
     return 0;
 }
 
 static int py_font(pkpy_vm* vm) 
 {
     tic_mem* tic;
-    char* text = NULL;
+    pkpy_CString text;
     int x;
     int y;
     int width;
@@ -307,7 +339,6 @@ static int py_font(pkpy_vm* vm)
     pkpy_to_bool(vm, 8, &alt);
     get_core(vm, (tic_core**) &tic);
     if(pkpy_check_error(vm)) {
-        if (text != NULL) free(text);
         return 0;
     }
 
@@ -318,11 +349,12 @@ static int py_font(pkpy_vm* vm)
     else 
     {
         u8 chromakey = (u8) chromakey_raw;
-        s32 size = tic_api_font(tic, text, x, y, &chromakey, 1, width, height, fixed, scale, alt);
+        char* text_s = cstrdup(text);
+        s32 size = tic_api_font(tic, text_s, x, y, &chromakey, 1, width, height, fixed, scale, alt);
+        free(text_s);
         pkpy_push_int(vm, size);
     }
 
-    free(text);
     return 1;
 }
 
@@ -337,7 +369,7 @@ static int py_key(pkpy_vm* vm)
         return 0;
 
     if (key_id >= tic_keys_count) {
-        pkpy_error(vm, "tic80-panic!", "unknown keyboard code\n");
+        pkpy_error(vm, "tic80-panic!", pkpy_string("unknown keyboard code\n"));
         return 0;
     }
 
@@ -361,7 +393,7 @@ static int py_keyp(pkpy_vm* vm)
         return 0;
 
     if (key_id >= tic_keys_count) {
-        pkpy_error(vm, "tic80-panic!", "unknown keyboard code\n");
+        pkpy_error(vm, "tic80-panic!", pkpy_string("unknown keyboard code\n"));
         return 0;
     }
 
@@ -395,10 +427,11 @@ static int py_line(pkpy_vm* vm)
 static void remap_callback(void* data, s32 x, s32 y, RemapResult* result) {
     pkpy_vm* vm = data;
 
-    pkpy_push(vm, -1); //get copy of remap callable
+    pkpy_dup(vm, -1); //get copy of remap callable
+    pkpy_push_null(vm);
     pkpy_push_int(vm, x);
     pkpy_push_int(vm, y);
-    pkpy_call(vm, 2);
+    pkpy_vectorcall(vm, 2);
 
 
     int index, flip, rotate;
@@ -570,7 +603,7 @@ static int py_music(pkpy_vm* vm) {
         return 0;
 
     if (track > MUSIC_TRACKS - 1 )
-        pkpy_error(vm, "tic80-panic!", "invalid music track index\n");
+        pkpy_error(vm, "tic80-panic!", pkpy_string("invalid music track index\n"));
 
     //stop the music first I guess
     tic_api_music(tic, -1, 0, 0, false, false, -1, -1);
@@ -687,7 +720,7 @@ static int py_pmem(pkpy_vm* vm) {
         return 0;
 
     if (index >= TIC_PERSISTENT_SIZE) {
-        pkpy_error(vm, "tic80-panic!", "invalid persistent tic index\n");
+        pkpy_error(vm, "tic80-panic!", pkpy_string("invalid persistent tic index\n"));
         return 0;
     }
 
@@ -866,7 +899,9 @@ static int py_sfx(pkpy_vm* vm)
 
     if (pkpy_is_string(vm, 1)) {
         parse_note = true;
-        pkpy_to_string(vm, 1, &string_note);
+        pkpy_CString tmp;
+        pkpy_to_string(vm, 1, &tmp);
+        if(tmp.size) string_note = cstrdup(tmp);
     } else {
         pkpy_to_int(vm, 1, &int_note);
     }
@@ -882,7 +917,7 @@ static int py_sfx(pkpy_vm* vm)
 
     if (parse_note) {
         if(!tic_tool_parse_note(string_note, &note, &octave)) {
-            pkpy_error(vm, "tic80-panic!", "invalid note, should like C#4\n");
+            pkpy_error(vm, "tic80-panic!", pkpy_string("invalid note, should like C#4\n"));
             goto cleanup; //error in future;
         }
             
@@ -892,12 +927,12 @@ static int py_sfx(pkpy_vm* vm)
     }
 
     if (channel < 0 || channel >= TIC_SOUND_CHANNELS) {
-        pkpy_error(vm, "tic80-panic!", "unknown channel\n");
+        pkpy_error(vm, "tic80-panic!", pkpy_string("unknown channel\n"));
         goto cleanup;
     }
 
     if (sfx_id >= SFX_COUNT) {
-        pkpy_error(vm, "tic80-panic!", "unknown sfx index\n");
+        pkpy_error(vm, "tic80-panic!", pkpy_string("unknown sfx index\n"));
         goto cleanup;
     }
 
@@ -969,7 +1004,7 @@ static int py_sync(pkpy_vm* vm)
         return 0;
 
     if (bank < 0 || bank >= TIC_BANKS) {
-        pkpy_error(vm, "tic80-panic!", "sync() error, invalid bank\n");
+        pkpy_error(vm, "tic80-panic!", pkpy_string("sync() error, invalid bank\n"));
         return 0;
     }
 
@@ -1138,15 +1173,14 @@ static int py_vbank(pkpy_vm* vm) {
 }
 
 static bool setup_c_bindings(pkpy_vm* vm) {
+    pkpy_push_function(vm, "trace(message, color=15)", py_trace);
+    pkpy_setglobal_2(vm, "trace");
 
-    pkpy_push_function(vm, py_trace, 2);
-    pkpy_set_global(vm, "_trace");
+    pkpy_push_function(vm, "cls(color=0)", py_cls);
+    pkpy_setglobal_2(vm, "cls");
 
-    pkpy_push_function(vm, py_cls, 1);
-    pkpy_set_global(vm, "_cls");
-
-    pkpy_push_function(vm, py_btn, 1);
-    pkpy_set_global(vm, "_btn");
+    pkpy_push_function(vm, "btn(id: int)", py_btn);
+    pkpy_setglobal_2(vm, "btn");
 
     pkpy_push_function(vm, py_btnp, 3);
     pkpy_set_global(vm, "_btnp");
