@@ -397,7 +397,7 @@ target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/squirrel)
 target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/sqstdlib)
 
 ################################
-# PocketPy (Python)
+# pocketpy (Python)
 ################################
 
 add_subdirectory(${THIRDPARTY_DIR}/pocketpy)
@@ -406,39 +406,7 @@ set_target_properties(pocketpy PROPERTIES OUTPUT_NAME python)
 set_target_properties(pocketpy PROPERTIES LINKER_LANGUAGE CXX)
 
 target_compile_definitions(pocketpy PRIVATE PK_ENABLE_OS=0)
-target_include_directories(pocketpy PRIVATE ${POCKETPY_DIR}/include)
-
-# set(POCKETPY_DIR ${THIRDPARTY_DIR}/pocketpy)
-
-# if (${CMAKE_VERSION} VERSION_LESS "3.12.0") 
-#     set(Python3_EXECUTABLE "python3")
-# else()
-#     find_package(Python3 COMPONENTS Interpreter)
-# endif()
-
-# add_custom_command(
-#     OUTPUT ${POCKETPY_DIR}/src/_generated.h
-#     COMMAND ${Python3_EXECUTABLE} preprocess.py
-#     WORKING_DIRECTORY ${POCKETPY_DIR}
-#     DEPENDS ${POCKETPY_DIR}/preprocess.py
-# )
-
-# add_library(python STATIC
-#     ${POCKETPY_DIR}/src/_generated.h
-#     ${POCKETPY_DIR}/c_bindings/pocketpy_c.cpp
-# )
-
-# set_target_properties(python PROPERTIES LINKER_LANGUAGE CXX)
-# target_compile_definitions(python PRIVATE PK_ENABLE_OS=0)
-# target_include_directories(python 
-#     PRIVATE ${POCKETPY_DIR}/src 
-#     PUBLIC ${POCKETPY_DIR}/c_bindings)
-
-# if (${CMAKE_VERSION} VERSION_LESS "3.8.0") 
-#     set_target_properties(python PROPERTIES COMPILE_FLAGS "--std=c++17")
-# else()
-#     target_compile_features(python PRIVATE cxx_std_17)
-# endif()
+target_include_directories(pocketpy PUBLIC ${POCKETPY_DIR}/include)
 
 ################################
 # GIFLIB

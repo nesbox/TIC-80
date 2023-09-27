@@ -115,8 +115,10 @@ static int py_trace(pkpy_vm* vm)
     pkpy_CString message;
     int color;
 
+    pkpy_dup(vm, 0);
     pkpy_py_str(vm);
-    pkpy_to_string(vm, 0, &message);
+    pkpy_to_string(vm, -1, &message);
+
     pkpy_to_int(vm, 1, &color);
     get_core(vm, (tic_core**) &tic);
     if (pkpy_check_error(vm)) 
@@ -447,7 +449,7 @@ static void remap_callback(void* data, s32 x, s32 y, RemapResult* result) {
     pkpy_push_int(vm, y);
     pkpy_vectorcall(vm, 2);
 
-
+    pkpy_unpack_sequence(vm, 3);
     int index, flip, rotate;
     pkpy_to_int(vm, -3, &index);
     pkpy_to_int(vm, -2, &flip);
@@ -829,7 +831,10 @@ static int py_print(pkpy_vm* vm) {
     bool small_;
     bool alt;
 
-    pkpy_to_string(vm, 0, &text);
+    pkpy_dup(vm, 0);
+    pkpy_py_str(vm);
+    pkpy_to_string(vm, -1, &text);
+
     pkpy_to_int(vm, 1, &x);
     pkpy_to_int(vm, 2, &y);
     pkpy_to_int(vm, 3, &color);
