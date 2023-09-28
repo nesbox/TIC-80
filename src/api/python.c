@@ -7,7 +7,6 @@
 #include <string.h>
 
 struct CachedNames{
-    bool initialized;
     pkpy_CName _tic_core;
     pkpy_CName len;
     pkpy_CName __getitem__;
@@ -16,23 +15,7 @@ struct CachedNames{
     pkpy_CName SCN;
     pkpy_CName BDR;
     pkpy_CName MENU;
-}_cached_names;
-
-static struct CachedNames* N(){
-    // use cached names to improve performance
-    if(!_cached_names.initialized){
-        _cached_names._tic_core = pkpy_name("_tic_core");
-        _cached_names.len = pkpy_name("len");
-        _cached_names.__getitem__ = pkpy_name("__getitem__");
-        _cached_names.TIC = pkpy_name("TIC");
-        _cached_names.BOOT = pkpy_name("BOOT");
-        _cached_names.SCN = pkpy_name("SCN");
-        _cached_names.BDR = pkpy_name("BDR");
-        _cached_names.MENU = pkpy_name("MENU");
-        _cached_names.initialized = true;
-    }
-    return &_cached_names;
-}
+} N;
 
 // duplicate a pkpy_CString to a null-terminated c string
 static char* cstrdup(pkpy_CString cs){
@@ -48,7 +31,7 @@ static void pkpy_setglobal_2(pkpy_vm* vm, const char* name){
 
 static bool get_core(pkpy_vm* vm, tic_core** core) 
 {
-    pkpy_getglobal(vm, N()->_tic_core);
+    pkpy_getglobal(vm, N._tic_core);
     bool ok = pkpy_to_voidp(vm, -1, (void**) core);
     if(ok) pkpy_pop_top(vm);
     return ok;
@@ -57,7 +40,7 @@ static bool get_core(pkpy_vm* vm, tic_core** core)
 static bool setup_core(pkpy_vm* vm, tic_core* core) 
 {
     if (!pkpy_push_voidp(vm, core)) return false;
-    return pkpy_setglobal(vm, N()->_tic_core);
+    return pkpy_setglobal(vm, N._tic_core);
 }
 
 //index should be a positive index
@@ -78,7 +61,7 @@ static int prepare_colorindex(pkpy_vm* vm, int index, u8 * buffer)
     } 
     else 
     { //should be a list then
-        pkpy_getglobal(vm, N()->len);
+        pkpy_getglobal(vm, N.len);
         pkpy_push_null(vm);
         pkpy_dup(vm, index); //get the list
         pkpy_vectorcall(vm, 1);
@@ -93,7 +76,7 @@ static int prepare_colorindex(pkpy_vm* vm, int index, u8 * buffer)
         {
             int list_val;
             pkpy_dup(vm, index); //get the list
-            pkpy_get_unbound_method(vm, N()->__getitem__);
+            pkpy_get_unbound_method(vm, N.__getitem__);
             pkpy_push_int(vm, i);
             pkpy_vectorcall(vm, 1);
             pkpy_to_int(vm, -1, &list_val);
@@ -1188,40 +1171,32 @@ static int py_vbank(pkpy_vm* vm) {
 }
 
 static bool setup_c_bindings(pkpy_vm* vm) {
-    pkpy_push_function(vm, "trace(message, color=15)", py_trace);
-    pkpy_setglobal_2(vm, "trace");
-
-    pkpy_push_function(vm, "cls(color=0)", py_cls);
-    pkpy_setglobal_2(vm, "cls");
-
-    //lua api does this for btn
     pkpy_push_function(vm, "btn(id: int)", py_btn);
     pkpy_setglobal_2(vm, "btn");
-
     pkpy_push_function(vm, "btnp(id: int, hold=-1, period=-1)", py_btnp);
     pkpy_setglobal_2(vm, "btnp");
 
     pkpy_push_function(vm, "circ(x: int, y: int, radius: int, color: int)", py_circ);
     pkpy_setglobal_2(vm, "circ");
-
     pkpy_push_function(vm, "circb(x: int, y: int, radius: int, color: int)", py_circb);
     pkpy_setglobal_2(vm, "circb");
 
-    pkpy_push_function(vm, "elli(x: int, y: int, a: int, b: int, color: int)", py_elli);
-    pkpy_setglobal_2(vm, "elli");
-
-    pkpy_push_function(vm, "ellib(x: int, y: int, a: int, b: int, color: int)", py_ellib);
-    pkpy_setglobal_2(vm, "ellib");
-
     pkpy_push_function(vm, "clip(x: int, y: int, width: int, height: int)", py_clip);
     pkpy_setglobal_2(vm, "clip");
+
+    pkpy_push_function(vm, "cls(color=0)", py_cls);
+    pkpy_setglobal_2(vm, "cls");
+
+    pkpy_push_function(vm, "elli(x: int, y: int, a: int, b: int, color: int)", py_elli);
+    pkpy_setglobal_2(vm, "elli");
+    pkpy_push_function(vm, "ellib(x: int, y: int, a: int, b: int, color: int)", py_ellib);
+    pkpy_setglobal_2(vm, "ellib");
 
     pkpy_push_function(vm, "exit()", py_exit);
     pkpy_setglobal_2(vm, "exit");
 
     pkpy_push_function(vm, "fget(sprite_id: int, flag: int)", py_fget);
     pkpy_setglobal_2(vm, "fget");
-
     pkpy_push_function(vm, "fset(sprite_id: int, flag: int, b: bool)", py_fset);
     pkpy_setglobal_2(vm, "fset");
 
@@ -1230,7 +1205,6 @@ static bool setup_c_bindings(pkpy_vm* vm) {
 
     pkpy_push_function(vm, "key(code=-1)", py_key);
     pkpy_setglobal_2(vm, "key");
-
     pkpy_push_function(vm, "keyp(code=-1, hold=-1, period=-17)", py_keyp);
     pkpy_setglobal_2(vm, "keyp");
 
@@ -1242,13 +1216,11 @@ static bool setup_c_bindings(pkpy_vm* vm) {
 
     pkpy_push_function(vm, "memcpy(dest: int, source: int, size: int)", py_memcpy);
     pkpy_setglobal_2(vm, "memcpy");
-
     pkpy_push_function(vm, "memset(dest: int, value: int, size: int)", py_memset);
     pkpy_setglobal_2(vm, "memset");
 
     pkpy_push_function(vm, "mget(x: int, y: int)", py_mget);
     pkpy_setglobal_2(vm, "mget");
-
     pkpy_push_function(vm, "mset(x: int, y: int, tile_id: int)", py_mset);
     pkpy_setglobal_2(vm, "mset");
 
@@ -1260,13 +1232,10 @@ static bool setup_c_bindings(pkpy_vm* vm) {
 
     pkpy_push_function(vm, "peek(addr: int, bits=8)", py_peek);
     pkpy_setglobal_2(vm, "peek");
-
     pkpy_push_function(vm, "peek1(addr: int)", py_peek1);
     pkpy_setglobal_2(vm, "peek1");
-
     pkpy_push_function(vm, "peek2(addr: int)", py_peek2);
     pkpy_setglobal_2(vm, "peek2");
-
     pkpy_push_function(vm, "peek4(addr: int)", py_peek4);
     pkpy_setglobal_2(vm, "peek4");
 
@@ -1278,13 +1247,10 @@ static bool setup_c_bindings(pkpy_vm* vm) {
 
     pkpy_push_function(vm, "poke(addr: int, value: int, bits=8)", py_poke);
     pkpy_setglobal_2(vm, "poke");
-
     pkpy_push_function(vm, "poke1(addr: int, value: int)", py_poke1);
     pkpy_setglobal_2(vm, "poke1");
-
     pkpy_push_function(vm, "poke2(addr: int, value: int)", py_poke2);
     pkpy_setglobal_2(vm, "poke2");
-
     pkpy_push_function(vm, "poke4(addr: int, value: int)", py_poke4);
     pkpy_setglobal_2(vm, "poke4");
 
@@ -1293,7 +1259,6 @@ static bool setup_c_bindings(pkpy_vm* vm) {
 
     pkpy_push_function(vm, "rect(x: int, y: int, w: int, h: int, color: int)", py_rect);
     pkpy_setglobal_2(vm, "rect");
-
     pkpy_push_function(vm, "rectb(x: int, y: int, w: int, h: int, color: int)", py_rectb);
     pkpy_setglobal_2(vm, "rectb");
 
@@ -1309,20 +1274,22 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, "sync(mask=0, bank=0, tocart=False)", py_sync);
     pkpy_setglobal_2(vm, "sync");
 
+    pkpy_push_function(vm, "ttri(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, u1: float, v1: float, u2: float, v2: float, u3: float, v3: float, texsrc=0, chromakey=-1, z1: float=0, z2: float=0, z3: float=0)", py_ttri);
+    pkpy_setglobal_2(vm, "ttri");
+
     pkpy_push_function(vm, "time()", py_time);
     pkpy_setglobal_2(vm, "time");
 
-    pkpy_push_function(vm, "tstamp()", py_tstamp);
-    pkpy_setglobal_2(vm, "tstamp");
+    pkpy_push_function(vm, "trace(message, color=15)", py_trace);
+    pkpy_setglobal_2(vm, "trace");
 
     pkpy_push_function(vm, "tri(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, color: int)", py_tri);
     pkpy_setglobal_2(vm, "tri");
-
     pkpy_push_function(vm, "trib(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, color: int)", py_trib);
     pkpy_setglobal_2(vm, "trib");
 
-    pkpy_push_function(vm, "ttri(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, u1: float, v1: float, u2: float, v2: float, u3: float, v3: float, texsrc=0, chromakey=-1, z1: float=0, z2: float=0, z3: float=0)", py_ttri);
-    pkpy_setglobal_2(vm, "ttri");
+    pkpy_push_function(vm, "tstamp()", py_tstamp);
+    pkpy_setglobal_2(vm, "tstamp");
 
     pkpy_push_function(vm, "vbank(bank: int=None)", py_vbank);
     pkpy_setglobal_2(vm, "vbank");
@@ -1356,6 +1323,15 @@ static void report_error(tic_core* core, char* prefix) {
 
 static bool initPython(tic_mem* tic, const char* code) 
 {
+    N._tic_core = pkpy_name("_tic_core");
+    N.len = pkpy_name("len");
+    N.__getitem__ = pkpy_name("__getitem__");
+    N.TIC = pkpy_name("TIC");
+    N.BOOT = pkpy_name("BOOT");
+    N.SCN = pkpy_name("SCN");
+    N.BDR = pkpy_name("BDR");
+    N.MENU = pkpy_name("MENU");
+
     closePython(tic);
     tic_core* core = (tic_core*)tic;
 
@@ -1389,7 +1365,7 @@ void callPythonTick(tic_mem* tic)
     if (!core->currentVM) 
         return;
 
-    if(!pkpy_getglobal(core->currentVM, N()->TIC)){
+    if(!pkpy_getglobal(core->currentVM, N.TIC)){
         pkpy_clear_error(core->currentVM, NULL);
         return;
     }
@@ -1405,7 +1381,7 @@ void callPythonBoot(tic_mem* tic) {
     if (!core->currentVM) 
         return;
 
-    if(!pkpy_getglobal(core->currentVM, N()->BOOT)){
+    if(!pkpy_getglobal(core->currentVM, N.BOOT)){
         pkpy_clear_error(core->currentVM, NULL);
         return;
     }
@@ -1422,7 +1398,7 @@ void callPythonScanline(tic_mem* tic, s32 row, void* data) {
     if (!core->currentVM) 
         return;
 
-    if(!pkpy_getglobal(core->currentVM, N()->SCN)){
+    if(!pkpy_getglobal(core->currentVM, N.SCN)){
         pkpy_clear_error(core->currentVM, NULL);
         return;
     }
@@ -1440,7 +1416,7 @@ void callPythonBorder(tic_mem* tic, s32 row, void* data) {
     if (!core->currentVM) 
         return;
 
-    if(!pkpy_getglobal(core->currentVM, N()->BDR)){
+    if(!pkpy_getglobal(core->currentVM, N.BDR)){
         pkpy_clear_error(core->currentVM, NULL);
         return;
     }
@@ -1458,7 +1434,7 @@ void callPythonMenu(tic_mem* tic, s32 index, void* data) {
     if (!core->currentVM) 
         return;
 
-    if(pkpy_getglobal(core->currentVM, N()->MENU)){
+    if(pkpy_getglobal(core->currentVM, N.MENU)){
         pkpy_clear_error(core->currentVM, NULL);
         return;
     }
