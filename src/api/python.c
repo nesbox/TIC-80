@@ -1225,7 +1225,7 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, "fset(sprite_id: int, flag: int, b: bool)", py_fset);
     pkpy_setglobal_2(vm, "fset");
 
-    pkpy_push_function(vm, "font(text: str, x: int, y: int, chromakey: int, char_width: int=8, char_height: int=8, fixed: bool=False, scale: int=1, alt: bool=False)", py_font);
+    pkpy_push_function(vm, "font(text: str, x: int, y: int, chromakey: int, char_width=8, char_height=8, fixed=False, scale=1, alt=False)", py_font);
     pkpy_setglobal_2(vm, "font");
 
     pkpy_push_function(vm, "key(code=-1)", py_key);
@@ -1237,7 +1237,7 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, "line(x0: int, y0: int, x1: int, y1: int, color: int)", py_line);
     pkpy_setglobal_2(vm, "line");
 
-    pkpy_push_function(vm, "map(x: int=0, y: int=0, w: int=30, h: int=17, sx: int=0, sy: int=0, colorkey: int=-1, scale: int=1, remap: list=None)", py_map);
+    pkpy_push_function(vm, "map(x=0, y=0, w=30, h=17, sx=0, sy=0, colorkey=-1, scale=1, remap: list=None)", py_map);
     pkpy_setglobal_2(vm, "map");
 
     pkpy_push_function(vm, "memcpy(dest: int, source: int, size: int)", py_memcpy);
@@ -1288,7 +1288,7 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, "poke4(addr: int, value: int)", py_poke4);
     pkpy_setglobal_2(vm, "poke4");
 
-    pkpy_push_function(vm, "print(text: str, x: int=0, y: int=0, color: int=15, fixed: bool=False, scale: int=1, smallfont: bool=False, alt: bool=False)", py_print);
+    pkpy_push_function(vm, "print(text: str, x=0, y=0, color=15, fixed=False, scale=1, smallfont=False, alt=False)", py_print);
     pkpy_setglobal_2(vm, "print");
 
     pkpy_push_function(vm, "rect(x: int, y: int, w: int, h: int, color: int)", py_rect);
@@ -1300,13 +1300,13 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, "reset()", py_reset);
     pkpy_setglobal_2(vm, "reset");
 
-    pkpy_push_function(vm, "sfx(id: int, note: int=-1, duration: int=-1, channel: int=0, volume: int=15, speed: int=0)", py_sfx);
+    pkpy_push_function(vm, "sfx(id: int, note=-1, duration=-1, channel=0, volume=15, speed=0)", py_sfx);
     pkpy_setglobal_2(vm, "sfx");
 
-    pkpy_push_function(vm, "spr(id: int, x: int, y: int, colorkey: int=-1, scale: int=1, flip: int=0, rotate: int=0, w: int=1, h: int=1)", py_spr);
+    pkpy_push_function(vm, "spr(id: int, x: int, y: int, colorkey=-1, scale=1, flip=0, rotate=0, w=1, h=1)", py_spr);
     pkpy_setglobal_2(vm, "spr");
 
-    pkpy_push_function(vm, "sync(mask: int=0, bank: int=0, tocart: bool=False)", py_sync);
+    pkpy_push_function(vm, "sync(mask=0, bank=0, tocart=False)", py_sync);
     pkpy_setglobal_2(vm, "sync");
 
     pkpy_push_function(vm, "time()", py_time);
@@ -1321,7 +1321,7 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, "trib(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, color: int)", py_trib);
     pkpy_setglobal_2(vm, "trib");
 
-    pkpy_push_function(vm, "ttri(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, u1: float, v1: float, u2: float, v2: float, u3: float, v3: float, texsrc: int=0, chromakey: int=-1, z1: float=0, z2: float=0, z3: float=0)", py_ttri);
+    pkpy_push_function(vm, "ttri(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, u1: float, v1: float, u2: float, v2: float, u3: float, v3: float, texsrc=0, chromakey=-1, z1: float=0, z2: float=0, z3: float=0)", py_ttri);
     pkpy_setglobal_2(vm, "ttri");
 
     pkpy_push_function(vm, "vbank(bank: int=None)", py_vbank);
