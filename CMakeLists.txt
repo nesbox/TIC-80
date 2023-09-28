@@ -412,16 +412,8 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 endif()
 
 # alias pocketpy to python for next steps
-<<<<<<< HEAD
 set_target_properties(pocketpy PROPERTIES OUTPUT_NAME python)
 add_library(python ALIAS pocketpy)
-=======
-if(BAREMETALPI)
-    set_target_properties(pocketpy PROPERTIES OUTPUT_NAME python)
-else()
-    add_library(python ALIAS pocketpy)
-endif()
->>>>>>> 57221aab8efd3e54eb975607b70414adf0a67469
 
 ################################
 # GIFLIB
