@@ -402,11 +402,12 @@ target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/sqstdlib)
 
 add_subdirectory(${THIRDPARTY_DIR}/pocketpy)
 
-set_target_properties(pocketpy PROPERTIES OUTPUT_NAME python)
 set_target_properties(pocketpy PROPERTIES LINKER_LANGUAGE CXX)
-
 target_compile_definitions(pocketpy PRIVATE PK_ENABLE_OS=0)
 include_directories(${THIRDPARTY_DIR}/pocketpy/include)
+
+# alias pocketpy to python for next steps
+add_library(python ALIAS pocketpy)
 
 ################################
 # GIFLIB
