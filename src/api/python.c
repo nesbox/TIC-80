@@ -1171,9 +1171,9 @@ static int py_vbank(pkpy_vm* vm) {
 }
 
 static bool setup_c_bindings(pkpy_vm* vm) {
-    pkpy_push_function(vm, "btn(id: int)", py_btn);
+    pkpy_push_function(vm, "btn(id: int) -> bool", py_btn);
     pkpy_setglobal_2(vm, "btn");
-    pkpy_push_function(vm, "btnp(id: int, hold=-1, period=-1)", py_btnp);
+    pkpy_push_function(vm, "btnp(id: int, hold=-1, period=-1) -> bool", py_btnp);
     pkpy_setglobal_2(vm, "btnp");
 
     pkpy_push_function(vm, "circ(x: int, y: int, radius: int, color: int)", py_circ);
@@ -1195,23 +1195,23 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, "exit()", py_exit);
     pkpy_setglobal_2(vm, "exit");
 
-    pkpy_push_function(vm, "fget(sprite_id: int, flag: int)", py_fget);
+    pkpy_push_function(vm, "fget(sprite_id: int, flag: int) -> bool", py_fget);
     pkpy_setglobal_2(vm, "fget");
     pkpy_push_function(vm, "fset(sprite_id: int, flag: int, b: bool)", py_fset);
     pkpy_setglobal_2(vm, "fset");
 
-    pkpy_push_function(vm, "font(text: str, x: int, y: int, chromakey: int, char_width=8, char_height=8, fixed=False, scale=1, alt=False)", py_font);
+    pkpy_push_function(vm, "font(text: str, x: int, y: int, chromakey: int, char_width=8, char_height=8, fixed=False, scale=1, alt=False) -> int", py_font);
     pkpy_setglobal_2(vm, "font");
 
-    pkpy_push_function(vm, "key(code=-1)", py_key);
+    pkpy_push_function(vm, "key(code=-1) -> bool", py_key);
     pkpy_setglobal_2(vm, "key");
-    pkpy_push_function(vm, "keyp(code=-1, hold=-1, period=-17)", py_keyp);
+    pkpy_push_function(vm, "keyp(code=-1, hold=-1, period=-17) -> int", py_keyp);
     pkpy_setglobal_2(vm, "keyp");
 
     pkpy_push_function(vm, "line(x0: int, y0: int, x1: int, y1: int, color: int)", py_line);
     pkpy_setglobal_2(vm, "line");
 
-    pkpy_push_function(vm, "map(x=0, y=0, w=30, h=17, sx=0, sy=0, colorkey=-1, scale=1, remap: list=None)", py_map);
+    pkpy_push_function(vm, "map(x=0, y=0, w=30, h=17, sx=0, sy=0, colorkey=-1, scale=1, remap=None)", py_map);
     pkpy_setglobal_2(vm, "map");
 
     pkpy_push_function(vm, "memcpy(dest: int, source: int, size: int)", py_memcpy);
@@ -1219,30 +1219,30 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, "memset(dest: int, value: int, size: int)", py_memset);
     pkpy_setglobal_2(vm, "memset");
 
-    pkpy_push_function(vm, "mget(x: int, y: int)", py_mget);
+    pkpy_push_function(vm, "mget(x: int, y: int) -> int", py_mget);
     pkpy_setglobal_2(vm, "mget");
     pkpy_push_function(vm, "mset(x: int, y: int, tile_id: int)", py_mset);
     pkpy_setglobal_2(vm, "mset");
 
-    pkpy_push_function(vm, "mouse()", py_mouse);
+    pkpy_push_function(vm, "mouse() -> tuple[int, int, bool, bool, bool, int, int]", py_mouse);
     pkpy_setglobal_2(vm, "mouse");
 
     pkpy_push_function(vm, "music(track=-1, frame=-1, row=-1, loop=True, sustain=False, tempo=-1, speed=-1)", py_music);
     pkpy_setglobal_2(vm, "music");
 
-    pkpy_push_function(vm, "peek(addr: int, bits=8)", py_peek);
+    pkpy_push_function(vm, "peek(addr: int, bits=8) -> int", py_peek);
     pkpy_setglobal_2(vm, "peek");
-    pkpy_push_function(vm, "peek1(addr: int)", py_peek1);
+    pkpy_push_function(vm, "peek1(addr: int) -> int", py_peek1);
     pkpy_setglobal_2(vm, "peek1");
-    pkpy_push_function(vm, "peek2(addr: int)", py_peek2);
+    pkpy_push_function(vm, "peek2(addr: int) -> int", py_peek2);
     pkpy_setglobal_2(vm, "peek2");
-    pkpy_push_function(vm, "peek4(addr: int)", py_peek4);
+    pkpy_push_function(vm, "peek4(addr: int) -> int", py_peek4);
     pkpy_setglobal_2(vm, "peek4");
 
-    pkpy_push_function(vm, "pix(x: int, y: int, color: int=None)", py_pix);
+    pkpy_push_function(vm, "pix(x: int, y: int, color: int=None) -> int | None", py_pix);
     pkpy_setglobal_2(vm, "pix");
 
-    pkpy_push_function(vm, "pmem(index: int, value: int=None)", py_pmem);
+    pkpy_push_function(vm, "pmem(index: int, value: int=None) -> int", py_pmem);
     pkpy_setglobal_2(vm, "pmem");
 
     pkpy_push_function(vm, "poke(addr: int, value: int, bits=8)", py_poke);
@@ -1254,7 +1254,7 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, "poke4(addr: int, value: int)", py_poke4);
     pkpy_setglobal_2(vm, "poke4");
 
-    pkpy_push_function(vm, "print(text: str, x=0, y=0, color=15, fixed=False, scale=1, smallfont=False, alt=False)", py_print);
+    pkpy_push_function(vm, "print(text, x=0, y=0, color=15, fixed=False, scale=1, smallfont=False, alt=False)", py_print);
     pkpy_setglobal_2(vm, "print");
 
     pkpy_push_function(vm, "rect(x: int, y: int, w: int, h: int, color: int)", py_rect);
@@ -1274,10 +1274,10 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, "sync(mask=0, bank=0, tocart=False)", py_sync);
     pkpy_setglobal_2(vm, "sync");
 
-    pkpy_push_function(vm, "ttri(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, u1: float, v1: float, u2: float, v2: float, u3: float, v3: float, texsrc=0, chromakey=-1, z1: float=0, z2: float=0, z3: float=0)", py_ttri);
+    pkpy_push_function(vm, "ttri(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, u1: float, v1: float, u2: float, v2: float, u3: float, v3: float, texsrc=0, chromakey=-1, z1=0.0, z2=0.0, z3=0.0)", py_ttri);
     pkpy_setglobal_2(vm, "ttri");
 
-    pkpy_push_function(vm, "time()", py_time);
+    pkpy_push_function(vm, "time() -> int", py_time);
     pkpy_setglobal_2(vm, "time");
 
     pkpy_push_function(vm, "trace(message, color=15)", py_trace);
@@ -1288,10 +1288,10 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_push_function(vm, "trib(x1: float, y1: float, x2: float, y2: float, x3: float, y3: float, color: int)", py_trib);
     pkpy_setglobal_2(vm, "trib");
 
-    pkpy_push_function(vm, "tstamp()", py_tstamp);
+    pkpy_push_function(vm, "tstamp() -> int", py_tstamp);
     pkpy_setglobal_2(vm, "tstamp");
 
-    pkpy_push_function(vm, "vbank(bank: int=None)", py_vbank);
+    pkpy_push_function(vm, "vbank(bank: int=None) -> int", py_vbank);
     pkpy_setglobal_2(vm, "vbank");
 
     if(pkpy_check_error(vm))
