@@ -403,6 +403,7 @@ target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/sqstdlib)
 add_subdirectory(${THIRDPARTY_DIR}/pocketpy)
 
 set_target_properties(pocketpy PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(pocketpy PROPERTIES OUTPUT_NAME python)
 
 target_compile_definitions(pocketpy PRIVATE PK_ENABLE_OS=0)
 
