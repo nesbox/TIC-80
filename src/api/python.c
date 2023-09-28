@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 
-typedef struct CachedNames{
+struct CachedNames{
     bool initialized;
     pkpy_CName _tic_core;
     pkpy_CName len;
@@ -16,11 +16,10 @@ typedef struct CachedNames{
     pkpy_CName SCN;
     pkpy_CName BDR;
     pkpy_CName MENU;
-} CachedNames;
+}_cached_names;
 
-CachedNames _cached_names;
-
-static CachedNames* N(){
+static struct CachedNames* N(){
+    // use cached names to improve performance
     if(!_cached_names.initialized){
         _cached_names._tic_core = pkpy_name("_tic_core");
         _cached_names.len = pkpy_name("len");
@@ -35,6 +34,7 @@ static CachedNames* N(){
     return &_cached_names;
 }
 
+// duplicate a pkpy_CString to a null-terminated c string
 static char* cstrdup(pkpy_CString cs){
     char* s = (char*)malloc(cs.size + 1);
     memcpy(s, cs.data, cs.size);
@@ -49,14 +49,15 @@ static void pkpy_setglobal_2(pkpy_vm* vm, const char* name){
 static bool get_core(pkpy_vm* vm, tic_core** core) 
 {
     pkpy_getglobal(vm, N()->_tic_core);
-    return pkpy_to_voidp(vm, -1, (void**) core);
+    bool ok = pkpy_to_voidp(vm, -1, (void**) core);
+    if(ok) pkpy_pop_top(vm);
+    return ok;
 }
 
 static bool setup_core(pkpy_vm* vm, tic_core* core) 
 {
     if (!pkpy_push_voidp(vm, core)) return false;
-    if (!pkpy_setglobal(vm, N()->_tic_core)) return false;
-    return true;
+    return pkpy_setglobal(vm, N()->_tic_core);
 }
 
 //index should be a positive index
@@ -1332,13 +1333,6 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     return true;
 }
 
-static bool setup_py_bindings(pkpy_vm* vm) {
-    if(pkpy_check_error(vm))
-        return false;
-
-    return true;
-}
-
 void closePython(tic_mem* tic) 
 {
     tic_core* core = (tic_core*)tic;
@@ -1376,11 +1370,6 @@ static bool initPython(tic_mem* tic, const char* code)
     if (!setup_c_bindings(vm))
     {
         report_error(core, "problem setting up the c bindings (pocketpy c binding bug\n");
-        return false;
-    }
-    if (!setup_py_bindings(vm))
-    {
-        report_error(core, "problem setting up the py bindings (pocketpy c binding bug\n");
         return false;
     }
 
