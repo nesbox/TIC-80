@@ -46,10 +46,6 @@ static void pkpy_setglobal_2(pkpy_vm* vm, const char* name){
     pkpy_setglobal(vm, pkpy_name(name));
 }
 
-static bool pkpy_vm_run(pkpy_vm* vm, const char* src){
-    return 0;
-}
-
 static bool get_core(pkpy_vm* vm, tic_core** core) 
 {
     pkpy_getglobal(vm, N()->_tic_core);
@@ -1388,7 +1384,7 @@ static bool initPython(tic_mem* tic, const char* code)
         return false;
     }
 
-    if(!pkpy_vm_run(vm, code)) 
+    if(!pkpy_exec(vm, code)) 
     {
         report_error(core, "error while processing the main code\n");
 
