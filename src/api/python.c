@@ -1550,7 +1550,18 @@ end:
 
 void evalPython(tic_mem* tic, const char* code) 
 {
-    printf("TODO: python eval not yet implemented\n.");
+    tic_core* core = (tic_core*)tic;
+    pkpy_vm* vm = core->currentVM;
+    if (!vm) return;
+
+    if(!pkpy_exec(vm, code)) 
+    {
+        char* msg;
+        if(pkpy_clear_error(vm, &msg)){
+            core->data->error(core->data->data, msg);
+            pkpy_free(msg);
+        }
+    }
 }
 
 
