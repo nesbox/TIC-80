@@ -928,7 +928,7 @@ static int py_sfx(pkpy_vm* vm)
     get_core(vm, (tic_core**) &tic);
     if(pkpy_check_error(vm)) 
         goto cleanup;
-    int note, octave;
+    s32 note, octave;
 
     if (parse_note) {
         if(!tic_tool_parse_note(string_note, &note, &octave)) {
