@@ -181,25 +181,25 @@ static SFXNote tic_optsfxnote(Janet *argv, int32_t argc, int32_t n, SFXNote sfxN
 {
     if (argc <= n)
     {
-	return sfxNote;
+        return sfxNote;
     }
     else if (janet_checktype(argv[n], JANET_STRING))
     {
-	const char *noteStr = janet_getcstring(argv, n);
+        const char *noteStr = janet_getcstring(argv, n);
 
-	if (!tic_tool_parse_note(noteStr, &sfxNote.note, &sfxNote.octave))
-	{
-	    janet_panicf("invalid note, should be like C#4, got %s\n", noteStr);
-	}
+        if (!tic_tool_parse_note(noteStr, &sfxNote.note, &sfxNote.octave))
+        {
+            janet_panicf("invalid note, should be like C#4, got %s\n", noteStr);
+        }
 
-	return sfxNote;
+        return sfxNote;
     }
     else
     {
-	s32 id = janet_getinteger(argv, n);
-	sfxNote.note = id % NOTES;
-	sfxNote.octave = id / NOTES;
-	return sfxNote;
+        s32 id = janet_getinteger(argv, n);
+        sfxNote.note = id % NOTES;
+        sfxNote.octave = id / NOTES;
+        return sfxNote;
     }
 }
 
@@ -216,33 +216,33 @@ static ColorKey tic_optcolorkey(Janet *argv, int32_t argc, int32_t n)
 
     if (argc > n)
     {
-	if (janet_checktypes(argv[n], JANET_TFLAG_INDEXED))
-	{
-	    JanetView keys = janet_getindexed(argv, n);
-	    s32 list_count = keys.len;
+        if (janet_checktypes(argv[n], JANET_TFLAG_INDEXED))
+        {
+            JanetView keys = janet_getindexed(argv, n);
+            s32 list_count = keys.len;
 
-	    for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
-	    {
-		if (i < list_count)
-		{
-		    colorkey.colors[i] = (s32)janet_getinteger(keys.items, i);;
-		    colorkey.count++;
-		}
-		else
-		{
-		    break;
-		}
-	    }
-	}
-	else if (janet_checkint(argv[n]))
-	{
-	    colorkey.colors[0] = (s32)janet_getnumber(argv, n);
-	    colorkey.count = 1;
-	}
-	else
-	{
-	    janet_panic("Error: colorkeys must be either int or list of int");
-	}
+            for(s32 i = 0; i < TIC_PALETTE_SIZE; i++)
+            {
+                if (i < list_count)
+                {
+                    colorkey.colors[i] = (s32)janet_getinteger(keys.items, i);;
+                    colorkey.count++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+        else if (janet_checkint(argv[n]))
+        {
+            colorkey.colors[0] = (s32)janet_getnumber(argv, n);
+            colorkey.count = 1;
+        }
+        else
+        {
+            janet_panic("Error: colorkeys must be either int or list of int");
+        }
     }
 
     return colorkey;
@@ -261,11 +261,11 @@ static TriDepth tic_opttridepth(Janet* argv, int32_t argc, int32_t n)
 
     if (argc > n)
     {
-	depth.on = true;
+        depth.on = true;
 
-	depth.z[0] = janet_getnumber(argv, n);
-	depth.z[1] = janet_getnumber(argv, n+1);
-	depth.z[2] = janet_getnumber(argv, n+2);
+        depth.z[0] = janet_getnumber(argv, n);
+        depth.z[1] = janet_getnumber(argv, n+1);
+        depth.z[2] = janet_getnumber(argv, n+2);
     }
 
     return depth;
@@ -317,10 +317,10 @@ static Janet janet_pix(int32_t argc, Janet* argv)
     s32 y = (s32)janet_getinteger(argv, 1);
 
     if (argc == 2) {
-	get = true;
+        get = true;
     } else {
-	color = (u8)janet_getinteger(argv, 2);
-	get = false;
+        color = (u8)janet_getinteger(argv, 2);
+        get = false;
     }
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
@@ -390,8 +390,8 @@ static Janet janet_spr(int32_t argc, Janet* argv)
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
     tic_api_spr(memory, index, x, y, w, h,
-		colorkey.colors, colorkey.count,
-		scale, flip, rotate);
+                colorkey.colors, colorkey.count,
+                scale, flip, rotate);
 
     return janet_wrap_nil();
 }
@@ -426,7 +426,7 @@ static Janet janet_sfx(int32_t argc, Janet* argv)
 
     s32 index = (s32)janet_getinteger(argv, 0);
     if (index >= SFX_COUNT) {
-	janet_panicf("unknown sfx index, got %s\n", index);
+        janet_panicf("unknown sfx index, got %s\n", index);
     }
 
     // possibly get default values from sfx
@@ -435,16 +435,16 @@ static Janet janet_sfx(int32_t argc, Janet* argv)
     s32 defaultSpeed = SFX_DEF_SPEED;
     if (index >= 0)
     {
-	defaultSfxNote.note = effect->note;
-	defaultSfxNote.octave = effect->octave;
-	defaultSpeed = effect->speed;
+        defaultSfxNote.note = effect->note;
+        defaultSfxNote.octave = effect->octave;
+        defaultSpeed = effect->speed;
     }
 
     SFXNote sfxNote = tic_optsfxnote(argv, argc, 1, defaultSfxNote);
     s32 duration = (s32)janet_optinteger(argv, argc, 2, -1);
     s32 channel = (s32)janet_optinteger(argv, argc, 3, 0);
     if (channel < 0 || channel > TIC_SOUND_CHANNELS) {
-	janet_panicf("unknown channel, got %s\n", channel);
+        janet_panicf("unknown channel, got %s\n", channel);
     }
 
     s32 volumes[TIC80_SAMPLE_CHANNELS] = {MAX_VOLUME, MAX_VOLUME};
@@ -454,10 +454,10 @@ static Janet janet_sfx(int32_t argc, Janet* argv)
     s32 speed = (s32)janet_optinteger(argv, argc, 5, defaultSpeed);
 
     tic_api_sfx(memory, index,
-		sfxNote.note, sfxNote.octave,
-		duration, channel,
-		volumes[0] & 0xf, volumes[1] & 0xf,
-		speed);
+                sfxNote.note, sfxNote.octave,
+                duration, channel,
+                volumes[0] & 0xf, volumes[1] & 0xf,
+                speed);
     return janet_wrap_nil();
 }
 
@@ -475,15 +475,15 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
 
     if (janet_checktypes(jresult, JANET_TFLAG_INDEXED))
     {
-	const Janet *jresult_tuple = janet_unwrap_tuple(jresult);
-	u8 retc = janet_tuple_length(jresult_tuple);
-	result->index = janet_getinteger(jresult_tuple, 0);
-	result->flip = janet_optinteger(jresult_tuple, retc, 1,  0);
-	result->rotate = janet_optinteger(jresult_tuple, retc, 2,  0);
+        const Janet *jresult_tuple = janet_unwrap_tuple(jresult);
+        u8 retc = janet_tuple_length(jresult_tuple);
+        result->index = janet_getinteger(jresult_tuple, 0);
+        result->flip = janet_optinteger(jresult_tuple, retc, 1,  0);
+        result->rotate = janet_optinteger(jresult_tuple, retc, 2,  0);
     }
     else if (janet_checkint(jresult))
     {
-	result->index = janet_unwrap_integer(jresult);
+        result->index = janet_unwrap_integer(jresult);
     }
 }
 
@@ -508,17 +508,17 @@ static Janet janet_map(int32_t argc, Janet* argv)
 
     if (argc < 9)
     {
-	tic_api_map(memory, x, y, w, h, sx, sy,
-		    colorkey.colors, colorkey.count,
-		    scale, NULL, NULL);
+        tic_api_map(memory, x, y, w, h, sx, sy,
+                    colorkey.colors, colorkey.count,
+                    scale, NULL, NULL);
     }
     else
     {
-	JanetFunction *remap = janet_getfunction(argv, 8);
-	tic_api_map(memory, x, y, w, h, sx, sy,
-		    colorkey.colors, colorkey.count,
-		    scale,
-		    remapCallback, remap);
+        JanetFunction *remap = janet_getfunction(argv, 8);
+        tic_api_map(memory, x, y, w, h, sx, sy,
+                    colorkey.colors, colorkey.count,
+                    scale,
+                    remapCallback, remap);
     }
 
     return janet_wrap_nil();
@@ -671,7 +671,7 @@ static Janet janet_trace(int32_t argc, Janet* argv)
     const char *message = janet_getcstring(argv, 0);
 
     if (argc > 1) {
-	color = janet_getinteger(argv, 1);
+        color = janet_getinteger(argv, 1);
     }
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
@@ -686,20 +686,20 @@ static Janet janet_pmem(int32_t argc, Janet* argv)
 
     if(index < TIC_PERSISTENT_SIZE)
     {
-	tic_mem* memory = (tic_mem*)getJanetMachine();
-	u32 val = tic_api_pmem(memory, index, 0, false);
+        tic_mem* memory = (tic_mem*)getJanetMachine();
+        u32 val = tic_api_pmem(memory, index, 0, false);
 
-	if (argc >= 2)
-	{
-	    u32 value = janet_getinteger(argv, 1);
-	    tic_api_pmem(memory, index, value, true);
-	}
+        if (argc >= 2)
+        {
+            u32 value = janet_getinteger(argv, 1);
+            tic_api_pmem(memory, index, value, true);
+        }
 
-	return janet_wrap_integer(val);
+        return janet_wrap_integer(val);
     }
     else
     {
-	janet_panic("Error: invalid persistent tic index");
+        janet_panic("Error: invalid persistent tic index");
     }
 }
 
@@ -742,8 +742,8 @@ static Janet janet_font(int32_t argc, Janet* argv)
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
     int32_t width = tic_api_font(memory,
-				 text, x, y, &chromakey, 1,
-				 w, h, fixed, scale, alt);
+                                 text, x, y, &chromakey, 1,
+                                 w, h, fixed, scale, alt);
     return janet_wrap_integer(width);
 }
 
@@ -755,9 +755,9 @@ static Janet janet_mouse(int32_t argc, Janet* argv)
     Janet result[7];
 
     {
-	tic_point point = tic_api_mouse(memory);
-	result[0] = janet_wrap_integer(point.x);
-	result[1] = janet_wrap_integer(point.y);
+        tic_point point = tic_api_mouse(memory);
+        result[0] = janet_wrap_integer(point.x);
+        result[1] = janet_wrap_integer(point.y);
     }
 
     tic_core* core = getJanetMachine();
@@ -887,13 +887,13 @@ static Janet janet_ttri(int32_t argc, Janet* argv)
     {
       if (janet_checktypes(argv[12], JANET_TFLAG_BOOLEAN))
       {
-	if (janet_getboolean(argv, 12)) {
-	  src = tic_map_texture;
-	}
+        if (janet_getboolean(argv, 12)) {
+          src = tic_map_texture;
+        }
       }
       else if (janet_checktypes(argv[12], JANET_TFLAG_NUMBER))
       {
-	src = janet_getinteger(argv, 12);
+        src = janet_getinteger(argv, 12);
       }
     }
 
@@ -902,15 +902,15 @@ static Janet janet_ttri(int32_t argc, Janet* argv)
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
     tic_api_ttri(memory,
-		 x1, y1,
-		 x2, y2,
-		 x3, y3,
-		 u1, v1,
-		 u2, v2,
-		 u3, v3,
-		 src,
-		 trans.colors, trans.count,
-		 depth.z[0], depth.z[1], depth.z[2], depth.on);
+                 x1, y1,
+                 x2, y2,
+                 x3, y3,
+                 u1, v1,
+                 u2, v2,
+                 u3, v3,
+                 src,
+                 trans.colors, trans.count,
+                 depth.z[0], depth.z[1], depth.z[2], depth.on);
 
     return janet_wrap_nil();
 }
@@ -922,15 +922,15 @@ static Janet janet_clip(int32_t argc, Janet* argv)
     tic_mem* memory = (tic_mem*)getJanetMachine();
 
     if (argc == 0) {
-	tic_api_clip(memory, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
+        tic_api_clip(memory, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
     } else if (argc == 4) {
-	s32 x = janet_getinteger(argv, 0);
-	s32 y = janet_getinteger(argv, 1);
-	s32 w = janet_getinteger(argv, 2);
-	s32 h = janet_getinteger(argv, 3);
-	tic_api_clip(memory, x, y, w, h);
+        s32 x = janet_getinteger(argv, 0);
+        s32 y = janet_getinteger(argv, 1);
+        s32 w = janet_getinteger(argv, 2);
+        s32 h = janet_getinteger(argv, 3);
+        tic_api_clip(memory, x, y, w, h);
     } else {
-	janet_panic("Error: must provide exactly 0 or 4 args.");
+        janet_panic("Error: must provide exactly 0 or 4 args.");
     }
 
     return janet_wrap_nil();
@@ -1050,11 +1050,11 @@ static void closeJanet(tic_mem* tic)
     tic_core* core = (tic_core*)tic;
 
     if (core->currentVM) {
-	janet_deinit();
-	core->currentVM = NULL;
-	CurrentMachine = NULL;
-	errBuffer = NULL;
-	GameFiber = NULL;
+        janet_deinit();
+        core->currentVM = NULL;
+        CurrentMachine = NULL;
+        errBuffer = NULL;
+        GameFiber = NULL;
     }
 }
 
@@ -1085,8 +1085,8 @@ static bool initJanet(tic_mem* tic, const char* code)
 
     // Load the game source code
     if (janet_dostring(core->currentVM, code, "main", &result)) {
-	reportError(core, result);
-	return false;
+        reportError(core, result);
+        return false;
     }
 
     return true;
@@ -1117,8 +1117,8 @@ static void callJanetTick(tic_mem* tic)
     (void)janet_resolve(core->currentVM, janet_csymbol(TIC_FN), &pre_fn);
 
     if (janet_type(pre_fn) != JANET_FUNCTION) {
-	core->data->error(core->data->data, "(TIC) isn't found :(");
-	return;
+        core->data->error(core->data->data, "(TIC) isn't found :(");
+        return;
     }
 
     JanetFunction *tic_fn = janet_unwrap_function(pre_fn);
@@ -1126,19 +1126,19 @@ static void callJanetTick(tic_mem* tic)
     JanetSignal status = janet_pcall(tic_fn, 0, NULL, &result, &GameFiber);
 
     if (status != JANET_SIGNAL_OK) {
-	reportError(core, result);
+        reportError(core, result);
     }
 
 #if defined(BUILD_DEPRECATED)
     // call OVR() callback for backward compatibility
     (void)janet_resolve(core->currentVM, janet_csymbol(OVR_FN), &pre_fn);
     if (janet_type(pre_fn) == JANET_FUNCTION) {
-	JanetFunction *ovr_fn = janet_unwrap_function(pre_fn);
-	JanetSignal status = janet_pcall(ovr_fn, 0, NULL, &result, &GameFiber);
+        JanetFunction *ovr_fn = janet_unwrap_function(pre_fn);
+        JanetSignal status = janet_pcall(ovr_fn, 0, NULL, &result, &GameFiber);
 
-	if (status != JANET_SIGNAL_OK) {
-	    reportError(core, result);
-	}
+        if (status != JANET_SIGNAL_OK) {
+            reportError(core, result);
+        }
     }
 #endif
 }
@@ -1155,7 +1155,7 @@ static void callJanetBoot(tic_mem* tic)
     (void)janet_resolve(core->currentVM, janet_csymbol(BOOT_FN), &pre_fn);
 
     if (janet_type(pre_fn) != JANET_FUNCTION) {
-	return;
+        return;
     }
 
     Janet result = janet_wrap_nil();
@@ -1163,7 +1163,7 @@ static void callJanetBoot(tic_mem* tic)
     JanetSignal status = janet_pcall(boot_fn, 0, NULL, &result, &GameFiber);
 
     if (status != JANET_SIGNAL_OK) {
-	reportError(core, result);
+        reportError(core, result);
     }
 }
 
@@ -1179,7 +1179,7 @@ static void callJanetIntCallback(tic_mem* tic, s32 value, void* data, const char
     (void)janet_resolve(core->currentVM, janet_csymbol(name), &pre_fn);
 
     if (janet_type(pre_fn) != JANET_FUNCTION) {
-	return;
+        return;
     }
 
     Janet result = janet_wrap_nil();
@@ -1188,7 +1188,7 @@ static void callJanetIntCallback(tic_mem* tic, s32 value, void* data, const char
     JanetSignal status = janet_pcall(fn, 1, argv, &result, &GameFiber);
 
     if (status != JANET_SIGNAL_OK) {
-	reportError(core, result);
+        reportError(core, result);
     }
 }
 
@@ -1218,49 +1218,49 @@ static const tic_outline_item* getJanetOutline(const char* code, s32* size)
 
     if(items)
     {
-	free(items);
-	items = NULL;
+        free(items);
+        items = NULL;
     }
 
     const char* ptr = code;
 
     while(true)
     {
-	static const char FuncString[] = "(defn ";
+        static const char FuncString[] = "(defn ";
 
-	ptr = strstr(ptr, FuncString);
+        ptr = strstr(ptr, FuncString);
 
-	if(ptr)
-	{
-	    ptr += sizeof FuncString - 1;
+        if(ptr)
+        {
+            ptr += sizeof FuncString - 1;
 
-	    const char* start = ptr;
-	    const char* end = start;
+            const char* start = ptr;
+            const char* end = start;
 
-	    while(*ptr)
-	    {
-		char c = *ptr;
+            while(*ptr)
+            {
+                char c = *ptr;
 
-		if(c == ' ' || c == '\t' || c == '\n' || c == '[')
-		{
-		    end = ptr;
-		    break;
-		}
+                if(c == ' ' || c == '\t' || c == '\n' || c == '[')
+                {
+                    end = ptr;
+                    break;
+                }
 
-		ptr++;
-	    }
+                ptr++;
+            }
 
-	    if(end > start)
-	    {
-		items = realloc(items, (*size + 1) * Size);
+            if(end > start)
+            {
+                items = realloc(items, (*size + 1) * Size);
 
-		items[*size].pos = start;
-		items[*size].size = (s32)(end - start);
+                items[*size].pos = start;
+                items[*size].size = (s32)(end - start);
 
-		(*size)++;
-	    }
-	}
-	else break;
+                (*size)++;
+            }
+        }
+        else break;
     }
 
     return items;
@@ -1281,9 +1281,9 @@ const tic_script_config JanetSyntaxConfig =
 
     .callback           =
     {
-	.scanline       = callJanetScanline,
-	.border         = callJanetBorder,
-	.menu           = callJanetMenu,
+        .scanline       = callJanetScanline,
+        .border         = callJanetBorder,
+        .menu           = callJanetMenu,
     },
 
     .getOutline         = getJanetOutline,
