@@ -31,9 +31,10 @@ static void pkpy_setglobal_2(pkpy_vm* vm, const char* name){
 
 static bool get_core(pkpy_vm* vm, tic_core** core) 
 {
-    pkpy_getglobal(vm, N._tic_core);
-    bool ok = pkpy_to_voidp(vm, -1, (void**) core);
-    if(ok) pkpy_pop_top(vm);
+    bool ok = pkpy_getglobal(vm, N._tic_core);
+    if(!ok) return false;
+    ok = pkpy_to_voidp(vm, -1, (void**) core);
+    pkpy_pop_top(vm);
     return ok;
 }
 
@@ -1367,13 +1368,10 @@ void callPythonTick(tic_mem* tic)
     if (!core->currentVM) 
         return;
 
-    if(!pkpy_getglobal(core->currentVM, N.TIC)){
-        pkpy_clear_error(core->currentVM, NULL);
-        return;
-    }
+    if(!pkpy_getglobal(core->currentVM, N.TIC)) return;
+
     pkpy_push_null(core->currentVM);
     if(!pkpy_vectorcall(core->currentVM, 0)){
-        pkpy_clear_error(core->currentVM, NULL);
         report_error(core, "error while running TIC\n");
     }else{
         pkpy_pop_top(core->currentVM);
@@ -1384,10 +1382,8 @@ void callPythonBoot(tic_mem* tic) {
     if (!core->currentVM) 
         return;
 
-    if(!pkpy_getglobal(core->currentVM, N.BOOT)){
-        pkpy_clear_error(core->currentVM, NULL);
-        return;
-    }
+    if(!pkpy_getglobal(core->currentVM, N.BOOT)) return;
+    
     pkpy_push_null(core->currentVM);
     if(!pkpy_vectorcall(core->currentVM, 0)){
         report_error(core, "error while running BOOT\n");
@@ -1401,10 +1397,8 @@ void callPythonScanline(tic_mem* tic, s32 row, void* data) {
     if (!core->currentVM) 
         return;
 
-    if(!pkpy_getglobal(core->currentVM, N.SCN)){
-        pkpy_clear_error(core->currentVM, NULL);
-        return;
-    }
+    if(!pkpy_getglobal(core->currentVM, N.SCN)) return;
+
     pkpy_push_null(core->currentVM);
     pkpy_push_int(core->currentVM, row);
     if(!pkpy_vectorcall(core->currentVM, 1)){
@@ -1419,10 +1413,8 @@ void callPythonBorder(tic_mem* tic, s32 row, void* data) {
     if (!core->currentVM) 
         return;
 
-    if(!pkpy_getglobal(core->currentVM, N.BDR)){
-        pkpy_clear_error(core->currentVM, NULL);
-        return;
-    }
+    if(!pkpy_getglobal(core->currentVM, N.BDR)) return;
+
     pkpy_push_null(core->currentVM);
     pkpy_push_int(core->currentVM, row);
     if(!pkpy_vectorcall(core->currentVM, 1)){
@@ -1437,10 +1429,8 @@ void callPythonMenu(tic_mem* tic, s32 index, void* data) {
     if (!core->currentVM) 
         return;
 
-    if(pkpy_getglobal(core->currentVM, N.MENU)){
-        pkpy_clear_error(core->currentVM, NULL);
-        return;
-    }
+    if(pkpy_getglobal(core->currentVM, N.MENU)) return;
+
     pkpy_push_null(core->currentVM);
     pkpy_push_int(core->currentVM, index);
     if(!pkpy_vectorcall(core->currentVM, 1)){
@@ -1535,11 +1525,7 @@ void evalPython(tic_mem* tic, const char* code)
 
     if(!pkpy_exec(vm, code)) 
     {
-        char* msg;
-        if(pkpy_clear_error(vm, &msg)){
-            core->data->error(core->data->data, msg);
-            pkpy_free(msg);
-        }
+        report_error(core, "error while evaluating the code\n");
     }
 }
 

@@ -3,6 +3,7 @@
 *.opendb
 *.suo
 compile_commands.json
+compile_flags.txt
 sexit
 .vscode/
 build/install_manifest.txt
