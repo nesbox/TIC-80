@@ -2669,16 +2669,16 @@ static void onAddCommand(Console* console)
             }
             else
             {
-                var filePtr = Module._malloc(filename.length + 1);
+                var filePtr = _malloc(filename.length + 1);
                 stringToUTF8(filename, filePtr, filename.length + 1);
 
-                var dataPtr = Module._malloc(rom.length);
+                var dataPtr = _malloc(rom.length);
                 writeArrayToMemory(rom, dataPtr);
 
                 dynCall('viiii', $0, [$1, filePtr, dataPtr, rom.length]);
 
-                Module._free(filePtr);
-                Module._free(dataPtr);
+                _free(filePtr);
+                _free(dataPtr);
             }
         });
     }, onAddFile, console);
