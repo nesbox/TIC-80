@@ -2949,6 +2949,7 @@ static void processKeyboard(Code* code)
             else if(keyWasPressed(code->studio, tic_key_space)) emacsMode ? toggleMark(code) : noop;
             else if(keyWasPressed(code->studio, tic_key_l))     recenterScroll(code, emacsMode);
             else if(keyWasPressed(code->studio, tic_key_v))     emacsMode ? pageDown(code) : noop;
+            else if(shift && keyWasPressed(code->studio, tic_key_minus)) emacsMode ? undo(code) : noop;
             else ctrlHandled = false;
         }
 
@@ -2968,6 +2969,8 @@ static void processKeyboard(Code* code)
             else if(keyWasPressed(code->studio, tic_key_w))     emacsMode ? copyToClipboard(code, true) : noop;
             else if(keyWasPressed(code->studio, tic_key_g))     emacsMode ? setCodeMode(code, TEXT_GOTO_MODE) : noop;
             else if(keyWasPressed(code->studio, tic_key_s))     emacsMode ? setCodeMode(code, TEXT_FIND_MODE) : noop;
+            else if(shift && sym && sym == '<')                 emacsMode ? goCodeHome(code) : noop;
+            else if(shift && sym && sym == '>')                 emacsMode ? goCodeEnd(code) : noop;
             else if(shift && sym && sym == '(')                 emacsMode? sexpify(code) : noop;
             else if(keyWasPressed(code->studio, tic_key_slash)) emacsMode ? redo(code) : noop;
             else if(keyWasPressed(code->studio, tic_key_semicolon)) emacsMode ? commentLine(code) : noop;
