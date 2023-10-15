@@ -2845,8 +2845,6 @@ static void processKeyboard(Code* code)
 {
     tic_mem* tic = code->tic;
 
-    if(tic->ram->input.keyboard.data == 0) return;
-
     enum KeybindMode keymode = getKeybindMode(code);
 
     if (keymode == KEYBIND_VI) 
