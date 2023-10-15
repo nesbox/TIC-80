@@ -900,7 +900,7 @@ static mrb_value mrb_trace(mrb_state *mrb, mrb_value self)
 {
     mrb_value text_obj;
     mrb_int color = TIC_DEFAULT_COLOR;
-    mrb_get_args(mrb, "S|i", &text_obj, &color);
+    mrb_get_args(mrb, "o|i", &text_obj, &color);
 
     tic_core* machine = getMRubyMachine(mrb);
 
