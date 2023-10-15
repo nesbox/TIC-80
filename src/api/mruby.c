@@ -1054,7 +1054,7 @@ static void evalMRuby(tic_mem* tic, const char* code) {
     tic_core* machine = (tic_core*)tic;
 
     mrbVm* vm=(mrbVm*)machine->currentVM;
-    if(!vm)
+    if(!vm || !vm->mrb)
         return;
 
     mrb_state* mrb = vm->mrb;
