@@ -1053,10 +1053,11 @@ static bool initMRuby(tic_mem* tic, const char* code)
 static void evalMRuby(tic_mem* tic, const char* code) {
     tic_core* machine = (tic_core*)tic;
 
-    mrb_state* mrb = ((mrbVm*)machine->currentVM)->mrb = mrb_open();
-
-    if (!mrb)
+    mrbVm* vm=(mrbVm*)machine->currentVM;
+    if(!vm || !vm->mrb)
         return;
+
+    mrb_state* mrb = vm->mrb;
 
     if (((mrbVm*)machine->currentVM)->mrb_cxt)
     {
@@ -1064,6 +1065,7 @@ static void evalMRuby(tic_mem* tic, const char* code) {
     }
 
     mrbc_context* mrb_cxt = ((mrbVm*)machine->currentVM)->mrb_cxt = mrbc_context_new(mrb);
+    mrbc_filename(mrb, mrb_cxt, "eval");
     mrb_load_string_cxt(mrb, code, mrb_cxt);
     catcherr(machine);
 }
