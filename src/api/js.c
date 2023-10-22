@@ -237,7 +237,7 @@ static JSValue js_spr(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
     }
     else
     {
-        colors[0] = getInteger2(ctx, argv[3], 0);
+        colors[0] = getInteger2(ctx, argv[3], -1);
         count = 1;
     }
 

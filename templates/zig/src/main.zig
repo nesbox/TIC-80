@@ -30,3 +30,7 @@ export fn TIC() void {
 
     t += 1;
 }
+
+export fn BDR() void {}
+
+export fn OVR() void {}

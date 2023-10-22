@@ -1,9 +1,9 @@
 # ZIG Starter Project Template
 
-This is a ZIG / TIC-80 starter template.  To build it, ensure you have a recent development release of Zig 0.10, then run:
+This is a ZIG / TIC-80 starter template. To build it, ensure you have the latest stable Zig release (0.11) or the development release (0.12), then run:
 
 ```
-zig build
+zig build -Doptimize=ReleaseSmall
 ```
 
 To import the resulting WASM to a cartridge:
@@ -21,3 +21,4 @@ save
 ```
 
 This is assuming you've run TIC-80 with `--fs .` inside your project directory.
+

@@ -161,6 +161,14 @@ jobs:
     runs-on: windows-2019
 
     steps:
+      # https://github.com/actions/runner-images/issues/2642#issuecomment-774988591
+      - name: configure Pagefile
+        uses: al-cheb/configure-pagefile-action@v1.2
+        with:
+            minimum-size: 16GB
+            maximum-size: 16GB
+            disk-root: "C:"
+  
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: 2.6

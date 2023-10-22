@@ -257,8 +257,7 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
             }            
         }
 
-        if(tic_api_btnp(menu->tic, A, -1, -1) 
-           || tic_api_keyp(tic, tic_key_return, Hold, Period))
+        if(tic_api_btnp(menu->tic, A, -1, -1) || ticEnterWasPressed(tic, -1, -1))
         {
             if(option)
             {

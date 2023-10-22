@@ -230,16 +230,20 @@ png_buffer png_encode(png_buffer cover, png_buffer cart)
     const s32 coverSize = png.width * png.height * RGBA_SIZE - HEADER_SIZE;
     Header header = {CLAMP(ceildiv(cartBits, coverSize), 1, BITS_IN_BYTE), cart.size};
 
-    for (s32 i = 0; i < HEADER_SIZE; i++)
-        bitcpy(png.data, i << 3, header.data, i * HEADER_BITS, HEADER_BITS);
+    // only save with steganography if there are enough pixels for the size of the cartidge
+    if (coverSize >= cartBits) 
+    {
+        for (s32 i = 0; i < HEADER_SIZE; i++)
+            bitcpy(png.data, i << 3, header.data, i * HEADER_BITS, HEADER_BITS);
 
-    u8* dst = png.data + HEADER_SIZE;
-    s32 end = ceildiv(cartBits, header.bits);
-    for (s32 i = 0; i < end; i++)
-        bitcpy(dst, i << 3, cart.data, i * header.bits, header.bits);
+        u8* dst = png.data + HEADER_SIZE;
+        s32 end = ceildiv(cartBits, header.bits);
+        for (s32 i = 0; i < end; i++)
+            bitcpy(dst, i << 3, cart.data, i * header.bits, header.bits);
 
-    for (s32 i = end; i < coverSize; i++)
-        bitcpy(dst, i << 3, (const u8[]){rand()}, 0, header.bits);
+        for (s32 i = end; i < coverSize; i++)
+            bitcpy(dst, i << 3, (const u8[]){rand()}, 0, header.bits);
+    }
 
     png_buffer out = png_write(png, cart);
 

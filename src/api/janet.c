@@ -145,7 +145,7 @@ static const JanetReg janet_c_functions[] =
 
 static const char* const JanetKeywords[] =
 {
-    "defmacro", "withsyms", "macex1", "macex",
+    "defmacro", "with-syms", "macex1", "macex",
     "do", "values", "break"
     "if", "when", "cond", "match",
     "each", "for", "loop", "while",
@@ -882,8 +882,19 @@ static Janet janet_ttri(int32_t argc, Janet* argv)
     float v3 = janet_getnumber(argv, 11);
 
     tic_texture_src src = tic_tiles_texture;
-    if (janet_optboolean(argv, argc, 12, false)) {
-        src = tic_map_texture;
+
+    if (argc > 12)
+    {
+      if (janet_checktypes(argv[12], JANET_TFLAG_BOOLEAN))
+      {
+        if (janet_getboolean(argv, 12)) {
+          src = tic_map_texture;
+        }
+      }
+      else if (janet_checktypes(argv[12], JANET_TFLAG_NUMBER))
+      {
+        src = janet_getinteger(argv, 12);
+      }
     }
 
     ColorKey trans = tic_optcolorkey(argv, argc, 13);

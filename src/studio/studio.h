@@ -258,7 +258,9 @@ tic_map* getBankMap(Studio* studio);
 
 char getKeyboardText(Studio* studio);
 bool keyWasPressed(Studio* studio, tic_key key);
+bool enterWasPressed(Studio* studio);
 bool anyKeyWasPressed(Studio* studio);
+bool ticEnterWasPressed(tic_mem* tic, s32 hold, s32 period);
 
 const StudioConfig* getConfig(Studio* studio);
 struct Start* getStartScreen(Studio* studio);

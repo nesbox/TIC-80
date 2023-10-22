@@ -370,19 +370,17 @@ static mrb_value mrb_btnp(mrb_state* mrb, mrb_value self)
     mrb_int index, hold, period;
     mrb_int argc = mrb_get_args(mrb, "|iii", &index, &hold, &period);
 
-    index &= 0x1f;
-
     if (argc == 0)
     {
         return mrb_fixnum_value(tic_api_btnp(memory, -1, -1, -1));
     }
     else if(argc == 1)
     {
-        return mrb_bool_value(tic_api_btnp(memory, index, -1, -1));
+        return mrb_bool_value(tic_api_btnp(memory, index & 0x1f, -1, -1) != 0);
     }
     else if (argc == 3)
     {
-        return mrb_bool_value(tic_api_btnp(memory, index, hold, period));
+        return mrb_bool_value(tic_api_btnp(memory, index & 0x1f, hold, period) != 0);
     }
     else
     {
@@ -394,19 +392,18 @@ static mrb_value mrb_btnp(mrb_state* mrb, mrb_value self)
 static mrb_value mrb_btn(mrb_state* mrb, mrb_value self)
 {
     tic_core* machine = getMRubyMachine(mrb);
+    tic_mem* memory = (tic_mem*)machine;
 
     mrb_int index, hold, period;
     mrb_int argc = mrb_get_args(mrb, "|i", &index, &hold, &period);
 
-    index &= 0x1f;
-
     if (argc == 0)
     {
-        return mrb_fixnum_value(machine->memory.ram->input.gamepads.data);
+        return mrb_bool_value(tic_api_btn(memory, -1) != 0);
     }
     else if (argc == 1)
     {
-        return mrb_bool_value(machine->memory.ram->input.gamepads.data & (1 << index));
+        return mrb_bool_value(tic_api_btn(memory, index & 0x1f) != 0);
     }
     else
     {
@@ -903,7 +900,7 @@ static mrb_value mrb_trace(mrb_state *mrb, mrb_value self)
 {
     mrb_value text_obj;
     mrb_int color = TIC_DEFAULT_COLOR;
-    mrb_get_args(mrb, "S|i", &text_obj, &color);
+    mrb_get_args(mrb, "o|i", &text_obj, &color);
 
     tic_core* machine = getMRubyMachine(mrb);
 
@@ -1056,10 +1053,11 @@ static bool initMRuby(tic_mem* tic, const char* code)
 static void evalMRuby(tic_mem* tic, const char* code) {
     tic_core* machine = (tic_core*)tic;
 
-    mrb_state* mrb = ((mrbVm*)machine->currentVM)->mrb = mrb_open();
-
-    if (!mrb)
+    mrbVm* vm=(mrbVm*)machine->currentVM;
+    if(!vm || !vm->mrb)
         return;
+
+    mrb_state* mrb = vm->mrb;
 
     if (((mrbVm*)machine->currentVM)->mrb_cxt)
     {
@@ -1067,6 +1065,7 @@ static void evalMRuby(tic_mem* tic, const char* code) {
     }
 
     mrbc_context* mrb_cxt = ((mrbVm*)machine->currentVM)->mrb_cxt = mrbc_context_new(mrb);
+    mrbc_filename(mrb, mrb_cxt, "eval");
     mrb_load_string_cxt(mrb, code, mrb_cxt);
     catcherr(machine);
 }

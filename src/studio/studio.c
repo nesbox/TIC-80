@@ -436,6 +436,19 @@ bool keyWasPressed(Studio* studio, tic_key key)
     return tic_api_keyp(tic, key, KEYBOARD_HOLD, KEYBOARD_PERIOD);
 }
 
+bool enterWasPressed(Studio* studio)
+{
+    tic_mem* tic = studio->tic;
+    return ticEnterWasPressed(tic, KEYBOARD_HOLD, KEYBOARD_PERIOD);
+}
+
+bool ticEnterWasPressed(tic_mem* tic, s32 hold, s32 period)
+{
+    return tic_api_keyp(tic, tic_key_return, hold, period) ||
+           tic_api_keyp(tic, tic_key_numpadenter, hold, period);
+}
+
+
 bool anyKeyWasPressed(Studio* studio)
 {
     tic_mem* tic = studio->tic;
@@ -1695,6 +1708,12 @@ void gotoMenu(Studio* studio)
     studio->mainmenu = studio_mainmenu_init(studio->menu, studio->config);
 }
 
+static bool enterWasPressedOnce(Studio* studio)
+{
+    return keyWasPressedOnce(studio, tic_key_return) ||
+           keyWasPressedOnce(studio, tic_key_numpadenter);
+}
+
 static void processShortcuts(Studio* studio)
 {
     tic_mem* tic = studio->tic;
@@ -1716,7 +1735,7 @@ static void processShortcuts(Studio* studio)
 
     if(alt)
     {
-        if (keyWasPressedOnce(studio, tic_key_return)) gotoFullscreen(studio);
+        if (enterWasPressedOnce(studio)) gotoFullscreen(studio);
 #if defined(BUILD_EDITORS)
         else if(studio->mode != TIC_RUN_MODE)
         {
@@ -1735,7 +1754,7 @@ static void processShortcuts(Studio* studio)
 #if defined(BUILD_EDITORS)
         else if(keyWasPressedOnce(studio, tic_key_pageup)) changeStudioMode(studio, -1);
         else if(keyWasPressedOnce(studio, tic_key_pagedown)) changeStudioMode(studio, +1);
-        else if(keyWasPressedOnce(studio, tic_key_return)) runGame(studio);
+        else if(enterWasPressedOnce(studio)) runGame(studio);
         else if(keyWasPressedOnce(studio, tic_key_r)) runGame(studio);
         else if(keyWasPressedOnce(studio, tic_key_s)) saveProject(studio);
 #endif

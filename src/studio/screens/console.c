@@ -2669,16 +2669,16 @@ static void onAddCommand(Console* console)
             }
             else
             {
-                var filePtr = Module._malloc(filename.length + 1);
+                var filePtr = _malloc(filename.length + 1);
                 stringToUTF8(filename, filePtr, filename.length + 1);
 
-                var dataPtr = Module._malloc(rom.length);
+                var dataPtr = _malloc(rom.length);
                 writeArrayToMemory(rom, dataPtr);
 
                 dynCall('viiii', $0, [$1, filePtr, dataPtr, rom.length]);
 
-                Module._free(filePtr);
-                Module._free(dataPtr);
+                _free(filePtr);
+                _free(dataPtr);
             }
         });
     }, onAddFile, console);
@@ -3072,9 +3072,9 @@ static s32 createVRamTable(char* buf)
 static s32 createKeysTable(char* buf)
 {
     char* ptr = buf;
-    ptr += sprintf(ptr, "\n+------+-----+  +------+--------------+"
-                        "\n| CODE | KEY |  | CODE | KEY          |"
-                        "\n+------+-----+  +------+--------------+");
+    ptr += sprintf(ptr, "\n+----+------------+ +----+------------+"
+                        "\n|CODE|    KEY     | |CODE|    KEY     |"
+                        "\n+----+------------+ +----+------------+");
 
     static const struct Row {s32 code; const char* key;} Rows[] =
     {
@@ -3117,7 +3117,7 @@ static s32 createKeysTable(char* buf)
         {37, "MINUS"},
         {38, "EQUALS"},
         {39, "LEFTBRACKET"},
-        {40, "RIGHTBRACKET"},
+        {40, "RIGHTBRACKT"},
         {41, "BACKSLASH"},
         {42, "SEMICOLON"},
         {43, "APOSTROPHE"},
@@ -3143,21 +3143,43 @@ static s32 createKeysTable(char* buf)
         {63, "CTRL"},
         {64, "SHIFT"},
         {65, "ALT"},
+        {66, "ESC"},
+        {67, "F1"},
+        {68, "F2"},
+        {69, "F3"},
+        {70, "F4"},
+        {71, "F5"},
+        {72, "F6"},
+        {73, "F7"},
+        {74, "F8"},
+        {75, "F9"},
+        {76, "F10"},
+        {77, "F11"},
+        {78, "F12"},
+        {79, "NUM0"},
+        {80, "NUM1"},
+        {81, "NUM2"},
+        {82, "NUM3"},
+        {83, "NUM4"},
+        {84, "NUM5"},
+        {85, "NUM6"},
+        {86, "NUM7"},
+        {87, "NUM8"},
+        {88, "NUM9"},
+        {89, "NUMPLUS"},
+        {90, "NUMMINUS"},
+        {91, "NUMMULTIPLY"},
+        {92, "NUMDIVIDE"},
+        {93, "NUMENTER"},
+        {94, "NUMPERIOD"},
     };
 
-    int lastAlphaNumeric = 36;
-    for(const struct Row* row = Rows, *end = row + lastAlphaNumeric; row < end; row++)
+    for(const struct Row *row = Rows, *alt = row + COUNT_OF(Rows) / 2, *end = alt; row != end; ++row, ++alt)
     {
-        const struct Row* otherRow = row + lastAlphaNumeric;
-        ptr += sprintf(ptr, "\n| ");
-        ptr += sprintf(ptr, "%4d | %-3s |", row->code, row->key);
-        if (otherRow < Rows + COUNT_OF(Rows))
-            ptr += sprintf(ptr, "  | %4d | %-12s |", otherRow->code, otherRow->key);
-        else
-            ptr += sprintf(ptr, "  | %4s | %12s |", "", "");
+        ptr += sprintf(ptr, "\n| %2d | %-11s| | %2d | %-11s|", row->code, row->key, alt->code, alt->key);
     }
 
-    ptr += sprintf(ptr, "\n+------+-----+  +------+--------------+\n");
+    ptr += sprintf(ptr, "\n+----+------------+ +----+------------+\n");
 
     return strlen(buf);
 }
@@ -4067,7 +4089,7 @@ static void processKeyboard(Console* console)
                 if(console->input.pos > len)
                     console->input.pos = len;
             }
-            else if(keyWasPressed(console->studio, tic_key_return))      processConsoleCommand(console);
+            else if(enterWasPressed(console->studio))                            processConsoleCommand(console);
             else if(keyWasPressed(console->studio, tic_key_backspace))   processConsoleBackspace(console);
             else if(keyWasPressed(console->studio, tic_key_delete))      processConsoleDel(console);
             else if(keyWasPressed(console->studio, tic_key_home))        processConsoleHome(console);

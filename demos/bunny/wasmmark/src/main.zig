@@ -8,15 +8,15 @@
 const tic = @import("tic80.zig");
 const std = @import("std");
 const RndGen = std.rand.DefaultPrng;
-var rnd : std.rand.Random = undefined;
+var rnd: std.rand.Random = undefined;
 
 const screenWidth = 240;
 const screenHeight = 136;
 const toolbarHeight = 6;
-var t : u32 = 0;
+var t: u32 = 0;
 
 fn randomFloat(lower: f32, greater: f32) f32 {
-    return rnd.float(f32) * (greater-lower) + lower;
+    return rnd.float(f32) * (greater - lower) + lower;
 }
 
 const Bunny = struct {
@@ -39,11 +39,7 @@ const Bunny = struct {
     }
 
     fn draw(self: Bunny) void {
-        tic.spr(self.sprite, @floatToInt(i32,self.x), @floatToInt(i32,self.y), .{
-            .transparent = &.{1},
-            .w = 4,
-            .h = 4
-        });
+        tic.spr(self.sprite, @intFromFloat(self.x), @intFromFloat(self.y), .{ .transparent = &.{1}, .w = 4, .h = 4 });
     }
 
     fn update(self: *Bunny) void {
@@ -66,7 +62,6 @@ const Bunny = struct {
             self.speedY = self.speedY * -1;
         }
     }
-
 };
 
 const FPS = struct {
@@ -93,9 +88,9 @@ const FPS = struct {
 };
 
 const MAX_BUNNIES = 1200;
-var fps : FPS = undefined;
-var bunnyCount : usize = 0;
-var bunnies : [MAX_BUNNIES]Bunny = undefined;
+var fps: FPS = undefined;
+var bunnyCount: usize = 0;
+var bunnies: [MAX_BUNNIES]Bunny = undefined;
 
 fn addBunny() void {
     if (bunnyCount >= MAX_BUNNIES) return;
@@ -105,81 +100,83 @@ fn addBunny() void {
 }
 
 fn removeBunny() void {
-    if (bunnyCount==0) return;
+    if (bunnyCount == 0) return;
 
     bunnyCount -= 1;
 }
 
 export fn testscreen() void {
-    var i : usize = 0;
+    var i: usize = 0;
 
-    while (i<2000) {
-    // tic.ZERO.* = 0x99;
-    tic.FRAMEBUFFER[i]=0x56;
-    // tic.FRAMEBUFFER2.*[i]=0x67;
-    // tic.ZERO[i]= 0x56;
-    // bunnies[i].draw();
-    i += 1;
+    while (i < 2000) {
+        // tic.ZERO.* = 0x99;
+        tic.FRAMEBUFFER[i] = 0x56;
+        // tic.FRAMEBUFFER2.*[i]=0x67;
+        // tic.ZERO[i]= 0x56;
+        // bunnies[i].draw();
+        i += 1;
     }
 }
 
 export fn BOOT() void {
-    rnd = RndGen.init(0).random();
+    var xoshiro = RndGen.init(0);
+    rnd = xoshiro.random();
     fps.initFPS();
     addBunny();
 }
 
 export fn TIC() void {
-    if (t==0) {
+    if (t == 0) {
         tic.music(0, .{});
     }
-    if (t == 6*64*2.375) {
+    if (t == 6 * 64 * 2.375) {
         tic.music(1, .{});
     }
     t = t + 1;
 
-
-if (tic.btn(0)) {
-    var i : i32 = 0;
-    while (i<5) {
-        addBunny();
-        i+=1;
+    if (tic.btn(0)) {
+        var i: i32 = 0;
+        while (i < 5) {
+            addBunny();
+            i += 1;
+        }
     }
-}
 
-if (tic.btn(1)) {
-    var i : i32 = 0;
-    while (i<5) {
-        removeBunny();
-        i+=1;
+    if (tic.btn(1)) {
+        var i: i32 = 0;
+        while (i < 5) {
+            removeBunny();
+            i += 1;
+        }
     }
+
+    // 	-- Update
+    var i: u32 = 0;
+    while (i < bunnyCount) {
+        bunnies[i].update();
+        i += 1;
+    }
+
+    // 	-- Draw
+    tic.cls(15);
+    i = 0;
+    while (i < bunnyCount) {
+        bunnies[i].draw();
+        i += 1;
+    }
+
+    tic.rect(0, 0, screenWidth, toolbarHeight, 9);
+
+    _ = tic.printf("Bunnies: {d}", .{bunnyCount}, 1, 0, .{ .color = 11 });
+    _ = tic.printf("FPS: {d:.4}", .{fps.getValue()}, screenWidth / 2, 0, .{ .color = 11 });
+    _ = tic.print("hello people", 10, 10, .{ .color = 11 });
+
+    // var x : u32 = 100000000;
+    // tic.FRAMEBUFFER[x] = 56;
+
+    // testscreen();
 }
 
-// 	-- Update
-var i : u32 = 0;
-while (i<bunnyCount) {
-    bunnies[i].update();
-    i += 1;
-}
+export fn BDR() void {}
 
-// 	-- Draw
-tic.cls(15);
-i = 0;
-while (i<bunnyCount) {
-    bunnies[i].draw();
-    i += 1;
-}
-
-
-tic.rect(0, 0, screenWidth, toolbarHeight, 9);
-
-_ = tic.printf("Bunnies: {d}", .{bunnyCount}, 1, 0, .{.color = 11});
-_ = tic.printf("FPS: {d:.4}", .{fps.getValue()}, screenWidth / 2, 0, .{.color = 11});
-_ = tic.print("hello people", 10, 10, .{.color = 11});
-
-// var x : u32 = 100000000;
-// tic.FRAMEBUFFER[x] = 56;
-
-// testscreen();
-}
-
+export fn OVR() void {}
