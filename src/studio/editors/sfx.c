@@ -477,7 +477,7 @@ static void playSound(Sfx* sfx)
             sfx->play.note = effect->note;
 
             sfx_stop(sfx->tic, DEFAULT_CHANNEL);
-            tic_api_sfx(sfx->tic, sfx->index, effect->note, effect->octave, -1, DEFAULT_CHANNEL, MAX_VOLUME, MAX_VOLUME, SFX_DEF_SPEED);
+            tic_api_sfx(sfx->tic, sfx->index, effect->note + (effect->temp == 1 ? 16 : 0), effect->octave, -1, DEFAULT_CHANNEL, MAX_VOLUME, MAX_VOLUME, SFX_DEF_SPEED);
         }
     }
     else
@@ -537,32 +537,41 @@ static void processKeyboard(Sfx* sfx)
 
     static const s32 Keycodes[] = 
     {
-        tic_key_z,
+        tic_key_a,
+        tic_key_w,
         tic_key_s,
-        tic_key_x,
+        tic_key_e,
         tic_key_d,
-        tic_key_c,
-        tic_key_v,
+        tic_key_f,
+        tic_key_t,
         tic_key_g,
-        tic_key_b,
+        tic_key_y,
         tic_key_h,
-        tic_key_n,
+        tic_key_u,
         tic_key_j,
-        tic_key_m,
+        tic_key_k,
+        tic_key_o,
+        tic_key_l,
+        tic_key_p,
+        tic_key_semicolon,
+        tic_key_apostrophe
     };
 
     if(tic_api_key(tic, tic_key_alt))
         return;
 
+    tic_sample* effect = getEffect(sfx);
+
     if(ctrl) {}
     else
     {
-        for(int i = 0; i < COUNT_OF(Keycodes); i++)
-            if(tic_api_key(tic, Keycodes[i]))
-                keyboardButton = i;        
+        for(int i = 0; i < COUNT_OF(Keycodes); i++) {
+            if(tic_api_key(tic, Keycodes[i])) {
+                keyboardButton = i;
+                effect->temp = i > 15 ? 1 : 0;
+            }
+        }
     }
-
-    tic_sample* effect = getEffect(sfx);
 
     if(keyboardButton >= 0)
     {
@@ -572,6 +581,11 @@ static void processKeyboard(Sfx* sfx)
 
     if(tic_api_key(tic, tic_key_space))
         sfx->play.active = true;
+
+    if(keyWasPressed(sfx->studio, tic_key_z)) 
+        effect->octave--;
+    else if(keyWasPressed(sfx->studio, tic_key_x)) 
+        effect->octave++;
 }
 
 static void processEnvelopesKeyboard(Sfx* sfx)
@@ -919,7 +933,10 @@ static void drawPianoOctave(Sfx* sfx, s32 x, s32 y, s32 octave)
         }
     }
 
-    bool active = sfx->play.active && effect->octave == octave;
+    s32 currentOctave = effect->octave + (effect->note >= 12 || effect->temp == 1);
+    s32 currentNote = (effect->note % 12) + (effect->temp == 1 ? 4 : 0);
+
+    bool active = sfx->play.active && currentOctave == octave;
 
     tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_dark_grey);
 
@@ -928,7 +945,7 @@ static void drawPianoOctave(Sfx* sfx, s32 x, s32 y, s32 octave)
         const PianoBtn* btn = Buttons + i;
         const tic_rect* rect = &btn->rect;
         tic_api_rect(tic, x + rect->x, y + rect->y, rect->w, rect->h, 
-            active && effect->note == btn->note ? tic_color_red : 
+            active && currentNote == btn->note ? tic_color_red : 
                 btn->white 
                     ? hover == btn->note ? tic_color_light_grey : tic_color_white 
                     : hover == btn->note ? tic_color_dark_grey : tic_color_black);
@@ -937,8 +954,9 @@ static void drawPianoOctave(Sfx* sfx, s32 x, s32 y, s32 octave)
             tic_api_rect(tic, x + rect->x, y + (WhiteHeight - WhiteShadow), WhiteWidth, WhiteShadow, tic_color_black);
 
         // draw current note marker
-        if(effect->octave == octave && effect->note == btn->note)
+        if(currentOctave == octave && currentNote == btn->note) {
             tic_api_rect(tic, x + rect->x + 1, y + rect->y + rect->h - 3, 1, 1, tic_color_red);
+        }
     }
 }
 
