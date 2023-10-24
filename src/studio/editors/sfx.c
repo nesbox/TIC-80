@@ -24,6 +24,7 @@
 #include "ext/history.h"
 
 #define DEFAULT_CHANNEL 0
+#define NOTES 12
 
 enum 
 {
@@ -477,7 +478,7 @@ static void playSound(Sfx* sfx)
             sfx->play.note = effect->note;
 
             sfx_stop(sfx->tic, DEFAULT_CHANNEL);
-            tic_api_sfx(sfx->tic, sfx->index, effect->note + (effect->temp == 1 ? 16 : 0), effect->octave, -1, DEFAULT_CHANNEL, MAX_VOLUME, MAX_VOLUME, SFX_DEF_SPEED);
+            tic_api_sfx(sfx->tic, sfx->index, effect->note, effect->octave + effect->temp, -1, DEFAULT_CHANNEL, MAX_VOLUME, MAX_VOLUME, SFX_DEF_SPEED);
         }
     }
     else
@@ -532,29 +533,53 @@ static void processKeyboard(Sfx* sfx)
     if(tic->ram->input.keyboard.data == 0) return;
 
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
+    bool shift = tic_api_key(tic, tic_key_shift);
 
     s32 keyboardButton = -1;
 
+    static const u8 newOctaveIndex = 16;
+    static const u8 keboardShift = 5;
+
     static const s32 Keycodes[] = 
     {
-        tic_key_a,
-        tic_key_w,
+        tic_key_z,
         tic_key_s,
-        tic_key_e,
+        tic_key_x,
         tic_key_d,
-        tic_key_f,
-        tic_key_t,
+        tic_key_c,
+        tic_key_v,
         tic_key_g,
-        tic_key_y,
+        tic_key_b,
         tic_key_h,
-        tic_key_u,
+        tic_key_n,
         tic_key_j,
-        tic_key_k,
-        tic_key_o,
+        tic_key_m,
+        tic_key_comma,
         tic_key_l,
-        tic_key_p,
+        tic_key_period,
         tic_key_semicolon,
-        tic_key_apostrophe
+        tic_key_slash,
+
+        // octave +1
+        tic_key_q,
+        tic_key_2,
+        tic_key_w,
+        tic_key_3,
+        tic_key_e,
+        tic_key_r,
+        tic_key_5,
+        tic_key_t,
+        tic_key_6,
+        tic_key_y,
+        tic_key_7,
+        tic_key_u,
+        
+        // extra keys
+        tic_key_i,
+        tic_key_9,
+        tic_key_o,
+        tic_key_0,
+        tic_key_p,
     };
 
     if(tic_api_key(tic, tic_key_alt))
@@ -567,13 +592,13 @@ static void processKeyboard(Sfx* sfx)
     {
         for(int i = 0; i < COUNT_OF(Keycodes); i++) {
             if(tic_api_key(tic, Keycodes[i])) {
-                keyboardButton = i;
-                effect->temp = i > 15 ? 1 : 0;
+                keyboardButton = (i > newOctaveIndex ? i - keboardShift : i) % NOTES;
+                effect->temp = (i - keyboardButton) / NOTES;
             }
         }
     }
 
-    if(keyboardButton >= 0)
+    if(keyboardButton >= 0 && !shift)
     {
         effect->note = keyboardButton;
         sfx->play.active = true;
@@ -582,9 +607,9 @@ static void processKeyboard(Sfx* sfx)
     if(tic_api_key(tic, tic_key_space))
         sfx->play.active = true;
 
-    if(keyWasPressed(sfx->studio, tic_key_z)) 
+    if(keyWasPressed(sfx->studio, tic_key_z) && shift) 
         effect->octave--;
-    else if(keyWasPressed(sfx->studio, tic_key_x)) 
+    else if(keyWasPressed(sfx->studio, tic_key_x) && shift) 
         effect->octave++;
 }
 
@@ -933,8 +958,7 @@ static void drawPianoOctave(Sfx* sfx, s32 x, s32 y, s32 octave)
         }
     }
 
-    s32 currentOctave = effect->octave + (effect->note >= 12 || effect->temp == 1);
-    s32 currentNote = (effect->note % 12) + (effect->temp == 1 ? 4 : 0);
+    s32 currentOctave = effect->octave + effect->temp;
 
     bool active = sfx->play.active && currentOctave == octave;
 
@@ -945,7 +969,7 @@ static void drawPianoOctave(Sfx* sfx, s32 x, s32 y, s32 octave)
         const PianoBtn* btn = Buttons + i;
         const tic_rect* rect = &btn->rect;
         tic_api_rect(tic, x + rect->x, y + rect->y, rect->w, rect->h, 
-            active && currentNote == btn->note ? tic_color_red : 
+            active && effect->note == btn->note ? tic_color_red : 
                 btn->white 
                     ? hover == btn->note ? tic_color_light_grey : tic_color_white 
                     : hover == btn->note ? tic_color_dark_grey : tic_color_black);
@@ -954,7 +978,7 @@ static void drawPianoOctave(Sfx* sfx, s32 x, s32 y, s32 octave)
             tic_api_rect(tic, x + rect->x, y + (WhiteHeight - WhiteShadow), WhiteWidth, WhiteShadow, tic_color_black);
 
         // draw current note marker
-        if(currentOctave == octave && currentNote == btn->note) {
+        if(currentOctave == octave && effect->note == btn->note) {
             tic_api_rect(tic, x + rect->x + 1, y + rect->y + rect->h - 3, 1, 1, tic_color_red);
         }
     }
