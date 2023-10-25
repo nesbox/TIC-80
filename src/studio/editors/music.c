@@ -1053,6 +1053,11 @@ static void setChannelPattern(Music* music, s32 delta, s32 channel)
     setChannelPatternValue(music, pattern + delta, music->frame, channel);
 }
 
+static inline bool keyWasPressedOnce(tic_mem* tic, s32 key)
+{
+    return tic_api_keyp(tic, key, -1, -1);
+}
+
 static void processTrackerKeyboard(Music* music)
 {
     tic_mem* tic = music->tic;
@@ -1155,9 +1160,9 @@ static void processTrackerKeyboard(Music* music)
         {
         case ColumnNote:
         case ColumnSemitone:
-            if(keyWasPressed(music->studio, tic_key_z) && shift) 
+            if(keyWasPressedOnce(tic, tic_key_z) && shift) 
                 music->last.octave -= 1;
-            else if(keyWasPressed(music->studio, tic_key_x) && shift) 
+            else if(keyWasPressedOnce(tic, tic_key_x) && shift) 
                 music->last.octave += 1;
 
             if (keyWasPressed(music->studio, tic_key_a))
@@ -1181,7 +1186,7 @@ static void processTrackerKeyboard(Music* music)
                         downRow(music);
 
                         break;
-                    }               
+                    } 
                 }
             }
             break;

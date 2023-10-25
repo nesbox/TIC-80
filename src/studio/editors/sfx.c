@@ -25,6 +25,8 @@
 
 #define DEFAULT_CHANNEL 0
 #define NOTES 12
+#define SECOND_OCTAVE_KEYBOARD_INDEX 16
+#define SECOND_OCTAVE_KEYBOARD_SHIFT 5
 
 enum 
 {
@@ -473,7 +475,7 @@ static void playSound(Sfx* sfx)
     {
         tic_sample* effect = getEffect(sfx);
 
-        if(sfx->play.note != effect->note)
+        if(sfx->play.note != effect->note || sfx->play.tick == 0)
         {
             sfx->play.note = effect->note;
 
@@ -526,6 +528,11 @@ static void copyFromClipboard(Sfx* sfx)
         history_add(sfx->history);
 }
 
+static inline bool keyWasPressedOnce(tic_mem* tic, s32 key)
+{
+    return tic_api_keyp(tic, key, -1, -1);
+}
+
 static void processKeyboard(Sfx* sfx)
 {
     tic_mem* tic = sfx->tic;
@@ -536,9 +543,6 @@ static void processKeyboard(Sfx* sfx)
     bool shift = tic_api_key(tic, tic_key_shift);
 
     s32 keyboardButton = -1;
-
-    static const u8 newOctaveIndex = 16;
-    static const u8 keboardShift = 5;
 
     static const s32 Keycodes[] = 
     {
@@ -587,19 +591,34 @@ static void processKeyboard(Sfx* sfx)
 
     tic_sample* effect = getEffect(sfx);
 
-    if(ctrl) {}
+    if(ctrl || shift) { }
     else
     {
-        for(int i = 0; i < COUNT_OF(Keycodes); i++) {
+        u8 octaveShift = 0;
+        for(int i = 0; i < COUNT_OF(Keycodes); i++) {    
             if(tic_api_key(tic, Keycodes[i])) {
-                keyboardButton = (i > newOctaveIndex ? i - keboardShift : i) % NOTES;
-                effect->temp = (i - keyboardButton) / NOTES;
+                if (sfx->play.tick == 0 && !keyWasPressedOnce(tic, Keycodes[i])) 
+                    continue;
+
+                keyboardButton = (i > SECOND_OCTAVE_KEYBOARD_INDEX 
+                    ? i - SECOND_OCTAVE_KEYBOARD_SHIFT 
+                    : i) % NOTES;
+                
+                octaveShift = (i - keyboardButton) / NOTES;
             }
         }
+
+        if (effect->temp != octaveShift) 
+            sfx->play.tick = 0;
+
+        effect->temp = octaveShift;
     }
 
-    if(keyboardButton >= 0 && !shift)
+    if(keyboardButton >= 0)
     {
+        if (keyboardButton != sfx->play.note)
+            sfx->play.tick = 0;
+        
         effect->note = keyboardButton;
         sfx->play.active = true;
     }
@@ -607,9 +626,9 @@ static void processKeyboard(Sfx* sfx)
     if(tic_api_key(tic, tic_key_space))
         sfx->play.active = true;
 
-    if(keyWasPressed(sfx->studio, tic_key_z) && shift) 
+    if(keyWasPressedOnce(tic, tic_key_z) && shift) 
         effect->octave--;
-    else if(keyWasPressed(sfx->studio, tic_key_x) && shift) 
+    else if(keyWasPressedOnce(tic, tic_key_x) && shift) 
         effect->octave++;
 }
 
