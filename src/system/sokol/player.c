@@ -10,6 +10,16 @@
 #define TIC80_WINDOW_TITLE "TIC-80"
 #define TIC80_DEFAULT_CART "cart.tic"
 
+static u64 tic_sys_counter_get()
+{
+    return stm_now();
+}
+
+static u64 tic_sys_freq_get()
+{
+    return 1000000000;
+}
+
 static tic80* tic = NULL;
 
 static void app_init(void)
@@ -54,7 +64,7 @@ static void app_frame(void)
 {
     if(tic)
     {
-        tic80_tick(tic, tic_input);
+        tic80_tick(tic, tic_input, tic_sys_counter_get, tic_sys_freq_get);
         tic80_sound(tic);        
     }
 
