@@ -189,6 +189,8 @@ cmake ..
 make -j4
 ```
 
+You can replace `cmake ..` with `cmake  -G Xcode ..` to generate an Xcode project in the `build` folder instead of a Makefile.
+
 to create application icon for development version
 ```
 mkdir -p ~/Applications/TIC80dev.app/Contents/{MacOS,Resources}
