@@ -855,6 +855,10 @@ endif ()
 set(CMAKE_DISABLE_TESTING ON CACHE BOOL "" FORCE)
 add_subdirectory(${THIRDPARTY_DIR}/zip)
 
+if(APPLE AND XCODE)
+  target_compile_options(zip PRIVATE -Wno-shorten-64-to-32)
+endif()
+
 ################################
 # bin2txt cart2prj prj2cart xplode wasmp2cart
 ################################
