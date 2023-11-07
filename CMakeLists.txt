@@ -434,8 +434,8 @@ set(GIFLIB_SRC
 add_library(giflib STATIC ${GIFLIB_SRC})
 target_include_directories(giflib
     PRIVATE ${GIFLIB_DIR}
-    INTERFACE 
-        ${THIRDPARTY_DIR}/giflib 
+    INTERFACE
+        ${THIRDPARTY_DIR}/giflib
         ${THIRDPARTY_DIR}/msf_gif)
 
 ################################
@@ -454,8 +454,8 @@ set(QUICKJS_DIR ${THIRDPARTY_DIR}/quickjs)
 file(STRINGS ${QUICKJS_DIR}/VERSION CONFIG_VERSION)
 
 add_library(quickjs STATIC
-    ${QUICKJS_DIR}/quickjs.c 
-    ${QUICKJS_DIR}/libregexp.c 
+    ${QUICKJS_DIR}/quickjs.c
+    ${QUICKJS_DIR}/libregexp.c
     ${QUICKJS_DIR}/libunicode.c
     ${QUICKJS_DIR}/cutils.c)
 
@@ -467,7 +467,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif()
 
 if(BAREMETALPI OR N3DS)
-    target_compile_definitions(quickjs PRIVATE POOR_CLIB) 
+    target_compile_definitions(quickjs PRIVATE POOR_CLIB)
 endif()
 
 if(LINUX)
