@@ -925,7 +925,7 @@ if(BUILD_DEMO_CARTS)
         list(APPEND DEMO_CARTS_OUT ${OUTNAME})
 
         add_custom_command(OUTPUT ${OUTNAME}
-            COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/prj2cart ${CART_FILE} ${OUTPRJ} && ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${OUTPRJ} ${OUTNAME} -z
+            COMMAND $<TARGET_FILE:prj2cart> ${CART_FILE} ${OUTPRJ} && $<TARGET_FILE:bin2txt> ${OUTPRJ} ${OUTNAME} -z
             DEPENDS bin2txt prj2cart ${CART_FILE}
     )
 
@@ -950,14 +950,14 @@ if(BUILD_DEMO_CARTS)
         set(OUTPRJ ${CMAKE_SOURCE_DIR}/build/${CART_NAME}.tic)
         list(APPEND DEMO_CARTS_OUT ${OUTNAME})
         add_custom_command(OUTPUT ${OUTNAME}
-            COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/wasmp2cart ${CART_FILE} ${OUTPRJ} --binary ${WASM_BINARY} && ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${OUTPRJ} ${OUTNAME} -z
+            COMMAND $<TARGET_FILE:wasmp2cart> ${CART_FILE} ${OUTPRJ} --binary ${WASM_BINARY} && $<TARGET_FILE:bin2txt> ${OUTPRJ} ${OUTNAME} -z
             DEPENDS bin2txt wasmp2cart ${CART_FILE} ${WASM_BINARY}
         )
 
     endforeach(CART_FILE)
 
     add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/build/assets/cart.png.dat
-        COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${CMAKE_SOURCE_DIR}/build/cart.png ${CMAKE_SOURCE_DIR}/build/assets/cart.png.dat
+        COMMAND $<TARGET_FILE:bin2txt> ${CMAKE_SOURCE_DIR}/build/cart.png ${CMAKE_SOURCE_DIR}/build/assets/cart.png.dat
         DEPENDS bin2txt ${CMAKE_SOURCE_DIR}/build/cart.png)
 
 endif()
