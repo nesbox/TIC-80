@@ -1920,6 +1920,8 @@ static s32 start(s32 argc, char **argv, const char* folder)
 
                     if(delay > 0)
                         SDL_Delay((u32)(delay * 1000 / SDL_GetPerformanceFrequency()));
+                    else if(delay < 0)
+                        nextTick = SDL_GetPerformanceCounter();
                 }
             }
 #endif
