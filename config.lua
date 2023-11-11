@@ -30,6 +30,7 @@ THEME=
 CHECK_NEW_VERSION=true
 SOFTWARE_RENDERING=false
 UI_SCALE=4
+REVERT_SCROLL=false
 
 ---------------------------
 function TIC()
