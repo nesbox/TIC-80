@@ -2562,6 +2562,8 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     studio->config->data.soft               |= args.soft;
     studio->config->data.cli                |= args.cli;
 
+    studioConfigChanged(studio);
+
     if(args.cli)
         args.skip = true;
 
