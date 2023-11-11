@@ -21,8 +21,9 @@ To make a retro styled game, the whole process of creation and execution takes p
   [Ruby](https://www.ruby-lang.org/en/),
   [Wren](http://wren.io/),
   [Fennel](https://fennel-lang.org),
-  [Squirrel](http://www.squirrel-lang.org), and
-  [Janet](https://janet-lang.org).
+  [Squirrel](http://www.squirrel-lang.org),
+  [Janet](https://janet-lang.org), and
+  [Python](https://www.python.org/).
 - Games can have mouse and keyboard as input
 - Games can have up to 4 controllers as input (with up to 8 buttons, each)
 - Built-in editors: for code, sprites, world maps, sound effects and music
