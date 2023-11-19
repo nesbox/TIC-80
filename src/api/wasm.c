@@ -576,7 +576,7 @@ m3ApiRawFunction(wasmtic_pmem)
 
     m3ApiGetArg      (int32_t, address)
     m3ApiGetArg      (int64_t, value)
-    bool writeToStorage;
+    bool writeToStorage = true;
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
@@ -987,7 +987,7 @@ M3Result linkTicAPI(IM3Module module)
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "peek4",   "i(i)",          &wasmtic_peek4)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "peek2",   "i(i)",          &wasmtic_peek2)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "peek1",   "i(i)",          &wasmtic_peek1)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "pmem",    "i(ii)",         &wasmtic_pmem)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "pmem",    "i(iI)",         &wasmtic_pmem)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "poke",    "v(iii)",        &wasmtic_poke)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "poke4",   "v(ii)",         &wasmtic_poke4)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "poke2",   "v(ii)",         &wasmtic_poke2)));
