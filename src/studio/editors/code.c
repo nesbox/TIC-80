@@ -238,12 +238,15 @@ static void drawCursor(Code* code, s32 x, s32 y, char symbol)
 
     if(inverse)
     {
+        bool alt = getConfig(code->studio)->theme.code.altCaret;
+        s32 width = alt ? (code->altFont ? 1 : 2) : getFontWidth(code)+1;
+
         if(code->shadowText)
-            tic_api_rect(code->tic, x, y, getFontWidth(code)+1, TIC_FONT_HEIGHT+1, 0);
+            tic_api_rect(code->tic, x, y, width, TIC_FONT_HEIGHT+1, 0);
 
-        tic_api_rect(code->tic, x-1, y-1, getFontWidth(code)+1, TIC_FONT_HEIGHT+1, getConfig(code->studio)->theme.code.cursor);
+        tic_api_rect(code->tic, x-1, y-1, width, TIC_FONT_HEIGHT+1, getConfig(code->studio)->theme.code.cursor);
 
-        if(symbol)
+        if(symbol && !alt)
             drawChar(code->tic, symbol, x, y, getConfig(code->studio)->theme.code.BG, code->altFont);
     }
 }
