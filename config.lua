@@ -31,6 +31,7 @@ THEME=
 CHECK_NEW_VERSION=true
 SOFTWARE_RENDERING=false
 UI_SCALE=4
+TRIM_ON_SAVE=false
 
 ---------------------------
 function TIC()
