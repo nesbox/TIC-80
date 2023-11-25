@@ -3795,3 +3795,61 @@ void freeCode(Code* code)
     free(code->state);
     free(code);
 }
+
+void trimWhitespace(Code* code)
+{
+    char* data = code->src;
+    char* limit = data + MAX_CODE;
+
+    char* src = data;
+    char* dst = data;
+
+    char* cursor = code->cursor.position;
+    char* select = code->cursor.selection;
+
+    while(src < limit && *src != '\0')
+    {
+        // Find the end of the line or the end of the file.
+        char* end = src;
+        while(end < limit && *end != '\0' && *end != '\n') ++end;
+        bool done = end >= limit || *end == '\0';
+
+        // Find the first trimmed space or the end of the line.
+        char* trim = end;
+        while(trim > src && isspace((unsigned char)trim[-1])) --trim;
+
+        if(trim > src)
+        {
+            s32 len = trim - src;
+            memmove(dst, src, len);
+            dst += len;
+        }
+
+        if(dst < limit)
+        {
+            *dst = '\n';
+            ++dst;
+        }
+
+        // Move the cursor back by the amount of trimmed spaces before it.
+        if(cursor > trim) code->cursor.position -= (cursor < end ? cursor : end) - trim;
+        if(select > trim) code->cursor.selection -= (select < end ? select : end) - trim;
+
+        // Go to the next line or exit the loop.
+        src = end;
+        if(done) break;
+        ++src;
+    }
+
+    // Terminate the string after the trailing newline.
+    while(dst[-1] == '\n') --dst;
+    if(dst < limit) ++dst;
+    if(dst < limit) *dst = '\0';
+
+    // Move the cursor back if it was on one of the trimmed newlines.
+    if(code->cursor.position > dst) code->cursor.position = dst;
+    if(code->cursor.selection > dst) code->cursor.selection = dst;
+
+    history(code);
+    update(code);
+}
