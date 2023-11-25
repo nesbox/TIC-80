@@ -155,7 +155,6 @@ static void readConfig(Config* config)
             readGlobalBool(lua,     "CHECK_NEW_VERSION",    &config->data.checkNewVersion);
             readGlobalInteger(lua,  "UI_SCALE",             &config->data.uiScale);
             readGlobalBool(lua,     "SOFTWARE_RENDERING",   &config->data.soft);
-            readGlobalBool(lua,     "REVERT_SCROLL",        &config->data.revertScroll);
 
             if(config->data.uiScale <= 0)
                 config->data.uiScale = 1;

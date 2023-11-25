@@ -119,7 +119,6 @@ typedef struct
     bool checkNewVersion;
     bool cli;
     bool soft;
-    bool revertScroll;
 
     struct StudioOptions
     {

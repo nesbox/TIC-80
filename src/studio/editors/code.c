@@ -3122,7 +3122,7 @@ static void textEditTick(Code* code)
         tic_point scroll = {input->mouse.scrollx, input->mouse.scrolly};
 
         if(tic_api_key(tic, tic_key_shift))
-            scroll.x = scroll.y;
+            scroll.x = -scroll.y;
 
         s32* val = scroll.x ? &code->scroll.x : scroll.y ? &code->scroll.y : NULL;
 
