@@ -2139,9 +2139,6 @@ static void processMouseStates(Studio* studio)
 
         state->dbl.ticks++;
     }
-
-    if(getConfig(studio)->revertScroll)
-        tic->ram->input.mouse.scrolly *= -1;
 }
 
 static void blitCursor(Studio* studio)
