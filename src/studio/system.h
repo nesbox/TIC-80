@@ -99,6 +99,7 @@ typedef struct
             u8 cursor;
             bool shadow;
             bool altFont;
+            bool altCaret;
             bool matchDelimiters;
             bool autoDelimiters;
 
