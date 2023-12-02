@@ -119,6 +119,7 @@ typedef struct
     bool checkNewVersion;
     bool cli;
     bool soft;
+    bool trim;
 
     struct StudioOptions
     {

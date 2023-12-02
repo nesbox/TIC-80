@@ -1578,6 +1578,8 @@ void runGame(Studio* studio)
 #if defined(BUILD_EDITORS)
 void saveProject(Studio* studio)
 {
+    if(getConfig(studio)->trim) trimWhitespace(studio->code);
+
     CartSaveResult rom = studio->console->save(studio->console);
 
     if(rom == CART_SAVE_OK)

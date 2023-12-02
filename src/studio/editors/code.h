@@ -140,3 +140,5 @@ struct Code
 
 void initCode(Code*, Studio* studio);
 void freeCode(Code*);
+
+void trimWhitespace(Code*);
