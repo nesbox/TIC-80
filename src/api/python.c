@@ -89,7 +89,6 @@ static int prepare_colorindex(pkpy_vm* vm, int index, u8 * buffer)
     }
 }
 
-
 static int py_trace(pkpy_vm* vm) 
 {
     tic_mem* tic;
