@@ -4035,10 +4035,10 @@ static void processKeyboard(Console* console)
     if(!console->active)
         return;
 
-    if(tic_api_btnp(tic, 6, -1, -1) && !keyWasPressed(console->studio, tic_key_a))
-    {
-        gotoSurf(console->studio);
-    }
+//    if(tic_api_btnp(tic, 6, -1, -1) && !keyWasPressed(console->studio, tic_key_a))
+//    {
+//        gotoSurf(console->studio);
+//    }
 
     if(tic->ram->input.keyboard.data != 0)
     {
@@ -4117,12 +4117,28 @@ static void processKeyboard(Console* console)
 
 }
 
+static void processGamepad(Console* console)
+{
+    tic_mem* tic = console->tic;
+
+    if(!console->active)
+        return;
+
+
+    if(tic->ram->input.keyboard.data == 0 && tic_api_btnp(tic, 6, -1, -1))
+    {
+        printf("\nconsole.c processGamepad calling gotoSurf");
+        gotoSurf(console->studio);
+    }
+}
+
 static void tick(Console* console)
 {
     tic_mem* tic = console->tic;
 
     processMouse(console);
     processKeyboard(console);
+    processGamepad(console);
 
     Start* start = getStartScreen(console->studio);
 
