@@ -4035,6 +4035,11 @@ static void processKeyboard(Console* console)
     if(!console->active)
         return;
 
+    if(tic_api_btnp(tic, 6, -1, -1) && !keyWasPressed(console->studio, tic_key_a))
+    {
+        gotoSurf(console->studio);
+    }
+
     if(tic->ram->input.keyboard.data != 0)
     {
         switch(getClipboardEvent(console->studio))
