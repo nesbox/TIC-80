@@ -1825,7 +1825,7 @@ s32 determineMaximumScale()
     int maxScaleByW = current.w / TIC80_WIDTH;
     int maxScaleByH = current.h / TIC80_HEIGHT;
 
-    if (maxScaleByW < maxScaleByW)
+    if (maxScaleByH < maxScaleByW)
     {
         maxScale = maxScaleByW;
     }
