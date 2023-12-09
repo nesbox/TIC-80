@@ -456,7 +456,7 @@ static void updateEditor(Code* code)
     sprintf(code->status.line, "line %i/%i col %i", line + 1, getLinesCount(code) + 1, column + 1);
     {
         s32 codeLen = strlen(code->src);
-        sprintf(code->status.size, "size %i/%i", codeLen, MAX_CODE);
+        sprintf(code->status.size, "size %i/%zu", codeLen, MAX_CODE);
         code->status.color = codeLen > MAX_CODE ? tic_color_red : tic_color_white;
     }
 }
