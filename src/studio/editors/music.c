@@ -816,6 +816,7 @@ static void copyToClipboard(Music* music, bool cut)
     {
     case MUSIC_TRACKER_TAB: copyTrackerToClipboard(music, cut); break;
     case MUSIC_PIANO_TAB: copyPianoToClipboard(music, cut); break;
+    case MUSIC_TAB_COUNT: break; // No-op.
     }
 }
 
@@ -825,6 +826,7 @@ static void copyFromClipboard(Music* music)
     {
     case MUSIC_TRACKER_TAB: copyTrackerFromClipboard(music); break;
     case MUSIC_PIANO_TAB: copyPianoFromClipboard(music); break;
+    case MUSIC_TAB_COUNT: break; // No-op.
     }
 }
 
@@ -1579,6 +1581,9 @@ static void processKeyboard(Music* music)
         break;
     case MUSIC_PIANO_TAB:
         processPianoKeyboard(music);
+        break;
+    case MUSIC_TAB_COUNT:
+        // No-op.
         break;
     }
 }
@@ -2986,6 +2991,7 @@ static void tick(Music* music)
     {
     case MUSIC_TRACKER_TAB: drawTrackerLayout(music, 7, 35); break;
     case MUSIC_PIANO_TAB: drawPianoLayout(music); break;
+    case MUSIC_TAB_COUNT: break; // No-op.
     }
 
     drawMusicToolbar(music);
