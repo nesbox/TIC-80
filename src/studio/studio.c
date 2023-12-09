@@ -2141,6 +2141,7 @@ static void processMouseStates(Studio* studio)
 
         state->dbl.ticks++;
     }
+    tic->ram->input.mouse.scrollx *= -1;
 }
 
 static void blitCursor(Studio* studio)
