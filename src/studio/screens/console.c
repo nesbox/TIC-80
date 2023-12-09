@@ -4112,12 +4112,26 @@ static void processKeyboard(Console* console)
 
 }
 
+static void processGamepad(Console* console)
+{
+    tic_mem* tic = console->tic;
+
+    if(!console->active)
+        return;
+
+    if(tic->ram->input.keyboard.data == 0 && tic_api_btnp(tic, 6, -1, -1))
+    {
+        gotoSurf(console->studio);
+    }
+}
+
 static void tick(Console* console)
 {
     tic_mem* tic = console->tic;
 
     processMouse(console);
     processKeyboard(console);
+    processGamepad(console);
 
     Start* start = getStartScreen(console->studio);
 
