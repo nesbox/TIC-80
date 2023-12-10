@@ -1511,7 +1511,7 @@ static s32 insertTab(Code* code, char* line_start, char* pos) {
     }
 }
 
-//has no effect is pos is not a valid tab character
+//has no effect if pos is not a valid tab character
 static s32 removeTab(Code* code, char* line_start, char* pos) {
     if (useSpacesForTab(code)) {
         s32 tab_size = getConfig(code->studio)->options.tabSize;
@@ -1529,6 +1529,7 @@ static s32 removeTab(Code* code, char* line_start, char* pos) {
         deleteCode(code, pos, pos+1);
         return 1;
     }
+    return 0;
 }
 
 static void doTab(Code* code, bool shift, bool crtl)
