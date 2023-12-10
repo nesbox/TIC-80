@@ -1019,7 +1019,7 @@ void deinitWasmRuntime( IM3Runtime runtime )
         return;
     }
     IM3Environment env = runtime -> environment;
-    printf("deiniting env %d\n", env);
+    printf("deiniting env %p\n", env);
 
     tic_core* tic = getWasmCore(runtime);
     m3_FreeRuntime (runtime);
@@ -1069,7 +1069,7 @@ static bool initWasm(tic_mem* tic, const char* code)
 {
     // closeWasm(tic);
     tic_core* core = (tic_core*)tic;
-    dbg("Initializing WASM3 runtime %d\n", core);
+    dbg("Initializing WASM3 runtime %p\n", core);
 
     IM3Environment env = m3_NewEnvironment ();
     if(!env)
