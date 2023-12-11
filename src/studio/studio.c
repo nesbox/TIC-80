@@ -1719,6 +1719,7 @@ static void switchBank(Studio* studio, s32 bank)
 void gotoMenu(Studio* studio) 
 {
     setStudioMode(studio, TIC_MENU_MODE);
+    studio_mainmenu_free(studio->mainmenu);
     studio->mainmenu = studio_mainmenu_init(studio->menu, studio->config);
 }
 
@@ -2541,7 +2542,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         studio->menu       = studio_menu_create(studio);
         studio->config     = calloc(1, sizeof(Config));
     }
-
+    studio->mainmenu = NULL;
     tic_fs_makedir(studio->fs, TIC_LOCAL);
     tic_fs_makedir(studio->fs, TIC_LOCAL_VERSION);
     
