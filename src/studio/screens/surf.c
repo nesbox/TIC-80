@@ -546,7 +546,9 @@ static void changeDirectory(Surf* surf, const char* name)
 
 static void onCartLoaded(void* data)
 {
+    printf("\nsurf.c onCartLoaded called");
     Surf* surf = data;
+    printf("\nsurf.c onCartLoaded: newly downloaded cart is loaded, calling runGame.")
     runGame(surf->studio);
 }
 

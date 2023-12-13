@@ -182,3 +182,8 @@ build/mruby_vendor-prefix/
 **/zig-out
 .cache
 *~
+
+## LettucePie delete later!
+build/android/.idea/
+build/android/app/.cxx
+build/android/local.properties
