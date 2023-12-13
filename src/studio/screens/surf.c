@@ -556,7 +556,7 @@ static void autoSave(Surf* surf)
         tic_fs_makedir(surf->console->fs, save_directory);
     }
 
-    forceAutoSave(surf->console);
+    forceAutoSave(surf->console, cart_name);
 }
 
 static void onCartLoaded(void* data)

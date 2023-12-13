@@ -2370,6 +2370,8 @@ const char* readMetatag(const char* code, const char* tag, const char* comment);
 static CartSaveResult saveCartName(Console* console, const char* name)
 {
     tic_mem* tic = console->tic;
+    printf("\nconsole.c saveCartName called");
+    printf("\nconsole.c saveCartName: name = %s", name);
 
     bool success = false;
 
@@ -2496,7 +2498,7 @@ static CartSaveResult saveCartName(Console* console, const char* name)
         }
     }
     else if (strlen(console->rom.name))
-    {
+    {   printf("\nconsole.c saveCartName: calling saveCartName again?");
         return saveCartName(console, console->rom.name);
     }
     else return CART_SAVE_MISSING_NAME;
@@ -2511,6 +2513,7 @@ static CartSaveResult saveCart(Console* console)
 
 static void onSaveCommandConfirmed(Console* console)
 {
+    printf("\nconsole.c onSaveCommandConfirmed called");
     CartSaveResult rom = saveCartName(console, console->desc->count ? console->desc->params->key : NULL);
 
     if(rom == CART_SAVE_OK)
@@ -4264,10 +4267,28 @@ static bool cmdLoadCart(Console* console, const char* path)
     return done;
 }
 
-void forceAutoSave(Console* console)
+void forceAutoSave(Console* console, const char* cart_name)
 {
     printf("\nconsole.c forceAutoSave called");
-    onSaveCommandConfirmed(console);
+    printf("\nconsole.c forceAutoSave: cart_name = %s", cart_name);
+    char namepath[TICNAME_MAX];
+    strcpy(namepath, "/downloads/");
+    strcat(namepath, cart_name);
+    printf("\nconsole.c forceAutoSave namepath variable = %s", namepath);
+    CartSaveResult rom = saveCartName(console, namepath);
+
+    if(rom == CART_SAVE_OK)
+    {
+        printBack(console, "\ncart ");
+        printFront(console, console->rom.name);
+        printBack(console, " autosaved!\n");
+    }
+    else if(rom == CART_SAVE_MISSING_NAME)
+        printBack(console, "\nautosave name is missing\n");
+    else
+        printBack(console, "\ncart autosave error");
+
+    commandDone(console);
 }
 
 static s32 cmdcmp(const void* a, const void* b)
