@@ -4264,6 +4264,12 @@ static bool cmdLoadCart(Console* console, const char* path)
     return done;
 }
 
+void forceAutoSave(Console* console)
+{
+    printf("\nconsole.c forceAutoSave called");
+    onSaveCommandConfirmed(console);
+}
+
 static s32 cmdcmp(const void* a, const void* b)
 {
     return strcmp(((const Command*)a)->name, ((const Command*)b)->name);
