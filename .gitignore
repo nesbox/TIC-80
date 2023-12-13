@@ -183,7 +183,3 @@ build/mruby_vendor-prefix/
 .cache
 *~
 
-## LettucePie delete later!
-build/android/.idea/
-build/android/app/.cxx
-build/android/local.properties

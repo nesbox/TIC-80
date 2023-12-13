@@ -547,13 +547,11 @@ static void changeDirectory(Surf* surf, const char* name)
 
 static void autoSave(Surf* surf)
 {
-    printf("\nsurf.c onAutoSave called");
     const char* save_directory = "/downloads";
     const char* cart_name = surf->console->rom.name;
 
     if(!tic_fs_isdir(surf->console->fs, save_directory))
     {
-        printf("\nsurf.c onAutoSave: /downloads directory missing, making it now");
         tic_fs_makedir(surf->console->fs, save_directory);
     }
 
@@ -562,14 +560,13 @@ static void autoSave(Surf* surf)
 
 static void onCartLoaded(void* data)
 {
-    printf("\nsurf.c onCartLoaded called");
     Surf* surf = data;
+
     if(surf->config->data.options.autosave)
     {
-        printf("\nsurf.c onCartLoaded: calling autoSave.");
         autoSave(surf);
     }
-    printf("\nsurf.c onCartLoaded: newly downloaded cart is loaded, calling runGame.");
+
     runGame(surf->studio);
 }
 
