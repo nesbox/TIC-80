@@ -23,6 +23,7 @@
 #include "surf.h"
 #include "studio/fs.h"
 #include "studio/net.h"
+#include "studio/config.h"
 #include "console.h"
 #include "menu.h"
 #include "ext/gif.h"
@@ -563,11 +564,12 @@ static void onCartLoaded(void* data)
 {
     printf("\nsurf.c onCartLoaded called");
     Surf* surf = data;
+    if(surf->config->data.options.autosave)
+    {
+        printf("\nsurf.c onCartLoaded: calling autoSave.");
+        autoSave(surf);
+    }
     printf("\nsurf.c onCartLoaded: newly downloaded cart is loaded, calling runGame.");
-    autoSave(surf);
-    // figure out if autosave enabled
-    // then figure out the version of this cart
-    // then run autosave, append version to name
     runGame(surf->studio);
 }
 
@@ -847,6 +849,7 @@ void initSurf(Surf* surf, Studio* studio, struct Console* console)
         .studio = studio,
         .tic = getMemory(studio),
         .console = console,
+        .config = console->config,
         .fs = console->fs,
         .net = console->net,
         .tick = tick,

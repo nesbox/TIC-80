@@ -33,6 +33,7 @@ struct Surf
     struct tic_fs* fs;
     struct tic_net* net;
     struct Console* console;
+    struct Config* config;
 
     bool init;
     bool loading;
