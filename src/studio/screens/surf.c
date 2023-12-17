@@ -23,6 +23,7 @@
 #include "surf.h"
 #include "studio/fs.h"
 #include "studio/net.h"
+#include "studio/config.h"
 #include "console.h"
 #include "menu.h"
 #include "ext/gif.h"
@@ -544,9 +545,28 @@ static void changeDirectory(Surf* surf, const char* name)
     }
 }
 
+static void autoSave(Surf* surf)
+{
+    const char* save_directory = "/downloads";
+    const char* cart_name = surf->console->rom.name;
+
+    if(!tic_fs_isdir(surf->console->fs, save_directory))
+    {
+        tic_fs_makedir(surf->console->fs, save_directory);
+    }
+
+    forceAutoSave(surf->console, cart_name);
+}
+
 static void onCartLoaded(void* data)
 {
     Surf* surf = data;
+
+    if(surf->config->data.options.autosave)
+    {
+        autoSave(surf);
+    }
+
     runGame(surf->studio);
 }
 
@@ -826,6 +846,7 @@ void initSurf(Surf* surf, Studio* studio, struct Console* console)
         .studio = studio,
         .tic = getMemory(studio),
         .console = console,
+        .config = console->config,
         .fs = console->fs,
         .net = console->net,
         .tick = tick,

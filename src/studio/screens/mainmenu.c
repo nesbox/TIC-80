@@ -194,6 +194,25 @@ static MenuOption VolumeOption =
     optionVolumeSet,
 };
 
+static s32 optionAutoSaveGet(void* data)
+{
+    StudioMainMenu* main = data;
+    return main->options->autosave ? 1 : 0;
+}
+
+static void optionAutoSaveSet(void* data, s32 pos)
+{
+    StudioMainMenu* main = data;
+    main->options->autosave = pos == 1;
+}
+
+static MenuOption AutoSaveOption =
+{
+    OPTION_VALUES({OffValue, OnValue}),
+    optionAutoSaveGet,
+    optionAutoSaveSet,
+};
+
 #if defined(BUILD_EDITORS)
 static s32 optionTabSizeGet(void* data)
 {
@@ -330,6 +349,7 @@ static const MenuItem OptionMenu[] =
     {"FULLSCREEN",      NULL,   &FullscreenOption},
     {"INTEGER SCALE",   NULL,   &IntegerScaleOption},
     {"VOLUME",          NULL,   &VolumeOption},
+    {"AUTOSAVE",        NULL,   &AutoSaveOption, "Keep carts loaded from the web"},
 #if defined(BUILD_EDITORS)
     {"EDITOR OPTIONS", showEditorMenu},
 #endif

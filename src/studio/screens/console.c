@@ -4266,6 +4266,27 @@ static bool cmdLoadCart(Console* console, const char* path)
     return done;
 }
 
+void forceAutoSave(Console* console, const char* cart_name)
+{
+    char namepath[TICNAME_MAX];
+    strcpy(namepath, "/downloads/");
+    strcat(namepath, cart_name);
+    CartSaveResult rom = saveCartName(console, namepath);
+
+    if(rom == CART_SAVE_OK)
+    {
+        printBack(console, "\ncart ");
+        printFront(console, console->rom.name);
+        printBack(console, " autosaved!\n");
+    }
+    else if(rom == CART_SAVE_MISSING_NAME)
+        printBack(console, "\nautosave name is missing\n");
+    else
+        printBack(console, "\ncart autosave error");
+
+    commandDone(console);
+}
+
 static s32 cmdcmp(const void* a, const void* b)
 {
     return strcmp(((const Command*)a)->name, ((const Command*)b)->name);

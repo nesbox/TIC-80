@@ -195,6 +195,7 @@ static void setDefault(Config* config)
             .vsync          = DEFAULT_VSYNC,
             .fullscreen     = false,
             .integerScale   = INTEGER_SCALE_DEFAULT,
+            .autosave       = false,
 #if defined(BUILD_EDITORS)
             .keybindMode    = KEYBIND_STANDARD,
             .devmode        = false,
