@@ -807,6 +807,7 @@ void tic_fs_hashload(tic_fs* fs, const char* name, const char* hash, fs_load_cal
         if (buffer)
         {
             callback(buffer, size, data);
+            free(buffer);
             return;
         }
     }
