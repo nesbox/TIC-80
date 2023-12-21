@@ -682,14 +682,15 @@ static int py_pix(pkpy_vm* vm) {
     int y;
     int color = -1;
 
-
     pkpy_to_int(vm, 0, &x);
     pkpy_to_int(vm, 1, &y);
-    if (pkpy_is_int(vm, 2))
-        pkpy_to_int(vm, 2, &color);
-    get_core(vm, (tic_core**) &tic);
+
+    if(!pkpy_is_none(vm, 2)) pkpy_to_int(vm, 2, &color);
+
     if(pkpy_check_error(vm)) 
         return 0;
+
+    get_core(vm, (tic_core**) &tic);
 
     if(color >= 0) { //set the pixel
         tic_api_pix(tic, x, y, color, false);
