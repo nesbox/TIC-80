@@ -1018,8 +1018,8 @@ static int py_time(pkpy_vm* vm)
     if(pkpy_check_error(vm))
         return 0;
 
-    int time = tic_api_time(tic);
-    pkpy_push_int(vm, time);
+    double time = tic_api_time(tic);
+    pkpy_push_float(vm, time);
     return 1;
 }
 
