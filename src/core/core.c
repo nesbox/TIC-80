@@ -126,7 +126,7 @@ void tic_api_memcpy(tic_mem* memory, s32 dst, s32 src, s32 size)
         && src <= bound)
     {
         u8* base = (u8*)memory->ram;
-        memcpy(base + dst, base + src, size);
+        memmove(base + dst, base + src, size);
     }
 }
 
