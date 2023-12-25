@@ -229,23 +229,31 @@ target_include_directories(lpeg PRIVATE ${LUA_DIR})
 # WREN
 ################################
 
-set(WREN_DIR ${THIRDPARTY_DIR}/wren/src)
-set(WREN_SRC
-    ${WREN_DIR}/optional/wren_opt_meta.c
-    ${WREN_DIR}/optional/wren_opt_random.c
-    ${WREN_DIR}/vm/wren_compiler.c
-    ${WREN_DIR}/vm/wren_core.c
-    ${WREN_DIR}/vm/wren_debug.c
-    ${WREN_DIR}/vm/wren_primitive.c
-    ${WREN_DIR}/vm/wren_utils.c
-    ${WREN_DIR}/vm/wren_value.c
-    ${WREN_DIR}/vm/wren_vm.c
-)
+set(BUILD_WITH_WREN_DEFAULT TRUE)
 
-add_library(wren STATIC ${WREN_SRC})
-target_include_directories(wren PUBLIC ${THIRDPARTY_DIR}/wren/src/include)
-target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/optional)
-target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/vm)
+option(BUILD_WITH_WREN "WREN Enabled" ${BUILD_WITH_WREN_DEFAULT})
+message("BUILD_WITH_WREN: ${BUILD_WITH_WREN}")
+
+if(BUILD_WITH_WREN)
+
+    set(WREN_DIR ${THIRDPARTY_DIR}/wren/src)
+    set(WREN_SRC
+        ${WREN_DIR}/optional/wren_opt_meta.c
+        ${WREN_DIR}/optional/wren_opt_random.c
+        ${WREN_DIR}/vm/wren_compiler.c
+        ${WREN_DIR}/vm/wren_core.c
+        ${WREN_DIR}/vm/wren_debug.c
+        ${WREN_DIR}/vm/wren_primitive.c
+        ${WREN_DIR}/vm/wren_utils.c
+        ${WREN_DIR}/vm/wren_value.c
+        ${WREN_DIR}/vm/wren_vm.c
+    )
+
+    add_library(wren STATIC ${WREN_SRC})
+    target_include_directories(wren PUBLIC ${THIRDPARTY_DIR}/wren/src/include)
+    target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/optional)
+    target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/vm)
+endif()
 
 ################################
 # MRUBY
@@ -573,7 +581,6 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
     target_link_libraries(tic80core${SCRIPT}
         lua
         lpeg
-        wren
         wasm
         squirrel
         python
@@ -582,6 +589,10 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         blipbuf
         zlib
     )
+
+    if(BUILD_WITH_WREN)
+        target_link_libraries(tic80core${SCRIPT} wren)
+    endif()
 
     if(BUILD_WITH_MRUBY)
         target_link_libraries(tic80core${SCRIPT} mruby)
@@ -612,7 +623,11 @@ if(BUILD_STUB)
     MACRO_CORE(moon         TIC_BUILD_WITH_MOON     FALSE)
     MACRO_CORE(fennel       TIC_BUILD_WITH_FENNEL   FALSE)
     MACRO_CORE(js           TIC_BUILD_WITH_JS       FALSE)
-    MACRO_CORE(wren         TIC_BUILD_WITH_WREN     FALSE)
+
+    if(BUILD_WITH_WREN)
+        MACRO_CORE(wren TIC_BUILD_WITH_WREN    FALSE)
+    endif()
+
     MACRO_CORE(squirrel     TIC_BUILD_WITH_SQUIRREL FALSE)
     MACRO_CORE(python       TIC_BUILD_WITH_PYTHON   FALSE)
     MACRO_CORE(scheme       TIC_BUILD_WITH_SCHEME   FALSE)
@@ -626,6 +641,10 @@ if(BUILD_STUB)
         MACRO_CORE(janet TIC_BUILD_WITH_JANET    FALSE)
     endif()
 
+endif()
+
+if(BUILD_WITH_WREN)
+    target_compile_definitions(tic80core PUBLIC TIC_BUILD_WITH_WREN=1)
 endif()
 
 if(BUILD_WITH_MRUBY)
@@ -900,6 +919,11 @@ if(BUILD_DEMO_CARTS)
     list(APPEND DEMO_CARTS
         ${CMAKE_SOURCE_DIR}/config.lua
     )
+
+    if(NOT BUILD_WITH_WREN)
+        list(REMOVE_ITEM DEMO_CARTS ${DEMO_CARTS_IN}/wrendemo.wren)
+        list(REMOVE_ITEM DEMO_CARTS ${DEMO_CARTS_IN}/bunny/wrenmark.wren)
+    endif()
 
     if(NOT BUILD_WITH_MRUBY)
         list(REMOVE_ITEM DEMO_CARTS ${DEMO_CARTS_IN}/rubydemo.rb)
@@ -1386,8 +1410,12 @@ if(BUILD_STUB)
     MACRO_STUB(lua)
     MACRO_STUB(moon)
     MACRO_STUB(fennel)
+
+    if(BUILD_WITH_WREN)
+        MACRO_STUB(wren)
+    endif()
+
     MACRO_STUB(js)
-    MACRO_STUB(wren)
     MACRO_STUB(squirrel)
     MACRO_STUB(python)
     MACRO_STUB(scheme)
