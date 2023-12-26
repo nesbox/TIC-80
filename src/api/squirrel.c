@@ -22,10 +22,6 @@
 
 #include "core/core.h"
 
-#if defined(TIC_BUILD_WITH_SQUIRREL)
-
-//#define USE_FOREIGN_POINTER
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -1882,5 +1878,3 @@ tic_script_config SquirrelSyntaxConfig =
     .keywords           = SquirrelKeywords,
     .keywordsCount      = COUNT_OF(SquirrelKeywords),
 };
-
-#endif /* defined(TIC_BUILD_WITH_SQUIRREL) */

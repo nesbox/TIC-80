@@ -21,13 +21,7 @@
 // SOFTWARE.
 
 #include "core/core.h"
-
-// Fennel requires Lua
-#if defined(TIC_BUILD_WITH_LUA)
-
 #include "lua_api.h"
-
-#if defined(TIC_BUILD_WITH_FENNEL)
 
 #include "fennel.h"
 
@@ -227,7 +221,3 @@ tic_script_config FennelSyntaxConfig =
 
     .useStructuredEdition = true,
 };
-
-#endif /* defined(TIC_BUILD_WITH_FENNEL) */
-
-#endif

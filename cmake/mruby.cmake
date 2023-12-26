@@ -73,4 +73,7 @@ if(BUILD_WITH_MRUBY)
         PROPERTY INTERFACE_INCLUDE_DIRECTORIES  ${MRUBY_DIR}/include
     )
     add_dependencies(mruby mruby_vendor)
+
+    target_compile_definitions(mruby INTERFACE TIC_BUILD_WITH_MRUBY=1)
+
 endif()

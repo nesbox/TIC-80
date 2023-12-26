@@ -40,4 +40,6 @@ if(BUILD_WITH_JANET)
     add_library(janet ${THIRDPARTY_DIR}/janet/build/c/janet.c)
     target_include_directories(janet PUBLIC ${THIRDPARTY_DIR}/janet/src/include)
     target_include_directories(janet PUBLIC ${CMAKE_SOURCE_DIR}/build/janet/)
+    target_compile_definitions(janet INTERFACE TIC_BUILD_WITH_JANET=1)
+
 endif()

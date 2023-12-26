@@ -22,10 +22,6 @@
 
 #include "core/core.h"
 
-#if defined(TIC_BUILD_WITH_SCHEME)
-
-//#define USE_FOREIGN_POINTER
-
 #include <ctype.h>
 #include <s7.h>
 #include <stdio.h>
@@ -1061,5 +1057,3 @@ tic_script_config SchemeSyntaxConfig =
     .keywords               = SchemeKeywords,
     .keywordsCount          = COUNT_OF(SchemeKeywords),
 };
-
-#endif /* defined(TIC_BUILD_WITH_SCHEME) */

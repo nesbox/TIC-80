@@ -26,8 +26,6 @@
 
 #include "core/core.h"
 
-#if defined(TIC_BUILD_WITH_JANET)
-
 #include <janet.h>
 
 static inline tic_core* getJanetMachine(void);
@@ -1301,5 +1299,3 @@ const tic_script_config JanetSyntaxConfig =
     .keywords           = JanetKeywords,
     .keywordsCount      = COUNT_OF(JanetKeywords),
 };
-
-#endif /* defined(TIC_BUILD_WITH_JANET) */
