@@ -22,8 +22,6 @@
 
 #include "core/core.h"
 
-#if defined(TIC_BUILD_WITH_WREN)
-
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -1851,5 +1849,3 @@ tic_script_config WrenSyntaxConfig =
     .keywords           = WrenKeywords,
     .keywordsCount      = COUNT_OF(WrenKeywords),
 };
-
-#endif /* defined(TIC_BUILD_WITH_WREN) */

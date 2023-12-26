@@ -73,18 +73,37 @@ if(BUILD_STUB)
 
     endmacro()
 
-    MACRO_STUB(lua)
-    MACRO_STUB(moon)
-    MACRO_STUB(fennel)
+    if(BUILD_WITH_LUA)
+        MACRO_STUB(lua)
+    endif()
+
+    if(BUILD_WITH_MOON)
+        MACRO_STUB(moon)
+    endif()
+
+    if(BUILD_WITH_FENNEL)
+        MACRO_STUB(fennel)
+    endif()
+
+    if(BUILD_WITH_JS)
+        MACRO_STUB(js)
+    endif()
+
+    if(BUILD_WITH_SCHEME)
+        MACRO_STUB(scheme)
+    endif()
+
+    if(BUILD_WITH_SQUIRREL)
+        MACRO_STUB(squirrel)
+    endif()
+
+    if(BUILD_WITH_PYTHON)
+        MACRO_STUB(python)
+    endif()
 
     if(BUILD_WITH_WREN)
         MACRO_STUB(wren)
     endif()
-
-    MACRO_STUB(js)
-    MACRO_STUB(squirrel)
-    MACRO_STUB(python)
-    MACRO_STUB(scheme)
 
     if(BUILD_WITH_JANET)
         MACRO_STUB(janet)
@@ -94,6 +113,8 @@ if(BUILD_STUB)
         MACRO_STUB(ruby)
     endif()
 
-    MACRO_STUB(wasm)
+    if(BUILD_WITH_WASM)
+        MACRO_STUB(wasm)
+    endif()
 
 endif()

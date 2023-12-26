@@ -36,27 +36,70 @@ if(BUILD_DEMO_CARTS)
     set(DEMO_CARTS_IN ${CMAKE_SOURCE_DIR}/demos)
     set(DEMO_CARTS_OUT)
 
-    file(GLOB DEMO_CARTS
-        ${DEMO_CARTS_IN}/*.*
-        ${DEMO_CARTS_IN}/bunny/*.*)
-
-    list(APPEND DEMO_CARTS
-        ${CMAKE_SOURCE_DIR}/config.lua
-    )
-
-    if(NOT BUILD_WITH_WREN)
-        list(REMOVE_ITEM DEMO_CARTS ${DEMO_CARTS_IN}/wrendemo.wren)
-        list(REMOVE_ITEM DEMO_CARTS ${DEMO_CARTS_IN}/bunny/wrenmark.wren)
+    if(BUILD_WITH_LUA)
+        list(APPEND DEMO_CARTS
+            ${CMAKE_SOURCE_DIR}/config.lua
+        )
     endif()
 
-    if(NOT BUILD_WITH_MRUBY)
-        list(REMOVE_ITEM DEMO_CARTS ${DEMO_CARTS_IN}/rubydemo.rb)
-        list(REMOVE_ITEM DEMO_CARTS ${DEMO_CARTS_IN}/bunny/rubymark.rb)
+    if(BUILD_WITH_LUA)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/quest.lua)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/car.lua)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/music.lua)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/sfx.lua)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/palette.lua)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/bpp.lua)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/tetris.lua)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/font.lua)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/fire.lua)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/benchmark.lua)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/p3d.lua)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/luademo.lua)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/bunny/luamark.lua)
     endif()
 
-    if(NOT BUILD_WITH_JANET)
-        list(REMOVE_ITEM DEMO_CARTS ${DEMO_CARTS_IN}/janetdemo.janet)
-        list(REMOVE_ITEM DEMO_CARTS ${DEMO_CARTS_IN}/bunny/janetmark.janet)
+    if(BUILD_WITH_MOON)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/moondemo.moon)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/bunny/moonmark.moon)
+    endif()
+
+    if(BUILD_WITH_FENNEL)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/fenneldemo.fnl)
+    endif()
+
+    if(BUILD_WITH_JS)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/jsdemo.js)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/bunny/jsmark.js)
+    endif()
+
+    if(BUILD_WITH_SCHEME)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/schemedemo.scm)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/bunny/schememark.scm)
+    endif()
+
+    if(BUILD_WITH_SQUIRREL)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/squirreldemo.nut)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/bunny/squirrelmark.nut)
+    endif()
+
+    if(BUILD_WITH_PYTHON)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/pythondemo.py)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/bunny/pythonmark.py)
+    endif()
+
+    if(BUILD_WITH_WREN)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/wrendemo.wren)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/bunny/wrenmark.wren)
+    endif()
+
+    if(BUILD_WITH_MRUBY)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/rubydemo.rb)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/bunny/rubymark.rb)
+    endif()
+
+    if(BUILD_WITH_JANET)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/janetdemo.janet)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/bunny/janetmark.janet)
     endif()
 
     foreach(CART_FILE ${DEMO_CARTS})
@@ -75,30 +118,34 @@ if(BUILD_DEMO_CARTS)
 
     endforeach(CART_FILE)
 
-    # we need to build these separately combining both the project
-    # and the external WASM binary chunk since projects do not
-    # include BINARY chunks
+    if(BUILD_WITH_WASM)
 
-    file(GLOB WASM_DEMOS
-        ${DEMO_CARTS_IN}/wasm/*.wasmp
-        ${DEMO_CARTS_IN}/bunny/wasmmark/*.wasmp
-    )
+        # we need to build these separately combining both the project
+        # and the external WASM binary chunk since projects do not
+        # include BINARY chunks
 
-    foreach(CART_FILE ${WASM_DEMOS})
-
-        get_filename_component(CART_NAME ${CART_FILE} NAME_WE)
-        get_filename_component(DIR ${CART_FILE} DIRECTORY)
-
-        set(OUTNAME ${CMAKE_SOURCE_DIR}/build/assets/${CART_NAME}.tic.dat)
-        set(WASM_BINARY ${DIR}/${CART_NAME}.wasm)
-        set(OUTPRJ ${CMAKE_SOURCE_DIR}/build/${CART_NAME}.tic)
-        list(APPEND DEMO_CARTS_OUT ${OUTNAME})
-        add_custom_command(OUTPUT ${OUTNAME}
-            COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/wasmp2cart ${CART_FILE} ${OUTPRJ} --binary ${WASM_BINARY} && ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${OUTPRJ} ${OUTNAME} -z
-            DEPENDS bin2txt wasmp2cart ${CART_FILE} ${WASM_BINARY}
+        file(GLOB WASM_DEMOS
+            ${DEMO_CARTS_IN}/wasm/*.wasmp
+            ${DEMO_CARTS_IN}/bunny/wasmmark/*.wasmp
         )
 
-    endforeach(CART_FILE)
+        foreach(CART_FILE ${WASM_DEMOS})
+
+            get_filename_component(CART_NAME ${CART_FILE} NAME_WE)
+            get_filename_component(DIR ${CART_FILE} DIRECTORY)
+
+            set(OUTNAME ${CMAKE_SOURCE_DIR}/build/assets/${CART_NAME}.tic.dat)
+            set(WASM_BINARY ${DIR}/${CART_NAME}.wasm)
+            set(OUTPRJ ${CMAKE_SOURCE_DIR}/build/${CART_NAME}.tic)
+            list(APPEND DEMO_CARTS_OUT ${OUTNAME})
+            add_custom_command(OUTPUT ${OUTNAME}
+                COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/wasmp2cart ${CART_FILE} ${OUTPRJ} --binary ${WASM_BINARY} && ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${OUTPRJ} ${OUTNAME} -z
+                DEPENDS bin2txt wasmp2cart ${CART_FILE} ${WASM_BINARY}
+            )
+
+        endforeach(CART_FILE)
+
+    endif()
 
     add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/build/assets/cart.png.dat
         COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${CMAKE_SOURCE_DIR}/build/cart.png ${CMAKE_SOURCE_DIR}/build/assets/cart.png.dat

@@ -1,7 +1,5 @@
 #include "core/core.h"
 
-#if defined(TIC_BUILD_WITH_PYTHON)
-
 #include "pocketpy_c.h"
 #include <stdio.h>
 #include <string.h>
@@ -1570,5 +1568,3 @@ const tic_script_config PythonSyntaxConfig =
     .keywords           = PythonKeywords,
     .keywordsCount      = COUNT_OF(PythonKeywords),
 };
-
-#endif/* defined(TIC_BUILD_WITH_PYTHON) */

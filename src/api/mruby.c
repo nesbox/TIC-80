@@ -23,8 +23,6 @@
 
 #include "core/core.h"
 
-#if defined(TIC_BUILD_WITH_MRUBY)
-
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -1251,5 +1249,3 @@ const tic_script_config MRubySyntaxConfig =
     .keywords           = MRubyKeywords,
     .keywordsCount      = COUNT_OF(MRubyKeywords),
 };
-
-#endif /* defined(TIC_BUILD_WITH_MRUBY) */

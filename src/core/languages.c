@@ -45,51 +45,52 @@ extern tic_script_config JanetSyntaxConfig;
 extern tic_script_config PythonSyntaxConfig;
 #endif
 
+tic_script_config* Languages[] = 
+{
 
-tic_script_config* Languages[] = {
+    #if defined (TIC_BUILD_WITH_LUA)
+    &LuaSyntaxConfig,
+    #endif
 
-	#if defined (TIC_BUILD_WITH_LUA)
-	&LuaSyntaxConfig,
-	#endif
+    #if defined(TIC_BUILD_WITH_MRUBY)
+    &MRubySyntaxConfig,
+    #endif
 
-  #if defined(TIC_BUILD_WITH_MRUBY)
-  &MRubySyntaxConfig,
-  #endif
+    #if defined(TIC_BUILD_WITH_JS)
+    &JsSyntaxConfig,
+    #endif
 
-	#if defined(TIC_BUILD_WITH_JS)
-	&JsSyntaxConfig,
-	#endif
+    #if defined(TIC_BUILD_WITH_MOON)
+    &MoonSyntaxConfig,
+    #endif
 
-	#if defined(TIC_BUILD_WITH_MOON)
-	&MoonSyntaxConfig,
-	#endif
-
-	#if defined(TIC_BUILD_WITH_FENNEL)
-	&FennelSyntaxConfig,
-	#endif
+    #if defined(TIC_BUILD_WITH_FENNEL)
+    &FennelSyntaxConfig,
+    #endif
 
     #if defined(TIC_BUILD_WITH_SCHEME)
-	&SchemeSyntaxConfig,
-	#endif
+    &SchemeSyntaxConfig,
+    #endif
 
-	#if defined(TIC_BUILD_WITH_SQUIRREL)
-	&SquirrelSyntaxConfig,
-	#endif
+    #if defined(TIC_BUILD_WITH_SQUIRREL)
+    &SquirrelSyntaxConfig,
+    #endif
 
-	#if defined(TIC_BUILD_WITH_WREN)
-	&WrenSyntaxConfig,
-	#endif
+    #if defined(TIC_BUILD_WITH_WREN)
+    &WrenSyntaxConfig,
+    #endif
 
-  #if defined(TIC_BUILD_WITH_WASM)
-	&WasmSyntaxConfig,
-	#endif
+    #if defined(TIC_BUILD_WITH_WASM)
+    &WasmSyntaxConfig,
+    #endif
 
-  #if defined(TIC_BUILD_WITH_JANET)
-  &JanetSyntaxConfig,
-  #endif
+    #if defined(TIC_BUILD_WITH_JANET)
+    &JanetSyntaxConfig,
+    #endif
 
-  #if defined(TIC_BUILD_WITH_PYTHON)
-  &PythonSyntaxConfig,
-  #endif
+    #if defined(TIC_BUILD_WITH_PYTHON)
+    &PythonSyntaxConfig,
+    #endif
 
-	NULL};
+    NULL
+};
