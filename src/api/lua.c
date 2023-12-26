@@ -1707,7 +1707,8 @@ static const char* const LuaKeywords [] =
     "and", "break", "do", "else", "elseif",
     "end", "false", "for", "function", "goto", "if",
     "in", "local", "nil", "not", "or", "repeat",
-    "return", "then", "true", "until", "while"
+    "return", "then", "true", "until", "while", 
+    "self"
 };
 
 static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
