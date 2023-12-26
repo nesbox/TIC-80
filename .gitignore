@@ -130,7 +130,7 @@ demos/.local
 .vs/
 CMakeFiles/
 lib/
-*.cmake
+build/*.cmake
 CMakeCache.txt
 Makefile
 !build/rpi/*
