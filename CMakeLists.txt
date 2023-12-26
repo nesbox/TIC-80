@@ -408,21 +408,29 @@ target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/sqstdlib)
 # pocketpy (Python)
 ################################
 
-add_subdirectory(${THIRDPARTY_DIR}/pocketpy)
-target_compile_definitions(pocketpy PRIVATE PK_ENABLE_OS=0)
-include_directories(${THIRDPARTY_DIR}/pocketpy/include)
+set(BUILD_WITH_PYTHON_DEFAULT TRUE)
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_compile_options(pocketpy PRIVATE -Wno-psabi)
-endif()
+option(BUILD_WITH_PYTHON "Python Enabled" ${BUILD_WITH_PYTHON_DEFAULT})
+message("BUILD_WITH_PYTHON: ${BUILD_WITH_PYTHON}")
 
-# alias pocketpy to python for next steps
-set_target_properties(pocketpy PROPERTIES OUTPUT_NAME python)
-add_library(python ALIAS pocketpy)
+if(BUILD_WITH_PYTHON)
 
-if(EMSCRIPTEN)
-    # exceptions must be enabled for emscripten
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fexceptions")
+    add_subdirectory(${THIRDPARTY_DIR}/pocketpy)
+    target_compile_definitions(pocketpy PRIVATE PK_ENABLE_OS=0)
+    include_directories(${THIRDPARTY_DIR}/pocketpy/include)
+
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        target_compile_options(pocketpy PRIVATE -Wno-psabi)
+    endif()
+
+    # alias pocketpy to python for next steps
+    set_target_properties(pocketpy PROPERTIES OUTPUT_NAME python)
+    add_library(python ALIAS pocketpy)
+
+    if(EMSCRIPTEN)
+        # exceptions must be enabled for emscripten
+        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fexceptions")
+    endif()
 endif()
 
 ################################
@@ -583,12 +591,15 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         lpeg
         wasm
         squirrel
-        python
         scheme
         quickjs
         blipbuf
         zlib
     )
+
+    if(BUILD_WITH_PYTHON)
+        target_link_libraries(tic80core${SCRIPT} python)
+    endif()
 
     if(BUILD_WITH_WREN)
         target_link_libraries(tic80core${SCRIPT} wren)
@@ -629,7 +640,11 @@ if(BUILD_STUB)
     endif()
 
     MACRO_CORE(squirrel     TIC_BUILD_WITH_SQUIRREL FALSE)
-    MACRO_CORE(python       TIC_BUILD_WITH_PYTHON   FALSE)
+
+    if(BUILD_WITH_WREN)
+        MACRO_CORE(python TIC_BUILD_WITH_PYTHON   FALSE)
+    endif()
+
     MACRO_CORE(scheme       TIC_BUILD_WITH_SCHEME   FALSE)
     MACRO_CORE(wasm         TIC_BUILD_WITH_WASM     FALSE)
 
@@ -641,6 +656,10 @@ if(BUILD_STUB)
         MACRO_CORE(janet TIC_BUILD_WITH_JANET    FALSE)
     endif()
 
+endif()
+
+if(BUILD_WITH_PYTHON)
+    target_compile_definitions(tic80core PUBLIC TIC_BUILD_WITH_PYTHON=1)
 endif()
 
 if(BUILD_WITH_WREN)
@@ -919,6 +938,11 @@ if(BUILD_DEMO_CARTS)
     list(APPEND DEMO_CARTS
         ${CMAKE_SOURCE_DIR}/config.lua
     )
+
+    if(NOT BUILD_WITH_PYTHON)
+        list(REMOVE_ITEM DEMO_CARTS ${DEMO_CARTS_IN}/pythondemo.py)
+        list(REMOVE_ITEM DEMO_CARTS ${DEMO_CARTS_IN}/bunny/pythonmark.py)
+    endif()
 
     if(NOT BUILD_WITH_WREN)
         list(REMOVE_ITEM DEMO_CARTS ${DEMO_CARTS_IN}/wrendemo.wren)
@@ -1417,7 +1441,11 @@ if(BUILD_STUB)
 
     MACRO_STUB(js)
     MACRO_STUB(squirrel)
-    MACRO_STUB(python)
+
+    if(BUILD_WITH_PYTHON)
+        MACRO_STUB(python)
+    endif()
+
     MACRO_STUB(scheme)
 
     if(BUILD_WITH_JANET)
