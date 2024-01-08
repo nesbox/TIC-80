@@ -61,3 +61,11 @@ u64     fs_date     (const char* name);
 bool    fs_exists   (const char* name);
 void*   fs_read     (const char* path, s32* size);
 bool    fs_write    (const char* path, const void* data, s32 size);
+
+typedef struct
+{
+    char *dir;
+    char *file;
+} tic_fs_splitdir_result;
+
+tic_fs_splitdir_result* tic_fs_splitdir (tic_fs* fs, const char* dir);

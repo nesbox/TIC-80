@@ -539,23 +539,17 @@ void tic_fs_changedir(tic_fs* fs, const char* dir)
 #endif
 }
 
-typedef struct
-{
-    char *dir;
-    char *file;
-} tic_fs_splitdir_result;
-
 #if !defined(__TIC_WINDOWS__)
 #include <libgen.h>
 #endif
 
-tic_fs_splitdir_result* tic_fs_splitdir(tic_fs *fs, const char *path)
+tic_fs_splitdir_result* tic_fs_splitdir(tic_fs *fs, const char *dir)
 {
 #if defined(__TIC_WINDOWS__)
     char _path[TICNAME_MAX];
     char _fname[TICNAME_MAX];
     char _ext[TICNAME_MAX];
-    _splitpath(path,NULL,_path,_fname,_ext);
+    _splitpath(dir,NULL,_path,_fname,_ext);
     tic_fs_splitdir_result *result = (tic_fs_splitdir_result*)calloc(1, sizeof tic_fs_splitdir_result);
     result->dir = MOVE(_path);
     result->dir[strlen(result->dir)-1] = '\0'; // strip trailing /
@@ -566,13 +560,17 @@ tic_fs_splitdir_result* tic_fs_splitdir(tic_fs *fs, const char *path)
     // dirname and basename are allowed to modify the string they're given
     // musl, at the very least, does it
     // so duplicate the path coming in
-    char *tmp = strdup(path);
-    char *tmp2 = strdup(path);
+    char *tmp = strdup(dir);
+    char *tmp2 = strdup(dir);
     tic_fs_splitdir_result *result = (tic_fs_splitdir_result*)calloc(1, sizeof(tic_fs_splitdir_result));
     char *dn = dirname(tmp);
-    result->dir = MOVE(dn);
+    if (strcmp(dn,".")==0)
+    {
+        dn = '\0';
+    }
+    result->dir = strdup(dn);
     char *fn = basename(tmp2);
-    result->file = MOVE(fn);
+    result->file = strdup(fn);
     free(tmp);
     free(tmp2);
     return result;

@@ -958,9 +958,14 @@ static void onLoadCommandConfirmed(Console* console)
         else if (tic_fs_isroot(console->fs) && strstr(name,TIC_HOST "/")==name)
         {
             const char * notquitename = name + strlen(TIC_HOST "/");
-            const char * cwd = '\0';
-            LoadPublicCartData loadPublicCartData = { console, strdup(notquitename), NULL, section ? strdup(section) : NULL, MOVE(cwd) };
+            const char * cwd = '\0'; // isroot means we're in the root directory
+            LoadPublicCartData loadPublicCartData = { console, NULL, NULL, section ? strdup(section) : NULL, MOVE(cwd) };
             tic_fs_changedir(console->fs, TIC_HOST);
+            tic_fs_splitdir_result *result = tic_fs_splitdir(console->fs, notquitename);
+            tic_fs_changedir(console->fs, result->dir);
+            loadPublicCartData.name = strdup(result->file);
+            FREE(result->dir);
+            FREE(result->file);
             tic_fs_enum(console->fs, compareFilename, fileFoundHacky, MOVE(loadPublicCartData));
 
             return;
