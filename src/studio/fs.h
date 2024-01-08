@@ -50,6 +50,7 @@ bool    tic_fs_makedir      (tic_fs* fs, const char* name);
 bool    tic_fs_exists       (tic_fs* fs, const char* name);
 void    tic_fs_openfolder   (tic_fs* fs);
 bool    tic_fs_isdir        (tic_fs* fs, const char* dir);
+bool    tic_fs_isroot       (tic_fs* fs);
 bool    tic_fs_ispubdir     (tic_fs* fs);
 void    tic_fs_changedir    (tic_fs* fs, const char* dir);
 void    tic_fs_dir          (tic_fs* fs, char* out);

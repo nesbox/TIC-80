@@ -122,6 +122,11 @@ static bool isPublic(tic_fs* fs)
     return memcmp(fs->work, PublicDir, STRLEN(PublicDir)) == 0;
 }
 
+bool tic_fs_isroot(tic_fs* fs)
+{
+    return isRoot(fs);
+}
+
 bool tic_fs_ispubdir(tic_fs* fs)
 {
     return isPublic(fs);

@@ -788,12 +788,45 @@ static void loadByHashDone(const u8* buffer, s32 size, void* data)
     commandDone(console);
 }
 
+static void loadByHashDoneHacky(const u8* buffer, s32 size, void* data)
+{
+    LoadByHashData* loadByHashData = data;
+    Console* console = loadByHashData->console;
+
+    tic_cartridge* cart = newCart();
+
+    SCOPE(free(cart))
+    {
+        tic_cart_load(cart, buffer, size);
+        loadCartSection(console, cart, loadByHashData->section);
+        onCartLoaded(console, loadByHashData->name, loadByHashData->section);
+    }
+
+    tic_fs_homedir(console->fs);
+    if (loadByHashData->callback)
+        loadByHashData->callback(loadByHashData->calldata);
+
+    FREE(loadByHashData->name);
+    FREE(loadByHashData->section);
+    FREE(loadByHashData);
+
+    commandDone(console);
+}
+
 static void loadByHash(Console* console, const char* name, const char* hash, const char* section, fs_done_callback callback, void* data)
 {
     console->active = false;
 
     LoadByHashData loadByHashData = { console, strdup(name), section ? strdup(section) : NULL, callback, data};
     tic_fs_hashload(console->fs, name, hash, loadByHashDone, MOVE(loadByHashData));
+}
+
+static void loadByHashHacky(Console* console, const char* name, const char* hash, const char* section, fs_done_callback callback, void* data)
+{
+    console->active = false;
+
+    LoadByHashData loadByHashData = { console, strdup(name), section ? strdup(section) : NULL, callback, data};
+    tic_fs_hashload(console->fs, name, hash, loadByHashDoneHacky, MOVE(loadByHashData));
 }
 
 typedef struct
@@ -830,6 +863,28 @@ static void fileFound(void* data)
         char msg[TICNAME_MAX];
         sprintf(msg, "\nerror: `%s` file not loaded", loadPublicCartData->name);
         printError(console, msg);
+        commandDone(console);
+    }
+
+    FREE(loadPublicCartData->name);
+    FREE(loadPublicCartData->hash);
+    FREE(loadPublicCartData->section);
+    FREE(loadPublicCartData);
+}
+
+static void fileFoundHacky(void* data)
+{
+    LoadPublicCartData* loadPublicCartData = data;
+    Console* console = loadPublicCartData->console;
+
+    if (loadPublicCartData->hash)
+        loadByHashHacky(console, loadPublicCartData->name, loadPublicCartData->hash, loadPublicCartData->section, NULL, NULL);
+    else
+    {
+        char msg[TICNAME_MAX];
+        sprintf(msg, "\nerror: `%s` file not loaded", loadPublicCartData->name);
+        printError(console, msg);
+        tic_fs_homedir(console->fs);
         commandDone(console);
     }
 
@@ -884,6 +939,15 @@ static void onLoadCommandConfirmed(Console* console)
         {
             LoadPublicCartData loadPublicCartData = { console, strdup(name), NULL, section ? strdup(section) : NULL };
             tic_fs_enum(console->fs, compareFilename, fileFound, MOVE(loadPublicCartData));
+
+            return;
+        }
+        else if (tic_fs_isroot(console->fs) && strstr(name,TIC_HOST "/")==name)
+        {
+            const char * notquitename = name + strlen(TIC_HOST "/");
+            tic_fs_changedir(console->fs, TIC_HOST);
+            LoadPublicCartData loadPublicCartData = { console, strdup(notquitename), NULL, section ? strdup(section) : NULL };
+            tic_fs_enum(console->fs, compareFilename, fileFoundHacky, MOVE(loadPublicCartData));
 
             return;
         }
