@@ -541,6 +541,46 @@ void tic_fs_changedir(tic_fs* fs, const char* dir)
 
 typedef struct
 {
+    char *dir;
+    char *file;
+} tic_fs_splitdir_result;
+
+#if !defined(__TIC_WINDOWS__)
+#include <libgen.h>
+#endif
+
+tic_fs_splitdir_result* tic_fs_splitdir(tic_fs *fs, const char *path)
+{
+#if defined(__TIC_WINDOWS__)
+    char _path[TICNAME_MAX];
+    char _fname[TICNAME_MAX];
+    char _ext[TICNAME_MAX];
+    _splitpath(path,NULL,_path,_fname,_ext);
+    tic_fs_splitdir_result *result = (tic_fs_splitdir_result*)calloc(1, sizeof tic_fs_splitdir_result);
+    result->dir = MOVE(_path);
+    result->dir[strlen(result->dir)-1] = '\0'; // strip trailing /
+    result->file = MOVE(_fname);
+    strncat(result->file,_ext,TICNAME_MAX);
+    return result;
+#else
+    // dirname and basename are allowed to modify the string they're given
+    // musl, at the very least, does it
+    // so duplicate the path coming in
+    char *tmp = strdup(path);
+    char *tmp2 = strdup(path);
+    tic_fs_splitdir_result *result = (tic_fs_splitdir_result*)calloc(1, sizeof(tic_fs_splitdir_result));
+    char *dn = dirname(tmp);
+    result->dir = MOVE(dn);
+    char *fn = basename(tmp2);
+    result->file = MOVE(fn);
+    free(tmp);
+    free(tmp2);
+    return result;
+#endif
+}
+
+typedef struct
+{
     char* name;
     bool found;
     fs_isdir_callback done;

@@ -788,6 +788,12 @@ static void loadByHashDone(const u8* buffer, s32 size, void* data)
     commandDone(console);
 }
 
+static void fixDirectory(Console *console, char *old_work)
+{
+    tic_fs_homedir(console->fs);
+    tic_fs_changedir(console->fs, old_work);
+}
+
 static void loadByHashDoneHacky(const u8* buffer, s32 size, void* data)
 {
     LoadByHashData* loadByHashData = data;
@@ -802,12 +808,11 @@ static void loadByHashDoneHacky(const u8* buffer, s32 size, void* data)
         onCartLoaded(console, loadByHashData->name, loadByHashData->section);
     }
 
-    tic_fs_homedir(console->fs);
-    if (loadByHashData->callback)
-        loadByHashData->callback(loadByHashData->calldata);
+    fixDirectory(console, (char*)loadByHashData->calldata);
 
     FREE(loadByHashData->name);
     FREE(loadByHashData->section);
+    FREE(loadByHashData->calldata);
     FREE(loadByHashData);
 
     commandDone(console);
@@ -835,6 +840,7 @@ typedef struct
     char* name;
     char* hash;
     char* section;
+    char* old_work;
 } LoadPublicCartData;
 
 static bool compareFilename(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
@@ -857,7 +863,9 @@ static void fileFound(void* data)
     Console* console = loadPublicCartData->console;
 
     if (loadPublicCartData->hash)
+    {
         loadByHash(console, loadPublicCartData->name, loadPublicCartData->hash, loadPublicCartData->section, NULL, NULL);
+    }
     else
     {
         char msg[TICNAME_MAX];
@@ -869,6 +877,7 @@ static void fileFound(void* data)
     FREE(loadPublicCartData->name);
     FREE(loadPublicCartData->hash);
     FREE(loadPublicCartData->section);
+    FREE(loadPublicCartData->old_work);
     FREE(loadPublicCartData);
 }
 
@@ -878,19 +887,23 @@ static void fileFoundHacky(void* data)
     Console* console = loadPublicCartData->console;
 
     if (loadPublicCartData->hash)
-        loadByHashHacky(console, loadPublicCartData->name, loadPublicCartData->hash, loadPublicCartData->section, NULL, NULL);
+    {
+	char * old_work = strdup(loadPublicCartData->old_work);
+        loadByHashHacky(console, loadPublicCartData->name, loadPublicCartData->hash, loadPublicCartData->section, NULL, old_work);
+    }
     else
     {
         char msg[TICNAME_MAX];
         sprintf(msg, "\nerror: `%s` file not loaded", loadPublicCartData->name);
         printError(console, msg);
-        tic_fs_homedir(console->fs);
+        fixDirectory(console, loadPublicCartData->old_work);
         commandDone(console);
     }
 
     FREE(loadPublicCartData->name);
     FREE(loadPublicCartData->hash);
     FREE(loadPublicCartData->section);
+    FREE(loadPublicCartData->old_work);
     FREE(loadPublicCartData);
 }
 
@@ -937,7 +950,7 @@ static void onLoadCommandConfirmed(Console* console)
 
         if (tic_fs_ispubdir(console->fs))
         {
-            LoadPublicCartData loadPublicCartData = { console, strdup(name), NULL, section ? strdup(section) : NULL };
+            LoadPublicCartData loadPublicCartData = { console, strdup(name), NULL, section ? strdup(section) : NULL, NULL };
             tic_fs_enum(console->fs, compareFilename, fileFound, MOVE(loadPublicCartData));
 
             return;
@@ -945,8 +958,9 @@ static void onLoadCommandConfirmed(Console* console)
         else if (tic_fs_isroot(console->fs) && strstr(name,TIC_HOST "/")==name)
         {
             const char * notquitename = name + strlen(TIC_HOST "/");
+            const char * cwd = '\0';
+            LoadPublicCartData loadPublicCartData = { console, strdup(notquitename), NULL, section ? strdup(section) : NULL, MOVE(cwd) };
             tic_fs_changedir(console->fs, TIC_HOST);
-            LoadPublicCartData loadPublicCartData = { console, strdup(notquitename), NULL, section ? strdup(section) : NULL };
             tic_fs_enum(console->fs, compareFilename, fileFoundHacky, MOVE(loadPublicCartData));
 
             return;
