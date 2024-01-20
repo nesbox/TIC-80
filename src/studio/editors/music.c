@@ -1590,7 +1590,7 @@ static void processKeyboard(Music* music)
 
 static void setIndex(Music* music, s32 value)
 {
-    music->track = CLAMP(value, 0, MUSIC_TRACKS-1);
+    music->track = (value + MUSIC_TRACKS) % MUSIC_TRACKS;
 }
 
 static void setTempo(Music* music, s32 value)
