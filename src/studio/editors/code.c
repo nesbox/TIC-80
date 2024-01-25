@@ -3217,7 +3217,7 @@ static void textFindTick(Code* code)
         {
             char str[] = {sym , 0};
             strcat(code->popup.text, str);
-            updateFindCode(code, strstr(code->src, code->popup.text));
+            updateFindCode(code, strstr(code->cursor.position, code->popup.text));
         }
     }
 
