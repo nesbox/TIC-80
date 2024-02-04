@@ -407,7 +407,10 @@ static void consolePrintOffset(Console* console, const char* text, u8 color, s32
             console->cursor.pos.x++;
 
             if (console->cursor.pos.x >= CONSOLE_BUFFER_WIDTH)
+            {
                 nextLine(console);
+                console->cursor.pos.x = wrapLineOffset;
+            }
         }
     }
 
