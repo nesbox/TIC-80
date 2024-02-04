@@ -2886,7 +2886,7 @@ static const char HelpUsage[] = "help [<text>"
         tabCompleteFiles)                                                               \
                                                                                         \
     macro("del",                                                                        \
-        NULL,                                                                           \
+        "rm",                                                                           \
         "delete from the filesystem.",                                                  \
         "del <file|folder>",                                                            \
         onDelCommand,                                                                   \
