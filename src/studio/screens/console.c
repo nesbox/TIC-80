@@ -29,6 +29,7 @@
 #include "ext/png.h"
 #include "zip.h"
 #include "studio/demos.h"
+#include "retro_endianness.h"
 
 #if defined(TIC80_PRO)
 #include "studio/project.h"
@@ -1764,6 +1765,7 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
         const tic_palette* pal = getPalette(console, params.bank, params.vbank);
 
         s32 bpp_scale = 5 - bpp;
+        u32 color1, color2, color3, color4, color;
         
         for(s32 j = 0, y = params.y, h = y + (params.h ? params.h : img.height); y < h; ++y, ++j)
             for(s32 i = 0, x = params.x, w = x + ((params.w ? params.w : img.width) / bpp_scale); x < w; ++x, i += bpp_scale)
@@ -1774,20 +1776,27 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
                                (tic_rgb*)(img.pixels + i + j * img.width), TIC_PALETTE_SIZE));
                             break;
                         case 2:
-                            u32 color2b1 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + j * img.width), 4);
-                            u32 color2b2 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 1 + j * img.width), 4);
+                            color1 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + j * img.width), 4);
+                            color2 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 1 + j * img.width), 4);
                             // unsure if it's better to do add or or it together.
-                            u32 color2b = (color2b2 << 2) + color2b1;
-                            setSpritePixel(base, x, y, color2b);
+#ifdef RETRO_IS_BIG_ENDIAN
+                            color = (color1 << 2) + color2;
+#else
+                            color = (color2 << 2) + color1;
+#endif
+                            setSpritePixel(base, x, y, color);
                             break;
                         case 1:
-                            u32 color1b1 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + j * img.width), 2);
-                            u32 color1b2 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 1 + j * img.width), 2);
-                            u32 color1b3 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 2 + j * img.width), 2);
-                            u32 color1b4 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 3 + j * img.width), 2);
-                            
-                            u32 color1b = (color1b4 << 3) + (color1b3 << 2) + (color1b2 << 1) + color1b1;
-                            setSpritePixel(base, x, y, color1b);
+                            color1 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + j * img.width), 2);
+                            color2 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 1 + j * img.width), 2);
+                            color3 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 2 + j * img.width), 2);
+                            color4 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 3 + j * img.width), 2);
+#ifdef RETRO_IS_BIG_ENDIAN
+                            color = (color1 << 3) + (color2 << 2) + (color3 << 1) + color4;
+#else
+                            color = (color4 << 3) + (color3 << 2) + (color2 << 1) + color1;
+#endif
+                            setSpritePixel(base, x, y, color);
                             break;
                     }
 
