@@ -97,6 +97,18 @@ pub const OVR_TRANSPARENCY: *u8 = @as(*u8, @ptrFromInt(0x3FF8));
 // import the RAW api
 
 pub const raw = struct {
+    pub const Flip = enum(u32) {
+        no = 0,
+        horizontal = 1,
+        vertical = 2,
+        both = 3,
+    };
+    pub const Rotate = enum(u32) {
+        no = 0,
+        by90 = 1,
+        by180 = 2,
+        by270 = 3,
+    };
     pub extern fn btn(id: i32) i32;
     pub extern fn btnp(id: i32, hold: i32, period: i32) bool;
     pub extern fn clip(x: i32, y: i32, w: i32, h: i32) void;
@@ -113,6 +125,7 @@ pub const raw = struct {
     pub extern fn keyp(keycode: i32, hold: i32, period: i32) bool;
     pub extern fn line(x0: i32, y0: i32, x1: i32, y1: i32, color: i32) void;
     pub extern fn map(x: i32, y: i32, w: i32, h: i32, sx: i32, sy: i32, trans_colors: ?[*]const u8, color_count: i32, scale: i32, remap: i32) void;
+    pub extern fn remap(x: i32, y: i32, w: i32, h: i32, sx: i32, sy: i32, trans_colors: ?[*]const u8, color_count: i32, scale: i32, remap: ?*const fn (?*anyopaque, i32, i32, *RemapInfo) callconv(.C) void, data: ?*anyopaque, res_ptr: *RemapInfo) void;
     pub extern fn memcpy(to: u32, from: u32, length: u32) void;
     pub extern fn memset(addr: u32, value: u8, length: u32) void;
     pub extern fn mget(x: i32, y: i32) i32;
@@ -198,6 +211,11 @@ pub const mouse = raw.mouse;
 // TODO: remap should be what????
 // pub extern fn map(x: i32, y: i32, w: i32, h: i32, sx: i32, sy: i32, trans_colors: ?[*]u8, color_count: i32, scale: i32, remap: i32) void;
 
+pub const RemapInfo = extern struct {
+    index: u8,
+    flip: raw.Flip,
+    rotate: raw.Rotate,
+};
 const MapArgs = struct {
     x: i32 = 0,
     y: i32 = 0,
@@ -207,14 +225,20 @@ const MapArgs = struct {
     sy: i32 = 0,
     transparent: []const u8 = &.{},
     scale: u8 = 1,
-    remap: i32 = -1, // TODO
+    remap: ?*const fn (i32, i32, *RemapInfo) void = null, // TODO
 };
 
+fn remap_wrapper(data: ?*anyopaque, x: i32, y: i32, info: *RemapInfo) callconv(.C) void {
+    const fun: *const fn (i32, i32, *RemapInfo) void = @ptrCast(data orelse return);
+    fun(x, y, info);
+}
 pub fn map(args: MapArgs) void {
     const color_count = @as(u8, @intCast(args.transparent.len));
     const colors = args.transparent.ptr;
     std.debug.assert(color_count < 16);
-    raw.map(args.x, args.y, args.w, args.h, args.sx, args.sy, colors, color_count, args.scale, args.remap);
+    // why?
+    var remapinfo = .{ .index = undefined, .flip = undefined, .rotate = undefined };
+    raw.remap(args.x, args.y, args.w, args.h, args.sx, args.sy, colors, color_count, args.scale, if (args.remap != null) &remap_wrapper else null, @ptrCast(@constCast(args.remap)), &remapinfo);
 }
 
 pub fn pix(x: i32, y: i32, color: u8) void {
