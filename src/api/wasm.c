@@ -42,6 +42,7 @@ typedef float           f32;
 #include "m3_exec_defs.h"
 #include "m3_exception.h"
 #include "m3_env.h"
+#include "m3_core.h"
 
 static const char TicCore[] = "_TIC80";
 
@@ -661,6 +662,66 @@ m3ApiRawFunction(wasmtic_clip)
     m3ApiSuccess();
 }
 
+struct RemapInfo {
+    uint32_t data;
+    IM3Function fun;
+    tic_core* core;
+    uint8_t* mem;
+    RemapResult* wasm_result;
+};
+static void wasm_remap(void* data, s32 x, s32 y, RemapResult* result) {
+    if (data == NULL) return;
+    struct RemapInfo* rdata = (struct RemapInfo*) data;
+    IM3Function fun = rdata->fun;
+    // : )
+    uint8_t* _mem = rdata->mem;
+
+    *rdata->wasm_result = *result;
+    M3Result res = m3_CallV(fun, rdata->data, x, y, m3ApiPtrToOffset(rdata->wasm_result));
+    if (res) { 
+        rdata->core->data->error(rdata->core->data->data, res);
+    }
+
+    *result = *rdata->wasm_result;
+}
+// extra function to avoid sadness
+m3ApiRawFunction(wasmtic_remap)
+{
+    m3ApiGetArg      (int32_t, x)
+    m3ApiGetArg      (int32_t, y)
+    m3ApiGetArg      (int32_t, w)
+    m3ApiGetArg      (int32_t, h)
+    m3ApiGetArg      (int32_t, sx)
+    m3ApiGetArg      (int32_t, sy)
+    m3ApiGetArgMem   (u8*, trans_colors)
+    m3ApiGetArg      (int8_t, colorCount)
+    if (trans_colors == NULL) {
+        colorCount = 0;
+    }    m3ApiGetArg      (int8_t, scale)
+    // TODO: actually test that this works
+    m3ApiGetArg      (int32_t, remap)
+    // keep the offset bc we don't access it directly
+    m3ApiGetArg      (uint32_t, user_data)
+    m3ApiGetArgMem      (RemapResult*, remap_result)
+
+    
+    // depends on their only being 1 module, which SHOULD:tm: be true
+    IM3Function remap_func = NULL;
+    if (remap >= 0)
+        m3_GetTableFunction(&remap_func, runtime->modules, remap);
+    // defaults
+    if (x == -1) { x = 0; }    
+    if (y == -1) { y = 0; }
+    if (w == -1) { w = 30; }
+    if (h == -1) { h = 17; }
+    if (scale == -1) { scale = 1; }
+
+    tic_mem* tic = (tic_mem*)getWasmCore(runtime);
+    struct RemapInfo info = { user_data, remap_func, (tic_core*)tic, _mem, remap_result};
+    tic_api_map(tic, x, y, w, h, sx, sy, trans_colors, colorCount, scale, remap_func ? &wasm_remap : NULL, &info);
+
+    m3ApiSuccess();
+}
 m3ApiRawFunction(wasmtic_map)
 {
     m3ApiGetArg      (int32_t, x)
@@ -676,7 +737,7 @@ m3ApiRawFunction(wasmtic_map)
     }    m3ApiGetArg      (int8_t, scale)
     // TODO: actually test that this works
     m3ApiGetArg      (int32_t, remap)
-
+    
     // defaults
     if (x == -1) { x = 0; }    
     if (y == -1) { y = 0; }
@@ -685,7 +746,6 @@ m3ApiRawFunction(wasmtic_map)
     if (scale == -1) { scale = 1; }
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
-
     tic_api_map(tic, x, y, w, h, sx, sy, trans_colors, colorCount, scale, NULL, NULL);
 
     m3ApiSuccess();
@@ -973,6 +1033,7 @@ M3Result linkTicAPI(IM3Module module)
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "line",    "v(ffffi)",      &wasmtic_line)));
     // TODO: needs a lot of help for all the optional arguments
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "map",     "v(iiiiiiiiii)", &wasmtic_map)));
+    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "remap",   "v(iiiiiiiiiii*)",&wasmtic_remap)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "memcpy",  "v(iii)",        &wasmtic_memcpy)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "memset",  "v(iii)",        &wasmtic_memset)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "mget",    "i(ii)",         &wasmtic_mget)));
