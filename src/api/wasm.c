@@ -662,6 +662,11 @@ m3ApiRawFunction(wasmtic_clip)
     m3ApiSuccess();
 }
 
+struct MapData {
+    int32_t func_index;
+    uint32_t user_data;
+    uint32_t res_ptr;
+};
 struct RemapInfo {
     uint32_t data;
     IM3Function fun;
@@ -680,47 +685,10 @@ static void wasm_remap(void* data, s32 x, s32 y, RemapResult* result) {
     M3Result res = m3_CallV(fun, rdata->data, x, y, m3ApiPtrToOffset(rdata->wasm_result));
     if (res) { 
         rdata->core->data->error(rdata->core->data->data, res);
+        return;
     }
 
     *result = *rdata->wasm_result;
-}
-// extra function to avoid sadness
-m3ApiRawFunction(wasmtic_remap)
-{
-    m3ApiGetArg      (int32_t, x)
-    m3ApiGetArg      (int32_t, y)
-    m3ApiGetArg      (int32_t, w)
-    m3ApiGetArg      (int32_t, h)
-    m3ApiGetArg      (int32_t, sx)
-    m3ApiGetArg      (int32_t, sy)
-    m3ApiGetArgMem   (u8*, trans_colors)
-    m3ApiGetArg      (int8_t, colorCount)
-    if (trans_colors == NULL) {
-        colorCount = 0;
-    }    m3ApiGetArg      (int8_t, scale)
-    // TODO: actually test that this works
-    m3ApiGetArg      (int32_t, remap)
-    // keep the offset bc we don't access it directly
-    m3ApiGetArg      (uint32_t, user_data)
-    m3ApiGetArgMem      (RemapResult*, remap_result)
-
-    
-    // depends on their only being 1 module, which SHOULD:tm: be true
-    IM3Function remap_func = NULL;
-    if (remap >= 0)
-        m3_GetTableFunction(&remap_func, runtime->modules, remap);
-    // defaults
-    if (x == -1) { x = 0; }    
-    if (y == -1) { y = 0; }
-    if (w == -1) { w = 30; }
-    if (h == -1) { h = 17; }
-    if (scale == -1) { scale = 1; }
-
-    tic_mem* tic = (tic_mem*)getWasmCore(runtime);
-    struct RemapInfo info = { user_data, remap_func, (tic_core*)tic, _mem, remap_result};
-    tic_api_map(tic, x, y, w, h, sx, sy, trans_colors, colorCount, scale, remap_func ? &wasm_remap : NULL, &info);
-
-    m3ApiSuccess();
 }
 m3ApiRawFunction(wasmtic_map)
 {
@@ -735,9 +703,18 @@ m3ApiRawFunction(wasmtic_map)
     if (trans_colors == NULL) {
         colorCount = 0;
     }    m3ApiGetArg      (int8_t, scale)
-    // TODO: actually test that this works
-    m3ApiGetArg      (int32_t, remap)
+    m3ApiGetArg      (i32, map_data_ptr)
     
+
+    tic_mem* tic = (tic_mem*)getWasmCore(runtime);
+    // depends on their only being 1 module, which SHOULD:tm: be true
+    struct RemapInfo info = { .mem = _mem, .core = (tic_core*)tic };
+    if (map_data_ptr > 0) {
+        struct MapData* map_data = (struct MapData*)m3ApiOffsetToPtr(map_data_ptr);
+        m3_GetTableFunction(&info.fun, runtime->modules, map_data->func_index);
+        info.data = map_data->user_data;
+        info.wasm_result = (RemapResult*)m3ApiOffsetToPtr(map_data->res_ptr);
+    }
     // defaults
     if (x == -1) { x = 0; }    
     if (y == -1) { y = 0; }
@@ -745,8 +722,7 @@ m3ApiRawFunction(wasmtic_map)
     if (h == -1) { h = 17; }
     if (scale == -1) { scale = 1; }
 
-    tic_mem* tic = (tic_mem*)getWasmCore(runtime);
-    tic_api_map(tic, x, y, w, h, sx, sy, trans_colors, colorCount, scale, NULL, NULL);
+    tic_api_map(tic, x, y, w, h, sx, sy, trans_colors, colorCount, scale, map_data_ptr > 0 ? &wasm_remap : NULL, map_data_ptr > 0 ? &info : NULL);
 
     m3ApiSuccess();
 }
@@ -1033,7 +1009,6 @@ M3Result linkTicAPI(IM3Module module)
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "line",    "v(ffffi)",      &wasmtic_line)));
     // TODO: needs a lot of help for all the optional arguments
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "map",     "v(iiiiiiiiii)", &wasmtic_map)));
-    _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "remap",   "v(iiiiiiiiiii*)",&wasmtic_remap)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "memcpy",  "v(iii)",        &wasmtic_memcpy)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "memset",  "v(iii)",        &wasmtic_memset)));
     _   (SuppressLookupFailure (m3_LinkRawFunction (module, "env", "mget",    "i(ii)",         &wasmtic_mget)));

@@ -124,8 +124,8 @@ pub const raw = struct {
     pub extern fn key(keycode: i32) bool;
     pub extern fn keyp(keycode: i32, hold: i32, period: i32) bool;
     pub extern fn line(x0: i32, y0: i32, x1: i32, y1: i32, color: i32) void;
-    pub extern fn map(x: i32, y: i32, w: i32, h: i32, sx: i32, sy: i32, trans_colors: ?[*]const u8, color_count: i32, scale: i32, remap: i32) void;
-    pub extern fn remap(x: i32, y: i32, w: i32, h: i32, sx: i32, sy: i32, trans_colors: ?[*]const u8, color_count: i32, scale: i32, remap: ?*const fn (?*anyopaque, i32, i32, *RemapInfo) callconv(.C) void, data: ?*anyopaque, res_ptr: *RemapInfo) void;
+    // pass struct by pointer SHOULD:tm JUST WORK
+    pub extern fn map(x: i32, y: i32, w: i32, h: i32, sx: i32, sy: i32, trans_colors: ?[*]const u8, color_count: i32, scale: i32, remap: ?*const RemapArgs) void;
     pub extern fn memcpy(to: u32, from: u32, length: u32) void;
     pub extern fn memset(addr: u32, value: u8, length: u32) void;
     pub extern fn mget(x: i32, y: i32) i32;
@@ -211,6 +211,7 @@ pub const mouse = raw.mouse;
 // TODO: remap should be what????
 // pub extern fn map(x: i32, y: i32, w: i32, h: i32, sx: i32, sy: i32, trans_colors: ?[*]u8, color_count: i32, scale: i32, remap: i32) void;
 
+const RemapArgs = extern struct { remap: *const fn (?*anyopaque, i32, i32, *RemapInfo) callconv(.C) void, data: ?*anyopaque, res_ptr: *RemapInfo };
 pub const RemapInfo = extern struct {
     index: u8,
     flip: raw.Flip,
@@ -238,7 +239,8 @@ pub fn map(args: MapArgs) void {
     std.debug.assert(color_count < 16);
     // why?
     var remapinfo = .{ .index = undefined, .flip = undefined, .rotate = undefined };
-    raw.remap(args.x, args.y, args.w, args.h, args.sx, args.sy, colors, color_count, args.scale, if (args.remap != null) &remap_wrapper else null, @ptrCast(@constCast(args.remap)), &remapinfo);
+    const remap_args: ?RemapArgs = if (args.remap) |it| .{ .remap = &remap_wrapper, .data = @ptrCast(@constCast(it)), .res_ptr = &remapinfo } else null;
+    raw.map(args.x, args.y, args.w, args.h, args.sx, args.sy, colors, color_count, args.scale, if (remap_args) |it| &it else null);
 }
 
 pub fn pix(x: i32, y: i32, color: u8) void {
