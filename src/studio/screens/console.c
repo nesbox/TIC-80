@@ -1197,8 +1197,8 @@ static void addTabCompleteOption(TabCompleteData* data, const char* option)
         }
 
         // The option matches the incomplete word, add it to the list.
-        strncat(data->options, option, CONSOLE_BUFFER_SCREEN);
-        strncat(data->options, " ", CONSOLE_BUFFER_SCREEN);
+        strncat(data->options, option, CONSOLE_BUFFER_SCREEN - strlen(data->options) - 1);
+        strncat(data->options, " ", CONSOLE_BUFFER_SCREEN - strlen(data->options) - 1);
     }
 }
 

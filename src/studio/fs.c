@@ -400,7 +400,7 @@ static void enumFiles(tic_fs* fs, const char* path, fs_list_callback callback, v
             if(*ent->d_name != _S('.'))
             {
                 tic_strncpy(fullPath, pathString, COUNT_OF(fullPath));
-                tic_strncat(fullPath, ent->d_name, COUNT_OF(fullPath) - 1);
+                tic_strncat(fullPath, ent->d_name, COUNT_OF(fullPath) - strlen(fullPath) - 1);
 
                 if(tic_stat(fullPath, &s) == 0)
                 {
@@ -523,7 +523,7 @@ void tic_fs_dir(tic_fs* fs, char* dir)
 void tic_fs_changedir(tic_fs* fs, const char* dir)
 {
     if(strlen(fs->work))
-        strncat(fs->work, "/", TICNAME_MAX);
+        strncat(fs->work, "/", TICNAME_MAX - strlen(fs->work) - 1);
                 
     strcat(fs->work, dir);
 

@@ -323,8 +323,8 @@ static void n3ds_net_get_thread(net_ctx *ctx) {
 static void n3ds_net_apply_url(net_ctx *ctx, const char *url) 
 {
     strncpy(ctx->url, "http://", URL_SIZE - 1);
-    strncat(ctx->url, ctx->net->host, URL_SIZE - 1);
-    strncat(ctx->url, url, URL_SIZE - 1);
+    strncat(ctx->url, ctx->net->host, URL_SIZE - strlen(ctx->url) - 1);
+    strncat(ctx->url, url, URL_SIZE - strlen(ctx->url) - 1);
 }
 
 tic_net* tic_net_create(const char* host)
