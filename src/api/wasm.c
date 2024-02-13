@@ -21,12 +21,9 @@
 // SOFTWARE.
 
 #include "core/core.h"
-#if defined(TIC_BUILD_WITH_WASM)
 
 #define dbg(...) printf(__VA_ARGS__)
 //define dbg(...)
-
-
 
 #include "tools.h"
 
@@ -1318,10 +1315,3 @@ const tic_script_config* get_wasm_script_config()
 {
     return &WasmSyntaxConfig;
 }
-
-#else
-
-// ??
-s32 wasm_timeout_check(void* udata){return 0;}
-
-#endif /* defined(TIC_BUILD_WITH_WASM) */

@@ -11,7 +11,7 @@ rustup target add wasm32-unknown-unknown
 Then, to build a cart.wasm file, run:
 
 ```
-cargo build --release
+cargo build --release --target=wasm32-unknown-unknown
 ```
 
 To import the resulting WASM to a cartridge named `game.tic`:

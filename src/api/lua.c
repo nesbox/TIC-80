@@ -22,8 +22,6 @@
 
 #include "core/core.h"
 
-#if defined(TIC_BUILD_WITH_LUA)
-
 #include <stdlib.h>
 #include <string.h>
 #include <lua.h>
@@ -1709,7 +1707,8 @@ static const char* const LuaKeywords [] =
     "and", "break", "do", "else", "elseif",
     "end", "false", "for", "function", "goto", "if",
     "in", "local", "nil", "not", "or", "repeat",
-    "return", "then", "true", "until", "while"
+    "return", "then", "true", "until", "while", 
+    "self"
 };
 
 static inline bool isalnum_(char c) {return isalnum(c) || c == '_';}
@@ -1824,5 +1823,3 @@ tic_script_config LuaSyntaxConfig =
     .keywords           = LuaKeywords,
     .keywordsCount      = COUNT_OF(LuaKeywords),
 };
-
-#endif /* defined(TIC_BUILD_WITH_LUA) */

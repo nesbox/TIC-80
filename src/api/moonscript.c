@@ -21,13 +21,7 @@
 // SOFTWARE.
 
 #include "core/core.h"
-
-// Moonscript requires Lua
-#if defined(TIC_BUILD_WITH_LUA)
-
 #include "lua_api.h"
-
-#if defined(TIC_BUILD_WITH_MOON)
 
 static const char _ms_loadstring[] = "_ms_loadstring";
 
@@ -225,7 +219,3 @@ tic_script_config MoonSyntaxConfig =
     .keywords           = MoonKeywords,
     .keywordsCount      = COUNT_OF(MoonKeywords),
 };
-
-#endif /* defined(TIC_BUILD_WITH_MOON) */
-
-#endif /* defined(TIC_BUILD_WITH_LUA) */

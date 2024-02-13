@@ -22,32 +22,6 @@
 
 #pragma once
 
-#if !defined(TIC_BUILD_WITH_LUA)      && \
-    !defined(TIC_BUILD_WITH_MOON)     && \
-    !defined(TIC_BUILD_WITH_FENNEL)   && \
-    !defined(TIC_BUILD_WITH_JS)       && \
-    !defined(TIC_BUILD_WITH_WREN)     && \
-    !defined(TIC_BUILD_WITH_SCHEME)   && \
-    !defined(TIC_BUILD_WITH_SQUIRREL) && \
-    !defined(TIC_BUILD_WITH_PYTHON)   && \
-    !defined(TIC_BUILD_WITH_WASM)
-
-#   define TIC_BUILD_WITH_LUA      1
-#   define TIC_BUILD_WITH_MOON     1
-#   define TIC_BUILD_WITH_FENNEL   1
-#   define TIC_BUILD_WITH_JS       1
-#   define TIC_BUILD_WITH_WREN     1
-#   define TIC_BUILD_WITH_SCHEME   1
-#   define TIC_BUILD_WITH_SQUIRREL 1
-#   define TIC_BUILD_WITH_PYTHON   1
-#   define TIC_BUILD_WITH_WASM     1
-
-#endif
-
-#if defined(TIC_BUILD_WITH_FENNEL) || defined(TIC_BUILD_WITH_MOON)
-#   define TIC_BUILD_WITH_LUA 1
-#endif
-
 #if defined(__APPLE__)
 // TODO: this disables macos config 
 #   include "AvailabilityMacros.h"

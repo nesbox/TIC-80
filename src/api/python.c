@@ -1,7 +1,5 @@
 #include "core/core.h"
 
-#if defined(TIC_BUILD_WITH_PYTHON)
-
 #include "pocketpy_c.h"
 #include <stdio.h>
 #include <string.h>
@@ -1018,8 +1016,8 @@ static int py_time(pkpy_vm* vm)
     if(pkpy_check_error(vm))
         return 0;
 
-    int time = tic_api_time(tic);
-    pkpy_push_int(vm, time);
+    double time = tic_api_time(tic);
+    pkpy_push_float(vm, time);
     return 1;
 }
 
@@ -1570,5 +1568,3 @@ const tic_script_config PythonSyntaxConfig =
     .keywords           = PythonKeywords,
     .keywordsCount      = COUNT_OF(PythonKeywords),
 };
-
-#endif/* defined(TIC_BUILD_WITH_PYTHON) */

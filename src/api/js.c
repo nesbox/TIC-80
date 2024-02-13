@@ -22,8 +22,6 @@
 
 #include "core/core.h"
 
-#if defined(TIC_BUILD_WITH_JS)
-
 #include "tools.h"
 
 #include <ctype.h>
@@ -1285,5 +1283,3 @@ const tic_script_config JsSyntaxConfig =
     .keywords           = JsKeywords,
     .keywordsCount      = COUNT_OF(JsKeywords),
 };
-
-#endif /* defined(TIC_BUILD_WITH_JS) */
