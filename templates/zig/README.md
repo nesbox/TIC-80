@@ -1,22 +1,26 @@
 # ZIG Starter Project Template
 
-This is a ZIG / TIC-80 starter template. To build it, ensure you have the latest development release (`0.12.0-dev.1482+e74ced21b` or newer), then run:
+This is a ZIG / TIC-80 starter template. To build it, ensure you have the latest development release (`0.12.0-dev.2727+fad5e7a99` or newer), then run:
 
 ```
-zig build -Doptimize=ReleaseSmall
+zig build --release=small
+
+cp zig-out/bin/cart.wasm cart.wasm
 ```
 
 To import the resulting WASM to a cartridge:
 
 ```
-tic80 --fs . --cmd 'load game.tic & import binary zig-out/bin/cart.wasm & save'
+tic80 --fs . --cmd 'load cart.wasmp & import binary zig-out/bin/cart.wasm & save'
 ```
 
 Or from the TIC-80 console:
 
 ```
-load game.tic
-import binary zig-out/bin/cart.wasm
+tic80 --fs .
+
+load cart.wasmp
+import binary cart.wasm
 save
 ```
 
