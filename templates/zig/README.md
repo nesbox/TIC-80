@@ -4,8 +4,6 @@ This is a ZIG / TIC-80 starter template. To build it, ensure you have the latest
 
 ```
 zig build --release=small
-
-cp zig-out/bin/cart.wasm cart.wasm
 ```
 
 To import the resulting WASM to a cartridge:
@@ -19,10 +17,14 @@ Or from the TIC-80 console:
 ```
 tic80 --fs .
 
-load cart.wasmp
+load zig-out/bin/cart.wasmp
 import binary cart.wasm
 save
 ```
 
 This is assuming you've run TIC-80 with `--fs .` inside your project directory.
 
+Or easy call it :)
+```zsh
+sh run.sh
+```
