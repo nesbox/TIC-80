@@ -15,14 +15,6 @@ struct CachedNames{
     pkpy_CName MENU;
 } N;
 
-// duplicate a pkpy_CString to a null-terminated c string
-static char* cstrdup(pkpy_CString cs){
-    char* s = (char*)malloc(cs.size + 1);
-    memcpy(s, cs.data, cs.size);
-    s[cs.size] = '\0';
-    return s;
-}
-
 static void pkpy_setglobal_2(pkpy_vm* vm, const char* name){
     pkpy_setglobal(vm, pkpy_name(name));
 }
@@ -105,9 +97,7 @@ static int py_trace(pkpy_vm* vm)
         return 0;
     }
 
-    char* message_s = cstrdup(message);
-    tic_api_trace(tic, message_s, (u8) color);
-    free(message_s);
+    tic_api_trace(tic, message, (u8) color);
     return 0;
 }
 
@@ -344,9 +334,7 @@ static int py_font(pkpy_vm* vm)
     else 
     {
         u8 chromakey = (u8) chromakey_raw;
-        char* text_s = cstrdup(text);
-        s32 size = tic_api_font(tic, text_s, x, y, &chromakey, 1, width, height, fixed, scale, alt);
-        free(text_s);
+        s32 size = tic_api_font(tic, text, x, y, &chromakey, 1, width, height, fixed, scale, alt);
         pkpy_push_int(vm, size);
     }
 
@@ -364,7 +352,7 @@ static int py_key(pkpy_vm* vm)
         return 0;
 
     if (key_id >= tic_keys_count) {
-        pkpy_error(vm, "tic80-panic!", pkpy_string("unknown keyboard code\n"));
+        pkpy_error(vm, "RuntimeError", pkpy_string("unknown keyboard code\n"));
         return 0;
     }
 
@@ -388,7 +376,7 @@ static int py_keyp(pkpy_vm* vm)
         return 0;
 
     if (key_id >= tic_keys_count) {
-        pkpy_error(vm, "tic80-panic!", pkpy_string("unknown keyboard code\n"));
+        pkpy_error(vm, "RuntimeError", pkpy_string("unknown keyboard code\n"));
         return 0;
     }
 
@@ -598,7 +586,7 @@ static int py_music(pkpy_vm* vm) {
         return 0;
 
     if (track > MUSIC_TRACKS - 1 )
-        pkpy_error(vm, "tic80-panic!", pkpy_string("invalid music track index\n"));
+        pkpy_error(vm, "RuntimeError", pkpy_string("invalid music track index\n"));
 
     //stop the music first I guess
     tic_api_music(tic, -1, 0, 0, false, false, -1, -1);
@@ -715,7 +703,7 @@ static int py_pmem(pkpy_vm* vm) {
         return 0;
 
     if (index >= TIC_PERSISTENT_SIZE) {
-        pkpy_error(vm, "tic80-panic!", pkpy_string("invalid persistent tic index\n"));
+        pkpy_error(vm, "RuntimeError", pkpy_string("invalid persistent tic index\n"));
         return 0;
     }
 
@@ -825,10 +813,7 @@ static int py_print(pkpy_vm* vm) {
         return 0;
     }
 
-    char* text_s = cstrdup(text);
-    s32 size = tic_api_print(tic, text_s, x, y, color, fixed, scale, alt);
-    free(text_s);
-    
+    s32 size = tic_api_print(tic, text, x, y, color, fixed, scale, alt);
     pkpy_push_int(vm, size);
     return 1;
 }
@@ -883,7 +868,7 @@ static int py_sfx(pkpy_vm* vm)
     int sfx_id;
 
     bool parse_note = false;
-    char* string_note = NULL;
+    const char* string_note = NULL;
     int int_note;
 
     int duration;
@@ -895,9 +880,7 @@ static int py_sfx(pkpy_vm* vm)
 
     if (pkpy_is_string(vm, 1)) {
         parse_note = true;
-        pkpy_CString tmp;
-        pkpy_to_string(vm, 1, &tmp);
-        if(tmp.size) string_note = cstrdup(tmp);
+        pkpy_to_string(vm, 1, &string_note);
     } else {
         pkpy_to_int(vm, 1, &int_note);
     }
@@ -913,7 +896,7 @@ static int py_sfx(pkpy_vm* vm)
 
     if (parse_note) {
         if(!tic_tool_parse_note(string_note, &note, &octave)) {
-            pkpy_error(vm, "tic80-panic!", pkpy_string("invalid note, should like C#4\n"));
+            pkpy_error(vm, "RuntimeError", pkpy_string("invalid note, should like C#4\n"));
             goto cleanup; //error in future;
         }
             
@@ -923,12 +906,12 @@ static int py_sfx(pkpy_vm* vm)
     }
 
     if (channel < 0 || channel >= TIC_SOUND_CHANNELS) {
-        pkpy_error(vm, "tic80-panic!", pkpy_string("unknown channel\n"));
+        pkpy_error(vm, "RuntimeError", pkpy_string("unknown channel\n"));
         goto cleanup;
     }
 
     if (sfx_id >= SFX_COUNT) {
-        pkpy_error(vm, "tic80-panic!", pkpy_string("unknown sfx index\n"));
+        pkpy_error(vm, "RuntimeError", pkpy_string("unknown sfx index\n"));
         goto cleanup;
     }
 
@@ -937,7 +920,6 @@ static int py_sfx(pkpy_vm* vm)
     tic_api_sfx(tic, sfx_id, note, octave, duration, channel, volume & 0xf, volume & 0xf, speed);
 
 cleanup :
-    if (string_note != NULL) free(string_note);
     return 0;
 }
 
@@ -1000,7 +982,7 @@ static int py_sync(pkpy_vm* vm)
         return 0;
 
     if (bank < 0 || bank >= TIC_BANKS) {
-        pkpy_error(vm, "tic80-panic!", pkpy_string("sync() error, invalid bank\n"));
+        pkpy_error(vm, "RuntimeError", pkpy_string("sync() error, invalid bank\n"));
         return 0;
     }
 
