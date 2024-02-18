@@ -29,6 +29,7 @@
 #include "ext/png.h"
 #include "zip.h"
 #include "studio/demos.h"
+#include "retro_endianness.h"
 
 #if defined(TIC80_PRO)
 #include "studio/project.h"
@@ -99,7 +100,8 @@
     macro(y)                    \
     macro(w)                    \
     macro(h)                    \
-    macro(vbank)
+    macro(vbank)                \
+    macro(bpp)
 
 #define EXPORT_CMD_LIST(macro)  \
     macro(win)                  \
@@ -407,7 +409,10 @@ static void consolePrintOffset(Console* console, const char* text, u8 color, s32
             console->cursor.pos.x++;
 
             if (console->cursor.pos.x >= CONSOLE_BUFFER_WIDTH)
+            {
                 nextLine(console);
+                console->cursor.pos.x = wrapLineOffset;
+            }
         }
     }
 
@@ -1745,6 +1750,16 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
 {
     png_buffer png = {(u8*)buffer, size};
     bool error = true;
+    s32 bpp = params.bpp ? params.bpp : 4;
+    switch (bpp) {
+        case 1:
+        case 2:
+        case 4:
+            break;
+        default:
+            // not real!
+            goto exit;
+    }
 
     png_img img = png_read(png, NULL);
 
@@ -1752,15 +1767,38 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
     {
         const tic_palette* pal = getPalette(console, params.bank, params.vbank);
 
+        s32 bpp_scale = 5 - bpp;
+        u32 color1, color2, color3, color4, color;
+        
         for(s32 j = 0, y = params.y, h = y + (params.h ? params.h : img.height); y < h; ++y, ++j)
-            for(s32 i = 0, x = params.x, w = x + (params.w ? params.w : img.width); x < w; ++x, ++i)
+            for(s32 i = 0, x = params.x, w = x + ((params.w ? params.w : img.width) / bpp_scale); x < w; ++x, i += bpp_scale)
                 if(x >= 0 && x < TIC_SPRITESHEET_SIZE && y >= 0 && y < TIC_SPRITESHEET_SIZE)
-                    setSpritePixel(base, x, y, tic_nearest_color(pal->colors,
-                        (tic_rgb*)(img.pixels + i + j * img.width), TIC_PALETTE_SIZE));
+                    switch (bpp) {
+                        case 4:
+                            setSpritePixel(base, x, y, tic_nearest_color(pal->colors,
+                               (tic_rgb*)(img.pixels + i + j * img.width), TIC_PALETTE_SIZE));
+                            break;
+                        case 2:
+                            color1 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + j * img.width), 4);
+                            color2 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 1 + j * img.width), 4);
+                            // unsure if it's better to do add or or it together.
+                            color = (color2 << 2) + color1;
+                            setSpritePixel(base, x, y, color);
+                            break;
+                        case 1:
+                            color1 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + j * img.width), 2);
+                            color2 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 1 + j * img.width), 2);
+                            color3 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 2 + j * img.width), 2);
+                            color4 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 3 + j * img.width), 2);
+                            color = (color4 << 3) + (color3 << 2) + (color2 << 1) + color1;
+                            setSpritePixel(base, x, y, color);
+                            break;
+                    }
 
         error = false;
     }
 
+exit:
     onFileImported(console, name, !error);
 }
 

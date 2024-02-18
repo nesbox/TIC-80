@@ -10,7 +10,6 @@ message("BUILD_WITH_PYTHON: ${BUILD_WITH_PYTHON}")
 if(BUILD_WITH_PYTHON)
 
     add_subdirectory(${THIRDPARTY_DIR}/pocketpy)
-    target_compile_definitions(pocketpy PRIVATE PK_ENABLE_OS=0)
     include_directories(${THIRDPARTY_DIR}/pocketpy/include)
 
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
