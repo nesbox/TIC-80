@@ -1936,7 +1936,7 @@ static void recordFrame(Studio* studio, u32* pixels)
         if(studio->video.screenshot)
         {
             studio->video.screenshot = false;
-            stopVideoRecord(studio, VideoGif);
+            stopVideoRecord(studio, ScreenGif);
             return;
         }
 
