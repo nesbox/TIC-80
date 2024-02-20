@@ -1790,7 +1790,7 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
                             color2 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 1 + j * img.width), 2);
                             color3 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 2 + j * img.width), 2);
                             color4 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 3 + j * img.width), 2);
-                            color = (color4 << 3) + (color3 << 2) + (color2 << 1) + color1;
+                            color = (color1 << 3) + (color2 << 2) + (color3 << 1) + color4;
                             setSpritePixel(base, x, y, color);
                             break;
                     }
