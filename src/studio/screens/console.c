@@ -1767,7 +1767,17 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
     {
         const tic_palette* pal = getPalette(console, params.bank, params.vbank);
 
-        s32 bpp_scale = 5 - bpp;
+        s32 bpp_scale = 1;
+        switch (bpp) {
+            case 1:
+                bpp_scale = 4;
+                break;
+            case 2: 
+                bpp_scale = 2;
+                break;
+            default:
+                break;
+        }
         u32 color1, color2, color3, color4, color;
         
         for(s32 j = 0, y = params.y, h = y + (params.h ? params.h : img.height); y < h; ++y, ++j)
@@ -1790,7 +1800,7 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
                             color2 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 1 + j * img.width), 2);
                             color3 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 2 + j * img.width), 2);
                             color4 = tic_nearest_color(pal->colors, (tic_rgb*)(img.pixels + i + 3 + j * img.width), 2);
-                            color = (color1 << 3) + (color2 << 2) + (color3 << 1) + color4;
+                            color = (color4 << 3) + (color3 << 2) + (color2 << 1) + color1;
                             setSpritePixel(base, x, y, color);
                             break;
                     }
