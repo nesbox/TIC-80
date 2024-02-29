@@ -581,12 +581,12 @@ macro_rules! print {
 }
 
 pub struct FontOptions<'a> {
-    transparent: &'a [u8],
-    char_width: i8,
-    char_height: i8,
-    fixed: bool,
-    scale: i32,
-    alt_font: bool,
+    pub transparent: &'a [u8],
+    pub char_width: i8,
+    pub char_height: i8,
+    pub fixed: bool,
+    pub scale: i32,
+    pub alt_font: bool,
 }
 
 impl Default for FontOptions<'_> {
