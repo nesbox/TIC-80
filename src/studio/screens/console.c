@@ -1767,7 +1767,17 @@ static void onImportTilesBase(Console* console, const char* name, const void* bu
     {
         const tic_palette* pal = getPalette(console, params.bank, params.vbank);
 
-        s32 bpp_scale = 5 - bpp;
+        s32 bpp_scale = 1;
+        switch (bpp) {
+            case 1:
+                bpp_scale = 4;
+                break;
+            case 2: 
+                bpp_scale = 2;
+                break;
+            default:
+                break;
+        }
         u32 color1, color2, color3, color4, color;
         
         for(s32 j = 0, y = params.y, h = y + (params.h ? params.h : img.height); y < h; ++y, ++j)
