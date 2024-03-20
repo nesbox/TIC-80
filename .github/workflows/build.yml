@@ -825,22 +825,3 @@ jobs:
             tic80-rpi-stub
             tic80-macos-stub
             tic80-html-stub
-
-  # === Delete PRO artifacts ===
-  delete-pro:
-    needs: [winxp-pro, windows-pro, linux-pro, macos-pro, rpi-pro]
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Delete artifacts
-        uses: geekyeggo/delete-artifact@v2
-        with:
-          name: |
-            tic80-macos-pro
-            tic80-macos-dmg-pro
-            tic80-winxp-pro
-            tic80-windows-pro
-            tic80-linux-deb-pro
-            tic80-linux-pro
-            tic80-rpi-deb-pro
-            tic80-rpi-pro
