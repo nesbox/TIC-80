@@ -23,7 +23,7 @@ THEME=
 	{
 		TOUCH=
 		{
-			ALPHA=180,
+			ALPHA=181,
 		},
 	},
 }
