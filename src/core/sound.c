@@ -32,6 +32,7 @@
 #define SECONDS_PER_MINUTE 60
 #define NOTES_PER_MINUTE (TIC80_FRAMERATE / NOTES_PER_BEAT * SECONDS_PER_MINUTE)
 #define PIANO_START 8
+#define ENDTIME (CLOCKRATE / TIC80_FRAMERATE)
 
 static const u16 NoteFreqs[] = { 0x10, 0x11, 0x12, 0x13, 0x15, 0x16, 0x17, 0x18, 0x1a, 0x1c, 0x1d, 0x1f, 0x21, 0x23, 0x25, 0x27, 0x29, 0x2c, 0x2e, 0x31, 0x34, 0x37, 0x3a, 0x3e, 0x41, 0x45, 0x49, 0x4e, 0x52, 0x57, 0x5c, 0x62, 0x68, 0x6e, 0x75, 0x7b, 0x83, 0x8b, 0x93, 0x9c, 0xa5, 0xaf, 0xb9, 0xc4, 0xd0, 0xdc, 0xe9, 0xf7, 0x106, 0x115, 0x126, 0x137, 0x14a, 0x15d, 0x172, 0x188, 0x19f, 0x1b8, 0x1d2, 0x1ee, 0x20b, 0x22a, 0x24b, 0x26e, 0x293, 0x2ba, 0x2e4, 0x310, 0x33f, 0x370, 0x3a4, 0x3dc, 0x417, 0x455, 0x497, 0x4dd, 0x527, 0x575, 0x5c8, 0x620, 0x67d, 0x6e0, 0x749, 0x7b8, 0x82d, 0x8a9, 0x92d, 0x9b9, 0xa4d, 0xaea, 0xb90, 0xc40, 0xcfa, 0xdc0, 0xe91, 0xf6f, 0x105a, 0x1153, 0x125b, 0x1372, 0x149a, 0x15d4, 0x1720, 0x1880 };
 static_assert(COUNT_OF(NoteFreqs) == NOTES * OCTAVES + PIANO_START, "count_of_freqs");
@@ -99,25 +100,36 @@ static inline s32 freq2period(s32 freq)
     return CLAMP(Rate / freq - 1, MinPeriodValue, MaxPeriodValue);
 }
 
-static inline s32 getAmp(const tic_sound_register* reg, s32 amp)
+static inline s32 getAmp(s32 volume, s32 amp)
 {
-    enum { AmpMax = (u16)-1 / 2 };
-    return (amp * AmpMax / MAX_VOLUME) * reg->volume / MAX_VOLUME / TIC_SOUND_CHANNELS;
+    return amp * volume / MAX_VOLUME / (TIC_SOUND_CHANNELS + 1);
 }
 
-static void runEnvelope(blip_buffer_t* blip, const tic_sound_register* reg, tic_sound_register_data* data, s32 end_time, u8 volume)
+static void runPcm(blip_buffer_t* blip, const tic_pcm* pcm, tic_sound_register_data* data)
+{
+    enum{Period = ENDTIME / TIC_PCM_SIZE};
+
+    for (; data->time < ENDTIME; data->time += Period, data->phase = (data->phase + 1) % TIC_PCM_SIZE)
+    {
+        update_amp(blip, data, getAmp(MAX_VOLUME, pcm->data[data->phase] * SHRT_MAX / UCHAR_MAX));
+    }
+
+    data->time -= ENDTIME;
+}
+
+static void runEnvelope(blip_buffer_t* blip, const tic_sound_register* reg, tic_sound_register_data* data, u8 stereo_volume)
 {
     s32 period = freq2period(tic_sound_register_get_freq(reg) * ENVELOPE_FREQ_SCALE);
 
-    for (; data->time < end_time; data->time += period)
+    for (; data->time < ENDTIME; data->time += period, data->phase = (data->phase + 1) % WAVE_VALUES)
     {
-        data->phase = (data->phase + 1) % WAVE_VALUES;
-
-        update_amp(blip, data, getAmp(reg, tic_tool_peek4(reg->waveform.data, data->phase) * volume / MAX_VOLUME));
+        update_amp(blip, data, getAmp(reg->volume, tic_tool_peek4(reg->waveform.data, data->phase) * SHRT_MAX / MAX_VOLUME * stereo_volume / MAX_VOLUME));
     }
+
+    data->time -= ENDTIME;
 }
 
-static void runNoise(blip_buffer_t* blip, const tic_sound_register* reg, tic_sound_register_data* data, s32 end_time, u8 volume)
+static void runNoise(blip_buffer_t* blip, const tic_sound_register* reg, tic_sound_register_data* data, u8 stereo_volume)
 {
     // phase is noise LFSR, which must never be zero
     if (data->phase == 0)
@@ -126,11 +138,12 @@ static void runNoise(blip_buffer_t* blip, const tic_sound_register* reg, tic_sou
     s32 period = freq2period(tic_sound_register_get_freq(reg));
     s32 fb = *reg->waveform.data ? 0x14 : 0x12000;
 
-    for (; data->time < end_time; data->time += period)
+    for (; data->time < ENDTIME; data->time += period, data->phase = ((data->phase & 1) * fb) ^ (data->phase >> 1))
     {
-        data->phase = ((data->phase & 1) * fb) ^ (data->phase >> 1);
-        update_amp(blip, data, getAmp(reg, (data->phase & 1) ? volume : 0));
+        update_amp(blip, data, getAmp(reg->volume, (data->phase & 1) ? stereo_volume * SHRT_MAX / MAX_VOLUME : 0));
     }
+
+    data->time -= ENDTIME;
 }
 
 static s32 calcLoopPos(const tic_sound_loop* loop, s32 pos)
@@ -503,30 +516,30 @@ void tic_api_sfx(tic_mem* memory, s32 index, s32 note, s32 octave, s32 duration,
     setSfxChannelData(memory, index, note, octave, duration, channel, left, right, speed);
 }
 
-static s32 sound_bufpos(tic_core* core)
+static inline const struct sound_ring_buf *sound_ringbuf(tic_core* core)
 {
-    return (core->state.sound_ringbuf_tail + TIC_SOUND_RINGBUF_LEN - 1) % TIC_SOUND_RINGBUF_LEN;
+    return &core->state.sound_ringbuf[(core->state.sound_ringbuf_tail + TIC_SOUND_RINGBUF_LEN - 1) % TIC_SOUND_RINGBUF_LEN];
 }
 
-static void stereo_synthesize(tic_core* core, tic_sound_register_data* registers, blip_buffer_t* blip, u8 stereoRight)
+static void stereo_synthesize(tic_core* core, struct sound_register_data *regdata, blip_buffer_t* blip, u8 stereoRight)
 {
-    enum { EndTime = CLOCKRATE / TIC80_FRAMERATE };
-    s32 bufpos = sound_bufpos(core);
+    const struct sound_ring_buf *ringbuf = sound_ringbuf(core);
+
     for (s32 i = 0; i < TIC_SOUND_CHANNELS; ++i)
     {
-        u8 volume = tic_tool_peek4(&core->state.sound_ringbuf[bufpos].stereo, stereoRight + i * 2);
+        u8 stereo_volume = tic_tool_peek4(&ringbuf->stereo, stereoRight + i * 2);
 
-        const tic_sound_register* reg = &core->state.sound_ringbuf[bufpos].registers[i];
-        tic_sound_register_data* data = registers + i;
+        const tic_sound_register* reg = &ringbuf->registers[i];
+        tic_sound_register_data* data = &regdata->data[i];
 
         tic_tool_noise(&reg->waveform)
-            ? runNoise(blip, reg, data, EndTime, volume)
-            : runEnvelope(blip, reg, data, EndTime, volume);
-
-        data->time -= EndTime;
+            ? runNoise(blip, reg, data, stereo_volume)
+            : runEnvelope(blip, reg, data, stereo_volume);
     }
 
-    blip_end_frame(blip, EndTime);
+    runPcm(blip, &ringbuf->pcm, &regdata->pcm);
+
+    blip_end_frame(blip, ENDTIME);
 }
 
 void tic_core_synth_sound(tic_mem* memory)
@@ -535,20 +548,11 @@ void tic_core_synth_sound(tic_mem* memory)
     tic80 *product = &core->memory.product;
 
     // synthesize sound using the register values found from the tail of the ring buffer
-    stereo_synthesize(core, core->state.registers.left, core->blip.left, 0);
-    stereo_synthesize(core, core->state.registers.right, core->blip.right, 1);
+    stereo_synthesize(core, &core->state.registers.left, core->blip.left, 0);
+    stereo_synthesize(core, &core->state.registers.right, core->blip.right, 1);
 
     blip_read_samples(core->blip.left, product->samples.buffer, core->samplerate / TIC80_FRAMERATE, TIC80_SAMPLE_CHANNELS);
     blip_read_samples(core->blip.right, product->samples.buffer + 1, core->samplerate / TIC80_FRAMERATE, TIC80_SAMPLE_CHANNELS);
-
-    // synth PCM samples
-    const tic_pcm *pcm = &core->state.sound_ringbuf[sound_bufpos(core)].pcm;
-    for(s32 i = 0; i < product->samples.count; i++)
-    {
-        s32 pcmpos = i * COUNT_OF(pcm->data) / product->samples.count;
-        s32 pcmsample = pcm->data[pcmpos] * SHRT_MAX / UCHAR_MAX;
-        product->samples.buffer[i] = (pcmsample + product->samples.buffer[i]) / 2;
-    }
 
     // if the head has advanced, we can advance the tail too. Otherwise, we just
     // keep synthesizing audio using the last known register values, so at least we don't get crackles
@@ -564,7 +568,9 @@ void tic_core_sound_tick_start(tic_mem* memory)
     tic_core* core = (tic_core*)memory;
 
     for (s32 i = 0; i < TIC_SOUND_CHANNELS; ++i)
-        memset(&memory->ram->registers[i], 0, sizeof(tic_sound_register));
+        ZEROMEM(memory->ram->registers[i]);
+
+    ZEROMEM(memory->ram->pcm);
 
     memory->ram->stereo.data = -1;
 
@@ -584,7 +590,7 @@ void tic_core_sound_tick_end(tic_mem* memory)
     tic_core* core = (tic_core*)memory;
 
     // instead of synthesizing the sound right away, push the sound registers to the head of a ring buffer
-    struct SoundRingbuf *ringbuf = &core->state.sound_ringbuf[core->state.sound_ringbuf_head];
+    struct sound_ring_buf *ringbuf = &core->state.sound_ringbuf[core->state.sound_ringbuf_head];
     memcpy(&ringbuf->registers, &memory->ram->registers, sizeof ringbuf->registers);
     ringbuf->stereo = memory->ram->stereo;
     ringbuf->pcm = memory->ram->pcm;

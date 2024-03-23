@@ -116,11 +116,14 @@ typedef struct
 
     struct
     {
-        tic_sound_register_data left[TIC_SOUND_CHANNELS];
-        tic_sound_register_data right[TIC_SOUND_CHANNELS];
+        struct sound_register_data
+        {
+            tic_sound_register_data data[TIC_SOUND_CHANNELS];
+            tic_sound_register_data pcm;
+        } left, right;
     } registers;
 
-    struct SoundRingbuf
+    struct sound_ring_buf
     {
         tic_sound_register registers[TIC_SOUND_CHANNELS];
         tic_stereo_volume stereo;
