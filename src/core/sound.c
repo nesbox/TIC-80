@@ -25,6 +25,7 @@
 #include "core.h"
 
 #include <string.h>
+#include <limits.h>
 #include "tic_assert.h"
 
 #define ENVELOPE_FREQ_SCALE 2
