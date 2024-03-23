@@ -109,12 +109,10 @@ static void runPcm(blip_buffer_t* blip, const tic_pcm* pcm, tic_sound_register_d
 {
     enum{Period = ENDTIME / TIC_PCM_SIZE};
 
-    for (; data->time < ENDTIME; data->time += Period, data->phase = (data->phase + 1) % TIC_PCM_SIZE)
+    for (data->time = 0; data->time < ENDTIME; data->time += Period, data->phase = (data->phase + 1) % TIC_PCM_SIZE)
     {
         update_amp(blip, data, getAmp(MAX_VOLUME, pcm->data[data->phase] * SHRT_MAX / UCHAR_MAX));
     }
-
-    data->time -= ENDTIME;
 }
 
 static void runEnvelope(blip_buffer_t* blip, const tic_sound_register* reg, tic_sound_register_data* data, u8 stereo_volume)
@@ -125,8 +123,6 @@ static void runEnvelope(blip_buffer_t* blip, const tic_sound_register* reg, tic_
     {
         update_amp(blip, data, getAmp(reg->volume, tic_tool_peek4(reg->waveform.data, data->phase) * SHRT_MAX / MAX_VOLUME * stereo_volume / MAX_VOLUME));
     }
-
-    data->time -= ENDTIME;
 }
 
 static void runNoise(blip_buffer_t* blip, const tic_sound_register* reg, tic_sound_register_data* data, u8 stereo_volume)
@@ -142,8 +138,6 @@ static void runNoise(blip_buffer_t* blip, const tic_sound_register* reg, tic_sou
     {
         update_amp(blip, data, getAmp(reg->volume, (data->phase & 1) ? stereo_volume * SHRT_MAX / MAX_VOLUME : 0));
     }
-
-    data->time -= ENDTIME;
 }
 
 static s32 calcLoopPos(const tic_sound_loop* loop, s32 pos)
@@ -535,6 +529,8 @@ static void stereo_synthesize(tic_core* core, struct sound_register_data *regdat
         tic_tool_noise(&reg->waveform)
             ? runNoise(blip, reg, data, stereo_volume)
             : runEnvelope(blip, reg, data, stereo_volume);
+
+        data->time -= ENDTIME;
     }
 
     runPcm(blip, &ringbuf->pcm, &regdata->pcm);
@@ -567,9 +563,7 @@ void tic_core_sound_tick_start(tic_mem* memory)
 {
     tic_core* core = (tic_core*)memory;
 
-    for (s32 i = 0; i < TIC_SOUND_CHANNELS; ++i)
-        ZEROMEM(memory->ram->registers[i]);
-
+    ZEROMEM(memory->ram->registers);
     ZEROMEM(memory->ram->pcm);
 
     memory->ram->stereo.data = -1;
