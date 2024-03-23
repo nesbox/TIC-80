@@ -305,6 +305,7 @@ static void soundClear(tic_mem* memory)
     }
 
     memset(&memory->ram->registers, 0, sizeof memory->ram->registers);
+    memset(&memory->ram->pcm, 0, sizeof memory->ram->pcm);
     memset(memory->product.samples.buffer, 0, memory->product.samples.count * TIC80_SAMPLESIZE);
 
     tic_api_music(memory, -1, 0, 0, false, false, -1, -1);
