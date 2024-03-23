@@ -120,10 +120,11 @@ typedef struct
         tic_sound_register_data right[TIC_SOUND_CHANNELS];
     } registers;
 
-    struct
+    struct SoundRingbuf
     {
         tic_sound_register registers[TIC_SOUND_CHANNELS];
         tic_stereo_volume stereo;
+        tic_pcm pcm;
     } sound_ringbuf[TIC_SOUND_RINGBUF_LEN];
 
     u32 sound_ringbuf_head;

@@ -503,10 +503,15 @@ void tic_api_sfx(tic_mem* memory, s32 index, s32 note, s32 octave, s32 duration,
     setSfxChannelData(memory, index, note, octave, duration, channel, left, right, speed);
 }
 
+static s32 sound_bufpos(tic_core* core)
+{
+    return (core->state.sound_ringbuf_tail + TIC_SOUND_RINGBUF_LEN - 1) % TIC_SOUND_RINGBUF_LEN;
+}
+
 static void stereo_synthesize(tic_core* core, tic_sound_register_data* registers, blip_buffer_t* blip, u8 stereoRight)
 {
     enum { EndTime = CLOCKRATE / TIC80_FRAMERATE };
-    s32 bufpos = (core->state.sound_ringbuf_tail + TIC_SOUND_RINGBUF_LEN - 1) % TIC_SOUND_RINGBUF_LEN;
+    s32 bufpos = sound_bufpos(core);
     for (s32 i = 0; i < TIC_SOUND_CHANNELS; ++i)
     {
         u8 volume = tic_tool_peek4(&core->state.sound_ringbuf[bufpos].stereo, stereoRight + i * 2);
@@ -536,20 +541,21 @@ void tic_core_synth_sound(tic_mem* memory)
     blip_read_samples(core->blip.left, product->samples.buffer, core->samplerate / TIC80_FRAMERATE, TIC80_SAMPLE_CHANNELS);
     blip_read_samples(core->blip.right, product->samples.buffer + 1, core->samplerate / TIC80_FRAMERATE, TIC80_SAMPLE_CHANNELS);
 
+    // synth PCM samples
+    const tic_pcm *pcm = &core->state.sound_ringbuf[sound_bufpos(core)].pcm;
+    for(s32 i = 0; i < product->samples.count; i++)
+    {
+        s32 pcmpos = i * COUNT_OF(pcm->data) / product->samples.count;
+        s32 pcmsample = pcm->data[pcmpos] * SHRT_MAX / UCHAR_MAX;
+        product->samples.buffer[i] = (pcmsample + product->samples.buffer[i]) / 2;
+    }
+
     // if the head has advanced, we can advance the tail too. Otherwise, we just
     // keep synthesizing audio using the last known register values, so at least we don't get crackles
     if (core->state.sound_ringbuf_tail != core->state.sound_ringbuf_head) {
         // note: we assume storing a 32 bit integer is atomic, that should hold on pretty much any modern processor
         // assuming it is aligned in memory (which it should be)
         core->state.sound_ringbuf_tail = (core->state.sound_ringbuf_tail + 1) % TIC_SOUND_RINGBUF_LEN;
-    }
-
-    // synth PCM samples
-    for(s32 i = 0; i < product->samples.count; i++)
-    {
-        s32 pcmpos = i * COUNT_OF(memory->ram->pcm.data) / product->samples.count;
-        s32 pcmsample = memory->ram->pcm.data[pcmpos] * SHRT_MAX / UCHAR_MAX;
-        product->samples.buffer[i] = (pcmsample + product->samples.buffer[i]) / 2;
     }
 }
 
@@ -578,8 +584,10 @@ void tic_core_sound_tick_end(tic_mem* memory)
     tic_core* core = (tic_core*)memory;
 
     // instead of synthesizing the sound right away, push the sound registers to the head of a ring buffer
-    core->state.sound_ringbuf[core->state.sound_ringbuf_head].stereo = memory->ram->stereo;
-    memcpy(&core->state.sound_ringbuf[core->state.sound_ringbuf_head], &memory->ram->registers, sizeof(tic_sound_register[4]));
+    struct SoundRingbuf *ringbuf = &core->state.sound_ringbuf[core->state.sound_ringbuf_head];
+    memcpy(&ringbuf->registers, &memory->ram->registers, sizeof ringbuf->registers);
+    ringbuf->stereo = memory->ram->stereo;
+    ringbuf->pcm = memory->ram->pcm;
 
     if (core->state.sound_ringbuf_head != (core->state.sound_ringbuf_tail + TIC_SOUND_RINGBUF_LEN - 2) % TIC_SOUND_RINGBUF_LEN) {
         // note: we assume storing a 32 bit integer is atomic, that should hold on pretty much any modern processor
