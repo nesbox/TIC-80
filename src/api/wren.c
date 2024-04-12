@@ -141,6 +141,7 @@ class TIC {\n\
     foreign static sync(mask, bank, tocart)\n\
     foreign static reset()\n\
     foreign static exit()\n\
+    foreign static fft(freq)\n\
     foreign static map_width__\n\
     foreign static map_height__\n\
     foreign static spritesize__\n\
@@ -1445,6 +1446,22 @@ static void wren_fset(WrenVM* vm)
     wrenError(vm, "invalid params, fset(sprite,flag,value)\n");
 }
 
+static void wren_fft(WrenVM* vm)
+{
+  tic_mem* tic = (tic_mem*)getWrenCore(vm);
+  s32 top = wrenGetSlotCount(vm);
+
+  if (top > 1)
+  {
+    double freq = getWrenNumber(vm, 1);
+
+    wrenSetSlotDouble(vm, 0, tic_api_fft(tic, freq));
+    return;
+  }
+
+  wrenError(vm, "invalid params, fft(freq)\n");
+}
+
 static WrenForeignMethodFn foreignTicMethods(const char* signature)
 {
     if (strcmp(signature, "static TIC.btn()"                    ) == 0) return wren_btn;
@@ -1550,6 +1567,9 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     if (strcmp(signature, "static TIC.exit()"                   ) == 0) return wren_exit;
     if (strcmp(signature, "static TIC.fget(_,_)"                ) == 0) return wren_fget;
     if (strcmp(signature, "static TIC.fset(_,_,_)"              ) == 0) return wren_fset;
+
+    //bytebattle patch
+    if (strcmp(signature, "static TIC.fft(_)"                   ) == 0) return wren_fft;
 
     // internal functions
     if (strcmp(signature, "static TIC.map_width__"              ) == 0) return wren_map_width;
