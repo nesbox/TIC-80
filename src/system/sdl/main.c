@@ -23,6 +23,7 @@
 #include "studio/system.h"
 #include "tools.h"
 
+#include "ext/fft.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -183,6 +184,12 @@ static struct
         SDL_AudioDeviceID   device;
         s32                 bufferRemaining;
     } audio;
+
+    struct
+    {
+      SDL_AudioSpec       spec;
+      SDL_AudioDeviceID   device;
+    } audioIn;
 } platform
 #if defined(TOUCH_INPUT_SUPPORT)
 = 
@@ -298,6 +305,15 @@ static void audioCallback(void* userdata, u8* stream, s32 len)
     }
 }
 
+void *deviceId = NULL;
+void find_fft_device_by_id(const int bIsCaptureDevice, const char *szDeviceName, void *pDeviceID, void *pUserContext)
+{
+    if (strcmp(szDeviceName, studio_config(platform.studio)->fftdevice) == 0)
+    {
+        deviceId = pDeviceID;
+    }
+}
+
 static void initSound()
 {
     platform.audio.mutex = SDL_CreateMutex();
@@ -311,6 +327,28 @@ static void initSound()
         .callback = audioCallback,
         .samples = 1024,
     };
+
+    FFT_Create();
+
+    FFT_Settings fftSettings;
+    fftSettings.bUseRecordingDevice = false;
+    fftSettings.pDeviceID = NULL;
+
+    if (studio_config(platform.studio)->fftdevice != NULL)
+    {
+        FFT_EnumerateDevices(find_fft_device_by_id, NULL);
+        if (deviceId != NULL)
+        {
+            fftSettings.pDeviceID = deviceId;
+        }
+        else
+        {
+            printf("Selected device was not found");
+            exit(1);
+        }
+    }
+
+    FFT_Open(&fftSettings);
 
     platform.audio.device = SDL_OpenAudioDevice(NULL, 0, &want, &platform.audio.spec, 0);
 }
@@ -1950,6 +1988,9 @@ static s32 start(s32 argc, char **argv, const char* folder)
 
                 SDL_DestroyWindow(platform.window);
                 SDL_CloseAudioDevice(platform.audio.device);
+
+                FFT_Close();
+                FFT_Destroy();
             }
 
             SDL_DestroyMutex(platform.audio.mutex);
