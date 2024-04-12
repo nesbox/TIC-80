@@ -198,7 +198,7 @@ static void setDefault(Config* config)
             .autosave       = false,
 #if defined(BUILD_EDITORS)
             .keybindMode    = KEYBIND_STANDARD,
-            .devmode        = false,
+            .devmode        = true,
             .tabMode        = TAB_AUTO,
             .tabSize        = 1,
 #endif
