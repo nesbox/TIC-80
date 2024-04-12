@@ -829,7 +829,7 @@ enum
         3,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 index, u8 flag, bool value)
+        tic_mem*, s32 index, u8 flag, bool value)                                                                       \
                                                                                                                         \
                                                                                                                         \
     macro(fft,                                                                                                          \
