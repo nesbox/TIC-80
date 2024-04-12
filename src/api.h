@@ -830,6 +830,19 @@ enum
         0,                                                                                                              \
         void,                                                                                                           \
         tic_mem*, s32 index, u8 flag, bool value)
+                                                                                                                        \
+                                                                                                                        \
+    macro(fft,                                                                                                          \
+        "fft(freq)",                                                                                                    \
+                                                                                                                        \
+        "The fft creates 256 buckets that map to a region of audible frequencies.\n"                                    \
+        "Each returns a value 0-255 based on the intensity of sound at that frequency at that time\n."                  \
+        "See aldroid after class.",                                                                                     \
+        1,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
+        double,                                                                                                         \
+        tic_mem*, s32 freq)
 
 #define TIC_API_DEF(name, _, __, ___, ____, _____, ret, ...) ret tic_api_##name(__VA_ARGS__);
 TIC_API_LIST(TIC_API_DEF)
