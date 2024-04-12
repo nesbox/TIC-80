@@ -78,6 +78,7 @@ static Janet janet_key(int32_t argc, Janet* argv);
 static Janet janet_keyp(int32_t argc, Janet* argv);
 static Janet janet_fget(int32_t argc, Janet* argv);
 static Janet janet_fset(int32_t argc, Janet* argv);
+static Janet janet_fft(int32_t argc, Janet* argv);
 
 static void closeJanet(tic_mem* tic);
 static bool initJanet(tic_mem* tic, const char* code);
@@ -140,6 +141,7 @@ static const JanetReg janet_c_functions[] =
     {"keyp", janet_keyp, NULL},
     {"fget", janet_fget, NULL},
     {"fset", janet_fset, NULL},
+    {"fft", janet_fft, NULL},
     {NULL, NULL, NULL}
 };
 
@@ -1034,6 +1036,16 @@ static Janet janet_fset(int32_t argc, Janet* argv)
     tic_core* core = getJanetMachine(); tic_mem* tic = (tic_mem*)core;
     core->api.fset(tic, index, flag, value);
     return janet_wrap_nil();
+}
+
+static Janet janet_fft(int32_t argc, Janet* argv)
+{
+    janet_fixarity(argc, 1);
+
+    s32 bucket = janet_getinteger(argv, 0);
+
+    tic_mem* memory = (tic_mem*)getJanetMachine();
+    return janet_wrap_number(tic_api_fft(memory, bucket));
 }
 
 /* ***************** */
