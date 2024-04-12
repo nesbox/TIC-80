@@ -140,5 +140,7 @@ struct Code
 
 void initCode(Code*, Studio* studio);
 void freeCode(Code*);
+void codeGetPos(Code*, s32* x, s32* y);
+void codeSetPos(Code*, s32 x, s32 y);
 
 void trimWhitespace(Code*);
