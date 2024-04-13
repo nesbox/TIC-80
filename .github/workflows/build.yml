@@ -556,7 +556,7 @@ jobs:
 
   # === MacOS 14 / arm64 ===
   macos-arm64:
-    runs-on: macos-latest
+    runs-on: macos-14
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
@@ -737,7 +737,8 @@ jobs:
 
   # === Export ===
   export:
-    needs: [winxp, windows, linux, rpi, macos, html]
+    # needs: [winxp, windows, linux, rpi, macos, html]
+    needs: [winxp, windows, linux, macos, html]
     runs-on: ubuntu-latest
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
