@@ -4209,9 +4209,6 @@ static void tick(Console* console)
         else printBack(console, "\n loading cart...");
     }
     
-    // TODO TODOLOVEBYTE TODOFFT: this was moved down in the original PR
-    if (getStudioMode(console->studio) != TIC_CONSOLE_MODE) return;
-
     tic_api_cls(tic, TIC_COLOR_BG);
     drawConsoleText(console);
 
@@ -4236,10 +4233,9 @@ static void tick(Console* console)
         if(console->cursor.delay)
             console->cursor.delay--;
 
-        // TODO TODOLOVEBYTE TODOFFT: why? i don't think we need this
-        // console->tickCounter++;
+        console->tickCounter++;
 
-        // if (getStudioMode(console->studio) != TIC_CONSOLE_MODE) return;
+        if (getStudioMode(console->studio) != TIC_CONSOLE_MODE) return;
 
         drawCursor(console);
 
