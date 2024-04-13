@@ -25,7 +25,7 @@
 
   void OnLog(ma_context* pContext, ma_device* pDevice, ma_uint32 logLevel, const char* message)
   {
-    //
+    // TODO: log
   }
 
   void OnReceiveFrames(ma_device* pDevice, void* pOutput, const void* pInput, ma_uint32 frameCount)
