@@ -163,7 +163,7 @@ jobs:
     steps:
       # https://github.com/actions/runner-images/issues/2642#issuecomment-774988591
       - name: configure Pagefile
-        uses: al-cheb/configure-pagefile-action@v1.2
+        uses: al-cheb/configure-pagefile-action@v1.4
         with:
             minimum-size: 16GB
             maximum-size: 16GB
@@ -630,7 +630,7 @@ jobs:
           local-cache: true
 
       - name: set up JDK 11
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           java-version: '11'
           distribution: 'temurin'
@@ -657,7 +657,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: mymindstorm/setup-emsdk@v11
+      - uses: mymindstorm/setup-emsdk@v14
 
       - uses: actions/checkout@v4
         with:
