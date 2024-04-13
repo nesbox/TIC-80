@@ -9,6 +9,7 @@ jobs:
   # === Windows XP ===
   winxp:
     runs-on: windows-2019
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
       - uses: actions/checkout@v4
@@ -43,6 +44,7 @@ jobs:
   # === Windows XP PRO ===
   winxp-pro:
     runs-on: windows-2019
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
       - uses: actions/checkout@v4
@@ -71,6 +73,7 @@ jobs:
   # === Windows ===
   windows:
     runs-on: windows-2019
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
       - uses: actions/checkout@v4
@@ -104,6 +107,7 @@ jobs:
   # === Windows PRO ===
   windows-pro:
     runs-on: windows-2019
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
       - uses: actions/checkout@v4
@@ -131,6 +135,7 @@ jobs:
   # === Windows Sokol ===
   windows-sokol:
     runs-on: windows-2019
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
       - uses: actions/checkout@v4
@@ -159,6 +164,7 @@ jobs:
   # === Windows MinGW-64 ===
   windows-mingw:
     runs-on: windows-2019
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
       # https://github.com/actions/runner-images/issues/2642#issuecomment-774988591
@@ -194,6 +200,7 @@ jobs:
   # === Ubuntu PRO ===
   linux-pro:
     runs-on: ubuntu-20.04
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
       - uses: actions/checkout@v4
@@ -232,6 +239,7 @@ jobs:
   # === Ubuntu ===
   linux:
     runs-on: ubuntu-20.04
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
       - uses: actions/checkout@v4
@@ -276,6 +284,7 @@ jobs:
   # === Raspberry PI ===
   rpi:
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     container: nesbox/rpi-tic80:latest
 
     steps:
@@ -317,6 +326,7 @@ jobs:
   # === Raspberry PI PRO ===
   rpi-pro:
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     container: nesbox/rpi-tic80:latest
 
     steps:
@@ -353,6 +363,7 @@ jobs:
   # === Raspberry PI 1-3 Bare Metal ===
   rpi-baremetal:
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     container: nesbox/baremetalpi-tic80:latest
 
     steps:
@@ -413,6 +424,7 @@ jobs:
   # === Raspberry PI 4 Bare Metal ===
   rpi4-baremetal:
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     container: nesbox/baremetalpi-tic80:latest
 
     steps:
@@ -476,6 +488,7 @@ jobs:
   # === Nintendo 3DS build ===
   nintendo-3ds:
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     container: nesbox/devkitpro-tic80:latest
 
     steps:
@@ -504,6 +517,7 @@ jobs:
   # === MacOS 12 ===
   macos:
     runs-on: macos-12
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
       - uses: actions/checkout@v4
@@ -543,6 +557,7 @@ jobs:
   # === MacOS 14 / arm64 ===
   macos-arm64:
     runs-on: macos-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
       - uses: actions/checkout@v4
@@ -582,6 +597,7 @@ jobs:
   # === MacOS 12 PRO ===
   macos-pro:
     runs-on: macos-12
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
       - uses: actions/checkout@v4
@@ -615,6 +631,7 @@ jobs:
   # === Android ===
   android:
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
       - uses: actions/checkout@v4
@@ -655,6 +672,7 @@ jobs:
   # === HTML ===
   html:
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
       - uses: mymindstorm/setup-emsdk@v14
@@ -721,6 +739,7 @@ jobs:
   export:
     needs: [winxp, windows, linux, rpi, macos, html]
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
       - name: Download Windows XP artifact
@@ -785,6 +804,7 @@ jobs:
   export-stub:
     needs: [export]
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
     strategy:
       matrix:
         script: [lua, moon, fennel, ruby, js, wren, squirrel, wasm, scheme, janet, python]
@@ -852,6 +872,7 @@ jobs:
   delete-stub:
     needs: [export-stub]
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
       - name: Delete artifacts
@@ -869,6 +890,7 @@ jobs:
   delete-pro:
     needs: [winxp-pro, windows-pro, linux-pro, macos-pro, rpi-pro]
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
       - name: Delete artifacts
