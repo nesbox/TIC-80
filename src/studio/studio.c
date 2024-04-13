@@ -2770,13 +2770,13 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     if(args.cli)
         args.skip = true;
 
-    #if defined(BUILD_EDITORS)
-        if(args.skip)
-        {
-            studio->console->tick(studio->console);
-            gotoCode(studio);
-        }
-    #endif
+#if defined(BUILD_EDITORS)
+    if(args.skip)
+    {
+        studio->console->tick(studio->console);
+        gotoCode(studio);
+    }
+#endif
 
     return studio;
 }
