@@ -517,7 +517,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE DBUILD_SDLGPU=On -DBUILD_STUB=On ..
+          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SDLGPU=On ..
           cmake --build . --config $BUILD_TYPE --parallel
           cpack
           cp *.dmg tic80.dmg
@@ -534,11 +534,50 @@ jobs:
           name: "tic80-macos"
           path: build/bin/tic80
 
-      - name: Deploy stubs
+      # - name: Deploy stubs
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: "tic80-macos-stub"
+      #     path: build/bin/tic80*
+
+  # === MacOS 14 / arm64 ===
+  macos-arm64:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install
+        run: brew uninstall --ignore-dependencies libidn2
+
+      - name: Build
+        run: |
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SDLGPU=On ..
+          cmake --build . --config $BUILD_TYPE --parallel
+          cpack
+          cp *.dmg tic80.dmg
+
+      - name: Deploy DMG
         uses: actions/upload-artifact@v3
         with:
-          name: "tic80-macos-stub"
-          path: build/bin/tic80*
+          name: "tic80-macos-arm64-dmg"
+          path: build/tic80.dmg
+
+      - name: Deploy
+        uses: actions/upload-artifact@v3
+        with:
+          name: "tic80-macos-arm64"
+          path: build/bin/tic80
+
+      # - name: Deploy stubs
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: "tic80-macos-stub"
+      #     path: build/bin/tic80*
 
   # === MacOS 12 PRO ===
   macos-pro:
