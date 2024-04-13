@@ -671,7 +671,7 @@ jobs:
       - name: Build
         run: |
           cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_STUB=On ..
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
           cmake --build . --config $BUILD_TYPE --parallel
           mkdir bin/html bin/html-export
           cp html/export.html bin/html-export/index.html
