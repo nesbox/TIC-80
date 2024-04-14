@@ -1,3 +1,33 @@
+# TIC-80 [Lovebyte](https://lovebyte.party/) / [Byte Battle](https://bytebattle.com/) / [FFT](https://en.wikipedia.org/wiki/Fast_Fourier_transform?useskin=vector) version
+
+TIC-80 upstream builds with Byte Battle + FFT support.
+
+Prior work:
+* https://github.com/glastonbridge/TIC-80
+* https://github.com/creativenucleus/TIC-80-bytebattle
+* https://github.com/sknebel/TIC-80/tree/tmp
+
+Contributors: 
+* Sven Knebel - [Github @sknebel](https://github.com/sknebel)
+* Graham Bates - [Github @grahambates](https://github.com/grahambates)
+* Kii - [Github @kiikrindar](https://github.com/kiikrindar)
+* Matt Westcott - [Github @gasman](https://github.com/gasman)
+* Alice - [Github @aliceisjustplaying](https://github.com/aliceisjustplaying)
+
+Tested on:
+* Windows 11 amd64 (Steam Deck, all versions)
+* Windows 11 arm64 (VMWare Fusion 13, winxp version)
+* Windows 11 arm64 (Parallels 18; windows version)
+* macOS 14 amd64 (M1 Pro; thru Rosetta 2)
+* macOS 14 arm64 (M1 Pro)
+* Linux amd64 (Steam Deck, Arch Linux)
+* Linux arm64 (M1 Pro, Asahi Linux) - experimental - colors glitch sometimes, terminal/app needs restarting sometimes to work - may be an Asahi thing
+
+![FFT screenshot](fft-screenshot.png)
+*the answer to "how many versions can you run at the same time that fits a screenshot" appears to be four*
+
+---
+
 [![Build Status](https://github.com/nesbox/TIC-80/workflows/Build/badge.svg)](https://github.com/nesbox/TIC-80/actions?query=workflow%3ABuild)
 
 ![TIC-80](https://tic80.com/img/logo64.png)
