@@ -12,7 +12,7 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -30,13 +30,13 @@ jobs:
           cmake --build . --config %BUILD_TYPE% --parallel
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-winxp"
           path: build/bin/tic80.exe
 
       - name: Deploy stubs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-winxp-stub"
           path: build/bin/tic80*.exe
@@ -47,7 +47,7 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -65,7 +65,7 @@ jobs:
           cmake --build . --config %BUILD_TYPE% --parallel
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-winxp-pro"
           path: build/bin/tic80.exe
@@ -76,7 +76,7 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -93,13 +93,13 @@ jobs:
           cmake --build . --config %BUILD_TYPE% --parallel
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-windows"
           path: build/bin/tic80.exe
 
       - name: Deploy stubs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-windows-stub"
           path: build/bin/tic80*.exe
@@ -110,7 +110,7 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -127,7 +127,7 @@ jobs:
           cmake --build . --config %BUILD_TYPE% --parallel
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-windows-pro"
           path: build/bin/tic80.exe
@@ -138,7 +138,7 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -156,7 +156,7 @@ jobs:
           cp bin/tic80-sokol.exe bin/tic80.exe
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-windows-sokol"
           path: build/bin/tic80.exe
@@ -179,7 +179,7 @@ jobs:
         with:
           ruby-version: 2.6
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -192,7 +192,7 @@ jobs:
           cmake --build . --config %BUILD_TYPE% --parallel
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-mingw"
           path: build/bin/tic80.exe
@@ -203,7 +203,7 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -225,13 +225,13 @@ jobs:
           cpack
 
       - name: Deploy DEB
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-linux-deb-pro"
           path: build/tic80.deb
 
       - name: Deploy ZIP
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-linux-pro"
           path: build/bin/tic80
@@ -242,7 +242,7 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -264,19 +264,19 @@ jobs:
           cpack
 
       - name: Deploy DEB
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-linux-deb"
           path: build/tic80.deb
 
       - name: Deploy ZIP
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-linux"
           path: build/bin/tic80
 
       - name: Deploy stubs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-linux-stub"
           path: build/bin/tic80*
@@ -288,7 +288,7 @@ jobs:
     container: nesbox/rpi-tic80:latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -306,19 +306,19 @@ jobs:
           cpack
 
       - name: Deploy DEB
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-rpi-dep"
           path: build/tic80.deb
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-rpi"
           path: build/bin/tic80
 
       - name: Deploy stubs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-rpi-stub"
           path: build/bin/tic80*
@@ -330,7 +330,7 @@ jobs:
     container: nesbox/rpi-tic80:latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -349,13 +349,13 @@ jobs:
           cpack
 
       - name: Deploy DEB
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-rpi-deb-pro"
           path: build/tic80.deb
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-rpi-pro"
           path: build/bin/tic80
@@ -367,7 +367,7 @@ jobs:
     container: nesbox/baremetalpi-tic80:latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -410,7 +410,7 @@ jobs:
           cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-rpi-baremetal"
           path: |
@@ -428,7 +428,7 @@ jobs:
     container: nesbox/baremetalpi-tic80:latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -471,7 +471,7 @@ jobs:
           cp build/baremetalpi/boot/config.txt vendor/circle-stdlib/libs/circle/boot/config.txt
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-rpi4-baremetal"
           path: |
@@ -492,7 +492,7 @@ jobs:
     container: nesbox/devkitpro-tic80:latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -509,7 +509,7 @@ jobs:
           make -j$(nproc)
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-nintendo-3ds"
           path: build/bin/tic80.3dsx
@@ -520,7 +520,7 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -537,19 +537,19 @@ jobs:
           cp *.dmg tic80.dmg
 
       - name: Deploy DMG
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-macos-dmg"
           path: build/tic80.dmg
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-macos"
           path: build/bin/tic80
 
       # - name: Deploy stubs
-      #   uses: actions/upload-artifact@v4
+      #   uses: actions/upload-artifact@v3
       #   with:
       #     name: "tic80-macos-stub"
       #     path: build/bin/tic80*
@@ -560,7 +560,7 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -577,19 +577,19 @@ jobs:
           cp *.dmg tic80.dmg
 
       - name: Deploy DMG
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-macos-arm64-dmg"
           path: build/tic80.dmg
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-macos-arm64"
           path: build/bin/tic80
 
       # - name: Deploy stubs
-      #   uses: actions/upload-artifact@v4
+      #   uses: actions/upload-artifact@v3
       #   with:
       #     name: "tic80-macos-stub"
       #     path: build/bin/tic80*
@@ -600,7 +600,7 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -617,13 +617,13 @@ jobs:
           cp *.dmg tic80.dmg
 
       - name: Deploy DMG
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-macos-dmg-pro"
           path: build/tic80.dmg
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-macos-pro"
           path: build/bin/tic80
@@ -634,7 +634,7 @@ jobs:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -664,7 +664,7 @@ jobs:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-android"
           path: build/android/tic80.apk
@@ -677,7 +677,7 @@ jobs:
     steps:
       - uses: mymindstorm/setup-emsdk@v14
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
         with:
           submodules: recursive
           fetch-depth: 0
@@ -703,7 +703,7 @@ jobs:
           cp bin/tic80.wasm webapp/tic80.wasm
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-html"
           path: |
@@ -713,7 +713,7 @@ jobs:
             build/bin/html/export.html
 
       - name: Deploy WebApp
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-webapp"
           path: |
@@ -727,7 +727,7 @@ jobs:
             build/webapp/tic80.wasm
 
       - name: Deploy stubs
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-html-stub"
           path: |
@@ -790,7 +790,7 @@ jobs:
           mv -f html.zip html
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-export"
           path: |
@@ -858,7 +858,7 @@ jobs:
           mv -f html${{ matrix.script }}.zip html${{ matrix.script }}
 
       - name: Deploy
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: "tic80-export"
           path: |
