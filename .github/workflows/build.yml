@@ -744,37 +744,37 @@ jobs:
 
     steps:
       - name: Download Windows XP artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
           name: tic80-winxp
           path: winxpdir
 
       - name: Download Windows artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
           name: tic80-windows
           path: windir
 
       - name: Download Ubuntu artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
           name: tic80-linux
           path: linuxdir
 
       - name: Download RPI artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
           name: tic80-rpi
           path: rpidir
 
       - name: Download MacOS artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
           name: tic80-macos
           path: macdir
 
       - name: Download HTML artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
           name: tic80-html
 
@@ -812,37 +812,37 @@ jobs:
 
     steps:
       - name: Download Windows XP artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
           name: tic80-winxp-stub
           path: winxpdir
 
       - name: Download Windows artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
           name: tic80-windows-stub
           path: windir
 
       - name: Download Ubuntu artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
           name: tic80-linux-stub
           path: linuxdir
 
       - name: Download RPI artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
           name: tic80-rpi-stub
           path: rpidir
 
       - name: Download MacOS artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
           name: tic80-macos-stub
           path: macdir
 
       - name: Download HTML artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
           name: tic80-html-stub
 
