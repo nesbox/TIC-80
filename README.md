@@ -93,16 +93,17 @@ The wiki holds TIC-80 documentation, code snippets and game development tutorial
 # Build instructions
 
 ## Windows
-### with Visual Studio 2017
-- install `Visual Studio 2017`
+### with Visual Studio 2019
 - install `git`
+- install `cmake` (https://cmake.org)
 - install `Ruby` (you can use [RubyInstaller](https://rubyinstaller.org/))
+- install `Visual Studio 2019` and make sure the `Desktop development with C++` "metapackage" is installed with it
 - run following commands in `cmd`
 ```
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake -G "Visual Studio 15 2017 Win64" ..
+cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=%BUILD_TYPE% -DBUILD_STUB=On ..
+cmake --build . --config %BUILD_TYPE% --parallel
 ```
-- open `TIC-80.sln` and build
 - enjoy :)
 
 ### with MinGW
