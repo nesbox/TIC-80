@@ -2,18 +2,6 @@
 
 TIC-80 upstream build with FFT support.
 
-Prior work:
-* https://github.com/glastonbridge/TIC-80
-* https://github.com/creativenucleus/TIC-80-bytebattle
-* https://github.com/sknebel/TIC-80/tree/tmp
-
-Contributors: 
-* Sven Knebel - [Github @sknebel](https://github.com/sknebel)
-* Graham Bates - [Github @grahambates](https://github.com/grahambates)
-* Kii - [Github @kiikrindar](https://github.com/kiikrindar)
-* Matt Westcott - [Github @gasman](https://github.com/gasman)
-* Alice - [Github @aliceisjustplaying](https://github.com/aliceisjustplaying)
-
 Tested on:
 * Windows 11 amd64 (Steam Deck, all versions)
 * Windows 11 arm64 (VMWare Fusion 13, winxp version)
@@ -25,7 +13,6 @@ Tested on:
 
 ![FFT screenshot](fft-screenshot.png)
 *the answer to "how many versions can you run at the same time that fits a screenshot" appears to be four*
-
 ---
 
 [![Build Status](https://github.com/nesbox/TIC-80/workflows/Build/badge.svg)](https://github.com/nesbox/TIC-80/actions?query=workflow%3ABuild)
@@ -290,3 +277,8 @@ You can find iOS/tvOS version here
 * Alec Troemel - [Github @alectroemel](https://github.com/AlecTroemel)
 * Kolten Pearson - [Github @koltenpearson](https://github.com/koltenpearson)
 * Cort Stratton - [Github @cdwfs](https://github.com/cdwfs)
+* Sven Knebel - [Github @sknebel](https://github.com/sknebel)
+* Graham Bates - [Github @grahambates](https://github.com/grahambates)
+* Kii - [Github @kiikrindar](https://github.com/kiikrindar)
+* Matt Westcott - [Github @gasman](https://github.com/gasman)
+* Alice - [Github @aliceisjustplaying](https://github.com/aliceisjustplaying)
