@@ -53,17 +53,8 @@ For users who can't spend the money, we made it easy to build the pro version fr
 
 For the FFT support to work — i.e., being able to use music from your own computer — you'll need a loopback device on your OS.
 * On Windows, this is handled for you (TODO: is it always?)
-* On Mac, you'll need to use a third-party tool [Blackhole](https://existential.audio/blackhole/)
+* On Mac, you'll need to use a third-party tool like [Blackhole](https://existential.audio/blackhole/)
 * On Linux, it's **supposed to be** handled for you, in practice you might have to muck around depending on your distro
-
-Tested on:
-* Windows 11 amd64 (Steam Deck, all versions)
-* Windows 11 arm64 (VMWare Fusion 13, winxp version)
-* Windows 11 arm64 (Parallels 18; windows version)
-* macOS 14 amd64 (M1 Pro; thru Rosetta 2)
-* macOS 14 arm64 (M1 Pro)
-* Linux amd64 (Steam Deck, Arch Linux)
-* Linux arm64 (M1 Pro, Asahi Linux) - experimental - colors glitch sometimes, terminal/app needs restarting sometimes to work - may be an Asahi thing
 
 ![FFT screenshot](fft-screenshot.png)
 *the answer to "how many versions can you run at the same time that fits a screenshot" appears to be four*
@@ -285,3 +276,8 @@ You can find iOS/tvOS version here
 * Kii - [Github @kiikrindar](https://github.com/kiikrindar)
 * Matt Westcott - [Github @gasman](https://github.com/gasman)
 * Alice - [Github @aliceisjustplaying](https://github.com/aliceisjustplaying)
+
+# Prior work with regards to FFT support
+* https://github.com/glastonbridge/TIC-80
+* https://github.com/creativenucleus/TIC-80-bytebattle
+* https://github.com/sknebel/TIC-80/tree/tmp
