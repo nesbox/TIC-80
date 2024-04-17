@@ -84,7 +84,7 @@
   {
     bCreated = FALSE;
     ma_context_config context_config = ma_context_config_init();
-    // context_config.logCallback = OnLog;
+    // context_config.pLog = OnLog;
     context_config.pLog = NULL;
     ma_result result = ma_context_init(NULL, 0, &context_config, &context);
     if (result != MA_SUCCESS)
