@@ -21,10 +21,6 @@
                     "shell_cmd": "cd ${project_path}/build && ninja tic80 && ${project_path}/build/bin/tic80 --skip"
                 },
                 {
-                    "name": "run-lovebyte",
-                    "shell_cmd": "cd ${project_path}/build && ninja tic80 && ${project_path}/build/bin/tic80 --skip --codeexport 123.lua --battletime 25"
-                },
-                {
                     "name": "clean",
                     "shell_cmd": "cd ${project_path}/build && ninja -t clean"
                 },
@@ -41,4 +37,18 @@
             "path": "."
         }
     ]
+<<<<<<< HEAD
 }
+||||||| parent of e46aad17 (more undo)
+      ]
+    }
+  ],
+  "folders": [
+    {
+      "path": "."
+    }
+  ]
+}
+=======
+}
+>>>>>>> e46aad17 (more undo)
