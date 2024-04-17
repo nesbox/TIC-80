@@ -95,12 +95,6 @@ typedef struct
     CMD_PARAMS_LIST(CMD_PARAMS_DEF)
 #undef  CMD_PARAMS_DEF
 
-    const char *codeexport;
-    const char *codeimport;
-    s32 delay;
-    s32 lowerlimit;
-    s32 upperlimit;
-    s32 battletime;
     s32 fftlist;
     const char *fftdevice;
 } StartArgs;
@@ -286,37 +280,3 @@ s32 calcWaveAnimation(tic_mem* tic, u32 index, s32 channel);
 void map2ram(tic_ram* ram, const tic_map* src);
 void tiles2ram(tic_ram* ram, const tic_tiles* src);
 void fadePalette(tic_palette* pal, s32 value);
-
-typedef struct
-{
-    char* exp;
-    char* imp;
-
-    struct
-    {
-        tic_code code;
-        char postag[32];
-    } last;
-
-    s32 delay;
-    s32 ticks;
-
-    struct
-    {
-        s32 lower;
-        s32 upper;
-        s32 current;
-    } limit;
-
-    struct
-    {
-        s32 started;
-        s32 time;
-        s32 left;
-
-        bool hidetime;
-    } battle;
-
-} Lovebyte;
-
-Lovebyte* getLovebyte(Studio* studio);
