@@ -1,20 +1,3 @@
-# TIC-80 [FFT](https://en.wikipedia.org/wiki/Fast_Fourier_transform?useskin=vector) version
-
-TIC-80 upstream build with FFT support.
-
-Tested on:
-* Windows 11 amd64 (Steam Deck, all versions)
-* Windows 11 arm64 (VMWare Fusion 13, winxp version)
-* Windows 11 arm64 (Parallels 18; windows version)
-* macOS 14 amd64 (M1 Pro; thru Rosetta 2)
-* macOS 14 arm64 (M1 Pro)
-* Linux amd64 (Steam Deck, Arch Linux)
-* Linux arm64 (M1 Pro, Asahi Linux) - experimental - colors glitch sometimes, terminal/app needs restarting sometimes to work - may be an Asahi thing
-
-![FFT screenshot](fft-screenshot.png)
-*the answer to "how many versions can you run at the same time that fits a screenshot" appears to be four*
----
-
 [![Build Status](https://github.com/nesbox/TIC-80/workflows/Build/badge.svg)](https://github.com/nesbox/TIC-80/actions?query=workflow%3ABuild)
 
 ![TIC-80](https://tic80.com/img/logo64.png)
@@ -46,6 +29,7 @@ To make a retro styled game, the whole process of creation and execution takes p
 - Built-in editors: for code, sprites, world maps, sound effects and music
 - An additional memory bank: load different assets from your cartridge while your game is executing
 - Moderated community
+- [FFT (Fast Fourier Transform)](https://en.wikipedia.org/wiki/Fast_Fourier_transform?useskin=vector)
 
 # Binary Downloads
 You can download compiled versions for the major operating systems directly from our [releases page](https://github.com/nesbox/TIC-80/releases).
@@ -64,6 +48,25 @@ For users who can't spend the money, we made it easy to build the pro version fr
 - Save/load cartridges in text format, and create your game in any editor you want, also useful for version control systems.
 - Even more memory banks: instead of having only 1 memory bank you have 8.
 - Export your game without editors, and then publish it to app stores.
+
+# FFT
+
+For the FFT support to work — i.e., being able to use music from your own computer — you'll need a loopback device on your OS.
+* On Windows, this is handled for you (TODO: is it always?)
+* On Mac, you'll need to use a third-party tool [Blackhole](https://existential.audio/blackhole/)
+* On Linux, it's **supposed to be** handled for you, in practice you might have to muck around depending on your distro
+
+Tested on:
+* Windows 11 amd64 (Steam Deck, all versions)
+* Windows 11 arm64 (VMWare Fusion 13, winxp version)
+* Windows 11 arm64 (Parallels 18; windows version)
+* macOS 14 amd64 (M1 Pro; thru Rosetta 2)
+* macOS 14 arm64 (M1 Pro)
+* Linux amd64 (Steam Deck, Arch Linux)
+* Linux arm64 (M1 Pro, Asahi Linux) - experimental - colors glitch sometimes, terminal/app needs restarting sometimes to work - may be an Asahi thing
+
+![FFT screenshot](fft-screenshot.png)
+*the answer to "how many versions can you run at the same time that fits a screenshot" appears to be four*
 
 # Community
 You can play and share games, tools and music at [https://tic80.com/play](https://tic80.com/play).
