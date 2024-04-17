@@ -835,9 +835,8 @@ enum
     macro(fft,                                                                                                          \
         "fft(freq)",                                                                                                    \
                                                                                                                         \
-        "The fft creates 256 buckets that map to a region of audible frequencies.\n"                                    \
-        "Each returns a value 0-255 based on the intensity of sound at that frequency at that time\n."                  \
-        "See aldroid after class.",                                                                                     \
+        "Creates 256 buckets that map to a region of audible frequencies.\n"                                            \
+        "Each returns a value 0-1 based on the intensity of sound at that frequency at that time.\n",                   \
         1,                                                                                                              \
         1,                                                                                                              \
         0,                                                                                                              \
