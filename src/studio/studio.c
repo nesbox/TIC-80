@@ -2159,7 +2159,6 @@ static void processMouseStates(Studio* studio)
     tic->ram->input.mouse.scrollx *= -1;
 }
 
-
 static void blitCursor(Studio* studio)
 {
     tic_mem* tic = studio->tic;
@@ -2602,10 +2601,8 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     if(args.cli)
         args.skip = true;
 
-#if defined(BUILD_EDITORS)
     if(args.skip)
         setStudioMode(studio, TIC_CONSOLE_MODE);
-#endif
 
     return studio;
 }
