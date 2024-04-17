@@ -1568,7 +1568,6 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     if (strcmp(signature, "static TIC.fget(_,_)"                ) == 0) return wren_fget;
     if (strcmp(signature, "static TIC.fset(_,_,_)"              ) == 0) return wren_fset;
 
-    //bytebattle patch
     if (strcmp(signature, "static TIC.fft(_)"                   ) == 0) return wren_fft;
 
     // internal functions

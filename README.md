@@ -1,6 +1,6 @@
-# TIC-80 [Lovebyte](https://lovebyte.party/) / [Byte Battle](https://bytebattle.com/) / [FFT](https://en.wikipedia.org/wiki/Fast_Fourier_transform?useskin=vector) version
+# TIC-80 [FFT](https://en.wikipedia.org/wiki/Fast_Fourier_transform?useskin=vector) version
 
-TIC-80 upstream builds with Byte Battle + FFT support.
+TIC-80 upstream build with FFT support.
 
 Prior work:
 * https://github.com/glastonbridge/TIC-80
