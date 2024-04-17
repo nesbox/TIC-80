@@ -1702,12 +1702,6 @@ static void switchCrtMonitor(Studio* studio)
 }
 #endif
 
-static u32 getTime()
-{
-    return tic_sys_counter_get() * 1000 / tic_sys_freq_get();
-}
-
-
 #if defined(TIC80_PRO)
 
 static void switchBank(Studio* studio, s32 bank)
@@ -2380,7 +2374,6 @@ void studio_delete(Studio* studio)
 #endif
 
     free(studio->fs);
-
     free(studio);
 }
 
@@ -2611,10 +2604,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
 
 #if defined(BUILD_EDITORS)
     if(args.skip)
-    {
-        studio->console->tick(studio->console);
-        gotoCode(studio);
-    }
+        setStudioMode(studio, TIC_CONSOLE_MODE);
 #endif
 
     return studio;

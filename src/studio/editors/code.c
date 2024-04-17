@@ -113,12 +113,12 @@ static void drawStatus(Code* code)
 {
     enum {Height = TIC_FONT_HEIGHT + 1, StatusY = TIC80_HEIGHT - TIC_FONT_HEIGHT};
 
-    {
-        tic_api_rect(code->tic, 0, TIC80_HEIGHT - Height, TIC80_WIDTH, Height, code->status.color);
-        tic_api_print(code->tic, code->status.line, 0, StatusY, getConfig(code->studio)->theme.code.BG, true, 1, false);
-        tic_api_print(code->tic, code->status.size, TIC80_WIDTH - (s32)strlen(code->status.size) * TIC_FONT_WIDTH, 
-            StatusY, getConfig(code->studio)->theme.code.BG, true, 1, false);
-    }
+
+    tic_api_rect(code->tic, 0, TIC80_HEIGHT - Height, TIC80_WIDTH, Height, code->status.color);
+    tic_api_print(code->tic, code->status.line, 0, StatusY, getConfig(code->studio)->theme.code.BG, true, 1, false);
+    tic_api_print(code->tic, code->status.size, TIC80_WIDTH - (s32)strlen(code->status.size) * TIC_FONT_WIDTH, 
+        StatusY, getConfig(code->studio)->theme.code.BG, true, 1, false);
+
 }
 
 static char* getPosByLine(char* ptr, s32 line)
@@ -374,20 +374,6 @@ static void getCursorPosition(Code* code, s32* x, s32* y)
     }
 }
 
-void codeGetPos(Code* code, s32* x, s32* y)
-{
-    getCursorPosition(code, x, y);
-}
-
-static void setCursorPosition(Code* code, s32 x, s32 y);
-static void parseSyntaxColor(Code*);
-
-void codeSetPos(Code* code, s32 x, s32 y)
-{
-    setCursorPosition(code, x, y);
-    parseSyntaxColor(code);
-    code->cursor.delay = 0;
-}
 
 static s32 getLinesCount(Code* code)
 {
@@ -470,10 +456,11 @@ static void updateEditor(Code* code)
 
     code->cursor.delay = TEXT_CURSOR_DELAY;
 
+    sprintf(code->status.line, "line %i/%i col %i", line + 1, getLinesCount(code) + 1, column + 1);
+
     {
-        sprintf(code->status.line, "line %i/%i col %i", line + 1, getLinesCount(code) + 1, column + 1);
         s32 codeLen = strlen(code->src);
-        sprintf(code->status.size, "size %i/%i", codeLen, MAX_CODE);
+        sprintf(code->status.size, "size %i/%zu", codeLen, MAX_CODE);
         code->status.color = codeLen > MAX_CODE ? tic_color_red : tic_color_white;
     }
 }
