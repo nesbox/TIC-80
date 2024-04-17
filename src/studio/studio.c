@@ -2587,6 +2587,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     studio->config->data.soft               |= args.soft;
     studio->config->data.cli                |= args.cli;
 
+#if defined(BUILD_EDITORS)
     if (args.fftlist)
     {
         FFT_Create();
@@ -2595,6 +2596,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     }
 
     studio->config->data.fftdevice = args.fftdevice;
+#endif
 
     studioConfigChanged(studio);
 
