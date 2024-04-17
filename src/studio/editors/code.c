@@ -371,7 +371,7 @@ static void getCursorPosition(Code* code, s32* x, s32* y)
         pointer++;
     }
 }
-s
+
 static s32 getLinesCount(Code* code)
 {
     char* text = code->src;
