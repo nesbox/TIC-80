@@ -306,7 +306,7 @@ static void audioCallback(void* userdata, u8* stream, s32 len)
 }
 
 void *deviceId = NULL;
-void find_fft_device_by_id(const int bIsCaptureDevice, const char *szDeviceName, void *pDeviceID, void *pUserContext)
+void find_fft_device_by_id(const bool bIsCaptureDevice, const char *szDeviceName, void *pDeviceID, void *pUserContext)
 {
     if (strcmp(szDeviceName, studio_config(platform.studio)->fftdevice) == 0)
     {
