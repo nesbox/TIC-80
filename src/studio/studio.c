@@ -2435,7 +2435,7 @@ bool studio_alive(Studio* studio)
     return studio->alive;
 }
 
-void print_fft_devices(const int bIsCaptureDevice, const char *szDeviceName, void *pDeviceID, void *pUserContext)
+void print_fft_devices(const bool bIsCaptureDevice, const char *szDeviceName, void *pDeviceID, void *pUserContext)
 {
     printf("%s device \"%s\"\n", bIsCaptureDevice ? "Input" : "Output", szDeviceName);
 }
