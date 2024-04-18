@@ -71,7 +71,7 @@ void FFT_EnumerateDevices(FFT_ENUMERATE_FUNC pEnumerationFunction, void* pUserCo
   }
 }
 
-
+// source: https://github.com/Chatterino/chatterino2/blob/7c97e6bcc748755ee55447096ebc657be11b4789/src/controllers/sound/MiniaudioBackend.cpp#L28
 void miniaudioLogCallback(void *userData, ma_uint32 level, const char *message)
 {
     (void)userData;
