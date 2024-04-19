@@ -836,7 +836,8 @@ enum
         "fft(freq)",                                                                                                    \
                                                                                                                         \
         "Creates 256 buckets that map to a region of audible frequencies.\n"                                            \
-        "Each returns a value 0-1 based on the intensity of sound at that frequency at that time.\n",                   \
+        "Each returns a value 0-1 based on the intensity of sound at that frequency at that time.\n"                    \
+        "Only works if tic80 was started with the `--fft` CLI flag, otherwise always returns 0.0.\n",                   \
         1,                                                                                                              \
         1,                                                                                                              \
         0,                                                                                                              \
