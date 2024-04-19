@@ -91,6 +91,7 @@
 #define WAVE_VALUE_BITS 4
 #define WAVE_MAX_VALUE ((1 << WAVE_VALUE_BITS) - 1)
 #define WAVE_SIZE (WAVE_VALUES * WAVE_VALUE_BITS / BITS_IN_BYTE)
+#define TIC_PCM_SIZE 128
 
 #define TIC_BANKSIZE_BITS 16
 #define TIC_BANK_SIZE (1 << TIC_BANKSIZE_BITS) // 64K
@@ -620,6 +621,11 @@ typedef struct
     u8 data[TIC_GAMEPADS * TIC_BUTTONS];
 } tic_mapping;
 
+typedef struct
+{
+    u8 data[TIC_PCM_SIZE];
+} tic_pcm;
+
 typedef union
 {
     struct
@@ -639,6 +645,7 @@ typedef union
         tic_flags           flags;
         tic_font            font;
         tic_mapping         mapping;
+        tic_pcm             pcm;
 
         u8 free;
     };

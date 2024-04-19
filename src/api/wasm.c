@@ -42,6 +42,7 @@ typedef float           f32;
 #include "m3_exec_defs.h"
 #include "m3_exception.h"
 #include "m3_env.h"
+#include "m3_core.h"
 
 static const char TicCore[] = "_TIC80";
 
@@ -661,6 +662,34 @@ m3ApiRawFunction(wasmtic_clip)
     m3ApiSuccess();
 }
 
+struct MapData {
+    int32_t func_index;
+    uint32_t user_data;
+    uint32_t res_ptr;
+};
+struct RemapInfo {
+    uint32_t data;
+    IM3Function fun;
+    tic_core* core;
+    uint8_t* mem;
+    RemapResult* wasm_result;
+};
+static void wasm_remap(void* data, s32 x, s32 y, RemapResult* result) {
+    if (data == NULL) return;
+    struct RemapInfo* rdata = (struct RemapInfo*) data;
+    IM3Function fun = rdata->fun;
+    // : )
+    uint8_t* _mem = rdata->mem;
+
+    *rdata->wasm_result = *result;
+    M3Result res = m3_CallV(fun, rdata->data, x, y, m3ApiPtrToOffset(rdata->wasm_result));
+    if (res) { 
+        rdata->core->data->error(rdata->core->data->data, res);
+        return;
+    }
+
+    *result = *rdata->wasm_result;
+}
 m3ApiRawFunction(wasmtic_map)
 {
     m3ApiGetArg      (int32_t, x)
@@ -674,9 +703,18 @@ m3ApiRawFunction(wasmtic_map)
     if (trans_colors == NULL) {
         colorCount = 0;
     }    m3ApiGetArg      (int8_t, scale)
-    // TODO: actually test that this works
-    m3ApiGetArg      (int32_t, remap)
+    m3ApiGetArg      (i32, map_data_ptr)
+    
 
+    tic_mem* tic = (tic_mem*)getWasmCore(runtime);
+    // depends on their only being 1 module, which SHOULD:tm: be true
+    struct RemapInfo info = { .mem = _mem, .core = (tic_core*)tic };
+    if (map_data_ptr > 0) {
+        struct MapData* map_data = (struct MapData*)m3ApiOffsetToPtr(map_data_ptr);
+        m3_GetTableFunction(&info.fun, runtime->modules, map_data->func_index);
+        info.data = map_data->user_data;
+        info.wasm_result = (RemapResult*)m3ApiOffsetToPtr(map_data->res_ptr);
+    }
     // defaults
     if (x == -1) { x = 0; }    
     if (y == -1) { y = 0; }
@@ -684,9 +722,7 @@ m3ApiRawFunction(wasmtic_map)
     if (h == -1) { h = 17; }
     if (scale == -1) { scale = 1; }
 
-    tic_mem* tic = (tic_mem*)getWasmCore(runtime);
-
-    tic_api_map(tic, x, y, w, h, sx, sy, trans_colors, colorCount, scale, NULL, NULL);
+    tic_api_map(tic, x, y, w, h, sx, sy, trans_colors, colorCount, scale, map_data_ptr > 0 ? &wasm_remap : NULL, map_data_ptr > 0 ? &info : NULL);
 
     m3ApiSuccess();
 }

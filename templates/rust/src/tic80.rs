@@ -523,10 +523,10 @@ pub fn fset(sprite_index: i32, flag: i8, value: bool) {
 // The macros will avoid the allocation if passed a string literal by adding the null terminator at compile time.
 
 pub struct PrintOptions {
-    color: i32,
-    fixed: bool,
-    scale: i32,
-    small_font: bool,
+    pub color: i32,
+    pub fixed: bool,
+    pub scale: i32,
+    pub small_font: bool,
 }
 
 impl Default for PrintOptions {
@@ -581,12 +581,12 @@ macro_rules! print {
 }
 
 pub struct FontOptions<'a> {
-    transparent: &'a [u8],
-    char_width: i8,
-    char_height: i8,
-    fixed: bool,
-    scale: i32,
-    alt_font: bool,
+    pub transparent: &'a [u8],
+    pub char_width: i8,
+    pub char_height: i8,
+    pub fixed: bool,
+    pub scale: i32,
+    pub alt_font: bool,
 }
 
 impl Default for FontOptions<'_> {
