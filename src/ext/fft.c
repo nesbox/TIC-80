@@ -75,7 +75,8 @@ void FFT_EnumerateDevices(FFT_ENUMERATE_FUNC pEnumerationFunction, void* pUserCo
 void miniaudioLogCallback(void *userData, ma_uint32 level, const char *message)
 {
     (void)userData;
-    printf("[FFT] [miniaudio:%p]\n %s", userData, message);
+    return;
+    // printf("[FFT] [miniaudio:%p]\n %s", userData, message);
     // switch (level)
     // {
     //     case MA_LOG_LEVEL_DEBUG: {
@@ -175,24 +176,7 @@ bool FFT_Open(FFT_Settings* pSettings)
 
   return true;
 }
-bool FFT_GetFFT(float* _samples)
-{
-  if (!bCreated)
-  {
-    return false;
-  }
 
-  kiss_fft_cpx out[FFT_SIZE + 1];
-  kiss_fftr(fftcfg, sampleBuf, out);
-
-  for (int i = 0; i < FFT_SIZE; i++)
-  {
-    static const float scaling = 1.0f / (float)FFT_SIZE;
-    _samples[i] = 2.0 * sqrtf(out[i].r * out[i].r + out[i].i * out[i].i) * scaling;
-  }
-
-  return true;
-}
 void FFT_Close()
 {
   if (!bCreated)

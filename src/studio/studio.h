@@ -95,6 +95,7 @@ typedef struct
     CMD_PARAMS_LIST(CMD_PARAMS_DEF)
 #undef  CMD_PARAMS_DEF
 
+    bool fft;
     s32 fftlist;
     const char *fftdevice;
 } StartArgs;

@@ -2392,8 +2392,9 @@ static StartArgs parseArgs(s32 argc, char **argv)
 #define CMD_PARAMS_DEF(name, ctype, type, post, help) OPT_##type('\0', #name, &args.name, help),
         CMD_PARAMS_LIST(CMD_PARAMS_DEF)
 #undef  CMD_PARAMS_DEF
-        OPT_BOOLEAN('o', "fftlist", &args.fftlist, "list FFT devices"),
-        OPT_STRING('p', "fftdevice", &args.fftdevice, "name of the device to use with FFT"),
+        OPT_BOOLEAN('\0', "fft", &args.fft, "enable FFT support"),
+        OPT_BOOLEAN('\0', "fftlist", &args.fftlist, "list FFT devices"),
+        OPT_STRING('\0', "fftdevice", &args.fftdevice, "name of the device to use with FFT"),
         OPT_END(),
     };
 
@@ -2594,7 +2595,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         FFT_EnumerateDevices(print_fft_devices, NULL);
         exit(0);
     }
-
+    studio->config->data.fft = args.fft;
     studio->config->data.fftdevice = args.fftdevice;
 #endif
 
