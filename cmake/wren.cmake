@@ -22,10 +22,35 @@ if(BUILD_WITH_WREN)
         ${WREN_DIR}/vm/wren_vm.c
     )
 
-    add_library(wren STATIC ${WREN_SRC})
+    list(APPEND WREN_SRC ${CMAKE_SOURCE_DIR}/src/api/wren.c)
+    list(APPEND WREN_SRC ${CMAKE_SOURCE_DIR}/src/api/parse_note.c)
+    
+    if(BUILD_STATIC)
+        add_library(wren STATIC ${WREN_SRC})
+        target_compile_definitions(wren PUBLIC TIC_BUILD_STATIC)
+        target_link_libraries(wren PRIVATE tic80core)
+    else()
+        add_library(wren SHARED ${WREN_SRC})
+        set_target_properties(wren PROPERTIES PREFIX "")
+        if(MINGW)
+            target_link_options(wren PRIVATE -static)
+        endif()
+    endif()
+    
+    target_include_directories(wren 
+        PRIVATE 
+            ${CMAKE_SOURCE_DIR}/include
+            ${CMAKE_SOURCE_DIR}/src
+    )
+
     target_include_directories(wren PUBLIC ${THIRDPARTY_DIR}/wren/src/include)
     target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/optional)
     target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/vm)
     target_compile_definitions(wren INTERFACE TIC_BUILD_WITH_WREN=1)
+
+    if(BUILD_DEMO_CARTS)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/wrendemo.wren)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/bunny/wrenmark.wren)
+    endif()
 
 endif()

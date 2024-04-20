@@ -24,7 +24,6 @@
 
 #include "api.h"
 #include "tools.h"
-#include "blip_buf.h"
 
 #define CLOCKRATE (255<<13)
 #define TIC_DEFAULT_COLOR 15
@@ -178,8 +177,8 @@ typedef struct
 
     struct
     {
-        blip_buffer_t* left;
-        blip_buffer_t* right;
+        struct blip_t* left;
+        struct blip_t* right;
     } blip;
     
     s32 samplerate;
@@ -188,7 +187,7 @@ typedef struct
 
     struct
     {
-        tic_core_state_data state;   
+        tic_core_state_data state;
         tic_ram ram;
         u8 input;
 
@@ -198,6 +197,17 @@ typedef struct
             u64 paused;
         } time;
     } pause;
+
+#if !defined(TIC_BUILD_STATIC)
+
+    struct
+    {
+    #define API_FUNC_DEF(name, _, __, ___, ____, _____, ret, ...) ret (*name)(__VA_ARGS__);
+        TIC_API_LIST(API_FUNC_DEF)
+    #undef  API_FUNC_DEF
+    } api;
+
+#endif
 
 } tic_core;
 

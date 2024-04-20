@@ -26,6 +26,7 @@ endif()
 
 set(BUILD_TOUCH_INPUT_DEFAULT ${ANDROID})
 
+option(BUILD_STATIC "Static runtime" ON)
 option(BUILD_SDL "SDL Enabled" ON)
 option(BUILD_SDLGPU "SDL GPU Enabled" OFF)
 option(BUILD_SOKOL "Sokol Enabled" OFF)
@@ -40,6 +41,7 @@ if(NOT BUILD_SDL)
     set(BUILD_SDLGPU OFF)
 endif()
 
+message("BUILD_STATIC: ${BUILD_STATIC}")
 message("BUILD_SDLGPU: ${BUILD_SDLGPU}")
 message("BUILD_TOUCH_INPUT: ${BUILD_TOUCH_INPUT}")
 message("BUILD_STUB: ${BUILD_STUB}")
@@ -100,9 +102,13 @@ if(RPI)
 endif()
 
 set(THIRDPARTY_DIR ${CMAKE_SOURCE_DIR}/vendor)
+set(DEMO_CARTS_IN ${CMAKE_SOURCE_DIR}/demos)
 
 include(cmake/gif.cmake)
 include(cmake/blipbuf.cmake)
+include(cmake/zlib.cmake)
+include(cmake/zip.cmake)
+include(cmake/tools.cmake)
 
 include(cmake/lua.cmake)
 include(cmake/wren.cmake)
@@ -114,11 +120,9 @@ include(cmake/pocketpy.cmake)
 include(cmake/quickjs.cmake)
 include(cmake/janet.cmake)
 
+include(cmake/demos.cmake)
 include(cmake/core.cmake)
 
-include(cmake/zlib.cmake)
-include(cmake/zip.cmake)
-include(cmake/tools.cmake)
 include(cmake/wave.cmake)
 include(cmake/argparse.cmake)
 include(cmake/naett.cmake)

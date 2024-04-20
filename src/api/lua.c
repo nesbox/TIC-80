@@ -29,7 +29,7 @@
 #include <lualib.h>
 #include <ctype.h>
 
-s32 luaopen_lpeg(lua_State *lua);
+extern bool parse_note(const char* noteStr, s32* note, s32* octave);
 
 static inline s32 getLuaNumber(lua_State* lua, s32 index)
 {
@@ -49,6 +49,12 @@ static tic_core* getLuaCore(lua_State* lua)
     return core;
 }
 
+#if defined(TIC_BUILD_STATIC)
+#define CALLAPI(x) tic_api_ ## x
+#else
+#define CALLAPI(x) getLuaCore(lua)->api.x
+#endif
+
 static s32 lua_peek(lua_State* lua)
 {
     s32 top = lua_gettop(lua);
@@ -62,7 +68,7 @@ static s32 lua_peek(lua_State* lua)
         if(top == 2)
             bits = getLuaNumber(lua, 2);
 
-        lua_pushinteger(lua, tic_api_peek(tic, address, bits));
+        lua_pushinteger(lua, CALLAPI(peek(tic, address, bits)));
         return 1;
     }
     else luaL_error(lua, "invalid parameters, peek(addr,bits)\n");
@@ -84,7 +90,7 @@ static s32 lua_poke(lua_State* lua)
         if(top == 3)
             bits = getLuaNumber(lua, 3);
 
-        tic_api_poke(tic, address, value, bits);
+        CALLAPI(poke(tic, address, value, bits));
     }
     else luaL_error(lua, "invalid parameters, poke(addr,val,bits)\n");
 
@@ -99,7 +105,7 @@ static s32 lua_peek1(lua_State* lua)
     if(top == 1)
     {
         s32 address = getLuaNumber(lua, 1);
-        lua_pushinteger(lua, tic_api_peek1(tic, address));
+        lua_pushinteger(lua, CALLAPI(peek1(tic, address)));
         return 1;
     }
     else luaL_error(lua, "invalid parameters, peek1(addr)\n");
@@ -117,7 +123,7 @@ static s32 lua_poke1(lua_State* lua)
         s32 address = getLuaNumber(lua, 1);
         u8 value = getLuaNumber(lua, 2);
 
-        tic_api_poke1(tic, address, value);
+        CALLAPI(poke1(tic, address, value));
     }
     else luaL_error(lua, "invalid parameters, poke1(addr,val)\n");
 
@@ -132,7 +138,7 @@ static s32 lua_peek2(lua_State* lua)
     if(top == 1)
     {
         s32 address = getLuaNumber(lua, 1);
-        lua_pushinteger(lua, tic_api_peek2(tic, address));
+        lua_pushinteger(lua, CALLAPI(peek2(tic, address)));
         return 1;
     }
     else luaL_error(lua, "invalid parameters, peek2(addr)\n");
@@ -150,7 +156,7 @@ static s32 lua_poke2(lua_State* lua)
         s32 address = getLuaNumber(lua, 1);
         u8 value = getLuaNumber(lua, 2);
 
-        tic_api_poke2(tic, address, value);
+        CALLAPI(poke2(tic, address, value));
     }
     else luaL_error(lua, "invalid parameters, poke2(addr,val)\n");
 
@@ -165,7 +171,7 @@ static s32 lua_peek4(lua_State* lua)
     if(top == 1)
     {
         s32 address = getLuaNumber(lua, 1);
-        lua_pushinteger(lua, tic_api_peek4(tic, address));
+        lua_pushinteger(lua, CALLAPI(peek4(tic, address)));
         return 1;
     }
     else luaL_error(lua, "invalid parameters, peek4(addr)\n");
@@ -183,7 +189,7 @@ static s32 lua_poke4(lua_State* lua)
         s32 address = getLuaNumber(lua, 1);
         u8 value = getLuaNumber(lua, 2);
 
-        tic_api_poke4(tic, address, value);
+        CALLAPI(poke4(tic, address, value));
     }
     else luaL_error(lua, "invalid parameters, poke4(addr,val)\n");
 
@@ -196,7 +202,7 @@ static s32 lua_cls(lua_State* lua)
 
     tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
-    tic_api_cls(tic, top == 1 ? getLuaNumber(lua, 1) : 0);
+    CALLAPI(cls(tic, top == 1 ? getLuaNumber(lua, 1) : 0));
 
     return 0;
 }
@@ -215,11 +221,11 @@ static s32 lua_pix(lua_State* lua)
         if(top >= 3)
         {
             s32 color = getLuaNumber(lua, 3);
-            tic_api_pix(tic, x, y, color, false);
+            CALLAPI(pix(tic, x, y, color, false));
         }
         else
         {
-            lua_pushinteger(lua, tic_api_pix(tic, x, y, 0, true));
+            lua_pushinteger(lua, CALLAPI(pix(tic, x, y, 0, true)));
             return 1;
         }
 
@@ -243,7 +249,7 @@ static s32 lua_line(lua_State* lua)
 
         tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
-        tic_api_line(tic, x0, y0, x1, y1, color);
+        CALLAPI(line(tic, x0, y0, x1, y1, color));
     }
     else luaL_error(lua, "invalid parameters, line(x0,y0,x1,y1,color)\n");
 
@@ -264,7 +270,7 @@ static s32 lua_rect(lua_State* lua)
 
         tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
-        tic_api_rect(tic, x, y, w, h, color);
+        CALLAPI(rect(tic, x, y, w, h, color));
     }
     else luaL_error(lua, "invalid parameters, rect(x,y,w,h,color)\n");
 
@@ -285,7 +291,7 @@ static s32 lua_rectb(lua_State* lua)
 
         tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
-        tic_api_rectb(tic, x, y, w, h, color);
+        CALLAPI(rectb(tic, x, y, w, h, color));
     }
     else luaL_error(lua, "invalid parameters, rectb(x,y,w,h,color)\n");
 
@@ -305,7 +311,7 @@ static s32 lua_circ(lua_State* lua)
         s32 radius = getLuaNumber(lua, 3);
         s32 color = getLuaNumber(lua, 4);
 
-        tic_api_circ(tic, x, y, radius, color);
+        CALLAPI(circ(tic, x, y, radius, color));
     }
     else luaL_error(lua, "invalid parameters, circ(x,y,radius,color)\n");
 
@@ -325,7 +331,7 @@ static s32 lua_circb(lua_State* lua)
         s32 radius = getLuaNumber(lua, 3);
         s32 color = getLuaNumber(lua, 4);
 
-        tic_api_circb(tic, x, y, radius, color);
+        CALLAPI(circb(tic, x, y, radius, color));
     }
     else luaL_error(lua, "invalid parameters, circb(x,y,radius,color)\n");
 
@@ -346,7 +352,7 @@ static s32 lua_elli(lua_State* lua)
         s32 b = getLuaNumber(lua, 4);
         s32 color = getLuaNumber(lua, 5);
 
-        tic_api_elli(tic, x, y, a, b, color);
+        CALLAPI(elli(tic, x, y, a, b, color));
     }
     else luaL_error(lua, "invalid parameters, elli(x,y,a,b,color)\n");
 
@@ -367,7 +373,7 @@ static s32 lua_ellib(lua_State* lua)
         s32 b = getLuaNumber(lua, 4);
         s32 color = getLuaNumber(lua, 5);
 
-        tic_api_ellib(tic, x, y, a, b, color);
+        CALLAPI(ellib(tic, x, y, a, b, color));
     }
     else luaL_error(lua, "invalid parameters, ellib(x,y,a,b,color)\n");
 
@@ -389,7 +395,7 @@ static s32 lua_tri(lua_State* lua)
 
         tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
-        tic_api_tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
+        CALLAPI(tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color));
     }
     else luaL_error(lua, "invalid parameters, tri(x1,y1,x2,y2,x3,y3,color)\n");
 
@@ -411,7 +417,7 @@ static s32 lua_trib(lua_State* lua)
 
         tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
-        tic_api_trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
+        CALLAPI(trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color));
     }
     else luaL_error(lua, "invalid parameters, trib(x1,y1,x2,y2,x3,y3,color)\n");
 
@@ -546,7 +552,7 @@ static s32 lua_ttri(lua_State* lua)
             depth = true;
         }
 
-        tic_api_ttri(tic, pt[0], pt[1],   //  xy 1
+        CALLAPI(ttri(tic, pt[0], pt[1],   //  xy 1
                             pt[2], pt[3],   //  xy 2
                             pt[4], pt[5],   //  xy 3
                             pt[6], pt[7],   //  uv 1
@@ -554,7 +560,7 @@ static s32 lua_ttri(lua_State* lua)
                             pt[10], pt[11], //  uv 3
                             src,            // texture source
                             colors, count,  // chroma
-                            z[0], z[1], z[2], depth); // depth
+                            z[0], z[1], z[2], depth)); // depth
     }
     else luaL_error(lua, "invalid parameters, ttri(x1,y1,x2,y2,x3,y3,u1,v1,u2,v2,u3,v3,[src=0],[chroma=off],[z1=0],[z2=0],[z3=0])\n");
     return 0;
@@ -569,7 +575,7 @@ static s32 lua_clip(lua_State* lua)
     {
         tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
-        tic_api_clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
+        CALLAPI(clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT));
     }
     else if(top == 4)
     {
@@ -580,7 +586,7 @@ static s32 lua_clip(lua_State* lua)
 
         tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
-        tic_api_clip((tic_mem*)getLuaCore(lua), x, y, w, h);
+        CALLAPI(clip((tic_mem*)getLuaCore(lua), x, y, w, h));
     }
     else luaL_error(lua, "invalid parameters, use clip(x,y,w,h) or clip()\n");
 
@@ -596,13 +602,13 @@ static s32 lua_btnp(lua_State* lua)
 
     if (top == 0)
     {
-        lua_pushinteger(lua, tic_api_btnp(tic, -1, -1, -1));
+        lua_pushinteger(lua, CALLAPI(btnp(tic, -1, -1, -1)));
     }
     else if(top == 1)
     {
         s32 index = getLuaNumber(lua, 1) & 0x1f;
 
-        lua_pushboolean(lua, tic_api_btnp(tic, index, -1, -1));
+        lua_pushboolean(lua, CALLAPI(btnp(tic, index, -1, -1)));
     }
     else if (top == 3)
     {
@@ -610,7 +616,7 @@ static s32 lua_btnp(lua_State* lua)
         u32 hold = getLuaNumber(lua, 2);
         u32 period = getLuaNumber(lua, 3);
 
-        lua_pushboolean(lua, tic_api_btnp(tic, index, hold, period));
+        lua_pushboolean(lua, CALLAPI(btnp(tic, index, hold, period)));
     }
     else
     {
@@ -630,11 +636,11 @@ static s32 lua_btn(lua_State* lua)
 
     if (top == 0)
     {
-        lua_pushinteger(lua, tic_api_btn(tic, -1));
+        lua_pushinteger(lua, CALLAPI(btn(tic, -1)));
     }
     else if (top == 1)
     {
-        bool pressed = tic_api_btn(tic, getLuaNumber(lua, 1) & 0x1f);
+        bool pressed = CALLAPI(btn(tic, getLuaNumber(lua, 1) & 0x1f));
         lua_pushboolean(lua, pressed);
     }
     else
@@ -722,7 +728,7 @@ static s32 lua_spr(lua_State* lua)
 
     tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
-    tic_api_spr(tic, index, x, y, w, h, colors, count, scale, flip, rotate);
+    CALLAPI(spr(tic, index, x, y, w, h, colors, count, scale, flip, rotate));
 
     return 0;
 }
@@ -738,7 +744,7 @@ static s32 lua_mget(lua_State* lua)
 
         tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
-        u8 value = tic_api_mget(tic, x, y);
+        u8 value = CALLAPI(mget(tic, x, y));
         lua_pushinteger(lua, value);
         return 1;
     }
@@ -759,7 +765,7 @@ static s32 lua_mset(lua_State* lua)
 
         tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
-        tic_api_mset(tic, x, y, val);
+        CALLAPI(mset(tic, x, y, val));
     }
     else luaL_error(lua, "invalid params, mget(x,y)\n");
 
@@ -857,7 +863,7 @@ static s32 lua_map(lua_State* lua)
 
                                 tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
-                                tic_api_map(tic, x, y, w, h, sx, sy, colors, count, scale, remapCallback, &data);
+                                CALLAPI(map(tic, x, y, w, h, sx, sy, colors, count, scale, remapCallback, &data));
 
                                 luaL_unref(lua, LUA_REGISTRYINDEX, data.reg);
 
@@ -872,7 +878,7 @@ static s32 lua_map(lua_State* lua)
 
     tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
-    tic_api_map((tic_mem*)getLuaCore(lua), x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
+    CALLAPI(map((tic_mem*)getLuaCore(lua), x, y, w, h, sx, sy, colors, count, scale, NULL, NULL));
 
     return 0;
 }
@@ -882,7 +888,7 @@ static s32 lua_music(lua_State* lua)
     s32 top = lua_gettop(lua);
     tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
-    if(top == 0) tic_api_music(tic, -1, 0, 0, false, false, -1, -1);
+    if(top == 0) CALLAPI(music(tic, -1, 0, 0, false, false, -1, -1));
     else if(top >= 1)
     {
         s32 track = getLuaNumber(lua, 1);
@@ -893,7 +899,7 @@ static s32 lua_music(lua_State* lua)
             return 0;
         }
 
-        tic_api_music(tic, -1, 0, 0, false, false, -1, -1);
+        CALLAPI(music(tic, -1, 0, 0, false, false, -1, -1));
 
         s32 frame = -1;
         s32 row = -1;
@@ -933,7 +939,7 @@ static s32 lua_music(lua_State* lua)
             }
         }
 
-        tic_api_music(tic, track, frame, row, loop, sustain, tempo, speed);
+        CALLAPI(music(tic, track, frame, row, loop, sustain, tempo, speed));
     }
     else luaL_error(lua, "invalid params, use music(track)\n");
 
@@ -980,7 +986,7 @@ static s32 lua_sfx(lua_State* lua)
                 {
                     const char* noteStr = lua_tostring(lua, 2);
 
-                    if(!tic_tool_parse_note(noteStr, &note, &octave))
+                    if(!parse_note(noteStr, &note, &octave))
                     {
                         luaL_error(lua, "invalid note, should be like C#4\n");
                         return 0;
@@ -1018,7 +1024,7 @@ static s32 lua_sfx(lua_State* lua)
 
             if (channel >= 0 && channel < TIC_SOUND_CHANNELS)
             {
-                tic_api_sfx(tic, index, note, octave, duration, channel, volumes[0] & 0xf, volumes[1] & 0xf, speed);
+                CALLAPI(sfx(tic, index, note, octave, duration, channel, volumes[0] & 0xf, volumes[1] & 0xf, speed));
             }
             else luaL_error(lua, "unknown channel\n");
         }
@@ -1037,7 +1043,7 @@ static s32 lua_vbank(lua_State* lua)
     s32 prev = core->state.vbank.id;
 
     if(lua_gettop(lua) == 1)
-        tic_api_vbank(tic, getLuaNumber(lua, 1));
+        CALLAPI(vbank(tic, getLuaNumber(lua, 1)));
 
     lua_pushinteger(lua, prev);
     return 1;
@@ -1067,7 +1073,7 @@ static s32 lua_sync(lua_State* lua)
     }
 
     if(bank >= 0 && bank < TIC_BANKS)
-        tic_api_sync(tic, mask, bank, toCart);
+        CALLAPI(sync(tic, mask, bank, toCart));
     else
         luaL_error(lua, "sync() error, invalid bank");
 
@@ -1092,14 +1098,14 @@ static s32 lua_key(lua_State* lua)
 
     if (top == 0)
     {
-        lua_pushboolean(lua, tic_api_key(tic, tic_key_unknown));
+        lua_pushboolean(lua, CALLAPI(key(tic, tic_key_unknown)));
     }
     else if (top == 1)
     {
         tic_key key = getLuaNumber(lua, 1);
 
         if(key < tic_keys_count)
-            lua_pushboolean(lua, tic_api_key(tic, key));
+            lua_pushboolean(lua, CALLAPI(key(tic, key)));
         else
         {
             luaL_error(lua, "unknown keyboard code\n");
@@ -1124,7 +1130,7 @@ static s32 lua_keyp(lua_State* lua)
 
     if (top == 0)
     {
-        lua_pushboolean(lua, tic_api_keyp(tic, tic_key_unknown, -1, -1));
+        lua_pushboolean(lua, CALLAPI(keyp(tic, tic_key_unknown, -1, -1)));
     }
     else
     {
@@ -1138,14 +1144,14 @@ static s32 lua_keyp(lua_State* lua)
         {
             if(top == 1)
             {
-                lua_pushboolean(lua, tic_api_keyp(tic, key, -1, -1));
+                lua_pushboolean(lua, CALLAPI(keyp(tic, key, -1, -1)));
             }
             else if(top == 3)
             {
                 u32 hold = getLuaNumber(lua, 2);
                 u32 period = getLuaNumber(lua, 3);
 
-                lua_pushboolean(lua, tic_api_keyp(tic, key, hold, period));
+                lua_pushboolean(lua, CALLAPI(keyp(tic, key, hold, period)));
             }
             else
             {
@@ -1169,7 +1175,7 @@ static s32 lua_memcpy(lua_State* lua)
         s32 size = getLuaNumber(lua, 3);
 
         tic_mem* tic = (tic_mem*)getLuaCore(lua);
-        tic_api_memcpy(tic, dest, src, size);
+        CALLAPI(memcpy(tic, dest, src, size));
     }
     else luaL_error(lua, "invalid params, memcpy(dest,src,size)\n");
 
@@ -1187,7 +1193,7 @@ static s32 lua_memset(lua_State* lua)
         s32 size = getLuaNumber(lua, 3);
 
         tic_mem* tic = (tic_mem*)getLuaCore(lua);
-        tic_api_memset(tic, dest, value, size);
+        CALLAPI(memset(tic, dest, value, size));
     }
     else luaL_error(lua, "invalid params, memset(dest,val,size)\n");
 
@@ -1263,7 +1269,7 @@ static s32 lua_font(lua_State* lua)
             return 1;
         }
 
-        s32 size = tic_api_font(tic, text, x, y, &chromakey, 1, width, height, fixed, scale, alt);
+        s32 size = CALLAPI(font(tic, text, x, y, &chromakey, 1, width, height, fixed, scale, alt));
 
         lua_pushinteger(lua, size);
 
@@ -1322,7 +1328,7 @@ static s32 lua_print(lua_State* lua)
             return 1;
         }
 
-        s32 size = tic_api_print(tic, text ? text : "nil", x, y, color, fixed, scale, alt);
+        s32 size = CALLAPI(print(tic, text ? text : "nil", x, y, color, fixed, scale, alt));
 
         lua_pushinteger(lua, size);
 
@@ -1347,7 +1353,7 @@ static s32 lua_trace(lua_State *lua)
             color = getLuaNumber(lua, 2);
         }
 
-        tic_api_trace(tic, text, color);
+        CALLAPI(trace(tic, text, color));
     }
     else luaL_error(lua, "invalid params, trace(text,[color])\n");
 
@@ -1366,11 +1372,11 @@ static s32 lua_pmem(lua_State *lua)
 
         if(index < TIC_PERSISTENT_SIZE)
         {
-            u32 val = tic_api_pmem(tic, index, 0, false);
+            u32 val = CALLAPI(pmem(tic, index, 0, false));
 
             if(top >= 2)
             {
-                tic_api_pmem(tic, index, (u32)lua_tointeger(lua, 2), true);
+                CALLAPI(pmem(tic, index, (u32)lua_tointeger(lua, 2), true));
             }
 
             lua_pushinteger(lua, val);
@@ -1389,7 +1395,7 @@ static s32 lua_time(lua_State *lua)
 {
     tic_mem* tic = (tic_mem*)getLuaCore(lua);
     
-    lua_pushnumber(lua, tic_api_time(tic));
+    lua_pushnumber(lua, CALLAPI(time(tic)));
 
     return 1;
 }
@@ -1398,14 +1404,14 @@ static s32 lua_tstamp(lua_State *lua)
 {
     tic_mem* tic = (tic_mem*)getLuaCore(lua);
 
-    lua_pushnumber(lua, tic_api_tstamp(tic));
+    lua_pushnumber(lua, CALLAPI(tstamp(tic)));
 
     return 1;
 }
 
 static s32 lua_exit(lua_State *lua)
 {
-    tic_api_exit((tic_mem*)getLuaCore(lua));
+    CALLAPI(exit((tic_mem*)getLuaCore(lua)));
     
     return 0;
 }
@@ -1415,7 +1421,7 @@ static s32 lua_mouse(lua_State *lua)
     tic_core* core = getLuaCore(lua);
 
     {
-        tic_point pos = tic_api_mouse((tic_mem*)core);
+        tic_point pos = CALLAPI(mouse((tic_mem*)core));
 
         lua_pushinteger(lua, pos.x);
         lua_pushinteger(lua, pos.y);
@@ -1444,7 +1450,7 @@ static s32 lua_fget(lua_State* lua)
         if(top >= 2)
         {
             u32 flag = getLuaNumber(lua, 2);
-            lua_pushboolean(lua, tic_api_fget(tic, index, flag));
+            lua_pushboolean(lua, CALLAPI(fget(tic, index, flag)));
             return 1;
         }
     }
@@ -1470,7 +1476,7 @@ static s32 lua_fset(lua_State* lua)
             if(top >= 3)
             {
                 bool value = lua_toboolean(lua, 3);
-                tic_api_fset(tic, index, flag, value);
+                CALLAPI(fset(tic, index, flag, value));
                 return 0;
             }
         }

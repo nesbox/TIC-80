@@ -14,6 +14,21 @@ message("BUILD_WITH_MRUBY: ${BUILD_WITH_MRUBY}")
 
 if(BUILD_WITH_MRUBY)
 
+    list(APPEND RUBY_SRC ${CMAKE_SOURCE_DIR}/src/api/mruby.c)
+    list(APPEND RUBY_SRC ${CMAKE_SOURCE_DIR}/src/api/parse_note.c)
+
+    if(BUILD_STATIC)
+        add_library(ruby STATIC ${RUBY_SRC})
+        target_compile_definitions(ruby PUBLIC TIC_BUILD_STATIC)
+        target_link_libraries(ruby PRIVATE tic80core)
+    else()
+        add_library(ruby SHARED ${RUBY_SRC})
+        set_target_properties(ruby PROPERTIES PREFIX "")
+        if(MINGW)
+            target_link_options(ruby PRIVATE -static)
+        endif()
+    endif()
+
     if(CMAKE_BUILD_TYPE)
         string(TOUPPER ${CMAKE_BUILD_TYPE} BUILD_TYPE_UC)
     endif()
@@ -26,6 +41,13 @@ if(BUILD_WITH_MRUBY)
         set(MRUBY_CONFIG ${MRUBY_BUILDDIR}/tic_default.rb)
     endif()
     set(MRUBY_LIB ${MRUBY_DIR}/build/target/lib/libmruby.a)
+
+    target_include_directories(ruby 
+        PUBLIC ${MRUBY_DIR}/include
+        PRIVATE 
+            ${CMAKE_SOURCE_DIR}/include
+            ${CMAKE_SOURCE_DIR}/src
+    )
 
     if(MSVC)
         set(MRUBY_TOOLCHAIN visualcpp)
@@ -65,15 +87,18 @@ if(BUILD_WITH_MRUBY)
         BUILD_BYPRODUCTS   ${MRUBY_LIB}
     )
 
-    add_library(mruby STATIC IMPORTED GLOBAL)
-    set_property(TARGET mruby APPEND
-        PROPERTY IMPORTED_LOCATION              ${MRUBY_LIB}
+    set_property(TARGET ruby APPEND
+        PROPERTY IMPORTED_LOCATION ${MRUBY_LIB}
     )
-    set_property(TARGET mruby APPEND
-        PROPERTY INTERFACE_INCLUDE_DIRECTORIES  ${MRUBY_DIR}/include
-    )
-    add_dependencies(mruby mruby_vendor)
 
-    target_compile_definitions(mruby INTERFACE TIC_BUILD_WITH_MRUBY=1)
+    add_dependencies(ruby mruby_vendor)
+    target_link_libraries(ruby PRIVATE ${MRUBY_LIB})
+
+    target_compile_definitions(ruby INTERFACE TIC_BUILD_WITH_MRUBY=1)
+
+    if(BUILD_DEMO_CARTS)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/rubydemo.rb)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/bunny/rubymark.rb)
+    endif()
 
 endif()

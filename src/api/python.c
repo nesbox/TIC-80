@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <string.h>
 
+extern bool parse_note(const char* noteStr, s32* note, s32* octave);
+
 struct CachedNames{
     pkpy_CName _tic_core;
     pkpy_CName len;
@@ -27,6 +29,12 @@ static bool get_core(pkpy_vm* vm, tic_core** core)
     pkpy_pop_top(vm);
     return ok;
 }
+
+#if defined(TIC_BUILD_STATIC)
+#define CALLAPI(x) tic_api_ ## x
+#else
+#define CALLAPI(x) ((tic_core*)tic)->api.x
+#endif
 
 static bool setup_core(pkpy_vm* vm, tic_core* core) 
 {
@@ -97,7 +105,7 @@ static int py_trace(pkpy_vm* vm)
         return 0;
     }
 
-    tic_api_trace(tic, message, (u8) color);
+    CALLAPI(trace(tic, message, (u8) color));
     return 0;
 }
 
@@ -111,7 +119,7 @@ static int py_cls(pkpy_vm* vm)
     if (pkpy_check_error(vm)) 
         return 0;
 
-    tic_api_cls(tic, (u8) color);
+    CALLAPI(cls(tic, (u8) color));
     return 0;
 }
 
@@ -125,7 +133,7 @@ static int py_btn(pkpy_vm* vm)
     if(pkpy_check_error(vm))
         return 0;
 
-    bool pressed = tic_api_btn(tic, button_id & 0x1f);
+    bool pressed = CALLAPI(btn(tic, button_id & 0x1f));
     pkpy_push_bool(vm, pressed);
     return 1;
 }
@@ -144,7 +152,7 @@ static int py_btnp(pkpy_vm* vm)
     if(pkpy_check_error(vm))
         return 0;
 
-    bool pressed = tic_api_btnp(tic, button_id, hold, period);
+    bool pressed = CALLAPI(btnp(tic, button_id, hold, period));
     pkpy_push_bool(vm, pressed);
     return 1;
 }
@@ -165,7 +173,7 @@ static int py_circ(pkpy_vm* vm)
     if(pkpy_check_error(vm))
         return 0;
 
-    tic_api_circ(tic, x, y, radius, color);
+    CALLAPI(circ(tic, x, y, radius, color));
     return 0;
 }
 
@@ -185,7 +193,7 @@ static int py_circb(pkpy_vm* vm)
     if(pkpy_check_error(vm))
         return 0;
 
-    tic_api_circb(tic, x, y, radius, color);
+    CALLAPI(circb(tic, x, y, radius, color));
     return 0;
 }
 
@@ -207,7 +215,7 @@ static int py_elli(pkpy_vm* vm)
     if(pkpy_check_error(vm))
         return 0;
 
-    tic_api_elli(tic, x, y, a, b, color);
+    CALLAPI(elli(tic, x, y, a, b, color));
     return 0;
 }
 
@@ -229,7 +237,7 @@ static int py_ellib(pkpy_vm* vm)
     if(pkpy_check_error(vm))
         return 0;
 
-    tic_api_ellib(tic, x, y, a, b, color);
+    CALLAPI(ellib(tic, x, y, a, b, color));
     return 0;
 }
 
@@ -249,7 +257,7 @@ static int py_clip(pkpy_vm* vm)
     if(pkpy_check_error(vm))
         return 0;
 
-    tic_api_clip(tic, x, y, w, h);
+    CALLAPI(clip(tic, x, y, w, h));
     return 0;
 }
 
@@ -261,7 +269,7 @@ static int py_exit(pkpy_vm* vm)
     if(pkpy_check_error(vm))
         return 0;
 
-    tic_api_exit(tic);
+    CALLAPI(exit(tic));
     return 0;
 }
 
@@ -277,7 +285,7 @@ static int py_fget(pkpy_vm* vm)
     if(pkpy_check_error(vm))
         return 0;
 
-    bool set = tic_api_fget(tic, sprite_id, (u8)flag);
+    bool set = CALLAPI(fget(tic, sprite_id, (u8)flag));
     pkpy_push_bool(vm, set);
     return 1;
 }
@@ -296,7 +304,7 @@ static int py_fset(pkpy_vm* vm)
     if(pkpy_check_error(vm))
         return 0;
 
-    tic_api_fset(tic, sprite_id, (u8)flag, set_to);
+    CALLAPI(fset(tic, sprite_id, (u8)flag, set_to));
     return 0;
 }
 
@@ -334,7 +342,7 @@ static int py_font(pkpy_vm* vm)
     else 
     {
         u8 chromakey = (u8) chromakey_raw;
-        s32 size = tic_api_font(tic, text, x, y, &chromakey, 1, width, height, fixed, scale, alt);
+        s32 size = CALLAPI(font(tic, text, x, y, &chromakey, 1, width, height, fixed, scale, alt));
         pkpy_push_int(vm, size);
     }
 
@@ -356,7 +364,7 @@ static int py_key(pkpy_vm* vm)
         return 0;
     }
 
-    bool pressed = tic_api_key(tic, key_id);
+    bool pressed = CALLAPI(key(tic, key_id));
     pkpy_push_bool(vm, pressed);
     return 1;
 }
@@ -380,7 +388,7 @@ static int py_keyp(pkpy_vm* vm)
         return 0;
     }
 
-    bool pressed = tic_api_keyp(tic, key_id, hold, period);
+    bool pressed = CALLAPI(keyp(tic, key_id, hold, period));
     pkpy_push_bool(vm, pressed);
     return 1;
 }
@@ -403,7 +411,7 @@ static int py_line(pkpy_vm* vm)
     if(pkpy_check_error(vm))
         return 0;
 
-    tic_api_line(tic, x0, y0, x1, y1, color);
+    CALLAPI(line(tic, x0, y0, x1, y1, color));
     return 0;
 }
 
@@ -458,9 +466,9 @@ static int py_map(pkpy_vm* vm)
 
     //last element on the stack should be the function, so no need to adjust anything
     if (used_remap) 
-        tic_api_map(tic, x, y, w, h, sx, sy, colors, color_count, scale, remap_callback, vm);
+        CALLAPI(map(tic, x, y, w, h, sx, sy, colors, color_count, scale, remap_callback, vm));
     else 
-        tic_api_map(tic, x, y, w, h, sx, sy, colors, color_count, scale, NULL, NULL);
+        CALLAPI(map(tic, x, y, w, h, sx, sy, colors, color_count, scale, NULL, NULL));
 
     return 0;
 }
@@ -479,7 +487,7 @@ static int py_memcpy(pkpy_vm* vm) {
     if(pkpy_check_error(vm)) 
         return 0;
 
-    tic_api_memcpy(tic, dest, src, size);
+    CALLAPI(memcpy(tic, dest, src, size));
 
     return 0;
 }
@@ -498,7 +506,7 @@ static int py_memset(pkpy_vm* vm) {
     if(pkpy_check_error(vm)) 
         return 0;
 
-    tic_api_memset(tic, dest, value, size);
+    CALLAPI(memset(tic, dest, value, size));
 
     return 0;
 }
@@ -515,7 +523,7 @@ static int py_mget(pkpy_vm* vm) {
     if(pkpy_check_error(vm)) 
         return 0;
 
-    int value = tic_api_mget(tic, x, y);
+    int value = CALLAPI(mget(tic, x, y));
     pkpy_push_int(vm, value);
 
     return 1;
@@ -535,7 +543,7 @@ static int py_mset(pkpy_vm* vm) {
     if(pkpy_check_error(vm)) 
         return 0;
 
-    tic_api_mset(tic, x, y, tile_id);
+    CALLAPI(mset(tic, x, y, tile_id));
 
     return 0;
 }
@@ -548,7 +556,8 @@ static int py_mouse(pkpy_vm* vm) {
     if(pkpy_check_error(vm)) 
         return 0;
 
-    tic_point pos = tic_api_mouse((tic_mem*)core);
+    tic_mem *tic = (tic_mem*)core;
+    tic_point pos = CALLAPI(mouse(tic));
 
     const tic80_mouse* mouse = &core->memory.ram->input.mouse;
 
@@ -589,9 +598,9 @@ static int py_music(pkpy_vm* vm) {
         pkpy_error(vm, "RuntimeError", pkpy_string("invalid music track index\n"));
 
     //stop the music first I guess
-    tic_api_music(tic, -1, 0, 0, false, false, -1, -1);
+    CALLAPI(music(tic, -1, 0, 0, false, false, -1, -1));
     if (track >= 0)
-        tic_api_music(tic, track, frame, row, loop, sustain, tempo, speed);
+        CALLAPI(music(tic, track, frame, row, loop, sustain, tempo, speed));
 
     return 0;
 }
@@ -608,7 +617,7 @@ static int py_peek(pkpy_vm* vm) {
     if(pkpy_check_error(vm)) 
         return 0;
 
-    int value = tic_api_peek(tic, address, bits);
+    int value = CALLAPI(peek(tic, address, bits));
     pkpy_push_int(vm, value);
 
     return 1;
@@ -624,7 +633,7 @@ static int py_peek1(pkpy_vm* vm) {
     if(pkpy_check_error(vm)) 
         return 0;
 
-    int value = tic_api_peek1(tic, address);
+    int value = CALLAPI(peek1(tic, address));
     pkpy_push_int(vm, value);
 
     return 1;
@@ -640,7 +649,7 @@ static int py_peek2(pkpy_vm* vm) {
     if(pkpy_check_error(vm)) 
         return 0;
 
-    int value = tic_api_peek2(tic, address);
+    int value = CALLAPI(peek2(tic, address));
     pkpy_push_int(vm, value);
 
     return 1;
@@ -656,7 +665,7 @@ static int py_peek4(pkpy_vm* vm) {
     if(pkpy_check_error(vm)) 
         return 0;
 
-    int value = tic_api_peek4(tic, address);
+    int value = CALLAPI(peek4(tic, address));
     pkpy_push_int(vm, value);
 
     return 1;
@@ -678,10 +687,10 @@ static int py_pix(pkpy_vm* vm) {
         return 0;
 
     if(color >= 0) { //set the pixel
-        tic_api_pix(tic, x, y, color, false);
+        CALLAPI(pix(tic, x, y, color, false));
         return 0;
     } else { //get the pixel
-        int value = tic_api_pix(tic, x, y, 0, true);
+        int value = CALLAPI(pix(tic, x, y, 0, true));
         pkpy_push_int(vm, value);
         return 1;
     }
@@ -707,11 +716,11 @@ static int py_pmem(pkpy_vm* vm) {
         return 0;
     }
 
-    int stored = tic_api_pmem(tic, index, 0, false);
+    int stored = CALLAPI(pmem(tic, index, 0, false));
     pkpy_push_int(vm, stored);
 
     if(provided_value)  //set the value
-        tic_api_pmem(tic, index, value, true);
+        CALLAPI(pmem(tic, index, value, true));
 
     return 1;
 }
@@ -730,7 +739,7 @@ static int py_poke(pkpy_vm* vm) {
     if(pkpy_check_error(vm)) 
         return 0;
 
-    tic_api_poke(tic, address, value, bits);
+    CALLAPI(poke(tic, address, value, bits));
 
     return 0;
 }
@@ -747,7 +756,7 @@ static int py_poke1(pkpy_vm* vm) {
     if(pkpy_check_error(vm)) 
         return 0;
 
-    tic_api_poke1(tic, address, value);
+    CALLAPI(poke1(tic, address, value));
 
     return 0;
 }
@@ -764,7 +773,7 @@ static int py_poke2(pkpy_vm* vm) {
     if(pkpy_check_error(vm)) 
         return 0;
 
-    tic_api_poke2(tic, address, value);
+    CALLAPI(poke2(tic, address, value));
 
     return 0;
 }
@@ -781,7 +790,7 @@ static int py_poke4(pkpy_vm* vm) {
     if(pkpy_check_error(vm)) 
         return 0;
 
-    tic_api_poke4(tic, address, value);
+    CALLAPI(poke4(tic, address, value));
 
     return 0;
 }
@@ -813,7 +822,7 @@ static int py_print(pkpy_vm* vm) {
         return 0;
     }
 
-    s32 size = tic_api_print(tic, text, x, y, color, fixed, scale, alt);
+    s32 size = CALLAPI(print(tic, text, x, y, color, fixed, scale, alt));
     pkpy_push_int(vm, size);
     return 1;
 }
@@ -836,7 +845,7 @@ static int py_rect(pkpy_vm* vm)
     if(pkpy_check_error(vm))
         return 0;
 
-    tic_api_rect(tic, x, y, w, h, color);
+    CALLAPI(rect(tic, x, y, w, h, color));
     return 0;
 }
 
@@ -858,7 +867,7 @@ static int py_rectb(pkpy_vm* vm)
     if(pkpy_check_error(vm))
         return 0;
 
-    tic_api_rectb(tic, x, y, w, h, color);
+    CALLAPI(rectb(tic, x, y, w, h, color));
     return 0;
 }
 
@@ -867,7 +876,7 @@ static int py_sfx(pkpy_vm* vm)
     tic_mem* tic;
     int sfx_id;
 
-    bool parse_note = false;
+    bool parse_note_flag = false;
     const char* string_note = NULL;
     int int_note;
 
@@ -879,7 +888,7 @@ static int py_sfx(pkpy_vm* vm)
     pkpy_to_int(vm, 0, &sfx_id);
 
     if (pkpy_is_string(vm, 1)) {
-        parse_note = true;
+        parse_note_flag = true;
         pkpy_to_string(vm, 1, &string_note);
     } else {
         pkpy_to_int(vm, 1, &int_note);
@@ -894,8 +903,8 @@ static int py_sfx(pkpy_vm* vm)
         goto cleanup;
     s32 note, octave;
 
-    if (parse_note) {
-        if(!tic_tool_parse_note(string_note, &note, &octave)) {
+    if (parse_note_flag) {
+        if(!parse_note(string_note, &note, &octave)) {
             pkpy_error(vm, "RuntimeError", pkpy_string("invalid note, should like C#4\n"));
             goto cleanup; //error in future;
         }
@@ -917,7 +926,7 @@ static int py_sfx(pkpy_vm* vm)
 
 
     //for now we won't support two channel volumes
-    tic_api_sfx(tic, sfx_id, note, octave, duration, channel, volume & 0xf, volume & 0xf, speed);
+    CALLAPI(sfx(tic, sfx_id, note, octave, duration, channel, volume & 0xf, volume & 0xf, speed));
 
 cleanup :
     return 0;
@@ -951,7 +960,7 @@ static int py_spr(pkpy_vm* vm)
     if(pkpy_check_error(vm)) 
         return 0;
 
-    tic_api_spr(tic, spr_id, x, y, w, h, colors, color_count, scale, flip, rotate);
+    CALLAPI(spr(tic, spr_id, x, y, w, h, colors, color_count, scale, flip, rotate));
 
     return 0;
 }
@@ -987,7 +996,7 @@ static int py_sync(pkpy_vm* vm)
     }
 
 
-    tic_api_sync(tic, mask, bank, tocart);
+    CALLAPI(sync(tic, mask, bank, tocart));
     return 0;
 }
 
@@ -998,7 +1007,7 @@ static int py_time(pkpy_vm* vm)
     if(pkpy_check_error(vm))
         return 0;
 
-    double time = tic_api_time(tic);
+    double time = CALLAPI(time(tic));
     pkpy_push_float(vm, time);
     return 1;
 }
@@ -1010,7 +1019,7 @@ static int py_tstamp(pkpy_vm* vm)
     if(pkpy_check_error(vm))
         return 0;
 
-    int tstamp = tic_api_tstamp(tic);
+    int tstamp = CALLAPI(tstamp(tic));
     pkpy_push_int(vm, tstamp);
     return 1;
 }
@@ -1037,7 +1046,7 @@ static int py_tri(pkpy_vm* vm)
     if(pkpy_check_error(vm))
         return 0;
 
-    tic_api_tri(tic, x1, y1, x2, y2, x3, y3, color);
+    CALLAPI(tri(tic, x1, y1, x2, y2, x3, y3, color));
     return 0;
 }
 
@@ -1063,7 +1072,7 @@ static int py_trib(pkpy_vm* vm)
     if(pkpy_check_error(vm))
         return 0;
 
-    tic_api_trib(tic, x1, y1, x2, y2, x3, y3, color);
+    CALLAPI(trib(tic, x1, y1, x2, y2, x3, y3, color));
     return 0;
 }
 
@@ -1115,7 +1124,7 @@ static int py_ttri(pkpy_vm* vm)
     if(pkpy_check_error(vm)) 
         return 0;
 
-    tic_api_ttri(
+    CALLAPI(ttri)(
         tic, 
         x1,y1,x2,y2,x3,y3, 
         u1,v1,u2,v2,u3,v3, 
@@ -1144,7 +1153,7 @@ static int py_vbank(pkpy_vm* vm) {
     s32 prev = core->state.vbank.id;
 
     if (bank_id >= 0)
-        tic_api_vbank(tic, bank_id);
+        CALLAPI(vbank(tic, bank_id));
 
     pkpy_push_int(vm, prev);
     return 1;
@@ -1515,8 +1524,7 @@ static const char* const PythonKeywords[] =
     "while", "for", "if", "elif", "else", "break", "continue", "return", "assert", "raise"
 };
 
-
-const tic_script_config PythonSyntaxConfig =
+tic_script_config PythonSyntaxConfig =
 {
     .id                 = 20,
     .name               = "python",

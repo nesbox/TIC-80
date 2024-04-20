@@ -28,7 +28,15 @@
 
 #include <janet.h>
 
+extern bool parse_note(const char* noteStr, s32* note, s32* octave);
+
 static inline tic_core* getJanetMachine(void);
+
+#if defined(TIC_BUILD_STATIC)
+#define CALLAPI(x) tic_api_ ## x
+#else
+#define CALLAPI(x) getJanetMachine()->api.x
+#endif
 
 static Janet janet_print(int32_t argc, Janet* argv);
 static Janet janet_cls(int32_t argc, Janet* argv);
@@ -185,7 +193,7 @@ static SFXNote tic_optsfxnote(Janet *argv, int32_t argc, int32_t n, SFXNote sfxN
     {
         const char *noteStr = janet_getcstring(argv, n);
 
-        if (!tic_tool_parse_note(noteStr, &sfxNote.note, &sfxNote.octave))
+        if (!parse_note(noteStr, &sfxNote.note, &sfxNote.octave))
         {
             janet_panicf("invalid note, should be like C#4, got %s\n", noteStr);
         }
@@ -291,7 +299,7 @@ static Janet janet_print(int32_t argc, Janet* argv)
     if (argc >= 7) alt = janet_getboolean(argv, 6);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    int32_t width = tic_api_print(memory, text, x, y, color, fixed, scale, alt);
+    int32_t width = CALLAPI(print(memory, text, x, y, color, fixed, scale, alt));
     return janet_wrap_integer(width);
 }
 
@@ -300,7 +308,7 @@ static Janet janet_cls(int32_t argc, Janet* argv)
     janet_arity(argc, 0, 1);
     u32 color = (u32)janet_optinteger(argv, argc, 0, 0);
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_cls(memory, color);
+    CALLAPI(cls(memory, color));
     return janet_wrap_nil();
 }
 
@@ -322,7 +330,7 @@ static Janet janet_pix(int32_t argc, Janet* argv)
     }
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    return janet_wrap_integer(tic_api_pix(memory, x, y, color, get));
+    return janet_wrap_integer(CALLAPI(pix(memory, x, y, color, get)));
 }
 
 static Janet janet_line(int32_t argc, Janet* argv)
@@ -336,7 +344,7 @@ static Janet janet_line(int32_t argc, Janet* argv)
     u8 color = (u8)janet_getinteger(argv, 4);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_line(memory, x1, y1, x2, y2, color);
+    CALLAPI(line(memory, x1, y1, x2, y2, color));
     return janet_wrap_nil();
 }
 
@@ -351,7 +359,7 @@ static Janet janet_rect(int32_t argc, Janet* argv)
     u8 color = (u8)janet_getinteger(argv, 4);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_rect(memory, x, y, width, height, color);
+    CALLAPI(rect(memory, x, y, width, height, color));
     return janet_wrap_nil();
 }
 
@@ -366,7 +374,7 @@ static Janet janet_rectb(int32_t argc, Janet* argv)
     u8 color = (u8)janet_getinteger(argv, 4);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_rectb(memory, x, y, width, height, color);
+    CALLAPI(rectb(memory, x, y, width, height, color));
     return janet_wrap_nil();
 }
 
@@ -387,9 +395,9 @@ static Janet janet_spr(int32_t argc, Janet* argv)
     s32 h = (s32)janet_optnumber(argv, argc, 8, 1);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_spr(memory, index, x, y, w, h,
+    CALLAPI(spr(memory, index, x, y, w, h,
                 colorkey.colors, colorkey.count,
-                scale, flip, rotate);
+                scale, flip, rotate));
 
     return janet_wrap_nil();
 }
@@ -401,7 +409,7 @@ static Janet janet_btn(int32_t argc, Janet* argv)
     s32 id = (s32)janet_getinteger(argv, 0);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    return janet_wrap_boolean(tic_api_btn(memory, id));
+    return janet_wrap_boolean(CALLAPI(btn(memory, id)));
 }
 
 static Janet janet_btnp(int32_t argc, Janet* argv)
@@ -414,7 +422,7 @@ static Janet janet_btnp(int32_t argc, Janet* argv)
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
 
-    return janet_wrap_boolean(tic_api_btnp(memory, id, hold, period));
+    return janet_wrap_boolean(CALLAPI(btnp(memory, id, hold, period)));
 }
 
 static Janet janet_sfx(int32_t argc, Janet* argv)
@@ -451,11 +459,11 @@ static Janet janet_sfx(int32_t argc, Janet* argv)
 
     s32 speed = (s32)janet_optinteger(argv, argc, 5, defaultSpeed);
 
-    tic_api_sfx(memory, index,
+    CALLAPI(sfx(memory, index,
                 sfxNote.note, sfxNote.octave,
                 duration, channel,
                 volumes[0] & 0xf, volumes[1] & 0xf,
-                speed);
+                speed));
     return janet_wrap_nil();
 }
 
@@ -506,17 +514,17 @@ static Janet janet_map(int32_t argc, Janet* argv)
 
     if (argc < 9)
     {
-        tic_api_map(memory, x, y, w, h, sx, sy,
+        CALLAPI(map(memory, x, y, w, h, sx, sy,
                     colorkey.colors, colorkey.count,
-                    scale, NULL, NULL);
+                    scale, NULL, NULL));
     }
     else
     {
         JanetFunction *remap = janet_getfunction(argv, 8);
-        tic_api_map(memory, x, y, w, h, sx, sy,
+        CALLAPI(map(memory, x, y, w, h, sx, sy,
                     colorkey.colors, colorkey.count,
                     scale,
-                    remapCallback, remap);
+                    remapCallback, remap));
     }
 
     return janet_wrap_nil();
@@ -530,7 +538,7 @@ static Janet janet_mget(int32_t argc, Janet* argv)
     s32 y = (s32)janet_getinteger(argv, 1);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    return janet_wrap_integer(tic_api_mget(memory, x, y));
+    return janet_wrap_integer(CALLAPI(mget(memory, x, y)));
 }
 
 static Janet janet_mset(int32_t argc, Janet* argv)
@@ -542,7 +550,7 @@ static Janet janet_mset(int32_t argc, Janet* argv)
     u8 value = (u8)janet_getinteger(argv, 2);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_mset(memory, x, y, value);
+    CALLAPI(mset(memory, x, y, value));
     return janet_wrap_nil();
 }
 
@@ -553,7 +561,7 @@ static Janet janet_peek(int32_t argc, Janet* argv)
     s32 bits = (s32)janet_optinteger(argv, argc, 1, BITS_IN_BYTE);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    return janet_wrap_integer(tic_api_peek(memory, address, bits));
+    return janet_wrap_integer(CALLAPI(peek(memory, address, bits)));
 }
 
 static Janet janet_poke(int32_t argc, Janet* argv)
@@ -564,7 +572,7 @@ static Janet janet_poke(int32_t argc, Janet* argv)
     s32 bits = (s32)janet_optinteger(argv, argc, 2, BITS_IN_BYTE);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_poke(memory, address, value, bits);
+    CALLAPI(poke(memory, address, value, bits));
 
     return janet_wrap_nil();
 }
@@ -576,7 +584,7 @@ static Janet janet_peek1(int32_t argc, Janet* argv)
     u8 address = (u8)janet_getinteger(argv, 0);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    return janet_wrap_integer(tic_api_peek1(memory, address));
+    return janet_wrap_integer(CALLAPI(peek1(memory, address)));
 }
 
 static Janet janet_poke1(int32_t argc, Janet* argv)
@@ -587,7 +595,7 @@ static Janet janet_poke1(int32_t argc, Janet* argv)
     u8 value = (u8)janet_getinteger(argv, 1);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_poke1(memory, address, value);
+    CALLAPI(poke1(memory, address, value));
     return janet_wrap_nil();
 }
 
@@ -598,7 +606,7 @@ static Janet janet_peek2(int32_t argc, Janet* argv)
     s32 address = janet_getinteger(argv, 0);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    return janet_wrap_integer(tic_api_peek2(memory, address));
+    return janet_wrap_integer(CALLAPI(peek2(memory, address)));
 }
 
 static Janet janet_poke2(int32_t argc, Janet* argv)
@@ -609,7 +617,7 @@ static Janet janet_poke2(int32_t argc, Janet* argv)
     u8 value = janet_getinteger(argv, 1);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_poke2(memory, address, value);
+    CALLAPI(poke2(memory, address, value));
     return janet_wrap_nil();
 }
 
@@ -620,7 +628,7 @@ static Janet janet_peek4(int32_t argc, Janet* argv)
     s32 address = janet_getinteger(argv, 0);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    return janet_wrap_integer(tic_api_peek4(memory, address));
+    return janet_wrap_integer(CALLAPI(peek4(memory, address)));
 }
 
 static Janet janet_poke4(int32_t argc, Janet* argv)
@@ -631,7 +639,7 @@ static Janet janet_poke4(int32_t argc, Janet* argv)
     u8 value = janet_getinteger(argv, 1);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_poke4(memory, address, value);
+    CALLAPI(poke4(memory, address, value));
     return janet_wrap_nil();
 }
 
@@ -644,7 +652,7 @@ static Janet janet_memcpy(int32_t argc, Janet* argv)
     s32 size = janet_getinteger(argv, 2);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_memcpy(memory, dst, src, size);
+    CALLAPI(memcpy(memory, dst, src, size));
     return janet_wrap_nil();
 }
 
@@ -657,7 +665,7 @@ static Janet janet_memset(int32_t argc, Janet* argv)
     s32 size = janet_getinteger(argv, 2);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_memset(memory, dst, val, size);
+    CALLAPI(memset(memory, dst, val, size));
     return janet_wrap_nil();
 }
 
@@ -673,7 +681,7 @@ static Janet janet_trace(int32_t argc, Janet* argv)
     }
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_trace(memory, message, color);
+    CALLAPI(trace(memory, message, color));
     return janet_wrap_nil();
 }
 
@@ -685,12 +693,12 @@ static Janet janet_pmem(int32_t argc, Janet* argv)
     if(index < TIC_PERSISTENT_SIZE)
     {
         tic_mem* memory = (tic_mem*)getJanetMachine();
-        u32 val = tic_api_pmem(memory, index, 0, false);
+        u32 val = CALLAPI(pmem(memory, index, 0, false));
 
         if (argc >= 2)
         {
             u32 value = janet_getinteger(argv, 1);
-            tic_api_pmem(memory, index, value, true);
+            CALLAPI(pmem(memory, index, value, true));
         }
 
         return janet_wrap_integer(val);
@@ -705,21 +713,21 @@ static Janet janet_time(int32_t argc, Janet* argv)
 {
     janet_fixarity(argc, 0);
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    return janet_wrap_number(tic_api_time(memory));
+    return janet_wrap_number(CALLAPI(time(memory)));
 }
 
 static Janet janet_tstamp(int32_t argc, Janet* argv)
 {
     janet_fixarity(argc, 0);
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    return janet_wrap_integer(tic_api_tstamp(memory));
+    return janet_wrap_integer(CALLAPI(tstamp(memory)));
 }
 
 static Janet janet_exit(int32_t argc, Janet* argv)
 {
     janet_fixarity(argc, 0);
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_exit(memory);
+    CALLAPI(exit(memory));
     return janet_wrap_nil();
 }
 
@@ -739,9 +747,9 @@ static Janet janet_font(int32_t argc, Janet* argv)
     bool alt = janet_optboolean(argv, argc, 8, false);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    int32_t width = tic_api_font(memory,
+    int32_t width = CALLAPI(font(memory,
                                  text, x, y, &chromakey, 1,
-                                 w, h, fixed, scale, alt);
+                                 w, h, fixed, scale, alt));
     return janet_wrap_integer(width);
 }
 
@@ -753,7 +761,7 @@ static Janet janet_mouse(int32_t argc, Janet* argv)
     Janet result[7];
 
     {
-        tic_point point = tic_api_mouse(memory);
+        tic_point point = CALLAPI(mouse(memory));
         result[0] = janet_wrap_integer(point.x);
         result[1] = janet_wrap_integer(point.y);
     }
@@ -779,7 +787,7 @@ static Janet janet_circ(int32_t argc, Janet* argv)
     u8 color = janet_getinteger(argv, 3);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_circ(memory, x, y, radius, color);
+    CALLAPI(circ(memory, x, y, radius, color));
     return janet_wrap_nil();
 }
 
@@ -793,7 +801,7 @@ static Janet janet_circb(int32_t argc, Janet* argv)
     u8 color = janet_getinteger(argv, 3);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_circb(memory, x, y, radius, color);
+    CALLAPI(circb(memory, x, y, radius, color));
     return janet_wrap_nil();
 }
 
@@ -808,7 +816,7 @@ static Janet janet_elli(int32_t argc, Janet* argv)
     u8 color = janet_getinteger(argv, 4);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_elli(memory, x, y, a, b, color);
+    CALLAPI(elli(memory, x, y, a, b, color));
     return janet_wrap_nil();
 }
 
@@ -823,7 +831,7 @@ static Janet janet_ellib(int32_t argc, Janet* argv)
     u8 color = janet_getinteger(argv, 4);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_ellib(memory, x, y, a, b, color);
+    CALLAPI(ellib(memory, x, y, a, b, color));
     return janet_wrap_nil();
 }
 
@@ -840,7 +848,7 @@ static Janet janet_tri(int32_t argc, Janet* argv)
     u8 color = janet_getnumber(argv, 6);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_tri(memory, x1, y1, x2, y2, x3, y3, color);
+    CALLAPI(tri(memory, x1, y1, x2, y2, x3, y3, color));
     return janet_wrap_nil();
 }
 
@@ -857,7 +865,7 @@ static Janet janet_trib(int32_t argc, Janet* argv)
     u8 color = janet_getnumber(argv, 6);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_trib(memory, x1, y1, x2, y2, x3, y3, color);
+    CALLAPI(trib(memory, x1, y1, x2, y2, x3, y3, color));
     return janet_wrap_nil();
 }
 
@@ -899,7 +907,7 @@ static Janet janet_ttri(int32_t argc, Janet* argv)
     TriDepth depth = tic_opttridepth(argv, argc, 14);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_ttri(memory,
+    CALLAPI(ttri(memory,
                  x1, y1,
                  x2, y2,
                  x3, y3,
@@ -908,7 +916,7 @@ static Janet janet_ttri(int32_t argc, Janet* argv)
                  u3, v3,
                  src,
                  trans.colors, trans.count,
-                 depth.z[0], depth.z[1], depth.z[2], depth.on);
+                 depth.z[0], depth.z[1], depth.z[2], depth.on));
 
     return janet_wrap_nil();
 }
@@ -920,13 +928,13 @@ static Janet janet_clip(int32_t argc, Janet* argv)
     tic_mem* memory = (tic_mem*)getJanetMachine();
 
     if (argc == 0) {
-        tic_api_clip(memory, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
+        CALLAPI(clip(memory, 0, 0, TIC80_WIDTH, TIC80_HEIGHT));
     } else if (argc == 4) {
         s32 x = janet_getinteger(argv, 0);
         s32 y = janet_getinteger(argv, 1);
         s32 w = janet_getinteger(argv, 2);
         s32 h = janet_getinteger(argv, 3);
-        tic_api_clip(memory, x, y, w, h);
+        CALLAPI(clip(memory, x, y, w, h));
     } else {
         janet_panic("Error: must provide exactly 0 or 4 args.");
     }
@@ -947,7 +955,7 @@ static Janet janet_music(int32_t argc, Janet* argv)
     s32 speed = janet_optinteger(argv, argc, 6, -1);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_music(memory, track, frame, row, loop, sustain, tempo, speed);
+    CALLAPI(music(memory, track, frame, row, loop, sustain, tempo, speed));
 
     return janet_wrap_nil();
 }
@@ -961,7 +969,7 @@ static Janet janet_sync(int32_t argc, Janet* argv)
     bool toCart = janet_optboolean(argv, argc, 2, false);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_sync(memory, mask, bank, toCart);
+    CALLAPI(sync(memory, mask, bank, toCart));
     return janet_wrap_nil();
 }
 
@@ -972,7 +980,7 @@ static Janet janet_vbank(int32_t argc, Janet* argv)
     s32 bank = janet_getinteger(argv, 0);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    return janet_wrap_integer(tic_api_vbank(memory, bank));
+    return janet_wrap_integer(CALLAPI(vbank(memory, bank)));
 }
 
 static Janet janet_reset(int32_t argc, Janet* argv)
@@ -991,7 +999,7 @@ static Janet janet_key(int32_t argc, Janet* argv)
     if (argc >= 1) key = (tic_key)janet_getinteger(argv, 0);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    return janet_wrap_boolean(tic_api_key(memory, key));
+    return janet_wrap_boolean(CALLAPI(key(memory, key)));
 }
 
 static Janet janet_keyp(int32_t argc, Janet* argv)
@@ -1006,7 +1014,7 @@ static Janet janet_keyp(int32_t argc, Janet* argv)
     if (argc >= 3) period = janet_getinteger(argv, 2);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    return janet_wrap_boolean(tic_api_keyp(memory, key, hold, period));
+    return janet_wrap_boolean(CALLAPI(keyp(memory, key, hold, period)));
 }
 
 static Janet janet_fget(int32_t argc, Janet* argv)
@@ -1017,7 +1025,7 @@ static Janet janet_fget(int32_t argc, Janet* argv)
     u8 flag = janet_getinteger(argv, 1);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    return janet_wrap_boolean(tic_api_fget(memory, index, flag));
+    return janet_wrap_boolean(CALLAPI(fget(memory, index, flag)));
 }
 
 
@@ -1030,7 +1038,7 @@ static Janet janet_fset(int32_t argc, Janet* argv)
     bool value = janet_getboolean(argv, 2);
 
     tic_mem* memory = (tic_mem*)getJanetMachine();
-    tic_api_fset(memory, index, flag, value);
+    CALLAPI(fset(memory, index, flag, value));
     return janet_wrap_nil();
 }
 

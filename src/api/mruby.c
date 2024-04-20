@@ -37,6 +37,8 @@
 #include <mruby/value.h>
 #include <mruby/string.h>
 
+extern bool parse_note(const char* noteStr, s32* note, s32* octave);
+
 typedef struct {
     struct mrb_state* mrb;
     struct mrbc_context* mrb_cxt;
@@ -48,6 +50,12 @@ static inline tic_core* getMRubyMachine(mrb_state* mrb)
     return CurrentMachine;
 }
 
+#if defined(TIC_BUILD_STATIC)
+#define CALLAPI(x) tic_api_ ## x
+#else
+#define CALLAPI(x) getMRubyMachine(mrb)->api.x
+#endif
+
 static mrb_value mrb_peek(mrb_state* mrb, mrb_value self)
 {
     tic_core* machine = getMRubyMachine(mrb);
@@ -57,7 +65,7 @@ static mrb_value mrb_peek(mrb_state* mrb, mrb_value self)
     mrb_int bits = BITS_IN_BYTE;
     mrb_get_args(mrb, "i|i", &address, &bits);
 
-    return mrb_fixnum_value(tic_api_peek(tic, address, bits));
+    return mrb_fixnum_value(CALLAPI(peek(tic, address, bits)));
 }
 
 static mrb_value mrb_poke(mrb_state* mrb, mrb_value self)
@@ -69,7 +77,7 @@ static mrb_value mrb_poke(mrb_state* mrb, mrb_value self)
     mrb_int bits = BITS_IN_BYTE;
     mrb_get_args(mrb, "ii|i", &address, &value, &bits);
 
-    tic_api_poke(tic, address, value, bits);
+    CALLAPI(poke(tic, address, value, bits));
 
     return mrb_nil_value();
 }
@@ -82,7 +90,7 @@ static mrb_value mrb_peek1(mrb_state* mrb, mrb_value self)
     mrb_int address;
     mrb_get_args(mrb, "i", &address);
 
-    return mrb_fixnum_value(tic_api_peek1(tic, address));
+    return mrb_fixnum_value(CALLAPI(peek1(tic, address)));
 }
 
 static mrb_value mrb_poke1(mrb_state* mrb, mrb_value self)
@@ -93,7 +101,7 @@ static mrb_value mrb_poke1(mrb_state* mrb, mrb_value self)
     mrb_int address, value;
     mrb_get_args(mrb, "ii", &address, &value);
 
-    tic_api_poke1(tic, address, value);
+    CALLAPI(poke1(tic, address, value));
 
     return mrb_nil_value();
 }
@@ -106,7 +114,7 @@ static mrb_value mrb_peek2(mrb_state* mrb, mrb_value self)
     mrb_int address;
     mrb_get_args(mrb, "i", &address);
 
-    return mrb_fixnum_value(tic_api_peek2(tic, address));
+    return mrb_fixnum_value(CALLAPI(peek2(tic, address)));
 }
 
 static mrb_value mrb_poke2(mrb_state* mrb, mrb_value self)
@@ -117,7 +125,7 @@ static mrb_value mrb_poke2(mrb_state* mrb, mrb_value self)
     mrb_int address, value;
     mrb_get_args(mrb, "ii", &address, &value);
 
-    tic_api_poke2(tic, address, value);
+    CALLAPI(poke2(tic, address, value));
 
     return mrb_nil_value();
 }
@@ -130,7 +138,7 @@ static mrb_value mrb_peek4(mrb_state* mrb, mrb_value self)
     mrb_int address;
     mrb_get_args(mrb, "i", &address);
 
-    return mrb_fixnum_value(tic_api_peek4(tic, address));
+    return mrb_fixnum_value(CALLAPI(peek4(tic, address)));
 }
 
 static mrb_value mrb_poke4(mrb_state* mrb, mrb_value self)
@@ -141,7 +149,7 @@ static mrb_value mrb_poke4(mrb_state* mrb, mrb_value self)
     mrb_int address, value;
     mrb_get_args(mrb, "ii", &address, &value);
 
-    tic_api_poke4(tic, address, value);
+    CALLAPI(poke4(tic, address, value));
 
     return mrb_nil_value();
 }
@@ -153,7 +161,7 @@ static mrb_value mrb_cls(mrb_state* mrb, mrb_value self)
 
     tic_mem* memory = (tic_mem*)getMRubyMachine(mrb);
 
-    tic_api_cls(memory, color);
+    CALLAPI(cls(memory, color));
 
     return mrb_nil_value();
 }
@@ -167,12 +175,12 @@ static mrb_value mrb_pix(mrb_state* mrb, mrb_value self)
 
     if(argc == 3)
     {
-        tic_api_pix(memory, x, y, color, false);
+        CALLAPI(pix(memory, x, y, color, false));
         return mrb_nil_value();
     }
     else
     {
-        return mrb_fixnum_value(tic_api_pix(memory, x, y, 0, true));
+        return mrb_fixnum_value(CALLAPI(pix(memory, x, y, 0, true)));
     }
 }
 
@@ -184,7 +192,7 @@ static mrb_value mrb_line(mrb_state* mrb, mrb_value self)
 
     tic_mem* memory = (tic_mem*)getMRubyMachine(mrb);
 
-    tic_api_line(memory, x0, y0, x1, y1, color);
+    CALLAPI(line(memory, x0, y0, x1, y1, color));
 
     return mrb_nil_value();
 }
@@ -196,7 +204,7 @@ static mrb_value mrb_rect(mrb_state* mrb, mrb_value self)
 
     tic_mem* memory = (tic_mem*)getMRubyMachine(mrb);
 
-    tic_api_rect(memory, x, y, w, h, color);
+    CALLAPI(rect(memory, x, y, w, h, color));
 
     return mrb_nil_value();
 }
@@ -208,7 +216,7 @@ static mrb_value mrb_rectb(mrb_state* mrb, mrb_value self)
 
     tic_mem* memory = (tic_mem*)getMRubyMachine(mrb);
 
-    tic_api_rectb(memory, x, y, w, h, color);
+    CALLAPI(rectb(memory, x, y, w, h, color));
 
     return mrb_nil_value();
 }
@@ -221,7 +229,7 @@ static mrb_value mrb_circ(mrb_state* mrb, mrb_value self)
     if(radius >= 0) {
         tic_mem* memory = (tic_mem*)getMRubyMachine(mrb);
 
-        tic_api_circ(memory, x, y, radius, color);
+        CALLAPI(circ(memory, x, y, radius, color));
     } else {
         mrb_raise(mrb, E_ARGUMENT_ERROR, "radius must be greater than or equal 0");
     }
@@ -237,7 +245,7 @@ static mrb_value mrb_circb(mrb_state* mrb, mrb_value self)
     if(radius >= 0) {
         tic_mem* memory = (tic_mem*)getMRubyMachine(mrb);
 
-        tic_api_circb(memory, x, y, radius, color);
+        CALLAPI(circb(memory, x, y, radius, color));
     } else {
         mrb_raise(mrb, E_ARGUMENT_ERROR, "radius must be greater than or equal 0");
     }
@@ -252,7 +260,7 @@ static mrb_value mrb_elli(mrb_state* mrb, mrb_value self)
 
     tic_mem* memory = (tic_mem*)getMRubyMachine(mrb);
 
-    tic_api_elli(memory, x, y, a, b, color);
+    CALLAPI(elli(memory, x, y, a, b, color));
 
     return mrb_nil_value();
 }
@@ -264,7 +272,7 @@ static mrb_value mrb_ellib(mrb_state* mrb, mrb_value self)
 
     tic_mem* memory = (tic_mem*)getMRubyMachine(mrb);
 
-    tic_api_ellib(memory, x, y, a, b, color);
+    CALLAPI(ellib(memory, x, y, a, b, color));
 
     return mrb_nil_value();
 }
@@ -277,7 +285,7 @@ static mrb_value mrb_tri(mrb_state* mrb, mrb_value self)
 
     tic_mem* memory = (tic_mem*)getMRubyMachine(mrb);
 
-    tic_api_tri(memory, x1, y1, x2, y2, x3, y3, color);
+    CALLAPI(tri(memory, x1, y1, x2, y2, x3, y3, color));
 
     return mrb_nil_value();
 }
@@ -290,7 +298,7 @@ static mrb_value mrb_trib(mrb_state* mrb, mrb_value self)
 
     tic_mem* memory = (tic_mem*)getMRubyMachine(mrb);
 
-    tic_api_trib(memory, x1, y1, x2, y2, x3, y3, color);
+    CALLAPI(trib(memory, x1, y1, x2, y2, x3, y3, color));
 
     return mrb_nil_value();
 }
@@ -327,10 +335,10 @@ static mrb_value mrb_ttri(mrb_state* mrb, mrb_value self)
 
     tic_mem* memory = (tic_mem*)getMRubyMachine(mrb);
 
-    tic_api_ttri(memory,
+    CALLAPI(ttri(memory,
                         x1, y1, x2, y2, x3, y3,
                         u1, v1, u2, v2, u3, v3,
-                        src, chromas, count, z1, z2, z3, argc == 17);
+                        src, chromas, count, z1, z2, z3, argc == 17));
 
     free(chromas);
 
@@ -347,13 +355,13 @@ static mrb_value mrb_clip(mrb_state* mrb, mrb_value self)
     {
         tic_mem* memory = (tic_mem*)getMRubyMachine(mrb);
 
-        tic_api_clip(memory, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
+        CALLAPI(clip(memory, 0, 0, TIC80_WIDTH, TIC80_HEIGHT));
     }
     else if(argc == 4)
     {
         tic_mem* memory = (tic_mem*)getMRubyMachine(mrb);
 
-        tic_api_clip((tic_mem*)getMRubyMachine(mrb), x, y, w, h);
+        CALLAPI(clip((tic_mem*)getMRubyMachine(mrb), x, y, w, h));
     }
     else mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid parameters, use clip(x,y,w,h) or clip()");
 
@@ -370,15 +378,15 @@ static mrb_value mrb_btnp(mrb_state* mrb, mrb_value self)
 
     if (argc == 0)
     {
-        return mrb_fixnum_value(tic_api_btnp(memory, -1, -1, -1));
+        return mrb_fixnum_value(CALLAPI(btnp(memory, -1, -1, -1)));
     }
     else if(argc == 1)
     {
-        return mrb_bool_value(tic_api_btnp(memory, index & 0x1f, -1, -1) != 0);
+        return mrb_bool_value(CALLAPI(btnp(memory, index & 0x1f, -1, -1) != 0));
     }
     else if (argc == 3)
     {
-        return mrb_bool_value(tic_api_btnp(memory, index & 0x1f, hold, period) != 0);
+        return mrb_bool_value(CALLAPI(btnp(memory, index & 0x1f, hold, period) != 0));
     }
     else
     {
@@ -397,11 +405,11 @@ static mrb_value mrb_btn(mrb_state* mrb, mrb_value self)
 
     if (argc == 0)
     {
-        return mrb_bool_value(tic_api_btn(memory, -1) != 0);
+        return mrb_bool_value(CALLAPI(btn(memory, -1) != 0));
     }
     else if (argc == 1)
     {
-        return mrb_bool_value(tic_api_btn(memory, index & 0x1f) != 0);
+        return mrb_bool_value(CALLAPI(btn(memory, index & 0x1f) != 0));
     }
     else
     {
@@ -440,7 +448,7 @@ static mrb_value mrb_spr(mrb_state* mrb, mrb_value self)
 
     tic_mem* memory = (tic_mem*)getMRubyMachine(mrb);
 
-    tic_api_spr(memory, index, x, y, w, h, colors, count, scale, flip, rotate);
+    CALLAPI(spr(memory, index, x, y, w, h, colors, count, scale, flip, rotate));
 
     return mrb_nil_value();
 }
@@ -452,7 +460,7 @@ static mrb_value mrb_mget(mrb_state* mrb, mrb_value self)
 
     tic_mem* memory = (tic_mem*)getMRubyMachine(mrb);
 
-    u8 value = tic_api_mget(memory, x, y);
+    u8 value = CALLAPI(mget(memory, x, y));
     return mrb_fixnum_value(value);
 }
 
@@ -463,7 +471,7 @@ static mrb_value mrb_mset(mrb_state* mrb, mrb_value self)
 
     tic_mem* memory = (tic_mem*)getMRubyMachine(mrb);
 
-    tic_api_mset(memory, x, y, val);
+    CALLAPI(mset(memory, x, y, val));
 
     return mrb_nil_value();
 }
@@ -472,7 +480,7 @@ static mrb_value mrb_tstamp(mrb_state* mrb, mrb_value self)
 {
     tic_mem* tic = (tic_mem*)getMRubyMachine(mrb);
 
-    return mrb_fixnum_value(tic_api_tstamp(tic));
+    return mrb_fixnum_value(CALLAPI(tstamp(tic)));
 }
 
 static mrb_value mrb_vbank(mrb_state* mrb, mrb_value self)
@@ -487,7 +495,7 @@ static mrb_value mrb_vbank(mrb_state* mrb, mrb_value self)
 
     if (argc >= 1)
     {
-        tic_api_vbank(tic, vbank);
+        CALLAPI(vbank(tic, vbank));
     }
 
     return mrb_fixnum_value(prev);
@@ -500,7 +508,7 @@ static mrb_value mrb_fget(mrb_state* mrb, mrb_value self)
 
     tic_mem* tic = (tic_mem*)getMRubyMachine(mrb);
 
-    return mrb_bool_value(tic_api_fget(tic, index, flag));
+    return mrb_bool_value(CALLAPI(fget(tic, index, flag)));
 }
 
 static mrb_value mrb_fset(mrb_state* mrb, mrb_value self)
@@ -511,7 +519,7 @@ static mrb_value mrb_fset(mrb_state* mrb, mrb_value self)
 
     tic_mem* tic = (tic_mem*)getMRubyMachine(mrb);
 
-    tic_api_fset(tic, index, flag, value);
+    CALLAPI(fset(tic, index, flag, value));
 
     return mrb_nil_value();
 }
@@ -593,11 +601,11 @@ static mrb_value mrb_map(mrb_state* mrb, mrb_value self)
     if (mrb_proc_p(block))
     {
         RemapData data = { mrb, block };
-        tic_api_map(memory, x, y, w, h, sx, sy, chromas, count, scale, remapCallback, &data);
+        CALLAPI(map(memory, x, y, w, h, sx, sy, chromas, count, scale, remapCallback, &data));
     }
     else
     {
-        tic_api_map(memory, x, y, w, h, sx, sy, chromas, count, scale, NULL, NULL);
+        CALLAPI(map(memory, x, y, w, h, sx, sy, chromas, count, scale, NULL, NULL));
     }
 
     free(chromas);
@@ -619,14 +627,14 @@ static mrb_value mrb_music(mrb_state* mrb, mrb_value self)
 
     tic_mem* memory = (tic_mem*)getMRubyMachine(mrb);
 
-    tic_api_music(memory, -1, 0, 0, false, false, -1, -1);
+    CALLAPI(music(memory, -1, 0, 0, false, false, -1, -1));
 
     if(track >= 0)
     {
         if(track > MUSIC_TRACKS - 1)
             mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid music track index");
         else
-            tic_api_music(memory, track, frame, row, loop, sustain, tempo, speed);
+            CALLAPI(music(memory, track, frame, row, loop, sustain, tempo, speed));
     }
 
     return mrb_nil_value();
@@ -693,7 +701,7 @@ static mrb_value mrb_sfx(mrb_state* mrb, mrb_value self)
                 const char* noteStr = mrb_str_to_cstr(mrb, mrb_funcall(mrb, note_obj, "to_s", 0));
 
                 s32 octave32;
-                if (!tic_tool_parse_note(noteStr, &note, &octave32))
+                if (!parse_note(noteStr, &note, &octave32))
                 {
                     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid note, should be like C#4");
                     return mrb_nil_value();
@@ -709,7 +717,7 @@ static mrb_value mrb_sfx(mrb_state* mrb, mrb_value self)
 
         if (channel >= 0 && channel < TIC_SOUND_CHANNELS)
         {
-            tic_api_sfx(memory, index, note, octave, duration, channel, volumes[0] & 0xf, volumes[1] & 0xf, speed);
+            CALLAPI(sfx(memory, index, note, octave, duration, channel, volumes[0] & 0xf, volumes[1] & 0xf, speed));
         }
         else mrb_raise(mrb, E_ARGUMENT_ERROR, "unknown channel");
     }
@@ -729,7 +737,7 @@ static mrb_value mrb_sync(mrb_state* mrb, mrb_value self)
     mrb_int argc = mrb_get_args(mrb, "|iib", &mask, &bank, &toCart);
 
     if(bank >= 0 && bank < TIC_BANKS)
-        tic_api_sync(memory, mask, bank, toCart);
+        CALLAPI(sync(memory, mask, bank, toCart));
     else
         mrb_raise(mrb, E_ARGUMENT_ERROR, "sync() error, invalid bank");
 
@@ -754,11 +762,11 @@ static mrb_value mrb_key(mrb_state* mrb, mrb_value self)
     mrb_int argc = mrb_get_args(mrb, "|i", &key);
 
     if (argc == 0)
-        return mrb_bool_value(tic_api_key(tic, tic_key_unknown));
+        return mrb_bool_value(CALLAPI(key(tic, tic_key_unknown)));
     else
     {
         if(key < tic_key_escape)
-            return mrb_bool_value(tic_api_key(tic, key));
+            return mrb_bool_value(CALLAPI(key(tic, key)));
         else
         {
             mrb_raise(mrb, E_ARGUMENT_ERROR, "unknown keyboard code");
@@ -777,7 +785,7 @@ static mrb_value mrb_keyp(mrb_state* mrb, mrb_value self)
 
     if (argc == 0)
     {
-        return mrb_fixnum_value(tic_api_keyp(memory, -1, -1, -1));
+        return mrb_fixnum_value(CALLAPI(keyp(memory, -1, -1, -1)));
     }
     else if (key >= tic_key_escape)
     {
@@ -785,11 +793,11 @@ static mrb_value mrb_keyp(mrb_state* mrb, mrb_value self)
     }
     else if(argc == 1)
     {
-        return mrb_bool_value(tic_api_keyp(memory, key, -1, -1));
+        return mrb_bool_value(CALLAPI(keyp(memory, key, -1, -1)));
     }
     else if (argc == 3)
     {
-        return mrb_bool_value(tic_api_keyp(memory, key, hold, period));
+        return mrb_bool_value(CALLAPI(keyp(memory, key, hold, period)));
     }
     else
     {
@@ -866,7 +874,7 @@ static mrb_value mrb_font(mrb_state* mrb, mrb_value self)
 
     const char* text = mrb_value_to_cstr(mrb, text_obj);
 
-    s32 size = tic_api_font(memory, text, x, y, (u8*)&chromakey, 1, width, height, fixed, scale, alt);
+    s32 size = CALLAPI(font(memory, text, x, y, (u8*)&chromakey, 1, width, height, fixed, scale, alt));
     return mrb_fixnum_value(size);
 }
 
@@ -890,7 +898,7 @@ static mrb_value mrb_print(mrb_state* mrb, mrb_value self)
 
     const char* text = mrb_str_to_cstr(mrb, text_obj);
 
-    s32 size = tic_api_print(memory, text, x, y, color, fixed, scale, alt);
+    s32 size = CALLAPI(print(memory, text, x, y, color, fixed, scale, alt));
     return mrb_fixnum_value(size);
 }
 
@@ -918,11 +926,11 @@ static mrb_value mrb_pmem(mrb_state *mrb, mrb_value self)
 
     if(index < TIC_PERSISTENT_SIZE)
     {
-        u32 val = tic_api_pmem((tic_mem*)machine, index, 0, false);
+        u32 val = CALLAPI(pmem((tic_mem*)machine, index, 0, false));
 
         if(argc == 2)
         {
-            u32 val = tic_api_pmem((tic_mem*)machine, index, value, true);
+            u32 val = CALLAPI(pmem((tic_mem*)machine, index, value, true));
         }
 
         return mrb_fixnum_value(val);
@@ -938,7 +946,7 @@ static mrb_value mrb_pmem(mrb_state *mrb, mrb_value self)
 static mrb_value mrb_time(mrb_state *mrb, mrb_value self)
 {
     tic_mem* memory = (tic_mem*)getMRubyMachine(mrb);
-    return mrb_float_value(mrb, tic_api_time(memory));
+    return mrb_float_value(mrb, CALLAPI(time(memory)));
 }
 
 static mrb_value mrb_exit(mrb_state *mrb, mrb_value self)

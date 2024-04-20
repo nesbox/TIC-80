@@ -44,8 +44,6 @@ typedef float           f32;
 #include "m3_env.h"
 #include "m3_core.h"
 
-static const char TicCore[] = "_TIC80";
-
 IM3Function BDR_function;
 IM3Function SCN_function;
 IM3Function TIC_function;
@@ -142,6 +140,12 @@ static tic_core* getWasmCore(IM3Runtime ctx)
     return (tic_core*)ctx->userdata;
 }
 
+#if defined(TIC_BUILD_STATIC)
+#define CALLAPI(x) tic_api_ ## x
+#else
+#define CALLAPI(x) getWasmCore(runtime)->api.x
+#endif
+
 m3ApiRawFunction(wasmtic_line)
 {
     m3ApiGetArg      (float, x0)
@@ -152,7 +156,7 @@ m3ApiRawFunction(wasmtic_line)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    tic_api_line(tic, x0, y0, x1, y1, color);
+    CALLAPI(line(tic, x0, y0, x1, y1, color));
 
     m3ApiSuccess();
 }
@@ -167,7 +171,7 @@ m3ApiRawFunction(wasmtic_circ)
     if (radius >= 0)
     {
       tic_mem* tic = (tic_mem*)getWasmCore(runtime);
-      tic_api_circ(tic, x, y, radius, color);
+      CALLAPI(circ(tic, x, y, radius, color));
     }
 
     m3ApiSuccess();
@@ -183,7 +187,7 @@ m3ApiRawFunction(wasmtic_circb)
     if (radius >= 0)
     {
       tic_mem* tic = (tic_mem*)getWasmCore(runtime);
-      tic_api_circb(tic, x, y, radius, color);
+      CALLAPI(circb(tic, x, y, radius, color));
     }
 
     m3ApiSuccess();
@@ -200,7 +204,7 @@ m3ApiRawFunction(wasmtic_elli)
     if (a >= 0 && b >= 0)
     {
       tic_mem* tic = (tic_mem*)getWasmCore(runtime);
-      tic_api_elli(tic, x, y, a, b, color);
+      CALLAPI(elli(tic, x, y, a, b, color));
     }
 
     m3ApiSuccess();
@@ -217,7 +221,7 @@ m3ApiRawFunction(wasmtic_ellib)
     if (a >= 0 && b >= 0)
     {
       tic_mem* tic = (tic_mem*)getWasmCore(runtime);
-      tic_api_ellib(tic, x, y, a, b, color);
+      CALLAPI(ellib(tic, x, y, a, b, color));
     }
 
     m3ApiSuccess();
@@ -233,7 +237,7 @@ m3ApiRawFunction(wasmtic_rect)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    tic_api_rect(tic, x, y, w, h, color);
+    CALLAPI(rect(tic, x, y, w, h, color));
 
     m3ApiSuccess();
 }
@@ -248,7 +252,7 @@ m3ApiRawFunction(wasmtic_rectb)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    tic_api_rectb(tic, x, y, w, h, color);
+    CALLAPI(rectb(tic, x, y, w, h, color));
 
     m3ApiSuccess();
 }
@@ -265,7 +269,7 @@ m3ApiRawFunction(wasmtic_tri)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    tic_api_tri(tic, x1, y1, x2, y2, x3, y3, color);
+    CALLAPI(tri(tic, x1, y1, x2, y2, x3, y3, color));
 
     m3ApiSuccess();
 }
@@ -298,8 +302,8 @@ m3ApiRawFunction(wasmtic_ttri)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
     
-    tic_api_ttri(tic, x1, y1, x2, y2, x3, y3, 
-        u1, v1, u2, v2, u3, v3, texsrc, trans_colors, colorCount, z1, z2, z3, depth);
+    CALLAPI(ttri(tic, x1, y1, x2, y2, x3, y3, 
+        u1, v1, u2, v2, u3, v3, texsrc, trans_colors, colorCount, z1, z2, z3, depth));
 
     m3ApiSuccess();
 }
@@ -317,7 +321,7 @@ m3ApiRawFunction(wasmtic_trib)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    tic_api_trib(tic, x1, y1, x2, y2, x3, y3, color);
+    CALLAPI(trib(tic, x1, y1, x2, y2, x3, y3, color));
 
     m3ApiSuccess();
 }
@@ -330,7 +334,7 @@ m3ApiRawFunction(wasmtic_cls)
 
     color = (color == -1) ? 0 : color;
 
-    tic_api_cls(tic, color);
+    CALLAPI(cls(tic, color));
 
     m3ApiSuccess();
 }
@@ -345,10 +349,10 @@ m3ApiRawFunction(wasmtic_btn)
 
     tic_core* core = getWasmCore(runtime);
 
-    // -1 is a default placeholder here for `id`, but one that `tic_api_btn` already understands, so
+    // -1 is a default placeholder here for `id`, but one that `CALLAPI(btn` already understands, s)o
     // it just gets passed straight thru
 
-    m3ApiReturn(tic_api_btn((tic_mem *)core, index));
+    m3ApiReturn(CALLAPI(btn((tic_mem *)core, index)));
 
     m3ApiSuccess();
 }
@@ -367,7 +371,7 @@ m3ApiRawFunction(wasmtic_btnp)
     // knows this so we don't need to do any transaction, we can just pass the -1 values
     // straight thru 
 
-    m3ApiReturn(tic_api_btnp((tic_mem *)core, index, hold, period));
+    m3ApiReturn(CALLAPI(btnp((tic_mem *)core, index, hold, period)));
 
     m3ApiSuccess();
 }
@@ -384,7 +388,7 @@ m3ApiRawFunction(wasmtic_key)
 
     tic_core* core = getWasmCore(runtime);
 
-    m3ApiReturn(tic_api_key((tic_mem *)core, index));
+    m3ApiReturn(CALLAPI(key((tic_mem *)core, index)));
 
     m3ApiSuccess();
 }
@@ -403,7 +407,7 @@ m3ApiRawFunction(wasmtic_keyp)
 
     tic_core* core = getWasmCore(runtime);
 
-    m3ApiReturn(tic_api_keyp((tic_mem *)core, index, hold, period));
+    m3ApiReturn(CALLAPI(keyp((tic_mem *)core, index, hold, period)));
 
     m3ApiSuccess();
 }
@@ -417,7 +421,7 @@ m3ApiRawFunction(wasmtic_fget)
     
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    m3ApiReturn(tic_api_fget(tic, sprite_index, flag));
+    m3ApiReturn(CALLAPI(fget(tic, sprite_index, flag)));
 
     m3ApiSuccess();
 }
@@ -430,7 +434,7 @@ m3ApiRawFunction(wasmtic_fset)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    tic_api_fset(tic, sprite_index, flag, value);
+    CALLAPI(fset(tic, sprite_index, flag, value));
 
     m3ApiSuccess();
 }
@@ -444,7 +448,7 @@ m3ApiRawFunction(wasmtic_mget)
     
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    m3ApiReturn(tic_api_mget(tic, x, y));
+    m3ApiReturn(CALLAPI(mget(tic, x, y)));
 
     m3ApiSuccess();
 }
@@ -457,7 +461,7 @@ m3ApiRawFunction(wasmtic_mset)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    tic_api_mset(tic, x, y, value);
+    CALLAPI(mset(tic, x, y, value));
 
     m3ApiSuccess();
 }
@@ -472,7 +476,7 @@ m3ApiRawFunction(wasmtic_peek)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    m3ApiReturn(tic_api_peek(tic, address, bits));
+    m3ApiReturn(CALLAPI(peek(tic, address, bits)));
 
     m3ApiSuccess();
 }
@@ -485,7 +489,7 @@ m3ApiRawFunction(wasmtic_peek4)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    m3ApiReturn(tic_api_peek4(tic, address));
+    m3ApiReturn(CALLAPI(peek4(tic, address)));
 
     m3ApiSuccess();
 }
@@ -498,7 +502,7 @@ m3ApiRawFunction(wasmtic_peek2)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    m3ApiReturn(tic_api_peek2(tic, address));
+    m3ApiReturn(CALLAPI(peek2(tic, address)));
 
     m3ApiSuccess();
 }
@@ -511,7 +515,7 @@ m3ApiRawFunction(wasmtic_peek1)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    m3ApiReturn(tic_api_peek1(tic, address));
+    m3ApiReturn(CALLAPI(peek1(tic, address)));
 
     m3ApiSuccess();
 }
@@ -524,7 +528,7 @@ m3ApiRawFunction(wasmtic_poke)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    tic_api_poke(tic, address, value, bits);
+    CALLAPI(poke(tic, address, value, bits));
 
     m3ApiSuccess();
 }
@@ -537,7 +541,7 @@ m3ApiRawFunction(wasmtic_poke4)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    tic_api_poke4(tic, address, value);
+    CALLAPI(poke4(tic, address, value));
 
     m3ApiSuccess();
 }
@@ -550,7 +554,7 @@ m3ApiRawFunction(wasmtic_poke2)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    tic_api_poke2(tic, address, value);
+    CALLAPI(poke2(tic, address, value));
 
     m3ApiSuccess();
 }
@@ -563,7 +567,7 @@ m3ApiRawFunction(wasmtic_poke1)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    tic_api_poke1(tic, address, value);
+    CALLAPI(poke1(tic, address, value));
 
     m3ApiSuccess();
 }
@@ -583,11 +587,11 @@ m3ApiRawFunction(wasmtic_pmem)
         writeToStorage = false;
     };
 
-    // TODO: this should move into tic_api_pmem, should it not?
+    // TODO: this should move into CALLAPI(pmem, should it not)?
     if (address >= TIC_PERSISTENT_SIZE) {
         m3ApiReturn(0);
     }  else {
-        u32 val = tic_api_pmem(tic, address, value, writeToStorage);
+        u32 val = CALLAPI(pmem(tic, address, value, writeToStorage));
         m3ApiReturn(val);
     }
     
@@ -605,7 +609,7 @@ m3ApiRawFunction(wasmtic_pix)
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
     bool getPixel = color < 0;
-    u8 pix = tic_api_pix(tic, x, y, color, getPixel);
+    u8 pix = CALLAPI(pix(tic, x, y, color, getPixel));
     m3ApiReturn(pix);
 
     m3ApiSuccess();
@@ -637,7 +641,7 @@ m3ApiRawFunction(wasmtic_spr)
     if (w == -1) { w = 1; }
     if (h == -1) { h = 1; }
 
-    tic_api_spr(tic, index, x, y, w, h, trans_colors, colorCount, scale, flip, rotate) ;
+    CALLAPI(spr(tic, index, x, y, w, h, trans_colors, colorCount, scale, flip, rotate) );
 
     m3ApiSuccess();
 }
@@ -657,7 +661,7 @@ m3ApiRawFunction(wasmtic_clip)
     if (w == -1) { w = TIC80_WIDTH; }
     if (h == -1) { h = TIC80_HEIGHT; }
 
-    tic_api_clip(tic, x, y, w, h);
+    CALLAPI(clip(tic, x, y, w, h));
 
     m3ApiSuccess();
 }
@@ -722,7 +726,7 @@ m3ApiRawFunction(wasmtic_map)
     if (h == -1) { h = 17; }
     if (scale == -1) { scale = 1; }
 
-    tic_api_map(tic, x, y, w, h, sx, sy, trans_colors, colorCount, scale, map_data_ptr > 0 ? &wasm_remap : NULL, map_data_ptr > 0 ? &info : NULL);
+    CALLAPI(map(tic, x, y, w, h, sx, sy, trans_colors, colorCount, scale, map_data_ptr > 0 ? &wasm_remap : NULL, map_data_ptr > 0 ? &info : NULL));
 
     m3ApiSuccess();
 }
@@ -749,7 +753,7 @@ m3ApiRawFunction(wasmtic_print)
     if (scale==0) {
         text_width = 0;
     } else {
-        text_width = tic_api_print(tic, text, x, y, color, fixed, scale, alt);
+        text_width = CALLAPI(print(tic, text, x, y, color, fixed, scale, alt));
     }
     m3ApiReturn(text_width);
 
@@ -784,7 +788,7 @@ m3ApiRawFunction(wasmtic_font)
     if (scale==0) {
         text_width = 0;
     } else {
-        text_width = tic_api_font(tic, text, x, y, trans_colors, trans_count, char_width, char_height, fixed, scale, alt);
+        text_width = CALLAPI(font(tic, text, x, y, trans_colors, trans_count, char_width, char_height, fixed, scale, alt));
     }
     m3ApiReturn(text_width);
 
@@ -809,7 +813,7 @@ m3ApiRawFunction(wasmtic_sfx)
 
     if (channel >= 0 && channel < TIC_SOUND_CHANNELS)
     {
-        tic_api_sfx(tic, sfx_id, note, octave, duration, channel, volumeLeft & 0xf, volumeRight & 0xf, speed);
+        CALLAPI(sfx(tic, sfx_id, note, octave, duration, channel, volumeLeft & 0xf, volumeRight & 0xf, speed));
     }    
 
     m3ApiSuccess();
@@ -833,7 +837,7 @@ m3ApiRawFunction(wasmtic_music)
     if(track > MUSIC_TRACKS - 1)
         m3ApiTrap("invalid music track index");
 
-    tic_api_music(tic, track, frame, row, loop, sustain, tempo, speed);
+    CALLAPI(music(tic, track, frame, row, loop, sustain, tempo, speed));
 
     m3ApiSuccess();
 }
@@ -848,7 +852,7 @@ m3ApiRawFunction(wasmtic_memset)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    tic_api_memset(tic, address, value, length);
+    CALLAPI(memset(tic, address, value, length));
 
     m3ApiSuccess();
 }
@@ -861,7 +865,7 @@ m3ApiRawFunction(wasmtic_memcpy)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    tic_api_memcpy(tic, dest, src, length);
+    CALLAPI(memcpy(tic, dest, src, length));
 
     m3ApiSuccess();
 }
@@ -871,7 +875,7 @@ m3ApiRawFunction(wasmtic_exit)
 {
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    tic_api_exit(tic);
+    CALLAPI(exit(tic));
 
     m3ApiSuccess();
 }
@@ -896,7 +900,7 @@ m3ApiRawFunction(wasmtic_sync)
 
     // TODO: how to throw error if bank out of bounds?
     if (bank >=0 && bank < TIC_BANKS)
-        tic_api_sync(tic, mask, bank, toCart);
+        CALLAPI(sync(tic, mask, bank, toCart));
 
     m3ApiSuccess();
 }
@@ -907,7 +911,7 @@ m3ApiRawFunction(wasmtic_time)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    m3ApiReturn(tic_api_time(tic));
+    m3ApiReturn(CALLAPI(time(tic)));
 
     m3ApiSuccess();
 }
@@ -918,7 +922,7 @@ m3ApiRawFunction(wasmtic_tstamp)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    m3ApiReturn(tic_api_tstamp(tic));
+    m3ApiReturn(CALLAPI(tstamp(tic)));
 
     m3ApiSuccess();
 }
@@ -934,7 +938,7 @@ m3ApiRawFunction(wasmtic_trace)
         color = 15;
     }
 
-    tic_api_trace(tic, text, color);
+    CALLAPI(trace(tic, text, color));
 
     m3ApiSuccess();
 }
@@ -946,7 +950,7 @@ m3ApiRawFunction(wasmtic_vbank)
 
     tic_mem* tic = (tic_mem*)getWasmCore(runtime);
 
-    uint8_t previous_bank = tic_api_vbank(tic, bank);
+    uint8_t previous_bank = CALLAPI(vbank(tic, bank));
     m3ApiReturn(previous_bank);
 
     m3ApiSuccess();
@@ -974,7 +978,7 @@ m3ApiRawFunction(wasmtic_mouse)
     struct Mouse* mouse_data = mouse_ptr_addy;
     const tic80_mouse* mouse = &tic->ram->input.mouse;
 
-    tic_point pos = tic_api_mouse(tic);
+    tic_point pos = CALLAPI(mouse(tic));
 
     mouse_data->x = pos.x;
     mouse_data->y = pos.y;

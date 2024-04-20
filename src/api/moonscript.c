@@ -72,6 +72,8 @@ static void evalMoonscript(tic_mem* tic, const char* code) {
     }
 }
 
+extern s32 luaopen_lpeg(lua_State *lua);
+
 static bool initMoonscript(tic_mem* tic, const char* code)
 {
     tic_core* core = (tic_core*)tic;
