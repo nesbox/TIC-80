@@ -4,6 +4,14 @@
 #include <stdio.h>
 #include <string.h>
 
+#if defined(memset)
+#undef memset
+#endif
+
+#if defined(memcpy)
+#undef memcpy
+#endif
+
 extern bool parse_note(const char* noteStr, s32* note, s32* octave);
 
 struct CachedNames{

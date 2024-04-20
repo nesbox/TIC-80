@@ -237,7 +237,7 @@ char *str_replace(const char *orig, char *rep, char *with) {
 
     // count the number of replacements needed
     ins = orig;
-    for (count = 0; tmp = strstr(ins, rep); ++count) {
+    for (count = 0; (tmp = strstr(ins, rep)); ++count) {
         ins = tmp + len_rep;
     }
 
@@ -4419,13 +4419,15 @@ void initConsole(Console* console, Studio* studio, tic_fs* fs, tic_net* net, Con
     }
 
     if (args.cart)
+    {
         if (!cmdLoadCart(console, args.cart))
         {
             printf("error: cart `%s` not loaded\n", args.cart);
             exit(1);
         }
         else
-            getStartScreen(console->studio)->embed = true;
+            getStartScreen(console->studio)->embed = true;        
+    }
 
     console->active = !start->embed;
 }

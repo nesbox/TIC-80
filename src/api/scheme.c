@@ -28,6 +28,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(memset)
+#undef memset
+#endif
+
+#if defined(memcpy)
+#undef memcpy
+#endif
+
 static const char* TicCore = "_TIC80";
 
 tic_core* getSchemeCore(s7_scheme* sc)

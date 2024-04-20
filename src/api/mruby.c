@@ -37,6 +37,14 @@
 #include <mruby/value.h>
 #include <mruby/string.h>
 
+#if defined(memset)
+#undef memset
+#endif
+
+#if defined(memcpy)
+#undef memcpy
+#endif
+
 extern bool parse_note(const char* noteStr, s32* note, s32* octave);
 
 typedef struct {
@@ -815,8 +823,8 @@ static mrb_value mrb_memcpy(mrb_state* mrb, mrb_value self)
 
     if(size >= 0 && size <= sizeof(tic_ram) && dest >= 0 && src >= 0 && dest <= bound && src <= bound)
     {
-        u8* base = (u8*)&getMRubyMachine(mrb)->memory;
-        memcpy(base + dest, base + src, size);
+        tic_mem* tic = (tic_mem*)getMRubyMachine(mrb);
+        CALLAPI(memset(tic, dest, src, size));
     }
     else
     {
@@ -835,8 +843,8 @@ static mrb_value mrb_memset(mrb_state* mrb, mrb_value self)
 
     if(size >= 0 && size <= sizeof(tic_ram) && dest >= 0 && dest <= bound)
     {
-        u8* base = (u8*)&getMRubyMachine(mrb)->memory;
-        memset(base + dest, value, size);
+        tic_mem* tic = (tic_mem*)getMRubyMachine(mrb);
+        CALLAPI(memset(tic, dest, value, size));
     }
     else
     {

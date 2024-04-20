@@ -29,6 +29,7 @@
 
 #include <ctype.h>
 
+
 // Avoid redefining u* and s*
 #define d_m3ShortTypesDefined 1
 typedef int8_t i8;
@@ -43,6 +44,14 @@ typedef float           f32;
 #include "m3_exception.h"
 #include "m3_env.h"
 #include "m3_core.h"
+
+#if defined(memset)
+#undef memset
+#endif
+
+#if defined(memcpy)
+#undef memcpy
+#endif
 
 IM3Function BDR_function;
 IM3Function SCN_function;

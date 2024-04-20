@@ -30,6 +30,14 @@
 #include "tools.h"
 #include "wren.h"
 
+#if defined(memset)
+#undef memset
+#endif
+
+#if defined(memcpy)
+#undef memcpy
+#endif
+
 extern bool parse_note(const char* noteStr, s32* note, s32* octave);
 
 static WrenHandle* game_class       = NULL;
