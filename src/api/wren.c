@@ -30,23 +30,15 @@
 #include "tools.h"
 #include "wren.h"
 
-#if defined(memset)
-#undef memset
-#endif
-
-#if defined(memcpy)
-#undef memcpy
-#endif
-
 extern bool parse_note(const char* noteStr, s32* note, s32* octave);
 
 static WrenHandle* game_class       = NULL;
 static WrenHandle* new_handle       = NULL;
 static WrenHandle* update_handle    = NULL;
-static WrenHandle* boot_handle    = NULL;
+static WrenHandle* boot_handle      = NULL;
 static WrenHandle* scanline_handle  = NULL;
 static WrenHandle* border_handle    = NULL;
-static WrenHandle* menu_handle  = NULL;
+static WrenHandle* menu_handle      = NULL;
 static WrenHandle* overline_handle  = NULL;
 
 static bool loaded = false;
@@ -269,8 +261,6 @@ static tic_core* getWrenCore(WrenVM* vm)
     return core;
 }
 
-#define CALLAPI(x) getWrenCore(vm)->api.x
-
 static void wren_map_width(WrenVM* vm)
 {
     wrenSetSlotDouble(vm, 0, TIC_MAP_WIDTH);
@@ -309,11 +299,11 @@ static void wren_btn(WrenVM* vm)
 
     if (top == 1)
     {
-        wrenSetSlotDouble(vm, 0, CALLAPI(btn(tic, -1)));
+        wrenSetSlotDouble(vm, 0, core->api.btn(tic, -1));
     }
     else if (top == 2)
     {
-        bool pressed = CALLAPI(btn(tic, getWrenNumber(vm, 1) & 0x1f));
+        bool pressed = core->api.btn(tic, getWrenNumber(vm, 1) & 0x1f);
         wrenSetSlotBool(vm, 0, pressed);
     }
 
@@ -328,13 +318,13 @@ static void wren_btnp(WrenVM* vm)
 
     if (top == 1)
     {
-        wrenSetSlotBool(vm, 0, CALLAPI(btnp(tic, -1, -1, -1)));
+        wrenSetSlotBool(vm, 0, core->api.btnp(tic, -1, -1, -1));
     }
     else if(top == 2)
     {
         s32 index = getWrenNumber(vm, 1) & 0xf;
 
-        wrenSetSlotBool(vm, 0, CALLAPI(btnp(tic, index, -1, -1)));
+        wrenSetSlotBool(vm, 0, core->api.btnp(tic, index, -1, -1));
     }
     else if (top == 4)
     {
@@ -342,7 +332,7 @@ static void wren_btnp(WrenVM* vm)
         u32 hold = getWrenNumber(vm, 2);
         u32 period = getWrenNumber(vm, 3);
 
-        wrenSetSlotBool(vm, 0, CALLAPI(btnp(tic, index, hold, period)));
+        wrenSetSlotBool(vm, 0, core->api.btnp(tic, index, hold, period));
     }
 }
 
@@ -355,14 +345,14 @@ static void wren_key(WrenVM* vm)
 
     if (top == 1)
     {
-        wrenSetSlotBool(vm, 0, CALLAPI(key(tic, tic_key_unknown)));
+        wrenSetSlotBool(vm, 0, core->api.key(tic, tic_key_unknown));
     }
     else if (top == 2)
     {
         tic_key key = getWrenNumber(vm, 1);
 
         if(key < tic_keys_count)
-            wrenSetSlotBool(vm, 0, CALLAPI(key(tic, key)));
+            wrenSetSlotBool(vm, 0, core->api.key(tic, key));
         else
         {
             wrenError(vm, "unknown keyboard code\n");
@@ -380,7 +370,7 @@ static void wren_keyp(WrenVM* vm)
 
     if (top == 1)
     {
-        wrenSetSlotBool(vm, 0, CALLAPI(keyp(tic, tic_key_unknown, -1, -1)));
+        wrenSetSlotBool(vm, 0, core->api.keyp(tic, tic_key_unknown, -1, -1));
     }
     else
     {
@@ -394,14 +384,14 @@ static void wren_keyp(WrenVM* vm)
         {
             if(top == 2)
             {
-                wrenSetSlotBool(vm, 0, CALLAPI(keyp(tic, key, -1, -1)));
+                wrenSetSlotBool(vm, 0, core->api.keyp(tic, key, -1, -1));
             }
             else if(top == 4)
             {
                 u32 hold = getWrenNumber(vm, 2);
                 u32 period = getWrenNumber(vm, 3);
 
-                wrenSetSlotBool(vm, 0, CALLAPI(keyp(tic, key, hold, period)));
+                wrenSetSlotBool(vm, 0, core->api.keyp(tic, key, hold, period));
             }
         }
     }
@@ -418,7 +408,7 @@ static void wren_mouse(WrenVM* vm)
     wrenSetSlotNewList(vm, 0);
 
     {
-        tic_point pos = CALLAPI(mouse((tic_mem*)core));
+        tic_point pos = core->api.mouse((tic_mem*)core);
 
         wrenSetSlotDouble(vm, 1, pos.x);
         wrenInsertInList(vm, 0, 0, 1);
@@ -462,7 +452,7 @@ static void wren_print(WrenVM* vm)
 
     bool alt = wrenGetSlotBool(vm, 7);
 
-    s32 size = CALLAPI(print(tic, text, x, y, color, fixed, scale, alt));
+    s32 size = core->api.print(tic, text, x, y, color, fixed, scale, alt);
 
     wrenSetSlotDouble(vm, 0, size);
 }
@@ -527,7 +517,7 @@ static void wren_font(WrenVM* vm)
             return;
         }
 
-        s32 size = CALLAPI(font(tic, text ? text : "null", x, y, &chromakey, 1, width, height, fixed, scale, alt));
+        s32 size = core->api.font(tic, text ? text : "null", x, y, &chromakey, 1, width, height, fixed, scale, alt);
         wrenSetSlotDouble(vm, 0, size);
     }
 }
@@ -539,7 +529,7 @@ static void wren_trace(WrenVM* vm)
     const char* text = wrenGetSlotString(vm, 1);
     u8 color = (u8)getWrenNumber(vm, 2);
 
-    CALLAPI(trace(tic, text, color));
+    core->api.trace(tic, text, color);
 }
 
 static void wren_spr(WrenVM* vm)
@@ -618,7 +608,7 @@ static void wren_spr(WrenVM* vm)
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
 
-    CALLAPI(spr(tic, index, x, y, w, h, colors, count, scale, flip, rotate));
+    core->api.spr(tic, index, x, y, w, h, colors, count, scale, flip, rotate);
 }
 
 static void wren_spr_internal(WrenVM* vm)
@@ -662,7 +652,7 @@ static void wren_spr_internal(WrenVM* vm)
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
 
-    CALLAPI(spr(tic, index, x, y, 1, 1, colors, count, scale, flip, rotate));
+    core->api.spr(tic, index, x, y, 1, 1, colors, count, scale, flip, rotate);
 }
 
 static void wren_map(WrenVM* vm)
@@ -731,7 +721,7 @@ static void wren_map(WrenVM* vm)
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
 
-    CALLAPI(map(tic, x, y, w, h, sx, sy, colors, count, scale, NULL, NULL));
+    core->api.map(tic, x, y, w, h, sx, sy, colors, count, scale, NULL, NULL);
 }
 
 static void wren_mset(WrenVM* vm)
@@ -742,7 +732,7 @@ static void wren_mset(WrenVM* vm)
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
 
-    CALLAPI(mset(tic, x, y, value));
+    core->api.mset(tic, x, y, value);
 }
 
 static void wren_mget(WrenVM* vm)
@@ -752,7 +742,7 @@ static void wren_mget(WrenVM* vm)
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
 
-    u8 value = CALLAPI(mget(tic, x, y));
+    u8 value = core->api.mget(tic, x, y);
     wrenSetSlotDouble(vm, 0, value);
 }
 
@@ -824,7 +814,7 @@ static void wren_ttri(WrenVM* vm)
         count = 1;
     }
 
-    CALLAPI(ttri(tic,
+    core->api.ttri(tic,
         pt[0], pt[1],   //  xy 1
         pt[2], pt[3],   //  xy 2
         pt[4], pt[5],   //  xy 3
@@ -833,7 +823,7 @@ static void wren_ttri(WrenVM* vm)
         pt[10], pt[11], //  uv 3
         src,            // texture source
         colors, count,  // chroma
-        depth.z[0], depth.z[1], depth.z[2], depth.on)); // depth
+        depth.z[0], depth.z[1], depth.z[2], depth.on); // depth
 }
 
 #if defined(BUILD_DEPRECATED)
@@ -911,11 +901,11 @@ static void wren_pix(WrenVM* vm)
     if(top > 3)
     {
         s32 color = getWrenNumber(vm, 3);
-        CALLAPI(pix(tic, x, y, color, false));
+        core->api.pix(tic, x, y, color, false);
     }
     else
     {
-        wrenSetSlotDouble(vm, 0, CALLAPI(pix(tic, x, y, 0, true)));
+        wrenSetSlotDouble(vm, 0, core->api.pix(tic, x, y, 0, true));
     }
 }
 
@@ -929,7 +919,7 @@ static void wren_line(WrenVM* vm)
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
 
-    CALLAPI(line(tic, x0, y0, x1, y1, color));
+    core->api.line(tic, x0, y0, x1, y1, color);
 }
 
 static void wren_circ(WrenVM* vm)
@@ -941,7 +931,7 @@ static void wren_circ(WrenVM* vm)
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
 
-    CALLAPI(circ(tic, x, y, radius, color));
+    core->api.circ(tic, x, y, radius, color);
 }
 
 static void wren_circb(WrenVM* vm)
@@ -953,7 +943,7 @@ static void wren_circb(WrenVM* vm)
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
 
-    CALLAPI(circb(tic, x, y, radius, color));
+    core->api.circb(tic, x, y, radius, color);
 }
 
 static void wren_elli(WrenVM* vm)
@@ -966,7 +956,7 @@ static void wren_elli(WrenVM* vm)
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
 
-    CALLAPI(elli(tic, x, y, a, b, color));
+    core->api.elli(tic, x, y, a, b, color);
 }
 
 static void wren_ellib(WrenVM* vm)
@@ -979,7 +969,7 @@ static void wren_ellib(WrenVM* vm)
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
 
-    CALLAPI(ellib(tic, x, y, a, b, color));
+    core->api.ellib(tic, x, y, a, b, color);
 }
 
 static void wren_rect(WrenVM* vm)
@@ -992,7 +982,7 @@ static void wren_rect(WrenVM* vm)
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
 
-    CALLAPI(rect(tic, x, y, w, h, color));
+    core->api.rect(tic, x, y, w, h, color);
 }
 
 static void wren_rectb(WrenVM* vm)
@@ -1005,7 +995,7 @@ static void wren_rectb(WrenVM* vm)
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
 
-    CALLAPI(rectb(tic, x, y, w, h, color));
+    core->api.rectb(tic, x, y, w, h, color);
 }
 
 static void wren_tri(WrenVM* vm)
@@ -1021,7 +1011,7 @@ static void wren_tri(WrenVM* vm)
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
 
-    CALLAPI(tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color));
+    core->api.tri(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
 }
 
 static void wren_trib(WrenVM* vm)
@@ -1037,7 +1027,7 @@ static void wren_trib(WrenVM* vm)
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
 
-    CALLAPI(trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color));
+    core->api.trib(tic, pt[0], pt[1], pt[2], pt[3], pt[4], pt[5], color);
 }
 
 static void wren_cls(WrenVM* vm)
@@ -1046,7 +1036,7 @@ static void wren_cls(WrenVM* vm)
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
 
-    CALLAPI(cls(tic, top == 1 ? 0 : getWrenNumber(vm, 1)));
+    core->api.cls(tic, top == 1 ? 0 : getWrenNumber(vm, 1));
 }
 
 static void wren_clip(WrenVM* vm)
@@ -1057,7 +1047,7 @@ static void wren_clip(WrenVM* vm)
 
     if(top == 1)
     {
-        CALLAPI(clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT));
+        core->api.clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
     }
     else
     {
@@ -1066,7 +1056,7 @@ static void wren_clip(WrenVM* vm)
         s32 w = getWrenNumber(vm, 3);
         s32 h = getWrenNumber(vm, 4);
 
-        CALLAPI(clip(tic, x, y, w, h));
+        core->api.clip(tic, x, y, w, h);
     }
 }
 
@@ -1080,7 +1070,7 @@ static void wren_peek(WrenVM* vm)
     if(wrenGetSlotCount(vm) > 2)
         bits = getWrenNumber(vm, 2);
 
-    wrenSetSlotDouble(vm, 0, CALLAPI(peek(tic, address, bits)));
+    wrenSetSlotDouble(vm, 0, core->api.peek(tic, address, bits));
 }
 
 static void wren_poke(WrenVM* vm)
@@ -1093,7 +1083,7 @@ static void wren_poke(WrenVM* vm)
     if(wrenGetSlotCount(vm) > 3)
         bits = getWrenNumber(vm, 3);
 
-    CALLAPI(poke(tic, address, value, bits));
+    core->api.poke(tic, address, value, bits);
 }
 
 static void wren_peek1(WrenVM* vm)
@@ -1102,7 +1092,7 @@ static void wren_peek1(WrenVM* vm)
 
     s32 address = getWrenNumber(vm, 1);
 
-    wrenSetSlotDouble(vm, 0, CALLAPI(peek1(tic, address)));
+    wrenSetSlotDouble(vm, 0, core->api.peek1(tic, address));
 }
 
 static void wren_poke1(WrenVM* vm)
@@ -1112,7 +1102,7 @@ static void wren_poke1(WrenVM* vm)
     s32 address = getWrenNumber(vm, 1);
     u8 value = getWrenNumber(vm, 2);
 
-    CALLAPI(poke1(tic, address, value));
+    core->api.poke1(tic, address, value);
 }
 
 static void wren_peek2(WrenVM* vm)
@@ -1121,7 +1111,7 @@ static void wren_peek2(WrenVM* vm)
 
     s32 address = getWrenNumber(vm, 1);
 
-    wrenSetSlotDouble(vm, 0, CALLAPI(peek2(tic, address)));
+    wrenSetSlotDouble(vm, 0, core->api.peek2(tic, address));
 }
 
 static void wren_poke2(WrenVM* vm)
@@ -1131,7 +1121,7 @@ static void wren_poke2(WrenVM* vm)
     s32 address = getWrenNumber(vm, 1);
     u8 value = getWrenNumber(vm, 2);
 
-    CALLAPI(poke2(tic, address, value));
+    core->api.poke2(tic, address, value);
 }
 
 static void wren_peek4(WrenVM* vm)
@@ -1140,7 +1130,7 @@ static void wren_peek4(WrenVM* vm)
 
     s32 address = getWrenNumber(vm, 1);
 
-    wrenSetSlotDouble(vm, 0, CALLAPI(peek4(tic, address)));
+    wrenSetSlotDouble(vm, 0, core->api.peek4(tic, address));
 }
 
 static void wren_poke4(WrenVM* vm)
@@ -1150,7 +1140,7 @@ static void wren_poke4(WrenVM* vm)
     s32 address = getWrenNumber(vm, 1);
     u8 value = getWrenNumber(vm, 2);
 
-    CALLAPI(poke4(tic, address, value));
+    core->api.poke4(tic, address, value);
 }
 
 static void wren_memcpy(WrenVM* vm)
@@ -1160,7 +1150,7 @@ static void wren_memcpy(WrenVM* vm)
     s32 size = getWrenNumber(vm, 3);
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
-    CALLAPI(memcpy(tic, dest, src, size));
+    core->api.memcpy(tic, dest, src, size);
 }
 
 static void wren_memset(WrenVM* vm)
@@ -1170,7 +1160,7 @@ static void wren_memset(WrenVM* vm)
     s32 size = getWrenNumber(vm, 3);
 
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
-    CALLAPI(memset(tic, dest, value, size));
+    core->api.memset(tic, dest, value, size);
 }
 
 static void wren_pmem(WrenVM* vm)
@@ -1182,11 +1172,11 @@ static void wren_pmem(WrenVM* vm)
 
     if(index < TIC_PERSISTENT_SIZE)
     {
-        u32 val = CALLAPI(pmem(tic, index, 0, false));
+        u32 val = core->api.pmem(tic, index, 0, false);
 
         if(top > 2)
         {
-            CALLAPI(pmem(tic, index, getWrenNumber(vm, 2), true));
+            core->api.pmem(tic, index, getWrenNumber(vm, 2), true);
         }
 
         wrenSetSlotDouble(vm, 0, val);
@@ -1272,7 +1262,7 @@ static void wren_sfx(WrenVM* vm)
 
         if (channel >= 0 && channel < TIC_SOUND_CHANNELS)
         {
-            CALLAPI(sfx(tic, index, note, octave, duration, channel, volumes[0] & 0xf, volumes[1] & 0xf, speed));
+            core->api.sfx(tic, index, note, octave, duration, channel, volumes[0] & 0xf, volumes[1] & 0xf, speed);
         }
         else wrenError(vm, "unknown channel\n");
     }
@@ -1334,21 +1324,21 @@ static void wren_music(WrenVM* vm)
         }
     }
 
-    CALLAPI(music(tic, track, frame, row, loop, sustain, tempo, speed));
+    core->api.music(tic, track, frame, row, loop, sustain, tempo, speed);
 }
 
 static void wren_time(WrenVM* vm)
 {
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
 
-    wrenSetSlotDouble(vm, 0, CALLAPI(time(tic)));
+    wrenSetSlotDouble(vm, 0, core->api.time(tic));
 }
 
 static void wren_tstamp(WrenVM* vm)
 {
     tic_mem* tic = (tic_mem*)getWrenCore(vm);
 
-    wrenSetSlotDouble(vm, 0, CALLAPI(tstamp(tic)));
+    wrenSetSlotDouble(vm, 0, core->api.tstamp(tic));
 }
 
 static void wren_vbank(WrenVM* vm)
@@ -1359,7 +1349,7 @@ static void wren_vbank(WrenVM* vm)
     s32 prev = core->state.vbank.id;
 
     if(wrenGetSlotCount(vm) == 2)
-        CALLAPI(vbank(tic, getWrenNumber(vm, 1)));
+        core->api.vbank(tic, getWrenNumber(vm, 1));
 
     wrenSetSlotDouble(vm, 0, prev);
 }
@@ -1390,7 +1380,7 @@ static void wren_sync(WrenVM* vm)
     }
 
     if(bank >= 0 && bank < TIC_BANKS)
-        CALLAPI(sync(tic, mask, bank, toCart));
+        core->api.sync(tic, mask, bank, toCart);
     else wrenError(vm, "sync() error, invalid bank");
 }
 
@@ -1403,7 +1393,7 @@ static void wren_reset(WrenVM* vm)
 
 static void wren_exit(WrenVM* vm)
 {
-    CALLAPI(exit((tic_mem*)getWrenCore(vm)));
+    core->api.exit((tic_mem*)getWrenCore(vm));
 }
 
 static void wren_fget(WrenVM* vm)
@@ -1419,7 +1409,7 @@ static void wren_fget(WrenVM* vm)
         if(top > 2)
         {
             u32 flag = getWrenNumber(vm, 2);
-            wrenSetSlotBool(vm, 0, CALLAPI(fget(tic, index, flag)));
+            wrenSetSlotBool(vm, 0, core->api.fget(tic, index, flag));
             return;
         }
     }
@@ -1443,7 +1433,7 @@ static void wren_fset(WrenVM* vm)
             if(top > 3)
             {
                 bool value = wrenGetSlotBool(vm, 3);
-                CALLAPI(fset(tic, index, flag, value));
+                core->api.fset(tic, index, flag, value);
                 return;
             }
         }

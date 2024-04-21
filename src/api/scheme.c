@@ -28,14 +28,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if defined(memset)
-#undef memset
-#endif
-
-#if defined(memcpy)
-#undef memcpy
-#endif
-
 static const char* TicCore = "_TIC80";
 
 tic_core* getSchemeCore(s7_scheme* sc)
@@ -43,12 +35,10 @@ tic_core* getSchemeCore(s7_scheme* sc)
     return s7_c_pointer(s7_name_to_value(sc, TicCore));
 }
 
-#define CALLAPI(x) getSchemeCore(sc)->api.x
-
 s7_pointer scheme_print(s7_scheme* sc, s7_pointer args)
 {
     //print(text x=0 y=0 color=15 fixed=false scale=1 smallfont=false) -> width
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const char* text = s7_string(s7_car(args));
     const int argn = s7_list_length(sc, args);
     const s32 x = argn > 1 ? s7_integer(s7_cadr(args)) : 0;
@@ -57,22 +47,22 @@ s7_pointer scheme_print(s7_scheme* sc, s7_pointer args)
     const bool fixed = argn > 4 ? s7_boolean(sc, s7_list_ref(sc, args, 4)) : false;
     const s32 scale = argn > 5 ? s7_integer(s7_list_ref(sc, args, 5)) : 1;
     const bool alt = argn > 6 ? s7_boolean(sc, s7_list_ref(sc, args, 6)) : false;
-    const s32 result = CALLAPI(print(tic, text, x, y, color, fixed, scale, alt));
+    const s32 result = core->api.print(tic, text, x, y, color, fixed, scale, alt);
     return s7_make_integer(sc, result);
 }
 s7_pointer scheme_cls(s7_scheme* sc, s7_pointer args)
 {
     // cls(color=0)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const int argn = s7_list_length(sc, args);
     const u8 color = (args > 0) ? s7_integer(s7_car(args)) : 0;
-    CALLAPI(cls(tic, color));
+    core->api.cls(tic, color);
     return s7_nil(sc);
 }
 s7_pointer scheme_pix(s7_scheme* sc, s7_pointer args)
 {
     // pix(x y color)\npix(x y) -> color
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 x = s7_integer(s7_car(args));
     const s32 y = s7_integer(s7_cadr(args));
 
@@ -80,48 +70,48 @@ s7_pointer scheme_pix(s7_scheme* sc, s7_pointer args)
     if (argn == 3)
     {
         const u8 color = s7_integer(s7_caddr(args));
-        CALLAPI(pix(tic, x, y, color, false));
+        core->api.pix(tic, x, y, color, false);
         return s7_nil(sc);
     }
     else{
-        return s7_make_integer(sc, CALLAPI(pix(tic, x, y, 0, true)));
+        return s7_make_integer(sc, core->api.pix(tic, x, y, 0, true));
     }
     
 }
 s7_pointer scheme_line(s7_scheme* sc, s7_pointer args)
 {
     // line(x0 y0 x1 y1 color)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 x0 = s7_integer(s7_car(args));
     const s32 y0 = s7_integer(s7_cadr(args));
     const s32 x1 = s7_integer(s7_caddr(args));
     const s32 y1 = s7_integer(s7_cadddr(args));
     const u8 color = s7_integer(s7_list_ref(sc, args, 4));
-    CALLAPI(line(tic, x0, y0, x1, y1, color));
+    core->api.line(tic, x0, y0, x1, y1, color);
     return s7_nil(sc);
 }
 s7_pointer scheme_rect(s7_scheme* sc, s7_pointer args)
 {
     // rect(x y w h color)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 x = s7_integer(s7_car(args));
     const s32 y = s7_integer(s7_cadr(args));
     const s32 w = s7_integer(s7_caddr(args));
     const s32 h = s7_integer(s7_cadddr(args));
     const u8 color = s7_integer(s7_list_ref(sc, args, 4));
-    CALLAPI(rect(tic, x, y, w, h, color));
+    core->api.rect(tic, x, y, w, h, color);
     return s7_nil(sc);
 }
 s7_pointer scheme_rectb(s7_scheme* sc, s7_pointer args)
 {
     // rectb(x y w h color)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 x = s7_integer(s7_car(args));
     const s32 y = s7_integer(s7_cadr(args));
     const s32 w = s7_integer(s7_caddr(args));
     const s32 h = s7_integer(s7_cadddr(args));
     const u8 color = s7_integer(s7_list_ref(sc, args, 4));
-    CALLAPI(rectb(tic, x, y, w, h, color));
+    core->api.rectb(tic, x, y, w, h, color);
     return s7_nil(sc);
 }
 
@@ -150,7 +140,7 @@ s7_pointer scheme_spr(s7_scheme* sc, s7_pointer args)
 {
     // spr(id x y colorkey=-1 scale=1 flip=0 rotate=0 w=1 h=1)
     const int argn      = s7_list_length(sc, args);
-    tic_mem* tic        = (tic_mem*)getSchemeCore(sc);
+    tic_core* core      = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 id        = s7_integer(s7_car(args));
     const s32 x         = s7_integer(s7_cadr(args));
     const s32 y         = s7_integer(s7_caddr(args));
@@ -168,28 +158,28 @@ s7_pointer scheme_spr(s7_scheme* sc, s7_pointer args)
     const s32 rotate    = argn > 6 ? s7_integer(s7_list_ref(sc, args, 6)) : 0;
     const s32 w         = argn > 7 ? s7_integer(s7_list_ref(sc, args, 7)) : 1;
     const s32 h         = argn > 8 ? s7_integer(s7_list_ref(sc, args, 8)) : 1;
-    CALLAPI(spr(tic, id, x, y, w, h, trans_colors, trans_count, scale, (tic_flip)flip, (tic_rotate) rotate));
+    core->api.spr(tic, id, x, y, w, h, trans_colors, trans_count, scale, (tic_flip)flip, (tic_rotate) rotate);
     return s7_nil(sc);
 }
 s7_pointer scheme_btn(s7_scheme* sc, s7_pointer args)
 {
     // btn(id) -> pressed
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 id = s7_integer(s7_car(args));
     
-    return s7_make_boolean(sc, CALLAPI(btn(tic, id)));
+    return s7_make_boolean(sc, core->api.btn(tic, id));
 }
 s7_pointer scheme_btnp(s7_scheme* sc, s7_pointer args)
 {
     // btnp(id hold=-1 period=-1) -> pressed
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 id = s7_integer(s7_car(args));
 
     const int argn = s7_list_length(sc, args);
     const s32 hold = argn > 1 ? s7_integer(s7_cadr(args)) : -1;
     const s32 period = argn > 2 ? s7_integer(s7_caddr(args)) : -1;
     
-    return s7_make_boolean(sc, CALLAPI(btnp(tic, id, hold, period)));
+    return s7_make_boolean(sc, core->api.btnp(tic, id, hold, period));
 }
 
 u8 get_note_base(char c) {
@@ -223,7 +213,7 @@ u8 get_note_octave(char c) {
 s7_pointer scheme_sfx(s7_scheme* sc, s7_pointer args)
 {
     // sfx(id note=-1 duration=-1 channel=0 volume=15 speed=0)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 id = s7_integer(s7_car(args));
     
     const int argn = s7_list_length(sc, args);
@@ -278,7 +268,7 @@ s7_pointer scheme_sfx(s7_scheme* sc, s7_pointer args)
     }
     const s32 speed = argn > 5 ? s7_integer(s7_list_ref(sc, args, 5)) : 0;
 
-    CALLAPI(sfx(tic, id, note, octave, duration, channel, volumes[0], volumes[1], speed));
+    core->api.sfx(tic, id, note, octave, duration, channel, volumes[0], volumes[1], speed);
     return s7_nil(sc);
 }
 
@@ -311,7 +301,7 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
 s7_pointer scheme_map(s7_scheme* sc, s7_pointer args)
 {
     // map(x=0 y=0 w=30 h=17 sx=0 sy=0 colorkey=-1 scale=1 remap=nil)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 x = s7_integer(s7_car(args));
     const s32 y = s7_integer(s7_cadr(args));
     const s32 w = s7_integer(s7_caddr(args));
@@ -338,130 +328,130 @@ s7_pointer scheme_map(s7_scheme* sc, s7_pointer args)
         data.sc = sc;
         data.callback = s7_list_ref(sc, args, 8);
     }
-    CALLAPI(map(tic, x, y, w, h, sx, sy, trans_colors, trans_count, scale, remap, &data));
+    core->api.map(tic, x, y, w, h, sx, sy, trans_colors, trans_count, scale, remap, &data);
     return s7_nil(sc);
 }
 s7_pointer scheme_mget(s7_scheme* sc, s7_pointer args)
 {
     // mget(x y) -> tile_id
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 x = s7_integer(s7_car(args));
     const s32 y = s7_integer(s7_cadr(args));
-    return s7_make_integer(sc, CALLAPI(mget(tic, x, y)));
+    return s7_make_integer(sc, core->api.mget(tic, x, y));
 }
 s7_pointer scheme_mset(s7_scheme* sc, s7_pointer args)
 {
     // mset(x y tile_id)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 x = s7_integer(s7_car(args));
     const s32 y = s7_integer(s7_cadr(args));
     const u8 tile_id = s7_integer(s7_caddr(args));
-    CALLAPI(mset(tic, x, y, tile_id));
+    core->api.mset(tic, x, y, tile_id);
     return s7_nil(sc);
 }
 s7_pointer scheme_peek(s7_scheme* sc, s7_pointer args)
 {
     // peek(addr bits=8) -> value
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 addr = s7_integer(s7_car(args));
     const int argn = s7_list_length(sc, args);
     const s32 bits = argn > 1 ? s7_integer(s7_cadr(args)) : 8;
-    return s7_make_integer(sc, CALLAPI(peek(tic, addr, bits)));
+    return s7_make_integer(sc, core->api.peek(tic, addr, bits));
 }
 s7_pointer scheme_poke(s7_scheme* sc, s7_pointer args)
 {
     // poke(addr value bits=8)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 addr = s7_integer(s7_car(args));
     const s32 value = s7_integer(s7_cadr(args));
     const int argn = s7_list_length(sc, args);
     const s32 bits = argn > 2 ? s7_integer(s7_caddr(args)) : 8;
-    CALLAPI(poke(tic, addr, value, bits));
+    core->api.poke(tic, addr, value, bits);
     return s7_nil(sc);
 }
 s7_pointer scheme_peek1(s7_scheme* sc, s7_pointer args)
 {
     // peek1(addr) -> value
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 addr = s7_integer(s7_car(args));
-    return s7_make_integer(sc, CALLAPI(peek1(tic, addr)));
+    return s7_make_integer(sc, core->api.peek1(tic, addr));
 }
 s7_pointer scheme_poke1(s7_scheme* sc, s7_pointer args)
 {
     // poke1(addr value)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 addr = s7_integer(s7_car(args));
     const s32 value = s7_integer(s7_cadr(args));
-    CALLAPI(poke1(tic, addr, value));
+    core->api.poke1(tic, addr, value);
     return s7_nil(sc);
 }
 s7_pointer scheme_peek2(s7_scheme* sc, s7_pointer args)
 {
     // peek2(addr) -> value
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 addr = s7_integer(s7_car(args));
-    return s7_make_integer(sc, CALLAPI(peek2(tic, addr)));
+    return s7_make_integer(sc, core->api.peek2(tic, addr));
 }
 s7_pointer scheme_poke2(s7_scheme* sc, s7_pointer args)
 {
     // poke2(addr value)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 addr = s7_integer(s7_car(args));
     const s32 value = s7_integer(s7_cadr(args));
-    CALLAPI(poke2(tic, addr, value));
+    core->api.poke2(tic, addr, value);
     return s7_nil(sc);
 }
 s7_pointer scheme_peek4(s7_scheme* sc, s7_pointer args)
 {
     // peek4(addr) -> value
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 addr = s7_integer(s7_car(args));
-    return s7_make_integer(sc, CALLAPI(peek4(tic, addr)));
+    return s7_make_integer(sc, core->api.peek4(tic, addr));
 }
 s7_pointer scheme_poke4(s7_scheme* sc, s7_pointer args)
 {
     // poke4(addr value)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 addr = s7_integer(s7_car(args));
     const s32 value = s7_integer(s7_cadr(args));
-    CALLAPI(poke4(tic, addr, value));
+    core->api.poke4(tic, addr, value);
     return s7_nil(sc);
 }
 s7_pointer scheme_memcpy(s7_scheme* sc, s7_pointer args)
 {
     // memcpy(dest source size)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 dest = s7_integer(s7_car(args));
     const s32 source = s7_integer(s7_cadr(args));
     const s32 size = s7_integer(s7_caddr(args));
-    CALLAPI(memcpy(tic, dest, source, size));
+    core->api.memcpy(tic, dest, source, size);
     return s7_nil(sc);
 }
 s7_pointer scheme_memset(s7_scheme* sc, s7_pointer args)
 {
     // memset(dest value size)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 dest = s7_integer(s7_car(args));
     const s32 value = s7_integer(s7_cadr(args));
     const s32 size = s7_integer(s7_caddr(args));
-    CALLAPI(memset(tic, dest, value, size));
+    core->api.memset(tic, dest, value, size);
     return s7_nil(sc);
 }
 s7_pointer scheme_trace(s7_scheme* sc, s7_pointer args)
 {
     // trace(message color=15)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const char* msg = s7_string(s7_car(args));
     const int argn = s7_list_length(sc, args);
     const s32 color = argn > 1 ? s7_integer(s7_cadr(args)) : 15;
-    CALLAPI(trace(tic, msg, color));
+    core->api.trace(tic, msg, color);
     return s7_nil(sc);
 }
 s7_pointer scheme_pmem(s7_scheme* sc, s7_pointer args)
 {
     // pmem(index value)
     // pmem(index) -> value
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 index = s7_integer(s7_car(args));
     const int argn = s7_list_length(sc, args);
     s32 value = 0;
@@ -471,31 +461,31 @@ s7_pointer scheme_pmem(s7_scheme* sc, s7_pointer args)
         value = s7_integer(s7_cadr(args));
         shouldSet = true;
     }
-    return s7_make_integer(sc, (s32)CALLAPI(pmem(tic, index, value, shouldSet)));
+    return s7_make_integer(sc, (s32)core->api.pmem(tic, index, value, shouldSet));
 }
 s7_pointer scheme_time(s7_scheme* sc, s7_pointer args)
 {
     // time() -> ticks
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
-    return s7_make_real(sc, CALLAPI(time(tic)));
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
+    return s7_make_real(sc, core->api.time(tic));
 }
 s7_pointer scheme_tstamp(s7_scheme* sc, s7_pointer args)
 {
     // tstamp() -> timestamp
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
-    return s7_make_integer(sc, CALLAPI(tstamp(tic)));
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
+    return s7_make_integer(sc, core->api.tstamp(tic));
 }
 s7_pointer scheme_exit(s7_scheme* sc, s7_pointer args)
 {
     // exit()
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
-    CALLAPI(exit(tic));
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
+    core->api.exit(tic);
     return s7_nil(sc);
 }
 s7_pointer scheme_font(s7_scheme* sc, s7_pointer args)
 {
     // font(text x y chromakey char_width char_height fixed=false scale=1 alt=false) -> width
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const char* text = s7_string(s7_car(args));
     const s32 x = s7_integer(s7_cadr(args));
     const s32 y = s7_integer(s7_caddr(args));
@@ -512,13 +502,13 @@ s7_pointer scheme_font(s7_scheme* sc, s7_pointer args)
     const s32 scale = argn > 7 ? s7_integer(s7_list_ref(sc, args, 7)) : 1;
     const s32 alt = argn > 8 ? s7_boolean(sc, s7_list_ref(sc, args, 8)) : false;
 
-    return s7_make_integer(sc, CALLAPI(font(tic, text, x, y, trans_colors, trans_count, w, h, fixed, scale, alt)));
+    return s7_make_integer(sc, core->api.font(tic, text, x, y, trans_colors, trans_count, w, h, fixed, scale, alt));
 }
 s7_pointer scheme_mouse(s7_scheme* sc, s7_pointer args)
 {
     // mouse() -> x y left middle right scrollx scrolly
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
-    const tic_point point = CALLAPI(mouse(tic));
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
+    const tic_point point = core->api.mouse(tic);
     const tic80_mouse* mouse = &((tic_core*)tic)->memory.ram->input.mouse;
     
     return
@@ -534,53 +524,53 @@ s7_pointer scheme_mouse(s7_scheme* sc, s7_pointer args)
 s7_pointer scheme_circ(s7_scheme* sc, s7_pointer args)
 {
     // circ(x y radius color)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 x = s7_integer(s7_car(args));
     const s32 y = s7_integer(s7_cadr(args));
     const s32 radius = s7_integer(s7_caddr(args));
     const s32 color = s7_integer(s7_cadddr(args));
-    CALLAPI(circ(tic, x, y, radius, color));
+    core->api.circ(tic, x, y, radius, color);
     return s7_nil(sc);
 }
 s7_pointer scheme_circb(s7_scheme* sc, s7_pointer args)
 {
     // circb(x y radius color)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 x = s7_integer(s7_car(args));
     const s32 y = s7_integer(s7_cadr(args));
     const s32 radius = s7_integer(s7_caddr(args));
     const s32 color = s7_integer(s7_cadddr(args));
-    CALLAPI(circb(tic, x, y, radius, color));
+    core->api.circb(tic, x, y, radius, color);
     return s7_nil(sc);
 }
 s7_pointer scheme_elli(s7_scheme* sc, s7_pointer args)
 {
     // elli(x y a b color)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 x = s7_integer(s7_car(args));
     const s32 y = s7_integer(s7_cadr(args));
     const s32 a = s7_integer(s7_caddr(args));
     const s32 b = s7_integer(s7_cadddr(args));
     const s32 color = s7_integer(s7_list_ref(sc, args, 4));
-    CALLAPI(elli(tic, x, y, a, b, color));
+    core->api.elli(tic, x, y, a, b, color);
     return s7_nil(sc);
 }
 s7_pointer scheme_ellib(s7_scheme* sc, s7_pointer args)
 {
     // ellib(x y a b color)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 x = s7_integer(s7_car(args));
     const s32 y = s7_integer(s7_cadr(args));
     const s32 a = s7_integer(s7_caddr(args));
     const s32 b = s7_integer(s7_cadddr(args));
     const s32 color = s7_integer(s7_list_ref(sc, args, 4));
-    CALLAPI(ellib(tic, x, y, a, b, color));
+    core->api.ellib(tic, x, y, a, b, color);
     return s7_nil(sc);
 }
 s7_pointer scheme_tri(s7_scheme* sc, s7_pointer args)
 {
     // tri(x1 y1 x2 y2 x3 y3 color)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 x1 = s7_integer(s7_car(args));
     const s32 y1 = s7_integer(s7_cadr(args));
     const s32 x2 = s7_integer(s7_caddr(args));
@@ -588,13 +578,13 @@ s7_pointer scheme_tri(s7_scheme* sc, s7_pointer args)
     const s32 x3 = s7_integer(s7_list_ref(sc, args, 4));
     const s32 y3 = s7_integer(s7_list_ref(sc, args, 5));
     const s32 color = s7_integer(s7_list_ref(sc, args, 6));
-    CALLAPI(tri(tic, x1, y1, x2, y2, x3, y3, color));
+    core->api.tri(tic, x1, y1, x2, y2, x3, y3, color);
     return s7_nil(sc);
 }
 s7_pointer scheme_trib(s7_scheme* sc, s7_pointer args)
 {
     // trib(x1 y1 x2 y2 x3 y3 color)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 x1 = s7_integer(s7_car(args));
     const s32 y1 = s7_integer(s7_cadr(args));
     const s32 x2 = s7_integer(s7_caddr(args));
@@ -602,13 +592,13 @@ s7_pointer scheme_trib(s7_scheme* sc, s7_pointer args)
     const s32 x3 = s7_integer(s7_list_ref(sc, args, 4));
     const s32 y3 = s7_integer(s7_list_ref(sc, args, 5));
     const s32 color = s7_integer(s7_list_ref(sc, args, 6));
-    CALLAPI(trib(tic, x1, y1, x2, y2, x3, y3, color));
+    core->api.trib(tic, x1, y1, x2, y2, x3, y3, color);
     return s7_nil(sc);
 }
 s7_pointer scheme_ttri(s7_scheme* sc, s7_pointer args)
 {
     // ttri(x1 y1 x2 y2 x3 y3 u1 v1 u2 v2 u3 v3 texsrc=0 chromakey=-1 z1=0 z2=0 z3=0)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 x1 = s7_integer(s7_car(args));
     const s32 y1 = s7_integer(s7_cadr(args));
     const s32 x2 = s7_integer(s7_caddr(args));
@@ -639,30 +629,30 @@ s7_pointer scheme_ttri(s7_scheme* sc, s7_pointer args)
     const s32 z2 = argn > 15 ? s7_integer(s7_list_ref(sc, args, 15)) : 0;
     const s32 z3 = argn > 16 ? s7_integer(s7_list_ref(sc, args, 16)) : 0;
 
-    CALLAPI(ttri(tic, x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, texsrc, trans_colors, trans_count, z1, z2, z3, depth));
+    core->api.ttri(tic, x1, y1, x2, y2, x3, y3, u1, v1, u2, v2, u3, v3, texsrc, trans_colors, trans_count, z1, z2, z3, depth);
     return s7_nil(sc);
 }
 s7_pointer scheme_clip(s7_scheme* sc, s7_pointer args)
 {
     // clip(x y width height)
     // clip()
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const int argn = s7_list_length(sc, args);
     if (argn != 4) {
-        CALLAPI(clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT));
+        core->api.clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
     } else {
         const s32 x = s7_integer(s7_car(args));
         const s32 y = s7_integer(s7_cadr(args));
         const s32 w = s7_integer(s7_caddr(args));
         const s32 h = s7_integer(s7_cadddr(args));
-        CALLAPI(clip(tic, x, y, w, h));
+        core->api.clip(tic, x, y, w, h);
     }
     return s7_nil(sc);
 }
 s7_pointer scheme_music(s7_scheme* sc, s7_pointer args)
 {
     // music(track=-1 frame=-1 row=-1 loop=true sustain=false tempo=-1 speed=-1)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const int argn = s7_list_length(sc, args);
     const s32 track = argn > 0 ? s7_integer(s7_car(args)) : -1;
     const s32 frame = argn > 1 ? s7_integer(s7_cadr(args)) : -1;
@@ -671,75 +661,75 @@ s7_pointer scheme_music(s7_scheme* sc, s7_pointer args)
     const bool sustain = argn > 4 ? s7_boolean(sc, s7_list_ref(sc, args, 4)) : false;
     const s32 tempo = argn > 5 ? s7_integer(s7_list_ref(sc, args, 5)) : -1;
     const s32 speed = argn > 6 ? s7_integer(s7_list_ref(sc, args, 6)) : -1;
-    CALLAPI(music(tic, track, frame, row, loop, sustain, tempo, speed));
+    core->api.music(tic, track, frame, row, loop, sustain, tempo, speed);
     return s7_nil(sc);
 }
 s7_pointer scheme_sync(s7_scheme* sc, s7_pointer args)
 {
     // sync(mask=0 bank=0 tocart=false)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const int argn = s7_list_length(sc, args);
     const u32 mask = argn > 0 ? (u32)s7_integer(s7_car(args)) : 0;
     const s32 bank = argn > 1 ? s7_integer(s7_cadr(args)) : 0;
     const bool tocart = argn > 2 ? s7_boolean(sc, s7_caddr(args)) : false;
-    CALLAPI(sync(tic, mask, bank, tocart));
+    core->api.sync(tic, mask, bank, tocart);
     return s7_nil(sc);
 }
 s7_pointer scheme_vbank(s7_scheme* sc, s7_pointer args)
 {
     // vbank(bank) -> prev
     // vbank() -> prev
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const int argn = s7_list_length(sc, args);
 
     const s32 prev = ((tic_core*)tic)->state.vbank.id;
     if (argn == 1) {
         const s32 bank = s7_integer(s7_car(args));
-        CALLAPI(vbank(tic, bank));
+        core->api.vbank(tic, bank);
     }
     return s7_make_integer(sc, prev);
 }
 s7_pointer scheme_reset(s7_scheme* sc, s7_pointer args)
 {
     // reset()
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
-    CALLAPI(reset(tic));
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
+    core->api.reset(tic);
     return s7_nil(sc);
 }
 s7_pointer scheme_key(s7_scheme* sc, s7_pointer args)
 {
     //key(code=-1) -> pressed
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const int argn = s7_list_length(sc, args);
     const tic_key code = argn > 0 ? s7_integer(s7_car(args)) : -1;
-    return s7_make_boolean(sc, CALLAPI(key(tic, code)));
+    return s7_make_boolean(sc, core->api.key(tic, code));
 }
 s7_pointer scheme_keyp(s7_scheme* sc, s7_pointer args)
 {
     // keyp(code=-1 hold=-1 period=-1) -> pressed
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const int argn = s7_list_length(sc, args);
     const tic_key code = argn > 0 ? s7_integer(s7_car(args)) : -1;
     const s32 hold = argn > 1 ? s7_integer(s7_cadr(args)) : -1;
     const s32 period = argn > 2 ? s7_integer(s7_caddr(args)) : -1;
-    return s7_make_boolean(sc, CALLAPI(keyp(tic, code, hold, period)));
+    return s7_make_boolean(sc, core->api.keyp(tic, code, hold, period));
 }
 s7_pointer scheme_fget(s7_scheme* sc, s7_pointer args)
 {
     // fget(sprite_id flag) -> bool
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 sprite_id = s7_integer(s7_car(args));
     const u8 flag = s7_integer(s7_cadr(args));
-    return s7_make_boolean(sc, CALLAPI(fget(tic, sprite_id, flag)));
+    return s7_make_boolean(sc, core->api.fget(tic, sprite_id, flag));
 }
 s7_pointer scheme_fset(s7_scheme* sc, s7_pointer args)
 {
     // fset(sprite_id flag bool)
-    tic_mem* tic = (tic_mem*)getSchemeCore(sc);
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 sprite_id = s7_integer(s7_car(args));
     const u8 flag = s7_integer(s7_cadr(args));
     const bool val = s7_boolean(sc, s7_caddr(args));
-    CALLAPI(fset(tic, sprite_id, flag, val));
+    core->api.fset(tic, sprite_id, flag, val);
     return s7_nil(sc); 
 }
 
