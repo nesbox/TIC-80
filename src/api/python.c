@@ -481,7 +481,6 @@ static int py_memcpy(pkpy_vm* vm) {
     if(pkpy_check_error(vm)) 
         return 0;
 
-    #undef memcpy
     core->api.memcpy(tic, dest, src, size);
 
     return 0;
@@ -501,7 +500,6 @@ static int py_memset(pkpy_vm* vm) {
     if(pkpy_check_error(vm)) 
         return 0;
 
-    #undef memset
     core->api.memset(tic, dest, value, size);
 
     return 0;

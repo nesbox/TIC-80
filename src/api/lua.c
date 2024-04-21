@@ -23,7 +23,6 @@
 #include "core/core.h"
 
 #include <stdlib.h>
-#include <string.h>
 #include <lua.h>
 #include <lauxlib.h>
 #include <lualib.h>
@@ -1201,7 +1200,6 @@ static s32 lua_memcpy(lua_State* lua)
 
         tic_core* core = getLuaCore(lua);
         tic_mem* tic = (tic_mem*)core;
-        #undef memcpy
         core->api.memcpy(tic, dest, src, size);
     }
     else luaL_error(lua, "invalid params, memcpy(dest,src,size)\n");
@@ -1222,7 +1220,6 @@ static s32 lua_memset(lua_State* lua)
         tic_core* core = getLuaCore(lua);
         tic_mem* tic = (tic_mem*)core;
 
-        #undef memset
         core->api.memset(tic, dest, value, size);
     }
     else luaL_error(lua, "invalid params, memset(dest,val,size)\n");

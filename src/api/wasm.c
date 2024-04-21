@@ -848,7 +848,6 @@ m3ApiRawFunction(wasmtic_memset)
 
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
 
-    #undef memset
     core->api.memset(tic, address, value, length);
 
     m3ApiSuccess();
@@ -862,7 +861,6 @@ m3ApiRawFunction(wasmtic_memcpy)
 
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
 
-    #undef memcpy
     core->api.memcpy(tic, dest, src, length);
 
     m3ApiSuccess();

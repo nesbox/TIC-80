@@ -1177,7 +1177,6 @@ static SQInteger squirrel_memcpy(HSQUIRRELVM vm)
 
         tic_core* core = getSquirrelCore(vm); tic_mem* tic = (tic_mem*)core;
 
-        #undef memcpy
         core->api.memcpy(tic, dest, src, size);
         return 0;
     }
@@ -1197,7 +1196,6 @@ static SQInteger squirrel_memset(HSQUIRRELVM vm)
 
         tic_core* core = getSquirrelCore(vm); tic_mem* tic = (tic_mem*)core;
 
-        #undef memset
         core->api.memset(tic, dest, value, size);
         return 0;
     }

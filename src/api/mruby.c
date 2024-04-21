@@ -808,7 +808,6 @@ static mrb_value mrb_memcpy(mrb_state* mrb, mrb_value self)
     if(size >= 0 && size <= sizeof(tic_ram) && dest >= 0 && src >= 0 && dest <= bound && src <= bound)
     {
         tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
-        #undef memcpy
         core->api.memcpy(tic, dest, src, size);
     }
     else
@@ -830,7 +829,6 @@ static mrb_value mrb_memset(mrb_state* mrb, mrb_value self)
     {
         tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
-        #undef memset
         core->api.memset(tic, dest, value, size);
     }
     else

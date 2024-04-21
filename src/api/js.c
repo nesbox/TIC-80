@@ -595,7 +595,6 @@ static JSValue js_memcpy(JSContext *ctx, JSValueConst this_val, s32 argc, JSValu
     s32 size = getInteger(ctx, argv[2]);
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
-    #undef memcpy
     core->api.memcpy(tic, dest, src, size);
 
     return JS_UNDEFINED;
@@ -609,7 +608,6 @@ static JSValue js_memset(JSContext *ctx, JSValueConst this_val, s32 argc, JSValu
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
-    #undef memset
     core->api.memset(tic, dest, value, size);
 
     return JS_UNDEFINED;
