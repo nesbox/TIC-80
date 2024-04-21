@@ -1268,9 +1268,7 @@ static const tic_outline_item* getJanetOutline(const char* code, s32* size)
     return items;
 }
 
-/* ***************** */
-
-const tic_script_config JanetSyntaxConfig =
+JANET_API const tic_script_config JanetSyntaxConfig =
 {
     .id                 = 18,
     .name               = "janet",

@@ -1520,7 +1520,7 @@ static const char* const PythonKeywords[] =
 };
 
 
-const tic_script_config PythonSyntaxConfig =
+PK_EXPORT const tic_script_config PythonSyntaxConfig =
 {
     .id                 = 20,
     .name               = "python",

@@ -39,7 +39,7 @@ if(BUILD_WITH_JANET)
 
     set(JANET_SRC 
         ${THIRDPARTY_DIR}/janet/build/c/janet.c
-        ${CMAKE_SOURCE_DIR}/src/api/janet.c 
+        ${CMAKE_SOURCE_DIR}/src/api/janet.c
         ${CMAKE_SOURCE_DIR}/src/api/parse_note.c
     )
 
@@ -50,10 +50,9 @@ if(BUILD_WITH_JANET)
     endif()
 
     target_include_directories(janet 
-        PUBLIC 
+        PRIVATE 
             ${THIRDPARTY_DIR}/janet/src/include
             ${CMAKE_SOURCE_DIR}/build/janet
-        PRIVATE 
             ${CMAKE_SOURCE_DIR}/include
             ${CMAKE_SOURCE_DIR}/src
     )
