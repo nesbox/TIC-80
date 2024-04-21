@@ -32,6 +32,7 @@ LIBS :=  \
     $(TIC80LIB)/libblipbuf.a \
     $(TIC80LIB)/libsquirrel.a \
     $(TIC80LIB)/libpython.a \
+    $(TIC80LIB)/libpocketpy.a \
     $(TIC80LIB)/libscheme.a \
     $(TIC80LIB)/libwren.a \
     $(TIC80LIB)/libwasm.a \
@@ -39,9 +40,11 @@ LIBS :=  \
     $(TIC80LIB)/libargparse.a \
     $(TIC80LIB)/libwave_writer.a \
     $(TIC80LIB)/libjs.a \
+    $(TIC80LIB)/libquickjs.a \
     $(TIC80LIB)/libzlib.a \
     $(TIC80LIB)/libpng.a \
     $(TIC80LIB)/libruby.a \
+    $(MRUBYDIR)/build/target/lib/libmruby.a \
     $(NEWLIBDIR)/lib/libc.a \
     $(NEWLIBDIR)/lib/libcirclenewlib.a \
     $(CIRCLEHOME)/addon/vc4/sound/libvchiqsound.a \
