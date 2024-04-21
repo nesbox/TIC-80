@@ -18,50 +18,6 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
         ${TIC80CORE_DIR}/tilesheet.c
     )
 
-    if(BUILD_WITH_LUA)
-        list(APPEND TIC80CORE_SRC ${TIC80CORE_DIR}/api/lua.c)
-    endif()
-
-    if(BUILD_WITH_MOON)
-        list(APPEND TIC80CORE_SRC ${TIC80CORE_DIR}/api/moonscript.c)
-    endif()
-
-    if(BUILD_WITH_FENNEL)
-        list(APPEND TIC80CORE_SRC ${TIC80CORE_DIR}/api/fennel.c)
-    endif()
-
-    if(BUILD_WITH_JS)
-        list(APPEND TIC80CORE_SRC ${TIC80CORE_DIR}/api/js.c)
-    endif()
-
-    if(BUILD_WITH_SCHEME)
-        list(APPEND TIC80CORE_SRC ${TIC80CORE_DIR}/api/scheme.c)
-    endif()
-
-    if(BUILD_WITH_SQUIRREL)
-        list(APPEND TIC80CORE_SRC ${TIC80CORE_DIR}/api/squirrel.c)
-    endif()
-
-    if(BUILD_WITH_PYTHON)
-        list(APPEND TIC80CORE_SRC ${TIC80CORE_DIR}/api/python.c)
-    endif()
-
-    if(BUILD_WITH_WREN)
-        list(APPEND TIC80CORE_SRC ${TIC80CORE_DIR}/api/wren.c)
-    endif()
-
-    if(BUILD_WITH_MRUBY)
-        list(APPEND TIC80CORE_SRC ${TIC80CORE_DIR}/api/mruby.c)
-    endif()
-
-    if(BUILD_WITH_JANET)
-        list(APPEND TIC80CORE_SRC ${TIC80CORE_DIR}/api/janet.c)
-    endif()
-
-    if(BUILD_WITH_WASM)
-        list(APPEND TIC80CORE_SRC ${TIC80CORE_DIR}/api/wasm.c)
-    endif()
-
     if(${BUILD_DEPRECATED})
         set(TIC80CORE_SRC ${TIC80CORE_SRC} ${TIC80CORE_DIR}/ext/gif.c)
     endif()
@@ -89,7 +45,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
     endif()
 
     if(BUILD_WITH_JS)
-        target_link_libraries(tic80core${SCRIPT} quickjs)
+        target_link_libraries(tic80core${SCRIPT} js)
     endif()
 
     if(BUILD_WITH_SCHEME)
@@ -109,7 +65,7 @@ macro(MACRO_CORE SCRIPT DEFINE BUILD_DEPRECATED)
     endif()
 
     if(BUILD_WITH_MRUBY)
-        target_link_libraries(tic80core${SCRIPT} mruby)
+        target_link_libraries(tic80core${SCRIPT} ruby)
     endif()
 
     if(BUILD_WITH_JANET)

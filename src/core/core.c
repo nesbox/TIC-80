@@ -38,6 +38,8 @@
 #include <3ds.h>
 #endif
 
+#include "blip_buf.h"
+
 static_assert(TIC_BANK_BITS == 3,                   "tic_bank_bits");
 static_assert(sizeof(tic_map) < 1024 * 32,          "tic_map");
 static_assert(sizeof(tic_rgb) == 3,    "tic_rgb");
@@ -423,16 +425,14 @@ static bool tic_init_vm(tic_core* core, const char* code, const tic_script_confi
     tic_close_current_vm(core);
     // set current script config and init
     core->currentScript = config;
-    bool done = config->init( (tic_mem*) core , code);
+
+    bool done = config->init((tic_mem*)core, code);
     if(!done)
     {
         // if it couldn't init, make sure the VM is not left dirty by the implementation
         core->currentVM = NULL;
     }
-    else
-    {
-        //printf("Initialized VM of %s, %d\n", core->currentScript->name, core->currentVM);
-    }
+
     return done;
 }
 
@@ -763,6 +763,12 @@ tic_mem* tic_core_create(s32 samplerate, tic80_pixel_color_format format)
 
     blip_set_rates(core->blip.left, CLOCKRATE, samplerate);
     blip_set_rates(core->blip.right, CLOCKRATE, samplerate);
+
+    {
+#define API_FUNC_DEF(name, ...) core->api.name = tic_api_ ## name;
+        TIC_API_LIST(API_FUNC_DEF)
+#undef  API_FUNC_DEF
+    }
 
     tic_api_reset(&core->memory);
 

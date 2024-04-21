@@ -24,8 +24,49 @@ if(BUILD_WITH_WASM)
         ${WASM_DIR}/m3_module.c
     )
 
-    add_library(wasm STATIC ${WASM_SRC})
-    target_include_directories(wasm PUBLIC ${THIRDPARTY_DIR}/wasm3/source)
+    list(APPEND WASM_SRC ${CMAKE_SOURCE_DIR}/src/api/wasm.c)
+
+    add_library(wasm ${TIC_RUNTIME} ${WASM_SRC})
+
+    if(NOT BUILD_STATIC)
+        set_target_properties(wasm PROPERTIES PREFIX "")
+    endif()
+
+    target_include_directories(wasm 
+        PUBLIC ${WASM_DIR}
+        PRIVATE 
+            ${CMAKE_SOURCE_DIR}/include
+            ${CMAKE_SOURCE_DIR}/src
+    )
+
     target_compile_definitions(wasm INTERFACE TIC_BUILD_WITH_WASM=1)
+
+    # we need to build these separately combining both the project
+    # and the external WASM binary chunk since projects do not
+    # include BINARY chunks
+
+    if(BUILD_DEMO_CARTS)
+
+        file(GLOB WASM_DEMOS
+            ${DEMO_CARTS_IN}/wasm/*.wasmp
+            ${DEMO_CARTS_IN}/bunny/wasmmark/*.wasmp
+        )
+
+        foreach(CART_FILE ${WASM_DEMOS})
+
+            get_filename_component(CART_NAME ${CART_FILE} NAME_WE)
+            get_filename_component(DIR ${CART_FILE} DIRECTORY)
+
+            set(OUTNAME ${CMAKE_SOURCE_DIR}/build/assets/${CART_NAME}.tic.dat)
+            set(WASM_BINARY ${DIR}/${CART_NAME}.wasm)
+            set(OUTPRJ ${CMAKE_SOURCE_DIR}/build/${CART_NAME}.tic)
+            list(APPEND DEMO_CARTS_OUT ${OUTNAME})
+            add_custom_command(OUTPUT ${OUTNAME}
+                COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/wasmp2cart ${CART_FILE} ${OUTPRJ} --binary ${WASM_BINARY} && ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${OUTPRJ} ${OUTNAME} -z
+                DEPENDS bin2txt wasmp2cart ${CART_FILE} ${WASM_BINARY}
+            )
+
+        endforeach(CART_FILE)
+    endif()
 
 endif()

@@ -63,28 +63,6 @@ void tic_tool_set_pattern_id(tic_track* track, s32 frame, s32 channel, s32 patte
         track->data[frame * TRACK_PATTERNS_SIZE + b] = (patternData >> (b * BITS_IN_BYTE)) & 0xff;
 }
 
-bool tic_tool_parse_note(const char* noteStr, s32* note, s32* octave)
-{
-    if(noteStr && strlen(noteStr) == 3)
-    {
-        static const char* Notes[] = SFX_NOTES;
-
-        for(s32 i = 0; i < COUNT_OF(Notes); i++)
-        {
-            if(memcmp(Notes[i], noteStr, 2) == 0)
-            {
-                *note = i;
-                *octave = noteStr[2] - '1';
-                break;
-            }
-        }
-
-        return true;
-    }
-
-    return false;
-}
-
 u32 tic_nearest_color(const tic_rgb* palette, const tic_rgb* color, s32 count)
 {
     u32 min = -1;

@@ -34,10 +34,31 @@ if(BUILD_WITH_SQUIRREL)
 
     )
 
-    add_library(squirrel STATIC ${SQUIRREL_SRC})
+    list(APPEND SQUIRREL_SRC ${CMAKE_SOURCE_DIR}/src/api/squirrel.c)
+    list(APPEND SQUIRREL_SRC ${CMAKE_SOURCE_DIR}/src/api/parse_note.c)
+
+    add_library(squirrel ${TIC_RUNTIME} ${SQUIRREL_SRC})
+
+    if(NOT BUILD_STATIC)
+        set_target_properties(squirrel PROPERTIES PREFIX "")
+    endif()
+
     set_target_properties(squirrel PROPERTIES LINKER_LANGUAGE CXX)
-    target_include_directories(squirrel PUBLIC ${SQUIRREL_DIR}/include)
-    target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/squirrel)
-    target_include_directories(squirrel PRIVATE ${SQUIRREL_DIR}/sqstdlib)
+
+    target_include_directories(squirrel 
+        PUBLIC ${SQUIRREL_DIR}/include
+        PRIVATE 
+            ${SQUIRREL_DIR}/squirrel
+            ${SQUIRREL_DIR}/sqstdlib
+            ${CMAKE_SOURCE_DIR}/include
+            ${CMAKE_SOURCE_DIR}/src
+    )
+
     target_compile_definitions(squirrel INTERFACE TIC_BUILD_WITH_SQUIRREL=1)
+
+    if(BUILD_DEMO_CARTS)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/squirreldemo.nut)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/bunny/squirrelmark.nut)
+    endif()
+
 endif()

@@ -89,7 +89,6 @@ inline s32 tic_modulo(s32 x, s32 m)
 
 tic_blitpal tic_tool_palette_blit(const tic_palette* src, tic80_pixel_color_format fmt);
 
-bool    tic_tool_parse_note(const char* noteStr, s32* note, s32* octave);
 s32     tic_tool_get_pattern_id(const tic_track* track, s32 frame, s32 channel);
 void    tic_tool_set_pattern_id(tic_track* track, s32 frame, s32 channel, s32 id);
 bool    tic_project_ext(const char* name);

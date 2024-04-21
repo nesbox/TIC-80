@@ -12,8 +12,6 @@ if(BUILD_SDL AND NOT EMSCRIPTEN AND NOT RPI)
         set(SDL_STATIC_PIC ON CACHE BOOL "" FORCE)
     endif()
 
-    set(SDL_SHARED OFF CACHE BOOL "" FORCE)
-
     add_subdirectory(${THIRDPARTY_DIR}/sdl2)
 
 endif()
@@ -41,7 +39,13 @@ if(BUILD_SDL AND BUILD_PLAYER AND NOT RPI)
         target_link_options(player-sdl PRIVATE -static)
     endif()
 
-    target_link_libraries(player-sdl tic80core SDL2-static SDL2main)
+    target_link_libraries(player-sdl tic80core SDL2main)
+
+    if(BUILD_STATIC)
+        target_link_libraries(player-sdl SDL2-static)
+    else()
+        target_link_libraries(player-sdl SDL2)
+    endif()
 endif()
 
 ################################
@@ -113,7 +117,11 @@ if(ANDROID)
 endif()
 
 if(NOT EMSCRIPTEN)
-    target_link_libraries(sdlgpu SDL2-static)
+    if(BUILD_STATIC)
+        target_link_libraries(sdlgpu SDL2-static)
+    else()
+        target_link_libraries(sdlgpu SDL2)
+    endif()
 endif()
 
 endif()
@@ -186,7 +194,11 @@ if(BUILD_SDL)
         elseif(RPI)
             target_link_libraries(tic80 libSDL2.a bcm_host)
         else()
-            target_link_libraries(tic80 SDL2-static)
+            if(BUILD_STATIC)
+                target_link_libraries(tic80 SDL2-static)
+            else()
+                target_link_libraries(tic80 SDL2)
+            endif()
         endif()
     endif()
 

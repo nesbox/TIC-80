@@ -27,6 +27,7 @@
 #include <string.h>
 #include <limits.h>
 #include "tic_assert.h"
+#include "blip_buf.h"
 
 #define ENVELOPE_FREQ_SCALE 2
 #define SECONDS_PER_MINUTE 60

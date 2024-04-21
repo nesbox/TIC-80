@@ -10,20 +10,41 @@ message("BUILD_WITH_PYTHON: ${BUILD_WITH_PYTHON}")
 if(BUILD_WITH_PYTHON)
 
     add_subdirectory(${THIRDPARTY_DIR}/pocketpy)
-    include_directories(${THIRDPARTY_DIR}/pocketpy/include)
 
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
         target_compile_options(pocketpy PRIVATE -Wno-psabi)
     endif()
 
-    # alias pocketpy to python for next steps
-    set_target_properties(pocketpy PROPERTIES OUTPUT_NAME python)
-    add_library(python ALIAS pocketpy)
+    set(PYTHON_SRC 
+        ${CMAKE_SOURCE_DIR}/src/api/python.c
+        ${CMAKE_SOURCE_DIR}/src/api/parse_note.c
+    )
+
+    add_library(python ${TIC_RUNTIME} ${PYTHON_SRC})
+
+    if(NOT BUILD_STATIC)
+        set_target_properties(python PROPERTIES PREFIX "")
+    endif()
+
+    target_include_directories(python 
+        PRIVATE 
+            ${THIRDPARTY_DIR}/pocketpy/include
+            ${CMAKE_SOURCE_DIR}/include
+            ${CMAKE_SOURCE_DIR}/src
+    )
+
+    target_link_libraries(python PRIVATE pocketpy)
 
     if(EMSCRIPTEN)
         # exceptions must be enabled for emscripten
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fexceptions")
     endif()
 
-    target_compile_definitions(pocketpy INTERFACE TIC_BUILD_WITH_PYTHON=1)
+    target_compile_definitions(python INTERFACE TIC_BUILD_WITH_PYTHON=1)
+
+    if(BUILD_DEMO_CARTS)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/pythondemo.py)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/bunny/pythonmark.py)
+    endif()
+
 endif()

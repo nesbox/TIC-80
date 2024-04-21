@@ -22,10 +22,29 @@ if(BUILD_WITH_WREN)
         ${WREN_DIR}/vm/wren_vm.c
     )
 
-    add_library(wren STATIC ${WREN_SRC})
+    list(APPEND WREN_SRC ${CMAKE_SOURCE_DIR}/src/api/wren.c)
+    list(APPEND WREN_SRC ${CMAKE_SOURCE_DIR}/src/api/parse_note.c)
+
+    add_library(wren ${TIC_RUNTIME} ${WREN_SRC})
+
+    if(NOT BUILD_STATIC)
+        set_target_properties(wren PROPERTIES PREFIX "")
+    endif()
+    
+    target_include_directories(wren 
+        PRIVATE 
+            ${CMAKE_SOURCE_DIR}/include
+            ${CMAKE_SOURCE_DIR}/src
+    )
+
     target_include_directories(wren PUBLIC ${THIRDPARTY_DIR}/wren/src/include)
     target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/optional)
     target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/vm)
     target_compile_definitions(wren INTERFACE TIC_BUILD_WITH_WREN=1)
+
+    if(BUILD_DEMO_CARTS)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/wrendemo.wren)
+        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/bunny/wrenmark.wren)
+    endif()
 
 endif()
