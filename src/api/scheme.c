@@ -424,6 +424,8 @@ s7_pointer scheme_memcpy(s7_scheme* sc, s7_pointer args)
     const s32 dest = s7_integer(s7_car(args));
     const s32 source = s7_integer(s7_cadr(args));
     const s32 size = s7_integer(s7_caddr(args));
+
+    #undef memcpy
     core->api.memcpy(tic, dest, source, size);
     return s7_nil(sc);
 }
@@ -434,6 +436,8 @@ s7_pointer scheme_memset(s7_scheme* sc, s7_pointer args)
     const s32 dest = s7_integer(s7_car(args));
     const s32 value = s7_integer(s7_cadr(args));
     const s32 size = s7_integer(s7_caddr(args));
+
+    #undef memset
     core->api.memset(tic, dest, value, size);
     return s7_nil(sc);
 }

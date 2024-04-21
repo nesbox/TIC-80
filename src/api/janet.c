@@ -646,6 +646,7 @@ static Janet janet_memcpy(int32_t argc, Janet* argv)
     s32 size = janet_getinteger(argv, 2);
 
     tic_core* core = getJanetMachine(); tic_mem* tic = (tic_mem*)core;
+    #undef memcpy
     core->api.memcpy(tic, dst, src, size);
     return janet_wrap_nil();
 }
@@ -659,6 +660,8 @@ static Janet janet_memset(int32_t argc, Janet* argv)
     s32 size = janet_getinteger(argv, 2);
 
     tic_core* core = getJanetMachine(); tic_mem* tic = (tic_mem*)core;
+
+    #undef memset
     core->api.memset(tic, dst, val, size);
     return janet_wrap_nil();
 }

@@ -1150,6 +1150,8 @@ static void wren_memcpy(WrenVM* vm)
     s32 size = getWrenNumber(vm, 3);
 
     tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+
+    #undef memcpy
     core->api.memcpy(tic, dest, src, size);
 }
 
@@ -1160,6 +1162,8 @@ static void wren_memset(WrenVM* vm)
     s32 size = getWrenNumber(vm, 3);
 
     tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+
+    #undef memset
     core->api.memset(tic, dest, value, size);
 }
 
