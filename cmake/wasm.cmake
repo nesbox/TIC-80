@@ -26,15 +26,10 @@ if(BUILD_WITH_WASM)
 
     list(APPEND WASM_SRC ${CMAKE_SOURCE_DIR}/src/api/wasm.c)
 
-    if(BUILD_STATIC)
-        add_library(wasm STATIC ${WASM_SRC})
-        target_compile_definitions(wasm PUBLIC TIC_BUILD_STATIC)
-    else()
-        add_library(wasm SHARED ${WASM_SRC})
+    add_library(wasm ${TIC_RUNTIME} ${WASM_SRC})
+
+    if(NOT BUILD_STATIC)
         set_target_properties(wasm PROPERTIES PREFIX "")
-        if(MINGW)
-            target_link_options(wasm PRIVATE -static)
-        endif()
     endif()
 
     target_include_directories(wasm 

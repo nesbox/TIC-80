@@ -17,15 +17,10 @@ if(BUILD_WITH_MRUBY)
     list(APPEND RUBY_SRC ${CMAKE_SOURCE_DIR}/src/api/mruby.c)
     list(APPEND RUBY_SRC ${CMAKE_SOURCE_DIR}/src/api/parse_note.c)
 
-    if(BUILD_STATIC)
-        add_library(ruby STATIC ${RUBY_SRC})
-        target_compile_definitions(ruby PUBLIC TIC_BUILD_STATIC)
-    else()
-        add_library(ruby SHARED ${RUBY_SRC})
+    add_library(ruby ${TIC_RUNTIME} ${RUBY_SRC})
+
+    if(NOT BUILD_STATIC)
         set_target_properties(ruby PROPERTIES PREFIX "")
-        if(MINGW)
-            target_link_options(ruby PRIVATE -static)
-        endif()
     endif()
 
     if(CMAKE_BUILD_TYPE)

@@ -43,15 +43,10 @@ if(BUILD_WITH_JANET)
         ${CMAKE_SOURCE_DIR}/src/api/parse_note.c
     )
 
-    if(BUILD_STATIC)
-        add_library(janet STATIC ${JANET_SRC})
-        target_compile_definitions(janet PUBLIC TIC_BUILD_STATIC)
-    else()
-        add_library(janet SHARED ${JANET_SRC})
+    add_library(janet ${TIC_RUNTIME} ${JANET_SRC})
+
+    if(NOT BUILD_STATIC)
         set_target_properties(janet PROPERTIES PREFIX "")
-        if(MINGW)
-            target_link_options(janet PRIVATE -static)
-        endif()
     endif()
 
     target_include_directories(janet 

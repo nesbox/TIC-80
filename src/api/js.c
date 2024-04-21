@@ -43,11 +43,7 @@ static inline tic_core* getCore(JSContext *ctx)
     return JS_GetContextOpaque(ctx);
 }
 
-#if defined(TIC_BUILD_STATIC)
-#define CALLAPI(x) tic_api_ ## x
-#else
 #define CALLAPI(x) getCore(ctx)->api.x
-#endif
 
 static s32 getInteger(JSContext *ctx, JSValueConst val)
 {

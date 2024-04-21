@@ -41,6 +41,12 @@ if(NOT BUILD_SDL)
     set(BUILD_SDLGPU OFF)
 endif()
 
+if(BUILD_STATIC)
+    set(TIC_RUNTIME STATIC)
+else()
+    set(TIC_RUNTIME SHARED)
+endif()
+
 message("BUILD_STATIC: ${BUILD_STATIC}")
 message("BUILD_SDLGPU: ${BUILD_SDLGPU}")
 message("BUILD_TOUCH_INPUT: ${BUILD_TOUCH_INPUT}")

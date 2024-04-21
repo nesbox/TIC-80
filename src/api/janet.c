@@ -40,11 +40,7 @@ extern bool parse_note(const char* noteStr, s32* note, s32* octave);
 
 static inline tic_core* getJanetMachine(void);
 
-#if defined(TIC_BUILD_STATIC)
-#define CALLAPI(x) tic_api_ ## x
-#else
 #define CALLAPI(x) getJanetMachine()->api.x
-#endif
 
 static Janet janet_print(int32_t argc, Janet* argv);
 static Janet janet_cls(int32_t argc, Janet* argv);

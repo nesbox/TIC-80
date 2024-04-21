@@ -57,11 +57,7 @@ static tic_core* getLuaCore(lua_State* lua)
     return core;
 }
 
-#if defined(TIC_BUILD_STATIC)
-#define CALLAPI(x) tic_api_ ## x
-#else
 #define CALLAPI(x) getLuaCore(lua)->api.x
-#endif
 
 static s32 lua_peek(lua_State* lua)
 {

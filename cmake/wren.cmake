@@ -24,16 +24,11 @@ if(BUILD_WITH_WREN)
 
     list(APPEND WREN_SRC ${CMAKE_SOURCE_DIR}/src/api/wren.c)
     list(APPEND WREN_SRC ${CMAKE_SOURCE_DIR}/src/api/parse_note.c)
-    
-    if(BUILD_STATIC)
-        add_library(wren STATIC ${WREN_SRC})
-        target_compile_definitions(wren PUBLIC TIC_BUILD_STATIC)
-    else()
-        add_library(wren SHARED ${WREN_SRC})
+
+    add_library(wren ${TIC_RUNTIME} ${WREN_SRC})
+
+    if(NOT BUILD_STATIC)
         set_target_properties(wren PROPERTIES PREFIX "")
-        if(MINGW)
-            target_link_options(wren PRIVATE -static)
-        endif()
     endif()
     
     target_include_directories(wren 

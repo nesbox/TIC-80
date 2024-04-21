@@ -20,15 +20,10 @@ if(BUILD_WITH_PYTHON)
         ${CMAKE_SOURCE_DIR}/src/api/parse_note.c
     )
 
-    if(BUILD_STATIC)
-        add_library(python STATIC ${PYTHON_SRC})
-        target_compile_definitions(python PUBLIC TIC_BUILD_STATIC)
-    else()
-        add_library(python SHARED ${PYTHON_SRC})
+    add_library(python ${TIC_RUNTIME} ${PYTHON_SRC})
+
+    if(NOT BUILD_STATIC)
         set_target_properties(python PROPERTIES PREFIX "")
-        if(MINGW)
-            target_link_options(python PRIVATE -static)
-        endif()
     endif()
 
     target_include_directories(python 

@@ -69,15 +69,10 @@ if(BUILD_WITH_LUA)
         list(APPEND LUA_SRC ${CMAKE_SOURCE_DIR}/src/api/fennel.c)
     endif()
 
-    if(BUILD_STATIC)
-        add_library(lua STATIC ${LUA_SRC})
-        target_compile_definitions(lua PUBLIC TIC_BUILD_STATIC)
-    else()
-        add_library(lua SHARED ${LUA_SRC})
+    add_library(lua ${TIC_RUNTIME} ${LUA_SRC})
+
+    if(NOT BUILD_STATIC)
         set_target_properties(lua PROPERTIES PREFIX "")
-        if(MINGW)
-            target_link_options(lua PRIVATE -static)
-        endif()
     endif()
 
     target_compile_definitions(lua PRIVATE LUA_COMPAT_5_2)

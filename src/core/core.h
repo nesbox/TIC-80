@@ -198,16 +198,12 @@ typedef struct
         } time;
     } pause;
 
-#if !defined(TIC_BUILD_STATIC)
-
     struct
     {
     #define API_FUNC_DEF(name, _, __, ___, ____, _____, ret, ...) ret (*name)(__VA_ARGS__);
         TIC_API_LIST(API_FUNC_DEF)
     #undef  API_FUNC_DEF
     } api;
-
-#endif
 
 } tic_core;
 

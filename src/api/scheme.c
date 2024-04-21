@@ -43,11 +43,7 @@ tic_core* getSchemeCore(s7_scheme* sc)
     return s7_c_pointer(s7_name_to_value(sc, TicCore));
 }
 
-#if defined(TIC_BUILD_STATIC)
-#define CALLAPI(x) tic_api_ ## x
-#else
 #define CALLAPI(x) getSchemeCore(sc)->api.x
-#endif
 
 s7_pointer scheme_print(s7_scheme* sc, s7_pointer args)
 {

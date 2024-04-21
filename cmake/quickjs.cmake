@@ -41,15 +41,10 @@ if(BUILD_WITH_JS)
         ${CMAKE_SOURCE_DIR}/src/api/parse_note.c
     )
 
-    if(BUILD_STATIC)
-        add_library(js STATIC ${JS_SRC})
-        target_compile_definitions(js PUBLIC TIC_BUILD_STATIC)
-    else()
-        add_library(js SHARED ${JS_SRC})
+    add_library(js ${TIC_RUNTIME} ${JS_SRC})
+
+    if(NOT BUILD_STATIC)
         set_target_properties(js PROPERTIES PREFIX "")
-        if(MINGW)
-            target_link_options(js PRIVATE -static)
-        endif()
     endif()
 
     target_link_libraries(js PRIVATE quickjs)

@@ -38,11 +38,7 @@ static bool get_core(pkpy_vm* vm, tic_core** core)
     return ok;
 }
 
-#if defined(TIC_BUILD_STATIC)
-#define CALLAPI(x) tic_api_ ## x
-#else
 #define CALLAPI(x) ((tic_core*)tic)->api.x
-#endif
 
 static bool setup_core(pkpy_vm* vm, tic_core* core) 
 {

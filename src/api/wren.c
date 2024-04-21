@@ -269,11 +269,7 @@ static tic_core* getWrenCore(WrenVM* vm)
     return core;
 }
 
-#if defined(TIC_BUILD_STATIC)
-#define CALLAPI(x) tic_api_ ## x
-#else
 #define CALLAPI(x) getWrenCore(vm)->api.x
-#endif
 
 static void wren_map_width(WrenVM* vm)
 {

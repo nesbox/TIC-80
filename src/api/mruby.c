@@ -58,11 +58,7 @@ static inline tic_core* getMRubyMachine(mrb_state* mrb)
     return CurrentMachine;
 }
 
-#if defined(TIC_BUILD_STATIC)
-#define CALLAPI(x) tic_api_ ## x
-#else
 #define CALLAPI(x) getMRubyMachine(mrb)->api.x
-#endif
 
 static mrb_value mrb_peek(mrb_state* mrb, mrb_value self)
 {

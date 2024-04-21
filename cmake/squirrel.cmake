@@ -37,15 +37,10 @@ if(BUILD_WITH_SQUIRREL)
     list(APPEND SQUIRREL_SRC ${CMAKE_SOURCE_DIR}/src/api/squirrel.c)
     list(APPEND SQUIRREL_SRC ${CMAKE_SOURCE_DIR}/src/api/parse_note.c)
 
-    if(BUILD_STATIC)
-        add_library(squirrel STATIC ${SQUIRREL_SRC})
-        target_compile_definitions(squirrel PUBLIC TIC_BUILD_STATIC)
-    else()
-        add_library(squirrel SHARED ${SQUIRREL_SRC})
+    add_library(squirrel ${TIC_RUNTIME} ${SQUIRREL_SRC})
+
+    if(NOT BUILD_STATIC)
         set_target_properties(squirrel PROPERTIES PREFIX "")
-        if(MINGW)
-            target_link_options(squirrel PRIVATE -static)
-        endif()
     endif()
 
     set_target_properties(squirrel PROPERTIES LINKER_LANGUAGE CXX)

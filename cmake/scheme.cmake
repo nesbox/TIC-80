@@ -14,15 +14,10 @@ if(BUILD_WITH_SCHEME)
 
     list(APPEND SCHEME_SRC ${CMAKE_SOURCE_DIR}/src/api/scheme.c)
 
-    if(BUILD_STATIC)
-        add_library(scheme STATIC ${SCHEME_SRC})
-        target_compile_definitions(scheme PUBLIC TIC_BUILD_STATIC)
-    else()
-        add_library(scheme SHARED ${SCHEME_SRC})
+    add_library(scheme ${TIC_RUNTIME} ${SCHEME_SRC})
+
+    if(NOT BUILD_STATIC)
         set_target_properties(scheme PROPERTIES PREFIX "")
-        if(MINGW)
-            target_link_options(scheme PRIVATE -static)
-        endif()
     endif()
 
     set_target_properties(scheme PROPERTIES LINKER_LANGUAGE CXX)

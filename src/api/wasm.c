@@ -149,11 +149,7 @@ static tic_core* getWasmCore(IM3Runtime ctx)
     return (tic_core*)ctx->userdata;
 }
 
-#if defined(TIC_BUILD_STATIC)
-#define CALLAPI(x) tic_api_ ## x
-#else
 #define CALLAPI(x) getWasmCore(runtime)->api.x
-#endif
 
 m3ApiRawFunction(wasmtic_line)
 {

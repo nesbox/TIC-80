@@ -764,13 +764,11 @@ tic_mem* tic_core_create(s32 samplerate, tic80_pixel_color_format format)
     blip_set_rates(core->blip.left, CLOCKRATE, samplerate);
     blip_set_rates(core->blip.right, CLOCKRATE, samplerate);
 
-#if !defined(TIC_BUILD_STATIC)
     {
 #define API_FUNC_DEF(name, ...) core->api.name = tic_api_ ## name;
         TIC_API_LIST(API_FUNC_DEF)
 #undef  API_FUNC_DEF
     }
-#endif
 
     tic_api_reset(&core->memory);
 

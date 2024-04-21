@@ -93,11 +93,7 @@ static tic_core* getSquirrelCore(HSQUIRRELVM vm)
 #endif
 }
 
-#if defined(TIC_BUILD_STATIC)
-#define CALLAPI(x) tic_api_ ## x
-#else
 #define CALLAPI(x) getSquirrelCore(vm)->api.x
-#endif
 
 void squirrel_compilerError(HSQUIRRELVM vm, const SQChar* desc, const SQChar* source, 
                              SQInteger line, SQInteger column)
