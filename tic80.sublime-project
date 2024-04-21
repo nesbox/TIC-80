@@ -3,9 +3,11 @@
     [
         {
             "name": "build",
-            "shell_cmd": "cd ${project_path}/build && cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel ..",
-            "file_regex": "/([^/:]+):(\\d+):(\\d+): ",
-            "variants": [                
+            "shell_cmd": "cd ${project_path}/build && cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_STATIC=OFF .. && ninja",
+            "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (error.*)$",
+            "working_dir": "${file_path}",
+            "variants":
+            [
                 {
                     "name": "fresh",
                     "shell_cmd": "cd ${project_path}/build && cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel .. --fresh"
