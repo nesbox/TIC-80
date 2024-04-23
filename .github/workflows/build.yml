@@ -752,7 +752,7 @@ jobs:
 
   # === Export ===
   export:
-    needs: [winxp, windows, linux, rpi, macos, html]
+    needs: [winxp, windows, linux, rpi, macos, macos-arm64, html]
     runs-on: ubuntu-latest
 
     steps:
@@ -786,6 +786,12 @@ jobs:
           name: tic80-macos
           path: macdir
 
+      - name: Download MacOS arm64 artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: tic80-macos-arm64
+          path: macdir-arm64
+
       - name: Download HTML artifact
         uses: actions/download-artifact@v3
         with:
@@ -797,6 +803,7 @@ jobs:
           cp windir/* win
           cp linuxdir/* linux
           cp macdir/* mac
+          cp macdir-arm64/* mac-arm64
           cp rpidir/* rpi
           mv -f export.html index.html
           zip html.zip index.html tic80.js tic80.wasm
@@ -811,6 +818,7 @@ jobs:
             win
             linux
             mac
+            mac-arm64
             rpi
             html
 
@@ -853,6 +861,12 @@ jobs:
           name: tic80-macos-stub
           path: macdir
 
+      - name: Download MacOS arm64 artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: tic80-macos-arm64-stub
+          path: macdir-arm64
+
       - name: Download HTML artifact
         uses: actions/download-artifact@v3
         with:
@@ -865,6 +879,7 @@ jobs:
           cp linuxdir/tic80${{ matrix.script }} linux${{ matrix.script }}
           cp rpidir/tic80${{ matrix.script }} rpi${{ matrix.script }}
           cp macdir/tic80${{ matrix.script }} mac${{ matrix.script }}
+          cp macdir-arm64/tic80${{ matrix.script }} mac-arm64${{ matrix.script }}
           mv -f tic80${{ matrix.script }}.js tic80.js
           zip html${{ matrix.script }}.zip index.html tic80.js tic80${{ matrix.script }}.wasm
           mv -f html${{ matrix.script }}.zip html${{ matrix.script }}
@@ -879,6 +894,7 @@ jobs:
             linux${{ matrix.script }}
             rpi${{ matrix.script }}
             mac${{ matrix.script }}
+            mac-arm64${{ matrix.script }}
             html${{ matrix.script }}
 
   # === Delete stub artifacts ===
@@ -896,6 +912,7 @@ jobs:
             tic80-linux-stub
             tic80-rpi-stub
             tic80-macos-stub
+            tic80-macos-arm64-stub
             tic80-html-stub
 
   # === Delete PRO artifacts ===
@@ -910,6 +927,8 @@ jobs:
           name: |
             tic80-macos-pro
             tic80-macos-dmg-pro
+            tic80-macos-arm64-pro
+            tic80-macos-arm64-dmg-pro
             tic80-winxp-pro
             tic80-windows-pro
             tic80-linux-deb-pro
