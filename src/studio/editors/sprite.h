@@ -69,6 +69,12 @@ struct Sprite
         u8* front;
     } select;
 
+    struct
+    {
+        bool edit;
+        s32 pos;
+    } flags;
+
     enum
     {
         SPRITE_DRAW_MODE,

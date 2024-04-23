@@ -783,6 +783,39 @@ static void drawFlags(Sprite* sprite, s32 x, s32 y)
 
         tic_api_print(tic, (char[]){'0' + i, '\0'}, rect.x + (Size+2), rect.y, tic_color_light_grey, false, 1, true);
     }
+
+    // draw flags editbox
+    {
+        tic_rect rect = {x, y + (Size+1)*BITS_IN_BYTE + 2, TIC_ALTFONT_WIDTH * 2 + 1, TIC_FONT_HEIGHT + 1};
+
+        if(checkMousePos(sprite->studio, &rect))
+        {
+            setCursor(sprite->studio, tic_cursor_hand);
+
+            if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
+            {
+                sprite->flags.edit = true;
+                sprite->flags.pos = (tic_api_mouse(tic).x - rect.x) / (TIC_ALTFONT_WIDTH + 1);
+            }
+        }
+        else if(checkMouseDown(sprite->studio, &(tic_rect){0, 0, TIC80_WIDTH, TIC80_HEIGHT}, tic_mouse_left))
+        {
+            sprite->flags.edit = false;
+        }
+
+        if(sprite->flags.edit)
+        {
+            drawPanelBorder(tic, rect.x, rect.y, rect.w, rect.h);
+            tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_black);
+
+            tic_api_rect(tic, rect.x + sprite->flags.pos * TIC_ALTFONT_WIDTH, rect.y, TIC_ALTFONT_WIDTH + 1, rect.h, tic_color_red);
+        }
+
+        char buf[sizeof "FF"];
+        sprintf(buf, "%02X", and);
+
+        tic_api_print(tic, buf, rect.x + 1, rect.y + 1, sprite->flags.edit ? tic_color_white : tic_color_light_grey, false, 1, true);
+    }
 }
 
 static void switchBitMode(Sprite* sprite, tic_bpp bpp)
@@ -1073,6 +1106,10 @@ static void drawRGBSliders(Sprite* sprite, s32 x, s32 y)
 
                 sprite->palette.focus = mx / Width + my / Height * Cols;
             }
+        }
+        else if(checkMouseDown(sprite->studio, &(tic_rect){0, 0, TIC80_WIDTH, TIC80_HEIGHT}, tic_mouse_left))
+        {
+            sprite->palette.focus = -1;
         }
 
         bool hasFocus = sprite->palette.focus >= 0;
@@ -1780,34 +1817,70 @@ static void processKeyboard(Sprite* sprite)
     if(tic_api_key(tic, tic_key_alt))
         return;
 
-    if(sprite->palette.edit)
+    if(sprite->palette.edit && sprite->palette.focus >= 0)
     {
-        if(sprite->palette.focus >= 0)
+        enum{Cols = BITS_IN_BYTE / TIC_PALETTE_BPP, Rows = sizeof(tic_rgb)};
+        s32 col = sprite->palette.focus % Cols;
+        s32 row = sprite->palette.focus / Cols;
+
+        if(keyWasPressed(sprite->studio, tic_key_up))           --row;
+        else if(keyWasPressed(sprite->studio, tic_key_down))    ++row;
+        else if(keyWasPressed(sprite->studio, tic_key_left))    --col;
+        else if(keyWasPressed(sprite->studio, tic_key_right))   ++col;
+        else
         {
-            enum{Cols = BITS_IN_BYTE / TIC_PALETTE_BPP, Rows = sizeof(tic_rgb)};
-            s32 col = sprite->palette.focus % Cols;
-            s32 row = sprite->palette.focus / Cols;
+            char sym = getKeyboardText(sprite->studio);
 
-            if(keyWasPressed(sprite->studio, tic_key_up))           --row;
-            else if(keyWasPressed(sprite->studio, tic_key_down))    ++row;
-            else if(keyWasPressed(sprite->studio, tic_key_left))    --col;
-            else if(keyWasPressed(sprite->studio, tic_key_right))   ++col;
-            else
+            if(isxdigit(sym))
             {
-                char sym = getKeyboardText(sprite->studio);
-
-                if(isxdigit(sym))
-                {
-                    u8* data = &getBankPalette(sprite->studio, sprite->palette.vbank1)->data[sprite->color * Rows + row];
-                    char buf[sizeof "FF"];
-                    sprintf(buf, "%02X", *data);
-                    buf[col] = toupper(sym);
-                    *data = (u8)strtol(buf, NULL, 16);
-                    ++col;
-                }
+                u8* data = &getBankPalette(sprite->studio, sprite->palette.vbank1)->data[sprite->color * Rows + row];
+                char buf[sizeof "FF"];
+                sprintf(buf, "%02X", *data);
+                buf[col] = toupper(sym);
+                *data = (u8)strtol(buf, NULL, 16);
+                ++col;
             }
+        }
 
-            sprite->palette.focus = (col + row * Cols + Cols * Rows) % (Cols * Rows);
+        sprite->palette.focus = (col + row * Cols + Cols * Rows) % (Cols * Rows);
+    }
+    else if(sprite->flags.edit)
+    {
+        if(keyWasPressed(sprite->studio, tic_key_left))
+        {
+            if(sprite->flags.pos)
+                sprite->flags.pos--;
+        }
+        else if(keyWasPressed(sprite->studio, tic_key_right))
+        {
+            if(!sprite->flags.pos)
+                sprite->flags.pos++;
+        }
+        else
+        {
+            char sym = getKeyboardText(sprite->studio);
+
+            if(isxdigit(sym))
+            {
+                u8 mask = 0xff;
+
+                u8* flags = getBankFlags(sprite->studio)->data;
+                const s32* indexes = getSpriteIndexes(sprite);
+
+                for(const s32* i = indexes; *i; i++)
+                    mask &= flags[*i];
+
+                char buf[sizeof "FF"];
+                sprintf(buf, "%02X", mask);
+                buf[sprite->flags.pos] = toupper(sym);
+                u8 value = strtol(buf, NULL, 16);
+
+                for(const s32* i = indexes; *i; i++)
+                    flags[*i] = value;
+
+                if(!sprite->flags.pos)
+                    sprite->flags.pos++;
+            }
         }
     }
     else
