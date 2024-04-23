@@ -522,12 +522,24 @@ static void drawCanvasVBank1(Sprite* sprite, s32 x, s32 y)
     else
     {
         char buf[sizeof "#9999"];
-        sprintf(buf, "#%i", sprite->index + tic_blit_calc_index(&sprite->blit));
+        s32 index = sprite->index + tic_blit_calc_index(&sprite->blit);
+        sprintf(buf, sprite->hexindex ? "0x%02X" : "#%i", index);
 
-        s32 ix = x + (CANVAS_SIZE - strlen(buf) * TIC_FONT_WIDTH) / 2;
-        s32 iy = TIC_SPRITESIZE + 2;
-        tic_api_print(tic, buf, ix, iy+1, tic_color_black, true, 1, false);
-        tic_api_print(tic, buf, ix, iy, tic_color_white, true, 1, false);
+        s32 w = CANVAS_SIZE - strlen(buf) * TIC_FONT_WIDTH;
+        const tic_rect rect = {x + w / 2, TIC_SPRITESIZE + 2, w, TIC_FONT_HEIGHT};
+
+        if(checkMousePos(sprite->studio, &rect))
+        {
+            setCursor(sprite->studio, tic_cursor_hand);
+
+            if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
+            {
+                sprite->hexindex = !sprite->hexindex;
+            }
+        }
+
+        tic_api_print(tic, buf, rect.x, rect.y + 1, tic_color_black, true, 1, false);
+        tic_api_print(tic, buf, rect.x, rect.y, tic_color_white, true, 1, false);
     }
 }
 
@@ -792,6 +804,8 @@ static void drawFlags(Sprite* sprite, s32 x, s32 y)
         {
             setCursor(sprite->studio, tic_cursor_hand);
 
+            showTooltip(sprite->studio, "flags hex value");
+
             if(checkMouseClick(sprite->studio, &rect, tic_mouse_left))
             {
                 sprite->flags.edit = true;
@@ -814,7 +828,10 @@ static void drawFlags(Sprite* sprite, s32 x, s32 y)
         char buf[sizeof "FF"];
         sprintf(buf, "%02X", and);
 
-        tic_api_print(tic, buf, rect.x + 1, rect.y + 1, sprite->flags.edit ? tic_color_white : tic_color_light_grey, false, 1, true);
+        if(!sprite->flags.edit)
+            tic_api_print(tic, buf, rect.x + 1, rect.y + 2, tic_color_black, false, 1, true);
+                
+        tic_api_print(tic, buf, rect.x + 1, rect.y + 1, tic_color_white, false, 1, true);
     }
 }
 
