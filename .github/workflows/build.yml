@@ -917,7 +917,7 @@ jobs:
 
   # === Delete PRO artifacts ===
   delete-pro:
-    needs: [winxp-pro, windows-pro, linux-pro, macos-pro, rpi-pro]
+    needs: [winxp-pro, windows-pro, linux-pro, macos-pro, macos-arm64-pro, rpi-pro]
     runs-on: ubuntu-latest
 
     steps:
