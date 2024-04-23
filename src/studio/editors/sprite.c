@@ -2095,7 +2095,7 @@ static void tick(Sprite* sprite)
 
     VBANK(tic, 1)
     {
-        tic_api_cls(tic, tic->ram->vram.vars.clear = tic_color_dark_blue);
+        tic_api_cls(tic, tic->ram->vram.vars.clear = tic_color_cyan);
 
         static const tic_rect bg[] = 
         {
@@ -2124,7 +2124,7 @@ static void tick(Sprite* sprite)
             if(is4bpp(sprite))
                 drawFlags(sprite, 24+64+7, 20+8);
 
-            drawBitMode(sprite, PaletteX, PaletteY + PaletteH + 2, PaletteW, 8);        
+            drawBitMode(sprite, PaletteX, PaletteY + PaletteH + 2, PaletteW, 8);
         }
 
         drawBankTabs(sprite, SheetX, 8);
