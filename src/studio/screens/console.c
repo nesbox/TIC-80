@@ -3347,7 +3347,7 @@ static void processConsoleTab(Console* console)
             bool commandMatches = (strlen(Commands[i].name) == commandLen &&
                                        strncmp(Commands[i].name, input, commandLen) == 0) ||
                                   (Commands[i].alt &&
-                                      strlen(Commands[i].name) == commandLen &&
+                                      strlen(Commands[i].alt) == commandLen &&
                                       strncmp(Commands[i].alt, input, commandLen) == 0);
 
             if (commandMatches)
