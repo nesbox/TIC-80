@@ -65,4 +65,8 @@
 /* Main client settings, does not affect library code */
 /* #define JANET_SIMPLE_GETLINE */
 
+#if defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__)
+#include <windows.h>
+#endif
+
 #endif /* end of include guard: JANETCONF_H */
