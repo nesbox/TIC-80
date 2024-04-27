@@ -112,10 +112,16 @@ static bool isRoot(tic_fs* fs)
     return fs->work[0] == '\0';
 }
 
+bool tic_fs_isroot(tic_fs* fs)
+{
+    return isRoot(fs);
+}
+
 static bool isPublicRoot(tic_fs* fs)
 {
     return strcmp(fs->work, PublicDir) == 0;
 }
+
 
 static bool isPublic(tic_fs* fs)
 {

@@ -693,7 +693,8 @@ static void processGamepad(Surf* surf)
         if(tic_api_btnp(tic, B, -1, -1)
             || tic_api_keyp(tic, tic_key_backspace, -1, -1))
         {
-            goBackDir(surf);
+            if(tic_fs_isroot(surf->fs)) setStudioMode(surf->studio, TIC_CONSOLE_MODE);
+            else goBackDir(surf);
         }
 
 #ifdef CAN_OPEN_URL
