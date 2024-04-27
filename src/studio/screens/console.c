@@ -1186,6 +1186,9 @@ static void addTabCompleteOption(TabCompleteData* data, const char* option)
         {
             // This is the first option to be added. Initialize the prefix.
             strncpy(data->commonPrefix, option, CONSOLE_BUFFER_SCREEN);
+            // strncpy does not null-terminate if the source string is too long so
+            // null terminate in the end just to be sure
+            data->commonPrefix[CONSOLE_BUFFER_SCREEN - 1] = 0;
         }
         else
         {
@@ -1202,8 +1205,12 @@ static void addTabCompleteOption(TabCompleteData* data, const char* option)
         }
 
         // The option matches the incomplete word, add it to the list.
-        strncat(data->options, option, CONSOLE_BUFFER_SCREEN);
-        strncat(data->options, " ", CONSOLE_BUFFER_SCREEN);
+        // the last parameter of strcat is the maximum number of characters to be
+        // copied, and it adds a null terminator in the end. data->options having
+        // capacity CONSOLE_BUFFER_SCREEN, we can append CONSOLE_BUFFER_SCREEN -
+        // strlen(data->options) - 1 characters to its end at most
+        strncat(data->options, option, CONSOLE_BUFFER_SCREEN - strlen(data->options) - 1);
+        strncat(data->options, " ", CONSOLE_BUFFER_SCREEN - strlen(data->options) - 1);
     }
 }
 
@@ -1212,6 +1219,9 @@ static void provideHint(Console* console, const char* hint)
 {
     char* input = malloc(CONSOLE_BUFFER_SCREEN);
     strncpy(input, console->input.text, CONSOLE_BUFFER_SCREEN);
+    // strncpy does not null-terminate if the source string is too long so
+    // null terminate in the end just to be sure
+    input[CONSOLE_BUFFER_SCREEN - 1] = 0;
 
     printLine(console);
     printBack(console, hint);
