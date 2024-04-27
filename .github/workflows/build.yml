@@ -573,6 +573,78 @@ jobs:
           name: "tic80-macos-pro"
           path: build/bin/tic80
 
+# === MacOS 14 / arm64 ===
+  macos-arm64:
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install
+        run: brew uninstall --ignore-dependencies libidn2
+
+      - name: Build
+        run: |
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SDLGPU=On -DBUILD_STUB=On ..
+          cmake --build . --config $BUILD_TYPE --parallel
+          cpack
+          cp *.dmg tic80.dmg
+
+      - name: Deploy DMG
+        uses: actions/upload-artifact@v3
+        with:
+          name: "tic80-macos-arm64-dmg"
+          path: build/tic80.dmg
+
+      - name: Deploy
+        uses: actions/upload-artifact@v3
+        with:
+          name: "tic80-macos-arm64"
+          path: build/bin/tic80
+
+      - name: Deploy stubs
+        uses: actions/upload-artifact@v3
+        with:
+          name: "tic80-macos-arm64-stub"
+          path: build/bin/tic80*
+
+  # === MacOS 14 / arm64 PRO ===
+  macos-arm64-pro:
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install
+        run: brew uninstall --ignore-dependencies libidn2
+
+      - name: Build
+        run: |
+          cd build
+          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_SDLGPU=On -DBUILD_PRO=On ..
+          cmake --build . --config $BUILD_TYPE --parallel
+          cpack
+          cp *.dmg tic80.dmg
+
+      - name: Deploy DMG
+        uses: actions/upload-artifact@v3
+        with:
+          name: "tic80-macos-arm64-dmg-pro"
+          path: build/tic80.dmg
+
+      - name: Deploy
+        uses: actions/upload-artifact@v3
+        with:
+          name: "tic80-macos-arm64-pro"
+          path: build/bin/tic80
+
   # === Android ===
   android:
     runs-on: ubuntu-latest
@@ -680,7 +752,7 @@ jobs:
 
   # === Export ===
   export:
-    needs: [winxp, windows, linux, rpi, macos, html]
+    needs: [winxp, windows, linux, rpi, macos, macos-arm64, html]
     runs-on: ubuntu-latest
 
     steps:
@@ -714,6 +786,12 @@ jobs:
           name: tic80-macos
           path: macdir
 
+      - name: Download MacOS arm64 artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: tic80-macos-arm64
+          path: macdir-arm64
+
       - name: Download HTML artifact
         uses: actions/download-artifact@v3
         with:
@@ -725,6 +803,7 @@ jobs:
           cp windir/* win
           cp linuxdir/* linux
           cp macdir/* mac
+          cp macdir-arm64/* mac-arm64
           cp rpidir/* rpi
           mv -f export.html index.html
           zip html.zip index.html tic80.js tic80.wasm
@@ -739,6 +818,7 @@ jobs:
             win
             linux
             mac
+            mac-arm64
             rpi
             html
 
@@ -781,6 +861,12 @@ jobs:
           name: tic80-macos-stub
           path: macdir
 
+      - name: Download MacOS arm64 artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: tic80-macos-arm64-stub
+          path: macdir-arm64
+
       - name: Download HTML artifact
         uses: actions/download-artifact@v3
         with:
@@ -793,6 +879,7 @@ jobs:
           cp linuxdir/tic80${{ matrix.script }} linux${{ matrix.script }}
           cp rpidir/tic80${{ matrix.script }} rpi${{ matrix.script }}
           cp macdir/tic80${{ matrix.script }} mac${{ matrix.script }}
+          cp macdir-arm64/tic80${{ matrix.script }} mac-arm64${{ matrix.script }}
           mv -f tic80${{ matrix.script }}.js tic80.js
           zip html${{ matrix.script }}.zip index.html tic80.js tic80${{ matrix.script }}.wasm
           mv -f html${{ matrix.script }}.zip html${{ matrix.script }}
@@ -807,6 +894,7 @@ jobs:
             linux${{ matrix.script }}
             rpi${{ matrix.script }}
             mac${{ matrix.script }}
+            mac-arm64${{ matrix.script }}
             html${{ matrix.script }}
 
   # === Delete stub artifacts ===
@@ -824,11 +912,12 @@ jobs:
             tic80-linux-stub
             tic80-rpi-stub
             tic80-macos-stub
+            tic80-macos-arm64-stub
             tic80-html-stub
 
   # === Delete PRO artifacts ===
   delete-pro:
-    needs: [winxp-pro, windows-pro, linux-pro, macos-pro, rpi-pro]
+    needs: [winxp-pro, windows-pro, linux-pro, macos-pro, macos-arm64-pro, rpi-pro]
     runs-on: ubuntu-latest
 
     steps:
@@ -838,6 +927,8 @@ jobs:
           name: |
             tic80-macos-pro
             tic80-macos-dmg-pro
+            tic80-macos-arm64-pro
+            tic80-macos-arm64-dmg-pro
             tic80-winxp-pro
             tic80-windows-pro
             tic80-linux-deb-pro
