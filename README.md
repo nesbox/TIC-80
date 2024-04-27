@@ -3,6 +3,33 @@
 ![TIC-80](https://tic80.com/img/logo64.png)
 **TIC-80 TINY COMPUTER** - [https://tic80.com](https://tic80.com)
 
+- [About](#about)
+    - [Features](#features)
+- [Binary Downloads](#binary-downloads)
+  - [Nightly builds](#nightly-builds)
+- [Pro Version](#pro-version)
+  - [Pro features](#pro-features)
+- [Community](#community)
+- [Contributing](#contributing)
+- [Build instructions](#build-instructions)
+  - [Windows](#windows)
+    - [with Visual Studio 2017](#with-visual-studio-2017)
+    - [with MinGW](#with-mingw)
+  - [Linux](#linux)
+    - [Ubuntu 14.04](#ubuntu-1404)
+    - [Ubuntu 18.04](#ubuntu-1804)
+    - [Arch](#arch)
+    - [Fedora 36](#fedora-36)
+    - [Raspberry Pi OS (64-Bit) (Bookworm)](#raspberry-pi-os-64-bit-bookworm)
+    - [Raspberry Pi (Retropie)](#raspberry-pi-retropie)
+  - [Mac](#mac)
+  - [FreeBSD](#freebsd)
+- [Install instructions](#install-instructions)
+  - [Linux](#linux-1)
+  - [iOS / tvOS](#ios--tvos)
+  - [Credits](#credits)
+
+
 # About
 TIC-80 is a free and open source fantasy computer for making, playing and sharing tiny games.
 
@@ -136,6 +163,17 @@ cmake .. -DCMAKE_CXX_COMPILER=clang++ -DSDL_ALSA=On
 make -j4
 ```
 
+Install with [Install instructions](#install-instructions)
+
+### Raspberry Pi OS (64-Bit) (Bookworm)
+
+Run the following commands from a terminal:
+
+```
+sudo apt update && sudo apt -y install cmake libpipewire-0.3-dev libwayland-dev libsdl2-dev ruby-dev libcurl4-openssl-dev
+git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
+cmake -DBUILD_SDLGPU=On -DBUILD_STUB=On .. --fresh && cmake --build . --parallel 2
+```
 Install with [Install instructions](#install-instructions)
 
 ### Raspberry Pi (Retropie)
