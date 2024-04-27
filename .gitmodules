@@ -20,8 +20,9 @@
 	shallow = true
 [submodule "vendor/sdl-gpu"]
 	path = vendor/sdl-gpu
-	url = https://github.com/grimfang4/sdl-gpu.git
+	url = https://github.com/aliceisjustplaying/sdl-gpu.git
 	shallow = true
+	branch = glew-update
 [submodule "vendor/sokol"]
 	path = vendor/sokol
 	url = https://github.com/floooh/sokol.git
