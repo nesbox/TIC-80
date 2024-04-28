@@ -18,6 +18,7 @@
   - [Linux](#linux)
     - [Ubuntu 14.04](#ubuntu-1404)
     - [Ubuntu 18.04](#ubuntu-1804)
+    - [Ubuntu 22.04](#ubuntu-2204)
     - [Arch](#arch)
     - [Fedora 36](#fedora-36)
     - [Raspberry Pi OS (64-Bit) (Bookworm)](#raspberry-pi-os-64-bit-bookworm)
@@ -140,6 +141,26 @@ git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake ..
 make -j4
 ```
+
+### Ubuntu 22.04
+
+Run the following commands from a terminal:
+
+```
+# Need to install the latest CMake from https://apt.kitware.com/
+test -f /usr/share/doc/kitware-archive-keyring/copyright ||
+wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
+echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ jammy main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null
+sudo apt-get update
+test -f /usr/share/doc/kitware-archive-keyring/copyright ||
+sudo rm /usr/share/keyrings/kitware-archive-keyring.gpg
+sudo apt-get install kitware-archive-keyring
+
+sudo apt update && sudo apt -y install cmake libpipewire-0.3-dev libwayland-dev libsdl2-dev ruby-dev libcurl4-openssl-dev
+git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
+cmake -DBUILD_SDLGPU=On -DBUILD_STUB=On .. --fresh && cmake --build . --parallel
+```
+Install with [Install instructions](#install-instructions)
 
 
 ### Arch
