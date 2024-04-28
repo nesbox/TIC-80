@@ -16,9 +16,8 @@
     - [with Visual Studio 2017](#with-visual-studio-2017)
     - [with MinGW](#with-mingw)
   - [Linux](#linux)
-    - [Ubuntu 14.04](#ubuntu-1404)
-    - [Ubuntu 18.04](#ubuntu-1804)
-    - [Ubuntu 22.04](#ubuntu-2204)
+    - [Ubuntu 22.04 (Jammy Jellyfish)](#ubuntu-2204-jammy-jellyfish)
+    - [Ubuntu 24.04 (Noble Numbat)](#ubuntu-2404-noble-numbat)
     - [Arch](#arch)
     - [Fedora 36](#fedora-36)
     - [Raspberry Pi OS (64-Bit) (Bookworm)](#raspberry-pi-os-64-bit-bookworm)
@@ -116,33 +115,8 @@ mingw32-make -j4
 ```
 
 ## Linux
-### Ubuntu 14.04
-run the following commands in the Terminal
-```
-sudo apt-get install git cmake ruby-full libgles1-mesa-dev libglu-dev -y
-git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake ..
-make -j4
-```
 
-to install the latest CMake:
-```
-wget "https://cmake.org/files/v3.12/cmake-3.12.0-Linux-x86_64.sh"
-sudo sh cmake-3.12.0-Linux-x86_64.sh --skip-license --prefix=/usr
-```
-Install with [Install instructions](#install-instructions)
-
-### Ubuntu 18.04
-
-run the following commands in the Terminal
-```
-sudo apt-get install g++ git cmake ruby-full libglvnd-dev libglu1-mesa-dev freeglut3-dev libasound2-dev -y
-git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake ..
-make -j4
-```
-
-### Ubuntu 22.04
+### Ubuntu 22.04 (Jammy Jellyfish)
 
 Run the following commands from a terminal:
 
@@ -156,10 +130,24 @@ test -f /usr/share/doc/kitware-archive-keyring/copyright ||
 sudo rm /usr/share/keyrings/kitware-archive-keyring.gpg
 sudo apt-get install kitware-archive-keyring
 
-sudo apt update && sudo apt -y install cmake libpipewire-0.3-dev libwayland-dev libsdl2-dev ruby-dev libcurl4-openssl-dev
+sudo apt update && sudo apt -y install build-essential cmake git libpipewire-0.3-dev libwayland-dev libsdl2-dev ruby-dev libglvnd-dev libglu1-mesa-dev freeglut3-dev libcurl4-openssl-dev
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake -DBUILD_SDLGPU=On -DBUILD_STUB=On .. --fresh && cmake --build . --parallel
 ```
+
+Install with [Install instructions](#install-instructions)
+
+
+### Ubuntu 24.04 (Noble Numbat)
+
+Run the following commands from a terminal:
+
+```
+sudo apt update && sudo apt -y install build-essential cmake git libpipewire-0.3-dev libwayllrubland-dev libsdl2-dev ruby-dev libcurl4-openssl-dev libglvnd-dev libglu1-mesa-dev freeglut3-dev
+git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
+cmake -DBUILD_SDLGPU=On -DBUILD_STUB=On .. --fresh && cmake --build . --parallel
+```
+
 Install with [Install instructions](#install-instructions)
 
 
