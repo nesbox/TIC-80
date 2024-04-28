@@ -298,3 +298,4 @@ You can find iOS/tvOS version here
 * Alec Troemel - [Github @alectroemel](https://github.com/AlecTroemel)
 * Kolten Pearson - [Github @koltenpearson](https://github.com/koltenpearson)
 * Cort Stratton - [Github @cdwfs](https://github.com/cdwfs)
+* Alice - [Github @aliceisjustplaying](https://github.com/aliceisjustplaying)
