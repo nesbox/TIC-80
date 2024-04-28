@@ -5,7 +5,6 @@
 # license: MIT License (change this to your license of choice)
 # version: 0.1
 # script: janet
-# strict:  true
 
 # Unlike other languages, the tic80 API
 # is provided as a module.
