@@ -20,6 +20,7 @@
     - [Ubuntu 18.04](#ubuntu-1804)
     - [Arch](#arch)
     - [Fedora 36](#fedora-36)
+    - [Fedora 40](#fedora-40)
     - [Raspberry Pi OS (64-Bit) (Bookworm)](#raspberry-pi-os-64-bit-bookworm)
     - [Raspberry Pi (Retropie)](#raspberry-pi-retropie)
   - [Mac](#mac)
@@ -161,6 +162,18 @@ sudo dnf -y install ruby rubygem-{tk{,-doc},rake,test-unit} cmake libglvnd-devel
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
 cmake .. -DCMAKE_CXX_COMPILER=clang++ -DSDL_ALSA=On
 make -j4
+```
+
+Install with [Install instructions](#install-instructions)
+
+### Fedora 40
+
+Run the following commands from a terminal:
+```
+sudo dnf -y groupinstall "Development Tools" "Development Libraries"
+sudo dnf -y install ruby-devel rubygem-rake cmake clang pipewire-devel SDL2-devel SDL2_sound-devel SDL2_gfx-devel wayland-devel libXext-devel pipewire-jack-audio-connection-kit-devel pipewire-jack-audio-connection-kit-devel pulseaudio-libs-devel rubygems-devel libdecor-devel libdrm-devel mesa-libgbm-devel esound-devel freeglut-devel
+cmake -DBUILD_SDLGPU=On -DBUILD_STUB=On .. --fresh
+cmake --build . --parallel
 ```
 
 Install with [Install instructions](#install-instructions)
