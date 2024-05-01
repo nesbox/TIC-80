@@ -158,6 +158,50 @@ static const char* stringToUtf8(const FsString* wstr)
     return str;
 }
 
+time_t FileTimeToTimeT(FILETIME* ft) {
+    ULARGE_INTEGER ull;
+    ull.LowPart = ft->dwLowDateTime;
+    ull.HighPart = ft->dwHighDateTime;
+    return (time_t)((ull.QuadPart / 10000000ULL) - 11644473600ULL);
+}
+
+// There is a bug in the toolchain when compiling with v141_xp
+// This shim is a workaround for that, using GetFileAttributesEx
+// see https://stackoverflow.com/questions/32452777/visual-c-2015-express-stat-not-working-on-windows-xp
+static int _wstat_win32_shim(const wchar_t* path, struct _stat* buffer)
+{
+    WIN32_FILE_ATTRIBUTE_DATA fileInfo;
+    if (!GetFileAttributesExW(path, GetFileExInfoStandard, &fileInfo))
+    {
+        return -1;
+    }
+
+    memset(buffer, 0, sizeof(struct _stat));
+
+    buffer->st_mode = _S_IREAD;
+    if (!(fileInfo.dwFileAttributes & FILE_ATTRIBUTE_READONLY))
+    {
+        buffer->st_mode |= _S_IWRITE;
+    }
+    if (fileInfo.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+    {
+        buffer->st_mode |= _S_IFDIR;
+    }
+    else
+    {
+        buffer->st_mode |= _S_IFREG;
+    }
+
+    // Set the file size
+    buffer->st_size = ((_off_t)fileInfo.nFileSizeHigh << 32) | fileInfo.nFileSizeLow;
+
+    // Set the file times
+    buffer->st_mtime = FileTimeToTimeT(&fileInfo.ftLastWriteTime);
+    buffer->st_atime = FileTimeToTimeT(&fileInfo.ftLastAccessTime);
+    buffer->st_ctime = FileTimeToTimeT(&fileInfo.ftCreationTime);
+    return 0;
+}
+
 #define freeString(S) free((void*)S)
 
 
@@ -169,7 +213,13 @@ static const char* stringToUtf8(const FsString* wstr)
 #define tic_readdir _wreaddir
 #define tic_closedir _wclosedir
 #define tic_rmdir _wrmdir
-#define tic_stat _wstat
+
+// use the shim (see above) if we're targeting Windows XP
+#if defined(_MSC_VER) && defined(_USING_V110_SDK71_)
+    #define tic_stat _wstat_win32_shim
+#else
+    #define tic_stat _wstat
+#endif
 #define tic_remove _wremove
 #define tic_fopen _wfopen
 #define tic_mkdir(name) _wmkdir(name)
