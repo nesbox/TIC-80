@@ -143,6 +143,7 @@ static struct
     struct
     {
         bool state[tic_keys_count];
+        bool pressed[tic_keys_count];
         char text;
 
 #if defined(TOUCH_INPUT_SUPPORT)
@@ -710,6 +711,12 @@ static void processKeyboard()
 
     for(s32 i = 0, c = 0; i < COUNT_OF(platform.keyboard.state) && c < TIC80_KEY_BUFFER; i++)
         if(platform.keyboard.state[i] 
+            // Some programmable keyboards will send key down and up events immediately.
+            // If the key was pressed and released in the same frame, report it as
+            // down for this frame so that it isn't missed. Lying about the key being
+            // currently down is the only way to communicate a key press without
+            // adding keyboard events to tic80_input.
+            || platform.keyboard.pressed[i]
 #if defined(TOUCH_INPUT_SUPPORT)
             || platform.keyboard.touch.state[i]
 #endif
@@ -724,6 +731,10 @@ static void processKeyboard()
             SDL_StartTextInput();
     }
 #endif
+
+    for(s32 i = 0, c = 0; i < COUNT_OF(platform.keyboard.state) && c < TIC80_KEY_BUFFER; i++) {
+        platform.keyboard.pressed[i] = false;
+    }
 }
 
 #if defined(TOUCH_INPUT_SUPPORT)
@@ -1015,12 +1026,15 @@ static const u32 KeyboardCodes[tic_keys_count] =
     #include "keycodes.inl"
 };
 
-static void handleKeydown(SDL_Keycode keycode, bool down, bool* state)
+static void handleKeydown(SDL_Keycode keycode, bool down, bool* state, bool* pressed)
 {
     for(tic_key i = 0; i < COUNT_OF(KeyboardCodes); i++)
     {
         if(KeyboardCodes[i] == keycode)
         {
+            if (down && pressed) {
+                pressed[i] = true;
+            }
             state[i] = down;
             break;
         }
@@ -1155,17 +1169,17 @@ static void pollEvents()
 
 #if defined(TOUCH_INPUT_SUPPORT)
             platform.keyboard.touch.useText = false;
-            handleKeydown(event.key.keysym.sym, true, platform.keyboard.touch.state);
+            handleKeydown(event.key.keysym.sym, true, platform.keyboard.touch.state, NULL);
 
             if(event.key.keysym.sym != SDLK_AC_BACK)
                 if(!SDL_IsTextInputActive())
                     SDL_StartTextInput();
 #endif
 
-            handleKeydown(event.key.keysym.sym, true, platform.keyboard.state);
+            handleKeydown(event.key.keysym.sym, true, platform.keyboard.state, platform.keyboard.pressed);
             break;
         case SDL_KEYUP:
-            handleKeydown(event.key.keysym.sym, false, platform.keyboard.state);
+            handleKeydown(event.key.keysym.sym, false, platform.keyboard.state, platform.keyboard.pressed);
             break;
         case SDL_TEXTINPUT:
             if(strlen(event.text.text) == 1)
