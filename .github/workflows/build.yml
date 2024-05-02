@@ -231,6 +231,88 @@ jobs:
           name: "tic80-linux"
           path: build/bin/tic80
 
+  # === Linux arm64 ===
+  linux-arm64:
+    runs-on: linux-arm64-alice
+    container: dtcooper/raspberrypi-os:bookworm
+
+    steps:
+      - name: Install Host toolchain
+        run: |
+          apt update
+          apt -y install cmake build-essential git doxygen libglu1-mesa-dev freeglut3-dev libpipewire-0.3-dev libwayland-dev libsdl2-dev ruby-dev libcurl4-openssl-dev
+
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Build
+        run: |
+          cd build
+          # this is a self-hosted runner issue
+          # fixes "fatal: detected dubious ownership in repository"
+          git config --global --add safe.directory '*'
+          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_STUB=On -DBUILD_SDLGPU=On ..
+          cmake --build . --config $BUILD_TYPE --parallel 2
+          cpack
+
+      - name: Deploy DEB
+        uses: actions/upload-artifact@v3
+        with:
+          name: "tic80-linux-arm64-deb"
+          path: build/tic80.deb
+
+      - name: Deploy
+        uses: actions/upload-artifact@v3
+        with:
+          name: "tic80-linux-arm64"
+          path: build/bin/tic80
+
+      - name: Deploy stubs
+        uses: actions/upload-artifact@v3
+        with:
+          name: "tic80-linux-arm64-stub"
+          path: build/bin/tic80*
+
+  # === Linux PRO arm64 ===
+  linux-arm64-pro:
+    runs-on: linux-arm64-alice
+    container: dtcooper/raspberrypi-os:bookworm
+
+    steps:
+      - name: Install Host toolchain
+        run: |
+          apt update
+          apt -y install cmake build-essential git doxygen libglu1-mesa-dev freeglut3-dev libpipewire-0.3-dev libwayland-dev libsdl2-dev ruby-dev libcurl4-openssl-dev
+
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Build
+        run: |
+          cd build
+          # this is a self-hosted runner issue
+          # fixes "fatal: detected dubious ownership in repository"
+          git config --global --add safe.directory '*'
+          cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DBUILD_PRO=On -DBUILD_SDLGPU=On ..
+          cmake --build . --config $BUILD_TYPE --parallel 2
+          cpack
+
+      - name: Deploy DEB
+        uses: actions/upload-artifact@v3
+        with:
+          name: "tic80-linux-arm64-deb-pro"
+          path: build/tic80.deb
+
+      - name: Deploy
+        uses: actions/upload-artifact@v3
+        with:
+          name: "tic80-linux-arm64-pro"
+          path: build/bin/tic80
+
   # === Raspberry PI ===
   rpi:
     runs-on: ubuntu-latest
