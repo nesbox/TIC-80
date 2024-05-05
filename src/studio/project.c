@@ -22,7 +22,7 @@
 
 #include "project.h"
 #include "tools.h"
-#include "api.h"
+#include "script.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -118,13 +118,13 @@ static char* saveBinarySection(char* ptr, const char* comment, const char* tag, 
 
 static const char* projectComment(const char* name)
 {
-    FOR_EACH_LANG(ln)
+    FOREACH_LANG(ln)
     {
         if(tic_tool_has_ext(name, ln->fileExtension))
             return ln->projectComment;
     }
-    FOR_EACH_LANG_END
-    return Languages[0]->projectComment;
+
+    return NULL;
 }
 
 s32 tic_project_save(const char* name, void* data, const tic_cartridge* cart)

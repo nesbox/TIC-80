@@ -61,3 +61,7 @@ u64     fs_date     (const char* name);
 bool    fs_exists   (const char* name);
 void*   fs_read     (const char* path, s32* size);
 bool    fs_write    (const char* path, const void* data, s32 size);
+void    fs_enum     (const char* path, fs_list_callback callback, void* data);
+
+const char* fs_apppath();
+const char* fs_appfolder();

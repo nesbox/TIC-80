@@ -128,17 +128,6 @@ tic_blitpal tic_tool_palette_blit(const tic_palette* srcpal, tic80_pixel_color_f
     return pal;
 }
 
-bool tic_project_ext(const char* name)
-{
-    FOR_EACH_LANG(ln)
-    {
-        if(tic_tool_has_ext(name, ln->fileExtension))
-            return true;
-    }
-    FOR_EACH_LANG_END
-    return false;
-}
-
 bool tic_tool_has_ext(const char* name, const char* ext)
 {
     return strcmp(name + strlen(name) - strlen(ext), ext) == 0;
@@ -204,22 +193,24 @@ void tic_tool_str2buf(const char* str, s32 size, void* buf, bool flip)
     }
 }
 
-char* tic_tool_metatag(const char* code, const char* tag, const char* comment)
+const char* tic_tool_metatag(const char* code, const char* tag, const char* comment)
 {
     const char* start = NULL;
 
     {
-        static char format[] = "%s %s:";
+        char tagBuffer[128];
 
-        char* tagBuffer = malloc(sizeof format + strlen(tag));
+        if(comment)
+            sprintf(tagBuffer, "%s %s:", comment, tag);
+        else
+            sprintf(tagBuffer, "%s:", tag);
 
-        SCOPE(free(tagBuffer))
-        {
-            sprintf(tagBuffer, format, comment, tag);
-            if ((start = strstr(code, tagBuffer)))
-                start += strlen(tagBuffer);
-        }
+        if ((start = strstr(code, tagBuffer)))
+            start += strlen(tagBuffer);
     }
+
+    static char value[128];
+    *value = '\0';
 
     if (start)
     {
@@ -230,19 +221,12 @@ char* tic_tool_metatag(const char* code, const char* tag, const char* comment)
             while (isspace(*start) && start < end) start++;
             while (isspace(*(end - 1)) && end > start) end--;
 
-            const s32 size = (s32)(end - start);
+            const s32 size = MIN((s32)(end - start), sizeof value - 1);
 
-            char* value = (char*)malloc(size + 1);
-
-            if (value)
-            {
-                memset(value, 0, size + 1);
-                memcpy(value, start, size);
-
-                return value;
-            }
+            memcpy(value, start, size);
+            value[size] = '\0';
         }
     }
 
-    return NULL;
+    return value;
 }

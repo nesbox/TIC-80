@@ -22,41 +22,14 @@
 
 #pragma once
 
-#if defined(__APPLE__)
-// TODO: this disables macos config 
-#   include "AvailabilityMacros.h"
-#   include "TargetConditionals.h"
-// #    ifndef TARGET_OS_IPHONE
-#       undef __TIC_MACOSX__
-#       define __TIC_MACOSX__ 1
-#       define TIC_MODULE_EXT ".dylib"
-// #    endif /* TARGET_OS_IPHONE */
-#endif /* defined(__APPLE__) */
+#include "tic.h"
 
-#if defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__)
-#   undef __TIC_WINDOWS__
-#   define __TIC_WINDOWS__ 1
-#   define TIC_MODULE_EXT ".dll"
-#endif 
+bool json_parse(const char *json, s32 size);
 
-#if defined(ANDROID) || defined(__ANDROID__)
-#   undef __TIC_ANDROID__
-#   define __TIC_ANDROID__ 1
-#   define TIC_MODULE_EXT ".so"
-#elif (defined(linux) || defined(__linux) || defined(__linux__))
-#   undef __TIC_LINUX__
-#   define __TIC_LINUX__ 1
-#   define TIC_MODULE_EXT ".so"
-#endif
-
-#ifndef TIC80_API
-#   if defined(TIC80_SHARED)
-#       if defined(__TIC_WINDOWS__)
-#           define TIC80_API __declspec(dllexport)
-#       elif defined(__TIC_LINUX__)
-#           define TIC80_API __attribute__ ((visibility("default")))
-#       endif
-#   else
-#       define TIC80_API
-#   endif
-#endif
+s32 json_int(const char *var, s32 parent);
+bool json_bool(const char *var, s32 parent);
+bool json_string(const char *var, s32 parent, char* value, s32 size);
+s32 json_array(const char *var, s32 parent);
+s32 json_array_size(s32 array);
+s32 json_array_item(s32 array, s32 index);
+s32 json_object(const char *var, s32 parent);

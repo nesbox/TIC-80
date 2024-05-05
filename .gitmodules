@@ -87,3 +87,11 @@
 	path = vendor/msf_gif
 	url = https://github.com/notnullnotvoid/msf_gif.git
 	shallow = true
+[submodule "vendor/dlfcn"]
+	path = vendor/dlfcn
+	url = https://github.com/dlfcn-win32/dlfcn-win32.git
+	shallow = true
+[submodule "vendor/jsmn"]
+	path = vendor/jsmn
+	url = https://github.com/zserge/jsmn.git
+	shallow = true

@@ -35,16 +35,16 @@ if(BUILD_SDL AND BUILD_PLAYER AND NOT RPI)
         ${CMAKE_SOURCE_DIR}/src)
 
     if(MINGW)
-        target_link_libraries(player-sdl mingw32)
+        target_link_libraries(player-sdl PRIVATE mingw32)
         target_link_options(player-sdl PRIVATE -static)
     endif()
 
-    target_link_libraries(player-sdl tic80core SDL2main)
+    target_link_libraries(player-sdl PRIVATE tic80core SDL2main)
 
     if(BUILD_STATIC)
-        target_link_libraries(player-sdl SDL2-static)
+        target_link_libraries(player-sdl PRIVATE SDL2-static)
     else()
-        target_link_libraries(player-sdl SDL2)
+        target_link_libraries(player-sdl PRIVATE SDL2)
     endif()
 endif()
 
@@ -146,8 +146,6 @@ if(BUILD_SDL)
         set(TIC80_SRC ${TIC80_SRC} ${ANDROID_NDK}/sources/android/cpufeatures/cpu-features.c)
 
         add_library(tic80 SHARED ${TIC80_SRC})
-
-        target_link_libraries(tic80)
 
     else()
         add_executable(tic80 ${TIC80_SRC})

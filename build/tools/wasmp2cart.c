@@ -46,7 +46,7 @@ void processArgs(int argc, char** argv) {
     }
 }
 
-char * readFile(char* name, unsigned int* size) {
+char * readFile(char* name, int* size) {
     FILE* file = fopen(name, "rb");
 
     if(!file) {
@@ -63,7 +63,7 @@ char * readFile(char* name, unsigned int* size) {
     fread(buffer, *size, 1, file);
     fclose(file);
 
-    return buffer;
+    return (char*)buffer;
 }
 
 int main(int argc, char** argv)

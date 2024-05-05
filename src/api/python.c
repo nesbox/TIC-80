@@ -1517,8 +1517,17 @@ static const char* const PythonKeywords[] =
     "while", "for", "if", "elif", "else", "break", "continue", "return", "assert", "raise"
 };
 
+static const u8 DemoRom[] =
+{
+    #include "../build/assets/pythondemo.tic.dat"
+};
 
-PK_EXPORT const tic_script_config PythonSyntaxConfig =
+static const u8 MarkRom[] =
+{
+    #include "../build/assets/pythonmark.tic.dat"
+};
+
+PK_EXPORT const tic_script EXPORT_SCRIPT(Python) =
 {
     .id                 = 20,
     .name               = "python",
@@ -1551,4 +1560,7 @@ PK_EXPORT const tic_script_config PythonSyntaxConfig =
 
     .keywords           = PythonKeywords,
     .keywordsCount      = COUNT_OF(PythonKeywords),
+
+    .demo = {DemoRom, sizeof DemoRom},
+    .mark = {MarkRom, sizeof MarkRom, "pythonmark.tic"},
 };

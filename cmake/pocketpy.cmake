@@ -26,6 +26,8 @@ if(BUILD_WITH_PYTHON)
         set_target_properties(python PROPERTIES PREFIX "")
     endif()
 
+    target_link_libraries(python PRIVATE runtime)
+
     target_include_directories(python 
         PRIVATE 
             ${THIRDPARTY_DIR}/pocketpy/include
@@ -41,10 +43,5 @@ if(BUILD_WITH_PYTHON)
     endif()
 
     target_compile_definitions(python INTERFACE TIC_BUILD_WITH_PYTHON=1)
-
-    if(BUILD_DEMO_CARTS)
-        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/pythondemo.py)
-        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/bunny/pythonmark.py)
-    endif()
 
 endif()

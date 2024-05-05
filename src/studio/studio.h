@@ -30,6 +30,7 @@
 
 #include "tic.h"
 #include "api.h"
+#include "script.h"
 #include "defines.h"
 #include "tools.h"
 #include "system.h"
@@ -277,3 +278,4 @@ s32 calcWaveAnimation(tic_mem* tic, u32 index, s32 channel);
 void map2ram(tic_ram* ram, const tic_map* src);
 void tiles2ram(tic_ram* ram, const tic_tiles* src);
 void fadePalette(tic_palette* pal, s32 value);
+bool project_ext(const char* name);

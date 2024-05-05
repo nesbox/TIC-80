@@ -182,7 +182,12 @@ static void evalFennel(tic_mem* tic, const char* code) {
     }
 }
 
-tic_script_config FennelSyntaxConfig =
+static const u8 DemoRom[] =
+{
+    #include "../build/assets/fenneldemo.tic.dat"
+};
+
+const tic_script EXPORT_SCRIPT(Fennel) =
 {
     .id                 = 14,
     .name               = "fennel",
@@ -220,4 +225,6 @@ tic_script_config FennelSyntaxConfig =
     .keywordsCount      = COUNT_OF(FennelKeywords),
 
     .useStructuredEdition = true,
+
+    .demo = {DemoRom, sizeof DemoRom},
 };

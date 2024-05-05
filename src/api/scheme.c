@@ -1018,7 +1018,17 @@ static const char* SchemeAPIKeywords[] = {
 #undef  API_KEYWORD_DEF
 };
 
-tic_script_config SchemeSyntaxConfig =
+static const u8 DemoRom[] =
+{
+    #include "../build/assets/schemedemo.tic.dat"
+};
+
+static const u8 MarkRom[] =
+{
+    #include "../build/assets/schememark.tic.dat"
+};
+
+const tic_script EXPORT_SCRIPT(Scheme) =
 {
     .id                     = 19,
     .name                   = "scheme",
@@ -1057,4 +1067,7 @@ tic_script_config SchemeSyntaxConfig =
 
     .keywords               = SchemeKeywords,
     .keywordsCount          = COUNT_OF(SchemeKeywords),
+
+    .demo = {DemoRom, sizeof DemoRom},
+    .mark = {MarkRom, sizeof MarkRom, "schememark.tic"},
 };

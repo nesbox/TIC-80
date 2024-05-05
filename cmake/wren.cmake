@@ -30,7 +30,9 @@ if(BUILD_WITH_WREN)
     if(NOT BUILD_STATIC)
         set_target_properties(wren PROPERTIES PREFIX "")
     endif()
-    
+
+    target_link_libraries(wren PRIVATE runtime)
+
     target_include_directories(wren 
         PRIVATE 
             ${CMAKE_SOURCE_DIR}/include
@@ -41,10 +43,5 @@ if(BUILD_WITH_WREN)
     target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/optional)
     target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/vm)
     target_compile_definitions(wren INTERFACE TIC_BUILD_WITH_WREN=1)
-
-    if(BUILD_DEMO_CARTS)
-        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/wrendemo.wren)
-        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/bunny/wrenmark.wren)
-    endif()
 
 endif()

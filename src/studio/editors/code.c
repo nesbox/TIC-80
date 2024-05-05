@@ -456,7 +456,7 @@ static void updateEditor(Code* code)
     sprintf(code->status.line, "line %i/%i col %i", line + 1, getLinesCount(code) + 1, column + 1);
     {
         s32 codeLen = strlen(code->src);
-        sprintf(code->status.size, "size %i/%zu", codeLen, MAX_CODE);
+        sprintf(code->status.size, "size %i/%i", codeLen, MAX_CODE);
         code->status.color = codeLen > MAX_CODE ? tic_color_red : tic_color_white;
     }
 }
@@ -467,7 +467,7 @@ static inline bool isdoublequote(char c) {return c == '"'; }
 static inline bool isopenparen_(Code* code, char c) {return c == '(' || c == '{' || c == '[';}
 static inline bool iscloseparen_(Code* code, char c) {return c == ')' || c == '}' || c == ']';}
 
-static inline bool config_isalnum_(const tic_script_config* config, char c)
+static inline bool config_isalnum_(const tic_script* config, char c)
 {
     if (config->lang_isalnum)
         return config->lang_isalnum(c);
@@ -478,7 +478,7 @@ static inline bool config_isalnum_(const tic_script_config* config, char c)
 static inline bool isalnum_(Code* code, char c)
 {
     tic_mem* tic = code->tic;
-    const tic_script_config* config = tic_core_script_config(tic);
+    const tic_script* config = tic_get_script(tic);
     return config_isalnum_(config, c);
 }
 
@@ -489,7 +489,7 @@ static void setCodeState(CodeState* state, u8 color, s32 start, s32 size)
         s->syntax = color;
 }
 
-static void parseCode(const tic_script_config* config, const char* start, CodeState* state)
+static void parseCode(const tic_script* config, const char* start, CodeState* state)
 {
     const char* ptr = start;
 
@@ -699,9 +699,12 @@ static void parseSyntaxColor(Code* code)
 
     tic_mem* tic = code->tic;
 
-    const tic_script_config* config = tic_core_script_config(tic);
+    const tic_script* config = tic_get_script(tic);
 
-    parseCode(config, code->src, code->state);
+    if(config)
+    {
+        parseCode(config, code->src, code->state);
+    }
 }
 
 static char* getLineByPos(Code* code, char* pos)
@@ -1107,7 +1110,7 @@ static inline enum KeybindMode getKeybindMode(Code* code)
 static inline bool shouldUseStructuredEdit(Code* code)
 {
     const bool emacsMode = getKeybindMode(code) == KEYBIND_EMACS;
-    return tic_core_script_config(code->tic)->useStructuredEdition && emacsMode;
+    return tic_get_script(code->tic)->useStructuredEdition && emacsMode;
 }
 
 
@@ -1484,7 +1487,7 @@ static bool useSpacesForTab(Code* code) {
         return false;
     else { //auto mode
         tic_mem* tic = code->tic;
-        const tic_script_config* config = tic_core_script_config(tic);
+        const tic_script* config = tic_get_script(tic);
         if (config->id == 20 || config->id == 13)  //python or moonscript
             return true;
         return false;
@@ -1601,7 +1604,7 @@ static void doTab(Code* code, bool shift, bool crtl)
 // Add a block-ending keyword or symbol, and put the cursor in the line between.
 static void newLineAutoClose(Code* code)
 {
-    const char* blockEnd = tic_core_script_config(code->tic)->blockEnd;
+    const char* blockEnd = tic_get_script(code->tic)->blockEnd;
     if (blockEnd != NULL)
     {
         newLine(code);
@@ -1739,7 +1742,7 @@ static void initSidebarMode(Code* code)
 
     code->sidebar.size = 0;
 
-    const tic_script_config* config = tic_core_script_config(tic);
+    const tic_script* config = tic_get_script(tic);
 
     if(config->getOutline)
     {
@@ -2013,7 +2016,7 @@ static void toggleMark(Code* code)
 
 static void commentLine(Code* code)
 {
-    const char* comment = tic_core_script_config(code->tic)->singleComment;
+    const char* comment = tic_get_script(code->tic)->singleComment;
     size_t size = strlen(comment);
 
     if(code->cursor.selection){
@@ -2395,7 +2398,7 @@ static char* findFunctionDefinition(Code* code, char* name, size_t length) {
     char* result = NULL;
 
     tic_mem* tic = code->tic;
-    const tic_script_config* config = tic_core_script_config(tic);
+    const tic_script* config = tic_get_script(tic);
 
     if(config->getOutline)
     {
