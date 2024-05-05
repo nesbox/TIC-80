@@ -172,5 +172,5 @@ const tic_script* tic_get_script(tic_mem* memory)
             return script;
     }
 
-    return NULL;
+    return *Scripts;
 }
