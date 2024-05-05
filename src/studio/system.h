@@ -37,7 +37,12 @@
 #define TIC_NAME_FULL TIC_NAME " tiny computer"
 #define TIC_TITLE TIC_NAME_FULL " " TIC_VERSION
 #define TIC_HOST "tic80.com"
-#define TIC_WEBSITE "https://" TIC_HOST
+#if defined(_MSC_VER) && defined(_USING_V110_SDK71_)
+    #define TIC_WEBSITE_PROTOCOL "http://"
+#else
+    #define TIC_WEBSITE_PROTOCOL "https://"
+#endif
+#define TIC_WEBSITE TIC_WEBSITE_PROTOCOL TIC_HOST
 #define TIC_COPYRIGHT TIC_WEBSITE " (C) 2017-" TIC_VERSION_YEAR
 
 #define TICNAME_MAX 256
