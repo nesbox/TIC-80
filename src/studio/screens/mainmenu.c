@@ -364,7 +364,7 @@ static void gameMenuHandler(void* data, s32 pos)
     StudioMainMenu* main = data;
     tic_mem* tic = main->tic;
     resumeGame(main->studio);
-    tic_core_script_config(tic)->callback.menu(tic, pos, NULL);
+    tic_get_script(tic)->callback.menu(tic, pos, NULL);
 }
 
 #if defined(BUILD_EDITORS)
@@ -419,29 +419,34 @@ static void initGameMenu(StudioMainMenu* main)
 
     freeItems(main);
 
-    char* menu = tic_tool_metatag(tic->cart.code.data, "menu", tic_core_script_config(tic)->singleComment);
+    const char* value = tic_tool_metatag(tic->cart.code.data, "menu", tic_get_script(tic)->singleComment);
 
-    if(menu) SCOPE(free(menu))
+    if(*value)
     {
-        MenuItem *items = NULL;
-        s32 count = 0;
+        char* menu = strdup(value);
 
-        char* label = strtok(menu, " ");
-        while(label)
+        SCOPE(free(menu))
         {
-            items = realloc(items, sizeof(MenuItem) * ++count);
-            items[count - 1] = (MenuItem){strdup(label), gameMenuHandler};
+            MenuItem *items = NULL;
+            s32 count = 0;
 
-            label = strtok(NULL, " ");
+            char* label = strtok(menu, " ");
+            while(label)
+            {
+                items = realloc(items, sizeof(MenuItem) * ++count);
+                items[count - 1] = (MenuItem){strdup(label), gameMenuHandler};
+
+                label = strtok(NULL, " ");
+            }
+
+            count += 2;
+            items = realloc(items, sizeof(MenuItem) * count);
+            items[count - 2] = (MenuItem){strdup("")};
+            items[count - 1] = (MenuItem){strdup("BACK"), showMainMenu, .back = true};
+
+            main->items = items;
+            main->count = count;            
         }
-
-        count += 2;
-        items = realloc(items, sizeof(MenuItem) * count);
-        items[count - 2] = (MenuItem){strdup("")};
-        items[count - 1] = (MenuItem){strdup("BACK"), showMainMenu, .back = true};
-
-        main->items = items;
-        main->count = count;
     }
 }
 

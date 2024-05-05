@@ -186,7 +186,17 @@ static const tic_outline_item* getMoonOutline(const char* code, s32* size)
     return items;
 }
 
-tic_script_config MoonSyntaxConfig = 
+static const u8 DemoRom[] =
+{
+    #include "../build/assets/moondemo.tic.dat"
+};
+
+static const u8 MarkRom[] =
+{
+    #include "../build/assets/moonmark.tic.dat"
+};
+
+const tic_script EXPORT_SCRIPT(Moon) = 
 {
     .id                 = 13,
     .name               = "moon",
@@ -220,4 +230,7 @@ tic_script_config MoonSyntaxConfig =
 
     .keywords           = MoonKeywords,
     .keywordsCount      = COUNT_OF(MoonKeywords),
+
+    .demo = {DemoRom, sizeof DemoRom},
+    .mark = {MarkRom, sizeof MarkRom, "moonmark.tic"},
 };

@@ -3,14 +3,34 @@
     [
         {
             "name": "build",
-            "shell_cmd": "cd ${project_path}/build && cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_STATIC=OFF .. && ninja",
-            "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (error.*)$",
+            "shell_cmd": "cd ${project_path}/build && cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel .. && ninja",
+            "file_regex": "^(..[^:]*):([0-9]+):?([0-9]+)?:? (.*)$",
             "working_dir": "${file_path}",
             "variants":
             [
                 {
                     "name": "fresh",
-                    "shell_cmd": "cd ${project_path}/build && cmake -G Ninja -DCMAKE_BUILD_TYPE=MinSizeRel .. --fresh"
+                    "shell_cmd": "cd ${project_path}/build && cmake -G Ninja .. --fresh"
+                },
+                {
+                    "name": "BUILD_STATIC=ON",
+                    "shell_cmd": "cd ${project_path}/build && cmake -DBUILD_STATIC=ON .."
+                },
+                {
+                    "name": "BUILD_STATIC=OFF",
+                    "shell_cmd": "cd ${project_path}/build && cmake -DBUILD_STATIC=OFF .."
+                },
+                {
+                    "name": "BUILD_SOKOL=ON",
+                    "shell_cmd": "cd ${project_path}/build && cmake -DBUILD_SOKOL=ON .."
+                },
+                {
+                    "name": "BUILD_PRO=ON",
+                    "shell_cmd": "cd ${project_path}/build && cmake -DBUILD_PRO=ON .."
+                },
+                {
+                    "name": "BUILD_PRO=OFF",
+                    "shell_cmd": "cd ${project_path}/build && cmake -DBUILD_PRO=OFF .."
                 },
                 {
                     "name": "make",
@@ -24,10 +44,6 @@
                     "name": "clean",
                     "shell_cmd": "cd ${project_path}/build && ninja -t clean"
                 },
-                {
-                    "name": "clean rebuild",
-                    "shell_cmd": "cd ${project_path}/build && ninja -t clean && ninja"
-                }
             ]
         }
     ],

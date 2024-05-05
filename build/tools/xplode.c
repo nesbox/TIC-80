@@ -122,7 +122,7 @@ s32 main(s32 argc, char** argv)
 
             // save code
             {
-                writeFile("code.lua", (FileBuffer){strlen(cart->code.data), cart->code.data});
+                writeFile("code.lua", (FileBuffer){strlen(cart->code.data), (u8*)cart->code.data});
                 printf("code.lua successfully exported\n");
             }
 

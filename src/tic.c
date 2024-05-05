@@ -20,13 +20,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include "tic80.h"
+#include "script.h"
+#include "tools.h"
+#include "cart.h"
+
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <tic80.h>
-#include "api.h"
-#include "tools.h"
-#include "cart.h"
+#if defined(TIC_MODULE_EXT)
+#include <dlfcn.h>
+#endif
 
 static void onTrace(void* data, const char* text, u8 color)
 {
@@ -62,7 +67,38 @@ TIC80_API void tic80_load(tic80* tic, void* cart, s32 size)
     tic_mem* mem = (tic_mem*)tic;
 
     tic_cart_load(&mem->cart, cart, size);
-    tic_api_reset(mem);
+
+    const tic_script* script = tic_get_script(mem);
+    if(script)
+    {
+        tic_api_reset(mem);
+    }
+
+#if defined(TIC_MODULE_EXT)
+    else
+    {
+        const char* tag = tic_tool_metatag(mem->cart.code.data, "script", NULL);
+        char name[128];
+        sprintf(name, "%s" TIC_MODULE_EXT, tag);
+
+        void* module = dlopen(name, RTLD_NOW | RTLD_LOCAL);
+
+        if(module)
+        {
+            const tic_script* config = dlsym(module, DEF2STR(SCRIPT_CONFIG));
+
+            if(config)
+            {
+                tic_add_script(config);
+                tic_api_reset(mem);
+            }
+            else
+            {
+                dlclose(module);
+            }
+        }
+    }
+#endif
 }
 
 TIC80_API void tic80_tick(tic80* tic, tic80_input input, CounterCallback counter, FreqCallback freq)

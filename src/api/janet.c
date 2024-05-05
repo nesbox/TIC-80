@@ -1041,7 +1041,7 @@ static void reportError(tic_core* core, Janet result)
 {
     janet_stacktrace(GameFiber, result);
     janet_buffer_push_u8(errBuffer, 0);
-    core->data->error(core->data->data, errBuffer->data);
+    core->data->error(core->data->data, (char*)errBuffer->data);
 }
 
 
@@ -1266,7 +1266,17 @@ static const tic_outline_item* getJanetOutline(const char* code, s32* size)
     return items;
 }
 
-JANET_API const tic_script_config JanetSyntaxConfig =
+static const u8 DemoRom[] =
+{
+    #include "../build/assets/janetdemo.tic.dat"
+};
+
+static const u8 MarkRom[] =
+{
+    #include "../build/assets/janetmark.tic.dat"
+};
+
+JANET_API const tic_script EXPORT_SCRIPT(Janet) =
 {
     .id                 = 18,
     .name               = "janet",
@@ -1298,4 +1308,7 @@ JANET_API const tic_script_config JanetSyntaxConfig =
 
     .keywords           = JanetKeywords,
     .keywordsCount      = COUNT_OF(JanetKeywords),
+
+    .demo = {DemoRom, sizeof DemoRom},
+    .mark = {MarkRom, sizeof MarkRom, "janetmark.tic"},
 };

@@ -876,7 +876,7 @@ static void wren_textri(WrenVM* vm)
         count = 1;
     }
 
-    tic_core_textri_dep(core,
+    core->api.textri(tic,
         pt[0], pt[1],   //  xy 1
         pt[2], pt[3],   //  xy 2
         pt[4], pt[5],   //  xy 3
@@ -1819,7 +1819,17 @@ static void evalWren(tic_mem* tic, const char* code)
     wrenInterpret(core->currentVM, "main", code);
 }
 
-tic_script_config WrenSyntaxConfig =
+static const u8 DemoRom[] =
+{
+    #include "../build/assets/wrendemo.tic.dat"
+};
+
+static const u8 MarkRom[] =
+{
+    #include "../build/assets/wrenmark.tic.dat"
+};
+
+const tic_script EXPORT_SCRIPT(Wren) =
 {
     .id                 = 16,
     .name               = "wren",
@@ -1853,4 +1863,7 @@ tic_script_config WrenSyntaxConfig =
 
     .keywords           = WrenKeywords,
     .keywordsCount      = COUNT_OF(WrenKeywords),
+
+    .demo = {DemoRom, sizeof DemoRom},
+    .mark = {MarkRom, sizeof MarkRom, "wrenmark.tic"},
 };

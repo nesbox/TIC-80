@@ -18,13 +18,13 @@ set(TIC80STUDIO_SRC
     ${TIC80LIB_DIR}/studio/editors/music.c
     ${TIC80LIB_DIR}/studio/studio.c
     ${TIC80LIB_DIR}/studio/config.c
-    ${TIC80LIB_DIR}/studio/demos.c
     ${TIC80LIB_DIR}/studio/fs.c
     ${TIC80LIB_DIR}/studio/net.c
     ${TIC80LIB_DIR}/ext/md5.c
     ${TIC80LIB_DIR}/ext/history.c
     ${TIC80LIB_DIR}/ext/gif.c
     ${TIC80LIB_DIR}/ext/png.c
+    ${TIC80LIB_DIR}/ext/json.c
 )
 
 if(${BUILD_PRO})
@@ -35,20 +35,18 @@ set(TIC80_OUTPUT tic80)
 
 add_library(tic80studio STATIC
     ${TIC80STUDIO_SRC}
-    ${DEMO_CARTS_OUT}
     ${CMAKE_SOURCE_DIR}/build/assets/cart.png.dat)
 
-if(WIN32)
-    target_include_directories(tic80studio PRIVATE ${THIRDPARTY_DIR}/dirent/include)
-endif()
+target_include_directories(tic80studio 
+    PRIVATE ${THIRDPARTY_DIR}/jsmn
+    PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
+)
 
-target_include_directories(tic80studio PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
-
-target_link_libraries(tic80studio tic80core zip wave_writer argparse giflib png)
+target_link_libraries(tic80studio PUBLIC tic80core PRIVATE zip wave_writer argparse giflib png)
 
 if(USE_NAETT)
     target_compile_definitions(tic80studio PRIVATE USE_NAETT)
-    target_link_libraries(tic80studio naett)
+    target_link_libraries(tic80studio PRIVATE naett)
 endif()
 
 if(BUILD_PRO)

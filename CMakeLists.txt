@@ -16,12 +16,12 @@ configure_file("${PROJECT_SOURCE_DIR}/version.h.in" "${CMAKE_CURRENT_BINARY_DIR}
 
 if(ANDROID OR EMSCRIPTEN OR N3DS OR RPI)
     set(BUILD_LIBRETRO_DEFAULT OFF)
-    set(BUILD_DEMO_CARTS_DEFAULT OFF)
     set(BUILD_PLAYER_DEFAULT OFF)
+    set(BUILD_TOOLS OFF)
 else()
     set(BUILD_LIBRETRO_DEFAULT ON)
-    set(BUILD_DEMO_CARTS_DEFAULT ON)
     set(BUILD_PLAYER_DEFAULT ON)
+    set(BUILD_TOOLS ON)
 endif()
 
 set(BUILD_TOUCH_INPUT_DEFAULT ${ANDROID})
@@ -31,11 +31,10 @@ option(BUILD_SDL "SDL Enabled" ON)
 option(BUILD_SDLGPU "SDL GPU Enabled" OFF)
 option(BUILD_SOKOL "Sokol Enabled" OFF)
 option(BUILD_LIBRETRO "libretro Enabled" ${BUILD_LIBRETRO_DEFAULT})
-option(BUILD_DEMO_CARTS "Demo Carts Enabled" ${BUILD_DEMO_CARTS_DEFAULT})
+option(BUILD_TOOLS "bin2txt prj2cart" ${BUILD_TOOLS})
 option(BUILD_PRO "Build PRO version" FALSE)
 option(BUILD_PLAYER "Build standalone players" ${BUILD_PLAYER_DEFAULT})
 option(BUILD_TOUCH_INPUT "Build with touch input support" ${BUILD_TOUCH_INPUT_DEFAULT})
-option(BUILD_STUB "Build stub without editors" OFF)
 option(BUILD_NO_OPTIMIZATION "Build without optimizations for debugging" OFF)
 option(BUILD_ASAN_DEBUG "Build with AddressSanitizer" OFF)
 
@@ -53,16 +52,20 @@ if(NOT BUILD_SDL)
     set(BUILD_SDLGPU OFF)
 endif()
 
+add_library(runtime INTERFACE)
+
 if(BUILD_STATIC)
     set(TIC_RUNTIME STATIC)
+    target_compile_definitions(runtime INTERFACE TIC_RUNTIME_STATIC)
 else()
     set(TIC_RUNTIME SHARED)
 endif()
 
+target_compile_definitions(runtime INTERFACE BUILD_DEPRECATED)
+
 message("BUILD_STATIC: ${BUILD_STATIC}")
 message("BUILD_SDLGPU: ${BUILD_SDLGPU}")
 message("BUILD_TOUCH_INPUT: ${BUILD_TOUCH_INPUT}")
-message("BUILD_STUB: ${BUILD_STUB}")
 
 if (N3DS)
     set(BUILD_SDL OFF)
@@ -70,7 +73,6 @@ endif()
 
 if (BAREMETALPI)
     set(BUILD_SDL OFF)
-    set(BUILD_DEMO_CARTS OFF)
 endif()
 
 if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID AND NOT N3DS)
@@ -129,6 +131,8 @@ include(cmake/zip.cmake)
 include(cmake/tools.cmake)
 
 include(cmake/lua.cmake)
+include(cmake/moon.cmake)
+include(cmake/fennel.cmake)
 include(cmake/wren.cmake)
 include(cmake/mruby.cmake)
 include(cmake/wasm.cmake)
@@ -138,14 +142,11 @@ include(cmake/pocketpy.cmake)
 include(cmake/quickjs.cmake)
 include(cmake/janet.cmake)
 
-include(cmake/demos.cmake)
 include(cmake/core.cmake)
-
 include(cmake/wave.cmake)
 include(cmake/argparse.cmake)
 include(cmake/naett.cmake)
 include(cmake/png.cmake)
-
 include(cmake/studio.cmake)
 
 include(cmake/sdl.cmake)
@@ -153,5 +154,4 @@ include(cmake/sokol.cmake)
 include(cmake/libretro.cmake)
 include(cmake/n3ds.cmake)
 
-include(cmake/stub.cmake)
 include(cmake/install.cmake)

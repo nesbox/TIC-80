@@ -43,6 +43,8 @@ if(BUILD_WITH_SQUIRREL)
         set_target_properties(squirrel PROPERTIES PREFIX "")
     endif()
 
+    target_link_libraries(squirrel PRIVATE runtime)
+
     set_target_properties(squirrel PROPERTIES LINKER_LANGUAGE CXX)
 
     target_include_directories(squirrel 
@@ -55,10 +57,5 @@ if(BUILD_WITH_SQUIRREL)
     )
 
     target_compile_definitions(squirrel INTERFACE TIC_BUILD_WITH_SQUIRREL=1)
-
-    if(BUILD_DEMO_CARTS)
-        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/squirreldemo.nut)
-        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/bunny/squirrelmark.nut)
-    endif()
 
 endif()

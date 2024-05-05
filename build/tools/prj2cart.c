@@ -47,7 +47,7 @@ int main(int argc, char** argv)
 
 				tic_cartridge* cart = calloc(1, sizeof(tic_cartridge));
 
-				tic_project_load(argv[1], buffer, size, cart);
+				tic_project_load(argv[1], (char*)buffer, size, cart);
 
 				FILE* cartFile = fopen(argv[2], "wb");
 

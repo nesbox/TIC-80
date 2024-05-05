@@ -2,7 +2,7 @@
 # bin2txt cart2prj prj2cart xplode wasmp2cart
 ################################
 
-if(BUILD_DEMO_CARTS)
+if(BUILD_TOOLS)
 
     set(TOOLS_DIR ${CMAKE_SOURCE_DIR}/build/tools)
 
@@ -32,9 +32,5 @@ if(BUILD_DEMO_CARTS)
     if(LINUX)
         target_link_libraries(xplode m)
     endif()
-    
-    add_custom_command(OUTPUT ${CMAKE_SOURCE_DIR}/build/assets/cart.png.dat
-        COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/bin2txt ${CMAKE_SOURCE_DIR}/build/cart.png ${CMAKE_SOURCE_DIR}/build/assets/cart.png.dat
-        DEPENDS bin2txt ${CMAKE_SOURCE_DIR}/build/cart.png)
 
 endif()

@@ -20,6 +20,8 @@ if(BUILD_WITH_SCHEME)
         set_target_properties(scheme PROPERTIES PREFIX "")
     endif()
 
+    target_link_libraries(scheme PRIVATE runtime)
+
     set_target_properties(scheme PROPERTIES LINKER_LANGUAGE CXX)
     target_include_directories(scheme 
         PUBLIC ${SCHEME_DIR}
@@ -37,10 +39,5 @@ if(BUILD_WITH_SCHEME)
     endif()
 
     target_compile_definitions(scheme INTERFACE TIC_BUILD_WITH_SCHEME=1)
-
-    if(BUILD_DEMO_CARTS)
-        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/schemedemo.scm)
-        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/bunny/schememark.scm)
-    endif()
 
 endif()

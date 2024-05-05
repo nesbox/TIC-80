@@ -23,6 +23,7 @@
 #include "config.h"
 #include "fs.h"
 #include "cart.h"
+#include "ext/json.h"
 
 #if defined(__EMSCRIPTEN__)
 #define DEFAULT_VSYNC 0
@@ -30,147 +31,45 @@
 #define DEFAULT_VSYNC 1
 #endif
 
-#if defined(__TIC_ANDROID__)            
+#if defined(__TIC_ANDROID__)
 #define INTEGER_SCALE_DEFAULT false
 #else
 #define INTEGER_SCALE_DEFAULT true
 #endif
 
-#if defined (TIC_BUILD_WITH_LUA)
-#include <lua.h>
-#include <lauxlib.h>
-#include <lualib.h>
-
-static void readBool(lua_State* lua, const char* name, bool* val)
+static void readConfig(Config* config) 
 {
-    lua_getfield(lua, -1, name);
+    const char* json = config->cart->code.data;
 
-    if (lua_isboolean(lua, -1))
-        *val = lua_toboolean(lua, -1);
-
-    lua_pop(lua, 1);
-}
-
-static void readInteger(lua_State* lua, const char* name, s32* val)
-{
-    lua_getfield(lua, -1, name);
-
-    if (lua_isinteger(lua, -1))
-        *val = lua_tointeger(lua, -1);
-
-    lua_pop(lua, 1);
-}
-
-static void readByte(lua_State* lua, const char* name, u8* val)
-{
-    s32 res = *val;
-    readInteger(lua, name, &res);
-    *val = res;
-}
-
-static void readGlobalInteger(lua_State* lua, const char* name, s32* val)
-{
-    lua_getglobal(lua, name);
-
-    if (lua_isinteger(lua, -1))
-        *val = lua_tointeger(lua, -1);
-
-    lua_pop(lua, 1);
-}
-
-static void readGlobalBool(lua_State* lua, const char* name, bool* val)
-{
-    lua_getglobal(lua, name);
-
-    if (lua_isboolean(lua, -1))
-        *val = lua_toboolean(lua, -1);
-
-    lua_pop(lua, 1);
-}
-
-static void readCodeTheme(Config* config, lua_State* lua)
-{
-    lua_getfield(lua, -1, "CODE");
-
-    if(lua_type(lua, -1) == LUA_TTABLE)
+    if(json_parse(json, strlen(json)))
     {
+        config->data.checkNewVersion = json_bool("CHECK_NEW_VERSION", 0);
+        config->data.uiScale = json_int("UI_SCALE", 0);
+        config->data.soft = json_bool("SOFTWARE_RENDERING", 0);
+        config->data.trim = json_bool("TRIM_ON_SAVE", 0);
 
-#define CODE_COLOR_DEF(VAR) readByte(lua, #VAR, &config->data.theme.code.VAR);
+        if(config->data.uiScale <= 0)
+            config->data.uiScale = 1;
+
+        config->data.theme.gamepad.touch.alpha = json_int("GAMEPAD_TOUCH_ALPHA", 0);
+
+        s32 theme = json_object("CODE_THEME", 0);
+
+#define CODE_COLOR_DEF(VAR) config->data.theme.code.VAR = json_int(#VAR, theme);
         CODE_COLORS_LIST(CODE_COLOR_DEF)
 #undef  CODE_COLOR_DEF
 
-        readByte(lua, "SELECT", &config->data.theme.code.select);
-        readByte(lua, "CURSOR", &config->data.theme.code.cursor);
+        config->data.theme.code.select = json_int("SELECT", theme);
+        config->data.theme.code.cursor = json_int("CURSOR", theme);
 
-        readBool(lua, "SHADOW", &config->data.theme.code.shadow);
-        readBool(lua, "ALT_FONT", &config->data.theme.code.altFont);
-        readBool(lua, "ALT_CARET", &config->data.theme.code.altCaret);
-        readBool(lua, "MATCH_DELIMITERS", &config->data.theme.code.matchDelimiters);
-        readBool(lua, "AUTO_DELIMITERS", &config->data.theme.code.autoDelimiters);
-    }
+        config->data.theme.code.shadow = json_bool("SHADOW", theme);
+        config->data.theme.code.altFont = json_bool("ALT_FONT", theme);
+        config->data.theme.code.altCaret = json_bool("ALT_CARET", theme);
+        config->data.theme.code.matchDelimiters = json_bool("MATCH_DELIMITERS", theme);
+        config->data.theme.code.autoDelimiters = json_bool("AUTO_DELIMITERS", theme);
 
-    lua_pop(lua, 1);
-}
-
-static void readGamepadTheme(Config* config, lua_State* lua)
-{
-    lua_getfield(lua, -1, "GAMEPAD");
-
-    if(lua_type(lua, -1) == LUA_TTABLE)
-    {
-        lua_getfield(lua, -1, "TOUCH");
-
-        if(lua_type(lua, -1) == LUA_TTABLE)
-        {
-            readByte(lua, "ALPHA", &config->data.theme.gamepad.touch.alpha);
-        }
-
-        lua_pop(lua, 1);
-    }
-
-    lua_pop(lua, 1);
-}
-
-static void readTheme(Config* config, lua_State* lua)
-{
-    lua_getglobal(lua, "THEME");
-
-    if(lua_type(lua, -1) == LUA_TTABLE)
-    {
-        readCodeTheme(config, lua);
-        readGamepadTheme(config, lua);
-    }
-
-    lua_pop(lua, 1);
-}
-
-static void readConfig(Config* config)
-{
-    lua_State* lua = luaL_newstate();
-
-    if(lua)
-    {
-        if(luaL_loadstring(lua, config->cart->code.data) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
-        {
-            readGlobalBool(lua,     "CHECK_NEW_VERSION",    &config->data.checkNewVersion);
-            readGlobalInteger(lua,  "UI_SCALE",             &config->data.uiScale);
-            readGlobalBool(lua,     "SOFTWARE_RENDERING",   &config->data.soft);
-            readGlobalBool(lua,     "TRIM_ON_SAVE",         &config->data.trim);
-
-            if(config->data.uiScale <= 0)
-                config->data.uiScale = 1;
-
-            readTheme(config, lua);
-        }
-
-        lua_close(lua);
     }
 }
-#else
-
-static void readConfig(Config* config) {}
-
-#endif
 
 static void update(Config* config, const u8* buffer, s32 size)
 {

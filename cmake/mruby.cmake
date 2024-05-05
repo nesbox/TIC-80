@@ -23,6 +23,8 @@ if(BUILD_WITH_MRUBY)
         set_target_properties(ruby PROPERTIES PREFIX "")
     endif()
 
+    target_link_libraries(ruby PRIVATE runtime)
+
     if(CMAKE_BUILD_TYPE)
         string(TOUPPER ${CMAKE_BUILD_TYPE} BUILD_TYPE_UC)
     endif()
@@ -89,10 +91,5 @@ if(BUILD_WITH_MRUBY)
     target_link_libraries(ruby PRIVATE ${MRUBY_LIB})
 
     target_compile_definitions(ruby INTERFACE TIC_BUILD_WITH_MRUBY=1)
-
-    if(BUILD_DEMO_CARTS)
-        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/rubydemo.rb)
-        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/bunny/rubymark.rb)
-    endif()
 
 endif()

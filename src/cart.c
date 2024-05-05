@@ -151,7 +151,7 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
     }
 
     struct CodeChunk {s32 size; const char* data;} code[TIC_BANKS] = {0};
-    struct BinaryChunk {s32 size; const char* data;} binary[TIC_BINARY_BANKS] = {0};
+    struct BinaryChunk {s32 size; const u8* data;} binary[TIC_BINARY_BANKS] = {0};
 
     {
         const u8* ptr = buffer;
@@ -176,7 +176,7 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
                 binary[chunk->bank] = (struct BinaryChunk){chunkSize(chunk), ptr};
                 break;
             case CHUNK_CODE:        
-                code[chunk->bank] = (struct CodeChunk){chunkSize(chunk), ptr};
+                code[chunk->bank] = (struct CodeChunk){chunkSize(chunk), (char*)ptr};
                 break;
 #if defined(BUILD_DEPRECATED)
             case CHUNK_CODE_ZIP:

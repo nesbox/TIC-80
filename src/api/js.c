@@ -830,7 +830,7 @@ static JSValue js_textri(JSContext *ctx, JSValueConst this_val, s32 argc, JSValu
         count = 1;
     }
 
-    tic_core_textri_dep(getCore(ctx), 
+    core->api.textri(tic, 
         pt[0], pt[1],   //  xy 1
         pt[2], pt[3],   //  xy 2
         pt[4], pt[5],   //  xy 3
@@ -1254,7 +1254,17 @@ static void evalJs(tic_mem* tic, const char* code)
     core->data->error(core->data->data, "TODO: JS eval not yet implemented\n.");
 }
 
-const tic_script_config JsSyntaxConfig =
+static const u8 DemoRom[] =
+{
+    #include "../build/assets/jsdemo.tic.dat"
+};
+
+static const u8 MarkRom[] =
+{
+    #include "../build/assets/jsmark.tic.dat"
+};
+
+const tic_script EXPORT_SCRIPT(Js) =
 {
     .id                 = 12,
     .name               = "js",
@@ -1287,4 +1297,7 @@ const tic_script_config JsSyntaxConfig =
 
     .keywords           = JsKeywords,
     .keywordsCount      = COUNT_OF(JsKeywords),
+
+    .demo = {DemoRom, sizeof DemoRom},
+    .mark = {MarkRom, sizeof MarkRom, "jsmark.tic"},
 };

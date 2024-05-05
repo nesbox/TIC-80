@@ -178,21 +178,7 @@ void initStart(Start* start, Studio* studio, const char* cart)
 #else
 
     {
-        char appPath[TICNAME_MAX];
-    
-#   if defined(__TIC_WINDOWS__)
-        {
-            wchar_t wideAppPath[TICNAME_MAX];
-            GetModuleFileNameW(NULL, wideAppPath, sizeof wideAppPath);
-            WideCharToMultiByte(CP_UTF8, 0, wideAppPath, COUNT_OF(wideAppPath), appPath, COUNT_OF(appPath), 0, 0);
-        }
-#   elif defined(__TIC_LINUX__)
-        s32 size = readlink("/proc/self/exe", appPath, sizeof appPath);
-        appPath[size] = '\0';
-#   elif defined(__TIC_MACOSX__)
-        s32 size = sizeof appPath;
-        _NSGetExecutablePath(appPath, &size);
-#   endif
+        const char* appPath = fs_apppath();
     
         s32 appSize = 0;
         u8* app = fs_read(appPath, &appSize);

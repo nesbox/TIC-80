@@ -23,6 +23,7 @@
 #include "studio.h"
 #include "fs.h"
 #include "net.h"
+#include "ext/json.h"
 
 #if defined(BAREMETALPI) || defined(_3DS)
   #ifdef EN_DEBUG
@@ -40,14 +41,6 @@
 #include <sys/types.h>
 #endif
 
-#if defined(TIC_BUILD_WITH_LUA)
-
-#include <lua.h>
-#include <lauxlib.h>
-#include <lualib.h>
-
-#endif
-
 #if defined(__TIC_WINDOWS__)
 #include <direct.h>
 #include <windows.h>
@@ -57,6 +50,12 @@
 
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
+#endif
+
+#if defined(__TIC_WINDOWS__)
+#define SLASH_SYMBOL ('\\')
+#else
+#define SLASH_SYMBOL ('/')
 #endif
 
 static const char* PublicDir = TIC_HOST;
@@ -85,7 +84,7 @@ const char* tic_fs_pathroot(tic_fs* fs, const char* name)
     char* ptr = path;
     while (*ptr)
     {
-        if (*ptr == '/') *ptr = '\\';
+        if (*ptr == '/') *ptr = SLASH_SYMBOL;
         ptr++;
     }
 #endif
@@ -158,6 +157,8 @@ static const char* stringToUtf8(const FsString* wstr)
     return str;
 }
 
+#if defined(_MSC_VER) && defined(_USING_V110_SDK71_)
+
 time_t FileTimeToTimeT(FILETIME* ft) {
     ULARGE_INTEGER ull;
     ull.LowPart = ft->dwLowDateTime;
@@ -201,6 +202,8 @@ static int _wstat_win32_shim(const wchar_t* path, struct _stat* buffer)
     buffer->st_ctime = FileTimeToTimeT(&fileInfo.ftCreationTime);
     return 0;
 }
+
+#endif
 
 #define freeString(S) free((void*)S)
 
@@ -261,127 +264,35 @@ typedef struct
     void* data;
 } NetDirData;
 
-#if defined(TIC_BUILD_WITH_LUA)
-
-static lua_State* netLuaInit(u8* buffer, s32 size)
-{
-    if (buffer && size)
-    {
-        char* script = calloc(1, size + 1);
-        memcpy(script, buffer, size);
-
-        lua_State* lua = luaL_newstate();
-
-        if(lua)
-        {
-            if(luaL_loadstring(lua, script) == LUA_OK && lua_pcall(lua, 0, LUA_MULTRET, 0) == LUA_OK)
-            {
-                free(script);
-                return lua;
-            }
-            else lua_close(lua);
-        }
-
-        free(script);
-    }
-
-    return NULL;
-}
-
 static void onDirResponse(const net_get_data* netData)
 {
     NetDirData* netDirData = (NetDirData*)netData->calldata;
 
     if(netData->type == net_get_done)
     {
-        lua_State* lua = netLuaInit(netData->done.data, netData->done.size);
-
-        if (lua)
+        if(json_parse(netData->done.data, netData->done.size))
         {
+            typedef char string[TICNAME_MAX];
+
+            string name, hash, filename;
+
+            s32 folders = json_array("folders", 0);
+            for(s32 i = 0, size = json_array_size(folders); i < size; i++)
             {
-                lua_getglobal(lua, "folders");
-
-                if (lua_type(lua, -1) == LUA_TTABLE)
-                {
-                    s32 count = (s32)lua_rawlen(lua, -1);
-
-                    for (s32 i = 1; i <= count; i++)
-                    {
-                        lua_geti(lua, -1, i);
-
-                        {
-                            lua_getfield(lua, -1, "name");
-                            if (lua_isstring(lua, -1))
-                                netDirData->item(lua_tostring(lua, -1), NULL, NULL, 0, netDirData->data, true);
-
-                            lua_pop(lua, 1);
-                        }
-
-                        lua_pop(lua, 1);
-                    }
-                }
-
-                lua_pop(lua, 1);
+                if(json_string("name", json_array_item(folders, i), name, sizeof name))
+                    netDirData->item(name, NULL, NULL, 0, netDirData->data, true);
             }
 
+            s32 files = json_array("files", 0);
+            for(s32 i = 0, size = json_array_size(files); i < size; i++)
             {
-                lua_getglobal(lua, "files");
+                s32 item = json_array_item(files, i);
 
-                if (lua_type(lua, -1) == LUA_TTABLE)
-                {
-                    s32 count = (s32)lua_rawlen(lua, -1);
-
-                    for (s32 i = 1; i <= count; i++)
-                    {
-                        lua_geti(lua, -1, i);
-
-                        char hash[TICNAME_MAX];
-                        char name[TICNAME_MAX];
-                        char title[TICNAME_MAX];
-
-                        {
-                            lua_getfield(lua, -1, "hash");
-                            if (lua_isstring(lua, -1))
-                                strncpy(hash, lua_tostring(lua, -1), sizeof hash);
-
-                            lua_pop(lua, 1);
-                        }
-
-                        {
-                            lua_getfield(lua, -1, "filename");
-
-                            if (lua_isstring(lua, -1))
-                                strncpy(name, lua_tostring(lua, -1), sizeof name);
-
-                            lua_pop(lua, 1);
-                        }
-
-                        {
-                            lua_getfield(lua, -1, "name");
-
-                            if (lua_isstring(lua, -1))
-                                strncpy(title, lua_tostring(lua, -1), sizeof title);
-
-                            lua_pop(lua, 1);
-                        }
-
-                        {
-                            lua_getfield(lua, -1, "id");
-
-                            if (lua_isinteger(lua, -1))
-                                netDirData->item(name, title, hash, (s32)lua_tointeger(lua, -1), netDirData->data, false);
-
-                            lua_pop(lua, 1);
-                        }
-
-                        lua_pop(lua, 1);
-                    }
-                }
-
-                lua_pop(lua, 1);
+                if(json_string("name", item, name, sizeof name)
+                    && json_string("hash", item, hash, sizeof hash)
+                    && json_string("filename", item, filename, sizeof filename))
+                    netDirData->item(filename, name, hash, json_int("id", item), netDirData->data, false);
             }
-
-            lua_close(lua);
         }
     }
 
@@ -396,12 +307,10 @@ static void onDirResponse(const net_get_data* netData)
     }
 }
 
-#endif
-
-static void enumFiles(tic_fs* fs, const char* path, fs_list_callback callback, void* data)
+void fs_enum(const char* path, fs_list_callback callback, void* data)
 {
 #if defined(BAREMETALPI)
-    dbg("enumFiles %s", path);
+    dbg("fs_enum %s", path);
 
         if (path && *path) {
         // ok
@@ -417,7 +326,7 @@ static void enumFiles(tic_fs* fs, const char* path, fs_list_callback callback, v
     if (path2[strlen(path2) - 1] == '/')    // one character
                 path2[strlen(path2) - 1] = 0;
 
-    dbg("enumFiles Real %s", path2);
+    dbg("fs_enum Real %s", path2);
 
 
     DIR Directory;
@@ -484,11 +393,11 @@ void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, v
         return;
     }
 
-#if defined(TIC_BUILD_WITH_LUA) && defined(BUILD_EDITORS)
+#if defined(BUILD_EDITORS)
     if(isPublic(fs))
     {
         char request[TICNAME_MAX];
-        snprintf(request, sizeof request, "/api?fn=dir&path=%s", fs->work + sizeof(TIC_HOST));
+        snprintf(request, sizeof request, "/json?fn=dir&path=%s", fs->work + sizeof(TIC_HOST));
 
         NetDirData netDirData = { onItem, onDone, data };
         tic_net_get(fs->net, request, onDirResponse, MOVE(netDirData));
@@ -499,7 +408,7 @@ void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, v
 
     const char* path = tic_fs_path(fs, "");
 
-    enumFiles(fs, path, onItem, data);
+    fs_enum(path, onItem, data);
 
     onDone(data);
 }
@@ -585,7 +494,7 @@ void tic_fs_changedir(tic_fs* fs, const char* dir)
 
 #if defined(__TIC_WINDOWS__)
     for(char *ptr = fs->work, *end = ptr + strlen(ptr); ptr < end; ptr++)
-        if(*ptr == '\\')
+        if(*ptr == SLASH_SYMBOL)
             *ptr = '/';
 #endif
 }
@@ -1026,4 +935,38 @@ tic_fs* tic_fs_create(const char* path, tic_net* net)
     fs->net = net;
 
     return fs;
+}
+
+const char* fs_apppath()
+{
+    static char apppath[TICNAME_MAX];
+
+#if defined(__TIC_WINDOWS__)
+    {
+        wchar_t wideAppPath[TICNAME_MAX];
+        GetModuleFileNameW(NULL, wideAppPath, sizeof wideAppPath);
+        WideCharToMultiByte(CP_UTF8, 0, wideAppPath, COUNT_OF(wideAppPath), apppath, COUNT_OF(apppath), 0, 0);
+    }
+#elif defined(__TIC_LINUX__)
+    s32 size = readlink("/proc/self/exe", apppath, sizeof apppath);
+    apppath[size] = '\0';
+#elif defined(__TIC_MACOSX__)
+    s32 size = sizeof apppath;
+    _NSGetExecutablePath(apppath, &size);
+#endif
+
+    return apppath;
+}
+
+const char* fs_appfolder()
+{
+    static char appfolder[TICNAME_MAX];
+    strcpy(appfolder, fs_apppath());
+
+    char* pos = strrchr(appfolder, SLASH_SYMBOL);
+
+    if(pos && pos[1])
+        pos[1] = '\0';
+
+    return appfolder;
 }

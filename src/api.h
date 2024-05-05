@@ -26,11 +26,6 @@
 #include "tic.h"
 #include "time.h"
 
-// convenience macros to loop languages
-#define FOR_EACH_LANG(ln) for (tic_script_config** conf = Languages ; *conf != NULL; conf++ ) { tic_script_config* ln = *conf;
-#define FOR_EACH_LANG_END }
-
-
 typedef struct { u8 index; tic_flip flip; tic_rotate rotate; } RemapResult;
 typedef void(*RemapFunc)(void*, s32 x, s32 y, RemapResult* result);
 
@@ -74,48 +69,6 @@ typedef struct
     tic_gamemenu    menu;
     void* data;
 } tic_blit_callback;
-
-typedef struct
-{
-    u8 id;
-    const char* name;
-    const char* fileExtension;
-    const char* projectComment;
-    struct
-    {
-        bool(*init)(tic_mem* memory, const char* code);
-        void(*close)(tic_mem* memory);
-
-        tic_tick tick;
-        tic_boot boot;
-        tic_blit_callback callback;
-    };
-
-    const tic_outline_item* (*getOutline)(const char* code, s32* size);
-    void (*eval)(tic_mem* tic, const char* code);
-
-    const char* blockCommentStart;
-    const char* blockCommentEnd;
-    const char* blockCommentStart2;
-    const char* blockCommentEnd2;
-    const char* blockStringStart;
-    const char* blockStringEnd;
-    const char* stdStringStartEnd;
-    const char* singleComment;
-    const char* blockEnd;
-
-    const char* const * keywords;
-    s32 keywordsCount;
-
-    tic_lang_isalnum lang_isalnum;
-    bool useStructuredEdition;
-
-    s32 api_keywordsCount;
-    const char** api_keywords;
-    
-} tic_script_config;
-
-extern tic_script_config* Languages[];
 
 typedef enum
 {
@@ -838,8 +791,8 @@ TIC_API_LIST(TIC_API_DEF)
 struct tic_mem
 {
     tic80           product;
-    tic_ram*             ram;
-    tic_cartridge       cart;
+    tic_ram*        ram;
+    tic_cartridge   cart;
 
     tic_ram*        base_ram;
 
@@ -876,7 +829,6 @@ void tic_core_tick_end(tic_mem* memory);
 void tic_core_synth_sound(tic_mem* tic);
 void tic_core_blit(tic_mem* tic);
 void tic_core_blit_ex(tic_mem* tic, tic_blit_callback clb);
-const tic_script_config* tic_core_script_config(tic_mem* memory);
 
 #define VBANK(tic, bank)                                \
     bool MACROVAR(_bank_) = tic_api_vbank(tic, bank);   \

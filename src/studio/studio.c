@@ -58,6 +58,10 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
+#if defined(TIC_MODULE_EXT)
+#include <dlfcn.h>
+#endif
+
 #define MD5_HASHSIZE 16
 
 #if defined(TIC80_PRO)
@@ -1508,6 +1512,18 @@ static void updateTitle(Studio* studio)
 }
 
 #if defined(BUILD_EDITORS)
+
+bool project_ext(const char* name)
+{
+    FOREACH_LANG(script)
+    {
+        if(tic_tool_has_ext(name, script->fileExtension))
+            return true;
+    }
+
+    return false;
+}
+
 tic_cartridge* loadPngCart(png_buffer buffer)
 {
     png_buffer zip = png_decode(buffer);
@@ -2162,7 +2178,7 @@ static void blitCursor(Studio* studio)
     tic_mem* tic = studio->tic;
     tic80_mouse* m = &tic->ram->input.mouse;
 
-    if(tic->input.mouse && !m->relative && m->x < TIC80_FULLWIDTH && m->y < TIC80_FULLHEIGHT)
+    if(tic->input.mouse && !m->relative && (s32)m->x < TIC80_FULLWIDTH && (s32)m->y < TIC80_FULLHEIGHT)
     {
         s32 sprite = CLAMP(tic->ram->vram.vars.cursor.sprite, 0, TIC_BANK_SPRITES - 1);
         const tic_bank* bank = &tic->cart.bank0;
@@ -2431,6 +2447,32 @@ bool studio_alive(Studio* studio)
     return studio->alive;
 }
 
+#if defined(TIC_MODULE_EXT)
+static bool onEnumModule(const char* name, const char* title, const char* hash, s32 id, void* data, bool dir)
+{
+    if(strstr(name, TIC_MODULE_EXT))
+    {
+        void* module = dlopen(name, RTLD_NOW | RTLD_LOCAL);
+
+        if(module)
+        {
+            const tic_script *config = dlsym(module, DEF2STR(SCRIPT_CONFIG));
+
+            if(config)
+            {
+                tic_add_script(config);
+            }
+            else
+            {
+                dlclose(module);
+            }
+        }
+    }
+
+    return true;
+}
+#endif
+
 Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* folder, s32 maxscale)
 {
     setbuf(stdout, NULL);
@@ -2442,6 +2484,11 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         printf("%s\n", TIC_VERSION);
         exit(0);
     }
+
+#if defined(TIC_MODULE_EXT)
+    // load script modules
+    fs_enum(fs_appfolder(), onEnumModule, NULL);
+#endif
 
     Studio* studio = NEW(Studio);
     *studio = (Studio)
@@ -2481,7 +2528,6 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
 #endif
         .tic = tic_core_create(samplerate, format),
     };
-
 
 #if defined(BUILD_EDITORS)
     

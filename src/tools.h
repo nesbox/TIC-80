@@ -91,7 +91,6 @@ tic_blitpal tic_tool_palette_blit(const tic_palette* src, tic80_pixel_color_form
 
 s32     tic_tool_get_pattern_id(const tic_track* track, s32 frame, s32 channel);
 void    tic_tool_set_pattern_id(tic_track* track, s32 frame, s32 channel, s32 id);
-bool    tic_project_ext(const char* name);
 bool    tic_tool_has_ext(const char* name, const char* ext);
 s32     tic_tool_get_track_row_sfx(const tic_track_row* row);
 void    tic_tool_set_track_row_sfx(tic_track_row* row, s32 sfx);
@@ -108,4 +107,5 @@ bool    tic_tool_flat4(const void* buffer, s32 size);
 
 bool    tic_tool_noise(const tic_waveform* wave);
 u32     tic_nearest_color(const tic_rgb* palette, const tic_rgb* color, s32 count);
-char*   tic_tool_metatag(const char* code, const char* tag, const char* comment);
+
+const char* tic_tool_metatag(const char* code, const char* tag, const char* comment);

@@ -49,6 +49,8 @@ if(BUILD_WITH_JANET)
         set_target_properties(janet PROPERTIES PREFIX "")
     endif()
 
+    target_link_libraries(janet PRIVATE runtime)
+
     target_include_directories(janet 
         PRIVATE 
             ${THIRDPARTY_DIR}/janet/src/include
@@ -58,10 +60,5 @@ if(BUILD_WITH_JANET)
     )
 
     target_compile_definitions(janet INTERFACE TIC_BUILD_WITH_JANET=1)
-
-    if(BUILD_DEMO_CARTS)
-        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/janetdemo.janet)
-        list(APPEND DEMO_CARTS ${DEMO_CARTS_IN}/bunny/janetmark.janet)
-    endif()
 
 endif()

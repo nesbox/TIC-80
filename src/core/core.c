@@ -42,9 +42,9 @@
 
 static_assert(TIC_BANK_BITS == 3,                   "tic_bank_bits");
 static_assert(sizeof(tic_map) < 1024 * 32,          "tic_map");
-static_assert(sizeof(tic_rgb) == 3,    "tic_rgb");
-static_assert(sizeof(tic_palette) == 48,    "tic_palette");
-static_assert(sizeof(((tic_vram *)0)->vars) == 4, "tic_vram vars");
+static_assert(sizeof(tic_rgb) == 3,                 "tic_rgb");
+static_assert(sizeof(tic_palette) == 48,            "tic_palette");
+static_assert(sizeof(((tic_vram *)0)->vars) == 4,   "tic_vram vars");
 static_assert(sizeof(tic_vram) == TIC_VRAM_SIZE,    "tic_vram");
 static_assert(sizeof(tic_ram) == TIC_RAM_SIZE,      "tic_ram");
 
@@ -244,41 +244,13 @@ s32 tic_api_tstamp(tic_mem* memory)
     return (s32)time(NULL);
 }
 
-static bool compareMetatag(const char* code, const char* tag, const char* value, const char* comment)
-{
-    bool result = false;
-
-    char* str = tic_tool_metatag(code, tag, comment);
-
-    if (str)
-    {
-        result = strcmp(str, value) == 0;
-        free(str);
-    }
-
-    return result;
-}
-
-const tic_script_config* tic_core_script_config(tic_mem* memory)
-{
-    FOR_EACH_LANG(it)
-    {
-        if(it->id == memory->cart.lang || compareMetatag(memory->cart.code.data, "script", it->name, it->singleComment))
-            return it;
-    }
-    FOR_EACH_LANG_END
-
-    return Languages[0];
-}
-
 static void updateSaveid(tic_mem* memory)
 {
     memset(memory->saveid, 0, sizeof memory->saveid);
-    char* saveid = tic_tool_metatag(memory->cart.code.data, "saveid", tic_core_script_config(memory)->singleComment);
-    if (saveid)
+    const char* saveid = tic_tool_metatag(memory->cart.code.data, "saveid", NULL);
+    if (*saveid)
     {
         strncpy(memory->saveid, saveid, TIC_SAVEID_SIZE - 1);
-        free(saveid);
     }
 }
 
@@ -420,7 +392,7 @@ static void tic_close_current_vm(tic_core* core)
     }
 }
 
-static bool tic_init_vm(tic_core* core, const char* code, const tic_script_config* config)
+static bool tic_init_vm(tic_core* core, const char* code, const tic_script* config)
 {
     tic_close_current_vm(core);
     // set current script config and init
@@ -467,25 +439,26 @@ void tic_core_tick(tic_mem* tic, tic_tick_data* data)
         const char* code = tic->cart.code.data;
 
         bool done = false;
-        const tic_script_config* config = tic_core_script_config(tic);
+        const tic_script* config = tic_get_script(tic);
 
-        if (strlen(code))
+        if (config && strlen(code))
         {
             cart2ram(tic);
 
             core->state.synced = 0;
             tic->input.data = 0;
 
-            if (compareMetatag(code, "input", "mouse", config->singleComment))
+            if(strcmp(tic_tool_metatag(code, "input", config->singleComment), "mouse") == 0)
                 tic->input.mouse = 1;
-            else if (compareMetatag(code, "input", "gamepad", config->singleComment))
+            else if(strcmp(tic_tool_metatag(code, "input", config->singleComment), "gamepad") == 0)
                 tic->input.gamepad = 1;
-            else if (compareMetatag(code, "input", "keyboard", config->singleComment))
+            else if(strcmp(tic_tool_metatag(code, "input", config->singleComment), "keyboard") == 0)
                 tic->input.keyboard = 1;
             else tic->input.data = -1;  // default is all enabled
 
             data->start = data->counter(core->data->data);
 
+            // !TODO: move it to wasm module?
             // TODO: does where to fetch code from need to be a config option so this isn't hard
             // coded for just a single language? perhaps change it later when we have a second script
             // engine that uses BINARY?
@@ -768,6 +741,11 @@ tic_mem* tic_core_create(s32 samplerate, tic80_pixel_color_format format)
 #define API_FUNC_DEF(name, ...) core->api.name = tic_api_ ## name;
         TIC_API_LIST(API_FUNC_DEF)
 #undef  API_FUNC_DEF
+
+#if defined BUILD_DEPRECATED
+        void tic_api_textri(tic_mem* tic, float x1, float y1, float x2, float y2, float x3, float y3, float u1, float v1, float u2, float v2, float u3, float v3, bool use_map, u8* colors, s32 count);
+        core->api.textri = tic_api_textri;
+#endif
     }
 
     tic_api_reset(&core->memory);
