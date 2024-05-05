@@ -37,6 +37,9 @@
 #   undef __TIC_WINDOWS__
 #   define __TIC_WINDOWS__ 1
 #   define TIC_MODULE_EXT ".dll"
+#	if defined(_MSC_VER) && defined(_USING_V110_SDK71_)
+#		define __TIC_WIN7__ 1
+#	endif
 #endif 
 
 #if defined(ANDROID) || defined(__ANDROID__)

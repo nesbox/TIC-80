@@ -157,7 +157,7 @@ static const char* stringToUtf8(const FsString* wstr)
     return str;
 }
 
-#if defined(_MSC_VER) && defined(_USING_V110_SDK71_)
+#if defined(__TIC_WIN7__)
 
 time_t FileTimeToTimeT(FILETIME* ft) {
     ULARGE_INTEGER ull;
@@ -218,7 +218,7 @@ static int _wstat_win32_shim(const wchar_t* path, struct _stat* buffer)
 #define tic_rmdir _wrmdir
 
 // use the shim (see above) if we're targeting Windows XP
-#if defined(_MSC_VER) && defined(_USING_V110_SDK71_)
+#if defined(__TIC_WIN7__)
     #define tic_stat _wstat_win32_shim
 #else
     #define tic_stat _wstat
@@ -270,7 +270,7 @@ static void onDirResponse(const net_get_data* netData)
 
     if(netData->type == net_get_done)
     {
-        if(json_parse(netData->done.data, netData->done.size))
+        if(json_parse((char*)netData->done.data, netData->done.size))
         {
             typedef char string[TICNAME_MAX];
 

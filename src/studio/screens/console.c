@@ -3721,7 +3721,7 @@ static void onHttpVersionGet(const net_get_data* data)
     {
     case net_get_done:
         {
-            if(json_parse(data->done.data, data->done.size))
+            if(json_parse((char*)data->done.data, data->done.size))
             {
                 s32 major = json_int("major", 0);
                 s32 minor = json_int("minor", 0);
@@ -3742,6 +3742,8 @@ static void onHttpVersionGet(const net_get_data* data)
                 }
             }
         }
+        break;
+    default:
         break;
     }
 }
