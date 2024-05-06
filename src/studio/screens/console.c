@@ -2719,7 +2719,7 @@ static const char HelpUsage[] = "help [<text>"
 #define ADDGET_FILE(macro)                                                              \
     macro("add",                                                                        \
         NULL,                                                                           \
-        "upload file to the browser local storage.",                                    \
+        "Upload file to the browser local storage.",                                    \
         NULL,                                                                           \
         onAddCommand,                                                                   \
         NULL,                                                                           \
@@ -2727,7 +2727,7 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("get",                                                                        \
         NULL,                                                                           \
-        "download file from the browser local storage.",                                \
+        "Download file from the browser local storage.",                                \
         "get <file>",                                                                   \
         onGetCommand,                                                                   \
         tabCompleteFiles,                                                               \
@@ -2741,7 +2741,7 @@ static const char HelpUsage[] = "help [<text>"
 #define COMMANDS_LIST(macro)                                                            \
     macro("help",                                                                       \
         NULL,                                                                           \
-        "show help info about commands/api/...",                                        \
+        "Show help info about commands/api/...",                                        \
         HelpUsage,                                                                      \
         onHelpCommand,                                                                  \
         tabCompleteHelp,                                                                \
@@ -2749,7 +2749,7 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("exit",                                                                       \
         "quit",                                                                         \
-        "exit the application.",                                                        \
+        "Exit the application (Hotkey: CTRL+Q).",                                       \
         NULL,                                                                           \
         onExitCommand,                                                                  \
         NULL,                                                                           \
@@ -2757,7 +2757,7 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("edit",                                                                       \
         NULL,                                                                           \
-        "open cart editors.",                                                           \
+        "Open cart editors (Hotkey: ESC or F1).",                                       \
         NULL,                                                                           \
         onEditCommand,                                                                  \
         NULL,                                                                           \
@@ -2765,7 +2765,7 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("new",                                                                        \
         NULL,                                                                           \
-        "creates a new `Hello World` cartridge.",                                       \
+        "Creates a new `Hello World` cartridge.",                                       \
         "new <$LANG_NAMES_PIPE$>",                                                      \
         onNewCommand,                                                                   \
         tabCompleteLanguages,                                                           \
@@ -2773,9 +2773,10 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("load",                                                                       \
         NULL,                                                                           \
-        "load cartridge from the local filesystem"                                      \
+        "Load cartridge from the local filesystem"                                      \
         "(there's no need to type the .tic extension).\n"                               \
-        "you can also load just the section (sprites, map etc) from another cart.",     \
+        "You can also load just the section (sprites, map, screen etc)"                 \
+        "from another cart.",                                                           \
         "load <cart> [code" TIC_SYNC_LIST(SECTION_DEF) "]",                             \
         onLoadCommand,                                                                  \
         tabCompleteFiles,                                                               \
@@ -2783,8 +2784,9 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("save",                                                                       \
         NULL,                                                                           \
-        "save cartridge to the local filesystem, use $LANG_EXTENSIONS$"                 \
-        "cart extension to save it in text format (PRO feature).",                      \
+        "Save cartridge to the local filesystem (Hotkey: CTRL+S), use $LANG_EXTENSIONS$"\
+        "cart extension to save it in text format (PRO feature).\n"                     \
+        "Use .png file extension to save it as a png cart.",                            \
         "save <cart>",                                                                  \
         onSaveCommand,                                                                  \
         tabCompleteFiles,                                                               \
@@ -2792,7 +2794,7 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("run",                                                                        \
         NULL,                                                                           \
-        "run current cart / project.",                                                  \
+        "Run current cart / project (Hotkey: CTRL+R).",                                 \
         NULL,                                                                           \
         onRunCommand,                                                                   \
         NULL,                                                                           \
@@ -2800,7 +2802,7 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("resume",                                                                     \
         NULL,                                                                           \
-        "resume last run cart / project.",                                              \
+        "Resume last run cart / project.",                                              \
         NULL,                                                                           \
         onResumeCommand,                                                                \
         NULL,                                                                           \
@@ -2808,7 +2810,12 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("eval",                                                                       \
         "=",                                                                            \
-        "run code provided code.",                                                      \
+        "Run provided code within the console, "                                        \
+        "useful for debugging and testing.\n"                                           \
+        "\nTips\n"                                                                      \
+        "- Use trace() to log the results. Eg: eval trace(2+2)\n"                       \
+        "- The virtual machine should be launched first by "                            \
+        "running a cart; otherwise it will output an empty string.",                    \
         NULL,                                                                           \
         onEvalCommand,                                                                  \
         NULL,                                                                           \
@@ -2816,7 +2823,7 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("dir",                                                                        \
         "ls",                                                                           \
-        "show list of local files.",                                                    \
+        "Show list of local files.",                                                    \
         NULL,                                                                           \
         onDirCommand,                                                                   \
         NULL,                                                                           \
@@ -2824,7 +2831,7 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("cd",                                                                         \
         NULL,                                                                           \
-        "change directory.",                                                            \
+        "Change directory.",                                                            \
         "\ncd <path>\ncd /\ncd ..",                                                     \
         onChangeDirectory,                                                              \
         tabCompleteDirs,                                                                \
@@ -2832,7 +2839,7 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("mkdir",                                                                      \
         NULL,                                                                           \
-        "make a directory.",                                                            \
+        "Make a directory.",                                                            \
         "mkdir <name>",                                                                 \
         onMakeDirectory,                                                                \
         NULL,                                                                           \
@@ -2840,7 +2847,7 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("folder",                                                                     \
         NULL,                                                                           \
-        "open working directory in OS.",                                                \
+        "Open working directory in OS.",                                                \
         NULL,                                                                           \
         onFolderCommand,                                                                \
         NULL,                                                                           \
@@ -2848,28 +2855,30 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("export",                                                                     \
         NULL,                                                                           \
-        "export cart to HTML,\n"                                                        \
+        "Export cart to HTML,\n"                                                        \
         "native build (win linux rpi mac),\n"                                           \
         "export sprites/map/... as a .png image "                                       \
         "or export sfx and music to .wav files.",                                       \
-        "\nexport [" EXPORT_CMD_LIST(EXPORT_CMD_DEF) "...] "                            \
-        "<file> [" EXPORT_KEYS_LIST(EXPORT_KEYS_DEF) "...]" ,                           \
+        "\nexport [" EXPORT_CMD_LIST(EXPORT_CMD_DEF) "] "                            \
+        "<file> [" EXPORT_KEYS_LIST(EXPORT_KEYS_DEF) "]" ,                           \
         onExportCommand,                                                                \
         tabCompleteExport,                                                              \
         tabCompleteFiles)                                                               \
                                                                                         \
     macro("import",                                                                     \
         NULL,                                                                           \
-        "import code/sprites/map/... from an external file.",                           \
-        "\nimport [" IMPORT_CMD_LIST(IMPORT_CMD_DEF) "...] "                            \
-        "<file> [" IMPORT_KEYS_LIST(IMPORT_KEYS_DEF) "...]",                            \
+        "Import code/sprites/map/... from an external file.\n"                          \
+        "While importing images, colors are merged to the "                             \
+        "closest color of the palette.",                                                \
+        "\nimport [" IMPORT_CMD_LIST(IMPORT_CMD_DEF) "] "                            \
+        "<file> [" IMPORT_KEYS_LIST(IMPORT_KEYS_DEF) "]",                            \
         onImportCommand,                                                                \
         tabCompleteImport,                                                              \
         tabCompleteFiles)                                                               \
                                                                                         \
     macro("del",                                                                        \
         "rm",                                                                           \
-        "delete from the filesystem.",                                                  \
+        "Delete from the filesystem.",                                                  \
         "del <file|folder>",                                                            \
         onDelCommand,                                                                   \
         tabCompleteFilesAndDirs,                                                        \
@@ -2877,7 +2886,7 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("cls",                                                                        \
         "clear",                                                                        \
-        "clear console screen.",                                                        \
+        "Clear console screen.",                                                        \
         NULL,                                                                           \
         onClsCommand,                                                                   \
         NULL,                                                                           \
@@ -2885,7 +2894,7 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("demo",                                                                       \
         NULL,                                                                           \
-        "install demo carts to the current directory.",                                 \
+        "Install demo carts to the current directory.",                                 \
         NULL,                                                                           \
         onInstallDemosCommand,                                                          \
         NULL,                                                                           \
@@ -2893,9 +2902,9 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("config",                                                                     \
         NULL,                                                                           \
-        "edit system configuration cartridge,\n"                                        \
-        "use `reset` param to reset current configuration,\n"                           \
-        "use `default` to edit default cart template.",                                 \
+        "Edit system configuration cartridge.\n"                                        \
+        "Use `reset` param to reset current configuration.\n"                           \
+        "Use `default` to edit default cart template.",                                 \
         "config [reset|default]",                                                       \
         onConfigCommand,                                                                \
         tabCompleteConfig,                                                              \
@@ -2903,7 +2912,7 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("surf",                                                                       \
         NULL,                                                                           \
-        "open carts browser.",                                                          \
+        "Open carts browser.",                                                          \
         NULL,                                                                           \
         onSurfCommand,                                                                  \
         NULL,                                                                           \
@@ -2911,7 +2920,7 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("menu",                                                                       \
         NULL,                                                                           \
-        "show game menu where you can setup video, sound and input options.",           \
+        "Show menu where you can setup video, sound and input options.",                \
         NULL,                                                                           \
         onGameMenuCommand,                                                              \
         NULL,                                                                           \
@@ -3192,7 +3201,7 @@ static s32 createButtonsTable(char* buf)
         id++;
     }
 
-    ptr += sprintf(ptr, "\n+--------+----+----+----+----+");
+    ptr += sprintf(ptr, "\n+--------+----+----+----+----+\n");
 
     return strlen(buf);
 }
