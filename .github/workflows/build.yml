@@ -257,7 +257,7 @@ jobs:
       - name: Deploy DEB
         uses: actions/upload-artifact@v3
         with:
-          name: "tic80-rpi-dep"
+          name: "tic80-rpi-deb"
           path: build/tic80.deb
 
       - name: Deploy
