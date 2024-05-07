@@ -4044,8 +4044,14 @@ static void processGamepad(Console* console)
 
     if(!console->active)
         return;
+    printf("\nconsole.c - processGamepad : asking tic_api_btnd(tic, 6)");
+    printf("\nconsole.c - processGamepad : tic_api_btnd(tic, 6) result : %d", tic_api_btnd(tic, 6));
 
-    if(tic->ram->input.keyboard.data == 0 && tic_api_btnp(tic, 6, -1, -1))
+
+    printf("\nconsole.c - processGamepad : asking tic_api_btn(tic, 6)");
+    printf("\nconsole.c - processGamepad : tic_api_btn(tic, 6) result : %d", tic_api_btn(tic, 6));
+
+    if(tic->ram->input.keyboard.data == 0 && tic_api_btnd(tic, 6))
     {
         gotoSurf(console->studio);
     }

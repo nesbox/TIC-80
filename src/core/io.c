@@ -62,6 +62,30 @@ u32 tic_api_btnp(tic_mem* tic, s32 index, s32 hold, s32 period)
     return ((~previous.data) & core->memory.ram->input.gamepads.data) & (1 << index);
 }
 
+u32 tic_api_btnd(tic_mem* tic, s32 index)
+{
+    printf("\nio.c - tic_api_btnd : Called");
+    tic_core* core = (tic_core*)tic;
+
+    if (index < 0)
+    {
+        return core->memory.ram->input.gamepads.data;
+    }
+    else
+    {
+        if ((core->state.gamepads.previous.data & (1 << index)) == (core->memory.ram->input.gamepads.data & (1 << index)))
+        {
+            printf("\nio.c - tic_api_btnd : previous data + index mask is equal to current data + index mask");
+            return 0;
+        }
+        else
+        {
+            printf("\nio.c - tic_api_btnd : previous data + index mask is NOT equal to current data + index mask");
+            return core->memory.ram->input.gamepads.data & (1 << index);
+        }
+    }
+}
+
 u32 tic_api_btn(tic_mem* tic, s32 index)
 {
     tic_core* core = (tic_core*)tic;
