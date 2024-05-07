@@ -151,6 +151,36 @@ static int py_btnp(pkpy_vm* vm)
     return 1;
 }
 
+static int py_btnd(pkpy_vm* vm)
+{
+
+    int button_id;
+
+    tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
+    pkpy_to_int(vm, 0, &button_id);
+    if(pkpy_check_error(vm))
+        return 0;
+
+    bool pressed = core->api.btnd(tic, button_id & 0x1f);
+    pkpy_push_bool(vm, pressed);
+    return 1;
+}
+
+static int py_btnu(pkpy_vm* vm)
+{
+
+    int button_id;
+
+    tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
+    pkpy_to_int(vm, 0, &button_id);
+    if(pkpy_check_error(vm))
+        return 0;
+
+    bool pressed = core->api.btnu(tic, button_id & 0x1f);
+    pkpy_push_bool(vm, pressed);
+    return 1;
+}
+
 static int py_circ(pkpy_vm* vm) 
 {
     
@@ -1157,6 +1187,11 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_setglobal_2(vm, "btn");
     pkpy_push_function(vm, "btnp(id: int, hold=-1, period=-1) -> bool", py_btnp);
     pkpy_setglobal_2(vm, "btnp");
+    pkpy_push_function(vm, "btnd(id: int) -> bool", py_btnd);
+    pkpy_setglobal_2(vm, "btnd");
+    pkpy_push_function(vm, "btnu(id: int) -> bool", py_btnu);
+    pkpy_setglobal_2(vm, "btnu");
+
 
     pkpy_push_function(vm, "circ(x: int, y: int, radius: int, color: int)", py_circ);
     pkpy_setglobal_2(vm, "circ");

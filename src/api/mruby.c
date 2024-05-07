@@ -388,6 +388,52 @@ static mrb_value mrb_btnp(mrb_state* mrb, mrb_value self)
     }
 }
 
+static mrb_value mrb_btnd(mrb_state* mrb, mrb_value self)
+{
+    tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
+
+
+    mrb_int index, hold, period;
+    mrb_int argc = mrb_get_args(mrb, "|i", &index, &hold, &period);
+
+    if (argc == 0)
+    {
+        return mrb_bool_value(core->api.btnd(tic, -1) != 0);
+    }
+    else if (argc == 1)
+    {
+        return mrb_bool_value(core->api.btnd(tic, index & 0x1f) != 0);
+    }
+    else
+    {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid params, btnd [ id ]\n");
+        return mrb_nil_value();
+    }
+}
+
+static mrb_value mrb_btnu(mrb_state* mrb, mrb_value self)
+{
+    tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
+
+
+    mrb_int index, hold, period;
+    mrb_int argc = mrb_get_args(mrb, "|i", &index, &hold, &period);
+
+    if (argc == 0)
+    {
+        return mrb_bool_value(core->api.btnu(tic, -1) != 0);
+    }
+    else if (argc == 1)
+    {
+        return mrb_bool_value(core->api.btnu(tic, index & 0x1f) != 0);
+    }
+    else
+    {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid params, btnu [ id ]\n");
+        return mrb_nil_value();
+    }
+}
+
 static mrb_value mrb_btn(mrb_state* mrb, mrb_value self)
 {
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;

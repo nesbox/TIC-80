@@ -280,6 +280,33 @@ enum
         tic_mem*, s32 id, s32 hold, s32 period)                                                                         \
                                                                                                                         \
                                                                                                                         \
+    macro(btnd,                                                                                                         \
+        "btnd(id) -> just pressed",                                                                                     \
+                                                                                                                        \
+        "This function allows you to read the status of one of the buttons attached to TIC.\n"                          \
+        "The function returns true if the key with the supplied id was just pressed.\n"                                 \
+        "It only returns true for the single tick the event occurred in.\n"                                             \
+        1,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
+        u32,                                                                                                            \
+        tic_mem*, s32 id)                                                                                               \
+                                                                                                                        \
+                                                                                                                        \
+                                                                                                                        \
+    macro(btnu,                                                                                                         \
+        "btnu(id) -> just released",                                                                                    \
+                                                                                                                        \
+        "This function allows you to read the status of one of the buttons attached to TIC.\n"                          \
+        "The function returns true if the key with the supplied id was just released.\n"                                \
+        "It only returns true for the single tick the event occurred in.\n"                                             \
+        1,                                                                                                              \
+        1,                                                                                                              \
+        0,                                                                                                              \
+        u32,                                                                                                            \
+        tic_mem*, s32 id)                                                                                               \
+                                                                                                                        \
+                                                                                                                        \
     macro(sfx,                                                                                                          \
         "sfx(id note=-1 duration=-1 channel=0 volume=15 speed=0)",                                                      \
                                                                                                                         \

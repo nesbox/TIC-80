@@ -623,6 +623,54 @@ static SQInteger squirrel_btn(HSQUIRRELVM vm)
     return 1;
 }
 
+static SQInteger squirrel_btnd(HSQUIRRELVM vm)
+{
+    tic_core* core = getSquirrelCore(vm);
+    tic_mem* tic = (tic_mem*)core;
+
+    SQInteger top = sq_gettop(vm);
+
+    if (top == 1)
+    {
+        sq_pushinteger(vm, core->api.btnd(tic, -1));
+    }
+    else if (top == 2)
+    {
+        bool pressed = core->api.btnd(tic, getSquirrelNumber(vm, 2) & 0x1f);
+        sq_pushbool(vm, pressed ? SQTrue : SQFalse);
+    }
+    else
+    {
+        return sq_throwerror(vm, "invalid params, btnd [ id ]\n");
+    }
+
+    return 1;
+}
+
+static SQInteger squirrel_btnu(HSQUIRRELVM vm)
+{
+    tic_core* core = getSquirrelCore(vm);
+    tic_mem* tic = (tic_mem*)core;
+
+    SQInteger top = sq_gettop(vm);
+
+    if (top == 1)
+    {
+        sq_pushinteger(vm, core->api.btnu(tic, -1));
+    }
+    else if (top == 2)
+    {
+        bool pressed = core->api.btnu(tic, getSquirrelNumber(vm, 2) & 0x1f);
+        sq_pushbool(vm, pressed ? SQTrue : SQFalse);
+    }
+    else
+    {
+        return sq_throwerror(vm, "invalid params, btnu [ id ]\n");
+    }
+
+    return 1;
+}
+
 static SQInteger squirrel_spr(HSQUIRRELVM vm)
 {
     SQInteger top = sq_gettop(vm);

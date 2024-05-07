@@ -668,6 +668,56 @@ static s32 lua_btn(lua_State* lua)
     return 1;
 }
 
+static s32 lua_btnd(lua_State* lua)
+{
+    tic_core* core = getLuaCore(lua);
+    tic_mem* tic = (tic_mem*)core;
+
+    s32 top = lua_gettop(lua);
+
+    if (top == 0)
+    {
+        lua_pushinteger(lua, core->api.btnd(tic, -1));
+    }
+    else if (top == 1)
+    {
+        bool pressed = core->api.btnd(tic, getLuaNumber(lua, 1) & 0x1f);
+        lua_pushboolean(lua, pressed);
+    }
+    else
+    {
+        luaL_error(lua, "invalid params, btnd [ id ]\n");
+        return 0;
+    }
+
+    return 1;
+}
+
+static s32 lua_btnu(lua_State* lua)
+{
+    tic_core* core = getLuaCore(lua);
+    tic_mem* tic = (tic_mem*)core;
+
+    s32 top = lua_gettop(lua);
+
+    if (top == 0)
+    {
+        lua_pushinteger(lua, core->api.btnu(tic, -1));
+    }
+    else if (top == 1)
+    {
+        bool pressed = core->api.btnu(tic, getLuaNumber(lua, 1) & 0x1f);
+        lua_pushboolean(lua, pressed);
+    }
+    else
+    {
+        luaL_error(lua, "invalid params, btnu [ id ]\n");
+        return 0;
+    }
+
+    return 1;
+}
+
 static s32 lua_spr(lua_State* lua)
 {
     s32 top = lua_gettop(lua);

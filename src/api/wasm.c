@@ -372,6 +372,42 @@ m3ApiRawFunction(wasmtic_btnp)
     m3ApiSuccess();
 }
 
+m3ApiRawFunction(wasmtic_btnd)
+{
+    // TODO: should this be boolean, how to deal with
+    // this being multi-typed
+    m3ApiReturnType  (int32_t)
+
+    m3ApiGetArg      (int32_t, index)
+
+    tic_core* core = getWasmCore(runtime);
+
+    // -1 is a default placeholder here for `id`, but one that `core->api.btnd` already understands, so
+    // it just gets passed straight thru
+
+    m3ApiReturn(core->api.btnd((tic_mem *)core, index));
+
+    m3ApiSuccess();
+}
+
+m3ApiRawFunction(wasmtic_btnu)
+{
+    // TODO: should this be boolean, how to deal with
+    // this being multi-typed
+    m3ApiReturnType  (int32_t)
+
+    m3ApiGetArg      (int32_t, index)
+
+    tic_core* core = getWasmCore(runtime);
+
+    // -1 is a default placeholder here for `id`, but one that `core->api.btnu` already understands, so
+    // it just gets passed straight thru
+
+    m3ApiReturn(core->api.btnu((tic_mem *)core, index));
+
+    m3ApiSuccess();
+}
+
 m3ApiRawFunction(wasmtic_key)
 {
     m3ApiReturnType  (int32_t)

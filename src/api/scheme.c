@@ -181,6 +181,22 @@ s7_pointer scheme_btnp(s7_scheme* sc, s7_pointer args)
     
     return s7_make_boolean(sc, core->api.btnp(tic, id, hold, period));
 }
+s7_pointer scheme_btnd(s7_scheme* sc, s7_pointer args)
+{
+    // btnd(id) -> just pressed
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
+    const s32 id = s7_integer(s7_car(args));
+
+    return s7_make_boolean(sc, core->api.btnd(tic, id));
+}
+s7_pointer scheme_btnu(s7_scheme* sc, s7_pointer args)
+{
+    // btnu(id) -> just pressed
+    tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
+    const s32 id = s7_integer(s7_car(args));
+
+    return s7_make_boolean(sc, core->api.btnu(tic, id));
+}
 
 u8 get_note_base(char c) {
     switch (c) {

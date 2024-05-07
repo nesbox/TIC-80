@@ -266,6 +266,24 @@ static JSValue js_btn(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
         : JS_NewBool(ctx, core->api.btn(tic, getInteger(ctx, argv[0]) & 0x1f));
 }
 
+static JSValue js_btnd(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
+{
+    tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
+
+    return JS_IsUndefined(argv[0])
+        ? JS_NewUint32(ctx, core->api.btnd(tic, -1))
+        : JS_NewBool(ctx, core->api.btnd(tic, getInteger(ctx, argv[0]) & 0x1f));
+}
+
+static JSValue js_btnu(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
+{
+    tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
+
+    return JS_IsUndefined(argv[0])
+        ? JS_NewUint32(ctx, core->api.btnu(tic, -1))
+        : JS_NewBool(ctx, core->api.btnu(tic, getInteger(ctx, argv[0]) & 0x1f));
+}
+
 static JSValue js_btnp(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueConst *argv)
 {
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
