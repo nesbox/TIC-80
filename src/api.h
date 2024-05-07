@@ -285,7 +285,7 @@ enum
                                                                                                                         \
         "This function allows you to read the status of one of the buttons attached to TIC.\n"                          \
         "The function returns true if the key with the supplied id was just pressed.\n"                                 \
-        "It only returns true for the single tick the event occurred in.\n"                                             \
+        "It only returns true for the single tick the event occurred in.\n",                                             \
         1,                                                                                                              \
         1,                                                                                                              \
         0,                                                                                                              \
@@ -293,13 +293,12 @@ enum
         tic_mem*, s32 id)                                                                                               \
                                                                                                                         \
                                                                                                                         \
-                                                                                                                        \
     macro(btnu,                                                                                                         \
         "btnu(id) -> just released",                                                                                    \
                                                                                                                         \
         "This function allows you to read the status of one of the buttons attached to TIC.\n"                          \
         "The function returns true if the key with the supplied id was just released.\n"                                \
-        "It only returns true for the single tick the event occurred in.\n"                                             \
+        "It only returns true for the single tick the event occurred in.\n",                                             \
         1,                                                                                                              \
         1,                                                                                                              \
         0,                                                                                                              \

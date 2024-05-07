@@ -191,7 +191,7 @@ s7_pointer scheme_btnd(s7_scheme* sc, s7_pointer args)
 }
 s7_pointer scheme_btnu(s7_scheme* sc, s7_pointer args)
 {
-    // btnu(id) -> just pressed
+    // btnu(id) -> just released
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 id = s7_integer(s7_car(args));
 
