@@ -4044,12 +4044,14 @@ static void processGamepad(Console* console)
 
     if(!console->active)
         return;
-    printf("\nconsole.c - processGamepad : asking tic_api_btnd(tic, 6)");
-    printf("\nconsole.c - processGamepad : tic_api_btnd(tic, 6) result : %d", tic_api_btnd(tic, 6));
 
-
-    printf("\nconsole.c - processGamepad : asking tic_api_btn(tic, 6)");
-    printf("\nconsole.c - processGamepad : tic_api_btn(tic, 6) result : %d", tic_api_btn(tic, 6));
+    printf("\nconsole.c - processGamepad : testing btnd and btnu");
+    printf("\nconsole.c - processGamepad : btnd on index 4 = %d", tic_api_btnd(tic, 4));
+    printf("\nconsole.c - processGamepad : btnu on index 4 = %d", tic_api_btnu(tic, 4));
+    printf("\nconsole.c - processGamepad : btnd on index 5 = %d", tic_api_btnd(tic, 5));
+    printf("\nconsole.c - processGamepad : btnu on index 5 = %d", tic_api_btnu(tic, 5));
+    printf("\nconsole.c - processGamepad : btnd on index 2 = %d", tic_api_btnd(tic, 2));
+    printf("\nconsole.c - processGamepad : btnu on index 2 = %d", tic_api_btnu(tic, 2));
 
     if(tic->ram->input.keyboard.data == 0 && tic_api_btnd(tic, 6))
     {
