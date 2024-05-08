@@ -124,6 +124,7 @@ build/uwp/tic/packages/
 build/windows/studio/x64/
 build/windows/sdl-gpu/x64/
 build/macosx/*.plist
+build/Win32/
 demos/*.rtc
 demos/*.srm
 demos/.local
@@ -174,6 +175,8 @@ build/*.dir/
 build/x64/
 build/linux/tic80.desktop
 build/compile_commands.json
+build/*.dmg
+build/_CPack_Packages
 CMakeSettings.json
 tic_mruby_build_config.rb.lock
 tic_mruby_wasm_build_config.rb.lock
@@ -182,4 +185,6 @@ build/mruby_vendor-prefix/
 **/zig-out
 .cache
 *~
-
+# byte battle / test files
+/*.lua
+/*.tic
