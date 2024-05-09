@@ -68,17 +68,17 @@
 #endif
 
 #define CMD_PARAMS_LIST(macro)                                                              \
-    macro(skip,         bool,   BOOLEAN,    "",         "skip startup animation")           \
+    macro(skip,         int,    BOOLEAN,    "",         "skip startup animation")           \
     macro(volume,       s32,    INTEGER,    "=<int>",   "global volume value [0-15]")       \
-    macro(cli,          bool,   BOOLEAN,    "",         "console only output")              \
-    macro(fullscreen,   bool,   BOOLEAN,    "",         "enable fullscreen mode")           \
-    macro(vsync,        bool,   BOOLEAN,    "",         "enable VSYNC")                     \
-    macro(soft,         bool,   BOOLEAN,    "",         "use software rendering")           \
+    macro(cli,          int,    BOOLEAN,    "",         "console only output")              \
+    macro(fullscreen,   int,    BOOLEAN,    "",         "enable fullscreen mode")           \
+    macro(vsync,        int,    BOOLEAN,    "",         "enable VSYNC")                     \
+    macro(soft,         int,    BOOLEAN,    "",         "use software rendering")           \
     macro(fs,           char*,  STRING,     "=<str>",   "path to the file system folder")   \
     macro(scale,        s32,    INTEGER,    "=<int>",   "main window scale")                \
     macro(cmd,          char*,  STRING,     "=<str>",   "run commands in the console")      \
-    macro(keepcmd,      bool,   BOOLEAN,    "",         "re-execute commands on every run") \
-    macro(version,      bool,   BOOLEAN,    "",         "print program version")            \
+    macro(keepcmd,      int,    BOOLEAN,    "",         "re-execute commands on every run") \
+    macro(version,      int,    BOOLEAN,    "",         "print program version")            \
     CRT_CMD_PARAM(macro)
 
 #define SHOW_TOOLTIP(STUDIO, FORMAT, ...)   \
