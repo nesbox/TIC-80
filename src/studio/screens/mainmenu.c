@@ -505,7 +505,7 @@ static const MenuItem MainMenu[] =
     {"RESUME GAME", onResumeGame},
     {"RESET GAME",  onResetGame},
 #if defined(BUILD_EDITORS)
-    {"CLOSE GAME",  onExitGame},
+    {"CLOSE GAME",  onExitGame, NULL, "Press F1 to switch to editor"},
 #endif
     {"OPTIONS",     showOptionsMenu},
     {""},
