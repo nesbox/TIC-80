@@ -247,7 +247,10 @@ jobs:
         with:
           arch: aarch64
           distro: bookworm
+          env: |
+            BUILD_TYPE: $BUILD_TYPE
           run: |
+            echo $BUILD_TYPE
             uname -a
             apt update
             apt -y install cmake build-essential git doxygen libglu1-mesa-dev freeglut3-dev libpipewire-0.3-dev libwayland-dev libsdl2-dev ruby-dev libcurl4-openssl-dev
@@ -287,7 +290,10 @@ jobs:
         with:
           arch: aarch64
           distro: bookworm
+          env: |
+            BUILD_TYPE: $BUILD_TYPE
           run: |
+            echo $BUILD_TYPE
             uname -a
             apt update
             apt -y install cmake build-essential git doxygen libglu1-mesa-dev freeglut3-dev libpipewire-0.3-dev libwayland-dev libsdl2-dev ruby-dev libcurl4-openssl-dev
