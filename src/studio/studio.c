@@ -1745,6 +1745,13 @@ static bool enterWasPressedOnce(Studio* studio)
            keyWasPressedOnce(studio, tic_key_numpadenter);
 }
 
+static bool isDevMode(Studio* studio)
+{
+    tic_mem* tic = studio->tic;
+    return strcmp(tic_tool_metatag(tic->cart.code.data, "devmode", tic_get_script(tic)->singleComment), "on") == 0
+        || getConfig(studio)->options.devmode;
+}
+
 static void processShortcuts(Studio* studio)
 {
     tic_mem* tic = studio->tic;
@@ -1815,14 +1822,14 @@ static void processShortcuts(Studio* studio)
             switch(studio->mode)
             {
             case TIC_MENU_MODE:     
-                getConfig(studio)->options.devmode 
+                isDevMode(studio) 
                     ? setStudioMode(studio, studio->prevMode == TIC_RUN_MODE 
                         ? TIC_CONSOLE_MODE 
                         : studio->prevMode) 
                     : studio_menu_back(studio->menu);
                 break;
             case TIC_RUN_MODE:      
-                getConfig(studio)->options.devmode 
+                isDevMode(studio) 
                     ? setStudioMode(studio, studio->prevMode == TIC_RUN_MODE 
                         ? TIC_CONSOLE_MODE 
                         : studio->prevMode) 
@@ -1846,7 +1853,7 @@ static void processShortcuts(Studio* studio)
         else if(studio->mode == TIC_RUN_MODE && keyWasPressedOnce(studio, tic_key_f7))
             setCoverImage(studio);
 
-        if(getConfig(studio)->options.devmode || studio->mode != TIC_RUN_MODE)
+        if(isDevMode(studio) || studio->mode != TIC_RUN_MODE)
         {
             if(keyWasPressedOnce(studio, tic_key_f1)) setStudioMode(studio, TIC_CODE_MODE);
             else if(keyWasPressedOnce(studio, tic_key_f2)) setStudioMode(studio, TIC_SPRITE_MODE);
