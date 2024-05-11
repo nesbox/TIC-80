@@ -1748,8 +1748,15 @@ static bool enterWasPressedOnce(Studio* studio)
 static bool isDevMode(Studio* studio)
 {
     tic_mem* tic = studio->tic;
-    return strcmp(tic_tool_metatag(tic->cart.code.data, "devmode", tic_get_script(tic)->singleComment), "on") == 0
-        || getConfig(studio)->options.devmode;
+    const char *devmode = tic_tool_metatag(tic->cart.code.data, "devmode", tic_get_script(tic)->singleComment);
+
+    if(strcmp(devmode, "on") == 0)
+        return true;
+
+    else if(strcmp(devmode, "off") == 0)
+        return false;
+
+    return getConfig(studio)->options.devmode;
 }
 
 static void processShortcuts(Studio* studio)
