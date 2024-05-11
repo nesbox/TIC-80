@@ -342,8 +342,10 @@ void tic_api_reset(tic_mem* memory)
     // is copied to previous. This duplicates the prior behavior of
     // `ram.input.keyboard` (which existing outside `state`).
     u32 kb_now = core->state.keyboard.now.data;
+    u32 gp_now = core->state.gamepads.now.data;
     ZEROMEM(core->state);
     core->state.keyboard.now.data = kb_now;
+    core->state.gamepads.now.data = gp_now;
     tic_api_clip(memory, 0, 0, TIC80_WIDTH, TIC80_HEIGHT);
 
     resetVbank(memory);
