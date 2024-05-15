@@ -7,6 +7,7 @@
     - [Features](#features)
 - [Binary Downloads](#binary-downloads)
   - [Nightly builds](#nightly-builds)
+  - [Unofficial Linux/arm64 nightly builds](#unofficial-linuxarm64-nightly-builds)
 - [Pro Version](#pro-version)
   - [Pro features](#pro-features)
 - [Community](#community)
@@ -60,8 +61,12 @@ To make a retro styled game, the whole process of creation and execution takes p
 
 # Binary Downloads
 You can download compiled versions for the major operating systems directly from our [releases page](https://github.com/nesbox/TIC-80/releases).
+
 ## Nightly builds
 Can be downloaded from [nightly builds](https://nightly.link/nesbox/TIC-80/workflows/build/main) page or from the [Github Actions](https://github.com/nesbox/TIC-80/actions?query=branch%3Amain) page.
+
+## Unofficial Linux/arm64 nightly builds
+Can be downloaded from [this nightly.link](https://nightly.link/aliceisjustplaying/TIC-80/workflows/build-linux-arm64/main?preview) page. Tested on Raspberry Pi OS (64-bit) (Bookworm), Asahi Linux (Fedora Remix), Ubuntu 22.04 and Fedora 40.
 
 # Pro Version
 To help support TIC-80 development, we have a [PRO Version](https://nesbox.itch.io/tic80).
