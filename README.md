@@ -13,7 +13,8 @@
 - [Contributing](#contributing)
 - [Build instructions](#build-instructions)
   - [Windows](#windows)
-    - [with Visual Studio 2017](#with-visual-studio-2017)
+    - [Windows XP / Windows 7 32-bit (x86)](#windows-xp--windows-7-32-bit-x86)
+    - [Windows 10 / 11 64-bit (x64)](#windows-10--11-64-bit-x64)
     - [with MinGW](#with-mingw)
   - [Linux](#linux)
     - [Ubuntu 22.04 (Jammy Jellyfish)](#ubuntu-2204-jammy-jellyfish)
@@ -91,17 +92,67 @@ The wiki holds TIC-80 documentation, code snippets and game development tutorial
 # Build instructions
 
 ## Windows
-### with Visual Studio 2017
-- install `Visual Studio 2017`
-- install `git`
-- install `Ruby` (you can use [RubyInstaller](https://rubyinstaller.org/))
-- run following commands in `cmd`
+
+### Windows XP / Windows 7 32-bit (x86)
+
+The build process has been tested on Windows 11 64-bit (x64); all this should run on Windows 7 SP1 32-bit (x86) as well. This guide assumes you're running an elevated command prompt.
+
+- Install [Git](https://git-scm.com/download/win), [CMake](https://cmake.org/download/), [Visual Studio 2019 Build Tools](https://winstall.app/apps/Microsoft.VisualStudio.2019.BuildTools) and [Ruby+Devkit 2.7.8 x86](https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-2.7.8-1/rubyinstaller-devkit-2.7.8-1-x86.exe)
+- Install the neccessary dependencies within VS2019:
+  - Launch "Visual Studio Installer"
+  - Click "Modify"
+  - Check "Desktop Development with C++"
+  - Go to "Individual components"
+  - Search for "v141"
+  - Install:
+    - C++ Windows XP Support for VS 2017 (v141) tools [Deprecated]
+    - MSVC v141 - VS 2017 C++ x64/x86 build tools (v14.16)
+  - Click "Modify"
+- Run `ridk install` with options `1,3` to set up [MSYS2](https://www.msys2.org/) and development toolchain
+- Add MSYS2's [`gcc`](https://gcc.gnu.org/) at `C:\Ruby27\msys32\mingw32\bin` to your `$PATH` [(guide)](https://www.java.com/en/download/help/path.html#:~:text=your%20java%20code.-,Windows%207,-From%20the%20desktop)
+
+- Open a new elevated prompt and run the following commands:
+
 ```
-git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake -G "Visual Studio 15 2017 Win64" ..
+git clone --recursive https://github.com/nesbox/TIC-80 && cd .\TIC-80\build
+cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=MinSizeRel ..
+cmake --build . --parallel
 ```
-- open `TIC-80.sln` and build
-- enjoy :)
+
+You'll find `tic80.exe` in `TIC-80\build\bin`.
+
+### Windows 10 / 11 64-bit (x64)
+
+This guide assumes you're running PowerShell with an elevated prompt.
+
+- Install [Git](https://git-scm.com/download/win), [CMake](https://cmake.org/download/), [Visual Studio 2019 Build Tools](https://winstall.app/apps/Microsoft.VisualStudio.2019.BuildTools) and [Ruby+Devkit 2.7.8 x64](https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-2.7.8-1/rubyinstaller-devkit-2.7.8-1-x64.exe) manually or with [WinGet](https://github.com/microsoft/winget-cli):
+```
+winget install Git.Git Kitware.CMake Microsoft.VisualStudio.2019.BuildTools RubyInstallerTeam.RubyWithDevKit.2.7
+```
+- Install the neccessary dependencies within VS2019:
+  - Launch "Visual Studio Installer"
+  - Click "Modify"
+  - Check "Desktop Development with C++"
+  - Make sure the following components are installed:
+    - Windows 10 SDK (10.0.19041.0)
+    - MSVC v142 - VS 2019 C+ + x64/x86 build tools (Latest)
+  - Click "Modify"
+- Run `ridk install` with options `1,3` to set up [MSYS2](https://www.msys2.org/) and development toolchain
+- Add MSYS2's [`gcc`](https://gcc.gnu.org/) at `C:\Ruby27-x64\msys64\mingw64\bin` to your `$PATH` [manually](https://www.java.com/en/download/help/path.html#:~:text=Mac%20OS%20X.-,Windows,-Windows%2010%20and) or with the following PowerShell command:
+
+```
+[Environment]::SetEnvironmentVariable('Path', $env:Path + ';C:\Ruby27-x64\msys64\mingw64\bin', [EnvironmentVariableTarget]::Machine)
+```
+
+- Open a new elevated prompt and run the following commands:
+
+```
+git clone --recursive https://github.com/nesbox/TIC-80 && cd .\TIC-80\build
+cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=MinSizeRel ..
+cmake --build . --parallel
+```
+
+You'll find `tic80.exe` in `TIC-80\build\bin`.
 
 ### with MinGW
 - install `mingw-w64` (http://mingw-w64.org) and add `.../mingw/bin` path to the *System Variables Path*
