@@ -59,6 +59,9 @@ IS_DOS
         RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
     )
 
+    target_compile_definitions(tic80_libretro PRIVATE
+        __LIBRETRO__=TRUE
+    )
     target_link_libraries(tic80_libretro tic80core)
     set_target_properties(tic80_libretro PROPERTIES PREFIX "")
 endif()
