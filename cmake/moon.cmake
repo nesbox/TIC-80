@@ -2,6 +2,9 @@
 # MoonScript
 ################################
 
+option(BUILD_WITH_MOON "Moon Enabled" ${BUILD_WITH_ALL})
+message("BUILD_WITH_MOON: ${BUILD_WITH_MOON}")
+
 if(BUILD_WITH_MOON)
 
     set(LPEG_DIR ${THIRDPARTY_DIR}/lpeg)
@@ -22,7 +25,7 @@ if(BUILD_WITH_MOON)
         set_target_properties(moon PROPERTIES PREFIX "")
     endif()
 
-    target_link_libraries(moon PRIVATE lpeg lua runtime)
+    target_link_libraries(moon PRIVATE lpeg runtime luaapi)
 
     target_include_directories(moon
             PRIVATE 

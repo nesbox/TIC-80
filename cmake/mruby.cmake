@@ -2,17 +2,13 @@
 # MRUBY
 ################################
 
-find_program(RUBY ruby)
-find_program(RAKE rake)
-if(NOT RAKE)
-    set(BUILD_WITH_MRUBY_DEFAULT FALSE)
-else()
-    set(BUILD_WITH_MRUBY_DEFAULT TRUE)
-endif()
-option(BUILD_WITH_MRUBY "mruby Enabled" ${BUILD_WITH_MRUBY_DEFAULT})
+option(BUILD_WITH_MRUBY "mruby Enabled" ${BUILD_WITH_ALL})
 message("BUILD_WITH_MRUBY: ${BUILD_WITH_MRUBY}")
 
 if(BUILD_WITH_MRUBY)
+
+    find_program(RUBY ruby)
+    find_program(RAKE rake)
 
     list(APPEND RUBY_SRC ${CMAKE_SOURCE_DIR}/src/api/mruby.c)
     list(APPEND RUBY_SRC ${CMAKE_SOURCE_DIR}/src/api/parse_note.c)

@@ -21,7 +21,7 @@
 // SOFTWARE.
 
 #include "core/core.h"
-#include "lua_api.h"
+#include "luaapi.h"
 
 #include "fennel.h"
 
@@ -41,12 +41,12 @@ static const char* execute_fennel_src = FENNEL_CODE(
 static bool initFennel(tic_mem* tic, const char* code)
 {
     tic_core* core = (tic_core*)tic;
-    closeLua(tic);
+    luaapi_close(tic);
 
     lua_State* lua = core->currentVM = luaL_newstate();
-    lua_open_builtins(lua);
+    luaapi_open(lua);
 
-    initLuaAPI(core);
+    luaapi_init(core);
 
     {
         lua_State* fennel = core->currentVM;
@@ -187,7 +187,7 @@ static const u8 DemoRom[] =
     #include "../build/assets/fenneldemo.tic.dat"
 };
 
-const tic_script EXPORT_SCRIPT(Fennel) =
+TIC_EXPORT const tic_script EXPORT_SCRIPT(Fennel) =
 {
     .id                 = 14,
     .name               = "fennel",
@@ -195,15 +195,15 @@ const tic_script EXPORT_SCRIPT(Fennel) =
     .projectComment     = ";;",
     {
       .init               = initFennel,
-      .close              = closeLua,
-      .tick               = callLuaTick,
-      .boot               = callLuaBoot,
+      .close              = luaapi_close,
+      .tick               = luaapi_tick,
+      .boot               = luaapi_boot,
 
       .callback           =
       {
-        .scanline       = callLuaScanline,
-        .border         = callLuaBorder,
-        .menu           = callLuaMenu,
+        .scanline       = luaapi_scn,
+        .border         = luaapi_bdr,
+        .menu           = luaapi_menu,
       },
     },
 

@@ -27,6 +27,7 @@ LIBS :=  \
     $(TIC80LIB)/libtic80core.a \
     $(TIC80LIB)/libgiflib.a \
     $(TIC80LIB)/liblpeg.a \
+    $(TIC80LIB)/libluaapi.a \
     $(TIC80LIB)/liblua.a \
     $(TIC80LIB)/libmoon.a \
     $(TIC80LIB)/libfennel.a \

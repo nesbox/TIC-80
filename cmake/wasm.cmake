@@ -2,9 +2,7 @@
 # WASM
 ################################
 
-set(BUILD_WITH_WASM_DEFAULT TRUE)
-
-option(BUILD_WITH_WASM "Wasm Enabled" ${BUILD_WITH_WASM_DEFAULT})
+option(BUILD_WITH_WASM "Wasm Enabled" ${BUILD_WITH_ALL})
 message("BUILD_WITH_WASM: ${BUILD_WITH_WASM}")
 
 if(BUILD_WITH_WASM)

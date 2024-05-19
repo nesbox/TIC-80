@@ -2,9 +2,7 @@
 # QuickJS
 ################################
 
-set(BUILD_WITH_JS_DEFAULT TRUE)
-
-option(BUILD_WITH_JS "JS Enabled" ${BUILD_WITH_JS_DEFAULT})
+option(BUILD_WITH_JS "JS Enabled" ${BUILD_WITH_ALL})
 message("BUILD_WITH_JS: ${BUILD_WITH_JS}")
 
 if(BUILD_WITH_JS)

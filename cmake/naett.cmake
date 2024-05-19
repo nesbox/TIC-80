@@ -22,7 +22,7 @@ if(USE_NAETT)
         target_link_libraries(naett INTERFACE winhttp)
     elseif(LINUX)
         target_include_directories(naett PRIVATE ${CURL_INCLUDE_DIRS})
-        target_link_libraries(naett ${CURL_LIBRARIES})
+        target_link_libraries(naett ${CURL_LIBRARIES} pthread)
     elseif(APPLE)
         target_link_libraries(naett
             "-framework Cocoa")

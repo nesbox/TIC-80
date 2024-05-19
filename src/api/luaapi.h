@@ -29,14 +29,11 @@
 #include <lualib.h>
 #include <ctype.h>
 
-extern void initLuaAPI(tic_core* core);
-extern void callLuaTick(tic_mem* tic);
-extern void callLuaBoot(tic_mem* tic);
-extern void callLuaScanlineName(tic_mem* tic, s32 row, void* data, const char* name);
-extern void callLuaScanline(tic_mem* tic, s32 row, void* data);
-extern void callLuaBorder(tic_mem* tic, s32 row, void* data);
-extern void callLuaOverline(tic_mem* tic, void* data);
-extern void callLuaMenu(tic_mem* tic, s32 index, void* data);
-extern void closeLua(tic_mem* tic);
-extern void callLuaTick(tic_mem* tic);
-extern void lua_open_builtins(lua_State *lua);
+void luaapi_init(tic_core* core);
+void luaapi_tick(tic_mem* tic);
+void luaapi_boot(tic_mem* tic);
+void luaapi_scn(tic_mem* tic, s32 row, void* data);
+void luaapi_bdr(tic_mem* tic, s32 row, void* data);
+void luaapi_menu(tic_mem* tic, s32 index, void* data);
+void luaapi_close(tic_mem* tic);
+void luaapi_open(lua_State *lua);

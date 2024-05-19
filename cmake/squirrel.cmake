@@ -2,9 +2,7 @@
 # SQUIRREL
 ################################
 
-set(BUILD_WITH_SQUIRREL_DEFAULT TRUE)
-
-option(BUILD_WITH_SQUIRREL "Squirrel Enabled" ${BUILD_WITH_SQUIRREL_DEFAULT})
+option(BUILD_WITH_SQUIRREL "Squirrel Enabled" ${BUILD_WITH_ALL})
 message("BUILD_WITH_SQUIRREL: ${BUILD_WITH_SQUIRREL}")
 
 if(BUILD_WITH_SQUIRREL)

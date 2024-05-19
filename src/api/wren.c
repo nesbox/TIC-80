@@ -1829,7 +1829,7 @@ static const u8 MarkRom[] =
     #include "../build/assets/wrenmark.tic.dat"
 };
 
-const tic_script EXPORT_SCRIPT(Wren) =
+TIC_EXPORT const tic_script EXPORT_SCRIPT(Wren) =
 {
     .id                 = 16,
     .name               = "wren",

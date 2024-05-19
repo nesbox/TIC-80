@@ -2,9 +2,7 @@
 # SCHEME (S7)
 ################################
 
-set(BUILD_WITH_SCHEME_DEFAULT TRUE)
-
-option(BUILD_WITH_SCHEME "Scheme Enabled" ${BUILD_WITH_SCHEME_DEFAULT})
+option(BUILD_WITH_SCHEME "Scheme Enabled" ${BUILD_WITH_ALL})
 message("BUILD_WITH_SCHEME: ${BUILD_WITH_SCHEME}")
 
 if(BUILD_WITH_SCHEME)

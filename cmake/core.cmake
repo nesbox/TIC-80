@@ -108,5 +108,5 @@ if(BUILD_DEPRECATED)
 endif()
 
 if(LINUX)
-    target_link_libraries(tic80core PRIVATE m)
+    target_link_libraries(tic80core PRIVATE m dl)
 endif()

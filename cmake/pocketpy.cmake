@@ -2,9 +2,7 @@
 # pocketpy (Python)
 ################################
 
-set(BUILD_WITH_PYTHON_DEFAULT TRUE)
-
-option(BUILD_WITH_PYTHON "Python Enabled" ${BUILD_WITH_PYTHON_DEFAULT})
+option(BUILD_WITH_PYTHON "Python Enabled" ${BUILD_WITH_ALL})
 message("BUILD_WITH_PYTHON: ${BUILD_WITH_PYTHON}")
 
 if(BUILD_WITH_PYTHON)

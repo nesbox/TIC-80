@@ -1264,7 +1264,7 @@ static const u8 MarkRom[] =
     #include "../build/assets/jsmark.tic.dat"
 };
 
-const tic_script EXPORT_SCRIPT(Js) =
+TIC_EXPORT const tic_script EXPORT_SCRIPT(Js) =
 {
     .id                 = 12,
     .name               = "js",

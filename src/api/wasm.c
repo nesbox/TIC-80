@@ -1322,7 +1322,7 @@ static const u8 MarkRom[] =
     #include "../build/assets/wasmmark.tic.dat"
 };
 
-const tic_script EXPORT_SCRIPT(Wasm) =
+TIC_EXPORT const tic_script EXPORT_SCRIPT(Wasm) =
 {
     .id                 = 17,
     .name               = "wasm",

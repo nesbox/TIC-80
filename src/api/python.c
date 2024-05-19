@@ -1527,7 +1527,7 @@ static const u8 MarkRom[] =
     #include "../build/assets/pythonmark.tic.dat"
 };
 
-PK_EXPORT const tic_script EXPORT_SCRIPT(Python) =
+TIC_EXPORT const tic_script EXPORT_SCRIPT(Python) =
 {
     .id                 = 20,
     .name               = "python",

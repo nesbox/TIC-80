@@ -21,7 +21,7 @@
 // SOFTWARE.
 
 #include "core/core.h"
-#include "lua_api.h"
+#include "luaapi.h"
 
 static const char _ms_loadstring[] = "_ms_loadstring";
 
@@ -77,15 +77,15 @@ extern s32 luaopen_lpeg(lua_State *lua);
 static bool initMoonscript(tic_mem* tic, const char* code)
 {
     tic_core* core = (tic_core*)tic;
-    closeLua(tic);
+    luaapi_close(tic);
 
     lua_State* lua = core->currentVM = luaL_newstate();
-    lua_open_builtins(lua);
+    luaapi_open(lua);
 
     luaopen_lpeg(lua);
     setloaded(lua, "lpeg");
 
-    initLuaAPI(core);
+    luaapi_init(core);
 
     {
         lua_State* moon = lua;
@@ -196,7 +196,7 @@ static const u8 MarkRom[] =
     #include "../build/assets/moonmark.tic.dat"
 };
 
-const tic_script EXPORT_SCRIPT(Moon) = 
+TIC_EXPORT const tic_script EXPORT_SCRIPT(Moon) = 
 {
     .id                 = 13,
     .name               = "moon",
@@ -204,15 +204,15 @@ const tic_script EXPORT_SCRIPT(Moon) =
     .projectComment     = "--",
     {
       .init               = initMoonscript,
-      .close              = closeLua,
-      .tick               = callLuaTick,
-      .boot               = callLuaBoot,
+      .close              = luaapi_close,
+      .tick               = luaapi_tick,
+      .boot               = luaapi_boot,
 
       .callback           =
       {
-        .scanline       = callLuaScanline,
-        .border         = callLuaBorder,
-        .menu           = callLuaMenu,
+        .scanline       = luaapi_scn,
+        .border         = luaapi_bdr,
+        .menu           = luaapi_menu,
       },
     },
 

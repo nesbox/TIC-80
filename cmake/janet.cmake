@@ -2,9 +2,7 @@
 # Janet
 ################################
 
-set(BUILD_WITH_JANET_DEFAULT TRUE)
-
-option(BUILD_WITH_JANET "Janet Enabled" ${BUILD_WITH_JANET_DEFAULT})
+option(BUILD_WITH_JANET "Janet Enabled" ${BUILD_WITH_ALL})
 message("BUILD_WITH_JANET: ${BUILD_WITH_JANET}")
 
 if(BUILD_WITH_JANET)

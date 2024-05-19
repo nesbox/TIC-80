@@ -2,22 +2,8 @@
 # LUA
 ################################
 
-set(BUILD_WITH_LUA_DEFAULT TRUE)
-set(BUILD_WITH_MOON_DEFAULT TRUE)
-set(BUILD_WITH_FENNEL_DEFAULT TRUE)
-
-option(BUILD_WITH_LUA "Lua Enabled" ${BUILD_WITH_LUA_DEFAULT})
+option(BUILD_WITH_LUA "Lua Enabled" ON)
 message("BUILD_WITH_LUA: ${BUILD_WITH_LUA}")
-
-option(BUILD_WITH_MOON "Moon Enabled" ${BUILD_WITH_MOON_DEFAULT})
-message("BUILD_WITH_MOON: ${BUILD_WITH_MOON}")
-
-option(BUILD_WITH_FENNEL "Fennel Enabled" ${BUILD_WITH_FENNEL_DEFAULT})
-message("BUILD_WITH_FENNEL: ${BUILD_WITH_FENNEL}")
-
-if(BUILD_WITH_MOON OR BUILD_WITH_FENNEL)
-    set(BUILD_WITH_LUA TRUE)
-endif()
 
 if(BUILD_WITH_LUA)
 
@@ -58,18 +44,28 @@ if(BUILD_WITH_LUA)
         ${LUA_DIR}/lbitlib.c
     )
 
-    list(APPEND LUA_SRC ${CMAKE_SOURCE_DIR}/src/api/lua.c)
-    list(APPEND LUA_SRC ${CMAKE_SOURCE_DIR}/src/api/parse_note.c)
+    add_library(luaapi STATIC 
+        ${LUA_SRC}
+        ${CMAKE_SOURCE_DIR}/src/api/luaapi.c
+        ${CMAKE_SOURCE_DIR}/src/api/parse_note.c
+    )
 
-    add_library(lua ${TIC_RUNTIME} ${LUA_SRC})
+    add_library(lua ${TIC_RUNTIME} ${CMAKE_SOURCE_DIR}/src/api/lua.c)
 
     if(NOT BUILD_STATIC)
         set_target_properties(lua PROPERTIES PREFIX "")
     endif()
 
-    target_link_libraries(lua PRIVATE runtime)
+    target_link_libraries(lua PRIVATE runtime luaapi)
 
-    target_compile_definitions(lua PRIVATE LUA_COMPAT_5_2)
+    target_compile_definitions(luaapi PRIVATE LUA_COMPAT_5_2)
+
+    target_include_directories(luaapi 
+        PUBLIC ${THIRDPARTY_DIR}/lua
+            ${CMAKE_SOURCE_DIR}/include
+            ${CMAKE_SOURCE_DIR}/src
+        )
+
     target_include_directories(lua 
         PUBLIC ${THIRDPARTY_DIR}/lua
         PRIVATE 
@@ -78,7 +74,7 @@ if(BUILD_WITH_LUA)
     )
 
     if(N3DS)
-        target_compile_definitions(lua PUBLIC LUA_32BITS)
+        target_compile_definitions(luaapi PUBLIC LUA_32BITS)
     endif()
 
     target_compile_definitions(lua INTERFACE TIC_BUILD_WITH_LUA)

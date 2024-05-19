@@ -1276,7 +1276,7 @@ static const u8 MarkRom[] =
     #include "../build/assets/janetmark.tic.dat"
 };
 
-JANET_API const tic_script EXPORT_SCRIPT(Janet) =
+TIC_EXPORT const tic_script EXPORT_SCRIPT(Janet) =
 {
     .id                 = 18,
     .name               = "janet",

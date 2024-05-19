@@ -1858,7 +1858,7 @@ static const u8 MarkRom[] =
     #include "../build/assets/squirrelmark.tic.dat"
 };
 
-const tic_script EXPORT_SCRIPT(Squirrel) = 
+TIC_EXPORT const tic_script EXPORT_SCRIPT(Squirrel) = 
 {
     .id                 = 15,
     .name               = "squirrel",

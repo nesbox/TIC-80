@@ -1226,7 +1226,7 @@ static const u8 MarkRom[] =
     #include "../build/assets/rubymark.tic.dat"
 };
 
-const tic_script EXPORT_SCRIPT(Ruby) =
+TIC_EXPORT const tic_script EXPORT_SCRIPT(Ruby) =
 {
     .id                 = 11,
     .name               = "ruby",

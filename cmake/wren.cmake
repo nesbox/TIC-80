@@ -2,9 +2,7 @@
 # WREN
 ################################
 
-set(BUILD_WITH_WREN_DEFAULT TRUE)
-
-option(BUILD_WITH_WREN "WREN Enabled" ${BUILD_WITH_WREN_DEFAULT})
+option(BUILD_WITH_WREN "WREN Enabled" ${BUILD_WITH_ALL})
 message("BUILD_WITH_WREN: ${BUILD_WITH_WREN}")
 
 if(BUILD_WITH_WREN)
