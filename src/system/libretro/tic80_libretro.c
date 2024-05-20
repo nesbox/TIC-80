@@ -79,7 +79,7 @@ struct tic80_state
 	tic80* tic;
 	retro_usec_t frameTime;
 };
-static struct tic80_state* state;
+static struct tic80_state* state = NULL;
 
 /**
  * TIC-80 callback; Request counter.
@@ -106,9 +106,11 @@ static u64 tic80_libretro_frequency()
  */
 void tic80_libretro_exit()
 {
-	if (state != NULL) {
-		state->quit = true;
+	if (state == NULL) {
+		return;
 	}
+
+	state->quit = true;
 }
 
 /**
@@ -169,9 +171,9 @@ void tic80_libretro_frame_time(retro_usec_t usec) {
  */
 RETRO_API void retro_init(void)
 {
-	// Ensure the state is ready.
+	// Do not re-initialize.
 	if (state != NULL) {
-		retro_deinit();
+		return;
 	}
 
 	// Initialize the base state.
@@ -313,10 +315,12 @@ RETRO_API void retro_deinit(void)
 	retro_unload_game();
 
 	// Free up the state.
-	if (state != NULL) {
-		free(state);
-		state = NULL;
+	if (state == NULL) {
+		return;
 	}
+
+	free(state);
+	state = NULL;
 }
 
 /**
@@ -1111,12 +1115,12 @@ RETRO_API bool retro_load_game(const struct retro_game_info *info)
  */
 RETRO_API void retro_unload_game(void)
 {
-	if (state != NULL) {
-		if (state->tic != NULL) {
-			tic80_delete(state->tic);
-			state->tic = NULL;
-		}
+	if (state == NULL || state->tic == NULL) {
+		return;
 	}
+
+	tic80_delete(state->tic);
+	state->tic = NULL;
 }
 
 /**

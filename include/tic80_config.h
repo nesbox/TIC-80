@@ -52,6 +52,12 @@
 #   define TIC_MODULE_EXT ".so"
 #endif
 
+#if defined(__LIBRETRO__)
+#ifdef TIC_MODULE_EXT
+#undef TIC_MODULE_EXT
+#endif
+#endif
+
 #if defined(TIC_RUNTIME_STATIC)
 #   define TIC_EXPORT
 #else
