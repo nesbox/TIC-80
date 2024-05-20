@@ -35,6 +35,9 @@ static retro_input_state_t input_state_cb;
 #define RETRO_BASE_POINTER_SPEED_DPAD 1.6f
 #define RETRO_SLOW_MOUSE_FACTOR_ANALOG 0.3f
 #define RETRO_SLOW_MOUSE_FACTOR_DPAD 0.4f
+#ifndef TIC80_FREQUENCY
+#define TIC80_FREQUENCY 1000000
+#endif
 
 enum pointer_device_type
 {
@@ -74,23 +77,28 @@ struct tic80_state
 	int mouseHideTimer;
 	int mouseHideTimerStart;
 	tic80* tic;
+	retro_usec_t frameTime;
 };
 static struct tic80_state* state;
 
 /**
- * TIC-80 callback; Request counter
+ * TIC-80 callback; Request counter.
  */
 static u64 tic80_libretro_counter()
 {
-    return clock();
+	if (state == NULL) {
+		return 0;
+	}
+
+	return (u64)state->frameTime;
 }
 
 /**
- * TIC-80 callback; Request freq
+ * TIC-80 callback; Request frequency.
  */
-static u64 tic80_libretro_freq()
+static u64 tic80_libretro_frequency()
 {
-    return CLOCKS_PER_SEC;
+	return TIC80_FREQUENCY;
 }
 
 /**
@@ -143,6 +151,17 @@ void tic80_libretro_fallback_log(enum retro_log_level level, const char *fmt, ..
 	va_start(va, fmt);
 	vfprintf(stderr, fmt, va);
 	va_end(va);
+}
+
+/**
+ * libretro callback; Called to indicate how much time has passed since last retro_run().
+ */
+void tic80_libretro_frame_time(retro_usec_t usec) {
+	if (state == NULL) {
+		return;
+	}
+
+	state->frameTime = usec;
 }
 
 /**
@@ -838,7 +857,7 @@ void tic80_libretro_update(tic80* game)
 	tic80_libretro_update_keyboard(&state->input.keyboard);
 
 	// Update the game state.
-	tic80_tick(game, state->input, tic80_libretro_counter, tic80_libretro_freq);
+	tic80_tick(game, state->input, tic80_libretro_counter, tic80_libretro_frequency);
 	tic80_sound(game);
 }
 
@@ -1035,6 +1054,16 @@ RETRO_API bool retro_load_game(const struct retro_game_info *info)
 	// Ensure content data is available.
 	if (info->data == NULL) {
 		log_cb(RETRO_LOG_ERROR, "[TIC-80] No content data provided.\n");
+		return false;
+	}
+
+	// Set up the frame time callback.
+	struct retro_frame_time_callback frame_time = {
+		.callback = tic80_libretro_frame_time,
+		.reference = TIC80_FREQUENCY / TIC80_FRAMERATE,
+	};
+	if (!environ_cb(RETRO_ENVIRONMENT_SET_FRAME_TIME_CALLBACK, &frame_time)) {
+		log_cb(RETRO_LOG_ERROR, "[TIC-80] Failed to set frame time callback.\n");
 		return false;
 	}
 
