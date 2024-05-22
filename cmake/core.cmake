@@ -51,7 +51,11 @@ target_include_directories(tic80core
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src)
 
-target_link_libraries(tic80core PRIVATE blipbuf zlib)
+target_link_libraries(tic80core PRIVATE blipbuf)
+
+if(BUILD_WITH_ZLIB)
+    target_link_libraries(tic80core PRIVATE zlib)
+endif()
 
 if(BUILD_STATIC)
     if(BUILD_WITH_LUA)
