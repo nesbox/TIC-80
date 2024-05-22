@@ -77,6 +77,7 @@
     macro(keys)                 \
     macro(buttons)              \
     macro(startup)              \
+    macro(hotkeys)              \
     macro(terms)                \
     macro(license)
 
@@ -125,7 +126,7 @@
     macro(vbank)                \
     macro(id)                   \
     ALONE_KEY(macro)
-
+    
 static const char* WelcomeText =
     "TIC-80 is a fantasy computer for making, playing and sharing tiny games.\n\n"
     "It has built-in tools for development: code, sprites, maps, sound editors and the command line, "
@@ -143,6 +144,128 @@ static const struct SpecRow {const char* section; const char* info;} SpecText1[]
     {"MAP",     "240x136 cells, 1920x1088 pixels."},
     {"SOUND",   "4 channels with configurable waveforms."},
     {"CODE",    "64KB of $LANG_NAMES$.",
+    },
+};
+
+static const struct HotkeysRowGeneral {const char* section; const char* info;} HotkeysTextGeneral[] =
+{
+    {"CTRL+R/ENTER",  "Run current project."},
+    {"CTRL+S",        "Save cart."},
+    {"CTRL+X/C/V",    "Cut/copy/paste in the editors."},
+    {"CTRL+Z/Y",      "Undo/redo changes in the editors."},
+    {"F6",            "Toggle CRT filter."},
+    {"F7",            "Assign cover image while in game."},
+    {"F8",            "Take a screenshot."},
+    {"F9",            "Start/stop GIF video recording."},
+    {"F11/ALT+ENTER", "Fullscreen/window mode."},
+    {"CTRL+Q",        "Quit the application.",
+    },
+};
+
+static const struct HotkeysRowNavigation {const char* section; const char* info;} HotkeysTextNavigation[] =
+{
+    {"ESC",              "Switch console/editor or open menu while in game."},
+    {"ESC+F1",           "Switch to code editor while in game."},
+    {"ALT+~",            "Show console."},
+    {"ALT+1/F1",         "Show code editor."},
+    {"ALT+2/F2",         "Show sprite editor."},
+    {"ALT+3/F3",         "Show map editor."},
+    {"ALT+4/F4",         "Show sfx editor."},
+    {"ALT+5/F5",         "Show music editor."},
+    {"CTRL+PGUP/PGDOWN", "Switch to previous/next editor mode.",
+    },
+};
+
+static const struct HotkeysRowCodeEditor {const char* section; const char* info;} HotkeysTextCodeEditor[] =
+{
+    {"CTRL+F",             "Find."},
+    {"CTRL+G",             "Go to line."},
+    {"CTRL+P/N",           "Move to previous/next line."},
+    {"ALT/CTRL+LEFT",      "Move to previous word."},
+    {"ALT/CTRL+RIGHT",     "Move to next word."},
+    {"ALT/CTRL+BACKSPACE", "Delete previous word."},
+    {"ALT/CTRL+DELETE",    "Delete next word."},
+    {"CTRL+K",             "Delete end of line."},
+    {"CTRL+D",             "Duplicate current line."},
+    {"CTRL+J",             "Newline."},
+    {"CTRL+A",             "Select all."},
+    {"CTRL+F1",            "Bookmark current line."},
+    {"F1",                 "Move to next bookmark."},
+    {"CTRL+B",             "Show bookmark list."},
+    {"CTRL+O",             "Show code outline and navigate functions."},
+    {"CTRL+TAB",           "Indent line."},
+    {"CTRL+SHIFT+TAB",     "Unindent line."},
+    {"CTRL+/",             "Comment/Uncomment line."},
+    {"RIGHT CLICK",        "Drag."},
+    {"SCROLL WHEEL",       "Vertical scrolling."},
+    {"SHIFT+SCROLL WHEEL", "Horizontal scrolling."},
+    {"CTRL+L",             "Center screen on cursor.",
+    },
+};
+
+static const struct HotkeysRowSpriteEditor {const char* section; const char* info;} HotkeysTextSpriteEditor[] =
+{
+    {"TAB",      "Switch tiles/sprites."},
+    {"[]",       "Choose previous/next palette color."},
+    {"-/=",      "Change brush size."},
+    {"SCROLL",   "Canvas zoom."},
+    {"1",        "Select brush."},
+    {"2",        "Select color picker."},
+    {"3",        "Select selection tool."},
+    {"4",        "Select filling tool."},
+    {"5",        "Flip horizontally."},
+    {"6",        "Flip vertically."},
+    {"7",        "Rotate."},
+    {"8/DELETE", "Erase.",
+    },
+};
+
+static const struct HotkeysRowMapEditor {const char* section; const char* info;} HotkeysTextMapEditor[] =
+{
+    {"SHIFT",      "Show tilesheet."},
+    {"CTRL+CLICK", "Replace all identical tiles (when the Fill tool [4] is selected)."},
+    {"`",          "Show/hide grid."},
+    {"TAB/SCROLL", "Switch to full world map."},
+    {"1",          "Select draw."},
+    {"2",          "Select drag map."},
+    {"3",          "Select selection tool."},
+    {"4",          "Select filling tool.",
+    },
+};
+
+static const struct HotkeysRowSFXEditor {const char* section; const char* info;} HotkeysTextSFXEditor[] =
+{
+    {"SPACE",         "Play last played note."},
+    {"Z,X,C,V,B,N,M", "Play notes corresponding to one octave (bottom row of QWERTY layout)."},
+    {"S,D,G,H,J",     "Play notes corresponding to sharps and flats (home row of QWERTY layout).",
+    },
+};
+
+static const struct HotkeysRowMusicEditor {const char* section; const char* info;} HotkeysTextMusicEditor[] =
+{
+    {"SHIFT+ENTER",   "Play pattern from cursor position in the music editor."},
+    {"ENTER",         "Play frame."},
+    {"SPACE",         "Play track."},
+    {"CTRL+F",        "Follow."},
+    {"Z,X,C,V,B,N,M", "Play notes corresponding to one octave (bottom row of QWERTY layout) in tracker mode."},
+    {"S,D,G,H,J",     "Play notes corresponding to sharps and flats (home row of QWERTY layout) in tracker mode."},
+    {"A",             "Insert note break (or 'stop')."},
+    {"DELETE",        "Delete selection / selected row."},
+    {"BACKSPACE",     "Delete the row above."},
+    {"INSERT",        "Insert rows below."},
+    {"CTRL+F1",       "Decrease notes by Semitone."},
+    {"CTRL+F2",       "Increase notes by Semitone."},
+    {"CTRL+F3",       "Decrease octaves."},
+    {"CTRL+F4",       "Increase octaves."},
+    {"CTRL+RIGHT",    "Jump forward one frame."},
+    {"CTRL+LEFT",     "Jump backward one frame."},
+    {"TAB",           "Go to next channel."},
+    {"SHIFT+TAB",     "Go to previous channel."},
+    {"+",             "Next pattern."},
+    {"-",             "Previous pattern."},
+    {"CTRL+UP",       "Next instrument."},
+    {"CTRL+DOWN",     "Previous instrument."},
+    {"F5",            "Switch piano/tracker mode.",
     },
 };
 
@@ -3250,6 +3373,36 @@ static void onExport_help(Console* console, const char* param, const char* name,
         FOR(const struct StartupOption*, opt, StartupOptions)
             ptr += sprintf(ptr, "--%-14s %s\n", opt->name, opt->help);
 
+        ptr += sprintf(ptr, "```\n\n## Hotkeys\n");
+
+        ptr += sprintf(ptr, "\n### General:\n```\n");
+        FOR(const struct HotkeysRowGeneral*, row, HotkeysTextGeneral)
+            ptr += sprintf(ptr, "%-20s%s\n", row->section, row->info);
+
+        ptr += sprintf(ptr, "```\n\n### Navigation:\n```\n");
+        FOR(const struct HotkeysRowNavigation*, row, HotkeysTextNavigation)
+            ptr += sprintf(ptr, "%-20s%s\n", row->section, row->info);
+
+        ptr += sprintf(ptr, "```\n\n### Code Editor:\n```\n");
+        FOR(const struct HotkeysRowCodeEditor*, row, HotkeysTextCodeEditor)
+            ptr += sprintf(ptr, "%-20s%s\n", row->section, row->info);
+
+        ptr += sprintf(ptr, "```\n\n### Sprite Editor:\n```\n");
+        FOR(const struct HotkeysRowSpriteEditor*, row, HotkeysTextSpriteEditor)
+            ptr += sprintf(ptr, "%-20s%s\n", row->section, row->info);
+
+        ptr += sprintf(ptr, "```\n\n### Map Editor:\n```\n");
+        FOR(const struct HotkeysRowMapEditor*, row, HotkeysTextMapEditor)
+            ptr += sprintf(ptr, "%-20s%s\n", row->section, row->info);
+
+        ptr += sprintf(ptr, "```\n\n### SFX Editor:\n```\n");
+        FOR(const struct HotkeysRowSFXEditor*, row, HotkeysTextSFXEditor)
+            ptr += sprintf(ptr, "%-20s%s\n", row->section, row->info);
+
+        ptr += sprintf(ptr, "```\n\n### Music Editor:\n```\n");
+        FOR(const struct HotkeysRowMusicEditor*, row, HotkeysTextMusicEditor)
+            ptr += sprintf(ptr, "%-20s%s\n", row->section, row->info);
+
         ptr += sprintf(ptr, "```\n\n%s\n\n%s", TermsText, LicenseText);
 
         char* helpReplaced = replaceHelpTokens(buf);
@@ -3502,6 +3655,92 @@ static void onHelp_spec(Console* console)
         free(rowReplaced);
 #undef  OFFSET
     }
+}
+
+static void onHelp_hotkeys(Console* console)
+{
+    printLine(console);
+
+    char buf[TICNAME_MAX];
+
+    printFront(console, "\nGeneral:\n");
+    FOR(const struct HotkeysRowGeneral*, row, HotkeysTextGeneral)
+    {
+#define OFFSET 14
+        char* rowReplaced = replaceHelpTokens(row->info);
+        sprintf(buf, "%-" DEF2STR(OFFSET) "s%s\n", row->section, rowReplaced);
+        consolePrintOffset(console, buf, tic_color_grey, OFFSET);
+        free(rowReplaced);
+#undef  OFFSET
+    }
+
+    printFront(console, "\nNavigation:\n");
+    FOR(const struct HotkeysRowNavigation*, row, HotkeysTextNavigation)
+    {
+#define OFFSET 17
+        char* rowReplaced = replaceHelpTokens(row->info);
+        sprintf(buf, "%-" DEF2STR(OFFSET) "s%s\n", row->section, rowReplaced);
+        consolePrintOffset(console, buf, tic_color_grey, OFFSET);
+        free(rowReplaced);
+#undef  OFFSET
+    }
+        
+    printFront(console, "\nCode Editor:\n");
+    FOR(const struct HotkeysRowCodeEditor*, row, HotkeysTextCodeEditor)
+    {
+#define OFFSET 19
+        char* rowReplaced = replaceHelpTokens(row->info);
+        sprintf(buf, "%-" DEF2STR(OFFSET) "s%s\n", row->section, rowReplaced);
+        consolePrintOffset(console, buf, tic_color_grey, OFFSET);
+        free(rowReplaced);
+#undef  OFFSET
+    }
+        
+    printFront(console, "\nSprite Editor:\n");
+    FOR(const struct HotkeysRowSpriteEditor*, row, HotkeysTextSpriteEditor)
+    {
+#define OFFSET 9
+        char* rowReplaced = replaceHelpTokens(row->info);
+        sprintf(buf, "%-" DEF2STR(OFFSET) "s%s\n", row->section, rowReplaced);
+        consolePrintOffset(console, buf, tic_color_grey, OFFSET);
+        free(rowReplaced);
+#undef  OFFSET
+    }
+            
+    printFront(console, "\nMap Editor:\n");
+    FOR(const struct HotkeysRowMapEditor*, row, HotkeysTextMapEditor)
+    {
+#define OFFSET 11
+        char* rowReplaced = replaceHelpTokens(row->info);
+        sprintf(buf, "%-" DEF2STR(OFFSET) "s%s\n", row->section, rowReplaced);
+        consolePrintOffset(console, buf, tic_color_grey, OFFSET);
+        free(rowReplaced);
+#undef  OFFSET
+    }
+    
+    printFront(console, "\nSFX Editor:\n");
+    FOR(const struct HotkeysRowSFXEditor*, row, HotkeysTextSFXEditor)
+    {
+#define OFFSET 14
+        char* rowReplaced = replaceHelpTokens(row->info);
+        sprintf(buf, "%-" DEF2STR(OFFSET) "s%s\n", row->section, rowReplaced);
+        consolePrintOffset(console, buf, tic_color_grey, OFFSET);
+        free(rowReplaced);
+#undef  OFFSET
+    }
+
+    printFront(console, "\nMusic Editor:\n");
+    FOR(const struct HotkeysRowMusicEditor*, row, HotkeysTextMusicEditor)
+    {
+#define OFFSET 14
+        char* rowReplaced = replaceHelpTokens(row->info);
+        sprintf(buf, "%-" DEF2STR(OFFSET) "s%s\n", row->section, rowReplaced);
+        consolePrintOffset(console, buf, tic_color_grey, OFFSET);
+        free(rowReplaced);
+#undef  OFFSET
+    }
+
+
 }
 
 static void onHelp_welcome(Console* console)
