@@ -1,3 +1,4 @@
+#ifndef TIC80_FFT_UNSUPPORTED
 #include "fftdata.h"
 #include <stdarg.h>
 #include <stdbool.h>
@@ -63,3 +64,4 @@ void FFT_DebugLog(FFT_LogLevel level, const char* format, ...)
     }
 #endif
 }
+#endif

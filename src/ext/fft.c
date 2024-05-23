@@ -1,17 +1,21 @@
+
+#include "api.h"
+#ifndef TIC80_FFT_UNSUPPORTED
 // #define MA_DEBUG_OUTPUT
 #define MINIAUDIO_IMPLEMENTATION
-#include <memory.h>
-#include <stdio.h>
-#include "api.h"
 #include "kiss_fft.h"
 #include "kiss_fftr.h"
 #include "miniaudio.h"
-
 #include "../fftdata.h"
 #include "fft.h"
+#endif
+#include <memory.h>
+#include <stdio.h>
+
 
 //////////////////////////////////////////////////////////////////////////
 
+#ifndef TIC80_FFT_UNSUPPORTED
 kiss_fftr_cfg fftcfg;
 ma_context context;
 ma_device captureDevice;
@@ -20,7 +24,7 @@ float sampleBuf[FFT_SIZE * 2];
 void miniaudioLogCallback(void* userData, ma_uint32 level, const char* message)
 {
     FFT_DebugLog(FFT_LOG_TRACE, "miniaudioLogCallback got called\n");
-    // TODO: I don't know why we need this or if we even need this
+    
     (void)userData;
     switch (level)
     {
@@ -56,55 +60,6 @@ void OnReceiveFrames(ma_device* pDevice, void* pOutput, const void* pInput, ma_u
     {
         *(p++) = (samples[i * 2] + samples[i * 2 + 1]) / 2.0f;
     }
-}
-
-void FFT_EnumerateDevices()
-{
-    ma_context_config context_config = ma_context_config_init();
-    ma_log log;
-    ma_log_init(NULL, &log);
-    ma_log_register_callback(&log, ma_log_callback_init(miniaudioLogCallback, NULL));
-
-    context_config.pLog = &log;
-
-    ma_result result = ma_context_init(NULL, 0, &context_config, &context);
-    if (result != MA_SUCCESS)
-    {
-        FFT_DebugLog(FFT_LOG_ERROR, "[FFT] Failed to initialize context: %s", ma_result_description(result));
-        return;
-    }
-
-    FFT_DebugLog(FFT_LOG_INFO, "MAL context initialized, backend is '%s'\n", ma_get_backend_name(context.backend));
-
-    ma_device_info* pPlaybackInfos;
-    ma_uint32 playbackCount;
-    ma_device_info* pCaptureInfos;
-    ma_uint32 captureCount;
-    result = ma_context_get_devices(&context, &pPlaybackInfos, &playbackCount, &pCaptureInfos, &captureCount);
-    if (result != MA_SUCCESS)
-    {
-        FFT_DebugLog(FFT_LOG_ERROR, "Failed to retrieve device information.\n");
-        FFT_DebugLog(FFT_LOG_ERROR, "Error: %s\n", ma_result_description(result));
-        return;
-    }
-
-    FFT_DebugLog(FFT_LOG_INFO, "Playback Devices\n");
-    for (ma_uint32 iDevice = 0; iDevice < playbackCount; ++iDevice)
-    {
-        FFT_DebugLog(FFT_LOG_INFO, "    %u: %s\n", iDevice, pPlaybackInfos[iDevice].name);
-    }
-
-    printf("\n");
-
-    FFT_DebugLog(FFT_LOG_INFO, "Capture Devices\n");
-    for (ma_uint32 iDevice = 0; iDevice < captureCount; ++iDevice)
-    {
-        FFT_DebugLog(FFT_LOG_INFO, "    %u: %s\n", iDevice, pCaptureInfos[iDevice].name);
-    }
-
-    printf("\n");
-
-    return;
 }
 
 void print_device_id(ma_device_id id, ma_backend backend)
@@ -167,9 +122,68 @@ void print_device_id(ma_device_id id, ma_backend backend)
             printf("Unknown backend\n");
     }
 }
+#endif
+
+void FFT_EnumerateDevices()
+{
+#ifdef TIC80_FFT_UNSUPPORTED
+    return;
+#else
+
+    ma_context_config context_config = ma_context_config_init();
+    ma_log log;
+    ma_log_init(NULL, &log);
+    ma_log_register_callback(&log, ma_log_callback_init(miniaudioLogCallback, NULL));
+
+    context_config.pLog = &log;
+
+    ma_result result = ma_context_init(NULL, 0, &context_config, &context);
+    if (result != MA_SUCCESS)
+    {
+        FFT_DebugLog(FFT_LOG_ERROR, "[FFT] Failed to initialize context: %s", ma_result_description(result));
+        return;
+    }
+
+    FFT_DebugLog(FFT_LOG_INFO, "MAL context initialized, backend is '%s'\n", ma_get_backend_name(context.backend));
+
+    ma_device_info* pPlaybackInfos;
+    ma_uint32 playbackCount;
+    ma_device_info* pCaptureInfos;
+    ma_uint32 captureCount;
+    result = ma_context_get_devices(&context, &pPlaybackInfos, &playbackCount, &pCaptureInfos, &captureCount);
+    if (result != MA_SUCCESS)
+    {
+        FFT_DebugLog(FFT_LOG_ERROR, "Failed to retrieve device information.\n");
+        FFT_DebugLog(FFT_LOG_ERROR, "Error: %s\n", ma_result_description(result));
+        return;
+    }
+
+    FFT_DebugLog(FFT_LOG_INFO, "Playback Devices\n");
+    for (ma_uint32 iDevice = 0; iDevice < playbackCount; ++iDevice)
+    {
+        FFT_DebugLog(FFT_LOG_INFO, "    %u: %s\n", iDevice, pPlaybackInfos[iDevice].name);
+    }
+
+    printf("\n");
+
+    FFT_DebugLog(FFT_LOG_INFO, "Capture Devices\n");
+    for (ma_uint32 iDevice = 0; iDevice < captureCount; ++iDevice)
+    {
+        FFT_DebugLog(FFT_LOG_INFO, "    %u: %s\n", iDevice, pCaptureInfos[iDevice].name);
+    }
+
+    printf("\n");
+
+    return;
+#endif
+}
 
 bool FFT_Open(bool CapturePlaybackDevices, const char* CaptureDeviceSearchString)
 {
+#ifdef TIC80_FFT_UNSUPPORTED
+    return true;
+#else
+
     memset(sampleBuf, 0, sizeof(float) * FFT_SIZE * 2);
 
     fftcfg = kiss_fftr_alloc(FFT_SIZE * 2, false, NULL, NULL);
@@ -288,21 +302,31 @@ bool FFT_Open(bool CapturePlaybackDevices, const char* CaptureDeviceSearchString
 
     fftEnabled = true;
     return true;
+#endif
 }
 
 void FFT_Close()
 {
+#ifdef TIC80_FFT_UNSUPPORTED
+    return;
+#else
+
     ma_device_stop(&captureDevice);
     ma_device_uninit(&captureDevice);
     ma_context_uninit(&context);
     kiss_fft_free(fftcfg);
     fftEnabled = false;
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
 
-bool FFT_GetFFT(float* _samples)
+void FFT_GetFFT(float* _samples)
 {
+#ifdef TIC80_FFT_UNSUPPORTED
+    return;
+#else
+
     kiss_fft_cpx out[FFT_SIZE + 1];
     kiss_fftr(fftcfg, sampleBuf, out);
 
@@ -329,13 +353,18 @@ bool FFT_GetFFT(float* _samples)
         fftSmoothingData[i] = fftSmoothingData[i] * fFFTSmoothingFactor + (1 - fFFTSmoothingFactor) * _samples[i];
     }
 
-    return true;
+    return;
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////
 
 double tic_api_fft(tic_mem* memory, s32 startFreq, s32 endFreq)
 {
+#ifdef TIC80_FFT_UNSUPPORTED
+    return 0.0;
+#else
+
     if (!fftEnabled)
     {
         FFT_DebugLog(FFT_LOG_TRACE, "tic_api_fft: fft not enabled\n");
@@ -366,10 +395,15 @@ double tic_api_fft(tic_mem* memory, s32 startFreq, s32 endFreq)
         }
         return sum;
     }
+#endif
 }
 
 double tic_api_ffts(tic_mem* memory, s32 startFreq, s32 endFreq)
 {
+#ifdef TIC80_FFT_UNSUPPORTED
+    return 0.0;
+#else
+
     if (!fftEnabled)
     {
         FFT_DebugLog(FFT_LOG_TRACE, "tic_api_ffts: fft not enabled\n");
@@ -400,4 +434,5 @@ double tic_api_ffts(tic_mem* memory, s32 startFreq, s32 endFreq)
         }
         return sum;
     }
+#endif
 }
