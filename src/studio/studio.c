@@ -563,18 +563,7 @@ void toClipboard(const void* data, s32 size, bool flip)
         {
             char* ptr = clipboard;
 
-            for(s32 i = 0; i < size; i++, ptr+=Len)
-            {
-                sprintf(ptr, "%02x", ((u8*)data)[i]);
-
-                if(flip)
-                {
-                    char tmp = ptr[0];
-                    ptr[0] = ptr[1];
-                    ptr[1] = tmp;
-                }
-            }
-
+            tic_tool_buf2str(data, size, clipboard, flip);
             tic_sys_clipboard_set(clipboard);
             free(clipboard);
         }
@@ -1745,6 +1734,8 @@ static bool enterWasPressedOnce(Studio* studio)
            keyWasPressedOnce(studio, tic_key_numpadenter);
 }
 
+#if defined(BUILD_EDITORS)
+
 static bool isDevMode(Studio* studio)
 {
     tic_mem* tic = studio->tic;
@@ -1758,6 +1749,8 @@ static bool isDevMode(Studio* studio)
 
     return getConfig(studio)->options.devmode;
 }
+
+#endif
 
 static void processShortcuts(Studio* studio)
 {

@@ -94,6 +94,8 @@ void    tic_tool_set_pattern_id(tic_track* track, s32 frame, s32 channel, s32 id
 bool    tic_tool_has_ext(const char* name, const char* ext);
 s32     tic_tool_get_track_row_sfx(const tic_track_row* row);
 void    tic_tool_set_track_row_sfx(tic_track_row* row, s32 sfx);
+
+void    tic_tool_buf2str(const void* data, s32 size, char* str, bool flip);
 void    tic_tool_str2buf(const char* str, s32 size, void* buf, bool flip);
 
 u32     tic_tool_zip(void* dest, s32 destSize, const void* source, s32 size);

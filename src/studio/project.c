@@ -51,17 +51,6 @@ static void makeTag(const char* tag, char* out, s32 bank)
     else strcpy(out, tag);
 }
 
-static void buf2str(const void* data, s32 size, char* ptr, bool flip)
-{
-    enum {Len = 2};
-
-    for(s32 i = 0; i < size; i++, ptr+=Len)
-    {
-        sprintf(ptr, "%02x", ((u8*)data)[i]);
-        if(flip) SWAP(ptr[0], ptr[1], char);
-    }
-}
-
 static bool bufferEmpty(const u8* data, s32 size)
 {
     for(s32 i = 0; i < size; i++)
@@ -90,7 +79,7 @@ static char* saveBinaryBuffer(char* ptr, const char* comment, const void* data, 
     sprintf(ptr, "%s %03i:", comment, row);
     ptr += strlen(ptr);
 
-    buf2str(data, size, ptr, flip);
+    tic_tool_buf2str(data, size, ptr, flip);
     ptr += strlen(ptr);
 
     sprintf(ptr, "\n");
