@@ -37,6 +37,8 @@
 #define INTEGER_SCALE_DEFAULT true
 #endif
 
+#define JSON(...) #__VA_ARGS__
+
 static void readConfig(Config* config) 
 {
     const char* json = config->cart->code.data;
@@ -150,16 +152,48 @@ static void save(Config* config)
     studioConfigChanged(config->studio);
 }
 
-static const char OptionsDatPath[] = TIC_LOCAL_VERSION "options.dat";
+static const char OptionsJsonPath[] = TIC_LOCAL "options.json";
 
-static void loadConfigData(tic_fs* fs, const char* path, void* dst, s32 size)
+typedef struct
 {
-    s32 dataSize = 0;
-    u8* data = (u8*)tic_fs_loadroot(fs, path, &dataSize);
+    char data[1024];
+} string;
+
+static void loadOptions(Config* config)
+{
+    s32 size;
+    u8* data = (u8*)tic_fs_loadroot(config->fs, OptionsJsonPath, &size);
 
     if(data) SCOPE(free(data))
-        if(dataSize == size)
-            memcpy(dst, data, size);
+    {
+        string json;
+        snprintf(json.data, sizeof json, "%.*s", size, data);
+
+        if(json_parse(json.data, strlen(json.data)))
+        {
+            struct StudioOptions* options = &config->data.options;
+
+#if defined(CRT_SHADER_SUPPORT)
+            options->crt = json_bool("crt", 0);
+#endif
+            options->fullscreen = json_bool("fullscreen", 0);
+            options->vsync = json_bool("vsync", 0);
+            options->integerScale = json_bool("integerScale", 0);
+            options->volume = json_int("volume", 0);
+            options->autosave = json_bool("autosave", 0);
+
+            string mapping;
+            json_string("mapping", 0, mapping.data, sizeof mapping);
+            tic_tool_str2buf(mapping.data, strlen(mapping.data), &options->mapping, false);
+
+#if defined(BUILD_EDITORS)
+            options->keybindMode = json_int("keybindMode", 0);
+            options->tabMode = json_int("tabMode", 0);
+            options->devmode = json_bool("devmode", 0);
+            options->tabSize = json_int("tabSize", 0);
+#endif
+        }
+    }
 }
 
 void initConfig(Config* config, Studio* studio, tic_fs* fs)
@@ -190,7 +224,7 @@ void initConfig(Config* config, Studio* studio, tic_fs* fs)
         else saveConfig(config, false);        
     }
 
-    loadConfigData(fs, OptionsDatPath, &config->data.options, sizeof config->data.options);
+    loadOptions(config);
 
 #if defined(__TIC_LINUX__)
     // do not load fullscreen option on Linux
@@ -200,9 +234,68 @@ void initConfig(Config* config, Studio* studio, tic_fs* fs)
     tic_api_reset(config->tic);
 }
 
+static string data2str(const void* data, s32 size)
+{
+    string res;
+    tic_tool_buf2str(data, size, res.data, false);
+    return res;
+}
+
+static const char* bool2str(bool value)
+{
+    return value ? "true" : "false";
+}
+
+static void saveOptions(Config* config)
+{
+    const struct StudioOptions* options = &config->data.options;
+
+    string buf;
+    sprintf(buf.data, JSON(
+        {
+#if defined(CRT_SHADER_SUPPORT)
+            "crt":%s,
+#endif
+            "fullscreen":%s,
+            "vsync":%s,
+            "integerScale":%s,
+            "volume":%i,
+            "autosave":%s,
+            "mapping":"%s"
+#if defined(BUILD_EDITORS)
+            ,
+            "keybindMode":%i,
+            "tabMode":%i,
+            "devmode":%s,
+            "tabSize":%i
+#endif
+        })
+        , 
+#if defined(CRT_SHADER_SUPPORT)
+        bool2str(options->crt),
+#endif
+        bool2str(options->fullscreen),
+        bool2str(options->vsync),
+        bool2str(options->integerScale),
+        options->volume,
+        bool2str(options->autosave),
+        data2str(&options->mapping, sizeof options->mapping).data
+
+#if defined(BUILD_EDITORS)
+        ,
+        options->keybindMode,
+        options->tabMode,
+        bool2str(options->devmode),
+        options->tabSize
+#endif
+        );
+
+    tic_fs_saveroot(config->fs, OptionsJsonPath, buf.data, strlen(buf.data), true);
+}
+
 void freeConfig(Config* config)
 {
-    tic_fs_saveroot(config->fs, OptionsDatPath, &config->data.options, sizeof config->data.options, true);
+    saveOptions(config);
 
     free(config->cart);
     free(config);

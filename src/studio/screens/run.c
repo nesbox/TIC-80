@@ -68,12 +68,10 @@ static const char* data2md5(const void* data, s32 length)
     }
 
     {
-        enum{Size = 16};
-        u8 digest[Size];
+        u8 digest[16];
         MD5_Final(digest, &c);
 
-        for (s32 n = 0; n < Size; ++n)
-            snprintf(out + n*2, sizeof("ff"), "%02x", digest[n]);
+        tic_tool_buf2str(digest, sizeof digest, out, false);
     }
 
     return out;

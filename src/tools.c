@@ -171,6 +171,15 @@ bool tic_tool_noise(const tic_waveform* wave)
     return FLAT4(wave->data) && *wave->data % 0xff == 0;
 }
 
+void tic_tool_buf2str(const void* data, s32 size, char* str, bool flip)
+{
+    for(s32 i = 0; i < size; i++, str += 2)
+    {
+        sprintf(str, "%02x", ((u8*)data)[i]);
+        if(flip) SWAP(str[0], str[1], char);
+    }
+}
+
 void tic_tool_str2buf(const char* str, s32 size, void* buf, bool flip)
 {
     char val[] = "0x00";
