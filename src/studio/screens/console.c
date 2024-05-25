@@ -764,7 +764,10 @@ static void loadCartSection(Console* console, const tic_cartridge* cart, const c
 static char* getDemoCartPath(char* path, const tic_script* script)
 {
     strcpy(path, TIC_LOCAL_VERSION "default_");
-    strcat(path, script->name);
+
+    if(script && script->name)
+        strcat(path, script->name);
+
     strcat(path, ".tic");
 
     return path;
@@ -1216,7 +1219,7 @@ static void onNewCommandConfirmed(Console* console)
     }
     else if(count == 1)
     {
-        loadDemo(console, *tic_scripts());
+        loadDemo(console, tic_get_script(console->tic));
         done = true;
     }
     else if(console->desc->count)
@@ -1732,7 +1735,7 @@ static void onConfigCommand(Console* console)
         {
             if (console->desc->count == 1)
             {
-                onLoadDemoCommand(console, *tic_scripts());
+                onLoadDemoCommand(console, tic_get_script(console->tic));
             }
             else
             {
@@ -4313,7 +4316,7 @@ static void tick(Console* console)
     {
         if(!start->embed)
         {
-            loadDemo(console, *tic_scripts());
+            loadDemo(console, tic_get_script(tic));
 
             if(!console->args.cli)
             {

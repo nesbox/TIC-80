@@ -33,29 +33,24 @@
 // #    endif /* TARGET_OS_IPHONE */
 #endif /* defined(__APPLE__) */
 
-#if defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__)
-#   undef __TIC_WINDOWS__
-#   define __TIC_WINDOWS__ 1
-#   define TIC_MODULE_EXT ".dll"
-#   if defined(_MSC_VER) && defined(_USING_V110_SDK71_)
-#       define __TIC_WIN7__ 1
+#if !defined(__LIBRETRO__)
+#   if defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__)
+#       undef __TIC_WINDOWS__
+#       define __TIC_WINDOWS__ 1
+#       define TIC_MODULE_EXT ".dll"
+#       if defined(_MSC_VER) && defined(_USING_V110_SDK71_)
+#           define __TIC_WIN7__ 1
+#       endif
+#   endif 
+#   if defined(ANDROID) || defined(__ANDROID__)
+#       undef __TIC_ANDROID__
+#       define __TIC_ANDROID__ 1
+#       define TIC_MODULE_EXT ".so"
+#   elif (defined(linux) || defined(__linux) || defined(__linux__))
+#       undef __TIC_LINUX__
+#       define __TIC_LINUX__ 1
+#       define TIC_MODULE_EXT ".so"
 #   endif
-#endif 
-
-#if defined(ANDROID) || defined(__ANDROID__)
-#   undef __TIC_ANDROID__
-#   define __TIC_ANDROID__ 1
-#   define TIC_MODULE_EXT ".so"
-#elif (defined(linux) || defined(__linux) || defined(__linux__))
-#   undef __TIC_LINUX__
-#   define __TIC_LINUX__ 1
-#   define TIC_MODULE_EXT ".so"
-#endif
-
-#if defined(__LIBRETRO__)
-#ifdef TIC_MODULE_EXT
-#undef TIC_MODULE_EXT
-#endif
 #endif
 
 #if defined(TIC_RUNTIME_STATIC)
