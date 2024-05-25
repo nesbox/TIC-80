@@ -45,6 +45,8 @@ if(BUILD_WITH_JANET)
 
     if(NOT BUILD_STATIC)
         set_target_properties(janet PROPERTIES PREFIX "")
+    else()
+        target_compile_definitions(janet INTERFACE TIC_BUILD_WITH_JANET=1)
     endif()
 
     target_link_libraries(janet PRIVATE runtime)
@@ -57,6 +59,5 @@ if(BUILD_WITH_JANET)
             ${CMAKE_SOURCE_DIR}/src
     )
 
-    target_compile_definitions(janet INTERFACE TIC_BUILD_WITH_JANET=1)
 
 endif()

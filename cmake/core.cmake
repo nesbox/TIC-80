@@ -90,7 +90,7 @@ if(BUILD_STATIC)
         target_link_libraries(tic80core PRIVATE wren)
     endif()
 
-    if(BUILD_WITH_MRUBY)
+    if(BUILD_WITH_RUBY)
         target_link_libraries(tic80core PRIVATE ruby)
     endif()
 

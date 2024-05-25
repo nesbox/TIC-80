@@ -27,6 +27,8 @@ if(BUILD_WITH_WREN)
 
     if(NOT BUILD_STATIC)
         set_target_properties(wren PROPERTIES PREFIX "")
+    else()
+        target_compile_definitions(wren INTERFACE TIC_BUILD_WITH_WREN=1)
     endif()
 
     target_link_libraries(wren PRIVATE runtime)
@@ -40,6 +42,5 @@ if(BUILD_WITH_WREN)
     target_include_directories(wren PUBLIC ${THIRDPARTY_DIR}/wren/src/include)
     target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/optional)
     target_include_directories(wren PRIVATE ${THIRDPARTY_DIR}/wren/src/vm)
-    target_compile_definitions(wren INTERFACE TIC_BUILD_WITH_WREN=1)
 
 endif()

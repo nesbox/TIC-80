@@ -23,6 +23,8 @@ if(BUILD_WITH_MOON)
 
     if(NOT BUILD_STATIC)
         set_target_properties(moon PROPERTIES PREFIX "")
+    else()
+        target_compile_definitions(moon INTERFACE TIC_BUILD_WITH_MOON)
     endif()
 
     target_link_libraries(moon PRIVATE lpeg runtime luaapi)
@@ -34,6 +36,5 @@ if(BUILD_WITH_MOON)
                 ${CMAKE_SOURCE_DIR}/src
     )
 
-    target_compile_definitions(moon INTERFACE TIC_BUILD_WITH_MOON)
 
 endif()

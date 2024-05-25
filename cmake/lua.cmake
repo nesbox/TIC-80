@@ -5,8 +5,7 @@
 option(BUILD_WITH_LUA "Lua Enabled" ON)
 message("BUILD_WITH_LUA: ${BUILD_WITH_LUA}")
 
-if(BUILD_WITH_LUA)
-
+if(BUILD_WITH_LUA OR BUILD_WITH_MOON OR BUILD_WITH_FENNEL)
     set(LUA_DIR ${THIRDPARTY_DIR}/lua)
     set(LUA_SRC
         ${LUA_DIR}/lapi.c
@@ -50,14 +49,6 @@ if(BUILD_WITH_LUA)
         ${CMAKE_SOURCE_DIR}/src/api/parse_note.c
     )
 
-    add_library(lua ${TIC_RUNTIME} ${CMAKE_SOURCE_DIR}/src/api/lua.c)
-
-    if(NOT BUILD_STATIC)
-        set_target_properties(lua PROPERTIES PREFIX "")
-    endif()
-
-    target_link_libraries(lua PRIVATE runtime luaapi)
-
     target_compile_definitions(luaapi PRIVATE LUA_COMPAT_5_2)
 
     target_include_directories(luaapi 
@@ -65,6 +56,20 @@ if(BUILD_WITH_LUA)
             ${CMAKE_SOURCE_DIR}/include
             ${CMAKE_SOURCE_DIR}/src
         )
+
+endif()
+
+if(BUILD_WITH_LUA)
+
+    add_library(lua ${TIC_RUNTIME} ${CMAKE_SOURCE_DIR}/src/api/lua.c)
+
+    if(NOT BUILD_STATIC)
+        set_target_properties(lua PROPERTIES PREFIX "")
+    else()
+        target_compile_definitions(lua INTERFACE TIC_BUILD_WITH_LUA)
+    endif()
+
+    target_link_libraries(lua PRIVATE runtime luaapi)
 
     target_include_directories(lua 
         PUBLIC ${THIRDPARTY_DIR}/lua
@@ -76,7 +81,5 @@ if(BUILD_WITH_LUA)
     if(N3DS)
         target_compile_definitions(luaapi PUBLIC LUA_32BITS)
     endif()
-
-    target_compile_definitions(lua INTERFACE TIC_BUILD_WITH_LUA)
 
 endif()

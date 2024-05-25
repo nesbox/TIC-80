@@ -43,6 +43,8 @@ if(BUILD_WITH_JS)
 
     if(NOT BUILD_STATIC)
         set_target_properties(js PROPERTIES PREFIX "")
+    else()
+        target_compile_definitions(js INTERFACE TIC_BUILD_WITH_JS=1)
     endif()
 
     target_link_libraries(js PRIVATE runtime)
@@ -55,6 +57,5 @@ if(BUILD_WITH_JS)
             ${CMAKE_SOURCE_DIR}/src
     )
 
-    target_compile_definitions(js INTERFACE TIC_BUILD_WITH_JS=1)
 
 endif()

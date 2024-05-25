@@ -459,10 +459,76 @@ jobs:
         with:
           ruby-version: 2.6
 
-      - name: Build
+      - name: Build lua
         run: |
           cd build
-          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON ..
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_LUA=ON -DTIC80_TARGET=tic80lua .. --fresh
+          cmake --build . --config MinSizeRel --parallel
+
+      - name: Build ruby
+        run: |
+          cd build
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_LUA=OFF -DBUILD_WITH_RUBY=ON -DTIC80_TARGET=tic80ruby .. --fresh
+          cmake --build . --config MinSizeRel --parallel
+
+      - name: Build js
+        run: |
+          cd build
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_LUA=OFF -DBUILD_WITH_JS=ON -DTIC80_TARGET=tic80js .. --fresh
+          cmake --build . --config MinSizeRel --parallel
+
+      - name: Build moon
+        run: |
+          cd build
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_LUA=OFF -DBUILD_WITH_MOON=ON -DTIC80_TARGET=tic80moon .. --fresh
+          cmake --build . --config MinSizeRel --parallel
+
+      - name: Build fennel
+        run: |
+          cd build
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_LUA=OFF -DBUILD_WITH_FENNEL=ON -DTIC80_TARGET=tic80fennel .. --fresh
+          cmake --build . --config MinSizeRel --parallel
+
+      - name: Build scheme
+        run: |
+          cd build
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_LUA=OFF -DBUILD_WITH_SCHEME=ON -DTIC80_TARGET=tic80scheme .. --fresh
+          cmake --build . --config MinSizeRel --parallel
+
+      - name: Build squirrel
+        run: |
+          cd build
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_LUA=OFF -DBUILD_WITH_SQUIRREL=ON -DTIC80_TARGET=tic80squirrel .. --fresh
+          cmake --build . --config MinSizeRel --parallel
+
+      - name: Build wren
+        run: |
+          cd build
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_LUA=OFF -DBUILD_WITH_WREN=ON -DTIC80_TARGET=tic80wren .. --fresh
+          cmake --build . --config MinSizeRel --parallel
+
+      - name: Build wasm
+        run: |
+          cd build
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_LUA=OFF -DBUILD_WITH_WASM=ON -DTIC80_TARGET=tic80wasm .. --fresh
+          cmake --build . --config MinSizeRel --parallel
+
+      - name: Build janet
+        run: |
+          cd build
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_LUA=OFF -DBUILD_WITH_JANET=ON -DTIC80_TARGET=tic80janet .. --fresh
+          cmake --build . --config MinSizeRel --parallel
+
+      - name: Build python
+        run: |
+          cd build
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_LUA=OFF -DBUILD_WITH_PYTHON=ON -DTIC80_TARGET=tic80python .. --fresh
+          cmake --build . --config MinSizeRel --parallel
+
+      - name: Build all
+        run: |
+          cd build
+          emcmake cmake -DBUILD_SDLGPU=On -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=ON .. --fresh
           cmake --build . --config MinSizeRel --parallel
           cp html/index.html bin/index.html
 
@@ -471,6 +537,4 @@ jobs:
         with:
           name: "tic80-html"
           path: |
-            build/bin/tic80.js
-            build/bin/tic80.wasm
-            build/bin/index.html
+            build/bin/*

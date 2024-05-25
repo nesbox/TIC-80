@@ -16,6 +16,8 @@ if(BUILD_WITH_SCHEME)
 
     if(NOT BUILD_STATIC)
         set_target_properties(scheme PROPERTIES PREFIX "")
+    else()
+        target_compile_definitions(scheme INTERFACE TIC_BUILD_WITH_SCHEME=1)
     endif()
 
     target_link_libraries(scheme PRIVATE runtime)
@@ -36,6 +38,5 @@ if(BUILD_WITH_SCHEME)
         target_compile_definitions(scheme PRIVATE S7_BAREMETALPI)
     endif()
 
-    target_compile_definitions(scheme INTERFACE TIC_BUILD_WITH_SCHEME=1)
 
 endif()

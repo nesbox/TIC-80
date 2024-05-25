@@ -2,10 +2,10 @@
 # MRUBY
 ################################
 
-option(BUILD_WITH_MRUBY "mruby Enabled" ${BUILD_WITH_ALL})
-message("BUILD_WITH_MRUBY: ${BUILD_WITH_MRUBY}")
+option(BUILD_WITH_RUBY "Ruby Enabled" ${BUILD_WITH_ALL})
+message("BUILD_WITH_RUBY: ${BUILD_WITH_RUBY}")
 
-if(BUILD_WITH_MRUBY)
+if(BUILD_WITH_RUBY)
 
     find_program(RUBY ruby)
     find_program(RAKE rake)
@@ -17,6 +17,8 @@ if(BUILD_WITH_MRUBY)
 
     if(NOT BUILD_STATIC)
         set_target_properties(ruby PROPERTIES PREFIX "")
+    else()
+        target_compile_definitions(ruby INTERFACE TIC_BUILD_WITH_RUBY=1)
     endif()
 
     target_link_libraries(ruby PRIVATE runtime)
@@ -86,6 +88,5 @@ if(BUILD_WITH_MRUBY)
     add_dependencies(ruby mruby_vendor)
     target_link_libraries(ruby PRIVATE ${MRUBY_LIB})
 
-    target_compile_definitions(ruby INTERFACE TIC_BUILD_WITH_MRUBY=1)
 
 endif()

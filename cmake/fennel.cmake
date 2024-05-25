@@ -11,6 +11,8 @@ if(BUILD_WITH_FENNEL)
 
     if(NOT BUILD_STATIC)
         set_target_properties(fennel PROPERTIES PREFIX "")
+    else()
+        target_compile_definitions(fennel INTERFACE TIC_BUILD_WITH_FENNEL)
     endif()
 
     target_link_libraries(fennel PRIVATE runtime luaapi)
@@ -20,6 +22,5 @@ if(BUILD_WITH_FENNEL)
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src
     )
-    target_compile_definitions(fennel INTERFACE TIC_BUILD_WITH_FENNEL)
 
 endif()

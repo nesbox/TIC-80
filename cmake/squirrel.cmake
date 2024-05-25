@@ -39,6 +39,8 @@ if(BUILD_WITH_SQUIRREL)
 
     if(NOT BUILD_STATIC)
         set_target_properties(squirrel PROPERTIES PREFIX "")
+    else()
+        target_compile_definitions(squirrel INTERFACE TIC_BUILD_WITH_SQUIRREL=1)
     endif()
 
     target_link_libraries(squirrel PRIVATE runtime)
@@ -54,6 +56,5 @@ if(BUILD_WITH_SQUIRREL)
             ${CMAKE_SOURCE_DIR}/src
     )
 
-    target_compile_definitions(squirrel INTERFACE TIC_BUILD_WITH_SQUIRREL=1)
 
 endif()

@@ -22,6 +22,8 @@ if(BUILD_WITH_PYTHON)
 
     if(NOT BUILD_STATIC)
         set_target_properties(python PROPERTIES PREFIX "")
+    else()
+        target_compile_definitions(python INTERFACE TIC_BUILD_WITH_PYTHON=1)
     endif()
 
     target_link_libraries(python PRIVATE runtime)
@@ -40,6 +42,5 @@ if(BUILD_WITH_PYTHON)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fexceptions")
     endif()
 
-    target_compile_definitions(python INTERFACE TIC_BUILD_WITH_PYTHON=1)
 
 endif()

@@ -28,6 +28,8 @@ if(BUILD_WITH_WASM)
 
     if(NOT BUILD_STATIC)
         set_target_properties(wasm PROPERTIES PREFIX "")
+    else()
+        target_compile_definitions(wasm INTERFACE TIC_BUILD_WITH_WASM=1)
     endif()
 
     target_link_libraries(wasm PRIVATE runtime)
@@ -39,6 +41,5 @@ if(BUILD_WITH_WASM)
             ${CMAKE_SOURCE_DIR}/src
     )
 
-    target_compile_definitions(wasm INTERFACE TIC_BUILD_WITH_WASM=1)
 
 endif()
