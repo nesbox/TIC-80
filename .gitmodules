@@ -73,7 +73,7 @@
 	shallow = true
 [submodule "vendor/pocketpy"]
 	path = vendor/pocketpy
-	url = https://github.com/blueloveTH/pocketpy
+	url = https://github.com/nesbox/pocketpy.git
 	shallow = true
 [submodule "vendor/quickjs"]
 	path = vendor/quickjs
