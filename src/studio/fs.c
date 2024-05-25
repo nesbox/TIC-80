@@ -58,6 +58,10 @@
 #define SLASH_SYMBOL ('/')
 #endif
 
+#if defined (__TIC_MACOSX__)
+#include <mach-o/dyld.h>
+#endif
+
 static const char* PublicDir = TIC_HOST;
 
 struct tic_fs
