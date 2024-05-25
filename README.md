@@ -14,9 +14,11 @@
 - [Contributing](#contributing)
 - [Build instructions](#build-instructions)
   - [Windows](#windows)
-    - [Windows XP / Windows 7 32-bit (x86)](#windows-xp--windows-7-32-bit-x86)
-    - [Windows 10 / 11 64-bit (x64)](#windows-10--11-64-bit-x64)
-    - [with MinGW](#with-mingw)
+    - [MSVC (Microsoft Visual C++)](#msvc-microsoft-visual-c)
+      - [Windows XP / Windows 7 32-bit (x86)](#windows-xp--windows-7-32-bit-x86)
+      - [Windows 10 / 11 64-bit (x64)](#windows-10--11-64-bit-x64)
+    - [MSYS2 / MINGW](#msys2--mingw)
+      - [Windows 10 / 11 64-bit (x64)](#windows-10--11-64-bit-x64-1)
   - [Linux](#linux)
     - [Ubuntu 22.04 (Jammy Jellyfish)](#ubuntu-2204-jammy-jellyfish)
     - [Ubuntu 24.04 (Noble Numbat)](#ubuntu-2404-noble-numbat)
@@ -98,9 +100,11 @@ The wiki holds TIC-80 documentation, code snippets and game development tutorial
 
 ## Windows
 
-### Windows XP / Windows 7 32-bit (x86)
+### MSVC (Microsoft Visual C++)
 
-The build process has been tested on Windows 11 64-bit (x64); all this should run on Windows 7 SP1 32-bit (x86) as well. This guide assumes you're running an elevated command prompt.
+#### Windows XP / Windows 7 32-bit (x86)
+
+The build process has been tested on Windows 11 64-bit (x64); all this should run on Windows 7 SP1 32-bit (x86) as well. This guide assumes you're running an elevated Command Prompt.
 
 - Install [Git](https://git-scm.com/download/win), [CMake](https://cmake.org/download/), [Visual Studio 2019 Build Tools](https://winstall.app/apps/Microsoft.VisualStudio.2019.BuildTools) and [Ruby+Devkit 2.7.8 x86](https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-2.7.8-1/rubyinstaller-devkit-2.7.8-1-x86.exe)
 - Install the neccessary dependencies within VS2019:
@@ -116,17 +120,18 @@ The build process has been tested on Windows 11 64-bit (x64); all this should ru
 - Run `ridk install` with options `1,3` to set up [MSYS2](https://www.msys2.org/) and development toolchain
 - Add MSYS2's [`gcc`](https://gcc.gnu.org/) at `C:\Ruby27\msys32\mingw32\bin` to your `$PATH` [(guide)](https://www.java.com/en/download/help/path.html#:~:text=your%20java%20code.-,Windows%207,-From%20the%20desktop)
 
-- Open a new elevated prompt and run the following commands:
+- Open a new elevated Command Prompt and run the following commands:
 
 ```
 git clone --recursive https://github.com/nesbox/TIC-80 && cd .\TIC-80\build
-cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=MinSizeRel ..
+copy /y .\build\janet\janetconf.h .\vendor\janet\src\conf\janetconf.h
+cmake -G "Visual Studio 16 2019" -A Win32 -T v141_xp -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_WITH_ALL=On ..
 cmake --build . --parallel
 ```
 
 You'll find `tic80.exe` in `TIC-80\build\bin`.
 
-### Windows 10 / 11 64-bit (x64)
+#### Windows 10 / 11 64-bit (x64)
 
 This guide assumes you're running PowerShell with an elevated prompt.
 
@@ -153,23 +158,39 @@ winget install Git.Git Kitware.CMake Microsoft.VisualStudio.2019.BuildTools Ruby
 
 ```
 git clone --recursive https://github.com/nesbox/TIC-80 && cd .\TIC-80\build
-cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=MinSizeRel ..
+cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On ..
 cmake --build . --parallel
 ```
 
 You'll find `tic80.exe` in `TIC-80\build\bin`.
 
-### with MinGW
-- install `mingw-w64` (http://mingw-w64.org) and add `.../mingw/bin` path to the *System Variables Path*
-- install `git`
-- install `cmake` (https://cmake.org)
-- install `Ruby` (you can use [RubyInstaller](https://rubyinstaller.org/))
-- run following commands within a `mingw64` context, for example within a MingW64 shell
+### MSYS2 / MINGW
+
+#### Windows 10 / 11 64-bit (x64)
+
+This guide assumes you're running PowerShell with an elevated prompt.
+
+- Install [Git](https://git-scm.com/download/win), [CMake](https://cmake.org/download/) and [Ruby+Devkit 2.7.8 x64](https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-2.7.8-1/rubyinstaller-devkit-2.7.8-1-x64.exe) manually or with [WinGet](https://github.com/microsoft/winget-cli):
 ```
-git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake -G "MinGW Makefiles" ..
-mingw32-make -j4
+winget install Git.Git Kitware.CMake RubyInstallerTeam.RubyWithDevKit.2.7
 ```
+- Run `ridk install` with options `1,3` to set up [MSYS2](https://www.msys2.org/) and development toolchain
+- Add MSYS2's [`gcc`](https://gcc.gnu.org/) at `C:\Ruby27-x64\msys64\mingw64\bin` to your `$PATH` [manually](https://www.java.com/en/download/help/path.html#:~:text=Mac%20OS%20X.-,Windows,-Windows%2010%20and) or with the following PowerShell command:
+
+```
+[Environment]::SetEnvironmentVariable('Path', $env:Path + ';C:\Ruby27-x64\msys64\mingw64\bin', [EnvironmentVariableTarget]::Machine)
+```
+
+- Open a new elevated prompt and run the following commands:
+
+```
+git clone --recursive https://github.com/nesbox/TIC-80 && cd .\TIC-80\build
+cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On ..
+$numCPUs = [Environment]::ProcessorCount
+mingw32-make "-j$numCPUs"
+```
+
+You'll find `tic80.exe` in `TIC-80\build\bin`.
 
 ## Linux
 
@@ -178,7 +199,7 @@ mingw32-make -j4
 Run the following commands from a terminal:
 
 ```
-# Need to install the latest CMake from https://apt.kitware.com/
+# Install the latest CMake from https://apt.kitware.com/
 test -f /usr/share/doc/kitware-archive-keyring/copyright ||
 wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
 echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ jammy main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null
@@ -189,7 +210,7 @@ sudo apt-get install kitware-archive-keyring
 
 sudo apt update && sudo apt -y install build-essential cmake git libpipewire-0.3-dev libwayland-dev libsdl2-dev ruby-dev libglvnd-dev libglu1-mesa-dev freeglut3-dev libcurl4-openssl-dev
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake -DBUILD_SDLGPU=On -DBUILD_STUB=On .. --fresh && cmake --build . --parallel
+cmake -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On .. && cmake --build . --parallel
 ```
 
 Install with [Install instructions](#install-instructions)
@@ -202,7 +223,7 @@ Run the following commands from a terminal:
 ```
 sudo apt update && sudo apt -y install build-essential cmake git libpipewire-0.3-dev libwayllrubland-dev libsdl2-dev ruby-dev libcurl4-openssl-dev libglvnd-dev libglu1-mesa-dev freeglut3-dev
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake -DBUILD_SDLGPU=On -DBUILD_STUB=On .. --fresh && cmake --build . --parallel
+cmake -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On .. && cmake --build . --parallel
 ```
 
 Install with [Install instructions](#install-instructions)
@@ -214,7 +235,7 @@ run the following commands in the Terminal
 ```
 sudo pacman -S cmake ruby mesa libglvnd glu
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake ..
+cmake -DBUILD_WITH_ALL=On ..
 make -j4
 ```
 
@@ -225,7 +246,7 @@ run the following commands in the Terminal
 sudo dnf -y groupinstall "Development Tools" "Development Libraries"
 sudo dnf -y install ruby rubygem-{tk{,-doc},rake,test-unit} cmake libglvnd-devel libglvnd-gles freeglut-devel clang libXext-devel SDL_sound pipewire-devel pipewire-jack-audio-connection-kit-devel pulseaudio-libs-devel
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake .. -DCMAKE_CXX_COMPILER=clang++ -DSDL_ALSA=On
+cmake -DCMAKE_CXX_COMPILER=clang++ -DSDL_ALSA=On -DBUILD_WITH_ALL=On ..
 make -j4
 ```
 
@@ -237,7 +258,7 @@ Run the following commands from a terminal:
 ```
 sudo dnf -y groupinstall "Development Tools" "Development Libraries"
 sudo dnf -y install ruby-devel rubygem-rake cmake clang pipewire-devel SDL2-devel SDL2_sound-devel SDL2_gfx-devel wayland-devel libXext-devel pipewire-jack-audio-connection-kit-devel pipewire-jack-audio-connection-kit-devel pulseaudio-libs-devel rubygems-devel libdecor-devel libdrm-devel mesa-libgbm-devel esound-devel freeglut-devel
-cmake -DBUILD_SDLGPU=On -DBUILD_STUB=On .. --fresh
+cmake -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On ..
 cmake --build . --parallel
 ```
 
@@ -250,7 +271,7 @@ Run the following commands from a terminal:
 ```
 sudo apt update && sudo apt -y install cmake libpipewire-0.3-dev libwayland-dev libsdl2-dev ruby-dev libcurl4-openssl-dev
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake -DBUILD_SDLGPU=On -DBUILD_STUB=On .. --fresh && cmake --build . --parallel 2
+cmake -DBUILD_SDLGPU=On -DBUILD_WITH_ALL=On .. && cmake --build . --parallel 2
 ```
 Install with [Install instructions](#install-instructions)
 
@@ -277,7 +298,7 @@ sudo apt-get dist-upgrade
 sudo apt-get install git build-essential ruby-full libsdl2-dev zlib1g-dev
 sudo apt-get install -t jessie-backports liblua5.3-dev
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake ..
+cmake -DBUILD_WITH_ALL=On ..
 make -j4
 
 # install software ubuntu 22.04.3 LTS
@@ -285,7 +306,7 @@ sudo apt-get install git build-essential ruby-full libsdl2-dev zlib1g-dev
 sudo apt-get install liblua5.3-dev
 sudo apt-get install libcurl4-openssl-dev
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake ..
+cmake -DBUILD_WITH_ALL=On ..
 make -j4
 ```
 Install with [Install instructions](#install-instructions)
@@ -302,7 +323,7 @@ run the following commands in the Terminal
 ```
 brew install git cmake
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake ..
+cmake -DBUILD_WITH_ALL=On ..
 make -j4
 ```
 
@@ -325,7 +346,7 @@ run the following commands in the Terminal
 ```
 sudo pkg install gcc git cmake ruby libglvnd libglu freeglut mesa-devel mesa-dri alsa-lib
 git clone --recursive https://github.com/nesbox/TIC-80 && cd TIC-80/build
-cmake ..
+cmake -DBUILD_WITH_ALL=On ..
 make -j4
 ```
 
