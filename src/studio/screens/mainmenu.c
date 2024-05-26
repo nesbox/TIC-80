@@ -285,25 +285,6 @@ static MenuOption KeybindModeOption =
     optionKeybindModeSet,
 };
 
-static s32 optionDevModeGet(void* data)
-{
-    StudioMainMenu* main = data;
-    return main->options->devmode ? 1 : 0;
-}
-
-static void optionDevModeSet(void* data, s32 pos)
-{
-    StudioMainMenu* main = data;
-    main->options->devmode = pos == 1;
-}
-
-static MenuOption DevModeOption = 
-{
-    OPTION_VALUES({OffValue, OnValue}),
-    optionDevModeGet,
-    optionDevModeSet,
-};
-
 static void showEditorMenu(void* data, s32 pos);
 
 #endif
@@ -322,9 +303,6 @@ enum
 #if defined(CRT_SHADER_SUPPORT)
     OptionsMenu_CrtMonitorOption,
 #endif
-#if defined(BUILD_EDITORS)
-    OptionsMenu_DevModeOption,
-#endif
     OptionsMenu_VSyncOption,
     OptionsMenu_FullscreenOption,
     OptionsMenu_IntegerScaleOption,
@@ -341,9 +319,6 @@ static const MenuItem OptionMenu[] =
 {
 #if defined(CRT_SHADER_SUPPORT)
     {"CRT MONITOR",     NULL,   &CrtMonitorOption},
-#endif
-#if defined(BUILD_EDITORS)
-    {"DEV MODE",        NULL,   &DevModeOption, "The game menu is disabled in dev mode."},
 #endif
     {"VSYNC",           NULL,   &VSyncOption, "VSYNC needs restart!"},
     {"FULLSCREEN",      NULL,   &FullscreenOption},

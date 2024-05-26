@@ -1757,18 +1757,14 @@ static bool enterWasPressedOnce(Studio* studio)
 
 #if defined(BUILD_EDITORS)
 
-static bool isDevMode(Studio* studio)
+static bool showGameMenu(Studio* studio)
 {
     tic_mem* tic = studio->tic;
-    const char *devmode = tic_tool_metatag(tic->cart.code.data, "devmode", tic_get_script(tic)->singleComment);
 
-    if(strcmp(devmode, "on") == 0)
-        return true;
+    char tag[TICNAME_MAX];
+    snprintf(tag, sizeof tag, "\n%s menu:", tic_get_script(tic)->singleComment);
 
-    else if(strcmp(devmode, "off") == 0)
-        return false;
-
-    return getConfig(studio)->options.devmode;
+    return strstr(tic->cart.code.data, tag);
 }
 
 #endif
@@ -1843,18 +1839,18 @@ static void processShortcuts(Studio* studio)
             switch(studio->mode)
             {
             case TIC_MENU_MODE:     
-                isDevMode(studio) 
-                    ? setStudioMode(studio, studio->prevMode == TIC_RUN_MODE 
+                showGameMenu(studio) 
+                    ? studio_menu_back(studio->menu)
+                    : setStudioMode(studio, studio->prevMode == TIC_RUN_MODE 
                         ? TIC_CONSOLE_MODE 
-                        : studio->prevMode) 
-                    : studio_menu_back(studio->menu);
+                        : studio->prevMode);
                 break;
             case TIC_RUN_MODE:      
-                isDevMode(studio) 
-                    ? setStudioMode(studio, studio->prevMode == TIC_RUN_MODE 
+                showGameMenu(studio) 
+                    ? gotoMenu(studio)
+                    : setStudioMode(studio, studio->prevMode == TIC_RUN_MODE 
                         ? TIC_CONSOLE_MODE 
-                        : studio->prevMode) 
-                    : gotoMenu(studio);
+                        : studio->prevMode);
                 break;
             case TIC_CONSOLE_MODE: 
                 setStudioMode(studio, TIC_CODE_MODE);
@@ -1876,7 +1872,7 @@ static void processShortcuts(Studio* studio)
         else if(studio->mode == TIC_RUN_MODE && keyWasPressedOnce(studio, tic_key_f7))
             setCoverImage(studio);
 
-        if(isDevMode(studio) || studio->mode != TIC_RUN_MODE)
+        if(!showGameMenu(studio) || studio->mode != TIC_RUN_MODE)
         {
             if(keyWasPressedOnce(studio, tic_key_f1)) setStudioMode(studio, TIC_CODE_MODE);
             else if(keyWasPressedOnce(studio, tic_key_f2)) setStudioMode(studio, TIC_SPRITE_MODE);
@@ -1891,6 +1887,7 @@ static void processShortcuts(Studio* studio)
             {
             case TIC_MENU_MODE: studio_menu_back(studio->menu); break;
             case TIC_RUN_MODE: gotoMenu(studio); break;
+            default: break;
             }
         }
 #endif
