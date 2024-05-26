@@ -289,6 +289,8 @@ void tiles2ram(tic_ram* ram, const tic_tiles* src);
 void fadePalette(tic_palette* pal, s32 value);
 bool project_ext(const char* name);
 
+#if defined(BUILD_EDITORS)
+
 typedef struct
 {
     char* exp;
@@ -322,3 +324,5 @@ typedef struct
 } Bytebattle;
 
 Bytebattle* getBytebattle(Studio* studio);
+
+#endif

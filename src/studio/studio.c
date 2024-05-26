@@ -2809,16 +2809,16 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     if(args.cli)
         args.skip = true;
 
-    if(args.skip)
-        setStudioMode(studio, TIC_CONSOLE_MODE);
-
 #if defined(BUILD_EDITORS)
-    Bytebattle* bb = getBytebattle(studio);
-
-    if(bb)
+    if(args.skip)
     {
-        studio->console->tick(studio->console);
-        gotoCode(studio);
+        if(getBytebattle(studio))
+        {
+            studio->console->tick(studio->console);
+            gotoCode(studio);            
+        }
+        else
+            setStudioMode(studio, TIC_CONSOLE_MODE);
     }
 #endif
 
