@@ -517,6 +517,44 @@ static mrb_value mrb_fset(mrb_state* mrb, mrb_value self)
     return mrb_nil_value();
 }
 
+static mrb_value mrb_fft(mrb_state* mrb, mrb_value self)
+{
+    mrb_int start_freq, end_freq = -1;
+    mrb_int argc = mrb_get_args(mrb, "i|i", &start_freq, &end_freq);
+
+    tic_core* core = getMRubyMachine(mrb);
+    tic_mem* tic = (tic_mem*)core;
+
+    if (argc == 0)
+    {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid params, fft [ start_freq end_freq ]\n");
+        return mrb_nil_value();
+    }
+    else
+    {
+        return mrb_float_value(mrb, core->api.fft(tic, start_freq, end_freq));
+    }
+}
+
+static mrb_value mrb_ffts(mrb_state* mrb, mrb_value self)
+{
+    mrb_int start_freq, end_freq = -1;
+    mrb_int argc = mrb_get_args(mrb, "i|i", &start_freq, &end_freq);
+
+    tic_core* core = getMRubyMachine(mrb);
+    tic_mem* tic = (tic_mem*)core;
+
+    if (argc == 0)
+    {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid params, ffts [ start_freq end_freq ]\n");
+        return mrb_nil_value();
+    }
+    else
+    {
+        return mrb_float_value(mrb, core->api.ffts(tic, start_freq, end_freq));
+    }
+}
+
 typedef struct
 {
     mrb_state* mrb;

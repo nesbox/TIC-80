@@ -20,6 +20,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include "fftdata.h"
+#include "../ext/fft.h"
+
 #include "api.h"
 #include "core.h"
 #include "tilesheet.h"
@@ -436,6 +439,10 @@ void tic_core_tick(tic_mem* tic, tic_tick_data* data)
 
     core->data = data;
 
+    if (fftEnabled)
+    {
+        FFT_GetFFT(fftData);
+    }
     if (!core->state.initialized)
     {
         const char* code = tic->cart.code.data;
