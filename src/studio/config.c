@@ -99,7 +99,6 @@ static void setDefault(Config* config)
             .autosave       = false,
 #if defined(BUILD_EDITORS)
             .keybindMode    = KEYBIND_STANDARD,
-            .devmode        = false,
             .tabMode        = TAB_AUTO,
             .tabSize        = 1,
 #endif
@@ -189,7 +188,6 @@ static void loadOptions(Config* config)
 #if defined(BUILD_EDITORS)
             options->keybindMode = json_int("keybindMode", 0);
             options->tabMode = json_int("tabMode", 0);
-            options->devmode = json_bool("devmode", 0);
             options->tabSize = json_int("tabSize", 0);
 #endif
         }
@@ -266,7 +264,6 @@ static void saveOptions(Config* config)
             ,
             "keybindMode":%i,
             "tabMode":%i,
-            "devmode":%s,
             "tabSize":%i
 #endif
         })
@@ -285,7 +282,6 @@ static void saveOptions(Config* config)
         ,
         options->keybindMode,
         options->tabMode,
-        bool2str(options->devmode),
         options->tabSize
 #endif
         );

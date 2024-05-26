@@ -141,7 +141,6 @@ typedef struct
 #if defined(BUILD_EDITORS)
         enum KeybindMode keybindMode;
         enum TabMode tabMode;
-        bool devmode;
         s32 tabSize;
 #endif
     } options;
