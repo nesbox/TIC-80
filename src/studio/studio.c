@@ -1741,7 +1741,7 @@ static bool showGameMenu(Studio* studio)
     tic_mem* tic = studio->tic;
 
     char tag[TICNAME_MAX];
-    sprintf(tag, "%s menu:", tic_get_script(tic)->singleComment);
+    snprintf(tag, sizeof tag, "\n%s menu:", tic_get_script(tic)->singleComment);
 
     return strstr(tic->cart.code.data, tag);
 }
