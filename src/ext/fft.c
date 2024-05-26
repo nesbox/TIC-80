@@ -359,42 +359,74 @@ void FFT_GetFFT(float* _samples)
 
 //////////////////////////////////////////////////////////////////////////
 
-double tic_api_fft(tic_mem* memory, s32 startFreq, s32 endFreq)
+double fft(s32 startFreq, s32 endFreq, bool smoothing)
 {
 #ifdef TIC80_FFT_UNSUPPORTED
     return 0.0;
 #else
-
     if (!fftEnabled)
     {
-        FFT_DebugLog(FFT_LOG_TRACE, "tic_api_fft: fft not enabled\n");
+        FFT_DebugLog(FFT_LOG_TRACE, "FFT: fft not enabled\n");
         return 0.0;
     }
 
-    if (endFreq == -1) // If 'endFreq' is not provided, use existing behavior
+    if (endFreq == -1)
     {
         if (startFreq < 0 || startFreq >= FFT_SIZE)
         {
-            FFT_DebugLog(FFT_LOG_TRACE, "tic_api_fft: freq out of bounds at %d\n", startFreq);
+            FFT_DebugLog(FFT_LOG_TRACE, "FFT: freq out of bounds at %d\n", startFreq);
             return 0.0;
         }
-        return fftData[startFreq];
+        return smoothing ? fftSmoothingData[startFreq] : fftData[startFreq];
     }
-    else // Sum up all bins from 'startFreq' to 'endFreq'
+    else
     {
-        if (startFreq < 0 || endFreq >= FFT_SIZE || startFreq > endFreq)
+        if ((startFreq < 0 && endFreq < 0) || (startFreq >= FFT_SIZE && endFreq >= FFT_SIZE))
         {
-            FFT_DebugLog(FFT_LOG_TRACE, "tic_api_fft: range out of bounds from %d to %d\n", startFreq, endFreq);
+            FFT_DebugLog(FFT_LOG_TRACE, "FFT: both startFreq and endFreq out of bounds, startFreq %d, endFreq %d\n", startFreq, endFreq);
             return 0.0;
+        }
+
+        if (startFreq < 0)
+        {
+            FFT_DebugLog(FFT_LOG_TRACE, "FFT: clamped startFreq to 0\n");
+            startFreq = 0;
+        }
+
+        if (startFreq >= FFT_SIZE)
+        {
+            FFT_DebugLog(FFT_LOG_TRACE, "FFT: clamped startFreq to %d\n", FFT_SIZE - 1);
+            startFreq = 0;
+        }
+
+        if (endFreq >= FFT_SIZE)
+        {
+            FFT_DebugLog(FFT_LOG_TRACE, "FFT: clamped endFreq to %d\n", FFT_SIZE - 1);
+            endFreq = FFT_SIZE - 1;
+        }
+
+        if (startFreq > endFreq)
+        {
+            FFT_DebugLog(FFT_LOG_TRACE, "FFT: clamped startFreq to endFreq\n");
+            endFreq = startFreq;
         }
 
         double sum = 0.0;
         for (int i = startFreq; i <= endFreq; i++)
         {
-            sum += fftData[i];
+            sum += smoothing ? fftSmoothingData[i] : fftData[i];
         }
         return sum;
     }
+#endif
+}
+
+double tic_api_fft(tic_mem* memory, s32 startFreq, s32 endFreq)
+{
+#ifdef TIC80_FFT_UNSUPPORTED
+    return 0.0;
+#else
+    return fft(startFreq, endFreq, false);
 #endif
 }
 
@@ -403,36 +435,6 @@ double tic_api_ffts(tic_mem* memory, s32 startFreq, s32 endFreq)
 #ifdef TIC80_FFT_UNSUPPORTED
     return 0.0;
 #else
-
-    if (!fftEnabled)
-    {
-        FFT_DebugLog(FFT_LOG_TRACE, "tic_api_ffts: fft not enabled\n");
-        return 0.0;
-    }
-
-    if (endFreq == -1) // If 'endFreq' is not provided, use existing behavior
-    {
-        if (startFreq < 0 || startFreq >= FFT_SIZE)
-        {
-            FFT_DebugLog(FFT_LOG_TRACE, "tic_api_ffts: freq out of bounds at %d\n", startFreq);
-            return 0.0;
-        }
-        return fftSmoothingData[startFreq];
-    }
-    else // Sum up all bins from 'startFreq' to 'endFreq'
-    {
-        if (startFreq < 0 || endFreq >= FFT_SIZE || startFreq > endFreq)
-        {
-            FFT_DebugLog(FFT_LOG_TRACE, "tic_api_ffts: range out of bounds from %d to %d\n", startFreq, endFreq);
-            return 0.0;
-        }
-
-        double sum = 0.0;
-        for (int i = startFreq; i <= endFreq; i++)
-        {
-            sum += fftSmoothingData[i];
-        }
-        return sum;
-    }
+    return fft(startFreq, endFreq, true);
 #endif
 }
