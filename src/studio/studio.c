@@ -209,6 +209,9 @@ struct Studio
     Surf*       surf;
 
     tic_net* net;
+
+    Bytebattle bytebattle;
+
 #endif
 
     Start*      start;
@@ -222,7 +225,6 @@ struct Studio
     s32 samplerate;
     tic_font systemFont;
 
-    Bytebattle bytebattle;
 };
 
 #if defined(BUILD_EDITORS)
@@ -1707,6 +1709,7 @@ static void switchCrtMonitor(Studio* studio)
 }
 #endif
 
+#if defined(BUILD_EDITORS)
 static u32 getTime()
 {
     return tic_sys_counter_get() * 1000 / tic_sys_freq_get();
@@ -1721,6 +1724,7 @@ static void startBattle(Studio* studio)
 {
     studio->bytebattle.battle.started = getTime();
 }
+#endif
 
 #if defined(TIC80_PRO)
 
@@ -2523,20 +2527,20 @@ void studio_delete(Studio* studio)
 #if defined(BUILD_EDITORS)
     tic_net_close(studio->net);
     free(studio->video.buffer);
+    if(studio->bytebattle.exp) free(studio->bytebattle.exp);
+    if(studio->bytebattle.imp) free(studio->bytebattle.imp);
 #endif
 
     free(studio->fs);
-
-    if(studio->bytebattle.exp) free(studio->bytebattle.exp);
-    if(studio->bytebattle.imp) free(studio->bytebattle.imp);
-
     free(studio);
 }
 
+#if defined(BUILD_EDITORS)
 Bytebattle* getBytebattle(Studio* studio)
 {
     return studio->bytebattle.exp || studio->bytebattle.imp ? &(studio->bytebattle) : NULL;
 }
+#endif
 
 static StartArgs parseArgs(s32 argc, char **argv)
 {
@@ -2548,8 +2552,11 @@ static StartArgs parseArgs(s32 argc, char **argv)
 
     StartArgs args = {0};
     args.volume = -1;
+
+#if defined(BUILD_EDITORS)
     args.lowerlimit = 256;
     args.upperlimit = 512;
+#endif
 
     struct argparse_option options[] = 
     {
@@ -2557,6 +2564,7 @@ static StartArgs parseArgs(s32 argc, char **argv)
 #define CMD_PARAMS_DEF(name, ctype, type, post, help) OPT_##type('\0', #name, &args.name, help),
         CMD_PARAMS_LIST(CMD_PARAMS_DEF)
 #undef  CMD_PARAMS_DEF
+#if defined(BUILD_EDITORS)
         OPT_GROUP("Byte battle options:\n"),
         OPT_STRING('\0',    "codeexport",    &args.codeexport,   "export code to filename"),
         OPT_STRING('\0',    "codeimport",    &args.codeimport,   "import code from filename"),
@@ -2564,6 +2572,7 @@ static StartArgs parseArgs(s32 argc, char **argv)
         OPT_INTEGER('\0',   "lowerlimit",    &args.lowerlimit,   "lower limit for code size (256 by default)"),
         OPT_INTEGER('\0',   "upperlimit",    &args.upperlimit,   "upper limit for code size (512 by default)"),
         OPT_INTEGER('\0',   "battletime",    &args.battletime,   "battletime in minutes"),
+#endif
         OPT_END(),
     };
 
@@ -2689,10 +2698,6 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         .tic = tic_core_create(samplerate, format),
     };
 
-#if defined(BUILD_EDITORS)
-    
-#endif
-
     {
         const char *path = args.fs ? args.fs : folder;
 
@@ -2784,6 +2789,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     studio->config->data.soft               |= args.soft;
     studio->config->data.cli                |= args.cli;
 
+#if defined(BUILD_EDITORS)
     if(args.codeexport)
         studio->bytebattle.exp = strdup(args.codeexport);
     else if(args.codeimport)
@@ -2799,14 +2805,20 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     studio->bytebattle.battle.left 
         = studio->bytebattle.battle.time 
         = args.battletime * 60 * 1000;
+#endif
 
     studioConfigChanged(studio);
 
     if(args.cli)
         args.skip = true;
 
-#if defined(BUILD_EDITORS)
     if(args.skip)
+        setStudioMode(studio, TIC_CONSOLE_MODE);
+
+#if defined(BUILD_EDITORS)
+    Bytebattle* bb = getBytebattle(studio);
+
+    if(bb)
     {
         studio->console->tick(studio->console);
         gotoCode(studio);

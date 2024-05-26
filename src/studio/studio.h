@@ -96,12 +96,14 @@ typedef struct
     CMD_PARAMS_LIST(CMD_PARAMS_DEF)
 #undef  CMD_PARAMS_DEF
 
+#if defined(BUILD_EDITORS)
     const char *codeexport;
     const char *codeimport;
     s32 delay;
     s32 lowerlimit;
     s32 upperlimit;
     s32 battletime;
+#endif
 } StartArgs;
 
 typedef enum
