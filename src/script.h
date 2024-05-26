@@ -53,11 +53,12 @@ struct tic_script
     const char* singleComment;
     const char* blockEnd;
 
-    const char* const * keywords;
+    const char* const *keywords;
     s32 keywordsCount;
 
     tic_lang_isalnum lang_isalnum;
     bool useStructuredEdition;
+    bool useBinarySection;
 
     s32 api_keywordsCount;
     const char** api_keywords;

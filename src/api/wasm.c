@@ -1355,6 +1355,7 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(Wasm) =
 
     .keywords           = NULL,
     .keywordsCount      = 0,
+    .useBinarySection   = true,
 
     .demo = {DemoRom, sizeof DemoRom},
     .mark = {MarkRom, sizeof MarkRom, "wasmmark.tic"},
