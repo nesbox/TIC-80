@@ -10,22 +10,6 @@ ContinuationIndentWidth: 4
 # Allow short functions to be on a single line
 AllowShortFunctionsOnASingleLine: false
 
-# Brace wrapping
-BraceWrapping:
-  AfterClass: false
-  AfterControlStatement: true
-  AfterEnum: false
-  AfterFunction: true
-  AfterNamespace: false
-  AfterStruct: false
-  AfterUnion: false
-  BeforeCatch: false
-  BeforeElse: true
-  IndentBraces: false
-  SplitEmptyFunction: false
-  SplitEmptyRecord: false
-  SplitEmptyNamespace: false
-
 # Column limit for wrapping
 ColumnLimit: 0
 
