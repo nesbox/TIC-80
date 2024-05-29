@@ -398,3 +398,8 @@ You can find iOS/tvOS version here
 * Kolten Pearson - [Github @koltenpearson](https://github.com/koltenpearson)
 * Cort Stratton - [Github @cdwfs](https://github.com/cdwfs)
 * Alice - [Github @aliceisjustplaying](https://github.com/aliceisjustplaying)
+* Sven Knebel - [Github @sknebel](https://github.com/sknebel)
+* Graham Bates - [Github @grahambates](https://github.com/grahambates)
+* Kii - [Github @kiikrindar](https://github.com/kiikrindar)
+* Matt Westcott - [Github @gasman](https://github.com/gasman)
+* NuSan - [Github @TheNuSan](https://github.com/thenusan)

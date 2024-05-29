@@ -1524,6 +1524,56 @@ static s32 lua_fset(lua_State* lua)
     return 0;
 }
 
+static s32 lua_fft(lua_State* lua)
+{
+    tic_core* core = getLuaCore(lua);
+
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
+    s32 top = lua_gettop(lua);
+
+    if (top >= 1)
+    {
+        s32 start_freq = getLuaNumber(lua, 1);
+        s32 end_freq = -1;
+
+        if (top >= 2)
+        {
+            end_freq = getLuaNumber(lua, 2);
+        }
+
+        lua_pushnumber(lua, core->api.fft(tic, start_freq, end_freq));
+        return 1;
+    }
+
+    luaL_error(lua, "invalid params, fft(start_freq, end_freq=-1)\n");
+    return 0;
+}
+
+static s32 lua_ffts(lua_State* lua)
+{
+    tic_core* core = getLuaCore(lua);
+
+    tic_mem* tic = (tic_mem*)getLuaCore(lua);
+    s32 top = lua_gettop(lua);
+
+    if (top >= 1)
+    {
+        s32 start_freq = getLuaNumber(lua, 1);
+        s32 end_freq = -1;
+
+        if (top >= 2)
+        {
+            end_freq = getLuaNumber(lua, 2);
+        }
+
+        lua_pushnumber(lua, core->api.ffts(tic, start_freq, end_freq));
+        return 1;
+    }
+
+    luaL_error(lua, "invalid params, ffts(start_freq, end_freq=-1)\n");
+    return 0;
+}
+
 static s32 lua_dofile(lua_State *lua)
 {
     luaL_error(lua, "unknown method: \"dofile\"\n");

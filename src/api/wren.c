@@ -141,6 +141,8 @@ class TIC {\n\
     foreign static sync(mask, bank, tocart)\n\
     foreign static reset()\n\
     foreign static exit()\n\
+    foreign static fft(start_freq, end_freq)\n\
+    foreign static ffts(start_freq, end_freq)\n\
     foreign static map_width__\n\
     foreign static map_height__\n\
     foreign static spritesize__\n\
@@ -1445,6 +1447,48 @@ static void wren_fset(WrenVM* vm)
     wrenError(vm, "invalid params, fset(sprite,flag,value)\n");
 }
 
+static void wren_fft(WrenVM* vm)
+{
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
+    s32 top = wrenGetSlotCount(vm);
+
+    if (top > 1)
+    {
+        double start_freq = getWrenNumber(vm, 1);
+        double end_freq = -1;
+
+        if (top > 2)
+            end_freq = getWrenNumber(vm, 2);
+
+        wrenSetSlotDouble(vm, 0, core->api.fft(tic, start_freq, end_freq));
+        return;
+    }
+
+    wrenError(vm, "invalid params, fft(start_freq, end_freq)\n");
+}
+
+static void wren_ffts(WrenVM* vm)
+{
+    tic_core* core = getWrenCore(vm);
+    tic_mem* tic = (tic_mem*)core;
+    s32 top = wrenGetSlotCount(vm);
+
+    if (top > 1)
+    {
+        double start_freq = getWrenNumber(vm, 1);
+        double end_freq = -1;
+
+        if (top > 2)
+            end_freq = getWrenNumber(vm, 2);
+
+        wrenSetSlotDouble(vm, 0, core->api.ffts(tic, start_freq, end_freq));
+        return;
+    }
+
+    wrenError(vm, "invalid params, ffts(start_freq, end_freq)\n");
+}
+
 static WrenForeignMethodFn foreignTicMethods(const char* signature)
 {
     if (strcmp(signature, "static TIC.btn()"                    ) == 0) return wren_btn;
@@ -1550,6 +1594,9 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     if (strcmp(signature, "static TIC.exit()"                   ) == 0) return wren_exit;
     if (strcmp(signature, "static TIC.fget(_,_)"                ) == 0) return wren_fget;
     if (strcmp(signature, "static TIC.fset(_,_,_)"              ) == 0) return wren_fset;
+
+    if (strcmp(signature, "static TIC.fft(_)"                   ) == 0) return wren_fft;
+    if (strcmp(signature, "static TIC.ffts(_)"                  ) == 0) return wren_ffts;
 
     // internal functions
     if (strcmp(signature, "static TIC.map_width__"              ) == 0) return wren_map_width;
