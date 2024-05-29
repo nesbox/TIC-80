@@ -1,0 +1,73 @@
+# Based on LLVM coding standards
+BasedOnStyle: LLVM
+
+# Use 4 spaces for indentation
+IndentWidth: 4
+
+# Use 4 spaces for continuations
+ContinuationIndentWidth: 4
+
+# Allow short functions to be on a single line
+AllowShortFunctionsOnASingleLine: false
+
+# Column limit for wrapping
+ColumnLimit: 0
+
+# Break before braces for functions and classes
+BreakBeforeBraces: Allman
+
+# Function declaration return type alignment
+AlignTrailingComments: true
+AlignAfterOpenBracket: true
+AlignEscapedNewlines: Left
+AlignOperands: true
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+
+# Control statements
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: false
+IndentCaseLabels: true
+
+# Pointer alignment
+PointerAlignment: Left
+
+# Space before and after operators
+SpaceBeforeParens: ControlStatements
+SpaceBeforeRangeBasedForLoopColon: true
+SpacesBeforeTrailingComments: 1
+SpacesInCStyleCastParentheses: false
+SpacesInContainerLiterals: false
+SpacesInParentheses: false
+
+# Namespace indentation
+NamespaceIndentation: None
+
+# Empty line before access modifiers in classes
+EmptyLineBeforeAccessModifier: LogicalBlock
+
+# Add space between statements
+SpaceBeforeAssignmentOperators: true
+
+# No space before opening brackets
+SpaceBeforeSquareBrackets: false
+
+# No space before or after '<' and '>' in template argument lists
+SpacesInAngles: false
+
+# Handling include statements
+IncludeBlocks: Preserve
+IncludeCategories:
+  - Regex:           '^<.*\.h>'
+    Priority:        1
+  - Regex:           '^".*\.h"'
+    Priority:        2
+
+# Keep empty lines at the start of blocks
+KeepEmptyLinesAtTheStartOfBlocks: true
+
+# Indentation style for preprocessor directives
+IndentPPDirectives: AfterHash
+
+# Wrap comments to fit within column limit
+ReflowComments: false
