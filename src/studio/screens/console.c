@@ -2945,8 +2945,9 @@ static const char HelpUsage[] = "help [<text>"
                                                                                         \
     macro("resume",                                                                     \
         NULL,                                                                           \
-        "Resume last run cart / project.",                                              \
-        NULL,                                                                           \
+        "Resume last run cart / project. Reload game code\n"                            \
+        "first if given reload as an argument.",                                        \
+        "resume [reload]",                                                              \
         onResumeCommand,                                                                \
         NULL,                                                                           \
         NULL)                                                                           \
