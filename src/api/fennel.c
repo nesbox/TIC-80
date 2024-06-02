@@ -165,6 +165,10 @@ static void evalFennel(tic_mem* tic, const char* code) {
     tic_core* core = (tic_core*)tic;
     lua_State* fennel = core->currentVM;
 
+    /* if we proceed with an uninitialized VM it will segfault; however */
+    /* it could be better just to initialize here when needed instead! */
+    if (!fennel) return;
+
     lua_settop(fennel, 0);
 
     if (luaL_loadbuffer(fennel, execute_fennel_src, strlen(execute_fennel_src), "execute_fennel") != LUA_OK)

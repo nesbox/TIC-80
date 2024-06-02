@@ -2667,6 +2667,23 @@ static void onRunCommand(Console* console)
 
 static void onResumeCommand(Console* console)
 {
+    if(console->desc->count)
+    {
+        const char* param = console->desc->params->key;
+
+        if(strcmp(param, "reload") == 0)
+        {
+            const tic_script* script_config = tic_get_script(console->tic);
+            if (script_config->eval)
+            {
+                script_config->eval(console->tic, console->tic->cart.code.data);
+            }
+            else
+            {
+                printError(console, "eval not implemented for the script");
+            }
+        }
+    }
     commandDone(console);
 
     resumeGame(console->studio);
