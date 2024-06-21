@@ -51,7 +51,12 @@ static u8* getPalette(tic_mem* tic, u8* colors, u8 count)
 {
     static u8 mapping[TIC_PALETTE_SIZE];
     for (s32 i = 0; i < TIC_PALETTE_SIZE; i++) mapping[i] = tic_tool_peek4(tic->ram->vram.mapping, i);
-    for (s32 i = 0; i < count; i++) mapping[colors[i]] = TRANSPARENT_COLOR;
+    for (s32 i = 0; i < count; i++) {
+        if (colors[i] < TIC_PALETTE_SIZE)
+        {
+            mapping[colors[i]] = TRANSPARENT_COLOR;
+        }
+    }
     return mapping;
 }
 
