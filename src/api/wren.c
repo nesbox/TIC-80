@@ -1595,8 +1595,8 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     if (strcmp(signature, "static TIC.fget(_,_)"                ) == 0) return wren_fget;
     if (strcmp(signature, "static TIC.fset(_,_,_)"              ) == 0) return wren_fset;
 
-    if (strcmp(signature, "static TIC.fft(_)"                   ) == 0) return wren_fft;
-    if (strcmp(signature, "static TIC.ffts(_)"                  ) == 0) return wren_ffts;
+    if (strcmp(signature, "static TIC.fft(_,_)"                 ) == 0) return wren_fft;
+    if (strcmp(signature, "static TIC.ffts(_,_)"                ) == 0) return wren_ffts;
 
     // internal functions
     if (strcmp(signature, "static TIC.map_width__"              ) == 0) return wren_map_width;
