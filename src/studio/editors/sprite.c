@@ -1935,9 +1935,9 @@ static void processKeyboard(Sprite* sprite)
                     else if(keyWasPressed(sprite->studio, tic_key_2))       sprite->mode = SPRITE_PICK_MODE;
                     else if(keyWasPressed(sprite->studio, tic_key_3))       sprite->mode = SPRITE_SELECT_MODE;
                     else if(keyWasPressed(sprite->studio, tic_key_4))       sprite->mode = SPRITE_FILL_MODE;
-                    else if(keyWasPressed(sprite->studio, tic_key_5))       flipSpriteHorz(sprite);
-                    else if(keyWasPressed(sprite->studio, tic_key_6))       flipSpriteVert(sprite);
-                    else if(keyWasPressed(sprite->studio, tic_key_7))       rotateSprite(sprite);
+                    else if(keyWasPressed(sprite->studio, tic_key_5))       flipCanvasHorz(sprite);
+                    else if(keyWasPressed(sprite->studio, tic_key_6))       flipCanvasVert(sprite);
+                    else if(keyWasPressed(sprite->studio, tic_key_7))       rotateCanvas(sprite);
                     else if(keyWasPressed(sprite->studio, tic_key_8))       deleteSprite(sprite);              
                 }
             }
