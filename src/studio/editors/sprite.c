@@ -1938,7 +1938,7 @@ static void processKeyboard(Sprite* sprite)
                     else if(keyWasPressed(sprite->studio, tic_key_5))       flipCanvasHorz(sprite);
                     else if(keyWasPressed(sprite->studio, tic_key_6))       flipCanvasVert(sprite);
                     else if(keyWasPressed(sprite->studio, tic_key_7))       rotateCanvas(sprite);
-                    else if(keyWasPressed(sprite->studio, tic_key_8))       deleteSprite(sprite);              
+                    else if(keyWasPressed(sprite->studio, tic_key_8))       deleteCanvas(sprite);              
                 }
             }
             else
