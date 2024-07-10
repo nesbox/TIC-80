@@ -4270,7 +4270,10 @@ static void processKeyboard(Console* console)
         }
         else
         {
-            if(keyWasPressed(console->studio, tic_key_up)) onHistoryUp(console);
+            if(keyWasPressed(console->studio, tic_key_up)) {
+			    onClsCommand(console);
+			    onHistoryUp(console);
+            }
             else if(keyWasPressed(console->studio, tic_key_down)) onHistoryDown(console);
             else if(keyWasPressed(console->studio, tic_key_left))
             {
