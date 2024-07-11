@@ -2959,7 +2959,7 @@ static void processKeyboard(Code* code)
     bool usedKeybinding = true;
 
     // handle bookmarks
-    if(keyWasPressed(code->studio, tic_key_f10))
+    if(keyWasPressed(code->studio, tic_key_f7))
     {
         if(ctrl && shift)
         {
