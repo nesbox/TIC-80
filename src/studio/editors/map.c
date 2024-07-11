@@ -1214,23 +1214,29 @@ static void copyFromClipboard(Map* map)
     }
 }
 
+static inline bool keyWasPressedOnce(Map* map, s32 key)
+{
+    tic_mem* tic = map->tic;
+
+    return tic_api_keyp(tic, key, -1, -1);
+}
+
+// tic_api_key(tic,
+
 static void processKeyboard(Map* map)
 {
     tic_mem* tic = map->tic;
 
     if(isIdle(map))
     {
-        if(tic_api_key(tic, tic_key_shift))
+        if(!sheetVisible(map) && keyWasPressedOnce(map, tic_key_shift))
         {
-            if(!sheetVisible(map))
-            {
                 map->anim.movie = resetMovie(&map->anim.show);
-                map->sheet.keep = false;
-            }
+                map->sheet.keep = true;
         }
         else
         {
-            if(!map->sheet.keep && sheetVisible(map))
+            if(map->sheet.keep && sheetVisible(map) && keyWasPressedOnce(map, tic_key_shift))
                 map->anim.movie = resetMovie(&map->anim.hide);
         }
     }
