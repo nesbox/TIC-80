@@ -466,8 +466,6 @@ static void drawSheetReg(Map* map, s32 x, s32 y)
                 s32 rb = MAX(my, map->sheet.start.y);
 
                 map->sheet.rect = (tic_rect){rl, rt, rr-rl+1, rb-rt+1};
-
-                map->mode = MAP_DRAW_MODE;
             }
             else
             {
@@ -1220,8 +1218,6 @@ static inline bool keyWasPressedOnce(Map* map, s32 key)
 
     return tic_api_keyp(tic, key, -1, -1);
 }
-
-// tic_api_key(tic,
 
 static void processKeyboard(Map* map)
 {
