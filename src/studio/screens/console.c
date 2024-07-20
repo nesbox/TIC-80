@@ -4235,7 +4235,7 @@ static void processKeyboard(Console* console)
         switch(getClipboardEvent(console->studio))
         {
         case TIC_CLIPBOARD_COPY: copyToClipboard(console); break;
-        case TIC_CLIPBOARD_PASTE: copyFromClipboard(console); break;
+        case TIC_CLIPBOARD_PASTE: copyFromClipboard(console); scrollConsole(console); break;
         default: break;
         }
 
