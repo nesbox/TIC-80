@@ -95,6 +95,8 @@ class TIC {\n\
     foreign static line(x0, y0, x1, y1, color)\n\
     foreign static circ(x, y, radius, color)\n\
     foreign static circb(x, y, radius, color)\n\
+    foreign static elli(x, y, a, b, color)\n\
+    foreign static ellib(x, y, a, b, color)\n\
     foreign static rect(x, y, w, h, color)\n\
     foreign static rectb(x, y, w, h, color)\n\
     foreign static tri(x1, y1, x2, y2, x3, y3, color)\n\
@@ -1542,6 +1544,8 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     if (strcmp(signature, "static TIC.line(_,_,_,_,_)"          ) == 0) return wren_line;
     if (strcmp(signature, "static TIC.circ(_,_,_,_)"            ) == 0) return wren_circ;
     if (strcmp(signature, "static TIC.circb(_,_,_,_)"           ) == 0) return wren_circb;
+    if (strcmp(signature, "static TIC.elli(_,_,_,_,_)"          ) == 0) return wren_elli;
+    if (strcmp(signature, "static TIC.ellib(_,_,_,_,_)"         ) == 0) return wren_ellib;
     if (strcmp(signature, "static TIC.rect(_,_,_,_,_)"          ) == 0) return wren_rect;
     if (strcmp(signature, "static TIC.rectb(_,_,_,_,_)"         ) == 0) return wren_rectb;
     if (strcmp(signature, "static TIC.tri(_,_,_,_,_,_,_)"       ) == 0) return wren_tri;
@@ -1595,8 +1599,8 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     if (strcmp(signature, "static TIC.fget(_,_)"                ) == 0) return wren_fget;
     if (strcmp(signature, "static TIC.fset(_,_,_)"              ) == 0) return wren_fset;
 
-    if (strcmp(signature, "static TIC.fft(_)"                   ) == 0) return wren_fft;
-    if (strcmp(signature, "static TIC.ffts(_)"                  ) == 0) return wren_ffts;
+    if (strcmp(signature, "static TIC.fft(_,_)"                 ) == 0) return wren_fft;
+    if (strcmp(signature, "static TIC.ffts(_,_)"                ) == 0) return wren_ffts;
 
     // internal functions
     if (strcmp(signature, "static TIC.map_width__"              ) == 0) return wren_map_width;

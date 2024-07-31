@@ -4235,7 +4235,7 @@ static void processKeyboard(Console* console)
         switch(getClipboardEvent(console->studio))
         {
         case TIC_CLIPBOARD_COPY: copyToClipboard(console); break;
-        case TIC_CLIPBOARD_PASTE: copyFromClipboard(console); break;
+        case TIC_CLIPBOARD_PASTE: copyFromClipboard(console); scrollConsole(console); break;
         default: break;
         }
 
@@ -4270,7 +4270,10 @@ static void processKeyboard(Console* console)
         }
         else
         {
-            if(keyWasPressed(console->studio, tic_key_up)) onHistoryUp(console);
+            if(keyWasPressed(console->studio, tic_key_up)) {
+			    onHistoryUp(console);
+			    scrollConsole(console);
+            }
             else if(keyWasPressed(console->studio, tic_key_down)) onHistoryDown(console);
             else if(keyWasPressed(console->studio, tic_key_left))
             {
