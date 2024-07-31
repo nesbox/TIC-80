@@ -2,6 +2,7 @@
 
 This directory contains starter projects (and libs) for the compiled languages we support via `script: wasm`.  Currently this list includes:
 
+- Nim
 - Zig (low-level)
 - D (low-level)
 
@@ -11,7 +12,6 @@ We could easily support these as well, with contributor help:
 - C++
 - Go
 - Nelua
-- Nim
 - Odin
 - Rust
 - Wat
