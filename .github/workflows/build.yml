@@ -2,6 +2,10 @@ name: Build
 
 on: [push, pull_request]
 
+# as recommended by: https://github.com/actions/checkout/issues/1590
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+
 jobs:
   # === Windows XP ===
   winxp:
