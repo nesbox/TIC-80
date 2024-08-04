@@ -2334,16 +2334,13 @@ static void blitCursor(Studio* studio)
 
         tic_point hot = {0};
 
-        if(tic->ram->vram.vars.cursor.sprite)
+        bank = &getConfig(studio)->cart->bank0;
+        hot = (tic_point[])
         {
-            bank = &getConfig(studio)->cart->bank0;
-            hot = (tic_point[])
-            {
-                {0, 0},
-                {3, 0},
-                {2, 3},
-            }[CLAMP(sprite, 0, 2)];
-        }
+			{0, 0},
+            {3, 0},
+            {2, 3},
+        }[CLAMP(sprite, 0, 2)];
 
         const tic_palette* pal = &bank->palette.vbank0;
         const tic_tile* tile = &studio->config->cart->bank0.sprites.data[sprite];
