@@ -2344,7 +2344,6 @@ static void blitCursor(Studio* studio)
                 {2, 3},
             }[CLAMP(sprite, 0, 2)];
         }
-        else if(sprite == 0) return;
 
         const tic_palette* pal = &bank->palette.vbank0;
         const tic_tile* tile = &studio->config->cart->bank0.sprites.data[sprite];
