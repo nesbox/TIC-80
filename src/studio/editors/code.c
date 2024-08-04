@@ -2957,7 +2957,13 @@ static void processKeyboard(Code* code)
     }
 
     bool usedKeybinding = true;
-
+	
+	if(hasJustSwitchedToCodeMode(code->studio))
+	{
+		setJustSwitchedToCodeMode(code->studio, false);
+		return; // Skip processing other inputs for this frame
+	}
+	
     // handle bookmarks
     if(keyWasPressed(code->studio, tic_key_f1))
     {
@@ -3453,15 +3459,25 @@ static void drawSidebarBar(Code* code, s32 x, s32 y)
     char filter[STUDIO_TEXT_BUFFER_WIDTH];
     strncpy(filter, code->popup.text, sizeof(filter));
 
-    if(code->sidebar.size)
-    {
-        tic_api_rect(code->tic, rect.x - 1, rect.y + (code->sidebar.index - code->sidebar.scroll) * STUDIO_TEXT_HEIGHT,
-            rect.w + 1, TIC_FONT_HEIGHT + 2, tic_color_red);
+	if(code->sidebar.size)
+	{
+		tic_api_rect(code->tic, rect.x - 1, rect.y + (code->sidebar.index - code->sidebar.scroll) * STUDIO_TEXT_HEIGHT,
+			rect.w + 1, TIC_FONT_HEIGHT + 2, tic_color_red);
 
-        for(const tic_outline_item* ptr = code->sidebar.items, *end = ptr + code->sidebar.size; 
-            ptr != end; ptr++, y += STUDIO_TEXT_HEIGHT)
-            drawFilterMatch(code, x, y, ptr->pos, ptr->size, filter);
-    }
+		for(const tic_outline_item* ptr = code->sidebar.items, *end = ptr + code->sidebar.size; 
+			ptr != end; ptr++, y += STUDIO_TEXT_HEIGHT)
+		{
+			// find the first non-space character
+			const char* trimmed = ptr->pos;
+			while (*trimmed && isspace(*trimmed))
+				trimmed++;
+
+			// calculate the new size after trimming
+			size_t trimmed_size = ptr->size - (trimmed - ptr->pos);
+
+			drawFilterMatch(code, x, y, trimmed, trimmed_size, filter);
+		}
+	}
     else
     {
         if(code->shadowText)

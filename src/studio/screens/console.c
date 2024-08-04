@@ -2552,7 +2552,13 @@ static CartSaveResult saveCartName(Console* console, const char* name)
 
                             u32* ptr = img.values + PaddingTop * CoverWidth + PaddingLeft;
                             const u8* screen = tic->ram->vram.screen.data;
-                            const tic_rgb* pal = getConfig(console->studio)->cart->bank0.palette.vbank0.colors;
+							const tic_rgb Sweetie16[] = {
+								{0x1a, 0x1c, 0x2c}, {0x5d, 0x27, 0x5d}, {0xb1, 0x3e, 0x53}, {0xef, 0x7d, 0x57},
+								{0xff, 0xcd, 0x75}, {0xa7, 0xf0, 0x70}, {0x38, 0xb7, 0x64}, {0x25, 0x71, 0x79},
+								{0x29, 0x36, 0x6f}, {0x3b, 0x5d, 0xc9}, {0x41, 0xa6, 0xf6}, {0x73, 0xef, 0xf7},
+								{0xf4, 0xf4, 0xf4}, {0x94, 0xb0, 0xc2}, {0x56, 0x6c, 0x86}, {0x33, 0x3c, 0x57}
+							};
+							const tic_rgb* pal = Sweetie16;
 
                             for(s32 y = 0; y < Height; y++)
                                 for(s32 x = 0; x < Width; x++)
@@ -4235,7 +4241,7 @@ static void processKeyboard(Console* console)
         switch(getClipboardEvent(console->studio))
         {
         case TIC_CLIPBOARD_COPY: copyToClipboard(console); break;
-        case TIC_CLIPBOARD_PASTE: copyFromClipboard(console); break;
+        case TIC_CLIPBOARD_PASTE: copyFromClipboard(console); scrollConsole(console); break;
         default: break;
         }
 
@@ -4270,7 +4276,10 @@ static void processKeyboard(Console* console)
         }
         else
         {
-            if(keyWasPressed(console->studio, tic_key_up)) onHistoryUp(console);
+            if(keyWasPressed(console->studio, tic_key_up)) {
+			    onHistoryUp(console);
+			    scrollConsole(console);
+            }
             else if(keyWasPressed(console->studio, tic_key_down)) onHistoryDown(console);
             else if(keyWasPressed(console->studio, tic_key_left))
             {

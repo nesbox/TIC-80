@@ -1772,6 +1772,23 @@ static bool enterWasPressedOnce(Studio* studio)
 }
 
 #if defined(BUILD_EDITORS)
+// These three are to fix the f1 hotkey conflict 
+
+// Add a static variable in studio.c to track the mode switch
+static bool justSwitchedToCodeMode = false;
+
+void setJustSwitchedToCodeMode(Studio* studio, bool value)
+{
+    justSwitchedToCodeMode = value;
+}
+
+bool hasJustSwitchedToCodeMode(Studio* studio)
+{
+    return justSwitchedToCodeMode;
+}
+#endif
+
+#if defined(BUILD_EDITORS)
 
 static bool showGameMenu(Studio* studio)
 {
@@ -1890,7 +1907,14 @@ static void processShortcuts(Studio* studio)
 
         if(!showGameMenu(studio) || studio->mode != TIC_RUN_MODE)
         {
-            if(keyWasPressedOnce(studio, tic_key_f1)) setStudioMode(studio, TIC_CODE_MODE);
+			if(keyWasPressedOnce(studio, tic_key_f1))
+			{
+				if(studio->mode != TIC_CODE_MODE)
+				{
+					setStudioMode(studio, TIC_CODE_MODE);
+					setJustSwitchedToCodeMode(studio, true);
+				}
+			}
             else if(keyWasPressedOnce(studio, tic_key_f2)) setStudioMode(studio, TIC_SPRITE_MODE);
             else if(keyWasPressedOnce(studio, tic_key_f3)) setStudioMode(studio, TIC_MAP_MODE);
             else if(keyWasPressedOnce(studio, tic_key_f4)) setStudioMode(studio, TIC_SFX_MODE);
