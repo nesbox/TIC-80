@@ -2957,7 +2957,13 @@ static void processKeyboard(Code* code)
     }
 
     bool usedKeybinding = true;
-
+	
+	if(hasJustSwitchedToCodeMode(code->studio))
+	{
+		setJustSwitchedToCodeMode(code->studio, false);
+		return; // Skip processing other inputs for this frame
+	}
+	
     // handle bookmarks
     if(keyWasPressed(code->studio, tic_key_f1))
     {
