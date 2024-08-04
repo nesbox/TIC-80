@@ -2319,7 +2319,7 @@ static void blitCursor(Studio* studio)
         const tic_palette* pal = &bank->palette.vbank0;
         const tic_tile* tile = &studio->config->cart->bank0.sprites.data[sprite];
 
-        tic_point s = {m->x, m->y};
+        tic_point s = {m->x - 4, m->y - 4};
         u32* dst = tic->product.screen + TIC80_FULLWIDTH * s.y + s.x;
 
         for(s32 y = s.y, endy = MIN(y + TIC_SPRITESIZE, TIC80_FULLHEIGHT), i = 0; y != endy; ++y, dst += TIC80_FULLWIDTH - TIC_SPRITESIZE)
