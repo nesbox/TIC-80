@@ -258,6 +258,7 @@ typedef char FsString;
 #define tic_mkdir(name) mkdir(name, 0777)
 #define tic_strncpy strncpy
 #define tic_strncat strncat
+#define tic_strnlen strnlen
 
 #endif
 
