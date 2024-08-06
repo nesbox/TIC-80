@@ -402,7 +402,6 @@ void fs_enum(const char* path, fs_list_callback callback, void* data)
     freeString(pathString);
 #endif
 }
-}
 
 void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, void* data)
 {
