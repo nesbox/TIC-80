@@ -258,7 +258,6 @@ typedef char FsString;
 #define tic_mkdir(name) mkdir(name, 0777)
 #define tic_strncpy strncpy
 #define tic_strncat strncat
-#define tic_strlen strlen
 
 #endif
 
@@ -372,7 +371,7 @@ void fs_enum(const char* path, fs_list_callback callback, void* data)
 				tic_strncpy(fullPath, pathString, COUNT_OF(fullPath));
 
                 // Get the current length of fullPath
-                size_t fullPathLen = tic_strlen(fullPath);
+                size_t fullPathLen = strlen(fullPath);
 
                 // Calculate remaining space in fullPath
                 size_t remainingSpace = COUNT_OF(fullPath) - fullPathLen - 1;
