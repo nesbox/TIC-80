@@ -364,30 +364,30 @@ void fs_enum(const char* path, fs_list_callback callback, void* data)
         FsString fullPath[TICNAME_MAX];
         struct tic_stat_struct s;
         
-	    while ((ent = tic_readdir(dir)) != NULL) 
-        {
-		    if (*ent->d_name != _S('.')) 
-            {
-			    tic_strncpy(fullPath, pathString, COUNT_OF(fullPath));
+		while ((ent = tic_readdir(dir)) != NULL) 
+		{
+			if (*ent->d_name != _S('.')) 
+			{
+				tic_strncpy(fullPath, pathString, COUNT_OF(fullPath));
 
-			    // Calculate available space in fullPath
-			    size_t available_space = COUNT_OF(fullPath) - strlen(fullPath) - 1;
+                // Get the current length of fullPath
+                size_t fullPathLen = tic_strlen(fullPath);
 
-			    // Safely append ent->d_name
-			    tic_strncat(fullPath, ent->d_name, available_space); 
+                // Calculate remaining space in fullPath
+                size_t remainingSpace = COUNT_OF(fullPath) - fullPathLen - 1;
 
-			    // Recalculate available space
-			    available_space = COUNT_OF(fullPath) - strlen(fullPath) - 1; 
+                // Safely append ent->d_name to fullPath
+                tic_strncat(fullPath, ent->d_name, remainingSpace);
 
-                if(tic_stat(fullPath, &s) == 0)
-                {
-                    const char* name = stringToUtf8(ent->d_name);
-                    bool result = callback(name, NULL, NULL, 0, data, S_ISDIR(s.st_mode));
-                    freeString(name);
+				if(tic_stat(fullPath, &s) == 0)
+				{
+					const char* name = stringToUtf8(ent->d_name);
+					bool result = callback(name, NULL, NULL, 0, data, S_ISDIR(s.st_mode));
+					freeString(name);
 
-                    if(!result) break;
-                }
-            }
+					if(!result) break;
+				}
+			}
         }
 
         tic_closedir(dir);
@@ -497,22 +497,27 @@ void tic_fs_dir(tic_fs* fs, char* dir)
     strncpy(dir, fs->work, TICNAME_MAX);
 }
 
-void tic_fs_changedir(tic_fs* fs, const char* dir) {
-    // Calculate available space
-    size_t available_space = sizeof(fs->work) - strlen(fs->work) - 1;
+void tic_fs_changedir(tic_fs* fs, const char* dir)
+{
+    size_t workLen = strlen(fs->work);
+    size_t remainingSpace = TICNAME_MAX - workLen - 1;
 
-    if (strlen(fs->work) > 0) {
-        strncat(fs->work, "/", available_space);
-        // Recalculate after appending "/"
-        available_space = sizeof(fs->work) - strlen(fs->work) - 1;
+    // If work directory is not empty, add a slash
+    if (workLen > 0 && remainingSpace > 0)
+    {
+        strncat(fs->work, "/", remainingSpace);
+        remainingSpace--;
     }
 
-    strncat(fs->work, dir, available_space);
+    // Safely append the new directory
+    strncat(fs->work, dir, remainingSpace);
 
 #if defined(__TIC_WINDOWS__)
-    for (char *ptr = fs->work, *end = ptr + strlen(ptr); ptr < end; ptr++)
+    for (char *ptr = fs->work, *end = ptr + strlen(fs->work); ptr < end; ptr++)
+    {
         if (*ptr == SLASH_SYMBOL)
             *ptr = '/';
+    }
 #endif
 }
 
