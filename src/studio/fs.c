@@ -364,30 +364,36 @@ void fs_enum(const char* path, fs_list_callback callback, void* data)
         FsString fullPath[TICNAME_MAX];
         struct tic_stat_struct s;
         
-		while ((ent = tic_readdir(dir)) != NULL) 
-		{
-			if (*ent->d_name != _S('.')) 
-			{
-				tic_strncpy(fullPath, pathString, COUNT_OF(fullPath));
+        while ((ent = tic_readdir(dir)) != NULL) 
+        {
+            if (*ent->d_name != _S('.')) 
+            {
+                tic_strncpy(fullPath, pathString, COUNT_OF(fullPath));
 
+                // Convert FsString to const char* before using strlen
+                const char* fullPathCStr = stringToUtf8(fullPath);
+                
                 // Get the current length of fullPath
-                size_t fullPathLen = strlen(fullPath);
-
+                size_t fullPathLen = strlen(fullPathCStr);
+                
                 // Calculate remaining space in fullPath
                 size_t remainingSpace = COUNT_OF(fullPath) - fullPathLen - 1;
 
                 // Safely append ent->d_name to fullPath
                 tic_strncat(fullPath, ent->d_name, remainingSpace);
 
-				if(tic_stat(fullPath, &s) == 0)
-				{
-					const char* name = stringToUtf8(ent->d_name);
-					bool result = callback(name, NULL, NULL, 0, data, S_ISDIR(s.st_mode));
-					freeString(name);
+                if(tic_stat(fullPath, &s) == 0)
+                {
+                    const char* name = stringToUtf8(ent->d_name);
+                    bool result = callback(name, NULL, NULL, 0, data, S_ISDIR(s.st_mode));
+                    freeString(name);
 
-					if(!result) break;
-				}
-			}
+                    if(!result) break;
+                }
+
+                // Free the converted string
+                freeString(fullPathCStr);
+            }
         }
 
         tic_closedir(dir);
@@ -395,6 +401,7 @@ void fs_enum(const char* path, fs_list_callback callback, void* data)
 
     freeString(pathString);
 #endif
+}
 }
 
 void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, void* data)
