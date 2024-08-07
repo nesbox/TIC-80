@@ -498,16 +498,22 @@ void tic_fs_dir(tic_fs* fs, char* dir)
 
 void tic_fs_changedir(tic_fs* fs, const char* dir)
 {
-    if (strlen(fs->work)) {
-        snprintf(fs->work, TICNAME_MAX+1, "%s/%s", fs->work, dir);
+    char temp[TICNAME_MAX];
+
+    if (strlen(fs->work) > 0) {
+        snprintf(temp, TICNAME_MAX+1, "%s/%s", fs->work, dir);
     } else {
-        snprintf(fs->work, TICNAME_MAX, "%s", dir);
+        snprintf(temp, TICNAME_MAX, "%s", dir);
     }
 
+    strncpy(fs->work, temp, TICNAME_MAX - 1);
+
 #if defined(__TIC_WINDOWS__)
-    for(char *ptr = fs->work, *end = ptr + strlen(ptr); ptr < end; ptr++)
-        if(*ptr == SLASH_SYMBOL)
+    for (char *ptr = fs->work, *end = ptr + strlen(ptr); ptr < end; ptr++) {
+        if (*ptr == SLASH_SYMBOL) {
             *ptr = '/';
+        }
+    }
 #endif
 }
 
