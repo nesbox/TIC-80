@@ -370,9 +370,13 @@ void fs_enum(const char* path, fs_list_callback callback, void* data)
         {
             if(*ent->d_name != _S('.'))
             {
-                tic_strncat(fullPath, pathString, TICNAME_MAX - strlen(fullPath) - 1);
-                tic_strncat(fullPath, "/", TICNAME_MAX - tic_strlen(fullPath) - 1);
-                tic_strncat(fullPath, ent->d_name, TICNAME_MAX - strlen(fullPath) - 1);
+				size_t pathLen = tic_strlen(pathString);
+				size_t nameLen = tic_strlen(ent->d_name);
+
+				if (pathLen + nameLen < COUNT_OF(fullPath)) {
+					tic_strncpy(fullPath, pathString, COUNT_OF(fullPath));
+					tic_strncat(fullPath, ent->d_name, COUNT_OF(fullPath) - pathLen - 1);
+				}
 
                 if(tic_stat(fullPath, &s) == 0)
                 {
