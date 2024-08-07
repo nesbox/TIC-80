@@ -232,7 +232,6 @@ static int _wstat_win32_shim(const wchar_t* path, struct _stat* buffer)
 #define tic_mkdir(name) _wmkdir(name)
 #define tic_strncpy wcsncpy
 #define tic_strncat wcsncat
-#define tic_snprintf snwprintf
 
 #else
 
@@ -259,7 +258,6 @@ typedef char FsString;
 #define tic_mkdir(name) mkdir(name, 0777)
 #define tic_strncpy strncpy
 #define tic_strncat strncat
-#define tic_snprintf snprintf
 
 #endif
 
@@ -363,14 +361,16 @@ void fs_enum(const char* path, fs_list_callback callback, void* data)
 
     if ((dir = tic_opendir(pathString)) != NULL)
     {
-        FsString fullPath[TICNAME_MAX];
+        FsString fullPath[TICNAME_MAX] = {0};
         struct tic_stat_struct s;
 
         while ((ent = tic_readdir(dir)) != NULL)
         {
             if(*ent->d_name != _S('.'))
             {
-                tic_snprintf(fullPath, TICNAME_MAX+1, "%ls/%s", pathString, ent->d_name);
+                tic_strncat(fullPath, pathString, TICNAME_MAX - strlen(fullPath) - 1);
+                tic_strncat(fullPath, "/", TICNAME_MAX - strlen(fullPath) - 1);
+                tic_strncat(fullPath, ent->d_name, TICNAME_MAX - strlen(fullPath) - 1);
 
                 if(tic_stat(fullPath, &s) == 0)
                 {
@@ -388,6 +388,7 @@ void fs_enum(const char* path, fs_list_callback callback, void* data)
 
     freeString(pathString);
 #endif
+
 }
 
 void tic_fs_enum(tic_fs* fs, fs_list_callback onItem, fs_done_callback onDone, void* data)
