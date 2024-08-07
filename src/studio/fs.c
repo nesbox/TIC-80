@@ -232,6 +232,7 @@ static int _wstat_win32_shim(const wchar_t* path, struct _stat* buffer)
 #define tic_mkdir(name) _wmkdir(name)
 #define tic_strncpy wcsncpy
 #define tic_strncat wcsncat
+#define tic_snprintf snwprintf
 
 #else
 
@@ -258,6 +259,7 @@ typedef char FsString;
 #define tic_mkdir(name) mkdir(name, 0777)
 #define tic_strncpy strncpy
 #define tic_strncat strncat
+#define tic_snprintf snprintf
 
 #endif
 
@@ -368,7 +370,7 @@ void fs_enum(const char* path, fs_list_callback callback, void* data)
         {
             if(*ent->d_name != _S('.'))
             {
-                snprintf(fullPath, TICNAME_MAX+1, "%s/%s", pathString, ent->d_name);
+                tic_snprintf(fullPath, TICNAME_MAX+1, "%s/%s", pathString, ent->d_name);
 
                 if(tic_stat(fullPath, &s) == 0)
                 {
