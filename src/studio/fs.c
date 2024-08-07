@@ -361,7 +361,7 @@ void fs_enum(const char* path, fs_list_callback callback, void* data)
 
     if ((dir = tic_opendir(pathString)) != NULL)
     {
-        char fullPath[TICNAME_MAX];
+        FsString fullPath[TICNAME_MAX];
         struct tic_stat_struct s;
 
         while ((ent = tic_readdir(dir)) != NULL)
