@@ -509,11 +509,9 @@ void tic_fs_changedir(tic_fs* fs, const char* dir)
     strncpy(fs->work, temp, TICNAME_MAX - 1);
 
 #if defined(__TIC_WINDOWS__)
-    for (char *ptr = fs->work, *end = ptr + strlen(ptr); ptr < end; ptr++) {
-        if (*ptr == SLASH_SYMBOL) {
+    for(char *ptr = fs->work, *end = ptr + strlen(ptr); ptr < end; ptr++)
+        if(*ptr == SLASH_SYMBOL)
             *ptr = '/';
-        }
-    }
 #endif
 }
 
