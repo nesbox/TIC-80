@@ -248,8 +248,8 @@ static void saveOptions(Config* config)
 {
     const struct StudioOptions* options = &config->data.options;
 
-    string buf;
-    sprintf(buf.data, JSON(
+    char buf[1184];
+    snprintf(buf, sizeof(buf), JSON(
         {
 #if defined(CRT_SHADER_SUPPORT)
             "crt":%s,
@@ -286,8 +286,9 @@ static void saveOptions(Config* config)
 #endif
         );
 
-    tic_fs_saveroot(config->fs, OptionsJsonPath, buf.data, strlen(buf.data), true);
+    tic_fs_saveroot(config->fs, OptionsJsonPath, buf, strlen(buf), true);
 }
+
 
 void freeConfig(Config* config)
 {
