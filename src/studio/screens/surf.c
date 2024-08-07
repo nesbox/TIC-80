@@ -474,9 +474,10 @@ static void onGoBackDirDone(void* data)
         {
             char path[TICNAME_MAX];
 
-            if(strlen(current))
-                sprintf(path, "%s/%s", current, item->name);
-            else strcpy(path, item->name);
+			if (strlen(current))
+				snprintf(path, TICNAME_MAX + 1, "%s/%s", current, item->name);
+			else
+				strncpy(path, item->name, TICNAME_MAX - 1);
 
             if(strcmp(path, goBackDirDoneData->last) == 0)
             {
