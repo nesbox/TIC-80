@@ -248,7 +248,7 @@ static void saveOptions(Config* config)
 {
     const struct StudioOptions* options = &config->data.options;
 
-    char buf[1184];
+    char buf[2048];
     snprintf(buf, sizeof(buf), JSON(
         {
 #if defined(CRT_SHADER_SUPPORT)
