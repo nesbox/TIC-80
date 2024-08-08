@@ -252,7 +252,7 @@ static void drawSwitch(Music* music, s32 x, s32 y, const char* label, s32 value,
             }
         }
 
-        char val[sizeof "999"];
+        char val[16];
         sprintf(val, "%02i", value);
         tic_api_print(tic, val, x, y+1, tic_color_black, true, 1, false);
         tic_api_print(tic, val, x, y, tic_color_yellow, true, 1, false);
@@ -1685,7 +1685,7 @@ static void drawTrackerFrames(Music* music, s32 x, s32 y)
             drawBitIcon(music->studio, tic_icon_right, x - TIC_FONT_WIDTH-2, y - 1 + i*TIC_FONT_HEIGHT, tic_color_white);
         }
 
-        char buf[sizeof "99"];
+        char buf[16];
         sprintf(buf, "%02i", i);
 
         tic_api_print(music->tic, buf, x, y + i*TIC_FONT_HEIGHT, i == music->frame ? tic_color_white : tic_color_grey, true, 1, false);
@@ -1693,7 +1693,7 @@ static void drawTrackerFrames(Music* music, s32 x, s32 y)
 
     if(music->tracker.edit.y >= 0)
     {
-        char buf[sizeof "99"];
+        char buf[16];
         sprintf(buf, "%02i", music->tracker.edit.y);
         tic_api_print(music->tic, buf, x, y - 11, tic_color_black, true, 1, false);
         tic_api_print(music->tic, buf, x, y - 12, tic_color_white, true, 1, false);

@@ -84,8 +84,8 @@
 #define SHOW_TOOLTIP(STUDIO, FORMAT, ...)   \
 do{                                         \
     static const char Format[] = FORMAT;    \
-    static char buf[sizeof Format];         \
-    sprintf(buf, Format, __VA_ARGS__);      \
+    static char buf[32];                    \
+    snprintf(buf, sizeof(buf), Format, __VA_ARGS__); \
     showTooltip(STUDIO, buf);               \
 }while(0)
 
