@@ -140,11 +140,11 @@ static void drawStatus(Code* code)
         tic_api_rect(code->tic, 0, TIC80_HEIGHT - Height, TIC80_WIDTH, Height, getCodeColor(code));
         if(!bb->battle.hidetime)
         {
-            sprintf(code->status.size, "%i/%i", (u32)strlen(code->src), bb->limit.current);
+            snprintf(code->status.size, sizeof(code->status.size), "%i/%i", (u32)strlen(code->src), bb->limit.current);
 
-            char buf[sizeof "00:00"];
+            char buf[32];
             s32 sec = bb->battle.left / 1000;
-            sprintf(buf, "%02i:%02i", sec / 60, sec % 60);
+            snprintf(buf, sizeof(buf), "%02i:%02i", sec / 60, sec % 60);
 
             tic_api_print(code->tic, buf, (TIC80_WIDTH - sizeof "00:00" * TIC_FONT_WIDTH) / 2,
                 StatusY, getConfig(code->studio)->theme.code.BG, true, 1, false);
@@ -509,10 +509,16 @@ static void updateEditor(Code* code)
 
     code->cursor.delay = TEXT_CURSOR_DELAY;
 
-    sprintf(code->status.line, "line %i/%i col %i", line + 1, getLinesCount(code) + 1, column + 1);
+    char statusLineBuffer[64];
+    snprintf(statusLineBuffer, sizeof(statusLineBuffer), "line %i/%i col %i", line + 1, getLinesCount(code) + 1, column + 1);
+    strncpy(code->status.line, statusLineBuffer, sizeof(code->status.line) - 1);
+
     {
         s32 codeLen = strlen(code->src);
-        sprintf(code->status.size, "size %i/%i", codeLen, MAX_CODE);
+        char statusSizeBuffer[32];
+        snprintf(statusSizeBuffer, sizeof(statusSizeBuffer), "size %i/%i", codeLen, MAX_CODE);
+        strncpy(code->status.size, statusSizeBuffer, sizeof(code->status.size) - 1);
+
         code->status.color = codeLen > MAX_CODE ? tic_color_red : tic_color_white;
     }
 }
