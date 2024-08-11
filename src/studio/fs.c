@@ -98,7 +98,7 @@ const char* tic_fs_pathroot(tic_fs* fs, const char* name)
 
 const char* tic_fs_path(tic_fs* fs, const char* name)
 {
-    static char path[TICNAME_MAX];
+    static char path[TICNAME_MAX+1];
 
     if(*name == '/')
         strncpy(path, name + 1, sizeof path);
@@ -232,6 +232,7 @@ static int _wstat_win32_shim(const wchar_t* path, struct _stat* buffer)
 #define tic_mkdir(name) _wmkdir(name)
 #define tic_strncpy wcsncpy
 #define tic_strncat wcsncat
+#define tic_strlen wcslen
 
 #else
 
@@ -258,6 +259,7 @@ typedef char FsString;
 #define tic_mkdir(name) mkdir(name, 0777)
 #define tic_strncpy strncpy
 #define tic_strncat strncat
+#define tic_strlen strlen
 
 #endif
 
@@ -361,15 +363,20 @@ void fs_enum(const char* path, fs_list_callback callback, void* data)
 
     if ((dir = tic_opendir(pathString)) != NULL)
     {
-        FsString fullPath[TICNAME_MAX];
+        FsString fullPath[TICNAME_MAX] = {0};
         struct tic_stat_struct s;
-        
+
         while ((ent = tic_readdir(dir)) != NULL)
         {
             if(*ent->d_name != _S('.'))
             {
-                tic_strncpy(fullPath, pathString, COUNT_OF(fullPath));
-                tic_strncat(fullPath, ent->d_name, COUNT_OF(fullPath) - 1);
+				size_t pathLen = tic_strlen(pathString);
+				size_t nameLen = tic_strlen(ent->d_name);
+
+				if (pathLen + nameLen < COUNT_OF(fullPath)) {
+					tic_strncpy(fullPath, pathString, COUNT_OF(fullPath));
+					tic_strncat(fullPath, ent->d_name, COUNT_OF(fullPath) - pathLen - 1);
+				}
 
                 if(tic_stat(fullPath, &s) == 0)
                 {
@@ -486,15 +493,20 @@ void tic_fs_dirback(tic_fs* fs)
 
 void tic_fs_dir(tic_fs* fs, char* dir)
 {
-    strncpy(dir, fs->work, TICNAME_MAX);
+	snprintf(dir, TICNAME_MAX, "%s", fs->work);
 }
 
 void tic_fs_changedir(tic_fs* fs, const char* dir)
 {
-    if(strlen(fs->work))
-        strncat(fs->work, "/", TICNAME_MAX);
-                
-    strcat(fs->work, dir);
+    char temp[TICNAME_MAX];
+
+    if (strlen(fs->work) > 0) {
+        snprintf(temp, TICNAME_MAX+1, "%s/%s", fs->work, dir);
+    } else {
+        snprintf(temp, TICNAME_MAX, "%s", dir);
+    }
+
+    strncpy(fs->work, temp, TICNAME_MAX - 1);
 
 #if defined(__TIC_WINDOWS__)
     for(char *ptr = fs->work, *end = ptr + strlen(ptr); ptr < end; ptr++)
