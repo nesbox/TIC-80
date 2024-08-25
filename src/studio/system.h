@@ -152,6 +152,7 @@ typedef struct
     int fft;
     int fftcaptureplaybackdevices;
     const char *fftdevice;
+
 } StudioConfig;
 
 typedef struct Studio Studio;
@@ -167,7 +168,7 @@ void studio_exit(Studio* studio);
 void studio_delete(Studio* studio);
 const StudioConfig* studio_config(Studio* studio);
 
-Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* appFolder, s32 maxscale);
+Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* appFolder, s32 maxscale, bool isFrenchKeyboard);
 
 #ifdef __cplusplus
 }
