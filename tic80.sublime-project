@@ -21,10 +21,6 @@
                     "shell_cmd": "cd ${project_path}/build && cmake -DBUILD_STATIC=OFF .."
                 },
                 {
-                    "name": "BUILD_SOKOL=ON",
-                    "shell_cmd": "cd ${project_path}/build && cmake -DBUILD_SOKOL=ON .."
-                },
-                {
                     "name": "BUILD_PRO=ON",
                     "shell_cmd": "cd ${project_path}/build && cmake -DBUILD_PRO=ON .."
                 },

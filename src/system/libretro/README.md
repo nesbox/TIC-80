@@ -11,7 +11,7 @@ git clone https://github.com/nesbox/TIC-80.git
 cd TIC-80
 git submodule update --init --recursive
 cd build
-cmake .. -DBUILD_PLAYER=OFF -DBUILD_SOKOL=OFF -DBUILD_SDL=OFF -DBUILD_TOOLS=OFF -DBUILD_LIBRETRO=ON
+cmake .. -DBUILD_PLAYER=OFF -DBUILD_SDL=OFF -DBUILD_TOOLS=OFF -DBUILD_LIBRETRO=ON
 make
 ```
 
