@@ -153,6 +153,8 @@ typedef struct
     int fftcaptureplaybackdevices;
     const char *fftdevice;
 
+    bool isFrenchKeyboard;
+
 } StudioConfig;
 
 typedef struct Studio Studio;
@@ -163,6 +165,7 @@ const tic_mem* studio_mem(Studio* studio);
 void studio_tick(Studio* studio, tic80_input input);
 void studio_sound(Studio* studio);
 void studio_load(Studio* studio, const char* file);
+void studio_keymapchanged(Studio *studio, bool isFrenchKeyboard);
 bool studio_alive(Studio* studio);
 void studio_exit(Studio* studio);
 void studio_delete(Studio* studio);

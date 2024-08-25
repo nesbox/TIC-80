@@ -214,7 +214,6 @@ struct Studio
     tic_net* net;
 
     Bytebattle bytebattle;
-    bool isFrenchKeyboard;
 
 #endif
 
@@ -1817,7 +1816,7 @@ static void processShortcuts(Studio* studio)
 
     bool alt = tic_api_key(tic, tic_key_alt);
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
-    bool isFrenchKeyboard = studio->isFrenchKeyboard;
+    bool isFrenchKeyboard = studio->config->data.isFrenchKeyboard;
 
 #if defined(CRT_SHADER_SUPPORT)
     if(keyWasPressedOnce(studio, tic_key_f6)) switchCrtMonitor(studio);
@@ -1829,7 +1828,6 @@ static void processShortcuts(Studio* studio)
 #if defined(BUILD_EDITORS)
         else if(studio->mode != TIC_RUN_MODE && !isFrenchKeyboard)
         {
-            printf("We are in here even though the keyboard is not french\n");
             if(keyWasPressedOnce(studio, tic_key_grave)) setStudioMode(studio, TIC_CONSOLE_MODE);
             else if(keyWasPressedOnce(studio, tic_key_1)) setStudioMode(studio, TIC_CODE_MODE);
             else if(keyWasPressedOnce(studio, tic_key_2)) setStudioMode(studio, TIC_SPRITE_MODE);
@@ -2655,6 +2653,12 @@ static void setPopupHide(void* data)
 
 #endif
 
+void studio_keymapchanged(Studio* studio, bool isFrenchKeyboard)
+{
+    studio->config->data.isFrenchKeyboard = isFrenchKeyboard;
+    printf("Keyboard layout change detected, isFrenchKeyboard: %d\n", isFrenchKeyboard);
+}
+
 bool studio_alive(Studio* studio)
 {
     return studio->alive;
@@ -2740,7 +2744,6 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         .net = tic_net_create(TIC_WEBSITE),
 
         .bytebattle = {0},
-        .isFrenchKeyboard = isFrenchKeyboard,
 #endif
         .tic = tic_core_create(samplerate, format),
     };
@@ -2861,6 +2864,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     studio->config->data.fft = args.fft;
     studio->config->data.fftcaptureplaybackdevices = args.fftcaptureplaybackdevices;
     studio->config->data.fftdevice = args.fftdevice;
+    studio->config->data.isFrenchKeyboard = isFrenchKeyboard;
 #endif
 
     studioConfigChanged(studio);
