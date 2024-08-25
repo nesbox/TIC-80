@@ -1816,7 +1816,6 @@ static void processShortcuts(Studio* studio)
 
     bool alt = tic_api_key(tic, tic_key_alt);
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
-    bool isFrenchKeyboard = studio->config->data.isFrenchKeyboard;
 
 #if defined(CRT_SHADER_SUPPORT)
     if(keyWasPressedOnce(studio, tic_key_f6)) switchCrtMonitor(studio);
@@ -1826,7 +1825,7 @@ static void processShortcuts(Studio* studio)
     {
         if (enterWasPressedOnce(studio)) gotoFullscreen(studio);
 #if defined(BUILD_EDITORS)
-        else if(studio->mode != TIC_RUN_MODE && !isFrenchKeyboard)
+        else if(studio->mode != TIC_RUN_MODE && strcmp(studio->config->data.keyboardLayout, "azerty") != 0)
         {
             if(keyWasPressedOnce(studio, tic_key_grave)) setStudioMode(studio, TIC_CONSOLE_MODE);
             else if(keyWasPressedOnce(studio, tic_key_1)) setStudioMode(studio, TIC_CODE_MODE);
@@ -2653,10 +2652,9 @@ static void setPopupHide(void* data)
 
 #endif
 
-void studio_keymapchanged(Studio* studio, bool isFrenchKeyboard)
+void studio_keymapchanged(Studio* studio, char* keyboardLayout)
 {
-    studio->config->data.isFrenchKeyboard = isFrenchKeyboard;
-    printf("Keyboard layout change detected, isFrenchKeyboard: %d\n", isFrenchKeyboard);
+    studio->config->data.keyboardLayout = keyboardLayout;
 }
 
 bool studio_alive(Studio* studio)
@@ -2690,7 +2688,7 @@ static bool onEnumModule(const char* name, const char* title, const char* hash, 
 }
 #endif
 
-Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* folder, s32 maxscale, bool isFrenchKeyboard)
+Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* folder, s32 maxscale, char* keyboardLayout)
 {
     setbuf(stdout, NULL);
 
@@ -2864,7 +2862,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     studio->config->data.fft = args.fft;
     studio->config->data.fftcaptureplaybackdevices = args.fftcaptureplaybackdevices;
     studio->config->data.fftdevice = args.fftdevice;
-    studio->config->data.isFrenchKeyboard = isFrenchKeyboard;
+    studio->config->data.keyboardLayout = keyboardLayout;
 #endif
 
     studioConfigChanged(studio);
