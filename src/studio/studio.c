@@ -214,6 +214,7 @@ struct Studio
     tic_net* net;
 
     Bytebattle bytebattle;
+    bool isFrenchKeyboard;
 
 #endif
 
@@ -1816,6 +1817,7 @@ static void processShortcuts(Studio* studio)
 
     bool alt = tic_api_key(tic, tic_key_alt);
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
+    bool isFrenchKeyboard = studio->isFrenchKeyboard;
 
 #if defined(CRT_SHADER_SUPPORT)
     if(keyWasPressedOnce(studio, tic_key_f6)) switchCrtMonitor(studio);
@@ -1825,8 +1827,9 @@ static void processShortcuts(Studio* studio)
     {
         if (enterWasPressedOnce(studio)) gotoFullscreen(studio);
 #if defined(BUILD_EDITORS)
-        else if(studio->mode != TIC_RUN_MODE)
+        else if(studio->mode != TIC_RUN_MODE && !isFrenchKeyboard)
         {
+            printf("We are in here even though the keyboard is not french\n");
             if(keyWasPressedOnce(studio, tic_key_grave)) setStudioMode(studio, TIC_CONSOLE_MODE);
             else if(keyWasPressedOnce(studio, tic_key_1)) setStudioMode(studio, TIC_CODE_MODE);
             else if(keyWasPressedOnce(studio, tic_key_2)) setStudioMode(studio, TIC_SPRITE_MODE);
@@ -2683,7 +2686,7 @@ static bool onEnumModule(const char* name, const char* title, const char* hash, 
 }
 #endif
 
-Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* folder, s32 maxscale)
+Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* folder, s32 maxscale, bool isFrenchKeyboard)
 {
     setbuf(stdout, NULL);
 
@@ -2737,6 +2740,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         .net = tic_net_create(TIC_WEBSITE),
 
         .bytebattle = {0},
+        .isFrenchKeyboard = isFrenchKeyboard,
 #endif
         .tic = tic_core_create(samplerate, format),
     };

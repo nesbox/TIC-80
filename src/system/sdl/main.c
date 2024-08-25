@@ -1870,6 +1870,20 @@ s32 determineMaximumScale()
     }
 }
 
+bool is_french_keyboard() {
+    SDL_Scancode scancode = SDL_SCANCODE_A;
+    SDL_Keycode key = SDL_GetKeyFromScancode(scancode);
+
+    // On a French AZERTY layout, SDL_SCANCODE_A should map to SDLK_q
+    // On a QWERTY layout, it maps to SDLK_a
+    if (key == SDLK_q) {
+        printf("French keyboard detected.\n");
+    } else {
+        printf("French keyboard not detected.\n");
+    }
+    return (key == SDLK_q);
+}
+
 static s32 start(s32 argc, char **argv, const char* folder)
 {
 #if defined(__MACOSX__)
@@ -1894,7 +1908,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
         SDL_Log("Unable to initialize SDL Game Controller: %i, %s\n", result, SDL_GetError());
     }
 
-    platform.studio = studio_create(argc, argv, TIC80_SAMPLERATE, SCREEN_FORMAT, folder, determineMaximumScale());
+    platform.studio = studio_create(argc, argv, TIC80_SAMPLERATE, SCREEN_FORMAT, folder, determineMaximumScale(), is_french_keyboard());
 
     SCOPE(studio_delete(platform.studio))
     {
