@@ -318,9 +318,9 @@ static int py_font(pkpy_vm* vm)
     pkpy_to_string(vm, 0, &text);
     pkpy_to_int(vm, 1, &x);
     pkpy_to_int(vm, 2, &y);
-    pkpy_to_int(vm, 3, &width);
-    pkpy_to_int(vm, 4, &height);
-    pkpy_to_int(vm, 5, &chromakey_raw);
+    pkpy_to_int(vm, 3, &chromakey_raw);
+    pkpy_to_int(vm, 4, &width);
+    pkpy_to_int(vm, 5, &height);
     pkpy_to_bool(vm, 6, &fixed);
     pkpy_to_int(vm, 7, &scale);
     pkpy_to_bool(vm, 8, &alt);
@@ -332,13 +332,13 @@ static int py_font(pkpy_vm* vm)
     if (scale == 0) 
     {
         pkpy_push_int(vm, 0);
+        return 1;
     } 
-    else 
-    {
-        u8 chromakey = (u8) chromakey_raw;
-        s32 size = core->api.font(tic, text, x, y, &chromakey, 1, width, height, fixed, scale, alt);
-        pkpy_push_int(vm, size);
-    }
+    
+    u8 chromakey = (u8) chromakey_raw;
+
+    s32 size = core->api.font(tic, text, x, y, &chromakey, 1, width, height, fixed, scale, alt);
+    pkpy_push_int(vm, size);
 
     return 1;
 }
