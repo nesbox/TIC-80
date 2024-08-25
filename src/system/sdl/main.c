@@ -1062,7 +1062,8 @@ static void handleKeydown(SDL_Keycode keycode, bool down, bool* state, bool* pre
 #endif
 }
 
-char* detect_keyboard_layout() {
+char* detect_keyboard_layout() 
+{
     char q = SDL_GetKeyFromScancode(SDL_SCANCODE_Q);
     char w = SDL_GetKeyFromScancode(SDL_SCANCODE_W);
     char y = SDL_GetKeyFromScancode(SDL_SCANCODE_Y);
