@@ -6,10 +6,14 @@ PRO=false
 DEBUG=false
 MACPORTS=false
 HOMEBREW=false
+STATIC=false
+WARNINGS=false
 BUILD_TYPE="MinSizeRel"
 COMPILER_FLAGS=""
 DEBUG_FLAGS=""
 PRO_VERSION_FLAG=""
+STATIC_FLAG=""
+WARNING_FLAGS="-Wall -Wextra"
 
 while (( "$#" )); do
   case "$1" in
@@ -35,6 +39,14 @@ while (( "$#" )); do
       ;;
     -h|--homebrew)
       HOMEBREW=true
+      shift
+      ;;
+    -s|--static)
+      STATIC=true
+      shift
+      ;;
+    -w|--warnings)
+      WARNINGS=true
       shift
       ;;
     --)
@@ -102,6 +114,14 @@ if [ "$HOMEBREW" = true ]; then
   echo "Using clang at $(which clang) and clang++ at $(which clang++) from Homebrew"
 fi
 
+if [ "$STATIC" = true ]; then
+  STATIC_FLAG="-DBUILD_STATIC=On"
+fi
+
+if [ "$WARNINGS" = true ]; then
+  COMPILER_FLAGS="$COMPILER_FLAGS -DCMAKE_C_FLAGS=$WARNING_FLAGS -DCMAKE_CXX_FLAGS=$WARNING_FLAGS"
+fi
+
 echo
 echo "+--------------------------------+-------+"
 echo "|         Build Options          | Value |"
@@ -112,6 +132,8 @@ echo "| Pro version (-p, --pro)        | $(printf "%-5s" $([ "$PRO" = true ] && 
 echo "| Debug build (-d, --debug)      | $(printf "%-5s" $([ "$DEBUG" = true ] && echo "Yes" || echo "No")) |"
 echo "| MacPorts (-m, --macports)      | $(printf "%-5s" $([ "$MACPORTS" = true ] && echo "Yes" || echo "No")) |"
 echo "| Homebrew (-h, --homebrew)      | $(printf "%-5s" $([ "$HOMEBREW" = true ] && echo "Yes" || echo "No")) |"
+echo "| Static build (-s, --static)    | $(printf "%-5s" $([ "$STATIC" = true ] && echo "Yes" || echo "No")) |"
+echo "| Warnings (-w, --warnings)      | $(printf "%-5s" $([ "$WARNINGS" = true ] && echo "Yes" || echo "No")) |"
 echo "+--------------------------------+-------+"
 echo
 
@@ -122,6 +144,7 @@ cmake -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
       -DBUILD_SDLGPU=On \
       $DEBUG_FLAGS \
       $COMPILER_FLAGS \
+      $STATIC_FLAG \
       -DBUILD_WITH_ALL=On \
       -DCMAKE_EXPORT_COMPILE_COMMANDS=On \
       .. && \
