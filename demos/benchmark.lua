@@ -6,17 +6,17 @@
 local runningTime = 0
 local t = 0
 local RUNNER = {}
--- predictable random 
+-- predictable random
 -- give the same sequence every time
 local random = {}
 random.max = 8000
 random.count = 0
-for x=0,random.max do 
+for x=0,random.max do
   random[x+1] = math.random(100)/100
 end
 function Random(v)
   random.count = random.count+1
-  return random[(random.count%random.max)+1] * v 
+  return random[(random.count%random.max)+1] * v
 end
 
 -- epilepsy warning
@@ -57,15 +57,15 @@ function UI:mainmenu()
 	cls(1)
 		print("Let the test run until the bar is full",0,0,15)
 	
-	--	print position 
+	--	print position
 	local yp = 68-((#UI.options*8)/2)
 	--	what is selected
 	local currentOption = 1+(UI.currentOption % (#UI.options))
 	--	display options
-	for o=1,#UI.options do 
+	for o=1,#UI.options do
  	color = 6
   opt = UI.options[o]
-  if o==currentOption then 
+  if o==currentOption then
 				color = 15
 				-- if highlighted and press Z
 				--	then start it
@@ -74,7 +74,7 @@ function UI:mainmenu()
 		  	RUNNER = opt[2]
 		  	-- if we have an INIT then run it
 		  	random.count = 0
-		  	if RUNNER.init ~= nil then 
+		  	if RUNNER.init ~= nil then
 		   	RUNNER:init()
 		  	end
 		  	RUNNER.count = 0
@@ -102,8 +102,8 @@ end
 function SQRT:run()
   cls(0)
 	local wiggle= t/20 % 20
-  for y=0,136 do 
-    for x=0,RUNNER.count do 
+  for y=0,136 do
+    for x=0,RUNNER.count do
       pix(x%240,y,16-(math.sqrt(wiggle+(x*x + y*y)/136)%16))
     end
   end
@@ -116,8 +116,8 @@ end
 function SINCOS:run()
   cls(0)
 	local wiggle= t/20 % 20
-  for y=0,136 do 
-    for x=0,RUNNER.count do 
+  for y=0,136 do
+    for x=0,RUNNER.count do
       local v = 0
       v = v + math.sin(wiggle+x) + math.cos(wiggle+y)
       v = v + math.cos(wiggle-y) + math.sin(wiggle-x)
@@ -134,8 +134,8 @@ function PIXELRW:init()
 end
 function PIXELRW:run()
 	local wiggle= t/20 % 120
-  for y=0,136 do 
-    for x=0,RUNNER.count do 
+  for y=0,136 do
+    for x=0,RUNNER.count do
       local a = pix(x+wiggle,y)
       local b = Random(100)
       if b<25 then
@@ -152,8 +152,8 @@ local PIXELW = { add = 5 , callmult = 1}
 function PIXELW:init()
 end
 function PIXELW:run()
-  for y=0,136 do 
-    for x=0,RUNNER.count do 
+  for y=0,136 do
+    for x=0,RUNNER.count do
       pix(x&0xff,y,32+(x+(y*8)))
     end
 	end
@@ -163,7 +163,7 @@ end
 local MATHRANDOM = { add = 1000 , callmult = 2}
 function MATHRANDOM:run()
   cls(0)
-  for rc=0,RUNNER.count do 
+  for rc=0,RUNNER.count do
     pix(math.random(240),math.random(136),math.random(15))
 	end
 end
@@ -172,17 +172,17 @@ end
 local SHAPES = { add = 25, callmult = 1}
 function SHAPES:run()
   cls(2)
-  for x=0,RUNNER.count do 
+  for x=0,RUNNER.count do
     circ(Random(240),Random(136),Random(16),x&1)
   end
 end
 
--- map 
+-- map
 
 local MAP = { add = 1 , callmult = 1}
 function MAP:run()
   cls(10)
-  for x=0,RUNNER.count do 
+  for x=0,RUNNER.count do
     map(0,0,30,18,-x,0,10)
   end
 end
@@ -193,7 +193,7 @@ local Sprites = { add = 100 , callmult = 1}
 function Sprites:run()
   local a = t + 1/RUNNER.count
   cls(0)
-  for x=0,RUNNER.count do 
+  for x=0,RUNNER.count do
     spr(1,120+math.sin(x+a)*120,68+math.cos(x-a)*68)
   end
 end
@@ -209,7 +209,7 @@ function Particles:run()
   table.sort(Particles, function(a,b) return a.y>b.y end)
 
   if (t//40)&1==0 then
-    if runningTime<16.2 then 
+    if runningTime<16.2 then
       for x=1,100 do
         table.insert(Particles.list,{x=Random(240),y=-Random(32),c=1+((x//10)%14),fs=0.5+Random(5)/10.0})
       end
@@ -218,16 +218,16 @@ function Particles:run()
 
 		Particles.count = #Particles.list
  
-  for x=1,#Particles.list do 
+  for x=1,#Particles.list do
     p = Particles.list[x]
     if p.y<100 then
-      if (pix(p.x,(p.y+p.fs)//1)==0) then 
+      if (pix(p.x,(p.y+p.fs)//1)==0) then
         p.y=p.y+p.fs
       else
         if Random(100)>80 then
-          if (pix(p.x-1,p.y+1)==0) then 
+          if (pix(p.x-1,p.y+1)==0) then
             p.x = p.x-1
-          elseif (pix(p.x+1,p.y+1)==0) then 
+          elseif (pix(p.x+1,p.y+1)==0) then
             p.x = p.x+1
           end
         end
@@ -256,12 +256,12 @@ RUNNER = nil
 
 function MAINTIC()
   local stime = time()
-  if RUNNER~=nil then 
+  if RUNNER~=nil then
     if RUNNER.count~=nil then
-      if runningTime<16.6 then 
+      if runningTime<16.6 then
         RUNNER.count=RUNNER.count + RUNNER.add
       end
-      if runningTime>18.0 then 
+      if runningTime>18.0 then
         RUNNER.count=RUNNER.count - RUNNER.add
       end
       print(RUNNER.count,0,110,15)
@@ -274,7 +274,7 @@ function MAINTIC()
 						
       print(string.format("runTime %.2f",runningTime),1,127,0)
       print(string.format("runTime %.2f",runningTime),0,126,15)
-      if runningTime>16 then 
+      if runningTime>16 then
         UI:bench()
       end
     end
@@ -294,7 +294,7 @@ function TIC()
   t=t+1
   if (t>60*2) then
     UI:bench()
-    if btnp(4) then 
+    if btnp(4) then
       TIC=MAINTIC
     end
 	end

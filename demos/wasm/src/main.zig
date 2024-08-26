@@ -19,19 +19,19 @@ export fn TIC() void {
 
     if (tic.btn(0)) {
         mascot.y -= 1;
-    } 
+    }
     if (tic.btn(1)) {
         mascot.y +=1;
-    } 
+    }
     if (tic.btn(2)) {
         mascot.x -= 1;
-    } 
+    }
     if (tic.btn(3)) {
         mascot.x += 1;
-    } 
+    }
 
     tic.cls(13);
-    tic.spr(@as(i32, 1+t%60/30*2),mascot.x,mascot.y,.{ 
+    tic.spr(@as(i32, 1+t%60/30*2),mascot.x,mascot.y,.{
         .transparent = &.{14},
         .scale = 3,
         .w = 2,

@@ -4,7 +4,7 @@
 # input: gamepad
 # script: python
 # version: 0.0.0
-import random 
+import random
 
 screen_width = 240
 screen_height = 136

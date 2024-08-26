@@ -1,7 +1,7 @@
 -- title: Bunnymark in MoonScript
 -- author: Rob Loach
 -- desc: Benchmarking tool to see how many bunnies can fly around the screen, using MoonScript.
--- license: MIT License 
+-- license: MIT License
 -- input: gamepad
 -- script: moon
 -- version: 1.1.0

@@ -8,7 +8,7 @@ fov=100
 mesh={} --    Table that contains all the 3D points
 polygon={} -- Table that contains all connections of 3D points to create triangle polygons, with their texture specified too
 zorder={} --  Table used to know the rendering order of the triangles
-rspeed=.1 --  Rotation speed, you can change it 
+rspeed=.1 --  Rotation speed, you can change it
 tspeed=10 --  Translation speed, you can change it
 
 function addMesh(mx,my,mz)
@@ -183,8 +183,8 @@ function showMesh()
    		p.u2,p.v2,
    		p.u3,p.v3,
    		0,{},
-   		(m[p.p1].z+point.z), 
-   		(m[p.p2].z+point.z), 
+   		(m[p.p1].z+point.z),
+   		(m[p.p2].z+point.z),
    		(m[p.p3].z+point.z))
 		end
  end

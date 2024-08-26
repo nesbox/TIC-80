@@ -1,7 +1,7 @@
 // title: Bunnymark in JavaScript
 // author: Rob Loach
 // desc: Benchmarking tool to see how many bunnies can fly around the screen, using JavaScript.
-// license: MIT License 
+// license: MIT License
 // input: gamepad
 // script: js
 // version: 1.1.0
