@@ -1828,7 +1828,14 @@ static void processShortcuts(Studio* studio)
         else if(studio->mode != TIC_RUN_MODE)
         {
             if(keyWasPressedOnce(studio, tic_key_grave)) setStudioMode(studio, TIC_CONSOLE_MODE);
-            else if(keyWasPressedOnce(studio, tic_key_1)) setStudioMode(studio, TIC_CODE_MODE);
+            else if(keyWasPressedOnce(studio, tic_key_1))
+            {
+                if(studio->mode != TIC_CODE_MODE)
+                {
+                    setStudioMode(studio, TIC_CODE_MODE);
+                    setJustSwitchedToCodeMode(studio, true);
+                }
+            }
             else if(keyWasPressedOnce(studio, tic_key_2)) setStudioMode(studio, TIC_SPRITE_MODE);
             else if(keyWasPressedOnce(studio, tic_key_3)) setStudioMode(studio, TIC_MAP_MODE);
             else if(keyWasPressedOnce(studio, tic_key_4)) setStudioMode(studio, TIC_SFX_MODE);
