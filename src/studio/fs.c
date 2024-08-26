@@ -498,7 +498,7 @@ void tic_fs_dir(tic_fs* fs, char* dir)
 
 void tic_fs_changedir(tic_fs* fs, const char* dir)
 {
-    char temp[TICNAME_MAX];
+    char temp[TICNAME_MAX+1];
 
     if (strlen(fs->work) > 0) {
         snprintf(temp, TICNAME_MAX+1, "%s/%s", fs->work, dir);
