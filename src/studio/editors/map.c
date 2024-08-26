@@ -148,7 +148,7 @@ static s32 drawSheetButton(Map* map, s32 x, s32 y)
         }
     }
 
-    drawBitIcon(map->studio, sheetVisible(map) ? tic_icon_up : tic_icon_down, rect.x, rect.y, 
+    drawBitIcon(map->studio, sheetVisible(map) ? tic_icon_up : tic_icon_down, rect.x, rect.y,
         over ? tic_color_grey : tic_color_light_grey);
 
     return x;
@@ -210,7 +210,7 @@ static void drawTileIndex(Map* map, s32 x, s32 y)
     if(sheetVisible(map))
     {
         tic_rect rect = {TIC80_WIDTH - TIC_SPRITESHEET_SIZE - 1, TOOLBAR_SIZE, TIC_SPRITESHEET_SIZE, TIC_SPRITESHEET_SIZE};
-        
+
         if(checkMousePos(map->studio, &rect))
         {
             s32 mx = tic_api_mouse(tic).x - rect.x;
@@ -272,13 +272,13 @@ static void drawBppButtons(Map* map, s32 x, s32 y)
         }
 
         const char* label = (char[]){Labels[i], '\0'};
-        tic_api_print(tic, label, rect.x, rect.y, 
-            mode == map->sheet.blit.mode 
-                ? tic_color_dark_grey 
-                : hover 
-                    ? tic_color_grey 
-                    : tic_color_light_grey, 
-            true, 1, true);   
+        tic_api_print(tic, label, rect.x, rect.y,
+            mode == map->sheet.blit.mode
+                ? tic_color_dark_grey
+                : hover
+                    ? tic_color_grey
+                    : tic_color_light_grey,
+            true, 1, true);
     }
 }
 
@@ -312,11 +312,11 @@ static void drawBankButtons(Map* map, s32 x, s32 y)
             }
         }
 
-        drawBitIcon(map->studio, Icons[i], rect.x, rect.y, 
-            i == map->sheet.blit.bank 
-                ? tic_color_dark_grey 
-                : hover 
-                    ? tic_color_grey 
+        drawBitIcon(map->studio, Icons[i], rect.x, rect.y,
+            i == map->sheet.blit.bank
+                ? tic_color_dark_grey
+                : hover
+                    ? tic_color_grey
                     : tic_color_light_grey);
     }
 }
@@ -356,14 +356,14 @@ static void drawPagesButtons(Map* map, s32 x, s32 y)
         }
 
         const char* label = (char[]){i + '1', '\0'};
-        tic_api_print(tic, label, rect.x + 1, rect.y + 1, 
+        tic_api_print(tic, label, rect.x + 1, rect.y + 1,
             active
                 ? tic_color_white
-                : hover 
-                    ? tic_color_grey 
-                    : tic_color_light_grey, 
-            true, 1, true);   
-    }        
+                : hover
+                    ? tic_color_grey
+                    : tic_color_light_grey,
+            true, 1, true);
+    }
 }
 
 static void drawMapToolbar(Map* map, s32 x, s32 y)
@@ -390,7 +390,7 @@ static void drawMapToolbar(Map* map, s32 x, s32 y)
         x = drawPenButton(map, x, 0);
 
         x = drawGridButton(map, x - 5, 0);
-        drawWorldButton(map, x, 0);        
+        drawWorldButton(map, x, 0);
     }
 }
 
@@ -405,13 +405,13 @@ static void drawSheetVBank1(Map* map, s32 x, s32 y)
 
     for(s32 i = 1; i < rect.h; i += 4)
     {
-        if (blit->page > 0) 
+        if (blit->page > 0)
         {
             tic_api_pix(tic, rect.x-1, rect.y + i, tic_color_black, false);
             tic_api_pix(tic, rect.x-1, rect.y + i + 1, tic_color_black, false);
         }
 
-        if (blit->page < blit->pages - 1) 
+        if (blit->page < blit->pages - 1)
         {
             tic_api_pix(tic, rect.x+rect.w, rect.y + i, tic_color_black, false);
             tic_api_pix(tic, rect.x+rect.w, rect.y + i + 1, tic_color_black, false);
@@ -477,7 +477,7 @@ static void drawSheetReg(Map* map, s32 x, s32 y)
         {
             if(map->sheet.keep && map->sheet.drag)
                 map->anim.movie = resetMovie(&map->anim.hide);
-            
+
             map->sheet.drag = false;
         }
     }
@@ -489,7 +489,7 @@ static void drawSheetReg(Map* map, s32 x, s32 y)
     tic_blit blit = map->sheet.blit;
     SCOPE(resetBlitMode(map->tic), tic_api_clip(tic, 0, 0, TIC80_WIDTH, TIC80_HEIGHT))
     {
-        tic_point start = 
+        tic_point start =
         {
             x - blit.page * TIC_SPRITESHEET_SIZE + map->anim.pos.page,
             y - blit.bank * TIC_SPRITESHEET_SIZE + map->anim.pos.bank
@@ -684,7 +684,7 @@ static void processMouseDragMode(Map* map)
 {
     tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
 
-    processScrolling(map, checkMouseDown(map->studio, &rect, tic_mouse_left) || 
+    processScrolling(map, checkMouseDown(map->studio, &rect, tic_mouse_left) ||
         checkMouseDown(map->studio, &rect, tic_mouse_right));
 }
 
@@ -753,7 +753,7 @@ static void drawPasteData(Map* map)
                 s32 index = data[i + j * w];
                 s32 sx = index % TIC_SPRITESHEET_COLS;
                 s32 sy = index / TIC_SPRITESHEET_COLS;
-                tic_api_spr(tic, sx + map->sheet.blit.pages * sy * TIC_SPRITESHEET_COLS, 
+                tic_api_spr(tic, sx + map->sheet.blit.pages * sy * TIC_SPRITESHEET_COLS,
                     mx + i * TIC_SPRITESIZE, my + j * TIC_SPRITESIZE, 1, 1, NULL, 0, 1, tic_no_flip, tic_no_rotate);
             }
 
@@ -851,7 +851,7 @@ static bool push(FillStack* stack, s32 x, s32 y)
     }
 
     if(stack->head < (stack->data + FILL_STACK_SIZE-1))
-    {       
+    {
         stack->head++;
         stack->head->x = x;
         stack->head->y = y;
@@ -929,12 +929,12 @@ static void fillMap(Map* map, s32 x, s32 y, u8 tile)
             for(s32 i = 0; i < map->sheet.rect.w; i++)
                 tic_api_mset(map->tic, x+i, y+j, (mx+i) + (my+j) * TIC_SPRITESHEET_COLS);
 
-        for(s32 i = 0; i < COUNT_OF(dx); i++) 
+        for(s32 i = 0; i < COUNT_OF(dx); i++)
         {
             s32 nx = x + dx[i]*map->sheet.rect.w;
             s32 ny = y + dy[i]*map->sheet.rect.h;
 
-            if(nx >= clip.l && nx < clip.r && ny >= clip.t && ny < clip.b) 
+            if(nx >= clip.l && nx < clip.r && ny >= clip.t && ny < clip.b)
             {
                 bool match = true;
                 for(s32 j = 0; j < map->sheet.rect.h; j++)
@@ -948,7 +948,7 @@ static void fillMap(Map* map, s32 x, s32 y, u8 tile)
                 }
             }
         }
-    }   
+    }
 }
 
 static s32 moduloWrap(s32 x, s32 m)
@@ -1053,7 +1053,7 @@ static void drawGrid(Map* map)
     {
         if(j >= 0 && j < TIC80_HEIGHT)
             for(s32 i = 0; i < TIC80_WIDTH; i++)
-            {               
+            {
                 u8 color = tic_api_pix(tic, i, j, 0, true);
                 tic_api_pix(tic, i, j, (color+1)%TIC_PALETTE_SIZE, false);
             }
@@ -1082,8 +1082,8 @@ static void drawMapReg(Map* map)
     bool space = tic_api_key(tic, tic_key_space);
 
     if(handle)
-        processScrolling(map, 
-            ((space || map->mode == MAP_DRAG_MODE) && checkMouseDown(map->studio, &rect, tic_mouse_left)) || 
+        processScrolling(map,
+            ((space || map->mode == MAP_DRAG_MODE) && checkMouseDown(map->studio, &rect, tic_mouse_left)) ||
                 checkMouseDown(map->studio, &rect, tic_mouse_right));
 
     {
@@ -1123,7 +1123,7 @@ static void copySelectionToClipboard(Map* map)
     tic_rect* sel = &map->select.rect;
 
     if(sel->w > 0 && sel->h > 0)
-    {   
+    {
         s32 size = sel->w * sel->h + 2;
         u8* buffer = malloc(size);
 
@@ -1142,10 +1142,10 @@ static void copySelectionToClipboard(Map* map)
 
                     s32 index = x + y * TIC_MAP_WIDTH;
                     *ptr++ = map->src->data[index];
-                }       
+                }
 
             toClipboard(buffer, size, true);
-            free(buffer);           
+            free(buffer);
         }
     }
 }
@@ -1238,7 +1238,7 @@ static void processKeyboard(Map* map)
     }
 
     if(tic->ram->input.keyboard.data == 0) return;
-    
+
     bool ctrl = tic_api_key(tic, tic_key_ctrl);
 
     switch(getClipboardEvent(map->studio))
@@ -1248,7 +1248,7 @@ static void processKeyboard(Map* map)
     case TIC_CLIPBOARD_PASTE: copyFromClipboard(map); break;
     default: break;
     }
-    
+
     if(tic_api_key(tic, tic_key_alt))
         return;
 
@@ -1293,7 +1293,7 @@ static void tick(Map* map)
     processAnim(map->anim.movie, map);
 
     // process scroll
-    if(tic->ram->input.mouse.scrolly < 0) 
+    if(tic->ram->input.mouse.scrolly < 0)
     {
         setStudioMode(map->studio, TIC_WORLD_MODE);
         return;
@@ -1325,7 +1325,7 @@ static void tick(Map* map)
         {
             tic_rect rect = {MAP_X, MAP_Y, MAP_WIDTH, MAP_HEIGHT};
             if(!sheetVisible(map) && checkMousePos(map->studio, &rect) && !tic_api_key(tic, tic_key_space))
-            {            
+            {
                 switch(map->mode)
                 {
                 case MAP_DRAW_MODE:
@@ -1400,20 +1400,20 @@ void initMap(Map* map, Studio* studio, tic_map* src)
         .tick = tick,
         .src = src,
         .mode = MAP_DRAW_MODE,
-        .canvas = 
+        .canvas =
         {
             .grid = true,
             .draw = false,
             .start = {0, 0},
         },
-        .sheet = 
+        .sheet =
         {
             .rect = {0, 0, 1, 1},
             .start = {0, 0},
             .drag = false,
             .blit = {0},
         },
-        .select = 
+        .select =
         {
             .rect = {0, 0, 0, 0},
             .start = {0, 0},
@@ -1421,10 +1421,10 @@ void initMap(Map* map, Studio* studio, tic_map* src)
         },
         .paste = NULL,
         .tickCounter = 0,
-        .scroll = 
+        .scroll =
         {
-            .x = 0, 
-            .y = 0, 
+            .x = 0,
+            .y = 0,
             .active = false,
             .gesture = false,
             .start = {0, 0},

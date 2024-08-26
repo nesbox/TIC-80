@@ -2,7 +2,7 @@
 
 // derived from keymap_it
 
-static const tic_keycode TicKeyboardCodes[256] = 
+static const tic_keycode TicKeyboardCodes[256] =
 	{
 tic_key_unknown,	 // KeyNone, 0x00
 tic_key_unknown,	 // KeyNone, 0x01
@@ -53,8 +53,8 @@ tic_key_apostrophe,	 // '\'', 0x2D
 tic_key_unknown,	 // C('?'), 0x2E -- ^
 tic_key_leftbracket,	 // C('?'), 0x2F --  [
 tic_key_rightbracket,	 // '+', 0x30 --  ]
-tic_key_unknown,	 // C('?'), 0x31 
-tic_key_unknown,	 // C('?'), 0x32  
+tic_key_unknown,	 // C('?'), 0x31
+tic_key_unknown,	 // C('?'), 0x32
 tic_key_unknown,	 // C('?'), 0x33 -- @
 tic_key_unknown,	 // C('?'), 0x34 -- #
 tic_key_backslash,	 // '\\', 0x35

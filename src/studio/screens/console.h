@@ -92,7 +92,7 @@ struct Console
 
     bool active;
     StartArgs args;
-    
+
     struct
     {
         s32 count;

@@ -51,7 +51,7 @@ struct StudioMainMenu
 
 static void showMainMenu(void* data, s32 pos);
 
-StudioMainMenu* studio_mainmenu_init(Menu *menu, Config *config) 
+StudioMainMenu* studio_mainmenu_init(Menu *menu, Config *config)
 {
     StudioMainMenu* main = NEW(StudioMainMenu);
 
@@ -102,7 +102,7 @@ static void optionFullscreenSet(void* data, s32 pos)
 static const char OffValue[] =  "OFF";
 static const char OnValue[] =   "ON";
 
-static MenuOption FullscreenOption = 
+static MenuOption FullscreenOption =
 {
     OPTION_VALUES({OffValue, OnValue}),
     optionFullscreenGet,
@@ -121,7 +121,7 @@ static void optionIntegerScaleSet(void* data, s32 pos)
     main->options->integerScale = (pos == 1);
 }
 
-static MenuOption IntegerScaleOption = 
+static MenuOption IntegerScaleOption =
 {
     OPTION_VALUES({OffValue, OnValue}),
     optionIntegerScaleGet,
@@ -141,7 +141,7 @@ static void optionCrtMonitorSet(void* data, s32 pos)
     main->options->crt = pos == 1;
 }
 
-static MenuOption CrtMonitorOption = 
+static MenuOption CrtMonitorOption =
 {
     OPTION_VALUES({OffValue, OnValue}),
     optionCrtMonitorGet,
@@ -162,7 +162,7 @@ static void optionVSyncSet(void* data, s32 pos)
     main->options->vsync = pos == 1;
 }
 
-static MenuOption VSyncOption = 
+static MenuOption VSyncOption =
 {
     OPTION_VALUES({OffValue, OnValue}),
     optionVSyncGet,
@@ -181,14 +181,14 @@ static void optionVolumeSet(void* data, s32 pos)
     main->options->volume = pos;
 }
 
-static MenuOption VolumeOption = 
+static MenuOption VolumeOption =
 {
     OPTION_VALUES(
     {
-        "00", "01", "02", "03", 
-        "04", "05", "06", "07", 
-        "08", "09", "10", "11", 
-        "12", "13", "14", "15", 
+        "00", "01", "02", "03",
+        "04", "05", "06", "07",
+        "08", "09", "10", "11",
+        "12", "13", "14", "15",
     }),
     optionVolumeGet,
     optionVolumeSet,
@@ -278,7 +278,7 @@ static void optionKeybindModeSet(void* data, s32 pos)
     main->options->keybindMode = (enum KeybindMode) pos;
 }
 
-static MenuOption KeybindModeOption = 
+static MenuOption KeybindModeOption =
 {
     OPTION_VALUES({"STANDARD", "EMACS", "VI"}),
     optionKeybindModeGet,
@@ -364,7 +364,7 @@ static void showEditorMenu(void* data, s32 pos)
 {
     StudioMainMenu* main = data;
 
-    studio_menu_init(main->menu, EditorMenu, 
+    studio_menu_init(main->menu, EditorMenu,
         COUNT_OF(EditorMenu), EditorMenu_KeybindMode, OptionsMenu_Editor, showOptionsMenu, main);
 }
 #endif
@@ -420,7 +420,7 @@ static void initGameMenu(StudioMainMenu* main)
             items[count - 1] = (MenuItem){strdup("BACK"), showMainMenu, .back = true};
 
             main->items = items;
-            main->count = count;            
+            main->count = count;
         }
     }
 }
@@ -514,7 +514,7 @@ static void resetGamepadMenu(void* data, s32 pos);
 
 static char MappingItems[TIC_BUTTONS][sizeof "RIGHT - RIGHT"];
 
-static const char* const ButtonLabels[] = 
+static const char* const ButtonLabels[] =
 {
     "UP",
     "DOWN",
@@ -570,15 +570,15 @@ static void initGamepadButtons(StudioMainMenu* menu)
     static const char* const KeysList[] =
     {
         "...",
-        "A",    "B",    "C",    "D",    "E",    "F",    "G",    "H", 
-        "I",    "J",    "K",    "L",    "M",    "N",    "O",    "P", 
-        "Q",    "R",    "S",    "T",    "U",    "V",    "W",    "X", 
-        "Y",    "Z",    "0",    "1",    "2",    "3",    "4",    "5", 
-        "6",    "7",    "8",    "9",    "-",    "=",    "[",    "]", 
-        "\\",   ";",    "'",    "`",    ",",    ".",    "/",    "SPCE", 
-        "TAB",  "RET",  "BACKS","DEL",  "INS",  "PGUP", "PGDN", "HOME", 
-        "END",  "UP",   "DOWN", "LEFT", "RIGHT","CAPS", "CTRL", "SHIFT", 
-        "ALT",  "ESC",  "F1",   "F2",   "F3",   "F4",   "F5",   "F6", 
+        "A",    "B",    "C",    "D",    "E",    "F",    "G",    "H",
+        "I",    "J",    "K",    "L",    "M",    "N",    "O",    "P",
+        "Q",    "R",    "S",    "T",    "U",    "V",    "W",    "X",
+        "Y",    "Z",    "0",    "1",    "2",    "3",    "4",    "5",
+        "6",    "7",    "8",    "9",    "-",    "=",    "[",    "]",
+        "\\",   ";",    "'",    "`",    ",",    ".",    "/",    "SPCE",
+        "TAB",  "RET",  "BACKS","DEL",  "INS",  "PGUP", "PGDN", "HOME",
+        "END",  "UP",   "DOWN", "LEFT", "RIGHT","CAPS", "CTRL", "SHIFT",
+        "ALT",  "ESC",  "F1",   "F2",   "F3",   "F4",   "F5",   "F6",
         "F7",   "F8",   "F9",   "F10",  "F11",  "F12",  "NP0",  "NP1",
         "NP2",  "NP3",  "NP4",  "NP5",  "NP6",  "NP7",  "NP8",  "NP9",
         "NP+",  "NP-",  "NP*",  "NP/",  "NPENT", "NP.",
@@ -601,7 +601,7 @@ static void optionGamepadSet(void* data, s32 pos)
     initGamepadButtons(main);
 }
 
-static MenuOption GamepadOption = 
+static MenuOption GamepadOption =
 {
     OPTION_VALUES({"1", "2", "3", "4"}),
     optionGamepadGet,
@@ -648,8 +648,8 @@ static void initGamepadMenu(StudioMainMenu* main)
 
     initGamepadButtons(main);
 
-    studio_menu_init(main->menu, GamepadMenu, COUNT_OF(GamepadMenu), 
-        main->gamepads.key < 0 ? GamepadMenu_Gamepad0 : main->gamepads.key + GamepadMenu_Gamepad0, 
+    studio_menu_init(main->menu, GamepadMenu, COUNT_OF(GamepadMenu),
+        main->gamepads.key < 0 ? GamepadMenu_Gamepad0 : main->gamepads.key + GamepadMenu_Gamepad0,
         OptionsMenu_Gamepad, showOptionsMenu, main);
 
     main->gamepads.key = -1;

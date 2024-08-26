@@ -254,7 +254,7 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
             {
                 playSystemSfx(menu->studio, 2);
                 updateOption(option, +1, menu->data);
-            }            
+            }
         }
 
         if(tic_api_btnp(menu->tic, A, -1, -1) || ticEnterWasPressed(tic, -1, -1))
@@ -268,8 +268,8 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
                 onMenuItem(menu, item);
         }
 
-        if((tic_api_btnp(menu->tic, B, -1, -1) 
-            || tic_api_keyp(tic, tic_key_backspace, Hold, Period)) 
+        if((tic_api_btnp(menu->tic, B, -1, -1)
+            || tic_api_keyp(tic, tic_key_backspace, Hold, Period))
                 && menu->back)
         {
             playSystemSfx(menu->studio, 2);
@@ -282,7 +282,7 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
     {
         s32 width = it->option ? menu->maxwidth.item + menu->maxwidth.option + 3 * TIC_FONT_WIDTH : it->width;
 
-        tic_rect rect = {x + (TIC80_WIDTH - width) / 2 + menu->anim.offset, 
+        tic_rect rect = {x + (TIC80_WIDTH - width) / 2 + menu->anim.offset,
             y + TextMargin + ItemHeight * (i - menu->pos) - menu->anim.pos, it->width, TIC_FONT_HEIGHT};
 
         if (it->hotkey != tic_key_unknown && tic_api_keyp(tic, it->hotkey, Hold, Period))
@@ -320,10 +320,10 @@ static void drawMenu(Menu* menu, s32 x, s32 y)
         if(it->option)
         {
             drawOptionArrow(menu, it->option, rect.x + menu->maxwidth.item + TIC_FONT_WIDTH, rect.y, tic_icon_left, -1);
-            drawOptionArrow(menu, it->option, 
+            drawOptionArrow(menu, it->option,
                 rect.x + menu->maxwidth.item + it->option->width + 2 * TIC_FONT_WIDTH, rect.y, tic_icon_right, +1);
 
-            printShadow(tic, it->option->values[it->option->pos], 
+            printShadow(tic, it->option->values[it->option->pos],
                 rect.x + menu->maxwidth.item + 2 * TIC_FONT_WIDTH, rect.y, tic_color_yellow);
         }
     }
@@ -341,16 +341,16 @@ void studio_menu_anim(tic_mem* tic, s32 ticks)
         s32 ly = Gap - 8 * 32 * 16 / (x - ticks % 16);
 
         tic_api_line(tic, 0, ly, TIC80_WIDTH, ly, BG_ANIM_COLOR);
-        tic_api_line(tic, 0, TIC80_HEIGHT - ly, 
+        tic_api_line(tic, 0, TIC80_HEIGHT - ly,
             TIC80_WIDTH, TIC80_HEIGHT - ly, BG_ANIM_COLOR);
     }
 
     for(s32 x = -32; x <= 32; x++)
     {
-        tic_api_line(tic, TIC80_WIDTH / 2 - x * 4, Gap - 16, 
+        tic_api_line(tic, TIC80_WIDTH / 2 - x * 4, Gap - 16,
             TIC80_WIDTH / 2 - x * 24, -16, BG_ANIM_COLOR);
 
-        tic_api_line(tic, TIC80_WIDTH / 2 - x * 4, TIC80_HEIGHT - Gap + 16, 
+        tic_api_line(tic, TIC80_WIDTH / 2 - x * 4, TIC80_HEIGHT - Gap + 16,
             TIC80_WIDTH / 2 - x * 24, TIC80_HEIGHT + 16, BG_ANIM_COLOR);
     }
 }
@@ -438,7 +438,7 @@ void studio_menu_tick(Menu* menu)
             else
             {
                 s32 pos = menu->pos + (input->mouse.scrolly < 0 ? +1 : -1);
-                menu->pos = CLAMP(pos, 0, menu->count - 1);                
+                menu->pos = CLAMP(pos, 0, menu->count - 1);
             }
         }
     }

@@ -3,7 +3,7 @@
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
 // Copyright (C) 2014-2018  R. Stange <rsta2@o2online.de>
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -64,7 +64,7 @@ CScreenDevice::~CScreenDevice (void)
 		delete [] m_pBuffer;
 	}
 	m_pBuffer = 0;
-	
+
 	delete m_pFrameBuffer;
 	m_pFrameBuffer = 0;
 }
@@ -212,21 +212,21 @@ int CScreenDevice::Write (const void *pBuffer, size_t nCount)
 	m_SpinLock.Acquire ();
 
 	m_bUpdated = TRUE;
-	
+
 	InvertCursor ();
-	
+
 	const char *pChar = (const char *) pBuffer;
 	int nResult = 0;
 
 	while (nCount--)
 	{
 		Write (*pChar++);
-		
+
 		nResult++;
 	}
 
 	InvertCursor ();
-	
+
 	m_bUpdated = FALSE;
 
 	m_SpinLock.Release ();
@@ -393,7 +393,7 @@ void CScreenDevice::Write (char chChar)
 			}
 			m_nState = ScreenStateStart;
 			break;
-			
+
 		case 'm':
 			SetStandoutMode (m_nParam1);
 			m_nState = ScreenStateStart;
@@ -519,13 +519,13 @@ void CScreenDevice::CarriageReturn (void)
 void CScreenDevice::ClearDisplayEnd (void)
 {
 	ClearLineEnd ();
-	
+
 	unsigned nPosY = m_nCursorY + m_CharGen.GetCharHeight ();
 	unsigned nOffset = nPosY * m_nPitch;
-	
+
 	TScreenColor *pBuffer = m_pBuffer + nOffset;
 	unsigned nSize = m_nSize / sizeof (TScreenColor) - nOffset;
-	
+
 	while (nSize--)
 	{
 		*pBuffer++ = BLACK_COLOR;
@@ -615,7 +615,7 @@ void CScreenDevice::DeleteLines (unsigned nCount)	// TODO
 void CScreenDevice::DisplayChar (char chChar)
 {
 	// TODO: Insert mode
-	
+
 	if (' ' <= (unsigned char) chChar)
 	{
 		DisplayChar (chChar, m_nCursorX, m_nCursorY, m_Color);
@@ -699,7 +699,7 @@ void CScreenDevice::SetStandoutMode (unsigned nMode)
 	case 27:
 		m_Color = NORMAL_COLOR;
 		break;
-		
+
 	case 1:
 		m_Color = HIGH_COLOR;
 		break;
@@ -717,7 +717,7 @@ void CScreenDevice::SetStandoutMode (unsigned nMode)
 void CScreenDevice::Tabulator (void)
 {
 	unsigned nTabWidth = m_CharGen.GetCharWidth () * 8;
-	
+
 	m_nCursorX = ((m_nCursorX + nTabWidth) / nTabWidth) * nTabWidth;
 	if (m_nCursorX >= m_nWidth)
 	{
@@ -780,7 +780,7 @@ void CScreenDevice::InvertCursor (void)
 	{
 		return;
 	}
-	
+
 	for (unsigned y = m_CharGen.GetUnderline (); y < m_CharGen.GetCharHeight (); y++)
 	{
 		for (unsigned x = 0; x < m_CharGen.GetCharWidth (); x++)
@@ -813,7 +813,7 @@ TScreenColor CScreenDevice::GetPixel (unsigned nPosX, unsigned nPosY)
 	{
 		return m_pBuffer[m_nPitch * nPosY + nPosX];
 	}
-	
+
 	return BLACK_COLOR;
 }
 

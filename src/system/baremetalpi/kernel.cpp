@@ -1,6 +1,6 @@
 //
 // kernel.cpp
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -208,7 +208,7 @@ void gamePadStatusHandler (unsigned nDeviceIndex, const TGamePadState *pState)
 {
 
     keyspinlock.Acquire();
-    // Just copy buttons and axes. 
+    // Just copy buttons and axes.
     gamepad.buttons = pState -> buttons;
     gamepad.naxes = pState -> naxes;
     for (int i = 0; i< pState->naxes; i++)

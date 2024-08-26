@@ -26,7 +26,7 @@
 #include <stdlib.h>
 
 static const tic_blit_segment segments[] = {
-    //   +page +nb_pages 
+    //   +page +nb_pages
     //   |  +bank +bank_size
     //   |  |  |  |     +sheet_width
     //   |  |  |  |     |   +tile_width

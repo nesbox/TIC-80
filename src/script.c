@@ -75,7 +75,7 @@ extern tic_script EXPORT_SCRIPT(Python);
 
 #endif
 
-static const tic_script *Scripts[MAX_SUPPORTED_LANGS + 1] = 
+static const tic_script *Scripts[MAX_SUPPORTED_LANGS + 1] =
 {
 #if defined(TIC_RUNTIME_STATIC)
     #if defined (TIC_BUILD_WITH_LUA)
@@ -131,7 +131,7 @@ static s32 compareScripts(const void* a, const void* b)
 {
     const tic_script* script1 = *(const tic_script**)a;
     const tic_script* script2 = *(const tic_script**)b;
- 
+
     if (script1->id < script2->id) return -1;
     if (script1->id > script2->id) return 1;
     return 0;
@@ -167,7 +167,7 @@ const tic_script* tic_get_script(tic_mem* memory)
 {
     FOREACH_LANG(script)
     {
-        if(script->id == memory->cart.lang 
+        if(script->id == memory->cart.lang
             || strcmp(tic_tool_metatag(memory->cart.code.data, "script", script->singleComment), script->name) == 0)
             return script;
     }

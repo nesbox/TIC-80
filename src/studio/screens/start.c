@@ -47,18 +47,18 @@ static void reset(Start* start)
 static void drawHeader(Start* start)
 {
     for(s32 i = 0; i < STUDIO_TEXT_BUFFER_SIZE; i++)
-        tic_api_print(start->tic, (char[]){start->text[i], '\0'}, 
-            (i % STUDIO_TEXT_BUFFER_WIDTH) * STUDIO_TEXT_WIDTH, 
-            (i / STUDIO_TEXT_BUFFER_WIDTH) * STUDIO_TEXT_HEIGHT, 
+        tic_api_print(start->tic, (char[]){start->text[i], '\0'},
+            (i % STUDIO_TEXT_BUFFER_WIDTH) * STUDIO_TEXT_WIDTH,
+            (i / STUDIO_TEXT_BUFFER_WIDTH) * STUDIO_TEXT_HEIGHT,
             start->color[i], true, 1, false);
 }
 
-static void chime(Start* start) 
+static void chime(Start* start)
 {
     playSystemSfx(start->studio, 1);
 }
 
-static void stop_chime(Start* start) 
+static void stop_chime(Start* start)
 {
     sfx_stop(start->tic, 0);
 }
@@ -76,7 +76,7 @@ static void start_console(Start* start)
 
 static void tick(Start* start)
 {
-    // stages that have a tick count of 0 run in zero time  
+    // stages that have a tick count of 0 run in zero time
     // (typically this is only used to start/stop audio)
     while (start->stages[start->stage].ticks == 0) {
         start->stages[start->stage].fn(start);
@@ -131,7 +131,7 @@ void initStart(Start* start, Studio* studio, const char* cart)
         .embed = false,
         .ticks = 0,
         .stage = 0,
-        .stages = 
+        .stages =
         {
             { reset, .ticks = one_second },
             { chime, .ticks = immediate },
@@ -141,7 +141,7 @@ void initStart(Start* start, Studio* studio, const char* cart)
         }
     };
 
-    static const char* Header[] = 
+    static const char* Header[] =
     {
         "",
         " " TIC_NAME_FULL,
@@ -153,7 +153,7 @@ void initStart(Start* start, Studio* studio, const char* cart)
         strcpy(&start->text[i * STUDIO_TEXT_BUFFER_WIDTH], Header[i]);
 
     for(s32 i = 0; i < STUDIO_TEXT_BUFFER_SIZE; i++)
-        start->color[i] = CLAMP(((i % STUDIO_TEXT_BUFFER_WIDTH) + (i / STUDIO_TEXT_BUFFER_WIDTH)) / 2, 
+        start->color[i] = CLAMP(((i % STUDIO_TEXT_BUFFER_WIDTH) + (i / STUDIO_TEXT_BUFFER_WIDTH)) / 2,
             tic_color_black, tic_color_dark_grey);
 
 #if defined(__EMSCRIPTEN__)
@@ -175,39 +175,39 @@ void initStart(Start* start, Studio* studio, const char* cart)
 
     {
         const char* appPath = fs_apppath();
-    
+
         s32 appSize = 0;
         u8* app = fs_read(appPath, &appSize);
-    
+
         if(app) SCOPE(free(app))
         {
             s32 size = appSize;
             const u8* ptr = app;
-    
+
             while(true)
             {
                 const EmbedHeader* header = (const EmbedHeader*)_memmem(ptr, size, CART_SIG, STRLEN(CART_SIG));
-    
+
                 if(header)
                 {
                     if(appSize == header->appSize + sizeof(EmbedHeader) + header->cartSize)
                     {
                         u8* data = calloc(1, sizeof(tic_cartridge));
-    
+
                         if(data)
                         {
                             s32 dataSize = tic_tool_unzip(data, sizeof(tic_cartridge), app + header->appSize + sizeof(EmbedHeader), header->cartSize);
-    
+
                             if(dataSize)
                             {
                                 tic_cart_load(&start->tic->cart, data, dataSize);
                                 tic_api_reset(start->tic);
                                 start->embed = true;
                             }
-                                
+
                             free(data);
                         }
-    
+
                         break;
                     }
                     else

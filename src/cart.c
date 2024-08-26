@@ -172,10 +172,10 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
             case CHUNK_FLAGS:       LOAD_CHUNK(cart->banks[chunk->bank].flags);             break;
             case CHUNK_SCREEN:      LOAD_CHUNK(cart->banks[chunk->bank].screen);            break;
             case CHUNK_LANG:        LOAD_CHUNK(cart->lang);                                 break;
-            case CHUNK_BINARY:      
+            case CHUNK_BINARY:
                 binary[chunk->bank] = (struct BinaryChunk){chunkSize(chunk), ptr};
                 break;
-            case CHUNK_CODE:        
+            case CHUNK_CODE:
                 code[chunk->bank] = (struct CodeChunk){chunkSize(chunk), (char*)ptr};
                 break;
 #if defined(BUILD_DEPRECATED)
@@ -191,14 +191,14 @@ void tic_cart_load(tic_cartridge* cart, const u8* buffer, s32 size)
                     {
                         if(image->width == TIC80_WIDTH && image->height == TIC80_HEIGHT)
                             for (s32 i = 0; i < TIC80_WIDTH * TIC80_HEIGHT; i++)
-                                tic_tool_poke4(cart->bank0.screen.data, i, 
+                                tic_tool_poke4(cart->bank0.screen.data, i,
                                     tic_nearest_color(cart->bank0.palette.vbank0.colors, (const tic_rgb*)&image->palette[image->buffer[i]], TIC_PALETTE_SIZE));
 
                         gif_close(image);
                     }
                 }
                 break;
-            case CHUNK_PATTERNS_DEP: 
+            case CHUNK_PATTERNS_DEP:
                 {
                     // workaround to load deprecated music patterns section
                     // and automatically convert volume value to a command
@@ -330,11 +330,11 @@ s32 tic_cart_save(const tic_cartridge* cart, u8* buffer)
     }
 
     const char* ptr;
-    if (cart->binary.size) 
+    if (cart->binary.size)
     {
         ptr = cart->binary.data;
         s32 remaining = cart->binary.size;
-        for (s32 i = cart->binary.size / TIC_BANK_SIZE; i >= 0; --i, ptr += TIC_BANK_SIZE) 
+        for (s32 i = cart->binary.size / TIC_BANK_SIZE; i >= 0; --i, ptr += TIC_BANK_SIZE)
         {
             buffer = saveFixedChunk(buffer, CHUNK_BINARY, ptr, MIN(remaining, TIC_BANK_SIZE), i);
             remaining -= TIC_BANK_SIZE;

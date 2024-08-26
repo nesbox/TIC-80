@@ -76,7 +76,7 @@ void syncfs()
 {
     EM_ASM({Module.syncFSRequests++;});
 }
-#endif 
+#endif
 
 const char* tic_fs_pathroot(tic_fs* fs, const char* name)
 {
@@ -104,7 +104,7 @@ const char* tic_fs_path(tic_fs* fs, const char* name)
         strncpy(path, name + 1, sizeof path);
     else if(strlen(fs->work))
         snprintf(path, sizeof path, "%s/%s", fs->work, name);
-    else 
+    else
         strncpy(path, name, sizeof path);
 
     return tic_fs_pathroot(fs, path);
@@ -140,7 +140,7 @@ bool tic_fs_ispubdir(tic_fs* fs)
 
 typedef wchar_t FsString;
 
-#define __S(x) L ## x 
+#define __S(x) L ## x
 #define _S(x) __S(x)
 
 static const FsString* utf8ToString(const char* str)
@@ -444,7 +444,7 @@ bool tic_fs_deldir(tic_fs* fs, const char* name)
 
 #if defined(__EMSCRIPTEN__)
     syncfs();
-#endif  
+#endif
 
     return result;
 #endif
@@ -465,7 +465,7 @@ bool tic_fs_delfile(tic_fs* fs, const char* name)
 
 #if defined(__EMSCRIPTEN__)
     syncfs();
-#endif  
+#endif
 
     return result;
 #endif
@@ -593,16 +593,16 @@ bool fs_write(const char* name, const void* buffer, s32 size)
     }
 
     u32 written=0;
-    
+
     res = f_write(&File, buffer, size, &written);
-    
+
     f_close(&File);
     if (res != FR_OK)
     {
         return false;
     }
     if(written!=size)
-    {   
+    {
         dbg("Write size diff %d %d", size, written);
         return false;
     }
@@ -810,7 +810,7 @@ void* tic_fs_load(tic_fs* fs, const char* name, s32* size)
     dbg("tic_fs_load x %s\n", name);
     dbg("fs.dir %s\n", fs->dir);
     dbg("fs.work %s\n", fs->work);
-    
+
     if(isPublic(fs))
     {
         dbg("Public ??\n");
@@ -827,7 +827,7 @@ void* tic_fs_load(tic_fs* fs, const char* name, s32* size)
         FRESULT res = f_stat(fp, &fi);
         dbg("fstat done %d \n", res);
 
-        if(res!=FR_OK) 
+        if(res!=FR_OK)
         {
             dbg("NO F_STAT %d\n", res);
             return NULL;
@@ -849,7 +849,7 @@ void* tic_fs_load(tic_fs* fs, const char* name, s32* size)
         dbg("F_READ %d %ld\n", res, read);
 
         f_close(&file);
-        if(read!=fi.fsize) 
+        if(read!=fi.fsize)
         {
             dbg("NO F_READ %d \n", res);
             return NULL;
@@ -880,7 +880,7 @@ void* tic_fs_load(tic_fs* fs, const char* name, s32* size)
         fclose(file);
     }
 
-    return ptr;     
+    return ptr;
 
 #endif
 }

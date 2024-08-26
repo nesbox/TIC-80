@@ -68,7 +68,7 @@ int main(int argc, char** argv)
 							memcpy(buffer, output, size);
 						}
 
-						free(output);						
+						free(output);
 					}
 					else printf("memory error :(\n");
 				}

@@ -92,7 +92,7 @@ struct Music
     u32 tickCounter;
 
     struct History* history;
-    
+
     void(*tick)(Music*);
     void(*event)(Music*, StudioEvent);
 };

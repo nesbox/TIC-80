@@ -254,7 +254,7 @@ void n3ds_keyboard_update(tic_n3ds_keyboard *kbd, tic80_input* input) {
 	if (changed) {
 		// apply to TIC-80
 		kbd->render_dirty = true;
-		
+
 		tic_kbd->data = 0;
 		int buffer_pos = 0;
 		for(i = 0; i < kbd->kd_count && buffer_pos < TIC80_KEY_BUFFER; i++)
@@ -299,8 +299,8 @@ void n3ds_gamepad_update(tic_n3ds_keyboard *kbd, tic80_input* input) {
 	// mouse scroll
 	tic_mouse->scrollx = 0;
 	tic_mouse->scrolly = 0;
-	
-	if (curr_clock >= kbd->scroll_debounce) {		
+
+	if (curr_clock >= kbd->scroll_debounce) {
 		if(key_held & KEY_CSTICK_UP)
 			tic_mouse->scrolly = 1;
 		else if(key_held & KEY_CSTICK_DOWN)

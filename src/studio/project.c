@@ -29,7 +29,7 @@
 #include <ctype.h>
 #include <stddef.h>
 
-static const struct BinarySection{const char* tag; s32 count; s32 offset; s32 size; bool flip;} BinarySections[] = 
+static const struct BinarySection{const char* tag; s32 count; s32 offset; s32 size; bool flip;} BinarySections[] =
 {
     {"TILES",       TIC_BANK_SPRITES,   offsetof(tic_bank, tiles),          sizeof(tic_tile),                   true},
     {"SPRITES",     TIC_BANK_SPRITES,   offsetof(tic_bank, sprites),        sizeof(tic_tile),                   true},
@@ -73,7 +73,7 @@ static char* saveTextSection(char* ptr, const char* data)
 
 static char* saveBinaryBuffer(char* ptr, const char* comment, const void* data, s32 size, s32 row, bool flip)
 {
-    if(bufferEmpty(data, size)) 
+    if(bufferEmpty(data, size))
         return ptr;
 
     sprintf(ptr, "%s %03i:", comment, row);
@@ -90,7 +90,7 @@ static char* saveBinaryBuffer(char* ptr, const char* comment, const void* data, 
 
 static char* saveBinarySection(char* ptr, const char* comment, const char* tag, s32 count, const void* data, s32 size, bool flip)
 {
-    if(bufferEmpty(data, size * count)) 
+    if(bufferEmpty(data, size * count))
         return ptr;
 
     sprintf(ptr, "%s <%s>\n", comment, tag);
@@ -128,7 +128,7 @@ s32 tic_project_save(const char* name, void* data, const tic_cartridge* cart)
         {
             makeTag(section->tag, tag, b);
 
-            ptr = saveBinarySection(ptr, comment, tag, section->count, 
+            ptr = saveBinarySection(ptr, comment, tag, section->count,
                 (u8*)&cart->banks[b] + section->offset, section->size, section->flip);
         }
 
@@ -199,7 +199,7 @@ static bool loadBinarySection(const char* project, const char* comment, const ch
                     memcpy(lineStr, ptr + strlen(comment) + 1, sizeof lineStr - 1);
 
                     s32 index = atoi(lineStr);
-                    
+
                     if(index < count)
                     {
                         ptr += strlen(comment) + sizeof(" 999:") - 1;
@@ -209,7 +209,7 @@ static bool loadBinarySection(const char* project, const char* comment, const ch
                         ptr = getLineEnd(ptr);
                     }
                     else break;
-                }               
+                }
             }
             else
             {

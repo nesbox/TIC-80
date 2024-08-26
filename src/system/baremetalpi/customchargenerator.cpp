@@ -1,9 +1,9 @@
-#include <circle/chargenerator.h> 
-#include <assert.h> 
-#include "customfont.h" 
+#include <circle/chargenerator.h>
+#include <assert.h>
+#include "customfont.h"
 
-#define FIRSTCHAR	0x00 
-#define LASTCHAR	0xFF 
+#define FIRSTCHAR	0x00
+#define LASTCHAR	0xFF
 #define CHARCOUNT	(LASTCHAR - FIRSTCHAR + 1)
 CCharGenerator::CCharGenerator (void)
 :	m_nCharWidth (width)

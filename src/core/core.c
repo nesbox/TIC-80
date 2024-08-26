@@ -78,7 +78,7 @@ void tic_api_poke(tic_mem* memory, s32 address, u8 value, s32 bits)
     tic_core* core = (tic_core*)memory;
     u8* ram = (u8*)memory->ram;
     enum{RamBits = sizeof(tic_ram) * BITS_IN_BYTE};
-    
+
     switch(bits)
     {
     case 1: if(address < RamBits / 1) tic_tool_poke1(ram, address, value); break;
@@ -194,10 +194,10 @@ void tic_api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
 {
     tic_core* core = (tic_core*)tic;
 
-    static const struct { s32 bank; s32 ram; s32 size; u8 mask; } Sections[] = 
-    { 
+    static const struct { s32 bank; s32 ram; s32 size; u8 mask; } Sections[] =
+    {
 #define TIC_SYNC_DEF(CART, RAM, ...) { offsetof(tic_bank, CART), offsetof(tic_ram, RAM), sizeof(tic_##CART), tic_sync_##CART },
-        TIC_SYNC_LIST(TIC_SYNC_DEF) 
+        TIC_SYNC_LIST(TIC_SYNC_DEF)
 #undef  TIC_SYNC_DEF
     };
 
@@ -229,7 +229,7 @@ void tic_api_sync(tic_mem* tic, u32 mask, s32 bank, bool toCart)
             {
                 sync(tic->ram->data + Sections[i].ram, (u8*)bankPtr + Sections[i].bank, size, toCart);
             }
-        }        
+        }
     }
 
     core->state.synced |= mask;
@@ -301,30 +301,30 @@ static void resetVbank(tic_mem* memory)
 static void font2ram(tic_mem* memory)
 {
   memory->ram->font = (tic_font) {
-        .regular =     
+        .regular =
         {
-            .data = 
+            .data =
             {
                 #include "font.inl"
             },
 	    {
 	      {
-		.width = TIC_FONT_WIDTH, 
+		.width = TIC_FONT_WIDTH,
 		.height = TIC_FONT_HEIGHT,
 	      }
-	    } 
+	    }
         },
 
-        .alt = 
+        .alt =
         {
-            .data = 
+            .data =
             {
                 #include "altfont.inl"
             },
 	    {
 	      {
-		.width = TIC_ALTFONT_WIDTH, 
-		.height = TIC_FONT_HEIGHT, 
+		.width = TIC_ALTFONT_WIDTH,
+		.height = TIC_FONT_HEIGHT,
 	      }
 	    }
         },
@@ -567,7 +567,7 @@ void tic_core_tick_end(tic_mem* memory)
 
     core->state.gamepads.previous.data = input->gamepads.data;
     // SECURITY: we do not use `memory.ram.input` here because it is
-    // untrustworthy since the cartridge could have modified it to 
+    // untrustworthy since the cartridge could have modified it to
     // inject artificial keyboard/gamepad events.
     core->state.keyboard.previous.data = core->state.keyboard.now.data;
     core->state.gamepads.previous.data = core->state.gamepads.now.data;
@@ -677,7 +677,7 @@ void tic_core_blit_ex(tic_mem* tic, tic_blit_callback clb)
             s32 offsetX1 = vbank1(core)->vars.offset.x;
 
             for(s32 x = TIC80_WIDTH; x != 2 * TIC80_WIDTH; ++x)
-                *rowPtr++ = blitpix(tic, (x + offsetX0) % TIC80_WIDTH + start0, 
+                *rowPtr++ = blitpix(tic, (x + offsetX0) % TIC80_WIDTH + start0,
                     (x + offsetX1) % TIC80_WIDTH + start1, &pal0, &pal1);
         }
 

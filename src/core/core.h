@@ -106,7 +106,7 @@ typedef struct
         u32 holds[sizeof(tic80_gamepads) * BITS_IN_BYTE];
     } gamepads;
 
-    struct 
+    struct
     {
         tic80_keyboard previous;
         tic80_keyboard now;
@@ -151,7 +151,7 @@ typedef struct
 
     tic_tick tick;
     tic_blit_callback callback;
-    
+
     u32 synced;
 
     struct
@@ -181,7 +181,7 @@ typedef struct
         struct blip_t* left;
         struct blip_t* right;
     } blip;
-    
+
     s32 samplerate;
     tic_tick_data* data;
     tic_core_state_data state;

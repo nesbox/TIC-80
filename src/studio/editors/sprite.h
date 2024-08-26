@@ -37,7 +37,7 @@ struct Sprite
 
     u32 tickCounter;
 
-    struct 
+    struct
     {
         bool start;
         tic_point last;

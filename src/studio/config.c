@@ -39,7 +39,7 @@
 
 #define JSON(...) #__VA_ARGS__
 
-static void readConfig(Config* config) 
+static void readConfig(Config* config)
 {
     const char* json = config->cart->code.data;
 
@@ -87,7 +87,7 @@ static void setDefault(Config* config)
     {
         .cart = config->cart,
         .uiScale = 4,
-        .options = 
+        .options =
         {
 #if defined(CRT_SHADER_SUPPORT)
             .crt            = false,
@@ -219,7 +219,7 @@ void initConfig(Config* config, Studio* studio, tic_fs* fs)
 
             free(data);
         }
-        else saveConfig(config, false);        
+        else saveConfig(config, false);
     }
 
     loadOptions(config);
@@ -267,7 +267,7 @@ static void saveOptions(Config* config)
             "tabSize":%i
 #endif
         })
-        , 
+        ,
 #if defined(CRT_SHADER_SUPPORT)
         bool2str(options->crt),
 #endif
