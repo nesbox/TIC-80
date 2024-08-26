@@ -153,7 +153,7 @@ typedef struct
     int fftcaptureplaybackdevices;
     const char *fftdevice;
 
-    char* keyboardLayout;
+    tic_layout keyboardLayout;
 } StudioConfig;
 
 typedef struct Studio Studio;
@@ -164,13 +164,13 @@ const tic_mem* studio_mem(Studio* studio);
 void studio_tick(Studio* studio, tic80_input input);
 void studio_sound(Studio* studio);
 void studio_load(Studio* studio, const char* file);
-void studio_keymapchanged(Studio *studio, char* keyboardLayout);
+void studio_keymapchanged(Studio *studio, tic_layout keyboardLayout);
 bool studio_alive(Studio* studio);
 void studio_exit(Studio* studio);
 void studio_delete(Studio* studio);
 const StudioConfig* studio_config(Studio* studio);
 
-Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* appFolder, s32 maxscale, char* keyboardLayout);
+Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* appFolder, s32 maxscale, tic_layout keyboardLayout);
 
 #ifdef __cplusplus
 }

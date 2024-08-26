@@ -1062,22 +1062,22 @@ static void handleKeydown(SDL_Keycode keycode, bool down, bool* state, bool* pre
 #endif
 }
 
-char* detect_keyboard_layout() 
+tic_layout detect_keyboard_layout()
 {
     char q = SDL_GetKeyFromScancode(SDL_SCANCODE_Q);
     char w = SDL_GetKeyFromScancode(SDL_SCANCODE_W);
     char y = SDL_GetKeyFromScancode(SDL_SCANCODE_Y);
 
-    char* layout = "unknown";
+    tic_layout layout = tic_layout_unknown;
 
-    if (q == 'q' && w == 'w' && y == 'y') layout = "qwerty"; // US etc.
-    if (q == 'a' && w == 'z' && y == 'y') layout = "azerty"; // French
-    if (q == 'q' && w == 'w' && y == 'z') layout = "qwertz"; // German etc.
-    if (q == 'q' && w == 'z' && y == 'y') layout = "qzerty"; // Italian
+    if (q == 'q' && w == 'w' && y == 'y') layout = tic_layout_qwerty; // US etc.
+    if (q == 'a' && w == 'z' && y == 'y') layout = tic_layout_azerty; // French
+    if (q == 'q' && w == 'w' && y == 'z') layout = tic_layout_qwertz; // German etc.
+    if (q == 'q' && w == 'z' && y == 'y') layout = tic_layout_qzerty; // Italian
     // Don't ask me why it detects k instead of l
-    if (q == 'x' && w == 'v' && y == 'k') layout = "xvlcwk"; // German Neo 2
+    if (q == 'x' && w == 'v' && y == 'k') layout = tic_layout_de_neo; // xvlcwk - German Neo
     // ...or why it detects p instead of u
-    if (q == 'j' && w == 'd' && y == 'p') layout = "jduaxp"; // German Bone
+    if (q == 'j' && w == 'd' && y == 'p') layout = tic_layout_de_bone; // jduaxp - German Bone
 
     return layout;
 }

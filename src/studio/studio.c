@@ -1825,7 +1825,7 @@ static void processShortcuts(Studio* studio)
     {
         if (enterWasPressedOnce(studio)) gotoFullscreen(studio);
 #if defined(BUILD_EDITORS)
-        else if(studio->mode != TIC_RUN_MODE && strcmp(studio->config->data.keyboardLayout, "azerty") != 0)
+        else if(studio->mode != TIC_RUN_MODE && studio->config->data.keyboardLayout != tic_layout_azerty)
         {
             if(keyWasPressedOnce(studio, tic_key_grave)) setStudioMode(studio, TIC_CONSOLE_MODE);
             else if(keyWasPressedOnce(studio, tic_key_1)) setStudioMode(studio, TIC_CODE_MODE);
@@ -2652,7 +2652,7 @@ static void setPopupHide(void* data)
 
 #endif
 
-void studio_keymapchanged(Studio* studio, char* keyboardLayout)
+void studio_keymapchanged(Studio* studio, tic_layout keyboardLayout)
 {
     studio->config->data.keyboardLayout = keyboardLayout;
 }
@@ -2688,7 +2688,7 @@ static bool onEnumModule(const char* name, const char* title, const char* hash, 
 }
 #endif
 
-Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* folder, s32 maxscale, char* keyboardLayout)
+Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_format format, const char* folder, s32 maxscale, tic_layout keyboardLayout)
 {
     setbuf(stdout, NULL);
 

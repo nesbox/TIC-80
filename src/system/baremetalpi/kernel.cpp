@@ -392,7 +392,7 @@ TShutdownMode Run(void)
         char* argv[] = { &arg0[0], NULL };
         int argc = 1;
         malloc(88);
-        platform.studio = studio_create(argc, argv, 44100, TIC80_PIXEL_COLOR_BGRA8888, "tic80", INT32_MAX, "qwerty");
+        platform.studio = studio_create(argc, argv, 44100, TIC80_PIXEL_COLOR_BGRA8888, "tic80", INT32_MAX, tic_layout_qwerty);
         malloc(99);
 
     }
@@ -404,7 +404,7 @@ TShutdownMode Run(void)
         char* argv[] = { &arg0[0], &arg1[0], NULL };
         int argc = 2;
         dbg("Without keyboard\n");
-        platform.studio = studio_create(argc, argv, 44100, TIC80_PIXEL_COLOR_BGRA8888, "tic80", INT32_MAX, "qwerty");
+        platform.studio = studio_create(argc, argv, 44100, TIC80_PIXEL_COLOR_BGRA8888, "tic80", INT32_MAX, tic_layout_qwerty);
     }
     dbg("studio_create OK\n");
 
