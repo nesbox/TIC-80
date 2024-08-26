@@ -23,7 +23,7 @@
 #pragma once
 
 #if defined(__APPLE__)
-// TODO: this disables macos config 
+// TODO: this disables macos config
 #   include "AvailabilityMacros.h"
 #   include "TargetConditionals.h"
 // #    ifndef TARGET_OS_IPHONE
@@ -41,7 +41,7 @@
 #       if defined(_MSC_VER) && defined(_USING_V110_SDK71_)
 #           define __TIC_WIN7__ 1
 #       endif
-#   endif 
+#   endif
 #   if defined(ANDROID) || defined(__ANDROID__)
 #       undef __TIC_ANDROID__
 #       define __TIC_ANDROID__ 1
