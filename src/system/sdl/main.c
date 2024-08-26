@@ -1062,6 +1062,26 @@ static void handleKeydown(SDL_Keycode keycode, bool down, bool* state, bool* pre
 #endif
 }
 
+tic_layout detect_keyboard_layout()
+{
+    char q = SDL_GetKeyFromScancode(SDL_SCANCODE_Q);
+    char w = SDL_GetKeyFromScancode(SDL_SCANCODE_W);
+    char y = SDL_GetKeyFromScancode(SDL_SCANCODE_Y);
+
+    tic_layout layout = tic_layout_unknown;
+
+    if (q == 'q' && w == 'w' && y == 'y') layout = tic_layout_qwerty; // US etc.
+    if (q == 'a' && w == 'z' && y == 'y') layout = tic_layout_azerty; // French
+    if (q == 'q' && w == 'w' && y == 'z') layout = tic_layout_qwertz; // German etc.
+    if (q == 'q' && w == 'z' && y == 'y') layout = tic_layout_qzerty; // Italian
+    // Don't ask me why it detects k instead of l
+    if (q == 'x' && w == 'v' && y == 'k') layout = tic_layout_de_neo; // xvlcwk - German Neo
+    // ...or why it detects p instead of u
+    if (q == 'j' && w == 'd' && y == 'p') layout = tic_layout_de_bone; // jduaxp - German Bone
+
+    return layout;
+}
+
 static void pollEvents()
 {
     // check if releative mode was enabled
@@ -1192,6 +1212,9 @@ static void pollEvents()
             break;
         case SDL_KEYUP:
             handleKeydown(event.key.keysym.sym, false, platform.keyboard.state, platform.keyboard.pressed);
+            break;
+        case SDL_KEYMAPCHANGED:
+            studio_keymapchanged(platform.studio, detect_keyboard_layout());
             break;
         case SDL_TEXTINPUT:
             if(strlen(event.text.text) == 1)
@@ -1894,7 +1917,7 @@ static s32 start(s32 argc, char **argv, const char* folder)
         SDL_Log("Unable to initialize SDL Game Controller: %i, %s\n", result, SDL_GetError());
     }
 
-    platform.studio = studio_create(argc, argv, TIC80_SAMPLERATE, SCREEN_FORMAT, folder, determineMaximumScale());
+    platform.studio = studio_create(argc, argv, TIC80_SAMPLERATE, SCREEN_FORMAT, folder, determineMaximumScale(), detect_keyboard_layout());
 
     SCOPE(studio_delete(platform.studio))
     {

@@ -580,7 +580,7 @@ int main(int argc, char **argv) {
     n3ds_draw_init();
     n3ds_keyboard_init(&platform.keyboard);
 
-    platform.studio = studio_create(argc_used, argv_used, AUDIO_FREQ, TIC80_PIXEL_COLOR_ABGR8888, "./", INT32_MAX);
+    platform.studio = studio_create(argc_used, argv_used, AUDIO_FREQ, TIC80_PIXEL_COLOR_ABGR8888, "./", INT32_MAX, tic_layout_qwerty);
 
     n3ds_sound_init(AUDIO_FREQ);
 
