@@ -13,7 +13,7 @@ if(BUILD_WITH_PYTHON)
         target_compile_options(pocketpy PRIVATE -Wno-psabi)
     endif()
 
-    set(PYTHON_SRC 
+    set(PYTHON_SRC
         ${CMAKE_SOURCE_DIR}/src/api/python.c
         ${CMAKE_SOURCE_DIR}/src/api/parse_note.c
     )
@@ -28,8 +28,8 @@ if(BUILD_WITH_PYTHON)
 
     target_link_libraries(python PRIVATE runtime)
 
-    target_include_directories(python 
-        PRIVATE 
+    target_include_directories(python
+        PRIVATE
             ${THIRDPARTY_DIR}/pocketpy/include
             ${CMAKE_SOURCE_DIR}/include
             ${CMAKE_SOURCE_DIR}/src

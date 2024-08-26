@@ -36,9 +36,9 @@ if(BUILD_WITH_RUBY)
     endif()
     set(MRUBY_LIB ${MRUBY_DIR}/build/target/lib/libmruby.a)
 
-    target_include_directories(ruby 
+    target_include_directories(ruby
         PUBLIC ${MRUBY_DIR}/include
-        PRIVATE 
+        PRIVATE
             ${CMAKE_SOURCE_DIR}/include
             ${CMAKE_SOURCE_DIR}/src
     )

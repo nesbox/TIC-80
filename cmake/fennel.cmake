@@ -16,8 +16,8 @@ if(BUILD_WITH_FENNEL)
     endif()
 
     target_link_libraries(fennel PRIVATE runtime luaapi)
-    target_include_directories(fennel 
-        PRIVATE 
+    target_include_directories(fennel
+        PRIVATE
         ${THIRDPARTY_DIR}/fennel
         ${CMAKE_SOURCE_DIR}/include
         ${CMAKE_SOURCE_DIR}/src

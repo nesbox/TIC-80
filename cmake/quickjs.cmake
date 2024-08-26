@@ -12,8 +12,8 @@ if(BUILD_WITH_JS)
     file(STRINGS ${QUICKJS_DIR}/VERSION CONFIG_VERSION)
 
     set(QUICKJS_SRC
-        ${QUICKJS_DIR}/quickjs.c 
-        ${QUICKJS_DIR}/libregexp.c 
+        ${QUICKJS_DIR}/quickjs.c
+        ${QUICKJS_DIR}/libregexp.c
         ${QUICKJS_DIR}/libunicode.c
         ${QUICKJS_DIR}/cutils.c
     )
@@ -26,14 +26,14 @@ if(BUILD_WITH_JS)
     endif()
 
     if(BAREMETALPI OR N3DS)
-        target_compile_definitions(quickjs PRIVATE POOR_CLIB) 
+        target_compile_definitions(quickjs PRIVATE POOR_CLIB)
     endif()
 
     if(LINUX)
         target_compile_definitions(quickjs PUBLIC _GNU_SOURCE _POSIX_C_SOURCE=200112)
         target_link_libraries(quickjs PUBLIC m dl pthread)
     endif()
-    
+
     set(JS_SRC
         ${CMAKE_SOURCE_DIR}/src/api/js.c
         ${CMAKE_SOURCE_DIR}/src/api/parse_note.c
@@ -50,8 +50,8 @@ if(BUILD_WITH_JS)
     target_link_libraries(js PRIVATE runtime)
 
     target_link_libraries(js PRIVATE quickjs)
-    target_include_directories(js 
-        PRIVATE 
+    target_include_directories(js
+        PRIVATE
             ${QUICKJS_DIR}
             ${CMAKE_SOURCE_DIR}/include
             ${CMAKE_SOURCE_DIR}/src

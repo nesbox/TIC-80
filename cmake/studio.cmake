@@ -16,7 +16,7 @@ set(TIC80STUDIO_SRC
 )
 
 if(BUILD_EDITORS)
-    set(TIC80STUDIO_SRC ${TIC80STUDIO_SRC} 
+    set(TIC80STUDIO_SRC ${TIC80STUDIO_SRC}
         ${TIC80LIB_DIR}/studio/screens/console.c
         ${TIC80LIB_DIR}/studio/screens/surf.c
         ${TIC80LIB_DIR}/studio/editors/code.c
@@ -33,7 +33,7 @@ if(BUILD_EDITORS)
 endif()
 
 if(BUILD_PRO)
-    set(TIC80STUDIO_SRC ${TIC80STUDIO_SRC} 
+    set(TIC80STUDIO_SRC ${TIC80STUDIO_SRC}
         ${TIC80LIB_DIR}/studio/project.c)
 endif()
 
@@ -43,7 +43,7 @@ add_library(tic80studio STATIC
     ${TIC80STUDIO_SRC}
     ${CMAKE_SOURCE_DIR}/build/assets/cart.png.dat)
 
-target_include_directories(tic80studio 
+target_include_directories(tic80studio
     PRIVATE ${THIRDPARTY_DIR}/jsmn
     PUBLIC ${CMAKE_CURRENT_BINARY_DIR}
 )

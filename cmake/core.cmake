@@ -6,8 +6,8 @@ if(WIN32)
     add_library(dlfcn STATIC ${THIRDPARTY_DIR}/dlfcn/src/dlfcn.c)
 
     target_include_directories(dlfcn
-        INTERFACE 
-            ${THIRDPARTY_DIR}/dirent/include 
+        INTERFACE
+            ${THIRDPARTY_DIR}/dirent/include
             ${THIRDPARTY_DIR}/dlfcn/src)
 endif()
 
@@ -73,7 +73,7 @@ if(BUILD_STATIC)
     if(BUILD_WITH_FENNEL)
         target_link_libraries(tic80core PRIVATE fennel)
     endif()
-    
+
     if(BUILD_WITH_JS)
         target_link_libraries(tic80core PRIVATE js)
     endif()
