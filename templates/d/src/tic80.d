@@ -3,7 +3,7 @@ module tic80;
 extern(C):
 
 struct MouseData {
-    short x; short y; 
+    short x; short y;
     byte scrollx; byte scrolly;
     bool left; bool middle; bool right;
 }

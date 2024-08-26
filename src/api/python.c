@@ -21,7 +21,7 @@ static void pkpy_setglobal_2(pkpy_vm* vm, const char* name){
     pkpy_setglobal(vm, pkpy_name(name));
 }
 
-static bool get_core(pkpy_vm* vm, tic_core** core) 
+static bool get_core(pkpy_vm* vm, tic_core** core)
 {
     bool ok = pkpy_getglobal(vm, N._tic_core);
     if(!ok) return false;
@@ -30,16 +30,16 @@ static bool get_core(pkpy_vm* vm, tic_core** core)
     return ok;
 }
 
-static bool setup_core(pkpy_vm* vm, tic_core* core) 
+static bool setup_core(pkpy_vm* vm, tic_core* core)
 {
     if (!pkpy_push_voidp(vm, core)) return false;
     return pkpy_setglobal(vm, N._tic_core);
 }
 
 //index should be a positive index
-static int prepare_colorindex(pkpy_vm* vm, int index, u8 * buffer) 
+static int prepare_colorindex(pkpy_vm* vm, int index, u8 * buffer)
 {
-    if (pkpy_is_int(vm, index)) 
+    if (pkpy_is_int(vm, index))
     {
         int value;
         pkpy_to_int(vm, index, &value);
@@ -51,8 +51,8 @@ static int prepare_colorindex(pkpy_vm* vm, int index, u8 * buffer)
             buffer[0] = value;
             return 1;
         }
-    } 
-    else 
+    }
+    else
     { //should be a list then
         pkpy_getglobal(vm, N.len);
         pkpy_push_null(vm);
@@ -65,7 +65,7 @@ static int prepare_colorindex(pkpy_vm* vm, int index, u8 * buffer)
 
         list_len = (list_len < TIC_PALETTE_SIZE)?(list_len):(TIC_PALETTE_SIZE);
 
-        for(int i = 0; i < list_len; i++) 
+        for(int i = 0; i < list_len; i++)
         {
             int list_val;
             pkpy_dup(vm, index); //get the list
@@ -81,7 +81,7 @@ static int prepare_colorindex(pkpy_vm* vm, int index, u8 * buffer)
     }
 }
 
-static int py_trace(pkpy_vm* vm) 
+static int py_trace(pkpy_vm* vm)
 {
     pkpy_CString message;
     int color;
@@ -94,7 +94,7 @@ static int py_trace(pkpy_vm* vm)
     pkpy_to_int(vm, 1, &color);
 
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
-    if (pkpy_check_error(vm)) 
+    if (pkpy_check_error(vm))
     {
         return 0;
     }
@@ -103,23 +103,23 @@ static int py_trace(pkpy_vm* vm)
     return 0;
 }
 
-static int py_cls(pkpy_vm* vm) 
+static int py_cls(pkpy_vm* vm)
 {
-    
+
     int color;
 
     pkpy_to_int(vm, 0, &color);
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
-    if (pkpy_check_error(vm)) 
+    if (pkpy_check_error(vm))
         return 0;
 
     core->api.cls(tic, (u8) color);
     return 0;
 }
 
-static int py_btn(pkpy_vm* vm) 
+static int py_btn(pkpy_vm* vm)
 {
-    
+
     int button_id;
 
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
@@ -132,9 +132,9 @@ static int py_btn(pkpy_vm* vm)
     return 1;
 }
 
-static int py_btnp(pkpy_vm* vm) 
+static int py_btnp(pkpy_vm* vm)
 {
-    
+
     int button_id;
     int hold;
     int period;
@@ -151,9 +151,9 @@ static int py_btnp(pkpy_vm* vm)
     return 1;
 }
 
-static int py_circ(pkpy_vm* vm) 
+static int py_circ(pkpy_vm* vm)
 {
-    
+
     int x;
     int y;
     int radius;
@@ -171,9 +171,9 @@ static int py_circ(pkpy_vm* vm)
     return 0;
 }
 
-static int py_circb(pkpy_vm* vm) 
+static int py_circb(pkpy_vm* vm)
 {
-    
+
     int x;
     int y;
     int radius;
@@ -191,9 +191,9 @@ static int py_circb(pkpy_vm* vm)
     return 0;
 }
 
-static int py_elli(pkpy_vm* vm) 
+static int py_elli(pkpy_vm* vm)
 {
-    
+
     int x;
     int y;
     int a;
@@ -213,9 +213,9 @@ static int py_elli(pkpy_vm* vm)
     return 0;
 }
 
-static int py_ellib(pkpy_vm* vm) 
+static int py_ellib(pkpy_vm* vm)
 {
-    
+
     int x;
     int y;
     int a;
@@ -235,9 +235,9 @@ static int py_ellib(pkpy_vm* vm)
     return 0;
 }
 
-static int py_clip(pkpy_vm* vm) 
+static int py_clip(pkpy_vm* vm)
 {
-    
+
     int x;
     int y;
     int w;
@@ -255,9 +255,9 @@ static int py_clip(pkpy_vm* vm)
     return 0;
 }
 
-static int py_exit(pkpy_vm* vm) 
+static int py_exit(pkpy_vm* vm)
 {
-    
+
 
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
     if(pkpy_check_error(vm))
@@ -267,9 +267,9 @@ static int py_exit(pkpy_vm* vm)
     return 0;
 }
 
-static int py_fget(pkpy_vm* vm) 
+static int py_fget(pkpy_vm* vm)
 {
-    
+
     int sprite_id;
     int flag;
 
@@ -284,9 +284,9 @@ static int py_fget(pkpy_vm* vm)
     return 1;
 }
 
-static int py_fset(pkpy_vm* vm) 
+static int py_fset(pkpy_vm* vm)
 {
-    
+
     int sprite_id;
     int flag;
     bool set_to;
@@ -302,9 +302,9 @@ static int py_fset(pkpy_vm* vm)
     return 0;
 }
 
-static int py_font(pkpy_vm* vm) 
+static int py_font(pkpy_vm* vm)
 {
-    
+
     pkpy_CString text;
     int x;
     int y;
@@ -329,12 +329,12 @@ static int py_font(pkpy_vm* vm)
         return 0;
     }
 
-    if (scale == 0) 
+    if (scale == 0)
     {
         pkpy_push_int(vm, 0);
         return 1;
-    } 
-    
+    }
+
     u8 chromakey = (u8) chromakey_raw;
 
     s32 size = core->api.font(tic, text, x, y, &chromakey, 1, width, height, fixed, scale, alt);
@@ -343,9 +343,9 @@ static int py_font(pkpy_vm* vm)
     return 1;
 }
 
-static int py_key(pkpy_vm* vm) 
+static int py_key(pkpy_vm* vm)
 {
-    
+
     int key_id;
 
     pkpy_to_int(vm, 0, &key_id);
@@ -363,9 +363,9 @@ static int py_key(pkpy_vm* vm)
     return 1;
 }
 
-static int py_keyp(pkpy_vm* vm) 
+static int py_keyp(pkpy_vm* vm)
 {
-    
+
     int key_id;
     int hold;
     int period;
@@ -387,9 +387,9 @@ static int py_keyp(pkpy_vm* vm)
     return 1;
 }
 
-static int py_line(pkpy_vm* vm) 
+static int py_line(pkpy_vm* vm)
 {
-    
+
     double x0;
     double y0;
     double x1;
@@ -430,9 +430,9 @@ static void remap_callback(void* data, s32 x, s32 y, RemapResult* result) {
     result->rotate = rotate;
 }
 
-static int py_map(pkpy_vm* vm) 
+static int py_map(pkpy_vm* vm)
 {
-    
+
     int x;
     int y;
     int w;
@@ -455,21 +455,21 @@ static int py_map(pkpy_vm* vm)
     pkpy_to_int(vm, 7, &scale);
     used_remap = !pkpy_is_none(vm, 8);
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
-    if(pkpy_check_error(vm)) 
+    if(pkpy_check_error(vm))
         return 0;
 
     //last element on the stack should be the function, so no need to adjust anything
-    if (used_remap) 
+    if (used_remap)
         core->api.map(tic, x, y, w, h, sx, sy, colors, color_count, scale, remap_callback, vm);
-    else 
+    else
         core->api.map(tic, x, y, w, h, sx, sy, colors, color_count, scale, NULL, NULL);
 
     return 0;
 }
 
 static int py_memcpy(pkpy_vm* vm) {
-    
-    
+
+
     int dest;
     int src;
     int size;
@@ -478,7 +478,7 @@ static int py_memcpy(pkpy_vm* vm) {
     pkpy_to_int(vm, 1, &src);
     pkpy_to_int(vm, 2, &size);
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
-    if(pkpy_check_error(vm)) 
+    if(pkpy_check_error(vm))
         return 0;
 
     core->api.memcpy(tic, dest, src, size);
@@ -487,8 +487,8 @@ static int py_memcpy(pkpy_vm* vm) {
 }
 
 static int py_memset(pkpy_vm* vm) {
-    
-    
+
+
     int dest;
     int value;
     int size;
@@ -497,7 +497,7 @@ static int py_memset(pkpy_vm* vm) {
     pkpy_to_int(vm, 1, &value);
     pkpy_to_int(vm, 2, &size);
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
-    if(pkpy_check_error(vm)) 
+    if(pkpy_check_error(vm))
         return 0;
 
     core->api.memset(tic, dest, value, size);
@@ -506,15 +506,15 @@ static int py_memset(pkpy_vm* vm) {
 }
 
 static int py_mget(pkpy_vm* vm) {
-    
-    
+
+
     int x;
     int y;
 
     pkpy_to_int(vm, 0, &x);
     pkpy_to_int(vm, 1, &y);
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
-    if(pkpy_check_error(vm)) 
+    if(pkpy_check_error(vm))
         return 0;
 
     int value = core->api.mget(tic, x, y);
@@ -524,8 +524,8 @@ static int py_mget(pkpy_vm* vm) {
 }
 
 static int py_mset(pkpy_vm* vm) {
-    
-    
+
+
     int x;
     int y;
     int tile_id;
@@ -534,7 +534,7 @@ static int py_mset(pkpy_vm* vm) {
     pkpy_to_int(vm, 1, &y);
     pkpy_to_int(vm, 2, &tile_id);
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
-    if(pkpy_check_error(vm)) 
+    if(pkpy_check_error(vm))
         return 0;
 
     core->api.mset(tic, x, y, tile_id);
@@ -544,10 +544,10 @@ static int py_mset(pkpy_vm* vm) {
 
 
 static int py_mouse(pkpy_vm* vm) {
-    
+
     tic_core* core;
     get_core(vm, &core);
-    if(pkpy_check_error(vm)) 
+    if(pkpy_check_error(vm))
         return 0;
 
     tic_point pos = core->api.mouse((tic_mem*)core);
@@ -566,8 +566,8 @@ static int py_mouse(pkpy_vm* vm) {
 }
 
 static int py_music(pkpy_vm* vm) {
-    
-    
+
+
     int track;
     int frame;
     int row;
@@ -584,7 +584,7 @@ static int py_music(pkpy_vm* vm) {
     pkpy_to_int(vm, 5, &tempo);
     pkpy_to_int(vm, 6, &speed);
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
-    if(pkpy_check_error(vm)) 
+    if(pkpy_check_error(vm))
         return 0;
 
     if (track > MUSIC_TRACKS - 1 )
@@ -599,15 +599,15 @@ static int py_music(pkpy_vm* vm) {
 }
 
 static int py_peek(pkpy_vm* vm) {
-    
-    
+
+
     int address;
     int bits;
 
     pkpy_to_int(vm, 0, &address);
     pkpy_to_int(vm, 1, &bits);
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
-    if(pkpy_check_error(vm)) 
+    if(pkpy_check_error(vm))
         return 0;
 
     int value = core->api.peek(tic, address, bits);
@@ -617,13 +617,13 @@ static int py_peek(pkpy_vm* vm) {
 }
 
 static int py_peek1(pkpy_vm* vm) {
-    
-    
+
+
     int address;
 
     pkpy_to_int(vm, 0, &address);
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
-    if(pkpy_check_error(vm)) 
+    if(pkpy_check_error(vm))
         return 0;
 
     int value = core->api.peek1(tic, address);
@@ -633,13 +633,13 @@ static int py_peek1(pkpy_vm* vm) {
 }
 
 static int py_peek2(pkpy_vm* vm) {
-    
-    
+
+
     int address;
 
     pkpy_to_int(vm, 0, &address);
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
-    if(pkpy_check_error(vm)) 
+    if(pkpy_check_error(vm))
         return 0;
 
     int value = core->api.peek2(tic, address);
@@ -649,13 +649,13 @@ static int py_peek2(pkpy_vm* vm) {
 }
 
 static int py_peek4(pkpy_vm* vm) {
-    
-    
+
+
     int address;
 
     pkpy_to_int(vm, 0, &address);
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
-    if(pkpy_check_error(vm)) 
+    if(pkpy_check_error(vm))
         return 0;
 
     int value = core->api.peek4(tic, address);
@@ -665,7 +665,7 @@ static int py_peek4(pkpy_vm* vm) {
 }
 
 static int py_pix(pkpy_vm* vm) {
-    
+
     int x;
     int y;
     int color = -1;
@@ -676,7 +676,7 @@ static int py_pix(pkpy_vm* vm) {
 
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
 
-    if(pkpy_check_error(vm)) 
+    if(pkpy_check_error(vm))
         return 0;
 
     if(color >= 0) { //set the pixel
@@ -690,7 +690,7 @@ static int py_pix(pkpy_vm* vm) {
 }
 
 static int py_pmem(pkpy_vm* vm) {
-    
+
     int index;
     bool provided_value = false;
     int value;
@@ -701,7 +701,7 @@ static int py_pmem(pkpy_vm* vm) {
         pkpy_to_int(vm, 1, &value);
     }
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
-    if(pkpy_check_error(vm)) 
+    if(pkpy_check_error(vm))
         return 0;
 
     if (index >= TIC_PERSISTENT_SIZE) {
@@ -719,8 +719,8 @@ static int py_pmem(pkpy_vm* vm) {
 }
 
 static int py_poke(pkpy_vm* vm) {
-    
-    
+
+
     int address;
     int value;
     int bits;
@@ -729,7 +729,7 @@ static int py_poke(pkpy_vm* vm) {
     pkpy_to_int(vm, 1, &value);
     pkpy_to_int(vm, 2, &bits);
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
-    if(pkpy_check_error(vm)) 
+    if(pkpy_check_error(vm))
         return 0;
 
     core->api.poke(tic, address, value, bits);
@@ -738,15 +738,15 @@ static int py_poke(pkpy_vm* vm) {
 }
 
 static int py_poke1(pkpy_vm* vm) {
-    
-    
+
+
     int address;
     int value;
 
     pkpy_to_int(vm, 0, &address);
     pkpy_to_int(vm, 1, &value);
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
-    if(pkpy_check_error(vm)) 
+    if(pkpy_check_error(vm))
         return 0;
 
     core->api.poke1(tic, address, value);
@@ -755,15 +755,15 @@ static int py_poke1(pkpy_vm* vm) {
 }
 
 static int py_poke2(pkpy_vm* vm) {
-    
-    
+
+
     int address;
     int value;
 
     pkpy_to_int(vm, 0, &address);
     pkpy_to_int(vm, 1, &value);
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
-    if(pkpy_check_error(vm)) 
+    if(pkpy_check_error(vm))
         return 0;
 
     core->api.poke2(tic, address, value);
@@ -772,15 +772,15 @@ static int py_poke2(pkpy_vm* vm) {
 }
 
 static int py_poke4(pkpy_vm* vm) {
-    
-    
+
+
     int address;
     int value;
 
     pkpy_to_int(vm, 0, &address);
     pkpy_to_int(vm, 1, &value);
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
-    if(pkpy_check_error(vm)) 
+    if(pkpy_check_error(vm))
         return 0;
 
     core->api.poke4(tic, address, value);
@@ -789,8 +789,8 @@ static int py_poke4(pkpy_vm* vm) {
 }
 
 static int py_print(pkpy_vm* vm) {
-    
-    
+
+
     pkpy_CString text;
     int x;
     int y;
@@ -820,9 +820,9 @@ static int py_print(pkpy_vm* vm) {
     return 1;
 }
 
-static int py_rect(pkpy_vm* vm) 
+static int py_rect(pkpy_vm* vm)
 {
-    
+
     int x;
     int y;
     int w;
@@ -842,9 +842,9 @@ static int py_rect(pkpy_vm* vm)
     return 0;
 }
 
-static int py_rectb(pkpy_vm* vm) 
+static int py_rectb(pkpy_vm* vm)
 {
-    
+
     int x;
     int y;
     int w;
@@ -864,9 +864,9 @@ static int py_rectb(pkpy_vm* vm)
     return 0;
 }
 
-static int py_sfx(pkpy_vm* vm) 
+static int py_sfx(pkpy_vm* vm)
 {
-    
+
     int sfx_id;
 
     bool parse_note_flag = false;
@@ -892,7 +892,7 @@ static int py_sfx(pkpy_vm* vm)
     pkpy_to_int(vm, 4, &volume);
     pkpy_to_int(vm, 5, &speed);
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
-    if(pkpy_check_error(vm)) 
+    if(pkpy_check_error(vm))
         goto cleanup;
     s32 note, octave;
 
@@ -901,7 +901,7 @@ static int py_sfx(pkpy_vm* vm)
             pkpy_error(vm, "RuntimeError", pkpy_string("invalid note, should like C#4\n"));
             goto cleanup; //error in future;
         }
-            
+
     } else {
         note = int_note % NOTES;
         octave = int_note/ NOTES;
@@ -925,9 +925,9 @@ cleanup :
     return 0;
 }
 
-static int py_spr(pkpy_vm* vm) 
+static int py_spr(pkpy_vm* vm)
 {
-    
+
     int spr_id;
     int x;
     int y;
@@ -950,7 +950,7 @@ static int py_spr(pkpy_vm* vm)
     pkpy_to_int(vm, 7, &w);
     pkpy_to_int(vm, 8, &h);
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
-    if(pkpy_check_error(vm)) 
+    if(pkpy_check_error(vm))
         return 0;
 
     core->api.spr(tic, spr_id, x, y, w, h, colors, color_count, scale, flip, rotate);
@@ -961,7 +961,7 @@ static int py_spr(pkpy_vm* vm)
 static int py_reset(pkpy_vm* vm) {
     tic_core* core;
     get_core(vm, &core);
-    if(pkpy_check_error(vm)) 
+    if(pkpy_check_error(vm))
         return 0;
 
     core->state.initialized = false;
@@ -969,9 +969,9 @@ static int py_reset(pkpy_vm* vm) {
     return 0;
 }
 
-static int py_sync(pkpy_vm* vm) 
+static int py_sync(pkpy_vm* vm)
 {
-    
+
     int mask;
     int bank;
     bool tocart;
@@ -993,9 +993,9 @@ static int py_sync(pkpy_vm* vm)
     return 0;
 }
 
-static int py_time(pkpy_vm* vm) 
+static int py_time(pkpy_vm* vm)
 {
-    
+
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
     if(pkpy_check_error(vm))
         return 0;
@@ -1005,9 +1005,9 @@ static int py_time(pkpy_vm* vm)
     return 1;
 }
 
-static int py_tstamp(pkpy_vm* vm) 
+static int py_tstamp(pkpy_vm* vm)
 {
-    
+
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
     if(pkpy_check_error(vm))
         return 0;
@@ -1017,9 +1017,9 @@ static int py_tstamp(pkpy_vm* vm)
     return 1;
 }
 
-static int py_tri(pkpy_vm* vm) 
+static int py_tri(pkpy_vm* vm)
 {
-    
+
     double x1;
     double y1;
     double x2;
@@ -1043,9 +1043,9 @@ static int py_tri(pkpy_vm* vm)
     return 0;
 }
 
-static int py_trib(pkpy_vm* vm) 
+static int py_trib(pkpy_vm* vm)
 {
-    
+
     double x1;
     double y1;
     double x2;
@@ -1069,9 +1069,9 @@ static int py_trib(pkpy_vm* vm)
     return 0;
 }
 
-static int py_ttri(pkpy_vm* vm) 
+static int py_ttri(pkpy_vm* vm)
 {
-    
+
     double x1;
     double y1;
     double x2;
@@ -1114,15 +1114,15 @@ static int py_ttri(pkpy_vm* vm)
     pkpy_to_float(vm, 16, &z3);
 
     tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
-    if(pkpy_check_error(vm)) 
+    if(pkpy_check_error(vm))
         return 0;
 
     core->api.ttri(
-        tic, 
-        x1,y1,x2,y2,x3,y3, 
-        u1,v1,u2,v2,u3,v3, 
-        texsrc, 
-        colors,color_count,  
+        tic,
+        x1,y1,x2,y2,x3,y3,
+        u1,v1,u2,v2,u3,v3,
+        texsrc,
+        colors,color_count,
         z1,z2,z3,
         z1 != 0 || z2 != 0 || z3 != 0
     );
@@ -1138,7 +1138,7 @@ static int py_vbank(pkpy_vm* vm) {
     if (!pkpy_is_none(vm, 0))
         pkpy_to_int(vm, 0, &bank_id);
     get_core(vm, &core);
-    if(pkpy_check_error(vm)) 
+    if(pkpy_check_error(vm))
         return 0;
 
     tic_mem* tic = (tic_mem*) core;
@@ -1326,7 +1326,7 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     return true;
 }
 
-void closePython(tic_mem* tic) 
+void closePython(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
 
@@ -1341,13 +1341,13 @@ static void report_error(tic_core* core, char* prefix) {
     pkpy_vm* vm = core->currentVM;
     core->data->error(core->data->data, prefix);
     char* message;
-    if (!pkpy_clear_error(vm, &message)) 
+    if (!pkpy_clear_error(vm, &message))
         core->data->error(core->data->data, "error was thrown but not register (pocketpy c binding bug)");
     else
         core->data->error(core->data->data, message);
 }
 
-static bool initPython(tic_mem* tic, const char* code) 
+static bool initPython(tic_mem* tic, const char* code)
 {
     N._tic_core = pkpy_name("_tic_core");
     N.len = pkpy_name("len");
@@ -1375,7 +1375,7 @@ static bool initPython(tic_mem* tic, const char* code)
         return false;
     }
 
-    if(!pkpy_exec(vm, code)) 
+    if(!pkpy_exec(vm, code))
     {
         report_error(core, "error while processing the main code\n");
 
@@ -1385,10 +1385,10 @@ static bool initPython(tic_mem* tic, const char* code)
     return true;
 }
 
-void callPythonTick(tic_mem* tic) 
+void callPythonTick(tic_mem* tic)
 {
     tic_core* core = (tic_core*)tic;
-    if (!core->currentVM) 
+    if (!core->currentVM)
         return;
 
     if(!pkpy_getglobal(core->currentVM, N.TIC)) return;
@@ -1402,11 +1402,11 @@ void callPythonTick(tic_mem* tic)
 }
 void callPythonBoot(tic_mem* tic) {
     tic_core* core = (tic_core*)tic;
-    if (!core->currentVM) 
+    if (!core->currentVM)
         return;
 
     if(!pkpy_getglobal(core->currentVM, N.BOOT)) return;
-    
+
     pkpy_push_null(core->currentVM);
     if(!pkpy_vectorcall(core->currentVM, 0)){
         report_error(core, "error while running BOOT\n");
@@ -1417,7 +1417,7 @@ void callPythonBoot(tic_mem* tic) {
 
 void callPythonScanline(tic_mem* tic, s32 row, void* data) {
     tic_core* core = (tic_core*)tic;
-    if (!core->currentVM) 
+    if (!core->currentVM)
         return;
 
     if(!pkpy_getglobal(core->currentVM, N.SCN)) return;
@@ -1433,7 +1433,7 @@ void callPythonScanline(tic_mem* tic, s32 row, void* data) {
 
 void callPythonBorder(tic_mem* tic, s32 row, void* data) {
     tic_core* core = (tic_core*)tic;
-    if (!core->currentVM) 
+    if (!core->currentVM)
         return;
 
     if(!pkpy_getglobal(core->currentVM, N.BDR)) return;
@@ -1449,7 +1449,7 @@ void callPythonBorder(tic_mem* tic, s32 row, void* data) {
 
 void callPythonMenu(tic_mem* tic, s32 index, void* data) {
     tic_core* core = (tic_core*)tic;
-    if (!core->currentVM) 
+    if (!core->currentVM)
         return;
 
     if(pkpy_getglobal(core->currentVM, N.MENU)) return;
@@ -1465,19 +1465,19 @@ void callPythonMenu(tic_mem* tic, s32 index, void* data) {
 
 static bool is_alnum_(char c) {
     return (
-        (c >= 'a' && c <= 'z') 
-        || (c >= 'A' && c <= 'Z') 
-        || (c >= '0' && c <= '9') 
+        (c >= 'a' && c <= 'z')
+        || (c >= 'A' && c <= 'Z')
+        || (c >= '0' && c <= '9')
         || (c == '_')
     );
 }
 
-static const tic_outline_item* getPythonOutline(const char* code, s32* size) 
+static const tic_outline_item* getPythonOutline(const char* code, s32* size)
 {
 
     *size = 0;
     static tic_outline_item* items = NULL;
-    if (items) 
+    if (items)
     {
         free(items);
         items = NULL;
@@ -1487,7 +1487,7 @@ static const tic_outline_item* getPythonOutline(const char* code, s32* size)
 
 start:
     if (*code == 0) goto end;
-    else if (strncmp(code, "def", 3) == 0) { code += 3; goto next_word_ws; } 
+    else if (strncmp(code, "def", 3) == 0) { code += 3; goto next_word_ws; }
     else if (*code == '#') { code++; goto comment; }
     else if (strncmp(code, "\"\"\"", 3) == 0) { code += 3; goto multiline_string; }
     else if (*code == '"') { code++; goto string; }
@@ -1502,7 +1502,7 @@ next_word_ws :
 next_word :
     if (is_alnum_(*code)) { code++; goto next_word; }
     else //store item
-    { 
+    {
         items = realloc(items, (*size + 1) * sizeof(tic_outline_item));
         items[*size].pos = name_start;
         items[*size].size = (s32)(code - name_start);
@@ -1540,13 +1540,13 @@ end:
 
 }
 
-void evalPython(tic_mem* tic, const char* code) 
+void evalPython(tic_mem* tic, const char* code)
 {
     tic_core* core = (tic_core*)tic;
     pkpy_vm* vm = core->currentVM;
     if (!vm) return;
 
-    if(!pkpy_exec(vm, code)) 
+    if(!pkpy_exec(vm, code))
     {
         report_error(core, "error while evaluating the code\n");
     }

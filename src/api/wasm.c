@@ -291,14 +291,14 @@ m3ApiRawFunction(wasmtic_ttri)
     m3ApiGetArg      (float, z1)
     m3ApiGetArg      (float, z2)
     m3ApiGetArg      (float, z3)
-    m3ApiGetArg      (bool, depth)    
+    m3ApiGetArg      (bool, depth)
     if (trans_colors == NULL) {
         colorCount = 0;
     }
 
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
-    
-    core->api.ttri(tic, x1, y1, x2, y2, x3, y3, 
+
+    core->api.ttri(tic, x1, y1, x2, y2, x3, y3,
         u1, v1, u2, v2, u3, v3, texsrc, trans_colors, colorCount, z1, z2, z3, depth);
 
     m3ApiSuccess();
@@ -365,7 +365,7 @@ m3ApiRawFunction(wasmtic_btnp)
 
     // -1 is the "default" placeholder for index, hold, and period but the TIC side API
     // knows this so we don't need to do any transaction, we can just pass the -1 values
-    // straight thru 
+    // straight thru
 
     m3ApiReturn(core->api.btnp((tic_mem *)core, index, hold, period));
 
@@ -414,7 +414,7 @@ m3ApiRawFunction(wasmtic_fget)
 
     m3ApiGetArg      (int32_t, sprite_index);
     m3ApiGetArg      (int8_t, flag);
-    
+
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
 
     m3ApiReturn(core->api.fget(tic, sprite_index, flag));
@@ -441,7 +441,7 @@ m3ApiRawFunction(wasmtic_mget)
 
     m3ApiGetArg      (int32_t, x);
     m3ApiGetArg      (int32_t, y);
-    
+
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
 
     m3ApiReturn(core->api.mget(tic, x, y));
@@ -579,7 +579,7 @@ m3ApiRawFunction(wasmtic_pmem)
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
 
     // read value
-    if (value == -1) { 
+    if (value == -1) {
         writeToStorage = false;
     };
 
@@ -590,7 +590,7 @@ m3ApiRawFunction(wasmtic_pmem)
         u32 val = core->api.pmem(tic, address, value, writeToStorage);
         m3ApiReturn(val);
     }
-    
+
     m3ApiSuccess();
 }
 
@@ -683,7 +683,7 @@ static void wasm_remap(void* data, s32 x, s32 y, RemapResult* result) {
 
     *rdata->wasm_result = *result;
     M3Result res = m3_CallV(fun, rdata->data, x, y, m3ApiPtrToOffset(rdata->wasm_result));
-    if (res) { 
+    if (res) {
         rdata->core->data->error(rdata->core->data->data, res);
         return;
     }
@@ -704,7 +704,7 @@ m3ApiRawFunction(wasmtic_map)
         colorCount = 0;
     }    m3ApiGetArg      (int8_t, scale)
     m3ApiGetArg      (i32, map_data_ptr)
-    
+
 
     tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
     // depends on their only being 1 module, which SHOULD:tm: be true
@@ -716,7 +716,7 @@ m3ApiRawFunction(wasmtic_map)
         info.wasm_result = (RemapResult*)m3ApiOffsetToPtr(map_data->res_ptr);
     }
     // defaults
-    if (x == -1) { x = 0; }    
+    if (x == -1) { x = 0; }
     if (y == -1) { y = 0; }
     if (w == -1) { w = 30; }
     if (h == -1) { h = 17; }
@@ -791,7 +791,7 @@ m3ApiRawFunction(wasmtic_font)
     m3ApiSuccess();
 }
 
-// audio 
+// audio
 
 // id [note] [duration=-1] [channel=0] [volume=15] [speed=0]
 m3ApiRawFunction(wasmtic_sfx)
@@ -810,7 +810,7 @@ m3ApiRawFunction(wasmtic_sfx)
     if (channel >= 0 && channel < TIC_SOUND_CHANNELS)
     {
         core->api.sfx(tic, sfx_id, note, octave, duration, channel, volumeLeft & 0xf, volumeRight & 0xf, speed);
-    }    
+    }
 
     m3ApiSuccess();
 }

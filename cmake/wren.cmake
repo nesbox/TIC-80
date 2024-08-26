@@ -33,8 +33,8 @@ if(BUILD_WITH_WREN)
 
     target_link_libraries(wren PRIVATE runtime)
 
-    target_include_directories(wren 
-        PRIVATE 
+    target_include_directories(wren
+        PRIVATE
             ${CMAKE_SOURCE_DIR}/include
             ${CMAKE_SOURCE_DIR}/src
     )

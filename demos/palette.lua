@@ -38,7 +38,7 @@ function updpal()
 	local pal=PALETTES[index].data
 	for i=1,#pal,2 do
 		poke(ADDR+i//6*3+i//2%3,tonumber(pal:sub(i,i+1),16))
-	end	
+	end
 end
 
 updpal()
@@ -46,12 +46,12 @@ updpal()
 function TIC()
 	
 	-- handle input
-	if btnp(0,20,5) and index>1 then 
-		index=index-1 
+	if btnp(0,20,5) and index>1 then
+		index=index-1
 		updpal()
-	end	
-	if btnp(1,20,5) and index<#PALETTES then 
-		index=index+1 
+	end
+	if btnp(1,20,5) and index<#PALETTES then
+		index=index+1
 		updpal()
 	end
 	
@@ -64,7 +64,7 @@ function TIC()
 	print("SELECT PALETTE",6,6,0)
 	
 	for i,v in pairs(PALETTES) do
-		print(v.name,12,12+i*6,0)	
+		print(v.name,12,12+i*6,0)
 	end
 	
 	print(">",6+(t//16%2),12+index*6,0)

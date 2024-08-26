@@ -47,9 +47,9 @@ function createCurve(t)
 				p={x=x*r1,
 							y=y*r1,
 							z=(u/(l1+0.7)+v/5),
-							c=pal[1+i%7]}		
+							c=pal[1+i%7]}
 							table.insert(points,p)
-		end	
+		end
 	i=i+1
 	end
 end
@@ -80,17 +80,17 @@ function rotate(p3d,center,ax,ay,az)
 	b = p3d.y-center.y
 	c = p3d.z-center.z
 	
-	a1 = a*math.cos(az)-b*math.sin(az) 
+	a1 = a*math.cos(az)-b*math.sin(az)
  b1 = a*math.sin(az)+b*math.cos(az)
 	c1 = c
 
-	c2 = c1*math.cos(ay)-a1*math.sin(ay) 	
+	c2 = c1*math.cos(ay)-a1*math.sin(ay)
 	a2 = c1*math.sin(ay)+a1*math.cos(ay)
  b2 = b1
 	
-	b3 = b2*math.cos(ax)-c2*math.sin(ax) 	
+	b3 = b2*math.cos(ax)-c2*math.sin(ax)
 	c3 = b2*math.sin(ax)+c2*math.cos(ax)
- a3 = a2		
+ a3 = a2
 			
 	np3d.x=a3
 	np3d.y=b3
@@ -126,17 +126,17 @@ function TIC()
 														angle,
 														angle/2,
 														angle/4)
-		points[k] = pr	
-	end		
+		points[k] = pr
+	end
 	
 	--Z Sort
 	table.sort(points,zsort)
 	
 	--Draw points
 	for k,p in pairs(points)do
-			i,j = p2d(p)		
+			i,j = p2d(p)
 			rect(i,j,6,6,p.c)
-	end		
+	end
 	
 	angle = angle + 0.05
 	t=t+1

@@ -30,7 +30,7 @@ if(BUILD_WITH_MOON)
     target_link_libraries(moon PRIVATE lpeg runtime luaapi)
 
     target_include_directories(moon
-            PRIVATE 
+            PRIVATE
                 ${THIRDPARTY_DIR}/moonscript
                 ${CMAKE_SOURCE_DIR}/include
                 ${CMAKE_SOURCE_DIR}/src

@@ -34,9 +34,9 @@ if(BUILD_WITH_WASM)
 
     target_link_libraries(wasm PRIVATE runtime)
 
-    target_include_directories(wasm 
+    target_include_directories(wasm
         PUBLIC ${WASM_DIR}
-        PRIVATE 
+        PRIVATE
             ${CMAKE_SOURCE_DIR}/include
             ${CMAKE_SOURCE_DIR}/src
     )

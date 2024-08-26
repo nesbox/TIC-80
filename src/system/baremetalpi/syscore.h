@@ -198,7 +198,7 @@ boolean initializeCore()
 	//dbg("Memory: %p\n", &mMemory);
 	//dbg("Snd: %p\n", &mVCHIQSound);
 
-	
+
 
 	dbg("Creating tic80 instance..\n");
 

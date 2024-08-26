@@ -82,7 +82,7 @@ local function PrintDebug(object)
 		elseif type(v)=="function" then
 			trace("["..i.."] ".."function")
 		end
-	end		
+	end
 	trace("------------------")
 end
 
@@ -96,7 +96,7 @@ function Collision:GetEdges(x,y,w,h)
 	local x=x+(CELL-w)/2
 	local y=y+(CELL-h)/2
 	
-	-- get the map ids in the edges	
+	-- get the map ids in the edges
 	local topLeft=mget(x/CELL,y/CELL)
 	local topRight=mget((x+w)/CELL,y/CELL)
 	local bottomLeft=mget(x/CELL,(y+h)/CELL)
@@ -106,7 +106,7 @@ function Collision:GetEdges(x,y,w,h)
 end
 
 function Collision:CheckSolid(indx)
-	return indx==tiles.WALL_1 or					
+	return indx==tiles.WALL_1 or
 			  indx==tiles.WALL_2 or
 			  indx==tiles.CLOSED_GRATE or
 			  indx==tiles.MIMIC_HARM or
@@ -116,8 +116,8 @@ function Collision:CheckSolid(indx)
 			  indx==tiles.STATUE_2 or
 			  indx==tiles.ALTAR or
 			  indx==tiles.CRYSTAL_WHOLE or
-			  indx==tiles.CLOSED_DOOR or		
-			  indx==tiles.CLOSED_COFFER	or	
+			  indx==tiles.CLOSED_DOOR or
+			  indx==tiles.CLOSED_COFFER	or
 			  indx==tiles.OPENED_COFFER
 end
 
@@ -143,7 +143,7 @@ local function Anim(span,frames,loop)
 		ended=false
 	}
 	
-	function s.Update(time)	
+	function s.Update(time)
 		if time>=s.tick and #s.frames>0 then
 			if s.loop then
 				s.indx=(s.indx+1)%#s.frames
@@ -155,7 +155,7 @@ local function Anim(span,frames,loop)
 				if s.indx==#s.frames then s.ended=true end
 			end
 			s.tick=time+s.span
-		end 
+		end
 	end
 	
 	function s.RandomIndx()
@@ -245,7 +245,7 @@ local function Bullet(x,y,vx,vy)
 		visible=true
 	}
 
-	function s.Move()	
+	function s.Move()
 		-- detect flip
 		if s.vx~=0 then s.flip=s.vx<0 and 1 or 0 end
 		
@@ -271,7 +271,7 @@ local function Bullet(x,y,vx,vy)
 		if s.x<0 then s.x=0 end
 		if s.x>MAP_W-CELL then s.x=MAP_W-CELL end
 		if s.y<0 then s.y=0 end
-		if s.y>MAP_H-CELL then s.y=MAP_H-CELL end	
+		if s.y>MAP_H-CELL then s.y=MAP_H-CELL end
 	end
 	
 	function s.Collide()
@@ -310,7 +310,7 @@ local function Bullet(x,y,vx,vy)
 		-- if the range is exceeded, ends the life of the bullet
 		local dx=s.x-s.xStart
 		local dy=s.y-s.yStart
-		if math.sqrt(dx^2+dy^2)>s.range then s.Collide() end		
+		if math.sqrt(dx^2+dy^2)>s.range then s.Collide() end
 	end
 	
 	function s.Display(time)
@@ -322,7 +322,7 @@ local function Bullet(x,y,vx,vy)
 		if s.visible then
 			spr(s.curAnim.frame,x,y,s.alpha,1,s.flip)
 			-- rectb(x,y,CELL,CELL,14)
-		end		
+		end
 	end
 	
 	return s
@@ -340,7 +340,7 @@ local function Mob(x,y,player)
 		health=3,
 		power=1,
 		fov=6*CELL,
-		proximity=CELL-2,		
+		proximity=CELL-2,
 		died=false,
 		dx=0,
 		dy=0,
@@ -485,7 +485,7 @@ local function Mob(x,y,player)
 		if s.visible then
 			spr(s.curAnim.frame,x,y,s.alpha,1,s.flip)
 			-- rectb(x,y,CELL,CELL,14)
-		end		
+		end
 	end
 
 	return s
@@ -534,7 +534,7 @@ local function Boss(x,y,player)
 	
 	s.anims={
 		idle=Anim(25,{128,129,130,131}),
-		walk=Anim(15,{128,129,130,131}),	
+		walk=Anim(15,{128,129,130,131}),
 		attack=Anim(15,{132,133,128},false),
 		die=Anim(5,{132,137,138,139,140,141},false),
 		damaged=Anim(20,{142,128},false)
@@ -613,7 +613,7 @@ local function Boss(x,y,player)
 		if s.visible then
 			spr(s.curAnim.frame,x,y,s.alpha,1,s.flip)
 			spr(s.curAnim.frame-16,x,y-CELL,s.alpha,1,s.flip)
-		end		
+		end
 	end
 	
 	return s
@@ -632,7 +632,7 @@ local function Player(x,y)
 	
 	s.anims={
 		idle=Anim(60,{16,17}),
-		walk=Anim(15,{18,19}),	
+		walk=Anim(15,{18,19}),
 		attack=Anim(15,{20,17},false),
 		die=Anim(5,{21,22,23,24,25},false),
 		damaged=Anim(20,{26,17},false)
@@ -654,7 +654,7 @@ local function Player(x,y)
 		CheckKeys(dx,dy)
 	end
 	
-	function s.Update(time)		
+	function s.Update(time)
 		s.dx=0
 		s.dy=0
 		
@@ -667,7 +667,7 @@ local function Player(x,y)
 		end
 		
 		-- prevent update in these particular states
-		if s.died or s.attack then return end	
+		if s.died or s.attack then return end
 		
 		-- default: idle
 		if not s.damaged then s.curAnim=s.anims.idle end
@@ -741,10 +741,10 @@ local function Player(x,y)
 		
 		if tl==tiles.CLOSED_COFFER then
 			mset((s.x+dx)/CELL,(s.y+dy)/CELL,tiles.OPENED_COFFER)
-			if math.random(100)<probability then s.potions=s.potions+1 end			
+			if math.random(100)<probability then s.potions=s.potions+1 end
 		elseif tr==tiles.CLOSED_COFFER then
 			mset((s.x+dx+CELL-1)/CELL,(s.y+dy)/CELL,tiles.OPENED_COFFER)
-			if math.random(100)<probability then s.potions=s.potions+1 end			
+			if math.random(100)<probability then s.potions=s.potions+1 end
 		elseif bl==tiles.CLOSED_COFFER then
 			mset((s.x+dx)/CELL,(s.y+dy+CELL-1)/CELL,tiles.OPENED_COFFER)
 			if math.random(100)<probability then s.potions=s.potions+1 end
@@ -761,7 +761,7 @@ local function Player(x,y)
 		tl,tr,bl,br=Collision:GetEdges(s.x+dx,s.y+dy)
 		if tl==tiles.KEY_FLOOR then
 			s.keys=s.keys+1
-			mset((s.x+dx)/CELL,(s.y+dy)/CELL,tiles.KEY_FLOOR_PICKED_UP)			
+			mset((s.x+dx)/CELL,(s.y+dy)/CELL,tiles.KEY_FLOOR_PICKED_UP)
 		elseif tr==tiles.KEY_FLOOR then
 			s.keys=s.keys+1
 			mset((s.x+dx+CELL-1)/CELL,(s.y+dy)/CELL,tiles.KEY_FLOOR_PICKED_UP)
@@ -819,7 +819,7 @@ local function SpawnBlob(cellX,cellY,player)
 	m.tag="blob"
 	m.anims={
 		idle=Anim(20,{32,33,34}),
-		walk=Anim(8,{34,35,36,37,38}),	
+		walk=Anim(8,{34,35,36,37,38}),
 		attack=Anim(5,{39,40,41,32},false),
 		die=Anim(5,{42,43,44},false),
 		damaged=Anim(20,{45,32},false),
@@ -836,7 +836,7 @@ local function SpawnGoblin(cellX,cellY,player)
 	m.score=2
 	m.anims={
 		idle=Anim(60,{48,49}),
-		walk=Anim(15,{50,51}),	
+		walk=Anim(15,{50,51}),
 		attack=Anim(15,{52,49},false),
 		die=Anim(5,{53,54,55,56},false),
 		damaged=Anim(20,{57,49},false),
@@ -849,7 +849,7 @@ local function SpawnWraith(cellX,cellY,player)
 	m.tag="wraith"
 	m.anims={
 		idle=Anim(25,{80,81,82,81}),
-		walk=Anim(15,{80,81,82,81}),	
+		walk=Anim(15,{80,81,82,81}),
 		attack=Anim(20,{83,80},false),
 		die=Anim(5,{90,91,92,93},false),
 		damaged=Anim(20,{94,95,80},false)
@@ -867,7 +867,7 @@ local function SpawnWraith(cellX,cellY,player)
 			move=Anim(5,{84,85,86}),
 			collided=Anim(15,{87,88,89},false)
 		}
-		return b	
+		return b
 	end
 	
 	return m
@@ -882,7 +882,7 @@ local function SpawnGolem(cellX,cellY,player)
 	m.fov=4*CELL
 	m.anims={
 		idle=Anim(60,{64,65}),
-		walk=Anim(15,{66,67}),	
+		walk=Anim(15,{66,67}),
 		attack=Anim(15,{68,69,70,64},false),
 		die=Anim(20,{71,72,73,74},false),
 		damaged=Anim(20,{75,64},false),
@@ -899,7 +899,7 @@ local function SpawnKnight(cellX,cellY,player)
 	m.fov=7*CELL
 	m.anims={
 		idle=Anim(50,{96,97}),
-		walk=Anim(15,{98,99}),	
+		walk=Anim(15,{98,99}),
 		attack=Anim(15,{100,97},false),
 		die=Anim(5,{101,102,103,104,105},false),
 		damaged=Anim(20,{106,97},false)
@@ -996,14 +996,14 @@ local function Init()
 	
 	-- just for curiosity
 	local maxScore=0
-	for i,mob in pairs(mobs) do 
+	for i,mob in pairs(mobs) do
 		maxScore=maxScore+mob.score
 	end
 	-- trace("maxScore:"..maxScore)
 	
 	-- cycle the map and manage the special elements
 	for y=0,MAP_W/CELL do
-		for x=0,MAP_H/CELL do	
+		for x=0,MAP_H/CELL do
 			-- animated tiles
 			if mget(x,y)==tiles.LAVA_1 or mget(x,y)==tiles.LAVA_2 or mget(x,y)==tiles.LAVA_3 then
 				local tile=AnimTile(x,y,Anim(30,{tiles.LAVA_1,tiles.LAVA_2,tiles.LAVA_3}))
@@ -1070,7 +1070,7 @@ local function SpecialEvents()
 	end
 end
 
-------------------------------------------				
+------------------------------------------
 -- main
 function TIC()
 	-- runs only the first time or to reset the game
@@ -1102,7 +1102,7 @@ function TIC()
 	
 	------------- DISPLAY -------------
 	-- animated tiles
-	for i,tile in pairs(animTiles) do tile.Display(t) end	
+	for i,tile in pairs(animTiles) do tile.Display(t) end
 	-- mobs
 	for i,mob in pairs(mobs) do mob.Display(t) end
 	-- player

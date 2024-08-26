@@ -138,7 +138,7 @@ static void drawBottomToolbar(Surf* surf, s32 x, s32 y)
         tic_api_print(tic, label, xl, yl, tic_color_white, true, 1, false);
     }
 
-#ifdef CAN_OPEN_URL 
+#ifdef CAN_OPEN_URL
 
     if(surf->menu.count > 0 && getMenuItem(surf)->hash)
     {
@@ -171,7 +171,7 @@ static void drawMenu(Surf* surf, s32 x, s32 y)
     {
         const char* name = surf->menu.items[i].label;
 
-        if (ym > (-(TIC_FONT_HEIGHT + 1)) && ym <= TIC80_HEIGHT) 
+        if (ym > (-(TIC_FONT_HEIGHT + 1)) && ym <= TIC80_HEIGHT)
         {
             tic_api_print(tic, name, x + MAIN_OFFSET, ym + 1, tic_color_black, false, 1, false);
             tic_api_print(tic, name, x + MAIN_OFFSET, ym, tic_color_white, false, 1, false);
@@ -190,7 +190,7 @@ static bool addMenuItem(const char* name, const char* title, const char* hash, s
 
     static const char CartExt[] = CART_EXT;
 
-    if(dir 
+    if(dir
         || tic_tool_has_ext(name, CartExt)
         || tic_tool_has_ext(name, PngExt)
 #if defined(TIC80_PRO)
@@ -297,8 +297,8 @@ static void updateMenuItemCover(Surf* surf, s32 pos, const u8* cover, s32 size)
         item->cover = malloc(sizeof(tic_screen));
         item->palette = malloc(sizeof(tic_palette));
 
-        if (image->width == TIC80_WIDTH 
-            && image->height == TIC80_HEIGHT 
+        if (image->width == TIC80_WIDTH
+            && image->height == TIC80_HEIGHT
             && image->colors <= TIC_PALETTE_SIZE)
         {
             memcpy(item->palette, image->palette, image->colors * sizeof(tic_rgb));
@@ -378,9 +378,9 @@ static void requestCover(Surf* surf, SurfItem* item)
 static void loadCover(Surf* surf)
 {
     tic_mem* tic = surf->tic;
-    
+
     SurfItem* item = getMenuItem(surf);
-    
+
     if(item->coverLoading)
         return;
 
@@ -431,7 +431,7 @@ static void loadCover(Surf* surf)
     }
     else if(item->hash && !item->cover)
     {
-        requestCover(surf, item);    
+        requestCover(surf, item);
     }
 }
 
@@ -685,8 +685,8 @@ static void processGamepad(Surf* surf)
             || ticEnterWasPressed(tic, -1, -1))
         {
             SurfItem* item = getMenuItem(surf);
-            item->dir 
-                ? changeDirectory(surf, item->name) 
+            item->dir
+                ? changeDirectory(surf, item->name)
                 : loadCart(surf);
         }
 
@@ -855,7 +855,7 @@ void initSurf(Surf* surf, Studio* studio, struct Console* console)
         .init = false,
         .loading = true,
         .resume = resume,
-        .menu = 
+        .menu =
         {
             .pos = 0,
             .items = NULL,
@@ -885,7 +885,7 @@ void initSurf(Surf* surf, Studio* studio, struct Console* console)
 
             .move = MOVIE_DEF(9, moveDone, {{0, 0, 9, &surf->anim.val.pos, AnimLinear}}),
 
-            .gotodir = 
+            .gotodir =
             {
                 .show = MOVIE_DEF(ANIM, setIdle,
                 {
@@ -900,7 +900,7 @@ void initSurf(Surf* surf, Studio* studio, struct Console* console)
                 }),
             },
 
-            .goback = 
+            .goback =
             {
                 .show = MOVIE_DEF(ANIM, setIdle,
                 {

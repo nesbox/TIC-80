@@ -8,7 +8,7 @@ extern "C" {
 
 // this functions are absent for circle-stdlib for some reason
 // (maybe i can't link properly). Since they shouldn't be used
-// too much, i'll put some stub here. Chmod is ok since we're on 
+// too much, i'll put some stub here. Chmod is ok since we're on
 // fat anyway, symlink won't work either. ftruncate could break
 // something
 

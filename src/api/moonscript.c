@@ -196,7 +196,7 @@ static const u8 MarkRom[] =
     #include "../build/assets/moonmark.tic.dat"
 };
 
-TIC_EXPORT const tic_script EXPORT_SCRIPT(Moon) = 
+TIC_EXPORT const tic_script EXPORT_SCRIPT(Moon) =
 {
     .id                 = 13,
     .name               = "moon",

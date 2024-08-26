@@ -70,14 +70,14 @@ static void js_dump_obj(JSContext *ctx, FILE *f, JSValueConst val)
     const char *str;
 
     tic_core* core = getCore(ctx);
-    
+
     str = JS_ToCString(ctx, val);
-    if (str) 
+    if (str)
     {
         core->data->error(core->data->data, str);
         JS_FreeCString(ctx, str);
     }
-    else 
+    else
     {
         core->data->error(core->data->data, "[exception]\n");
     }
@@ -87,13 +87,13 @@ static void js_std_dump_error1(JSContext *ctx, JSValueConst exception_val)
 {
     JSValue val;
     bool is_error;
-    
+
     is_error = JS_IsError(ctx, exception_val);
     js_dump_obj(ctx, stdout, exception_val);
-    if (is_error) 
+    if (is_error)
     {
         val = JS_GetPropertyStr(ctx, exception_val, "stack");
-        if (!JS_IsUndefined(val)) 
+        if (!JS_IsUndefined(val))
         {
             js_dump_obj(ctx, stdout, val);
         }
@@ -104,7 +104,7 @@ static void js_std_dump_error1(JSContext *ctx, JSValueConst exception_val)
 static void js_std_dump_error(JSContext *ctx)
 {
     JSValue exception_val;
-    
+
     exception_val = JS_GetException(ctx);
     js_std_dump_error1(ctx, exception_val);
     JS_FreeValue(ctx, exception_val);
@@ -243,7 +243,7 @@ static JSValue js_spr(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
 
     s32 scale = getInteger2(ctx, argv[4], 1);
 
-    tic_flip flip = JS_IsBool(argv[5]) 
+    tic_flip flip = JS_IsBool(argv[5])
         ? JS_ToBool(ctx, argv[5]) ? tic_horz_flip : tic_no_flip
         : getInteger2(ctx, argv[5], tic_no_flip);
 
@@ -294,7 +294,7 @@ static JSValue js_key(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueCo
 
     if(key < tic_keys_count)
         return JS_NewBool(ctx, core->api.key(tic, key));
-    else 
+    else
     {
         JSValue err = JS_NewError(ctx);
         JS_SetPropertyStr(ctx, err, "message", JS_NewString(ctx, "unknown keyboard code"));
@@ -328,7 +328,7 @@ static JSValue js_keyp(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
 
         return JS_NewBool(ctx, core->api.keyp(tic, key, hold, period));
     }
-    else 
+    else
     {
         throwError(ctx, "unknown keyboard code");
     }
@@ -419,12 +419,12 @@ static void remapCallback(void* data, s32 x, s32 y, RemapResult* result)
     RemapData* remap = (RemapData*)data;
     JSContext* ctx = remap->ctx;
 
-    JSValue res = JS_Call(ctx, remap->func, JS_UNDEFINED, 3, 
+    JSValue res = JS_Call(ctx, remap->func, JS_UNDEFINED, 3,
         (JSValueConst[])
         {
-            JS_NewInt32(ctx, result->index), 
-            JS_NewInt32(ctx, x), 
-            JS_NewInt32(ctx, y), 
+            JS_NewInt32(ctx, result->index),
+            JS_NewInt32(ctx, x),
+            JS_NewInt32(ctx, y),
         });
 
     if(JS_IsArray(ctx, res))
@@ -830,7 +830,7 @@ static JSValue js_textri(JSContext *ctx, JSValueConst this_val, s32 argc, JSValu
         count = 1;
     }
 
-    core->api.textri(tic, 
+    core->api.textri(tic,
         pt[0], pt[1],   //  xy 1
         pt[2], pt[3],   //  xy 2
         pt[4], pt[5],   //  xy 3
@@ -889,7 +889,7 @@ static JSValue js_ttri(JSContext *ctx, JSValueConst this_val, s32 argc, JSValueC
                         pt[10], pt[11],             //  uv 3
                         src,                        //  texture source
                         colors, count,              //  chroma
-                        z[0], z[1], z[2], depth);   //  depth 
+                        z[0], z[1], z[2], depth);   //  depth
 
     return JS_UNDEFINED;
 }
@@ -1196,11 +1196,11 @@ static void callJavascriptBoot(tic_mem* tic)
 
 static const char* const JsKeywords [] =
 {
-    "await", "break", "case", "catch", "class", "const", "continue", "debugger", 
-    "default", "delete", "do", "else", "enum", "export", "extends", "false", 
-    "finally", "for", "function", "if", "implements", "import", "in", "instanceof", 
-    "interface", "let", "new", "null", "package", "private", "protected", 
-    "public", "return", "super", "switch", "static", "this", "throw", "try", 
+    "await", "break", "case", "catch", "class", "const", "continue", "debugger",
+    "default", "delete", "do", "else", "enum", "export", "extends", "false",
+    "finally", "for", "function", "if", "implements", "import", "in", "instanceof",
+    "interface", "let", "new", "null", "package", "private", "protected",
+    "public", "return", "super", "switch", "static", "this", "throw", "try",
     "true", "typeof", "var", "void", "while", "with", "yield", "of"
 };
 
@@ -1266,7 +1266,7 @@ static const tic_outline_item* getJsOutline(const char* code, s32* size)
     return items;
 }
 
-static void evalJs(tic_mem* tic, const char* code) 
+static void evalJs(tic_mem* tic, const char* code)
 {
     tic_core* core = (tic_core*)tic;
     core->data->error(core->data->data, "TODO: JS eval not yet implemented\n.");

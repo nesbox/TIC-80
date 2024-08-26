@@ -148,13 +148,13 @@ local function GameGrid(width,height)
 	local function remove(oldSprId)
  	local process=true
   while process do
-		 process=false	
+		 process=false
 			for y=1,s.height do
 				 if s.grid[y][1] == oldSprId then
 					 removeLine(y)
 						process=true
 						break
-					end 
+					end
 				end
 		end
 	end
@@ -166,7 +166,7 @@ local function GameGrid(width,height)
 		 s.animTime=now
 		 remove(DIE2_CELL_SPR)
 			s.isAnim = replace(DIE1_CELL_SPR, DIE2_CELL_SPR)
-		end	
+		end
 	end
 	
 	return s
@@ -196,14 +196,14 @@ local function Tetrimino(sprId)
 	  for x=1,s.width do
 			 if sh~=nil and sh[y][x]>0 then
 				 local posX=x+pos.x
-					local posY=y+pos.y 
+					local posY=y+pos.y
 					
 					if posX<=0 or posX>grid.width then
-					 return true 
+					 return true
 					elseif posY>grid.height then
-					 return true 
+					 return true
 					elseif not (grid.grid[posY][posX]==EMPTY_CELL_SPR) then
-					 return true 
+					 return true
 					end
 				end
 			end
@@ -220,7 +220,7 @@ local function Tetrimino(sprId)
 	  for x=1,s.width do
 			 if shape~=nil and shape[y][x]>0 then
 				 local posX=cx+x-1+s.pos.x
-					local posY=cy+y-1+s.pos.y 
+					local posY=cy+y-1+s.pos.y
 				 DrawToCell(s.sprId,posX,posY)
 				end
 			end
@@ -236,7 +236,7 @@ local function Tetrimino(sprId)
 	
 	function s.GoDown(grid)
   local p={x=s.pos.x,y=s.pos.y}
-		p.y=p.y+1	
+		p.y=p.y+1
 	 
 		if not isCollision(grid,s.shape,p) then
 		 s.pos=p
@@ -247,7 +247,7 @@ local function Tetrimino(sprId)
 	
 	function s.GoLeft(grid)
   local p={x=s.pos.x,y=s.pos.y}
-		p.x=p.x-1	
+		p.x=p.x-1
 	 
 		if not isCollision(grid,s.shape,p) then
 		 s.pos=p
@@ -281,8 +281,8 @@ local function Tetrimino(sprId)
 			 s.pos = pLeft
 			 s.shape = shape
 			 return
-		 end			
-		end	
+		 end
+		end
 
 	end
 	
@@ -358,7 +358,7 @@ local function ZTetrimino(sprId)
 		 {0,1,0},
 			{1,1,0},
 			{1,0,0}
-		}				
+		}
 	end
 	
 	return s
@@ -371,7 +371,7 @@ local function STetrimino(sprId)
 		s.width=3
 	 s.height=3
 	 s.shape=1
-		s.wallkickGap=1		
+		s.wallkickGap=1
 	 s.shapes[1]={
 			{0,1,1},
 			{1,1,0},
@@ -394,7 +394,7 @@ local function STetrimino(sprId)
 		 {1,0,0},
 			{1,1,0},
 			{0,1,0}
-		}				
+		}
 	end
 	
 	return s
@@ -407,7 +407,7 @@ local function LTetrimino(sprId)
 		s.width=3
 	 s.height=3
 	 s.shape=1
-		s.wallkickGap=1		
+		s.wallkickGap=1
 	 s.shapes[1]={
 			{0,0,1},
 			{1,1,1},
@@ -430,7 +430,7 @@ local function LTetrimino(sprId)
 		 {1,1,0},
 			{0,1,0},
 			{0,1,0}
-		}				
+		}
 	end
 	
 	return s
@@ -443,7 +443,7 @@ local function JTetrimino(sprId)
 		s.width=3
 	 s.height=3
 	 s.shape=1
-		s.wallkickGap=1		
+		s.wallkickGap=1
 	 s.shapes[1]={
 			{1,0,0},
 			{1,1,1},
@@ -466,7 +466,7 @@ local function JTetrimino(sprId)
 		 {0,1,0},
 			{0,1,0},
 			{1,1,0}
-		}				
+		}
 	end
 	
 	return s
@@ -479,7 +479,7 @@ local function TTetrimino(sprId)
 		s.width=3
 	 s.height=3
 	 s.shape=1
-		s.wallkickGap=1		
+		s.wallkickGap=1
 	 s.shapes[1]={
 			{0,1,0},
 			{1,1,1},
@@ -502,7 +502,7 @@ local function TTetrimino(sprId)
 		 {0,1,0},
 			{1,1,0},
 			{0,1,0}
-		}				
+		}
 	end
 	
 	return s
@@ -515,7 +515,7 @@ local function ITetrimino(sprId)
 		s.width=4
 	 s.height=4
 	 s.shape=1
-		s.wallkickGap=2		
+		s.wallkickGap=2
 	 s.shapes[1]={
 			{0,0,0,0},
 			{1,1,1,1},
@@ -542,7 +542,7 @@ local function ITetrimino(sprId)
 			{0,1,0,0},
 			{0,1,0,0},
 			{0,1,0,0}
-		}				
+		}
 	end
 	
 	return s
@@ -555,7 +555,7 @@ local function OTetrimino(sprId)
 		s.width=4
 	 s.height=3
 	 s.shape=1
-		s.wallkickGap=0		
+		s.wallkickGap=0
 	 s.shapes[1]={
 			{0,1,1,0},
 			{0,1,1,0},
@@ -578,7 +578,7 @@ local function OTetrimino(sprId)
 			{0,1,1,0},
 			{0,1,1,0},
 			{0,0,0,0}
-		}				
+		}
 	end
 	
 	return s
@@ -732,9 +732,9 @@ local function ScreenManager()
 	function s.GoTo(name)
 	 for i,screen in pairs(s.items) do
 		 if screen.name == name then
-			 leave() 
+			 leave()
 			 s.current = screen
-				enter() 
+				enter()
 			end
 		end
 	end
@@ -770,7 +770,7 @@ local function MenuScreen()
 	
 	local function onNewGame()
  	gameScreen.Reset()
-	 screenMng.GoTo(GAME_SCR) 
+	 screenMng.GoTo(GAME_SCR)
 	end
 	
 	local function onSoundChanged(itemMenu)
@@ -804,7 +804,7 @@ local function PauseScreen()
 	s.menu = Menu(2)
 	
 	local function onContinue()
-	 screenMng.GoTo(GAME_SCR) 
+	 screenMng.GoTo(GAME_SCR)
 	end
 	
 	local function onMenu()
@@ -846,7 +846,7 @@ local function GameScreen()
 	s.isGameOver=false
 	
 	local function onPause()
-	 screenMng.GoTo(PAUSE_SCR) 
+	 screenMng.GoTo(PAUSE_SCR)
 		s.pauseTime=time()
 	end
 	
@@ -861,7 +861,7 @@ local function GameScreen()
 		 s.current.Move(3,0)
 			s.fallTime=time()
 			
-	 	s.next =	s.spawner.Spawn()	
+	 	s.next =	s.spawner.Spawn()
  		s.next.Create()
 		end
 	end
@@ -910,7 +910,7 @@ local function GameScreen()
 			if score==0 then
  			soundMng.PlaySfx(FELL_SFX)
 			else
- 			soundMng.PlaySfx(LINE_SFX)			 
+ 			soundMng.PlaySfx(LINE_SFX)
 			end
 	
 	  score=score+4*s.level
@@ -993,13 +993,13 @@ local function GameScreen()
  	PrintToCell("Best: ",1,4,6)
  	PrintToCell(best,1,5,15)
 		
-	--Level	
+	--Level
 	 local level = string.format("%02d", s.level)
  	PrintToCell("Level: ",1,13,6)
- 	PrintToCell(level,2,14,15)	
+ 	PrintToCell(level,2,14,15)
 	
 	 s.grid.Draw(9,0)
-		s.next.Draw(23,2)		
+		s.next.Draw(23,2)
 		if s.current~=nil then
 		 s.current.Draw(9,0)
 		end
@@ -1025,13 +1025,13 @@ local function GameOverScreen()
 	
 	function s.OnLeave()
 		soundMng.BreakSfx(GAME_OVER_SFX)
-	end	
+	end
 	 
 	function s.Update()
 		local now=time()
 		local isTime=(now>start+delay)
 		local isBtn=btnp(4) or btnp(5)
-		if isTime or isBtn  then 
+		if isTime or isBtn  then
 			onMenu()
 		end
 	end
@@ -1258,7 +1258,7 @@ local function Init()
 	soundMng.LoadSettings()
 	soundMng.Add(FellSfx())
 	soundMng.Add(LineSfx())
-	soundMng.Add(GameOverSfx())	
+	soundMng.Add(GameOverSfx())
 	soundMng.Add(MenuSfx())
 	soundMng.Add(SelMenuSfx())
 	

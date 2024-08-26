@@ -15,6 +15,6 @@ set(GIFLIB_SRC
 add_library(giflib STATIC ${GIFLIB_SRC})
 target_include_directories(giflib
     PRIVATE ${GIFLIB_DIR}
-    INTERFACE 
-        ${THIRDPARTY_DIR}/giflib 
+    INTERFACE
+        ${THIRDPARTY_DIR}/giflib
         ${THIRDPARTY_DIR}/msf_gif)

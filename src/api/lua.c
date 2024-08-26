@@ -60,7 +60,7 @@ static const char* const LuaKeywords [] =
     "and", "break", "do", "else", "elseif",
     "end", "false", "for", "function", "goto", "if",
     "in", "local", "nil", "not", "or", "repeat",
-    "return", "then", "true", "until", "while", 
+    "return", "then", "true", "until", "while",
     "self"
 };
 
@@ -126,7 +126,7 @@ static const tic_outline_item* getLuaOutline(const char* code, s32* size)
     return items;
 }
 
-static void evalLua(tic_mem* tic, const char* code) 
+static void evalLua(tic_mem* tic, const char* code)
 {
     tic_core* core = (tic_core*)tic;
     lua_State* lua = core->currentVM;
@@ -206,7 +206,7 @@ static const u8 DemoCar[] =
     #include "../build/assets/car.tic.dat"
 };
 
-TIC_EXPORT const tic_script EXPORT_SCRIPT(Lua) = 
+TIC_EXPORT const tic_script EXPORT_SCRIPT(Lua) =
 {
     .id                 = 10,
     .name               = "lua",

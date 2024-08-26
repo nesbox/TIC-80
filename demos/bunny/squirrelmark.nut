@@ -1,7 +1,7 @@
 // title: Bunnymark in Squirrel
 // author: Rob Loach
 // desc: Benchmarking tool to see how many bunnies can fly around the screen, using Squirrel.
-// license: MIT License 
+// license: MIT License
 // input: gamepad
 // script: squirrel
 // version: 1.1.0

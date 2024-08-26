@@ -82,7 +82,7 @@ static void tick(World* world)
     tic_mem* tic = world->tic;
 
     // process scroll
-    if(tic->ram->input.mouse.scrolly > 0) 
+    if(tic->ram->input.mouse.scrolly > 0)
     {
         setStudioMode(world->studio, TIC_MAP_MODE);
         return;

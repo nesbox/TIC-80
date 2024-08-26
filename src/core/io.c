@@ -127,7 +127,7 @@ bool tic_api_keyp(tic_mem* tic, tic_key key, s32 hold, s32 period)
 
 tic_point tic_api_mouse(tic_mem* memory)
 {
-    return memory->ram->input.mouse.relative 
+    return memory->ram->input.mouse.relative
         ? (tic_point){memory->ram->input.mouse.rx, memory->ram->input.mouse.ry}
         : (tic_point){memory->ram->input.mouse.x - TIC80_OFFSET_LEFT, memory->ram->input.mouse.y - TIC80_OFFSET_TOP};
 }

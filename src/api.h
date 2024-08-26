@@ -40,7 +40,7 @@ typedef struct
     TraceOutput trace;
     ErrorOutput error;
     ExitCallback exit;
-    
+
     CounterCallback counter;
     FreqCallback freq;
     u64 start;
@@ -88,9 +88,9 @@ typedef struct
 } tic_rect;
 
 //                  SYNC DEFINITION TABLE
-//       .--------------------------------- - - - 
+//       .--------------------------------- - - -
 //       | CART    | RAM           | INDEX
-//       |---------+---------------+------- - - - 
+//       |---------+---------------+------- - - -
 //       |         |               |
 #define TIC_SYNC_LIST(macro) \
     macro(tiles,    tiles,        0) \

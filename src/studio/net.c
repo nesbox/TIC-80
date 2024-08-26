@@ -44,14 +44,14 @@ struct tic_net
     emscripten_fetch_attr_t attr;
 };
 
-static void downloadSucceeded(emscripten_fetch_t *fetch) 
+static void downloadSucceeded(emscripten_fetch_t *fetch)
 {
     FetchData* data = (FetchData*)fetch->userData;
 
-    net_get_data getData = 
+    net_get_data getData =
     {
         .type = net_get_done,
-        .done = 
+        .done =
         {
             .size = fetch->numBytes,
             .data = (u8*)fetch->data,
@@ -68,14 +68,14 @@ static void downloadSucceeded(emscripten_fetch_t *fetch)
     emscripten_fetch_close(fetch);
 }
 
-static void downloadFailed(emscripten_fetch_t *fetch) 
+static void downloadFailed(emscripten_fetch_t *fetch)
 {
     FetchData* data = (FetchData*)fetch->userData;
 
-    net_get_data getData = 
+    net_get_data getData =
     {
         .type = net_get_error,
-        .error = 
+        .error =
         {
             .code = fetch->status,
         },
@@ -90,14 +90,14 @@ static void downloadFailed(emscripten_fetch_t *fetch)
     emscripten_fetch_close(fetch);
 }
 
-static void downloadProgress(emscripten_fetch_t *fetch) 
+static void downloadProgress(emscripten_fetch_t *fetch)
 {
     FetchData* data = (FetchData*)fetch->userData;
 
-    net_get_data getData = 
+    net_get_data getData =
     {
         .type = net_get_progress,
-        .progress = 
+        .progress =
         {
             .size = fetch->dataOffset + fetch->numBytes,
             .total = fetch->totalBytes,
@@ -320,7 +320,7 @@ static void n3ds_net_get_thread(net_ctx *ctx) {
     free(ctx);
 }
 
-static void n3ds_net_apply_url(net_ctx *ctx, const char *url) 
+static void n3ds_net_apply_url(net_ctx *ctx, const char *url)
 {
     snprintf(ctx->url, URL_SIZE, "http://%s%s", ctx->net->host, url);
 }
@@ -345,7 +345,7 @@ tic_net* tic_net_create(const char* host)
 
 void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void* calldata)
 {
-    net_ctx ctx = 
+    net_ctx ctx =
     {
         .net = net,
         .callback = callback,
@@ -438,7 +438,7 @@ void tic_net_get(tic_net* net, const char* url, net_get_callback callback, void*
     net->requests[net->count - 1] = get;
 }
 
-void tic_net_close(tic_net* net) 
+void tic_net_close(tic_net* net)
 {
     for(s32 i = 0; i < net->count; i++)
     {
@@ -448,7 +448,7 @@ void tic_net_close(tic_net* net)
         {
             naettClose(it->res);
             naettFree(it->req);
-            free(it);            
+            free(it);
         }
     }
 
@@ -471,7 +471,7 @@ void tic_net_end(tic_net *net)
         {
             s32 status = naettGetStatus(it->res);
 
-            net_get_data getData = 
+            net_get_data getData =
             {
                 .calldata = it->calldata,
                 .url = it->url,

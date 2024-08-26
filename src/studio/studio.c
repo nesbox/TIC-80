@@ -428,7 +428,7 @@ char getKeyboardText(Studio* studio)
                 bool shift = tic_api_key(tic, tic_key_shift);
 
                 return caps
-                    ? key >= tic_key_a && key <= tic_key_z 
+                    ? key >= tic_key_a && key <= tic_key_z
                         ? shift ? Symbols[key] : Shift[key]
                         : shift ? Shift[key] : Symbols[key]
                     : shift ? Shift[key] : Symbols[key];
@@ -600,8 +600,8 @@ bool fromClipboard(void* data, s32 size, bool flip, bool remove_white_spaces, bo
             if (remove_white_spaces)
                 removeWhiteSpaces(clipboard);
 
-            bool valid = sameSize 
-                ? strlen(clipboard) == size * 2 
+            bool valid = sameSize
+                ? strlen(clipboard) == size * 2
                 : strlen(clipboard) <= size * 2;
 
             if(valid) tic_tool_str2buf(clipboard, (s32)strlen(clipboard), data, flip);
@@ -625,7 +625,7 @@ static void drawExtrabar(Studio* studio, tic_mem* tic)
     s32 x = (COUNT_OF(Modes) + 1) * Size + 17 * TIC_FONT_WIDTH;
     s32 y = 0;
 
-    static struct Icon {u8 id; StudioEvent event; const char* tip;} Icons[] = 
+    static struct Icon {u8 id; StudioEvent event; const char* tip;} Icons[] =
     {
         {tic_icon_cut,      TIC_TOOLBAR_CUT,    "CUT [ctrl+x]"},
         {tic_icon_copy,     TIC_TOOLBAR_COPY,   "COPY [ctrl+c]"},
@@ -737,7 +737,7 @@ static void drawBankIcon(Studio* studio, s32 x, s32 y)
 
                 if(checkMouseClick(studio, &rect, tic_mouse_left))
                 {
-                    if(studio->bank.chained) 
+                    if(studio->bank.chained)
                         memset(studio->bank.indexes, i, sizeof studio->bank.indexes);
                     else studio->bank.indexes[mode] = i;
                 }
@@ -746,12 +746,12 @@ static void drawBankIcon(Studio* studio, s32 x, s32 y)
             if(i == studio->bank.indexes[mode])
                 tic_api_rect(tic, rect.x, rect.y, rect.w, rect.h, tic_color_red);
 
-            tic_api_print(tic, (char[]){'0' + i, '\0'}, rect.x+1, rect.y+1, 
-                i == studio->bank.indexes[mode] 
-                    ? tic_color_white 
-                    : over 
-                        ? tic_color_red 
-                        : tic_color_light_grey, 
+            tic_api_print(tic, (char[]){'0' + i, '\0'}, rect.x+1, rect.y+1,
+                i == studio->bank.indexes[mode]
+                    ? tic_color_white
+                    : over
+                        ? tic_color_red
+                        : tic_color_light_grey,
                 false, 1, false);
 
         }
@@ -796,18 +796,18 @@ static inline float bounceOut(float x)
 {
     const float n1 = 7.5625;
     const float d1 = 2.75;
-        
+
     if (x < 1 / d1) return n1 * x * x;
     else if (x < 2 / d1)
-    {       
+    {
         x -= 1.5 / d1;
         return n1 * x * x + 0.75;
-    }   
+    }
     else if (x < 2.5 / d1)
-    {   
+    {
         x -= 2.25 / d1;
         return n1 * x * x + 0.9375;
-    }   
+    }
     else
     {
         x -= 2.625 / d1;
@@ -984,7 +984,7 @@ static void drawPopup(Studio* studio)
         enum{Width = TIC80_WIDTH, Height = TIC_FONT_HEIGHT + 1};
 
         tic_api_rect(studio->tic, 0, studio->anim.pos.popup, Width, Height, tic_color_red);
-        tic_api_print(studio->tic, studio->popup.message, 
+        tic_api_print(studio->tic, studio->popup.message,
             (s32)(Width - strlen(studio->popup.message) * TIC_FONT_WIDTH)/2,
             studio->anim.pos.popup + 1, tic_color_white, true, 1, false);
 
@@ -997,7 +997,7 @@ static void drawPopup(Studio* studio)
             for(s32 i = 0, y = 0; y < (Height + studio->anim.pos.popup); y++, dst += TIC80_MARGIN_RIGHT + TIC80_MARGIN_LEFT)
                 for(s32 x = 0; x < Width; x++)
                 *dst++ = tic_rgba(&bank->palette.vbank0.colors[tic_tool_peek4(tic->ram->vram.screen.data, i++)]);
-        }        
+        }
     }
 }
 
@@ -1078,16 +1078,16 @@ void setStudioEvent(Studio* studio, StudioEvent event)
 {
     switch(studio->mode)
     {
-    case TIC_CODE_MODE:     
+    case TIC_CODE_MODE:
         {
             Code* code = studio->code;
-            code->event(code, event);           
+            code->event(code, event);
         }
         break;
-    case TIC_SPRITE_MODE:   
+    case TIC_SPRITE_MODE:
         {
             Sprite* sprite = studio->banks.sprite[studio->bank.index.sprites];
-            sprite->event(sprite, event); 
+            sprite->event(sprite, event);
         }
     break;
     case TIC_MAP_MODE:
@@ -1165,7 +1165,7 @@ void studio_exit(Studio* studio)
 
         confirmDialog(studio, Rows, COUNT_OF(Rows), exitConfirm, NULL);
     }
-    else 
+    else
 #endif
         exitConfirm(studio, true, NULL);
 }
@@ -1196,9 +1196,9 @@ void drawBitIcon(Studio* studio, s32 id, s32 x, s32 y, u8 color)
 
 static void initRunMode(Studio* studio)
 {
-    initRun(studio->run, 
+    initRun(studio->run,
 #if defined(BUILD_EDITORS)
-        studio->console, 
+        studio->console,
 #else
         NULL,
 #endif
@@ -1334,8 +1334,8 @@ bool checkStudioViMode(Studio* studio, ViMode mode) {
 
 static inline bool pointInRect(const tic_point* pt, const tic_rect* rect)
 {
-    return (pt->x >= rect->x) 
-        && (pt->x < (rect->x + rect->w)) 
+    return (pt->x >= rect->x)
+        && (pt->x < (rect->x + rect->w))
         && (pt->y >= rect->y)
         && (pt->y < (rect->y + rect->h));
 }
@@ -1431,10 +1431,10 @@ void confirmDialog(Studio* studio, const char** text, s32 rows, ConfirmCallback 
     {
         studio->menuMode = studio->mode;
     }
-        
+
     setStudioMode(studio, TIC_MENU_MODE);
 
-    static MenuItem Answers[] = 
+    static MenuItem Answers[] =
     {
         {"",    NULL},
         {"(N)O",  confirmNo},
@@ -1585,7 +1585,7 @@ void runGame(Studio* studio)
         memset(fftNormalizedMaxData, 0, sizeof(fftNormalizedMaxData[0]) * FFT_SIZE);
     }
 
-    if(studio->console->args.keepcmd 
+    if(studio->console->args.keepcmd
         && studio->console->commands.count
         && studio->console->commands.current >= studio->console->commands.count)
     {
@@ -1749,7 +1749,7 @@ static void switchBank(Studio* studio, s32 bank)
     for(s32 i = 0; i < COUNT_OF(BankModes); i++)
         if(BankModes[i] == studio->mode)
         {
-            if(studio->bank.chained) 
+            if(studio->bank.chained)
                 memset(studio->bank.indexes, bank, sizeof studio->bank.indexes);
             else studio->bank.indexes[i] = bank;
             break;
@@ -1758,7 +1758,7 @@ static void switchBank(Studio* studio, s32 bank)
 
 #endif
 
-void gotoMenu(Studio* studio) 
+void gotoMenu(Studio* studio)
 {
     setStudioMode(studio, TIC_MENU_MODE);
     studio_mainmenu_free(studio->mainmenu);
@@ -1772,7 +1772,7 @@ static bool enterWasPressedOnce(Studio* studio)
 }
 
 #if defined(BUILD_EDITORS)
-// These three are to fix the f1 hotkey conflict 
+// These three are to fix the f1 hotkey conflict
 
 // Add a static variable in studio.c to track the mode switch
 static bool justSwitchedToCodeMode = false;
@@ -1866,26 +1866,26 @@ static void processShortcuts(Studio* studio)
             if(
                 getConfig(studio)->options.keybindMode == KEYBIND_VI
                 && getStudioViMode(studio) != VI_NORMAL
-            ) 
+            )
                 return;
 
             switch(studio->mode)
             {
-            case TIC_MENU_MODE:     
-                showGameMenu(studio) 
+            case TIC_MENU_MODE:
+                showGameMenu(studio)
                     ? studio_menu_back(studio->menu)
-                    : setStudioMode(studio, studio->prevMode == TIC_RUN_MODE 
-                        ? TIC_CONSOLE_MODE 
+                    : setStudioMode(studio, studio->prevMode == TIC_RUN_MODE
+                        ? TIC_CONSOLE_MODE
                         : studio->prevMode);
                 break;
-            case TIC_RUN_MODE:      
-                showGameMenu(studio) 
+            case TIC_RUN_MODE:
+                showGameMenu(studio)
                     ? gotoMenu(studio)
-                    : setStudioMode(studio, studio->prevMode == TIC_RUN_MODE 
-                        ? TIC_CONSOLE_MODE 
+                    : setStudioMode(studio, studio->prevMode == TIC_RUN_MODE
+                        ? TIC_CONSOLE_MODE
                         : studio->prevMode);
                 break;
-            case TIC_CONSOLE_MODE: 
+            case TIC_CONSOLE_MODE:
                 setStudioMode(studio, TIC_CODE_MODE);
                 break;
             case TIC_CODE_MODE:
@@ -1966,7 +1966,7 @@ static void checkChanges(Studio* studio)
                         "Do you want to reload it?"
                     };
 
-                    confirmDialog(studio, Rows, COUNT_OF(Rows), reloadConfirm, NULL);                        
+                    confirmDialog(studio, Rows, COUNT_OF(Rows), reloadConfirm, NULL);
                 }
                 else console->updateProject(console);
             }
@@ -2088,7 +2088,7 @@ static void renderStudio(Studio* studio)
             tic_api_cls(tic, 0);
         }
     }
-    
+
     switch(studio->mode)
     {
     case TIC_START_MODE:    studio->start->tick(studio->start); break;
@@ -2097,16 +2097,16 @@ static void renderStudio(Studio* studio)
 
 #if defined(BUILD_EDITORS)
     case TIC_CONSOLE_MODE:  studio->console->tick(studio->console); break;
-    case TIC_CODE_MODE:     
+    case TIC_CODE_MODE:
         {
             Code* code = studio->code;
             code->tick(code);
         }
         break;
-    case TIC_SPRITE_MODE:   
+    case TIC_SPRITE_MODE:
         {
             Sprite* sprite = studio->banks.sprite[studio->bank.index.sprites];
-            sprite->tick(sprite);       
+            sprite->tick(sprite);
         }
         break;
     case TIC_MAP_MODE:
@@ -2165,13 +2165,13 @@ static void updateSystemFont(Studio* studio)
 		},
 	    },
         },
-        .alt = 
+        .alt =
         {
 	    { 0 },
 	    {
 		{
 		    .width       = TIC_ALTFONT_WIDTH,
-		    .height      = TIC_FONT_HEIGHT,            
+		    .height      = TIC_FONT_HEIGHT,
 		},
 	    },
         }
@@ -2268,7 +2268,7 @@ static void doCodeExport(Studio* studio)
             fwrite(pos, 1, strlen(pos), file);
             fwrite(studio->code->src, 1, strlen(studio->code->src), file);
             fclose(file);
-        }        
+        }
     }
 }
 
@@ -2383,7 +2383,7 @@ void studio_tick(Studio* studio, tic80_input input)
     checkChanges(studio);
     tic_net_start(studio->net);
 #endif
- 
+
     if(studio->toolbarMode)
     {
         setStudioMode(studio, studio->toolbarMode);
@@ -2392,14 +2392,14 @@ void studio_tick(Studio* studio, tic80_input input)
 
     processMouseStates(studio);
     renderStudio(studio);
-    
+
     {
 #if defined(BUILD_EDITORS)
         Sprite* sprite = studio->banks.sprite[studio->bank.index.sprites];
         Map* map = studio->banks.map[studio->bank.index.map];
 #endif
 
-        tic_blit_callback callback[TIC_MODES_COUNT] = 
+        tic_blit_callback callback[TIC_MODES_COUNT] =
         {
             [TIC_MENU_MODE]     = {studio_menu_anim_scanline, NULL, NULL, studio->menu},
 
@@ -2478,7 +2478,7 @@ void studio_sound(Studio* studio)
     {
         s32 size = tic->product.samples.count;
         for(s16* it = tic->product.samples.buffer, *end = it + size; it != end; ++it)
-            *it = *it * volume / MAX_VOLUME;        
+            *it = *it * volume / MAX_VOLUME;
     }
 }
 
@@ -2488,9 +2488,9 @@ static void onStudioLoadConfirmed(Studio* studio, bool yes, void* data)
     if(yes)
     {
         const char* file = data;
-        showPopupMessage(studio, studio->console->loadCart(studio->console, file) 
+        showPopupMessage(studio, studio->console->loadCart(studio->console, file)
             ? "cart successfully loaded :)"
-            : "error: cart not loaded :(");        
+            : "error: cart not loaded :(");
     }
 }
 
@@ -2581,7 +2581,7 @@ Bytebattle* getBytebattle(Studio* studio)
 
 static StartArgs parseArgs(s32 argc, char **argv)
 {
-    static const char *const usage[] = 
+    static const char *const usage[] =
     {
         "tic80 [cart] [options]",
         NULL,
@@ -2596,7 +2596,7 @@ static StartArgs parseArgs(s32 argc, char **argv)
     args.fftlist = 0;
 #endif
 
-    struct argparse_option options[] = 
+    struct argparse_option options[] =
     {
         OPT_HELP(),
 #define CMD_PARAMS_DEF(name, ctype, type, post, help) OPT_##type('\0', #name, &args.name, help),
@@ -2693,7 +2693,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     setbuf(stdout, NULL);
 
     StartArgs args = parseArgs(argc, argv);
-    
+
     if (args.version)
     {
         printf("%s\n", TIC_VERSION);
@@ -2714,14 +2714,14 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
 #if defined(BUILD_EDITORS)
         .menuMode = TIC_CONSOLE_MODE,
 
-        .bank = 
+        .bank =
         {
             .chained = true,
         },
 
-        .anim = 
+        .anim =
         {
-            .pos = 
+            .pos =
             {
                 .popup = -TOOLBAR_SIZE,
             },
@@ -2751,7 +2751,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
 
         if (fs_exists(path))
         {
-            studio->fs = tic_fs_create(path, 
+            studio->fs = tic_fs_create(path,
 #if defined(BUILD_EDITORS)
                 studio->net
 #else
@@ -2804,7 +2804,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     studio->mainmenu = NULL;
     tic_fs_makedir(studio->fs, TIC_LOCAL);
     tic_fs_makedir(studio->fs, TIC_LOCAL_VERSION);
-    
+
     initConfig(studio->config, studio, studio->fs);
 
     if (studio->config->data.uiScale > maxscale)
@@ -2847,11 +2847,11 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     studio->bytebattle.limit.lower = args.lowerlimit;
 
     studio->bytebattle.limit.current
-        = studio->bytebattle.limit.upper 
+        = studio->bytebattle.limit.upper
         = args.upperlimit;
 
-    studio->bytebattle.battle.left 
-        = studio->bytebattle.battle.time 
+    studio->bytebattle.battle.left
+        = studio->bytebattle.battle.time
         = args.battletime * 60 * 1000;
 
     if (args.fftlist)
@@ -2876,7 +2876,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         if(getBytebattle(studio))
         {
             studio->console->tick(studio->console);
-            gotoCode(studio);            
+            gotoCode(studio);
         }
         else
             setStudioMode(studio, TIC_CONSOLE_MODE);

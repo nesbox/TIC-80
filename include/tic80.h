@@ -55,7 +55,7 @@ typedef enum {
     TIC80_PIXEL_COLOR_BGRA8888 = (4 << 8) | 32
 } tic80_pixel_color_format;
 
-typedef struct 
+typedef struct
 {
     struct
     {

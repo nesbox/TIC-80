@@ -1,7 +1,7 @@
 # title: Bunnymark in Ruby
 # author: Julia Nelz; based on the original work of Rob Loach
 # desc: Benchmarking tool to see how many bunnies can fly around the screen, using Ruby.
-# license: MIT License 
+# license: MIT License
 # input: gamepad
 # script: ruby
 # version: 0.1.0

@@ -76,7 +76,7 @@ s7_pointer scheme_pix(s7_scheme* sc, s7_pointer args)
     else{
         return s7_make_integer(sc, core->api.pix(tic, x, y, 0, true));
     }
-    
+
 }
 s7_pointer scheme_line(s7_scheme* sc, s7_pointer args)
 {
@@ -166,7 +166,7 @@ s7_pointer scheme_btn(s7_scheme* sc, s7_pointer args)
     // btn(id) -> pressed
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 id = s7_integer(s7_car(args));
-    
+
     return s7_make_boolean(sc, core->api.btn(tic, id));
 }
 s7_pointer scheme_btnp(s7_scheme* sc, s7_pointer args)
@@ -178,7 +178,7 @@ s7_pointer scheme_btnp(s7_scheme* sc, s7_pointer args)
     const int argn = s7_list_length(sc, args);
     const s32 hold = argn > 1 ? s7_integer(s7_cadr(args)) : -1;
     const s32 period = argn > 2 ? s7_integer(s7_caddr(args)) : -1;
-    
+
     return s7_make_boolean(sc, core->api.btnp(tic, id, hold, period));
 }
 
@@ -215,7 +215,7 @@ s7_pointer scheme_sfx(s7_scheme* sc, s7_pointer args)
     // sfx(id note=-1 duration=-1 channel=0 volume=15 speed=0)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 id = s7_integer(s7_car(args));
-    
+
     const int argn = s7_list_length(sc, args);
     int note = -1;
     int octave = -1;
@@ -252,7 +252,7 @@ s7_pointer scheme_sfx(s7_scheme* sc, s7_pointer args)
             /* } */
         }
     }
-    
+
     const s32 duration = argn > 2 ? s7_integer(s7_caddr(args)) : -1;
     const s32 channel = argn > 3 ? s7_integer(s7_cadddr(args)) : 0;
 
@@ -512,7 +512,7 @@ s7_pointer scheme_mouse(s7_scheme* sc, s7_pointer args)
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const tic_point point = core->api.mouse(tic);
     const tic80_mouse* mouse = &((tic_core*)tic)->memory.ram->input.mouse;
-    
+
     return
         s7_cons(sc, s7_make_integer(sc, point.x),
                 s7_cons(sc, s7_make_integer(sc, point.y),
@@ -616,7 +616,7 @@ s7_pointer scheme_ttri(s7_scheme* sc, s7_pointer args)
 
     const int argn = s7_list_length(sc, args);
     const tic_texture_src texsrc = (tic_texture_src)(argn > 12 ? s7_integer(s7_list_ref(sc, args, 12)) : 0);
-    
+
     static u8 trans_colors[TIC_PALETTE_SIZE];
     u8 trans_count = 0;
 
@@ -732,7 +732,7 @@ s7_pointer scheme_fset(s7_scheme* sc, s7_pointer args)
     const u8 flag = s7_integer(s7_cadr(args));
     const bool val = s7_boolean(sc, s7_caddr(args));
     core->api.fset(tic, sprite_id, flag, val);
-    return s7_nil(sc); 
+    return s7_nil(sc);
 }
 
 s7_pointer scheme_fft(s7_scheme* sc, s7_pointer args)
@@ -766,10 +766,10 @@ static void initAPI(tic_core* core)
 
 #define API_FUNC_DEF(name, desc, helpstr, count, reqcount, ...) \
     {scheme_ ## name, desc  "\n" helpstr, count, reqcount, "t80::" #name},
-    
+
     static const struct{s7_function func; const char* helpstr; int count; int reqcount; const char* name;} ApiItems[] =
         {TIC_API_LIST(API_FUNC_DEF)};
-    
+
 #undef API_FUNC_DEF
 
     for (s32 i = 0; i < COUNT_OF(ApiItems); i++) {
@@ -847,7 +847,7 @@ static bool initScheme(tic_mem* tic, const char* code)
 
     s7_define_variable(sc, TicCore, s7_make_c_pointer(sc, core));
     s7_load_c_string(sc, code, strlen(code));
-    
+
 
     const bool isTicDefined = s7_is_defined(sc, ticFnName);
     if (!isTicDefined) {
@@ -1029,7 +1029,7 @@ void evalScheme(tic_mem* tic, const char* code) {
             return;
         sc = core->currentVM;
     }
-    
+
     s7_eval_c_string(sc, code);
 }
 

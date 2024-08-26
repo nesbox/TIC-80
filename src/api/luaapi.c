@@ -217,7 +217,7 @@ static s32 lua_pix(lua_State* lua)
     {
         s32 x = getLuaNumber(lua, 1);
         s32 y = getLuaNumber(lua, 2);
-        
+
         tic_core* core = getLuaCore(lua);
         tic_mem* tic = (tic_mem*)core;
 
@@ -309,7 +309,7 @@ static s32 lua_circ(lua_State* lua)
     s32 top = lua_gettop(lua);
 
     if(top == 4)
-    {       
+    {
         tic_core* core = getLuaCore(lua);
         tic_mem* tic = (tic_mem*)core;
 
@@ -351,7 +351,7 @@ static s32 lua_elli(lua_State* lua)
     s32 top = lua_gettop(lua);
 
     if(top == 5)
-    {       
+    {
         tic_core* core = getLuaCore(lua);
         tic_mem* tic = (tic_mem*)core;
 
@@ -376,7 +376,7 @@ static s32 lua_ellib(lua_State* lua)
     {
         tic_core* core = getLuaCore(lua);
         tic_mem* tic = (tic_mem*)core;
-       
+
         s32 x = getLuaNumber(lua, 1);
         s32 y = getLuaNumber(lua, 2);
         s32 a = getLuaNumber(lua, 3);
@@ -400,7 +400,7 @@ static s32 lua_tri(lua_State* lua)
 
         for(s32 i = 0; i < COUNT_OF(pt); i++)
             pt[i] = lua_tonumber(lua, i+1);
-        
+
         s32 color = getLuaNumber(lua, 7);
 
         tic_core* core = getLuaCore(lua);
@@ -423,7 +423,7 @@ static s32 lua_trib(lua_State* lua)
 
         for(s32 i = 0; i < COUNT_OF(pt); i++)
             pt[i] = lua_tonumber(lua, i+1);
-        
+
         s32 color = getLuaNumber(lua, 7);
 
         tic_core* core = getLuaCore(lua);
@@ -455,11 +455,11 @@ static s32 lua_textri(lua_State* lua)
         s32 count = 0;
         bool use_map = false;
 
-        //  check for use map 
+        //  check for use map
         if (top >= 13)
             use_map = lua_toboolean(lua, 13);
 
-        //  check for chroma 
+        //  check for chroma
         if(top >= 14)
         {
             if(lua_istable(lua, 14))
@@ -480,14 +480,14 @@ static s32 lua_textri(lua_State* lua)
                     }
                 }
             }
-            else 
+            else
             {
                 colors[0] = getLuaNumber(lua, 14);
                 count = 1;
             }
         }
 
-        core->api.textri(tic, 
+        core->api.textri(tic,
             pt[0], pt[1],   //  xy 1
             pt[2], pt[3],   //  xy 2
             pt[4], pt[5],   //  xy 3
@@ -523,11 +523,11 @@ static s32 lua_ttri(lua_State* lua)
         //  check for texture src
         if (top >= 13)
         {
-            src = lua_isboolean(lua, 13) 
-                ? (lua_toboolean(lua, 13) ? tic_map_texture : tic_tiles_texture) 
+            src = lua_isboolean(lua, 13)
+                ? (lua_toboolean(lua, 13) ? tic_map_texture : tic_tiles_texture)
                 : lua_tointeger(lua, 13);
         }
-        //  check for chroma 
+        //  check for chroma
         if(top >= 14)
         {
             if(lua_istable(lua, 14))
@@ -548,7 +548,7 @@ static s32 lua_ttri(lua_State* lua)
                     }
                 }
             }
-            else 
+            else
             {
                 colors[0] = getLuaNumber(lua, 14);
                 count = 1;
@@ -663,7 +663,7 @@ static s32 lua_btn(lua_State* lua)
     {
         luaL_error(lua, "invalid params, btn [ id ]\n");
         return 0;
-    } 
+    }
 
     return 1;
 }
@@ -683,7 +683,7 @@ static s32 lua_spr(lua_State* lua)
     static u8 colors[TIC_PALETTE_SIZE];
     s32 count = 0;
 
-    if(top >= 1) 
+    if(top >= 1)
     {
         index = getLuaNumber(lua, 1);
 
@@ -712,7 +712,7 @@ static s32 lua_spr(lua_State* lua)
                         }
                     }
                 }
-                else 
+                else
                 {
                     colors[0] = getLuaNumber(lua, 4);
                     count = 1;
@@ -827,7 +827,7 @@ static s32 lua_map(lua_State* lua)
 
     s32 top = lua_gettop(lua);
 
-    if(top >= 2) 
+    if(top >= 2)
     {
         x = getLuaNumber(lua, 1);
         y = getLuaNumber(lua, 2);
@@ -862,7 +862,7 @@ static s32 lua_map(lua_State* lua)
                             }
                         }
                     }
-                    else 
+                    else
                     {
                         colors[0] = getLuaNumber(lua, 7);
                         count = 1;
@@ -888,7 +888,7 @@ static s32 lua_map(lua_State* lua)
                                 luaL_unref(lua, LUA_REGISTRYINDEX, data.reg);
 
                                 return 0;
-                            }                           
+                            }
                         }
                     }
                 }
@@ -1041,7 +1041,7 @@ static s32 lua_sfx(lua_State* lua)
                                 speed = getLuaNumber(lua, 6);
                             }
                         }
-                    }                   
+                    }
                 }
             }
 
@@ -1140,7 +1140,7 @@ static s32 lua_key(lua_State* lua)
     {
         luaL_error(lua, "invalid params, key [code]\n");
         return 0;
-    } 
+    }
 
     return 1;
 }
@@ -1311,7 +1311,7 @@ static s32 lua_print(lua_State* lua)
 {
     s32 top = lua_gettop(lua);
 
-    if(top >= 1) 
+    if(top >= 1)
     {
         tic_core* core = getLuaCore(lua);
         tic_mem* tic = (tic_mem*)core;
@@ -1411,7 +1411,7 @@ static s32 lua_pmem(lua_State *lua)
 
             lua_pushinteger(lua, val);
 
-            return 1;           
+            return 1;
         }
 
         luaL_error(lua, "invalid persistent tic index\n");
@@ -1425,7 +1425,7 @@ static s32 lua_time(lua_State *lua)
 {
     tic_core* core = getLuaCore(lua);
     tic_mem* tic = (tic_mem*)core;
-    
+
     lua_pushnumber(lua, core->api.time(tic));
 
     return 1;
@@ -1447,7 +1447,7 @@ static s32 lua_exit(lua_State *lua)
     tic_mem* tic = (tic_mem*)core;
 
     core->api.exit(tic);
-    
+
     return 0;
 }
 
@@ -1611,13 +1611,13 @@ void luaapi_open(lua_State *lua)
 
 void luaapi_init(tic_core* core)
 {
-    static const struct{lua_CFunction func; const char* name;} ApiItems[] = 
+    static const struct{lua_CFunction func; const char* name;} ApiItems[] =
     {
 #define API_FUNC_DEF(name, ...) {lua_ ## name, #name},
         TIC_API_LIST(API_FUNC_DEF)
 #undef  API_FUNC_DEF
 
-#if defined(BUILD_DEPRECATED)    
+#if defined(BUILD_DEPRECATED)
         {lua_textri, "textri"},
 #endif
     };
@@ -1644,7 +1644,7 @@ void luaapi_close(tic_mem* tic)
 ** Message handler which appends stract trace to exceptions.
 ** This function was extractred from lua.c.
 */
-static s32 msghandler (lua_State *lua) 
+static s32 msghandler (lua_State *lua)
 {
     const char *msg = lua_tostring(lua, 1);
     if (msg == NULL) /* is error object not a string? */
@@ -1664,7 +1664,7 @@ static s32 msghandler (lua_State *lua)
 ** Please use this function for all top level lua functions.
 ** This function was extractred from lua.c (and stripped of signal handling)
 */
-static s32 docall (lua_State *lua, s32 narg, s32 nres) 
+static s32 docall (lua_State *lua, s32 narg, s32 nres)
 {
     s32 status = 0;
     s32 base = lua_gettop(lua) - narg;  /* function index */
@@ -1684,10 +1684,10 @@ void luaapi_tick(tic_mem* tic)
     if(lua)
     {
         lua_getglobal(lua, TIC_FN);
-        if(lua_isfunction(lua, -1)) 
+        if(lua_isfunction(lua, -1))
         {
-            if(docall(lua, 0, 0) != LUA_OK) 
-            {                
+            if(docall(lua, 0, 0) != LUA_OK)
+            {
                 core->data->error(core->data->data, lua_tostring(lua, -1));
                 return;
             }
@@ -1708,8 +1708,8 @@ void luaapi_tick(tic_mem* tic)
             }
 #endif
         }
-        else 
-        {       
+        else
+        {
             lua_pop(lua, 1);
             core->data->error(core->data->data, "'function TIC()...' isn't found :(");
         }

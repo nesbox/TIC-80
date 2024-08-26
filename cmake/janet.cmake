@@ -35,7 +35,7 @@ if(BUILD_WITH_JANET)
         )
     endif()
 
-    set(JANET_SRC 
+    set(JANET_SRC
         ${THIRDPARTY_DIR}/janet/build/c/janet.c
         ${CMAKE_SOURCE_DIR}/src/api/janet.c
         ${CMAKE_SOURCE_DIR}/src/api/parse_note.c
@@ -51,8 +51,8 @@ if(BUILD_WITH_JANET)
 
     target_link_libraries(janet PRIVATE runtime)
 
-    target_include_directories(janet 
-        PRIVATE 
+    target_include_directories(janet
+        PRIVATE
             ${THIRDPARTY_DIR}/janet/src/include
             ${CMAKE_SOURCE_DIR}/build/janet
             ${CMAKE_SOURCE_DIR}/include

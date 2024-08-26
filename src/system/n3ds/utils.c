@@ -50,16 +50,16 @@ bool ctr_load_png(C3D_Tex* tex, const char* name, texture_location loc)
     if (!png_image_begin_read_from_file(&img, name)) {
         return false;
     }
-    
+
     img.format = PNG_FORMAT_ABGR;
-    
+
     if (loc == TEXTURE_TARGET_VRAM) {
         C3D_TexInitVRAM(tex, npot(img.width), npot(img.height), GPU_RGBA8);
     } else {
         C3D_TexInit(tex, npot(img.width), npot(img.height), GPU_RGBA8);
     }
     data = linearAlloc(tex->width * tex->height * sizeof(u32));
-    
+
     if (!png_image_finish_read(&img, NULL, data, tex->width * sizeof(u32), NULL)) {
         linearFree(data);
         C3D_TexDelete(tex);

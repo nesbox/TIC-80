@@ -175,7 +175,7 @@ typedef struct
 
 typedef struct
 {
-    
+
     struct
     {
 #if RETRO_IS_BIG_ENDIAN
@@ -353,7 +353,7 @@ typedef struct
         s8 frame;
         s8 row;
     } music;
-    
+
     struct
     {
 #if RETRO_IS_BIG_ENDIAN
@@ -607,7 +607,7 @@ typedef union
 
         u8 reserved[3];
     };
-    
+
     u8 data[TIC_VRAM_SIZE];
 } tic_vram;
 
@@ -707,7 +707,7 @@ typedef enum
     tic_key_comma,
     tic_key_period,
     tic_key_slash,
-    
+
     tic_key_space,
     tic_key_tab,
 

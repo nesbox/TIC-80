@@ -43,7 +43,7 @@ if(BUILD_WITH_LUA OR BUILD_WITH_MOON OR BUILD_WITH_FENNEL)
         ${LUA_DIR}/lbitlib.c
     )
 
-    add_library(luaapi STATIC 
+    add_library(luaapi STATIC
         ${LUA_SRC}
         ${CMAKE_SOURCE_DIR}/src/api/luaapi.c
         ${CMAKE_SOURCE_DIR}/src/api/parse_note.c
@@ -51,7 +51,7 @@ if(BUILD_WITH_LUA OR BUILD_WITH_MOON OR BUILD_WITH_FENNEL)
 
     target_compile_definitions(luaapi PRIVATE LUA_COMPAT_5_2)
 
-    target_include_directories(luaapi 
+    target_include_directories(luaapi
         PUBLIC ${THIRDPARTY_DIR}/lua
             ${CMAKE_SOURCE_DIR}/include
             ${CMAKE_SOURCE_DIR}/src
@@ -71,9 +71,9 @@ if(BUILD_WITH_LUA)
 
     target_link_libraries(lua PRIVATE runtime luaapi)
 
-    target_include_directories(lua 
+    target_include_directories(lua
         PUBLIC ${THIRDPARTY_DIR}/lua
-        PRIVATE 
+        PRIVATE
             ${CMAKE_SOURCE_DIR}/include
             ${CMAKE_SOURCE_DIR}/src
     )

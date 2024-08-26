@@ -1182,7 +1182,7 @@ RETRO_API bool retro_unserialize(const void *data, size_t size)
 
 /**
  * libretro callback; Gets region of memory.
- * 
+ *
  * https://github.com/nesbox/TIC-80/wiki/ram
  */
 RETRO_API void *retro_get_memory_data(unsigned id)

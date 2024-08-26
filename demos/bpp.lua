@@ -1,6 +1,6 @@
 -- title:  Blit segment demo cart
 -- author: ddelemeny
--- desc:   Variable BPP rendering 
+-- desc:   Variable BPP rendering
 -- script: lua
 
 W=16*4
@@ -84,7 +84,7 @@ function TIC()
 		-- font inverts BG and FG segments
 		-- blit segment = 8+4+page
   rText(text, 100, 60, 8+4+sel//2,sel%2==1)
-end 
+end
 
 -- <TILES>
 -- 032:0020505000205070002000500000007000200050000000000000000000000000

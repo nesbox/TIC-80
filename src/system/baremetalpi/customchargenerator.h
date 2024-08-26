@@ -3,7 +3,7 @@
 //
 // Circle - A C++ bare metal environment for Raspberry Pi
 // Copyright (C) 2014  R. Stange <rsta2@o2online.de>
-// 
+//
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
@@ -31,7 +31,7 @@ public:
 	unsigned GetCharWidth (void) const;
 	unsigned GetCharHeight (void) const;
 	unsigned GetUnderline (void) const;
-	
+
 	boolean GetPixel (char chAscii, unsigned nPosX, unsigned nPosY) const;
 
 private:

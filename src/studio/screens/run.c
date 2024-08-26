@@ -54,12 +54,12 @@ static const char* data2md5(const void* data, s32 length)
 {
     const char *str = data;
     MD5_CTX c;
-    
+
     static char out[33];
 
     MD5_Init(&c);
 
-    while (length > 0) 
+    while (length > 0)
     {
         MD5_Update(&c, str, length > 512 ? 512: length);
 

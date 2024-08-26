@@ -73,7 +73,7 @@ static void audioCallback(void* userdata, u8* stream, s32 len)
             }
 
             *stream++ = ((u8*)tic->samples.buffer)[tic->samples.count * TIC80_SAMPLESIZE - state.remaining--];
-        }        
+        }
     }
     SDL_UnlockMutex(state.mutex);
 }
@@ -94,7 +94,7 @@ s32 runCart(void* cart, s32 size)
         fprintf(stderr, "Failed to load cart data.");
         output = 1;
     }
-    else 
+    else
     {
         SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 
@@ -124,7 +124,7 @@ s32 runCart(void* cart, s32 size)
         u64 nextTick = SDL_GetPerformanceCounter();
 
         SDL_PauseAudioDevice(audioDevice, 0);
-        
+
         while(!state.quit)
         {
             SDL_Event event;

@@ -8,10 +8,10 @@
 
 """""""""""""""""""""""""""""""""""""""
 
-This is a WASM binary project, you 
+This is a WASM binary project, you
 won't find the Zig source here.
 
-For source code see the TIC-80 
+For source code see the TIC-80
 repository folder:
 
 /demos/bunny/wasmmark/
