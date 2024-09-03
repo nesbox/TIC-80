@@ -3251,9 +3251,9 @@ static void textFindTick(Code* code)
 {
     if(enterWasPressed(code->studio)) setCodeMode(code, TEXT_EDIT_MODE);
     else if(keyWasPressed(code->studio, tic_key_up)
-          || keyWasPressed(code->studio, tic_key_down)
-          || keyWasPressed(code->studio, tic_key_left)
-          || keyWasPressed(code->studio, tic_key_right))
+        || keyWasPressed(code->studio, tic_key_down)
+        || keyWasPressed(code->studio, tic_key_left)
+        || keyWasPressed(code->studio, tic_key_right))
     {
 		if(*code->popup.text)
 		{
