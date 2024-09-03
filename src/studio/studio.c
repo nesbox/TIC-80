@@ -2332,17 +2332,17 @@ static void blitCursor(Studio* studio)
         s32 sprite = CLAMP(tic->ram->vram.vars.cursor.sprite, 0, TIC_BANK_SPRITES - 1);
         const tic_bank* bank = &tic->cart.bank0;
 
-        tic_point hot = {0};
-		
-		if(tic->ram->vram.vars.cursor.system && !tic->ram->vram.vars.cursor.sprite)
-		{
-			bank = &getConfig(studio)->cart->bank0;
-			hot = (tic_point[])
+		tic_point hot = {0};
+		hot = (tic_point[])
 			{
 				{0, 0},
 				{3, 0},
 				{2, 3},
 			}[CLAMP(sprite, 0, 2)];
+		
+		if(tic->ram->vram.vars.cursor.system)
+		{
+			bank = &getConfig(studio)->cart->bank0;
 		}
 		
         const tic_palette* pal = &bank->palette.vbank0;
