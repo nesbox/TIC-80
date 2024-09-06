@@ -81,10 +81,10 @@ inline u32 tic_rgba(const tic_rgb* c)
 
 inline s32 tic_modulo(s32 x, s32 m)
 {
-    if(x >= m) return x % m;
-    if(x < 0) return x % m + m;
-
-    return x;
+    s32 r = x % m;
+    if (r < 0)
+        r += m;
+    return r;
 }
 
 tic_blitpal tic_tool_palette_blit(const tic_palette* src, tic80_pixel_color_format fmt);
