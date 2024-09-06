@@ -279,12 +279,8 @@ static void drawMap(tic_core* core, const tic_map* src, s32 x, s32 y, s32 width,
     for (s32 j = y, jj = sy; j < y + height; j++, jj += size)
         for (s32 i = x, ii = sx; i < x + width; i++, ii += size)
         {
-            s32 mi = i % TIC_MAP_WIDTH;
-            if (mi < 0)
-                mi += TIC_MAP_WIDTH;
-            s32 mj = j % TIC_MAP_HEIGHT;
-            if (mj < 0)
-                mj += TIC_MAP_HEIGHT;
+            s32 mi = tic_modulo(i, TIC_MAP_WIDTH);
+            s32 mj = tic_modulo(j, TIC_MAP_HEIGHT);
 
             s32 index = mi + mj * TIC_MAP_WIDTH;
             RemapResult retile = { *(src->data + index), tic_no_flip, tic_no_rotate };
