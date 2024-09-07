@@ -807,8 +807,8 @@ static tic_color triTexMapShader(const ShaderAttr* a, s32 pixel)
     enum { MapWidth = TIC_MAP_WIDTH * TIC_SPRITESIZE, MapHeight = TIC_MAP_HEIGHT * TIC_SPRITESIZE,
         WMask = TIC_SPRITESIZE - 1, HMask = TIC_SPRITESIZE - 1 };
 
-    s32 iu = tic_modulo(vars.x, MapWidth);
-    s32 iv = tic_modulo(vars.y, MapHeight);
+    s32 iu = tic_modulo(floor(vars.x), MapWidth);
+    s32 iv = tic_modulo(floor(vars.y), MapHeight);
 
     u8 idx = data->map[(iv >> 3) * TIC_MAP_WIDTH + (iu >> 3)];
     tic_tileptr tile = tic_tilesheet_gettile(&data->sheet, idx, true);
@@ -826,7 +826,8 @@ static tic_color triTexTileShader(const ShaderAttr* a, s32 pixel)
 
     enum { WMask = TIC_SPRITESHEET_SIZE - 1, HMask = TIC_SPRITESHEET_SIZE * TIC_SPRITE_BANKS - 1 };
 
-    return shaderEnd(a, &vars, pixel, data->mapping[tic_tilesheet_getpix(&data->sheet, (s32)vars.x & WMask, (s32)vars.y & HMask)]);
+    return shaderEnd(a, &vars, pixel, data->mapping[tic_tilesheet_getpix(&data->sheet,
+                     (s32)floor(vars.x) & WMask, (s32)floor(vars.y) & HMask)]);
 }
 
 static tic_color triTexVbankShader(const ShaderAttr* a, s32 pixel)
@@ -837,8 +838,8 @@ static tic_color triTexVbankShader(const ShaderAttr* a, s32 pixel)
     if(!shaderStart(a, &vars, pixel))
         return TRANSPARENT_COLOR;
 
-    s32 iu = tic_modulo(vars.x, TIC80_WIDTH);
-    s32 iv = tic_modulo(vars.y, TIC80_HEIGHT);
+    s32 iu = tic_modulo(floor(vars.x), TIC80_WIDTH);
+    s32 iv = tic_modulo(floor(vars.y), TIC80_HEIGHT);
 
     return shaderEnd(a, &vars, pixel, data->mapping[tic_tool_peek4(data->vram->data, iv * TIC80_WIDTH + iu)]);
 }
