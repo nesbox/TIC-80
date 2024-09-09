@@ -547,11 +547,16 @@ static void onEnumPublicDirsDone(void* data)
 
 bool fs_isdir(const char* path)
 {
+#if defined(BAREMETALPI)
+    // This function isn't applicable to baremetal.
+    return false;
+#else
     struct tic_stat_struct s;
     const FsString* pathString = utf8ToString(path);
     bool isdir = tic_stat(pathString, &s) == 0 && S_ISDIR(s.st_mode);
     freeString(pathString);
     return isdir;
+#endif
 }
 
 bool tic_fs_isdir(tic_fs* fs, const char* name)
