@@ -2749,7 +2749,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
     {
         const char *path = args.fs ? args.fs : folder;
 
-        if (fs_exists(path))
+        if (fs_isdir(path))
         {
             studio->fs = tic_fs_create(path,
 #if defined(BUILD_EDITORS)
@@ -2761,7 +2761,7 @@ Studio* studio_create(s32 argc, char **argv, s32 samplerate, tic80_pixel_color_f
         }
         else
         {
-            fprintf(stderr, "error: folder `%s` doesn't exist\n", path);
+            fprintf(stderr, "error: `%s` is not a folder\n", path);
             exit(1);
         }
     }

@@ -545,6 +545,15 @@ static void onEnumPublicDirsDone(void* data)
     free(enumPublicDirsData);
 }
 
+bool fs_isdir(const char* path)
+{
+    struct tic_stat_struct s;
+    const FsString* pathString = utf8ToString(path);
+    bool isdir = tic_stat(pathString, &s) == 0 && S_ISDIR(s.st_mode);
+    freeString(pathString);
+    return isdir;
+}
+
 bool tic_fs_isdir(tic_fs* fs, const char* name)
 {
     if (*name == '.') return false;
@@ -559,13 +568,7 @@ bool tic_fs_isdir(tic_fs* fs, const char* name)
 
     return s.fattrib & AM_DIR;
 #else
-    const char* path = tic_fs_path(fs, name);
-    struct tic_stat_struct s;
-    const FsString* pathString = utf8ToString(path);
-    bool ret = tic_stat(pathString, &s) == 0 && S_ISDIR(s.st_mode);
-    freeString(pathString);
-
-    return ret;
+    return fs_isdir(tic_fs_path(fs, name));
 #endif
 }
 
