@@ -18,11 +18,6 @@
 	path = vendor/lua
 	url = https://github.com/lua/lua.git
 	shallow = true
-[submodule "vendor/sdl-gpu"]
-	path = vendor/sdl-gpu
-	url = https://github.com/aliceisjustplaying/sdl-gpu.git
-	shallow = true
-	branch = glew-update
 [submodule "vendor/squirrel"]
 	path = vendor/squirrel
 	url = https://github.com/albertodemichelis/squirrel.git
@@ -91,3 +86,7 @@
 	path = vendor/jsmn
 	url = https://github.com/zserge/jsmn.git
 	shallow = true
+[submodule "vendor/sdl-gpu"]
+	path = vendor/sdl-gpu
+	url = https://github.com/aliceisjustplaying/sdl-gpu.git
+	branch = master
