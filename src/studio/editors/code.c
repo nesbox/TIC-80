@@ -3249,22 +3249,30 @@ static void updateFindCode(Code* code, char* pos)
 
 static void textFindTick(Code* code)
 {
-
-
     if(enterWasPressed(code->studio)) setCodeMode(code, TEXT_EDIT_MODE);
     else if(keyWasPressed(code->studio, tic_key_up)
         || keyWasPressed(code->studio, tic_key_down)
         || keyWasPressed(code->studio, tic_key_left)
         || keyWasPressed(code->studio, tic_key_right))
     {
-        if(*code->popup.text)
-        {
-            bool reverse = keyWasPressed(code->studio, tic_key_up) || keyWasPressed(code->studio, tic_key_left);
-            char* (*func)(const char*, const char*, const char*) = reverse ? upStrStr : downStrStr;
-            char* from = reverse ? MIN(code->cursor.position, code->cursor.selection) : MAX(code->cursor.position, code->cursor.selection);
-            char* pos = func(code->src, from, code->popup.text);
-            updateFindCode(code, pos);
-        }
+		if(*code->popup.text)
+		{
+			bool reverse = keyWasPressed(code->studio, tic_key_up) || keyWasPressed(code->studio, tic_key_left);
+			char* (*func)(const char*, const char*, const char*) = reverse ? upStrStr : downStrStr;
+			char* from = reverse ? MIN(code->cursor.position, code->cursor.selection) : MAX(code->cursor.position, code->cursor.selection);
+			char* pos = func(code->src, from, code->popup.text);
+			if (!pos && !reverse)
+			{
+				// If not found in forward search, try from the beginning
+				pos = func(code->src, code->src, code->popup.text);
+			}
+			else if (!pos && reverse)
+			{
+				// If not found in reverse search, try from the end
+				pos = func(code->src, code->src + strlen(code->src), code->popup.text);
+			}				
+			updateFindCode(code, pos);
+		}
     }
     else if(keyWasPressed(code->studio, tic_key_backspace))
     {
@@ -3282,7 +3290,16 @@ static void textFindTick(Code* code)
         {
             char str[] = {sym , 0};
             strcat(code->popup.text, str);
-            updateFindCode(code, strstr(code->src, code->popup.text));
+
+            // Start searching after the current cursor position
+            char* pos = strstr(code->cursor.position, code->popup.text);
+            if (!pos) 
+            {
+                // If no match, search from the beginning
+                pos = strstr(code->src, code->popup.text);
+            }
+
+            updateFindCode(code, pos);
         }
     }
 
