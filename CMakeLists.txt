@@ -44,16 +44,6 @@ if(NOT TIC80_TARGET)
     set(TIC80_TARGET tic80)
 endif()
 
-if (BUILD_NO_OPTIMIZATION)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0")
-endif()
-
-if (BUILD_ASAN_DEBUG)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
-endif()
-
 if(NOT BUILD_SDL)
     set(BUILD_SDLGPU OFF)
 endif()
@@ -87,6 +77,20 @@ if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID AND NOT N3DS)
 
     if(CMAKE_HOST_SYSTEM_NAME STREQUAL "FreeBSD")
         set(FREEBSD TRUE)
+    endif()
+endif()
+
+if (BUILD_NO_OPTIMIZATION)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0")
+endif()
+
+if (BUILD_ASAN_DEBUG)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+
+    if (LINUX AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -shared-libasan")
     endif()
 endif()
 
