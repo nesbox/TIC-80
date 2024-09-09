@@ -7,8 +7,8 @@
 
 const tic = @import("tic80.zig");
 const std = @import("std");
-const RndGen = std.rand.DefaultPrng;
-var rnd: std.rand.Random = undefined;
+const RndGen = std.Random.DefaultPrng;
+var rnd: std.Random = undefined;
 
 const screenWidth = 240;
 const screenHeight = 136;
@@ -150,14 +150,14 @@ export fn TIC() void {
         }
     }
 
-    // 	-- Update
+    //     -- Update
     var i: u32 = 0;
     while (i < bunnyCount) {
         bunnies[i].update();
         i += 1;
     }
 
-    // 	-- Draw
+    //     -- Draw
     tic.cls(15);
     i = 0;
     while (i < bunnyCount) {

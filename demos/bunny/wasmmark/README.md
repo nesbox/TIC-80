@@ -1,6 +1,6 @@
 # Bunnymark in Zig / WASM
 
-This is a Zig project.  To build it you'll need Zig 0.12 or newer.
+This is a Zig project.  To build it you'll need the latest Zig development release (`0.14.0-dev.1421+f87dd43c1` or newer).
 
 ### Building
 
