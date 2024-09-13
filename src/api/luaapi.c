@@ -209,6 +209,26 @@ static s32 lua_cls(lua_State* lua)
     return 0;
 }
 
+static s32 lua_paint(lua_State* lua)
+{
+    s32 top = lua_gettop(lua);
+
+    if(top == 3)
+    {
+        s32 x = getLuaNumber(lua, 1);
+        s32 y = getLuaNumber(lua, 2);
+        s32 color = getLuaNumber(lua, 3);
+
+        tic_core* core = getLuaCore(lua);
+        tic_mem* tic = (tic_mem*)core;
+
+        core->api.paint(tic, x, y, color);
+    }
+    else luaL_error(lua, "invalid parameters, paint(x y color)\n");
+
+    return 0;
+}
+
 static s32 lua_pix(lua_State* lua)
 {
     s32 top = lua_gettop(lua);

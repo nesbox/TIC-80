@@ -235,6 +235,23 @@ static int py_ellib(pkpy_vm* vm)
     return 0;
 }
 
+static int py_paint(pkpy_vm* vm)
+{
+    int x;
+    int y;
+    int color;
+
+    pkpy_to_int(vm, 0, &x);
+    pkpy_to_int(vm, 1, &y);
+    pkpy_to_int(vm, 2, &color);
+    tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
+    if(pkpy_check_error(vm))
+        return 0;
+
+    core->api.paint(tic, x, y, color);
+    return 0;
+}
+
 static int py_clip(pkpy_vm* vm)
 {
 
@@ -1211,6 +1228,9 @@ static bool setup_c_bindings(pkpy_vm* vm) {
     pkpy_setglobal_2(vm, "elli");
     pkpy_push_function(vm, "ellib(x: int, y: int, a: int, b: int, color: int)", py_ellib);
     pkpy_setglobal_2(vm, "ellib");
+
+    pkpy_push_function(vm, "paint(x: int, y: int, color: int)", py_paint);
+    pkpy_setglobal_2(vm, "paint");
 
     pkpy_push_function(vm, "exit()", py_exit);
     pkpy_setglobal_2(vm, "exit");

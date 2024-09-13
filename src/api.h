@@ -632,6 +632,17 @@ enum
         tic_mem*, s32 x, s32 y, s32 a, s32 b, u8 color)                                                                 \
                                                                                                                         \
                                                                                                                         \
+    macro(paint,                                                                                                        \
+        "paint(x y color)",                                                                                             \
+                                                                                                                        \
+        "This function fills an area.",                                                                                 \
+        3,                                                                                                              \
+        3,                                                                                                              \
+        0,                                                                                                              \
+        void,                                                                                                           \
+        tic_mem*, s32 x, s32 y, u8 color)                                                                               \
+                                                                                                                        \
+                                                                                                                        \
     macro(tri,                                                                                                          \
         "tri(x1 y1 x2 y2 x3 y3 color)",                                                                                 \
                                                                                                                         \

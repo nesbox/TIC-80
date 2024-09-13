@@ -270,6 +270,18 @@ static mrb_value mrb_ellib(mrb_state* mrb, mrb_value self)
     return mrb_nil_value();
 }
 
+static mrb_value mrb_paint(mrb_state* mrb, mrb_value self)
+{
+    mrb_int x, y, color;
+    mrb_get_args(mrb, "iii", &x, &y, &color);
+
+    tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
+
+    core->api.paint(tic, x, y, color);
+
+    return mrb_nil_value();
+}
+
 static mrb_value mrb_tri(mrb_state* mrb, mrb_value self)
 {
     mrb_float x1, y1, x2, y2, x3, y3;

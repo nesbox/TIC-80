@@ -976,6 +976,17 @@ static void wren_ellib(WrenVM* vm)
     core->api.ellib(tic, x, y, a, b, color);
 }
 
+static void wren_paint(WrenVM* vm)
+{
+    s32 x = getWrenNumber(vm, 1);
+    s32 y = getWrenNumber(vm, 2);
+    s32 color = getWrenNumber(vm, 3);
+
+    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+
+    core->api.paint(tic, x, y, color);
+}
+
 static void wren_rect(WrenVM* vm)
 {
     s32 x = getWrenNumber(vm, 1);
