@@ -836,14 +836,15 @@ static Janet janet_ellib(int32_t argc, Janet* argv)
 
 static Janet janet_paint(int32_t argc, Janet* argv)
 {
-    janet_fixarity(argc, 3);
+    janet_arity(argc, 3, 4);
 
     s32 x = janet_getinteger(argv, 0);
     s32 y = janet_getinteger(argv, 1);
     u8 color = janet_getinteger(argv, 2);
+    u8 bordercolor = janet_optnumber(argv, argc, 3, 255);
 
     tic_core* core = getJanetMachine(); tic_mem* tic = (tic_mem*)core;
-    core->api.paint(tic, x, y, color);
+    core->api.paint(tic, x, y, color, bordercolor);
     return janet_wrap_nil();
 }
 

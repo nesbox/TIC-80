@@ -80,7 +80,7 @@ static inline void setPixelFast(tic_core* core, s32 x, s32 y, u8 color)
     tic_api_poke4((tic_mem*)core, y * TIC80_WIDTH + x, color);
 }
 
-static u8 getPixel(tic_core* core, s32 x, s32 y)
+static inline u8 getPixel(tic_core* core, s32 x, s32 y)
 {
     return x < 0 || y < 0 || x >= TIC80_WIDTH || y >= TIC80_HEIGHT
         ? 0
@@ -614,7 +614,7 @@ static void drawLine(tic_mem* tic, float x0, float y0, float x1, float y1, u8 co
 }
 
 // Stack frame for floodFill.
-// Filled horizontal segment of scanline y for xl # x # xr.
+// Filled horizontal segment of scanline y for xl <= x <= xr.
 // Parent segment was on line y – dy. dy = 1 or –1.
 typedef struct
 {
@@ -639,14 +639,19 @@ static inline void floodFillPush(tic_core* tic, size_t* si, s32 y, s32 xl, s32 x
     (*si)++;
 }
 
+static inline bool floodFillInside(u8 pix, u8 paint, u8 border, u8 original)
+{
+    return border == 255 ? pix == original : pix != paint && pix != border;
+}
+
 // "A Seed Fill Algorithm", Paul S. Heckbert, Graphics Gems, Andrew Glassner
 // https://github.com/erich666/GraphicsGems/blob/master/gems/SeedFill.c
-static void floodFill(tic_core* tic, s32 x, s32 y, u8 color)
+static void floodFill(tic_core* tic, s32 x, s32 y, u8 color, u8 border)
 {
     if (x < tic->state.clip.l || y < tic->state.clip.t || x >= tic->state.clip.r || y >= tic->state.clip.b)
         return;
     u8 ov = getPixel(tic, x, y);
-    if (ov == color)
+    if (ov == color || ov == border)
         return;
     size_t si = 0; // stack count, index of free top
     floodFillPush(tic, &si, y, x, x, 1); // needed in some cases
@@ -662,7 +667,7 @@ static void floodFill(tic_core* tic, s32 x, s32 y, u8 color)
         x2 = FillStack[si].xr;
         // segment of scan line y-dy for x1<=x<=x2 was previously filled,
         // now explore adjacent pixels in scan line y
-        for (x = x1; x >= tic->state.clip.l && getPixel(tic, x, y) == ov; x--)
+        for (x = x1; x >= tic->state.clip.l && floodFillInside(getPixel(tic, x, y), color, border, ov); x--)
             setPixelFast(tic, x, y, color);
         if (x >= x1)
             goto floodFill_skip;
@@ -671,13 +676,13 @@ static void floodFill(tic_core* tic, s32 x, s32 y, u8 color)
             floodFillPush(tic, &si, y, l, x1 - 1, -dy); // check leak left
         x = x1 + 1;
         do {
-            for (; x < tic->state.clip.r && getPixel(tic, x, y) == ov; x++)
+            for (; x < tic->state.clip.r && floodFillInside(getPixel(tic, x, y), color, border, ov); x++)
                 setPixelFast(tic, x, y, color);
             floodFillPush(tic, &si, y, l, x - 1, dy);
             if (x > x2 + 1)
                 floodFillPush(tic, &si, y, x2 + 1, x - 1, -dy); // check leak right
 floodFill_skip:
-            for (x++; x <= x2 && getPixel(tic, x, y) != ov; x++);
+            for (x++; x <= x2 && !floodFillInside(getPixel(tic, x, y), color, border, ov); x++);
             l = x;
         } while (x <= x2);
     }
@@ -986,9 +991,10 @@ void tic_api_line(tic_mem* memory, float x0, float y0, float x1, float y1, u8 co
     drawLine(memory, x0, y0, x1, y1, mapColor(memory, color));
 }
 
-void tic_api_paint(tic_mem* memory, s32 x, s32 y, u8 color)
+void tic_api_paint(tic_mem* memory, s32 x, s32 y, u8 color, u8 bordercolor)
 {
-    floodFill((tic_core*)memory, x, y, mapColor(memory, color));
+    bordercolor = bordercolor == 255 ? 255 : mapColor(memory, bordercolor);
+    floodFill((tic_core*)memory, x, y, mapColor(memory, color), bordercolor);
 }
 
 #if defined(BUILD_DEPRECATED)

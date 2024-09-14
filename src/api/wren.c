@@ -978,13 +978,15 @@ static void wren_ellib(WrenVM* vm)
 
 static void wren_paint(WrenVM* vm)
 {
+    s32 top = wrenGetSlotCount(vm);
     s32 x = getWrenNumber(vm, 1);
     s32 y = getWrenNumber(vm, 2);
     s32 color = getWrenNumber(vm, 3);
+    s32 bordercolor = top > 4 ? getWrenNumber(vm, 4) : -1;
 
     tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
 
-    core->api.paint(tic, x, y, color);
+    core->api.paint(tic, x, y, color, bordercolor);
 }
 
 static void wren_rect(WrenVM* vm)

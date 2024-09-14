@@ -774,10 +774,11 @@ static JSValue js_paint(JSContext *ctx, JSValueConst this_val, s32 argc, JSValue
     s32 x = getInteger(ctx, argv[0]);
     s32 y = getInteger(ctx, argv[1]);
     s32 color = getInteger(ctx, argv[2]);
+    s32 bordercolor = getInteger2(ctx, argv[3], -1);
 
     tic_core* core = getCore(ctx); tic_mem* tic = (tic_mem*)core;
 
-    core->api.paint(tic, x, y, color);
+    core->api.paint(tic, x, y, color, bordercolor);
 
     return JS_UNDEFINED;
 }

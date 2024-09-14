@@ -571,12 +571,14 @@ s7_pointer scheme_ellib(s7_scheme* sc, s7_pointer args)
 }
 s7_pointer scheme_paint(s7_scheme* sc, s7_pointer args)
 {
-    // ellib(x y a b color)
+    // paint(x y color bordercolor=-1)
+    const int argn = s7_list_length(sc, args);
     tic_core* core = getSchemeCore(sc); tic_mem* tic = (tic_mem*)core;
     const s32 x = s7_integer(s7_car(args));
     const s32 y = s7_integer(s7_cadr(args));
     const s32 color = s7_integer(s7_caddr(args));
-    core->api.paint(tic, x, y, color);
+    const s32 bordercolor = argn >= 4 ? s7_integer(s7_cadddr(args)) : -1;
+    core->api.paint(tic, x, y, color, bordercolor);
     return s7_nil(sc);
 }
 s7_pointer scheme_tri(s7_scheme* sc, s7_pointer args)

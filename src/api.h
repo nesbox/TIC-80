@@ -633,14 +633,15 @@ enum
                                                                                                                         \
                                                                                                                         \
     macro(paint,                                                                                                        \
-        "paint(x y color)",                                                                                             \
+        "paint(x y color bordercolor=-1)",                                                                              \
                                                                                                                         \
-        "This function fills an area.",                                                                                 \
-        3,                                                                                                              \
+        "This function fills a contiguous area with a new color.\n"                                                     \
+        "If bordercolor is given fill will extend to color boundary.",                                                  \
+        4,                                                                                                              \
         3,                                                                                                              \
         0,                                                                                                              \
         void,                                                                                                           \
-        tic_mem*, s32 x, s32 y, u8 color)                                                                               \
+        tic_mem*, s32 x, s32 y, u8 color, u8 bordercolor)                                                               \
                                                                                                                         \
                                                                                                                         \
     macro(tri,                                                                                                          \
