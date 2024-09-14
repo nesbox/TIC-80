@@ -624,7 +624,7 @@ typedef struct
     s32 dy;
 } FillSegment;
 
-#define FILLSTACKMAX 1000
+#define FILLSTACKMAX 4000
 static FillSegment FillStack[FILLSTACKMAX];
 
 // Push a segment on the stack unless it's clipped or stack is full.
