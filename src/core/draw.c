@@ -613,7 +613,7 @@ static void drawLine(tic_mem* tic, float x0, float y0, float x1, float y1, u8 co
     setPixel((tic_core*)tic, x1, y1, color);
 }
 
-// Stack frame for floodFill.
+// Queue frame for floodFill.
 // Filled horizontal segment of scanline y for xl <= x <= xr.
 // Parent segment was on line y – dy. dy = 1 or –1.
 typedef struct
@@ -624,19 +624,40 @@ typedef struct
     s32 dy;
 } FillSegment;
 
-#define FILLSTACKMAX 4000
-static FillSegment FillStack[FILLSTACKMAX];
-
-// Push a segment on the stack unless it's clipped or stack is full.
-static inline void floodFillPush(tic_core* tic, size_t* si, s32 y, s32 xl, s32 xr, s32 dy)
+#define FILLQUEUESIZE 400
+static struct
 {
-    if (*si >= FILLSTACKMAX || y + dy < tic->state.clip.t || y + dy >= tic->state.clip.b)
+    FillSegment seg[FILLQUEUESIZE];
+    size_t ini; // index of empty next in
+    size_t outi; // index of next out
+} fillQueue;
+
+static inline void fillEnqueue(tic_core* tic, s32 y, s32 xl, s32 xr, s32 dy)
+{
+    size_t nextini = (fillQueue.ini + 1) % FILLQUEUESIZE;
+    if (nextini == fillQueue.outi)
+        return; // queue full
+    if (y + dy < tic->state.clip.t || y + dy >= tic->state.clip.b)
         return;
-    FillStack[*si].y = y;
-    FillStack[*si].xl = xl;
-    FillStack[*si].xr = xr;
-    FillStack[*si].dy = dy;
-    (*si)++;
+    FillSegment* qseg = &fillQueue.seg[fillQueue.ini];
+    qseg->y = y;
+    qseg->xl = xl;
+    qseg->xr = xr;
+    qseg->dy = dy;
+    fillQueue.ini = nextini;
+}
+
+static inline bool fillDequeue(s32* y, s32* xl, s32* xr, s32* dy)
+{
+    if (fillQueue.ini == fillQueue.outi)
+        return false; // queue empty
+    FillSegment* qseg = &fillQueue.seg[fillQueue.outi];
+    *y = qseg->y + qseg->dy;
+    *xl = qseg->xl;
+    *xr = qseg->xr;
+    *dy = qseg->dy;
+    fillQueue.outi = (fillQueue.outi + 1) % FILLQUEUESIZE;
+    return true;
 }
 
 static inline bool floodFillInside(u8 pix, u8 paint, u8 border, u8 original)
@@ -653,18 +674,12 @@ static void floodFill(tic_core* tic, s32 x, s32 y, u8 color, u8 border)
     u8 ov = getPixel(tic, x, y);
     if (ov == color || ov == border)
         return;
-    size_t si = 0; // stack count, index of free top
-    floodFillPush(tic, &si, y, x, x, 1); // needed in some cases
-    floodFillPush(tic, &si, y + 1, x, x, -1); // seed segment
+    fillQueue.ini = fillQueue.outi = 0;
+    fillEnqueue(tic, y, x, x, 1); // needed in some cases
+    fillEnqueue(tic, y + 1, x, x, -1); // seed segment
     s32 l, x1, x2, dy;
-    while (si > 0)
+    while (fillDequeue(&y, &x1, &x2, &dy))
     {
-        // pop segment off stack and fill a neighboring scan line
-        si--;
-        dy = FillStack[si].dy;
-        y = FillStack[si].y + dy;
-        x1 = FillStack[si].xl;
-        x2 = FillStack[si].xr;
         // segment of scan line y-dy for x1<=x<=x2 was previously filled,
         // now explore adjacent pixels in scan line y
         for (x = x1; x >= tic->state.clip.l && floodFillInside(getPixel(tic, x, y), color, border, ov); x--)
@@ -673,14 +688,14 @@ static void floodFill(tic_core* tic, s32 x, s32 y, u8 color, u8 border)
             goto floodFill_skip;
         l = x + 1;
         if (l < x1)
-            floodFillPush(tic, &si, y, l, x1 - 1, -dy); // check leak left
+            fillEnqueue(tic, y, l, x1 - 1, -dy); // check leak left
         x = x1 + 1;
         do {
             for (; x < tic->state.clip.r && floodFillInside(getPixel(tic, x, y), color, border, ov); x++)
                 setPixelFast(tic, x, y, color);
-            floodFillPush(tic, &si, y, l, x - 1, dy);
+            fillEnqueue(tic, y, l, x - 1, dy);
             if (x > x2 + 1)
-                floodFillPush(tic, &si, y, x2 + 1, x - 1, -dy); // check leak right
+                fillEnqueue(tic, y, x2 + 1, x - 1, -dy); // check leak right
 floodFill_skip:
             for (x++; x <= x2 && !floodFillInside(getPixel(tic, x, y), color, border, ov); x++);
             l = x;
