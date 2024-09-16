@@ -131,6 +131,7 @@ static const JanetReg janet_c_functions[] =
     {"circb", janet_circb, NULL},
     {"elli", janet_elli, NULL},
     {"ellib", janet_ellib, NULL},
+    {"paint", janet_paint, NULL},
     {"tri", janet_tri, NULL},
     {"trib", janet_trib, NULL},
     {"ttri", janet_ttri, NULL},

@@ -97,6 +97,8 @@ class TIC {\n\
     foreign static circb(x, y, radius, color)\n\
     foreign static elli(x, y, a, b, color)\n\
     foreign static ellib(x, y, a, b, color)\n\
+    foreign static paint(x, y, color)\n\
+    foreign static paint(x, y, color, bordercolor)\n\
     foreign static rect(x, y, w, h, color)\n\
     foreign static rectb(x, y, w, h, color)\n\
     foreign static tri(x1, y1, x2, y2, x3, y3, color)\n\
@@ -1559,6 +1561,8 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     if (strcmp(signature, "static TIC.circb(_,_,_,_)"           ) == 0) return wren_circb;
     if (strcmp(signature, "static TIC.elli(_,_,_,_,_)"          ) == 0) return wren_elli;
     if (strcmp(signature, "static TIC.ellib(_,_,_,_,_)"         ) == 0) return wren_ellib;
+    if (strcmp(signature, "static TIC.paint(_,_,_)"             ) == 0) return wren_paint;
+    if (strcmp(signature, "static TIC.paint(_,_,_,_)"           ) == 0) return wren_paint;
     if (strcmp(signature, "static TIC.rect(_,_,_,_,_)"          ) == 0) return wren_rect;
     if (strcmp(signature, "static TIC.rectb(_,_,_,_,_)"         ) == 0) return wren_rectb;
     if (strcmp(signature, "static TIC.tri(_,_,_,_,_,_,_)"       ) == 0) return wren_tri;
