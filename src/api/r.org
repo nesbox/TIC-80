@@ -49,11 +49,35 @@ Copyright © 2024 Bryce Carson
 #+end_src
 
 * A logical, thematic entry point
-The R interpreter, like the s7 Scheme interpreter, needs to be initialized or
+The R interpreter, like the [[https://ccrma.stanford.edu/software/snd/snd/s7.html][s7 Scheme interpreter]], needs to be initialized or
 re-initialized if it isn't running when TIC-80 wants to request something (the
 game source code, or a debugger entry point or a callback or something else) be
 evaluated, so the program either "initialize[s] R, returning if that fails"
 or reinitializes R in that subroutine.
+
+If it wasn't clear to the reader, ~evalR~ is the doorway from which TIC-80 C
+routines and functions enter into communion with R /as an interpreter/. Apart
+from the source code highlighting, and the chicken and egg issue that arises
+from loading a demonstration cartridge written to disk from a running version of
+TIC-80 with this R interpreter (none yet exists when this sentence was written
+[no it wont' be updated, that's not always how literate programming should
+work]), a call to ~evalR~ the first interaction between TIC-80 as it existed
+before R was added, and as it will exist when R is added as a new langauge to
+the fantasy computer.
+
+In the Python and Scheme langauge integrations, within the respective
+=eval_langauge= function, a value ~tic~ of type ~tic_mem *~ is cast to ~tic_core
+*~ and stored in a variable named ~core~. In each this ~core~ struct is then
+accessed to obtain the ~currentVM~ object (~core->currentVM~). In the Scheme
+integration this value is called =sc=, like "Scheme core", and in the Python
+integration it is called =vm=.
+
+The Python integration uses a =pkpy_vm *= type, and the Scheme integration uses
+a =s7_scheme *= type. In s7 Scheme =s7_scheme= is a big struct /defining the
+Scheme virtual machine or interpreter/. See [[/home/bryce/Documents/src/c/TIC-80/vendor/s7/s7.c][the struct in the sources here]]. I
+could not find the equivalent in Pocketpy, but I noticed that the signature of
+=py_eval= in Pocketpy is different from =pkpy_eval=, and moreover I don't see a
+definition of the function in either soure tree.
 
 #+name: evaluate R
 #+begin_src c :noweb no-export
@@ -376,26 +400,96 @@ All definitions are translated from the integration of Scheme in TIC-80.
   <<INCLUDES>>
 
   /* DEFINITIONS */
-  <<[[initR]]: initialize R as an embedded interpreter>>
-  <<[[closeR]]: make the embedded interpreter kermit suicide>>
+  <<=initR=: initialize R as an embedded interpreter>>
+			<<=closeR=: make the embedded interpreter kermit suicide>>
 
-  <<[[callRTick]]: >>
-  <<[[callRBoot]]: >>
+			<<=callRTick=: >>
+			<<=callRBoot=: >>
 
-  <<[[callRScanline]]: >>
-  <<[[callRBorder]]: >>
-  <<[[callRMenu]]: >>
+			<<=callRScanline=: >>
+			<<=callRBorder=: >>
+			<<=callRMenu=: >>
 
-  <<[[getROutline]]: >>
-  <<[[evalR]]: >>
+			<<=getROutline=: >>
+			<<=evalR=: >>
 
-  <<[[r_isalnum]]: >>
-  <<[[RAPIKeywords]]: >>
+			<<=r_isalnum=: defining metacharacters in the language>>
+			<<=RAPIKeywords=: >>
 
-  <<[[DemoRom]]: >>
-  <<[[MarkRom]]: >>
-  <<[[rmark.tic]]: >>
+			<<=DemoRom=: >>
+			<<=MarkRom=: >>
+			<<=rmark.tic=: >>
 #+end_src
+
+The following is mostly copied from the Scheme sources with a couple things
+removed. It will be improved when I better understand its purpose.
+
+#+name: =r_isalnum=: defining metacharacters in the language
+#+begin_src C
+	static inline bool scheme_isalnum(char c)
+	{
+    return isalnum(c) || c == '-' || c == ':' || c == '!'
+			|| c == '+' || c == '=' || c == '&' || c == '^' || c == '$' || c == '@';
+	}
+#+end_src
+
+** The API functions, as listed within *TIC-80* with ~help api~
+For now these don't have any documentation because they're already documented on
+the API web-page on TIC-80's website, and within TIC-80 itself. Unless some
+difference between implementations arises which is due to my inexperience, then
+no definition for these list items fill follow the API function.
+
+- BDR ::
+- BOOT ::
+- MNEU ::
+- SCN ::
+- TIC ::
+- btn ::
+- btnp ::
+- circ ::
+- circb ::
+- clip ::
+- cls ::
+- elli ::
+- ellib ::
+- exit ::
+- fget ::
+- font ::
+- fset ::
+- key ::
+- keyp ::
+- line ::
+- map ::
+- memcpy ::
+- memset ::
+- mget ::
+- mouse ::
+- mset ::
+- music ::
+- peek ::
+- peek1 ::
+- peek2 ::
+- peek4 ::
+- pix ::
+- pmem ::
+- poke ::
+- poke1 ::
+- poke2 ::
+- poke4 ::
+- print ::
+- rect ::
+- rectb ::
+- reset ::
+- sfx ::
+- spr ::
+- sync ::
+- time ::
+- trace ::
+- tri ::
+- trib ::
+- tstamp ::
+- ttri ::
+- vbank ::
 
 * Learning how to work with this stuff
 Hadley Wickham recommends defining =R_NO_REMAP= to ensure that all R API
@@ -511,9 +605,11 @@ used otherwise, as with ~`function`~.
 #+begin_src c
   static const char* const RKeywords [] =
   {
-  "if", "else", "repeat", "while", "function", "for", "in", "next", "break",
-  "TRUE", "FALSE", "NULL", "Inf", "NaN", "NA", "NA_integer_", "NA_real_", "NA_complex_", "NA_character_",
-  "...", "..1", "..2", "..3", "..4", "..5", "..6", "..7", "..8", "..9", /* et cetera, see ?dots */
+    "if", "else", "repeat", "while", "function", "for", "in", "next", "break",
+    "TRUE", "FALSE", "NULL", "Inf", "NaN", "NA", "NA_integer_", "NA_real_",
+		"NA_complex_", "NA_character_",
+	  /* et cetera, see ?dots */
+	  "...", "..1", "..2", "..3", "..4", "..5", "..6", "..7", "..8", "..9",
   };
 #+end_src
 
@@ -559,14 +655,14 @@ standard C ~export~ insufficient, and why?
       .blockCommentStart2     = NULL,
       .blockCommentEnd2       = NULL,
       .singleComment          = "##",
-      .blockStringStart       = NULL,
-      .blockStringEnd         = NULL,
-      .stdStringStartEnd      = NULL,
+      .blockStringStart       = "\"",
+      .blockStringEnd         = "\"",
+      .stdStringStartEnd      = "\"",
       .blockEnd               = NULL,
       .lang_isalnum           = r_isalnum,
       .api_keywords           = RAPIKeywords,
       .api_keywordsCount      = COUNT_OF(RAPIKeywords),
-      .useStructuredEdition   = true,
+      .useStructuredEdition   = false,
 
       .keywords               = RKeywords,
       .keywordsCount          = COUNT_OF(RKeywords),
@@ -619,7 +715,6 @@ In my style of writing C I would've inlined this const char.
 
 That may or may not be valid C. I'm still learning.
 
-
 * R.c
 This final section of the overall literate program defines the source file that
 will be compiled to give the *TIC-80* fantasy computer *R* langauge support for
@@ -633,41 +728,151 @@ none of it is Scheme any more. Before a final public release this will be
 changed so that no references to "Scheme" occur in the code.
 
 #+name: R (the C file)
-#+begin_src c :noweb no-export :tangle r.c
+#+begin_src C :noweb no-export :tangle r.c
   <<INCLUDE>>
+#+end_src
 
-  /* Return the location of the R interpreter in memory, using a void pointer
-   ,* originating from R. */
-  #define hereIAm() \
-    (tic_core *) (R_ExternalPtrAddress(Rf_eval(Rf_mkString("_TIC80"))));
+Both =initScheme= and =closeScheme= begin with casting ~tic_mem *tic~ to a
+~tic_core *~, effectively mapping from one area of memory to another (like a
+hashmap or simply shifting the memory until the child struct is aligned with the
+parent struct). This map permits access within =closeScheme= to the =currentVM=
+member of the TIC-80 core memory. This is only my basic understanding, and some
+of it is adventurous bullshitting; I really don't know if that was true, what I
+said, and I don't much care if it wasn't because I'm writing this as I still
+work to understand what I'm reading, so this is only a draft paragraph.
 
-  #define CVM hereIam()->currentVM
+In the Lua integration the manner to initialize Lua is the use of a pointer to a
+=lua_State= type (which is actually a thread, but indirectly refers to the state
+associated with the thread). Every Lua C API function requires a pointer of this
+type as its first argument, so calling the procedure ~lua_newstate~ creates a
+fresh, independent thread of execution. That's all that is required to embed and
+then instantiate a Lua 5.4 interpreter within a larger application.
+
+The general design of TIC-80 relies on an embedded language API using pointers
+to the interpreter as the first argument of many of its functions. This is an
+active design choice and is likely related to memory management in TIC-80, which
+is necessarily complicated by the fact that langauge interpreters are of
+different sizes, as are their language codes which say ~Hello, world!~. It's a
+complicated topic. I won't think on it.
+
+R is not designed to be embedded in the same sense as other languages, it is not
+an extension language for other programs, it is /the main program/ and even has
+built-in variables implying it is assumed to be true that
+=R_running_as_main_program=, even when embedded, and a potential ~longjmp~
+complicates matters more. Still, we will push on towards our goal despite my
+ignorance and inexperience.
+
+R expects the arguments from the operating system shell to be passed along to
+it, yes even when embedded, and 
+
+For now, we'll borrow the code from the /Writing R Extensions/ manual to pass
+~Rf_initEmbeddedR~ some fake arguments, and we'll write a procedure to handle
+restarting R as necessary and tracking the current interpreter (there can be
+only one).
+
+#+name: R (the C file)
+#+begin_src C
+  #define killer(x)																\
+    if ((castTicMemory)->currentVM != NULL) {			\
+      Rf_endEmbeddedR(x);													\
+      core->currentVM = NULL;											\
+    }
 
   static bool initR(tic_mem *tic, const char *code) {
-      /* hereIAm(); */
-    Rf_endEmbeddedR(0);
+    killer(0);
 
-    void * rcore = CVM = Rf_initEmbeddedR();
-	   /* initAPI(core) */
-    }
+    /* embdRAV: embedded R argument vector. */
+    char *embdRAV[]= { "REmbeddedTIC80", "--silent" };
+    /* NOTE: it's merely an integer; TIC-80 is none the wiser. */
+    void *rcore = (castTicMemory)->currentVM = \
+      Rf_initEmbeddedR(sizeof(embdRAV)/sizeof(embdRAV[0]), embdRAV);
 
+    return (bool) *((int *) rcore);
+  }
 
   static void closeR(tic_mem *tic) {
-    /* Might not be necessary since using CVM. */
-    /* tic_core *core = hereIam(); */
-    if (CVM) {
-      /* TODO: ensure this frees the core->currentVM object and then sets it to
-       ,* NULL. */
-      Rf_endEmbeddedR(0);
-    }
+    tic_core *core = (tic_core *) tic;
+    killer(0);
   }
-
-  #define TIC80EXISTS "exists(\"TIC-80\") && is.function(`TIC-80`)"
-
-  static void callR_TIC() {
-      Rf_eval(Rf_mkString("if ("TIC80EXISTS") `TIC-80`()"));
-  }
-
-  <<SYNTAX HIGHLIGHTING>>
-  <<OUTLINE GENERATING>>
 #+end_src
+
+It might not be advisable to define the ~TIC~ function in the R API as
+~`TIC-80`~, but because R allows non-syntactic names I'll use it so that the
+actual name of the machine can be used. If the machine were called ~MANE~ we'd
+want to use that, but if we were forced to use ~main~ that'd be a nice homophone
+at least. The =exists= function doesn't use symbols, it uses strings to lookup
+symbols so that is why that part differs in the chunk below.
+
+#+name: R (the C file)
+#+begin_src C
+	#define TIC80EXISTS "exists(\"TIC-80\") && is.function(`TIC-80`)"
+
+	static void callR_TIC() {
+    Rf_eval(Rf_mkString("if ("TIC80EXISTS") `TIC-80`()"));
+	}
+
+	<<SYNTAX HIGHLIGHTING>>
+	<<OUTLINE GENERATING>>
+#+end_src
+
+* Watch out for the FPU
+Here's a warning from the /Writing R Extensions/ manual which may become
+important.
+
+#+begin_quote
+One issue to watch is that on some platforms Rf_initEmbeddedR and
+Rf_endEmbeddedR change the settings of the FPU (e.g. to allow errors to be
+trapped and to make use of extended precision registers).
+#+end_quote
+
+* Lucky number thirteen?
+What defines the ID number of a langauge (=tic_script=)? Counted, there are
+twelve langauges so far in the ~tic_script *Scripts[]~ array, but the actual
+members of the array are determined at compile time. Lua is the first member in
+this list, and yet it has an ID of ten! I don't see the pattern in this; I'd
+like R to be lucky number thirteen or to have an ID of 666.
+
+* The "famous" TIC-80 memory struct =tic_mem=
+Pointers to structs of the =tic_mem= type are dereferenced throughout the
+sources of TIC-80, and it seems like a seriously considered design decision to
+have this be so. I don't know why, of course, and I don't see why either.
+There's some dirty business about converting a pointer to a struct of this type
+to a pointer to another type (=tic_core=) as well. It's not simple code (the
+whole application is an emulator for a computer that doesn't exist, after all!).
+
+#+begin_src C
+  struct tic_mem
+{
+    tic80           product;
+    tic_ram*        ram;
+    tic_cartridge   cart;
+
+    tic_ram*        base_ram;
+
+    char saveid[TIC_SAVEID_SIZE];
+
+    union
+    {
+        struct
+        {
+#if RETRO_IS_BIG_ENDIAN
+            u8 padded:5;
+            u8 keyboard:1;
+            u8 mouse:1;
+            u8 gamepad:1;
+#else
+            u8 gamepad:1;
+            u8 mouse:1;
+            u8 keyboard:1;
+            u8 padded:5;
+#endif
+        };
+
+        u8 data;
+    } input;
+};
+#+end_src
+
+This is the fifth member of the struct =tic_script=, which is predictably offset
+by ~sizeof(u8) + 3 * sizeof(char *)~. This offset amount /may be critical/ to
+understanding the eventual type cast.
