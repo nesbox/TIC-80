@@ -1,0 +1,673 @@
+# This C sources tangled from this Noweb file are released under the terms of
+# the license mentioned in the LICENSE chunk. The Noweb file itself and the PDF
+# produced from it are licensed under the terms of the GNU Free Documentation
+# License version 1.3.
+
+# Copyright © 2024 Bryce Carson
+
+#+TITLE: Embedding R in TIC-80
+#+author: Bryce Carson
+
+\newpage{}
+
+The copyright notice applicable to all code in this document is contained in the
+LICENSE chunk which follows (the same license under which the other
+TIC-80 source code is released). This PDF document, or another rendering of the
+/Embedding R in TIC-80/ document, and the Noweb source document it is
+rendered from are licensed under the terms of the GNU Free Documentation
+License, version 1.3.
+
+Copyright © 2024 Bryce Carson
+
+#+name: license
+#+begin_src c
+/* MIT License
+ *
+ * Copyright © 2024 Bryce Carson
+ *
+ * GitHub: bryce-carson
+ * Email: bryce.a.carson@gmail.com
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+#+end_src
+
+* A logical, thematic entry point
+The R interpreter, like the s7 Scheme interpreter, needs to be initialized or
+re-initialized if it isn't running when TIC-80 wants to request something (the
+game source code, or a debugger entry point or a callback or something else) be
+evaluated, so the program either "initialize[s] R, returning if that fails"
+or reinitializes R in that subroutine.
+
+#+name: evaluate R
+#+begin_src c :noweb no-export
+  void evalR(tic_mem* tic, const char* code) {
+      tic_core *core = (tic_core *) tic;
+      /* TODO: the type embd_r does not exist, and why should it? Embedded R comes
+       ,* with a lot of types already! */
+      embd_r *embedd = core->currentVM;
+
+      /* Ensure an embedded R interpreter is initialized and ready to interpret. */
+      if (er == NULL) {
+          <<initialize R, returning if that fails>>
+          er = core->currentVM;
+      }
+
+      /* The embedded R interpreter instance I want to evaluate the C string [code] */
+      SEXP er;
+      Rf_eval(Rf_coerceVector(Rf_mkString(code), EXPRSXP),
+              R_globalEnv); /* FIXME: where am I getting R_GlobalEnv from? */
+  }
+#+end_src
+
+Initializing R, ideally, should never fail, but if it does fail the function
+calling initR (evalR) must return immediately.
+
+#+name: initialize R, returning if that fails
+#+begin_src c
+  /* TODO: what was the null string for? Look back at the Scheme sources. */
+  if (!initR(tic, "")) return;
+#+end_src
+
+** Initializing R
+The initScheme function takes a pointer to the *TIC-80* memory and a character
+pointer to the code that Scheme should evaluate (when it's initialized). To
+promote a clean room, Scheme is terminated before it is initialized through
+calling the =s7_init= function coming directly from the *s7* library
+and before the API is initialized; this should remove a host of errors related
+to the lifetime of objects, data, and values in the object table that is managed
+by the interpreter, and every time the user of *TIC-80* runs their game a fresh
+interpreter is spawned to avoid the garbage that could otherwise pollute their
+shiny new bug-fixes (which would introduce new bugs!). An error handling
+function is defined and then a special bit of Scheme code is evaluated before
+another bit is evaluated, a variable defined, and then finally the game code
+loaded. A final task is to check if the function =TIC= is defined in the
+Scheme LISP image by that time, and if it is then that is the "entry point"
+where the interpreter is given freedom to evaluate to its hearts content and
+make callbacks to the *TIC-80* fantasy computer through the API.
+
+#+name: quotation
+#+begin_src c :noweb no-export
+static bool initScheme(tic_mem* tic, const char* code)
+{
+    tic_core* core = (tic_core*)tic;
+    closeScheme(tic);
+
+    s7_scheme* sc = core->currentVM = s7_init();
+    initAPI(core);
+
+    s7_define_function(sc, "__TIC_ErrorHandler", scheme_error_handler, 1, 0, 0, NULL);
+    /* See "set the error-hook function.scm" and pretend its a properly escaped C string. */
+    s7_eval_c_string(sc, <<set the error-hook function.scm>>);
+    s7_eval_c_string(sc, defstructStr);
+
+    s7_define_variable(sc, TicCore, s7_make_c_pointer(sc, core));
+    s7_load_c_string(sc, code, strlen(code));
+
+    const bool isTicDefined = s7_is_defined(sc, ticFnName);
+    if (!isTicDefined) {
+        if (core->data) {
+            core->data->error(core->data->data, "TIC function is not defined");
+        }
+    }
+
+    return true;
+}
+#+end_src
+
+#+name: set the error-hook function
+#+begin_src scheme
+(set! (hook-functions *error-hook*)
+      (list (lambda (hook)
+              (__TIC_ErrorHandler
+               (format #f "~s: ~a\n--STACKTRACE--\n~a"
+                       ((owlet) 'error-type)
+                       (apply format #f (hook 'data))
+                       (stacktrace)))
+              (set! (hook 'result) #f))))
+#+end_src
+
+
+Based on the requirements of *TIC-80* it seems clear that I need to define a
+wrapping function to initialize *R* and pass around some information
+appropriately.
+
+
+*** =R_HOME= directory and =LD_LIBRARY_PATH=
+These must be set appropriately on UNIX® for R to work correctly.
+
+#+name: set R_HOME and LD_LIBRARY_PATH
+#+begin_src c :noweb no-export
+  #if !defined R_HOME
+  char *R_HOME = "/usr/lib64/R";
+  #endif
+
+  #if !defined LD_LIBRARY_PATH
+	#define PATH "/usr/lib64/R/lib:/usr/lib/jvm/jre/lib/server"
+	char *LD_LIBRARY_PATH = PATH;
+  char *R_LD_LIBRARY_PATH = PATH;
+	#undef PATH
+  #endif
+
+  #if !defined R_SHARE_DIR
+	char *R_SHARE_DIR = "/usr/share/R";
+  #endif
+
+	#if !defined R_DOC_DIR
+	char *R_DOC_DIR = "/usr/share/doc/R";
+	#endif
+#+end_src
+
+These are usually set by a shell script (=R_HOME/bin/R=) which wraps the
+execution of the binary =R_HOME/bin/exec/R=.
+
+*** Flags for compiling against R (shared or static)
+The following are useful flags and examples of how to call =gcc= to compile
+against R when building a front-end.
+
+#+name: R compilation flags
+#+begin_src bash
+  gcc -I/usr/include/R \
+      -Wl,--export-dynamic \
+      -fopenmp \
+      -Wl,-z,relro \
+      -Wl,--as-needed \
+      -Wl,-z,now \
+      -specs=/usr/lib/rpm/redhat/redhat-hardened-ld \
+      -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1 \
+      -Wl,--build-id=sha1 \
+      -L/usr/lib64/R/lib \
+      -lR \
+      -ltre \
+      -lpcre2-8 \
+      -llzma \
+      -lbz2 \
+      -lz \
+      -ltirpc \
+      -lrt \
+      -ldl \
+      -lm \
+      -licuuc \
+      -licui18n \
+      example_r_wrapper.c
+#+end_src
+
+The manual states that since R is already installed (and I have verified it was
+build with the configuration option =--enable-R-shlib=) I can use pkgconfig to
+acquire the options to use for static linking (which is ideal for embedding R
+into TIC-80).
+
+#+name: Acquiring compilation flags for static compilation from pkgconfig
+#+begin_src bash
+  # pkg-config --cflags libR; pkg-config --static --libs libR
+  gcc -I/usr/include/R \
+      -Wl,--export-dynamic \
+      -fopenmp \
+      -Wl,-z,relro \
+      -Wl,--as-needed \
+      -Wl,-z,now \
+      -specs=/usr/lib/rpm/redhat/redhat-hardened-ld \
+      -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1 \
+      -Wl,--build-id=sha1 \
+      -L/usr/lib64/R/lib \
+      -lR \
+      example_r_wrapper.c
+#+end_src
+
+The above requires that R was /compiled as a static library/, however. If R was
+compiled with =--enable-R-shlib= this may or may not be the case and I should
+investigate this further.
+
+
+** TIC-80 memory
+=tic_mem= is a struct defined in the TIC-80 API header, which is coercable to a
+pointer to a =tic_core= type. The differences in these types may or may not be
+important to examine and explain to myself (and the dear reader) at the moment.
+=tic_meme= is not defined as a type, only a named struct.
+
+Where my language is not accurate, as in the previous paragraph, I should
+revievw Narain Gehani's /Advanced Introduction to C/.
+
+What happens when a struct is type cast to another struct?
+
+#+name: a quotation from the *TIC-80* ~core.h~
+#+begin_src c
+  tic_mem memory; // it should be first
+  tic80_pixel_color_format screen_format;
+
+  void* currentVM;
+#+end_src
+
+Now quoted is the first four members of the =tic_mem= struct.
+
+#+name: a quotation from the *TIC-80* ~api.h~
+#+begin_src c
+  tic80           product;
+  tic_ram*        ram;
+  tic_cartridge   cart;
+
+  tic_ram*        base_ram;
+#+end_src
+
+The sizes of these types are definitely not equal, so there is no direct
+equivalence and some pointer arithmetic will need to be done to see what is
+what.
+
+At any rate of understanding, I know that =core->currentVM= is =s7_scheme=. It
+is the virtual machine, or interpreter, or whatever which "is Scheme". That
+understanding should be sufficient for now.
+** Initializing the API
+When initializing R as an embedded interpreter, the TIC-80 API also needs to be
+initialized. In the Scheme langauge integration for the API, this occurs using a
+preprocessor macro which scrubs through the sources and uses a C function to
+define multiple Scheme functions within the bounds of the Scheme interpeter.
+
+#+name: a quotation from the *TIC-80* =scheme.c=
+#+begin_src c
+  static void initAPI(tic_core* core)
+  {
+      s7_scheme* sc = core->currentVM;
+
+  #define API_FUNC_DEF(name, desc, helpstr, count, reqcount, ...) \
+      {scheme_ ## name, desc  "\n" helpstr, count, reqcount, "t80::" #name},
+
+      static const struct{s7_function func; const char* helpstr; int count; int reqcount; const char* name;} ApiItems[] =
+          {TIC_API_LIST(API_FUNC_DEF)};
+
+  #undef API_FUNC_DEF
+
+      for (s32 i = 0; i < COUNT_OF(ApiItems); i++) {
+          s7_define_function(sc,
+                             ApiItems[i].name,
+                             ApiItems[i].func,
+                             ApiItems[i].reqcount,
+                             ApiItems[i].count - ApiItems[i].reqcount, // opt count
+                             false, // rest_arg
+                             ApiItems[i].helpstr);
+      }
+  }
+#+end_src
+
+
+To aid my own understanding, I'm reorganizing the quoted code in this modified
+form. Before doing that I'll read out what I understand. =initAPI= is a void
+function which defines a static struct which is identical across calls to this
+function (the struct is not recreated each invocation, it would always point to
+the same object [a contiguous region of storage]). This static struct is used
+with the "scheme core" discussed earlier to define an array of functions
+inside the Scheme interpreter.
+
+While it is acceptable to place preprocessor tokens anywhere, and it is
+admirable to place the definition immediately prior to its invocation and then
+undefine it, it makes more sense to me to define this outside the function body
+and not undefine it.
+
+#+name: a modified quotation from the *TIC-80* =scheme.c=
+#+begin_src c
+  #define API_FUNC_DEF(name, desc, helpstr, count, reqcount, ...) { \
+          scheme_##name,																						\
+          desc "\n" helpstr,																				\
+          count,																										\
+          reqcount,																									\
+          "t80::"##name																							\
+      }, /* DONT delete this trailing comma! It's intentional! */
+
+  static void initAPI(tic_core* core)
+  {
+      s7_scheme* sc = core->currentVM;
+
+      static const struct {
+          s7_function func;
+          const char* helpstr;
+          int count;
+          int reqcount;
+          const char* name;
+      } ApiItems[] = { TIC_API_LIST(API_FUNC_DEF); };
+
+      for (s32 i = 0; i < COUNT_OF(ApiItems); i++) {
+          s7_define_function(sc,
+                             ApiItems[i].name,
+                             ApiItems[i].func,
+                             ApiItems[i].reqcount,
+                             ApiItems[i].count - ApiItems[i].reqcount, // opt count
+                             false, // rest_arg
+                             ApiItems[i].helpstr);
+      }
+  }
+#+end_src
+
+* Defining the API
+Each of the following are translated from the Scheme language integration with
+the TIC-80 API.
+
+** Registering symbols in R from C
+Symbols need to be registered with R from C to be used.
+
+The /Extending R/ document describes how to register native routines with the R
+interpreter for later use from within R code. A quotation from the document is
+provided here.
+
+#+name: example of register native symbols
+#+begin_src c
+DllInfo *info = R_getEmbeddingDllInfo();
+R_registerRoutines(info, cMethods, callMethods, NULL, NULL);
+#+end_src
+
+** Some knotty code
+All definitions are translated from the integration of Scheme in TIC-80.
+
+#+begin_src c
+  <<INCLUDES>>
+
+  /* DEFINITIONS */
+  <<[[initR]]: initialize R as an embedded interpreter>>
+  <<[[closeR]]: make the embedded interpreter kermit suicide>>
+
+  <<[[callRTick]]: >>
+  <<[[callRBoot]]: >>
+
+  <<[[callRScanline]]: >>
+  <<[[callRBorder]]: >>
+  <<[[callRMenu]]: >>
+
+  <<[[getROutline]]: >>
+  <<[[evalR]]: >>
+
+  <<[[r_isalnum]]: >>
+  <<[[RAPIKeywords]]: >>
+
+  <<[[DemoRom]]: >>
+  <<[[MarkRom]]: >>
+  <<[[rmark.tic]]: >>
+#+end_src
+
+* Learning how to work with this stuff
+Hadley Wickham recommends defining =R_NO_REMAP= to ensure that all R API
+functions have the prefixes =R_= or =Rf_=. Without defining this, presumably,
+there are other prefixes or none and other functions or types may be shadowed.
+
+As a note, the length of vector types in R's C API is \(2^{64} - 1\), and in
+base R there are macros implementing [[https://github.com/hadley/r-internals/blob/master/vectors.md#length][the extended length types Hadley Wickham
+wrote about]].
+
+#+name: INCLUDE
+#+begin_src c
+#include "core/core.h"
+
+#define R_NO_REMAP
+#include <R.h>
+#include <Rinternals.h>
+#include <Rembedded.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#+end_src
+
+In C the usual style is to place predeclarations (which make the compiler happy)
+in header files. The actual function definitions (and further =#include=
+preprocessor directives) are present in the "real C file". /R-exts.pdf/ refers
+to some examples of embedding R which are written as formal unit tests of the
+embedding functionality. The file =embeddedRCall.c= and =embeddedRCall.h= are
+reproduced herein for example and clarity in explanation, as I'm learning from
+these files and the /R-exts.pdf/ document how to embed R in TIC-80.
+
+[[https://github.com/hadley/r-internals][Hadley Wickham's r-internals Git repository]] on GitHub has lots of little
+insights into embedding R in other applications and working with the public API
+for R from C.
+
+#+name: a (annotated) quotation of =embeddedRCall.h=
+#+begin_src c
+  #ifndef EMBEDDED_R_CALL_H
+  #define EMBEDDED_R_CALL_H
+
+  #include <R.h>
+  #include <Rinternals.h>
+
+  /* Predeclarations */
+  int eval_R_command(const char *funcName, int argc, char *argv[]);
+  void init_R(int argc, char **argv);
+  void end_R();
+
+  #endif
+#+end_src
+
+#+name: a quotation of =embeddedRCall.c=
+#+begin_src C
+  #include <Rembedded.h>
+  #include "embeddedRCall.h"
+
+  int
+  eval_R_command(const char *funcName, int argc, char *argv[])
+  {
+  SEXP e; a
+  SEXP arg;
+
+  int i;
+  int errorOccurred;
+  init_R(argc, argv);
+
+  PROTECT(arg = allocVector(INTSXP, 10));
+  for(i = 0; i < LENGTH(arg); i++) INTEGER(arg)[i]  = i + 1;
+
+  PROTECT(e = lang2(install(funcName), arg));
+
+  /* Evaluate the call to the R function.
+     Ignore the return value.
+  ,*/
+  R_tryEval(e, R_GlobalEnv, &errorOccurred);
+
+  Rf_endEmbeddedR(0);
+  UNPROTECT(2);
+  return(0);
+  }
+
+  void
+  init_R(int argc, char **argv)
+  {
+      int defaultArgc = 1;
+      char *defaultArgv[] = {"Rtest"};
+
+      if(argc == 0 || argv == NULL) {
+    argc = defaultArgc;
+    argv = defaultArgv;
+      }
+      Rf_initEmbeddedR(argc, argv);
+  }
+
+  void
+  end_R()
+  {
+      Rf_endEmbeddedR(0);
+  }
+#+end_src
+
+* Reserved words in R
+R has only a few reserved words, and very little of it is "critical syntax"
+characters. The seemingly fundamental syntax characters ~{~ and ~(~ are actually
+function calls, which could be shadowed if desired.
+
+Reserved words cannot be used as syntactic names, but as non-syntactic names
+they can be used, so ~`if`~ is a different symbol or name than ~if~ and may be
+used otherwise, as with ~`function`~.
+
+#+name: RKeywords
+#+begin_src c
+  static const char* const RKeywords [] =
+  {
+  "if", "else", "repeat", "while", "function", "for", "in", "next", "break",
+  "TRUE", "FALSE", "NULL", "Inf", "NaN", "NA", "NA_integer_", "NA_real_", "NA_complex_", "NA_character_",
+  "...", "..1", "..2", "..3", "..4", "..5", "..6", "..7", "..8", "..9", /* et cetera, see ?dots */
+  };
+#+end_src
+
+** =..n=: variadic argument access across the natural numbers
+The entirety of the natural numbers are reserved words when the occur after the
+characters ~..~, becuase any ordinal number is usable to access a member of the
+dotted argument (how R cleverly deals with variadic arguments). The functions
+which otherwise handle these variadic argument list members are not reserved
+words, for example ~..length()~ or even ~..n()~ are not reserved.
+
+* Exporting a =tic_script= for *TIC-80* to use
+Describe how the fantasy computer uses this =tic_script=, and perhaps
+investigate why there is a special =TIC_EXPORT= macro; in what way was the
+standard C ~export~ insufficient, and why?
+
+#+name: TIC EXPORT
+#+begin_src c
+  TIC_EXPORT const tic_script EXPORT_SCRIPT(R) =
+  {
+      .id                     = 666,
+      .name                   = "r",
+      .fileExtension          = ".r",
+      .projectComment         = "##",
+      {
+        .init                 = initR,
+        .close                = closeR,
+        .tick                 = callRTick,
+        .boot                 = callRBoot,
+
+        .callback             =
+        {
+          .scanline           = callRScanline,
+          .border             = callRBorder,
+          .menu               = callRMenu,
+        },
+      },
+
+      .getOutline             = getROutline,
+      .eval                   = evalR,
+
+      .blockCommentStart      = NULL,
+      .blockCommentEnd        = NULL,
+      .blockCommentStart2     = NULL,
+      .blockCommentEnd2       = NULL,
+      .singleComment          = "##",
+      .blockStringStart       = NULL,
+      .blockStringEnd         = NULL,
+      .stdStringStartEnd      = NULL,
+      .blockEnd               = NULL,
+      .lang_isalnum           = r_isalnum,
+      .api_keywords           = RAPIKeywords,
+      .api_keywordsCount      = COUNT_OF(RAPIKeywords),
+      .useStructuredEdition   = true,
+
+      .keywords               = RKeywords,
+      .keywordsCount          = COUNT_OF(RKeywords),
+
+      .demo = {DemoRom, sizeof DemoRom},
+      .mark = {MarkRom, sizeof MarkRom, "rmark.tic"},
+  };
+#+end_src
+
+* Evaluating R from C
+Evaluating R expressions, according to the r-internals repo, is done like so:
+
+#+name: Evaluation
+#+begin_src c
+  SEXP Rf_eval(SEXP expression, SEXP environment);
+#+end_src
+
+The environment and expression objects should, obviously, be created beforehand.
+
+There are further notes on Hadley's repo about protected evaluation and avoiding
+long jumps to separate evaluation contexts, which may become important as I
+learn more about embedding R and as I work with *TIC-80*'s API.
+
+** The Scheme "core"
+The function =getSchemeCore= actually returns an =s7_c_pointer= "Scheme
+core" which is the =const char*= =_TIC80= value in s7 (a name converted to a
+value) and then a pointer to this value. That is what a =tic_core= is, more or
+less.
+
+#+name: the s7 Scheme core
+#+begin_src c
+  static const char* TicCore = "_TIC80";
+
+  tic_core* getSchemeCore(s7_scheme* sc)
+  {
+      return s7_c_pointer(s7_name_to_value(sc, TicCore));
+  }
+#+end_src
+
+
+In my style of writing C I would've inlined this const char.
+
+#+name: the s7 Scheme core, rewritten to my preference
+#+begin_src c
+  tic_core* getSchemeCore(s7_scheme* sc)
+  {
+      return s7_c_pointer(s7_name_to_value(sc, "_TIC80"));
+  }
+#+end_src
+
+That may or may not be valid C. I'm still learning.
+
+
+* R.c
+This final section of the overall literate program defines the source file that
+will be compiled to give the *TIC-80* fantasy computer *R* langauge support for
+writing demos, programs, and games.
+
+Much of the *R* langauge and its implementation was inspired by a C++
+implementation of Scheme (if I recall things I've read, so it's hearsay but go
+ahead and research it yourself), so aspects of the Scheme *TIC-80* langauge
+integration will be honoured and "Scheme" will appear in several places, though
+none of it is Scheme any more. Before a final public release this will be
+changed so that no references to "Scheme" occur in the code.
+
+#+name: R (the C file)
+#+begin_src c :noweb no-export :tangle r.c
+  <<INCLUDE>>
+
+  /* Return the location of the R interpreter in memory, using a void pointer
+   ,* originating from R. */
+  #define hereIAm() \
+    (tic_core *) (R_ExternalPtrAddress(Rf_eval(Rf_mkString("_TIC80"))));
+
+  #define CVM hereIam()->currentVM
+
+  static bool initR(tic_mem *tic, const char *code) {
+      /* hereIAm(); */
+    Rf_endEmbeddedR(0);
+
+    void * rcore = CVM = Rf_initEmbeddedR();
+	   /* initAPI(core) */
+    }
+
+
+  static void closeR(tic_mem *tic) {
+    /* Might not be necessary since using CVM. */
+    /* tic_core *core = hereIam(); */
+    if (CVM) {
+      /* TODO: ensure this frees the core->currentVM object and then sets it to
+       ,* NULL. */
+      Rf_endEmbeddedR(0);
+    }
+  }
+
+  #define TIC80EXISTS "exists(\"TIC-80\") && is.function(`TIC-80`)"
+
+  static void callR_TIC() {
+      Rf_eval(Rf_mkString("if ("TIC80EXISTS") `TIC-80`()"));
+  }
+
+  <<SYNTAX HIGHLIGHTING>>
+  <<OUTLINE GENERATING>>
+#+end_src
