@@ -271,6 +271,7 @@ jobs:
           cd vendor
           git clone --recursive https://github.com/smuehlst/circle-stdlib
           cd circle-stdlib
+          git checkout fdb3c4a948421d47fddab8042a92f980cba43915
           git submodule update --recursive
           ./configure -r 4
           make -j$(nproc)
