@@ -37,39 +37,42 @@
 
 tic_core *getTICCore(tic_mem* tic, const char* code) {
   tic_core *core;
-  while (core == NULL && (!initR(tic, code))) core = (castTicMemory)->currentVM;
+  while (core == NULL && (!initR(tic, code))) {
+    core = (castTicMemory)->currentVM;
+  }
   return core;
 }
 
+void evalR(tic_mem *memory, char *code) {
+  Rf_eval(Rf_mkString(code));
+}
+
 #define killer(x)																								\
-	if ((tic_core *core = (castTicMemory)->currentVM) != NULL) {	\
-		Rf_endEmbeddedR(x);																					\
-		core->currentVM = NULL;																			\
-	}
+  if ((tic_core *core = (castTicMemory)->currentVM) != NULL) {	\
+    Rf_endEmbeddedR(x);																					\
+    core->currentVM = NULL;																			\
+  }
 
 static bool initR(tic_mem *tic, const char *code) {
-	killer(0);
+  killer(0);
 
-	int tries = 1;
+  int tries = 1;
+  tic_core *core = getTicCore(tic, code);
 
 tryOnceMoreOnly:
-	/* embdRAV: embedded R argument vector. */
-	char *embdRAV[]= { "REmbeddedInTIC80", "--silent" };
-	/* NOTE: rcore should be an integer; TIC-80 won't be the any the wiser. */
-	void *rcore = core = \
-		Rf_initEmbeddedR(sizeof(embdRAV)/sizeof(embdRAV[0]), embdRAV);
+  /* embdRAV: embedded R argument vector. */
+  char *embdRAV[]= { "REmbeddedInTIC80", "--silent" };
+  core = (tic_core *) Rf_initEmbeddedR(sizeof(embdRAV)/sizeof(embdRAV[0]), embdRAV);
 
-	int rc = *((int *) rcore);
-	if (rc == 0 || rc == 1 || rc == NULL)
-		return (bool) rc;
-	else if (tries--)
-		goto tryOnceMoreOnly;
+  bool rc = (bool) *core;
+  if (rc) return rc;
+  else if (tries--) goto tryOnceMoreOnly;
 
-	return false;
+  return false;
 }
 
 static void closeR(tic_mem *tic) {
-	killer(0);
+  killer(0);
 }
 static void callRfn_TIC80() {
 	/* if (exists("TIC-80") && is.function(`TIC-80`)) `TIC-80`() */
@@ -87,12 +90,98 @@ defineCallRFn_("BOOT")
 defineCallRFn_("SCN")
 #undef defineCallRFn_
 
-<<SYNTAX HIGHLIGHTING>>
-<<OUTLINE GENERATING>>
+static const char* const RKeywords [] =
+{
+	"if", "else", "repeat", "while", "function", "for", "in", "next", "break",
+	"TRUE", "FALSE", "NULL", "Inf", "NaN", "NA", "NA_integer_", "NA_real_",
+	"NA_complex_", "NA_character_",
+	/* et cetera, see ?dots */
+	"...", "..1", "..2", "..3", "..4", "..5", "..6", "..7", "..8", "..9",
+};
+
+static const tic_outline_item* getROutline(const char* code, s32* size)
+{
+  enum{Size = sizeof(tic_outline_item)};
+  *size = 0;
+
+  static tic_outline_item* items = NULL;
+
+  if(items)
+  {
+    free(items);
+    items = NULL;
+  }
+
+  const char* ptr = code;
+
+  while(true)
+  {
+    static const char FuncString[] = "<- function(";
+
+    ptr = strstr(ptr, FuncString);
+
+    if(ptr)
+    {
+      ptr += sizeof FuncString - 1;
+
+      const char* start = ptr;
+      const char* end = start;
+
+      while(*ptr)
+      {
+        char c = *ptr;
+
+        if(r_isalnum(c));
+        else
+        {
+          end = ptr;
+          break;
+        }
+        ptr++;
+      }
+
+      if(end > start)
+      {
+        items = realloc(items, (*size + 1) * Size);
+
+        items[*size].pos = start;
+        items[*size].size = (s32)(end - start);
+
+        (*size)++;
+      }
+    }
+    else break;
+  }
+
+  return items;
+}
+
+static const char* RAPIKeywords[] = {
+#define TIC_CALLBACK_DEF(name, ...) #name,
+  TIC_CALLBACK_LIST(TIC_CALLBACK_DEF)
+#undef  TIC_CALLBACK_DEF
+
+#define API_KEYWORD_DEF(name, ...) #name,
+  TIC_API_LIST(API_KEYWORD_DEF)
+#undef  API_KEYWORD_DEF
+};
+
+static const u8 DemoRom[] =
+{
+  /* Automatically built from ../../demos/rdemo.r */
+#include "../build/assets/rdemo.tic.dat"
+};
+
+static const u8 MarkRom[] =
+{
+  /* Automatically built from ../../demos/bunny/rbenchmark.r */
+#include "../build/assets/rbenchmark.tic.dat"
+};
 
 TIC_EXPORT const tic_script EXPORT_SCRIPT(R) =
 {
-	/* The first five members of the struct have the sum total following size. */
+	/* The first five members of the struct have the sum total following
+	 * size. */
 	/* sizeof(u8) + 3 * sizeof(char *)  */
 	.id                     = 666,
 	.name                   = "r",
@@ -104,16 +193,18 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(R) =
 		.tick                 = callRfn_TIC80,
 		.boot                 = callRfn_BOOT,
 
+		/* In the Scheme integration these have additional argument types s32 and
+		 * void * (row and data, respectively). */
 		.callback             =
 		{
 			.scanline           = callRfn_SCN,
-			.border             = callRfn_Border, /* TODO */
-			.menu               = callRfn_Menu, /* TODO*/
+			.border             = callRfn_BDR,
+			.menu               = callRfn_MENU,
 		},
 	},
 
-	.getOutline             = getROutline, /* TODO */
-	.eval                   = mrEMachine,
+	.getOutline             = getROutline,
+	.eval                   = evalR,
 
 	.blockCommentStart      = NULL,
 	.blockCommentEnd        = NULL,
@@ -125,13 +216,13 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(R) =
 	.stdStringStartEnd      = "\"",
 	.blockEnd               = NULL,
 	.lang_isalnum           = r_isalnum,
-	.api_keywords           = RAPIKeywords, /* TODO */
+	.api_keywords           = RAPIKeywords,
 	.api_keywordsCount      = COUNT_OF(RAPIKeywords),
 	.useStructuredEdition   = false,
 
 	.keywords               = RKeywords,
 	.keywordsCount          = COUNT_OF(RKeywords),
 
-	.demo = {DemoRom, sizeof DemoRom}, /* TODO */
-	.mark = {MarkRom, sizeof MarkRom, "rmark.tic"}, /* TODO*/
+	.demo = {DemoRom, sizeof DemoRom},
+	.mark = {MarkRom, sizeof MarkRom, "rbenchmark.tic"},
 };
