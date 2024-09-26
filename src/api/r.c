@@ -35,36 +35,29 @@
 #include <stdlib.h>
 #include <string.h>
 
-tic_core *getTICCore(tic_mem* tic, const char* code) {
-  tic_core *core;
-  while (core == NULL && (!initR(tic, code))) {
-    core = (castTicMemory)->currentVM;
-  }
-  return core;
-}
-
 void evalR(tic_mem *memory, char *code) {
-  Rf_eval(Rf_mkString(code));
+  SEXP result = Rf_eval(Rf_mkString(code), R_GlobalEnv);
 }
 
-#define killer(x)																								\
-  if ((tic_core *core = (castTicMemory)->currentVM) != NULL) {	\
-    Rf_endEmbeddedR(x);																					\
-    core->currentVM = NULL;																			\
+#define killer																						\
+  tic_core *core;																					\
+  if ((core = (((tic_core *) tic))->currentVM) != NULL) {	\
+    Rf_endEmbeddedR(0);																		\
+    core->currentVM = NULL;																\
   }
+
+tic_core *getTICCore(tic_mem* tic, const char* code);
 
 static bool initR(tic_mem *tic, const char *code) {
-  killer(0);
+  killer;
 
   int tries = 1;
-  tic_core *core = getTicCore(tic, code);
+  core = getTICCore(tic, code);
 
 tryOnceMoreOnly:
   /* embdRAV: embedded R argument vector. */
   char *embdRAV[]= { "REmbeddedInTIC80", "--silent" };
-  core = (tic_core *) Rf_initEmbeddedR(sizeof(embdRAV)/sizeof(embdRAV[0]), embdRAV);
-
-  bool rc = (bool) *core;
+  bool rc = (bool) Rf_initEmbeddedR(sizeof(embdRAV)/sizeof(embdRAV[0]), embdRAV);
   if (rc) return rc;
   else if (tries--) goto tryOnceMoreOnly;
 
@@ -72,23 +65,22 @@ tryOnceMoreOnly:
 }
 
 static void closeR(tic_mem *tic) {
-  killer(0);
+  killer;
 }
 static void callRfn_TIC80() {
-	/* if (exists("TIC-80") && is.function(`TIC-80`)) `TIC-80`() */
-	Rf_eval(Rf_mkString("if (exists(\"TIC-80\") && is.function(`TIC-80`)) "\
-											"`TIC-80`()"));
+  /* if (exists("TIC-80") && is.function(`TIC-80`)) `TIC-80`() */
+  Rf_eval(Rf_mkString("if (exists(\"TIC-80\") && is.function(`TIC-80`)) "\
+                      "`TIC-80`()"),
+    R_GlobalEnv);
 }
-#define defineCallRFn_(x)																								\
-  static void callRfn_##x(tic_mem *tic) {																\
-    Rf_eval(Rf_mkString("if (exists(\""#x"\") && is.function("#x")) "#x"()")); \
+
+tic_core *getTICCore(tic_mem* tic, const char* code) {
+  tic_core *core;
+  while (core == NULL && (!initR(tic, code))) {
+    core = (((tic_core *) tic))->currentVM;
   }
-/* if (exists("x") && is.function(x)) x() */
-defineCallRFn_("MENU")
-defineCallRFn_("BDR")
-defineCallRFn_("BOOT")
-defineCallRFn_("SCN")
-#undef defineCallRFn_
+  return core;
+}
 
 static const char* const RKeywords [] =
 {
@@ -98,6 +90,17 @@ static const char* const RKeywords [] =
 	/* et cetera, see ?dots */
 	"...", "..1", "..2", "..3", "..4", "..5", "..6", "..7", "..8", "..9",
 };
+
+/* A naive edit of the Python function to check if a character is a valid
+ * character within an identifier. */
+static bool r_isalnum(char c) {
+  return (
+    (c >= 'a' && c <= 'z')
+    || (c >= 'A' && c <= 'Z')
+    || (c >= '0' && c <= '9')
+    || (c == '_') || (c == '.')
+    );
+}
 
 static const tic_outline_item* getROutline(const char* code, s32* size)
 {

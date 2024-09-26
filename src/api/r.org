@@ -22,7 +22,7 @@ can define it right now. For now the =memory= parameter can be ignored.
 #+name: define evalR
 #+begin_src C
   void evalR(tic_mem *memory, char *code) {
-    Rf_eval(Rf_mkString(code));
+    SEXP result = Rf_eval(Rf_mkString(code), R_GlobalEnv);
   }
 #+end_src
 
@@ -249,7 +249,7 @@ definition of the function in either soure tree.
   tic_core *getTICCore(tic_mem* tic, const char* code) {
     tic_core *core;
     while (core == NULL && (!initR(tic, code))) {
-      core = (castTicMemory)->currentVM;
+      core = (((tic_core *) tic))->currentVM;
     }
     return core;
   }
@@ -448,11 +448,11 @@ changed so that no references to "Scheme" occur in the code.
 
 	<<INCLUDE>>
 
-	<<define a function to get a pointer to the tic_core>>
-
 	<<define evalR>>
 
   <<cartridge commands>>
+
+	<<define a function to get a pointer to the tic_core>>
 
 	<<syntax highlighting and outline generation>>
 
@@ -498,24 +498,25 @@ restarting R as necessary and tracking the current interpreter (there can be
 only one).
 
 #+begin_src C :noweb-ref cartridge commands
-  #define killer(x)																								\
-    if ((tic_core *core = (castTicMemory)->currentVM) != NULL) {	\
-      Rf_endEmbeddedR(x);																					\
-      core->currentVM = NULL;																			\
+  #define killer																						\
+    tic_core *core;																					\
+    if ((core = (((tic_core *) tic))->currentVM) != NULL) {	\
+      Rf_endEmbeddedR(0);																		\
+      core->currentVM = NULL;																\
     }
 
+  tic_core *getTICCore(tic_mem* tic, const char* code);
+
   static bool initR(tic_mem *tic, const char *code) {
-    killer(0);
+    killer;
 
     int tries = 1;
-    tic_core *core = getTicCore(tic, code);
+    core = getTICCore(tic, code);
 
   tryOnceMoreOnly:
     /* embdRAV: embedded R argument vector. */
     char *embdRAV[]= { "REmbeddedInTIC80", "--silent" };
-    core = (tic_core *) Rf_initEmbeddedR(sizeof(embdRAV)/sizeof(embdRAV[0]), embdRAV);
-
-    bool rc = (bool) *core;
+    bool rc = (bool) Rf_initEmbeddedR(sizeof(embdRAV)/sizeof(embdRAV[0]), embdRAV);
     if (rc) return rc;
     else if (tries--) goto tryOnceMoreOnly;
 
@@ -523,7 +524,7 @@ only one).
   }
 
   static void closeR(tic_mem *tic) {
-    killer(0);
+    killer;
   }
 #+end_src
 
@@ -535,26 +536,26 @@ at least. The =exists= function doesn't use symbols, it uses strings to lookup
 symbols so that is why that part differs in the chunk below.
 
 #+begin_src C :noweb no-export :noweb-ref cartridge commands
-	static void callRfn_TIC80() {
-		/* if (exists("TIC-80") && is.function(`TIC-80`)) `TIC-80`() */
-		Rf_eval(Rf_mkString("if (exists(\"TIC-80\") && is.function(`TIC-80`)) "\
-												"`TIC-80`()"));
-	}
+  static void callRfn_TIC80() {
+    /* if (exists("TIC-80") && is.function(`TIC-80`)) `TIC-80`() */
+    Rf_eval(Rf_mkString("if (exists(\"TIC-80\") && is.function(`TIC-80`)) "\
+                        "`TIC-80`()"),
+      R_GlobalEnv);
+  }
 #+end_src
 
 *** The menu, border, scanline, and system boot callback functions
 These four TIC-80 API functions or commands are defined using a macro.
-
-#+begin_src C :noweb no-export :noweb-ref cartridge commands
   #define defineCallRFn_(x)																								\
     static void callRfn_##x(tic_mem *tic) {																\
-      Rf_eval(Rf_mkString("if (exists(\""#x"\") && is.function("#x")) "#x"()")); \
+      Rf_eval(Rf_mkString("if (exists(\""#x"\") && is.function("#x")) "#x"()"), \
+              R_GlobalEnv);																								\
     }
   /* if (exists("x") && is.function(x)) x() */
-  defineCallRFn_("MENU")
-  defineCallRFn_("BDR")
-  defineCallRFn_("BOOT")
-  defineCallRFn_("SCN")
+  defineCallRFn_(MENU)
+  defineCallRFn_(BDR)
+  defineCallRFn_(BOOT)
+  defineCallRFn_(SCN)
   #undef defineCallRFn_
 #+end_src
 
@@ -667,6 +668,17 @@ different areas of the script being written.
 
 #+name: OUTLINE GENERATION
 #+begin_src C
+  /* A naive edit of the Python function to check if a character is a valid
+   ,* character within an identifier. */
+  static bool r_isalnum(char c) {
+    return (
+      (c >= 'a' && c <= 'z')
+      || (c >= 'A' && c <= 'Z')
+      || (c >= '0' && c <= '9')
+      || (c == '_') || (c == '.')
+      );
+  }
+
   static const tic_outline_item* getROutline(const char* code, s32* size)
   {
     enum{Size = sizeof(tic_outline_item)};
@@ -933,8 +945,8 @@ the R langauge embedding into TIC-80's build process using CMake now.
 
 *** Tasks to complete related to this heading:
 - [X] Patch =CMakeLists.txt=, if necessary.
-- [ ] Write a CMake file for R, specifically.
-- [ ] Test the build succeeds.
+- [X] Write a CMake file for R, specifically.
+- [X] Test the build succeeds: build fails with the message "R.h not found."
 - [ ] Test ~eval~ on the TIC-80 command-line.
 
 *** Patching =CMakeLists.txt=
@@ -962,7 +974,7 @@ chain (is there Fortran?) to ever work there. Baremetal? I won't bother.
       endif()
 
       if(NOT DEFINED ENV{LD_LIBRARY_PATH} AND NOT LD_LIBRARY_PATH)
-        set(LD_LIBRARY_PATH "${R_HOME}/lib:${PREFIX}/lib/jvm/jre/lib/server")
+        set(LD_LIBRARY_PATH "/usr/include/R:${R_HOME}/lib:${PREFIX}/lib/jvm/jre/lib/server")
       else()
         # Add these entries to the this *PATH variable
         set(LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:${PREFIX}/lib64/R/lib:${PREFIX}/lib/jvm/jre/lib/server")
@@ -985,7 +997,18 @@ chain (is there Fortran?) to ever work there. Baremetal? I won't bother.
         list(APPEND R_SRC "${PREFIX}/lib/jvm/jre/lib/server" R_SHARE_DIR R_DOC_DIR)
       endif()
 
-      list(APPEND R_SRC ${CMAKE_SOURCE_DIR}/src/api/r.c)
+      set(R_LIB_DIR "/usr/include/R")
+      include_directories(SYSTEM "/usr/include/R")
+      list(
+        APPEND R_SRC
+        ${CMAKE_SOURCE_DIR}/src/api/r.c
+        ${R_LIB_DIR}/R.h
+        ${R_LIB_DIR}/Rembedded.h
+        ${R_LIB_DIR}/Rinterface.h
+        ${R_LIB_DIR}/Rinternals.h
+        ${R_LIB_DIR}/Rconfig.h
+        ${R_LIB_DIR}/Rdefines.h
+      )
 
       add_library(r ${TIC_RUNTIME} ${R_SRC})
       set_target_properties(r PROPERTIES PREFIX "")
