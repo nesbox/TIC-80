@@ -35,7 +35,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void evalR(tic_mem *memory, char *code) {
+void evalR(tic_mem *memory, const char *code) {
   SEXP result = Rf_eval(Rf_mkString(code), R_GlobalEnv);
 }
 
@@ -67,12 +67,25 @@ tryOnceMoreOnly:
 static void closeR(tic_mem *tic) {
   killer;
 }
-static void callRfn_TIC80() {
+static void callRFn_TIC80() {
   /* if (exists("TIC-80") && is.function(`TIC-80`)) `TIC-80`() */
   Rf_eval(Rf_mkString("if (exists(\"TIC-80\") && is.function(`TIC-80`)) "\
                       "`TIC-80`()"),
     R_GlobalEnv);
 }
+#define defineCallRFn_(x)																								\
+  static void callRFn_##x(tic_mem *tic) {																\
+    Rf_eval(Rf_mkString("if (exists(\""#x"\") && is.function("#x")) "#x"()"), \
+            R_GlobalEnv);																								\
+  }
+/* if (exists("x") && is.function(x)) x() */
+defineCallRFn_(MENU)
+defineCallRFn_(BDR)
+defineCallRFn_(BOOT)
+defineCallRFn_(SCN)
+#undef defineCallRFn_
+
+bool initR(tic_mem *tic, const char *code);
 
 tic_core *getTICCore(tic_mem* tic, const char* code) {
   tic_core *core;
@@ -178,7 +191,7 @@ static const u8 DemoRom[] =
 static const u8 MarkRom[] =
 {
   /* Automatically built from ../../demos/bunny/rbenchmark.r */
-#include "../build/assets/rbenchmark.tic.dat"
+#include "../build/assets/rmark.tic.dat"
 };
 
 TIC_EXPORT const tic_script EXPORT_SCRIPT(R) =
@@ -186,23 +199,23 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(R) =
 	/* The first five members of the struct have the sum total following
 	 * size. */
 	/* sizeof(u8) + 3 * sizeof(char *)  */
-	.id                     = 666,
+	.id                     = 42,
 	.name                   = "r",
 	.fileExtension          = ".r",
 	.projectComment         = "##",
 	{
 		.init                 = initR,
 		.close                = closeR,
-		.tick                 = callRfn_TIC80,
-		.boot                 = callRfn_BOOT,
+		.tick                 = callRFn_TIC80,
+		.boot                 = callRFn_BOOT,
 
 		/* In the Scheme integration these have additional argument types s32 and
 		 * void * (row and data, respectively). */
 		.callback             =
 		{
-			.scanline           = callRfn_SCN,
-			.border             = callRfn_BDR,
-			.menu               = callRfn_MENU,
+			.scanline           = callRFn_SCN,
+			.border             = callRFn_BDR,
+			.menu               = callRFn_MENU,
 		},
 	},
 
@@ -227,5 +240,5 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(R) =
 	.keywordsCount          = COUNT_OF(RKeywords),
 
 	.demo = {DemoRom, sizeof DemoRom},
-	.mark = {MarkRom, sizeof MarkRom, "rbenchmark.tic"},
+	.mark = {MarkRom, sizeof MarkRom, "rmark.tic"},
 };
