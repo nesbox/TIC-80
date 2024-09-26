@@ -8,7 +8,7 @@ if(APPLE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum OS X deployment version")
 endif()
 
-message("Building for target : ${CMAKE_SYSTEM_NAME}")
+message("Building for target: ${CMAKE_SYSTEM_NAME}")
 message("PROJECT_VERSION: ${PROJECT_VERSION}${VERSION_STATUS}")
 message("VERSION_HASH: ${VERSION_HASH}")
 
