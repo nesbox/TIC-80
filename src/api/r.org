@@ -1044,8 +1044,62 @@ chain (is there Fortran?) to ever work there. Baremetal? I won't bother.
   demo cartridge is not used (the Lua cartridge is used).
 - The bunny benchmark for R does not appear in the directory listing of bunny.
 
+*** First attempt at debugging the bugged ~new r~ functionality
+What I found was that with only building for R that I can't create a new Scheme
+cartridge, but with the same effect that a Lua cartridge is created. R has been
+included in the build, so because the cartridge is the same as the Lua cartridge
+I'm going to do a check and make sure that I haven't made a file copying error
+(blindly copying the Lua demo, which I know I did at one point before I
+successfully built the DAT files myself).
+
+#+name: convert the R demo and benchmark source files to .tic.dat format
+#+begin_src bash
+  # NOTE: this could be "improved" to take command-line arguments for the language
+  # name (prefixing "demo" or "mark") and the file suffix (including the dot, so
+  # ".r"). Relative paths only valid from where r.org defined (src/api/r.org)
+  T80_DIR="${HOME}/src/c/TIC-80"
+  R_DEMO="${T80_DIR}/demos/rdemo.r"
+  R_MARK="${T80_DIR}/demos/bunny/rmark.r"
+  BLDA_DIR="${T80_DIR}/build/assets"
+
+  # FILE := $1
+  SRC2TIC() {
+    local SRC2TIC="${HOME}/src/c/build/bin/prj2cart"
+    command $SRC2TIC $1 ${BLDA_DIR}/$(basename -s .r $1).tic
+  }
+
+  # FILE := $1
+  TIC2DAT() {
+    local TIC2DAT="${HOME}/src/c/build/bin/bin2txt"
+    command $TIC2DAT ${1} ${BLDA_DIR}/$(basename $1).dat -z
+    rm ${BLDA_DIR}/$(basename $1)
+  }
+
+  for SRC in $R_DEMO $R_MARK; do
+    SRC2TIC $SRC
+    TIC2DAT ${BLDA_DIR}/$(basename -s .r $SRC).tic
+  done
+#+end_src
+
+#+RESULTS:
+
+I'm now confident that the DAT files are derived from my R-based source files,
+and not Lua-based source files. The next step is to test if that was a
+sufficient fix, indicating the problem was a file copying error (from a
+different test build), or another issue.
+
+It was not that. The =new= command is not locating the file correctly, so I need
+to work out why that is with a more involved search of the sources and then some
+debugging.
+
+*** Second attempt at debugging the bugged ~new r~ functionality
+
 * TODO Debugging R programs in TIC-80
+Integrate the R debugger, browser, etc. into TIC-80.
+
 * TODO A final example
+Write a game on the TIC-80 virtual console using R!
+
 * TODO Questions and notes
 - Describe how the fantasy computer uses a =tic_script=, and perhaps
   investigate why there is a special =TIC_EXPORT= macro; in what way was the
