@@ -994,6 +994,8 @@ static mrb_value mrb_mouse(mrb_state *mrb, mrb_value self)
     mrb_value sym_left = mrb_symbol_value(mrb_intern_cstr(mrb, "left"));
     mrb_value sym_middle = mrb_symbol_value(mrb_intern_cstr(mrb, "middle"));
     mrb_value sym_right = mrb_symbol_value(mrb_intern_cstr(mrb, "right"));
+    mrb_value sym_scrollx = mrb_symbol_value(mrb_intern_cstr(mrb, "scrollx"));
+    mrb_value sym_scrolly = mrb_symbol_value(mrb_intern_cstr(mrb, "scrolly"));
 
     tic_core* core = getMRubyMachine(mrb); tic_mem* tic = (tic_mem*)core;
 
@@ -1006,6 +1008,8 @@ static mrb_value mrb_mouse(mrb_state *mrb, mrb_value self)
     mrb_hash_set(mrb, hash, sym_left, mrb_bool_value(mouse->left));
     mrb_hash_set(mrb, hash, sym_middle, mrb_bool_value(mouse->middle));
     mrb_hash_set(mrb, hash, sym_right, mrb_bool_value(mouse->right));
+    mrb_hash_set(mrb, hash, sym_scrollx, mrb_fixnum_value(mouse->scrollx));
+    mrb_hash_set(mrb, hash, sym_scrolly, mrb_fixnum_value(mouse->scrolly));
 
     return hash;
 }
