@@ -66,6 +66,7 @@ class TIC {\n\
     foreign static spr(id, x, y, alpha_color, scale, flip)\n\
     foreign static spr(id, x, y, alpha_color, scale, flip, rotate)\n\
     foreign static spr(id, x, y, alpha_color, scale, flip, rotate, cell_width, cell_height)\n\
+    foreign static map()\n\
     foreign static map(cell_x, cell_y)\n\
     foreign static map(cell_x, cell_y, cell_w, cell_h)\n\
     foreign static map(cell_x, cell_y, cell_w, cell_h, x, y)\n\
@@ -1517,6 +1518,7 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     if (strcmp(signature, "static TIC.spr(_,_,_,_,_,_,_)"       ) == 0) return wren_spr;
     if (strcmp(signature, "static TIC.spr(_,_,_,_,_,_,_,_,_)"   ) == 0) return wren_spr;
 
+    if (strcmp(signature, "static TIC.map()"                    ) == 0) return wren_map;
     if (strcmp(signature, "static TIC.map(_,_)"                 ) == 0) return wren_map;
     if (strcmp(signature, "static TIC.map(_,_,_,_)"             ) == 0) return wren_map;
     if (strcmp(signature, "static TIC.map(_,_,_,_,_,_)"         ) == 0) return wren_map;
