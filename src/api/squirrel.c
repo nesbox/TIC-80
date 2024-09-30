@@ -423,6 +423,26 @@ static SQInteger squirrel_ellib(HSQUIRRELVM vm)
     return 0;
 }
 
+static SQInteger squirrel_paint(HSQUIRRELVM vm)
+{
+    SQInteger top = sq_gettop(vm);
+
+    if(top >= 4 && top <= 5)
+    {
+        s32 x = getSquirrelNumber(vm, 2);
+        s32 y = getSquirrelNumber(vm, 3);
+        s32 color = getSquirrelNumber(vm, 4);
+        s32 bordercolor = top >= 5 ? getSquirrelNumber(vm, 5) : -1;
+
+        tic_core* core = getSquirrelCore(vm); tic_mem* tic = (tic_mem*)core;
+
+        core->api.paint(tic, x, y, color, bordercolor);
+    }
+    else return sq_throwerror(vm, "invalid parameters, paint(x,y,color,[bordercolor=-1])\n");
+
+    return 0;
+}
+
 static SQInteger squirrel_tri(HSQUIRRELVM vm)
 {
     SQInteger top = sq_gettop(vm);

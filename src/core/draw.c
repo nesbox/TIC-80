@@ -80,7 +80,7 @@ static inline void setPixelFast(tic_core* core, s32 x, s32 y, u8 color)
     tic_api_poke4((tic_mem*)core, y * TIC80_WIDTH + x, color);
 }
 
-static u8 getPixel(tic_core* core, s32 x, s32 y)
+static inline u8 getPixel(tic_core* core, s32 x, s32 y)
 {
     return x < 0 || y < 0 || x >= TIC80_WIDTH || y >= TIC80_HEIGHT
         ? 0
@@ -613,6 +613,96 @@ static void drawLine(tic_mem* tic, float x0, float y0, float x1, float y1, u8 co
     setPixel((tic_core*)tic, x1, y1, color);
 }
 
+// Queue frame for floodFill.
+// Filled horizontal segment of scanline y for xl <= x <= xr.
+// Parent segment was on line y – dy. dy = 1 or –1.
+typedef struct
+{
+    s32 y;
+    s32 xl;
+    s32 xr;
+    s32 dy;
+} FillSegment;
+
+#define FILLQUEUESIZE 400
+static struct
+{
+    FillSegment seg[FILLQUEUESIZE];
+    size_t ini; // index of empty next in
+    size_t outi; // index of next out
+} fillQueue;
+
+static inline void fillEnqueue(tic_core* tic, s32 y, s32 xl, s32 xr, s32 dy)
+{
+    size_t nextini = (fillQueue.ini + 1) % FILLQUEUESIZE;
+    if (nextini == fillQueue.outi)
+        return; // queue full
+    if (y + dy < tic->state.clip.t || y + dy >= tic->state.clip.b)
+        return;
+    FillSegment* qseg = &fillQueue.seg[fillQueue.ini];
+    qseg->y = y;
+    qseg->xl = xl;
+    qseg->xr = xr;
+    qseg->dy = dy;
+    fillQueue.ini = nextini;
+}
+
+static inline bool fillDequeue(s32* y, s32* xl, s32* xr, s32* dy)
+{
+    if (fillQueue.ini == fillQueue.outi)
+        return false; // queue empty
+    FillSegment* qseg = &fillQueue.seg[fillQueue.outi];
+    *y = qseg->y + qseg->dy;
+    *xl = qseg->xl;
+    *xr = qseg->xr;
+    *dy = qseg->dy;
+    fillQueue.outi = (fillQueue.outi + 1) % FILLQUEUESIZE;
+    return true;
+}
+
+static inline bool floodFillInside(u8 pix, u8 paint, u8 border, u8 original)
+{
+    return border == 255 ? pix == original : pix != paint && pix != border;
+}
+
+// "A Seed Fill Algorithm", Paul S. Heckbert, Graphics Gems, Andrew Glassner
+// https://github.com/erich666/GraphicsGems/blob/master/gems/SeedFill.c
+static void floodFill(tic_core* tic, s32 x, s32 y, u8 color, u8 border)
+{
+    if (x < tic->state.clip.l || y < tic->state.clip.t || x >= tic->state.clip.r || y >= tic->state.clip.b)
+        return;
+    u8 ov = getPixel(tic, x, y);
+    if (ov == color || ov == border)
+        return;
+    fillQueue.ini = fillQueue.outi = 0;
+    fillEnqueue(tic, y, x, x, 1); // needed in some cases
+    fillEnqueue(tic, y + 1, x, x, -1); // seed segment
+    s32 l, x1, x2, dy;
+    while (fillDequeue(&y, &x1, &x2, &dy))
+    {
+        // segment of scan line y-dy for x1<=x<=x2 was previously filled,
+        // now explore adjacent pixels in scan line y
+        for (x = x1; x >= tic->state.clip.l && floodFillInside(getPixel(tic, x, y), color, border, ov); x--)
+            setPixelFast(tic, x, y, color);
+        if (x >= x1)
+            goto floodFill_skip;
+        l = x + 1;
+        if (l < x1)
+            fillEnqueue(tic, y, l, x1 - 1, -dy); // check leak left
+        x = x1 + 1;
+        do {
+            for (; x < tic->state.clip.r && floodFillInside(getPixel(tic, x, y), color, border, ov); x++)
+                setPixelFast(tic, x, y, color);
+            fillEnqueue(tic, y, l, x - 1, dy);
+            if (x > x2 + 1)
+                fillEnqueue(tic, y, x2 + 1, x - 1, -dy); // check leak right
+floodFill_skip:
+            for (x++; x <= x2 && !floodFillInside(getPixel(tic, x, y), color, border, ov); x++);
+            l = x;
+        } while (x <= x2);
+    }
+}
+
 typedef union
 {
     struct
@@ -914,6 +1004,12 @@ u8 tic_api_mget(tic_mem* memory, s32 x, s32 y)
 void tic_api_line(tic_mem* memory, float x0, float y0, float x1, float y1, u8 color)
 {
     drawLine(memory, x0, y0, x1, y1, mapColor(memory, color));
+}
+
+void tic_api_paint(tic_mem* memory, s32 x, s32 y, u8 color, u8 bordercolor)
+{
+    bordercolor = bordercolor == 255 ? 255 : mapColor(memory, bordercolor);
+    floodFill((tic_core*)memory, x, y, mapColor(memory, color), bordercolor);
 }
 
 #if defined(BUILD_DEPRECATED)

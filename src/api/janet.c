@@ -66,6 +66,7 @@ static Janet janet_circ(int32_t argc, Janet* argv);
 static Janet janet_circb(int32_t argc, Janet* argv);
 static Janet janet_elli(int32_t argc, Janet* argv);
 static Janet janet_ellib(int32_t argc, Janet* argv);
+static Janet janet_paint(int32_t argc, Janet* argv);
 static Janet janet_tri(int32_t argc, Janet* argv);
 static Janet janet_trib(int32_t argc, Janet* argv);
 static Janet janet_ttri(int32_t argc, Janet* argv);
@@ -130,6 +131,7 @@ static const JanetReg janet_c_functions[] =
     {"circb", janet_circb, NULL},
     {"elli", janet_elli, NULL},
     {"ellib", janet_ellib, NULL},
+    {"paint", janet_paint, NULL},
     {"tri", janet_tri, NULL},
     {"trib", janet_trib, NULL},
     {"ttri", janet_ttri, NULL},
@@ -830,6 +832,20 @@ static Janet janet_ellib(int32_t argc, Janet* argv)
 
     tic_core* core = getJanetMachine(); tic_mem* tic = (tic_mem*)core;
     core->api.ellib(tic, x, y, a, b, color);
+    return janet_wrap_nil();
+}
+
+static Janet janet_paint(int32_t argc, Janet* argv)
+{
+    janet_arity(argc, 3, 4);
+
+    s32 x = janet_getinteger(argv, 0);
+    s32 y = janet_getinteger(argv, 1);
+    u8 color = janet_getinteger(argv, 2);
+    u8 bordercolor = janet_optnumber(argv, argc, 3, 255);
+
+    tic_core* core = getJanetMachine(); tic_mem* tic = (tic_mem*)core;
+    core->api.paint(tic, x, y, color, bordercolor);
     return janet_wrap_nil();
 }
 

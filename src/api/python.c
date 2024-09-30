@@ -235,6 +235,25 @@ static int py_ellib(pkpy_vm* vm)
     return 0;
 }
 
+static int py_paint(pkpy_vm* vm)
+{
+    int x;
+    int y;
+    int color;
+    int bordercolor;
+
+    pkpy_to_int(vm, 0, &x);
+    pkpy_to_int(vm, 1, &y);
+    pkpy_to_int(vm, 2, &color);
+    pkpy_to_int(vm, 3, &bordercolor);
+    tic_core* core; get_core(vm, &core); tic_mem* tic = (tic_mem*)core;
+    if(pkpy_check_error(vm))
+        return 0;
+
+    core->api.paint(tic, x, y, color, bordercolor);
+    return 0;
+}
+
 static int py_clip(pkpy_vm* vm)
 {
 
@@ -1249,6 +1268,9 @@ static bool setup_c_bindings(pkpy_vm* vm) {
 
     pkpy_push_function(vm, "music(track=-1, frame=-1, row=-1, loop=True, sustain=False, tempo=-1, speed=-1)", py_music);
     pkpy_setglobal_2(vm, "music");
+
+    pkpy_push_function(vm, "paint(x: int, y: int, color: int, bordercolor=-1)", py_paint);
+    pkpy_setglobal_2(vm, "paint");
 
     pkpy_push_function(vm, "peek(addr: int, bits=8) -> int", py_peek);
     pkpy_setglobal_2(vm, "peek");

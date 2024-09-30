@@ -98,6 +98,8 @@ class TIC {\n\
     foreign static circb(x, y, radius, color)\n\
     foreign static elli(x, y, a, b, color)\n\
     foreign static ellib(x, y, a, b, color)\n\
+    foreign static paint(x, y, color)\n\
+    foreign static paint(x, y, color, bordercolor)\n\
     foreign static rect(x, y, w, h, color)\n\
     foreign static rectb(x, y, w, h, color)\n\
     foreign static tri(x1, y1, x2, y2, x3, y3, color)\n\
@@ -977,6 +979,19 @@ static void wren_ellib(WrenVM* vm)
     core->api.ellib(tic, x, y, a, b, color);
 }
 
+static void wren_paint(WrenVM* vm)
+{
+    s32 top = wrenGetSlotCount(vm);
+    s32 x = getWrenNumber(vm, 1);
+    s32 y = getWrenNumber(vm, 2);
+    s32 color = getWrenNumber(vm, 3);
+    s32 bordercolor = top > 4 ? getWrenNumber(vm, 4) : -1;
+
+    tic_core* core = getWrenCore(vm); tic_mem* tic = (tic_mem*)core;
+
+    core->api.paint(tic, x, y, color, bordercolor);
+}
+
 static void wren_rect(WrenVM* vm)
 {
     s32 x = getWrenNumber(vm, 1);
@@ -1548,6 +1563,8 @@ static WrenForeignMethodFn foreignTicMethods(const char* signature)
     if (strcmp(signature, "static TIC.circb(_,_,_,_)"           ) == 0) return wren_circb;
     if (strcmp(signature, "static TIC.elli(_,_,_,_,_)"          ) == 0) return wren_elli;
     if (strcmp(signature, "static TIC.ellib(_,_,_,_,_)"         ) == 0) return wren_ellib;
+    if (strcmp(signature, "static TIC.paint(_,_,_)"             ) == 0) return wren_paint;
+    if (strcmp(signature, "static TIC.paint(_,_,_,_)"           ) == 0) return wren_paint;
     if (strcmp(signature, "static TIC.rect(_,_,_,_,_)"          ) == 0) return wren_rect;
     if (strcmp(signature, "static TIC.rectb(_,_,_,_,_)"         ) == 0) return wren_rectb;
     if (strcmp(signature, "static TIC.tri(_,_,_,_,_,_,_)"       ) == 0) return wren_tri;
