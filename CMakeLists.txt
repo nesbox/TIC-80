@@ -5,7 +5,7 @@ include(cmake/version.cmake)
 project(TIC-80 VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_REVISION} LANGUAGES C CXX)
 
 if(APPLE)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum OS X deployment version")
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum OS X deployment version")
 endif()
 
 message("Building for target: ${CMAKE_SYSTEM_NAME}")
@@ -15,9 +15,9 @@ message("VERSION_HASH: ${VERSION_HASH}")
 configure_file("${PROJECT_SOURCE_DIR}/version.h.in" "${CMAKE_CURRENT_BINARY_DIR}/version.h")
 
 if(ANDROID OR EMSCRIPTEN OR N3DS OR BAREMETALPI)
-    set(BUILD_STATIC_DEFAULT ON)
+  set(BUILD_STATIC_DEFAULT ON)
 else()
-    set(BUILD_STATIC_DEFAULT OFF)
+  set(BUILD_STATIC_DEFAULT OFF)
 endif()
 
 set(BUILD_PLAYER_DEFAULT OFF)
@@ -38,23 +38,30 @@ option(BUILD_TOUCH_INPUT "Build with touch input support" ${BUILD_TOUCH_INPUT_DE
 option(BUILD_NO_OPTIMIZATION "Build without optimizations for debugging" OFF)
 option(BUILD_ASAN_DEBUG "Build with AddressSanitizer" OFF)
 option(BUILD_WITH_ZLIB "Build with zlib linked" ON)
+option(EBUG "Debug" OFF)
 option(TIC80_TARGET "Target binary suffix")
 
+if(EBUG)
+  set(CMAKE_BUILD_TYPE Debug)
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -ggdb -O0")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -ggdb -O0")
+endif()
+
 if(NOT TIC80_TARGET)
-    set(TIC80_TARGET tic80)
+  set(TIC80_TARGET tic80)
 endif()
 
 if(NOT BUILD_SDL)
-    set(BUILD_SDLGPU OFF)
+  set(BUILD_SDLGPU OFF)
 endif()
 
 add_library(runtime INTERFACE)
 
 if(BUILD_STATIC)
-    set(TIC_RUNTIME STATIC)
-    target_compile_definitions(runtime INTERFACE TIC_RUNTIME_STATIC)
+  set(TIC_RUNTIME STATIC)
+  target_compile_definitions(runtime INTERFACE TIC_RUNTIME_STATIC)
 else()
-    set(TIC_RUNTIME SHARED)
+  set(TIC_RUNTIME SHARED)
 endif()
 
 target_compile_definitions(runtime INTERFACE BUILD_DEPRECATED)
@@ -65,33 +72,33 @@ message("BUILD_TOUCH_INPUT: ${BUILD_TOUCH_INPUT}")
 message("BUILD_WITH_ALL: ${BUILD_WITH_ALL}")
 
 if (N3DS)
-    set(BUILD_SDL OFF)
+  set(BUILD_SDL OFF)
 endif()
 
 if (BAREMETALPI)
-    set(BUILD_SDL OFF)
+  set(BUILD_SDL OFF)
 endif()
 
 if(UNIX AND NOT APPLE AND NOT EMSCRIPTEN AND NOT ANDROID AND NOT N3DS)
-    set(LINUX TRUE)
+  set(LINUX TRUE)
 
-    if(CMAKE_HOST_SYSTEM_NAME STREQUAL "FreeBSD")
-        set(FREEBSD TRUE)
-    endif()
+  if(CMAKE_HOST_SYSTEM_NAME STREQUAL "FreeBSD")
+    set(FREEBSD TRUE)
+  endif()
 endif()
 
 if (BUILD_NO_OPTIMIZATION)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0")
 endif()
 
 if (BUILD_ASAN_DEBUG)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
 
-    if (LINUX AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -shared-libasan")
-    endif()
+  if (LINUX AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -shared-libasan")
+  endif()
 endif()
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -103,44 +110,50 @@ endif()
 
 if(MSVC)
 
-    add_definitions("/D\"_CRT_SECURE_NO_WARNINGS\"")
-    add_definitions("/D\"_CRT_NONSTDC_NO_DEPRECATE\"")
+  add_definitions("/D\"_CRT_SECURE_NO_WARNINGS\"")
+  add_definitions("/D\"_CRT_NONSTDC_NO_DEPRECATE\"")
 
-    foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
-        string( TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )
-        set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/lib )
-        set( CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/lib )
-        set( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/bin )
+  foreach( OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES} )
+    string( TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG )
+    set( CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/lib )
+    set( CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/lib )
+    set( CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} ${CMAKE_BINARY_DIR}/bin )
 
-        # use static runtime
-        # !TODO: use set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>") from cmake 3.15 instead
-        if(CMAKE_C_FLAGS_${OUTPUTCONFIG} MATCHES "/MD")
-            string(REGEX REPLACE "/MD" "/MT" CMAKE_C_FLAGS_${OUTPUTCONFIG} "${CMAKE_C_FLAGS_${OUTPUTCONFIG}}")
-        endif()
+    # use static runtime
+    # !TODO: use set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>") from cmake 3.15 instead
+    if(CMAKE_C_FLAGS_${OUTPUTCONFIG} MATCHES "/MD")
+      string(REGEX REPLACE "/MD" "/MT" CMAKE_C_FLAGS_${OUTPUTCONFIG} "${CMAKE_C_FLAGS_${OUTPUTCONFIG}}")
+    endif()
 
-        if(CMAKE_CXX_FLAGS_${OUTPUTCONFIG} MATCHES "/MD")
-            string(REGEX REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_${OUTPUTCONFIG} "${CMAKE_CXX_FLAGS_${OUTPUTCONFIG}}")
-        endif()
-    endforeach()
+    if(CMAKE_CXX_FLAGS_${OUTPUTCONFIG} MATCHES "/MD")
+      string(REGEX REPLACE "/MD" "/MT" CMAKE_CXX_FLAGS_${OUTPUTCONFIG} "${CMAKE_CXX_FLAGS_${OUTPUTCONFIG}}")
+    endif()
+  endforeach()
 
 else()
 
-    set(CMAKE_C_STANDARD 11)
+  set(CMAKE_C_STANDARD 11)
 endif()
 
 if(RPI)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11")
 endif()
 
 set(THIRDPARTY_DIR ${CMAKE_SOURCE_DIR}/vendor)
+# TODO: use this variable (containing a path) to get a list of all demos that
+# need to be converted using tools. It is simplest to always build the tools and
+# rebuild all the demos, then letting CMake itself decide if these are
+# up-to-date afterwards.
 set(DEMO_CARTS_IN ${CMAKE_SOURCE_DIR}/demos)
 
+# Tools and utilities used in some cases
 include(cmake/gif.cmake)
 include(cmake/blipbuf.cmake)
 include(cmake/zlib.cmake)
 include(cmake/zip.cmake)
 include(cmake/tools.cmake)
 
+# Languages
 include(cmake/lua.cmake)
 include(cmake/moon.cmake)
 include(cmake/fennel.cmake)
@@ -154,6 +167,7 @@ include(cmake/quickjs.cmake)
 include(cmake/janet.cmake)
 include(cmake/r.cmake)
 
+# Core and editors
 include(cmake/core.cmake)
 include(cmake/wave.cmake)
 include(cmake/argparse.cmake)
@@ -161,8 +175,10 @@ include(cmake/naett.cmake)
 include(cmake/png.cmake)
 include(cmake/studio.cmake)
 
+# Graphics libraries
 include(cmake/sdl.cmake)
 include(cmake/libretro.cmake)
 include(cmake/n3ds.cmake)
 
+# Installation, obviously.
 include(cmake/install.cmake)

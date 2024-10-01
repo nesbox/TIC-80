@@ -39,17 +39,21 @@ void evalR(tic_mem *memory, const char *code) {
   SEXP result = Rf_eval(Rf_mkString(code), R_GlobalEnv);
 }
 
-#define killer																						\
-  tic_core *core;																					\
-  if ((core = (((tic_core *) tic))->currentVM) != NULL) {	\
-    Rf_endEmbeddedR(0);																		\
-    core->currentVM = NULL;																\
+#define killer                                            \
+  tic_core *core;                                         \
+  if ((core = (((tic_core *) tic))->currentVM) != NULL) { \
+    Rf_endEmbeddedR(0);                                   \
+    core->currentVM = NULL;                               \
   }
 
 tic_core *getTICCore(tic_mem* tic, const char* code);
 
 static bool initR(tic_mem *tic, const char *code) {
   killer;
+
+#define dbgmsg initR##__LINE__
+	fprintf(stderr, "%s\n", dbgmsg);
+#undef dbgmsg
 
   int tries = 1;
   core = getTICCore(tic, code);
@@ -194,15 +198,20 @@ static const u8 MarkRom[] =
 #include "../build/assets/rmark.tic.dat"
 };
 
+/* DEFAULT visibility*/
+/* EXPORT_SCRIPT -> RScriptConfig if static, else ScriptConfig */
 TIC_EXPORT const tic_script EXPORT_SCRIPT(R) =
 {
 	/* The first five members of the struct have the sum total following
 	 * size. */
 	/* sizeof(u8) + 3 * sizeof(char *)  */
-	.id                     = 42,
+	/* R's id is determined by counting up from 10, beginning with Lua, all of
+		 the other languages TIC-80 supports. Python was the 10th langauge supported,
+		 with .id 20. */
+	.id                     = 21,
 	.name                   = "r",
 	.fileExtension          = ".r",
-	.projectComment         = "##",
+	.projectComment         = "#",
 	{
 		.init                 = initR,
 		.close                = closeR,
@@ -226,7 +235,7 @@ TIC_EXPORT const tic_script EXPORT_SCRIPT(R) =
 	.blockCommentEnd        = NULL,
 	.blockCommentStart2     = NULL,
 	.blockCommentEnd2       = NULL,
-	.singleComment          = "##",
+	.singleComment          = "#",
 	.blockStringStart       = "\"",
 	.blockStringEnd         = "\"",
 	.stdStringStartEnd      = "\"",

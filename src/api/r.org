@@ -247,7 +247,7 @@ definition of the function in either soure tree.
 
 #+name: define a function to get a pointer to the tic_core
 #+begin_src C
-	bool initR(tic_mem *tic, const char *code);
+  bool initR(tic_mem *tic, const char *code);
 
   tic_core *getTICCore(tic_mem* tic, const char* code) {
     tic_core *core;
@@ -269,21 +269,21 @@ review Narain Gehani's /Advanced Introduction to C/.
 
 #+name: a quotation from the *TIC-80* ~core.h~
 #+begin_src C
-	tic_mem memory; // it should be first
-	tic80_pixel_color_format screen_format;
+  tic_mem memory; // it should be first
+  tic80_pixel_color_format screen_format;
 
-	void* currentVM;
+  void* currentVM;
 #+end_src
 
 Now quoted is the first four members of the =tic_mem= struct.
 
 #+name: a quotation from the *TIC-80* ~api.h~
 #+begin_src C
-	tic80           product;
-	tic_ram*        ram;
-	tic_cartridge   cart;
+  tic80           product;
+  tic_ram*        ram;
+  tic_cartridge   cart;
 
-	tic_ram*        base_ram;
+  tic_ram*        base_ram;
 #+end_src
 
 The sizes of these types are definitely not equal, so there is no direct
@@ -302,28 +302,28 @@ define multiple Scheme functions within the bounds of the Scheme interpeter.
 
 #+name: a quotation from the *TIC-80* =scheme.c=
 #+begin_src c
-	static void initAPI(tic_core* core)
-	{
-			s7_scheme* sc = core->currentVM;
+  static void initAPI(tic_core* core)
+  {
+  	s7_scheme* sc = core->currentVM;
 
-	#define API_FUNC_DEF(name, desc, helpstr, count, reqcount, ...) \
-			{scheme_ ## name, desc  "\n" helpstr, count, reqcount, "t80::" #name},
+  #define API_FUNC_DEF(name, desc, helpstr, count, reqcount, ...)					\
+  	{scheme_ ## name, desc  "\n" helpstr, count, reqcount, "t80::" #name},
 
-			static const struct{s7_function func; const char* helpstr; int count; int reqcount; const char* name;} ApiItems[] =
-					{TIC_API_LIST(API_FUNC_DEF)};
+  	static const struct{s7_function func; const char* helpstr; int count; int reqcount; const char* name;} ApiItems[] =
+  		{TIC_API_LIST(API_FUNC_DEF)};
 
-	#undef API_FUNC_DEF
+  #undef API_FUNC_DEF
 
-			for (s32 i = 0; i < COUNT_OF(ApiItems); i++) {
-					s7_define_function(sc,
-														 ApiItems[i].name,
-														 ApiItems[i].func,
-														 ApiItems[i].reqcount,
-														 ApiItems[i].count - ApiItems[i].reqcount, // opt count
-														 false, // rest_arg
-														 ApiItems[i].helpstr);
-			}
-	}
+  	for (s32 i = 0; i < COUNT_OF(ApiItems); i++) {
+  		s7_define_function(sc,
+  											 ApiItems[i].name,
+  											 ApiItems[i].func,
+  											 ApiItems[i].reqcount,
+  											 ApiItems[i].count - ApiItems[i].reqcount, // opt count
+  											 false, // rest_arg
+  											 ApiItems[i].helpstr);
+  	}
+  }
 #+end_src
 
 
@@ -342,36 +342,36 @@ and not undefine it.
 
 #+name: a modified quotation from the *TIC-80* =scheme.c=
 #+begin_src c
-	#define API_FUNC_DEF(name, desc, helpstr, count, reqcount, ...) { \
-					scheme_##name,																						\
-					desc "\n" helpstr,																				\
-					count,																										\
-					reqcount,																									\
-					"t80::"##name																							\
-			}, /* DONT delete this trailing comma! It's intentional! */
+  #define API_FUNC_DEF(name, desc, helpstr, count, reqcount, ...) { \
+  		scheme_##name,																								\
+  		desc "\n" helpstr,																						\
+  		count,																												\
+  		reqcount,																											\
+  		"t80::"##name																									\
+  	}, /* DONT delete this trailing comma! It's intentional! */
 
-	static void initAPI(tic_core* core)
-	{
-			s7_scheme* sc = core->currentVM;
+  static void initAPI(tic_core* core)
+  {
+  	s7_scheme* sc = core->currentVM;
 
-			static const struct {
-					s7_function func;
-					const char* helpstr;
-					int count;
-					int reqcount;
-					const char* name;
-			} ApiItems[] = { TIC_API_LIST(API_FUNC_DEF); };
+  	static const struct {
+  		s7_function func;
+  		const char* helpstr;
+  		int count;
+  		int reqcount;
+  		const char* name;
+  	} ApiItems[] = { TIC_API_LIST(API_FUNC_DEF); };
 
-			for (s32 i = 0; i < COUNT_OF(ApiItems); i++) {
-					s7_define_function(sc,
-														 ApiItems[i].name,
-														 ApiItems[i].func,
-														 ApiItems[i].reqcount,
-														 ApiItems[i].count - ApiItems[i].reqcount, // opt count
-														 false, // rest_arg
-														 ApiItems[i].helpstr);
-			}
-	}
+  	for (s32 i = 0; i < COUNT_OF(ApiItems); i++) {
+  		s7_define_function(sc,
+  											 ApiItems[i].name,
+  											 ApiItems[i].func,
+  											 ApiItems[i].reqcount,
+  											 ApiItems[i].count - ApiItems[i].reqcount, // opt count
+  											 false, // rest_arg
+  											 ApiItems[i].helpstr);
+  	}
+  }
 #+end_src
 
 * Writing the R language integration for TIC-80
@@ -447,19 +447,19 @@ none of it is Scheme any more. Before a final public release this will be
 changed so that no references to "Scheme" occur in the code.
 
 #+begin_src C :noweb no-export :tangle r.c
-	<<LICENSE>>
+  <<LICENSE>>
 
-	<<INCLUDE>>
+  <<INCLUDE>>
 
-	<<define evalR>>
+  <<define evalR>>
 
   <<cartridge commands>>
 
-	<<define a function to get a pointer to the tic_core>>
+  <<define a function to get a pointer to the tic_core>>
 
-	<<syntax highlighting and outline generation>>
+  <<syntax highlighting and outline generation>>
 
-	<<TIC EXPORT>>
+  <<TIC EXPORT>>
 #+end_src
 
 *** Procedures to initialize, close, and re-initialize R
@@ -501,17 +501,21 @@ restarting R as necessary and tracking the current interpreter (there can be
 only one).
 
 #+begin_src C :noweb-ref cartridge commands
-  #define killer																						\
-    tic_core *core;																					\
-    if ((core = (((tic_core *) tic))->currentVM) != NULL) {	\
-      Rf_endEmbeddedR(0);																		\
-      core->currentVM = NULL;																\
+  #define killer                                            \
+    tic_core *core;                                         \
+    if ((core = (((tic_core *) tic))->currentVM) != NULL) { \
+      Rf_endEmbeddedR(0);                                   \
+      core->currentVM = NULL;                               \
     }
 
   tic_core *getTICCore(tic_mem* tic, const char* code);
 
   static bool initR(tic_mem *tic, const char *code) {
     killer;
+
+  #define dbgmsg initR##__LINE__
+  	fprintf(stderr, "%s\n", dbgmsg);
+  #undef dbgmsg
 
     int tries = 1;
     core = getTICCore(tic, code);
@@ -566,58 +570,144 @@ These four TIC-80 API functions or commands are defined using a macro.
 
 *** Exporting a =tic_script= for *TIC-80* to use at compile-time
 This constant is used by TIC-80 to setup the cartridge, both for editing in the
-"studio" and the runtime evaluation of the script.
+"studio" and the runtime evaluat  (use-package emacsql-sqlite :after 'emacsql)
+ion of the script.
 
 #+name: TIC EXPORT
 #+begin_src c
-	TIC_EXPORT const tic_script EXPORT_SCRIPT(R) =
-	{
-		/* The first five members of the struct have the sum total following
-		 * size. */
-		/* sizeof(u8) + 3 * sizeof(char *)  */
-		.id                     = 42,
-		.name                   = "r",
-		.fileExtension          = ".r",
-		.projectComment         = "##",
-		{
-			.init                 = initR,
-			.close                = closeR,
-			.tick                 = callRFn_TIC80,
-			.boot                 = callRFn_BOOT,
+  /* DEFAULT visibility*/
+  /* EXPORT_SCRIPT -> RScriptConfig if static, else ScriptConfig */
+  TIC_EXPORT const tic_script EXPORT_SCRIPT(R) =
+  {
+  	/* The first five members of the struct have the sum total following
+  	 ,* size. */
+  	/* sizeof(u8) + 3 * sizeof(char *)  */
+  	/* R's id is determined by counting up from 10, beginning with Lua, all of
+  		 the other languages TIC-80 supports. Python was the 10th langauge supported,
+  		 with .id 20. */
+  	.id                     = 21,
+  	.name                   = "r",
+  	.fileExtension          = ".r",
+  	.projectComment         = "#",
+  	{
+  		.init                 = initR,
+  		.close                = closeR,
+  		.tick                 = callRFn_TIC80,
+  		.boot                 = callRFn_BOOT,
 
-			/* In the Scheme integration these have additional argument types s32 and
-			 * void * (row and data, respectively). */
-			.callback             =
-			{
-				.scanline           = callRFn_SCN,
-				.border             = callRFn_BDR,
-				.menu               = callRFn_MENU,
-			},
-		},
+  		/* In the Scheme integration these have additional argument types s32 and
+  		 ,* void * (row and data, respectively). */
+  		.callback             =
+  		{
+  			.scanline           = callRFn_SCN,
+  			.border             = callRFn_BDR,
+  			.menu               = callRFn_MENU,
+  		},
+  	},
 
-		.getOutline             = getROutline,
-		.eval                   = evalR,
+  	.getOutline             = getROutline,
+  	.eval                   = evalR,
 
-		.blockCommentStart      = NULL,
-		.blockCommentEnd        = NULL,
-		.blockCommentStart2     = NULL,
-		.blockCommentEnd2       = NULL,
-		.singleComment          = "##",
-		.blockStringStart       = "\"",
-		.blockStringEnd         = "\"",
-		.stdStringStartEnd      = "\"",
-		.blockEnd               = NULL,
-		.lang_isalnum           = r_isalnum,
-		.api_keywords           = RAPIKeywords,
-		.api_keywordsCount      = COUNT_OF(RAPIKeywords),
-		.useStructuredEdition   = false,
+  	.blockCommentStart      = NULL,
+  	.blockCommentEnd        = NULL,
+  	.blockCommentStart2     = NULL,
+  	.blockCommentEnd2       = NULL,
+  	.singleComment          = "#",
+  	.blockStringStart       = "\"",
+  	.blockStringEnd         = "\"",
+  	.stdStringStartEnd      = "\"",
+  	.blockEnd               = NULL,
+  	.lang_isalnum           = r_isalnum,
+  	.api_keywords           = RAPIKeywords,
+  	.api_keywordsCount      = COUNT_OF(RAPIKeywords),
+  	.useStructuredEdition   = false,
 
-		.keywords               = RKeywords,
-		.keywordsCount          = COUNT_OF(RKeywords),
+  	.keywords               = RKeywords,
+  	.keywordsCount          = COUNT_OF(RKeywords),
 
-		.demo = {DemoRom, sizeof DemoRom},
-		.mark = {MarkRom, sizeof MarkRom, "rmark.tic"},
-	};
+  	.demo = {DemoRom, sizeof DemoRom},
+  	.mark = {MarkRom, sizeof MarkRom, "rmark.tic"},
+  };
+#+end_src
+
+On line three of the current source file---/exempli gratia/---if =MACROVAR(it)=
+was invoked its argument would expand to =it3=. When used in the first define
+below, =it3= will be a pointer to an array of tic_scripts, which is iterated
+over (explaning the =it= argument). ~*script~ is modified, but the type
+specifier is ~const~, so what's going on with the syntax that I don't remember?
+Does it only apply to the first declared variable in the identifier list?
+
+~Scripts~ is an array of =tic_script *=-typed objects, that is it is an array of
+pointers to =tic_script= objects.
+
+#+name: FOREACH_LANG
+#+begin_src C
+  #define FOREACH_LANG(script)																						\
+  	for(const tic_script **MACROVAR(it) = tic_scripts(), *script = *MACROVAR(it); \
+  			,*MACROVAR(it);																										\
+  			script = *++MACROVAR(it))
+
+  #define CONCAT2(a, b)       a ## b
+  #define CONCAT(a, b)        CONCAT2(a, b)
+  #define MACROVAR(name)      CONCAT(name, __LINE__)
+
+
+  const tic_script** tic_scripts()
+  {
+  	return Scripts;
+  }
+
+  static const tic_script *Scripts[MAX_SUPPORTED_LANGS + 1] =
+  {
+  #if defined(TIC_RUNTIME_STATIC)
+  #if defined (TIC_BUILD_WITH_LUA)
+  	&EXPORT_SCRIPT(Lua),
+  #endif
+
+  #if defined(TIC_BUILD_WITH_RUBY)
+  	&EXPORT_SCRIPT(Ruby),
+  #endif
+
+  #if defined(TIC_BUILD_WITH_JS)
+  	&EXPORT_SCRIPT(Js),
+  #endif
+
+  #if defined(TIC_BUILD_WITH_MOON)
+  	&EXPORT_SCRIPT(Moon),
+  #endif
+
+  #if defined(TIC_BUILD_WITH_FENNEL)
+  	&EXPORT_SCRIPT(Fennel),
+  #endif
+
+  #if defined(TIC_BUILD_WITH_SCHEME)
+  	&EXPORT_SCRIPT(Scheme),
+  #endif
+
+  #if defined(TIC_BUILD_WITH_SQUIRREL)
+  	&EXPORT_SCRIPT(Squirrel),
+  #endif
+
+  #if defined(TIC_BUILD_WITH_WREN)
+  	&EXPORT_SCRIPT(Wren),
+  #endif
+
+  #if defined(TIC_BUILD_WITH_WASM)
+  	&EXPORT_SCRIPT(Wasm),
+  #endif
+
+  #if defined(TIC_BUILD_WITH_JANET)
+  	&EXPORT_SCRIPT(Janet),
+  #endif
+
+  #if defined(TIC_BUILD_WITH_PYTHON)
+  	&EXPORT_SCRIPT(Python),
+  #endif
+
+  #endif
+
+  	NULL,
+  };
 #+end_src
 
 *** Providing lists of syntax elements for highlighting and outline generation
@@ -1073,6 +1163,7 @@ successfully built the DAT files myself).
     local TIC2DAT="${HOME}/src/c/build/bin/bin2txt"
     command $TIC2DAT ${1} ${BLDA_DIR}/$(basename $1).dat -z
     rm ${BLDA_DIR}/$(basename $1)
+    # mv ${BLDA_DIR}/$(basename $1) -t ~/src/c/build/
   }
 
   for SRC in $R_DEMO $R_MARK; do
@@ -1080,6 +1171,8 @@ successfully built the DAT files myself).
     TIC2DAT ${BLDA_DIR}/$(basename -s .r $SRC).tic
   done
 #+end_src
+
+#+RESULTS: convert the R demo and benchmark source files to .tic.dat format
 
 #+RESULTS:
 
@@ -1093,6 +1186,87 @@ to work out why that is with a more involved search of the sources and then some
 debugging.
 
 *** Second attempt at debugging the bugged ~new r~ functionality
+Looking at the Scheme language integration it seems my mistake may be calling
+the command with a lower-case ~r~, when I should call it with an upper-case ~R~,
+if and only if the ~.name~ member of the ~const tic_script~ object in my
+language integration has that casing.
+
+#+begin_src C
+  TIC_EXPORT const tic_script EXPORT_SCRIPT(R) =
+  {
+  	/* The first five members of the struct have the sum total following
+  	 ,* size. */
+  	/* sizeof(u8) + 3 * sizeof(char *)  */
+  	.id                     = 42,
+  	.name                   = "r",
+  	.fileExtension          = ".r",
+  	.projectComment         = "##"
+#+end_src
+
+Unfortunatley, as shown by the quotation, that is not the case.
+
+Perhaps it is the arbitrary ~.id~ I chose. How are the other IDs determined?
+
+- lua :: 10
+- ruby :: 11
+- js :: 12
+- moonscript :: 13, which is alike my R integration in that it uses ~moon~ for its name and then ~.moon~ for its extension; no problems for me here.
+- fennel :: 14
+- squirrel :: 15
+- wren :: 16
+- wasm :: 17
+- janet :: 18
+- scheme :: 19
+- python :: 20
+- r :: 21
+
+It looks like R is the eleventh language added to TIC-80. There are room for
+five more, given I saw a "maximum number of langauges" elsewhere in the codebase
+set to sixteen.
+
+*** Third attempt
+This procedure is used at runtime to add scripts to the ~Scripts~ array.
+
+#+begin_src C
+  void tic_add_script(const tic_script* script)
+  {
+      s32 index = 0;
+      FOREACH_LANG(it)
+      {
+          if(it->id == script->id || strcmp(it->name, script->name) == 0)
+          {
+              // script already exists
+              return;
+          }
+
+          index++;
+      }
+
+      if(index < MAX_SUPPORTED_LANGS)
+      {
+          Scripts[index] = script;
+          qsort(Scripts, index + 1, sizeof Scripts[0], compareScripts);
+      }
+  }
+#+end_src
+
+- How is the ~Scripts~ array used?
+- [X] How is ~it~ defined at runtime? ~it~ likely means "iterator", the current one.
+
+It doesn't appear that ~it~ is defined in /any way/. It is a literal macro
+argument used in concatenation of an identifier, and no more.
+
+~Scripts~ is only used within =script.c=; it is only used within the functions
+~tic_add_script~, ~tic_get_script~, and ~tic_scripts~. Collectively, =script.c=
+defines functionality for compile-time and run-time population of the =Scripts=
+array, which is used for autocompletion of certain command-line commands within
+the TIC-80 console (~new~ in particular).
+
+~tic_get_script~ checks if the argument ~memory~ (of type =tic_mem *=) has the
+same id as any of the =tic_scripts= in =Scripts=. If none of the scripts match,
+either an uninitialized =tic_script= called ~empty~ is returned or the address
+of the whole array is returned (effectively returning the first member of the
+array). ~tic_scripts~ returns the address of the whole array forthright.
 
 * TODO Debugging R programs in TIC-80
 Integrate the R debugger, browser, etc. into TIC-80.
@@ -1133,36 +1307,36 @@ to a pointer to another type (=tic_core=) as well. It's not simple code (the
 whole application is an emulator for a computer that doesn't exist, after all!).
 
 #+begin_src C
-	struct tic_mem
-{
-		tic80           product;
-		tic_ram*        ram;
-		tic_cartridge   cart;
+  struct tic_mem
+  {
+  	tic80           product;
+  	tic_ram*        ram;
+  	tic_cartridge   cart;
 
-		tic_ram*        base_ram;
+  	tic_ram*        base_ram;
 
-		char saveid[TIC_SAVEID_SIZE];
+  	char saveid[TIC_SAVEID_SIZE];
 
-		union
-		{
-				struct
-				{
-#if RETRO_IS_BIG_ENDIAN
-						u8 padded:5;
-						u8 keyboard:1;
-						u8 mouse:1;
-						u8 gamepad:1;
-#else
-						u8 gamepad:1;
-						u8 mouse:1;
-						u8 keyboard:1;
-						u8 padded:5;
-#endif
-				};
+  	union
+  	{
+  		struct
+  		{
+  #if RETRO_IS_BIG_ENDIAN
+  			u8 padded:5;
+  			u8 keyboard:1;
+  			u8 mouse:1;
+  			u8 gamepad:1;
+  #else
+  			u8 gamepad:1;
+  			u8 mouse:1;
+  			u8 keyboard:1;
+  			u8 padded:5;
+  #endif
+  		};
 
-				u8 data;
-		} input;
-};
+  		u8 data;
+  	} input;
+  };
 #+end_src
 
 This is the fifth member of the struct =tic_script=, which is predictably offset
@@ -1175,38 +1349,38 @@ I wrote this small, not-so-good program to learn the size (in bytes) of the
 offset of the functions in the =tic_script= type.
 
 #+begin_src C
-	#include <stdio.h>
-	#include <stddef.h>
+  #include <stdio.h>
+  #include <stddef.h>
 
-	int main(void) {
-		typedef struct {
-			unsigned int x;
-			char *a[3];
-		} memory;
+  int main(void) {
+  	typedef struct {
+  		unsigned int x;
+  		char *a[3];
+  	} memory;
 
-		memory x;
-		memory y;
+  	memory x;
+  	memory y;
 
-		printf("y (%p) - x (%p) = %p address\n", &y, &x, &y - &x);
-		printf("0x.....20 -> int = %d\n", (int) 0x20);
-		printf("0x.....20 -> int = %d\n", (unsigned long int) ( &y - &x ));
-	}
+  	printf("y (%p) - x (%p) = %p address\n", &y, &x, &y - &x);
+  	printf("0x.....20 -> int = %d\n", (int) 0x20);
+  	printf("0x.....20 -> int = %d\n", (unsigned long int) ( &y - &x ));
+  }
 #+end_src
 
 #+begin_src C
-	#include <stdio.h>
-	#include <stddef.h>
+  #include <stdio.h>
+  #include <stddef.h>
 
-	int main(void) {
-		typedef struct {
-			unsigned int x;
-			char *a[3];
-		} memory;
+  int main(void) {
+  	typedef struct {
+  		unsigned int x;
+  		char *a[3];
+  	} memory;
 
-		memory x, y;
+  	memory x, y;
 
-		printf("%zu\n", sizeof(x));
-	}
+  	printf("%zu\n", sizeof(x));
+  }
 #+end_src
 
 ** Learning how to work with this stuff
@@ -1246,68 +1420,68 @@ for R from C.
 
 #+name: a (annotated) quotation of =embeddedRCall.h=
 #+begin_src c
-	#ifndef EMBEDDED_R_CALL_H
-	#define EMBEDDED_R_CALL_H
+  #ifndef EMBEDDED_R_CALL_H
+  #define EMBEDDED_R_CALL_H
 
-	#include <R.h>
-	#include <Rinternals.h>
+  #include <R.h>
+  #include <Rinternals.h>
 
-	/* Predeclarations */
-	int eval_R_command(const char *funcName, int argc, char *argv[]);
-	void init_R(int argc, char **argv);
-	void end_R();
+  /* Predeclarations */
+  int eval_R_command(const char *funcName, int argc, char *argv[]);
+  void init_R(int argc, char **argv);
+  void end_R();
 
-	#endif
+  #endif
 #+end_src
 
 #+name: a quotation of =embeddedRCall.c=
 #+begin_src C
-	#include <Rembedded.h>
-	#include "embeddedRCall.h"
+  #include <Rembedded.h>
+  #include "embeddedRCall.h"
 
-	int
-	eval_R_command(const char *funcName, int argc, char *argv[])
-	{
-	SEXP e; a /* MAYBE FIXME: Possibly missing semi-colon. Copy-paste error? */
-	SEXP arg;
+  int
+  eval_R_command(const char *funcName, int argc, char *argv[])
+  {
+  	SEXP e; a /* MAYBE FIXME: Possibly missing semi-colon. Copy-paste error? */
+  						SEXP arg;
 
-	int i;
-	int errorOccurred;
-	init_R(argc, argv);
+  	int i;
+  	int errorOccurred;
+  	init_R(argc, argv);
 
-	PROTECT(arg = allocVector(INTSXP, 10));
-	for(i = 0; i < LENGTH(arg); i++) INTEGER(arg)[i]  = i + 1;
+  	PROTECT(arg = allocVector(INTSXP, 10));
+  	for(i = 0; i < LENGTH(arg); i++) INTEGER(arg)[i]  = i + 1;
 
-	PROTECT(e = lang2(install(funcName), arg));
+  	PROTECT(e = lang2(install(funcName), arg));
 
-	/* Evaluate the call to the R function.
-		 Ignore the return value.
-	,*/
-	R_tryEval(e, R_GlobalEnv, &errorOccurred);
+  /* Evaluate the call to the R function.
+  	 Ignore the return value.
+  ,*/
+  	R_tryEval(e, R_GlobalEnv, &errorOccurred);
 
-	Rf_endEmbeddedR(0);
-	UNPROTECT(2);
-	return(0);
-	}
+  	Rf_endEmbeddedR(0);
+  	UNPROTECT(2);
+  	return(0);
+  }
 
-	void
-	init_R(int argc, char **argv)
-	{
-			int defaultArgc = 1;
-			char *defaultArgv[] = {"Rtest"};
+  void
+  init_R(int argc, char **argv)
+  {
+  	int defaultArgc = 1;
+  	char *defaultArgv[] = {"Rtest"};
 
-			if(argc == 0 || argv == NULL) {
-		argc = defaultArgc;
-		argv = defaultArgv;
-			}
-			Rf_initEmbeddedR(argc, argv);
-	}
+  	if(argc == 0 || argv == NULL) {
+  		argc = defaultArgc;
+  		argv = defaultArgv;
+  	}
+  	Rf_initEmbeddedR(argc, argv);
+  }
 
-	void
-	end_R()
-	{
-			Rf_endEmbeddedR(0);
-	}
+  void
+  end_R()
+  {
+  	Rf_endEmbeddedR(0);
+  }
 #+end_src
 
 *** Registering symbols in R from C
