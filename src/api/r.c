@@ -51,9 +51,7 @@ tic_core *getTICCore(tic_mem* tic, const char* code);
 static bool initR(tic_mem *tic, const char *code) {
   killer;
 
-#define dbgmsg initR##__LINE__
-	fprintf(stderr, "%s\n", dbgmsg);
-#undef dbgmsg
+  fprintf(stderr, "%s\n", __LINE__);
 
   int tries = 1;
   core = getTICCore(tic, code);

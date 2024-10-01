@@ -513,9 +513,7 @@ only one).
   static bool initR(tic_mem *tic, const char *code) {
     killer;
 
-  #define dbgmsg initR##__LINE__
-  	fprintf(stderr, "%s\n", dbgmsg);
-  #undef dbgmsg
+    fprintf(stderr, "%s\n", __LINE__);
 
     int tries = 1;
     core = getTICCore(tic, code);
@@ -542,7 +540,7 @@ want to use that, but if we were forced to use ~main~ that'd be a nice homophone
 at least. The =exists= function doesn't use symbols, it uses strings to lookup
 symbols so that is why that part differs in the chunk below.
 
-#+begin_src C :noweb no-export :noweb-ref cartridge commands
+#+begin_src C :noweb-ref cartridge commands
   static void callRFn_TIC80() {
     /* if (exists("TIC-80") && is.function(`TIC-80`)) `TIC-80`() */
     Rf_eval(Rf_mkString("if (exists(\"TIC-80\") && is.function(`TIC-80`)) "\
@@ -1070,6 +1068,8 @@ chain (is there Fortran?) to ever work there. Baremetal? I won't bother.
   message("BUILD_WITH_R: ${BUILD_WITH_R}")
 
   if(BUILD_WITH_R AND NOT N3DS AND NOT BAREMETALAPI)
+    set(TIC_BUILD_WITH_R TRUE)
+
     if(NOT BUILD_STATIC)
       if(NOT DEFINED ENV{R_HOME} AND DEFINED PREFIX)
         set(R_HOME "${PREFIX}/lib64/R")
@@ -1144,14 +1144,6 @@ successfully built the DAT files myself).
 
 #+name: convert the R demo and benchmark source files to .tic.dat format
 #+begin_src bash
-  # NOTE: this could be "improved" to take command-line arguments for the language
-  # name (prefixing "demo" or "mark") and the file suffix (including the dot, so
-  # ".r"). Relative paths only valid from where r.org defined (src/api/r.org)
-  T80_DIR="${HOME}/src/c/TIC-80"
-  R_DEMO="${T80_DIR}/demos/rdemo.r"
-  R_MARK="${T80_DIR}/demos/bunny/rmark.r"
-  BLDA_DIR="${T80_DIR}/build/assets"
-
   # FILE := $1
   SRC2TIC() {
     local SRC2TIC="${HOME}/src/c/build/bin/prj2cart"
@@ -1166,10 +1158,25 @@ successfully built the DAT files myself).
     # mv ${BLDA_DIR}/$(basename $1) -t ~/src/c/build/
   }
 
-  for SRC in $R_DEMO $R_MARK; do
-    SRC2TIC $SRC
-    TIC2DAT ${BLDA_DIR}/$(basename -s .r $SRC).tic
-  done
+  main() {
+    set --
+
+    # NOTE: this could be "improved" to take command-line arguments for the language
+    # name (prefixing "demo" or "mark") and the file suffix (including the dot, so
+    # ".r"). Relative paths only valid from where r.org defined (src/api/r.org)
+    local T80_DIR="${HOME}/src/c/TIC-80"
+    local R_DEMO="${T80_DIR}/demos/rdemo.r"
+    local R_MARK="${T80_DIR}/demos/bunny/rmark.r"
+    local BLDA_DIR="${T80_DIR}/build/assets"
+
+    for SRC in $R_DEMO $R_MARK; do
+      SRC2TIC $SRC
+      TIC2DAT ${BLDA_DIR}/$(basename -s .r $SRC).tic
+    done
+  }
+
+  main
+
 #+end_src
 
 #+RESULTS: convert the R demo and benchmark source files to .tic.dat format
