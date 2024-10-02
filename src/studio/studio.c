@@ -2329,36 +2329,34 @@ static void blitCursor(Studio* studio)
 
     if(tic->input.mouse && !m->relative && (s32)m->x < TIC80_FULLWIDTH && (s32)m->y < TIC80_FULLHEIGHT)
     {
-        s32 sprite = CLAMP(tic->ram->vram.vars.cursor.sprite, 0, TIC_BANK_SPRITES - 1);
+        const s32 sprite = CLAMP(tic->ram->vram.vars.cursor.sprite, 0, TIC_BANK_SPRITES - 1);
         const tic_bank* bank = &tic->cart.bank0;
-
-		tic_point hot = {0};
-		hot = (tic_point[])
+		
+		if(tic->ram->vram.vars.cursor.system)
+		{
+			bank = &getConfig(studio)->cart->bank0;
+			const tic_palette* pal = &bank->palette.vbank0;
+			const tic_tile* tile = &bank->sprites.data[sprite];
+			const tic_point hot = (tic_point[])
 			{
 				{0, 0},
 				{3, 0},
 				{2, 3},
 			}[CLAMP(sprite, 0, 2)];
-		
-		if(tic->ram->vram.vars.cursor.system)
-		{
-			bank = &getConfig(studio)->cart->bank0;
+
+			const tic_point s = {m->x - hot.x, m->y - hot.y};
+			u32* dst = tic->product.screen + TIC80_FULLWIDTH * s.y + s.x;
+
+			for(s32 y = s.y, endy = MIN(y + TIC_SPRITESIZE, TIC80_FULLHEIGHT), i = 0; y != endy; ++y, dst += TIC80_FULLWIDTH - TIC_SPRITESIZE)
+				for(s32 x = s.x, endx = x + TIC_SPRITESIZE; x != endx; ++x, ++i, ++dst)
+					if(x < TIC80_FULLWIDTH)
+					{
+						u8 c = tic_tool_peek4(tile->data, i);
+						if(c)
+							*dst = tic_rgba(&pal->colors[c]);
+					}
 		}
-		
-        const tic_palette* pal = &bank->palette.vbank0;
-        const tic_tile* tile = &studio->config->cart->bank0.sprites.data[sprite];
-
-        tic_point s = {m->x - hot.x, m->y - hot.y};
-        u32* dst = tic->product.screen + TIC80_FULLWIDTH * s.y + s.x;
-
-        for(s32 y = s.y, endy = MIN(y + TIC_SPRITESIZE, TIC80_FULLHEIGHT), i = 0; y != endy; ++y, dst += TIC80_FULLWIDTH - TIC_SPRITESIZE)
-            for(s32 x = s.x, endx = x + TIC_SPRITESIZE; x != endx; ++x, ++i, ++dst)
-                if(x < TIC80_FULLWIDTH)
-                {
-                    u8 c = tic_tool_peek4(tile->data, i);
-                    if(c)
-                        *dst = tic_rgba(&pal->colors[c]);
-                }
+        else if(sprite == 0) return;
     }
 }
 
