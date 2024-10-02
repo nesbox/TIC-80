@@ -223,6 +223,19 @@ m3ApiRawFunction(wasmtic_ellib)
     m3ApiSuccess();
 }
 
+m3ApiRawFunction(wasmtic_paint)
+{
+    m3ApiGetArg      (int32_t, x)
+    m3ApiGetArg      (int32_t, y)
+    m3ApiGetArg      (int8_t, color)
+    m3ApiGetArg      (int8_t, bordercolor)
+
+    tic_core* core = getWasmCore(runtime); tic_mem* tic = (tic_mem*)core;
+    core->api.paint(tic, x, y, color, bordercolor);
+
+    m3ApiSuccess();
+}
+
 m3ApiRawFunction(wasmtic_rect)
 {
     m3ApiGetArg      (int32_t, x)
