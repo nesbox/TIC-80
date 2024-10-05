@@ -430,8 +430,8 @@ static INLINE u16 tic_sound_register_get_freq(const tic_sound_register* reg)
 
 static INLINE void tic_sound_register_set_freq(tic_sound_register* reg, u16 val)
 {
-    reg->freq_low = val;
-    reg->freq_high = val >> 8;
+    reg->freq_low = (u8)(val);         // Explicit cast to u8
+    reg->freq_high = (u8)(val >> 8);   // Explicit cast to u8 after shifting
 }
 
 typedef struct
