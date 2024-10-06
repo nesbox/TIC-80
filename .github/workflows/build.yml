@@ -172,7 +172,8 @@ jobs:
 
       - name: Install
         run: |
-          sudo apt-get update
+          sudo add-apt-repository ppa:ubuntu-toolchain-r/ppa
+          sudo apt update
           sudo apt-get install gcc-14 g++-14 libxext-dev libglu1-mesa-dev libasound2-dev libpulse-dev libaudio-dev libsamplerate0-dev libcurl4-openssl-dev -y
           sudo ln -s -f /usr/bin/gcc-14 /usr/bin/gcc
           sudo ln -s -f /usr/bin/g++-14 /usr/bin/g++
