@@ -145,7 +145,7 @@ jobs:
       - name: Deploy
         uses: actions/upload-artifact@v4
         with:
-          name: "tic80-linux"
+          name: "tic80-linux-gcc12"
           path: |
             build/bin/tic80
             build/bin/*.so
@@ -156,7 +156,7 @@ jobs:
           cmake -DCMAKE_BUILD_TYPE=MinSizeRel -DBUILD_SDLGPU=On -DBUILD_PRO=On -DBUILD_WITH_ALL=ON ..
           cmake --build . --config MinSizeRel --parallel
 
-    # === Ubuntu ===
+  # === Ubuntu gcc14 ===
   linux-gcc14-glibc239:
     runs-on: ubuntu-24.04
 
@@ -186,7 +186,7 @@ jobs:
       - name: Deploy
         uses: actions/upload-artifact@v4
         with:
-          name: "tic80-linux"
+          name: "tic80-linux-gcc14"
           path: |
             build/bin/tic80
             build/bin/*.so
