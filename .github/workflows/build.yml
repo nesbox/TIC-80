@@ -116,7 +116,7 @@ jobs:
           cmake --build . --parallel
 
   # === Ubuntu ===
-  linux-gcc12-glibc2.35:
+  linux-gcc12-glibc235:
     runs-on: ubuntu-22.04
 
     steps:
@@ -157,7 +157,7 @@ jobs:
           cmake --build . --config MinSizeRel --parallel
 
     # === Ubuntu ===
-  linux-gcc14-glibc2.39:
+  linux-gcc14-glibc239:
     runs-on: ubuntu-22.04
 
     steps:
